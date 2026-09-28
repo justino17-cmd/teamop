@@ -71,11 +71,11 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
       PLANS: bloc('const PLANS={'), grise: bloc('function suspensionGrise(){'), forfait: bloc('function forfait(){'),
       places: bloc('function planPlaces(){'), libre: bloc('function planPlaceLibre(){'),
       manquants: bloc('function abosManquants(){'), proposer: bloc('function proposerAbonnement(){'),
-      essai: bloc('function essaiCouvreEquipe(){'),
+      essai: bloc('function essaiCouvreEquipe(){'), srv: bloc('function placesSrvActives(){'),
     };
     v('les fonctions sont trouvées', Object.keys(FN).filter(k => !FN[k]), []);
     v('⛔ une seule définition de chacune (une seconde gagnerait partout, en silence)',
-      ['function abosManquants(', 'function proposerAbonnement(', 'function planPlaces(', 'function planPlaceLibre(', 'function essaiCouvreEquipe('].map(n => SRC.split(n).length - 1), [1, 1, 1, 1, 1]);
+      ['function abosManquants(', 'function proposerAbonnement(', 'function planPlaces(', 'function planPlaceLibre(', 'function essaiCouvreEquipe(', 'function placesSrvActives('].map(n => SRC.split(n).length - 1), [1, 1, 1, 1, 1, 1]);
     /* les deux portes qui créent un compte passent toujours par là quand il n'y a plus de place */
     v('les deux portes qui créent un compte (utilisateur, fiche technicien) appellent proposerAbonnement quand il n\'y a plus de place',
       (SRC.match(/if\(!id && !planPlaceLibre\(\)\)\{ proposerAbonnement\(\); return; \}/g) || []).length, 2);
@@ -88,7 +88,8 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
       vm.createContext(ctx);
       vm.runInContext(`${FN.PLANS};
         var _susp = { suspendu: ${!!susp}, sursis: ${JSON.stringify(sursis)} };
-        ${FN.grise}\n${FN.forfait}\n${FN.places}\n${FN.libre}\n${FN.manquants}\n${FN.proposer}\n${FN.essai}
+        var _placesSrv = null, _placesSrvF = '';
+        ${FN.srv}\n${FN.grise}\n${FN.forfait}\n${FN.places}\n${FN.libre}\n${FN.manquants}\n${FN.proposer}\n${FN.essai}
         function todayISO(){ return '2026-09-28'; }
         function toast(m){ __toasts.push(String(m)); }
         function confirm(m){ __questions.push(String(m)); return ${!!oui}; }
@@ -105,7 +106,7 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
     vrai('… sur la page de paiement du site, dans un nouvel onglet', /^https:\/\/teamop\.fr\/recap-abonnement\.html\?/.test(adresse(m)) && m.__ouverts[0][1] === '_blank');
     const q = m.__questions[0] || '';
     vrai('… et la question le dit : « 7 utilisateurs pour 7 places », « il faut 1 abonnement Pro de plus »', q.includes('Formule Pro : 7 utilisateurs pour 7 places.') && q.includes('il faut 1 abonnement Pro de plus.'), q);
-    vrai('… « Un abonnement = un utilisateur », et qui ajoute la place : TEAM OP (rien d\'automatique n\'est promis)', q.includes('Un abonnement = un utilisateur') && q.includes('TEAM OP ajoute la place à ton espace.'), q);
+    vrai('… « Un abonnement = un utilisateur », et la place s\'ajoute d\'elle-même après le paiement (v763 : les places suivent ce qui est payé)', q.includes('Un abonnement = un utilisateur') && q.includes('la place s\'ajoute d\'elle-même à ton espace en quelques minutes'), q);
 
     /* 2. la place manquante se CALCULE sur les vraies places (Business en donnait 2 par abonnement jusqu'à la v761 ;
           depuis la v762, un abonnement = un utilisateur — le calcul reste le même) */
@@ -115,7 +116,7 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
     /* 3. une équipe déjà au-delà de ses places (la Tour a baissé le nombre) : tout ce qui manque, d'un coup */
     m = jouer({ f: 'pro', qty: 6, n: 8 });
     v('Pro, 8 personnes pour 6 places : 3 abonnements de plus (8 + 1 − 6)', qs(adresse(m)), { formule: 'pro', utilisateurs: '3' });
-    vrai('… « il faut 3 abonnements Pro de plus », « les places »', (m.__questions[0] || '').includes('il faut 3 abonnements Pro de plus.') && (m.__questions[0] || '').includes('ajoute les places à ton espace.'), m.__questions[0]);
+    vrai('… « il faut 3 abonnements Pro de plus », « les places »', (m.__questions[0] || '').includes('il faut 3 abonnements Pro de plus.') && (m.__questions[0] || '').includes('les places s\'ajoutent d\'elles-mêmes à ton espace en quelques minutes'), m.__questions[0]);
     /* 4. Business Premium : même règle */
     m = jouer({ f: 'premium', qty: 1, n: vm.runInContext('planPlaces()', monde({ f: 'premium', qty: 1 })) });
     v('Business Premium plein : 1 abonnement de plus', qs(adresse(m)), { formule: 'premium', utilisateurs: '1' });

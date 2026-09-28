@@ -8593,7 +8593,7 @@ function blocEspaces(){
         '<span class="reg-av gris">'+esc(sigle(e.nom||e.email||'?'))+'</span>'+
         '<span class="reg-txt"><span class="reg-t1">'+esc(e.nom||e.email||'—')+'</span>'+
         '<span class="reg-l2">'+esc(ABN_F[e.formule]||e.formule)+(e.quantite>1?' ×'+e.quantite:'')+
-        (e.paye?(e.promoCode?' · offert jusqu’au '+esc(e.finLe||'?')+' · '+joursRestants(e.finLe||''):' · payé'):' · en attente de paiement')+'</span></span>'+
+        (e.paye?(e.promoCode?' · offert jusqu’au '+esc(e.finLe||'?')+' · '+joursRestants(e.finLe||''):' · payé'+(e.places?' · '+nMot(e.places,'place servie','places servies'):'')):' · en attente de paiement')+'</span></span>'+
         '<span class="reg-fin">'+(e.paye?'':'<span class="past p-rouge">💳 En attente</span>')+
         '<span class="reg-chev" aria-hidden="true">›</span></span></button>'; }).join('')+'</div>')+'</div>';
 }

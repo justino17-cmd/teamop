@@ -30,7 +30,10 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
 
   const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64').replace(/=+$/, '');
   const sha = (x) => crypto.createHash('sha256').update(String(x)).digest('hex');
-  const JOUR = 86400000, BASCULE = Date.parse('2026-09-28T21:00:00Z');
+  /* La bascule de production est posée APRÈS le déploiement (`gardien`, A8) : un banc qui la lirait jouerait « avant » ou
+     « après » selon l'heure où il tourne. Le serveur du banc la reçoit une heure dans le passé (`TEAMOP_PLACES_BASCULE`) :
+     les gestes de la Tour faits pendant le banc sont « après », comme ils le seront en service. */
+  const JOUR = 86400000, BASCULE = Date.now() - 3600000;
   const AVANT = BASCULE - 30 * JOUR, APRES = Date.now() + JOUR;
   const dans = n => new Date(Date.now() + n * JOUR).toISOString().slice(0, 10);
   const D = path.join(banc, 'data'); fs.mkdirSync(D, { recursive: true });
@@ -65,6 +68,17 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
   const tAutre = esp('autremail', { formule: 'pro', quantite: 1, formuleTs: APRES, formulePar: 'Patron', email: 'paie@exemple-842.fr' });
   const tBorne = esp('borne', { formule: 'pro', quantite: 1, formuleTs: APRES, formulePar: 'Patron' });
   const tTP = esp('tourplus', { formule: 'pro', quantite: 5, formuleTs: APRES, formulePar: 'Patron' });
+  /* les cas de la contre-relecture de `gardien` (28 septembre 2026, nuit) */
+  const tMX = esp('mixte', { formule: 'premium', quantite: 2, formuleTs: AVANT, formulePar: 'Patron', email: 'mixte@exemple-842.fr' });
+  const tCA = esp('changeapres', { formule: 'business', quantite: 10, formuleTs: APRES, formulePar: 'Patron' });
+  const tMO = esp('montee', { formule: 'premium', quantite: 1, formuleTs: APRES, formulePar: 'Patron' });
+  const tD5 = esp('demande50', { formule: 'premium', quantite: 50, formuleTs: AVANT, formulePar: 'auto (demande)' });
+  const tTH = esp('tarifhaut', { formule: 'business', quantite: 1, formuleTs: APRES, formulePar: 'Patron' });
+  const tGR = esp('graveur', { formule: 'pro', quantite: 1, formuleTs: APRES, formulePar: 'Patron', email: 'grave@exemple-842.fr' });
+  esp('seulgrave', { formule: 'pro', quantite: 1, formuleTs: APRES, formulePar: 'Patron', email: 'grave@exemple-842.fr' });
+  esp('repartie', { formule: 'pro', quantite: 1, formuleTs: APRES, formulePar: 'Patron', email: 'repartie@exemple-842.fr' });
+  esp('retard', { formule: 'premium', quantite: 1, formuleTs: AVANT, formulePar: 'Patron', aboStatut: 'actif', aboTs: AVANT });
+  esp('nouvelle', { formule: 'business', quantite: 1, formuleTs: AVANT, formulePar: 'Patron' });
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(E));
   /* les codes : l'un en cours (promoprem, promotour), l'autre FINI hier (promofini) */
   fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify({
@@ -94,7 +108,14 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
     abo('m9', tAutre, 'active', [['pro', 9]], S_APRES, 'paie@exemple-842.fr'),
     abo('b9', tBorne, 'active', [['pro', 999]], S_APRES),
     abo('t2', tTP, 'active', [['pro', 2]], S_APRES),
-    abo('f1', tFini, 'active', [['premium', 1]], S_APRES) ];
+    abo('f1', tFini, 'active', [['premium', 1]], S_APRES),
+    abo('x1', '', 'active', [['premium', 2]], S_AVANT, 'mixte@exemple-842.fr'), abo('x2', tMX, 'active', [['premium', 1]], S_APRES, 'mixte@exemple-842.fr'),
+    abo('ca', tCA, 'active', [['business', 1]], S_AVANT),
+    abo('mo', tMO, 'active', [['business', 1]], S_AVANT),
+    abo('d5', tD5, 'active', [['premium', 1]], S_AVANT),
+    abo('th', tTH, 'active', [['premium', 3]], S_APRES),
+    abo('gr', tGR, 'active', [['pro', 4]], S_APRES, 'grave@exemple-842.fr'),
+    abo('rp', 'ent-ancienne-842', 'active', [['pro', 2]], S_APRES, 'repartie@exemple-842.fr') ];
   const PRECHARGE = path.join(banc, 'stripe-842.js');
   fs.writeFileSync(PRECHARGE, `const vrai = globalThis.fetch; const SUBS = ${JSON.stringify(SUBS)};
 globalThis.fetch = async function (url, opts) {
@@ -114,6 +135,7 @@ globalThis.fetch = async function (url, opts) {
   let journal = '';
   enfant = spawn(process.execPath, ['--require', PRECHARGE, SERVEUR], {
     env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, 'config.json'), TEAMOP_DATA: D, PORT: String(PORT),
+      TEAMOP_PLACES_BASCULE: new Date(BASCULE).toISOString(),
       TEAMOP_FB_ADMIN: path.join(banc, 'absente.json') }),
     stdio: ['ignore', 'pipe', 'pipe'] });
   enfant.stdout.on('data', d => { journal += d; }); enfant.stderr.on('data', d => { journal += d; });
@@ -172,6 +194,16 @@ globalThis.fetch = async function (url, opts) {
     v('⛔ une quantité folle est bornée à 50', pl('borne'), 50);
     v('⛔ la Tour en a réglé 5 (peut-être le nombre tapé dans la demande), Stripe en paie 2 → 2', pl('tourplus'), 2);
 
+    console.log('\n4 bis. Les cas de la contre-relecture (`gardien`)');
+    v('⛔ A1 · Business Premium d\'avant, 2 abonnements SANS référence (par l\'adresse) + 1 acheté après AVEC → 7, pas 1', [tous.mixte.paye, pl('mixte')], [true, 7]);
+    v('⛔ A2 · nombre porté à 10 dans la Tour APRÈS la bascule, 1 abonnement payé → 1, pas 20', pl('changeapres'), 1);
+    v('⛔ A2 · passée de Business à Business Premium APRÈS la bascule, 1 abonnement Business d\'avant → 1, pas 3', pl('montee'), 1);
+    v('⛔ A3 · « 50 utilisateurs » tapés dans la demande, 1 abonnement payé avant → 3, pas 150', pl('demande50'), 3);
+    v('⛔ A4 · fiche réglée Business, 3 abonnements Business Premium payés → 3 (un tarif AU-DESSUS compte)', pl('tarifhaut'), 3);
+    v('⛔ A5 · même adresse qu\'une entreprise qui paie, sans abonnement à elle → PAS payée', [tous.seulgrave.paye, pl('seulgrave')], [false, 1]);
+    v('   et celle qui paie a ses 4', [tous.graveur.paye, pl('graveur')], [true, 4]);
+    v('   une référence qui ne désigne plus personne (« repartir à neuf ») n\'empêche pas l\'adresse de rattacher → payée, 2', [tous.repartie.paye, pl('repartie')], [true, 2]);
+
     console.log('\n5. La Tour : réenregistrer sans rien changer n\'efface rien, et elle voit les places servies');
     const PATRON = (await appel('/api/monitor/login', { nom: 'Patron', pass: 'mot-de-passe-banc-842' })).j.token;
     vrai('la Tour ouvre une session de patron', PATRON);
@@ -181,6 +213,12 @@ globalThis.fetch = async function (url, opts) {
     v('   et « Attribuer » la même formule, même nombre → toujours 6', [r.s, (await etat('ancienprem')).places], [200, 6]);
     r = await appel('/api/monitor/espaces/abonnement', { nom: 'ancienbiz', formule: 'business', quantite: 3, statut: 'actif', fin: '' }, PATRON);
     v('   mais un NOMBRE changé après la bascule se lit un par utilisateur : 3 → 3 places', [r.s, (await etat('ancienbiz')).places], [200, 3]);
+    r = await appel('/api/monitor/espaces/abonnement', { nom: 'retard', formule: 'premium', quantite: 1, statut: 'impaye', fin: '' }, PATRON);
+    v('M4 · une Business Premium d\'avant passe en impayé → plus payée, 1', [r.s, (await etat('retard')).paye, (await etat('retard')).places], [200, false, 1]);
+    r = await appel('/api/monitor/espaces/abonnement', { nom: 'retard', formule: 'premium', quantite: 1, statut: 'actif', fin: '' }, PATRON);
+    v('⛔ M4 · elle règle son retard (« actif ») → ses 3 places reviennent : un impayé réglé n\'est pas un nouvel abonnement', [r.s, (await etat('retard')).places], [200, 3]);
+    r = await appel('/api/monitor/espaces/abonnement', { nom: 'nouvelle', formule: 'business', quantite: 1, statut: 'actif', fin: '' }, PATRON);
+    v('⛔    mais une entreprise qui ne payait pas, passée « actif » APRÈS la bascule → 1', [r.s, (await etat('nouvelle')).places], [200, 1]);
     const liste = (await appel('/api/monitor/espaces/liste', undefined, PATRON)).j.espaces || [];
     const li = sl => (liste.find(x => x.slug === sl) || {});
     v('la liste de la Tour dit les places servies (6, 7, 1)', [li('ancienprem').places, li('ancienajout').places, li('promofini').places], [6, 7, 1]);
@@ -203,15 +241,16 @@ globalThis.fetch = async function (url, opts) {
       vrai('ses places restent « formule × abonnements »', /function planPlaces\(\)\{ return \(PLANS\[forfait\(\)\]\.maxU\|\|1\)\*Math\.max\(1,db\.forfaitQty\|\|1\); \}/.test(sansCom));
     } else {
     console.log('\n6. L\'application v763 lit `places`, et ne le range jamais dans la base synchronisée');
-    const iPP = sansCom.indexOf('function planPlaces(){');
-    vrai('planPlaces est trouvée dans app.html', iPP > 0);
+    const iPP = sansCom.indexOf('function placesSrvActives(){');
+    vrai('placesSrvActives et planPlaces sont trouvées dans app.html', iPP > 0 && sansCom.indexOf('function planPlaces(){', iPP) > iPP);
     const corpsPP = sansCom.slice(iPP, sansCom.indexOf('\n', sansCom.indexOf('return (PLANS[forfait()].maxU||1)', iPP)) + 1);
     const vm = require('vm');
-    const joue = (placesSrv, srv, qty, formule) => { const ctx = { db: { forfaitSrv: srv, forfaitQty: qty }, PLANS: { pro: { maxU: 1 }, business: { maxU: 1 }, premium: { maxU: 1 } }, forfait: () => formule, _placesSrv: placesSrv };
+    const joue = (placesSrv, srv, qty, formule, formuleSrv) => { const ctx = { db: { forfaitSrv: srv, forfaitQty: qty }, PLANS: { pro: { maxU: 1 }, business: { maxU: 1 }, premium: { maxU: 1 } }, forfait: () => formule, _placesSrv: placesSrv, _placesSrvF: formuleSrv || '' };
       vm.createContext(ctx); vm.runInContext(corpsPP + ';this.r=planPlaces();', ctx); return ctx.r; };
     v('les places servies par le serveur font foi (7 servies, 2 abonnements)', joue(7, 'teamop', 2, 'premium'), 7);
     v('sans réponse du serveur, le calcul d\'avant (1 × 2)', joue(null, 'teamop', 2, 'premium'), 2);
-    v('une formule choisie sur l\'appareil (pas par TEAM OP) ne lit pas le serveur', joue(7, 'local', 2, 'pro'), 2);
+    v('une formule choisie sur l\'appareil, AUTRE que celle du serveur, ne lit pas le serveur', joue(7, 'local', 2, 'pro', 'premium'), 2);
+    v('⛔ mais la même que celle du serveur, si : `forfaitSrv` n\'est posé qu\'à un changement (`gardien`, M2)', joue(7, 'local', 2, 'premium', 'premium'), 7);
     const iSync = sansCom.indexOf('async function forfaitServeurSync(');
     const corpsSync = sansCom.slice(iSync, sansCom.indexOf('\nasync function ', iSync + 10) > 0 ? sansCom.indexOf('\nasync function ', iSync + 10) : iSync + 6000);
     vrai('forfaitServeurSync est trouvée', iSync > 0 && corpsSync.length > 500);
@@ -219,6 +258,14 @@ globalThis.fetch = async function (url, opts) {
     vrai('⛔ `db.forfaitQty` reste le nombre d\'abonnements (`j.quantite`), comme la v760 : aucune boucle de synchro entre versions',
       /const q=Math\.max\(1,parseInt\(j\.quantite,10\)\|\|1\);/.test(corpsSync) && !/db\.\w+\s*=[^;\n]*j\.places/.test(corpsSync));
     }
+
+    console.log('\n6 bis. Registre des codes illisible → dans le doute, « a eu un code » (`gardien`, A6)');
+    const iPD = SRV.indexOf('function placesPromoDejaEu(e) {');
+    let dPD = 0, fPD = -1; for (let k = SRV.indexOf('{', iPD); k < SRV.length; k++) { if (SRV[k] === '{') dPD++; else if (SRV[k] === '}') { dPD--; if (!dPD) { fPD = k + 1; break; } } }
+    vrai('placesPromoDejaEu est trouvée dans le serveur', iPD > 0 && fPD > iPD);
+    const pde = illisible => new Function('promosIllisible', 'promoUsages', 'espaceT', SRV.slice(iPD, fPD) + '\nreturn placesPromoDejaEu;')(illisible, {}, x => x.t)({ t: 'ent-x', formulePar: 'Patron' });
+    v('⛔ registre illisible (lu comme `{}`) → oui ; lisible et vide → non', [pde(true), pde(false)], [true, false]);
+    vrai('la bascule de production se lit dans le serveur (sa variable ne sert qu\'aux bancs)', Date.parse((SRV.match(/\|\| Date\.parse\('([^']+)'\);/) || [])[1]) > 0);
 
     console.log('\n7. Rien n\'est écrit, rien ne fuit');
     const apres = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'));
