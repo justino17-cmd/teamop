@@ -55,7 +55,7 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
   const tPromoTour = esp('promotour', { formule: 'business', quantite: 1, formuleTs: AVANT, formulePar: 'Patron' });
   const tFini = esp('promofini', { formule: 'premium', quantite: 5, formuleTs: AVANT, formulePar: 'auto (demande)', codePromo: 'FINI-BANC-842' });
   /* payées chez Stripe */
-  const tFA = esp('finiavant', { formule: 'premium', quantite: 5, formuleTs: AVANT, formulePar: 'Patron', codePromo: 'FINI2-BANC-842' });
+  const tFA = esp('finiavant', { formule: 'premium', quantite: 5, formuleTs: AVANT, formulePar: 'Patron', codePromo: 'FINIDEUX-BANC-842' });
   const tAM = esp('ancienmsg', { formule: 'business', quantite: 1, formuleTs: AVANT, formulePar: 'Patron' });
   const tAS = esp('ancienstripe', { formule: 'business', quantite: 1, formuleTs: AVANT, formulePar: 'Patron' });
   const tASP = esp('ancienplus', { formule: 'business', quantite: 1, formuleTs: AVANT, formulePar: 'Patron' });
@@ -91,7 +91,7 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
   fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify({
     'BIENVENUE-BANC-842': { n: 2, equipes: { [tPromo]: { date: dans(-10), finLe: dans(80) }, [tPromoTour]: { date: dans(-5), finLe: dans(85) } } },
     'FINI-BANC-842': { n: 1, equipes: { [tFini]: { date: dans(-91), finLe: dans(-1) } } },
-    'FINI2-BANC-842': { n: 1, equipes: { [tFA]: { date: dans(-120), finLe: dans(-30) } } } }));
+    'FINIDEUX-BANC-842': { n: 1, equipes: { [tFA]: { date: dans(-120), finLe: dans(-30) } } } }));
 
   /* Stripe simulé : les abonnements, TOUS statuts confondus, comme `stripeAbosBruts` les demande. Les tarifs sont les
      VRAIS identifiants (publics) de la page de paiement. */

@@ -35,7 +35,9 @@
 # compris (la page de paiement en service face au serveur neuf) — plancher relevé à 2 650.
 # 28 septembre 2026 : `test-841` (la Tour crée le lien après la demande, plus aucun code) — contre les pages de
 # `main` publiées avec lui (Tour v2.73, page de connexion sans code).
-#plancher 2680
+# 28 septembre 2026, nuit : 2 899 contre les pages de `main` (47 suites), `test-841` et `test-842` compris (plus aucun
+# code ; les places payées) — plancher relevé à 2 850.
+#plancher 2850
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
