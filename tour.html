@@ -2835,6 +2835,12 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
      pastille, elle, reste — c'est la porte du menu, et le titre commence après elle (70 px contre 56) */
   .hlogo{transition:opacity var(--d-2) var(--e-sortie)}
   body.titre-cache .hlogo{opacity:0}
+  /* la pastille a pris 52 px à l'identité : « Jean-Baptiste · collaborateur » débordait sa colonne et s'écrivait SOUS
+     « GESTION » (relecture v2.75, 360 et 390 px). La colonne se borne, l'ellipse de .hsous joue — le nom entier est
+     en tête du tiroir — et la pastille d'application garde sa largeur. */
+  .hg{min-width:0;flex:0 1 auto}
+  .hnom{min-width:0;overflow:hidden}
+  .app-pill{flex-shrink:0}
 
   #scrim-tiroir{display:block;z-index:40;opacity:0;transition:opacity 300ms ease;touch-action:none}
   #scrim-tiroir[hidden]{display:none}
@@ -2881,7 +2887,9 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
 }
 @media(min-width:900px){.menu-rond,.tiroir,#scrim-tiroir{display:none!important}}
 @media(prefers-reduced-motion:reduce){
-  .tiroir,.tiroir.on{transition:opacity var(--d-2) ease!important;transform:none!important;opacity:0}
+  /* suivre le doigt n'est pas une animation, c'est de la manipulation directe : pendant le glissé (.glisse), le
+     déplacement posé par le geste reste (relecture v2.75) */
+  .tiroir:not(.glisse),.tiroir.on:not(.glisse){transition:opacity var(--d-2) ease!important;transform:none!important;opacity:0}
   .tiroir.on{opacity:1}
   #scrim-tiroir{transition:none}
   .menu-rond:active{transform:none}
@@ -3091,6 +3099,7 @@ function majCompteursApp(){
   ['gestion','messages'].forEach(function(a){ var el=$('app-n-'+a); if(!el) return; el.textContent=n[a]; el.hidden=!n[a]; });
   var sw=$('app-sw'); if(sw) sw.hidden=!(MYAPPS.length>1);
   var pill=$('app-pill'); if(pill) pill.classList.toggle('seul',!(MYAPPS.length>1));
+  tiroirRafraichir();
 }
 document.addEventListener('keydown',function(e){ if((e.ctrlKey||e.metaKey)&&e.shiftKey&&!e.altKey){
   if(e.key==='G'||e.key==='g'){ e.preventDefault(); setApp('gestion'); } if(e.key==='M'||e.key==='m'){ e.preventDefault(); setApp('messages'); } } });
@@ -3771,7 +3780,7 @@ function tiroirHtml(){
     '<button type="button" class="ti-replier" onclick="fermerTiroir()" aria-label="Fermer le menu" title="Fermer le menu">'+svg('menu',22)+'</button></div>';
   if(MYAPPS.length>1) h+='<div class="app-sw" role="group" aria-label="Application pilotée">'+['gestion','messages'].map(function(a){
     var n=$('app-n-'+a), nv=n&&!n.hidden?(n.textContent||''):'';
-    return '<button type="button" data-app="'+a+'" aria-pressed="'+(a===APP)+'" onclick="tiroirApp(\''+a+'\')"><i style="--c:var(--app-'+a+')"></i>'+APPS_TOUR[a].court+
+    return '<button type="button" data-app="'+a+'" aria-pressed="'+(a===APP)+'" onclick="tiroirApp(\''+a+'\')"><i style="--c:'+APP_TEINTE[a]+'"></i>'+APPS_TOUR[a].court+
       '<span class="app-n"'+(nv?'':' hidden')+'>'+esc(nv||'0')+'</span></button>'; }).join('')+'</div>';
   menuVisible().forEach(function(g){
     h+='<div class="ti-sec">'+esc(g.section)+'</div>';
@@ -3798,6 +3807,10 @@ function ouvrirTiroir(){
   clearTimeout(_tiroirFin);
   t.innerHTML=tiroirHtml(); t.style.transform=''; t.style.transition='';
   t.hidden=false; sc.hidden=false; _tiroirOuvert=true; tiroirPastille(true);
+  /* il repart de sa MARQUE (relecture v2.75) : un tiroir défilé puis refermé se rouvrait défilé — marque, interrupteur
+     et vue ouverte hors de vue. ⚠️ APRÈS l'avoir montré : caché (display:none), il ignore scrollTop, et le navigateur
+     lui rend son ancien défilement quand il réapparaît. Puis on descend si la vue ouverte est sous le pli. */
+  t.scrollTop=0;
   document.documentElement.classList.add('tiroir-ouvert');
   requestAnimationFrame(function(){ if(!_tiroirOuvert) return; t.classList.add('on'); sc.classList.add('on'); });
   /* la vue ouverte est à portée de vue : Sauvegardes, tout en bas, restait sous le pli */
@@ -3810,7 +3823,7 @@ function fermerTiroir(sansAnim){
   var dedans=t.contains(document.activeElement);
   _tiroirOuvert=false; tiroirPastille(false);
   /* le transform posé par le doigt s'efface EN MÊME TEMPS que la classe : le tiroir repart d'où le doigt l'a laissé */
-  t.style.transform=''; t.style.transition=''; t.classList.remove('on'); sc.classList.remove('on');
+  t.style.transform=''; t.style.transition=''; t.classList.remove('on','glisse'); sc.classList.remove('on');
   document.documentElement.classList.remove('tiroir-ouvert');
   var fin=function(){ if(_tiroirOuvert) return; t.hidden=true; sc.hidden=true; };
   var sobre=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -3818,8 +3831,21 @@ function fermerTiroir(sansAnim){
   var b=$('menu-rond'); if(dedans&&b) try{ b.focus({preventScroll:true}); }catch(e){}
 }
 function tiroirAller(v){ fermerTiroir(); setTab(v,true); }
-function tiroirApp(a){ setApp(a,true); if(!_tiroirOuvert) return; var t=$('tiroir'); t.innerHTML=tiroirHtml();
-  var b=t.querySelector('.app-sw button[data-app="'+a+'"]'); if(b) try{ b.focus({preventScroll:true}); }catch(e){} }
+function tiroirApp(a){ setApp(a,true); }
+/* UN seul point de rafraîchissement (relecture v2.75) : la console, la vue ou un compteur qui change pendant que le
+   tiroir est ouvert — Ctrl+Maj+G, le retour du navigateur, un incident qui arrive — le redessinent (setTab, setBdg,
+   majCompteursApp l'appellent). Sans ça, il listait encore les vues de l'autre console. Le défilement et le bouton
+   qui a le focus sont gardés ; et jamais sous un doigt posé : la ligne remplacée sous le doigt emporterait le geste
+   (ses événements ne remonteraient plus) — on attend qu'il se lève, et que le clic du toucher soit passé. */
+var _tiroirDoigt=false,_tiroirARefaire=false;
+function tiroirRafraichir(){
+  if(!_tiroirOuvert) return; var t=$('tiroir'); if(!t) return;
+  if(_tiroirDoigt){ _tiroirARefaire=true; return; }
+  _tiroirARefaire=false;
+  var st=t.scrollTop, l=[].slice.call(t.querySelectorAll('button')), i=l.indexOf(document.activeElement);
+  t.innerHTML=tiroirHtml(); t.scrollTop=st;
+  if(i>=0){ var b=t.querySelectorAll('button')[i]; if(b) try{ b.focus({preventScroll:true}); }catch(e){} }
+}
 /* Le doigt repousse le tiroir : il suit 1:1 vers la gauche ; au lâcher, l'élan PROJETÉ décide (la même
    décélération que la feuille). Un doigt qui part d'abord à la verticale fait défiler la liste, rien d'autre.
    ⛔ Le TACTILE pour un doigt (règle du dépôt : le navigateur annule le flux de pointeur au premier mouvement
@@ -3827,14 +3853,16 @@ function tiroirApp(a){ setApp(a,true); if(!_tiroirOuvert) return; var t=$('tiroi
 (function(){ var s=null;
   document.addEventListener('touchstart',function(e){ var t=$('tiroir'); s=null;
     if(!_tiroirOuvert||!t||!e.touches||e.touches.length!==1||!t.contains(e.target)) return;
-    var p=e.touches[0]; s={t:t,x0:p.clientX,y0:p.clientY,x:0,v:0,ts:e.timeStamp,engage:false}; },{passive:true});
+    var p=e.touches[0]; _tiroirDoigt=true; s={t:t,x0:p.clientX,y0:p.clientY,x:0,v:0,ts:e.timeStamp,engage:false}; },{passive:true});
   document.addEventListener('touchmove',function(e){ if(!s) return; var p=e.touches&&e.touches[0]; if(!p) return;
     var dx=p.clientX-s.x0, dy=p.clientY-s.y0;
     if(!s.engage){ if(Math.abs(dy)>=6&&Math.abs(dy)>Math.abs(dx)){ s=null; return; } if(dx>-6) return;
-      s.engage=true; s.t.style.transition='none'; }
+      s.engage=true; s.t.style.transition='none'; s.t.classList.add('glisse'); }
     var x=Math.min(0,dx), dt=Math.max(1,e.timeStamp-s.ts); s.v=(x-s.x)/dt; s.ts=e.timeStamp; s.x=x;
     s.t.style.transform='translateX('+x+'px)'; if(e.cancelable) e.preventDefault(); },{passive:false});
-  var lacher=function(annule){ if(!s) return; var st=s; s=null; if(!st.engage) return; _tiroirGlisseFin=Date.now();
+  var leve=function(){ if(!_tiroirDoigt) return; _tiroirDoigt=false;
+    if(_tiroirARefaire) setTimeout(function(){ if(!_tiroirDoigt) tiroirRafraichir(); },400); };
+  var lacher=function(annule){ leve(); if(!s) return; var st=s; s=null; if(!st.engage) return; _tiroirGlisseFin=Date.now(); st.t.classList.remove('glisse');
     var projete=-st.x+Math.max(0,-st.v)*0.998/(1-0.998);
     if(!annule&&projete>Math.min(120,st.t.offsetWidth/3)) fermerTiroir();
     else { st.t.style.transition=''; st.t.style.transform=''; } };
@@ -3975,6 +4003,7 @@ function setTab(t,sansAnim){
   if(t==='equipe'&&!EQ.loaded) chargerEquipe();
   if(t==='journal'&&!JR.loaded) chargerJournal();
   window.scrollTo(0,0);
+  tiroirRafraichir();
 }
 function setBdg(id,n){ var e=$(id); if(!e) return;
   var avant=e.textContent; e.textContent=n; e.style.display=n?'inline-block':'none';
@@ -3983,6 +4012,7 @@ function setBdg(id,n){ var e=$(id); if(!e) return;
   /* le compteur de la barre du bas (et celui de « Plus », qui porte le Courrier quand il n'a pas
      sa place dans la barre) suit TOUT DE SUITE : il ne dépend plus du prochain rendu d'une vue */
   try{ majBarreBas(); }catch(x){}
+  tiroirRafraichir();
 }
 
 /* ═══ LES DONNÉES (toutes réelles) ═══ */

@@ -16,6 +16,13 @@ MUTS = [
  ("focus non rendu", "var b=$('menu-rond'); if(dedans&&b) try{ b.focus({preventScroll:true}); }catch(e){}", "", True),
  ("tiré vers la droite aussi", "var x=Math.min(0,dx), dt=", "var x=dx, dt=", False),
  ("aria-expanded jamais faux", "_tiroirOuvert=false; tiroirPastille(false);", "_tiroirOuvert=false;", True),
+ # relecture v2.75
+ ("rouvert défilé (plus de remise à zéro)", "     lui rend son ancien défilement quand il réapparaît. Puis on descend si la vue ouverte est sous le pli. */\n  t.scrollTop=0;", "     lui rend son ancien défilement quand il réapparaît. Puis on descend si la vue ouverte est sous le pli. */", True),
+ ("setTab ne redessine plus le tiroir", "  window.scrollTo(0,0);\n  tiroirRafraichir();\n}", "  window.scrollTo(0,0);\n}", True),
+ ("rafraîchi sous le doigt posé", "  if(_tiroirDoigt){ _tiroirARefaire=true; return; }\n", "", False),
+ ("teinte par un nom bâti", "onclick=\"tiroirApp(\\''+a+'\\')\"><i style=\"--c:'+APP_TEINTE[a]+'\"></i>", "onclick=\"tiroirApp(\\''+a+'\\')\"><i style=\"--c:var(--app-'+a+')\"></i>", False),
+ ("nom non borné au téléphone", "  .hg{min-width:0;flex:0 1 auto}\n  .hnom{min-width:0;overflow:hidden}\n", "", True),
+ ("animations réduites : le doigt écrasé", ".tiroir:not(.glisse),.tiroir.on:not(.glisse){transition:opacity", ".tiroir,.tiroir.on{transition:opacity", True),
 ]
 def compte(out):
     m = re.findall(r'(\d+) ✓ +(\d+) ✗', out); return (int(m[-1][0]), int(m[-1][1])) if m else (0, -1)

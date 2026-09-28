@@ -106,11 +106,14 @@ async function main() {
       await touche('touchStart', 250, 400); let suit = null;
       for (let i = 1; i <= 8; i++) { await touche('touchMove', 250 - i * 22, 402); await dormir(16);
         if (i === 4) suit = await ev(`${STABLE} return Math.round(document.getElementById('tiroir').getBoundingClientRect().left);`); }
-      await touche('touchEnd', 250 - 176, 402); await ev(REPOS + ' return 1;'); E = await ev(ETAT);
+      await touche('touchEnd', 250 - 176, 402);
+      /* le clic qu'un iPhone produit parfois au lâcher d'un glissé : Chromium piloté n'en émet pas, on le JOUE —
+         sur une ligne du tiroir, dans les 350 ms (relecture : le contrôle d'avant passait sans la garde) */
+      const clicApres = await ev(`const b=document.querySelector('#tiroir .ti[data-t="journal"]')||document.querySelector('#tiroir .ti[data-t]:not(.on)'); const avant=TAB; if(b) b.click(); return {avant, apres:TAB, ligne:b?b.dataset.t:null};`);
+      await ev(REPOS + ' return 1;'); E = await ev(ETAT);
       v('glisser vers la GAUCHE : le tiroir suit le doigt', suit !== null && suit < -40, 'gauche à mi-geste : ' + suit);
       v('   … et se referme au lâcher', E.cache && E.exp === 'false', JSON.stringify(E));
-      const tabApres = E.tab;
-      v('   … sans ouvrir la ligne lâchée sous le doigt', tabApres === cible.t, tabApres);
+      v('⛔ … et le clic qui suit le glissé est avalé : la ligne sous le doigt ne s\'ouvre pas', !!clicApres.ligne && clicApres.apres === clicApres.avant && E.tab === cible.t, JSON.stringify(clicApres));
 
       /* 5 · jamais deux panneaux : « Plus » ouvert, la pastille le referme */
       await ev(`ouvrirFeuille('plus'); ${REPOS} return 1;`);
@@ -128,6 +131,50 @@ async function main() {
       v('   il commence APRÈS la pastille', T.g >= T.pd, JSON.stringify(T));
       v('   le logo s\'efface pendant ce temps (il tomberait sous le titre)', T.logo < 0.1, JSON.stringify(T));
       await ev(`window.scrollTo(0,0); return 1;`);
+
+      /* 7 · (relecture) un tiroir défilé puis refermé se rouvre sur sa MARQUE */
+      await ev(`setTab('accueil',true); ${REPOS} return 1;`);
+      await tap(P.x, P.y);
+      await touche('touchStart', 150, 700); for (let i = 1; i <= 10; i++) { await touche('touchMove', 151, 700 - i * 40); await dormir(16); } await touche('touchEnd', 151, 300);
+      await ev(REPOS + ' return 1;');
+      const defile = await ev(`return document.getElementById('tiroir').scrollTop;`);
+      await ev(`fermerTiroir(true); ${REPOS} return 1;`); await tap(P.x, P.y);
+      const R = await ev(`${STABLE} const t=document.getElementById('tiroir'), on=t.querySelector('.ti.on'), tete=t.querySelector('.ti-tete'); const r=on.getBoundingClientRect(), rt=t.getBoundingClientRect();
+        return {st:t.scrollTop, onVu:r.top>=rt.top&&r.bottom<=rt.bottom, teteVue:tete.getBoundingClientRect().top>=rt.top-1};`);
+      v('(population : le tiroir a bien défilé au doigt, ' + defile + ' px) — rouvert, il repart de sa marque, la vue ouverte visible', R.st === 0 && R.onVu && R.teteVue, JSON.stringify([defile, R]));
+      await ev(`fermerTiroir(true); ${REPOS} return 1;`);
+
+      /* 8 · (relecture) Ctrl+Maj+M tiroir ouvert : il suit la console */
+      const deux = await ev(`return MYAPPS.length>1;`);
+      if (deux) {
+        await tap(P.x, P.y);
+        await o.c.envoyer('Input.dispatchKeyEvent', { type: 'keyDown', key: 'M', code: 'KeyM', windowsVirtualKeyCode: 77, modifiers: 2 | 8 });
+        await o.c.envoyer('Input.dispatchKeyEvent', { type: 'keyUp', key: 'M', code: 'KeyM', windowsVirtualKeyCode: 77, modifiers: 2 | 8 });
+        await ev(REPOS + ' await new Promise(r=>setTimeout(r,500)); return 1;');
+        const K = await ev(`const vues=[]; menuVisible().forEach(g=>g.vues.forEach(x=>vues.push(x[0]))); return {app:APP, ouvert:_tiroirOuvert, lignes:[...document.querySelectorAll('#tiroir .ti[data-t]')].map(b=>b.dataset.t), vues, version:(document.querySelector('#tiroir .ti-version')||{}).textContent||''};`);
+        v('Ctrl+Maj+M, tiroir ouvert : il liste les vues de MESSAGES et le dit', K.app === 'messages' && K.ouvert && JSON.stringify(K.lignes) === JSON.stringify(K.vues) && /MESSAGES/.test(K.version), JSON.stringify(K));
+        await ev(`fermerTiroir(true); setApp('gestion',true); ${REPOS} return 1;`);
+      } else v('population : ce compte a les deux consoles (Ctrl+Maj+M)', false, 'MYAPPS=1');
+
+      /* 9 · (relecture) un nom long ne s'écrit plus sous « GESTION », à 360 comme à 390 */
+      for (const W of [360, 390]) {
+        await o.c.envoyer('Emulation.setDeviceMetricsOverride', { width: W, height: 844, deviceScaleFactor: 3, mobile: true });
+        const N = await ev(`const hs=document.getElementById('h-sous'), avant=hs.textContent; hs.textContent='Jean-Baptiste · collaborateur'; ${STABLE}
+          const rn=document.querySelector('.hnom').getBoundingClientRect(), rp=document.getElementById('app-pill').getBoundingClientRect(), rg=document.getElementById('menu-rond').getBoundingClientRect();
+          const r={nomD:Math.round(rn.right), pillG:Math.round(rp.left), pillL:Math.round(rp.width), nomG:Math.round(rn.left), pastD:Math.round(rg.right), ell:hs.scrollWidth>hs.clientWidth}; hs.textContent=avant; return r;`);
+        v('   ' + W + ' px : « Jean-Baptiste · collaborateur » reste dans sa colonne (avant « GESTION », après la pastille ≡)', N.nomD <= N.pillG && N.nomG >= N.pastD && N.pillL >= 80, JSON.stringify(N));
+      }
+      await o.c.envoyer('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
+
+      /* 10 · (relecture) « animations réduites » : le tiroir suit quand même le doigt */
+      await o.c.envoyer('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: mode }, { name: 'prefers-reduced-motion', value: 'reduce' }] });
+      await tap(P.x, P.y);
+      await touche('touchStart', 250, 400); let suitR = null;
+      for (let i = 1; i <= 8; i++) { await touche('touchMove', 250 - i * 22, 402); await dormir(16);
+        if (i === 4) suitR = await ev(`${STABLE} return Math.round(document.getElementById('tiroir').getBoundingClientRect().left);`); }
+      await touche('touchEnd', 250 - 176, 402); await ev(REPOS + ' return 1;'); E = await ev(ETAT);
+      v('« animations réduites » : le tiroir suit le doigt (manipulation directe), puis se referme', suitR !== null && suitR < -40 && E.cache, 'gauche à mi-geste : ' + suitR + ', ' + JSON.stringify(E));
+      await o.c.envoyer('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: mode }, { name: 'prefers-reduced-motion', value: 'no-preference' }] });
 
       v('aucune erreur JavaScript (' + mode + ')', o.exceptions.length === 0, o.exceptions.join(' | '));
       await o.fermer();

@@ -40,7 +40,7 @@ const ligne = (debut) => { const i = CODE.indexOf(debut); if (i < 0) return ''; 
 const bloc = (debut, fin) => { const i = CODE.indexOf(debut); if (i < 0) return ''; const j = CODE.indexOf(fin, i); return j < 0 ? '' : CODE.slice(i, j + fin.length); };
 
 console.log('1. Les pièces sont là, une fois chacune');
-['tiroirHtml', 'tiroirBasculer', 'tiroirPastille', 'ouvrirTiroir', 'fermerTiroir', 'tiroirAller', 'tiroirApp'].forEach(n =>
+['tiroirHtml', 'tiroirBasculer', 'tiroirPastille', 'ouvrirTiroir', 'fermerTiroir', 'tiroirAller', 'tiroirApp', 'tiroirRafraichir'].forEach(n =>
   v('une seule définition de ' + n, (CODE.match(new RegExp('\\nfunction ' + n + '\\(', 'g')) || []).length, 1));
 const HTML_PASTILLE = (SRC.match(/<button[^>]*id="menu-rond"[^>]*>/) || [''])[0];
 vrai('la pastille est un <button> qui dit ce qu\'il ouvre (aria-controls, aria-expanded, un nom)',
@@ -57,7 +57,7 @@ const JEU = [MENU, ligne('var PATRON_SEUL='), fonction('vuePermise'), fonction('
   /* esc tient sur UNE ligne, et son expression régulière porte des guillemets : le compteur d'accolades la prendrait
      pour une chaîne ouverte et déborderait sur la fonction d'après */
   ligne('function esc('),
-  bloc('var IC={', '};'), fonction('svg'), bloc('var APPS_TOUR={', '} };'), fonction('tiroirHtml')].join('\n');
+  bloc('var IC={', '};'), fonction('svg'), bloc('var APPS_TOUR={', '} };'), ligne('var APP_TEINTE='), fonction('tiroirHtml')].join('\n');
 vrai('les pièces du jeu sont trouvées (population)', !/\n\n\n/.test('\n' + JEU + '\n') && JEU.indexOf('function tiroirHtml') > 0 && JEU.indexOf('var IC={') >= 0 && JEU.indexOf('var APPS_TOUR={') >= 0, JEU.length);
 function jouer(o) {
   const els = {};
@@ -105,6 +105,8 @@ const SW = (J.h.match(/<div class="app-sw"[\s\S]*?<\/div>/) || [''])[0];
 v('deux consoles : l\'interrupteur, la console ouverte pressée', [...SW.matchAll(/data-app="(\w+)" aria-pressed="(\w+)"/g)].map(m => m[1] + '=' + m[2]), ['gestion=false', 'messages=true']);
 vrai('   le compteur de l\'autre console est recopié (2), celui qui est caché le reste', /data-app="gestion"[\s\S]*?<span class="app-n">2<\/span>/.test(SW) && /data-app="messages"[\s\S]*?<span class="app-n" hidden>/.test(SW), SW);
 vrai('   chaque bouton change de console par tiroirApp', (SW.match(/onclick="tiroirApp\('/g) || []).length === 2);
+vrai('   la pastille de couleur vient de la table APP_TEINTE (le vérificateur de thème ne lit pas un nom bâti)',
+  /<i style="--c:var\(--app-messages\)"><\/i>MESSAGES/.test(SW) && !/var\(--app-'\+a/.test(fonction('tiroirHtml')), SW);
 
 J = jouer({ sous: 'Jo <img src=x onerror=alert(1)>' });
 vrai('⛔ le nom de qui conduit est ÉCHAPPÉ', J.h.includes('Jo &lt;img src=x onerror=alert(1)&gt;') && !J.h.includes('<img src=x'), (J.h.match(/<div class="ti-nom">[\s\S]*?<\/div>/) || [''])[0]);
@@ -112,11 +114,13 @@ J = jouer({ sous: '' });
 v('   sans nom, pas de ligne vide sous « La Tour »', /<div class="ti-nom"><b>La Tour<\/b><\/div>/.test(J.h), true);
 
 console.log('\n3. Les gardes du geste, relues dans le code');
-const OUV = fonction('ouvrirTiroir'), FER = fonction('fermerTiroir'), ALLER = fonction('tiroirAller'), APPF = fonction('tiroirApp'), PAST = fonction('tiroirPastille');
-vrai('population : les cinq fonctions du geste sont trouvées', [OUV, FER, ALLER, APPF, PAST].every(f => f.length > 40));
+const OUV = fonction('ouvrirTiroir'), FER = fonction('fermerTiroir'), ALLER = fonction('tiroirAller'), APPF = fonction('tiroirApp'), PAST = fonction('tiroirPastille'), RAF = fonction('tiroirRafraichir');
+vrai('population : les six fonctions du geste sont trouvées', [OUV, FER, ALLER, APPF, PAST, RAF].every(f => f.length > 20));
 vrai('⛔ jamais deux panneaux : ouvrir le tiroir referme la feuille « Plus » AVANT de s\'afficher',
   /if\(feuilleVisible\(\)\) fermerFeuille\(\);/.test(OUV) && OUV.indexOf('fermerFeuille()') < OUV.indexOf('t.hidden=false'));
 vrai('   le tiroir est réécrit à chaque ouverture (les compteurs du moment)', /t\.innerHTML=tiroirHtml\(\)/.test(OUV));
+vrai('⛔ … et il repart de sa MARQUE : défilement remis à zéro une fois MONTRÉ (caché, il ignore scrollTop ; relecture)',
+  OUV.indexOf('t.scrollTop=0;') > OUV.indexOf('t.hidden=false') && OUV.indexOf('t.hidden=false') > 0 && OUV.indexOf('t.scrollTop=0;') < OUV.indexOf("var on=t.querySelector('.ti.on')"));
 vrai('   aria-expanded suit : vrai à l\'ouverture, faux à la fermeture', /tiroirPastille\(true\)/.test(OUV) && /tiroirPastille\(false\)/.test(FER)
   && /setAttribute\('aria-expanded',String\(ouvert\)\)/.test(PAST));
 vrai('   le focus entre dans le tiroir, et revient à la pastille SEULEMENT s\'il y était', /\.focus\(\{preventScroll:true\}\)/.test(OUV)
@@ -124,7 +128,13 @@ vrai('   le focus entre dans le tiroir, et revient à la pastille SEULEMENT s\'i
 vrai('   la page ne défile pas derrière (classe posée, puis retirée)', /classList\.add\('tiroir-ouvert'\)/.test(OUV) && /classList\.remove\('tiroir-ouvert'\)/.test(FER));
 vrai('   refermer efface le déplacement posé par le doigt (il repart d\'où le doigt l\'a laissé)', /t\.style\.transform='';/.test(FER));
 vrai('⛔ une vue choisie : le tiroir se referme PUIS la vue s\'ouvre sans transition de vue', /fermerTiroir\(\);\s*setTab\(v,true\)/.test(ALLER));
-vrai('   changer de console redessine le tiroir s\'il est resté ouvert', /setApp\(a,true\)/.test(APPF) && /t\.innerHTML=tiroirHtml\(\)/.test(APPF));
+vrai('   changer de console depuis le tiroir passe par setApp', /setApp\(a,true\)/.test(APPF));
+console.log('\n3 bis. Un seul point de rafraîchissement (relecture : Ctrl+Maj+G, le retour, un compteur)');
+v('⛔ setTab, setBdg et majCompteursApp redessinent le tiroir ouvert', ['setTab', 'setBdg', 'majCompteursApp'].map(n => /tiroirRafraichir\(\);\s*\}$/.test(fonction(n))), [true, true, true]);
+vrai('   rien si le tiroir est fermé', /if\(!_tiroirOuvert\) return;/.test(RAF));
+vrai('   jamais sous un doigt posé : on retient, et on rattrape une fois le doigt levé et le clic passé',
+  /if\(_tiroirDoigt\)\{ _tiroirARefaire=true; return; \}/.test(RAF) && /_tiroirDoigt=true; s=\{/.test(CODE) && /if\(_tiroirARefaire\) setTimeout\(function\(\)\{ if\(!_tiroirDoigt\) tiroirRafraichir\(\); \},400\)/.test(CODE));
+vrai('   le défilement et le bouton qui a le focus sont gardés', /var st=t\.scrollTop/.test(RAF) && /t\.scrollTop=st;/.test(RAF) && /\.focus\(\{preventScroll:true\}\)/.test(RAF));
 const ECHAP = ligne("document.addEventListener('keydown',function(e){ if(e.key==='Escape')");
 vrai('⛔ Échap referme le tiroir d\'abord, la feuille ensuite', /if\(_tiroirOuvert\)\{ fermerTiroir\(\); return; \}/.test(ECHAP) && ECHAP.indexOf('fermerTiroir') < ECHAP.indexOf('fermerFeuille'), ECHAP);
 const GESTE = bloc("(function(){ var s=null;\n  document.addEventListener('touchstart'", '})();');
@@ -148,9 +158,13 @@ vrai('population : le bloc de style de la pastille est trouvé', CSS.length > 20
 vrai('pastille, tiroir et voile sont éteints par défaut, et au bureau même par erreur (!important)',
   /\.menu-rond,\.tiroir,#scrim-tiroir\{display:none\}/.test(CSS) && /@media\(min-width:900px\)\{\.menu-rond,\.tiroir,#scrim-tiroir\{display:none!important\}\}/.test(CSS));
 vrai('au téléphone : 44 × 44, ronde, touchée sans délai', /\.menu-rond\{display:flex;[^}]*width:44px;height:44px;[^}]*border-radius:50%;[^}]*touch-action:manipulation/.test(CSS));
-vrai('   « animations réduites » : le tiroir ne glisse plus, il paraît', /@media\(prefers-reduced-motion:reduce\)\{\s*\.tiroir,\.tiroir\.on\{transition:opacity[^}]*transform:none!important/.test(CSS));
+vrai('   « animations réduites » : le tiroir ne glisse plus, il paraît — sauf sous le doigt (.glisse : il le suit)',
+  /\.tiroir:not\(\.glisse\),\.tiroir\.on:not\(\.glisse\)\{transition:opacity[^}]*transform:none!important/.test(CSS)
+  && /s\.engage=true; s\.t\.style\.transition='none'; s\.t\.classList\.add\('glisse'\);/.test(CODE) && /st\.t\.classList\.remove\('glisse'\)/.test(CODE) && /classList\.remove\('on','glisse'\)/.test(FER));
 vrai('   « transparence réduite » : ni la pastille ni le tiroir ne floutent', /@media\(prefers-reduced-transparency:reduce\)\{\s*\.menu-rond,\.tiroir\{-webkit-backdrop-filter:none!important;backdrop-filter:none!important\}/.test(CSS));
 vrai('   le titre qui monte dans l\'en-tête efface le logo (il tomberait sous le titre)', /body\.titre-cache \.hlogo\{opacity:0\}/.test(CSS));
+vrai('⛔ le nom de qui conduit reste dans sa colonne (il s\'écrivait sous « GESTION », relecture) : colonne bornée, pastille d\'application entière',
+  /\.hg\{min-width:0;flex:0 1 auto\}/.test(CSS) && /\.hnom\{min-width:0;overflow:hidden\}/.test(CSS) && /\.app-pill\{flex-shrink:0\}/.test(CSS));
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);
