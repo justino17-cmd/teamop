@@ -237,6 +237,14 @@ for (const c of CLES) vrai(c + ' : l\'aperçu porte « noindex »', PAGES[c].inc
 for (const c of CLES) vrai(c + ' : la page de racine ne le porte pas', !GEN.page(c, { racine: true }).includes('noindex'));
 vrai('le lanceur d\'application n\'est que sur l\'accueil', PAGES.index.includes('teamop_app') && CLES.filter(c => c !== 'index').every(c => !PAGES[c].includes('teamop_app')));
 vrai('le logo de la barre est celui de TEAM OP', CLES.every(c => PAGES[c].includes('<img src="/icons/teamop-192.png"')));
+/* ⛔ LE LOGO QUE GOOGLE AFFICHE À CÔTÉ DE teamop.fr (Justin, 28 septembre 2026, capture d'une recherche : le rond vert
+   d'OP GESTION). Google lit les <link rel="icon"> de la page d'accueil et préfère une grande image : chaque page déclare
+   les icônes TEAM OP, dont une de 192 px, et AUCUNE icône d'OP GESTION (vertes : icons/icon-*, icons/opgestion-*,
+   icons/apple-touch-icon.png) ne sert d'icône de page. */
+const ICONES = c => (PAGES[c].match(/<link rel="(?:icon|apple-touch-icon|shortcut icon)"[^>]*>/g) || []);
+vrai('population : ' + CLES.reduce((n, c) => n + ICONES(c).length, 0) + ' icônes de page déclarées', CLES.every(c => ICONES(c).length >= 4));
+vrai('chaque page déclare le favicon, l\'icône 32 px ET l\'icône 192 px de TEAM OP', CLES.every(c => ['href="/favicon.ico"', 'href="/icons/teamop-favicon-32.png"', 'sizes="192x192" href="/icons/teamop-192.png"'].every(x => ICONES(c).some(l => l.includes(x)))));
+v('aucune icône d\'OP GESTION (verte) ne sert d\'icône de page', CLES.filter(c => ICONES(c).some(l => /icons\/(?:icon-|opgestion-|apple-touch-icon\.png)/.test(l))), []);
 
 const idsDoubles = CLES.map(c => { const n = {}; for (const m of PAGES[c].matchAll(/\sid="([^"]+)"/g)) n[m[1]] = (n[m[1]] || 0) + 1; return Object.keys(n).filter(k => n[k] > 1).map(k => c + '#' + k); }).flat();
 v('aucun identifiant en double (#fonctions l\'était : la section ET les données des fenêtres — aucune ne s\'ouvrait)', idsDoubles, []);
