@@ -996,6 +996,10 @@ function rendrePaiement() {
        l'adresse de l'entreprise » serait une consigne impossible (`gardien`). C'est à TEAM OP de la renseigner. */
     else if (r && r.status === 403 && j && j.error === 'entreprise_sans_adresse') compteMsg = { texte: 'Cette entreprise n\'a pas encore d\'adresse e-mail enregistrée chez TEAM OP : le paiement ne peut pas lui être rattaché. Écrivez à support@teamop.fr pour la faire ajouter, puis revenez payer. Rien n\'a été payé.', erreur: true };
     else if (r && r.status === 403 && j && j.error === 'reference_ambigue') compteMsg = { texte: 'Le paiement ne peut pas être rattaché à votre entreprise sans vérification : écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+    /* ⛔ un tarif SOUS la formule de l'entreprise (réglée par TEAM OP dans la Tour) : le serveur refuse AVANT Stripe
+       (28 septembre 2026, nuit). « Réessayez » mentirait : il faut choisir sa formule, ou demander à en changer. */
+    else if (r && r.status === 403 && j && j.error === 'tarif_formule') compteMsg = { texte: 'Votre entreprise est en formule ' + ({ pro: 'Pro', business: 'Business', premium: 'Business Premium' }[j.formule] || 'supérieure') + ' : pour payer, choisissez cette formule ou une formule au-dessus. Pour changer de formule, écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+    else if (r && r.status === 400 && j && j.error === 'tarif_inconnu') compteMsg = { texte: 'Ce tarif n\'est plus proposé : rechargez la page, puis réessayez. Rien n\'a été payé.', erreur: true };
     else if (r && r.status === 429) compteMsg = { texte: 'Trop de tentatives d\'affilée : patientez une minute, puis réessayez.', erreur: true };
     else compteMsg = { texte: 'Le paiement n\'a pas pu s\'ouvrir — rien n\'a été payé. Réessayez dans un instant, ou écrivez à support@teamop.fr.', erreur: true };
     rendrePaiement();

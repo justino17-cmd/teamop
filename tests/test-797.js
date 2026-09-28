@@ -48,17 +48,20 @@ const vrai = (t, a) => v(t, !!a, true);
   const mEntetes = /headers: (\{[^}]*\}), body: JSON\.stringify/.exec(appel);
   vrai('   et les en-têtes du paiement sont trouvables', !!mEntetes);
   const SESSION = 'd'.repeat(64);
+  /* un VRAI tarif public de la page (Business, mensuel) : la route n'admet plus que ceux-là (28 septembre 2026, nuit) */
+  const PRIX_PAGE = (/business:\s*\{ mensuel: '(price_\w+)'/.exec(PAGE) || [])[1];
+  vrai('le tarif Business de la page est lu', /^price_/.test(PRIX_PAGE || ''));
   let corps = null, entetes = null;
   if (mFn && mBody && mSess && mEntetes) {
     const stockage = (cle) => (cle === 'elan_sync_team' ? 'monclient-9f2a' : cle === mSess[1] ? SESSION : null);
     /* `compte.jeton` : la session que `lireCompte()` a lue pour CE compte (test-839 joue lireCompte lui-même) — la page
        ne paie qu'avec elle, jamais avec une session changée entre-temps dans un autre onglet. */
     const evaluer = (ls, expr) => new Function('localStorage', 'priceId', 'nbAbos',
-      mFn[0] + '\n' + mSess[0] + '\nconst compte = { jeton: sessionPortail() };\nreturn ' + expr + ';')({ getItem: ls }, 'price_1Abc', 3);
+      mFn[0] + '\n' + mSess[0] + '\nconst compte = { jeton: sessionPortail() };\nreturn ' + expr + ';')({ getItem: ls }, PRIX_PAGE, 3);
     corps = JSON.parse(evaluer(stockage, 'JSON.stringify(' + mBody[1] + ')'));
     entetes = evaluer(stockage, mEntetes[1]);
     v('⛔ le corps envoy\u00e9 par la page PORTE la r\u00e9f\u00e9rence de l\'espace', corps.ref, 'monclient-9f2a');
-    v('   et garde le tarif et la quantit\u00e9', [corps.price, corps.quantity], ['price_1Abc', 3]);
+    v('   et garde le tarif et la quantit\u00e9', [corps.price, corps.quantity], [PRIX_PAGE, 3]);
     v('⛔ la page envoie la session du compte dans Authorization, sous la forme que le serveur lit', entetes.Authorization, 'Bearer ' + SESSION);
     v('   la session est celle du portail (espace.html la range sous cette clé)', mSess[1], 'teamop_portail_jeton');
     /* Un prospect qui paie AVANT d'avoir un espace : pas de référence, et c'est prévu — le
@@ -101,7 +104,10 @@ const vrai = (t, a) => v(t, !!a, true);
      a (le serveur d'avant n'appelle pas `espacesDeRef`). */
   const aide = nom => { const d0 = SRC.indexOf('function ' + nom + '('); if (d0 < 0) return ''; let n = 0;
     for (let k = SRC.indexOf('{', d0); k < SRC.length; k++) { if (SRC[k] === '{') n++; else if (SRC[k] === '}') { n--; if (!n) return SRC.slice(d0, k + 1); } } return ''; };
-  const AIDES_ROUTE = ['espaceT', 'espacesDeRef'].map(aide).join('\n');
+  /* ⚠️ et les TARIFS (28 septembre 2026, nuit) : la route n'admet que ceux de la page ; elle lit le bloc des constantes des
+     places (`STRIPE_PRIX_FORMULE`, `RANG_FORMULE`…). Le serveur d'avant ne l'a pas : on ne le fournit que s'il existe. */
+  const iCst = SRC.indexOf('const PLACES_BASCULE ='), iPQ = SRC.indexOf('function placesQ(');
+  const AIDES_ROUTE = ['espaceT', 'espacesDeRef'].map(aide).join('\n') + '\n' + (iCst > 0 && iPQ > iCst ? SRC.slice(iCst, iPQ) : '');
   const ESPACES = { monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr' } };
   const appeler = async (body, hdr, espaces) => {
     let envoye = '', statut = 0, sortie = null;

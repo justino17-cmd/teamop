@@ -229,6 +229,15 @@ const PHRASE = 'Pour payer, il faut un compte TEAM OP : créez-le d\'abord, c\'e
       q = await essai(() => rep(403, { error: 'reference_ambigue' }));
       v('   … une référence ambiguë (403) : au support, sans « réessayez », et rien n\'est parti',
         [q.texte().includes('ne peut pas être rattaché à votre entreprise sans vérification'), /Réessayez dans un instant/.test(q.texte()), q.texte().includes('Rien n\'a été payé'), q.window.location.href], [true, false, true, '']);
+      /* un tarif SOUS la formule de l'entreprise, ou un tarif inconnu (28 septembre 2026, nuit) : la page dit lequel, sans
+         « réessayez dans un instant », et ne part pas */
+      q = await essai(() => rep(403, { error: 'tarif_formule', formule: 'premium' }));
+      v('⛔ tarif sous la formule de l\'entreprise (403) : la page nomme SA formule (Business Premium), renvoie au support pour en changer, ne part pas',
+        [q.texte().includes('Votre entreprise est en formule Business Premium'), q.texte().includes('support@teamop.fr'), /Réessayez dans un instant/.test(q.texte()), q.texte().includes('Rien n\'a été payé'), q.window.location.href],
+        [true, true, false, true, '']);
+      q = await essai(() => rep(400, { error: 'tarif_inconnu' }));
+      v('   … un tarif que le serveur ne connaît pas (400) : « rechargez la page », rien n\'est parti',
+        [q.texte().includes('Ce tarif n\'est plus proposé'), q.window.location.href], [true, '']);
       q = await essai(() => rep(429, { error: 'trop de requêtes' }));
       vrai('⛔ trop de tentatives (429) : on le dit, on ne part pas', q.texte().includes('Trop de tentatives') && q.window.location.href === '');
       q = await essai(() => rep(502, undefined));
@@ -388,6 +397,9 @@ globalThis.fetch = async function (url, opts) {
       'camille-banc': { nom: 'Camille Banc', t: 'banc-camille-t1', email: 'camille@entreprise-banc.fr', ts: 1, par: 'banc', origine: 'banc' },
       'voisine-banc': { nom: 'La voisine', t: 'banc-voisine-t2', email: 'patron@voisine-banc.fr', ts: 1, par: 'banc', origine: 'banc' },
       'sansadresse-banc': { nom: 'Sans adresse', t: 'banc-sansadr-t3', email: '', ts: 1, par: 'banc', origine: 'banc' },
+      /* une seconde entreprise de Camille, réglée Business Premium dans la Tour (deux noms d'accès : l'un oublié en Pro) */
+      'premium-banc': { nom: 'Camille Premium', t: 'banc-prem-t4', email: 'camille@entreprise-banc.fr', formule: 'premium', quantite: 1, ts: 1, par: 'banc', origine: 'banc' },
+      'premium-banc-ancien': { nom: 'Camille Premium', t: 'banc-prem-t4', email: 'camille@entreprise-banc.fr', formule: 'pro', quantite: 1, ts: 1, par: 'banc', origine: 'banc' },
     }));
     const cfg = path.join(BANC, 'config.json');
     const vap = require(path.join(RACINE, 'server', 'node_modules', 'web-push')).generateVAPIDKeys();
@@ -493,9 +505,9 @@ globalThis.fetch = async function (url, opts) {
 
         // « B — on verrouille » (Justin, 28 septembre 2026) : seul le compte de l'entreprise paie pour elle — le VRAI serveur, son annuaire
         await portail.auth.signInWithEmailAndPassword('camille@entreprise-banc.fr', 'un-mot-de-passe-solide-839');
-        const payerAvec = async (espaceAppareil) => {
+        const payerAvec = async (espaceAppareil, formule) => {
           if (espaceAppareil) rangement.set('elan_sync_team', espaceAppareil); else rangement.delete('elan_sync_team');
-          const q = recap('?formule=business&utilisateurs=2');
+          const q = recap('?formule=' + (formule || 'business') + '&utilisateurs=2');
           await q.api.compteLu;
           const n = stripeRecu().length;
           await q.clic('btnPayer');
@@ -518,6 +530,28 @@ globalThis.fetch = async function (url, opts) {
           const inconnue = await payerAvec('banc-inconnu-t9');
           v('   une référence inconnue de l\'annuaire : le paiement s\'ouvre SANS référence (rattaché à l\'adresse du compte, à personne d\'autre)',
             [inconnue.s.length, inconnue.envoye.get('subscription_data[metadata][espace]'), inconnue.envoye.get('customer_email')], [1, null, 'camille@entreprise-banc.fr']);
+          /* ⛔ LE TARIF (28 septembre 2026, nuit) : seulement ceux de la page, et jamais sous la formule de l'entreprise */
+          if (/tarif_formule/.test(ROUTE)) {
+            const bas = await payerAvec('banc-prem-t4', 'business');
+            v('⛔ son entreprise est réglée Business Premium : payer Business est refusé par le vrai serveur, la page nomme sa formule, rien chez Stripe',
+              [bas.s.length, bas.q.texte().includes('Votre entreprise est en formule Business Premium'), bas.q.window.location.href], [0, true, '']);
+            /* OP MESSAGES : la page le montre « Bientôt disponible », sans bouton — seul un appel direct peut l'envoyer */
+            const prixMsg = (/msgpro:\s*\{ mensuel: '(price_\w+)'/.exec(lire(PAGES_PAIEMENT[0])) || [])[1];
+            const nMsg = stripeRecu().length;
+            const msg = await fetch(B + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + rangement.get('teamop_portail_jeton') }, body: JSON.stringify({ price: prixMsg, quantity: 1, ref: 'banc-prem-t4' }) });
+            const mj = await msg.json().catch(() => ({}));
+            v('⛔ … et le tarif d\'OP MESSAGES (appel direct) ne règle pas OP GESTION : 403 tarif_formule, rien chez Stripe', [!!prixMsg, msg.status, mj.error, mj.formule, stripeRecu().length], [true, 403, 'tarif_formule', 'premium', nMsg]);
+            const juste = await payerAvec('banc-prem-t4', 'premium');
+            v('⛔ Business Premium : le paiement s\'ouvre, référence gravée (le nom d\'accès oublié en Pro ne fait pas baisser le prix)',
+              [juste.s.length, juste.envoye.get('subscription_data[metadata][espace]'), juste.envoye.get('line_items[0][price]'), juste.q.window.location.href],
+              [1, 'banc-prem-t4', (/premium:\s*\{ mensuel: '(price_\w+)'/.exec(lire(PAGES_PAIEMENT[0])) || [])[1], 'https://checkout.stripe.com/c/pay/banc-839']);
+            const libre = await payerAvec('banc-camille-t1', 'pro');
+            v('   une entreprise sans formule payante réglée choisit la sienne (Pro) : le paiement s\'ouvre', libre.s.length, 1);
+            const n = stripeRecu().length;
+            const inconnu = await fetch(B + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + rangement.get('teamop_portail_jeton') }, body: JSON.stringify({ price: 'price_1Banc', quantity: 1 }) });
+            const ij = await inconnu.json().catch(() => ({}));
+            v('⛔ un tarif qui n\'est pas sur la page (appel direct, compte prouvé) : 400 tarif_inconnu, rien chez Stripe', [inconnu.status, ij.error, stripeRecu().length], [400, 'tarif_inconnu', n]);
+          } else vrai('   (serveur d\'avant : le tarif n\'est pas encore vérifié — la garde part avec le serveur)', true);
         } else vrai('   (serveur d\'avant : la référence de l\'appareil passe sans vérification — « B » part avec le serveur)', voisine.s.length === 1);
         rangement.delete('elan_sync_team');
       }

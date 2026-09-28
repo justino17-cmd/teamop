@@ -651,6 +651,12 @@ app.post('/api/stripe/checkout', async (req, res) => {
     if (!cm.verifie(payeur)) return res.status(403).json({ error: 'adresse_non_verifiee' });
     const { price, quantity, ref } = req.body || {};
     if (!/^price_[A-Za-z0-9]+$/.test(String(price || ''))) return res.status(400).json({ error: 'tarif invalide' });
+    /* ⛔ UN TARIF DE LA PAGE, ET RIEN D'AUTRE (28 septembre 2026, nuit). Cette route ouvrait un paiement pour N'IMPORTE
+       QUEL tarif du compte Stripe envoyé par le navigateur — et pour `espacePaye()`, UN abonnement vivant suffit à rendre
+       une entreprise « payée ». Les tarifs admis sont ceux de `STRIPE_PRIX_FORMULE`, la liste que `test-842` compare à
+       `STRIPE_PRICES` de recap-abonnement.html : la page ne peut pas en envoyer d'autre. */
+    const rangDuPrix = RANG_FORMULE.findIndex(k => STRIPE_PRIX_FORMULE[k].includes(String(price)));
+    if (rangDuPrix < 0 && !STRIPE_PRIX_MESSAGES.includes(String(price))) return res.status(400).json({ error: 'tarif_inconnu' });
     const qty = Math.min(50, Math.max(1, parseInt(quantity, 10) || 1));
     /* ⛔ B — « ON VERROUILLE » (Justin, 28 septembre 2026) : SEUL UN COMPTE DE L'ENTREPRISE PAIE POUR ELLE.
        La référence d'espace vient de la PAGE (le marqueur de l'appareil) : un compte confirmé rattachait donc SON
@@ -705,6 +711,14 @@ app.post('/api/stripe/checkout', async (req, res) => {
           .map(s => { const a = espacesReg[s].email; return typeof a === 'string' ? a.trim().toLowerCase() : (a ? '\u0000pas-une-adresse' : ''); }).filter(Boolean);
         if (!adresses.length) return res.status(403).json({ error: 'entreprise_sans_adresse' });
         if (adresses.some(a => a !== payeurMin)) return res.status(403).json({ error: 'compte_autre_entreprise' });
+        /* ⛔ PAS SOUS LA FORMULE DE L'ENTREPRISE : réglée Business Premium dans la Tour, elle se payait au tarif Pro (ou d'OP
+           MESSAGES) et devenait « payée » en Business Premium. Un tarif de sa formule ou AU-DESSUS passe (ses places
+           comptent, `placesStripe`) ; une entreprise sans formule payante réglée (gratuit, rien) choisit. On refuse AVANT
+           Stripe, et on dit laquelle : changer de formule est un geste de TEAM OP (la Tour), pas de la page. La formule
+           retenue est la plus haute de ses noms d'accès — un nom oublié en Pro ne fait pas baisser le prix. */
+        const rangRequis = Math.max(-1, ...Object.keys(espacesReg).filter(s => espacesReg[s] && identite(Object.assign({ slug: s }, espacesReg[s])).cle === id.cle)
+          .map(s => RANG_FORMULE.indexOf(espacesReg[s].formule)));
+        if (rangRequis >= 0 && rangDuPrix < rangRequis) return res.status(403).json({ error: 'tarif_formule', formule: RANG_FORMULE[rangRequis] });
         /* ⛔ on ne grave QUE l'identifiant : le nom d'accès d'une entrée qui n'en a pas se libère et se reprend (le
            défaut même que la gravure de l'identifiant ferme). Sans rien de gravé, l'abonnement suit l'adresse du compte
            — qui EST celle de l'entreprise, on vient de le vérifier. */
