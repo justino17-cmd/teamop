@@ -69,13 +69,74 @@ couvre toute l'équipe, rien ne change pour eux.
 mise en ligne n° 1 : 197 suites · 10 514 ; arbre de la v763 : 198 suites · 10 752, liste serveur avec le nouveau
 compteur 47 suites · 2 904.
 
-⏳ **Ce qui reste à Justin** : Search Console → « Inspection de l'URL » → `https://teamop.fr/` → « Demander une
+⏳ **Ce qui reste à Justin** : **dire « pousse »** pour les deux mises en ligne prêtes (garde des tarifs, Tour v2.75 —
+plus bas) ; les trois décisions plus bas ; Search Console → « Inspection de l'URL » → `https://teamop.fr/` → « Demander une
 indexation » (le logo) ; supprimer l'ancienne paire de clés du coffre IONOS (#132) ; regarder chez Stripe qu'aucun code
 de réduction à 100 % ne traîne (un abonnement payé à 0 € donnerait maintenant des places) ; plus tard, exiger la v763
 dans la Tour quand tout le parc est à jour (rien ne l'oblige : aucun changement de format).
-⏳ **Ce qui reste au dépôt** : retirer l'ancien `vitrine/` et les deux empreintes v1 (voir plus haut) ; la liste blanche
-des tarifs à `/api/stripe/checkout` (repoussée : `test-839` paie un tarif fictif) ; le cas « deux entreprises à la même
-adresse » (il faudrait savoir quelles entrées de l'annuaire sont VIVANTES).
+⏳ **Ce qui reste au dépôt** : retirer l'ancien `vitrine/` et les deux empreintes v1 (voir plus haut) — pas avant
+quelques jours ; la liste blanche des tarifs est FAITE (plus bas, mise en ligne n° 3, prête).
+
+## ⏳ PLUS TARD DANS LA NUIT — DEUX MISES EN LIGNE PRÊTES, BLOQUÉES PAR LE GARDE-FOU DES PERMISSIONS
+
+Justin, en partant dormir : **« Fait tout ce qu'il faut faire, moi je vais dormir, il faut que demain matin au réveil tout
+soit fait. »** Tout ce qui suit est fait, prouvé, commité et poussé sur la branche. ⛔ **La poussée sur `main` a été
+REFUSÉE par le garde-fou des permissions** (« Production Deploy ») : elle attend une phrase de Justin (« pousse »). Ne pas
+la contourner — ni par un autre outil, ni en morceaux.
+
+### Mise en ligne n° 3 — la garde des tarifs de `/api/stripe/checkout` (serveur + page de paiement)
+La route ouvrait un paiement pour N'IMPORTE QUEL tarif du compte Stripe envoyé par le navigateur — et pour
+`espacePaye()`, un abonnement vivant suffit à rendre une entreprise « payée » : une fiche Business Premium se payait au
+tarif Pro. Désormais : seul un tarif de la page (`STRIPE_PRIX_FORMULE`, `STRIPE_PRIX_MESSAGES`) passe (400
+`tarif_inconnu`) ; un tarif SOUS la formule de l'entreprise est refusé avant Stripe (403 `tarif_formule`, la formule est
+dite) — la formule de la fiche que l'application lit (`espaceParT`) quand la référence est reconnue, et SANS référence
+(téléphone du patron, fenêtre privée) celle des entreprises à l'adresse du compte, le même repli qu'`espacePaye()` ; un
+tarif est un texte. Le courriel J-7 prend la formule de la fiche d'abord. La page de paiement dit les deux refus, et
+changer de formule garde le nombre d'utilisateurs (il repartait à 1) et efface le refus d'avant. Le script
+`preparer-deploiement-serveur.sh` emporte désormais la page de paiement (`PAGES_LIEES`) : ses bancs la lisent.
+· Branche : `f790676`, `ea1f773`, `55c19e6`, `a2958a7`. Commit de publication fabriqué : `5865b0a` (sur `8fbd34a`, dans
+  un arbre du scratchpad — PERDU si le conteneur meurt). **Pour le refaire** : arbre détaché sur `origin/main`, y copier
+  depuis la branche `server/index.js`, `recap-abonnement.html`, `apercu/recap-abonnement.html`, `tests/test-727.js`,
+  `test-797`, `test-839`, `test-840`, `scripts/preparer-deploiement-serveur.sh`, `scripts/bancs-serveur.liste` (les
+  neuf sont identiques à la branche, vérifié par `cmp`), relancer la liste serveur, commiter, pousser.
+· Preuves (arbre de publication) : suite complète **198 suites · 10 782** ; liste serveur **47 · 2 934** (plancher 2 900) ;
+  les dix contrôles de `verification.yml` et `verif-secrets` verts. Mutations : 6/6 serveur, 1/1 page. Relecture
+  adverse (attaquant + relecteur, deux réfutateurs par constat) : ce qui visait ce diff est corrigé (le repli sans
+  référence ; la formule de la fiche plutôt que le maximum des noms ; un tableau en guise de tarif ; le J-7 ; le nombre
+  qui repartait à 1 ; le cas « code ≠ fiche » que `test-840` ne jouait pas ; le script de déploiement).
+· Après la poussée : surveiller le déploiement (bancs puis VPS), `/health` (`uptime` qui repart), la page servie
+  (`curl teamop.fr/recap-abonnement.html | grep tarif_formule`), la CI de `main`.
+
+### Tour v2.75 — la pastille ≡ au téléphone et son tiroir (le menu complet)
+Justin, 27 septembre 2026, captures à l'appui : **« je voudrais aussi ça pour avoir accès à toutes les catégories dans la
+tour »** (la pastille ≡ d'OP GESTION) ; **« sur la tour sur telephone je [veux] aussi ce menu »** (le menu du bureau).
+Commencé ce jour-là, mis de côté (`stash@{0}`, « tiroir v2.70 en cours ») pour des urgences, jamais repris — retrouvé
+cette nuit. Repris sur la v2.74 : pastille ronde en verre en haut à gauche, alignée sur l'avatar ; tiroir qui part du
+bord gauche (marque, qui conduit, GESTION / MESSAGES, sections, vues avec icône et compteur, vue ouverte marquée,
+« Personnaliser la barre », « Quitter », version) ; voile, Échap, glissé vers la gauche au doigt (le tactile, pas le
+pointeur), glissé vertical qui fait défiler, le tap qui suit un glissé avalé, focus rendu à la pastille, Tab qui tourne,
+jamais deux panneaux (« Plus » se referme), fermé si l'écran passe à 900 px. Rien au bureau.
+· Branche : `bb68256`, `03f0564` (+ la relecture, plus bas). `test-843` (neuf) 59 ✓ ; sonde au doigt
+  `scratchpad/sonde-tour-tiroir.js` **61 ✓ 0 ✗** (nuit, jour, bureau) ; contre-épreuve sur la v2.74 : la sonde tombe,
+  le banc 7 ✓ 59 ✗ ; 12/12 mutations (`scratchpad/mutations-tour-tiroir.py`, sur des copies) ; bancs de la Tour 828,
+  829, 830, 832, 833, 835, 841 verts. ⚠️ La Tour n'a ni manifeste ni mode plein écran : sur iPhone elle s'ouvre dans
+  Safari, où l'encoche du haut vaut 0 — tout l'en-tête est à 6 px (mesuré), la pastille y est alignée.
+· @@RELECTURE_TIROIR@@
+· Publication : `tour.html` seul sur `main` (GitHub Pages, aucun déploiement serveur). Le `stash@{0}` peut être jeté une
+  fois la v2.75 en service.
+
+### Ce qui attend une DÉCISION de Justin (relecture adverse de la garde des tarifs)
+1. **Payer d'abord au tarif bas, la formule ensuite** : un prospect paie Pro (ou OP MESSAGES), puis sa demande « Business
+   Premium » est acceptée dans la Tour → « payée » en Business Premium, 1 place. Même chose pour une entreprise Gratuite qui
+   paie Pro puis monte par un code promo. Cause : `espacePaye()` ne compare jamais le tarif de l'abonnement à la formule de
+   la fiche. Ce n'est pas une régression (avant, n'importe quel tarif suffisait). Le correctif touche le verdict « payé »,
+   donc le risque de couper une entreprise qui paie : **à trancher**. Proposition : pour un abonnement créé APRÈS la
+   bascule seulement, « payé » exige un tarif de la formule ou au-dessus ; sinon la Tour AFFICHE l'écart (« payé au tarif
+   Pro, formule Business Premium ») au lieu de couper, et TEAM OP décide (sursis, ou ramener la formule).
+2. **Deux entreprises à la même adresse** (limite connue, écrite dans le code) : payer au tarif de l'une rend l'autre
+   « payée » par le repli sur l'adresse. Le même correctif que (1) la fermerait.
+3. **Après un code promo Business Premium**, la fiche reste en Premium : le client ne peut plus payer seul un tarif Pro ou
+   Business (refus dit à l'écran, « écrivez à support@teamop.fr »). Voulu ?
 
 ---
 
