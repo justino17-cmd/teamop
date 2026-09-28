@@ -657,22 +657,34 @@ app.post('/api/stripe/checkout', async (req, res) => {
        paiement à l'espace de n'importe quelle autre entreprise, qui devenait « payée » dans `espacePaye()` (`gardien`,
        rejoué). La preuve d'appartenance est celle du reste du serveur (relais du portail, `espaceAutoPour`) : l'adresse
        du compte EST celle de l'entreprise dans l'annuaire. Trois cas :
-       · la référence désigne une ou des entreprises CONNUES, et le compte n'est pas le leur (ou l'une n'a pas
-         d'adresse) → 403 `compte_autre_entreprise`, rien chez Stripe : on refuse AVANT de faire payer, plutôt que
-         d'encaisser un abonnement qui ne débloquerait rien ;
+       · la référence désigne une ou des entreprises CONNUES, et le compte n'est pas le leur → 403
+         `compte_autre_entreprise`, rien chez Stripe : on refuse AVANT de faire payer, plutôt que d'encaisser un
+         abonnement qui ne débloquerait rien ;
+       · l'une d'elles n'a PAS d'adresse dans l'annuaire (espaces ouverts par la Tour sans adresse) → aucun compte ne
+         peut prouver qu'il est le sien : 403 `entreprise_sans_adresse`, un refus DISTINCT — « connectez-vous avec
+         l'adresse de l'entreprise » serait une consigne impossible (`gardien`) ; c'est à TEAM OP de la renseigner ;
        · la référence est INCONNUE de l'annuaire (appareil resté sur un ancien espace…) → elle n'est PAS gravée :
          l'abonnement se rattache à l'adresse du compte (`customer_email`), jamais à une autre entreprise ;
        · pas de référence (on paie avant d'avoir son espace) → rien ne change.
        ⚠️ Les entreprises visées se lisent comme `espacePaye()` les reconnaît (nom d'accès OU identifiant, sans casse) :
-       `espacesDeRef`. Un verrou qui en regarderait moins laisserait passer celle qu'il ne voit pas. */
+       `espacesDeRef`. Un verrou qui en regarderait moins laisserait passer celle qu'il ne voit pas.
+       ⛔ ET ON GRAVE L'ENTREPRISE, PAS LE MOT ENVOYÉ (`gardien`, rejoué) : une référence qui est un NOM D'ACCÈS suivait
+       ce nom — libéré (« Supprimer l'accès »), puis repris par une autre entreprise, il lui faisait hériter de
+       l'abonnement au redémarrage suivant. L'identifiant d'équipe (`t`) ne se réattribue pas : c'est lui qu'on grave,
+       tel que l'annuaire le range (en clair ou dans le code) — et le nom d'accès seulement pour une entrée qui n'a pas
+       d'identifiant, dont c'est le seul nom. Des entreprises visées qui ne partagent pas UNE identité → 403
+       `reference_ambigue` : on ne choisit pas pour le client laquelle il paie. */
     const payeurMin = String(payeur).trim().toLowerCase();
     let refGravee = '';
     if (typeof ref === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(ref)) {
       let visees = [];
       try { visees = espacesDeRef(ref); } catch (e) { visees = []; }
       if (visees.length) {
-        if (visees.some(x => String((x && x.email) || '').trim().toLowerCase() !== payeurMin)) return res.status(403).json({ error: 'compte_autre_entreprise' });
-        refGravee = ref;
+        if (visees.some(x => !String((x && x.email) || '').trim())) return res.status(403).json({ error: 'entreprise_sans_adresse' });
+        if (visees.some(x => String(x.email).trim().toLowerCase() !== payeurMin)) return res.status(403).json({ error: 'compte_autre_entreprise' });
+        const identite = x => espaceT(x).trim() || x.slug;
+        if (new Set(visees.map(x => identite(x).toLowerCase())).size !== 1) return res.status(403).json({ error: 'reference_ambigue' });
+        refGravee = identite(visees[0]);
       }
     }
     const p = new URLSearchParams();
@@ -2296,8 +2308,11 @@ async function espacePaye(e, opts) {
             société, et comme ce n'est pas celle avec laquelle l'espace a été créé, rien ne se
             rattache. Le client a payé et son application reste bloquée, sans un mot.
          ⚠️ On compare le slug ET le `t` : la référence envoyée par le site peut être l'un ou
-         l'autre selon la page, et se tromper ici coûte un client qui a payé. */
-      const refs = [String(e.slug || '').toLowerCase(), String(e.t || '').toLowerCase()].filter(Boolean);
+         l'autre selon la page, et se tromper ici coûte un client qui a payé.
+         ⚠️ Le `t` se lit par `espaceT` — en clair, OU dans le code des entrées les plus anciennes : c'est lui que la
+         route de paiement grave (« B »), et `e.t` seul ne voyait pas ces entrées-là, rattachées alors par la seule
+         adresse (`gardien`, rejoué) — un changement d'adresse et le paiement se perdait. */
+      const refs = [String(e.slug || '').toLowerCase(), String(espaceT(e) || '').toLowerCase()].filter(Boolean);
       const vivant = sb => ['active', 'trialing', 'past_due'].includes(sb.status);
       let abo = refs.length ? (espStripeCache.data || []).find(sb => vivant(sb)
         && sb.metadata && refs.includes(String(sb.metadata.espace || '').toLowerCase())) : null;

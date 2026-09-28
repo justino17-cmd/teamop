@@ -219,6 +219,16 @@ const PHRASE = 'Pour payer, il faut un compte TEAM OP : créez-le d\'abord, c\'e
         ['pret', true, true, '']);
       vrai('   … sans le « réessayez » d\'une panne (le refus est définitif pour ce compte), avec « Changer de compte » à portée',
         !/Réessayez dans un instant/.test(q.texte()) && q.texte().includes('Changer de compte'));
+      /* et les deux refus voisins (relecture de `gardien`) : une entreprise SANS adresse chez TEAM OP — « connectez-vous avec
+         l'adresse de l'entreprise » serait une consigne impossible — et une référence ambiguë */
+      q = await essai(() => rep(403, { error: 'entreprise_sans_adresse' }));
+      v('⛔ « B » — l\'entreprise de l\'appareil n\'a PAS d\'adresse chez TEAM OP (403) : la page dit d\'écrire au support, jamais « connectez-vous avec l\'adresse de l\'entreprise »',
+        [q.api.etat().compte.etat, q.texte().includes('n\'a pas encore d\'adresse e-mail enregistrée chez TEAM OP'), q.texte().includes('support@teamop.fr'),
+          /Connectez-vous avec l'adresse e-mail de l'entreprise|Réessayez dans un instant/.test(q.texte()), q.texte().includes('Rien n\'a été payé'), q.window.location.href],
+        ['pret', true, true, false, true, '']);
+      q = await essai(() => rep(403, { error: 'reference_ambigue' }));
+      v('   … une référence ambiguë (403) : au support, sans « réessayez », et rien n\'est parti',
+        [q.texte().includes('ne peut pas être rattaché à votre entreprise sans vérification'), /Réessayez dans un instant/.test(q.texte()), q.texte().includes('Rien n\'a été payé'), q.window.location.href], [true, false, true, '']);
       q = await essai(() => rep(429, { error: 'trop de requêtes' }));
       vrai('⛔ trop de tentatives (429) : on le dit, on ne part pas', q.texte().includes('Trop de tentatives') && q.window.location.href === '');
       q = await essai(() => rep(502, undefined));
@@ -377,6 +387,7 @@ globalThis.fetch = async function (url, opts) {
     fs.writeFileSync(path.join(data, 'espaces.json'), JSON.stringify({
       'camille-banc': { nom: 'Camille Banc', t: 'banc-camille-t1', email: 'camille@entreprise-banc.fr', ts: 1, par: 'banc', origine: 'banc' },
       'voisine-banc': { nom: 'La voisine', t: 'banc-voisine-t2', email: 'patron@voisine-banc.fr', ts: 1, par: 'banc', origine: 'banc' },
+      'sansadresse-banc': { nom: 'Sans adresse', t: 'banc-sansadr-t3', email: '', ts: 1, par: 'banc', origine: 'banc' },
     }));
     const cfg = path.join(BANC, 'config.json');
     const vap = require(path.join(RACINE, 'server', 'node_modules', 'web-push')).generateVAPIDKeys();
@@ -498,6 +509,12 @@ globalThis.fetch = async function (url, opts) {
           const sienne = await payerAvec('banc-camille-t1');
           v('⛔ « B » — l\'appareil est relié à SON entreprise : le paiement s\'ouvre, la référence est gravée sur l\'abonnement',
             [sienne.s.length, sienne.envoye.get('subscription_data[metadata][espace]'), sienne.q.window.location.href], [1, 'banc-camille-t1', 'https://checkout.stripe.com/c/pay/banc-839']);
+          /* une entreprise SANS adresse chez TEAM OP (espaces ouverts par la Tour) : aucun compte ne prouve être le sien — le
+             refus doit le DIRE, pas envoyer le client chercher une adresse qui n'existe pas (`gardien`) */
+          const sansAdr = await payerAvec('banc-sansadr-t3');
+          if (/entreprise_sans_adresse/.test(ROUTE)) v('⛔ « B » — relié à une entreprise SANS adresse : le vrai serveur refuse en le disant, la page renvoie au support, rien chez Stripe',
+            [sansAdr.s.length, sansAdr.q.texte().includes('n\'a pas encore d\'adresse e-mail enregistrée chez TEAM OP'), /Connectez-vous avec l'adresse e-mail de l'entreprise/.test(sansAdr.q.texte()), sansAdr.q.window.location.href], [0, true, false, '']);
+          else vrai('   (serveur « B » sans le refus distinct : l\'entreprise sans adresse est refusée, rien chez Stripe)', sansAdr.s.length === 0);
           const inconnue = await payerAvec('banc-inconnu-t9');
           v('   une référence inconnue de l\'annuaire : le paiement s\'ouvre SANS référence (rattaché à l\'adresse du compte, à personne d\'autre)',
             [inconnue.s.length, inconnue.envoye.get('subscription_data[metadata][espace]'), inconnue.envoye.get('customer_email')], [1, null, 'camille@entreprise-banc.fr']);

@@ -50,8 +50,11 @@ function extraire(nom) {
   for (let k = SRC.indexOf('{', d0); k < SRC.length; k++) { if (SRC[k] === '{') p++; else if (SRC[k] === '}') { p--; if (!p) return SRC.slice(d0, k + 1); } }
   return '';
 }
-const AIDES = ['promoAujourdhui', 'promoDateFr', 'promoEmpreinteMail', 'promoIdentite', 'promoServiA', 'promoAutreActif', 'promoEntree'].map(extraire);
-vrai('les sept aides du code promo sont trouvées dans le fichier réel', AIDES.every(Boolean));
+/* ⚠️ et `espaceT` (28 septembre 2026, `gardien`) : la référence gravée se compare à l'identifiant tel que l'annuaire le
+   RANGE — en clair, ou dans le code des entrées les plus anciennes. Sans elle, le rattachement par référence jetterait
+   dans son `try`, en silence, et seul le repli par adresse répondrait. */
+const AIDES = ['promoAujourdhui', 'promoDateFr', 'promoEmpreinteMail', 'promoIdentite', 'promoServiA', 'promoAutreActif', 'promoEntree', 'espaceT'].map(extraire);
+vrai('les sept aides du code promo et espaceT sont trouvées dans le fichier réel', AIDES.every(Boolean));
 const PARAMS = ['config', 'espStripeCache', 'promoUsages', 'stripeAbosBruts', 'console', 'savePromoUsages', 'mailPromoActive', 'espacesReg', 'espaceParT', 'crypto', 'promosIllisible'];
 const construire = () => new Function(...PARAMS, AIDES.join('\n') + '\n' + SRC.slice(i, fin) + '\nreturn espacePaye;');
 const avec = (abos) => construire()(
@@ -89,6 +92,16 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
   {
     const r = await avec([ABO({ customer: { email: 'compta@client.fr' }, metadata: { espace: 'ent-x' } })])(ESP({ email: '' }));
     v('⛔ espace SANS adresse, référence sur le `t` : payé', r.paye, true);
+  }
+  {
+    /* ⛔ l'identifiant d'une entrée ANCIENNE ne vit que dans son code (`gardien`, 28 septembre 2026) : la route de paiement
+       grave cet identifiant-là, `espacePaye()` doit le reconnaître — sinon seul le repli par adresse la rattache, et un
+       changement d'adresse perd le paiement */
+    const vieille = ESP({ t: undefined, email: 'patron@ailleurs.fr', code: Buffer.from(JSON.stringify({ t: 'vieille-8mq' })).toString('base64') });
+    const r = await avec([ABO({ customer: { email: 'compta@client.fr' }, metadata: { espace: 'vieille-8mq' } })])(vieille);
+    v('⛔ l\'identifiant rangé dans le CODE : la référence gravée paie, sans l\'adresse', [r.paye, /référence d'espace/.test(r.motif || '')], [true, true]);
+    const r2 = await avec([ABO({ customer: { email: 'compta@client.fr' }, metadata: { espace: 'vieille-9zz' } })])(vieille);
+    v('   contre-épreuve : un AUTRE identifiant ne paie rien', r2.paye, false);
   }
 
   /* 4. LES CONTRE-ÉPREUVES. Sans elles, « rattacher plus largement » voudrait dire
@@ -244,16 +257,39 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('le compte de l\'entreprise paie pour elle : la référence est gravée (casse et espaces de l\'adresse de l\'annuaire ignorés)',
       [sienne.statut || 200, gravee(sienne), sienne.appels], [200, 'monclient-9f2a', 1]);
     const casse = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'MONCLIENT-9F2A' }, undefined, undefined, ANN);
-    v('   la même, en capitales (espacePaye la reconnaît sans casse) : gravée aussi', [casse.statut || 200, gravee(casse)], [200, 'MONCLIENT-9F2A']);
+    v('   la même, en capitales (espacePaye la reconnaît sans casse) : c\'est l\'identifiant RANGÉ qui est gravé', [casse.statut || 200, gravee(casse), new URLSearchParams(casse.envoye).get('client_reference_id')], [200, 'monclient-9f2a', 'monclient-9f2a']);
+    /* ⛔ on grave L'ENTREPRISE, pas le mot envoyé (`gardien`, rejoué) : un nom d'accès se libère et se reprend par une
+       autre entreprise, qui hériterait de l'abonnement ; l'identifiant ne se réattribue pas */
+    const parSonNom = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'MonClient' }, undefined, undefined, ANN);
+    v('⛔ désignée par son NOM D\'ACCÈS : c\'est son IDENTIFIANT qui est gravé, jamais le nom', [parSonNom.statut || 200, gravee(parSonNom), /monclient(?!-)/i.test(new URLSearchParams(parSonNom.envoye).get('client_reference_id') || '')], [200, 'monclient-9f2a', false]);
+    const MIENNES = {
+      vieillemaison: { nom: 'Vieille maison', code: Buffer.from(JSON.stringify({ t: 'vieille-8mq' })).toString('base64'), email: 'paie@entreprise-banc.fr' },
+      sansident: { nom: 'Sans identifiant', code: Buffer.from(JSON.stringify({ k: 'x' })).toString('base64'), email: 'paie@entreprise-banc.fr' },
+      nomun: { nom: 'Nom un', t: 'meme-4pd', email: 'paie@entreprise-banc.fr' },
+      nomdeux: { nom: 'Nom deux', t: 'meme-4pd', email: 'paie@entreprise-banc.fr' },
+    };
+    const dansCode = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'vieillemaison' }, undefined, undefined, MIENNES);
+    v('⛔ la sienne, identifiant rangé dans le CODE, désignée par son nom : l\'identifiant du code est gravé', [dansCode.statut || 200, gravee(dansCode)], [200, 'vieille-8mq']);
+    const sansIdent = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'SANSIDENT' }, undefined, undefined, MIENNES);
+    v('   une entrée SANS identifiant n\'a que son nom d\'accès : c\'est lui qui est gravé', [sansIdent.statut || 200, gravee(sansIdent)], [200, 'sansident']);
+    const deuxNoms = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'meme-4pd' }, undefined, undefined, MIENNES);
+    v('   deux noms pour la MÊME entreprise (même identifiant) : une identité, gravée', [deuxNoms.statut || 200, gravee(deuxNoms)], [200, 'meme-4pd']);
+    /* une référence qui désigne DEUX entreprises distinctes, toutes deux au compte qui paie (le nom d'accès de l'une est
+       l'identifiant, sans tiret, d'une ancienne) : on ne choisit pas pour le client laquelle il paie */
+    const AMBI = { abc: { nom: 'Abc', t: 'abc-1x', email: 'paie@entreprise-banc.fr' }, zzz: { nom: 'Zzz', t: 'abc', email: 'paie@entreprise-banc.fr' } };
+    const ambigue = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'abc' }, undefined, undefined, AMBI);
+    v('⛔ deux entreprises distinctes derrière UNE référence, même au bon compte : 403 « reference_ambigue », rien chez Stripe',
+      [ambigue.statut, ambigue.sortie && ambigue.sortie.error, ambigue.appels], [403, 'reference_ambigue', 0]);
     const autre = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'voisine-77xq' }, undefined, undefined, ANN);
     v('⛔ la référence d\'une AUTRE entreprise : 403 « compte_autre_entreprise », et RIEN chez Stripe',
       [autre.statut, autre.sortie && autre.sortie.error, autre.appels], [403, 'compte_autre_entreprise', 0]);
     const parNom = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'VOISINE' }, undefined, undefined, ANN);
     v('⛔ … désignée par son NOM D\'ACCÈS, casse changée (espacePaye la rattacherait ainsi) : 403, rien chez Stripe', [parNom.statut, parNom.appels], [403, 0]);
     const vide = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'vide-31kz' }, undefined, undefined, ANN);
-    v('⛔ une entreprise SANS adresse : aucun compte ne prouve être le sien — 403, rien chez Stripe', [vide.statut, vide.appels], [403, 0]);
+    v('⛔ une entreprise SANS adresse : aucun compte ne prouve être le sien — 403 « entreprise_sans_adresse » (un refus qui DIT pourquoi), rien chez Stripe',
+      [vide.statut, vide.sortie && vide.sortie.error, vide.appels], [403, 'entreprise_sans_adresse', 0]);
     const ancienne = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'ancienne-5hw' }, undefined, undefined, ANN);
-    v('⛔ l\'identifiant rangé dans le CODE (les espaces les plus anciens) compte aussi : 403', [ancienne.statut, ancienne.appels], [403, 0]);
+    v('⛔ l\'identifiant rangé dans le CODE (les espaces les plus anciens) compte aussi : 403 « compte_autre_entreprise »', [ancienne.statut, ancienne.sortie && ancienne.sortie.error, ancienne.appels], [403, 'compte_autre_entreprise', 0]);
     const inconnue = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'personne-0000' }, undefined, undefined, ANN);
     v('une référence INCONNUE de l\'annuaire n\'est PAS gravée — l\'abonnement se rattache à l\'adresse du compte, à personne d\'autre',
       [inconnue.statut || 200, gravee(inconnue), new URLSearchParams(inconnue.envoye).get('client_reference_id'), new URLSearchParams(inconnue.envoye).get('customer_email')],

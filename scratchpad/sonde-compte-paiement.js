@@ -120,14 +120,16 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
      entreprise par compte de la sonde, à l'adresse de ce compte — le patron qui a demandé son accès, puis ouvert son
      compte avec la même adresse : le cas réel —, et une VOISINE, à l'adresse de son propre patron. */
   const mailDe = (p, mode) => 'camille.' + p + '.' + mode + '@exemple.fr', tSienne = (p, mode) => 'sonde-' + p + '-' + mode + '-t';
-  const annuaire = { 'voisine-sonde': { nom: 'La voisine', t: 'sonde-voisine-t', email: 'patron@voisine-exemple.fr', ts: 1, par: 'sonde', origine: 'sonde' } };
+  const annuaire = { 'voisine-sonde': { nom: 'La voisine', t: 'sonde-voisine-t', email: 'patron@voisine-exemple.fr', ts: 1, par: 'sonde', origine: 'sonde' },
+    /* une entreprise SANS adresse chez TEAM OP (ouverte par la Tour sans adresse) : le refus doit le DIRE (`gardien`) */
+    'sansadresse-sonde': { nom: 'Sans adresse', t: 'sonde-sansadresse-t', email: '', ts: 1, par: 'sonde', origine: 'sonde' } };
   for (const p of PROFILS) for (const mode of MODES) annuaire['sonde-' + p + '-' + mode] = { nom: 'Hygiène Exemple', t: tSienne(p, mode), email: mailDe(p, mode), ts: 1, par: 'sonde', origine: 'sonde' };
   fs.writeFileSync(path.join(data, 'espaces.json'), JSON.stringify(annuaire));
   const portApi = await libre();
   const serveurServi = process.env.SERVEUR ? path.resolve(process.env.SERVEUR)
     : fs.existsSync(path.join(RACINE, 'server', 'index.js')) ? path.join(RACINE, 'server', 'index.js') : path.join(DEPOT, 'server', 'index.js');
   const SRC_SERVEUR = fs.readFileSync(serveurServi, 'utf8');
-  const REGLE = /cm\.verifie\(payeur\)/.test(SRC_SERVEUR), REGLE_B = /compte_autre_entreprise/.test(SRC_SERVEUR);
+  const REGLE = /cm\.verifie\(payeur\)/.test(SRC_SERVEUR), REGLE_B = /compte_autre_entreprise/.test(SRC_SERVEUR), REGLE_SANS = /entreprise_sans_adresse/.test(SRC_SERVEUR);
   console.log('  serveur : ' + serveurServi.replace(os.tmpdir(), '…') + (REGLE ? ' (la route exige un compte' + (REGLE_B ? ', et celui de l\'entreprise' : '') + ')' : ' (route d\'avant : la page tient seule)'));
   const nm = path.join(path.dirname(serveurServi), 'node_modules');
   if (!fs.existsSync(nm)) try { fs.symlinkSync(path.join(DEPOT, 'server', 'node_modules'), nm); } catch (e) {}
@@ -331,6 +333,20 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
       vrai(tag + ' · B · la page reste prête (au nom du compte), « Changer de compte » offert, le bouton se retouche',
         t.includes('Paiement rattaché à votre compte') && t.includes(mail) && await ev(`!!document.getElementById('btnAutreCompte') && !document.getElementById('btnPayer').disabled`));
       await juger(tag + ' · B · autre entreprise', p); await photo('B-autre-entreprise-' + tag);
+      if (REGLE_SANS) {
+        // relié à une entreprise SANS adresse chez TEAM OP : aucun compte ne prouve être le sien — la page renvoie au support
+        await relier('sonde-sansadresse-t');
+        const sA = stripe().length, bA = BLOQUES.length;
+        vrai(tag + ' · B · relié à une entreprise SANS adresse : « Continuer vers le paiement » est touché', await toucher(p, '#btnPayer'));
+        await attendre(async () => /pas encore d'adresse e-mail enregistrée/.test(await texteCarte()), 80);
+        t = await texteCarte();
+        v(tag + ' · ⛔ B · « … n\'a pas encore d\'adresse e-mail enregistrée chez TEAM OP » — au support, jamais « connectez-vous avec l\'adresse de l\'entreprise »',
+          [t.includes('Cette entreprise n\'a pas encore d\'adresse e-mail enregistrée chez TEAM OP') && t.includes('support@teamop.fr') && t.includes('Rien n\'a été payé.'),
+            /Connectez-vous avec l'adresse e-mail de l'entreprise|Réessayez dans un instant/.test(t)], [true, false]);
+        await dormir(400);
+        v(tag + ' · ⛔ B · rien n\'est parti (sans adresse)', [stripe().length - sA, BLOQUES.slice(bA).filter(u => /stripe\.com/.test(u)).length, new URL(await url()).pathname], [0, 0, RECAP]);
+        await juger(tag + ' · B · entreprise sans adresse', p); await photo('B-sans-adresse-' + tag);
+      }
       // relié à SON entreprise : le paiement s'ouvre, et l'abonnement la porte
       await relier(tSienne(p, mode));
       const sS = stripe().length, bS = BLOQUES.length;
