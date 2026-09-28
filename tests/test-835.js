@@ -59,7 +59,10 @@ v('quatre formules dans l\'application', Object.keys(PLANS), ['gratuit', 'pro', 
    l'application donne 1 exige l'égalité, et un écart déclaré qui ne sert plus fait tomber le banc — on le retire alors
    d'ici, dans le même geste que l'application. */
 const PLACES_VENDUES = 1;
-const ECART_APPLICATION = { business: 2, premium: 3 };   // l'ancienne règle, tant que l'application la porte encore
+/* ✅ REFERMÉ LE 28 SEPTEMBRE 2026 (v762, bêta) : l'application donne 1 place par abonnement dans toutes les formules.
+   ⚠️ Sur `main`, tant que l'application EN SERVICE porte encore 2 et 3 (v760), ce fichier-là garde l'écart : il se retire
+   là-bas avec la publication de l'application, dans le même geste. */
+const ECART_APPLICATION = {};
 for (const f of GEN.FORMULES_GESTION) {
   const p = PLANS[f.cle];
   vrai(f.cle + ' : nom « ' + f.nom + ' » = « ' + (p && p.nom) + ' »', p && p.nom === f.nom);

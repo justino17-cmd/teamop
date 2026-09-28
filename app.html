@@ -8017,7 +8017,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '761';
+const APP_VERSION = '762';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -13738,13 +13738,23 @@ function showAside(){ return localStorage.getItem('elan_aside')==='1'; }
 /* ═══ FORFAITS (Gratuit / Pro / Business / Business Premium) — l'accès suit la formule choisie ═══ */
 const PLANS={
   gratuit:{l:'Gratuit',prix:'0 €',maxU:1,desc:'1 utilisateur · planning, clients, rapports simples'},
-  pro:{l:'Pro',prix:'15 € / mois',maxU:1,desc:'1 utilisateur inclus · rapports complets, récurrences, tournées optimisées, devis & factures'},
-  business:{l:'Business',prix:'25 € / mois',maxU:2,desc:'2 utilisateurs inclus · + stock & box, bons fournisseurs, boîte mail, réglementaire, compta · votre logo dans l\'application'},
-  premium:{l:'Business Premium',prix:'50 € / mois',maxU:3,desc:'3 utilisateurs inclus · accès 100 % à toutes les fonctions d\'OP GESTION · service 24h/24 · logo, nom & couleur de votre entreprise'}
+  pro:{l:'Pro',prix:'15 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · rapports complets, récurrences, tournées optimisées, devis & factures'},
+  business:{l:'Business',prix:'25 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · + stock & box, bons fournisseurs, boîte mail, réglementaire, compta · votre logo dans l\'application'},
+  premium:{l:'Business Premium',prix:'50 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · accès 100 % à toutes les fonctions d\'OP GESTION · service 24h/24 · logo, nom & couleur de votre entreprise'}
 };
-/* Places incluses : nombre d'abonnements × places par abonnement (reprendre un abonnement = places qui s'additionnent) */
+/* ⛔ UN ABONNEMENT = UN UTILISATEUR, QUELLE QUE SOIT LA FORMULE — Justin, 27 septembre 2026 (le site et la page de
+   paiement), puis 28 septembre pour l'application : « c'est un utilisateur par abonnement ». Jusqu'à la v761, Business en
+   donnait 2 et Business Premium 3 : l'écart que `test-835` déclarait se referme ici. Les places = le nombre d'abonnements. */
 function planPlaces(){ return (PLANS[forfait()].maxU||1)*Math.max(1,db.forfaitQty||1); }
-function planPlaceLibre(){ return db.users.length<planPlaces(); }
+/* ⛔ PENDANT LA PÉRIODE OFFERTE PAR UN CODE PROMO, LE CODE COUVRE TOUTE L'ÉQUIPE — Justin, 28 septembre 2026 : ELAN
+   « est en démo pendant trois mois avec le code, donc le code comprend tous les utilisateurs qu'ils utilisent ». Aucune
+   place ne manque tant que la période court, ni pour les comptes d'aujourd'hui ni pour ceux qu'on ajoute : un essai ne
+   se bride pas au nombre. À sa fin, chacun compte pour un abonnement — c'est ce que dit le courriel des 7 jours
+   (`rappelsEcheances`, serveur), avec le nombre et la somme. ⚠️ Pas pendant une suspension : ce qui grise le forfait
+   grise aussi cette largesse. `planPlaces` reste le vrai nombre (la page de paiement et « il manque N abonnements » le
+   lisent) : seule la PORTE s'ouvre. */
+function essaiCouvreEquipe(){ const e=db&&db.forfaitEssai; return !!(e&&!e.termine&&e.finLe&&e.finLe>=todayISO()&&!suspensionGrise()); }
+function planPlaceLibre(){ return essaiCouvreEquipe() || db.users.length<planPlaces(); }
 /* ⛔ PLUS DE PLACE → LA PAGE DE PAIEMENT, POUR CE QUI MANQUE — PAS POUR TOUTE L'ÉQUIPE (v760).
    Justin, 27 septembre 2026 : un abonnement = un utilisateur. La page de paiement compte donc un abonnement par
    personne, et elle ouvre un abonnement NEUF, à côté de ceux qui courent déjà. Préremplir le nombre de PERSONNES
@@ -13922,13 +13932,13 @@ function promoEssaiCheck(){ const e=db.forfaitEssai; if(!e||!e.finLe) return;
     if(!e.termine){ e.termine=true; const f=e.formule; db.forfait='gratuit'; save(); renderNav();
       const cible=(f==='gratuit')?'pro':f;
       openModal(`<div class="modal-head"><h3>🎁 Ton essai est terminé</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-        <p style="color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:14px">Tes <b>${e.mois} mois offerts</b> en <b>${PLANS[f]?PLANS[f].l:''}</b> se sont terminés le ${fmtShort(e.finLe)}. L'espace est repassé en formule <b>Gratuite</b> — tes données sont intactes.<br><br>Pour retrouver toutes les fonctions, prends l'abonnement (2 minutes) :</p>
+        <p style="color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:14px">Tes <b>${e.mois} mois offerts</b> en <b>${PLANS[f]?PLANS[f].l:''}</b> se sont terminés le ${fmtShort(e.finLe)}. L'espace est repassé en formule <b>Gratuite</b> — tes données sont intactes.<br><br>Pour retrouver toutes les fonctions, prends l'abonnement — un par utilisateur (2 minutes) :</p>
         <button class="btn" style="width:100%;justify-content:center;padding:13px;margin-bottom:8px" onclick="window.open('https://teamop.fr/recap-abonnement.html?formule=${cible}&utilisateurs='+db.users.length,'_blank')">Prendre l'abonnement ${PLANS[f]?PLANS[f].l:''}</button>
         <button class="btn ghost" style="width:100%;justify-content:center" onclick="closeModal()">Plus tard</button>`); }
     return; }
   const rest=Math.ceil((new Date(e.finLe+'T00:00:00')-new Date(today+'T00:00:00'))/86400000);
   e.rappels=e.rappels||{};
-  if(rest<=7&&!e.rappels.j7){ e.rappels.j7=true; save(); toast('🎁 Ton essai '+(PLANS[e.formule]?PLANS[e.formule].l:'')+' se termine dans '+rest+' jour(s) — pense à prendre l\'abonnement'); }
+  if(rest<=7&&!e.rappels.j7){ e.rappels.j7=true; save(); toast('🎁 Ton essai '+(PLANS[e.formule]?PLANS[e.formule].l:'')+' se termine dans '+rest+' jour(s) — pense à prendre l\'abonnement (un par utilisateur)'); }
 }
 /* Formule attribuée par TeamOP depuis la Tour de contrôle : l'espace la reçoit
    tout seul à l'ouverture de l'app (annuaire serveur, par espace). */
@@ -32810,7 +32820,9 @@ views.utilisateurs=function(){
   if(!admin && !can('creerUtilisateurs') && !userSeesModule(currentUser,'utilisateurs')){ setHeader('Accès restreint','Réservé aux administrateurs'); $('content').innerHTML=emptyState('🔒','Réservé aux administrateurs (ou au droit « Créer des utilisateurs » / à la rubrique « Utilisateurs » accordée dans Permissions).','',''); return; }
   const places=planPlaces();
   const peutCreer=admin||can('creerUtilisateurs');   // voir la rubrique ne suffit pas pour créer des comptes
-  setHeader('Utilisateurs',`${db.users.length} / ${places} place(s) de l'abonnement`,
+  setHeader('Utilisateurs',essaiCouvreEquipe()
+      ? `${db.users.length} utilisateur${db.users.length>1?'s':''} · tous couverts par le code ${esc(db.forfaitEssai.code)} jusqu'au ${fmtShort(db.forfaitEssai.finLe)}`
+      : `${db.users.length} / ${places} place${places>1?'s':''} · un abonnement par utilisateur`,
     (currentUser&&currentUser.role==='admin'?`<button class="btn ghost" onclick="rolesGerer()" title="Les noms de rôle de l'entreprise, et leur point de départ">🏷 Rôles</button> <button class="btn ghost" onclick="profilsGerer()">🎛 Profils${profilsDroits().length?' · '+profilsDroits().length:''}</button> `:'')
     /* ⛔ LE BOUTON N'APPARAÎT QUE S'IL Y A QUELQUE CHOSE À VOIR. Un bouton qui ne fait rien
        apprend à cliquer pour rien — même raison que le « Tout remettre à zéro » de la Tour. */
@@ -34188,9 +34200,9 @@ views.parametres=function(){
              « rien ne s'écrit au seul chargement », et une activation reste un geste. */
           :`<input id="promo-inp" placeholder="Ex : BIENVENUE3" value="${esc(promoEnAttente())}" style="text-transform:uppercase;width:160px" onkeydown="if(event.key==='Enter')promoAppliquer()"><button class="btn sm" onclick="promoAppliquer()">Activer</button>`}</div></div></div>
       <div class="fgroup" style="margin-top:10px"><div class="frow"><span class="frow-lbl">Places utilisateur</span><div class="frow-val" style="display:flex;align-items:center;gap:10px;justify-content:flex-end">
-        <b>${db.users.length} / ${planPlaces()}</b><span style="color:var(--t3);font-size:12px">· ${Math.max(1,db.forfaitQty||1)} abonnement(s)</span>
+        <b>${essaiCouvreEquipe()?db.users.length:db.users.length+' / '+planPlaces()}</b><span style="color:var(--t3);font-size:12px">· ${essaiCouvreEquipe()?'tous couverts par ton code':Math.max(1,db.forfaitQty||1)+' abonnement(s)'}</span>
         <button class="btn ghost sm" onclick="setForfaitQty(-1)">−</button><button class="btn sm" onclick="setForfaitQty(1)">＋ Abonnement</button></div></div></div>
-      <p style="font-size:12px;color:var(--t3);margin-top:8px">Chaque abonnement ajoute ${PLANS[forfait()].maxU||1} place(s). Détail des formules : <a href="tarifs.html" target="_blank" style="color:var(--acc-txt)">teamop.fr/tarifs</a></p>
+      <p style="font-size:12px;color:var(--t3);margin-top:8px">Un abonnement = un utilisateur.${essaiCouvreEquipe()?' Pendant la période offerte par ton code, toute l’équipe est couverte ; à la fin, chaque utilisateur compte pour un abonnement.':''} Détail des formules : <a href="tarifs.html" target="_blank" style="color:var(--acc-txt)">teamop.fr/tarifs</a></p>
     </div>
     <div class="card"><div class="card-head"><h3>Sauvegarde & synchronisation</h3></div>
     <p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:16px">Exportez vos données pour les sauvegarder ou les transférer sur un autre appareil.</p>
@@ -38686,7 +38698,7 @@ function computeNotifs(){ const out=[]; const today=todayISO(); if(!currentUser)
        masquait dans ce bloc — inoffensif aujourd'hui, mais la prochaine notification ajoutée ici
        serait tombée sur « cible is not a function », en silence, au clic seulement. */
     if(rest>=0&&rest<=7){ const fEss=db.forfaitEssai.formule, formuleVisee=(fEss==='gratuit')?'pro':fEss;
-      out.push({id:'essai:'+db.forfaitEssai.finLe,ic:'🎁',txt:`Ton essai <b>${(PLANS[fEss]||{}).l||''}</b> se termine ${rest===0?"<b>aujourd'hui</b>":'dans <b>'+rest+' jour(s)</b>'} — aucune carte n'est enregistrée : pense à prendre l'abonnement pour continuer sans coupure.`,act:"window.open('https://teamop.fr/recap-abonnement.html?formule="+formuleVisee+"&utilisateurs='+db.users.length,'_blank')"}); } }
+      out.push({id:'essai:'+db.forfaitEssai.finLe,ic:'🎁',txt:`Ton essai <b>${(PLANS[fEss]||{}).l||''}</b> se termine ${rest===0?"<b>aujourd'hui</b>":'dans <b>'+rest+' jour(s)</b>'} — aucune carte n'est enregistrée : pense à prendre l'abonnement pour continuer sans coupure (un abonnement par utilisateur).`,act:"window.open('https://teamop.fr/recap-abonnement.html?formule="+formuleVisee+"&utilisateurs='+db.users.length,'_blank')"}); } }
   // Décisions du DR sur MES mouvements / MES demandes : seule la personne concernée est prévenue (validé ✅ / refusé 🚫, par qui, motif)
   { const me=currentUser.id, depuis=jourDe(Date.now()-7*86400000);
     (db.boxMvtAttente||[]).filter(m=>m.parId===me&&m.statut!=='enAttente'&&!notifMoi(m.drNom)&&m.dateValidation&&m.dateValidation>=depuis).forEach(m=>{ const ok=m.statut==='valide';

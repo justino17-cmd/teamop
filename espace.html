@@ -1168,7 +1168,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     if(c.t==='promo'&&pi){ objet='Mise à disposition des applications '+esc(pi.apps.map(k=>APPS[k].name).join(' et '))+' dans le cadre de l\'offre promotionnelle « '+esc(pi.label)+' » (code '+esc(pi.code)+').';
       duree='Du '+new Date((d.promo&&d.promo.activatedAt)||Date.now()).toLocaleDateString('fr-FR')+' au '+new Date(pi.until).toLocaleDateString('fr-FR')+' inclus. À l\'issue de cette période, l\'accès se poursuit uniquement par la souscription d\'un abonnement sur teamop.fr.';
       prix='Gratuit pendant la durée de l\'offre. Aucun prélèvement automatique à l\'issue : sans souscription, le compte repasse en formule Gratuit.'; }
-    else if(c.t==='abo'){ objet='Souscription de l\'abonnement TeamOP formule « '+esc(d.plan||'')+' », donnant accès aux applications de la suite TEAM OP selon les droits de cette formule, avec le nombre de comptes utilisateurs qu\'elle inclut (multiplié par le nombre d\'abonnements souscrits).';
+    else if(c.t==='abo'){ objet='Souscription de l\'abonnement TeamOP formule « '+esc(d.plan||'')+' », donnant accès aux applications de la suite TEAM OP selon les droits de cette formule, avec un compte utilisateur par abonnement souscrit, quelle que soit la formule.';
       duree='Abonnement sans engagement de durée, reconduit tacitement par période mensuelle ou annuelle selon le cycle choisi, résiliable à tout moment depuis l\'espace client ou par e-mail.';
       prix='Prix de la formule en vigueur affiché sur teamop.fr/tarifs.html au jour de la souscription (TVA non applicable, art. 293 B du CGI), payé par carte bancaire via Stripe. Les reçus sont envoyés par e-mail à chaque échéance.'; }
     else { objet='Mise à disposition de l\'application '+esc((APPS[c.k]||{}).name||'')+' au titre de la formule « '+esc(d.plan||'Découverte')+' ».';
@@ -1187,7 +1187,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       <h2>1. Objet</h2><p>${objet}</p>
       <h2>2. Durée</h2><p>${duree}</p>
       <h2>3. Prix</h2><p>${prix}</p>
-      <h2>4. Utilisateurs</h2><p>Le nombre de comptes utilisateurs disponibles suit la formule souscrite (et le nombre d'abonnements). L'application applique automatiquement cette limite.</p>
+      <h2>4. Utilisateurs</h2><p>Chaque abonnement donne un compte utilisateur, quelle que soit la formule : le nombre de comptes disponibles est le nombre d'abonnements souscrits. L'application applique automatiquement cette limite. Pendant une période offerte par un code promotionnel, tous les comptes de l'entreprise sont couverts.</p>
       <h2>5. Données</h2><p>Les données appartiennent au client. Elles sont chiffrées (AES-256), hébergées dans un espace isolé par entreprise, exportables à tout moment, et <b>ne sont jamais supprimées en cas de changement ou d'arrêt de formule</b>.</p>
       <h2>6. Résiliation</h2><p>Sans engagement : le client peut arrêter à tout moment depuis son espace ou par e-mail à contact@teamop.fr. L'accès payant cesse à la fin de la période en cours ; le compte repasse alors en formule Gratuit, données conservées.</p>
       <h2>7. Droit applicable</h2><p>Le présent contrat est soumis au droit français.</p>

@@ -267,7 +267,9 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
   vrai('population : ' + SERVIS.length + ' fichiers servis relus', SERVIS.length > 50);
   /* ⛔ L'APPLICATION, écart DÉCLARÉ (test-835 §3) : ses textes de forfait disent encore « 2 utilisateurs inclus » tant
      qu'elle donne 2 places. Le jour où elle passe à 1, cette exception ne sert plus, et le banc le dit. */
-  const ECART_APPLICATION = ['app.html', 'beta.html'];
+  /* ✅ refermé sur la branche le 28 septembre 2026 (v762 : un abonnement = un utilisateur). Sur `main`, `app.html` (v760 en
+     service) le garde jusqu'à sa publication — et le retire dans le même geste. */
+  const ECART_APPLICATION = [];
   const PROMESSE = /[2-9] utilisateurs? inclus|\(\s*[2-9] utilisateurs|u:'[2-9] utilisateurs|\b[2-9] en Business\b|Business\s*×\s*2\s*=\s*[3-9]/;
   /* ⛔ ET SANS CHIFFRE : « le nombre inclus dépend de ta formule », « un nombre de comptes utilisateurs selon la formule »
      disent la même chose que « 2 utilisateurs inclus » — et c'est ainsi que deux pages en service ont échappé au premier
@@ -276,7 +278,9 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
   /* ⛔ LE CONTRAT DU PORTAIL, écart DÉCLARÉ : il se RÉGÉNÈRE à chaque ouverture, pour les entreprises déjà abonnées
      aussi — le changer aujourd'hui changerait ce qu'ELAN lit de son propre contrat. Il décrit ce que l'application
      DONNE (2 et 3 places) et change avec elle, sur la réponse de Justin (les abonnés d'avant gardent-ils leurs places ?). */
-  const ECART_CONTRAT = ['espace.html', 'apercu/espace.html'];
+  /* ✅ refermé sur la branche le même jour : le contrat dit « un compte par abonnement » et « un code promo couvre tous les
+     comptes ». Sur `main`, `espace.html` en service décrit l'application EN SERVICE : il change avec elle. */
+  const ECART_CONTRAT = [];
   const fautifs = [];
   for (const f of SERVIS) {
     if (ECART_APPLICATION.includes(f)) continue;

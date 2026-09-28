@@ -128,6 +128,40 @@ let navigateur = null;
   vrai('« passe en Pro : un abonnement par utilisateur, soit 2 abonnements »', (e.questions[0] || '').includes('passe en Pro : un abonnement par utilisateur, soit 2 abonnements.'), e.questions[0]);
   v('⛔ la page de paiement pour Pro × 2 (la place gratuite ne s\'ajoute pas à un abonnement payant)', e.ouverts, [['https://teamop.fr/recap-abonnement.html?formule=pro&utilisateurs=2', '_blank']]);
 
+  /* ══ 6. v762 — UN ABONNEMENT = UN UTILISATEUR, ET UN CODE PROMO EN COURS COUVRE TOUTE L'ÉQUIPE (Justin, 28/09) ══ */
+  console.log('\n══ 6. v762 : Business Premium × 1 = UNE place ; un code promo en cours couvre toute l\'équipe ══');
+  const fin30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  const pop6 = await S.ev(`
+    db.users=[{id:'u-au-a',prenom:'Claire',nom:'Morel',login:'cm-au',role:'admin',actif:true,pref:{}}].concat(
+      ['Karim Benali','Sofia Perez','Omar Diallo','Inès Garnier','Hugo Lefèvre','Nora Aït'].map((x,i)=>({id:'u-p6-'+i,prenom:x.split(' ')[0],nom:x.split(' ')[1],login:'p6-'+i,role:'technicien',actif:true,pref:{}})));
+    db.forfait='premium'; db.forfaitQty=1; db.formuleAttente=null; db.forfaitEssai=null; save();
+    return {users:db.users.length, places:planPlaces(), libre:planPlaceLibre()};`);
+  v('population : sept personnes, Business Premium × 1 → UNE place (plus trois), aucune libre', pop6, { users: 7, places: 1, libre: false });
+  await connecter('u-au-a');
+  await S.ev(`window.__questions=[]; window.__ouverts=[]; return 1;`);
+  g = await essayer('Martin', 'Léa', 'lm-p6');
+  e = await etat();
+  v('⛔ sans code : aucun compte créé, la page de paiement pour 7 abonnements Business Premium de plus (8 − 1)', [e.n, e.ouverts], [7, [['https://teamop.fr/recap-abonnement.html?formule=premium&utilisateurs=7', '_blank']]]);
+  const tete = await S.ev(`go('utilisateurs'); await new Promise(r=>setTimeout(r,700)); const h=document.getElementById('page-head')||document.querySelector('.page-head,.topbar'); return h?h.textContent.replace(/\\s+/g,' '):'';`);
+  vrai('l\'en-tête d\'Utilisateurs dit « 7 / 1 place · un abonnement par utilisateur »', /7 \/ 1 place · un abonnement par utilisateur/.test(tete), tete);
+  await S.ev(`db.forfaitEssai={code:'ESSAI-SONDE-762',formule:'premium',debut:'2026-09-01',finLe:${JSON.stringify(fin30)},mois:3,rappels:{}}; save(); window.__questions=[]; window.__ouverts=[]; return 1;`);
+  g = await essayer('Martin', 'Léa', 'lm-p6');
+  vrai('avec le code en cours : « ＋ Utilisateur » → la fenêtre → « Créer », au doigt', g.bouton && g.formulaire && g.cree, g);
+  e = await etat();
+  v('⛔⛔ le compte est CRÉÉ (8), sans question ni page de paiement : le code couvre toute l\'équipe', [e.n, e.questions.length, e.ouverts.length], [8, 0, 0]);
+  const tete2 = await S.ev(`go('utilisateurs'); await new Promise(r=>setTimeout(r,700)); const h=document.getElementById('page-head')||document.querySelector('.page-head,.topbar'); return h?h.textContent.replace(/\\s+/g,' '):'';`);
+  vrai('l\'en-tête le dit : « 8 utilisateurs · tous couverts par le code ESSAI-SONDE-762 jusqu\'au … »', /8 utilisateurs · tous couverts par le code ESSAI-SONDE-762 jusqu'au/.test(tete2), tete2);
+  await cap('6-couverts-par-le-code');
+  const par = await S.ev(`go('parametres'); await new Promise(r=>setTimeout(r,900)); return document.getElementById('content').textContent.replace(/\\s+/g,' ');`);
+  vrai('Paramètres : « tous couverts par ton code » et « Un abonnement = un utilisateur. Pendant la période offerte… »',
+    /tous couverts par ton code/.test(par) && /Un abonnement = un utilisateur\. Pendant la période offerte par ton code, toute l’équipe est couverte/.test(par), par.slice(par.indexOf('Places utilisateur'), par.indexOf('Places utilisateur') + 260));
+  vrai('… et les formules disent « 1 utilisateur par abonnement » et « par utilisateur » (plus jamais « 3 utilisateurs inclus »)',
+    /Business Premium · 50 € \/ mois par utilisateur/.test(par) && /1 utilisateur par abonnement · accès 100 %/.test(par) && !/[2-9] utilisateurs inclus/.test(par), par.slice(par.indexOf('Forfait'), par.indexOf('Forfait') + 400));
+  await S.ev(`db.forfaitEssai.finLe='2020-01-01'; save(); window.__questions=[]; window.__ouverts=[]; return 1;`);
+  g = await essayer('Petit', 'Paul', 'pp-p6');
+  e = await etat();
+  v('le code FINI : plus de largesse — aucun compte de plus (8), la page de paiement pour 8 abonnements de plus (9 − 1)', [e.n, e.ouverts], [8, [['https://teamop.fr/recap-abonnement.html?formule=premium&utilisateurs=8', '_blank']]]);
+
   v('aucune erreur JavaScript pendant les gestes', S.exceptions, []);
   console.log(`\n════ sonde-ajout-utilisateur : ${ok} ✓ ${ko} ✗ ════`);
   S.fermer(); process.exit(ko ? 1 : 0);
