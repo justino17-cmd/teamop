@@ -187,9 +187,22 @@ globalThis.fetch = async function (url, opts) {
     const st = (await appel('/api/monitor/espaces/statut', { nom: 'ancienajout' }, PATRON)).j;
     v('   et la fiche aussi (7), à côté du nombre réglé (2)', [st.places, st.quantite], [7, 2]);
 
-    console.log('\n6. L\'application v763 lit `places`, et ne le range jamais dans la base synchronisée');
     const APP = fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8');
     const sansCom = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    // Le serveur part AVANT l'application (mise en ligne n° 1, puis la v763) : le même banc tourne donc sur une
+    // `main` qui sert encore la v760. La version se lit dans le fichier — et à partir de 763, la lecture de
+    // `places` est EXIGÉE : retirer `_placesSrv` d'une v763 ne peut pas passer pour « une application d'avant ».
+    const verApp = parseInt((sansCom.match(/APP_VERSION\s*=\s*'(\d+)/) || [])[1], 10) || 0;
+    vrai('la version de l\'application se lit (' + verApp + ')', verApp >= 700);
+    if (verApp < 763) {
+      console.log('\n6. L\'application EN SERVICE (v' + verApp + ') ne lit pas `places` : `quantite` garde son sens pour elle');
+      const iS = sansCom.indexOf('async function forfaitServeurSync(');
+      const cS = sansCom.slice(iS, iS + 6000);
+      vrai('forfaitServeurSync est trouvée', iS > 0);
+      vrai('elle lit `j.quantite` (le nombre d\'abonnements), jamais `j.places`', /j\.quantite/.test(cS) && !/j\.places/.test(cS));
+      vrai('ses places restent « formule × abonnements »', /function planPlaces\(\)\{ return \(PLANS\[forfait\(\)\]\.maxU\|\|1\)\*Math\.max\(1,db\.forfaitQty\|\|1\); \}/.test(sansCom));
+    } else {
+    console.log('\n6. L\'application v763 lit `places`, et ne le range jamais dans la base synchronisée');
     const iPP = sansCom.indexOf('function planPlaces(){');
     vrai('planPlaces est trouvée dans app.html', iPP > 0);
     const corpsPP = sansCom.slice(iPP, sansCom.indexOf('\n', sansCom.indexOf('return (PLANS[forfait()].maxU||1)', iPP)) + 1);
@@ -205,6 +218,7 @@ globalThis.fetch = async function (url, opts) {
     vrai('⛔ elle range les places servies EN MÉMOIRE (`_placesSrv`), depuis `j.places`', /_placesSrv=\(j\.paye&&j\.places!=null\)/.test(corpsSync));
     vrai('⛔ `db.forfaitQty` reste le nombre d\'abonnements (`j.quantite`), comme la v760 : aucune boucle de synchro entre versions',
       /const q=Math\.max\(1,parseInt\(j\.quantite,10\)\|\|1\);/.test(corpsSync) && !/db\.\w+\s*=[^;\n]*j\.places/.test(corpsSync));
+    }
 
     console.log('\n7. Rien n\'est écrit, rien ne fuit');
     const apres = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'));
