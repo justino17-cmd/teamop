@@ -671,9 +671,9 @@ app.post('/api/stripe/checkout', async (req, res) => {
        ⛔ ET ON GRAVE L'ENTREPRISE, PAS LE MOT ENVOYÉ (`gardien`, rejoué) : une référence qui est un NOM D'ACCÈS suivait
        ce nom — libéré (« Supprimer l'accès »), puis repris par une autre entreprise, il lui faisait hériter de
        l'abonnement au redémarrage suivant. L'identifiant d'équipe (`t`) ne se réattribue pas : c'est lui qu'on grave,
-       tel que l'annuaire le range (en clair ou dans le code) — et le nom d'accès seulement pour une entrée qui n'a pas
-       d'identifiant, dont c'est le seul nom. Des entreprises visées qui ne partagent pas UNE identité → 403
-       `reference_ambigue` : on ne choisit pas pour le client laquelle il paie. */
+       tel que l'annuaire le range (en clair ou dans le code) — et RIEN pour une entrée qui n'a pas d'identifiant
+       (l'abonnement suit alors l'adresse du compte, vérifiée). Des entreprises visées qui ne partagent pas UNE identité
+       → 403 `reference_ambigue` : on ne choisit pas pour le client laquelle il paie. */
     const payeurMin = String(payeur).trim().toLowerCase();
     let refGravee = '';
     if (typeof ref === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(ref)) {
@@ -682,20 +682,32 @@ app.post('/api/stripe/checkout', async (req, res) => {
       if (visees.length) {
         /* L'identité d'une entreprise : son identifiant, ou — entrée sans identifiant — son nom d'accès, TYPÉS : un
            identifiant ancien sans tiret peut s'écrire comme le nom d'une autre, et ce ne sont pas la même entreprise. */
-        const identite = x => { const t = espaceT(x).trim(); return t ? { cle: 't:' + t.toLowerCase(), val: t } : { cle: 's:' + String(x.slug).toLowerCase(), val: x.slug }; };
+        /* ⚠️ l'identifiant tel que l'annuaire le RANGE, espaces compris : c'est ainsi qu'`espacesDeRef` et `espacePaye()`
+           le comparent — le « nettoyer » ici graverait une valeur qu'`espacePaye()` ne reconnaîtrait plus (`gardien`). */
+        const identite = x => { const t = espaceT(x); return t.trim() ? { cle: 't:' + t.toLowerCase(), val: t } : { cle: 's:' + String(x.slug).toLowerCase(), val: x.slug }; };
         if (new Set(visees.map(x => identite(x).cle)).size !== 1) return res.status(403).json({ error: 'reference_ambigue' });
         const id = identite(visees[0]);
         /* ⛔ L'ENTREPRISE, C'EST TOUS SES NOMS D'ACCÈS — et la Tour en ouvre parfois SANS adresse (`email: … || ''`).
            Exiger l'adresse du compte sur CHAQUE nom refusait le vrai patron dès qu'un de ses noms n'en portait pas,
            avec « pas d'adresse » pour une entreprise qui en a une. La règle : au moins une adresse, et TOUTES celles
            présentes sont celle du compte ; deux adresses différentes pour une même entreprise se refusent (on ne
-           tranche pas un conflit de l'annuaire au moment de payer). Aucune autre route ne rattache un identifiant à
-           une seconde adresse (409 de `/api/monitor/espaces`) : un nom SANS adresse ne donne donc la main à personne. */
+           tranche pas un conflit de l'annuaire au moment de payer). Une adresse qui n'est pas du TEXTE (un tableau,
+           un nombre : aucune route ne l'écrit) compte comme une adresse étrangère — on échoue fermé.
+           ⚠️ CE VERROU CROIT L'ANNUAIRE, et c'est sa limite (`gardien`, 28 septembre 2026, rejoué) : aucune route
+           PUBLIQUE ne range une entrée sous l'identifiant d'une autre entreprise, et la Tour refuse une SECONDE adresse
+           (409) — mais « Code espace collé » dans la Tour rattache une PREMIÈRE adresse à un identifiant déjà connu sans
+           vérifier la clé du code. Un code forgé collé par le patron ferait donc passer ce verrou (et, avec ou sans
+           lui, le repli par adresse d'`espacePaye()`) — et, bien pire, sèmerait un compte dans l'annuaire de connexion de
+           l'entreprise visée. C'est la Tour qu'il faut fermer (preuve de la clé, et une confirmation pour une clé
+           vraiment changée) : voir `REPRISE.md`. */
         const adresses = Object.keys(espacesReg).filter(s => espacesReg[s] && identite(Object.assign({ slug: s }, espacesReg[s])).cle === id.cle)
-          .map(s => String(espacesReg[s].email || '').trim().toLowerCase()).filter(Boolean);
+          .map(s => { const a = espacesReg[s].email; return typeof a === 'string' ? a.trim().toLowerCase() : (a ? '\u0000pas-une-adresse' : ''); }).filter(Boolean);
         if (!adresses.length) return res.status(403).json({ error: 'entreprise_sans_adresse' });
         if (adresses.some(a => a !== payeurMin)) return res.status(403).json({ error: 'compte_autre_entreprise' });
-        refGravee = id.val;
+        /* ⛔ on ne grave QUE l'identifiant : le nom d'accès d'une entrée qui n'en a pas se libère et se reprend (le
+           défaut même que la gravure de l'identifiant ferme). Sans rien de gravé, l'abonnement suit l'adresse du compte
+           — qui EST celle de l'entreprise, on vient de le vérifier. */
+        refGravee = id.cle.startsWith('t:') ? id.val : '';
       }
     }
     const p = new URLSearchParams();
@@ -2135,8 +2147,10 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
   const emailNeuf = monStr((req.body || {}).email, 120).toLowerCase();
   if (emailNeuf && prev.email && String(prev.email).toLowerCase() !== emailNeuf)
     return res.status(409).json({ error: 'Ce nom est déjà relié à une autre adresse : on ne rattache pas un espace à un autre client par ici.' });
+  /* ⚠️ sans égard à la CASSE de l'identifiant (`gardien`, 28 septembre 2026) : le paiement le lit sans casse — un code
+     collé en « ACME-CD34 » passait ce contrôle à côté d'« acme-cd34 » et donnait deux adresses à une entreprise. */
   if (t && emailNeuf) for (const [s2, e2] of Object.entries(espacesReg)) {
-    if (s2 === slug || !e2 || espaceT(e2) !== t || !e2.email || String(e2.email).toLowerCase() === emailNeuf) continue;
+    if (s2 === slug || !e2 || espaceT(e2).toLowerCase() !== t.toLowerCase() || !e2.email || String(e2.email).toLowerCase() === emailNeuf) continue;
     return res.status(409).json({ error: 'Cet espace appartient déjà à « ' + (espNomPropre(e2) || s2) + ' », relié à une autre adresse : on ne le rattache pas à un second client.' });
   }
   /* Le code d'accès ne figure PAS ici : il vit dans son propre registre, indexé par l'identifiant
