@@ -14,8 +14,9 @@
 # dangereuse du dépôt, et c'est exactement elle qu'un déploiement du serveur seul met en jeu.
 # ⛔ CE QUI N'Y ENTRE PAS : les suites de l'application seule, et celles qui ne passent qu'avec
 # les pages de la branche — `test-735` (le socle côté appareil n'existe pas en v695),
-# `test-740`/`741`/`744`/`746` (portail, `espace.html` et `op-fs.js` non publiés),
-# `test-797` (la page de paiement non publiée). Elles tournent dans la suite complète, sur la branche.
+# `test-740`/`741`/`744`/`746` (portail, `espace.html` et `op-fs.js` non publiés). Elles tournent dans la
+# suite complète, sur la branche. (`test-797` en était, « la page de paiement non publiée » : elle l'est depuis
+# le 27 septembre 2026, `2d31fe7` — elle est entrée ci-dessous, avec `test-839`.)
 #
 # Mesuré le 24 septembre 2026 sur un arbre `origin/main` + `server/` de la branche :
 # toutes les suites ci-dessous passent, code de sortie 0 (voir REPRISE.md).
@@ -94,3 +95,11 @@ tests/test-832.js
 # adresse, l'espace partagé, « repartir à neuf », une boîte que la Tour relève (fausse boîte IMAP glissée par
 # `node -r`), une écriture refusée, un nom piégé, des effacements en parallèle. Le vrai serveur, sans page.
 tests/test-834.js
+# 28 septembre 2026 : « B — on verrouille » (Justin) — seul le compte de l'entreprise paie pour elle. La page de
+# paiement est EN SERVICE depuis `2d31fe7` : ces deux suites font parler SA fonction de paiement au VRAI serveur
+# (797 : la référence voyage de la page à l'abonnement ; 839 : les refus du serveur s'AFFICHENT, de bout en bout,
+# annuaire compris). C'est la couture qu'un déploiement du serveur seul met en jeu. Elles passent contre les deux
+# pages (celle de `main`, sans thème ; celle de la branche) et contre les deux serveurs (le refus « B » n'est exigé
+# que du serveur qui le porte).
+tests/test-797.js
+tests/test-839.js
