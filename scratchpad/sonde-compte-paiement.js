@@ -12,12 +12,17 @@
       est simulé DANS le processus serveur : ce qu'il reçoit est lu, rien ne sort de la machine), au nom du compte ;
    6. le service tombe : « Le service TEAM OP ne répond pas » ; il revient : « Réessayer » rend la page prête ;
    7. « Changer de compte » : la session est rendue, le portail se rouvre sur le formulaire (pas de retour automatique).
+   B. « on verrouille » (Justin, 28 septembre 2026) : l'appareil est relié (`elan_sync_team`) à l'entreprise d'un AUTRE
+      compte — la page dit « Seul le compte de l'entreprise peut payer pour elle », rien ne part vers Stripe, la page
+      reste prête ; relié à SON entreprise, le paiement s'ouvre et l'abonnement porte l'entreprise.
    Chaque écran est audité : aucune erreur JavaScript, chaque texte lisible sur son fond RÉEL (4,5 ; 3 en grand), au
    doigt aucune commande sous 44 px, rien ne dépasse de côté. Jour ET nuit, téléphone ET bureau.
    127.0.0.1 seulement, données fictives (camille…@exemple.fr).
    Usage : node scratchpad/sonde-compte-paiement.js
            RACINE_SERVIE=/chemin/copie-de-main  CHEMIN=/  → la page EN SERVICE d'une copie de main (pas de thème : le
            fond et les grandes surfaces ne sont pas jugés, seules NOS commandes le sont au doigt)
+           SERVEUR=/chemin/server/index.js → un AUTRE serveur que celui de la racine servie (la page en service face au
+           serveur de la branche : l'état d'après les deux publications)
            PROFILS=telephone  MODES=light  pour une passe courte ; PHOTOS=1 : une capture par écran */
 const fs = require('fs'), path = require('path'), http = require('http'), net = require('net'), os = require('os'), crypto = require('crypto');
 const { spawn } = require('child_process');
@@ -111,10 +116,19 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
   fs.writeFileSync(cfg, JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'sonde',
     adminPassHash: crypto.createHash('sha256').update('sonde-admin').digest('hex'), comptes: { actif: true }, stripe: { secretKey: 'sk_de_sonde' },
     smtp: { host: '127.0.0.1', port: portSmtp, secure: false, user: 'x', pass: 'y', from: 'sonde@teamop.fr' } }));
+  /* « B — on verrouille » : l'annuaire des entreprises, posé AVANT le démarrage (le serveur ne le lit qu'une fois). Une
+     entreprise par compte de la sonde, à l'adresse de ce compte — le patron qui a demandé son accès, puis ouvert son
+     compte avec la même adresse : le cas réel —, et une VOISINE, à l'adresse de son propre patron. */
+  const mailDe = (p, mode) => 'camille.' + p + '.' + mode + '@exemple.fr', tSienne = (p, mode) => 'sonde-' + p + '-' + mode + '-t';
+  const annuaire = { 'voisine-sonde': { nom: 'La voisine', t: 'sonde-voisine-t', email: 'patron@voisine-exemple.fr', ts: 1, par: 'sonde', origine: 'sonde' } };
+  for (const p of PROFILS) for (const mode of MODES) annuaire['sonde-' + p + '-' + mode] = { nom: 'Hygiène Exemple', t: tSienne(p, mode), email: mailDe(p, mode), ts: 1, par: 'sonde', origine: 'sonde' };
+  fs.writeFileSync(path.join(data, 'espaces.json'), JSON.stringify(annuaire));
   const portApi = await libre();
-  const serveurServi = fs.existsSync(path.join(RACINE, 'server', 'index.js')) ? path.join(RACINE, 'server', 'index.js') : path.join(DEPOT, 'server', 'index.js');
-  const REGLE = /cm\.verifie\(payeur\)/.test(fs.readFileSync(serveurServi, 'utf8'));
-  console.log('  serveur : ' + serveurServi.replace(os.tmpdir(), '…') + (REGLE ? ' (la route exige un compte)' : ' (route d\'avant : la page tient seule)'));
+  const serveurServi = process.env.SERVEUR ? path.resolve(process.env.SERVEUR)
+    : fs.existsSync(path.join(RACINE, 'server', 'index.js')) ? path.join(RACINE, 'server', 'index.js') : path.join(DEPOT, 'server', 'index.js');
+  const SRC_SERVEUR = fs.readFileSync(serveurServi, 'utf8');
+  const REGLE = /cm\.verifie\(payeur\)/.test(SRC_SERVEUR), REGLE_B = /compte_autre_entreprise/.test(SRC_SERVEUR);
+  console.log('  serveur : ' + serveurServi.replace(os.tmpdir(), '…') + (REGLE ? ' (la route exige un compte' + (REGLE_B ? ', et celui de l\'entreprise' : '') + ')' : ' (route d\'avant : la page tient seule)'));
   const nm = path.join(path.dirname(serveurServi), 'node_modules');
   if (!fs.existsSync(nm)) try { fs.symlinkSync(path.join(DEPOT, 'server', 'node_modules'), nm); } catch (e) {}
   const srv = spawn(process.execPath, ['--require', path.join(BANC, 'stripe-simule.js'), serveurServi], { env: Object.assign({}, process.env, { TEAMOP_CONFIG: cfg, TEAMOP_DATA: data, PORT: String(portApi) }), stdio: 'ignore' });
@@ -253,7 +267,7 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
     vrai(tag + ' · le portail dit « vous reviendrez automatiquement à votre paiement » et ouvre « Créer un compte »',
       await ev(`document.body.innerText.includes('reviendrez automatiquement à votre paiement') && document.getElementById('a-submit').textContent.trim()==='Créer mon compte'`));
     // 3. le VRAI formulaire d'inscription
-    const mail = 'camille.' + p + '.' + mode + '@exemple.fr';
+    const mail = mailDe(p, mode);
     await taper('#a-prenom', 'Camille'); await taper('#a-nom', 'Exemple'); await taper('#a-company', 'Hygiène Exemple');
     await taper('#a-email', mail); await taper('#a-pass', 'un-mot-de-passe-solide'); await taper('#a-pass2', 'un-mot-de-passe-solide');
     const n0 = courriers.length;
@@ -302,6 +316,42 @@ globalThis.fetch = async function (url, opts) { const u = String(url && url.url 
     panne = false;
     vrai(tag + ' · « Réessayer » est touché', await toucher(p, '#btnPayer'));
     vrai(tag + ' · le service revenu : la page est prête, sans avoir payé', await attendre(async () => /Paiement rattaché/.test(await texteCarte()), 80));
+    // B. l'appareil est relié à une entreprise (`elan_sync_team`, ce que la page envoie en `ref`)
+    const relier = t => ev(`(()=>{ ${t ? `localStorage.setItem('elan_sync_team', ${JSON.stringify(t)})` : `localStorage.removeItem('elan_sync_team')`}; return 1; })()`);
+    await relier('sonde-voisine-t');
+    const sB = stripe().length, bB = BLOQUES.length;
+    vrai(tag + ' · B · « Continuer vers le paiement » est touché, l\'appareil relié à l\'entreprise d\'un AUTRE compte', await toucher(p, '#btnPayer'));
+    if (REGLE_B) {
+      await attendre(async () => /Seul le compte de l'entreprise peut payer pour elle/.test(await texteCarte()), 80);
+      t = await texteCarte();
+      vrai(tag + ' · ⛔ B · « Seul le compte de l\'entreprise peut payer pour elle » … « Rien n\'a été payé », sans « Réessayez »',
+        t.includes('Seul le compte de l\'entreprise peut payer pour elle, et ce compte n\'est pas le sien.') && t.includes('Rien n\'a été payé.') && !t.includes('Réessayez dans un instant'));
+      await dormir(400);
+      v(tag + ' · ⛔ B · rien n\'est parti : aucune page Stripe ouverte, aucune navigation', [stripe().length - sB, BLOQUES.slice(bB).filter(u => /stripe\.com/.test(u)).length, new URL(await url()).pathname], [0, 0, RECAP]);
+      vrai(tag + ' · B · la page reste prête (au nom du compte), « Changer de compte » offert, le bouton se retouche',
+        t.includes('Paiement rattaché à votre compte') && t.includes(mail) && await ev(`!!document.getElementById('btnAutreCompte') && !document.getElementById('btnPayer').disabled`));
+      await juger(tag + ' · B · autre entreprise', p); await photo('B-autre-entreprise-' + tag);
+      // relié à SON entreprise : le paiement s'ouvre, et l'abonnement la porte
+      await relier(tSienne(p, mode));
+      const sS = stripe().length, bS = BLOQUES.length;
+      vrai(tag + ' · B · relié à SON entreprise : « Continuer vers le paiement » est touché', await toucher(p, '#btnPayer'));
+      await attendre(async () => BLOQUES.slice(bS).some(u => u.startsWith('https://checkout.stripe.com/c/pay/sonde')), 80);
+      const eS = stripe().slice(sS), cS = new URLSearchParams(eS[0] ? eS[0].corps : '');
+      v(tag + ' · ⛔ B · le navigateur part vers Stripe, l\'abonnement porte SON entreprise et SON compte',
+        [BLOQUES.slice(bS).some(u => u.startsWith('https://checkout.stripe.com/c/pay/sonde')), eS.length, cS.get('client_reference_id'), cS.get('subscription_data[metadata][espace]'), cS.get('customer_email')],
+        [true, 1, tSienne(p, mode), tSienne(p, mode), mail]);
+      /* ⚠️ la page de Stripe (bloquée ici) n'est pas de notre origine : on revient d'abord, on délie ENSUITE */
+      await aller(RECAP + '?formule=pro&utilisateurs=2'); await relier(''); await aller(RECAP + '?formule=pro&utilisateurs=2');
+      vrai(tag + ' · retour sur la page : prête', await attendre(async () => /Paiement rattaché/.test(await texteCarte()), 80));
+    } else {
+      /* le serveur D'AVANT (en service tant que la page part seule) : il grave la référence telle quelle — la page publiée
+         avant lui ne casse rien, le paiement s'ouvre comme la veille */
+      await attendre(async () => BLOQUES.slice(bB).some(u => u.startsWith('https://checkout.stripe.com/c/pay/sonde')), 80);
+      v(tag + ' · B · serveur d\'avant : la page part vers Stripe comme avant (rien ne casse)', [BLOQUES.slice(bB).some(u => u.startsWith('https://checkout.stripe.com/c/pay/sonde')), stripe().length - sB], [true, 1]);
+      /* ⚠️ la page de Stripe (bloquée ici) n'est pas de notre origine : on revient d'abord, on délie ENSUITE */
+      await aller(RECAP + '?formule=pro&utilisateurs=2'); await relier(''); await aller(RECAP + '?formule=pro&utilisateurs=2');
+      vrai(tag + ' · retour sur la page : prête', await attendre(async () => /Paiement rattaché/.test(await texteCarte()), 80));
+    }
     // 7. changer de compte
     vrai(tag + ' · « Ce n\'est pas vous ? Changer de compte » est touché', await toucher(p, '#btnAutreCompte'));
     await attendre(async () => /espace\.html$/.test(new URL(await url()).pathname), 80); await dormir(900);
