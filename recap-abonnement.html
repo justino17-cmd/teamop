@@ -963,6 +963,13 @@ function rendrePaiement() {
     if (r && r.ok && j && j.url) { window.location.href = j.url; return; }
     if (r && r.status === 401) { oublierSession(); compte = { etat: 'aucun' }; compteMsg = { texte: 'Votre session a expiré : reconnectez-vous, vous reviendrez ici.', erreur: true }; }
     else if (r && r.status === 403 && j && j.error === 'adresse_non_verifiee') { compte = Object.assign({}, compte, { etat: 'a_confirmer' }); compteMsg = null; }
+    /* « B — on verrouille » (Justin, 28 septembre 2026) : l'appareil est relié à une entreprise, et ce compte n'est pas le
+       sien. Le refus est DÉFINITIF pour ce compte : « réessayez » mentirait — la page dit qui peut payer, et comment. */
+    else if (r && r.status === 403 && j && j.error === 'compte_autre_entreprise') compteMsg = { texte: 'Seul le compte de l\'entreprise peut payer pour elle, et ce compte n\'est pas le sien. Connectez-vous avec l\'adresse e-mail de l\'entreprise (« Changer de compte »), ou écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+    /* l'entreprise n'a PAS d'adresse chez TEAM OP : aucun compte ne peut prouver qu'il est le sien — « connectez-vous avec
+       l'adresse de l'entreprise » serait une consigne impossible (`gardien`). C'est à TEAM OP de la renseigner. */
+    else if (r && r.status === 403 && j && j.error === 'entreprise_sans_adresse') compteMsg = { texte: 'Cette entreprise n\'a pas encore d\'adresse e-mail enregistrée chez TEAM OP : le paiement ne peut pas lui être rattaché. Écrivez à support@teamop.fr pour la faire ajouter, puis revenez payer. Rien n\'a été payé.', erreur: true };
+    else if (r && r.status === 403 && j && j.error === 'reference_ambigue') compteMsg = { texte: 'Le paiement ne peut pas être rattaché à votre entreprise sans vérification : écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
     else if (r && r.status === 429) compteMsg = { texte: 'Trop de tentatives d\'affilée : patientez une minute, puis réessayez.', erreur: true };
     else compteMsg = { texte: 'Le paiement n\'a pas pu s\'ouvrir — rien n\'a été payé. Réessayez dans un instant, ou écrivez à support@teamop.fr.', erreur: true };
     rendrePaiement();
