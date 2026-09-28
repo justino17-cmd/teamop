@@ -161,7 +161,9 @@ console.log('\n── 834 · les contournements des protections de suppression (
     munettoyage: ['t-mu-834', 'Mu Nettoyage', 'mu@exemple-834.fr'],
     phiun: ['t-phi1-834', 'Phi Un', 'phi@exemple-834.fr'], phideux: ['t-phi2-834', 'Phi Deux', 'phi@exemple-834.fr'], phitrois: ['t-phi3-834', 'Phi Trois', 'phi@exemple-834.fr'],
     nuhygiene: ['t-nu-834', 'Nu Hygiène', ''],
-    rhoun: ['t-rho1-834', 'Rho Un', 'rho@exemple-834.fr'], rhodeux: ['t-rho2-834', 'Rho Deux', 'rho@exemple-834.fr'], rhotrois: ['t-rho3-834', 'Rho Trois', 'rho@exemple-834.fr'] };
+    rhoun: ['t-rho1-834', 'Rho Un', 'rho@exemple-834.fr'], rhodeux: ['t-rho2-834', 'Rho Deux', 'rho@exemple-834.fr'], rhotrois: ['t-rho3-834', 'Rho Trois', 'rho@exemple-834.fr'],
+    /* la clé d'un code collé (§1 bis) : psi ouverte par la Tour SANS adresse — la cible du code forgé —, chi avec */
+    psihygiene: ['t-psi-834', 'Psi Hygiène', ''], chinettoyage: ['t-chi-834', 'Chi Nettoyage', 'chi@exemple-834.fr'] };
   const espaces = {};
   for (const [slug, [t, nom, email]] of Object.entries(ESP)) espaces[slug] = Object.assign({ t, nom, code: code64(t), ts: Date.now() }, email ? { email } : {});
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(espaces));
@@ -241,6 +243,41 @@ console.log('\n── 834 · les contournements des protections de suppression (
     v('⛔ … le MÊME identifiant écrit en capitales : 409 aussi, rien d\'écrit', [r.s, /appartient déjà à « Kappa Nettoyage »/.test(r.j.error || ''), slugs().includes('leurrekappamaj')], [409, true, false]);
     r = await appel('/api/monitor/espaces', { nom: 'Kappa Nettoyage', code: code64('t-kappa-834'), email: 'omega@exemple-834.fr' });
     v('⛔ changer l\'adresse d\'un espace déjà relié : 409, kappa garde la sienne', [r.s, (lire('espaces.json').kappanettoyage || {}).email], [409, 'kappa@exemple-834.fr']);
+
+    /* ══ 4 bis. LA CLÉ D'UN CODE COLLÉ — Justin, 28 septembre 2026 : « on ne la rattachera pas, sauf si je le confirme
+       moi-même ». Le scénario rejoué par `gardien` : une entreprise ouverte SANS adresse (psi), un code FORGÉ — son vrai
+       identifiant, une clé inventée — collé avec l'adresse d'un tiers. Avant, 200 : l'entrée du tiers devenait la
+       référence de psi (sa fausse clé), un compte était semé dans son annuaire, et le paiement suivait. ══ */
+    console.log('\n1 bis. Un code collé avec une clé DIFFÉRENTE ne passe que si le patron le confirme');
+    /* avec un identifiant ET un mot de passe de départ : accepté, ce code SÈMERAIT un compte dans l'annuaire de psi */
+    const code64k = (t, k) => Buffer.from(JSON.stringify({ t, k, a: 'pirate', m: 'Mot-De-Passe-Pirate-834' })).toString('base64');
+    const annuPsi = () => Object.keys((((lire('comptes.json') || {})['t-psi-834']) || {}).c || {}).length;
+    const psiAvant = JSON.stringify(lire('espaces.json').psihygiene);
+    r = await appel('/api/monitor/espaces', { nom: 'Psi Collée', code: code64k('t-psi-834', 'cle-forgee-834'), email: 'pirate@exemple-834.fr' });
+    await dormir(400);   // le semis de l'annuaire part sans être attendu : on lui laisse le temps de se tromper
+    v('⛔ le bon identifiant, une clé FORGÉE, l\'adresse d\'un tiers : 409 cle_differente, rien d\'écrit, aucun compte semé, psi intacte',
+      [r.s, r.j.motif, /clé DIFFÉRENTE/.test(r.j.error || ''), slugs().includes('psicollee'), annuPsi(), JSON.stringify(lire('espaces.json').psihygiene) === psiAvant],
+      [409, 'cle_differente', true, false, 0, true]);
+    r = await appel('/api/monitor/espaces', { nom: 'Psi Collée Maj', code: code64k('T-PSI-834', 'cle-forgee-834'), email: 'pirate@exemple-834.fr' });
+    v('⛔ … l\'identifiant écrit en capitales n\'y change rien : 409 cle_differente', [r.s, r.j.motif, slugs().includes('psicolleemaj')], [409, 'cle_differente', false]);
+    r = await appel('/api/monitor/espaces', { nom: 'Psi Collée', code: code64k('t-psi-834', 'cle-forgee-834'), email: 'pirate@exemple-834.fr', confirmeCle: 'true' });
+    v('⛔ une confirmation écrite en TEXTE n\'en est pas une (booléen strict) : 409', [r.s, r.j.motif, slugs().includes('psicollee')], [409, 'cle_differente', false]);
+    r = await appel('/api/monitor/espaces', { nom: 'Psi Hygiène', code: code64('t-psi-834'), email: 'psi@exemple-834.fr' });
+    v('le MÊME code (la vraie clé) collé une seconde fois : 200, rien à confirmer, l\'adresse est posée',
+      [r.s, (lire('espaces.json').psihygiene || {}).email, !!(lire('espaces.json').psihygiene || {}).cleConfirmee], [200, 'psi@exemple-834.fr', false]);
+    /* L'entreprise qui a changé sa clé (« Enregistrer une nouvelle clé d'équipe ») : le même nom, la même adresse, une
+       clé NEUVE. C'est le cas légitime — il passe, mais seulement sur la confirmation, et elle se garde. */
+    r = await appel('/api/monitor/espaces', { nom: 'Chi Nettoyage', code: code64k('t-chi-834', 'cle-neuve-834'), email: 'chi@exemple-834.fr' });
+    v('⛔ une clé NEUVE sur le même nom et la même adresse, sans confirmation : 409, l\'ancienne clé reste',
+      [r.s, r.j.motif, /cle-propre-t-chi-834/.test(Buffer.from((lire('espaces.json').chinettoyage || {}).code || '', 'base64').toString('utf8'))], [409, 'cle_differente', true]);
+    r = await appel('/api/monitor/espaces', { nom: 'Chi Nettoyage', code: code64k('t-chi-834', 'cle-neuve-834'), email: 'chi@exemple-834.fr', confirmeCle: true });
+    const chi = lire('espaces.json').chinettoyage || {};
+    v('… avec la confirmation du patron : 200, la nouvelle clé est enregistrée, et QUI l\'a confirmée aussi',
+      [r.s, /cle-neuve-834/.test(Buffer.from(chi.code || '', 'base64').toString('utf8')), (chi.cleConfirmee || {}).par, typeof (chi.cleConfirmee || {}).ts],
+      [200, true, 'Patron', 'number']);
+    vrai('… et le journal du serveur le dit (qui, quel espace — sans adresse)', /Tour : Patron confirme une clé DIFFÉRENTE pour l'espace t-chi-834/.test(journal) && !/chi@exemple-834\.fr/.test(journal));
+    r = await appel('/api/monitor/espaces', { nom: 'Xi Neuve', code: code64k('t-xi-834', 'cle-quelconque-834'), email: 'xi@exemple-834.fr' });
+    v('un identifiant que le serveur ne connaît pas : 200 sans question (c\'est une entreprise neuve)', [r.s, slugs().includes('xineuve')], [200, true]);
 
     /* ══ 5. B3 : « REPARTIR À NEUF » AU MÊME RÉGIME QUE LES SUPPRESSIONS ══════════════════════════════ */
     console.log('\n2. « Repartir à neuf » : avis, compteur, et jamais l\'espace partagé');

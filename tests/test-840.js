@@ -1,0 +1,243 @@
+/* ⛔ CE QUE CE FICHIER GARDE — LE RAPPEL DES 7 JOURS AVANT LA FIN D'UN CODE PROMO, SUR LE VRAI SERVEUR.
+
+   Justin, 28 septembre 2026 : « à l'expiration du code, il faudra bien leur renvoyer un mail … des mails automatiques
+   sept jours avant l'expiration : tant d'utilisateurs trouvés chez vous, si vous poursuivez votre abonnement, payer la
+   somme de chaque utilisateur ». Le rappel EXISTAIT (`rappelsEcheances`, toutes les 6 heures) mais ne disait ni le
+   nombre d'utilisateurs ni la somme : « choisissez votre abonnement », vers le portail. Aucun banc ne le jouait.
+   Ce qu'on garde ici, en faisant tourner le vrai serveur contre un facteur SMTP de banc :
+     · le NOMBRE : les utilisateurs actifs de l'entreprise — son annuaire de connexion (`comptes.json`), que
+       l'application dépose en prouvant sa clé —, la FORMULE du code et la SOMME, par mois et à l'année ;
+     · le lien de paiement prérempli (formule, nombre) ; sans annuaire, aucun nombre inventé ;
+     · À QUI il ne part PAS : période encore loin ou déjà finie, entreprise sans adresse, entreprise fermée,
+       entreprise dont l'abonnement réglé à la main dans la Tour court au-delà du code, entreprise déjà prévenue
+       sous un autre de ses noms ;
+     · une seule fois par échéance, même après un redémarrage — et un envoi REFUSÉ se retente au passage suivant
+       (avant, la marque posée avant l'envoi le perdait pour toujours) ;
+     · la grille de prix du serveur est celle de la page de paiement (`recap-abonnement.html`) : deux grilles
+       finissent par dire deux prix.
+   Rien ne sort d'ici : 127.0.0.1, un facteur de banc, des entreprises fictives. Ce fichier ne lit qu'une page, la page
+   de paiement (pour sa grille) : il part avec le déploiement du serveur seul. */
+const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
+const { spawn } = require('child_process');
+const RACINE = path.join(__dirname, '..');
+const SERVEUR = process.env.SERVEUR_FICHIER ? path.resolve(process.env.SERVEUR_FICHIER) : path.join(RACINE, 'server', 'index.js');
+let ok = 0, ko = 0;
+const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + String(JSON.stringify(b)).slice(0, 400) + '\n      obtenu  : ' + String(JSON.stringify(a)).slice(0, 400)); } };
+const vrai = (t, c) => v(t, !!c, true);
+const dormir = ms => new Promise(r => setTimeout(r, ms));
+const banc = fs.mkdtempSync(path.join(os.tmpdir(), 'b840-'));
+let enfant = null, facteurSrv = null;
+const fin = () => { try { if (enfant) enfant.kill('SIGKILL'); } catch (e) {} try { if (facteurSrv) facteurSrv.s.close(); } catch (e) {}
+  try { fs.rmSync(banc, { recursive: true, force: true }); } catch (e) {} };
+process.on('exit', fin);
+setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 120 s'); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); fin(); process.exit(1); }, 120000).unref();
+
+/* Le facteur du banc (celui de `test-833`, point doublé compris — RFC 5321 §4.5.2). Humeur `refuse` : un 550 à
+   l'expéditeur, comme un serveur d'e-mails qui dit non. */
+function facteur() {
+  const recus = [];
+  const f = { recus, mode: 'normal' };
+  const s = require('net').createServer(c => {
+    let tampon = '', corps = false, msg = '';
+    c.write('220 banc\r\n');
+    c.on('data', d => {
+      tampon += d.toString('utf8');
+      let i;
+      while ((i = tampon.indexOf('\r\n')) >= 0) {
+        const l = tampon.slice(0, i); tampon = tampon.slice(i + 2);
+        if (corps) { if (l === '.') { corps = false; recus.push(msg); msg = ''; c.write('250 ok\r\n'); } else msg += (l.startsWith('.') ? l.slice(1) : l) + '\n'; continue; }
+        const h = l.toUpperCase();
+        if (h.startsWith('EHLO') || h.startsWith('HELO')) c.write('250-banc\r\n250 AUTH PLAIN LOGIN\r\n');
+        else if (h.startsWith('AUTH')) c.write('235 ok\r\n');
+        else if (h.startsWith('MAIL FROM') && f.mode === 'refuse') c.write('550 refusé par le facteur du banc\r\n');
+        else if (h.startsWith('DATA')) { corps = true; c.write('354 go\r\n'); }
+        else if (h.startsWith('QUIT')) { c.write('221 bye\r\n'); c.end(); }
+        else c.write('250 ok\r\n');
+      }
+    });
+    c.on('error', () => {});
+  });
+  f.s = s;
+  return f;
+}
+/* Le quoted-printable replié, décodé (le point doublé est déjà retiré par le facteur). */
+const lisible = (m) => Buffer.from(String(m || '').replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))), 'latin1').toString('utf8');
+/* L'en-tête « To: » d'un message (les copies cachées n'y figurent pas). */
+const destinataire = (m) => ((/^To: *(.+)$/m.exec(String(m || '')) || [])[1] || '').trim();
+/* L'objet d'un message BRUT (pas passé par `lisible`, qui défait les « =XX » des mots encodés) : l'en-tête déplié, ses
+   mots encodés (=?UTF-8?Q?…?= ou =?UTF-8?B?…?=) décodés et recollés — l'espace ENTRE deux mots encodés ne compte pas. */
+function objet(brut) {
+  const l = String(brut || '').split('\n'); let s = null;
+  for (const x of l) { if (s === null) { if (/^Subject:/i.test(x)) s = x.replace(/^Subject: */i, ''); continue; } if (/^[ \t]/.test(x)) s += x; else break; }
+  const mot = /=\?UTF-8\?([QB])\?([^?]*)\?=/gi;
+  const dec = (e, x) => e.toUpperCase() === 'B' ? Buffer.from(x, 'base64').toString('utf8')
+    : Buffer.from(x.replace(/_/g, ' ').replace(/=([0-9A-F]{2})/gi, (_, h) => String.fromCharCode(parseInt(h, 16))), 'latin1').toString('utf8');
+  return String(s || '').replace(/\?=[ \t]+=\?/g, '?==?').replace(mot, (_, e, x) => dec(e, x));
+}
+/* Une adresse EN CLAIR du banc (la forme masquée du journal, « o***@… », n'en est pas une) */
+const ADRESSE_EN_CLAIR = /\w@exemple-840\.fr/;
+
+console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, la somme, et à qui il ne part pas ──');
+(async () => {
+  let webpush;
+  try { webpush = require(path.join(RACINE, 'server', 'node_modules', 'web-push')); }
+  catch (e) { console.log('  … SAUTÉE : server/node_modules absent (cd server && npm i)'); console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(0); }
+
+  /* ══ 0. LA GRILLE DE PRIX : celle du serveur est celle de la page de paiement ══════════════════════════════ */
+  console.log('\n0. Une seule grille de prix');
+  const sansCommentaires = (s) => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+  const SRV = sansCommentaires(fs.readFileSync(SERVEUR, 'utf8'));
+  const RECAP = sansCommentaires(fs.readFileSync(path.join(RACINE, 'recap-abonnement.html'), 'utf8'));
+  const grilleSrv = (() => { const m = /const PRIX_ABO_MOIS = \{ *pro: *(\d+), *business: *(\d+), *premium: *(\d+) *\};/.exec(SRV); return m ? { pro: +m[1], business: +m[2], premium: +m[3] } : null; })();
+  const moisOffertsSrv = (() => { const m = /const MOIS_OFFERTS_ANNEE = (\d+);/.exec(SRV); return m ? +m[1] : null; })();
+  const grillePage = {};
+  for (const f of ['pro', 'business', 'premium']) { const m = new RegExp('\\n  ' + f + ': \\{[\\s\\S]*?prixMensuel: (\\d+),').exec(RECAP); grillePage[f] = m ? +m[1] : null; }
+  const moisOffertsPage = (() => { const m = /const REMISE_ANNUELLE = (\d+);/.exec(RECAP); return m ? +m[1] : null; })();
+  vrai('la grille du serveur est trouvée (population : trois formules et les mois offerts)', grilleSrv && moisOffertsSrv !== null);
+  v('le prix d\'un abonnement, formule par formule, est celui de la page de paiement', grilleSrv, grillePage);
+  v('les mois offerts à l\'année aussi', moisOffertsSrv, moisOffertsPage);
+
+  /* ══ 1. LE FACTEUR ET LES DONNÉES ═════════════════════════════════════════════════════════════════════ */
+  facteurSrv = facteur();
+  const portSmtp = await new Promise(res => facteurSrv.s.listen(0, '127.0.0.1', () => res(facteurSrv.s.address().port)));
+  const D = path.join(banc, 'data'); fs.mkdirSync(D, { recursive: true });
+  const jour = (d) => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
+  const fr = (iso) => iso.split('-').reverse().join('/');
+  const code64 = (t) => Buffer.from(JSON.stringify({ t, k: 'cle-propre-' + t })).toString('base64');
+  const MAINTENANT = Date.now();
+  /* [identifiant, nom, adresse, code, fin de période (jours), réglages en plus] — des entreprises fictives */
+  const ENT = {
+    omicron: ['t-omicron-840', 'Omicron Hygiène', 'omicron@exemple-840.fr', 'ESSAI-PREMIUM-840', 5],
+    pi: ['t-pi-840', 'Pi Nettoyage', 'pi@exemple-840.fr', 'ESSAI-BUSINESS-840', 2],
+    rho: ['t-rho-840', 'Rho Services', 'rho@exemple-840.fr', 'ESSAI-PREMIUM-840', 6],       // sans annuaire
+    sigma: ['t-sigma-840', 'Sigma Loin', 'sigma@exemple-840.fr', 'ESSAI-PREMIUM-840', 20],  // encore loin
+    tau: ['t-tau-840', 'Tau Fini', 'tau@exemple-840.fr', 'ESSAI-PREMIUM-840', -1],          // déjà finie
+    upsilon: ['t-upsilon-840', 'Upsilon Sans Adresse', '', 'ESSAI-PREMIUM-840', 3],        // sans adresse
+    phi: ['t-phi-840', 'Phi Fermée', 'phi@exemple-840.fr', 'ESSAI-PREMIUM-840', 4],         // fermée par TEAM OP
+    chi: ['t-chi-840', 'Chi Couverte', 'chi@exemple-840.fr', 'ESSAI-PREMIUM-840', 4, { aboStatut: 'actif', aboFin: '' }],
+    psi: ['t-psi-840', 'Psi Essai Court', 'psi@exemple-840.fr', 'ESSAI-PREMIUM-840', 4, { aboStatut: 'essai', aboFin: jour(2) }],
+    omega: ['t-omega-840', 'Omega Prévenue', 'omega@exemple-840.fr', 'ESSAI-PREMIUM-840', 4] };
+  const espaces = {}, usages = {};
+  for (const [slug, [t, nom, email, code, d, plus]] of Object.entries(ENT)) {
+    espaces[slug] = Object.assign({ t, nom, code: code64(t), ts: MAINTENANT - 1000, formule: 'premium' }, email ? { email } : {}, plus || {});
+    const u = usages[code] = usages[code] || { n: 0, equipes: {} };
+    u.n++; u.equipes[t] = { date: jour(-80), finLe: jour(d), em: '' };
+  }
+  /* omega a DEUX noms : l'ancien porte déjà la marque du rappel — elle est prévenue, sous un autre nom */
+  espaces.omegaancien = { t: 't-omega-840', nom: 'Omega Ancien', code: code64('t-omega-840'), ts: MAINTENANT - 90000, email: 'omega@exemple-840.fr', rappelFin: jour(4) };
+  /* kappa a DEUX noms et deux adresses : le rappel part à l'adresse du nom le plus RÉCENT (celui que l'application lit),
+     et la marque se pose sur les deux */
+  espaces.kappaancien = { t: 't-kappa-840', nom: 'Kappa Ancien', code: code64('t-kappa-840'), ts: MAINTENANT - 90000, email: 'kappa-ancien@exemple-840.fr' };
+  espaces.kappa = { t: 't-kappa-840', nom: 'Kappa Récent', code: code64('t-kappa-840'), ts: MAINTENANT, email: 'kappa@exemple-840.fr' };
+  usages['ESSAI-PREMIUM-840'].equipes['t-kappa-840'] = { date: jour(-80), finLe: jour(3), em: '' }; usages['ESSAI-PREMIUM-840'].n++;
+  fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(espaces));
+  fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify(usages));
+  fs.writeFileSync(path.join(D, 'entreprises-fermees.json'), JSON.stringify({ emails: [], espaces: ['t-phi-840'], suspendus: [] }));
+  const compte = (n) => ({ s: crypto.randomBytes(16).toString('hex'), e: crypto.randomBytes(32).toString('hex'), n });
+  const annuaire = (noms) => ({ maj: MAINTENANT, c: Object.fromEntries(noms.map(x => [x.toLowerCase(), compte(x)])) });
+  fs.writeFileSync(path.join(D, 'comptes.json'), JSON.stringify({
+    't-omicron-840': annuaire(['Alain', 'Berthe', 'Camille', 'Dora', 'Emile', 'Fanny', 'Gaston']),   // 7 utilisateurs actifs
+    't-pi-840': annuaire(['Solo']),                                                                   // 1
+    't-kappa-840': annuaire(['Kim', 'Karl']),                                                         // 2
+    't-psi-840': annuaire(['Paul', 'Pia', 'Pat']) }));                                                // 3
+
+  /* ══ 2. LE VRAI SERVEUR ═══════════════════════════════════════════════════════════════════════════════ */
+  const kh = k => crypto.createHash('sha256').update(k).digest('hex');
+  const vap = webpush.generateVAPIDKeys();
+  const CONF = { vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: kh('mot-de-passe-840'),
+    notifDemandes: 'patron@banc-840.fr',
+    smtp: { host: '127.0.0.1', port: portSmtp, secure: false, user: 'x', pass: 'y', from: 'banc@teamop.fr' },
+    promos: [{ code: 'ESSAI-PREMIUM-840', formule: 'premium', mois: 3 }, { code: 'ESSAI-BUSINESS-840', formule: 'business', mois: 1 }] };
+  fs.writeFileSync(path.join(banc, 'config.json'), JSON.stringify(CONF));
+  const PORT = 9300 + (process.pid % 300);
+  let journal = '';
+  const demarrer = async () => {
+    journal = '';
+    enfant = spawn(process.execPath, [SERVEUR], {
+      env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, 'config.json'), TEAMOP_DATA: D, PORT: String(PORT),
+        TEAMOP_FB_ADMIN: path.join(banc, 'absente.json'), TEAMOP_RAPPELS_DELAI_MS: '1000' }),
+      stdio: ['ignore', 'pipe', 'pipe'] });
+    enfant.stdout.on('data', d => { journal += d; }); enfant.stderr.on('data', d => { journal += d; });
+    let vivant = false;
+    for (let i = 0; i < 100 && !vivant; i++) { try { vivant = (await fetch('http://127.0.0.1:' + PORT + '/health')).ok; } catch (e) {} if (!vivant) await dormir(100); }
+    return vivant;
+  };
+  const arreter = async () => { const e = enfant; enfant = null; await new Promise(r => { e.once('exit', r); e.kill('SIGKILL'); }); };
+  /* Le premier passage part 1 s après le démarrage (`TEAMOP_RAPPELS_DELAI_MS`) : on attend qu'il ait fini — la marque
+     posée, les envois rendus — plutôt qu'une durée au hasard. */
+  const attendrePassage = async (n) => { for (let i = 0; i < 60; i++) { await dormir(100); if (facteurSrv.recus.length >= n && /rappel échéance/.test(journal)) break; } await dormir(500); };
+  const lireEsp = () => JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'));
+
+  try {
+    /* ══ 3. UN SERVEUR D'E-MAILS QUI REFUSE : rien n'est perdu, la marque se retire ══════════════════════════ */
+    console.log('\n1. Un serveur d\'e-mails qui refuse : le rappel se retente au passage suivant');
+    facteurSrv.mode = 'refuse';
+    vrai('le serveur démarre (1er passage 1 s après, facteur qui refuse)', await demarrer());
+    for (let i = 0; i < 40 && !/rappel échéance non parti/.test(journal); i++) await dormir(100);
+    await dormir(600);
+    const e1 = lireEsp();
+    v('aucun e-mail n\'a été accepté par le facteur', facteurSrv.recus.length, 0);
+    vrai('le journal dit que le rappel n\'est PAS parti, et qu\'il sera retenté — sans adresse en clair',
+      /rappel échéance non parti .* nouvel essai au prochain passage/.test(journal) && !ADRESSE_EN_CLAIR.test(journal));
+    v('la marque posée avant l\'envoi s\'est RETIRÉE partout (sinon le rappel était perdu pour toujours)',
+      ['omicron', 'pi', 'rho', 'psi', 'kappa', 'kappaancien'].map(s => e1[s].rappelFin || null), [null, null, null, null, null, null]);
+    v('… et la marque d\'omega, déjà prévenue sous son ancien nom, n\'a pas bougé', e1.omegaancien.rappelFin, jour(4));
+    await arreter();
+
+    /* ══ 4. LE PASSAGE QUI ENVOIE ═════════════════════════════════════════════════════════════════════════ */
+    console.log('\n2. Le rappel part — à qui il doit, et dit ce qu\'il faut');
+    facteurSrv.mode = 'normal';
+    vrai('le serveur redémarre (facteur normal)', await demarrer());
+    await attendrePassage(5);
+    const recus = facteurSrv.recus.map(lisible);
+    const dest = recus.map(destinataire).sort();
+    v('CINQ rappels, aux bonnes adresses (omicron, pi, rho, psi, kappa — la plus récente des deux)',
+      dest, ['kappa@exemple-840.fr', 'omicron@exemple-840.fr', 'pi@exemple-840.fr', 'psi@exemple-840.fr', 'rho@exemple-840.fr']);
+    vrai('⛔ aucun rappel à sigma (période encore loin), tau (finie), upsilon (sans adresse), phi (fermée), chi (abonnement de la Tour au-delà), omega (déjà prévenue), ni à l\'ancienne adresse de kappa',
+      !recus.some(m => /(sigma|tau|phi|chi|omega|kappa-ancien)@exemple-840\.fr/.test(destinataire(m))));
+    const de = (qui) => recus.find(m => destinataire(m) === qui + '@exemple-840.fr') || '';
+    const O = de('omicron');
+    const Obrut = facteurSrv.recus.find(m => destinataire(m) === 'omicron@exemple-840.fr') || '';
+    v('omicron — l\'objet dit la date de fin', objet(Obrut), '⏳ Votre période offerte se termine le ' + fr(jour(5)) + ' — TEAM OP');
+    vrai('omicron — le NOMBRE : 7 utilisateurs actifs (son annuaire), la formule du code : Business Premium',
+      /7 utilisateurs actifs dans votre espace/.test(O) && /Formule <b>Business Premium<\/b> · un abonnement par utilisateur/.test(O));
+    vrai('omicron — la SOMME, par mois : 7 × 50 € = 350 € TTC', /7 × 50 € = 350 € TTC par mois/.test(O));
+    vrai('omicron — et à l\'année : 7 × 500 € = 3 500 € TTC (2 mois offerts)', /7 × 500 € = 3 500 € TTC \(2 mois offerts\)/.test(O));
+    vrai('omicron — le bouton de paiement porte la formule et le nombre, et dit combien d\'abonnements',
+      /href="https:\/\/teamop\.fr\/recap-abonnement\.html\?formule=premium&amp;utilisateurs=7"/.test(O) && /Continuer avec 7 abonnements/.test(O));
+    vrai('omicron — la version TEXTE dit la même chose (nombre, somme, lien)',
+      /Nous avons trouvé 7 utilisateurs actifs dans votre espace/.test(O) && /7 × 50 € = 350 € TTC par mois/.test(O)
+      && /Continuer : https:\/\/teamop\.fr\/recap-abonnement\.html\?formule=premium&utilisateurs=7/.test(O));
+    vrai('omicron — ce qui se passe sans abonnement, et la phrase pour qui a déjà payé',
+      new RegExp('Sans abonnement, après le ' + fr(jour(5)).replace(/\//g, '\\/') + ', l\'application repassera en formule Gratuit').test(O)
+      && /Déjà abonné \? Rien à faire : votre abonnement prend le relais/.test(O));
+    vrai('omicron — payer se fait avec l\'adresse qui reçoit le message (celle de l\'entreprise : « B »)', /connectez-vous avec l'adresse qui reçoit ce message/.test(O));
+    const P = de('pi');
+    vrai('pi — 1 utilisateur actif (au singulier), formule Business : 1 × 25 € = 25 €, 1 × 250 € = 250 € à l\'année',
+      /1 utilisateur actif dans votre espace/.test(P) && /Formule <b>Business<\/b>/.test(P) && /1 × 25 € = 25 € TTC par mois/.test(P) && /1 × 250 € = 250 € TTC \(2 mois offerts\)/.test(P));
+    vrai('pi — « Continuer avec 1 abonnement » (singulier), lien formule=business&utilisateurs=1',
+      /Continuer avec 1 abonnement</.test(P) && /recap-abonnement\.html\?formule=business&amp;utilisateurs=1"/.test(P));
+    const R = de('rho');
+    vrai('rho — SANS annuaire : aucun nombre inventé, le prix par utilisateur, « Choisir mon abonnement »',
+      !/utilisateurs? actifs?/.test(R) && /50 € TTC par mois et par utilisateur/.test(R) && /Choisir mon abonnement/.test(R)
+      && /recap-abonnement\.html\?formule=premium"/.test(R));
+    vrai('psi — son essai réglé dans la Tour finit AVANT le code : le rappel part bien (3 utilisateurs)', /3 utilisateurs actifs/.test(de('psi')));
+    vrai('kappa — 2 utilisateurs, envoyé à l\'adresse du nom le plus récent', /2 utilisateurs actifs/.test(de('kappa')));
+    const e2 = lireEsp();
+    v('la marque est posée sur TOUS les noms prévenus (kappa : les deux)',
+      ['omicron', 'pi', 'rho', 'psi', 'kappa', 'kappaancien'].map(s => e2[s].rappelFin), [jour(5), jour(2), jour(6), jour(4), jour(3), jour(3)]);
+    v('… et nulle part ailleurs', ['sigma', 'tau', 'upsilon', 'phi', 'chi'].map(s => e2[s].rappelFin || null), [null, null, null, null, null]);
+    vrai('le journal compte les envois sans écrire une adresse en clair', (journal.match(/rappel échéance envoyé →/g) || []).length === 5 && !ADRESSE_EN_CLAIR.test(journal));
+    fs.writeFileSync(path.join(banc, 'apercu-rappel.eml'), recus[0]);   // pour qui veut le regarder (le banc s'efface en sortant)
+    await arreter();
+
+    /* ══ 5. UNE SEULE FOIS PAR ÉCHÉANCE, MÊME APRÈS UN REDÉMARRAGE ════════════════════════════════════════════ */
+    console.log('\n3. Une seule fois par échéance');
+    const avant = facteurSrv.recus.length;
+    vrai('le serveur redémarre encore', await demarrer());
+    await dormir(2500);
+    v('aucun rappel de plus : la marque a survécu au redémarrage', facteurSrv.recus.length - avant, 0);
+  } finally { if (enfant) await arreter(); }
+  console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
+  process.exit(ko ? 1 : 0);
+})().catch(e => { console.log('  ✗ le banc a planté : ' + (e && e.stack || e)); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); });

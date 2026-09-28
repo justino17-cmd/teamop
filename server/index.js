@@ -2154,6 +2154,34 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
     if (s2 === slug || !e2 || espaceT(e2).toLowerCase() !== t.toLowerCase() || !e2.email || String(e2.email).toLowerCase() === emailNeuf) continue;
     return res.status(409).json({ error: 'Cet espace appartient déjà à « ' + (espNomPropre(e2) || s2) + ' », relié à une autre adresse : on ne le rattache pas à un second client.' });
   }
+  /* ⛔⛔ UNE CLÉ DIFFÉRENTE POUR UNE ENTREPRISE CONNUE NE PASSE QUE SI LE PATRON LE CONFIRME — Justin, 28 septembre 2026 :
+     « on ne la rattachera pas, sauf si je le confirme moi-même ». `gardien` l'avait rejoué la veille : « Code espace
+     collé » (`tourEspaceDe`) rattachait une PREMIÈRE adresse à un identifiant que ce serveur connaît déjà, sans regarder
+     la clé `k` du code. Un code FORGÉ — le bon `t`, une clé inventée, l'adresse d'un tiers —, collé par le patron pour une
+     entreprise ouverte sans adresse : `espaceParT` servait ensuite l'entrée du tiers (sa fausse clé devenait la
+     référence, les appareils de l'entreprise tombaient en verdict invalide), un compte était semé dans son annuaire de
+     connexion, et « B » — le paiement — suivait l'annuaire.
+     ⚠️ On ne peut PAS simplement refuser : une entreprise qui a changé sa clé (« Enregistrer une nouvelle clé d'équipe »)
+     se fait réinscrire par ce même geste, avec la NOUVELLE clé. D'où la confirmation, que la Tour n'envoie qu'après sa
+     question — un booléen STRICT, jamais une chaîne. La marque `clePerimee` ne prouve rien : une route PUBLIQUE la pose
+     (`/api/espaces/lien`).
+     Les clés « connues » sont celles de TOUTES les entrées de cet identifiant, sans égard à sa casse (le paiement le lit
+     sans casse : « ACME-CD34 » serait une autre entreprise pour ce contrôle et la même pour Stripe). La même clé ne
+     demande rien : c'est le même code, collé une seconde fois. */
+  let cleConfirmee = null;
+  if (t) {
+    const cleDe = (c) => { try { return String(JSON.parse(Buffer.from(String(c || ''), 'base64').toString('utf8')).k || ''); } catch (e) { return ''; } };
+    const cleNeuve = cleDe(code), connues = new Set();
+    for (const e2 of Object.values(espacesReg)) {
+      if (!e2 || !e2.code || espaceT(e2).toLowerCase() !== t.toLowerCase()) continue;
+      const k2 = cleDe(e2.code); if (k2) connues.add(k2);
+    }
+    if (connues.size && !connues.has(cleNeuve)) {
+      if ((req.body || {}).confirmeCle !== true)
+        return res.status(409).json({ motif: 'cle_differente', error: 'Ce code porte une clé DIFFÉRENTE de celle que TEAM OP connaît pour cette entreprise. Ne l\'utilise que si tu l\'as récupéré toi-même sur un appareil de l\'entreprise, et confirme-le depuis la Tour à jour. Rien n\'a été enregistré.' });
+      cleConfirmee = { par: req.tourUser.nom, ts: Date.now() };
+    }
+  }
   /* Le code d'accès ne figure PAS ici : il vit dans son propre registre, indexé par l'identifiant
      d'équipe (voir /api/espaces/ouvrir). Le reporter depuis « prev » ressuscitait un code révoqué
      dès qu'on rouvrait le panneau d'un ancien nom du même espace. */
@@ -2170,6 +2198,8 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
   espacesReg[slug] = { nom, code, t, ts: Date.now(), par: req.tourUser.nom, origine, email: emailNeuf || prev.email || '',
     opMessages: prev.opMessages,
     formule: prev.formule, quantite: prev.quantite, formulePar: prev.formulePar, formuleTs: prev.formuleTs };
+  /* La confirmation se garde avec l'entrée : qui a dit « oui, c'est la nouvelle clé », et quand. */
+  if (cleConfirmee) espacesReg[slug].cleConfirmee = cleConfirmee;
   /* ⛔ ÉCRIT, OU ON LE DIT — et on défait l'entrée en mémoire. Répondre `ok` sur une écriture
      refusée (disque plein, annuaire illisible au démarrage) faisait croire à la Tour un espace
      créé qui disparaissait au redémarrage suivant. */
@@ -2181,6 +2211,7 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
      await : ~100 ms de PBKDF2 que personne n'attend, et un échec ne doit pas faire rater
      l'inscription — il se dit au journal. */
   annuaireSemerDepuisCode(t, code).catch(() => {});
+  if (cleConfirmee) console.log('Tour :', req.tourUser.nom, 'confirme une clé DIFFÉRENTE pour l\'espace', t, '(' + slug + ')');
   res.json({ ok: true, slug });
 });
 /* ══ LE LIEN D'UN ESPACE DÉJÀ INSCRIT — 12 septembre 2026 ══════════════════════════════
@@ -8808,38 +8839,92 @@ app.post('/api/promo/valider', (req, res) => {
 // ── ⏳ Rappel d'échéance : 7 jours avant la fin d'une période offerte, l'entreprise
 //    reçoit UN e-mail (modèle orange de la galerie) — jamais deux pour la même
 //    échéance (drapeau rappelFin posé sur l'espace).
+/* ⛔ CE QUE LE RAPPEL DIT — Justin, 28 septembre 2026 : « des mails automatiques sept jours avant l'expiration :
+   tant d'utilisateurs trouvés chez vous, si vous poursuivez votre abonnement, payer la somme de chaque utilisateur ».
+   Un abonnement = un utilisateur (27 septembre) : le rappel compte donc les utilisateurs ACTIFS de l'entreprise — son
+   annuaire de connexion (`comptesReg[t]`), que l'application dépose en prouvant sa clé : les comptes qui peuvent se
+   connecter, sans les désactivés — et chiffre la suite dans la formule du code, au prix de la page de paiement.
+   ⚠️ `PRIX_ABO_MOIS` et `MOIS_OFFERTS_ANNEE` RECOPIENT la grille de `recap-abonnement.html` (`FORMULES.prixMensuel`,
+   `REMISE_ANNUELLE`) : ce fichier ne peut pas la lire, et deux grilles finissent par dire deux prix. `tests/test-840.js`
+   les compare ; un prix changé là-bas sans l'être ici fait tomber le banc.
+   Sans annuaire (une entreprise qui n'a jamais ouvert une version qui le dépose), pas de nombre inventé : le prix par
+   utilisateur seulement. */
+const PRIX_ABO_MOIS = { pro: 15, business: 25, premium: 50 };   // € TTC, par utilisateur et par mois
+const MOIS_OFFERTS_ANNEE = 2;                                   // à l'année : 12 − 2 mois
+function rappelEcheanceMail(code, finLe, f, n) {
+  const finFr = String(finLe).split('-').reverse().join('/');
+  const lbl = FORMULE_LBL2[f] || f;
+  const prix = PRIX_ABO_MOIS[f] || PRIX_ABO_MOIS.premium, an = prix * (12 - MOIS_OFFERTS_ANNEE);
+  const eur = (x) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' €';
+  const pl = (k, mot) => k + ' ' + mot + (k > 1 ? 's' : '');
+  const lien = 'https://teamop.fr/recap-abonnement.html?formule=' + f + (n ? '&utilisateurs=' + n : '');
+  const devisTxt = n
+    ? 'Nous avons trouvé ' + pl(n, 'utilisateur') + ' ' + (n > 1 ? 'actifs' : 'actif') + ' dans votre espace. Pour continuer en formule ' + lbl + ' (un abonnement par utilisateur) :\n'
+      + n + ' × ' + eur(prix) + ' = ' + eur(n * prix) + ' TTC par mois — ou ' + n + ' × ' + eur(an) + ' = ' + eur(n * an) + ' TTC à l\'année (' + MOIS_OFFERTS_ANNEE + ' mois offerts).'
+    : 'Pour continuer en formule ' + lbl + ' : ' + eur(prix) + ' TTC par mois et par utilisateur (un abonnement par personne), ou ' + eur(an) + ' TTC à l\'année (' + MOIS_OFFERTS_ANNEE + ' mois offerts).';
+  const devisHtml = n
+    ? '<b>👥 ' + pl(n, 'utilisateur') + ' ' + (n > 1 ? 'actifs' : 'actif') + ' dans votre espace</b><br>Formule <b>' + lbl + '</b> · un abonnement par utilisateur<br><b>' + n + ' × ' + eur(prix) + ' = ' + eur(n * prix) + ' TTC par mois</b><br><span class="m-muet" style="color:#8593AB;font-size:12.5px">ou à l\'année : ' + n + ' × ' + eur(an) + ' = ' + eur(n * an) + ' TTC (' + MOIS_OFFERTS_ANNEE + ' mois offerts)</span>'
+    : '<b>Formule ' + lbl + '</b> · un abonnement par utilisateur<br><b>' + eur(prix) + ' TTC par mois et par utilisateur</b><br><span class="m-muet" style="color:#8593AB;font-size:12.5px">ou ' + eur(an) + ' TTC à l\'année (' + MOIS_OFFERTS_ANNEE + ' mois offerts)</span>';
+  return {
+    subject: '⏳ Votre période offerte se termine le ' + finFr + ' — TEAM OP',
+    text: 'Bonjour,\n\nla période offerte par votre code « ' + code + ' » se termine le ' + finFr + '.\n\n' + devisTxt
+      + '\n\nContinuer : ' + lien + '\n(connectez-vous avec l\'adresse qui reçoit ce message : c\'est elle qui est rattachée à votre espace)'
+      + '\n\nSans abonnement, après le ' + finFr + ', l\'application repassera en formule Gratuit — vos données ne bougent pas, quoi qu\'il arrive.'
+      + '\nDéjà abonné ? Rien à faire : votre abonnement prend le relais.\n\n— TEAM OP · teamop.fr',
+    html: mailTeamOP({ chip: 'Échéance', chipBg: '#FFF6EE', chipColor: '#B26E12', titre: 'Plus que quelques jours ⏳',
+      corpsHtml: 'Bonjour,<br>la période offerte par votre code « <b>' + code + '</b> » se termine le <b>' + finFr + '</b>. Pour continuer sans coupure, voici votre abonnement'
+        + (n ? ', calculé sur votre équipe d\'aujourd\'hui :' : ' :'),
+      blocHtml: MAIL_BLOCS.cadre(devisHtml, '#EEF7F2', '#CFE6D8', '#17233B') + '<div style="height:12px;line-height:12px;font-size:0">&nbsp;</div>' + MAIL_BLOCS.echeance(finFr)
+        + '<div class="m-muet" style="font-size:12px;line-height:18px;color:#8593AB;padding-top:10px">Pour payer, connectez-vous avec l\'adresse qui reçoit ce message : c\'est elle qui est rattachée à votre espace. Déjà abonné ? Rien à faire : votre abonnement prend le relais.</div>',
+      boutonTxt: n ? 'Continuer avec ' + pl(n, 'abonnement') : 'Choisir mon abonnement', boutonUrl: lien,
+      bouton2Txt: 'Ouvrir mon application', bouton2Url: 'https://teamop.fr/app.html' })
+  };
+}
 function rappelsEcheances() {
   try {
     if (!mailer) return;
     const auj = new Date().toISOString().slice(0, 10);
     const lim = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
-    let touche = false;
     for (const [code, u] of Object.entries(promoUsages || {})) {
       for (const [t, eq] of Object.entries((u && u.equipes) || {})) {
         if (!eq || !eq.finLe || eq.finLe < auj || eq.finLe > lim) continue;   // ni déjà passée, ni encore loin
-        const e = Object.values(espacesReg).find(x => {
-          if (x.t) return x.t === t;
-          try { return String(JSON.parse(Buffer.from(x.code, 'base64').toString('utf8')).t || '') === t; } catch (err) { return false; }
-        });
-        if (!e || !e.email || e.rappelFin === eq.finLe) continue;   // pas d'adresse, ou déjà prévenu
-        e.rappelFin = eq.finLe; touche = true;
-        const finFr = eq.finLe.split('-').reverse().join('/');
-        mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: e.email,
-          subject: '⏳ Votre période offerte se termine bientôt — TEAM OP',
-          text: 'Bonjour,\n\nla période offerte par votre code « ' + code + ' » se termine le ' + finFr + '.\nVos données ne bougent pas, quoi qu\'il arrive — mais sans abonnement, l\'application repassera en formule Gratuit.\n\nPour continuer sans coupure : teamop.fr/espace.html → Mon abonnement.\n\n— TEAM OP · teamop.fr',
-          html: mailTeamOP({ chip: 'Échéance', chipBg: '#FFF6EE', chipColor: '#B26E12', titre: 'Plus que quelques jours ⏳',
-            corpsHtml: 'Bonjour,<br>un petit mot pour vous prévenir à l\'avance : la période offerte par votre code « <b>' + code + '</b> » touche à sa fin.',
-            blocHtml: MAIL_BLOCS.echeance(finFr),
-            boutonTxt: 'Choisir mon abonnement', boutonUrl: 'https://teamop.fr/espace.html',
-            bouton2Txt: 'Ouvrir mon application', bouton2Url: 'https://teamop.fr/app.html' })
-        }).then(() => console.log('rappel échéance envoyé →', masqueMail(e.email), '(fin ' + eq.finLe + ')'))
-          .catch(err => console.error('rappel échéance:', err.message));
+        /* Tous les noms de l'entreprise : « déjà prévenu » se lit sur n'importe lequel (un espace renommé en porte
+           plusieurs), et la marque se pose sur tous — sinon le rappel repartait le jour où un autre nom devenait
+           le plus récent. L'adresse et l'abonnement réglé à la main se lisent sur l'entrée que l'APPLICATION lit
+           (`espaceParT` : la plus récente). */
+        const noms = Object.keys(espacesReg).filter(s => espacesReg[s] && espaceT(espacesReg[s]) === t);
+        if (!noms.length || noms.some(s => espacesReg[s].rappelFin === eq.finLe)) continue;   // inconnue, ou déjà prévenue
+        if (espaceFerme(t)) continue;   // une entreprise fermée ne reçoit pas « payez pour continuer »
+        const e = espaceParT(t);
+        const dest = (e && e.email) || (noms.map(s => espacesReg[s].email).find(Boolean) || '');
+        if (!dest) continue;   // pas d'adresse
+        /* ⛔ UN ABONNEMENT RÉGLÉ À LA MAIN DANS LA TOUR PRIME sur le code (`espacePaye`) : s'il court au-delà de la
+           période offerte, l'application ne repassera PAS en Gratuit — le rappel mentirait. */
+        if (e && (e.aboStatut === 'actif' || e.aboStatut === 'essai') && (!e.aboFin || e.aboFin > eq.finLe)) continue;
+        const p = (config.promos || []).find(x => String(x.code || '').trim().toUpperCase() === code);
+        const f = p && ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium';
+        const n = (comptesReg[t] && comptesReg[t].c) ? Object.keys(comptesReg[t].c).length : 0;
+        const avant = {}; for (const s of noms) { avant[s] = espacesReg[s].rappelFin; espacesReg[s].rappelFin = eq.finLe; }
+        espacesEcrire();
+        const m = rappelEcheanceMail(code, eq.finLe, f, n);
+        mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest, subject: m.subject, text: m.text, html: m.html })
+          .then(() => console.log('rappel échéance envoyé →', masqueMail(dest), '(fin ' + eq.finLe + ', ' + n + ' utilisateur(s), ' + f + ')'))
+          /* ⛔ UN RAPPEL QUI N'EST PAS PARTI SE RETENTE : la marque posée avant l'envoi (deux passages ne doivent pas
+             le doubler) se retire, et le passage suivant — six heures plus tard — recommence, tant que la période
+             court. Avant, un serveur d'e-mails indisponible ce jour-là le perdait pour toujours. */
+          .catch(err => {
+            console.error('rappel échéance non parti (' + (err && err.message) + ') — nouvel essai au prochain passage');
+            let defait = false;
+            for (const s of noms) if (espacesReg[s] && espacesReg[s].rappelFin === eq.finLe) { espacesReg[s].rappelFin = avant[s]; defait = true; }
+            if (defait) espacesEcrire();
+          });
       }
     }
-    if (touche) { espacesEcrire(); }
   } catch (e) { console.error('rappelsEcheances:', e.message); }
 }
-setTimeout(rappelsEcheances, 90 * 1000);      // un premier passage peu après le démarrage
+/* Le premier passage attend 90 s après le démarrage ; `TEAMOP_RAPPELS_DELAI_MS` le raccourcit pour un banc d'essai
+   (`tests/test-840.js`), qui ne va pas attendre une minute et demie — jamais sous la seconde. */
+setTimeout(rappelsEcheances, Math.max(1000, parseInt(process.env.TEAMOP_RAPPELS_DELAI_MS, 10) || 90 * 1000));   // un premier passage peu après le démarrage
 setInterval(rappelsEcheances, 6 * 3600000);   // puis toutes les 6 heures
 
 /* ══ LE DOCUMENT D'ÉQUIPE, CHEZ NOUS — LA SORTIE DE FIREBASE (voir `server/documents.js`) ════
