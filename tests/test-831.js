@@ -175,9 +175,15 @@ const ROUGE = 'var(--m-err)', VERT = 'var(--m-ok)';
     const connu = await P.oublie('zoe@exemple.fr');
     const inconnu = await P.oublie('personne-ici@exemple.fr');
     vrai('une adresse connue : « vient de partir »', PARTI(connu));
-    let arrive = false;
-    for (let i = 0; i < 40 && !arrive; i++) { await dormir(100); arrive = facteurSrv.recus.slice(avant).some(m => /zoe@exemple\.fr/.test(m) && /reinit\.html/.test(m)); }
+    /* ⚠️ 15 s au plus, pas 4 : le courriel part DERRIÈRE la réponse, et une machine de CI chargée l'a laissé passer
+       le délai (28 septembre 2026, CI de `main` : 1 ✗ ici, 5 passages sur 5 en local en ~1 s). La boucle sort dès qu'il
+       arrive — attendre plus longtemps ne coûte rien quand tout va bien. Et un échec DIT pourquoi (courriels reçus,
+       journal du serveur), sinon il ne reste qu'« attendu true, reçu false ». */
+    let arrive = false; const t0 = Date.now();
+    for (let i = 0; i < 150 && !arrive; i++) { await dormir(100); arrive = facteurSrv.recus.slice(avant).some(m => /zoe@exemple\.fr/.test(m) && /reinit\.html/.test(m)); }
     vrai('   et le courriel est VRAIMENT parti (le relais l\'a reçu, avec son lien)', arrive);
+    if (!arrive) console.log('      reçus depuis la demande : ' + (facteurSrv.recus.length - avant) + ' courriel(s) en ' + (Date.now() - t0) + ' ms ; journal du serveur :\n      '
+      + S.journal().split('\n').filter(l => /courriel|mail|smtp|ECONN|erreur/i.test(l)).slice(-8).join('\n      '));
     vrai('une adresse inconnue : « vient de partir » aussi', PARTI(inconnu));
     await dormir(300);
     v('   sans que rien parte chez elle', facteurSrv.recus.slice(avant).filter(m => /personne-ici@exemple\.fr/.test(m)).length, 0);
