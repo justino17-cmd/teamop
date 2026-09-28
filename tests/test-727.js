@@ -280,6 +280,30 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     const ambigue = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'abc' }, undefined, undefined, AMBI);
     v('⛔ deux entreprises distinctes derrière UNE référence, même au bon compte : 403 « reference_ambigue », rien chez Stripe',
       [ambigue.statut, ambigue.sortie && ambigue.sortie.error, ambigue.appels], [403, 'reference_ambigue', 0]);
+    /* identité TYPÉE : un identifiant ancien sans tiret (« abc ») s'écrit comme le NOM d'une entrée sans identifiant —
+       ce ne sont pas la même entreprise, même au même compte */
+    const TYPE = { abc: { nom: 'Abc sans identifiant', code: Buffer.from(JSON.stringify({ k: 'x' })).toString('base64'), email: 'paie@entreprise-banc.fr' },
+      zzz: { nom: 'Zzz', t: 'abc', email: 'paie@entreprise-banc.fr' } };
+    const typee = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'abc' }, undefined, undefined, TYPE);
+    v('⛔ un NOM et un IDENTIFIANT qui s\'écrivent pareil ne font pas une entreprise : 403 « reference_ambigue »', [typee.statut, typee.sortie && typee.sortie.error, typee.appels], [403, 'reference_ambigue', 0]);
+    /* ⛔ L'ENTREPRISE, C'EST TOUS SES NOMS D'ACCÈS — la Tour en ouvre parfois SANS adresse. Exiger l'adresse sur CHAQUE
+       nom refusait le vrai patron (« pas d'adresse ») dès qu'un de ses noms n'en portait pas. */
+    const FAMILLE = { nomprincipal: { nom: 'Nom principal', t: 'fam-7kq', email: 'paie@entreprise-banc.fr' }, nomsecond: { nom: 'Nom second', t: 'fam-7kq', email: '' } };
+    const famT = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'fam-7kq' }, undefined, undefined, FAMILLE);
+    v('⛔ deux noms pour la même entreprise, l\'un SANS adresse : le patron paie, l\'identifiant est gravé', [famT.statut || 200, gravee(famT)], [200, 'fam-7kq']);
+    const famNom = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'NomSecond' }, undefined, undefined, FAMILLE);
+    v('   … même désignée par son nom SANS adresse : c\'est l\'entreprise entière qui est lue', [famNom.statut || 200, gravee(famNom)], [200, 'fam-7kq']);
+    /* ⛔ LE CONTRÔLE DE SÉCURITÉ DE CETTE RÈGLE : un nom sans adresse ne donne la main à PERSONNE quand l'entreprise en
+       porte une ailleurs — sinon viser ce nom-là suffirait à rendre « payée » l'entreprise d'un autre */
+    const VICTIME = { victime: { nom: 'Victime', t: 'vict-2mw', email: 'patron@victime-banc.fr' }, victimebis: { nom: 'Victime bis', t: 'vict-2mw', email: '' } };
+    const parSonNomVide = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'victimebis' }, undefined, undefined, VICTIME);
+    v('⛔⛔ viser le nom SANS adresse de l\'entreprise d\'un autre : 403 « compte_autre_entreprise », rien chez Stripe',
+      [parSonNomVide.statut, parSonNomVide.sortie && parSonNomVide.sortie.error, parSonNomVide.appels], [403, 'compte_autre_entreprise', 0]);
+    /* deux adresses DIFFÉRENTES pour une même entreprise (un conflit de l'annuaire) : on ne tranche pas au moment de payer */
+    const CONFLIT = { conflitun: { nom: 'Conflit un', t: 'conf-3xz', email: 'paie@entreprise-banc.fr' }, conflitdeux: { nom: 'Conflit deux', t: 'conf-3xz', email: 'autre@conflit-banc.fr' } };
+    const conflit = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'conflitun' }, undefined, undefined, CONFLIT);
+    v('⛔ deux adresses différentes pour une même entreprise, même visée par le nom du payeur : 403, rien chez Stripe',
+      [conflit.statut, conflit.sortie && conflit.sortie.error, conflit.appels], [403, 'compte_autre_entreprise', 0]);
     const autre = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'voisine-77xq' }, undefined, undefined, ANN);
     v('⛔ la référence d\'une AUTRE entreprise : 403 « compte_autre_entreprise », et RIEN chez Stripe',
       [autre.statut, autre.sortie && autre.sortie.error, autre.appels], [403, 'compte_autre_entreprise', 0]);

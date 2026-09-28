@@ -657,11 +657,11 @@ app.post('/api/stripe/checkout', async (req, res) => {
        paiement à l'espace de n'importe quelle autre entreprise, qui devenait « payée » dans `espacePaye()` (`gardien`,
        rejoué). La preuve d'appartenance est celle du reste du serveur (relais du portail, `espaceAutoPour`) : l'adresse
        du compte EST celle de l'entreprise dans l'annuaire. Trois cas :
-       · la référence désigne une ou des entreprises CONNUES, et le compte n'est pas le leur → 403
-         `compte_autre_entreprise`, rien chez Stripe : on refuse AVANT de faire payer, plutôt que d'encaisser un
-         abonnement qui ne débloquerait rien ;
-       · l'une d'elles n'a PAS d'adresse dans l'annuaire (espaces ouverts par la Tour sans adresse) → aucun compte ne
-         peut prouver qu'il est le sien : 403 `entreprise_sans_adresse`, un refus DISTINCT — « connectez-vous avec
+       · la référence désigne une entreprise CONNUE, et le compte n'est pas le sien (une adresse de ses noms d'accès
+         n'est pas celle du compte) → 403 `compte_autre_entreprise`, rien chez Stripe : on refuse AVANT de faire payer,
+         plutôt que d'encaisser un abonnement qui ne débloquerait rien ;
+       · aucun de ses noms d'accès ne porte d'adresse (espaces ouverts par la Tour sans adresse) → aucun compte ne peut
+         prouver qu'elle est la sienne : 403 `entreprise_sans_adresse`, un refus DISTINCT — « connectez-vous avec
          l'adresse de l'entreprise » serait une consigne impossible (`gardien`) ; c'est à TEAM OP de la renseigner ;
        · la référence est INCONNUE de l'annuaire (appareil resté sur un ancien espace…) → elle n'est PAS gravée :
          l'abonnement se rattache à l'adresse du compte (`customer_email`), jamais à une autre entreprise ;
@@ -680,11 +680,22 @@ app.post('/api/stripe/checkout', async (req, res) => {
       let visees = [];
       try { visees = espacesDeRef(ref); } catch (e) { visees = []; }
       if (visees.length) {
-        if (visees.some(x => !String((x && x.email) || '').trim())) return res.status(403).json({ error: 'entreprise_sans_adresse' });
-        if (visees.some(x => String(x.email).trim().toLowerCase() !== payeurMin)) return res.status(403).json({ error: 'compte_autre_entreprise' });
-        const identite = x => espaceT(x).trim() || x.slug;
-        if (new Set(visees.map(x => identite(x).toLowerCase())).size !== 1) return res.status(403).json({ error: 'reference_ambigue' });
-        refGravee = identite(visees[0]);
+        /* L'identité d'une entreprise : son identifiant, ou — entrée sans identifiant — son nom d'accès, TYPÉS : un
+           identifiant ancien sans tiret peut s'écrire comme le nom d'une autre, et ce ne sont pas la même entreprise. */
+        const identite = x => { const t = espaceT(x).trim(); return t ? { cle: 't:' + t.toLowerCase(), val: t } : { cle: 's:' + String(x.slug).toLowerCase(), val: x.slug }; };
+        if (new Set(visees.map(x => identite(x).cle)).size !== 1) return res.status(403).json({ error: 'reference_ambigue' });
+        const id = identite(visees[0]);
+        /* ⛔ L'ENTREPRISE, C'EST TOUS SES NOMS D'ACCÈS — et la Tour en ouvre parfois SANS adresse (`email: … || ''`).
+           Exiger l'adresse du compte sur CHAQUE nom refusait le vrai patron dès qu'un de ses noms n'en portait pas,
+           avec « pas d'adresse » pour une entreprise qui en a une. La règle : au moins une adresse, et TOUTES celles
+           présentes sont celle du compte ; deux adresses différentes pour une même entreprise se refusent (on ne
+           tranche pas un conflit de l'annuaire au moment de payer). Aucune autre route ne rattache un identifiant à
+           une seconde adresse (409 de `/api/monitor/espaces`) : un nom SANS adresse ne donne donc la main à personne. */
+        const adresses = Object.keys(espacesReg).filter(s => espacesReg[s] && identite(Object.assign({ slug: s }, espacesReg[s])).cle === id.cle)
+          .map(s => String(espacesReg[s].email || '').trim().toLowerCase()).filter(Boolean);
+        if (!adresses.length) return res.status(403).json({ error: 'entreprise_sans_adresse' });
+        if (adresses.some(a => a !== payeurMin)) return res.status(403).json({ error: 'compte_autre_entreprise' });
+        refGravee = id.val;
       }
     }
     const p = new URLSearchParams();
