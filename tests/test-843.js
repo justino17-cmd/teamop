@@ -68,7 +68,9 @@ function jouer(o) {
   const ctx = { MYROLE: o.role || 'patron', APP: o.app || 'gestion', TAB: o.tab || 'accueil', MYAPPS: o.apps || ['gestion'], TOUR_VERSION: 'v9.99',
     $: id => els[id] || null };
   vm.createContext(ctx);
-  vm.runInContext(JEU + '\n;__h = tiroirHtml(); __vues = []; menuVisible().forEach(function(g){ g.vues.forEach(function(x){ __vues.push(x[0]); }); });', ctx);
+  /* un tiroir absent ou cassé est un ÉCHEC compté, pas une exception : le banc rend toujours son total */
+  try { vm.runInContext(JEU + '\n;__h = tiroirHtml(); __vues = []; menuVisible().forEach(function(g){ g.vues.forEach(function(x){ __vues.push(x[0]); }); });', ctx); }
+  catch (e) { vrai('le tiroir se dessine sans erreur', false, String(e && e.message || e)); ctx.__h = ''; ctx.__vues = []; }
   const h = ctx.__h;
   const lignes = [...h.matchAll(/<button type="button" class="ti( on)?" data-t="([a-z]+)"( aria-current="page")?[^>]*>([\s\S]*?)<\/button>/g)]
     .map(m => ({ t: m[2], on: !!m[1], cur: !!m[3], bdg: (m[4].match(/<span class="(bdg-[rb])">(\d+)<\/span>/) || []).slice(1).join(':') }));

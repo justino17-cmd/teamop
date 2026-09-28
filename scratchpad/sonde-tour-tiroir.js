@@ -48,7 +48,11 @@ async function main() {
       v('la pastille existe et se voit au téléphone', !!(P && P.vu), JSON.stringify(P));
       if (!P || !P.vu) { await o.fermer(); continue; }
       v('   44 × 44, ronde', Math.round(P.w) === 44 && Math.round(P.h) === 44 && /50%|22px/.test(P.rond), JSON.stringify(P));
-      v('   en haut à gauche (dans les 70 premiers px, sous l\'encoche)', P.l < 30 && P.t >= 40 && P.t < 110, JSON.stringify(P));
+      /* en haut à gauche, DANS la bande de l'en-tête et alignée sur l'avatar. ⚠️ Pas « sous l'encoche » : la Tour n'a ni
+         manifeste ni mode plein écran, elle s'ouvre dans Safari où l'encoche du haut vaut 0 en portrait — tout l'en-tête
+         est à 6 px (mesuré : avatar, pastille GESTION et pastille ≡ au même endroit, de nuit comme de jour). */
+      const H = await ev(`const b=document.querySelector('.bandeau').getBoundingClientRect(), c=document.querySelector('.hchip').getBoundingClientRect(); return {bt:b.top,bb:b.bottom,ct:Math.round(c.top),ch:Math.round(c.height)};`);
+      v('   en haut à gauche, dans la bande de l\'en-tête, alignée sur l\'avatar', P.l < 30 && P.t >= H.bt && P.t + P.h <= H.bb + 1 && Math.abs(Math.round(P.t) - H.ct) <= 1 && Math.round(P.h) === H.ch, JSON.stringify([P, H]));
       const recouv = await ev(`const p=document.getElementById('menu-rond'), r=p.getBoundingClientRect(); const e=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return e===p||p.contains(e);`);
       v('   rien ne la recouvre : le doigt la touche', recouv);
       let E = await ev(ETAT);
