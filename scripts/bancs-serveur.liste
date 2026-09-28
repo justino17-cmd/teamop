@@ -31,7 +31,9 @@
 # 27 septembre 2026 : 2 396 contre les pages de `main` (41 suites), `test-832` compris — plancher relevé à 2 350.
 # 27 septembre 2026, après `gardien` : 2 522 contre les pages de `main` (42 suites), `test-834` compris — plancher
 # relevé à 2 450.
-#plancher 2450
+# 28 septembre 2026, « B — on verrouille » : 2 741 contre les pages de `main` (44 suites), `test-797` et `test-839`
+# compris (la page de paiement en service face au serveur neuf) — plancher relevé à 2 650.
+#plancher 2650
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
