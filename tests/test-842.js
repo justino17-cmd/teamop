@@ -52,6 +52,8 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
   const tPromoTour = esp('promotour', { formule: 'business', quantite: 1, formuleTs: AVANT, formulePar: 'Patron' });
   const tFini = esp('promofini', { formule: 'premium', quantite: 5, formuleTs: AVANT, formulePar: 'auto (demande)', codePromo: 'FINI-BANC-842' });
   /* payées chez Stripe */
+  const tFA = esp('finiavant', { formule: 'premium', quantite: 5, formuleTs: AVANT, formulePar: 'Patron', codePromo: 'FINI2-BANC-842' });
+  const tAM = esp('ancienmsg', { formule: 'business', quantite: 1, formuleTs: AVANT, formulePar: 'Patron' });
   const tAS = esp('ancienstripe', { formule: 'business', quantite: 1, formuleTs: AVANT, formulePar: 'Patron' });
   const tASP = esp('ancienplus', { formule: 'business', quantite: 1, formuleTs: AVANT, formulePar: 'Patron' });
   const tAJ = esp('ancienajout', { formule: 'premium', quantite: 2, formuleTs: AVANT, formulePar: 'Patron' });
@@ -67,7 +69,8 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
   /* les codes : l'un en cours (promoprem, promotour), l'autre FINI hier (promofini) */
   fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify({
     'BIENVENUE-BANC-842': { n: 2, equipes: { [tPromo]: { date: dans(-10), finLe: dans(80) }, [tPromoTour]: { date: dans(-5), finLe: dans(85) } } },
-    'FINI-BANC-842': { n: 1, equipes: { [tFini]: { date: dans(-91), finLe: dans(-1) } } } }));
+    'FINI-BANC-842': { n: 1, equipes: { [tFini]: { date: dans(-91), finLe: dans(-1) } } },
+    'FINI2-BANC-842': { n: 1, equipes: { [tFA]: { date: dans(-120), finLe: dans(-30) } } } }));
 
   /* Stripe simulé : les abonnements, TOUS statuts confondus, comme `stripeAbosBruts` les demande. Les tarifs sont les
      VRAIS identifiants (publics) de la page de paiement. */
@@ -79,6 +82,8 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
     items: { data: lignes.map(([f, q], i) => ({ id: 'si_' + id + i, quantity: q, price: { id: (PRIX[f] || ['price_ancienlien842'])[0], product: { name: f.startsWith('msg') ? 'OP MESSAGES' : 'OP GESTION' } } })) } });
   const SUBS = [
     abo('a1', tAS, 'active', [['business', 1]], S_AVANT),
+    abo('fa', tFA, 'active', [['premium', 1]], S_AVANT),
+    abo('am', tAM, 'active', [['business', 1], ['msgpro', 3]], S_AVANT),
     abo('p4', tASP, 'past_due', [['ancien', 4]], S_AVANT),
     abo('j1', tAJ, 'active', [['premium', 2]], S_AVANT), abo('j2', tAJ, 'active', [['premium', 1]], S_APRES),
     abo('s3', tS3, 'active', [['pro', 3]], S_APRES),
@@ -154,6 +159,8 @@ globalThis.fetch = async function (url, opts) {
 
     console.log('\n4. Payé chez Stripe : les places suivent le paiement');
     v('Business d\'avant, 1 abonnement souscrit avant → 2', pl('ancienstripe'), 2);
+    v('⛔ abonnement d\'avant qui porte aussi OP MESSAGES × 3 → 2 (OP MESSAGES ne compte pas)', pl('ancienmsg'), 2);
+    v('⛔ payait avant, mais a eu un code (fini) → 1 par abonnement, pas 15', pl('finiavant'), 1);
     v('Business d\'avant, 4 abonnements souscrits avant (ancien lien) → 8 : ce qu\'elle payait, × 2', pl('ancienplus'), 8);
     v('⛔ Business Premium d\'avant (2 → 6 places) + 1 abonnement acheté APRÈS → 7, pas 6', pl('ancienajout'), 7);
     v('un abonnement Pro à quantité 3 → 3', pl('stripetrois'), 3);
