@@ -112,3 +112,4 @@ tests/test-839.js
 # vrai serveur contre un facteur SMTP de banc, et compare sa grille de prix à celle de la page de paiement.
 tests/test-840.js
 tests/test-841.js
+tests/test-842.js
