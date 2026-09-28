@@ -2266,6 +2266,7 @@ app.post('/api/monitor/espaces/formule', monPatronStrict, (req, res) => {
   /* ⛔ la date ne bouge que si la formule ou le nombre change (`gardien`) : un simple réenregistrement effaçait les
      places d'avant la v763 (`placesServies`) sans que la Tour le montre */
   if (e.formule !== f || placesQ(e) !== q) { e.formulePar = req.tourUser.nom; e.formuleTs = Date.now(); }
+  if (e.formule && e.formule !== f) e.formuleDepuis = Date.now();   // une formule CHANGÉE (voir `placesStripe`)
   e.formule = f; e.quantite = q;
   try { if (!e.t) { const o = JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')); e.t = String(o.t || ''); } } catch (err) {}
   espacesEcrire();
@@ -2290,6 +2291,7 @@ app.post('/api/monitor/espaces/abonnement', monPatronStrict, (req, res) => {
   if (fin && !/^\d{4}-\d{2}-\d{2}$/.test(fin)) return res.status(400).json({ error: 'date de fin invalide (AAAA-MM-JJ)' });
   const q = Math.max(1, Math.min(50, parseInt(b.quantite, 10) || 1));
   if (e.formule !== f || placesQ(e) !== q) { e.formulePar = req.tourUser.nom; e.formuleTs = Date.now(); }
+  if (e.formule && e.formule !== f) e.formuleDepuis = Date.now();   // une formule CHANGÉE (voir `placesStripe`)
   e.formule = f; e.quantite = q;
   const stNeuf = st === 'auto' ? '' : st;
   const stAvant = e.aboStatut || '';
@@ -2298,7 +2300,7 @@ app.post('/api/monitor/espaces/abonnement', monPatronStrict, (req, res) => {
        une abonnée d'avant qui a payé en retard perdait pour toujours ses 2 ou 3 places par abonnement (`gardien`, M4). */
     const payait = stAvant === 'actif' || stAvant === 'impaye' || stAvant === 'suspendu';
     if (payait && e.aboDepuis == null) e.aboDepuis = e.aboTs || 0;
-    if (stNeuf === 'actif' && !payait) e.aboDepuis = Date.now();
+    if (stNeuf === 'actif' && e.aboDepuis == null) e.aboDepuis = Date.now();   // une fois posée, elle reste (« impayé » → « auto » → « actif »)
     e.aboPar = req.tourUser.nom; e.aboTs = Date.now();
   }
   e.aboStatut = stNeuf; e.aboFin = fin;
@@ -2410,14 +2412,14 @@ async function espacePaye(e, opts) {
       const refDe = sb => String((sb.metadata && sb.metadata.espace) || '').toLowerCase();
       const aMoi = sb => { const m = refDe(sb); return !!m && (refs.includes(m) || (!!monT && tDe(m) === monT)); };
       const parMail = sb => !!mel && sb.customer && typeof sb.customer === 'object' && String(sb.customer.email || '').trim().toLowerCase() === mel;
-      /* ⛔ gravé pour une AUTRE entreprise de l'annuaire : il n'est pas à celle-ci, même à la même adresse (`gardien`,
-         28 septembre 2026, A5 : une entreprise B sans abonnement se lisait payée grâce à celui de A). Une référence qui ne
-         désigne plus personne (« repartir à neuf » change le `t`) ne l'empêche pas : l'adresse la rattache toujours. */
-      const pourAutre = sb => { const m = refDe(sb); if (!m || aMoi(sb)) return false;
-        return Object.keys(espacesReg || {}).some(sl => { const x = espacesReg[sl]; return !!x && x !== e && String(sl).toLowerCase() !== String(e.slug || '').toLowerCase()
-          && (String(sl).toLowerCase() === m || String(espaceT(x) || '').toLowerCase() === m); }); };
+      /* ⛔ LE VERDICT « PAYÉ » NE REGARDE PAS LA RÉFÉRENCE D'UN ABONNEMENT TROUVÉ PAR L'ADRESSE. Essayé le 28 septembre
+         au soir (écarter celui « gravé pour une autre entreprise de l'annuaire ») : `gardien` l'a rejoué sur deux cas
+         réels où la référence désigne encore une entrée de la MÊME entreprise — un « repartir à neuf » sur une entreprise
+         à deux noms (l'autre nom garde l'ancien `t`), un nom libéré puis repris — et une entreprise qui paie se lisait
+         NON PAYÉE. On ne coupe jamais une entreprise qui paie peut-être ; la limite connue reste : deux entreprises à la
+         même adresse, et l'abonnement de l'une rend l'autre « payée » (la Tour seule range deux entrées ainsi). */
       if (!abo && mel) {
-        abo = (espStripeCache.data || []).find(sb => vivant(sb) && parMail(sb) && !pourAutre(sb));
+        abo = (espStripeCache.data || []).find(sb => vivant(sb) && parMail(sb));
         parQuoi = 'adresse e-mail';
       }
       /* ⛔ LES PLACES SE PAIENT (Justin, 28 septembre 2026 : « oui, automatique »). Jusque-là on ne lisait chez Stripe
@@ -2433,9 +2435,15 @@ async function espacePaye(e, opts) {
            qui a déjà un abonnement à son nom ne le prend pas (sinon il compterait chez les deux) ; celle qui n'est
            rattachée que par l'adresse le garde, comme avant. */
         const partagee = !!mel && Object.keys(espacesReg || {}).some(sl => { const x = espacesReg[sl]; return !!x && x !== e
-          && String(sl).toLowerCase() !== String(e.slug || '').toLowerCase() && String(x.email || '').trim().toLowerCase() === mel; });
-        const memes = (espStripeCache.data || []).filter(sb => vivant(sb) && (aMoi(sb)
-          || (parMail(sb) && !pourAutre(sb) && (parQuoi === 'adresse e-mail' || !partagee))));
+          && String(sl).toLowerCase() !== String(e.slug || '').toLowerCase() && String(x.email || '').trim().toLowerCase() === mel
+          && !(monT && String(espaceT(x) || '').toLowerCase() === monT); });   // ses propres autres noms (même `t`) ne la « partagent » pas
+        /* une référence qui ne désigne AUCUNE entrée de l'annuaire (une entreprise « repartie à neuf » à un seul nom) ne
+           dit pas « à une autre » ; une référence qui en désigne une autre, si — ses places ne comptent pas ici */
+        const designe = m => Object.keys(espacesReg || {}).some(sl => { const x = espacesReg[sl]; return !!x
+          && (String(sl).toLowerCase() === m || String(espaceT(x) || '').toLowerCase() === m); });
+        const memes = (espStripeCache.data || []).filter(sb => vivant(sb) && (aMoi(sb) || (parMail(sb) && (parQuoi === 'adresse e-mail'
+          ? (!refDe(sb) || !designe(refDe(sb)))
+          : (!refDe(sb) && !partagee)))));
         return { paye: true, motif: 'abonnement Stripe (' + abo.status + ', par ' + parQuoi + ')', echeance: abo.current_period_end ? new Date(abo.current_period_end * 1000).toISOString().slice(0, 10) : '', placesStripe: placesStripe(e, memes) };
       }
     } catch (err) { console.error('espacePaye stripe:', err.message); }
@@ -2485,8 +2493,11 @@ function placesQ(e) { return Math.max(1, Math.min(50, parseInt(e && e.quantite, 
    ensuite : on lit `codePromo` et le registre des codes, qui restent. Registre illisible → oui, dans le doute. */
 function placesPromoDejaEu(e) {
   if (!e) return false;
-  if (promosIllisible) return true;   // le registre lu vaut alors `{}` : sans cette ligne, « illisible » répondait « jamais »
   if (e.codePromo || /\bcode\b/i.test(String(e.formulePar || ''))) return true;
+  /* registre illisible (lu comme `{}`) : on NE SAIT PAS, et les repères de l'entrée ont déjà parlé ci-dessus. Répondre
+     « oui » retirait leurs places d'avant à TOUTES les abonnées le temps de la panne (6 → 2, `gardien`) ; répondre « non »
+     n'en rend qu'à une entreprise au code fini dont les repères ont été effacés. Le doute va au client qui paie. */
+  if (promosIllisible) return false;
   const t = espaceT(e);
   try { return !!t && Object.values(promoUsages || {}).some(u => u && u.equipes && u.equipes[t]); } catch (err) { return true; }
 }
@@ -2501,11 +2512,14 @@ function placesStripe(e, abos) {
   const compte = sb => ((sb.items && sb.items.data) || []).reduce((n, it) =>
     n + ((avantB(sb) ? !estMessages(it) : sesPrix.includes(prixDe(it))) ? Math.max(0, parseInt(it && it.quantity, 10) || 0) : 0), 0);
   const m = PLACES_AVANT[f];
-  /* formule et nombre inchangés depuis la bascule — même règle que pour un abonnement réglé à la main (`gardien`, A2 :
-     un nombre porté à 10 dans la Tour après la bascule donnait 20 places sur un seul abonnement payé) */
-  const inchangee = !e.formuleTs || e.formuleTs < PLACES_BASCULE;
-  const payaitAvant = !!m && inchangee && !placesPromoDejaEu(e) && abos.some(avantB);
-  const qFiable = !/^auto\b/i.test(String(e.formulePar || ''));
+  /* la FORMULE d'avant décide du multiplicateur (`formuleDepuis`, posé quand la formule CHANGE : passée de Business à
+     Business Premium après la bascule, un abonnement Business ne vaut pas 3) ; le NOMBRE réglé dans la Tour ne sert de
+     plancher que s'il n'a pas bougé depuis, et s'il ne vient pas d'une demande tapée (`gardien`, A2, A3 et sa suite :
+     relever le nombre après la bascule retirait les places d'avant) */
+  const formuleAvant = !e.formuleDepuis || e.formuleDepuis < PLACES_BASCULE;
+  const payaitAvant = !!m && formuleAvant && !placesPromoDejaEu(e) && abos.some(avantB);
+  const nombreAvant = !e.formuleTs || e.formuleTs < PLACES_BASCULE;
+  const qFiable = nombreAvant && !/^auto\b/i.test(String(e.formulePar || ''));
   /* qui payait avant : ses abonnements d'avant valent ce que la v760 donnait (2 ou 3 par abonnement — le nombre réglé
      dans la Tour, ou ce qu'elle payait si c'est plus), et ceux d'après s'y AJOUTENT, un par abonnement */
   const avant = payaitAvant ? m * Math.max(qFiable ? placesQ(e) : 1, Math.min(50, abos.filter(avantB).reduce((n, sb) => n + compte(sb), 0))) : 0;
@@ -2522,6 +2536,7 @@ function placesServies(e, p) {
     && !placesPromoDejaEu(e)) return Math.min(150, q * m);
   return q;
 }
+console.log('Places : bascule « 1 compte par abonnement » au', new Date(PLACES_BASCULE).toISOString());   // une valeur surprise se voit au démarrage
 // liste complète des espaces (formule attribuée, payé/promo) — pour l'onglet Abonnements de la Tour
 app.get('/api/monitor/espaces/liste', monAdmin, async (req, res) => {
   const sortie = [];

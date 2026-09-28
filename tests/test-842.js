@@ -71,7 +71,7 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
   /* les cas de la contre-relecture de `gardien` (28 septembre 2026, nuit) */
   const tMX = esp('mixte', { formule: 'premium', quantite: 2, formuleTs: AVANT, formulePar: 'Patron', email: 'mixte@exemple-842.fr' });
   const tCA = esp('changeapres', { formule: 'business', quantite: 10, formuleTs: APRES, formulePar: 'Patron' });
-  const tMO = esp('montee', { formule: 'premium', quantite: 1, formuleTs: APRES, formulePar: 'Patron' });
+  const tMO = esp('montee', { formule: 'premium', quantite: 1, formuleTs: APRES, formuleDepuis: APRES, formulePar: 'Patron' });
   const tD5 = esp('demande50', { formule: 'premium', quantite: 50, formuleTs: AVANT, formulePar: 'auto (demande)' });
   const tTH = esp('tarifhaut', { formule: 'business', quantite: 1, formuleTs: APRES, formulePar: 'Patron' });
   const tGR = esp('graveur', { formule: 'pro', quantite: 1, formuleTs: APRES, formulePar: 'Patron', email: 'grave@exemple-842.fr' });
@@ -79,6 +79,13 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
   esp('repartie', { formule: 'pro', quantite: 1, formuleTs: APRES, formulePar: 'Patron', email: 'repartie@exemple-842.fr' });
   esp('retard', { formule: 'premium', quantite: 1, formuleTs: AVANT, formulePar: 'Patron', aboStatut: 'actif', aboTs: AVANT });
   esp('nouvelle', { formule: 'business', quantite: 1, formuleTs: AVANT, formulePar: 'Patron' });
+  /* seconde relecture (`gardien`, fb51f31) : une entreprise à DEUX noms (même `t`), un nombre relevé après la bascule,
+     « impayé » → « auto » → « actif », une formule changée par la Tour */
+  const tDN = esp('deuxnoms', { formule: 'premium', quantite: 2, formuleTs: AVANT, formulePar: 'Patron', email: 'deuxnoms@exemple-842.fr' });
+  esp('deuxnomsbis', { formule: 'premium', quantite: 2, formuleTs: AVANT, formulePar: 'Patron', email: 'deuxnoms@exemple-842.fr', t: tDN });
+  const tRL = esp('relevee', { formule: 'business', quantite: 2, formuleTs: APRES, formulePar: 'Patron' });
+  esp('detour', { formule: 'premium', quantite: 1, formuleTs: AVANT, formulePar: 'Patron', aboStatut: 'impaye', aboTs: AVANT });
+  const tPA = esp('passe', { formule: 'business', quantite: 1, formuleTs: AVANT, formulePar: 'Patron' });
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(E));
   /* les codes : l'un en cours (promoprem, promotour), l'autre FINI hier (promofini) */
   fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify({
@@ -115,7 +122,10 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
     abo('d5', tD5, 'active', [['premium', 1]], S_AVANT),
     abo('th', tTH, 'active', [['premium', 3]], S_APRES),
     abo('gr', tGR, 'active', [['pro', 4]], S_APRES, 'grave@exemple-842.fr'),
-    abo('rp', 'ent-ancienne-842', 'active', [['pro', 2]], S_APRES, 'repartie@exemple-842.fr') ];
+    abo('rp', 'ent-ancienne-842', 'active', [['pro', 2]], S_APRES, 'repartie@exemple-842.fr'),
+    abo('n1', '', 'active', [['premium', 2]], S_AVANT, 'deuxnoms@exemple-842.fr'), abo('n2', tDN, 'active', [['premium', 1]], S_APRES, 'deuxnoms@exemple-842.fr'),
+    abo('rl', tRL, 'active', [['business', 1]], S_AVANT),
+    abo('pa', tPA, 'active', [['business', 1]], S_AVANT) ];
   const PRECHARGE = path.join(banc, 'stripe-842.js');
   fs.writeFileSync(PRECHARGE, `const vrai = globalThis.fetch; const SUBS = ${JSON.stringify(SUBS)};
 globalThis.fetch = async function (url, opts) {
@@ -196,13 +206,15 @@ globalThis.fetch = async function (url, opts) {
 
     console.log('\n4 bis. Les cas de la contre-relecture (`gardien`)');
     v('⛔ A1 · Business Premium d\'avant, 2 abonnements SANS référence (par l\'adresse) + 1 acheté après AVEC → 7, pas 1', [tous.mixte.paye, pl('mixte')], [true, 7]);
-    v('⛔ A2 · nombre porté à 10 dans la Tour APRÈS la bascule, 1 abonnement payé → 1, pas 20', pl('changeapres'), 1);
+    v('⛔ A2 · nombre porté à 10 dans la Tour APRÈS la bascule, 1 abonnement Business payé avant → 2 (ce qu\'elle payait, × 2), pas 20', pl('changeapres'), 2);
+    v('⛔    et relevé à 2 : toujours 2, le relever ne retire rien (seconde relecture)', pl('relevee'), 2);
     v('⛔ A2 · passée de Business à Business Premium APRÈS la bascule, 1 abonnement Business d\'avant → 1, pas 3', pl('montee'), 1);
     v('⛔ A3 · « 50 utilisateurs » tapés dans la demande, 1 abonnement payé avant → 3, pas 150', pl('demande50'), 3);
     v('⛔ A4 · fiche réglée Business, 3 abonnements Business Premium payés → 3 (un tarif AU-DESSUS compte)', pl('tarifhaut'), 3);
-    v('⛔ A5 · même adresse qu\'une entreprise qui paie, sans abonnement à elle → PAS payée', [tous.seulgrave.paye, pl('seulgrave')], [false, 1]);
+    v('⛔ B1 · même adresse qu\'une entreprise qui paie : « payée » comme avant (on ne coupe JAMAIS une entreprise qui paie peut-être), mais 1 place : l\'abonnement gravé pour l\'autre ne lui en donne pas', [tous.seulgrave.paye, pl('seulgrave')], [true, 1]);
     v('   et celle qui paie a ses 4', [tous.graveur.paye, pl('graveur')], [true, 4]);
-    v('   une référence qui ne désigne plus personne (« repartir à neuf ») n\'empêche pas l\'adresse de rattacher → payée, 2', [tous.repartie.paye, pl('repartie')], [true, 2]);
+    v('   une référence qui ne désigne plus personne (« repartir à neuf ») → payée, et ses 2 places comptent', [tous.repartie.paye, pl('repartie')], [true, 2]);
+    v('⛔ entreprise à DEUX noms (même `t`, même adresse), 2 abonnements d\'avant sans référence + 1 gravé → 7 : ses propres noms ne « partagent » pas l\'adresse', [tous.deuxnoms.paye, pl('deuxnoms')], [true, 7]);
 
     console.log('\n5. La Tour : réenregistrer sans rien changer n\'efface rien, et elle voit les places servies');
     const PATRON = (await appel('/api/monitor/login', { nom: 'Patron', pass: 'mot-de-passe-banc-842' })).j.token;
@@ -219,6 +231,12 @@ globalThis.fetch = async function (url, opts) {
     v('⛔ M4 · elle règle son retard (« actif ») → ses 3 places reviennent : un impayé réglé n\'est pas un nouvel abonnement', [r.s, (await etat('retard')).places], [200, 3]);
     r = await appel('/api/monitor/espaces/abonnement', { nom: 'nouvelle', formule: 'business', quantite: 1, statut: 'actif', fin: '' }, PATRON);
     v('⛔    mais une entreprise qui ne payait pas, passée « actif » APRÈS la bascule → 1', [r.s, (await etat('nouvelle')).places], [200, 1]);
+    r = await appel('/api/monitor/espaces/abonnement', { nom: 'detour', formule: 'premium', quantite: 1, statut: 'auto', fin: '' }, PATRON);
+    r = await appel('/api/monitor/espaces/abonnement', { nom: 'detour', formule: 'premium', quantite: 1, statut: 'actif', fin: '' }, PATRON);
+    v('⛔ M4 · « impayé » → « auto » → « actif » : ses 3 places reviennent aussi', [r.s, (await etat('detour')).places], [200, 3]);
+    v('   avant la Tour, « passe » (Business d\'avant, 1 abonnement Business) a 2 places', (await etat('passe')).places, 2);
+    r = await appel('/api/monitor/espaces/formule', { nom: 'passe', formule: 'premium', quantite: 1 }, PATRON);
+    v('⛔ la Tour la passe en Business Premium APRÈS la bascule → son abonnement Business d\'avant compte 1 (pas × 3 sur un tarif Business)', [r.s, (await etat('passe')).places], [200, 1]);
     const liste = (await appel('/api/monitor/espaces/liste', undefined, PATRON)).j.espaces || [];
     const li = sl => (liste.find(x => x.slug === sl) || {});
     v('la liste de la Tour dit les places servies (6, 7, 1)', [li('ancienprem').places, li('ancienajout').places, li('promofini').places], [6, 7, 1]);
@@ -259,12 +277,13 @@ globalThis.fetch = async function (url, opts) {
       /const q=Math\.max\(1,parseInt\(j\.quantite,10\)\|\|1\);/.test(corpsSync) && !/db\.\w+\s*=[^;\n]*j\.places/.test(corpsSync));
     }
 
-    console.log('\n6 bis. Registre des codes illisible → dans le doute, « a eu un code » (`gardien`, A6)');
+    console.log('\n6 bis. Registre des codes illisible : le doute va au client qui paie');
     const iPD = SRV.indexOf('function placesPromoDejaEu(e) {');
     let dPD = 0, fPD = -1; for (let k = SRV.indexOf('{', iPD); k < SRV.length; k++) { if (SRV[k] === '{') dPD++; else if (SRV[k] === '}') { dPD--; if (!dPD) { fPD = k + 1; break; } } }
     vrai('placesPromoDejaEu est trouvée dans le serveur', iPD > 0 && fPD > iPD);
     const pde = illisible => new Function('promosIllisible', 'promoUsages', 'espaceT', SRV.slice(iPD, fPD) + '\nreturn placesPromoDejaEu;')(illisible, {}, x => x.t)({ t: 'ent-x', formulePar: 'Patron' });
-    v('⛔ registre illisible (lu comme `{}`) → oui ; lisible et vide → non', [pde(true), pde(false)], [true, false]);
+    v('⛔ registre illisible (lu comme `{}`) → NON : on ne retire pas leurs places à toutes les abonnées le temps d\'une panne (seconde relecture) ; les repères de l\'entrée décident', [pde(true), pde(false)], [false, false]);
+    v('   une entrée qui porte son code le dit, registre lisible ou non', [0, 1].map(i => new Function('promosIllisible', 'promoUsages', 'espaceT', SRV.slice(iPD, fPD) + '\nreturn placesPromoDejaEu;')(!!i, {}, x => x.t)({ t: 'ent-x', formulePar: 'Patron', codePromo: 'X' })), [true, true]);
     vrai('la bascule de production se lit dans le serveur (sa variable ne sert qu\'aux bancs)', Date.parse((SRV.match(/\|\| Date\.parse\('([^']+)'\);/) || [])[1]) > 0);
 
     console.log('\n7. Rien n\'est écrit, rien ne fuit');
