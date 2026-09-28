@@ -13,7 +13,7 @@ de ligne du tout.
 
 ---
 
-# 🟡 27 SEPTEMBRE 2026, NUIT — « 1 UTILISATEUR PAR ABONNEMENT », « TTC » ET v760 EN SERVICE (`909bcfd`) ; « UN COMPTE AVANT DE PAYER » : TOUT EN SERVICE (page `2d31fe7`, serveur `f97d32a`), LIENS STRIPE DÉSACTIVÉS — RESTE LA QUESTION « ref » (A/B) ; L'APPLICATION ATTEND UNE RÉPONSE
+# 🟡 28 SEPTEMBRE 2026 — « B — ON VERROUILLE » EN SERVICE : SEUL UN COMPTE DE L'ENTREPRISE PAIE POUR ELLE (page `fae02f6`, serveur `d783d38`) ; « UN COMPTE AVANT DE PAYER », « 1 UTILISATEUR PAR ABONNEMENT », « TTC » ET v760 EN SERVICE ; LA TOUR (« Code espace collé ») ET L'APPLICATION ATTENDENT UNE DÉCISION
 
 Justin : **« Aussi à faire sur le site à partir d'aujourd'hui c'est 1 utilisateur par abonnement merci de corriger ça »**.
 Le site vendait 2 utilisateurs par abonnement Business et 3 en Business Premium (et en Messages Business Premium), et
@@ -102,14 +102,88 @@ suivi de qui fait quoi ».
   `buy.stripe.com` sur les pages servies) ; CI de `main` verte 3/3 pour la page (Vérifications, Vérification des
   pages, déploiement Pages), puis 3/3 pour le serveur `f97d32a` (déploiement n° 98 — bancs PUIS VPS —, Vérifications,
   Vérification des pages).
-· ✅ **Justin a tranché « B — on verrouille » (28 septembre 2026) : seul un compte de l'entreprise paie pour elle.**
-  La référence d'espace (`ref`, le marqueur de l'appareil) n'était liée à rien : un compte confirmé rendait « payée »
-  l'entreprise de son choix (`gardien`). ⏳ **EN COURS** : serveur écrit (`ef60955` — `espacesDeRef`, 403
-  `compte_autre_entreprise`, référence inconnue non gravée ; `test-727` 61 ✓, 8/8 contre-épreuves), page qui dit le refus
-  (`d5c52ae` — `test-839` 153 ✓, `test-797` 23 ✓, 3/3 contre-épreuves) ; restent la relecture `gardien`, la suite
-  complète, la page sur `main`, PUIS le serveur. ⚠️ Conséquence à connaître : une entreprise SANS adresse dans
-  l'annuaire (créée depuis la Tour sans e-mail) ne peut plus être payée depuis un appareil relié à elle — il faut lui
-  mettre l'adresse de son patron dans la Tour.
+· ✅ **« B — ON VERROUILLE » (Justin, 28 septembre 2026) : seul un compte de l'entreprise paie pour elle — la page EN
+  SERVICE (`fae02f6`), le serveur EN SERVICE (`d783d38`, déploiement n° 99).** La référence d'espace (`ref`, le
+  marqueur de
+  l'appareil) n'était liée à rien : un compte confirmé rendait « payée » l'entreprise de son choix (`gardien`).
+  · **Serveur** (`/api/stripe/checkout`) : la référence désigne-t-elle des entreprises de l'annuaire (`espacesDeRef` : nom
+    d'accès OU identifiant, sans casse, identifiant lu en clair ou dans le code) ? Si oui, dans l'ordre : elles ne
+    partagent pas UNE identité (typée : identifiant, ou nom d'accès pour une entrée qui n'en a pas) → 403
+    `reference_ambigue` ; on lit alors TOUS les noms d'accès de l'entreprise (la Tour en ouvre parfois sans adresse) :
+    aucune adresse → 403 `entreprise_sans_adresse` ; une adresse qui n'est pas celle du compte (ou pas du texte) → 403
+    `compte_autre_entreprise` ; sinon on grave **l'identifiant de l'entreprise** tel que l'annuaire le range, jamais le
+    mot envoyé — un nom d'accès libéré puis repris par une autre entreprise lui faisait hériter de l'abonnement
+    (`gardien`, rejoué) — et RIEN pour une entrée sans identifiant (l'abonnement suit l'adresse du compte, vérifiée).
+    Référence inconnue : non gravée. Rien chez Stripe sur un refus. `espacePaye()` compare la référence à `espaceT(e)` :
+    l'identifiant rangé dans le code des entrées les plus anciennes n'était jamais reconnu. Et `/api/monitor/espaces`
+    refuse une seconde adresse sans égard à la casse de l'identifiant.
+  · **Page** (en service et au thème) : chaque refus se DIT, sans « réessayez » (il est définitif pour ce compte), et
+    « Rien n'a été payé » : « Seul le compte de l'entreprise peut payer pour elle… Changer de compte » ; « Cette
+    entreprise
+    n'a pas encore d'adresse e-mail enregistrée chez TEAM OP… écrivez à support@teamop.fr » ; ambiguë → au support.
+  · ⚠️ **Conséquence, voulue par « B »** : la comptable qui paie avec une AUTRE adresse que celle de l'entreprise est
+    refusée (elle doit se connecter avec l'adresse de l'entreprise). Une entreprise SANS adresse dans l'annuaire (ouverte
+    par la Tour sans e-mail) ne peut plus être payée depuis un appareil relié à elle : lui mettre l'adresse de son patron
+    dans la Tour (« Revoir le lien de connexion » avec l'adresse). Compter celles qui n'en ont pas, sur le VPS, SANS rien
+    afficher d'autre qu'un nombre : `node -e "const e=require('/opt/teamop/data/espaces.json');console.log(Object.values(e).filter(x=>!String((x&&x.email)||'').trim()).length+' sans adresse sur '+Object.keys(e).length)"`.
+  · ⛔ **« B » CROIT L'ANNUAIRE — ET LA TOUR PEUT LE FAUSSER (`gardien`, 28 septembre 2026, rejoué ; défaut ANTÉRIEUR à
+    « B », non corrigé, attend une décision).** « Code espace collé » (`tourEspaceDe`, `tour.html`) → `POST
+    /api/monitor/espaces` rattache une PREMIÈRE adresse à un identifiant que le serveur connaît déjà, sans vérifier la clé
+    `k` du code (la Tour ne regarde que la présence de `t` et `k`). Pour une entreprise ouverte sans adresse, un code
+    FORGÉ collé par le patron avec l'adresse d'un tiers : (1) `espaceParT` sert ensuite l'entrée du tiers — sa clé fausse
+    devient la clé de référence, les appareils de l'entreprise tombent en verdict invalide ; (2) un compte est semé dans
+    son annuaire de connexion (`annuaireSemerDepuisCode`) ; (3) le paiement suit (verrou ET repli par adresse). Il faut
+    que le patron colle un code forgé (ingénierie sociale) et connaître l'identifiant visé. ⚠️ **On ne peut PAS
+    simplement exiger « la même clé »** : une entreprise qui change sa clé (écran « Enregistrer une nouvelle clé
+    d'équipe ») se fait réinscrire… par un code collé portant la nouvelle clé, et la marque `clePerimee` est posée par une
+    route PUBLIQUE (`/api/espaces/lien`) — elle ne prouve rien. Proposition : le serveur refuse une clé différente pour un
+    identifiant connu, SAUF confirmation explicite que la Tour n'envoie qu'après la question « ce code porte une clé
+    DIFFÉRENTE — ne continue que si tu l'as récupéré toi-même sur un appareil de l'entreprise » ; bancs dans `test-834`,
+    `gardien`, publication serveur PUIS Tour (aperçu d'abord). **À trancher par Justin.**
+  · ⚠️ **« B » ne nettoie pas le passé** (`gardien`) : avant `f97d32a` (27-28 septembre), la route gravait n'importe
+  quelle
+    référence, même sans compte. Un abonnement souscrit avant peut donc porter la référence d'une autre entreprise. Le
+    nombre d'abonnements vivants se lit dans le tableau de bord Stripe : s'il est nul (ou seulement ceux qu'on connaît),
+    il n'y a rien à reprendre.
+  · **Preuves** : `test-727` 75 ✓ (la route et `espacePaye`), `test-834` 59 ✓ (la Tour, vrai serveur), `test-839` 158 ✓
+    branche · 155 ✓ en service (les refus s'affichent, vrai serveur et vrai annuaire), `test-797` 23 ✓ · 22 ✓ ;
+    **contre-épreuves 8 + 6 + 1 + 4 + 4, toutes mordent** (refus, gravure, ambiguïté, identité typée, tous les noms,
+    `espacePaye`, adresse typée, casse de la Tour, chaque message, la page en service) ; sonde au doigt
+    (`scratchpad/sonde-compte-paiement.js`, vrai portail, vrai serveur, Stripe intercepté, contraste au pixel, 44 px) :
+    branche 249 ✓, page en service face au NOUVEAU serveur 249 ✓, face au serveur d'avant 189 ✓ (rien ne casse),
+    3/3 contre-épreuves ; suite complète **195 suites · 10 575** (branche, `a287493`), **194 suites · 10 231**
+    (copie de `main`, page et serveur en service) et **194 suites · 10 261** sur l'arbre exact du déploiement
+    (`main` + le nouveau serveur ; +30 : les contrôles neufs de « B ») ; relecture `gardien` : aucun
+    contournement pour un compte seul ; ses constats corrigés en deux passes (refus « sans adresse », gravure de
+    l'identifiant, `espacePaye`, puis rien de gravé sans identifiant, adresse typée, casse de la Tour), le défaut de la
+    Tour ci-dessus écrit et laissé à Justin ;
+    `test-797` et `test-839` entrent à la porte du déploiement du serveur seul (`scripts/bancs-serveur.liste`) ; servi
+    octet pour octet (3/3 fichiers de la page, les dix pages de la racine conformes à `vitrine/portail-v1.json`) ; CI de
+    `main` : pour la page (`fae02f6`) Vérifications, Vérification des pages (à la seconde tentative, voir plus bas)
+    et déploiement Pages verts ; pour le serveur (`d783d38`) le déploiement n° 99 — bancs (44 suites, 1 min 36) PUIS
+    VPS —, Vérifications et Vérification des pages verts du premier coup (**194 suites · 10 258**, aucune en échec).
+    **Vérifié EN PRODUCTION** (28 septembre, 18 h 25 UTC) : le VPS écrit « dépôt : f97d32a4 → d783d38e — commit
+    vérifié » ; `/health` ok, 0 erreur, 0 rejet, durée de fonctionnement qui monte (3 → 32 → 44 → 433 s : pas de
+    boucle de redémarrage) ; sans session ou session inventée → 401 `compte_requis`, rien ne part chez Stripe ;
+    préalable CORS intact. Le verrou lui-même ne se voit pas de l'extérieur (il faudrait un vrai compte confirmé en
+    production) : sa preuve est le commit vérifié sur le VPS, plus les bancs qui font parler la vraie route.
+  · ⚠️ **Trois choses qui ne sont PAS « B » mais qui se sont vues en chemin.** (1) La CI de `main` est tombée une fois sur
+    `fae02f6` : `test-735` (la course connue du contrôle du socle — correctif prêt sur la branche depuis `f79cb33`, sa
+    poussée sur `main` attend Justin) et `test-831` (le courriel « mot de passe oublié » arrivé après les 4 s qu'il
+    attendait, sur une machine de CI chargée ; en local 5/5 en ~1 s). Relancée UNE fois : verte. `test-831` attend
+    désormais 15 s et dit pourquoi s'il échoue (`9a511a9`, branche ; `main` garde les 4 s jusqu'au prochain report).
+    (2) L'en-tête du verrou dans `server/index.js` annonce encore « Trois cas » sur le VPS : commentaire seul, corrigé
+    sur la branche (`3c4627d`), part avec le prochain déploiement du serveur.
+    (3) ⛔ **La CI de `main` ne joue JAMAIS le contrôle ESLint de `test-818`** (« aucun nom lu sans exister » — celui qui
+    aurait attrapé `bx`, la cloche qui plantait en v749). Trouvé en comptant suite par suite : la CI rend 10 258, ce
+    conteneur 10 261 sur le MÊME arbre, et les 3 manquants sont tous là (39 ✓ ici, 36 ✓ en CI). ESLint n'est installé
+    que dans l'image de ce conteneur (`/opt/node22/lib/node_modules/eslint`) ; en CI la suite écrit « … SAUTÉ : ESLint
+    absent » (les 3 manquants sont exactement les 3 contrôles de cette partie), et le filet de `verification.yml`
+    (comme celui de `scripts/bancs-ci.sh`) cherche « SAUTÉE » — le masculin passe à travers. Les suites complètes
+    lancées ici avant chaque publication, elles, le jouent. Correctif proposé, qui touche le workflow de `main` (donc
+    attend Justin) : installer ESLint dans l'étape des suites (`npm i -g eslint@9` puis `NODE_PATH=$(npm root -g)`),
+    et faire guetter « SAUTÉ » aux deux filets (le mot couvre aussi « SAUTÉE ») — dans cet ordre, sinon la CI tombe
+    au rouge avant d'avoir ESLint.
 · ℹ️ Pourquoi l'adresse CONFIRMÉE et pas seulement le compte : une session prouve un mot de passe, pas une adresse
   (`CLAUDE.md`) — sans confirmation, n'importe qui paierait au nom de l'adresse de contact d'une entreprise, publique.
   Se relâche sur une phrase de Justin (une ligne du serveur, une de la page).
