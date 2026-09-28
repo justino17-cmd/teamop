@@ -33,7 +33,7 @@
 # relevé à 2 450.
 # 28 septembre 2026, « B — on verrouille » : 2 741 contre les pages de `main` (44 suites), `test-797` et `test-839`
 # compris (la page de paiement en service face au serveur neuf) — plancher relevé à 2 650.
-#plancher 2650
+#plancher 2680
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -105,3 +105,7 @@ tests/test-834.js
 # que du serveur qui le porte).
 tests/test-797.js
 tests/test-839.js
+# 28 septembre 2026 : le rappel des 7 jours avant la fin d'un code promo dit le nombre d'utilisateurs et la somme
+# (Justin : « tant d'utilisateurs trouvés chez vous … payer la somme de chaque utilisateur »). 840 fait tourner le
+# vrai serveur contre un facteur SMTP de banc, et compare sa grille de prix à celle de la page de paiement.
+tests/test-840.js
