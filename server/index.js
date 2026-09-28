@@ -652,6 +652,29 @@ app.post('/api/stripe/checkout', async (req, res) => {
     const { price, quantity, ref } = req.body || {};
     if (!/^price_[A-Za-z0-9]+$/.test(String(price || ''))) return res.status(400).json({ error: 'tarif invalide' });
     const qty = Math.min(50, Math.max(1, parseInt(quantity, 10) || 1));
+    /* ⛔ B — « ON VERROUILLE » (Justin, 28 septembre 2026) : SEUL UN COMPTE DE L'ENTREPRISE PAIE POUR ELLE.
+       La référence d'espace vient de la PAGE (le marqueur de l'appareil) : un compte confirmé rattachait donc SON
+       paiement à l'espace de n'importe quelle autre entreprise, qui devenait « payée » dans `espacePaye()` (`gardien`,
+       rejoué). La preuve d'appartenance est celle du reste du serveur (relais du portail, `espaceAutoPour`) : l'adresse
+       du compte EST celle de l'entreprise dans l'annuaire. Trois cas :
+       · la référence désigne une ou des entreprises CONNUES, et le compte n'est pas le leur (ou l'une n'a pas
+         d'adresse) → 403 `compte_autre_entreprise`, rien chez Stripe : on refuse AVANT de faire payer, plutôt que
+         d'encaisser un abonnement qui ne débloquerait rien ;
+       · la référence est INCONNUE de l'annuaire (appareil resté sur un ancien espace…) → elle n'est PAS gravée :
+         l'abonnement se rattache à l'adresse du compte (`customer_email`), jamais à une autre entreprise ;
+       · pas de référence (on paie avant d'avoir son espace) → rien ne change.
+       ⚠️ Les entreprises visées se lisent comme `espacePaye()` les reconnaît (nom d'accès OU identifiant, sans casse) :
+       `espacesDeRef`. Un verrou qui en regarderait moins laisserait passer celle qu'il ne voit pas. */
+    const payeurMin = String(payeur).trim().toLowerCase();
+    let refGravee = '';
+    if (typeof ref === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(ref)) {
+      let visees = [];
+      try { visees = espacesDeRef(ref); } catch (e) { visees = []; }
+      if (visees.length) {
+        if (visees.some(x => String((x && x.email) || '').trim().toLowerCase() !== payeurMin)) return res.status(403).json({ error: 'compte_autre_entreprise' });
+        refGravee = ref;
+      }
+    }
     const p = new URLSearchParams();
     p.append('mode', 'subscription');
     p.append('line_items[0][price]', String(price));
@@ -671,9 +694,9 @@ app.post('/api/stripe/checkout', async (req, res) => {
        bloquée — sans que rien, nulle part, ne dise pourquoi.
        `subscription_data[metadata][espace]` grave la référence sur l'abonnement, où elle
        survit au renouvellement et à tout changement d'adresse. */
-    if (typeof ref === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(ref)) {
-      p.append('client_reference_id', ref);
-      p.append('subscription_data[metadata][espace]', ref);
+    if (refGravee) {   // seulement celle d'une entreprise dont le compte qui paie EST le compte (voir « B » plus haut)
+      p.append('client_reference_id', refGravee);
+      p.append('subscription_data[metadata][espace]', refGravee);
     }
     const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { Authorization: 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString() });
     const d = await r.json().catch(() => ({}));
@@ -3991,6 +4014,18 @@ function espaceParT(t) {
   if (!slugs.length) return null;
   const slug = slugs.sort((a, b) => (espacesReg[b].ts || 0) - (espacesReg[a].ts || 0))[0];   // plusieurs noms pour le même espace : le plus récent
   return Object.assign({ slug }, espacesReg[slug]);
+}
+/* ⛔ TOUTES les entreprises qu'une référence de paiement désigne — celles qu'`espacePaye()` reconnaîtrait pour
+   `metadata.espace` : par NOM D'ACCÈS ou par IDENTIFIANT, sans casse. Le verrou de `/api/stripe/checkout` (« B »)
+   exige que le compte qui paie soit celui de CHACUNE : s'il n'en regardait qu'une (par `t`, au caractère près,
+   comme `espaceParT`), une référence qui désigne une autre entreprise par son nom d'accès passerait le verrou et
+   la rendrait « payée ». L'identifiant se lit par `espaceT` (écrit en clair, ou dans le code des plus anciens). */
+function espacesDeRef(ref) {
+  const r = String(ref || '').trim().toLowerCase();
+  if (!r) return [];
+  return Object.keys(espacesReg).filter(s => { const x = espacesReg[s];
+    return !!x && (s.toLowerCase() === r || espaceT(x).toLowerCase() === r); })
+    .map(s => Object.assign({ slug: s }, espacesReg[s]));
 }
 
 /* ── Verdict de clé d'équipe : la mécanique derrière le point de passage de la famille mail.
