@@ -235,6 +235,10 @@ console.log('\n── 834 · les contournements des protections de suppression (
     v('⛔ rattacher l\'espace PARTAGÉ à un client : 403, rien d\'écrit', [r.s, /espace par défaut de l'application/.test(r.j.error || ''), slugs().includes('leurre')], [403, true, false]);
     r = await appel('/api/monitor/espaces', { nom: 'Leurre Kappa', code: code64('t-kappa-834'), email: 'omega@exemple-834.fr' });
     v('⛔ rattacher l\'espace d\'un AUTRE client (kappa) à l\'adresse d\'omega : 409, rien d\'écrit', [r.s, /appartient déjà à « Kappa Nettoyage »/.test(r.j.error || ''), slugs().includes('leurrekappa')], [409, true, false]);
+    /* ⛔ … et la casse n'y change rien (`gardien`, 28 septembre 2026) : le paiement lit l'identifiant SANS casse — un code
+       collé en capitales donnait une seconde adresse à kappa, et son vrai patron était refusé au paiement */
+    r = await appel('/api/monitor/espaces', { nom: 'Leurre Kappa Maj', code: code64('T-KAPPA-834'), email: 'omega@exemple-834.fr' });
+    v('⛔ … le MÊME identifiant écrit en capitales : 409 aussi, rien d\'écrit', [r.s, /appartient déjà à « Kappa Nettoyage »/.test(r.j.error || ''), slugs().includes('leurrekappamaj')], [409, true, false]);
     r = await appel('/api/monitor/espaces', { nom: 'Kappa Nettoyage', code: code64('t-kappa-834'), email: 'omega@exemple-834.fr' });
     v('⛔ changer l\'adresse d\'un espace déjà relié : 409, kappa garde la sienne', [r.s, (lire('espaces.json').kappanettoyage || {}).email], [409, 'kappa@exemple-834.fr']);
 

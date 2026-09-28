@@ -652,6 +652,64 @@ app.post('/api/stripe/checkout', async (req, res) => {
     const { price, quantity, ref } = req.body || {};
     if (!/^price_[A-Za-z0-9]+$/.test(String(price || ''))) return res.status(400).json({ error: 'tarif invalide' });
     const qty = Math.min(50, Math.max(1, parseInt(quantity, 10) || 1));
+    /* ⛔ B — « ON VERROUILLE » (Justin, 28 septembre 2026) : SEUL UN COMPTE DE L'ENTREPRISE PAIE POUR ELLE.
+       La référence d'espace vient de la PAGE (le marqueur de l'appareil) : un compte confirmé rattachait donc SON
+       paiement à l'espace de n'importe quelle autre entreprise, qui devenait « payée » dans `espacePaye()` (`gardien`,
+       rejoué). La preuve d'appartenance est celle du reste du serveur (relais du portail, `espaceAutoPour`) : l'adresse
+       du compte EST celle de l'entreprise dans l'annuaire. Trois cas :
+       · la référence désigne une entreprise CONNUE, et le compte n'est pas le sien (une adresse de ses noms d'accès
+         n'est pas celle du compte) → 403 `compte_autre_entreprise`, rien chez Stripe : on refuse AVANT de faire payer,
+         plutôt que d'encaisser un abonnement qui ne débloquerait rien ;
+       · aucun de ses noms d'accès ne porte d'adresse (espaces ouverts par la Tour sans adresse) → aucun compte ne peut
+         prouver qu'elle est la sienne : 403 `entreprise_sans_adresse`, un refus DISTINCT — « connectez-vous avec
+         l'adresse de l'entreprise » serait une consigne impossible (`gardien`) ; c'est à TEAM OP de la renseigner ;
+       · la référence est INCONNUE de l'annuaire (appareil resté sur un ancien espace…) → elle n'est PAS gravée :
+         l'abonnement se rattache à l'adresse du compte (`customer_email`), jamais à une autre entreprise ;
+       · pas de référence (on paie avant d'avoir son espace) → rien ne change.
+       ⚠️ Les entreprises visées se lisent comme `espacePaye()` les reconnaît (nom d'accès OU identifiant, sans casse) :
+       `espacesDeRef`. Un verrou qui en regarderait moins laisserait passer celle qu'il ne voit pas.
+       ⛔ ET ON GRAVE L'ENTREPRISE, PAS LE MOT ENVOYÉ (`gardien`, rejoué) : une référence qui est un NOM D'ACCÈS suivait
+       ce nom — libéré (« Supprimer l'accès »), puis repris par une autre entreprise, il lui faisait hériter de
+       l'abonnement au redémarrage suivant. L'identifiant d'équipe (`t`) ne se réattribue pas : c'est lui qu'on grave,
+       tel que l'annuaire le range (en clair ou dans le code) — et RIEN pour une entrée qui n'a pas d'identifiant
+       (l'abonnement suit alors l'adresse du compte, vérifiée). Des entreprises visées qui ne partagent pas UNE identité
+       → 403 `reference_ambigue` : on ne choisit pas pour le client laquelle il paie. */
+    const payeurMin = String(payeur).trim().toLowerCase();
+    let refGravee = '';
+    if (typeof ref === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(ref)) {
+      let visees = [];
+      try { visees = espacesDeRef(ref); } catch (e) { visees = []; }
+      if (visees.length) {
+        /* L'identité d'une entreprise : son identifiant, ou — entrée sans identifiant — son nom d'accès, TYPÉS : un
+           identifiant ancien sans tiret peut s'écrire comme le nom d'une autre, et ce ne sont pas la même entreprise. */
+        /* ⚠️ l'identifiant tel que l'annuaire le RANGE, espaces compris : c'est ainsi qu'`espacesDeRef` et `espacePaye()`
+           le comparent — le « nettoyer » ici graverait une valeur qu'`espacePaye()` ne reconnaîtrait plus (`gardien`). */
+        const identite = x => { const t = espaceT(x); return t.trim() ? { cle: 't:' + t.toLowerCase(), val: t } : { cle: 's:' + String(x.slug).toLowerCase(), val: x.slug }; };
+        if (new Set(visees.map(x => identite(x).cle)).size !== 1) return res.status(403).json({ error: 'reference_ambigue' });
+        const id = identite(visees[0]);
+        /* ⛔ L'ENTREPRISE, C'EST TOUS SES NOMS D'ACCÈS — et la Tour en ouvre parfois SANS adresse (`email: … || ''`).
+           Exiger l'adresse du compte sur CHAQUE nom refusait le vrai patron dès qu'un de ses noms n'en portait pas,
+           avec « pas d'adresse » pour une entreprise qui en a une. La règle : au moins une adresse, et TOUTES celles
+           présentes sont celle du compte ; deux adresses différentes pour une même entreprise se refusent (on ne
+           tranche pas un conflit de l'annuaire au moment de payer). Une adresse qui n'est pas du TEXTE (un tableau,
+           un nombre : aucune route ne l'écrit) compte comme une adresse étrangère — on échoue fermé.
+           ⚠️ CE VERROU CROIT L'ANNUAIRE, et c'est sa limite (`gardien`, 28 septembre 2026, rejoué) : aucune route
+           PUBLIQUE ne range une entrée sous l'identifiant d'une autre entreprise, et la Tour refuse une SECONDE adresse
+           (409) — mais « Code espace collé » dans la Tour rattache une PREMIÈRE adresse à un identifiant déjà connu sans
+           vérifier la clé du code. Un code forgé collé par le patron ferait donc passer ce verrou (et, avec ou sans
+           lui, le repli par adresse d'`espacePaye()`) — et, bien pire, sèmerait un compte dans l'annuaire de connexion de
+           l'entreprise visée. C'est la Tour qu'il faut fermer (preuve de la clé, et une confirmation pour une clé
+           vraiment changée) : voir `REPRISE.md`. */
+        const adresses = Object.keys(espacesReg).filter(s => espacesReg[s] && identite(Object.assign({ slug: s }, espacesReg[s])).cle === id.cle)
+          .map(s => { const a = espacesReg[s].email; return typeof a === 'string' ? a.trim().toLowerCase() : (a ? '\u0000pas-une-adresse' : ''); }).filter(Boolean);
+        if (!adresses.length) return res.status(403).json({ error: 'entreprise_sans_adresse' });
+        if (adresses.some(a => a !== payeurMin)) return res.status(403).json({ error: 'compte_autre_entreprise' });
+        /* ⛔ on ne grave QUE l'identifiant : le nom d'accès d'une entrée qui n'en a pas se libère et se reprend (le
+           défaut même que la gravure de l'identifiant ferme). Sans rien de gravé, l'abonnement suit l'adresse du compte
+           — qui EST celle de l'entreprise, on vient de le vérifier. */
+        refGravee = id.cle.startsWith('t:') ? id.val : '';
+      }
+    }
     const p = new URLSearchParams();
     p.append('mode', 'subscription');
     p.append('line_items[0][price]', String(price));
@@ -671,9 +729,9 @@ app.post('/api/stripe/checkout', async (req, res) => {
        bloquée — sans que rien, nulle part, ne dise pourquoi.
        `subscription_data[metadata][espace]` grave la référence sur l'abonnement, où elle
        survit au renouvellement et à tout changement d'adresse. */
-    if (typeof ref === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(ref)) {
-      p.append('client_reference_id', ref);
-      p.append('subscription_data[metadata][espace]', ref);
+    if (refGravee) {   // seulement celle d'une entreprise dont le compte qui paie EST le compte (voir « B » plus haut)
+      p.append('client_reference_id', refGravee);
+      p.append('subscription_data[metadata][espace]', refGravee);
     }
     const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { Authorization: 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString() });
     const d = await r.json().catch(() => ({}));
@@ -2089,8 +2147,10 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
   const emailNeuf = monStr((req.body || {}).email, 120).toLowerCase();
   if (emailNeuf && prev.email && String(prev.email).toLowerCase() !== emailNeuf)
     return res.status(409).json({ error: 'Ce nom est déjà relié à une autre adresse : on ne rattache pas un espace à un autre client par ici.' });
+  /* ⚠️ sans égard à la CASSE de l'identifiant (`gardien`, 28 septembre 2026) : le paiement le lit sans casse — un code
+     collé en « ACME-CD34 » passait ce contrôle à côté d'« acme-cd34 » et donnait deux adresses à une entreprise. */
   if (t && emailNeuf) for (const [s2, e2] of Object.entries(espacesReg)) {
-    if (s2 === slug || !e2 || espaceT(e2) !== t || !e2.email || String(e2.email).toLowerCase() === emailNeuf) continue;
+    if (s2 === slug || !e2 || espaceT(e2).toLowerCase() !== t.toLowerCase() || !e2.email || String(e2.email).toLowerCase() === emailNeuf) continue;
     return res.status(409).json({ error: 'Cet espace appartient déjà à « ' + (espNomPropre(e2) || s2) + ' », relié à une autre adresse : on ne le rattache pas à un second client.' });
   }
   /* Le code d'accès ne figure PAS ici : il vit dans son propre registre, indexé par l'identifiant
@@ -2273,8 +2333,11 @@ async function espacePaye(e, opts) {
             société, et comme ce n'est pas celle avec laquelle l'espace a été créé, rien ne se
             rattache. Le client a payé et son application reste bloquée, sans un mot.
          ⚠️ On compare le slug ET le `t` : la référence envoyée par le site peut être l'un ou
-         l'autre selon la page, et se tromper ici coûte un client qui a payé. */
-      const refs = [String(e.slug || '').toLowerCase(), String(e.t || '').toLowerCase()].filter(Boolean);
+         l'autre selon la page, et se tromper ici coûte un client qui a payé.
+         ⚠️ Le `t` se lit par `espaceT` — en clair, OU dans le code des entrées les plus anciennes : c'est lui que la
+         route de paiement grave (« B »), et `e.t` seul ne voyait pas ces entrées-là, rattachées alors par la seule
+         adresse (`gardien`, rejoué) — un changement d'adresse et le paiement se perdait. */
+      const refs = [String(e.slug || '').toLowerCase(), String(espaceT(e) || '').toLowerCase()].filter(Boolean);
       const vivant = sb => ['active', 'trialing', 'past_due'].includes(sb.status);
       let abo = refs.length ? (espStripeCache.data || []).find(sb => vivant(sb)
         && sb.metadata && refs.includes(String(sb.metadata.espace || '').toLowerCase())) : null;
@@ -3991,6 +4054,18 @@ function espaceParT(t) {
   if (!slugs.length) return null;
   const slug = slugs.sort((a, b) => (espacesReg[b].ts || 0) - (espacesReg[a].ts || 0))[0];   // plusieurs noms pour le même espace : le plus récent
   return Object.assign({ slug }, espacesReg[slug]);
+}
+/* ⛔ TOUTES les entreprises qu'une référence de paiement désigne — celles qu'`espacePaye()` reconnaîtrait pour
+   `metadata.espace` : par NOM D'ACCÈS ou par IDENTIFIANT, sans casse. Le verrou de `/api/stripe/checkout` (« B »)
+   exige que le compte qui paie soit celui de CHACUNE : s'il n'en regardait qu'une (par `t`, au caractère près,
+   comme `espaceParT`), une référence qui désigne une autre entreprise par son nom d'accès passerait le verrou et
+   la rendrait « payée ». L'identifiant se lit par `espaceT` (écrit en clair, ou dans le code des plus anciens). */
+function espacesDeRef(ref) {
+  const r = String(ref || '').trim().toLowerCase();
+  if (!r) return [];
+  return Object.keys(espacesReg).filter(s => { const x = espacesReg[s];
+    return !!x && (s.toLowerCase() === r || espaceT(x).toLowerCase() === r); })
+    .map(s => Object.assign({ slug: s }, espacesReg[s]));
 }
 
 /* ── Verdict de clé d'équipe : la mécanique derrière le point de passage de la famille mail.

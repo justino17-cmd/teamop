@@ -50,8 +50,11 @@ function extraire(nom) {
   for (let k = SRC.indexOf('{', d0); k < SRC.length; k++) { if (SRC[k] === '{') p++; else if (SRC[k] === '}') { p--; if (!p) return SRC.slice(d0, k + 1); } }
   return '';
 }
-const AIDES = ['promoAujourdhui', 'promoDateFr', 'promoEmpreinteMail', 'promoIdentite', 'promoServiA', 'promoAutreActif', 'promoEntree'].map(extraire);
-vrai('les sept aides du code promo sont trouvées dans le fichier réel', AIDES.every(Boolean));
+/* ⚠️ et `espaceT` (28 septembre 2026, `gardien`) : la référence gravée se compare à l'identifiant tel que l'annuaire le
+   RANGE — en clair, ou dans le code des entrées les plus anciennes. Sans elle, le rattachement par référence jetterait
+   dans son `try`, en silence, et seul le repli par adresse répondrait. */
+const AIDES = ['promoAujourdhui', 'promoDateFr', 'promoEmpreinteMail', 'promoIdentite', 'promoServiA', 'promoAutreActif', 'promoEntree', 'espaceT'].map(extraire);
+vrai('les sept aides du code promo et espaceT sont trouvées dans le fichier réel', AIDES.every(Boolean));
 const PARAMS = ['config', 'espStripeCache', 'promoUsages', 'stripeAbosBruts', 'console', 'savePromoUsages', 'mailPromoActive', 'espacesReg', 'espaceParT', 'crypto', 'promosIllisible'];
 const construire = () => new Function(...PARAMS, AIDES.join('\n') + '\n' + SRC.slice(i, fin) + '\nreturn espacePaye;');
 const avec = (abos) => construire()(
@@ -89,6 +92,16 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
   {
     const r = await avec([ABO({ customer: { email: 'compta@client.fr' }, metadata: { espace: 'ent-x' } })])(ESP({ email: '' }));
     v('⛔ espace SANS adresse, référence sur le `t` : payé', r.paye, true);
+  }
+  {
+    /* ⛔ l'identifiant d'une entrée ANCIENNE ne vit que dans son code (`gardien`, 28 septembre 2026) : la route de paiement
+       grave cet identifiant-là, `espacePaye()` doit le reconnaître — sinon seul le repli par adresse la rattache, et un
+       changement d'adresse perd le paiement */
+    const vieille = ESP({ t: undefined, email: 'patron@ailleurs.fr', code: Buffer.from(JSON.stringify({ t: 'vieille-8mq' })).toString('base64') });
+    const r = await avec([ABO({ customer: { email: 'compta@client.fr' }, metadata: { espace: 'vieille-8mq' } })])(vieille);
+    v('⛔ l\'identifiant rangé dans le CODE : la référence gravée paie, sans l\'adresse', [r.paye, /référence d'espace/.test(r.motif || '')], [true, true]);
+    const r2 = await avec([ABO({ customer: { email: 'compta@client.fr' }, metadata: { espace: 'vieille-9zz' } })])(vieille);
+    v('   contre-épreuve : un AUTRE identifiant ne paie rien', r2.paye, false);
   }
 
   /* 4. LES CONTRE-ÉPREUVES. Sans elles, « rattacher plus largement » voudrait dire
@@ -162,14 +175,19 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     parJeton: (j) => ({ [JETON_PROUVE]: 'paie@entreprise-banc.fr', [JETON_A_CONFIRMER]: 'pas-encore@entreprise-banc.fr' }[j] || ''),
     verifie: (m) => m === 'paie@entreprise-banc.fr',
   };
-  const appeler = async (body, entetes, comptes) => {
+  /* L'annuaire (« B », 28 septembre 2026) : la route ne grave une référence d'espace que si le compte qui paie est
+     celui de l'entreprise. Elle lit les VRAIES `espaceT` et `espacesDeRef` du fichier, sur un annuaire de banc où
+     « monclient-9f2a » est l'entreprise du compte prouvé. */
+  const AIDES_ROUTE = ['espaceT', 'espacesDeRef'].map(extraire);
+  const ESPACES_DEFAUT = { monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr' } };
+  const appeler = async (body, entetes, comptes, espaces) => {
     let envoye = '', statut = 0, sortie = null, appels = 0;
     const faux = { post: (chemin, h) => { faux._h = h; } };
-    new Function('app', 'config', 'fetch', 'URLSearchParams', 'comptes',
-      SRC.slice(iR, finR))(faux,
+    new Function('app', 'config', 'fetch', 'URLSearchParams', 'comptes', 'espacesReg',
+      AIDES_ROUTE.join('\n') + '\n' + SRC.slice(iR, finR))(faux,
       { stripe: { secretKey: 'sk_de_banc' } },
       async (url, opts) => { appels++; envoye = String(opts && opts.body || ''); return { ok: true, json: async () => ({ url: 'https://checkout.stripe.com/x' }) }; },
-      URLSearchParams, comptes === undefined ? COMPTES : comptes);
+      URLSearchParams, comptes === undefined ? COMPTES : comptes, espaces === undefined ? ESPACES_DEFAUT : espaces);
     await faux._h({ body, headers: entetes === undefined ? { authorization: 'Bearer ' + JETON_PROUVE } : entetes },
       { status(c) { statut = c; return this; }, json(o) { sortie = o; return this; } });
     return { envoye, statut, sortie, appels };
@@ -221,6 +239,107 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('⛔ une adresse écrite dans le CORPS n\'est jamais celle envoyée à Stripe', [new URLSearchParams(corps.envoye).getAll('customer_email'), /ailleurs/.test(corps.envoye)], [['paie@entreprise-banc.fr'], false]);
     const eteints = await appeler({ price: 'price_1Abc', quantity: 1 }, undefined, null);
     v('les comptes du portail éteints : 503, et rien chez Stripe (jamais un paiement anonyme par défaut)', [eteints.statut, eteints.appels], [503, 0]);
+  }
+
+  /* d) ⛔ « B — ON VERROUILLE » (Justin, 28 septembre 2026) : SEUL UN COMPTE DE L'ENTREPRISE PAIE POUR ELLE. La référence
+     d'espace vient de la page (le marqueur de l'appareil) : sans verrou, un compte confirmé rendait « payée » l'entreprise
+     de son choix (`gardien`). Appartenir = l'adresse du compte EST celle de l'entreprise dans l'annuaire. */
+  {
+    vrai('les deux aides du verrou sont trouvées dans le fichier réel (espaceT, espacesDeRef)', AIDES_ROUTE.every(Boolean));
+    const ANN = {
+      monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: ' Paie@Entreprise-Banc.fr ' },
+      voisine: { nom: 'La voisine', t: 'voisine-77xq', email: 'patron@voisine-banc.fr' },
+      sansadresse: { nom: 'Sans adresse', t: 'vide-31kz', email: '' },
+      ancienne: { nom: 'Ancienne', code: Buffer.from(JSON.stringify({ t: 'ancienne-5hw' })).toString('base64'), email: 'patron@ancienne-banc.fr' },
+    };
+    const gravee = r => new URLSearchParams(r.envoye).get('subscription_data[metadata][espace]');
+    const sienne = await appeler({ price: 'price_1Abc', quantity: 2, ref: 'monclient-9f2a' }, undefined, undefined, ANN);
+    v('le compte de l\'entreprise paie pour elle : la référence est gravée (casse et espaces de l\'adresse de l\'annuaire ignorés)',
+      [sienne.statut || 200, gravee(sienne), sienne.appels], [200, 'monclient-9f2a', 1]);
+    const casse = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'MONCLIENT-9F2A' }, undefined, undefined, ANN);
+    v('   la même, en capitales (espacePaye la reconnaît sans casse) : c\'est l\'identifiant RANGÉ qui est gravé', [casse.statut || 200, gravee(casse), new URLSearchParams(casse.envoye).get('client_reference_id')], [200, 'monclient-9f2a', 'monclient-9f2a']);
+    /* ⛔ on grave L'ENTREPRISE, pas le mot envoyé (`gardien`, rejoué) : un nom d'accès se libère et se reprend par une
+       autre entreprise, qui hériterait de l'abonnement ; l'identifiant ne se réattribue pas */
+    const parSonNom = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'MonClient' }, undefined, undefined, ANN);
+    v('⛔ désignée par son NOM D\'ACCÈS : c\'est son IDENTIFIANT qui est gravé, jamais le nom', [parSonNom.statut || 200, gravee(parSonNom), /monclient(?!-)/i.test(new URLSearchParams(parSonNom.envoye).get('client_reference_id') || '')], [200, 'monclient-9f2a', false]);
+    const MIENNES = {
+      vieillemaison: { nom: 'Vieille maison', code: Buffer.from(JSON.stringify({ t: 'vieille-8mq' })).toString('base64'), email: 'paie@entreprise-banc.fr' },
+      sansident: { nom: 'Sans identifiant', code: Buffer.from(JSON.stringify({ k: 'x' })).toString('base64'), email: 'paie@entreprise-banc.fr' },
+      nomun: { nom: 'Nom un', t: 'meme-4pd', email: 'paie@entreprise-banc.fr' },
+      nomdeux: { nom: 'Nom deux', t: 'meme-4pd', email: 'paie@entreprise-banc.fr' },
+    };
+    const dansCode = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'vieillemaison' }, undefined, undefined, MIENNES);
+    v('⛔ la sienne, identifiant rangé dans le CODE, désignée par son nom : l\'identifiant du code est gravé', [dansCode.statut || 200, gravee(dansCode)], [200, 'vieille-8mq']);
+    const sansIdent = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'SANSIDENT' }, undefined, undefined, MIENNES);
+    /* ⛔ une entrée SANS identifiant n'a que son nom d'accès — qui se libère et se reprend (`gardien`) : on ne grave
+       RIEN, l'abonnement suit l'adresse du compte, qui est la sienne (vérifiée) */
+    v('⛔ une entrée SANS identifiant : le paiement s\'ouvre, RIEN n\'est gravé, il suit l\'adresse du compte',
+      [sansIdent.statut || 200, gravee(sansIdent), new URLSearchParams(sansIdent.envoye).get('client_reference_id'), new URLSearchParams(sansIdent.envoye).get('customer_email')],
+      [200, null, null, 'paie@entreprise-banc.fr']);
+    const deuxNoms = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'meme-4pd' }, undefined, undefined, MIENNES);
+    v('   deux noms pour la MÊME entreprise (même identifiant) : une identité, gravée', [deuxNoms.statut || 200, gravee(deuxNoms)], [200, 'meme-4pd']);
+    /* une référence qui désigne DEUX entreprises distinctes, toutes deux au compte qui paie (le nom d'accès de l'une est
+       l'identifiant, sans tiret, d'une ancienne) : on ne choisit pas pour le client laquelle il paie */
+    const AMBI = { abc: { nom: 'Abc', t: 'abc-1x', email: 'paie@entreprise-banc.fr' }, zzz: { nom: 'Zzz', t: 'abc', email: 'paie@entreprise-banc.fr' } };
+    const ambigue = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'abc' }, undefined, undefined, AMBI);
+    v('⛔ deux entreprises distinctes derrière UNE référence, même au bon compte : 403 « reference_ambigue », rien chez Stripe',
+      [ambigue.statut, ambigue.sortie && ambigue.sortie.error, ambigue.appels], [403, 'reference_ambigue', 0]);
+    /* identité TYPÉE : un identifiant ancien sans tiret (« abc ») s'écrit comme le NOM d'une entrée sans identifiant —
+       ce ne sont pas la même entreprise, même au même compte */
+    const TYPE = { abc: { nom: 'Abc sans identifiant', code: Buffer.from(JSON.stringify({ k: 'x' })).toString('base64'), email: 'paie@entreprise-banc.fr' },
+      zzz: { nom: 'Zzz', t: 'abc', email: 'paie@entreprise-banc.fr' } };
+    const typee = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'abc' }, undefined, undefined, TYPE);
+    v('⛔ un NOM et un IDENTIFIANT qui s\'écrivent pareil ne font pas une entreprise : 403 « reference_ambigue »', [typee.statut, typee.sortie && typee.sortie.error, typee.appels], [403, 'reference_ambigue', 0]);
+    /* ⛔ L'ENTREPRISE, C'EST TOUS SES NOMS D'ACCÈS — la Tour en ouvre parfois SANS adresse. Exiger l'adresse sur CHAQUE
+       nom refusait le vrai patron (« pas d'adresse ») dès qu'un de ses noms n'en portait pas. */
+    const FAMILLE = { nomprincipal: { nom: 'Nom principal', t: 'fam-7kq', email: 'paie@entreprise-banc.fr' }, nomsecond: { nom: 'Nom second', t: 'fam-7kq', email: '' } };
+    const famT = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'fam-7kq' }, undefined, undefined, FAMILLE);
+    v('⛔ deux noms pour la même entreprise, l\'un SANS adresse : le patron paie, l\'identifiant est gravé', [famT.statut || 200, gravee(famT)], [200, 'fam-7kq']);
+    const famNom = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'NomSecond' }, undefined, undefined, FAMILLE);
+    v('   … même désignée par son nom SANS adresse : c\'est l\'entreprise entière qui est lue', [famNom.statut || 200, gravee(famNom)], [200, 'fam-7kq']);
+    /* ⛔ LE CONTRÔLE DE SÉCURITÉ DE CETTE RÈGLE : un nom sans adresse ne donne la main à PERSONNE quand l'entreprise en
+       porte une ailleurs — sinon viser ce nom-là suffirait à rendre « payée » l'entreprise d'un autre */
+    const VICTIME = { victime: { nom: 'Victime', t: 'vict-2mw', email: 'patron@victime-banc.fr' }, victimebis: { nom: 'Victime bis', t: 'vict-2mw', email: '' } };
+    const parSonNomVide = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'victimebis' }, undefined, undefined, VICTIME);
+    v('⛔⛔ viser le nom SANS adresse de l\'entreprise d\'un autre : 403 « compte_autre_entreprise », rien chez Stripe',
+      [parSonNomVide.statut, parSonNomVide.sortie && parSonNomVide.sortie.error, parSonNomVide.appels], [403, 'compte_autre_entreprise', 0]);
+    /* deux adresses DIFFÉRENTES pour une même entreprise (un conflit de l'annuaire) : on ne tranche pas au moment de payer */
+    const CONFLIT = { conflitun: { nom: 'Conflit un', t: 'conf-3xz', email: 'paie@entreprise-banc.fr' }, conflitdeux: { nom: 'Conflit deux', t: 'conf-3xz', email: 'autre@conflit-banc.fr' } };
+    const conflit = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'conflitun' }, undefined, undefined, CONFLIT);
+    v('⛔ deux adresses différentes pour une même entreprise, même visée par le nom du payeur : 403, rien chez Stripe',
+      [conflit.statut, conflit.sortie && conflit.sortie.error, conflit.appels], [403, 'compte_autre_entreprise', 0]);
+    /* une adresse qui n'est pas du TEXTE (aucune route ne l'écrit — une main sur le fichier) : `String(['x'])` vaudrait
+       'x' et passerait ; elle compte comme une adresse étrangère (`gardien`) */
+    const PASTEXTE = { tableau: { nom: 'Tableau', t: 'tab-9qw', email: ['paie@entreprise-banc.fr'] } };
+    const pasTexte = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'tab-9qw' }, undefined, undefined, PASTEXTE);
+    v('⛔ une adresse d\'annuaire qui n\'est pas du texte (un tableau) : 403, on échoue fermé', [pasTexte.statut, pasTexte.sortie && pasTexte.sortie.error, pasTexte.appels], [403, 'compte_autre_entreprise', 0]);
+    /* l'identifiant TEL QUE L'ANNUAIRE LE RANGE, espaces compris : c'est la valeur qu'espacePaye() comparera */
+    const ESPACES_T = { espa: { nom: 'Espa', t: ' esp-1 ', email: 'paie@entreprise-banc.fr' } };
+    const espT = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'espa' }, undefined, undefined, ESPACES_T);
+    v('   un identifiant rangé avec des espaces : gravé TEL QUEL (celui qu\'espacePaye lira)', [espT.statut || 200, gravee(espT)], [200, ' esp-1 ']);
+    const autre = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'voisine-77xq' }, undefined, undefined, ANN);
+    v('⛔ la référence d\'une AUTRE entreprise : 403 « compte_autre_entreprise », et RIEN chez Stripe',
+      [autre.statut, autre.sortie && autre.sortie.error, autre.appels], [403, 'compte_autre_entreprise', 0]);
+    const parNom = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'VOISINE' }, undefined, undefined, ANN);
+    v('⛔ … désignée par son NOM D\'ACCÈS, casse changée (espacePaye la rattacherait ainsi) : 403, rien chez Stripe', [parNom.statut, parNom.appels], [403, 0]);
+    const vide = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'vide-31kz' }, undefined, undefined, ANN);
+    v('⛔ une entreprise SANS adresse : aucun compte ne prouve être le sien — 403 « entreprise_sans_adresse » (un refus qui DIT pourquoi), rien chez Stripe',
+      [vide.statut, vide.sortie && vide.sortie.error, vide.appels], [403, 'entreprise_sans_adresse', 0]);
+    const ancienne = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'ancienne-5hw' }, undefined, undefined, ANN);
+    v('⛔ l\'identifiant rangé dans le CODE (les espaces les plus anciens) compte aussi : 403 « compte_autre_entreprise »', [ancienne.statut, ancienne.sortie && ancienne.sortie.error, ancienne.appels], [403, 'compte_autre_entreprise', 0]);
+    const inconnue = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'personne-0000' }, undefined, undefined, ANN);
+    v('une référence INCONNUE de l\'annuaire n\'est PAS gravée — l\'abonnement se rattache à l\'adresse du compte, à personne d\'autre',
+      [inconnue.statut || 200, gravee(inconnue), new URLSearchParams(inconnue.envoye).get('client_reference_id'), new URLSearchParams(inconnue.envoye).get('customer_email')],
+      [200, null, null, 'paie@entreprise-banc.fr']);
+    /* une référence qui désigne DEUX entreprises (le nom d'accès de l'une est l'identifiant de l'autre) : espacePaye
+       les rattacherait toutes les deux — le compte doit être celui de CHACUNE */
+    const DEUX = { 'monclient-9f2a': { nom: 'Homonyme', t: 'homonyme-2c', email: 'autre@homonyme-banc.fr' }, monclient: ANN.monclient };
+    const deux = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, DEUX);
+    v('⛔ une référence qui désigne DEUX entreprises dont une n\'est pas la sienne : 403, rien chez Stripe', [deux.statut, deux.appels], [403, 0]);
+    const corpsMail = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'voisine-77xq', email: 'patron@voisine-banc.fr', compte: 'patron@voisine-banc.fr' }, undefined, undefined, ANN);
+    v('⛔ l\'adresse de l\'entreprise écrite dans le CORPS ne prouve rien : 403', [corpsMail.statut, corpsMail.appels], [403, 0]);
+    const sansRef = await appeler({ price: 'price_1Abc', quantity: 1 }, undefined, undefined, ANN);
+    v('sans référence (on paie avant d\'avoir son espace) : rien ne change, la page de paiement s\'ouvre', [sansRef.statut || 200, gravee(sansRef), sansRef.appels], [200, null, 1]);
   }
 
   /* 6. ⛔ ET LES TROIS APPELANTS DOIVENT VOIR LA MÊME ENTREPRISE.

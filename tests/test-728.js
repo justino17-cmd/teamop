@@ -219,9 +219,13 @@ if (fs.existsSync(dep)) {
     v('   ⛔ chacune a le SERVEUR pour sujet',
       L.filter(f => { try { return !/'server'|server\/|test-728/.test(f + fs.readFileSync(path.join(__dirname, '..', f), 'utf8')); } catch (e) { return true; } }), []);
     /* Celles qui ne passent QU'AVEC les pages de la branche n'y entrent pas : elles bloqueraient
-       le déploiement du serveur sur `main`, où ces pages ne sont pas publiées. */
+       le déploiement du serveur sur `main`, où ces pages ne sont pas publiées.
+       ⚠️ `test-797` en est SORTIE le 28 septembre 2026 : la page de paiement est en service depuis
+       le 27 (`2d31fe7`), et la suite passe contre elle (22 vérifications sur la copie de `main`,
+       23 sur la branche). Elle est ENTRÉE dans la liste avec `test-839` — la couture page ↔ serveur
+       du paiement, que le déploiement du serveur seul met en jeu. */
     v('   ⛔ et aucune de celles qui exigent les pages de la branche',
-      L.filter(f => /test-(735|740|741|744|746|797)\.js$/.test(f)), []);
+      L.filter(f => /test-(735|740|741|744|746)\.js$/.test(f)), []);
     const prep = path.join(__dirname, '..', 'scripts', 'preparer-deploiement-serveur.sh');
     vrai('   le script de préparation existe', fs.existsSync(prep));
     if (fs.existsSync(prep)) {
