@@ -42,6 +42,7 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
   esp('ancienprem', { formule: 'premium', quantite: 2, formuleTs: AVANT, formulePar: 'Patron', aboStatut: 'actif' });
   esp('sansdate', { formule: 'premium', quantite: 1, formulePar: 'Patron', aboStatut: 'actif' });
   const tPromo = esp('promoprem', { formule: 'premium', quantite: 1, formuleTs: AVANT, formulePar: 'Patron (code)' });
+  const tPromoTour = esp('promotour', { formule: 'business', quantite: 1, formuleTs: AVANT, formulePar: 'Patron' });
   esp('sitecode', { formule: 'premium', quantite: 1, formuleTs: AVANT, formulePar: 'code BIENVENUE-BANC-842 (site)', aboStatut: 'actif' });
   esp('essaibiz', { formule: 'business', quantite: 1, formuleTs: AVANT, formulePar: 'Patron', aboStatut: 'essai', aboFin: dans(20) });
   esp('neufbiz', { formule: 'business', quantite: 1, formuleTs: APRES, formulePar: 'Patron', aboStatut: 'actif' });
@@ -56,7 +57,7 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
   const tTP = E.tourplus.t;
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(E));
   /* le code promo de « promoprem », en cours */
-  fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify({ 'BIENVENUE-BANC-842': { n: 1, equipes: { [tPromo]: { date: dans(-10), finLe: dans(80) } } } }));
+  fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify({ 'BIENVENUE-BANC-842': { n: 1, equipes: { [tPromo]: { date: dans(-10), finLe: dans(80) }, [tPromoTour]: { date: dans(-5), finLe: dans(85) } } } }));
 
   /* Stripe simulé : les abonnements, TOUS statuts confondus, comme `stripeAbosBruts` les demande. */
   const abo = (id, espace, status, quantites, email) => ({ id, status, metadata: espace ? { espace } : {},
@@ -114,6 +115,8 @@ globalThis.fetch = async function (url, opts) {
     console.log('\n2. Une période OFFERTE ne garde rien : à la fin, on paie chaque utilisateur');
     j = await etat('promoprem');
     v('⛔ Business Premium par code promo en cours → 1 (l\'application couvre l\'équipe pendant le code)', [j.paye, j.quantite], [true, 1]);
+    j = await etat('promotour');
+    v('⛔ formule réglée à la main dans la Tour AVANT, mais payée par un code promo en cours → 1', [j.paye, j.quantite], [true, 1]);
     j = await etat('sitecode');
     v('⛔ formule posée par un code du site, même réglée « actif » ensuite → 1', j.quantite, 1);
     j = await etat('essaibiz');
