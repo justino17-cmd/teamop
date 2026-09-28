@@ -740,8 +740,11 @@ function rendreSelecteur() {
   ).join('');
   c.querySelectorAll('.puce-formule').forEach(b => {
     b.addEventListener('click', () => {
-      formuleActive = b.dataset.formule; nbUsersVoulu = 0;
-      history.replaceState(null, '', '?formule=' + formuleActive);
+      /* le NOMBRE reste : il ne dépend pas de la formule (un abonnement = un utilisateur, partout) — le remettre à 1
+         perdait les « 4 utilisateurs » venus du courriel au moment où l'on monte de formule après un refus
+         `tarif_formule` ; et le refus d'avant visait l'AUTRE formule, il ne survit pas au changement */
+      formuleActive = b.dataset.formule; compteMsg = null;
+      history.replaceState(null, '', '?formule=' + formuleActive + (nbUsersVoulu > 1 ? '&utilisateurs=' + nbUsersVoulu : '') + (cycleAnnuel ? '&cycle=annuel' : ''));
       rendreTout();
     });
   });

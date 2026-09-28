@@ -107,7 +107,7 @@ const vrai = (t, a) => v(t, !!a, true);
   /* ⚠️ et les TARIFS (28 septembre 2026, nuit) : la route n'admet que ceux de la page ; elle lit le bloc des constantes des
      places (`STRIPE_PRIX_FORMULE`, `RANG_FORMULE`…). Le serveur d'avant ne l'a pas : on ne le fournit que s'il existe. */
   const iCst = SRC.indexOf('const PLACES_BASCULE ='), iPQ = SRC.indexOf('function placesQ(');
-  const AIDES_ROUTE = ['espaceT', 'espacesDeRef'].map(aide).join('\n') + '\n' + (iCst > 0 && iPQ > iCst ? SRC.slice(iCst, iPQ) : '');
+  const AIDES_ROUTE = ['espaceT', 'espacesDeRef', 'espaceParT'].map(aide).join('\n') + '\n' + (iCst > 0 && iPQ > iCst ? SRC.slice(iCst, iPQ) : '');
   const ESPACES = { monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr' } };
   const appeler = async (body, hdr, espaces) => {
     let envoye = '', statut = 0, sortie = null;

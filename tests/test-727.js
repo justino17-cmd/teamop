@@ -191,7 +191,7 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
      l'entreprise. Elle lit `STRIPE_PRIX_FORMULE`, `STRIPE_PRIX_MESSAGES` et `RANG_FORMULE` — le bloc des constantes des
      places, déjà extrait plus haut pour `espacePaye`. Sans lui, la route jetait (« RANG_FORMULE is not defined ») et
      répondait 500 : 32 contrôles de ce banc sont tombés ainsi. Le tarif du banc est un VRAI tarif public de la page. */
-  const AIDES_ROUTE = ['espaceT', 'espacesDeRef'].map(extraire).concat([CONSTS]);
+  const AIDES_ROUTE = ['espaceT', 'espacesDeRef', 'espaceParT'].map(extraire).concat([CONSTS]);
   const PRIX_PRO = (/^\s*pro: \['(price_\w+)'/m.exec(SRC) || [])[1], PRIX_PREMIUM = (/^\s*premium: \['(price_\w+)'/m.exec(SRC) || [])[1];
   vrai('les tarifs Pro et Business Premium du serveur sont lus', /^price_/.test(PRIX_PRO || '') && /^price_/.test(PRIX_PREMIUM || ''));
   const ESPACES_DEFAUT = { monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr' } };
@@ -236,8 +236,37 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('⛔ entreprise réglée Business Premium, tarif Pro : 403 tarif_formule (et laquelle), rien chez Stripe', [bas.statut, bas.sortie && bas.sortie.error, bas.sortie && bas.sortie.formule, bas.appels], [403, 'tarif_formule', 'premium', 0]);
     const juste = await appeler({ price: PRIX_PREMIUM, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, PREM);
     v('   le tarif Business Premium passe', [juste.statut || 200, juste.appels], [200, 1]);
+    /* ⛔ SANS référence (appareil qui n'a jamais ouvert l'application), l'ADRESSE du compte dit qui paie : celle d'une fiche
+       Business Premium → le tarif Pro est refusé quand même (relecture adverse, rejouée deux fois) */
     const sansRef = await appeler({ price: PRIX_PRO, quantity: 1 }, undefined, undefined, PREM);
-    v('   sans référence (on paie avant d\'avoir son espace) : tout tarif de la page passe', [sansRef.statut || 200, sansRef.appels], [200, 1]);
+    v('⛔ sans référence, le compte est celui d\'une fiche Business Premium : tarif Pro refusé (403 tarif_formule), rien chez Stripe', [sansRef.statut, sansRef.sortie && sansRef.sortie.error, sansRef.appels], [403, 'tarif_formule', 0]);
+    const refBidon = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'nimporte-quoi' }, undefined, undefined, PREM);
+    v('⛔ une référence inconnue ne fait pas sauter la garde non plus', [refBidon.statut, refBidon.appels], [403, 0]);
+    const refNombre = await appeler({ price: PRIX_PRO, quantity: 1, ref: 12 }, undefined, undefined, PREM);
+    v('⛔ ni une référence qui n\'est pas du texte', [refNombre.statut, refNombre.appels], [403, 0]);
+    const prospect = await appeler({ price: PRIX_PRO, quantity: 1 }, undefined, undefined, {});
+    v('   un prospect (aucune entreprise à son adresse) choisit sa formule : le paiement s\'ouvre', [prospect.statut || 200, prospect.appels], [200, 1]);
+    const tableau = await appeler({ price: [PRIX_PREMIUM], quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, PREM);
+    v('⛔ un tarif qui n\'est pas du texte (tableau) : 400 tarif invalide, rien chez Stripe', [tableau.statut, tableau.appels], [400, 0]);
+    const objet = await appeler({ price: { toString: 1 }, quantity: 1 }, undefined, undefined, PREM);
+    v('⛔ … ni un objet (qui faisait jeter : 500)', [objet.statut, objet.appels], [400, 0]);
+    /* ⛔ UNE FORMULE AU-DESSUS PASSE, et OP MESSAGES ne règle aucune formule d'OP GESTION (relecture adverse : `!==` ou
+       `> 0` à la place de `<` survivaient) */
+    const fiche = f => ({ monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr', formule: f } });
+    const PRIX_BUSINESS = (/^\s*business: \['(price_\w+)'/m.exec(SRC) || [])[1], PRIX_MSG = (/^\s*msgpro: \['(price_\w+)'/m.exec(SRC) || [])[1];
+    const proBiz = await appeler({ price: PRIX_BUSINESS, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, fiche('pro'));
+    const bizPrem = await appeler({ price: PRIX_PREMIUM, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, fiche('business'));
+    const bizBiz = await appeler({ price: PRIX_BUSINESS, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, fiche('business'));
+    v('⛔ fiche Pro qui paie Business, fiche Business qui paie Business Premium, fiche Business qui paie Business : les trois passent',
+      [proBiz.statut || 200, bizPrem.statut || 200, bizBiz.statut || 200, proBiz.appels + bizPrem.appels + bizBiz.appels], [200, 200, 200, 3]);
+    const proMsg = await appeler({ price: PRIX_MSG, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, fiche('pro'));
+    v('⛔ fiche Pro qui paie OP MESSAGES : 403 tarif_formule (formule pro)', [proMsg.statut, proMsg.sortie && proMsg.sortie.formule, proMsg.appels], [403, 'pro', 0]);
+    /* ⛔ DEUX NOMS D'ACCÈS : la fiche que l'application lit (la plus récente) fait foi — un ancien nom resté plus haut ne
+       fait pas refuser un paiement juste (relecture adverse) */
+    const DEUX = { recent: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr', formule: 'pro', ts: 3 },
+      ancien: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr', formule: 'premium', ts: 1 } };
+    const deux = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, DEUX);
+    v('⛔ nom récent en Pro, ancien nom oublié en Business Premium : le tarif Pro passe (la fiche lue est la récente)', [deux.statut || 200, deux.appels], [200, 1]);
   }
 
   /* c) ⛔ PAS DE PAIEMENT SANS COMPTE PROUVÉ — et rien ne part chez Stripe tant que ce n'est pas le cas. */

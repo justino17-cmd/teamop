@@ -650,7 +650,8 @@ app.post('/api/stripe/checkout', async (req, res) => {
     if (!payeur) return res.status(401).json({ error: 'compte_requis' });
     if (!cm.verifie(payeur)) return res.status(403).json({ error: 'adresse_non_verifiee' });
     const { price, quantity, ref } = req.body || {};
-    if (!/^price_[A-Za-z0-9]+$/.test(String(price || ''))) return res.status(400).json({ error: 'tarif invalide' });
+    /* un tarif est un TEXTE : un tableau `[x]` passait l'expression (String([x]) vaut x), un objet faisait jeter (500) */
+    if (typeof price !== 'string' || !/^price_[A-Za-z0-9]+$/.test(price)) return res.status(400).json({ error: 'tarif invalide' });
     /* ⛔ UN TARIF DE LA PAGE, ET RIEN D'AUTRE (28 septembre 2026, nuit). Cette route ouvrait un paiement pour N'IMPORTE
        QUEL tarif du compte Stripe envoyé par le navigateur — et pour `espacePaye()`, UN abonnement vivant suffit à rendre
        une entreprise « payée ». Les tarifs admis sont ceux de `STRIPE_PRIX_FORMULE`, la liste que `test-842` compare à
@@ -683,15 +684,22 @@ app.post('/api/stripe/checkout', async (req, res) => {
        → 403 `reference_ambigue` : on ne choisit pas pour le client laquelle il paie. */
     const payeurMin = String(payeur).trim().toLowerCase();
     let refGravee = '';
+    /* L'identité d'une entreprise : son identifiant, ou — entrée sans identifiant — son nom d'accès, TYPÉS : un
+       identifiant ancien sans tiret peut s'écrire comme le nom d'une autre, et ce ne sont pas la même entreprise.
+       ⚠️ l'identifiant tel que l'annuaire le RANGE, espaces compris : c'est ainsi qu'`espacesDeRef` et `espacePaye()`
+       le comparent — le « nettoyer » ici graverait une valeur qu'`espacePaye()` ne reconnaîtrait plus (`gardien`). */
+    const identite = x => { const t = espaceT(x); return t.trim() ? { cle: 't:' + t.toLowerCase(), val: t } : { cle: 's:' + String(x.slug).toLowerCase(), val: x.slug }; };
+    /* ⛔ LA FORMULE EXIGÉE EST CELLE DE LA FICHE QUE L'APPLICATION LIT (`espaceParT` : le nom d'accès le plus récent) —
+       celle que la Tour et l'application affichent, et celle qu'`espacePaye()` rend « payée ». Le maximum de tous ses
+       noms refusait un paiement juste au nom d'une formule qu'aucun écran ne montre (relecture adverse, 28 septembre). */
+    const rangFiche = id => { let e = null;
+      try { e = id.cle.startsWith('t:') ? espaceParT(id.val) : (espacesReg[id.val] ? Object.assign({ slug: id.val }, espacesReg[id.val]) : null); } catch (err) { e = null; }
+      return RANG_FORMULE.indexOf(e && e.formule); };
+    let rangRequis = -1, entrepriseVisee = false;
     if (typeof ref === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(ref)) {
       let visees = [];
       try { visees = espacesDeRef(ref); } catch (e) { visees = []; }
       if (visees.length) {
-        /* L'identité d'une entreprise : son identifiant, ou — entrée sans identifiant — son nom d'accès, TYPÉS : un
-           identifiant ancien sans tiret peut s'écrire comme le nom d'une autre, et ce ne sont pas la même entreprise. */
-        /* ⚠️ l'identifiant tel que l'annuaire le RANGE, espaces compris : c'est ainsi qu'`espacesDeRef` et `espacePaye()`
-           le comparent — le « nettoyer » ici graverait une valeur qu'`espacePaye()` ne reconnaîtrait plus (`gardien`). */
-        const identite = x => { const t = espaceT(x); return t.trim() ? { cle: 't:' + t.toLowerCase(), val: t } : { cle: 's:' + String(x.slug).toLowerCase(), val: x.slug }; };
         if (new Set(visees.map(x => identite(x).cle)).size !== 1) return res.status(403).json({ error: 'reference_ambigue' });
         const id = identite(visees[0]);
         /* ⛔ L'ENTREPRISE, C'EST TOUS SES NOMS D'ACCÈS — et la Tour en ouvre parfois SANS adresse (`email: … || ''`).
@@ -711,20 +719,29 @@ app.post('/api/stripe/checkout', async (req, res) => {
           .map(s => { const a = espacesReg[s].email; return typeof a === 'string' ? a.trim().toLowerCase() : (a ? '\u0000pas-une-adresse' : ''); }).filter(Boolean);
         if (!adresses.length) return res.status(403).json({ error: 'entreprise_sans_adresse' });
         if (adresses.some(a => a !== payeurMin)) return res.status(403).json({ error: 'compte_autre_entreprise' });
-        /* ⛔ PAS SOUS LA FORMULE DE L'ENTREPRISE : réglée Business Premium dans la Tour, elle se payait au tarif Pro (ou d'OP
-           MESSAGES) et devenait « payée » en Business Premium. Un tarif de sa formule ou AU-DESSUS passe (ses places
-           comptent, `placesStripe`) ; une entreprise sans formule payante réglée (gratuit, rien) choisit. On refuse AVANT
-           Stripe, et on dit laquelle : changer de formule est un geste de TEAM OP (la Tour), pas de la page. La formule
-           retenue est la plus haute de ses noms d'accès — un nom oublié en Pro ne fait pas baisser le prix. */
-        const rangRequis = Math.max(-1, ...Object.keys(espacesReg).filter(s => espacesReg[s] && identite(Object.assign({ slug: s }, espacesReg[s])).cle === id.cle)
-          .map(s => RANG_FORMULE.indexOf(espacesReg[s].formule)));
-        if (rangRequis >= 0 && rangDuPrix < rangRequis) return res.status(403).json({ error: 'tarif_formule', formule: RANG_FORMULE[rangRequis] });
+        rangRequis = rangFiche(id); entrepriseVisee = true;
         /* ⛔ on ne grave QUE l'identifiant : le nom d'accès d'une entrée qui n'en a pas se libère et se reprend (le
            défaut même que la gravure de l'identifiant ferme). Sans rien de gravé, l'abonnement suit l'adresse du compte
            — qui EST celle de l'entreprise, on vient de le vérifier. */
         refGravee = id.cle.startsWith('t:') ? id.val : '';
       }
     }
+    /* ⛔ SANS RÉFÉRENCE RECONNUE, L'ADRESSE DU COMPTE DIT QUI PAIE (relecture adverse, 28 septembre 2026, nuit, rejouée
+       deux fois) : la page n'envoie la référence que si l'appareil a ouvert l'application — depuis le téléphone du patron
+       ou une fenêtre privée, elle part vide, et une fiche Business Premium se payait au tarif Pro : `espacePaye()` la
+       retrouve ensuite PAR L'ADRESSE (son repli) et la rend « payée ». On regarde donc les entreprises dont l'adresse est
+       celle du compte — la même correspondance que ce repli — et la plus haute de leurs formules fait foi. */
+    if (!entrepriseVisee) {
+      const miennes = new Map();
+      for (const s of Object.keys(espacesReg)) { const x = espacesReg[s];
+        if (x && typeof x.email === 'string' && x.email.trim().toLowerCase() === payeurMin) { const id = identite(Object.assign({ slug: s }, x)); miennes.set(id.cle, id); } }
+      for (const id of miennes.values()) rangRequis = Math.max(rangRequis, rangFiche(id));
+    }
+    /* ⛔ PAS SOUS LA FORMULE DE L'ENTREPRISE : réglée Business Premium dans la Tour, elle se payait au tarif Pro (ou d'OP
+       MESSAGES, rang -1) et devenait « payée » en Business Premium. Un tarif de sa formule ou AU-DESSUS passe (ses places
+       comptent, `placesStripe`) ; une entreprise sans formule payante réglée (gratuit, rien), ou un prospect sans
+       entreprise, choisit. On refuse AVANT Stripe, et on dit laquelle : changer de formule est un geste de TEAM OP. */
+    if (rangRequis >= 0 && rangDuPrix < rangRequis) return res.status(403).json({ error: 'tarif_formule', formule: RANG_FORMULE[rangRequis] });
     const p = new URLSearchParams();
     p.append('mode', 'subscription');
     p.append('line_items[0][price]', String(price));
@@ -8848,7 +8865,11 @@ function rappelsEcheances() {
            période offerte, l'application ne repassera PAS en Gratuit — le rappel mentirait. */
         if (e && (e.aboStatut === 'actif' || e.aboStatut === 'essai') && (!e.aboFin || e.aboFin > eq.finLe)) continue;
         const p = (config.promos || []).find(x => String(x.code || '').trim().toUpperCase() === code);
-        const f = p && ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : (p ? 'premium' : '');   // retiré de la configuration : formule inconnue
+        /* ⛔ LA FORMULE DE LA FICHE D'ABORD (relecture adverse, 28 septembre 2026, nuit) : c'est elle que la route de
+           paiement exige (`tarif_formule`). Un courriel qui disait « la formule de votre choix », ou celle du code, pendant
+           que la fiche en porte une autre, envoyait le client se faire refuser le paiement. */
+        const fFiche = e && ['pro', 'business', 'premium'].includes(e.formule) ? e.formule : '';
+        const f = fFiche || (p && ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : (p ? 'premium' : ''));   // retiré de la configuration : formule inconnue
         const n = (comptesReg[t] && comptesReg[t].c) ? Object.keys(comptesReg[t].c).length : 0;
         const avant = {}; for (const s of noms) { avant[s] = espacesReg[s].rappelFin; espacesReg[s].rappelFin = eq.finLe; }
         espacesEcrire();
