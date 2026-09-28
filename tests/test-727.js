@@ -55,6 +55,14 @@ function extraire(nom) {
    dans son `try`, en silence, et seul le repli par adresse répondrait. */
 const AIDES = ['promoAujourdhui', 'promoDateFr', 'promoEmpreinteMail', 'promoIdentite', 'promoServiA', 'promoAutreActif', 'promoEntree', 'espaceT'].map(extraire);
 vrai('les sept aides du code promo et espaceT sont trouvées dans le fichier réel', AIDES.every(Boolean));
+/* ⚠️ et le calcul des places (28 septembre 2026, nuit) : un paiement rattaché rend aussi `placesStripe`, ce que payent
+   les abonnements de CETTE entreprise. Sans ses aides et ses constantes, l'appel jetait APRÈS le rattachement, dans le
+   `try` — et le paiement le mieux prouvé se lisait « non payé ». Neuf contrôles de ce banc sont tombés ainsi. */
+const iConst = SRC.indexOf('const PLACES_BASCULE ='), iPQ = SRC.indexOf('function placesQ(');
+const CONSTS = (iConst > 0 && iPQ > iConst) ? SRC.slice(iConst, iPQ) : '';
+const PLACES = ['placesQ', 'placesPromoDejaEu', 'placesStripe'].map(extraire);
+vrai('le calcul des places et ses constantes sont trouvés dans le fichier réel', !!CONSTS && /STRIPE_PRIX_FORMULE/.test(CONSTS) && PLACES.every(Boolean));
+AIDES.push(CONSTS, ...PLACES);
 const PARAMS = ['config', 'espStripeCache', 'promoUsages', 'stripeAbosBruts', 'console', 'savePromoUsages', 'mailPromoActive', 'espacesReg', 'espaceParT', 'crypto', 'promosIllisible'];
 const construire = () => new Function(...PARAMS, AIDES.join('\n') + '\n' + SRC.slice(i, fin) + '\nreturn espacePaye;');
 const avec = (abos) => construire()(
@@ -73,6 +81,7 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     const r = await avec([ABO({ customer: { email: 'patron@client.fr' } })])(ESP());
     v('⛔ adresse identique, sans métadonnée : TOUJOURS payé', r.paye, true);
     vrai('   et le motif dit par quoi', /adresse e-mail/.test(r.motif));
+    v('   et les places payées se calculent — Business Premium payé d\'avant la bascule : 3, comme la v760 (le calcul a TOURNÉ)', r.placesStripe, 3);
   }
 
   /* 2. LE DÉFAUT, GRAVÉ EN POSITIF. Un abonnement ancien dont l'adresse diffère n'est pas

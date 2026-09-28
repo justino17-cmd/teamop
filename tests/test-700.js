@@ -164,9 +164,12 @@ console.log('\n── 700 · l\'écran de connexion, le lien de la Tour, et qui 
      sort, il n'est plus recalculable : un espace existant dont CE navigateur n'a pas gardé la
      trace n'a rien à montrer. Avant, on affichait une valeur qui était de toute façon fausse
      dès que le client avait changé son mot de passe. */
+  /* v2.73 (28 septembre 2026) : la règle est devenue plus stricte — pour un espace DÉJÀ inscrit (le serveur rend
+     `annuaire`), on n'affiche que le mot de passe gardé par CE navigateur, même quand l'annuaire est vide ; le tirage
+     qu'on vient de faire n'a jamais été haché par le serveur. */
   v('le cas « inconnu sur cet appareil » est détecté',
-    /var mdpInconnu=!e\.mdp && \(e\.annuaire\|\|0\)>0;/.test(TOUR), true);
-  v('⛔ et on n\'invente rien à la place', /var mdpAff=e\.mdp\|\|\(mdpInconnu\?'':mdp\);/.test(TOUR), true);
+    /var existant=\(typeof e\.annuaire==='number'\);\s*\n\s*var mdpAff=e\.mdp\|\|\(existant\?'':mdp\);\s*\n\s*var mdpInconnu=!mdpAff;/.test(TOUR), true);
+  v('⛔ et on n\'invente rien à la place', /var mdpAff=e\.mdp\|\|\(existant\?'':mdp\);/.test(TOUR), true);
   v('l\'écran le dit', /inconnu sur cet appareil/.test(TOUR), true);
   v('… et donne la sortie', /Mot de passe oublié \?ature|Mot de passe oublié \?/.test(TOUR), true);
   /* ⛔ ET MAINTENANT LE COMPORTEMENT, PAS LE TEXTE. Les deux relectures ont fait le même
@@ -195,7 +198,7 @@ console.log('\n── 700 · l\'écran de connexion, le lien de la Tour, et qui 
       ret({ ident: 'flo' }, 'flo', { m: 'VRAI-MDP' }, 'OP-hasard1234').mdp, 'VRAI-MDP');
   }
   v('le message envoyé au client ne porte pas un blanc',
-    /mdpInconnu\?'\(à te faire redonner — voir plus bas\)':mdpAff/.test(TOUR), true);
+    /mdpInconnu\?'\(à te faire redonner par TEAM OP\)':mdpAff/.test(TOUR), true);
 }
 
 /* ══ 5. LE GESTE GROUPÉ N'EST PAS DANS L'APPLICATION ══════════════════════════════════

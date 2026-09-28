@@ -655,7 +655,7 @@ app.post('/api/stripe/checkout', async (req, res) => {
     /* ⛔ B — « ON VERROUILLE » (Justin, 28 septembre 2026) : SEUL UN COMPTE DE L'ENTREPRISE PAIE POUR ELLE.
        La référence d'espace vient de la PAGE (le marqueur de l'appareil) : un compte confirmé rattachait donc SON
        paiement à l'espace de n'importe quelle autre entreprise, qui devenait « payée » dans `espacePaye()` (`gardien`,
-       rejoué). La preuve d'appartenance est celle du reste du serveur (relais du portail, `espaceAutoPour`) : l'adresse
+       rejoué). La preuve d'appartenance est celle du reste du serveur (relais du portail) : l'adresse
        du compte EST celle de l'entreprise dans l'annuaire. Les cas, dans l'ordre où le code les tranche (et
        `reference_ambigue`, plus bas, avant eux) :
        · la référence désigne une entreprise CONNUE, et le compte n'est pas le sien (une adresse de ses noms d'accès
@@ -1520,7 +1520,7 @@ const MAIL_BLOCS = {
   cadre: (html, fond, bord, couleur) => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="m-bloc" style="background:' + (fond || '#F6F8FB') + ';border:1px solid ' + (bord || '#E4E8F0') + ';border-radius:12px;color:' + (couleur || '#4A5A7A') + '"><tr><td style="padding:16px 18px;font-size:14px;line-height:22px;font-family:' + MAIL_POLICE + '">' + html + '</td></tr></table>',
   code: (c) => '<div align="center"><div class="m-bloc" style="display:inline-block;background:#F6F8FB;border:1.5px dashed #C9D3E3;border-radius:14px;padding:18px 34px;font-family:\'SF Mono\',Menlo,Consolas,\'Courier New\',monospace;font-size:32px;line-height:38px;font-weight:700;letter-spacing:10px;color:#17233B">' + String(c).split('').join(' ') + '</div><div class="m-muet" style="font-size:12px;line-height:18px;color:#8593AB;padding-top:10px">Ce code expire dans <b>10 minutes</b> · 5 essais maximum</div></div>',
   transmettre: (login) => MAIL_BLOCS.cadre('👤 À transmettre à <b>' + login + '</b> — ce membre de votre équipe a oublié son mot de passe et son compte n\'a pas d\'adresse e-mail.', '#FFF8EC', '#F2DFB6', '#7A5A17'),
-  ident: (a, m) => MAIL_BLOCS.cadre('<b>Vos identifiants de départ</b><br>Identifiant : <b style="font-family:\'SF Mono\',Menlo,Consolas,monospace">' + a + '</b> <span class="m-muet" style="color:#8593AB">(votre prénom)</span><br>Mot de passe provisoire : <b style="font-family:\'SF Mono\',Menlo,Consolas,monospace">' + m + '</b> <span class="m-muet" style="color:#8593AB">(votre nom + « !! »)</span>', '#EEF7F2', '#CFE6D8', '#17233B') + '<div class="m-muet" style="font-size:12px;line-height:18px;color:#8593AB;padding-top:8px">À votre première connexion, l\'application vous fait choisir votre vrai mot de passe — ensuite ce sont vos identifiants pour toujours.</div>',
+  ident: (a, m) => MAIL_BLOCS.cadre('<b>Vos identifiants de départ</b><br>Identifiant : <b style="font-family:\'SF Mono\',Menlo,Consolas,monospace">' + a + '</b><br>Mot de passe provisoire : <b style="font-family:\'SF Mono\',Menlo,Consolas,monospace">' + m + '</b>', '#EEF7F2', '#CFE6D8', '#17233B') + '<div class="m-muet" style="font-size:12px;line-height:18px;color:#8593AB;padding-top:8px">À votre première connexion, l\'application vous fait choisir votre vrai mot de passe — ensuite ce sont vos identifiants pour toujours.</div>',
   acces: (a, m) => MAIL_BLOCS.cadre('<b>Vos identifiants</b><br>Identifiant : <b style="font-family:\'SF Mono\',Menlo,Consolas,monospace">' + a + '</b><br>Mot de passe provisoire : <b style="font-family:\'SF Mono\',Menlo,Consolas,monospace">' + m + '</b>', '#EEF7F2', '#CFE6D8', '#17233B') + '<div class="m-muet" style="font-size:12px;line-height:18px;color:#8593AB;padding-top:8px">À votre première connexion, l\'application vous fait choisir votre vrai mot de passe — ensuite ce sont vos identifiants pour toujours.</div>',
   promo: (c, f, fin) => MAIL_BLOCS.cadre('<b>🎁 Code ' + c + ' activé</b><br>Formule <b>' + f + '</b> offerte jusqu\'au <b>' + fin + '</b><br><span class="m-muet" style="color:#8593AB;font-size:12.5px">Aucune carte bancaire requise · un rappel avant la fin</span>', '#F4F0FB', '#DDD3F0', '#3F2B66'),
   echeance: (fin) => MAIL_BLOCS.cadre('<b>⏳ Votre période offerte se termine le ' + fin + '</b><br><span style="font-size:13px">Vos données ne bougent pas, quoi qu\'il arrive — mais sans abonnement, l\'application repassera en formule Gratuit.</span>', '#FFF6EE', '#F5D9BC', '#7A4A17'),
@@ -2190,8 +2190,8 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
       cleConfirmee = { par: req.tourUser.nom, ts: Date.now() };
     }
   }
-  /* Le code d'accès ne figure PAS ici : il vit dans son propre registre, indexé par l'identifiant
-     d'équipe (voir /api/espaces/ouvrir). Le reporter depuis « prev » ressuscitait un code révoqué
+  /* Le code d'accès (retiré le 28 septembre 2026) ne figurait PAS ici : il vivait dans son propre
+     registre, indexé par l'identifiant d'équipe. Le reporter depuis « prev » ressuscitait un code révoqué
      dès qu'on rouvrait le panneau d'un ancien nom du même espace. */
   /* « origine » sépare deux choses qu'on confondait dans la Tour : un accès que TEAM OP
      ouvre pour lui-même (essai, démonstration) et l'espace d'une entreprise qui s'est
@@ -2248,12 +2248,9 @@ app.post('/api/monitor/espaces/lien-existant', monPatronStrict, (req, res) => {
     error: 'Cet espace est inscrit mais n\'a pas de code de connexion — à réinscrire, surtout pas à doubler.' });
   let ident = '';
   try { const o = JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')); ident = String(o.a || ''); } catch (err) {}
-  /* ⛔ `annuaire` DÉCIDE SI LE CODE D'ACCÈS A ENCORE UNE RAISON D'EXISTER. Dès qu'un compte
-     est semé, l'adresse + identifiant + mot de passe suffisent : le code ne sert plus à rien
-     et la Tour cesse de le montrer et de l'envoyer. À zéro, il reste LA SEULE PORTE de cette
-     entreprise — la Tour doit alors continuer à le donner, sans quoi elle est enfermée
-     dehors. C'est ce compteur, et lui seul, qui rend le retrait du code sûr un espace à la
-     fois plutôt qu'en bloc. */
+  /* ⛔ `annuaire` DIT SI L'ADRESSE OUVRE L'ESPACE. Dès qu'un compte est semé, l'adresse +
+     identifiant + mot de passe suffisent. À zéro, l'espace n'a AUCUNE porte (le code d'accès
+     n'existe plus depuis le 28 septembre 2026) : la Tour le dit et propose d'en poser. */
   const tEsp = espaceT(e);
   const annuaire = (() => { const a = comptesReg[tEsp]; return (a && a.c) ? Object.keys(a.c).length : 0; })();
   res.json({ ok: true, existe: true, slug: (e.slug || slug), nom: espNomPropre(e), t: tEsp, ident, annuaire });
@@ -2266,7 +2263,11 @@ app.post('/api/monitor/espaces/formule', monPatronStrict, (req, res) => {
   const f = monStr((req.body || {}).formule, 20);
   if (!['gratuit', 'pro', 'business', 'premium'].includes(f)) return res.status(400).json({ error: 'formule inconnue' });
   const q = Math.max(1, Math.min(50, parseInt((req.body || {}).quantite, 10) || 1));
-  e.formule = f; e.quantite = q; e.formulePar = req.tourUser.nom; e.formuleTs = Date.now();
+  /* ⛔ la date ne bouge que si la formule ou le nombre change (`gardien`) : un simple réenregistrement effaçait les
+     places d'avant la v763 (`placesServies`) sans que la Tour le montre */
+  if (e.formule !== f || placesQ(e) !== q) { e.formulePar = req.tourUser.nom; e.formuleTs = Date.now(); }
+  if (e.formule && e.formule !== f) e.formuleDepuis = Date.now();   // une formule CHANGÉE (voir `placesStripe`)
+  e.formule = f; e.quantite = q;
   try { if (!e.t) { const o = JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')); e.t = String(o.t || ''); } } catch (err) {}
   espacesEcrire();
   console.log('Tour :', req.tourUser.nom, 'attribue', f, '×' + q, 'à', slug);
@@ -2289,8 +2290,20 @@ app.post('/api/monitor/espaces/abonnement', monPatronStrict, (req, res) => {
   const fin = monStr(b.fin, 10);
   if (fin && !/^\d{4}-\d{2}-\d{2}$/.test(fin)) return res.status(400).json({ error: 'date de fin invalide (AAAA-MM-JJ)' });
   const q = Math.max(1, Math.min(50, parseInt(b.quantite, 10) || 1));
-  e.formule = f; e.quantite = q; e.formulePar = req.tourUser.nom; e.formuleTs = Date.now();
-  e.aboStatut = st === 'auto' ? '' : st; e.aboFin = fin; e.aboPar = req.tourUser.nom; e.aboTs = Date.now();
+  if (e.formule !== f || placesQ(e) !== q) { e.formulePar = req.tourUser.nom; e.formuleTs = Date.now(); }
+  if (e.formule && e.formule !== f) e.formuleDepuis = Date.now();   // une formule CHANGÉE (voir `placesStripe`)
+  e.formule = f; e.quantite = q;
+  const stNeuf = st === 'auto' ? '' : st;
+  const stAvant = e.aboStatut || '';
+  if (stAvant !== stNeuf) {   // une entrée ancienne sans date le reste : « d'avant »
+    /* ⛔ DEPUIS QUAND ELLE PAIE (`aboDepuis`) : un impayé (ou une suspension) puis « actif » n'est pas un nouvel abonnement — sans ce repère,
+       une abonnée d'avant qui a payé en retard perdait pour toujours ses 2 ou 3 places par abonnement (`gardien`, M4). */
+    const payait = stAvant === 'actif' || stAvant === 'impaye' || stAvant === 'suspendu';
+    if (payait && e.aboDepuis == null) e.aboDepuis = e.aboTs || 0;
+    if (stNeuf === 'actif' && e.aboDepuis == null) e.aboDepuis = Date.now();   // une fois posée, elle reste (« impayé » → « auto » → « actif »)
+    e.aboPar = req.tourUser.nom; e.aboTs = Date.now();
+  }
+  e.aboStatut = stNeuf; e.aboFin = fin;
   try { if (!e.t) { const o = JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')); e.t = String(o.t || ''); } } catch (err) {}
   espacesEcrire();
   console.log('Tour :', req.tourUser.nom, 'règle l\'abonnement de', slug, ':', f, '×' + q, st, fin || '');
@@ -2394,17 +2407,136 @@ async function espacePaye(e, opts) {
          minuscules à l'écriture, et une majuscule sur la page Stripe suffisait à bloquer un
          client qui avait pourtant payé. */
       const mel = String(e.email || '').trim().toLowerCase();
+      const monT = String(espaceT(e) || '').toLowerCase();
+      const tDe = r => { const x = espacesReg[r]; return String((x && espaceT(x)) || r).toLowerCase(); };
+      const refDe = sb => String((sb.metadata && sb.metadata.espace) || '').toLowerCase();
+      const aMoi = sb => { const m = refDe(sb); return !!m && (refs.includes(m) || (!!monT && tDe(m) === monT)); };
+      const parMail = sb => !!mel && sb.customer && typeof sb.customer === 'object' && String(sb.customer.email || '').trim().toLowerCase() === mel;
+      /* ⛔ LE VERDICT « PAYÉ » NE REGARDE PAS LA RÉFÉRENCE D'UN ABONNEMENT TROUVÉ PAR L'ADRESSE. Essayé le 28 septembre
+         au soir (écarter celui « gravé pour une autre entreprise de l'annuaire ») : `gardien` l'a rejoué sur deux cas
+         réels où la référence désigne encore une entrée de la MÊME entreprise — un « repartir à neuf » sur une entreprise
+         à deux noms (l'autre nom garde l'ancien `t`), un nom libéré puis repris — et une entreprise qui paie se lisait
+         NON PAYÉE. On ne coupe jamais une entreprise qui paie peut-être ; la limite connue reste : deux entreprises à la
+         même adresse, et l'abonnement de l'une rend l'autre « payée » (la Tour seule range deux entrées ainsi). */
       if (!abo && mel) {
-        abo = (espStripeCache.data || []).find(sb => vivant(sb)
-          && sb.customer && typeof sb.customer === 'object'
-          && String(sb.customer.email || '').trim().toLowerCase() === mel);
+        abo = (espStripeCache.data || []).find(sb => vivant(sb) && parMail(sb));
         parQuoi = 'adresse e-mail';
       }
-      if (abo) return { paye: true, motif: 'abonnement Stripe (' + abo.status + ', par ' + parQuoi + ')', echeance: abo.current_period_end ? new Date(abo.current_period_end * 1000).toISOString().slice(0, 10) : '' };
+      /* ⛔ LES PLACES SE PAIENT (Justin, 28 septembre 2026 : « oui, automatique »). Jusque-là on ne lisait chez Stripe
+         que « un abonnement vivant, oui ou non » : payer un abonnement de plus ne donnait AUCUNE place tant que TEAM OP
+         ne réglait pas la Tour. On compte donc les abonnements VIVANTS de CETTE entreprise (voir `placesStripe`), et
+         c'est ce nombre que l'application v763 lit (`places` de `/api/espaces/etat`). Relu par `gardien` le même soir. */
+      if (abo) {
+        /* ⛔ SES abonnements, quel que soit le chemin qui a trouvé le premier : ceux qui portent sa référence, ET ceux de
+           son adresse qui ne sont pas gravés pour une autre entreprise. La référence n'est gravée que depuis le
+           19 septembre : une abonnée d'avant qui achète un abonnement de plus sur la page d'aujourd'hui en a des deux
+           sortes, et ne compter que le gravé la faisait retomber de 7 places à 1 (`gardien`, A1, mesuré). */
+        /* ⚠️ une adresse PARTAGÉE avec une autre entreprise de l'annuaire rend un abonnement sans référence ambigu : celle
+           qui a déjà un abonnement à son nom ne le prend pas (sinon il compterait chez les deux) ; celle qui n'est
+           rattachée que par l'adresse le garde, comme avant. */
+        const partagee = !!mel && Object.keys(espacesReg || {}).some(sl => { const x = espacesReg[sl]; return !!x && x !== e
+          && String(sl).toLowerCase() !== String(e.slug || '').toLowerCase() && String(x.email || '').trim().toLowerCase() === mel
+          && !(monT && String(espaceT(x) || '').toLowerCase() === monT); });   // ses propres autres noms (même `t`) ne la « partagent » pas
+        /* une référence qui ne désigne AUCUNE entrée de l'annuaire (une entreprise « repartie à neuf » à un seul nom) ne
+           dit pas « à une autre » ; une référence qui en désigne une autre, si — ses places ne comptent pas ici */
+        const designe = m => Object.keys(espacesReg || {}).some(sl => { const x = espacesReg[sl]; return !!x
+          && (String(sl).toLowerCase() === m || String(espaceT(x) || '').toLowerCase() === m); });
+        const memes = (espStripeCache.data || []).filter(sb => vivant(sb) && (aMoi(sb) || (parMail(sb) && (parQuoi === 'adresse e-mail'
+          ? (!refDe(sb) || !designe(refDe(sb)))
+          : (!refDe(sb) && !partagee)))));
+        return { paye: true, motif: 'abonnement Stripe (' + abo.status + ', par ' + parQuoi + ')', echeance: abo.current_period_end ? new Date(abo.current_period_end * 1000).toISOString().slice(0, 10) : '', placesStripe: placesStripe(e, memes) };
+      }
     } catch (err) { console.error('espacePaye stripe:', err.message); }
   }
   return { paye: false, motif: 'aucun paiement ni code promo' };
 }
+/* ══ LE NOMBRE DE PLACES QU'UNE ENTREPRISE A — CE QUE L'APPLICATION v763 LIT DANS `places` ══════════════════════
+   Depuis la v763, l'application donne UN compte par abonnement dans toutes les formules (avant : 2 en Business, 3 en
+   Business Premium). Justin, 28 septembre 2026 : « les entreprises déjà abonnées gardent leurs places » et « oui,
+   automatique » (les places suivent le paiement). Relu par `gardien` le même soir — ses six constats ont décidé de ce qui
+   suit :
+   · ⛔ `quantite` GARDE SON SENS D'AVANT (le nombre d'abonnements réglé dans la Tour) : la v760 encore en service calcule
+     2 × ou 3 × quantite ; lui rendre des places déjà multipliées les aurait comptées deux fois (× 4, × 9). Les places
+     servies ont leur champ, `places`, que seule la v763 lit — et ne range jamais dans la base synchronisée (une v760 et
+     une v763 y écriraient deux nombres différents et se les renverraient).
+   · PAYÉ CHEZ STRIPE : on compte les abonnements vivants de l'entreprise, ligne par ligne, et seulement les tarifs de SA
+     formule (un tarif Pro ne donne pas de places Business Premium, un abonnement OP MESSAGES n'en donne pas à OP
+     GESTION). Le réglage de la Tour n'y ajoute rien : ce nombre-là peut venir de la demande tapée par le client.
+   · LES ABONNÉS D'AVANT : une entreprise qui payait AVANT la bascule — un abonnement Stripe souscrit avant, ou un
+     abonnement « actif » réglé dans la Tour avant, formule et nombre inchangés depuis — garde ce que la v760 lui donnait
+     (quantite × 2 ou × 3). Chez Stripe, ce qu'elle achète APRÈS s'y AJOUTE (un abonnement de plus, une place de plus) ;
+     réglée à la main dans la Tour, c'est la Tour qui décide (Stripe n'est pas lu tant qu'un statut y est posé).
+   · Le nombre réglé ne vaut plancher que s'il vient de la Tour : pas d'une demande tapée par le client (« auto
+     (demande) », où 50 utilisateurs tapés et un abonnement payé donnaient 150 places — `gardien`, A3).
+   · Un tarif d'une formule AU-DESSUS compte (payer Business Premium sur une fiche réglée Business donne ses places) ; un
+     tarif en dessous non : on ne paie pas des places Business Premium au prix Pro (`gardien`, A4).
+   · ⛔ JAMAIS pour une entreprise qui a eu un code promo (en cours ou fini) ni pour un essai : à la fin d'un code, on paie
+     chaque utilisateur (Justin, même jour) — et pendant le code, l'application couvre déjà toute l'équipe.
+   · Calculé à chaque lecture, JAMAIS écrit dans le registre : rien d'irréversible. */
+/* ⚠️ La bascule est posée APRÈS le déploiement de ce serveur (`gardien`, A8) : l'ancien datait `formuleTs` et `aboTs` à
+   CHAQUE enregistrement de la Tour ; une bascule déjà passée aurait classé « d'après » toute entreprise réenregistrée
+   entre-temps, et perdu ses places pour toujours. Ce qui est souscrit d'ici là compte « d'avant » : un cadeau, pas une perte. */
+const PLACES_BASCULE = Date.parse(process.env.TEAMOP_PLACES_BASCULE || '') || Date.parse('2026-09-29T04:00:00Z');   // la variable : pour les bancs seulement
+const PLACES_AVANT = { business: 2, premium: 3 };
+const RANG_FORMULE = ['pro', 'business', 'premium'];   // un tarif de la formule ou d'une formule AU-DESSUS donne ses places
+/* Les tarifs de chaque formule — les MÊMES que `STRIPE_PRICES` de recap-abonnement.html (publics, pas des secrets) ;
+   `test-842` compare les deux listes : un tarif changé d'un seul côté, et des clients qui paient n'auraient plus de places. */
+const STRIPE_PRIX_FORMULE = {
+  pro: ['price_1TwV4RFKFKIrVWLDfGwAHMMh', 'price_1TwgbqFKFKIrVWLDQQ6xFRtf'],
+  business: ['price_1TwV4sFKFKIrVWLDvYSD9AWp', 'price_1TwgcVFKFKIrVWLDpFbHY1lM'],
+  premium: ['price_1TwV5qFKFKIrVWLD1iFJDsaR', 'price_1Twgd8FKFKIrVWLDavn9cJvz'],
+  msgpro: ['price_1TwV6EFKFKIrVWLD3Dvl6lzb', 'price_1TwgdtFKFKIrVWLDJ4xBhFlM'],
+  msgpremium: ['price_1TwV6mFKFKIrVWLD7DkH3P9f', 'price_1TwgeFFKFKIrVWLDgqaRlO6V'] };
+const STRIPE_PRIX_MESSAGES = STRIPE_PRIX_FORMULE.msgpro.concat(STRIPE_PRIX_FORMULE.msgpremium);
+function placesQ(e) { return Math.max(1, Math.min(50, parseInt(e && e.quantite, 10) || 1)); }
+/* a-t-elle eu un code promo, un jour ? Le repère « (code) » de `formulePar` s'efface quand la Tour règle la formule
+   ensuite : on lit `codePromo` et le registre des codes, qui restent. Registre illisible → oui, dans le doute. */
+function placesPromoDejaEu(e) {
+  if (!e) return false;
+  if (e.codePromo || /\bcode\b/i.test(String(e.formulePar || ''))) return true;
+  /* registre illisible (lu comme `{}`) : on NE SAIT PAS, et les repères de l'entrée ont déjà parlé ci-dessus. Répondre
+     « oui » retirait leurs places d'avant à TOUTES les abonnées le temps de la panne (6 → 2, `gardien`) ; répondre « non »
+     n'en rend qu'à une entreprise au code fini dont les repères ont été effacés. Le doute va au client qui paie. */
+  if (promosIllisible) return false;
+  const t = espaceT(e);
+  try { return !!t && Object.values(promoUsages || {}).some(u => u && u.equipes && u.equipes[t]); } catch (err) { return true; }
+}
+function placesStripe(e, abos) {
+  const f = e && e.formule, rang = RANG_FORMULE.indexOf(f);
+  const sesPrix = rang < 0 ? [] : RANG_FORMULE.slice(rang).reduce((l, k) => l.concat(STRIPE_PRIX_FORMULE[k]), []);
+  const avantB = sb => (parseInt(sb && sb.created, 10) || 0) * 1000 < PLACES_BASCULE;
+  const prixDe = it => { const p = it && it.price; return typeof p === 'string' ? p : String((p && p.id) || ''); };
+  const estMessages = it => STRIPE_PRIX_MESSAGES.includes(prixDe(it)) || /messages/i.test(String((it && it.price && it.price.product && it.price.product.name) || ''));
+  /* un abonnement d'AVANT a pu être pris par un ancien lien de paiement (autre tarif) : il compte, sauf OP MESSAGES ;
+     un abonnement d'APRÈS ne compte que s'il est au tarif de la formule */
+  const compte = sb => ((sb.items && sb.items.data) || []).reduce((n, it) =>
+    n + ((avantB(sb) ? !estMessages(it) : sesPrix.includes(prixDe(it))) ? Math.max(0, parseInt(it && it.quantity, 10) || 0) : 0), 0);
+  const m = PLACES_AVANT[f];
+  /* la FORMULE d'avant décide du multiplicateur (`formuleDepuis`, posé quand la formule CHANGE : passée de Business à
+     Business Premium après la bascule, un abonnement Business ne vaut pas 3) ; le NOMBRE réglé dans la Tour ne sert de
+     plancher que s'il n'a pas bougé depuis, et s'il ne vient pas d'une demande tapée (`gardien`, A2, A3 et sa suite :
+     relever le nombre après la bascule retirait les places d'avant) */
+  const formuleAvant = !e.formuleDepuis || e.formuleDepuis < PLACES_BASCULE;
+  const payaitAvant = !!m && formuleAvant && !placesPromoDejaEu(e) && abos.some(avantB);
+  const nombreAvant = !e.formuleTs || e.formuleTs < PLACES_BASCULE;
+  const qFiable = nombreAvant && !/^auto\b/i.test(String(e.formulePar || ''));
+  /* qui payait avant : ses abonnements d'avant valent ce que la v760 donnait (2 ou 3 par abonnement — le nombre réglé
+     dans la Tour, ou ce qu'elle payait si c'est plus), et ceux d'après s'y AJOUTENT, un par abonnement */
+  const avant = payaitAvant ? m * Math.max(qFiable ? placesQ(e) : 1, Math.min(50, abos.filter(avantB).reduce((n, sb) => n + compte(sb), 0))) : 0;
+  const autres = abos.filter(sb => !(payaitAvant && avantB(sb))).reduce((n, sb) => n + compte(sb), 0);
+  return Math.max(1, Math.min(150, avant + Math.min(50, autres)));
+}
+function placesServies(e, p) {
+  const q = placesQ(e);
+  if (!p || !p.paye || p.promoCode || p.doute) return q;
+  if (p.placesStripe != null) return p.placesStripe;
+  const m = PLACES_AVANT[e.formule];
+  const depuis = e.aboDepuis != null ? e.aboDepuis : (e.aboTs || 0);   // depuis quand elle paie (voir la route « abonnement »)
+  if (m && e.aboStatut === 'actif' && depuis < PLACES_BASCULE && (!e.formuleTs || e.formuleTs < PLACES_BASCULE)
+    && !placesPromoDejaEu(e)) return Math.min(150, q * m);
+  return q;
+}
+console.log('Places : bascule « 1 compte par abonnement » au', new Date(PLACES_BASCULE).toISOString());   // une valeur surprise se voit au démarrage
 // liste complète des espaces (formule attribuée, payé/promo) — pour l'onglet Abonnements de la Tour
 app.get('/api/monitor/espaces/liste', monAdmin, async (req, res) => {
   const sortie = [];
@@ -2417,7 +2549,7 @@ app.get('/api/monitor/espaces/liste', monAdmin, async (req, res) => {
        référence gravée vaut le SLUG, l'application dirait « payé » et la Tour « impayé »,
        sur la même entreprise, au même instant — et on chercherait du côté de Stripe. */
     try { p = await espacePaye(Object.assign({ slug }, e), { lecture: true }); } catch (err) {}   // une LISTE n'active aucun code
-    sortie.push({ slug, nom: e.nom || slug, email: e.email || '', formule: e.formule || '', quantite: e.quantite || 1,
+    sortie.push({ slug, nom: e.nom || slug, email: e.email || '', formule: e.formule || '', quantite: e.quantite || 1, places: placesServies(e, p),
       paye: p.paye, motif: p.motif, promoCode: p.promoCode || '', finLe: p.finLe || '', echeance: p.echeance || '', attribueLe: e.formuleTs || 0, par: e.formulePar || '',
       // qui a ouvert l'espace et quand : la Tour en a besoin pour lister les accès publics
       ouvertLe: e.ts || 0, ouvertPar: e.par || '', t: espaceT(e), resume: cnxResume(espaceT(e)),
@@ -2461,7 +2593,7 @@ app.post('/api/monitor/espaces/statut', monAdmin, async (req, res) => {
   const e = espacesReg[slug];
   if (!e) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son lien de connexion' });
   const p = await espacePaye(Object.assign({ slug }, e), { lecture: true });   // le slug n'est pas dans l'entrée — voir /liste ; une LECTURE n'active aucun code
-  res.json({ ok: true, formule: e.formule || '', quantite: e.quantite || 1, email: e.email || '', paye: p.paye, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '' });
+  res.json({ ok: true, formule: e.formule || '', quantite: e.quantite || 1, places: placesServies(e, p), email: e.email || '', paye: p.paye, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '' });
 });
 // ── Activité par onglet (anonyme : noms d'écrans + compteurs, par espace) ──
 const USAGE_PATH = path.join(DATA_DIR, 'usage.json');
@@ -4031,39 +4163,61 @@ app.post('/api/monitor/espaces/mail-acces', monPatronStrict, async (req, res) =>
   if (!e) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son lien de connexion' });
   if (!e.email) return res.status(400).json({ error: 'aucun e-mail enregistré pour cette entreprise' });
   if (!e.code) return res.status(400).json({ error: 'cet espace n\'a pas de code de connexion — régénère son lien' });
-  let a = '', m = '';
-  try { const o = JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')); a = String(o.a || ''); m = String(o.m || ''); } catch (err) {}
-  /* ⛔ PLUS DE LIEN DE PREMIÈRE CONNEXION — 12 septembre 2026, décision de Justin : « on va
-     supprimer ces liens-là et garder que le lien qui se donne aux équipes ».
-     Ce n'est pas qu'une simplification. Ce lien portait `k` — LA CLÉ QUI DÉCHIFFRE TOUTES LES
-     DONNÉES DE L'ENTREPRISE — dans une URL, c'est-à-dire dans un objet fait pour être transféré,
-     capturé en photo, collé dans une conversation de groupe. Il était aussi la source d'un
-     défaut mesuré la veille : la Tour le fabriquait de travers depuis un autre appareil.
-     UNE seule adresse, UN seul code. La première connexion se fait par le CODE D'ACCÈS — chemin
-     éprouvé sur banc : nom + code → l'espace s'ouvre, sans que la clé ne voyage en clair. */
+  let a = '', mh = '';
+  try { const o = JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')); a = String(o.a || ''); mh = String(o.mh || ''); } catch (err) {}
+  /* ⛔ LE MOT DE PASSE PROVISOIRE N'ÉTAIT JAMAIS DANS CE COURRIEL. Ce bloc lisait « m » dans le code de l'espace — or
+     la création (`codeMdpHache`, plus haut) le remplace par son empreinte « mh » : `m` était TOUJOURS vide, et le client
+     d'un espace neuf recevait « connectez-vous avec vos identifiants habituels », qu'il n'avait pas. Mesuré le
+     28 septembre 2026. La Tour qui vient de créer l'espace connaît le mot de passe : elle l'envoie, et on ne le met dans
+     le courriel que s'il correspond à l'empreinte enregistrée — la Tour ne peut pas faire partir un mot de passe qui
+     n'ouvre rien. Sans lui (Tour ouverte sur un autre appareil), on écrit ce qui est vrai : les identifiants habituels. */
+  /* ⛔ `gardien`, même jour : l'empreinte « mh » du code reste celle du mot de passe PROVISOIRE, même après la première
+     connexion. Un espace qui a déjà servi recevrait donc un mot de passe qui n'ouvre plus rien : on ne l'envoie que pour
+     un espace JAMAIS ouvert (la même condition que `/api/monitor/espaces/identifiants`, lue au même endroit). Et la
+     borne est celle de `/identifiants` (200) : à 60, un mot de passe plus long posé là ne se reconnaissait jamais. */
+  const tE = espaceT(e);
+  const jamaisOuvert = !cnxResume(tE).derniere;
+  const mdpDonne = monStr((req.body || {}).mdp, 200);
+  const m = (jamaisOuvert && mh && mdpDonne && mdpEmpreinte(mdpDonne) === mh) ? mdpDonne : '';
+  /* ⛔⛔ PLUS AUCUN CODE — Justin, 28 septembre 2026 : « je veux plus de code, que des liens pour les connexions ».
+     L'adresse et les identifiants suffisent, À UNE CONDITION : que l'espace ait au moins un compte dans son annuaire.
+     Sans compte, l'adresse n'ouvre rien, et on n'envoie pas un courriel qui promet une porte fermée. Le semis de la
+     création tourne sans attendre (~100 ms de PBKDF2) : un compte encore absent se sème donc ICI, avant de conclure. */
+  if (!tE || espaceFerme(tE) || ESPACES_INTOUCHABLES.includes(tE))
+    return res.status(409).json({ motif: 'ferme', error: 'Cet espace est fermé (ou n\'est pas un espace d\'entreprise) : aucun lien ne part.' });
+  const nComptes = () => { const an = comptesReg[tE]; return (an && an.c) ? Object.keys(an.c).length : 0; };
+  /* ⛔ On ne sème QUE sur un espace jamais ouvert (`gardien`) : sur un espace qui a servi et dont l'annuaire est vide
+     (dépôt refusé, fichier illisible), semer rouvrirait l'espace avec l'ANCIEN mot de passe provisoire — pour les
+     espaces de l'ancienne création automatique, « Nom!! », devinable. Là, c'est un appareil à jour qui le redépose. */
+  if (!nComptes() && jamaisOuvert) { try { await annuaireSemerDepuisCode(tE, e.code); } catch (err) {} }
+  if (!nComptes())
+    return res.status(409).json({ motif: 'sans_compte', error: 'Cet espace n\'a encore aucun compte : son adresse seule n\'ouvre rien. Pose d\'abord ses identifiants de départ (« Identifiants » sur sa fiche), puis renvoie.' });
+  /* Sans mot de passe vérifié, le courriel dit « vos identifiants habituels » — ce qui n'est VRAI que pour un espace
+     qui a déjà servi. Un espace jamais ouvert dont la Tour n'a pas le mot de passe (montré depuis un autre appareil)
+     recevrait une porte sans clé : on refuse et on dit le geste (`/api/monitor/espaces/identifiants` l'accepte tant que
+     personne ne s'est connecté — la même condition, lue au même endroit). */
+  if (!m && jamaisOuvert)
+    return res.status(409).json({ motif: 'mdp_inconnu', error: 'Le mot de passe provisoire de cet espace n\'est pas connu d\'ici (il a été montré sur un autre appareil) et personne ne s\'y est encore connecté : donne-lui-en un nouveau (« Nouveau mot de passe provisoire » sur sa fiche), puis envoie.' });
   const adresse = 'teamop.fr/e/' + (e.slug || slug);
-  const enrAcces = accesCodeDe(espaceT(e), req.tourUser.nom);
-  if (!enrAcces) return res.status(500).json({ error: 'Le code d\'acc\u00e8s n\'a pas pu être enregistré — rien n\'a été envoyé. Réessaie.' });
-  const acces = enrAcces.code;
+  const escH = (x) => String(x || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const co = (a && m)
-    ? '• Identifiant : ' + a + ' (votre prénom)\n• Mot de passe provisoire : ' + m + ' (votre nom + « !! »)\nÀ votre première connexion, l\'application vous fait choisir votre vrai mot de passe — ensuite ce sont vos identifiants pour toujours.\n'
+    ? '• Identifiant : ' + a + '\n• Mot de passe provisoire : ' + m + '\nÀ votre première connexion, l\'application vous fait choisir votre vrai mot de passe — ensuite ce sont vos identifiants pour toujours.\n'
     : 'Connectez-vous avec vos identifiants habituels.\n';
   const texte = 'Bonjour,\n\nVotre espace « ' + e.nom + ' » est prêt. UNE SEULE ADRESSE à retenir, pour vous et pour toute votre équipe :\n\n' + adresse
-    + '\n\n1) VOTRE TOUTE PREMIÈRE CONNEXION — une seule fois, pour ouvrir l\'espace :\nSur cette adresse, touchez « Première connexion de l\'entreprise ? » et entrez le code d\'accès de votre entreprise :\n\n     ' + acces
-    + '\n\n' + co
-    + '\n2) ENSUITE, ET POUR TOUTE VOTRE ÉQUIPE — la même adresse :\n' + adresse
-    + '\n\nChacun y va, tape SON identifiant et SON mot de passe, et arrive dans votre espace. Aucun lien à conserver, sur n\'importe quel téléphone. Mettez-la en favori.\nVous créez les comptes de votre équipe dans Utilisateurs.\n\nGardez ce code pour vous : il ouvre votre espace. Nous pouvons le renouveler à tout moment si quelqu\'un quitte l\'entreprise.\n\n— L\'équipe TEAM OP · teamop.fr';
+    + '\n\nPOUR ENTRER :\n' + co
+    + '\nPOUR TOUTE VOTRE ÉQUIPE — la même adresse :\n' + adresse
+    + '\n\nChacun y va, tape SON identifiant et SON mot de passe, et arrive dans votre espace. Aucun code, aucun lien à conserver, sur n\'importe quel téléphone. Mettez-la en favori.\nVous créez les comptes de votre équipe dans Utilisateurs.\n\n— L\'équipe TEAM OP · teamop.fr';
   const coHtml = (a && m)
-    ? MAIL_BLOCS.ident(a, m) + '<br>'
+    ? MAIL_BLOCS.ident(escH(a), escH(m)) + '<br>'
     : 'Connectez-vous avec vos <b>identifiants habituels</b>.<br>';
   const html = mailTeamOP({
     chip: 'Accès prêt',
     titre: 'Votre lien de connexion 🔗',
-    corpsHtml: 'Bonjour,<br>votre espace « <b>' + e.nom + '</b> » est prêt.<br><br><b>Une seule adresse à retenir</b>, pour vous et pour toute votre équipe :<br><a href="https://' + adresse + '" style="color:#34A97E;font-size:19px;font-weight:700">' + adresse + '</a><br><br><b>1) Votre toute première connexion — une seule fois :</b><br>Sur cette adresse, touchez « Première connexion de l\'entreprise ? » et entrez votre code d\'accès :<br><div style="font-family:ui-monospace,monospace;font-size:23px;font-weight:800;letter-spacing:.22em;margin:10px 0">' + acces + '</div>' + coHtml
-      + '<br><b>2) Ensuite, et pour toute votre équipe — la même adresse.</b><br><span style="color:#8fa3c8;font-size:13px">Chacun y va, tape son identifiant et son mot de passe, et arrive dans votre espace — sur n\'importe quel téléphone, rien à conserver. Mettez-la en favori.<br>Gardez ce code pour vous : il ouvre votre espace. Nous pouvons le renouveler si quelqu\'un quitte l\'entreprise.</span><br>',
+    corpsHtml: 'Bonjour,<br>votre espace « <b>' + escH(e.nom) + '</b> » est prêt.<br><br><b>Une seule adresse à retenir</b>, pour vous et pour toute votre équipe :<br><a href="https://' + adresse + '" style="color:#34A97E;font-size:19px;font-weight:700">' + adresse + '</a><br><br><b>Pour entrer :</b><br>' + coHtml
+      + '<br><b>Pour toute votre équipe — la même adresse.</b><br><span style="color:#8fa3c8;font-size:13px">Chacun y va, tape son identifiant et son mot de passe, et arrive dans votre espace — sur n\'importe quel téléphone, aucun code, rien à conserver. Mettez-la en favori.</span><br>',
     frise: [
       { titre: 'Espace prêt', sous: 'par TEAM OP', fait: true },
-      { titre: '1re connexion', sous: 'avec le code', fait: false },
+      { titre: 'Connectez-vous', sous: 'avec vos identifiants', fait: false },
       { titre: 'Votre équipe', sous: 'par ' + adresse, fait: false }
     ],
     boutonTxt: 'Ouvrir mon espace', boutonUrl: 'https://' + adresse,
@@ -4077,7 +4231,7 @@ app.post('/api/monitor/espaces/mail-acces', monPatronStrict, async (req, res) =>
     await mailerEnvoi({ confidentiel: true, trace: 'lien de connexion + accès provisoires · espace ' + slug,
       from: config.smtp.from || config.smtp.user, to: e.email,
       subject: '🔗 Votre lien de connexion — TEAM OP', text: texte, html });
-    console.log('Tour :', req.tourUser.nom, 'a envoyé le lien de', slug, '→', masqueMail(e.email));
+    console.log('Tour :', req.tourUser.nom, 'a envoyé le lien de l\'espace', tE, '→', masqueMail(e.email));   // l'identifiant, pas le nom : souvent celui d'une personne
     // son « Mon espace » passe à Accès activé · OP GESTION active (+ abonnement si formule posée)
     fbMajFicheClient(e.email, Object.assign({ status: 'fourni', apps: ['elan'] },
       e.formule ? { plan: FORMULE_LBL[e.formule] || e.formule, planStatus: 'actif' } : {})).catch(() => {});
@@ -4218,62 +4372,9 @@ app.post('/api/espaces/etat', (req, res) => {
   const opMessages = !!(e && e.opMessages);
   const versionMin = versionsCfg.min, enLigne = versionsCfg.enLigne;
   if (!e || !e.formule) return res.json({ ok: true, opMessages, versionMin, enLigne, suspendu, sursisJours });
-  espacePaye(e).then(p => res.json({ ok: true, formule: e.formule, quantite: e.quantite || 1, paye: p.paye, motif: p.motif, opMessages, versionMin, enLigne, suspendu, sursisJours }))
+  espacePaye(e).then(p => res.json({ ok: true, formule: e.formule, quantite: e.quantite || 1, places: placesServies(e, p), paye: p.paye, motif: p.motif, opMessages, versionMin, enLigne, suspendu, sursisJours }))
     .catch(() => res.json({ ok: true, formule: e.formule, quantite: e.quantite || 1, paye: false, motif: 'vérification impossible', opMessages, versionMin, enLigne, suspendu, sursisJours }));
 });
-/* ── Création AUTOMATIQUE d'un espace à la demande d'application ──
-   Dès qu'un client fait une demande sur teamop.fr, son espace est créé, inscrit à
-   l'annuaire, et le lien lui est envoyé par e-mail. Sa première connexion se fait
-   avec l'e-mail + le mot de passe de son compte TeamOP (le code embarque a = e-mail).
-   Si son e-mail a déjà un espace, on le RÉUTILISE : le lien pointe sur ses vraies
-   données, jamais sur un espace vide. */
-const formuleDeLabel = (s) => {
-  s = String(s || '').toLowerCase();
-  if (s.includes('premium')) return 'premium';
-  if (s.includes('business')) return 'business';
-  if (s.includes('pro')) return 'pro';
-  if (s.includes('gratuit')) return 'gratuit';
-  return '';
-};
-function espaceAutoPour(email, entreprise, formuleLabel, users, lienVoulu, prenomC, nomFamC) {
-  email = String(email || '').toLowerCase();
-  let slug = Object.keys(espacesReg).find(s => (espacesReg[s].email || '').toLowerCase() === email);
-  let e, neuf = false, ident = '', mdpProv = '';
-  if (slug) { e = espacesReg[slug]; }
-  else {
-    // le client a choisi le nom de son lien de connexion (vérifié disponible côté site) —
-    // sinon on part du nom d'entreprise
-    const voulu = String(lienVoulu || '').trim().slice(0, 60);
-    slug = espSlug(voulu) || espSlug(entreprise) || espSlug(email.split('@')[0]) || ('ent' + crypto.randomBytes(3).toString('hex'));
-    const base = slug; let n = 2;
-    while (espacesReg[slug]) slug = base + n++;   // nom déjà pris par une autre entreprise → variante
-    const t = 'ent-' + crypto.randomBytes(8).toString('hex');
-    const k = crypto.randomBytes(24).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 24) || crypto.randomBytes(12).toString('hex');
-    const nom = (espSlug(voulu) && slug === espSlug(voulu) ? voulu : String(entreprise || '').trim().slice(0, 80)) || email;
-    // identifiants de départ : identifiant = prénom, mot de passe provisoire = Nom + « !! »
-    // (l'application fait choisir le vrai mot de passe à la première connexion)
-    const cap = (x) => x ? x.charAt(0).toUpperCase() + x.slice(1) : '';
-    ident = (espSlug(prenomC) || 'admin').slice(0, 20);
-    mdpProv = (cap(espSlug(nomFamC)) || 'Teamop') + '!!';
-    // « mh », pas « m » : le mot de passe provisoire part par e-mail (mdpProv est rendu à l'appelant),
-    // le code ne porte que son empreinte — de quoi le reconnaître, pas de quoi le lire
-    const code = Buffer.from(JSON.stringify({ t, k, n: nom, a: ident, mh: mdpEmpreinte(mdpProv), e: email }), 'utf8').toString('base64').replace(/=+$/, '');
-    e = espacesReg[slug] = { nom, code, t, ts: Date.now(), par: 'auto (demande)', origine: 'site', email };
-    neuf = true;
-  }
-  const f = formuleDeLabel(formuleLabel);
-  if (f) {
-    e.formule = f; e.quantite = Math.max(1, Math.min(50, parseInt(users, 10) || 1));
-    e.formulePar = 'auto (demande)'; e.formuleTs = Date.now();
-  }
-  espacesEcrire();
-  let t = e.t;
-  try { if (!t) t = String(JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')).t || ''); } catch (err) {}
-  /* Idem pour une entreprise qui s'inscrit seule depuis le site : son adresse doit marcher
-     avant qu'aucun appareil n'ait rien déposé. */
-  if (neuf) annuaireSemerDepuisCode(t, e.code).catch(() => {});
-  return { slug, nom: e.nom, formule: e.formule || '', quantite: e.quantite || 1, neuf, t, ident, mdp: mdpProv };
-}
 /* nom d'entreprise présentable (jamais une adresse e-mail mise là faute de mieux) */
 function espNomPropre(e) { const n = String((e && e.nom) || '').trim(); return (n && !/@/.test(n) && n.toLowerCase() !== String((e && e.email) || '').toLowerCase()) ? n : ''; }
 /* ── Le nom d'une entreprise ne rend plus sa clé d'équipe ──────────────────────────────
@@ -4624,7 +4725,7 @@ function espaceT(e) {
    (#e=nom) : un nom se devine, un code non. Le mot de passe provisoire n'y figure
    pas — codeMdpHache l'a remplacé par son empreinte. */
 function lienEspaceCode(e) { return 'https://teamop.fr/app.html#entreprise=' + codeMdpHache(e.code); }
-/* ══ OUVRIR SON ESPACE AVEC UN CODE D'ACCÈS ═══════════════════════════════════════════════
+/* ══ OUVRIR SON ESPACE AVEC UN CODE D'ACCÈS — HISTORIQUE : RETIRÉ LE 28 SEPTEMBRE 2026 (voir « PLUS DE CODE D'ACCÈS ») ══
    Taper le nom de l'entreprise ne peut pas suffire : le lien de connexion porte la CLÉ qui
    déchiffre les données de l'espace (syncKey la dérive en PBKDF2), et un nom se lit sur un
    camion, une facture, un devis. Mais l'aller-retour par e-mail était un cul-de-sac : une
@@ -4645,6 +4746,8 @@ function lienEspaceCode(e) { return 'https://teamop.fr/app.html#entreprise=' + c
      fonctionnait, et « Renouveler » ne révoquait rien.
    · un même espace peut porter PLUSIEURS noms dans l'annuaire. Rangé par nom, un code révoqué
      ressuscitait dès que le patron rouvrait le panneau d'un ancien nom. Un espace, un code. */
+/* ⚠️ HISTORIQUE depuis le 28 septembre 2026 : plus aucun code ne se fabrique ni ne s'accepte (voir « PLUS DE CODE
+   D'ACCÈS » juste en dessous). Le registre n'est plus relu que pour effacer l'entrée d'un espace supprimé. */
 const ACCES_PATH = path.join(DATA_DIR, 'acces.json');
 let accesReg = {};
 /* Un registre illisible se dit : sinon on repart avec {} en silence, tous les codes morts, et
@@ -4664,137 +4767,18 @@ function accesEcrire() {
     return true;
   } catch (e) { console.error('acces.json non écrit :', e.message); return false; }
 }
-let accesTimer = null;
-function accesSave() {   // différée : la route publique n'écrit qu'une date de dernier usage
-  clearTimeout(accesTimer);
-  accesTimer = setTimeout(accesEcrire, 800);
-  if (accesTimer.unref) accesTimer.unref();
-}
-const ACCES_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const ACCES_LONGUEUR = 10;
-function accesNeuf() {
-  let c = '';
-  const buf = crypto.randomBytes(ACCES_LONGUEUR);
-  for (let i = 0; i < ACCES_LONGUEUR; i++) c += ACCES_ALPHABET[buf[i] % ACCES_ALPHABET.length];
-  return c;
-}
-/* ══ LE CODE D'ACCÈS D'UN ESPACE — UNE SEULE DÉFINITION ═══════════════════════════
-   Depuis le 12 septembre 2026 il n'y a PLUS de lien de première connexion : ce code est la
-   seule porte d'entrée d'une entreprise qui n'a pas encore de compte. Deux chemins le
-   réclament — le panneau de la Tour et le courriel d'accueil — et deux copies finiraient par
-   en fabriquer deux différents : celui qu'on dicte et celui qu'on envoie. Même raison que
-   `fbUidEquipe`, qui n'a lui aussi qu'une définition.
-   Rend null si l'écriture échoue : l'appelant DOIT le remonter plutôt que dicter un code qui
-   mourra au prochain redémarrage. */
-function accesCodeDe(t, par, regenerer) {
-  if (!t) return null;
-  let enr = accesReg[t];
-  if (enr && enr.code && enr.code.length === ACCES_LONGUEUR && !regenerer) return enr;
-  const avant = enr;
-  enr = accesReg[t] = { code: accesNeuf(), ts: Date.now(), par: par || '', vu: 0 };
-  if (!accesEcrire()) { if (avant) accesReg[t] = avant; else delete accesReg[t]; return null; }
-  return enr;
-}
-const accesNorm = (s) => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-/* Bornée et purgée, comme « compteurs » : sans cela, une clé par nom inventé s'accumule sans
-   fin, et la route étant publique, c'est de la mémoire offerte à qui la demande. */
-let ouvrirQuota = new Map();
-setInterval(() => { ouvrirQuota = new Map(); }, 3600000).unref();
-/* Le compteur par ESPACE n'est plus tenu du tout : il ne bornait rien (le code fait dix
-   caractères, c'est lui qui protège, pas un compteur), il ne servait qu'à remplir la table —
-   et une table pleine remettait à zéro les compteurs par IP, qui eux comptent vraiment.
-   Ce qui reste utile, c'est de VOIR une entreprise se faire tâter : on compte les échecs par
-   espace pour le journal, dans une table à part, et on le dit une fois passé un seuil. */
-let echecsEspace = new Map();
-setInterval(() => { echecsEspace = new Map(); }, 3600000).unref();
-app.post('/api/espaces/ouvrir', (req, res) => {
-  /* Les deux entrées sont bornées AVANT tout traitement : espSlug fait un normalize('NFD') qui,
-     sur les 6 Mo qu'accepte express.json, bloquerait la boucle d'événements. */
-  const slug = espSlug(monStr((req.body || {}).nom, 80));
-  const donne = accesNorm(monStr((req.body || {}).acces, 32));
-  if (!slug || !donne) return res.status(400).json({ error: 'Nom de l\'entreprise et code d\'accès requis' });
-  if (ouvrirQuota.size > 5000) ouvrirQuota = new Map();
-  const ip = req.ip || '?';   // jamais l'en-tête brut : il est fourni par le client
-  if (!quotaOk(ouvrirQuota, 'ip:' + ip, 60, 3600000))
-    return res.status(429).json({ error: 'Trop d\'essais — réessaie dans une heure, ou fais-toi renvoyer le lien par e-mail.' });
-  const e = espaceAJour(slug);
-  const t = e ? espaceT(e) : '';
-  const enr = t ? accesReg[t] : null;
-  /* Une seule et même réponse quand ça ne marche pas, quelle qu'en soit la raison : sinon
-     l'écran dirait qui est client de TEAM OP et qui ne l'est pas. */
-  const refus = () => res.status(403).json({ error: 'Nom d\'entreprise ou code d\'accès incorrect.' });
-  /* Une entreprise fermée ne se rouvre pas par ce chemin. /api/espaces/etat le vérifiait déjà ;
-     ici, l'oublier laissait un ex-client — ou quiconque a reçu le code — continuer d'obtenir la
-     clé de ses anciennes données. */
-  if (t && espaceFerme(t)) return res.status(403).json({ error: 'Nom d\'entreprise ou code d\'accès incorrect.' });
-  const bon = (() => {
-    if (!e || !e.code || !enr || !enr.code) return false;
-    const attendu = Buffer.from(accesNorm(enr.code));
-    const recu = Buffer.from(donne);
-    // comparaison à durée constante : le temps de réponse ne doit pas trahir un préfixe correct
-    return attendu.length === recu.length && crypto.timingSafeEqual(attendu, recu);
-  })();
-  /* Le compteur par espace ne compte QUE les échecs, et il est consulté APRÈS la vérification.
-     Autrement, trente requêtes à vide sur un nom d'entreprise — qui est public — fermaient la
-     porte à tous ses salariés pendant une heure, code correct en main. C'est le plafond par IP
-     qui borne la force brute, et dix caractères la rendent hors de portée de toute façon. */
-  if (!bon) {
-    /* On ne compte QUE les espaces qui existent. Compter aussi les noms inventés laissait
-       l'attaquant remplir la table en variant le nom à chaque requête, donc la faire purger,
-       donc remettre à zéro le compteur de l'espace qu'il attaquait vraiment : l'alerte ne
-       partait jamais. La clé n'est plus fournie par l'appelant. */
-    if (t) {
-      if (echecsEspace.size > 5000) echecsEspace = new Map();
-      const n = (echecsEspace.get(t) || 0) + 1;
-      echecsEspace.set(t, n);
-      if (n === 20) console.warn('code d\'accès : 20 échecs en une heure sur l\'espace', t);
-    }
-    return refus();
-  }
-  /* Ce qu'on rend porte déjà « k », la clé des données. On en retire l'adresse e-mail de
-     l'entreprise (e) : c'est la coordonnée d'un tiers, elle n'a rien à faire dans une réponse
-     rendue contre un code partagé.
-     « a » et « mh » RESTENT, et c'est un choix mesuré, pas un oubli. Sans « mh », l'application
-     renomme bien le compte d'amorçage avec « a » mais laisse son mot de passe à celui du
-     démarrage — sha256('1234'). Un espace neuf ouvert par ce chemin se serait donc ouvert avec
-     « prénom / 1234 », pendant que la Tour affiche au patron un tout autre mot de passe
-     provisoire.
-     Que « mh » vaille peu est vrai et il faut le dire sans se raconter d'histoire : c'est un
-     SHA-256 NU (mdpEmpreinte) d'une valeur devinable en un essai — mdpProv fabrique « Nom!! » à
-     partir du nom de famille, celui-là même que l'appelant vient de taper. Ce n'est donc pas
-     « l'empreinte d'un secret à usage unique ». Si on le rend quand même, c'est que pour arriver
-     ici il faut DÉJÀ le code à dix caractères, et que la réponse porte « k » : qui casserait
-     « mh » a déjà les données. Le vrai problème est ailleurs — un mot de passe provisoire
-     prévisible et une empreinte sans sel — et c'est une dette à traiter pour elle-même. */
-  let rendu = codeMdpHache(e.code);
-  try {
-    const o = JSON.parse(Buffer.from(rendu, 'base64').toString('utf8'));
-    delete o.e;
-    rendu = Buffer.from(JSON.stringify(o), 'utf8').toString('base64').replace(/=+$/, '');
-  } catch (err) {}
-  enr.vu = Date.now(); accesSave();
-  /* Ni IP ni nom : l'IP est une donnée personnelle et se falsifie, et pour une entreprise
-     individuelle le nom commercial EST le nom de la personne. L'identifiant d'équipe suffit à
-     retrouver l'espace si on doit enquêter. */
-  console.log('espace ouvert par code · espace', t);
-  res.json({ ok: true, code: rendu });
-});
-/* Le patron lit ou renouvelle le code d'accès. Tout passe par l'identifiant d'ÉQUIPE : un espace,
-   un code, quel que soit le nom par lequel on arrive. */
-app.post('/api/monitor/espaces/acces', monPatronStrict, (req, res) => {
-  const slug = espSlug(monStr((req.body || {}).slug || (req.body || {}).nom, 80));
-  const e = espaceAJour(slug);
-  const t = e ? espaceT(e) : '';
-  if (!e || !t) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son « Lien de connexion » (fiche entreprise)' });
-  const avait = !!(accesReg[t] && accesReg[t].code);
-  /* Si l'écriture échoue, on ne dit surtout pas que c'est fait : le patron dicterait un code
-     qui mourrait au prochain redémarrage, en croyant l'ancien révoqué. */
-  const enr = accesCodeDe(t, req.tourUser.nom, !!(req.body || {}).regenerer);
-  if (!enr) return res.status(500).json({ error: 'Le code n\'a pas pu être enregistré — rien n\'a changé. Réessaie.' });
-  if (!avait || (req.body || {}).regenerer)
-    console.log('Tour :', req.tourUser.nom, ((req.body || {}).regenerer ? 'renouvelle' : 'crée'), 'le code d\'accès de l\'espace', t);
-  res.json({ ok: true, slug, acces: enr.code, ts: enr.ts || 0, par: enr.par || '', vu: enr.vu || 0 });
-});
+/* ══ PLUS DE CODE D'ACCÈS — Justin, 28 septembre 2026 : « je veux plus de code, que des liens pour les connexions » ══
+   Le code à dix caractères ouvrait un espace qui n'avait encore aucun compte (« Première connexion de l'entreprise ? »).
+   Depuis que chaque espace naît avec son compte de départ (`annuaireSemer`), et que le courriel du lien porte l'adresse
+   ET les identifiants (`/api/monitor/espaces/mail-acces`), il n'ouvrait plus rien que l'identifiant n'ouvre déjà — et il
+   se perdait, se retapait de travers, se redemandait. Les deux routes répondent 410 et le DISENT : une page restée en
+   cache sur un téléphone doit afficher pourquoi, pas « code incorrect ». Rien ne fabrique plus de code (`accesReg` n'est
+   plus relu que pour être effacé avec son espace). Un espace sans aucun compte se répare depuis la Tour : « Identifiants ».
+   `tests/test-669.js` le garde. */
+const PLUS_DE_CODE = 'Les codes d\'accès n\'existent plus : on entre avec l\'adresse de l\'entreprise, son identifiant et son mot de passe. Pas encore reçus ? Écrivez à contact@teamop.fr.';
+app.post('/api/espaces/ouvrir', (req, res) => res.status(410).json({ error: PLUS_DE_CODE, motif: 'sans_code' }));
+app.post('/api/monitor/espaces/acces', monPatronStrict, (req, res) =>
+  res.status(410).json({ error: 'Plus de code d\'accès : l\'adresse et les identifiants suffisent. Un espace sans compte se répare par « Identifiants » sur sa fiche.', motif: 'sans_code' }));
 /* ══ CHANGER LES IDENTIFIANTS DE DÉPART D'UN ESPACE ═══════════════════════════════════════
    Justin ouvre un accès depuis la Tour, oublie le mot de passe, et n'a aucun moyen de le
    reprendre. On le lui rend — MAIS seulement tant que personne ne s'est connecté.
@@ -4869,12 +4853,13 @@ app.post('/api/monitor/espaces/identifiants', monPatronStrict, (req, res) => {
 
    Ce que ça ne fait pas, et qu'il ne faut pas se raconter : tant qu'une entreprise n'a pas
    ouvert l'application au moins une fois avec cette version, son annuaire est vide et ce
-   chemin ne marche pas pour elle. Le code d'accès reste donc en place — c'est le filet, pas
-   le chemin normal. */
+   chemin ne marche pas pour elle. Le code d'accès est resté en place comme filet jusqu'au
+   28 septembre 2026 ; depuis, chaque espace naît avec son compte de départ (le semis), et un
+   espace sans compte se répare depuis la Tour (« Identifiants »). */
 const COMPTES_PATH = path.join(DATA_DIR, 'comptes.json');
 let comptesReg = {};
-/* Illisible se dit, comme pour acces.json : repartir de {} en silence, c'est renvoyer toutes
-   les entreprises au code d'accès sans que personne ne l'apprenne. */
+/* Illisible se dit, comme pour acces.json : repartir de {} en silence, c'est laisser toutes
+   les entreprises sans porte d'entrée par identifiant sans que personne ne l'apprenne. */
 try { comptesReg = JSON.parse(fs.readFileSync(COMPTES_PATH, 'utf8')); }
 catch (e) { if (e.code !== 'ENOENT') console.error('comptes.json illisible — annuaire de connexion vide :', e.message); }
 function comptesEcrire() {   // ATOMIQUE : tmp + rename, même motif que acces.json
@@ -5064,10 +5049,10 @@ function annuaireSemerDepuisCode(t, code, remplacer) {
     return annuaireSemer(t, o.a, o.mh, remplacer); } catch (err) { return Promise.resolve(false); }
 }
 /* ══ RATTRAPAGE : LES ESPACES D'AVANT LE SEMIS ═════════════════════════════════════════════
-   Semer à la création ne suffit pas à retirer le code d'accès : les espaces inscrits AVANT
-   n'ont toujours pas d'annuaire tant que personne ne s'y est connecté, et leur seule porte
-   resterait le code. Enlever la route sans ce rattrapage enfermerait dehors, définitivement,
-   toute entreprise à qui on a ouvert un accès qu'elle n'a pas encore utilisé.
+   Semer à la création ne suffisait pas à retirer le code d'accès : les espaces inscrits AVANT
+   n'ont pas d'annuaire tant que personne ne s'y est connecté. Depuis que le code n'existe plus
+   (28 septembre 2026), ce rattrapage est leur seule porte : sans lui, toute entreprise à qui on
+   a ouvert un accès qu'elle n'a pas encore utilisé resterait dehors.
    On repasse donc une fois au démarrage sur les espaces SANS annuaire. Un espace qui en a un
    est ignoré — annuaireSemer le revérifie de toute façon.
    ⚠️ UN PAR UN, ESPACÉS. Chaque semis est un PBKDF2 à 120 000 tours (~100 ms) : les lancer
@@ -5079,7 +5064,10 @@ setTimeout(() => {
     .filter(e => e && e.code)
     .map(e => ({ t: espaceT(e), code: e.code }))
     .filter(x => x.t && !ESPACES_INTOUCHABLES.includes(x.t)
-      && !(comptesReg[x.t] && comptesReg[x.t].c && Object.keys(comptesReg[x.t].c).length));
+      && !(comptesReg[x.t] && comptesReg[x.t].c && Object.keys(comptesReg[x.t].c).length)
+      /* ⛔ Jamais sur un espace qui a déjà servi (`gardien`, 28 septembre 2026) : son mot de passe provisoire n'est plus
+         le sien, et semer le rouvrirait avec — c'est un appareil à jour qui redépose son annuaire. */
+      && !cnxResume(x.t).derniere);
   /* Un même espace porte plusieurs entrées d'annuaire (espaceParT) : sans ce dédoublonnage on
      sèmerait deux fois le même, et le second passage écraserait le premier pour rien. */
   const vus = new Set(); const liste = aFaire.filter(x => !vus.has(x.t) && vus.add(x.t));
@@ -5088,16 +5076,16 @@ setTimeout(() => {
   let i = 0; const sansAmorce = [];
   const suivant = () => {
     if (i >= liste.length) {
-      /* ⛔ LA LISTE QU'IL FAUT LIRE AVANT DE SUPPRIMER LA ROUTE DU CODE D'ACCÈS. Un code
-         d'espace ancien peut n'avoir ni « a » ni « mh » — rien à dériver, donc pas de semis
-         possible, donc le code d'accès reste LA SEULE PORTE de cette entreprise. Retirer la
-         route sans avoir traité ces espaces-là (leur redonner un identifiant de départ depuis
-         la Tour) les enfermerait dehors définitivement.
+      /* ⛔ LA LISTE À TRAITER DEPUIS QUE LE CODE D'ACCÈS N'EXISTE PLUS. Un code d'espace ancien
+         peut n'avoir ni « a » ni « mh » — rien à dériver, donc pas de semis possible, donc AUCUNE
+         porte pour cette entreprise tant qu'on ne lui a pas posé d'identifiant de départ depuis
+         la Tour (« Identifiants » ; la Tour la marque « aucun compte »).
          Seuls les identifiants d'équipe sortent au journal : jamais un nom, jamais une
          adresse — c'est assez pour les retrouver dans la Tour. */
       if (sansAmorce.length)
         console.warn('⛔ ' + sansAmorce.length + ' espace(s) SANS identifiant de départ dans leur code : '
-          + 'le code d\'accès reste leur seule porte, à traiter avant de retirer la route — ' + sansAmorce.join(', '));
+          + 'plus aucune porte (le code d\'accès n\'existe plus depuis le 28 septembre 2026) — la Tour les marque « aucun compte » ; '
+          + 'poser leurs identifiants (« Identifiants » sur leur fiche) : ' + sansAmorce.join(', '));
       return;
     }
     const x = liste[i++];
@@ -5163,7 +5151,7 @@ app.post('/api/espaces/connexion', async (req, res) => {
      heure sur un mot de passe pourtant juste. */
   if (!e || !e.code || !t || !ann || !ann.c || !Object.keys(ann.c).length)
     return res.status(409).json({ motif: 'sans-annuaire',
-      error: 'Cette entreprise ne connaît pas encore la connexion par identifiant. Utilise son code d\'accès une première fois — ensuite, ton identifiant suffira.' });
+      error: 'Cette entreprise n\'a encore aucun compte ouvert : ses identifiants lui sont envoyés par TEAM OP avec son lien de connexion. Pas reçus ? Écrivez à contact@teamop.fr.' });
   /* hasOwnProperty, et JAMAIS ann.c[login] directement : « ann.c » vient d'un JSON, c'est un
      objet ordinaire. ann.c['__proto__'] rend Object.prototype et ann.c['constructor'] rend la
      fonction Object — tous deux « truthy », dont le champ « e » vaut undefined. Buffer.from
@@ -5509,7 +5497,7 @@ app.post('/api/espaces/relance', (req, res) => {
     text: 'Bonjour,\n\nQuelqu\'un vient de demander l\'adresse de connexion de votre entreprise'
       + entTxt + ' sur teamop.fr.\n\nVotre adresse :\n' + adresse + '\n\n'
       + 'Chacun y va, tape SON identifiant et SON mot de passe, et arrive dans votre espace — sur n\'importe quel téléphone. Mettez-la en favori, il n\'y a rien d\'autre à conserver.\n\n'
-      + 'Si personne n\'arrive encore à se connecter, c\'est que votre espace n\'a pas encore été ouvert une première fois : écrivez-nous, nous vous donnons votre code d\'accès.\n\n'
+      + 'Si personne n\'arrive encore à se connecter, c\'est que votre espace n\'a pas encore été ouvert une première fois : écrivez-nous, nous vous renvoyons vos identifiants.\n\n'
       + 'Si vous n\'êtes à l\'origine d\'aucune demande, ignorez ce message — rien n\'a changé.\n\n— TEAM OP · teamop.fr',
     html: mailTeamOP({
       chip: 'Lien de connexion',
@@ -5518,7 +5506,7 @@ app.post('/api/espaces/relance', (req, res) => {
         + x(entTxt) + ' sur teamop.fr.<br><br><b>Votre adresse :</b><br>'
         + '<a href="https://' + x(adresse) + '" style="color:#34A97E;font-size:19px;font-weight:700;word-break:break-all">' + x(adresse) + '</a><br><br>'
         + '<span style="font-size:13px">Chacun y va, tape <b>son</b> identifiant et <b>son</b> mot de passe, et arrive dans votre espace — sur n\'importe quel téléphone. Mettez-la en favori, il n\'y a rien d\'autre à conserver.<br>'
-        + 'Si personne n\'arrive encore à se connecter, c\'est que votre espace n\'a pas encore été ouvert une première fois : écrivez-nous, nous vous donnons votre code d\'accès.</span><br><br>'
+        + 'Si personne n\'arrive encore à se connecter, c\'est que votre espace n\'a pas encore été ouvert une première fois : écrivez-nous, nous vous renvoyons vos identifiants.</span><br><br>'
         + '<span style="color:#8fa3c8;font-size:13px">Si vous n\'êtes à l\'origine d\'aucune demande, ignorez ce message — rien n\'a changé.</span>',
       boutonTxt: 'Ouvrir mon espace', boutonUrl: 'https://' + adresse,
       bouton2Txt: 'Mon espace client', bouton2Url: 'https://teamop.fr/espace.html'
@@ -7569,6 +7557,8 @@ async function fbVerifie(jeton) {
   return corps;
 }
 // réception du résumé poussé par espace.html (signé par le client connecté ; données minimales validées)
+let demandesQuota = new Map();   // salves de courriels « nouvelle demande » par adresse (voir /api/clients/sync)
+setInterval(() => { demandesQuota = new Map(); }, 3600000).unref();
 app.post('/api/clients/sync', async (req, res) => {
   const b = req.body || {};
   let ident = null;
@@ -7684,7 +7674,7 @@ app.post('/api/clients/sync', async (req, res) => {
            espacePaye() sort sur « aucune formule » AVANT même de regarder promoUsages : un
            espace qui n'a pas encore de formule voyait donc son code décompté, recevait
            l'e-mail « formule offerte jusqu'au … », et restait fermé. Les deux autres chemins
-           posent la formule (la Tour en 2296, le bloc demandes via espaceAutoPour) ; celui-ci
+           posent la formule (la Tour, et jadis la création automatique retirée le 28 septembre 2026) ; celui-ci
            l'avait oublié. Et `codePromo` est ce que relit le rattrapage d'espacePaye() quand
            un espace est recréé — sans lui, un code activé depuis le site est irrécupérable.
            La formule n'écrase que le vide ou le gratuit : la même règle qu'à la Tour, pour
@@ -7712,152 +7702,78 @@ app.post('/api/clients/sync', async (req, res) => {
   // sinon l'expéditeur SMTP). Au plus 1 mail par demande nouvellement apparue.
   try {
     const avant = (prev.demandes || []).length;
-    if (mailer && demandes.length > avant) {
+    /* ⛔ UN PLAFOND PAR ADRESSE (`gardien`, 28 septembre 2026) : « nouvelle demande » se juge à la LONGUEUR de la liste,
+       et en alternant une liste vide et une liste d'une demande, un seul compte déclenchait deux courriels par requête —
+       une centaine par minute dans la boîte du patron, qui noyaient les vraies demandes et épuisaient le quota d'envoi
+       dont dépendent les liens et les codes de sécurité. Trois salves par heure et par adresse suffisent à un vrai client. */
+    const salveOk = () => quotaOk(demandesQuota, 'dem:' + email, 3, 3600000);
+    if (demandesQuota.size > 5000) demandesQuota = new Map();
+    if (mailer && demandes.length > avant && !salveOk()) console.warn('demande : plafond d\'envoi atteint pour une adresse — courriels non envoyés', masqueMail(email));
+    else if (mailer && demandes.length > avant) {
       const dest = (config.notifDemandes || config.smtp.from || config.smtp.user);
       const nv = demandes.slice(avant);
-      // ── Circuit automatique : l'espace est créé (ou retrouvé) tout de suite,
-      //    le lien part au client, et le patron reçoit le récapitulatif complet.
-      const dFormule = [...nv].reverse().find(d => formuleDeLabel(d.formule)) || {};
+      /* ⛔⛔ PLUS DE CIRCUIT AUTOMATIQUE — Justin, 28 septembre 2026 : « c'est nous qui créons les liens pour les
+         entreprises une fois leur demande faite » ; « oui, supprimer la création automatique ».
+         Jusque-là une demande du site CRÉAIT l'espace (`espaceAutoPour`), activait le code promo de la demande,
+         envoyait au client un CODE D'ACCÈS et marquait la demande « traitée » — sans que personne l'ait lue. Une
+         demande ne crée plus RIEN : le patron la reçoit ici, la lit dans sa Tour, et c'est lui qui crée le lien
+         (« Accepter la demande ») — formule, code promo de la demande, puis le lien et les identifiants par courriel
+         (`/api/monitor/espaces/mail-acces`, qui passe aussi la fiche du portail à « Accès activé »).
+         Le client reçoit l'accusé de réception : sa demande est arrivée, et c'est TEAM OP qui lui écrit la suite.
+         ⚠️ Rien ici ne touche à promoUsages, à espacesReg, à `demandesTraitees` ni à la fiche du portail : une
+         demande n'est pas une décision. `tests/test-841.js` le rejoue sur le vrai serveur. */
+      const cli = clientsData[email] || {};
+      const nomEnt = cli.entreprise || cli.nom || email;
       const dCode = [...nv].reverse().find(d => d.code) || {};
-      const dLien = [...nv].reverse().find(d => d.lien) || {};
-      const dUsers = [...nv].reverse().find(d => d.users) || {};
-      // code teste : c'est LUI qui dit la formule à laquelle le client a droit
-      let promoDef = null;
+      let codeLigne = '';
       if (dCode.code) {
+        /* Ce qu'on dit du code sort de config.promos, jamais de la demande : le client peut y écrire n'importe quoi. */
         const c = String(dCode.code).trim().toUpperCase();
         const p = (config.promos || []).find(x => String(x.code || '').trim().toUpperCase() === c);
-        if (p) promoDef = { code: c, formule: ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium', mois: Math.max(1, Number(p.mois) || 1), max: p.maxUtilisations };
+        const cAff = c.replace(/[^A-Z0-9_-]/g, '·');
+        codeLigne = p
+          ? '🎁 Code promo « ' + cAff + ' » : connu — ' + (FORMULE_LBL[p.formule] || 'Business Premium') + ', ' + Math.max(1, Number(p.mois) || 1) + ' mois. Il s\'applique quand tu acceptes la demande (sauf s\'il a déjà servi à cette entreprise).\n'
+          : '⚠️ Code « ' + cAff + ' » INCONNU — il ne s\'appliquera pas.\n';
       }
-      const cli = clientsData[email];
-      const prenomC = cli.prenom || String(cli.nom || '').trim().split(/\s+/)[0] || '';
-      const nomFamC = cli.nomFam || String(cli.nom || '').trim().split(/\s+/).slice(1).join(' ') || '';
-      const auto = espaceAutoPour(email, cli.entreprise || cli.nom || '',
-        promoDef ? promoDef.formule : dFormule.formule, dUsers.users, dLien.lien, prenomC, nomFamC);
-      /* ⛔ PLUS DE LIEN DE BIENVENUE — 12 septembre 2026. Il portait `k`, la clé qui déchiffre
-         toutes les données de l'entreprise, dans une URL envoyée par courriel.
-         Ici l'espace vient d'être CRÉÉ : il n'a encore aucun compte, donc l'adresse seule ne
-         suffit pas — c'est le CODE D'ACCÈS qui ouvre la toute première porte. Adresse + code,
-         comme depuis la Tour. Si le code ne peut pas être écrit, on n'en invente pas un : le
-         courriel le dit et renvoie vers nous, plutôt que de donner une porte qui n'ouvre rien. */
-      const eAuto = espacesReg[auto.slug];
-      const adrAuto = auto.slug ? ('teamop.fr/e/' + auto.slug) : '';
-      const lien = adrAuto ? ('https://' + adrAuto) : 'https://teamop.fr/connexion.html';
-      const enrAuto = auto.t ? accesCodeDe(auto.t, 'inscription automatique') : null;
-      const accesAuto = enrAuto ? enrAuto.code : '';
-      // activation du code pour cet espace : la formule est offerte, sans carte bancaire
-      /* ⛔ UN CODE SERT UNE FOIS PAR ENTREPRISE (Justin, 24 septembre 2026 — voir `promoPresente`).
-         Une entreprise qui refait une demande avec un code déjà servi recevait « votre code est
-         activé … jusqu'au » une date PASSÉE, et aucun lien de paiement. Elle reçoit désormais le
-         refus, dit en clair, et le chemin du paiement. `promoRefuse` = le code et sa fin passée. */
-      let promoActif = null, promoRefuse = null;
-      if (promoDef && auto.t) {
-        const u = promoUsages[promoDef.code] || { n: 0, equipes: {} };
-        const pres = promoPresente(promoDef.code, auto.t, auto.slug);
-        if (pres.etat === 'servi') promoRefuse = { code: promoDef.code, finLe: pres.finLe };
-        /* « Un seul code à la fois », la règle que font déjà la Tour, /api/promo/valider et
-           le relais juste au-dessus : ce quatrième chemin était le dernier à ne pas la faire.
-           Deux codes actifs rendent l'échéance réelle illisible — pour le client comme pour
-           la Tour, qui affiche le premier trouvé. */
-        let autreActif = '';
-        if (pres.etat === 'neuf') {
-          const auj = new Date().toISOString().slice(0, 10);
-          for (const [c2] of Object.entries(promoUsages || {})) {
-            const eq2 = c2 !== promoDef.code ? promoServiA(c2, auto.t, auto.slug) : null;
-            if (eq2 && eq2.finLe && eq2.finLe >= auj) { autreActif = c2; break; }
-          }
-        }
-        if (pres.etat === 'actif') promoActif = Object.assign({}, promoDef, { finLe: pres.finLe, deja: true });
-        else if (pres.etat === 'neuf' && !autreActif && !(promoDef.max && u.n >= promoDef.max)) {
-          const dF = new Date(); dF.setMonth(dF.getMonth() + promoDef.mois);
-          const finLe = dF.toISOString().slice(0, 10);
-          u.n++; u.equipes[auto.t] = promoEntree(finLe, auto.t, auto.slug);
-          promoUsages[promoDef.code] = u; savePromoUsages();
-          promoActif = Object.assign({}, promoDef, { finLe });
-        }
-      }
-      /* `codePromo` est ce que relit le rattrapage d'`espacePaye()` : on ne le pose jamais pour un
-         code refusé — il ne se réactiverait pas (`promoServiA`), mais la Tour le lirait comme « en attente ». */
-      if (promoDef && !promoRefuse) { const eEsp = espacesReg[auto.slug];
-        if (eEsp && eEsp.codePromo !== promoDef.code) { eEsp.codePromo = promoDef.code;
-          espacesEcrire(); } }
-      const promoLib = promoActif ? ({ pro: 'Pro', business: 'Business', premium: 'Business Premium' }[promoActif.formule] || promoActif.formule) : '';
-      // les demandes qui viennent d'arriver sont marquées traitées (le lien est parti)
-      for (let i = avant; i < demandes.length; i++) clientsData[email].demandesTraitees[i] = { par: 'auto — adresse envoyée', ts: Date.now() };
-      cliSave();
-      const texte = 'Nouvelle demande d\'application sur teamop.fr\n\n' +
-        'Entreprise : ' + (clientsData[email].entreprise || clientsData[email].nom || email) + '\n' +
-        'Contact : ' + (clientsData[email].nom || '—') + '\n' +
+      const texte = 'Nouvelle demande d\'application sur teamop.fr — À TRAITER\n\n' +
+        'Entreprise : ' + nomEnt + '\n' +
+        'Contact : ' + (cli.nom || '—') + '\n' +
         'E-mail : ' + email + '\n' +
-        'Téléphone : ' + (clientsData[email].tel || 'non renseigné') + '\n\n' +
-        nv.map(d => '• ' + (d.app || 'Application') + (d.formule ? ' — formule « ' + d.formule + ' »' : ' — formule non précisée') + (d.users ? '\n  Utilisateurs souhaités : ' + d.users : '') + (d.besoin && d.besoin !== 'x' ? '\n  Besoin : ' + d.besoin : '')).join('\n') +
-        '\n\n── Traité automatiquement ──\n' +
-        (auto.neuf ? 'Espace créé : « ' + auto.nom + ' »\n' : 'Espace EXISTANT retrouvé : « ' + auto.nom + ' » (ses données sont conservées)\n') +
-        'Adresse envoyée au client : ' + lien + '\n' +
-        'Nom à taper sur la page de connexion : « ' + auto.nom + ' »\n' +
-        (auto.neuf ? 'Première connexion : identifiant « ' + auto.ident + ' » · mot de passe provisoire « ' + auto.mdp + ' » (son nom + !!) — l\'app lui fait choisir son vrai mot de passe.\n'
-                   : 'Connexion : ses identifiants habituels.\n') +
-        (promoActif ? '🎁 Code teste « ' + promoActif.code + ' » ' + (promoActif.deja ? 'DÉJÀ ACTIF pour cette entreprise (rien de recompté)' : 'activé') + ' : ' + promoLib + ' offert jusqu\'au ' + promoDateFr(promoActif.finLe) + ' — espace débloqué SANS paiement.'
-          : (dCode.code && !promoDef ? '⚠️ Code « ' + dCode.code + ' » INCONNU — ignoré.\n' : '') +
-            (promoRefuse ? '⛔ Code « ' + promoRefuse.code + ' » REFUSÉ : déjà utilisé par cette entreprise' + (promoRefuse.finLe ? ' (période offerte terminée le ' + promoDateFr(promoRefuse.finLe) + ')' : '') + ' — un code ne sert qu\'une fois par entreprise.\n' : '') +
-            (auto.formule ? 'Formule enregistrée : ' + auto.formule + ' × ' + auto.quantite + ' — se débloque au paiement (ou code promo).'
-                          : 'Formule non précisée par le client → à attribuer dans ta Tour (Abonnements).')) +
-        '\n\nTout est visible dans ta Tour de contrôle : https://teamop.fr/tour.html';
+        'Téléphone : ' + (cli.tel || 'non renseigné') + '\n\n' +
+        nv.map(d => '• ' + (d.app || 'Application') + (d.formule ? ' — formule « ' + d.formule + ' »' : ' — formule non précisée') + (d.users ? '\n  Utilisateurs souhaités : ' + d.users : '') + (d.lien ? '\n  Nom de lien souhaité : ' + d.lien : '') + (d.besoin && d.besoin !== 'x' ? '\n  Besoin : ' + d.besoin : '')).join('\n') +
+        '\n\n' + codeLigne +
+        '\n── À faire ──\nRien n\'a été créé. Ouvre ta Tour → la fiche de cette entreprise → « ✅ Accepter la demande » : l\'espace se crée, la formule et le code promo s\'appliquent, puis « 📧 Envoyer par e-mail au client » lui envoie son lien et ses identifiants.\n\nhttps://teamop.fr/tour.html';
       mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest,
-        subject: '📥 Demande traitée automatiquement — ' + (clientsData[email].entreprise || email), text: texte })
-        .then(() => console.log('mail demande envoyé →', masqueMail(dest), '(' + nv.map(d => d.app).join(', ') + ')'))
-        .catch(e => console.error('mail demande:', e.message));
-      // e-mail au client : son lien de connexion, généré automatiquement
-      const premiereCo = auto.neuf
-        ? 'Première connexion :\n• Identifiant : ' + auto.ident + ' (votre prénom)\n• Mot de passe provisoire : ' + auto.mdp + ' (votre nom + « !! »)\n' +
-          'À votre première connexion, l\'application vous fait choisir votre vrai mot de passe — ensuite, ce sont vos identifiants pour toujours.\n'
-        : 'Connectez-vous avec vos identifiants habituels.\n';
+        subject: '📥 Nouvelle demande à traiter — ' + nomEnt, text: texte })
+        .then(() => console.log('mail demande envoyé →', masqueMail(dest), '(' + nv.length + ' demande' + (nv.length > 1 ? 's' : '') + ')'))   // le nombre, pas le texte libre du client
+        .catch(e => console.error('mail demande:', sansAdresses(String((e && e.message) || e))));
+      /* L'accusé au client : ce qui est arrivé, et ce qui va suivre — rien de plus. Pas de promesse sur le code promo :
+         c'est à l'acceptation qu'on sait s'il s'applique. Tout ce qui vient du client est échappé dans la version HTML. */
+      const escH = (x) => String(x || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      /* Une liste FERMÉE : `app` est du texte libre du client, et l'accusé part à son adresse sous l'en-tête TEAM OP —
+         un texte à soi recopié dans un courriel à notre nom ferait de nous un relais (`gardien`). */
+      const apps = [...new Set(nv.map(d => /messages/i.test(String(d.app || '')) ? 'OP MESSAGES' : 'OP GESTION'))].join(', ');
       const accuse = 'Bonjour,\n\n' +
-        'Bonne nouvelle : votre espace « ' + auto.nom + ' » est prêt.\n\n' +
-        'UNE SEULE ADRESSE À RETENIR, pour vous et pour toute votre équipe :\n' + lien + '\n\n' +
-        (accesAuto
-          ? 'VOTRE TOUTE PREMIÈRE CONNEXION — une seule fois, pour ouvrir l\'espace :\nSur cette adresse, touchez « Première connexion de l\'entreprise ? » et entrez votre code d\'accès :\n\n     ' + accesAuto + '\n\nGardez ce code pour vous : il ouvre votre espace.\n\n'
-          : 'Écrivez-nous pour recevoir votre code d\'accès : il ouvre votre espace la première fois.\n\n') + premiereCo +
-        (promoActif ? '\n🎁 Votre code « ' + promoActif.code + ' » est ' + (promoActif.deja ? 'déjà actif' : 'activé') + ' : formule ' + promoLib + ' offerte jusqu\'au ' + promoDateFr(promoActif.finLe) + ' — aucune carte bancaire requise.\n'
-          : promoRefuse ? '\n⚠️ ' + promoRefusServi(promoRefuse.code, promoRefuse.finLe).replace('cette entreprise', 'votre entreprise') + ' Votre formule s\'activera dès le paiement de votre abonnement (Mon espace client → Mon abonnement) ; vos données ne sont jamais perdues.\n' : '') +
-        '\nEnsuite, créez les comptes de vos collègues dans Administration → Utilisateurs.\n\n' +
+        'Nous avons bien reçu votre demande d\'accès (' + apps + ') pour « ' + nomEnt + ' ».\n\n' +
+        'L\'équipe TEAM OP prépare votre espace : vous recevrez très vite, par e-mail, votre lien de connexion et vos identifiants. Vous n\'avez rien d\'autre à faire.\n\n' +
+        'Vous pouvez suivre ou modifier votre demande dans votre espace client : https://teamop.fr/espace.html\n\n' +
         '— L\'équipe TEAM OP · teamop.fr';
-      const premiereCoHtml = auto.neuf
-        ? MAIL_BLOCS.ident(auto.ident, auto.mdp) + '<br><br>'
-        : 'Connectez-vous avec vos <b>identifiants habituels</b>.<br><br>';
-      const payer = promoActif
-        ? '🎁 Votre code « ' + promoActif.code + ' » est ' + (promoActif.deja ? 'déjà actif' : 'activé') + ' : formule <b>' + promoLib + '</b> offerte jusqu\'au <b>' + promoDateFr(promoActif.finLe) + '</b> — aucune carte bancaire requise.<br>'
-        /* Le refus d'un code déjà servi : son texte vient de `promoRefusServi` (le code sort de
-           config.promos, la date du registre — rien qui vienne du client). */
-        : (promoRefuse ? '⚠️ ' + promoRefusServi(promoRefuse.code, promoRefuse.finLe).replace('cette entreprise', 'votre entreprise') + '<br>' : '') +
-          ((auto.formule && auto.formule !== 'gratuit')
-            ? '💳 Votre formule « ' + (dFormule.formule || auto.formule) + ' » s\'activera dès le paiement de votre abonnement (Mon espace client → Mon abonnement). En attendant, l\'application fonctionne en mode Découverte.<br>'
-            : '');
       const accuseHtml = mailTeamOP({
-        chip: 'Accès prêt',
-        titre: 'Votre application est prête 🎉',
-        corpsHtml: 'Bonjour,<br>bonne nouvelle : votre espace « <b>' + auto.nom + '</b> » est prêt.<br><br>' +
-          '<b>Une seule adresse à retenir</b>, pour vous et pour toute votre équipe :<br><a href="' + lien + '" style="color:#34A97E;font-size:19px;font-weight:700">' + lien.replace('https://', '') + '</a><br><br>' +
-          (accesAuto
-            ? '<b>Votre toute première connexion — une seule fois :</b><br>Sur cette adresse, touchez « Première connexion de l\'entreprise ? » et entrez votre code d\'accès :<div style="font-family:ui-monospace,monospace;font-size:23px;font-weight:800;letter-spacing:.22em;margin:10px 0">' + accesAuto + '</div><span style="color:#8fa3c8;font-size:13px">Gardez ce code pour vous : il ouvre votre espace.</span><br><br>'
-            : '<span style="color:#8fa3c8;font-size:13px">Écrivez-nous pour recevoir votre code d\'accès : il ouvre votre espace la première fois.</span><br><br>') +
-          premiereCoHtml +
-          'Ensuite, créez les comptes de vos collègues dans <b>Administration → Utilisateurs</b>.<br>' + payer,
+        chip: 'Demande reçue',
+        titre: 'Votre demande est bien reçue',
+        corpsHtml: 'Bonjour,<br>nous avons bien reçu votre demande d\'accès (<b>' + escH(apps) + '</b>) pour « <b>' + escH(nomEnt) + '</b> ».<br><br>' +
+          'L\'équipe TEAM OP prépare votre espace : vous recevrez très vite, par e-mail, <b>votre lien de connexion et vos identifiants</b>. Vous n\'avez rien d\'autre à faire.<br>',
         frise: [
           { titre: 'Reçue', sous: 'aujourd\'hui', fait: true },
-          { titre: 'Acceptée', sous: 'espace créé', fait: true },
-          { titre: 'Connectez-vous', sous: accesAuto ? 'avec votre code' : 'à cette adresse', fait: false }
+          { titre: 'Préparation', sous: 'par TEAM OP', fait: false },
+          { titre: 'Connectez-vous', sous: 'avec votre lien', fait: false }
         ],
-        boutonTxt: 'Ouvrir mon espace', boutonUrl: lien,
-        bouton2Txt: 'Mon espace client', bouton2Url: 'https://teamop.fr/espace.html'
+        boutonTxt: 'Mon espace client', boutonUrl: 'https://teamop.fr/espace.html'
       });
       mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: email,
-        subject: '🏢 L\'adresse de votre entreprise est prête — TEAM OP', text: accuse, html: accuseHtml })
-        .then(() => console.log('adresse de connexion envoyée →', masqueMail(email))   /* jamais le code d'accès dans le journal */)
-        .catch(e => console.error('mail lien:', e.message));
-      // et son « Mon espace » sur le site passe à : Accès activé · OP GESTION active · abonnement affiché
-      const planLbl = promoActif ? promoLib : (dFormule.formule || FORMULE_LBL[auto.formule] || '');
-      fbMajFicheClient(email, Object.assign({ status: 'fourni', apps: ['elan'] },
-        planLbl ? { plan: planLbl, planStatus: 'actif' } : {})).catch(() => {});
+        subject: '📥 Votre demande est bien reçue — TEAM OP', text: accuse, html: accuseHtml })
+        .then(() => console.log('accusé de demande envoyé →', masqueMail(email)))
+        .catch(e => console.error('accusé de demande:', sansAdresses(String((e && e.message) || e))));
     }
   } catch (e) { console.error('notif demande:', e && e.message); }
   res.json({ ok: true });

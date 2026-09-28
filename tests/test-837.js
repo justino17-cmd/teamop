@@ -279,7 +279,9 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
      aussi — le changer aujourd'hui changerait ce qu'ELAN lit de son propre contrat. Il décrit ce que l'application
      DONNE (2 et 3 places) et change avec elle, sur la réponse de Justin (les abonnés d'avant gardent-ils leurs places ?). */
   /* L'aperçu du portail dit déjà « un compte par abonnement » ; le contrat EN SERVICE change avec l'application en service. */
-  const ECART_CONTRAT = ['espace.html'];
+  /* (28 septembre 2026, site remplacé) la copie d'aperçu du portail est refaite depuis la page EN SERVICE : elle porte le même
+     contrat, et se referme dans le même geste qu'elle. */
+  const ECART_CONTRAT = ['espace.html', 'apercu/espace.html'];
   const fautifs = [];
   for (const f of SERVIS) {
     if (ECART_APPLICATION.includes(f)) continue;

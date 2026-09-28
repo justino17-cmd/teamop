@@ -6,57 +6,76 @@
 <title>TEAM OP — Nouveau mot de passe</title>
 <meta name="robots" content="noindex">
 <link rel="icon" href="icons/teamop-512.png">
+<meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)" data-jour>
+<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)" data-nuit>
+<meta name="color-scheme" content="light dark">
+<script>/* le mode choisi (☀︎/☾), posé AVANT le premier rendu : sans ça, la page s'afficherait d'abord dans l'autre (dans une fonction : une variable globale heurterait celles des pages qui embarquent ces lignes) */
+(function () { try { var m = localStorage.getItem('teamop_site_mode'); if (m === 'jour' || m === 'nuit') document.documentElement.setAttribute('data-theme', m === 'nuit' ? 'dark' : 'light'); } catch (e) {} })();</script>
+<link rel="stylesheet" href="/vitrine/v2/theme.css">
 <style>
+  /* ══ LE LIEN DU COURRIEL, AU THÈME DU SITE (27 septembre 2026 au soir) ════════════════════════════════════════════
+     Justin : « au niveau des connexions ou création de compte, j'ai pas mon thème ». Cette page — celle qu'ouvre le
+     lien « nouveau mot de passe » ou « vérifier mon adresse » — gardait son fond toujours sombre et « TEAM OP » en
+     Courier. Elle lit la palette du site (/vitrine/v2/theme.css, --m-…), jour ET nuit, et le bouton ☀︎/☾
+     (/vitrine/v2/mode.js). ⛔ Les identifiants et le script n'ont pas bougé (test-741 l'exécute).
+     ⛔ Le bouton principal se désigne par son IDENTIFIANT (#go) : une règle posée sur `button` habillait aussi l'œil
+     des mots de passe (44 px de haut au lieu de 32) et le bouton ☀︎/☾. */
   *{box-sizing:border-box}
-  body{margin:0;min-height:100vh;background:#0f1729;color:#eef2fa;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;display:flex;align-items:center;justify-content:center;padding:24px}
-  .carte{width:100%;max-width:440px;background:#141f36;border:1px solid #243354;border-radius:18px;padding:26px 24px}
-  .marque{display:flex;align-items:center;gap:10px;margin-bottom:18px}
-  .marque img{width:36px;height:36px;border-radius:9px}
-  .marque b{font-family:"Courier New",monospace;letter-spacing:2px;font-size:15px}
-  h1{font-size:19px;margin:0 0 6px}
-  p{color:#93a9d4;font-size:13.5px;line-height:1.6;margin:0 0 14px}
-  label{display:block;font-size:12px;color:#93a9d4;margin:12px 0 6px;letter-spacing:.3px}
-  input{width:100%;background:#0d1526;border:1px solid #243354;border-radius:12px;padding:13px 12px;color:#eef2fa;font-size:15px;outline:none}
-  input:focus{border-color:#34d399}
-  /* min-height : mesuré à 43 px au navigateur (13+13 de marge intérieure + 17 de ligne),
-     soit un pixel sous le plancher tactile de 44. Cette page se termine au doigt, souvent sur
-     un téléphone, parfois avec des gants — on ne laisse pas le bouton principal juste en
-     dessous. Mesuré, pas déduit : sonde navigateur du 20 septembre 2026. */
-  button{width:100%;margin-top:16px;min-height:44px;background:#34d399;color:#08251a;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:800;cursor:pointer}
-  button:disabled{opacity:.6;cursor:default}
-  .err{display:none;color:#f87171;font-size:13px;margin-top:10px}
-  .ok{display:none;background:#0f2a22;border:1px solid #1f7a57;border-radius:12px;padding:14px;font-size:14px;line-height:1.6}
-  .ok a{color:#34d399;font-weight:700}
-  .pied{color:#5f7297;font-size:11.5px;margin-top:18px;text-align:center}
+  body{margin:0;min-height:100vh;background:var(--m-bg);color:var(--m-text);font-family:var(--m-corps);line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;align-items:center;justify-content:center;padding:calc(64px + env(safe-area-inset-top)) 20px calc(28px + env(safe-area-inset-bottom))}
+  .coin-mode{position:absolute;top:calc(10px + env(safe-area-inset-top));right:calc(16px + env(safe-area-inset-right))}
+  .carte{width:100%;max-width:440px;background:var(--m-card);border:1px solid transparent;border-radius:24px;padding:26px 24px}
+  .marque{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+  .marque img{width:32px;height:32px;border-radius:8px}
+  .marque b{font-family:var(--m-titre);font-size:17px;font-weight:600;letter-spacing:-.01em}
+  h1{font-family:var(--m-titre);font-size:21px;font-weight:700;letter-spacing:-.015em;line-height:1.25;margin:0 0 8px}
+  p{color:var(--m-body);font-size:14px;line-height:1.6;margin:0 0 14px}
+  p b{color:var(--m-text)}
+  label{display:block;font-size:13px;font-weight:500;color:var(--m-sub);margin:14px 0 6px}
+  input{width:100%;background:var(--m-tile);border:1px solid var(--m-line);border-radius:12px;padding:12px 14px;min-height:48px;color:var(--m-text);font-size:16px;font-family:inherit;outline:none}
+  input:focus{border-color:var(--m-link)}
+  /* Cette page se termine au doigt, souvent sur un téléphone, parfois avec des gants : le bouton principal ne
+     descend jamais sous le plancher tactile (il était mesuré à 43 px le 20 septembre 2026, d'où ce plancher). */
+  #go{width:100%;margin-top:18px;min-height:48px;background:var(--m-accent);color:var(--m-on-accent);border:none;border-radius:999px;padding:12px 22px;font-size:16px;font-weight:600;font-family:inherit;cursor:pointer}
+  #go:hover{opacity:.92}#go:active{transform:scale(.98)}
+  #go:disabled{opacity:.6;cursor:default}
+  .err{display:none;color:var(--m-err);font-size:14px;margin-top:10px}
+  .ok{display:none;background:var(--m-ok-fond);border:1px solid color-mix(in srgb,var(--m-ok) 30%,transparent);border-radius:14px;padding:14px 16px;font-size:14px;line-height:1.6}
+  .ok a{color:var(--m-ok);font-weight:700}
+  .retour{color:var(--m-link);font-weight:600;font-size:14px}
+  .pied{color:var(--m-sub);font-size:12px;margin-top:20px;text-align:center}
 
 /* ══ ŒIL SUR LES MOTS DE PASSE ═══ posé par le script en fin de page sur chaque champ ══ */
-:root{--oeil:#8B9AB8;--oeil-h:rgba(255,255,255,.08);--oeil-t:#eef2fa;--oeil-on:#34d399;--oeil-anneau:rgba(52,211,153,.45);--champ-fond:#0d1526}   /* les couleurs de l'œil, prises dans les jetons de cette page */
+:root{--oeil:var(--m-sub);--oeil-h:var(--m-seg);--oeil-t:var(--m-text);--oeil-on:var(--m-link);--oeil-anneau:color-mix(in srgb,var(--m-link) 40%,transparent);--champ-fond:var(--m-tile)}   /* les couleurs de l'œil, prises dans les jetons du thème */
 .mdp-wrap{position:relative;display:block;flex:1 1 auto;min-width:0}
-.mdp-wrap>input{padding-right:44px!important;width:100%;box-sizing:border-box}
-.mdp-oeil{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:0;padding:0;margin:0;background:transparent;color:var(--oeil);border-radius:8px;cursor:pointer;line-height:0;-webkit-tap-highlight-color:transparent;transition:background-color .12s ease,color .12s ease,transform .28s cubic-bezier(.2,0,0,1)}
+.mdp-wrap>input{padding-right:48px!important;width:100%;box-sizing:border-box}
+.mdp-oeil{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border:0;padding:0;margin:0;background:transparent;color:var(--oeil);border-radius:10px;cursor:pointer;line-height:0;-webkit-tap-highlight-color:transparent;transition:background-color .12s ease,color .12s ease,transform .28s cubic-bezier(.2,0,0,1)}
 .mdp-oeil:hover{background:var(--oeil-h);color:var(--oeil-t)}
 .mdp-oeil:active{transform:translateY(-50%) scale(.92)}
 .mdp-oeil:focus-visible{outline:none;box-shadow:0 0 0 3px var(--oeil-anneau)}
 .mdp-oeil[aria-pressed="true"]{color:var(--oeil-on)}
-/* Le remplissage automatique de Safari peignait les champs en jaune sur la carte sombre :
-   on repeint par-dessous avec le fond du champ, et l'encre du thème. */
+/* au doigt, l'œil prend les 44 px que le champ (48) lui laisse */
+@media (pointer:coarse){.mdp-oeil{width:44px;height:44px;right:2px}}
+/* Le remplissage automatique de Safari peint les champs en jaune : on repeint par-dessous avec le fond du champ
+   et l'encre du thème, dans les deux modes. */
 input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus,textarea:-webkit-autofill{-webkit-text-fill-color:var(--oeil-t);caret-color:var(--oeil-t);-webkit-box-shadow:0 0 0 1000px var(--champ-fond) inset;box-shadow:0 0 0 1000px var(--champ-fond) inset;transition:background-color 9999s ease-out 0s}
+@media (prefers-reduced-motion: reduce){.mdp-oeil{transition:none}}
 </style>
 </head>
 <body>
+  <div class="coin-mode"><button class="mode" type="button" hidden aria-label="Passer en mode nuit" title="Passer en mode nuit"><svg class="lune" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg><svg class="soleil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg></button></div>
 <div class="carte">
   <div class="marque"><img src="icons/teamop-512.png" alt="TEAM OP"><b>TEAM OP</b></div>
   <div id="etape-chargement"><h1>Un instant…</h1><p>Vérification de ton lien de réinitialisation.</p></div>
   <div id="etape-form" style="display:none">
     <h1>Choisis ton nouveau mot de passe</h1>
-    <p>Pour le compte <b id="qui" style="color:#eef2fa"></b>. Au moins <b>8 caractères</b>, connu de toi seul.</p>
+    <p>Pour ton compte <b id="qui">TEAM OP</b>. Au moins <b>8 caractères</b>, connu de toi seul.</p>
     <label>Nouveau mot de passe</label><input id="p1" type="password" minlength="8" autocomplete="new-password" placeholder="8 caractères minimum">
     <label>Confirme-le</label><input id="p2" type="password" minlength="8" autocomplete="new-password" placeholder="Le même, une deuxième fois">
     <div class="err" id="err"></div>
     <button id="go" onclick="enregistrer()">Enregistrer mon mot de passe</button>
   </div>
   <div class="ok" id="etape-ok">✅ <b>Mot de passe enregistré.</b><br>Tu peux te connecter dès maintenant avec ton e-mail et ce nouveau mot de passe.<br><br><a id="suite" href="espace.html">Se connecter →</a></div>
-  <div id="etape-ko" style="display:none"><h1>Lien invalide ou expiré</h1><p id="ko-txt">Ce lien de réinitialisation ne fonctionne plus : il a peut-être déjà servi, ou il date de plus d'une heure. Redemande un nouveau lien depuis « Mot de passe oublié ».</p><a href="espace.html" style="color:#34d399;font-weight:700;font-size:14px">Retour à Mon espace →</a></div>
+  <div id="etape-ko" style="display:none"><h1>Lien invalide ou expiré</h1><p id="ko-txt">Ce lien de réinitialisation ne fonctionne plus : il a peut-être déjà servi, ou il date de plus d'une heure. Redemande un nouveau lien depuis « Mot de passe oublié ».</p><a class="retour" href="espace.html">Retour à Mon espace →</a></div>
   <div class="pied">TEAM OP · la suite de gestion des pros du terrain · teamop.fr</div>
 </div>
 <script>
@@ -102,13 +121,14 @@ async function appelApi(chemin,corps){
       /* ⚠️ ON NE VÉRIFIE PAS LE JETON D'AVANCE, ET C'EST VOULU : il ne sert QU'UNE FOIS.
          Le brûler pour afficher le formulaire le rendrait inutilisable au moment de valider.
          On montre donc le formulaire tout de suite, et c'est l'enregistrement qui tranche. */
-      document.getElementById('qui').textContent='votre compte';
+      /* le lien ne dit pas QUI (le jeton seul) : « Pour le compte votre compte. » se lisait, et mêlait vous et tu */
+      document.getElementById('qui').textContent='TEAM OP';
       montre('etape-form'); setTimeout(function(){ var e=document.getElementById('p1'); if(e) e.focus(); },80);
     } else if(MODE==='verifyEmail'){
       appelApi('/api/compte/verifier',{ jeton:JETON }).then(function(r){
         if(r.code!==200){ ko('Ce lien de v\u00e9rification ne fonctionne plus : il a d\u00e9j\u00e0 servi, ou il date de plus de sept jours.'); return; }
         var o=document.getElementById('etape-ok');
-        o.innerHTML='\u2705 <b>Adresse e-mail v\u00e9rifi\u00e9e.</b>'+(r.j.email?('<br>'+String(r.j.email).replace(/[<>&]/g,'')):'')+'<br><br><a href="'+suiteHref()+'" style="color:#34d399;font-weight:700">Continuer \u2192</a>';
+        o.innerHTML='\u2705 <b>Adresse e-mail v\u00e9rifi\u00e9e.</b>'+(r.j.email?('<br>'+String(r.j.email).replace(/[<>&]/g,'')):'')+'<br><br><a href="'+suiteHref()+'">Continuer \u2192</a>';
         montre('etape-ok');
       }).catch(function(){ ko('Service indisponible \u2014 r\u00e9essaie dans un instant.'); });
     } else { ko(); }
@@ -171,5 +191,6 @@ function enregistrer(){
   try{ new MutationObserver(function(){ clearTimeout(t); t=setTimeout(tout,60); }).observe(document.documentElement,{childList:true,subtree:true}); }catch(e){}
 })();
 </script>
+<script src="/vitrine/v2/mode.js" defer></script>
 </body>
 </html>

@@ -364,6 +364,7 @@ ${racine ? '' : '<meta name="robots" content="noindex">\n'}<title>${esc(P.titre)
 <meta name="description" content="${esc(P.desc)}">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/teamop-favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/teamop-192.png">
 <link rel="apple-touch-icon" href="/icons/teamop-apple-touch.png">
 <link rel="manifest" href="/manifest-teamop.webmanifest">
 ${cle === 'index' ? LANCEUR + '\n' : ''}<link rel="stylesheet" href="${RES}site.css">
