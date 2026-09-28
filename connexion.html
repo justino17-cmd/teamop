@@ -148,16 +148,10 @@ try{
     <input id="cx-login" class="inp" placeholder="ex. marc" autocapitalize="off" autocomplete="username" spellcheck="false" onkeydown="if(event.key==='Enter')document.getElementById('cx-mdp').focus()">
     <label class="lbl" for="cx-mdp" style="margin-top:12px">Mot de passe</label>
     <input id="cx-mdp" class="inp" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')cxEntrer()">
-    <div id="bloc-code" style="display:none;margin-top:12px">
-      <label class="lbl" for="cx-code">Code d'accès de l'entreprise</label>
-      <input id="cx-code" class="inp" placeholder="10 caractères" autocapitalize="characters" autocomplete="off" spellcheck="false" style="letter-spacing:.16em;font-family:var(--m-mono)" onkeydown="if(event.key==='Enter')cxEntrer()">
-      <div style="color:var(--m-sub);font-size:13px;margin-top:6px;line-height:1.5">Celui que ton responsable te donne. Une seule fois : ensuite ton identifiant suffira, partout.</div>
-    </div>
     <label style="display:flex;align-items:center;gap:9px;margin-top:14px;font-size:14px;color:var(--m-body);cursor:pointer;min-height:44px"><input type="checkbox" id="cx-souvenir" checked style="width:18px;height:18px;accent-color:var(--m-link)"> Se souvenir de moi</label>
     <div id="cx-err" style="display:none;color:var(--m-err);font-size:14px;margin-top:10px;line-height:1.55"></div>
     <button class="btn" id="cx-btn" onclick="cxEntrer()">Se connecter</button>
     <div class="liens">
-      <a href="#" onclick="cxCodeAfficher();return false">Première connexion de l'entreprise ?</a> — utilise son code d'accès.<br>
       <a href="#" onclick="cxOublie();return false">Identifiant ou mot de passe oublié ?</a>
     </div>
   </div>
@@ -249,7 +243,6 @@ try{
   }
   function adrMsg(c,h){ var e=$id('adr-err'); e.style.color=c; e.innerHTML=h; e.style.display='block'; }
   function cxMsg(c,h){ var e=$id('cx-err'); e.style.color=c; e.innerHTML=h; e.style.display='block'; }
-  function cxCodeAfficher(){ var b=$id('bloc-code'); if(b){ b.style.display='block'; var c=$id('cx-code'); if(c) c.focus(); } }
   function cxOublie(){
     cxMsg('var(--m-body)','Ton responsable remet ton mot de passe à zéro depuis l\'application (Utilisateurs → ton compte → Réinitialiser). Il te donne le nouveau, et l\'application te fait choisir le tien à la connexion suivante.');
   }
@@ -262,26 +255,14 @@ try{
   }
   var ADRESSE='';
   async function cxEntrer(){
-    var lg=$id('cx-login'), mp=$id('cx-mdp'), cod=$id('cx-code'), btn=$id('cx-btn'), err=$id('cx-err');
-    var acces=((cod&&cod.value)||'').trim();
-    /* Le code d'accès, quand il est saisi, prime : c'est le chemin de la toute première
-       connexion d'une entreprise, celle dont le serveur ne connaît encore aucun compte. */
-    if(acces){
-      btn.textContent='Vérification…'; err.style.display='none';
-      try{
-        var r0=await fetch('https://api.teamop.fr/api/espaces/ouvrir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom:ADRESSE,acces:acces})});
-        var d0=await r0.json().catch(function(){ return {}; });
-        btn.textContent='Se connecter';
-        if(r0.ok&&d0.code){ cxRetenir(lg); location.href='/app.html#entreprise='+d0.code; return; }
-        cxMsg('var(--m-err)',d0.error||'Adresse ou code d\'accès incorrect.');
-      }catch(e){ btn.textContent='Se connecter'; cxMsg('var(--m-err)','Connexion internet requise — réessaie.'); }
-      return;
-    }
+    var lg=$id('cx-login'), mp=$id('cx-mdp'), btn=$id('cx-btn'), err=$id('cx-err');
+    /* ⛔ PLUS DE CODE D'ACCÈS (Justin, 28 septembre 2026 : « je veux plus de code, que des liens pour les connexions ») :
+       l'adresse, l'identifiant et le mot de passe suffisent. Le serveur refuse désormais le code (410). */
     var login=((lg&&lg.value)||'').trim(), mdp=((mp&&mp.value)||'');
     if(!login){ cxMsg('var(--m-err)','Écris ton identifiant — le même que dans l\'application.'); lg.focus(); return; }
     if(!mdp){ cxMsg('var(--m-err)','Écris ton mot de passe.'); mp.focus(); return; }
     var h=await cxSha256(mdp);
-    if(!h){ cxMsg('var(--m-err)','Ce navigateur ne sait pas chiffrer le mot de passe. Utilise le code d\'accès de l\'entreprise, ou un navigateur à jour.'); cxCodeAfficher(); return; }
+    if(!h){ cxMsg('var(--m-err)','Ce navigateur ne sait pas chiffrer le mot de passe : ouvre cette page avec un navigateur à jour.'); return; }
     btn.textContent='Vérification…'; err.style.display='none';
     try{
       var r=await fetch('https://api.teamop.fr/api/espaces/connexion',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom:ADRESSE,login:login,h:h})});
@@ -297,8 +278,7 @@ try{
         location.href='/app.html#entreprise='+d.code; return;
       }
       if(d.motif==='sans-annuaire'){
-        cxCodeAfficher();
-        cxMsg('var(--m-warn)',(d.error||'Cette entreprise ne connaît pas encore la connexion par identifiant.')+'<br>Entre son <b>code d\'accès</b> ci-dessus pour cette fois — ensuite ton identifiant suffira.');
+        cxMsg('var(--m-warn)',(d.error||'Cette entreprise n\'a encore aucun compte ouvert.')+'<br><a href="#" onclick="entRelance();return false" style="color:inherit">me renvoyer le lien de connexion par e-mail</a>');
         return;
       }
       cxMsg('var(--m-err)',d.error||'Identifiant ou mot de passe incorrect.');

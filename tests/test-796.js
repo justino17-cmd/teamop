@@ -110,22 +110,22 @@ process.on('exit', arreter);
   const MDP = 'mdp-banc-796';
   /* ⚠️ Des identifiants qui portent des lettres HORS de [0-9a-f] : un jeton court cherché dans une
      sortie qui contient une empreinte y tombe au hasard (règle du dépôt, `test-723`). */
-  const S = { t: 'ent-susp-qk', slug: 'suspenduesa', nom: 'Suspendue SA', k: 'CLE-SUSPENDUE-PRIVEE', acces: 'SUSPCODEQ1' };
-  const F = { t: 'ent-ferm-zk', slug: 'fermeerevenue', nom: 'Fermée Revenue', k: 'CLE-FERMEE-PRIVEE', acces: 'FERMCODEZ2' };
+  const S = { t: 'ent-susp-qk', slug: 'suspenduesa', nom: 'Suspendue SA', k: 'CLE-SUSPENDUE-PRIVEE', mdp: 'Mdp-Susp-796' };
+  const F = { t: 'ent-ferm-zk', slug: 'fermeerevenue', nom: 'Fermée Revenue', k: 'CLE-FERMEE-PRIVEE', mdp: 'Mdp-Ferm-796' };
   const O = { t: 'ent-orph-xk', k: 'CLE-ORPHELINE-PRIVEE' };
-  const A = { t: 'ent-actv-wk', slug: 'activesarl', nom: 'Active SARL', k: 'CLE-ACTIVE-PRIVEE', acces: 'ACTVCODEW3' };
+  const A = { t: 'ent-actv-wk', slug: 'activesarl', nom: 'Active SARL', k: 'CLE-ACTIVE-PRIVEE', mdp: 'Mdp-Actv-796' };
   /* ⚠️ La clé d'annuaire EST le nom passé par `espSlug` (sans accents ni tirets) : une clé
      écrite autrement rend l'entreprise introuvable par son nom, et chaque porte répond 404 ou
      « code incorrect » pour une raison qui n'a rien à voir avec ce qu'on mesure. Payé à la
      première exécution de ce banc — le TÉMOIN actif était refusé lui aussi, c'est ce qui l'a dit. */
   const JOUR = 86400000, maintenant = Date.now();
   fs.writeFileSync(path.join(data, 'espaces.json'), JSON.stringify({
-    [S.slug]: { slug: S.slug, nom: S.nom, email: 's@exemple.fr', t: S.t, code: b64({ t: S.t, k: S.k }), ts: 1 },
-    [F.slug]: { slug: F.slug, nom: F.nom, email: 'f@exemple.fr', t: F.t, code: b64({ t: F.t, k: F.k }), ts: 2 },
-    [A.slug]: { slug: A.slug, nom: A.nom, email: 'a@exemple.fr', t: A.t, code: b64({ t: A.t, k: A.k }), ts: 3 },
+    [S.slug]: { slug: S.slug, nom: S.nom, email: 's@exemple.fr', t: S.t, code: b64({ t: S.t, k: S.k, a: 'sam', mh: sha(S.mdp) }), ts: 1 },
+    [F.slug]: { slug: F.slug, nom: F.nom, email: 'f@exemple.fr', t: F.t, code: b64({ t: F.t, k: F.k, a: 'fred', mh: sha(F.mdp) }), ts: 2 },
+    [A.slug]: { slug: A.slug, nom: A.nom, email: 'a@exemple.fr', t: A.t, code: b64({ t: A.t, k: A.k, a: 'alix', mh: sha(A.mdp) }), ts: 3 },
   }));
-  fs.writeFileSync(path.join(data, 'acces.json'), JSON.stringify({
-    [S.t]: { code: S.acces }, [F.t]: { code: F.acces }, [A.t]: { code: A.acces } }));
+  /* Plus de code d'accès depuis le 28 septembre 2026 (Justin : « je veux plus de code ») : on entre par l'adresse,
+     l'identifiant et le mot de passe — le compte de départ est semé par le serveur (rattrapage, `TEAMOP_RATTRAPAGE_MS`). */
   /* La forme EXACTE d'un fichier écrit avant le correctif : O est suspendue ET fermée (la
      fermeture ne la retirait pas de `suspendus`), et elle n'est plus à l'annuaire. */
   const FERMES = { emails: ['o@exemple.fr'], espaces: [S.t, F.t, O.t], suspendus: [S.t, O.t],
@@ -137,7 +137,7 @@ process.on('exit', arreter);
     apiKey: 'banc', adminPassHash: sha(MDP) }));
   const port = await new Promise(r => { const s = require('net').createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)); }); });
   enfant = spawn(process.execPath, [path.join(RACINE, 'server', 'index.js')], {
-    env: Object.assign({}, process.env, { TEAMOP_CONFIG: cfgPath, TEAMOP_DATA: data, PORT: String(port) }),
+    env: Object.assign({}, process.env, { TEAMOP_CONFIG: cfgPath, TEAMOP_DATA: data, PORT: String(port), TEAMOP_RATTRAPAGE_MS: '100' }),
     stdio: ['ignore', 'pipe', 'pipe'] });
   let journal = '';
   enfant.stdout.on('data', d => { journal += d; }); enfant.stderr.on('data', d => { journal += d; });
@@ -202,13 +202,18 @@ process.on('exit', arreter);
 
     console.log('\n══ 4. ⛔ SE CONNECTER, DÉPOSER L\'ANNUAIRE, RECEVOIR SES ORDRES ══\n');
     {
-      const os_ = await post('/api/espaces/ouvrir', { nom: S.nom, acces: S.acces });
-      v('⛔ nom + code : la suspendue entre', os_.code, 200);
+      /* Le compte de départ se sème en tâche de fond (PBKDF2, un espace après l'autre) : on attend le TÉMOIN actif,
+         puis on joue les trois. */
+      const entrer = (X, id) => post('/api/espaces/connexion', { nom: X.nom, login: id, h: sha(X.mdp) });
+      let oa = null;
+      for (let i = 0; i < 50 && !(oa && oa.code === 200); i++) { oa = await entrer(A, 'alix'); if (oa.code !== 200) await new Promise(r => setTimeout(r, 100)); }
+      v('   (le témoin actif entre, par son identifiant)', oa.code, 200);
+      let os_ = null;
+      for (let i = 0; i < 30 && !(os_ && os_.code === 200); i++) { os_ = await entrer(S, 'sam'); if (os_.code !== 200) await new Promise(r => setTimeout(r, 100)); }
+      v('⛔ nom + identifiant + mot de passe : la suspendue entre', os_.code, 200);
       vrai('   et reçoit la clé de ses données', !!(os_.j && os_.j.code));
-      const of = await post('/api/espaces/ouvrir', { nom: F.nom, acces: F.acces });
-      v('   la fermée, non — avec le refus générique', [of.code, of.j.error], [403, 'Nom d\'entreprise ou code d\'accès incorrect.']);
-      const oa = await post('/api/espaces/ouvrir', { nom: A.nom, acces: A.acces });
-      v('   (le témoin actif entre aussi)', oa.code, 200);
+      const of = await entrer(F, 'fred');
+      v('   la fermée, non', of.code === 200, false);
 
       const cs = await post('/api/espaces/comptes', { t: S.t, kh: sha(S.k), comptes: [] });
       v('⛔ l\'annuaire : la suspendue n\'est plus refusée comme fermée', ferme(cs), false);
@@ -315,8 +320,8 @@ process.on('exit', arreter);
 
       /* La liste des fermetures abîmée, l'annuaire réparé. */
       fs.writeFileSync(path.join(data, 'espaces.json'), JSON.stringify({
-        [S.slug]: { slug: S.slug, nom: S.nom, t: S.t, code: b64({ t: S.t, k: S.k }), ts: 1 },
-        [A.slug]: { slug: A.slug, nom: A.nom, t: A.t, code: b64({ t: A.t, k: A.k }), ts: 3 } }));
+        [S.slug]: { slug: S.slug, nom: S.nom, t: S.t, code: b64({ t: S.t, k: S.k, a: 'sam', mh: sha(S.mdp) }), ts: 1 },
+        [A.slug]: { slug: A.slug, nom: A.nom, t: A.t, code: b64({ t: A.t, k: A.k, a: 'alix', mh: sha(A.mdp) }), ts: 3 } }));
       const ABIME_F = '{"emails":[],"espaces":["' + F.t + '"';
       fs.writeFileSync(path.join(data, 'entreprises-fermees.json'), ABIME_F);
       const port3 = await new Promise(r => { const s = require('net').createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)); }); });

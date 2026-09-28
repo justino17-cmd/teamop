@@ -1,25 +1,26 @@
-/* ⛔ CE QUE CE FICHIER GARDE — il n'y a plus qu'UNE adresse et UN code. Le lien de première
-   connexion est supprimé.
+/* ⛔ CE QUE CE FICHIER GARDE — il n'y a plus qu'UNE adresse et des IDENTIFIANTS. Ni lien qui transporte la clé, ni
+   code d'accès.
 
-   Justin, 12 septembre 2026, après avoir vu la Tour lui afficher un lien qui ne correspondait
-   pas à ELAN : « on va supprimer ces liens-là et garder que le lien qui se donne aux équipes ».
+   Justin, 12 septembre 2026, après avoir vu la Tour lui afficher un lien qui ne correspondait pas à ELAN : « on va
+   supprimer ces liens-là et garder que le lien qui se donne aux équipes ». Puis le 28 septembre 2026 : « je veux plus
+   de code, que des liens pour les connexions » — le code d'accès à dix caractères (« Première connexion de
+   l'entreprise ? ») est retiré à son tour.
 
    ── POURQUOI C'EST PLUS QU'UN RANGEMENT ───────────────────────────────────────────────────
-   Ce lien portait `k` dans son URL — LA CLÉ QUI DÉCHIFFRE TOUTES LES DONNÉES DE L'ENTREPRISE.
-   Une URL est faite pour être transférée, photographiée, collée dans un groupe WhatsApp. Et il
-   était fabriqué de travers dès qu'on ouvrait la Tour depuis un autre appareil : c'est ce qui a
-   produit elan-d4v8, elan-tzl2 et elan-gq3k.
+   Le lien portait `k` dans son URL — LA CLÉ QUI DÉCHIFFRE TOUTES LES DONNÉES DE L'ENTREPRISE — et il était fabriqué de
+   travers depuis un autre appareil (elan-d4v8, elan-tzl2, elan-gq3k). Le code, lui, se perdait, se retapait de
+   travers, se redemandait — et depuis que chaque espace naît avec son compte de départ, il n'ouvrait plus rien que
+   l'identifiant n'ouvre déjà.
 
    ── ⚠️ CE QUE CE FICHIER DOIT PROUVER AVANT TOUT ──────────────────────────────────────────
-   Retirer une porte n'est juste que si l'autre s'ouvre. Un test qui vérifierait seulement que
-   le lien a disparu passerait au vert le jour où PLUS AUCUNE entreprise ne peut se connecter
-   pour la première fois. La moitié de ce fichier sert donc à jouer le chemin de remplacement
-   sur le VRAI serveur : code d'accès → l'espace s'ouvre, clé comprise.
+   Retirer une porte n'est juste que si l'autre s'ouvre. Un test qui vérifierait seulement que le code a disparu
+   passerait au vert le jour où PLUS AUCUNE entreprise ne peut entrer. La partie serveur joue donc le chemin qui
+   reste, sur le VRAI serveur : un espace inscrit reçoit son compte de départ tout seul (le semis), et l'adresse +
+   l'identifiant + le mot de passe l'ouvrent — pendant que le code, même un vrai code d'avant, n'ouvre plus rien.
 
    ── CE QUI NE DOIT PAS DISPARAÎTRE POUR AUTANT ────────────────────────────────────────────
-   Les liens DÉJÀ ENVOYÉS sont entre les mains de gens qui travaillent. `/api/espaces/lien` et
-   le traitement de `#entreprise=` dans app.html restent : on cesse d'en fabriquer, on ne casse
-   pas ceux qui circulent. */
+   Les liens DÉJÀ ENVOYÉS sont entre les mains de gens qui travaillent. `/api/espaces/lien` et le traitement de
+   `#entreprise=` dans app.html restent : on cesse d'en fabriquer, on ne casse pas ceux qui circulent. */
 
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const { spawn } = require('child_process');
@@ -27,11 +28,15 @@ const RACINE = path.join(__dirname, '..');
 const TOUR = fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8');
 const SRV = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8');
 const APP = fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8');
+const CNX = fs.readFileSync(path.join(RACINE, 'connexion.html'), 'utf8');
+/* Les commentaires retirés (ceux qui COMMENCENT une ligne) : un motif vise du code, jamais la phrase qui l'explique. */
+const sansCom = (x) => x.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+const TOURc = sansCom(TOUR), SRVc = sansCom(SRV), CNXc = sansCom(CNX);
 
 let ok = 0, ko = 0;
 const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + JSON.stringify(b) + '\n      obtenu  : ' + JSON.stringify(a)); } };
 
-console.log('Une adresse, un code — plus de lien qui transporte la clé');
+console.log('Une adresse, des identifiants — plus de lien qui transporte la clé, plus de code');
 
 /* ══ 1) LA TOUR N'AFFICHE PLUS AUCUN LIEN DE PREMIÈRE CONNEXION ═══════════════════════════ */
 {
@@ -52,92 +57,70 @@ console.log('Une adresse, un code — plus de lien qui transporte la clé');
   /* L'adresse, elle, est partout : c'est elle qu'on donne aux équipes. */
   v('l’adresse reste sur la fiche entreprise', /id="lg-adr"/.test(TOUR), true);
   v('…et sur le panneau « formule acceptée »', /id="acc-adr"/.test(TOUR), true);
-  v('le code d’accès devient la première connexion, pas « le filet »',
-    /pour la TOUTE PREMIÈRE connexion/.test(TOUR), true);
-  v('⛔ et on ne l’appelle plus « le filet »', /le filet : la toute première connexion/.test(TOUR), false);
+  v('⛔ et plus aucun panneau ne parle de « la toute première connexion » par un code',
+    /pour la TOUTE PREMIÈRE connexion|Première connexion de l/.test(TOURc), false);
 }
 
-/* ══ 2) LE MESSAGE NE PART JAMAIS SANS SON CODE ═══════════════════════════════════════════
-   Le code arrive après le panneau (un aller-retour serveur). Poser le message tout de suite,
-   c'était envoyer au client un courriel portant « __CODE__ » en toutes lettres — et aucun
-   moyen d'entrer chez lui. C'est le piège que ce lot pouvait créer, pas celui qu'il corrige. */
+/* ══ 2) PLUS AUCUN CODE D'ACCÈS NULLE PART — Tour, page de connexion, serveur ═══════════════
+   On compte des FORMES DE CODE (identifiants, routes, repères), jamais la phrase qui raconte leur retrait. */
 {
-  v('le message attend son code', /LG_MSG_MODELE=txt/.test(TOUR), true);
-  v('⛔ le repère existe dans les deux messages types', (TOUR.match(/__CODE__/g) || []).length >= 3, true);
-  v('il est remplacé quand le code arrive', /LG_MSG_MODELE\.replace\('__CODE__',code\|\|''\)/.test(TOUR), true);
-  v('⛔ sans code, le bouton « ouvrir dans Mail » est désarmé',
-    /a\.href='#'; a\.style\.opacity='\.45'; a\.style\.pointerEvents='none'/.test(TOUR), true);
-  v('…et il dit pourquoi', /Il faut d\\'abord un code d\\'accès/.test(TOUR), true);
-  /* DEUX panneaux posent ce message, dans deux zones différentes. Écrire #lg-msg en dur
-     laissait l'autre avec « __CODE__ ». */
+  v('⛔ la Tour n’a plus de zone de code d’accès', /id="lg-acces/.test(TOUR), false);
+  v('⛔ …ni de repère « __CODE__ » dans un message', /'__CODE__'|\\n\\n     __CODE__/.test(TOURc), false);
+  v('⛔ …ni de fonction qui va le chercher ou le renouvelle', /function tourAccesCharger\(|function tourAccesNeuf\(|\/api\/monitor\/espaces\/acces/.test(TOURc), false);
+  v('le message type se pose tout de suite, complet', /LG_MSG_MODELE=txt; LG_MAIL=email; LG_ZONE='lg-msg';\s*\n\s*lgMessagePoser\(\);/.test(TOUR), true);
+  v('…dans les DEUX panneaux (fiche entreprise, demande acceptée)', (TOURc.match(/LG_ZONE='(lg-msg|acc-msg)';\s*\n\s*lgMessagePoser\(\);/g) || []).length, 2);
   v('⛔ la zone du message est choisie, pas écrite en dur', /getElementById\(LG_ZONE\|\|'lg-msg'\)/.test(TOUR), true);
-  v('…et chaque panneau dit la sienne', (TOUR.match(/LG_ZONE='/g) || []).length >= 3, true);
-  /* Le presse-papiers AUTOMATIQUE du panneau « formule » copiait le message dès l'affichage :
-     il aurait copié « __CODE__ », et c'est ça que le patron aurait collé au client.
-     ⚠️ La cible est la forme EXACTE de cette copie automatique — pas « writeText » en général.
-     Deux autres appels subsistent et doivent subsister : le bouton « Copier » (tourCopie) et
-     l'export de la liste d'adresses. Les deux partent d'un clic ; celui-ci partait tout seul. */
-  v('⛔ plus de copie automatique avant que le code soit là',
-    /try\{ navigator\.clipboard\.writeText\(txt\); \}catch\(e2\)\{\}/.test(TOUR), false);
+  v('⛔ plus de copie automatique à l’affichage', /try\{ navigator\.clipboard\.writeText\(txt\); \}catch\(e2\)\{\}/.test(TOUR), false);
   v('…mais le bouton « Copier » marche toujours', /function tourCopie\(/.test(TOUR), true);
+  v('⛔ la page de connexion n’a plus de champ de code', /id="cx-code"|id="bloc-code"|cxCodeAfficher/.test(CNX), false);
+  v('⛔ …ni d’appel à la route du code', /\/api\/espaces\/ouvrir/.test(CNXc), false);
+  v('…mais elle entre toujours par identifiant', /\/api\/espaces\/connexion/.test(CNXc), true);
+  v('⛔ le serveur ne fabrique plus de code (plus de fabrique, plus d’appel)', /accesCodeDe|function accesNeuf|ACCES_ALPHABET/.test(SRVc), false);
+  v('⛔ …et ses deux routes répondent 410, en le disant',
+    /app\.post\('\/api\/espaces\/ouvrir', \(req, res\) => res\.status\(410\)\.json\(\{ error: PLUS_DE_CODE, motif: 'sans_code' \}\)\);/.test(SRV)
+    && /app\.post\('\/api\/monitor\/espaces\/acces', monPatronStrict, \(req, res\) =>\s*\n\s*res\.status\(410\)/.test(SRV), true);
 }
 
-/* ══ 3) « CODE INDISPONIBLE » NE SUFFIT PLUS ══════════════════════════════════════════════
-   Trois mots, aucune piste — et c'est ce qu'affichait la fiche d'ELAN le 12 septembre. Tant
-   que le lien existait, ce n'était qu'un filet muet ; c'est maintenant la seule porte. */
+/* ══ 3) LE COURRIEL DU LIEN : l'adresse et les identifiants, sans code ═══════════════════════ */
 {
-  v('l’échec dit ce que le serveur a répondu', /le serveur a répondu '\+\(\(r&&r\.status\)\|\|'\?'\)/.test(TOUR), true);
-  v('un serveur injoignable se distingue d’un refus', /serveur injoignable — réessaie/.test(TOUR), true);
-}
-
-/* ══ 4) LES COURRIELS DU SERVEUR ═════════════════════════════════════════════════════════ */
-{
-  const mail = SRV.slice(SRV.indexOf("app.post('/api/monitor/espaces/mail-acces'"), SRV.indexOf("app.post('/api/monitor/espaces/mail-acces'") + 5000);
-  v('⛔ le courriel d’accueil n’envoie plus de lien', /const lien = lienEspaceCode\(e\);/.test(mail), false);
-  v('il envoie l’adresse et le code d’accès', /const acces = enrAcces\.code;/.test(mail), true);
-  v('⛔ et il refuse de partir sans code plutôt que d’en envoyer un vide',
-    /if \(!enrAcces\) return res\.status\(500\)/.test(mail), true);
+  const i0 = SRVc.indexOf("app.post('/api/monitor/espaces/mail-acces'");
+  const mail = i0 >= 0 ? SRVc.slice(i0, SRVc.indexOf('\n});', i0)) : '';
+  v('le bloc du courriel est retrouvé', mail.length > 2000, true);
+  v('⛔ le courriel d’accueil n’envoie plus de lien', /lienEspaceCode/.test(mail), false);
+  /* « mail-acces » est le NOM de la route, au début de la tranche : on le retire avant de chercher. */
+  v('⛔ …ni de code d’accès', /(?<!mail-)acces\b|code d\\'acc/i.test(mail), false);
+  v('il envoie l’adresse', /const adresse = 'teamop\.fr\/e\/' \+ \(e\.slug \|\| slug\);/.test(mail), true);
+  v('⛔ le mot de passe ne part que s’il correspond à l’empreinte enregistrée',
+    /const m = \(mh && mdpDonne && mdpEmpreinte\(mdpDonne\) === mh\) \? mdpDonne : '';/.test(mail), true);
+  v('⛔ un espace sans aucun compte : refus (409 « sans_compte »), jamais une porte fermée par courriel', /motif: 'sans_compte'/.test(mail), true);
   v('son bouton mène à l’adresse', /boutonUrl: 'https:\/\/' \+ adresse/.test(mail), true);
 
   const rel = SRV.slice(SRV.indexOf("app.post('/api/espaces/relance'"), SRV.indexOf("app.post('/api/espaces/relance'") + 4000);
   /* ⛔ Celle-ci est PUBLIQUE : n'importe qui tapant le nom d'une entreprise sur teamop.fr la
      déclenchait, et elle renvoyait la clé de déchiffrement par courriel. Elle renvoie
-     désormais l'adresse, qui n'est pas un secret. Le code, lui, ne s'obtient que par le patron. */
+     désormais l'adresse, qui n'est pas un secret. */
   v('⛔ le secours « lien perdu » ne renvoie plus la clé', /lienEspaceCode/.test(rel), false);
   v('il renvoie l’adresse', /const adresse = 'teamop\.fr\/e\/'/.test(rel), true);
-  v('…et il ne dicte pas le code d’accès dans un courriel déclenché par un inconnu',
-    /acces/.test(rel), false);
+  v('…et aucun code dans un courriel déclenché par un inconnu', /acces/.test(rel), false);
 }
 
-/* ══ 4 bis) LES DEUX CHEMINS DU SITE — 12 septembre, décision de Justin : « fait les 3 » ═══
-   Ils envoyaient encore un lien portant la clé, et ce ne sont pas de petits chemins :
-   · /api/compte/identifiants part vers CHAQUE employé qu'un administrateur crée ;
-   · le relais d'inscription part vers chaque entreprise qui s'abonne sur teamop.fr.
-   Les deux cas ne se règlent pas pareil, et c'est tout l'intérêt de les distinguer : pour un
-   employé, l'entreprise A DÉJÀ des comptes — l'adresse suffit. Pour une entreprise qui vient de
-   s'inscrire, il n'y en a aucun — il faut le code d'accès. */
+/* ══ 4) LES DEUX CHEMINS DU SITE ═════════════════════════════════════════════════════════════
+   · /api/compte/identifiants part vers CHAQUE employé qu'un administrateur crée : l'adresse suffit ;
+   · une demande d'accès du site ne crée plus rien (Justin, 28 septembre 2026) : pas d'espace, pas de code — le
+     patron la traite dans sa Tour (`test-813` le joue sur le vrai serveur). */
 {
   const ident = SRV.slice(SRV.indexOf("app.post('/api/compte/identifiants'"), SRV.indexOf("app.post('/api/compte/identifiants'") + 4200);
   v('⛔ le courriel à un nouvel employé n’envoie plus de lien', /lienEspaceCode/.test(ident), false);
   v('il envoie l’adresse de l’entreprise', /const adrEsp = \(esp && esp\.slug\) \? \('https:\/\/teamop\.fr\/e\/' \+ esp\.slug\) : '';/.test(ident), true);
-  /* ⚠️ Et il la donne dès qu'on a un slug, même si l'annuaire boite : envoyer quelqu'un sur
-     connexion.html sans lui dire OÙ aller, c'est l'échouer à coup sûr. */
   v('…et il ne renvoie plus le lien fourni par l’application', /lienApp \|\| 'https:\/\/teamop\.fr\/connexion\.html'/.test(ident), false);
-
-  /* ⚠️ BORNÉ PAR DU TEXTE, jamais par un nombre de caractères. Une fenêtre de 5 000 signes
-     s'arrêtait AVANT la moitié du bloc : l'assertion passait au rouge sur du code parfaitement
-     juste. C'est la leçon déjà écrite dans test-641, et elle vient de se reproduire. */
-  const rDeb = SRV.indexOf('PLUS DE LIEN DE BIENVENUE');
-  const rFin = SRV.indexOf('bouton2Url:', SRV.indexOf("L\\'adresse de votre entreprise est prête"));
-  const relais = (rDeb >= 0 && rFin > rDeb) ? SRV.slice(rDeb, rFin) : '';
-  /* Si le découpage rate, il le DIT : il ne passe pas au vert en ne regardant rien. */
-  v('le bloc du relais est retrouvé, et entier', relais.length > 3000 && /accesCodeDe/.test(relais), true);
-  v('⛔ le courriel d’inscription automatique n’envoie plus de lien', /lienEspaceCode/.test(relais), false);
-  v('il envoie l’adresse', /const adrAuto = auto\.slug \? \('teamop\.fr\/e\/' \+ auto\.slug\) : '';/.test(relais), true);
-  /* ⛔ Un espace qui vient d'être créé n'a AUCUN compte : sans code d'accès, l'adresse seule
-     ne s'ouvre pas. C'est le cas où oublier le code ferme la porte à un client tout neuf. */
-  v('⛔ …ET le code d’accès, parce que l’espace est neuf', /const accesAuto = enrAuto \? enrAuto\.code : '';/.test(relais), true);
-  v('⛔ et si le code manque, il ne fait pas semblant', /Écrivez-nous pour recevoir votre code d\\'accès/.test(relais), true);
+  const j0 = SRVc.indexOf("const nv = demandes.slice(avant);"), j1 = SRVc.indexOf("res.json({ ok: true });", j0);
+  const dem = (j0 >= 0 && j1 > j0) ? SRVc.slice(j0, j1) : '';
+  v('le bloc des nouvelles demandes est retrouvé, et entier', dem.length > 2000 && /mailerEnvoi\(/.test(dem), true);
+  v('⛔ une demande ne crée AUCUN espace', /espaceAutoPour|espacesReg\[|espacesEcrire\(/.test(dem), false);
+  v('⛔ …n’active aucun code promo, ne marque rien « traité », ne touche pas la fiche du portail',
+    /promoUsages|savePromoUsages|demandesTraitees|fbMajFicheClient/.test(dem), false);
+  v('⛔ …et n’envoie ni adresse d’espace ni code', /teamop\.fr\/e\/|code d\\'acc/.test(dem), false);
+  v('le patron reçoit la demande À TRAITER, le client l’accusé', /À TRAITER/.test(dem) && /Votre demande est bien reçue/.test(dem), true);
 }
 
 /* ══ 5) CE QUI DOIT SURVIVRE — les liens DÉJÀ entre les mains des gens ════════════════════ */
@@ -148,20 +131,7 @@ console.log('Une adresse, un code — plus de lien qui transporte la clé');
   v('…et la fabrique de lien reste, pour elle', /function lienEspaceCode\(e\)/.test(SRV), true);
 }
 
-/* ══ 6) UNE SEULE DÉFINITION DU CODE D'ACCÈS ══════════════════════════════════════════════
-   Deux chemins le réclament — le panneau et le courriel. Deux copies finiraient par fabriquer
-   deux codes différents : celui qu'on dicte et celui qu'on envoie. Même raison que fbUidEquipe. */
-{
-  v('accesCodeDe n’a qu’une définition', (SRV.match(/function accesCodeDe\(/g) || []).length, 1);
-  /* TROIS chemins la réclament désormais : le panneau de la Tour, le courriel d'accueil, et
-     l'inscription automatique depuis le site. Compter plutôt que nommer, pour qu'un QUATRIÈME
-     chemin qui referait son propre code fasse tomber ce test. (4 = la définition + 3 appels.) */
-  v('⛔ et les trois chemins passent par elle', (SRV.match(/accesCodeDe\(/g) || []).length, 4);
-  v('…dont l’inscription automatique du site', /const enrAuto = auto\.t \? accesCodeDe\(auto\.t, 'inscription automatique'\) : null;/.test(SRV), true);
-  v('elle rend null si l’écriture échoue', /if \(!accesEcrire\(\)\) \{ if \(avant\) accesReg\[t\] = avant; else delete accesReg\[t\]; return null; \}/.test(SRV), true);
-}
-
-/* ══ 7) LE VRAI SERVEUR — la première connexion marche-t-elle SANS lien ? ═════════════════ */
+/* ══ 6) LE VRAI SERVEUR — l'entreprise entre-t-elle SANS code ? ══════════════════════════ */
 const banc = path.join(require('os').tmpdir(), 'teamop-test-669-' + process.pid);
 let enfant = null;
 const stop = () => { try { if (enfant && enfant.pid) process.kill(enfant.pid); } catch (e) {} try { fs.rmSync(banc, { recursive: true, force: true }); } catch (e) {} };
@@ -176,6 +146,7 @@ const stop = () => { try { if (enfant && enfant.pid) process.kill(enfant.pid); }
   const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64').replace(/=+$/, '');
   const sha = p => crypto.createHash('sha256').update(String(p)).digest('hex');
   const MDP = 'banc-669';
+  const ACCES_ANCIEN = 'ABCDEFGH23';   // un VRAI code d'avant, resté dans acces.json
 
   fs.mkdirSync(path.join(banc, 'data'), { recursive: true });
   const vap = webpush.generateVAPIDKeys();
@@ -183,11 +154,13 @@ const stop = () => { try { if (enfant && enfant.pid) process.kill(enfant.pid); }
     vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, adminPassHash: sha(MDP) }));
   fs.writeFileSync(path.join(banc, 'data', 'espaces.json'), JSON.stringify({
     'elan': { slug: 'elan', nom: 'ELAN', email: 'e@exemple.fr', t: 'elan-34oc',
-              code: b64({ t: 'elan-34oc', k: 'CLE-PROPRE-ELAN', n: 'ELAN', a: 'florent', m: 'Florent!!' }), ts: 1 } }));
+              code: b64({ t: 'elan-34oc', k: 'CLE-PROPRE-ELAN', n: 'ELAN', a: 'florent', m: 'Florent-Banc-669' }), ts: 1 } }));
+  fs.writeFileSync(path.join(banc, 'data', 'acces.json'), JSON.stringify({ 'elan-34oc': { code: ACCES_ANCIEN, ts: 1, par: 'banc', vu: 0 } }));
 
   const PORT = 8700 + (process.pid % 90);
   enfant = spawn(process.execPath, [path.join(RACINE, 'server', 'index.js')], {
-    env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, 'config.json'), TEAMOP_DATA: path.join(banc, 'data'), PORT: String(PORT) }),
+    env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, 'config.json'), TEAMOP_DATA: path.join(banc, 'data'), PORT: String(PORT),
+      TEAMOP_RATTRAPAGE_MS: '150' }),
     stdio: 'ignore' });
   const B = 'http://127.0.0.1:' + PORT;
   for (let i = 0; i < 60; i++) { try { await fetch(B + '/health'); break; } catch (e) { await new Promise(r => setTimeout(r, 100)); } }
@@ -200,37 +173,37 @@ const stop = () => { try { if (enfant && enfant.pid) process.kill(enfant.pid); }
   try {
     let r = await P('/api/monitor/login', { nom: 'Patron', pass: MDP });
     const TOK = r.j.token || '';
+    v('la Tour ouvre une session de patron', !!TOK, true);
 
-    r = await P('/api/monitor/espaces/acces', { slug: 'elan' }, TOK);
-    v('le code d’accès existe (créé au premier appel)', r.statut, 200);
-    const ACCES = String(r.j.acces || '');
-    v('…et il fait bien dix caractères', ACCES.length, 10);
-
-    /* ⛔ LE CŒUR DE CE FICHIER. Sans lien, c'est CE chemin qui ouvre un espace neuf. S'il
-       casse, plus aucune entreprise ne peut se connecter la première fois — et le reste du
-       fichier passerait au vert sans rien voir. */
-    r = await P('/api/espaces/ouvrir', { nom: 'elan', acces: ACCES });
-    v('⛔ LA PREMIÈRE CONNEXION MARCHE SANS LIEN', r.statut, 200);
-    let o = {}; try { o = JSON.parse(Buffer.from(String(r.j.code || ''), 'base64').toString('utf8')); } catch (e) {}
+    /* ⛔ LE CŒUR DE CE FICHIER. Sans code, c'est CE chemin qui ouvre l'espace : l'adresse, l'identifiant de départ,
+       le mot de passe provisoire — le compte ayant été semé par le serveur (rattrapage au démarrage, ici en 150 ms). */
+    let ouvert = null;
+    for (let i = 0; i < 40 && !(ouvert && ouvert.statut === 200); i++) {
+      ouvert = await P('/api/espaces/connexion', { nom: 'elan', login: 'florent', h: sha('Florent-Banc-669') });
+      if (ouvert.statut !== 200) await new Promise(res => setTimeout(res, 100));
+    }
+    v('⛔ L’ENTREPRISE ENTRE SANS CODE : adresse + identifiant + mot de passe', ouvert && ouvert.statut, 200);
+    let o = {}; try { o = JSON.parse(Buffer.from(String((ouvert && ouvert.j.code) || ''), 'base64').toString('utf8')); } catch (e) {}
     v('…elle ouvre le BON espace', o.t, 'elan-34oc');
     v('…avec la clé qui déchiffre les données', !!o.k, true);
     v('⛔ …et sans le mot de passe provisoire en clair', !!o.m, false);
+    r = await P('/api/espaces/connexion', { nom: 'elan', login: 'florent', h: sha('pas-le-bon') });
+    v('⛔ un mauvais mot de passe n’ouvre rien', r.statut === 200, false);
 
+    /* Et le code : plus aucun, même un vrai code d'avant — refusé en le DISANT (410), pas « code incorrect ». */
+    r = await P('/api/espaces/ouvrir', { nom: 'elan', acces: ACCES_ANCIEN });
+    v('⛔ un VRAI code d’avant n’ouvre plus rien (410)', [r.statut, r.j.motif, !!r.j.code], [410, 'sans_code', false]);
+    v('…et la réponse dit quoi faire à la place', /identifiant et son mot de passe/.test(String(r.j.error || '')), true);
     r = await P('/api/espaces/ouvrir', { nom: 'elan', acces: 'MAUVAISCODE' });
-    v('⛔ un mauvais code n’ouvre rien', r.statut, 403);
-    r = await P('/api/espaces/ouvrir', { nom: 'elan', acces: '' });
-    v('⛔ un code vide non plus', r.statut === 200, false);
-
-    /* Le code dicté et le code envoyé sont le MÊME — c'est ce que garantit accesCodeDe. */
+    v('…un mauvais code non plus, même réponse', r.statut, 410);
     r = await P('/api/monitor/espaces/acces', { slug: 'elan' }, TOK);
-    v('⛔ relire le code ne le change pas', r.j.acces, ACCES);
+    v('⛔ la Tour ne peut plus fabriquer de code (410)', [r.statut, !!r.j.acces], [410, false]);
     r = await P('/api/monitor/espaces/acces', { slug: 'elan', regenerer: true }, TOK);
-    v('…mais « Renouveler » le change bien', r.j.acces !== ACCES, true);
-    const NEUF = r.j.acces;
-    r = await P('/api/espaces/ouvrir', { nom: 'elan', acces: ACCES });
-    v('⛔ et l’ancien code ne vaut plus rien', r.statut, 403);
-    r = await P('/api/espaces/ouvrir', { nom: 'elan', acces: NEUF });
-    v('…le nouveau, si', r.statut, 200);
+    v('…ni en renouveler un', [r.statut, !!r.j.acces], [410, false]);
+    r = await P('/api/monitor/espaces/acces', { slug: 'elan' });
+    v('…et la route reste gardée : sans session du patron, refusée', [401, 403].includes(r.statut), true);
+    const reg = JSON.parse(fs.readFileSync(path.join(banc, 'data', 'acces.json'), 'utf8'));
+    v('⛔ le registre des codes n’a pas reçu une seule entrée de plus', Object.keys(reg), ['elan-34oc']);
   } catch (e) {
     ko++; console.log('  ✗ banc serveur : ' + e.message);
   }
