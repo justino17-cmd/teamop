@@ -121,7 +121,17 @@ jamais deux panneaux (« Plus » se referme), fermé si l'écran passe à 900 px
   le banc 7 ✓ 59 ✗ ; 12/12 mutations (`scratchpad/mutations-tour-tiroir.py`, sur des copies) ; bancs de la Tour 828,
   829, 830, 832, 833, 835, 841 verts. ⚠️ La Tour n'a ni manifeste ni mode plein écran : sur iPhone elle s'ouvre dans
   Safari, où l'encoche du haut vaut 0 — tout l'en-tête est à 6 px (mesuré), la pastille y est alignée.
-· @@RELECTURE_TIROIR@@
+· Relecture adverse (dessin + diff, deux réfutateurs par constat) — six constats confirmés, tous corrigés (`0c26fc4`) :
+  le tiroir se rouvrait DÉFILÉ (remis à zéro une fois MONTRÉ : caché, il ignore `scrollTop` et le navigateur lui rend
+  son ancien défilement — premier essai sans effet, vu par la sonde) ; à 360 et 390 px un nom long s'écrivait SOUS
+  « GESTION » (colonne bornée, ellipse ; le nom entier est en tête du tiroir) ; `verifier-theme` passait au rouge sur
+  une variable bâtie (`APP_TEINTE`) ; un tiroir ouvert gardait un contenu périmé après Ctrl+Maj+M, le retour ou un
+  compteur (`tiroirRafraichir`, appelé par `setTab`, `setBdg`, `majCompteursApp` ; jamais sous un doigt posé) ; en
+  « animations réduites » il ne suivait plus le doigt (`.glisse`) ; la sonde jouait un contrôle creux (le clic qui
+  suit un glissé est maintenant JOUÉ). Après : sonde **71 ✓ 0 ✗** (contre la version d'avant : 10 ✗), `test-843`
+  **67 ✓**, **18/18** mutations, `verifier-theme` 0. Ce que la relecture a mesuré et qui tient : contraste au pixel
+  (≥ 4,7 partout dans le tiroir), la pastille n'est pas une loupe, 44 px partout, iPhone SE (le pied atteignable),
+  jamais deux panneaux avec « Ma barre », aucun survol collé, aucune erreur JavaScript.
 · Publication : `tour.html` seul sur `main` (GitHub Pages, aucun déploiement serveur). Le `stash@{0}` peut être jeté une
   fois la v2.75 en service.
 
