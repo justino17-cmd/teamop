@@ -717,7 +717,7 @@ button.dsr-p[aria-expanded="true"] .dsr-x{transform:rotate(90deg)}
      résilience du skill. C'est pour ça que la carte GAGNE 8 px au téléphone au lieu d'en perdre. */
   .reg-l.cli .reg-t1,.reg-l.haut .reg-t1,#dia .dia-carte .reg-t1{font-size:17px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   .reg-l3{display:none}
-  /* 96 px suffisaient à « 3 erreurs » ; « 🔑 Code d’accès requis » déborde de sa boîte et
+  /* 96 px suffisaient à « 3 erreurs » ; « ⚠️ Aucun compte » déborde de sa boîte et
      vient se peindre PAR-DESSUS le nom, parce que justify-content:flex-end pousse le
      débordement vers la gauche. La pastille passe donc sur deux lignes plutôt que de
      sortir de son cadre : la carte est en min-height, elle grandit. */
@@ -8811,7 +8811,7 @@ function accLignePub(e){
      de virer au gris. Ce qui compte, c'est ce qui est OUVERT. */
   var p=[],reste=0;
   if(e.suspendu) p.push('<span class="past p-rouge">⏸ Suspendu</span>');
-  if(!e.annuaire){ if(p.length<2) p.push('<span class="past p-ambre">🔑 Code d’accès requis</span>'); else reste++; }
+  if(!e.annuaire){ if(p.length<2) p.push('<span class="past p-ambre">⚠️ Aucun compte</span>'); else reste++; }
   if(e.opMessages){ if(p.length<2) p.push('<span class="past p-vert">💬 OP MESSAGES</span>'); else reste++; }
   if(reste) p.push('<span class="reg-plus">+'+reste+'</span>');
   return '<button type="button" class="reg-l cli" onclick="accFichePub(\''+jsq(e.slug||'')+'\')">'+

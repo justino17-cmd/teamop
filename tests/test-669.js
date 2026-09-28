@@ -90,8 +90,8 @@ console.log('Une adresse, des identifiants — plus de lien qui transporte la cl
   /* « mail-acces » est le NOM de la route, au début de la tranche : on le retire avant de chercher. */
   v('⛔ …ni de code d’accès', /(?<!mail-)acces\b|code d\\'acc/i.test(mail), false);
   v('il envoie l’adresse', /const adresse = 'teamop\.fr\/e\/' \+ \(e\.slug \|\| slug\);/.test(mail), true);
-  v('⛔ le mot de passe ne part que s’il correspond à l’empreinte enregistrée',
-    /const m = \(mh && mdpDonne && mdpEmpreinte\(mdpDonne\) === mh\) \? mdpDonne : '';/.test(mail), true);
+  v('⛔ le mot de passe ne part que s’il correspond à l’empreinte enregistrée — et jamais sur un espace déjà ouvert',
+    /const m = \(jamaisOuvert && mh && mdpDonne && mdpEmpreinte\(mdpDonne\) === mh\) \? mdpDonne : '';/.test(mail), true);
   v('⛔ un espace sans aucun compte : refus (409 « sans_compte »), jamais une porte fermée par courriel', /motif: 'sans_compte'/.test(mail), true);
   v('son bouton mène à l’adresse', /boutonUrl: 'https:\/\/' \+ adresse/.test(mail), true);
 

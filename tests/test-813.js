@@ -289,6 +289,19 @@ console.log('\n── 813 · l\'arrière-guichet du portail : inscription, statu
     esp = await appel('/api/monitor/espaces/liste', undefined, tour);
     const sonEspace = (esp.j.espaces || []).find(e => String(e.email || '').toLowerCase() === 'nouveau@exemple.fr');
     vrai('   et son espace existe dans l\'annuaire', sonEspace);
+    /* ⛔ (`gardien`, 28 septembre 2026) UN PLAFOND PAR ADRESSE. « Nouvelle demande » se juge à la longueur de la liste :
+       en alternant une liste vide et une liste d'une demande, un seul compte faisait partir deux courriels par requête.
+       Trois salves par heure et par adresse — la première est partie plus haut. */
+    const salvePatron = () => courrierPour('patron@banc-teamop.fr', /À TRAITER/).length;
+    const salveClient = () => courrierPour('nouveau@exemple.fr', /Votre demande est bien re/).length;
+    const [p0, c0] = [salvePatron(), salveClient()];
+    for (let i = 0; i < 6; i++) {
+      await appel('/api/clients/sync', { entreprise: 'Hygiène Nouvelle', nom: 'Nora Neuve', demandes: [] }, jetonNouveau);
+      await appel('/api/clients/sync', { entreprise: 'Hygiène Nouvelle', nom: 'Nora Neuve',
+        demandes: [{ app: 'OP GESTION', formule: 'Pro', statut: 'nouveau', date: Date.now(), users: '2' }] }, jetonNouveau);
+    }
+    await dormir(900);
+    v('⛔ six demandes en rafale : deux courriels de plus au patron, deux accusés au client — pas douze', [salvePatron() - p0, salveClient() - c0], [2, 2]);
 
     /* ══ 4 bis. G1 — SE FAIRE PASSER POUR UNE ENTREPRISE DONT ON NE POSSÈDE PAS LA BOÎTE ═══════════
        Une entreprise ouverte par la Tour, formule payante, adresse de contact publique (un camion,

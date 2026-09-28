@@ -13,7 +13,8 @@
      code redevenait NEUF pour la même entreprise — une seconde période offerte.
 
    CE QUE CE BANC JOUE, dans cet ordre :
-   0. le TEXTE du serveur (les cinq chemins qui activent passent par la même règle) ;
+   0. le TEXTE du serveur (les quatre chemins qui activent passent par la même règle — la demande du site n'active
+      plus rien depuis le 28 septembre 2026) ;
    1. les VRAIES fonctions de la règle, extraites du fichier et exécutées ;
    2. le VRAI serveur, isolé, parlé en HTTP : l'application, le rattrapage, la Tour, « repartir à
       neuf », l'aperçu, l'inventaire de suppression — puis un second serveur au registre ILLISIBLE ;
@@ -54,17 +55,19 @@ const sansCommentaires = s => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replac
 const CODE_SRV = sansCommentaires(SRV);
 
 /* ══ 0. LE TEXTE : LES CINQ CHEMINS QUI ACTIVENT PASSENT PAR LA MÊME RÈGLE ═══════════════════ */
-console.log('\n══ 0. Les cinq chemins qui activent un code passent par la même règle ══');
+console.log('\n══ 0. Les quatre chemins qui activent un code passent par la même règle ══');
 {
   const bloc = (debut, fin) => { const i = CODE_SRV.indexOf(debut); const j = i < 0 ? -1 : CODE_SRV.indexOf(fin, i + debut.length); return (i < 0 || j < 0) ? '' : CODE_SRV.slice(i, j); };
   const valider = bloc("app.post('/api/promo/valider'", 'function rappelsEcheances(');
   const tour = bloc("app.post('/api/monitor/espaces/promo'", 'app.post(');
   const rattrapage = bloc('async function espacePaye(e, opts) {', 'const sk = config.stripe');
   const relais = bloc('const pc = monStr(b.promoCode, 40)', "console.log('code promo du site IGNORÉ");
-  const demande = bloc('let promoActif = null, promoRefuse = null;', 'const promoLib =');
+  /* La demande du site n'active PLUS rien (Justin, 28 septembre 2026 : « c'est nous qui créons les liens … supprimer la
+     création automatique ») : son code s'applique quand le patron accepte, par la route de la Tour ci-dessus. */
+  const demande = bloc('const nv = demandes.slice(avant);', 'res.json({ ok: true });');
   const renaitre = bloc("app.post('/api/monitor/espaces/renaitre'", 'let efface = false;');
   const population = { valider: valider.length, tour: tour.length, rattrapage: rattrapage.length, relais: relais.length, demande: demande.length, renaitre: renaitre.length };
-  vrai('population : les six blocs sont trouvés dans le code', Object.values(population).every(n => n > 200));
+  vrai('population : les six blocs sont trouvés dans le code (dont celui des demandes, qui n\'active plus rien)', Object.values(population).every(n => n > 200));
   if (!Object.values(population).every(n => n > 200)) console.log('      ', JSON.stringify(population));
 
   vrai('l\'application : le verdict vient de `promoPresente`', /const pres = \(!apercu && team\) \? promoPresente\(c, team, ''\) : null;/.test(valider));
@@ -76,15 +79,15 @@ console.log('\n══ 0. Les cinq chemins qui activent un code passent par la m�
   vrai('   … « un seul code à la fois », qu\'il ne faisait pas', /!promoAutreActif\(c, e\.t, e\.slug\)/.test(rattrapage));
   vrai('   … et rien ne s\'active sur un registre illisible', /!promosIllisible/.test(rattrapage));
   vrai('le relais du portail : `promoPresente`, et n\'active que du NEUF', /const pres = u \? promoPresente\(pc, tEsp, ''\) : null;/.test(relais) && /pres && pres\.etat === 'neuf' && !autre/.test(relais));
-  vrai('la demande du site : `promoPresente`, et un refus DIT', /const pres = promoPresente\(promoDef\.code, auto\.t, auto\.slug\);/.test(demande) && /if \(pres\.etat === 'servi'\) promoRefuse =/.test(demande));
-  vrai('   … et `codePromo` n\'est pas posé pour un code refusé', /if \(promoDef && !promoRefuse\) \{ const eEsp = espacesReg\[auto\.slug\];/.test(CODE_SRV));
-  vrai('   … et le courriel du client porte le refus', /promoRefuse \? '\\n⚠️ ' \+ promoRefusServi\(promoRefuse\.code, promoRefuse\.finLe\)/.test(CODE_SRV));
+  vrai('⛔ la demande du site n\'active PLUS aucun code (ni registre, ni `codePromo`, ni espace)',
+    !/promoPresente|promoEntree|promoUsages|savePromoUsages|codePromo|espacesReg\[|espacesEcrire\(/.test(demande));
+  vrai('   … elle DIT au patron si le code de la demande est connu, d\'après `config.promos`', /const p = \(config\.promos \|\| \[\]\)\.find\(/.test(demande) && /INCONNU — il ne s\\'appliquera pas/.test(demande));
 
   /* Chaque utilisation s'écrit par `promoEntree` (adresse + empreinte de l'e-mail), jamais à la main. */
   const aLaMain = (CODE_SRV.match(/equipes\[[^\]]+\] = \{ date:/g) || []).length;
   v('⛔ plus AUCUNE utilisation écrite à la main (`equipes[t] = { date: … }`)', aLaMain, 0);
   const entrees = (CODE_SRV.match(/= promoEntree\(/g) || []).length;
-  v('   … les cinq chemins passent par `promoEntree`', entrees, 5);
+  v('   … les quatre chemins passent par `promoEntree` (application, Tour, relais du portail, rattrapage)', entrees, 4);
 
   vrai('« repartir à neuf » marque les utilisations AVANT d\'effacer l\'annuaire', /if \(t\) promoMarquerAvantRenaitre\(t, slug, e\.email\);\s*delete espacesReg\[slug\];/.test(renaitre));
   vrai('la suppression totale passe par `promoEffacerEntreprise` (qui garde la mémoire d\'une entreprise VIVANTE)', /if \(inv\.promos\.length\) promoEffacerEntreprise\(t, inv\.slugs, inv\.emails\);/.test(CODE_SRV));

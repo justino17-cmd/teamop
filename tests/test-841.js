@@ -131,7 +131,17 @@ console.log('\n── 841 · plus de code : la Tour crée le lien après la dema
     zoeservices: { slug: 'zoeservices', nom: 'Zoé Services', email: 'zoe@exemple-841.fr', t: 'ent-zoe-841',
       code: b64({ t: 'ent-zoe-841', k: 'CLE-ZOE-841', n: 'Zoé Services', a: 'zoe', mh: sha('OP-ZoeDepart841') }), ts: 1 },
     vieilhygiene: { slug: 'vieilhygiene', nom: 'Vieil Hygiène', email: 'vieil@exemple-841.fr', t: 'ent-vieil-841',
-      code: b64({ t: 'ent-vieil-841', k: 'CLE-VIEIL-841', n: 'Vieil Hygiène' }), ts: 2 } }));
+      code: b64({ t: 'ent-vieil-841', k: 'CLE-VIEIL-841', n: 'Vieil Hygiène' }), ts: 2 },
+    /* (`gardien`) un espace qui a DÉJÀ servi, annuaire vide : son mot de passe provisoire n'est plus le sien */
+    dejaservi: { slug: 'dejaservi', nom: 'Déjà Servi', email: 'servi@exemple-841.fr', t: 'ent-servi-841',
+      code: b64({ t: 'ent-servi-841', k: 'CLE-SERVI-841', n: 'Déjà Servi', a: 'sacha', mh: sha('OP-SachaVieux841') }), ts: 3 },
+    /* un espace qui a servi, AVEC son annuaire : le courriel ne doit pas redonner l'ancien mot de passe provisoire */
+    servieavec: { slug: 'servieavec', nom: 'Servie Avec', email: 'avec@exemple-841.fr', t: 'ent-avec-841',
+      code: b64({ t: 'ent-avec-841', k: 'CLE-AVEC-841', n: 'Servie Avec', a: 'lina', mh: sha('OP-LinaVieux841') }), ts: 4 },
+    fermeeici: { slug: 'fermeeici', nom: 'Fermée Ici', email: 'ferme@exemple-841.fr', t: 'ent-ferme-841',
+      code: b64({ t: 'ent-ferme-841', k: 'CLE-FERME-841', n: 'Fermée Ici', a: 'fio', mh: sha('OP-FioVieux841') }), ts: 5 } }));
+  fs.writeFileSync(path.join(D, 'connexions.json'), JSON.stringify({ 'ent-servi-841': [{ ts: MAINTENANT - 86400000, ev: 'connexion', login: 'sacha' }] }));
+  fs.writeFileSync(path.join(D, 'entreprises-fermees.json'), JSON.stringify({ emails: [], espaces: ['ent-ferme-841'], suspendus: [] }));
   const vap = webpush.generateVAPIDKeys();
   const MDP = 'mot-de-passe-banc-841';
   fs.writeFileSync(path.join(banc, 'config.json'), JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey,
@@ -254,6 +264,26 @@ console.log('\n── 841 · plus de code : la Tour crée le lien après la dema
     let rv = null;
     for (let i = 0; i < 30 && !(rv && rv.s === 200); i++) { rv = await appel('/api/monitor/espaces/mail-acces', { nom: 'vieilhygiene', mdp: 'OP-VieilNeuf841' }, PATRON); if (rv.s !== 200) await dormir(100); }
     v('…et l\'envoi passe, avec le mot de passe qu\'il vient de poser', [rv && rv.s, (courrierPour('vieil@exemple-841.fr').pop() || '').indexOf('OP-VieilNeuf841') >= 0], [200, true]);
+
+    /* ══ 4 bis. CE QUE LA RELECTURE A RELEVÉ (`gardien`) ══════════════════════════════════════════════════
+       Un espace qui a DÉJÀ servi : son annuaire vide ne se re-sème pas (l'ancien mot de passe provisoire — « Nom!! »
+       pour l'ancienne création automatique — le rouvrirait), et le courriel ne redonne jamais un mot de passe provisoire
+       qui n'est plus le sien. Un espace fermé ne reçoit aucun lien. */
+    console.log('\n4 bis. Un espace qui a déjà servi, un espace fermé');
+    r = await appel('/api/monitor/espaces/mail-acces', { nom: 'dejaservi', mdp: 'OP-SachaVieux841' }, PATRON);
+    v('⛔ espace qui a servi, annuaire vide : PAS de semis, refus « sans_compte »', [r.s, r.j.motif], [409, 'sans_compte']);
+    r = await appel('/api/espaces/connexion', { nom: 'dejaservi', login: 'sacha', h: sha('OP-SachaVieux841') });
+    v('⛔ …et l\'ancien mot de passe provisoire n\'ouvre RIEN (rien n\'a été semé)', r.s === 200, false);
+    for (let i = 0; i < 30; i++) { const z = (await espaces()).find(e => e.slug === 'servieavec'); if (z && z.annuaire) break; await dormir(100); }
+    await appel('/api/connexions', { t: 'ent-avec-841', ev: 'connexion', login: 'lina' });
+    const avantAvec = courrierPour('avec@exemple-841.fr').length;
+    r = await appel('/api/monitor/espaces/mail-acces', { nom: 'servieavec', mdp: 'OP-LinaVieux841' }, PATRON);
+    const aAvec = courrierPour('avec@exemple-841.fr').slice(avantAvec).pop() || '';
+    v('espace qui a servi, avec son annuaire : le lien part', r.s, 200);
+    vrai('⛔ …SANS le mot de passe provisoire d\'origine, qui n\'est plus le sien — « vos identifiants habituels »',
+      aAvec && aAvec.indexOf('OP-LinaVieux841') < 0 && /identifiants habituels/.test(aAvec));
+    r = await appel('/api/monitor/espaces/mail-acces', { nom: 'fermeeici', mdp: 'OP-FioVieux841' }, PATRON);
+    v('⛔ un espace fermé ne reçoit aucun lien', [r.s, r.j.motif, courrierPour('ferme@exemple-841.fr').length], [409, 'ferme', 0]);
 
     /* ══ 5. LE CODE N'EXISTE PLUS CÔTÉ SERVEUR ══════════════════════════════════════════════════════════════ */
     console.log('\n5. Le code d\'accès n\'existe plus');

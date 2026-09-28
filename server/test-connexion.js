@@ -222,8 +222,9 @@ const fin = (code) => { try { srv.kill(); } catch (e) {} try { facteur.s.close()
      Le détail porte par porte est joué par `tests/test-796.js`. */
   dit('la connexion par identifiant PASSE TOUJOURS (un impayé travaille)',
     (await post('/api/espaces/connexion', { nom: 'Entreprise Démo', login: 'marc', h: sha(MARC) })).statut === 200);
-  dit('un code d\'accès FAUX reste refusé, suspendu ou non',
-    (await post('/api/espaces/ouvrir', { nom: 'Entreprise Démo', acces: 'ZZZZZZZZZZ' })).statut === 403);
+  /* Le code d'accès n'existe plus (28 septembre 2026) : sa route répond 410 à tout le monde, suspendu ou non. */
+  dit('la route du code d\'accès répond 410 (le code n\'existe plus), suspendu ou non',
+    (await post('/api/espaces/ouvrir', { nom: 'Entreprise Démo', acces: 'ZZZZZZZZZZ' })).statut === 410);
   const etS = await post('/api/espaces/etat', { t: 'demo-t1' });
   dit('l\'application apprend qu\'il est SUSPENDU — pas fermé', etS.ferme !== true && etS.suspendu === true, JSON.stringify(etS).slice(0, 90));
   const rou = await post('/api/monitor/espaces/suspendre', { slug: 'entreprisedemo', rouvrir: true }, T);

@@ -325,8 +325,8 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   rien. Ne pas le fermer « pour faire propre », ça casserait la page d'abonnement.
 - ⛔⛔ **UN CODE PROMO SERT UNE FOIS PAR ENTREPRISE — `promoPresente` EST LE SEUL VERDICT.**
   Justin, 24 septembre 2026 : « une fois qu'une entreprise l'a activé, ils peuvent pas le remettre ».
-  Cinq chemins activent un code (application, Tour, relais du portail, demande du site, rattrapage
-  d'`espacePaye`) et les cinq demandent `promoPresente(c, t, slug)` : neuf, en cours (même échéance,
+  Quatre chemins activent un code (application, Tour, relais du portail, rattrapage d'`espacePaye` — la demande
+  du site n'active plus rien depuis le 28 septembre 2026 : c'est la Tour qui l'applique à l'acceptation) et les quatre demandent `promoPresente(c, t, slug)` : neuf, en cours (même échéance,
   rien ne se recompte), servi (**refus 410**, dit par `promoRefusServi`), registre illisible (rien ne
   s'active). Un sixième chemin passe par elle ou n'existe pas ; une utilisation s'écrit par
   `promoEntree`, jamais `equipes[t] = { date: … }` à la main (`tests/test-803.js` compte les deux).

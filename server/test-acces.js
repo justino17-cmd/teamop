@@ -1,17 +1,13 @@
-/* ══ RÉGRESSION DU CODE D'ACCÈS ═══════════════════════════════════════════════════════════
-   Ce fichier existe parce qu'un essai bâclé a laissé passer un défaut grave : le code d'accès
-   n'était écrit NULLE PART, et personne ne s'en est aperçu parce que la fixture partait d'un
-   code déjà présent dans le fichier, sur un espace SANS champ « t ». Or toute entrée réelle
-   porte un « t », et c'est ce chemin-là qui était cassé.
-   Les cas ci-dessous sont donc ceux de la production : un espace avec « t », et DEUX noms pour
-   un seul espace — la configuration qui faisait ressusciter un code révoqué.
-
-   CE QUE CE FICHIER NE COUVRE PAS, et qu'il ne faut donc pas croire couvert :
-     · /api/monitor/clients/retirer — la fermeture d'une entreprise. Elle exige un code de
-       confirmation envoyé par e-mail, donc un SMTP. On éprouve ici le GARDE-FOU (un espace
-       déjà fermé ne s'ouvre plus) et « repartir à neuf », pas la route de fermeture elle-même.
-     · le retour en arrière quand l'écriture du registre échoue (disque plein, droits) : il
-       faudrait rendre le dossier de données non inscriptible en cours d'essai.
+/* ══ LE CODE D'ACCÈS N'EXISTE PLUS — ET IL NE REVIENT PAR AUCUNE PORTE ════════════════════════
+   Justin, 28 septembre 2026 : « je veux plus de code, que des liens pour les connexions ». Ce fichier gardait le code
+   d'accès à dix caractères (écrit pour de vrai, un par espace, révocable) ; il garde désormais son ABSENCE, sur le
+   vrai serveur, avec les cas de la production : un espace avec « t », deux noms pour un seul espace, une entreprise
+   fermée et un espace qui repart à neuf — ces deux derniers avec un VRAI code d'avant resté dans `acces.json`.
+     · la Tour ne peut plus en fabriquer ni en renouveler (410), et rien ne s'écrit dans le registre ;
+     · aucun code n'ouvre plus rien, même un vrai, et la réponse le DIT (410 « sans_code ») ;
+     · la route reste réservée au patron, et les routes publiques voisines bornent toujours leur entrée ;
+     · « repartir à neuf » efface encore l'entrée d'un code d'avant.
+   La porte qui reste (l'adresse, l'identifiant, le mot de passe) est jouée par `tests/test-669.js` et `test-841.js`.
 
    Usage :  node server/test-acces.js
    Il démarre un serveur isolé sur un port libre, dans un dossier temporaire. Il ne touche ni la
@@ -42,7 +38,7 @@ fs.writeFileSync(path.join(dir, 'monitor.json'), JSON.stringify({
   users: [{ id: 'u-essai', nom: 'essai', email: 'essai@teamop.fr', hash: sha(MDP), role: 'patron', actif: true }]
 }));
 // DEUX noms, UN seul espace : « t » identique, c'est le cas de production
-/* Le blob porte « e » ET « m », comme en production (voir espaceAutoPour). Sans « e », l'essai
+/* Le blob porte « e » ET « m », comme les espaces d'avant le hachage du mot de passe. Sans « e », l'essai
    « le blob ne rend pas l'adresse e-mail » était vide de sens : le champ n'y était jamais. */
 const blob = (t, n) => Buffer.from(JSON.stringify({ t, k: 'cle-' + t, n, a: 'justin', m: 'Biret!!', e: 'demo@exemple.fr' })).toString('base64').replace(/=+$/, '');
 fs.writeFileSync(path.join(data, 'espaces.json'), JSON.stringify({
@@ -128,51 +124,27 @@ const fin = (code) => { try { srv.kill(); } catch (e) {} try { facteur.s.close()
   if (!cx.token) { console.log('✘ connexion à la Tour impossible :', JSON.stringify(cx).slice(0, 120)); fin(1); }
   const T = cx.token;
 
-  console.log('\n── le code est réellement enregistré ──');
+  const avant = JSON.stringify(surDisque());
+  console.log('\n── la Tour ne fabrique plus de code ──');
   const a = await post('/api/monitor/espaces/acces', { slug: 'entreprisedemo' }, T);
-  dit('un code de 10 caractères est rendu', /^[A-Z0-9]{10}$/.test(a.acces || ''), a.acces);
-  dit('il est écrit sur le disque', (surDisque() || {})['demo-t1'] && surDisque()['demo-t1'].code === a.acces);
-  dit('il est rangé par identifiant d\'ÉQUIPE, pas par nom', !!(surDisque() || {})['demo-t1']);
+  dit('410, et aucun code rendu', a.statut === 410 && !a.acces && a.motif === 'sans_code', JSON.stringify(a).slice(0, 120));
+  const c = await post('/api/monitor/espaces/acces', { slug: 'entreprisedemoparis', regenerer: true }, T);
+  dit('ni par l\'autre nom, ni en « renouvelant »', c.statut === 410 && !c.acces);
+  dit('rien ne s\'est écrit dans le registre', JSON.stringify(surDisque()) === avant, JSON.stringify(surDisque()).slice(0, 120));
 
-  console.log('\n── un espace, un seul code ──');
-  const b = await post('/api/monitor/espaces/acces', { slug: 'entreprisedemo' }, T);
-  dit('rouvrir le panneau rend le MÊME code', b.acces === a.acces, b.acces);
-  const c = await post('/api/monitor/espaces/acces', { slug: 'entreprisedemoparis' }, T);
-  dit('l\'autre nom du même espace rend le même code', c.acces === a.acces, c.acces);
-
-  console.log('\n── le code ouvre vraiment ──');
-  const o1 = await post('/api/espaces/ouvrir', { nom: 'Entreprise Démo', acces: a.acces });
-  dit('par le premier nom', o1.statut === 200 && !!o1.code);
-  const o2 = await post('/api/espaces/ouvrir', { nom: 'entreprise demo paris', acces: a.acces.toLowerCase() });
-  dit('par le second nom, en minuscules', o2.statut === 200 && !!o2.code);
-  if (o1.code) {
-    const champs = Object.keys(JSON.parse(Buffer.from(o1.code, 'base64').toString('utf8')));
-    dit('le blob garde t, k, a, mh (sans eux, l\'espace s\'ouvre avec 1234)', ['t', 'k', 'a', 'mh'].every(x => champs.includes(x)), champs.join(','));
-    dit('le blob ne rend PAS l\'adresse e-mail de l\'entreprise', !champs.includes('e'), champs.join(','));
-    dit('ni le mot de passe provisoire en clair', !champs.includes('m'), champs.join(','));
-  }
-
-  console.log('\n── la révocation tient ──');
-  const n = await post('/api/monitor/espaces/acces', { slug: 'entreprisedemo', regenerer: true }, T);
-  dit('renouveler donne un code différent', n.acces && n.acces !== a.acces);
-  dit('l\'ancien code est refusé', (await post('/api/espaces/ouvrir', { nom: 'Entreprise Démo', acces: a.acces })).statut === 403);
-  dit('le nouveau est accepté', (await post('/api/espaces/ouvrir', { nom: 'Entreprise Démo', acces: n.acces })).statut === 200);
-  // rouvrir le panneau d'un AUTRE nom du même espace ne doit rien ressusciter
-  await post('/api/monitor/espaces/acces', { slug: 'entreprisedemoparis' }, T);
-  dit('l\'ancien code ne ressuscite pas par l\'autre nom', (await post('/api/espaces/ouvrir', { nom: 'Entreprise Démo', acces: a.acces })).statut === 403);
-
-  console.log('\n── ce qui doit être refusé ──');
-  dit('mauvais code', (await post('/api/espaces/ouvrir', { nom: 'Entreprise Démo', acces: 'ZZZZZZZZZZ' })).statut === 403);
-  dit('entreprise inconnue, même message', (await post('/api/espaces/ouvrir', { nom: 'Nexiste Pas', acces: n.acces })).error === (await post('/api/espaces/ouvrir', { nom: 'Entreprise Démo', acces: 'ZZZZZZZZZZ' })).error);
-  dit('nom sans code', (await post('/api/espaces/ouvrir', { nom: 'Entreprise Démo' })).statut === 400);
-  /* Des « é » et non des « a » : c'est normalize('NFD') qui coûte, et il ne coûte que sur les
-     caractères accentués — mesuré, 434 ms contre 17 ms pour le même volume. Et 5 Mo, pas 0,2 :
-     la limite d'express.json est à 6. L'essai précédent mesurait 2 % du volume sur le caractère
-     le moins cher, tout en affirmant le contraire ; c'est lui qui aurait dû faire trouver que
-     trois autres routes publiques n'étaient pas bornées. */
+  console.log('\n── aucun code n\'ouvre plus rien ──');
+  const o1 = await post('/api/espaces/ouvrir', { nom: 'Entreprise Neuve', acces: 'NEUVE12345' });
+  dit('un VRAI code d\'avant, encore dans le registre : refusé (410)', o1.statut === 410 && !o1.code, JSON.stringify(o1).slice(0, 120));
+  dit('…et la réponse dit quoi faire à la place', /identifiant et son mot de passe/.test(o1.error || '') && o1.motif === 'sans_code');
+  dit('mauvais code, entreprise inconnue, nom sans code : la même réponse',
+    [await post('/api/espaces/ouvrir', { nom: 'Entreprise Démo', acces: 'ZZZZZZZZZZ' }), await post('/api/espaces/ouvrir', { nom: 'Nexiste Pas', acces: 'NEUVE12345' }),
+      await post('/api/espaces/ouvrir', { nom: 'Entreprise Démo' })].every(x => x.statut === 410 && x.error === o1.error));
+  dit('l\'entreprise fermée, son code pourtant « valide » : pareil', (await post('/api/espaces/ouvrir', { nom: 'Entreprise Fermée', acces: 'FERMEE1234' })).statut === 410);
+  /* Des « é » : c'est normalize('NFD') qui coûte, et seulement sur les accents (434 ms contre 17 ms). La route du
+     code ne lit plus rien ; les trois routes publiques voisines, elles, doivent toujours borner leur entrée. */
   const gros = 'é'.repeat(2600000);   // ~5,1 Mo en UTF-8
   const tGros = Date.now();
-  dit('un nom de 5 Mo est refusé sans faire travailler le serveur', (await post('/api/espaces/ouvrir', { nom: gros, acces: 'ZZZZZZZZZZ' })).statut === 403);
+  dit('un nom de 5 Mo ne fait pas travailler le serveur', (await post('/api/espaces/ouvrir', { nom: gros, acces: 'ZZZZZZZZZZ' })).statut === 410);
   const msGros = Date.now() - tGros;
   dit('...et vite : moins de 250 ms (sinon toute l\'API gèle)', msGros < 250, msGros + ' ms');
   for (const route of ['/api/espaces/relance', '/api/espaces/libre', '/api/espaces/verifie-nom']) {
@@ -180,28 +152,16 @@ const fin = (code) => { try { srv.kill(); } catch (e) {} try { facteur.s.close()
     dit('  ' + route + ' borne aussi son entrée', ms < 250, ms + ' ms');
   }
 
-  console.log('\n── seul le patron peut lire ou renouveler un code ──');
+  console.log('\n── la route reste réservée au patron ──');
   dit('sans jeton, refus', (await post('/api/monitor/espaces/acces', { slug: 'entreprisedemo' })).statut === 403);
   dit('avec un jeton inventé, refus', (await post('/api/monitor/espaces/acces', { slug: 'entreprisedemo' }, 'ffffffffffffffffffffffffffffffffffffffffffffffff')).statut === 403);
 
-  console.log('\n── cloisonnement entre entreprises ──');
-  const autre = await post('/api/monitor/espaces/acces', { slug: 'entrepriseneuve' }, T);
-  dit('deux espaces ont deux codes différents', autre.acces && autre.acces !== n.acces);
-  dit('le code de l\'une n\'ouvre pas l\'autre', (await post('/api/espaces/ouvrir', { nom: 'Entreprise Démo', acces: autre.acces })).statut === 403);
-
-  console.log('\n── une entreprise fermée ne se rouvre pas ──');
-  dit('son code, pourtant valide, est refusé', (await post('/api/espaces/ouvrir', { nom: 'Entreprise Fermée', acces: 'FERMEE1234' })).statut === 403);
-  dit('avec le même message que partout ailleurs',
-    (await post('/api/espaces/ouvrir', { nom: 'Entreprise Fermée', acces: 'FERMEE1234' })).error
-    === (await post('/api/espaces/ouvrir', { nom: 'Entreprise Démo', acces: 'ZZZZZZZZZZ' })).error);
-
-  console.log('\n── un espace qui repart à neuf perd son code ──');
-  dit('le code marche avant', (await post('/api/espaces/ouvrir', { nom: 'Entreprise Neuve', acces: 'NEUVE12345' })).statut === 200);
+  console.log('\n── un espace qui repart à neuf efface son code d\'avant ──');
+  dit('il est dans le registre avant', !!(surDisque() || {})['neuve-t5']);
   /* la Tour v2.69 : une question, une case, « Oui » → confirme:true (sous la limite, pas de code) */
   await post('/api/monitor/espaces/renaitre', { nom: 'Entreprise Neuve', confirme: true }, T);
   dit('l\'avis de suppression est parti (sinon rien n\'aurait été effacé)', await avisParti());
   dit('il est effacé du registre', !(surDisque() || {})['neuve-t5']);
-  dit('et il n\'ouvre plus rien', (await post('/api/espaces/ouvrir', { nom: 'Entreprise Neuve', acces: 'NEUVE12345' })).statut !== 200);
 
   console.log('\n' + (ko ? '✘ ' + ko + ' cas en échec sur ' + (ok + ko) : '✔ ' + ok + ' cas, tous passés'));
   fin(ko ? 1 : 0);
