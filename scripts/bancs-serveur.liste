@@ -33,6 +33,8 @@
 # relevé à 2 450.
 # 28 septembre 2026, « B — on verrouille » : 2 741 contre les pages de `main` (44 suites), `test-797` et `test-839`
 # compris (la page de paiement en service face au serveur neuf) — plancher relevé à 2 650.
+# 28 septembre 2026 : `test-841` (la Tour crée le lien après la demande, plus aucun code) — contre les pages de
+# `main` publiées avec lui (Tour v2.73, page de connexion sans code).
 #plancher 2680
 tests/test-640.js
 tests/test-641.js
@@ -109,3 +111,4 @@ tests/test-839.js
 # (Justin : « tant d'utilisateurs trouvés chez vous … payer la somme de chaque utilisateur »). 840 fait tourner le
 # vrai serveur contre un facteur SMTP de banc, et compare sa grille de prix à celle de la page de paiement.
 tests/test-840.js
+tests/test-841.js
