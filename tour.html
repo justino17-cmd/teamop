@@ -2842,7 +2842,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.69</div>
+    <div class="lg-pied">console interne · v2.70</div>
   </div>
 </div>
 
@@ -2881,7 +2881,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.69</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.70</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2893,7 +2893,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.69</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.70</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3155,7 +3155,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.69';
+var TOUR_VERSION='v2.70';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -4652,7 +4652,22 @@ async function tourEspaceDe(email,nom,ident,mdp,neuf,origine){
   var slug='';
   try{
     var r=await apiPost('/api/monitor/espaces',{nom:(nom||email),code:code,email:email,origine:(origine||'')});
-    if(r&&r.ok) slug=r.slug||'';
+    /* ⛔ v2.70 — UNE CLÉ DIFFÉRENTE NE PASSE QUE SI TU LE CONFIRMES (Justin, 28 septembre 2026 : « on ne la rattachera
+       pas, sauf si je le confirme moi-même »). Le serveur répond 409 `cle_differente` quand le code porte une clé que
+       l'annuaire ne connaît pas pour cette entreprise : un code FORGÉ (le bon identifiant, une clé inventée) mettait
+       ses appareils dehors, semait un compte chez elle et rattachait son paiement à l'adresse d'un tiers. Le seul cas
+       légitime est une entreprise qui a CHANGÉ sa clé — d'où la question, et `confirmeCle` n'est envoyé qu'après
+       un « OK ». Un « Annuler » ne change rien, et le dit. */
+    if(r&&!r.ok&&r.d&&r.d.motif==='cle_differente'){
+      if(!confirm('⚠️ Ce code porte une clé DIFFÉRENTE de celle que TEAM OP connaît pour cette entreprise.\n\nNe continue QUE si tu as récupéré ce code toi-même, sur un appareil de l\'entreprise (par exemple après « Enregistrer une nouvelle clé d\'équipe »).\n\nUn code reçu par message ou dicté au téléphone peut être un faux : ses appareils perdraient l\'accès, et son paiement serait rattaché à quelqu\'un d\'autre.\n\nUtiliser ce code ?')){
+        /* Le code refusé ne reste pas en mémoire sur cet appareil : sinon il se représenterait à chaque ouverture. */
+        try{ var reg2=JSON.parse(localStorage.getItem('tour_liens')||'{}'); delete reg2[email]; localStorage.setItem('tour_liens',JSON.stringify(reg2)); }catch(e){}
+        toast('Code non utilisé — rien n\'a changé.'); return null; }
+      r=await apiPost('/api/monitor/espaces',{nom:(nom||email),code:code,email:email,origine:(origine||''),confirmeCle:true});
+    }
+    /* `r.d.slug` : la réponse du serveur est dans `d` (voir apiPost). Cette ligne lisait `r.slug`, toujours vide — les
+       appelants retombaient sur `espSlugJs(nom)`, le même calcul fait ici : juste par chance (v2.70). */
+    if(r&&r.ok) slug=(r.d&&r.d.slug)||'';
     /* ⛔ « LE LIEN, LUI, MARCHE » ÉTAIT FAUX, ET C'EST PRÉCISÉMENT CE QUI TROMPAIT. Le serveur
        refuse (409) quand le nom appartient déjà à un AUTRE espace — c'est ce garde-fou qui a
        sauvé ELAN le 12 septembre. Mais le message rassurait pendant que le panneau affichait un
