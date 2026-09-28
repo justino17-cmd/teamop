@@ -213,6 +213,12 @@ const PHRASE = 'Pour payer, il faut un compte TEAM OP : créez-le d\'abord, c\'e
       q = await essai(() => rep(401, { error: 'compte_requis' }));
       v('⛔ session expirée entre-temps (401) : « pas de compte », session oubliée, et la page le DIT',
         [q.api.etat().compte.etat, q.stockage.has('teamop_portail_jeton'), q.texte().includes('Votre session a expiré'), q.window.location.href], ['aucun', false, true, '']);
+      q = await essai(() => rep(403, { error: 'compte_autre_entreprise' }));
+      v('⛔ « B » — le compte n\'est pas celui de l\'entreprise de l\'appareil (403) : la page dit QUI peut payer, reste « prête », ne part pas',
+        [q.api.etat().compte.etat, q.texte().includes('Seul le compte de l\'entreprise peut payer pour elle'), q.texte().includes('Rien n\'a été payé'), q.window.location.href],
+        ['pret', true, true, '']);
+      vrai('   … sans le « réessayez » d\'une panne (le refus est définitif pour ce compte), avec « Changer de compte » à portée',
+        !/Réessayez dans un instant/.test(q.texte()) && q.texte().includes('Changer de compte'));
       q = await essai(() => rep(429, { error: 'trop de requêtes' }));
       vrai('⛔ trop de tentatives (429) : on le dit, on ne part pas', q.texte().includes('Trop de tentatives') && q.window.location.href === '');
       q = await essai(() => rep(502, undefined));
@@ -325,6 +331,7 @@ const PHRASE = 'Pour payer, il faut un compte TEAM OP : créez-le d\'abord, c\'e
     const iRoute = SRV.indexOf("app.post('/api/stripe/checkout'");
     const ROUTE = SRV.slice(iRoute, SRV.indexOf("app.post('", iRoute + 10));
     const REGLE = /cm\.verifie\(payeur\)/.test(ROUTE) && /customer_email/.test(ROUTE);
+    const REGLE_B = /compte_autre_entreprise/.test(ROUTE);   // « B — on verrouille » (28 septembre 2026), part avec le serveur
     console.log('  ' + (REGLE ? 'serveur de ce dépôt : la route exige un compte prouvé'
       : '⚠️ serveur de ce dépôt : la route n\'a PAS encore la règle (elle part sur « pousse le serveur ») — la page doit tenir seule'));
     const BANC = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-839-'));
@@ -366,6 +373,11 @@ globalThis.fetch = async function (url, opts) {
     const portSmtp = await new Promise(res => facteur.listen(0, '127.0.0.1', () => res(facteur.address().port)));
     const portLibre = () => new Promise(res => { const s = require('net').createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
     const data = path.join(BANC, 'data'); fs.mkdirSync(data, { recursive: true });
+    /* l'annuaire du vrai serveur : l'entreprise de Camille (son adresse), et une voisine — pour jouer « B » de bout en bout */
+    fs.writeFileSync(path.join(data, 'espaces.json'), JSON.stringify({
+      'camille-banc': { nom: 'Camille Banc', t: 'banc-camille-t1', email: 'camille@entreprise-banc.fr', ts: 1, par: 'banc', origine: 'banc' },
+      'voisine-banc': { nom: 'La voisine', t: 'banc-voisine-t2', email: 'patron@voisine-banc.fr', ts: 1, par: 'banc', origine: 'banc' },
+    }));
     const cfg = path.join(BANC, 'config.json');
     const vap = require(path.join(RACINE, 'server', 'node_modules', 'web-push')).generateVAPIDKeys();
     fs.writeFileSync(cfg, JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc',
@@ -467,6 +479,30 @@ globalThis.fetch = async function (url, opts) {
           const faux = await fetch(B + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + 'e'.repeat(64) }, body: JSON.stringify({ price: 'price_1Banc', quantity: 1 }) });
           v('⛔ le vrai serveur : sans session 401, session inventée 401 — et rien de plus chez Stripe', [sans.status, faux.status, stripeRecu().length], [401, 401, n0 + 1]);
         }
+
+        // « B — on verrouille » (Justin, 28 septembre 2026) : seul le compte de l'entreprise paie pour elle — le VRAI serveur, son annuaire
+        await portail.auth.signInWithEmailAndPassword('camille@entreprise-banc.fr', 'un-mot-de-passe-solide-839');
+        const payerAvec = async (espaceAppareil) => {
+          if (espaceAppareil) rangement.set('elan_sync_team', espaceAppareil); else rangement.delete('elan_sync_team');
+          const q = recap('?formule=business&utilisateurs=2');
+          await q.api.compteLu;
+          const n = stripeRecu().length;
+          await q.clic('btnPayer');
+          const s = stripeRecu().slice(n);
+          return { q, s, envoye: new URLSearchParams(s[0] ? s[0].corps : '') };
+        };
+        const voisine = await payerAvec('banc-voisine-t2');
+        if (REGLE_B) {
+          v('⛔ « B » — l\'appareil est relié à une AUTRE entreprise : le vrai serveur refuse, la page le dit, rien chez Stripe',
+            [voisine.s.length, voisine.q.texte().includes('Seul le compte de l\'entreprise peut payer pour elle'), voisine.q.window.location.href], [0, true, '']);
+          const sienne = await payerAvec('banc-camille-t1');
+          v('⛔ « B » — l\'appareil est relié à SON entreprise : le paiement s\'ouvre, la référence est gravée sur l\'abonnement',
+            [sienne.s.length, sienne.envoye.get('subscription_data[metadata][espace]'), sienne.q.window.location.href], [1, 'banc-camille-t1', 'https://checkout.stripe.com/c/pay/banc-839']);
+          const inconnue = await payerAvec('banc-inconnu-t9');
+          v('   une référence inconnue de l\'annuaire : le paiement s\'ouvre SANS référence (rattaché à l\'adresse du compte, à personne d\'autre)',
+            [inconnue.s.length, inconnue.envoye.get('subscription_data[metadata][espace]'), inconnue.envoye.get('customer_email')], [1, null, 'camille@entreprise-banc.fr']);
+        } else vrai('   (serveur d\'avant : la référence de l\'appareil passe sans vérification — « B » part avec le serveur)', voisine.s.length === 1);
+        rangement.delete('elan_sync_team');
       }
     } finally {
       try { facteur.close(); } catch (e) {}

@@ -96,13 +96,20 @@ const vrai = (t, a) => v(t, !!a, true);
   /* `comptes`, un faux fidèle à `comptes.js` : la session de la page est celle d'un compte PROUVÉ. Les en-têtes passent
      tels qu'Express les rend (noms en minuscules). */
   const COMPTES = { parJeton: (j) => (j === SESSION ? 'paie@entreprise-banc.fr' : ''), verifie: (m) => m === 'paie@entreprise-banc.fr' };
-  const appeler = async (body, hdr) => {
+  /* « B — on verrouille » (28 septembre 2026) : la route ne grave la référence que pour l'entreprise DU compte. L'annuaire
+     du banc dit que « monclient-9f2a » est celle du compte prouvé ; les aides se prennent dans le fichier réel quand il les
+     a (le serveur d'avant n'appelle pas `espacesDeRef`). */
+  const aide = nom => { const d0 = SRC.indexOf('function ' + nom + '('); if (d0 < 0) return ''; let n = 0;
+    for (let k = SRC.indexOf('{', d0); k < SRC.length; k++) { if (SRC[k] === '{') n++; else if (SRC[k] === '}') { n--; if (!n) return SRC.slice(d0, k + 1); } } return ''; };
+  const AIDES_ROUTE = ['espaceT', 'espacesDeRef'].map(aide).join('\n');
+  const ESPACES = { monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr' } };
+  const appeler = async (body, hdr, espaces) => {
     let envoye = '', statut = 0, sortie = null;
     const faux = { post: (chemin, h) => { faux._h = h; } };
-    new Function('app', 'config', 'fetch', 'URLSearchParams', 'comptes', SRC.slice(iR, finR))(faux,
+    new Function('app', 'config', 'fetch', 'URLSearchParams', 'comptes', 'espacesReg', AIDES_ROUTE + '\n' + SRC.slice(iR, finR))(faux,
       { stripe: { secretKey: 'sk_de_banc' } },
       async (url, opts) => { envoye = String(opts && opts.body || ''); return { ok: true, json: async () => ({ url: 'https://checkout.stripe.com/x' }) }; },
-      URLSearchParams, COMPTES);
+      URLSearchParams, COMPTES, espaces === undefined ? ESPACES : espaces);
     const headers = {}; for (const k of Object.keys(hdr || {})) headers[k.toLowerCase()] = hdr[k];
     await faux._h({ body, headers }, { status(c) { statut = c; return this; }, json(o) { sortie = o; return this; } });
     return { envoye, statut, sortie };
@@ -124,6 +131,11 @@ const vrai = (t, a) => v(t, !!a, true);
         new URLSearchParams(r.envoye).get('customer_email'), 'paie@entreprise-banc.fr');
       const sansEntete = await appeler(corps, { 'Content-Type': 'application/json' });
       v('   contre-épreuve : le même corps SANS la session de la page est refusé (401)', sansEntete.statut, 401);
+      if (/compte_autre_entreprise/.test(SRC.slice(iR, finR))) {
+        const autre = await appeler(corps, entetes, { monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: 'patron@autre-banc.fr' } });
+        v('⛔ « B » : le même corps, quand l\'entreprise de l\'appareil n\'est PAS celle du compte → 403 « compte_autre_entreprise »',
+          [autre.statut, autre.sortie && autre.sortie.error, autre.envoye], [403, 'compte_autre_entreprise', '']);
+      } else console.log('  ⚠️ route d\'avant « B » : la référence de l\'appareil passe sans vérification (le verrou part avec le serveur)');
     } else console.log('  ⚠️ route d\'avant (le serveur part sur « pousse le serveur ») : la page tient seule, et le paiement s\'ouvre');
   }
 
