@@ -13,6 +13,59 @@ de ligne du tout.
 
 ---
 
+# ✅ 28 SEPTEMBRE 2026, NUIT — PLUS AUCUN CODE (LIENS SEULEMENT), LE NOUVEAU SITE ET SON PORTAIL, LES PLACES PAYÉES ; PUIS L'APPLICATION v763 (1 COMPTE PAR ABONNEMENT) ET LA CI DE `main` RÉPARÉE
+
+Justin, dans la soirée : **« je veux plus de code, que des liens pour les connexions »** ; **« c'est nous qui créons les
+liens pour les entreprises une fois leur demande faite »** ; **« oui, supprimer la création automatique »** ; **« le site
+aussi je voudrais la mise à jour dessus »** ; **« le logo aussi »** (capture de Google : le rond vert d'OP GESTION) ;
+**« Oui, remplace le site »** ; puis, à quatre questions : **« Oui, publie ce soir »** (v763), **« Oui, elles gardent »**
+(les places des abonnés d'avant), **« Oui, automatique »** (les places suivent le paiement Stripe), **« Oui, répare »** (CI).
+
+✅ **Mise en ligne n° 1 — `71c682d` sur `main` (déploiement n° 101)** : serveur + Tour v2.74 + site + portail.
+· **Plus aucun code** : une demande faite sur le site ne crée plus rien (courriels « Nouvelle demande à traiter » au
+  patron et « Votre demande est bien reçue » au client, 3 par adresse et par heure) ; la Tour crée l'accès (« ✅ Accepter
+  la demande » : code promo de la demande, formule, demande marquée traitée → panneau du lien → « 📧 Envoyer ») ; le
+  courriel porte lien + identifiant + mot de passe provisoire, ce dernier SEULEMENT s'il correspond à l'empreinte
+  enregistrée et pour un espace JAMAIS ouvert. `/api/espaces/ouvrir` et `/api/monitor/espaces/acces` → 410. Un espace
+  qui a servi ne se re-sème jamais ; un espace fermé ne reçoit aucun lien. `test-841`.
+· **Le site v2 à la racine** (`node scripts/site-marine.js --racine`) et **les dix pages du portail au thème du site**.
+  « Mon espace » est partie avec le contrat de la v760 (il se régénère à chaque ouverture et décrit l'application EN
+  SERVICE) ; il change avec la v763. ⚠️ L'ancien `vitrine/` (v1), `vitrine/racine-v1.json`, `vitrine/portail-v1.json` et
+  `fond-anime-teamop.js` RESTENT : des copies gardées par le service worker peuvent encore les lire. À retirer dans
+  quelques jours (quand le cache v963 aura remplacé l'ancien partout), avec l'état « en service » de `test-835` §10 et
+  de `test-836`.
+· **Le logo dans Google** : chaque page déclare l'icône TEAM OP de 192 px (plus le favicon et l'icône 32 px) —
+  `test-835` le garde. Le reste est chez Google (geste de Justin, plus bas).
+· ⛔ **LES PLACES** (`placesServies`, `placesStripe`, `/api/espaces/etat` → `places`) : ce qui est payé chez Stripe
+  (abonnements vivants de l'entreprise, tarif de sa formule ou d'une formule au-dessus, OP MESSAGES exclu) donne les
+  places ; une entreprise qui PAYAIT avant la bascule (**29 septembre 2026, 4 h UTC**, posée APRÈS le déploiement : l'ancien
+  serveur datait chaque enregistrement de la Tour) garde 2 (Business) ou 3 (Business Premium) par abonnement d'avant, et
+  ce qu'elle achète après s'y ajoute. Jamais pour une période offerte (code promo, en cours ou fini ; essai). Calculé,
+  jamais écrit. **`quantite` garde son sens** (le nombre réglé dans la Tour) : la v760 fait × 2 ou × 3 elle-même.
+  Deux relectures `gardien` (A1–A8, M1–M7, puis B1 et cinq points) : tout corrigé ; ⛔ **le verdict « payé » est resté
+  exactement celui d'avant** (un abonnement vivant à l'adresse suffit) — l'écarter pour « gravé pour une autre
+  entreprise » coupait deux cas réels d'une entreprise qui paie. `test-842` (66 ✓ sur la branche, 61 contre la v760),
+  14/14 contre-épreuves ; `test-727` reçoit le calcul des places (sans lui, un paiement se lisait « non payé »).
+  Limites connues, écrites dans le code : deux entreprises à la même adresse (l'abonnement de l'une rend l'autre
+  « payée », 1 place) ; une entreprise « repartie à neuf » dont l'ancien nom vit encore garde « payée » mais pas les
+  places de l'abonnement gravé à l'ancien nom (la Tour les règle) ; une quantité augmentée chez Stripe sur un abonnement
+  d'avant est multipliée.
+
+⏳ **Mise en ligne n° 2 — la v763 (`app.html`, `sw.js`, « Mon espace » au contrat v762, bancs, CI) : préparée, suite complète en cours au moment d'écrire ces lignes.**
+
+**Preuves** : liste serveur 47 suites · 2 899 vérifications (plancher relevé à 2 850) ; suite complète de l'arbre de la
+mise en ligne n° 1 : 197 suites · 10 514.
+
+⏳ **Ce qui reste à Justin** : Search Console → « Inspection de l'URL » → `https://teamop.fr/` → « Demander une
+indexation » (le logo) ; supprimer l'ancienne paire de clés du coffre IONOS (#132) ; regarder chez Stripe qu'aucun code
+de réduction à 100 % ne traîne (un abonnement payé à 0 € donnerait maintenant des places) ; plus tard, exiger la v763
+dans la Tour quand tout le parc est à jour (rien ne l'oblige : aucun changement de format).
+⏳ **Ce qui reste au dépôt** : retirer l'ancien `vitrine/` et les deux empreintes v1 (voir plus haut) ; la liste blanche
+des tarifs à `/api/stripe/checkout` (repoussée : `test-839` paie un tarif fictif) ; le cas « deux entreprises à la même
+adresse » (il faudrait savoir quelles entrées de l'annuaire sont VIVANTES).
+
+---
+
 # 🟡 28 SEPTEMBRE 2026 — « B — ON VERROUILLE » EN SERVICE : SEUL UN COMPTE DE L'ENTREPRISE PAIE POUR ELLE (page `fae02f6`, serveur `d783d38`) ; « UN COMPTE AVANT DE PAYER », « 1 UTILISATEUR PAR ABONNEMENT », « TTC » ET v760 EN SERVICE ; LA TOUR (« Code espace collé ») ET L'APPLICATION ATTENDENT UNE DÉCISION
 
 Justin : **« Aussi à faire sur le site à partir d'aujourd'hui c'est 1 utilisateur par abonnement merci de corriger ça »**.
