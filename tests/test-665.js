@@ -129,10 +129,12 @@ console.log('Fournisseurs sans doublon, liens vérifiés, première connexion co
   v('⛔ un serveur injoignable laisse passer', /catch\(e\)\{ return 'incertain'; \}/.test(fn), true);
   v('…et le contrôle a un délai, sinon il gèle le démarrage', /setTimeout\(\(\)=>ctrl\.abort\(\),5000\)/.test(fn), true);
 
-  /* LES DEUX portes : le lien dans l'adresse, et le code collé à la main. Une seule fermée,
-     et il reste un chemin pour se poser sur un espace qui n'existe pas. */
-  v('⛔ les deux portes refusent un lien inconnu', (APP.match(/await lienEspaceConnu\(o\)==='inconnu'/g) || []).length, 2);
-  v('et elles disent la même chose', (APP.match(/toast\(LIEN_PAS_BON,10000\)/g) || []).length, 2);
+  /* UNE porte depuis le 28 septembre 2026 : le lien dans l'adresse. La seconde — le « Code espace » collé à la main
+     (teamopJoin) — a été retirée (Justin : « je veux plus de code, que des liens pour les connexions »). Ce contrôle en
+     comptait deux ; il exige maintenant la seule qui reste, ET qu'aucune entrée par code ne soit revenue à côté. */
+  v('⛔ la porte qui reste (le lien) refuse un lien inconnu', (APP.match(/await lienEspaceConnu\(o\)==='inconnu'/g) || []).length, 1);
+  v('et elle le dit', (APP.match(/toast\(LIEN_PAS_BON,10000\)/g) || []).length, 1);
+  v('⛔ aucune autre porte : pas d\'entrée par code collé', /async function teamopJoin\(|function teamopJoinPrompt\(/.test(APP), false);
   v('le message dit que rien n’a été changé', /Rien n\\'a été changé sur cet appareil/.test(APP), true);
 
   /* Le contrôle doit venir AVANT espaceQuitter() : après, l'appareil serait déjà vidé. */
