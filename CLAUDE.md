@@ -57,7 +57,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**171 suites dans `tests/`**, sans dépendance ni installation (recompté le 25 septembre 2026 au soir, `test-815` compris —
+**195 suites dans `tests/`**, sans dépendance ni installation (recompté dans la nuit du 27 septembre 2026, `test-839` compris —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -66,11 +66,12 @@ Quatre familles visent `server/`, et elles ne se remplacent pas :
 | | ce qu'elle monte | ce qu'elle peut voir |
 |---|---|---|
 | `test-716`, `test-722`, `test-723`, `test-725` | un MODULE, dépendances injectées | la logique d'une pièce |
-| `test-641`, `test-724` | le VRAI serveur, isolé, parlé en HTTP | ce qu'une route répond |
+| `test-641`, `test-724`, `test-832`, `test-834` | le VRAI serveur, isolé, parlé en HTTP | ce qu'une route répond |
 | `test-726` | l'ASSEMBLAGE complet, coffre S3 compris | que les pièces du SERVEUR sont branchées |
 | `test-735`, `test-803` | les fonctions RÉELLES d'`app.html` **plus** le vrai serveur | que l'APPAREIL et le SERVEUR se parlent |
-| `test-740`, `test-741` | les fonctions RÉELLES d'`espace.html` et de `reinit.html`, plus le vrai serveur | que le PORTAIL et le SERVEUR se parlent |
+| `test-740`, `test-741`, `test-831` | les fonctions RÉELLES d'`espace.html`, de `reinit.html` et de `connexion.html`, plus le vrai serveur | que le PORTAIL et le SERVEUR se parlent — et que l'écran DIT ce que le serveur a répondu |
 | `test-744` | le VRAI `op-fs.js` contre le vrai serveur, deux appareils | que le filtre de lecture ne CACHE rien |
+| `test-833` | les fonctions RÉELLES de `tour.html`, plus le vrai serveur — et un serveur d'AVANT (un relais qui retire le champ neuf) | que la TOUR et le SERVEUR se parlent, dans les deux ordres de publication |
 
 ⛔ Les deux dernières lignes existent parce que les deux premières ne peuvent pas voir un défaut
 de CÂBLAGE — et c'est là que naissent les pires. Le 19 septembre 2026, une seule expression
@@ -123,7 +124,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 171 suites · 8 482 vérifications (mesuré en local le 25/09/2026 au soir, bd29124)
+bash scripts/bancs-ci.sh        # 195 suites · 10 536 vérifications (mesuré en local dans la nuit du 27/09/2026, bêta v761)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
@@ -233,6 +234,12 @@ fuiter une donnée de client environ une fois sur cinq, au hasard. Un banc qui c
 ignorer, puis désactiver : c'est comme ça qu'on perd un garde-fou. Tout jeton cherché dans une
 sortie qui peut contenir une empreinte doit porter des lettres **hors de `[0-9a-f]`**.
 
+⛔ **UN FACTEUR SMTP DE BANC RETIRE LE POINT DOUBLÉ (RFC 5321 §4.5.2), SINON IL ACCUSE LE SERVEUR.** Une ligne de
+courriel qui commence par « . » voyage « .. » ; le quoted-printable replie les lignes longues, donc n'importe quel
+mot peut se retrouver en tête de ligne. Pris le 27 septembre 2026 : `test-832` lisait « set-admin..sh » dans l'avis
+de suppression, sur une partie seulement des messages — le défaut était dans le facteur. Le facteur de `test-813`
+(et de tout banc qui le recopie) ne le fait pas encore : à corriger le jour où il lira un texte long.
+
 ⛔ **UNE APOSTROPHE DANS LE MOT DE `${var:?mot}` CASSE LE PARSE DU SCRIPT ENTIER.** Bash
 re-interprète les quotes à l'intérieur du mot, **même entre guillemets doubles** :
 `"${1:?le SHA n'a pas été transmis}"` ouvre une simple quote qui ne se referme jamais, et le
@@ -240,6 +247,10 @@ fichier ne se parse plus du tout (`unexpected EOF while looking for matching '"'
 aucune commande exécutée). ⚠️ Le message d'erreur ne nomme ni la variable ni la ligne fautive :
 il pointe la fin du fichier. `tests/test-728.js` refuse désormais toute quote dans le mot d'un
 `${var:?…}` des workflows, et passe à `bash -n` le corps de chaque heredoc destiné à un shell.
+
+⛔ **POUR UNE MISE EN PAGE, `tests/test-830.js` REJOUE LA CASCADE CSS** (toutes les feuilles, média, spécificité, ordre,
+!important, raccourcis) pour un élément décrit par ses classes et ses ancêtres : il garde ce qu'une règle GAGNE, pas son
+texte — c'est ce qui voit « une moitié de règle survit à l'autre ». Le réutiliser plutôt qu'écrire un motif sur une déclaration.
 
 Quand une suite ne peut pas exécuter (un ordre d'opérations, un balisage, une fonction qui touche
 le DOM), elle lit le texte du fichier réel — et la preuve fonctionnelle vit alors dans une sonde
@@ -314,8 +325,8 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   rien. Ne pas le fermer « pour faire propre », ça casserait la page d'abonnement.
 - ⛔⛔ **UN CODE PROMO SERT UNE FOIS PAR ENTREPRISE — `promoPresente` EST LE SEUL VERDICT.**
   Justin, 24 septembre 2026 : « une fois qu'une entreprise l'a activé, ils peuvent pas le remettre ».
-  Cinq chemins activent un code (application, Tour, relais du portail, demande du site, rattrapage
-  d'`espacePaye`) et les cinq demandent `promoPresente(c, t, slug)` : neuf, en cours (même échéance,
+  Quatre chemins activent un code (application, Tour, relais du portail, rattrapage d'`espacePaye` — la demande
+  du site n'active plus rien depuis le 28 septembre 2026 : c'est la Tour qui l'applique à l'acceptation) et les quatre demandent `promoPresente(c, t, slug)` : neuf, en cours (même échéance,
   rien ne se recompte), servi (**refus 410**, dit par `promoRefusServi`), registre illisible (rien ne
   s'active). Un sixième chemin passe par elle ou n'existe pas ; une utilisation s'écrit par
   `promoEntree`, jamais `equipes[t] = { date: … }` à la main (`tests/test-803.js` compte les deux).
@@ -356,6 +367,10 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   `catch`. Ne jamais reconfondre les deux derniers : on ne propose de connecter une boîte que
   quand on SAIT qu'il n'y en a aucune. Corollaire général : avant de faire refuser une route,
   aller REGARDER au navigateur ce que l'écran affiche — pas ce qu'on croit qu'il affiche.
+  ⚠️ Repris le 27 septembre 2026, par l'autre bout : **`fetch` ne jette pas sur un refus.** « Mot de passe
+  oublié » (portail) et « me renvoyer le lien » (`connexion.html`) annonçaient « vient de partir » sur un 400,
+  un 429, un 502 et une coupure — la version en ligne, mesurée : 6 cas faux sur 9. Un écran qui annonce un envoi
+  lit le code AVANT (`tests/test-831.js`, `scratchpad/sonde-portail-envoi.js`).
 - ⛔ **Le refus de `/api/replies` n'est PAS du JSON.** `loadMailReplies()` (`app.html`) fait
   `const d = await r.json(); _mailReplies = d.replies||[]` : un refus en JSON se parse sans
   erreur, la liste devient **vide** au lieu de **nulle**, et l'écran affiche « 📭 Aucun
@@ -493,6 +508,16 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   appliquer AVANT d'écrire le prochain adaptateur : lister ce que l'API d'origine poussait, et le
   rendre — sinon chaque geste a l'air de ne pas être parti. Même piège pour les minuteries :
   une poignée de `setTimeout` PARTAGÉE entre abonnements fait qu'arrêter l'un coupe l'autre.
+- ⛔⛔ **UNE SYNCHRO SE MESURE AU REPOS, À DEUX APPAREILS, SUR UNE BASE PLUS LOURDE QUE LE BUDGET DU
+  NUAGE — PUBLIÉ SANS ÇA, LA v748 A BOUCLÉ CHEZ ELAN LE SOIR MÊME.** 25 septembre 2026 : « Données de
+  l'équipe mises à jour » toutes les 3,3 s dès que deux appareils étaient ouverts, l'écran redessiné à
+  chaque fois — « ça fait bug l'application ». Toutes les sondes de synchro étaient vertes : elles
+  faisaient bien parler deux appareils, mais sur des bases MINUSCULES. Or au-delà du budget,
+  `syncAlleger` coupe exprès les journaux de la copie poussée, et la réception prenait ce manque pour
+  une donnée à renvoyer — une boucle qui n'existe QUE sur une base lourde. Rejoué : 61 écritures en
+  30 s ; corrigé en v749 (`sigRenvoi`, `tests/test-816.js`) : 1. **Ce que l'envoi retire exprès ne
+  décide jamais d'un renvoi**, et toute sonde de synchro compte les écritures d'appareils AU REPOS sur
+  une base au-delà du budget (`scratchpad/sonde-boucle-lourde.js`) avant de dire « testé ».
 - ⛔⛔ **UN REFUS NE SURVIT PAS À LA RÉUSSITE QUI LE DÉMENT.** `_err()` d'`espace.html` ne faisait
   que POSER, jamais effacer : le verdict d'un essai raté restait à l'écran pendant l'essai
   suivant — y compris pendant un changement de mot de passe qui AVAIT réussi (deux routes à 200,
@@ -1066,6 +1091,9 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   SAUTENT à gauche au premier défilement du tableau de bord, la barre tassée à 360 px
   (`display:none` retire aussi la PLACE ; `visibility:hidden` la garde), et un `gap:8px` du
   palier téléphone qui n'avait JAMAIS pris contre un `!important` écrit plus loin.
+  ⚠️ Et **de jour ET de nuit** : dans la Tour, de jour `body.jour` efface TOUTES les bordures, de nuit elles restent.
+  Des lignes alignées sur la colonne d'une carte (mesuré de jour, parfait) touchaient de nuit le filet de leur liste
+  (Tour v2.68, 26 septembre 2026). Un alignement se mesure dans les deux modes.
 - ⛔⛔ **UN AUDIT SUR DEUX APPAREILS NE DIT RIEN DES DIX AUTRES — ET UNE TABLETTE N'EST NI UN
   TÉLÉPHONE NI UN ORDINATEUR.** Jusqu'au 23 septembre 2026, toutes les sondes tournaient sur un
   iPhone et un Mac. Étendues à douze profils (`scratchpad/profils.js`), elles ont trouvé en une
@@ -1260,6 +1288,35 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   ⚠️ Corollaire payé le même jour : **un correctif posé sur une cause fausse se retire.** Le
   réglage des halos, validé avec Justin en septembre, a été remis tel quel. Un correctif
   inutile occupe le terrain et fait croire le problème traité.
+- ⛔⛔ **UN `:has()` QUI LIT UN ATTRIBUT `style` FAIT RESTYLER TOUTE LA PAGE À CHAQUE ÉCRITURE DE
+  STYLE — C'ÉTAIT LA LENTEUR.** Mesuré le 26 septembre 2026 (chantier lenteur, bêta, ×4) : le code
+  d'un écran coûtait 20 à 30 ms, le recalcul des styles deux à cinq fois plus ; le tableau de bord
+  (118 éléments) payait autant que Factures (700). `body.rf-onglets:has(#msg-flot[style*="flex"])`
+  réévaluait `:has()` à chaque `el.style.x = …` de la page : **894 éléments restylés, 36,6 ms par
+  écriture → 9 éléments, 2,1 ms** une fois remplacé par une classe que pose le seul écrivain du
+  bouton. Et la règle ne s'appliquait JAMAIS. `test-823` refuse tout `:has(… [style…] …)`.
+  ⛔ **Une règle morte n'est pas gratuite quand elle porte un `:has()`** : deux familles qui ne
+  visaient plus rien (0 élément sur 44 écrans) coûtaient encore ~2 000 restylages par série de
+  gestes. Le coupable ne se lit pas, il se MESURE : `scratchpad/perf-has-glouton.js` neutralise
+  chaque règle à son tour et compte les éléments restylés (`UpdateLayoutTree.elementCount`) sur
+  des gestes réels — au téléphone ET au bureau, les règles de chaque format n'étant pas les mêmes.
+  ⚠️ Et une réécriture « sans rien changer » se PROUVE : `scratchpad/sonde-styles-identiques.js`
+  compare le style calculé de chaque élément, ancienne version contre nouvelle, sur 45 écrans.
+  Trois pièges de l'outil lui-même : un relevé de 7 Mo renvoyé par le protocole de pilotage ne
+  revient JAMAIS (empreinte par élément, détail à la demande) ; l'ordre des variables CSS suit
+  l'ordre des règles (trier avant de comparer) ; et les fenêtres ou messages qui s'ouvrent seuls
+  (photo de profil, notifications, « 👋 Bienvenue ») tombent à un moment différent dans chaque
+  page — les neutraliser, sinon on accuse la feuille d'un décalage d'horloge.
+- ⛔⛔ **UN RACCOURCI `background:…!important` EFFACE L'IMAGE POSÉE EN LIGNE — AUCUNE PHOTO DE
+  PROFIL N'A ÉTÉ PEINTE DEPUIS LA REFONTE.** Justin, 26 septembre 2026, capture à l'appui : « je
+  choisis une photo, elle ne s'affiche pas ici ». Elle était enregistrée (les initiales avaient
+  disparu) ; `html[data-refonte] .avatar{background:…!important}` remettait `background-image` à
+  `none`, parce qu'un RACCOURCI pose toutes ses sous-propriétés, et parce qu'un `!important` de la
+  feuille **bat un style en ligne ordinaire**. Le commentaire juste au-dessus affirmait l'inverse
+  (« un style en ligne passe devant ») — mesuré faux : la couleur d'un technicien écrite en ligne
+  sur sa pastille sort, elle aussi, à la teinte. **Pour changer une couleur, on écrit
+  `background-color`** ; et une affirmation de cascade dans un commentaire se vérifie au style
+  calculé, pas à la lecture. `test-824`, `scratchpad/sonde-photo-profil.js` (au doigt et au pixel).
 - ⛔ **UNE RÈGLE ÉCRITE POUR UN ÉCRAN NE COUVRE PAS LE COMPOSANT — ET L'ÉCRAN QUI SORT DU
   CADRE REND DU BRUT.** Toutes les règles du segmenté visaient `.plg-pl .seg span` : la barre
   du planning, et seulement des `span`. Pointage est le seul écran qui met des `<button>` dans
@@ -1319,6 +1376,21 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   avec la distance (8,5 px à deux onglets). La position va dans `translate`, qui passe avant
   `scale` : l'objet grossit sur place. Le signe : un écart qui grandit régulièrement avec la
   distance, jamais un écart constant.
+- ⛔⛔ **UN APPUI LONG QUI OUVRE QUELQUE CHOSE SOUS LE DOIGT : LE CLIC DU RELÂCHER TOMBE DEDANS.**
+  Tour v2.67, 26 septembre 2026 : l'appui long sur la barre ouvre « Ma barre », une feuille qui monte
+  du BAS — donc sous le doigt encore posé. Au relâcher, le navigateur produit le `click` de ce qui est
+  MAINTENANT sous le doigt : une ligne de la feuille (« Devis IA » se cochait tout seul) ou, barre
+  pleine, le refus « Quatre vues au maximum » avant qu'on ait rien touché. Avaler ce clic sur la
+  BARRE ne suffit pas (c'est ce que fait `ongletsPresse`) : on avale le premier clic qui suit le
+  relâcher, OÙ QU'IL TOMBE, et seulement celui-là — un appui long n'en produit pas toujours, et passé
+  une demi-seconde c'est un nouveau geste. Même mesure, même jour : **un toast posé au-dessus d'une
+  liste avalait pendant 2,5 s le toucher de la ligne qu'il couvrait** — un toast est du texte :
+  `pointer-events:none`. `scratchpad/sonde-tour-barre.js`, `tests/test-828.js`.
+- ⛔ **UN ÉCOUTEUR `animationend` EN `{once:true}` NE SE DÉCROCHE QUE SI L'ANIMATION A LIEU.** Tour, 27 septembre 2026 :
+  le toast accrochait son écouteur à sa SORTIE ; un nouveau toast pendant l'effacement annulait l'animation, l'écouteur
+  restait, éteignait le toast suivant à la fin de son ENTRÉE (0,3 s au lieu de 2,6) et en laissait un autre — tous les
+  toasts de la séance clignaient. Un écouteur d'animation se décroche quand l'état qu'il attend est remplacé, et vérifie
+  en entrant que cet état est toujours là (`toast`, `_ttFin` ; `test-833`, `scratchpad/sonde-tour-suppr.js`).
 - ⛔⛔ **CE CHROMIUM PILOTÉ NE TRANSMET AUCUN `touchmove` DE MOINS DE ~15 PX — ET IL LES LIVRE AU
   RYTHME DES IMAGES.** Mesuré le 23 septembre 2026 : mouvements de 1, 2, 4, 8, 13 px envoyés par
   `Input.dispatchTouchEvent`, rien reçu par la page ; 17,6 px reçu — même quand la page retient
@@ -1452,15 +1524,27 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   n'existe pas (`tests/test-795.js`, qui exécute la vraie `saveUser`). ⚠️ Et RENOMMER compte autant que
   créer : la fiche technicien se renommait sans aucune règle (deux cartes « Léo Martin » au planning, que
   la liste des utilisateurs ne voyait pas — elle compare les COMPTES). Relecture v742, `test-786`.
+- ⛔⛔ **UN CORRECTIF QUI FERME UNE PORTE N'A PAS FERMÉ LES AUTRES — L'« OP ADMIN » FANTÔME EST REVENU PAR LE
+  SEMIS.** 11 septembre 2026 : la v656 ferme la création du compte de départ dans `migrate()`, et on écrit « réglé ».
+  26 septembre : « OP Admin @florent-3 » chez ELAN. `seed()` portait LE MÊME compte (identifiant aléatoire) et
+  `users` n'est pas dans `COLLECTIONS_DONNEES` : il passait les deux vidages de `load()` sur tout navigateur neuf
+  qui ouvrait le lien d'une entreprise existante — administrateur, avec le mot de passe PROVISOIRE du lien, envoyé à
+  toute l'équipe. `grep "prenom:'OP',nom:'Admin'"` rendait trois fabriques ; on en avait fermé une. Avant de dire
+  « réglé » : **recenser TOUT ce qui fabrique la chose, et rejouer le chemin de la personne au navigateur**, pas la
+  fonction qu'on vient de corriger. Et quand un chemin légitime lit une clé, vérifier que personne ne l'efface
+  avant lui : `boot()` effaçait `elan_admin_login` avant « ESPACE NEUF », qui était donc du code mort depuis sa
+  naissance. Rattaché à une entreprise, un appareil ne fabrique AUCUN compte ; c'est le premier instantané qui dit si
+  l'équipe est vide (`adminDepartAppliquer`, `tests/test-826.js`, `scratchpad/sonde-admin-fantome.js`).
 - **Retirer un produit d'une box s'écrit TOUJOURS dans `db.boxDecisions`** (`boxDecider`). Quatre
   chemins le font : la feuille « Retirer », la croix ✕ de « Modifier la box », le retrait direct de la
   fiche, et le retrait validé par le DR. Sans cette trace, le catalogue repose tout seul ce qu'une
   équipe a retiré à la main — et une pose multi-box efface en silence les décisions de trente équipes.
   Règle jumelle : **une décision « Pas dans cette box » ne se lève que sur la box qu'on a sous les
   yeux** (`boxPoserProduits(b,ids,{respecterEcartes})`).
-- ⛔ **Quitter un espace passe par `espaceQuitter()`, jamais à la main.** Il y a QUATRE portes —
-  Code espace, lien de connexion, lien client (`espace.html`) et fermeture par la Tour — et le
-  10 septembre 2026 trois d'entre elles avaient le même défaut. La fonction retire `STORE_KEY`, le
+- ⛔ **Quitter un espace passe par `espaceQuitter()`, jamais à la main.** Il y a TROIS portes —
+  lien de connexion, lien client (`espace.html`) et fermeture par la Tour ; la quatrième, le « Code
+  espace » collé, a été retirée le 28 septembre 2026 (Justin : « je veux plus de code, que des liens
+  pour les connexions ») — et le 10 septembre 2026 trois d'entre elles avaient le même défaut. La fonction retire `STORE_KEY`, le
   drapeau de vidage, pose `elan_frais`, emporte les secrets de l'entreprise quittée (clé Anthropic,
   code d'équipe devis, projet Firebase personnel, annuaire, marques de lecture, compteurs d'usage,
   administrateur déclaré) et efface les bases mises de côté en IndexedDB. Le préfixe se lit sur
@@ -1745,7 +1829,7 @@ de la page ouverte. Sur `app.html` en production, ce sont des noms, des adresses
 coordonnées de vrais clients — un flux de données qui n'est pas couvert par
 `sous-traitance.html`. On ne pointe donc le navigateur piloté que sur `beta.html` ou une
 copie d'aperçu : la bêta est isolée par construction (préfixe `elanB_`, espace
-`elan-gestion-beta`, jamais de données d'entreprise). Cette règle est écrite aussi dans les
+`opgestion-beta`, jamais de données d'entreprise). Cette règle est écrite aussi dans les
 agents `concepteur` et `testeur`.
 
 ⛔ **Mais ces deux agents ne PEUVENT pas s'en servir, et il faut le savoir avant d'essayer.**
@@ -1996,7 +2080,8 @@ Il n'y aura pas de « bêta publique » — ce mot désigne ici un canal interne
   réécrivable par `POST /api/monitor/beta/chantier` (`monPatronStrict`), affiché sur la ligne.
   Un accès sans chantier renseigné le dit en ambre plutôt que de se taire : un accès dont on
   ne sait plus à quoi il servait est un accès qu'on n'ose plus couper.
-- **Jamais de données d'entreprise** : espace `elan-gestion-beta`, préfixe `elanB_`. Un accès
+- **Jamais de données d'entreprise** : espace `opgestion-beta` (il s'appelait `elan-gestion-beta` jusqu'au
+  17 septembre 2026 — `beta-build.js`), préfixe `elanB_`. Un accès
   bêta n'ouvre que la bêta.
 - **L'onglet s'appelle « Accès » et porte DEUX portes, à ne jamais confondre** : la bêta
   (`beta.html`, comptes portés par le serveur, n'ouvre que la bêta) et la version publique

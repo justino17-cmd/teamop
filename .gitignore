@@ -46,6 +46,9 @@ scratchpad/base-*.json
 scratchpad/audit-*-*.json
 scratchpad/audit-teintes.json
 scratchpad/residus*.json
+# Les photos de `scratchpad/vue-site.js` (3,8 Mo par passe, refaites à chaque retouche du site) : on
+# les montre à Justin, on ne les versionne pas — le script qui les refait l'est.
+scratchpad/vues-site/
 
 # ── Bibliothèques tierces téléchargées pour une sonde : jamais versionnées ──
 # `scratchpad/sonde-carte.js` sert Leaflet depuis ce dossier, parce que le navigateur piloté

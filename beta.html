@@ -13687,7 +13687,17 @@ const PLANS={
 /* ⛔ UN ABONNEMENT = UN UTILISATEUR, QUELLE QUE SOIT LA FORMULE — Justin, 27 septembre 2026 (le site et la page de
    paiement), puis 28 septembre pour l'application : « c'est un utilisateur par abonnement ». Jusqu'à la v761, Business en
    donnait 2 et Business Premium 3 : l'écart que `test-835` déclarait se referme ici. Les places = le nombre d'abonnements. */
-function planPlaces(){ return (PLANS[forfait()].maxU||1)*Math.max(1,db.forfaitQty||1); }
+/* ⛔ LES PLACES SERVIES PAR LE SERVEUR (`places` de /api/espaces/etat, 28 septembre 2026) : ce qui est payé chez Stripe, et les
+   places gardées par les entreprises abonnées avant la v763 (2 ou 3 par abonnement). Gardées EN MÉMOIRE sur l'appareil,
+   JAMAIS dans `db` : `db.forfaitQty` voyage à la synchro, et une v760 (qui y écrit le nombre d'abonnements) et une v763
+   (qui y écrirait les places) se renverraient deux nombres différents sans fin. `quantite` garde son sens, `places` est
+   à part — relecture `gardien`. Sans réponse du serveur (hors ligne, premier instant), on retombe sur le calcul d'avant. */
+var _placesSrv=null,_placesSrvF='';
+/* elles font foi quand la formule de l'appareil est celle que le serveur a lue — `forfaitSrv` n'est posé qu'à un
+   CHANGEMENT : une base dont la formule avait été réglée sur l'appareil, identique, ne les lisait jamais (`gardien`, M2) */
+function placesSrvActives(){ return typeof _placesSrv!=='undefined'&&_placesSrv!=null&&(db.forfaitSrv==='teamop'||forfait()===_placesSrvF); }
+function planPlaces(){ if(placesSrvActives()) return _placesSrv;
+  return (PLANS[forfait()].maxU||1)*Math.max(1,db.forfaitQty||1); }
 /* ⛔ PENDANT LA PÉRIODE OFFERTE PAR UN CODE PROMO, LE CODE COUVRE TOUTE L'ÉQUIPE — Justin, 28 septembre 2026 : ELAN
    « est en démo pendant trois mois avec le code, donc le code comprend tous les utilisateurs qu'ils utilisent ». Aucune
    place ne manque tant que la période court, ni pour les comptes d'aujourd'hui ni pour ceux qu'on ajoute : un essai ne
@@ -13709,8 +13719,9 @@ function planPlaceLibre(){ return essaiCouvreEquipe() || db.users.length<planPla
    · un abonnement en attente de règlement : un abonnement de plus ne règle pas celui qui est dû (et le serveur
      tiendrait l'espace pour payé dès qu'UN abonnement vit) — on renvoie à l'espace client, comme le rappel ;
    · une formule réservée qui attend son paiement : c'est ELLE qu'il faut payer, comme le dit le bandeau.
-   ⚠️ Les places ne viennent PAS de Stripe : le serveur ne lit que « payé ou pas ». C'est TEAM OP (la Tour) qui
-   règle le nombre — d'où la dernière phrase du message, qui ne promet rien d'automatique. */
+   ⚠️ Depuis la v763, les places suivent ce qui est payé chez Stripe (`places` de /api/espaces/etat) : un abonnement de
+   plus donne sa place de lui-même, en quelques minutes (le serveur relit Stripe toutes les cinq). Passer du Gratuit à
+   Pro, en revanche, reste un geste de TEAM OP : c'est la Tour qui pose la formule. */
 function abosManquants(){ return forfait()==='gratuit' ? db.users.length+1 : Math.max(1, db.users.length+1-planPlaces()); }
 function proposerAbonnement(){
   if(!currentUser||currentUser.role!=='admin'){ toast('Plus de place utilisateur libre — seul l\'administrateur peut en ajouter',4500); return; }
@@ -13721,7 +13732,7 @@ function proposerAbonnement(){
   const msg=(f==='gratuit'
     ? 'Formule Gratuit : 1 place utilisateur, déjà prise.\n\nPour travailler à '+n+', passe en Pro : un abonnement par utilisateur, soit '+n+' abonnements.'
     : 'Formule '+PLANS[f].l+' : '+u+' utilisateur'+s(u)+' pour '+p+' place'+s(p)+'.\n\nUn abonnement = un utilisateur : pour en ajouter un, il faut '+n+' abonnement'+s(n)+' '+PLANS[f].l+' de plus.')
-    +'\n\nAprès le paiement, TEAM OP '+(f==='gratuit'?'active la formule Pro sur ton espace.':'ajoute '+(n>1?'les places':'la place')+' à ton espace.')
+    +'\n\nAprès le paiement, '+(f==='gratuit'?'TEAM OP active la formule Pro sur ton espace.':(n>1?'les places s\'ajoutent d\'elles-mêmes':'la place s\'ajoute d\'elle-même')+' à ton espace en quelques minutes (rouvre l\'application).')
     +'\n\nOuvrir la page de paiement ?';
   if(confirm(msg)) window.open('https://teamop.fr/recap-abonnement.html?formule='+cible+'&utilisateurs='+n,'_blank'); }
 function setForfaitQty(d){ const q=Math.max(1,(db.forfaitQty||1)+d);
@@ -13913,8 +13924,9 @@ async function forfaitServeurSync(silencieux){
        qu'`opMessages` juste au-dessus : un espace sans formule attribuée sortait par le
        `return` ci-dessous, et serait resté suspendu sans que rien ne grise jamais. */
     try{ suspensionPoser(j); suspensionRappel(); }catch(e){}
-    if(!(j&&j.formule&&PLANS[j.formule])) return;
+    if(!(j&&j.formule&&PLANS[j.formule])){ _placesSrv=null; return; }
     const q=Math.max(1,parseInt(j.quantite,10)||1);
+    const placesAv=_placesSrv; _placesSrv=(j.paye&&j.places!=null)?Math.max(1,parseInt(j.places,10)||1):null; _placesSrvF=j.formule;
     const avaitAttente=!!db.formuleAttente;
     if(j.paye){
       db.formuleAttente=null;
@@ -13942,6 +13954,8 @@ async function forfaitServeurSync(silencieux){
       bandeauFormule();
       if(!silencieux&&bandeauFormule._premier===undefined){ bandeauFormule._premier=1; }
     }
+    /* l'écran se redessine APRÈS la formule écrite, pas avant (`gardien`, M2) */
+    if(placesAv!==_placesSrv&&(current==='parametres'||current==='utilisateurs')) try{ views[current](); }catch(e){}
   }catch(e){}
 }
 /* Bandeau « paye ton abonnement ou active un code promo » — tant que la formule réservée n'est pas payée */
@@ -34142,8 +34156,8 @@ views.parametres=function(){
              « rien ne s'écrit au seul chargement », et une activation reste un geste. */
           :`<input id="promo-inp" placeholder="Ex : BIENVENUE3" value="${esc(promoEnAttente())}" style="text-transform:uppercase;width:160px" onkeydown="if(event.key==='Enter')promoAppliquer()"><button class="btn sm" onclick="promoAppliquer()">Activer</button>`}</div></div></div>
       <div class="fgroup" style="margin-top:10px"><div class="frow"><span class="frow-lbl">Places utilisateur</span><div class="frow-val" style="display:flex;align-items:center;gap:10px;justify-content:flex-end">
-        <b>${essaiCouvreEquipe()?db.users.length:db.users.length+' / '+planPlaces()}</b><span style="color:var(--t3);font-size:12px">· ${essaiCouvreEquipe()?'tous couverts par ton code':Math.max(1,db.forfaitQty||1)+' abonnement(s)'}</span>
-        <button class="btn ghost sm" onclick="setForfaitQty(-1)">−</button><button class="btn sm" onclick="setForfaitQty(1)">＋ Abonnement</button></div></div></div>
+        <b>${essaiCouvreEquipe()?db.users.length:db.users.length+' / '+planPlaces()}</b><span style="color:var(--t3);font-size:12px">· ${essaiCouvreEquipe()?'tous couverts par ton code':placesSrvActives()?'selon ce qui est payé':(q=>q+' abonnement'+(q>1?'s':''))(Math.max(1,db.forfaitQty||1))}</span>
+        ${placesSrvActives()?'':'<button class="btn ghost sm" onclick="setForfaitQty(-1)">−</button><button class="btn sm" onclick="setForfaitQty(1)">＋ Abonnement</button>'}</div></div></div>
       <p style="font-size:12px;color:var(--t3);margin-top:8px">Un abonnement = un utilisateur.${essaiCouvreEquipe()?' Pendant la période offerte par ton code, toute l’équipe est couverte ; à la fin, chaque utilisateur compte pour un abonnement.':''} Détail des formules : <a href="tarifs.html" target="_blank" style="color:var(--acc-txt)">teamop.fr/tarifs</a></p>
     </div>
     <div class="card"><div class="card-head"><h3>Sauvegarde & synchronisation</h3></div>

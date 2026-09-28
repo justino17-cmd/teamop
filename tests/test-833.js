@@ -44,7 +44,7 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 150 s'); console.lo
 /* ── Les fonctions de la Tour, ancrées sur leur DÉCLARATION (le fichier est très commenté) ── */
 const CODE = SRC_TOUR.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 function fonction(nom) {
-  const m = new RegExp('\\nfunction ' + nom + '\\(').exec(CODE); if (!m) return '';
+  const m = new RegExp('\\n(?:async )?function ' + nom + '\\(').exec(CODE); if (!m) return '';   // les fonctions async aussi (tourEspaceDe)
   let k = CODE.indexOf('{', m.index), prof = 0, q = null;
   for (; k < CODE.length; k++) {
     const c = CODE[k];
@@ -322,6 +322,42 @@ console.log('\n── 833 · la Tour v2.69 supprime sans code : ses vraies fonct
       v('⛔ un toast arrivé pendant que le précédent s\'efface reste affiché après son entrée', jouer(false), { aff: 'block', txt: 'second', ecouteurs: 0 });
       v('⛔ …même si le précédent était déjà masqué quand sa sortie a commencé', jouer(true), { aff: 'block', txt: 'second', ecouteurs: 0 });
     }
+
+    /* ══ 10. v2.72 — PLUS AUCUN « CODE ESPACE » (Justin, 28 septembre 2026 : « je veux plus de code, que des liens pour les
+       connexions » ; « c'est nous qui créons les liens pour les entreprises une fois leur demande faite »). La Tour ne propose
+       plus de coller un code : un nom que le serveur ne connaît pas reçoit un espace NEUF. Le seul code encore envoyé d'ici
+       est celui que CE navigateur a gardé (`tour_liens`) : s'il porte une clé qui n'est plus celle de l'entreprise (409
+       `cle_differente`, gardé côté serveur par `test-834`), il est OUBLIÉ, rien n'est créé, et on le dit — sans question ni
+       confirmation (la v2.70 en posait une : elle n'avait de sens que pour un code collé). kappa est une entreprise ouverte
+       SANS adresse. ══ */
+    console.log('\n5. La Tour v2.72 : plus de code à coller ; un lien gardé périmé est oublié');
+    const garde = (email, t, k) => ({ [email]: { t, k, n: 'Gardée', a: 'kappa', m: 'Mdp-833', e: email } });
+    const espaceDe = (gardes) => {
+      const src = ['hAuth', 'apiPost', 'tourSha256', 'tourLienServeur', 'tourEspaceDe'].map(fonction);
+      if (src.some(x => !x)) return null;
+      const stock = { tour_liens: JSON.stringify(gardes || {}) }, confirms = [], toasts = [], prompts = [], posts = [];
+      const ctx = { JSON, Object, String, Math, Promise, Uint8Array, TextEncoder, crypto: globalThis.crypto, atob, btoa,
+        fetch: (u, o) => { if (o && o.method === 'POST' && /\/api\/monitor\/espaces$/.test(u)) posts.push(JSON.parse(o.body)); return fetch(u, o); },
+        localStorage: { getItem: k => (k in stock ? stock[k] : null), setItem: (k, x) => { stock[k] = String(x); }, removeItem: k => { delete stock[k]; } },
+        prompt: (q) => { prompts.push(q); return ''; }, confirm: (q) => { confirms.push(q); return true; }, toast: (t) => { toasts.push(t); } };
+      vm.createContext(ctx);
+      vm.runInContext('var API=' + JSON.stringify(B) + ', TOKEN=' + JSON.stringify(PATRON) + ';\n' + src.join('\n'), ctx);
+      return { ctx, stock, confirms, toasts, prompts, posts };
+    };
+    const oublie = (x) => { try { return Object.keys(JSON.parse(x.stock.tour_liens || '{}')).length; } catch (e) { return -1; } };
+    let E = espaceDe(garde('pirate@exemple-833.fr', 't-kappa-832', 'cle-forgee-833'));
+    vrai('les vraies fonctions de la Tour s\'extraient (tourEspaceDe et ce qu\'elle appelle)', E);
+    let res = await E.ctx.tourEspaceDe('pirate@exemple-833.fr', 'Kappa Gardée', 'pirate', 'Mdp-833', false, 'tour');
+    v('⛔ un lien gardé dont la clé n\'est plus la bonne : AUCUNE question (ni à coller, ni à confirmer), un seul envoi sans confirmation, rien d\'enregistré, le lien oublié',
+      [E.prompts.length, E.confirms.length, E.posts.map(p => p.confirmeCle === true), res, slugs().includes('kappagardee'), oublie(E)],
+      [0, 0, [false], null, false, 0]);
+    vrai('   et le toast le dit : périmé, oublié, rien de créé', E.toasts.some(t => /périmé/.test(t) && /rien n'a été créé/.test(t)));
+    E = espaceDe({});
+    res = await E.ctx.tourEspaceDe('neuf@exemple-833.fr', 'Omicron Neuve', 'omicron', 'Mdp-833', false, 'tour');
+    v('un nom que le serveur ne connaît pas, rien de gardé : un espace NEUF, sans aucune question', [E.prompts.length, E.confirms.length, E.posts.length, !!(res && res.slug)], [0, 0, 1, true]);
+    E = espaceDe(garde('kappa@exemple-833.fr', 't-kappa-832', 'cle-propre-t-kappa-832'));
+    res = await E.ctx.tourEspaceDe('kappa@exemple-833.fr', 'Kappa Services Bis', 'kappa', 'Mdp-833', false, 'tour');
+    v('le lien gardé À JOUR (la clé de la référence) : aucune question, un seul envoi, enregistré', [E.prompts.length, E.confirms.length, E.posts.length, !!(res && res.slug)], [0, 0, 1, true]);
 
     v('⛔ du début à la fin, rien n\'est parti ailleurs qu\'au Google de banc (127.0.0.1)', G.requetes.every(q => !/googleapis|google\.com/.test(q)), true);
   } catch (e) { ko++; console.log('  ✗ exception : ' + (e && e.stack || e)); }

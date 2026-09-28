@@ -71,23 +71,26 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
       PLANS: bloc('const PLANS={'), grise: bloc('function suspensionGrise(){'), forfait: bloc('function forfait(){'),
       places: bloc('function planPlaces(){'), libre: bloc('function planPlaceLibre(){'),
       manquants: bloc('function abosManquants(){'), proposer: bloc('function proposerAbonnement(){'),
+      essai: bloc('function essaiCouvreEquipe(){'), srv: bloc('function placesSrvActives(){'),
     };
     v('les fonctions sont trouvées', Object.keys(FN).filter(k => !FN[k]), []);
     v('⛔ une seule définition de chacune (une seconde gagnerait partout, en silence)',
-      ['function abosManquants(', 'function proposerAbonnement(', 'function planPlaces('].map(n => SRC.split(n).length - 1), [1, 1, 1]);
+      ['function abosManquants(', 'function proposerAbonnement(', 'function planPlaces(', 'function planPlaceLibre(', 'function essaiCouvreEquipe(', 'function placesSrvActives('].map(n => SRC.split(n).length - 1), [1, 1, 1, 1, 1, 1]);
     /* les deux portes qui créent un compte passent toujours par là quand il n'y a plus de place */
     v('les deux portes qui créent un compte (utilisateur, fiche technicien) appellent proposerAbonnement quand il n\'y a plus de place',
       (SRC.match(/if\(!id && !planPlaceLibre\(\)\)\{ proposerAbonnement\(\); return; \}/g) || []).length, 2);
 
     /* le bac à sable : les vraies fonctions ; confirm, toast et window.open sont les doubles qui notent */
-    const monde = ({ f = 'business', qty = 1, n = 1, role = 'admin', susp = false, sursis = null, attente = null, oui = true } = {}) => {
+    const monde = ({ f = 'business', qty = 1, n = 1, role = 'admin', susp = false, sursis = null, attente = null, oui = true, essai = null } = {}) => {
       const ctx = { JSON, Math, Object, Array, String, Number, __toasts: [], __questions: [], __ouverts: [],
-        db: { forfait: f, forfaitQty: qty, users: Array.from({ length: n }, (_, i) => ({ id: 'u' + i })), formuleAttente: attente },
+        db: { forfait: f, forfaitQty: qty, users: Array.from({ length: n }, (_, i) => ({ id: 'u' + i })), formuleAttente: attente, forfaitEssai: essai },
         currentUser: role ? { id: 'moi', role } : null };
       vm.createContext(ctx);
       vm.runInContext(`${FN.PLANS};
         var _susp = { suspendu: ${!!susp}, sursis: ${JSON.stringify(sursis)} };
-        ${FN.grise}\n${FN.forfait}\n${FN.places}\n${FN.libre}\n${FN.manquants}\n${FN.proposer}
+        var _placesSrv = null, _placesSrvF = '';
+        ${FN.srv}\n${FN.grise}\n${FN.forfait}\n${FN.places}\n${FN.libre}\n${FN.manquants}\n${FN.proposer}\n${FN.essai}
+        function todayISO(){ return '2026-09-28'; }
         function toast(m){ __toasts.push(String(m)); }
         function confirm(m){ __questions.push(String(m)); return ${!!oui}; }
         var window = { open: function(u, c){ __ouverts.push([String(u), c]); } };`, ctx);
@@ -103,17 +106,17 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
     vrai('… sur la page de paiement du site, dans un nouvel onglet', /^https:\/\/teamop\.fr\/recap-abonnement\.html\?/.test(adresse(m)) && m.__ouverts[0][1] === '_blank');
     const q = m.__questions[0] || '';
     vrai('… et la question le dit : « 7 utilisateurs pour 7 places », « il faut 1 abonnement Pro de plus »', q.includes('Formule Pro : 7 utilisateurs pour 7 places.') && q.includes('il faut 1 abonnement Pro de plus.'), q);
-    vrai('… « Un abonnement = un utilisateur », et qui ajoute la place : TEAM OP (rien d\'automatique n\'est promis)', q.includes('Un abonnement = un utilisateur') && q.includes('TEAM OP ajoute la place à ton espace.'), q);
+    vrai('… « Un abonnement = un utilisateur », et la place s\'ajoute d\'elle-même après le paiement (v763 : les places suivent ce qui est payé)', q.includes('Un abonnement = un utilisateur') && q.includes('la place s\'ajoute d\'elle-même à ton espace en quelques minutes'), q);
 
-    /* 2. la place manquante se CALCULE sur les vraies places (Business donne encore 2 places par abonnement dans
-          l'application — l'écart déclaré par test-835 ; le jour où il passe à 1, ce cas reste juste) */
+    /* 2. la place manquante se CALCULE sur les vraies places (Business en donnait 2 par abonnement jusqu'à la v761 ;
+          depuis la v762, un abonnement = un utilisateur — le calcul reste le même) */
     m = jouer({ f: 'business', qty: 3, n: 6 });
     const places = vm.runInContext('planPlaces()', m);
     v('Business, 6 personnes pour ' + places + ' places : ' + Math.max(1, 7 - places) + ' abonnement(s) de plus', qs(adresse(m)).utilisateurs, String(Math.max(1, 7 - places)));
     /* 3. une équipe déjà au-delà de ses places (la Tour a baissé le nombre) : tout ce qui manque, d'un coup */
     m = jouer({ f: 'pro', qty: 6, n: 8 });
     v('Pro, 8 personnes pour 6 places : 3 abonnements de plus (8 + 1 − 6)', qs(adresse(m)), { formule: 'pro', utilisateurs: '3' });
-    vrai('… « il faut 3 abonnements Pro de plus », « les places »', (m.__questions[0] || '').includes('il faut 3 abonnements Pro de plus.') && (m.__questions[0] || '').includes('ajoute les places à ton espace.'), m.__questions[0]);
+    vrai('… « il faut 3 abonnements Pro de plus », « les places »', (m.__questions[0] || '').includes('il faut 3 abonnements Pro de plus.') && (m.__questions[0] || '').includes('les places s\'ajoutent d\'elles-mêmes à ton espace en quelques minutes'), m.__questions[0]);
     /* 4. Business Premium : même règle */
     m = jouer({ f: 'premium', qty: 1, n: vm.runInContext('planPlaces()', monde({ f: 'premium', qty: 1 })) });
     v('Business Premium plein : 1 abonnement de plus', qs(adresse(m)), { formule: 'premium', utilisateurs: '1' });
@@ -148,6 +151,22 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
     m = jouer({ f: 'gratuit', qty: 1, n: 1, attente: { formule: 'business', quantite: 3 } });
     vrai('formule Business ×3 réservée, pas encore payée : l\'espace client, pour la payer', m.__ouverts.length === 1 && m.__ouverts[0][0] === 'https://teamop.fr/espace.html', m.__ouverts);
     vrai('… « Ta formule Business ×3 attend son paiement »', (m.__questions[0] || '').includes('Ta formule Business ×3 attend son paiement'), m.__questions[0]);
+
+    /* 9 bis. ⛔ UN ABONNEMENT = UN UTILISATEUR, QUELLE QUE SOIT LA FORMULE (Justin, 28 septembre 2026, v762) — et pendant
+       la période offerte par un code promo, le code couvre TOUTE l'équipe : la porte s'ouvre, les places ne changent pas. */
+    v('chaque formule donne UNE place par abonnement (Business et Business Premium aussi)',
+      ['gratuit', 'pro', 'business', 'premium'].map(f => vm.runInContext('planPlaces()', monde({ f, qty: 1 }))), [1, 1, 1, 1]);
+    v('… et trois abonnements Business Premium, trois places', vm.runInContext('planPlaces()', monde({ f: 'premium', qty: 3 })), 3);
+    const ESSAI = (o) => Object.assign({ code: 'ESSAI-BANC-838', formule: 'premium', finLe: '2026-10-05', mois: 3 }, o || {});
+    const libre = (o) => vm.runInContext('planPlaceLibre()', monde(o));
+    v('⛔ sept personnes, un abonnement Premium, SANS code : plus de place', libre({ f: 'premium', qty: 1, n: 7 }), false);
+    v('⛔ … avec un code promo en cours : la place s\'ouvre (le code couvre toute l\'équipe, et ceux qu\'on ajoute)', libre({ f: 'premium', qty: 1, n: 7, essai: ESSAI() }), true);
+    v('… jusqu\'au dernier jour compris', libre({ f: 'premium', qty: 1, n: 7, essai: ESSAI({ finLe: '2026-09-28' }) }), true);
+    v('… plus le lendemain de la fin', libre({ f: 'premium', qty: 1, n: 7, essai: ESSAI({ finLe: '2026-09-27' }) }), false);
+    v('… ni un essai marqué terminé', libre({ f: 'premium', qty: 1, n: 7, essai: ESSAI({ termine: true }) }), false);
+    v('… ni pendant une suspension dont le sursis est écoulé (ce qui grise le forfait grise aussi cette largesse)', libre({ f: 'premium', qty: 1, n: 7, essai: ESSAI(), susp: true, sursis: 0 }), false);
+    v('… et le nombre de places, lui, ne ment pas pendant le code (la page de paiement et « il manque N » le lisent)',
+      vm.runInContext('planPlaces()', monde({ f: 'premium', qty: 1, n: 7, essai: ESSAI() })), 1);
 
     /* 10. ⛔ LA COUTURE : l'adresse ouverte par l'application, lue par le VRAI script de la page de paiement */
     for (const PAGE of PAGES_PAIEMENT) {

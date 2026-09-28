@@ -121,6 +121,9 @@ const MDP = 'mot-de-passe-du-banc-2026';
 /* ⚠️ Une clé PROPRE, pas la clé partagée : `/api/op/session` rend 409 « cle_partagee » à un
    espace resté dessus, et le banc croirait mesurer une panne alors qu'il mesure un refus juste. */
 const T = 'ent-socle-4z', SLUG = 'entreprisesocle', CLE = 'cle-propre-du-banc-735-2026';
+/* Une seconde entreprise, pour la course du contrôle (section « f bis ») : le serveur n'y détient
+   que ce qu'on y pousse, donc un écart ne peut venir que de la course elle-même. */
+const T2 = 'ent-course-4z', SLUG2 = 'entreprisecourse', CLE2 = 'cle-propre-du-banc-735-course';
 const sha = k => crypto.createHash('sha256').update(k).digest('hex');
 const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64');
 const dormir = ms => new Promise(r => setTimeout(r, ms));
@@ -146,7 +149,7 @@ const code = [
   bloc('function opFichiersDe('), bloc('function opAmpute('), bloc('function opIdDerive('),
   bloc('function opSignature('), bloc('function opDecomposer('), bloc('function opRecomposer('),
   /* ── LE BLOC DE L'ÉTAPE 4, MOT POUR MOT ── */
-  ligne('let _opJeton ='), ligne('let _opEnVol ='),
+  ligne('let _opJeton ='), ligne('let _opEnVol ='), ligne('let _opPousses ='),
   ligne('const OP_HAUT_CLE ='), ligne('const OP_NON_CLE ='), ligne('const OP_APP_CLE ='),
   ligne('function opHautLire('), ligne('function opHautPoser('),
   ligne('function opNonLire('), ligne('function opNonPoser('),
@@ -308,6 +311,7 @@ async function monter() {
   }));
   fs.writeFileSync(path.join(data, 'espaces.json'), JSON.stringify({
     [SLUG]: { slug: SLUG, nom: 'Entreprise du banc', email: 'banc@exemple.fr', t: T, code: b64({ t: T, k: CLE }), ts: 1 },
+    [SLUG2]: { slug: SLUG2, nom: 'Entreprise de la course', email: 'course@exemple.fr', t: T2, code: b64({ t: T2, k: CLE2 }), ts: 1 },
   }));
   const port = await portLibre();
   enfant = spawn(process.execPath, [path.join(RACINE, 'server', 'index.js')], {
@@ -421,6 +425,15 @@ function basePetite(m) {
     vrai('⛔ la pousse a ENVOYÉ quelque chose (le nom du champ est le bon)', r && r.envoyees > 0);
     v('⛔ et le serveur a accepté TOUTES les lignes décomposées', r && r.envoyees, attendues);
     v('   aucun refus', r && r.refus, 0);
+    /* ⛔ LE CONTRÔLE QUE CETTE PREMIÈRE POUSSE LANCE EN ARRIÈRE-PLAN, ON L'ATTEND. Laissé à
+       l'ordonnanceur, il finissait parfois pendant la section suivante, sur une base que le banc
+       venait de modifier : c'est ce qui a fait tomber ce banc deux fois en CI (26 et 27 septembre
+       2026, « rien n'a été remonté à la Tour »), et jamais ici. La course elle-même est jouée
+       EXPRÈS, requête retenue, en « f bis » ; les autres sections ne doivent pas dépendre de
+       l'horloge de la machine qui les fait tourner. */
+    for (let i = 0; i < 150 && compte.combien('/api/op/controle') === 0; i++) await dormir(20);
+    v('   le contrôle qu\'elle a lancé a rendu son verdict, sans rien remonter à la Tour',
+      [compte.combien('/api/op/controle'), diagnostics.length], [1, 0]);
 
     const e = await appel('POST', '/api/op/session', { corps: { t: T, kh: sha(CLE), app_id: 'dev-controle' } });
     vrai('⛔ le socle n\'est plus vide, vu par une AUTRE session', e.j && e.j.seq >= attendues);
@@ -538,6 +551,112 @@ function basePetite(m) {
     /* La fiche retirée ici n'a pas de pierre tombale : le serveur la garde, donc les deux
        signatures divergent de nouveau. On repart d'une borne neuve pour la suite du banc. */
     await api.opSocleControle();
+  }
+
+  /* ══ (f bis) LA COURSE DU CONTRÔLE — CE QUE CE BANC NE VOYAIT QU'AU HASARD ══════════════════
+     ⛔ test-735 est tombé deux fois en CI (26 et 27 septembre 2026, 223 ✓ 2 ✗ : « rien n'a été
+     remonté à la Tour ») et restait vert ici. Le contrôle que la PREMIÈRE pousse lance en
+     arrière-plan finissait parfois pendant la section suivante, et décomposait une base qui
+     avait bougé entre-temps : une fiche modifiée, pas encore poussée, passait pour une
+     divergence — diagnostic à la Tour, borne remise à zéro, toute la base repoussée. Rejoué en
+     retardant d'un seul tour de boucle la réponse de `/api/op/etat` : 2 ✗ à chaque exécution.
+     On ne s'en remet donc plus à l'ordonnanceur : on RETIENT la requête et on joue la course
+     exprès, sur une entreprise à part. */
+  console.log('\n⛔ La course du contrôle — il compare ce que la pousse a traité, pas ce que la base est devenue');
+  {
+    /* Le stockage d'une entreprise naît à sa première session : sans elle, la Tour répond 404. */
+    await appel('POST', '/api/op/session', { corps: { t: T2, kh: sha(CLE2), app_id: 'dev-course-amorce' } });
+    const on2 = await appel('POST', '/api/monitor/op/double', { jeton: JETON_TOUR, corps: { t: T2, actif: true } });
+    v('une seconde entreprise, double écriture allumée', [on2.code, on2.j && on2.j.double], [200, true]);
+    let retenir = false, lacher = null;
+    const parC = {};
+    const fC = (u, o) => {
+      const chemin = String(u).replace(/^https?:\/\/[^/]+/, '').split('?')[0];
+      parC[chemin] = (parC[chemin] || 0) + 1;
+      if (chemin === '/api/op/etat' && retenir) {
+        retenir = false;
+        return new Promise(r => { lacher = r; }).then(() => fetch(u, o));
+      }
+      return fetch(u, o);
+    };
+    const verdicts = () => parC['/api/op/controle'] || 0;
+    const stockC = stockNeuf(), diagC = [], m0 = Date.now() - 5000;
+    const dbC = {
+      clients: [{ id: 'k1', nom: 'Course Un', ville: 'Pau', _m: m0 }, { id: 'k2', nom: 'Course Deux', ville: 'Dax', _m: m0 }],
+      interventions: [{ id: 'ki1', num: 'INT-K1', client: 'k1', statut: 'planifiee', _m: m0 }],
+      /* Une box éclate en TROIS collections (la box, une ligne par produit, sa forme) : retenue,
+         elle doit les emporter toutes les trois. Ses lignes de stock ne partent que datées (`_ms`). */
+      boxes: [{ id: 'kb1', nom: 'Box de la course', stock: { kp1: 4 }, _ms: { kp1: m0 }, _m: m0 }],
+    };
+    const apiC = new Function('fetch', 'localStorage', 'PUSH_API', 'sauvKh', 'syncDeviceId', 'syncDiagnostic',
+      'APP_VERSION', 'currentUser', 'db', 'console', 'uid', 'AbortController', 'setTimeout', 'clearTimeout', 'Math', 'indexedDB',
+      code + '\nreturn {opSoclePousser,opSocleControle,opHautLire};')
+      (fC, stockC, S.B, async () => ({ t: T2, kh: sha(CLE2) }), () => 'dev-course',
+       (motif) => diagC.push(motif), 703, { id: 'u-course' }, dbC,
+       { log() {}, warn() {}, error() {} }, () => 'u' + Math.random(), AbortController, setTimeout, clearTimeout, Math, idb);
+    const plusTard = () => Math.max(Date.now(), apiC.opHautLire(T2) + 1);
+
+    /* 1. Une fiche modifiée PENDANT que le contrôle attend le serveur. */
+    retenir = true;
+    const r1 = await apiC.opSoclePousser();
+    vrai('la première pousse envoie la base', r1 && r1.envoyees >= 3);
+    vrai('   et lance le contrôle, retenu à la porte du serveur', typeof lacher === 'function');
+    const borne1 = apiC.opHautLire(T2), v1 = verdicts();
+    /* Une pousse SANS rien à envoyer part pendant l'attente : elle ne change pas le serveur, donc
+       elle ne doit pas faire renoncer le contrôle (sinon, chez une équipe active, il ne conclurait
+       jamais). */
+    const vide = await apiC.opSoclePousser();
+    v('   une pousse sans rien de neuf part pendant l\'attente', vide && vide.envoyees, 0);
+    dbC.clients[0].ville = 'Bayonne'; dbC.clients[0]._m = plusTard();   // pas encore poussée
+    lacher();
+    for (let i = 0; i < 60 && verdicts() === v1; i++) await dormir(50);
+    v('⛔ une fiche modifiée pendant l\'attente ne passe PAS pour une divergence', diagC.length, 0);
+    v('   la borne n\'est pas remise à zéro', apiC.opHautLire(T2), borne1);
+    v('   et le verdict est bien parti', verdicts() - v1, 1);
+
+    /* 2. Une AUTRE pousse part et réussit pendant que le contrôle attend : le serveur signe
+       alors un instant plus récent que la photo. Le contrôle ne doit rien conclure. */
+    await apiC.opSoclePousser();                 // « Bayonne » part : les deux côtés se rejoignent
+    stockC.removeItem('elan_op_ctl_' + T2);     // le prochain contrôle repart tout de suite
+    dbC.clients[1].ville = 'Tarbes'; dbC.clients[1]._m = plusTard();
+    retenir = true; lacher = null;
+    await apiC.opSoclePousser();
+    vrai('un second contrôle est lancé, et retenu', typeof lacher === 'function');
+    dbC.clients[1].ville = 'Lourdes'; dbC.clients[1]._m = plusTard();
+    const r3 = await apiC.opSoclePousser();
+    v('   une autre pousse part PENDANT l\'attente, et le serveur l\'accepte', r3 && r3.envoyees >= 1, true);
+    const borne3 = apiC.opHautLire(T2), v3 = verdicts();
+    lacher(); await dormir(800);
+    v('⛔ le contrôle ne conclut rien : aucune divergence inventée', diagC.length, 0);
+    v('   la borne reste celle de la dernière pousse', apiC.opHautLire(T2), borne3);
+    v('   aucun verdict n\'est envoyé', verdicts() - v3, 0);
+    const prochain = (+stockC.getItem('elan_op_ctl_' + T2) || 0) - Date.now();
+    vrai('   et il repassera d\'ici dix minutes, pas dans vingt heures', prochain > 8 * 60000 && prochain <= 10 * 60000);
+
+    /* 3. Une fiche RETENUE (sa photo n'est pas partie) : le serveur en tient la version d'avant,
+       sa collection n'est pas comparable tant qu'elle attend. */
+    await apiC.opSoclePousser();
+    const ki1 = dbC.interventions[0];
+    ki1.statut = 'faite'; ki1.photosHorsNuage = 1; ki1._m = plusTard();
+    dbC.boxes[0].photosHorsNuage = 1;
+    const r4 = await apiC.opSoclePousser();
+    v('une fiche et une box dont la photo n\'est pas partie sont RETENUES par la pousse', r4 && r4.retenus, 2);
+    const borne4 = apiC.opHautLire(T2), v4 = verdicts();
+    const c4 = await apiC.opSocleControle();
+    v('⛔ leurs collections sont laissées de côté — la box avec ses deux sœurs — et le contrôle le dit',
+      c4 && c4.attente && c4.attente.slice().sort(), ['_box_forme', 'box_stock', 'boxes', 'interventions']);
+    v('   sans inventer de divergence', [c4 && c4.ok, diagC.length], [true, 0]);
+    v('   la borne est intacte', apiC.opHautLire(T2), borne4);
+    v('⛔ et un contrôle incomplet n\'envoie PAS de verdict « identique »', verdicts() - v4, 0);
+    /* La contre-épreuve : laisser une collection de côté ne doit pas rendre le contrôle sourd
+       au reste. Une fiche que l'appareil a et que le serveur n'a jamais reçue, sous la borne. */
+    dbC.clients.push({ id: 'k9', nom: 'Course Neuf', ville: 'Auch', _m: 1 });
+    const c5 = await apiC.opSocleControle();
+    v('⛔ contre-épreuve : une VRAIE divergence ailleurs se voit toujours', c5 && c5.ok, false);
+    vrai('   elle nomme sa collection, pas celles qui attendent',
+      !!(c5 && c5.ecarts.some(x => x.coll === 'clients') && !c5.ecarts.some(x => /^(interventions|boxes|box_stock|_box_forme)$/.test(x.coll))));
+    vrai('   elle est remontée à la Tour', diagC.length >= 1);
+    v('   et le verdict en échec est parti', verdicts() - v4, 1);
   }
 
   /* ══ (g) LA GARDE DE RÉ-ENTRANCE ═════════════════════════════════════════════════════════

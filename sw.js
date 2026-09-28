@@ -1,7 +1,7 @@
 /* OP GESTION — Service Worker : cache d'ouverture rapide et mises à jour. L'application ne
    travaille qu'en ligne (décision du 9 septembre 2026) ; la copie gardée ne sert qu'à afficher
    son propre écran « Connexion requise » sans réseau, et à recharger sans attendre. */
-const CACHE = 'elan-gestion-v960';
+const CACHE = 'elan-gestion-v963';
 const ASSETS = [
   './',
   'index.html',
@@ -19,7 +19,13 @@ const ASSETS = [
   'espace.html',
   'messages.html',
   'app.html',
-  'fond-anime-teamop.js',
+  /* le site et le portail au thème du site (28 septembre 2026) lisent ces cinq fichiers ; `fond-anime-teamop.js`, que
+     lisait l'ancien portail, n'est plus lu par aucune page servie */
+  'vitrine/v2/theme.css',
+  'vitrine/v2/mode.js',
+  'vitrine/v2/site.css',
+  'vitrine/v2/site.js',
+  'vitrine/v2/appareils.css',
   'manifest.webmanifest',
   'manifest-teamop.webmanifest',
   'manifest-opmsg.webmanifest',

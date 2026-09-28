@@ -359,10 +359,11 @@ console.log('\n── 776 · 15. un texte ne s’écrase plus : lignes à heure,
   /* Les blocs à l'échelle du temps (Semaine `.plg-mh`, Jour `.plt-blk`) : titre coupé sans rien pour
      lire la suite (audit iPad, valeurs longues) — et une hauteur qui EST la durée, donc écartée du
      plancher tactile par décision écrite, que l'audit applique nommément. */
-  const bulle = /title="\$\{esc\(\(i\.heure\|\|''\)\+' '\+\(i\.titre\|\|''\)\+' — '\+\(clientName\(i\.clientId\)\|\|''\)\)\}"/;
+  /* v757 : l'infobulle dit aussi avec qui (« · avec Léo Martin ») quand l'intervention est partagée — test-825 */
+  const bulle = /title="\$\{esc\(\(i\.heure\|\|''\)\+' '\+\(i\.titre\|\|''\)\+' — '\+\(clientName\(i\.clientId\)\|\|''\)(?:\+\(av\.length\?' · avec '\+av\.map\(techName\)\.join\(', '\):''\))?\)\}"/;
   const iM = SRC.indexOf('<div class="plg-mh '), iB = SRC.indexOf('<div class="plt-blk ');
   vrai('⛔ les blocs de la grille Semaine et de la vue Jour portent heure, titre et client en infobulle',
-    iM > 0 && iB > 0 && bulle.test(SRC.slice(iM, iM + 400)) && bulle.test(SRC.slice(iB, iB + 300)));
+    iM > 0 && iB > 0 && bulle.test(SRC.slice(iM, iM + 500)) && bulle.test(SRC.slice(iB, iB + 500)));
   vrai('… et la décision qui les écarte du plancher tactile est écrite, et appliquée par l’audit',
     /BLOCS À\s+L'ÉCHELLE DU TEMPS de la grille Semaine \(`\.plg-mh`/.test(BRUT) && /e\.closest\('\.pg-pt,\.tdb-pc,\.tdb-cel,\.plm-card,\.tbl,\.plg-mh,\.plt-blk'\)\) out\.denses\.push/.test(AUD)); }
 

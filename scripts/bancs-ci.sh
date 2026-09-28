@@ -47,7 +47,8 @@ for f in "${liste[@]}"; do
 
   # ⛔ UNE SUITE QUI SE SAUTE ELLE-MÊME SORT EN 0 SANS RIEN DIRE — la règle de `verification.yml`,
   # que ce compteur n'appliquait pas (relevé par `gardien`, 24 septembre 2026).
-  if printf '%s\n' "$sortie" | grep -qi 'SAUTÉE'; then
+  # « SAUTÉ » couvre aussi « SAUTÉE » : test-818 écrit le masculin (« … SAUTÉ : ESLint absent »), le filet ne voyait que le féminin.
+  if printf '%s\n' "$sortie" | grep -qi 'SAUTÉ'; then
     echo "::error::$f a SAUTÉ une partie en silence"
     echecs=$((echecs+1)); coupables="$coupables $f(sautée)"
   fi

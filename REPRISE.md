@@ -13,6 +13,1242 @@ de ligne du tout.
 
 ---
 
+# ✅ 28 SEPTEMBRE 2026, NUIT — PLUS AUCUN CODE (LIENS SEULEMENT), LE NOUVEAU SITE ET SON PORTAIL, LES PLACES PAYÉES ; PUIS L'APPLICATION v763 (1 COMPTE PAR ABONNEMENT) ET LA CI DE `main` RÉPARÉE
+
+Justin, dans la soirée : **« je veux plus de code, que des liens pour les connexions »** ; **« c'est nous qui créons les
+liens pour les entreprises une fois leur demande faite »** ; **« oui, supprimer la création automatique »** ; **« le site
+aussi je voudrais la mise à jour dessus »** ; **« le logo aussi »** (capture de Google : le rond vert d'OP GESTION) ;
+**« Oui, remplace le site »** ; puis, à quatre questions : **« Oui, publie ce soir »** (v763), **« Oui, elles gardent »**
+(les places des abonnés d'avant), **« Oui, automatique »** (les places suivent le paiement Stripe), **« Oui, répare »** (CI).
+
+✅ **Mise en ligne n° 1 — `71c682d` sur `main` (déploiement n° 101)** : serveur + Tour v2.74 + site + portail.
+· **Plus aucun code** : une demande faite sur le site ne crée plus rien (courriels « Nouvelle demande à traiter » au
+  patron et « Votre demande est bien reçue » au client, 3 par adresse et par heure) ; la Tour crée l'accès (« ✅ Accepter
+  la demande » : code promo de la demande, formule, demande marquée traitée → panneau du lien → « 📧 Envoyer ») ; le
+  courriel porte lien + identifiant + mot de passe provisoire, ce dernier SEULEMENT s'il correspond à l'empreinte
+  enregistrée et pour un espace JAMAIS ouvert. `/api/espaces/ouvrir` et `/api/monitor/espaces/acces` → 410. Un espace
+  qui a servi ne se re-sème jamais ; un espace fermé ne reçoit aucun lien. `test-841`.
+· **Le site v2 à la racine** (`node scripts/site-marine.js --racine`) et **les dix pages du portail au thème du site**.
+  « Mon espace » est partie avec le contrat de la v760 (il se régénère à chaque ouverture et décrit l'application EN
+  SERVICE) ; il change avec la v763. ⚠️ L'ancien `vitrine/` (v1), `vitrine/racine-v1.json`, `vitrine/portail-v1.json` et
+  `fond-anime-teamop.js` RESTENT : des copies gardées par le service worker peuvent encore les lire. À retirer dans
+  quelques jours (quand le cache v963 aura remplacé l'ancien partout), avec l'état « en service » de `test-835` §10 et
+  de `test-836`.
+· **Le logo dans Google** : chaque page déclare l'icône TEAM OP de 192 px (plus le favicon et l'icône 32 px) —
+  `test-835` le garde. Le reste est chez Google (geste de Justin, plus bas).
+· ⛔ **LES PLACES** (`placesServies`, `placesStripe`, `/api/espaces/etat` → `places`) : ce qui est payé chez Stripe
+  (abonnements vivants de l'entreprise, tarif de sa formule ou d'une formule au-dessus, OP MESSAGES exclu) donne les
+  places ; une entreprise qui PAYAIT avant la bascule (**29 septembre 2026, 4 h UTC**, posée APRÈS le déploiement : l'ancien
+  serveur datait chaque enregistrement de la Tour) garde 2 (Business) ou 3 (Business Premium) par abonnement d'avant, et
+  ce qu'elle achète après s'y ajoute. Jamais pour une période offerte (code promo, en cours ou fini ; essai). Calculé,
+  jamais écrit. **`quantite` garde son sens** (le nombre réglé dans la Tour) : la v760 fait × 2 ou × 3 elle-même.
+  Deux relectures `gardien` (A1–A8, M1–M7, puis B1 et cinq points) : tout corrigé ; ⛔ **le verdict « payé » est resté
+  exactement celui d'avant** (un abonnement vivant à l'adresse suffit) — l'écarter pour « gravé pour une autre
+  entreprise » coupait deux cas réels d'une entreprise qui paie. `test-842` (66 ✓ sur la branche, 61 contre la v760),
+  14/14 contre-épreuves ; `test-727` reçoit le calcul des places (sans lui, un paiement se lisait « non payé »).
+  Limites connues, écrites dans le code : deux entreprises à la même adresse (l'abonnement de l'une rend l'autre
+  « payée », 1 place) ; une entreprise « repartie à neuf » dont l'ancien nom vit encore garde « payée » mais pas les
+  places de l'abonnement gravé à l'ancien nom (la Tour les règle) ; une quantité augmentée chez Stripe sur un abonnement
+  d'avant est multipliée.
+
+✅ **Mise en ligne n° 1 vérifiée** : 30 pages servies octet pour octet, `/api/espaces/ouvrir` → 410 en production,
+`/health` propre (0 erreur), CI de `main` verte 3/3 (bancs du déploiement, « Vérifications », « Vérification des pages »).
+
+✅ **Mise en ligne n° 2 — la v763** (le commit qui suit `71c682d` sur `main`) : `app.html` + `sw.js` v763 (cache v963, qui
+garde les feuilles du site et du portail), « Mon espace » au contrat v762 (« un compte par abonnement », « un code promo
+couvre tous les comptes »), les bancs de la branche (écarts de `test-835`/`test-837` refermés, `test-735` avec l'attente,
+`test-825` et ses trois sondes), `VERSION-STABLE.md`, et **la CI réparée** : ESLint 10.1.0 installé dans
+`verification.yml` pour que la partie « aucun nom lu sans exister » de `test-818` se joue aussi sur GitHub, et le filet
+« SAUTÉ » (qui couvre « SAUTÉE ») dans `verification.yml` et `scripts/bancs-ci.sh`.
+L'application v763 lit `places` (en mémoire, jamais dans la base : une v760 et une v763 écrivent le même
+`forfaitQty`) ; le message « plus de place » dit que la place s'ajoute d'elle-même après le paiement (le serveur relit
+Stripe toutes les cinq minutes) ; passer du Gratuit à Pro reste un geste de la Tour. ELAN (code promo en cours) : le code
+couvre toute l'équipe, rien ne change pour eux.
+
+**Preuves** : liste serveur 47 suites · 2 899 vérifications (plancher relevé à 2 850) ; suite complète de l'arbre de la
+mise en ligne n° 1 : 197 suites · 10 514 ; arbre de la v763 : 198 suites · 10 752, liste serveur avec le nouveau
+compteur 47 suites · 2 904.
+
+⏳ **Ce qui reste à Justin** : Search Console → « Inspection de l'URL » → `https://teamop.fr/` → « Demander une
+indexation » (le logo) ; supprimer l'ancienne paire de clés du coffre IONOS (#132) ; regarder chez Stripe qu'aucun code
+de réduction à 100 % ne traîne (un abonnement payé à 0 € donnerait maintenant des places) ; plus tard, exiger la v763
+dans la Tour quand tout le parc est à jour (rien ne l'oblige : aucun changement de format).
+⏳ **Ce qui reste au dépôt** : retirer l'ancien `vitrine/` et les deux empreintes v1 (voir plus haut) ; la liste blanche
+des tarifs à `/api/stripe/checkout` (repoussée : `test-839` paie un tarif fictif) ; le cas « deux entreprises à la même
+adresse » (il faudrait savoir quelles entrées de l'annuaire sont VIVANTES).
+
+---
+
+# 🟡 28 SEPTEMBRE 2026 — « B — ON VERROUILLE » EN SERVICE : SEUL UN COMPTE DE L'ENTREPRISE PAIE POUR ELLE (page `fae02f6`, serveur `d783d38`) ; « UN COMPTE AVANT DE PAYER », « 1 UTILISATEUR PAR ABONNEMENT », « TTC » ET v760 EN SERVICE ; LA TOUR (« Code espace collé ») ET L'APPLICATION ATTENDENT UNE DÉCISION
+
+Justin : **« Aussi à faire sur le site à partir d'aujourd'hui c'est 1 utilisateur par abonnement merci de corriger ça »**.
+Le site vendait 2 utilisateurs par abonnement Business et 3 en Business Premium (et en Messages Business Premium), et
+la page de paiement DIVISAIT le nombre de personnes par ces chiffres : sept personnes en Business faisaient quatre
+abonnements. Puis, à nos trois constats : **« TTC / 2 oui il faudrait faire ça / 3 j'ai pas compris »**.
+
+✅ **1 utilisateur par abonnement — EN SERVICE** (`437af22` sur `main`, CI verte 3/3) :
+· `tarifs.html` (la v1 de la racine) : « 1 utilisateur par abonnement » sur les cinq formules payantes, l'introduction,
+  la FAQ (« Business × 3 = 3 comptes », en insécables) et la description ; `recap-abonnement.html` EN SERVICE (et au
+  thème, et l'aperçu) : chaque formule compte 1, le nombre d'abonnements EST le nombre de personnes, plafond 50 (celui
+  du serveur, `/api/stripe/checkout` — la page acceptait 250 et affichait un total que Stripe ne facturait pas).
+· ⚠️ **Deux phrases oubliées, trouvées en relisant la chaîne du paiement jusqu'au bout** — sans aucun chiffre, donc
+  invisibles au premier recensement : `merci.html` (la page vue JUSTE APRÈS avoir payé : « le nombre inclus dépend de ta
+  formule ») et `mentions-legales.html` (« Chaque abonnement inclut un nombre de comptes utilisateurs selon la
+  formule »). Corrigées en service (`a8d41cb`, publié avec `909bcfd`), au thème et en aperçu (branche `b4e20cc`) ; `test-837` §1 bis défait la
+  phrase et retrouve la page d'avant octet pour octet, §4 cherche désormais l'ancienne règle AVEC ET SANS chiffre.
+· ⛔ **Le CONTRAT du portail (`espace.html`, clauses 1 et 4) n'est PAS changé, exprès** : il se RÉGÉNÈRE à chaque
+  ouverture, pour les entreprises déjà abonnées aussi — le réécrire aujourd'hui changerait ce qu'ELAN lit de son propre
+  contrat. Il décrit ce que l'application DONNE (2 et 3 places) et change avec elle. Écart déclaré dans `test-837` §4.
+
+✅ **TTC — EN SERVICE** (`0581435`, publié avec `909bcfd` ; branche `182faed`) : « Prix HT » ne s'écrit plus nulle part — le pied des
+huit pages de la racine (« Prix TTC, sans engagement. »), l'introduction des tarifs (« Prix TTC par mois »), le
+générateur du site v2 et ses huit pages d'aperçu, les deux anciennes pages d'aperçu (`apercu/tarifs.html`, la maquette
+`apercu/site-apple.html`, « TTC / mois »). `test-837` §1 défait les retouches et retrouve CHACUNE des huit pages de
+`fe599df` octet pour octet ; §4 bis : aucune page servie n'écrit « Prix HT », « HT / mois », « € HT » ni « hors taxes »
+(les applications sont écartées, nommées : leurs devis et factures écrivent « HT » à juste titre). 28/28 contre-épreuves
+et 2 neutres qui laissent le banc vert (« HT » dans un commentaire, dans un devis de l'application).
+ℹ️ Cohérent avec les mentions légales, qui disent « TVA non applicable (article 293 B du CGI) » : le prix affiché est
+celui que le client paie.
+
+✅ **« Ajouter un utilisateur » propose ce qui MANQUE — EN PRODUCTION, v760** (`909bcfd` : la v757 en service + ce
+correctif, RIEN d'autre ; la bêta v761 porte en plus les couleurs des techniciens, le contrôle du socle et trois accords) : `proposerAbonnement()` ouvrait la page de paiement pour le nombre
+de PERSONNES (`db.users.length+1`) ; elle demande désormais `abosManquants()` = personnes + 1 − places (au moins 1).
+Depuis Gratuit, toute l'équipe passe en Pro (la place gratuite ne s'ajoute pas à un abonnement payant). Trois cas
+n'ouvrent plus d'abonnement neuf, et le faisaient : qui n'est pas administrateur (« plus de place — seul
+l'administrateur peut en ajouter », sans un mot sur le paiement), un abonnement en attente de règlement et une formule
+réservée (→ l'espace client). Le message dit « TEAM OP ajoute la place » : rien d'automatique n'est promis (point 3).
+`test-838` **57 ✓** : les vraies fonctions d'`app.html` ET de `beta.html`, puis l'adresse ouverte LUE par le vrai script
+de la page de paiement (racine et aperçu) — la quantité envoyée vers Stripe est celle qui manque ; **12/12
+contre-épreuves** (`scratchpad/mut-838.py`). Sonde au doigt `scratchpad/sonde-ajout-utilisateur.js` **18 ✓ 0 ✗** ;
+contre-épreuve sur la bêta d'avant **8 ✓ 10 ✗** (« nombre prérempli : 8 », et le chef se voyait proposer le paiement).
+Publiée sur la phrase de Justin **« Une fois que tu as tout fini, tu publie aussi s'il te plaît merci »** : suite complète du
+candidat **193 suites · 10 052 vérifications**, aucun échec ; relecture sans point bloquant ; servi octet pour octet
+(28/28 fichiers, les dix pages du portail conformes à `vitrine/portail-v1.json`), CI de `main` verte 3/3.
+
+✅ **« UN COMPTE AVANT DE PAYER » — la page et les tarifs EN SERVICE (`2d31fe7`), la route du serveur EN SERVICE (`f97d32a`,
+déploiement n° 98, 28 septembre 2026 à 16 h 33 UTC), les dix liens Stripe désactivés par Justin.** Justin : « dans les tarifs il faut bien préciser aux personnes qui doivent
+créer un compte d'abord avant de payer, ils peuvent pas payer s'ils ont pas de compte créé pour que nous on ait un vrai
+suivi de qui fait quoi ».
+· **Tarifs** (la v1 de la racine, le générateur du site v2 et ses huit aperçus, les deux anciennes pages d'aperçu) :
+  l'introduction dit « Pour payer, il faut un compte TEAM OP : créez-le d'abord, c'est gratuit. » et la FAQ s'ouvre sur
+  « Faut-il un compte pour payer ? ».
+· **Page de paiement** (`recap-abonnement.html` en service, au thème, aperçu) : elle lit la session du portail
+  (`teamop_portail_jeton`, même origine) et demande au serveur QUI elle est (`/api/compte/moi`). Cinq états : lecture ;
+  aucun (« Créer mon compte pour payer » → portail, qui ramène ici formule, nombre et cycle) ; adresse à confirmer
+  (renvoyer le lien, changer de compte, relecture au retour sur l'onglet) ; prêt (« Paiement rattaché à votre compte :
+  … », on ne paie qu'au nom AFFICHÉ — une session changée dans un autre onglet se relit d'abord, `gardien` l'avait
+  rejoué) ; injoignable (« rien n'a été payé »). ⛔ **Les dix liens Stripe anonymes (`buy.stripe.com`) ne sont plus
+  servis nulle part** (`test-839` §2, 69 fichiers) — ✅ **et Justin les a désactivés chez Stripe le 28 septembre** (« lien
+  désactiver »). ⚠️ Pas vérifiable d'ici : la page d'un lien Stripe est la même coquille JavaScript (200, 580 629 octets,
+  identique avant et après) qu'il soit actif ou non — la preuve est dans le tableau de bord (« Inactif »), ou en ouvrant
+  un lien. Réversible (« Activer ») ; aucun abonnement déjà payé n'en dépend.
+· **Portail** (`espace.html`, en service et au thème) : un défaut EN SERVICE depuis toujours, trouvé en jouant le
+  parcours au navigateur — arriver de la page de paiement (`?retour=…`) ouvrait « Se connecter » au lieu de « Créer un
+  compte » : `let _authMode` était déclaré APRÈS l'écouteur qui rappelle tout de suite, zone morte avalée par un `try`.
+· **Serveur** (`/api/stripe/checkout`, branche) : exige `Authorization: Bearer <session>` d'un compte à l'adresse
+  CONFIRMÉE (401 `compte_requis`, 403 `adresse_non_verifiee`, 503 si les comptes ne sont pas montés), impose à Stripe
+  `customer_email` = l'adresse du compte (celle que la Tour affiche) et grave `metadata[compte]` sur la session et
+  l'abonnement (personne ne le LIT encore : c'est la trace). **Déployé sur le « go le faire » de Justin** : `f97d32a`
+  sur `main` = `2d31fe7`, fabriqué par `scripts/preparer-deploiement-serveur.sh` (42 suites · 2 534 vérifications) ;
+  bancs du déploiement verts (1 min 33), VPS redémarré, contrôle extérieur vert. **Vérifié EN PRODUCTION** : sans
+  session, session inventée (64 hexa) ou mal formée → **401 `compte_requis`**, même avec un tarif valide (rien ne part
+  chez Stripe) — le serveur d'avant répondait **400 `tarif invalide`** à la même demande vide, c'est le témoin ;
+  préalable CORS intact (`Authorization` admis depuis teamop.fr) ; `/api/compte/moi` 401 ; `/health` ok, 0 erreur, durée
+  de fonctionnement qui monte (27 → 53 → 79 s : pas de boucle de redémarrage).
+  ⚠️ **La première préparation est TOMBÉE, et c'est la porte qui a bien fait** : `test-686` n'acceptait plus que
+  l'écriture AU THÈME de `connexion.html` (`31776a6`), or la préparation lance les bancs de la branche contre les
+  pages de `main` — aucun commit fabriqué. Corrigé (`fa4b011` : les deux écritures, deux contre-épreuves). Tout banc
+  de `scripts/bancs-serveur.liste` qui lit une page du portail accepte les deux tant que « remplace » n'est pas dit.
+· **Preuves** : `test-839` (branche 146 ✓ · en service 144 ✓, 19/19 contre-épreuves), `test-727` 50 ✓, `test-797`,
+  `test-837`, `test-838` ; sonde au doigt `scratchpad/sonde-compte-paiement.js` (vrai portail, vrai serveur, Stripe
+  intercepté, contraste au pixel) branche 177 ✓ · en service 173 ✓ ; suite complète **195 suites · 10 536
+  vérifications** (branche) et **194 suites · 10 206** (copie de `main`), aucun échec ; relecture `gardien` : deux
+  points corrigés (session changée ailleurs, page servie face au nouveau serveur), un à trancher ci-dessous ; servi
+  octet pour octet (12/12 fichiers, les dix pages de la racine conformes à `vitrine/portail-v1.json`, aucun
+  `buy.stripe.com` sur les pages servies) ; CI de `main` verte 3/3 pour la page (Vérifications, Vérification des
+  pages, déploiement Pages), puis 3/3 pour le serveur `f97d32a` (déploiement n° 98 — bancs PUIS VPS —, Vérifications,
+  Vérification des pages).
+· ✅ **« B — ON VERROUILLE » (Justin, 28 septembre 2026) : seul un compte de l'entreprise paie pour elle — la page EN
+  SERVICE (`fae02f6`), le serveur EN SERVICE (`d783d38`, déploiement n° 99).** La référence d'espace (`ref`, le
+  marqueur de
+  l'appareil) n'était liée à rien : un compte confirmé rendait « payée » l'entreprise de son choix (`gardien`).
+  · **Serveur** (`/api/stripe/checkout`) : la référence désigne-t-elle des entreprises de l'annuaire (`espacesDeRef` : nom
+    d'accès OU identifiant, sans casse, identifiant lu en clair ou dans le code) ? Si oui, dans l'ordre : elles ne
+    partagent pas UNE identité (typée : identifiant, ou nom d'accès pour une entrée qui n'en a pas) → 403
+    `reference_ambigue` ; on lit alors TOUS les noms d'accès de l'entreprise (la Tour en ouvre parfois sans adresse) :
+    aucune adresse → 403 `entreprise_sans_adresse` ; une adresse qui n'est pas celle du compte (ou pas du texte) → 403
+    `compte_autre_entreprise` ; sinon on grave **l'identifiant de l'entreprise** tel que l'annuaire le range, jamais le
+    mot envoyé — un nom d'accès libéré puis repris par une autre entreprise lui faisait hériter de l'abonnement
+    (`gardien`, rejoué) — et RIEN pour une entrée sans identifiant (l'abonnement suit l'adresse du compte, vérifiée).
+    Référence inconnue : non gravée. Rien chez Stripe sur un refus. `espacePaye()` compare la référence à `espaceT(e)` :
+    l'identifiant rangé dans le code des entrées les plus anciennes n'était jamais reconnu. Et `/api/monitor/espaces`
+    refuse une seconde adresse sans égard à la casse de l'identifiant.
+  · **Page** (en service et au thème) : chaque refus se DIT, sans « réessayez » (il est définitif pour ce compte), et
+    « Rien n'a été payé » : « Seul le compte de l'entreprise peut payer pour elle… Changer de compte » ; « Cette
+    entreprise
+    n'a pas encore d'adresse e-mail enregistrée chez TEAM OP… écrivez à support@teamop.fr » ; ambiguë → au support.
+  · ⚠️ **Conséquence, voulue par « B »** : la comptable qui paie avec une AUTRE adresse que celle de l'entreprise est
+    refusée (elle doit se connecter avec l'adresse de l'entreprise). Une entreprise SANS adresse dans l'annuaire (ouverte
+    par la Tour sans e-mail) ne peut plus être payée depuis un appareil relié à elle : lui mettre l'adresse de son patron
+    dans la Tour (« Revoir le lien de connexion » avec l'adresse). Compter celles qui n'en ont pas, sur le VPS, SANS rien
+    afficher d'autre qu'un nombre : `node -e "const e=require('/opt/teamop/data/espaces.json');console.log(Object.values(e).filter(x=>!String((x&&x.email)||'').trim()).length+' sans adresse sur '+Object.keys(e).length)"`.
+  · ⛔ **« B » CROIT L'ANNUAIRE — ET LA TOUR PEUT LE FAUSSER (`gardien`, 28 septembre 2026, rejoué ; défaut ANTÉRIEUR à
+    « B », non corrigé, attend une décision).** « Code espace collé » (`tourEspaceDe`, `tour.html`) → `POST
+    /api/monitor/espaces` rattache une PREMIÈRE adresse à un identifiant que le serveur connaît déjà, sans vérifier la clé
+    `k` du code (la Tour ne regarde que la présence de `t` et `k`). Pour une entreprise ouverte sans adresse, un code
+    FORGÉ collé par le patron avec l'adresse d'un tiers : (1) `espaceParT` sert ensuite l'entrée du tiers — sa clé fausse
+    devient la clé de référence, les appareils de l'entreprise tombent en verdict invalide ; (2) un compte est semé dans
+    son annuaire de connexion (`annuaireSemerDepuisCode`) ; (3) le paiement suit (verrou ET repli par adresse). Il faut
+    que le patron colle un code forgé (ingénierie sociale) et connaître l'identifiant visé. ⚠️ **On ne peut PAS
+    simplement exiger « la même clé »** : une entreprise qui change sa clé (écran « Enregistrer une nouvelle clé
+    d'équipe ») se fait réinscrire… par un code collé portant la nouvelle clé, et la marque `clePerimee` est posée par une
+    route PUBLIQUE (`/api/espaces/lien`) — elle ne prouve rien. Proposition : le serveur refuse une clé différente pour un
+    identifiant connu, SAUF confirmation explicite que la Tour n'envoie qu'après la question « ce code porte une clé
+    DIFFÉRENTE — ne continue que si tu l'as récupéré toi-même sur un appareil de l'entreprise » ; bancs dans `test-834`,
+    `gardien`, publication serveur PUIS Tour (aperçu d'abord). **À trancher par Justin.**
+  · ⚠️ **« B » ne nettoie pas le passé** (`gardien`) : avant `f97d32a` (27-28 septembre), la route gravait n'importe
+  quelle
+    référence, même sans compte. Un abonnement souscrit avant peut donc porter la référence d'une autre entreprise. Le
+    nombre d'abonnements vivants se lit dans le tableau de bord Stripe : s'il est nul (ou seulement ceux qu'on connaît),
+    il n'y a rien à reprendre.
+  · **Preuves** : `test-727` 75 ✓ (la route et `espacePaye`), `test-834` 59 ✓ (la Tour, vrai serveur), `test-839` 158 ✓
+    branche · 155 ✓ en service (les refus s'affichent, vrai serveur et vrai annuaire), `test-797` 23 ✓ · 22 ✓ ;
+    **contre-épreuves 8 + 6 + 1 + 4 + 4, toutes mordent** (refus, gravure, ambiguïté, identité typée, tous les noms,
+    `espacePaye`, adresse typée, casse de la Tour, chaque message, la page en service) ; sonde au doigt
+    (`scratchpad/sonde-compte-paiement.js`, vrai portail, vrai serveur, Stripe intercepté, contraste au pixel, 44 px) :
+    branche 249 ✓, page en service face au NOUVEAU serveur 249 ✓, face au serveur d'avant 189 ✓ (rien ne casse),
+    3/3 contre-épreuves ; suite complète **195 suites · 10 575** (branche, `a287493`), **194 suites · 10 231**
+    (copie de `main`, page et serveur en service) et **194 suites · 10 261** sur l'arbre exact du déploiement
+    (`main` + le nouveau serveur ; +30 : les contrôles neufs de « B ») ; relecture `gardien` : aucun
+    contournement pour un compte seul ; ses constats corrigés en deux passes (refus « sans adresse », gravure de
+    l'identifiant, `espacePaye`, puis rien de gravé sans identifiant, adresse typée, casse de la Tour), le défaut de la
+    Tour ci-dessus écrit et laissé à Justin ;
+    `test-797` et `test-839` entrent à la porte du déploiement du serveur seul (`scripts/bancs-serveur.liste`) ; servi
+    octet pour octet (3/3 fichiers de la page, les dix pages de la racine conformes à `vitrine/portail-v1.json`) ; CI de
+    `main` : pour la page (`fae02f6`) Vérifications, Vérification des pages (à la seconde tentative, voir plus bas)
+    et déploiement Pages verts ; pour le serveur (`d783d38`) le déploiement n° 99 — bancs (44 suites, 1 min 36) PUIS
+    VPS —, Vérifications et Vérification des pages verts du premier coup (**194 suites · 10 258**, aucune en échec).
+    **Vérifié EN PRODUCTION** (28 septembre, 18 h 25 UTC) : le VPS écrit « dépôt : f97d32a4 → d783d38e — commit
+    vérifié » ; `/health` ok, 0 erreur, 0 rejet, durée de fonctionnement qui monte (3 → 32 → 44 → 433 s : pas de
+    boucle de redémarrage) ; sans session ou session inventée → 401 `compte_requis`, rien ne part chez Stripe ;
+    préalable CORS intact. Le verrou lui-même ne se voit pas de l'extérieur (il faudrait un vrai compte confirmé en
+    production) : sa preuve est le commit vérifié sur le VPS, plus les bancs qui font parler la vraie route.
+  · ⚠️ **Trois choses qui ne sont PAS « B » mais qui se sont vues en chemin.** (1) La CI de `main` est tombée une fois sur
+    `fae02f6` : `test-735` (la course connue du contrôle du socle — correctif prêt sur la branche depuis `f79cb33`, sa
+    poussée sur `main` attend Justin) et `test-831` (le courriel « mot de passe oublié » arrivé après les 4 s qu'il
+    attendait, sur une machine de CI chargée ; en local 5/5 en ~1 s). Relancée UNE fois : verte. `test-831` attend
+    désormais 15 s et dit pourquoi s'il échoue (`9a511a9`, branche ; `main` garde les 4 s jusqu'au prochain report).
+    (2) L'en-tête du verrou dans `server/index.js` annonce encore « Trois cas » sur le VPS : commentaire seul, corrigé
+    sur la branche (`3c4627d`), part avec le prochain déploiement du serveur.
+    (3) ⛔ **La CI de `main` ne joue JAMAIS le contrôle ESLint de `test-818`** (« aucun nom lu sans exister » — celui qui
+    aurait attrapé `bx`, la cloche qui plantait en v749). Trouvé en comptant suite par suite : la CI rend 10 258, ce
+    conteneur 10 261 sur le MÊME arbre, et les 3 manquants sont tous là (39 ✓ ici, 36 ✓ en CI). ESLint n'est installé
+    que dans l'image de ce conteneur (`/opt/node22/lib/node_modules/eslint`) ; en CI la suite écrit « … SAUTÉ : ESLint
+    absent » (les 3 manquants sont exactement les 3 contrôles de cette partie), et le filet de `verification.yml`
+    (comme celui de `scripts/bancs-ci.sh`) cherche « SAUTÉE » — le masculin passe à travers. Les suites complètes
+    lancées ici avant chaque publication, elles, le jouent. Correctif proposé, qui touche le workflow de `main` (donc
+    attend Justin) : installer ESLint dans l'étape des suites (`npm i -g eslint@9` puis `NODE_PATH=$(npm root -g)`),
+    et faire guetter « SAUTÉ » aux deux filets (le mot couvre aussi « SAUTÉE ») — dans cet ordre, sinon la CI tombe
+    au rouge avant d'avoir ESLint.
+· ℹ️ Pourquoi l'adresse CONFIRMÉE et pas seulement le compte : une session prouve un mot de passe, pas une adresse
+  (`CLAUDE.md`) — sans confirmation, n'importe qui paierait au nom de l'adresse de contact d'une entreprise, publique.
+  Se relâche sur une phrase de Justin (une ligne du serveur, une de la page).
+
+⏳ **L'APPLICATION N'EST PAS ENCORE À 1 — question posée à Justin, toujours sans réponse.** `PLANS.maxU` vaut 2
+(Business) et 3 (Business Premium), `planPlaces()` = `maxU × abonnements` : l'application donne PLUS que ce que le site
+vend, jamais moins (`test-835` §3 déclare l'écart et le referme tout seul). **Avant** de passer à 1 : les entreprises
+déjà abonnées (ELAN…) gardent-elles leurs places ? Si oui, leur régler dans la Tour une quantité égale à leurs places
+d'aujourd'hui, PUIS publier l'application (`maxU:1`, textes du forfait et « Chaque abonnement ajoute N place(s) » des
+Paramètres, libellés de la Tour, clauses 1 et 4 du contrat d'`espace.html`, retrait des écarts de `test-835` et
+`test-837`) — sur sa phrase.
+
+⏳ **POINT 3 — expliqué à Justin en mots simples, attend sa décision : PAYER NE DONNE PAS DE PLACES.** Vérifié dans le
+code : `espacePaye()` ne lit chez Stripe que « un abonnement vivant, oui ou non » (référence d'espace, sinon adresse) —
+jamais la QUANTITÉ ni la formule payées. `/api/espaces/etat` rend `e.formule` et `e.quantite` du registre, posés par la
+Tour (`/api/monitor/espaces/formule` et `/abonnement`), par un code promo, ou par la demande faite au portail
+(`espaceAutoPour`, le « Nombre d'utilisateurs » saisi). Donc : une entreprise qui paie un abonnement de plus garde ses
+places tant que Justin ne règle pas la Tour ; à l'inverse, résilier un abonnement ne retire rien tant qu'il en reste un
+vivant. Et un espace SANS formule réglée au serveur choisit librement formule et nombre d'abonnements dans ses
+Paramètres (« La facturation arrive bientôt — le choix est libre pour l'instant »), en production aussi.
+Proposition faite : que le serveur lise la quantité (et la formule) des abonnements Stripe rattachés — changement
+serveur, relecture `gardien`, « pousse le serveur ».
+ℹ️ Petit écart relevé au passage : le formulaire de demande du portail accepte jusqu'à 250 utilisateurs, le serveur en
+retient 50 (`Math.min(50, …)`).
+
+⏳ **LE LOGO DANS GOOGLE — rien à corriger chez nous, c'est un geste de Justin dans la Search Console.** Justin, capture
+de Google à l'appui (27 septembre, nuit) : « sur Internet je veux le logo Team op ». Revérifié ce soir-là : l'accueil
+servi ne déclare QUE des icônes TEAM OP (`/favicon.ico` depuis `7423e94`, 16/32/48/64 px — le 48 est la taille que
+Google exige ; `icons/teamop-favicon-32.png`, `teamop-apple-touch.png`, le manifeste `teamop-192/512`) ; `robots.txt`
+rend 404 (rien n'est interdit). L'icône de la capture est EXACTEMENT `icons/apple-touch-icon.png` (« GESTION / OP »,
+vert), que l'accueil déclarait avant le 5 septembre : c'est la copie que Google a gardée. Aucun fichier de
+vérification Google dans le dépôt : si teamop.fr n'est pas encore dans la Search Console, l'ajouter (propriété
+« Domaine », enregistrement TXT chez le registraire), puis « Inspection de l'URL » → `https://teamop.fr/` →
+« Demander une indexation ». Le délai est celui de Google (quelques jours, parfois quelques semaines).
+⛔ Ne pas « corriger » `icons/apple-touch-icon.png` : c'est l'icône de l'APPLICATION OP GESTION (manifeste d'`app.html`).
+
+# 🟡 27 SEPTEMBRE 2026, SOIR — LE PORTAIL ET SES NEUF VOISINES AU THÈME DU SITE, EN APERÇU — ATTEND « REMPLACE »
+
+Justin, sur son iPhone (capture de « Mon espace », encore dans l'ancien noir) : **« au niveau des connexions ou création
+de compte, j'ai pas mon thème, pourquoi ? »**. Le site v2 avait sa palette Marine jour ET nuit ; les pages vers lesquelles
+il envoie gardaient chacune leur vieille feuille. Recensé depuis les liens du site et du portail : **dix pages** —
+`espace.html` (portail), `connexion.html` (porte des équipes), `reinit.html` (lien du courriel), `recap-abonnement.html`
+(on paie), `merci.html` (retour de Stripe), `mentions-legales.html`, `confidentialite.html`, `sous-traitance.html`,
+`registre-traitements.html`, `404.html` (aiguillage des adresses d'entreprise). Trois portaient le logo VERT d'OP GESTION
+à côté de « TEAM OP » ; polices DM Sans, Space Mono, Courier.
+
+✅ **Fait sur la branche** (`31776a6`, `5970197`) — ⛔ **les dix pages EN SERVICE ne bougent pas** :
+· `vitrine/v2/theme.css` : la palette du site sous des noms à part (`--m-…`), **valeurs identiques à `site.css`**
+  (`test-836` les compare jeton par jeton), plus les couleurs d'état MESURÉES (≥ 4,5 dans les deux modes) et
+  l'indication des champs (celle du navigateur tombait à 2,43 la nuit).
+· `vitrine/v2/mode.js` : le jour / nuit sorti de `site.js`, tel quel, partagé (même clé `teamop_site_mode` : le choix
+  fait sur le site suit sur le portail, et inversement — mesuré). La tête du mode est désormais dans une fonction
+  (plus de variable globale `m` dans les pages qui l'embarquent) ; les 8 pages du site régénérées avec.
+· Les dix pages : même tête, même bouton ☀︎/☾ (au coin quand la page n'a pas de barre), messages de connexion en
+  JETONS (le rouge de nuit était illisible sur le blanc), champs à 16 px (Safari zoomait à 15), commandes à 44 px au
+  doigt (l'œil des mots de passe, le nombre d'utilisateurs de recap), recap : toutes les formules à la couleur du
+  site (plus de violet ni de bleu ciel), « Ouvrir » d'OP MESSAGES lisible (1,83 → texte clair sur le bleu nuit).
+· ⛔ **Les pages juridiques gardent leurs numéros de ligne** : « `mentions-legales.html:74` » est cité par
+  `server/index.js`, `server/op-socle.js`, `CLAUDE.md`, trois bancs et les plans. La nouvelle tête tient EXACTEMENT dans
+  les lignes de l'ancienne feuille (`scratchpad/theme-juridique.py` le vérifie en l'écrivant ; `test-836` §6 le garde).
+· ⛔ **`404.html` aiguille AVANT tout** : la tête du mode passe après le script d'aiguillage, que
+  `scripts/verifier-adresses.js` exécute (premier jet : il était devenu le 2ᵉ script, la vérification est tombée).
+· **Trouvé en chemin** : « Pour le compte votre compte. » (reinit, et vous/tu mêlés) ; un guillemet ouvrant seul en
+  bout de ligne au téléphone (portail) ; « https:// » qui mangeait la moitié du champ d'adresse ; la pastille d'une adresse
+  longue qui sortait de sa carte ; le champ du Support NU (styles du navigateur) ; le code promo de l'administration
+  en vert logo sur carte claire (2,81).
+· `scripts/apercu.sh portail` : les dix copies se renvoient ENTRE ELLES et au site d'aperçu (`/apercu/site/`), une
+  adresse d'entreprise reste dans l'aperçu, le retour au paiement aussi, `noindex` posé ; `APERCU_SORTIE` pour
+  refaire les copies ailleurs. `vitrine/portail-v1.json` : l'empreinte des dix pages EN SERVICE — une page est SOIT
+  celle-là, SOIT au thème entier (`test-836` §3), jamais à moitié ; les dix changent ENSEMBLE.
+· **Preuves** : `test-836` **309 ✓** (18/18 contre-épreuves mordent, `scratchpad/mut-836.py` — l'une a révélé que la
+  règle des 16 px ne voyait pas `.inp`, corrigé) ; `scratchpad/sonde-portail-theme.js` (VRAI serveur derrière la même
+  origine, compte créé par la page) **1 505 ✓ 0 ✗** : 24 états des dix pages + le portail connecté (menu, 13 écrans,
+  administration) × jour/nuit × téléphone/bureau, fonds, grandes surfaces, contraste de CHAQUE texte sur son fond
+  réel, débordement, 44 px, polices, bouton ; sa contre-épreuve sur les pages EN SERVICE tombe (fond sombre le jour,
+  Space Mono, pas de bouton, cibles à 37–43 px). `test-835` 246 ✓, bancs de la connexion et du portail verts
+  (`test-686` et `test-831` suivent les jetons — **branche seulement** : sur `main` ils lisent les pages en service).
+  Suite complète de la branche **192 suites · 10 190 ✓**.
+
+✅ **Publié en aperçu** (`8b31217`) : servi octet pour octet (22 fichiers sur 22), les pages de la racine intactes
+(11 sur 11), CI de `main` verte 3/3.
+
+**Ce qui attend Justin :** tester https://teamop.fr/apercu/espace.html (et `connexion.html?choix=1`, `recap-abonnement.html?formule=pro`,
+`mentions-legales.html`, `404.html`…), jour, nuit, bouton. ⚠️ L'aperçu du portail parle au VRAI serveur : se connecter
+y ouvre son vrai espace (c'est le même compte, habillé autrement). **Le jour de « remplace »** (site et portail vont
+ENSEMBLE : le site remplacé envoie vers `/espace.html`) : publier les dix pages de la branche + `test-686`/`test-831`
+de la branche, retirer `vitrine/portail-v1.json` (et son état « en service » de `test-836`), et ⛔ **monter le `CACHE`
+de `sw.js`** en y ajoutant `/vitrine/v2/theme.css` et `/vitrine/v2/mode.js` : il garde `espace.html`, `connexion.html`,
+`recap`, `mentions`, `merci`, et sert les feuilles et scripts « copie d'abord » (la nouvelle n'arrive qu'à la visite
+SUIVANTE). ⚠️ Toucher `sw.js` est une publication à part entière : la demander dans la même phrase.
+`fond-anime-teamop.js` part avec l'ancien `espace.html` (et sa ligne d'`ASSETS` avec lui).
+
+# 🟡 27 SEPTEMBRE 2026, SOIR — SITE v2 EN APERÇU : UNE VRAIE CAPTURE PAR CASE, LA CARTE TOUCHÉE EN BLEU, UN BOUTON JOUR / NUIT — ATTEND « REMPLACE LE SITE »
+
+Justin, sur les tarifs en ligne : « pourquoi il y en a un qui est en bleu et les autres sont noirs ? […] ça serait
+bien que quand on clique sur les cases, ça affiche en bleu », « les mêmes couleurs pour OP MESSAGES » (qui revient :
+« on va travailler dessus à partir de ce soir »), « je veux vraiment un mode jour et un mode nuit […] je voudrais
+voir ce que tu m'as fait, j'aimerais bien te tester. Avant. » Puis, sur « Ce que fait OP GESTION » (elan.html) :
+« dans chaque petite case, une capture d'écran, téléphone, Mac […] que on vende l'application, c'est le but ».
+Les captures d'OP MESSAGES : « pour l'instant, on va attendre ».
+
+✅ **Fait sur la branche** (`1a563e7`, bêta `d920dbc`) — **le site EN SERVICE ne bouge pas** : l'aperçu lit
+`vitrine/v2/`, la racine garde `vitrine/` (v1, `fe599df`), dont l'empreinte est dans `vitrine/racine-v1.json`,
+relue par `test-835` §10. ⛔ Le générateur écrit l'aperçu par défaut ; `--racine` n'est pour le remplacement.
+· **Le bleu** = la formule mise en avant (« Le plus choisi »). Il suit désormais le doigt : toucher une carte
+  (clic ou clavier) lui donne la bordure et le bouton bleus, dans SON groupe ; l'étiquette « Le plus choisi » reste
+  où elle est. OP MESSAGES a les mêmes couleurs ; ses boutons disent toujours « Bientôt disponible ».
+· **Jour / nuit** : bouton ☀︎/☾ dans la barre, sur les 8 pages. Il force l'autre mode, gardé sur l'appareil
+  (`teamop_site_mode`), posé AVANT le premier rendu (pas d'éclair blanc) ; revenir au mode de l'appareil efface le
+  choix. Les écrans des iPhone et Mac suivent (le `media` de leurs `<source>` est réécrit).
+· **Une capture par case** : les dix cases d'elan.html montrent chacune SON écran — Mac pour les grandes, iPhone pour
+  les petites, les deux pour « Partout » —, de jour et de nuit : 13 écrans, 34 images (3,3 Mo), toujours
+  « Démo Hygiène Services » (inventé). Sous-titres réécrits pour dire ce que ça change ; « Code PIN » retiré.
+  En regardant les captures, la démonstration a été corrigée (vrais rôles, « 7 / 9 » places au lieu de « 7 / 3 »,
+  comptes-rendus rédigés et envoyés, encaissements du jour) et quatre accords de l'application aussi (bêta v759).
+· **Trouvé en route** : une case en `overflow:hidden` reste défilable par PROGRAMME — un `scrollIntoView` remontait
+  l'iPhone de 92 px, tête coupée. `overflow:clip` (repli `hidden`), prouvé par contour et mesure.
+· **Preuves** : `test-835` **209 ✓** ; `scratchpad/sonde-site.js` **354 ✓** sur les 8 pages, gestes neufs (accueil,
+  OP GESTION, tarifs) **214 ✓** ; **6 contre-épreuves sur 6** mordent (`scratchpad/mut-site.py`) ; photos regardées
+  une à une (`scratchpad/vue-site.js`, 0 erreur JavaScript).
+✅ **Publié en aperçu** (`6d44fa7` sur `main`, 48 fichiers : `apercu/site/`, `vitrine/v2/`, le manifeste, le
+générateur et son banc — ni `app.html`, ni `sw.js`, ni `beta.html`, ni les pages de la racine). Vérifié : copie de
+`main` avant la poussée **190 suites · 9 638 ✓** + les 8 contrôles de `verification.yml` ; en ligne, **46 fichiers
+servis octet pour octet** et la racine inchangée ; **CI de `main` verte 3/3**. Branche : **191 suites · 9 844 ✓**.
+**Retour de Justin sur son iPhone, en nuit : « C'est parfait, pourquoi là c'est blanc ? ».** La maquette retournait la
+première grande case (sombre de jour, BLANCHE de nuit — vérifié sur ses captures du zip). Elle reste sombre ; de nuit,
+un bleu un cran plus clair, un halo et un filet (titre 8,43, sous-titre 5,05 au point le plus éclairé) — OP GESTION et
+OP MESSAGES. Sa photo montrait aussi une bande vide sous le Mac : 48 à 88 px sur téléphone ; la case à Mac prend
+maintenant la hauteur du Mac (24 px sous le socle), le bureau et la tablette ne bougent pas (mesuré à 600, 820, 1 024,
+1 440 px). `test-835` **227 ✓** (§ 6 ter, 6 quater), sonde **454 ✓** sur les 8 pages, **6 contre-épreuves sur 6**
+(dont une que seule la hauteur exacte au bureau voyait : ajoutée à la sonde), suite **191 · 9 862 ✓**, copie de `main`
+**190 · 9 656 ✓**. Publié en aperçu (`235586d`), servi octet pour octet, racine inchangée, **CI de `main` verte 3/3**.
+⚠️ La racine EN SERVICE (v1, `vitrine/site.css`) garde la carte blanche de nuit jusqu'à « remplace le site ».
+**Puis, même soirée : « et là, sur le même jour, il y a du sombre, pourquoi ? »** (« Prêt en trois étapes », « Au dépôt »).
+La maquette avait une famille de jetons « toujours sombres » (`--nuit…`) : sombres dans la page de jour, et de la couleur
+EXACTE de la page la nuit (#0b1426), où « Au dépôt » et « Prêt en trois étapes » disparaissaient. Recensé depuis le DOM sur
+la version publiée : « Au dépôt », « Prêt en trois étapes » (7 pages), la carte OP MESSAGES et son sondage, la conversation
+dessinée, les deux cartes mises en avant. **Un mode est un mode** : tout suit les jetons du mode, les `--nuit…` n'existent
+plus, et la carte mise en avant n'est plus inversée (bleu pâle + halo blanc le jour, bleu nuit + halo bleu la nuit).
+`test-835` **235 ✓** (§ 6 quinquies : chaque jeton de couleur du jour a sa valeur de nuit ; aucun fond en couleur écrite en
+dur hors voiles et ruban), sonde **550 ✓** (elle recense TOUTES les grandes surfaces de chaque page : rien de sombre le jour,
+rien de clair la nuit), **5 contre-épreuves sur 5**, suite **191 · 9 870 ✓**, copie de `main` **190 · 9 664 ✓**. Publié en
+aperçu (`115ce42`), servi octet pour octet, racine inchangée, **CI de `main` verte 3/3**.
+**Ce qui attend Justin :** tester l'aperçu (https://teamop.fr/apercu/site/, jour, nuit, bouton, iPhone et Mac), puis
+« remplace le site » → `node scripts/site-marine.js --racine`, et le manifeste `vitrine/racine-v1.json` se retire
+avec l'ancien `vitrine/`. **Plus tard** : les vraies captures d'OP MESSAGES (quand il le dira).
+
+# 🟡 27 SEPTEMBRE 2026, SOIR — « FAIT LES 3 » : SERVEUR, TOUR v2.69 ET SITE EN LIGNE ; LA COURSE DU CONTRÔLE DU SOCLE (BÊTA v759)
+
+Justin, aux trois phrases qui attendaient (« remplace le site », « pousse le serveur », « remplace la tour ») :
+**« fait les. 3 »**.
+
+✅ **En ligne et vérifié** (`main` : `aaea42e` serveur, `8742511` Tour, `fe599df` site) :
+· **Serveur** — le VPS a pris `fe599df` (« dépôt : f971359c → fe599df6, commit vérifié », run 97 : bancs d'abord,
+  puis le VPS) ; `/health` propre juste après (uptime 3 s, 0 erreur, documents et portail actifs, sauvegarde ok).
+  Suppression sans code, protections, avis par e-mail et correctifs du gardien sont partis ENSEMBLE.
+· **Tour v2.69** — `teamop.fr/tour.html` servie octet pour octet identique à `main` (la bulle au doigt, « Ma barre »,
+  supprimer par question + case + « Oui », tout rangé par sujet).
+· **Site** — les huit pages (accueil, applications, créer, elan, métiers, OP MESSAGES, pourquoi, tarifs) servies
+  octet pour octet identiques à `main`, sans « noindex » ; générées par `scripts/site-marine.js --racine`.
+  Noms des formules gardés tels qu'en service (« Business Premium », « Messages Business Premium ») ; « Fondée et
+  développée par Justin Biret » en pied, comme dans l'aperçu.
+· **CI de `main` verte 4/4** sur `fe599df` (Pages, déploiement, Vérifications, Vérification des pages).
+Trouvé sur la copie de `main` AVANT de pousser (donc jamais parti rouge) : le contrôle de syntaxe prenait les blocs
+`<script type="application/json">` d'elan.html et d'opmessages.html pour du code cassé (il lit désormais ce JSON) ;
+`server/test-connexion.js` et `server/test-acces.js` tombaient contre le nouveau serveur (un « repartir à neuf »
+sans e-mail prêt rend 503 — ils ont maintenant un facteur SMTP de banc) ; `test-756` exigeait « Messages Business
+Premium » dans tarifs.html (gardé) ; le message du commit de déploiement annonçait « v695 » (le script lit
+désormais la version d'`app.html`).
+
+⚠️ **CE QUI ATTEND JUSTIN, UNE FOIS :** poser son adresse de sécurité — tant qu'elle n'est pas réglée, les e-mails
+de sécurité partent sur `contact@teamop.fr`, que la Tour relève, et **la 4ᵉ entreprise supprimée en 24 h sera
+refusée**. Aucune sortie secrète :
+`ssh -t root@api.teamop.fr "cd /opt/teamop/repo && git pull -q && bash server/set-securite.sh"`.
+
+**La CI de `main` était rouge sur `0391c4e` (l'aperçu du pied v2.69) : `test-735`, 223 ✓ 2 ✗ — la 2ᵉ fois après
+le 26.** « Rien n'a été remonté à la Tour ». Ce n'était pas un hasard, et pas le banc : **une vraie course dans
+`opSocleControle`**. La pousse lance le contrôle en arrière-plan ; il décomposait `db` AU RETOUR de
+`/api/op/etat`, donc une fiche modifiée pendant l'attente (pas encore poussée) passait pour une DIVERGENCE —
+diagnostic à la Tour, borne remise à zéro, toute la base repoussée. Le commentaire de la fonction promettait
+l'inverse (« il ne compare QUE ce que l'appareil a réellement poussé »). Prouvé par une copie du banc qui retarde
+d'un seul tour de boucle la réponse : 223 ✓ 2 ✗ à chaque exécution. **Inerte aujourd'hui** (`/health` :
+`socle.actif:false`), mais c'est le contrôle qui décidera de la condition (d) de l'étape 5.
+· **Correctif (branche, bêta v759)** — `1c82e10` : le contrôle compare la PHOTO que la pousse vient de traiter
+  (appelé seul, il la prend avant l'attente et renonce si une pousse est en vol) ; si une autre pousse part pendant
+  l'attente (`_opPousses`), il ne conclut rien et repasse dans dix minutes ; une collection dont une fiche est
+  retenue (pièce pas encore partie — une box emporte `boxes`, `box_stock` et sa forme) est laissée de côté et
+  nommée, et un contrôle incomplet n'envoie pas de verdict « identique ».
+· **Banc** — `test-735` §« f bis » : une seconde entreprise, la requête retenue exprès, trois scénarios et la
+  contre-épreuve (une vraie divergence ailleurs se voit toujours) ; **8 mutations sur 8 mordent** ; la reproduction
+  d'origine passe à 0, 5, 50 et 400 ms de retard. Et le banc ATTEND désormais le contrôle lancé par sa première
+  pousse avant de modifier la base (`44ce4f7`) — pur ordonnancement, la course reste jouée exprès en « f bis ».
+· **`main` garde la course** tant qu'`app.html` n'y est pas publiée (v757). L'attente du banc, elle, vaut pour les
+  deux : contre-épreuve sur l'`app.html` de `main`, banc d'origine 223 ✓ 2 ✗ deux fois, avec l'attente 226 ✓ à
+  0, 5, 50 et 400 ms. ⛔ **Cette attente n'est PAS sur `main`** : la poussée
+  du seul `tests/test-735.js` a été REFUSÉE par les permissions de la session, et on ne la contourne pas. Prêt sur une
+  copie de `main` : 190 suites · 9 544 ✓. Tant que Justin ne l'a pas autorisée, **la CI de `main` peut retomber sur
+  `test-735`** à n'importe quelle poussée — ce n'est pas la poussée, c'est la course (voir ci-dessus).
+· **La bêta v759 n'est pas publiée** (`beta.html` sur la branche seulement) : elle porte le correctif de la course et
+  quatre accords (« 6 produits à réapprovisionner dont 1 épuisé », « 14 produits », « 0 / 4 Journées validées »). Il
+  reste d'autres « (s) » dans l'application : un passage complet, comme `nMot` dans la Tour, est un chantier à part.
+
+# ✅ 27 SEPTEMBRE 2026, APRÈS-MIDI — SITE VITRINE : LE ZIP DE JUSTIN (8 PAGES « MARINE »), LE LOGO DANS GOOGLE, DE VRAIS iPHONE ET MAC — À LA RACINE DEPUIS LE SOIR (« FAIT LES 3 », `fe599df`)
+
+Justin, avec `design_handoff_teamop_leger` (zip) et une capture de Google : « le logo n'est pas le bon. C'est le
+logo de OP Gestion et non celui de Team OP. […] Partout où il y a des captures d'écran qui sont affichées, je veux
+que ce soit des vrais iPhone avec un vrai Mac, avec des vraies captures d'écran de l'application. »
+· **Le logo dans Google** : mesuré, `teamop.fr` sert le BON logo TEAM OP depuis le 5 septembre (`592993a`), octet
+  pour octet identique au dépôt ; avant, l'accueil déclarait `icons/apple-touch-icon.png`, le logo d'OP GESTION —
+  c'est la copie qu'a gardée Google. Le site n'a pas de `/favicon.ico` (404), le premier fichier que Google va
+  chercher. À faire : le poser au logo TEAM OP ; la réindexation (Search Console) est un geste de Justin.
+· **Le site** : le zip décrit les 8 pages du site actuel (accueil, applications, créer, elan, métiers, OP MESSAGES,
+  pourquoi, tarifs) en palette « Marine », jour/nuit automatique SANS bouton ; ses cadres d'appareils ont des
+  écrans VIDES. Architecture retenue : les pages neuves vivent dans `apercu/site/` (testables sur teamop.fr sans
+  toucher aux vraies pages), leurs ressources communes dans `/vitrine/` ; le remplacement recopiera les pages à la
+  racine, sur phrase de Justin. ⚠️ La maquette réécrit « Fonctionne hors-ligne », « même sans réseau », « Temps réel
+  et mode hors-ligne » — **retirés du site par Justin le 23 septembre** (`f1cc223`) : on garde sa décision. Le
+  formulaire « Créer » part par `mailto:` (pas de route serveur) : l'écran ne dira donc pas « Demande envoyée ».
+· **Captures** : de la bêta, sur une base FICTIVE (jamais une donnée d'ELAN), jour et nuit, iPhone et Mac.
+
+✅ **FAIT et publié en aperçu** (`7ae73a7` sur `main`, servi octet pour octet) : **https://teamop.fr/apercu/site/**
+· **Les vraies captures** — `scratchpad/captures-site.js` pose « Démo Hygiène Services » (4 techniciens, 9 clients,
+  25 interventions, 3 box : tout inventé) dans une copie locale de la bêta, l'ouvre en iPhone installé (`ios27`,
+  îlot, encoches) et en Mac installé (`macos27`), **un mardi à 9 h 41** (l'horloge de la PAGE est déplacée : le
+  27 septembre était un dimanche), polices d'un vrai appareil (Inter à la place de SF Pro, téléchargée une fois),
+  puis compose barre d'état / barre des menus autour. 5 écrans × jour/nuit, 14 WebP, 1,4 Mo (`vitrine/captures/`).
+  Refaire après un changement de l'application : `node scratchpad/captures-site.js` (puis régénérer les pages).
+· **Les cadres** (`vitrine/appareils.css`) : iPhone 16 Pro (titane, boutons, bordure) et MacBook Pro 14 (encoche,
+  socle), tout en unités de largeur — mêmes proportions à 240 px et à 1 100 px.
+· **Les huit pages** sont GÉNÉRÉES par `scripts/site-marine.js` (texte, navigation, appareils à un seul endroit ;
+  ressources dans `vitrine/`) ; `tests/test-835.js` exige que les pages soient sa sortie exacte. ⛔ On corrige le
+  générateur, jamais une page.
+· **Ce qui ne vient pas de la maquette, exprès** : aucune promesse de hors-ligne (décision du 23) ; places et prix lus
+  dans `PLANS` d'app.html — **la FAQ du site en ligne dit « 3 en Business, 5 en Business Premium » : FAUX** (1, 1, 2,
+  3), corrigé dans le nouveau ; OP MESSAGES « Bientôt disponible », aucune formule ne se choisit ; « Créer » part par
+  e-mail (bouton « Préparer ma demande », jamais « envoyée ») ; gris secondaire de jour assombri (#6b7688 → #5c6575 :
+  4,13:1 sur les cartes et 3,63 sur les scènes → 5,28 et 4,64) ; formules → `recap-abonnement.html?formule=…`
+  comme aujourd'hui ; le lanceur d'application de l'accueil (PWA) est gardé.
+· **Preuves** : `test-835` **102 ✓** ; `scratchpad/sonde-site.js` au navigateur **354 ✓ 0 ✗** (bureau souris,
+  tablette et téléphone au doigt, jour et nuit : images, débordement contre la largeur de l'appareil, cibles ≥ 44 px,
+  volet du menu au survol, menu du téléphone, fenêtres des fonctions au clavier, onglets et ancre des tarifs,
+  questions, demande « Créer » jusqu'au mailto) ; **12 contre-épreuves sur 12** mordent ; suite complète
+  **191 suites · 9 710 vérifications, code 0**. La sonde a trouvé deux vrais défauts avant publication : un
+  identifiant en double (`#fonctions`) empêchait TOUTE fenêtre de fonction de s'ouvrir, et le volet du menu
+  dépendait d'une détection de souris faite au chargement. Et une mesure fausse de l'outil (la page élargissait sa
+  fenêtre sur téléphone — le piège décrit dans CLAUDE.md), corrigée.
+**Ce qui attend Justin :** regarder l'aperçu (iPhone, Mac, jour et nuit) ; puis « remplace le site » →
+`node scripts/site-marine.js --racine` (les huit pages à la racine, SANS « noindex ») et publier ces huit fichiers
++ `vitrine/` sur `main`. ⚠️ À lui de confirmer deux textes : « Fondée et développée par Justin Biret » en pied de
+page (repris du site actuel), et « Business Premium » écrit en entier (comme l'application ; la maquette écrivait
+« Premium »).
+
+**Soir, Justin (capture de la barre du bas) : « Dans la tour, j'ai pas le glissement de la bulle avec le doigt comme
+OP GESTION ».** Diagnostic : la Tour EN SERVICE (`teamop.fr/tour.html`) est la **v2.66**, qui n'a ni bulle ni
+glissement — la pastille blanche y est le fond de l'onglet allumé (`.bb.on`), rien ne se prend au doigt. La bulle
+qu'on attrape est dans la v2.67+, donc dans l'aperçu v2.69 : `sonde-tour-barre.js` rejouée ce soir, **128 ✓ 0 ✗** ;
+contre-épreuve sur la v2.66 : « une bulle existe » ✗ (elle n'existe pas). Au passage, un vrai défaut de l'aperçu :
+le pied de l'écran de connexion et celui de la page disaient **« v2.68 » dans la v2.69** — c'est là qu'on lit quelle
+Tour on a sous les yeux. Corrigé, `test-829` §8 relit chaque numéro affiché contre `TOUR_VERSION` (5/5 mutations),
+aperçu republié (`0391c4e` sur `main`). Pour trancher « quelle Tour ? » d'un coup d'œil : l'aperçu porte la pastille
+orange « APERÇU · refonte en cours » en bas de l'écran. **La bulle arrive chez lui avec « Remplace la tour ».**
+
+# ✅ 27 SEPTEMBRE 2026, MATIN — « FAIT LES 4 », PUIS « OUI RAJOUTE ÇA » : PORTAIL PUBLIÉ, ANCIENNE TOUR RETIRÉE ; TOUR v2.69 (SUPPRIMER SANS CODE, AVIS PAR E-MAIL, LIMITE, LA BULLE) — EN SERVICE DEPUIS LE SOIR, SERVEUR COMPRIS (« FAIT LES 3 »)
+
+Justin, à quatre questions (le portail, `tour-v1.html`, les suppressions de la Tour, la bulle sur « Plus ») :
+**« Fait les 4 »**.
+
+1. ✅ **Portail publié** — `espace.html` et `connexion.html` sur `main` (`f53656d`), servis octet pour octet ; CI de
+   `main` verte 3/3. Ce qu'ils corrigent : la section suivante.
+2. ✅ **`tour-v1.html` retirée** (`8844475`, branche `56bc231`) : `teamop.fr/tour-v1.html` rend 404 ; CI verte 3/3.
+3. 🟡 **Supprimer depuis la Tour : une question, une case, « Oui »** — plus de code par e-mail, comme `delUser`
+   d'OP GESTION. Un compte, les comptes jamais utilisés, une entreprise partout : `supprPanneau` (ce qui va se
+   passer, la question en gras, la case, « Oui, supprimer » éteint tant qu'elle est vide ET pendant l'appel) ; pour
+   une entreprise, la question vit SOUS l'inventaire de ce qui disparaît (plus de nom à retaper). Classes
+   `.suppr-*` (`.sup-*` est au Support). ⚠️ **« Fermer un client » n'avait plus AUCUN bouton depuis la refonte du
+   8 septembre** (`1a75278` ; le commentaire de `blocGestionClient` dit pourquoi : un seul geste destructif
+   complet, « Supprimer cette entreprise ») : `tourRetirerEntreprise` est retirée, la route reste — et prend
+   `confirme` comme les trois autres. Justin croyait peut-être avoir quatre écrans : il en a trois.
+   **Serveur** (« SUPPRIMER SANS CODE », `server/index.js`) : les quatre routes acceptent `confirme: true`
+   (booléen strict, session de patron) ; le chemin du code est INTACT pour la Tour en service (v2.66), dont le
+   premier appel envoie toujours un code et ne supprime rien ; un code en attente ne sert plus après une
+   suppression confirmée ; le journal de la Tour dit le chemin (« · confirmée » / « · par code »).
+   ⛔ **Ce que ça retire, écrit dans le code** : le code était un second facteur — une session de Tour volée
+   (30 jours avec « rester connecté ») ne suffisait pas à détruire. Décision de Justin. `gardien` rappelle le
+   vecteur concret : `tour_token` vit dans le `localStorage` de l'origine teamop.fr, partagée avec `app.html`,
+   `beta.html` et `apercu/` — une faille XSS sur l'une d'elles lit la session du patron (antérieur, chantier à
+   part). ✅ **Les deux protections, écrites** — Justin : « Oui rajoute ça » (`APRÈS CHAQUE SUPPRESSION, UN
+   E-MAIL`, `server/index.js`), sans un geste de plus pour lui :
+   · **un e-mail APRÈS chaque suppression** — quatre routes, confirmée ou par code — à la boîte du patron : quoi,
+     par qui, quand (heure de Paris), l'appareil, par quel chemin, et le geste si ce n'est pas lui
+     (`ssh -t root@api.teamop.fr "cd /opt/teamop/repo && bash server/set-admin.sh"` : un nouveau compte patron,
+     donc toutes ses sessions fermées). L'envoi est ATTENDU 8 s au plus et la réponse dit s'il est parti
+     (`avis`) ; la Tour le dit dans le verdict (`supprToast`, 9 s). Sans e-mail configuré, rien ne se supprime
+     (503). Au journal des e-mails : une trace sans nom ni identifiant ;
+   · **au-delà de TROIS ENTREPRISES en 24 heures glissantes** (fermer un client, supprimer partout, confirmées ou
+     par code — les comptes ne comptent pas, c'est « entreprises » que Justin a dit), `confirme` ne suffit plus :
+     le code revient, `limite: true`, et la question de la Tour dit « Trois entreprises ont déjà été supprimées
+     ces dernières 24 heures » (pas « serveur pas à jour »). Compteur sur disque (`tour-suppressions.json`, des
+     dates), qui survit à un redémarrage et reste FERMÉ s'il est illisible. Les codes d'entreprise sont tirés
+     par `crypto.randomInt` (ils redeviennent un verrou). « 24 heures glissantes » plutôt que « la même
+     journée » : sinon 23 h 59 puis 0 h 01 font six suppressions en deux minutes.
+   **L'ordre des deux publications n'importe pas** : Tour neuve + serveur d'avant → la Tour voit `codeEnvoye` et
+   redemande le code (« le serveur n'est pas encore à jour »), rien n'est annoncé à tort ; serveur neuf + Tour
+   d'avant → rien ne change pour elle.
+4. 🟡 **La bulle ne se pose plus sur « Plus »** quand la vue ouverte est rangée derrière lui (comme `ongletsActif`
+   d'OP GESTION) ; « Plus » ne s'allume que feuille ouverte.
+5. 🟡 **Trouvé en mesurant : les toasts de la Tour pouvaient ne durer que 0,3 s au lieu de 2,6, pour toute la
+   séance.** L'écouteur de fin d'animation accroché à la sortie d'un toast restait accroché quand l'animation
+   n'avait pas lieu (un nouveau toast pendant l'effacement), éteignait le suivant à la fin de son entrée, et en
+   laissait un autre. Corrigé dans la v2.69 ; la v2.66 en service l'a. OP GESTION n'est pas touchée.
+
+**Preuves :** `test-832` (serveur seul, inscrit dans `scripts/bancs-serveur.liste`, plancher relevé à 2 350)
+**96 ✓** — avis sur les quatre routes et les deux chemins, limite, redémarrage, compteur illisible, e-mail refusé
+ou muet (la réponse arrive en 8 s, pas en deux minutes), sans e-mail configuré ; 10/10 mutations de « sans code »,
+4/4 sur la vérification du code, **19/19 sur les protections** (14 serveur, 5 Tour) ; ⚠️ son facteur retirait mal le
+point doublé du SMTP (« set-admin..sh ») — c'était le banc, pas le serveur ; `test-833` (la Tour contre le vrai
+serveur ET contre un « serveur d'avant » simulé par un relais qui retire `confirme`) **40 ✓**, le toast 2 ✗ sans son
+correctif ; `test-828` joue la bulle avec les vraies fonctions, 95 ✓ (1 ✗ sur la v2.68) ; au doigt,
+`scratchpad/sonde-tour-suppr.js` **91 ✓** (téléphone jour et nuit, bureau ; 82 ✓ 9 ✗ sur la Tour d'avant les
+protections, 30 ✗ sur la v2.68) et `scratchpad/sonde-tour-barre.js` **128 ✓** (3 ✗ sur la v2.68) ; suite complète
+**189 suites · 9 520 vérifications, code 0** ; `gardien` (avant les protections) : aucun
+bloquant (trois points corrigés : un mauvais code joué sur les quatre routes, le chemin au journal, la version
+citée) ; `relecteur` : aucun bloquant (préfixe `.suppr-`, insécables du `prompt()` natif).
+⚠️ **Les bancs 828 à 833 lisent `tour.html` : ils restent sur la branche** et partent avec « Remplace la tour » (sur
+`main`, `tour.html` est la v2.66). `test-832` ne lit aucune page : il part avec le serveur.
+
+**Publié :** l'aperçu v2.69 avec les protections (`f821ca5` sur `main`) à `teamop.fr/apercu/tour.html` ; la Tour
+en service reste la v2.66. ⚠️ L'aperçu agit sur les VRAIES données : une suppression essayée là supprime.
+**Ce qui attend Justin :** « Remplace la tour » (la v2.69 : v2.67 + v2.68 + ceci) ; « pousse le serveur » —
+préparé par `scripts/preparer-deploiement-serveur.sh` (commit `9bede4a` sur `main` = `7423e94`, correctifs du gardien
+compris : 42 suites · 2 522 vérifications contre les pages de `main`, rien de poussé ; seule différence avec `main` :
+ce changement) ; relancer
+le script repart du `main` du jour, puis `git -C <arbre> push origin HEAD:main`. Suppression sans code, protections et
+correctifs du gardien partent ENSEMBLE, dans ce même commit : il n'y a aucun moment où l'une existe sans les autres. Tant qu'il n'est pas
+poussé, le serveur en service ignore `confirme` et la v2.69 (aperçu) redemande le code (« le serveur n'est pas
+encore à jour »).
+**Pas touché, exprès :** refaire un mot de passe provisoire depuis la Tour demande encore un code (ce n'est pas une
+suppression) ; « Supprimer l'accès » (écran Accès) fait écrire le nom, sans code.
+
+**Relecture `gardien` des deux protections (27 septembre, après-midi) — six contournements, tous fermés** (branche,
+`585dcd6`, `aa240a5`, Tour `9acd27a`, rien de poussé sur `main`) :
+· **plusieurs espaces sous une adresse** — fermer un client effaçait TOUS les espaces de son adresse pour « une »
+  entreprise, et l'annuaire laissait rattacher l'espace d'un autre client à son adresse. Chaque espace effacé compte
+  désormais (`supprEntLimite(n)`, `supprEntCompter(n)`), la limite regarde ce qui VA être effacé, le code est lié à
+  la LISTE des espaces (empreinte), l'annuaire refuse de changer l'adresse d'un espace existant et de reprendre
+  l'espace d'un autre client (409) ;
+· **l'espace partagé** (`ESPACES_INTOUCHABLES`) — l'annuaire le refuse (403), « fermer un client » le DÉTACHE sans
+  l'effacer ni le fermer (l'avis le dit), « repartir à neuf » refuse ;
+· **« repartir à neuf »** effaçait un espace sans compter ni prévenir : même régime que les trois autres (compte,
+  limite, avis ; au-delà de la limite, la Tour d'avant reçoit 429 au lieu d'un code qu'elle ne sait pas lire, la
+  v2.69 passe par `supprAppel`) ;
+· **une adresse de sécurité que la Tour relève** (la boîte support, une boîte de la Messagerie) : une session volée y
+  lisait le code demandé. Les e-mails de sécurité portent un identifiant protégé (`mails-proteges.json`) : la relève
+  du support ne les importe pas, la Messagerie les montre mais refuse de les déplacer, marquer ou supprimer (403) et
+  ne les marque pas « lus ». Et au-delà de la limite, si la destination est lue par la Tour, le serveur REFUSE (409)
+  plutôt que d'envoyer un code inutile. Remède : une adresse que Justin seul lit, `securiteEmail`, posée par
+  `bash server/set-securite.sh` (saisie ; l'adresse n'est affichée que masquée) ;
+· **un avis qui ne part pas** — il est retenu (`avisManques` dans `tour-suppressions.json`), et plus RIEN ne se
+  supprime tant qu'un e-mail de rattrapage n'est pas parti (503) ; nouvel essai toutes les 15 minutes ; le journal
+  des e-mails dit « ⚠️ NON PARTI », « ⚠️ PAS ENCORE PARTI », « (parti en retard) ». Une écriture refusée sur disque
+  répond 500 (« rien n'est garanti »), jamais « supprimé » ;
+· **le reste** — aucune adresse dans un motif d'erreur rendu à la Tour ; un nom à retour à la ligne ne fabrique plus
+  de faux paragraphe dans l'avis ; les effacements Firestore d'un client partent en parallèle (trois espaces lents
+  dépassaient le délai de la Tour).
+⚠️ **Ce que ça change en production dès « pousse le serveur »** : la configuration du VPS n'a probablement ni
+`securiteEmail` ni `notifDemandes`, donc l'adresse de sécurité retombe sur l'expéditeur SMTP — `contact@teamop.fr`,
+qui est AUSSI la boîte support que la Tour relève. Les trois premières entreprises supprimées en 24 h passent (avec
+leur avis) ; **la quatrième est refusée** jusqu'à ce que Justin règle son adresse :
+`ssh -t root@api.teamop.fr "cd /opt/teamop/repo && git pull -q && bash server/set-securite.sh"`. Pour le vérifier
+sans rien afficher de secret : `journalctl -u teamop-api | grep 'suppressions de la Tour' | tail -1` (la ligne dit
+« adresse par défaut / réglée à part » et si la Tour relève cette boîte — aucune adresse n'y figure).
+**Risques qui restent, dits :** une suppression peut échapper à son avis si le SMTP tombe à cet instant précis (le
+rattrapage part ensuite, et rien d'autre ne se supprime avant) ; le NOMBRE de codes émis n'est pas plafonné ; la
+veille de la Messagerie saute les e-mails protégés — vérifié sur le module, pas observé de bout en bout.
+**Preuves :** `test-834` (nouveau : vrai serveur, fausse boîte IMAP glissée par `node -r`, trois vies de serveur)
+**58 ✓** ; `test-832` **116 ✓** ; `test-833` **48 ✓** ; `test-726` et `test-803` 144 ✓ (un facteur SMTP de banc :
+sans e-mail, plus rien ne se supprime) ; **33 mutations sur 33** mordent (`scratchpad/mutations-gardien.py` de la
+session : 27 serveur, 3 Messagerie, 3 Tour) ; suite complète **190 suites · 9 608 vérifications, code 0** ; bancs
+serveur contre les pages de `main` : **42 suites · 2 522 vérifications** (plancher relevé à 2 450).
+
+# ✅ 27 SEPTEMBRE 2026, NUIT — PORTAIL ET PAGE DE CONNEXION : UN E-MAIL QUI N'EST PAS PARTI NE S'ANNONCE PLUS « PARTI » — PUBLIÉ (f53656d)
+
+**Trouvé en vérifiant la question de Justin** (« les e-mails passent-ils tous par le serveur ? » — oui, voir plus
+bas). Deux écrans publics demandent un courriel au serveur et annonçaient « vient de partir » **quelle que soit la
+réponse** : « Mot de passe oublié » du portail (`espace.html`, l'adaptateur jetait le code HTTP) et « me renvoyer le
+lien par e-mail » de `connexion.html` (`fetch` ne jette pas sur un refus). Mesuré au navigateur sur la version EN
+LIGNE : **6 cas faux sur 9** — adresse mal tapée (« Si un compte existe pour pas-une-adresse… »), trop de demandes
+(429), serveur tombé (502), coupure réseau : « 📬 … vient de partir », en vert. Le client attendait un courriel qui
+ne viendrait pas. Corrigé sur la branche : chaque refus a son message, la réussite reste IDENTIQUE pour une adresse
+connue ou inconnue (pas d'annuaire des clients), et le commentaire qui promettait un « repli Firebase » dit vrai.
+
+**Preuves :** `tests/test-831.js` (vraies fonctions des deux pages contre le vrai serveur, un relais de courriel qui
+compte ce qui part) — **14 ✗ sur le code d'avant, 29 ✓ après** ; **11 mutations sur 11** mordent
+(`scratchpad/mutations-831.py` de la session) ; sonde au navigateur `scratchpad/sonde-portail-envoi.js` (vrai toucher,
+format téléphone, toute requête `https://` interceptée — rien ne part vers `api.teamop.fr`) : **9/9 justes** sur la
+branche, **6 faux** sur `origin/main` ; `test-740` 59 ✓ (une regex suivait l'ancienne écriture) ; suite complète
+**187 suites · 9 379 vérifications, code 0** ; `relecteur` : aucun bloquant (il a rejoué le banc sur les fichiers
+d'avant : 15 ✓ 14 ✗). Sur sa remarque, les **dix messages client** du portail encore au tutoiement (ce parcours, la
+vérification du nom de l'espace, celle d'un code) passent au vouvoiement, comme les 88 autres ; la connexion interne
+de l'équipe TEAM OP garde le sien. `connexion.html` reste au tutoiement de bout en bout (elle parle aux équipes).
+
+**Publication :** ✅ `espace.html` et `connexion.html` seuls, sur `main` (`f53656d`, « Fait les 4 »), servis octet pour
+octet, CI verte 3/3. Rien côté serveur. Le service worker sert les pages réseau d'abord : pas de cache à monter.
+
+**Au passage, vérifié et juste :** `verifLien` (renvoi du lien de confirmation, même page) et `_sendCode` (codes de
+changement de mot de passe / d'adresse) lisaient déjà leur réponse. ⚠️ Et une maladresse de méthode, réparée tout de
+suite : la nouvelle sonde a d'abord été écrite SUR `scratchpad/sonde-mdp-oublie.js`, une sonde suivie (v686-v688) —
+l'outil a dit « mis à jour » au lieu de « créé ». Restaurée depuis le commit, diff vide. **Chercher le nom avant
+d'écrire un fichier neuf.**
+
+✅ **Tranché (« Fait les 4 ») et fait : retirée (`8844475`).** La question telle qu'elle était posée : `tour-v1.html` — une ANCIENNE Tour de contrôle (144 Ko) — est toujours servie à
+`teamop.fr/tour-v1.html` (HTTP 200, vérifié le 27 septembre 2026), et plus rien dans le dépôt n'y mène. Rien ne fuit
+sans connexion à la Tour — vérifié route par route : ses 28 appels portent `monAdmin` ou `monPatronStrict` côté
+serveur —, mais une vieille console ouverte par erreur agirait avec des gestes d'avant. Retirer un fichier servi est une publication : on attend sa réponse.
+
+# ✅ 26 SEPTEMBRE 2026, NUIT — TOUR v2.68 : TOUT RANGÉ PAR SUJET, ET LE TÉLÉPHONE REVU — EN SERVICE DANS LA v2.69 (27 AU SOIR)
+
+**Le passage au téléphone (Justin, le même soir : « sur le téléphone il y a beaucoup de décalage d'écriture… tu te
+connectes et tu me corriges »).** Fait sur une COPIE (API simulée, noms fictifs et longs) — la règle du dépôt interdit
+de piloter un navigateur sur des données de clients. Les vingt vues relevées de haut en bas en iPhone, filets aux
+marges (`scratchpad/sonde-tour-telephone.js`, `analyse-alignement.js`), chaque décalage demandé au navigateur —
+QUELLE règle le posait (`scratchpad/sonde-regles.js`). Corrigé :
+- **en défilant, le titre de la page s'écrivait PAR-DESSUS « GESTION »** dans l'en-tête, sur toutes les pages (le nom
+  était caché au téléphone, une règle du thème écrite plus loin le remontrait) : le nom et la pastille s'effacent tant
+  que le titre est là ; l'en-tête ne garde plus le titre de la page quittée ; une fiche et un dossier y montent le leur ;
+- **chaque texte sur sa colonne** : titres de groupe (4 px, et une bande collée qui couvrait le tiers de l'écran en
+  défilant), lignes dans les cartes (9 à 17 px de trop), notes (2 px), une carte à 24 px entre des cartes à 16, la
+  barre « Suivi » du dossier (6 px), le Courrier, l'activité de l'accueil, les dates des paiements, le pied des lignes
+  du Journal ;
+- **textes coupés** : « Couper l'accès » (Équipe), « Toutes les applications » ; les menus déroulants avaient perdu
+  leur chevron (un raccourci `background:` écrit plus loin effaçait l'image) ;
+- **typographie française** : plus de ligne qui commence par « : », « · », « » », plus de « € » séparé de son montant
+  (`typoFr`, un observateur de la vue ; jamais dans le code ni un champ) ;
+- **plus aucun « (s) »** : 32 phrases accordées (`nMot`) ; la phrase sous « Tout remettre à zéro » commence par une
+  majuscule et dit, sur un compte à deux consoles, que les DEUX sont touchées (c'est ce que fait le serveur).
+**Trouvé ensuite (relecture `relecteur`, mesures au bureau et de nuit), corrigé dans la même version :**
+- de NUIT, une liste posée dans une carte garde un filet (de jour, `body.jour` efface toutes les bordures) : ses
+  lignes, mises sur la colonne de la carte, touchaient ce cadre — vu à l'image. La liste n'a plus de cadre du tout ;
+- la typographie ne passait que dans `#vue` : les toasts, les panneaux (lien de connexion, mots de passe provisoires)
+  et le titre de l'en-tête gardaient le défaut → elle passe sur toute la page (2 000 lignes ajoutées : 18 ms) ;
+- Équipe au bureau : les gestes à 46 px pour un nom à 44 ; le pied du Journal à 2 px ;
+- l'écran **Accès ne se redessinait jamais** quand ses données changeaient (`renderVue('essais')` : un texte là où
+  il faut l'élément, l'exception avalée — défaut ancien) ; la note des copies de sauvegarde promettait « la v621 » ;
+- deux « défauts » de la sonde étaient FAUX (un titre coupé en « … » déborde de sa boîte dans un `Range`), et une
+  hypothèse CALCULÉE (des titres collants transparents au bureau) a été démentie par la mesure : 0 sur 35.
+**Preuves :** `test-830` (nouveau, 69 ✓) rejoue la CASCADE CSS sur les vraies feuilles (média, spécificité, ordre,
+!important) — il garde ce qu'une règle GAGNE, pas son texte — et exécute typographie, titre de l'en-tête, remise à
+zéro, accords, l'écran Accès ; sur la Tour d'avant (08fbf9d) il rend 20 ✓ 49 ✗ ; **53 mutations sur 53 le font
+tomber** (`scratchpad/mutations-tour-830.py`). Au téléphone, la sonde du thème sur la Tour d'avant : 24 textes
+coupés, 24 en-têtes où le titre s'écrit sur « GESTION », 362 textes à espace fautive ; après : 0, 0, 0. Sonde du thème finale (80 vues, téléphone + bureau, jour + nuit) :
+**0 défaut** — 0 exception, 0 débordement, 810 cibles ≥ 44 px, 3 302 textes (aucun couvert ni écrasé), 786 textes
+téléphone (aucun coupé), 26 en-têtes où le titre monte (aucun contact), 408 textes à ponctuation (aucune espace
+fautive), 2 338 contrastes ≥ 4,5:1, 29/29 parcours ; titres collants au bureau : 0 sans fond sur 35 ; barre au doigt
+124 ✓ ; colonnes relevées (téléphone 817 textes, bureau 867) : ce qui reste proche est du texte EN LIGNE (la suite
+d'une phrase, des pastilles calées à droite), plus aucune colonne. Suite complète : 186 suites · 9 350 vérifications.
+
+**En aperçu depuis le 27 septembre 2026 à 0 h 19 (`f6f793d` sur main, `apercu/tour.html` seul) : servi octet pour octet
+(empreinte relue sur teamop.fr), CI de main verte 3/3 ; `tour.html` en service reste la v2.66.**
+
+**Le rangement, d'abord — Justin, 26 septembre 2026 : « je veux que dans la tour tu ranges tout bien comme il faut… que tu regardes toutes
+les catégories et sous-catégories… je veux un truc pro ».** Sur la branche puis en aperçu (`apercu/tour.html`) ;
+`tour.html` en service reste la v2.66 jusqu'à « Remplace la tour ». La v2.68 CONTIENT la v2.67 (« Ma barre »,
+la bulle au doigt), qui attendait déjà la même phrase.
+
+**Ce qui a changé :**
+- **quatre catégories, rangées par sujet** : Tour (Accueil) · Clients (Entreprises, Abonnements, Connexions,
+  Devis IA) · Support (Surveillance, Courrier) · Administration (Accès, Équipe, Journal, Sauvegardes). La maquette
+  « TeamOp Tour HIG » rangeait par forme (Gestion, Facturation, Système) et trois vues y tombaient à côté ;
+- **un nom par vue, partout** : menu, barre du bas (qui n'a droit qu'à une abréviation du même mot), feuille
+  « Plus », titre de chaque page, fil d'Ariane. « Données » est devenu « Sauvegardes » (ce qu'on y fait),
+  « Comptes & accès » → « Accès », « Connexions clients » → « Connexions », « Journal de la console » → « Journal » ;
+- **la liste des vues n'est plus tenue à la main** : `VUES_PAR_APP` se déduit du menu (elle avait déjà oublié une vue) ;
+- **ce que le serveur réserve au patron** (Accès, Équipe, Journal, Sauvegardes : `monPatronStrict`) sort du menu
+  d'un collaborateur ET de sa navigation (`PATRON_SEUL`, `vuePermise` : menu, `setTab`, `setApp`, `renderVue`,
+  retour de `/moi`) — avant, le Journal et les Sauvegardes restaient au menu pour n'y montrer qu'un refus ;
+- **les phrases de droits se déduisent du menu** (note d'Équipe, ligne de chaque compte) : elles mentaient ;
+- **le statut des problèmes : une commande** (Surveillance et fiche d'une entreprise) — segments Ouverts ·
+  Corrigés · Écartés · Tout ; les cartes Nouveaux / En cours affinent « Ouverts » (pastille « … seulement ✕ ») ;
+  le menu déroulant à neuf choix a disparu. « Sans statut = nouveau » partout : chaque segment annonce
+  exactement ce que sa liste montre ;
+- chaque tuile qui filtre se voit filtrer (segment « En essai » d'Abonnements ; Entreprises dit son filtre
+  par la même pastille `.filtre-pose`) ; six chiffres en 3 + 3 au lieu de 5 + 1 ;
+- **mise en page** : Équipe (l'en-tête « Accès ouverts » recouvrait la ligne du patron ; noms écrasés à 40 px),
+  fiche d'une entreprise (ses comptes écrasés à 13 px, « t o m » une lettre par ligne ; « Repartir à zéro » sur
+  cinq lignes), Sauvegardes (pastilles, écarts) ;
+- plus aucun identifiant d'espace d'ELAN dans la page servie (commentaires compris).
+
+**Preuves :** test-829 (nouveau, 79 ✓) · 24/24 mutations mordent (`scratchpad/mutations-tour-268.py`) · les 22
+autres bancs de la Tour verts · sonde du thème complète (80 vues, bureau + téléphone, jour + nuit) avec deux
+mesures NOUVELLES — textes couverts à l'ouverture et textes écrasés, sur le DOM entier (contre-épreuve : la
+v2.67 rend 4 défauts, la v2.68 0 ; puis elle a trouvé la fiche d'entreprise, 8 textes écrasés, corrigés) ·
+sonde de la barre au doigt · relecture (`relecteur`) : aucun bloquant, un commentaire faux corrigé.
+
+**⚠️ À savoir :**
+- un collaborateur ne voit plus Journal ni Sauvegardes : c'est ce que le serveur lui refusait déjà ;
+- au téléphone, la phrase d'en-tête reste repliée à deux lignes (décision d'avant) mais se déplie d'un toucher ;
+- les chiffres de la Surveillance (« Corrigés ce mois », « 7 derniers jours », le menu des entreprises) comptent
+  la console ouverte : dans GESTION, un problème d'OP MESSAGES y entrait (la tuile disait 1, le segment 0) ;
+- la CI de main était rouge depuis la bêta v758 (test-773 n'acceptait que l'écriture de la production) —
+  corrigé et poussé (5a02952) ; test-735 est tombé une fois en CI (223 ✓ 2 ✗) et reste vert en local : l'étape
+  affiche désormais les lignes ✗, pour qu'une récidive se lise.
+
+---
+
+# 🟢 26 SEPTEMBRE 2026, NUIT — BÊTA v758 : CHAQUE TECHNICIEN ET SA COULEUR (+ L'APPUI LONG) — PUBLIÉE SUR LA BÊTA
+
+**Justin, 26 septembre 2026 : « je veux que chaque technicien et sa couleur soient référencés sur les interventions,
+sur les cartes — ça évite de se perdre quand on associe plusieurs techniciens sur la même carte ».** Fait sur la
+bêta (v757 puis v758, jamais sur `app.html` en production) :
+- **seize couleurs vraiment distinctes** et une attribution **sans doublon** (`techCouleurs`) : avant, seize cases
+  qui n'étaient que huit teintes en deux nuances — à cinq techniciens, deux avaient la même une fois sur deux ;
+- **une intervention partagée est dans la ligne de CHACUN** (Planning général, Tableau de bord) — avant, seul le
+  premier technicien la voyait ; chaque carte prend la couleur de SA ligne et montre les collègues (pastilles) ;
+- **la liste, la fiche, « Ma journée »** nomment chaque technicien avec son disque de couleur (« Avec Léo Martin ») ;
+- **le choix de la couleur** d'un technicien : des pastilles, avec les initiales de qui porte déjà laquelle ;
+- **déplacer une intervention partagée ne retire personne** (`planPoserEquipe`) : seul le technicien de la ligne
+  d'où on la glisse est remplacé.
+
+**Trouvé par la relecture de la v758, reproduit, corrigé :**
+- ⛔ **un technicien qui part faisait changer la couleur d'un AUTRE.** L'attribution se déduit de la liste : le
+  départ d'un ancien libérait une case qu'un plus jeune reprenait (six techniciens : retirer le plus ancien faisait
+  passer le plus jeune de l'orange au violet). `techCouleursFiger` : au moment du GESTE (retirer, fusionner, modifier
+  ou créer une fiche — jamais au chargement), ceux dont la couleur changerait sans que le choix l'ait annoncé
+  gardent la leur, écrite sur leur fiche comme choisie. Le choix annonce la couleur automatique telle qu'elle sera
+  (`techCouleursSimuler`). test-825 : 3 000 départs et 2 000 choix tirés au hasard ; sonde : le vrai « Supprimer ».
+- **la pile des collègues coupait le TITRE** des cartes partagées (vues Jour et Multi : « Dératisation parta… ») :
+  elle va au bout de la ligne du client dès que la carte a cette ligne (`planInfosPlace`, la règle de
+  `planCarteInfos`). `scratchpad/sonde-pile-client.js` : 11 ✓ (la bêta d'avant : 3 ✗).
+- (sans rapport, dans la même passe) **l'appui long sur la barre d'onglets** : le clic du relâcher tombait dans la
+  fenêtre « Barre d'onglets » montée sous le doigt ; avalé où qu'il tombe, et un nouvel appui ferme la fenêtre
+  (`sonde-appui-long.js` 21 ✓ ; la bêta d'avant 9 ✓ 12 ✗). **La production (v757) a ce défaut** — pas « quelqu'un
+  ne peut pas travailler » : il attend la prochaine publication.
+
+**Preuves :** test-825 177 ✓ · 12 mutations sur 12 mordent (`scratchpad/mutations-couleurs-v758.py`) · sonde des
+couleurs 52 ✓ (jour, nuit, téléphone, pixels ; la bêta v756 en rate 26, la v758 d'avant le correctif 2) · sonde des
+cartes 11 ✓ · suite complète 184 suites · 9 201 vérifications, code 0 · relecture (`relecteur`) : 184 suites vertes, aucun oubli sur les écritures
+de `techIds`.
+
+**⚠️ À SAVOIR AVANT DE PUBLIER `app.html` (relecture) :**
+- **flotte mélangée** : les interventions se fusionnent ENREGISTREMENT ENTIER (le plus récent gagne). Un appareil
+  resté en v757 qui glisse une intervention partagée écrit `techIds=[un seul]` — l'ancien algorithme — et, s'il
+  enregistre après, efface le second technicien chez toute l'équipe. Ce n'est pas un changement de FORMAT qu'une
+  version peut garder : c'est l'ancien défaut, chez qui n'a pas rechargé. Publier, puis EXIGER la version vite
+  (Tour → Connexions), comme pour les photos.
+- **deux doigts à la fois** (relecture) : l'appui long garde UN état pour toute la page ; un second doigt qui tape
+  ailleurs PENDANT que le premier tient encore la barre peut faire passer le clic du relâcher. Étroit, non corrigé.
+- Alt + glisser (dupliquer) crée une copie à UN technicien, celui de la case d'arrivée — comportement d'avant,
+  voulu ; à dire si Justin veut que la copie garde l'équipe.
+
+---
+
+# ✅ 26 SEPTEMBRE 2026, NUIT — TOUR v2.67 : « MA BARRE » ET LA BULLE QU'ON ATTRAPE — EN SERVICE DANS LA v2.69 (27 AU SOIR)
+
+**Justin, capture de la barre de la Tour à l'appui : « j'aimerais qu'en restant appuyé sur la barre, je puisse la
+personnaliser et choisir ce que je veux dans la barre, et aussi que le glissement de la bulle marche comme sur
+OP GESTION ».** Fait sur la branche (`tour.html` v2.67), mis en aperçu (`teamop.fr/apercu/tour.html`) :
+- **appui long** (0,55 s) sur un onglet → feuille « Ma barre » : les vues de la console, un numéro dit leur place,
+  quatre au plus, dans l'ordre où on les touche ; aussi par « Plus » → « Personnaliser la barre » (l'appui long ne se
+  devine pas). Rangé PAR CONSOLE et par appareil (`tour_barre_gestion`, `tour_barre_messages`), relu à chaque fois
+  contre ce que le compte voit (`menuVisible`) et complété par la barre d'origine ; sans choix, la barre d'avant à
+  l'identique ; « Réinitialiser » ne s'écrit pas ; rangement plein (partagé par toute l'origine teamop.fr) : le choix
+  s'applique pour la visite, et le toast le dit ;
+- **la bulle** : une pastille qui GLISSE (elle repose sur « Plus » quand la vue ouverte est derrière lui, là où
+  s'allumait la pastille d'avant) ; on la prend, elle se soulève au contact et suit le doigt 1:1, l'onglet dessous
+  s'allume, on lâche → la vue ; partie d'un autre onglet, elle vient sous le doigt en 170 ms ; « Plus » n'est pas une
+  place (ressort au bord) ; un appui tenu SUR la bulle est une prise, pas un menu ; la souris aussi ; mouvement réduit :
+  elle apparaît sans glisser ; elle sort de la transition de vue (une seule capture montrée) ;
+- **les compteurs** suivent leur vue ; « Plus » porte la somme de ce qui est rangé derrière lui.
+**Deux défauts trouvés en mesurant, corrigés dans la même version** : le relâcher de l'appui long tombait sur la
+feuille montée SOUS le doigt (« Devis IA » se cochait tout seul) ; le toast avalait pendant 2,5 s le toucher de la
+ligne qu'il couvrait (`#toast{pointer-events:none}` — c'est du texte, partout dans la Tour). Leçon dans CLAUDE.md.
+**Preuves** : sonde au doigt `scratchpad/sonde-tour-barre.js` **120 ✓** (jour et nuit, collaborateur, souris ; la v2.66
+n'a ni bulle ni choix) ; `test-828` **87 ✓** (les vraies fonctions du choix jouées, les gardes du geste relues dans le
+code) ; **14 mutations sur 14 font tomber le banc ou la sonde** (M10 et M14 : le banc seul — ce Chromium ne produit pas de clic après un glissé ; M11 et M12 : la sonde, et le banc depuis qu'il vérifie l'EMPLOI du ressort et de la prise) ; sonde du thème complète sur la v2.67 : 0 exception, 0 débordement, 802 cibles
+≥ 44 px, 2 270 textes ≥ 4,5:1 dont 400 libellés d'onglets, 25 parcours ; les 21 bancs qui lisent `tour.html` passent.
+Outils : les sondes (`sonde-tour-theme.js`, `pilote.js`) tuent désormais tout le GROUPE de processus du navigateur —
+onze processus orphelins d'il y a une heure tournaient encore.
+**Relecture (`relecteur`)** : un ⛔ réel — sans clic produit au relâcher, le drapeau restait armé et le tap suivant
+(une ligne, le voile) était avalé ; mesuré sur `b8bd91f` (la feuille reste ouverte quand on touche le voile), corrigé
+(un NOUVEL appui ferme la fenêtre, `fe3d381`), la sonde le garde. Deux remarques mesurées FAUSSES : « `essais` et `menu`
+n'ont pas d'icône » (elles sont posées après l'objet, `IC.essais=IC.cadenas`, `IC.menu=…`). ❓ **À confirmer par Justin** :
+la bulle REPOSE sur « Plus » quand la vue ouverte est rangée derrière lui (c'était la pastille d'avant) ; dans OP GESTION
+elle disparaît. Garder, ou faire comme OP GESTION ?
+**Même défaut dans OP GESTION, trouvé en le cherchant : corrigé sur la bêta v758.** La fenêtre « Barre d'onglets » s'ouvre
+sous le doigt ; le clic du relâcher y arrivait (le pied, le fond ; sur un téléphone de 430 × 932, sans animations
+réduites, il a une fois refermé la fenêtre). `scratchpad/sonde-appui-long.js` : 21 ✓ sur trois tailles (bêta d'avant :
+9 ✓ 12 ✗). La production (v757) a le défaut : pas « quelqu'un ne peut pas travailler » (« Choisir mes onglets » reste dans
+les Paramètres) — il attend la prochaine publication.
+**Pour la mettre en production : sa phrase (« Remplace la tour »), puis `tour.html` seul sur main.**
+
+---
+
+# ✅ 26 SEPTEMBRE 2026, NUIT — ELAN : UN « OP ADMIN » FANTÔME RÉAPPARU (@florent-3) — CORRIGÉ, v757 EN PRODUCTION
+
+**Publiée (`75a6475` sur main) sur la phrase de Justin « fait tout ce qu'il y a à faire, s'il te plaît, que ça
+marche bien »**, en réponse à « dis-moi “publie la correction” » : `app.html` + `sw.js` (cache v957) = v756 + les
+trois correctifs ci-dessous, RIEN d'autre (les couleurs des techniciens restent sur la bêta, désormais **v758**).
+Preuves sur le candidat de publication lui-même (copie de main + les trois correctifs) : sonde des fantômes v756
+13 ✓ 8 ✗ → v757 21 ✓ 0 ✗ ; suppression au doigt 13 ✓ (v756 4 ✓ 9 ✗) ; `test-826` 35 ✓, `test-827` 19 ✓ ; suite
+complète 182 suites · 8 931 vérifications ; deux relectures `relecteur`, sans point bloquant.
+
+**Justin, capture à l'appui : « chez elan ça a recréé un compte admin, pourquoi, je croyais que ce problème était
+réglé ».** La liste des comptes d'ELAN montrait « OP Admin · Administrateur · @florent-3 · 🔑 à définir · 👥 même
+nom qu'un autre compte ».
+
+**Ce n'est pas l'ancien qui revient : c'est un NOUVEAU, fabriqué par un chemin que la v656 (11 septembre) n'avait
+pas fermé.** Rejoué au navigateur sur le code de la v756 de production (`scratchpad/sonde-admin-fantome.js` : copie
+de la bêta où seul `BETA_ESSAI` vaut `false`, le vrai lien, les vrais rechargements, la vraie synchro contre un faux
+serveur posé dans la page) — **7 ✓ 5 ✗** :
+- un navigateur NEUF (ou dont le stockage a été vidé) ouvre le lien d'une entreprise EXISTANTE ;
+- `load()` : « pas de base → `migrate(seed())` » ; `seed()` porte en production un « OP Admin » à identifiant
+  ALÉATOIRE, et `users` n'est pas dans `COLLECTIONS_DONNEES` — les deux vidages le laissent passer ;
+- `boot()` le renomme « florent » (identifiant de départ du lien) avec **l'empreinte du mot de passe provisoire du
+  lien** ; la fusion du premier instantané le renomme « florent-3 » (florent et florent-2 existent) ;
+- l'appareil l'**envoie à toute l'équipe**, et il partirait dans l'annuaire de connexion du serveur.
+⚠️ **C'est un administrateur dont le mot de passe est celui qu'on donnait à l'ouverture de l'espace** (ou « 1234 »
+si le lien n'en portait pas). Sur un appareil d'ELAN, n'importe qui qui le connaît entre en administrateur.
+« florent-3 » est probablement banni de l'annuaire du serveur par l'ordre de la Tour du 11 septembre (les ordres de
+suppression bannissent l'identifiant tant que le patron ne le réautorise pas) — **pas vérifiable d'ici**. Le
+prochain fantôme, lui (« florent-4 »), ne le serait pas.
+**Et « ESPACE NEUF » était mort** : `boot()` effaçait `elan_admin_login` AVANT le premier instantané. La seule porte
+d'une entreprise neuve était le compte du semis — celui-là même qui fabriquait les fantômes.
+
+**Corrigé sur la branche (`60f368b`, bêta v757)** — **12 ✓ 0 ✗** à la même sonde :
+- `load()` : rattaché et sans base, AUCUN compte sur l'appareil ;
+- `adminDepartAppliquer()` (le renommage, sorti de `boot()`) : rattaché et sans compte, elle GARDE les clés du lien ;
+- `syncInit` : équipe vide → la porte à l'identifiant FIXE, avec les clés du lien ; équipe existante → clés oubliées.
+`tests/test-826.js` 30 ✓ (la vraie fonction extraite et jouée) ; **5/5 mutations font tomber le banc ET la sonde** ;
+`test-688` mis à jour (savedLoginPoser sortie de `boot()`).
+
+**La même famille, par le PORTAIL — trouvée en cherchant « tout ce qui fabrique un compte ».** Le bouton
+« 🚀 Activer mon espace » d'`espace.html` reste dans le fil des messages pour toujours ; retouché pour une
+entreprise EXISTANTE, il ouvrait « Créez votre compte administrateur » AVANT d'avoir lu l'équipe. Rejoué sur la
+v756 (sonde, cas C) : un SECOND administrateur « Bruno Folrent @florent-3 » partait chez toute l'équipe.
+Corrigé : rattaché et sans compte, le formulaire attend la première lecture de l'équipe (vide → formulaire ;
+habitée → connexion). Et vérifié au passage : les DROITS de l'équipe ne sont pas ramenés aux droits de départ par
+un navigateur neuf (les droits du semis ne portent pas de date, ceux de l'équipe gagnent — sonde, cas A).
+
+**Supprimer un compte : plus de code par e-mail** — Justin, capture à l'appui : « je veux plus que ça envoie un
+code par mail ; un message “êtes-vous sûr de vouloir supprimer ce compte”, que ça coche la case, et qui clique oui ».
+Le code partait à l'adresse du compte CONNECTÉ (chez ELAN : la boîte de Florent). Désormais une question, une case,
+« Oui, supprimer » désactivé tant qu'elle n'est pas cochée — et relue au moment de supprimer. `test-827` (vraies
+fonctions jouées), `scratchpad/sonde-suppression-compte.js` (au doigt). ❓ **La Tour demande encore un code pour
+ses suppressions** (compte, lot de comptes, client, entreprise) — mais ce code part à l'adresse de TEAM OP, pas à
+celle du client : laissé tel quel, question posée à Justin.
+
+**Les e-mails (question de Justin : « tout passe par le serveur, plus par Google ? »).** Recensé dans le code :
+les 22 sortes d'e-mails de TEAM OP partent toutes de `mailerEnvoi` (serveur), par la boîte contact@teamop.fr chez
+OVH (`server/set-smtp.sh`, `smtp.mail.ovh.net` — réglage documenté, la configuration elle-même vit sur le VPS).
+Le portail réinitialise par `/api/compte/mdp/demander` (comptes maison) ; `app.html`, `espace.html`,
+`connexion.html`, `reinit.html`, `tour.html` ne chargent plus Firebase. Restes Google, connus : OP MESSAGES
+(fermée), et la route serveur `/api/mdp/lien` qui fabrique encore un lien Firebase mais que plus AUCUNE page
+n'appelle (à retirer avec l'étape F). Les documents qu'une entreprise envoie à SES clients partent de SA boîte si
+elle l'a connectée (« E-mail pro », éventuellement une Gmail — c'est son adresse), sinon de celle de TEAM OP.
+
+**À faire par Justin :** supprimer « OP Admin @florent-3 » (Utilisateurs → 🗑 → la case → « Oui »), et l'autre
+« OP Admin » si c'est aussi un compte jamais utilisé (🔑 à définir, sans e-mail) — jamais « Folrent Bruno
+@florent », le vrai. Un correctif arrête la cause, il ne range pas derrière lui.
+⚠️ Remarque de relecture, PRÉEXISTANTE et non corrigée ici : un lien de la Tour sans mot de passe provisoire (`mh`)
+pour une entreprise dont le document d'équipe serait réellement vide pose le code par défaut « 1234 » sur la porte
+d'entrée — comme avant. Et `boot()` donne ce même code à tout compte sans aucun mot de passe : un compte jamais
+utilisé garde son mot de passe de départ tant que personne ne s'en sert (la Tour sait lister et supprimer en lot les
+comptes inutilisés).
+
+---
+
+# ✅ 26 SEPTEMBRE 2026, SOIR — v756 EN PRODUCTION (LENTEUR + PHOTO DE PROFIL), TOUR v2.66 EN PRODUCTION
+
+**Justin : « Fait le » (la lenteur sur une grosse base, téléphone lent), « thème de la tour à installer aussi, tu
+testes et vérifies » (maquette `tour.zip`, version validée « HIG »), puis « quand je choisis une photo, j'aimerais
+pouvoir la redimensionner, et elle ne s'affiche pas ici — pourquoi ».**
+
+**Publié et vérifié en ligne :** bêta v756 (`35156f1`, `beta.html` seul, servie octet pour octet, CI de main verte
+2/2) ; aperçu de la Tour v2.66 (`02eea6b`, `apercu/tour.html` seul, servi octet pour octet — teamop.fr/apercu/tour.html).
+**Puis, sur la phrase de Justin « Oui publier » et « Remplace la tour » : `app.html` + `sw.js` en v756 (`d4d0393`,
+cache v956, bancs 776/823/824 et leurs outils portés) et `tour.html` v2.66 (`24e452a`), servis octet pour octet,
+CI de main verte 3/3** (suite complète sur une copie de main avant l'envoi : 180 suites · 8 877 vérifications ;
+`beta.html` rejouée identique à sa génération). Preuves de la v756 : suite complète 180 suites · 8 877
+vérifications (deux passes) ; relecture `relecteur` : un constat, corrigé.
+
+**Lenteur — la cause principale : des règles `:has()` de la refonte faisaient restyler la page ENTIÈRE** (prouvé
+règle par règle, `scratchpad/perf-has-glouton.js`, téléphone ET bureau) :
+- `body.rf-onglets:has(#msg-flot[style*="flex"])`, un `:has()` qui lit un attribut `style` : chaque écriture de style
+  en ligne restylait la page — **894 éléments / 36,6 ms par écriture → 9 / 2,1 ms** (la bulle de la barre d'onglets
+  écrit un style à chaque mouvement du doigt). Remplacé par la classe `msg-flot-on` de `renderMsgFlottant()` ;
+- deux familles MORTES (0 élément visé sur 44 écrans) retirées ; sept règles du courrier sans `:has()` ; `enterApp`
+  ne force plus un calcul de page pour rien. Sur huit gestes au téléphone : **8 595 éléments restylés → ~3 100**.
+- **Temps mesurés au calme** (`scratchpad/perf-avant-apres.js`, 3 + 3 passages alternés, processeur ×4, base « façon
+  ELAN » de 696 Ko chauffée) : ouvrir une intervention 65 → 33 ms (−49 %), tableau de bord 80 → 34 (−57 %),
+  Interventions 39 → 12, Produits 71 → 25, Box 75 → 31, Clients 136 → 73, Validations 35 → 10, Historique 89 → 53,
+  Mouvements 58 → 38, Planning 149 → 113 ; styles pendant l'ouverture 526 → 205 ms (−61 %). **Inchangés** : Factures et
+  Devis (~160 ms, c'est leur JavaScript), `save()` (~78 ms) et le premier écran (~1,4 s, dans le bruit).
+- Contre-épreuve « rien ne change à l'écran » : style calculé de CHAQUE élément, ancienne bêta contre nouvelle,
+  45 écrans × 4 passes (390/1280, jour/nuit) : 0 différence. `test-823` 43 ✓ (8/8 mutations).
+**❓ Ce qui reste est de l'ARCHITECTURE, à Justin de trancher :**
+- `save()` : ~78 ms par geste à ×4, dont **43 ms pour réécrire TOUTE la base** (sérialiser 700 Ko + écriture
+  synchrone) → écriture différée ou découpée par collection (#50) ;
+- l'ouverture paie l'analyse d'un fichier de 3,9 Mo. Une copie SANS commentaires ni espaces (mesure seulement,
+  `esbuild` hors du dépôt) : **2,8 Mo (−30 %), 737 Ko compressé au lieu de 1 194 (−38 % à télécharger)**, et l'ouverture
+  **1 422 → 1 251 ms à ×4 (−12 %)**. C'est une étape de fabrication, que ce dépôt refuse aujourd'hui (« ce qui est écrit
+  est ce qui est servi ») (#52).
+⚠️ L'empreinte accélérée de `recEmpreinte` a été ÉPROUVÉE puis abandonnée : exacte (0 différence sur 200 000 cas),
+mais aucun gain mesurable — le découpage de chaînes coûte autant que le filtre qu'il évite.
+
+**Photo de profil — elle s'affiche enfin, et elle se recadre.** Pourquoi elle ne s'affichait pas :
+`html[data-refonte] .avatar{background:…!important}` — le raccourci effaçait l'image posée en ligne ; aucune photo de
+profil n'était peinte depuis la refonte (Paramètres, pied du menu), alors qu'elles étaient enregistrées et
+synchronisées. Corrigé (`background-color` seul) ; recadrage ajouté (glisser, pincer, curseur, molette, clavier ; le
+rond montre ce que verra l'équipe ; 256 px enregistrés comme avant ; Échap, retour et navigation l'oublient).
+Preuves : `test-824` 67 ✓ (14/14 puis 3/3 mutations), `scratchpad/sonde-photo-profil.js` 34 ✓ au doigt et au pixel
+(la bêta d'avant : disque lilas, style `none`), 0 différence de style ailleurs.
+⚠️ **ELAN a le même défaut en production (v755)** — pas « quelqu'un ne peut pas travailler » : ça attend la phrase de
+Justin, avec le reste de la v756.
+❓ **Décision de Justin** : les pastilles des techniciens (planning, fiche technicien) portent leur couleur EN LIGNE,
+et la même règle la remplace par la teinte depuis la refonte (mesuré : `#E0524D` écrit en ligne sort gris-bleu). Le
+commentaire promettait l'inverse ; il est corrigé, le comportement NON — rendre la couleur du technicien changerait
+l'écran du planning (et le contraste de l'encre blanche sur une couleur claire).
+
+**Thème de la Tour v2.66 (« TeamOp Tour HIG ») — intégré sur la branche, en APERÇU.** Fait par l'agent `concepteur`
+en copie isolée, relu et intégré (`f747521`…`20279de`, plus `4cb6316` : l'explication de « Tout remettre à zéro » passe
+sous le bouton au téléphone). Logique inchangée : 69 routes appelées, les mêmes ; aucune vue, aucun bouton, aucune
+action retirés ; seuls le bouton de mode et son gestionnaire disparaissent (le mode suit le système, en direct).
+Preuves : `scratchpad/sonde-tour-theme.js` (API simulée, SwiftShader) — 20 vues × jour/nuit × bureau/téléphone :
+0 exception, 0 débordement, 802 cibles ≥ 44 px, 2 270 textes au pixel ≥ 4,5:1, 25 contrôles de parcours ; les 21 bancs
+qui lisent `tour.html` : 892 ✓. Écarts CHOISIS à la maquette, mesurés : bleu et rouge système assombris (le blanc
+dessus tombait à 4,0 et 3,6:1), gris secondaire à .78, encres d'état de nuit éclaircies, barre d'onglets de nuit en
+marine dense, bascule menu/onglets à 900 px (le JavaScript raisonne à 900), un seul accent bleu pour les deux consoles,
+pas d'écran « Réglages » (la Tour n'en a pas), « Bêta » reste dans « Comptes & accès » avec la version publique.
+Non prouvé : un vrai appareil (SF Pro absent du conteneur) et l'accord du JSON simulé avec le vrai serveur — c'est
+ce que l'aperçu sert à voir. La maquette est dans le bloc-notes de la session, PAS dans le dépôt (exemples qui
+ressemblent à de vraies données). Pour remplacer `tour.html` : sa phrase, puis publier `tour.html` seul.
+
+**Trouvé en passant, ANTÉRIEUR à la v756 :** `compteJour()` est morte — elle cherche `#content > .card[draggable]`,
+or la liste du jour s'écrit en `.tf-rangee` depuis le thème final ; le repère « N affichées ce jour · M à d'autres
+dates » (et `regrouperJour`) ne paraît plus. À mesurer sur la bêta puis rebrancher ou retirer (si ça change l'écran :
+à Justin). Et le champ « Espace » de l'écran Données de la Tour a pour exemple l'identifiant d'espace réel d'ELAN.
+
+---
+
+# ✅ 25 SEPTEMBRE 2026, NUIT — LE JOUR J EST FAIT : OP GESTION TOURNE SUR NOTRE SERVEUR (v749)
+
+**Fait, vérifié en ligne, dans l'ordre :**
+1. Serveur déployé (`d558933`, run 95 : bancs verts puis VPS) — `/health` : documents actifs,
+   copie Firebase active, 0 erreur.
+2. Justin : `reglage.js comptes.actif=true` + redémarrage — portail et dossiers en service.
+3. v748 publiée (`7db5795`, 188 fichiers : `main` = la branche, sauf les deux workflows de `main`
+   qui ne lancent que les bancs serveur) — servie en ~20 s, guide-firebase en 404.
+   ⚠️ **L'ordre réel a été 2 → 4 → 3** : le bouton « Reprendre les dossiers du portail » n'existe
+   que dans la Tour v2.65, publiée à l'étape 4. La procédure plus bas le dit à l'envers.
+4. Justin, dans la Tour : dossiers du portail repris (1 dossier, 1 compte à poser), v748 exigée.
+5. **INCIDENT — la v748 bouclait chez ELAN** dès que deux appareils étaient ouverts (« Données de
+   l'équipe mises à jour » toutes les 3,3 s, vidéo de Justin). Cause : base au-delà du budget du
+   nuage → l'envoi coupe les journaux → la réception prenait ce manque pour une donnée à renvoyer.
+   Tous les bancs étaient verts : ils tournaient sur des bases MINUSCULES. Voir CLAUDE.md.
+6. **v749 publiée (`4196012`) et exigée** — `sigRenvoi` (les journaux sortent de la seule décision de
+   renvoi). Preuves : base lourde, deux appareils au repos 61 écritures/30 s → 1 ; **15 appareils**,
+   45 gestes en 25 s : 0 perdu, mêmes données partout, 0 écriture au repos ; bascule v695 → v749
+   24 ✓ ; suite complète 172 suites · 8 495 ✓ ; `test-816` (12 ✓, mutations mordent). Quatre anciens
+   bancs extrayaient `syncAlleger` seule et sont morts à la première passe : repli identique dans la
+   page, exigé égal par `test-816`.
+7. ✅ L'annonce (e-mail aux entreprises, texte v748) : **envoyée par Justin le 26 septembre au matin**, depuis
+   la Tour, après la publication et l'exigence de la v751. ⚠️ Ne pas la renvoyer : voir la dette ci-dessous.
+
+**Relecture « grosse base, beaucoup d'appareils » (demande de Justin : « je veux pas attendre qu'il y
+ait des bugs pour que tu testes ») : faite.** Deux risques confirmés, corrigés dans la **v750 — bêta publiée
+sur `main` (`22695fb`, `beta.html` seul, servie en `750-beta`) ; `app.html` reste en v749 et attend « publie » de Justin** :
+- **les marques du journal grossissaient sans fin** dans le document de l'équipe (une par ligne
+  chassée du plafond de 500 ; la fusion les réunit sans jamais rien retirer). Vraies fonctions, deux
+  appareils, 8 000 gestes : **v749 = 8 000 marques / 203 Ko, v750 = 0**. `estampiller` ne marque plus
+  une ligne chassée, la remise à zéro pose ses marques elle-même, la fusion borne à 600 (ordre total :
+  l'héritage de la v749 retombe à 600 dès le premier envoi d'un appareil v750) ;
+- **l'appareil plein mentait** : mesuré dans la vraie page v749, rangement plein, l'écran affichait
+  « ✓ Client enregistré » et la Tour ne recevait rien (contre-épreuve 9 ✗). v750 : un signal à la
+  Tour par séance, « plus de place pour enregistrer tes données » (juste avec ou sans synchro), un
+  rappel toutes les 5 min au plus, « l'appareil enregistre de nouveau » quand la place revient.
+Preuves v750 : `test-817` 45 ✓ (12/12 mutations mordent), `scratchpad/sonde-plein-base.js` 14 ✓,
+`sonde-teintes-iphone` 15+10 ✓, base lourde deux appareils au repos 1 écriture/30 s, **15 appareils**
+12 ✓ (45 gestes, 0 perdu, mêmes données, 0 écriture au repos), bascule v695 → v750 24 ✓.
+Dettes MINEURES relevées, non corrigées : `interventionsArchive` peut dépasser 500 après une union ; coût
+d'une rafale de réceptions ; trois écrans un peu lents sur grosse base ; les marques des VRAIES
+suppressions restent non bornées dans le nuage (lentes : une par suppression).
+**Vérification de A à Z (demande de Justin : « vérifie tout l'application de A à Z pour être sûr de notre produit
+à 100 % ») : FAITE dans la nuit du 25 au 26 septembre.** Workflow `wf_e473851b-062` : 14 familles (écrans × 6
+appareils, rôles, clics, droits, parcours terrain / stock / ventes, synchro par le vrai serveur, performance, visuel
+au pixel, connexion et portail, code, serveur et budgets, production), chaque constat rejoué par un second agent.
+**17 défauts confirmés**, plus de 80 faux positifs écartés et nommés. Puis une contre-vérification de la v751
+(`wf_1f0951aa-5c1`) : chaque correctif rejoué au navigateur contre la v750, plus `relecteur` et `gardien`.
+
+✅ **v751 EN PRODUCTION — le 26 septembre 2026 à 9 h 12 UTC, sur la phrase de Justin « Publie et pousse sur le
+serveur ».** Deux commits sur `main`, poussés séparément, dans cet ordre :
+1. **serveur `f971359`** (déploiement n° 96 : bancs 53 s puis VPS, verts) — `/health` relu après redémarrage :
+   `limites.refusSynchro1h` 0, `refusAutres1h` 0, `documents.quotaRefus1h` 0, `documents.actif` vrai, aucune erreur ;
+2. **application `69c0444`** — `app.html` v751 (servie octet pour octet identique à la branche), `sw.js` cache v951,
+   `VERSION-STABLE.md`, et les bancs qui l'accompagnent (817, 818, 645, 660, 694, 776, 799, 806).
+Vérification complète rejouée sur `69c0444` AVANT de pousser : VERT — 175 suites · 8 605 ✓, liste serveur 40 · 2 346.
+Et APRÈS, la CI de `main` est verte sur les deux commits, cinq workflows sur cinq : `f971359` (Vérifications,
+Déploiement n° 96, Vérification des pages à 9 h 16) et `69c0444` (Vérifications, Vérification des pages à 9 h 19 UTC).
+⚠️ **Avant de pousser, `gardien` a relu les correctifs serveur (`0c10fe8`) : « DÉPLOYABLE », avec un point
+prioritaire, corrigé AVANT le déploiement (`17a3426`)** : la borne « 2 000 corps par version » s'appliquait aussi à
+la LECTURE — le client v751 relit avant chaque envoi et n'écrit pas si la relecture est refusée, donc une version
+épuisée ne changeait plus jamais (entreprise figée jusqu'à une heure ; un v749, lui, écrivait à l'aveugle). La borne
+ne vise plus que l'attente EN RETARD, qui fait relire le client (`aRelire`, v749 comme v751). `test-819` 26 ✓ (3/3).
+**Restent de cette relecture (à faire, rien de bloquant)** : un détenteur de clé contourne la borne par version en
+faisant naître une version à chaque fois (une fusion qui ne change que `ver`) — la vraie borne est en OCTETS par
+espace et par heure, `notifier` compris ; un anonyme peut encore faire crier l'alarme ⚠️ `refusSynchro1h` en
+inondant `/api/doc/*` depuis une IP (le seau compte avant la clé — ne compter que si `sauvRefus(t,kh)` passe) ; la
+bêta, qui passe sans clé, peut être figée une heure par un anonyme (accepté, en-tête de `documents.js`).
+✅ L'annonce du lot (texte v748) est partie : Justin l'a envoyée le 26 au matin, après l'exigence de la v751.
+⚠️ **Dette : le serveur ne garde AUCUNE trace de l'envoi.** `POST /api/monitor/annonce` envoie à chaque appel ;
+la Tour ne grise son bouton que pour la page ouverte — rechargée, un second clic renverrait le même e-mail à
+toutes les entreprises. À faire au prochain lot serveur : retenir la version annoncée (fichier écrit par
+temporaire puis renommage) et refuser un second envoi de la même version ; et au prochain lot qui mérite une
+annonce, réécrire `ANNONCE` (texte et numéro) du point de vue de l'entreprise. La v751 ne
+change pas le format des données, donc l'exiger n'était pas obligatoire — ✅ **Justin l'a exigée quand même, le
+26 au matin** (relu à 9 h 44 UTC : `GET /api/version` rend `min: 751`) : tout appareil encore en v749 reçoit
+l'écran de mise à jour, et une écriture d'une version plus ancienne reçoit 426. Qui reste en dessous : Tour →
+version (`/api/monitor/version`, liste `sous`). Ça remplace le clic « Exiger 749 » resté en suspens.
+Au passage, `test-738` est tombé une fois sur la CI de `main` (écart de temps connue/inconnue > 40 %, 1 à 9 % en
+local) : les deux médianes se mesuraient en deux blocs, une rafale de charge sur un seul suffisait ; alternées
+requête par requête (`a099ad7`, test seul) : 0 à 7 % machine saturée, la mutation tombe à 92-94 %.
+
+✅ **v752 EN PRODUCTION — le 26 septembre 2026 à 11 h 22 UTC, sur la phrase de Justin « Publie ».** Un commit sur
+`main`, **`f2bc111`** : `app.html` v752, `sw.js` cache v952, `VERSION-STABLE.md`, `test-820` et `test-779` — les
+droits de départ, une liste par rôle (détail plus bas). Vérification complète rejouée sur ce commit AVANT de pousser :
+VERT — 176 suites · 8 660 ✓, liste serveur 40 · 2 346, arbre propre. Servie octet pour octet identique à la branche
+(`app.html` 752, `sw.js` v952, `beta.html` 752-beta) ; CI de `main` verte, trois workflows sur trois (Vérifications,
+Vérification des pages, déploiement Pages). Aucun fichier `server/` : le VPS n'a pas bougé. **Rien à exiger** (aucun
+format de données ne change, et une entreprise existante ne voit aucune différence) **et rien à annoncer** (le seul
+effet visible est le menu de départ d'une entreprise NEUVE).
+
+✅ **v755 EN PRODUCTION — le 26 septembre 2026 à 15 h 33 UTC, sur la phrase de Justin « ça, si c'est à faire tu le
+fais, et après tu publies ».** Un commit sur `main`, **`f21a034`** : `app.html` v755, `sw.js` cache v955, `beta.html`
+755-beta, `VERSION-STABLE.md`, et les bancs portés avec l'application (`test-821`, `test-822` neufs ; les bacs à sable
+de 775, 778, 779, 786, 789, 790, 791, 820 et `scripts/verifier-permissions.js`). Porte les v753 (les trois points des
+droits) et v754 (profil neuf tout décoché). Vérification complète rejouée sur ce commit AVANT de pousser : VERT —
+178 suites · 8 767 ✓, liste serveur 40 · 2 346, bêta = génération d'`app.html`, arbre propre. Servie octet pour octet
+(`app.html` en 22 s, `sw.js`, `beta.html`) ; `/health` ok ; CI de `main` verte, trois workflows sur trois
+(Vérifications, Vérification des pages, déploiement Pages). Aucun fichier `server/` : le VPS n'a pas bougé. **Rien à
+exiger** (aucun format ne change). **Pas d'annonce préparée** : l'effet visible est surtout pour l'administrateur,
+et une annonce passe par `server/index.js` (donc un déploiement du serveur) — à proposer à Justin s'il veut prévenir.
+Guide PDF des droits regénéré en v755 (9 pages) et envoyé à Justin.
+
+🟡 **v755 — le 26 septembre 2026, sur la phrase de Justin « ça, si c'est à faire tu le fais, et après tu
+publies » (la liste « restent » ci-dessous).** Chaque point MESURÉ avant d'être touché — et l'un d'eux était faux :
+- **l'accueil et les initiales du haut** : leurs éléments (`brand-ini`, `brand-hi`, `brand-role`, `topbar-ava`) ont
+  disparu à la refonte ; l'identité vit dans le pied du menu, l'accueil dans le toast « 👋 Bienvenue ». Écritures
+  mortes retirées — et un vrai défaut avec elles : se renommer soi-même laissait les ANCIENNES initiales au menu
+  (`saveUser` écrivait dans `brand-ini`) et le rôle y perdait le nom de l'entreprise. Rétabli (`userAvatarApply`).
+  On n'a PAS remis de message d'accueil dans la barre du haut : c'est le thème que Justin a validé le 24.
+- **code mort** : `teleTechSwitch` (+ `_teleDetId`), les retraits de `#update-banner`, l'écran du créateur d'avatar
+  « avb ». ⛔ `avb*` n'était PAS tout mort, contrairement à ce que disait cette page : `avbSvg`/`avbSave`
+  recolorent, quand la teinte change, les avatars déjà créés avec lui (`avatarAccentSync`). Gardés, et EXÉCUTÉS
+  par `test-822` et la sonde.
+- **journal** : « Métier de l'entreprise » — et quatre autres types écrits par le code (intervention, planning,
+  commercial, synchro) — tombaient sur la puce générique ; chacun a celle de sa rubrique. `test-822` recense chaque
+  type passé à `logEvent` et exige sa puce.
+- **`CLAUDE.md`** : l'espace de la bêta s'appelle `opgestion-beta` (depuis le 17 septembre).
+- **le 25 octobre (J+30)** : rappel programmé dans cette session (`trig_01MPuFwNnQEN7YYLr98Ysv19`, 10 h de Paris)
+  pour l'étape 9 — `copieFirebase=false`, puis supprimer les données Firebase d'OP GESTION ; gestes de Justin.
+- ⚠️ **la lenteur sur base lourde (chantiers #50, #52) N'EST PAS dans ce lot** : c'est un chantier de plusieurs
+  jours (mesurer à CPU ralenti sur une base « façon ELAN », bêta d'abord) — le glisser avant une publication
+  l'aurait retardée et risquée. Dit à Justin ; c'est le prochain.
+Preuves : `test-822` 22 ✓, 8/8 mutations, la v754 y tombe 10 fois ; sonde `scratchpad/sonde-v755.js` (vrai formulaire,
+vrai clic) 12 ✓, la v754 tombe 4 fois (initiales « JR » gardées, rôle sans entreprise, puces génériques) ; suite
+complète 178 suites · 8 767 ✓ ; `relecteur` : aucun appelant orphelin, aucun défaut.
+
+🟡 **v754 SUR LA BÊTA SEULEMENT — le 26 septembre 2026, sur la réponse de Justin « Oui un profil neuf tout est
+décoché ».** Bêta publiée seule (**`960e6a2`**, `beta.html` seul, comprend la v753), servie en 21 s octet pour
+octet ; contrôles de `main` rejoués avant de pousser : VERT ; CI de `main` verte 3/3. `app.html` reste en v752.
+« ＋ Nouveau profil » part de `profilVierge()` : chaque interrupteur de la grille à NON — menus, droits
+spéciaux, gestes de catégorie. Les cases DÉDUITES ne sont pas posées : elles suivent leurs bases (à non, donc non) et
+continuent de les suivre une fois le profil enregistré. Un profil n'est jamais « soumis » (`valideSoumis`) : sous
+« Toute sortie de stock passe par le DR », « Validations DR » n'y naît plus coché et verrouillé ; la case de
+validation DU profil ouvre toujours le menu. Un profil EXISTANT se montre tel qu'il est enregistré, et
+« 💾 Enregistrer comme profil » (la photo d'une personne) ne change pas. APP_VERSION 754, cache v954.
+Preuves : `test-821` 85 ✓ (§ 7), 8/8 mutations ; sonde (vrais clics, « Toute sortie… » allumé) 33 ✓ — 91
+interrupteurs, aucun coché, aucun verrouillé, le profil enregistré porte 0 menu, 0 geste, 0 droit ; la v753 publiée
+tombe sur ces 3 contrôles ; suite complète 177 suites · 8 745 ✓ ; `relecteur` : aucun défaut — il a posé un profil
+vierge sur un vrai compte, au navigateur : le compte garde « Tableau de bord » (jamais dans la grille) et les
+réglages de son compte. Guide PDF : la carte des profils le dit (toujours 9 pages).
+⚠️ À savoir, pas un défaut (sémantique d'avant) : « Bons de commande : consultation seule » est un droit À L'ENVERS —
+décoché veut dire « peut commander ». Un profil qui ouvre plus tard « Bons de commande » doit cocher « consultation
+seule » si c'est l'intention.
+**Chez ELAN à la publication** : rien ne change pour les comptes ni pour les profils déjà enregistrés ; seul
+« ＋ Nouveau profil » part désormais tout décoché.
+
+🟡 **v753 SUR LA BÊTA SEULEMENT — le 26 septembre 2026, sur la demande de Justin « Fait se qu'il faut faire pour
+ça » : les trois points relevés en écrivant le guide des droits.** Bêta publiée seule sur `main` (**`7e33c37`**, à
+13 h 05 UTC, `beta.html` seul), servie en 21 s, octet pour octet celle de la branche ; contrôles de `main` rejoués
+AVANT de pousser : VERT (176 suites · 8 657 ✓, liste serveur 40 · 2 346, arbre propre) ; CI de `main` verte, trois
+workflows sur trois (Vérifications, Vérification des pages, déploiement Pages). `app.html` reste en v752 et
+`sw.js` en v952 : ils attendent sa phrase (« Publie »). Branche : `a9fce9c` (le code), `196a0f4`/`0ccc217` (banc), `a074cbc` (sonde), `3c1c120` (guide),
+puis le correctif de la relecture.
+- **« aucun profil » ne ment plus.** L'option disait « le compte partira sans droits » : il suit la liste de son rôle.
+  Même correction dans l'aide « Aucun profil pour l'instant », sous le choix du rôle, et dans « 🏷 Rôles ».
+- **« Validations DR » s'ouvre d'office** (`validationsOuvertes(u)`, UNE définition) à qui a la case `validerDR` (il y
+  valide ; les alertes « à valider » suivent, `notifVoitModule`) et à qui est soumis (`valideSoumis(u)` : `boxValidDR`
+  sur sa fiche, ou « Toute sortie de stock passe par le DR », sans la case de validation ; il y suit ses mouvements).
+  Après le forfait et le métier, AVANT la ligne de la personne et la liste du rôle — la règle « des deux côtés »
+  existait depuis la v585, mais après la liste du rôle, donc elle ne jouait jamais. `boxValidRequis()` lit
+  `valideSoumis(currentUser)` : même verdict que la v752 sur 32 combinaisons (joué dans `test-821`). Dans l'éditeur,
+  l'interrupteur paraît ouvert et verrouillé, la raison dessous (`validationsNote`), et suit la case EN DIRECT ; ce
+  qui s'enregistre est sa valeur PROPRE (`data-val-av`, lue par `usrMenuLu`) — jamais l'ouverture d'office, sinon
+  retirer la case laisserait le menu ouvert pour toujours. `droitsBorner` ne le « retient » pas à qui l'a d'office.
+- **un rôle créé à la main part de la liste du technicien, droits compris** (`tableDuRole(role)`, UNE définition, lue
+  par `moduleReglage`, `userCap`, `catDroit` et l'éditeur). Avant : les menus en partaient, pas les droits spéciaux
+  ni les gestes de catégorie (pas même « Modifier les plans d'appâtage »). DR, chef d'équipe et administrateur ne se
+  replient jamais sur la liste du technicien.
+  ⛔ **Et les comptes FICTIFS de l'éditeur n'en profitent pas** — trouvé par `relecteur`, reproduit, corrigé :
+  « ＋ Nouveau profil » dessine un compte `__profil__`, les cases déduites un compte `__zone__` ; sans garde, un
+  profil neuf naissait « Modifier les plans d'appâtage » COCHÉ, et l'enregistrer l'écrivait (sonde sur la v753
+  d'avant : 3 ✗, exactement ceux-là). Ils gardent la règle de la v752 : les menus du technicien, aucun de ses droits.
+Preuves : `test-821` 72 ✓ (les vraies fonctions, l'éditeur compris) ; mutations 21/22 sur la première version (la 22ᵉ
+équivalente, nommée dans le banc) puis 5/5 sur la garde des comptes fictifs ; neuf bancs et
+`scripts/verifier-permissions.js` ont reçu les nouvelles fonctions dans leur bac à sable ; sonde
+`scratchpad/sonde-droits-v753.js` (vrais clics souris, vraies connexions) : 30 ✓ ; contre-épreuves 14 ✗ sur la v752,
+3 ✗ sur la v753 d'avant la relecture ; suite complète 177 suites · 8 732 ✓.
+**Chez ELAN à la publication** — rien d'effacé, rien d'écrit dans leur base, trois effets visibles :
+· qui a la case de validation sans le menu voit « Validations DR » et reçoit les alertes « à valider » ;
+· qui est soumis à la validation voit « Validations DR » (ses seuls mouvements) — si « Toute sortie de stock passe
+  par le DR » est allumé, c'est TOUT compte sans la case de validation ;
+· un compte d'un rôle créé à la main, dont la ligne n'a jamais été validée et créé sans profil, reçoit les droits
+  spéciaux de la liste du technicien.
+Rien à exiger (aucun format de données ne change). Le guide PDF est à regénérer à la publication
+(`node scratchpad/droits-pdf/gen.js`, qui refuse une page antérieure à la v753).
+⚠️ **Vu en passant, PAS touché — décisions de Justin :**
+· ✅ RÉGLÉ EN v754 (bloc au-dessus) — un profil neuf ne « partait pas de rien » (menus du technicien cochés depuis la
+  v613) ; Justin : « Oui un profil neuf tout est décoché » ;
+· `CLAUDE.md` nomme encore l'espace de la bêta `elan-gestion-beta` (deux endroits) : il s'appelle `opgestion-beta`
+  depuis le 17 septembre (`beta-build.js`). Documentation seule, le code isole bien la bêta.
+
+**Corrigés dans la v751 (branche `e5e7fd5`, `b9089ff`, `0c10fe8`, `17a3426` ; en production depuis le 26 à 9 h 12
+UTC)** — deux BLOQUANTS étaient dans la v749 :
+- ⛔ **la cloche plantait** (`bx is not defined`, une déclaration écrite DANS un commentaire) dès qu'un arrivage
+  attendait le DR : écran vide à la connexion de l'administrateur et du DR, et `save()` ne synchronisait plus rien.
+  Rejoué : v750 `#content` 0 caractère, `syncPush` 0 appel ; v751 7 443 caractères, la notification avec sa box ;
+- ⛔ **TVA 5,5 % et 2,1 % refusées en silence** par le formulaire devis/facture (et une quantité de 1,75) : le
+  bouton « Créer » ne faisait rien. v751 : devis 5,5 % TTC 150,07 €, facture 2,1 % TTC 122,52 €, par vrais clics ;
+- montants toujours à deux décimales (« 170,70 € » écran = PDF) ; tuiles chiffrées qui tiennent (5/5 profils, 1/5 avant) ;
+- synchro : une coupure courte ne recharge plus la page (brouillon perdu avant) ; l'écoute sous 429 ne tourne plus
+  en rafale (≈ 657 → 30 lectures/min pour 15 appareils) ; un envoi sous 429 n'écrit plus sans avoir relu ;
+- segmentés en une seule mise en page : rendu à CPU ×4 Paramètres 162 → 105 ms, Clients 124 → 69, Produits 77 → 45, Bons 55 → 26 ;
+- Mouvements : « Rechercher » répond menu ouvert — et, **régression trouvée par la contre-vérification** puis
+  corrigée (`b9089ff`), la barre ne vole plus la barre du haut au défilement (`scratchpad/sonde-mvt-barre.js`
+  18 ✓ ; contre-épreuves `e5e7fd5` et `79c8a44` 14 ✓ 4 ✗ chacune) ;
+- planning « Créer ici » affiche l'heure touchée ; changement de métier journalisé ; titres de section 4,38 → 6,66:1 ;
+- deux bancs anciens (`test-660`, `test-694`) suivaient l'ancienne forme — remis d'accord (le `relecteur` les avait vus rouges) ;
+- **serveur (déployé le 26 à 9 h 12 UTC, `f971359`)** : budget d'attentes 20 000 → 100 000 (15 appareils
+  l'épuisaient en 43 min, puis la synchro freinée jusqu'à la fin de l'heure) ; refus comptés et surveillés, PAR
+  FAMILLE (un robot ne fait plus crier), sans les espaces techniques (un anonyme faisait crier via la bêta) ;
+  retours immédiats d'une attente EN RETARD bornés par version (jamais la lecture — voir plus haut) ;
+  premier refus écrit au journal avec une empreinte de l'espace. `test-819` 25 ✓, 6/6 mutations.
+Preuves : `test-818` 39 ✓ (3/3 mutations sur Mouvements, 21/22 sur le reste — la 22ᵉ neutralisée par la vraie
+déclaration), bancs serveur 40 suites · 2 345 ✓.
+
+**Restent — non corrigés, dits à Justin :**
+- ✅ **FAIT et EN PRODUCTION (v752, `f2bc111`, le 26 à 11 h 22 UTC) — les droits de départ, UNE liste (Justin, 26
+  septembre : « Fais ta liste », puis « Publie »).** Bêta publiée d'abord (`569e033`, beta.html seule, à 10 h 33 UTC),
+  servie en 26 s, octet pour octet celle de la branche ; puis `app.html` et `sw.js` (voir le bloc v752 plus haut).
+  `defaultPerms()` est désormais COMPLÈTE : cinq rôles (technicien, commercial, compta, DR, chef d'équipe) × 42
+  rubriques (le menu + « Produits donnés »), une ligne par groupe du menu. Valeurs = exactement ce qu'une entreprise
+  neuve recevait en v751 (mesuré avec les vraies fonctions, `node scratchpad/droits-defaut.js beta.html`), sauf :
+  « Assistant devis » fermé aux cinq rôles (aucun n'a « Utiliser Devis IA » d'office : l'écran n'était qu'un
+  cadenas) et plus rien qui dépende du téléphone (la reprise remplissait « Devis xylophage » selon `showAside`,
+  réglage d'APPAREIL). Trois clés mortes retirées (`conso`, `histoDemandes`, `techniciens`).
+  ⛔ Ne vise que les NOUVELLES entreprises : la liste ne se lit que pour une base sans table de rôle. Chez ELAN, rien
+  ne bouge (`test-820` le rejoue avec deux listes empoisonnées), et une entreprise d'avant qui fait sa reprise
+  retrouve la règle d'hier à l'identique (`moduleHeriteRole` intact, commenté pour qu'on ne le « corrige » pas).
+  Pourquoi pas la règle générale : elle divergeait dans les deux sens et aurait retiré Comptabilité à la
+  comptabilité. Preuves : `test-820` 53 ✓ et 11/11 mutations — dont les deux de la relecture (`relecteur` : le banc
+  gardait la FORME de la liste, pas ses valeurs ; le DR sans Temps de travail ou le technicien sans Clients passaient :
+  les 210 valeurs sont désormais comparées à la règle d'hier, écarts DÉCLARÉS) ; `test-779` exécute la vraie liste au
+  lieu de lire son texte ; sonde `scratchpad/sonde-droits-depart.js` dans la vraie page (base enregistrée, menu DESSINÉ des cinq
+  rôles, deux appareils) : 27 ✓ sur la v752, 16 ✗ sur la v751 (contre-épreuve).
+  **Restent à Justin, s'il le veut** — les choix hérités que la liste garde tels quels : le technicien a Planning
+  général, Tâches, Absences et Télécollecte ; le DR et le chef d'équipe ont tout sauf Utilisateurs (Comptabilité,
+  Boîte mail, Modules OP compris).
+  ⚠️ Chez ELAN (et toute entreprise d'avant), « Assistant devis » reste sans doute au menu des rôles sans « Utiliser
+  Devis IA » : leurs tables sont écrites et on n'y touche pas. L'administrateur peut décocher la rubrique ou cocher
+  le droit, compte par compte.
+- ✅ **CORRIGÉ SUR LA BÊTA (v753, voir le bloc plus haut) — Justin : « Fait se qu'il faut faire pour ça ».** Le
+  constat d'origine, pour l'histoire — **« Validations DR » ne paraissait jamais à qui attend une validation.**
+  `userSeesModule` veut qu'une validation se voie « des deux côtés » (le valideur par sa case `validerDR`, et
+  `boxValidDR` : celui qui attend) — mais cette règle passe APRÈS la table du rôle, qui dit `validations:false` pour
+  le technicien, le commercial et la compta. Mesuré avec les vraies fonctions (`node scratchpad/validations-mesure.js`) :
+  ni le technicien valideur, ni celui qui attend ne voient la rubrique ; seul un réglage personnel l'ouvre. Pas un
+  recul de la v748 : la v695 avait la même règle et la même reprise (depuis la v585). Corriger changerait ce que
+  voient les techniciens d'ELAN → décision de Justin ;
+- performance sur base « façon ELAN » à CPU ralenti : `save()` ≈ 100 ms à ×4 (145 à ×6), ouvrir puis clore une
+  intervention 220 à 800 ms, ouverture de l'application 4,4 s à ×6 — chantiers #50 et #52 ;
+- mineurs : le message d'accueil et les initiales du haut ne s'affichent jamais (ids `brand-ini`, `brand-hi`,
+  `brand-role`, `topbar-ava` disparus d'une refonte) ; du code mort (`avb*`, `teleTechSwitch`, `update-banner`) ;
+  l'entrée « Métier de l'entreprise » du journal a la puce générique.
+
+**À J+30 (25 octobre 2026)** : `reglage.js documents.copieFirebase=false`, puis supprimer les données
+Firebase d'OP GESTION (promis par `sous-traitance.html`).
+
+---
+
 # 🧭 INVENTAIRE — RIEN NE DOIT ÊTRE OUBLIÉ (19 septembre 2026, soir)
 
 Écrit à la demande de Justin : **« il faut qu'on oublie vraiment rien. Je fais pas un truc pour
@@ -210,7 +1446,7 @@ pour le retour arrière puis supprimée (étape 9) — promis par `sous-traitanc
 | 3 | Justin, dans la Tour | « Reprendre les dossiers du portail » | le résultat affiché (repris, comptes à poser) |
 | 4 | Justin dit « publie » | `app.html` v748, `sw.js`, `beta.html`, `espace.html`, `reinit.html`, `tour.html` v2.65, les trois pages juridiques, `registre-traitements.html`, `VERSION-STABLE.md` | `curl teamop.fr/app.html | grep APP_VERSION` → 748 |
 | 5 | Justin, dans la Tour, AUSSITÔT | « Exiger la dernière version » (748) | encadré : « porte de version chez Google : v748 » (confirmée, pas seulement posée) |
-| 6 | Justin, dans la Tour | l'annonce v748 (préparée dans `server/index.js`) | nombre d'entreprises prévenues |
+| 6 | Justin, dans la Tour | ✅ l'annonce v748 — envoyée le 26 septembre au matin | nombre d'entreprises prévenues (affiché par la Tour à l'envoi ; le serveur ne l'écrit qu'à son journal) |
 | 7 | l'agent | surveiller `/health` : `copiesEchec1h`, `copiesEnAttente1h`, `illisibles1h`, `processus` | zéros |
 | 8 | Justin, J+quelques jours | « Faire l'inventaire » dans la Tour | « complet » |
 | 9 | Justin, J+30 | `node /opt/teamop/repo/server/reglage.js documents.copieFirebase=false`, redémarrer, puis supprimer les données Firebase d'OP GESTION (pas OP MESSAGES, qui y vit encore, fermée) | `/health` : `copieFirebase:false` |

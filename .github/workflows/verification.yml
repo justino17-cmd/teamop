@@ -69,9 +69,19 @@ jobs:
       # Mesuré le 15 septembre 2026 : le total tombe alors de 1 923 à 1 758, sortie 0, sans un
       # mot — la CI serait verte sur 165 vérifications qui n'ont pas eu lieu. Placé ici, et le
       # plancher numérique ci-dessous le tient même si quelqu'un déplace à nouveau les étapes.
+      # ⛔ ESLINT, POUR QUE LA PARTIE « AUCUN NOM LU SANS EXISTER » DE test-818 SE JOUE ICI AUSSI (Justin, 28 septembre
+      # 2026 : « oui, répare »). Sans lui la suite écrivait « … SAUTÉ : ESLint absent » et passait : la CI rendait trois
+      # vérifications de moins que la machine de travail — exactement celles qui auraient attrapé la cloche qui plantait
+      # en v749. Même version que la machine de travail, épinglée : un banc ne change pas de juge d'une poussée à l'autre.
+      - name: ESLint pour test-818
+        if: always()
+        run: npm install -g eslint@10.1.0 --no-audit --no-fund
+
       - name: Les suites du dépôt passent
         if: always()
         run: |
+          # `require('eslint')` de test-818 trouve le paquet installé globalement à l'étape d'avant.
+          export NODE_PATH="$(npm root -g)"
           # ⛔ `bash -e` EST ACTIF ICI (GitHub lance « /usr/bin/bash -e {0} »). Toute commande
           # qui rend non-zéro tue l'étape sur place. Premier jet : un `grep -q … && {…}` a fait
           # mourir cette étape EN ZÉRO SECONDE, sans lancer une seule suite — et la CI l'a
@@ -94,7 +104,8 @@ jobs:
             echo "$sortie" | tail -1
             n=$(echo "$sortie" | grep -oE '[0-9]+ ✓' | tail -1 | grep -oE '[0-9]+' || true)
             total=$((total + ${n:-0}))
-            if echo "$sortie" | grep -qi 'SAUTÉE'; then
+            # « SAUTÉ » couvre aussi « SAUTÉE » : test-818 écrit le masculin, et le filet ne cherchait que le féminin.
+            if echo "$sortie" | grep -qi 'SAUTÉ'; then
               echo "::error::$f a SAUTÉ une partie en silence"; rouge=1
             fi
           done
