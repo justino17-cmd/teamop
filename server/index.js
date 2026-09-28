@@ -656,7 +656,8 @@ app.post('/api/stripe/checkout', async (req, res) => {
        La référence d'espace vient de la PAGE (le marqueur de l'appareil) : un compte confirmé rattachait donc SON
        paiement à l'espace de n'importe quelle autre entreprise, qui devenait « payée » dans `espacePaye()` (`gardien`,
        rejoué). La preuve d'appartenance est celle du reste du serveur (relais du portail, `espaceAutoPour`) : l'adresse
-       du compte EST celle de l'entreprise dans l'annuaire. Trois cas :
+       du compte EST celle de l'entreprise dans l'annuaire. Les cas, dans l'ordre où le code les tranche (et
+       `reference_ambigue`, plus bas, avant eux) :
        · la référence désigne une entreprise CONNUE, et le compte n'est pas le sien (une adresse de ses noms d'accès
          n'est pas celle du compte) → 403 `compte_autre_entreprise`, rien chez Stripe : on refuse AVANT de faire payer,
          plutôt que d'encaisser un abonnement qui ne débloquerait rien ;
