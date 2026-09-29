@@ -240,6 +240,15 @@ mot peut se retrouver en tête de ligne. Pris le 27 septembre 2026 : `test-832` 
 de suppression, sur une partie seulement des messages — le défaut était dans le facteur. Le facteur de `test-813`
 (et de tout banc qui le recopie) ne le fait pas encore : à corriger le jour où il lira un texte long.
 
+⛔ **UNE COURSE DE BANC SE JOUE AU GESTE, JAMAIS AU CHRONOMÈTRE — ET LA CI A LE VRAI RÉSEAU.** Pris le 29 septembre 2026
+(run 518 de « Vérification des pages », sur `main`) : `test-844` pariait qu'une suppression de la Tour tiendrait dans
+les 3 s d'un Stripe « lent ». Ici elle rendait à 3,03 s pour une fenêtre fermée à 3,24 s — 0,2 s de marge que rien ne
+montrait ; sur GitHub, derrière. Le faux Stripe RETIENT désormais la lecture visée (reconnue à sa pile d'appels) jusqu'à
+ce que le banc la relâche. Deux leçons : **la marge d'une fenêtre se mesure avant de parier dessus** (un vert ne dit pas
+de combien il passe) ; et une route qui appelle Google (la suppression d'une entreprise : jeton anonyme, effacement
+Firestore) y part VRAIMENT, depuis la CI comme d'ici — un banc qui la joue dépend du réseau tant qu'il ne remplace pas
+ce `fetch`.
+
 ⛔ **UNE APOSTROPHE DANS LE MOT DE `${var:?mot}` CASSE LE PARSE DU SCRIPT ENTIER.** Bash
 re-interprète les quotes à l'intérieur du mot, **même entre guillemets doubles** :
 `"${1:?le SHA n'a pas été transmis}"` ouvre une simple quote qui ne se referme jamais, et le
