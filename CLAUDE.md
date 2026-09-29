@@ -369,8 +369,31 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   illisible ou liste périmée (`STRIPE_CACHE_MS`) : le rappel attend le passage suivant tant que la promesse aurait un
   délai, puis part sans elle. ⚠️ Une attente de Stripe dans une boucle rend la main au serveur : tout se relit après
   (`eligible`, `sig`), et une entreprise qui jette n'arrête pas les autres. Une carte refusée au premier prélèvement est un
-  impayé (Justin) : le circuit existant. `test-727` §10, `test-839`, `test-840`, `test-844` (Stripe simulé dans le
+  impayé (Justin) : la règle suivante. `test-727` §10, `test-839`, `test-840`, `test-844` (Stripe simulé dans le
   processus du serveur, deux courses jouées par les vraies routes de la Tour), `scratchpad/mutations-essai.py`.
+- ⛔⛔ **CARTE REFUSÉE = IMPAYÉ, ET PAS D'ACCÈS PAYANT TANT QUE CE N'EST PAS RÉGLÉ — UN IMPAYÉ SE SERT SANS FORMULE.**
+  Justin, 29 septembre 2026 : « leur accès sont bloqués le temps que c'est pas payé » ; « rien n'est perdu, mais pas de
+  paiement, pas d'accès au service payant ». Payé = `active` ou `trialing` (`STATUTS_PAYES`), et c'est tout ; `past_due` et
+  `unpaid` d'OP GESTION sont des impayés (`impayesGestion`), rattachés par les règles du payé (`espaceStripeDans`) mais
+  par l'IDENTIFIANT (`tSeul` : un nom d'accès repris n'hérite pas de l'impayé d'une autre) — un impayé gravé au NOM
+  d'accès (anciennes pages) ne compte que s'il porte AUSSI son adresse (mutation I36 : sans ça, l'accès restait ouvert).
+  ⛔ UNE règle décide du blocage, `impayeBloque` (lue par `espacePaye` ET le rappel J-7) : un abonnement d'OP GESTION payé à elle la sert (sans
+  les places du refusé) ; payée seulement par OP MESSAGES, par une voisine d'adresse, ou fiche Gratuit : bloquée si
+  l'impayé est SÛREMENT le sien ; rien de payé : bloquée. ⛔ `/api/espaces/etat` sert un bloqué comme une suspension au
+  sursis écoulé, SANS formule, motif public neutre (`bloque`) : c'est la seule forme que l'application en service grise
+  sans écrire dans `db`, avec le message à l'administrateur seul ; une réponse AVEC formule et `paye:false` pose le
+  bandeau « Paye ton abonnement » à toute l'équipe, réécrit `db.forfait` et mène à un SECOND abonnement — l'« impayé »
+  posé à la main dans la Tour prend la même forme. La page de paiement n'envoie à la FACTURE en attente qu'une entreprise
+  BLOQUÉE, jamais la facture d'une autre (409 `past_due` sans facture, 502 si Stripe ne répond pas à la relecture) ; une
+  entreprise servie achète normalement. Un impayé se relit à la minute (`STRIPE_IMPAYE_FRAIS_MS`) : l'accès revient seul
+  au règlement — au serveur ; l'appareil, lui, ne relit qu'au lancement (dette bêta). `test-845` (le vrai serveur ET les
+  vraies fonctions d'app.html), `test-844`, série I de `scratchpad/mutations-essai.py`.
+- ⛔ **LE SITE SUIT L'APPAREIL POUR LE JOUR ET LA NUIT — PAS DE BOUTON.** Justin, 29 septembre 2026, capture à l'appui :
+  « Sur le site je veux pas le bouton jour nuit, je veux que ça soit automatique ». Les 8 pages de `scripts/site-marine.js`
+  et les 10 pages voisines (portail, connexion, paiement, pages juridiques, 404) lisent `prefers-color-scheme`, rien
+  d'autre ; `TETE_MODE` efface l'ancien choix (`teamop_site_mode`) et garde CINQ lignes (les pages juridiques sont citées
+  par numéro de ligne). ⛔ `vitrine/v2/mode.js` reste tant que `sw.js` le liste dans `ASSETS` : absent, l'installation du
+  service worker échouerait. `test-835`, `test-836`, `scratchpad/mutations-site-auto.py`, `scratchpad/sonde-site-auto.js`.
 - ⛔⛔ **UNE SESSION PROUVE UN MOT DE PASSE, PAS UNE ADRESSE.** 25 septembre 2026 (`gardien`, G1,
   rejoué) : n'importe qui ouvrait un compte à l'adresse de contact d'une entreprise — publique — et
   `/api/clients/sync` la croyait prouvée : une demande « Gratuit » faisait retomber une entreprise
