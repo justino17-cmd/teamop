@@ -132,8 +132,18 @@ jamais deux panneaux (« Plus » se referme), fermé si l'écran passe à 900 px
   **67 ✓**, **18/18** mutations, `verifier-theme` 0. Ce que la relecture a mesuré et qui tient : contraste au pixel
   (≥ 4,7 partout dans le tiroir), la pastille n'est pas une loupe, 44 px partout, iPhone SE (le pied atteignable),
   jamais deux panneaux avec « Ma barre », aucun survol collé, aucune erreur JavaScript.
-· Publication : `tour.html` seul sur `main` (GitHub Pages, aucun déploiement serveur). Le `stash@{0}` peut être jeté une
-  fois la v2.75 en service.
+· Publication : `tour.html` + `tests/test-843.js` + les trois fichiers du scratchpad (sonde, mesure, mutations). Le
+  `stash@{0}` peut être jeté une fois la v2.75 en service.
+
+### ⏳ LES DEUX, PRÊTES EN UN SEUL ENVOI
+Dans l'arbre `scratchpad/pub-tarifs` (session du 28 au 29 septembre) : `5865b0a` (garde des tarifs) puis `86b2845`
+(Tour v2.75), sur `main` à `8fbd34a`. Suite complète de CET arbre : **199 suites · 10 849**, code 0 ; les dix contrôles
+de `verification.yml`, `verif-secrets` et `verifier-theme` verts. Sur « pousse » de Justin : `git push origin HEAD:main`
+depuis cet arbre (vérifier d'abord que `origin/main` est toujours `8fbd34a`, sinon reconstruire). Si l'arbre a disparu,
+le reconstruire depuis la branche (les fichiers y sont identiques, vérifié par `cmp`) : la liste de la mise en ligne
+n° 3 plus haut, puis `tour.html`, `tests/test-843.js`, `scratchpad/sonde-tour-tiroir.js`, `scratchpad/mesure-entete-tour.js`,
+`scratchpad/mutations-tour-tiroir.py`. Après : déploiement du serveur (bancs puis VPS, `/health` dont l'`uptime` repart —
+il valait 4 224 s juste avant), `tour.html` et `recap-abonnement.html` servis octet pour octet, CI de `main` verte.
 
 ### Ce qui attend une DÉCISION de Justin (relecture adverse de la garde des tarifs)
 1. **Payer d'abord au tarif bas, la formule ensuite** : un prospect paie Pro (ou OP MESSAGES), puis sa demande « Business
