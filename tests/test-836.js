@@ -68,10 +68,13 @@ function jetons(css, prefixe) {
 }
 
 console.log('\n══ 1. LA PALETTE DU PORTAIL EST CELLE DU SITE, JETON PAR JETON ══\n');
-const T = jetons(THEME, 'm-'), S = jetons(SITECSS, '');
+/* un bloc introuvable rend {} : le banc le DIT (contrôle ci-dessous), il ne plante pas sur le suivant */
+const jetonsSurs = (css, p) => { const j = jetons(css, p); return { jour: j.jour, nuitSys: j.nuitSys, trouves: !!(j.jour && j.nuitSys) }; };
+const T0 = jetonsSurs(THEME, 'm-'), S0 = jetonsSurs(SITECSS, '');
+const T = { jour: T0.jour || {}, nuitSys: T0.nuitSys || {} }, S = { jour: S0.jour || {}, nuitSys: S0.nuitSys || {} };
 const PARTAGES = ['bg', 'text', 'sub', 'body', 'link', 'line', 'card', 'tile', 'seg', 'seg-on', 'accent', 'on-accent', 'nav'];
-vrai('les deux blocs de theme.css sont trouvés (jour, nuit de l\'appareil)', T.jour && T.nuitSys);
-vrai('et ceux de site.css aussi', S.jour && S.nuitSys);
+vrai('les deux blocs de theme.css sont trouvés (jour, nuit de l\'appareil, sur :root)', T0.trouves);
+vrai('et ceux de site.css aussi', S0.trouves);
 if (T.jour && S.jour) {
   vrai('   (la population n\'est pas vide : ' + Object.keys(T.jour).length + ' jetons de jour)', Object.keys(T.jour).length >= PARTAGES.length);
   for (const mode of ['jour', 'nuitSys']) {
