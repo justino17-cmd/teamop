@@ -402,6 +402,11 @@ h1, h2, h3 { text-wrap: balance; }
 .bloc.teinte .carte-v .tuile { background: var(--card); }
 .carte-v b { font-size: 19px; font-weight: 600; letter-spacing: -.016em; }
 .carte-v span.t { font-size: 15px; line-height: 1.55; color: var(--sub); }
+/* ── les pages métier (Justin, 29 septembre 2026, son plan SEO : « 400 mots minimum ») : du texte qui se LIT — l'encre du corps,
+   pas le gris des chapeaux —, sur une mesure de lecture ; et le prix de chaque formule, sous son nom ── */
+.texte-metier p { margin: 16px 0 0; max-width: 720px; font-size: 17px; line-height: 1.6; color: var(--body); }
+.texte-metier .h2 + p { margin-top: 22px; }
+.carte-v .prix-metier { font-size: 14px; font-weight: 600; color: var(--text); }
 
 /* prêt en trois étapes */
 .commencer { padding: 40px 12px 12px; }

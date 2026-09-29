@@ -100,7 +100,7 @@ const VOLETS = {
     grands: [L('OP GESTION', 'elan.html', 'Gestion tout-en-un : interventions, stock, compta'), L('OP MESSAGES', 'opmessages.html', 'Messagerie d\'équipe — bientôt disponible'), L('Créer votre application', 'creer.html', 'Décrivez votre besoin, on le construit')],
     petits: [L('Toutes les applications', 'applications.html')] },
   metiers: { label: 'Métiers', href: 'metiers.html', titre: 'Explorer les métiers',
-    grands: [L('3D — Anti-nuisibles', 'metiers.html#m-3d', 'Pack complet : registre sanitaire, biocides'), L('Plomberie', 'metiers.html#m-plomberie'), L('Électricité', 'metiers.html#m-electricite'), L('Chauffage / Climatisation', 'metiers.html#m-chauffage')],
+    grands: [L('3D — Anti-nuisibles', 'logiciel-anti-nuisibles.html', 'Pack complet : registre sanitaire, biocides'), L('Plomberie', 'logiciel-plombier.html'), L('Électricité', 'logiciel-electricien.html'), L('Chauffage / Climatisation', 'logiciel-chauffage-climatisation.html')],
     petits: [L('Tous les métiers', 'metiers.html')] },
   tarifs: { label: 'Tarifs', href: 'tarifs.html', titre: 'Explorer les tarifs',
     grands: [L('Tarifs OP GESTION', 'tarifs.html#elan', 'Gratuit · Pro 15 € · Business 25 € · Business Premium 50 €'), L('Tarifs OP MESSAGES', 'tarifs.html#opmessages', 'Perso · Pro · Premium — bientôt disponible')],
@@ -218,8 +218,104 @@ function formules(liste, attente) {
 }
 
 /* ── les pages ── */
+/* ══ LES PAGES MÉTIER — une page, une adresse, un mot-clé (Justin, 29 septembre 2026, pages-metiers.md : « un seul H1,
+   400 mots minimum, titre < 60 caractères, description < 155 caractères, lien vers /tarifs.html et vers l'inscription »).
+   ⛔ CHAQUE PHRASE EST CE QUE L'APPLICATION FAIT AUJOURD'HUI (app.html v763, relu affirmation par affirmation le même soir) :
+   · « en quelques secondes », jamais « en temps réel » : la synchronisation prend de l'ordre de la seconde avec du réseau ;
+   · les contrats d'entretien planifient le passage suivant d'un clic (« Générer ») : ni passage automatique, ni rappel
+     d'échéance — seule la récurrence posée sur une INTERVENTION planifie la suivante toute seule, à sa clôture ;
+   · une « box » est un point de stock (local, réserve, armoire), jamais un véhicule ni un poste d'appâtage — et les box et
+     le registre sanitaire n'existent que pour le métier 3D : on n'en parle pas aux plombiers, électriciens, chauffagistes ;
+   · la caméra lit l'ÉTIQUETTE d'un produit : aucun code-barres ;
+   · une intervention ne retire rien du stock (v741) : les produits utilisés sont notés, le stock bouge quand un produit sort ;
+   · pas de relance automatique des factures, pas de module « chantier » (retiré le 23 septembre, v730) ;
+   · le devis dicté est une option activée pour l'entreprise, la dictée dépend du navigateur ;
+   · chaque fonction est dite avec la formule qui l'ouvre (FORMULES_GESTION) : Gratuit n'a ni stock, ni devis, ni registre.
+   Les captures sont celles d'une entreprise de DÉMONSTRATION anti-nuisibles : la page 3D montre ses interventions ; les
+   trois autres ne montrent que des écrans neutres (factures, comptabilité), jamais un « Dératisation » chez un plombier. */
+const prixDe = cle => (FORMULES_GESTION.find(f => f.cle === cle) || {}).prix;
+const METIERS = {
+  'logiciel-anti-nuisibles': { priorite: '0.9', icone: 'bug',
+    titre: "Logiciel anti-nuisibles 3D : registre sanitaire | TEAM OP",
+    desc: "Logiciel pour entreprises 3D : fiches d'intervention, registre sanitaire, suivi des biocides, stock par box et signature client. Gratuit pour commencer.",
+    surtitre: 'Logiciel anti-nuisibles (3D)', h1: "Le logiciel de gestion pensé pour les entreprises anti-nuisibles (3D)",
+    chapeau: "Une entreprise de dératisation, désinsectisation et désinfection jongle entre les interventions, les produits biocides, le registre sanitaire et les devis. OP GESTION, l'application de TEAM OP, réunit tout au même endroit, sur téléphone comme sur ordinateur.",
+    mac: ['mac-planning', "OP GESTION sur un Mac : la semaine de deux techniciens d'une entreprise anti-nuisibles de démonstration"],
+    duo: [["Sur le terrain", "La fiche d'intervention, dans la poche.", "Client, adresse, produits, photos et signature : tout est sur la fiche.", 'iphone-intervention', "OP GESTION sur un iPhone : une intervention de dératisation en cours"],
+      ["Au dépôt", "Le stock de chaque box, à jour.", "Arrivage, sortie, relevé : chaque mouvement est tracé.", 'iphone-box', "OP GESTION sur un iPhone : la fiche d'une box et ses gestes"]],
+    blocs: [
+      ["Des fiches d'intervention complètes, sur le terrain.", ["Client, adresse, produits utilisés, photos avant et après, signature du client : le technicien remplit la fiche depuis son téléphone, et le bureau la retrouve aussitôt. Si le client est absent, on le note sur la fiche.", "Le rapport part ensuite au client par e-mail, en PDF, avec les photos, le plan et les signatures. Fini les papiers à ressaisir le soir."]],
+      ["Registre sanitaire et suivi des biocides.", ["Chaque passage et chaque produit biocide utilisé alimentent le registre sanitaire du client, avec le numéro d'AMM du produit. Le Certibiocide de chaque technicien, avec son numéro et sa date de validité, est suivi, et une alerte prévient avant l'échéance.", "Pour un client professionnel, le dossier sanitaire complet (plan de lutte, relevés, produits, attestation de passage) s'imprime ou s'enregistre en PDF en un clic : vous êtes prêt le jour d'un contrôle."]],
+      ["Plans d'appâtage et relevés des postes.", ["Pour chaque site, dessinez le plan d'appâtage sur une photo, une vue satellite ou le plan des pièces, avec vos postes numérotés, leur type et le produit posé. À chaque passage, le technicien relève chaque poste : rien à signaler, consommation partielle, consommé ou remplacé.", "L'évolution de l'infestation sur les derniers passages se lit d'un coup d'œil, et une fiche de traitement est prévue pour chaque nuisible : rats, souris, blattes, punaises de lit, guêpes et frelons…"]],
+      ["Le stock de chaque box, toujours à jour.", ["Une box, c'est un point de stock : un local, une réserve ou une armoire, chez vous ou chez un client. Lisez l'étiquette d'un produit avec la caméra, enregistrez un arrivage, sortez un produit pour un technicien : chaque mouvement est tracé (qui, quoi, pour qui) et le stock se met à jour.", "Les produits utilisés en intervention sont notés sur la fiche sans fausser le stock : il ne baisse que quand un produit sort vraiment d'une box. Et les catalogues des principaux fournisseurs du métier s'ajoutent en quelques clics, sans tout ressaisir."]],
+      ["Pour toute l'équipe.", ["Chaque technicien travaille sur son propre appareil (iPhone, Android, Mac ou PC) et les changements arrivent chez les autres en quelques secondes dès qu'il y a du réseau. Planning par technicien, tournées du jour avec l'ordre des visites optimisé, pointage des heures : le responsable voit la journée d'un coup d'œil.", "Les données envoyées à notre serveur sont chiffrées (AES-256) et chaque entreprise a son propre espace, séparé des autres."]]],
+    formules: ["Planning des interventions, fiches clients et historique des passages, rapports simples. Pour découvrir, à un utilisateur.",
+      "Tout Gratuit, plus les rapports complets avec photos et signatures, les tournées du jour, les contrats et les récurrences, les devis et les factures.",
+      "Tout Pro, plus le registre sanitaire et les biocides (AMM, Certibiocide, courbes), le stock et les box, les bons de commande aux fournisseurs."] },
+  'logiciel-plombier': { priorite: '0.8', icone: 'pipe',
+    titre: "Logiciel pour plombiers : interventions et stock | TEAM OP",
+    desc: "Gérez vos interventions, votre stock, vos devis et vos encaissements depuis votre téléphone. Logiciel français pour plombiers. Gratuit pour commencer.",
+    surtitre: 'Logiciel pour plombiers', h1: "Le logiciel de gestion pour plombiers et entreprises de plomberie",
+    chapeau: "Fuites, chauffe-eau, débouchages, installations neuves : entre deux dépannages, il faut encore planifier, facturer et suivre ses pièces. OP GESTION, l'application de TEAM OP, s'occupe du reste, sur téléphone comme sur ordinateur.",
+    duo: [["Au bureau", "Devis et factures, sans ressaisie.", "Ce qui est facturé, encaissé, à encaisser : tout est là.", 'iphone-factures', "OP GESTION sur un iPhone : les factures, ce qui est encaissé et ce qui reste à encaisser"],
+      ["En fin de journée", "Chaque encaissement, à sa place.", "Ce qui était prévu, ce qui est encaissé, l'écart du jour.", 'iphone-compta', "OP GESTION sur un iPhone : le contrôle des encaissements du jour"]],
+    blocs: [
+      ["Une fiche d'intervention prête pour la plomberie.", ["En choisissant la plomberie à la création de votre espace, OP GESTION se règle sur votre métier : dépannage de fuite, recherche de fuite, débouchage, chauffe-eau, robinetterie, réseau, évacuation, installation neuve. Vous changez de réglage quand vous voulez, sans toucher à vos clients ni à vos interventions.", "Sur place, le technicien coche les prestations réalisées, note ses relevés, prend des photos avant et après et fait signer le client sur l'écran. Le rapport part au client par e-mail, en PDF, directement depuis l'application."]],
+      ["Le stock de pièces et de consommables.", ["Raccords, flexibles, cartouches, joints : suivez vos pièces avec un seuil d'alerte par référence. Quand une quantité passe sous son seuil, l'application le signale, et la commande suggérée reprend les produits à racheter dans un bon de commande pour votre fournisseur.", "Vous saisissez vos propres références, à votre rythme : aucun catalogue ne vous est imposé."]],
+      ["Devis, factures et encaissements.", ["Créez vos devis et vos factures, et envoyez-les en PDF par e-mail ou par SMS. Vous pouvez même dicter la prestation à la voix : l'assistant propose un devis que vous relisez avant de l'envoyer (une option activée pour votre entreprise).", "Suivez les factures à encaisser et celles qui sont payées, et l'encaissement de chaque technicien en fin de journée : carte, espèces, chèques. Une facture impayée se renvoie au client d'un bouton."]],
+      ["Toute l'équipe, sur la même page.", ["Planning par technicien, tournées du jour avec l'ordre des visites optimisé, carte des interventions, pointage des heures : chaque plombier travaille sur son téléphone, et les changements arrivent chez les autres en quelques secondes dès qu'il y a du réseau.", "Chaque fiche client garde l'historique de ses interventions, de ses devis et de ses factures. Les données envoyées à notre serveur sont chiffrées (AES-256) et votre entreprise a son propre espace, séparé des autres."]]],
+    formules: ["Planning des interventions, fiches clients et historique des passages, rapports simples. Pour découvrir, à un utilisateur.",
+      "Tout Gratuit, plus les rapports complets avec photos et signatures, les tournées du jour, les devis et les factures, les contrats et les récurrences.",
+      "Tout Pro, plus le stock de pièces avec ses seuils d'alerte, les bons de commande aux fournisseurs et la commande suggérée."] },
+  'logiciel-electricien': { priorite: '0.8', icone: 'bolt',
+    titre: "Logiciel électricien : interventions et devis | TEAM OP",
+    desc: "Interventions, stock, devis et encaissements réunis dans une seule application pour électriciens. Sur mobile et ordinateur. Gratuit pour commencer.",
+    surtitre: 'Logiciel pour électriciens', h1: "Le logiciel de gestion pour électriciens",
+    chapeau: "Dépannages, mises aux normes, tableaux, bornes de recharge : vos journées vont d'un client à l'autre. OP GESTION, l'application de TEAM OP, réunit interventions, matériel, devis et encaissements, sur téléphone comme sur ordinateur.",
+    duo: [["Au bureau", "Devis et factures, sans ressaisie.", "Ce qui est facturé, encaissé, à encaisser : tout est là.", 'iphone-factures', "OP GESTION sur un iPhone : les factures, ce qui est encaissé et ce qui reste à encaisser"],
+      ["En fin de journée", "Chaque encaissement, à sa place.", "Ce qui était prévu, ce qui est encaissé, l'écart du jour.", 'iphone-compta', "OP GESTION sur un iPhone : le contrôle des encaissements du jour"]],
+    blocs: [
+      ["Des interventions réglées pour l'électricité.", ["En choisissant l'électricité à la création de votre espace, OP GESTION se règle sur votre métier : dépannage, tableau électrique, mise aux normes, éclairage, prises et circuits, borne de recharge, contrôle et vérification. Les prestations se cochent sur la fiche, du tirage de câble au raccordement au tableau.", "Sur place, le technicien note ses relevés, prend des photos avant et après et fait signer le client sur l'écran. Le rapport part au client par e-mail, en PDF, directement depuis l'application."]],
+      ["Votre matériel en stock, avec ses seuils.", ["Disjoncteurs, câbles, gaines, appareillage : suivez votre matériel avec un seuil d'alerte par référence. Quand une quantité passe sous son seuil, l'application le signale, et la commande suggérée prépare le bon de commande pour votre fournisseur.", "Vous saisissez vos propres références : aucun catalogue ne vous est imposé, et vous ne gardez que ce que vous utilisez vraiment."]],
+      ["Devis, factures et encaissements.", ["Créez vos devis et vos factures, et envoyez-les en PDF par e-mail ou par SMS. Vous pouvez même dicter la prestation à la voix : l'assistant propose un devis que vous relisez avant de l'envoyer (une option activée pour votre entreprise).", "Suivez les factures à encaisser et celles qui sont payées, et l'encaissement de chaque technicien en fin de journée : carte, espèces, chèques. Une facture impayée se renvoie au client d'un bouton."]],
+      ["Toute l'équipe, sur la même page.", ["Planning par technicien, tournées du jour avec l'ordre des visites optimisé, carte des interventions, pointage des heures : chaque électricien travaille sur son téléphone, et les changements arrivent chez les autres en quelques secondes dès qu'il y a du réseau.", "Chaque fiche client garde l'historique de ses interventions, de ses devis et de ses factures. Les données envoyées à notre serveur sont chiffrées (AES-256) et votre entreprise a son propre espace, séparé des autres."]]],
+    formules: ["Planning des interventions, fiches clients et historique des passages, rapports simples. Pour découvrir, à un utilisateur.",
+      "Tout Gratuit, plus les rapports complets avec photos et signatures, les tournées du jour, les devis et les factures, les contrats et les récurrences.",
+      "Tout Pro, plus le stock de matériel avec ses seuils d'alerte, les bons de commande aux fournisseurs et la commande suggérée."] },
+  'logiciel-chauffage-climatisation': { priorite: '0.8', icone: 'flame',
+    titre: "Logiciel chauffage et climatisation : suivi | TEAM OP",
+    desc: "Interventions, contrats d'entretien, stock et encaissements pour chauffagistes et frigoristes. Application mobile et web. Gratuit pour commencer.",
+    surtitre: 'Logiciel chauffage et climatisation', h1: "Le logiciel de gestion pour chauffagistes et climaticiens",
+    chapeau: "Entretiens annuels, pompes à chaleur, climatisation, dépannages : un chauffagiste revoit ses clients année après année. OP GESTION, l'application de TEAM OP, garde tout : contrats d'entretien, historique par client, pièces, devis et encaissements.",
+    duo: [["Au bureau", "Devis et factures, sans ressaisie.", "Ce qui est facturé, encaissé, à encaisser : tout est là.", 'iphone-factures', "OP GESTION sur un iPhone : les factures, ce qui est encaissé et ce qui reste à encaisser"],
+      ["En fin de journée", "Chaque encaissement, à sa place.", "Ce qui était prévu, ce qui est encaissé, l'écart du jour.", 'iphone-compta', "OP GESTION sur un iPhone : le contrôle des encaissements du jour"]],
+    blocs: [
+      ["Des interventions réglées pour le chauffage et la climatisation.", ["En choisissant le chauffage et la climatisation à la création de votre espace, OP GESTION se règle sur votre métier : entretien annuel de chaudière, pompe à chaleur, climatisation, dépannage, désembouage, ramonage, installation.", "Sur place, le technicien coche les prestations réalisées, note ses relevés, prend des photos avant et après et fait signer le client sur l'écran. Le rapport part au client par e-mail, en PDF, directement depuis l'application."]],
+      ["Les contrats d'entretien, sans rien oublier.", ["Créez vos contrats d'entretien : le client, la fréquence (du mois à l'année), le montant et les dates. Un clic sur « Générer » planifie le passage suivant. Une intervention peut aussi porter sa propre récurrence : quand elle est terminée, la suivante est planifiée toute seule.", "Chaque fiche client garde l'historique complet de ses passages, de ses devis et de ses factures : d'une année sur l'autre, vous savez ce qui a été fait, et par qui."]],
+      ["Les pièces en stock, avec leurs seuils.", ["Filtres, pièces détachées, consommables : suivez vos pièces avec un seuil d'alerte par référence. Quand une quantité passe sous son seuil, l'application le signale, et la commande suggérée prépare le bon de commande pour votre fournisseur. Vous saisissez vos propres références, à votre rythme."]],
+      ["Devis, factures et encaissements.", ["Créez vos devis et vos factures, et envoyez-les en PDF par e-mail ou par SMS. Vous pouvez même dicter la prestation à la voix : l'assistant propose un devis que vous relisez avant de l'envoyer (une option activée pour votre entreprise).", "Suivez les factures à encaisser et celles qui sont payées, et l'encaissement de chaque technicien en fin de journée : carte, espèces, chèques."]],
+      ["Toute l'équipe, sur la même page.", ["Planning par technicien, tournées du jour avec l'ordre des visites optimisé, carte des interventions, pointage des heures : chaque technicien travaille sur son téléphone, et les changements arrivent chez les autres en quelques secondes dès qu'il y a du réseau. Les données envoyées à notre serveur sont chiffrées (AES-256) et votre entreprise a son propre espace, séparé des autres."]]],
+    formules: ["Planning des interventions, fiches clients et historique des passages, rapports simples. Pour découvrir, à un utilisateur.",
+      "Tout Gratuit, plus les contrats d'entretien et les récurrences, les rapports complets avec photos et signatures, les tournées du jour, les devis et les factures.",
+      "Tout Pro, plus le stock de pièces avec ses seuils d'alerte, les bons de commande aux fournisseurs et la commande suggérée."] },
+};
+function pageMetier(m) {
+  const duo = `<section class="duo">` + m.duo.map(([pt, h3, p, nom, alt]) => `<div class="grande-carte"><div class="haut"><div class="petit-titre">${fr(pt)}</div><h3>${fr(h3)}</h3><p>${fr(p)}</p></div>
+          <div class="bas"><div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone(nom, alt)}</div></div></div>`).join('') + '</section>';
+  const bloc = ([h2, ps], i) => `<section class="bloc${i % 2 ? ' teinte' : ''}"><div class="bloc-in texte-metier"><h2 class="h2 moyen">${fr(h2)}</h2>` + ps.map(t => `<p>${fr(t)}</p>`).join('') + '</div></section>';
+  const f = [['Gratuit', prixDe('gratuit') + ' €', m.formules[0]], ['Pro', prixDe('pro') + ' € TTC par mois et par utilisateur', m.formules[1]], ['Business', prixDe('business') + ' € TTC par mois et par utilisateur', m.formules[2]]];
+  const formules = `<section class="bloc${m.blocs.length % 2 ? ' teinte' : ''}" id="formules"><div class="bloc-in texte-metier"><h2 class="h2 moyen">${fr('Quelle formule choisir ?')}</h2>`
+    + `<p>${fr('Commencez gratuitement, sans engagement, puis passez à la formule qui vous convient quand votre équipe grandit. Un abonnement par utilisateur. Business Premium (' + prixDe('premium') + ' €) ajoute l\'espace client, les statistiques avancées et le service 24h/24.')}</p><div style="height:22px"></div>`
+    + '<div class="cartes-3">' + f.map(([n, pr, t]) => `<div class="carte-v"><b>${fr(n)}</b><span class="prix-metier">${fr(pr)}</span><span class="t">${fr(t)}</span></div>`).join('') + '</div>'
+    + `<div class="actions" style="margin-top:28px"><a class="bouton" href="${ESPACE()}">Créer mon compte gratuit</a><a class="lien-suite" href="tarifs.html">Voir les tarifs ›</a></div></div></section>`;
+  return scene(m.surtitre, m.h1, m.chapeau, `<a class="bouton" href="${ESPACE()}">Créer mon compte gratuit</a><a class="lien-suite" href="tarifs.html">Voir les tarifs ›</a>`)
+    + (m.mac ? `<section class="scene-mac">${mac(m.mac[0], m.mac[1], { tot: false })}</section>` : '')
+    + bloc(m.blocs[0], 0) + duo + m.blocs.slice(1).map((b, i) => bloc(b, i + 1)).join('') + formules;
+}
+
 const PAGES = {
-  index: { titre: 'TEAM OP — Vos applications métier, au même endroit', desc: 'TEAM OP : votre espace professionnel. Interventions, stock, encaissements et communication d\'équipe — sur mobile, tablette et ordinateur, partout, en temps réel.',
+  index: { titre: 'TEAM OP — Logiciel de gestion pour entreprises de terrain', desc: 'Interventions, stock, registre sanitaire, encaissements et équipe : TEAM OP, plateforme française pour anti-nuisibles, plombiers, électriciens et chauffagistes. Gratuit pour commencer.',
+    ogDesc: 'Interventions, stock, registre sanitaire, encaissements et équipe, sur mobile, tablette et ordinateur.',
     corps: () => `<section class="accueil"><p class="surtitre">TEAM OP</p><h1>Toutes vos applications métier. Au même endroit.</h1>
       <p class="chapeau">${fr('Interventions, stock, encaissements et communication d\'équipe — sur iPhone, Android, Mac et PC, en temps réel.')}</p>
       <div class="actions"><a class="bouton" href="${ESPACE()}">Créer mon compte</a><a class="lien-suite" href="applications.html">Découvrir les applications ›</a></div>
@@ -310,6 +406,8 @@ const PAGES = {
           + (pret ? `<a href="${ESPACE()}">Démarrer avec ce pack ›</a>` : '<a href="creer.html">En parler avec nous ›</a>') + '</article>').join('')
       + '</div></section>' },
 
+  ...Object.fromEntries(Object.entries(METIERS).map(([k, m]) => [k, { section: 'metiers', titre: m.titre, desc: m.desc, priorite: m.priorite, corps: () => pageMetier(m) }])),
+
   tarifs: { section: 'tarifs', titre: 'Tarifs — TEAM OP', desc: 'Les offres TEAM OP : Gratuit, Pro 15 €, Business 25 €, Business Premium 50 € (service 24h/24), par mois et par utilisateur. OP MESSAGES a ses propres formules, à part.',
     corps: () => scene('Tarifs', 'Des tarifs simples et clairs.', 'Commencez gratuitement, passez à la vitesse supérieure quand votre équipe grandit. Sans engagement, sans frais cachés.', '', { courte: true })
       + `<section class="tarifs" id="tarifs"><span id="elan"></span><span id="opmessages"></span><div class="tarifs-in">
@@ -352,6 +450,56 @@ const TETE_MODE = `<meta name="theme-color" content="#f0f3f8" media="(prefers-co
 (function () { try { localStorage.removeItem('teamop_site_mode'); } catch (e) {} })();</script>`;
 
 /* le lanceur de l'écran d'accueil : une PWA installée rouvre la dernière application choisie (?hub=1 pour revenir au choix) */
+/* ══ LE RÉFÉRENCEMENT — Justin, 29 septembre 2026, avec son plan SEO (robots.txt, sitemap.xml, seo-head-snippet.html,
+   pages-metiers.md) : « Fais l'optimisation SEO avec les fichiers fournis ». ══
+   · À LA RACINE seulement : l'aperçu garde son « noindex », il ne se référence pas et n'a pas d'adresse canonique à lui.
+   · L'adresse canonique est celle que Google doit retenir : l'accueil est « https://teamop.fr/ », jamais « /index.html ».
+   · ⛔ LE JSON-LD NE RECOPIE AUCUN PRIX : ses offres se lisent dans FORMULES_GESTION, les mêmes que la page Tarifs — deux
+     listes de prix recopiées divergent toujours, et Google afficherait un prix faux. Accueil seulement (« index.html
+     uniquement », Justin).
+   · Le plan du site (sitemap.xml) s'écrit ICI, depuis PAGES : une page ajoutée au site y entre d'elle-même (« mettre à
+     jour le sitemap à chaque nouvelle page », son plan). `MAJ` est la date des derniers changements : on la remonte
+     quand le contenu change (une date calculée au jour changerait le fichier tous les jours). */
+const SITE_URL = 'https://teamop.fr/';
+const MAJ = '2026-09-29';
+const urlDe = cle => SITE_URL + (cle === 'index' ? '' : cle + '.html');
+const IMAGE_PARTAGE = { url: SITE_URL + 'vitrine/v2/captures/mac-tableau-jour-1x.webp', l: 1512, h: 982,
+  alt: 'OP GESTION sur un Mac : le tableau de bord d\'une entreprise de démonstration' };
+const JSONLD = () => JSON.stringify({ '@context': 'https://schema.org', '@graph': [
+  { '@type': 'Organization', '@id': SITE_URL + '#organisation', name: 'TEAM OP', url: SITE_URL, logo: SITE_URL + 'icons/teamop-192.png',
+    founder: { '@type': 'Person', name: 'Justin Biret' }, email: 'support@teamop.fr', areaServed: 'FR' },
+  { '@type': 'WebSite', '@id': SITE_URL + '#site', url: SITE_URL, name: 'TEAM OP', inLanguage: 'fr-FR', publisher: { '@id': SITE_URL + '#organisation' } },
+  { '@type': 'SoftwareApplication', name: 'OP GESTION', applicationCategory: 'BusinessApplication', operatingSystem: 'iOS, Android, macOS, Windows, Web',
+    description: 'Gestion tout-en-un pour entreprises de terrain : interventions, stock, encaissements, comptabilité.', url: SITE_URL + 'elan.html',
+    offers: FORMULES_GESTION.map(f => ({ '@type': 'Offer', name: f.nom, price: f.prix, priceCurrency: 'EUR' })) }] }, null, 2);
+function teteSeo(cle) {
+  const P = PAGES[cle], u = urlDe(cle);
+  return `<link rel="canonical" href="${u}">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:site_name" content="TEAM OP">
+<meta property="og:title" content="${esc(P.ogTitre || P.titre)}">
+<meta property="og:description" content="${esc(P.ogDesc || P.desc)}">
+<meta property="og:url" content="${u}">
+<meta property="og:image" content="${IMAGE_PARTAGE.url}">
+<meta property="og:image:width" content="${IMAGE_PARTAGE.l}">
+<meta property="og:image:height" content="${IMAGE_PARTAGE.h}">
+<meta property="og:image:alt" content="${esc(IMAGE_PARTAGE.alt)}">
+<meta name="twitter:card" content="summary_large_image">
+` + (cle === 'index' ? `<script type="application/ld+json">\n${JSONLD()}\n</script>\n` : '');
+}
+/* les pages du plan du site, et leur priorité (celles du sitemap.xml de Justin) ; les pages hors du générateur (les deux
+   pages juridiques qu'il y a mises) sont nommées à part */
+const PRIORITE = { index: '1.0', elan: '0.9', applications: '0.8', metiers: '0.8', tarifs: '0.8', opmessages: '0.6', creer: '0.6', pourquoi: '0.6' };
+const HORS_GENERATEUR = [['confidentialite.html', '0.2'], ['mentions-legales.html', '0.2']];
+function sitemap() {
+  const u = (loc, pr) => `  <url><loc>${loc}</loc><lastmod>${MAJ}</lastmod><priority>${pr}</priority></url>`;
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    + Object.keys(PAGES).map(c => u(urlDe(c), PAGES[c].priorite || PRIORITE[c] || '0.6')).concat(HORS_GENERATEUR.map(([f, pr]) => u(SITE_URL + f, pr))).join('\n')
+    + '\n</urlset>\n';
+}
+
 const LANCEUR = `<script>try{var pwa=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true||document.referrer.indexOf('android-app://')===0,d=localStorage.getItem('teamop_app');if(pwa&&(d==='app.html'||d==='messages.html')&&!/hub/.test(location.search))location.replace('/'+d);}catch(e){}</script>`;
 
 function page(cle, o) {
@@ -365,7 +513,7 @@ function page(cle, o) {
 ${TETE_MODE}
 ${racine ? '' : '<meta name="robots" content="noindex">\n'}<title>${esc(P.titre)}</title>
 <meta name="description" content="${esc(P.desc)}">
-<link rel="icon" href="/favicon.ico" sizes="any">
+${racine ? teteSeo(cle) : ''}<link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/teamop-favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/teamop-192.png">
 <link rel="apple-touch-icon" href="/icons/teamop-apple-touch.png">
@@ -393,5 +541,6 @@ if (require.main === module) {
     fs.writeFileSync(f, page(cle));
     console.log('✓', path.relative(RACINE, f), Math.round(fs.statSync(f).size / 1024) + ' Ko');
   }
+  if (A_LA_RACINE) { fs.writeFileSync(path.join(RACINE, 'sitemap.xml'), sitemap()); console.log('✓ sitemap.xml'); }
 }
-module.exports = { PAGES, page, FORMULES_GESTION, FORMULES_MESSAGES, VOLETS, DEST, TETE_MODE };
+module.exports = { PAGES, page, FORMULES_GESTION, FORMULES_MESSAGES, VOLETS, DEST, TETE_MODE, SITE_URL, urlDe, sitemap, JSONLD, IMAGE_PARTAGE };

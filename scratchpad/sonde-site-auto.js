@@ -26,7 +26,9 @@ const libre = () => new Promise(r => { const s = net.createServer(); s.listen(0,
 let ok = 0, ko = 0;
 const v = (t, a, b) => { const bon = JSON.stringify(a) === JSON.stringify(b); bon ? ok++ : ko++; if (!bon || process.env.BAVARD) console.log('  ' + (bon ? '✓' : '✗') + ' ' + t + (bon ? '' : '  → attendu ' + JSON.stringify(b) + ', reçu ' + JSON.stringify(a))); };
 
-const SITE = ['index', 'tarifs', 'applications', 'creer', 'elan', 'metiers', 'opmessages', 'pourquoi'].map(x => x + '.html');
+/* les pages du site : celles du GÉNÉRATEUR (les quatre pages métier du plan SEO y sont entrées le 29 septembre au soir) —
+   une liste écrite à la main les aurait laissées hors de la sonde */
+const SITE = Object.keys(require(path.join(RACINE, 'scripts', 'site-marine.js')).PAGES).map(x => x + '.html');
 const VOISINES = ['espace.html', 'connexion.html', 'reinit.html', 'recap-abonnement.html?formule=pro', 'merci.html', 'mentions-legales.html',
   'confidentialite.html', 'sous-traitance.html', 'registre-traitements.html', '404.html'];
 const PAGES = process.env.SEULES ? process.env.SEULES.split(',') : SITE.concat(VOISINES);
@@ -125,7 +127,7 @@ const FOND = { light: 'rgb(255, 255, 255)', dark: 'rgb(11, 20, 38)' };
 
   /* ── la TRANSITION : une page d'avant (main) restée en cache, avec les feuilles et le mode.js neufs ── */
   if (!process.env.RACINE) {
-    console.log('\n── transition : les pages d'avant (vieille tête, bouton caché) face aux fichiers neufs ──');
+    console.log('\n── transition : les pages d\'avant (vieille tête, bouton caché) face aux fichiers neufs ──');
     await cdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
     const avant = fs.readdirSync(ANCIEN);
     v('population de la transition : ' + avant.length + ' pages d\'avant, chacune avec son bouton et son mode.js',
