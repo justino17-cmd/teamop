@@ -2436,7 +2436,9 @@ async function espaceStripe(e) {
          rejoué) : « Mon espace » lit aussi ce cache (`formuleServieDe`). Stripe muet, chaque lecture attendait trois abandons
          de 12 s et en relançait trois — et des lectures simultanées lançaient chacune les leurs. Une lecture en cours se
          PARTAGE ; un échec ne se retente qu'une minute plus tard, et pendant ce temps la dernière liste connue sert (rien,
-         s'il n'y en a jamais eu : comme avant, où chaque appel échouait à son tour). */
+         s'il n'y en a jamais eu : comme avant, où chaque appel échouait à son tour).
+         ⛔ Y COMPRIS POUR L'APPEL QUI ATTENDAIT LA LECTURE RATÉE : il rendait « non payé » à une entreprise qui paie, alors
+         qu'une liste connue était là — on ne coupe pas une entreprise qui paie le temps d'une panne de Stripe. */
       if (Date.now() - espStripeCache.ts > 5 * 60000 || !espStripeCache.data) {
         if (!espStripeCache.enCours && Date.now() - espStripeCache.echecTs > 60000) {
           espStripeCache.enCours = stripeAbosBruts(sk)
@@ -2444,7 +2446,10 @@ async function espaceStripe(e) {
               err => { espStripeCache.echecTs = Date.now(); throw err; })
             .finally(() => { espStripeCache.enCours = null; });
         }
-        if (espStripeCache.enCours) await espStripeCache.enCours;
+        if (espStripeCache.enCours) {
+          try { await espStripeCache.enCours; }
+          catch (err) { if (!espStripeCache.data) throw err; console.error('espacePaye stripe (la dernière liste connue sert) :', err.message); }
+        }
       }
       /* ⛔ DEUX RATTACHEMENTS, DANS CET ORDRE, ET LE PREMIER EST LE SEUL FIABLE.
          1. LA RÉFÉRENCE D'ESPACE, gravée sur l'abonnement à la création de la page de paiement

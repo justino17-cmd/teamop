@@ -623,6 +623,15 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     cache2.echecTs = Date.now() - 61000;
     await ep2(ESP());
     v('   la minute passée, on réessaie', essais, 2);
+    /* ⛔ une panne AVEC une liste déjà connue : l'appel qui attendait la lecture ratée rendait « non payé » — la liste d'avant
+       sert, à lui comme aux suivants (on ne coupe pas une entreprise qui paie le temps d'une panne de Stripe) */
+    let essais3 = 0;
+    const cache3 = { ts: Date.now() - 6 * 60000, data: [apres([L('pro', 2)])], enCours: null, echecTs: 0 };
+    const ep3 = avecTout({ cache: cache3, lire: async () => { essais3++; throw new Error('Stripe muet'); } });
+    const [q1, q2] = await Promise.all([ep3(ESP()), ep3(ESP())]);
+    const q3 = await ep3(ESP());
+    v('⛔ Stripe en panne, une liste connue (périmée) : les appels qui attendaient la lecture ratée ET le suivant la lisent — payés, Pro, sur UN essai',
+      [essais3, q1.paye, q1.formuleServie, q2.paye, q2.formuleServie, q3.paye, q3.formuleServie], [1, true, 'pro', true, 'pro', true, 'pro']);
 
     /* ⛔ CE QU'ON NE SAIT PAS LIRE NE COUPE PAS (relecture adverse du 29 septembre, rejoué) : un abonnement d'après SANS
        ligne disait « Gratuit » ; un abonnement d'avant interdit de descendre sous la fiche */
