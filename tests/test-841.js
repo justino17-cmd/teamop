@@ -55,7 +55,10 @@ function tour(API, TOKEN, clients) {
   const noms = ['hAuth', 'apiPost', 'esc', 'jsq', 'espSlugJs', 'tourSha256', 'tourLienServeur', 'tourEspaceDe', 'tourIdentDefaut',
     'tourMdpDefaut', 'tourMailAcces', 'lgMessagePoser', 'tourLienEntreprise', 'tourAccepterDemande'];
   const src = noms.map(n => (n === 'esc' || n === 'jsq') ? courte(n) : fonction(n));
-  const manque = noms.filter((n, i) => !src[i]);
+  /* v2.77 : l'acceptation lit la liste des métiers (`MET_L`, le métier demandé se pose sur l'espace — test-848) ; la VRAIE
+     ligne de la Tour, pas une copie : sans elle, la fonction extraite jette dès sa première ligne sur le métier */
+  src.unshift((/^var MET_L=\{[^\n]*\};$/m.exec(CODE) || [''])[0]);
+  const manque = noms.filter((n, i) => !src[i + 1]).concat(src[0] ? [] : ['MET_L']);
   if (manque.length) return { manque };
   const L = {
     toasts: [], panneaux: [], prompts: [], elems: {}, rangement: new Map() };
