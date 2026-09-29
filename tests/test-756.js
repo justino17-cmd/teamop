@@ -21,6 +21,7 @@ const fs=require('fs');
 const S=fs.readFileSync(__dirname+'/../apercu/site-apple.html','utf8');
 const IDX=fs.readFileSync(__dirname+'/../index.html','utf8');
 const TAR=fs.readFileSync(__dirname+'/../tarifs.html','utf8');
+const APPH=fs.readFileSync(__dirname+'/../app.html','utf8');
 let ok=0,ko=0;
 const v=(t,a,b)=>{ if(JSON.stringify(a)===JSON.stringify(b)){ok++;console.log('  ✓ '+t);}
   else {ko++;console.log('  ✗ '+t+'\n      attendu : '+JSON.stringify(b)+'\n      obtenu  : '+JSON.stringify(a));} };
@@ -54,19 +55,53 @@ vrai('le sélecteur fait 150 px, comme la maquette', /\.seg\{[\s\S]{0,200}width:
 vrai('… avec un curseur animé', /\.seg \.cur\{[\s\S]{0,260}transition:transform \.4s/.test(NU));
 
 console.log('\n══ 3. ⛔ LES TARIFS SONT CEUX DU SITE, PAS DES CHIFFRES RÉINVENTÉS ══\n');
-{ /* Les noms et les prix doivent exister DANS `tarifs.html` — sinon la page d'accueil
-     annoncerait un engagement commercial que le site ne tient pas. */
-  const noms=['Gratuit','Pro','Business','Business Premium','Perso','Messages Pro','Messages Business Premium'];
-  noms.forEach(n=>{
-    vrai('   « '+n+' » est dans l\'aperçu', S.indexOf("n:'"+n+"'")>0 || S.indexOf('n:"'+n+'"')>0);
-    vrai('   … et existe vraiment dans tarifs.html', TAR.indexOf('>'+n+'</')>0);
-  });
-  [['0 €',2],['15 €',2],['25 €',2],['50 €',1]].forEach(([p])=>{
-    vrai('   le prix '+p+' est dans l\'aperçu', S.indexOf("p:'"+p+"'")>0);
-    vrai('   … et dans tarifs.html', TAR.indexOf(p)>0);
-  });
+{ /* Les formules de la maquette se relisent contre la SOURCE de `tarifs.html` — le générateur du site
+     (FORMULES_GESTION, FORMULES_MESSAGES) — : mêmes formules, même ordre, mêmes prix. Un prix faux sur une
+     page servie est un engagement commercial faux. Jusqu'au 29 septembre 2026 ce bloc comparait une liste de
+     noms RECOPIÉE ici (« Gratuit » compris) : le jour où Justin a retiré la formule gratuite du site
+     (« je veux que l'application soit payante directement »), la maquette la montrait encore à 0 € — c'est
+     cette liste recopiée qui l'a vu, par chance, parce que tarifs.html ne la portait plus. Un banc qui relit
+     la source garde un accord ; un banc qui recopie garde une croyance (CLAUDE.md). */
+  const GEN=require('../scripts/site-marine.js');
+  const i=S.indexOf('var TARIFS='), j=S.indexOf('function rendPrix');
+  let T=null;
+  try{ T=new Function('return '+S.slice(i+'var TARIFS='.length, S.lastIndexOf('};',j)+1))(); }catch(e){}
+  vrai('(population) les formules de la maquette se lisent dans son CODE (var TARIFS)',
+    T && T.gestion && T.gestion.length>=3 && T.messages && T.messages.length>=3);
+  const maq=l=>(l||[]).map(f=>f.n+' · '+f.p), gen=l=>l.map(f=>f.nom+' · '+f.prix+' €');
+  vrai('(population) le générateur du site porte ses formules', GEN.FORMULES_GESTION.length>=3 && GEN.FORMULES_MESSAGES.length>=3);
+  v('⛔ OP GESTION : les formules et les prix du site, dans le même ordre', maq(T&&T.gestion), gen(GEN.FORMULES_GESTION));
+  v('⛔ OP MESSAGES : les formules et les prix du site, dans le même ordre', maq(T&&T.messages), gen(GEN.FORMULES_MESSAGES));
+  v('⛔⛔ plus de formule « Gratuit » pour OP GESTION — ni dans la maquette, ni dans tarifs.html (Justin, 29 septembre 2026)',
+    [/n:\s*'Gratuit'|Tout le Gratuit/.test(NU), TAR.indexOf('>Gratuit</')>0], [false, false]);
+  v('⛔ plus de badge « Le plus choisi » (retiré du site le même soir)', /plus choisi/i.test(NU), false);
+  const noms=[].concat(T?T.gestion:[], T?T.messages:[]).map(f=>f.n);
+  v('   … et chaque formule existe vraiment dans tarifs.html (le fichier servi)', noms.filter(n=>TAR.indexOf('>'+n+'</')<0), []);
   v('⛔ AUCUN prix inventé : tout prix de l\'aperçu existe dans tarifs.html',
-    [...S.matchAll(/p:'(\d+) €'/g)].map(m=>m[1]).filter(x=>TAR.indexOf(x+' €')<0), []);
+    [...S.matchAll(/p:'(\d+) €'/g)].map(m=>m[1]).filter(x=>TAR.indexOf('<b>'+x+'</b>')<0), []);
+  vrai('   (population) le motif des prix reconnaît ce qu\'il cherche', [...S.matchAll(/p:'(\d+) €'/g)].length===noms.length);
+  vrai('⛔ les formules d\'OP MESSAGES disent qu\'elles ne se prennent pas encore (la note du site, sous les cartes)',
+    /id="note-msg"[^>]*>OP MESSAGES change d'infrastructure/.test(NU) && /note-msg'\)\.hidden=\(k!=='messages'\)/.test(NU));
+}
+
+console.log('\n══ 3 bis. ⛔ LA MAQUETTE NE PROMET RIEN QUE LE SITE REFUSE ══\n');
+{ /* Elle est servie à qui connaît l'adresse (teamop.fr/apercu/site-apple.html) : ce qu'elle promet, un client
+     peut le lire. La liste des promesses refusées est celle du site, lue dans `test-846` — pas une copie. */
+  const T846=fs.readFileSync(__dirname+'/test-846.js','utf8');
+  const a=T846.indexOf('const FAUX = ['), b=T846.indexOf('];',a);
+  let FAUX=[];
+  try{ FAUX=new Function('return '+T846.slice(a+'const FAUX = '.length, b+1))(); }catch(e){}
+  vrai('(population) la liste des promesses refusées est lue dans test-846 ('+FAUX.length+' motifs)',
+    FAUX.length>=40 && FAUX.every(x=>x[0] instanceof RegExp) && FAUX.some(x=>x[0].test('Deux applications. Un seul compte.')));
+  v('⛔ aucune ne se trouve dans la maquette', FAUX.filter(([re])=>re.test(NU)).map(([,nom])=>nom), []);
+  v('⛔ « temps réel » réservé à OP MESSAGES — un seul emploi, dans sa carte (comme sur le site)',
+    [...NU.matchAll(/temps réel|instantané/gi)].map(m=>NU.slice(m.index-20,m.index)), ['versation : chat en ']);
+  v('⛔ les métiers présentés comme prêts sont les six packs de l\'application (METIERS_ORDRE)',
+    [...S.matchAll(/<div class="carte"><h3>([^<]+)<\/h3>/g)].map(m=>m[1]).filter(n=>!/^(Bientôt|Autre)$/.test(n)).length,
+    (APPH.match(/const METIERS_ORDRE=\[([^\]]*)\]/)||['',''])[1].split(',').filter(Boolean).length);
+  v('   … sous leurs noms', [...S.matchAll(/<div class="carte"><h3>([^<]+)<\/h3>/g)].map(m=>m[1]),
+    ['3D','Plomberie','Électricité','Chauffage · Clim','Serrurerie','Nettoyage','Bientôt','Autre']);
+  v('⛔ un impayé ne « revient » à aucun forfait gratuit (il n\'y en a plus sur le site)', /forfait gratuit/i.test(NU), false);
 }
 
 console.log('\n══ 4. LE DOIGT, ET LA STRUCTURE ══\n');
