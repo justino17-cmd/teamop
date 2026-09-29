@@ -26,7 +26,8 @@
        le rappel attend le passage suivant, sans marque, tant que la promesse aurait un délai ; ensuite il part, SANS elle ;
      · une seule fois par échéance ;
      · ⛔ l'attente de Stripe rend la main au serveur : une entreprise SUPPRIMÉE depuis la Tour pendant cette attente ne
-       reçoit rien, et les suivantes reçoivent le leur.
+       reçoit rien, et les suivantes reçoivent le leur ; une entreprise dont la Tour RÈGLE l'abonnement pendant ce temps
+       attend le passage suivant (la décision prise avant ne vaut plus).
    Rien ne sort d'ici : 127.0.0.1, un facteur de banc, un Stripe simulé, des entreprises fictives, un code fictif. */
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
 const { spawn } = require('child_process');
@@ -119,7 +120,8 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     psi: ['t-psi-844', 'Psi Gratuite', 'psi@exemple-844.fr'],              // fiche GRATUIT : un ancien abonnement + un Pro RÉSILIÉ
     omega: ['t-omega-844', 'Omega Tour', 'omega@exemple-844.fr'],          // réglée à la main dans la Tour (impayé), abonnée chez Stripe
     lambda: ['t-lambda-844', 'Lambda Essai Résilié', 'lambda@exemple-844.fr'], // en essai, résiliée APRÈS l'essai (un prélèvement, puis la fin)
-    theta: ['t-theta-844', 'Theta Deux', 'theta@exemple-844.fr'] };        // DEUX abonnements OP GESTION : en essai (1er), actif
+    theta: ['t-theta-844', 'Theta Deux', 'theta@exemple-844.fr'],          // DEUX abonnements OP GESTION : en essai (1er), actif
+    rho: ['t-rho-844', 'Rho Sans Date', 'rho@exemple-844.fr'] };            // résiliée « à la fin de la période » SANS aucune date lisible
   const espaces = {}, usages = { 'ESSAI-BANC-844': { n: 0, equipes: {} } };
   const periode = t => { usages['ESSAI-BANC-844'].n++; usages['ESSAI-BANC-844'].equipes[t] = { date: jour(-80), finLe: FIN, em: '' }; };
   for (const [slug, [t, nom, email]] of Object.entries(ENT)) { espaces[slug] = { t, nom, email, ts: MAINTENANT - 1000, formule: 'premium' }; periode(t); }
@@ -141,7 +143,8 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
   const autre = (x, id) => Object.assign(x, { id });
   const ABOS = [
     abo('t-alpha-844', 'alpha@exemple-844.fr', 'trialing', P_PREMIUM, { trial_end: secondes(DEBUT), current_period_end: secondes(DEBUT) }),
-    abo('t-beta-844', 'beta@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(20)) }),
+    /* renouvelé à 23 h 30 UTC la veille : c'est déjà le jour d'après à Paris — le courriel dit le jour du client */
+    abo('t-beta-844', 'beta@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(20)) - 1800 }),
     abo('t-epsilon-844', 'epsilon@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
     abo('t-gamma-844', 'gamma@exemple-844.fr', 'active', P_MSG, { current_period_end: secondes(jour(20)) }),
     /* résilié pendant l'essai : Stripe pose `cancel_at_period_end` ET `cancel_at` (la fin de la période en cours = de l'essai) */
@@ -174,8 +177,13 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     /* theta : l'essai trouvé d'abord, l'actif ensuite — l'actif décide (déjà prélevé : pas de « premier prélèvement ») */
     autre(abo('t-theta-844', 'theta@exemple-844.fr', 'trialing', P_PREMIUM, { trial_end: secondes(DEBUT), current_period_end: secondes(DEBUT) }), 'sub_t-theta-844-e'),
     abo('t-theta-844', 'theta@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(22)) }),
+    /* rho : `cancel_at_period_end` sans aucune date (ni fin de période, ni essai, ni `cancel_at`) : on ne sait pas quand il
+       s'arrête — il ne prend aucun relais */
+    Object.assign(abo('t-rho-844', 'rho@exemple-844.fr', 'active', P_PREMIUM, { cancel_at_period_end: true }), { current_period_end: undefined }),
     /* vieux (phase 2 bis) : en essai — une liste fraîche la dirait abonnée */
-    abo('t-vieux-844', 'vieux@exemple-844.fr', 'trialing', P_PREMIUM, { trial_end: secondes(DEBUT), current_period_end: secondes(DEBUT) }) ];
+    abo('t-vieux-844', 'vieux@exemple-844.fr', 'trialing', P_PREMIUM, { trial_end: secondes(DEBUT), current_period_end: secondes(DEBUT) }),
+    /* mutee (phase 4) : active chez Stripe — abonnée, jusqu'à ce que la Tour règle son abonnement à la main pendant l'attente */
+    abo('t-mutee-844', 'mutee@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(20)) }) ];
   const PRECHARGE = path.join(banc, 'stripe-simule.js');
   fs.writeFileSync(PRECHARGE, `const vrai = globalThis.fetch; const ABOS = ${JSON.stringify(ABOS)}; let appels = 0;
 globalThis.fetch = async function (url, opts) {
@@ -243,7 +251,7 @@ globalThis.fetch = async function (url, opts) {
     vrai('⛔   et pas la promesse « rien n\'est prélevé avant… » (elle invite à payer)', !!A && !PROMESSE.test(A));
     vrai('   son seul bouton ouvre l\'application', /href="https:\/\/teamop\.fr\/app\.html"[^>]*>Ouvrir mon application</.test(A));
     const Bt = de('beta');
-    vrai('⛔ beta (abonnée active) — le même courriel, avec la prochaine échéance (' + fr(jour(20)) + '), sans lien de paiement',
+    vrai('⛔ beta (abonnée active, renouvelée à 23 h 30 UTC : le ' + fr(jour(20)) + ' à Paris) — le même courriel, avec la prochaine échéance au jour de Paris, sans lien de paiement',
       RELAIS.test(Bt) && Bt.includes('Prochaine échéance de votre abonnement : le ' + fr(jour(20)) + '.') && !PAIEMENT.test(Bt) && !PROMESSE.test(Bt));
     const E = de('epsilon');
     vrai('⛔ epsilon (en impayé) — il ne dit pas « rien à faire » : le dernier prélèvement n\'a pas abouti, et à qui écrire',
@@ -289,6 +297,8 @@ globalThis.fetch = async function (url, opts) {
     const Th = de('theta');
     vrai('   theta (en essai trouvé d\'abord, actif ensuite) — l\'actif décide : prochaine échéance ' + fr(jour(22)) + ', pas de « premier prélèvement »',
       RELAIS.test(Th) && Th.includes('Prochaine échéance de votre abonnement : le ' + fr(jour(22)) + '.') && !/premier prélèvement/.test(Th));
+    const Rh = de('rho');
+    vrai('   rho (résiliée sans aucune date lisible : on ne sait pas quand elle s\'arrête) — pas de « prend le relais » : le courriel habituel', HABITUEL(Rh));
     vrai('   le journal les distingue (« déjà abonnée », « en impayé », « résiliée au »), sans adresse en clair',
       /rappel échéance envoyé → a\*+@exemple-844\.fr \(fin [0-9-]+, déjà abonnée\)/.test(journal) && /e\*+@exemple-844\.fr \(fin [0-9-]+, déjà abonnée, en impayé\)/.test(journal)
       && new RegExp('k\\*+@exemple-844\\.fr \\(fin [0-9-]+, déjà abonnée, résiliée au ' + jour(20) + '\\)').test(journal)
@@ -366,6 +376,35 @@ globalThis.fetch = async function (url, opts) {
     const R3 = lus(avant3);
     vrai('⛔ sigma, supprimée pendant l\'attente, ne reçoit PAS le rappel', !R3.some(x => x.a === 'sigma@exemple-844.fr'));
     vrai('⛔ tau, la suivante, reçoit le sien (le passage ne s\'est pas arrêté sur l\'entrée disparue)', R3.some(x => x.a === 'tau@exemple-844.fr' && /Plus que quelques jours/.test(x.m)));
+    vrai('   aucune erreur de la boucle au journal', !/rappelsEcheances/.test(journal));
+    await arreter();
+
+    console.log('\n4. La Tour règle l\'abonnement à la main PENDANT que le serveur attend Stripe');
+    /* mutee, active chez Stripe : la décision prise avant l'attente dit « abonnée ». Pendant l'attente, la Tour pose
+       « impayé » (`/api/monitor/espaces/abonnement`, qui modifie la fiche sur place) : Stripe ne décide plus rien pour elle,
+       la décision d'avant ne vaut plus — elle attend le passage suivant, sans marque. */
+    espaces.mutee = { t: 't-mutee-844', nom: 'Mutee', email: 'mutee@exemple-844.fr', ts: MAINTENANT - 1000, formule: 'premium' };
+    const e4 = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'));
+    for (const k of Object.keys(e4)) if (!e4[k].rappelFin && k !== 'mutee') e4[k].rappelFin = FIN;   // tau, et les autres : prévenues
+    e4.mutee = espaces.mutee;
+    fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(e4));
+    const u4 = JSON.parse(fs.readFileSync(path.join(D, 'promos-usages.json'), 'utf8'));
+    u4['ESSAI-BANC-844'].equipes['t-mutee-844'] = { date: jour(-80), finLe: FIN, em: '' }; u4['ESSAI-BANC-844'].n++;
+    fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify(u4));
+    const avant4 = facteurSrv.recus.length;
+    vrai('le serveur redémarre, Stripe lent (3 s par appel)', await demarrer('lent'));
+    const debut4 = Date.now();
+    let vu4 = false;
+    for (let i = 0; i < 100 && !(vu4 = /banc-stripe: appel/.test(journal)); i++) await dormir(100);
+    if (Date.now() - debut4 < 1400) await dormir(1400 - (Date.now() - debut4));
+    vrai('(population) le passage attend Stripe — mutee est en cours de traitement', vu4 && !/rappel échéance (envoyé|REFUSÉ|reporté)/.test(journal));
+    const PATRON4 = (await appel('/api/monitor/login', { nom: 'Patron', pass: 'mot-de-passe-844' })).j.token;
+    const regle = await appel('/api/monitor/espaces/abonnement', { nom: 'mutee', formule: 'premium', statut: 'impaye' }, PATRON4);
+    vrai('la Tour pose « impayé » sur mutee pendant l\'attente (200) — Stripe n\'a pas encore répondu', regle.s === 200 && regle.j.statut === 'impaye'
+      && !/rappel échéance (envoyé|REFUSÉ)/.test(journal));
+    await dormir(4500);   // Stripe répond (3 s), le passage se termine
+    vrai('⛔ mutee ne reçoit PAS « votre abonnement prend le relais » (décidé avant le réglage de la Tour) — rien à ce passage, ni marque',
+      !lus(avant4).some(x => x.a === 'mutee@exemple-844.fr') && !marques()('mutee'));
     vrai('   aucune erreur de la boucle au journal', !/rappelsEcheances/.test(journal));
   } finally { if (enfant) await arreter(); }
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
