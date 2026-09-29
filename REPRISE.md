@@ -13,7 +13,7 @@ de ligne du tout.
 
 ---
 
-# ⏳ 29 SEPTEMBRE 2026, MATIN — LES TROIS RÉPONSES DE JUSTIN SUR LE PAIEMENT : LE CLIENT CHOISIT SON TARIF, L'APPLICATION REÇOIT CE QUI EST PAYÉ, LE CODE PROMO AU PLUS GROS FORFAIT — PRÊT, ATTEND « POUSSE »
+# ✅ 29 SEPTEMBRE 2026, MATIN — LES TROIS RÉPONSES DE JUSTIN SUR LE PAIEMENT : LE CLIENT CHOISIT SON TARIF, L'APPLICATION REÇOIT CE QUI EST PAYÉ, LE CODE PROMO AU PLUS GROS FORFAIT — EN SERVICE (`3785a0f`, DÉPLOIEMENT N° 102)
 
 Justin, au réveil, aux trois questions de la nuit (plus bas) : **« 1 il choisit ce tarif qu'il veut »** ; **« 2 […] une
 e-mail par abonnement par entreprise ; s'ils en ont besoin de plusieurs […] ils feront une autre e-mail, c'est tout »** ;
@@ -105,7 +105,10 @@ sur la branche ; les contrôles de
 `verification.yml` (versions, connexion 67 cas, accès 17 cas, bêta identique à sa génération), `verif-secrets` et
 `verifier-theme` verts.
 
-### ⏳ LA MISE EN LIGNE — PRÊTE EN UN SEUL ENVOI (paiement + Tour v2.75)
+### ✅ LA MISE EN LIGNE — EN SERVICE (paiement + Tour v2.75)
+✅ **Poussée le 29 septembre sur « Pousse » de Justin** : déploiement du serveur n° 102 vert (bancs, puis le VPS),
+`/health` propre, `tour.html` et `recap-abonnement.html` servis octet pour octet, CI de `main` verte 4/4 (CI n° 1331,
+« Vérification des pages » n° 516, Pages n° 1290). Ce qui suit est la fiche de fabrication, gardée pour mémoire.
 Dans l'arbre `scratchpad/pub-paiement` (session du 29 septembre, matin) : **`3785a0f`**, un seul commit sur `main` à
 `8fbd34a`. Il emporte `server/index.js`, `server/portail.js`, `recap-abonnement.html`, `apercu/recap-abonnement.html`,
 `tour.html` (v2.75), `scripts/bancs-serveur.liste` (plancher 3 000), `scripts/preparer-deploiement-serveur.sh`,
@@ -126,8 +129,8 @@ formule de chaque entreprise (ELAN d'abord).
   Business Premium pendant sa période (la règle de Justin) ; si sa fiche est déjà Business Premium, rien ne change. À
   regarder dans la Tour après le déploiement (Abonnements : l'écart s'y lit).
 · **« Les sept jours »** sont ceux du courriel J-7 : à la fin d'un code non payé, l'application repasse en Gratuit tout de
-  suite (sans sursis — le sursis de sept jours est celui d'un IMPAYÉ). Payer pendant la période ne décale pas la
-  facturation : Stripe facture dès le paiement (piste, à décider : `subscription_data[trial_end]` = la fin du code).
+  suite (sans sursis — le sursis de sept jours est celui d'un IMPAYÉ). Payer pendant la période ne décalait pas la
+  facturation — ✅ décidé « oui » le 29 à midi : rien n'est prélevé avant la fin du code (section du dessus).
 · **Deux entreprises à la même adresse** (réponse 2 : une adresse = une entreprise) : elles ne se prêtent plus une
   formule, mais le verdict « payé » et les places, si (le repli par l'adresse d'avant) ; dans le doute, chacune garde sa
   fiche. Ne pas créer deux entreprises à la même adresse dans la Tour.
@@ -137,14 +140,15 @@ formule de chaque entreprise (ELAN d'abord).
   « 🎉 Gratuit débloqué » (celui de tout changement de formule — à reprendre dans l'application, sur la bêta) ; avant,
   elle recevait la formule de la fiche sans la payer. Un abonnement d'avant la bascule garde la fiche.
 
-⏳ **Ce qui reste à Justin** : **dire « pousse »** ; décider de `trial_end` (plus haut) ; Search Console → « Inspection de
-l'URL » → `https://teamop.fr/` → « Demander une indexation » (le logo) ; supprimer l'ancienne paire de clés du coffre IONOS
-(#132) ; regarder chez Stripe qu'aucun code de réduction à 100 % ne traîne ; plus tard, exiger la v763.
-⏳ **Ce qui reste au dépôt** : retirer l'ancien `vitrine/` et les deux empreintes v1 — pas avant quelques jours ; jeter
-`stash@{0}` une fois la v2.75 en service ; l'application (bêta) : un message juste quand la formule DESCEND ;
-`apercu/tour.html` est resté en v2.68 (aucun banc ne le lit) — le régénérer (`bash scripts/apercu.sh tour.html`) ou le
-retirer, un aperçu plus vieux que sa page trompe ; servir la liste Stripe connue sans attendre pendant une panne
-(remarque 1 de la seconde relecture, avec ses bancs).
+✅ **Ses réponses, le 29 à midi** : « pousse » (fait, ci-dessus) ; `trial_end` : **« oui »** (section du dessus, prête) ;
+Search Console : **il le fait ce soir** ; l'ancienne paire du coffre IONOS : **supprimée depuis longtemps** (#132) ; codes
+Stripe à 100 % : **aucun**. Reste, plus tard : exiger la v763.
+⏳ **Ce qui reste au dépôt** : retirer l'ancien `vitrine/` et les deux empreintes v1 — pas avant quelques jours ;
+l'application (bêta) : un message juste quand la formule DESCEND ; servir la liste Stripe connue sans attendre pendant une
+panne (remarque 1 de la seconde relecture, avec ses bancs). ✅ `apercu/tour.html` régénéré en v2.75 (`16e49bd`) — il part
+avec la mise en ligne n° 2. ⚠️ `stash@{0}` (un brouillon de `tour.html` sur `publication/apercu-tour`) n'est PAS jetée :
+46 de ses 113 lignes seulement se retrouvent dans la Tour d'aujourd'hui ; elle ne vit que dans le conteneur de cette
+session, et disparaîtra avec lui.
 
 ---
 
