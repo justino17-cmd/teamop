@@ -25,7 +25,9 @@ robots) ; résumé montré avant le commit, réponse « oui ». Commit de la bra
   « code-barres », « relance automatique », « chantier », la box hors de la page 3D…).
 - Preuves : `test-846` 220 ✓, `test-835` 349 ✓, `test-836` 304 ✓, `scratchpad/mutations-seo.py` 24/24.
 ⚠️ Ce qui reste, et qui est à lui ou à décider :
-- déclarer `https://teamop.fr/sitemap.xml` dans Google Search Console (geste de Justin) ;
+- Google Search Console : propriété « Préfixe de l'URL » `https://teamop.fr/` créée par Justin ; le fichier de validation
+  `google151be914dcdfaf7e.html` est EN LIGNE (poussé SEUL sur `main`, `a8fb0fa`, sur son « oui ») — ⛔ ne jamais le retirer
+  (Google retire la propriété) ; `test-846` le nomme. Reste : « Valider », puis déclarer `sitemap.xml` APRÈS le « pousse » ;
 - trois descriptions au-delà de 155 signes (accueil — son texte —, tarifs, ELAN) : Google coupe ;
 - l'image de partage est en WebP (LinkedIn la lit mal) ;
 - `metiers.html` promet des « rappels d'échéance » de contrat qui n'existent pas, et « Temps réel » reste sur le site.
@@ -213,7 +215,7 @@ MESSAGES, la voisine, le nom repris) ; la relecture à la minute ; **26 ✗ cont
 facture) ; `test-842` 91 ✓, `test-839` 199 ✓, `test-727` 177 ✓, `test-797` 24 ✓ ; `803`, `811`, `813`, `828`, `829`,
 `833`, `840`, `843`, `641`, `726` verts ; **mutations : série I 46/46 sur le code final** (dont I36 — le nom d'accès
 sans son adresse — et I36c — le nom repris à la même adresse —, trous trouvés et fermés ce soir ; les 52 autres
-(E, N, P, R) : ⏳ à rejouer sur le code final ; R1 et R3 de la formule servie rejouées après le déplacement de `partagee`)
+(E, N, P, R) : 52/52 mordent, rejouées sur le code final (`scratchpad/mut-autres.log`, arbre propre après le lot) ; R1 et R3 de la formule servie rejouées après le déplacement de `partagee`)
 (`scratchpad/mutations-essai.py`, arbre à part) ; relectures : `gardien` (11 constats) et `relecteur` (9), puis une
 relecture adverse à 5 angles (26 agents) — tous traités ou écrits ci-dessus ; liste serveur et suite complète : liste 49 suites · 3 243, code 0 ; suite complète 201 suites · 11 179, code 0 ; les onze contrôles de `verification.yml` verts ; bêta régénérée identique.
 
