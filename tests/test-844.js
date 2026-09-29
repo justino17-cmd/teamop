@@ -149,7 +149,8 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
 
   /* Stripe, simulé DANS le processus serveur (`fetch` remplacé avant le chargement d'`index.js`) : la liste des
      abonnements, telle que `stripeAbosBruts` la demande. `STRIPE_BANC` : `panne` (500, toujours), `puis-panne` (le premier
-     appel répond, les suivants 500 : une liste qui devient PÉRIMÉE), `lent` (3 s par appel : la fenêtre de la course). */
+     appel répond, les suivants 500 : une liste qui devient PÉRIMÉE), `retenu` (la lecture que fait le PASSAGE DES RAPPELS
+     attend que le banc la relâche : la course se joue au geste du banc, jamais au chronomètre — voir la phase 3). */
   const creation = Math.floor(MAINTENANT / 1000) - 3600;
   const abo = (t, email, statut, tarif, plus) => Object.assign({ id: 'sub_' + t, object: 'subscription', status: statut, created: creation,
     metadata: { espace: t, compte: email }, customer: { id: 'cus_' + t, email },
@@ -232,13 +233,27 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     'sub_t-yod-844': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('yod') } },
     'sub_t-stigma-844': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('stigma') } } };
   const PRECHARGE = path.join(banc, 'stripe-simule.js');
-  fs.writeFileSync(PRECHARGE, `const vrai = globalThis.fetch; const ABOS = ${JSON.stringify(ABOS)}; const FACTURES = ${JSON.stringify(FACTURES)}; let appels = 0;
+  fs.writeFileSync(PRECHARGE, `const vrai = globalThis.fetch; const ABOS = ${JSON.stringify(ABOS)}; const FACTURES = ${JSON.stringify(FACTURES)}; let appels = 0, retenus = 0;
 globalThis.fetch = async function (url, opts) {
   const u = String(url && url.url || url);
   if (u.startsWith('https://api.stripe.com/')) {
     appels++;
     process.stdout.write('banc-stripe: appel\\n');   // (dans le gabarit : l'antislash est doublé)
-    if (process.env.STRIPE_BANC === 'lent') await new Promise(r => setTimeout(r, 3000));   // la fenêtre de la course
+    /* RETENU : la lecture que fait le PASSAGE DES RAPPELS (reconnu à sa pile d'appels) attend que le banc la relâche, en
+       écrivant son numéro dans STRIPE_PORTE ; les autres lecteurs (l'horloge de conservation, au démarrage) passent */
+    if (process.env.STRIPE_BANC === 'retenu') {
+      const lim = Error.stackTraceLimit; Error.stackTraceLimit = 60; const pile = String(new Error().stack); Error.stackTraceLimit = lim;
+      if (/\\brappelsEcheances\\b/.test(pile)) {
+        const n = ++retenus, fin = Date.now() + 60000;   // jamais figé : le banc a ses propres bornes
+        process.stdout.write('banc-stripe: retenu ' + n + ' ' + u.slice('https://api.stripe.com'.length).split('?')[0] + '\\n');
+        for (;;) {
+          let o = 0; try { o = Number(require('fs').readFileSync(process.env.STRIPE_PORTE, 'utf8')) || 0; } catch (e) {}
+          if (o >= n || Date.now() > fin) break;
+          await new Promise(r => setTimeout(r, 20));
+        }
+        process.stdout.write('banc-stripe: relâché ' + n + '\\n');
+      }
+    }
     if (process.env.STRIPE_BANC === 'panne' || (process.env.STRIPE_BANC === 'puis-panne' && appels > 1))
       return new Response('{"error":{"message":"panne du banc"}}', { status: 500, headers: { 'content-type': 'application/json' } });
     const json = (c, st) => new Response(JSON.stringify(c), { status: st || 200, headers: { 'content-type': 'application/json' } });
@@ -294,6 +309,26 @@ globalThis.fetch = async function (url, opts) {
   const HABITUEL = m => /Plus que quelques jours/.test(m) && PAIEMENT.test(m) && !RELAIS.test(m);
   const marques = () => { const e = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8')); return s => (e[s] || {}).rappelFin; };
   const lus = (depuis) => facteurSrv.recus.slice(depuis || 0).map(m => ({ a: destinataire(m), m: lisible(m), brut: m }));
+  /* les rappels seuls (les entreprises du banc) : l'avis de suppression de la Tour part aussi par le facteur */
+  const rappels = (depuis) => lus(depuis).filter(x => /@exemple-844\.fr$/.test(x.a));
+  /* ⛔ LA PORTE DU STRIPE DU BANC (phases 3 à 5) : on y écrit le numéro du dernier appel RETENU qu'on relâche. Un cache
+     court (300 ms) fait lire Stripe au passage lui-même : sinon il attend la lecture que l'horloge de conservation fait au
+     démarrage, et rien ne dit alors qu'il attend. */
+  const PORTE = path.join(banc, 'porte-stripe');
+  const porte = n => fs.writeFileSync(PORTE, String(n));
+  const RETENU = { STRIPE_PORTE: PORTE, TEAMOP_STRIPE_CACHE_MS: '300' };
+  const relache = n => new RegExp('banc-stripe: relâché ' + n + '(?!\\d)').test(journal);
+  /* relâche un à un les appels retenus, jusqu'à celui qu'on veut TENIR — rendu : son numéro (0 : il n'est pas venu) */
+  const tenir = async (motif) => {
+    for (let i = 0; i < 300; i++) {
+      const r = [...journal.matchAll(/banc-stripe: retenu (\d+) (\S+)/g)];
+      const cible = r.find(x => motif.test(x[2]));
+      if (cible) return +cible[1];
+      if (r.length) porte(Math.max(...r.map(x => +x[1])));
+      await dormir(50);
+    }
+    return 0;
+  };
 
   try {
     console.log('\n1. Stripe lisible : chacune reçoit le courriel de ce que l\'application fera le lendemain de la fin');
@@ -470,29 +505,34 @@ globalThis.fetch = async function (url, opts) {
 
     console.log('\n3. Une entreprise supprimée depuis la Tour PENDANT que le serveur attend Stripe');
     /* sigma d'abord, tau ensuite (l'ordre du registre des codes) : c'est pendant l'attente de sigma qu'on la supprime ; toutes
-       les autres sont marquées « prévenues », pour que sigma soit la première à attendre */
+       les autres sont marquées « prévenues », pour que sigma soit la première à attendre.
+       ⛔ LA COURSE SE JOUE AU GESTE DU BANC, JAMAIS AU CHRONOMÈTRE. Jusqu'au 29 septembre 2026, Stripe « lent » répondait en
+       3 s et le banc pariait que la connexion de la Tour et la suppression tiendraient dedans. Mesuré ce soir-là : l'horloge
+       de conservation lit Stripe dès le démarrage (0,25 s), le passage attendait CETTE lecture, et la suppression — qui
+       appelle vraiment Google — rendait à 3,03 s pour une fenêtre fermée à 3,24 s. Sur GitHub, elle est passée derrière
+       (run 518 de « Vérification des pages », sur main) : le serveur était juste, le banc pariait. Le Stripe du banc RETIENT
+       désormais la lecture du passage jusqu'à ce que le banc la relâche (`tenir`, `porte`). */
     espaces.sigma = { t: 't-sigma-844', nom: 'Sigma Supprimée', email: 'sigma@exemple-844.fr', ts: MAINTENANT - 1000, formule: 'premium' };
     espaces.tau = { t: 't-tau-844', nom: 'Tau Suivante', email: 'tau@exemple-844.fr', ts: MAINTENANT - 1000, formule: 'premium' };
     periode('t-sigma-844'); periode('t-tau-844');
     ecrire();
     const avant3 = facteurSrv.recus.length;
-    vrai('le serveur redémarre, Stripe lent (3 s par appel)', await demarrer('lent'));
-    const debut3 = Date.now();
-    let vu = false;
-    for (let i = 0; i < 100 && !(vu = /banc-stripe: appel/.test(journal)); i++) await dormir(100);
-    /* le passage part 1 s après le démarrage (`TEAMOP_RAPPELS_DELAI_MS`) : on supprime APRÈS qu'il a commencé — sinon sigma
-       serait écartée avant l'attente, et la course ne serait pas jouée — et bien avant la réponse de Stripe (3 s) */
-    if (Date.now() - debut3 < 1400) await dormir(1400 - (Date.now() - debut3));
-    vrai('(population) le passage attend Stripe — sigma est en cours de traitement', vu && !/rappel échéance (envoyé|REFUSÉ|reporté)/.test(journal));
+    porte(0);
+    vrai('le serveur redémarre, Stripe RETENU par le banc pour le passage des rappels', await demarrer('retenu', RETENU));
+    const n3 = await tenir(/^\/v1\/subscriptions$/);
+    vrai('(population) le passage attend Stripe — sa lecture est retenue par le banc, rien n\'est encore parti', n3 > 0 && issues() === 0);
     const appel = async (chemin, corps, jeton) => { const r = await fetch(B + chemin, { method: 'POST',
       headers: Object.assign({ 'Content-Type': 'application/json' }, jeton ? { Authorization: 'Bearer ' + jeton } : {}), body: JSON.stringify(corps) });
       return { s: r.status, j: await r.json().catch(() => ({})) }; };
     const PATRON = (await appel('/api/monitor/login', { nom: 'Patron', pass: 'mot-de-passe-844' })).j.token;
     const sup = await appel('/api/monitor/entreprise/supprimer', { t: 't-sigma-844', confirme: true }, PATRON);
-    vrai('la Tour supprime sigma pendant l\'attente (200) — Stripe n\'a pas encore répondu', sup.s === 200 && !/rappel échéance (envoyé|REFUSÉ)/.test(journal));
+    v('la Tour supprime sigma pendant l\'attente', sup.s, 200);
+    vrai('   Stripe n\'a toujours pas répondu (la lecture attend le banc) — aucun rappel n\'est parti', n3 > 0 && !relache(n3) && issues() === 0);
+    porte(1e6);
     for (let i = 0; i < 150 && !lus(avant3).some(x => x.a === 'tau@exemple-844.fr'); i++) await dormir(100);
     await dormir(1500);
     const R3 = lus(avant3);
+    v('(population) ce passage ne prévient que tau : sigma était la première à attendre, et la seule avant elle', rappels(avant3).map(x => x.a), ['tau@exemple-844.fr']);
     vrai('⛔ sigma, supprimée pendant l\'attente, ne reçoit PAS le rappel', !R3.some(x => x.a === 'sigma@exemple-844.fr'));
     vrai('⛔ tau, la suivante, reçoit le sien (le passage ne s\'est pas arrêté sur l\'entrée disparue)', R3.some(x => x.a === 'tau@exemple-844.fr' && /Plus que quelques jours/.test(x.m)));
     vrai('   aucune erreur de la boucle au journal', !/rappelsEcheances/.test(journal));
@@ -501,55 +541,64 @@ globalThis.fetch = async function (url, opts) {
     console.log('\n4. La Tour règle l\'abonnement à la main PENDANT que le serveur attend Stripe');
     /* mutee, active chez Stripe : la décision prise avant l'attente dit « abonnée ». Pendant l'attente, la Tour pose
        « impayé » (`/api/monitor/espaces/abonnement`, qui modifie la fiche sur place) : Stripe ne décide plus rien pour elle,
-       la décision d'avant ne vaut plus — elle attend le passage suivant, sans marque. */
+       la décision d'avant ne vaut plus — elle attend le passage suivant, sans marque. Un TÉMOIN la suit dans le registre des
+       codes : son rappel prouve que le passage est allé au-delà de mutee (sans lui, « mutee ne reçoit rien » passait aussi
+       sur un passage qui n'avait pas fini). */
     espaces.mutee = { t: 't-mutee-844', nom: 'Mutee', email: 'mutee@exemple-844.fr', ts: MAINTENANT - 1000, formule: 'premium' };
+    espaces.temoin4 = { t: 't-temoin4-844', nom: 'Témoin Quatre', email: 'temoin4@exemple-844.fr', ts: MAINTENANT - 1000, formule: 'premium' };
     const e4 = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'));
     for (const k of Object.keys(e4)) if (!e4[k].rappelFin && k !== 'mutee') e4[k].rappelFin = FIN;   // tau, et les autres : prévenues
-    e4.mutee = espaces.mutee;
+    e4.mutee = espaces.mutee; e4.temoin4 = espaces.temoin4;
     fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(e4));
     const u4 = JSON.parse(fs.readFileSync(path.join(D, 'promos-usages.json'), 'utf8'));
     u4['ESSAI-BANC-844'].equipes['t-mutee-844'] = { date: jour(-80), finLe: FIN, em: '' }; u4['ESSAI-BANC-844'].n++;
+    u4['ESSAI-BANC-844'].equipes['t-temoin4-844'] = { date: jour(-80), finLe: FIN, em: '' }; u4['ESSAI-BANC-844'].n++;   // APRÈS mutee
     fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify(u4));
     const avant4 = facteurSrv.recus.length;
-    vrai('le serveur redémarre, Stripe lent (3 s par appel)', await demarrer('lent'));
-    const debut4 = Date.now();
-    let vu4 = false;
-    for (let i = 0; i < 100 && !(vu4 = /banc-stripe: appel/.test(journal)); i++) await dormir(100);
-    if (Date.now() - debut4 < 1400) await dormir(1400 - (Date.now() - debut4));
-    vrai('(population) le passage attend Stripe — mutee est en cours de traitement', vu4 && !/rappel échéance (envoyé|REFUSÉ|reporté)/.test(journal));
+    porte(0);
+    vrai('le serveur redémarre, Stripe RETENU par le banc pour le passage des rappels', await demarrer('retenu', RETENU));
+    const n4 = await tenir(/^\/v1\/subscriptions$/);
+    vrai('(population) le passage attend Stripe — mutee est en cours de traitement, rien n\'est encore parti', n4 > 0 && issues() === 0);
     const PATRON4 = (await appel('/api/monitor/login', { nom: 'Patron', pass: 'mot-de-passe-844' })).j.token;
     const regle = await appel('/api/monitor/espaces/abonnement', { nom: 'mutee', formule: 'premium', statut: 'impaye' }, PATRON4);
-    vrai('la Tour pose « impayé » sur mutee pendant l\'attente (200) — Stripe n\'a pas encore répondu', regle.s === 200 && regle.j.statut === 'impaye'
-      && !/rappel échéance (envoyé|REFUSÉ)/.test(journal));
-    await dormir(4500);   // Stripe répond (3 s), le passage se termine
+    vrai('la Tour pose « impayé » sur mutee pendant l\'attente (200)', regle.s === 200 && regle.j.statut === 'impaye');
+    vrai('   Stripe n\'a toujours pas répondu (la lecture attend le banc) — aucun rappel n\'est parti', n4 > 0 && !relache(n4) && issues() === 0);
+    porte(1e6);
+    for (let i = 0; i < 150 && !lus(avant4).some(x => x.a === 'temoin4@exemple-844.fr'); i++) await dormir(100);
+    await dormir(1000);
+    v('(population) le passage est allé au bout : le témoin, qui suit mutee, a son rappel — et lui seul', rappels(avant4).map(x => x.a), ['temoin4@exemple-844.fr']);
     vrai('⛔ mutee ne reçoit PAS « votre abonnement prend le relais » (décidé avant le réglage de la Tour) — rien à ce passage, ni marque',
       !lus(avant4).some(x => x.a === 'mutee@exemple-844.fr') && !marques()('mutee'));
     vrai('   aucune erreur de la boucle au journal', !/rappelsEcheances/.test(journal));
     await arreter();
 
     console.log('\n5. La Tour supprime une entreprise en impayé PENDANT que le serveur lit sa facture');
-    /* stigma, en impayé : la liste se lit (1er appel, 3 s), puis sa facture se relit (2e appel, 3 s). On la supprime pendant
-       ce second appel : l'attente de la facture rend la main au serveur, et la décision prise avant ne vaut plus — elle ne
-       reçoit rien, et rien n'est marqué. */
+    /* stigma, en impayé : la liste se lit (le banc la relâche), puis sa facture se relit (le banc la TIENT). On la supprime
+       pendant cette relecture : l'attente de la facture rend la main au serveur, et la décision prise avant ne vaut plus —
+       elle ne reçoit rien, et rien n'est marqué. Un témoin la suit, comme en 4. */
     const e5 = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'));
     for (const k of Object.keys(e5)) if (!e5[k].rappelFin) e5[k].rappelFin = FIN;   // mutee et les autres : prévenues
     e5.stigma = { t: 't-stigma-844', nom: 'Stigma Supprimée', email: 'stigma@exemple-844.fr', ts: MAINTENANT - 1000, formule: 'premium' };
+    e5.temoin5 = { t: 't-temoin5-844', nom: 'Témoin Cinq', email: 'temoin5@exemple-844.fr', ts: MAINTENANT - 1000, formule: 'premium' };
     fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(e5));
     const u5 = JSON.parse(fs.readFileSync(path.join(D, 'promos-usages.json'), 'utf8'));
     u5['ESSAI-BANC-844'].equipes['t-stigma-844'] = { date: jour(-80), finLe: FIN, em: '' }; u5['ESSAI-BANC-844'].n++;
+    u5['ESSAI-BANC-844'].equipes['t-temoin5-844'] = { date: jour(-80), finLe: FIN, em: '' }; u5['ESSAI-BANC-844'].n++;   // APRÈS stigma
     fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify(u5));
     const avant5 = facteurSrv.recus.length;
-    vrai('le serveur redémarre, Stripe lent (3 s par appel)', await demarrer('lent'));
-    let vu5 = false;
-    for (let i = 0; i < 150 && !(vu5 = (journal.match(/banc-stripe: appel/g) || []).length >= 2); i++) await dormir(100);
-    await dormir(300);
-    vrai('(population) le passage lit la facture de stigma (second appel à Stripe) — rien n\'est encore parti', vu5 && !/rappel échéance (envoyé|REFUSÉ|reporté)/.test(journal));
+    porte(0);
+    vrai('le serveur redémarre, Stripe RETENU par le banc pour le passage des rappels', await demarrer('retenu', RETENU));
+    const n5 = await tenir(/^\/v1\/subscriptions\/sub_t-stigma-844$/);   // la liste est relâchée, la relecture de SA facture tenue
+    vrai('(population) le passage lit la facture de stigma (tenue par le banc, après la liste) — rien n\'est encore parti', n5 > 1 && issues() === 0);
     const PATRON5 = (await appel('/api/monitor/login', { nom: 'Patron', pass: 'mot-de-passe-844' })).j.token;
     const sup5 = await appel('/api/monitor/entreprise/supprimer', { t: 't-stigma-844', confirme: true }, PATRON5);
-    vrai('la Tour supprime stigma pendant la lecture de sa facture (200)', sup5.s === 200 && !/rappel échéance (envoyé|REFUSÉ)/.test(journal));
-    for (let i = 0; i < 60 && !/banc-stripe: relecture sub_t-stigma-844/.test(journal); i++) await dormir(100);
-    await dormir(1500);
+    v('la Tour supprime stigma pendant la lecture de sa facture', sup5.s, 200);
+    vrai('   la facture n\'est toujours pas lue (la relecture attend le banc) — aucun rappel n\'est parti', n5 > 1 && !relache(n5) && issues() === 0);
+    porte(1e6);
+    for (let i = 0; i < 150 && !lus(avant5).some(x => x.a === 'temoin5@exemple-844.fr'); i++) await dormir(100);
+    await dormir(1000);
     vrai('(population) la facture a bien été relue', /banc-stripe: relecture sub_t-stigma-844/.test(journal));
+    v('(population) le passage est allé au bout : le témoin, qui suit stigma, a son rappel — et lui seul', rappels(avant5).map(x => x.a), ['temoin5@exemple-844.fr']);
     vrai('⛔ stigma, supprimée pendant la lecture de sa facture, ne reçoit PAS le rappel (ni la facture d\'une entreprise qui n\'existe plus)',
       !lus(avant5).some(x => x.a === 'stigma@exemple-844.fr'));
     vrai('   aucune erreur de la boucle au journal', !/rappelsEcheances/.test(journal));
