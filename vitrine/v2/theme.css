@@ -33,6 +33,12 @@
     --m-warn: #fbbf24; --m-warn-fond: rgba(251,191,36,.12);
   }
 }
+/* ⛔ L'ANCIEN BOUTON ☀︎/☾ NE RESSORT JAMAIS, MÊME D'UNE PAGE RESTÉE EN CACHE. Une page d'avant le 29 septembre, servie par
+   le navigateur ou le service worker de l'application (qui garde ses copies d'une version à l'autre), porte encore le
+   bouton, et l'ancienne copie de vitrine/v2/mode.js le démasquait : avec cette feuille, qui n'a plus ses règles, il
+   sortait en bouton brut, ses deux dessins à pleine taille (relecture adverse du 29 septembre au soir). Cette règle-ci
+   ne dépend d'aucun cache. C'est la SEULE règle `.mode` permise (tests/test-835.js, test-836.js). */
+.mode, .coin-mode { display: none !important; }
 /* l'indication d'un champ (placeholder) : celle du navigateur tombait à 2,43 la nuit — le texte secondaire du site */
 ::placeholder { color: var(--m-sub); opacity: 1; }
 

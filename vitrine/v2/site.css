@@ -67,13 +67,19 @@ h1, h2, h3 { text-wrap: balance; }
 .nav-liens a:hover, .nav-liens a[aria-current="page"], .nav-liens a.ouvert { opacity: 1; text-decoration: none; }
 .nav-liens a[aria-current="page"] { font-weight: 600; }
 .nav-droite { flex: none; display: flex; align-items: center; gap: 10px; margin-left: auto; }
-/* ── le bouton jour / nuit : une cible de 44 px, un rond de 32 dessiné dedans ── */
+/* ── à droite : la pilule « Espace client », et le menu au téléphone ── */
 .pilule { display: inline-block; font-size: 12px; font-weight: 500; color: var(--on-accent); background: var(--accent); padding: 6px 13px; border-radius: 999px; white-space: nowrap; }
 .pilule:hover { text-decoration: none; opacity: .9; }
 .burger { display: none; place-items: center; width: 44px; height: 44px; margin-right: -10px; border: 0; background: transparent; cursor: pointer; color: var(--text); }
 .burger .ferme { display: none; }
 .entete.menu-ouvert .burger .ouvre { display: none; }
 .entete.menu-ouvert .burger .ferme { display: block; }
+/* ⛔ L'ANCIEN BOUTON ☀︎/☾ NE RESSORT JAMAIS, MÊME D'UNE PAGE RESTÉE EN CACHE. Une page d'avant le 29 septembre, servie par
+   le navigateur ou le service worker de l'application (qui garde ses copies d'une version à l'autre), porte encore le
+   bouton, et l'ancienne copie de vitrine/v2/mode.js le démasquait : avec cette feuille, qui n'a plus ses règles, il
+   sortait en bouton brut, ses deux dessins à pleine taille (relecture adverse du 29 septembre au soir). Cette règle-ci
+   ne dépend d'aucun cache. C'est la SEULE règle `.mode` permise (tests/test-835.js, test-836.js). */
+.mode, .coin-mode { display: none !important; }
 
 /* le volet déroulant d'un sujet (bureau) */
 .fly { position: absolute; top: 48px; left: 0; right: 0; background: var(--fly); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--line); opacity: 0; visibility: hidden; transform: translateY(-6px); transition: opacity .28s ease-out, transform .38s var(--ressort), visibility .28s; }

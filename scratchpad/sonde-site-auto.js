@@ -9,8 +9,11 @@
    · l'appareil change de mode, la page suit SANS recharger (et revient) ;
    · rien ne déborde de côté (mesuré deux fois, puis on demande à la page si elle bouge), l'en-tête tient ;
    · aucune exception JavaScript.
-   Et la TRANSITION : une page d'avant restée en cache (son HTML de main, avec sa vieille tête qui reposait le mode et
-   son bouton caché), servie avec les feuilles et le mode.js neufs, suit elle aussi l'appareil.
+   Et la TRANSITION : une page d'avant restée en cache (son HTML d'avant le retrait — commit 798d4ca~1, fixe : il ne
+   disparaît pas quand main avance —, avec sa vieille tête qui reposait le mode et son bouton caché), servie avec les
+   feuilles et le mode.js neufs, suit elle aussi l'appareil. Puis avec l'ANCIEN mode.js (celui qu'un service worker garde
+   tant qu'aucune page ne le redemande) : il démasque le bouton, et la garde des feuilles le tient caché (relecture
+   adverse du 29 septembre au soir).
    Contre-épreuve : RACINE=<un arbre de main> fait tourner la même sonde sur les pages d'avant — elle doit tomber.
    Usage : node scratchpad/sonde-site-auto.js     (127.0.0.1 seulement — rien ne sort d'ici)
            RACINE=/chemin/vers/main node scratchpad/sonde-site-auto.js   (contre-épreuve) */
@@ -35,17 +38,21 @@ const PROFILS = [
 const FOND = { light: 'rgb(255, 255, 255)', dark: 'rgb(11, 20, 38)' };
 
 (async () => {
-  /* la TRANSITION : le HTML de main (celui qu'un navigateur ou le service worker a pu garder), sous /ancien/ */
+  /* la TRANSITION : le HTML d'avant le retrait (celui qu'un navigateur ou le service worker a pu garder), sous /ancien/ —
+     ⛔ un `git show` qui échoue se DIT : une transition jouée sur un ensemble vide passerait au vert sans rien prouver */
+  const AVANT = '798d4ca~1';
   const ANCIEN = fs.mkdtempSync(path.join(os.tmpdir(), 'sonde-auto-ancien-'));
-  for (const f of ['index.html', 'espace.html', 'mentions-legales.html']) {
-    try { fs.writeFileSync(path.join(ANCIEN, f), execFileSync('git', ['-C', DEPOT, 'show', 'origin/main:' + f])); } catch (e) {}
-  }
+  const PAGES_AVANT = ['index.html', 'tarifs.html', 'espace.html', 'connexion.html', 'mentions-legales.html'];
+  for (const f of PAGES_AVANT) fs.writeFileSync(path.join(ANCIEN, f), execFileSync('git', ['-C', DEPOT, 'show', AVANT + ':' + f]));
+  const MODEJS_AVANT = execFileSync('git', ['-C', DEPOT, 'show', AVANT + ':vitrine/v2/mode.js']);
+  let modeJsAncien = false;
   const pp = await libre(), pc = await libre();
   const T = { '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.webp': 'image/webp', '.ico': 'image/x-icon', '.svg': 'image/svg+xml', '.webmanifest': 'application/json', '.json': 'application/json' };
   const srv = http.createServer((q, r) => {
     let u = decodeURIComponent(q.url.split('?')[0].split('#')[0]); if (u === '/') u = '/index.html';
     const base = u.startsWith('/ancien/') ? ANCIEN : RACINE, rel = u.startsWith('/ancien/') ? u.slice(8) : u;
     const x = path.join(base, rel); if (!x.startsWith(base)) { r.writeHead(403); return r.end(); }
+    if (modeJsAncien && u === '/vitrine/v2/mode.js') { r.writeHead(200, { 'Content-Type': 'text/javascript' }); return r.end(MODEJS_AVANT); }
     fs.readFile(x, (e, d) => { if (e) { r.writeHead(404); return r.end(); } r.writeHead(200, { 'Content-Type': T[path.extname(x)] || 'text/html;charset=utf-8' }); r.end(d); });
   });
   await new Promise(r => srv.listen(pp, '127.0.0.1', r));
@@ -120,7 +127,12 @@ const FOND = { light: 'rgb(255, 255, 255)', dark: 'rgb(11, 20, 38)' };
   if (!process.env.RACINE) {
     console.log('\n── transition : les pages de main (vieille tête, bouton caché) face aux fichiers neufs ──');
     await cdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
-    for (const f of fs.readdirSync(ANCIEN)) for (const mode of ['light', 'dark']) {
+    const avant = fs.readdirSync(ANCIEN);
+    v('population de la transition : ' + avant.length + ' pages d\'avant, chacune avec son bouton et son mode.js',
+      [avant.length, avant.filter(f => { const t = fs.readFileSync(path.join(ANCIEN, f), 'utf8'); return /class="mode"/.test(t) && /v2\/mode\.js/.test(t); }).length],
+      [PAGES_AVANT.length, PAGES_AVANT.length]);
+    v('   et l\'ancien mode.js est bien celui qui démasquait le bouton', /modeBtn\.hidden = false/.test(String(MODEJS_AVANT)), true);
+    for (const f of avant) for (const mode of ['light', 'dark']) {
       await media(mode);
       const ancienChoix = mode === 'light' ? 'nuit' : 'jour';
       await aller('ancien/' + f); await ev(`localStorage.setItem('teamop_site_mode', ${JSON.stringify(ancienChoix)}); return 1;`);
@@ -131,6 +143,23 @@ const FOND = { light: 'rgb(255, 255, 255)', dark: 'rgb(11, 20, 38)' };
         [a.fond, a.memo, a.theme], [FOND[mode], null, null]);
       v(lbl + ' : son vieux bouton reste caché (plus rien ne le montre)', a.boutonsVus, 0);
     }
+    /* l'ANCIEN mode.js, gardé par un service worker : le choix a déjà été effacé par une page neuve (c'est le seul état
+       atteignable, relecture adverse), il démasque le bouton — la garde des feuilles doit le tenir caché */
+    console.log('\n── transition : les pages d\'avant avec l\'ANCIEN mode.js et les feuilles neuves ──');
+    modeJsAncien = true;
+    for (const f of avant) for (const mode of ['light', 'dark']) {
+      await media(mode);
+      await aller('ancien/' + f); await ev(`localStorage.removeItem('teamop_site_mode'); return 1;`);
+      EXC = [];
+      await cdp('Page.reload', {}); await dormir(1200);
+      const a = await ev(ETAT + '');
+      const demasque = await ev(`const b=document.querySelector('.mode'); return !!b && b.hidden===false;`);
+      const lbl = 'ancien ' + f + ' + ancien mode.js · ' + (mode === 'light' ? 'jour' : 'nuit');
+      v(lbl + ' : (population) l\'ancien script a bien tourné et démasqué le bouton', demasque, true);
+      v(lbl + ' : ⛔ le bouton reste invisible (la garde des feuilles), et la page suit l\'appareil', [a.boutonsVus, a.fond], [0, FOND[mode]]);
+      v(lbl + ' : aucune exception JavaScript', EXC.filter(x => !/Failed to fetch|NetworkError|net::|api\.teamop\.fr/.test(x)), []);
+    }
+    modeJsAncien = false;
   }
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   tuer(); srv.close(); process.exit(ko ? 1 : 0);
