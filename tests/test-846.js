@@ -104,7 +104,7 @@ console.log('\n══ 3. LE JSON-LD DE L\'ACCUEIL ══\n');
   v('   l\'application : OP GESTION, sa page (qui existe)', [app.name, existe(fichierDe(app.url || '') || '-')], ['OP GESTION', true]);
   v('   ⛔ ses offres sont celles de la page Tarifs (FORMULES_GESTION) — noms et prix, en euros',
     (app.offers || []).map(o => [o['@type'], o.name, o.price, o.priceCurrency]), GEN.FORMULES_GESTION.map(f => ['Offer', f.nom, f.prix, 'EUR']));
-  v('   (population) quatre formules, dont une gratuite', [(app.offers || []).length, (app.offers || []).filter(o => o.price === '0').length], [4, 1]);
+  v('   (population) trois formules, aucune gratuite (Justin, 29 septembre 2026 : « je veux que l\'application soit payante directement »)', [(app.offers || []).length, (app.offers || []).filter(o => +o.price === 0).length], [3, 0]);
 }
 
 console.log('\n══ 4. LES CINQ PAGES MÉTIER ══\n');
@@ -115,7 +115,7 @@ for (const c of METIERS) {
   const main = s.slice(s.indexOf('<main>'), s.indexOf('</main>'));
   const mots = main.replace(/<script[\s\S]*?<\/script>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').split(/\s+/).filter(w => /[a-zà-ÿ0-9]/i.test(w)).length;
   vrai(f + ' : 400 mots au moins (' + mots + ')', mots >= 400);
-  vrai(f + ' : un lien vers les tarifs et vers l\'inscription (Créer mon compte gratuit)', /href="tarifs\.html"/.test(main) && /<a class="bouton" href="\/espace\.html">Créer mon compte gratuit<\/a>/.test(main));
+  vrai(f + ' : un lien vers les tarifs et vers l\'inscription (Créer mon compte)', /href="tarifs\.html"/.test(main) && /<a class="bouton" href="\/espace\.html">Créer mon compte<\/a>/.test(main));
   vrai(f + ' : le menu Métiers de la page le désigne comme courant', /<a href="metiers\.html" data-fly="metiers" aria-haspopup="true" aria-expanded="false" aria-current="page">Métiers<\/a>/.test(s));
 }
 {
@@ -142,7 +142,7 @@ for (const c of METIERS) {
   v('⛔ aucune promesse que l\'application ne tient pas, et rien du 3D chez les autres métiers', fautes, []);
   const prix = c => (lire(c + '.html').match(/<span class="prix-metier">([^<]*)<\/span>/g) || []).map(x => x.replace(/<[^>]+>/g, ''));
   v('   les prix des formules sur les pages métier sont ceux de la page Tarifs', METIERS.map(c => prix(c).map(x => x.split(' ')[0])),
-    METIERS.map(() => ['gratuit', 'pro', 'business'].map(k => GEN.FORMULES_GESTION.find(f => f.cle === k).prix)));
+    METIERS.map(() => ['pro', 'business', 'premium'].map(k => GEN.FORMULES_GESTION.find(f => f.cle === k).prix)));
 }
 
 console.log('\n══ 4 bis. LES SIX PAGES PAR FONCTION ══\n');
@@ -154,7 +154,7 @@ for (const c of FONCTIONS) {
   const mots = main.replace(/<script[\s\S]*?<\/script>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').split(/\s+/).filter(w => /[a-zà-ÿ0-9]/i.test(w)).length;
   vrai(f + ' : 400 mots au moins (' + mots + ')', mots >= 400);
   v(f + ' : un seul H1', (main.match(/<h1[\s>]/g) || []).length, 1);
-  vrai(f + ' : un lien vers les tarifs et vers l\'inscription (Créer mon compte gratuit)', /href="tarifs\.html"/.test(main) && /<a class="bouton" href="\/espace\.html">Créer mon compte gratuit<\/a>/.test(main));
+  vrai(f + ' : un lien vers les tarifs et vers l\'inscription (Créer mon compte)', /href="tarifs\.html"/.test(main) && /<a class="bouton" href="\/espace\.html">Créer mon compte<\/a>/.test(main));
   vrai(f + ' : dans le plan du site', lire('sitemap.xml').indexOf('<loc>' + SITE + f + '</loc>') >= 0);
 }
 {
@@ -164,19 +164,23 @@ for (const c of FONCTIONS) {
   for (const c of CLES) { const s = lire(c + '.html'), pied = (s.match(/<footer class="pied">[\s\S]*<\/footer>/) || [''])[0];
     for (const m of FONCTIONS) if (pied.indexOf('href="' + m + '.html"') < 0) manques.push(c + ' (pied) → ' + m); }
   v('   chaque page du site les porte dans son pied (population : ' + CLES.length + ' pages)', manques, []);
-  /* ⛔ LA FORMULE DITE EST CELLE QUI OUVRE LA FONCTION (PLAN_BLOQUE d'app.html) : le stock, les bons de commande et le registre
-     ne sont ni dans Gratuit ni dans Pro ; le pointage, les devis et les factures ne sont pas dans Gratuit. Une page qui promet
-     une fonction à une formule qui ne l'ouvre pas vend ce qu'on ne livrera pas. */
+  /* ⛔ LA FORMULE DITE EST CELLE QUI OUVRE LA FONCTION (PLAN_BLOQUE d'app.html) : le stock, les bons de commande et l'écran
+     Registre ne sont pas dans Pro ; le pointage, les devis et les factures y sont. Une page qui promet une fonction à une
+     formule qui ne l'ouvre pas vend ce qu'on ne livrera pas. Les cartes vont de Pro à Business Premium : plus de Gratuit
+     sur le site (Justin, 29 septembre 2026). */
   const cartes = c => (lire(c + '.html').match(/<div class="carte-v">[\s\S]*?<\/div>/g) || []).map(x => x.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '));
   const faux = [];
-  for (const [c, fermeGratuit, fermePro] of [['logiciel-gestion-de-stock', 1, 1], ['logiciel-bons-de-commande', 1, 1], ['logiciel-registre-sanitaire', 1, 1],
-      ['logiciel-pointage', 1, 0], ['logiciel-devis-factures', 1, 0]]) {
+  for (const [c, fermePro] of [['logiciel-gestion-de-stock', 1], ['logiciel-bons-de-commande', 1], ['logiciel-registre-sanitaire', 1],
+      ['logiciel-pointage', 0], ['logiciel-devis-factures', 0]]) {
     const k = cartes(c);
     if (k.length !== 3) { faux.push(c + ' : ' + k.length + ' cartes'); continue; }
-    if (fermeGratuit && !/^\s*Gratuit\b[\s\S]*\bPas de\b/.test(k[0])) faux.push(c + ' : la carte Gratuit ne dit pas que la fonction n\'y est pas');
-    if (fermePro && !/^\s*Pro\b[\s\S]*\bPas de\b/.test(k[1])) faux.push(c + ' : la carte Pro ne dit pas que la fonction n\'y est pas');
+    if (!/^\s*Pro\b/.test(k[0]) || !/^\s*Business\s+\d/.test(k[1]) || !/^\s*Business Premium\b/.test(k[2])) faux.push(c + ' : les cartes ne sont pas Pro, Business, Business Premium');
+    if (fermePro && !/^\s*Pro\b[\s\S]*\bPas d/.test(k[0])) faux.push(c + ' : la carte Pro ne dit pas que la fonction n\'y est pas');
+    if (!fermePro && /\bPas d/.test(k[0])) faux.push(c + ' : la carte Pro dit « pas de » alors que la fonction y est');
   }
-  v('   ⛔ chaque page dit dans quelle formule la fonction commence (population : 5 pages, 3 cartes chacune)', faux, []);
+  v('   ⛔ chaque page dit dans quelle formule la fonction commence (population : 5 pages, 3 cartes chacune — Pro, Business, Business Premium)', faux, []);
+  const gratuites = METIERS.concat(FONCTIONS).filter(c => cartes(c).some(x => /^\s*Gratuit\b|Tout Gratuit/.test(x)));
+  v('   ⛔ aucune page métier ni par fonction ne propose encore une carte « Gratuit » (population : ' + (METIERS.length + FONCTIONS.length) + ' pages)', gratuites, []);
   /* ⛔ ET LE 3D RESTE AU 3D : les box et le registre ne se promettent qu'en les rattachant au métier 3D */
   const t = c => code(lire(c + '.html').slice(lire(c + '.html').indexOf('<main>'), lire(c + '.html').indexOf('</main>'))).replace(/<[^>]+>/g, ' ');
   v('   la page registre dit qu\'elle est pour le métier 3D, la page stock rattache les box aux entreprises 3D',
@@ -290,7 +294,7 @@ console.log('\n══ 7. CE QUE GOOGLE ET LES RÉSEAUX LISENT — ET AUCUNE PROM
   const textes = x => typeof x === 'string' ? [x] : Array.isArray(x) ? x.flatMap(textes) : x && typeof x === 'object' ? Object.values(x).flatMap(textes) : [];
   v('   aucune formule d\'OP GESTION du générateur ne les porte (FORMULES_GESTION)', textes(GEN.FORMULES_GESTION).filter(t => /temps réel|instantané|au même moment/i.test(t)), []);
   const recap = source('recap-abonnement.html'), blocsGestion = recap.split(/(?=groupe: ')/).filter(b => b.startsWith('groupe: \'gestion\''));
-  v('   ni aucune formule d\'OP GESTION de la page de paiement (population : ' + blocsGestion.length + ' formules)', [blocsGestion.length >= 4, blocsGestion.filter(b => /temps réel|instantané|au même moment/i.test(b.split(/\n  \}/)[0])).length], [true, 0]);
+  v('   ni aucune formule d\'OP GESTION de la page de paiement (population : ' + blocsGestion.length + ' formules)', [blocsGestion.length === 3, blocsGestion.filter(b => /temps réel|instantané|au même moment/i.test(b.split(/\n  \}/)[0])).length], [true, 0]);
 
   /* d. ⛔ LES PROMESSES QUE L'APPLICATION NE TIENT PAS — sur TOUTES les pages publiques, plus seulement les pages métier.
         Relu dans app.html v763 le 29 septembre 2026 au soir : un contrat ne planifie rien tout seul (« Générer la
@@ -318,7 +322,30 @@ console.log('\n══ 7. CE QUE GOOGLE ET LES RÉSEAUX LISENT — ET AUCUNE PROM
     [/personnalisation complète/i, '« personnalisation complète » (nom compris)'], [/confirmations? de rendez-vous/i, 'confirmation de rendez-vous'], [/à la comptable/i, 'envoi « à la comptable »'],
     [/en PDF par e-mail ou par SMS|e-mail ou SMS depuis la fiche/i, 'un PDF envoyé « par SMS »'], [/directement la bonne fiche/i, 'une notification qui ouvre la fiche'], [/intervention assignée/i, '« intervention assignée »'],
     [/devis avec photos/i, 'des devis avec photos'], [/changez de réglage quand vous voulez/i, 'un métier qu\'on change soi-même'], [/câblage/i, 'une intervention type « câblage »'],
-    [/en 4 onglets|temps de trajet réels|scanner sécurisé|relevés horodatés|vos mentions|export excel|tracé et crédite le stock/i, 'un détail que l\'application ne fait pas']];
+    [/en 4 onglets|temps de trajet réels|scanner sécurisé|relevés horodatés|vos mentions|export excel|tracé et crédite le stock/i, 'un détail que l\'application ne fait pas'],
+    /* ⛔ LA RELECTURE ADVERSE DU 29 SEPTEMBRE 2026 (NUIT) — 39 constats confirmés dans app.html, puis les décisions de Justin :
+       plus de Gratuit (« je veux que l'application soit payante directement »), ni « Le plus choisi », ni « 3 mois offerts sur
+       chaque future application » ; le service 24h/24 et le support prioritaire restent (« je l'assure »). Chaque motif est
+       une phrase que la page portait et que l'application contredit : la jauge suit la capacité de chacun (planGauge, 75 % /
+       100 %), le technicien ne saisit aucune pause (pointerFin), les totaux de nuit des Archives lisent encore HH:MM, la durée
+       légale n'est préremplie que pour les événements familiaux (ABS_INFO), la validation se règle par personne ou pour toute
+       l'entreprise (valideSoumis), le seuil ne vit que dans la cloche, deux appareils hors synchro peuvent tirer le même numéro
+       (docNumsDoubles le signale), la carte des box ne s'exporte pas, le Certibiocide n'a qu'un badge, l'IA du compte-rendu
+       n'est pas ouverte aux clients, OP GESTION n'a pas d'espace « par SIRET », OP MESSAGES a son propre compte, l'installation
+       sur iPhone passe par « Partager », le métier masque box et registre même en Premium, le tableau de bord de Pro n'a ni
+       commandes ni demandes. */
+    [/au-delà de sept heures|au-delà de neuf/i, 'une jauge à 7 h / 9 h'], [/noter sa pause/i, 'une pause que le technicien note'],
+    [/journée vide/i, '« jamais une journée vide »'], [/durée proposée par défaut est la durée légale/i, 'la durée légale proposée pour tous les motifs'],
+    [/un point de stock peut exiger/i, 'une validation réglée par point de stock'], [/prévient par une notification les personnes concernées/i, 'un seuil qui notifie'],
+    [/même saisies sur deux appareils/i, 'un numéro « jamais en double, même sur deux appareils »'], [/partage en PDF/i, 'une carte des box partagée en PDF'],
+    [/une alerte prévient avant l.échéance/i, 'une alerte Certibiocide'], [/pause comprise/i, '« pause comprise »'],
+    [/compte-rendu assisté/i, 'un compte-rendu assisté (l\'IA n\'est pas ouverte aux clients)'], [/le plus choisi/i, 'le badge « Le plus choisi »'],
+    [/sur chaque future application/i, '« 3 mois offerts sur chaque future application »'], [/\(SIRET\) a son espace/i, 'un espace « par SIRET »'],
+    [/un seul compte/i, '« un seul compte »'], [/en un clic sur iPhone/i, 'une installation « en un clic » sur iPhone'],
+    [/100 % des fonctions|100 % de toutes les applications/i, '« 100 % des fonctions » (le métier masque box et registre)'],
+    [/interventions, commandes et demandes en attente/i, 'un tableau de bord « commandes et demandes » en Pro'],
+    [/tout gratuit|gratuit pour commencer|commencez gratuitement|rapports? d.intervention simples/i, 'une formule Gratuit d\'OP GESTION'],
+    [/rapports complets/i, 'des « rapports complets » réservés à une formule (aucune garde de formule sur le rapport)']];
   const fausses = [];
   for (const f of PUBLIQUES.concat('404.html')) { const s = source(f); for (const [re, nom] of FAUX) { const m = s.match(re); if (m) fausses.push(f + ' : ' + nom + ' — « …' + s.slice(Math.max(0, m.index - 40), m.index + m[0].length).replace(/\s+/g, ' ') + ' »'); } }
   v('⛔ aucune page publique ne promet ce que l\'application ne fait pas (population : ' + (PUBLIQUES.length + 1) + ' pages)', fausses, []);
@@ -331,14 +358,30 @@ console.log('\n══ 7. CE QUE GOOGLE ET LES RÉSEAUX LISENT — ET AUCUNE PROM
     'Envoi par e-mail ou SMS depuis la fiche', 'Un clic ouvre directement la bonne fiche', 'Intervention assignée, arrivage, seuil de stock, message',
     'Devis avec photos, transformés en facture en un clic', 'Vous changez de réglage quand vous voulez', 'Interventions type : tableau, câblage, contrôle…',
     'Fiche détaillée en 4 onglets', 'temps de trajet réels et carte', 'Scanner sécurisé, seuils d\'alerte', 'relevés horodatés avec photo',
-    'votre logo, vos champs, vos mentions', 'Chaque mouvement est tracé et crédite le stock.', 'Personne d\'autre que votre équipe n\'y accède.'].every(t => FAUX.some(([re]) => re.test(t))));
+    'votre logo, vos champs, vos mentions', 'Chaque mouvement est tracé et crédite le stock.', 'Personne d\'autre que votre équipe n\'y accède.',
+    'au-delà de sept heures elle passe à l\'orange, au-delà de neuf au rouge', 'Il peut noter sa pause, en minutes, avant de clôturer.',
+    'l\'équipe de nuit ne se retrouve jamais avec une journée vide', 'la durée proposée par défaut est la durée légale', 'Un point de stock peut exiger qu\'un responsable valide',
+    'et prévient par une notification les personnes concernées', 'deux factures ne portent jamais le même numéro, même saisies sur deux appareils',
+    'Carte géolocalisée des box, partage en PDF', 'et une alerte prévient avant l\'échéance', 'depuis son téléphone, pause comprise',
+    'Rapports complets : photos, signatures, compte-rendu assisté', 'Le plus choisi', '3 mois offerts sur chaque future application',
+    'Chaque entreprise (SIRET) a son espace isolé', 'Un seul compte pour tout.', 'qui s\'installe en un clic sur iPhone, Android, Mac et Windows',
+    '100 % des fonctions d\'OP GESTION, sans limite', 'Interventions, commandes et demandes en attente.', 'Tout Gratuit, plus', 'Gratuit pour commencer.',
+    'Commencez gratuitement, sans engagement', 'Rapports d\'intervention simples'].every(t => FAUX.some(([re]) => re.test(t))));
   /* ⛔ ET CE QUI RESTE VRAI NE DOIT PAS TOMBER SOUS UN MOTIF : une garde qui crie faux se fait désactiver. */
   v('   (contre-épreuve) les phrases justes qui les remplacent passent', [
     'Données chiffrées (AES-256) sur l\'appareil avant l\'envoi', 'Suivi payé / impayé et TVA collectée', 'Commande suggérée, réception qui crédite le stock',
     'Envoi par e-mail, PDF joint — ou un SMS prêt à partir de votre téléphone', 'et envoyez-les en PDF par e-mail — ou leur résumé par SMS, depuis votre téléphone.',
     'Avis de passage et rappel de rendez-vous par e-mail, depuis la fiche', 'Synthèse comptable et export CSV (s\'ouvre dans Excel) en un clic',
     'Dans l\'application, la cloche mène droit à la bonne fiche', 'Checklist, photos avant/après, signatures client et technicien horodatées',
-    'Espace client', 'l\'envoi d\'un rapport par e-mail ou SMS'].filter(t => FAUX.some(([re]) => re.test(t))), []);
+    'Espace client', 'l\'envoi d\'un rapport par e-mail ou SMS',
+    'orange aux trois quarts, rouge quand la journée est pleine', 'Pour une pause, il termine sa journée puis la reprend : l\'écart s\'affiche et n\'est pas compté.',
+    'l\'écran Pointage additionne les heures de nuit comme les autres', 'Pour les événements familiaux (mariage, naissance, décès d\'un proche…), la durée prévue par la loi est proposée',
+    'Vous pouvez exiger qu\'un responsable valide les mouvements avant qu\'ils ne comptent, pour certaines personnes ou pour toute l\'entreprise',
+    'l\'application le signale dans la cloche, et la commande suggérée le reprend', 'Si deux appareils émettent le même numéro avant de s\'être synchronisés, l\'application le signale dans la liste.',
+    'Carte géolocalisée des box (métier 3D)', 'un badge le signale 60 jours avant l\'échéance', 'une pause, entre une fin et une reprise, n\'est pas comptée',
+    'Rapports d\'intervention : photos, signatures, envoi en PDF', 'Chaque entreprise a son espace isolé, avec sa propre clé', 'chaque application se choisit selon vos besoins',
+    'en un clic sur Android et sur ordinateur, et sur iPhone par Partager', 'Toutes les fonctions d\'OP GESTION pour votre métier, sans limite',
+    'Les interventions en cours ; le reste se choisit carte par carte.', 'Créez-le d\'abord, c\'est gratuit.', 'La messagerie classique, gratuite : messages, appels et vidéo.'].filter(t => FAUX.some(([re]) => re.test(t))), []);
 }
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

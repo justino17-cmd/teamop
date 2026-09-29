@@ -104,9 +104,13 @@ for (const c of CLES) for (const m of PAGES[c].matchAll(/\s(?:href|src|srcset)="
 }
 vrai('population : ' + liens + ' liens et sources relus', liens > 300);
 v('aucun lien mort', morts, []);
-vrai('les formules mènent à la page d\'abonnement — son aperçu dans l\'aperçu (4 formules)', ['gratuit', 'pro', 'business', 'premium'].every(k => PAGES.tarifs.includes('href="/apercu/recap-abonnement.html?formule=' + k + '"')));
+/* ⛔ PLUS DE FORMULE GRATUITE D'OP GESTION SUR LE SITE — Justin, 29 septembre 2026 : « je veux que l'application soit
+   payante directement ». Trois formules, Pro, Business, Business Premium ; aucune carte ne mène à `?formule=gratuit`. */
+v('⛔ les formules d\'OP GESTION du site : Pro, Business, Business Premium — aucune gratuite', [GEN.FORMULES_GESTION.map(f => f.cle), GEN.FORMULES_GESTION.filter(f => +f.prix === 0).length], [['pro', 'business', 'premium'], 0]);
+vrai('les formules mènent à la page d\'abonnement — son aperçu dans l\'aperçu (3 formules)', ['pro', 'business', 'premium'].every(k => PAGES.tarifs.includes('href="/apercu/recap-abonnement.html?formule=' + k + '"')));
 const tarifsRacine = GEN.page('tarifs', { racine: true });
-vrai('… et la vraie page à la racine (4 formules)', ['gratuit', 'pro', 'business', 'premium'].every(k => tarifsRacine.includes('href="/recap-abonnement.html?formule=' + k + '"')));
+vrai('… et la vraie page à la racine (3 formules)', ['pro', 'business', 'premium'].every(k => tarifsRacine.includes('href="/recap-abonnement.html?formule=' + k + '"')));
+v('⛔ aucune page ne mène à « ?formule=gratuit » ni ne promet un « compte gratuit » d\'application', Object.keys(GEN.PAGES).filter(c => /formule=gratuit|Créer mon compte gratuit/.test(GEN.page(c, { racine: true }))), []);
 vrai('⛔ la racine n\'envoie jamais vers un aperçu', Object.keys(GEN.PAGES).every(c => !/href="\/apercu\//.test(GEN.page(c, { racine: true }))));
 
 console.log('5. chaque écran d\'appareil, jour et nuit');
@@ -264,8 +268,12 @@ vrai('le logo de la barre est celui de TEAM OP', CLES.every(c => PAGES[c].includ
    les icônes TEAM OP, dont une de 192 px, et AUCUNE icône d'OP GESTION (vertes : icons/icon-*, icons/opgestion-*,
    icons/apple-touch-icon.png) ne sert d'icône de page. */
 const ICONES = c => (PAGES[c].match(/<link rel="(?:icon|apple-touch-icon|shortcut icon)"[^>]*>/g) || []);
-vrai('population : ' + CLES.reduce((n, c) => n + ICONES(c).length, 0) + ' icônes de page déclarées', CLES.every(c => ICONES(c).length >= 4));
-vrai('chaque page déclare le favicon, l\'icône 32 px ET l\'icône 192 px de TEAM OP', CLES.every(c => ['href="/favicon.ico"', 'href="/icons/teamop-favicon-32.png"', 'sizes="192x192" href="/icons/teamop-192.png"'].every(x => ICONES(c).some(l => l.includes(x)))));
+/* ⚠️ La page OP MESSAGES porte le logo d'OP MESSAGES dans l'onglet (Justin, 29 septembre 2026) — pour Google, un seul logo
+   par nom d'hôte : celui de l'ACCUEIL, qui reste TEAM OP. */
+vrai('population : ' + CLES.reduce((n, c) => n + ICONES(c).length, 0) + ' icônes de page déclarées', CLES.every(c => ICONES(c).length >= (c === 'opmessages' ? 3 : 4)));
+vrai('⛔ l\'accueil — celui que Google affiche pour tout teamop.fr — déclare le favicon, l\'icône 32 px ET l\'icône 192 px de TEAM OP', ['href="/favicon.ico"', 'href="/icons/teamop-favicon-32.png"', 'sizes="192x192" href="/icons/teamop-192.png"'].every(x => ICONES('index').some(l => l.includes(x))));
+vrai('la page OP MESSAGES porte les icônes d\'OP MESSAGES (32 px, 192 px, écran d\'accueil) et aucune de TEAM OP', ['href="/icons/opmsg-favicon-32.png"', 'sizes="192x192" href="/icons/opmsg-192.png"', 'href="/icons/opmsg-apple-touch.png"'].every(x => ICONES('opmessages').some(l => l.includes(x))) && !ICONES('opmessages').some(l => /teamop-|favicon\.ico/.test(l)));
+vrai('chaque autre page déclare le favicon, l\'icône 32 px ET l\'icône 192 px de TEAM OP', CLES.filter(c => c !== 'opmessages').every(c => ['href="/favicon.ico"', 'href="/icons/teamop-favicon-32.png"', 'sizes="192x192" href="/icons/teamop-192.png"'].every(x => ICONES(c).some(l => l.includes(x)))));
 v('aucune icône d\'OP GESTION (verte) ne sert d\'icône de page', CLES.filter(c => ICONES(c).some(l => /icons\/(?:icon-|opgestion-|apple-touch-icon\.png)/.test(l))), []);
 
 const idsDoubles = CLES.map(c => { const n = {}; for (const m of PAGES[c].matchAll(/\sid="([^"]+)"/g)) n[m[1]] = (n[m[1]] || 0) + 1; return Object.keys(n).filter(k => n[k] > 1).map(k => c + '#' + k); }).flat();

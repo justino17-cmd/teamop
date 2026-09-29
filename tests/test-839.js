@@ -369,13 +369,12 @@ function merci(fichier, recherche) {
       v('   oubliée sur l\'appareil, et direction le portail, avec le choix fait', [p.stockage.has('teamop_portail_jeton'), decodeURIComponent(p.window.location.href.split('?retour=')[1] || '')], [false, 'recap-abonnement.html?formule=business&utilisateurs=5']);
     }
 
-    // h) le Gratuit : un compte, rien à payer, rien ne change
+    // h) plus de Gratuit (Justin, 29 septembre 2026 : « je veux que l'application soit payante directement ») : un ancien lien
+    //    « ?formule=gratuit » ouvre Pro, et Pro se paie comme toute formule — un compte d'abord, sans rien demander au serveur
     {
       const p = page(f, '?formule=gratuit', { serveur: () => rep(500, {}) });
       await p.api.compteLu;
-      vrai('Gratuit : « Créer mon compte gratuit », sans bloc de compte ni paiement', p.texte().includes('Créer mon compte gratuit') && !/compte-bloc/.test(p.html()));
-      await p.clic('btnPayer');
-      v('   il mène au portail, sans rien demander au serveur', [p.window.location.href, p.appels.length], ['espace.html', 0].map((x, i) => i === 0 && apercu ? '/apercu/espace.html' : x));
+      v('⛔ un ancien lien « ?formule=gratuit » ouvre Pro, qui demande un compte comme toute formule payante', [p.api.etat().formuleActive, p.api.etat().compte.etat, p.texte().includes('Créer mon compte pour payer'), p.texte().includes('Créer mon compte gratuit'), p.appels.length], ['pro', 'aucun', true, false, 0]);
     }
   }
 
