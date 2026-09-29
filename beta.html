@@ -34187,12 +34187,12 @@ views.parametres=function(){
       <p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:10px">OP GESTION s'installe comme une <b>vraie application</b> (icône, plein écran, hors-ligne) sur <b>iPhone, Android, Mac et Windows</b>.</p>
       <button class="btn" onclick="installApp()">Installer / voir comment</button>
       <div style="font-size:13px;color:var(--t3);margin-top:10px;line-height:1.6">${installInstructions()}</div></div>`}
-    ${currentUser.role==='admin'?`<div class="card"><div class="card-head"><h3>Synchronisation temps réel (équipe)</h3>${syncEnabled()?`<span class="tag" style="background:color-mix(in srgb,var(--acc) 18%,transparent);color:var(--acc-txt)">● ${_syncOn?'Connecté':'Activée'}</span>`:'<span class="tag" style="background:rgba(239,68,68,.15);color:var(--red)">Désactivée</span>'}</div>
-      ${syncEnabled()?`<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:10px">✅ <b>Tout est synchronisé en temps réel</b> entre tous les appareils de l'équipe. <b>Rien à configurer</b> — chaque personne est reliée automatiquement au cloud dès qu'elle ouvre l'app.</p>
+    ${currentUser.role==='admin'?`<div class="card"><div class="card-head"><h3>Synchronisation de l'équipe</h3>${syncEnabled()?`<span class="tag" style="background:color-mix(in srgb,var(--acc) 18%,transparent);color:var(--acc-txt)">● ${_syncOn?'Connecté':'Activée'}</span>`:'<span class="tag" style="background:rgba(239,68,68,.15);color:var(--red)">Désactivée</span>'}</div>
+      ${syncEnabled()?`<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:10px">✅ <b>Tout se synchronise en quelques secondes</b> entre tous les appareils de l'équipe. <b>Rien à configurer</b> — chaque personne est reliée automatiquement au cloud dès qu'elle ouvre l'app.</p>
       <p style="font-size:12.5px;color:var(--t3);margin-bottom:10px">Sur un nouvel appareil : ouvrir l'app + <b>Forcer la mise à jour</b>, et c'est relié.</p>
       <div style="margin:14px 0;padding:14px;border:1px solid var(--brd);border-radius:14px;background:color-mix(in srgb,var(--acc) 6%,transparent)">
-        <div style="font-weight:700;margin-bottom:6px">Chiffrement de bout en bout</div>
-        <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:10px">Toutes les données envoyées dans le cloud sont <b>chiffrées (AES-256)</b>. Sans la clé d'équipe, elles sont <b>illisibles</b>, même par quelqu'un qui aurait accès au serveur. La clé est dans le <b>lien de connexion</b> de ton entreprise : il n'y a rien à taper ni à noter.</p>
+        <div style="font-weight:700;margin-bottom:6px">Chiffrement sur l'appareil</div>
+        <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:10px">Toutes les données partent <b>chiffrées (AES-256)</b> depuis l'appareil, avant l'envoi. Chaque entreprise a <b>sa propre clé</b> : elle est dans le <b>lien de connexion</b> de ton entreprise, il n'y a rien à taper ni à noter.</p>
       </div>
       <button class="btn ghost" onclick="syncDisable()">Désactiver sur cet appareil</button>`
       :`<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:10px">La synchro est <b>désactivée sur cet appareil</b> (les données restent locales).</p>
@@ -34264,8 +34264,8 @@ views.parametres=function(){
       ${['business','premium'].includes(forfait())?`
       <div class="form-sec">🏷️ Marque dans l'application <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--acc-txt)">— inclus avec ton forfait</span></div>
       ${forfait()==='premium'
-        ?`<p style="color:var(--t2);font-size:12.5px;line-height:1.55;margin-bottom:10px">Business Premium : ton <b>logo</b>, le <b>nom de ton entreprise</b> et ta <b>couleur</b> (thème de couleur) s'appliquent à l'application pour toute l'équipe.</p>`
-        :`<p style="color:var(--t2);font-size:12.5px;line-height:1.55;margin-bottom:10px">Business : ton <b>logo</b> s'affiche en haut de la barre latérale pour toute l'équipe. Le <b>nom d'entreprise</b> et la <b>couleur</b> dans l'application sont réservés au <b>Business Premium</b>.</p>`}
+        ?`<p style="color:var(--t2);font-size:12.5px;line-height:1.55;margin-bottom:10px">Business Premium : ton <b>logo</b> et ta <b>couleur</b> (thème de couleur) s'appliquent à l'application pour toute l'équipe.</p>`
+        :`<p style="color:var(--t2);font-size:12.5px;line-height:1.55;margin-bottom:10px">Business : ton <b>logo</b> s'affiche en haut de la barre latérale pour toute l'équipe. La <b>couleur</b> de l'entreprise dans l'application est réservée au <b>Business Premium</b>.</p>`}
       <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px">
         <span style="width:52px;height:52px;border-radius:14px;flex-shrink:0;border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--bg2)">${E.logo?`<img src="${E.logo}" style="width:100%;height:100%;object-fit:cover">`:'<span style="font-size:20px">🏷️</span>'}</span>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -41017,7 +41017,7 @@ function syncNow(){
      On dit ce qu'on fait, et c'est l'accusé de réception qui dira que c'est fait. */
   if(_syncOn){ _pushManuel=true; syncPush(true); toast('Envoi à l\'équipe…',1800); }
   else if(typeof syncEnabled==='function' && syncEnabled()){ _syncEnCours=false; try{updateSyncBtn();}catch(e){} syncInit().then(()=>toast('Reconnexion à l\'équipe…')); }
-  else { _syncEnCours=false; try{updateSyncBtn();}catch(e){} toast('Active la synchro temps réel dans Paramètres'); go('parametres'); }
+  else { _syncEnCours=false; try{updateSyncBtn();}catch(e){} toast('Active la synchro dans Paramètres'); go('parametres'); }
   /* ⚠️ FILET : syncPush() a six portes de sortie silencieuses (version bloquée, nuage
      illisible, hors ligne, écran de connexion, premier instantané non reçu, application en
      cours). Aucune ne rappellera jamais updateSyncBtn. Sans ce filet, le bouton tournerait
