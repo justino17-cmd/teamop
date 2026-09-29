@@ -13,7 +13,54 @@ de ligne du tout.
 
 ---
 
-# ⏳ 29 SEPTEMBRE 2026, SOIR — RÉFÉRENCEMENT (SEO) : FAIT SUR LA BRANCHE, ACCORD DE JUSTIN (« oui »), ATTEND « POUSSE »
+# ✅ 29 SEPTEMBRE 2026, NUIT — TOUT EST EN SERVICE (`5e57196`) ; LA VÉRIFICATION DE `main` ROUGE PAR UN BANC — CORRECTIF PRÊT, ATTEND « POUSSE »
+
+**En service sur le « pousse » de Justin** : `main` `3785a0f` → `a8fb0fa` (le fichier de Google, seul) → `12d0101` (le site
+suit l'appareil pour le jour et la nuit) → `12beeec` (facturation différée, carte refusée = impayé, Tour v2.76) →
+`b588c28` (référencement) → **`5e57196`** (`test-846` nomme le fichier de Google). Déploiement du serveur n° 103 : bancs
+puis VPS verts, `/health` propre (0 bug) ; les 52 fichiers publics servis à l'identique (empreintes comparées) ; `ci.yml`
+verte. Avant de pousser, cet arbre : suite complète 202 suites · 11 471, code 0 ; liste serveur 49 · 3 243, code 0.
+
+⛔ **« Vérification des pages » (run 518) ROUGE sur `5e57196`** — `test-844` 67 ✓ 1 ✗ : « la Tour supprime sigma pendant
+l'attente (200) — Stripe n'a pas encore répondu ». Le SERVEUR est juste (sigma n'a rien reçu : le contrôle suivant est
+vert) ; le BANC pariait. Son faux Stripe répondait en 3 s et la suppression devait tenir dedans. Mesuré ici : l'horloge de
+conservation lit Stripe à 0,25 s du démarrage, le passage des rappels attendait CETTE lecture, et la suppression — qui
+appelle vraiment Google — rendait à 3,03 s pour une fenêtre fermée à 3,24 s. Reproduit à l'identique en ralentissant
+Google de 4 s (l'ancien banc : 67 ✓ 1 ✗, le même ✗). C'était sa première exécution sur GitHub : `verification.yml` ne
+tourne que sur `main`.
+✅ **Corrigé** — branche `6c1006b` ; pour `main`, **`142e19c`** dans `scratchpad/pub-essai` (sur `5e57196`, un seul
+fichier : `tests/test-844.js`). Le Stripe du banc RETIENT la lecture du passage des rappels (reconnue à sa pile d'appels)
+jusqu'à ce que le banc la relâche ; un cache court (300 ms) fait lire le passage lui-même ; un témoin suit mutee et
+stigma ; les rappels de chaque phase sont comptés. `test-844` 74 ✓ (21 s au lieu de 31), stable (trois passages, un cœur
+saturé, Google ralenti de 4 s) ; mutations N17, N23, I44 : **3/3 mordent** ; contre-épreuves du banc : sans la porte
+12 ✗, sans le cache court 10 ✗ (il crie, il ne passe pas à vide). Suite complète de `142e19c` : **202 suites ·
+11 477 vérifications, code 0**.
+⏳ **Attend « pousse »** : `142e19c` ne touche que `tests/` — rien ne change pour un client, et `deploiement.yml` ne se
+déclenche que sur `server/**` (le VPS ne bouge pas).
+⚠️ **Dette vue en chemin** : la route de suppression d'une entreprise appelle VRAIMENT Google (un jeton anonyme créé puis
+effacé sur le projet de production, un effacement Firestore refusé par la règle), et les bancs qui la jouent aussi —
+`test-844`, `test-832`, `server/test-connexion.js` (qui attend 61 s d'un coup sur GitHub). Sans effet sur les données,
+mais contraire à « tout se passe sur 127.0.0.1 » : à couper dans les bancs (un faux `fetch` pour `googleapis.com`),
+jamais dans le serveur.
+
+**Faits avec Justin, pas à pas, le même soir** :
+- **Google Search Console** : propriété `https://teamop.fr/` VALIDÉE (fichier `google151be914dcdfaf7e.html` — ⛔ ne jamais
+  le retirer) ; `sitemap.xml` déclaré (« Impossible de récupérer » avant la première lecture de Google : normal ; une
+  entrée « / » déclarée par erreur est sans effet). **À revoir le 30** : l'état doit passer à « Opération effectuée ».
+- **Fiche d'établissement Google** : ARRÊTÉE — elle exige une adresse où l'on reçoit des clients ; TEAM OP vend en ligne.
+- **G2 / Capterra** (Capterra appartient désormais à G2) : OP GESTION **approuvé et publié sur G2, Capterra, GetApp et
+  Software Advice** ; Justin administrateur de la fiche (compte `contact@teamop.fr`, my.G2). Trois captures d'écran sans
+  données de client ; langue déclarée : **le français seul** (l'anglais et l'espagnol de l'application ne traduisent que
+  les menus et les boutons principaux). ⛔ Aucune adresse de client donnée à G2 (« obtenir des avis » : refusé, RGPD) ;
+  aucune offre payante. En cours : les prix (les quatre formules du site, TTC, « sans engagement »), les catégories
+  (gestion des interventions, anti-nuisibles, nettoyage), les acheteurs visés.
+
+---
+
+# ✅ 29 SEPTEMBRE 2026, SOIR — RÉFÉRENCEMENT (SEO) : EN SERVICE (`b588c28`, puis `5e57196`)
+
+✅ **Parti avec le « pousse » du 29 au soir** (section du dessus). Ce qui suit est le détail d'origine ; restent ouverts les
+points « à lui ou à décider » — sauf la Search Console (validée, plan du site déclaré) et la publication (faite).
 
 Justin : « Fais l'optimisation SEO avec les fichiers fournis » (plan d'action, pages métier, en-tête, plan du site,
 robots) ; résumé montré avant le commit, réponse « oui ». Commit de la branche : voir `git log --grep référencement`.
@@ -40,7 +87,7 @@ robots) ; résumé montré avant le commit, réponse « oui ». Commit de la bra
 
 ---
 
-# ⏳ 29 SEPTEMBRE 2026, SOIR — SITE : LE JOUR ET LA NUIT SUIVENT L'APPAREIL, PLUS DE BOUTON — PRÊT, ATTEND « POUSSE »
+# ✅ 29 SEPTEMBRE 2026, SOIR — SITE : LE JOUR ET LA NUIT SUIVENT L'APPAREIL, PLUS DE BOUTON — EN SERVICE (`12d0101`)
 
 Justin, capture de son iPhone à l'appui (l'en-tête du site : logo, ☾, « Espace client », ☰) : **« Sur le site je veux pas
 le bouton jour nuit je veux que sa soit automatique »**. Retour à ce que disait la maquette (THEME.md § 0, « sans bouton ») ;
@@ -83,7 +130,7 @@ comparaison, servie à qui connaît l'adresse, garde son sélecteur Jour / Nuit 
 le manifeste du site (`manifest-teamop.webmanifest`) donne un écran de démarrage sombre à la version installée (un manifeste
 ne sait pas suivre l'appareil).
 
-### ⏳ LA MISE EN LIGNE DU SITE — PRÊTE
+### ✅ LA MISE EN LIGNE DU SITE — PARTIE en `12d0101` (refaite sur `a8fb0fa`, le `main` du soir)
 Dans l'arbre `scratchpad/pub-site` (session du 29 septembre) : **`fa20873`**, un seul commit sur `main` à `3785a0f`,
 **49 fichiers, aucun de `server/`** (ne déploie pas le VPS), `app.html` et `sw.js` intacts. Pour tous sauf
 `recap-abonnement.html`, `merci.html` et leurs aperçus, la branche d'avant était identique à `main` (copiés de la branche) ;
@@ -101,7 +148,7 @@ La **mise en ligne n° 2** est refaite PAR-DESSUS (`08ad1bc`, sur `fa20873`, dan
 
 ---
 
-# ⏳ 29 SEPTEMBRE 2026, SOIR — CARTE REFUSÉE = IMPAYÉ : LES FONCTIONS PAYANTES BLOQUÉES JUSQU'AU RÈGLEMENT — PRÊT, DANS LA MISE EN LIGNE N° 2 (REFAITE), ATTEND « POUSSE »
+# ✅ 29 SEPTEMBRE 2026, SOIR — CARTE REFUSÉE = IMPAYÉ : LES FONCTIONS PAYANTES BLOQUÉES JUSQU'AU RÈGLEMENT — EN SERVICE (`12beeec`, déploiement n° 103)
 
 Justin, en corrigeant le rapport de l'après-midi (qui disait « l'application continue de marcher pendant que Stripe
 réessaie ») : **« 1. À la fin de la période offerte, Stripe prélève. Oui / 2. […] Il passe en impayé directement / 3.
@@ -219,7 +266,7 @@ sans son adresse — et I36c — le nom repris à la même adresse —, trous tr
 (`scratchpad/mutations-essai.py`, arbre à part) ; relectures : `gardien` (11 constats) et `relecteur` (9), puis une
 relecture adverse à 5 angles (26 agents) — tous traités ou écrits ci-dessus ; liste serveur et suite complète : liste 49 suites · 3 243, code 0 ; suite complète 201 suites · 11 179, code 0 ; les onze contrôles de `verification.yml` verts ; bêta régénérée identique.
 
-### ⏳ LA MISE EN LIGNE N° 2 — REFAITE (facturation différée + impayé)
+### ✅ LA MISE EN LIGNE N° 2 — PARTIE en `12beeec` (facturation différée + impayé ; déploiement n° 103)
 Dans l'arbre `scratchpad/pub-essai` (session du 29 septembre) : un seul commit (à faire, après les preuves) sur `main` à `3785a0f` — il
 **remplace `f2d0781`** (section suivante), qui ne part plus. Il emporte vingt-deux fichiers : les seize de `f2d0781`
 (`server/index.js`, `merci.html` et son aperçu, `apercu/tour.html` — désormais v2.76 —, `.gitignore`,
