@@ -182,7 +182,13 @@ const ROUGE = 'var(--m-err)', VERT = 'var(--m-ok)';
     let arrive = false; const t0 = Date.now();
     for (let i = 0; i < 150 && !arrive; i++) { await dormir(100); arrive = facteurSrv.recus.slice(avant).some(m => /zoe@exemple\.fr/.test(m) && /reinit\.html/.test(m)); }
     vrai('   et le courriel est VRAIMENT parti (le relais l\'a reçu, avec son lien)', arrive);
-    if (!arrive) console.log('      reçus depuis la demande : ' + (facteurSrv.recus.length - avant) + ' courriel(s) en ' + (Date.now() - t0) + ' ms ; journal du serveur :\n      '
+    /* Un échec DIT ce qui est arrivé : le destinataire et le sujet de chaque courriel reçu (jamais le corps, qui porte
+       le lien). Le 29 septembre 2026 au soir, la suite complète a rendu « 1 courriel(s) en 15081 ms » sans dire
+       lequel — et le banc passait seul (2/2) comme sous charge (4/4) : la prochaine fois, la sortie le nommera. */
+    const entete = (m, k) => ((m.match(new RegExp('^' + k + ': ?(.*)$', 'mi')) || [])[1] || '?').slice(0, 90);
+    if (!arrive) console.log('      reçus depuis la demande : ' + (facteurSrv.recus.length - avant) + ' courriel(s) en ' + (Date.now() - t0) + ' ms'
+      + facteurSrv.recus.slice(avant).map(m => '\n      · à ' + entete(m, 'To') + ' — « ' + entete(m, 'Subject') + ' »').join('')
+      + ' ; journal du serveur :\n      '
       + S.journal().split('\n').filter(l => /courriel|mail|smtp|ECONN|erreur/i.test(l)).slice(-8).join('\n      '));
     vrai('une adresse inconnue : « vient de partir » aussi', PARTI(inconnu));
     await dormir(300);
