@@ -716,7 +716,7 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     const jour = n => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
     const debutDe = d => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10) + 1);
     const iso = ms => new Date(ms).toISOString().slice(0, 10);
-    const PERIODE = (finLe, t) => ({ 'ESSAI-BANC-727': { n: 1, equipes: { [t || 'monclient-9f2a']: { date: jour(-10), finLe, em: '' } } } });
+    const PERIODE = (finLe, t) => ({ 'ESSAI-BANC-727': { n: 1, equipes: { [t === undefined ? 'monclient-9f2a' : t]: { date: jour(-10), finLe, em: '' } } } });
     const env = r => new URLSearchParams(r.envoye);
     const essai = r => [env(r).get('subscription_data[trial_end]'), env(r).get('success_url')];
     const SANS = [null, 'https://teamop.fr/merci.html'];
@@ -763,7 +763,9 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('⛔ une entreprise fermée par TEAM OP : rien à différer', essai(fermee), SANS);
     const SANS_T = { monclient: { nom: 'Mon client', email: 'paie@entreprise-banc.fr' } };
     const sansT = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient' }, undefined, undefined, SANS_T, PERIODE(F30, ''));
-    v('   une entrée SANS identifiant : aucune période ne se rattache à elle — immédiate', [sansT.appels].concat(essai(sansT)), [1].concat(SANS));
+    /* ⚠️ la période est inscrite sous l'identifiant VIDE : c'est le seul cas où la garde « sans identifiant » change quelque
+       chose (mutation E11 : une période rangée sous la clé de personne ne se prête à aucune entrée sans identifiant) */
+    v('   une entrée SANS identifiant : aucune période ne se rattache à elle, pas même une inscrite sous l\'identifiant vide — immédiate', [sansT.appels].concat(essai(sansT)), [1].concat(SANS));
     const autreT = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, undefined, PERIODE(F30, 'quelquun-dautre'));
     v('   la période d\'une AUTRE entreprise : immédiate', essai(autreT), SANS);
     const refuse = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' }, { authorization: 'Bearer ' + JETON_A_CONFIRMER }, undefined, undefined, PERIODE(F30));
