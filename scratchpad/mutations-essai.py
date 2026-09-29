@@ -103,7 +103,7 @@ MUT = [
   ('N13', S, 'J-7 : la décision sur l\'état d\'AUJOURD\'HUI (les abonnements résiliés avant la fin comptent)',
    "espStripeCache.data.filter(sb => { const f = finProg(sb); return !f || f > debut; })", "espStripeCache.data", ['844']),
   ('N14', S, 'J-7 : « rien à faire » à une entreprise résiliée',
-   "    : ab.resilie ? 'Votre abonnement prend le relais jusqu\\'au ' + fr(ab.resilie) + '.'\n", "", ['844']),
+   "const suite = (ab.resilie ? 'Votre abonnement prend le relais jusqu\\'au '", "const suite = (false ? 'Votre abonnement prend le relais jusqu\\'au '", ['844']),
   ('N15', S, 'J-7 : l\'impayé tu',
    "impaye: !!imp, resilie: fin ? jour(fin) : '',", "impaye: false, resilie: fin ? jour(fin) : '',", ['844']),
   ('N16', S, 'J-7 : le jour du premier prélèvement tu (en essai)',
