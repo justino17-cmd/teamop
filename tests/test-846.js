@@ -263,13 +263,42 @@ console.log('\n══ 7. CE QUE GOOGLE ET LES RÉSEAUX LISENT — ET AUCUNE PROM
   const FAUX = [[/au même moment/i, '« au même moment »'], [/code-barres?/i, 'code-barres'], [/rappels? d.échéance/i, 'rappel d\'échéance'],
     [/passages? automatiques?/i, 'passage automatique'], [/relances? automatiques?/i, 'relance automatique'], [/suivi de chantier|gestion de chantier/i, 'module chantier'],
     [/inviolable/i, '« inviolable »'], [/camion/i, 'une box « camion »'], [/contrats?[^.·<"\n]{0,40}automatiquement|contrats?[^.·<"\n]{0,20}récurrence automatique/i, 'un contrat qui planifie tout seul'],
-    [/box \/ poste/i, 'une box « poste »']];
+    [/box \/ poste/i, 'une box « poste »'],
+    /* ⛔ ET CE QUE LA RELECTURE DU 29 SEPTEMBRE AU SOIR A TROUVÉ ENSUITE, chaque phrase relue dans app.html v764 :
+       le serveur garde la clé de chaque équipe (`cleEquipeVerdict` la lit dans l'annuaire) — « de bout en bout »,
+       « à vous seul », « personne d'autre » sont faux ; `exportFacturX` rend un XML nu, pas une Factur-X ; aucun
+       espace de suivi pour les clients d'une entreprise, aucune statistique réservée au Premium (PLAN_BLOQUE ne ferme
+       rien au-delà de Business) ; le Premium ne remplace plus le NOM de l'application (applyBrand) ; aucun bouton
+       n'envoie de confirmation de rendez-vous (seul « E-mail de rappel ») ; `envoyerComptaComplet` n'est appelé
+       nulle part ; un SMS s'ouvre sur le téléphone, sans PDF ; la notification poussée va à `#v=…`, pas à une fiche ;
+       une nouvelle intervention prévient toute l'équipe, pas « l'assigné » ; seules les photos du diagnostic
+       xylophage vont sur un devis ; le métier se change par le support. */
+    [/de bout en bout/i, 'chiffrement « de bout en bout »'], [/à vous seul/i, '« à vous seul »'], [/personne d.autre que votre équipe/i, '« personne d\'autre que votre équipe »'],
+    [/factur-?x/i, 'Factur-X'], [/vos clients suivent leurs interventions/i, 'un espace de suivi pour les clients'], [/statistiques avancées|multi-sites/i, 'statistiques avancées / multi-sites'],
+    [/personnalisation complète/i, '« personnalisation complète » (nom compris)'], [/confirmations? de rendez-vous/i, 'confirmation de rendez-vous'], [/à la comptable/i, 'envoi « à la comptable »'],
+    [/en PDF par e-mail ou par SMS|e-mail ou SMS depuis la fiche/i, 'un PDF envoyé « par SMS »'], [/directement la bonne fiche/i, 'une notification qui ouvre la fiche'], [/intervention assignée/i, '« intervention assignée »'],
+    [/devis avec photos/i, 'des devis avec photos'], [/changez de réglage quand vous voulez/i, 'un métier qu\'on change soi-même'], [/câblage/i, 'une intervention type « câblage »'],
+    [/en 4 onglets|temps de trajet réels|scanner sécurisé|relevés horodatés|vos mentions|export excel|tracé et crédite le stock/i, 'un détail que l\'application ne fait pas']];
   const fausses = [];
   for (const f of PUBLIQUES.concat('404.html')) { const s = source(f); for (const [re, nom] of FAUX) { const m = s.match(re); if (m) fausses.push(f + ' : ' + nom + ' — « …' + s.slice(Math.max(0, m.index - 40), m.index + m[0].length).replace(/\s+/g, ' ') + ' »'); } }
   v('⛔ aucune page publique ne promet ce que l\'application ne fait pas (population : ' + (PUBLIQUES.length + 1) + ' pages)', fausses, []);
   vrai('   (population) les motifs reconnaissent les phrases d\'avant', [
     'Contrats d\'entretien à récurrence automatique', 'Passages planifiés et rappels d\'échéance', 'Chaque produit tracé, jusque dans le camion',
-    'Contrats récurrents planifiés automatiquement', 'Chaque box / poste : produits', 'toute l\'équipe voit les mêmes données au même moment'].every(t => FAUX.some(([re]) => re.test(t))));
+    'Contrats récurrents planifiés automatiquement', 'Chaque box / poste : produits', 'toute l\'équipe voit les mêmes données au même moment',
+    'Un mot de passe personnel par compte, chiffrement AES-256 de bout en bout', 'Chiffré, isolé, et à vous seul', 'Suivi payé / impayé, TVA, export Factur-X',
+    'Espace client : vos clients suivent leurs interventions', 'Statistiques avancées, multi-sites / multi-équipes', 'Personnalisation complète : logo, nom, votre couleur',
+    'Avis de passage, rappels, confirmations de rendez-vous', 'Récapitulatif à la comptable et export Excel en un clic', 'envoyez-les en PDF par e-mail ou par SMS',
+    'Envoi par e-mail ou SMS depuis la fiche', 'Un clic ouvre directement la bonne fiche', 'Intervention assignée, arrivage, seuil de stock, message',
+    'Devis avec photos, transformés en facture en un clic', 'Vous changez de réglage quand vous voulez', 'Interventions type : tableau, câblage, contrôle…',
+    'Fiche détaillée en 4 onglets', 'temps de trajet réels et carte', 'Scanner sécurisé, seuils d\'alerte', 'relevés horodatés avec photo',
+    'votre logo, vos champs, vos mentions', 'Chaque mouvement est tracé et crédite le stock.', 'Personne d\'autre que votre équipe n\'y accède.'].every(t => FAUX.some(([re]) => re.test(t))));
+  /* ⛔ ET CE QUI RESTE VRAI NE DOIT PAS TOMBER SOUS UN MOTIF : une garde qui crie faux se fait désactiver. */
+  v('   (contre-épreuve) les phrases justes qui les remplacent passent', [
+    'Données chiffrées (AES-256) sur l\'appareil avant l\'envoi', 'Suivi payé / impayé et TVA collectée', 'Commande suggérée, réception qui crédite le stock',
+    'Envoi par e-mail, PDF joint — ou un SMS prêt à partir de votre téléphone', 'et envoyez-les en PDF par e-mail — ou leur résumé par SMS, depuis votre téléphone.',
+    'Avis de passage et rappel de rendez-vous par e-mail, depuis la fiche', 'Synthèse comptable et export CSV (s\'ouvre dans Excel) en un clic',
+    'Dans l\'application, la cloche mène droit à la bonne fiche', 'Checklist, photos avant/après, signatures client et technicien horodatées',
+    'Espace client', 'l\'envoi d\'un rapport par e-mail ou SMS'].filter(t => FAUX.some(([re]) => re.test(t))), []);
 }
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
