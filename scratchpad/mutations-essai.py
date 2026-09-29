@@ -30,8 +30,11 @@ MUT = [
   ('E3', S, 'le retour ne dit plus le jour à la page de remerciement',
    "p.append('success_url', 'https://teamop.fr/merci.html' + (essai ? '?debut=' + essai.debut : ''));",
    "p.append('success_url', 'https://teamop.fr/merci.html');", ['727', '839']),
-  ('E4', S, 'la référence vérifiée ignorée (l\'adresse seule décide)',
-   "const essai = rangDuPrix >= 0 ? finEssaiPeriode(visees, payeurMin) : null;", "const essai = rangDuPrix >= 0 ? finEssaiPeriode([], payeurMin) : null;", ['727', '839']),
+  # ⚠️ E4 (« la référence vérifiée ignorée : `finEssaiPeriode([], payeurMin)` ») est RETIRÉE — elle est devenue ÉQUIVALENTE
+  # avec `accba05` : l'adresse du compte doit désigner l'entreprise SEULE, et la référence la même (sinon rien). Ignorer la
+  # référence ne change donc plus rien par la route (le verrou « B » garantit que le compte qui paie est à cette adresse) :
+  # elle ne mordait plus, à juste titre. La garde qui la remplace (« la référence d'une AUTRE que l'entreprise de
+  # l'adresse ») se joue sur la vraie fonction seule — mutation N1, test-727.
   # la fonction
   ('E5', S, 'deux entreprises à une adresse : la première est prise',
    "    if (parT.size !== 1) return null;", "    if (!parT.size) return null;", ['727', '839', '840']),
