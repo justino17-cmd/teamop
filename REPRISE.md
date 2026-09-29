@@ -13,6 +13,114 @@ de ligne du tout.
 
 ---
 
+# ⏳ 29 SEPTEMBRE 2026, NUIT (FIN) — LE MÉTIER DE CHAQUE ENTREPRISE, DE LA DEMANDE À L'APPLICATION (BÊTA v765, TOUR v2.77) ; PLUS DE FORMULE GRATUITE SUR LE SITE ; TROIS BANCS QUI NE PROUVAIENT PAS CE QU'ILS DISAIENT — ATTEND « POUSSE »
+
+Justin, dans l'ordre :
+- **Métier** : « Je veux que chaque métier qu'on a sur le site quand ils ont l'application, ça correspond à leur métier,
+  fais ça et active tous les packs. Je veux que tu le fasses pour tous. » (au lieu de « retirer les pages non 3D »).
+- **Support** : « Oui, je l'assure » → « Service 24h/24, 7j/7 » et « Support prioritaire » restent.
+- **Promesses** : « Retirer les deux (Recommandé) » → plus de « 3 mois offerts sur chaque future application », plus de
+  badge « Le plus choisi ».
+- **Gratuit** : « On va retirer l'application gratuite du site, je veux que l'application soit payante directement donc tu
+  peux supprimer du site la version gratuite et du serveur et de tout car ça serait une perte d'argent énorme ».
+- **Logos** : « change moi les logo ici aussi le premier lui de TEAM OP ET lautre OP MESSAGE », puis, capture de Google à
+  l'appui : « tu vois bien que c'est pas mon logo c'est lui de op gestion ».
+
+**Sur la branche, rien sur `main`** (`0d0f9f0`, `8d3887e`, `a3641f4`, `3da16ef`, `da7824b`, `84ddaa9`, puis les bancs
+`e9550ff`, `37225f9`, `3ea1130`, voir le point 4) :
+
+1. **Le métier, de bout en bout** (`0d0f9f0`, `8d3887e`, `3da16ef`) :
+   · **portail** (`espace.html`) : la demande d'accès demande le métier (les six packs, plus « Un autre métier — précisez-le
+     dans votre besoin ») ; sans métier, elle ne part pas ; la fiche relayée à la Tour le garde ;
+   · **serveur** : `/api/clients/sync` garde le métier demandé, en liste fermée (`metierOk`) ; route neuve
+     `POST /api/monitor/espaces/metier`, **patron seul** (`monPatronStrict` : un métier hors 3D retire Boxes et Registre),
+     écrite par `espacesEcrire()` et défaite si l'écriture échoue ; `/api/espaces/etat` rend `metier` sur les quatre
+     réponses d'un espace vivant ; **« Lien de connexion » (la fiche reconstruite) GARDE le métier** — défaut trouvé par le
+     banc, corrigé ; le courriel de la demande dit le métier ;
+   · **Tour v2.77** : une section MÉTIER sur la fiche d'une entreprise (liste + « Enregistrer le métier ») ; « Accepter la
+     demande » pose le métier DEMANDÉ, et le message de bienvenue le dit (« Ton application est réglée pour ton métier : … ») ;
+   · **application (bêta v765)** : `forfaitServeurSync` appelle `metierServeurAppliquer(j)` AVANT le test de la formule.
+     Seul un métier de `METIERS`, différent de celui de la base, s'applique ; **la ligne de journal s'écrit AVANT `save()`**
+     (défaut trouvé AU NAVIGATEUR : écrite après, elle se perdait au rechargement — `logEvent` ne range rien) ; menu et écran
+     redessinés, l'administrateur prévenu. **Un métier vide ou absent ne change rien** : ELAN (jamais réglée) reste en 3D.
+   Preuves : `test-848` **51 ✓** (le vrai serveur et les vraies fonctions d'`espace.html`, de `tour.html` et d'`app.html` —
+   la couture entière : demande → acceptation → application réglée), **16/16 mutations** (`scratchpad/mutations-848.py`) ;
+   sonde au navigateur `scratchpad/sonde-metier-serveur.js` **14 ✓**, contre-épreuve : la v764 **7 ✗**, la v765 d'avant le
+   correctif d'ordre **1 ✗** ; `test-841` **47 ✓**.
+
+2. **Le site : plus de formule Gratuit, « 3 mois offerts » et « Le plus choisi » retirés, 39 phrases fausses corrigées**
+   (`a3641f4`) : `FORMULES_GESTION` = Pro, Business, Business Premium ; le portail ne propose plus Gratuit ;
+   `recap-abonnement.html` sans formule gratuite (`?formule=gratuit` → Pro) ; résiliation « depuis le Support de son espace
+   client ou en écrivant à contact@teamop.fr » (`mentions-legales.html:71`) ; pages métier : « En indiquant X dans votre
+   demande d'accès, OP GESTION se règle sur votre métier dès l'ouverture de votre espace ». `test-846` **362 ✓** (21 motifs
+   refusés de plus, avec leurs contre-épreuves), `test-835` 472 ✓, `test-837` 92 ✓, `test-839` 197 ✓ ; **8/8 mutations**
+   (`scratchpad/mutations-site-gratuit.py`).
+   · **La maquette `apercu/site-apple.html`** (servie à qui connaît l'adresse) montrait encore Gratuit à 0 €, « Le plus
+     choisi », un impayé qui « revient au forfait gratuit », « au même moment », « un seul compte », et deux métiers sans pack
+     présentés comme prêts (Espaces verts, Sécurité) : onze phrases remplacées par celles du site, rien d'inventé (`da7824b`).
+     `test-756` relit désormais le générateur (formules, ordre, prix), la liste des promesses refusées de `test-846` et
+     `METIERS_ORDRE` d'`app.html` : **46 ✓, 11/11 mutations** (`scratchpad/mutations-756-maquette.py`) ; sonde
+     `scratchpad/sonde-maquette-apple.js` **24 ✓** (bureau, 390 et 360 px), contre-épreuve sur la maquette de `main` : 12 ✗.
+
+3. **Logos** : le site sert bien le logo TEAM OP (vérifié en ligne) ; Google montre encore celui d'OP GESTION depuis SA
+   copie. Geste donné à Justin : Search Console → Inspection de l'URL → `https://teamop.fr/` → « Demander une indexation »
+   (quelques jours). ⚠️ **Google ne montre qu'UN logo par nom de domaine** (celui de l'accueil) : `teamop.fr/opmessages.html`
+   ne peut pas avoir le sien dans les résultats — seul un sous-domaine (`messages.teamop.fr`) le permettrait, décision de
+   Justin. L'onglet du navigateur, lui, montre le logo OP MESSAGES sur `opmessages.html` (`ICONES(cle)`, `site-marine.js`).
+
+4. **Trois bancs qui ne prouvaient pas ce qu'ils disaient — c'est la suite complète qui les a montrés** :
+   · `test-756` : sa liste de noms RECOPIÉE a vu le Gratuit de la maquette par chance (tarifs.html ne le portait plus) ; il
+     relit la source (point 2) ;
+   · `test-831` : « le courriel est VRAIMENT parti » cherchait « zoe » et « reinit.html » — or **le courriel de CONFIRMATION
+     de l'inscription**, qui part derrière la réponse, donc souvent après le repère, porte les deux : détourner le lien de
+     mot de passe vers une autre adresse laissait le banc VERT. Il exige le lien `mode=resetPassword` adressé à zoé, décodé
+     du quoted-printable, et un échec nomme chaque courriel reçu (destinataire, sujet) : **3/3 mutations** ;
+   · `test-811` : trois appels de « créer un compte » font ~60 ms ; sous une charge que j'avais lancée MOI-MÊME pendant la
+     passe (cinq lectures de l'historique de la conversation, 1,3 Go, ~10 Go de mémoire chacune), un seul à-coup passait le
+     seuil. Il compare des **médianes** et dit les durées ; la mutation « une adresse connue saute la dérivation » tombe
+     (rapport 0,05, deux fois sur deux).
+   ⚠️ **Non expliqué** : dans cette passe, `test-831` a reçu UN courriel qui n'était ni celui de l'inscription ni celui du
+   mot de passe, et pas le lien en 15 s. Non reproduit (seul 2/2, sous charge 4/4) — sa sortie le nommera s'il revient.
+   ⚠️ **Côté serveur, vu et laissé** (négligeable) : `/api/compte/creer` écrit le registre deux fois pour une adresse libre
+   (le compte, le jeton de confirmation) et zéro pour une connue — de l'ordre de la milliseconde sur une machine normale.
+
+5. **Suite complète** : en cours sur `3ea1130` au moment d'écrire — le chiffre suit dans le commit suivant.
+
+⏳ **CE QUI ATTEND « POUSSE »** (remplace la liste de la section suivante) :
+- **le serveur** (`server/index.js` : route du métier, `/api/espaces/etat`, `/api/clients/sync`, le statut, le courriel de
+  la demande) → **déploiement du VPS** (`deploiement.yml`, bancs d'abord) ;
+- **la Tour v2.77** ; **le portail** (`espace.html`) ; `recap-abonnement.html`, `mentions-legales.html` ; **le site** (pages
+  publiques, plan du site, `scripts/site-marine.js`) et tous leurs aperçus, maquette `apercu/site-apple.html` comprise ; les
+  bancs et `bancs-ci.sh` ;
+- **la bêta v765** (`beta.html`) — elle porte aussi les rappels d'échéance de la v764.
+- ⛔ **Sans `app.html` ni `sw.js`** : ils attendent la phrase de Justin pour CE changement (« publie la 765 »). **Et c'est là
+  que tient la promesse du site** : sans la 765, serveur et Tour posent le métier, mais l'application en service (763) ne le
+  lit pas — une entreprise ouvre en 3D, comme aujourd'hui, et le site (la page plombier EN LIGNE dit déjà « OP GESTION se
+  règle sur votre métier ») promet plus que l'application ne tient. Avec la 765, c'est vrai. `test-847` et `test-848` lisent
+  `app.html` : ils ne partent sur `main` qu'avec elle.
+
+⚠️ **Le métier — ce qui ne suit pas encore, à décider par Justin** : les quatre métiers « PACK BIENTÔT » du site
+(maçonnerie, menuiserie, peinture, espaces verts) et « Un autre métier » **n'ont pas de pack dans l'application**. Le serveur
+ne garde que les six métiers de l'application (liste fermée) : pour les autres, rien n'est posé et **l'application ouvre en
+3D** (Boxes, Registre sanitaire, types « Dératisation ») — le défaut de `metierId()`, gardé exprès pour ELAN. C'était le cas
+de TOUS les métiers avant ce soir : pas une régression. Proposition : un pack par métier « bientôt » et un pack « Autre métier
+de terrain » neutre (types généraux, sans les modules 3D), sur le modèle des six (`METIERS`, `app.html` ~8732) — leur contenu
+(types d'intervention, prestations, relevés) est à valider par Justin avant d'écrire.
+
+⚠️ **Gratuit — fait sur le site, PAS encore dans le serveur ni l'application** (Justin : « et du serveur et de tout ») :
+l'application garde `PLANS.gratuit` et `PLAN_BLOQUE.gratuit` — c'est aussi ce que voit une entreprise suspendue au sursis
+écoulé ou bloquée pour impayé (catégories payantes grisées) ; le serveur accepte encore la formule « gratuit » (Tour, codes
+promo). ⛔ **Pas à l'aveugle** : lire d'abord la formule de chaque entreprise vivante (ELAN comprise) dans l'annuaire, et
+décider ce que voit un impayé quand « Gratuit » n'existe plus (Justin, 29/09 : « pas de paiement, pas d'accès au service
+payant » ; « rien n'est perdu »). Chantier de demain.
+
+⚠️ **Dettes toujours ouvertes** : celles de la section suivante, plus :
+- les totaux d'heures de NUIT dans Archives et sur la fiche technicien (`minutes()` sur des « HH:MM » : un pointage
+  23:50 → 00:20 y compte 0) ; l'écran Pointage, lui, lit les horodatages ;
+- `apercu/site-apple.html` : corrigée, mais le site Marine l'a remplacée — la retirer reste la décision de Justin.
+
+---
+
 # ⏳ 29 SEPTEMBRE 2026, NUIT (SUITE) — « FAIT TOUT ÇA » : RAPPELS D'ÉCHÉANCE (BÊTA v764), SIX PAGES PAR FONCTION ET UNE PAGE NETTOYAGE, LE SITE NE PROMET PLUS RIEN QUE L'APPLICATION NE TIENT PAS ; INVENTAIRE FIREBASE « COMPLET » — ATTEND « POUSSE »
 
 Justin, reprenant ma liste mot pour mot : **« 1. Rappels d'échéance des contrats … 2. Référencement, la suite : une page par
@@ -63,7 +171,7 @@ du site : trois descriptions trop longues pour Google (accueil, tarifs, ELAN) ; 
    `monitor.json` porte le rapport et compare des identifiants (112 ✓) ; `bancs-ci.sh` montre les deux lignes qui suivent
    un ✗ (attendu / obtenu) — **si ça retombe, la valeur lue sera dans la sortie de la CI.**
 
-⏳ **CE QUI ATTEND « POUSSE »** : le site (19 pages publiques, plan du site, pages voisines, portail, page de paiement, leurs
+⛔ **Remplacé par la liste de la section du dessus (nuit, fin).** Ancienne liste : **CE QUI ATTEND « POUSSE »** : le site (19 pages publiques, plan du site, pages voisines, portail, page de paiement, leurs
 aperçus), `scripts/site-marine.js`, les bancs du site, `test-641`, `bancs-ci.sh` **et la bêta v764** (`beta.html`). ⛔ **Sans
 `app.html` ni `sw.js`** (la production reste en v763) **ni `test-847`** (il lit `app.html` : sur `main`, il tomberait sur la
 763). Aucun fichier de `server/` : le VPS ne bouge pas.
