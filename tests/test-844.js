@@ -16,7 +16,7 @@
      · la règle est celle de la formule servie après la période (`formulePayee`) : un abonnement OP MESSAGES d'AVANT la
        bascule garde la fiche servie — abonnée ; une adresse PARTAGÉE avec une entreprise abonnée la rend « payée »
        (limite connue d'`espacePaye`) — abonnée, mais sans les dates de l'autre ; une fiche GRATUIT que rien de lisible ne
-       fait monter reste Gratuit — le courriel habituel ;
+       fait monter reste Gratuit — le courriel habituel ; plusieurs abonnements : le plus durable décide ;
      · Stripe illisible (panne, clé refusée) : le courriel habituel, SANS la promesse — on ne sait pas s'il a déjà payé ;
      · une seule fois par échéance, comme l'autre ;
      · ⛔ l'attente de Stripe rend la main au serveur : une entreprise SUPPRIMÉE depuis la Tour pendant cette attente ne
@@ -108,7 +108,8 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     mu: ['t-mu-844', 'Mu Deux', 'mu@exemple-844.fr'],                      // OP MESSAGES (trouvé le 1er) ET OP GESTION en essai
     nu: ['t-nu-844', 'Nu Ancienne', 'nu@exemple-844.fr'],                  // OP MESSAGES seul, souscrit AVANT la bascule
     xi: ['t-xi-844', 'Xi Partagée', 'partage@exemple-844.fr'],             // son adresse est aussi celle d'omicron, abonnée
-    pi: ['t-pi-844', 'Pi Gratuite', 'pi@exemple-844.fr'] };                // fiche GRATUIT, un abonnement d'avant la bascule
+    pi: ['t-pi-844', 'Pi Gratuite', 'pi@exemple-844.fr'],                  // fiche GRATUIT, un abonnement d'avant la bascule
+    upsilon: ['t-upsilon-844', 'Upsilon Deux', 'upsilon@exemple-844.fr'] }; // DEUX abonnements OP GESTION : un résilié (1er), un actif
   const espaces = {}, usages = { 'ESSAI-BANC-844': { n: 0, equipes: {} } };
   for (const [slug, [t, nom, email]] of Object.entries(ENT)) {
     espaces[slug] = { t, nom, email, ts: MAINTENANT - 1000, formule: 'premium' };
@@ -142,7 +143,11 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     /* souscrit le 1er décembre 2025 : AVANT la bascule du banc (1er janvier 2026) — on ne sait pas lire ce qu'il paie */
     abo('t-nu-844', 'nu@exemple-844.fr', 'active', P_MSG, { created: secondes('2025-12-01'), current_period_end: secondes(jour(15)) }),
     abo('t-omicron-844', 'partage@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(9)) }),
-    abo('t-pi-844', 'pi@exemple-844.fr', 'active', P_PREMIUM, { created: secondes('2025-12-01'), current_period_end: secondes(jour(15)) }) ];
+    abo('t-pi-844', 'pi@exemple-844.fr', 'active', P_PREMIUM, { created: secondes('2025-12-01'), current_period_end: secondes(jour(15)) }),
+    /* un abonnement de plus acheté plus tard : le premier (résilié) est trouvé d'abord, le second (actif) dure */
+    Object.assign(abo('t-upsilon-844', 'upsilon@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(30)), cancel_at_period_end: true,
+      cancel_at: secondes(jour(30)) }), { id: 'sub_t-upsilon-844-a' }),
+    abo('t-upsilon-844', 'upsilon@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(18)) }) ];
   const PRECHARGE = path.join(banc, 'stripe-simule.js');
   fs.writeFileSync(PRECHARGE, `const vrai = globalThis.fetch; const ABOS = ${JSON.stringify(ABOS)};
 globalThis.fetch = async function (url, opts) {
@@ -188,13 +193,14 @@ globalThis.fetch = async function (url, opts) {
   try {
     console.log('\n1. Stripe lisible : chacune reçoit le courriel qui la concerne');
     vrai('le serveur démarre (Stripe simulé dans son processus, 1er passage 1 s après)', await demarrer(''));
-    await attendrePassage(11);
+    await attendrePassage(12);
     const recus = facteurSrv.recus.map(lisible);
     const de = (qui) => recus.find(m => destinataire(m) === qui + '@exemple-844.fr') || '';
     const brut = (qui) => facteurSrv.recus.find(m => destinataire(m) === qui + '@exemple-844.fr') || '';
-    v('(population) onze rappels, un par entreprise en période (omicron n\'en a pas)', recus.map(destinataire).sort(),
+    v('(population) douze rappels, un par entreprise en période (omicron n\'en a pas)', recus.map(destinataire).sort(),
       ['alpha@exemple-844.fr', 'beta@exemple-844.fr', 'delta@exemple-844.fr', 'epsilon@exemple-844.fr', 'gamma@exemple-844.fr',
-        'iota@exemple-844.fr', 'kappa@exemple-844.fr', 'mu@exemple-844.fr', 'nu@exemple-844.fr', 'partage@exemple-844.fr', 'pi@exemple-844.fr']);
+        'iota@exemple-844.fr', 'kappa@exemple-844.fr', 'mu@exemple-844.fr', 'nu@exemple-844.fr', 'partage@exemple-844.fr', 'pi@exemple-844.fr',
+        'upsilon@exemple-844.fr']);
     const A = de('alpha');
     v('⛔ alpha (a payé pendant la période : en essai) — l\'objet dit que l\'abonnement prend le relais', objet(brut('alpha')),
       '⏳ Votre période offerte se termine le ' + fr(FIN) + ' — votre abonnement prend le relais');
@@ -235,13 +241,16 @@ globalThis.fetch = async function (url, opts) {
     const Pi = de('pi');
     vrai('⛔ pi (fiche GRATUIT, abonnement d\'avant la bascule : `espacePaye` lui servira Gratuit) — le courriel habituel, pas « prend le relais »',
       /Plus que quelques jours/.test(Pi) && PAIEMENT.test(Pi) && !/prend le relais : vous n'avez rien à faire/.test(Pi));
+    const Up = de('upsilon');
+    vrai('   upsilon (deux abonnements, le résilié trouvé d\'abord) — le plus durable décide : prochaine échéance ' + fr(jour(18)) + ', pas « résilié »',
+      /prend le relais : vous n'avez rien à faire/.test(Up) && Up.includes('Prochaine échéance de votre abonnement : le ' + fr(jour(18)) + '.') && !/résilié/.test(Up));
     vrai('   le journal les distingue (« déjà abonnée », « en impayé », « résiliée au »), sans adresse en clair',
       /rappel échéance envoyé → a\*+@exemple-844\.fr \(fin [0-9-]+, déjà abonnée\)/.test(journal) && /e\*+@exemple-844\.fr \(fin [0-9-]+, déjà abonnée, en impayé\)/.test(journal)
       && new RegExp('k\\*+@exemple-844\\.fr \\(fin [0-9-]+, déjà abonnée, résiliée au ' + jour(20) + '\\)').test(journal)
       && /i\*+@exemple-844\.fr \(fin [0-9-]+, \d+ utilisateur\(s\), [^)]+\)/.test(journal)
       && !/\w@exemple-844\.fr/.test(journal.replace(/\*+@exemple-844\.fr/g, '')));
     const e1 = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'));
-    v('   la marque « prévenue » est posée sur les onze (une seule fois par échéance)', Object.keys(ENT).map(s => e1[s].rappelFin), Object.keys(ENT).map(() => FIN));
+    v('   la marque « prévenue » est posée sur les douze (une seule fois par échéance)', Object.keys(ENT).map(s => e1[s].rappelFin), Object.keys(ENT).map(() => FIN));
     await arreter();
 
     console.log('\n2. Stripe illisible : le courriel habituel, SANS la promesse');
@@ -257,7 +266,7 @@ globalThis.fetch = async function (url, opts) {
     for (let i = 0; i < 200 && !(facteurSrv.recus.length > avant && issues() >= 1); i++) await dormir(100);
     await dormir(1500);   // un doublon, s'il y en avait un, aurait le temps d'arriver
     const neufs = facteurSrv.recus.slice(avant).map(lisible);
-    v('(population) un seul rappel : zeta, la neuve — les onze déjà prévenues, rien', neufs.map(destinataire), ['zeta@exemple-844.fr']);
+    v('(population) un seul rappel : zeta, la neuve — les douze déjà prévenues, rien', neufs.map(destinataire), ['zeta@exemple-844.fr']);
     const Z = neufs[0] || '';
     vrai('⛔ zeta : le courriel habituel (on ne sait pas si elle a payé : on ne lui dit pas qu\'elle est abonnée)', /Plus que quelques jours/.test(Z) && PAIEMENT.test(Z));
     vrai('⛔   SANS la promesse « rien n\'est prélevé avant… » (elle a peut-être déjà payé)', !!Z && !PROMESSE.test(Z));
