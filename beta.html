@@ -8810,9 +8810,11 @@ function metierSet(id){
   if(!currentUser||currentUser.role!=='admin'){ toast('Seul l’administrateur peut changer le métier'); return; }
   const av=metierId(); if(av===id){ toast('C’est déjà ton métier'); return; }
   if(!confirm('Passer l’application en « '+METIERS[id].nom+' » ?\n\nCe qui change : les catégories d’intervention, la fiche de rapport et les modules affichés.\nTes clients, ton planning et tes interventions ne sont pas touchés — tu peux revenir en arrière à tout moment.')) return;
-  db.metier=id; save();
-  /* v751 : `logJournal` n'a jamais existé — la ligne ne s'écrivait pas, en silence (ESLint, vérification de A à Z). */
+  db.metier=id;
+  /* v751 : `logJournal` n'a jamais existé — la ligne ne s'écrivait pas, en silence (ESLint, vérification de A à Z).
+     v765 : et elle s'écrit AVANT le save() — logEvent ne range rien (voir metierServeurAppliquer). */
   try{ logEvent('Métier de l’entreprise',METIERS[id].nom,'admin'); }catch(e){}
+  save();
   toast(METIERS[id].ic+' Métier « '+METIERS[id].nom+' » activé');
   views.parametres();
 }
@@ -8831,8 +8833,11 @@ function metierServeurAppliquer(j){
   const m=j&&j.metier;
   if(!m||typeof m!=='string'||!Object.prototype.hasOwnProperty.call(METIERS,m)||db.metier===m) return false;
   const av=metierId();
-  db.metier=m; save();
+  /* la ligne de journal AVANT l'enregistrement : logEvent ne range rien, et une ligne écrite après le save() n'existait
+     qu'en mémoire — mesuré au navigateur (scratchpad/sonde-metier-serveur.js) : elle disparaissait au rechargement */
+  db.metier=m;
   try{ logEvent('Métier de l’entreprise',METIERS[m].nom+' — réglé par TEAM OP','admin'); }catch(e){}
+  save();
   try{ renderNav(); }catch(e){}
   try{ if(currentUser&&current&&views[current]) views[current](); }catch(e){}
   if(av!==m&&currentUser) try{ toast(METIERS[m].ic+' Application réglée pour : '+METIERS[m].nom); }catch(e){}

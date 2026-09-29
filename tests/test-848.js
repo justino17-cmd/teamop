@@ -214,7 +214,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
     const appareil = (nom, base) => {
       const E = espaces[cle(nom)];
       const LS = new Map([['elan_sync_team', E.t]]);
-      const vu = { toasts: [], saves: 0, nav: 0, vues: 0, journal: [] };
+      const vu = { toasts: [], saves: 0, nav: 0, vues: 0, journal: [], ordre: [] };
       const doc = { getElementById: () => null, createElement: () => ({ style: {}, remove() {} }), body: { appendChild() {} } };
       const code = 'let STORE_KEY="elanB_banc848"; let currentUser={id:"u-admin",role:"admin"}; let current="interventions";\n'
         + 'let db=' + JSON.stringify(Object.assign({ forfait: E.formule || 'gratuit', forfaitQty: 1, forfaitSrv: 'teamop' }, base || {})) + '; let _opMsgOuvert=false;\n'
@@ -223,7 +223,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
         + '\nreturn { sync: forfaitServeurSync, appliquer: metierServeurAppliquer, metierId, intTypes, db: () => db };';
       const f = new Function('fetch', 'localStorage', 'PUSH_API', 'toast', 'renderNav', 'go', 'save', 'logEvent', 'todayISO', 'espaceQuitter', 'suiteRefresh', 'views', 'document', 'esc', code);
       const a = f((u, o) => fetch(u, o), { getItem: k => (LS.has(k) ? LS.get(k) : null), setItem: (k, x) => LS.set(k, String(x)), removeItem: k => LS.delete(k) },
-        B, m => vu.toasts.push(String(m)), () => { vu.nav++; }, () => {}, () => { vu.saves++; }, (t, d) => { vu.journal.push(t + ' · ' + d); }, () => new Date().toISOString().slice(0, 10),
+        B, m => vu.toasts.push(String(m)), () => { vu.nav++; }, () => {}, () => { vu.saves++; vu.ordre.push('save'); }, (t, d) => { vu.journal.push(t + ' · ' + d); vu.ordre.push('journal'); }, () => new Date().toISOString().slice(0, 10),
         () => {}, () => {}, { interventions: () => { vu.vues++; } }, doc, s => String(s));
       a.vu = vu; return a;
     };
@@ -234,6 +234,9 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
     vrai('   le journal le dit (« réglé par TEAM OP »), le menu et l\'écran se redessinent, l\'administrateur est prévenu',
       A.vu.journal.some(l => /Métier de l’entreprise · Plomberie — réglé par TEAM OP/.test(l)) && A.vu.nav >= 1 && A.vu.vues >= 1 && A.vu.toasts.some(t => /Application réglée pour : Plomberie/.test(t)),
       JSON.stringify([A.vu.journal, A.vu.nav, A.vu.vues, A.vu.toasts]));
+    /* ⛔ la ligne de journal AVANT l'enregistrement : `logEvent` ne range rien. Écrite après le save(), elle n'existait
+       qu'en mémoire — la sonde au navigateur l'a vue disparaître au rechargement (scratchpad/sonde-metier-serveur.js) */
+    v('⛔ la ligne de journal est écrite AVANT l\'enregistrement (sinon elle disparaît si l\'application se ferme)', A.vu.ordre.slice(0, 2), ['journal', 'save']);
     const s1 = A.vu.saves, j1 = A.vu.journal.length, t1 = A.vu.toasts.length;
     await A.sync();
     v('⛔ une seconde ouverture n\'écrit RIEN de plus pour le métier (pas de save, pas de ligne, pas de message)',
