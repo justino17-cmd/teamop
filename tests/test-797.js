@@ -116,10 +116,13 @@ const vrai = (t, a) => v(t, !!a, true);
   const appeler = async (body, hdr, espaces) => {
     let envoye = '', statut = 0, sortie = null;
     const faux = { post: (chemin, h) => { faux._h = h; } };
-    new Function('app', 'config', 'fetch', 'URLSearchParams', 'comptes', 'espacesReg', 'promoUsages', 'espaceFerme', AIDES_ROUTE + '\n' + SRC.slice(iR, finR))(faux,
+    new Function('app', 'config', 'fetch', 'URLSearchParams', 'comptes', 'espacesReg', 'promoUsages', 'espaceFerme', 'factureImpayeARegler', AIDES_ROUTE + '\n' + SRC.slice(iR, finR))(faux,
       { stripe: { secretKey: 'sk_de_banc' }, promos: [] },
       async (url, opts) => { envoye = String(opts && opts.body || ''); return { ok: true, json: async () => ({ url: 'https://checkout.stripe.com/x' }) }; },
-      URLSearchParams, COMPTES, espaces === undefined ? ESPACES : espaces, {}, () => false);
+      URLSearchParams, COMPTES, espaces === undefined ? ESPACES : espaces, {}, () => false,
+      /* un IMPAYÉ se règle sur sa facture (`factureImpayeARegler`, 29 septembre 2026) : ce bac à sable n'a pas de liste Stripe —
+         la redirection se joue sur le VRAI serveur, avec un Stripe simulé qui connaît les impayés (`test-839`) */
+      async () => null);
     const headers = {}; for (const k of Object.keys(hdr || {})) headers[k.toLowerCase()] = hdr[k];
     await faux._h({ body, headers }, { status(c) { statut = c; return this; }, json(o) { sortie = o; return this; } });
     return { envoye, statut, sortie };

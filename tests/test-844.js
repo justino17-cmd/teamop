@@ -8,9 +8,15 @@
    entreprises que l'application repasserait en Gratuit. La décision est celle qu'`espacePaye` prendra LE LENDEMAIN DE LA
    FIN, sur les seuls abonnements vivants ce jour-là. Ce qu'on garde ici, en faisant tourner le vrai serveur contre un
    facteur SMTP de banc ET un Stripe simulé DANS son processus (ce qu'on lit est littéralement ce que le serveur lirait) :
-     · une entreprise ABONNÉE à OP GESTION (en essai, active, en impayé) reçoit « votre abonnement prend le relais » :
-       sans AUCUN lien de paiement, avec la date du premier prélèvement (en essai) ou de la prochaine échéance ; en impayé,
-       il dit que le dernier prélèvement n'a pas abouti ;
+     · une entreprise ABONNÉE à OP GESTION (en essai, active) reçoit « votre abonnement prend le relais » : sans AUCUN lien
+       de paiement, avec la date du premier prélèvement (en essai, et ce qui arrive s'il n'aboutit pas) ou de la prochaine
+       échéance ;
+     · ⛔ EN IMPAYÉ (Justin, 29 septembre 2026 : carte refusée = impayé, « leur accès sont bloqués le temps que c'est pas
+       payé ») : ni « prend le relais », ni lien vers la page de paiement (un second abonnement, prélevé en double le jour où
+       Stripe réussit sa nouvelle tentative), ni promesse — « un prélèvement est à régler », le jour où les fonctions payantes
+       seront bloquées, et la FACTURE EN ATTENTE relue chez Stripe (la dernière, sinon la liste des factures ouvertes ; aucune :
+       le support). Réglé depuis la liste : « prend le relais ». Un impayé PARMI des abonnements payés : « prend le relais »,
+       et les places du refusé suspendues. Stripe muet à la relecture : le rappel attend tant que la promesse aurait un délai ;
      · OP MESSAGES seul, ou aucun abonnement : le courriel habituel, avec la promesse ;
      · ⛔ un abonnement RÉSILIÉ qui s'arrête avant la fin de la période ne compte pas — le sien (payé puis résilié pendant
        l'essai), celui d'une AUTRE entreprise à la même adresse qui la rendait « payée », ou celui qui faisait seul monter
@@ -121,7 +127,11 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     omega: ['t-omega-844', 'Omega Tour', 'omega@exemple-844.fr'],          // réglée à la main dans la Tour (impayé), abonnée chez Stripe
     lambda: ['t-lambda-844', 'Lambda Essai Résilié', 'lambda@exemple-844.fr'], // en essai, résiliée APRÈS l'essai (un prélèvement, puis la fin)
     theta: ['t-theta-844', 'Theta Deux', 'theta@exemple-844.fr'],          // DEUX abonnements OP GESTION : en essai (1er), actif
-    rho: ['t-rho-844', 'Rho Sans Date', 'rho@exemple-844.fr'] };            // résiliée « à la fin de la période » SANS aucune date lisible
+    rho: ['t-rho-844', 'Rho Sans Date', 'rho@exemple-844.fr'],             // résiliée « à la fin de la période » SANS aucune date lisible
+    sampi: ['t-sampi-844', 'Sampi Impayée', 'sampi@exemple-844.fr'],       // IMPAYÉE (unpaid) : sa facture ouverte n'est que dans la liste des factures
+    qoppa: ['t-qoppa-844', 'Qoppa Sans Facture', 'qoppa@exemple-844.fr'],  // IMPAYÉE (past_due), et AUCUNE facture ouverte chez Stripe
+    jota: ['t-jota-844', 'Jota Réglée', 'jota@exemple-844.fr'],            // en impayé dans la liste, RÉGLÉE depuis (la relecture la dit active)
+    heta: ['t-heta-844', 'Heta Mixte', 'heta@exemple-844.fr'] };           // un abonnement actif ET un autre en impayé
   const espaces = {}, usages = { 'ESSAI-BANC-844': { n: 0, equipes: {} } };
   const periode = t => { usages['ESSAI-BANC-844'].n++; usages['ESSAI-BANC-844'].equipes[t] = { date: jour(-80), finLe: FIN, em: '' }; };
   for (const [slug, [t, nom, email]] of Object.entries(ENT)) { espaces[slug] = { t, nom, email, ts: MAINTENANT - 1000, formule: 'premium' }; periode(t); }
@@ -183,9 +193,31 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     /* vieux (phase 2 bis) : en essai — une liste fraîche la dirait abonnée */
     abo('t-vieux-844', 'vieux@exemple-844.fr', 'trialing', P_PREMIUM, { trial_end: secondes(DEBUT), current_period_end: secondes(DEBUT) }),
     /* mutee (phase 4) : active chez Stripe — abonnée, jusqu'à ce que la Tour règle son abonnement à la main pendant l'attente */
-    abo('t-mutee-844', 'mutee@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(20)) }) ];
+    abo('t-mutee-844', 'mutee@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(20)) }),
+    /* les impayés (carte refusée) — leurs factures sont dans FACTURES, que seule la relecture voit */
+    abo('t-sampi-844', 'sampi@exemple-844.fr', 'unpaid', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
+    abo('t-qoppa-844', 'qoppa@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
+    abo('t-jota-844', 'jota@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
+    abo('t-heta-844', 'heta@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(21)) }),
+    autre(abo('t-heta-844', 'heta@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }), 'sub_t-heta-844-refus'),
+    /* wau et fau (phase 2 ter) : en impayé — la liste se lit, la RELECTURE de l'abonnement échoue */
+    abo('t-wau-844', 'wau@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
+    abo('t-fau-844', 'fau@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }) ];
+  /* Ce que rend la RELECTURE d'un abonnement (`/v1/subscriptions/{id}?expand[]=latest_invoice`) — sa dernière facture, son
+     statut s'il a changé depuis la liste — et la liste de ses factures ouvertes (`/v1/invoices?subscription=…&status=open`).
+     Des adresses de factures FICTIVES : rien ne sort d'ici. */
+  const FACT = x => 'https://invoice.stripe.com/i/banc-844-' + x;
+  const FACTURES = {
+    'sub_t-epsilon-844': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('epsilon') } },
+    'sub_t-sampi-844': { latest_invoice: { object: 'invoice', status: 'paid', hosted_invoice_url: FACT('sampi-ancienne') },
+      ouvertes: [{ object: 'invoice', status: 'open', hosted_invoice_url: FACT('sampi') }] },
+    'sub_t-qoppa-844': { latest_invoice: null, ouvertes: [] },
+    'sub_t-jota-844': { status: 'active', latest_invoice: { object: 'invoice', status: 'paid', hosted_invoice_url: FACT('jota') } },
+    'sub_t-heta-844-refus': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('heta') } },
+    'sub_t-wau-844': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('wau') } },
+    'sub_t-fau-844': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('fau') } } };
   const PRECHARGE = path.join(banc, 'stripe-simule.js');
-  fs.writeFileSync(PRECHARGE, `const vrai = globalThis.fetch; const ABOS = ${JSON.stringify(ABOS)}; let appels = 0;
+  fs.writeFileSync(PRECHARGE, `const vrai = globalThis.fetch; const ABOS = ${JSON.stringify(ABOS)}; const FACTURES = ${JSON.stringify(FACTURES)}; let appels = 0;
 globalThis.fetch = async function (url, opts) {
   const u = String(url && url.url || url);
   if (u.startsWith('https://api.stripe.com/')) {
@@ -194,8 +226,23 @@ globalThis.fetch = async function (url, opts) {
     if (process.env.STRIPE_BANC === 'lent') await new Promise(r => setTimeout(r, 3000));   // la fenêtre de la course
     if (process.env.STRIPE_BANC === 'panne' || (process.env.STRIPE_BANC === 'puis-panne' && appels > 1))
       return new Response('{"error":{"message":"panne du banc"}}', { status: 500, headers: { 'content-type': 'application/json' } });
-    const corps = u.startsWith('https://api.stripe.com/v1/subscriptions') ? { data: ABOS, has_more: false } : { data: [], has_more: false };
-    return new Response(JSON.stringify(corps), { status: 200, headers: { 'content-type': 'application/json' } });
+    const json = (c, st) => new Response(JSON.stringify(c), { status: st || 200, headers: { 'content-type': 'application/json' } });
+    /* la RELECTURE d'un abonnement : lui, sa dernière facture (développée), son statut d'aujourd'hui */
+    const r1 = /^https:\\/\\/api\\.stripe\\.com\\/v1\\/subscriptions\\/([^?]+)/.exec(u);
+    if (r1) {
+      const id = decodeURIComponent(r1[1]);
+      process.stdout.write('banc-stripe: relecture ' + id + '\\n');
+      if (process.env.STRIPE_BANC === 'relecture-panne') return json({ error: { message: 'panne du banc (relecture)' } }, 500);
+      const sb = ABOS.find(x => x.id === id), f = FACTURES[id] || {};
+      if (!sb) return json({ error: { message: 'inconnu' } }, 404);
+      return json(Object.assign({}, sb, f.status ? { status: f.status } : {}, { latest_invoice: f.latest_invoice === undefined ? null : f.latest_invoice }));
+    }
+    if (u.startsWith('https://api.stripe.com/v1/invoices')) {
+      const id = new URL(u).searchParams.get('subscription');
+      process.stdout.write('banc-stripe: factures ' + id + '\\n');
+      return json({ data: ((FACTURES[id] || {}).ouvertes || []).slice(0, 1), has_more: false });
+    }
+    return json(u.startsWith('https://api.stripe.com/v1/subscriptions') ? { data: ABOS, has_more: false } : { data: [], has_more: false });
   }
   return vrai.apply(this, arguments);
 };\n`);
@@ -250,12 +297,37 @@ globalThis.fetch = async function (url, opts) {
     vrai('⛔   AUCUN lien de paiement (ni la page de paiement, ni « Continuer avec… ») — un second paiement serait un second abonnement', !!A && !PAIEMENT.test(A));
     vrai('⛔   et pas la promesse « rien n\'est prélevé avant… » (elle invite à payer)', !!A && !PROMESSE.test(A));
     vrai('   son seul bouton ouvre l\'application', /href="https:\/\/teamop\.fr\/app\.html"[^>]*>Ouvrir mon application</.test(A));
+    vrai('⛔   et ce qui arrive si ce premier prélèvement n\'aboutit pas (carte refusée = impayé : les fonctions payantes bloquées jusqu\'au règlement)',
+      A.includes('S\'il n\'aboutit pas, les fonctions payantes seront bloquées jusqu\'au règlement — vos données ne bougent pas.'));
     const Bt = de('beta');
     vrai('⛔ beta (abonnée active, renouvelée à 23 h 30 UTC : le ' + fr(jour(20)) + ' à Paris) — le même courriel, avec la prochaine échéance au jour de Paris, sans lien de paiement',
       RELAIS.test(Bt) && Bt.includes('Prochaine échéance de votre abonnement : le ' + fr(jour(20)) + '.') && !PAIEMENT.test(Bt) && !PROMESSE.test(Bt));
+    /* ⛔ LES IMPAYÉS (carte refusée) : ni « prend le relais », ni page de paiement, ni promesse — la facture en attente */
+    const IMPAYE = m => m.includes('Le dernier prélèvement de votre abonnement n\'a pas abouti. À partir du ' + fr(DEBUT)
+      + ', les fonctions payantes seront bloquées tant qu\'il n\'est pas réglé. Vos données ne bougent pas, et tout revient dès le règlement.')
+      && !/prend le relais/.test(m) && !PAIEMENT.test(m) && !PROMESSE.test(m);
+    const objetDe = adr => objet((R1.find(x => x.a === adr + '@exemple-844.fr') || {}).brut);
     const E = de('epsilon');
-    vrai('⛔ epsilon (en impayé) — il ne dit pas « rien à faire » : le dernier prélèvement n\'a pas abouti, et à qui écrire',
-      /son dernier prélèvement n'a pas abouti/.test(E) && /contact@teamop\.fr/.test(E) && !/vous n'avez rien à faire/.test(E) && !PAIEMENT.test(E));
+    v('⛔ epsilon (en impayé : past_due) — l\'objet dit qu\'un prélèvement est à régler', objetDe('epsilon'),
+      '⏳ Votre période offerte se termine le ' + fr(FIN) + ' — un prélèvement est à régler');
+    vrai('⛔   le jour où les fonctions payantes seront bloquées (le lendemain de la fin : ' + fr(DEBUT) + '), que rien n\'est perdu — ni « prend le relais », ni page de paiement, ni promesse', IMPAYE(E));
+    vrai('⛔   sa FACTURE EN ATTENTE (la dernière facture de l\'abonnement, relue chez Stripe) : dans le texte, et sur le seul bouton',
+      E.includes('Réglez votre facture en attente (vous pouvez changer de carte) : ' + FACT('epsilon'))
+      && new RegExp('href="' + FACT('epsilon').replace(/[./]/g, '\\$&') + '"[^>]*>Régler ma facture<').test(E) && !/Ouvrir mon application/.test(E));
+    vrai('   (population) la relecture a bien eu lieu chez Stripe', /banc-stripe: relecture sub_t-epsilon-844/.test(journal));
+    const Sa = de('sampi');
+    vrai('⛔ sampi (unpaid : la dernière facture est PAYÉE, l\'ouverte n\'est que dans la liste des factures) — la facture ouverte, pas l\'ancienne',
+      IMPAYE(Sa) && Sa.includes(FACT('sampi')) && !Sa.includes(FACT('sampi-ancienne')) && /banc-stripe: factures sub_t-sampi-844/.test(journal));
+    const Q = de('qoppa');
+    vrai('⛔ qoppa (en impayé, AUCUNE facture ouverte) — le même avertissement, et à qui écrire ; aucun lien de facture, le bouton ouvre l\'application',
+      IMPAYE(Q) && Q.includes('Pour le régler, écrivez-nous à contact@teamop.fr.') && !/invoice\.stripe\.com/.test(Q) && /Ouvrir mon application/.test(Q));
+    const J = de('jota');
+    vrai('⛔ jota (en impayé dans la liste, RÉGLÉE depuis : la relecture la dit active) — « prend le relais », ni facture ni lien de paiement',
+      RELAIS.test(J) && !/n'a pas abouti/.test(J) && !/invoice\.stripe\.com/.test(J) && !PAIEMENT.test(J) && !PROMESSE.test(J));
+    const H = de('heta');
+    vrai('⛔ heta (un abonnement actif, un AUTRE en impayé) — l\'actif prend le relais, mais les places du refusé sont suspendues : pas « rien à faire »',
+      H.includes('Votre abonnement prend le relais. Mais le dernier prélèvement d\'un autre de vos abonnements n\'a pas abouti : les places qu\'il paie sont suspendues jusqu\'au règlement.')
+      && H.includes('Prochaine échéance de votre abonnement : le ' + fr(jour(21)) + '.') && !/vous n'avez rien à faire/.test(H) && !PAIEMENT.test(H) && !PROMESSE.test(H));
     const G = de('gamma');
     vrai('⛔ gamma (OP MESSAGES seul : OP GESTION n\'est pas payé) — le courriel habituel, lien de paiement ET promesse', HABITUEL(G) && PROMESSE.test(G));
     const Dl = de('delta');
@@ -292,7 +364,7 @@ globalThis.fetch = async function (url, opts) {
       HABITUEL(Om) && !PROMESSE.test(Om));
     const La = de('lambda');
     vrai('⛔ lambda (en essai, résiliée APRÈS l\'essai) — le prélèvement du ' + fr(DEBUT) + ', puis la fin au ' + fr(jour(40)) + ', sans lien',
-      La.includes('Le premier prélèvement de votre abonnement aura lieu le ' + fr(DEBUT) + '. Il a été résilié : il s\'arrête le ' + fr(jour(40)) + '.')
+      La.includes('Le premier prélèvement de votre abonnement aura lieu le ' + fr(DEBUT) + '. S\'il n\'aboutit pas, les fonctions payantes seront bloquées jusqu\'au règlement — vos données ne bougent pas. Il a été résilié : il s\'arrête le ' + fr(jour(40)) + '.')
       && La.includes('Votre abonnement prend le relais jusqu\'au ' + fr(jour(40)) + '.') && !PAIEMENT.test(La) && !PROMESSE.test(La));
     const Th = de('theta');
     vrai('   theta (en essai trouvé d\'abord, actif ensuite) — l\'actif décide : prochaine échéance ' + fr(jour(22)) + ', pas de « premier prélèvement »',
@@ -300,7 +372,10 @@ globalThis.fetch = async function (url, opts) {
     const Rh = de('rho');
     vrai('   rho (résiliée sans aucune date lisible : on ne sait pas quand elle s\'arrête) — pas de « prend le relais » : le courriel habituel', HABITUEL(Rh));
     vrai('   le journal les distingue (« déjà abonnée », « en impayé », « résiliée au »), sans adresse en clair',
-      /rappel échéance envoyé → a\*+@exemple-844\.fr \(fin [0-9-]+, déjà abonnée\)/.test(journal) && /e\*+@exemple-844\.fr \(fin [0-9-]+, déjà abonnée, en impayé\)/.test(journal)
+      /rappel échéance envoyé → a\*+@exemple-844\.fr \(fin [0-9-]+, déjà abonnée\)/.test(journal) && /e\*+@exemple-844\.fr \(fin [0-9-]+, en impayé, facture à régler\)/.test(journal)
+      && /q\*+@exemple-844\.fr \(fin [0-9-]+, en impayé, sans facture lisible : écrire au support\)/.test(journal)
+      && /h\*+@exemple-844\.fr \(fin [0-9-]+, déjà abonnée, dont un abonnement en impayé\)/.test(journal)
+      && /j\*+@exemple-844\.fr \(fin [0-9-]+, déjà abonnée\)/.test(journal)
       && new RegExp('k\\*+@exemple-844\\.fr \\(fin [0-9-]+, déjà abonnée, résiliée au ' + jour(20) + '\\)').test(journal)
       && /i\*+@exemple-844\.fr \(fin [0-9-]+, \d+ utilisateur\(s\), [^)]+\)/.test(journal)
       && !/\w@exemple-844\.fr/.test(journal.replace(/\*+@exemple-844\.fr/g, '')));
@@ -348,12 +423,35 @@ globalThis.fetch = async function (url, opts) {
       lus(avant2b).length === 0 && /rappel échéance reporté → v\*+@exemple-844\.fr/.test(journal) && !marques()('vieux'));
     await arreter();
 
+    console.log('\n2 ter. Un impayé dont Stripe ne répond pas à la RELECTURE : on attend, puis on part sans lien');
+    /* la liste se lit (elle dit « impayé »), la relecture de l'abonnement échoue (500) : on ne sait ni s'il a été réglé depuis,
+       ni où est sa facture. wau a encore le temps (fin dans 5 jours) : elle attend. fau non (fin dans 2 jours) : elle part,
+       sans lien de facture — et SURTOUT pas vers la page de paiement. */
+    espaces.vieux.rappelFin = FIN;
+    espaces.wau = { t: 't-wau-844', nom: 'Wau Relecture', email: 'wau@exemple-844.fr', ts: MAINTENANT - 1000, formule: 'premium' };
+    espaces.fau = { t: 't-fau-844', nom: 'Fau Relecture', email: 'fau@exemple-844.fr', ts: MAINTENANT - 1000, formule: 'premium' };
+    periode('t-wau-844'); usages['ESSAI-BANC-844'].equipes['t-fau-844'] = { date: jour(-80), finLe: jour(2), em: '' }; usages['ESSAI-BANC-844'].n++;
+    ecrire();
+    const avant2t = facteurSrv.recus.length;
+    vrai('le serveur redémarre (la liste Stripe se lit, la relecture d\'un abonnement rend 500)', await demarrer('relecture-panne'));
+    await attendre(2);
+    const R2t = lus(avant2t);
+    vrai('(population) les deux relectures ont été tentées', /banc-stripe: relecture sub_t-wau-844/.test(journal) && /banc-stripe: relecture sub_t-fau-844/.test(journal));
+    v('(population) un seul courriel : fau (fin dans 2 jours) — wau attend', R2t.map(x => x.a), ['fau@exemple-844.fr']);
+    vrai('⛔ wau : rien — « reporté » au journal, et PAS de marque (le passage suivant relit)',
+      /rappel échéance reporté → w\*+@exemple-844\.fr \(fin [0-9-]+, impayé : facture illisible, nouvel essai au prochain passage\)/.test(journal) && !marques()('wau'));
+    const Fa = (R2t[0] || {}).m || '';
+    vrai('⛔ fau : l\'avertissement de l\'impayé et à qui écrire — ni facture devinée, ni page de paiement, ni promesse',
+      /un prélèvement est à régler/.test(objet((R2t[0] || {}).brut)) && /n'a pas abouti/.test(Fa) && Fa.includes('Pour le régler, écrivez-nous à contact@teamop.fr.')
+      && !/invoice\.stripe\.com/.test(Fa) && !PAIEMENT.test(Fa) && !PROMESSE.test(Fa) && !/prend le relais/.test(Fa));
+    await arreter();
+    espaces.wau.rappelFin = FIN; espaces.fau.rappelFin = jour(2);   // hors des phases suivantes
+
     console.log('\n3. Une entreprise supprimée depuis la Tour PENDANT que le serveur attend Stripe');
     /* sigma d'abord, tau ensuite (l'ordre du registre des codes) : c'est pendant l'attente de sigma qu'on la supprime ; toutes
        les autres sont marquées « prévenues », pour que sigma soit la première à attendre */
     espaces.sigma = { t: 't-sigma-844', nom: 'Sigma Supprimée', email: 'sigma@exemple-844.fr', ts: MAINTENANT - 1000, formule: 'premium' };
     espaces.tau = { t: 't-tau-844', nom: 'Tau Suivante', email: 'tau@exemple-844.fr', ts: MAINTENANT - 1000, formule: 'premium' };
-    espaces.vieux.rappelFin = FIN;
     periode('t-sigma-844'); periode('t-tau-844');
     ecrire();
     const avant3 = facteurSrv.recus.length;

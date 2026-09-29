@@ -126,3 +126,8 @@ tests/test-842.js
 # reçoit « votre abonnement prend le relais », sans lien de paiement (un second paiement serait un second abonnement) ;
 # Stripe illisible, le courriel habituel sans la promesse. Sans page.
 tests/test-844.js
+# 29 septembre 2026, soir : « leur accès sont bloqués le temps que c'est pas payé » (Justin) — une carte refusée est
+# un impayé. 845 fait tourner le vrai serveur contre un Stripe simulé relu à chaque appel, ET les vraies fonctions
+# d'app.html (celle de `main`, en service) : grisé sans rien écrire, l'administrateur seul prévenu, tout revient au
+# règlement ; la page de paiement rend la facture en attente au lieu d'un second abonnement.
+tests/test-845.js

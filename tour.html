@@ -2936,7 +2936,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.75</div>
+    <div class="lg-pied">console interne · v2.76</div>
   </div>
 </div>
 
@@ -2978,7 +2978,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.75</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.76</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2990,7 +2990,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.75</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.76</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3256,7 +3256,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.75';
+var TOUR_VERSION='v2.76';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -5689,7 +5689,8 @@ function vueAccueil(){
       action:"allerMessage('"+jsq(m.boite)+"','"+jsq(m.dossier)+"',"+m.uid+")"}); })});
   if(impayes.length) G.push({titre:'Paiements en échec',n:Math.min(3,ABO.impayes||impayes.length),tot:ABO.impayes||impayes.length,bloc:'reg-bloc',
     /* Celle-ci n'est PAS .opt : elle porte une conséquence que rien d'autre ne dit. */
-    sous:'Le prélèvement a été refusé ; la cliente garde son accès jusqu’à ce que ce soit réglé.',opt:false,
+    /* v2.76 — carte refusée = impayé (Justin, 29 septembre 2026) : les fonctions payantes sont bloquées jusqu'au règlement */
+    sous:'Le prélèvement a été refusé ; ses fonctions payantes sont bloquées jusqu’au règlement. Rien n’est perdu.',opt:false,
     voir:"allerImpayes()",
     l:impayes.map(function(p){ return ligneAc({ton:'rouge',ico:'cb',
       t1:esc(p.clientNom||p.clientEmail||'Client'),titre:p.clientNom||p.clientEmail||'Client',
@@ -8735,9 +8736,10 @@ function vueAbonnements(){
     return '<button type="button" class="reg-l cli" onclick="abnVersEntreprise(\''+jsq(e.t||'')+'\')">'+
       '<span class="reg-av">'+esc(sigle(e.nom||e.email||'?'))+'</span>'+
       '<span class="reg-txt"><span class="reg-t1" title="'+esc(e.nom||e.email||'—')+'">'+esc(e.nom||e.email||'—')+'</span>'+
-      '<span class="reg-l2"><b>Formule attribuée, jamais payée</b> · '+esc(ABN_F[e.formule]||e.formule)+(e.quantite>1?' ×'+e.quantite:'')+'</span>'+
+      /* v2.76 — une carte refusée n'est pas une formule jamais payée : le serveur le dit (`impaye`) */
+      '<span class="reg-l2"><b>'+(e.impaye?'Impayé — fonctions payantes bloquées':'Formule attribuée, jamais payée')+'</b> · '+esc(ABN_F[e.formule]||e.formule)+(e.quantite>1?' ×'+e.quantite:'')+'</span>'+
       (e.email?'<span class="reg-l3">'+esc(e.email)+'</span>':'')+'</span>'+
-      '<span class="reg-fin"><span class="past p-rouge">💳 En attente</span>'+
+      '<span class="reg-fin"><span class="past p-rouge">'+(e.impaye?'💳 Impayé':'💳 En attente')+'</span>'+
       '<span class="reg-chev" aria-hidden="true">›</span></span></button>'; });
   var du=duLignes.concat(duEchecs,duAttrib);
 

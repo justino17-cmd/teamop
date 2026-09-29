@@ -75,14 +75,21 @@ vrai('le calcul des places et ses constantes sont trouvés dans le fichier réel
 const iLig = SRC.indexOf('const prixDeLigne ='), iFP = SRC.indexOf('function formulePayee(');
 const LIGNES = (iLig > 0 && iFP > iLig) ? SRC.slice(iLig, iFP) : '';
 const LBL2 = (/^const FORMULE_LBL2 = .*$/m.exec(SRC) || [''])[0];
-const SERVIE = ['formulePayee', 'formuleDuCode', 'formulePromo', 'placesDeFormule', 'formuleEtPlaces', 'espaceStripe', 'periodeOfferte', 'espaceStripeDans'].map(extraire);
+const SERVIE = ['formulePayee', 'formuleDuCode', 'formulePromo', 'placesDeFormule', 'formuleEtPlaces', 'espaceStripe', 'periodeOfferte', 'espaceStripeDans',
+  'stripeListe', 'stripeVerdict'].map(extraire);
 vrai('la formule servie, ses aides et le rattachement Stripe sont trouvés dans le fichier réel',
   /ligneMessages/.test(LIGNES) && /Business Premium/.test(LBL2) && SERVIE.every(Boolean) && /^async function espaceStripe/.test(SERVIE[5]));
 /* ⚠️ la fenêtre du cache Stripe (29 septembre 2026, seconde relecture de `gardien`) : `espaceStripe` la lit, et sans elle
    son premier appel jetait dans son `try` — tout paiement se lisait « non payé » (43 contrôles de ce banc tombés ainsi) */
 const CACHE_MS = (/^const STRIPE_CACHE_MS = .*$/m.exec(SRC) || [''])[0];
 vrai('la fenêtre du cache Stripe est trouvée dans le fichier réel', /STRIPE_CACHE_MS = Math\.max/.test(CACHE_MS));
-AIDES.push(CONSTS, ...PLACES, LIGNES, LBL2, CACHE_MS, ...SERVIE);
+/* ⛔ et l'IMPAYÉ (Justin, 29 septembre 2026 : carte refusée = impayé, accès payant bloqué jusqu'au règlement) : les statuts
+   qui comptent comme payés ou impayés, la relecture à la minute d'un impayé et son motif — sans eux, `espacePaye` jetait
+   dès le premier appel (« stripeVerdict is not defined ») */
+const IMPAYE = ['STATUTS_PAYES', 'STATUTS_IMPAYES', 'STRIPE_IMPAYE_FRAIS_MS', 'motifImpaye'].map(n => (new RegExp('^const ' + n + ' = .*$', 'm').exec(SRC) || [''])[0]);
+vrai('les statuts payés et impayés, la relecture d\'un impayé et son motif sont trouvés dans le fichier réel', IMPAYE.every(Boolean)
+  && /'active', 'trialing'/.test(IMPAYE[0]) && /'past_due', 'unpaid'/.test(IMPAYE[1]) && /aboDeGestion/.test(LIGNES) && /function impayesGestion/.test(LIGNES));
+AIDES.push(CONSTS, ...PLACES, LIGNES, LBL2, CACHE_MS, ...IMPAYE, ...SERVIE);
 const PARAMS = ['config', 'espStripeCache', 'promoUsages', 'stripeAbosBruts', 'console', 'savePromoUsages', 'mailPromoActive', 'espacesReg', 'espaceParT', 'crypto', 'promosIllisible'];
 const construire = () => new Function(...PARAMS, AIDES.join('\n') + '\n' + SRC.slice(i, fin) + '\nreturn espacePaye;');
 const avec = (abos) => construire()(
@@ -228,11 +235,14 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
   const appeler = async (body, entetes, comptes, espaces, usages, fermes) => {
     let envoye = '', statut = 0, sortie = null, appels = 0;
     const faux = { post: (chemin, h) => { faux._h = h; } };
-    new Function('app', 'config', 'fetch', 'URLSearchParams', 'comptes', 'espacesReg', 'promoUsages', 'espaceFerme',
+    new Function('app', 'config', 'fetch', 'URLSearchParams', 'comptes', 'espacesReg', 'promoUsages', 'espaceFerme', 'factureImpayeARegler',
       AIDES_ROUTE.join('\n') + '\n' + SRC.slice(iR, finR))(faux,
       { stripe: { secretKey: 'sk_de_banc' }, promos: [{ code: 'ESSAI-BANC-727', formule: 'premium', mois: 3 }] },
       async (url, opts) => { appels++; envoye = String(opts && opts.body || ''); return { ok: true, json: async () => ({ url: 'https://checkout.stripe.com/x' }) }; },
-      URLSearchParams, comptes === undefined ? COMPTES : comptes, espaces === undefined ? ESPACES_DEFAUT : espaces, usages || {}, t => (fermes || []).includes(t));
+      URLSearchParams, comptes === undefined ? COMPTES : comptes, espaces === undefined ? ESPACES_DEFAUT : espaces, usages || {}, t => (fermes || []).includes(t),
+      /* un IMPAYÉ se règle sur sa facture (`factureImpayeARegler`, 29 septembre 2026) : ce bac à sable n'a pas de liste Stripe —
+         la redirection se joue sur le VRAI serveur, avec un Stripe simulé qui connaît les impayés (`test-839`) */
+      async () => null);
     await faux._h({ body, headers: entetes === undefined ? { authorization: 'Bearer ' + JETON_PROUVE } : entetes },
       { status(c) { statut = c; return this; }, json(o) { sortie = o; return this; } });
     return { envoye, statut, sortie, appels };

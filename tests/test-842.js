@@ -125,7 +125,8 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
     abo('a1', tAS, 'active', [['business', 1]], S_AVANT),
     abo('fa', tFA, 'active', [['premium', 1]], S_AVANT),
     abo('am', tAM, 'active', [['business', 1], ['msgpro', 3]], S_AVANT),
-    abo('p4', tASP, 'past_due', [['ancien', 4]], S_AVANT),
+    /* actif, pas « past_due » : depuis le 29 septembre 2026 une carte refusée est un impayé, qui ne sert plus rien (test-845) */
+    abo('p4', tASP, 'active', [['ancien', 4]], S_AVANT),
     abo('j1', tAJ, 'active', [['premium', 2]], S_AVANT), abo('j2', tAJ, 'active', [['premium', 1]], S_APRES),
     abo('s3', tS3, 'active', [['pro', 3]], S_APRES),
     abo('d1', tS2, 'active', [['business', 1]], S_APRES), abo('d2', tS2.toUpperCase(), 'trialing', [['business', 2]], S_APRES), abo('dx', tS2, 'canceled', [['business', 5]], S_APRES),

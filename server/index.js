@@ -722,6 +722,13 @@ app.post('/api/stripe/checkout', async (req, res) => {
         refGravee = id.cle.startsWith('t:') ? id.val : '';
       }
     }
+    /* ⛔ un impayé d'OP GESTION se règle sur sa facture, il ne se rachète pas (`factureImpayeARegler`) — OP MESSAGES, qui
+       n'est pas encore en vente, garde le paiement normal */
+    if (rangDuPrix >= 0) {
+      const due = await factureImpayeARegler(visees, payeurMin);
+      if (due && due.url) { console.log('paiement : facture en attente d\'un impayé servie à la place d\'un abonnement neuf'); return res.json({ url: due.url, facture: true }); }
+      if (due && due.refus) return res.status(due.refus).json({ error: due.error });
+    }
     const p = new URLSearchParams();
     p.append('mode', 'subscription');
     p.append('line_items[0][price]', String(price));
@@ -2338,6 +2345,24 @@ const espStripeCache = { ts: 0, data: null, enCours: null, echecTs: 0 };
    Stripe, la dernière liste connue sert (on ne coupe pas une entreprise qui paie), mais un paiement fait depuis n'y est pas
    — le rappel J-7 ne décide rien dessus (`abonnementGestion`). La variable : pour les bancs seulement. */
 const STRIPE_CACHE_MS = Math.max(1, parseInt(process.env.TEAMOP_STRIPE_CACHE_MS, 10) || 5 * 60000);
+/* ⛔ UN IMPAYÉ SE RELIT À LA MINUTE (Justin, 29 septembre 2026 : l'accès revient dès que c'est réglé). La liste Stripe se
+   garde cinq minutes : un client qui vient de régler sa facture resterait grisé jusque-là. Tant qu'une entreprise n'a que de
+   l'impayé, la liste se relit si elle a plus d'une minute (toujours une seule lecture à la fois, et pas pendant une panne :
+   `stripeListe`). `imp` : ses abonnements d'OP GESTION en impayé (`impayesGestion`), ou `null`. */
+const STRIPE_IMPAYE_FRAIS_MS = Math.min(60000, STRIPE_CACHE_MS);
+async function stripeVerdict(e) {
+  let s = await espaceStripe(e);
+  let imp = null;
+  try { imp = impayesGestion(e, espStripeCache.data); } catch (err) { imp = null; }
+  if (!s && imp && Date.now() - espStripeCache.ts > STRIPE_IMPAYE_FRAIS_MS) {
+    s = await espaceStripe(e, STRIPE_IMPAYE_FRAIS_MS);
+    try { imp = impayesGestion(e, espStripeCache.data); } catch (err) { imp = null; }
+  }
+  return { s, imp };
+}
+/* le motif d'un impayé — distinct d'« aucun paiement » : la Tour le montre, et l'horloge de conservation le garde (la fin d'un
+   abonnement n'est pas un abandon) */
+const motifImpaye = imp => 'abonnement Stripe impayé (' + imp.abo.status + ', par ' + imp.parQuoi + ') — fonctions payantes bloquées jusqu\'au règlement';
 async function espacePaye(e, opts) {
   /* ⛔⛔ `lecture` : RÉPONDRE SANS RIEN ACTIVER (24 septembre 2026, relevé par `gardien`).
      Le rattrapage ci-dessous ÉCRIT (compteur du code, `promos-usages.json`) et ENVOIE un
@@ -2372,9 +2397,13 @@ async function espacePaye(e, opts) {
        Business Premium. On LIT la période (rien ne s'active ici : le rattrapage reste réservé aux fiches payantes). */
     const po = periodeOfferte(e);
     if (po) return po;
-    const s = await espaceStripe(e);
+    const { s, imp } = await stripeVerdict(e);
     const fp = s ? formuleEtPlaces(e, s) : null;
-    if (fp && fp.f && fp.f !== 'gratuit') return { paye: true, motif: s.motif + ' — formule payée : ' + (FORMULE_LBL2[fp.f] || fp.f), echeance: s.echeance, formuleServie: fp.f, placesStripe: fp.places };
+    if (fp && fp.f && fp.f !== 'gratuit') return { paye: true, motif: s.motif + ' — formule payée : ' + (FORMULE_LBL2[fp.f] || fp.f), echeance: s.echeance, formuleServie: fp.f, placesStripe: fp.places,
+      impayesPartiels: imp ? imp.tous.length : 0 };
+    /* ⛔ une fiche « Gratuit » dont l'abonnement payé est en impayé : Gratuit, et l'application le DIT à l'administrateur
+       (`bloque` → `/api/espaces/etat`) au lieu de se croire revenue au Gratuit « normal » */
+    if (!s && imp) return { paye: true, motif: 'gratuit — ' + motifImpaye(imp), impaye: true, bloque: true };
     return { paye: true, motif: 'gratuit' };
   }
   try {   // rattrapage : un code demandé à la demande d'accès mais jamais compté (espace recréé…) s'active ici
@@ -2403,7 +2432,7 @@ async function espacePaye(e, opts) {
   if (promosIllisible && e.codePromo) return { paye: true, motif: 'code promo ' + String(e.codePromo).toUpperCase() + ' — registre des codes illisible, dans le doute on ne coupe pas', promoCode: String(e.codePromo).toUpperCase(), doute: true };
   const po = periodeOfferte(e);   // code promo : compté par espace (teamId = identifiant de l'espace)
   if (po) return po;
-  const s = await espaceStripe(e);
+  const { s, imp } = await stripeVerdict(e);
   if (s) {
     /* ⛔ LA FORMULE SUIT CE QUI EST PAYÉ (Justin, 29 septembre 2026 : « ils choisissent le tarif qu'ils veulent » ; un code
        promo ouvre Business Premium « pour mieux montrer l'application », et à la fin chacun choisit sa formule). La route de
@@ -2411,9 +2440,17 @@ async function espacePaye(e, opts) {
        (`formulePayee`) — payer Pro donne Pro, même si la fiche dit Business Premium. Ce qu'on ne sait pas lire (un
        abonnement d'avant la bascule, un tarif créé à la main chez Stripe) garde la formule de la fiche : on ne coupe pas. */
     const fp = formuleEtPlaces(e, s), f = fp.f || e.formule;
-    return { paye: true, motif: s.motif + (f === e.formule ? '' : f === 'gratuit' ? ' — OP GESTION non payé : formule Gratuit' : ' — formule payée : ' + (FORMULE_LBL2[f] || f)), echeance: s.echeance, formuleServie: f,
-      placesStripe: fp.places };
+    /* un abonnement refusé parmi d'autres payés : ses places ne sont pas servies (`placesStripe` ne compte que le payé) — le
+       motif le dit, pour que la Tour le voie */
+    const nImp = imp ? imp.tous.length : 0;
+    return { paye: true, motif: s.motif + (f === e.formule ? '' : f === 'gratuit' ? ' — OP GESTION non payé : formule Gratuit' : ' — formule payée : ' + (FORMULE_LBL2[f] || f))
+      + (nImp ? ' — ' + nImp + ' abonnement' + (nImp > 1 ? 's' : '') + ' en impayé : ' + (nImp > 1 ? 'leurs' : 'ses') + ' places ne sont pas servies' : ''), echeance: s.echeance, formuleServie: f,
+      placesStripe: fp.places, impayesPartiels: nImp };
   }
+  /* ⛔⛔ CARTE REFUSÉE = IMPAYÉ, ET PAS D'ACCÈS PAYANT TANT QUE CE N'EST PAS RÉGLÉ (Justin, 29 septembre 2026). `bloque` :
+     l'application grise les catégories payantes SANS rien écrire (`/api/espaces/etat` la sert comme une suspension au sursis
+     écoulé), et tout revient dès que Stripe dit l'abonnement payé. */
+  if (imp) return { paye: false, motif: motifImpaye(imp), impaye: true, bloque: true, echeance: imp.abo.current_period_end ? new Date(imp.abo.current_period_end * 1000).toISOString().slice(0, 10) : '' };
   return { paye: false, motif: 'aucun paiement ni code promo' };
 }
 /* Une période offerte EN COURS pour cette entreprise (lue, jamais activée) : elle SERT la formule du code — Business
@@ -2473,47 +2510,124 @@ function finEssaiPeriode(visees, adresse, maintenant) {
     return { fin: Math.floor(debutMs / 1000), debut: new Date(debutMs).toISOString().slice(0, 10), finLe: po.finLe, t };
   } catch (err) { return null; }
 }
+/* Un abonnement relu chez Stripe : `{ impaye, url }` — `impaye` s'il l'est toujours (`past_due`, `unpaid`), `url` la page de
+   sa facture ouverte (https:// seulement) ou `''`. JETTE si Stripe ne répond pas : l'appelant refuse ou attend, il ne devine
+   pas. Partagé par la page de paiement et le rappel J-7. */
+async function factureOuverteDe(subId, sk) {
+  const httpsOk = u => /^https:\/\//.test(String(u || ''));
+  const d = await stripeMonGet('https://api.stripe.com/v1/subscriptions/' + encodeURIComponent(subId) + '?expand[]=latest_invoice', sk);
+  if (!d || !STATUTS_IMPAYES.includes(d.status)) return { impaye: false, url: '' };
+  const li = d.latest_invoice;
+  if (li && typeof li === 'object' && li.status === 'open' && httpsOk(li.hosted_invoice_url)) return { impaye: true, url: String(li.hosted_invoice_url) };
+  const f = await stripeMonGet('https://api.stripe.com/v1/invoices?subscription=' + encodeURIComponent(subId) + '&status=open&limit=1', sk);
+  const x = f && Array.isArray(f.data) ? f.data[0] : null;
+  return { impaye: true, url: (x && httpsOk(x.hosted_invoice_url)) ? String(x.hosted_invoice_url) : '' };
+}
+/* ⛔⛔ UN IMPAYÉ SE RÈGLE, IL NE SE RACHÈTE PAS (Justin, 29 septembre 2026 : carte refusée = impayé, accès payant bloqué
+   jusqu'au règlement). L'entreprise dont la carte est refusée voit ses fonctions payantes grisées ; si elle repasse par la page
+   de paiement, un SECOND abonnement naît — et le jour où Stripe réussit sa nouvelle tentative sur le premier, elle paie DEUX
+   FOIS. La page de paiement l'envoie donc sur la FACTURE EN ATTENTE (la page Stripe, où elle règle avec une autre carte ;
+   l'abonnement redevient actif et tout revient). Les candidats : ses abonnements d'OP GESTION en impayé — ceux du compte qui
+   paie (`metadata[compte]`, ou l'adresse du client Stripe) et ceux qui sont SÛREMENT à l'entreprise visée (la référence
+   vérifiée, sinon celle — unique — de l'adresse du compte), jamais la facture d'une autre entreprise. Chacun se RELIT chez
+   Stripe (la liste a jusqu'à une minute) :
+   · toujours impayé, avec une facture ouverte → `{ url }` (seule une adresse https:// part, comme la Tour) ;
+   · toujours impayé, sans facture ouverte → 409 `impaye_sans_facture` (rien n'est créé : TEAM OP règle à la main) ;
+   · réglé depuis → on passe au suivant, puis au paiement normal ;
+   · un candidat, mais Stripe ne répond pas à sa relecture → 502 : on refuse plutôt que de risquer un double prélèvement.
+   ⚠️ La LISTE elle-même illisible (jamais lue, Stripe en panne) ne bloque PAS le paiement : sans elle on ne sait pas s'il y a
+   un impayé, et refuser TOUS les paiements pendant une panne de la liste coûterait plus (la dernière liste connue sert,
+   sinon le paiement normal suit — et la page de paiement de Stripe, elle, dépend du même Stripe).
+   `null` : rien à régler, le paiement normal suit. */
+async function factureImpayeARegler(visees, payeurMin) {
+  const sk = config.stripe && config.stripe.secretKey;
+  if (!sk || !payeurMin) return null;
+  let liste = null;
+  try { liste = await stripeListe(STRIPE_IMPAYE_FRAIS_MS); } catch (err) { console.error('paiement : liste Stripe illisible, pas de recherche d\'impayé —', stripeLog(err)); return null; }
+  if (!liste) return null;
+  let e = (visees || [])[0] || null;
+  if (!e) {
+    const parT = new Map();
+    for (const sl of Object.keys(espacesReg || {})) {
+      const x = espacesReg[sl];
+      if (!x || typeof x.email !== 'string' || x.email.trim().toLowerCase() !== payeurMin) continue;
+      const t = String(espaceT(x) || '').trim();
+      if (!parT.has(t)) parT.set(t, Object.assign({ slug: sl }, x));
+    }
+    if (parT.size === 1) e = [...parT.values()][0];   // deux entreprises à une adresse : seules celles du compte comptent
+  }
+  const clientMail = sb => (sb.customer && typeof sb.customer === 'object') ? String(sb.customer.email || '').trim().toLowerCase() : '';
+  const duCompte = sb => String((sb.metadata && sb.metadata.compte) || '').trim().toLowerCase() === payeurMin || clientMail(sb) === payeurMin;
+  const cand = new Map();
+  for (const sb of liste) if (sb && sb.id && STATUTS_IMPAYES.includes(sb.status) && aboDeGestion(sb) && duCompte(sb)) cand.set(sb.id, sb);
+  if (e) { try { const imp = impayesGestion(e, liste); if (imp) for (const sb of imp.surs) if (sb && sb.id) cand.set(sb.id, sb); } catch (err) {} }
+  for (const sb of [...cand.values()].slice(0, 10)) {
+    let f = null;
+    try { f = await factureOuverteDe(sb.id, sk); }
+    catch (err) { console.error('paiement : relecture d\'un impayé impossible —', stripeLog(err)); return { refus: 502, error: 'stripe_indisponible' }; }
+    if (!f.impaye) continue;   // réglé depuis la liste
+    if (f.url) return { url: f.url };
+    return { refus: 409, error: 'impaye_sans_facture' };
+  }
+  return null;
+}
+/* La liste des abonnements Stripe (tous statuts), relue quand elle a plus de `ageMax` ms (au plus `STRIPE_CACHE_MS`) —
+   `null` sans clé Stripe ; jette seulement quand elle n'a JAMAIS pu être lue. Partagée par le verdict « payé »
+   (`espaceStripe`), la page de paiement (`factureImpayeARegler`) et le rappel J-7. */
+async function stripeListe(ageMax) {
+  const sk = config.stripe && config.stripe.secretKey;
+  if (!sk) return null;
+  const age = ageMax > 0 ? Math.min(ageMax, STRIPE_CACHE_MS) : STRIPE_CACHE_MS;
+  /* ⛔ UNE SEULE LECTURE DE STRIPE À LA FOIS, ET PAS DE RAFALE PENDANT UNE PANNE (29 septembre 2026, relecture adverse,
+     rejoué) : « Mon espace » lit aussi ce cache (`formuleServieDe`). Stripe muet, chaque lecture attendait trois abandons
+     de 12 s et en relançait trois — et des lectures simultanées lançaient chacune les leurs. Une lecture en cours se
+     PARTAGE ; un échec ne se retente qu'une minute plus tard, et pendant ce temps la dernière liste connue sert (rien,
+     s'il n'y en a jamais eu : comme avant, où chaque appel échouait à son tour).
+     ⛔ Y COMPRIS POUR L'APPEL QUI ATTENDAIT LA LECTURE RATÉE : il rendait « non payé » à une entreprise qui paie, alors
+     qu'une liste connue était là — on ne coupe pas une entreprise qui paie le temps d'une panne de Stripe. */
+  if (Date.now() - espStripeCache.ts > age || !espStripeCache.data) {
+    if (!espStripeCache.enCours && Date.now() - espStripeCache.echecTs > 60000) {
+      espStripeCache.enCours = stripeAbosBruts(sk)
+        .then(d => { espStripeCache.data = d; espStripeCache.ts = Date.now(); espStripeCache.echecTs = 0; },
+          err => { espStripeCache.echecTs = Date.now(); throw err; })
+        .finally(() => { espStripeCache.enCours = null; });
+    }
+    if (espStripeCache.enCours) {
+      try { await espStripeCache.enCours; }
+      catch (err) { if (!espStripeCache.data) throw err; console.error('espacePaye stripe (la dernière liste connue sert) :', err.message); }
+    }
+  }
+  return espStripeCache.data || [];
+}
 /* ── LES ABONNEMENTS STRIPE D'UNE ENTREPRISE ─────────────────────────────────────────────────────────────────────
    Sortie d'`espacePaye` (29 septembre 2026) pour que la fiche « Gratuit » y passe aussi : rend le premier abonnement
    trouvé, TOUS ses abonnements (`memes`, pour les places), ceux qui sont SÛREMENT à elle (`surs`, pour monter), ceux qui
-   laissent un DOUTE (`douteux`, qui interdisent de descendre), le motif et l'échéance — ou `null`. Le verdict « payé »
-   n'a pas changé. */
-async function espaceStripe(e) {
-  const sk = config.stripe && config.stripe.secretKey;
+   laissent un DOUTE (`douteux`, qui interdisent de descendre), le motif et l'échéance — ou `null`.
+   ⛔ PAYÉ = `active` OU `trialing`, ET C'EST TOUT — `past_due` N'EN EST PLUS (Justin, 29 septembre 2026 : « si la carte
+   est refusée, c'est un impayé » ; « leur accès sont bloqués le temps que c'est pas payé » ; « rien n'est perdu, mais pas
+   de paiement, pas d'accès au service payant »). Un abonnement dont le prélèvement a échoué comptait comme payé pendant
+   toutes les nouvelles tentatives de Stripe ; il est désormais un IMPAYÉ (`impayesGestion`), comme `unpaid`, et
+   l'application grise les catégories payantes jusqu'au règlement (`/api/espaces/etat`). */
+async function espaceStripe(e, ageMax) {
   /* ⚠️ PLUS `&& e.email`. Le rattachement par RÉFÉRENCE n'a besoin d'aucune adresse : exiger
      un e-mail ici aurait laissé sans paiement reconnu, justement, les espaces créés sans
      adresse — ceux de la Tour. Le repli par e-mail se garde tout seul plus bas. */
-  if (sk) {
-    try {
-      /* ⛔ UNE SEULE LECTURE DE STRIPE À LA FOIS, ET PAS DE RAFALE PENDANT UNE PANNE (29 septembre 2026, relecture adverse,
-         rejoué) : « Mon espace » lit aussi ce cache (`formuleServieDe`). Stripe muet, chaque lecture attendait trois abandons
-         de 12 s et en relançait trois — et des lectures simultanées lançaient chacune les leurs. Une lecture en cours se
-         PARTAGE ; un échec ne se retente qu'une minute plus tard, et pendant ce temps la dernière liste connue sert (rien,
-         s'il n'y en a jamais eu : comme avant, où chaque appel échouait à son tour).
-         ⛔ Y COMPRIS POUR L'APPEL QUI ATTENDAIT LA LECTURE RATÉE : il rendait « non payé » à une entreprise qui paie, alors
-         qu'une liste connue était là — on ne coupe pas une entreprise qui paie le temps d'une panne de Stripe. */
-      if (Date.now() - espStripeCache.ts > STRIPE_CACHE_MS || !espStripeCache.data) {
-        if (!espStripeCache.enCours && Date.now() - espStripeCache.echecTs > 60000) {
-          espStripeCache.enCours = stripeAbosBruts(sk)
-            .then(d => { espStripeCache.data = d; espStripeCache.ts = Date.now(); espStripeCache.echecTs = 0; },
-              err => { espStripeCache.echecTs = Date.now(); throw err; })
-            .finally(() => { espStripeCache.enCours = null; });
-        }
-        if (espStripeCache.enCours) {
-          try { await espStripeCache.enCours; }
-          catch (err) { if (!espStripeCache.data) throw err; console.error('espacePaye stripe (la dernière liste connue sert) :', err.message); }
-        }
-      }
-      return espaceStripeDans(e, espStripeCache.data || []);
-    } catch (err) { console.error('espacePaye stripe:', err.message); }
-  }
+  try {
+    const liste = await stripeListe(ageMax);
+    if (liste) return espaceStripeDans(e, liste);
+  } catch (err) { console.error('espacePaye stripe:', err.message); }
   return null;
 }
 /* ⛔ À QUI SONT LES ABONNEMENTS D'UNE LISTE STRIPE — la décision d'`espaceStripe`, sortie en fonction PURE (29 septembre 2026,
    seconde relecture de `gardien`) : le rappel J-7 la rejoue sur les seuls abonnements encore vivants le lendemain de la fin
    d'une période offerte (`abonnementGestion`), pour dire au client ce que l'application fera VRAIMENT ce jour-là. Une seule
-   définition des règles de rattachement : deux copies divergeraient un jour, et le courriel mentirait. */
-function espaceStripeDans(e, liste) {
+   définition des règles de rattachement : deux copies divergeraient un jour, et le courriel mentirait.
+   `statuts` : les statuts Stripe qui comptent (défaut : `active`, `trialing` — les abonnements PAYÉS) ; les impayés passent
+   par les MÊMES règles avec `STATUTS_IMPAYES` (`impayesGestion`), pour qu'une entreprise ne soit jamais « impayée » d'un
+   abonnement que les règles du payé auraient rattaché à une autre. */
+const STATUTS_PAYES = ['active', 'trialing'];
+const STATUTS_IMPAYES = ['past_due', 'unpaid'];
+function espaceStripeDans(e, liste, statuts) {
   /* ⛔ DEUX RATTACHEMENTS, DANS CET ORDRE, ET LE PREMIER EST LE SEUL FIABLE.
      1. LA RÉFÉRENCE D'ESPACE, gravée sur l'abonnement à la création de la page de paiement
         (`subscription_data[metadata][espace]`). Elle ne dépend d'aucune adresse et survit
@@ -2530,7 +2644,8 @@ function espaceStripeDans(e, liste) {
      route de paiement grave (« B »), et `e.t` seul ne voyait pas ces entrées-là, rattachées alors par la seule
      adresse (`gardien`, rejoué) — un changement d'adresse et le paiement se perdait. */
   const refs = [String(e.slug || '').toLowerCase(), String(espaceT(e) || '').toLowerCase()].filter(Boolean);
-  const vivant = sb => ['active', 'trialing', 'past_due'].includes(sb.status);
+  const st = Array.isArray(statuts) && statuts.length ? statuts : STATUTS_PAYES;
+  const vivant = sb => !!sb && st.includes(sb.status);
   let abo = refs.length ? liste.find(sb => vivant(sb)
     && sb.metadata && refs.includes(String(sb.metadata.espace || '').toLowerCase())) : null;
   let parQuoi = 'référence d\'espace';
@@ -2599,7 +2714,7 @@ function espaceStripeDans(e, liste) {
     const surs = memes.filter(sb => aMoi(sb) || !partagee);
     const douteux = liste.filter(sb => vivant(sb) && parMail(sb) && !aMoi(sb) && !surs.includes(sb)
       && ((sb.items && Array.isArray(sb.items.data)) ? sb.items.data.some(it => !ligneMessages(it)) : true));
-    return { abo, memes, surs, douteux, motif: 'abonnement Stripe (' + abo.status + ', par ' + parQuoi + ')', echeance: abo.current_period_end ? new Date(abo.current_period_end * 1000).toISOString().slice(0, 10) : '' };
+    return { abo, memes, surs, douteux, parQuoi, motif: 'abonnement Stripe (' + abo.status + ', par ' + parQuoi + ')', echeance: abo.current_period_end ? new Date(abo.current_period_end * 1000).toISOString().slice(0, 10) : '' };
   }
   return null;
 }
@@ -2658,6 +2773,22 @@ function placesPromoDejaEu(e) {
 const prixDeLigne = it => { const p = it && it.price; return typeof p === 'string' ? p : String((p && p.id) || ''); };
 const ligneMessages = it => STRIPE_PRIX_MESSAGES.includes(prixDeLigne(it)) || /messages/i.test(String((it && it.price && it.price.product && it.price.product.name) || ''));
 const aboAvantBascule = sb => (parseInt(sb && sb.created, 10) || 0) * 1000 < PLACES_BASCULE;
+/* un abonnement d'OP GESTION : d'avant la bascule (un ancien lien, on ne sait pas lire son tarif), sans ligne lisible, ou avec
+   au moins une ligne qui n'est pas d'OP MESSAGES — la règle du rappel J-7, partagée avec l'impayé et la page de paiement */
+const aboDeGestion = sb => { const l = (sb && sb.items && Array.isArray(sb.items.data)) ? sb.items.data : [];
+  return aboAvantBascule(sb) || !l.length || l.some(it => !ligneMessages(it)); };
+/* ⛔ LES ABONNEMENTS D'OP GESTION EN IMPAYÉ D'UNE ENTREPRISE (Justin, 29 septembre 2026 : carte refusée = impayé, accès payant
+   bloqué jusqu'au règlement). Les mêmes règles de rattachement que le payé (`espaceStripeDans`), sur les statuts impayés :
+   `{ tous, surs, abo, parQuoi }` — `tous` décide de l'état (une adresse partagée grise aussi : on ne sert pas une formule
+   que personne ne paie), `surs` seuls peuvent mener à une facture à régler (on ne fait jamais payer la facture d'une AUTRE
+   entreprise). Un impayé d'OP MESSAGES seul ne touche pas OP GESTION. `null` : aucun. */
+function impayesGestion(e, liste) {
+  const imp = espaceStripeDans(e, liste || [], STATUTS_IMPAYES);
+  const tous = ((imp && imp.memes) || []).filter(aboDeGestion);
+  if (!tous.length) return null;
+  const abo = tous.includes(imp.abo) ? imp.abo : tous[0];
+  return { tous, surs: ((imp && imp.surs) || []).filter(aboDeGestion), abo, parQuoi: imp.parQuoi };
+}
 /* ⛔⛔ LA FORMULE QUE L'ENTREPRISE PAIE — CELLE QUE L'APPLICATION REÇOIT (Justin, 29 septembre 2026 : « ils choisissent
    le tarif qu'ils veulent » ; « le code promo, le plus gros forfait, c'est pour mieux montrer l'application » — à la fin,
    chacun prend la formule qu'il veut). La page de paiement ne refuse donc plus un tarif sous la formule de la fiche : c'est
@@ -2752,6 +2883,9 @@ async function formuleServieDe(mail) {
   const e = espaceParT([...ts][0]);
   if (!e || !e.formule || espaceFerme(espaceT(e))) return '';
   const p = await espacePaye(e, { lecture: true });
+  /* ⛔ un impayé (carte refusée) : « Mon espace » dit « Suspendu » — l'application a grisé les fonctions payantes, le dossier
+     ne doit pas dire « Actif » à côté (`avecFormuleServie`, portail.js) */
+  if (p && p.bloque) return { statut: 'suspendu' };
   const f = p && p.paye ? (p.formuleServie || e.formule) : '';
   return (f && FORMULE_LBL2[f]) || '';
 }
@@ -2803,6 +2937,9 @@ app.get('/api/monitor/espaces/liste', monAdmin, async (req, res) => {
     try { p = await espacePaye(Object.assign({ slug }, e), { lecture: true }); } catch (err) {}   // une LISTE n'active aucun code
     sortie.push({ slug, nom: e.nom || slug, email: e.email || '', formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', quantite: e.quantite || 1, places: placesServies(e, p),
       paye: p.paye, motif: p.motif, promoCode: p.promoCode || '', finLe: p.finLe || '', echeance: p.echeance || '', attribueLe: e.formuleTs || 0, par: e.formulePar || '',
+      /* carte refusée : les fonctions payantes sont bloquées jusqu'au règlement (`bloque`) ; `impayesPartiels` : des abonnements
+         refusés parmi d'autres payés (leurs places ne sont pas servies) */
+      impaye: !!p.bloque, impayesPartiels: p.impayesPartiels || 0,
       // qui a ouvert l'espace et quand : la Tour en a besoin pour lister les accès publics
       ouvertLe: e.ts || 0, ouvertPar: e.par || '', t: espaceT(e), resume: cnxResume(espaceT(e)),
       /* Deux états que la Tour ne pouvait pas connaître : un accès coupé ressemblait à un accès
@@ -2845,7 +2982,8 @@ app.post('/api/monitor/espaces/statut', monAdmin, async (req, res) => {
   const e = espacesReg[slug];
   if (!e) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son lien de connexion' });
   const p = await espacePaye(Object.assign({ slug }, e), { lecture: true });   // le slug n'est pas dans l'entrée — voir /liste ; une LECTURE n'active aucun code
-  res.json({ ok: true, formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', promoCode: p.promoCode || '', quantite: e.quantite || 1, places: placesServies(e, p), email: e.email || '', paye: p.paye, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '' });
+  res.json({ ok: true, formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', promoCode: p.promoCode || '', quantite: e.quantite || 1, places: placesServies(e, p), email: e.email || '', paye: p.paye, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '',
+    impaye: !!p.bloque, impayesPartiels: p.impayesPartiels || 0 });
 });
 // ── Activité par onglet (anonyme : noms d'écrans + compteurs, par espace) ──
 const USAGE_PATH = path.join(DATA_DIR, 'usage.json');
@@ -4625,7 +4763,17 @@ app.post('/api/espaces/etat', (req, res) => {
   const versionMin = versionsCfg.min, enLigne = versionsCfg.enLigne;
   if (!e || !e.formule) return res.json({ ok: true, opMessages, versionMin, enLigne, suspendu, sursisJours });
   /* ⛔ la formule SERVIE (`formulePayee`) : celle que l'entreprise paie, pas forcément celle de la fiche (29 septembre 2026) */
-  espacePaye(e).then(p => res.json({ ok: true, formule: p.formuleServie || e.formule, quantite: e.quantite || 1, places: placesServies(e, p), paye: p.paye, motif: p.motif, opMessages, versionMin, enLigne, suspendu, sursisJours }))
+  espacePaye(e).then(p => {
+    /* ⛔⛔ UN IMPAYÉ SE SERT COMME UNE SUSPENSION AU SURSIS ÉCOULÉ, SANS FORMULE (Justin, 29 septembre 2026 : « leur accès sont
+       bloqués le temps que c'est pas payé » ; « rien n'est perdu »). L'application v763 sait déjà griser ainsi
+       (`suspensionPoser` → `forfait()` rend « gratuit ») : sans rien écrire dans `db` (la formule vraie reste, tout revient
+       d'un coup au règlement), et le message n'est montré qu'à l'ADMINISTRATEUR (« c'est pas aux utilisateurs de savoir si
+       l'entreprise paye ou pas »). Une réponse AVEC formule et `paye:false` ferait l'inverse : bandeau « Paye ton
+       abonnement » à toute l'équipe, `db.forfait` réécrit et synchronisé, et un bouton qui mène à un SECOND abonnement.
+       Rien n'est écrit côté serveur non plus : l'état se recalcule à chaque appel, il revient seul. */
+    if (p.bloque) return res.json({ ok: true, paye: false, impaye: true, motif: p.motif, opMessages, versionMin, enLigne, suspendu: true, sursisJours: 0 });
+    res.json({ ok: true, formule: p.formuleServie || e.formule, quantite: e.quantite || 1, places: placesServies(e, p), paye: p.paye, motif: p.motif, opMessages, versionMin, enLigne, suspendu, sursisJours });
+  })
     .catch(() => res.json({ ok: true, formule: e.formule, quantite: e.quantite || 1, paye: false, motif: 'vérification impossible', opMessages, versionMin, enLigne, suspendu, sursisJours }));
 });
 /* nom d'entreprise présentable (jamais une adresse e-mail mise là faute de mieux) */
@@ -9103,14 +9251,18 @@ function rappelAbonneMail(code, finLe, ab) {
   const finFr = fr(finLe);
   /* résilié mais courant au-delà de la période : jusqu'à sa fin, et le prélèvement qui aura lieu avant, s'il est en essai */
   const arret = 'a été résilié : il s\'arrête le ' + fr(ab.resilie) + '. Ensuite, sans nouvel abonnement, l\'application repassera en formule Gratuit — vos données ne bougent pas.';
-  const quand = ab.resilie ? (ab.premier ? 'Le premier prélèvement de votre abonnement aura lieu le ' + fr(ab.premier) + '. Il ' + arret : 'Votre abonnement ' + arret)
-    : ab.premier ? 'Le premier prélèvement de votre abonnement aura lieu le ' + fr(ab.premier) + '.'
+  /* ⛔ carte refusée = impayé, accès payant bloqué jusqu'au règlement (Justin, 29 septembre 2026) : le premier prélèvement
+     d'un abonnement en essai le DIT, pour que la carte soit à jour ce jour-là */
+  const siRefus = ' S\'il n\'aboutit pas, les fonctions payantes seront bloquées jusqu\'au règlement — vos données ne bougent pas.';
+  const quand = ab.resilie ? (ab.premier ? 'Le premier prélèvement de votre abonnement aura lieu le ' + fr(ab.premier) + '.' + siRefus + ' Il ' + arret : 'Votre abonnement ' + arret)
+    : ab.premier ? 'Le premier prélèvement de votre abonnement aura lieu le ' + fr(ab.premier) + '.' + siRefus
     : ab.prochaine ? 'Prochaine échéance de votre abonnement : le ' + fr(ab.prochaine) + '.' : '';
-  /* un abonnement en impayé (`past_due`) ne « prend pas le relais » sans rien faire : on le dit, sans l'alarmer ; un
-     abonnement résilié le prend jusqu'à sa fin, et pas au-delà */
-  const suite = ab.impaye ? 'Votre abonnement prend le relais, mais son dernier prélèvement n\'a pas abouti : pour éviter une interruption, écrivez-nous à contact@teamop.fr.'
-    : ab.resilie ? 'Votre abonnement prend le relais jusqu\'au ' + fr(ab.resilie) + '.'
-    : 'Votre abonnement prend le relais : vous n\'avez rien à faire.';
+  /* ⛔ un AUTRE abonnement refusé (`impaye` : un impayé parmi des abonnements payés) : l'abonnement qui paie prend le relais,
+     mais les places que paie le refusé ne sont plus servies jusqu'au règlement (`placesStripe` ne compte que le payé) ; un
+     abonnement résilié prend le relais jusqu'à sa fin, et pas au-delà. Une entreprise dont TOUS les abonnements sont refusés
+     reçoit l'autre courriel (`rappelImpayeMail`). */
+  const suite = (ab.resilie ? 'Votre abonnement prend le relais jusqu\'au ' + fr(ab.resilie) + '.' : 'Votre abonnement prend le relais' + (ab.impaye ? '.' : ' : vous n\'avez rien à faire.'))
+    + (ab.impaye ? ' Mais le dernier prélèvement d\'un autre de vos abonnements n\'a pas abouti : les places qu\'il paie sont suspendues jusqu\'au règlement. Pour le régler, écrivez-nous à contact@teamop.fr.' : '');
   return {
     subject: '⏳ Votre période offerte se termine le ' + finFr + ' — votre abonnement prend le relais',
     text: 'Bonjour,\n\nla période offerte par votre code « ' + code + ' » se termine le ' + finFr + '.\n' + suite + (quand ? '\n' + quand : '')
@@ -9121,9 +9273,34 @@ function rappelAbonneMail(code, finLe, ab) {
       boutonTxt: 'Ouvrir mon application', boutonUrl: 'https://teamop.fr/app.html' })
   };
 }
+/* ⛔⛔ LE RAPPEL DES SEPT JOURS À UNE ENTREPRISE DONT L'ABONNEMENT EST EN IMPAYÉ (Justin, 29 septembre 2026 : carte refusée =
+   impayé, « leur accès sont bloqués le temps que c'est pas payé », « rien n'est perdu »). Ni « prend le relais » (l'application
+   grisera les fonctions payantes à la fin de la période), ni lien vers la page de paiement (un second abonnement serait
+   prélevé EN DOUBLE le jour où Stripe réussit sa nouvelle tentative), ni la promesse « rien n'est prélevé avant… » : la
+   FACTURE EN ATTENTE, à régler (`url`, relue chez Stripe au moment d'écrire), sinon l'adresse du support. */
+function rappelImpayeMail(code, finLe, url) {
+  const fr = d => String(d).split('-').reverse().join('/');
+  const finFr = fr(finLe);
+  const mL = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(finLe || ''));
+  const lendemain = mL ? fr(new Date(Date.UTC(+mL[1], +mL[2] - 1, +mL[3] + 1)).toISOString().slice(0, 10)) : '';
+  const bloc = 'Le dernier prélèvement de votre abonnement n\'a pas abouti.' + (lendemain ? ' À partir du ' + lendemain + ', les' : ' Les')
+    + ' fonctions payantes seront bloquées tant qu\'il n\'est pas réglé. Vos données ne bougent pas, et tout revient dès le règlement.';
+  const agir = url ? 'Réglez votre facture en attente (vous pouvez changer de carte) : ' + url : 'Pour le régler, écrivez-nous à contact@teamop.fr.';
+  return {
+    subject: '⏳ Votre période offerte se termine le ' + finFr + ' — un prélèvement est à régler',
+    text: 'Bonjour,\n\nla période offerte par votre code « ' + code + ' » se termine le ' + finFr + '.\n' + bloc + '\n' + agir
+      + '\n\nUne question : contact@teamop.fr\n\n— TEAM OP · teamop.fr',
+    html: mailTeamOP({ chip: 'Abonnement', chipBg: '#FDF1E7', chipColor: '#A4501B', titre: 'Un prélèvement est à régler',
+      corpsHtml: 'Bonjour,<br>la période offerte par votre code « <b>' + code + '</b> » se termine le <b>' + finFr + '</b>.',
+      blocHtml: MAIL_BLOCS.cadre('💳 ' + bloc.replace(/le (\d{2}\/\d{2}\/\d{4})/g, 'le <b>$1</b>').replace(/du (\d{2}\/\d{2}\/\d{4})/g, 'du <b>$1</b>'), '#FDF1E7', '#F2D3BC', '#17233B')
+        + (url ? '' : '<p style="margin:12px 0 0">Pour le régler, écrivez-nous à <b>contact@teamop.fr</b>.</p>'),
+      boutonTxt: url ? 'Régler ma facture' : 'Ouvrir mon application', boutonUrl: url || 'https://teamop.fr/app.html' })
+  };
+}
 /* L'abonnement OP GESTION d'une entreprise, pour le rappel des sept jours : `aucun` (le courriel habituel), `inconnu` (Stripe
-   illisible, ou sa liste périmée : on ne SAIT pas), ou `abonne` avec la date de son premier prélèvement (en essai), de sa
-   prochaine échéance, ou de sa fin s'il est résilié.
+   illisible, ou sa liste périmée : on ne SAIT pas), `impaye` (ses abonnements d'OP GESTION ne sont qu'en impayé — carte
+   refusée : `rappelImpayeMail`, avec `surs` pour trouver la facture), ou `abonne` avec la date de son premier prélèvement (en
+   essai), de sa prochaine échéance, ou de sa fin s'il est résilié (`impaye` : un autre de ses abonnements est refusé).
    ⛔⛔ LA DÉCISION EST CELLE QU'`espacePaye` PRENDRA LE LENDEMAIN DE LA FIN DE LA PÉRIODE (seconde relecture de `gardien`,
    29 septembre 2026). Décider sur l'état d'aujourd'hui disait « rien à faire » à une entreprise que l'application
    repasserait en Gratuit : un abonnement résilié avant la fin (le sien, ou celui d'une autre entreprise à la même adresse
@@ -9150,17 +9327,25 @@ async function abonnementGestion(e, finLe) {
   const finPeriode = sb => sec(sb.current_period_end) || sec((lignes(sb)[0] || {}).current_period_end);
   /* la fin programmée d'un abonnement résilié ; sans date lisible, on ne sait pas quand il s'arrête : il ne compte pas */
   const finProg = sb => sec(sb.cancel_at) || (sb.cancel_at_period_end ? (finPeriode(sb) || sec(sb.trial_end) || 1) : 0);
-  let s = null, fp = null;
-  try { s = espaceStripeDans(e, espStripeCache.data.filter(sb => { const f = finProg(sb); return !f || f > debut; })); }
-  catch (err) { return { etat: 'inconnu' }; }
-  if (!s) return { etat: 'aucun' };
+  let s = null, fp = null, imp = null;
+  try {
+    const encore = espStripeCache.data.filter(sb => { const f = finProg(sb); return !f || f > debut; });
+    s = espaceStripeDans(e, encore);
+    /* ⛔ ses abonnements d'OP GESTION en IMPAYÉ ce jour-là (carte refusée) : ils ne servent rien (`espacePaye`), et un
+       courriel qui dirait « prend le relais » mentirait — le rappel les nomme (`rappelImpayeMail`) */
+    imp = impayesGestion(e, encore);
+  } catch (err) { return { etat: 'inconnu' }; }
+  if (!s) return imp ? { etat: 'impaye', abo: imp.abo, surs: imp.surs } : { etat: 'aucun' };
+  const gestion = (s.memes || []).filter(sb => sb && aboDeGestion(sb));
+  /* ⛔ OP MESSAGES seul payé, et OP GESTION en impayé : l'impayé décide AVANT le Gratuit — le courriel habituel lui mettrait
+     sous les yeux un lien vers un SECOND abonnement */
+  if (!gestion.length && imp) return { etat: 'impaye', abo: imp.abo, surs: imp.surs };
   try { fp = formuleEtPlaces(e, s); } catch (err) { fp = null; }
   if (((fp && fp.f) || e.formule) === 'gratuit') return { etat: 'aucun' };
-  const deGestion = sb => aboAvantBascule(sb) || !lignes(sb).length || lignes(sb).some(it => !ligneMessages(it));
-  const gestion = (s.memes || []).filter(sb => sb && deGestion(sb));
   if (!gestion.length) return { etat: 'abonne', impaye: false, resilie: '', premier: '', prochaine: '' };
-  /* le plus durable d'abord : non résilié ; puis actif, en essai, en impayé ; puis celui qui court le plus loin */
-  const rang = sb => (finProg(sb) ? 4 : 0) + (sb.status === 'past_due' ? 2 : sb.status === 'trialing' ? 1 : 0);
+  /* le plus durable d'abord : non résilié ; puis actif, en essai ; puis celui qui court le plus loin — un impayé n'est plus
+     parmi eux (`espaceStripeDans` ne compte que le payé) */
+  const rang = sb => (finProg(sb) ? 4 : 0) + (sb.status === 'trialing' ? 1 : 0);
   const abo = gestion.slice().sort((a, b) => rang(a) - rang(b) || (finProg(b) - finProg(a)))[0];
   const fin = finProg(abo);
   const jour = n => {
@@ -9169,7 +9354,7 @@ async function abonnementGestion(e, finLe) {
     for (const x of new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(n * 1000))) p[x.type] = x.value;
     return p.year + '-' + p.month + '-' + p.day;
   };
-  return { etat: 'abonne', impaye: abo.status === 'past_due', resilie: fin ? jour(fin) : '',
+  return { etat: 'abonne', impaye: !!imp, resilie: fin ? jour(fin) : '',
     premier: abo.status === 'trialing' ? jour(sec(abo.trial_end) || finPeriode(abo)) : '',
     prochaine: !fin && abo.status !== 'trialing' ? jour(finPeriode(abo)) : '' };
 }
@@ -9241,11 +9426,27 @@ async function rappelsEcheances() {
             console.log('rappel échéance reporté →', masqueMail(dest), '(fin ' + eq.finLe + ', Stripe illisible : nouvel essai au prochain passage)');
             continue;
           }
+          /* ⛔ EN IMPAYÉ (carte refusée) : la facture en attente, relue chez Stripe au moment d'écrire — jamais le lien vers un
+             second abonnement. Stripe muet : comme « illisible » (on attend tant que ça a un sens, puis sans lien) ; réglée
+             depuis la liste : « prend le relais », sans lien, puisque c'est désormais vrai. */
+          let urlFacture = '';
+          if (ab.etat === 'impaye') {
+            let lue = null, echec = false;
+            for (const sb of (ab.surs || []).slice(0, 5)) {
+              try { const f = await factureOuverteDe(sb.id, config.stripe.secretKey); if (f.impaye) { lue = f; break; } if (!lue) lue = f; }
+              catch (err) { echec = true; break; }
+            }
+            if (echec && limite > auj) { console.log('rappel échéance reporté →', masqueMail(dest), '(fin ' + eq.finLe + ', impayé : facture illisible, nouvel essai au prochain passage)'); continue; }
+            if (lue && !lue.impaye) { ab.etat = 'abonne'; ab.impaye = false; ab.resilie = ''; ab.premier = ''; ab.prochaine = ''; }
+            else urlFacture = (lue && lue.url) || '';
+          }
+          /* l'attente de Stripe rend la main : on relit, comme plus haut */
+          if (ab.etat !== 'inconnu') { const el2 = eligible(code, t, eq0.finLe); if (!el2 || el2.sig !== el0.sig) continue; }
           const prelev = ab.etat === 'aucun' && es && es.t === String(t).trim() && es.finLe === eq.finLe && limite > auj
             ? { limite: limite.slice(8, 10) + '/' + limite.slice(5, 7), debut: es.debut.split('-').reverse().join('/') } : null;
           const avant = {}; for (const s of noms) { avant[s] = espacesReg[s].rappelFin; espacesReg[s].rappelFin = eq.finLe; }
           espacesEcrire();
-          const m = ab.etat === 'abonne' ? rappelAbonneMail(code, eq.finLe, ab) : rappelEcheanceMail(code, eq.finLe, f, n, prelev);
+          const m = ab.etat === 'abonne' ? rappelAbonneMail(code, eq.finLe, ab) : ab.etat === 'impaye' ? rappelImpayeMail(code, eq.finLe, urlFacture) : rappelEcheanceMail(code, eq.finLe, f, n, prelev);
           mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest, subject: m.subject, text: m.text, html: m.html })
             /* Un destinataire REFUSÉ pendant que la copie cachée passe ne fait pas échouer l'envoi (`gardien`) : le journal
                ne dit donc pas « envoyé » pour lui. Pas de nouvel essai — un refus d'adresse ne change pas en six heures, et
@@ -9253,7 +9454,8 @@ async function rappelsEcheances() {
             .then(info => {
               const refus = ((info && info.rejected) || []).some(a => String((a && a.address) || a).toLowerCase() === String(dest).toLowerCase());
               if (refus) console.error('rappel échéance REFUSÉ par la messagerie du client →', masqueMail(dest), '(fin ' + eq.finLe + ') — à prévenir autrement');
-              else console.log('rappel échéance envoyé →', masqueMail(dest), '(fin ' + eq.finLe + ', ' + (ab.etat === 'abonne' ? 'déjà abonnée' + (ab.impaye ? ', en impayé' : '') + (ab.resilie ? ', résiliée au ' + ab.resilie : '')
+              else console.log('rappel échéance envoyé →', masqueMail(dest), '(fin ' + eq.finLe + ', ' + (ab.etat === 'abonne' ? 'déjà abonnée' + (ab.impaye ? ', dont un abonnement en impayé' : '') + (ab.resilie ? ', résiliée au ' + ab.resilie : '')
+                : ab.etat === 'impaye' ? 'en impayé, ' + (urlFacture ? 'facture à régler' : 'sans facture lisible : écrire au support')
                 : n + ' utilisateur(s), ' + (f || 'formule inconnue') + (ab.etat === 'inconnu' ? ', Stripe illisible : sans la promesse' : '')) + ')');
             })
             /* ⛔ UN RAPPEL QUI N'EST PAS PARTI SE RETENTE : la marque posée avant l'envoi (deux passages ne doivent pas
