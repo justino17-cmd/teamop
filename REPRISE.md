@@ -79,11 +79,29 @@ laissait passer hors du bloc sombre ; le témoin de `test-803` qui gardait l'anc
 relisant le correctif : pendant une panne de Stripe, l'appel qui attendait la relecture ratée rendait « non payé » alors
 qu'une liste connue était là (la dernière liste connue sert désormais, `89d3385`).
 
+**Seconde relecture** (agent `relecteur`, en lecture seule, sur `b03842a` et `89d3385`) : **aucun défaut bloquant** —
+aucun chemin où une entreprise reçoit une formule qu'elle ne paie pas, ni où une entreprise qui paie est coupée par une
+exception ; aucune promesse rejetée sans gestionnaire (cache Stripe, `Promise.race` du portail). Quatre remarques,
+NOTÉES et pas corrigées avant la mise en ligne :
+1. pendant une panne de Stripe, le premier appel après les cinq minutes du cache ATTEND la relecture (jusqu'à 36 s) avant
+   de servir la liste connue — `/api/espaces/etat` et la Tour comprises (le portail est borné à 2 s). C'est mieux qu'en
+   service (chaque appel attend puis rend « non payé »), et on pourrait faire mieux encore : servir la liste connue tout de
+   suite et relire en tâche de fond. Mais ça change le chemin NORMAL (une liste servie un cycle plus tard) : ça se fait
+   avec ses bancs, pas la veille d'une mise en ligne ;
+2. à froid (cache vide) et Stripe muet : « non payé » pendant la minute de pause — comme en service, sans l'attente ;
+3. ⚠️ **À RELIRE AVANT DE VENDRE OP MESSAGES** : un abonnement OP GESTION introuvable (adresse de facturation différente,
+   sans référence — la limite connue) plus un OP MESSAGES gravé à la référence donneraient « Gratuit ». Aujourd'hui
+   personne ne peut acheter OP MESSAGES, et une entreprise dans ce cas est réglée à la main dans la Tour (`aboStatut`, qui
+   passe avant Stripe) ;
+4. `/api/espaces/etat` reste ouvert sur `t` (depuis toujours) : une fiche Gratuit qui paie y montre maintenant sa formule
+   payée et son motif, comme le faisaient déjà les fiches payantes.
+
 **Preuves** : `test-727` 141 ✓, `test-803` 145 ✓, `test-811` 75 ✓, `test-813` 68 ✓, `test-839` 172 ✓,
 `test-840` 48 ✓, `test-842` 90 ✓ ; liste serveur **47 suites · 3 030** (plancher relevé à 3 000) ; **56 mutations sur 56 mordent**
 (`scratchpad/mutations-formule-servie.py`, jouées dans une copie à part) ; sonde de la Tour
-`scratchpad/sonde-tour-formule-servie.js` **108 ✓ 0 ✗** (téléphone 390 et 360, bureau, nuit et jour) ; suite
-complète de l'arbre de la mise en ligne **199 suites · 10 947**, code 0 ; les contrôles de
+`scratchpad/sonde-tour-formule-servie.js` **108 ✓ 0 ✗** (téléphone 390 et 360, bureau, nuit et jour) et sonde du
+tiroir de la v2.75 **71 ✓ 0 ✗** ; suite complète **199 suites · 10 947**, code 0, dans l'arbre de la mise en ligne comme
+sur la branche ; les contrôles de
 `verification.yml` (versions, connexion 67 cas, accès 17 cas, bêta identique à sa génération), `verif-secrets` et
 `verifier-theme` verts.
 
@@ -125,7 +143,8 @@ l'URL » → `https://teamop.fr/` → « Demander une indexation » (le logo) ; 
 ⏳ **Ce qui reste au dépôt** : retirer l'ancien `vitrine/` et les deux empreintes v1 — pas avant quelques jours ; jeter
 `stash@{0}` une fois la v2.75 en service ; l'application (bêta) : un message juste quand la formule DESCEND ;
 `apercu/tour.html` est resté en v2.68 (aucun banc ne le lit) — le régénérer (`bash scripts/apercu.sh tour.html`) ou le
-retirer, un aperçu plus vieux que sa page trompe.
+retirer, un aperçu plus vieux que sa page trompe ; servir la liste Stripe connue sans attendre pendant une panne
+(remarque 1 de la seconde relecture, avec ses bancs).
 
 ---
 
