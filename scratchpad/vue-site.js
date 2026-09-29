@@ -21,14 +21,12 @@ const VUES = [
   { nom: 'tarifs-bureau-jour-pro', page: 'tarifs', p: 'bureau', mode: 'light', cadre: '#formules-gestion', clic: '#formules-gestion .formule:nth-child(2) .d' },
   { nom: 'tarifs-bureau-nuit-msg', page: 'tarifs', p: 'bureau', mode: 'dark', cadre: '#formules-msg', geste: `document.getElementById('onglet-msg').click();`, clic: '#formules-msg .formule:nth-child(1) .d' },
   { nom: 'accueil-bureau-jour', page: 'index', p: 'bureau', mode: 'light' },
-  { nom: 'accueil-bureau-bouton-nuit', page: 'index', p: 'bureau', mode: 'light', clic: '.mode' },
   { nom: 'case-stock-hd', page: 'elan', p: 'bureau2', mode: 'light', cadre: '.bento .tuile-f:nth-child(3)' },
   { nom: 'case-partout-hd', page: 'elan', p: 'bureau2', mode: 'light', cadre: '.bento .tuile-f:nth-child(10)' },
   { nom: 'case-stock-debug', page: 'elan', p: 'bureau2', mode: 'light', cadre: '.bento .tuile-f:nth-child(3)', geste: `const st=document.createElement('style'); st.textContent='.tuile-f .vue{outline:4px solid red!important;outline-offset:-4px} .tuile-f .ap-iphone{outline:4px solid blue!important}'; document.head.appendChild(st);` },
   { nom: 'accueil-telephone-nuit', page: 'index', p: 'telephone', mode: 'dark' },
   /* la carte mise en avant, de nuit (Justin, 27 septembre au soir : « pourquoi là c'est blanc ? ») */
   { nom: 'elan-telephone-nuit', page: 'elan', p: 'telephone', mode: 'dark', cadre: '#fonctions', hMax: 1500 },
-  { nom: 'elan-bureau-nuit-bouton', page: 'elan', p: 'bureau', mode: 'light', clic: '.mode', cadre: '#fonctions', hMax: 1100 },
   { nom: 'case-partout-telephone', page: 'elan', p: 'telephone', mode: 'dark', cadre: '.bento .tuile-f:nth-child(10)' },
   { nom: 'case-equipe-telephone', page: 'elan', p: 'telephone', mode: 'light', cadre: '.bento .tuile-f:nth-child(7)' },
   /* les blocs toujours sombres de la maquette (Justin : « sur le même jour il y a du sombre, pourquoi ») */

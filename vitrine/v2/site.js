@@ -2,7 +2,7 @@
    Les pages sont du HTML statique complet (générées par `scripts/site-marine.js`) : sans ce fichier, tout
    se lit et tous les liens mènent quelque part. Il ajoute les volets du menu, le menu du téléphone, la
    fenêtre d'une fonction, les questions qui s'ouvrent, le choix OP GESTION / OP MESSAGES des tarifs, la
-   formule qu'on choisit au toucher, le bouton jour / nuit et la demande « Créer » — qui part par e-mail : il
+   formule qu'on choisit au toucher et la demande « Créer » — qui part par e-mail : il
    n'y a PAS de route serveur, l'écran ne dit donc jamais « demande envoyée » (c'est la messagerie de la
    personne qui l'envoie). */
 (function () {
@@ -10,7 +10,7 @@
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
-  /* ── jour / nuit : dans vitrine/v2/mode.js, partagé avec le portail et ses pages voisines (chargé avant ce fichier) ── */
+  /* ── jour / nuit : la page suit l'appareil, la feuille le fait seule (plus de bouton depuis le 29 septembre 2026) ── */
 
   /* ── l'aperçu se signale, et seulement lui : le même fichier sert à la racine le jour du remplacement ── */
   if (/\/apercu\//.test(location.pathname)) {

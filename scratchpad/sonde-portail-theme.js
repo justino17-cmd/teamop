@@ -93,10 +93,8 @@ const AUDIT = `(async (largeur, mode) => {
     if (!visible(e) || e.closest('#apercu-ruban')) continue; const b = e.getBoundingClientRect();
     if (b.height < 43.5) r.cibles.push(nom(e) + ' ' + Math.round(b.width) + '×' + Math.round(b.height) + ' « ' + (e.textContent || e.placeholder || '').trim().slice(0, 30) + ' »');
   }
-  /* le bouton ☀︎/☾ : là, 44 px, et pas couvert */
-  const m = document.querySelector('.mode');
-  if (m) { const b = m.getBoundingClientRect(), x = b.left + b.width / 2, y = b.top + b.height / 2, t = document.elementFromPoint(x, y);
-    r.bouton = { visible: visible(m) && !m.hidden, w: Math.round(b.width), h: Math.round(b.height), libre: !!t && (t === m || m.contains(t)) }; }
+  /* plus de bouton ☀︎/☾ (Justin, 29 septembre 2026 : « je veux que ça soit automatique ») : on COMPTE ce qui en resterait */
+  r.bouton = document.querySelectorAll('.mode, .coin-mode').length;
   /* le débordement de côté : mesuré deux fois, puis on demande à la page si elle bouge */
   const mesure = () => document.documentElement.scrollWidth - largeur;
   const d1 = mesure(); await new Promise(res => setTimeout(res, 700)); await trame(); void document.body.offsetWidth; const d2 = mesure();
@@ -228,7 +226,7 @@ const ETATS = [
       v(etiquette + ' : aucune commande sous 44 px', r.cibles, []);
       v(etiquette + ' : rien ne dépasse de côté (la page ne bouge pas)', r.debord.bouge, 0);
     }
-    v(etiquette + ' : le bouton ☀︎/☾ est là, 44 px, libre', r.bouton && [r.bouton.visible, r.bouton.w, r.bouton.h, r.bouton.libre], [true, 44, 44, true]);
+    v(etiquette + ' : ⛔ aucun bouton jour / nuit, aucun mode forcé', [r.bouton, r.theme], [0, null]);
     return r;
   };
 
@@ -247,30 +245,23 @@ const ETATS = [
     }
   }
 
-  /* ── 5. le bouton ☀︎/☾ bascule la page ET la mémoire, et le choix passe du site au portail ── */
-  console.log('\n══ LE CHOIX ☀︎/☾ : IL BASCULE, IL SE SOUVIENT, IL VOYAGE ══');
+  /* ── 5. le jour et la nuit suivent l'appareil (Justin, 29 septembre 2026 : « je veux que ça soit automatique ») :
+     un choix rangé par l'ancien bouton est EFFACÉ et ne force rien, et la page suit l'appareil EN DIRECT ── */
+  console.log('\n══ LE JOUR ET LA NUIT : L\'APPAREIL DÉCIDE, EN DIRECT ══');
   if (PARTIES.includes('bascule')) {
   await profil('telephone', 'light');
-  const toucher = async sel => { const b = await ev(`(()=>{ const e=document.querySelector(${JSON.stringify(sel)}); const r=e.getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height/2}; })()`);
-    await cdp('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: b.x, y: b.y }] }); await dormir(60);
-    await cdp('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await dormir(500); };
-  const etat = () => ev(`(()=>({theme:document.documentElement.getAttribute('data-theme'), fond:getComputedStyle(document.body).backgroundColor, memoire:localStorage.getItem('teamop_site_mode'), bouton:document.querySelector('.mode').getAttribute('aria-label'), barre:[...document.querySelectorAll('meta[name=theme-color]')].map(m=>m.media)}))()`);
-  for (const E of [{ n: 'espace', c: '/apercu/espace.html' }, { n: 'connexion', c: '/apercu/connexion.html?choix=1' }, { n: 'recap', c: '/apercu/recap-abonnement.html?formule=pro' }, { n: 'mentions', c: '/apercu/mentions-legales.html' }, { n: '404', c: '/apercu/404.html' }]) {
+  const etat = () => ev(`(()=>({theme:document.documentElement.getAttribute('data-theme'), fond:getComputedStyle(document.body).backgroundColor, memoire:localStorage.getItem('teamop_site_mode'), boutons:document.querySelectorAll('.mode, .coin-mode').length}))()`);
+  for (const E of [{ n: 'espace', c: '/apercu/espace.html' }, { n: 'connexion', c: '/apercu/connexion.html?choix=1' }, { n: 'recap', c: '/apercu/recap-abonnement.html?formule=pro' }, { n: 'mentions', c: '/apercu/mentions-legales.html' }, { n: 'merci', c: '/apercu/merci.html' }, { n: 'reinit', c: '/apercu/reinit.html' }, { n: '404', c: '/apercu/404.html' }]) {
     await aller(E.c);
-    await toucher('.mode'); let e = await etat();
-    v(E.n + ' : toucher ☀︎/☾ passe la page en nuit, et s\'en souvient', [e.theme, e.fond, e.memoire, e.bouton], ['dark', FOND.dark, 'nuit', 'Passer en mode jour']);
-    v(E.n + '    et la barre du navigateur suit (la couleur de nuit prend la main)', e.barre, ['not all', 'all']);
-    await toucher('.mode'); e = await etat();
-    v(E.n + ' : le retoucher revient au mode de l\'appareil, et oublie le choix', [e.theme, e.fond, e.memoire], [null, FOND.light, null]);
+    await ev(`(()=>{ localStorage.setItem('teamop_site_mode','nuit'); return 1; })()`);
+    await cdp('Page.reload', {}); await dormir(900);
+    let e = await etat();
+    v(E.n + ' : un ancien choix « nuit » ne force plus rien (appareil de jour), et il est effacé', [e.theme, e.fond, e.memoire, e.boutons], [null, FOND.light, null, 0]);
+    await cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] }); await dormir(400); e = await etat();
+    v(E.n + ' : l\'appareil passe en nuit, la page suit sans recharger', [e.theme, e.fond], [null, FOND.dark]);
+    await cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] }); await dormir(400); e = await etat();
+    v(E.n + '    et revient en jour avec lui', e.fond, FOND.light);
   }
-  await aller('/apercu/site/index.html'); await toucher('.mode');
-  await cdp('Page.navigate', { url: B + '/apercu/connexion.html?choix=1' }); await dormir(900);
-  let e = await etat();
-  v('⛔ la nuit choisie sur le SITE se retrouve sur la connexion (sans rien toucher)', [e.theme, e.fond, e.memoire], ['dark', FOND.dark, 'nuit']);
-  await cdp('Page.navigate', { url: B + '/apercu/espace.html' }); await dormir(900); e = await etat();
-  v('   et sur le portail', [e.theme, e.fond], ['dark', FOND.dark]);
-  await toucher('.mode'); await cdp('Page.navigate', { url: B + '/apercu/site/tarifs.html' }); await dormir(900); e = await etat();
-  v('   le jour repris sur le portail se retrouve sur le site', [e.theme, e.fond, e.memoire], [null, 'rgb(255, 255, 255)', null]);
   }
 
   /* ── 6. le portail CONNECTÉ : un compte créé par la page elle-même, puis chaque écran ── */

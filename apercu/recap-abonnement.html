@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Récapitulatif — TEAM OP</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/teamop-favicon-32.png">
-<meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)" data-jour>
-<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)" data-nuit>
+<meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
-<script>/* le mode choisi (☀︎/☾), posé AVANT le premier rendu : sans ça, la page s'afficherait d'abord dans l'autre (dans une fonction : une variable globale heurterait celles des pages qui embarquent ces lignes) */
-(function () { try { var m = localStorage.getItem('teamop_site_mode'); if (m === 'jour' || m === 'nuit') document.documentElement.setAttribute('data-theme', m === 'nuit' ? 'dark' : 'light'); } catch (e) {} })();</script>
+<script>/* le jour et la nuit suivent l'appareil, sans bouton (Justin, 29 septembre 2026 : « je veux que ça soit automatique ») : on efface le choix qu'avait rangé l'ancien bouton ☀︎/☾, que plus rien ne lit (dans une fonction : une variable globale heurterait celles des pages qui embarquent ces lignes) */
+(function () { try { localStorage.removeItem('teamop_site_mode'); } catch (e) {} })();</script>
 <link rel="stylesheet" href="/vitrine/v2/theme.css">
 <style>
   /* ══ LA PAGE OÙ L'ON PAIE, AU THÈME DU SITE (27 septembre 2026 au soir) ══════════════════════════════════════════
@@ -50,7 +50,7 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* ===== BARRE HAUTE : la marque et le ☀︎/☾ du site ===== */
+  /* ===== BARRE HAUTE : la marque du site ===== */
   .barre {
     display: flex;
     align-items: center;
@@ -364,7 +364,7 @@
   .puce-formule:hover { color: var(--texte); border-color: var(--bordure-vive); }
   .puce-formule.active { background: var(--bleu); border-color: var(--bleu); color: var(--m-bg); font-weight: 600; }
 
-  /* au doigt, pas de cible sous 44 px (le bouton ☀︎/☾ en fait déjà 44) */
+  /* au doigt, pas de cible sous 44 px */
   @media (pointer: coarse) { .btn-retour, .puce-formule { min-height: 44px; } }
   @media (prefers-reduced-motion: reduce) { .cycle, .btn-payer, .puce-formule { transition: none; } }
 
@@ -397,7 +397,6 @@
     TEAM OP
   </div>
   <div class="barre-droite">
-  <button class="mode" type="button" hidden aria-label="Passer en mode nuit" title="Passer en mode nuit"><svg class="lune" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg><svg class="soleil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg></button>
   <a class="btn-retour" href="/apercu/site/tarifs.html" id="btnRetour">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
     Retour aux tarifs
@@ -1080,6 +1079,5 @@ rendreTout();
 /* La page se dessine tout de suite, puis lit le compte : sans session, pas même un aller-retour au serveur. */
 const compteLu = lireCompte().then(rendrePaiement);
 </script>
-<script src="/vitrine/v2/mode.js" defer></script>
 <div id="apercu-ruban" style="position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:99999;font:600 12px/1 -apple-system,system-ui,sans-serif;letter-spacing:.06em;color:#fff;background:#B26E12;padding:8px 14px;border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.25);pointer-events:none">APERÇU · refonte en cours</div></body>
 </html>

@@ -11,7 +11,7 @@
    4. chaque lien mène quelque part (fichier du dépôt, ancre présente) ; aucun `mailto` ailleurs que
       support@ ; aucune adresse externe ;
    5. chaque écran d'appareil a sa version jour ET nuit, et l'image existe ;
-   6. aucun bouton de mode (le site suit le système, sans bouton — THEME.md § 0) ;
+   6. aucun bouton de mode (le site suit le système, sans bouton — THEME.md § 0, et Justin le 29 septembre 2026) ;
    7. OP MESSAGES : « Bientôt disponible », aucune formule ne se choisit ;
    8. « Créer » ne dit jamais « demande envoyée » (c'est la messagerie de la personne qui l'envoie) ;
    9. un aperçu ne se référence pas (`noindex`), la page de racine si.
@@ -128,26 +128,21 @@ vrai('les grandes montrent un Mac, les petites un iPhone', cases.every(x => /^[^
 v('dix écrans DIFFÉRENTS (une capture ne sert pas deux cases)', new Set(cases.map(x => (x.match(/src="([^"]+)"/) || [])[1])).size, 10);
 vrai('plus de « Code PIN » (l\'application est au mot de passe depuis septembre)', !/code PIN/i.test(PAGES.elan));
 
-/* 27 septembre au soir, Justin : « je veux vraiment un mode jour et un mode nuit ». Le site suit toujours
-   l'appareil ; un bouton force l'autre mode et le garde. Ce banc gardait l'inverse (« pas de bouton ») : c'était
-   la maquette, c'est désormais sa phrase qui décide. */
-console.log('6. jour et nuit : l\'appareil, et un bouton qui force');
-for (const c of CLES) vrai(c + ' : le bouton ☀︎/☾ est dans la barre, caché tant que le script ne l\'a pas branché', /<button class="mode" type="button" hidden aria-label="Passer en mode nuit"/.test(PAGES[c]));
-for (const c of CLES) vrai(c + ' : le mode choisi se pose AVANT le premier rendu (script dans <head>)', /<head>[\s\S]*localStorage\.getItem\('teamop_site_mode'\)[\s\S]*<\/head>/.test(PAGES[c]));
+/* 27 septembre au soir, Justin : « je veux vraiment un mode jour et un mode nuit » — un bouton ☀︎/☾ forçait l'autre
+   mode. 29 septembre, capture de son iPhone à l'appui : « Sur le site je veux pas le bouton jour nuit, je veux que ça
+   soit automatique ». Le site suit l'appareil, et RIEN d'autre : retour au point 6 de la maquette (THEME.md § 0). */
+console.log('6. jour et nuit : l\'appareil, sans bouton');
+for (const c of CLES) v(c + ' : ⛔ aucun bouton ☀︎/☾ ni son script', [/class="mode"/, /\/vitrine\/v2\/mode\.js/].filter(r => r.test(PAGES[c])).map(String), []);
+for (const c of CLES) v(c + ' : ⛔ aucun mode forcé (data-theme, choix lu sur l\'appareil)', [/data-theme/, /getItem\('teamop_site_mode'\)/].filter(r => r.test(PAGES[c])).map(String), []);
+for (const c of CLES) vrai(c + ' : l\'ancien choix s\'efface AVANT le premier rendu (script dans <head>)', /<head>[\s\S]*localStorage\.removeItem\('teamop_site_mode'\)[\s\S]*<\/head>/.test(PAGES[c]));
 const css = fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.css'), 'utf8');
-const nuitSys = (css.match(/@media \(prefers-color-scheme: dark\)\s*\{\s*:root:not\(\[data-theme="light"\]\)\s*\{([^}]*)\}/) || [])[1];
-const nuitForcee = (css.match(/\n:root\[data-theme="dark"\]\s*\{([^}]*)\}/) || [])[1];
-vrai('la nuit de l\'appareil ne s\'applique pas quand on a forcé le jour', !!nuitSys);
-vrai('la nuit forcée a son bloc', !!nuitForcee);
-vrai('⛔ et les deux blocs de nuit sont IDENTIQUES (deux copies d\'une palette divergent toujours)', !!nuitSys && nuitSys.replace(/\s+/g, ' ').trim() === (nuitForcee || '').replace(/\s+/g, ' ').trim());
+const nuitSys = (css.match(/@media \(prefers-color-scheme: dark\)\s*\{\s*:root\s*\{([^}]*)\}/) || [])[1];
+vrai('la nuit est sous la requête de l\'appareil, sur :root', !!nuitSys);
+v('⛔ la feuille ne connaît plus de mode forcé ni de bouton', (css.replace(/\/\*[\s\S]*?\*\//g, ' ').match(/data-theme|\.mode\b/g) || []), []);
 const jsv2 = fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.js'), 'utf8').replace(/^\s*\/\*[\s\S]*?\*\//gm, ' ');
-/* le jour et la nuit vivent dans vitrine/v2/mode.js depuis le 27 septembre au soir : les pages hors du site (portail,
-   connexion…) le partagent — test-836 garde leur côté */
-const modeJs = fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'mode.js'), 'utf8').replace(/^\s*\/\*[\s\S]*?\*\//gm, ' ');
-vrai('les écrans de nuit suivent le bouton (le media des <source> est réécrit)', /\$\$\('source\[data-nuit\]'\)\.forEach/.test(modeJs));
-vrai('la même clé dans la page et dans le script', /var CLE_MODE = 'teamop_site_mode'/.test(modeJs));
-vrai('site.js ne porte plus de seconde copie du jour / nuit', !/CLE_MODE|teamop_site_mode|choisirMode/.test(jsv2));
-for (const c of CLES) vrai(c + ' : mode.js est chargé, avant site.js', /<script src="\/vitrine\/v2\/mode\.js" defer><\/script>\s*<script src="\/vitrine\/v2\/site\.js" defer><\/script>/.test(PAGES[c]));
+vrai('site.js ne porte aucun jour / nuit', !/CLE_MODE|teamop_site_mode|choisirMode|data-theme/.test(jsv2));
+for (const c of CLES) vrai(c + ' : les écrans de nuit suivent l\'appareil d\'eux-mêmes (media de la <source>)', !/<source data-nuit(?! media="\(prefers-color-scheme: dark\)")/.test(PAGES[c]));
+for (const c of CLES) vrai(c + ' : site.js est chargé', /<script src="\/vitrine\/v2\/site\.js" defer><\/script>/.test(PAGES[c]));
 
 console.log('6 bis. tarifs : la formule touchée devient la bleue');
 vrai('le script rend les cartes choisissables (classe « choix », phare déplacé)', /g\.classList\.add\('choix'\)/.test(jsv2) && /x\.classList\.toggle\('phare', x === c\)/.test(jsv2));
