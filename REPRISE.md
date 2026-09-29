@@ -13,7 +13,132 @@ de ligne du tout.
 
 ---
 
-# ⏳ 29 SEPTEMBRE 2026, APRÈS-MIDI — « 2 OUI » : LE PREMIER PRÉLÈVEMENT À LA FIN DU CODE PROMO — PRÊT, ATTEND « POUSSE »
+# ⏳ 29 SEPTEMBRE 2026, SOIR — CARTE REFUSÉE = IMPAYÉ : LES FONCTIONS PAYANTES BLOQUÉES JUSQU'AU RÈGLEMENT — PRÊT, DANS LA MISE EN LIGNE N° 2 (REFAITE), ATTEND « POUSSE »
+
+Justin, en corrigeant le rapport de l'après-midi (qui disait « l'application continue de marcher pendant que Stripe
+réessaie ») : **« 1. À la fin de la période offerte, Stripe prélève. Oui / 2. […] Il passe en impayé directement / 3.
+[…] Non leur accès son bloqué le temps qu'il que c'est pas payé / 4. […] Rien n'est perdu mais pas de payement pas
+d'accès au service payant »**. ⛔ La phrase « `past_due` compté comme payé pendant les nouvelles tentatives » (section
+suivante, et `CLAUDE.md` jusqu'à ce soir) était la règle d'AVANT : elle est **retournée**.
+
+✅ **Ce qui est fait** (branche : `94aca44`, `8b095d0`, `b8894f7`, `a64f8df`, `dbc0d1a`, `f8535d2`)
+· **Payé = `active` ou `trialing`, et c'est tout** (`STATUTS_PAYES`). `past_due` (Stripe réessaie) et `unpaid` (Stripe a
+  fini) d'OP GESTION sont des **impayés** (`impayesGestion`), rattachés par les MÊMES règles que le payé
+  (`espaceStripeDans` avec `STATUTS_IMPAYES`) — ⛔ mais **par l'identifiant seul** (`tSeul`) : un nom d'accès libéré puis
+  repris ne fait pas hériter l'impayé d'une autre entreprise (`gardien` #1). `incomplete` (jamais payé), `canceled`, un
+  OP MESSAGES refusé seul : pas des impayés, comme avant.
+· ⛔⛔ **`/api/espaces/etat` sert un impayé comme une suspension au sursis écoulé, SANS formule** (`bloque` →
+  `{paye:false, suspendu:true, sursisJours:0}`, motif public neutre « accès payant suspendu » — la route est publique
+  avec le seul `t`, elle ne dit ni « impayé » ni par quel chemin, `gardien` #10) : c'est la seule réponse que
+  l'application EN SERVICE (v763, aucune version à publier) sait griser **sans rien écrire dans `db`**
+  (`suspensionPoser` → `forfait()` rend « gratuit »), avec le rappel quotidien **à l'administrateur seul** (« Abonnement
+  non réglé — les catégories payantes sont grisées… rien n'est perdu ») — et tout revient d'un coup au règlement. Une
+  réponse AVEC formule et `paye:false` aurait posé le bandeau « Paye ton abonnement » à toute l'équipe, réécrit
+  `db.forfait` (synchronisé) et mené à un SECOND abonnement : mesuré sur les vraies fonctions (`test-845` §2,
+  contre-épreuve).
+· **Une seule règle de blocage, `impayeBloque`** (lue par `espacePaye` ET par le rappel J-7) :
+  · un abonnement d'OP GESTION **payé à elle** → servie (un refusé parmi des payés : **sans les places du refusé**,
+    `placesStripe` ne compte que le payé ; le motif le dit, la Tour le voit, `impayesPartiels`) — **Q1** ;
+  · payée seulement par **OP MESSAGES** ou par une **voisine d'adresse**, ou fiche **Gratuit** → bloquée seulement si
+    l'impayé est **sûrement le sien** (gravé à son nom, ou une adresse que personne d'autre ne porte) : une fiche Gratuit
+    jamais abonnée n'est plus « suspendue » par l'impayé d'un tiers (`gardien` #4, #7) ; OP MESSAGES payé ne masque plus
+    l'impayé d'OP GESTION ;
+  · rien de payé → bloquée ;
+  · réglée à la main dans la Tour en « payé », période offerte en cours : elles priment, comme avant.
+· ⛔ **L'« impayé » posé à la main dans la Tour prend la même forme** (`gardien` #6) : grisé tout de suite, rappel à
+  l'administrateur seul — plus de bandeau à toute l'équipe ni de `db.forfait` réécrit. Voir **Q2**.
+· **Un impayé se relit à la minute** (`STRIPE_IMPAYE_FRAIS_MS`, la liste se garde cinq minutes pour qui paie ; une
+  lecture à la fois, pas pendant une panne) : l'accès revient vite après règlement — au serveur (voir plus bas pour
+  l'appareil).
+· ⛔ **La page de paiement** (`factureImpayeARegler`) : seule une entreprise **BLOQUÉE** est envoyée à sa **facture en
+  attente** (la page Stripe, carte changée comprise), relue chez Stripe au moment de payer (`factureOuverteDe`) — jamais
+  un abonnement neuf, jamais la facture d'un abonnement gravé à une AUTRE entreprise (`gardien` #1, #3). Une entreprise
+  servie (un refusé parmi des payés) **achète normalement** (`gardien` #2). `past_due` sans facture ouverte : **409**
+  `impaye_sans_facture` (TEAM OP règle à la main) ; `unpaid` sans facture : le paiement normal (`relecteur` #1) ; Stripe
+  muet à la relecture : **502** (jamais un paiement neuf qui serait prélevé en double le jour où Stripe réussit sa
+  tentative) ; réglé depuis la liste : le paiement normal. `recap-abonnement.html` (et son aperçu) le **dit** avant de
+  suivre la facture (« Un prélèvement précédent de votre abonnement n'a pas abouti : sa facture en attente s'ouvre… rien
+  d'autre ne sera prélevé »), et le 409 comme le 502 ont leur phrase, « Rien n'a été payé » (`gardien` #5).
+· **Courriel J-7** : un impayé reçoit « ⏳ … — **un prélèvement est à régler** » (le jour où les fonctions payantes
+  seront bloquées, « rien n'est perdu », le bouton **« Régler ma facture »** vers la facture relue — sinon l'adresse de
+  contact ; ni « prend le relais », ni page de paiement, ni promesse) ; un refusé parmi des payés : « prend le relais.
+  Mais le dernier prélèvement d'un autre de vos abonnements n'a pas abouti : les places qu'il paie sont suspendues » ;
+  le premier prélèvement d'un essai dit « S'il n'aboutit pas, les fonctions payantes seront bloquées jusqu'au
+  règlement » ; Stripe muet à la relecture : le rappel attend tant que c'est utile, puis part sans lien. L'annuaire se
+  relit APRÈS la lecture de la facture : une entreprise supprimée pendant ce temps ne reçoit rien (`test-844` phase 5).
+· **Tour v2.76** : « Paiements en échec — ses fonctions payantes sont bloquées jusqu'au règlement. Rien n'est perdu. » ;
+  dans Abonnements, « **Impayé — fonctions payantes bloquées** » / « 💳 Impayé », **une ligne par entreprise** (plus de
+  doublon avec « Formule attribuée, jamais payée », `relecteur` #4). `/liste` et `/statut` rendent `impaye`,
+  `impayeStripe` et `impayesPartiels`. « **Mon espace** » dit « Suspendu » (`planStatus`, une copie : rien n'est écrit).
+· **L'horloge de conservation** pose sa date avec le motif de l'impayé et la retire au règlement : rien n'est supprimé
+  (aucune suppression n'existe, et les 24 mois repartent au retour).
+
+❓ **Ce qui attend Justin**
+· **Q1** — une entreprise à plusieurs abonnements dont UN est refusé : on bloque **tout** l'accès payant, ou
+  **seulement les places** de l'abonnement refusé (ce qui est fait) ? (La v763 ne désactive pas un compte en trop : elle
+  refuse d'en créer un nouveau — désactiver relève de la bêta.)
+· **Q2** — la suspension À LA MAIN depuis la Tour garde ses **sept jours de sursis** (décision du 20 septembre) ; un
+  impayé Stripe, et désormais l'« impayé » posé à la main, n'en ont aucun. On garde les sept jours pour la suspension ?
+· **Q3** — le réglage Stripe « si toutes les nouvelles tentatives échouent » : **« Marquer l'abonnement comme impayé »**
+  (recommandé : l'entreprise reste bloquée, prévenue, et règle sa facture) plutôt qu'« Annuler l'abonnement » (`canceled`
+  sort du circuit de l'impayé : l'application repasse en Gratuit « normal » — bandeau « Paye ton abonnement » à toute
+  l'équipe, `db.forfait` réécrit — et il faut un nouvel abonnement).
+· ⛔ **Avant « pousse »** (`relecteur` #8) : ouvrir la Tour → Abonnements → la liste des impayés. Toute entreprise
+  `past_due` ou `unpaid` à cet instant **passe au gris au déploiement** — c'est la règle voulue, mais autant savoir qui.
+
+⚠️ **Ce qu'il faut savoir**
+· **Un appareil resté ouvert** ne relit l'état qu'au lancement (v763, `forfaitServeurSync`) : grisé ou rendu à la
+  réouverture — dans les deux sens. Et l'administrateur grisé n'a dans l'application **ni bouton ni bandeau pour
+  payer** : le chemin, c'est le courriel J-7, le courriel de facture de Stripe, ou la page de paiement. ⚠️ Qui vient de
+  régler et revient à la page de paiement parce que son appareil est encore gris y prend un abonnement **de plus** (dès
+  que la liste est relue, il n'est plus bloqué : paiement normal). Dette **bêta** : relire l'état au retour au premier
+  plan quand l'application est suspendue, et donner à l'administrateur grisé le lien de sa facture.
+· **Les places d'un impayé complet** ne sont pas retirées : grisée, l'entreprise peut encore créer des comptes (v763).
+  Bêta.
+· **Un bandeau « Ta formule t'attend » déjà enregistré** dans `db` survit à l'impayé et reparaît à chaque ouverture ; au
+  premier passage en grisé, un compte qui était dans une rubrique payante lit « Rubrique pas ouverte à ton compte
+  (réglable dans Permissions) » — faux sur la raison. Bêta.
+· **La fenêtre « Ton essai est terminé… Prendre l'abonnement »** (`promoEssaiCheck`, v763) s'ouvre à la première
+  personne qui se connecte le lendemain de la fin d'un code, **sans demander au serveur** — y compris chez qui paie déjà.
+  Son bouton mène à la page de paiement : un impayé y trouve sa facture (serveur), mais une entreprise qui paie pourrait
+  y prendre un abonnement DE PLUS. Limite d'AVANT, plus visible avec la facturation différée : à corriger sur la
+  **bêta** (demander au serveur avant d'ouvrir la fenêtre).
+· **Pendant une panne de Stripe**, la dernière liste connue sert : une entreprise qui vient de régler reste grisée le
+  temps de la panne (avant ce soir, `past_due` passait pour payé : une panne ne bloquait personne).
+· **Adresse partagée** (limite connue, `test-845` « partd ») : à une adresse que deux entreprises portent, un impayé
+  sans référence n'est « sûrement » à aucune — si la voisine paie, l'entreprise reste servie.
+· Les textes de la Tour sont relus, pas gardés par un banc.
+
+**Preuves** : `test-845` **69 ✓ (nouveau, dans la liste serveur)** — le vrai serveur, un Stripe simulé relu à chaque
+appel, et **les vraies fonctions d'app.html v763** (`forfaitServeurSync`, `suspensionPoser`, `forfait`…) : grisé sans
+écriture, pas de bandeau, rappel à l'administrateur seul et une fois par jour, retour au règlement ; OP MESSAGES payé,
+fiche Gratuit, adresse partagée, impayé posé à la main, nom d'accès repris ; la Tour (une ligne par entreprise),
+« Mon espace », la page de paiement (facture, 409, 502, `unpaid` sans facture, réglé depuis, entreprise servie, OP
+MESSAGES, la voisine, le nom repris) ; la relecture à la minute ; **26 ✗ contre le serveur d'avant** ; `test-844`
+**68 ✓** (quinze entreprises de plus, une phase « relecture muette », une entreprise supprimée pendant la lecture de sa
+facture) ; `test-842` 91 ✓, `test-839` 199 ✓, `test-727` 177 ✓, `test-797` 24 ✓ ; `803`, `811`, `813`, `828`, `829`,
+`833`, `840`, `843`, `641`, `726` verts ; **mutations : en cours** (96, série I comprise) (`scratchpad/mutations-essai.py`, arbre à part) ; relectures :
+`gardien` (11 constats) et `relecteur` (9) — tous traités ou écrits ci-dessus ; liste serveur et suite complète : en cours.
+
+### ⏳ LA MISE EN LIGNE N° 2 — REFAITE (facturation différée + impayé)
+Dans l'arbre `scratchpad/pub-essai` (session du 29 septembre) : un seul commit (à faire, après les preuves) sur `main` à `3785a0f` — il
+**remplace `f2d0781`** (section suivante), qui ne part plus. Il emporte vingt-deux fichiers : les seize de `f2d0781`
+(`server/index.js`, `merci.html` et son aperçu, `apercu/tour.html` — désormais v2.76 —, `.gitignore`,
+`scripts/bancs-serveur.liste`, `scripts/preparer-deploiement-serveur.sh`, `test-727`, `797`, `839`, `840`, `844`, quatre
+scripts du scratchpad), plus **`tour.html` v2.76** (la Tour doit parler de l'impayé le jour où le serveur le rend),
+`server/portail.js`, `recap-abonnement.html` et son aperçu, `test-842` et **`test-845`** (nouveau). Tous identiques à la branche (empreintes comparées) ; pour chacun, la branche d'avant
+le changement était identique à `main` : le report est exactement ce diff. `app.html`, `sw.js` et `beta.html` ne bougent
+pas.
+Preuves de CET arbre : en cours (liste serveur, suite complète, contrôles de la CI de `main`) — le commit n'est pas encore fait.
+**Sur « pousse » de Justin** : vérifier que `origin/main` est toujours `3785a0f` (sinon reconstruire), puis
+`git push origin HEAD:main` depuis cet arbre. **Si l'arbre a disparu** : arbre détaché sur `origin/main`, y prendre depuis
+la branche les fichiers ci-dessus (`git show <branche>:<fichier> > <fichier>`), relancer la liste serveur, commiter.
+**Après** : le déploiement du serveur (bancs puis VPS ; `/health`, dont l'`uptime` repart), `tour.html`, `merci.html`,
+`recap-abonnement.html` et leurs aperçus servis octet pour octet, la CI de `main` verte.
+
+---
+
+# ⏳ 29 SEPTEMBRE 2026, APRÈS-MIDI — « 2 OUI » : LE PREMIER PRÉLÈVEMENT À LA FIN DU CODE PROMO — PRÊT, DANS LA MISE EN LIGNE N° 2 REFAITE (SECTION AU-DESSUS)
 
 Justin, aux cinq points du matin : **« Pousse / 2 oui / 3 je le ferais se soir la je peux pas / 4 déjà fait depuis
 longtemps / 5 rien ne traîne »** ; puis **« Encore à faire avant de te demander « pousse » : Fais les trois »** (traiter ce
@@ -26,11 +151,10 @@ c'est considéré comme un [impayé] »**.
   **Justin le fait ce soir** ;
 · **4** → l'ancienne paire de clés du coffre IONOS : **supprimée depuis longtemps** (#132 clos) ;
 · **5** → **aucun** code de réduction Stripe à 100 % ne traîne ;
-· **carte refusée** → **c'est un impayé**, et le circuit existe déjà (relu dans le code) : à la fin de la période, Stripe
-  prélève ; refusée, la facture reste ouverte avec une tentative (`f.attempted && !f.paid`), la veille des 15 minutes en
-  fait un problème « Paiement en échec — … » dans la Tour (`stripeAlerteImpaye`), l'abonnement passe `past_due` (« impayé »
-  dans Abonnements, compté comme payé pendant les nouvelles tentatives de Stripe) ; Justin suspend depuis la Tour (sursis de
-  sept jours, puis les catégories payantes grisent, rien n'est perdu). **Rien à écrire.**
+· **carte refusée** → **c'est un impayé**. ⛔ La réponse écrite ici l'après-midi (« le circuit existe déjà » : `past_due`
+  compté comme payé pendant les nouvelles tentatives de Stripe, suspension à la main avec sept jours de sursis, « rien à
+  écrire ») était FAUSSE sur ce que Justin veut : il l'a corrigée le soir même — « leur accès sont bloqués le temps que
+  c'est pas payé ». C'est la section au-dessus.
 
 ✅ **Ce qui est fait** (branche : `df5f329` … `a0db61d`)
 · **`finEssaiPeriode`** (`server/index.js`) : la fin d'essai à donner à Stripe = **le lendemain de la fin de la période,
@@ -47,9 +171,9 @@ c'est considéré comme un [impayé] »**.
   JJ/MM/AAAA » — seulement quand c'est vrai ; la limite annoncée est l'**avant-veille** de la fin.
 · ⛔ **Courriel J-7, entreprise DÉJÀ ABONNÉE** (`gardien` : le courriel habituel l'invitait à payer une seconde fois —
   un second abonnement, prélevé EN DOUBLE) : `rappelAbonneMail`, **sans aucun lien de paiement** — « Votre abonnement prend
-  le relais : vous n'avez rien à faire », avec le jour du premier prélèvement (en essai) ou la prochaine échéance ; en
-  impayé, « son dernier prélèvement n'a pas abouti : écrivez-nous » ; résiliée mais courant au-delà, « jusqu'au
-  JJ/MM/AAAA » (et le prélèvement d'avant, si elle est en essai), puis Gratuit.
+  le relais : vous n'avez rien à faire », avec le jour du premier prélèvement (en essai) ou la prochaine échéance (un
+  impayé a désormais son propre courriel, avec le lien de sa facture : section au-dessus) ; résiliée mais courant
+  au-delà, « jusqu'au JJ/MM/AAAA » (et le prélèvement d'avant, si elle est en essai), puis Gratuit.
 · ⛔⛔ **Qui est « abonnée » : ce qu'`espacePaye` décidera LE LENDEMAIN DE LA FIN** (seconde relecture de `gardien`) — les
   mêmes règles (`espaceStripeDans`, sortie d'`espaceStripe` en fonction pure, et `formuleEtPlaces`) rejouées sur les SEULS
   abonnements encore vivants ce jour-là. Décider sur l'état d'aujourd'hui disait « rien à faire » à des entreprises que
@@ -69,12 +193,10 @@ c'est considéré comme un [impayé] »**.
 · **Tour** : le revenu mensuel ne compte plus les abonnements en essai.
 
 ⚠️ **Ce qu'il faut savoir**
-· **Un réglage Stripe à choisir** (Justin, tableau de bord Stripe : ce que Stripe fait « si toutes les nouvelles
-  tentatives échouent ») : **annuler l'abonnement** ou le **marquer impayé** → l'application repasse d'elle-même en Gratuit
-  à la fin des tentatives (`unpaid` et `canceled` ne comptent pas comme payés), sans le rappel quotidien de
-  l'administrateur (il vient de la suspension de la Tour) ; **le laisser en retard de paiement** → payée tant que Justin ne
-  suspend pas (l'alerte de la Tour l'y invite). Et, en filet, le **rappel de fin d'essai** de Stripe (Abonnements et
-  e-mails) : notre J-7 le fait, mais pas pour qui paie dans les sept derniers jours.
+· **Un réglage Stripe à choisir** — devenu **Q3** (section au-dessus) : depuis le soir, `past_due` n'est plus payé ;
+  « Marquer l'abonnement comme impayé » garde l'entreprise dans le circuit de l'impayé (bloquée, prévenue, sa facture à
+  régler), « Annuler » l'en sort (Gratuit « normal », nouvel abonnement à prendre). Et, en filet, le **rappel de fin
+  d'essai** de Stripe (Abonnements et e-mails) : notre J-7 le fait, mais pas pour qui paie dans les sept derniers jours.
 · **Stripe en panne longtemps** : le rappel J-7 attend, puis part au plus tard l'avant-veille de la fin, sans promesse.
 · **À moins de deux jours de la fin** : Stripe refuse un essai si court → facturation immédiate (le courriel ne le promet
   pas).
@@ -105,22 +227,9 @@ de déploiement emportait le serveur sans `merci.html` — corrigé, `PAGES_LIEE
 `espacePaye` lit la même entrée sans l'adresse d'un autre nom, la lui prêter rendrait le courriel plus optimiste que
 l'application).
 
-### ⏳ LA MISE EN LIGNE N° 2 — PRÊTE (facturation différée)
-Dans l'arbre `scratchpad/pub-essai` (session du 29 septembre) : **`f2d0781`**, un seul commit sur `main` à `3785a0f`. Il
-emporte seize fichiers — `server/index.js`, `merci.html` et `apercu/merci.html`, `apercu/tour.html` (v2.75),
-`.gitignore`, `scripts/bancs-serveur.liste` (plancher 3 100), `scripts/preparer-deploiement-serveur.sh`, les bancs
-`test-727`, `797`, `839`, `840` et `844` (nouveau), et quatre scripts du scratchpad (`mutations-essai.py`,
-`mutations-formule-servie.py`, `sonde-courriel-j7.js`, `sonde-portail-theme.js`) — identiques à la branche (`cmp`) ; pour
-chacun, la branche d'avant le changement était identique à `main` : le report est exactement ce diff. `app.html`, `sw.js`
-et `beta.html` ne bougent pas.
-Preuves de CET arbre : liste serveur 48 suites · 3 135 (code 0) ; suite complète 200 suites · 11 052 (code 0) ; les
-contrôles de la CI de `main`, joués sur le commit : syntaxe, versions (comparées à `3785a0f`), permissions, adresses,
-lien-jeton, EXPLIQUE, PROPOSE, Devis IA, connexion (67 cas), accès (17 cas), bêta régénérée à l'identique, secrets.
-**Sur « pousse » de Justin** : vérifier que `origin/main` est toujours `3785a0f` (sinon reconstruire), puis
-`git push origin HEAD:main` depuis cet arbre. **Si l'arbre a disparu** : arbre détaché sur `origin/main`, y prendre depuis
-la branche les fichiers ci-dessus (`git checkout <commit de la branche> -- …`), relancer la liste serveur, commiter.
-**Après** : le déploiement du serveur (bancs puis VPS ; `/health`, dont l'`uptime` repart), `merci.html` et son aperçu
-servis octet pour octet, la CI de `main` verte.
+### ⛔ LA MISE EN LIGNE N° 2 D'ORIGINE (`f2d0781`) NE PART PLUS
+Elle a été **refaite** dans le même arbre (`scratchpad/pub-essai`) avec l'impayé du soir : voir « La mise en ligne n° 2 —
+refaite », section au-dessus. Pousser `f2d0781` aujourd'hui publierait un serveur qui compte `past_due` comme payé.
 
 ---
 
