@@ -5,12 +5,11 @@
    confidentialite.html — gardaient chacune leur vieille feuille, toujours sombre, en DM Sans / Space Mono, deux d'entre
    elles avec le logo vert d'OP GESTION à côté de « TEAM OP ».
 
-   Elles lisent ICI la palette du site, sous des noms à part (--m-…) pour ne pas heurter leurs propres jetons, et le
-   bouton ☀︎/☾ du site (vitrine/v2/mode.js, même clé `teamop_site_mode` : le choix fait sur le site les suit).
+   Elles lisent ICI la palette du site, sous des noms à part (--m-…) pour ne pas heurter leurs propres jetons — et,
+   comme le site, elles suivent l'appareil, sans bouton (Justin, 29 septembre 2026 : « je veux que ça soit automatique »).
    ⛔ LES VALEURS SONT CELLES DE vitrine/v2/site.css : tests/test-836.js les compare, jeton par jeton, jour et nuit —
    deux palettes recopiées divergent toujours.
-   ⛔ LES JETONS DE NUIT S'ÉCRIVENT DEUX FOIS, À L'IDENTIQUE : sous la requête (l'appareil est en nuit et personne n'a
-   forcé le jour) et sous `[data-theme="dark"]` (quelqu'un a forcé la nuit). test-836 l'exige.
+   La nuit n'a qu'UN bloc, sous la requête : plus de mode forcé, test-836 en refuse le retour.
    Couleurs d'état (ok / erreur / attente) : absentes du site, mesurées ici — texte sur son fond teinté, posé sur une
    carte, ≥ 4,5 dans les deux modes (vert et orange de jour assombris : 3,97 et 4,10 avec les teintes du portail). */
 :root {
@@ -26,7 +25,7 @@
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root {
     --m-bg: #0b1426; --m-text: #f0f3f8; --m-sub: #8e9aae; --m-body: #c5cddb; --m-link: #7fb2ff;
     --m-line: rgba(240,243,248,.14); --m-card: #121d33; --m-tile: #1a2640; --m-seg: #1a2640; --m-seg-on: #2b3a58;
     --m-accent: #f0f3f8; --m-on-accent: #0b1426; --m-nav: rgba(11,20,38,.82);
@@ -34,29 +33,17 @@
     --m-warn: #fbbf24; --m-warn-fond: rgba(251,191,36,.12);
   }
 }
-:root[data-theme="dark"] {
-    --m-bg: #0b1426; --m-text: #f0f3f8; --m-sub: #8e9aae; --m-body: #c5cddb; --m-link: #7fb2ff;
-    --m-line: rgba(240,243,248,.14); --m-card: #121d33; --m-tile: #1a2640; --m-seg: #1a2640; --m-seg-on: #2b3a58;
-    --m-accent: #f0f3f8; --m-on-accent: #0b1426; --m-nav: rgba(11,20,38,.82);
-    --m-ok: #4ade80; --m-ok-fond: rgba(74,222,128,.12); --m-err: #fca5a5; --m-err-fond: rgba(248,113,113,.12);
-    --m-warn: #fbbf24; --m-warn-fond: rgba(251,191,36,.12);
-}
+/* ⛔ L'ANCIEN BOUTON ☀︎/☾ NE RESSORT JAMAIS, MÊME D'UNE PAGE RESTÉE EN CACHE. Une page d'avant le 29 septembre, servie par
+   le navigateur ou le service worker de l'application (qui garde ses copies d'une version à l'autre), porte encore le
+   bouton, et l'ancienne copie de vitrine/v2/mode.js le démasquait : avec cette feuille, qui n'a plus ses règles, il
+   sortait en bouton brut, ses deux dessins à pleine taille (relecture adverse du 29 septembre au soir). Cette règle-ci
+   ne dépend d'aucun cache. C'est la SEULE règle `.mode` permise (tests/test-835.js, test-836.js). */
+.mode, .coin-mode { display: none !important; }
 /* l'indication d'un champ (placeholder) : celle du navigateur tombait à 2,43 la nuit — le texte secondaire du site */
 ::placeholder { color: var(--m-sub); opacity: 1; }
-:root[data-theme="light"] { color-scheme: light; }
-:root[data-theme="dark"] { color-scheme: dark; }
 
-/* ── la marque et le bouton ☀︎/☾ : le même dessin que l'en-tête du site ── */
+/* ── la marque : le même dessin que l'en-tête du site ── */
 .m-marque { display: inline-flex; align-items: center; gap: 10px; color: var(--m-text); text-decoration: none; }
 .m-marque:hover { text-decoration: none; }
 .m-marque img { width: 32px; height: 32px; border-radius: 8px; display: block; }
 .m-marque span { font-family: var(--m-titre); font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
-.mode { position: relative; width: 44px; height: 44px; margin: 0 -6px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--m-text); cursor: pointer; display: grid; place-items: center; flex: none; }
-.mode[hidden] { display: none; }
-.mode::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--m-seg); opacity: 0; transition: opacity .2s ease-out; }
-.mode:hover::before, .mode:focus-visible::before { opacity: 1; }
-.mode svg { position: relative; width: 18px; height: 18px; transition: transform .45s var(--m-ressort), opacity .2s ease-out; }
-.mode .soleil { position: absolute; opacity: 0; transform: rotate(-90deg) scale(.6); }
-.mode.nuit .lune { opacity: 0; transform: rotate(90deg) scale(.6); }
-.mode.nuit .soleil { opacity: 1; transform: none; }
-@media (prefers-reduced-motion: reduce) { .mode svg, .mode::before { transition: none; } }

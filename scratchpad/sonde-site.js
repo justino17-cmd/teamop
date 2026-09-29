@@ -83,7 +83,7 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
       vrai(lbl + ' : fond ' + fond, mode === 'dark' ? fond === 'rgb(11, 20, 38)' : fond === 'rgb(255, 255, 255)');
       /* au doigt : ce qui se touche fait 44 px de haut au moins */
       if (P.tac) {
-        const petites = await ev(`const S='.mode,.pilule,.burger,.bouton,.lien-suite,.segment button,.metier-puce,.besoin,.faq .q button,.tuile-f,.teaser,.pack>a,.formule .cta,.menu-mobile a,.pied .cols a,.pied .ligne a,.bandeau-creer,.app-carte>a,.commencer .boutons a';
+        const petites = await ev(`const S='.pilule,.burger,.bouton,.lien-suite,.segment button,.metier-puce,.besoin,.faq .q button,.tuile-f,.teaser,.pack>a,.formule .cta,.menu-mobile a,.pied .cols a,.pied .ligne a,.bandeau-creer,.app-carte>a,.commencer .boutons a';
           return [...document.querySelectorAll(S)].filter(e=>{ const b=e.getBoundingClientRect(); return b.width>0&&b.height>0&&getComputedStyle(e).visibility!=='hidden'; })
             .map(e=>{ const b=e.getBoundingClientRect(), a=getComputedStyle(e,'::after'); const ext=a.content&&a.content!=='none'&&a.position==='absolute'?Math.max(0,-parseFloat(a.top||0))+Math.max(0,-parseFloat(a.bottom||0)):0;
               return {t:(e.textContent||e.getAttribute('aria-label')||'').trim().slice(0,30), h:Math.round(b.height+ext)}; }).filter(x=>x.h<44);`);
@@ -92,27 +92,31 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
 
       /* ── les gestes ── (une page qui plante se COMPTE comme un échec : elle n'arrête pas la sonde) */
       try {
-      /* ── v2, 27 septembre au soir : le bouton jour / nuit (Justin : « je veux vraiment un mode jour et un mode nuit ») ──
-         Toucher force l'autre mode, les ÉCRANS DES APPAREILS suivent (leurs <source> suivent l'appareil sinon), le choix
-         survit au rechargement ; toucher encore revient au mode de l'appareil et efface le choix. */
+      /* ── 29 septembre 2026, Justin : « Sur le site je veux pas le bouton jour nuit, je veux que ça soit automatique ».
+         Plus de bouton ; un choix rangé par l'ancien bouton est EFFACÉ et ne force rien ; et la page suit l'appareil EN
+         DIRECT (on bascule le mode de l'appareil sans recharger : fond et écrans d'appareil suivent). ── */
       if (pg === 'index') {
-        const nuitVoulue = mode === 'light', FOND = { dark: 'rgb(11, 20, 38)', light: 'rgb(255, 255, 255)' };
+        const autre = mode === 'dark' ? 'light' : 'dark', FOND = { dark: 'rgb(11, 20, 38)', light: 'rgb(255, 255, 255)' };
         const lire = `const imgs=[...document.querySelectorAll('.ap-iphone img,.ap-mac img')]; for(const i of imgs){ i.scrollIntoView({block:'center'}); await new Promise(r=>setTimeout(r,40)); }
           await Promise.all(imgs.map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r; setTimeout(r,3000);}))); scrollTo(0,0);
           return {theme:document.documentElement.getAttribute('data-theme'), fond:getComputedStyle(document.body).backgroundColor, memo:localStorage.getItem('teamop_site_mode'),
             n:imgs.length, nuit:imgs.filter(i=>/-nuit(-1x)?\.webp$/.test(i.currentSrc)).length, jour:imgs.filter(i=>/-jour(-1x)?\.webp$/.test(i.currentSrc)).length,
-            dit:document.querySelector('.mode').getAttribute('aria-label'), vu:!document.querySelector('.mode').hidden};`;
-        await toucher(P, '.mode'); await dormir(300);
+            boutons:document.querySelectorAll('.mode,[class*="coin-mode"]').length};`;
         const a = await ev(lire);
-        vrai(lbl + ' : ☀︎/☾ passe ' + (nuitVoulue ? 'en nuit' : 'en jour') + ' (fond, mémoire, libellé)', a.vu && a.theme === (nuitVoulue ? 'dark' : 'light') && a.fond === FOND[nuitVoulue ? 'dark' : 'light']
-          && a.memo === (nuitVoulue ? 'nuit' : 'jour') && a.dit === (nuitVoulue ? 'Passer en mode jour' : 'Passer en mode nuit'), JSON.stringify(a));
-        vrai(lbl + ' : et les ' + a.n + ' écrans d\'appareil passent ' + (nuitVoulue ? 'de nuit' : 'de jour'), a.n >= 3 && (nuitVoulue ? a.nuit : a.jour) === a.n, JSON.stringify(a));
+        vrai(lbl + ' : aucun bouton jour / nuit, aucun mode forcé', a.boutons === 0 && a.theme === null, JSON.stringify(a));
+        /* le choix qu'avait rangé l'ancien bouton (l'AUTRE mode) : il est effacé au chargement et ne force rien */
+        await ev(`localStorage.setItem('teamop_site_mode', ${JSON.stringify(mode === 'dark' ? 'jour' : 'nuit')}); return 1;`);
         await cdp('Page.reload', {}); await dormir(1000);
         const b = await ev(lire);
-        vrai(lbl + ' : le choix survit au rechargement (posé avant le premier rendu)', b.theme === a.theme && b.fond === a.fond && (nuitVoulue ? b.nuit : b.jour) === b.n, JSON.stringify(b));
-        await toucher(P, '.mode'); await dormir(300);
+        vrai(lbl + ' : un ancien choix « ' + (mode === 'dark' ? 'jour' : 'nuit') + ' » ne force plus rien, et il est effacé', b.memo === null && b.theme === null && b.fond === FOND[mode]
+          && (mode === 'dark' ? b.nuit : b.jour) === b.n && b.n >= 3, JSON.stringify(b));
+        /* l'appareil change de mode, la page suit sans recharger */
+        await cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: autre }] }); await dormir(400);
         const c = await ev(lire);
-        vrai(lbl + ' : toucher encore revient au mode de l\'appareil, et oublie le choix', c.theme === null && c.memo === null && c.fond === FOND[mode] && (mode === 'dark' ? c.nuit : c.jour) === c.n, JSON.stringify(c));
+        vrai(lbl + ' : l\'appareil passe ' + (autre === 'dark' ? 'en nuit' : 'en jour') + ', la page suit en direct (fond et ' + c.n + ' écrans)', c.fond === FOND[autre] && (autre === 'dark' ? c.nuit : c.jour) === c.n, JSON.stringify(c));
+        await cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: mode }] }); await dormir(400);
+        const d = await ev(lire);
+        vrai(lbl + ' : et revient avec lui', d.fond === FOND[mode] && (mode === 'dark' ? d.nuit : d.jour) === d.n, JSON.stringify(d));
       }
       /* ── un mode est un mode (Justin, 27 septembre au soir : « pourquoi là c'est blanc ? » de nuit, puis « sur le même
          jour il y a du sombre, pourquoi ? ») : recensées depuis le DOM, jamais depuis une liste, toutes les grandes

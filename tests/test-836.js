@@ -8,12 +8,14 @@
    feuille, toujours sombre, en DM Sans, Space Mono ou Courier, trois d'entre elles avec le logo VERT d'OP GESTION à
    côté de « TEAM OP ».
 
-   Elles lisent désormais la palette du site dans vitrine/v2/theme.css (sous des noms à part, --m-…) et le bouton du
-   site dans vitrine/v2/mode.js (même clé : le choix fait sur le site les suit). Ce banc garde :
+   Elles lisent désormais la palette du site dans vitrine/v2/theme.css (sous des noms à part, --m-…) et, comme le site,
+   suivent l'appareil — sans bouton depuis le 29 septembre 2026 (Justin, capture de son iPhone à l'appui : « Sur le site
+   je veux pas le bouton jour nuit, je veux que ça soit automatique »). Ce banc garde :
    1. que theme.css porte EXACTEMENT les valeurs de site.css, jeton par jeton, jour et nuit — deux palettes recopiées
       divergent toujours ;
-   2. que chaque page embarque la tête du mode (couleur de la barre du navigateur, mode posé AVANT le premier rendu),
-      la palette, le bouton ☀︎/☾ et son script, À L'IDENTIQUE de ceux du site ;
+   2. que chaque page embarque la tête du mode (couleur de la barre du navigateur, et l'ancien choix effacé) et la
+      palette À L'IDENTIQUE de celles du site, et qu'AUCUNE ne porte plus de bouton ☀︎/☾, ni son script, ni un mode
+      forcé — une seule page qui le garderait rendrait le mode d'un visiteur « collé » sur cette page-là ;
    3. qu'aucune n'a gardé l'ancien habillage (polices, fond animé, logo d'OP GESTION), ni une couleur écrite en dur
       hors des écarts NOMMÉS ci-dessous — une couleur en dur ne suit pas le mode ;
    4. que les copies d'aperçu (apercu/, scripts/apercu.sh) se renvoient les unes aux autres et au site d'aperçu, ne
@@ -35,9 +37,13 @@ const vrai = (t, c) => v(t, !!c, true);
 const PAGES = ['espace.html', 'connexion.html', 'reinit.html', 'recap-abonnement.html', 'merci.html', 'mentions-legales.html',
   'confidentialite.html', 'sous-traitance.html', 'registre-traitements.html', '404.html'];
 const SITE = ['index', 'tarifs', 'applications', 'creer', 'elan', 'metiers', 'opmessages', 'pourquoi'];
-const { TETE_MODE, BOUTON_MODE } = require(path.join(RACINE, 'scripts', 'site-marine.js'));
-const THEME = lire('vitrine/v2/theme.css'), SITECSS = lire('vitrine/v2/site.css'), MODEJS = lire('vitrine/v2/mode.js');
+const { TETE_MODE } = require(path.join(RACINE, 'scripts', 'site-marine.js'));
+const THEME = lire('vitrine/v2/theme.css'), SITECSS = lire('vitrine/v2/site.css'), MODEJS = lire('vitrine/v2/mode.js'), SW = lire('sw.js');
 const EMPREINTES = JSON.parse(lire('vitrine/portail-v1.json')).pages;
+/* ⛔ le mode : par la FONCTION, dans le CODE, et les scripts EXÉCUTÉS — la même aide que test-835 (relecture adverse du
+   29 septembre au soir : un bouton `class="mode on"`, un mode.js commenté par `//`, un script `type="text/plain"`, un
+   second bloc de nuit, `color-scheme: light` passaient tous) */
+const MS = require('./mode-site.js');
 const sha = s => crypto.createHash('sha256').update(s).digest('hex');
 /* un motif de banc vise du CODE : les blocs de commentaire qui COMMENCENT une ligne, et les lignes // (CLAUDE.md) */
 const sansCom = s => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
@@ -55,29 +61,30 @@ const surFond = (c, f) => [0, 1, 2].map(i => c[i] * c[3] + f[i] * (1 - c[3])).co
 const lum = c => { const k = c.slice(0, 3).map(x => { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); }); return 0.2126 * k[0] + 0.7152 * k[1] + 0.0722 * k[2]; };
 const contraste = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
 
-/* ── les blocs de jetons d'une feuille : jour, nuit par l'appareil, nuit forcée ── */
+/* ── les blocs de jetons d'une feuille : jour, et nuit par l'appareil (la nuit forcée n'existe plus : § 2) ── */
 function jetons(css, prefixe) {
   const bloc = (re) => { const m = re.exec(css); if (!m) return null; const o = {};
     for (const d of m[1].matchAll(new RegExp('--' + prefixe + '([a-z-]+)\\s*:\\s*([^;]+);', 'g'))) o[d[1]] = d[2].trim(); return o; };
   return {
     jour: bloc(/(?:^|\n):root\s*\{([^}]*)\}/),
-    nuitSys: bloc(/@media \(prefers-color-scheme: dark\)\s*\{\s*:root:not\(\[data-theme="light"\]\)\s*\{([^}]*)\}/),
-    nuitForcee: bloc(/\n:root\[data-theme="dark"\]\s*\{([^}]*--[^}]*)\}/),
+    nuitSys: bloc(/@media \(prefers-color-scheme: dark\)\s*\{\s*:root\s*\{([^}]*)\}/),
   };
 }
 
 console.log('\n══ 1. LA PALETTE DU PORTAIL EST CELLE DU SITE, JETON PAR JETON ══\n');
-const T = jetons(THEME, 'm-'), S = jetons(SITECSS, '');
+/* un bloc introuvable rend {} : le banc le DIT (contrôle ci-dessous), il ne plante pas sur le suivant */
+const jetonsSurs = (css, p) => { const j = jetons(css, p); return { jour: j.jour, nuitSys: j.nuitSys, trouves: !!(j.jour && j.nuitSys) }; };
+const T0 = jetonsSurs(THEME, 'm-'), S0 = jetonsSurs(SITECSS, '');
+const T = { jour: T0.jour || {}, nuitSys: T0.nuitSys || {} }, S = { jour: S0.jour || {}, nuitSys: S0.nuitSys || {} };
 const PARTAGES = ['bg', 'text', 'sub', 'body', 'link', 'line', 'card', 'tile', 'seg', 'seg-on', 'accent', 'on-accent', 'nav'];
-vrai('les trois blocs de theme.css sont trouvés (jour, nuit de l\'appareil, nuit forcée)', T.jour && T.nuitSys && T.nuitForcee);
-vrai('et ceux de site.css aussi', S.jour && S.nuitSys && S.nuitForcee);
+vrai('les deux blocs de theme.css sont trouvés (jour, nuit de l\'appareil, sur :root)', T0.trouves);
+vrai('et ceux de site.css aussi', S0.trouves);
 if (T.jour && S.jour) {
   vrai('   (la population n\'est pas vide : ' + Object.keys(T.jour).length + ' jetons de jour)', Object.keys(T.jour).length >= PARTAGES.length);
   for (const mode of ['jour', 'nuitSys']) {
     const ecarts = PARTAGES.filter(k => (T[mode][k] || '').replace(/\s/g, '') !== (S[mode][k] || '').replace(/\s/g, ''));
     v('⛔ ' + mode + ' : les ' + PARTAGES.length + ' jetons partagés ont la valeur de site.css', ecarts.map(k => k + ' ' + T[mode][k] + ' ≠ ' + S[mode][k]), []);
   }
-  v('⛔ les deux blocs de nuit de theme.css sont identiques (appareil en nuit, nuit forcée)', JSON.stringify(T.nuitForcee), JSON.stringify(T.nuitSys));
   v('   chaque jeton de jour a sa valeur de nuit', Object.keys(T.jour).filter(k => /^(bg|text|sub|body|link|line|card|tile|seg|seg-on|accent|on-accent|nav|ok|ok-fond|err|err-fond|warn|warn-fond)$/.test(k) && !(k in T.nuitSys)), []);
   vrai('   les polices et le ressort sont ceux du site', ['titre', 'corps', 'ressort'].every(k => (T.jour[k] || '').replace(/\s/g, '') === (S.jour[k] || '').replace(/\s/g, '')));
   /* Les couleurs d'état n'existent pas sur le site : on les MESURE ici — texte sur son fond teinté, posé sur une carte. */
@@ -92,10 +99,41 @@ if (T.jour && S.jour) {
   }
 }
 
-console.log('\n══ 2. UN SEUL SCRIPT POUR LE JOUR ET LA NUIT ══\n');
-vrai('mode.js porte la clé du site', /var CLE_MODE = 'teamop_site_mode'/.test(MODEJS));
-vrai('   il réécrit les deux couleurs de barre (theme-color) et les images de nuit', /meta\[name="theme-color"\]/.test(MODEJS) && /source\[data-nuit\]/.test(MODEJS));
-vrai('   la tête posée AVANT le rendu lit la même clé, dans une fonction (aucune variable globale)', /^<script>[\s\S]*\(function \(\) \{ try \{ var m = localStorage\.getItem\('teamop_site_mode'\)/m.test(TETE_MODE));
+console.log('\n══ 2. LE JOUR ET LA NUIT SUIVENT L\'APPAREIL — SANS BOUTON, SANS MODE FORCÉ ══\n');
+/* Justin, 29 septembre 2026, capture de son iPhone à l'appui : « Sur le site je veux pas le bouton jour nuit, je veux que ça
+   soit automatique ». La feuille suit `prefers-color-scheme` ; plus rien ne force un mode. */
+{
+  const tete = TETE_MODE.split('\n');
+  v('la tête du mode tient en CINQ lignes, comme avant (les pages juridiques sont citées par numéro de ligne, § 6)', tete.length, 5);
+  vrai('   les deux couleurs de barre suivent l\'appareil (media), sans marque pour un script', /<meta name="theme-color" content="#f0f3f8" media="\(prefers-color-scheme: light\)">/.test(TETE_MODE) && /<meta name="theme-color" content="#0b1426" media="\(prefers-color-scheme: dark\)">/.test(TETE_MODE) && !/data-(jour|nuit)/.test(TETE_MODE));
+  vrai('   la page dit au navigateur qu\'elle a un jour ET une nuit (champs, barres, fond de rebond)', /<meta name="color-scheme" content="light dark">/.test(TETE_MODE));
+  /* le script, EXÉCUTÉ dans une fausse page : un `//`, un `return`, un `type` qui le rend inerte ne passent plus */
+  const t = MS.jouerTete(TETE_MODE);
+  v('   son script, exécuté : une balise <script> nue, il tourne, il efface la clé de l\'ancien bouton et rien d\'autre — [scripts, attributs, tourne, clé effacée, autre clé gardée]',
+    [t.scripts, t.balise, !!t.ok, !!t.cleEffacee, !!t.autreGardee], [1, [], true, true, true]);
+  v('   ⛔ et ne range rien, ne pose aucun mode, n\'appelle rien d\'autre', t.note && [t.note.set, t.note.attrPose, t.note.attrRetire, t.note.appels], [[], [], [], []]);
+}
+for (const [nom, css] of [['theme.css', THEME], ['site.css', SITECSS]]) {
+  const f = MS.formeFeuille(css);
+  v('⛔ ' + nom + ' : UN :root de jour, UN bloc de nuit sous la requête (:root seul), aucun jour forcé, dans l\'ordre — [racines, nuits, jours, ordre, nuit = :root seul]',
+    [f.racines, f.nuits, f.jours, f.ordre, f.nuitSeulementRacine], [2, 1, 0, true, true]);
+  v('   ' + nom + ' : color-scheme « light dark », une seule fois, sur le :root de jour', [f.schemes, f.schemeJour], [1, true]);
+  v('   ' + nom + ' : ⛔ aucun mode forcé (data-theme), et du bouton que la garde qui le cache', [f.dataTheme, f.reglesMode], [false, ['.mode, .coin-mode { display: none !important; }']]);
+}
+v('⛔ theme.css : aucune couleur écrite en dur hors des jetons (fond, texte, bord, ombre — @media compris)', MS.couleursEnDurFeuille(THEME).map(d => d.join(' | ')), []);
+/* mode.js n'est plus appelé par aucune page, mais il RESTE : une page restée en cache (navigateur, service worker) le
+   demande encore, et le service worker ne remplace sa copie que par une réponse réussie — il reprend même l'ancien cache à
+   chaque version. Supprimé, l'ANCIENNE copie (qui démasquait le bouton) resterait servie pour toujours. Ce n'est PAS
+   l'installation du service worker qui en dépend : chaque ressource s'y charge à part (écrit à tort ici le 29 septembre,
+   relecture adverse du soir). */
+{
+  vrai('mode.js existe (une page restée en cache le demande)', MODEJS.length > 0);
+  vrai('   (et sw.js le précharge toujours : la copie neuve remplace l\'ancienne dès l\'installation)', /'vitrine\/v2\/mode\.js'/.test(SW));
+  const m = MS.jouerModeJs(MODEJS);
+  v('   exécuté sur une page restée en cache : il tourne, efface le choix rangé, retire le mode posé, garde le reste — [tourne, clé effacée, mode retiré, autre clé gardée]',
+    [!!m.ok, !!m.cleEffacee, !!m.modeRetire, !!m.autreGardee], [true, true, true, true]);
+  v('   ⛔ et ne range rien, ne pose aucun mode, ne branche rien (aucun appel au document)', m.note && [m.note.set, m.note.attrPose, m.note.appels], [[], [], []]);
+}
 
 /* ── ce qu'une page au thème doit porter ── */
 /* ÉCARTS : les seules couleurs écrites en dur admises, chacune avec sa raison. Une entrée qui ne sert plus est une
@@ -137,9 +175,8 @@ function auTheme(nom, s, etiquette, apercu) {
   vrai(etiquette + '    dans <head>, avant la palette et avant la feuille de la page',
     tete.indexOf(TETE_MODE) >= 0 && tete.indexOf(TETE_MODE) < tete.indexOf('<link rel="stylesheet" href="/vitrine/v2/theme.css">') && tete.indexOf(TETE_MODE) < tete.indexOf('<style>'));
   vrai(etiquette + ' : la palette du site (/vitrine/v2/theme.css), une fois, dans <head>', s.split('href="/vitrine/v2/theme.css"').length === 2 && tete.indexOf('/vitrine/v2/theme.css') > 0);
-  vrai(etiquette + ' : le bouton ☀︎/☾ du site, à l\'identique, une fois', s.split(BOUTON_MODE).length === 2);
-  const iBouton = s.indexOf(BOUTON_MODE), iScript = s.indexOf('<script src="/vitrine/v2/mode.js" defer></script>');
-  vrai(etiquette + ' : son script (/vitrine/v2/mode.js), une fois, après le bouton', s.split('/vitrine/v2/mode.js"').length === 2 && iScript > iBouton && iBouton > 0);
+  v(etiquette + ' : ⛔ aucun bouton de mode, aucun mode forcé, aucune clé de mode, aucun color-scheme à elle (quelle qu\'en soit l\'écriture)',
+    MS.restesDeMode(s, TETE_MODE), []);
   v(etiquette + ' : ⛔ rien de l\'ancien habillage (polices, fond animé, polices Google)',
     ['DM Sans', 'Space Mono', 'Courier New', 'fonts.googleapis', 'fond-anime-teamop'].filter(x => code.indexOf(x) >= 0), []);
   v(etiquette + ' : ⛔ pas le logo d\'OP GESTION à côté de « TEAM OP »', /plan-gestion\.png/.test(code), false);
@@ -239,6 +276,32 @@ for (const c of SITE) {
   if (!fs.existsSync(path.join(RACINE, f))) continue;
   const s = lire(f);
   v(f + ' : aucun lien vers le portail en service', [...s.matchAll(new RegExp(`href="/(${FAM.join('|')})\\.html`, 'g'))].map(m => m[0]), []);
+}
+
+console.log('\n══ 9. TOUTES LES PAGES DU DÉPÔT : AUCUN BOUTON DE MODE HORS DES EXCEPTIONS NOMMÉES ══\n');
+/* Un recensement part du DÉPÔT, jamais d'une liste (CLAUDE.md) : les § 2 à 8 ne lisent que les 10 pages voisines et les
+   8 du site. Une 19ᵉ page copiée d'un ancien modèle, un aperçu refait d'une vieille copie, ne seraient vus par personne.
+   Les exceptions sont NOMMÉES, avec leur raison, et chacune doit encore servir. */
+{
+  const EXCEPTIONS = {
+    'app.html': 'OP GESTION : son propre réglage Jour / Nuit / Auto (Paramètres), ce n\'est pas le site',
+    'beta.html': 'OP GESTION bêta : même réglage, générée depuis app.html',
+    'messages.html': 'OP MESSAGES (fermée, OPMSG_EN_TRAVAUX) : son propre thème d\'application',
+    'messages-beta.html': 'OP MESSAGES bêta : même thème',
+    'tour.html': 'la Tour : la console du patron, avec son propre jour et nuit — ce n\'est pas le site',
+    'apercu/tour.html': 'la Tour en aperçu : même chose',
+    'apercu/site-apple.html': 'maquette de comparaison « deux palettes, trois modes » (test-756), non liée, qui ne remplace aucune page',
+  };
+  const fichiers = require('child_process').execSync('git ls-files "*.html"', { cwd: RACINE }).toString().trim().split('\n').filter(Boolean);
+  vrai('population : ' + fichiers.length + ' pages suivies', fichiers.length >= 50);
+  const fautes = [], servies = [];
+  for (const f of fichiers) {
+    const r = MS.restesDeMode(lire(f), TETE_MODE);
+    if (f in EXCEPTIONS) { if (r.length) servies.push(f); continue; }
+    if (r.length) fautes.push(f + ' : ' + r.join(', '));
+  }
+  v('⛔ aucune page du dépôt, hors exceptions nommées, ne porte un bouton, un mode forcé ou une clé de mode', fautes, []);
+  v('   et chaque exception sert encore (une exception vide est une décision prise pour du vide)', Object.keys(EXCEPTIONS).filter(f => servies.indexOf(f) < 0), []);
 }
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

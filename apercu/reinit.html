@@ -6,23 +6,22 @@
 <title>TEAM OP — Nouveau mot de passe</title>
 <meta name="robots" content="noindex">
 <link rel="icon" href="icons/teamop-512.png">
-<meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)" data-jour>
-<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)" data-nuit>
+<meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
-<script>/* le mode choisi (☀︎/☾), posé AVANT le premier rendu : sans ça, la page s'afficherait d'abord dans l'autre (dans une fonction : une variable globale heurterait celles des pages qui embarquent ces lignes) */
-(function () { try { var m = localStorage.getItem('teamop_site_mode'); if (m === 'jour' || m === 'nuit') document.documentElement.setAttribute('data-theme', m === 'nuit' ? 'dark' : 'light'); } catch (e) {} })();</script>
+<script>/* le jour et la nuit suivent l'appareil, sans bouton (Justin, 29 septembre 2026 : « je veux que ça soit automatique ») : on efface le choix qu'avait rangé l'ancien bouton ☀︎/☾, que plus rien ne lit (dans une fonction : une variable globale heurterait celles des pages qui embarquent ces lignes) */
+(function () { try { localStorage.removeItem('teamop_site_mode'); } catch (e) {} })();</script>
 <link rel="stylesheet" href="/vitrine/v2/theme.css">
 <style>
   /* ══ LE LIEN DU COURRIEL, AU THÈME DU SITE (27 septembre 2026 au soir) ════════════════════════════════════════════
      Justin : « au niveau des connexions ou création de compte, j'ai pas mon thème ». Cette page — celle qu'ouvre le
      lien « nouveau mot de passe » ou « vérifier mon adresse » — gardait son fond toujours sombre et « TEAM OP » en
-     Courier. Elle lit la palette du site (/vitrine/v2/theme.css, --m-…), jour ET nuit, et le bouton ☀︎/☾
-     (/vitrine/v2/mode.js). ⛔ Les identifiants et le script n'ont pas bougé (test-741 l'exécute).
+     Courier. Elle lit la palette du site (/vitrine/v2/theme.css, --m-…), jour ET nuit, selon l'appareil
+     (sans bouton, comme le site). ⛔ Les identifiants et le script n'ont pas bougé (test-741 l'exécute).
      ⛔ Le bouton principal se désigne par son IDENTIFIANT (#go) : une règle posée sur `button` habillait aussi l'œil
-     des mots de passe (44 px de haut au lieu de 32) et le bouton ☀︎/☾. */
+     des mots de passe (44 px de haut au lieu de 32). */
   *{box-sizing:border-box}
-  body{margin:0;min-height:100vh;background:var(--m-bg);color:var(--m-text);font-family:var(--m-corps);line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;align-items:center;justify-content:center;padding:calc(64px + env(safe-area-inset-top)) 20px calc(28px + env(safe-area-inset-bottom))}
-  .coin-mode{position:absolute;top:calc(10px + env(safe-area-inset-top));right:calc(16px + env(safe-area-inset-right))}
+  body{margin:0;min-height:100vh;background:var(--m-bg);color:var(--m-text);font-family:var(--m-corps);line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;align-items:center;justify-content:center;padding:calc(28px + env(safe-area-inset-top)) 20px calc(28px + env(safe-area-inset-bottom))}
   .carte{width:100%;max-width:440px;background:var(--m-card);border:1px solid transparent;border-radius:24px;padding:26px 24px}
   .marque{display:flex;align-items:center;gap:10px;margin-bottom:20px}
   .marque img{width:32px;height:32px;border-radius:8px}
@@ -62,7 +61,6 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 </style>
 </head>
 <body>
-  <div class="coin-mode"><button class="mode" type="button" hidden aria-label="Passer en mode nuit" title="Passer en mode nuit"><svg class="lune" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg><svg class="soleil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg></button></div>
 <div class="carte">
   <div class="marque"><img src="icons/teamop-512.png" alt="TEAM OP"><b>TEAM OP</b></div>
   <div id="etape-chargement"><h1>Un instant…</h1><p>Vérification de ton lien de réinitialisation.</p></div>
@@ -191,6 +189,5 @@ function enregistrer(){
   try{ new MutationObserver(function(){ clearTimeout(t); t=setTimeout(tout,60); }).observe(document.documentElement,{childList:true,subtree:true}); }catch(e){}
 })();
 </script>
-<script src="/vitrine/v2/mode.js" defer></script>
 <div id="apercu-ruban" style="position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:99999;font:600 12px/1 -apple-system,system-ui,sans-serif;letter-spacing:.06em;color:#fff;background:#B26E12;padding:8px 14px;border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.25);pointer-events:none">APERÇU · refonte en cours</div></body>
 </html>

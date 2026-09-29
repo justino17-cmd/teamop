@@ -129,7 +129,7 @@ function entete(section, sousnav) {
   return `<header class="entete"><nav class="nav" aria-label="Navigation principale"><div class="nav-in">
       <a class="marque" href="index.html"><img src="/icons/teamop-192.png" width="22" height="22" alt=""><span>TEAM OP</span></a>
       <div class="nav-liens">${liens}</div>
-      <div class="nav-droite">${BOUTON_MODE}<a class="pilule" href="${ESPACE()}">Espace client</a>
+      <div class="nav-droite"><a class="pilule" href="${ESPACE()}">Espace client</a>
         <button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu-mobile"><svg class="ouvre" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h16"/></svg><svg class="ferme" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     </div>${volets}</nav>
     <div class="menu-mobile" id="menu-mobile">${mobile}</div>
@@ -339,14 +339,17 @@ const PAGES = {
         <section class="bloc" id="engagements"><div class="bloc-in"><h2 class="h2">Nos engagements techniques.</h2><div style="height:28px"></div>${cartes([['lock', 'Sécurité AES-256', 'Vos données sont chiffrées de bout en bout et hébergées de façon sécurisée. Personne d\'autre que votre équipe n\'y accède.'], ['bolt', 'Temps réel', 'Chaque action est visible immédiatement par toute l\'équipe, sans rafraîchir la page — au bureau comme sur le terrain.'], ['flag', 'Développé en France', 'Conçu et maintenu par TEAM OP — un interlocuteur unique, réactif, qui connaît votre métier.']])}</div></section>`; } },
 };
 
-/* Le jour et la nuit, écrits UNE fois : le site et les pages hors du site (espace.html, connexion.html…) portent ces deux
-   morceaux à l'identique — tests/test-836.js relit chaque page contre ces constantes. */
-const TETE_MODE = `<meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)" data-jour>
-<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)" data-nuit>
+/* Le jour et la nuit, écrits UNE fois : le site et les pages hors du site (espace.html, connexion.html…) portent cette
+   tête à l'identique — tests/test-836.js relit chaque page contre cette constante. Justin, 29 septembre 2026, capture de
+   son iPhone à l'appui : « Sur le site je veux pas le bouton jour nuit, je veux que ça soit automatique » — la page suit
+   l'appareil (prefers-color-scheme, la feuille le fait seule), sans bouton. Le script efface le choix qu'avait rangé
+   l'ancien bouton ☀︎/☾ : plus rien ne le lit, il n'a pas à rester sur l'appareil.
+   ⛔ CINQ LIGNES, COMME AVANT : les pages juridiques sont citées par numéro de ligne (mentions-legales.html:74…). */
+const TETE_MODE = `<meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
-<script>/* le mode choisi (☀︎/☾), posé AVANT le premier rendu : sans ça, la page s'afficherait d'abord dans l'autre (dans une fonction : une variable globale heurterait celles des pages qui embarquent ces lignes) */
-(function () { try { var m = localStorage.getItem('teamop_site_mode'); if (m === 'jour' || m === 'nuit') document.documentElement.setAttribute('data-theme', m === 'nuit' ? 'dark' : 'light'); } catch (e) {} })();</script>`;
-const BOUTON_MODE = `<button class="mode" type="button" hidden aria-label="Passer en mode nuit" title="Passer en mode nuit"><svg class="lune" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg><svg class="soleil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg></button>`;
+<script>/* le jour et la nuit suivent l'appareil, sans bouton (Justin, 29 septembre 2026 : « je veux que ça soit automatique ») : on efface le choix qu'avait rangé l'ancien bouton ☀︎/☾, que plus rien ne lit (dans une fonction : une variable globale heurterait celles des pages qui embarquent ces lignes) */
+(function () { try { localStorage.removeItem('teamop_site_mode'); } catch (e) {} })();</script>`;
 
 /* le lanceur de l'écran d'accueil : une PWA installée rouvre la dernière application choisie (?hub=1 pour revenir au choix) */
 const LANCEUR = `<script>try{var pwa=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true||document.referrer.indexOf('android-app://')===0,d=localStorage.getItem('teamop_app');if(pwa&&(d==='app.html'||d==='messages.html')&&!/hub/.test(location.search))location.replace('/'+d);}catch(e){}</script>`;
@@ -377,7 +380,6 @@ ${P.corps()}
 ${P.cta === false ? '' : commencer()}
 </main>
 ${pied()}
-<script src="${RES}mode.js" defer></script>
 <script src="${RES}site.js" defer></script>
 </body>
 </html>
@@ -392,4 +394,4 @@ if (require.main === module) {
     console.log('✓', path.relative(RACINE, f), Math.round(fs.statSync(f).size / 1024) + ' Ko');
   }
 }
-module.exports = { PAGES, page, FORMULES_GESTION, FORMULES_MESSAGES, VOLETS, DEST, TETE_MODE, BOUTON_MODE };
+module.exports = { PAGES, page, FORMULES_GESTION, FORMULES_MESSAGES, VOLETS, DEST, TETE_MODE };

@@ -11,7 +11,7 @@
    4. chaque lien mène quelque part (fichier du dépôt, ancre présente) ; aucun `mailto` ailleurs que
       support@ ; aucune adresse externe ;
    5. chaque écran d'appareil a sa version jour ET nuit, et l'image existe ;
-   6. aucun bouton de mode (le site suit le système, sans bouton — THEME.md § 0) ;
+   6. aucun bouton de mode (le site suit le système, sans bouton — THEME.md § 0, et Justin le 29 septembre 2026) ;
    7. OP MESSAGES : « Bientôt disponible », aucune formule ne se choisit ;
    8. « Créer » ne dit jamais « demande envoyée » (c'est la messagerie de la personne qui l'envoie) ;
    9. un aperçu ne se référence pas (`noindex`), la page de racine si.
@@ -128,26 +128,36 @@ vrai('les grandes montrent un Mac, les petites un iPhone', cases.every(x => /^[^
 v('dix écrans DIFFÉRENTS (une capture ne sert pas deux cases)', new Set(cases.map(x => (x.match(/src="([^"]+)"/) || [])[1])).size, 10);
 vrai('plus de « Code PIN » (l\'application est au mot de passe depuis septembre)', !/code PIN/i.test(PAGES.elan));
 
-/* 27 septembre au soir, Justin : « je veux vraiment un mode jour et un mode nuit ». Le site suit toujours
-   l'appareil ; un bouton force l'autre mode et le garde. Ce banc gardait l'inverse (« pas de bouton ») : c'était
-   la maquette, c'est désormais sa phrase qui décide. */
-console.log('6. jour et nuit : l\'appareil, et un bouton qui force');
-for (const c of CLES) vrai(c + ' : le bouton ☀︎/☾ est dans la barre, caché tant que le script ne l\'a pas branché', /<button class="mode" type="button" hidden aria-label="Passer en mode nuit"/.test(PAGES[c]));
-for (const c of CLES) vrai(c + ' : le mode choisi se pose AVANT le premier rendu (script dans <head>)', /<head>[\s\S]*localStorage\.getItem\('teamop_site_mode'\)[\s\S]*<\/head>/.test(PAGES[c]));
+/* 27 septembre au soir, Justin : « je veux vraiment un mode jour et un mode nuit » — un bouton ☀︎/☾ forçait l'autre
+   mode. 29 septembre, capture de son iPhone à l'appui : « Sur le site je veux pas le bouton jour nuit, je veux que ça
+   soit automatique ». Le site suit l'appareil, et RIEN d'autre : retour au point 6 de la maquette (THEME.md § 0). */
+console.log('6. jour et nuit : l\'appareil, sans bouton');
+/* ⛔ Par la FONCTION, dans le CODE (tests/mode-site.js) : la relecture adverse du 29 septembre au soir a fait passer un
+   bouton `class="mode on"`, un `id="bascule">☾` et une tête privée de ses couleurs de barre à travers ce paragraphe,
+   qui ne cherchait que la chaîne exacte `class="mode"` et une ligne de la tête. */
+const MS = require('./mode-site.js');
+const TETE = GEN.TETE_MODE;
+for (const c of CLES) for (const [ou, s] of [['aperçu', PAGES[c]], ['racine', GEN.page(c, { racine: true })]]) {
+  v(c + ' (' + ou + ') : ⛔ aucun bouton de mode, aucun mode forcé, aucune clé de mode (quelle qu\'en soit l\'écriture)', MS.restesDeMode(s, TETE), []);
+  const tete = (s || '').slice(0, (s || '').indexOf('</head>'));
+  vrai(c + ' (' + ou + ') : la tête du mode, à l\'identique (couleurs de barre, color-scheme, effacement), une fois, dans <head>, avant la feuille',
+    (s || '').split(TETE).length === 2 && tete.indexOf(TETE) > 0 && tete.indexOf(TETE) < tete.indexOf('/vitrine/v2/site.css'));
+}
 const css = fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.css'), 'utf8');
-const nuitSys = (css.match(/@media \(prefers-color-scheme: dark\)\s*\{\s*:root:not\(\[data-theme="light"\]\)\s*\{([^}]*)\}/) || [])[1];
-const nuitForcee = (css.match(/\n:root\[data-theme="dark"\]\s*\{([^}]*)\}/) || [])[1];
-vrai('la nuit de l\'appareil ne s\'applique pas quand on a forcé le jour', !!nuitSys);
-vrai('la nuit forcée a son bloc', !!nuitForcee);
-vrai('⛔ et les deux blocs de nuit sont IDENTIQUES (deux copies d\'une palette divergent toujours)', !!nuitSys && nuitSys.replace(/\s+/g, ' ').trim() === (nuitForcee || '').replace(/\s+/g, ' ').trim());
+const nuitSys = (css.match(/@media \(prefers-color-scheme: dark\)\s*\{\s*:root\s*\{([^}]*)\}/) || [])[1];
+vrai('la nuit est sous la requête de l\'appareil, sur :root', !!nuitSys);
+{
+  const f = MS.formeFeuille(css);
+  v('⛔ UN bloc :root de jour, UN bloc de nuit (sous la requête, :root seul), rien d\'autre ne redéfinit les jetons — [racines, nuits, jours, ordre, nuit = :root seul]',
+    [f.racines, f.nuits, f.jours, f.ordre, f.nuitSeulementRacine], [2, 1, 0, true, true]);
+  v('⛔ color-scheme : « light dark », une seule fois, sur le :root de jour (sinon champs et barres restent clairs la nuit)', [f.schemes, f.schemeJour], [1, true]);
+  v('⛔ la feuille ne connaît plus de mode forcé, et du bouton que la garde qui le cache (une page restée en cache le porte encore)',
+    [f.dataTheme, f.reglesMode], [false, ['.mode, .coin-mode { display: none !important; }']]);
+}
 const jsv2 = fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.js'), 'utf8').replace(/^\s*\/\*[\s\S]*?\*\//gm, ' ');
-/* le jour et la nuit vivent dans vitrine/v2/mode.js depuis le 27 septembre au soir : les pages hors du site (portail,
-   connexion…) le partagent — test-836 garde leur côté */
-const modeJs = fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'mode.js'), 'utf8').replace(/^\s*\/\*[\s\S]*?\*\//gm, ' ');
-vrai('les écrans de nuit suivent le bouton (le media des <source> est réécrit)', /\$\$\('source\[data-nuit\]'\)\.forEach/.test(modeJs));
-vrai('la même clé dans la page et dans le script', /var CLE_MODE = 'teamop_site_mode'/.test(modeJs));
-vrai('site.js ne porte plus de seconde copie du jour / nuit', !/CLE_MODE|teamop_site_mode|choisirMode/.test(jsv2));
-for (const c of CLES) vrai(c + ' : mode.js est chargé, avant site.js', /<script src="\/vitrine\/v2\/mode\.js" defer><\/script>\s*<script src="\/vitrine\/v2\/site\.js" defer><\/script>/.test(PAGES[c]));
+vrai('site.js ne porte aucun jour / nuit', !/CLE_MODE|teamop_site_mode|choisirMode|data-theme/.test(jsv2));
+for (const c of CLES) vrai(c + ' : les écrans de nuit suivent l\'appareil d\'eux-mêmes (media de la <source>)', !/<source data-nuit(?! media="\(prefers-color-scheme: dark\)")/.test(PAGES[c]));
+for (const c of CLES) vrai(c + ' : site.js est chargé', /<script src="\/vitrine\/v2\/site\.js" defer><\/script>/.test(PAGES[c]));
 
 console.log('6 bis. tarifs : la formule touchée devient la bleue');
 vrai('le script rend les cartes choisissables (classe « choix », phare déplacé)', /g\.classList\.add\('choix'\)/.test(jsv2) && /x\.classList\.toggle\('phare', x === c\)/.test(jsv2));
@@ -196,13 +206,20 @@ vrai('population : ' + duJour.length + ' jetons de couleur le jour', duJour.leng
 const orphelins = duJour.filter(n => !deNuit.has(n));
 vrai('chaque jeton de couleur du jour a sa valeur de nuit' + (orphelins.length ? ' — sans nuit : ' + orphelins.join(', ') : ''), orphelins.length === 0);
 vrai('plus aucun jeton « toujours sombre » (--nuit…)', !/var\(--nuit/.test(cssCode) && !/--nuit[a-z0-9-]*:/.test(cssCode));
-/* un fond peint en couleur écrite EN DUR ne suit pas le mode : seuls les voiles (derrière un menu ou une fenêtre) et le
-   ruban d'aperçu en ont un, par nature — ils sont nommés ici, un par un */
-const fondsEnDur = [];
-for (const m of cssCode.matchAll(/([^{}]+)\{([^}]*)\}/g)) { const sel = m[1].trim(); if (/^:root|data-theme/.test(sel)) continue;
-  for (const d of m[2].split(';')) if (/^\s*background(-color)?\s*:/.test(d) && /#[0-9a-f]{3,8}\b|rgba?\(/i.test(d)) fondsEnDur.push(sel.split(/\s+/).pop()); }
-vrai('population : les règles de la feuille se lisent (' + [...cssCode.matchAll(/\{/g)].length + ' blocs)', [...cssCode.matchAll(/\{/g)].length > 200);
-vrai('aucun fond en couleur écrite en dur, sauf les voiles et le ruban d\'aperçu (' + fondsEnDur.join(', ') + ')', JSON.stringify(fondsEnDur.sort()) === JSON.stringify(['.fenetre', '.ruban-apercu', '.voile']));
+/* une couleur écrite EN DUR ne suit pas le mode — fond, texte, bord, trait, dégradé, nom de couleur, hsl()… sur TOUTES les
+   règles, celles des @media comprises (la relecture adverse y a glissé `color:#0b1426`, `background: white`, un dégradé,
+   la première règle d'un @media : aucun ne tombait). Seuls restent, nommés un par un : les voiles (derrière un menu ou une
+   fenêtre, noirs par nature), le ruban d'aperçu (jamais servi à la racine), et les OMBRES noires (elles ne peignent
+   aucune surface : une ombre se lit dans les deux modes). */
+const ECARTS_DUR = { '.voile | background': 'le voile derrière le menu', '.fenetre | background': 'le voile derrière une fenêtre',
+  '.ruban-apercu | background': 'le ruban d\'aperçu', '.ruban-apercu | color': 'le ruban d\'aperçu' };
+const ombreNoire = ([, p, val]) => /shadow$/.test(p) && (val.match(/#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?)\([^)]*\)|\b(?:white|black)\b/gi) || []).every(x => /^rgba\(\s*0\s*,\s*0\s*,\s*0\s*,/.test(x));
+const regles = MS.reglesAPlat(css);
+vrai('population : les règles de la feuille se lisent, @media compris (' + regles.length + ' règles, dont ' + regles.filter(r => r.media).length + ' sous un @media)', regles.length > 250 && regles.filter(r => r.media).length >= 30);
+const durs = MS.couleursEnDurFeuille(css), ecartsVus = new Set();
+const fautes = durs.filter(d => { const k = d[0] + ' | ' + d[1]; if (k in ECARTS_DUR) { ecartsVus.add(k); return false; } return !ombreNoire(d); });
+v('⛔ aucune couleur écrite en dur hors des écarts nommés', fautes.map(d => d.join(' | ')), []);
+v('   et aucun écart qui ne sert plus', Object.keys(ECARTS_DUR).filter(k => !ecartsVus.has(k)), []);
 const genTexte = fs.readFileSync(path.join(RACINE, 'scripts', 'site-marine.js'), 'utf8');
 vrai('le générateur n\'écrit plus de carte « nuit » ni de couleur de sondage en dur', !/class="(grande-carte|app-carte) nuit"/.test(genTexte) && !/<i style="[^"]*background:#/.test(genTexte));
 

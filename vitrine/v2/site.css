@@ -2,14 +2,11 @@
    Maquette de Justin (zip `design_handoff_teamop_leger`, `sources/TeamOp Site Marine.dc.html`), palette
    « Marine » (les couleurs du logo) : THEME.md § 3. Les pages sont GÉNÉRÉES par `scripts/site-marine.js` —
    on corrige le générateur, jamais une page à la main.
-   JOUR / NUIT : le site suit l'appareil (`prefers-color-scheme`), ET un bouton ☀︎/☾ le force — Justin,
-   27 septembre 2026 au soir : « je veux vraiment un mode jour et un mode nuit ». La maquette (THEME.md § 0)
-   disait « sans bouton » : c'est sa phrase qui décide. Le choix se garde sur l'appareil (`data-theme` sur
-   <html>, posé avant le premier rendu par le script de l'en-tête) ; les images d'écran suivent (site.js
-   réécrit le `media` de leurs <source>).
-   ⛔ LES JETONS DE NUIT S'ÉCRIVENT DEUX FOIS, ET À L'IDENTIQUE : sous la requête (l'appareil est en nuit et
-   personne n'a forcé le jour) et sous `[data-theme="dark"]` (quelqu'un a forcé la nuit). tests/test-835.js
-   exige que les deux blocs soient les mêmes — deux copies d'une palette divergent toujours. */
+   JOUR / NUIT : le site suit l'appareil (`prefers-color-scheme`), et RIEN d'autre — Justin, 29 septembre 2026,
+   capture de son iPhone à l'appui : « Sur le site je veux pas le bouton jour nuit, je veux que ça soit
+   automatique ». Le bouton ☀︎/☾ du 27 septembre, et l'attribut qui gardait son choix sur l'appareil, sont
+   retirés : la nuit n'a plus qu'UN bloc, sous la requête, et les images d'écran suivent d'elles-mêmes (le
+   `media` de leurs <source>). tests/test-835.js refuse le retour d'un bouton ou d'un mode forcé. */
 
 /* ⚠️ UN ÉCART DÉCLARÉ À LA MAQUETTE : le gris secondaire de jour. THEME.md donne #6b7688 ; mesuré, il tombe à
    4,13:1 sur les cartes (#f0f3f8) et à 3,63:1 en bas du dégradé des scènes (#dfe5ee), où vivent les chapeaux
@@ -34,7 +31,7 @@
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root {
     --bg: #0b1426; --text: #f0f3f8; --sub: #8e9aae; --body: #c5cddb; --link: #7fb2ff;
     --nav: rgba(11,20,38,.82); --fly: rgba(11,20,38,.97); --line: rgba(240,243,248,.14);
     --card: #121d33; --tile: #1a2640; --stage: linear-gradient(180deg,#141f36,#0b1426);
@@ -43,16 +40,6 @@
     --inv-halo: radial-gradient(120% 80% at 0% 0%, rgba(127,178,255,.18), rgba(127,178,255,0) 60%); --inv-bord: inset 0 0 0 1px rgba(127,178,255,.16);
   }
 }
-:root[data-theme="dark"] {
-    --bg: #0b1426; --text: #f0f3f8; --sub: #8e9aae; --body: #c5cddb; --link: #7fb2ff;
-    --nav: rgba(11,20,38,.82); --fly: rgba(11,20,38,.97); --line: rgba(240,243,248,.14);
-    --card: #121d33; --tile: #1a2640; --stage: linear-gradient(180deg,#141f36,#0b1426);
-    --seg: #1a2640; --seg-on: #2b3a58; --accent: #f0f3f8; --on-accent: #0b1426;
-    --inv-bg: #1a2e58; --inv-fg: #f0f3f8; --inv-sub: #b3bfd3; --inv-tile: rgba(240,243,248,.1);
-    --inv-halo: radial-gradient(120% 80% at 0% 0%, rgba(127,178,255,.18), rgba(127,178,255,0) 60%); --inv-bord: inset 0 0 0 1px rgba(127,178,255,.16);
-}
-:root[data-theme="light"] { color-scheme: light; }
-:root[data-theme="dark"] { color-scheme: dark; }
 
 *, *::before, *::after { box-sizing: border-box; }
 html { background: var(--bg); -webkit-text-size-adjust: 100%; scroll-padding-top: 64px; }
@@ -80,21 +67,19 @@ h1, h2, h3 { text-wrap: balance; }
 .nav-liens a:hover, .nav-liens a[aria-current="page"], .nav-liens a.ouvert { opacity: 1; text-decoration: none; }
 .nav-liens a[aria-current="page"] { font-weight: 600; }
 .nav-droite { flex: none; display: flex; align-items: center; gap: 10px; margin-left: auto; }
-/* ── le bouton jour / nuit : une cible de 44 px, un rond de 32 dessiné dedans ── */
-.mode { position: relative; width: 44px; height: 44px; margin: 0 -6px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--text); cursor: pointer; display: grid; place-items: center; flex: none; }
-.mode[hidden] { display: none; }
-.mode::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--seg); opacity: 0; transition: opacity .2s ease-out; }
-.mode:hover::before, .mode:focus-visible::before { opacity: 1; }
-.mode svg { position: relative; width: 18px; height: 18px; transition: transform .45s var(--ressort), opacity .2s ease-out; }
-.mode .soleil { position: absolute; opacity: 0; transform: rotate(-90deg) scale(.6); }
-.mode.nuit .lune { opacity: 0; transform: rotate(90deg) scale(.6); }
-.mode.nuit .soleil { opacity: 1; transform: none; }
+/* ── à droite : la pilule « Espace client », et le menu au téléphone ── */
 .pilule { display: inline-block; font-size: 12px; font-weight: 500; color: var(--on-accent); background: var(--accent); padding: 6px 13px; border-radius: 999px; white-space: nowrap; }
 .pilule:hover { text-decoration: none; opacity: .9; }
 .burger { display: none; place-items: center; width: 44px; height: 44px; margin-right: -10px; border: 0; background: transparent; cursor: pointer; color: var(--text); }
 .burger .ferme { display: none; }
 .entete.menu-ouvert .burger .ouvre { display: none; }
 .entete.menu-ouvert .burger .ferme { display: block; }
+/* ⛔ L'ANCIEN BOUTON ☀︎/☾ NE RESSORT JAMAIS, MÊME D'UNE PAGE RESTÉE EN CACHE. Une page d'avant le 29 septembre, servie par
+   le navigateur ou le service worker de l'application (qui garde ses copies d'une version à l'autre), porte encore le
+   bouton, et l'ancienne copie de vitrine/v2/mode.js le démasquait : avec cette feuille, qui n'a plus ses règles, il
+   sortait en bouton brut, ses deux dessins à pleine taille (relecture adverse du 29 septembre au soir). Cette règle-ci
+   ne dépend d'aucun cache. C'est la SEULE règle `.mode` permise (tests/test-835.js, test-836.js). */
+.mode, .coin-mode { display: none !important; }
 
 /* le volet déroulant d'un sujet (bureau) */
 .fly { position: absolute; top: 48px; left: 0; right: 0; background: var(--fly); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--line); opacity: 0; visibility: hidden; transform: translateY(-6px); transition: opacity .28s ease-out, transform .38s var(--ressort), visibility .28s; }
