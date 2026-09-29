@@ -9112,7 +9112,11 @@ function rappelAbonneMail(code, finLe, ab) {
    prélèvement (en essai), de sa prochaine échéance, ou de sa fin s'il est résilié. La lecture est celle d'`espacePaye`
    (`espaceStripe`, `formuleEtPlaces`) : partagée, en cache cinq minutes, une minute de pause après un échec.
    ⛔ SES ABONNEMENTS D'OP GESTION, PAS LE PREMIER TROUVÉ : celui-là peut être l'abonnement OP MESSAGES — ses dates ne disent
-   rien de ce qui prend le relais.
+   rien de ce qui prend le relais. Et la règle est celle qui décidera de la formule servie après la période
+   (`formulePayee`) : un abonnement d'avant la bascule ou sans ligne lisible compte (la fiche reste servie) ; seul un
+   abonnement d'après, lisible, d'OP MESSAGES seul, ne prend aucun relais. Les dates ne se lisent que sur SES abonnements
+   (`memes`) : un abonnement trouvé par une adresse partagée, gravé pour une autre entreprise, la rend « payée » (limite
+   connue d'`espacePaye`) — elle est abonnée, mais sans date : ce seraient celles de l'autre.
    ⛔ UN ABONNEMENT RÉSILIÉ (`cancel_at`, `cancel_at_period_end`) S'ARRÊTE À SA FIN PROGRAMMÉE. Payé pendant la période puis
    résilié pendant l'essai, il ne prend AUCUN relais : c'est le rappel de qui n'a pas d'abonnement (sinon on lui écrivait
    « rien à faire » la veille de le repasser en Gratuit). Résilié mais courant au-delà, il prend le relais jusqu'à cette date,
@@ -9125,18 +9129,22 @@ async function abonnementGestion(e, finLe) {
   if (!s) return espStripeCache.data ? { etat: 'aucun' } : { etat: 'inconnu' };
   let fp = null;
   try { fp = formuleEtPlaces(e, s); } catch (err) { fp = null; }
-  if (fp && fp.f === 'gratuit') return { etat: 'aucun' };   // OP MESSAGES seul : OP GESTION n'est pas payé
+  /* ⛔ LA FORMULE QU'`espacePaye` SERVIRA APRÈS LA PÉRIODE : celle qui est payée, sinon la fiche — et une fiche « Gratuit »
+     reste Gratuit tant que rien de lisible ne la fait monter. Gratuit servi = aucun relais (OP MESSAGES seul compris). */
+  if (((fp && fp.f) || e.formule) === 'gratuit') return { etat: 'aucun' };
   const lignes = sb => (sb && sb.items && Array.isArray(sb.items.data)) ? sb.items.data : [];
   const sec = x => { const n = parseInt(x, 10); return n > 0 ? n : 0; };
   const jour = n => n ? new Date(n * 1000).toISOString().slice(0, 10) : '';
   const finPeriode = sb => sec(sb.current_period_end) || sec((lignes(sb)[0] || {}).current_period_end);
   const finProg = sb => sec(sb.cancel_at) || (sb.cancel_at_period_end ? finPeriode(sb) || sec(sb.trial_end) : 0);
-  const gestion = ((s.memes && s.memes.length) ? s.memes : [s.abo])
-    .filter(sb => sb && !(lignes(sb).length && lignes(sb).every(ligneMessages)));
+  const deGestion = sb => aboAvantBascule(sb) || !lignes(sb).length || lignes(sb).some(it => !ligneMessages(it));
+  const gestion = (s.memes || []).filter(sb => sb && deGestion(sb));
   const mF = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(finLe || ''));
   const debut = mF ? Date.UTC(+mF[1], +mF[2] - 1, +mF[3] + 1) / 1000 : 0;   // le lendemain de la fin de la période, 0 h UTC
   const relais = gestion.filter(sb => { const f = finProg(sb); return !f || f > debut; });
-  if (!relais.length) return { etat: 'aucun' };
+  if (gestion.length && !relais.length) return { etat: 'aucun' };   // résiliés, et finis avec la période : aucun relais
+  /* servie sans abonnement qui soit sûrement le sien (adresse partagée) : abonnée, sans date à dire */
+  if (!relais.length) return { etat: 'abonne', impaye: false, resilie: '', premier: '', prochaine: '' };
   /* le plus durable d'abord : non résilié, puis à jour de ses paiements, puis celui qui court le plus loin */
   const rang = sb => (finProg(sb) ? 2 : 0) + (sb.status === 'past_due' ? 1 : 0);
   const abo = relais.slice().sort((a, b) => rang(a) - rang(b) || (finProg(b) - finProg(a)))[0];
