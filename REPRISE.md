@@ -13,7 +13,7 @@ de ligne du tout.
 
 ---
 
-# ✅ 29 SEPTEMBRE 2026, NUIT — TOUT EST EN SERVICE (`5e57196`) ; LA VÉRIFICATION DE `main` ROUGE PAR UN BANC — CORRECTIF PRÊT, ATTEND « POUSSE »
+# ✅ 29 SEPTEMBRE 2026, NUIT — TOUT EST EN SERVICE (`5e57196`, puis `142e19c`) ; LA VÉRIFICATION DE `main` ÉTAIT ROUGE PAR UN BANC — CORRIGÉE, VERTE (run 519)
 
 **En service sur le « pousse » de Justin** : `main` `3785a0f` → `a8fb0fa` (le fichier de Google, seul) → `12d0101` (le site
 suit l'appareil pour le jour et la nuit) → `12beeec` (facturation différée, carte refusée = impayé, Tour v2.76) →
@@ -35,8 +35,9 @@ stigma ; les rappels de chaque phase sont comptés. `test-844` 74 ✓ (21 s au l
 saturé, Google ralenti de 4 s) ; mutations N17, N23, I44 : **3/3 mordent** ; contre-épreuves du banc : sans la porte
 12 ✗, sans le cache court 10 ✗ (il crie, il ne passe pas à vide). Suite complète de `142e19c` : **202 suites ·
 11 477 vérifications, code 0**.
-⏳ **Attend « pousse »** : `142e19c` ne touche que `tests/` — rien ne change pour un client, et `deploiement.yml` ne se
-déclenche que sur `server/**` (le VPS ne bouge pas).
+✅ **Poussé sur le « pousse » de Justin** : `main` = **`142e19c`** ; « Vérification des pages » **run 519 VERT** (20 h 02 →
+20 h 11 UTC). Il ne touche que `tests/` — rien n'a changé pour un client, et `deploiement.yml` ne se déclenche que sur
+`server/**` (le VPS n'a pas bougé).
 ⚠️ **Dette vue en chemin** : la route de suppression d'une entreprise appelle VRAIMENT Google (un jeton anonyme créé puis
 effacé sur le projet de production, un effacement Firestore refusé par la règle), et les bancs qui la jouent aussi —
 `test-844`, `test-832`, `server/test-connexion.js` (qui attend 61 s d'un coup sur GitHub). Sans effet sur les données,
@@ -46,14 +47,19 @@ jamais dans le serveur.
 **Faits avec Justin, pas à pas, le même soir** :
 - **Google Search Console** : propriété `https://teamop.fr/` VALIDÉE (fichier `google151be914dcdfaf7e.html` — ⛔ ne jamais
   le retirer) ; `sitemap.xml` déclaré (« Impossible de récupérer » avant la première lecture de Google : normal ; une
-  entrée « / » déclarée par erreur est sans effet). **À revoir le 30** : l'état doit passer à « Opération effectuée ».
+  entrée « / » déclarée par erreur est sans effet). ✅ **Lu par Google le soir même** : `sitemap.xml` « Opération
+  effectuée », **14 pages découvertes** (capture de Justin) ; l'entrée « / » reste en erreur, sans effet — elle se retire
+  par les trois points de sa ligne, « Supprimer le sitemap ».
 - **Fiche d'établissement Google** : ARRÊTÉE — elle exige une adresse où l'on reçoit des clients ; TEAM OP vend en ligne.
 - **G2 / Capterra** (Capterra appartient désormais à G2) : OP GESTION **approuvé et publié sur G2, Capterra, GetApp et
   Software Advice** ; Justin administrateur de la fiche (compte `contact@teamop.fr`, my.G2). Trois captures d'écran sans
   données de client ; langue déclarée : **le français seul** (l'anglais et l'espagnol de l'application ne traduisent que
   les menus et les boutons principaux). ⛔ Aucune adresse de client donnée à G2 (« obtenir des avis » : refusé, RGPD) ;
-  aucune offre payante. En cours : les prix (les quatre formules du site, TTC, « sans engagement »), les catégories
-  (gestion des interventions, anti-nuisibles, nettoyage), les acheteurs visés.
+  aucune offre payante. **Prix** : G2 n'offre pas le choix de la devise (les cartes de formule s'affichent en dollars, et
+  chaque enregistrement les DOUBLAIT) — recommandé à Justin : **supprimer toutes les cartes de formule** et ne garder que
+  le texte des prix (les quatre formules du site, en euros TTC, « sans engagement ») et le lien vers `tarifs.html`. ⏳ Non
+  confirmé qu'il l'a fait : à lui demander. Les catégories (gestion des interventions, anti-nuisibles, nettoyage) et les
+  fonctions peuvent attendre.
 
 ---
 
