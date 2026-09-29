@@ -88,7 +88,7 @@ const FOND = { light: 'rgb(255, 255, 255)', dark: 'rgb(11, 20, 38)' };
 
   for (const P of PROFILS) {
     await cdp('Emulation.setDeviceMetricsOverride', { width: P.w, height: P.h, deviceScaleFactor: P.dpr, mobile: P.tac });
-    await cdp('Emulation.setTouchEmulationEnabled', { enabled: P.tac, maxTouchPoints: P.tac ? 5 : 0 });
+    await cdp('Emulation.setTouchEmulationEnabled', { enabled: P.tac, maxTouchPoints: 5 });
     for (const mode of ['light', 'dark']) {
       const autre = mode === 'light' ? 'dark' : 'light', ancienChoix = mode === 'light' ? 'nuit' : 'jour';
       await media(mode);
