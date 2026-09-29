@@ -2718,12 +2718,22 @@ function espaceStripeDans(e, liste, statuts, tSeul) {
   const monT = String(espaceT(e) || '').toLowerCase();
   const tDe = r => { const x = espacesReg[r]; return String((x && espaceT(x)) || r).toLowerCase(); };
   const refDe = sb => String((sb.metadata && sb.metadata.espace) || '').toLowerCase();
-  /* ⛔ UN IMPAYÉ GRAVÉ AU NOM D'ACCÈS (d'anciennes pages envoyaient le nom, pas l'identifiant) n'est à elle que s'il porte
-     AUSSI son adresse. Le nom seul ne prouve rien — libéré puis repris, il désigne une autre entreprise (`gardien`, G1) ;
-     mais l'ignorer tout à fait laissait ouvert l'accès payant d'une entreprise dont l'ancien abonnement, gravé à SON nom et
-     à SON adresse, était refusé (mutation I36, 29 septembre 2026 au soir). Le payé, lui, suit la règle d'avant. */
-  const aMoi = sb => { const m = refDe(sb); return !!m && (refs.includes(m) || (!!monT && tDe(m) === monT && (!tSeul || parMail(sb)))); };
   const parMail = sb => !!mel && sb.customer && typeof sb.customer === 'object' && String(sb.customer.email || '').trim().toLowerCase() === mel;
+  /* ⚠️ une adresse PARTAGÉE avec une autre entreprise de l'annuaire rend un abonnement sans référence ambigu : celle
+     qui a déjà un abonnement à son nom ne le prend pas (sinon il compterait chez les deux) ; celle qui n'est
+     rattachée que par l'adresse le garde, comme avant. (Déclarée AVANT `aMoi`, qui la lit.) */
+  const partagee = !!mel && Object.keys(espacesReg || {}).some(sl => { const x = espacesReg[sl]; return !!x && x !== e
+    && String(sl).toLowerCase() !== String(e.slug || '').toLowerCase() && String(x.email || '').trim().toLowerCase() === mel
+    && !(monT && String(espaceT(x) || '').toLowerCase() === monT); });   // ses propres autres noms (même `t`) ne la « partagent » pas
+  /* ⛔ UN IMPAYÉ GRAVÉ AU NOM D'ACCÈS (d'anciennes pages envoyaient le nom, pas l'identifiant) n'est à elle que s'il porte
+     AUSSI son adresse, ET QUE PERSONNE D'AUTRE NE LA PORTE. Le nom seul ne prouve rien — libéré puis repris, il désigne
+     une autre entreprise (`gardien`, G1) ; mais l'ignorer tout à fait laissait ouvert l'accès payant d'une entreprise dont
+     l'ancien abonnement, gravé à SON nom et à SON adresse, était refusé (mutation I36, 29 septembre 2026 au soir). Et une
+     adresse que porte une AUTRE entreprise ne départage rien : repris par une autre entreprise à la même adresse, le nom
+     la bloquait et lui servait la facture de l'ancienne, pendant que la vraie débitrice restait servie (relecture adverse
+     du même soir, rejoué). Là, on ne sait pas qui le doit : il ne bloque personne (limite connue, dans le sens qui ne coupe
+     personne — la même que « une adresse = une entreprise » du payé). Le payé, lui, suit la règle d'avant. */
+  const aMoi = sb => { const m = refDe(sb); return !!m && (refs.includes(m) || (!!monT && tDe(m) === monT && (!tSeul || (parMail(sb) && !partagee)))); };
   /* ⛔ LE VERDICT « PAYÉ » NE REGARDE PAS LA RÉFÉRENCE D'UN ABONNEMENT TROUVÉ PAR L'ADRESSE. Essayé le 28 septembre
      au soir (écarter celui « gravé pour une autre entreprise de l'annuaire ») : `gardien` l'a rejoué sur deux cas
      réels où la référence désigne encore une entrée de la MÊME entreprise — un « repartir à neuf » sur une entreprise
@@ -2743,12 +2753,7 @@ function espaceStripeDans(e, liste, statuts, tSeul) {
        son adresse qui ne sont pas gravés pour une autre entreprise. La référence n'est gravée que depuis le
        19 septembre : une abonnée d'avant qui achète un abonnement de plus sur la page d'aujourd'hui en a des deux
        sortes, et ne compter que le gravé la faisait retomber de 7 places à 1 (`gardien`, A1, mesuré). */
-    /* ⚠️ une adresse PARTAGÉE avec une autre entreprise de l'annuaire rend un abonnement sans référence ambigu : celle
-       qui a déjà un abonnement à son nom ne le prend pas (sinon il compterait chez les deux) ; celle qui n'est
-       rattachée que par l'adresse le garde, comme avant. */
-    const partagee = !!mel && Object.keys(espacesReg || {}).some(sl => { const x = espacesReg[sl]; return !!x && x !== e
-      && String(sl).toLowerCase() !== String(e.slug || '').toLowerCase() && String(x.email || '').trim().toLowerCase() === mel
-      && !(monT && String(espaceT(x) || '').toLowerCase() === monT); });   // ses propres autres noms (même `t`) ne la « partagent » pas
+    /* (`partagee`, l'adresse que porte aussi une autre entreprise, est calculée plus haut : `aMoi` la lit) */
     /* une référence qui ne désigne AUCUNE entrée de l'annuaire (une entreprise « repartie à neuf » à un seul nom) ne
        dit pas « à une autre » ; une référence qui en désigne une autre, si — ses places ne comptent pas ici */
     const designe = m => Object.keys(espacesReg || {}).some(sl => { const x = espacesReg[sl]; return !!x

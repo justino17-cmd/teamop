@@ -79,6 +79,10 @@ console.log('\n── 845 · carte refusée = impayé : l\'accès payant bloqué
     nouv: ['gratuit', []],                                                     // son nom d'accès était celui d'une ANCIENNE entreprise en impayé
     nouvb: ['business', [['past_due', 'business', 1]]],                       // la même, avec SON impayé à elle (gravé à son identifiant)
     nomg: ['business', [['past_due', 'business', 1]]],                        // son impayé gravé à SON nom d'accès (anciennes pages), à SON adresse
+    /* le nom repris par une AUTRE entreprise À LA MÊME ADRESSE (la Tour seule range deux entrées ainsi) : l'impayé gravé à ce
+       nom ne départage rien — ni la nouvelle ni l'ancienne n'en sont bloquées (relecture adverse du 29 septembre au soir) */
+    nomp: ['gratuit', []],                                                     // la nouvelle titulaire du nom
+    nompa: ['gratuit', []],                                                    // l'ancienne, rangée sous un autre nom, même adresse
     paie: ['pro', [['active', 'pro', 2], ['past_due', 'pro', 1]]],            // payée, un vieil abonnement refusé traîne (facture ouverte)
     paieu: ['pro', [['active', 'pro', 1], ['unpaid', 'pro', 1]]],             // payée, un vieil unpaid sans facture ouverte
     unv: ['premium', [['unpaid', 'premium', 1]]],                              // unpaid sans facture ouverte (Stripe ne réessaie plus)
@@ -92,7 +96,7 @@ console.log('\n── 845 · carte refusée = impayé : l\'accès payant bloqué
     /* une autre adresse partagée, où RIEN n'est payé */
     duoa: ['pro', [['past_due', 'pro', 1]]],                                   // refusé sans référence
     duob: ['gratuit', []] };                                                   // Gratuit, jamais abonnée
-  const ADR = { parta: mail('partage'), partb: mail('partage'), partc: mail('partage'), partd: mail('partage'), duoa: mail('duo'), duob: mail('duo') };
+  const ADR = { parta: mail('partage'), partb: mail('partage'), partc: mail('partage'), partd: mail('partage'), duoa: mail('duo'), duob: mail('duo'), nomp: mail('trio'), nompa: mail('trio') };
   const adr = slug => ADR[slug] || mail(slug);
   const espaces = {}, subs = [], factures = {};
   const FACT = s => 'https://invoice.stripe.com/i/banc-845-' + s;
@@ -124,6 +128,12 @@ console.log('\n── 845 · carte refusée = impayé : l\'accès payant bloqué
     customer: { id: 'cus_ancienneb', email: mail('ancienneb') }, current_period_end: Math.floor(MAINT / 1000) + 20 * 86400,
     items: { data: [{ id: 'si_ancienneb', quantity: 5, price: { id: P.premium, product: { name: 'OP GESTION' } } }] } });
   factures.sub_ancienneb = { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('ancienneb') } };
+  /* « nomp » : l'abonnement refusé de l'ANCIENNE titulaire du nom (aujourd'hui « nompa »), gravé au nom, à l'adresse que les
+     deux portent — rangé EN TÊTE : la page de paiement de « nomp » prendrait sa facture s'il comptait pour elle */
+  subs.unshift({ id: 'sub_nompancien', object: 'subscription', status: 'past_due', created: cree, metadata: { espace: 'nomp', compte: mail('trio') },
+    customer: { id: 'cus_trio', email: mail('trio') }, current_period_end: Math.floor(MAINT / 1000) + 20 * 86400,
+    items: { data: [{ id: 'si_nompancien', quantity: 5, price: { id: P.premium, product: { name: 'OP GESTION' } } }] } });
+  factures.sub_nompancien = { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('nompancien') } };
   /* « nomg » : son abonnement souscrit par une ANCIENNE page, gravé à son nom d'accès et à son adresse */
   subs.find(x => x.id === 'sub_nomg_0').metadata.espace = 'nomg';
   /* les unpaid sans facture ouverte */
@@ -239,6 +249,10 @@ globalThis.fetch = async function (url, opts) {
       E.nouv.paye === true && E.nouv.formule === 'gratuit' && E.nouv.suspendu === false);
     vrai('   … et une entreprise au nom repris qui a SON impayé est bloquée par le sien', FORME_B(E.nouvb));
     vrai('⛔ un impayé gravé à SON nom d\'accès (anciennes pages) et à SON adresse est bien le sien : bloquée (sinon l\'accès payant restait ouvert)', FORME_B(E.nomg));
+    vrai('⛔ le nom repris par une AUTRE entreprise à la MÊME adresse : elle n\'hérite pas de l\'impayé gravé à ce nom — servie, pas bloquée',
+      E.nomp.paye === true && E.nomp.suspendu === false && !E.nomp.impaye);
+    vrai('   … et l\'ancienne titulaire non plus (limite connue, dans le sens qui ne coupe personne : à une adresse partagée, le nom ne départage rien)',
+      E.nompa.paye === true && E.nompa.suspendu === false && !E.nompa.impaye);
     vrai('⛔ payée, avec un vieil abonnement refusé : servie (ses places payées), pas bloquée', E.paie.paye === true && E.paie.formule === 'pro' && E.paie.suspendu === false
       && E.paieu.paye === true && E.paieu.suspendu === false);
     vrai('   unpaid sans facture ouverte : bloquée comme les autres', FORME_B(E.unv));
@@ -366,6 +380,8 @@ globalThis.fetch = async function (url, opts) {
     r = await payer('nouvb', { price: P.business, ref: espaces.nouvb.t });
     vrai('⛔ le nom repris, bloquée par SON impayé : SA facture — jamais celle de l\'ancienne entreprise, rangée avant elle dans la liste',
       r.s === 200 && r.j.url === FACT('nouvb') && r.j.facture === true && !appelsStripe().some(x => /sub_ancienneb/.test(x.u)));
+    vrai('⛔ le nom repris à la même adresse : la nouvelle titulaire paie normalement — JAMAIS la facture de l\'ancienne, rangée en tête de liste',
+      await neuf('nomp', { price: P.pro, ref: espaces.nomp.t }) && !appelsStripe().some(x => /sub_nompancien/.test(x.u)));
     r = await payer('nomg', { price: P.business, ref: espaces.nomg.t });
     vrai('⛔ l\'impayé gravé à son nom d\'accès et à son adresse : SA facture, pas un second abonnement', r.s === 200 && r.j.url === FACT('nomg') && r.j.facture === true);
     vrai('⛔ payée avec un vieil abonnement refusé : elle ACHÈTE ses places de plus — pas renvoyée vers la vieille facture', await neuf('paie', { price: P.pro, ref: espaces.paie.t }));
