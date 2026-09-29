@@ -260,6 +260,45 @@ console.log('\n── 811 · les clients du portail repris de Google : leur comp
     v('⛔ un plafond PAR ADRESSE IP existe sur la création, la connexion et le mot de passe oublié',
       ['creer-ip:', 'cnx-ip:', 'mdp-ip:'].map(p => plafonds.some(k => String(k).indexOf(p) === 0)), [true, true, true]);
     v('⛔ le fichier des comptes ne contient aucun mot de passe', fs.readFileSync(path.join(dir, 'comptes-portail.json'), 'utf8').indexOf('son-vrai-mot-de-passe') < 0, true);
+
+    /* ── « Mon espace » dit la formule que le client PAIE (29 septembre 2026) ──
+       Le client choisit son tarif (Justin) et l'application reçoit la formule payée : son dossier, et le contrat qui la
+       nomme, doivent dire la même. Un SECOND portail, branché comme index.js le branche (`formuleServie`), sur les mêmes
+       comptes : une adresse PROUVÉE lit la formule servie ; une adresse non prouvée, jamais (une session prouve un mot de
+       passe, pas une adresse) ; une réponse vide ou une exception laissent le dossier tel que la Tour l'a posé. */
+    const dir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'b811-f-'));
+    let servie = 'Pro';
+    const demandes = [];
+    const app2 = express(); app2.use(express.json());
+    require(path.join(RACINE, 'server', 'portail.js')).monterPortail(app2, {
+      dossier: dir2, parJeton: comptes.parJeton, quotaOk: () => true, journal: () => {}, verifie: comptes.verifie, admin, patron,
+      formuleServie: async (m) => { demandes.push(m); if (servie === 'jette') throw new Error('panne de banc'); return servie; } });
+    const srv2 = await new Promise(res => { const s2 = app2.listen(0, '127.0.0.1', () => res(s2)); });
+    const B2 = 'http://127.0.0.1:' + srv2.address().port;
+    const au2 = (j) => ({ Authorization: 'Bearer ' + j, 'Content-Type': 'application/json' });
+    const moi2 = async (j) => { const x = await fetch(B2 + '/api/portail/moi', { headers: au2(j) }); return { s: x.status, j: await x.json().catch(() => ({})) }; };
+    const dem2 = async (j, c) => { const x = await fetch(B2 + '/api/portail/demande', { method: 'POST', headers: au2(j), body: JSON.stringify(c) }); return { s: x.status, j: await x.json().catch(() => ({})) }; };
+    try {
+      const jv = (await post('/api/compte/connexion', { email: 'verifie@exemple.fr', h: emp('mot-de-passe-verifie') })).j.jeton;
+      let q = await dem2(jv, { company: 'Sa Propre Entreprise', plan: 'Business Premium' });
+      v('⛔ adresse prouvée : la demande rend le dossier avec la formule SERVIE (Pro), pas celle qu\'on y a mise', [q.s, q.j.dossier && q.j.dossier.plan], [200, 'Pro']);
+      q = await moi2(jv);
+      v('   … et « Mon espace » la relit (la formule servie de SON adresse)', [q.s, q.j.dossier && q.j.dossier.plan, demandes.slice(-1)[0]], [200, 'Pro', 'verifie@exemple.fr']);
+      servie = '';
+      q = await moi2(jv);
+      v('   rien de servi (pas payé) : le dossier tel qu\'il est — rien d\'inventé', q.j.dossier && q.j.dossier.plan, undefined);
+      servie = 'jette';
+      q = await moi2(jv);
+      v('   une panne du calcul : 200, et le dossier tel qu\'il est', [q.s, q.j.dossier && q.j.dossier.plan], [200, undefined]);
+      servie = 'Business Premium';
+      await post('/api/compte/creer', { email: 'pas-prouvee@exemple.fr', h: emp('mot-de-passe-pas-prouve') });
+      const jp = (await post('/api/compte/connexion', { email: 'pas-prouvee@exemple.fr', h: emp('mot-de-passe-pas-prouve') })).j.jeton;
+      const n0 = demandes.length;
+      q = await dem2(jp, { company: 'Quelqu\'un' });
+      const q2 = await moi2(jp);
+      v('⛔ adresse NON prouvée : la formule servie ne se lit pas, et on ne la demande même pas',
+        [q.s, q.j.dossier && q.j.dossier.plan, q2.j.dossier && q2.j.dossier.plan, demandes.length - n0], [200, undefined, undefined, 0]);
+    } finally { srv2.close(); try { fs.rmSync(dir2, { recursive: true, force: true }); } catch (e) {} }
   } catch (e) { ko++; console.log('  ✗ exception : ' + (e && e.stack || e)); }
   srv.close(); try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {}
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

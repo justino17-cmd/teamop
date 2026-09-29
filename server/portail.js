@@ -149,6 +149,20 @@ function monterPortail(app, deps) {
     if (!x) return null;
     return Object.assign({}, x, { email: mail });
   };
+  /* ⛔ LA FORMULE QUE LE CLIENT PAIE, PAS SEULEMENT CELLE QUE LA TOUR A POSÉE (29 septembre 2026). Le client choisit son
+     tarif (Justin : « il choisit le tarif qu'il veut ») et l'application reçoit la formule PAYÉE (`formulePayee`, index.js) :
+     « Mon espace » — sa formule, et le contrat qui la nomme — doit dire la même, sinon le contrat nomme une formule qu'il ne
+     paie pas. `d.formuleServie(mail)` rend son libellé quand un abonnement (ou une période offerte) la sert, rien sinon :
+     le dossier dit alors ce que la Tour y a posé, comme avant. Une LECTURE — rien n'est écrit.
+     ⛔ Seulement pour une adresse PROUVÉE : une session prouve un mot de passe, pas une adresse (CLAUDE.md) ; sans ça,
+     n'importe qui ouvrant un compte à l'adresse publique d'une entreprise lisait la formule qu'elle paie. */
+  /* (les routes restent SYNCHRONES et finissent par `.then` : une exception avant la réponse part encore au gestionnaire
+     d'Express, comme avant ; `avecFormuleServie` elle-même ne rejette jamais) */
+  const avecFormuleServie = async (mail, v) => {
+    if (!v || typeof d.formuleServie !== 'function' || !verifie(mail)) return v;
+    try { const lbl = await d.formuleServie(mail); if (typeof lbl === 'string' && lbl) v.plan = lbl; } catch (e) { /* la fiche de la Tour, comme avant */ }
+    return v;
+  };
   /* ⛔ UN DOSSIER REPRIS DE GOOGLE NE SE MONTRE QU'À UNE ADRESSE PROUVÉE (`gardien`, B1). `preparer`
      remet déjà « à poser » tout compte non vérifié à l'import, et seul le lien reçu dans la boîte
      du client en rouvre un — cette garde-ci est la seconde serrure, pour le jour où l'ordre des
@@ -164,7 +178,7 @@ function monterPortail(app, deps) {
     const mail = qui(req);
     if (!mail) return res.status(401).json({ error: 'session_refusee' });
     const refus = refusPortail(mail); if (refus) return res.status(403).json({ error: refus });
-    return res.json({ ok: true, dossier: dossierVue(mail) });
+    return avecFormuleServie(mail, dossierVue(mail)).then(v => res.json({ ok: true, dossier: v }));
   });
 
   app.post('/api/portail/demande', (req, res) => {
@@ -197,7 +211,7 @@ function monterPortail(app, deps) {
     reg.d[mail] = x;
     if (b.message) ajouterMsg(mail, 'client', b.message);
     ecrire();
-    return res.json({ ok: true, dossier: dossierVue(mail) });
+    return avecFormuleServie(mail, dossierVue(mail)).then(v => res.json({ ok: true, dossier: v }));
   });
 
   app.get('/api/portail/messages', (req, res) => {
@@ -250,7 +264,7 @@ function monterPortail(app, deps) {
     ajouterMsg(mail, 'admin', '🎁 Code « ' + code + ' » activé : ' + label + ' sur vos applications, jusqu\'au '
       + new Date(until).toLocaleDateString('fr-FR') + '. Profitez bien !');
     ecrire();
-    return res.json({ ok: true, dossier: dossierVue(mail) });
+    return avecFormuleServie(mail, dossierVue(mail)).then(v => res.json({ ok: true, dossier: v }));
   });
 
   /* Les annonces sont publiques par nature — elles s'affichent sur la page d'accueil du

@@ -537,7 +537,8 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
 
     /* OP MESSAGES n'est pas une formule d'OP GESTION */
     const msgSeul = await avec([apres([L('msg', 3)])])(ESP());
-    v('⛔ fiche Business Premium qui ne paie qu\'OP MESSAGES (abonnement d\'après) : OP GESTION reçoit Gratuit', [msgSeul.paye, msgSeul.formuleServie], [true, 'gratuit']);
+    v('⛔ fiche Business Premium qui ne paie qu\'OP MESSAGES (abonnement d\'après) : OP GESTION reçoit Gratuit, et le motif le dit sans « formule payée »',
+      [msgSeul.paye, msgSeul.formuleServie, /OP GESTION non payé : formule Gratuit/.test(msgSeul.motif), /formule payée/.test(msgSeul.motif)], [true, 'gratuit', true, false]);
 
     /* ⛔ CE QU'ON NE SAIT PAS LIRE GARDE LA FICHE : on ne coupe pas une entreprise qui paie */
     const ancien = await avec([avant([L('pro', 1)])])(ESP());
@@ -580,6 +581,32 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('⛔ payé Pro PENDANT la période : la période court jusqu\'à son terme — Business Premium, offert', [payeTot.promoCode, payeTot.formuleServie], ['ESSAI-BANC-TOT', 'premium']);
     const apresPeriode = await avec([apres([L('pro', 2)])])(ESP({ formule: 'premium' }));
     v('   … et la période finie, l\'abonnement prend le relais : Pro, 2 places', lit(apresPeriode), [true, 'pro', 2]);
+  }
+
+  /* 9. ⛔ « MON ESPACE » DIT LA FORMULE QUE LE CLIENT PAIE (`formuleServieDe`, 29 septembre 2026). Le portail la lit pour
+     une adresse PROUVÉE (test-811) ; ici, la VRAIE fonction sur la VRAIE `espacePaye` : l'entreprise de l'adresse, sa formule
+     servie — et rien quand ce n'est pas payé, quand l'adresse porte deux entreprises (une adresse = une entreprise, Justin),
+     ou quand l'entreprise est fermée. */
+  {
+    const FSD = extraire('formuleServieDe'), EPT = extraire('espaceParT');
+    vrai('formuleServieDe et espaceParT sont trouvées dans le fichier réel', !!FSD && !!EPT && /espacePaye\(e, \{ lecture: true \}\)/.test(FSD));
+    const APRES = Math.floor(Date.parse('2026-10-01T00:00:00Z') / 1000);
+    const prix = k => (new RegExp('^\\s*' + k + ": \\['(price_\\w+)'", 'm').exec(SRC) || [])[1];
+    const abo = (mail, k, q) => ABO({ created: APRES, customer: { email: mail }, items: { data: [{ price: { id: prix(k) }, quantity: q }] } });
+    const lecteur = (reg, abos, promos, usages, fermes) => new Function(...PARAMS, 'espaceFerme', AIDES.join('\n') + '\n' + EPT + '\n' + SRC.slice(i, fin) + '\n' + FSD + '\nreturn formuleServieDe;')(
+      { stripe: { secretKey: 'sk_de_banc' }, promos: promos || [] }, { ts: Date.now(), data: abos || [] }, usages || {}, async () => abos || [],
+      { log() {}, error() {} }, () => true, () => {}, reg, null, require('crypto'), false, t => (fermes || []).includes(t));
+    const REG = { alpha: { nom: 'Alpha', t: 'ent-alpha', email: ' Patron@Alpha.fr ', formule: 'premium', ts: 2 } };
+    v('⛔ payée Pro sur une fiche Business Premium : « Mon espace » dit Pro (l\'adresse sans casse ni espaces)', await lecteur(REG, [abo('patron@alpha.fr', 'pro', 3)])('PATRON@alpha.fr'), 'Pro');
+    v('   pas payée : rien (le dossier garde ce que la Tour a posé)', await lecteur(REG, [])('patron@alpha.fr'), '');
+    v('   une période offerte : la formule du code', await lecteur(REG, [], [{ code: 'ESSAI-BANC-NEUF', mois: 3 }],
+      { 'ESSAI-BANC-NEUF': { n: 1, equipes: { 'ent-alpha': { date: '2026-09-01', finLe: '2099-12-31' } } } })('patron@alpha.fr'), 'Business Premium');
+    const DEUX = Object.assign({}, REG, { beta: { nom: 'Beta', t: 'ent-beta', email: 'patron@alpha.fr', formule: 'pro', ts: 3 } });
+    v('⛔ deux entreprises à la même adresse : rien — on ne choisit pas pour le client', await lecteur(DEUX, [abo('patron@alpha.fr', 'pro', 3)])('patron@alpha.fr'), '');
+    const NOMS = Object.assign({}, REG, { alphaancien: { nom: 'Alpha', t: 'ent-alpha', email: 'patron@alpha.fr', formule: 'pro', ts: 1 } });
+    v('   deux NOMS de la même entreprise (même identifiant) : c\'est une entreprise — sa fiche la plus récente', await lecteur(NOMS, [abo('patron@alpha.fr', 'business', 1)])('patron@alpha.fr'), 'Business');
+    v('⛔ une entreprise fermée : rien', await lecteur(REG, [abo('patron@alpha.fr', 'pro', 3)], [], {}, ['ent-alpha'])('patron@alpha.fr'), '');
+    v('   une adresse inconnue, ou vide : rien', [await lecteur(REG, [abo('patron@alpha.fr', 'pro', 3)])('autre@alpha.fr'), await lecteur(REG, [])('')], ['', '']);
   }
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

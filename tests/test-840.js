@@ -235,6 +235,11 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
     vrai('omicron — Business, pareil (25 €, 175 € pour 7, formule=business&utilisateurs=7)',
       /href="https:\/\/teamop\.fr\/recap-abonnement\.html\?formule=business&amp;utilisateurs=7"[^>]*>Business<\/a> · 25\u00a0€ TTC par mois et par utilisateur<span[^>]*> · 7 utilisateurs : 175\u00a0€<\/span>/.test(O));
     vrai('omicron — la formule d\'aujourd\'hui n\'est pas proposée deux fois (aucun lien « Business Premium » parmi les autres)', !/>Business Premium<\/a>/.test(O));
+    /* ⛔ DE NUIT, UN LIEN DANS UN CADRE SE LIT : le vert du jour (#1E7A4E) tombe à 3,3:1 sur le cadre de nuit (#0F1830) ;
+       les liens des autres formules portent `m-lien`, que la feuille du courriel éclaircit en mode sombre */
+    vrai('omicron — de nuit, les liens des autres formules s\'éclaircissent (classe m-lien et sa règle sombre)',
+      (O.match(/<a href="[^"]*formule=(pro|business)[^"]*" class="m-lien"/g) || []).length === 2
+      && /prefers-color-scheme:dark\)\{[^}]*\}?[\s\S]*\.m-lien\{color:#4FD196!important\}/.test(O));
     vrai('omicron — la version TEXTE propose aussi les deux autres, avec leurs liens',
       /Ou une autre formule, si elle vous convient mieux \(un abonnement par utilisateur\) :\n· Pro : 15\u00a0€ TTC par mois et par utilisateur — 7 utilisateurs : 105\u00a0€ TTC par mois\n  https:\/\/teamop\.fr\/recap-abonnement\.html\?formule=pro&utilisateurs=7\n· Business : 25\u00a0€ TTC par mois et par utilisateur — 7 utilisateurs : 175\u00a0€ TTC par mois\n  https:\/\/teamop\.fr\/recap-abonnement\.html\?formule=business&utilisateurs=7/.test(O));
     const P = de('pi');

@@ -1483,6 +1483,7 @@ const MAIL_STYLE = '<style>' +
     '.m-texte{color:#B6C2D9!important}.m-texte b{color:#EAEEF7!important}' +
     '.m-muet{color:#8B9AB8!important}' +
     '.m-pied{border-color:#243154!important;color:#8B9AB8!important}.m-pied a{color:#4FD196!important}' +
+    '.m-lien{color:#4FD196!important}' +   /* un lien dans un cadre (courriel J-7) : le vert du jour tombe à 3,3:1 sur le cadre de nuit */
     '.m-bloc{background:#0F1830!important;border-color:#243154!important;color:#B6C2D9!important}.m-bloc b{color:#EAEEF7!important}' +
     '.m-btn{background:#2EB872!important;color:#06231A!important}' +
     '.m-btn2{color:#B6C2D9!important}' +
@@ -2397,7 +2398,7 @@ async function espacePaye(e, opts) {
        (`formulePayee`) — payer Pro donne Pro, même si la fiche dit Business Premium. Ce qu'on ne sait pas lire (un
        abonnement d'avant la bascule, un tarif créé à la main chez Stripe) garde la formule de la fiche : on ne coupe pas. */
     const fp = formuleEtPlaces(e, s.memes), f = fp.f || e.formule;
-    return { paye: true, motif: s.motif + (f !== e.formule ? ' — formule payée : ' + (FORMULE_LBL2[f] || f) : ''), echeance: s.echeance, formuleServie: f,
+    return { paye: true, motif: s.motif + (f === e.formule ? '' : f === 'gratuit' ? ' — OP GESTION non payé : formule Gratuit' : ' — formule payée : ' + (FORMULE_LBL2[f] || f)), echeance: s.echeance, formuleServie: f,
       placesStripe: fp.places };
   }
   return { paye: false, motif: 'aucun paiement ni code promo' };
@@ -2601,6 +2602,22 @@ function formuleEtPlaces(e, abos) {
   let f = null;
   try { f = formulePayee(e, abos); return { f, places: placesDeFormule(e, f || e.formule, abos) }; }
   catch (err) { console.error('espacePaye formule:', err.message); return { f, places: null }; }
+}
+/* La formule SERVIE de l'entreprise d'une adresse — celle que « Mon espace » (le portail) montre et que son contrat nomme.
+   Une adresse = une entreprise (Justin, 29 septembre 2026 : « ils feront une autre e-mail ») : si l'adresse en porte
+   plusieurs, on ne choisit pas pour le client (rien), et le dossier dit ce que la Tour y a posé. Rien non plus tant que ce
+   n'est pas payé (ni offert). Une LECTURE : aucun code ne s'active ici. */
+async function formuleServieDe(mail) {
+  const m = String(mail || '').trim().toLowerCase(); if (!m) return '';
+  const ts = new Set();
+  for (const s of Object.keys(espacesReg)) { const x = espacesReg[s];
+    if (x && typeof x.email === 'string' && x.email.trim().toLowerCase() === m) { const t = espaceT(x); if (t) ts.add(String(t)); } }
+  if (ts.size !== 1) return '';
+  const e = espaceParT([...ts][0]);
+  if (!e || !e.formule || espaceFerme(espaceT(e))) return '';
+  const p = await espacePaye(e, { lecture: true });
+  const f = p && p.paye ? (p.formuleServie || e.formule) : '';
+  return (f && FORMULE_LBL2[f]) || '';
 }
 function placesStripe(e, abos) {
   const f = e && e.formule, rang = RANG_FORMULE.indexOf(f);
@@ -4670,6 +4687,7 @@ try {
     portail = require('./portail').monterPortail(app, {
       dossier: DATA_DIR, parJeton: comptes.parJeton, admin: monAdmin, patron: monPatronStrict, quotaOk,
       preparer: comptes.preparer, verifie: comptes.verifie,
+      formuleServie: formuleServieDe,   // « Mon espace » dit la formule que le client PAIE (29 septembre 2026)
       /* Un code du portail : il existe dans `config.promos`, sa durée vient de là, et il est
          « épuisé » quand `maxUtilisations` est atteint — la même lecture que `/api/promo/valider`. */
       promoDef: (code) => {
@@ -8908,7 +8926,7 @@ function rappelEcheanceMail(code, finLe, f, n) {
   const autresTxt = (f ? 'Ou une autre formule, si elle vous convient mieux (un abonnement par utilisateur) :\n' : 'Les formules (un abonnement par utilisateur) :\n')
     + autres.map(g => '· ' + FORMULE_LBL2[g] + ' : ' + eur(PRIX_ABO_MOIS[g]) + ' TTC par mois et par utilisateur' + pourEquipe(g) + '\n  ' + lienDe(g)).join('\n');
   const autresHtml = '<b>' + (f ? 'Ou une autre formule, si elle vous convient mieux' : 'Choisissez votre formule') + '</b>'
-    + autres.map(g => '<br><a href="' + lienDe(g).replace(/&/g, '&amp;') + '" style="color:#1E7A4E;font-weight:600;text-decoration:none">' + FORMULE_LBL2[g] + '</a> · '
+    + autres.map(g => '<br><a href="' + lienDe(g).replace(/&/g, '&amp;') + '" class="m-lien" style="color:#1E7A4E;font-weight:600;text-decoration:none">' + FORMULE_LBL2[g] + '</a> · '
       + eur(PRIX_ABO_MOIS[g]) + ' TTC par mois et par utilisateur' + (n ? '<span class="m-muet" style="color:#8593AB"> · ' + pl(n, 'utilisateur') + ' : ' + eur(n * PRIX_ABO_MOIS[g]) + '</span>' : '')).join('');
   return {
     subject: '⏳ Votre période offerte se termine le ' + finFr + ' — TEAM OP',
