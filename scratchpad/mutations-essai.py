@@ -17,11 +17,11 @@ os.chdir(RACINE)
 def sh(cmd, timeout=None):
     return subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
 
-if sh('git status --porcelain -- server/index.js server/portail.js merci.html').stdout.strip():
+if sh('git status --porcelain -- server/index.js server/portail.js merci.html recap-abonnement.html').stdout.strip():
     print('⛔ server/index.js, server/portail.js ou merci.html a des changements non commités — rien ne part (git checkout les effacerait)')
     sys.exit(2)
 
-S, M, PO = 'server/index.js', 'merci.html', 'server/portail.js'
+S, M, PO, RE = 'server/index.js', 'merci.html', 'server/portail.js', 'recap-abonnement.html'
 MUT = [
   # la route de paiement
   ('E1', S, 'la fin d\'essai ne part plus chez Stripe',
@@ -135,17 +135,17 @@ MUT = [
   ('I2', S, 'unpaid n\'est plus un impayé',
    "const STATUTS_IMPAYES = ['past_due', 'unpaid'];", "const STATUTS_IMPAYES = ['past_due'];", ['845', '844']),
   ('I3', S, 'l\'application reçoit « non payé » AVEC sa formule (bandeau à toute l\'équipe, db réécrit)',
-   "    if (p.bloque) return res.json({ ok: true, paye: false, impaye: true, motif: p.motif, opMessages, versionMin, enLigne, suspendu: true, sursisJours: 0 });\n", "", ['845']),
+   "    if (p.bloque) return res.json({ ok: true, paye: false, motif: 'accès payant suspendu', opMessages, versionMin, enLigne, suspendu: true, sursisJours: 0 });\n", "", ['845']),
   ('I4', S, 'la forme B porte la formule',
-   "motif: p.motif, opMessages, versionMin, enLigne, suspendu: true, sursisJours: 0 });", "motif: p.motif, formule: e.formule, opMessages, versionMin, enLigne, suspendu: true, sursisJours: 0 });", ['845']),
+   "motif: 'accès payant suspendu', opMessages, versionMin, enLigne, suspendu: true, sursisJours: 0 });", "motif: 'accès payant suspendu', formule: e.formule, opMessages, versionMin, enLigne, suspendu: true, sursisJours: 0 });", ['845']),
   ('I5', S, 'sept jours de sursis à un impayé Stripe',
    "enLigne, suspendu: true, sursisJours: 0 });", "enLigne, suspendu: true, sursisJours: 7 });", ['845']),
   ('I6', S, 'fiche Gratuit : son payé refusé passe pour le Gratuit normal',
-   "    if (imp) return { paye: true, motif: 'gratuit — ' + motifImpaye(imp), impaye: true, bloque: true };\n", "", ['845']),
+   "    if (impayeBloque(e, s, imp)) return { paye: true, motif: 'gratuit — ' + motifImpaye(imp), impaye: true, impayeStripe: true, bloque: true };\n", "", ['845']),
   ('I7', S, 'OP MESSAGES payé masque l\'impayé d\'OP GESTION',
-   "    if (imp && f === 'gratuit') return bloqueImpaye(imp);\n", "", ['845']),
+   "    if (impayeBloque(e, s, imp)) return bloqueImpaye(imp);\n", "", ['845']),
   ('I8', S, 'l\'impayé seul n\'est pas bloqué',
-   "  if (imp) return bloqueImpaye(imp);\n  return { paye: false, motif: 'aucun paiement ni code promo' };", "  return { paye: false, motif: 'aucun paiement ni code promo' };", ['845']),
+   "  if (impayeBloque(e, null, imp)) return bloqueImpaye(imp);\n  return { paye: false, motif: 'aucun paiement ni code promo' };", "  return { paye: false, motif: 'aucun paiement ni code promo' };", ['845']),
   ('I9', S, 'un OP MESSAGES refusé compte comme un impayé d\'OP GESTION',
    "const tous = ((imp && imp.memes) || []).filter(aboDeGestion);", "const tous = ((imp && imp.memes) || []);", ['845']),
   ('I10', S, 'un impayé attend les cinq minutes de la liste (l\'accès revient tard)',
@@ -159,8 +159,8 @@ MUT = [
    "    if (rangDuPrix >= 0) {\n      const due = await factureImpayeARegler", "    if (false) {\n      const due = await factureImpayeARegler", ['845']),
   ('I14', S, 'OP MESSAGES envoyé sur la facture d\'OP GESTION',
    "    if (rangDuPrix >= 0) {\n      const due = await factureImpayeARegler", "    if (true) {\n      const due = await factureImpayeARegler", ['845']),
-  ('I15', S, 'la facture d\'une AUTRE entreprise (l\'impayé de la liste sans le compte qui paie)',
-   " && aboDeGestion(sb) && duCompte(sb)) cand.set(sb.id, sb);", " && aboDeGestion(sb)) cand.set(sb.id, sb);", ['845']),
+  ('I15', S, 'une entreprise SERVIE (un vieux refusé traîne) envoyée vers la vieille facture au lieu d\'acheter',
+   "    if (!p || !p.bloque) return null;\n", "", ['845']),
   ('I16', S, 'réglé depuis la liste : on le croit encore impayé',
    "    if (!f.impaye) continue;   // réglé depuis la liste\n", "", ['845']),
   ('I17', S, 'Stripe muet à la relecture : on vend quand même un abonnement',
@@ -177,15 +177,16 @@ MUT = [
   ('I22', PO, '« Mon espace » dit « Actif » à un impayé (portail)',
    "      else if (lbl && typeof lbl === 'object' && lbl.statut === 'suspendu') v.planStatus = 'suspendu';\n", "", ['845']),
   ('I23', S, 'la liste de la Tour ne voit plus l\'impayé',
-   "      impaye: !!p.bloque, impayesPartiels: p.impayesPartiels || 0,\n", "      impaye: false, impayesPartiels: p.impayesPartiels || 0,\n", ['845']),
+   "      impaye: !!p.bloque, impayeStripe: !!p.impayeStripe, impayesPartiels: p.impayesPartiels || 0,\n", "      impaye: false, impayeStripe: !!p.impayeStripe, impayesPartiels: p.impayesPartiels || 0,\n", ['845']),
   ('I24', S, 'la fiche de la Tour ne voit plus l\'impayé',
-   "    impaye: !!p.bloque, impayesPartiels: p.impayesPartiels || 0 });", "    impaye: false, impayesPartiels: p.impayesPartiels || 0 });", ['845']),
+   "    impaye: !!p.bloque, impayeStripe: !!p.impayeStripe, impayesPartiels: p.impayesPartiels || 0 });", "    impaye: false, impayeStripe: !!p.impayeStripe, impayesPartiels: p.impayesPartiels || 0 });", ['845']),
   ('I25', S, 'un refusé parmi des payés : le motif se tait',
    "      + (nImp ? ' — ' + nImp", "      + (false ? ' — ' + nImp", ['845']),
   ('I26', S, 'J-7 : un impayé reçoit le courriel habituel (lien vers un second abonnement)',
-   "  if (!s) return imp ? { etat: 'impaye', abo: imp.abo, surs: imp.surs } : { etat: 'aucun' };", "  if (!s) return { etat: 'aucun' };", ['844']),
-  ('I27', S, 'J-7 : OP MESSAGES payé masque l\'impayé d\'OP GESTION',
-   "  if (!gestion.length && imp) return { etat: 'impaye', abo: imp.abo, surs: imp.surs };\n", "", ['844']),
+   "  if (impayeBloque(e, s, imp)) return { etat: 'impaye'", "  if (false) return { etat: 'impaye'", ['844']),
+  ('I27', S, 'J-7 : l\'ancienne règle (tout impayé, même celui d\'une voisine d\'adresse) — le courriel ne dit plus ce que l\'application fera',
+   "  if (impayeBloque(e, s, imp)) return { etat: 'impaye', abo: imp.abo, surs: imp.surs };\n  if (!s) return { etat: 'aucun' };",
+   "  if (!s) return imp ? { etat: 'impaye', abo: imp.abo, surs: imp.surs } : { etat: 'aucun' };", ['844']),
   ('I28', S, 'J-7 : réglé depuis la liste, on dit encore « à régler »',
    "            if (lue && !lue.impaye) { ab.etat = 'abonne';", "            if (false) { ab.etat = 'abonne';", ['844']),
   ('I29', S, 'J-7 : Stripe muet à la relecture, le rappel part tout de suite (sans facture)',
@@ -199,6 +200,35 @@ MUT = [
    "  const agir = url ? ", "  const agir = false ? ", ['844']),
   ('I33', S, 'J-7 : un impayé reçoit « prend le relais »',
    "ab.etat === 'impaye' ? rappelImpayeMail(code, eq.finLe, urlFacture) : ", "", ['844']),
+  # ── la relecture adverse du 29 septembre au soir (gardien, relecteur, application), rejouée ──
+  ('I34', S, 'un unpaid sans facture ouverte : 409 sans issue (Stripe ne réessaie plus)',
+   "    if (f.statut === 'unpaid') continue;", "    if (false) continue;", ['845']),
+  ('I35', S, 'un impayé se rattache par le NOM D\'ACCÈS (repris par une autre entreprise)',
+   "(tSeul ? [String(espaceT(e) || '').toLowerCase()] : [", "(false ? [String(espaceT(e) || '').toLowerCase()] : [", ['845']),
+  ('I36', S, 'un impayé se rattache par le nom d\'une entrée qui porte le même identifiant (le nom repris)',
+   "(!tSeul && !!monT && tDe(m) === monT)", "(!!monT && tDe(m) === monT)", ['845']),
+  ('I37', S, 'un refusé parmi des payés bloque tout',
+   "  if (gestion.length) return false;\n", "", ['845']),
+  ('I38', S, 'un doute (refusé sans référence à une adresse partagée) bloque malgré un payé trouvé',
+   "  if (s || (e && e.formule === 'gratuit')) return (imp.surs || []).length > 0;", "  if (e && e.formule === 'gratuit') return (imp.surs || []).length > 0;", ['845']),
+  ('I39', S, 'une fiche Gratuit bloquée par l\'impayé d\'une voisine d\'adresse',
+   "  if (s || (e && e.formule === 'gratuit')) return (imp.surs || []).length > 0;", "  if (s) return (imp.surs || []).length > 0;", ['845']),
+  ('I40', S, 'l\'impayé posé à la main dans la Tour garde le bandeau à toute l\'équipe',
+   "    if (e.aboStatut === 'impaye') return { paye: false, motif: 'impayé (réglé par ' + (e.aboPar || 'TEAM OP') + ')', impaye: true, bloque: true };\n", "", ['845']),
+  ('I41', S, 'la Tour ne sait plus qu\'un impayé vient de Stripe (deux lignes pour une entreprise)',
+   "impaye: true, impayeStripe: true, bloque: true,", "impaye: true, bloque: true,", ['845']),
+  ('I42', S, 'la route publique dit « impayé » et le chemin',
+   "motif: 'accès payant suspendu', opMessages", "motif: p.motif, impaye: true, opMessages", ['845']),
+  ('I43', S, 'une entreprise bloquée sans impayé sûr (rien de payé à l\'adresse) : plus de facture, un second abonnement',
+   "(imp.surs.includes(sb) || (duCompte(sb) && !autre(sb)))", "(imp.surs.includes(sb))", ['845']),
+  ('I44', S, 'J-7 : l\'annuaire pas relu après la lecture de la facture',
+   "            const el2 = eligible(code, t, eq0.finLe);\n            if (!el2 || el2.sig !== el0.sig) continue;\n", "", ['844']),
+  ('R1', RE, 'la page part vers la facture en attente sans le dire',
+   "    if (r && r.ok && j && j.url && j.facture) {", "    if (false) {", ['839']),
+  ('R2', RE, 'le 409 dit « réessayez » (le message générique)',
+   "    else if (r && r.status === 409 && j && j.error === 'impaye_sans_facture') compteMsg", "    else if (false) compteMsg", ['839']),
+  ('R3', RE, 'le 502 de la relecture tombe dans le message générique',
+   "    else if (r && r.status === 502 && j && j.error === 'stripe_indisponible') compteMsg", "    else if (false) compteMsg", ['839']),
   # la page de remerciement
   ('P1', M, 'une date impossible acceptée (30 février)',
    "    if (d.getUTCFullYear() !== +m[1] || d.getUTCMonth() !== +m[2] - 1 || d.getUTCDate() !== +m[3]) return;\n", "", ['839']),
@@ -246,4 +276,4 @@ for (cle, fichier, nom, avant, apres, bancs) in MUT:
     bilan.append((cle, 'mord' if mord else 'NE MORD PAS'))
 
 print('\n' + str(sum(1 for _, x in bilan if x == 'mord')) + '/' + str(len(bilan)) + ' mutations mordent')
-print('git status après le lot : ' + (sh('git status --porcelain -- server/index.js server/portail.js merci.html').stdout.strip() or 'propre'))
+print('git status après le lot : ' + (sh('git status --porcelain -- server/index.js server/portail.js merci.html recap-abonnement.html').stdout.strip() or 'propre'))
