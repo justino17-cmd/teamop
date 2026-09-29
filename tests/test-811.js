@@ -272,18 +272,24 @@ console.log('\n── 811 · les clients du portail repris de Google : leur comp
     const app2 = express(); app2.use(express.json());
     require(path.join(RACINE, 'server', 'portail.js')).monterPortail(app2, {
       dossier: dir2, parJeton: comptes.parJeton, quotaOk: () => true, journal: () => {}, verifie: comptes.verifie, admin, patron,
-      formuleServie: async (m) => { demandes.push(m); if (servie === 'jette') throw new Error('panne de banc'); return servie; } });
+      formuleServie: async (m) => { demandes.push(m); if (servie === 'jette') throw new Error('panne de banc'); return servie; },
+      /* un code FICTIF (aucun code réel n'entre dans un fichier suivi) */
+      promoDef: (c) => (c === 'ESSAI-BANC-811' ? { code: c, mois: 3, epuise: false } : null) });
     const srv2 = await new Promise(res => { const s2 = app2.listen(0, '127.0.0.1', () => res(s2)); });
     const B2 = 'http://127.0.0.1:' + srv2.address().port;
     const au2 = (j) => ({ Authorization: 'Bearer ' + j, 'Content-Type': 'application/json' });
     const moi2 = async (j) => { const x = await fetch(B2 + '/api/portail/moi', { headers: au2(j) }); return { s: x.status, j: await x.json().catch(() => ({})) }; };
     const dem2 = async (j, c) => { const x = await fetch(B2 + '/api/portail/demande', { method: 'POST', headers: au2(j), body: JSON.stringify(c) }); return { s: x.status, j: await x.json().catch(() => ({})) }; };
+    const pro2 = async (j, c) => { const x = await fetch(B2 + '/api/portail/promo', { method: 'POST', headers: au2(j), body: JSON.stringify({ code: c }) }); return { s: x.status, j: await x.json().catch(() => ({})) }; };
     try {
       const jv = (await post('/api/compte/connexion', { email: 'verifie@exemple.fr', h: emp('mot-de-passe-verifie') })).j.jeton;
       let q = await dem2(jv, { company: 'Sa Propre Entreprise', plan: 'Business Premium' });
       v('⛔ adresse prouvée : la demande rend le dossier avec la formule SERVIE (Pro), pas celle qu\'on y a mise', [q.s, q.j.dossier && q.j.dossier.plan], [200, 'Pro']);
       q = await moi2(jv);
       v('   … et « Mon espace » la relit (la formule servie de SON adresse)', [q.s, q.j.dossier && q.j.dossier.plan, demandes.slice(-1)[0]], [200, 'Pro', 'verifie@exemple.fr']);
+      q = await pro2(jv, 'ESSAI-BANC-811');
+      v('   … et un code activé sur le portail rend lui aussi le dossier avec la formule servie',
+        [q.s, q.j.dossier && q.j.dossier.plan, q.j.dossier && q.j.dossier.promo && q.j.dossier.promo.code], [200, 'Pro', 'ESSAI-BANC-811']);
       servie = '';
       q = await moi2(jv);
       v('   rien de servi (pas payé) : le dossier tel qu\'il est — rien d\'inventé', q.j.dossier && q.j.dossier.plan, undefined);
