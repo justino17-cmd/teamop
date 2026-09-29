@@ -86,8 +86,11 @@ console.log('\n── 845 · carte refusée = impayé : l\'accès payant bloqué
     parta: ['gratuit', []],                                                    // Gratuit, jamais abonnée
     partb: ['pro', [['past_due', 'pro', 1]]],                                  // son abonnement gravé à son identifiant, refusé
     partc: ['pro', [['active', 'pro', 1]]],                                    // payée, gravée à son identifiant
-    partd: ['pro', [['past_due', 'pro', 1]]] };                                // refusé SANS référence (l'adresse seule)
-  const ADR = { parta: mail('partage'), partb: mail('partage'), partc: mail('partage'), partd: mail('partage') };
+    partd: ['pro', [['past_due', 'pro', 1]]],                                  // refusé SANS référence (l'adresse seule)
+    /* une autre adresse partagée, où RIEN n'est payé */
+    duoa: ['pro', [['past_due', 'pro', 1]]],                                   // refusé sans référence
+    duob: ['gratuit', []] };                                                   // Gratuit, jamais abonnée
+  const ADR = { parta: mail('partage'), partb: mail('partage'), partc: mail('partage'), partd: mail('partage'), duoa: mail('duo'), duob: mail('duo') };
   const adr = slug => ADR[slug] || mail(slug);
   const espaces = {}, subs = [], factures = {};
   const FACT = s => 'https://invoice.stripe.com/i/banc-845-' + s;
@@ -106,6 +109,7 @@ console.log('\n── 845 · carte refusée = impayé : l\'accès payant bloqué
   Object.assign(espaces.man, { aboStatut: 'impaye', aboPar: 'Banc' });
   /* partd : pas de référence — seule l'adresse (partagée) la désigne */
   delete subs.find(x => x.id === 'sub_partd_0').metadata.espace;
+  delete subs.find(x => x.id === 'sub_duoa_0').metadata.espace;
   /* l'ANCIENNE entreprise de « nouv » : son abonnement refusé gravé au NOM D'ACCÈS (d'anciennes pages envoyaient le nom),
      à son adresse à elle ; le nom a été libéré puis repris par « nouv » */
   subs.push({ id: 'sub_ancienne', object: 'subscription', status: 'past_due', created: cree, metadata: { espace: 'nouv', compte: mail('ancienne') },
@@ -230,6 +234,10 @@ globalThis.fetch = async function (url, opts) {
     vrai('⛔ adresse partagée — la fiche Gratuit jamais abonnée n\'est PAS dite en impayé par l\'abonnement refusé d\'une voisine',
       E.parta.paye === true && E.parta.formule === 'gratuit' && E.parta.suspendu === false);
     vrai('⛔ adresse partagée — la refusée (gravée à elle) est bloquée : l\'abonnement payé de sa VOISINE ne lui prête pas l\'accès payant', FORME_B(E.partb));
+    vrai('   adresse partagée — un refusé SANS référence (un doute) ne bloque pas quand un payé est trouvé à l\'adresse (la limite connue : une adresse = une entreprise)',
+      E.partd.paye === true && E.partd.suspendu === false);
+    vrai('⛔ adresse partagée où RIEN n\'est payé — le refusé sans référence bloque (la forme qui n\'écrit rien), la fiche Gratuit voisine non',
+      FORME_B(E.duoa) && E.duob.paye === true && E.duob.suspendu === false);
     /* ⛔ PAS DE RAFALE : la liste se garde pour qui paie ; un impayé la fait relire au plus une fois par fenêtre */
     const listes = () => appelsStripe().filter(x => /\/v1\/subscriptions\?/.test(x.u)).length;
     await dormir(1100);
@@ -292,7 +300,7 @@ globalThis.fetch = async function (url, opts) {
     const L = (await appel('/api/monitor/espaces/liste', undefined, PATRON)).j.espaces || [];
     const ligne = slug => L.find(x => x.slug === slug) || {};
     v('⛔ la liste de la Tour : `impaye` pour les bloquées (past_due, unpaid, fiche Gratuit, réglée à la main), pas pour les autres',
-      Object.keys(ENT).filter(s => ligne(s).impaye).sort(), ['gra', 'imp', 'man', 'mgr', 'mog', 'pan', 'partb', 'regl', 'sans', 'unp', 'unv', 'y']);
+      Object.keys(ENT).filter(s => ligne(s).impaye).sort(), ['duoa', 'gra', 'imp', 'man', 'mgr', 'mog', 'pan', 'partb', 'regl', 'sans', 'unp', 'unv', 'y']);
     v('   `impayeStripe` : toutes sauf la réglée à la main (la Tour ne la montre qu\'une fois : sa ligne Stripe, ou celle-ci)',
       Object.keys(ENT).filter(s => ligne(s).impaye && !ligne(s).impayeStripe), ['man']);
     v('   `impayesPartiels` : 1 pour l\'entreprise au payé ET au refusé, 0 pour son témoin', [ligne('mix').impayesPartiels, ligne('deux').impayesPartiels], [1, 0]);
@@ -347,6 +355,9 @@ globalThis.fetch = async function (url, opts) {
     vrai('⛔ adresse partagée — la Gratuit prend Pro normalement, jamais la facture d\'une voisine', await neuf('parta', { price: P.pro, ref: espaces.parta.t }));
     r = await payer('partb', { price: P.pro, ref: espaces.partb.t });
     vrai('   adresse partagée — la bloquée reçoit SA facture', r.s === 200 && r.j.url === FACT('partb') && r.j.facture === true);
+    r = await payer('duoa', { price: P.pro, ref: espaces.duoa.t });
+    vrai('⛔ adresse partagée, rien de payé — la bloquée reçoit la facture de son refusé SANS référence (celui du compte qui paie) : pas un second abonnement',
+      r.s === 200 && r.j.url === FACT('duoa') && r.j.facture === true);
     vrai('   aucune adresse de client en clair au journal', !/[a-z]+@exemple-845\.fr/.test(journal.replace(/[a-z]\*+@exemple-845\.fr/g, '')));
   } finally { if (enfant) { const e = enfant; enfant = null; await new Promise(r => { e.once('exit', r); e.kill('SIGKILL'); }); } }
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
