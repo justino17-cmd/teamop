@@ -59,7 +59,10 @@ for f in "${liste[@]}"; do
 
   if [ "$ko" != "0" ]; then
     echo "::error::$f : $ko échec(s)"
-    printf '%s\n' "$sortie" | grep '✗' | head -20
+    # ⛔ AVEC LES DEUX LIGNES QUI SUIVENT : la plupart des bancs y écrivent « attendu » et « obtenu ».
+    # Le 29 septembre 2026, test-641 est tombé deux fois dans la suite complète et jamais seul — ce
+    # compteur n'en montrait que le titre, et la valeur lue était perdue avec la sortie.
+    printf '%s\n' "$sortie" | grep -A2 '✗' | head -40
     echecs=$((echecs+1)); coupables="$coupables $f($ko✗)"; continue
   fi
 
