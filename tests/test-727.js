@@ -212,18 +212,23 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
      `STRIPE_PRIX_MESSAGES` et `RANG_FORMULE` — le bloc des constantes des places, déjà extrait plus haut pour `espacePaye`.
      Sans lui, la route jetait (« RANG_FORMULE is not defined ») et répondait 500 : 32 contrôles de ce banc sont tombés
      ainsi. Le tarif du banc est un VRAI tarif public de la page. */
-  const AIDES_ROUTE = ['espaceT', 'espacesDeRef', 'espaceParT'].map(extraire).concat([CONSTS]);
+  /* ⚠️ et la FIN D'ESSAI (29 septembre 2026, « 2 oui » de Justin) : la route demande `finEssaiPeriode` pour un tarif
+     d'OP GESTION — la vraie, avec `periodeOfferte` et la formule du code, qui lisent `promoUsages`, `espaceFerme` et
+     `config.promos`. Sans elles, la route jetait (« finEssaiPeriode is not defined ») et répondait 500 : 30 contrôles de
+     ce banc sont tombés ainsi, sur une route juste. */
+  const AIDES_ROUTE = ['espaceT', 'espacesDeRef', 'espaceParT', 'finEssaiPeriode', 'periodeOfferte', 'formulePromo', 'formuleDuCode'].map(extraire).concat([CONSTS]);
+  vrai('la route et ses aides (dont finEssaiPeriode) sont trouvées dans le fichier réel', AIDES_ROUTE.every(Boolean));
   const PRIX_PRO = (/^\s*pro: \['(price_\w+)'/m.exec(SRC) || [])[1], PRIX_PREMIUM = (/^\s*premium: \['(price_\w+)'/m.exec(SRC) || [])[1];
   vrai('les tarifs Pro et Business Premium du serveur sont lus', /^price_/.test(PRIX_PRO || '') && /^price_/.test(PRIX_PREMIUM || ''));
   const ESPACES_DEFAUT = { monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr' } };
-  const appeler = async (body, entetes, comptes, espaces) => {
+  const appeler = async (body, entetes, comptes, espaces, usages, fermes) => {
     let envoye = '', statut = 0, sortie = null, appels = 0;
     const faux = { post: (chemin, h) => { faux._h = h; } };
-    new Function('app', 'config', 'fetch', 'URLSearchParams', 'comptes', 'espacesReg',
+    new Function('app', 'config', 'fetch', 'URLSearchParams', 'comptes', 'espacesReg', 'promoUsages', 'espaceFerme',
       AIDES_ROUTE.join('\n') + '\n' + SRC.slice(iR, finR))(faux,
-      { stripe: { secretKey: 'sk_de_banc' } },
+      { stripe: { secretKey: 'sk_de_banc' }, promos: [{ code: 'ESSAI-BANC-727', formule: 'premium', mois: 3 }] },
       async (url, opts) => { appels++; envoye = String(opts && opts.body || ''); return { ok: true, json: async () => ({ url: 'https://checkout.stripe.com/x' }) }; },
-      URLSearchParams, comptes === undefined ? COMPTES : comptes, espaces === undefined ? ESPACES_DEFAUT : espaces);
+      URLSearchParams, comptes === undefined ? COMPTES : comptes, espaces === undefined ? ESPACES_DEFAUT : espaces, usages || {}, t => (fermes || []).includes(t));
     await faux._h({ body, headers: entetes === undefined ? { authorization: 'Bearer ' + JETON_PROUVE } : entetes },
       { status(c) { statut = c; return this; }, json(o) { sortie = o; return this; } });
     return { envoye, statut, sortie, appels };
@@ -700,6 +705,90 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('   deux NOMS de la même entreprise (même identifiant) : c\'est une entreprise — sa fiche la plus récente', await lecteur(NOMS, [abo('patron@alpha.fr', 'business', 1)])('patron@alpha.fr'), 'Business');
     v('⛔ une entreprise fermée : rien', await lecteur(REG, [abo('patron@alpha.fr', 'pro', 3)], [], {}, ['ent-alpha'])('patron@alpha.fr'), '');
     v('   une adresse inconnue, ou vide : rien', [await lecteur(REG, [abo('patron@alpha.fr', 'pro', 3)])('autre@alpha.fr'), await lecteur(REG, [])('')], ['', '']);
+  }
+
+  /* 10. ⛔ PAYER PENDANT UNE PÉRIODE OFFERTE NE FACTURE RIEN AVANT SA FIN (Justin, 29 septembre 2026 : « oui » à « la
+     facturation démarre à la fin du code »). La VRAIE route, la VRAIE `finEssaiPeriode` : ce qui part chez Stripe porte
+     `subscription_data[trial_end]` = le lendemain de la fin, 0 h UTC — l'instant où l'application cesse de servir la
+     formule du code (`periodeOfferte` : jusqu'au `finLe` inclus) — et le retour dit ce jour à la page de remerciement.
+     Seulement pour OP GESTION, l'entreprise de la référence vérifiée ou la SEULE de l'adresse, entre 48 h et deux ans. */
+  {
+    const jour = n => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+    const debutDe = d => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10) + 1);
+    const iso = ms => new Date(ms).toISOString().slice(0, 10);
+    const PERIODE = (finLe, t) => ({ 'ESSAI-BANC-727': { n: 1, equipes: { [t || 'monclient-9f2a']: { date: jour(-10), finLe, em: '' } } } });
+    const env = r => new URLSearchParams(r.envoye);
+    const essai = r => [env(r).get('subscription_data[trial_end]'), env(r).get('success_url')];
+    const SANS = [null, 'https://teamop.fr/merci.html'];
+    const AVEC = finLe => [String(debutDe(finLe) / 1000), 'https://teamop.fr/merci.html?debut=' + iso(debutDe(finLe))];
+    const PRIX_BIZ = (/^\s*business: \['(price_\w+)'/m.exec(SRC) || [])[1], PRIX_MSGP = (/^\s*msgpro: \['(price_\w+)'/m.exec(SRC) || [])[1];
+    vrai('(population) les tarifs Business et OP MESSAGES du serveur sont lus', /^price_/.test(PRIX_BIZ || '') && /^price_/.test(PRIX_MSGP || ''));
+    const F30 = jour(30);
+    const a = await appeler({ price: PRIX_PRO, quantity: 3, ref: 'monclient-9f2a' }, undefined, undefined, undefined, PERIODE(F30));
+    v('⛔ période offerte en cours (fin dans 30 jours), référence vérifiée : la fin d\'essai = le lendemain de la fin, 0 h UTC, et le retour dit ce jour',
+      [a.statut || 200, a.appels].concat(essai(a)), [200, 1].concat(AVEC(F30)));
+    vrai('   (l\'instant est bien un lendemain à 0 h UTC, en secondes)', +essai(a)[0] % 86400 === 0 && iso(+essai(a)[0] * 1000) === iso(Date.parse(F30 + 'T00:00:00Z') + 86400000));
+    v('   le reste de la page de paiement ne bouge pas (tarif, quantité, compte, référence gravée)',
+      [env(a).get('line_items[0][price]'), env(a).get('line_items[0][quantity]'), env(a).get('customer_email'), env(a).get('subscription_data[metadata][espace]')],
+      [PRIX_PRO, '3', 'paie@entreprise-banc.fr', 'monclient-9f2a']);
+    const b = await appeler({ price: PRIX_BIZ, quantity: 1 }, undefined, undefined, undefined, PERIODE(F30));
+    v('   sans référence (un autre appareil) : l\'adresse du compte désigne UNE entreprise — la même fin d\'essai', essai(b), AVEC(F30));
+    const b2 = await appeler({ price: PRIX_PREMIUM, quantity: 2, ref: 'monclient' }, undefined, undefined, undefined, PERIODE(F30));
+    v('   désignée par son NOM d\'accès : la même', essai(b2), AVEC(F30));
+    const c = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' });
+    v('⛔ sans période offerte : facturation immédiate, retour d\'origine', essai(c), SANS);
+    const d = await appeler({ price: PRIX_MSGP, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, undefined, PERIODE(F30));
+    v('⛔ OP MESSAGES : le code ne le couvre pas — facturation immédiate', [d.appels].concat(essai(d)), [1].concat(SANS));
+    const passee = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, undefined, PERIODE(jour(-1)));
+    v('   une période finie hier : rien à différer', essai(passee), SANS);
+    const auj = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, undefined, PERIODE(jour(0)));
+    const dem = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, undefined, PERIODE(jour(1)));
+    v('⛔ la fin est à moins de 48 h (aujourd\'hui, demain) : Stripe refuserait l\'essai — facturation immédiate plutôt qu\'un paiement refusé',
+      [auj.appels, dem.appels].concat(essai(auj), essai(dem)), [1, 1].concat(SANS, SANS));
+    const F3 = jour(3);
+    const trois = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, undefined, PERIODE(F3));
+    v('   dans trois jours : différée', essai(trois), AVEC(F3));
+    const loin = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, undefined, PERIODE(jour(800)));
+    v('⛔ à plus de deux ans (Stripe n\'en accepte pas davantage) : facturation immédiate', [loin.appels].concat(essai(loin)), [1].concat(SANS));
+    const DEUX_ENT = Object.assign({}, ESPACES_DEFAUT, { autre: { nom: 'Autre', t: 'autre-77aa', email: 'paie@entreprise-banc.fr' } });
+    const deuxSans = await appeler({ price: PRIX_PRO, quantity: 1 }, undefined, undefined, DEUX_ENT, PERIODE(F30));
+    v('⛔ deux entreprises à l\'adresse du compte, sans référence : on ne choisit pas pour le client — facturation immédiate', essai(deuxSans), SANS);
+    const deuxAvec = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, DEUX_ENT, PERIODE(F30));
+    v('   … avec la référence de celle qui a la période : différée', essai(deuxAvec), AVEC(F30));
+    const deuxAutre = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'autre-77aa' }, undefined, undefined, DEUX_ENT, PERIODE(F30));
+    v('   … avec la référence de l\'AUTRE (sans période) : immédiate — la période d\'une entreprise ne couvre pas sa voisine', essai(deuxAutre), SANS);
+    const inconnue = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'inconnue-00' }, undefined, undefined, undefined, PERIODE(F30));
+    v('   une référence inconnue : l\'adresse décide (une seule entreprise) — différée', essai(inconnue), AVEC(F30));
+    const fermee = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, undefined, PERIODE(F30), ['monclient-9f2a']);
+    v('⛔ une entreprise fermée par TEAM OP : rien à différer', essai(fermee), SANS);
+    const SANS_T = { monclient: { nom: 'Mon client', email: 'paie@entreprise-banc.fr' } };
+    const sansT = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient' }, undefined, undefined, SANS_T, PERIODE(F30, ''));
+    v('   une entrée SANS identifiant : aucune période ne se rattache à elle — immédiate', [sansT.appels].concat(essai(sansT)), [1].concat(SANS));
+    const autreT = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, undefined, PERIODE(F30, 'quelquun-dautre'));
+    v('   la période d\'une AUTRE entreprise : immédiate', essai(autreT), SANS);
+    const refuse = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' }, { authorization: 'Bearer ' + JETON_A_CONFIRMER }, undefined, undefined, PERIODE(F30));
+    v('   (un compte non prouvé ne va toujours pas jusqu\'à Stripe)', [refuse.statut, refuse.appels], [403, 0]);
+
+    /* les BORNES, sur la vraie fonction seule, à la milliseconde : 48 h + 10 min de marge (l'horloge de Stripe n'est pas la
+       nôtre), deux ans au plus. `maintenant` s'injecte ; la période se lit, elle, à l'heure réelle (`periodeOfferte`). */
+    const FEP = new Function('espacesReg', 'promoUsages', 'espaceFerme', 'config', AIDES_ROUTE.join('\n') + '\nreturn finEssaiPeriode;')(
+      ESPACES_DEFAUT, PERIODE(F30), () => false, { promos: [] });
+    const VISEE = [Object.assign({ slug: 'monclient' }, ESPACES_DEFAUT.monclient)];
+    const D30 = debutDe(F30), MARGE = 48 * 3600000 + 10 * 60000, DEUX_ANS = 730 * 86400000;
+    v('⛔ borne basse : la fin d\'essai à 48 h 10 min pile passe, une milliseconde de moins non',
+      [!!FEP(VISEE, '', D30 - MARGE), FEP(VISEE, '', D30 - MARGE + 1)], [true, null]);
+    v('⛔ borne haute : deux ans pile passent, une milliseconde de plus non',
+      [!!FEP(VISEE, '', D30 - DEUX_ANS), FEP(VISEE, '', D30 - DEUX_ANS - 1)], [true, null]);
+    v('   ce qu\'elle rend : la fin d\'essai en secondes, le jour du premier prélèvement, la fin de la période, l\'entreprise',
+      FEP(VISEE, ''), { fin: D30 / 1000, debut: iso(D30), finLe: F30, t: 'monclient-9f2a' });
+    v('   par l\'adresse seule (sans casse ni espaces : la route la passe déjà réduite), et rien pour une adresse inconnue ou vide',
+      [(FEP([], 'paie@entreprise-banc.fr') || {}).t, FEP([], 'autre@entreprise-banc.fr'), FEP([], ''), FEP(null, '')], ['monclient-9f2a', null, null, null]);
+    const FEP_CASSE = new Function('espacesReg', 'promoUsages', 'espaceFerme', 'config', AIDES_ROUTE.join('\n') + '\nreturn finEssaiPeriode;')(
+      { monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: '  Paie@Entreprise-Banc.fr ' } }, PERIODE(F30), () => false, { promos: [] });
+    v('   une adresse d\'annuaire écrite avec capitales et espaces se reconnaît', (FEP_CASSE([], 'paie@entreprise-banc.fr') || {}).t, 'monclient-9f2a');
+    v('⛔ une fonction qui jette ne casse pas le paiement : `null`, et la page s\'ouvre (facturation immédiate)',
+      new Function('espacesReg', 'promoUsages', 'espaceFerme', 'config', AIDES_ROUTE.join('\n') + '\nreturn finEssaiPeriode;')(
+        ESPACES_DEFAUT, PERIODE(F30), () => { throw new Error('annuaire illisible'); }, { promos: [] })(VISEE, ''), null);
   }
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

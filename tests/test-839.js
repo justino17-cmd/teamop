@@ -37,6 +37,20 @@ const dormir = ms => new Promise(r => setTimeout(r, ms));
 const PAGES_PAIEMENT = process.env.RECAP_FICHIER ? [process.env.RECAP_FICHIER] : ['recap-abonnement.html', 'apercu/recap-abonnement.html'].filter(existe);
 const SESSION = 'f'.repeat(64);
 const PHRASE = 'Pour payer, il faut un compte TEAM OP : créez-le d\'abord, c\'est gratuit.';
+/* La page de remerciement (merci.html, ou sa copie d'aperçu) : son VRAI script, sur un faux document qui part de son
+   titre et de son message tels que la page les écrit. Rend ce qu'on lit ensuite — ou `null` si le script n'est plus là. */
+function merci(fichier, recherche) {
+  const H = lire(fichier);
+  const bloc = [...H.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]).find(b => b.includes("getElementById('titre')"));
+  const h1 = /<h1 id="titre">([\s\S]*?)<\/h1>/.exec(H), msg = /<p class="message" id="message">([\s\S]*?)<\/p>/.exec(H);
+  if (!bloc || !h1 || !msg) return null;
+  /* le texte tel qu'un navigateur l'affiche : les balises EN LIGNE (strong, span) ne séparent rien — `texte`, qui les remplace
+     par une espace, lirait « TEAM OP . » */
+  const affiche = h => String(h).replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&#39;/g, '\'').replace(/\s+/g, ' ').trim();
+  const el = { titre: { textContent: h1[1], innerHTML: h1[1] }, message: { textContent: affiche(msg[1]), innerHTML: msg[1] } };
+  new Function('location', 'document', 'URLSearchParams', bloc)({ search: recherche }, { getElementById: id => el[id] || null }, URLSearchParams);
+  return { titre: String(el.titre.textContent).trim(), message: affiche(el.message.innerHTML) };
+}
 
 (async () => {
   console.log('\n── 839 · pas de paiement sans compte ──');
@@ -423,11 +437,17 @@ globalThis.fetch = async function (url, opts) {
       'premium-banc': { nom: 'Camille Premium', t: 'banc-prem-t4', email: 'camille@entreprise-banc.fr', formule: 'premium', quantite: 1, ts: 2, par: 'banc', origine: 'banc' },
       'premium-banc-ancien': { nom: 'Camille Premium', t: 'banc-prem-t4', email: 'camille@entreprise-banc.fr', formule: 'pro', quantite: 1, ts: 1, par: 'banc', origine: 'banc' },
     }));
+    /* une période offerte EN COURS pour son entreprise Business Premium (code fictif) : payer pour elle ne prélève rien avant
+       la fin (Justin, 29 septembre 2026, « 2 oui ») — la fin d'essai part chez Stripe, et la page de remerciement le dit */
+    const jourIso = n => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+    const FIN_PERIODE = jourIso(30);
+    const DEBUT_PRELEV = new Date(Date.parse(FIN_PERIODE + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10);
+    fs.writeFileSync(path.join(data, 'promos-usages.json'), JSON.stringify({ 'ESSAI-BANC-839': { n: 1, equipes: { 'banc-prem-t4': { date: jourIso(-10), finLe: FIN_PERIODE, em: '' } } } }));
     const cfg = path.join(BANC, 'config.json');
     const vap = require(path.join(RACINE, 'server', 'node_modules', 'web-push')).generateVAPIDKeys();
     fs.writeFileSync(cfg, JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc',
       adminPassHash: crypto.createHash('sha256').update('mot-de-passe-du-banc-839').digest('hex'), comptes: { actif: true },
-      stripe: { secretKey: 'sk_de_banc_839' },
+      stripe: { secretKey: 'sk_de_banc_839' }, promos: [{ code: 'ESSAI-BANC-839', formule: 'premium', mois: 3 }],
       smtp: { host: '127.0.0.1', port: portSmtp, secure: false, user: 'x', pass: 'y', from: 'banc@teamop.fr' } }));
     const port = await portLibre();
     const enfant = spawn(process.execPath, ['--require', PRECHARGE, path.join(RACINE, 'server', 'index.js')], {
@@ -545,6 +565,10 @@ globalThis.fetch = async function (url, opts) {
           const sienne = await payerAvec('banc-camille-t1');
           v('⛔ « B » — l\'appareil est relié à SON entreprise : le paiement s\'ouvre, la référence est gravée sur l\'abonnement',
             [sienne.s.length, sienne.envoye.get('subscription_data[metadata][espace]'), sienne.q.window.location.href], [1, 'banc-camille-t1', 'https://checkout.stripe.com/c/pay/banc-839']);
+          const essaiDe = x => [x.envoye.get('subscription_data[trial_end]'), x.envoye.get('success_url')];
+          const IMMEDIAT = [null, 'https://teamop.fr/merci.html'];
+          const DIFFERE = [String(Date.parse(DEBUT_PRELEV + 'T00:00:00Z') / 1000), 'https://teamop.fr/merci.html?debut=' + DEBUT_PRELEV];
+          v('   son entreprise n\'a pas de période offerte : facturation immédiate, retour d\'origine', essaiDe(sienne), IMMEDIAT);
           /* une entreprise SANS adresse chez TEAM OP (espaces ouverts par la Tour) : aucun compte ne prouve être le sien — le
              refus doit le DIRE, pas envoyer le client chercher une adresse qui n'existe pas (`gardien`) */
           const sansAdr = await payerAvec('banc-sansadr-t3');
@@ -554,6 +578,7 @@ globalThis.fetch = async function (url, opts) {
           const inconnue = await payerAvec('banc-inconnu-t9', 'premium');
           v('   une référence inconnue de l\'annuaire : le paiement s\'ouvre SANS référence (rattaché à l\'adresse du compte, à personne d\'autre)',
             [inconnue.s.length, inconnue.envoye.get('subscription_data[metadata][espace]'), inconnue.envoye.get('customer_email')], [1, null, 'camille@entreprise-banc.fr']);
+          v('   … et sans période à différer : son adresse porte DEUX entreprises, on ne choisit pas pour elle', essaiDe(inconnue), IMMEDIAT);
           /* ⛔ LE TARIF (28 septembre 2026, nuit) : seulement ceux de la page — et LE CLIENT CHOISIT LEQUEL (Justin, 29 septembre
              2026 : « ils choisissent le tarif qu'ils veulent »). Une nuit, la route a refusé un tarif sous la formule de la fiche
              (`tarif_formule`) : sa fiche Business Premium ne l'empêche plus de payer Business ou Pro, et c'est la formule SERVIE
@@ -570,12 +595,30 @@ globalThis.fetch = async function (url, opts) {
             const sansRef = await payerAvec(null, 'business');
             v('   sans référence (appareil qui n\'a jamais ouvert l\'application) : le paiement s\'ouvre, rien n\'est gravé (il suit l\'adresse du compte)',
               [sansRef.s.length, sansRef.envoye.get('subscription_data[metadata][espace]'), sansRef.envoye.get('customer_email')], [1, null, 'camille@entreprise-banc.fr']);
+            /* ⛔ LA FACTURATION DIFFÉRÉE (Justin, 29 septembre 2026 : « oui » à « la facturation démarre à la fin du code ») : son
+               entreprise Business Premium est en période offerte — quelle que soit la formule choisie, Stripe reçoit la fin
+               d'essai (le lendemain de la fin de la période, 0 h UTC) et le retour dit ce jour à la page de remerciement */
+            v('⛔ son entreprise est en période offerte (fin dans 30 jours) : Stripe reçoit la fin d\'essai = le lendemain de la fin, 0 h UTC — Business, Pro, Business Premium',
+              [essaiDe(bas), essaiDe(desc), essaiDe(juste)], [DIFFERE, DIFFERE, DIFFERE]);
+            v('   sans référence : l\'adresse de Camille porte deux entreprises — on ne choisit pas, facturation immédiate', essaiDe(sansRef), IMMEDIAT);
+            /* la COUTURE : ce que le vrai serveur donne à Stripe comme adresse de retour, la VRAIE page de remerciement le lit */
+            const retour = new URL(bas.envoye.get('success_url'));
+            const apres = merci('merci.html', retour.search);
+            v('⛔ la couture : le retour du vrai serveur, lu par la vraie merci.html — « Abonnement confirmé », rien n\'est prélevé avant le jour dit',
+              [retour.origin + retour.pathname, apres && apres.titre, !!apres && apres.message.includes('rien n\'est prélevé avant le ' + DEBUT_PRELEV.split('-').reverse().join('/'))],
+              ['https://teamop.fr/merci.html', 'Abonnement confirmé', true]);
+            const sansEssai = merci('merci.html', new URL(sienne.envoye.get('success_url')).search);
+            v('   … et le retour d\'un paiement immédiat laisse la page telle qu\'elle est (« Paiement confirmé », la facture est partie)',
+              [sansEssai && sansEssai.titre, !!sansEssai && sansEssai.message.includes('Un e-mail de confirmation avec ta facture vient de t\'être envoyé.')], ['Paiement confirmé', true]);
             /* OP MESSAGES : la page le montre « Bientôt disponible », sans bouton — un appel direct passe (c'est un tarif de la
                page) ; il ne paie pas OP GESTION pour autant (la formule servie le dit : `test-842`) */
             const prixMsg = (/msgpro:\s*\{ mensuel: '(price_\w+)'/.exec(lire(PAGES_PAIEMENT[0])) || [])[1];
             const nMsg = stripeRecu().length;
             const msg = await fetch(B + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + rangement.get('teamop_portail_jeton') }, body: JSON.stringify({ price: prixMsg, quantity: 1, ref: 'banc-prem-t4' }) });
             v('   le tarif d\'OP MESSAGES (appel direct) est un tarif de la page : il passe', [!!prixMsg, msg.status, stripeRecu().length], [true, 200, nMsg + 1]);
+            const corpsMsg = new URLSearchParams((stripeRecu()[nMsg] || {}).corps || '');
+            v('⛔ … et OP MESSAGES ne se diffère pas : le code promo ne le couvre pas (facturation immédiate, même en période offerte)',
+              [corpsMsg.get('subscription_data[trial_end]'), corpsMsg.get('success_url')], IMMEDIAT);
             const n = stripeRecu().length;
             const inconnu = await fetch(B + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + rangement.get('teamop_portail_jeton') }, body: JSON.stringify({ price: 'price_1Banc', quantity: 1 }) });
             const ij = await inconnu.json().catch(() => ({}));
@@ -591,6 +634,31 @@ globalThis.fetch = async function (url, opts) {
       try { enfant.kill('SIGKILL'); } catch (e) {}
       if (ko && !vivant) console.log(journal.slice(0, 800));
     }
+  }
+
+  /* ── 5. la page de remerciement dit le jour du premier prélèvement — et rien d'autre ─────────────────────────── */
+  /* Justin, 29 septembre 2026 : « oui » à « la facturation démarre à la fin du code ». Payé pendant une période offerte, il
+     n'y a pas encore de facture : la page le dit, avec le jour que le serveur a donné à Stripe (`?debut=`). Une adresse de
+     retour gardée, retapée ou fabriquée (date impossible, passée, lointaine, balise) laisse le texte d'origine. */
+  console.log('5. la page de remerciement');
+  const iso = n => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+  const PAGES_MERCI = ['merci.html', 'apercu/merci.html'].filter(existe);
+  vrai('population : ' + PAGES_MERCI.length + ' pages de remerciement (racine et aperçu)', PAGES_MERCI.length === 2);
+  for (const f of PAGES_MERCI) {
+    const D30 = iso(30), fr30 = D30.split('-').reverse().join('/');
+    const oui = merci(f, '?debut=' + D30);
+    vrai(f + ' : le script de la page est trouvé et s\'exécute', !!oui);
+    if (!oui) continue;
+    v(f + ' : ?debut= dans 30 jours → « Abonnement confirmé », rien n\'est prélevé avant ce jour, la facture arrivera ce jour-là',
+      [oui.titre, oui.message], ['Abonnement confirmé', 'Merci et bienvenue dans TEAM OP. Ta période offerte continue : rien n\'est prélevé avant le ' + fr30 + ', et ta facture t\'arrivera par e-mail ce jour-là.']);
+    const DEFAUT = ['Paiement confirmé', 'Merci et bienvenue dans TEAM OP. Un e-mail de confirmation avec ta facture vient de t\'être envoyé.'];
+    const cas = { 'sans paramètre': '', 'date impossible (30 février)': '?debut=' + iso(400).slice(0, 4) + '-02-30', 'hier': '?debut=' + iso(-1),
+      'aujourd\'hui (0 h UTC est déjà passé)': '?debut=' + iso(0), 'dans plus de deux ans': '?debut=' + iso(800), 'mal formée': '?debut=2026-1-5',
+      'une balise': '?debut=%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E', 'une date suivie d\'autre chose': '?debut=' + D30 + '%3Cb%3E' };
+    const faux = Object.keys(cas).filter(k => { const r = merci(f, cas[k]); return !r || r.titre !== DEFAUT[0] || r.message !== DEFAUT[1]; });
+    v('⛔ ' + f + ' : ' + Object.keys(cas).length + ' adresses sans jour valable laissent le texte d\'origine', faux, []);
+    const autre = merci(f, '?x=1&debut=' + D30);
+    v('   un autre paramètre avant ne gêne pas', autre && autre.titre, 'Abonnement confirmé');
   }
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

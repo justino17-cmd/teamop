@@ -693,8 +693,8 @@ app.post('/api/stripe/checkout', async (req, res) => {
        ⚠️ l'identifiant tel que l'annuaire le RANGE, espaces compris : c'est ainsi qu'`espacesDeRef` et `espacePaye()`
        le comparent — le « nettoyer » ici graverait une valeur qu'`espacePaye()` ne reconnaîtrait plus (`gardien`). */
     const identite = x => { const t = espaceT(x); return t.trim() ? { cle: 't:' + t.toLowerCase(), val: t } : { cle: 's:' + String(x.slug).toLowerCase(), val: x.slug }; };
+    let visees = [];   // l'entreprise de la référence, vérifiée ci-dessous — la fin d'essai la relit plus bas
     if (typeof ref === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(ref)) {
-      let visees = [];
       try { visees = espacesDeRef(ref); } catch (e) { visees = []; }
       if (visees.length) {
         if (new Set(visees.map(x => identite(x).cle)).size !== 1) return res.status(403).json({ error: 'reference_ambigue' });
@@ -727,7 +727,11 @@ app.post('/api/stripe/checkout', async (req, res) => {
     p.append('line_items[0][price]', String(price));
     p.append('line_items[0][quantity]', String(qty));
     p.append('allow_promotion_codes', 'true');
-    p.append('success_url', 'https://teamop.fr/merci.html');
+    /* la facturation démarre à la fin d'une période offerte en cours (`finEssaiPeriode`) — pour OP GESTION seulement, le
+       code ne couvre pas OP MESSAGES ; la page de remerciement dit alors le jour du premier prélèvement (`?debut=`) */
+    const essai = rangDuPrix >= 0 ? finEssaiPeriode(visees, payeurMin) : null;
+    if (essai) p.append('subscription_data[trial_end]', String(essai.fin));
+    p.append('success_url', 'https://teamop.fr/merci.html' + (essai ? '?debut=' + essai.debut : ''));
     p.append('cancel_url', 'https://teamop.fr/recap-abonnement.html');
     p.append('customer_email', payeur);
     p.append('metadata[compte]', payeur);
@@ -2419,6 +2423,46 @@ function periodeOfferte(e) {
     }
   } catch (err) {}
   return null;
+}
+/* ⛔ PAYER PENDANT UNE PÉRIODE OFFERTE NE FACTURE RIEN AVANT SA FIN (Justin, 29 septembre 2026 : « oui » à « la
+   facturation démarre à la fin du code »). Sans ça, le client qui choisit sa formule dans le courriel des sept jours
+   payait dès le jour même des semaines que son code couvrait encore. Rend la fin de l'essai à donner à Stripe
+   (`subscription_data[trial_end]`, en secondes) et le jour du premier prélèvement — ou `null`, et rien ne change
+   (facturation immédiate, comme avant) :
+   · l'entreprise est celle de la référence vérifiée par la route (`visees`, déjà réduites à UNE identité), sinon la
+     SEULE entreprise de l'adresse du compte (une adresse = une entreprise ; deux, on ne choisit pas pour le client) ;
+   · la période court jusqu'à `finLe` INCLUS, en UTC, comme `periodeOfferte` : le premier prélèvement a lieu le
+     lendemain à 0 h UTC, à l'instant exact où l'application cesse de servir la formule du code ;
+   · Stripe refuse une fin d'essai à moins de 48 h (page de paiement) ou à plus de deux ans : hors de ces bornes, `null`
+     plutôt qu'un paiement refusé — à deux jours de la fin, le client paie tout de suite, comme avant ;
+   · une entreprise fermée, un code en attente (pas encore de période), une entrée sans identifiant : `null`.
+   L'abonnement naît en essai (`trialing`), qu'`espacePaye` compte déjà comme vivant : pendant la période, c'est elle qui
+   sert (elle passe AVANT Stripe) ; ensuite, ce qui est payé. */
+function finEssaiPeriode(visees, adresse, maintenant) {
+  try {
+    let e = (visees || [])[0] || null;
+    if (!e && adresse) {
+      const parT = new Map();
+      for (const sl of Object.keys(espacesReg || {})) {
+        const x = espacesReg[sl];
+        if (!x || typeof x.email !== 'string' || x.email.trim().toLowerCase() !== adresse) continue;
+        const t = String(espaceT(x) || '').trim();
+        if (!parT.has(t)) parT.set(t, Object.assign({ slug: sl }, x));
+      }
+      if (parT.size !== 1) return null;   // aucune, ou deux entreprises à la même adresse : on ne choisit pas
+      e = [...parT.values()][0];
+    }
+    if (!e) return null;
+    const t = String(espaceT(e) || '').trim();
+    if (!t || espaceFerme(t)) return null;
+    const po = periodeOfferte(Object.assign({}, e, { t }));
+    const m = po && /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(po.finLe));
+    if (!m) return null;
+    const debutMs = Date.UTC(+m[1], +m[2] - 1, +m[3] + 1);
+    const maint = Number.isFinite(maintenant) ? maintenant : Date.now();
+    if (debutMs < maint + 48 * 3600000 + 10 * 60000 || debutMs > maint + 730 * 86400000) return null;
+    return { fin: Math.floor(debutMs / 1000), debut: new Date(debutMs).toISOString().slice(0, 10), finLe: po.finLe, t };
+  } catch (err) { return null; }
 }
 /* ── LES ABONNEMENTS STRIPE D'UNE ENTREPRISE ─────────────────────────────────────────────────────────────────────
    Sortie d'`espacePaye` (29 septembre 2026) pour que la fiche « Gratuit » y passe aussi : rend le premier abonnement
@@ -8974,8 +9018,12 @@ app.post('/api/promo/valider', (req, res) => {
    (`gardien`) : on dit « un abonnement par utilisateur, dans la formule de votre choix ». */
 const PRIX_ABO_MOIS = { pro: 15, business: 25, premium: 50 };   // € TTC, par utilisateur et par mois
 const MOIS_OFFERTS_ANNEE = 2;                                   // à l'année : 12 − 2 mois
-function rappelEcheanceMail(code, finLe, f, n) {
+function rappelEcheanceMail(code, finLe, f, n, prelev) {
   const finFr = String(finLe).split('-').reverse().join('/');
+  /* ⛔ `prelev` ({ limite, debut }) seulement quand c'est VRAI pour ce client — `rappelsEcheances` le décide avec la règle même de la
+     page de paiement (`finEssaiPeriode`). Sinon rien : on ne promet pas une facturation différée qu'on ne ferait pas. */
+  const prelevTxt = prelev ? 'En vous abonnant au plus tard le ' + prelev.limite + ', rien n\'est prélevé avant le ' + prelev.debut + ' : votre période offerte va jusqu\'au bout.' : '';
+  const prelevHtml = prelev ? '<br>💳 En vous abonnant au plus tard le <b>' + prelev.limite + '</b>, rien n\'est prélevé avant le <b>' + prelev.debut + '</b> : votre période offerte va jusqu\'au bout.' : '';
   if (!PRIX_ABO_MOIS[f]) f = '';   // formule inconnue : aucun prix
   const lbl = FORMULE_LBL2[f] || f;
   const prix = PRIX_ABO_MOIS[f] || 0, an = prix * (12 - MOIS_OFFERTS_ANNEE);
@@ -9009,7 +9057,7 @@ function rappelEcheanceMail(code, finLe, f, n) {
       + eur(PRIX_ABO_MOIS[g]) + ' TTC par mois et par utilisateur' + (n ? '<span class="m-muet" style="color:#8593AB"> · ' + pl(n, 'utilisateur') + ' : ' + eur(n * PRIX_ABO_MOIS[g]) + '</span>' : '')).join('');
   return {
     subject: '⏳ Votre période offerte se termine le ' + finFr + ' — TEAM OP',
-    text: 'Bonjour,\n\nla période offerte par votre code « ' + code + ' » se termine le ' + finFr + '.\n\n' + devisTxt
+    text: 'Bonjour,\n\nla période offerte par votre code « ' + code + ' » se termine le ' + finFr + '.\n\n' + devisTxt + (prelevTxt ? '\n\n' + prelevTxt : '')
       + '\n\nContinuer : ' + lien + '\n(connectez-vous avec l\'adresse qui reçoit ce message : c\'est elle qui est rattachée à votre espace)'
       + '\n\n' + autresTxt
       + '\n\nSans abonnement, après le ' + finFr + ', l\'application repassera en formule Gratuit — vos données ne bougent pas, quoi qu\'il arrive.'
@@ -9017,7 +9065,7 @@ function rappelEcheanceMail(code, finLe, f, n) {
     html: mailTeamOP({ chip: 'Échéance', chipBg: '#FFF6EE', chipColor: '#B26E12', titre: 'Plus que quelques jours ⏳',
       corpsHtml: 'Bonjour,<br>la période offerte par votre code « <b>' + code + '</b> » se termine le <b>' + finFr + '</b>. Pour continuer sans coupure, '
         + (f ? 'gardez votre formule ou choisissez-en une autre' : 'choisissez votre formule') + (n ? ' — calculé sur votre équipe d\'aujourd\'hui :' : ' :'),
-      blocHtml: MAIL_BLOCS.cadre(devisHtml, '#EEF7F2', '#CFE6D8', '#17233B') + '<div style="height:12px;line-height:12px;font-size:0">&nbsp;</div>'
+      blocHtml: MAIL_BLOCS.cadre(devisHtml + prelevHtml, '#EEF7F2', '#CFE6D8', '#17233B') + '<div style="height:12px;line-height:12px;font-size:0">&nbsp;</div>'
         + MAIL_BLOCS.cadre(autresHtml) + '<div style="height:12px;line-height:12px;font-size:0">&nbsp;</div>' + MAIL_BLOCS.echeance(finFr)
         + '<div class="m-muet" style="font-size:12px;line-height:18px;color:#8593AB;padding-top:10px">Pour payer, connectez-vous avec l\'adresse qui reçoit ce message : c\'est elle qui est rattachée à votre espace. Déjà abonné ? Rien à faire : votre abonnement prend le relais.</div>',
       boutonTxt: (n && f) ? 'Continuer avec ' + pl(n, 'abonnement') : 'Choisir mon abonnement', boutonUrl: lien,
@@ -9052,9 +9100,20 @@ function rappelsEcheances() {
            inventé pour « sa » formule, les trois sont proposées. */
         const f = formulePromo(e, code);
         const n = (comptesReg[t] && comptesReg[t].c) ? Object.keys(comptesReg[t].c).length : 0;
+        /* ⛔ « RIEN N'EST PRÉLEVÉ AVANT LA FIN » ne s'écrit que si c'est VRAI pour ce client — la règle même de la page de
+           paiement (`finEssaiPeriode`) : son adresse désigne cette entreprise et elle SEULE (deux entreprises à une adresse,
+           et le paiement sans référence ne choisit pas : facturation immédiate), avec cette période-là. Stripe exige 48 h
+           d'essai : la page le fait jusqu'à l'avant-veille de la fin, 23 h 50 UTC. La limite annoncée est donc
+           l'avant-veille — en France ce jour finit à 22 h ou 23 h UTC, avant la limite réelle — et seulement si elle est
+           encore à venir (un rappel parti tard ne promet pas un délai passé). */
+        const es = finEssaiPeriode([], String(dest).trim().toLowerCase());
+        const mL = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(eq.finLe));
+        const limite = mL ? new Date(Date.UTC(+mL[1], +mL[2] - 1, +mL[3] - 2)).toISOString().slice(0, 10) : '';
+        const prelev = es && es.t === String(t).trim() && es.finLe === eq.finLe && limite > auj
+          ? { limite: limite.slice(8, 10) + '/' + limite.slice(5, 7), debut: es.debut.split('-').reverse().join('/') } : null;
         const avant = {}; for (const s of noms) { avant[s] = espacesReg[s].rappelFin; espacesReg[s].rappelFin = eq.finLe; }
         espacesEcrire();
-        const m = rappelEcheanceMail(code, eq.finLe, f, n);
+        const m = rappelEcheanceMail(code, eq.finLe, f, n, prelev);
         mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest, subject: m.subject, text: m.text, html: m.html })
           /* Un destinataire REFUSÉ pendant que la copie cachée passe ne fait pas échouer l'envoi (`gardien`) : le journal
              ne dit donc pas « envoyé » pour lui. Pas de nouvel essai — un refus d'adresse ne change pas en six heures, et
