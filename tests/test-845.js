@@ -77,6 +77,8 @@ console.log('\n── 845 · carte refusée = impayé : l\'accès payant bloqué
     y: ['premium', [['past_due', 'premium', 1]]],
     /* ── les cas rejoués par la relecture adverse (29 septembre 2026, `gardien`) ── */
     nouv: ['gratuit', []],                                                     // son nom d'accès était celui d'une ANCIENNE entreprise en impayé
+    nouvb: ['business', [['past_due', 'business', 1]]],                       // la même, avec SON impayé à elle (gravé à son identifiant)
+    nomg: ['business', [['past_due', 'business', 1]]],                        // son impayé gravé à SON nom d'accès (anciennes pages), à SON adresse
     paie: ['pro', [['active', 'pro', 2], ['past_due', 'pro', 1]]],            // payée, un vieil abonnement refusé traîne (facture ouverte)
     paieu: ['pro', [['active', 'pro', 1], ['unpaid', 'pro', 1]]],             // payée, un vieil unpaid sans facture ouverte
     unv: ['premium', [['unpaid', 'premium', 1]]],                              // unpaid sans facture ouverte (Stripe ne réessaie plus)
@@ -116,6 +118,14 @@ console.log('\n── 845 · carte refusée = impayé : l\'accès payant bloqué
     customer: { id: 'cus_ancienne', email: mail('ancienne') }, current_period_end: Math.floor(MAINT / 1000) + 20 * 86400,
     items: { data: [{ id: 'si_ancienne', quantity: 5, price: { id: P.premium, product: { name: 'OP GESTION' } } }] } });
   factures.sub_ancienne = { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('ancienne') } };
+  /* l'ancienne entreprise de « nouvb » : pareil, et rangée EN TÊTE de la liste — la page de paiement de « nouvb », bloquée par
+     son propre impayé, prendrait la première facture venue si l'ancienne comptait pour elle (mutation I36) */
+  subs.unshift({ id: 'sub_ancienneb', object: 'subscription', status: 'past_due', created: cree, metadata: { espace: 'nouvb', compte: mail('ancienneb') },
+    customer: { id: 'cus_ancienneb', email: mail('ancienneb') }, current_period_end: Math.floor(MAINT / 1000) + 20 * 86400,
+    items: { data: [{ id: 'si_ancienneb', quantity: 5, price: { id: P.premium, product: { name: 'OP GESTION' } } }] } });
+  factures.sub_ancienneb = { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('ancienneb') } };
+  /* « nomg » : son abonnement souscrit par une ANCIENNE page, gravé à son nom d'accès et à son adresse */
+  subs.find(x => x.id === 'sub_nomg_0').metadata.espace = 'nomg';
   /* les unpaid sans facture ouverte */
   factures.sub_paieu_1 = { latest_invoice: { object: 'invoice', status: 'void', hosted_invoice_url: FACT('paieu-ancienne') }, ouvertes: [] };
   factures.sub_unv_0 = { latest_invoice: { object: 'invoice', status: 'void', hosted_invoice_url: FACT('unv-ancienne') }, ouvertes: [] };
@@ -193,8 +203,11 @@ globalThis.fetch = async function (url, opts) {
   for (let i = 0; i < 100 && !vivant; i++) { try { vivant = (await fetch(B + '/health')).ok; } catch (e) {} if (!vivant) await dormir(100); }
   vrai('le vrai serveur démarre, isolé (portail allumé, Stripe simulé relu à chaque appel)', vivant);
   if (!vivant) { console.log(journal.slice(0, 1500)); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); }
-  const appel = async (route, corps, jeton, methode) => { const r = await fetch(B + route, { method: methode || (corps === undefined ? 'GET' : 'POST'),
-      headers: Object.assign({ 'Content-Type': 'application/json' }, jeton ? { Authorization: 'Bearer ' + jeton } : {}), body: corps === undefined ? undefined : JSON.stringify(corps) });
+  /* `ip` : le poste d'où part l'appel (derrière nginx, le serveur lit X-Forwarded-For). Chaque entreprise paie depuis son
+     bureau : sans ça, les vingt-quatre paiements du § 5 partent d'une seule adresse et l'anti-abus (20 par minute sur
+     /api/stripe) refuse les derniers — ce que ce banc ne cherche pas à mesurer. */
+  const appel = async (route, corps, jeton, methode, ip) => { const r = await fetch(B + route, { method: methode || (corps === undefined ? 'GET' : 'POST'),
+      headers: Object.assign({ 'Content-Type': 'application/json' }, jeton ? { Authorization: 'Bearer ' + jeton } : {}, ip ? { 'X-Forwarded-For': ip } : {}), body: corps === undefined ? undefined : JSON.stringify(corps) });
     let j = null; try { j = await r.json(); } catch (e) {} return { s: r.status, j: j || {} }; };
   const etat = async slug => (await appel('/api/espaces/etat', { t: espaces[slug].t })).j;
   /* la forme B : pas de formule ni de places ; et ⛔ la route est PUBLIQUE (qui connaît `t`) : ni le mot « impayé », ni Stripe */
@@ -224,6 +237,8 @@ globalThis.fetch = async function (url, opts) {
     /* ── les cas de la relecture adverse ── */
     vrai('⛔ un nom d\'accès REPRIS : l\'impayé de l\'ancienne entreprise, gravé à ce nom, ne bloque pas la nouvelle (un impayé ne se rattache qu\'à l\'identifiant)',
       E.nouv.paye === true && E.nouv.formule === 'gratuit' && E.nouv.suspendu === false);
+    vrai('   … et une entreprise au nom repris qui a SON impayé est bloquée par le sien', FORME_B(E.nouvb));
+    vrai('⛔ un impayé gravé à SON nom d\'accès (anciennes pages) et à SON adresse est bien le sien : bloquée (sinon l\'accès payant restait ouvert)', FORME_B(E.nomg));
     vrai('⛔ payée, avec un vieil abonnement refusé : servie (ses places payées), pas bloquée', E.paie.paye === true && E.paie.formule === 'pro' && E.paie.suspendu === false
       && E.paieu.paye === true && E.paieu.suspendu === false);
     vrai('   unpaid sans facture ouverte : bloquée comme les autres', FORME_B(E.unv));
@@ -300,7 +315,7 @@ globalThis.fetch = async function (url, opts) {
     const L = (await appel('/api/monitor/espaces/liste', undefined, PATRON)).j.espaces || [];
     const ligne = slug => L.find(x => x.slug === slug) || {};
     v('⛔ la liste de la Tour : `impaye` pour les bloquées (past_due, unpaid, fiche Gratuit, réglée à la main), pas pour les autres',
-      Object.keys(ENT).filter(s => ligne(s).impaye).sort(), ['duoa', 'gra', 'imp', 'man', 'mgr', 'mog', 'pan', 'partb', 'regl', 'sans', 'unp', 'unv', 'y']);
+      Object.keys(ENT).filter(s => ligne(s).impaye).sort(), ['duoa', 'gra', 'imp', 'man', 'mgr', 'mog', 'nomg', 'nouvb', 'pan', 'partb', 'regl', 'sans', 'unp', 'unv', 'y']);
     v('   `impayeStripe` : toutes sauf la réglée à la main (la Tour ne la montre qu\'une fois : sa ligne Stripe, ou celle-ci)',
       Object.keys(ENT).filter(s => ligne(s).impaye && !ligne(s).impayeStripe), ['man']);
     v('   `impayesPartiels` : 1 pour l\'entreprise au payé ET au refusé, 0 pour son témoin', [ligne('mix').impayesPartiels, ligne('deux').impayesPartiels], [1, 0]);
@@ -315,7 +330,8 @@ globalThis.fetch = async function (url, opts) {
     vrai('   (témoin) une entreprise payée : son état reste celui du dossier', Md.ok === true && Md.dossier && Md.dossier.planStatus === 'actif');
 
     console.log('\n5. La page de paiement : un impayé se RÈGLE, il ne se rachète pas');
-    const payer = (slug, corps) => appel('/api/stripe/checkout', Object.assign({ price: P.premium, quantity: 1 }, corps || {}), jetons[slug]);
+    const payer = (slug, corps) => appel('/api/stripe/checkout', Object.assign({ price: P.premium, quantity: 1 }, corps || {}), jetons[slug], undefined,
+      '10.8.45.' + (1 + Object.keys(ENT).indexOf(slug)));
     const n0 = sessions().length;
     let r = await payer('imp', { price: P.business, ref: espaces.imp.t });
     vrai('⛔ refusée (past_due), avec sa référence : la FACTURE EN ATTENTE (celle de Stripe, relue), et AUCUN abonnement créé chez Stripe',
@@ -346,7 +362,12 @@ globalThis.fetch = async function (url, opts) {
     const neuf = async (slug, corps) => { const n = sessions().length; const q = await payer(slug, corps);
       return q.s === 200 && q.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && !q.j.facture && sessions().length === n + 1; };
     vrai('⛔ le nom d\'accès repris : la nouvelle entreprise paie normalement — JAMAIS la facture de l\'ancienne (nom, adresse, montant d\'une autre)',
-      await neuf('nouv', { price: P.pro, ref: espaces.nouv.t }) && !appelsStripe().some(x => /sub_ancienne/.test(x.u)));
+      await neuf('nouv', { price: P.pro, ref: espaces.nouv.t }) && !appelsStripe().some(x => /sub_ancienne\b/.test(x.u)));
+    r = await payer('nouvb', { price: P.business, ref: espaces.nouvb.t });
+    vrai('⛔ le nom repris, bloquée par SON impayé : SA facture — jamais celle de l\'ancienne entreprise, rangée avant elle dans la liste',
+      r.s === 200 && r.j.url === FACT('nouvb') && r.j.facture === true && !appelsStripe().some(x => /sub_ancienneb/.test(x.u)));
+    r = await payer('nomg', { price: P.business, ref: espaces.nomg.t });
+    vrai('⛔ l\'impayé gravé à son nom d\'accès et à son adresse : SA facture, pas un second abonnement', r.s === 200 && r.j.url === FACT('nomg') && r.j.facture === true);
     vrai('⛔ payée avec un vieil abonnement refusé : elle ACHÈTE ses places de plus — pas renvoyée vers la vieille facture', await neuf('paie', { price: P.pro, ref: espaces.paie.t }));
     vrai('⛔ payée avec un vieil unpaid sans facture : pas de 409 sans issue, le paiement normal', await neuf('paieu', { price: P.pro, ref: espaces.paieu.t }));
     vrai('⛔ bloquée par un unpaid sans facture ouverte : le paiement normal (Stripe ne réessaie plus : aucun double prélèvement)', await neuf('unv', { ref: espaces.unv.t }));

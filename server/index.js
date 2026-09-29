@@ -2718,7 +2718,11 @@ function espaceStripeDans(e, liste, statuts, tSeul) {
   const monT = String(espaceT(e) || '').toLowerCase();
   const tDe = r => { const x = espacesReg[r]; return String((x && espaceT(x)) || r).toLowerCase(); };
   const refDe = sb => String((sb.metadata && sb.metadata.espace) || '').toLowerCase();
-  const aMoi = sb => { const m = refDe(sb); return !!m && (refs.includes(m) || (!tSeul && !!monT && tDe(m) === monT)); };
+  /* ⛔ UN IMPAYÉ GRAVÉ AU NOM D'ACCÈS (d'anciennes pages envoyaient le nom, pas l'identifiant) n'est à elle que s'il porte
+     AUSSI son adresse. Le nom seul ne prouve rien — libéré puis repris, il désigne une autre entreprise (`gardien`, G1) ;
+     mais l'ignorer tout à fait laissait ouvert l'accès payant d'une entreprise dont l'ancien abonnement, gravé à SON nom et
+     à SON adresse, était refusé (mutation I36, 29 septembre 2026 au soir). Le payé, lui, suit la règle d'avant. */
+  const aMoi = sb => { const m = refDe(sb); return !!m && (refs.includes(m) || (!!monT && tDe(m) === monT && (!tSeul || parMail(sb)))); };
   const parMail = sb => !!mel && sb.customer && typeof sb.customer === 'object' && String(sb.customer.email || '').trim().toLowerCase() === mel;
   /* ⛔ LE VERDICT « PAYÉ » NE REGARDE PAS LA RÉFÉRENCE D'UN ABONNEMENT TROUVÉ PAR L'ADRESSE. Essayé le 28 septembre
      au soir (écarter celui « gravé pour une autre entreprise de l'annuaire ») : `gardien` l'a rejoué sur deux cas
