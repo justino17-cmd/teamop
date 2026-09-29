@@ -9116,7 +9116,7 @@ function rappelAbonneMail(code, finLe, ab) {
     text: 'Bonjour,\n\nla période offerte par votre code « ' + code + ' » se termine le ' + finFr + '.\n' + suite + (quand ? '\n' + quand : '')
       + '\n\nUne question : contact@teamop.fr\n\n— TEAM OP · teamop.fr',
     html: mailTeamOP({ chip: 'Abonnement', chipBg: '#EEF7F2', chipColor: '#1E7A4E', titre: 'Votre abonnement prend le relais' + (ab.impaye || ab.resilie ? '' : ' ✅'),
-      corpsHtml: 'Bonjour,<br>la période offerte par votre code « <b>' + code + '</b> » se termine le <b>' + finFr + '</b>. ' + suite,
+      corpsHtml: 'Bonjour,<br>la période offerte par votre code « <b>' + code + '</b> » se termine le <b>' + finFr + '</b>. ' + suite.replace(/(\d{2}\/\d{2}\/\d{4})/g, '<b>$1</b>'),
       blocHtml: quand ? MAIL_BLOCS.cadre('💳 ' + quand.replace(/le (\d{2}\/\d{2}\/\d{4})/g, 'le <b>$1</b>'), '#EEF7F2', '#CFE6D8', '#17233B') : '',
       boutonTxt: 'Ouvrir mon application', boutonUrl: 'https://teamop.fr/app.html' })
   };

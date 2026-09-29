@@ -78,8 +78,10 @@ MUT = [
   ('N4', S, 'J-7 : le courriel habituel (lien de paiement) à une entreprise déjà abonnée',
    "const m = ab.etat === 'abonne' ? rappelAbonneMail(code, eq.finLe, ab) : rappelEcheanceMail(code, eq.finLe, f, n, prelev);",
    "const m = rappelEcheanceMail(code, eq.finLe, f, n, prelev);", ['844']),
-  ('N5', S, 'J-7 : la promesse même quand Stripe est illisible (au dernier moment)',
-   "const prelev = ab.etat === 'aucun' && es && ", "const prelev = es && ", ['844']),
+  # ⚠️ N5 (« la promesse même quand Stripe est illisible » : `const prelev = es && …` sans `ab.etat === 'aucun'`) est RETIRÉE —
+  # ÉQUIVALENTE depuis le report du rappel (seconde relecture de `gardien`) : Stripe illisible avec un délai encore à venir,
+  # le rappel attend (il n'atteint pas `prelev`) ; au dernier moment, `limite > auj` est faux dans la même condition ; abonnée,
+  # l'autre courriel ne lit pas `prelev`. La condition reste, en défense, pour le jour où le report changerait.
   # ── la seconde relecture de `gardien` : la décision du lendemain de la fin ──
   ('N6', S, 'J-7 : Stripe illisible ou liste périmée, on décide quand même',
    "if (!espStripeCache.data || Date.now() - espStripeCache.ts > STRIPE_CACHE_MS) return { etat: 'inconnu' };", "if (false) return { etat: 'inconnu' };", ['844']),

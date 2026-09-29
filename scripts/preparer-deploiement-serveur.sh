@@ -47,7 +47,10 @@ for f in "${SUITES[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
 # ⚠️ Les pages que ces suites font parler au serveur partent avec lui : `test-797`, `test-839` et `test-840` lisent la
 #    page de paiement (ses refus, sa grille de prix). Restée celle de `main`, elle ne saurait pas DIRE le refus que le
 #    serveur neuf rend — et les bancs tomberaient ici, sur un serveur juste (relecture adverse, 28 septembre 2026, nuit).
-PAGES_LIEES=(recap-abonnement.html apercu/recap-abonnement.html)
+#    ⚠️ Et la page de remerciement (29 septembre 2026, « 2 oui ») : `test-839` exécute la VRAIE `merci.html` au retour
+#    de Stripe (« Abonnement confirmé — rien n'est prélevé avant le … ») ; restée celle de `main`, elle ne lit pas
+#    `?debut=` et la couture tombe (relevé par `relecteur`).
+PAGES_LIEES=(recap-abonnement.html apercu/recap-abonnement.html merci.html apercu/merci.html)
 for f in "${PAGES_LIEES[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
 
 # 2. Les deux workflows de la branche — la ligne des bancs lance la LISTE, pas tout (voir
