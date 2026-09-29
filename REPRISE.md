@@ -13,6 +13,117 @@ de ligne du tout.
 
 ---
 
+# ⏳ 29 SEPTEMBRE 2026, APRÈS-MIDI — « 2 OUI » : LE PREMIER PRÉLÈVEMENT À LA FIN DU CODE PROMO — PRÊT, ATTEND « POUSSE »
+
+Justin, aux cinq points du matin : **« Pousse / 2 oui / 3 je le ferais se soir la je peux pas / 4 déjà fait depuis
+longtemps / 5 rien ne traîne »** ; puis **« Encore à faire avant de te demander « pousse » : Fais les trois »** (traiter ce
+que les relectures remontent, relancer la suite complète, finir la mise en ligne n° 2) **« Et si la carte est refusée,
+c'est considéré comme un [impayé] »**.
+· **1** → ✅ la mise en ligne du matin (`3785a0f`) est **EN SERVICE**, vérifiée (section suivante) ;
+· **2** → payer pendant une période offerte ne prélève plus rien avant sa fin : **fait, relu trois fois, éprouvé, prêt**
+  (ci-dessous) — il attend SA phrase (« pousse ») : un push de `server/` sur `main` déploie le VPS ;
+· **3** → Search Console (« Inspection de l'URL » → `https://teamop.fr/` → « Demander une indexation », pour le logo) :
+  **Justin le fait ce soir** ;
+· **4** → l'ancienne paire de clés du coffre IONOS : **supprimée depuis longtemps** (#132 clos) ;
+· **5** → **aucun** code de réduction Stripe à 100 % ne traîne ;
+· **carte refusée** → **c'est un impayé**, et le circuit existe déjà (relu dans le code) : à la fin de la période, Stripe
+  prélève ; refusée, la facture reste ouverte avec une tentative (`f.attempted && !f.paid`), la veille des 15 minutes en
+  fait un problème « Paiement en échec — … » dans la Tour (`stripeAlerteImpaye`), l'abonnement passe `past_due` (« impayé »
+  dans Abonnements, compté comme payé pendant les nouvelles tentatives de Stripe) ; Justin suspend depuis la Tour (sursis de
+  sept jours, puis les catégories payantes grisent, rien n'est perdu). **Rien à écrire.**
+
+✅ **Ce qui est fait** (branche : `df5f329` … `a0db61d`)
+· **`finEssaiPeriode`** (`server/index.js`) : la fin d'essai à donner à Stripe = **le lendemain de la fin de la période,
+  0 h UTC** — l'instant où l'application cesse de servir la formule du code. Pour l'entreprise de la référence vérifiée
+  (verrou « B ») ou, sans référence, celle de l'adresse du compte — et, ⛔ **dans les deux cas, l'adresse du compte doit la
+  désigner SEULE** (`gardien`). Rien (facturation immédiate, comme avant) pour OP MESSAGES, une entreprise fermée, une entrée
+  sans identifiant, ⛔ **un abonnement réglé à la main dans la Tour** (`aboStatut`), ni hors des bornes de Stripe (**48 h**
+  + 10 min de marge, **deux ans**).
+· **`/api/stripe/checkout`** : `subscription_data[trial_end]` et le retour `merci.html?debut=AAAA-MM-JJ` ; Stripe montre
+  lui-même l'essai et la date sur sa page.
+· **`merci.html`** (et son aperçu) : « **Abonnement confirmé** — ta période offerte continue : rien n'est prélevé avant le
+  JJ/MM/AAAA ». Une date mal formée, impossible, passée ou lointaine laisse le texte d'origine.
+· **Courriel J-7, entreprise SANS abonnement** : « 💳 En vous abonnant au plus tard le JJ/MM, rien n'est prélevé avant le
+  JJ/MM/AAAA » — seulement quand c'est vrai ; la limite annoncée est l'**avant-veille** de la fin.
+· ⛔ **Courriel J-7, entreprise DÉJÀ ABONNÉE** (`gardien` : le courriel habituel l'invitait à payer une seconde fois —
+  un second abonnement, prélevé EN DOUBLE) : `rappelAbonneMail`, **sans aucun lien de paiement** — « Votre abonnement prend
+  le relais : vous n'avez rien à faire », avec le jour du premier prélèvement (en essai) ou la prochaine échéance ; en
+  impayé, « son dernier prélèvement n'a pas abouti : écrivez-nous » ; résiliée mais courant au-delà, « jusqu'au
+  JJ/MM/AAAA » (et le prélèvement d'avant, si elle est en essai), puis Gratuit.
+· ⛔⛔ **Qui est « abonnée » : ce qu'`espacePaye` décidera LE LENDEMAIN DE LA FIN** (seconde relecture de `gardien`) — les
+  mêmes règles (`espaceStripeDans`, sortie d'`espaceStripe` en fonction pure, et `formuleEtPlaces`) rejouées sur les SEULS
+  abonnements encore vivants ce jour-là. Décider sur l'état d'aujourd'hui disait « rien à faire » à des entreprises que
+  l'application repasserait en Gratuit : un abonnement résilié avant la fin — le sien, celui d'une AUTRE entreprise à la
+  même adresse qui la rendait « payée », ou celui qui faisait seul monter une fiche Gratuit.
+  · OP MESSAGES seul, fiche Gratuit que rien de lisible ne fait monter, résiliée avant la fin → le courriel habituel ;
+  · réglée à la main dans la Tour, ou fiche sans formule → le courriel habituel, **comme avant** (Stripe ne décide rien
+    pour elle), sans la promesse ;
+  · dates lues sur SES abonnements d'OP GESTION (ni OP MESSAGES trouvé le premier, ni l'entreprise voisine : abonnée alors,
+    sans date), au **jour de Paris** ; plusieurs : actif, puis en essai, puis en impayé ;
+  · ⛔ **Stripe illisible, ou sa liste périmée** (plus de cinq minutes — la dernière connue sert pendant une panne, un
+    paiement fait depuis n'y est pas) : le rappel **attend le passage suivant** (six heures), sans marque, tant que la
+    promesse aurait un délai ; ensuite il part, **SANS** elle.
+· **La boucle des rappels relit tout après l'attente de Stripe** (annuaire, période, adresse, réglage de la Tour) : une
+  entreprise supprimée ou réglée dans la Tour pendant ce temps attend le passage suivant ; et **une entreprise qui jette
+  n'arrête plus les autres**.
+· **Tour** : le revenu mensuel ne compte plus les abonnements en essai.
+
+⚠️ **Ce qu'il faut savoir**
+· **Un réglage Stripe à choisir** (Justin, tableau de bord Stripe : ce que Stripe fait « si toutes les nouvelles
+  tentatives échouent ») : **annuler l'abonnement** ou le **marquer impayé** → l'application repasse d'elle-même en Gratuit
+  à la fin des tentatives (`unpaid` et `canceled` ne comptent pas comme payés), sans le rappel quotidien de
+  l'administrateur (il vient de la suspension de la Tour) ; **le laisser en retard de paiement** → payée tant que Justin ne
+  suspend pas (l'alerte de la Tour l'y invite). Et, en filet, le **rappel de fin d'essai** de Stripe (Abonnements et
+  e-mails) : notre J-7 le fait, mais pas pour qui paie dans les sept derniers jours.
+· **Stripe en panne longtemps** : le rappel J-7 attend, puis part au plus tard l'avant-veille de la fin, sans promesse.
+· **À moins de deux jours de la fin** : Stripe refuse un essai si court → facturation immédiate (le courriel ne le promet
+  pas).
+· **Outre-mer à l'ouest** (Antilles, Guyane) : la limite du courriel tient en métropole ; là-bas, les dernières heures de
+  l'avant-veille facturent tout de suite.
+· **Réglée à la main dans la Tour** (limite d'AVANT, pas neuve) : le J-7 habituel l'invite à payer, mais un paiement Stripe
+  ne débloque rien tant que la Tour n'est pas remise sur « auto » (`espacePaye` lit la Tour avant Stripe). À trancher un
+  jour (ne rien envoyer et prévenir TEAM OP ?) — `gardien` le propose ; ce n'est pas le report qui l'a créé.
+· **Un appareil où l'application est installée, réseau lent (> 2 s)** : `merci.html` est dans le cache du service worker
+  (cherchée fraîche d'abord) — l'ancien texte s'afficherait. Se range à la prochaine version de l'application.
+· **Un code de réduction Stripe « répété N mois »** saisi à la page de paiement court dès la création : ses mois tombent
+  pendant l'essai, où rien n'est facturé.
+· **Deux paiements coup sur coup** (deux onglets) : deux abonnements — comme avant.
+
+**Preuves** : `test-727` 175 ✓ (la vraie route, les bornes à la milliseconde, les gardes de défense, le revenu
+mensuel), `test-839` 191 ✓ (le vrai serveur → la vraie `merci.html`), `test-840` 53 ✓, **`test-844` 47 ✓
+(nouveau)** — le vrai serveur, un facteur SMTP et un **Stripe simulé dans son processus** : dix-huit entreprises (en essai,
+active renouvelée à 23 h 30 UTC, impayée, OP MESSAGES seul, sans abonnement, résiliée pendant l'essai, résiliée au-delà,
+OP MESSAGES + OP GESTION, abonnement d'avant la bascule, adresse partagée qui dure, adresse partagée résiliée, fiche Gratuit
+× 2, réglée dans la Tour, essai résilié après l'essai, plusieurs abonnements × 2, résiliation sans date), Stripe en panne,
+liste périmée, et **deux courses** jouées par les vraies routes de la Tour pendant que le serveur attend Stripe (une
+entreprise supprimée, un abonnement réglé à la main) ; `test-797`, `803`, `811`, `813`, `842`, `843` verts ; **49
+mutations sur 49 mordent, rejouées sur le code final `a0db61d`** (`scratchpad/mutations-essai.py`, arbre à part ; E4 et
+N5 retirées, équivalentes, raison écrite dans le script) ; au navigateur, `merci.html` **89 ✓** et le courriel J-7
+**57 ✓** (dont les quatre variantes « déjà abonnée », jour et nuit) ; liste serveur 48 suites · 3 135 ; suite complète
+200 suites · 11 052 (code 0) ; relectures : `gardien` deux fois (tous ses constats traités), `relecteur` (la procédure
+de déploiement emportait le serveur sans `merci.html` — corrigé, `PAGES_LIEES` ; sa remarque 2 vérifiée et gardée :
+`espacePaye` lit la même entrée sans l'adresse d'un autre nom, la lui prêter rendrait le courriel plus optimiste que
+l'application).
+
+### ⏳ LA MISE EN LIGNE N° 2 — PRÊTE (facturation différée)
+Dans l'arbre `scratchpad/pub-essai` (session du 29 septembre) : **`f2d0781`**, un seul commit sur `main` à `3785a0f`. Il
+emporte seize fichiers — `server/index.js`, `merci.html` et `apercu/merci.html`, `apercu/tour.html` (v2.75),
+`.gitignore`, `scripts/bancs-serveur.liste` (plancher 3 100), `scripts/preparer-deploiement-serveur.sh`, les bancs
+`test-727`, `797`, `839`, `840` et `844` (nouveau), et quatre scripts du scratchpad (`mutations-essai.py`,
+`mutations-formule-servie.py`, `sonde-courriel-j7.js`, `sonde-portail-theme.js`) — identiques à la branche (`cmp`) ; pour
+chacun, la branche d'avant le changement était identique à `main` : le report est exactement ce diff. `app.html`, `sw.js`
+et `beta.html` ne bougent pas.
+Preuves de CET arbre : liste serveur 48 suites · 3 135 (code 0) ; suite complète 200 suites · 11 052 (code 0) ; les
+contrôles de la CI de `main`, joués sur le commit : syntaxe, versions (comparées à `3785a0f`), permissions, adresses,
+lien-jeton, EXPLIQUE, PROPOSE, Devis IA, connexion (67 cas), accès (17 cas), bêta régénérée à l'identique, secrets.
+**Sur « pousse » de Justin** : vérifier que `origin/main` est toujours `3785a0f` (sinon reconstruire), puis
+`git push origin HEAD:main` depuis cet arbre. **Si l'arbre a disparu** : arbre détaché sur `origin/main`, y prendre depuis
+la branche les fichiers ci-dessus (`git checkout <commit de la branche> -- …`), relancer la liste serveur, commiter.
+**Après** : le déploiement du serveur (bancs puis VPS ; `/health`, dont l'`uptime` repart), `merci.html` et son aperçu
+servis octet pour octet, la CI de `main` verte.
+
+---
+
 # ✅ 29 SEPTEMBRE 2026, MATIN — LES TROIS RÉPONSES DE JUSTIN SUR LE PAIEMENT : LE CLIENT CHOISIT SON TARIF, L'APPLICATION REÇOIT CE QUI EST PAYÉ, LE CODE PROMO AU PLUS GROS FORFAIT — EN SERVICE (`3785a0f`, DÉPLOIEMENT N° 102)
 
 Justin, au réveil, aux trois questions de la nuit (plus bas) : **« 1 il choisit ce tarif qu'il veut »** ; **« 2 […] une

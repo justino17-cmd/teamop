@@ -57,7 +57,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**199 suites dans `tests/`**, sans dépendance ni installation (recompté le 29 septembre 2026 au matin, `test-843` compris —
+**200 suites dans `tests/`**, sans dépendance ni installation (recompté le 29 septembre 2026 à midi, `test-844` compris —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -124,7 +124,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 199 suites · 10 947 vérifications (mesuré en local le 29/09/2026 au matin, bêta v763)
+bash scripts/bancs-ci.sh        # 200 suites · 11 052 vérifications (mesuré en local le 29/09/2026 à midi, bêta v763)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
@@ -357,6 +357,20 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   l'application ou au client passe par là ou n'existe pas. ⚠️ Une adresse = une entreprise : deux entreprises à la même
   adresse ne se prêtent plus une formule, mais le verdict « payé » et les places, si (limite d'avant) — ne pas en créer.
   `test-727` §8, `test-842`, `test-840`, `test-803`, `test-811`, `scratchpad/mutations-formule-servie.py`.
+- ⛔⛔ **PAYER PENDANT UNE PÉRIODE OFFERTE NE PRÉLÈVE RIEN AVANT SA FIN — `finEssaiPeriode` EST LE SEUL VERDICT, ET LE
+  RAPPEL J-7 DIT CE QU'`espacePaye` DÉCIDERA LE LENDEMAIN DE LA FIN.** Justin, 29 septembre 2026 (« 2 oui ») :
+  `subscription_data[trial_end]` = le lendemain de `finLe`, 0 h UTC, seulement si l'adresse du compte désigne l'entreprise
+  SEULE (référence comprise), sans `aboStatut`, entre 48 h (+ 10 min) et deux ans — sinon facturation immédiate.
+  ⛔ Le courriel J-7 ne propose JAMAIS un lien de paiement à une entreprise que l'application servira encore après la
+  période : un second paiement est un second abonnement, prélevé EN DOUBLE (`gardien`, rejoué). « Servie » se décide en
+  rejouant `espaceStripeDans` (la décision de rattachement d'`espaceStripe`, sortie en fonction pure : UNE définition) et
+  `formuleEtPlaces` sur les SEULS abonnements vivants ce jour-là (`abonnementGestion`) — l'état d'aujourd'hui disait
+  « rien à faire » à des entreprises que l'application repasserait en Gratuit (seconde relecture de `gardien`). Stripe
+  illisible ou liste périmée (`STRIPE_CACHE_MS`) : le rappel attend le passage suivant tant que la promesse aurait un
+  délai, puis part sans elle. ⚠️ Une attente de Stripe dans une boucle rend la main au serveur : tout se relit après
+  (`eligible`, `sig`), et une entreprise qui jette n'arrête pas les autres. Une carte refusée au premier prélèvement est un
+  impayé (Justin) : le circuit existant. `test-727` §10, `test-839`, `test-840`, `test-844` (Stripe simulé dans le
+  processus du serveur, deux courses jouées par les vraies routes de la Tour), `scratchpad/mutations-essai.py`.
 - ⛔⛔ **UNE SESSION PROUVE UN MOT DE PASSE, PAS UNE ADRESSE.** 25 septembre 2026 (`gardien`, G1,
   rejoué) : n'importe qui ouvrait un compte à l'adresse de contact d'une entreprise — publique — et
   `/api/clients/sync` la croyait prouvée : une demande « Gratuit » faisait retomber une entreprise
