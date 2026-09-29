@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /connexion.html
+Disallow: /espace.html
+Disallow: /apercu/
+
+Sitemap: https://teamop.fr/sitemap.xml
