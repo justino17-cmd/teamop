@@ -57,7 +57,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**200 suites dans `tests/`**, sans dépendance ni installation (recompté le 29 septembre 2026 à midi, `test-844` compris —
+**201 suites dans `tests/`**, sans dépendance ni installation (recompté le 29 septembre 2026 au soir, `test-845` compris —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -124,7 +124,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 200 suites · 11 052 vérifications (mesuré en local le 29/09/2026 à midi, bêta v763)
+bash scripts/bancs-ci.sh        # 201 suites · 11 179 vérifications (mesuré en local le 29/09/2026 au soir, bêta v763)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
@@ -376,7 +376,9 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   paiement, pas d'accès au service payant ». Payé = `active` ou `trialing` (`STATUTS_PAYES`), et c'est tout ; `past_due` et
   `unpaid` d'OP GESTION sont des impayés (`impayesGestion`), rattachés par les règles du payé (`espaceStripeDans`) mais
   par l'IDENTIFIANT (`tSeul` : un nom d'accès repris n'hérite pas de l'impayé d'une autre) — un impayé gravé au NOM
-  d'accès (anciennes pages) ne compte que s'il porte AUSSI son adresse (mutation I36 : sans ça, l'accès restait ouvert).
+  d'accès (anciennes pages) ne compte que s'il porte AUSSI son adresse (mutation I36 : sans ça, l'accès restait ouvert),
+  et que personne d'autre dans l'annuaire ne porte cette adresse (I36c : un nom repris par une autre entreprise à la même
+  adresse la bloquait, avec la facture de l'ancienne) — là, on ne sait pas qui le doit : il ne bloque personne.
   ⛔ UNE règle décide du blocage, `impayeBloque` (lue par `espacePaye` ET le rappel J-7) : un abonnement d'OP GESTION payé à elle la sert (sans
   les places du refusé) ; payée seulement par OP MESSAGES, par une voisine d'adresse, ou fiche Gratuit : bloquée si
   l'impayé est SÛREMENT le sien ; rien de payé : bloquée. ⛔ `/api/espaces/etat` sert un bloqué comme une suspension au
@@ -392,8 +394,13 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   « Sur le site je veux pas le bouton jour nuit, je veux que ça soit automatique ». Les 8 pages de `scripts/site-marine.js`
   et les 10 pages voisines (portail, connexion, paiement, pages juridiques, 404) lisent `prefers-color-scheme`, rien
   d'autre ; `TETE_MODE` efface l'ancien choix (`teamop_site_mode`) et garde CINQ lignes (les pages juridiques sont citées
-  par numéro de ligne). ⛔ `vitrine/v2/mode.js` reste tant que `sw.js` le liste dans `ASSETS` : absent, l'installation du
-  service worker échouerait. `test-835`, `test-836`, `scratchpad/mutations-site-auto.py`, `scratchpad/sonde-site-auto.js`.
+  par numéro de ligne). ⛔ `vitrine/v2/mode.js` RESTE : une page restée en cache le demande, et le service worker ne
+  remplace sa copie que par une réponse réussie (il reprend même l'ancien cache à chaque version) — supprimé, l'ANCIENNE
+  copie, qui démasquait le bouton, resterait servie. (Ce n'est PAS l'installation du service worker qui en dépend : écrit
+  ici à tort le 29 septembre.) Et la garde qui ne dépend d'aucun cache est dans les deux feuilles :
+  `.mode, .coin-mode { display: none !important }`, la seule règle du bouton permise. Les contrôles communs vivent dans
+  `tests/mode-site.js` (par la FONCTION, dans le code, scripts EXÉCUTÉS, feuilles entières), et `test-836` § 9 recense
+  toutes les pages suivies. `test-835`, `test-836`, `scratchpad/mutations-site-auto.py`, `scratchpad/sonde-site-auto.js`.
 - ⛔⛔ **UNE SESSION PROUVE UN MOT DE PASSE, PAS UNE ADRESSE.** 25 septembre 2026 (`gardien`, G1,
   rejoué) : n'importe qui ouvrait un compte à l'adresse de contact d'une entreprise — publique — et
   `/api/clients/sync` la croyait prouvée : une demande « Gratuit » faisait retomber une entreprise

@@ -13,6 +13,67 @@ de ligne du tout.
 
 ---
 
+# ⏳ 29 SEPTEMBRE 2026, SOIR — SITE : LE JOUR ET LA NUIT SUIVENT L'APPAREIL, PLUS DE BOUTON — PRÊT, ATTEND « POUSSE »
+
+Justin, capture de son iPhone à l'appui (l'en-tête du site : logo, ☾, « Espace client », ☰) : **« Sur le site je veux pas
+le bouton jour nuit je veux que sa soit automatique »**. Retour à ce que disait la maquette (THEME.md § 0, « sans bouton ») ;
+le bouton du 27 septembre au soir (« je veux vraiment un mode jour et un mode nuit ») est retiré.
+
+✅ **Ce qui est fait** (branche : `798d4ca`, `6d529aa`, puis la relecture adverse : `e9039ce`, `30a2549`, `a157cae`, `191e2cb`)
+· **Les 8 pages du site** (générateur `scripts/site-marine.js`, racine ET `apercu/site/`) et **les 10 pages voisines**
+  (portail `espace.html`, `connexion.html`, `reinit.html`, `recap-abonnement.html`, `merci.html`, les quatre pages
+  juridiques, `404.html`) et leurs copies d'aperçu : plus de bouton ☀︎/☾ ni de `<script src="/vitrine/v2/mode.js">`.
+· **La tête du mode** (`TETE_MODE`, identique partout) : les deux couleurs de barre suivent l'appareil, `color-scheme:
+  light dark`, et son script **efface le choix qu'avait rangé l'ancien bouton** (`teamop_site_mode`) — sans ça, qui avait
+  appuyé restait collé à son mode, sans bouton pour en sortir. ⛔ **Elle garde ses CINQ lignes** : les pages juridiques
+  sont citées par numéro de ligne (`mentions-legales.html:74`…, test-836 § 6).
+· **`site.css` et `theme.css`** : la nuit n'a plus qu'un bloc, sous `prefers-color-scheme` ; plus de mode forcé. La SEULE
+  règle du bouton est la garde `.mode, .coin-mode { display: none !important }` : une page d'avant restée en cache, avec
+  l'ANCIEN `mode.js` qu'un service worker garde, le démasquait — et la feuille neuve ne le stylait plus (bouton brut, deux
+  dessins à pleine taille). La marge du haut de 64 px, posée pour le coin du bouton, redevient 28 px (4 pages).
+· ⛔ **`vitrine/v2/mode.js` RESTE** — et la raison écrite d'abord était FAUSSE (l'installation du service worker n'en
+  dépend pas : chaque ressource s'y charge à part). La vraie : une page restée en cache le demande, et le service worker
+  ne remplace sa copie que par une réponse RÉUSSIE (un 404 ne se range jamais) et reprend l'ancien cache à chaque
+  version — supprimé, l'ancienne copie (qui démasquait le bouton) resterait servie POUR TOUJOURS. Il ne fait plus
+  qu'effacer l'ancien choix et le mode que la vieille tête a posé. Ne pas le supprimer, même quand `sw.js` sera republié.
+
+**La relecture adverse du soir** (5 angles, 26 agents, chaque constat revérifié) a surtout trouvé des bancs trop
+étroits : `class="mode"` exact (un `class="mode on"`, un `id="bascule">☾`, un `src` sans barre passaient), le PREMIER
+bloc de la feuille seulement, les scripts jugés par motif (un `mode.js` commenté par `//`, un `type="text/plain"`
+passaient), rien sur `color-scheme` ni sur la tête des 8 pages du site. D'où **`tests/mode-site.js`**, partagé par les deux
+bancs : restes de mode par la FONCTION dans le CODE, les deux scripts EXÉCUTÉS (`node:vm`), la forme entière des feuilles,
+les couleurs en dur (`@media` compris) ; et **`test-836` § 9 recense toutes les pages suivies** (exceptions nommées :
+`app.html`, `beta.html`, `messages*.html`, la Tour, la maquette `apercu/site-apple.html`).
+
+**Preuves** : `test-835` **278 ✓**, `test-836` **304 ✓** ; **33 mutations sur 33 mordent** (`scratchpad/mutations-site-auto.py` :
+les 13 du départ + les 20 que la relecture faisait passer) ; au navigateur (`scratchpad/sonde-site-auto.js`, 18 pages ×
+téléphone 360 et 390 × bureau × jour et nuit, puis la transition sur des pages d'avant FIXES — `798d4ca~1`, qui ne
+disparaissent pas quand `main` avance —, avec les fichiers neufs puis avec l'ANCIEN `mode.js`) : 964 ✓ 0 ✗ (contre-épreuve sans la garde : 10 ✗ ; les pages de `main` : 120 ✗).
+
+⚠️ **Restes connus, à décider par Justin (rien d'urgent, aucun bouton)** : `apercu/site-apple.html` (maquette de
+comparaison, servie à qui connaît l'adresse, garde son sélecteur Jour / Nuit / Auto — test-756 l'exige) ; `guide-email.html`,
+`creer-application.html` et les anciens `apercu/*.html` sont en sombre fixe (ni bouton ni mode, mais pas « automatiques ») ;
+le manifeste du site (`manifest-teamop.webmanifest`) donne un écran de démarrage sombre à la version installée (un manifeste
+ne sait pas suivre l'appareil).
+
+### ⏳ LA MISE EN LIGNE DU SITE — PRÊTE
+Dans l'arbre `scratchpad/pub-site` (session du 29 septembre) : **`fa20873`**, un seul commit sur `main` à `3785a0f`,
+**49 fichiers, aucun de `server/`** (ne déploie pas le VPS), `app.html` et `sw.js` intacts. Pour tous sauf
+`recap-abonnement.html`, `merci.html` et leurs aperçus, la branche d'avant était identique à `main` (copiés de la branche) ;
+ces quatre-là portent sur `main` une version plus ancienne (la n° 2 attend) : le même changement y a été appliqué par le
+même script (`scratchpad/site-auto.py`, puis la marge), et les aperçus refaits sont identiques à ceux de la branche.
+Suite complète de CET arbre : ⏳ en cours au moment d'écrire (le résultat suit dans le commit suivant).
+La **mise en ligne n° 2** est refaite PAR-DESSUS (⏳ fabriquée, commit au terme de sa suite, dans `scratchpad/pub-essai`) : pousser la n° 2 emporte le site.
+**Sur « pousse »** : vérifier que `origin/main` est toujours `3785a0f`, puis `git push origin HEAD:main` depuis
+`scratchpad/pub-essai` (site + serveur) — ou, pour le site SEUL (« pousse le site »), depuis `scratchpad/pub-site`.
+**Si les arbres ont disparu** : reconstruire depuis la branche (`git show <branche>:<fichier>`), et pour `merci.html` /
+`recap-abonnement.html` repartir de `main` et rejouer `scratchpad/site-auto.py` puis la marge (64 → 28 px).
+
+⚠️ **Une branche parasite `nothing`** (29 septembre au soir, une commande de trop y avait poussé le commit du site) :
+**supprimée par Justin le soir même** (vérifié : `git ls-remote` ne la montre plus ; `main` intact).
+
+---
+
 # ⏳ 29 SEPTEMBRE 2026, SOIR — CARTE REFUSÉE = IMPAYÉ : LES FONCTIONS PAYANTES BLOQUÉES JUSQU'AU RÈGLEMENT — PRÊT, DANS LA MISE EN LIGNE N° 2 (REFAITE), ATTEND « POUSSE »
 
 Justin, en corrigeant le rapport de l'après-midi (qui disait « l'application continue de marcher pendant que Stripe
@@ -106,19 +167,30 @@ suivante, et `CLAUDE.md` jusqu'à ce soir) était la règle d'AVANT : elle est *
 · **Pendant une panne de Stripe**, la dernière liste connue sert : une entreprise qui vient de régler reste grisée le
   temps de la panne (avant ce soir, `past_due` passait pour payé : une panne ne bloquait personne).
 · **Adresse partagée** (limite connue, `test-845` « partd ») : à une adresse que deux entreprises portent, un impayé
-  sans référence n'est « sûrement » à aucune — si la voisine paie, l'entreprise reste servie.
+  sans référence n'est « sûrement » à aucune — si la voisine paie, l'entreprise reste servie. Et un impayé gravé au
+  NOM d'accès (anciennes pages) à une adresse que porte une AUTRE entreprise ne bloque personne (`test-845` « nomp » :
+  relecture adverse du soir, le nom repris par une autre entreprise à la même adresse la bloquait et lui servait la
+  facture de l'ancienne — corrigé `e9039ce`, mutation I36c) : on ne sait pas qui le doit, l'accès reste ouvert.
+· **« Repartir à neuf » sur une entreprise à DEUX noms** (limite d'avant, relecture adverse, rejoué) : le nom reparti
+  prend un nouvel identifiant, l'autre garde l'ancien ; un impayé gravé à l'ANCIEN identifiant ne bloque pas le nouveau
+  (le code ne distingue pas « mon autre nom » d'« une autre entreprise à la même adresse » une fois les identifiants
+  différents). Dans le sens qui ne coupe personne ; à revoir avec `gardien` s'il faut le fermer.
 · Les textes de la Tour sont relus, pas gardés par un banc.
 
-**Preuves** : `test-845` **69 ✓ (nouveau, dans la liste serveur)** — le vrai serveur, un Stripe simulé relu à chaque
+**Preuves** : `test-845` **76 ✓ (nouveau, dans la liste serveur)** — le vrai serveur, un Stripe simulé relu à chaque
 appel, et **les vraies fonctions d'app.html v763** (`forfaitServeurSync`, `suspensionPoser`, `forfait`…) : grisé sans
 écriture, pas de bandeau, rappel à l'administrateur seul et une fois par jour, retour au règlement ; OP MESSAGES payé,
-fiche Gratuit, adresse partagée, impayé posé à la main, nom d'accès repris ; la Tour (une ligne par entreprise),
+fiche Gratuit, adresse partagée, impayé posé à la main, nom d'accès repris (autre adresse, SON impayé, gravé à son nom,
+repris à la MÊME adresse) ; la Tour (une ligne par entreprise),
 « Mon espace », la page de paiement (facture, 409, 502, `unpaid` sans facture, réglé depuis, entreprise servie, OP
 MESSAGES, la voisine, le nom repris) ; la relecture à la minute ; **26 ✗ contre le serveur d'avant** ; `test-844`
 **68 ✓** (quinze entreprises de plus, une phase « relecture muette », une entreprise supprimée pendant la lecture de sa
 facture) ; `test-842` 91 ✓, `test-839` 199 ✓, `test-727` 177 ✓, `test-797` 24 ✓ ; `803`, `811`, `813`, `828`, `829`,
-`833`, `840`, `843`, `641`, `726` verts ; **mutations : en cours** (96, série I comprise) (`scratchpad/mutations-essai.py`, arbre à part) ; relectures :
-`gardien` (11 constats) et `relecteur` (9) — tous traités ou écrits ci-dessus ; liste serveur et suite complète : en cours.
+`833`, `840`, `843`, `641`, `726` verts ; **mutations : série I 46/46 sur le code final** (dont I36 — le nom d'accès
+sans son adresse — et I36c — le nom repris à la même adresse —, trous trouvés et fermés ce soir ; les 52 autres
+(E, N, P, R) : ⏳ à rejouer sur le code final ; R1 et R3 de la formule servie rejouées après le déplacement de `partagee`)
+(`scratchpad/mutations-essai.py`, arbre à part) ; relectures : `gardien` (11 constats) et `relecteur` (9), puis une
+relecture adverse à 5 angles (26 agents) — tous traités ou écrits ci-dessus ; liste serveur et suite complète : liste 49 suites · 3 243, code 0 ; suite complète ⏳ en cours.
 
 ### ⏳ LA MISE EN LIGNE N° 2 — REFAITE (facturation différée + impayé)
 Dans l'arbre `scratchpad/pub-essai` (session du 29 septembre) : un seul commit (à faire, après les preuves) sur `main` à `3785a0f` — il
@@ -751,9 +823,10 @@ il envoie gardaient chacune leur vieille feuille. Recensé depuis les liens du s
   (`test-836` les compare jeton par jeton), plus les couleurs d'état MESURÉES (≥ 4,5 dans les deux modes) et
   l'indication des champs (celle du navigateur tombait à 2,43 la nuit).
 · `vitrine/v2/mode.js` : le jour / nuit sorti de `site.js`, tel quel, partagé (même clé `teamop_site_mode` : le choix
-  fait sur le site suit sur le portail, et inversement — mesuré). La tête du mode est désormais dans une fonction
+  fait sur le site suit sur le portail, et inversement — mesuré). ⛔ **Bouton RETIRÉ le 29 septembre au soir** (Justin :
+  « je veux que ça soit automatique ») : mode.js ne fait plus qu'effacer l'ancien choix — voir la section du 29 en tête. La tête du mode est désormais dans une fonction
   (plus de variable globale `m` dans les pages qui l'embarquent) ; les 8 pages du site régénérées avec.
-· Les dix pages : même tête, même bouton ☀︎/☾ (au coin quand la page n'a pas de barre), messages de connexion en
+· Les dix pages : même tête, même bouton ☀︎/☾ (**retiré le 29 septembre au soir**) (au coin quand la page n'a pas de barre), messages de connexion en
   JETONS (le rouge de nuit était illisible sur le blanc), champs à 16 px (Safari zoomait à 15), commandes à 44 px au
   doigt (l'œil des mots de passe, le nombre d'utilisateurs de recap), recap : toutes les formules à la couleur du
   site (plus de violet ni de bleu ciel), « Ouvrir » d'OP MESSAGES lisible (1,83 → texte clair sur le bleu nuit).
@@ -792,7 +865,7 @@ de `sw.js`** en y ajoutant `/vitrine/v2/theme.css` et `/vitrine/v2/mode.js` : il
 SUIVANTE). ⚠️ Toucher `sw.js` est une publication à part entière : la demander dans la même phrase.
 `fond-anime-teamop.js` part avec l'ancien `espace.html` (et sa ligne d'`ASSETS` avec lui).
 
-# 🟡 27 SEPTEMBRE 2026, SOIR — SITE v2 EN APERÇU : UNE VRAIE CAPTURE PAR CASE, LA CARTE TOUCHÉE EN BLEU, UN BOUTON JOUR / NUIT — ATTEND « REMPLACE LE SITE »
+# 🟡 27 SEPTEMBRE 2026, SOIR — SITE v2 EN APERÇU : UNE VRAIE CAPTURE PAR CASE, LA CARTE TOUCHÉE EN BLEU, UN BOUTON JOUR / NUIT (RETIRÉ LE 29 AU SOIR : LE SITE SUIT L'APPAREIL) — ATTEND « REMPLACE LE SITE »
 
 Justin, sur les tarifs en ligne : « pourquoi il y en a un qui est en bleu et les autres sont noirs ? […] ça serait
 bien que quand on clique sur les cases, ça affiche en bleu », « les mêmes couleurs pour OP MESSAGES » (qui revient :
@@ -807,7 +880,8 @@ relue par `test-835` §10. ⛔ Le générateur écrit l'aperçu par défaut ; `-
 · **Le bleu** = la formule mise en avant (« Le plus choisi »). Il suit désormais le doigt : toucher une carte
   (clic ou clavier) lui donne la bordure et le bouton bleus, dans SON groupe ; l'étiquette « Le plus choisi » reste
   où elle est. OP MESSAGES a les mêmes couleurs ; ses boutons disent toujours « Bientôt disponible ».
-· **Jour / nuit** : bouton ☀︎/☾ dans la barre, sur les 8 pages. Il force l'autre mode, gardé sur l'appareil
+· ⛔ **RETIRÉ LE 29 SEPTEMBRE AU SOIR** (« je veux que ça soit automatique ») — ce qui suit est l'histoire.
+  **Jour / nuit** : bouton ☀︎/☾ dans la barre, sur les 8 pages. Il force l'autre mode, gardé sur l'appareil
   (`teamop_site_mode`), posé AVANT le premier rendu (pas d'éclair blanc) ; revenir au mode de l'appareil efface le
   choix. Les écrans des iPhone et Mac suivent (le `media` de leurs `<source>` est réécrit).
 · **Une capture par case** : les dix cases d'elan.html montrent chacune SON écran — Mac pour les grandes, iPhone pour

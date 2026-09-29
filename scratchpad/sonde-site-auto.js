@@ -125,7 +125,7 @@ const FOND = { light: 'rgb(255, 255, 255)', dark: 'rgb(11, 20, 38)' };
 
   /* ── la TRANSITION : une page d'avant (main) restée en cache, avec les feuilles et le mode.js neufs ── */
   if (!process.env.RACINE) {
-    console.log('\n── transition : les pages de main (vieille tête, bouton caché) face aux fichiers neufs ──');
+    console.log('\n── transition : les pages d'avant (vieille tête, bouton caché) face aux fichiers neufs ──');
     await cdp('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
     const avant = fs.readdirSync(ANCIEN);
     v('population de la transition : ' + avant.length + ' pages d\'avant, chacune avec son bouton et son mode.js',
