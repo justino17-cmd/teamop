@@ -107,15 +107,22 @@ const vrai = (t, a) => v(t, !!a, true);
   /* ⚠️ et les TARIFS (28 septembre 2026, nuit) : la route n'admet que ceux de la page ; elle lit le bloc des constantes des
      places (`STRIPE_PRIX_FORMULE`, `RANG_FORMULE`…). Le serveur d'avant ne l'a pas : on ne le fournit que s'il existe. */
   const iCst = SRC.indexOf('const PLACES_BASCULE ='), iPQ = SRC.indexOf('function placesQ(');
-  const AIDES_ROUTE = ['espaceT', 'espacesDeRef', 'espaceParT'].map(aide).join('\n') + '\n' + (iCst > 0 && iPQ > iCst ? SRC.slice(iCst, iPQ) : '');
+  /* ⚠️ et la FIN D'ESSAI (29 septembre 2026, « 2 oui » de Justin) : pour un tarif d'OP GESTION, la route demande
+     `finEssaiPeriode` (et ce qu'elle lit : `periodeOfferte`, la formule du code, `promoUsages`, `espaceFerme`). Sans elles,
+     la route jetait (« finEssaiPeriode is not defined ») et répondait 500 : ce banc est tombé ainsi le jour même — trois
+     contrôles, et le job `bancs` du déploiement avec eux (`relecteur`). Le serveur d'avant ne les a pas : `aide` rend ''. */
+  const AIDES_ROUTE = ['espaceT', 'espacesDeRef', 'espaceParT', 'finEssaiPeriode', 'periodeOfferte', 'formulePromo', 'formuleDuCode'].map(aide).join('\n') + '\n' + (iCst > 0 && iPQ > iCst ? SRC.slice(iCst, iPQ) : '');
   const ESPACES = { monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr' } };
   const appeler = async (body, hdr, espaces) => {
     let envoye = '', statut = 0, sortie = null;
     const faux = { post: (chemin, h) => { faux._h = h; } };
-    new Function('app', 'config', 'fetch', 'URLSearchParams', 'comptes', 'espacesReg', AIDES_ROUTE + '\n' + SRC.slice(iR, finR))(faux,
-      { stripe: { secretKey: 'sk_de_banc' } },
+    new Function('app', 'config', 'fetch', 'URLSearchParams', 'comptes', 'espacesReg', 'promoUsages', 'espaceFerme', 'factureImpayeARegler', AIDES_ROUTE + '\n' + SRC.slice(iR, finR))(faux,
+      { stripe: { secretKey: 'sk_de_banc' }, promos: [] },
       async (url, opts) => { envoye = String(opts && opts.body || ''); return { ok: true, json: async () => ({ url: 'https://checkout.stripe.com/x' }) }; },
-      URLSearchParams, COMPTES, espaces === undefined ? ESPACES : espaces);
+      URLSearchParams, COMPTES, espaces === undefined ? ESPACES : espaces, {}, () => false,
+      /* un IMPAYÉ se règle sur sa facture (`factureImpayeARegler`, 29 septembre 2026) : ce bac à sable n'a pas de liste Stripe —
+         la redirection se joue sur le VRAI serveur, avec un Stripe simulé qui connaît les impayés (`test-845`) */
+      async () => null);
     const headers = {}; for (const k of Object.keys(hdr || {})) headers[k.toLowerCase()] = hdr[k];
     await faux._h({ body, headers }, { status(c) { statut = c; return this; }, json(o) { sortie = o; return this; } });
     return { envoye, statut, sortie };

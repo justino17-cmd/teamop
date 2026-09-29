@@ -141,6 +141,9 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
   espaces.kappaancien = { t: 't-kappa-840', nom: 'Kappa Ancien', code: code64('t-kappa-840'), ts: MAINTENANT - 90000, email: 'kappa-ancien@exemple-840.fr' };
   espaces.kappa = { t: 't-kappa-840', nom: 'Kappa Récent', code: code64('t-kappa-840'), ts: MAINTENANT, email: 'kappa@exemple-840.fr' };
   usages['ESSAI-PREMIUM-840'].equipes['t-kappa-840'] = { date: jour(-80), finLe: jour(3), em: '' }; usages['ESSAI-PREMIUM-840'].n++;
+  /* rho partage son adresse avec une AUTRE entreprise (sans code, jamais prévenue) : payer sans référence ne choisit pas entre
+     les deux — facturation immédiate —, donc son rappel ne promet PAS de facturation différée */
+  espaces.rhobis = { t: 't-rhobis-840', nom: 'Rho Bis', code: code64('t-rhobis-840'), ts: MAINTENANT - 1000, formule: 'premium', email: 'rho@exemple-840.fr' };
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(espaces));
   fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify(usages));
   fs.writeFileSync(path.join(D, 'entreprises-fermees.json'), JSON.stringify({ emails: [], espaces: ['t-phi-840'], suspendus: [] }));
@@ -271,6 +274,24 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
       && /recap-abonnement\.html\?formule=premium"/.test(R));
     vrai('psi — son essai réglé dans la Tour finit AVANT le code : le rappel part bien (3 utilisateurs)', /3 utilisateurs actifs/.test(de('psi')));
     vrai('kappa — 2 utilisateurs, envoyé à l\'adresse du nom le plus récent', /2 utilisateurs actifs/.test(de('kappa')));
+    /* ⛔ RIEN N'EST PRÉLEVÉ AVANT LA FIN DE LA PÉRIODE (Justin, 29 septembre 2026, « 2 oui ») : la page de paiement diffère la
+       facturation (`finEssaiPeriode`), et le rappel le dit — le jour limite pour s'abonner (l'avant-veille de la fin : Stripe
+       exige 48 h d'essai) et le jour du premier prélèvement (le lendemain de la fin). Seulement quand c'est VRAI : pas à une
+       adresse que partagent deux entreprises (rho), pas quand la limite est aujourd'hui ou passée (pi, fin dans 2 jours). */
+    const L = d => fr(jour(d - 2)).slice(0, 5), DB = d => fr(jour(d + 1));
+    const promesseTxt = d => 'En vous abonnant au plus tard le ' + L(d) + ', rien n\'est prélevé avant le ' + DB(d) + ' : votre période offerte va jusqu\'au bout.';
+    const promesseHtml = d => '💳 En vous abonnant au plus tard le <b>' + L(d) + '</b>, rien n\'est prélevé avant le <b>' + DB(d) + '</b> : votre période offerte va jusqu\'au bout.';
+    vrai('⛔ omicron (fin dans 5 jours) — la version TEXTE promet : au plus tard le ' + L(5) + ', rien n\'est prélevé avant le ' + DB(5) + ' — entre le devis et le lien',
+      O.includes(promesseTxt(5)) && O.indexOf(promesseTxt(5)) > O.indexOf('(2 mois offerts).') && O.indexOf(promesseTxt(5)) < O.indexOf('Continuer : https://'));
+    vrai('   … et le HTML aussi, DANS le cadre du devis (avant « Ou une autre formule »)',
+      O.includes(promesseHtml(5)) && O.indexOf(promesseHtml(5)) > O.indexOf('(2 mois offerts)</span>') && O.indexOf(promesseHtml(5)) < O.indexOf('<b>Ou une autre formule'));
+    vrai('   kappa (fin dans 3 jours) : au plus tard le ' + L(3) + ', premier prélèvement le ' + DB(3), de('kappa').includes(promesseTxt(3)) && de('kappa').includes(promesseHtml(3)));
+    const promet = m => /rien n'est prélevé avant le/.test(m);
+    /* ⚠️ ni à psi : son essai est réglé à la MAIN dans la Tour (`aboStatut`), et `espacePaye` s'arrête dessus avant la période
+       offerte — sa page de paiement ne diffère rien, le courriel ne le promet donc pas (`gardien`, 29 septembre 2026) */
+    v('⛔ la promesse part à qui elle est VRAIE — ni à rho (son adresse porte deux entreprises), ni à pi (la limite serait aujourd\'hui), ni à psi (essai réglé dans la Tour)',
+      recus.filter(promet).map(destinataire).sort(), ['eta@exemple-840.fr', 'kappa@exemple-840.fr', 'lambda-inconnue@exemple-840.fr', 'mu@exemple-840.fr', 'nu@exemple-840.fr', 'omicron@exemple-840.fr', 'xi@exemple-840.fr']);
+    vrai('   (population) rho, pi et psi ont bien reçu leur rappel — sans la promesse', !!R && !!P && !!de('psi') && !promet(R) && !promet(P) && !promet(de('psi')));
     /* ⛔ UN CODE RETIRÉ DE LA CONFIGURATION : sa formule n'est plus connue — aucun prix inventé (le repli sur Premium
        chiffrait 50 € par utilisateur une entreprise dont le code était peut-être un Pro) */
     const M = de('mu');

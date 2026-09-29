@@ -129,7 +129,10 @@ const ETATS = [
   /* un abonnement = un utilisateur (27 septembre au soir) : sept personnes, puis le plafond du serveur et sa phrase */
   { nom: 'recap-business-7', chemin: '/apercu/recap-abonnement.html?formule=business&utilisateurs=7' },
   { nom: 'recap-plafond', chemin: '/apercu/recap-abonnement.html?formule=pro&utilisateurs=80' },
-  { nom: 'merci', chemin: '/apercu/merci.html' },
+  { nom: 'merci', chemin: '/apercu/merci.html', titre: 'Paiement confirmé' },
+  /* payé pendant une période offerte (29 septembre 2026, « 2 oui ») : le serveur renvoie le jour du premier prélèvement */
+  { nom: 'merci-essai', chemin: '/apercu/merci.html?debut=' + new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10), titre: 'Abonnement confirmé',
+    texte: 'rien n\'est prélevé avant le ' + new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10).split('-').reverse().join('/') },
   { nom: 'mentions', chemin: '/apercu/mentions-legales.html' },
   { nom: 'confidentialite', chemin: '/apercu/confidentialite.html' },
   { nom: 'sous-traitance', chemin: '/apercu/sous-traitance.html' },
@@ -236,6 +239,8 @@ const ETATS = [
       await aller(E.chemin, E.avant, E.attente);
       if (E.geste) { await ev(`(()=>{ ${E.geste} ; try{ document.activeElement.blur(); }catch(e){} return 1; })()`); await dormir(400); }
       await juger(E.nom + ' · ' + p + ' · ' + (mode === 'light' ? 'jour' : 'nuit'), p, mode);
+      if (E.titre) v(E.nom + ' · ' + p + ' · ' + (mode === 'light' ? 'jour' : 'nuit') + ' : le titre dit « ' + E.titre + ' »', await ev(`document.querySelector('h1').textContent.trim()`), E.titre);
+      if (E.texte) vrai(E.nom + ' · ' + p + ' · ' + (mode === 'light' ? 'jour' : 'nuit') + ' : « ' + E.texte + ' »', (await ev(`document.querySelector('.message').textContent.replace(/\\s+/g,' ')`)).includes(E.texte));
       await photo(E.nom + '-' + p + '-' + (mode === 'light' ? 'jour' : 'nuit'));
     }
   }

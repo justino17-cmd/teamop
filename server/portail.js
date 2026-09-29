@@ -153,7 +153,8 @@ function monterPortail(app, deps) {
      tarif (Justin : « il choisit le tarif qu'il veut ») et l'application reçoit la formule PAYÉE (`formulePayee`, index.js) :
      « Mon espace » — sa formule, et le contrat qui la nomme — doit dire la même, sinon le contrat nomme une formule qu'il ne
      paie pas. `d.formuleServie(mail)` rend son libellé quand un abonnement (ou une période offerte) la sert, rien sinon :
-     le dossier dit alors ce que la Tour y a posé, comme avant. Une LECTURE — rien n'est écrit.
+     le dossier dit alors ce que la Tour y a posé, comme avant. En impayé (carte refusée), `{ statut: 'suspendu' }` : la
+     formule reste celle du dossier, son état se dit « Suspendu ». Une LECTURE — rien n'est écrit.
      ⛔ Seulement pour une adresse PROUVÉE : une session prouve un mot de passe, pas une adresse (CLAUDE.md) ; sans ça,
      n'importe qui ouvrant un compte à l'adresse publique d'une entreprise lisait la formule qu'elle paie. */
   /* (les routes restent SYNCHRONES et finissent par `.then` : une exception avant la réponse part encore au gestionnaire
@@ -170,6 +171,8 @@ function monterPortail(app, deps) {
       const lbl = await Promise.race([Promise.resolve().then(() => d.formuleServie(mail)),
         new Promise(r => { minuteur = setTimeout(() => r(''), FORMULE_DELAI); })]);
       if (typeof lbl === 'string' && lbl) v.plan = lbl;
+      /* un impayé : la formule reste celle du dossier, son état se dit « Suspendu » (la vue est une COPIE : rien n'est écrit) */
+      else if (lbl && typeof lbl === 'object' && lbl.statut === 'suspendu') v.planStatus = 'suspendu';
     } catch (e) { /* la fiche de la Tour, comme avant */ } finally { clearTimeout(minuteur); }
     return v;
   };

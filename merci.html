@@ -149,11 +149,27 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
   </div>
 
-  <h1>Paiement confirmé</h1>
-  <p class="message">
+  <h1 id="titre">Paiement confirmé</h1>
+  <p class="message" id="message">
     Merci et bienvenue dans <strong>TEAM OP</strong>.
     Un <span style="white-space:nowrap">e-mail</span> de confirmation avec ta facture vient de t'être envoyé.
   </p>
+  <script>/* ⛔ PAYÉ PENDANT UNE PÉRIODE OFFERTE : RIEN N'EST PRÉLEVÉ AVANT SA FIN (Justin, 29 septembre 2026). Le serveur écrit
+     alors le jour du premier prélèvement dans l'adresse de retour (`?debut=`, route /api/stripe/checkout) : il n'y a pas
+     encore de facture, et la page le dit au lieu d'annoncer un e-mail qui ne partira qu'au premier paiement. Une date mal
+     formée, impossible, passée ou à plus de deux ans (une adresse gardée, retapée) laisse le texte d'origine. Posé ICI,
+     juste après le texte qu'il remplace : il passe avant le premier rendu, rien ne clignote. */
+  (function () { try {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(new URLSearchParams(location.search).get('debut') || '');
+    if (!m) return;
+    var d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+    if (d.getUTCFullYear() !== +m[1] || d.getUTCMonth() !== +m[2] - 1 || d.getUTCDate() !== +m[3]) return;
+    if (d.getTime() <= Date.now() || d.getTime() > Date.now() + 731 * 86400000) return;
+    document.getElementById('titre').textContent = 'Abonnement confirmé';
+    document.getElementById('message').innerHTML = 'Merci et bienvenue dans <strong>TEAM OP</strong>. Ta période offerte continue&nbsp;: '
+      + 'rien n\'est prélevé avant le <strong>' + m[3] + '/' + m[2] + '/' + m[1] + '</strong>, et ta facture t\'arrivera par '
+      + '<span style="white-space:nowrap">e-mail</span> ce jour-là.';
+  } catch (e) {} })();</script>
 
   <div class="etapes">
     <div class="etapes-titre">Les prochaines étapes</div>

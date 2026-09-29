@@ -41,7 +41,11 @@
 # la page de paiement qui dit ses deux refus — plancher relevé à 2 900.
 # 29 septembre 2026, matin : 3 030 (47 suites) avec la formule servie (l'application reçoit ce qui est payé ; la garde
 # « tarif sous la fiche » retirée, `tarif_inconnu` gardé) et la Tour v2.75 — plancher relevé à 3 000.
-#plancher 3000
+# 29 septembre 2026, après-midi : 3 119 (48 suites) avec la facturation différée pendant une période offerte (« 2 oui »),
+# `test-844` compris, contre les pages de `main` — plancher relevé à 3 100.
+# 29 septembre 2026, soir : 3 243 contre les pages de `main` (49 suites), `test-845` compris (carte refusée = impayé,
+# le nom d'accès repris à la même adresse) — plancher relevé à 3 200.
+#plancher 3200
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -119,3 +123,13 @@ tests/test-839.js
 tests/test-840.js
 tests/test-841.js
 tests/test-842.js
+# 29 septembre 2026 : « 2 oui » (Justin) — payer pendant un code promo ne prélève rien avant sa fin. 844 fait tourner le
+# vrai serveur contre un facteur SMTP de banc ET un Stripe simulé dans son processus : une entreprise déjà abonnée
+# reçoit « votre abonnement prend le relais », sans lien de paiement (un second paiement serait un second abonnement) ;
+# Stripe illisible, le courriel habituel sans la promesse. Sans page.
+tests/test-844.js
+# 29 septembre 2026, soir : « leur accès sont bloqués le temps que c'est pas payé » (Justin) — une carte refusée est
+# un impayé. 845 fait tourner le vrai serveur contre un Stripe simulé relu à chaque appel, ET les vraies fonctions
+# d'app.html (celle de `main`, en service) : grisé sans rien écrire, l'administrateur seul prévenu, tout revient au
+# règlement ; la page de paiement rend la facture en attente au lieu d'un second abonnement.
+tests/test-845.js
