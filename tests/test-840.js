@@ -176,8 +176,14 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
   };
   const arreter = async () => { const e = enfant; enfant = null; await new Promise(r => { e.once('exit', r); e.kill('SIGKILL'); }); };
   /* Le premier passage part 1 s après le démarrage (`TEAMOP_RAPPELS_DELAI_MS`) : on attend qu'il ait fini — la marque
-     posée, les envois rendus — plutôt qu'une durée au hasard. */
-  const attendrePassage = async (n) => { for (let i = 0; i < 60; i++) { await dormir(100); if (facteurSrv.recus.length >= n && /rappel échéance/.test(journal)) break; } await dormir(500); };
+     posée, les envois rendus — plutôt qu'une durée au hasard.
+     ⛔ ET « FINI » VEUT DIRE : CHAQUE ENVOI A SON ISSUE AU JOURNAL (29 septembre 2026). L'attente guettait la PREMIÈRE ligne
+     « rappel échéance » et bornait le tout à six secondes : mesuré sous un disque chargé (une copie du dépôt, un `dd`), le
+     passage dépassait la borne, le banc tombait à 11 ✓ 34 ✗ sur un serveur juste — et un banc de la liste du déploiement
+     qui tombe au hasard bloque le VPS, puis se fait ignorer. On compte les issues (« envoyé », « REFUSÉ », « non
+     parti ») : un envoi, une ligne ; la borne large (20 s) ne sert que quand le serveur est vraiment en faute. */
+  const issues = (motif) => (journal.match(motif || /rappel échéance (envoyé|REFUSÉ)/g) || []).length;
+  const attendrePassage = async (n) => { for (let i = 0; i < 200; i++) { if (facteurSrv.recus.length >= n && issues() >= n) break; await dormir(100); } await dormir(500); };
   const lireEsp = () => JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'));
 
   try {
@@ -185,15 +191,20 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
     console.log('\n1. Un serveur d\'e-mails qui refuse : le rappel se retente au passage suivant');
     facteurSrv.mode = 'refuse';
     vrai('le serveur démarre (1er passage 1 s après, facteur qui refuse)', await demarrer());
-    for (let i = 0; i < 40 && !/rappel échéance non parti/.test(journal); i++) await dormir(100);
-    await dormir(600);
-    const e1 = lireEsp();
+    /* les DIX refus (un par envoi) — pas le premier : les marques s'effacent refus par refus */
+    for (let i = 0; i < 200 && issues(/rappel échéance non parti/g) < 10; i++) await dormir(100);
+    const MARQUEES = ['omicron', 'pi', 'rho', 'psi', 'kappa', 'kappaancien', 'mu', 'nu', 'xi', 'eta', 'lambda'];
+    /* l'effacement suit la ligne du journal dans le même bloc synchrone du serveur : on relit l'annuaire jusqu'à ce qu'il
+       l'ait écrit (5 s au plus — au-delà, c'est la marque qui ne s'efface pas, et le contrôle le dit) */
+    let e1 = lireEsp();
+    for (let i = 0; i < 50 && MARQUEES.some(s => e1[s].rappelFin); i++) { await dormir(100); e1 = lireEsp(); }
     v('aucun e-mail n\'a été accepté par le facteur', facteurSrv.recus.length, 0);
     vrai('le journal dit que le rappel n\'est PAS parti, POURQUOI (le motif du facteur), et qu\'il sera retenté',
       /rappel échéance non parti \(.*refusé par le facteur du banc.*\) — nouvel essai au prochain passage/.test(journal));
     vrai('⛔ … sans recopier en clair l\'adresse que le facteur cite dans son refus (`sansAdresses`)', /o\*+@exemple-840\.fr/.test(journal) && !ADRESSE_EN_CLAIR.test(journal));
     v('la marque posée avant l\'envoi s\'est RETIRÉE partout (sinon le rappel était perdu pour toujours)',
-      ['omicron', 'pi', 'rho', 'psi', 'kappa', 'kappaancien', 'mu', 'nu', 'xi', 'eta', 'lambda'].map(s => e1[s].rappelFin || null), [null, null, null, null, null, null, null, null, null, null, null]);
+      MARQUEES.map(s => e1[s].rappelFin || null), [null, null, null, null, null, null, null, null, null, null, null]);
+    v('   (population) les dix envois ont bien été tentés — et refusés, un par un', issues(/rappel échéance non parti/g), 10);
     v('… et la marque d\'omega, déjà prévenue sous son ancien nom, n\'a pas bougé', e1.omegaancien.rappelFin, jour(4));
     await arreter();
 
@@ -301,10 +312,22 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
 
     /* ══ 5. UNE SEULE FOIS PAR ÉCHÉANCE, MÊME APRÈS UN REDÉMARRAGE ════════════════════════════════════════════ */
     console.log('\n3. Une seule fois par échéance');
+    /* ⛔ UN ZÉRO NE PROUVE RIEN SANS SA POPULATION (29 septembre 2026). « Aucun rappel de plus » se lisait après 2,5 s fixes :
+       un passage retardé (disque chargé) le faisait passer sans avoir rien regardé. Une entreprise NEUVE, entrée pendant
+       l'arrêt, doit recevoir le sien : c'est la preuve que le passage a tourné — et les dix déjà prévenues, rien. */
+    const eZ = lireEsp();
+    eZ.zeta = { t: 't-zeta-840', nom: 'Zeta Nouvelle', code: code64('t-zeta-840'), ts: MAINTENANT - 1000, formule: 'premium', email: 'zeta@exemple-840.fr' };
+    fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(eZ));
+    const uZ = JSON.parse(fs.readFileSync(path.join(D, 'promos-usages.json'), 'utf8'));
+    uZ['ESSAI-PREMIUM-840'].equipes['t-zeta-840'] = { date: jour(-80), finLe: jour(3), em: '' }; uZ['ESSAI-PREMIUM-840'].n++;
+    fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify(uZ));
     const avant = facteurSrv.recus.length;
     vrai('le serveur redémarre encore', await demarrer());
-    await dormir(2500);
-    v('aucun rappel de plus : la marque a survécu au redémarrage', facteurSrv.recus.length - avant, 0);
+    for (let i = 0; i < 200 && !(facteurSrv.recus.length > avant && issues() >= 1); i++) await dormir(100);
+    await dormir(1500);   // un doublon, s'il y en avait un, aurait le temps d'arriver
+    const neufs = facteurSrv.recus.slice(avant).map(lisible).map(destinataire);
+    v('   (population) le passage a tourné : l\'entreprise NEUVE, entrée pendant l\'arrêt, reçoit le sien', neufs.filter(d => d === 'zeta@exemple-840.fr').length, 1);
+    v('aucun rappel de plus pour les dix déjà prévenues : la marque a survécu au redémarrage', neufs.filter(d => d !== 'zeta@exemple-840.fr'), []);
   } finally { if (enfant) await arreter(); }
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);
