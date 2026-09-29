@@ -5,7 +5,7 @@
 # pas fait à part de Firebase ». `app.html` et `sw.js` ne bougent pas sur `main` ; seul
 # `server/` part, avec ce qui le SURVEILLE (`.github/scripts/surveillance.js`, qui lit les champs
 # de `/health`) et ce qui le GARDE (les suites de `scripts/bancs-serveur.liste`, lancées par le
-# job `bancs` dont le déploiement dépend) — plus la page de paiement, qui parle au serveur et
+# job `bancs` dont le déploiement dépend) — plus les pages qui parlent au serveur (paiement, remerciement, Tour) et
 # que ces suites lisent (`PAGES_LIEES`).
 #
 # ⛔ CE SCRIPT NE POUSSE RIEN. Pousser sur `main` un commit qui touche `server/**` DÉPLOIE LE VPS
@@ -50,7 +50,11 @@ for f in "${SUITES[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
 #    ⚠️ Et la page de remerciement (29 septembre 2026, « 2 oui ») : `test-839` exécute la VRAIE `merci.html` au retour
 #    de Stripe (« Abonnement confirmé — rien n'est prélevé avant le … ») ; restée celle de `main`, elle ne lit pas
 #    `?debut=` et la couture tombe (relevé par `relecteur`).
-PAGES_LIEES=(recap-abonnement.html apercu/recap-abonnement.html merci.html apercu/merci.html)
+#    ⚠️ Et la Tour (29 septembre 2026, soir, carte refusée = impayé) : le serveur neuf rend `impaye`, `impayeStripe` et
+#    `impayesPartiels` à `/api/monitor/espaces/liste` ; restée celle de `main`, la Tour afficherait « la cliente garde son
+#    accès jusqu'à ce que ce soit réglé » et « Formule attribuée, jamais payée » à côté d'une entreprise grisée — et
+#    treize suites de la liste lisent `tour.html` (relevé par `relecteur`).
+PAGES_LIEES=(recap-abonnement.html apercu/recap-abonnement.html merci.html apercu/merci.html tour.html apercu/tour.html)
 for f in "${PAGES_LIEES[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
 
 # 2. Les deux workflows de la branche — la ligne des bancs lance la LISTE, pas tout (voir
