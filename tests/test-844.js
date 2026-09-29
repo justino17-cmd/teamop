@@ -18,7 +18,10 @@
        (limite connue d'`espacePaye`) — abonnée, mais sans les dates de l'autre ; une fiche GRATUIT que rien de lisible ne
        fait monter reste Gratuit — le courriel habituel ;
      · Stripe illisible (panne, clé refusée) : le courriel habituel, SANS la promesse — on ne sait pas s'il a déjà payé ;
-     · une seule fois par échéance, comme l'autre.
+     · une seule fois par échéance, comme l'autre ;
+     · ⛔ l'attente de Stripe rend la main au serveur : une entreprise SUPPRIMÉE depuis la Tour pendant cette attente ne
+       reçoit rien, et les suivantes reçoivent le leur (sans la relecture de l'annuaire, la boucle jetait dans son `try`
+       global et le passage entier s'arrêtait — ou le courriel partait chez l'entreprise qu'on venait de supprimer).
    Rien ne sort d'ici : 127.0.0.1, un facteur de banc, un Stripe simulé, des entreprises fictives, un code fictif. */
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
 const { spawn } = require('child_process');
@@ -145,6 +148,8 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
 globalThis.fetch = async function (url, opts) {
   const u = String(url && url.url || url);
   if (u.startsWith('https://api.stripe.com/')) {
+    process.stdout.write('banc-stripe: appel\\n');   // (dans le gabarit : l'antislash est doublé)
+    if (process.env.STRIPE_BANC === 'lent') await new Promise(r => setTimeout(r, 3000));   // la fenêtre de la course
     if (process.env.STRIPE_BANC === 'panne') return new Response('{"error":{"message":"panne du banc"}}', { status: 500, headers: { 'content-type': 'application/json' } });
     const corps = u.startsWith('https://api.stripe.com/v1/subscriptions') ? { data: ABOS, has_more: false } : { data: [], has_more: false };
     return new Response(JSON.stringify(corps), { status: 200, headers: { 'content-type': 'application/json' } });
@@ -257,6 +262,40 @@ globalThis.fetch = async function (url, opts) {
     vrai('⛔ zeta : le courriel habituel (on ne sait pas si elle a payé : on ne lui dit pas qu\'elle est abonnée)', /Plus que quelques jours/.test(Z) && PAIEMENT.test(Z));
     vrai('⛔   SANS la promesse « rien n\'est prélevé avant… » (elle a peut-être déjà payé)', !!Z && !PROMESSE.test(Z));
     vrai('   le journal le dit : « Stripe illisible : sans la promesse »', /z\*+@exemple-844\.fr \(fin [0-9-]+, \d+ utilisateur\(s\), [^)]+, Stripe illisible : sans la promesse\)/.test(journal));
+    await arreter();
+
+    console.log('\n3. Une entreprise supprimée depuis la Tour PENDANT que le serveur attend Stripe');
+    /* sigma d'abord, tau ensuite (l'ordre du registre des codes) : c'est pendant l'attente de sigma qu'on la supprime */
+    const e3 = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'));
+    e3.sigma = { t: 't-sigma-844', nom: 'Sigma Supprimée', email: 'sigma@exemple-844.fr', ts: MAINTENANT - 1000, formule: 'premium' };
+    e3.tau = { t: 't-tau-844', nom: 'Tau Suivante', email: 'tau@exemple-844.fr', ts: MAINTENANT - 1000, formule: 'premium' };
+    fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(e3));
+    const u3 = JSON.parse(fs.readFileSync(path.join(D, 'promos-usages.json'), 'utf8'));
+    for (const t of ['t-sigma-844', 't-tau-844']) { u3['ESSAI-BANC-844'].equipes[t] = { date: jour(-80), finLe: FIN, em: '' }; u3['ESSAI-BANC-844'].n++; }
+    fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify(u3));
+    const avant3 = facteurSrv.recus.length;
+    vrai('le serveur redémarre, Stripe lent (3 s par appel)', await demarrer('lent'));
+    const debut3 = Date.now();
+    let vu = false;
+    for (let i = 0; i < 100 && !(vu = /banc-stripe: appel/.test(journal)); i++) await dormir(100);
+    /* le passage part 1 s après le démarrage (`TEAMOP_RAPPELS_DELAI_MS`) : on supprime APRÈS qu'il a commencé — sinon sigma
+       serait écartée avant l'attente, et la course ne serait pas jouée — et bien avant la réponse de Stripe (3 s) */
+    if (Date.now() - debut3 < 1400) await dormir(1400 - (Date.now() - debut3));
+    vrai('(population) le passage attend Stripe — sigma est en cours de traitement', vu && !/rappel échéance (envoyé|REFUSÉ)/.test(journal));
+    const B3 = 'http://127.0.0.1:' + PORT;
+    const appel = async (chemin, corps, jeton) => { const r = await fetch(B3 + chemin, { method: 'POST',
+      headers: Object.assign({ 'Content-Type': 'application/json' }, jeton ? { Authorization: 'Bearer ' + jeton } : {}), body: JSON.stringify(corps) });
+      return { s: r.status, j: await r.json().catch(() => ({})) }; };
+    const PATRON = (await appel('/api/monitor/login', { nom: 'Patron', pass: 'mot-de-passe-844' })).j.token;
+    const sup = await appel('/api/monitor/entreprise/supprimer', { t: 't-sigma-844', confirme: true }, PATRON);
+    vrai('la Tour supprime sigma pendant l\'attente (200) — Stripe n\'a pas encore répondu', sup.s === 200 && !/rappel échéance (envoyé|REFUSÉ)/.test(journal));
+    for (let i = 0; i < 150 && !facteurSrv.recus.slice(avant3).some(m => destinataire(m) === 'tau@exemple-844.fr'); i++) await dormir(100);
+    await dormir(1500);
+    const apres3 = facteurSrv.recus.slice(avant3).map(lisible);
+    vrai('⛔ sigma, supprimée pendant l\'attente, ne reçoit PAS le rappel', !apres3.some(m => destinataire(m) === 'sigma@exemple-844.fr'));
+    vrai('⛔ tau, la suivante, reçoit le sien (le passage ne s\'est pas arrêté sur l\'entrée disparue)',
+      apres3.some(m => destinataire(m) === 'tau@exemple-844.fr' && /Plus que quelques jours/.test(m)));
+    vrai('   aucune erreur de la boucle au journal', !/rappelsEcheances:/.test(journal));
   } finally { if (enfant) await arreter(); }
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   process.exit(ko ? 1 : 0);
