@@ -5371,7 +5371,9 @@ function packPeindre(){
       /* les places que l'application v763 donne VRAIMENT (serveur : `placesServies` — le payé chez Stripe, les places gardées
          d'avant la v763) : sans elles, réenregistrer une entreprise d'avant pouvait lui retirer des places sans que la Tour
          le montre (`gardien`, 28 septembre 2026) */
-      +(d.places?' · places servies\u202f: <b>'+esc(String(d.places))+'</b>':'');
+      +(d.places?' · places servies\u202f: <b>'+esc(String(d.places))+'</b>':'')
+      /* ce que l'application REÇOIT quand ce n'est pas la fiche : la formule payée, ou celle du code (`abnFormule`) */
+      +(d.formuleServie&&d.formuleServie!==d.formule?' · l’application reçoit\u202f: <b>'+esc(ABN_F[d.formuleServie]||d.formuleServie)+'</b> ('+(d.promoCode?'offerte par le code':'payée')+')':'');
   } else {
     el.innerHTML='Aucune formule attribuée pour l\'instant — choisis-en une et Enregistrer.';
   }
@@ -5386,7 +5388,7 @@ function tourPackPrefill(nom){
 }
 function tourStatutPack(nom){
   apiPost('/api/monitor/espaces/statut',{nom:nom}).then(function(r){
-    if(r&&r.ok&&r.d) toast(r.d.formule?('📦 '+r.d.formule+(r.d.quantite>1?' ×'+r.d.quantite:'')+' — '+(r.d.paye?'✅ payé ('+r.d.motif+')':'💳 en attente de paiement')):'Aucune formule attribuée');
+    if(r&&r.ok&&r.d) toast(r.d.formule?('📦 '+r.d.formule+(r.d.quantite>1?' ×'+r.d.quantite:'')+(r.d.formuleServie&&r.d.formuleServie!==r.d.formule?' → l’application reçoit '+(ABN_F[r.d.formuleServie]||r.d.formuleServie):'')+' — '+(r.d.paye?'✅ payé ('+r.d.motif+')':'💳 en attente de paiement')):'Aucune formule attribuée');
     else toast((r&&r.d&&r.d.error)||'Statut indisponible');
   }).catch(function(){ toast('Serveur injoignable'); });
 }
@@ -8763,7 +8765,7 @@ function vueAbonnements(){
       return '<button type="button" class="reg-l" onclick="abnVersEntreprise(\''+jsq(e.t||'')+'\')">'+
         '<span class="reg-av gris">'+esc(sigle(e.nom||e.email||'?'))+'</span>'+
         '<span class="reg-txt"><span class="reg-t1">'+esc(e.nom||e.email||'—')+'</span>'+
-        '<span class="reg-l2">'+esc(ABN_F[e.formule]||e.formule)+(e.echeance?' · prochaine échéance '+esc(e.echeance):'')+'</span></span>'+
+        '<span class="reg-l2">'+esc(abnFormule(e))+(e.echeance?' · prochaine échéance '+esc(e.echeance):'')+'</span></span>'+
         '<span class="reg-fin"><span class="reg-chev" aria-hidden="true">›</span></span></button>'; }).join('')+'</div>'));
   var pai=(ABO.paiements||[]).filter(paieOk).slice(0,12);
   if(pai.length&&!f) G.push(abnGroupe('Derniers paiements',pai.length,
@@ -8800,6 +8802,16 @@ function vueAbonnements(){
       '<div class="encart-tx">Pour modifier ou annuler un abonnement, utilisez le bouton « Ouvrir dans Stripe » — rien ne se modifie depuis cette console.</div></div>';
 }
 var ABN_F={gratuit:'Gratuit',pro:'Pro',business:'Business',premium:'Business Premium'};
+/* La formule que l'application REÇOIT (serveur : `formuleServie`) — celle que l'entreprise paie, ou celle qu'une période
+   offerte sert — et l'écart quand ce n'est pas celle de la fiche. Justin, 29 septembre 2026 : « ils choisissent le tarif
+   qu'ils veulent » ; un code promo sert le plus gros forfait « pour mieux montrer l'application ». Sans l'écart, une fiche
+   Business Premium payée au tarif Pro se lisait « Business Premium » ici pendant que l'application servait Pro. Un serveur
+   d'avant n'envoie pas `formuleServie` : on lit la fiche, comme avant. `q` : le « ×N » de la fiche. */
+function abnFormule(e,q){
+  var f=e.formule||'', s=e.formuleServie||f, lf=(ABN_F[f]||f||'aucune')+(q||'');
+  if(s===f) return lf;
+  return (ABN_F[s]||s)+' ('+(e.promoCode?'offerte par le code':'payée')+'\u202f; la fiche dit '+lf+')';
+}
 /* Ce qui reste des formules attribuées quand Stripe n'est pas relié : elles sont alors la
    SEULE information disponible sur l'argent. */
 function blocEspaces(){
@@ -8813,7 +8825,7 @@ function blocEspaces(){
       return '<button type="button" class="reg-l" onclick="abnVersEntreprise(\''+jsq(e.t||'')+'\')">'+
         '<span class="reg-av gris">'+esc(sigle(e.nom||e.email||'?'))+'</span>'+
         '<span class="reg-txt"><span class="reg-t1">'+esc(e.nom||e.email||'—')+'</span>'+
-        '<span class="reg-l2">'+esc(ABN_F[e.formule]||e.formule)+(e.quantite>1?' ×'+e.quantite:'')+
+        '<span class="reg-l2">'+esc(abnFormule(e,e.quantite>1?' ×'+e.quantite:''))+
         (e.paye?(e.promoCode?' · offert jusqu’au '+esc(e.finLe||'?')+' · '+joursRestants(e.finLe||''):' · payé'+(e.places?' · '+nMot(e.places,'place servie','places servies'):'')):' · en attente de paiement')+'</span></span>'+
         '<span class="reg-fin">'+(e.paye?'':'<span class="past p-rouge">💳 En attente</span>')+
         '<span class="reg-chev" aria-hidden="true">›</span></span></button>'; }).join('')+'</div>')+'</div>';

@@ -242,21 +242,24 @@ const PHRASE = 'Pour payer, il faut un compte TEAM OP : créez-le d\'abord, c\'e
       q = await essai(() => rep(403, { error: 'reference_ambigue' }));
       v('   … une référence ambiguë (403) : au support, sans « réessayez », et rien n\'est parti',
         [q.texte().includes('ne peut pas être rattaché à votre entreprise sans vérification'), /Réessayez dans un instant/.test(q.texte()), q.texte().includes('Rien n\'a été payé'), q.window.location.href], [true, false, true, '']);
-      /* un tarif SOUS la formule de l'entreprise, ou un tarif inconnu (28 septembre 2026, nuit) : la page dit lequel, sans
-         « réessayez dans un instant », et ne part pas */
-      q = await essai(() => rep(403, { error: 'tarif_formule', formule: 'premium' }));
-      v('⛔ tarif sous la formule de l\'entreprise (403) : la page nomme SA formule (Business Premium), renvoie au support pour en changer, ne part pas',
-        [q.texte().includes('Votre entreprise est en formule Business Premium'), q.texte().includes('support@teamop.fr'), /Réessayez dans un instant/.test(q.texte()), q.texte().includes('Rien n\'a été payé'), q.window.location.href],
-        [true, true, false, true, '']);
-      /* et le geste qui suit : monter à la formule de l'entreprise. Le NOMBRE venu du courriel (4) reste — la pastille le
-         remettait à 1 —, et le refus d'avant, qui visait l'autre formule, s'efface (relecture adverse, 28 septembre, nuit) */
-      const avantPuce = q.api.etat().nbUsersVoulu;
-      v('   … toucher « Business Premium » : 4 utilisateurs restent (pas 1), le refus d\'avant s\'efface, et payer vise Premium',
-        [avantPuce, q.puce('premium'), q.api.etat().formuleActive, q.api.etat().nbUsersVoulu, q.api.etat().compteMsg, /Votre entreprise est en formule/.test(q.texte()), /id="nbUsers"[^>]*value="4"/.test(q.html())],
-        [4, true, 'premium', 4, null, false, true]);
+      /* un tarif inconnu (28 septembre 2026, nuit) : la page le dit, sans « réessayez dans un instant », et ne part pas.
+         ⛔ Et AUCUN tarif de la page n'est refusé pour la formule de l'entreprise : le client choisit (Justin, 29 septembre
+         2026 : « ils choisissent le tarif qu'ils veulent »). Le refus `tarif_formule` d'une nuit n'existe plus, ni côté
+         serveur (`test-727` b bis, et le vrai serveur plus bas) ni ici : la page ne sait plus le dire. */
       q = await essai(() => rep(400, { error: 'tarif_inconnu' }));
       v('   … un tarif que le serveur ne connaît pas (400) : « rechargez la page », rien n\'est parti',
-        [q.texte().includes('Ce tarif n\'est plus proposé'), q.window.location.href], [true, '']);
+        [q.texte().includes('Ce tarif n\'est plus proposé'), /Réessayez dans un instant/.test(q.texte()), q.window.location.href], [true, false, '']);
+      /* et le geste qui suit : choisir une autre formule. Le NOMBRE venu du courriel J-7 (4) reste — la pastille le remettait
+         à 1 —, et le refus d'avant, qui visait l'autre formule, s'efface (relecture adverse, 28 septembre, nuit) */
+      const avantPuce = q.api.etat().nbUsersVoulu;
+      v('   … toucher « Business Premium » : 4 utilisateurs restent (pas 1), le refus d\'avant s\'efface, et payer vise Premium',
+        [avantPuce, q.puce('premium'), q.api.etat().formuleActive, q.api.etat().nbUsersVoulu, q.api.etat().compteMsg, /Ce tarif n'est plus proposé/.test(q.texte()), /id="nbUsers"[^>]*value="4"/.test(q.html())],
+        [4, true, 'premium', 4, null, false, true]);
+      v('   … et descendre à « Pro » : pareil — le client choisit, rien ne le retient à une formule',
+        [q.puce('pro'), q.api.etat().formuleActive, q.api.etat().nbUsersVoulu, /id="nbUsers"[^>]*value="4"/.test(q.html())], [true, 'pro', 4, true]);
+      const CODE_PAGE = lire(f).replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+      v('⛔ la page ne sait plus dire « Votre entreprise est en formule … » : aucun refus par formule dans son CODE',
+        [/tarif_formule/.test(CODE_PAGE), /Votre entreprise est en formule/.test(CODE_PAGE)], [false, false]);
       q = await essai(() => rep(429, { error: 'trop de requêtes' }));
       vrai('⛔ trop de tentatives (429) : on le dit, on ne part pas', q.texte().includes('Trop de tentatives') && q.window.location.href === '');
       q = await essai(() => rep(502, undefined));
@@ -419,9 +422,6 @@ globalThis.fetch = async function (url, opts) {
       /* une seconde entreprise de Camille, réglée Business Premium dans la Tour (deux noms d'accès : l'un oublié en Pro) */
       'premium-banc': { nom: 'Camille Premium', t: 'banc-prem-t4', email: 'camille@entreprise-banc.fr', formule: 'premium', quantite: 1, ts: 2, par: 'banc', origine: 'banc' },
       'premium-banc-ancien': { nom: 'Camille Premium', t: 'banc-prem-t4', email: 'camille@entreprise-banc.fr', formule: 'pro', quantite: 1, ts: 1, par: 'banc', origine: 'banc' },
-      /* et une troisième, descendue de Business Premium à Pro sur son nom RÉCENT, l'ancien nom resté en Business Premium */
-      'descendue-banc': { nom: 'Camille Pro', t: 'banc-desc-t5', email: 'camille@entreprise-banc.fr', formule: 'pro', quantite: 1, ts: 3, par: 'banc', origine: 'banc' },
-      'descendue-banc-ancien': { nom: 'Camille Pro', t: 'banc-desc-t5', email: 'camille@entreprise-banc.fr', formule: 'premium', quantite: 1, ts: 1, par: 'banc', origine: 'banc' },
     }));
     const cfg = path.join(BANC, 'config.json');
     const vap = require(path.join(RACINE, 'server', 'node_modules', 'web-push')).generateVAPIDKeys();
@@ -554,32 +554,28 @@ globalThis.fetch = async function (url, opts) {
           const inconnue = await payerAvec('banc-inconnu-t9', 'premium');
           v('   une référence inconnue de l\'annuaire : le paiement s\'ouvre SANS référence (rattaché à l\'adresse du compte, à personne d\'autre)',
             [inconnue.s.length, inconnue.envoye.get('subscription_data[metadata][espace]'), inconnue.envoye.get('customer_email')], [1, null, 'camille@entreprise-banc.fr']);
-          /* ⛔ LE TARIF (28 septembre 2026, nuit) : seulement ceux de la page, et jamais sous la formule de l'entreprise */
-          if (/tarif_formule/.test(ROUTE)) {
+          /* ⛔ LE TARIF (28 septembre 2026, nuit) : seulement ceux de la page — et LE CLIENT CHOISIT LEQUEL (Justin, 29 septembre
+             2026 : « ils choisissent le tarif qu'ils veulent »). Une nuit, la route a refusé un tarif sous la formule de la fiche
+             (`tarif_formule`) : sa fiche Business Premium ne l'empêche plus de payer Business ou Pro, et c'est la formule SERVIE
+             qui suit le tarif payé (`test-727` section 8, `test-842` 4 ter). */
+          if (/tarif_inconnu/.test(ROUTE)) {
             const bas = await payerAvec('banc-prem-t4', 'business');
-            v('⛔ son entreprise est réglée Business Premium : payer Business est refusé par le vrai serveur, la page nomme sa formule, rien chez Stripe',
-              [bas.s.length, bas.q.texte().includes('Votre entreprise est en formule Business Premium'), bas.q.window.location.href], [0, true, '']);
-            /* OP MESSAGES : la page le montre « Bientôt disponible », sans bouton — seul un appel direct peut l'envoyer */
+            v('⛔ son entreprise est réglée Business Premium, elle choisit Business : le vrai serveur ouvre le paiement, au tarif Business, référence gravée',
+              [bas.s.length, bas.envoye.get('line_items[0][price]'), bas.envoye.get('subscription_data[metadata][espace]'), /Votre entreprise est en formule/.test(bas.q.texte()), bas.q.window.location.href],
+              [1, (/business:\s*\{ mensuel: '(price_\w+)'/.exec(lire(PAGES_PAIEMENT[0])) || [])[1], 'banc-prem-t4', false, 'https://checkout.stripe.com/c/pay/banc-839']);
+            const desc = await payerAvec('banc-prem-t4', 'pro');
+            v('   … ou Pro : pareil', [desc.s.length, desc.envoye.get('subscription_data[metadata][espace]')], [1, 'banc-prem-t4']);
+            const juste = await payerAvec('banc-prem-t4', 'premium');
+            v('   … ou Business Premium : pareil', [juste.s.length, juste.envoye.get('subscription_data[metadata][espace]')], [1, 'banc-prem-t4']);
+            const sansRef = await payerAvec(null, 'business');
+            v('   sans référence (appareil qui n\'a jamais ouvert l\'application) : le paiement s\'ouvre, rien n\'est gravé (il suit l\'adresse du compte)',
+              [sansRef.s.length, sansRef.envoye.get('subscription_data[metadata][espace]'), sansRef.envoye.get('customer_email')], [1, null, 'camille@entreprise-banc.fr']);
+            /* OP MESSAGES : la page le montre « Bientôt disponible », sans bouton — un appel direct passe (c'est un tarif de la
+               page) ; il ne paie pas OP GESTION pour autant (la formule servie le dit : `test-842`) */
             const prixMsg = (/msgpro:\s*\{ mensuel: '(price_\w+)'/.exec(lire(PAGES_PAIEMENT[0])) || [])[1];
             const nMsg = stripeRecu().length;
             const msg = await fetch(B + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + rangement.get('teamop_portail_jeton') }, body: JSON.stringify({ price: prixMsg, quantity: 1, ref: 'banc-prem-t4' }) });
-            const mj = await msg.json().catch(() => ({}));
-            v('⛔ … et le tarif d\'OP MESSAGES (appel direct) ne règle pas OP GESTION : 403 tarif_formule, rien chez Stripe', [!!prixMsg, msg.status, mj.error, mj.formule, stripeRecu().length], [true, 403, 'tarif_formule', 'premium', nMsg]);
-            const juste = await payerAvec('banc-prem-t4', 'premium');
-            v('⛔ Business Premium : le paiement s\'ouvre, référence gravée (la fiche lue par l\'application — la plus récente — fait foi, pas le vieux nom en Pro)',
-              [juste.s.length, juste.envoye.get('subscription_data[metadata][espace]'), juste.envoye.get('line_items[0][price]'), juste.q.window.location.href],
-              [1, 'banc-prem-t4', (/premium:\s*\{ mensuel: '(price_\w+)'/.exec(lire(PAGES_PAIEMENT[0])) || [])[1], 'https://checkout.stripe.com/c/pay/banc-839']);
-            const desc = await payerAvec('banc-desc-t5', 'pro');
-            v('⛔ descendue à Pro sur son nom récent (l\'ancien nom resté en Business Premium) : le tarif Pro passe', [desc.s.length, desc.envoye.get('subscription_data[metadata][espace]')], [1, 'banc-desc-t5']);
-            /* ⛔ SANS référence (appareil qui n'a jamais ouvert l'application) : l'adresse du compte dit qui paie — Camille a une
-               fiche Business Premium, le tarif Business est refusé ; le tarif Business Premium passe */
-            const sansRef = await payerAvec(null, 'business');
-            v('⛔ sans référence, le compte d\'une fiche Business Premium : Business refusé, la page nomme la formule, rien chez Stripe',
-              [sansRef.s.length, sansRef.q.texte().includes('Votre entreprise est en formule Business Premium')], [0, true]);
-            const sansRefOk = await payerAvec(null, 'premium');
-            v('   … et Business Premium passe, sans référence gravée (l\'abonnement suit l\'adresse du compte)', [sansRefOk.s.length, sansRefOk.envoye.get('subscription_data[metadata][espace]')], [1, null]);
-            const libre = await payerAvec('banc-camille-t1', 'pro');
-            v('   une entreprise sans formule payante réglée choisit la sienne (Pro) : le paiement s\'ouvre', libre.s.length, 1);
+            v('   le tarif d\'OP MESSAGES (appel direct) est un tarif de la page : il passe', [!!prixMsg, msg.status, stripeRecu().length], [true, 200, nMsg + 1]);
             const n = stripeRecu().length;
             const inconnu = await fetch(B + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + rangement.get('teamop_portail_jeton') }, body: JSON.stringify({ price: 'price_1Banc', quantity: 1 }) });
             const ij = await inconnu.json().catch(() => ({}));

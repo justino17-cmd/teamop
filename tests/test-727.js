@@ -44,8 +44,9 @@ vrai('espacePaye est trouvée dans le fichier réel', i > 0 && fin > i);
    avalé en silence : c'est ainsi que ce banc est tombé le jour où la règle est arrivée. On extrait
    les VRAIES, par leur nom, avec la même découpe. */
 function extraire(nom) {
-  const d0 = SRC.indexOf('function ' + nom + '(');
+  let d0 = SRC.indexOf('function ' + nom + '(');
   if (d0 < 0) return '';
+  if (SRC.slice(d0 - 6, d0) === 'async ') d0 -= 6;   // `espaceStripe` attend Stripe : sans son `async`, son `await` ne se lit plus
   let p = 0;
   for (let k = SRC.indexOf('{', d0); k < SRC.length; k++) { if (SRC[k] === '{') p++; else if (SRC[k] === '}') { p--; if (!p) return SRC.slice(d0, k + 1); } }
   return '';
@@ -62,7 +63,17 @@ const iConst = SRC.indexOf('const PLACES_BASCULE ='), iPQ = SRC.indexOf('functio
 const CONSTS = (iConst > 0 && iPQ > iConst) ? SRC.slice(iConst, iPQ) : '';
 const PLACES = ['placesQ', 'placesPromoDejaEu', 'placesStripe'].map(extraire);
 vrai('le calcul des places et ses constantes sont trouvés dans le fichier réel', !!CONSTS && /STRIPE_PRIX_FORMULE/.test(CONSTS) && PLACES.every(Boolean));
-AIDES.push(CONSTS, ...PLACES);
+/* ⛔ ET LA FORMULE SERVIE (Justin, 29 septembre 2026 : « ils choisissent le tarif qu'ils veulent »). Le rattachement Stripe
+   est sorti d'`espacePaye` (`espaceStripe`, pour que la fiche « Gratuit » y passe aussi), et la formule que l'application
+   reçoit se lit sur le tarif payé (`formulePayee`) ou sur le code d'une période offerte (`formulePromo`). Sans ces aides,
+   `espacePaye` jetait dès le premier appel (« espaceStripe is not defined ») : tout ce banc est tombé ainsi. */
+const iLig = SRC.indexOf('const prixDeLigne ='), iFP = SRC.indexOf('function formulePayee(');
+const LIGNES = (iLig > 0 && iFP > iLig) ? SRC.slice(iLig, iFP) : '';
+const LBL2 = (/^const FORMULE_LBL2 = .*$/m.exec(SRC) || [''])[0];
+const SERVIE = ['formulePayee', 'formuleDuCode', 'formulePromo', 'placesDeFormule', 'formuleEtPlaces', 'espaceStripe'].map(extraire);
+vrai('la formule servie, ses aides et le rattachement Stripe sont trouvés dans le fichier réel',
+  /ligneMessages/.test(LIGNES) && /Business Premium/.test(LBL2) && SERVIE.every(Boolean) && /^async function espaceStripe/.test(SERVIE[5]));
+AIDES.push(CONSTS, ...PLACES, LIGNES, LBL2, ...SERVIE);
 const PARAMS = ['config', 'espStripeCache', 'promoUsages', 'stripeAbosBruts', 'console', 'savePromoUsages', 'mailPromoActive', 'espacesReg', 'espaceParT', 'crypto', 'promosIllisible'];
 const construire = () => new Function(...PARAMS, AIDES.join('\n') + '\n' + SRC.slice(i, fin) + '\nreturn espacePaye;');
 const avec = (abos) => construire()(
@@ -187,10 +198,10 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
   /* L'annuaire (« B », 28 septembre 2026) : la route ne grave une référence d'espace que si le compte qui paie est
      celui de l'entreprise. Elle lit les VRAIES `espaceT` et `espacesDeRef` du fichier, sur un annuaire de banc où
      « monclient-9f2a » est l'entreprise du compte prouvé. */
-  /* ⚠️ et les TARIFS (28 septembre 2026, nuit) : la route n'admet plus que ceux de la page, jamais sous la formule de
-     l'entreprise. Elle lit `STRIPE_PRIX_FORMULE`, `STRIPE_PRIX_MESSAGES` et `RANG_FORMULE` — le bloc des constantes des
-     places, déjà extrait plus haut pour `espacePaye`. Sans lui, la route jetait (« RANG_FORMULE is not defined ») et
-     répondait 500 : 32 contrôles de ce banc sont tombés ainsi. Le tarif du banc est un VRAI tarif public de la page. */
+  /* ⚠️ et les TARIFS (28 septembre 2026, nuit) : la route n'admet que ceux de la page. Elle lit `STRIPE_PRIX_FORMULE`,
+     `STRIPE_PRIX_MESSAGES` et `RANG_FORMULE` — le bloc des constantes des places, déjà extrait plus haut pour `espacePaye`.
+     Sans lui, la route jetait (« RANG_FORMULE is not defined ») et répondait 500 : 32 contrôles de ce banc sont tombés
+     ainsi. Le tarif du banc est un VRAI tarif public de la page. */
   const AIDES_ROUTE = ['espaceT', 'espacesDeRef', 'espaceParT'].map(extraire).concat([CONSTS]);
   const PRIX_PRO = (/^\s*pro: \['(price_\w+)'/m.exec(SRC) || [])[1], PRIX_PREMIUM = (/^\s*premium: \['(price_\w+)'/m.exec(SRC) || [])[1];
   vrai('les tarifs Pro et Business Premium du serveur sont lus', /^price_/.test(PRIX_PRO || '') && /^price_/.test(PRIX_PREMIUM || ''));
@@ -227,46 +238,49 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('⛔ une r\u00e9f\u00e9rence mal form\u00e9e n\'est PAS grav\u00e9e', /subscription_data%5Bmetadata%5D%5Bespace%5D/.test(r.envoye), false);
   }
 
-  /* b bis) ⛔ LE TARIF : ceux de la page seulement, et jamais sous la formule de l'entreprise (28 septembre 2026, nuit) */
+  /* b bis) ⛔ LE TARIF : ceux de la page seulement (28 septembre 2026, nuit) — et LE CLIENT CHOISIT LEQUEL (Justin,
+     29 septembre 2026 : « ils choisissent le tarif qu'ils veulent »). Une nuit durant, la route a refusé un tarif SOUS la
+     formule de la fiche (403 `tarif_formule`) : elle aurait bloqué le client qui, au bout d'un code promo Business Premium,
+     prend Pro. C'est la formule SERVIE qui suit le tarif payé (`formulePayee`, section 8) : payer Pro donne Pro. */
   {
     const inconnu = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'monclient-9f2a' });
     v('⛔ un tarif qui n\'est pas sur la page : 400 tarif_inconnu, rien chez Stripe', [inconnu.statut, inconnu.sortie && inconnu.sortie.error, inconnu.appels], [400, 'tarif_inconnu', 0]);
     const PREM = { monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr', formule: 'premium' } };
-    const bas = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, PREM);
-    v('⛔ entreprise réglée Business Premium, tarif Pro : 403 tarif_formule (et laquelle), rien chez Stripe', [bas.statut, bas.sortie && bas.sortie.error, bas.sortie && bas.sortie.formule, bas.appels], [403, 'tarif_formule', 'premium', 0]);
+    const gravee = r => new URLSearchParams(r.envoye).get('subscription_data[metadata][espace]');
+    const bas = await appeler({ price: PRIX_PRO, quantity: 4, ref: 'monclient-9f2a' }, undefined, undefined, PREM);
+    v('⛔ le client choisit : fiche Business Premium, tarif Pro × 4 — le paiement s\'ouvre, au tarif Pro, référence gravée',
+      [bas.statut || 200, bas.sortie && bas.sortie.error, bas.appels, new URLSearchParams(bas.envoye).get('line_items[0][price]'), new URLSearchParams(bas.envoye).get('line_items[0][quantity]'), gravee(bas)],
+      [200, undefined, 1, PRIX_PRO, '4', 'monclient-9f2a']);
     const juste = await appeler({ price: PRIX_PREMIUM, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, PREM);
-    v('   le tarif Business Premium passe', [juste.statut || 200, juste.appels], [200, 1]);
-    /* ⛔ SANS référence (appareil qui n'a jamais ouvert l'application), l'ADRESSE du compte dit qui paie : celle d'une fiche
-       Business Premium → le tarif Pro est refusé quand même (relecture adverse, rejouée deux fois) */
+    v('   le tarif Business Premium passe aussi', [juste.statut || 200, juste.appels], [200, 1]);
     const sansRef = await appeler({ price: PRIX_PRO, quantity: 1 }, undefined, undefined, PREM);
-    v('⛔ sans référence, le compte est celui d\'une fiche Business Premium : tarif Pro refusé (403 tarif_formule), rien chez Stripe', [sansRef.statut, sansRef.sortie && sansRef.sortie.error, sansRef.appels], [403, 'tarif_formule', 0]);
+    v('   sans référence (téléphone du patron, fenêtre privée) : le paiement s\'ouvre, rien n\'est gravé', [sansRef.statut || 200, sansRef.appels, gravee(sansRef)], [200, 1, null]);
     const refBidon = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'nimporte-quoi' }, undefined, undefined, PREM);
-    v('⛔ une référence inconnue ne fait pas sauter la garde non plus', [refBidon.statut, refBidon.appels], [403, 0]);
+    v('   une référence inconnue : le paiement s\'ouvre, RIEN n\'est gravé', [refBidon.statut || 200, refBidon.appels, gravee(refBidon)], [200, 1, null]);
     const refNombre = await appeler({ price: PRIX_PRO, quantity: 1, ref: 12 }, undefined, undefined, PREM);
-    v('⛔ ni une référence qui n\'est pas du texte', [refNombre.statut, refNombre.appels], [403, 0]);
+    v('   une référence qui n\'est pas du texte : ignorée, rien n\'est gravé', [refNombre.statut || 200, refNombre.appels, gravee(refNombre)], [200, 1, null]);
     const prospect = await appeler({ price: PRIX_PRO, quantity: 1 }, undefined, undefined, {});
     v('   un prospect (aucune entreprise à son adresse) choisit sa formule : le paiement s\'ouvre', [prospect.statut || 200, prospect.appels], [200, 1]);
     const tableau = await appeler({ price: [PRIX_PREMIUM], quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, PREM);
     v('⛔ un tarif qui n\'est pas du texte (tableau) : 400 tarif invalide, rien chez Stripe', [tableau.statut, tableau.appels], [400, 0]);
     const objet = await appeler({ price: { toString: 1 }, quantity: 1 }, undefined, undefined, PREM);
     v('⛔ … ni un objet (qui faisait jeter : 500)', [objet.statut, objet.appels], [400, 0]);
-    /* ⛔ UNE FORMULE AU-DESSUS PASSE, et OP MESSAGES ne règle aucune formule d'OP GESTION (relecture adverse : `!==` ou
-       `> 0` à la place de `<` survivaient) */
     const fiche = f => ({ monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr', formule: f } });
     const PRIX_BUSINESS = (/^\s*business: \['(price_\w+)'/m.exec(SRC) || [])[1], PRIX_MSG = (/^\s*msgpro: \['(price_\w+)'/m.exec(SRC) || [])[1];
     const proBiz = await appeler({ price: PRIX_BUSINESS, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, fiche('pro'));
     const bizPrem = await appeler({ price: PRIX_PREMIUM, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, fiche('business'));
-    const bizBiz = await appeler({ price: PRIX_BUSINESS, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, fiche('business'));
-    v('⛔ fiche Pro qui paie Business, fiche Business qui paie Business Premium, fiche Business qui paie Business : les trois passent',
-      [proBiz.statut || 200, bizPrem.statut || 200, bizBiz.statut || 200, proBiz.appels + bizPrem.appels + bizBiz.appels], [200, 200, 200, 3]);
+    const bizPro = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, fiche('business'));
     const proMsg = await appeler({ price: PRIX_MSG, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, fiche('pro'));
-    v('⛔ fiche Pro qui paie OP MESSAGES : 403 tarif_formule (formule pro)', [proMsg.statut, proMsg.sortie && proMsg.sortie.formule, proMsg.appels], [403, 'pro', 0]);
-    /* ⛔ DEUX NOMS D'ACCÈS : la fiche que l'application lit (la plus récente) fait foi — un ancien nom resté plus haut ne
-       fait pas refuser un paiement juste (relecture adverse) */
+    v('   au-dessus, en dessous, OP MESSAGES : les quatre tarifs de la page passent, quelle que soit la fiche',
+      [proBiz.statut || 200, bizPrem.statut || 200, bizPro.statut || 200, proMsg.statut || 200, proBiz.appels + bizPrem.appels + bizPro.appels + proMsg.appels], [200, 200, 200, 200, 4]);
+    /* ⛔ LE REFUS NE REVIENT PAS PAR UN AUTRE CHEMIN : aucune réponse de la route ne porte plus `tarif_formule` — c'est ce
+       que la page de paiement ne sait plus dire (elle a retiré ce message) */
+    const reponses = [bas, juste, sansRef, refBidon, refNombre, prospect, proBiz, bizPrem, bizPro, proMsg].map(r => r.sortie && r.sortie.error).filter(Boolean);
+    v('⛔ aucune réponse ne porte plus « tarif_formule »', reponses, []);
     const DEUX = { recent: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr', formule: 'pro', ts: 3 },
       ancien: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr', formule: 'premium', ts: 1 } };
     const deux = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, DEUX);
-    v('⛔ nom récent en Pro, ancien nom oublié en Business Premium : le tarif Pro passe (la fiche lue est la récente)', [deux.statut || 200, deux.appels], [200, 1]);
+    v('   deux noms d\'accès, deux formules : le tarif Pro passe, l\'identifiant est gravé', [deux.statut || 200, deux.appels, gravee(deux)], [200, 1, 'monclient-9f2a']);
   }
 
   /* c) ⛔ PAS DE PAIEMENT SANS COMPTE PROUVÉ — et rien ne part chez Stripe tant que ce n'est pas le cas. */
@@ -482,6 +496,87 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     const actifs = appels.filter(a => !/\{ lecture: true \}/.test(a));
     v('⛔⛔ un SEUL appelant active : l\'application qui demande son état', actifs.length, 1);
     vrai('   … et c\'est bien `/api/espaces/etat` (espacePaye(e).then)', /^e\)\.then\(/.test(actifs[0] || ''));
+  }
+
+  /* 8. ⛔⛔ LA FORMULE SERVIE — CELLE QUE L'APPLICATION REÇOIT (Justin, 29 septembre 2026 : « ils choisissent le tarif
+     qu'ils veulent » ; « le code promo, mets-le au plus gros forfait — c'est pour mieux montrer l'application »). La route de
+     paiement ne refuse plus un tarif sous la fiche (b bis) : c'est ICI que payer Pro donne Pro. Sans ça, une fiche Business
+     Premium payée au tarif Pro restait Business Premium — le trou que la relecture adverse avait rejoué.
+     Les abonnements d'APRÈS la bascule des places portent `created` ; ceux du reste de ce banc n'en ont pas (d'avant). */
+  {
+    const APRES = Math.floor(Date.parse('2026-10-01T00:00:00Z') / 1000);
+    const prixDe = k => (new RegExp('^\\s*' + k + ": \\['(price_\\w+)'", 'm').exec(SRC) || [])[1];
+    const P = { pro: prixDe('pro'), business: prixDe('business'), premium: prixDe('premium'), msg: prixDe('msgpro') };
+    vrai('les quatre tarifs de la page sont lus dans le serveur', Object.values(P).every(x => /^price_/.test(x || '')));
+    const L = (k, q) => ({ price: { id: P[k] }, quantity: q });
+    const apres = (lignes, o) => ABO(Object.assign({ created: APRES, customer: { email: 'patron@client.fr' }, items: { data: lignes } }, o));
+    const avant = (lignes, o) => ABO(Object.assign({ created: 1, customer: { email: 'patron@client.fr' }, items: { data: lignes } }, o));
+    const lit = r => [r.paye, r.formuleServie, r.placesStripe];
+
+    const bas = await avec([apres([L('pro', 4)])])(ESP());
+    v('⛔⛔ fiche Business Premium, abonnement Pro × 4 : l\'application reçoit PRO, 4 places', lit(bas), [true, 'pro', 4]);
+    vrai('   et le motif dit la formule payée', /formule payée : Pro\b/.test(bas.motif));
+    const haut = await avec([apres([L('premium', 2)])])(ESP({ formule: 'pro' }));
+    v('   fiche Pro, abonnement Business Premium × 2 : BUSINESS PREMIUM, 2 places', lit(haut), [true, 'premium', 2]);
+    const pareil = await avec([apres([L('business', 3)])])(ESP({ formule: 'business' }));
+    v('   fiche Business, abonnement Business × 3 : Business, 3 places — et le motif ne parle d\'aucun écart', [...lit(pareil), /formule payée/.test(pareil.motif)], [true, 'business', 3, false]);
+    const deux = await avec([apres([L('pro', 2)]), apres([L('premium', 1)])])(ESP({ formule: 'business' }));
+    v('   deux abonnements (Pro × 2, Business Premium × 1) : la plus haute, et SEULS ses abonnements donnent des places', lit(deux), [true, 'premium', 1]);
+
+    /* ⛔ UNE FICHE « GRATUIT » QUI PAIE REÇOIT CE QU'ELLE PAIE : elle sortait avant Stripe, et payer sur la page la laissait
+       en Gratuit jusqu'à un geste de la Tour */
+    const gratuitePaie = await avec([apres([L('business', 2)])])(ESP({ formule: 'gratuit' }));
+    v('⛔ fiche Gratuit, abonnement Business × 2 : BUSINESS, 2 places', lit(gratuitePaie), [true, 'business', 2]);
+    const gratuiteRien = await avec([])(ESP({ formule: 'gratuit' }));
+    v('   contre-épreuve : fiche Gratuit sans abonnement — Gratuit, comme avant', [gratuiteRien.paye, gratuiteRien.motif, gratuiteRien.formuleServie], [true, 'gratuit', undefined]);
+    const gratuiteMsg = await avec([apres([L('msg', 1)])])(ESP({ formule: 'gratuit' }));
+    v('   fiche Gratuit qui ne paie qu\'OP MESSAGES : Gratuit', [gratuiteMsg.paye, gratuiteMsg.motif, gratuiteMsg.formuleServie], [true, 'gratuit', undefined]);
+
+    /* OP MESSAGES n'est pas une formule d'OP GESTION */
+    const msgSeul = await avec([apres([L('msg', 3)])])(ESP());
+    v('⛔ fiche Business Premium qui ne paie qu\'OP MESSAGES (abonnement d\'après) : OP GESTION reçoit Gratuit', [msgSeul.paye, msgSeul.formuleServie], [true, 'gratuit']);
+
+    /* ⛔ CE QU'ON NE SAIT PAS LIRE GARDE LA FICHE : on ne coupe pas une entreprise qui paie */
+    const ancien = await avec([avant([L('pro', 1)])])(ESP());
+    v('⛔ un abonnement d\'AVANT la bascule (ancien lien, autre tarif) : la fiche reste — Business Premium, ses 3 places d\'avant', lit(ancien), [true, 'premium', 3]);
+    const main = await avec([apres([{ price: { id: 'price_cree_a_la_main' }, quantity: 5 }])])(ESP({ formule: 'business' }));
+    v('   un tarif créé à la main chez Stripe (après) : la fiche reste — Business', [main.paye, main.formuleServie], [true, 'business']);
+    const rienALire = await avec([ABO({ customer: { email: 'patron@client.fr' } })])(ESP());
+    v('   un abonnement sans ligne du tout : la fiche reste, payée', [rienALire.paye, rienALire.formuleServie], [true, 'premium']);
+
+    /* ⛔ UNE FORMULE SERVIE QUI N'EST PAS LA FICHE EST UNE FORMULE CHANGÉE APRÈS LA BASCULE : ses abonnements d'avant ne
+       prennent pas son multiplicateur (`placesDeFormule`, le même refus qu'une formule changée dans la Tour) */
+    const monte = await avec([avant([L('business', 1)]), apres([L('premium', 1)])])(ESP({ formule: 'business' }));
+    v('⛔ fiche Business, un abonnement Business d\'avant + un Business Premium d\'après : Business Premium, 2 places — pas 4 (l\'ancien ne vaut pas 3)', lit(monte), [true, 'premium', 2]);
+    const reste = await avec([avant([L('business', 1)]), apres([L('business', 1)])])(ESP({ formule: 'business' }));
+    v('   contre-épreuve : un Business d\'avant + un Business d\'après — Business, 2 + 1 = 3 places, comme hier', lit(reste), [true, 'business', 3]);
+
+    /* ⛔ UNE DONNÉE DE STRIPE MAL FORMÉE NE COUPE PAS UNE ENTREPRISE QUI PAIE (`formuleEtPlaces`) */
+    const casse = await avec([apres(null, { items: { data: 'pas-une-liste' } })])(ESP());
+    v('⛔ des lignes illisibles chez Stripe : payée, à la formule de la fiche', [casse.paye, casse.formuleServie], [true, 'premium']);
+
+    /* ⛔ UNE PÉRIODE OFFERTE SERT LA FORMULE DU CODE — Business Premium par défaut, jamais sous la fiche (`formulePromo`).
+       Codes FICTIFS (règle du dépôt : aucun vrai code dans un fichier suivi). */
+    const periode = (promos, fiche, abos) => {
+      const usages = {}; for (const pr of promos.concat([{ code: 'ESSAI-BANC-RETIRE' }])) usages[pr.code] = { n: 1, equipes: {} };
+      return (code) => {
+        usages[code].equipes['ent-x'] = { date: '2026-09-01', finLe: '2099-12-31' };
+        return construire()({ stripe: { secretKey: 'sk_de_banc' }, promos }, { ts: Date.now(), data: abos || [] }, usages,
+          async () => abos || [], { log() {}, error() {} }, () => true, () => {}, {}, () => null, require('crypto'), false)(ESP({ formule: fiche }));
+      };
+    };
+    const codeHaut = await periode([{ code: 'ESSAI-BANC-HAUT', formule: 'premium', mois: 3 }], 'pro')('ESSAI-BANC-HAUT');
+    v('⛔⛔ fiche Pro, code Business Premium : pendant la période, l\'application reçoit BUSINESS PREMIUM', [codeHaut.paye, codeHaut.promoCode, codeHaut.formuleServie], [true, 'ESSAI-BANC-HAUT', 'premium']);
+    const codeNu = await periode([{ code: 'ESSAI-BANC-NU', mois: 3 }], 'business')('ESSAI-BANC-NU');
+    v('   un code qui ne dit pas sa formule : Business Premium (« le plus gros forfait »)', codeNu.formuleServie, 'premium');
+    const codeBas = await periode([{ code: 'ESSAI-BANC-BAS', formule: 'pro', mois: 3 }], 'premium')('ESSAI-BANC-BAS');
+    v('   fiche Business Premium, code Pro : jamais sous la fiche — Business Premium', codeBas.formuleServie, 'premium');
+    const retire = await periode([], 'business')('ESSAI-BANC-RETIRE');
+    v('   un code retiré de la configuration : la fiche garde sa formule — Business', [retire.paye, retire.formuleServie], [true, 'business']);
+    const payeTot = await periode([{ code: 'ESSAI-BANC-TOT', formule: 'premium', mois: 3 }], 'premium', [apres([L('pro', 2)])])('ESSAI-BANC-TOT');
+    v('⛔ payé Pro PENDANT la période : la période court jusqu\'à son terme — Business Premium, offert', [payeTot.promoCode, payeTot.formuleServie], ['ESSAI-BANC-TOT', 'premium']);
+    const apresPeriode = await avec([apres([L('pro', 2)])])(ESP({ formule: 'premium' }));
+    v('   … et la période finie, l\'abonnement prend le relais : Pro, 2 places', lit(apresPeriode), [true, 'pro', 2]);
   }
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

@@ -126,6 +126,7 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
     mu: ['t-mu-840', 'Mu Code Retiré', 'mu@exemple-840.fr', 'ESSAI-RETIRE-840', 3, { formule: 'gratuit' }],   // code retiré, fiche sans formule payante
     nu: ['t-nu-840', 'Nu Code Retiré', 'nu@exemple-840.fr', 'ESSAI-RETIRE-840', 3],                   // code retiré, fiche Business Premium
     xi: ['t-xi-840', 'Xi Descendue', 'xi@exemple-840.fr', 'ESSAI-PREMIUM-840', 3, { formule: 'business' }],   // code Premium CONNU, fiche Business
+    eta: ['t-eta-840', 'Eta Au-dessus', 'eta@exemple-840.fr', 'ESSAI-BUSINESS-840', 3],   // code Business CONNU, fiche Business Premium
     lambda: ['t-lambda-840', 'Lambda Boîte Inconnue', 'lambda-inconnue@exemple-840.fr', 'ESSAI-PREMIUM-840', 3] };   // refusée au RCPT
   const espaces = {}, usages = {};
   for (const [slug, [t, nom, email, code, d, plus]] of Object.entries(ENT)) {
@@ -192,7 +193,7 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
       /rappel échéance non parti \(.*refusé par le facteur du banc.*\) — nouvel essai au prochain passage/.test(journal));
     vrai('⛔ … sans recopier en clair l\'adresse que le facteur cite dans son refus (`sansAdresses`)', /o\*+@exemple-840\.fr/.test(journal) && !ADRESSE_EN_CLAIR.test(journal));
     v('la marque posée avant l\'envoi s\'est RETIRÉE partout (sinon le rappel était perdu pour toujours)',
-      ['omicron', 'pi', 'rho', 'psi', 'kappa', 'kappaancien', 'mu', 'nu', 'xi', 'lambda'].map(s => e1[s].rappelFin || null), [null, null, null, null, null, null, null, null, null, null]);
+      ['omicron', 'pi', 'rho', 'psi', 'kappa', 'kappaancien', 'mu', 'nu', 'xi', 'eta', 'lambda'].map(s => e1[s].rappelFin || null), [null, null, null, null, null, null, null, null, null, null, null]);
     v('… et la marque d\'omega, déjà prévenue sous son ancien nom, n\'a pas bougé', e1.omegaancien.rappelFin, jour(4));
     await arreter();
 
@@ -203,8 +204,8 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
     await attendrePassage(10);
     const recus = facteurSrv.recus.map(lisible);
     const dest = recus.map(destinataire).sort();
-    v('NEUF rappels, aux bonnes adresses (omicron, pi, rho, psi, kappa — la plus récente des deux —, mu, nu, xi, et lambda dont seule la copie cachée passe)',
-      dest, ['kappa@exemple-840.fr', 'lambda-inconnue@exemple-840.fr', 'mu@exemple-840.fr', 'nu@exemple-840.fr', 'omicron@exemple-840.fr', 'pi@exemple-840.fr', 'psi@exemple-840.fr', 'rho@exemple-840.fr', 'xi@exemple-840.fr']);
+    v('DIX rappels, aux bonnes adresses (omicron, pi, rho, psi, kappa — la plus récente des deux —, mu, nu, xi, eta, et lambda dont seule la copie cachée passe)',
+      dest, ['eta@exemple-840.fr', 'kappa@exemple-840.fr', 'lambda-inconnue@exemple-840.fr', 'mu@exemple-840.fr', 'nu@exemple-840.fr', 'omicron@exemple-840.fr', 'pi@exemple-840.fr', 'psi@exemple-840.fr', 'rho@exemple-840.fr', 'xi@exemple-840.fr']);
     vrai('⛔ aucun rappel à sigma (période encore loin), tau (finie), upsilon (sans adresse), phi (fermée), chi (abonnement de la Tour au-delà), omega (déjà prévenue), ni à l\'ancienne adresse de kappa',
       !recus.some(m => /(sigma|tau|phi|chi|omega|kappa-ancien)@exemple-840\.fr/.test(destinataire(m))));
     const de = (qui) => recus.find(m => destinataire(m) === qui + '@exemple-840.fr') || '';
@@ -224,6 +225,18 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
       new RegExp('Sans abonnement, après le ' + fr(jour(5)).replace(/\//g, '\\/') + ', l\'application repassera en formule Gratuit').test(O)
       && /Déjà abonné \? Rien à faire : votre abonnement prend le relais/.test(O));
     vrai('omicron — payer se fait avec l\'adresse qui reçoit le message (celle de l\'entreprise : « B »)', /connectez-vous avec l'adresse qui reçoit ce message/.test(O));
+    /* ⛔ LE CLIENT CHOISIT SA FORMULE, DANS CE COURRIEL (Justin, 29 septembre 2026 : « à la fin du code promo, s'ils veulent
+       changer la version, ils pourront le faire dans le [courriel] des sept jours ») : la formule d'aujourd'hui d'abord, puis
+       les deux autres, chacune avec son prix, le total pour l'équipe et son lien — la page de paiement les accepte toutes */
+    vrai('omicron — « gardez votre formule ou choisissez-en une autre »', /Pour continuer sans coupure, gardez votre formule ou choisissez-en une autre/.test(O));
+    vrai('omicron — Pro, avec son prix, le total pour 7 et SON lien (formule=pro&utilisateurs=7)',
+      /<b>Ou une autre formule, si elle vous convient mieux<\/b>/.test(O)
+      && /href="https:\/\/teamop\.fr\/recap-abonnement\.html\?formule=pro&amp;utilisateurs=7"[^>]*>Pro<\/a> · 15\u00a0€ TTC par mois et par utilisateur<span[^>]*> · 7 utilisateurs : 105\u00a0€<\/span>/.test(O));
+    vrai('omicron — Business, pareil (25 €, 175 € pour 7, formule=business&utilisateurs=7)',
+      /href="https:\/\/teamop\.fr\/recap-abonnement\.html\?formule=business&amp;utilisateurs=7"[^>]*>Business<\/a> · 25\u00a0€ TTC par mois et par utilisateur<span[^>]*> · 7 utilisateurs : 175\u00a0€<\/span>/.test(O));
+    vrai('omicron — la formule d\'aujourd\'hui n\'est pas proposée deux fois (aucun lien « Business Premium » parmi les autres)', !/>Business Premium<\/a>/.test(O));
+    vrai('omicron — la version TEXTE propose aussi les deux autres, avec leurs liens',
+      /Ou une autre formule, si elle vous convient mieux \(un abonnement par utilisateur\) :\n· Pro : 15\u00a0€ TTC par mois et par utilisateur — 7 utilisateurs : 105\u00a0€ TTC par mois\n  https:\/\/teamop\.fr\/recap-abonnement\.html\?formule=pro&utilisateurs=7\n· Business : 25\u00a0€ TTC par mois et par utilisateur — 7 utilisateurs : 175\u00a0€ TTC par mois\n  https:\/\/teamop\.fr\/recap-abonnement\.html\?formule=business&utilisateurs=7/.test(O));
     const P = de('pi');
     vrai('pi — 1 utilisateur actif (au singulier), formule Business : 1 × 25 € = 25 €, 1 × 250 € = 250 € à l\'année',
       /1 utilisateur actif dans votre espace/.test(P) && /Formule <b>Business<\/b>/.test(P) && /1 × 25 € = 25 € TTC par mois/.test(P) && /1 × 250 € = 250 € TTC \(2 mois offerts\)/.test(P));
@@ -238,32 +251,46 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
     /* ⛔ UN CODE RETIRÉ DE LA CONFIGURATION : sa formule n'est plus connue — aucun prix inventé (le repli sur Premium
        chiffrait 50 € par utilisateur une entreprise dont le code était peut-être un Pro) */
     const M = de('mu');
-    vrai('mu — code retiré de la configuration : le NOMBRE (4 utilisateurs), mais AUCUN prix ni formule inventés',
+    vrai('mu — code retiré de la configuration : le NOMBRE (4 utilisateurs), et aucune formule présentée comme la SIENNE',
       /Nous avons trouvé 4 utilisateurs actifs dans votre espace/.test(M) && /un abonnement par utilisateur, dans la formule de votre choix/i.test(M)
-      && !/€/.test(M) && !/Formule <b>/.test(M) && !/Business Premium/.test(M));
-    vrai('mu — « Choisir mon abonnement », lien sans formule imposée (utilisateurs=4)',
+      && !/Formule <b>/.test(M) && !/gardez votre formule/.test(M) && /Pour continuer sans coupure, choisissez votre formule/.test(M));
+    vrai('mu — « Choisir mon abonnement », son bouton sans formule imposée (utilisateurs=4)',
       /Choisir mon abonnement/.test(M) && !/Continuer avec/.test(M) && /href="https:\/\/teamop\.fr\/recap-abonnement\.html\?utilisateurs=4"/.test(M));
+    vrai('mu — les TROIS formules proposées, chacune avec son prix, le total pour 4 et son lien — aucune n\'est dite « la vôtre »',
+      /<b>Choisissez votre formule<\/b>/.test(M)
+      && /formule=pro&amp;utilisateurs=4"[^>]*>Pro<\/a> · 15\u00a0€ TTC par mois et par utilisateur<span[^>]*> · 4 utilisateurs : 60\u00a0€/.test(M)
+      && /formule=business&amp;utilisateurs=4"[^>]*>Business<\/a> · 25\u00a0€ TTC par mois et par utilisateur<span[^>]*> · 4 utilisateurs : 100\u00a0€/.test(M)
+      && /formule=premium&amp;utilisateurs=4"[^>]*>Business Premium<\/a> · 50\u00a0€ TTC par mois et par utilisateur<span[^>]*> · 4 utilisateurs : 200\u00a0€/.test(M)
+      && /Les formules \(un abonnement par utilisateur\) :\n· Pro : /.test(M));
     vrai('mu — le journal le dit : « formule inconnue »', /rappel échéance envoyé → m\*+@exemple-840\.fr \(fin [0-9-]+, 4 utilisateur\(s\), formule inconnue\)/.test(journal));
-    /* ⛔ LA FORMULE DE LA FICHE D'ABORD (relecture adverse, 28 septembre 2026, nuit) : c'est elle que la page de paiement
-       exige (`tarif_formule`). Code retiré, fiche Business Premium : le courriel le dit, et son lien l'ouvre. */
+    /* ⛔ LA FORMULE QUE LA PÉRIODE SERT D'ABORD — celle que l'entreprise utilise aujourd'hui (`formulePromo` : le code,
+       jamais sous la fiche ; relecture adverse du 28 septembre, nuit : celle du code SEULE décrivait une formule que
+       personne n'avait). Code retiré, fiche Business Premium : le courriel la présente, son lien l'ouvre, et les deux
+       autres suivent. */
     const N = de('nu');
     vrai('nu — code retiré, fiche Business Premium : « Formule Business Premium », 50 € par utilisateur, lien formule=premium',
       /<b>Formule Business Premium<\/b>/.test(N) && /50\u00a0€ TTC par mois et par utilisateur/.test(N) && /recap-abonnement\.html\?formule=premium"/.test(N) && !/dans la formule de votre choix/.test(N));
-    /* … et quand le code CONNU et la fiche diffèrent, c'est la FICHE qui parle — sans ce cas, remettre le code devant
-       laissait le banc vert (relecture adverse) */
+    vrai('   … puis Pro et Business, avec leurs liens', /formule=pro"[^>]*>Pro<\/a>/.test(N) && /formule=business"[^>]*>Business<\/a>/.test(N) && !/>Business Premium<\/a>/.test(N));
+    /* … et quand le code CONNU et la fiche diffèrent, c'est la formule SERVIE qui parle : un code Business Premium sur une
+       fiche Business a servi Business Premium toute la période (« le plus gros forfait ») — c'est elle que le courriel
+       présente en premier ; un code Business sur une fiche Business Premium ne la fait pas descendre */
     const X = de('xi');
-    vrai('xi — code Business Premium, fiche Business : « Formule Business », 25 € par utilisateur, lien formule=business — jamais Premium',
-      /<b>Formule Business<\/b>/.test(X) && /25\u00a0€ TTC par mois et par utilisateur/.test(X) && /recap-abonnement\.html\?formule=business"/.test(X) && !/Business Premium|formule=premium/.test(X));
+    vrai('xi — code Business Premium, fiche Business : la période a servi Business Premium — « Formule Business Premium », 50 €, lien formule=premium',
+      /<b>Formule Business Premium<\/b>/.test(X) && /50\u00a0€ TTC par mois et par utilisateur/.test(X) && /recap-abonnement\.html\?formule=premium"/.test(X) && !/<b>Formule Business<\/b>/.test(X));
+    vrai('   … et Business, sa formule d\'avant, reste à un geste : proposée avec son lien', /formule=business"[^>]*>Business<\/a> · 25\u00a0€/.test(X));
+    const H = de('eta');
+    vrai('eta — code Business, fiche Business Premium : jamais sous la fiche — « Formule Business Premium », lien formule=premium',
+      /<b>Formule Business Premium<\/b>/.test(H) && /recap-abonnement\.html\?formule=premium"/.test(H) && !/<b>Formule Business<\/b>/.test(H));
     /* ⛔ LE CLIENT REFUSÉ PENDANT QUE LA COPIE PASSE : l'envoi « réussit » — le journal ne le dit pas prévenu */
     vrai('lambda — refusée au RCPT, copie cachée passée : le journal dit REFUSÉ (adresse masquée), jamais « envoyé » pour elle',
       /rappel échéance REFUSÉ par la messagerie du client → l\*+@exemple-840\.fr \(fin [0-9-]+\) — à prévenir autrement/.test(journal)
       && !/rappel échéance envoyé → l\*+@exemple-840\.fr/.test(journal));
     const e2 = lireEsp();
     v('la marque est posée sur TOUS les noms prévenus (kappa : les deux) — lambda aussi : une boîte inconnue ne se retente pas',
-      ['omicron', 'pi', 'rho', 'psi', 'kappa', 'kappaancien', 'mu', 'nu', 'xi', 'lambda'].map(s => e2[s].rappelFin), [jour(5), jour(2), jour(6), jour(4), jour(3), jour(3), jour(3), jour(3), jour(3), jour(3)]);
+      ['omicron', 'pi', 'rho', 'psi', 'kappa', 'kappaancien', 'mu', 'nu', 'xi', 'eta', 'lambda'].map(s => e2[s].rappelFin), [jour(5), jour(2), jour(6), jour(4), jour(3), jour(3), jour(3), jour(3), jour(3), jour(3), jour(3)]);
     v('… et nulle part ailleurs', ['sigma', 'tau', 'upsilon', 'phi', 'chi'].map(s => e2[s].rappelFin || null), [null, null, null, null, null]);
-    v('le journal compte huit envois et un refus (population), sans écrire une adresse en clair',
-      [(journal.match(/rappel échéance envoyé →/g) || []).length, (journal.match(/rappel échéance REFUSÉ/g) || []).length, ADRESSE_EN_CLAIR.test(journal)], [8, 1, false]);
+    v('le journal compte neuf envois (eta compris) et un refus (population), sans écrire une adresse en clair',
+      [(journal.match(/rappel échéance envoyé →/g) || []).length, (journal.match(/rappel échéance REFUSÉ/g) || []).length, ADRESSE_EN_CLAIR.test(journal)], [9, 1, false]);
     fs.writeFileSync(path.join(banc, 'apercu-rappel.eml'), recus[0]);   // pour qui veut le regarder (le banc s'efface en sortant)
     await arreter();
 
