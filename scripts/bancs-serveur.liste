@@ -41,7 +41,9 @@
 # la page de paiement qui dit ses deux refus — plancher relevé à 2 900.
 # 29 septembre 2026, matin : 3 030 (47 suites) avec la formule servie (l'application reçoit ce qui est payé ; la garde
 # « tarif sous la fiche » retirée, `tarif_inconnu` gardé) et la Tour v2.75 — plancher relevé à 3 000.
-#plancher 3000
+# 29 septembre 2026, après-midi : 3 119 (48 suites) avec la facturation différée pendant une période offerte (« 2 oui »),
+# `test-844` compris, contre les pages de `main` — plancher relevé à 3 100.
+#plancher 3100
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
