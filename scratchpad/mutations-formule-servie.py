@@ -84,7 +84,7 @@ MUT = [
    "    '.m-lien{color:#4FD196!important}' +", "", ['840']),
   # ── test-840 attend la fin RÉELLE du passage (29 septembre) : une attente plus longue ne doit rien masquer ──
   ('M25', S, "le rappel repart après un redémarrage (la marque n'est plus lue)",
-   "if (!noms.length || noms.some(s => espacesReg[s].rappelFin === eq.finLe)) continue;", "if (!noms.length) continue;", ['840']),
+   "if (!noms.length || noms.some(s => espacesReg[s].rappelFin === eq.finLe)) return null;", "if (!noms.length) return null;", ['840']),
   ('M26', S, "un envoi refusé garde sa marque (le rappel est perdu pour toujours)",
    "for (const s of noms) if (espacesReg[s] && espacesReg[s].rappelFin === eq.finLe) { espacesReg[s].rappelFin = avant[s]; defait = true; }",
    "for (const s of noms) if (false) { defait = true; }", ['840']),
