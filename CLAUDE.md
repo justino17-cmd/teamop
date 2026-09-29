@@ -57,7 +57,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**201 suites dans `tests/`**, sans dépendance ni installation (recompté le 29 septembre 2026 au soir, `test-845` compris —
+**202 suites dans `tests/`**, sans dépendance ni installation (recompté le 29 septembre 2026 au soir, `test-846` compris —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 

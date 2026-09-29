@@ -13,6 +13,31 @@ de ligne du tout.
 
 ---
 
+# ⏳ 29 SEPTEMBRE 2026, SOIR — RÉFÉRENCEMENT (SEO) : FAIT SUR LA BRANCHE, ACCORD DE JUSTIN (« oui »), ATTEND « POUSSE »
+
+Justin : « Fais l'optimisation SEO avec les fichiers fournis » (plan d'action, pages métier, en-tête, plan du site,
+robots) ; résumé montré avant le commit, réponse « oui ». Commit de la branche : voir `git log --grep référencement`.
+- `robots.txt` (ouvre tout sauf connexion, espace, `/apercu/`) et `sitemap.xml` FABRIQUÉ par `scripts/site-marine.js`.
+- Canonique + Open Graph + titre et description propres sur chaque page ; JSON-LD à l'accueil seul, prix lus dans
+  `FORMULES_GESTION` ; la 404 sans canonique ; les aperçus en noindex sans canonique.
+- Quatre pages métier (`logiciel-anti-nuisibles`, `-plombier`, `-electricien`, `-chauffage-climatisation`), dans le menu
+  Métiers et le plan du site ; chaque phrase vérifiée contre app.html v763 (`test-846` §4 refuse « temps réel »,
+  « code-barres », « relance automatique », « chantier », la box hors de la page 3D…).
+- Preuves : `test-846` 220 ✓, `test-835` 349 ✓, `test-836` 304 ✓, `scratchpad/mutations-seo.py` 24/24.
+⚠️ Ce qui reste, et qui est à lui ou à décider :
+- déclarer `https://teamop.fr/sitemap.xml` dans Google Search Console (geste de Justin) ;
+- trois descriptions au-delà de 155 signes (accueil — son texte —, tarifs, ELAN) : Google coupe ;
+- l'image de partage est en WebP (LinkedIn la lit mal) ;
+- `metiers.html` promet des « rappels d'échéance » de contrat qui n'existent pas, et « Temps réel » reste sur le site.
+  ⛔ Justin : « rappels d'échéance, ça il faudra le faire » — la FONCTION est à écrire (bêta), pas la phrase à retirer ;
+- sous-traitance et registre des traitements sont des brouillons « à faire relire » : en ligne, hors du plan du site ;
+- publication : le référencement touche les mêmes pages que la mise en ligne n° 2 ; il se pose PAR-DESSUS `08ad1bc`
+  (dans un arbre à part) quand Justin dira « pousse ».
+- Justin veut « le moindre mot → notre application en premier » (gestion des stocks, etc.) : réponse faite (personne ne
+  peut le garantir ; des pages par FONCTION et des mots précis, le temps, les liens) — sa décision attendue.
+
+---
+
 # ⏳ 29 SEPTEMBRE 2026, SOIR — SITE : LE JOUR ET LA NUIT SUIVENT L'APPAREIL, PLUS DE BOUTON — PRÊT, ATTEND « POUSSE »
 
 Justin, capture de son iPhone à l'appui (l'en-tête du site : logo, ☾, « Espace client », ☰) : **« Sur le site je veux pas
@@ -62,8 +87,8 @@ Dans l'arbre `scratchpad/pub-site` (session du 29 septembre) : **`fa20873`**, un
 `recap-abonnement.html`, `merci.html` et leurs aperçus, la branche d'avant était identique à `main` (copiés de la branche) ;
 ces quatre-là portent sur `main` une version plus ancienne (la n° 2 attend) : le même changement y a été appliqué par le
 même script (`scratchpad/site-auto.py`, puis la marge), et les aperçus refaits sont identiques à ceux de la branche.
-Suite complète de CET arbre : ⏳ en cours au moment d'écrire (le résultat suit dans le commit suivant).
-La **mise en ligne n° 2** est refaite PAR-DESSUS (⏳ fabriquée, commit au terme de sa suite, dans `scratchpad/pub-essai`) : pousser la n° 2 emporte le site.
+Suite complète de CET arbre : non rejouée seule — la n° 2, qui la contient, passe 201 suites · 11 179.
+La **mise en ligne n° 2** est refaite PAR-DESSUS (`08ad1bc`, sur `fa20873`, dans `scratchpad/pub-essai`) : pousser la n° 2 emporte le site.
 **Sur « pousse »** : vérifier que `origin/main` est toujours `3785a0f`, puis `git push origin HEAD:main` depuis
 `scratchpad/pub-essai` (site + serveur) — ou, pour le site SEUL (« pousse le site »), depuis `scratchpad/pub-site`.
 **Si les arbres ont disparu** : reconstruire depuis la branche (`git show <branche>:<fichier>`), et pour `merci.html` /
@@ -190,7 +215,7 @@ facture) ; `test-842` 91 ✓, `test-839` 199 ✓, `test-727` 177 ✓, `test-797`
 sans son adresse — et I36c — le nom repris à la même adresse —, trous trouvés et fermés ce soir ; les 52 autres
 (E, N, P, R) : ⏳ à rejouer sur le code final ; R1 et R3 de la formule servie rejouées après le déplacement de `partagee`)
 (`scratchpad/mutations-essai.py`, arbre à part) ; relectures : `gardien` (11 constats) et `relecteur` (9), puis une
-relecture adverse à 5 angles (26 agents) — tous traités ou écrits ci-dessus ; liste serveur et suite complète : liste 49 suites · 3 243, code 0 ; suite complète ⏳ en cours.
+relecture adverse à 5 angles (26 agents) — tous traités ou écrits ci-dessus ; liste serveur et suite complète : liste 49 suites · 3 243, code 0 ; suite complète 201 suites · 11 179, code 0 ; les onze contrôles de `verification.yml` verts ; bêta régénérée identique.
 
 ### ⏳ LA MISE EN LIGNE N° 2 — REFAITE (facturation différée + impayé)
 Dans l'arbre `scratchpad/pub-essai` (session du 29 septembre) : un seul commit (à faire, après les preuves) sur `main` à `3785a0f` — il
