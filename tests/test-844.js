@@ -131,7 +131,8 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     sampi: ['t-sampi-844', 'Sampi Impayée', 'sampi@exemple-844.fr'],       // IMPAYÉE (unpaid) : sa facture ouverte n'est que dans la liste des factures
     qoppa: ['t-qoppa-844', 'Qoppa Sans Facture', 'qoppa@exemple-844.fr'],  // IMPAYÉE (past_due), et AUCUNE facture ouverte chez Stripe
     jota: ['t-jota-844', 'Jota Réglée', 'jota@exemple-844.fr'],            // en impayé dans la liste, RÉGLÉE depuis (la relecture la dit active)
-    heta: ['t-heta-844', 'Heta Mixte', 'heta@exemple-844.fr'] };           // un abonnement actif ET un autre en impayé
+    heta: ['t-heta-844', 'Heta Mixte', 'heta@exemple-844.fr'],             // un abonnement actif ET un autre en impayé
+    chet: ['t-chet-844', 'Chet Messages', 'chet@exemple-844.fr'] };        // OP MESSAGES payé, OP GESTION en impayé
   const espaces = {}, usages = { 'ESSAI-BANC-844': { n: 0, equipes: {} } };
   const periode = t => { usages['ESSAI-BANC-844'].n++; usages['ESSAI-BANC-844'].equipes[t] = { date: jour(-80), finLe: FIN, em: '' }; };
   for (const [slug, [t, nom, email]] of Object.entries(ENT)) { espaces[slug] = { t, nom, email, ts: MAINTENANT - 1000, formule: 'premium' }; periode(t); }
@@ -200,6 +201,9 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     abo('t-jota-844', 'jota@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
     abo('t-heta-844', 'heta@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(21)) }),
     autre(abo('t-heta-844', 'heta@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }), 'sub_t-heta-844-refus'),
+    /* chet : OP MESSAGES payé (trouvé le premier), OP GESTION en impayé */
+    autre(abo('t-chet-844', 'chet@exemple-844.fr', 'active', P_MSG, { current_period_end: secondes(jour(12)) }), 'sub_t-chet-844-msg'),
+    abo('t-chet-844', 'chet@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
     /* wau et fau (phase 2 ter) : en impayé — la liste se lit, la RELECTURE de l'abonnement échoue */
     abo('t-wau-844', 'wau@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
     abo('t-fau-844', 'fau@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }) ];
@@ -214,6 +218,7 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     'sub_t-qoppa-844': { latest_invoice: null, ouvertes: [] },
     'sub_t-jota-844': { status: 'active', latest_invoice: { object: 'invoice', status: 'paid', hosted_invoice_url: FACT('jota') } },
     'sub_t-heta-844-refus': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('heta') } },
+    'sub_t-chet-844': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('chet') } },
     'sub_t-wau-844': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('wau') } },
     'sub_t-fau-844': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('fau') } } };
   const PRECHARGE = path.join(banc, 'stripe-simule.js');
@@ -324,6 +329,9 @@ globalThis.fetch = async function (url, opts) {
     const J = de('jota');
     vrai('⛔ jota (en impayé dans la liste, RÉGLÉE depuis : la relecture la dit active) — « prend le relais », ni facture ni lien de paiement',
       RELAIS.test(J) && !/n'a pas abouti/.test(J) && !/invoice\.stripe\.com/.test(J) && !PAIEMENT.test(J) && !PROMESSE.test(J));
+    const Ch = de('chet');
+    vrai('⛔ chet (OP MESSAGES payé, OP GESTION en impayé) — l\'impayé, et la facture d\'OP GESTION : OP MESSAGES ne prend pas le relais',
+      IMPAYE(Ch) && Ch.includes(FACT('chet')) && !/Plus que quelques jours/.test(Ch));
     const H = de('heta');
     vrai('⛔ heta (un abonnement actif, un AUTRE en impayé) — l\'actif prend le relais, mais les places du refusé sont suspendues : pas « rien à faire »',
       H.includes('Votre abonnement prend le relais. Mais le dernier prélèvement d\'un autre de vos abonnements n\'a pas abouti : les places qu\'il paie sont suspendues jusqu\'au règlement.')

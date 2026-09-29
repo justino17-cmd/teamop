@@ -66,6 +66,8 @@ console.log('\n── 845 · carte refusée = impayé : l\'accès payant bloqué
     gra: ['gratuit', [['past_due', 'pro', 1]]],                                // fiche Gratuit, son Pro refusé
     tou: ['premium', [['past_due', 'premium', 1]]],                            // réglée à la main dans la Tour (actif)
     msg: ['premium', [['past_due', 'msg', 1]]],                                // OP MESSAGES refusé, rien d'OP GESTION
+    mog: ['premium', [['active', 'msg', 1], ['past_due', 'premium', 1]]],     // OP MESSAGES payé, OP GESTION refusé
+    mgr: ['gratuit', [['active', 'msg', 1], ['past_due', 'pro', 1]]],         // fiche Gratuit : OP MESSAGES payé, son Pro refusé
     ret: ['business', [['past_due', 'business', 1]]],                          // refusée, puis réglée pendant le banc
     per: ['premium', [['past_due', 'premium', 1]]],                            // une période offerte en cours
     sans: ['premium', [['past_due', 'premium', 1]]],                           // refusée, AUCUNE facture ouverte
@@ -149,11 +151,12 @@ globalThis.fetch = async function (url, opts) {
   const PORT = 9900 + (process.pid % 90);
   const B = 'http://127.0.0.1:' + PORT;
   let journal = '';
-  /* la liste Stripe se garde une seconde (`TEAMOP_STRIPE_CACHE_MS`) : un règlement se voit à la seconde, comme il se voit à
-     la minute en service (`STRIPE_IMPAYE_FRAIS_MS`) */
+  /* la liste Stripe se garde dix minutes (`TEAMOP_STRIPE_CACHE_MS`, cinq en service) ; un IMPAYÉ la fait relire après une
+     seconde (`TEAMOP_STRIPE_IMPAYE_MS`, la minute en service) : un règlement se voit vite, sans rafale d'appels */
   enfant = spawn(process.execPath, ['--require', PRECHARGE, SERVEUR], {
     env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, 'config.json'), TEAMOP_DATA: D, PORT: String(PORT),
-      TEAMOP_FB_ADMIN: path.join(banc, 'absente.json'), TEAMOP_PLACES_BASCULE: '2026-01-01T00:00:00Z', TEAMOP_STRIPE_CACHE_MS: '1000' }),
+      TEAMOP_FB_ADMIN: path.join(banc, 'absente.json'), TEAMOP_PLACES_BASCULE: '2026-01-01T00:00:00Z', TEAMOP_STRIPE_CACHE_MS: '600000',
+      TEAMOP_STRIPE_IMPAYE_MS: '1000' }),
     stdio: ['ignore', 'pipe', 'pipe'] });
   enfant.stdout.on('data', d => { journal += d; }); enfant.stderr.on('data', d => { journal += d; });
   let vivant = false;
@@ -173,6 +176,8 @@ globalThis.fetch = async function (url, opts) {
     vrai('   son motif dit l\'impayé et le blocage', /abonnement Stripe impayé \(past_due, par [^)]+\) — fonctions payantes bloquées jusqu'au règlement/.test(E.imp.motif || ''));
     vrai('⛔ unpaid (Stripe a fini ses tentatives) — la même forme', FORME_B(E.unp) && /impayé \(unpaid/.test(E.unp.motif || ''));
     vrai('⛔ fiche GRATUIT dont le Pro payé est refusé — la même forme (l\'administrateur est prévenu, rien n\'est écrit)', FORME_B(E.gra));
+    vrai('⛔ OP MESSAGES payé, OP GESTION refusé — un impayé, pas le « Gratuit » d\'une entreprise qui n\'aurait pris qu\'OP MESSAGES', FORME_B(E.mog));
+    vrai('⛔ fiche Gratuit, OP MESSAGES payé, son Pro refusé — la même forme', FORME_B(E.mgr));
     vrai('⛔ incomplete (jamais payé) N\'EST PAS un impayé — la réponse d\'avant : sa formule, `paye:false`, sans `impaye` ni suspension',
       E.inc.formule === 'pro' && E.inc.paye === false && !E.inc.impaye && E.inc.suspendu === false && E.inc.motif === 'aucun paiement ni code promo');
     vrai('⛔ OP MESSAGES refusé, rien d\'OP GESTION — pas un impayé d\'OP GESTION : la réponse d\'avant', E.msg.formule === 'premium' && E.msg.paye === false && !E.msg.impaye && E.msg.suspendu === false);
@@ -183,6 +188,14 @@ globalThis.fetch = async function (url, opts) {
       Number.isInteger(E.mix.places) && Number.isInteger(E.deux.places) && E.mix.places < E.deux.places);
     vrai('   et son motif le dit', /1 abonnement en impayé : ses places ne sont pas servies/.test(E.mix.motif || ''));
     vrai('   (témoin) payée sans rien de refusé : la réponse normale', E.x.paye === true && E.x.formule === 'premium' && !/impayé/.test(E.x.motif || ''));
+    /* ⛔ PAS DE RAFALE : la liste se garde pour qui paie ; un impayé la fait relire au plus une fois par fenêtre */
+    const listes = () => appelsStripe().filter(x => /\/v1\/subscriptions\?/.test(x.u)).length;
+    await dormir(1100);
+    const l0 = listes(); for (let i = 0; i < 5; i++) await etat('x');
+    v('⛔ une entreprise qui paie ne fait pas relire Stripe (cinq appels, la liste gardée)', listes() - l0, 0);
+    const l1 = listes(); for (let i = 0; i < 5; i++) await etat('imp');
+    vrai('⛔ un impayé fait relire la liste (l\'accès reviendra vite), mais pas à chaque appel : ' + (listes() - l1) + ' lecture(s) pour cinq appels',
+      listes() - l1 >= 1 && listes() - l1 <= 2);
 
     console.log('\n2. Les VRAIES fonctions d\'app.html (v' + ((/APP_VERSION\s*=\s*'(\d+)'/.exec(fs.readFileSync(APPLI, 'utf8')) || [])[1] || '?') + ') contre ce serveur');
     const APP = fs.readFileSync(APPLI, 'utf8');
@@ -237,7 +250,7 @@ globalThis.fetch = async function (url, opts) {
     const L = (await appel('/api/monitor/espaces/liste', undefined, PATRON)).j.espaces || [];
     const ligne = slug => L.find(x => x.slug === slug) || {};
     v('⛔ la liste de la Tour : `impaye` pour les refusées (past_due, unpaid, fiche Gratuit), pas pour les autres',
-      Object.keys(ENT).filter(s => ligne(s).impaye).sort(), ['gra', 'imp', 'pan', 'regl', 'sans', 'unp', 'y']);
+      Object.keys(ENT).filter(s => ligne(s).impaye).sort(), ['gra', 'imp', 'mgr', 'mog', 'pan', 'regl', 'sans', 'unp', 'y']);
     v('   `impayesPartiels` : 1 pour l\'entreprise au payé ET au refusé, 0 pour son témoin', [ligne('mix').impayesPartiels, ligne('deux').impayesPartiels], [1, 0]);
     const St = (await appel('/api/monitor/espaces/statut', { nom: 'imp' }, PATRON)).j;
     vrai('   la fiche d\'une entreprise refusée : non payée, `impaye`, le motif de l\'impayé', St.paye === false && St.impaye === true && /impayé/.test(St.motif || ''));
@@ -261,6 +274,8 @@ globalThis.fetch = async function (url, opts) {
     vrai('⛔ unpaid, dernière facture close : la facture OUVERTE de la liste des factures, pas l\'ancienne', r.s === 200 && r.j.url === FACT('unp') && sessions().length === n0);
     r = await payer('gra', { price: P.pro, ref: espaces.gra.t });
     vrai('⛔ fiche Gratuit refusée : sa facture aussi', r.s === 200 && r.j.url === FACT('gra') && sessions().length === n0);
+    r = await payer('mog', { ref: espaces.mog.t });
+    vrai('⛔ OP MESSAGES payé, OP GESTION refusé : la facture d\'OP GESTION', r.s === 200 && r.j.url === FACT('mog') && sessions().length === n0);
     r = await payer('sans', { ref: espaces.sans.t });
     v('⛔ refusée SANS facture ouverte : 409 `impaye_sans_facture` — rien de créé (TEAM OP règle à la main)', [r.s, r.j.error, sessions().length], [409, 'impaye_sans_facture', n0]);
     r = await payer('pan', { ref: espaces.pan.t });

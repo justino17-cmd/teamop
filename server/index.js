@@ -2348,8 +2348,9 @@ const STRIPE_CACHE_MS = Math.max(1, parseInt(process.env.TEAMOP_STRIPE_CACHE_MS,
 /* ⛔ UN IMPAYÉ SE RELIT À LA MINUTE (Justin, 29 septembre 2026 : l'accès revient dès que c'est réglé). La liste Stripe se
    garde cinq minutes : un client qui vient de régler sa facture resterait grisé jusque-là. Tant qu'une entreprise n'a que de
    l'impayé, la liste se relit si elle a plus d'une minute (toujours une seule lecture à la fois, et pas pendant une panne :
-   `stripeListe`). `imp` : ses abonnements d'OP GESTION en impayé (`impayesGestion`), ou `null`. */
-const STRIPE_IMPAYE_FRAIS_MS = Math.min(60000, STRIPE_CACHE_MS);
+   `stripeListe`). `imp` : ses abonnements d'OP GESTION en impayé (`impayesGestion`), ou `null`. La variable : pour les bancs
+   seulement (une liste gardée longtemps, un impayé relu vite — c'est ce qui se mesure). */
+const STRIPE_IMPAYE_FRAIS_MS = Math.min(STRIPE_CACHE_MS, Math.max(1, parseInt(process.env.TEAMOP_STRIPE_IMPAYE_MS, 10) || 60000));
 async function stripeVerdict(e) {
   let s = await espaceStripe(e);
   let imp = null;
@@ -2363,6 +2364,8 @@ async function stripeVerdict(e) {
 /* le motif d'un impayé — distinct d'« aucun paiement » : la Tour le montre, et l'horloge de conservation le garde (la fin d'un
    abonnement n'est pas un abandon) */
 const motifImpaye = imp => 'abonnement Stripe impayé (' + imp.abo.status + ', par ' + imp.parQuoi + ') — fonctions payantes bloquées jusqu\'au règlement';
+const bloqueImpaye = imp => ({ paye: false, motif: motifImpaye(imp), impaye: true, bloque: true,
+  echeance: imp.abo.current_period_end ? new Date(imp.abo.current_period_end * 1000).toISOString().slice(0, 10) : '' });
 async function espacePaye(e, opts) {
   /* ⛔⛔ `lecture` : RÉPONDRE SANS RIEN ACTIVER (24 septembre 2026, relevé par `gardien`).
      Le rattrapage ci-dessous ÉCRIT (compteur du code, `promos-usages.json`) et ENVOIE un
@@ -2402,8 +2405,9 @@ async function espacePaye(e, opts) {
     if (fp && fp.f && fp.f !== 'gratuit') return { paye: true, motif: s.motif + ' — formule payée : ' + (FORMULE_LBL2[fp.f] || fp.f), echeance: s.echeance, formuleServie: fp.f, placesStripe: fp.places,
       impayesPartiels: imp ? imp.tous.length : 0 };
     /* ⛔ une fiche « Gratuit » dont l'abonnement payé est en impayé : Gratuit, et l'application le DIT à l'administrateur
-       (`bloque` → `/api/espaces/etat`) au lieu de se croire revenue au Gratuit « normal » */
-    if (!s && imp) return { paye: true, motif: 'gratuit — ' + motifImpaye(imp), impaye: true, bloque: true };
+       (`bloque` → `/api/espaces/etat`) au lieu de se croire revenue au Gratuit « normal » — OP MESSAGES payé ou non : il ne
+       sert pas OP GESTION */
+    if (imp) return { paye: true, motif: 'gratuit — ' + motifImpaye(imp), impaye: true, bloque: true };
     return { paye: true, motif: 'gratuit' };
   }
   try {   // rattrapage : un code demandé à la demande d'accès mais jamais compté (espace recréé…) s'active ici
@@ -2440,6 +2444,10 @@ async function espacePaye(e, opts) {
        (`formulePayee`) — payer Pro donne Pro, même si la fiche dit Business Premium. Ce qu'on ne sait pas lire (un
        abonnement d'avant la bascule, un tarif créé à la main chez Stripe) garde la formule de la fiche : on ne coupe pas. */
     const fp = formuleEtPlaces(e, s), f = fp.f || e.formule;
+    /* ⛔ OP MESSAGES payé, OP GESTION refusé : rien d'OP GESTION n'est payé — un impayé, pas le Gratuit « normal » d'une
+       entreprise qui n'aurait pris qu'OP MESSAGES (l'administrateur est prévenu, `db` n'est pas réécrit ; le J-7 le dit déjà
+       ainsi, `abonnementGestion`) */
+    if (imp && f === 'gratuit') return bloqueImpaye(imp);
     /* un abonnement refusé parmi d'autres payés : ses places ne sont pas servies (`placesStripe` ne compte que le payé) — le
        motif le dit, pour que la Tour le voie */
     const nImp = imp ? imp.tous.length : 0;
@@ -2450,7 +2458,7 @@ async function espacePaye(e, opts) {
   /* ⛔⛔ CARTE REFUSÉE = IMPAYÉ, ET PAS D'ACCÈS PAYANT TANT QUE CE N'EST PAS RÉGLÉ (Justin, 29 septembre 2026). `bloque` :
      l'application grise les catégories payantes SANS rien écrire (`/api/espaces/etat` la sert comme une suspension au sursis
      écoulé), et tout revient dès que Stripe dit l'abonnement payé. */
-  if (imp) return { paye: false, motif: motifImpaye(imp), impaye: true, bloque: true, echeance: imp.abo.current_period_end ? new Date(imp.abo.current_period_end * 1000).toISOString().slice(0, 10) : '' };
+  if (imp) return bloqueImpaye(imp);
   return { paye: false, motif: 'aucun paiement ni code promo' };
 }
 /* Une période offerte EN COURS pour cette entreprise (lue, jamais activée) : elle SERT la formule du code — Business
