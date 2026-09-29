@@ -170,7 +170,12 @@ console.log('\n══ 6. UN SEUL H1 PAR PAGE — ET lang="fr" PARTOUT ══\n')
   v('chaque page publique a UN H1 (hors exceptions nommées, qui gardent leur compte)', publiques.map(f => [f, h1Hors(lire(f))]).filter(([f, n]) => n !== (f in EXC ? EXC[f] : 1)), []);
   const toutes = cp.execSync('git ls-files "*.html"', { cwd: RACINE }).toString().trim().split('\n').concat(METIERS.map(c => c + '.html'), METIERS.map(c => 'apercu/site/' + c + '.html'));
   vrai('(population) ' + toutes.length + ' pages', toutes.length >= 60);
-  v('⛔ toutes les pages du dépôt portent <html lang="fr">', [...new Set(toutes)].filter(f => existe(f) && !/<html[^>]*\blang="fr"/.test(lire(f))), []);
+  /* le fichier de validation de Google Search Console (Justin, 29 septembre 2026) : son contenu est IMPOSÉ par Google, une
+     ligne sans balise — et Google demande de ne jamais le retirer, sinon la propriété du site est perdue. Nommé, pas par un
+     motif : un second fichier « google….html » serait une décision à prendre, pas un passe-droit */
+  const SANS_HTML = { 'google151be914dcdfaf7e.html': 'google-site-verification: google151be914dcdfaf7e.html' };
+  v('⛔ toutes les pages du dépôt portent <html lang="fr">', [...new Set(toutes)].filter(f => !(f in SANS_HTML) && existe(f) && !/<html[^>]*\blang="fr"/.test(lire(f))), []);
+  v('   et le fichier de Google est là, suivi, avec le contenu exact que Google relit', Object.keys(SANS_HTML).filter(f => !toutes.includes(f) || !existe(f) || lire(f).trim() !== SANS_HTML[f]), []);
 }
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
