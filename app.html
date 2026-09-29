@@ -8017,7 +8017,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '763';
+const APP_VERSION = '764';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -37238,15 +37238,41 @@ function envoiDoc(kind,id,canal){ if(!permGarde('ventes','modifier',kind==='devi
 
 /* ═══════════════ CONTRATS DE MAINTENANCE ═══════════════ */
 const CTR_ST={actif:{l:'Actif',c:'st-green'},suspendu:{l:'Suspendu',c:'st-org'},expire:{l:'Expiré',c:'st-red'}};
+/* ⛔ RAPPELS D'ÉCHÉANCE DES CONTRATS — Justin, 29 septembre 2026 : « rappels d'échéance, ça il faudra le faire ». Le
+   site les promettait (page Métiers), l'application ne les faisait pas. Un contrat ACTIF dont la date de fin tombe dans
+   les CTR_RAPPEL_J jours — ou est déjà passée — se signale : un bandeau en tête de l'écran Contrats, une pastille sur sa
+   ligne, et une ligne dans la cloche de qui peut le RENOUVELER (changer sa date de fin, c'est modifier une vente).
+   Trois règles :
+   · tout se CALCULE à l'affichage, rien ne s'écrit (« ouvrir un écran n'écrit pas ») : le statut ne passe pas tout
+     seul à « Expiré » — c'est un geste, par le ✎ ;
+   · UNE liste pour l'écran et pour la cloche (ctrRappels, sur visibleDocs comme l'écran) : la cloche ne nomme que ce
+     que l'écran montre ;
+   · la cloche se lit aux CASES — voir le module Contrats (userSeesModule : formule et métier compris) et modifier une
+     vente —, jamais au nom du rôle. Son identifiant porte la date de fin : un contrat renouvelé repart à zéro.
+   Un contrat sans statut (fiche d'avant le champ) compte pour actif ; sans date de fin, il n'a pas d'échéance. */
+const CTR_RAPPEL_J=30;
+function ctrEcheance(ct,auj){ if(!ct||(ct.statut||'actif')!=='actif'||!/^\d{4}-\d{2}-\d{2}$/.test(ct.dateFin||'')) return null;
+  const j=Math.round((new Date(ct.dateFin+'T00:00:00')-new Date((auj||todayISO())+'T00:00:00'))/86400000);
+  return j<=CTR_RAPPEL_J?j:null; }
+function ctrRappels(auj){ return visibleDocs(db.contrats||[]).map(ct=>({ct,j:ctrEcheance(ct,auj)})).filter(x=>x.j!==null).sort((a,b)=>a.j-b.j); }
+function ctrEcheanceTexte(j){ return j<0?'terminé depuis '+(-j)+' j':j===0?'se termine aujourd’hui':'se termine dans '+j+' j'; }
+function ctrPastille(j){ if(j==null) return ''; return ` <span class="st ${j<0?'st-red':'st-org'}" style="white-space:nowrap">${j<0?'Échu':j===0?'Fin aujourd’hui':'Fin dans '+j+' j'}</span>`; }
+function ctrBandeau(ech,cMod){ if(!ech.length) return ''; const n=ech.length;
+  return `<div class="card ctr-echeances" style="border:1px solid var(--org);background:color-mix(in srgb,var(--org) 8%,transparent);padding:12px;margin-bottom:12px">
+    <div style="font-weight:700;color:var(--t1)">⏰ ${n} contrat${n>1?'s':''} à renouveler</div>
+    <div style="font-size:13px;color:var(--t2);margin:4px 0 6px">La date de fin arrive dans les ${CTR_RAPPEL_J} jours, ou elle est passée : renouvelez en changeant la date de fin, ou passez le contrat en « Expiré ».</div>
+    ${ech.map(({ct,j})=>`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--brd)"><div style="flex:1 1 220px;min-width:0;color:var(--t1)"><b>${esc(ct.num)}</b> · ${esc(ct.titre)}${ct.clientId?' — '+esc(clientName(ct.clientId)):''}<div style="font-size:12.5px;color:var(--t2)">${ctrEcheanceTexte(j)} (${fmtShort(ct.dateFin)})</div></div>${cMod?`<button class="btn ghost sm" onclick="formContrat('${ct.id}')">✎ Mettre à jour</button>`:''}</div>`).join('')}
+  </div>`; }
 const FREQ={mensuel:'Mensuel',trimestriel:'Trimestriel',semestriel:'Semestriel',annuel:'Annuel'};
 views.contrats=function(){
   const list=[...visibleDocs(db.contrats)].sort((a,b)=>(b.dateDebut||'').localeCompare(a.dateDebut||''));
   /* v738 (relecture) : chaque bouton lit la case que SA fonction lit — comme Devis et Factures */
   const cAj=canCat('ventes','ajouter'), cMod=canCat('ventes','modifier'), cSup=canCat('ventes','supprimer'), iAj=canCat('int','ajouter');
+  const ech=ctrRappels(), echDe=new Map(ech.map(x=>[x.ct.id,x.j]));   // les rappels d'échéance (ctrEcheance)
   setHeader('Contrats','Contrats de maintenance & récurrents',cAj?`<button class="btn" onclick="formContrat()">＋ Contrat</button>`:'');
-  const rows=list.map(ct=>`<tr><td class="strong mono">${esc(ct.num)}</td><td class="strong">${esc(ct.titre)}</td><td>${esc(clientName(ct.clientId))}</td><td>${FREQ[ct.frequence]||'—'}</td><td>${eur(ct.montant)}</td><td>${fmtShort(ct.dateDebut)} → ${fmtShort(ct.dateFin)}</td><td>${badge(CTR_ST,ct.statut)}</td>
+  const rows=list.map(ct=>`<tr data-ctr="${esc(ct.id)}"><td class="strong mono">${esc(ct.num)}</td><td class="strong">${esc(ct.titre)}</td><td>${esc(clientName(ct.clientId))}</td><td>${FREQ[ct.frequence]||'—'}</td><td>${eur(ct.montant)}</td><td>${fmtShort(ct.dateDebut)} → ${fmtShort(ct.dateFin)}${ctrPastille(echDe.get(ct.id))}</td><td>${badge(CTR_ST,ct.statut)}</td>
     <td style="text-align:right;white-space:nowrap">${iAj?`<button class="btn sm" title="Générer la prochaine intervention" onclick="genererInterventionContrat('${ct.id}')">🔁</button> `:''}${cMod?`<button class="btn ghost sm" onclick="formContrat('${ct.id}')">✎</button> `:''}${cSup?`<button class="btn danger sm" onclick="delItem('contrats','${ct.id}')">🗑</button>`:''}</td></tr>`).join('');
-  $('content').innerHTML=`<div class="card" style="background:color-mix(in srgb,var(--acc) 7%,transparent);border-color:color-mix(in srgb,var(--acc) 30%,transparent)"><div style="font-size:13px;color:var(--t2)">Le bouton <b>Générer</b> crée automatiquement la prochaine intervention planifiée selon la fréquence du contrat.</div></div>
+  $('content').innerHTML=`${ctrBandeau(ech,cMod)}<div class="card" style="background:color-mix(in srgb,var(--acc) 7%,transparent);border-color:color-mix(in srgb,var(--acc) 30%,transparent)"><div style="font-size:13px;color:var(--t2)">Le bouton <b>Générer</b> crée automatiquement la prochaine intervention planifiée selon la fréquence du contrat.</div></div>
     ${list.length? tableCard(['N°','Intitulé','Client','Fréquence','Montant','Période','Statut',''],rows):`<div class="card">${emptyState('📑','Aucun contrat.',cAj?'Créer':'',cAj?'formContrat()':'')}</div>`}`;
 };
 function ctrFreqDays(f){ return {mensuel:30,trimestriel:91,semestriel:182,annuel:365}[f]||30; }   // contrats (minuscules) — distinct de freqDays des box
@@ -38669,6 +38695,13 @@ function computeNotifs(){ const out=[]; const today=todayISO(); if(!currentUser)
       const bx=b.boxId?(db.boxes||[]).find(x=>x.id===b.boxId):null;
       out.push({id:'bonarr:'+b.id,ic:'📥',txt:`Bon <b>${esc(bonNum(b))}</b> réceptionné${b.recuPar?' par <b>'+esc(b.recuPar)+'</b>':''} — <b>en attente de ta validation</b>${bx?' · '+esc(bx.nom||bx.numero||''):''}`,act:"go('validations');cible('mvt','"+(((db.boxMvtAttente||[]).find(function(x){return x.bcId===b.id&&x.statut==='enAttente';})||{}).id||"")+"')"}); });
   }
+  /* Les rappels d'échéance des contrats (ctrEcheance) : à qui peut les RENOUVELER — voir le module Contrats, formule
+     et métier compris (userSeesModule ; notifVoitModule ouvre tout à l'administrateur, même sur une formule qui grise
+     l'écran), et modifier une vente. La liste est celle de l'écran. Pas d'horodatage, comme le stock bas : c'est un
+     ÉTAT, pas un évènement — le tri, stable, garde l'ordre de ctrRappels, le plus urgent en tête. */
+  if(userSeesModule(currentUser,'contrats')&&canCat('ventes','modifier')) ctrRappels(today).forEach(({ct,j})=>out.push({id:'ctrech:'+ct.id+':'+ct.dateFin,
+    ic:'📑',txt:`<b>${j<0?'Contrat échu':'Contrat à renouveler'}</b> — ${esc(ct.num)}${ct.clientId?' · '+esc(clientName(ct.clientId)):''} : ${ctrEcheanceTexte(j)}`,
+    act:"go('contrats');cible('ctr','"+ct.id+"')"}));
   // élague les éléments « vus » qui n'existent plus
   const ids=new Set(out.map(n=>n.id)); let ch=false; for(const id of [...notifSeen.keys()]) if(!ids.has(id)){ notifSeen.delete(id); ch=true; } if(ch) saveNotifSeen();
   /* Une notification LUE disparaît immédiatement ; les nouvelles restent, les plus récentes
