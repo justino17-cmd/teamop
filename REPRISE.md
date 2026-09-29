@@ -13,6 +13,122 @@ de ligne du tout.
 
 ---
 
+# ⏳ 29 SEPTEMBRE 2026, MATIN — LES TROIS RÉPONSES DE JUSTIN SUR LE PAIEMENT : LE CLIENT CHOISIT SON TARIF, L'APPLICATION REÇOIT CE QUI EST PAYÉ, LE CODE PROMO AU PLUS GROS FORFAIT — PRÊT, ATTEND « POUSSE »
+
+Justin, au réveil, aux trois questions de la nuit (plus bas) : **« 1 il choisit ce tarif qu'il veut »** ; **« 2 […] une
+e-mail par abonnement par entreprise ; s'ils en ont besoin de plusieurs […] ils feront une autre e-mail, c'est tout »** ;
+**« Si ils ont un code promo Business Premium et qu'à la fin du code promo ils veulent changer la version, ils pourront le
+faire dans le [courriel] des sept jours. Le code promo, mets-le [au] plus gros forfait, mais c'est pour mieux montrer
+l'application. »**
+
+⛔ **La garde des tarifs de la nuit (mise en ligne n° 3, `5865b0a`) est à moitié RETOURNÉE, et `5865b0a` ne part plus** :
+son refus « tarif sous la formule de la fiche » (403 `tarif_formule`) aurait bloqué exactement le client qui, au bout de
+son code Business Premium, prend Pro. La moitié qui reste : seul un tarif de la page passe (400 `tarif_inconnu`).
+L'arbre `scratchpad/pub-tarifs` est périmé ; la nouvelle mise en ligne est plus bas.
+
+✅ **Ce qui est fait** (branche : `601f7a6`, `1b59987`, `7b7538b`, `6d46d67`, `4f9d7d0`, `66d384d`, `e67ea78`, `324d9e2`,
+`06c1448`, `1372ea6`, `b03842a`, `89d3385`)
+· **La formule que l'application reçoit est celle qui est PAYÉE** (`formulePayee`, `server/index.js`) : payer Pro donne Pro,
+  même sur une fiche Business Premium ; `/api/espaces/etat` rend `formule` = la formule servie ; la Tour reçoit
+  `formuleServie` à côté de `formule`. Les règles, chacune rejouée par la relecture adverse (plus bas) :
+  · plusieurs formules payées : celle qui porte le **plus d'abonnements**, à égalité la plus **basse** (plus de places
+    plutôt que moins) — ses places comptent les abonnements de cette formule et au-dessus ;
+  · ⛔ ce qu'on ne sait pas lire garde la **FICHE** — un abonnement d'avant la bascule des places (29 septembre, 4 h UTC :
+    souscrit par un ancien lien, à un autre tarif ; il compte à la formule de la fiche et **interdit de descendre sous
+    elle**), un tarif fait à la main chez Stripe, un abonnement **sans ligne lisible** : on ne coupe pas une entreprise qui
+    paie ;
+  · des abonnements d'après qui ne sont QUE d'OP MESSAGES (lignes lisibles) : Gratuit pour OP GESTION (le motif le dit :
+    « OP GESTION non payé : formule Gratuit ») ;
+  · ⛔ **monter** au-dessus de la fiche seulement sur ce qui est **sûrement** à elle (gravé à son nom, ou trouvé par une
+    adresse que personne d'autre ne porte — `surs`) ; **descendre** seulement **sans doute** (aucun abonnement d'OP GESTION
+    ambigu à la même adresse — `douteux`) ; une référence orpheline (« repartie à neuf ») compte aussi quand le premier
+    abonnement vient de la référence ;
+  · **monter ne retire jamais de places** : une abonnée d'avant qui achète une formule au-dessus garde au moins ce que sa
+    fiche lui donnait.
+· **Une fiche « Gratuit » qui paie reçoit ce qu'elle paie** (elle sortait d'`espacePaye` avant de regarder Stripe), et une
+  fiche « Gratuit » en période offerte reçoit la formule du code (lue, rien ne s'active).
+· **Une période offerte sert la formule du CODE** (`formulePromo`) : celle de `config.promos`, **Business Premium quand le
+  code n'en dit pas**, jamais sous la fiche ; un code retiré de la configuration garde la fiche. Le courriel « votre code
+  est activé » et la réponse de `/api/promo/valider` annoncent CETTE formule (l'aperçu public, qui ne prouve rien : la
+  formule du code seul).
+· **Les places d'une formule servie autre que la fiche** (`placesDeFormule`) : c'est une formule changée APRÈS la bascule —
+  ses anciens abonnements ne prennent pas son multiplicateur. Une donnée Stripe mal formée ne coupe pas (`formuleEtPlaces`).
+· **Le courriel J-7** présente la formule que la période sert, puis **les deux autres**, chacune avec son prix, le total
+  pour l'équipe et son lien (`?formule=…&utilisateurs=N`) ; sans formule connue, les trois. C'est là que le client choisit.
+  Les liens restent lisibles de nuit (règle vérifiée DANS le bloc sombre).
+· **« Mon espace » (le portail) dit la formule SERVIE** (`formuleServieDe`, `avecFormuleServie` : `/api/portail/moi`,
+  `/demande`, `/promo`), **pour une adresse PROUVÉE seulement** ; rien de servi (pas payé, entreprise fermée, adresse qui
+  porte deux entreprises) → le dossier dit ce que la Tour y a posé. Il n'attend jamais Stripe plus de **2 s**.
+· **Stripe** : une seule lecture à la fois (les lectures simultanées la partagent) ; après un échec, une minute de pause
+  (avant : trois abandons de 12 s à chaque appel) ; pendant une panne, la dernière liste connue sert (sans liste : « non
+  payé », comme avant).
+· **La page de paiement** : le message `tarif_formule` retiré ; changer de formule garde le nombre d'utilisateurs.
+· **La Tour** (`abnFormule`, `abnEcart`) : dans Abonnements, la liste des entreprises et la fiche d'une entreprise, la
+  formule SERVIE et l'écart (« Pro (payée ; la fiche dit Business Premium) », « Business Premium (offerte par le code ; la
+  fiche dit Business) », « Gratuit (OP GESTION non payé ; la fiche dit Business) ») — une ligne à écart se lit EN ENTIER,
+  échéance comprise ; la fiche et le toast « 💳 Statut paiement » écrivent les formules en toutes lettres.
+
+**La relecture adverse** (deux réfutateurs par constat, sur le diff du matin) : les constats confirmés sont **tous
+corrigés** — la plus haute formule qui coupait des places ; monter sur l'abonnement d'une autre entreprise à la même
+adresse ; descendre en Gratuit par l'achat d'OP MESSAGES quand l'abonnement d'OP GESTION était ambigu ; la référence
+orpheline écartée ; un abonnement sans ligne qui disait Gratuit ; un ancien abonnement qui laissait descendre ; acheter
+plus cher qui retirait des places ; la fiche Gratuit en période offerte ; le courriel « code activé » et l'application qui
+annonçaient la formule du code seule (et l'aperçu public qui aurait dit la fiche) ; la rafale sur Stripe et « Mon espace »
+qui l'attendait 36 à 48 s ; la ligne à écart qui mangeait l'échéance à 360 px ; la règle de nuit du J-7 qu'un motif
+laissait passer hors du bloc sombre ; le témoin de `test-803` qui gardait l'ancienne attente. Et, trouvé en
+relisant le correctif : pendant une panne de Stripe, l'appel qui attendait la relecture ratée rendait « non payé » alors
+qu'une liste connue était là (la dernière liste connue sert désormais, `89d3385`).
+
+**Preuves** : `test-727` 141 ✓, `test-803` 145 ✓, `test-811` 75 ✓, `test-813` 68 ✓, `test-839` 172 ✓,
+`test-840` 48 ✓, `test-842` 90 ✓ ; liste serveur **47 suites · 3 030** (plancher relevé à 3 000) ; **56 mutations sur 56 mordent**
+(`scratchpad/mutations-formule-servie.py`, jouées dans une copie à part) ; sonde de la Tour
+`scratchpad/sonde-tour-formule-servie.js` **108 ✓ 0 ✗** (téléphone 390 et 360, bureau, nuit et jour) ; suite
+complète de l'arbre de la mise en ligne **199 suites · 10 947**, code 0 ; les contrôles de
+`verification.yml` (versions, connexion 67 cas, accès 17 cas, bêta identique à sa génération), `verif-secrets` et
+`verifier-theme` verts.
+
+### ⏳ LA MISE EN LIGNE — PRÊTE EN UN SEUL ENVOI (paiement + Tour v2.75)
+Dans l'arbre `scratchpad/pub-paiement` (session du 29 septembre, matin) : **`3785a0f`**, un seul commit sur `main` à
+`8fbd34a`. Il emporte `server/index.js`, `server/portail.js`, `recap-abonnement.html`, `apercu/recap-abonnement.html`,
+`tour.html` (v2.75), `scripts/bancs-serveur.liste` (plancher 3 000), `scripts/preparer-deploiement-serveur.sh`,
+`tests/test-727`, `797`, `803`, `811`, `813`, `839`, `840`, `842`, `843` (neuf) et cinq fichiers du scratchpad (sondes et
+mutations de la Tour et de la formule servie) — tous identiques à la branche (vérifié par `cmp`) ; les workflows restent
+ceux de `main` (la liste serveur). `app.html`, `sw.js` et `beta.html` ne bougent pas (v763 des deux côtés).
+Preuves de CET arbre : liste serveur **47 suites · 3 030** ; suite complète **199 suites · 10 947**, code 0 ; les contrôles de
+`verification.yml`, `verif-secrets` et `verifier-theme` verts.
+**Sur « pousse » de Justin** : vérifier que `origin/main` est toujours `8fbd34a` (sinon reconstruire), puis
+`git push origin HEAD:main` depuis cet arbre. **Si l'arbre a disparu** : arbre détaché sur `origin/main`, y prendre depuis
+la branche les fichiers ci-dessus (`git checkout <commit de la branche> -- …`), relancer la liste serveur, commiter.
+**Après** : le déploiement du serveur (bancs puis VPS ; `/health`, dont l'`uptime` repart), `tour.html` et
+`recap-abonnement.html` servis octet pour octet, la CI de `main` verte ; puis, dans la Tour, Abonnements : l'écart de
+formule de chaque entreprise (ELAN d'abord).
+
+⚠️ **Ce qu'il faut savoir en le publiant** :
+· **ELAN** (code promo en cours) : si sa fiche est sous Business Premium alors que son code est Business Premium, elle verra
+  Business Premium pendant sa période (la règle de Justin) ; si sa fiche est déjà Business Premium, rien ne change. À
+  regarder dans la Tour après le déploiement (Abonnements : l'écart s'y lit).
+· **« Les sept jours »** sont ceux du courriel J-7 : à la fin d'un code non payé, l'application repasse en Gratuit tout de
+  suite (sans sursis — le sursis de sept jours est celui d'un IMPAYÉ). Payer pendant la période ne décale pas la
+  facturation : Stripe facture dès le paiement (piste, à décider : `subscription_data[trial_end]` = la fin du code).
+· **Deux entreprises à la même adresse** (réponse 2 : une adresse = une entreprise) : elles ne se prêtent plus une
+  formule, mais le verdict « payé » et les places, si (le repli par l'adresse d'avant) ; dans le doute, chacune garde sa
+  fiche. Ne pas créer deux entreprises à la même adresse dans la Tour.
+· **Des tarifs mêlés** (dix Pro et un Business Premium) : Pro, onze places.
+· **Stripe en panne** : la dernière liste connue sert ; sans elle, « non payé » comme avant, un essai par minute.
+· **OP MESSAGES seul** (pas encore en vente) : l'application v763 recevrait Gratuit avec son message habituel
+  « 🎉 Gratuit débloqué » (celui de tout changement de formule — à reprendre dans l'application, sur la bêta) ; avant,
+  elle recevait la formule de la fiche sans la payer. Un abonnement d'avant la bascule garde la fiche.
+
+⏳ **Ce qui reste à Justin** : **dire « pousse »** ; décider de `trial_end` (plus haut) ; Search Console → « Inspection de
+l'URL » → `https://teamop.fr/` → « Demander une indexation » (le logo) ; supprimer l'ancienne paire de clés du coffre IONOS
+(#132) ; regarder chez Stripe qu'aucun code de réduction à 100 % ne traîne ; plus tard, exiger la v763.
+⏳ **Ce qui reste au dépôt** : retirer l'ancien `vitrine/` et les deux empreintes v1 — pas avant quelques jours ; jeter
+`stash@{0}` une fois la v2.75 en service ; l'application (bêta) : un message juste quand la formule DESCEND ;
+`apercu/tour.html` est resté en v2.68 (aucun banc ne le lit) — le régénérer (`bash scripts/apercu.sh tour.html`) ou le
+retirer, un aperçu plus vieux que sa page trompe.
+
+---
+
 # ✅ 28 SEPTEMBRE 2026, NUIT — PLUS AUCUN CODE (LIENS SEULEMENT), LE NOUVEAU SITE ET SON PORTAIL, LES PLACES PAYÉES ; PUIS L'APPLICATION v763 (1 COMPTE PAR ABONNEMENT) ET LA CI DE `main` RÉPARÉE
 
 Justin, dans la soirée : **« je veux plus de code, que des liens pour les connexions »** ; **« c'est nous qui créons les
@@ -69,22 +185,28 @@ couvre toute l'équipe, rien ne change pour eux.
 mise en ligne n° 1 : 197 suites · 10 514 ; arbre de la v763 : 198 suites · 10 752, liste serveur avec le nouveau
 compteur 47 suites · 2 904.
 
-⏳ **Ce qui reste à Justin** : **dire « pousse »** pour les deux mises en ligne prêtes (garde des tarifs, Tour v2.75 —
-plus bas) ; les trois décisions plus bas ; Search Console → « Inspection de l'URL » → `https://teamop.fr/` → « Demander une
+⛔ **Remplacé le 29 au matin (en tête)** — ~~⏳ **Ce qui reste à Justin** : **dire « pousse »** pour les deux mises en ligne prêtes (garde des tarifs, Tour v2.75 —
+plus bas) ; les trois décisions plus bas~~ ; Search Console → « Inspection de l'URL » → `https://teamop.fr/` → « Demander une
 indexation » (le logo) ; supprimer l'ancienne paire de clés du coffre IONOS (#132) ; regarder chez Stripe qu'aucun code
 de réduction à 100 % ne traîne (un abonnement payé à 0 € donnerait maintenant des places) ; plus tard, exiger la v763
 dans la Tour quand tout le parc est à jour (rien ne l'oblige : aucun changement de format).
 ⏳ **Ce qui reste au dépôt** : retirer l'ancien `vitrine/` et les deux empreintes v1 (voir plus haut) — pas avant
-quelques jours ; la liste blanche des tarifs est FAITE (plus bas, mise en ligne n° 3, prête).
+quelques jours ; la liste blanche des tarifs est FAITE (elle part avec la mise en ligne du 29, en tête ; sa moitié
+« tarif sous la fiche » est retirée).
 
-## ⏳ PLUS TARD DANS LA NUIT — DEUX MISES EN LIGNE PRÊTES, BLOQUÉES PAR LE GARDE-FOU DES PERMISSIONS
+## ⛔ PÉRIMÉ LE 29 AU MATIN — ~~PLUS TARD DANS LA NUIT — DEUX MISES EN LIGNE PRÊTES, BLOQUÉES PAR LE GARDE-FOU DES PERMISSIONS~~
+
+⛔ **Ce qui suit est l'histoire de la nuit, pas l'état** : la mise en ligne n° 3 (`5865b0a`) NE PART PLUS — sa garde « tarif
+sous la formule de la fiche » est retournée par la réponse 1 de Justin (le client choisit son tarif) ; la Tour v2.75 part
+avec la mise en ligne du 29 (en tête) ; l'arbre `scratchpad/pub-tarifs` est périmé ; les trois décisions ont leurs
+réponses (en tête).
 
 Justin, en partant dormir : **« Fait tout ce qu'il faut faire, moi je vais dormir, il faut que demain matin au réveil tout
 soit fait. »** Tout ce qui suit est fait, prouvé, commité et poussé sur la branche. ⛔ **La poussée sur `main` a été
 REFUSÉE par le garde-fou des permissions** (« Production Deploy ») : elle attend une phrase de Justin (« pousse »). Ne pas
 la contourner — ni par un autre outil, ni en morceaux.
 
-### Mise en ligne n° 3 — la garde des tarifs de `/api/stripe/checkout` (serveur + page de paiement)
+### ⛔ Mise en ligne n° 3 — ABANDONNÉE LE 29 AU MATIN — la garde des tarifs de `/api/stripe/checkout` (serveur + page de paiement)
 La route ouvrait un paiement pour N'IMPORTE QUEL tarif du compte Stripe envoyé par le navigateur — et pour
 `espacePaye()`, un abonnement vivant suffit à rendre une entreprise « payée » : une fiche Business Premium se payait au
 tarif Pro. Désormais : seul un tarif de la page (`STRIPE_PRIX_FORMULE`, `STRIPE_PRIX_MESSAGES`) passe (400
@@ -107,7 +229,7 @@ changer de formule garde le nombre d'utilisateurs (il repartait à 1) et efface 
 · Après la poussée : surveiller le déploiement (bancs puis VPS), `/health` (`uptime` qui repart), la page servie
   (`curl teamop.fr/recap-abonnement.html | grep tarif_formule`), la CI de `main`.
 
-### Tour v2.75 — la pastille ≡ au téléphone et son tiroir (le menu complet)
+### Tour v2.75 — la pastille ≡ au téléphone et son tiroir (le menu complet) — PART AVEC LA MISE EN LIGNE DU 29 (en tête)
 Justin, 27 septembre 2026, captures à l'appui : **« je voudrais aussi ça pour avoir accès à toutes les catégories dans la
 tour »** (la pastille ≡ d'OP GESTION) ; **« sur la tour sur telephone je [veux] aussi ce menu »** (le menu du bureau).
 Commencé ce jour-là, mis de côté (`stash@{0}`, « tiroir v2.70 en cours ») pour des urgences, jamais repris — retrouvé
@@ -135,7 +257,7 @@ jamais deux panneaux (« Plus » se referme), fermé si l'écran passe à 900 px
 · Publication : `tour.html` + `tests/test-843.js` + les trois fichiers du scratchpad (sonde, mesure, mutations). Le
   `stash@{0}` peut être jeté une fois la v2.75 en service.
 
-### ⏳ LES DEUX, PRÊTES EN UN SEUL ENVOI
+### ⛔ PÉRIMÉ LE 29 AU MATIN — ~~LES DEUX, PRÊTES EN UN SEUL ENVOI~~ (la nouvelle mise en ligne est en tête)
 Dans l'arbre `scratchpad/pub-tarifs` (session du 28 au 29 septembre) : `5865b0a` (garde des tarifs) puis `86b2845`
 (Tour v2.75), sur `main` à `8fbd34a`. Suite complète de CET arbre : **199 suites · 10 849**, code 0 ; les dix contrôles
 de `verification.yml`, `verif-secrets` et `verifier-theme` verts. Sur « pousse » de Justin : `git push origin HEAD:main`
@@ -145,7 +267,11 @@ n° 3 plus haut, puis `tour.html`, `tests/test-843.js`, `scratchpad/sonde-tour-t
 `scratchpad/mutations-tour-tiroir.py`. Après : déploiement du serveur (bancs puis VPS, `/health` dont l'`uptime` repart —
 il valait 4 224 s juste avant), `tour.html` et `recap-abonnement.html` servis octet pour octet, CI de `main` verte.
 
-### Ce qui attend une DÉCISION de Justin (relecture adverse de la garde des tarifs)
+### ✅ RÉPONDU LE 29 AU MATIN — ce qui attendait une DÉCISION de Justin (relecture adverse de la garde des tarifs)
+Les réponses de Justin et ce qu'elles sont devenues sont en tête : (1) le client choisit son tarif, l'application reçoit
+la formule PAYÉE (plus de refus, l'écart se lit dans la Tour) ; (2) une adresse = une entreprise (dans le doute, chacune
+garde sa fiche) ; (3) à la fin du code, le client change de formule par le courriel J-7, et le code sert le plus gros
+forfait. Le texte d'origine :
 1. **Payer d'abord au tarif bas, la formule ensuite** : un prospect paie Pro (ou OP MESSAGES), puis sa demande « Business
    Premium » est acceptée dans la Tour → « payée » en Business Premium, 1 place. Même chose pour une entreprise Gratuite qui
    paie Pro puis monte par un code promo. Cause : `espacePaye()` ne compare jamais le tarif de l'abonnement à la formule de

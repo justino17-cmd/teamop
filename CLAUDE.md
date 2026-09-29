@@ -337,6 +337,26 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   ⚠️ La suppression TOTALE efface la mémoire des codes avec le reste — voulu, geste de la Tour —
   SAUF celle d'une entreprise VIVANTE (supprimer l'ancien identifiant d'une entreprise repartie à
   neuf) : `promoEffacerEntreprise`. Et un registre non écrit se DIT (503), avant le courriel.
+- ⛔⛔ **LA FORMULE QUE L'APPLICATION REÇOIT EST CELLE QUI EST PAYÉE — `espacePaye` → `formuleServie`, JAMAIS LA FICHE SEULE.**
+  Justin, 29 septembre 2026 : « il choisit le tarif qu'il veut » ; « une e-mail par abonnement par entreprise » ; « le code
+  promo, mets-le au plus gros forfait, c'est pour mieux montrer l'application » ; à la fin du code, le client change de
+  formule dans le courriel des sept jours (J-7). La page de paiement accepte donc tout tarif DE LA PAGE (`tarif_inconnu` pour
+  le reste — une nuit, elle a refusé un tarif sous la fiche : c'était bloquer exactement le client qui, au bout de son code,
+  prend Pro). `formulePayee` décide, et chaque règle a été rejouée par une relecture adverse :
+  · le tarif payé (abonnement d'après la bascule des places) ; plusieurs formules : celle qui porte le PLUS d'abonnements, à
+    égalité la plus basse — « la plus haute » donnait Business Premium à UNE place pour dix Pro et un Premium ;
+  · ⛔ ce qu'on ne sait pas lire garde la FICHE — un abonnement d'avant la bascule (et il interdit de descendre sous elle),
+    un tarif fait à la main, un abonnement sans ligne lisible : on ne coupe pas une entreprise qui paie ; OP MESSAGES seul
+    (lignes lisibles) : Gratuit ;
+  · ⛔ MONTER au-dessus de la fiche seulement sur ce qui est SÛREMENT à elle (gravé à son nom, ou une adresse que personne
+    d'autre ne porte), DESCENDRE seulement sans doute (`surs`, `douteux` d'`espaceStripe`) ; monter ne retire jamais de places.
+  Une période offerte sert `formulePromo` (le code, Business Premium par défaut, jamais sous la fiche), fiche Gratuit
+  comprise ; le courriel « code activé » et `/api/promo/valider` l'annoncent (l'aperçu PUBLIC : la formule du code seul, il ne
+  dit rien de la fiche). « Mon espace » la montre à une adresse PROUVÉE seulement, sans attendre Stripe plus de 2 s ; Stripe
+  se lit une fois à la fois, et pendant une panne la dernière liste connue sert. Un nouveau chemin qui dit une formule à
+  l'application ou au client passe par là ou n'existe pas. ⚠️ Une adresse = une entreprise : deux entreprises à la même
+  adresse ne se prêtent plus une formule, mais le verdict « payé » et les places, si (limite d'avant) — ne pas en créer.
+  `test-727` §8, `test-842`, `test-840`, `test-803`, `test-811`, `scratchpad/mutations-formule-servie.py`.
 - ⛔⛔ **UNE SESSION PROUVE UN MOT DE PASSE, PAS UNE ADRESSE.** 25 septembre 2026 (`gardien`, G1,
   rejoué) : n'importe qui ouvrait un compte à l'adresse de contact d'une entreprise — publique — et
   `/api/clients/sync` la croyait prouvée : une demande « Gratuit » faisait retomber une entreprise
