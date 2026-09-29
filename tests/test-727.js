@@ -75,7 +75,7 @@ vrai('le calcul des places et ses constantes sont trouvés dans le fichier réel
 const iLig = SRC.indexOf('const prixDeLigne ='), iFP = SRC.indexOf('function formulePayee(');
 const LIGNES = (iLig > 0 && iFP > iLig) ? SRC.slice(iLig, iFP) : '';
 const LBL2 = (/^const FORMULE_LBL2 = .*$/m.exec(SRC) || [''])[0];
-const SERVIE = ['formulePayee', 'formuleDuCode', 'formulePromo', 'placesDeFormule', 'formuleEtPlaces', 'espaceStripe', 'periodeOfferte'].map(extraire);
+const SERVIE = ['formulePayee', 'formuleDuCode', 'formulePromo', 'placesDeFormule', 'formuleEtPlaces', 'espaceStripe', 'periodeOfferte', 'espaceStripeDans'].map(extraire);
 vrai('la formule servie, ses aides et le rattachement Stripe sont trouvés dans le fichier réel',
   /ligneMessages/.test(LIGNES) && /Business Premium/.test(LBL2) && SERVIE.every(Boolean) && /^async function espaceStripe/.test(SERVIE[5]));
 AIDES.push(CONSTS, ...PLACES, LIGNES, LBL2, ...SERVIE);

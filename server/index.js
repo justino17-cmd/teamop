@@ -2500,94 +2500,102 @@ async function espaceStripe(e) {
           catch (err) { if (!espStripeCache.data) throw err; console.error('espacePaye stripe (la dernière liste connue sert) :', err.message); }
         }
       }
-      /* ⛔ DEUX RATTACHEMENTS, DANS CET ORDRE, ET LE PREMIER EST LE SEUL FIABLE.
-         1. LA RÉFÉRENCE D'ESPACE, gravée sur l'abonnement à la création de la page de paiement
-            (`subscription_data[metadata][espace]`). Elle ne dépend d'aucune adresse et survit
-            au renouvellement.
-         2. L'ADRESSE E-MAIL, gardée en REPLI — et c'est nécessaire : tous les abonnements
-            souscrits AVANT ce correctif n'ont aucune métadonnée. La retirer couperait des
-            clients qui paient. Elle reste ce qu'elle a toujours été, une correspondance
-            fragile : l'entreprise paie, la comptable saisit l'adresse de facturation de la
-            société, et comme ce n'est pas celle avec laquelle l'espace a été créé, rien ne se
-            rattache. Le client a payé et son application reste bloquée, sans un mot.
-         ⚠️ On compare le slug ET le `t` : la référence envoyée par le site peut être l'un ou
-         l'autre selon la page, et se tromper ici coûte un client qui a payé.
-         ⚠️ Le `t` se lit par `espaceT` — en clair, OU dans le code des entrées les plus anciennes : c'est lui que la
-         route de paiement grave (« B »), et `e.t` seul ne voyait pas ces entrées-là, rattachées alors par la seule
-         adresse (`gardien`, rejoué) — un changement d'adresse et le paiement se perdait. */
-      const refs = [String(e.slug || '').toLowerCase(), String(espaceT(e) || '').toLowerCase()].filter(Boolean);
-      const vivant = sb => ['active', 'trialing', 'past_due'].includes(sb.status);
-      let abo = refs.length ? (espStripeCache.data || []).find(sb => vivant(sb)
-        && sb.metadata && refs.includes(String(sb.metadata.espace || '').toLowerCase())) : null;
-      let parQuoi = 'référence d\'espace';
-      /* ⛔ LE REPLI NE SE TENTE QUE S'IL Y A UNE ADRESSE DES DEUX CÔTÉS, ET C'EST TOUT
-         L'INTÉRÊT DE CETTE LIGNE. `String(null || '').toLowerCase()` vaut `''` : un espace
-         sans adresse — c'est-à-dire TOUT espace ouvert depuis la Tour, qui écrit
-         `email: … || ''` — se rattachait alors au premier abonnement vivant dont le client
-         Stripe n'a pas d'adresse (client effacé, paiement par lien, saisie sans e-mail).
-         Mesuré : un espace à `email:''` rendait `{paye:true, par adresse e-mail}` contre
-         l'abonnement d'une AUTRE entreprise. Deux clients, un seul paiement — et celui qui
-         paie ne le sait pas.
-         On normalise aussi les deux côtés : l'adresse de l'espace n'est nulle part mise en
-         minuscules à l'écriture, et une majuscule sur la page Stripe suffisait à bloquer un
-         client qui avait pourtant payé. */
-      const mel = String(e.email || '').trim().toLowerCase();
-      const monT = String(espaceT(e) || '').toLowerCase();
-      const tDe = r => { const x = espacesReg[r]; return String((x && espaceT(x)) || r).toLowerCase(); };
-      const refDe = sb => String((sb.metadata && sb.metadata.espace) || '').toLowerCase();
-      const aMoi = sb => { const m = refDe(sb); return !!m && (refs.includes(m) || (!!monT && tDe(m) === monT)); };
-      const parMail = sb => !!mel && sb.customer && typeof sb.customer === 'object' && String(sb.customer.email || '').trim().toLowerCase() === mel;
-      /* ⛔ LE VERDICT « PAYÉ » NE REGARDE PAS LA RÉFÉRENCE D'UN ABONNEMENT TROUVÉ PAR L'ADRESSE. Essayé le 28 septembre
-         au soir (écarter celui « gravé pour une autre entreprise de l'annuaire ») : `gardien` l'a rejoué sur deux cas
-         réels où la référence désigne encore une entrée de la MÊME entreprise — un « repartir à neuf » sur une entreprise
-         à deux noms (l'autre nom garde l'ancien `t`), un nom libéré puis repris — et une entreprise qui paie se lisait
-         NON PAYÉE. On ne coupe jamais une entreprise qui paie peut-être ; la limite connue reste : deux entreprises à la
-         même adresse, et l'abonnement de l'une rend l'autre « payée » (la Tour seule range deux entrées ainsi). */
-      if (!abo && mel) {
-        abo = (espStripeCache.data || []).find(sb => vivant(sb) && parMail(sb));
-        parQuoi = 'adresse e-mail';
-      }
-      /* ⛔ LES PLACES SE PAIENT (Justin, 28 septembre 2026 : « oui, automatique »). Jusque-là on ne lisait chez Stripe
-         que « un abonnement vivant, oui ou non » : payer un abonnement de plus ne donnait AUCUNE place tant que TEAM OP
-         ne réglait pas la Tour. On compte donc les abonnements VIVANTS de CETTE entreprise (voir `placesStripe`), et
-         c'est ce nombre que l'application v763 lit (`places` de `/api/espaces/etat`). Relu par `gardien` le même soir. */
-      if (abo) {
-        /* ⛔ SES abonnements, quel que soit le chemin qui a trouvé le premier : ceux qui portent sa référence, ET ceux de
-           son adresse qui ne sont pas gravés pour une autre entreprise. La référence n'est gravée que depuis le
-           19 septembre : une abonnée d'avant qui achète un abonnement de plus sur la page d'aujourd'hui en a des deux
-           sortes, et ne compter que le gravé la faisait retomber de 7 places à 1 (`gardien`, A1, mesuré). */
-        /* ⚠️ une adresse PARTAGÉE avec une autre entreprise de l'annuaire rend un abonnement sans référence ambigu : celle
-           qui a déjà un abonnement à son nom ne le prend pas (sinon il compterait chez les deux) ; celle qui n'est
-           rattachée que par l'adresse le garde, comme avant. */
-        const partagee = !!mel && Object.keys(espacesReg || {}).some(sl => { const x = espacesReg[sl]; return !!x && x !== e
-          && String(sl).toLowerCase() !== String(e.slug || '').toLowerCase() && String(x.email || '').trim().toLowerCase() === mel
-          && !(monT && String(espaceT(x) || '').toLowerCase() === monT); });   // ses propres autres noms (même `t`) ne la « partagent » pas
-        /* une référence qui ne désigne AUCUNE entrée de l'annuaire (une entreprise « repartie à neuf » à un seul nom) ne
-           dit pas « à une autre » ; une référence qui en désigne une autre, si — ses places ne comptent pas ici */
-        const designe = m => Object.keys(espacesReg || {}).some(sl => { const x = espacesReg[sl]; return !!x
-          && (String(sl).toLowerCase() === m || String(espaceT(x) || '').toLowerCase() === m); });
-        /* ⛔ une référence ORPHELINE (qui ne désigne plus aucune entrée : un « repartir à neuf ») trouvée par l'adresse compte
-           aussi quand le premier abonnement est venu par la référence — le filtre des deux chemins était différent, et
-           acheter OP MESSAGES (gravé) après un « repartir à neuf » écartait l'abonnement OP GESTION gravé à l'ancien
-           identifiant (relecture adverse du 29 septembre, rejoué) */
-        const memes = (espStripeCache.data || []).filter(sb => vivant(sb) && (aMoi(sb) || (parMail(sb) && (parQuoi === 'adresse e-mail'
-          ? (!refDe(sb) || !designe(refDe(sb)))
-          : ((!refDe(sb) || !designe(refDe(sb))) && !partagee)))));
-        /* ⛔⛔ LA FORMULE NE SE DÉCIDE PAS SUR CE QUI EST AMBIGU (relecture adverse du 29 septembre 2026, rejoué). `memes`
-           ne décidait que des places ; il décide maintenant de la formule, et un abonnement douteux y pèse dans les deux sens :
-           · MONTER au-dessus de la fiche ne se fait que sur ce qui est SÛREMENT à elle (`surs`) : gravé à son nom, ou trouvé
-             par une adresse que personne d'autre ne porte — sinon une fiche « Gratuit » recevait la formule et les places
-             d'une AUTRE entreprise à la même adresse (un paiement, deux entreprises servies) ;
-           · DESCENDRE sous la fiche ne se fait que sans DOUTE (`douteux` vide) : un abonnement d'OP GESTION trouvé par son
-             adresse mais écarté ou ambigu (adresse partagée, référence d'un autre de ses noms) peut être le sien — sinon
-             acheter OP MESSAGES faisait retomber en Gratuit une entreprise qui paie Business Premium. On ne coupe pas une
-             entreprise qui paie peut-être : la fiche reste, la Tour montre ce qu'elle voit. */
-        const surs = memes.filter(sb => aMoi(sb) || !partagee);
-        const douteux = (espStripeCache.data || []).filter(sb => vivant(sb) && parMail(sb) && !aMoi(sb) && !surs.includes(sb)
-          && ((sb.items && Array.isArray(sb.items.data)) ? sb.items.data.some(it => !ligneMessages(it)) : true));
-        return { abo, memes, surs, douteux, motif: 'abonnement Stripe (' + abo.status + ', par ' + parQuoi + ')', echeance: abo.current_period_end ? new Date(abo.current_period_end * 1000).toISOString().slice(0, 10) : '' };
-      }
+      return espaceStripeDans(e, espStripeCache.data || []);
     } catch (err) { console.error('espacePaye stripe:', err.message); }
+  }
+  return null;
+}
+/* ⛔ À QUI SONT LES ABONNEMENTS D'UNE LISTE STRIPE — la décision d'`espaceStripe`, sortie en fonction PURE (29 septembre 2026,
+   seconde relecture de `gardien`) : le rappel J-7 la rejoue sur les seuls abonnements encore vivants le lendemain de la fin
+   d'une période offerte (`abonnementGestion`), pour dire au client ce que l'application fera VRAIMENT ce jour-là. Une seule
+   définition des règles de rattachement : deux copies divergeraient un jour, et le courriel mentirait. */
+function espaceStripeDans(e, liste) {
+  /* ⛔ DEUX RATTACHEMENTS, DANS CET ORDRE, ET LE PREMIER EST LE SEUL FIABLE.
+     1. LA RÉFÉRENCE D'ESPACE, gravée sur l'abonnement à la création de la page de paiement
+        (`subscription_data[metadata][espace]`). Elle ne dépend d'aucune adresse et survit
+        au renouvellement.
+     2. L'ADRESSE E-MAIL, gardée en REPLI — et c'est nécessaire : tous les abonnements
+        souscrits AVANT ce correctif n'ont aucune métadonnée. La retirer couperait des
+        clients qui paient. Elle reste ce qu'elle a toujours été, une correspondance
+        fragile : l'entreprise paie, la comptable saisit l'adresse de facturation de la
+        société, et comme ce n'est pas celle avec laquelle l'espace a été créé, rien ne se
+        rattache. Le client a payé et son application reste bloquée, sans un mot.
+     ⚠️ On compare le slug ET le `t` : la référence envoyée par le site peut être l'un ou
+     l'autre selon la page, et se tromper ici coûte un client qui a payé.
+     ⚠️ Le `t` se lit par `espaceT` — en clair, OU dans le code des entrées les plus anciennes : c'est lui que la
+     route de paiement grave (« B »), et `e.t` seul ne voyait pas ces entrées-là, rattachées alors par la seule
+     adresse (`gardien`, rejoué) — un changement d'adresse et le paiement se perdait. */
+  const refs = [String(e.slug || '').toLowerCase(), String(espaceT(e) || '').toLowerCase()].filter(Boolean);
+  const vivant = sb => ['active', 'trialing', 'past_due'].includes(sb.status);
+  let abo = refs.length ? liste.find(sb => vivant(sb)
+    && sb.metadata && refs.includes(String(sb.metadata.espace || '').toLowerCase())) : null;
+  let parQuoi = 'référence d\'espace';
+  /* ⛔ LE REPLI NE SE TENTE QUE S'IL Y A UNE ADRESSE DES DEUX CÔTÉS, ET C'EST TOUT
+     L'INTÉRÊT DE CETTE LIGNE. `String(null || '').toLowerCase()` vaut `''` : un espace
+     sans adresse — c'est-à-dire TOUT espace ouvert depuis la Tour, qui écrit
+     `email: … || ''` — se rattachait alors au premier abonnement vivant dont le client
+     Stripe n'a pas d'adresse (client effacé, paiement par lien, saisie sans e-mail).
+     Mesuré : un espace à `email:''` rendait `{paye:true, par adresse e-mail}` contre
+     l'abonnement d'une AUTRE entreprise. Deux clients, un seul paiement — et celui qui
+     paie ne le sait pas.
+     On normalise aussi les deux côtés : l'adresse de l'espace n'est nulle part mise en
+     minuscules à l'écriture, et une majuscule sur la page Stripe suffisait à bloquer un
+     client qui avait pourtant payé. */
+  const mel = String(e.email || '').trim().toLowerCase();
+  const monT = String(espaceT(e) || '').toLowerCase();
+  const tDe = r => { const x = espacesReg[r]; return String((x && espaceT(x)) || r).toLowerCase(); };
+  const refDe = sb => String((sb.metadata && sb.metadata.espace) || '').toLowerCase();
+  const aMoi = sb => { const m = refDe(sb); return !!m && (refs.includes(m) || (!!monT && tDe(m) === monT)); };
+  const parMail = sb => !!mel && sb.customer && typeof sb.customer === 'object' && String(sb.customer.email || '').trim().toLowerCase() === mel;
+  /* ⛔ LE VERDICT « PAYÉ » NE REGARDE PAS LA RÉFÉRENCE D'UN ABONNEMENT TROUVÉ PAR L'ADRESSE. Essayé le 28 septembre
+     au soir (écarter celui « gravé pour une autre entreprise de l'annuaire ») : `gardien` l'a rejoué sur deux cas
+     réels où la référence désigne encore une entrée de la MÊME entreprise — un « repartir à neuf » sur une entreprise
+     à deux noms (l'autre nom garde l'ancien `t`), un nom libéré puis repris — et une entreprise qui paie se lisait
+     NON PAYÉE. On ne coupe jamais une entreprise qui paie peut-être ; la limite connue reste : deux entreprises à la
+     même adresse, et l'abonnement de l'une rend l'autre « payée » (la Tour seule range deux entrées ainsi). */
+  if (!abo && mel) {
+    abo = liste.find(sb => vivant(sb) && parMail(sb));
+    parQuoi = 'adresse e-mail';
+  }
+  /* ⛔ LES PLACES SE PAIENT (Justin, 28 septembre 2026 : « oui, automatique »). Jusque-là on ne lisait chez Stripe
+     que « un abonnement vivant, oui ou non » : payer un abonnement de plus ne donnait AUCUNE place tant que TEAM OP
+     ne réglait pas la Tour. On compte donc les abonnements VIVANTS de CETTE entreprise (voir `placesStripe`), et
+     c'est ce nombre que l'application v763 lit (`places` de `/api/espaces/etat`). Relu par `gardien` le même soir. */
+  if (abo) {
+    /* ⛔ SES abonnements, quel que soit le chemin qui a trouvé le premier : ceux qui portent sa référence, ET ceux de
+       son adresse qui ne sont pas gravés pour une autre entreprise. La référence n'est gravée que depuis le
+       19 septembre : une abonnée d'avant qui achète un abonnement de plus sur la page d'aujourd'hui en a des deux
+       sortes, et ne compter que le gravé la faisait retomber de 7 places à 1 (`gardien`, A1, mesuré). */
+    /* ⚠️ une adresse PARTAGÉE avec une autre entreprise de l'annuaire rend un abonnement sans référence ambigu : celle
+       qui a déjà un abonnement à son nom ne le prend pas (sinon il compterait chez les deux) ; celle qui n'est
+       rattachée que par l'adresse le garde, comme avant. */
+    const partagee = !!mel && Object.keys(espacesReg || {}).some(sl => { const x = espacesReg[sl]; return !!x && x !== e
+      && String(sl).toLowerCase() !== String(e.slug || '').toLowerCase() && String(x.email || '').trim().toLowerCase() === mel
+      && !(monT && String(espaceT(x) || '').toLowerCase() === monT); });   // ses propres autres noms (même `t`) ne la « partagent » pas
+    /* une référence qui ne désigne AUCUNE entrée de l'annuaire (une entreprise « repartie à neuf » à un seul nom) ne
+       dit pas « à une autre » ; une référence qui en désigne une autre, si — ses places ne comptent pas ici */
+    const designe = m => Object.keys(espacesReg || {}).some(sl => { const x = espacesReg[sl]; return !!x
+      && (String(sl).toLowerCase() === m || String(espaceT(x) || '').toLowerCase() === m); });
+    /* ⛔ une référence ORPHELINE (qui ne désigne plus aucune entrée : un « repartir à neuf ») trouvée par l'adresse compte
+       aussi quand le premier abonnement est venu par la référence — le filtre des deux chemins était différent, et
+       acheter OP MESSAGES (gravé) après un « repartir à neuf » écartait l'abonnement OP GESTION gravé à l'ancien
+       identifiant (relecture adverse du 29 septembre, rejoué) */
+    const memes = liste.filter(sb => vivant(sb) && (aMoi(sb) || (parMail(sb) && (parQuoi === 'adresse e-mail'
+      ? (!refDe(sb) || !designe(refDe(sb)))
+      : ((!refDe(sb) || !designe(refDe(sb))) && !partagee)))));
+    /* ⛔⛔ LA FORMULE NE SE DÉCIDE PAS SUR CE QUI EST AMBIGU (relecture adverse du 29 septembre 2026, rejoué). `memes`
+       ne décidait que des places ; il décide maintenant de la formule, et un abonnement douteux y pèse dans les deux sens :
+       · MONTER au-dessus de la fiche ne se fait que sur ce qui est SÛREMENT à elle (`surs`) : gravé à son nom, ou trouvé
+         par une adresse que personne d'autre ne porte — sinon une fiche « Gratuit » recevait la formule et les places
+         d'une AUTRE entreprise à la même adresse (un paiement, deux entreprises servies) ;
+       · DESCENDRE sous la fiche ne se fait que sans DOUTE (`douteux` vide) : un abonnement d'OP GESTION trouvé par son
+         adresse mais écarté ou ambigu (adresse partagée, référence d'un autre de ses noms) peut être le sien — sinon
+         acheter OP MESSAGES faisait retomber en Gratuit une entreprise qui paie Business Premium. On ne coupe pas une
+         entreprise qui paie peut-être : la fiche reste, la Tour montre ce qu'elle voit. */
+    const surs = memes.filter(sb => aMoi(sb) || !partagee);
+    const douteux = liste.filter(sb => vivant(sb) && parMail(sb) && !aMoi(sb) && !surs.includes(sb)
+      && ((sb.items && Array.isArray(sb.items.data)) ? sb.items.data.some(it => !ligneMessages(it)) : true));
+    return { abo, memes, surs, douteux, motif: 'abonnement Stripe (' + abo.status + ', par ' + parQuoi + ')', echeance: abo.current_period_end ? new Date(abo.current_period_end * 1000).toISOString().slice(0, 10) : '' };
   }
   return null;
 }
