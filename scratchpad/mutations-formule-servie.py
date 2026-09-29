@@ -12,11 +12,11 @@ os.chdir(RACINE)
 def sh(cmd, timeout=None):
     return subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
 
-if sh('git status --porcelain -- server/index.js tour.html').stdout.strip():
-    print('⛔ server/index.js ou tour.html a des changements non commités — rien ne part (git checkout les effacerait)')
+if sh('git status --porcelain -- server/index.js server/portail.js tour.html').stdout.strip():
+    print('⛔ server/index.js, server/portail.js ou tour.html a des changements non commités — rien ne part (git checkout les effacerait)')
     sys.exit(2)
 
-S, T = 'server/index.js', 'tour.html'
+S, T, PT = 'server/index.js', 'tour.html', 'server/portail.js'
 MUT = [
   ('M1', S, 'formulePayee ignore le tarif payé (toujours la fiche)',
    "rang = Math.max(rang, r >= 0 ? r : rangFiche);", "rang = Math.max(rang, rangFiche);", ['727', '842']),
@@ -67,6 +67,37 @@ MUT = [
    "  if(s===f) return lf;\n  return (ABN_F[s]||s)+' ('+abnEcart(e)+'\\u202f; la fiche dit '+lf+')';", "  return lf;", ['842']),
   ('T2', T, "la Tour dit « payée » même pour une période offerte",
    "function abnEcart(e){ return e.promoCode?'offerte par le code':", "function abnEcart(e){ return false?'offerte par le code':", ['842']),
+  # ── « Mon espace » (le portail) dit la formule servie — ajoutées le 29 septembre au matin ──
+  ('M18', S, "une adresse qui porte deux entreprises : on en choisit une",
+   "  if (ts.size !== 1) return '';\n", "  if (ts.size < 1) return '';\n", ['727']),
+  ('M19', S, "« Mon espace » dit la fiche même quand rien n'est payé",
+   "const f = p && p.paye ? (p.formuleServie || e.formule) : '';", "const f = p ? (p.formuleServie || e.formule) : '';", ['727']),
+  ('M20', S, "une entreprise fermée garde sa formule dans « Mon espace »",
+   "if (!e || !e.formule || espaceFerme(espaceT(e))) return '';", "if (!e || !e.formule) return '';", ['727']),
+  ('M21', S, "« Mon espace » reçoit l'identifiant (premium) au lieu du libellé",
+   "  return (f && FORMULE_LBL2[f]) || '';\n}", "  return f || '';\n}", ['727', '813']),
+  ('M22', S, "le serveur ne branche pas la formule servie dans le portail",
+   "      formuleServie: formuleServieDe,", "", ['813']),
+  ('M23', S, "le motif dit « formule payée : Gratuit » (OP MESSAGES seul)",
+   "f === 'gratuit' ? ' — OP GESTION non payé : formule Gratuit' : ", "", ['727']),
+  ('M24', S, "J-7 : les liens des autres formules illisibles de nuit",
+   "    '.m-lien{color:#4FD196!important}' +", "", ['840']),
+  ('P1', PT, "une adresse NON prouvée lit la formule servie",
+   "if (!v || typeof d.formuleServie !== 'function' || !verifie(mail)) return v;", "if (!v || typeof d.formuleServie !== 'function') return v;", ['811']),
+  ('P2', PT, "rien de servi : le dossier reçoit une formule vide",
+   "if (typeof lbl === 'string' && lbl) v.plan = lbl;", "if (typeof lbl === 'string') v.plan = lbl;", ['811']),
+  ('P3', PT, "une panne du calcul fait tomber la route (plus de filet)",
+   "    try { const lbl = await d.formuleServie(mail); if (typeof lbl === 'string' && lbl) v.plan = lbl; } catch (e) { /* la fiche de la Tour, comme avant */ }",
+   "    { const lbl = await d.formuleServie(mail); if (typeof lbl === 'string' && lbl) v.plan = lbl; }", ['811']),
+  ('P4', PT, "/api/portail/moi rend la fiche seule",
+   "if (refus) return res.status(403).json({ error: refus });\n    return avecFormuleServie(mail, dossierVue(mail)).then(v => res.json({ ok: true, dossier: v }));\n  });\n\n  app.post('/api/portail/demande'",
+   "if (refus) return res.status(403).json({ error: refus });\n    return res.json({ ok: true, dossier: dossierVue(mail) });\n  });\n\n  app.post('/api/portail/demande'", ['811', '813']),
+  ('P5', PT, "/api/portail/demande rend la fiche seule",
+   "if (b.message) ajouterMsg(mail, 'client', b.message);\n    ecrire();\n    return avecFormuleServie(mail, dossierVue(mail)).then(v => res.json({ ok: true, dossier: v }));",
+   "if (b.message) ajouterMsg(mail, 'client', b.message);\n    ecrire();\n    return res.json({ ok: true, dossier: dossierVue(mail) });", ['811']),
+  ('P6', PT, "/api/portail/promo rend la fiche seule",
+   "Profitez bien !');\n    ecrire();\n    return avecFormuleServie(mail, dossierVue(mail)).then(v => res.json({ ok: true, dossier: v }));",
+   "Profitez bien !');\n    ecrire();\n    return res.json({ ok: true, dossier: dossierVue(mail) });", ['811']),
 ]
 
 seules = set(filter(None, os.environ.get('SEULES', '').split(',')))
@@ -99,4 +130,4 @@ for (cle, fichier, nom, avant, apres, bancs) in MUT:
     bilan.append((cle, 'mord' if mord else 'NE MORD PAS'))
 
 print('\n' + str(sum(1 for _, x in bilan if x == 'mord')) + '/' + str(len(bilan)) + ' mutations mordent')
-print('git status après le lot : ' + (sh('git status --porcelain -- server/index.js tour.html').stdout.strip() or 'propre'))
+print('git status après le lot : ' + (sh('git status --porcelain -- server/index.js server/portail.js tour.html').stdout.strip() or 'propre'))
