@@ -2232,7 +2232,10 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
      sans erreur, sans journal, sans que rien à l'écran ne le dise. Mesuré par le gardien. */
   espacesReg[slug] = { nom, code, t, ts: Date.now(), par: req.tourUser.nom, origine, email: emailNeuf || prev.email || '',
     opMessages: prev.opMessages,
-    formule: prev.formule, quantite: prev.quantite, formulePar: prev.formulePar, formuleTs: prev.formuleTs };
+    formule: prev.formule, quantite: prev.quantite, formulePar: prev.formulePar, formuleTs: prev.formuleTs,
+    /* ⛔ le métier se reporte comme la formule (29 septembre 2026) : sans ça, « Revoir le lien de connexion » le
+       remettait à « non réglé » — l'application garderait le sien, mais la Tour afficherait un métier à re-poser */
+    metier: prev.metier, metierPar: prev.metierPar, metierTs: prev.metierTs };
   /* La confirmation se garde avec l'entrée : qui a dit « oui, c'est la nouvelle clé », et quand. */
   if (cleConfirmee) espacesReg[slug].cleConfirmee = cleConfirmee;
   /* ⛔ ÉCRIT, OU ON LE DIT — et on défait l'entrée en mémoire. Répondre `ok` sur une écriture
@@ -2281,6 +2284,36 @@ app.post('/api/monitor/espaces/lien-existant', monPatronStrict, (req, res) => {
   const tEsp = espaceT(e);
   const annuaire = (() => { const a = comptesReg[tEsp]; return (a && a.c) ? Object.keys(a.c).length : 0; })();
   res.json({ ok: true, existe: true, slug: (e.slug || slug), nom: espNomPropre(e), t: tEsp, ident, annuaire });
+});
+/* ══ LE MÉTIER D'UNE ENTREPRISE — Justin, 29 septembre 2026 (nuit) : « je veux que chaque métier qu'on a sur le site,
+   quand ils ont l'application, ça correspond à leur métier ; active tous les packs, pour tous ». Jusque-là RIEN ne le
+   portait : la demande d'accès ne le demandait pas, la Tour l'affichait (« métier non renseigné ») sans aucun moyen de le
+   régler (`/api/monitor/clients/metier` n'avait pas d'appelant), et l'application partait en anti-nuisibles (3D) chez
+   TOUT LE MONDE — un plombier recevait « Dératisation » et le registre sanitaire.
+   Le métier se règle ICI, sur l'espace, comme la formule : par TEAM OP, jamais par le client (le portail le DEMANDE, la
+   Tour le POSE — prérempli avec la demande), et `/api/espaces/etat` le rend à l'application, qui applique le pack :
+   types d'intervention, fiche de terrain, modules. ⛔ La liste est celle de `METIERS_ORDRE` (app.html) : une valeur hors
+   liste est refusée ici, parce que l'application l'ignorerait EN SILENCE. `tests/test-848.js` compare les deux listes.
+   ⚠️ Vide veut dire « non réglé » : l'application garde alors ce qu'elle avait (ELAN, réglée avant ce chantier, ne
+   reçoit rien et ne bouge pas). */
+const METIERS_OK = ['3d', 'plomberie', 'electricite', 'chauffage', 'serrurerie', 'nettoyage'];
+const metierOk = m => (METIERS_OK.includes(m) ? m : '');
+const METIERS_LBL = { '3d': '3D — Hygiène anti-nuisibles', plomberie: 'Plomberie', electricite: 'Électricité', chauffage: 'Chauffage / Climatisation', serrurerie: 'Serrurerie', nettoyage: 'Nettoyage / Propreté' };
+app.post('/api/monitor/espaces/metier', monPatronStrict, (req, res) => {
+  const slug = espSlug(monStr((req.body || {}).nom, 80));   // borné : voir /api/espaces/ouvrir
+  const e = espacesReg[slug];
+  if (!e) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son « Lien de connexion » (fiche entreprise)' });
+  const m = monStr((req.body || {}).metier, 20);
+  if (m && !METIERS_OK.includes(m)) return res.status(400).json({ error: 'métier inconnu' });
+  if ((e.metier || '') !== m) {
+    const avant = { metier: e.metier, metierPar: e.metierPar, metierTs: e.metierTs };
+    e.metier = m; e.metierPar = m ? req.tourUser.nom : ''; e.metierTs = Date.now();
+    /* écrit, ou on le dit — et on défait en mémoire : sinon le serveur servirait ce métier jusqu'au redémarrage,
+       puis l'ancien, sans que la Tour l'ait jamais su (même règle que la création d'un espace) */
+    if (!espacesEcrire()) { Object.assign(e, avant); return res.status(500).json({ error: 'L\'annuaire n\'a pas pu être enregistré — le métier n\'a pas changé.' }); }
+    console.log('Tour :', req.tourUser.nom, 'règle le métier', m || '(aucun)', 'de', slug);
+  }
+  res.json({ ok: true, slug, metier: m });
 });
 // le patron attribue la formule d'un espace (Gratuit/Pro/Business/Premium × quantité)
 app.post('/api/monitor/espaces/formule', monPatronStrict, (req, res) => {
@@ -3046,7 +3079,7 @@ app.post('/api/monitor/espaces/statut', monAdmin, async (req, res) => {
   const e = espacesReg[slug];
   if (!e) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son lien de connexion' });
   const p = await espacePaye(Object.assign({ slug }, e), { lecture: true });   // le slug n'est pas dans l'entrée — voir /liste ; une LECTURE n'active aucun code
-  res.json({ ok: true, formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', promoCode: p.promoCode || '', quantite: e.quantite || 1, places: placesServies(e, p), email: e.email || '', paye: p.paye, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '',
+  res.json({ ok: true, formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', promoCode: p.promoCode || '', quantite: e.quantite || 1, places: placesServies(e, p), email: e.email || '', paye: p.paye, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '', metier: metierOk(e.metier),
     impaye: !!p.bloque, impayeStripe: !!p.impayeStripe, impayesPartiels: p.impayesPartiels || 0 });
 });
 // ── Activité par onglet (anonyme : noms d'écrans + compteurs, par espace) ──
@@ -4824,8 +4857,11 @@ app.post('/api/espaces/etat', (req, res) => {
      sans formule attribuée. Le chemin « ferme » sort plus haut sans le rendre, et c'est juste :
      l'application y vide son stockage et se recharge avant même de regarder ce champ. */
   const opMessages = !!(e && e.opMessages);
+  /* Le métier voyage comme `opMessages` : sur les quatre réponses d'un espace VIVANT, formule ou pas, payé ou pas — un
+     impayé garde son métier (ce n'est pas une fonction payante), et une entreprise sans formule aussi. */
+  const metier = metierOk(e && e.metier);
   const versionMin = versionsCfg.min, enLigne = versionsCfg.enLigne;
-  if (!e || !e.formule) return res.json({ ok: true, opMessages, versionMin, enLigne, suspendu, sursisJours });
+  if (!e || !e.formule) return res.json({ ok: true, opMessages, metier, versionMin, enLigne, suspendu, sursisJours });
   /* ⛔ la formule SERVIE (`formulePayee`) : celle que l'entreprise paie, pas forcément celle de la fiche (29 septembre 2026) */
   espacePaye(e).then(p => {
     /* ⛔⛔ UN IMPAYÉ SE SERT COMME UNE SUSPENSION AU SURSIS ÉCOULÉ, SANS FORMULE (Justin, 29 septembre 2026 : « leur accès sont
@@ -4837,10 +4873,10 @@ app.post('/api/espaces/etat', (req, res) => {
        Rien n'est écrit côté serveur non plus : l'état se recalcule à chaque appel, il revient seul. */
     /* ⚠️ cette route répond à qui connaît `t` : elle ne dit ni « impayé » ni par quel chemin (`gardien`) — l'application ne
        lit que `suspendu` et `sursisJours` ; la Tour, gardée, a le motif */
-    if (p.bloque) return res.json({ ok: true, paye: false, motif: 'accès payant suspendu', opMessages, versionMin, enLigne, suspendu: true, sursisJours: 0 });
-    res.json({ ok: true, formule: p.formuleServie || e.formule, quantite: e.quantite || 1, places: placesServies(e, p), paye: p.paye, motif: p.motif, opMessages, versionMin, enLigne, suspendu, sursisJours });
+    if (p.bloque) return res.json({ ok: true, paye: false, motif: 'accès payant suspendu', opMessages, metier, versionMin, enLigne, suspendu: true, sursisJours: 0 });
+    res.json({ ok: true, formule: p.formuleServie || e.formule, quantite: e.quantite || 1, places: placesServies(e, p), paye: p.paye, motif: p.motif, opMessages, metier, versionMin, enLigne, suspendu, sursisJours });
   })
-    .catch(() => res.json({ ok: true, formule: e.formule, quantite: e.quantite || 1, paye: false, motif: 'vérification impossible', opMessages, versionMin, enLigne, suspendu, sursisJours }));
+    .catch(() => res.json({ ok: true, formule: e.formule, quantite: e.quantite || 1, paye: false, motif: 'vérification impossible', opMessages, metier, versionMin, enLigne, suspendu, sursisJours }));
 });
 /* nom d'entreprise présentable (jamais une adresse e-mail mise là faute de mieux) */
 function espNomPropre(e) { const n = String((e && e.nom) || '').trim(); return (n && !/@/.test(n) && n.toLowerCase() !== String((e && e.email) || '').toLowerCase()) ? n : ''; }
@@ -8073,7 +8109,8 @@ app.post('/api/clients/sync', async (req, res) => {
   const prev = clientsData[email] || {};
   const demandes = (Array.isArray(b.demandes) ? b.demandes.slice(0, 20) : []).map(d => ({
     app: monStr(d && d.app, 60), formule: monStr(d && d.formule, 40), statut: monStr(d && d.statut, 20), date: parseInt(d && d.date, 10) || 0, besoin: monStr(d && d.besoin, 200), users: monStr(d && d.users, 10),
-    code: monStr(d && d.code, 40), lien: monStr(d && d.lien, 60) }));
+    code: monStr(d && d.code, 40), lien: monStr(d && d.lien, 60),
+    metier: metierOk(d && d.metier) }));   // le métier DEMANDÉ : une liste fermée ; c'est la Tour qui le pose sur l'espace
   clientsData[email] = {
     email, nom: monStr(b.nom, 80), prenom: monStr(b.prenom, 40) || prev.prenom || '', nomFam: monStr(b.nomFam, 40) || prev.nomFam || '',
     tel: monStr(b.tel, 30) || prev.tel || '', entreprise: monStr(b.entreprise, 80),
@@ -8208,9 +8245,9 @@ app.post('/api/clients/sync', async (req, res) => {
         'Contact : ' + (cli.nom || '—') + '\n' +
         'E-mail : ' + email + '\n' +
         'Téléphone : ' + (cli.tel || 'non renseigné') + '\n\n' +
-        nv.map(d => '• ' + (d.app || 'Application') + (d.formule ? ' — formule « ' + d.formule + ' »' : ' — formule non précisée') + (d.users ? '\n  Utilisateurs souhaités : ' + d.users : '') + (d.lien ? '\n  Nom de lien souhaité : ' + d.lien : '') + (d.besoin && d.besoin !== 'x' ? '\n  Besoin : ' + d.besoin : '')).join('\n') +
+        nv.map(d => '• ' + (d.app || 'Application') + (d.formule ? ' — formule « ' + d.formule + ' »' : ' — formule non précisée') + (d.users ? '\n  Utilisateurs souhaités : ' + d.users : '') + (d.lien ? '\n  Nom de lien souhaité : ' + d.lien : '') + (d.metier ? '\n  Métier : ' + (METIERS_LBL[d.metier] || d.metier) : '\n  Métier : non précisé') + (d.besoin && d.besoin !== 'x' ? '\n  Besoin : ' + d.besoin : '')).join('\n') +
         '\n\n' + codeLigne +
-        '\n── À faire ──\nRien n\'a été créé. Ouvre ta Tour → la fiche de cette entreprise → « ✅ Accepter la demande » : l\'espace se crée, la formule et le code promo s\'appliquent, puis « 📧 Envoyer par e-mail au client » lui envoie son lien et ses identifiants.\n\nhttps://teamop.fr/tour.html';
+        '\n── À faire ──\nRien n\'a été créé. Ouvre ta Tour → la fiche de cette entreprise → « ✅ Accepter la demande » : l\'espace se crée, la formule, le métier et le code promo s\'appliquent, puis « 📧 Envoyer par e-mail au client » lui envoie son lien et ses identifiants.\n\nhttps://teamop.fr/tour.html';
       mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest,
         subject: '📥 Nouvelle demande à traiter — ' + nomEnt, text: texte })
         .then(() => console.log('mail demande envoyé →', masqueMail(dest), '(' + nv.length + ' demande' + (nv.length > 1 ? 's' : '') + ')'))   // le nombre, pas le texte libre du client

@@ -8017,7 +8017,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '764-beta';
+const APP_VERSION = '765-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -8815,6 +8815,28 @@ function metierSet(id){
   try{ logEvent('Métier de l’entreprise',METIERS[id].nom,'admin'); }catch(e){}
   toast(METIERS[id].ic+' Métier « '+METIERS[id].nom+' » activé');
   views.parametres();
+}
+/* ⛔ v765 — LE MÉTIER VIENT DE TEAM OP (Justin, 29 septembre 2026 : « je veux que chaque métier qu'on a sur le site,
+   quand ils ont l'application, ça correspond à leur métier ; active tous les packs, pour tous »). Jusqu'à la v764, rien
+   ne le portait jusqu'ici : `db.metier` ne s'écrivait que par `metierSet`, dont les cartes ne s'affichent qu'à l'équipe
+   TEAM OP — toute autre entreprise partait en 3D, un plombier recevait « Dératisation » et le registre sanitaire, et ce
+   que dit « Mon métier » (« choisi lors de ta demande d'application — il est déjà réglé ici ») était faux.
+   Désormais la demande d'accès le demande, la Tour le pose sur l'espace, et /api/espaces/etat le rend à chaque ouverture
+   (`forfaitServeurSync`), par le même chemin que la formule attribuée :
+   · vide ou hors de `METIERS` = « non réglé » : on ne touche à RIEN (ELAN, réglée avant ce chantier, reste en 3D) ;
+   · déjà le bon : rien ne s'écrit — pas de `save()` à chaque ouverture ;
+   · sinon il s'écrit dans la base, comme la formule, pour que toute l'équipe ait le même pack, et le menu se redessine
+     (le métier masque des rubriques). `tests/test-848.js` le joue contre le vrai serveur. */
+function metierServeurAppliquer(j){
+  const m=j&&j.metier;
+  if(!m||typeof m!=='string'||!Object.prototype.hasOwnProperty.call(METIERS,m)||db.metier===m) return false;
+  const av=metierId();
+  db.metier=m; save();
+  try{ logEvent('Métier de l’entreprise',METIERS[m].nom+' — réglé par TEAM OP','admin'); }catch(e){}
+  try{ renderNav(); }catch(e){}
+  try{ if(currentUser&&current&&views[current]) views[current](); }catch(e){}
+  if(av!==m&&currentUser) try{ toast(METIERS[m].ic+' Application réglée pour : '+METIERS[m].nom); }catch(e){}
+  return true;
 }
 /* ── prestations realisees + releves : la fiche metier qui remplace le diagnostic 3D ── */
 function metPrestaToggle(id,lbl){
@@ -13920,6 +13942,9 @@ async function forfaitServeurSync(silencieux){
        « return » ci-dessous, et gardait donc la messagerie affichée sans que personne ne l'ait
        ouverte. */
     try{ const av=_opMsgOuvert; _opMsgOuvert=!!(j&&j.opMessages); if(av!==_opMsgOuvert&&currentUser) suiteRefresh(); }catch(e){}
+    /* le métier réglé par TEAM OP : lu AVANT le test sur la formule, comme `opMessages` — une entreprise sans formule
+       attribuée a déjà son métier (`metierServeurAppliquer`) */
+    try{ metierServeurAppliquer(j); }catch(e){}
     /* ⛔ L'ÉTAT DE FACTURATION SE LIT AVANT LE TEST SUR LA FORMULE, pour la même raison
        qu'`opMessages` juste au-dessus : un espace sans formule attribuée sortait par le
        `return` ci-dessous, et serait resté suspendu sans que rien ne grise jamais. */
