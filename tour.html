@@ -1310,10 +1310,12 @@ body.jour #dia .dia-ctrl{border-top-color:rgba(20,28,48,.09)}
    faits ; ici c’est une phrase écrite par une cliente. */
 .reg-l.att .reg-l2{color:var(--strong);font-weight:600}
 .reg-l.cli.att .reg-l2{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-/* L'écart entre la formule SERVIE et la fiche (29 septembre 2026, `abnFormule`) se lit EN ENTIER, sur deux lignes s'il le
-   faut : tronquée au téléphone, la ligne coupait « la fiche dit Business Premi… », c'est-à-dire l'écart lui-même
-   (mesuré par scratchpad/sonde-tour-formule-servie.js, à 360 et 390 px). Seules les lignes à écart grandissent. */
-.reg-l2.abn-ecart{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+/* L'écart entre la formule SERVIE et la fiche (29 septembre 2026, `abnFormule`) se lit EN ENTIER, sur autant de lignes qu'il
+   le faut : tronquée au téléphone, la ligne coupait « la fiche dit Business Premi… », c'est-à-dire l'écart lui-même
+   (mesuré par scratchpad/sonde-tour-formule-servie.js, à 360 et 390 px). Deux lignes ne suffisaient pas à une période
+   offerte, qui ajoute son échéance et ses jours restants (relecture adverse, mesuré à 360 px). Seules les lignes à écart
+   grandissent. */
+.reg-l2.abn-ecart{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
 .sup-sig{font-size:12px;color:var(--muted);white-space:nowrap}
 
 /* La navigation principale d'un écran ouvert au doigt faisait 35 px. Et un titre de section
@@ -5371,7 +5373,9 @@ function packPeindre(){
   var sd=document.getElementById('abo-fin'); if(sd) sd.value=d.aboFin||'';
   var ST={auto:'automatique',actif:'activé par TEAM OP',essai:'en essai',impaye:'impayé',suspendu:'suspendu',annule:'annulé'};
   if(d.formule){
-    el.innerHTML='Formule actuelle\u202f: <b>'+esc(d.formule)+(d.quantite>1?' ×'+d.quantite:'')+'</b> · statut\u202f: <b>'+esc(ST[d.aboStatut||'auto']||d.aboStatut)+'</b>'+(d.aboFin?' · jusqu\'au <b>'+esc(d.aboFin)+'</b>':'')
+    /* la formule en toutes lettres, comme « l’application reçoit » juste après (et le toast de « 💳 Statut paiement ») :
+       « premium » à côté de « Business Premium » se lisait comme deux formules */
+    el.innerHTML='Formule actuelle\u202f: <b>'+esc(ABN_F[d.formule]||d.formule)+(d.quantite>1?' ×'+d.quantite:'')+'</b> · statut\u202f: <b>'+esc(ST[d.aboStatut||'auto']||d.aboStatut)+'</b>'+(d.aboFin?' · jusqu\'au <b>'+esc(d.aboFin)+'</b>':'')
       /* les places que l'application v763 donne VRAIMENT (serveur : `placesServies` — le payé chez Stripe, les places gardées
          d'avant la v763) : sans elles, réenregistrer une entreprise d'avant pouvait lui retirer des places sans que la Tour
          le montre (`gardien`, 28 septembre 2026) */
@@ -5392,7 +5396,7 @@ function tourPackPrefill(nom){
 }
 function tourStatutPack(nom){
   apiPost('/api/monitor/espaces/statut',{nom:nom}).then(function(r){
-    if(r&&r.ok&&r.d) toast(r.d.formule?('📦 '+r.d.formule+(r.d.quantite>1?' ×'+r.d.quantite:'')+(r.d.formuleServie&&r.d.formuleServie!==r.d.formule?' → l’application reçoit '+(ABN_F[r.d.formuleServie]||r.d.formuleServie):'')+' — '+(r.d.paye?'✅ payé ('+r.d.motif+')':'💳 en attente de paiement')):'Aucune formule attribuée');
+    if(r&&r.ok&&r.d) toast(r.d.formule?('📦 '+(ABN_F[r.d.formule]||r.d.formule)+(r.d.quantite>1?' ×'+r.d.quantite:'')+(r.d.formuleServie&&r.d.formuleServie!==r.d.formule?' → l’application reçoit '+(ABN_F[r.d.formuleServie]||r.d.formuleServie):'')+' — '+(r.d.paye?'✅ payé ('+r.d.motif+')':'💳 en attente de paiement')):'Aucune formule attribuée');
     else toast((r&&r.d&&r.d.error)||'Statut indisponible');
   }).catch(function(){ toast('Serveur injoignable'); });
 }

@@ -272,7 +272,8 @@ console.log('\n── 811 · les clients du portail repris de Google : leur comp
     const app2 = express(); app2.use(express.json());
     require(path.join(RACINE, 'server', 'portail.js')).monterPortail(app2, {
       dossier: dir2, parJeton: comptes.parJeton, quotaOk: () => true, journal: () => {}, verifie: comptes.verifie, admin, patron,
-      formuleServie: async (m) => { demandes.push(m); if (servie === 'jette') throw new Error('panne de banc'); return servie; },
+      formuleServie: async (m) => { demandes.push(m); if (servie === 'jette') throw new Error('panne de banc'); if (servie === 'muet') return new Promise(() => {}); return servie; },
+      formuleDelaiMs: 300,   // (2 s en service : un banc n'attend pas)
       /* un code FICTIF (aucun code réel n'entre dans un fichier suivi) */
       promoDef: (c) => (c === 'ESSAI-BANC-811' ? { code: c, mois: 3, epuise: false } : null) });
     const srv2 = await new Promise(res => { const s2 = app2.listen(0, '127.0.0.1', () => res(s2)); });
@@ -296,6 +297,14 @@ console.log('\n── 811 · les clients du portail repris de Google : leur comp
       servie = 'jette';
       q = await moi2(jv);
       v('   une panne du calcul : 200, et le dossier tel qu\'il est', [q.s, q.j.dossier && q.j.dossier.plan], [200, undefined]);
+      /* ⛔ un calcul qui ne répond JAMAIS (Stripe muet : 36 à 48 s avant la relecture adverse du 29 septembre) : « Mon espace »
+         répond quand même, au bout du délai, avec le dossier tel que la Tour l'a posé. Le délai du fetch (5 s) fait tomber
+         ce contrôle au lieu de figer le banc si l'attente n'était plus bornée. */
+      servie = 'muet';
+      const t0 = Date.now();
+      const qm = await fetch(B2 + '/api/portail/moi', { headers: au2(jv), signal: AbortSignal.timeout(5000) }).then(async x => ({ s: x.status, j: await x.json().catch(() => ({})) }), () => ({ s: 0, j: {} }));
+      const duree = Date.now() - t0;
+      v('⛔ un calcul qui ne répond pas (Stripe muet) : « Mon espace » répond au bout du délai, avec le dossier tel qu\'il est', [qm.s, qm.j.dossier && qm.j.dossier.plan, duree >= 250 && duree < 2500], [200, undefined, true]);
       servie = 'Business Premium';
       await post('/api/compte/creer', { email: 'pas-prouvee@exemple.fr', h: emp('mot-de-passe-pas-prouve') });
       const jp = (await post('/api/compte/connexion', { email: 'pas-prouvee@exemple.fr', h: emp('mot-de-passe-pas-prouve') })).j.jeton;

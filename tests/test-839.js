@@ -580,8 +580,10 @@ globalThis.fetch = async function (url, opts) {
             const inconnu = await fetch(B + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + rangement.get('teamop_portail_jeton') }, body: JSON.stringify({ price: 'price_1Banc', quantity: 1 }) });
             const ij = await inconnu.json().catch(() => ({}));
             v('⛔ un tarif qui n\'est pas sur la page (appel direct, compte prouvé) : 400 tarif_inconnu, rien chez Stripe', [inconnu.status, ij.error, stripeRecu().length], [400, 'tarif_inconnu', n]);
-          } else vrai('   (serveur d\'avant : le tarif n\'est pas encore vérifié — la garde part avec le serveur)', true);
-        } else vrai('   (serveur d\'avant : la référence de l\'appareil passe sans vérification — « B » part avec le serveur)', voisine.s.length === 1);
+          /* ⛔ plus de porte « serveur d'avant » qui compte un ✓ sans rien vérifier (relecture adverse du 29 septembre) : ce banc
+             et le serveur partent ensemble — un serveur du dépôt sans la garde est une garde RETIRÉE, et ça doit se voir */
+          } else vrai('⛔ le serveur du dépôt vérifie le tarif (`tarif_inconnu`) — absent, c\'est une garde retirée', false);
+        } else vrai('⛔ le serveur du dépôt porte « B » (`compte_autre_entreprise`) — absent, c\'est une garde retirée', false);
         rangement.delete('elan_sync_team');
       }
     } finally {

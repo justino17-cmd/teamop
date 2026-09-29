@@ -26,6 +26,11 @@
 
 const fs = require('fs'), path = require('path');
 const SRC = fs.readFileSync(path.join(__dirname, '..', 'server', 'index.js'), 'utf8');
+/* ⛔ L'HEURE DU BANC N'EST PAS CELLE DU JOUR (relecture adverse du 29 septembre 2026, rejoué) : `placesDeFormule` date
+   `formuleDepuis` de MAINTENANT et le compare à la bascule des places ; une horloge d'avant le 29/09 4 h UTC rendait le
+   × 3 d'avant et faisait tomber un contrôle juste. La bascule du bac à sable est posée loin dans le passé : « d'avant »,
+   ce sont les abonnements sans date (0 ou 1), « d'après », ceux du 1er octobre 2026 — quelle que soit l'horloge. */
+process.env.TEAMOP_PLACES_BASCULE = '2001-01-01T00:00:00Z';
 
 let ok = 0, ko = 0;
 const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + JSON.stringify(b) + '\n      obtenu  : ' + JSON.stringify(a)); } };
@@ -70,7 +75,7 @@ vrai('le calcul des places et ses constantes sont trouvés dans le fichier réel
 const iLig = SRC.indexOf('const prixDeLigne ='), iFP = SRC.indexOf('function formulePayee(');
 const LIGNES = (iLig > 0 && iFP > iLig) ? SRC.slice(iLig, iFP) : '';
 const LBL2 = (/^const FORMULE_LBL2 = .*$/m.exec(SRC) || [''])[0];
-const SERVIE = ['formulePayee', 'formuleDuCode', 'formulePromo', 'placesDeFormule', 'formuleEtPlaces', 'espaceStripe'].map(extraire);
+const SERVIE = ['formulePayee', 'formuleDuCode', 'formulePromo', 'placesDeFormule', 'formuleEtPlaces', 'espaceStripe', 'periodeOfferte'].map(extraire);
 vrai('la formule servie, ses aides et le rattachement Stripe sont trouvés dans le fichier réel',
   /ligneMessages/.test(LIGNES) && /Business Premium/.test(LBL2) && SERVIE.every(Boolean) && /^async function espaceStripe/.test(SERVIE[5]));
 AIDES.push(CONSTS, ...PLACES, LIGNES, LBL2, ...SERVIE);
@@ -80,6 +85,11 @@ const avec = (abos) => construire()(
   { stripe: { secretKey: 'sk_de_banc' }, promos: [] },
   { ts: Date.now(), data: abos }, {}, async () => abos, { error() {} }, () => true, () => {}, {}, () => null, require('crypto'), false);
 
+/* la même, avec un ANNUAIRE, des codes, un cache et un Stripe à soi (adresse partagée, référence orpheline, période
+   offerte, lecture partagée de Stripe) */
+const avecTout = ({ abos = [], reg = {}, usages = {}, promos = [], cache = null, lire = null } = {}) => construire()(
+  { stripe: { secretKey: 'sk_de_banc' }, promos }, cache || { ts: Date.now(), data: abos }, usages, lire || (async () => abos),
+  { error() {}, log() {} }, () => true, () => {}, reg, () => null, require('crypto'), false);
 const ABO = o => Object.assign({ status: 'active', current_period_end: 1800000000 }, o);
 const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@client.fr', formule: 'premium' }, o);
 
@@ -523,8 +533,16 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('   fiche Pro, abonnement Business Premium × 2 : BUSINESS PREMIUM, 2 places', lit(haut), [true, 'premium', 2]);
     const pareil = await avec([apres([L('business', 3)])])(ESP({ formule: 'business' }));
     v('   fiche Business, abonnement Business × 3 : Business, 3 places — et le motif ne parle d\'aucun écart', [...lit(pareil), /formule payée/.test(pareil.motif)], [true, 'business', 3, false]);
+    /* ⛔ PLUSIEURS FORMULES PAYÉES : celle qui porte le PLUS d'abonnements, à égalité la plus BASSE (relecture adverse du
+       29 septembre, rejoué : « la plus haute » donnait Business Premium avec UNE place à dix abonnements Pro et un Premium) */
     const deux = await avec([apres([L('pro', 2)]), apres([L('premium', 1)])])(ESP({ formule: 'business' }));
-    v('   deux abonnements (Pro × 2, Business Premium × 1) : la plus haute, et SEULS ses abonnements donnent des places', lit(deux), [true, 'premium', 1]);
+    v('⛔ deux abonnements (Pro × 2, Business Premium × 1) : PRO, celle qui en porte le plus — et les 3 places (Premium compte au-dessus)', lit(deux), [true, 'pro', 3]);
+    const dix = await avec([apres([L('pro', 10)]), apres([L('premium', 1)])])(ESP({ formule: 'pro' }));
+    v('⛔ fiche Pro, dix Pro et un Business Premium pour le patron : Pro, 11 places — pas Business Premium avec une seule', lit(dix), [true, 'pro', 11]);
+    const egal = await avec([apres([L('pro', 1)]), apres([L('premium', 1)])])(ESP({ formule: 'business' }));
+    v('   à égalité (Pro × 1, Business Premium × 1) : la plus BASSE, et ses 2 places — plus de places plutôt que moins', lit(egal), [true, 'pro', 2]);
+    const majo = await avec([apres([L('pro', 1)]), apres([L('premium', 3)])])(ESP({ formule: 'pro' }));
+    v('   et quand Business Premium porte le plus (Pro × 1, Premium × 3) : Business Premium, 3 places + la fiche Pro n\'en perd aucune (4)', lit(majo), [true, 'premium', 4]);
 
     /* ⛔ UNE FICHE « GRATUIT » QUI PAIE REÇOIT CE QU'ELLE PAIE : elle sortait avant Stripe, et payer sur la page la laissait
        en Gratuit jusqu'à un geste de la Tour */
@@ -550,10 +568,76 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
 
     /* ⛔ UNE FORMULE SERVIE QUI N'EST PAS LA FICHE EST UNE FORMULE CHANGÉE APRÈS LA BASCULE : ses abonnements d'avant ne
        prennent pas son multiplicateur (`placesDeFormule`, le même refus qu'une formule changée dans la Tour) */
-    const monte = await avec([avant([L('business', 1)]), apres([L('premium', 1)])])(ESP({ formule: 'business' }));
-    v('⛔ fiche Business, un abonnement Business d\'avant + un Business Premium d\'après : Business Premium, 2 places — pas 4 (l\'ancien ne vaut pas 3)', lit(monte), [true, 'premium', 2]);
+    const monte = await avec([avant([L('business', 1)]), apres([L('premium', 2)])])(ESP({ formule: 'business' }));
+    v('⛔ fiche Business, un Business d\'avant + deux Business Premium d\'après : Business Premium, 4 places — l\'ancien garde ses 2 places de Business (jamais le × 3 : ce serait 5), et monter n\'en retire aucune',
+      lit(monte), [true, 'premium', 4]);
+    const monteSeul = await avec([avant([L('business', 5)]), apres([L('premium', 1)])])(ESP({ formule: 'business', quantite: 5 }));
+    v('⛔ fiche Business × 5 d\'avant (10 places) + UN Business Premium : Business (le plus d\'abonnements), 11 places — acheter plus cher n\'en retire pas 4',
+      lit(monteSeul), [true, 'business', 11]);
     const reste = await avec([avant([L('business', 1)]), apres([L('business', 1)])])(ESP({ formule: 'business' }));
     v('   contre-épreuve : un Business d\'avant + un Business d\'après — Business, 2 + 1 = 3 places, comme hier', lit(reste), [true, 'business', 3]);
+
+    /* ⛔⛔ LA FORMULE NE SE DÉCIDE PAS SUR CE QUI EST AMBIGU (relecture adverse du 29 septembre 2026, rejoué). Monter : sur
+       ce qui est SÛREMENT à elle ; descendre : seulement sans doute. */
+    const moi = { slug: 'monclient', t: 'ent-x', email: 'patron@client.fr', formule: 'premium' };
+    const grave = (lignes, ref, o) => apres(lignes, Object.assign({ metadata: { espace: ref } }, o));
+    const orph = await avecTout({ abos: [grave([L('premium', 3)], 'ent-ancien'), grave([L('msg', 1)], 'ent-x')], reg: { monclient: moi } })(ESP());
+    v('⛔⛔ « repartie à neuf » : Business Premium × 3 gravé à l\'ANCIEN identifiant + OP MESSAGES gravé au neuf — Business Premium et ses 3 places (plus « Gratuit »)',
+      lit(orph), [true, 'premium', 3]);
+    const deuxNoms = await avecTout({ abos: [grave([L('premium', 3)], 'ent-ancien'), grave([L('msg', 1)], 'ent-x')],
+      reg: { monclient: moi, ancien: { slug: 'ancien', t: 'ent-ancien', email: 'patron@client.fr', formule: 'premium' } } })(ESP());
+    v('⛔ … et son autre nom garde l\'ancien identifiant (à la même adresse) : dans le doute, la fiche — Business Premium, jamais Gratuit',
+      [deuxNoms.paye, deuxNoms.formuleServie], [true, 'premium']);
+    const petite = { slug: 'petite', t: 'ent-petite', email: 'pat@acme.fr', formule: 'gratuit' };
+    const partage = await avecTout({ abos: [apres([L('premium', 4)], { customer: { email: 'pat@acme.fr' } })],
+      reg: { petite, grande: { slug: 'grande', t: 'ent-grande', email: 'pat@acme.fr', formule: 'premium' } } })(petite);
+    v('⛔ fiche Gratuit, et un abonnement SANS référence d\'une AUTRE entreprise à la même adresse : Gratuit — un paiement ne sert pas deux entreprises',
+      [partage.paye, partage.motif, partage.formuleServie], [true, 'gratuit', undefined]);
+    const seule = await avecTout({ abos: [apres([L('premium', 4)], { customer: { email: 'pat@acme.fr' } })], reg: { petite } })(petite);
+    v('   contre-épreuve : la même, seule à son adresse — elle paie : Business Premium, 4 places', lit(seule), [true, 'premium', 4]);
+    const b = { slug: 'bravo', t: 'ent-b', email: 'pat@acme.fr', formule: 'premium' };
+    const regAB = { bravo: b, alpha: { slug: 'alpha', t: 'ent-a', email: 'pat@acme.fr', formule: 'premium' } };
+    const doute = await avecTout({ abos: [grave([L('pro', 2)], 'ent-b', { customer: { email: 'pat@acme.fr' } }), grave([L('premium', 1)], 'ent-a', { customer: { email: 'pat@acme.fr' } })], reg: regAB })(b);
+    v('   deux entreprises à la même adresse, chacune son abonnement gravé : celle qui paie Pro GARDE sa fiche — dans le doute on ne descend pas (limite : une adresse, une entreprise)',
+      [doute.paye, doute.formuleServie], [true, 'premium']);
+    const sansDoute = await avecTout({ abos: [grave([L('pro', 2)], 'ent-b', { customer: { email: 'pat@acme.fr' } })], reg: regAB })(b);
+    v('   contre-épreuve : sans l\'abonnement de l\'autre, elle descend à ce qu\'elle paie — Pro, 2 places', lit(sansDoute), [true, 'pro', 2]);
+
+    /* ⛔ UNE PÉRIODE OFFERTE SERT LA FORMULE DU CODE, FICHE « GRATUIT » COMPRISE (règle 3 ; `/api/promo/valider` enregistre
+       la période sans toucher la fiche) — lue, jamais activée */
+    const offert = await avecTout({ promos: [{ code: 'ESSAI-BANC-GRATUIT', mois: 3 }], usages: { 'ESSAI-BANC-GRATUIT': { n: 1, equipes: { 'ent-x': { date: '2026-09-01', finLe: '2099-12-31' } } } } })(ESP({ formule: 'gratuit' }));
+    v('⛔ fiche Gratuit, code en cours (sans formule dite) : Business Premium, le plus gros forfait', [offert.paye, offert.formuleServie, offert.promoCode], [true, 'premium', 'ESSAI-BANC-GRATUIT']);
+
+    /* ⛔ UNE SEULE LECTURE DE STRIPE À LA FOIS, ET PAS DE RAFALE PENDANT UNE PANNE (« Mon espace » lit aussi ce cache) */
+    let lectures = 0;
+    const cache = { ts: 0, data: null, enCours: null, echecTs: 0 };
+    const lent = async () => { lectures++; await new Promise(r => setTimeout(r, 60)); return [apres([L('pro', 2)])]; };
+    const ep = avecTout({ cache, lire: lent });
+    const [r1, r2] = await Promise.all([ep(ESP()), ep(ESP())]);
+    v('⛔ deux lectures en même temps : UN appel à Stripe, et les deux réponses le lisent', [lectures, r1.formuleServie, r2.formuleServie], [1, 'pro', 'pro']);
+    let essais = 0;
+    const cache2 = { ts: 0, data: null, enCours: null, echecTs: 0 };
+    const ep2 = avecTout({ cache: cache2, lire: async () => { essais++; throw new Error('Stripe muet'); } });
+    const p1 = await ep2(ESP()), p2 = await ep2(ESP());
+    v('⛔ Stripe en panne : un essai, puis une minute de pause — sans rien inventer (non payé, comme avant)', [essais, p1.paye, p2.paye], [1, false, false]);
+    cache2.echecTs = Date.now() - 61000;
+    await ep2(ESP());
+    v('   la minute passée, on réessaie', essais, 2);
+
+    /* ⛔ CE QU'ON NE SAIT PAS LIRE NE COUPE PAS (relecture adverse du 29 septembre, rejoué) : un abonnement d'après SANS
+       ligne disait « Gratuit » ; un abonnement d'avant interdit de descendre sous la fiche */
+    const vide = await avec([apres([])])(ESP({ formule: 'pro' }));
+    v('⛔ un abonnement d\'après dont la liste de lignes est VIDE : la fiche (Pro), jamais Gratuit', [vide.paye, vide.formuleServie], [true, 'pro']);
+    const sansItems = await avec([ABO({ created: APRES, customer: { email: 'patron@client.fr' } })])(ESP({ formule: 'pro' }));
+    v('   … et sans lignes du tout : la fiche', [sansItems.paye, sansItems.formuleServie], [true, 'pro']);
+    const ancienEtPro = await avec([avant([L('business', 2)]), apres([L('pro', 3)])])(ESP());
+    v('⛔ fiche Business Premium, deux abonnements d\'avant + trois Pro d\'après : Business Premium, 6 places — un abonnement d\'avant interdit de descendre (on ne sait pas lire ce qu\'il paie)',
+      lit(ancienEtPro), [true, 'premium', 6]);
+    const proPartage = { slug: 'proseule', t: 'ent-proseule', email: 'pat@acme.fr', formule: 'pro' };
+    const hautAutre = await avecTout({ abos: [apres([L('premium', 2)], { customer: { email: 'pat@acme.fr' } })],
+      reg: { proseule: proPartage, grande: { slug: 'grande', t: 'ent-grande', email: 'pat@acme.fr', formule: 'premium' } } })(proPartage);
+    v('⛔ fiche Pro à la même adresse qu\'une entreprise qui paie Business Premium sans référence : Pro — la formule payée par l\'autre ne la fait pas monter',
+      [hautAutre.paye, hautAutre.formuleServie], [true, 'pro']);
 
     /* ⛔ UNE DONNÉE DE STRIPE MAL FORMÉE NE COUPE PAS UNE ENTREPRISE QUI PAIE (`formuleEtPlaces`) */
     const casse = await avec([apres(null, { items: { data: 'pas-une-liste' } })])(ESP());

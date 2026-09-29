@@ -65,10 +65,12 @@ async function main() {
       v('   … fiche Gratuit qui paie Business : « Business (payée ; la fiche dit Gratuit) »', !!ga && /^Business \(payée ; la fiche dit Gratuit\)/.test(ga.t), JSON.stringify(ga));
       v('   … sans écart : la fiche seule, comme avant', !!pa && !/fiche/.test(pa.t), JSON.stringify(A.map(x => x.t)));
       /* ⛔ ce qui se VOIT : la formule servie ET la fiche entières (le « … » ne mange que la suite) */
+      /* ⛔ une ligne à écart se lit EN ENTIER, suite comprise (relecture adverse du 29 septembre : la coupe à deux lignes
+         mangeait l'échéance d'une période offerte à 360 px — cette sonde ne regardait que l'écart, et la laissait passer) */
       for (const [x, servie, fiche] of [[az, 'Pro', 'Business Premium'], [ho, 'Gratuit', 'Business'], [ga, 'Business', 'Gratuit']]) {
         if (!x) continue;
-        v('   ⛔ se lit en entier : « ' + servie + ' » et « la fiche dit ' + fiche + ' »' + (x.coupe ? ' (ligne coupée après : « ' + x.vu + ' »)' : ''),
-          x.vu.startsWith(servie + ' (') && x.vu.replace(/\s/g, ' ').includes('la fiche dit ' + fiche) && (!x.coupe || x.ecart), JSON.stringify(x));
+        v('   ⛔ se lit en entier : « ' + servie + ' », « la fiche dit ' + fiche + ' » et la suite' + (x.coupe ? ' (ligne coupée après : « ' + x.vu + ' »)' : ''),
+          x.vu.startsWith(servie + ' (') && x.vu.replace(/\s/g, ' ').includes('la fiche dit ' + fiche) && !x.coupe && x.ecart, JSON.stringify(x));
       }
       /* B · Stripe PAS relié : « Formules attribuées depuis la console » (toutes, période offerte comprise) */
       const B = await o.ev(`ABO.configured=false; render(); ${LIRE}`);
@@ -77,10 +79,10 @@ async function main() {
         !!bo && /^Business Premium \(offerte par le code ; la fiche dit Business ×3\)\s· offert jusqu’au 2026-12-15/.test(bo.t), JSON.stringify(bo));
       v('   … payée Pro : l\'écart, puis « · payé · 20 places servies »', !!az2 && /^Pro \(payée ; la fiche dit Business Premium\)\s· payé\s· 20 places servies/.test(az2.t), JSON.stringify(az2));
       v('   … sans écart : « Pro ×2 · payé · 2 places servies », comme avant', !!pa2 && /^Pro ×2\s· payé\s· 2 places servies$/.test(pa2.t), JSON.stringify(B.map(x => x.t)));
-      for (const [x, servie, fiche] of [[bo, 'Business Premium', 'Business ×3'], [az2, 'Pro', 'Business Premium']]) {
+      for (const [x, servie, fiche, fin] of [[bo, 'Business Premium', 'Business ×3', 'offert jusqu’au 2026-12-15'], [az2, 'Pro', 'Business Premium', '20 places servies']]) {
         if (!x) continue;
-        v('   ⛔ se lit en entier : « ' + servie + ' » et « la fiche dit ' + fiche + ' »' + (x.coupe ? ' (coupée après : « ' + x.vu + ' »)' : ''),
-          x.vu.startsWith(servie + ' (') && x.vu.replace(/\s/g, ' ').includes('la fiche dit ' + fiche) && (!x.coupe || x.ecart), JSON.stringify(x));
+        v('   ⛔ se lit en entier : « ' + servie + ' », « la fiche dit ' + fiche + ' » et « ' + fin + ' »' + (x.coupe ? ' (coupée après : « ' + x.vu + ' »)' : ''),
+          x.vu.startsWith(servie + ' (') && x.vu.replace(/\s/g, ' ').includes('la fiche dit ' + fiche) && x.vu.replace(/\s/g, ' ').includes(fin) && !x.coupe && x.ecart, JSON.stringify(x));
       }
       /* C · la fiche d'une entreprise (« Formule actuelle ») : la formule que l'application reçoit, quand ce n'est pas la fiche */
       const C = await o.ev(`let el=document.getElementById('pack-info'); const neuf=!el; if(neuf){ el=document.createElement('div'); el.id='pack-info'; document.body.appendChild(el); }
@@ -90,7 +92,7 @@ async function main() {
           lire({formule:'pro',formuleServie:'pro',quantite:2,places:2,aboStatut:'auto',promoCode:''}),
           lire({formule:'pro',quantite:2,aboStatut:'auto'})];
         if(neuf) el.remove(); return r;`);
-      v('la fiche : « l’application reçoit : Pro (payée) » après la formule de la fiche', /Formule actuelle\s: premium[\s\S]*l’application reçoit\s: Pro \(payée\)/.test(C[0]), JSON.stringify(C[0]));
+      v('la fiche : « l’application reçoit : Pro (payée) » après la formule de la fiche', /Formule actuelle\s: Business Premium[\s\S]*l’application reçoit\s: Pro \(payée\)/.test(C[0]), JSON.stringify(C[0]));
       v('   … « Business Premium (offerte par le code) » pendant une période offerte', /l’application reçoit\s: Business Premium \(offerte par le code\)/.test(C[1]), JSON.stringify(C[1]));
       v('   … rien de plus sans écart, ni avec un serveur d\'avant (sans `formuleServie`)', !/reçoit/.test(C[2]) && !/reçoit/.test(C[3]), JSON.stringify([C[2], C[3]]));
       const exc = o.exceptions || [];

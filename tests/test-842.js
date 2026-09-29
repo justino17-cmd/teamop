@@ -95,6 +95,13 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
   const tPP = esp('promopetit', { formule: 'premium', quantite: 1, formuleTs: AVANT, formulePar: 'Patron (code)' });
   const tPN = esp('promonu', { formule: 'business', quantite: 1, formuleTs: AVANT, formulePar: 'Patron' });
   const tPH = esp('promohors', { formule: 'pro', quantite: 1, formuleTs: AVANT, formulePar: 'Patron (code)' });
+  /* ⛔ la relecture adverse du 29 septembre 2026 (rejouée) : ce qui est AMBIGU ne décide pas de la formule — monter sur ce
+     qui est sûrement à elle, descendre seulement sans doute ; plusieurs formules : celle qui porte le plus d'abonnements */
+  const tRM = esp('reparmsg', { formule: 'premium', quantite: 3, formuleTs: APRES, formulePar: 'Patron', email: 'reparmsg@exemple-842.fr' });
+  const tML = esp('melee', { formule: 'pro', quantite: 10, formuleTs: APRES, formulePar: 'Patron' });
+  esp('petite', { formule: 'gratuit', quantite: 1, formuleTs: APRES, formulePar: 'Patron', email: 'commune@exemple-842.fr' });
+  esp('grande', { formule: 'premium', quantite: 4, formuleTs: APRES, formulePar: 'Patron', email: 'commune@exemple-842.fr' });
+  const tGC = esp('gratuitcode', { formule: 'gratuit', quantite: 1, formuleTs: APRES, formulePar: 'Patron' });
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(E));
   /* les codes : l'un en cours (promoprem, promotour), l'autre FINI hier (promofini) */
   fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify({
@@ -103,7 +110,8 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
     'FINIDEUX-BANC-842': { n: 1, equipes: { [tFA]: { date: dans(-120), finLe: dans(-30) } } },
     'PETIT-BANC-842': { n: 1, equipes: { [tPP]: { date: dans(-10), finLe: dans(80) } } },
     'NU-BANC-842': { n: 1, equipes: { [tPN]: { date: dans(-10), finLe: dans(80) } } },
-    'HORS-BANC-842': { n: 1, equipes: { [tPH]: { date: dans(-10), finLe: dans(80) } } } }));
+    'HORS-BANC-842': { n: 1, equipes: { [tPH]: { date: dans(-10), finLe: dans(80) } } },
+    'OFFERT-BANC-842': { n: 1, equipes: { [tGC]: { date: dans(-10), finLe: dans(80) } } } }));
 
   /* Stripe simulé : les abonnements, TOUS statuts confondus, comme `stripeAbosBruts` les demande. Les tarifs sont les
      VRAIS identifiants (publics) de la page de paiement. */
@@ -140,7 +148,10 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
     abo('pa', tPA, 'active', [['business', 1]], S_AVANT),
     abo('gp', tGP, 'active', [['business', 2]], S_APRES),
     abo('mg', tMG, 'active', [['msgpro', 2]], S_APRES),
-    abo('mA', tMA, 'active', [['business', 1]], S_AVANT), abo('mB', tMA, 'active', [['premium', 1]], S_APRES) ];
+    abo('mA', tMA, 'active', [['business', 1]], S_AVANT), abo('mB', tMA, 'active', [['premium', 2]], S_APRES),
+    abo('rm1', 'ent-reparmsg-ancien-842', 'active', [['premium', 3]], S_APRES, 'reparmsg@exemple-842.fr'), abo('rm2', tRM, 'active', [['msgpro', 1]], S_APRES, 'reparmsg@exemple-842.fr'),
+    abo('ml1', tML, 'active', [['pro', 10]], S_APRES), abo('ml2', tML, 'active', [['premium', 1]], S_APRES),
+    abo('pg', '', 'active', [['premium', 4]], S_APRES, 'commune@exemple-842.fr') ];
   const PRECHARGE = path.join(banc, 'stripe-842.js');
   fs.writeFileSync(PRECHARGE, `const vrai = globalThis.fetch; const SUBS = ${JSON.stringify(SUBS)};
 globalThis.fetch = async function (url, opts) {
@@ -155,7 +166,7 @@ globalThis.fetch = async function (url, opts) {
   fs.writeFileSync(path.join(banc, 'config.json'), JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey,
     apiKey: 'banc', adminPassHash: sha('mot-de-passe-banc-842'),
     stripe: { secretKey: 'cle-stripe-fictive-banc-842' },
-    promos: [{ code: 'BIENVENUE-BANC-842', formule: 'premium', mois: 3 }, { code: 'PETIT-BANC-842', formule: 'pro', mois: 3 }, { code: 'NU-BANC-842', mois: 3 }] }));
+    promos: [{ code: 'BIENVENUE-BANC-842', formule: 'premium', mois: 3 }, { code: 'PETIT-BANC-842', formule: 'pro', mois: 3 }, { code: 'NU-BANC-842', mois: 3 }, { code: 'OFFERT-BANC-842', mois: 3 }] }));
   const PORT = 9400 + (process.pid % 250);
   let journal = '';
   enfant = spawn(process.execPath, ['--require', PRECHARGE, SERVEUR], {
@@ -235,14 +246,18 @@ globalThis.fetch = async function (url, opts) {
     v('⛔ fiche Gratuit qui paie Business × 2 : l\'application reçoit BUSINESS, payée, 2 places', [tous.gratuitpaie.formule, tous.gratuitpaie.paye, pl('gratuitpaie')], ['business', true, 2]);
     v('   contre-épreuve : fiche Gratuit sans abonnement — Gratuit, comme avant', [tous.gratuitrien.formule, tous.gratuitrien.paye, pl('gratuitrien')], ['gratuit', true, 1]);
     v('⛔ fiche Business qui ne paie qu\'OP MESSAGES : OP GESTION reçoit Gratuit', [tous.msgseul.formule, tous.msgseul.paye], ['gratuit', true]);
-    v('⛔ un Business d\'avant + un Business Premium d\'après : Business Premium, 2 places — l\'ancien ne prend pas le × 3 de la formule servie', [tous.montetarif.formule, pl('montetarif')], ['premium', 2]);
+    v('⛔ un Business d\'avant + deux Business Premium d\'après : Business Premium (le plus d\'abonnements), 4 places — l\'ancien garde ses 2 places de Business (jamais le × 3 : ce serait 5), et monter n\'en retire aucune', [tous.montetarif.formule, pl('montetarif')], ['premium', 4]);
+    v('⛔⛔ « repartie à neuf » : Business Premium × 3 gravé à l\'ancien identifiant + OP MESSAGES gravé au neuf → Business Premium, 3 places (pas « Gratuit » : relecture adverse du 29 septembre)', [tous.reparmsg.formule, tous.reparmsg.paye, pl('reparmsg')], ['premium', true, 3]);
+    v('⛔ fiche Pro, dix Pro + un Business Premium pour le patron : Pro, 11 places — pas Business Premium avec une seule', [tous.melee.formule, pl('melee')], ['pro', 11]);
+    v('⛔ fiche Gratuit à la même adresse qu\'une entreprise qui paie Business Premium sans référence : Gratuit — un paiement ne sert pas deux entreprises (et l\'autre garde ses 4)', [tous.petite.formule, tous.grande.formule, pl('grande')], ['gratuit', 'premium', 4]);
+    v('⛔ fiche Gratuit avec un code en cours (validé dans l\'application, la fiche n\'a pas bougé) : Business Premium, le plus gros forfait', [tous.gratuitcode.formule, tous.gratuitcode.paye], ['premium', true]);
     v('⛔⛔ période offerte : un code Business Premium sur une fiche Business sert BUSINESS PREMIUM (« le plus gros forfait »)', [tous.promotour.formule, tous.promotour.paye], ['premium', true]);
     v('   un code qui ne dit pas sa formule : Business Premium', tous.promonu.formule, 'premium');
     v('   un code Pro sur une fiche Business Premium : jamais sous la fiche', tous.promopetit.formule, 'premium');
     v('   un code retiré de la configuration : la fiche garde sa formule (Pro)', [tous.promohors.formule, tous.promohors.paye], ['pro', true]);
     /* ⛔ ET PERSONNE D'AUTRE NE BOUGE : sur toute la population du banc, la formule servie est celle de la fiche, sauf les
        écarts NOMMÉS ici — un écart de plus serait une entreprise dont la formule change sans que personne l'ait voulu */
-    const ECARTS = { mauvaistarif: 'pro', tarifhaut: 'premium', gratuitpaie: 'business', msgseul: 'gratuit', montetarif: 'premium', promotour: 'premium', promonu: 'premium' };
+    const ECARTS = { mauvaistarif: 'pro', tarifhaut: 'premium', gratuitpaie: 'business', msgseul: 'gratuit', montetarif: 'premium', promotour: 'premium', promonu: 'premium', gratuitcode: 'premium' };
     vrai('population : ' + Object.keys(E).length + ' entreprises relues', Object.keys(E).length >= 40);
     v('⛔ toutes les autres reçoivent la formule de leur fiche, payées ou non', Object.keys(E).filter(sl => tous[sl].formule !== (ECARTS[sl] || E[sl].formule)).map(sl => sl + ' : ' + tous[sl].formule), []);
 
@@ -285,7 +300,9 @@ globalThis.fetch = async function (url, opts) {
     const fonctionTour = nom => { const d0 = TOUR.indexOf('function ' + nom + '('); if (d0 < 0) return '';
       let p = 0; for (let k = TOUR.indexOf('{', d0); k < TOUR.length; k++) { if (TOUR[k] === '{') p++; else if (TOUR[k] === '}') { p--; if (!p) return TOUR.slice(d0, k + 1); } } return ''; };
     const ABN = (/^var ABN_F=\{[^\n]*\};$/m.exec(TOUR) || [''])[0];
-    if (!fonctionTour('abnFormule')) vrai('   (Tour d\'avant : l\'écart formule servie / fiche n\'y est pas encore affiché)', true);
+    /* ⛔ plus de porte « Tour d'avant » qui compte un ✓ sans rien vérifier (relecture adverse du 29 septembre) : la Tour et ce
+       banc partent ensemble — une Tour sans `abnFormule` afficherait la fiche sans l'écart, et ça doit se voir */
+    if (!fonctionTour('abnFormule')) vrai('⛔ la Tour du dépôt a `abnFormule` (sinon elle affiche la fiche, sans l\'écart)', false);
     else {
       const ctxT = {}; require('vm').createContext(ctxT);
       require('vm').runInContext(ABN + '\n' + fonctionTour('abnFormule') + '\n' + fonctionTour('abnEcart'), ctxT);
@@ -296,6 +313,33 @@ globalThis.fetch = async function (url, opts) {
       v('   sans écart, la fiche seule, comme avant (et « ×N » après elle)', [ctxT.abnFormule(li('ancienajout')), ctxT.abnFormule(li('ancienprem'), ' ×2')], ['Business Premium', 'Business Premium ×2']);
       v('   une ligne d\'un serveur d\'avant (sans `formuleServie`) : la fiche', ctxT.abnFormule({ formule: 'pro' }), 'Pro');
     }
+    /* ⛔ ET CE QUE SEULE LA SONDE AU NAVIGATEUR VOYAIT (relecture adverse du 29 septembre) : la règle qui fait lire une ligne à
+       écart EN ENTIER, les deux rendus de ligne qui la posent, et la fiche d'une entreprise qui dit ce que l'application
+       reçoit. Lus dans le CODE (commentaires retirés), jamais dans une phrase. */
+    const TOURcode = TOUR.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    const regleEcart = (/\.reg-l2\.abn-ecart\{([^}]*)\}/.exec(TOURcode) || [])[1] || '';
+    vrai('⛔ la Tour : une ligne à écart passe à la ligne au lieu de se couper (white-space:normal, overflow:visible, aucune coupe en lignes)',
+      /white-space:normal/.test(regleEcart) && /overflow:visible/.test(regleEcart) && !/line-clamp/.test(regleEcart));
+    v('   … et les DEUX rendus de ligne (Abonnements, liste des entreprises) la posent', (TOURcode.match(/'<span class="reg-l2'\+\(abnAEcart\(e\)\?' abn-ecart':''\)\+'">'/g) || []).length, 2);
+    /* la fiche d'une entreprise (« 💳 Statut paiement ») : la VRAIE `packPeindre`, EXÉCUTÉE sur la vraie réponse du serveur */
+    const ctxP = { PACK: null, esc: x => String(x == null ? '' : x).replace(/[&<>"]/g, c => '&#' + c.charCodeAt(0) + ';'), document: null };
+    const infoP = { innerHTML: '', textContent: '' };
+    ctxP.document = { getElementById: id => (id === 'pack-info' ? infoP : null) };
+    require('vm').createContext(ctxP);
+    require('vm').runInContext(ABN + '\n' + fonctionTour('abnEcart') + '\n' + fonctionTour('packPeindre'), ctxP);
+    const peint = d => { ctxP.PACK = { nom: 'x', charge: true, err: '', d }; infoP.innerHTML = ''; ctxP.packPeindre(); return infoP.innerHTML.replace(/<[^>]+>/g, ''); };
+    v('   … et la fiche d\'une entreprise dit ce que l\'application reçoit (la vraie packPeindre, sur la réponse du serveur)',
+      [/l’application reçoit\u202f: Pro \(payée\)/.test(peint(stMT)), /l’application reçoit\u202f: Business Premium \(offerte par le code\)/.test(peint(stPT)),
+        /reçoit/.test(peint((await appel('/api/monitor/espaces/statut', { nom: 'ancienprem' }, PATRON)).j))], [true, true, false]);
+    v('   … la formule de la fiche en toutes lettres, comme ce que l\'application reçoit (« premium » à côté de « Business Premium » se lisait comme deux formules)',
+      /^Formule actuelle\u202f: Business Premium · /.test(peint(stMT)) ? 'lu' : peint(stMT), 'lu');
+    /* le toast de « 💳 Statut paiement » (la VRAIE `tourStatutPack`, sur la même réponse) : les deux formules en toutes lettres */
+    const ctxS = { toastVu: '', toast: t => { ctxS.toastVu = t; }, apiPost: () => Promise.resolve({ ok: true, d: stMT }) };
+    require('vm').createContext(ctxS);
+    require('vm').runInContext(ABN + '\n' + fonctionTour('tourStatutPack'), ctxS);
+    ctxS.tourStatutPack('mauvaistarif'); await new Promise(r => setImmediate(r));
+    v('   … et le toast de « 💳 Statut paiement » (la vraie tourStatutPack) : « 📦 Business Premium → l’application reçoit Pro — ✅ payé »',
+      /^📦 Business Premium → l’application reçoit Pro — ✅ payé \(/.test(ctxS.toastVu) ? 'lu' : ctxS.toastVu, 'lu');
 
     const APP = fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8');
     const sansCom = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');

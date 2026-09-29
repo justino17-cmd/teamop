@@ -248,9 +248,16 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
     vrai('omicron — la formule d\'aujourd\'hui n\'est pas proposée deux fois (aucun lien « Business Premium » parmi les autres)', !/>Business Premium<\/a>/.test(O));
     /* ⛔ DE NUIT, UN LIEN DANS UN CADRE SE LIT : le vert du jour (#1E7A4E) tombe à 3,3:1 sur le cadre de nuit (#0F1830) ;
        les liens des autres formules portent `m-lien`, que la feuille du courriel éclaircit en mode sombre */
-    vrai('omicron — de nuit, les liens des autres formules s\'éclaircissent (classe m-lien et sa règle sombre)',
+    /* ⛔ la règle DANS le bloc sombre, et nulle part ailleurs (relecture adverse du 29 septembre 2026, rejoué) : le motif
+       d'avant traversait les accolades, et une règle posée APRÈS le bloc — donc appliquée de jour, vert clair sur blanc,
+       des liens illisibles — le laissait vert. Le bloc se découpe en comptant ses accolades. */
+    const blocSombre = (h) => { const i = h.indexOf('@media (prefers-color-scheme:dark){'); if (i < 0) return null;
+      let p = 0; for (let k = h.indexOf('{', i); k < h.length; k++) { if (h[k] === '{') p++; else if (h[k] === '}') { p--; if (!p) return h.slice(i, k + 1); } } return null; };
+    const REGLE_LIEN = '.m-lien{color:#4FD196!important}';
+    const sombre = blocSombre(O);
+    vrai('omicron — de nuit, les liens des autres formules s\'éclaircissent : classe m-lien, et sa règle DANS le bloc sombre — une fois, jamais hors de lui (de jour, elle rendrait les liens illisibles)',
       (O.match(/<a href="[^"]*formule=(pro|business)[^"]*" class="m-lien"/g) || []).length === 2
-      && /prefers-color-scheme:dark\)\{[^}]*\}?[\s\S]*\.m-lien\{color:#4FD196!important\}/.test(O));
+      && !!sombre && sombre.split(REGLE_LIEN).length === 2 && O.split(REGLE_LIEN).length === 2);
     vrai('omicron — la version TEXTE propose aussi les deux autres, avec leurs liens',
       /Ou une autre formule, si elle vous convient mieux \(un abonnement par utilisateur\) :\n· Pro : 15\u00a0€ TTC par mois et par utilisateur — 7 utilisateurs : 105\u00a0€ TTC par mois\n  https:\/\/teamop\.fr\/recap-abonnement\.html\?formule=pro&utilisateurs=7\n· Business : 25\u00a0€ TTC par mois et par utilisateur — 7 utilisateurs : 175\u00a0€ TTC par mois\n  https:\/\/teamop\.fr\/recap-abonnement\.html\?formule=business&utilisateurs=7/.test(O));
     const P = de('pi');

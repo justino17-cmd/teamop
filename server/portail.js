@@ -157,10 +157,20 @@ function monterPortail(app, deps) {
      ⛔ Seulement pour une adresse PROUVÉE : une session prouve un mot de passe, pas une adresse (CLAUDE.md) ; sans ça,
      n'importe qui ouvrant un compte à l'adresse publique d'une entreprise lisait la formule qu'elle paie. */
   /* (les routes restent SYNCHRONES et finissent par `.then` : une exception avant la réponse part encore au gestionnaire
-     d'Express, comme avant ; `avecFormuleServie` elle-même ne rejette jamais) */
+     d'Express, comme avant ; `avecFormuleServie` elle-même ne rejette jamais)
+     ⛔ ET ELLE N'ATTEND PAS STRIPE (relecture adverse du 29 septembre 2026, rejoué) : la formule servie peut demander une
+     lecture de Stripe, et Stripe muet faisait attendre « Mon espace » 36 à 48 s — la page n'a aucun délai, le dossier
+     restait vide. Au-delà de deux secondes, le dossier dit ce que la Tour y a posé ; la lecture, elle, continue et
+     remplit le cache pour la fois suivante. */
+  const FORMULE_DELAI = Math.max(50, Number(d.formuleDelaiMs) || 2000);
   const avecFormuleServie = async (mail, v) => {
     if (!v || typeof d.formuleServie !== 'function' || !verifie(mail)) return v;
-    try { const lbl = await d.formuleServie(mail); if (typeof lbl === 'string' && lbl) v.plan = lbl; } catch (e) { /* la fiche de la Tour, comme avant */ }
+    let minuteur = null;
+    try {
+      const lbl = await Promise.race([Promise.resolve().then(() => d.formuleServie(mail)),
+        new Promise(r => { minuteur = setTimeout(() => r(''), FORMULE_DELAI); })]);
+      if (typeof lbl === 'string' && lbl) v.plan = lbl;
+    } catch (e) { /* la fiche de la Tour, comme avant */ } finally { clearTimeout(minuteur); }
     return v;
   };
   /* ⛔ UN DOSSIER REPRIS DE GOOGLE NE SE MONTRE QU'À UNE ADRESSE PROUVÉE (`gardien`, B1). `preparer`
