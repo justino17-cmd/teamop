@@ -1310,6 +1310,10 @@ body.jour #dia .dia-ctrl{border-top-color:rgba(20,28,48,.09)}
    faits ; ici c’est une phrase écrite par une cliente. */
 .reg-l.att .reg-l2{color:var(--strong);font-weight:600}
 .reg-l.cli.att .reg-l2{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+/* L'écart entre la formule SERVIE et la fiche (29 septembre 2026, `abnFormule`) se lit EN ENTIER, sur deux lignes s'il le
+   faut : tronquée au téléphone, la ligne coupait « la fiche dit Business Premi… », c'est-à-dire l'écart lui-même
+   (mesuré par scratchpad/sonde-tour-formule-servie.js, à 360 et 390 px). Seules les lignes à écart grandissent. */
+.reg-l2.abn-ecart{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
 .sup-sig{font-size:12px;color:var(--muted);white-space:nowrap}
 
 /* La navigation principale d'un écran ouvert au doigt faisait 35 px. Et un titre de section
@@ -5373,7 +5377,7 @@ function packPeindre(){
          le montre (`gardien`, 28 septembre 2026) */
       +(d.places?' · places servies\u202f: <b>'+esc(String(d.places))+'</b>':'')
       /* ce que l'application REÇOIT quand ce n'est pas la fiche : la formule payée, ou celle du code (`abnFormule`) */
-      +(d.formuleServie&&d.formuleServie!==d.formule?' · l’application reçoit\u202f: <b>'+esc(ABN_F[d.formuleServie]||d.formuleServie)+'</b> ('+(d.promoCode?'offerte par le code':'payée')+')':'');
+      +(d.formuleServie&&d.formuleServie!==d.formule?' · l’application reçoit\u202f: <b>'+esc(ABN_F[d.formuleServie]||d.formuleServie)+'</b> ('+abnEcart(d)+')':'');
   } else {
     el.innerHTML='Aucune formule attribuée pour l\'instant — choisis-en une et Enregistrer.';
   }
@@ -8765,7 +8769,7 @@ function vueAbonnements(){
       return '<button type="button" class="reg-l" onclick="abnVersEntreprise(\''+jsq(e.t||'')+'\')">'+
         '<span class="reg-av gris">'+esc(sigle(e.nom||e.email||'?'))+'</span>'+
         '<span class="reg-txt"><span class="reg-t1">'+esc(e.nom||e.email||'—')+'</span>'+
-        '<span class="reg-l2">'+esc(abnFormule(e))+(e.echeance?' · prochaine échéance '+esc(e.echeance):'')+'</span></span>'+
+        '<span class="reg-l2'+(abnAEcart(e)?' abn-ecart':'')+'">'+esc(abnFormule(e))+(e.echeance?' · prochaine échéance '+esc(e.echeance):'')+'</span></span>'+
         '<span class="reg-fin"><span class="reg-chev" aria-hidden="true">›</span></span></button>'; }).join('')+'</div>'));
   var pai=(ABO.paiements||[]).filter(paieOk).slice(0,12);
   if(pai.length&&!f) G.push(abnGroupe('Derniers paiements',pai.length,
@@ -8810,8 +8814,13 @@ var ABN_F={gratuit:'Gratuit',pro:'Pro',business:'Business',premium:'Business Pre
 function abnFormule(e,q){
   var f=e.formule||'', s=e.formuleServie||f, lf=(ABN_F[f]||f||'aucune')+(q||'');
   if(s===f) return lf;
-  return (ABN_F[s]||s)+' ('+(e.promoCode?'offerte par le code':'payée')+'\u202f; la fiche dit '+lf+')';
+  return (ABN_F[s]||s)+' ('+abnEcart(e)+'\u202f; la fiche dit '+lf+')';
 }
+/* pourquoi la formule servie n'est pas celle de la fiche — une période offerte sert celle du code ; sinon c'est le tarif
+   payé, et « Gratuit » veut dire qu'aucun tarif d'OP GESTION n'est payé (OP MESSAGES seul, par exemple) */
+function abnEcart(e){ return e.promoCode?'offerte par le code':(e.formuleServie==='gratuit'?'OP GESTION non payé':'payée'); }
+/* une ligne à écart porte la classe `abn-ecart` : elle se lit sur deux lignes plutôt que de se couper (voir la règle) */
+function abnAEcart(e){ return !!(e&&e.formuleServie&&e.formuleServie!==(e.formule||'')); }
 /* Ce qui reste des formules attribuées quand Stripe n'est pas relié : elles sont alors la
    SEULE information disponible sur l'argent. */
 function blocEspaces(){
@@ -8825,7 +8834,7 @@ function blocEspaces(){
       return '<button type="button" class="reg-l" onclick="abnVersEntreprise(\''+jsq(e.t||'')+'\')">'+
         '<span class="reg-av gris">'+esc(sigle(e.nom||e.email||'?'))+'</span>'+
         '<span class="reg-txt"><span class="reg-t1">'+esc(e.nom||e.email||'—')+'</span>'+
-        '<span class="reg-l2">'+esc(abnFormule(e,e.quantite>1?' ×'+e.quantite:''))+
+        '<span class="reg-l2'+(abnAEcart(e)?' abn-ecart':'')+'">'+esc(abnFormule(e,e.quantite>1?' ×'+e.quantite:''))+
         (e.paye?(e.promoCode?' · offert jusqu’au '+esc(e.finLe||'?')+' · '+joursRestants(e.finLe||''):' · payé'+(e.places?' · '+nMot(e.places,'place servie','places servies'):'')):' · en attente de paiement')+'</span></span>'+
         '<span class="reg-fin">'+(e.paye?'':'<span class="past p-rouge">💳 En attente</span>')+
         '<span class="reg-chev" aria-hidden="true">›</span></span></button>'; }).join('')+'</div>')+'</div>';

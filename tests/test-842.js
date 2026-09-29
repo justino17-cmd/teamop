@@ -278,6 +278,24 @@ globalThis.fetch = async function (url, opts) {
     const stMT = (await appel('/api/monitor/espaces/statut', { nom: 'mauvaistarif' }, PATRON)).j;
     const stPT = (await appel('/api/monitor/espaces/statut', { nom: 'promotour' }, PATRON)).j;
     v('   et la fiche de chacune (formule, formule servie, code)', [stMT.formule, stMT.formuleServie, stMT.promoCode, stPT.formuleServie, stPT.promoCode], ['premium', 'pro', '', 'premium', 'BIENVENUE-BANC-842']);
+    /* ⛔ ET LA TOUR L'ÉCRIT : la VRAIE `abnFormule` de tour.html, sur les VRAIES lignes du serveur — la couture que ni ce
+       banc (le serveur) ni un banc de la Tour (une liste inventée) ne voient seuls. Une Tour d'avant ne l'a pas encore :
+       elle affiche la fiche, comme avant — on le dit, sans le compter. */
+    const TOUR = fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8');
+    const fonctionTour = nom => { const d0 = TOUR.indexOf('function ' + nom + '('); if (d0 < 0) return '';
+      let p = 0; for (let k = TOUR.indexOf('{', d0); k < TOUR.length; k++) { if (TOUR[k] === '{') p++; else if (TOUR[k] === '}') { p--; if (!p) return TOUR.slice(d0, k + 1); } } return ''; };
+    const ABN = (/^var ABN_F=\{[^\n]*\};$/m.exec(TOUR) || [''])[0];
+    if (!fonctionTour('abnFormule')) vrai('   (Tour d\'avant : l\'écart formule servie / fiche n\'y est pas encore affiché)', true);
+    else {
+      const ctxT = {}; require('vm').createContext(ctxT);
+      require('vm').runInContext(ABN + '\n' + fonctionTour('abnFormule') + '\n' + fonctionTour('abnEcart'), ctxT);
+      v('⛔ la Tour écrit la formule servie et l\'écart, sur les lignes du vrai serveur',
+        [ctxT.abnFormule(li('mauvaistarif')), ctxT.abnFormule(li('promotour')), ctxT.abnFormule(li('msgseul')), ctxT.abnFormule(li('gratuitpaie'), ' ×1')],
+        ['Pro (payée\u202f; la fiche dit Business Premium)', 'Business Premium (offerte par le code\u202f; la fiche dit Business)',
+          'Gratuit (OP GESTION non payé\u202f; la fiche dit Business)', 'Business (payée\u202f; la fiche dit Gratuit ×1)']);
+      v('   sans écart, la fiche seule, comme avant (et « ×N » après elle)', [ctxT.abnFormule(li('ancienajout')), ctxT.abnFormule(li('ancienprem'), ' ×2')], ['Business Premium', 'Business Premium ×2']);
+      v('   une ligne d\'un serveur d\'avant (sans `formuleServie`) : la fiche', ctxT.abnFormule({ formule: 'pro' }), 'Pro');
+    }
 
     const APP = fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8');
     const sansCom = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
