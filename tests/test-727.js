@@ -477,6 +477,9 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('⛔⛔ … aucun courriel ne part', L.trace.mails, []);
     v('   … et le compteur du code ne bouge pas', L.usages[CODE], undefined);
     v('⛔ un code valable en attente compte comme PAYÉ (« en cas de doute, ça paie »)', [rl.paye, rl.enAttente, rl.promoCode], [true, true, CODE]);
+    const Lpro = monter();
+    const rlPro = await Lpro.f(Object.assign({}, ENT, { formule: 'pro' }), { lecture: true });
+    v('   … et la Tour y lit la formule que la période SERVIRA : celle du code (Business Premium), pas la fiche Pro', [rlPro.enAttente, rlPro.formuleServie, Lpro.trace.ecrit], [true, 'premium', 0]);
     vrai('   et le motif dit qu\'il est en attente', /en attente/.test(rl.motif));
 
     /* Le témoin : sans `lecture` — l'application de l'entreprise qui demande son état —
