@@ -10,7 +10,11 @@
       l'application ne tient pas (relu dans app.html le même soir) ;
    5. les pages voisines (portail, connexion, paiement, pages juridiques) : leur description, leur adresse canonique et leur
       Open Graph, posés SUR LA LIGNE DU TITRE — les pages juridiques sont citées par numéro de ligne (test-836 § 6) ;
-   6. un seul H1 par page, sur toutes les pages publiques — les exceptions sont nommées.
+   6. un seul H1 par page, sur toutes les pages publiques — les exceptions sont nommées ;
+   7. (même soir, « fait tout ça ») une description de 155 signes au plus sur TOUTES les pages publiques ; l'image de
+      partage lue dans le FICHIER — JPEG ou PNG (LinkedIn lit mal le WebP), suivie par git, 1200 × 630 réels, ≤ 300 Ko,
+      les dimensions déclarées exactes sur chaque page ; « temps réel » et « instantané » réservés à OP MESSAGES, chaque
+      emploi NOMMÉ ; et aucune promesse que l'application ne tient pas, sur aucune page publique.
    Pas de navigateur, pas de réseau : ce banc lit les fichiers du dépôt et le générateur. */
 'use strict';
 const fs = require('fs'), path = require('path'), cp = require('child_process');
@@ -176,6 +180,96 @@ console.log('\n══ 6. UN SEUL H1 PAR PAGE — ET lang="fr" PARTOUT ══\n')
   const SANS_HTML = { 'google151be914dcdfaf7e.html': 'google-site-verification: google151be914dcdfaf7e.html' };
   v('⛔ toutes les pages du dépôt portent <html lang="fr">', [...new Set(toutes)].filter(f => !(f in SANS_HTML) && existe(f) && !/<html[^>]*\blang="fr"/.test(lire(f))), []);
   v('   et le fichier de Google est là, suivi, avec le contenu exact que Google relit', Object.keys(SANS_HTML).filter(f => !toutes.includes(f) || !existe(f) || lire(f).trim() !== SANS_HTML[f]), []);
+}
+
+console.log('\n══ 7. CE QUE GOOGLE ET LES RÉSEAUX LISENT — ET AUCUNE PROMESSE QUE L\'APPLICATION NE TIENT PAS ══\n');
+{
+  const PUBLIQUES = CLES.map(c => c + '.html').concat(VOISINES);
+  /* a. une description au plus de 155 signes sur TOUTES les pages publiques (Google coupe au-delà) : l'accueil (193),
+        les tarifs (170) et OP GESTION (172) dépassaient — seules les pages métier et les voisines étaient comptées */
+  const longues = PUBLIQUES.map(f => [f, dec(metas(lire(f), 'description')[0] || '').length]).filter(([, n]) => !n || n > 155);
+  v('chaque page publique a une description de 155 signes au plus (population : ' + PUBLIQUES.length + ' pages)', longues, []);
+  v('   et le générateur les écrit ainsi (la source, pas seulement la page)', CLES.filter(c => !GEN.PAGES[c].desc || GEN.PAGES[c].desc.length > 155), []);
+
+  /* b. l'image de partage : ⛔ LinkedIn lisait mal le WebP (l'image d'avant, 1512 × 982). On lit le FICHIER — son format
+        et ses dimensions réelles —, jamais ce que la page en déclare : c'est ce que les robots des réseaux téléchargent */
+  const dims = b => {
+    if (b.length > 24 && b.readUInt32BE(0) === 0x89504E47 && b.toString('ascii', 12, 16) === 'IHDR') return { type: 'png', l: b.readUInt32BE(16), h: b.readUInt32BE(20) };
+    if (b.length > 12 && b.toString('ascii', 0, 4) === 'RIFF' && b.toString('ascii', 8, 12) === 'WEBP') return { type: 'webp' };
+    if (b[0] === 0xFF && b[1] === 0xD8) {
+      for (let o = 2; o + 9 < b.length;) {
+        if (b[o] !== 0xFF) { o++; continue; }
+        const m = b[o + 1];
+        if (m === 0xFF || m === 0x01 || (m >= 0xD0 && m <= 0xD8)) { o += m === 0xFF ? 1 : 2; continue; }   // bourrage, marqueurs sans longueur
+        if (m >= 0xC0 && m <= 0xCF && m !== 0xC4 && m !== 0xC8 && m !== 0xCC) return { type: 'jpeg', h: b.readUInt16BE(o + 5), l: b.readUInt16BE(o + 7) };
+        o += 2 + b.readUInt16BE(o + 2);
+      }
+    }
+    return { type: 'inconnu' };
+  };
+  const suivis = new Set(cp.execSync('git ls-files', { cwd: RACINE }).toString().split('\n'));
+  const images = {};
+  for (const f of PUBLIQUES) { const s = lire(f), u = metas(s, 'og:image')[0] || '';
+    (images[u] = images[u] || []).push([f, metas(s, 'og:image:width')[0], metas(s, 'og:image:height')[0]]); }
+  vrai('(population) ' + PUBLIQUES.length + ' pages déclarent une image de partage', Object.values(images).reduce((n, l) => n + l.length, 0) === PUBLIQUES.length && !images['']);
+  for (const [u, pages] of Object.entries(images)) {
+    const f = fichierDe(u) || '-', b = existe(f) ? fs.readFileSync(path.join(RACINE, f)) : Buffer.alloc(0), d = dims(b);
+    v(f + ' : ⛔ un JPEG ou un PNG (' + d.type + ') — LinkedIn lit mal le WebP', d.type === 'jpeg' || d.type === 'png', true);
+    v('   ⛔ suivi par git : sinon GitHub Pages ne le sert pas, et le partage n\'a plus d\'image', suivis.has(f), true);
+    v('   ' + d.l + ' × ' + d.h + ' : au moins 1200 de large, au format 1,91:1 des grandes cartes de partage', [d.l >= 1200, d.l / d.h >= 1.85 && d.l / d.h <= 1.95], [true, true]);
+    v('   au plus 300 Ko (' + Math.round(b.length / 1024) + ' Ko) : au-delà, WhatsApp n\'affiche pas l\'aperçu', b.length > 0 && b.length <= 300 * 1024, true);
+    v('   ⛔ les dimensions DÉCLARÉES sont les vraies, sur chaque page (' + pages.length + ')', pages.filter(([, l, h]) => +l !== d.l || +h !== d.h).map(([p, l, h]) => p + ' : ' + l + ' × ' + h), []);
+  }
+  const ip = GEN.IMAGE_PARTAGE, di = existe(fichierDe(ip.url) || '-') ? dims(fs.readFileSync(path.join(RACINE, fichierDe(ip.url)))) : {};
+  v('   le générateur déclare les dimensions du fichier (IMAGE_PARTAGE)', [ip.l, ip.h], [di.l, di.h]);
+
+  /* c. ⛔ « TEMPS RÉEL », « INSTANTANÉ », « AU MÊME MOMENT » : la synchronisation d'OP GESTION prend quelques secondes
+        (relu dans app.html v763). Ces mots ne restent que pour OP MESSAGES — une messagerie, vraiment instantanée —, et
+        chaque emploi est NOMMÉ ici, avec la preuve qu'il est dans un bloc d'OP MESSAGES : un nouvel emploi, même juste,
+        est une décision à écrire, pas un passage tacite. On lit la page moins ses commentaires (un commentaire ne
+        s'affiche pas), balises et scripts compris (les formules du paiement vivent dans un script). */
+  const source = f => lire(f).replace(/<!--[\s\S]*?-->/g, ' ').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+  const INSTANT = /temps réel|instantané/i, tous = re => new RegExp(re.source, 'gi');
+  const PERMIS = [
+    ['applications.html', 'une seule conversation\u202f: chat en ',   // l'espace fine insécable du site, devant « : »
+     (s, o) => s.lastIndexOf('OP MESSAGES', o) > o - 200, 'la carte d\'OP MESSAGES'],
+    ['tarifs.html', 'App web + mobile, synchro en ', (s, o) => o > s.indexOf('id="formules-msg"') && s.indexOf('id="formules-msg"') > s.indexOf('id="formules-gestion"') && o < s.indexOf('id="faq"'), 'la formule Perso, parmi les formules d\'OP MESSAGES'],
+    ['espace.html', 'desc:"Messagerie d\'équipe : chat ', (s, o) => s.lastIndexOf('name:\'OP MESSAGES\'', o) > o - 80, 'la fiche d\'OP MESSAGES du portail'],
+    ['recap-abonnement.html', 'detail: \'synchro ', (s, o) => s.startsWith('groupe: \'msg\'', s.lastIndexOf('groupe: \'', o)), 'la formule Messages Perso']];
+  const PAGE_ENTIERE = 'opmessages.html';   // la page d'OP MESSAGES
+  const trouves = [], vus = new Set();
+  let pagesLues = 0;
+  for (const f of PUBLIQUES.concat('404.html')) { if (f === PAGE_ENTIERE) continue; const s = source(f); pagesLues++;
+    for (const m of s.matchAll(tous(INSTANT))) { const p = PERMIS.find(([pf, avant]) => pf === f && s.slice(m.index - avant.length, m.index) === avant);
+      if (p && p[2](s, m.index)) vus.add(p); else trouves.push(f + ' : « …' + s.slice(Math.max(0, m.index - 50), m.index + m[0].length).replace(/\s+/g, ' ') + ' »'); } }
+  vrai('(population) ' + pagesLues + ' pages lues, et le motif reconnaît ce qu\'il cherche', pagesLues === PUBLIQUES.length && INSTANT.test('synchro en temps réel') && INSTANT.test('Instantané sur tous les appareils'));
+  v('⛔ « temps réel » et « instantané » : seulement les emplois NOMMÉS, chacun dans un bloc d\'OP MESSAGES', trouves, []);
+  v('   chaque emploi nommé existe encore (une entrée qui parle d\'une phrase disparue est une décision prise pour du vide)', PERMIS.filter(p => !vus.has(p)).map(p => p[0] + ' — ' + p[3]), []);
+  vrai('   (population) la page d\'OP MESSAGES les emploie bien — elle seule, en entier', INSTANT.test(source(PAGE_ENTIERE)));
+  /* la source d'OP GESTION ne les porte nulle part : les formules du générateur, et celles de la page de paiement */
+  const textes = x => typeof x === 'string' ? [x] : Array.isArray(x) ? x.flatMap(textes) : x && typeof x === 'object' ? Object.values(x).flatMap(textes) : [];
+  v('   aucune formule d\'OP GESTION du générateur ne les porte (FORMULES_GESTION)', textes(GEN.FORMULES_GESTION).filter(t => /temps réel|instantané|au même moment/i.test(t)), []);
+  const recap = source('recap-abonnement.html'), blocsGestion = recap.split(/(?=groupe: ')/).filter(b => b.startsWith('groupe: \'gestion\''));
+  v('   ni aucune formule d\'OP GESTION de la page de paiement (population : ' + blocsGestion.length + ' formules)', [blocsGestion.length >= 4, blocsGestion.filter(b => /temps réel|instantané|au même moment/i.test(b.split(/\n  \}/)[0])).length], [true, 0]);
+
+  /* d. ⛔ LES PROMESSES QUE L'APPLICATION NE TIENT PAS — sur TOUTES les pages publiques, plus seulement les pages métier.
+        Relu dans app.html v763 le 29 septembre 2026 au soir : un contrat ne planifie rien tout seul (« Générer la
+        prochaine intervention », d'un clic) et ne rappelle aucune échéance ; une box est un LIEU de stock, à une adresse —
+        l'écran Véhicules ne gère que la flotte (plaque, kilométrage, assurance) ; la caméra lit une étiquette ; pas de
+        relance automatique ; plus de module chantier ; la synchro prend quelques secondes. La page Métiers promettait
+        « contrats à récurrence automatique » et « rappels d'échéance », la page OP GESTION « jusque dans le camion » et
+        « contrats planifiés automatiquement ». (La récurrence d'une INTERVENTION, elle, crée la suivante à sa clôture :
+        intRecurNext — « récurrences automatiques » reste vrai.) */
+  const FAUX = [[/au même moment/i, '« au même moment »'], [/code-barres?/i, 'code-barres'], [/rappels? d.échéance/i, 'rappel d\'échéance'],
+    [/passages? automatiques?/i, 'passage automatique'], [/relances? automatiques?/i, 'relance automatique'], [/suivi de chantier|gestion de chantier/i, 'module chantier'],
+    [/inviolable/i, '« inviolable »'], [/camion/i, 'une box « camion »'], [/contrats?[^.·<"\n]{0,40}automatiquement|contrats?[^.·<"\n]{0,20}récurrence automatique/i, 'un contrat qui planifie tout seul'],
+    [/box \/ poste/i, 'une box « poste »']];
+  const fausses = [];
+  for (const f of PUBLIQUES.concat('404.html')) { const s = source(f); for (const [re, nom] of FAUX) { const m = s.match(re); if (m) fausses.push(f + ' : ' + nom + ' — « …' + s.slice(Math.max(0, m.index - 40), m.index + m[0].length).replace(/\s+/g, ' ') + ' »'); } }
+  v('⛔ aucune page publique ne promet ce que l\'application ne fait pas (population : ' + (PUBLIQUES.length + 1) + ' pages)', fausses, []);
+  vrai('   (population) les motifs reconnaissent les phrases d\'avant', [
+    'Contrats d\'entretien à récurrence automatique', 'Passages planifiés et rappels d\'échéance', 'Chaque produit tracé, jusque dans le camion',
+    'Contrats récurrents planifiés automatiquement', 'Chaque box / poste : produits', 'toute l\'équipe voit les mêmes données au même moment'].every(t => FAUX.some(([re]) => re.test(t))));
 }
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
