@@ -29,7 +29,9 @@ const vrai = (t, c) => v(t, !!c, true);
 const GEN = require('../scripts/site-marine.js');
 const CLES = Object.keys(GEN.PAGES);
 const SITE = 'https://teamop.fr/';
-const METIERS = ['logiciel-anti-nuisibles', 'logiciel-plombier', 'logiciel-electricien', 'logiciel-chauffage-climatisation'];
+const METIERS = ['logiciel-anti-nuisibles', 'logiciel-plombier', 'logiciel-electricien', 'logiciel-chauffage-climatisation', 'logiciel-nettoyage'];
+/* les pages par fonction (29 septembre 2026 au soir) : mêmes exigences que les pages métier, dans la rubrique Applications */
+const FONCTIONS = ['logiciel-planning-interventions', 'logiciel-gestion-de-stock', 'logiciel-devis-factures', 'logiciel-bons-de-commande', 'logiciel-pointage', 'logiciel-registre-sanitaire'];
 /* le code d'une page : sans commentaires HTML ni de bloc (un motif de banc vise du CODE, CLAUDE.md) */
 const code = s => s.replace(/<!--[\s\S]*?-->/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ');
 const tete = s => { const i = s.indexOf('</head>'); return i > 0 ? s.slice(0, i) : ''; };
@@ -105,7 +107,7 @@ console.log('\n══ 3. LE JSON-LD DE L\'ACCUEIL ══\n');
   v('   (population) quatre formules, dont une gratuite', [(app.offers || []).length, (app.offers || []).filter(o => o.price === '0').length], [4, 1]);
 }
 
-console.log('\n══ 4. LES QUATRE PAGES MÉTIER ══\n');
+console.log('\n══ 4. LES CINQ PAGES MÉTIER ══\n');
 for (const c of METIERS) {
   const f = c + '.html', P = GEN.PAGES[c] || {}, s = existe(f) ? lire(f) : '';
   vrai(f + ' : existe, dans le générateur, dans la rubrique Métiers', existe(f) && !!GEN.PAGES[c] && P.section === 'metiers');
@@ -118,11 +120,11 @@ for (const c of METIERS) {
 }
 {
   const menu = GEN.VOLETS.metiers.grands.map(l => l.href);
-  v('le menu Métiers mène aux quatre pages (dans l\'ordre du plan)', menu, METIERS.map(c => c + '.html'));
+  v('le menu Métiers mène aux cinq pages (dans l\'ordre du plan)', menu, METIERS.map(c => c + '.html'));
   const manques = [];
   for (const c of CLES) { const s = lire(c + '.html'), fly = (s.match(/<div class="fly" id="fly-metiers">[\s\S]*?<\/div><\/div><\/div><\/div>/) || [''])[0], pied = (s.match(/<footer class="pied">[\s\S]*<\/footer>/) || [''])[0];
     for (const m of METIERS) { if (fly.indexOf('href="' + m + '.html"') < 0) manques.push(c + ' (menu) → ' + m); if (pied.indexOf('href="' + m + '.html"') < 0) manques.push(c + ' (pied) → ' + m); } }
-  v('   ⛔ chaque page du site porte les quatre pages dans son volet Métiers ET dans son pied (population : ' + CLES.length + ' pages)', manques, []);
+  v('   ⛔ chaque page du site porte les cinq pages dans son volet Métiers ET dans son pied (population : ' + CLES.length + ' pages)', manques, []);
   /* ⛔ AUCUNE PROMESSE QUE L'APPLICATION NE TIENT PAS — relu dans app.html v763 le 29 septembre au soir, affirmation par
      affirmation : la synchro prend quelques secondes ; les contrats planifient au clic ; la caméra lit une étiquette ; pas
      de relance automatique ; pas de module chantier ; box et registre sont du métier 3D seulement */
@@ -141,6 +143,44 @@ for (const c of METIERS) {
   const prix = c => (lire(c + '.html').match(/<span class="prix-metier">([^<]*)<\/span>/g) || []).map(x => x.replace(/<[^>]+>/g, ''));
   v('   les prix des formules sur les pages métier sont ceux de la page Tarifs', METIERS.map(c => prix(c).map(x => x.split(' ')[0])),
     METIERS.map(() => ['gratuit', 'pro', 'business'].map(k => GEN.FORMULES_GESTION.find(f => f.cle === k).prix)));
+}
+
+console.log('\n══ 4 bis. LES SIX PAGES PAR FONCTION ══\n');
+for (const c of FONCTIONS) {
+  const f = c + '.html', P = GEN.PAGES[c] || {}, s = existe(f) ? lire(f) : '';
+  vrai(f + ' : existe, dans le générateur, dans la rubrique Applications', existe(f) && !!GEN.PAGES[c] && P.section === 'applications');
+  v(f + ' : titre ≤ 60 caractères (' + (P.titre || '').length + '), description ≤ 155 (' + (P.desc || '').length + ')', [(P.titre || '').length <= 60, (P.desc || '').length <= 155], [true, true]);
+  const main = s.slice(s.indexOf('<main>'), s.indexOf('</main>'));
+  const mots = main.replace(/<script[\s\S]*?<\/script>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').split(/\s+/).filter(w => /[a-zà-ÿ0-9]/i.test(w)).length;
+  vrai(f + ' : 400 mots au moins (' + mots + ')', mots >= 400);
+  v(f + ' : un seul H1', (main.match(/<h1[\s>]/g) || []).length, 1);
+  vrai(f + ' : un lien vers les tarifs et vers l\'inscription (Créer mon compte gratuit)', /href="tarifs\.html"/.test(main) && /<a class="bouton" href="\/espace\.html">Créer mon compte gratuit<\/a>/.test(main));
+  vrai(f + ' : dans le plan du site', lire('sitemap.xml').indexOf('<loc>' + SITE + f + '</loc>') >= 0);
+}
+{
+  const petits = GEN.VOLETS.applications.petits.map(l => l.href);
+  v('le menu Applications mène aux six pages par fonction', FONCTIONS.filter(c => petits.indexOf(c + '.html') < 0), []);
+  const manques = [];
+  for (const c of CLES) { const s = lire(c + '.html'), pied = (s.match(/<footer class="pied">[\s\S]*<\/footer>/) || [''])[0];
+    for (const m of FONCTIONS) if (pied.indexOf('href="' + m + '.html"') < 0) manques.push(c + ' (pied) → ' + m); }
+  v('   chaque page du site les porte dans son pied (population : ' + CLES.length + ' pages)', manques, []);
+  /* ⛔ LA FORMULE DITE EST CELLE QUI OUVRE LA FONCTION (PLAN_BLOQUE d'app.html) : le stock, les bons de commande et le registre
+     ne sont ni dans Gratuit ni dans Pro ; le pointage, les devis et les factures ne sont pas dans Gratuit. Une page qui promet
+     une fonction à une formule qui ne l'ouvre pas vend ce qu'on ne livrera pas. */
+  const cartes = c => (lire(c + '.html').match(/<div class="carte-v">[\s\S]*?<\/div>/g) || []).map(x => x.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '));
+  const faux = [];
+  for (const [c, fermeGratuit, fermePro] of [['logiciel-gestion-de-stock', 1, 1], ['logiciel-bons-de-commande', 1, 1], ['logiciel-registre-sanitaire', 1, 1],
+      ['logiciel-pointage', 1, 0], ['logiciel-devis-factures', 1, 0]]) {
+    const k = cartes(c);
+    if (k.length !== 3) { faux.push(c + ' : ' + k.length + ' cartes'); continue; }
+    if (fermeGratuit && !/^\s*Gratuit\b[\s\S]*\bPas de\b/.test(k[0])) faux.push(c + ' : la carte Gratuit ne dit pas que la fonction n\'y est pas');
+    if (fermePro && !/^\s*Pro\b[\s\S]*\bPas de\b/.test(k[1])) faux.push(c + ' : la carte Pro ne dit pas que la fonction n\'y est pas');
+  }
+  v('   ⛔ chaque page dit dans quelle formule la fonction commence (population : 5 pages, 3 cartes chacune)', faux, []);
+  /* ⛔ ET LE 3D RESTE AU 3D : les box et le registre ne se promettent qu'en les rattachant au métier 3D */
+  const t = c => code(lire(c + '.html').slice(lire(c + '.html').indexOf('<main>'), lire(c + '.html').indexOf('</main>'))).replace(/<[^>]+>/g, ' ');
+  v('   la page registre dit qu\'elle est pour le métier 3D, la page stock rattache les box aux entreprises 3D',
+    [/pour le métier 3D/.test(t('logiciel-registre-sanitaire')), /entreprises anti-nuisibles \(3D\) y ajoutent des box/.test(t('logiciel-gestion-de-stock'))], [true, true]);
 }
 
 console.log('\n══ 5. LES PAGES VOISINES : description, canonique, Open Graph — SUR LA LIGNE DU TITRE ══\n');

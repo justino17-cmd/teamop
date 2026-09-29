@@ -98,9 +98,11 @@ const L = (label, href, sous) => ({ label, href, sous });
 const VOLETS = {
   applications: { label: 'Applications', href: 'applications.html', titre: 'Explorer les applications',
     grands: [L('OP GESTION', 'elan.html', 'Gestion tout-en-un : interventions, stock, compta'), L('OP MESSAGES', 'opmessages.html', 'Messagerie d\'équipe — bientôt disponible'), L('Créer votre application', 'creer.html', 'Décrivez votre besoin, on le construit')],
-    petits: [L('Toutes les applications', 'applications.html')] },
+    petits: [L('Planning des interventions', 'logiciel-planning-interventions.html'), L('Gestion de stock', 'logiciel-gestion-de-stock.html'), L('Devis et factures', 'logiciel-devis-factures.html'),
+      L('Bons de commande', 'logiciel-bons-de-commande.html'), L('Pointage des heures', 'logiciel-pointage.html'), L('Registre sanitaire (3D)', 'logiciel-registre-sanitaire.html'),
+      L('Toutes les applications', 'applications.html')] },
   metiers: { label: 'Métiers', href: 'metiers.html', titre: 'Explorer les métiers',
-    grands: [L('3D — Anti-nuisibles', 'logiciel-anti-nuisibles.html', 'Pack complet : registre sanitaire, biocides'), L('Plomberie', 'logiciel-plombier.html'), L('Électricité', 'logiciel-electricien.html'), L('Chauffage / Climatisation', 'logiciel-chauffage-climatisation.html')],
+    grands: [L('3D — Anti-nuisibles', 'logiciel-anti-nuisibles.html', 'Pack complet : registre sanitaire, biocides'), L('Plomberie', 'logiciel-plombier.html'), L('Électricité', 'logiciel-electricien.html'), L('Chauffage / Climatisation', 'logiciel-chauffage-climatisation.html'), L('Nettoyage / Propreté', 'logiciel-nettoyage.html')],
     petits: [L('Tous les métiers', 'metiers.html')] },
   tarifs: { label: 'Tarifs', href: 'tarifs.html', titre: 'Explorer les tarifs',
     grands: [L('Tarifs OP GESTION', 'tarifs.html#elan', 'Gratuit · Pro 15 € · Business 25 € · Business Premium 50 €'), L('Tarifs OP MESSAGES', 'tarifs.html#opmessages', 'Perso · Pro · Premium — bientôt disponible')],
@@ -298,6 +300,22 @@ const METIERS = {
     formules: ["Planning des interventions, fiches clients et historique des passages, rapports simples. Pour découvrir, à un utilisateur.",
       "Tout Gratuit, plus les contrats d'entretien et les récurrences, les rapports complets avec photos et signatures, les tournées du jour, les devis et les factures.",
       "Tout Pro, plus le stock de pièces avec ses seuils d'alerte, les bons de commande aux fournisseurs et la commande suggérée."] },
+  'logiciel-nettoyage': { priorite: '0.8', icone: 'spray',
+    titre: "Logiciel pour entreprises de nettoyage | TEAM OP",
+    desc: "Planning des agents, fiches d'intervention, relevés de surface et de temps, devis, factures et encaissements pour le nettoyage. Gratuit pour commencer.",
+    surtitre: 'Logiciel pour entreprises de nettoyage', h1: "Le logiciel de gestion pour les entreprises de nettoyage et de propreté",
+    chapeau: "Bureaux, remise en état, vitrerie, parties communes : entre les contrats réguliers et les chantiers ponctuels, il faut planifier les agents, prouver le passage et facturer. OP GESTION, l'application de TEAM OP, réunit tout, sur téléphone comme sur ordinateur.",
+    duo: [["Au bureau", "Devis et factures, sans ressaisie.", "Ce qui est facturé, encaissé, à encaisser : tout est là.", 'iphone-factures', "OP GESTION sur un iPhone : les factures, ce qui est encaissé et ce qui reste à encaisser"],
+      ["En fin de journée", "Chaque encaissement, à sa place.", "Ce qui était prévu, ce qui est encaissé, l'écart du jour.", 'iphone-compta', "OP GESTION sur un iPhone : le contrôle des encaissements du jour"]],
+    blocs: [
+      ["Une fiche d'intervention prête pour le nettoyage.", ["En choisissant le nettoyage à la création de votre espace, OP GESTION se règle sur votre métier : nettoyage de bureaux, remise en état, vitrerie, nettoyage de fin de chantier, nettoyage industriel, copropriété et parties communes, décapage et protection des sols, désinfection des locaux, contrat régulier, visite technique. Le réglage se change sur simple demande au support, sans toucher à vos clients ni à vos interventions.", "Sur place, l'agent coche les prestations réalisées (dépoussiérage, lavage des sols, sanitaires, vitres intérieures et extérieures, désinfection des points de contact, réapprovisionnement des consommables…), prend des photos avant et après et fait signer le client sur l'écran."]],
+      ["Des relevés qui prouvent le passage.", ["La fiche note la surface traitée en mètres carrés, le nombre d'agents et le temps passé sur site. Le chronomètre démarre tout seul quand l'agent arrive à moins de 200 mètres de l'adresse, et s'arrête à son départ.", "Le rapport part ensuite au client par e-mail, en PDF, avec les photos et la signature, directement depuis l'application."]],
+      ["Les contrats réguliers et le planning des agents.", ["Pour un client que vous nettoyez chaque semaine, une récurrence posée sur l'intervention propose le passage suivant à sa clôture, en évitant les absences et les jours où le client ne souhaite pas de visite. Un contrat d'entretien génère l'intervention suivante d'un clic.", "Le planning montre chaque agent, jour par jour ou semaine par semaine, avec sa charge de la journée. Une intervention se glisse d'un agent à l'autre, et l'application signale un chevauchement ou une absence."]],
+      ["Devis, factures et encaissements.", ["Créez vos devis et vos factures, et envoyez-les en PDF par e-mail — ou leur résumé par SMS, depuis votre téléphone. Vous pouvez même dicter la prestation à la voix : l'assistant propose un devis que vous relisez avant de l'envoyer (une option activée pour votre entreprise).", "Suivez les factures à encaisser et celles qui sont payées, et l'encaissement de chaque agent en fin de journée : carte, espèces, chèques. Une facture impayée se renvoie au client d'un bouton."]],
+      ["Le pointage des agents, et les consommables en stock.", ["Chaque agent pointe son début et sa fin de journée depuis son téléphone, pause comprise. Les journées de nuit sont comptées en entier, et le total de chacun se lit sur la période choisie.", "Produits d'entretien, sacs, papier : suivez vos consommables avec un seuil d'alerte par référence. Quand une quantité passe sous son seuil, l'application le signale, et la commande suggérée reprend tout ce qui manque pour préparer le bon de commande au fournisseur."]]],
+    formules: ["Planning des interventions, fiches clients et historique des passages, rapports simples. Pour découvrir, à un utilisateur.",
+      "Tout Gratuit, plus les rapports complets avec photos et signatures, les tournées du jour, les contrats et les récurrences, les devis et les factures, le pointage.",
+      "Tout Pro, plus le stock de consommables avec ses seuils d'alerte, les bons de commande aux fournisseurs et la commande suggérée."] },
 };
 function pageMetier(m) {
   const duo = `<section class="duo">` + m.duo.map(([pt, h3, p, nom, alt]) => `<div class="grande-carte"><div class="haut"><div class="petit-titre">${fr(pt)}</div><h3>${fr(h3)}</h3><p>${fr(p)}</p></div>
@@ -312,6 +330,134 @@ function pageMetier(m) {
     + (m.mac ? `<section class="scene-mac">${mac(m.mac[0], m.mac[1], { tot: false })}</section>` : '')
     + bloc(m.blocs[0], 0) + duo + m.blocs.slice(1).map((b, i) => bloc(b, i + 1)).join('') + formules;
 }
+
+/* ══ LES PAGES PAR FONCTION — une page, une adresse, un mot-clé (Justin, 29 septembre 2026 au soir : « une page par
+   fonction (stock, planning, devis et factures, bons de commande, pointage, registre), plus une page nettoyage »).
+   Même gabarit et mêmes règles que les pages métier (pageMetier) : un seul H1, 400 mots au moins, titre ≤ 60, description
+   ≤ 155, un lien vers les tarifs et vers l'inscription.
+   ⛔ CHAQUE PHRASE A ÉTÉ RELUE DANS app.html (v763 en service, le même soir), et chaque fonction est dite avec la formule qui
+   l'ouvre (PLAN_BLOQUE) : Gratuit ferme le pointage, les devis, les factures, les contrats, la carte, les secteurs, les
+   absences et les tâches ; Pro ferme en plus le stock, les box, les bons de commande, le registre, la télécollecte et la
+   comptabilité. Ce qui a été vérifié, et où :
+   · planning : vues Jour, Semaine, Mois, plusieurs jours avec la carte (planMode) ; jauge de charge, orange au-delà de 7 h,
+     rouge au-delà de 9 h ; glisser-déposer (planDragStart) ; chevauchement signalé (intConflictOf) ; technicien absent
+     signalé ; affectation au technicien du secteur (techForClient) ; ordre proposé des étapes (planOptBarre) et trajets
+     par la route (OSRM) ; chronomètre à moins de 200 m ; passage suivant proposé en évitant absences, conflits et jours
+     refusés, « À planifier » sous 14 jours (planNextModal) ;
+   · stock : le stockage (stockageCarte, case « Se servir dans le stockage », administrateur seul au départ), les box du
+     métier 3D, arrivage avec photo du bon, lecture d'étiquette, sortie « pour qui », bon de remise, seuils, commande
+     suggérée (le plus grand des deux besoins), validation d'un responsable (boxMvtValider), une intervention ne retire rien ;
+   · devis et factures : PDF à l'en-tête de la société (docEntete), envoi par e-mail PDF joint (envoiDoc), dictée en option,
+     devis accepté → facture (devisToFacture), facture préremplie depuis l'intervention, numéro jamais réutilisé (numMax),
+     relance d'une facture envoyée (📧), télécollecte, export CSV, TVA collectée dans la comptabilité ;
+   · bons de commande : PDF (bonPdfStr) joint à l'e-mail (opts.atts), adresse d'envoi au choix, bon dupliqué, commande
+     suggérée, demande validée par un responsable puis « bon à préparer » (formDemande), arrivage prérempli et converti
+     (arrBonPrefill), bon « livré » ou « partiel » (saveArrivage) ;
+   · pointage : « Début de journée » / « Fin de journée », pause en minutes déduite, horodatage qui compte les nuits,
+     plafond de 16 h signalé (PT_MAX_H), correction réservée aux responsables, total par personne, export PDF (ptPdf) ;
+     absences avec les motifs et durées du Code du travail ;
+   · registre : les phrases de la page anti-nuisibles, déjà relues, et l'unité de ligne (prodLineUnit) ;
+   · nettoyage : le métier « Nettoyage / Propreté » de l'application (types, prestations, relevés surface / agents /
+     temps) — ni box ni registre, que ce métier masque. */
+const FONCTIONS = {
+  'logiciel-planning-interventions': { priorite: '0.8',
+    titre: "Logiciel de planning des interventions | TEAM OP",
+    desc: "Planning de vos techniciens en vues jour, semaine et mois, tournées optimisées, absences et chevauchements signalés. Gratuit pour commencer.",
+    surtitre: 'Planning des interventions', h1: "Le planning des interventions de toute votre équipe, au même endroit",
+    chapeau: "Qui intervient où, à quelle heure, et avec quelle charge de travail : OP GESTION, l'application de TEAM OP, tient le planning de vos techniciens sur ordinateur comme sur téléphone. Chacun voit sa journée, le bureau voit tout.",
+    mac: ['mac-planning', "OP GESTION sur un Mac : la semaine d'une entreprise de démonstration, technicien par technicien"],
+    duo: [["Pour le technicien", "Sa journée, dans la poche.", "Les interventions du jour, dans l'ordre, avec l'adresse et le statut.", 'iphone-journee', "OP GESTION sur un iPhone : la journée de travail d'un technicien"],
+      ["Pour le bureau", "L'activité d'un coup d'œil.", "Interventions, commandes et demandes en attente.", 'iphone-tableau', "OP GESTION sur un iPhone : le tableau de bord"]],
+    blocs: [
+      ["Jour, semaine, mois : le planning qu'il vous faut.", ["La vue Jour place vos techniciens côte à côte, heure par heure. La vue Semaine montre la semaine entière, la vue Mois pose chaque intervention sur un calendrier, et une quatrième vue réunit plusieurs jours avec la carte des adresses.", "Chaque technicien a sa couleur, et une jauge montre sa charge de la journée : au-delà de sept heures elle passe à l'orange, au-delà de neuf au rouge. Vous voyez tout de suite qui est déjà bien chargé et qui peut encore prendre un dépannage."]],
+      ["Déplacer une intervention d'un geste.", ["Sur ordinateur, une intervention se glisse vers un autre jour ou un autre technicien. Si le nouveau créneau chevauche une autre intervention du même technicien, l'application le signale ; si le technicien est absent ce jour-là, elle le dit avant d'enregistrer.", "Les interventions qui n'ont pas encore de date attendent dans « À planifier ». Et une intervention créée sans technicien est confiée à celui qui couvre le département du client, dès que vous avez défini vos secteurs."]],
+      ["Les tournées du jour, dans le bon ordre.", ["Pour une journée, l'application propose l'ordre des étapes qui raccourcit la route, avec le temps de trajet par la route entre deux adresses, et dessine la tournée sur la carte. Vous validez l'ordre proposé, ou vous gardez le vôtre.", "Sur place, le chronomètre démarre tout seul quand le technicien arrive à moins de 200 mètres de l'adresse, et s'arrête à son départ : le temps passé chez chaque client se retrouve sur la fiche, sans rien noter à la main."]],
+      ["Les passages suivants, sans rien oublier.", ["Une intervention peut porter une récurrence. À sa clôture, l'application propose le passage suivant à la bonne date, en évitant les absences, les autres interventions du technicien et les jours où le client ne souhaite pas de visite. Sans créneau libre dans les quatorze jours, la carte part dans « À planifier ».", "Les contrats d'entretien, eux, génèrent l'intervention suivante d'un clic, avec le client, l'adresse et la prestation déjà remplis."]],
+      ["Pour toute l'équipe, sur tous les appareils.", ["Chaque technicien ouvre sa journée sur son téléphone, iPhone ou Android ; le bureau travaille sur Mac ou sur PC. Les changements arrivent chez les autres en quelques secondes dès qu'il y a du réseau, et une nouvelle intervention prévient l'équipe par une notification.", "Chacun ne voit que ce qui le concerne : un technicien voit ses interventions, un responsable celles de son équipe, l'administrateur tout le planning. Les droits se règlent personne par personne."]]],
+    formules: ["Le planning en vues Jour, Semaine et Mois, les fiches d'intervention et l'historique des passages. Pour découvrir, à un utilisateur.",
+      "Tout Gratuit, plus la carte des interventions, les secteurs par département, les absences et les congés, les tâches et le pointage des heures.",
+      "Tout Pro, plus le stock, les bons de commande aux fournisseurs, la télécollecte des encaissements et la comptabilité."] },
+  'logiciel-gestion-de-stock': { priorite: '0.8',
+    titre: "Logiciel de gestion de stock pour le terrain | TEAM OP",
+    desc: "Votre stock produit par produit : arrivages, sorties tracées, seuils d'alerte et commande suggérée, sur téléphone et ordinateur. Inclus dans Business.",
+    surtitre: 'Gestion de stock', h1: "Un stock à jour, produit par produit, du dépôt jusqu'au technicien",
+    chapeau: "Combien il en reste, qui a pris quoi, et quoi commander : OP GESTION, l'application de TEAM OP, suit votre stock sur téléphone comme sur ordinateur, et trace chaque mouvement. Le stock est inclus dans la formule Business.",
+    duo: [["Au dépôt", "Chaque mouvement, tracé.", "Arrivage, sortie, correction : qui, quoi, pour qui.", 'iphone-box', "OP GESTION sur un iPhone : la fiche d'un point de stock et ses gestes"],
+      ["Au bureau", "Ce qui manque, d'un coup d'œil.", "Le tableau de bord compte ce qui est à commander.", 'iphone-tableau', "OP GESTION sur un iPhone : le tableau de bord"]],
+    blocs: [
+      ["Un stock central, et autant de points de stock qu'il vous faut.", ["Le stockage, c'est votre stock central, hors de toute box : les arrivages y entrent, et ceux à qui vous en donnez l'accès s'y servent. L'accès se donne personne par personne, par une case de ses droits ; au départ, seul l'administrateur l'a.", "Les entreprises anti-nuisibles (3D) y ajoutent des box : une box est un point de stock, un local, une réserve ou une armoire, chez vous ou chez un client. L'écran Stock additionne le stockage et toutes les box que vous voyez, pour un seul total par produit."]],
+      ["Arrivages, sorties, corrections : tout est tracé.", ["À la livraison, l'arrivage enregistre les quantités reçues et la photo du bon de livraison. Pour retrouver un produit, la caméra du téléphone lit son étiquette. Chaque sortie dit pour qui elle est faite, et un bon de remise peut accompagner ce qui est donné.", "Rien ne bouge sans laisser de trace : le journal des mouvements garde, produit par produit, qui a fait quoi, quand et pour qui. Une quantité ne descend jamais sous zéro, et la trace dit ce qui a vraiment bougé, pas ce qui avait été demandé."]],
+      ["Des seuils d'alerte, et une commande qui se prépare seule.", ["Donnez un seuil à chaque produit : quand le total passe dessous, l'application le signale dans la cloche et sur le tableau de bord, et prévient par une notification les personnes concernées.", "La commande suggérée reprend tout ce qui est à réapprovisionner, les produits sous leur seuil comme les points de stock épuisés, sans jamais compter deux fois le même besoin. Elle prépare un bon de commande que vous relisez avant de l'envoyer au fournisseur."]],
+      ["Une validation quand vous le décidez.", ["Un point de stock peut exiger qu'un responsable valide les mouvements avant qu'ils ne comptent : la demande part chez lui, il accepte, corrige la quantité ou refuse avec un motif, et la personne est prévenue de sa décision.", "Les interventions ne retirent rien du stock d'elles-mêmes : les produits utilisés sont notés sur la fiche, pour le rapport et la facture, et le stock ne bouge que lorsqu'un produit sort vraiment. Le chiffre affiché reste celui de l'étagère."]],
+      ["Pour toute l'équipe, sur tous les appareils.", ["Le technicien fait ses gestes depuis son téléphone, le responsable suit depuis son ordinateur, et chacun voit les mêmes chiffres en quelques secondes dès qu'il y a du réseau.", "Chaque personne ne voit que les points de stock qui la concernent, et chaque geste, ajouter, sortir, corriger ou valider, dépend d'une case de ses droits."]]],
+    formules: ["Pas de stock dans Gratuit : le planning, les fiches d'intervention et l'historique des passages, pour découvrir à un utilisateur.",
+      "Pas de stock dans Pro non plus : tout Gratuit, plus les devis et factures, les contrats, la carte des interventions et le pointage.",
+      "Le stock complet : stockage et points de stock, arrivages, seuils d'alerte, mouvements tracés, commande suggérée et bons de commande aux fournisseurs."] },
+  'logiciel-devis-factures': { priorite: '0.8',
+    titre: "Logiciel de devis et factures pour artisans | TEAM OP",
+    desc: "Devis et factures en PDF à votre en-tête, envoyés par e-mail, du devis accepté à la facture en un clic, suivi payé ou impayé. Inclus dès la formule Pro.",
+    surtitre: 'Devis et factures', h1: "Vos devis et vos factures, faits sur place et envoyés à votre nom",
+    chapeau: "Du devis au règlement, OP GESTION, l'application de TEAM OP, garde le fil sur téléphone comme sur ordinateur. Les devis, les factures et les contrats d'entretien sont inclus dès la formule Pro.",
+    duo: [["Au bureau", "Ce qui est facturé, et ce qui reste.", "Facturé, encaissé, à encaisser : tout est là.", 'iphone-factures', "OP GESTION sur un iPhone : les factures, ce qui est encaissé et ce qui reste à encaisser"],
+      ["En fin de journée", "Chaque encaissement, à sa place.", "Ce qui était prévu, ce qui est encaissé, l'écart du jour.", 'iphone-compta', "OP GESTION sur un iPhone : le contrôle des encaissements du jour"]],
+    blocs: [
+      ["Un devis propre, en quelques minutes.", ["Composez le devis ligne par ligne, avec les quantités, les prix et la TVA : l'application calcule les totaux et produit un vrai PDF à l'en-tête de votre société, avec votre logo et vos coordonnées. Il part par e-mail, le PDF joint, depuis la fiche.", "Vous pouvez aussi dicter la prestation à la voix : l'assistant propose un devis que vous relisez et corrigez avant de l'envoyer. C'est une option, activée pour votre entreprise, et la dictée dépend du navigateur."]],
+      ["Du devis accepté à la facture, sans ressaisie.", ["Quand le client accepte, le devis devient une facture d'un clic, avec les mêmes lignes. Une intervention peut aussi donner sa facture : la prestation, les produits et le montant de la fiche la préremplissent.", "Chaque document reçoit un numéro qui ne sera jamais réutilisé, même après une suppression : deux factures ne portent jamais le même numéro, même saisies sur deux appareils."]],
+      ["Plusieurs sociétés ? Chaque document porte la bonne.", ["Si votre groupe réunit plusieurs sociétés, chacune a son nom, son logo, sa couleur et, quand c'est une entreprise distincte, ses propres coordonnées légales : SIRET, TVA, IBAN. Un devis, une facture ou un rapport porte l'en-tête de la société choisie, sans rien emprunter aux autres.", "Les mentions de votre entreprise, SIRET, numéro de TVA intracommunautaire, IBAN et BIC pour le virement, se règlent une fois pour toutes dans les paramètres."]],
+      ["Payé, à encaisser : vous savez où vous en êtes.", ["Chaque facture a son statut, et la liste montre ce qui est encaissé et ce qui reste à encaisser. Une facture envoyée et toujours impayée se renvoie au client d'un bouton.", "Avec la formule Business, la télécollecte rapproche en fin de journée ce que chaque technicien a encaissé, carte, espèces, chèque ou virement, de ce qui était prévu. La comptabilité donne la TVA collectée et s'exporte en CSV, qui s'ouvre dans Excel."]],
+      ["Les contrats d'entretien, sans rien ressaisir.", ["Un contrat d'entretien garde le client, la prestation et la période. L'intervention suivante se génère d'un clic, déjà remplie.", "Pour les interventions qui reviennent, une récurrence posée sur l'intervention propose le passage suivant à sa clôture, à la bonne date."]]],
+    formules: ["Pas de devis ni de facture dans Gratuit : le planning, les fiches d'intervention et l'historique des passages, pour découvrir à un utilisateur.",
+      "Les devis, les factures et les contrats d'entretien, en PDF à votre en-tête, envoyés par e-mail, avec le suivi de ce qui est payé et de ce qui reste.",
+      "Tout Pro, plus la télécollecte des encaissements, la comptabilité et son export, le stock et les bons de commande aux fournisseurs."] },
+  'logiciel-bons-de-commande': { priorite: '0.7',
+    titre: "Bons de commande fournisseurs en ligne | TEAM OP",
+    desc: "Préparez vos bons de commande, envoyez-les en PDF par e-mail au fournisseur et réceptionnez la livraison, photo du bon à l'appui. Inclus dans Business.",
+    surtitre: 'Bons de commande', h1: "Des bons de commande préparés, envoyés et réceptionnés au même endroit",
+    chapeau: "Ce qu'il faut commander, à qui, et ce qui est arrivé : OP GESTION, l'application de TEAM OP, relie vos commandes fournisseurs à votre stock. Les bons de commande sont inclus dans la formule Business.",
+    duo: [["Au bureau", "Ce qui est à commander.", "Le tableau de bord compte ce qui manque et les demandes en attente.", 'iphone-tableau', "OP GESTION sur un iPhone : le tableau de bord"],
+      ["À la livraison", "L'arrivage, photo du bon comprise.", "Les quantités reçues entrent en stock, la photo reste.", 'iphone-box', "OP GESTION sur un iPhone : la fiche d'un point de stock et ses gestes"]],
+    blocs: [
+      ["Un bon de commande propre, en quelques gestes.", ["Choisissez le fournisseur, ajoutez les produits et les quantités : l'application produit un PDF à l'en-tête de votre entreprise, avec vos coordonnées. Un bon déjà passé se duplique pour recommander la même chose.", "Le bon part par e-mail au fournisseur, le PDF joint, depuis l'adresse de votre choix quand vous avez relié vos boîtes mail. La boîte mail intégrée, rattachée aux bons, garde vos échanges avec les fournisseurs."]],
+      ["La commande suggérée fait la liste pour vous.", ["Un geste sur « Commande suggérée » prépare un bon avec tout ce qui est à réapprovisionner : les produits passés sous leur seuil d'alerte et les points de stock épuisés, en retenant le plus grand des deux besoins pour ne jamais commander deux fois la même chose.", "Vous relisez, vous ajustez les quantités, et le bon est prêt à partir."]],
+      ["Les demandes de l'équipe, validées par un responsable.", ["Sur le terrain, un chef d'équipe demande une commande pour son point de stock. La demande part chez le responsable désigné, qui la valide ou la refuse. Validée, elle devient un bon à préparer, et la personne chargée des commandes est prévenue.", "Chacun sait où en est sa demande : une notification dit quand elle est validée, ou refusée."]],
+      ["La réception, photo du bon de livraison à l'appui.", ["À la livraison, l'arrivage reprend la commande : les quantités sont préremplies, converties dans l'unité de votre stock, et vous corrigez ce qui manque. La photo du bon de livraison reste attachée à l'arrivage.", "Les quantités reçues entrent en stock aussitôt, le bon passe en « livré », ou en « partiel » s'il manque quelque chose, et le journal des mouvements garde la trace de la réception."]],
+      ["Qui peut commander, c'est vous qui le décidez.", ["Le droit de passer commande se règle personne par personne : un compte peut préparer et envoyer des bons, un autre seulement les consulter. Les responsables désignés valident les demandes de leur équipe.", "Tout se fait sur téléphone comme sur ordinateur, et les changements arrivent chez les autres en quelques secondes dès qu'il y a du réseau."]]],
+    formules: ["Pas de bons de commande dans Gratuit : le planning, les fiches d'intervention et l'historique des passages, pour découvrir à un utilisateur.",
+      "Pas de bons de commande dans Pro non plus : tout Gratuit, plus les devis et factures, les contrats, la carte des interventions et le pointage.",
+      "Les bons de commande en PDF envoyés par e-mail, la commande suggérée, les demandes validées, l'arrivage et le stock, avec la boîte mail intégrée."] },
+  'logiciel-pointage': { priorite: '0.7',
+    titre: "Logiciel de pointage des heures d'équipe | TEAM OP",
+    desc: "Début et fin de journée pointés depuis le téléphone, pauses, journées de nuit, corrections par un responsable et feuille en PDF. Inclus dès la formule Pro.",
+    surtitre: 'Pointage des heures', h1: "Le pointage des heures de votre équipe, depuis le téléphone",
+    chapeau: "Qui a commencé à quelle heure, combien d'heures sur la période, et qui a oublié de dépointer : OP GESTION, l'application de TEAM OP, tient le pointage de vos techniciens. Le pointage est inclus dès la formule Pro.",
+    duo: [["Pour le technicien", "Un geste le matin, un le soir.", "Le début et la fin de journée, pris à l'heure exacte.", 'iphone-journee', "OP GESTION sur un iPhone : la journée de travail d'un technicien"],
+      ["Pour le responsable", "L'activité d'un coup d'œil.", "Interventions, commandes et demandes en attente.", 'iphone-tableau', "OP GESTION sur un iPhone : le tableau de bord"]],
+    blocs: [
+      ["Un geste le matin, un geste le soir.", ["Le technicien touche « Début de journée » en arrivant et « Fin de journée » en partant : l'heure est prise par l'application, pas tapée à la main. Il peut noter sa pause, en minutes, avant de clôturer.", "Une journée qui passe minuit est comptée en entier : chaque pointage garde la date et l'heure exactes de son début et de sa fin, et l'équipe de nuit ne se retrouve jamais avec une journée vide."]],
+      ["Un oubli ne gonfle pas les heures.", ["Un pointage resté ouvert ne devient pas une journée interminable : au-delà de seize heures, l'application le plafonne et le signale, et il se clôture à l'heure qu'on indique, pas à l'heure qu'il est.", "Corriger des heures est réservé aux responsables. Une correction réécrit ensemble l'heure affichée et l'heure comptée : ce que vous lisez à l'écran est toujours ce qui est compté."]],
+      ["Le total de chacun, sur la période choisie.", ["La vue par personne additionne les heures de chacun sur la période que vous choisissez, pauses déduites, avec le total de la période. Un responsable voit son équipe, l'administrateur toute l'entreprise, et chaque technicien ses propres pointages.", "La feuille de pointage s'exporte en PDF, pour la période affichée à l'écran : ce que vous voyez est ce que vous exportez."]],
+      ["Absences et congés, avec leurs durées légales.", ["Les absences se posent avec leur motif : congés payés, RTT, arrêt maladie, accident du travail, événements familiaux, formation, rendez-vous médical… Pour les motifs que prévoit le Code du travail, la durée proposée par défaut est la durée légale.", "Une intervention posée sur un technicien absent ce jour-là est signalée, et la proposition du passage suivant évite ses jours d'absence."]],
+      ["Pour toute l'équipe, sur tous les appareils.", ["Le pointage se fait sur le téléphone du technicien, iPhone ou Android ; le responsable suit depuis son ordinateur, Mac ou PC. Les pointages arrivent chez les autres en quelques secondes dès qu'il y a du réseau.", "Le pointage vit à côté du planning et des interventions : la journée prévue et la journée pointée se lisent dans la même application."]]],
+    formules: ["Pas de pointage dans Gratuit : le planning, les fiches d'intervention et l'historique des passages, pour découvrir à un utilisateur.",
+      "Le pointage des heures, les absences et les congés, les tâches, et de quoi facturer : devis, factures et contrats d'entretien.",
+      "Tout Pro, plus le stock, les bons de commande aux fournisseurs, la télécollecte des encaissements et la comptabilité."] },
+  'logiciel-registre-sanitaire': { priorite: '0.8',
+    titre: "Registre sanitaire et suivi des biocides | TEAM OP",
+    desc: "Registre sanitaire tenu à chaque passage : biocides et leur AMM, Certibiocide des techniciens, plans d'appâtage et relevés de postes. Pour le métier 3D.",
+    surtitre: 'Registre sanitaire (3D)', h1: "Le registre sanitaire de vos clients, tenu à chaque passage",
+    chapeau: "Pour une entreprise de dératisation, désinsectisation et désinfection, le registre n'est pas une option. OP GESTION, l'application de TEAM OP, le remplit à partir des interventions elles-mêmes. Le registre est inclus dans la formule Business, pour le métier 3D.",
+    duo: [["Sur le terrain", "La fiche d'intervention, dans la poche.", "Produits, quantités, photos et signature : tout est sur la fiche.", 'iphone-intervention', "OP GESTION sur un iPhone : une intervention de dératisation en cours"],
+      ["Au bureau", "Les rapports, rédigés et envoyés.", "Chaque passage terminé a son rapport, prêt pour le client.", 'iphone-rapports', "OP GESTION sur un iPhone : les comptes rendus d'intervention"]],
+    blocs: [
+      ["Chaque passage alimente le registre.", ["Le technicien note sur la fiche d'intervention les produits biocides utilisés et leurs quantités : chaque passage et chaque produit s'inscrivent au registre sanitaire du client, avec le numéro d'AMM du produit.", "Chaque quantité garde l'unité de sa ligne : 250 mL d'un produit stocké au litre restent 250 mL dans le registre, sans erreur d'un facteur mille."]],
+      ["Le Certibiocide de chaque technicien, suivi.", ["Le numéro et la date de validité du Certibiocide de chaque technicien sont enregistrés sur sa fiche, et une alerte prévient avant l'échéance.", "Vous savez à tout moment qui peut appliquer quoi, et vous n'apprenez pas l'échéance le jour d'un contrôle."]],
+      ["Plans d'appâtage et relevés des postes.", ["Pour chaque site, dessinez le plan d'appâtage sur une photo, une vue satellite ou le plan des pièces, avec vos postes numérotés, leur type et le produit posé. À chaque passage, le technicien relève chaque poste : rien à signaler, consommation partielle, consommé ou remplacé.", "L'évolution de l'infestation sur les derniers passages se lit d'un coup d'œil, et une fiche de traitement est prévue pour chaque nuisible : rats, souris, blattes, punaises de lit, guêpes et frelons…"]],
+      ["Le dossier sanitaire, prêt pour un contrôle.", ["Pour un client professionnel, le dossier sanitaire complet, plan de lutte, relevés, produits, attestation de passage, s'imprime ou s'enregistre en PDF en un clic.", "Le rapport de chaque passage part au client par e-mail, en PDF, avec les photos, le plan et les signatures."]],
+      ["Le stock des produits, à côté du registre.", ["Les produits biocides se suivent dans vos box, des points de stock, locaux, réserves ou armoires : chaque arrivage et chaque sortie sont tracés, qui, quoi, pour qui.", "Les produits utilisés en intervention sont notés sur la fiche sans fausser le stock : il ne baisse que quand un produit sort vraiment d'une box."]]],
+    formules: ["Pas de registre dans Gratuit : le planning, les fiches clients et l'historique des passages, pour découvrir à un utilisateur.",
+      "Pas de registre dans Pro non plus : tout Gratuit, plus les rapports complets avec photos et signatures, les contrats, les devis et les factures.",
+      "Le registre sanitaire et les biocides (AMM, Certibiocide, courbes), les plans d'appâtage, le stock et les box, les bons de commande aux fournisseurs."] },
+};
 
 const PAGES = {
   index: { titre: 'TEAM OP — Logiciel de gestion pour entreprises de terrain', desc: 'Logiciel français pour entreprises de terrain : interventions, planning, stock, devis et factures. Anti-nuisibles, artisans. Gratuit pour commencer.',
@@ -396,7 +542,7 @@ const PAGES = {
         ['m-electricite', 'PACK DISPONIBLE', 'bolt', 'Électricité', 'Installation · mise aux normes · dépannage', ['Interventions type : tableau, mise aux normes, contrôle…', 'Matériel électrique en stock avec seuils', 'Rapports signés sur place'], 1],
         ['m-chauffage', 'PACK DISPONIBLE', 'flame', 'Chauffage / Climatisation', 'CVC · entretien · contrats annuels', ['Contrats d\'entretien : chaque passage généré d\'un clic', 'Récurrences : le passage suivant planifié à la clôture', 'Historique complet par client'], 1],
         ['m-serrurerie', 'PACK DISPONIBLE', 'key', 'Serrurerie', 'Ouverture · sécurité · accès', [], 1],
-        ['m-nettoyage', 'PACK DISPONIBLE', 'spray', 'Nettoyage / Propreté', 'Bureaux · remise en état · vitrerie', [], 1],
+        ['m-nettoyage', 'PACK DISPONIBLE', 'spray', 'Nettoyage / Propreté', 'Bureaux · remise en état · vitrerie', ['Interventions type : bureaux, remise en état, vitrerie…', 'Relevés : surface traitée, agents, temps passé', 'Consommables en stock avec seuils'], 1],
         ['m-maconnerie', 'PACK BIENTÔT', 'brick', 'Maçonnerie / Gros œuvre', 'Construction · rénovation · chantiers', ['Chantiers suivis dans la durée', 'Matériaux et quantités par chantier', 'Bons de commande aux négoces'], 0],
         ['m-menuiserie', 'PACK BIENTÔT', 'saw', 'Menuiserie', 'Pose · agencement · fabrication', ['Prises de cotes et photos dans le rapport', 'Planning de pose par équipe', 'Suivi des commandes fournisseurs'], 0],
         ['m-peinture', 'PACK BIENTÔT', 'brush', 'Peinture / Finitions', 'Intérieur · extérieur · décoration', ['Chantiers en plusieurs passages (préparation, couches…)', 'Consommation de peintures et consommables', 'Photos avant/après pour le client'], 0],
@@ -407,6 +553,7 @@ const PAGES = {
       + '</div></section>' },
 
   ...Object.fromEntries(Object.entries(METIERS).map(([k, m]) => [k, { section: 'metiers', titre: m.titre, desc: m.desc, priorite: m.priorite, corps: () => pageMetier(m) }])),
+  ...Object.fromEntries(Object.entries(FONCTIONS).map(([k, m]) => [k, { section: 'applications', titre: m.titre, desc: m.desc, priorite: m.priorite, corps: () => pageMetier(m) }])),
 
   tarifs: { section: 'tarifs', titre: 'Tarifs — TEAM OP', desc: 'Tarifs TEAM OP : Gratuit, Pro ' + prixDe('pro') + ' €, Business ' + prixDe('business') + ' €, Business Premium ' + prixDe('premium') + ' €, par mois et par utilisateur, TTC et sans engagement.',
     corps: () => scene('Tarifs', 'Des tarifs simples et clairs.', 'Commencez gratuitement, passez à la vitesse supérieure quand votre équipe grandit. Sans engagement, sans frais cachés.', '', { courte: true })

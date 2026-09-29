@@ -29,9 +29,12 @@ const DIR = path.join(RACINE, 'apercu', 'site');
 const texte = h => h.replace(/<script[\s\S]*?<\/script>/g, ' ').replace(/<style[\s\S]*?<\/style>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;| | /g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ');
 
 console.log('1. les pages sont la sortie du générateur');
-/* les huit pages d'origine, et les quatre pages métier du plan SEO de Justin (29 septembre 2026 : « une page = une URL = un
-   mot-clé principal ») — test-846 garde leur référencement */
-v('douze pages : les huit du site et les quatre pages métier', CLES.slice().sort(), ['applications', 'creer', 'elan', 'index', 'logiciel-anti-nuisibles', 'logiciel-chauffage-climatisation', 'logiciel-electricien', 'logiciel-plombier', 'metiers', 'opmessages', 'pourquoi', 'tarifs']);
+/* les huit pages d'origine, les cinq pages métier et les six pages par fonction du plan SEO de Justin (29 septembre 2026 :
+   « une page = une URL = un mot-clé principal » ; le soir même : « une page par fonction […], plus une page nettoyage ») —
+   test-846 garde leur référencement */
+v('dix-neuf pages : les huit du site, les cinq pages métier et les six pages par fonction', CLES.slice().sort(), ['applications', 'creer', 'elan', 'index', 'logiciel-anti-nuisibles',
+  'logiciel-bons-de-commande', 'logiciel-chauffage-climatisation', 'logiciel-devis-factures', 'logiciel-electricien', 'logiciel-gestion-de-stock', 'logiciel-nettoyage',
+  'logiciel-planning-interventions', 'logiciel-plombier', 'logiciel-pointage', 'logiciel-registre-sanitaire', 'metiers', 'opmessages', 'pourquoi', 'tarifs']);
 const PAGES = {};
 for (const c of CLES) {
   const f = path.join(DIR, c + '.html');
