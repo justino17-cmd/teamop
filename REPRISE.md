@@ -13,6 +13,77 @@ de ligne du tout.
 
 ---
 
+# ⏳ 29 SEPTEMBRE 2026, NUIT (SUITE) — « FAIT TOUT ÇA » : RAPPELS D'ÉCHÉANCE (BÊTA v764), SIX PAGES PAR FONCTION ET UNE PAGE NETTOYAGE, LE SITE NE PROMET PLUS RIEN QUE L'APPLICATION NE TIENT PAS ; INVENTAIRE FIREBASE « COMPLET » — ATTEND « POUSSE »
+
+Justin, reprenant ma liste mot pour mot : **« 1. Rappels d'échéance des contrats … 2. Référencement, la suite : une page par
+fonction (stock, planning, devis et factures, bons de commande, pointage, registre), plus une page nettoyage. 3. Petits restes
+du site : trois descriptions trop longues pour Google (accueil, tarifs, ELAN) ; l'image de partage, mal lue par LinkedIn ;
+« Temps réel »… 4. La suite de la sortie de Firebase … fait tout ça »**, puis : « fais ça bien, que tout fonctionne ».
+
+**Sur la branche, rien sur `main`** (commits `e468a3c`, `a18e713`, `a531b3c`, `56ed05f`, `2b3fb92`, `7a4bd99`, `5bbf41b`,
+`0e5b48d`) :
+1. **Rappels d'échéance des contrats — BÊTA v764** (`a18e713`). Un contrat actif (ou sans statut) qui finit dans les 30 jours,
+   ou déjà fini : bandeau « N contrats à renouveler » sur l'écran Contrats (délai, date, « ✎ Mettre à jour » à qui peut
+   modifier), pastille « Fin dans N j » / « Échu » sur sa ligne, ligne dans la cloche (à qui voit le module Contrats — formule
+   et métier compris — ET peut modifier une vente ; le geste ouvre Contrats et vise la ligne ; l'identifiant porte la date de
+   fin, un contrat renouvelé repart à zéro). **Tout se calcule, rien ne s'écrit** : un contrat ne passe pas tout seul à
+   « Expiré ». Une seule liste pour l'écran et la cloche (`ctrRappels`). `test-847` 36 ✓ (heure de Paris autour des deux
+   changements d'heure) ; sonde au doigt `scratchpad/sonde-ctr-echeances.js` **28 ✓** (bureau et téléphone, comptable qui
+   voit sans modifier, technicien qui ne voit rien, aucune écriture), contre-épreuve sur la 763 : 19 ✗. ⛔ **La production
+   ne l'a pas** (règle du 23 septembre : rien en version publique tant qu'OP GESTION vit chez Firebase) — le site ne le
+   promet donc plus (`e468a3c`).
+2. **Six pages par fonction et une page nettoyage** (`5bbf41b`) : `logiciel-planning-interventions`, `-gestion-de-stock`,
+   `-devis-factures`, `-bons-de-commande`, `-pointage`, `-registre-sanitaire`, `logiciel-nettoyage` — même gabarit que les
+   pages métier, 552 à 673 mots, un H1, titre ≤ 60, description ≤ 155, liens tarifs et inscription, menu (Applications,
+   Métiers), pied de chaque page, plan du site (21 adresses). **Chaque phrase relue dans `app.html` v763 en service** — la
+   liste des vérifications est en tête de `FONCTIONS` (`scripts/site-marine.js`) ; chaque page dit dans quelle formule la
+   fonction commence (`PLAN_BLOQUE`), et `test-846` § 4 bis le vérifie carte par carte.
+3. **Petits restes** (`e468a3c`) : descriptions ≤ 155 sur les 21 pages publiques ; image de partage en JPEG 1200 × 630
+   (86 Ko, `vitrine/v2/captures/partage-tableau-jour.jpg`) ; « temps réel » seulement pour OP MESSAGES (une messagerie).
+   **Et la relecture a trouvé plus grave que le « temps réel »** (`2b3fb92`, `7a4bd99`, `0e5b48d`) — des promesses que
+   l'application ne tient pas, sur le site, la page de paiement, le portail et les Paramètres de la bêta :
+   · « chiffré de bout en bout », « à vous seul » : le serveur garde la clé de chaque équipe → « chiffrées (AES-256) sur
+     l'appareil avant l'envoi, chaque entreprise a sa propre clé » ;
+   · **Business Premium promettait un espace client, des statistiques avancées, le multi-sites et le nom de
+     l'application remplacé : rien de cela n'existe** → « votre logo et votre couleur d'entreprise, pour toute l'équipe »,
+     et « OP MESSAGES inclus dès sa réouverture » (plus « OP MESSAGES complet, visio HD » : il est fermé). ⚠️ **À dire à
+     Justin** : la liste de Premium est plus courte qu'avant — c'est la vraie ;
+   · « export Factur-X » (un XML nu), « récapitulatif à la comptable » (jamais appelé), « confirmations de rendez-vous »
+     (aucun bouton), « devis avec photos » (xylophage seul), SMS « avec le PDF » (le résumé seul s'ouvre sur le téléphone).
+   `test-846` refuse ces 25 formulations, avec leur contre-épreuve (les phrases justes qui les remplacent) : **361 ✓**.
+4. **Sortie de Firebase, étape 8 FAITE** : Justin a cliqué « Faire l'inventaire » dans la Tour (route vérifiée d'abord :
+   elle lit et recopie, écrit sa preuve, ne supprime rien, ne coupe rien) → **« complet — 1 entreprise : 1 document,
+   0 absente de Google, 0 fermée »**. Reste l'**étape 9, le 25 octobre (J+30)** — rappel déjà programmé
+   (`trig_01MPuFwNnQEN7YYLr98Ysv19`) : `reglage.js documents.copieFirebase=false`, redémarrer, puis supprimer les données
+   Firebase d'OP GESTION (pas OP MESSAGES, qui y vit encore).
+5. **`test-641` tombait dans la suite complète (2 fois sur 2), jamais seul** (`56ed05f`) : 0/15 sous deux cœurs pris,
+   0/12 sous quatre, 0/10 sous pression disque, 0/3 derrière les onze suites qui le précèdent — la cause exacte n'est PAS
+   reproduite. Ce qui l'est : le bloc v683 pariait 900 ms sur une écriture différée de 500 ms, et son premier contrôle
+   passait aussi sur un fichier jamais écrit (`null` attendu = `null` d'un fichier absent). Il attend désormais que
+   `monitor.json` porte le rapport et compare des identifiants (112 ✓) ; `bancs-ci.sh` montre les deux lignes qui suivent
+   un ✗ (attendu / obtenu) — **si ça retombe, la valeur lue sera dans la sortie de la CI.**
+
+⏳ **CE QUI ATTEND « POUSSE »** : le site (19 pages publiques, plan du site, pages voisines, portail, page de paiement, leurs
+aperçus), `scripts/site-marine.js`, les bancs du site, `test-641`, `bancs-ci.sh` **et la bêta v764** (`beta.html`). ⛔ **Sans
+`app.html` ni `sw.js`** (la production reste en v763) **ni `test-847`** (il lit `app.html` : sur `main`, il tomberait sur la
+763). Aucun fichier de `server/` : le VPS ne bouge pas.
+
+⚠️ **Dettes vues en chemin, NON corrigées** (aucune ne casse rien chez un client ; toutes retirées des promesses du site) :
+- une notification POUSSÉE ouvre l'application, pas la fiche (le serveur retire exprès le fragment de l'adresse) ; seule la
+  cloche mène à la fiche ;
+- « nouvelle intervention » prévient toute l'équipe, pas le seul technicien affecté ;
+- `envoyerComptaComplet` : du code mort (aucun appelant) ;
+- pas de bouton de confirmation de rendez-vous au client ;
+- l'« export Factur-X » est un XML nu, pas une facture Factur-X (PDF/A-3 + XML) ;
+- la capture `iphone-box` montre une box « Utilitaire — Léo Martin », catégorie « Véhicule » — contraire au site (« une box
+  est un lieu, pas un véhicule ») : à refaire le jour où les captures seront reprises.
+
+⏳ **À Justin, pas urgent** : G2 — garder « OP GESTION » comme nom du produit (recommandé : c'est le nom de l'application et
+de son logo ; TEAM OP est l'éditeur, déjà écrit comme tel) ou le renommer « TEAM OP » ; et confirmer qu'il a retiré les
+cartes de formule en dollars.
+
+---
+
 # ✅ 29 SEPTEMBRE 2026, NUIT — TOUT EST EN SERVICE (`5e57196`, puis `142e19c`) ; LA VÉRIFICATION DE `main` ÉTAIT ROUGE PAR UN BANC — CORRIGÉE, VERTE (run 519)
 
 **En service sur le « pousse » de Justin** : `main` `3785a0f` → `a8fb0fa` (le fichier de Google, seul) → `12d0101` (le site
@@ -2052,7 +2123,7 @@ pour le retour arrière puis supprimée (étape 9) — promis par `sous-traitanc
 | 5 | Justin, dans la Tour, AUSSITÔT | « Exiger la dernière version » (748) | encadré : « porte de version chez Google : v748 » (confirmée, pas seulement posée) |
 | 6 | Justin, dans la Tour | ✅ l'annonce v748 — envoyée le 26 septembre au matin | nombre d'entreprises prévenues (affiché par la Tour à l'envoi ; le serveur ne l'écrit qu'à son journal) |
 | 7 | l'agent | surveiller `/health` : `copiesEchec1h`, `copiesEnAttente1h`, `illisibles1h`, `processus` | zéros |
-| 8 | Justin, J+quelques jours | « Faire l'inventaire » dans la Tour | « complet » |
+| 8 | Justin, J+quelques jours | ✅ « Faire l'inventaire » dans la Tour — fait le 29 septembre au soir | « complet — 1 entreprise : 1 document, 0 absente de Google, 0 fermée » |
 | 9 | Justin, J+30 | `node /opt/teamop/repo/server/reglage.js documents.copieFirebase=false`, redémarrer, puis supprimer les données Firebase d'OP GESTION (pas OP MESSAGES, qui y vit encore, fermée) | `/health` : `copieFirebase:false` |
 
 ⚠️ **De 2 à 4 d'une traite** : dès `comptes.actif=true`, le serveur ne croit plus un jeton Google
