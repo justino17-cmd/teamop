@@ -2334,6 +2334,10 @@ app.post('/api/monitor/espaces/abonnement', monPatronStrict, (req, res) => {
 });
 // payé ? — le réglage manuel du patron d'abord ; sinon trois portes : formule gratuite, code promo actif, abonnement Stripe actif
 const espStripeCache = { ts: 0, data: null, enCours: null, echecTs: 0 };
+/* La liste des abonnements se relit au plus toutes les cinq minutes ; plus vieille, elle est PÉRIMÉE : pendant une panne de
+   Stripe, la dernière liste connue sert (on ne coupe pas une entreprise qui paie), mais un paiement fait depuis n'y est pas
+   — le rappel J-7 ne décide rien dessus (`abonnementGestion`). La variable : pour les bancs seulement. */
+const STRIPE_CACHE_MS = Math.max(1, parseInt(process.env.TEAMOP_STRIPE_CACHE_MS, 10) || 5 * 60000);
 async function espacePaye(e, opts) {
   /* ⛔⛔ `lecture` : RÉPONDRE SANS RIEN ACTIVER (24 septembre 2026, relevé par `gardien`).
      Le rattrapage ci-dessous ÉCRIT (compteur du code, `promos-usages.json`) et ENVOIE un
@@ -2488,7 +2492,7 @@ async function espaceStripe(e) {
          s'il n'y en a jamais eu : comme avant, où chaque appel échouait à son tour).
          ⛔ Y COMPRIS POUR L'APPEL QUI ATTENDAIT LA LECTURE RATÉE : il rendait « non payé » à une entreprise qui paie, alors
          qu'une liste connue était là — on ne coupe pas une entreprise qui paie le temps d'une panne de Stripe. */
-      if (Date.now() - espStripeCache.ts > 5 * 60000 || !espStripeCache.data) {
+      if (Date.now() - espStripeCache.ts > STRIPE_CACHE_MS || !espStripeCache.data) {
         if (!espStripeCache.enCours && Date.now() - espStripeCache.echecTs > 60000) {
           espStripeCache.enCours = stripeAbosBruts(sk)
             .then(d => { espStripeCache.data = d; espStripeCache.ts = Date.now(); espStripeCache.echecTs = 0; },
@@ -9097,7 +9101,9 @@ function rappelEcheanceMail(code, finLe, f, n, prelev) {
 function rappelAbonneMail(code, finLe, ab) {
   const fr = d => String(d).split('-').reverse().join('/');
   const finFr = fr(finLe);
-  const quand = ab.resilie ? 'Votre abonnement a été résilié : il s\'arrête le ' + fr(ab.resilie) + '. Ensuite, sans nouvel abonnement, l\'application repassera en formule Gratuit — vos données ne bougent pas.'
+  /* résilié mais courant au-delà de la période : jusqu'à sa fin, et le prélèvement qui aura lieu avant, s'il est en essai */
+  const arret = 'a été résilié : il s\'arrête le ' + fr(ab.resilie) + '. Ensuite, sans nouvel abonnement, l\'application repassera en formule Gratuit — vos données ne bougent pas.';
+  const quand = ab.resilie ? (ab.premier ? 'Le premier prélèvement de votre abonnement aura lieu le ' + fr(ab.premier) + '. Il ' + arret : 'Votre abonnement ' + arret)
     : ab.premier ? 'Le premier prélèvement de votre abonnement aura lieu le ' + fr(ab.premier) + '.'
     : ab.prochaine ? 'Prochaine échéance de votre abonnement : le ' + fr(ab.prochaine) + '.' : '';
   /* un abonnement en impayé (`past_due`) ne « prend pas le relais » sans rien faire : on le dit, sans l'alarmer ; un
@@ -9111,54 +9117,60 @@ function rappelAbonneMail(code, finLe, ab) {
       + '\n\nUne question : contact@teamop.fr\n\n— TEAM OP · teamop.fr',
     html: mailTeamOP({ chip: 'Abonnement', chipBg: '#EEF7F2', chipColor: '#1E7A4E', titre: 'Votre abonnement prend le relais' + (ab.impaye || ab.resilie ? '' : ' ✅'),
       corpsHtml: 'Bonjour,<br>la période offerte par votre code « <b>' + code + '</b> » se termine le <b>' + finFr + '</b>. ' + suite,
-      blocHtml: quand ? MAIL_BLOCS.cadre('💳 ' + quand.replace(/le (\d{2}\/\d{2}\/\d{4})/, 'le <b>$1</b>'), '#EEF7F2', '#CFE6D8', '#17233B') : '',
+      blocHtml: quand ? MAIL_BLOCS.cadre('💳 ' + quand.replace(/le (\d{2}\/\d{2}\/\d{4})/g, 'le <b>$1</b>'), '#EEF7F2', '#CFE6D8', '#17233B') : '',
       boutonTxt: 'Ouvrir mon application', boutonUrl: 'https://teamop.fr/app.html' })
   };
 }
-/* L'abonnement OP GESTION d'une entreprise, pour le rappel : `aucun` (pas de Stripe, ou rien de vivant à elle — OP MESSAGES
-   seul compris), `inconnu` (Stripe relié mais sa liste illisible : on ne SAIT pas), ou `abonne` avec la date de son premier
-   prélèvement (en essai), de sa prochaine échéance, ou de sa fin s'il est résilié. La lecture est celle d'`espacePaye`
-   (`espaceStripe`, `formuleEtPlaces`) : partagée, en cache cinq minutes, une minute de pause après un échec.
-   ⛔ SES ABONNEMENTS D'OP GESTION, PAS LE PREMIER TROUVÉ : celui-là peut être l'abonnement OP MESSAGES — ses dates ne disent
-   rien de ce qui prend le relais. Et la règle est celle qui décidera de la formule servie après la période
-   (`formulePayee`) : un abonnement d'avant la bascule ou sans ligne lisible compte (la fiche reste servie) ; seul un
-   abonnement d'après, lisible, d'OP MESSAGES seul, ne prend aucun relais. Les dates ne se lisent que sur SES abonnements
-   (`memes`) : un abonnement trouvé par une adresse partagée, gravé pour une autre entreprise, la rend « payée » (limite
-   connue d'`espacePaye`) — elle est abonnée, mais sans date : ce seraient celles de l'autre.
-   ⛔ UN ABONNEMENT RÉSILIÉ (`cancel_at`, `cancel_at_period_end`) S'ARRÊTE À SA FIN PROGRAMMÉE. Payé pendant la période puis
-   résilié pendant l'essai, il ne prend AUCUN relais : c'est le rappel de qui n'a pas d'abonnement (sinon on lui écrivait
-   « rien à faire » la veille de le repasser en Gratuit). Résilié mais courant au-delà, il prend le relais jusqu'à cette date,
-   et le courriel la dit. */
+/* L'abonnement OP GESTION d'une entreprise, pour le rappel des sept jours : `aucun` (le courriel habituel), `inconnu` (Stripe
+   illisible, ou sa liste périmée : on ne SAIT pas), ou `abonne` avec la date de son premier prélèvement (en essai), de sa
+   prochaine échéance, ou de sa fin s'il est résilié.
+   ⛔⛔ LA DÉCISION EST CELLE QU'`espacePaye` PRENDRA LE LENDEMAIN DE LA FIN DE LA PÉRIODE (seconde relecture de `gardien`,
+   29 septembre 2026). Décider sur l'état d'aujourd'hui disait « rien à faire » à une entreprise que l'application
+   repasserait en Gratuit : un abonnement résilié avant la fin (le sien, ou celui d'une autre entreprise à la même adresse
+   qui la rendait « payée »), ou un abonnement résilié qui faisait seul monter une fiche Gratuit. On rejoue donc les mêmes
+   règles (`espaceStripeDans`, `formuleEtPlaces`) sur les seuls abonnements encore vivants ce jour-là.
+   · réglée à la main dans la Tour, ou fiche sans formule : `espacePaye` décide sans lire Stripe — le courriel habituel,
+     comme avant (sans la promesse : `finEssaiPeriode` la refuse aussi) ;
+   · Gratuit servi ce jour-là (OP MESSAGES seul, fiche Gratuit que rien de lisible ne fait monter) : le courriel habituel ;
+   · les dates se lisent sur SES abonnements d'OP GESTION (`memes` : ni OP MESSAGES trouvé le premier, ni l'abonnement d'une
+     autre entreprise à la même adresse — abonnée alors, sans date) ; plusieurs : le plus durable ;
+   · les jours sont ceux de Paris (un renouvellement à 23 h 30 UTC tombe le lendemain chez le client). */
 async function abonnementGestion(e, finLe) {
   if (!(config.stripe && config.stripe.secretKey) || !e) return { etat: 'aucun' };
-  let s = null;
-  try { s = await espaceStripe(e); } catch (err) { s = null; }
-  /* `espaceStripe` rend `null` pour « rien à elle » ET pour « Stripe muet » : sans aucune liste connue, c'est le second */
-  if (!s) return espStripeCache.data ? { etat: 'aucun' } : { etat: 'inconnu' };
-  let fp = null;
-  try { fp = formuleEtPlaces(e, s); } catch (err) { fp = null; }
-  /* ⛔ LA FORMULE QU'`espacePaye` SERVIRA APRÈS LA PÉRIODE : celle qui est payée, sinon la fiche — et une fiche « Gratuit »
-     reste Gratuit tant que rien de lisible ne la fait monter. Gratuit servi = aucun relais (OP MESSAGES seul compris). */
-  if (((fp && fp.f) || e.formule) === 'gratuit') return { etat: 'aucun' };
+  if (!e.formule || e.aboStatut) return { etat: 'aucun' };
+  try { await espaceStripe(e); } catch (err) {}
+  /* ⛔ STRIPE ILLISIBLE — OU SEULEMENT UNE LISTE PÉRIMÉE (la dernière connue sert pendant une panne) : un paiement fait depuis
+     n'y est pas, et on inviterait à payer une entreprise qui vient de le faire */
+  if (!espStripeCache.data || Date.now() - espStripeCache.ts > STRIPE_CACHE_MS) return { etat: 'inconnu' };
+  const mF = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(finLe || ''));
+  if (!mF) return { etat: 'inconnu' };
+  const debut = Date.UTC(+mF[1], +mF[2] - 1, +mF[3] + 1) / 1000;   // le lendemain de la fin de la période, 0 h UTC
   const lignes = sb => (sb && sb.items && Array.isArray(sb.items.data)) ? sb.items.data : [];
   const sec = x => { const n = parseInt(x, 10); return n > 0 ? n : 0; };
-  const jour = n => n ? new Date(n * 1000).toISOString().slice(0, 10) : '';
   const finPeriode = sb => sec(sb.current_period_end) || sec((lignes(sb)[0] || {}).current_period_end);
-  const finProg = sb => sec(sb.cancel_at) || (sb.cancel_at_period_end ? finPeriode(sb) || sec(sb.trial_end) : 0);
+  /* la fin programmée d'un abonnement résilié ; sans date lisible, on ne sait pas quand il s'arrête : il ne compte pas */
+  const finProg = sb => sec(sb.cancel_at) || (sb.cancel_at_period_end ? (finPeriode(sb) || sec(sb.trial_end) || 1) : 0);
+  let s = null, fp = null;
+  try { s = espaceStripeDans(e, espStripeCache.data.filter(sb => { const f = finProg(sb); return !f || f > debut; })); }
+  catch (err) { return { etat: 'inconnu' }; }
+  if (!s) return { etat: 'aucun' };
+  try { fp = formuleEtPlaces(e, s); } catch (err) { fp = null; }
+  if (((fp && fp.f) || e.formule) === 'gratuit') return { etat: 'aucun' };
   const deGestion = sb => aboAvantBascule(sb) || !lignes(sb).length || lignes(sb).some(it => !ligneMessages(it));
   const gestion = (s.memes || []).filter(sb => sb && deGestion(sb));
-  const mF = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(finLe || ''));
-  const debut = mF ? Date.UTC(+mF[1], +mF[2] - 1, +mF[3] + 1) / 1000 : 0;   // le lendemain de la fin de la période, 0 h UTC
-  const relais = gestion.filter(sb => { const f = finProg(sb); return !f || f > debut; });
-  if (gestion.length && !relais.length) return { etat: 'aucun' };   // résiliés, et finis avec la période : aucun relais
-  /* servie sans abonnement qui soit sûrement le sien (adresse partagée) : abonnée, sans date à dire */
-  if (!relais.length) return { etat: 'abonne', impaye: false, resilie: '', premier: '', prochaine: '' };
-  /* le plus durable d'abord : non résilié, puis à jour de ses paiements, puis celui qui court le plus loin */
-  const rang = sb => (finProg(sb) ? 2 : 0) + (sb.status === 'past_due' ? 1 : 0);
-  const abo = relais.slice().sort((a, b) => rang(a) - rang(b) || (finProg(b) - finProg(a)))[0];
+  if (!gestion.length) return { etat: 'abonne', impaye: false, resilie: '', premier: '', prochaine: '' };
+  /* le plus durable d'abord : non résilié ; puis actif, en essai, en impayé ; puis celui qui court le plus loin */
+  const rang = sb => (finProg(sb) ? 4 : 0) + (sb.status === 'past_due' ? 2 : sb.status === 'trialing' ? 1 : 0);
+  const abo = gestion.slice().sort((a, b) => rang(a) - rang(b) || (finProg(b) - finProg(a)))[0];
   const fin = finProg(abo);
-  return { etat: 'abonne', impaye: abo.status === 'past_due', resilie: jour(fin),
-    premier: !fin && abo.status === 'trialing' ? jour(sec(abo.trial_end) || finPeriode(abo)) : '',
+  const jour = n => {
+    if (!n) return '';
+    const p = {};
+    for (const x of new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(n * 1000))) p[x.type] = x.value;
+    return p.year + '-' + p.month + '-' + p.day;
+  };
+  return { etat: 'abonne', impaye: abo.status === 'past_due', resilie: fin ? jour(fin) : '',
+    premier: abo.status === 'trialing' ? jour(sec(abo.trial_end) || finPeriode(abo)) : '',
     prochaine: !fin && abo.status !== 'trialing' ? jour(finPeriode(abo)) : '' };
 }
 async function rappelsEcheances() {
@@ -9166,74 +9178,98 @@ async function rappelsEcheances() {
     if (!mailer) return;
     const auj = new Date().toISOString().slice(0, 10);
     const lim = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+    /* Ce qui rend une entreprise ÉLIGIBLE au rappel — une fonction, parce qu'elle se relit APRÈS l'attente de Stripe (seconde
+       relecture de `gardien`) : l'annuaire, la période et le réglage de la Tour ont pu bouger pendant ce temps (une entreprise
+       fermée, supprimée ou « repartie à neuf » depuis la Tour, une adresse changée, une période prolongée ou effacée, un autre
+       passage qui l'a déjà prévenue). `null` : pas de rappel pour elle à ce passage. */
+    const eligible = (code, t, finLe) => {
+      const eq = promoUsages && promoUsages[code] && promoUsages[code].equipes && promoUsages[code].equipes[t];
+      if (!eq || !eq.finLe || eq.finLe !== finLe || eq.finLe < auj || eq.finLe > lim) return null;   // ni passée, ni loin, ni changée
+      /* Tous les noms de l'entreprise : « déjà prévenu » se lit sur n'importe lequel (un espace renommé en porte
+         plusieurs), et la marque se pose sur tous — sinon le rappel repartait le jour où un autre nom devenait
+         le plus récent. L'adresse et l'abonnement réglé à la main se lisent sur l'entrée que l'APPLICATION lit
+         (`espaceParT` : la plus récente). */
+      const noms = Object.keys(espacesReg).filter(s => espacesReg[s] && espaceT(espacesReg[s]) === t);
+      if (!noms.length || noms.some(s => espacesReg[s].rappelFin === eq.finLe)) return null;   // inconnue, ou déjà prévenue
+      if (espaceFerme(t)) return null;   // une entreprise fermée ne reçoit pas « payez pour continuer »
+      const e = espaceParT(t);
+      const dest = (e && e.email) || (noms.map(s => espacesReg[s].email).find(Boolean) || '');
+      if (!dest) return null;   // pas d'adresse
+      /* ⛔ UN ABONNEMENT RÉGLÉ À LA MAIN DANS LA TOUR PRIME sur le code (`espacePaye`) : s'il court au-delà de la
+         période offerte, l'application ne repassera PAS en Gratuit — le rappel mentirait. */
+      if (e && (e.aboStatut === 'actif' || e.aboStatut === 'essai') && (!e.aboFin || e.aboFin > eq.finLe)) return null;
+      return { eq, noms, e, dest, sig: [dest, e && e.formule, e && e.aboStatut, e && e.aboFin].join('|') };
+    };
     for (const [code, u] of Object.entries(promoUsages || {})) {
-      for (const [t, eq] of Object.entries((u && u.equipes) || {})) {
-        if (!eq || !eq.finLe || eq.finLe < auj || eq.finLe > lim) continue;   // ni déjà passée, ni encore loin
-        /* Tous les noms de l'entreprise : « déjà prévenu » se lit sur n'importe lequel (un espace renommé en porte
-           plusieurs), et la marque se pose sur tous — sinon le rappel repartait le jour où un autre nom devenait
-           le plus récent. L'adresse et l'abonnement réglé à la main se lisent sur l'entrée que l'APPLICATION lit
-           (`espaceParT` : la plus récente). */
-        const noms = Object.keys(espacesReg).filter(s => espacesReg[s] && espaceT(espacesReg[s]) === t);
-        if (!noms.length || noms.some(s => espacesReg[s].rappelFin === eq.finLe)) continue;   // inconnue, ou déjà prévenue
-        if (espaceFerme(t)) continue;   // une entreprise fermée ne reçoit pas « payez pour continuer »
-        const e = espaceParT(t);
-        const dest = (e && e.email) || (noms.map(s => espacesReg[s].email).find(Boolean) || '');
-        if (!dest) continue;   // pas d'adresse
-        /* ⛔ UN ABONNEMENT RÉGLÉ À LA MAIN DANS LA TOUR PRIME sur le code (`espacePaye`) : s'il court au-delà de la
-           période offerte, l'application ne repassera PAS en Gratuit — le rappel mentirait. */
-        if (e && (e.aboStatut === 'actif' || e.aboStatut === 'essai') && (!e.aboFin || e.aboFin > eq.finLe)) continue;
-        /* ⛔ LA FORMULE QUE L'ENTREPRISE UTILISE AUJOURD'HUI D'ABORD — celle que la période offerte SERT (`formulePromo` :
-           le code, jamais sous la fiche ; la relecture adverse du 28 septembre avait déjà écarté « celle du code seule »,
-           qui décrivait une formule que personne n'avait). Le courriel la présente en premier, puis propose les autres :
-           le client choisit (Justin, 29 septembre 2026). Rien de connu (code retiré, fiche sans formule) : pas de prix
-           inventé pour « sa » formule, les trois sont proposées. */
-        const f = formulePromo(e, code);
-        const n = (comptesReg[t] && comptesReg[t].c) ? Object.keys(comptesReg[t].c).length : 0;
-        /* ⛔ DÉJÀ ABONNÉE : le courriel sans lien de paiement (`rappelAbonneMail`) — un second paiement serait un second
-           abonnement. Stripe illisible : le courriel habituel, SANS la promesse (on ne sait pas s'il a déjà payé). */
-        const ab = await abonnementGestion(e, eq.finLe);
-        /* ⚠️ L'ATTENTE DE STRIPE REND LA MAIN au serveur : l'annuaire a pu bouger entre-temps (une entreprise fermée ou
-           supprimée depuis la Tour, « repartie à neuf », un autre passage qui l'a déjà prévenue). On relit avant d'écrire — une entrée disparue
-           faisait jeter la boucle dans le `try` global, et s'arrêter TOUS les rappels du passage. Le passage suivant la
-           reprend de zéro. */
-        if (espaceFerme(t) || noms.some(s => !espacesReg[s] || espaceT(espacesReg[s]) !== t || espacesReg[s].rappelFin === eq.finLe)) continue;
-        /* ⛔ « RIEN N'EST PRÉLEVÉ AVANT LA FIN » ne s'écrit que si c'est VRAI pour ce client — la règle même de la page de
-           paiement (`finEssaiPeriode`) : son adresse désigne cette entreprise et elle SEULE (deux entreprises à une adresse,
-           et le paiement sans référence ne choisit pas : facturation immédiate), avec cette période-là. Stripe exige 48 h
-           d'essai : la page le fait jusqu'à l'avant-veille de la fin, 23 h 50 UTC. La limite annoncée est donc
-           l'avant-veille — en France ce jour finit à 22 h ou 23 h UTC, avant la limite réelle — et seulement si elle est
-           encore à venir (un rappel parti tard ne promet pas un délai passé). */
-        const es = finEssaiPeriode([], String(dest).trim().toLowerCase());
-        const mL = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(eq.finLe));
-        const limite = mL ? new Date(Date.UTC(+mL[1], +mL[2] - 1, +mL[3] - 2)).toISOString().slice(0, 10) : '';
-        const prelev = ab.etat === 'aucun' && es && es.t === String(t).trim() && es.finLe === eq.finLe && limite > auj
-          ? { limite: limite.slice(8, 10) + '/' + limite.slice(5, 7), debut: es.debut.split('-').reverse().join('/') } : null;
-        const avant = {}; for (const s of noms) { avant[s] = espacesReg[s].rappelFin; espacesReg[s].rappelFin = eq.finLe; }
-        espacesEcrire();
-        const m = ab.etat === 'abonne' ? rappelAbonneMail(code, eq.finLe, ab) : rappelEcheanceMail(code, eq.finLe, f, n, prelev);
-        mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest, subject: m.subject, text: m.text, html: m.html })
-          /* Un destinataire REFUSÉ pendant que la copie cachée passe ne fait pas échouer l'envoi (`gardien`) : le journal
-             ne dit donc pas « envoyé » pour lui. Pas de nouvel essai — un refus d'adresse ne change pas en six heures, et
-             chaque essai remettrait une copie dans la boîte du support. */
-          .then(info => {
-            const refus = ((info && info.rejected) || []).some(a => String((a && a.address) || a).toLowerCase() === String(dest).toLowerCase());
-            if (refus) console.error('rappel échéance REFUSÉ par la messagerie du client →', masqueMail(dest), '(fin ' + eq.finLe + ') — à prévenir autrement');
-            else console.log('rappel échéance envoyé →', masqueMail(dest), '(fin ' + eq.finLe + ', ' + (ab.etat === 'abonne' ? 'déjà abonnée' + (ab.impaye ? ', en impayé' : '') + (ab.resilie ? ', résiliée au ' + ab.resilie : '')
-              : n + ' utilisateur(s), ' + (f || 'formule inconnue') + (ab.etat === 'inconnu' ? ', Stripe illisible : sans la promesse' : '')) + ')');
-          })
-          /* ⛔ UN RAPPEL QUI N'EST PAS PARTI SE RETENTE : la marque posée avant l'envoi (deux passages ne doivent pas
-             le doubler) se retire, et le passage suivant — six heures plus tard — recommence, tant que la période
-             court. Avant, un serveur d'e-mails indisponible ce jour-là le perdait pour toujours.
-             ⚠️ Un message ARRIVÉ dont la réponse s'est perdue (connexion coupée avant le « 250 ») repart au passage suivant :
-             le client le reçoit deux fois. Rare, borné (un essai par passage, sept jours au plus) — accepté : deux rappels
-             valent mieux qu'aucun. Et le motif du refus passe par `sansAdresses` : un serveur d'e-mails cite volontiers
-             l'adresse qu'il refuse (« 554 5.7.1 <client@…> »), et ce journal ne porte aucune adresse de client en clair. */
-          .catch(err => {
-            console.error('rappel échéance non parti (' + sansAdresses(String((err && err.message) || err)) + ') — nouvel essai au prochain passage');
-            let defait = false;
-            for (const s of noms) if (espacesReg[s] && espacesReg[s].rappelFin === eq.finLe) { espacesReg[s].rappelFin = avant[s]; defait = true; }
-            if (defait) espacesEcrire();
-          });
+      for (const [t, eq0] of Object.entries((u && u.equipes) || {})) {
+        /* ⛔ UNE ENTREPRISE QUI JETTE N'ARRÊTE PAS LES AUTRES (seconde relecture de `gardien`) : sans ce `try`, une donnée
+           inattendue arrêtait tout le passage — et le même arrêt revenait à chaque passage, sur la même donnée. */
+        try {
+          if (!eq0 || !eq0.finLe) continue;
+          const el0 = eligible(code, t, eq0.finLe);
+          if (!el0) continue;
+          /* ⛔ DÉJÀ ABONNÉE : le courriel sans lien de paiement (`rappelAbonneMail`) — un second paiement serait un second
+             abonnement. La décision est celle qu'`espacePaye` prendra le lendemain de la fin (`abonnementGestion`). */
+          const ab = await abonnementGestion(el0.e, eq0.finLe);
+          /* ⚠️ L'ATTENTE DE STRIPE REND LA MAIN au serveur : on relit TOUT avant d'écrire. Une entreprise qui a changé pendant
+             ce temps attend le passage suivant, qui la reprend de zéro (avant : une entrée disparue faisait jeter la boucle, et
+             s'arrêter TOUS les rappels du passage). */
+          const el = eligible(code, t, eq0.finLe);
+          if (!el || el.sig !== el0.sig) continue;
+          const { eq, noms, e, dest } = el;
+          /* ⛔ LA FORMULE QUE L'ENTREPRISE UTILISE AUJOURD'HUI D'ABORD — celle que la période offerte SERT (`formulePromo` :
+             le code, jamais sous la fiche ; la relecture adverse du 28 septembre avait déjà écarté « celle du code seule »,
+             qui décrivait une formule que personne n'avait). Le courriel la présente en premier, puis propose les autres :
+             le client choisit (Justin, 29 septembre 2026). Rien de connu (code retiré, fiche sans formule) : pas de prix
+             inventé pour « sa » formule, les trois sont proposées. */
+          const f = formulePromo(e, code);
+          const n = (comptesReg[t] && comptesReg[t].c) ? Object.keys(comptesReg[t].c).length : 0;
+          /* ⛔ « RIEN N'EST PRÉLEVÉ AVANT LA FIN » ne s'écrit que si c'est VRAI pour ce client — la règle même de la page de
+             paiement (`finEssaiPeriode`) : son adresse désigne cette entreprise et elle SEULE (deux entreprises à une adresse,
+             et le paiement sans référence ne choisit pas : facturation immédiate), avec cette période-là. Stripe exige 48 h
+             d'essai : la page le fait jusqu'à l'avant-veille de la fin, 23 h 50 UTC. La limite annoncée est donc
+             l'avant-veille — en France ce jour finit à 22 h ou 23 h UTC, avant la limite réelle — et seulement si elle est
+             encore à venir (un rappel parti tard ne promet pas un délai passé). */
+          const es = finEssaiPeriode([], String(dest).trim().toLowerCase());
+          const mL = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(eq.finLe));
+          const limite = mL ? new Date(Date.UTC(+mL[1], +mL[2] - 1, +mL[3] - 2)).toISOString().slice(0, 10) : '';
+          /* ⛔ STRIPE ILLISIBLE (ou sa liste périmée) : on ne sait pas si l'entreprise a déjà payé — l'inviter à payer pourrait
+             lui faire prendre un second abonnement. Tant que la promesse aurait encore un délai (la limite est à venir), le
+             rappel attend le passage suivant (six heures), sans marque ; ensuite il part tel quel, SANS la promesse : prévenir
+             de la fin vaut mieux que se taire (seconde relecture de `gardien`). */
+          if (ab.etat === 'inconnu' && limite > auj) {
+            console.log('rappel échéance reporté →', masqueMail(dest), '(fin ' + eq.finLe + ', Stripe illisible : nouvel essai au prochain passage)');
+            continue;
+          }
+          const prelev = ab.etat === 'aucun' && es && es.t === String(t).trim() && es.finLe === eq.finLe && limite > auj
+            ? { limite: limite.slice(8, 10) + '/' + limite.slice(5, 7), debut: es.debut.split('-').reverse().join('/') } : null;
+          const avant = {}; for (const s of noms) { avant[s] = espacesReg[s].rappelFin; espacesReg[s].rappelFin = eq.finLe; }
+          espacesEcrire();
+          const m = ab.etat === 'abonne' ? rappelAbonneMail(code, eq.finLe, ab) : rappelEcheanceMail(code, eq.finLe, f, n, prelev);
+          mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: dest, subject: m.subject, text: m.text, html: m.html })
+            /* Un destinataire REFUSÉ pendant que la copie cachée passe ne fait pas échouer l'envoi (`gardien`) : le journal
+               ne dit donc pas « envoyé » pour lui. Pas de nouvel essai — un refus d'adresse ne change pas en six heures, et
+               chaque essai remettrait une copie dans la boîte du support. */
+            .then(info => {
+              const refus = ((info && info.rejected) || []).some(a => String((a && a.address) || a).toLowerCase() === String(dest).toLowerCase());
+              if (refus) console.error('rappel échéance REFUSÉ par la messagerie du client →', masqueMail(dest), '(fin ' + eq.finLe + ') — à prévenir autrement');
+              else console.log('rappel échéance envoyé →', masqueMail(dest), '(fin ' + eq.finLe + ', ' + (ab.etat === 'abonne' ? 'déjà abonnée' + (ab.impaye ? ', en impayé' : '') + (ab.resilie ? ', résiliée au ' + ab.resilie : '')
+                : n + ' utilisateur(s), ' + (f || 'formule inconnue') + (ab.etat === 'inconnu' ? ', Stripe illisible : sans la promesse' : '')) + ')');
+            })
+            /* ⛔ UN RAPPEL QUI N'EST PAS PARTI SE RETENTE : la marque posée avant l'envoi (deux passages ne doivent pas
+               le doubler) se retire, et le passage suivant — six heures plus tard — recommence, tant que la période
+               court. Avant, un serveur d'e-mails indisponible ce jour-là le perdait pour toujours.
+               ⚠️ Un message ARRIVÉ dont la réponse s'est perdue (connexion coupée avant le « 250 ») repart au passage suivant :
+               le client le reçoit deux fois. Rare, borné (un essai par passage, sept jours au plus) — accepté : deux rappels
+               valent mieux qu'aucun. Et le motif du refus passe par `sansAdresses` : un serveur d'e-mails cite volontiers
+               l'adresse qu'il refuse (« 554 5.7.1 <client@…> »), et ce journal ne porte aucune adresse de client en clair. */
+            .catch(err => {
+              console.error('rappel échéance non parti (' + sansAdresses(String((err && err.message) || err)) + ') — nouvel essai au prochain passage');
+              let defait = false;
+              for (const s of noms) if (espacesReg[s] && espacesReg[s].rappelFin === eq.finLe) { espacesReg[s].rappelFin = avant[s]; defait = true; }
+              if (defait) espacesEcrire();
+            });
+        } catch (err) { console.error('rappelsEcheances (une entreprise) :', sansAdresses(String((err && err.message) || err))); }
       }
     }
   } catch (e) { console.error('rappelsEcheances:', e.message); }

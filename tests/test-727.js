@@ -78,7 +78,11 @@ const LBL2 = (/^const FORMULE_LBL2 = .*$/m.exec(SRC) || [''])[0];
 const SERVIE = ['formulePayee', 'formuleDuCode', 'formulePromo', 'placesDeFormule', 'formuleEtPlaces', 'espaceStripe', 'periodeOfferte', 'espaceStripeDans'].map(extraire);
 vrai('la formule servie, ses aides et le rattachement Stripe sont trouvés dans le fichier réel',
   /ligneMessages/.test(LIGNES) && /Business Premium/.test(LBL2) && SERVIE.every(Boolean) && /^async function espaceStripe/.test(SERVIE[5]));
-AIDES.push(CONSTS, ...PLACES, LIGNES, LBL2, ...SERVIE);
+/* ⚠️ la fenêtre du cache Stripe (29 septembre 2026, seconde relecture de `gardien`) : `espaceStripe` la lit, et sans elle
+   son premier appel jetait dans son `try` — tout paiement se lisait « non payé » (43 contrôles de ce banc tombés ainsi) */
+const CACHE_MS = (/^const STRIPE_CACHE_MS = .*$/m.exec(SRC) || [''])[0];
+vrai('la fenêtre du cache Stripe est trouvée dans le fichier réel', /STRIPE_CACHE_MS = Math\.max/.test(CACHE_MS));
+AIDES.push(CONSTS, ...PLACES, LIGNES, LBL2, CACHE_MS, ...SERVIE);
 const PARAMS = ['config', 'espStripeCache', 'promoUsages', 'stripeAbosBruts', 'console', 'savePromoUsages', 'mailPromoActive', 'espacesReg', 'espaceParT', 'crypto', 'promosIllisible'];
 const construire = () => new Function(...PARAMS, AIDES.join('\n') + '\n' + SRC.slice(i, fin) + '\nreturn espacePaye;');
 const avec = (abos) => construire()(

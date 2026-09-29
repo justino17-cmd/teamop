@@ -7,7 +7,8 @@
    server/index.js et exécutées ; la page est ouverte dans le Chromium de l'image, en local, sans réseau.
    Et, depuis la relecture de `gardien` (29 septembre 2026), le courriel de l'entreprise DÉJÀ ABONNÉE (`rappelAbonneMail` :
    « votre abonnement prend le relais », sans lien de paiement) dans ses trois variantes — en essai, en impayé, résiliée —
-   jour et nuit : la pastille, le titre et la ligne de date se lisent, aucun lien ne mène à la page de paiement.
+   jour et nuit : la pastille, le titre et la ligne de date se lisent, aucun lien ne mène à la page de paiement. Et, après
+   sa seconde relecture, la variante « en essai, résiliée APRÈS l'essai » (le prélèvement, puis la fin : deux dates).
    Usage : node scratchpad/sonde-courriel-j7.js      (photos dans scratchpad/vues-courriel/) */
 const fs = require('fs'), path = require('path'), net = require('net'), os = require('os');
 const { spawn } = require('child_process');
@@ -61,9 +62,11 @@ const DEBUT = new Date(Date.parse(FIN + 'T00:00:00Z') + 86400000).toISOString().
 const ECH = new Date(Date.parse(FIN + 'T00:00:00Z') + 20 * 86400000).toISOString().slice(0, 10);
 const fr = iso => iso.split('-').reverse().join('/');
 const ABONNES = {
-  'abonne-essai': [abonne('ESSAI-SONDE', FIN, { etat: 'abonne', impaye: false, resilie: '', premier: DEBUT, prochaine: '' }), fr(DEBUT)],
-  'abonne-impaye': [abonne('ESSAI-SONDE', FIN, { etat: 'abonne', impaye: true, resilie: '', premier: '', prochaine: ECH }), fr(ECH)],
-  'abonne-resilie': [abonne('ESSAI-SONDE', FIN, { etat: 'abonne', impaye: false, resilie: ECH, premier: '', prochaine: '' }), fr(ECH)] };
+  'abonne-essai': [abonne('ESSAI-SONDE', FIN, { etat: 'abonne', impaye: false, resilie: '', premier: DEBUT, prochaine: '' }), [fr(DEBUT)]],
+  'abonne-impaye': [abonne('ESSAI-SONDE', FIN, { etat: 'abonne', impaye: true, resilie: '', premier: '', prochaine: ECH }), [fr(ECH)]],
+  'abonne-resilie': [abonne('ESSAI-SONDE', FIN, { etat: 'abonne', impaye: false, resilie: ECH, premier: '', prochaine: '' }), [fr(ECH)]],
+  /* en essai, résiliée pour une date APRÈS l'essai : le prélèvement d'abord, puis la fin — deux dates en gras */
+  'abonne-essai-resilie': [abonne('ESSAI-SONDE', FIN, { etat: 'abonne', impaye: false, resilie: ECH, premier: DEBUT, prochaine: '' }), [fr(DEBUT), fr(ECH)]] };
 for (const [nom, [m]] of Object.entries(ABONNES)) fs.writeFileSync(path.join(SORTIE, 'j7-' + nom + '.html'), m.html);
 vrai('(population) les trois variantes « déjà abonnée » sont fabriquées par la vraie fonction',
   Object.values(ABONNES).every(([m]) => /prend le relais/.test(m.html) && !/recap-abonnement/.test(m.html)));
@@ -108,7 +111,7 @@ vrai('(population) les trois variantes « déjà abonnée » sont fabriquées pa
         const et = 'J-7 ' + nom + ' · ' + (mode === 'light' ? 'jour' : 'nuit');
         vrai(et + ' : la pastille « Abonnement » se lit (' + (q && q.puce) + ' ≥ 4,5)', q && q.puce >= 4.5);
         vrai(et + ' : le titre se lit (' + (q && q.titre) + ' ≥ 4,5)', q && q.titre >= 4.5);
-        vrai(et + ' : la ligne 💳 se lit (' + (q && q.ligne) + ' ≥ 4,5), sa date en gras', q && q.ligne >= 4.5 && JSON.stringify(q.gras) === JSON.stringify([ABONNES[nom][1]]));
+        vrai(et + ' : la ligne 💳 se lit (' + (q && q.ligne) + ' ≥ 4,5), ses dates en gras (' + ABONNES[nom][1].join(', ') + ')', q && q.ligne >= 4.5 && JSON.stringify(q.gras) === JSON.stringify(ABONNES[nom][1]));
         vrai(et + ' : aucun lien vers la page de paiement — seulement l\'application (' + (q && q.liens.filter(h => /teamop\.fr/.test(h)).join(', ')) + ')',
           q && !q.liens.some(h => /recap-abonnement|stripe/i.test(h)) && q.liens.some(h => h === 'https://teamop.fr/app.html'));
         vrai(et + ' : rien ne dépasse de côté à 390 px (' + (q && q.largeur) + ')', q && q.largeur <= 390);
