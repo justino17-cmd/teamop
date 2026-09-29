@@ -287,9 +287,11 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
       O.includes(promesseHtml(5)) && O.indexOf(promesseHtml(5)) > O.indexOf('(2 mois offerts)</span>') && O.indexOf(promesseHtml(5)) < O.indexOf('<b>Ou une autre formule'));
     vrai('   kappa (fin dans 3 jours) : au plus tard le ' + L(3) + ', premier prélèvement le ' + DB(3), de('kappa').includes(promesseTxt(3)) && de('kappa').includes(promesseHtml(3)));
     const promet = m => /rien n'est prélevé avant le/.test(m);
-    v('⛔ la promesse part à qui elle est VRAIE — et ni à rho (son adresse porte deux entreprises), ni à pi (la limite serait aujourd\'hui)',
-      recus.filter(promet).map(destinataire).sort(), ['eta@exemple-840.fr', 'kappa@exemple-840.fr', 'lambda-inconnue@exemple-840.fr', 'mu@exemple-840.fr', 'nu@exemple-840.fr', 'omicron@exemple-840.fr', 'psi@exemple-840.fr', 'xi@exemple-840.fr']);
-    vrai('   (population) rho et pi ont bien reçu leur rappel — sans la promesse', !!R && !!P && !promet(R) && !promet(P));
+    /* ⚠️ ni à psi : son essai est réglé à la MAIN dans la Tour (`aboStatut`), et `espacePaye` s'arrête dessus avant la période
+       offerte — sa page de paiement ne diffère rien, le courriel ne le promet donc pas (`gardien`, 29 septembre 2026) */
+    v('⛔ la promesse part à qui elle est VRAIE — ni à rho (son adresse porte deux entreprises), ni à pi (la limite serait aujourd\'hui), ni à psi (essai réglé dans la Tour)',
+      recus.filter(promet).map(destinataire).sort(), ['eta@exemple-840.fr', 'kappa@exemple-840.fr', 'lambda-inconnue@exemple-840.fr', 'mu@exemple-840.fr', 'nu@exemple-840.fr', 'omicron@exemple-840.fr', 'xi@exemple-840.fr']);
+    vrai('   (population) rho, pi et psi ont bien reçu leur rappel — sans la promesse', !!R && !!P && !!de('psi') && !promet(R) && !promet(P) && !promet(de('psi')));
     /* ⛔ UN CODE RETIRÉ DE LA CONFIGURATION : sa formule n'est plus connue — aucun prix inventé (le repli sur Premium
        chiffrait 50 € par utilisateur une entreprise dont le code était peut-être un Pro) */
     const M = de('mu');

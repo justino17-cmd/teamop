@@ -754,7 +754,9 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     const deuxSans = await appeler({ price: PRIX_PRO, quantity: 1 }, undefined, undefined, DEUX_ENT, PERIODE(F30));
     v('⛔ deux entreprises à l\'adresse du compte, sans référence : on ne choisit pas pour le client — facturation immédiate', essai(deuxSans), SANS);
     const deuxAvec = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, DEUX_ENT, PERIODE(F30));
-    v('   … avec la référence de celle qui a la période : différée', essai(deuxAvec), AVEC(F30));
+    /* ⛔ MÊME avec la référence de celle qui a la période (`gardien`, rejoué) : un abonnement en essai trouvé par l'adresse
+       rendait l'AUTRE « payée » jusqu'à la fin de l'essai — il suffisait d'annuler avant, et personne n'avait rien payé */
+    v('⛔ … même avec la référence de celle qui a la période : immédiate — un essai à l\'adresse rendrait l\'autre « payée » pour rien', essai(deuxAvec), SANS);
     const deuxAutre = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'autre-77aa' }, undefined, undefined, DEUX_ENT, PERIODE(F30));
     v('   … avec la référence de l\'AUTRE (sans période) : immédiate — la période d\'une entreprise ne couvre pas sa voisine', essai(deuxAutre), SANS);
     const inconnue = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'inconnue-00' }, undefined, undefined, undefined, PERIODE(F30));
@@ -768,6 +770,12 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('   une entrée SANS identifiant : aucune période ne se rattache à elle, pas même une inscrite sous l\'identifiant vide — immédiate', [sansT.appels].concat(essai(sansT)), [1].concat(SANS));
     const autreT = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, undefined, PERIODE(F30, 'quelquun-dautre'));
     v('   la période d\'une AUTRE entreprise : immédiate', essai(autreT), SANS);
+    /* ⛔ un abonnement réglé à la MAIN dans la Tour (`aboStatut`) : `espacePaye` s'arrête dessus AVANT la période offerte —
+       la différer promettrait une période que l'application ne sert pas (`gardien`, rejoué) */
+    const TOUR = st => ({ monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr', aboStatut: st } });
+    const regles = [];
+    for (const st of ['actif', 'essai', 'impaye', 'suspendu']) regles.push(essai(await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' }, undefined, undefined, TOUR(st), PERIODE(F30))));
+    v('⛔ abonnement réglé dans la Tour (actif, essai, impayé, suspendu) : jamais différé', regles, [SANS, SANS, SANS, SANS]);
     const refuse = await appeler({ price: PRIX_PRO, quantity: 1, ref: 'monclient-9f2a' }, { authorization: 'Bearer ' + JETON_A_CONFIRMER }, undefined, undefined, PERIODE(F30));
     v('   (un compte non prouvé ne va toujours pas jusqu\'à Stripe)', [refuse.statut, refuse.appels], [403, 0]);
 
@@ -777,20 +785,33 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
       ESPACES_DEFAUT, PERIODE(F30), () => false, { promos: [] });
     const VISEE = [Object.assign({ slug: 'monclient' }, ESPACES_DEFAUT.monclient)];
     const D30 = debutDe(F30), MARGE = 48 * 3600000 + 10 * 60000, DEUX_ANS = 730 * 86400000;
+    const PAYEUR = 'paie@entreprise-banc.fr';
     v('⛔ borne basse : la fin d\'essai à 48 h 10 min pile passe, une milliseconde de moins non',
-      [!!FEP(VISEE, '', D30 - MARGE), FEP(VISEE, '', D30 - MARGE + 1)], [true, null]);
+      [!!FEP(VISEE, PAYEUR, D30 - MARGE), FEP(VISEE, PAYEUR, D30 - MARGE + 1)], [true, null]);
     v('⛔ borne haute : deux ans pile passent, une milliseconde de plus non',
-      [!!FEP(VISEE, '', D30 - DEUX_ANS), FEP(VISEE, '', D30 - DEUX_ANS - 1)], [true, null]);
+      [!!FEP(VISEE, PAYEUR, D30 - DEUX_ANS), FEP(VISEE, PAYEUR, D30 - DEUX_ANS - 1)], [true, null]);
     v('   ce qu\'elle rend : la fin d\'essai en secondes, le jour du premier prélèvement, la fin de la période, l\'entreprise',
-      FEP(VISEE, ''), { fin: D30 / 1000, debut: iso(D30), finLe: F30, t: 'monclient-9f2a' });
+      FEP(VISEE, PAYEUR), { fin: D30 / 1000, debut: iso(D30), finLe: F30, t: 'monclient-9f2a' });
+    v('⛔ sans l\'adresse du compte qui paie, rien — même avec la référence (la règle « une adresse = une entreprise » se lit sur elle)',
+      [FEP(VISEE, ''), FEP(VISEE, 'autre@entreprise-banc.fr')], [null, null]);
     v('   par l\'adresse seule (sans casse ni espaces : la route la passe déjà réduite), et rien pour une adresse inconnue ou vide',
       [(FEP([], 'paie@entreprise-banc.fr') || {}).t, FEP([], 'autre@entreprise-banc.fr'), FEP([], ''), FEP(null, '')], ['monclient-9f2a', null, null, null]);
     const FEP_CASSE = new Function('espacesReg', 'promoUsages', 'espaceFerme', 'config', AIDES_ROUTE.join('\n') + '\nreturn finEssaiPeriode;')(
       { monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: '  Paie@Entreprise-Banc.fr ' } }, PERIODE(F30), () => false, { promos: [] });
     v('   une adresse d\'annuaire écrite avec capitales et espaces se reconnaît', (FEP_CASSE([], 'paie@entreprise-banc.fr') || {}).t, 'monclient-9f2a');
+    /* le revenu mensuel de la Tour (`stripeAbosCalc`, la vraie) : un abonnement EN ESSAI compte parmi les abonnements, pas
+       dans le revenu — payer pendant une période offerte le diffère jusqu'à la fin du code (`gardien`) */
+    const ABC = ['stripeClient', 'stripePeriode', 'stripeAbosCalc'].map(extraire).concat([(/^const stripeEur = .*$/m.exec(SRC) || [''])[0]]);
+    vrai('(population) stripeAbosCalc et ses aides sont trouvées dans le fichier réel', ABC.every(Boolean));
+    const ligneAbo = (st, eur) => ({ id: 'sub_' + st, status: st, customer: { email: 'x@banc.fr' }, created: 1800000000,
+      items: { data: [{ quantity: 1, price: { unit_amount: eur * 100, recurring: { interval: 'month', interval_count: 1 } } }] } });
+    const calc = await new Function('stripeAbosBruts', 'monStr', ABC.join('\n') + '\nreturn stripeAbosCalc;')(
+      async () => [ligneAbo('active', 50), ligneAbo('trialing', 25), ligneAbo('past_due', 15)], (x, n) => String(x == null ? '' : x).slice(0, n))('sk_de_banc');
+    v('⛔ revenu mensuel : l\'abonnement payé seul (50 €) — l\'essai (25 €) compte parmi les abonnements, l\'impayé (15 €) parmi les impayés',
+      [calc.mrr, calc.actifs, calc.impayes, calc.abos.map(a => a.statut)], [50, 2, 1, ['actif', 'essai', 'impaye']]);
     v('⛔ une fonction qui jette ne casse pas le paiement : `null`, et la page s\'ouvre (facturation immédiate)',
       new Function('espacesReg', 'promoUsages', 'espaceFerme', 'config', AIDES_ROUTE.join('\n') + '\nreturn finEssaiPeriode;')(
-        ESPACES_DEFAUT, PERIODE(F30), () => { throw new Error('annuaire illisible'); }, { promos: [] })(VISEE, ''), null);
+        ESPACES_DEFAUT, PERIODE(F30), () => { throw new Error('annuaire illisible'); }, { promos: [] })(VISEE, PAYEUR), null);
   }
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

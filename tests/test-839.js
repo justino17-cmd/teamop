@@ -436,13 +436,16 @@ globalThis.fetch = async function (url, opts) {
       /* une seconde entreprise de Camille, réglée Business Premium dans la Tour (deux noms d'accès : l'un oublié en Pro) */
       'premium-banc': { nom: 'Camille Premium', t: 'banc-prem-t4', email: 'camille@entreprise-banc.fr', formule: 'premium', quantite: 1, ts: 2, par: 'banc', origine: 'banc' },
       'premium-banc-ancien': { nom: 'Camille Premium', t: 'banc-prem-t4', email: 'camille@entreprise-banc.fr', formule: 'pro', quantite: 1, ts: 1, par: 'banc', origine: 'banc' },
+      /* Dora : UNE adresse, UNE entreprise, en période offerte — la facturation différée de bout en bout */
+      'dora-banc': { nom: 'Dora Banc', t: 'banc-dora-t5', email: 'dora@entreprise-banc.fr', formule: 'premium', quantite: 1, ts: 1, par: 'banc', origine: 'banc' },
     }));
     /* une période offerte EN COURS pour son entreprise Business Premium (code fictif) : payer pour elle ne prélève rien avant
        la fin (Justin, 29 septembre 2026, « 2 oui ») — la fin d'essai part chez Stripe, et la page de remerciement le dit */
     const jourIso = n => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
     const FIN_PERIODE = jourIso(30);
     const DEBUT_PRELEV = new Date(Date.parse(FIN_PERIODE + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10);
-    fs.writeFileSync(path.join(data, 'promos-usages.json'), JSON.stringify({ 'ESSAI-BANC-839': { n: 1, equipes: { 'banc-prem-t4': { date: jourIso(-10), finLe: FIN_PERIODE, em: '' } } } }));
+    fs.writeFileSync(path.join(data, 'promos-usages.json'), JSON.stringify({ 'ESSAI-BANC-839': { n: 2, equipes: {
+      'banc-prem-t4': { date: jourIso(-10), finLe: FIN_PERIODE, em: '' }, 'banc-dora-t5': { date: jourIso(-10), finLe: FIN_PERIODE, em: '' } } } }));
     const cfg = path.join(BANC, 'config.json');
     const vap = require(path.join(RACINE, 'server', 'node_modules', 'web-push')).generateVAPIDKeys();
     fs.writeFileSync(cfg, JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc',
@@ -598,18 +601,12 @@ globalThis.fetch = async function (url, opts) {
             /* ⛔ LA FACTURATION DIFFÉRÉE (Justin, 29 septembre 2026 : « oui » à « la facturation démarre à la fin du code ») : son
                entreprise Business Premium est en période offerte — quelle que soit la formule choisie, Stripe reçoit la fin
                d'essai (le lendemain de la fin de la période, 0 h UTC) et le retour dit ce jour à la page de remerciement */
-            v('⛔ son entreprise est en période offerte (fin dans 30 jours) : Stripe reçoit la fin d\'essai = le lendemain de la fin, 0 h UTC — Business, Pro, Business Premium',
-              [essaiDe(bas), essaiDe(desc), essaiDe(juste)], [DIFFERE, DIFFERE, DIFFERE]);
-            v('   sans référence : l\'adresse de Camille porte deux entreprises — on ne choisit pas, facturation immédiate', essaiDe(sansRef), IMMEDIAT);
-            /* la COUTURE : ce que le vrai serveur donne à Stripe comme adresse de retour, la VRAIE page de remerciement le lit */
-            const retour = new URL(bas.envoye.get('success_url'));
-            const apres = merci('merci.html', retour.search);
-            v('⛔ la couture : le retour du vrai serveur, lu par la vraie merci.html — « Abonnement confirmé », rien n\'est prélevé avant le jour dit',
-              [retour.origin + retour.pathname, apres && apres.titre, !!apres && apres.message.includes('rien n\'est prélevé avant le ' + DEBUT_PRELEV.split('-').reverse().join('/'))],
-              ['https://teamop.fr/merci.html', 'Abonnement confirmé', true]);
-            const sansEssai = merci('merci.html', new URL(sienne.envoye.get('success_url')).search);
-            v('   … et le retour d\'un paiement immédiat laisse la page telle qu\'elle est (« Paiement confirmé », la facture est partie)',
-              [sansEssai && sansEssai.titre, !!sansEssai && sansEssai.message.includes('Un e-mail de confirmation avec ta facture vient de t\'être envoyé.')], ['Paiement confirmé', true]);
+            /* ⛔ … MAIS l'adresse de Camille porte DEUX entreprises (`gardien`, rejoué) : un essai trouvé par l'adresse rendrait
+               l'autre « payée » pour rien jusqu'à la fin de l'essai. Facturation immédiate, même avec la référence de celle
+               qui a la période — Dora, plus bas, a UNE adresse pour UNE entreprise */
+            v('⛔ son entreprise Business Premium est en période offerte, mais son adresse en porte DEUX : facturation immédiate — Business, Pro, Business Premium',
+              [essaiDe(bas), essaiDe(desc), essaiDe(juste)], [IMMEDIAT, IMMEDIAT, IMMEDIAT]);
+            v('   sans référence non plus : on ne choisit pas pour elle', essaiDe(sansRef), IMMEDIAT);
             /* OP MESSAGES : la page le montre « Bientôt disponible », sans bouton — un appel direct passe (c'est un tarif de la
                page) ; il ne paie pas OP GESTION pour autant (la formule servie le dit : `test-842`) */
             const prixMsg = (/msgpro:\s*\{ mensuel: '(price_\w+)'/.exec(lire(PAGES_PAIEMENT[0])) || [])[1];
@@ -625,6 +622,30 @@ globalThis.fetch = async function (url, opts) {
             v('⛔ un tarif qui n\'est pas sur la page (appel direct, compte prouvé) : 400 tarif_inconnu, rien chez Stripe', [inconnu.status, ij.error, stripeRecu().length], [400, 'tarif_inconnu', n]);
           /* ⛔ plus de porte « serveur d'avant » qui compte un ✓ sans rien vérifier (relecture adverse du 29 septembre) : ce banc
              et le serveur partent ensemble — un serveur du dépôt sans la garde est une garde RETIRÉE, et ça doit se voir */
+            /* ⛔ LA FACTURATION DIFFÉRÉE DE BOUT EN BOUT (Justin, 29 septembre 2026, « 2 oui ») : Dora — une adresse, une
+               entreprise, en période offerte — crée son compte par le vrai portail, le confirme par le lien du courriel, et paie
+               par la vraie page : Stripe reçoit la fin d'essai, et la vraie page de remerciement lit le retour du vrai serveur */
+            await portail.auth.signOut();
+            const avantD = recus.length;
+            await portail.auth.createUserWithEmailAndPassword('dora@entreprise-banc.fr', 'un-autre-mot-de-passe-839');
+            let lienD = null;
+            for (let i = 0; i < 60 && !lienD; i++) { await dormir(100); lienD = recus.slice(avantD).map(qp).map(m => (/mode=verifyEmail&jeton=([0-9a-f]{64})/.exec(m) || [])[1]).filter(Boolean).pop() || null; }
+            vrai('Dora : le vrai portail crée son compte, et le lien de confirmation part', !!lienD);
+            const confD = await fetch(B + '/api/compte/verifier', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jeton: lienD || '' }) });
+            v('   son adresse est confirmée', confD.status, 200);
+            const dora = await payerAvec('banc-dora-t5', 'business');
+            v('⛔ Dora — en période offerte, son adresse n\'en désigne qu\'une : Stripe reçoit la fin d\'essai = le lendemain de la fin, 0 h UTC, et le retour dit ce jour',
+              [dora.s.length, dora.envoye.get('customer_email'), dora.envoye.get('subscription_data[metadata][espace]')].concat(essaiDe(dora)),
+              [1, 'dora@entreprise-banc.fr', 'banc-dora-t5'].concat(DIFFERE));
+            /* la COUTURE : ce que le vrai serveur donne à Stripe comme adresse de retour, la VRAIE page de remerciement le lit */
+            const retour = new URL(dora.envoye.get('success_url') || 'https://teamop.fr/');
+            const apres = merci('merci.html', retour.search);
+            v('⛔ la couture : le retour du vrai serveur, lu par la vraie merci.html — « Abonnement confirmé », rien n\'est prélevé avant le jour dit',
+              [retour.origin + retour.pathname, apres && apres.titre, !!apres && apres.message.includes('rien n\'est prélevé avant le ' + DEBUT_PRELEV.split('-').reverse().join('/'))],
+              ['https://teamop.fr/merci.html', 'Abonnement confirmé', true]);
+            const sansEssai = merci('merci.html', new URL(sienne.envoye.get('success_url')).search);
+            v('   … et le retour d\'un paiement immédiat laisse la page telle qu\'elle est (« Paiement confirmé », la facture est partie)',
+              [sansEssai && sansEssai.titre, !!sansEssai && sansEssai.message.includes('Un e-mail de confirmation avec ta facture vient de t\'être envoyé.')], ['Paiement confirmé', true]);
           } else vrai('⛔ le serveur du dépôt vérifie le tarif (`tarif_inconnu`) — absent, c\'est une garde retirée', false);
         } else vrai('⛔ le serveur du dépôt porte « B » (`compte_autre_entreprise`) — absent, c\'est une garde retirée', false);
         rangement.delete('elan_sync_team');

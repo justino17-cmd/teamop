@@ -119,3 +119,8 @@ tests/test-839.js
 tests/test-840.js
 tests/test-841.js
 tests/test-842.js
+# 29 septembre 2026 : « 2 oui » (Justin) — payer pendant un code promo ne prélève rien avant sa fin. 844 fait tourner le
+# vrai serveur contre un facteur SMTP de banc ET un Stripe simulé dans son processus : une entreprise déjà abonnée
+# reçoit « votre abonnement prend le relais », sans lien de paiement (un second paiement serait un second abonnement) ;
+# Stripe illisible, le courriel habituel sans la promesse. Sans page.
+tests/test-844.js
