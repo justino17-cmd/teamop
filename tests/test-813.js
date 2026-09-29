@@ -374,6 +374,18 @@ console.log('\n── 813 · l\'arrière-guichet du portail : inscription, statu
     const e2 = (esp2.j.espaces || []).find(e => String(e.email || '').toLowerCase() === 'nouveau@exemple.fr') || {};
     v('⛔ le code atteint l\'espace de l\'entreprise (le serveur l\'a revérifié dans `config.promos`)', [e2.promoCode, e2.paye], ['TEST3', true]);
 
+    /* ⛔ « MON ESPACE » DIT LA FORMULE SERVIE (29 septembre 2026) — ici le BRANCHEMENT d'index.js, que les deux autres
+       bancs ne voient pas : test-811 monte le portail avec une `formuleServie` de banc, test-727 joue la vraie
+       `formuleServieDe` hors du serveur. La Tour règle la fiche à Pro ; le code TEST3 (Business Premium) court : le client
+       lit la formule que son code SERT, et la Tour garde ce qu'elle a posé. */
+    r = await appel('/api/monitor/espaces/formule', { nom: 'Hygiène Nouvelle', formule: 'pro', quantite: 1 }, tour);
+    const planTour = async () => ((((await appel('/api/monitor/portail/demandes', undefined, tour)).j.demandes) || []).find(x => x.email === 'nouveau@exemple.fr') || {}).plan;
+    let pt = await planTour();
+    for (let i = 0; i < 30 && pt !== 'Pro'; i++) { await dormir(100); pt = await planTour(); }
+    v('   la Tour règle la fiche à Pro : son dossier porte « Pro »', [r.s, pt], [200, 'Pro']);
+    r = await appel('/api/portail/moi', undefined, jetonNouveau);
+    v('⛔ « Mon espace » dit la formule que le code SERT (Business Premium), pas la fiche', [r.s, r.j.dossier && r.j.dossier.plan], [200, 'Business Premium']);
+
     /* Un jeton inventé ne passe pas pour une session. */
     r = await appel('/api/clients/sync', { email: 'nouveau@exemple.fr', demandes: [] }, 'f'.repeat(64));
     v('⛔ un jeton de 64 caractères inventé : refusé (401)', r.s, 401);

@@ -5,7 +5,8 @@
 # pas fait à part de Firebase ». `app.html` et `sw.js` ne bougent pas sur `main` ; seul
 # `server/` part, avec ce qui le SURVEILLE (`.github/scripts/surveillance.js`, qui lit les champs
 # de `/health`) et ce qui le GARDE (les suites de `scripts/bancs-serveur.liste`, lancées par le
-# job `bancs` dont le déploiement dépend).
+# job `bancs` dont le déploiement dépend) — plus la page de paiement, qui parle au serveur et
+# que ces suites lisent (`PAGES_LIEES`).
 #
 # ⛔ CE SCRIPT NE POUSSE RIEN. Pousser sur `main` un commit qui touche `server/**` DÉPLOIE LE VPS
 # en quelques minutes, chez tous les clients : c'est une décision de Justin, jamais d'un agent.
@@ -43,6 +44,11 @@ mapfile -t SUITES < <(grep -vE '^[[:space:]]*(#|$)' scripts/bancs-serveur.liste)
 # ⚠️ Une liste vide ou tronquée ferait passer la porte sur rien : on exige la population.
 [ "${#SUITES[@]}" -ge 25 ] || { echo "✗ la liste des bancs serveur n'a que ${#SUITES[@]} suite(s)"; exit 1; }
 for f in "${SUITES[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
+# ⚠️ Les pages que ces suites font parler au serveur partent avec lui : `test-797`, `test-839` et `test-840` lisent la
+#    page de paiement (ses refus, sa grille de prix). Restée celle de `main`, elle ne saurait pas DIRE le refus que le
+#    serveur neuf rend — et les bancs tomberaient ici, sur un serveur juste (relecture adverse, 28 septembre 2026, nuit).
+PAGES_LIEES=(recap-abonnement.html apercu/recap-abonnement.html)
+for f in "${PAGES_LIEES[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
 
 # 2. Les deux workflows de la branche — la ligne des bancs lance la LISTE, pas tout (voir
 #    l'en-tête de la liste). ⚠️ Remplacement exact, compté : un workflow dont la ligne a changé
@@ -77,7 +83,7 @@ rm server/node_modules
 VAPP="$(sed -n "s/.*APP_VERSION *= *'\([0-9]*\)'.*/\1/p" app.html | head -1)"
 [ -n "$VAPP" ] || { echo "✗ APP_VERSION illisible dans app.html de main"; exit 1; }
 git add server .github/scripts/surveillance.js .github/workflows/deploiement.yml .github/workflows/ci.yml \
-        scripts/bancs-ci.sh scripts/bancs-serveur.liste scripts/preparer-deploiement-serveur.sh "${SUITES[@]}"
+        scripts/bancs-ci.sh scripts/bancs-serveur.liste scripts/preparer-deploiement-serveur.sh "${SUITES[@]}" "${PAGES_LIEES[@]}"
 git diff --cached --name-only | grep -q 'node_modules' && { echo "✗ node_modules dans le commit — rien ne se fait"; exit 1; }
 git -c user.name="$(git -C "$RACINE" config user.name || echo TeamOP)" \
     -c user.email="$(git -C "$RACINE" config user.email || echo noreply@teamop.fr)" \

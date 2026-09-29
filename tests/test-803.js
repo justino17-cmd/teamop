@@ -222,15 +222,17 @@ process.on('exit', () => { arreterTout(); try { fs.rmSync(BANC, { recursive: tru
 
 /* ⛔ UN FACTEUR DE BANC : depuis la relecture de `gardien` (27 septembre 2026), « repartir à neuf » part
    toujours avec son e-mail d'avis — sans serveur d'e-mails, le serveur refuse (503, `supprMailPret`).
-   Celui-ci accepte tout et ne garde rien : ce banc ne lit pas les e-mails, il lui en faut seulement un. */
+   Celui-ci accepte tout, et garde les messages entiers (point doublé retiré, RFC 5321 §4.5.2) : ce banc lit le courriel
+   « votre code est activé » (la formule qu'il annonce). */
 let _facteurPort = null, _dernierCode = '';
+const _courriers = [];
 async function facteurBanc() {
   if (_facteurPort) return _facteurPort;
   const s = require('net').createServer(c => {
-    c.on('error', () => {}); let t = '', corps = false; c.write('220 banc\r\n');
+    c.on('error', () => {}); let t = '', corps = false, msg = ''; c.write('220 banc\r\n');
     c.on('data', d => { t += d; let i;
       while ((i = t.indexOf('\r\n')) >= 0) { const l = t.slice(0, i); t = t.slice(i + 2);
-        if (corps) { if (l === '.') { corps = false; c.write('250 ok\r\n'); } else { const m = /Code de confirmation : (\d{6})/.exec(l); if (m) _dernierCode = m[1]; } continue; }
+        if (corps) { if (l === '.') { corps = false; _courriers.push(msg); msg = ''; c.write('250 ok\r\n'); } else { const m = /Code de confirmation : (\d{6})/.exec(l); if (m) _dernierCode = m[1]; msg += (l.startsWith('.') ? l.slice(1) : l) + '\n'; } continue; }
         const h = l.toUpperCase();
         if (h.startsWith('EHLO') || h.startsWith('HELO')) c.write('250-banc\r\n250 AUTH PLAIN LOGIN\r\n');
         else if (h.startsWith('AUTH')) c.write('235 ok\r\n');
@@ -575,7 +577,19 @@ const USAGES = { [CODE]: { n: 3, equipes: {
     const dbN = { users: [{}], forfait: 'gratuit', forfaitEssai: null };
     const N = page('ent-gs-1', K.gs, dbN);
     await N.f(AUTRE);
-    v('le témoin : un code NEUF → « 🎉 Code accepté ! », la formule, le journal', [/Code accepté/.test(N.tr.modals[0] || ''), dbN.forfait, (dbN.forfaitEssai || {}).finLe, N.tr.logs], [true, 'pro', dans(1), ['Code promo activé']]);
+    /* ⛔ la formule que la période SERT, pas celle du code seule (relecture adverse du 29 septembre 2026) : le code AUTRE est
+       Pro, la fiche du garage Business Premium — l'application affichait « Pro », puis la synchro suivante la repassait en
+       Business Premium, et le courriel J-7 en parlait aussi : trois messages pour une seule période */
+    v('le témoin : un code NEUF → « 🎉 Code accepté ! », la formule SERVIE (le code Pro ne descend pas sous la fiche Business Premium), le journal',
+      [/Code accepté/.test(N.tr.modals[0] || ''), dbN.forfait, (dbN.forfaitEssai || {}).finLe, N.tr.logs], [true, 'premium', dans(1), ['Code promo activé']]);
+    const lisible = m => Buffer.from(String(m).replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))), 'latin1').toString('utf8');
+    let activation = null;
+    for (let i = 0; i < 30 && !activation; i++) { activation = _courriers.map(lisible).find(m => /garage@sonde-exemple\.fr/.test(m) && /ESSAI-BANC-AUTRE/.test(m)); if (!activation) await new Promise(r => setTimeout(r, 100)); }
+    vrai('⛔ … et le courriel « votre code est activé » annonce la même : Business Premium offerte, pas « Pro »',
+      !!activation && /formule Business Premium offerte/.test(activation) && !/formule Pro offerte/.test(activation));
+    /* ⛔ l'aperçu est PUBLIC (aucune preuve de clé) : il ne dit rien de la fiche d'une entreprise — la formule du code seul */
+    const ap = await S2.appel('POST', '/api/promo/valider', { code: AUTRE, teamId: 'ent-gs-1', apercu: true });
+    v('⛔ l\'aperçu public (sans preuve) ne dit rien de la fiche : la formule du code seul (Pro), pas Business Premium', [ap.code, ap.json.formule], [200, 'pro']);
     arreterTout();
   }
 

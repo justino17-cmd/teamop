@@ -650,7 +650,18 @@ app.post('/api/stripe/checkout', async (req, res) => {
     if (!payeur) return res.status(401).json({ error: 'compte_requis' });
     if (!cm.verifie(payeur)) return res.status(403).json({ error: 'adresse_non_verifiee' });
     const { price, quantity, ref } = req.body || {};
-    if (!/^price_[A-Za-z0-9]+$/.test(String(price || ''))) return res.status(400).json({ error: 'tarif invalide' });
+    /* un tarif est un TEXTE : un tableau `[x]` passait l'expression (String([x]) vaut x), un objet faisait jeter (500) */
+    if (typeof price !== 'string' || !/^price_[A-Za-z0-9]+$/.test(price)) return res.status(400).json({ error: 'tarif invalide' });
+    /* ⛔ UN TARIF DE LA PAGE, ET RIEN D'AUTRE (28 septembre 2026, nuit). Cette route ouvrait un paiement pour N'IMPORTE
+       QUEL tarif du compte Stripe envoyé par le navigateur — et pour `espacePaye()`, UN abonnement vivant suffit à rendre
+       une entreprise « payée ». Les tarifs admis sont ceux de `STRIPE_PRIX_FORMULE`, la liste que `test-842` compare à
+       `STRIPE_PRICES` de recap-abonnement.html : la page ne peut pas en envoyer d'autre.
+       ⛔ ET LE CLIENT CHOISIT LEQUEL (Justin, 29 septembre 2026 : « ils choisissent le tarif qu'ils veulent »). Une nuit,
+       cette route a refusé un tarif SOUS la formule de la fiche — elle aurait bloqué le client qui, au bout d'un code
+       promo Business Premium, prend Pro. C'est la formule SERVIE qui suit ce qu'il paie (`formulePayee`) : payer Pro
+       donne Pro, quelle que soit la fiche. */
+    const rangDuPrix = RANG_FORMULE.findIndex(k => STRIPE_PRIX_FORMULE[k].includes(String(price)));
+    if (rangDuPrix < 0 && !STRIPE_PRIX_MESSAGES.includes(String(price))) return res.status(400).json({ error: 'tarif_inconnu' });
     const qty = Math.min(50, Math.max(1, parseInt(quantity, 10) || 1));
     /* ⛔ B — « ON VERROUILLE » (Justin, 28 septembre 2026) : SEUL UN COMPTE DE L'ENTREPRISE PAIE POUR ELLE.
        La référence d'espace vient de la PAGE (le marqueur de l'appareil) : un compte confirmé rattachait donc SON
@@ -677,15 +688,15 @@ app.post('/api/stripe/checkout', async (req, res) => {
        → 403 `reference_ambigue` : on ne choisit pas pour le client laquelle il paie. */
     const payeurMin = String(payeur).trim().toLowerCase();
     let refGravee = '';
+    /* L'identité d'une entreprise : son identifiant, ou — entrée sans identifiant — son nom d'accès, TYPÉS : un
+       identifiant ancien sans tiret peut s'écrire comme le nom d'une autre, et ce ne sont pas la même entreprise.
+       ⚠️ l'identifiant tel que l'annuaire le RANGE, espaces compris : c'est ainsi qu'`espacesDeRef` et `espacePaye()`
+       le comparent — le « nettoyer » ici graverait une valeur qu'`espacePaye()` ne reconnaîtrait plus (`gardien`). */
+    const identite = x => { const t = espaceT(x); return t.trim() ? { cle: 't:' + t.toLowerCase(), val: t } : { cle: 's:' + String(x.slug).toLowerCase(), val: x.slug }; };
     if (typeof ref === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(ref)) {
       let visees = [];
       try { visees = espacesDeRef(ref); } catch (e) { visees = []; }
       if (visees.length) {
-        /* L'identité d'une entreprise : son identifiant, ou — entrée sans identifiant — son nom d'accès, TYPÉS : un
-           identifiant ancien sans tiret peut s'écrire comme le nom d'une autre, et ce ne sont pas la même entreprise. */
-        /* ⚠️ l'identifiant tel que l'annuaire le RANGE, espaces compris : c'est ainsi qu'`espacesDeRef` et `espacePaye()`
-           le comparent — le « nettoyer » ici graverait une valeur qu'`espacePaye()` ne reconnaîtrait plus (`gardien`). */
-        const identite = x => { const t = espaceT(x); return t.trim() ? { cle: 't:' + t.toLowerCase(), val: t } : { cle: 's:' + String(x.slug).toLowerCase(), val: x.slug }; };
         if (new Set(visees.map(x => identite(x).cle)).size !== 1) return res.status(403).json({ error: 'reference_ambigue' });
         const id = identite(visees[0]);
         /* ⛔ L'ENTREPRISE, C'EST TOUS SES NOMS D'ACCÈS — et la Tour en ouvre parfois SANS adresse (`email: … || ''`).
@@ -1472,6 +1483,7 @@ const MAIL_STYLE = '<style>' +
     '.m-texte{color:#B6C2D9!important}.m-texte b{color:#EAEEF7!important}' +
     '.m-muet{color:#8B9AB8!important}' +
     '.m-pied{border-color:#243154!important;color:#8B9AB8!important}.m-pied a{color:#4FD196!important}' +
+    '.m-lien{color:#4FD196!important}' +   /* un lien dans un cadre (courriel J-7) : le vert du jour tombe à 3,3:1 sur le cadre de nuit */
     '.m-bloc{background:#0F1830!important;border-color:#243154!important;color:#B6C2D9!important}.m-bloc b{color:#EAEEF7!important}' +
     '.m-btn{background:#2EB872!important;color:#06231A!important}' +
     '.m-btn2{color:#B6C2D9!important}' +
@@ -1536,7 +1548,11 @@ function mailPromoActive(teamT, code, finLe, formule) {
       try { return String(JSON.parse(Buffer.from(x.code, 'base64').toString('utf8')).t || '') === teamT; } catch (err) { return false; }
     });
     if (!e || !e.email) return;
-    const lbl = FORMULE_LBL2[formule] || formule || 'Business Premium';
+    /* ⛔ la formule que la période SERT (`formulePromo` : celle du code, jamais sous la fiche), pas celle du code seule —
+       sinon une fiche Business Premium recevant un code Pro lisait « Pro offerte » ici, puis Business Premium dans
+       l'application et dans le courriel J-7 (relecture adverse du 29 septembre 2026) */
+    const fServie = formulePromo(espaceParT(teamT) || e, code) || formule;
+    const lbl = FORMULE_LBL2[fServie] || fServie || 'Business Premium';
     const finFr = /^\d{4}-\d{2}-\d{2}$/.test(String(finLe)) ? String(finLe).split('-').reverse().join('/') : String(finLe || '');
     mailerEnvoi({ from: config.smtp.from || config.smtp.user, to: e.email,
       subject: '🎁 Votre code est activé — TEAM OP',
@@ -2313,7 +2329,7 @@ app.post('/api/monitor/espaces/abonnement', monPatronStrict, (req, res) => {
   res.json({ ok: true, slug, formule: f, quantite: q, statut: e.aboStatut || 'auto', fin });
 });
 // payé ? — le réglage manuel du patron d'abord ; sinon trois portes : formule gratuite, code promo actif, abonnement Stripe actif
-const espStripeCache = { ts: 0, data: null };
+const espStripeCache = { ts: 0, data: null, enCours: null, echecTs: 0 };
 async function espacePaye(e, opts) {
   /* ⛔⛔ `lecture` : RÉPONDRE SANS RIEN ACTIVER (24 septembre 2026, relevé par `gardien`).
      Le rattrapage ci-dessous ÉCRIT (compteur du code, `promos-usages.json`) et ENVOIE un
@@ -2337,7 +2353,22 @@ async function espacePaye(e, opts) {
     }
     return { paye: false, motif: { impaye: 'impayé', suspendu: 'suspendu', annule: 'annulé' }[e.aboStatut] + ' (réglé par ' + (e.aboPar || 'TEAM OP') + ')' };
   }
-  if (e.formule === 'gratuit') return { paye: true, motif: 'gratuit' };
+  /* ⛔ UNE FICHE « GRATUIT » QUI PAIE REÇOIT CE QU'ELLE PAIE (Justin, 29 septembre 2026 : « ils choisissent le tarif
+     qu'ils veulent »). Elle sortait ici sans regarder Stripe : payer Pro sur la page laissait l'application en Gratuit
+     jusqu'à un geste de la Tour. Une période offerte en cours d'abord (lue, jamais activée — plus bas), puis Stripe ; sans
+     l'une ni l'autre, tout reste comme avant. */
+  if (e.formule === 'gratuit') {
+    /* ⛔ UNE PÉRIODE OFFERTE EN COURS SERT LA FORMULE DU CODE, FICHE « GRATUIT » COMPRISE (règle 3 de Justin ; relecture
+       adverse du 29 septembre). `/api/promo/valider` enregistre la période sans toucher la fiche : une entreprise Gratuit
+       qui entrait un code dans l'application recevait Gratuit du serveur, pendant que le courriel J-7 lui parlait de
+       Business Premium. On LIT la période (rien ne s'active ici : le rattrapage reste réservé aux fiches payantes). */
+    const po = periodeOfferte(e);
+    if (po) return po;
+    const s = await espaceStripe(e);
+    const fp = s ? formuleEtPlaces(e, s) : null;
+    if (fp && fp.f && fp.f !== 'gratuit') return { paye: true, motif: s.motif + ' — formule payée : ' + (FORMULE_LBL2[fp.f] || fp.f), echeance: s.echeance, formuleServie: fp.f, placesStripe: fp.places };
+    return { paye: true, motif: 'gratuit' };
+  }
   try {   // rattrapage : un code demandé à la demande d'accès mais jamais compté (espace recréé…) s'active ici
     if (e.codePromo && e.t) {
       const c = String(e.codePromo).toUpperCase();
@@ -2348,7 +2379,7 @@ async function espacePaye(e, opts) {
          rattrapage l'activait une seconde fois, avec une période neuve (voir `promoPresente`).
          Et « un seul code à la fois », comme les quatre autres chemins : celui-ci ne le faisait pas. */
       if (p && !promosIllisible && !promoServiA(c, e.t, e.slug) && !promoAutreActif(c, e.t, e.slug) && !(p.maxUtilisations && u0.n >= p.maxUtilisations)) {
-        if (lecture) return { paye: true, motif: 'code promo ' + c + ' en attente — il s\'active au prochain lancement de l\'application', promoCode: c, enAttente: true };
+        if (lecture) return { paye: true, motif: 'code promo ' + c + ' en attente — il s\'active au prochain lancement de l\'application', promoCode: c, enAttente: true, formuleServie: formulePromo(e, c) || e.formule };
         const dF = new Date(); dF.setMonth(dF.getMonth() + Math.max(1, Number(p.mois) || 1));
         u0.n++; u0.equipes[e.t] = promoEntree(dF.toISOString().slice(0, 10), e.t, e.slug);
         promoUsages[c] = u0; savePromoUsages();
@@ -2362,19 +2393,64 @@ async function espacePaye(e, opts) {
      sinon l'application grisait une entreprise en pleine période offerte, et l'horloge de
      conservation la datait. Rien n'est écrit ; `/health` et la surveillance crient déjà. */
   if (promosIllisible && e.codePromo) return { paye: true, motif: 'code promo ' + String(e.codePromo).toUpperCase() + ' — registre des codes illisible, dans le doute on ne coupe pas', promoCode: String(e.codePromo).toUpperCase(), doute: true };
-  try {   // code promo : compté par espace (teamId = identifiant de l'espace)
+  const po = periodeOfferte(e);   // code promo : compté par espace (teamId = identifiant de l'espace)
+  if (po) return po;
+  const s = await espaceStripe(e);
+  if (s) {
+    /* ⛔ LA FORMULE SUIT CE QUI EST PAYÉ (Justin, 29 septembre 2026 : « ils choisissent le tarif qu'ils veulent » ; un code
+       promo ouvre Business Premium « pour mieux montrer l'application », et à la fin chacun choisit sa formule). La route de
+       paiement ne refuse plus un tarif sous la formule de la fiche : c'est la formule SERVIE qui suit le tarif payé
+       (`formulePayee`) — payer Pro donne Pro, même si la fiche dit Business Premium. Ce qu'on ne sait pas lire (un
+       abonnement d'avant la bascule, un tarif créé à la main chez Stripe) garde la formule de la fiche : on ne coupe pas. */
+    const fp = formuleEtPlaces(e, s), f = fp.f || e.formule;
+    return { paye: true, motif: s.motif + (f === e.formule ? '' : f === 'gratuit' ? ' — OP GESTION non payé : formule Gratuit' : ' — formule payée : ' + (FORMULE_LBL2[f] || f)), echeance: s.echeance, formuleServie: f,
+      placesStripe: fp.places };
+  }
+  return { paye: false, motif: 'aucun paiement ni code promo' };
+}
+/* Une période offerte EN COURS pour cette entreprise (lue, jamais activée) : elle SERT la formule du code — Business
+   Premium par défaut, jamais sous la fiche (`formulePromo`). `null` sinon. */
+function periodeOfferte(e) {
+  try {
+    const auj = new Date().toISOString().slice(0, 10);
     for (const [code, u] of Object.entries(promoUsages || {})) {
       const eq = u && u.equipes && u.equipes[e.t];
-      if (eq && eq.finLe && eq.finLe >= new Date().toISOString().slice(0, 10)) return { paye: true, motif: 'code promo ' + code + ' (jusqu\'au ' + eq.finLe + ')', promoCode: code, finLe: eq.finLe };
+      if (eq && eq.finLe && eq.finLe >= auj) return { paye: true, motif: 'code promo ' + code + ' (jusqu\'au ' + eq.finLe + ')', promoCode: code, finLe: eq.finLe, formuleServie: formulePromo(e, code) || e.formule };
     }
   } catch (err) {}
+  return null;
+}
+/* ── LES ABONNEMENTS STRIPE D'UNE ENTREPRISE ─────────────────────────────────────────────────────────────────────
+   Sortie d'`espacePaye` (29 septembre 2026) pour que la fiche « Gratuit » y passe aussi : rend le premier abonnement
+   trouvé, TOUS ses abonnements (`memes`, pour les places), ceux qui sont SÛREMENT à elle (`surs`, pour monter), ceux qui
+   laissent un DOUTE (`douteux`, qui interdisent de descendre), le motif et l'échéance — ou `null`. Le verdict « payé »
+   n'a pas changé. */
+async function espaceStripe(e) {
   const sk = config.stripe && config.stripe.secretKey;
   /* ⚠️ PLUS `&& e.email`. Le rattachement par RÉFÉRENCE n'a besoin d'aucune adresse : exiger
      un e-mail ici aurait laissé sans paiement reconnu, justement, les espaces créés sans
      adresse — ceux de la Tour. Le repli par e-mail se garde tout seul plus bas. */
   if (sk) {
     try {
-      if (Date.now() - espStripeCache.ts > 5 * 60000 || !espStripeCache.data) { espStripeCache.data = await stripeAbosBruts(sk); espStripeCache.ts = Date.now(); }
+      /* ⛔ UNE SEULE LECTURE DE STRIPE À LA FOIS, ET PAS DE RAFALE PENDANT UNE PANNE (29 septembre 2026, relecture adverse,
+         rejoué) : « Mon espace » lit aussi ce cache (`formuleServieDe`). Stripe muet, chaque lecture attendait trois abandons
+         de 12 s et en relançait trois — et des lectures simultanées lançaient chacune les leurs. Une lecture en cours se
+         PARTAGE ; un échec ne se retente qu'une minute plus tard, et pendant ce temps la dernière liste connue sert (rien,
+         s'il n'y en a jamais eu : comme avant, où chaque appel échouait à son tour).
+         ⛔ Y COMPRIS POUR L'APPEL QUI ATTENDAIT LA LECTURE RATÉE : il rendait « non payé » à une entreprise qui paie, alors
+         qu'une liste connue était là — on ne coupe pas une entreprise qui paie le temps d'une panne de Stripe. */
+      if (Date.now() - espStripeCache.ts > 5 * 60000 || !espStripeCache.data) {
+        if (!espStripeCache.enCours && Date.now() - espStripeCache.echecTs > 60000) {
+          espStripeCache.enCours = stripeAbosBruts(sk)
+            .then(d => { espStripeCache.data = d; espStripeCache.ts = Date.now(); espStripeCache.echecTs = 0; },
+              err => { espStripeCache.echecTs = Date.now(); throw err; })
+            .finally(() => { espStripeCache.enCours = null; });
+        }
+        if (espStripeCache.enCours) {
+          try { await espStripeCache.enCours; }
+          catch (err) { if (!espStripeCache.data) throw err; console.error('espacePaye stripe (la dernière liste connue sert) :', err.message); }
+        }
+      }
       /* ⛔ DEUX RATTACHEMENTS, DANS CET ORDRE, ET LE PREMIER EST LE SEUL FIABLE.
          1. LA RÉFÉRENCE D'ESPACE, gravée sur l'abonnement à la création de la page de paiement
             (`subscription_data[metadata][espace]`). Elle ne dépend d'aucune adresse et survit
@@ -2441,14 +2517,30 @@ async function espacePaye(e, opts) {
            dit pas « à une autre » ; une référence qui en désigne une autre, si — ses places ne comptent pas ici */
         const designe = m => Object.keys(espacesReg || {}).some(sl => { const x = espacesReg[sl]; return !!x
           && (String(sl).toLowerCase() === m || String(espaceT(x) || '').toLowerCase() === m); });
+        /* ⛔ une référence ORPHELINE (qui ne désigne plus aucune entrée : un « repartir à neuf ») trouvée par l'adresse compte
+           aussi quand le premier abonnement est venu par la référence — le filtre des deux chemins était différent, et
+           acheter OP MESSAGES (gravé) après un « repartir à neuf » écartait l'abonnement OP GESTION gravé à l'ancien
+           identifiant (relecture adverse du 29 septembre, rejoué) */
         const memes = (espStripeCache.data || []).filter(sb => vivant(sb) && (aMoi(sb) || (parMail(sb) && (parQuoi === 'adresse e-mail'
           ? (!refDe(sb) || !designe(refDe(sb)))
-          : (!refDe(sb) && !partagee)))));
-        return { paye: true, motif: 'abonnement Stripe (' + abo.status + ', par ' + parQuoi + ')', echeance: abo.current_period_end ? new Date(abo.current_period_end * 1000).toISOString().slice(0, 10) : '', placesStripe: placesStripe(e, memes) };
+          : ((!refDe(sb) || !designe(refDe(sb))) && !partagee)))));
+        /* ⛔⛔ LA FORMULE NE SE DÉCIDE PAS SUR CE QUI EST AMBIGU (relecture adverse du 29 septembre 2026, rejoué). `memes`
+           ne décidait que des places ; il décide maintenant de la formule, et un abonnement douteux y pèse dans les deux sens :
+           · MONTER au-dessus de la fiche ne se fait que sur ce qui est SÛREMENT à elle (`surs`) : gravé à son nom, ou trouvé
+             par une adresse que personne d'autre ne porte — sinon une fiche « Gratuit » recevait la formule et les places
+             d'une AUTRE entreprise à la même adresse (un paiement, deux entreprises servies) ;
+           · DESCENDRE sous la fiche ne se fait que sans DOUTE (`douteux` vide) : un abonnement d'OP GESTION trouvé par son
+             adresse mais écarté ou ambigu (adresse partagée, référence d'un autre de ses noms) peut être le sien — sinon
+             acheter OP MESSAGES faisait retomber en Gratuit une entreprise qui paie Business Premium. On ne coupe pas une
+             entreprise qui paie peut-être : la fiche reste, la Tour montre ce qu'elle voit. */
+        const surs = memes.filter(sb => aMoi(sb) || !partagee);
+        const douteux = (espStripeCache.data || []).filter(sb => vivant(sb) && parMail(sb) && !aMoi(sb) && !surs.includes(sb)
+          && ((sb.items && Array.isArray(sb.items.data)) ? sb.items.data.some(it => !ligneMessages(it)) : true));
+        return { abo, memes, surs, douteux, motif: 'abonnement Stripe (' + abo.status + ', par ' + parQuoi + ')', echeance: abo.current_period_end ? new Date(abo.current_period_end * 1000).toISOString().slice(0, 10) : '' };
       }
     } catch (err) { console.error('espacePaye stripe:', err.message); }
   }
-  return { paye: false, motif: 'aucun paiement ni code promo' };
+  return null;
 }
 /* ══ LE NOMBRE DE PLACES QU'UNE ENTREPRISE A — CE QUE L'APPLICATION v763 LIT DANS `places` ══════════════════════
    Depuis la v763, l'application donne UN compte par abonnement dans toutes les formules (avant : 2 en Business, 3 en
@@ -2501,12 +2593,111 @@ function placesPromoDejaEu(e) {
   const t = espaceT(e);
   try { return !!t && Object.values(promoUsages || {}).some(u => u && u.equipes && u.equipes[t]); } catch (err) { return true; }
 }
+/* une ligne d'abonnement : son tarif, et « est-ce OP MESSAGES ? » — partagés par les places et la formule payée */
+const prixDeLigne = it => { const p = it && it.price; return typeof p === 'string' ? p : String((p && p.id) || ''); };
+const ligneMessages = it => STRIPE_PRIX_MESSAGES.includes(prixDeLigne(it)) || /messages/i.test(String((it && it.price && it.price.product && it.price.product.name) || ''));
+const aboAvantBascule = sb => (parseInt(sb && sb.created, 10) || 0) * 1000 < PLACES_BASCULE;
+/* ⛔⛔ LA FORMULE QUE L'ENTREPRISE PAIE — CELLE QUE L'APPLICATION REÇOIT (Justin, 29 septembre 2026 : « ils choisissent
+   le tarif qu'ils veulent » ; « le code promo, le plus gros forfait, c'est pour mieux montrer l'application » — à la fin,
+   chacun prend la formule qu'il veut). La page de paiement ne refuse donc plus un tarif sous la formule de la fiche : c'est
+   ICI que payer Pro donne Pro, même si la fiche dit Business Premium (sans quoi payer Pro gardait Business Premium, le trou
+   que la relecture adverse avait rejoué).
+   · un tarif de la page : sa formule ;
+   · ⛔ plusieurs formules payées en même temps : celle qui porte le PLUS d'abonnements, et à égalité la plus BASSE — ses
+     places comptent les abonnements de cette formule et des formules au-dessus (`placesStripe`). La plus haute, d'abord
+     choisie, coupait : dix abonnements Pro et un Business Premium pour le patron donnaient Business Premium avec UNE place
+     (relecture adverse du 29 septembre 2026, rejoué) — et en face, servir la plus haute à tous les abonnements aurait
+     vendu Business Premium au prix Pro. À égalité, plus de places plutôt que moins : on ne coupe pas ;
+   · ⛔ ce qu'on ne sait pas lire garde la formule de la FICHE — un abonnement d'AVANT la bascule (souscrit par un ancien
+     lien, à un autre tarif) ou un tarif créé à la main chez Stripe : on ne coupe pas une entreprise qui paie ;
+   · des abonnements d'APRÈS qui ne sont QUE d'OP MESSAGES : OP GESTION n'est pas payé, « gratuit » — seulement si chacun
+     a des lignes LISIBLES : un abonnement sans ligne (donnée tronquée) disait « gratuit » à une entreprise qui paie ;
+   · un abonnement d'AVANT la bascule interdit de descendre sous la fiche : on ne sait pas lire ce qu'il paie ;
+   · rien du tout : `null` (l'appelant garde la fiche). */
+function formulePayee(e, abos) {
+  const rangFiche = RANG_FORMULE.indexOf(e && e.formule);
+  const parRang = RANG_FORMULE.map(() => 0);   // abonnements payés, formule par formule
+  let avant = 0, illisibles = 0, messages = 0;
+  /* une ligne compte au moins pour un : une quantité absente (tarif « à l'usage ») ne doit pas faire croire à Gratuit */
+  const compte = (r, it) => { if (r >= 0) parRang[r] += Math.max(1, parseInt(it && it.quantity, 10) || 0); };
+  for (const sb of abos || []) {
+    const lignes = (sb && sb.items && Array.isArray(sb.items.data)) ? sb.items.data : null;
+    if (aboAvantBascule(sb)) { avant++; for (const it of lignes || []) if (!ligneMessages(it)) compte(rangFiche, it); continue; }
+    if (!lignes || !lignes.length) { illisibles++; continue; }
+    for (const it of lignes) {
+      if (ligneMessages(it)) { messages++; continue; }
+      const r = RANG_FORMULE.findIndex(k => STRIPE_PRIX_FORMULE[k].includes(prixDeLigne(it)));
+      compte(r >= 0 ? r : rangFiche, it);
+    }
+  }
+  let rang = -1;
+  for (let r = 0; r < parRang.length; r++) if (parRang[r] > 0 && (rang < 0 || parRang[r] > parRang[rang])) rang = r;   // à égalité : la plus basse
+  if (rang >= 0) return RANG_FORMULE[avant && rangFiche > rang ? rangFiche : rang];
+  if (messages && !avant && !illisibles) return 'gratuit';
+  return null;
+}
+/* ⛔ LA FORMULE QU'UNE PÉRIODE OFFERTE SERT (Justin, 29 septembre 2026 : « le code promo, mets-le au plus gros forfait —
+   c'est pour mieux montrer l'application »). Celle du code dans `config.promos`, Business Premium quand il n'en dit pas ;
+   JAMAIS sous la formule de la fiche. Avant, la période servait la fiche seule : une entreprise réglée Pro qui recevait un
+   code lisait « formule Business Premium offerte » dans son courriel et gardait Pro à l'écran. Un code retiré de la
+   configuration ne dit plus sa formule : la fiche la garde (la Tour y a posé celle du code en l'activant). `''` quand on
+   ne sait rien — l'appelant garde la fiche. */
+function formuleDuCode(code) {
+  const c = String(code || '').trim().toUpperCase();
+  const p = c ? (config.promos || []).find(x => String(x.code || '').trim().toUpperCase() === c) : null;
+  return p ? (RANG_FORMULE.includes(p.formule) ? p.formule : 'premium') : '';
+}
+function formulePromo(e, code) {
+  const r = Math.max(RANG_FORMULE.indexOf(e && e.formule), RANG_FORMULE.indexOf(formuleDuCode(code)));
+  return r >= 0 ? RANG_FORMULE[r] : '';
+}
+/* Les places de la formule SERVIE. ⛔ Une formule servie qui n'est pas celle de la fiche vient forcément d'un abonnement
+   d'APRÈS la bascule (ceux d'avant gardent la fiche, `formulePayee`) : c'est une formule CHANGÉE après la bascule, et ses
+   abonnements d'avant ne prennent pas son multiplicateur — le même refus que pour une formule changée dans la Tour
+   (`formuleDepuis`). Sans ça, un vieil abonnement Business valait 3 places dès qu'un abonnement Premium s'y ajoutait. */
+function placesDeFormule(e, f, abos) {
+  return placesStripe(Object.assign({}, e, { formule: f }, f !== e.formule ? { formuleDepuis: Date.now() } : {}), abos);
+}
+/* La formule servie et ses places, pour une entreprise dont un abonnement vivant est trouvé (`s`, rendu par
+   `espaceStripe`). ⛔ MONTER au-dessus de la fiche se décide sur les abonnements SÛREMENT à elle, DESCENDRE seulement
+   sans doute (voir `espaceStripe`) ; sinon la fiche reste. ⛔ Et monter ne retire jamais de places : une abonnée d'avant
+   qui achète un abonnement d'une formule au-dessus garde au moins ce que sa fiche lui donnait (une Business × 5 d'avant
+   perdait 4 places en achetant UN Business Premium — relecture adverse du 29 septembre, rejoué).
+   ⛔ Une donnée de Stripe mal formée ne coupe pas une entreprise qui paie : la formule de la fiche reste, et les places
+   retombent sur leur calcul d'avant (`placesServies`). */
+function formuleEtPlaces(e, s) {
+  try {
+    const rangDe = x => (x === 'gratuit' ? -1 : RANG_FORMULE.indexOf(x));   // « gratuit » sous toutes les formules
+    const rangFiche = rangDe(e && e.formule);
+    const fs = formulePayee(e, s.surs || []);
+    let f = null;
+    if (fs !== null && (rangDe(fs) >= rangFiche || !(s.douteux || []).length)) f = fs;
+    const fServie = f || e.formule;
+    let places = placesDeFormule(e, fServie, s.memes || []);
+    if (rangDe(fServie) > rangFiche) places = Math.max(places, placesStripe(e, s.memes || []));
+    return { f, places };
+  } catch (err) { console.error('espacePaye formule:', err.message); return { f: null, places: null }; }
+}
+/* La formule SERVIE de l'entreprise d'une adresse — celle que « Mon espace » (le portail) montre et que son contrat nomme.
+   Une adresse = une entreprise (Justin, 29 septembre 2026 : « ils feront une autre e-mail ») : si l'adresse en porte
+   plusieurs, on ne choisit pas pour le client (rien), et le dossier dit ce que la Tour y a posé. Rien non plus tant que ce
+   n'est pas payé (ni offert). Une LECTURE : aucun code ne s'active ici. */
+async function formuleServieDe(mail) {
+  const m = String(mail || '').trim().toLowerCase(); if (!m) return '';
+  const ts = new Set();
+  for (const s of Object.keys(espacesReg)) { const x = espacesReg[s];
+    if (x && typeof x.email === 'string' && x.email.trim().toLowerCase() === m) { const t = espaceT(x); if (t) ts.add(String(t)); } }
+  if (ts.size !== 1) return '';
+  const e = espaceParT([...ts][0]);
+  if (!e || !e.formule || espaceFerme(espaceT(e))) return '';
+  const p = await espacePaye(e, { lecture: true });
+  const f = p && p.paye ? (p.formuleServie || e.formule) : '';
+  return (f && FORMULE_LBL2[f]) || '';
+}
 function placesStripe(e, abos) {
   const f = e && e.formule, rang = RANG_FORMULE.indexOf(f);
   const sesPrix = rang < 0 ? [] : RANG_FORMULE.slice(rang).reduce((l, k) => l.concat(STRIPE_PRIX_FORMULE[k]), []);
-  const avantB = sb => (parseInt(sb && sb.created, 10) || 0) * 1000 < PLACES_BASCULE;
-  const prixDe = it => { const p = it && it.price; return typeof p === 'string' ? p : String((p && p.id) || ''); };
-  const estMessages = it => STRIPE_PRIX_MESSAGES.includes(prixDe(it)) || /messages/i.test(String((it && it.price && it.price.product && it.price.product.name) || ''));
+  const avantB = aboAvantBascule, prixDe = prixDeLigne, estMessages = ligneMessages;
   /* un abonnement d'AVANT a pu être pris par un ancien lien de paiement (autre tarif) : il compte, sauf OP MESSAGES ;
      un abonnement d'APRÈS ne compte que s'il est au tarif de la formule */
   const compte = sb => ((sb.items && sb.items.data) || []).reduce((n, it) =>
@@ -2549,7 +2740,7 @@ app.get('/api/monitor/espaces/liste', monAdmin, async (req, res) => {
        référence gravée vaut le SLUG, l'application dirait « payé » et la Tour « impayé »,
        sur la même entreprise, au même instant — et on chercherait du côté de Stripe. */
     try { p = await espacePaye(Object.assign({ slug }, e), { lecture: true }); } catch (err) {}   // une LISTE n'active aucun code
-    sortie.push({ slug, nom: e.nom || slug, email: e.email || '', formule: e.formule || '', quantite: e.quantite || 1, places: placesServies(e, p),
+    sortie.push({ slug, nom: e.nom || slug, email: e.email || '', formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', quantite: e.quantite || 1, places: placesServies(e, p),
       paye: p.paye, motif: p.motif, promoCode: p.promoCode || '', finLe: p.finLe || '', echeance: p.echeance || '', attribueLe: e.formuleTs || 0, par: e.formulePar || '',
       // qui a ouvert l'espace et quand : la Tour en a besoin pour lister les accès publics
       ouvertLe: e.ts || 0, ouvertPar: e.par || '', t: espaceT(e), resume: cnxResume(espaceT(e)),
@@ -2593,7 +2784,7 @@ app.post('/api/monitor/espaces/statut', monAdmin, async (req, res) => {
   const e = espacesReg[slug];
   if (!e) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son lien de connexion' });
   const p = await espacePaye(Object.assign({ slug }, e), { lecture: true });   // le slug n'est pas dans l'entrée — voir /liste ; une LECTURE n'active aucun code
-  res.json({ ok: true, formule: e.formule || '', quantite: e.quantite || 1, places: placesServies(e, p), email: e.email || '', paye: p.paye, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '' });
+  res.json({ ok: true, formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', promoCode: p.promoCode || '', quantite: e.quantite || 1, places: placesServies(e, p), email: e.email || '', paye: p.paye, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '' });
 });
 // ── Activité par onglet (anonyme : noms d'écrans + compteurs, par espace) ──
 const USAGE_PATH = path.join(DATA_DIR, 'usage.json');
@@ -4372,7 +4563,8 @@ app.post('/api/espaces/etat', (req, res) => {
   const opMessages = !!(e && e.opMessages);
   const versionMin = versionsCfg.min, enLigne = versionsCfg.enLigne;
   if (!e || !e.formule) return res.json({ ok: true, opMessages, versionMin, enLigne, suspendu, sursisJours });
-  espacePaye(e).then(p => res.json({ ok: true, formule: e.formule, quantite: e.quantite || 1, places: placesServies(e, p), paye: p.paye, motif: p.motif, opMessages, versionMin, enLigne, suspendu, sursisJours }))
+  /* ⛔ la formule SERVIE (`formulePayee`) : celle que l'entreprise paie, pas forcément celle de la fiche (29 septembre 2026) */
+  espacePaye(e).then(p => res.json({ ok: true, formule: p.formuleServie || e.formule, quantite: e.quantite || 1, places: placesServies(e, p), paye: p.paye, motif: p.motif, opMessages, versionMin, enLigne, suspendu, sursisJours }))
     .catch(() => res.json({ ok: true, formule: e.formule, quantite: e.quantite || 1, paye: false, motif: 'vérification impossible', opMessages, versionMin, enLigne, suspendu, sursisJours }));
 });
 /* nom d'entreprise présentable (jamais une adresse e-mail mise là faute de mieux) */
@@ -4570,6 +4762,7 @@ try {
     portail = require('./portail').monterPortail(app, {
       dossier: DATA_DIR, parJeton: comptes.parJeton, admin: monAdmin, patron: monPatronStrict, quotaOk,
       preparer: comptes.preparer, verifie: comptes.verifie,
+      formuleServie: formuleServieDe,   // « Mon espace » dit la formule que le client PAIE (29 septembre 2026)
       /* Un code du portail : il existe dans `config.promos`, sa durée vient de là, et il est
          « épuisé » quand `maxUtilisations` est atteint — la même lecture que `/api/promo/valider`. */
       promoDef: (code) => {
@@ -8757,7 +8950,11 @@ app.post('/api/promo/valider', (req, res) => {
         return res.status(503).json({ error: 'Le code n\'a pas pu être enregistré — réessaie dans un instant.' }); }
       mailPromoActive(team, c, finLe, ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium'); }
   }
-  res.json({ ok: true, formule: ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium', mois, finLe, dejaUtilise: !!deja, debut: deja ? (deja.date || '') : '' });
+  /* la formule que la période SERT à cette entreprise (le code, jamais sous sa fiche) : c'est elle que l'application
+     affiche en « essai » — la même que `/api/espaces/etat` lui rendra à la synchro suivante. ⛔ Seulement pour une clé
+     PROUVÉE : l'aperçu est public, il ne dit rien de la fiche d'une entreprise (la formule du code, comme avant). */
+  const fCode = ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium';
+  res.json({ ok: true, formule: (!apercu && team && formulePromo(espaceParT(team), c)) || fCode, mois, finLe, dejaUtilise: !!deja, debut: deja ? (deja.date || '') : '' });
 });
 
 // ── ⏳ Rappel d'échéance : 7 jours avant la fin d'une période offerte, l'entreprise
@@ -8784,7 +8981,8 @@ function rappelEcheanceMail(code, finLe, f, n) {
   const prix = PRIX_ABO_MOIS[f] || 0, an = prix * (12 - MOIS_OFFERTS_ANNEE);
   const eur = (x) => String(x).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' €';
   const pl = (k, mot) => k + ' ' + mot + (k > 1 ? 's' : '');
-  const lien = 'https://teamop.fr/recap-abonnement.html' + (f ? '?formule=' + f + (n ? '&utilisateurs=' + n : '') : (n ? '?utilisateurs=' + n : ''));
+  const lienDe = g => 'https://teamop.fr/recap-abonnement.html' + (g ? '?formule=' + g + (n ? '&utilisateurs=' + n : '') : (n ? '?utilisateurs=' + n : ''));
+  const lien = lienDe(f);
   const actifs = n ? pl(n, 'utilisateur') + ' ' + (n > 1 ? 'actifs' : 'actif') : '';
   const devisTxt = !f
     ? (n ? 'Nous avons trouvé ' + actifs + ' dans votre espace. ' : '') + 'Pour continuer : un abonnement par utilisateur, dans la formule de votre choix.'
@@ -8797,16 +8995,30 @@ function rappelEcheanceMail(code, finLe, f, n) {
     : n
     ? '<b>👥 ' + pl(n, 'utilisateur') + ' ' + (n > 1 ? 'actifs' : 'actif') + ' dans votre espace</b><br>Formule <b>' + lbl + '</b> · un abonnement par utilisateur<br><b>' + n + ' × ' + eur(prix) + ' = ' + eur(n * prix) + ' TTC par mois</b><br><span class="m-muet" style="color:#8593AB;font-size:12.5px">ou à l\'année : ' + n + ' × ' + eur(an) + ' = ' + eur(n * an) + ' TTC (' + MOIS_OFFERTS_ANNEE + ' mois offerts)</span>'
     : '<b>Formule ' + lbl + '</b> · un abonnement par utilisateur<br><b>' + eur(prix) + ' TTC par mois et par utilisateur</b><br><span class="m-muet" style="color:#8593AB;font-size:12.5px">ou ' + eur(an) + ' TTC à l\'année (' + MOIS_OFFERTS_ANNEE + ' mois offerts)</span>';
+  /* ⛔ LE CLIENT CHOISIT SA FORMULE, ET C'EST ICI (Justin, 29 septembre 2026 : « ils choisissent le tarif qu'ils veulent » ;
+     un code promo ouvre la formule la plus complète « pour mieux montrer l'application », et à la fin chacun prend la
+     sienne). Ce courriel part sept jours avant la fin : il propose la formule d'aujourd'hui ET les autres, chacune avec
+     son prix pour l'équipe et son lien — la page de paiement accepte n'importe lequel des tarifs, et l'application suit
+     ce qui est payé (`formulePayee`). */
+  const autres = ['pro', 'business', 'premium'].filter(g => g !== f);
+  const pourEquipe = g => n ? ' — ' + pl(n, 'utilisateur') + ' : ' + eur(n * PRIX_ABO_MOIS[g]) + ' TTC par mois' : '';
+  const autresTxt = (f ? 'Ou une autre formule, si elle vous convient mieux (un abonnement par utilisateur) :\n' : 'Les formules (un abonnement par utilisateur) :\n')
+    + autres.map(g => '· ' + FORMULE_LBL2[g] + ' : ' + eur(PRIX_ABO_MOIS[g]) + ' TTC par mois et par utilisateur' + pourEquipe(g) + '\n  ' + lienDe(g)).join('\n');
+  const autresHtml = '<b>' + (f ? 'Ou une autre formule, si elle vous convient mieux' : 'Choisissez votre formule') + '</b>'
+    + autres.map(g => '<br><a href="' + lienDe(g).replace(/&/g, '&amp;') + '" class="m-lien" style="color:#1E7A4E;font-weight:600;text-decoration:none">' + FORMULE_LBL2[g] + '</a> · '
+      + eur(PRIX_ABO_MOIS[g]) + ' TTC par mois et par utilisateur' + (n ? '<span class="m-muet" style="color:#8593AB"> · ' + pl(n, 'utilisateur') + ' : ' + eur(n * PRIX_ABO_MOIS[g]) + '</span>' : '')).join('');
   return {
     subject: '⏳ Votre période offerte se termine le ' + finFr + ' — TEAM OP',
     text: 'Bonjour,\n\nla période offerte par votre code « ' + code + ' » se termine le ' + finFr + '.\n\n' + devisTxt
       + '\n\nContinuer : ' + lien + '\n(connectez-vous avec l\'adresse qui reçoit ce message : c\'est elle qui est rattachée à votre espace)'
+      + '\n\n' + autresTxt
       + '\n\nSans abonnement, après le ' + finFr + ', l\'application repassera en formule Gratuit — vos données ne bougent pas, quoi qu\'il arrive.'
       + '\nDéjà abonné ? Rien à faire : votre abonnement prend le relais.\n\n— TEAM OP · teamop.fr',
     html: mailTeamOP({ chip: 'Échéance', chipBg: '#FFF6EE', chipColor: '#B26E12', titre: 'Plus que quelques jours ⏳',
-      corpsHtml: 'Bonjour,<br>la période offerte par votre code « <b>' + code + '</b> » se termine le <b>' + finFr + '</b>. Pour continuer sans coupure, voici votre abonnement'
-        + (n ? ', calculé sur votre équipe d\'aujourd\'hui :' : ' :'),
-      blocHtml: MAIL_BLOCS.cadre(devisHtml, '#EEF7F2', '#CFE6D8', '#17233B') + '<div style="height:12px;line-height:12px;font-size:0">&nbsp;</div>' + MAIL_BLOCS.echeance(finFr)
+      corpsHtml: 'Bonjour,<br>la période offerte par votre code « <b>' + code + '</b> » se termine le <b>' + finFr + '</b>. Pour continuer sans coupure, '
+        + (f ? 'gardez votre formule ou choisissez-en une autre' : 'choisissez votre formule') + (n ? ' — calculé sur votre équipe d\'aujourd\'hui :' : ' :'),
+      blocHtml: MAIL_BLOCS.cadre(devisHtml, '#EEF7F2', '#CFE6D8', '#17233B') + '<div style="height:12px;line-height:12px;font-size:0">&nbsp;</div>'
+        + MAIL_BLOCS.cadre(autresHtml) + '<div style="height:12px;line-height:12px;font-size:0">&nbsp;</div>' + MAIL_BLOCS.echeance(finFr)
         + '<div class="m-muet" style="font-size:12px;line-height:18px;color:#8593AB;padding-top:10px">Pour payer, connectez-vous avec l\'adresse qui reçoit ce message : c\'est elle qui est rattachée à votre espace. Déjà abonné ? Rien à faire : votre abonnement prend le relais.</div>',
       boutonTxt: (n && f) ? 'Continuer avec ' + pl(n, 'abonnement') : 'Choisir mon abonnement', boutonUrl: lien,
       bouton2Txt: 'Ouvrir mon application', bouton2Url: 'https://teamop.fr/app.html' })
@@ -8833,8 +9045,12 @@ function rappelsEcheances() {
         /* ⛔ UN ABONNEMENT RÉGLÉ À LA MAIN DANS LA TOUR PRIME sur le code (`espacePaye`) : s'il court au-delà de la
            période offerte, l'application ne repassera PAS en Gratuit — le rappel mentirait. */
         if (e && (e.aboStatut === 'actif' || e.aboStatut === 'essai') && (!e.aboFin || e.aboFin > eq.finLe)) continue;
-        const p = (config.promos || []).find(x => String(x.code || '').trim().toUpperCase() === code);
-        const f = p && ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : (p ? 'premium' : '');   // retiré de la configuration : formule inconnue
+        /* ⛔ LA FORMULE QUE L'ENTREPRISE UTILISE AUJOURD'HUI D'ABORD — celle que la période offerte SERT (`formulePromo` :
+           le code, jamais sous la fiche ; la relecture adverse du 28 septembre avait déjà écarté « celle du code seule »,
+           qui décrivait une formule que personne n'avait). Le courriel la présente en premier, puis propose les autres :
+           le client choisit (Justin, 29 septembre 2026). Rien de connu (code retiré, fiche sans formule) : pas de prix
+           inventé pour « sa » formule, les trois sont proposées. */
+        const f = formulePromo(e, code);
         const n = (comptesReg[t] && comptesReg[t].c) ? Object.keys(comptesReg[t].c).length : 0;
         const avant = {}; for (const s of noms) { avant[s] = espacesReg[s].rappelFin; espacesReg[s].rappelFin = eq.finLe; }
         espacesEcrire();

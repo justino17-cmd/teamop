@@ -37,7 +37,11 @@
 # `main` publiées avec lui (Tour v2.73, page de connexion sans code).
 # 28 septembre 2026, nuit : 2 899 contre les pages de `main` (47 suites), `test-841` et `test-842` compris (plus aucun
 # code ; les places payées) — plancher relevé à 2 850.
-#plancher 2850
+# 28 septembre 2026, plus tard dans la nuit : 2 934 (47 suites) avec la garde des tarifs de `/api/stripe/checkout` et
+# la page de paiement qui dit ses deux refus — plancher relevé à 2 900.
+# 29 septembre 2026, matin : 3 030 (47 suites) avec la formule servie (l'application reçoit ce qui est payé ; la garde
+# « tarif sous la fiche » retirée, `tarif_inconnu` gardé) et la Tour v2.75 — plancher relevé à 3 000.
+#plancher 3000
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
