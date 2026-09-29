@@ -84,7 +84,9 @@ Justin, dans l'ordre :
    ⚠️ **Côté serveur, vu et laissé** (négligeable) : `/api/compte/creer` écrit le registre deux fois pour une adresse libre
    (le compte, le jeton de confirmation) et zéro pour une connue — de l'ordre de la milliseconde sur une machine normale.
 
-5. **Suite complète** : en cours sur `3ea1130` au moment d'écrire — le chiffre suit dans le commit suivant.
+5. **Suite complète sur `3ea1130`, machine au calme : 204 suites · 11 821 vérifications, code 0.** Les deux passes
+   d'avant : `3da16ef` → 204 · 11 827, seul `test-756` rouge (le Gratuit de la maquette) ; `84ddaa9` → 204 · 11 819,
+   `test-811` et `test-831` rouges pendant mes lectures lourdes (point 4), verts seuls, sous charge, puis dans cette passe.
 
 ⏳ **CE QUI ATTEND « POUSSE »** (remplace la liste de la section suivante) :
 - **le serveur** (`server/index.js` : route du métier, `/api/espaces/etat`, `/api/clients/sync`, le statut, le courriel de

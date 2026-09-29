@@ -57,7 +57,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**203 suites dans `tests/`**, sans dépendance ni installation (recompté dans la nuit du 29 septembre 2026, `test-847` compris —
+**204 suites dans `tests/`**, sans dépendance ni installation (recompté dans la nuit du 29 septembre 2026, `test-848` compris —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -71,6 +71,7 @@ Quatre familles visent `server/`, et elles ne se remplacent pas :
 | `test-735`, `test-803` | les fonctions RÉELLES d'`app.html` **plus** le vrai serveur | que l'APPAREIL et le SERVEUR se parlent |
 | `test-740`, `test-741`, `test-831` | les fonctions RÉELLES d'`espace.html`, de `reinit.html` et de `connexion.html`, plus le vrai serveur | que le PORTAIL et le SERVEUR se parlent — et que l'écran DIT ce que le serveur a répondu |
 | `test-744` | le VRAI `op-fs.js` contre le vrai serveur, deux appareils | que le filtre de lecture ne CACHE rien |
+| `test-848` | les fonctions RÉELLES d'`espace.html`, de `tour.html` ET d'`app.html`, plus le vrai serveur | que le MÉTIER demandé au portail arrive, par la Tour et le serveur, dans l'application — la couture entière |
 | `test-833` | les fonctions RÉELLES de `tour.html`, plus le vrai serveur — et un serveur d'AVANT (un relais qui retire le champ neuf) | que la TOUR et le SERVEUR se parlent, dans les deux ordres de publication |
 
 ⛔ Les deux dernières lignes existent parce que les deux premières ne peuvent pas voir un défaut
@@ -124,7 +125,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 203 suites · 11 778 vérifications (mesuré en local dans la nuit du 29/09/2026, branche 0e5b48d)
+bash scripts/bancs-ci.sh        # 204 suites · 11 821 vérifications (mesuré en local dans la nuit du 29/09/2026, branche 3ea1130)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
@@ -239,6 +240,12 @@ courriel qui commence par « . » voyage « .. » ; le quoted-printable replie l
 mot peut se retrouver en tête de ligne. Pris le 27 septembre 2026 : `test-832` lisait « set-admin..sh » dans l'avis
 de suppression, sur une partie seulement des messages — le défaut était dans le facteur. Le facteur de `test-813`
 (et de tout banc qui le recopie) ne le fait pas encore : à corriger le jour où il lira un texte long.
+
+⛔ **UN BANC QUI ATTEND UN COURRIEL VISE LE LIEN DE SON GESTE, JAMAIS DEUX MOTS.** Pris le 29 septembre 2026 : `test-831`
+attendait « mot de passe oublié » en cherchant l'adresse et « reinit.html » — le courriel de CONFIRMATION de l'inscription,
+parti derrière la réponse juste avant, porte les deux. Détourner le vrai courriel vers une autre adresse ne faisait rien
+tomber. On vise le lien du geste (`mode=resetPassword`), lu dans l'en-tête `To` et le corps DÉCODÉ (quoted-printable :
+« = » y devient « =3D »), et un échec nomme chaque courriel reçu — destinataire et sujet, jamais le corps.
 
 ⛔ **UNE COURSE DE BANC SE JOUE AU GESTE, JAMAIS AU CHRONOMÈTRE — ET LA CI A LE VRAI RÉSEAU.** Pris le 29 septembre 2026
 (run 518 de « Vérification des pages », sur `main`) : `test-844` pariait qu'une suppression de la Tour tiendrait dans
