@@ -799,6 +799,18 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     const FEP_CASSE = new Function('espacesReg', 'promoUsages', 'espaceFerme', 'config', AIDES_ROUTE.join('\n') + '\nreturn finEssaiPeriode;')(
       { monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: '  Paie@Entreprise-Banc.fr ' } }, PERIODE(F30), () => false, { promos: [] });
     v('   une adresse d\'annuaire écrite avec capitales et espaces se reconnaît', (FEP_CASSE([], 'paie@entreprise-banc.fr') || {}).t, 'monclient-9f2a');
+    /* ⛔ DEUX GARDES QUE LA ROUTE N'ATTEINT PAS AUJOURD'HUI — le verrou « B » ne laisse payer pour une entreprise que son
+       compte, dont l'adresse est la sienne, jamais vide. Elles tiennent le jour où une autre porte appellera cette fonction
+       (les mutations N1 et N3 ne mordaient pas : la route seule ne pouvait pas les jouer). */
+    const FEP_VOIS = new Function('espacesReg', 'promoUsages', 'espaceFerme', 'config', AIDES_ROUTE.join('\n') + '\nreturn finEssaiPeriode;')(
+      Object.assign({}, ESPACES_DEFAUT, { voisine: { nom: 'Voisine', t: 'voisine-55bb', email: 'voisine@entreprise-banc.fr' },
+        sansadresse: { nom: 'Sans adresse', t: 'sansadr-66cc', email: '' } }),
+      { 'ESSAI-BANC-727': { n: 2, equipes: { 'monclient-9f2a': { date: jour(-10), finLe: F30, em: '' }, 'sansadr-66cc': { date: jour(-10), finLe: F30, em: '' } } } },
+      () => false, { promos: [] });
+    v('⛔ la référence d\'une entreprise, l\'adresse d\'une AUTRE (seule à son adresse) : rien — l\'adresse doit désigner celle de la référence',
+      [FEP_VOIS(VISEE, 'voisine@entreprise-banc.fr'), (FEP_VOIS(VISEE, PAYEUR) || {}).t], [null, 'monclient-9f2a']);
+    v('⛔ une entrée SANS adresse, appelée sans adresse : rien — une adresse vide ne désigne personne, même si l\'annuaire en porte une vide',
+      [FEP_VOIS([Object.assign({ slug: 'sansadresse' }, { nom: 'Sans adresse', t: 'sansadr-66cc', email: '' })], ''), FEP_VOIS([], '')], [null, null]);
     /* le revenu mensuel de la Tour (`stripeAbosCalc`, la vraie) : un abonnement EN ESSAI compte parmi les abonnements, pas
        dans le revenu — payer pendant une période offerte le diffère jusqu'à la fin du code (`gardien`) */
     const ABC = ['stripeClient', 'stripePeriode', 'stripeAbosCalc'].map(extraire).concat([(/^const stripeEur = .*$/m.exec(SRC) || [''])[0]]);
