@@ -121,7 +121,7 @@ const vrai = (t, a) => v(t, !!a, true);
       async (url, opts) => { envoye = String(opts && opts.body || ''); return { ok: true, json: async () => ({ url: 'https://checkout.stripe.com/x' }) }; },
       URLSearchParams, COMPTES, espaces === undefined ? ESPACES : espaces, {}, () => false,
       /* un IMPAYÉ se règle sur sa facture (`factureImpayeARegler`, 29 septembre 2026) : ce bac à sable n'a pas de liste Stripe —
-         la redirection se joue sur le VRAI serveur, avec un Stripe simulé qui connaît les impayés (`test-839`) */
+         la redirection se joue sur le VRAI serveur, avec un Stripe simulé qui connaît les impayés (`test-845`) */
       async () => null);
     const headers = {}; for (const k of Object.keys(hdr || {})) headers[k.toLowerCase()] = hdr[k];
     await faux._h({ body, headers }, { status(c) { statut = c; return this; }, json(o) { sortie = o; return this; } });

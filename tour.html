@@ -8731,12 +8731,14 @@ function vueAbonnements(){
       (mort?'':'<span class="reg-chev" aria-hidden="true">'+svg('ext',14)+'</span>')+'</span></button>'; });
   /* Des formules attribuées et jamais encaissées : c'est le SEUL endroit de la console où
      cet argent-là se voit. */
-  var attribNonPayees=(ESP.list||[]).filter(function(e){ return e.formule&&!e.paye&&!e.promoCode; });
+  /* v2.76 — un impayé STRIPE a déjà sa ligne plus haut (l'abonnement refusé) : une seule ligne par entreprise ; l'impayé
+     réglé à la main dans la Tour, lui, n'a que celle-ci */
+  var attribNonPayees=(ESP.list||[]).filter(function(e){ return e.formule&&!e.paye&&!e.promoCode&&!e.impayeStripe; });
   var duAttrib=attribNonPayees.map(function(e){
     return '<button type="button" class="reg-l cli" onclick="abnVersEntreprise(\''+jsq(e.t||'')+'\')">'+
       '<span class="reg-av">'+esc(sigle(e.nom||e.email||'?'))+'</span>'+
       '<span class="reg-txt"><span class="reg-t1" title="'+esc(e.nom||e.email||'—')+'">'+esc(e.nom||e.email||'—')+'</span>'+
-      /* v2.76 — une carte refusée n'est pas une formule jamais payée : le serveur le dit (`impaye`) */
+      /* v2.76 — un impayé n'est pas une formule jamais payée : le serveur le dit (`impaye`) */
       '<span class="reg-l2"><b>'+(e.impaye?'Impayé — fonctions payantes bloquées':'Formule attribuée, jamais payée')+'</b> · '+esc(ABN_F[e.formule]||e.formule)+(e.quantite>1?' ×'+e.quantite:'')+'</span>'+
       (e.email?'<span class="reg-l3">'+esc(e.email)+'</span>':'')+'</span>'+
       '<span class="reg-fin"><span class="past p-rouge">'+(e.impaye?'💳 Impayé':'💳 En attente')+'</span>'+

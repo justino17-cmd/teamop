@@ -89,7 +89,12 @@ vrai('la fenêtre du cache Stripe est trouvée dans le fichier réel', /STRIPE_C
 const IMPAYE = ['STATUTS_PAYES', 'STATUTS_IMPAYES', 'STRIPE_IMPAYE_FRAIS_MS', 'motifImpaye'].map(n => (new RegExp('^const ' + n + ' = .*$', 'm').exec(SRC) || [''])[0]);
 vrai('les statuts payés et impayés, la relecture d\'un impayé et son motif sont trouvés dans le fichier réel', IMPAYE.every(Boolean)
   && /'active', 'trialing'/.test(IMPAYE[0]) && /'past_due', 'unpaid'/.test(IMPAYE[1]) && /aboDeGestion/.test(LIGNES) && /function impayesGestion/.test(LIGNES));
-AIDES.push(CONSTS, ...PLACES, LIGNES, LBL2, CACHE_MS, ...IMPAYE, ...SERVIE);
+/* ⛔ et la règle UNIQUE du blocage (`impayeBloque`, lue par `espacePaye` ET le J-7) avec la forme qu'elle sert (`bloqueImpaye`,
+   sur deux lignes : le motif d'une ligne ne la voyait pas) — relecture adverse du 29 septembre 2026 */
+const BLOQUE = [extraire('impayeBloque'), (/^const bloqueImpaye = [\s\S]*?\}\);$/m.exec(SRC) || [''])[0]];
+vrai('la règle du blocage (`impayeBloque`) et sa forme (`bloqueImpaye`) sont trouvées dans le fichier réel',
+  /function impayeBloque\(e, s, imp\)/.test(BLOQUE[0]) && /bloque: true/.test(BLOQUE[1]) && /echeance:/.test(BLOQUE[1]));
+AIDES.push(CONSTS, ...PLACES, LIGNES, LBL2, CACHE_MS, ...IMPAYE, ...BLOQUE, ...SERVIE);
 const PARAMS = ['config', 'espStripeCache', 'promoUsages', 'stripeAbosBruts', 'console', 'savePromoUsages', 'mailPromoActive', 'espacesReg', 'espaceParT', 'crypto', 'promosIllisible'];
 const construire = () => new Function(...PARAMS, AIDES.join('\n') + '\n' + SRC.slice(i, fin) + '\nreturn espacePaye;');
 const avec = (abos) => construire()(
@@ -241,7 +246,7 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
       async (url, opts) => { appels++; envoye = String(opts && opts.body || ''); return { ok: true, json: async () => ({ url: 'https://checkout.stripe.com/x' }) }; },
       URLSearchParams, comptes === undefined ? COMPTES : comptes, espaces === undefined ? ESPACES_DEFAUT : espaces, usages || {}, t => (fermes || []).includes(t),
       /* un IMPAYÉ se règle sur sa facture (`factureImpayeARegler`, 29 septembre 2026) : ce bac à sable n'a pas de liste Stripe —
-         la redirection se joue sur le VRAI serveur, avec un Stripe simulé qui connaît les impayés (`test-839`) */
+         la redirection se joue sur le VRAI serveur, avec un Stripe simulé qui connaît les impayés (`test-845`) */
       async () => null);
     await faux._h({ body, headers: entetes === undefined ? { authorization: 'Bearer ' + JETON_PROUVE } : entetes },
       { status(c) { statut = c; return this; }, json(o) { sortie = o; return this; } });

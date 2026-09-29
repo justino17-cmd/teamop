@@ -196,9 +196,14 @@ globalThis.fetch = async function (url, opts) {
 
     console.log('\n1. `quantite` garde son sens pour la v760 en service ; les places ont leur champ');
     const tous = {}; for (const slug of Object.keys(E)) tous[slug] = await etat(slug);
+    /* ⛔ un impayé (carte refusée, ou posé à la main dans la Tour) se sert SANS formule ni places, comme une suspension au sursis
+       écoulé (29 septembre 2026, test-845) : l'application grise sans rien écrire. Les contrôles de population l'écartent, NOMMÉ. */
+    const formeB = sl => tous[sl].suspendu === true && tous[sl].sursisJours === 0 && !('formule' in tous[sl]) && !('places' in tous[sl]);
+    v('   (population) l\'impayé posé à la main dans la Tour (detour) est servi sans formule ni places — et lui seul ici',
+      Object.keys(E).filter(formeB), ['detour']);
     v('⛔ pour CHAQUE entreprise, `quantite` = le nombre réglé dans la Tour, jamais multiplié (la v760 fait × 2 ou × 3 elle-même)',
-      Object.keys(E).filter(sl => tous[sl].quantite !== E[sl].quantite), []);
-    vrai('   et `places` est rendu partout', Object.keys(E).every(sl => Number.isInteger(tous[sl].places)));
+      Object.keys(E).filter(sl => !formeB(sl) && tous[sl].quantite !== E[sl].quantite), []);
+    vrai('   et `places` est rendu partout (hors impayé)', Object.keys(E).filter(sl => !formeB(sl)).every(sl => Number.isInteger(tous[sl].places)));
     const pl = sl => tous[sl].places;
 
     console.log('\n2. Les abonnés d\'avant, réglés à la main dans la Tour, gardent leurs places');
@@ -260,7 +265,7 @@ globalThis.fetch = async function (url, opts) {
        écarts NOMMÉS ici — un écart de plus serait une entreprise dont la formule change sans que personne l'ait voulu */
     const ECARTS = { mauvaistarif: 'pro', tarifhaut: 'premium', gratuitpaie: 'business', msgseul: 'gratuit', montetarif: 'premium', promotour: 'premium', promonu: 'premium', gratuitcode: 'premium' };
     vrai('population : ' + Object.keys(E).length + ' entreprises relues', Object.keys(E).length >= 40);
-    v('⛔ toutes les autres reçoivent la formule de leur fiche, payées ou non', Object.keys(E).filter(sl => tous[sl].formule !== (ECARTS[sl] || E[sl].formule)).map(sl => sl + ' : ' + tous[sl].formule), []);
+    v('⛔ toutes les autres reçoivent la formule de leur fiche, payées ou non (hors impayé)', Object.keys(E).filter(sl => !formeB(sl) && tous[sl].formule !== (ECARTS[sl] || E[sl].formule)).map(sl => sl + ' : ' + tous[sl].formule), []);
 
     console.log('\n5. La Tour : réenregistrer sans rien changer n\'efface rien, et elle voit les places servies');
     const PATRON = (await appel('/api/monitor/login', { nom: 'Patron', pass: 'mot-de-passe-banc-842' })).j.token;
@@ -272,7 +277,9 @@ globalThis.fetch = async function (url, opts) {
     r = await appel('/api/monitor/espaces/abonnement', { nom: 'ancienbiz', formule: 'business', quantite: 3, statut: 'actif', fin: '' }, PATRON);
     v('   mais un NOMBRE changé après la bascule se lit un par utilisateur : 3 → 3 places', [r.s, (await etat('ancienbiz')).places], [200, 3]);
     r = await appel('/api/monitor/espaces/abonnement', { nom: 'retard', formule: 'premium', quantite: 1, statut: 'impaye', fin: '' }, PATRON);
-    v('M4 · une Business Premium d\'avant passe en impayé → plus payée, 1', [r.s, (await etat('retard')).paye, (await etat('retard')).places], [200, false, 1]);
+    const ret4 = await etat('retard');
+    v('M4 · une Business Premium d\'avant passe en impayé → plus payée, grisée sans formule ni places (la forme de l\'impayé)',
+      [r.s, ret4.paye, ret4.suspendu, ret4.sursisJours, 'places' in ret4, 'formule' in ret4], [200, false, true, 0, false, false]);
     r = await appel('/api/monitor/espaces/abonnement', { nom: 'retard', formule: 'premium', quantite: 1, statut: 'actif', fin: '' }, PATRON);
     v('⛔ M4 · elle règle son retard (« actif ») → ses 3 places reviennent : un impayé réglé n\'est pas un nouvel abonnement', [r.s, (await etat('retard')).places], [200, 3]);
     r = await appel('/api/monitor/espaces/abonnement', { nom: 'nouvelle', formule: 'business', quantite: 1, statut: 'actif', fin: '' }, PATRON);

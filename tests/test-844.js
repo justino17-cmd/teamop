@@ -132,15 +132,18 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     qoppa: ['t-qoppa-844', 'Qoppa Sans Facture', 'qoppa@exemple-844.fr'],  // IMPAYÉE (past_due), et AUCUNE facture ouverte chez Stripe
     jota: ['t-jota-844', 'Jota Réglée', 'jota@exemple-844.fr'],            // en impayé dans la liste, RÉGLÉE depuis (la relecture la dit active)
     heta: ['t-heta-844', 'Heta Mixte', 'heta@exemple-844.fr'],             // un abonnement actif ET un autre en impayé
-    chet: ['t-chet-844', 'Chet Messages', 'chet@exemple-844.fr'] };        // OP MESSAGES payé, OP GESTION en impayé
+    chet: ['t-chet-844', 'Chet Messages', 'chet@exemple-844.fr'],          // OP MESSAGES payé, OP GESTION en impayé
+    xenia: ['t-xenia-844', 'Xenia Voisine', 'voisine@exemple-844.fr'] };   // fiche GRATUIT : l'impayé SANS référence de yod, à la même adresse
   const espaces = {}, usages = { 'ESSAI-BANC-844': { n: 0, equipes: {} } };
   const periode = t => { usages['ESSAI-BANC-844'].n++; usages['ESSAI-BANC-844'].equipes[t] = { date: jour(-80), finLe: FIN, em: '' }; };
   for (const [slug, [t, nom, email]] of Object.entries(ENT)) { espaces[slug] = { t, nom, email, ts: MAINTENANT - 1000, formule: 'premium' }; periode(t); }
-  espaces.pi.formule = 'gratuit'; espaces.psi.formule = 'gratuit';
+  espaces.pi.formule = 'gratuit'; espaces.psi.formule = 'gratuit'; espaces.xenia.formule = 'gratuit';
   Object.assign(espaces.omega, { aboStatut: 'impaye', aboPar: 'Banc' });
   /* omicron et chi : SANS période offerte (pas de rappel), chacune abonnée à son nom, à l'adresse d'une entreprise qui en a une */
   espaces.omicron = { t: 't-omicron-844', nom: 'Omicron Abonnée', email: 'partage@exemple-844.fr', ts: MAINTENANT - 2000, formule: 'premium' };
   espaces.chi = { t: 't-chi-844', nom: 'Chi Résiliée', email: 'voisins@exemple-844.fr', ts: MAINTENANT - 2000, formule: 'premium' };
+  /* yod : sans période, à l'adresse de xenia ; son abonnement refusé ne porte AUCUNE référence (l'adresse seule) */
+  espaces.yod = { t: 't-yod-844', nom: 'Yod Refusée', email: 'voisine@exemple-844.fr', ts: MAINTENANT - 2000, formule: 'premium' };
   const ecrire = () => { fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(espaces)); fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify(usages)); };
   ecrire();
 
@@ -206,7 +209,12 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     abo('t-chet-844', 'chet@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
     /* wau et fau (phase 2 ter) : en impayé — la liste se lit, la RELECTURE de l'abonnement échoue */
     abo('t-wau-844', 'wau@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
-    abo('t-fau-844', 'fau@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }) ];
+    abo('t-fau-844', 'fau@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
+    /* yod : refusé, sans référence (voir plus bas) */
+    abo('t-yod-844', 'voisine@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
+    /* stigma (phase 5) : en impayé — la Tour la supprime PENDANT la lecture de sa facture */
+    abo('t-stigma-844', 'stigma@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }) ];
+  delete ABOS.find(x => x.id === 'sub_t-yod-844').metadata.espace;
   /* Ce que rend la RELECTURE d'un abonnement (`/v1/subscriptions/{id}?expand[]=latest_invoice`) — sa dernière facture, son
      statut s'il a changé depuis la liste — et la liste de ses factures ouvertes (`/v1/invoices?subscription=…&status=open`).
      Des adresses de factures FICTIVES : rien ne sort d'ici. */
@@ -220,7 +228,9 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     'sub_t-heta-844-refus': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('heta') } },
     'sub_t-chet-844': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('chet') } },
     'sub_t-wau-844': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('wau') } },
-    'sub_t-fau-844': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('fau') } } };
+    'sub_t-fau-844': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('fau') } },
+    'sub_t-yod-844': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('yod') } },
+    'sub_t-stigma-844': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('stigma') } } };
   const PRECHARGE = path.join(banc, 'stripe-simule.js');
   fs.writeFileSync(PRECHARGE, `const vrai = globalThis.fetch; const ABOS = ${JSON.stringify(ABOS)}; const FACTURES = ${JSON.stringify(FACTURES)}; let appels = 0;
 globalThis.fetch = async function (url, opts) {
@@ -332,6 +342,9 @@ globalThis.fetch = async function (url, opts) {
     const Ch = de('chet');
     vrai('⛔ chet (OP MESSAGES payé, OP GESTION en impayé) — l\'impayé, et la facture d\'OP GESTION : OP MESSAGES ne prend pas le relais',
       IMPAYE(Ch) && Ch.includes(FACT('chet')) && !/Plus que quelques jours/.test(Ch));
+    const Xe = de('voisine');
+    vrai('⛔ xenia (fiche GRATUIT, l\'impayé SANS référence d\'une voisine à la même adresse) — le courriel habituel : on ne réclame pas à une entreprise la dette d\'une autre',
+      HABITUEL(Xe) && !/n'a pas abouti|prélèvement est à régler/.test(Xe) && !Xe.includes(FACT('yod')));
     const H = de('heta');
     vrai('⛔ heta (un abonnement actif, un AUTRE en impayé) — l\'actif prend le relais, mais les places du refusé sont suspendues : pas « rien à faire »',
       H.includes('Votre abonnement prend le relais. Mais le dernier prélèvement d\'un autre de vos abonnements n\'a pas abouti : les places qu\'il paie sont suspendues jusqu\'au règlement.')
@@ -511,6 +524,34 @@ globalThis.fetch = async function (url, opts) {
     await dormir(4500);   // Stripe répond (3 s), le passage se termine
     vrai('⛔ mutee ne reçoit PAS « votre abonnement prend le relais » (décidé avant le réglage de la Tour) — rien à ce passage, ni marque',
       !lus(avant4).some(x => x.a === 'mutee@exemple-844.fr') && !marques()('mutee'));
+    vrai('   aucune erreur de la boucle au journal', !/rappelsEcheances/.test(journal));
+    await arreter();
+
+    console.log('\n5. La Tour supprime une entreprise en impayé PENDANT que le serveur lit sa facture');
+    /* stigma, en impayé : la liste se lit (1er appel, 3 s), puis sa facture se relit (2e appel, 3 s). On la supprime pendant
+       ce second appel : l'attente de la facture rend la main au serveur, et la décision prise avant ne vaut plus — elle ne
+       reçoit rien, et rien n'est marqué. */
+    const e5 = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'));
+    for (const k of Object.keys(e5)) if (!e5[k].rappelFin) e5[k].rappelFin = FIN;   // mutee et les autres : prévenues
+    e5.stigma = { t: 't-stigma-844', nom: 'Stigma Supprimée', email: 'stigma@exemple-844.fr', ts: MAINTENANT - 1000, formule: 'premium' };
+    fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(e5));
+    const u5 = JSON.parse(fs.readFileSync(path.join(D, 'promos-usages.json'), 'utf8'));
+    u5['ESSAI-BANC-844'].equipes['t-stigma-844'] = { date: jour(-80), finLe: FIN, em: '' }; u5['ESSAI-BANC-844'].n++;
+    fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify(u5));
+    const avant5 = facteurSrv.recus.length;
+    vrai('le serveur redémarre, Stripe lent (3 s par appel)', await demarrer('lent'));
+    let vu5 = false;
+    for (let i = 0; i < 150 && !(vu5 = (journal.match(/banc-stripe: appel/g) || []).length >= 2); i++) await dormir(100);
+    await dormir(300);
+    vrai('(population) le passage lit la facture de stigma (second appel à Stripe) — rien n\'est encore parti', vu5 && !/rappel échéance (envoyé|REFUSÉ|reporté)/.test(journal));
+    const PATRON5 = (await appel('/api/monitor/login', { nom: 'Patron', pass: 'mot-de-passe-844' })).j.token;
+    const sup5 = await appel('/api/monitor/entreprise/supprimer', { t: 't-stigma-844', confirme: true }, PATRON5);
+    vrai('la Tour supprime stigma pendant la lecture de sa facture (200)', sup5.s === 200 && !/rappel échéance (envoyé|REFUSÉ)/.test(journal));
+    for (let i = 0; i < 60 && !/banc-stripe: relecture sub_t-stigma-844/.test(journal); i++) await dormir(100);
+    await dormir(1500);
+    vrai('(population) la facture a bien été relue', /banc-stripe: relecture sub_t-stigma-844/.test(journal));
+    vrai('⛔ stigma, supprimée pendant la lecture de sa facture, ne reçoit PAS le rappel (ni la facture d\'une entreprise qui n\'existe plus)',
+      !lus(avant5).some(x => x.a === 'stigma@exemple-844.fr'));
     vrai('   aucune erreur de la boucle au journal', !/rappelsEcheances/.test(journal));
   } finally { if (enfant) await arreter(); }
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

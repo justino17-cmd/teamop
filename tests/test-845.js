@@ -74,21 +74,47 @@ console.log('\n── 845 · carte refusée = impayé : l\'accès payant bloqué
     pan: ['premium', [['past_due', 'premium', 1]]],                            // refusée, Stripe muet à la relecture
     regl: ['premium', [['past_due', 'premium', 1]]],                           // refusée dans la liste, réglée à la relecture
     x: ['premium', [['active', 'premium', 1]]],                                // payée — sa voisine y est en impayé
-    y: ['premium', [['past_due', 'premium', 1]]] };
+    y: ['premium', [['past_due', 'premium', 1]]],
+    /* ── les cas rejoués par la relecture adverse (29 septembre 2026, `gardien`) ── */
+    nouv: ['gratuit', []],                                                     // son nom d'accès était celui d'une ANCIENNE entreprise en impayé
+    paie: ['pro', [['active', 'pro', 2], ['past_due', 'pro', 1]]],            // payée, un vieil abonnement refusé traîne (facture ouverte)
+    paieu: ['pro', [['active', 'pro', 1], ['unpaid', 'pro', 1]]],             // payée, un vieil unpaid sans facture ouverte
+    unv: ['premium', [['unpaid', 'premium', 1]]],                              // unpaid sans facture ouverte (Stripe ne réessaie plus)
+    man: ['premium', []],                                                      // impayé posé À LA MAIN dans la Tour
+    can: ['business', [['canceled', 'business', 1]]],                          // annulé par Stripe (Q3 : réglage des relances)
+    /* une adresse PARTAGÉE par quatre entreprises (une adresse = une entreprise : ce que la Tour seule peut ranger) */
+    parta: ['gratuit', []],                                                    // Gratuit, jamais abonnée
+    partb: ['pro', [['past_due', 'pro', 1]]],                                  // son abonnement gravé à son identifiant, refusé
+    partc: ['pro', [['active', 'pro', 1]]],                                    // payée, gravée à son identifiant
+    partd: ['pro', [['past_due', 'pro', 1]]] };                                // refusé SANS référence (l'adresse seule)
+  const ADR = { parta: mail('partage'), partb: mail('partage'), partc: mail('partage'), partd: mail('partage') };
+  const adr = slug => ADR[slug] || mail(slug);
   const espaces = {}, subs = [], factures = {};
   const FACT = s => 'https://invoice.stripe.com/i/banc-845-' + s;
   for (const [slug, [formule, abos]] of Object.entries(ENT)) {
     const t = 't-' + slug + '-845';
-    espaces[slug] = { t, nom: 'Banc ' + slug, email: mail(slug), ts: MAINT - 1000, formule, quantite: 1, formuleTs: MAINT - 1000, formulePar: 'Banc' };
+    espaces[slug] = { t, nom: 'Banc ' + slug, email: adr(slug), ts: MAINT - 1000, formule, quantite: 1, formuleTs: MAINT - 1000, formulePar: 'Banc' };
     abos.forEach(([status, f, q], i) => {
       const id = 'sub_' + slug + '_' + i;
-      subs.push({ id, object: 'subscription', status, created: cree, metadata: { espace: t, compte: mail(slug) }, customer: { id: 'cus_' + slug, email: mail(slug) },
+      subs.push({ id, object: 'subscription', status, created: cree, metadata: { espace: t, compte: adr(slug) }, customer: { id: 'cus_' + slug, email: adr(slug) },
         current_period_end: Math.floor(MAINT / 1000) + 20 * 86400,
         items: { data: [{ id: 'si_' + id, quantity: q, price: { id: P[f], product: { name: f === 'msg' ? 'OP MESSAGES' : 'OP GESTION' } } }] } });
       if (/past_due|unpaid/.test(status)) factures[id] = { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT(slug) } };
     });
   }
   Object.assign(espaces.tou, { aboStatut: 'actif', aboPar: 'Banc' });
+  Object.assign(espaces.man, { aboStatut: 'impaye', aboPar: 'Banc' });
+  /* partd : pas de référence — seule l'adresse (partagée) la désigne */
+  delete subs.find(x => x.id === 'sub_partd_0').metadata.espace;
+  /* l'ANCIENNE entreprise de « nouv » : son abonnement refusé gravé au NOM D'ACCÈS (d'anciennes pages envoyaient le nom),
+     à son adresse à elle ; le nom a été libéré puis repris par « nouv » */
+  subs.push({ id: 'sub_ancienne', object: 'subscription', status: 'past_due', created: cree, metadata: { espace: 'nouv', compte: mail('ancienne') },
+    customer: { id: 'cus_ancienne', email: mail('ancienne') }, current_period_end: Math.floor(MAINT / 1000) + 20 * 86400,
+    items: { data: [{ id: 'si_ancienne', quantity: 5, price: { id: P.premium, product: { name: 'OP GESTION' } } }] } });
+  factures.sub_ancienne = { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('ancienne') } };
+  /* les unpaid sans facture ouverte */
+  factures.sub_paieu_1 = { latest_invoice: { object: 'invoice', status: 'void', hosted_invoice_url: FACT('paieu-ancienne') }, ouvertes: [] };
+  factures.sub_unv_0 = { latest_invoice: { object: 'invoice', status: 'void', hosted_invoice_url: FACT('unv-ancienne') }, ouvertes: [] };
   factures.sub_sans_0 = { latest_invoice: null, ouvertes: [] };
   factures.sub_regl_0 = { status: 'active', latest_invoice: { object: 'invoice', status: 'paid', hosted_invoice_url: FACT('regl') } };
   /* unp : sa dernière facture est close — l'ouverte n'est que dans la liste des factures */
@@ -99,10 +125,10 @@ console.log('\n── 845 · carte refusée = impayé : l\'accès payant bloqué
      dossier « Mon espace » de deux entreprises */
   const C = {}, J = {}, jetons = {};
   for (const slug of Object.keys(ENT)) {
-    C[mail(slug)] = { v: true, pr: 'Banc', no: slug, so: 'Banc ' + slug };
-    const brut = crypto.randomBytes(32).toString('hex');
-    J[sha(brut)] = { m: mail(slug), g: 'session', exp: MAINT + 86400000 };
-    jetons[slug] = brut;
+    const m = adr(slug);
+    if (!C[m]) { C[m] = { v: true, pr: 'Banc', no: slug, so: 'Banc ' + slug };
+      const brut = crypto.randomBytes(32).toString('hex'); J[sha(brut)] = { m, g: 'session', exp: MAINT + 86400000 }; jetons['@' + m] = brut; }
+    jetons[slug] = jetons['@' + m];
   }
   fs.writeFileSync(path.join(D, 'comptes-portail.json'), JSON.stringify({ c: C, j: J }));
   fs.writeFileSync(path.join(D, 'portail.json'), JSON.stringify({ d: {
@@ -167,14 +193,17 @@ globalThis.fetch = async function (url, opts) {
       headers: Object.assign({ 'Content-Type': 'application/json' }, jeton ? { Authorization: 'Bearer ' + jeton } : {}), body: corps === undefined ? undefined : JSON.stringify(corps) });
     let j = null; try { j = await r.json(); } catch (e) {} return { s: r.status, j: j || {} }; };
   const etat = async slug => (await appel('/api/espaces/etat', { t: espaces[slug].t })).j;
-  const FORME_B = j => j.ok === true && j.paye === false && j.impaye === true && j.suspendu === true && j.sursisJours === 0 && !('formule' in j) && !('places' in j);
+  /* la forme B : pas de formule ni de places ; et ⛔ la route est PUBLIQUE (qui connaît `t`) : ni le mot « impayé », ni Stripe */
+  const FORME_B = j => j.ok === true && j.paye === false && j.suspendu === true && j.sursisJours === 0 && !('formule' in j) && !('places' in j)
+    && !('impaye' in j) && j.motif === 'accès payant suspendu';
 
   try {
     console.log('\n1. /api/espaces/etat : un impayé se sert comme une suspension au sursis écoulé, sans formule');
     const E = {}; for (const slug of Object.keys(ENT)) E[slug] = await etat(slug);
-    vrai('⛔ past_due (Business) — `paye:false`, `impaye`, `suspendu`, `sursisJours:0`, et NI formule NI places (la forme que la v763 grise sans rien écrire)', FORME_B(E.imp));
-    vrai('   son motif dit l\'impayé et le blocage', /abonnement Stripe impayé \(past_due, par [^)]+\) — fonctions payantes bloquées jusqu'au règlement/.test(E.imp.motif || ''));
-    vrai('⛔ unpaid (Stripe a fini ses tentatives) — la même forme', FORME_B(E.unp) && /impayé \(unpaid/.test(E.unp.motif || ''));
+    vrai('⛔ past_due (Business) — `paye:false`, `suspendu`, `sursisJours:0`, et NI formule NI places (la forme que la v763 grise sans rien écrire)', FORME_B(E.imp));
+    vrai('⛔   la route est publique : elle ne dit ni « impayé », ni Stripe, ni le chemin (la Tour, gardée, a le motif)',
+      !/impay|stripe|past_due|unpaid|adresse|référence/i.test(JSON.stringify(E.imp)));
+    vrai('⛔ unpaid (Stripe a fini ses tentatives) — la même forme', FORME_B(E.unp));
     vrai('⛔ fiche GRATUIT dont le Pro payé est refusé — la même forme (l\'administrateur est prévenu, rien n\'est écrit)', FORME_B(E.gra));
     vrai('⛔ OP MESSAGES payé, OP GESTION refusé — un impayé, pas le « Gratuit » d\'une entreprise qui n\'aurait pris qu\'OP MESSAGES', FORME_B(E.mog));
     vrai('⛔ fiche Gratuit, OP MESSAGES payé, son Pro refusé — la même forme', FORME_B(E.mgr));
@@ -188,6 +217,19 @@ globalThis.fetch = async function (url, opts) {
       Number.isInteger(E.mix.places) && Number.isInteger(E.deux.places) && E.mix.places < E.deux.places);
     vrai('   et son motif le dit', /1 abonnement en impayé : ses places ne sont pas servies/.test(E.mix.motif || ''));
     vrai('   (témoin) payée sans rien de refusé : la réponse normale', E.x.paye === true && E.x.formule === 'premium' && !/impayé/.test(E.x.motif || ''));
+    /* ── les cas de la relecture adverse ── */
+    vrai('⛔ un nom d\'accès REPRIS : l\'impayé de l\'ancienne entreprise, gravé à ce nom, ne bloque pas la nouvelle (un impayé ne se rattache qu\'à l\'identifiant)',
+      E.nouv.paye === true && E.nouv.formule === 'gratuit' && E.nouv.suspendu === false);
+    vrai('⛔ payée, avec un vieil abonnement refusé : servie (ses places payées), pas bloquée', E.paie.paye === true && E.paie.formule === 'pro' && E.paie.suspendu === false
+      && E.paieu.paye === true && E.paieu.suspendu === false);
+    vrai('   unpaid sans facture ouverte : bloquée comme les autres', FORME_B(E.unv));
+    vrai('⛔ l\'impayé posé À LA MAIN dans la Tour : la même forme que l\'impayé Stripe (plus de bandeau à toute l\'équipe, ni `db` réécrit)', FORME_B(E.man));
+    vrai('   (en attente de Justin, Q3) un abonnement ANNULÉ par Stripe : la réponse d\'avant (formule, non payée) — pas un impayé',
+      E.can.formule === 'business' && E.can.paye === false && E.can.suspendu === false && !('impaye' in E.can));
+    vrai('⛔ adresse partagée — la payée (gravée) reste servie', E.partc.paye === true && E.partc.formule === 'pro' && E.partc.suspendu === false);
+    vrai('⛔ adresse partagée — la fiche Gratuit jamais abonnée n\'est PAS dite en impayé par l\'abonnement refusé d\'une voisine',
+      E.parta.paye === true && E.parta.formule === 'gratuit' && E.parta.suspendu === false);
+    vrai('⛔ adresse partagée — la refusée (gravée à elle) est bloquée : l\'abonnement payé de sa VOISINE ne lui prête pas l\'accès payant', FORME_B(E.partb));
     /* ⛔ PAS DE RAFALE : la liste se garde pour qui paie ; un impayé la fait relire au plus une fois par fenêtre */
     const listes = () => appelsStripe().filter(x => /\/v1\/subscriptions\?/.test(x.u)).length;
     await dormir(1100);
@@ -249,11 +291,15 @@ globalThis.fetch = async function (url, opts) {
     vrai('(population) la Tour se connecte', !!PATRON);
     const L = (await appel('/api/monitor/espaces/liste', undefined, PATRON)).j.espaces || [];
     const ligne = slug => L.find(x => x.slug === slug) || {};
-    v('⛔ la liste de la Tour : `impaye` pour les refusées (past_due, unpaid, fiche Gratuit), pas pour les autres',
-      Object.keys(ENT).filter(s => ligne(s).impaye).sort(), ['gra', 'imp', 'mgr', 'mog', 'pan', 'regl', 'sans', 'unp', 'y']);
+    v('⛔ la liste de la Tour : `impaye` pour les bloquées (past_due, unpaid, fiche Gratuit, réglée à la main), pas pour les autres',
+      Object.keys(ENT).filter(s => ligne(s).impaye).sort(), ['gra', 'imp', 'man', 'mgr', 'mog', 'pan', 'partb', 'regl', 'sans', 'unp', 'unv', 'y']);
+    v('   `impayeStripe` : toutes sauf la réglée à la main (la Tour ne la montre qu\'une fois : sa ligne Stripe, ou celle-ci)',
+      Object.keys(ENT).filter(s => ligne(s).impaye && !ligne(s).impayeStripe), ['man']);
     v('   `impayesPartiels` : 1 pour l\'entreprise au payé ET au refusé, 0 pour son témoin', [ligne('mix').impayesPartiels, ligne('deux').impayesPartiels], [1, 0]);
     const St = (await appel('/api/monitor/espaces/statut', { nom: 'imp' }, PATRON)).j;
-    vrai('   la fiche d\'une entreprise refusée : non payée, `impaye`, le motif de l\'impayé', St.paye === false && St.impaye === true && /impayé/.test(St.motif || ''));
+    vrai('   la fiche d\'une entreprise refusée : non payée, `impaye`, le motif de l\'impayé', St.paye === false && St.impaye === true && /impayé Stripe \(past_due, par [^)]+\) — accès payant bloqué/.test(St.motif || ''));
+    const Su = (await appel('/api/monitor/espaces/statut', { nom: 'unp' }, PATRON)).j;
+    vrai('   … et celle d\'un unpaid le dit (le motif tient dans les 80 signes de l\'horloge de conservation)', /impayé Stripe \(unpaid/.test(Su.motif || '') && String(Su.motif || '').length <= 80);
     const Mi = (await appel('/api/portail/moi', undefined, jetons.imp)).j;
     vrai('⛔ « Mon espace » d\'une entreprise refusée : « Suspendu » (pas « Actif » à côté de fonctions grisées), sa formule inchangée',
       Mi.ok === true && Mi.dossier && Mi.dossier.planStatus === 'suspendu' && Mi.dossier.plan === 'Business');
@@ -289,6 +335,18 @@ globalThis.fetch = async function (url, opts) {
       r.s === 200 && r.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && sessions().length === n0 + 3);
     r = await payer('ret', { price: P.business, ref: espaces.ret.t });
     vrai('   l\'entreprise qui vient de régler : le paiement normal', r.s === 200 && r.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && sessions().length === n0 + 4);
+    const neuf = async (slug, corps) => { const n = sessions().length; const q = await payer(slug, corps);
+      return q.s === 200 && q.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && !q.j.facture && sessions().length === n + 1; };
+    vrai('⛔ le nom d\'accès repris : la nouvelle entreprise paie normalement — JAMAIS la facture de l\'ancienne (nom, adresse, montant d\'une autre)',
+      await neuf('nouv', { price: P.pro, ref: espaces.nouv.t }) && !appelsStripe().some(x => /sub_ancienne/.test(x.u)));
+    vrai('⛔ payée avec un vieil abonnement refusé : elle ACHÈTE ses places de plus — pas renvoyée vers la vieille facture', await neuf('paie', { price: P.pro, ref: espaces.paie.t }));
+    vrai('⛔ payée avec un vieil unpaid sans facture : pas de 409 sans issue, le paiement normal', await neuf('paieu', { price: P.pro, ref: espaces.paieu.t }));
+    vrai('⛔ bloquée par un unpaid sans facture ouverte : le paiement normal (Stripe ne réessaie plus : aucun double prélèvement)', await neuf('unv', { ref: espaces.unv.t }));
+    vrai('   l\'impayé posé à la main dans la Tour : le paiement normal (aucune facture Stripe à régler)', await neuf('man', { ref: espaces.man.t }));
+    vrai('⛔ adresse partagée — la payée achète normalement, jamais la facture d\'une voisine', await neuf('partc', { price: P.pro, ref: espaces.partc.t }));
+    vrai('⛔ adresse partagée — la Gratuit prend Pro normalement, jamais la facture d\'une voisine', await neuf('parta', { price: P.pro, ref: espaces.parta.t }));
+    r = await payer('partb', { price: P.pro, ref: espaces.partb.t });
+    vrai('   adresse partagée — la bloquée reçoit SA facture', r.s === 200 && r.j.url === FACT('partb') && r.j.facture === true);
     vrai('   aucune adresse de client en clair au journal', !/[a-z]+@exemple-845\.fr/.test(journal.replace(/[a-z]\*+@exemple-845\.fr/g, '')));
   } finally { if (enfant) { const e = enfant; enfant = null; await new Promise(r => { e.once('exit', r); e.kill('SIGKILL'); }); } }
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

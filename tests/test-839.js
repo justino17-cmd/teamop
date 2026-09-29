@@ -263,6 +263,19 @@ function merci(fichier, recherche) {
       q = await essai(() => rep(400, { error: 'tarif_inconnu' }));
       v('   … un tarif que le serveur ne connaît pas (400) : « rechargez la page », rien n\'est parti',
         [q.texte().includes('Ce tarif n\'est plus proposé'), /Réessayez dans un instant/.test(q.texte()), q.window.location.href], [true, false, '']);
+      /* ⛔ CARTE REFUSÉE = IMPAYÉ (Justin, 29 septembre 2026) : le serveur rend la facture en attente, ou refuse — la page le DIT */
+      q = await essai(() => rep(409, { error: 'impaye_sans_facture' }));
+      v('⛔ un impayé sans facture ouverte (409) : « doit être réglé… écrivez au support », sans « réessayez », rien n\'est parti',
+        [q.texte().includes('Un prélèvement précédent de votre abonnement n\'a pas abouti et doit être réglé'), q.texte().includes('support@teamop.fr'),
+          /Réessayez dans un instant/.test(q.texte()), q.texte().includes('Rien n\'a été payé'), q.window.location.href], [true, true, false, true, '']);
+      q = await essai(() => rep(502, { error: 'stripe_indisponible' }));
+      v('   … Stripe muet à la relecture de l\'impayé (502) : « réessayez dans quelques minutes », rien n\'est parti',
+        [q.texte().includes('ne répond pas pour vérifier un prélèvement en attente'), q.texte().includes('Rien n\'a été payé'), q.window.location.href], [true, true, '']);
+      q = await essai(() => rep(200, { url: 'https://invoice.stripe.com/i/banc-839', facture: true }));
+      v('⛔ la facture en attente (200, `facture`) : la page le dit AVANT d\'y aller (le montant n\'est pas celui choisi)',
+        [q.texte().includes('sa facture en attente s\'ouvre'), q.texte().includes('rien d\'autre ne sera prélevé'), q.window.location.href], [true, true, '']);
+      await dormir(2700);
+      v('   … puis l\'ouvre', q.window.location.href, 'https://invoice.stripe.com/i/banc-839');
       /* et le geste qui suit : choisir une autre formule. Le NOMBRE venu du courriel J-7 (4) reste — la pastille le remettait
          à 1 —, et le refus d'avant, qui visait l'autre formule, s'efface (relecture adverse, 28 septembre, nuit) */
       const avantPuce = q.api.etat().nbUsersVoulu;
