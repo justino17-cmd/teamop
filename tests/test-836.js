@@ -290,7 +290,8 @@ console.log('\n══ 9. TOUTES LES PAGES DU DÉPÔT : AUCUN BOUTON DE MODE HORS
     'messages-beta.html': 'OP MESSAGES bêta : même thème',
     'tour.html': 'la Tour : la console du patron, avec son propre jour et nuit — ce n\'est pas le site',
     'apercu/tour.html': 'la Tour en aperçu : même chose',
-    'apercu/site-apple.html': 'maquette de comparaison « deux palettes, trois modes » (test-756), non liée, qui ne remplace aucune page',
+    /* (`apercu/site-apple.html`, la maquette de comparaison, est supprimée — Justin, 30 septembre 2026 : « pour le site on
+       garde la maquette qu'on a à l'heure actuelle, l'ancienne tu peux les supprimer ») */
   };
   const fichiers = require('child_process').execSync('git ls-files "*.html"', { cwd: RACINE }).toString().trim().split('\n').filter(Boolean);
   vrai('population : ' + fichiers.length + ' pages suivies', fichiers.length >= 50);

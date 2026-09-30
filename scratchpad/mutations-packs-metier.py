@@ -24,8 +24,6 @@ M = [
   ('application : le pack couverture sans types (retombe sur la liste 3D)', 'app.html', "types:['Réparation de toiture','Recherche de fuite',", "typesX:['Réparation de toiture','Recherche de fuite',", ['848']),
   ('site : la couverture redevient « sur mesure »', 'scripts/site-marine.js', "['couverture', 'Couverture / Zinguerie', 'Toiture · gouttières · étanchéité', 1]", "['couverture', 'Couverture / Zinguerie', 'Toiture · gouttières · étanchéité', 0]", ['835']),
   ('site : une puce porte une clé inconnue de l\'application', 'scripts/site-marine.js', "['paysagiste', 'Paysagiste / Espaces verts', 'Entretien · création · élagage', 1]", "['espaces-verts', 'Paysagiste / Espaces verts', 'Entretien · création · élagage', 1]", ['835']),
-  ('maquette : la carte Couverture disparaît', 'apercu/site-apple.html', '    <div class="carte"><h3>Couverture</h3>', '    <div class="carte-x"><h3>Couverture</h3>', ['756']),
-  ('maquette : une carte « Bientôt » revient', 'apercu/site-apple.html', '    <div class="carte toute"><h3>Autre</h3>', '    <div class="carte"><h3>Bientôt</h3><p>Packs en préparation.</p></div>\n    <div class="carte toute"><h3>Autre</h3>', ['756']),
   ('Tour : un numéro de version resté en arrière dans le balisage', 'tour.html', 'console interne · v2.78', 'console interne · v2.77', ['829']),
 ]
 mordues = 0

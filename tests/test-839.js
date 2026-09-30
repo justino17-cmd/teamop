@@ -68,8 +68,9 @@ function merci(fichier, recherche) {
   }
   vrai('la phrase est dans l\'INTRODUCTION, au-dessus des formules (là où l\'on regarde les prix)',
     /<p class="intro">[^<]*Pour payer, il faut un compte TEAM OP/.test(TARIFS['tarifs.html (en service)']));
-  for (const f of ['apercu/tarifs.html', 'apercu/site-apple.html'].filter(existe))
-    vrai(f + ' (ancienne page d\'aperçu, servie) : la même phrase', texte(lire(f)).includes(PHRASE));
+  /* (les anciennes pages d'aperçu — `apercu/tarifs.html`, la maquette `apercu/site-apple.html` — sont supprimées : Justin,
+     30 septembre 2026, « l'ancienne tu peux les supprimer ». Elles ne reviennent pas en silence.) */
+  v('les anciennes pages d\'aperçu (tarifs, maquette) ne sont plus servies', ['apercu/tarifs.html', 'apercu/site-apple.html'].filter(existe), []);
 
   /* ── 2. plus aucun lien de paiement anonyme servi — recensé depuis le dépôt ─────────────────────────────── */
   console.log('2. plus aucun lien de paiement anonyme servi');

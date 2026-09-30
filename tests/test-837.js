@@ -261,7 +261,8 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
   /* ── 4. tout ce que le dépôt SERT, recensé — pas une liste écrite à la main ─────────────────────────────────── */
   /* La première version de ce banc ne relisait que les pages qu'on savait concernées : la relecture en a trouvé deux autres,
      servies et sans `noindex`, qui vendaient encore 2 et 3 utilisateurs (`apercu/tarifs.html`, restée d'un cycle d'aperçu
-     antérieur, et la maquette `apercu/site-apple.html`). « Un recensement part du dépôt, jamais d'une liste » (CLAUDE.md). */
+     antérieur, et la maquette `apercu/site-apple.html` — toutes deux supprimées depuis, le 30 septembre 2026). « Un recensement
+     part du dépôt, jamais d'une liste » (CLAUDE.md). */
   console.log('4. aucune page servie ne vend plusieurs utilisateurs par abonnement');
   const { execSync } = require('child_process');
   let suivis = [];
