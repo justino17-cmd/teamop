@@ -339,10 +339,14 @@ globalThis.fetch = async function (url, opts) {
     rx: { t: 't-rx-849', nom: 'rx', code: codeEspace('t-rx-849'), email: mail('dupr'), ts: MAINT - 9000, formule: 'pro', quantite: 1 },
     ry: { t: 't-ry-849', nom: 'ry', code: codeEspace('t-ry-849'), email: mail('dupr'), ts: MAINT - 5000 },
     rv: { t: 't-rv-849', nom: 'rv', code: codeEspace('t-rv-849'), email: mail('dupv'), ts: MAINT - 9000, formule: 'pro', quantite: 1 },
-    rvy: { t: 't-rvy-849', nom: 'rvy', code: codeEspace('t-rvy-849'), email: mail('dupv'), ts: MAINT - 5000 } };
-  const UR = { 'VIEUX-BANC-849': { n: 2, equipes: {
+    rvy: { t: 't-rvy-849', nom: 'rvy', code: codeEspace('t-rvy-849'), email: mail('dupv'), ts: MAINT - 5000 },
+    /* (rz a CHANGÉ d'adresse depuis son code : son utilisation porte encore l'empreinte de l'ancienne — celle de rvy. C'est
+       l'identifiant VIVANT qui la protège, pas l'adresse : sans ce cas, une garde masquait l'autre) */
+    rz: { t: 't-rz-849', nom: 'rz', code: codeEspace('t-rz-849'), email: mail('rz-neuve'), ts: MAINT - 9000, formule: 'pro', quantite: 1 } };
+  const UR = { 'VIEUX-BANC-849': { n: 3, equipes: {
     't-rx-849': { date: jour(-10), finLe: jour(30), em: em(mail('dupr')) },
-    't-rv-849': { date: jour(-10), finLe: jour(30), em: em(mail('dupv')) } } } };
+    't-rv-849': { date: jour(-10), finLe: jour(30), em: em(mail('dupv')) },
+    't-rz-849': { date: jour(-10), finLe: jour(30), em: em(mail('dupv')) } } } };
   const sR = await demarrer(ER, UR, [], {}, { smtp: portSmtp });
   const PR = await sR.patron();
   const rRx = await sR.appel('/api/monitor/espaces/renaitre', { nom: 'rx', confirme: true }, PR);
@@ -356,6 +360,28 @@ globalThis.fetch = async function (url, opts) {
   const rSvy = await sR.appel('/api/monitor/entreprise/supprimer', { t: 't-rvy-849', confirme: true }, PR);
   v('⛔⛔ suppression TOTALE de la voisine rvy : la période de rv, sous son propre identifiant, reste',
     [rSvy.s, SERVIE(await sR.etat('t-rv-849')), !!lireUsages(sR).equipes['t-rv-849']], [200, [true, 'premium', false], true]);
+  v('⛔ … et celle de rz, qui a changé d\'adresse depuis (l\'empreinte de son utilisation est celle de rvy) : son identifiant est vivant, elle reste',
+    [SERVIE(await sR.etat('t-rz-849')), !!lireUsages(sR).equipes['t-rz-849']], [[true, 'premium', false], true]);
+
+  /* (relecture finale) la mémoire d'un code DÉJÀ SERVI, gardée pour l'entreprise qui vit sous un nouvel identifiant (`garde-…`,
+     posée quand la Tour supprime l'ancien identifiant), ne part pas avec la suppression d'une voisine d'adresse : sinon le code
+     redevenait NEUF pour elle — une seconde période. Un serveur à part : trois gestes de suppression. */
+  const EK = {
+    kk: { t: 't-kk-849', nom: 'kk', code: codeEspace('t-kk-849'), email: mail('dupkk'), ts: MAINT - 9000, formule: 'pro', quantite: 1 },
+    kky: { t: 't-kky-849', nom: 'kky', code: codeEspace('t-kky-849'), email: mail('dupkk'), ts: MAINT - 5000 } };
+  const UK = { 'VIEUX-BANC-849': { n: 1, equipes: { 't-kk-849': { date: jour(-100), finLe: jour(-10), em: em(mail('dupkk')) } } } };
+  const sK = await demarrer(EK, UK, [], {}, { smtp: portSmtp });
+  const PK = await sK.patron();
+  const rK1 = await sK.appel('/api/monitor/espaces/renaitre', { nom: 'kk', confirme: true }, PK);
+  const rK2 = await sK.appel('/api/monitor/espaces', { nom: 'kk2', code: codeEspace('t-kk2-849'), email: mail('dupkk'), origine: 'tour' }, PK);
+  const rK3 = await sK.appel('/api/monitor/entreprise/supprimer', { t: 't-kk-849', confirme: true }, PK);
+  const gardes = Object.keys(lireUsages(sK).equipes).filter(k => /^garde-/.test(k));
+  v('(population) kk (code déjà servi) repart à neuf, la Tour la recrée (kk2), puis supprime l\'ancien identifiant : sa mémoire est gardée',
+    [rK1.s, rK2.s, rK3.s, gardes.length], [200, 200, 200, 1]);
+  const rK4 = await sK.appel('/api/monitor/entreprise/supprimer', { t: 't-kky-849', confirme: true }, PK);
+  const rK5 = await sK.appel('/api/monitor/espaces/promo', { nom: 'kk2', code: 'VIEUX-BANC-849' }, PK);
+  v('⛔⛔ suppression TOTALE de la voisine kky : la mémoire reste — le code ne redevient pas neuf pour kk2 (refusé : déjà servi)',
+    [rK4.s, rK5.s, Object.keys(lireUsages(sK).equipes).filter(k => /^garde-/.test(k)).length], [200, 410, 1]);
 
   /* le rappel J-7 de l'entreprise recréée — le passage des rappels se fait au démarrage : on redémarre le serveur sur les
      MÊMES données, rappels presque immédiats, et on attend le COURRIEL (pas le chronomètre) */
