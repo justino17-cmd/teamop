@@ -119,10 +119,15 @@ process.on('exit', arreter);
      « code incorrect » pour une raison qui n'a rien à voir avec ce qu'on mesure. Payé à la
      première exécution de ce banc — le TÉMOIN actif était refusé lui aussi, c'est ce qui l'a dit. */
   const JOUR = 86400000, maintenant = Date.now();
+  /* ⛔ LES ENTREPRISES DU BANC PAIENT (formule réglée « actif » à la main dans la Tour). Depuis le 30 septembre 2026, ce qui
+     n'est pas payé est suspendu SANS sursis — une fiche sans formule comprise (Justin : « Suspend ») : les sept jours de
+     sursis d'une suspension posée dans la Tour ne servent qu'une entreprise que la facturation dit payée. Ce banc garde la
+     frontière suspension / fermeture : il la joue sur des entreprises qui paient, comme celles que la Tour suspend. */
+  const PAYE = { formule: 'pro', quantite: 1, aboStatut: 'actif', aboPar: 'Banc' };
   fs.writeFileSync(path.join(data, 'espaces.json'), JSON.stringify({
-    [S.slug]: { slug: S.slug, nom: S.nom, email: 's@exemple.fr', t: S.t, code: b64({ t: S.t, k: S.k, a: 'sam', mh: sha(S.mdp) }), ts: 1 },
-    [F.slug]: { slug: F.slug, nom: F.nom, email: 'f@exemple.fr', t: F.t, code: b64({ t: F.t, k: F.k, a: 'fred', mh: sha(F.mdp) }), ts: 2 },
-    [A.slug]: { slug: A.slug, nom: A.nom, email: 'a@exemple.fr', t: A.t, code: b64({ t: A.t, k: A.k, a: 'alix', mh: sha(A.mdp) }), ts: 3 },
+    [S.slug]: { slug: S.slug, nom: S.nom, email: 's@exemple.fr', t: S.t, code: b64({ t: S.t, k: S.k, a: 'sam', mh: sha(S.mdp) }), ts: 1, ...PAYE },
+    [F.slug]: { slug: F.slug, nom: F.nom, email: 'f@exemple.fr', t: F.t, code: b64({ t: F.t, k: F.k, a: 'fred', mh: sha(F.mdp) }), ts: 2, ...PAYE },
+    [A.slug]: { slug: A.slug, nom: A.nom, email: 'a@exemple.fr', t: A.t, code: b64({ t: A.t, k: A.k, a: 'alix', mh: sha(A.mdp) }), ts: 3, ...PAYE },
   }));
   /* Plus de code d'accès depuis le 28 septembre 2026 (Justin : « je veux plus de code ») : on entre par l'adresse,
      l'identifiant et le mot de passe — le compte de départ est semé par le serveur (rattrapage, `TEAMOP_RATTRAPAGE_MS`). */
@@ -320,8 +325,8 @@ process.on('exit', arreter);
 
       /* La liste des fermetures abîmée, l'annuaire réparé. */
       fs.writeFileSync(path.join(data, 'espaces.json'), JSON.stringify({
-        [S.slug]: { slug: S.slug, nom: S.nom, t: S.t, code: b64({ t: S.t, k: S.k, a: 'sam', mh: sha(S.mdp) }), ts: 1 },
-        [A.slug]: { slug: A.slug, nom: A.nom, t: A.t, code: b64({ t: A.t, k: A.k, a: 'alix', mh: sha(A.mdp) }), ts: 3 } }));
+        [S.slug]: { slug: S.slug, nom: S.nom, t: S.t, code: b64({ t: S.t, k: S.k, a: 'sam', mh: sha(S.mdp) }), ts: 1, ...PAYE },
+        [A.slug]: { slug: A.slug, nom: A.nom, t: A.t, code: b64({ t: A.t, k: A.k, a: 'alix', mh: sha(A.mdp) }), ts: 3, ...PAYE } }));
       const ABIME_F = '{"emails":[],"espaces":["' + F.t + '"';
       fs.writeFileSync(path.join(data, 'entreprises-fermees.json'), ABIME_F);
       const port3 = await new Promise(r => { const s = require('net').createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)); }); });
