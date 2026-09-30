@@ -505,8 +505,12 @@ const USAGES = { [CODE]: { n: 3, equipes: {
        que le registre est abîmé — et rien ne s'active pour autant (le fichier, ci-dessous, est intact). */
     v('⛔ un espace qui porte un code : dans le doute, PAYÉ — et il le dit', [r.json.paye, /illisible/.test(r.json.motif || '')], [true, true]);
     r = await I.appel('POST', '/api/espaces/etat', { t: 'ent-ps-1' });
-    /* (v767 : ce qui n'est pas payé est servi SUSPENDU, sans formule — plus de « formule avec paye:false ») */
-    v('   le témoin : un espace SANS code n\'en profite pas — pas payé, donc suspendu (sans formule)', [r.json.formule, r.json.paye, r.json.suspendu], [undefined, false, true]);
+    /* ⛔ v767 (relectures du 30 septembre 2026, `gardien` A1) : un espace SANS code sur sa fiche peut quand même avoir une
+       période offerte — tapée dans l'application, elle n'est écrite QUE dans ce registre. Illisible, on ne sait pas : il
+       n'est ni payé ni suspendu, la route répond `verificationImpossible` et l'appareil garde ce qu'il savait. (Avant : « pas
+       payé » — une entreprise en pleine période offerte suspendue parce qu'un fichier est abîmé.) */
+    v('   le témoin : un espace SANS code sur sa fiche n\'est pas « payé » — mais pas suspendu non plus : on ne sait pas, rien n\'est décidé',
+      [r.json.formule, r.json.paye, r.json.suspendu, r.json.verificationImpossible], [undefined, undefined, false, true]);
     v('⛔ le fichier abîmé est INTACT (récupérable), pas écrasé', I.brut(), CASSE);
     vrai('   … et le journal le crie', /promos-usages\.json ILLISIBLE/.test(I.journal()));
     arreterTout();
@@ -572,6 +576,27 @@ const USAGES = { [CODE]: { n: 3, equipes: {
       const dbB2 = { users: [{}], forfait: 'gratuit', forfaitEssai: null };   // un autre appareil, qui ne le savait pas
       const Bn = page('ent-bs-1', K.bs, dbB2);
       await Bn.f(CODE);
+      /* (iv bis) ⛔ DEPUIS L'ÉCRAN « ACCÈS SUSPENDU » (« J'ai un code promo », `relecteur`, 30 septembre 2026, vérifié à
+         l'exécution) : le code accepté fait RELIRE l'état, et AVANT d'annoncer « Code accepté » — sinon l'écran restait
+         suspendu sous un message qui dit l'inverse. La vraie fonction, un serveur qui accepte, une relecture qu'on compte. */
+      const suspendue = (susp) => {
+        const tr = { relu: 0, reluAuMessage: null, modals: [] };
+        const f = new Function('fetch', 'PUSH_API', 'enteteEquipe', 'syncTeam', 'db', 'PLANS', 'todayISO', 'fmtShort', 'esc', 'localStorage',
+          'logEvent', 'save', 'renderNav', 'suiteRefresh', 'openModal', 'toast', '$', 'current', 'views', '_susp', 'forfaitServeurSync',
+          fR + '\n' + fA + '\nreturn promoAppliquer;')(
+          async () => ({ ok: true, status: 200, json: async () => ({ ok: true, formule: 'premium', mois: 3, finLe: dans(3), dejaUtilise: false }) }),
+          S2.B, async h => h, () => 'ent-susp-803', { users: [{}], forfait: 'pro', forfaitEssai: null }, PLANS,
+          () => AUJ, d => String(d), s => String(s), { removeItem() {} }, () => {}, () => {}, () => {}, () => {},
+          h => { tr.modals.push(h); tr.reluAuMessage = tr.relu; }, () => {}, () => null, 'parametres', {}, susp, async () => { tr.relu++; return true; });
+        return { f, tr };
+      };
+      const Su = suspendue({ suspendu: true, sursis: 0 });
+      await Su.f('ESSAI-SUSP-803');
+      v('⛔ code accepté DEPUIS une suspension : l\u2019état est relu une fois, AVANT « 🎉 Code accepté »',
+        [Su.tr.relu, Su.tr.reluAuMessage, /Code accepté/.test(Su.tr.modals[0] || '')], [1, 1, true]);
+      const Li = suspendue({ suspendu: false, sursis: null });
+      await Li.f('ESSAI-SUSP-803');
+      v('   (témoin) hors suspension : rien de plus — pas de relecture', [Li.tr.relu, /Code accepté/.test(Li.tr.modals[0] || '')], [0, true]);
       v('   … sur un appareil qui ne le savait pas : la période s\u2019inscrit, SANS journal « activé »', [dbB2.forfait, (dbB2.forfaitEssai || {}).finLe, (dbB2.forfaitEssai || {}).debut, Bn.tr.save, Bn.tr.logs], ['premium', dans(3), AUJ, 1, []]);
     }
     /* (v) le témoin, sur les deux pages : un code neuf s'active comme avant. */

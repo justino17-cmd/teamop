@@ -397,8 +397,9 @@ globalThis.fetch = async function (url, opts) {
     /* (v767 : ce qui n'est pas payé sort AVANT, places vidées — une réponse qui arrive ici est payée) */
     vrai('⛔ elle range les places servies EN MÉMOIRE (`_placesSrv`), depuis `j.places` — seulement d\'une réponse payée (le non-payé sort avant, `_placesSrv` vidé)',
       /_placesSrv=\(j\.places!=null\)\?Math\.max\(1,parseInt\(j\.places,10\)\|\|1\):null/.test(corpsSync)
-      && /if\(nonPaye\|\|!\(j\.formule&&PLANS\[j\.formule\]\)\)\{ _placesSrv=null; return; \}/.test(corpsSync)
-      && corpsSync.indexOf('_placesSrv=null; return;') < corpsSync.indexOf('_placesSrv=(j.places!=null)'));
+      /* (depuis le 30 septembre 2026, elle rend VRAI quand l'état a été lu — `suspensionVerifier` le demande) */
+      && /if\(nonPaye\|\|!\(j\.formule&&PLANS\[j\.formule\]\)\)\{ _placesSrv=null; return !j\.verificationImpossible; \}/.test(corpsSync)
+      && corpsSync.indexOf('_placesSrv=null; return') < corpsSync.indexOf('_placesSrv=(j.places!=null)'));
     vrai('⛔ `db.forfaitQty` reste le nombre d\'abonnements (`j.quantite`), comme la v760 : aucune boucle de synchro entre versions',
       /const q=Math\.max\(1,parseInt\(j\.quantite,10\)\|\|1\);/.test(corpsSync) && !/db\.\w+\s*=[^;\n]*j\.places/.test(corpsSync));
     }

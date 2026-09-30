@@ -97,11 +97,18 @@ vrai('la règle du blocage (`impayeBloque`) et sa forme (`bloqueImpaye`) sont tr
 /* ⛔ et l'abonnement réglé à la main (30 septembre 2026, plus de formule Gratuit) : `espacePaye` le lit par UNE définition,
    `aboManuelDe` — une fiche « Gratuit » d'avant réglée « active » n'a plus rien de payant à servir */
 const MANUEL = extraire('aboManuelDe');
-vrai('la règle de l\'abonnement réglé à la main (`aboManuelDe`) est trouvée dans le fichier réel', /function aboManuelDe\(e\)/.test(MANUEL));
+vrai('la règle de l\'abonnement réglé à la main (`aboManuelDe`) est trouvée dans le fichier réel', /function aboManuelDe\(e, jour\)/.test(MANUEL));
 /* … et celle de la fiche « Gratuit » qu'un abonnement d'OP GESTION illisible paie (`gratuitPayeIllisible`, lue aussi par le J-7) */
 const ILLISIBLE = extraire('gratuitPayeIllisible');
 vrai('la règle de la fiche « Gratuit » payée par un abonnement illisible (`gratuitPayeIllisible`) est trouvée dans le fichier réel', /function gratuitPayeIllisible\(e, s, fp\)/.test(ILLISIBLE));
-AIDES.push(CONSTS, ...PLACES, LIGNES, LBL2, CACHE_MS, ...IMPAYE, ...BLOQUE, ...SERVIE, MANUEL, ILLISIBLE);
+/* … et, depuis les relectures du 30 septembre 2026 : le DOUTE qui ne décide rien (`payeInconnu`), la règle unique de la
+   suspension (`accesSuspenduPar`), le lendemain d'une période (`jourApres`), l'essai échu dit à la Tour (`aboEchuMotif`) et la
+   formule d'une fiche Gratuit qu'un abonnement illisible paie (`formuleGratuitIllisible`) — sans elles, `espacePaye` jetait
+   (« aboEchuMotif is not defined ») */
+const RELECTURES = ['payeInconnu', 'accesSuspenduPar', 'jourApres', 'aboEchuMotif', 'formuleGratuitIllisible'].map(extraire);
+vrai('le doute, la règle de suspension, le lendemain, l\'essai échu et la formule d\'une fiche Gratuit illisible sont trouvés dans le fichier réel',
+  RELECTURES.every(Boolean) && /inconnu: true/.test(RELECTURES[0]) && /RANG_FORMULE\.includes\(f\)/.test(RELECTURES[1]));
+AIDES.push(CONSTS, ...PLACES, LIGNES, LBL2, CACHE_MS, ...IMPAYE, ...BLOQUE, ...SERVIE, MANUEL, ILLISIBLE, ...RELECTURES);
 const PARAMS = ['config', 'espStripeCache', 'promoUsages', 'stripeAbosBruts', 'console', 'savePromoUsages', 'mailPromoActive', 'espacesReg', 'espaceParT', 'crypto', 'promosIllisible'];
 const construire = () => new Function(...PARAMS, AIDES.join('\n') + '\n' + SRC.slice(i, fin) + '\nreturn espacePaye;');
 const avec = (abos) => construire()(
@@ -241,7 +248,7 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
      ce banc sont tombés ainsi, sur une route juste. */
   /* (et `aboManuelDe`, 30 septembre 2026 : `finEssaiPeriode` lit « réglé à la main » par la même définition qu'`espacePaye`
      — sans elle, elle jetait, et toute facturation différée retombait en immédiate) */
-  const AIDES_ROUTE = ['espaceT', 'espacesDeRef', 'espaceParT', 'finEssaiPeriode', 'periodeOfferte', 'formulePromo', 'formuleDuCode', 'aboManuelDe'].map(extraire).concat([CONSTS]);
+  const AIDES_ROUTE = ['espaceT', 'espacesDeRef', 'espaceParT', 'finEssaiPeriode', 'periodeOfferte', 'formulePromo', 'formuleDuCode', 'aboManuelDe', 'jourApres'].map(extraire).concat([CONSTS]);
   vrai('la route et ses aides (dont finEssaiPeriode et aboManuelDe) sont trouvées dans le fichier réel', AIDES_ROUTE.every(Boolean));
   const PRIX_PRO = (/^\s*pro: \['(price_\w+)'/m.exec(SRC) || [])[1], PRIX_PREMIUM = (/^\s*premium: \['(price_\w+)'/m.exec(SRC) || [])[1];
   vrai('les tarifs Pro et Business Premium du serveur sont lus', /^price_/.test(PRIX_PRO || '') && /^price_/.test(PRIX_PREMIUM || ''));
@@ -596,6 +603,27 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     const gratuiteAncien = await avec([avant([L('pro', 1)])])(ESP({ formule: 'gratuit' }));
     v('⛔ fiche Gratuit payée par un abonnement d\'AVANT la bascule (tarif illisible) : on ne coupe pas — Pro, et le motif le dit à la Tour',
       [gratuiteAncien.paye, gratuiteAncien.formuleServie, /abonnement illisible : Pro servi/.test(gratuiteAncien.motif)], [true, 'pro', true]);
+    /* ⛔ … et son TARIF, quand il est connu (`gardien` A5, 30 septembre 2026) : un abonnement d'avant la bascule au tarif
+       Business Premium reste Business Premium — Pro seulement quand le tarif ne se lit pas (`formuleGratuitIllisible`) */
+    const gratuiteAncienPrem = await avec([avant([L('premium', 1)])])(ESP({ formule: 'gratuit' }));
+    v('⛔ fiche Gratuit payée par un abonnement d\'AVANT la bascule au tarif Business Premium : Business Premium, pas Pro — et le motif le dit',
+      [gratuiteAncienPrem.paye, gratuiteAncienPrem.formuleServie, /abonnement illisible : Business Premium servi/.test(gratuiteAncienPrem.motif)], [true, 'premium', true]);
+
+    /* ⛔⛔ UN « ESSAI » OU UN « ACTIF » RÉGLÉ À LA MAIN ET ÉCHU NE DÉCIDE PLUS (`gardien` B1, 30 septembre 2026). « Essai offert
+       jusqu'au … » — le geste que la Tour conseille — l'emportait encore APRÈS sa fin sur Stripe et sur la période offerte :
+       l'entreprise qui avait payé entre-temps restait suspendue jusqu'à ce que la Tour efface le réglage. */
+    const hier = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const echuStripe = await avec([apres([L('premium', 1)])])(ESP({ aboStatut: 'essai', aboFin: hier, aboPar: 'Banc' }));
+    v('⛔⛔ « essai offert » réglé dans la Tour, ÉCHU, et un abonnement Stripe payé depuis : payée par Stripe — plus suspendue jusqu\'à ce que la Tour efface le réglage',
+      [echuStripe.paye, echuStripe.formuleServie, /abonnement Stripe/.test(echuStripe.motif)], [true, 'premium', true]);
+    const echuPeriode = await avecTout({ usages: { 'ESSAI-ECHU-727': { n: 1, equipes: { 'ent-x': { date: '2026-09-01', finLe: '2099-12-31' } } } },
+      promos: [{ code: 'ESSAI-ECHU-727', formule: 'premium', mois: 3 }] })(ESP({ aboStatut: 'essai', aboFin: hier, aboPar: 'Banc' }));
+    v('⛔ … et en pleine période offerte : servie par le code (« les codes n\'y touchent pas »)', [echuPeriode.paye, /code promo ESSAI-ECHU-727/.test(echuPeriode.motif)], [true, true]);
+    const echuRien = await avec([])(ESP({ aboStatut: 'actif', aboFin: hier, aboPar: 'Banc' }));
+    v('   … rien d\'autre : non payée, et le motif dit encore à la Tour que l\'abonnement réglé à la main est terminé',
+      [echuRien.paye, /^abonnement terminé le \d{4}-\d{2}-\d{2} \(réglé par Banc\) — aucun paiement ni code promo$/.test(echuRien.motif)], [false, true]);
+    const courant = await avec([])(ESP({ aboStatut: 'essai', aboFin: '2099-12-31', aboPar: 'Banc' }));
+    v('   (témoin) un essai réglé à la main qui COURT encore décide toujours : payé, sans Stripe', [courant.paye, /^essai offert par Banc/.test(courant.motif)], [true, true]);
     const gratuiteMain = await avec([apres([L('msg', 1), { price: { id: 'price_cree_a_la_main' }, quantity: 2 }])])(ESP({ formule: 'gratuit' }));
     v('   … et un abonnement qui porte OP MESSAGES ET une ligne d\'OP GESTION à tarif fait à la main : Pro aussi (il paie OP GESTION)',
       [gratuiteMain.paye, gratuiteMain.formuleServie], [true, 'pro']);
@@ -674,7 +702,11 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     const cache2 = { ts: 0, data: null, enCours: null, echecTs: 0 };
     const ep2 = avecTout({ cache: cache2, lire: async () => { essais++; throw new Error('Stripe muet'); } });
     const p1 = await ep2(ESP()), p2 = await ep2(ESP());
-    v('⛔ Stripe en panne : un essai, puis une minute de pause — sans rien inventer (non payé, comme avant)', [essais, p1.paye, p2.paye], [1, false, false]);
+    /* ⛔ v767 (relectures du 30 septembre 2026, `gardien` B3) : sans liste connue, « non payé » était une SUSPENSION complète de
+       toute l'équipe pour une panne de Stripe au redémarrage du serveur. On ne sait pas : `inconnu` — `/api/espaces/etat` le
+       sert `verificationImpossible`, et l'appareil garde ce qu'il savait. Rien d'inventé pour autant : ni formule, ni places. */
+    v('⛔ Stripe en panne sans liste connue : un essai, puis une minute de pause — et DANS LE DOUTE rien n\'est décidé (ni « non payé », ni une formule)',
+      [essais, p1.inconnu, p2.inconnu, p1.formuleServie, p2.formuleServie, 'placesStripe' in p1], [1, true, true, undefined, undefined, false]);
     cache2.echecTs = Date.now() - 61000;
     await ep2(ESP());
     v('   la minute passée, on réessaie', essais, 2);
@@ -759,6 +791,12 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
         { 'ESSAI-BANC-NEUF': { n: 1, equipes: { 'ent-alpha': { date: '2026-09-01', finLe: '2099-12-31' } } } })('patron@alpha.fr'), 'Business Premium');
     v('   (témoin) la même, réglée « active » à la main en Business Premium : Business Premium',
       await lecteur({ alpha: Object.assign({}, REG.alpha, { aboStatut: 'actif' }) }, [])('patron@alpha.fr'), 'Business Premium');
+    /* ⛔ Stripe illisible (muet, aucune liste connue — le cache froid d'un redémarrage) : « Mon espace » ne dit RIEN, ni
+       « Suspendu » ni une formule — le dossier garde ce que la Tour y a posé (`payeInconnu`, 30 septembre 2026) */
+    const lecteurMuet = (reg) => new Function(...PARAMS, 'espaceFerme', AIDES.join('\n') + '\n' + EPT + '\n' + SRC.slice(i, fin) + '\n' + FSD + '\nreturn formuleServieDe;')(
+      { stripe: { secretKey: 'sk_de_banc' }, promos: [] }, { ts: 0, data: null, enCours: null, echecTs: 0 }, {}, async () => { throw new Error('Stripe muet (banc)'); },
+      { log() {}, error() {} }, () => true, () => {}, reg, null, require('crypto'), false, () => false);
+    v('⛔ Stripe illisible : « Mon espace » ne dit rien — ni « Suspendu », ni une formule', await lecteurMuet(REG)('patron@alpha.fr'), '');
     v('   une période offerte : la formule du code', await lecteur(REG, [], [{ code: 'ESSAI-BANC-NEUF', mois: 3 }],
       { 'ESSAI-BANC-NEUF': { n: 1, equipes: { 'ent-alpha': { date: '2026-09-01', finLe: '2099-12-31' } } } })('patron@alpha.fr'), 'Business Premium');
     const DEUX = Object.assign({}, REG, { beta: { nom: 'Beta', t: 'ent-beta', email: 'patron@alpha.fr', formule: 'pro', ts: 3 } });

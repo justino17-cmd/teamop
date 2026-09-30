@@ -13996,6 +13996,10 @@ async function promoAppliquer(codeDirect){
       save(); renderNav();
       try{ suiteRefresh(); }catch(e){}
     }
+    /* ⛔ DEPUIS L'ÉCRAN « ACCÈS SUSPENDU » (« J'ai un code promo ») : le code est pris, le serveur sert désormais la période — on
+       relit l'état AVANT d'annoncer « Code accepté », sinon l'écran restait suspendu sous un message qui dit l'inverse
+       (`relecteur`, 30 septembre 2026, vérifié à l'exécution) */
+    try{ if(typeof _susp!=='undefined'&&_susp&&_susp.suspendu) await forfaitServeurSync(true); }catch(e){}
     openModal(deja
       ?`<div class="modal-head"><h3>🎁 Code déjà actif</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
       <p style="color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:14px">Le code <b>${esc(code)}</b> offre déjà la formule <b style="color:var(--acc-txt)">${PLANS[f].l}</b> à ton entreprise, jusqu'au <b>${fmtShort(j.finLe)}</b>.<br><br>Rien ne change : un code promo ne sert qu'une fois, et il ne se prolonge pas. Avant la fin, un rappel te préviendra pour prendre l'abonnement.</p>
@@ -14064,7 +14068,9 @@ async function forfaitServeurSync(silencieux){
        pas, et on ne rouvre pas non plus. */
     const nonPaye=!!(j.formule&&(j.paye!==true||!PLANS[j.formule]));
     if(!j.verificationImpossible){ try{ suspensionPoser(nonPaye?Object.assign({},j,{suspendu:true,sursisJours:0}):j); suspensionRappel(); }catch(e){} }
-    if(nonPaye||!(j.formule&&PLANS[j.formule])){ _placesSrv=null; return; }
+    /* (elle rend VRAI quand l'état a été LU — `suspensionVerifier` le demande : une vérification qui n'a pas eu lieu ne
+       confirme rien) */
+    if(nonPaye||!(j.formule&&PLANS[j.formule])){ _placesSrv=null; return !j.verificationImpossible; }
     const q=Math.max(1,parseInt(j.quantite,10)||1);
     const placesAv=_placesSrv; _placesSrv=(j.places!=null)?Math.max(1,parseInt(j.places,10)||1):null; _placesSrvF=j.formule;
     if(db.formuleAttente) db.formuleAttente=null;   // le « formule réservée, pas payée » d'une version d'avant : sans objet
@@ -14085,6 +14091,7 @@ async function forfaitServeurSync(silencieux){
     try{ const b=document.getElementById('bandeau-formule'); if(b) b.remove(); }catch(e){}   // le bandeau d'une version d'avant
     /* l'écran se redessine APRÈS la formule écrite, pas avant (`gardien`, M2) */
     if(placesAv!==_placesSrv&&(current==='parametres'||current==='utilisateurs')) try{ views[current](); }catch(e){}
+    return true;
   }catch(e){}
 }
 /* ⛔ v767 — REVENIR SUR L'APPLICATION APRÈS AVOIR PAYÉ ROUVRE L'ACCÈS. L'administrateur règle dans un autre onglet (l'espace
@@ -15056,6 +15063,9 @@ function creerDispo(){
 }
 function creerOuvrir(){
   if(!currentUser) return;
+  /* ⛔ v767 — SUSPENDUE : rien ne se crée ; « Aucune création ouverte à ton compte » était faux et ne menait nulle part
+     (`relecteur`, 30 septembre 2026) — le bouton mène à l'écran qui explique, et où l'administrateur règle */
+  if(typeof accesSuspendu==='function'&&accesSuspendu()){ go('suspendu'); return; }
   const l=creerDispo();
   if(!l.length){ toast('Aucune création ouverte à ton compte'); return; }
   const ov=document.getElementById('creer'); if(!ov) return;
@@ -16044,9 +16054,12 @@ views.suspendu=function(){
    ramène l'écran d'où l'on vient ; sinon on le dit — un bouton qui ne répond rien fait taper dix fois. */
 async function suspensionVerifier(btn){
   try{ if(btn){ btn.disabled=true; btn.textContent='Vérification…'; } }catch(e){}
-  try{ await forfaitServeurSync(true); }catch(e){}
+  let lu=false; try{ lu=await forfaitServeurSync(true); }catch(e){}
   if(accesSuspendu()){
-    toast(currentUser&&currentUser.role==='admin'?'Toujours suspendu : le règlement n’est pas encore arrivé. Réessaie dans une minute.':'L’accès est toujours suspendu.',5000);
+    /* ⛔ une vérification qui n'a pas pu se faire (hors ligne, serveur ou Stripe injoignable) ne CONFIRME rien : on ne dit pas
+       « le règlement n'est pas arrivé » sur une réponse qu'on n'a pas eue (`relecteur`, 30 septembre 2026) */
+    toast(!lu?'Vérification impossible pour l’instant (réseau ou serveur) — réessaie dans un moment.'
+      :(currentUser&&currentUser.role==='admin'?'Toujours suspendu : le règlement n’est pas encore arrivé. Réessaie dans une minute.':'L’accès est toujours suspendu.'),5000);
     try{ if(current==='suspendu') views.suspendu(); }catch(e){}
   }
 }
@@ -34445,7 +34458,7 @@ views.parametres=function(){
         </div>
       </div>
       <p style="font-size:12px;color:var(--t3);margin:0 0 10px">La couleur de l'entreprise devient le <b>thème de couleur</b> de toute l'équipe (contours, boutons, sélections). Chaque utilisateur peut toujours choisir une couleur perso dans ses Paramètres.</p>`:''}`
-      :`<div class="detail-desc" style="margin-top:10px">🏷️ <b>Personnalisation</b> : avec <b>Business</b>, ton logo en haut de l'application — avec <b>Business Premium</b>, logo + nom d'entreprise + couleur (thème de couleur). Avec Gratuit et Pro, l'interface reste standard.</div>`}
+      :`<div class="detail-desc" style="margin-top:10px">🏷️ <b>Personnalisation</b> : avec <b>Business</b>, ton logo en haut de l'application — avec <b>Business Premium</b>, logo + nom d'entreprise + couleur (thème de couleur). Avec Pro, l'interface reste standard.</div>`}
       <button class="btn" onclick="entSave()">Enregistrer</button>
     </div>`; })():''}
     ${(()=>{ return `<div class="card"><div class="card-head"><h3>✉️ Mes envois</h3></div>

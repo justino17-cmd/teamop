@@ -137,6 +137,50 @@ const arreter = async () => { try { if (enfant) enfant.kill('SIGKILL'); } catch 
       forme(await etat('ent-inconnue')), [true, 0, false, true, undefined]);
   }
 
+  /* ══ 2 bis. ⛔⛔ DANS LE DOUTE, ON NE COUPE PAS — STRIPE MUET AU DÉMARRAGE (relectures du 30 septembre 2026, rejouées) ══
+     Le même annuaire, un second serveur : une clé Stripe posée, et Stripe qui ne répond pas — le cache est froid, comme après
+     CHAQUE déploiement. Jusqu'ici, « aucun paiement » : toute entreprise sans code ni réglage à la main était SUSPENDUE, avec
+     toute son équipe, pour une panne. On ne sait pas : `verificationImpossible` — l'application garde ce qu'elle savait. */
+  console.log('\n══ 2 bis. ⛔ STRIPE MUET AU DÉMARRAGE : ON NE SAIT PAS, RIEN N’EST DÉCIDÉ ══\n');
+  if (vivant) {
+    try { enfant.kill('SIGKILL'); } catch (e) {}
+    const banc2 = path.join(banc, 'stripe-muet');
+    fs.mkdirSync(path.join(banc2, 'data'), { recursive: true });
+    for (const f of ['espaces.json', 'entreprises-fermees.json']) fs.copyFileSync(path.join(banc, 'data', f), path.join(banc2, 'data', f));
+    const cfg = JSON.parse(fs.readFileSync(path.join(banc, 'config.json'), 'utf8'));
+    cfg.stripe = { secretKey: 'sk_de_banc_761' };
+    fs.writeFileSync(path.join(banc2, 'config.json'), JSON.stringify(cfg));
+    const MUET = path.join(banc2, 'stripe-muet.js'), APPELS = path.join(banc2, 'appels-stripe.txt');
+    fs.writeFileSync(MUET, `const vrai = globalThis.fetch; const fs = require('fs');
+globalThis.fetch = async function (url, opts) {
+  const u = String(url && url.url || url);
+  if (u.startsWith('https://api.stripe.com/')) { fs.appendFileSync(${JSON.stringify(APPELS)}, u + '\\n'); throw new Error('Stripe muet (banc 761)'); }
+  return vrai.apply(this, arguments);
+};\n`);
+    const PORT2 = PORT + 1;
+    enfant = spawn(process.execPath, ['--require', MUET, path.join(RACINE, 'server', 'index.js')], {
+      env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc2, 'config.json'), TEAMOP_DATA: path.join(banc2, 'data'), PORT: String(PORT2) }), stdio: 'ignore' });
+    const B2 = 'http://127.0.0.1:' + PORT2;
+    let vivant2 = false;
+    for (let i = 0; i < 150 && !vivant2; i++) { await dormir(100); try { vivant2 = (await fetch(B2 + '/health')).ok; } catch (e) {} }
+    vrai('le second serveur répond (clé Stripe posée, Stripe muet)', vivant2);
+    if (vivant2) {
+      const etat2 = async (t) => (await (await fetch(B2 + '/api/espaces/etat', { method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ t }) })).json().catch(() => ({})));
+      const doute = j => [j.verificationImpossible, j.formule, j.paye, j.ferme];
+      const rien = await etat2('ent-rien');
+      let appels = ''; try { appels = fs.readFileSync(APPELS, 'utf8'); } catch (e) {}
+      vrai('(population) le serveur a bien demandé la liste à Stripe, et Stripe n\'a pas répondu', /api\.stripe\.com\/v1\/subscriptions/.test(appels));
+      v('⛔⛔ rien de payé qu\'on SACHE (fiche Pro), Stripe muet : on ne sait pas — ni suspendue, ni servie (`verificationImpossible`)',
+        [...doute(rien), rien.suspendu], [true, undefined, undefined, undefined, false]);
+      v('⛔ … une fiche « Gratuit » d\'avant aussi (Stripe pourrait la payer)', doute(await etat2('ent-gratuit')), [true, undefined, undefined, undefined]);
+      const sus2 = await etat2('ent-rien-sus');
+      v('   … la suspension de la Tour voyage avec (l\'application l\'ignore tant qu\'on ne sait pas)', [sus2.verificationImpossible, sus2.suspendu, sus2.sursisJours], [true, true, 5]);
+      const paye2 = await etat2('ent-paye');
+      v('   (témoin) ce qu\'on SAIT sans Stripe décide toujours : le réglage à la main — Business Premium, payée', [paye2.formule, paye2.paye, paye2.verificationImpossible], ['premium', true, undefined]);
+    }
+  }
+
   console.log('\n══ 3. ⛔ LES VRAIES FONCTIONS DE L’ÉCRAN, EXÉCUTÉES ══\n');
   {
     /* ⛔ ON EXÉCUTE, ON NE LIT PAS. Un droit se mesure à ce qu'il LAISSE PASSER. On extrait le
@@ -220,6 +264,29 @@ const arreter = async () => { try { if (enfant) enfant.kill('SIGKILL'); } catch 
 
     /* ⛔ ET LA RÉPONSE DU SERVEUR DOIT L'ALIMENTER — sinon tout ce qui précède est du code
        que personne n'appelle, le jumeau d'`atts` dans /health. */
+    /* ⛔ « ＋ Créer » ET « J'AI RÉGLÉ — VÉRIFIER » PENDANT UNE SUSPENSION (`relecteur`, 30 septembre 2026) — les VRAIES
+       fonctions : le premier répondait « Aucune création ouverte à ton compte » (faux, et ne menait nulle part) ; le second
+       affirmait « toujours suspendu : le règlement n'est pas encore arrivé » sur une vérification qui n'avait PAS eu lieu. */
+    const extraireApp = (debut) => { const d0 = NU.indexOf(debut); if (d0 < 0) return ''; let p = 0;
+      for (let k = NU.indexOf('{', d0); k < NU.length; k++) { if (NU[k] === '{') p++; else if (NU[k] === '}') { p--; if (!p) return NU.slice(d0, k + 1); } }
+      return ''; };
+    const CO = extraireApp('function creerOuvrir('), SV = extraireApp('async function suspensionVerifier(');
+    vrai('(population) creerOuvrir et suspensionVerifier sont trouvées dans app.html', CO.length > 200 && SV.length > 200 && /accesSuspendu\(\)/.test(CO));
+    const jeu = (suspendue, lu, role) => { const tr = { go: [], toasts: [], dispo: 0 };
+      const f = new Function('currentUser', 'accesSuspendu', 'go', 'toast', 'creerDispo', 'document', 'forfaitServeurSync', 'current', 'views',
+        CO + '\n' + SV + '\nreturn { creerOuvrir, suspensionVerifier };')(
+        { id: 'u-761', role: role || 'admin' }, () => suspendue, x => tr.go.push(x), m => tr.toasts.push(String(m)), () => { tr.dispo++; return []; },
+        { getElementById: () => null }, async () => lu, 'suspendu', { suspendu() {} });
+      return { f, tr }; };
+    let J = jeu(true, true); J.f.creerOuvrir();
+    v('⛔ « ＋ Créer » pendant une suspension : l\u2019écran « Accès suspendu » — pas « Aucune création ouverte à ton compte »', [J.tr.go, J.tr.toasts, J.tr.dispo], [['suspendu'], [], 0]);
+    J = jeu(false, true); J.f.creerOuvrir();
+    v('   (témoin) hors suspension : la feuille « Créer » se prépare comme avant', [J.tr.go, J.tr.dispo], [[], 1]);
+    J = jeu(true, false); await J.f.suspensionVerifier(null);
+    vrai('⛔ « J\u2019ai réglé — vérifier » quand la vérification n\u2019a PAS pu se faire : « Vérification impossible », jamais « toujours suspendu »',
+      J.tr.toasts.length === 1 && /Vérification impossible/.test(J.tr.toasts[0]) && !/Toujours suspendu/.test(J.tr.toasts[0]), J.tr.toasts);
+    J = jeu(true, true); await J.f.suspensionVerifier(null);
+    vrai('   … lue, et toujours suspendue : l\u2019administrateur lit que le règlement n\u2019est pas encore arrivé', J.tr.toasts.length === 1 && /Toujours suspendu/.test(J.tr.toasts[0]), J.tr.toasts);
     /* (le passage lui-même — une réponse du serveur qui suspend, une autre qui rend — est JOUÉ contre le vrai serveur par
        `test-845` et `test-848`, avec les vraies `forfaitServeurSync`) */
     vrai('⛔⛔ `forfaitServeurSync` appelle bien suspensionPoser et suspensionRappel — hors d’une vérification impossible',

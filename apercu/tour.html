@@ -5174,7 +5174,7 @@ function tourAccesSupprimer(slug,nom){
     chargerAccesPublics(); chargerClients();
   }).catch(function(){ toast('Serveur injoignable'); });
 }
-/* ✅ Accepter la demande : espace + lien + formule demandée (en attente de paiement) + message de bienvenue prêt */
+/* ✅ Accepter la demande : espace + lien + formule demandée (suspendue jusqu'au paiement, 30 septembre 2026) + message de bienvenue prêt */
 function tourPanneau(html,o){
   var v=document.getElementById('tour-panneau'); if(v) v.remove();
   var d=document.createElement('div'); d.id='tour-panneau';
@@ -5333,12 +5333,12 @@ async function tourAccepterDemande(email,nom){
   var promoTxt=promo?('\n\n🎁 Ton code « '+(promo.code||codeDem)+' » est activé : '+(F2[formule]||formule)+' offert jusqu\'au '+promo.finLe+', pour toute ton équipe — aucune carte bancaire.'):'';
   var txt='Bienvenue sur OP GESTION !\n\nTa demande est acceptée — ta formule « '+(F2[formule]||formule)+' »'+(q>1?' ×'+q:'')+' est réservée.'+(metierPose?'\nTon application est réglée pour ton métier : '+MET_L[metierPose]+'.':'')+promoTxt+'\n\nUNE SEULE ADRESSE À RETENIR, pour toi et pour toute ton équipe :\n'+adrF
     +'\n\nPOUR ENTRER :\n• Identifiant : '+ident+'\n• Mot de passe provisoire : '+(mdpAff||'(à te faire redonner par TEAM OP)')+'\nL\'app te fait choisir TON vrai mot de passe et ton e-mail.'
-    +(promo?'':'\n\nPour débloquer tous les avantages de ta formule : paye ton abonnement (l\'app te guide, bouton « Payer mon abonnement »).')
+    +(promo?'':'\n\nTon accès s\'ouvre dès que ton abonnement est réglé : au premier lancement, l\'application affiche « Accès suspendu » et le bouton « Régler mon abonnement ».')
     +'\n\nTu crées ensuite les comptes de ton équipe dans Utilisateurs : chacun se connecte pareil — la même adresse, son identifiant, son mot de passe. Aucun code, rien à conserver.\n\nBonne prise en main !\n— TEAM OP · teamop.fr';
   tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:4px">✅ Demande acceptée — '+esc(e.nom)+'</div>'+
     '<div style="color:var(--muted);font-size:13px;margin-bottom:16px">L\'espace est prêt. Il ne te reste qu\'à envoyer l\'e-mail au client.</div>'+
     '<div class="sec">FORMULE RÉSERVÉE</div><div style="margin:6px 0 14px;font-size:15px"><b>'+esc(F2[formule]||formule)+(q>1?' ×'+q:'')+'</b> '+
-      (promo?'<span class="past p-vert">🎁 offerte jusqu’au '+esc(promo.finLe)+'</span>':'<span class="past p-orange">💳 en attente de paiement</span>')+'</div>'+
+      (promo?'<span class="past p-vert">🎁 offerte jusqu’au '+esc(promo.finLe)+'</span>':'<span class="past p-orange">⏸ suspendue jusqu’au paiement</span>')+'</div>'+
     (codeDem&&!promo?'<div class="encart" style="margin:0 0 14px"><div class="encart-tx">⚠️ Code promo « '+esc(codeDem)+' » de la demande non appliqué : '+esc(promoErr)+'</div></div>':'')+
     '<div class="sec">SON ADRESSE <span style="color:var(--muted);font-weight:400;text-transform:none">— c\'est elle qu\'on donne aux équipes</span></div>'+
     '<div style="display:flex;gap:8px;align-items:center;margin:6px 0 14px"><span id="acc-adr" class="mono" style="flex:1;word-break:break-all;font-size:14px;color:var(--link);font-weight:700">'+esc(adrF)+'</span><button class="btn-fant" onclick="tourCopie(\'acc-adr\',this)">Copier</button></div>'+

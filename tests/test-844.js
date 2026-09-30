@@ -136,12 +136,14 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     jota: ['t-jota-844', 'Jota Réglée', 'jota@exemple-844.fr'],            // en impayé dans la liste, RÉGLÉE depuis (la relecture la dit active)
     heta: ['t-heta-844', 'Heta Mixte', 'heta@exemple-844.fr'],             // un abonnement actif ET un autre en impayé
     chet: ['t-chet-844', 'Chet Messages', 'chet@exemple-844.fr'],          // OP MESSAGES payé, OP GESTION en impayé
-    xenia: ['t-xenia-844', 'Xenia Voisine', 'voisine@exemple-844.fr'] };   // fiche GRATUIT : l'impayé SANS référence de yod, à la même adresse
+    xenia: ['t-xenia-844', 'Xenia Voisine', 'voisine@exemple-844.fr'],    // fiche GRATUIT : l'impayé SANS référence de yod, à la même adresse
+    resh: ['t-resh-844', 'Resh Essai Tour', 'resh@exemple-844.fr'] };      // « essai offert » réglé dans la Tour, FINI avant la période ; en essai chez Stripe
   const espaces = {}, usages = { 'ESSAI-BANC-844': { n: 0, equipes: {} } };
   const periode = t => { usages['ESSAI-BANC-844'].n++; usages['ESSAI-BANC-844'].equipes[t] = { date: jour(-80), finLe: FIN, em: '' }; };
   for (const [slug, [t, nom, email]] of Object.entries(ENT)) { espaces[slug] = { t, nom, email, ts: MAINTENANT - 1000, formule: 'premium' }; periode(t); }
   espaces.pi.formule = 'gratuit'; espaces.psi.formule = 'gratuit'; espaces.xenia.formule = 'gratuit';
   Object.assign(espaces.omega, { aboStatut: 'impaye', aboPar: 'Banc' });
+  Object.assign(espaces.resh, { aboStatut: 'essai', aboFin: jour(2), aboPar: 'Banc' });
   /* omicron et chi : SANS période offerte (pas de rappel), chacune abonnée à son nom, à l'adresse d'une entreprise qui en a une */
   espaces.omicron = { t: 't-omicron-844', nom: 'Omicron Abonnée', email: 'partage@exemple-844.fr', ts: MAINTENANT - 2000, formule: 'premium' };
   espaces.chi = { t: 't-chi-844', nom: 'Chi Résiliée', email: 'voisins@exemple-844.fr', ts: MAINTENANT - 2000, formule: 'premium' };
@@ -161,6 +163,7 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
   const autre = (x, id) => Object.assign(x, { id });
   const ABOS = [
     abo('t-alpha-844', 'alpha@exemple-844.fr', 'trialing', P_PREMIUM, { trial_end: secondes(DEBUT), current_period_end: secondes(DEBUT) }),
+    abo('t-resh-844', 'resh@exemple-844.fr', 'trialing', P_PREMIUM, { trial_end: secondes(DEBUT), current_period_end: secondes(DEBUT) }),
     /* renouvelé à 23 h 30 UTC la veille : c'est déjà le jour d'après à Paris — le courriel dit le jour du client */
     abo('t-beta-844', 'beta@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(20)) - 1800 }),
     abo('t-epsilon-844', 'epsilon@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
@@ -416,6 +419,13 @@ globalThis.fetch = async function (url, opts) {
        double. Jusqu'au 30 septembre, elle recevait « le courriel habituel » : servie Gratuit, on l'invitait à payer. */
     vrai('⛔ pi (fiche GRATUIT, un abonnement d\'avant la bascule SÛREMENT à elle : `espacePaye` lui servira Pro) — abonnée : « prend le relais », prochaine échéance ' + fr(jour(15)) + ', sans lien de paiement ni promesse',
       RELAIS.test(Pi) && Pi.includes('Prochaine échéance de votre abonnement : le ' + fr(jour(15)) + '.') && !PAIEMENT.test(Pi) && !PROMESSE.test(Pi));
+    /* ⛔⛔ `gardien` B2 (30 septembre 2026, rejoué) : son « essai offert » réglé dans la Tour finit AVANT la période, et elle a
+       payé pendant la période. Le rappel lisait le réglage au jour d'AUJOURD'HUI (encore en cours) : « réglée à la main » —
+       le courriel habituel, AVEC un lien de paiement, donc un second abonnement prélevé en double. Le lendemain de la
+       période, le réglage est fini : c'est Stripe qui décide, comme `espacePaye` le fera. */
+    const Re = de('resh');
+    vrai('⛔⛔ resh (« essai offert » de la Tour fini avant la période ; en essai chez Stripe) — « prend le relais », sans lien de paiement ni promesse',
+      RELAIS.test(Re) && !PAIEMENT.test(Re) && !PROMESSE.test(Re));
     const Up = de('upsilon');
     vrai('   upsilon (deux abonnements, le résilié trouvé d\'abord) — le plus durable décide : prochaine échéance ' + fr(jour(18)) + ', pas « résilié »',
       RELAIS.test(Up) && Up.includes('Prochaine échéance de votre abonnement : le ' + fr(jour(18)) + '.') && !/résilié/.test(Up));

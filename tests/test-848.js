@@ -137,7 +137,10 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
      répondaient 404, et c'est le BANC qui avait tort (le serveur ne crée jamais une telle clé). */
   const cle = nom => String(nom).toLowerCase().replace(/[^a-z0-9]+/g, '');
   const CODE_PLO = Buffer.from(JSON.stringify({ t: 't-plo-848', k: 'k-plo-848-' + 'x'.repeat(20), a: 'paul', n: 'plombier-banc' }), 'utf8').toString('base64').replace(/=+$/, '');
+  const CODE_ANC = Buffer.from(JSON.stringify({ t: 't-anc-848', k: 'k-anc-848-' + 'z'.repeat(20), a: 'anne', n: 'ancien-sans-t' }), 'utf8').toString('base64').replace(/=+$/, '');
   const espaces = {
+    /* une entrée d'AVANT : pas de `t` en clair (il vit dans son code), un abonnement réglé à la main */
+    [cle('ancien-sans-t')]: { nom: 'ancien-sans-t', email: 'anc@exemple-848.fr', ts: MAINT - 1000, code: CODE_ANC, formule: 'premium', quantite: 1, aboStatut: 'actif', aboPar: 'Banc', aboTs: MAINT - 1000 },
     /* ⚠️ PAYÉES (abonnement réglé à la main dans la Tour) : depuis le 30 septembre 2026, une entreprise qui ne paie pas est
        servie SUSPENDUE, sans formule — c'est la réponse AVEC formule qu'on veut ici, comme chez un client qui paie. */
     [cle('plombier-banc')]: esp('t-plo-848', 'plombier-banc', 'plo@exemple-848.fr', { formule: 'pro', quantite: 1, formuleTs: MAINT - 1000, formulePar: 'Banc', code: CODE_PLO, aboStatut: 'actif', aboPar: 'Banc', aboTs: MAINT - 1000 }),
@@ -238,6 +241,15 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
     /* ⛔⛔ … ET L'ABONNEMENT RÉGLÉ À LA MAIN AUSSI (30 septembre 2026). La reconstruction le perdait : l'entreprise retombait
        sur Stripe, qui ne la connaît pas — et depuis qu'une entreprise qui ne paie pas est suspendue, ce simple geste de la
        Tour l'aurait COUPÉE. */
+    /* ⛔ `gardien` R2 (30 septembre 2026) : une entrée d'AVANT ne porte pas `t` en clair — il vit dans son code. La garde « ce
+       nom est à une autre entreprise » ne lisait que `prev.t` : le nom d'une entrée d'avant, repris avec le code d'une AUTRE
+       entreprise, passait — et, depuis que cette route reporte l'abonnement réglé à la main, l'autre héritait de son « actif ». */
+    const CODE_AUTRE = Buffer.from(JSON.stringify({ t: 't-autre-848', k: 'k-autre-848-' + 'y'.repeat(20) }), 'utf8').toString('base64').replace(/=+$/, '');
+    const rR2 = await appel('/api/monitor/espaces', { nom: 'ancien-sans-t', code: CODE_AUTRE, email: 'autre@exemple-848.fr' }, PATRON);
+    await dormir(300);
+    const anc2 = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'))[cle('ancien-sans-t')] || {};
+    v('⛔ le nom d\'une entrée d\'avant (sans `t`, il vit dans son code), repris avec le code d\'une AUTRE entreprise : refusé (409) — la fiche et son abonnement restent les siens',
+      [rR2.s, anc2.code === CODE_ANC, anc2.aboStatut], [409, true, 'actif']);
     const E2 = await etat('plombier-banc'), st2 = (await appel('/api/monitor/espaces/statut', { nom: 'plombier-banc' }, PATRON)).j;
     v('⛔⛔ … et l\'abonnement réglé à la main RESTE : toujours payée, servie avec sa formule — pas suspendue', [E2.formule, E2.paye, E2.suspendu, st2.paye, st2.aboStatut], ['pro', true, false, true, 'actif']);
     v('⛔ une entreprise SANS formule reçoit aussi son métier (la réponse qui sort avant la formule)', (await etat('sans-formule')).metier, 'nettoyage');
@@ -245,12 +257,13 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
     v('⛔ une entreprise qui ne paie pas est SUSPENDUE (sans formule) — et reçoit AUSSI son métier', [ES.suspendu, ES.sursisJours, ES.formule, ES.paye, ES.metier], [true, 0, undefined, false, 'peinture']);
     v('⛔ une valeur hors liste écrite à la main dans l\'annuaire n\'est jamais servie', (await etat('ecrit-main')).metier, '');
     v('⛔ ELAN (jamais réglée) ne reçoit rien : l\'application ne bougera pas', (await etat('elan-banc')).metier, '');
-    /* les quatre réponses d'un espace vivant, lues dans le CODE de la route : la réponse « impayé » (qui demande Stripe) et
-       celle d'une vérification impossible portent le métier comme les deux que ce banc joue */
+    /* les cinq réponses d'un espace vivant, lues dans le CODE de la route : la réponse « impayé » (qui demande Stripe), celle
+       d'une vérification impossible et celle du DOUTE (Stripe ou registre des codes illisible, 30 septembre 2026) portent le
+       métier comme les deux que ce banc joue */
     const route = (() => { const i = SRVN.indexOf("app.post('/api/espaces/etat'"); const j = SRVN.indexOf('\n});', i); return i > 0 ? SRVN.slice(i, j) : ''; })();
     const reponses = route.match(/res\.json\(\{ ok: true[^;]*\}\)/g) || [];
-    v('⛔ (code de la route) les quatre réponses d\'un espace vivant portent `metier` — seule la fermeture n\'en a pas besoin',
-      [reponses.length, reponses.filter(r => /\bmetier\b/.test(r)).length, reponses.filter(r => /ferme: true/.test(r)).length], [5, 4, 1]);
+    v('⛔ (code de la route) les cinq réponses d\'un espace vivant portent `metier` — seule la fermeture n\'en a pas besoin',
+      [reponses.length, reponses.filter(r => /\bmetier\b/.test(r)).length, reponses.filter(r => /ferme: true/.test(r)).length], [6, 5, 1]);
 
     console.log('\n5. L\'application l\'APPLIQUE (les vraies `forfaitServeurSync` et `metierServeurAppliquer` d\'app.html, v' + ((/APP_VERSION = '(\d+)'/.exec(APP) || [])[1] || '?') + ')');
     /* (le bandeau « Paye ton abonnement » n'existe plus depuis la v767 : ce qui n'est pas payé est suspendu — `accesSuspendu`) */
