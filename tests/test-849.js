@@ -386,21 +386,22 @@ globalThis.fetch = async function (url, opts) {
   /* le rappel J-7 de l'entreprise recréée — le passage des rappels se fait au démarrage : on redémarre le serveur sur les
      MÊMES données, rappels presque immédiats, et on attend le COURRIEL (pas le chronomètre) */
   /* (relecture finale) q a DÉJÀ reçu son rappel pour cette échéance (`rappelFin`, sur son entrée d'annuaire) : recréée, elle
-     n'en reçoit pas un second. Ses gestes passent AVANT ceux de r : le passage des rappels lit les périodes dans l'ordre du
-     registre, donc q2 est jugée avant r2 — quand le courriel de r2 part, le sort de q2 est déjà décidé (au geste, pas au
-     chronomètre). */
+     n'en reçoit pas un second. Son code est rangé AVANT celui de r dans le registre : le passage des rappels le lit dans cet
+     ordre, donc q2 est jugée avant r2 — quand le courriel de r2 part, le sort de q2 est déjà décidé (au geste, pas au
+     chronomètre). Et ses gestes passent APRÈS ceux de r : aucune autre écriture de l'annuaire n'enregistre sa marque à la
+     place de celle que la reprise doit écrire elle-même. */
   const EJ = { r: { t: 't-r-849', nom: 'r', code: codeEspace('t-r-849'), email: mail('renait-j7'), ts: MAINT - 9000, formule: 'pro', quantite: 1 },
     q: { t: 't-q-849', nom: 'q', code: codeEspace('t-q-849'), email: mail('deja-j7'), ts: MAINT - 9000, formule: 'pro', quantite: 1, rappelFin: jour(5) } };
-  const UJ = { 'VIEUX-BANC-849': { n: 2, equipes: { 't-r-849': { date: jour(-85), finLe: jour(5), em: em(mail('renait-j7')) },
-    't-q-849': { date: jour(-85), finLe: jour(5), em: em(mail('deja-j7')) } } } };
+  const UJ = { 'BANC-Q-849': { n: 1, equipes: { 't-q-849': { date: jour(-85), finLe: jour(5), em: em(mail('deja-j7')) } } },
+    'VIEUX-BANC-849': { n: 1, equipes: { 't-r-849': { date: jour(-85), finLe: jour(5), em: em(mail('renait-j7')) } } } };
   const sJ = await demarrer(EJ, UJ, [], {}, { smtp: portSmtp });
   const PJ = await sJ.patron();
-  const rQ1 = await sJ.appel('/api/monitor/espaces/renaitre', { nom: 'q', confirme: true }, PJ);
-  const rQ2 = await sJ.appel('/api/monitor/espaces', { nom: 'q2', code: codeEspace('t-q2-849'), email: mail('deja-j7'), origine: 'tour' }, PJ);
-  v('(population) q, déjà prévenue de sa fin, repart à neuf puis la Tour la recrée', [rQ1.s, rQ2.s, SERVIE(await sJ.etat('t-q2-849'))], [200, 200, [true, 'premium', false]]);
   const rJ1 = await sJ.appel('/api/monitor/espaces/renaitre', { nom: 'r', confirme: true }, PJ);
   const rJ2 = await sJ.appel('/api/monitor/espaces', { nom: 'r2', code: codeEspace('t-r2-849'), email: mail('renait-j7'), origine: 'tour' }, PJ);
   v('(population) r, en période (fin dans 5 jours), repart à neuf puis la Tour la recrée', [rJ1.s, rJ2.s, SERVIE(await sJ.etat('t-r2-849'))], [200, 200, [true, 'premium', false]]);
+  const rQ1 = await sJ.appel('/api/monitor/espaces/renaitre', { nom: 'q', confirme: true }, PJ);
+  const rQ2 = await sJ.appel('/api/monitor/espaces', { nom: 'q2', code: codeEspace('t-q2-849'), email: mail('deja-j7'), origine: 'tour' }, PJ);
+  v('(population) q, déjà prévenue de sa fin, repart à neuf puis la Tour la recrée', [rQ1.s, rQ2.s, SERVIE(await sJ.etat('t-q2-849'))], [200, 200, [true, 'premium', false]]);
   await sJ.arreter();
   const avantJ = fct.pour(mail('renait-j7')).length;
   const sJ2 = await demarrer(null, null, null, null, { dossier: sJ.R, smtp: portSmtp, env: { TEAMOP_RAPPELS_DELAI_MS: '1000' } });
