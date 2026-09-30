@@ -2269,8 +2269,11 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
      await : ~100 ms de PBKDF2 que personne n'attend, et un échec ne doit pas faire rater
      l'inscription — il se dit au journal. */
   annuaireSemerDepuisCode(t, code).catch(() => {});
-  /* une entreprise « repartie à neuf » que la Tour recrée : sa période offerte la suit (`promoReprendreRenaissance`) */
-  try { if (promoReprendreRenaissance(t, espacesReg[slug].email)) console.log('Tour : période offerte reprise par l\'entreprise', t, '(repartie à neuf)'); } catch (err) {}
+  /* une entreprise « repartie à neuf » que la Tour recrée : sa période offerte la suit (`promoReprendreRenaissance`).
+     ⛔ À LA CRÉATION SEULEMENT — un identifiant que l'annuaire ne connaissait pas (`ref`, plus haut) : « Revoir le lien »
+     d'une entreprise qui existait déjà, en lui posant l'adresse de celle qui repart à neuf, lui donnait sa période, et
+     l'entreprise recréée ensuite naissait suspendue (relecture finale de la poussée, 30 septembre 2026, rejouée). */
+  if (t && !ref) try { if (promoReprendreRenaissance(t, espacesReg[slug].email)) console.log('Tour : période offerte reprise par l\'entreprise', t, '(repartie à neuf)'); } catch (err) {}
   if (cleConfirmee) console.log('Tour :', req.tourUser.nom, 'confirme une clé DIFFÉRENTE pour l\'espace', t);   // l'identifiant suffit : le nom d'accès est souvent celui d'une personne
   res.json({ ok: true, slug });
 });
@@ -2686,10 +2689,13 @@ async function espacePaye(e, opts) {
   /* ⛔ …SAUF UN IMPAYÉ QUE STRIPE DIT (relecture de la poussée, 30 septembre 2026, rejouée) : ce retour passait AVANT Stripe —
      une entreprise dont la carte est refusée, et qui avait eu un jour un code, recevait Business Premium « payé », le
      sursis de la Tour, et la page de paiement lui vendait un SECOND abonnement au lieu de sa facture. Le doute porte sur
-     la période offerte ; l'impayé, Stripe l'a dit (même règle qu'une liste périmée : il bloque encore). */
+     la période offerte ; l'impayé, Stripe l'a dit (même règle qu'une liste périmée : il bloque encore).
+     ⚠️ Un impayé SÛREMENT à elle seulement (`surs` : gravé à son identifiant, ou à une adresse que personne d'autre ne
+     porte — relecture finale, rejouée) : l'impayé sans référence d'une voisine d'adresse suspendait une entreprise dont la
+     période court peut-être encore. Là, on ne sait ni si elle paie ni qui doit : dans le doute, on ne coupe pas. */
   if (promosIllisible && e.codePromo) {
     const vI = await stripeVerdict(e);
-    if (impayeBloque(e, vI.s, vI.imp)) return bloqueImpaye(vI.imp);
+    if (vI.imp && (vI.imp.surs || []).length && impayeBloque(e, vI.s, vI.imp)) return bloqueImpaye(vI.imp);
     return { paye: true, motif: 'code promo ' + String(e.codePromo).toUpperCase() + ' — registre des codes illisible, dans le doute on ne coupe pas', promoCode: String(e.codePromo).toUpperCase(), doute: true,
     /* la formule du CODE, comme la période qu'on ne peut plus lire (seconde relecture de `gardien`) : la fiche seule
        faisait retomber une entreprise Pro en période Business Premium, `db.forfait` réécrit et synchronisé */
@@ -3011,13 +3017,27 @@ function espaceStripeDans(e, liste, statuts, tSeul) {
   const mels = [mel, ...autresNoms.map(sl => String(espacesReg[sl].email || '').trim().toLowerCase()).filter(m => m && m !== mel && !aUneAutre(m))].filter(Boolean);
   const tDe = r => { const x = espacesReg[r]; return String((x && espaceT(x)) || r).toLowerCase(); };
   const refDe = sb => String((sb.metadata && sb.metadata.espace) || '').toLowerCase();
-  const parMail = sb => mels.length > 0 && !!sb.customer && typeof sb.customer === 'object' && mels.includes(String(sb.customer.email || '').trim().toLowerCase());
+  const mailDe = sb => (!!sb.customer && typeof sb.customer === 'object') ? String(sb.customer.email || '').trim().toLowerCase() : '';
+  /* ⛔ UNE ADRESSE D'UN ANCIEN NOM NE RATTACHE JAMAIS L'ABONNEMENT GRAVÉ À L'IDENTIFIANT D'UNE AUTRE ENTREPRISE DE L'ANNUAIRE
+     (relecture finale de la poussée, 30 septembre 2026, rejouée) : deux sociétés sœurs qui partageaient l'adresse du patron,
+     l'une en change — son abonnement, gravé à SON identifiant, portait encore l'ancienne adresse, et servait l'autre (« payée »
+     sans rien payer, ou Business Premium au prix de Pro, par `douteux`). Un identifiant ne se libère pas (repartir à neuf en
+     donne un NOUVEAU) : un abonnement gravé à celui d'une autre entreprise vivante est le sien, sûrement. Le serveur d'avant
+     ne cherchait pas du tout ces adresses : ce filtre ne retire rien de ce qu'il servait. Notre adresse ACTUELLE garde la
+     règle d'avant (« le verdict payé ne regarde pas la référence », plus bas). */
+  const tAutre = r => !!r && r !== monT && Object.values(espacesReg || {}).some(x => !!x && String(espaceT(x) || '').toLowerCase() === r);
+  const parMail = sb => { const m = mailDe(sb); return !!m && mels.includes(m) && (m === mel || !tAutre(refDe(sb))); };
   /* ⚠️ une adresse PARTAGÉE avec une autre entreprise de l'annuaire rend un abonnement sans référence ambigu : celle
      qui a déjà un abonnement à son nom ne le prend pas (sinon il compterait chez les deux) ; celle qui n'est
      rattachée que par l'adresse le garde, comme avant. (Déclarée AVANT `aMoi`, qui la lit.) */
   const partagee = mels.length > 0 && Object.keys(espacesReg || {}).some(sl => { const x = espacesReg[sl]; return !!x && x !== e
     && String(sl).toLowerCase() !== String(e.slug || '').toLowerCase() && mels.includes(String(x.email || '').trim().toLowerCase())
     && !(monT && String(espaceT(x) || '').toLowerCase() === monT); });   // ses propres autres noms (même `t`) ne la « partagent » pas
+  /* ⛔ ET « PARTAGÉE » SE DÉCIDE ABONNEMENT PAR ABONNEMENT (même relecture, rejouée) : seule notre adresse ACTUELLE peut être
+     portée par une voisine — les anciennes n'entrent dans `mels` que si personne d'autre ne les porte (`aUneAutre`). Décidée
+     pour tous, elle rendait ambigu un abonnement trouvé par une ancienne adresse dès que l'actuelle était partagée : une place
+     payée perdue, une fiche sans formule qui paie suspendue, un impayé gravé à notre ancien nom qui ne bloquait plus. */
+  const partageeDe = sb => partagee && mailDe(sb) === mel;
   /* ⛔ UN IMPAYÉ GRAVÉ AU NOM D'ACCÈS (d'anciennes pages envoyaient le nom, pas l'identifiant) n'est à elle que s'il porte
      AUSSI son adresse, ET QUE PERSONNE D'AUTRE NE LA PORTE. Le nom seul ne prouve rien — libéré puis repris, il désigne
      une autre entreprise (`gardien`, G1) ; mais l'ignorer tout à fait laissait ouvert l'accès payant d'une entreprise dont
@@ -3026,7 +3046,7 @@ function espaceStripeDans(e, liste, statuts, tSeul) {
      la bloquait et lui servait la facture de l'ancienne, pendant que la vraie débitrice restait servie (relecture adverse
      du même soir, rejoué). Là, on ne sait pas qui le doit : il ne bloque personne (limite connue, dans le sens qui ne coupe
      personne — la même que « une adresse = une entreprise » du payé). Le payé, lui, suit la règle d'avant. */
-  const aMoi = sb => { const m = refDe(sb); return !!m && (refs.includes(m) || (!!monT && tDe(m) === monT && (!tSeul || (parMail(sb) && !partagee)))); };
+  const aMoi = sb => { const m = refDe(sb); return !!m && (refs.includes(m) || (!!monT && tDe(m) === monT && (!tSeul || (parMail(sb) && !partageeDe(sb))))); };
   /* ⛔ LE VERDICT « PAYÉ » NE REGARDE PAS LA RÉFÉRENCE D'UN ABONNEMENT TROUVÉ PAR L'ADRESSE. Essayé le 28 septembre
      au soir (écarter celui « gravé pour une autre entreprise de l'annuaire ») : `gardien` l'a rejoué sur deux cas
      réels où la référence désigne encore une entrée de la MÊME entreprise — un « repartir à neuf » sur une entreprise
@@ -3057,7 +3077,7 @@ function espaceStripeDans(e, liste, statuts, tSeul) {
        identifiant (relecture adverse du 29 septembre, rejoué) */
     const memes = liste.filter(sb => vivant(sb) && (aMoi(sb) || (parMail(sb) && (parQuoi === 'adresse e-mail'
       ? (!refDe(sb) || !designe(refDe(sb)))
-      : ((!refDe(sb) || !designe(refDe(sb))) && !partagee)))));
+      : ((!refDe(sb) || !designe(refDe(sb))) && !partageeDe(sb))))));
     /* ⛔⛔ LA FORMULE NE SE DÉCIDE PAS SUR CE QUI EST AMBIGU (relecture adverse du 29 septembre 2026, rejoué). `memes`
        ne décidait que des places ; il décide maintenant de la formule, et un abonnement douteux y pèse dans les deux sens :
        · MONTER au-dessus de la fiche ne se fait que sur ce qui est SÛREMENT à elle (`surs`) : gravé à son nom, ou trouvé
@@ -3067,7 +3087,7 @@ function espaceStripeDans(e, liste, statuts, tSeul) {
          adresse mais écarté ou ambigu (adresse partagée, référence d'un autre de ses noms) peut être le sien — sinon
          acheter OP MESSAGES faisait retomber en Gratuit une entreprise qui paie Business Premium. On ne coupe pas une
          entreprise qui paie peut-être : la fiche reste, la Tour montre ce qu'elle voit. */
-    const surs = memes.filter(sb => aMoi(sb) || !partagee);
+    const surs = memes.filter(sb => aMoi(sb) || !partageeDe(sb));
     const douteux = liste.filter(sb => vivant(sb) && parMail(sb) && !aMoi(sb) && !surs.includes(sb)
       && ((sb.items && Array.isArray(sb.items.data)) ? sb.items.data.some(it => !ligneMessages(it)) : true));
     return { abo, memes, surs, douteux, parQuoi, motif: 'abonnement Stripe (' + abo.status + ', par ' + parQuoi + ')', echeance: abo.current_period_end ? new Date(abo.current_period_end * 1000).toISOString().slice(0, 10) : '' };
@@ -9427,9 +9447,12 @@ function promoMarquerAvantRenaitre(t, slug, email) {
      `promoRenaissance`) */
   const voisins = [...new Set(Object.values(espacesReg || {}).filter(x => !!x && String(espaceT(x) || '') !== t
     && promoEmpreinteMail(x.email) === em).map(x => String(espaceT(x) || '')).filter(Boolean))];
+  /* (et le rappel J-7 déjà envoyé pour cette échéance — `rappelFin`, posé sur l'entrée d'annuaire qui va disparaître : sans
+     lui, l'entreprise recréée recevait un second « votre période se termine » pour la même date — relecture finale) */
+  const rappelFin = String((espacesReg[slug] && espacesReg[slug].rappelFin) || '');
   for (const u of Object.values(promoUsages || {})) {
     const eq = u && u.equipes && t ? u.equipes[t] : null; if (!eq) continue;
-    eq.em = em; eq.renait = { le: Date.now(), voisins }; n++;
+    eq.em = em; eq.renait = rappelFin ? { le: Date.now(), voisins, rappelFin } : { le: Date.now(), voisins }; n++;
   }
   if (n) savePromoUsages();
   return n; }
@@ -9464,22 +9487,33 @@ function promoRenaissance(t, ems) {
    recompte (`u.n`), et la période n'est reprise qu'une fois (`repris`). */
 function promoReprendreRenaissance(t, email) {
   const em = promoEmpreinteMail(email); if (!em || promosIllisible) return 0;
-  let n = 0;
+  let n = 0, prevenue = '';
   for (const { code, eq } of promoRenaissance(t, new Set([em]))) {
     const u = promoUsages[code];
     if (!u.equipes[t]) { const { renait, ...reste } = eq; u.equipes[t] = Object.assign(reste, { reporte: true }); n++; }
+    if (eq.renait.rappelFin && eq.renait.rappelFin === eq.finLe) prevenue = eq.finLe;   // déjà prévenue de CETTE échéance
     eq.renait = Object.assign({}, eq.renait, { repris: t });
   }
   if (n && !savePromoUsages()) console.error('⛔ période offerte reprise en mémoire seulement (promos-usages.json non écrit) pour l\'entreprise', t);
+  if (prevenue) {
+    for (const x of Object.values(espacesReg || {})) if (x && String(espaceT(x) || '') === t) x.rappelFin = prevenue;
+    espacesEcrire();
+  }
   return n; }
 /* Toutes les utilisations d'une entreprise, pour la suppression TOTALE : celles de son identifiant,
    et celles d'un identifiant d'avant « repartir à neuf » qui portent son e-mail. Une utilisation qui
-   porte l'e-mail d'une AUTRE entreprise ne part pas. */
+   porte l'e-mail d'une AUTRE entreprise ne part pas.
+   ⛔ NI CELLE D'UNE AUTRE ENTREPRISE VIVANTE À LA MÊME ADRESSE (relecture finale de la poussée, 30 septembre 2026, rejouée) :
+   supprimer une voisine d'adresse effaçait la période EN COURS de l'autre — sous son propre identifiant, ou reprise après un
+   « repartir à neuf » —, et celle-ci était suspendue. Une utilisation rangée sous l'identifiant d'une entreprise encore à
+   l'annuaire est la sienne ; une utilisation d'un ancien identifiant dont l'adresse est encore portée par une autre
+   entreprise vivante est aussi la sienne (sa mémoire du code : sans elle, le code redevenait neuf). */
 function promoCles(t, slugs, emails) {
   const ems = new Set([...(emails || [])].map(promoEmpreinteMail).filter(Boolean)), out = [];
+  const vivante = cle => cle !== t && Object.values(espacesReg || {}).some(x => !!x && String(espaceT(x) || '') === cle);
   for (const [code, u] of Object.entries(promoUsages || {})) {
     for (const [cle, eq] of Object.entries((u && u.equipes) || {})) {
-      if (cle === t || (eq && eq.em && ems.has(eq.em))) out.push({ code, cle });
+      if (cle === t || (eq && eq.em && ems.has(eq.em) && !vivante(cle) && !promoHeritier(eq, t))) out.push({ code, cle });
     }
   }
   return out; }

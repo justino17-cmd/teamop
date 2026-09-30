@@ -19,6 +19,14 @@
      E · une fiche SANS formule payée par un tarif qu'on ne sait pas lire garde Business Premium (Pro est réservé aux
          fiches « Gratuit ») ;
      F · le journal du métier ne porte pas le nom d'accès ;  G · le métier est celui de l'entreprise, sur tous ses noms.
+   Et ce que la relecture FINALE (sur le code de ces correctifs) a encore rejoué :
+     C ter · une ancienne adresse ne rattache jamais l'abonnement gravé à l'IDENTIFIANT d'une autre entreprise vivante (la
+         sœur qui a changé d'adresse : sinon « payée » sans rien payer, ou Business Premium au prix de Pro) ; et quand notre
+         adresse ACTUELLE est partagée, un abonnement trouvé par une ANCIENNE adresse reste le nôtre (places, formule, impayé) ;
+     A bis · registre illisible : l'impayé AMBIGU d'une voisine d'adresse ne suspend pas une entreprise en période ;
+     D bis · la période ne se reprend qu'à la CRÉATION (« Revoir le lien » d'une entreprise existante ne la prend pas) ;
+         supprimer une voisine d'adresse n'efface pas la période d'une entreprise vivante ; le rappel J-7 déjà envoyé ne
+         repart pas après « repartir à neuf ».
    Rien ne sort d'ici : 127.0.0.1, un Stripe simulé, des entreprises et des adresses fictives. */
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
 const { spawn } = require('child_process');
@@ -53,7 +61,7 @@ const enfants = [];
 const facteurs = [];
 const fin = () => { for (const e of enfants) { try { e.kill('SIGKILL'); } catch (x) {} } for (const f of facteurs) { try { f.s.close(); } catch (x) {} } try { fs.rmSync(banc, { recursive: true, force: true }); } catch (e) {} };
 process.on('exit', fin);
-setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 150 s'); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); fin(); process.exit(1); }, 150000).unref();
+setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 200 s'); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); fin(); process.exit(1); }, 200000).unref();
 
 console.log('\n── 849 · la relecture de la poussée, rejouée sur le vrai serveur ──');
 (async () => {
@@ -163,6 +171,24 @@ globalThis.fetch = async function (url, opts) {
     p5old: { t: 't-p5-849', nom: 'p5old', email: mail('p5a'), ts: MAINT - 9000, formule: 'pro', quantite: 1 },
     p5new: { t: 't-p5-849', nom: 'p5new', email: mail('p5b'), ts: MAINT - 1000, formule: 'pro', quantite: 1 },
     p5y: { t: 't-p5y-849', nom: 'p5y', email: mail('p5a'), ts: MAINT - 5000 },
+    /* C ter (relecture finale) : la SŒUR (…y) a quitté notre ancienne adresse (…-compta), que plus personne ne porte à
+       l'annuaire ; son abonnement, gravé à SON identifiant, y est resté chez Stripe */
+    q1old: { t: 't-q1-849', nom: 'q1old', email: mail('q1-compta'), ts: MAINT - 9000, formule: 'premium', quantite: 1 },
+    q1new: { t: 't-q1-849', nom: 'q1new', email: mail('q1b'), ts: MAINT - 1000, formule: 'premium', quantite: 1 },
+    q1y: { t: 't-q1y-849', nom: 'q1y', email: mail('q1y'), ts: MAINT - 5000, formule: 'pro', quantite: 1 },
+    q2old: { t: 't-q2-849', nom: 'q2old', email: mail('q2-compta'), ts: MAINT - 9000, formule: 'premium', quantite: 1 },
+    q2new: { t: 't-q2-849', nom: 'q2new', email: mail('q2b'), ts: MAINT - 1000, formule: 'premium', quantite: 1 },
+    q2y: { t: 't-q2y-849', nom: 'q2y', email: mail('q2y'), ts: MAINT - 5000, formule: 'pro', quantite: 1 },
+    /* C ter : notre adresse ACTUELLE (…n) est aussi celle d'une voisine (…y) ; l'ancienne (…o), personne d'autre ne la porte */
+    r3old: { t: 't-r3-849', nom: 'r3old', email: mail('r3o'), ts: MAINT - 9000, formule: 'pro', quantite: 1 },
+    r3new: { t: 't-r3-849', nom: 'r3new', email: mail('r3n'), ts: MAINT - 1000, formule: 'pro', quantite: 1 },
+    r3y: { t: 't-r3y-849', nom: 'r3y', email: mail('r3n'), ts: MAINT - 5000, formule: 'pro', quantite: 1 },
+    r4old: { t: 't-r4-849', nom: 'r4old', email: mail('r4o'), ts: MAINT - 9000 },
+    r4new: { t: 't-r4-849', nom: 'r4new', email: mail('r4n'), ts: MAINT - 1000 },
+    r4y: { t: 't-r4y-849', nom: 'r4y', email: mail('r4n'), ts: MAINT - 5000, formule: 'pro', quantite: 1 },
+    r5old: { t: 't-r5-849', nom: 'r5old', email: mail('r5o'), ts: MAINT - 9000, formule: 'pro', quantite: 1 },
+    r5new: { t: 't-r5-849', nom: 'r5new', email: mail('r5n'), ts: MAINT - 1000, formule: 'pro', quantite: 1 },
+    r5y: { t: 't-r5y-849', nom: 'r5y', email: mail('r5n'), ts: MAINT - 5000, formule: 'pro', quantite: 1 },
     /* B bis : l'ancien nom garde un « impayé » d'avant ET sa date d'abonnée d'avant ; le récent est nu (ancienne route) */
     pla: { t: 't-pl-849', nom: 'pla', email: mail('pl'), ts: MAINT - 9000, formule: 'premium', quantite: 1, formuleTs: Date.parse('2025-03-01'),
       aboStatut: 'impaye', aboPar: 'Ancien', aboTs: Date.parse('2025-06-01'), aboDepuis: Date.parse('2025-01-01') },
@@ -190,7 +216,15 @@ globalThis.fetch = async function (url, opts) {
     abo('sub_p3a', 'active', 'pro', 1, 't-p3-849', mail('p3b')),                // ses deux abonnements : l'un gravé…
     abo('sub_p3b', 'active', 'pro', 1, '', mail('p3b')),                        // … l'autre trouvé par son adresse ACTUELLE
     abo('sub_p4', 'past_due', 'pro', 1, 'p4old', mail('p4b')),                  // SON impayé, gravé à son ancien nom d'accès
-    abo('sub_p5y', 'past_due', 'pro', 1, '', mail('p5a')) ];                    // l'impayé de la VOISINE, à l'ancienne adresse
+    abo('sub_p5y', 'past_due', 'pro', 1, '', mail('p5a')),                     // l'impayé de la VOISINE, à l'ancienne adresse
+    abo('sub_q1y', 'active', 'pro', 1, 't-q1y-849', mail('q1-compta')),        // la sœur : gravé à SON identifiant, notre ancienne adresse
+    abo('sub_q2', 'active', 'pro', 1, 't-q2-849', mail('q2b')),                 // nous payons Pro (fiche Business Premium)…
+    abo('sub_q2y', 'active', 'pro', 1, 't-q2y-849', mail('q2-compta')),        // … et la sœur, à notre ancienne adresse
+    abo('sub_r3a', 'active', 'pro', 1, 't-r3-849', mail('r3n')),               // le nôtre, gravé
+    abo('sub_r3b', 'active', 'pro', 1, '', mail('r3o')),                        // le nôtre aussi, trouvé par notre ANCIENNE adresse
+    abo('sub_r3y', 'active', 'pro', 1, 't-r3y-849', mail('r3n')),              // celui de la voisine (adresse actuelle partagée)
+    abo('sub_r4', 'active', 'pro', 1, '', mail('r4o')),                         // une fiche sans formule, payée à son ancienne adresse
+    abo('sub_r5', 'past_due', 'pro', 1, 'r5old', mail('r5o')) ];               // SON impayé : son ancien nom ET son ancienne adresse
   const s1 = await demarrer(E1, U1, S1, { sub_p4: { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: 'https://invoice.stripe.com/i/banc-849-p4' } } });
   vrai('le vrai serveur démarre, isolé (registre des codes lisible)', s1.vivant);
   if (!s1.vivant) { console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); }
@@ -222,6 +256,18 @@ globalThis.fetch = async function (url, opts) {
   v('⛔⛔ NOTRE impayé, gravé à notre ancien nom d\'accès, se voit (sinon la page de paiement vendait un second abonnement)', [ligneDe('p4new').impaye, ligneDe('p4new').impayeStripe], [true, true]);
   v('⛔ … et l\'impayé de la VOISINE, à notre ancienne adresse, ne nous est pas attribué', ligneDe('p5new').impaye, false);
 
+  console.log('\n  C ter · anciennes adresses (relecture finale)');
+  v('⛔⛔ l\'abonnement de la SŒUR, gravé à SON identifiant, resté à notre ancienne adresse : il ne nous sert pas (suspendue)',
+    SUSP(await s1.etat('t-q1-849')), true);
+  v('   … la sœur, elle, est servie par son abonnement', SERVIE(await s1.etat('t-q1y-849')), [true, 'pro', false]);
+  v('⛔⛔ … et il ne nous fait pas servir Business Premium quand nous payons Pro', SERVIE(await s1.etat('t-q2-849')), [true, 'pro', false]);
+  const eR3 = await s1.etat('t-r3-849');
+  v('⛔⛔ adresse ACTUELLE partagée : l\'abonnement trouvé par notre ancienne adresse compte encore (2 places, pas 1)', [eR3.paye, eR3.places], [true, 2]);
+  v('⛔⛔ … une fiche sans formule payée à son ancienne adresse n\'est pas suspendue (Pro, le tarif payé)', SERVIE(await s1.etat('t-r4-849')), [true, 'pro', false]);
+  vrai('(population) la liste de la Tour porte la ligne du nom récent', !!ligneDe('r5new').nom);
+  v('⛔⛔ … et NOTRE impayé (ancien nom, ancienne adresse) se voit, même quand l\'adresse actuelle est partagée',
+    [ligneDe('r5new').impaye, ligneDe('r5new').impayeStripe], [true, true]);
+
   console.log('\n  B bis · écarter un réglage périmé garde « depuis quand elle paie »');
   const rPl = await s1.appel('/api/monitor/espaces/abonnement', { nom: 'plb', formule: 'premium', quantite: 1, statut: 'actif', fin: '' }, PATRON);
   const ePl = await s1.etat('t-pl-849');
@@ -246,7 +292,8 @@ globalThis.fetch = async function (url, opts) {
     k: { t: 't-k-849', nom: 'k', code: codeEspace('t-k-849'), email: mail('dupk'), ts: MAINT - 9000, formule: 'pro', quantite: 1 },   // en période, supprimée TOTALEMENT
     l: { t: 't-l-849', nom: 'l', code: codeEspace('t-l-849'), email: mail('dupk'), ts: MAINT - 5000 },                               // … sa voisine d'adresse
     m1: { t: 't-m-849', nom: 'm1', code: codeEspace('t-m-849'), email: mail('dupm'), ts: MAINT - 9000, formule: 'pro', quantite: 1 },  // une entreprise à DEUX noms,
-    m2: { t: 't-m-849', nom: 'm2', code: codeEspace('t-m-849'), email: mail('dupm'), ts: MAINT - 8000, formule: 'pro', quantite: 1 } };// en période
+    m2: { t: 't-m-849', nom: 'm2', code: codeEspace('t-m-849'), email: mail('dupm'), ts: MAINT - 8000, formule: 'pro', quantite: 1 },// en période
+    o: { t: 't-o-849', nom: 'o', code: codeEspace('t-o-849'), email: '', ts: MAINT - 6000 } };                                        // DÉJÀ là, sans adresse
   const UD = { 'VIEUX-BANC-849': { n: 2, equipes: {
     't-x-849': { date: jour(-10), finLe: jour(30), em: em(mail('dup')) },
     't-k-849': { date: jour(-10), finLe: jour(30), em: em(mail('dupk')) },
@@ -264,6 +311,11 @@ globalThis.fetch = async function (url, opts) {
   const rY = await sD.appel('/api/monitor/espaces', { nom: 'y', code: codeEspace('t-y-849'), email: mail('dup'), origine: 'tour' }, PD);
   v('⛔⛔ « Revoir le lien » de la voisine y, AVANT que x soit recréée, ne la lui donne pas : suspendue, aucune période sous son identifiant',
     [rY.s, SUSP(await sD.etat('t-y-849')), !!lireUsages(sD).equipes['t-y-849']], [200, true, false]);
+  /* (relecture finale) une entreprise qui existait SANS adresse reçoit, par « Revoir le lien », celle de x : elle n'était pas
+     une voisine au moment du geste, mais ce n'est pas une CRÉATION — la période n'est pas pour elle */
+  const rO = await sD.appel('/api/monitor/espaces', { nom: 'o', code: codeEspace('t-o-849'), email: mail('dup'), origine: 'tour' }, PD);
+  v('⛔⛔ « Revoir le lien » d\'une entreprise EXISTANTE, qui prend l\'adresse de x : pas de période (la reprise est pour la création)',
+    [rO.s, SUSP(await sD.etat('t-o-849')), !!lireUsages(sD).equipes['t-o-849']], [200, true, false]);
   const rX2 = await sD.appel('/api/monitor/espaces', { nom: 'x2', code: codeEspace('t-x2-849'), email: mail('dup'), origine: 'tour' }, PD);
   const eX2 = await sD.etat('t-x2-849');
   v('⛔⛔ la Tour recrée l\'entreprise (route « lien ») : sa période la suit — Business Premium, payée', [rX2.s, ...SERVIE(eX2)], [200, true, 'premium', false]);
@@ -280,12 +332,46 @@ globalThis.fetch = async function (url, opts) {
   v('⛔ un seul nom d\'une entreprise à deux noms repart à neuf : l\'entreprise VIT encore (son autre nom) — elle garde sa période, la nouvelle ne la prend pas',
     [rM1.s, rM3.s, SERVIE(await sD.etat('t-m-849')), SUSP(await sD.etat('t-m3-849'))], [200, 200, [true, 'premium', false], true]);
 
+  /* (relecture finale) supprimer TOTALEMENT une voisine d'adresse n'efface pas la période d'une entreprise VIVANTE — reprise
+     après « repartir à neuf » (rx → rx2), ou restée sous son propre identifiant (rv). Un serveur à part : trois gestes qui
+     comptent dans la limite de trois suppressions par jour. */
+  const ER = {
+    rx: { t: 't-rx-849', nom: 'rx', code: codeEspace('t-rx-849'), email: mail('dupr'), ts: MAINT - 9000, formule: 'pro', quantite: 1 },
+    ry: { t: 't-ry-849', nom: 'ry', code: codeEspace('t-ry-849'), email: mail('dupr'), ts: MAINT - 5000 },
+    rv: { t: 't-rv-849', nom: 'rv', code: codeEspace('t-rv-849'), email: mail('dupv'), ts: MAINT - 9000, formule: 'pro', quantite: 1 },
+    rvy: { t: 't-rvy-849', nom: 'rvy', code: codeEspace('t-rvy-849'), email: mail('dupv'), ts: MAINT - 5000 } };
+  const UR = { 'VIEUX-BANC-849': { n: 2, equipes: {
+    't-rx-849': { date: jour(-10), finLe: jour(30), em: em(mail('dupr')) },
+    't-rv-849': { date: jour(-10), finLe: jour(30), em: em(mail('dupv')) } } } };
+  const sR = await demarrer(ER, UR, [], {}, { smtp: portSmtp });
+  const PR = await sR.patron();
+  const rRx = await sR.appel('/api/monitor/espaces/renaitre', { nom: 'rx', confirme: true }, PR);
+  const rRx2 = await sR.appel('/api/monitor/espaces', { nom: 'rx2', code: codeEspace('t-rx2-849'), email: mail('dupr'), origine: 'tour' }, PR);
+  v('(population) rx repart à neuf, la Tour la recrée (rx2) : servie par sa période ; rv est servie, ses voisines suspendues',
+    [rRx.s, rRx2.s, SERVIE(await sR.etat('t-rx2-849')), SERVIE(await sR.etat('t-rv-849')), SUSP(await sR.etat('t-ry-849')), SUSP(await sR.etat('t-rvy-849'))],
+    [200, 200, [true, 'premium', false], [true, 'premium', false], true, true]);
+  const rSy = await sR.appel('/api/monitor/entreprise/supprimer', { t: 't-ry-849', confirme: true }, PR);
+  v('⛔⛔ suppression TOTALE de la voisine ry : la période REPRISE de rx2 reste (servie, toujours dans le registre)',
+    [rSy.s, SERVIE(await sR.etat('t-rx2-849')), !!lireUsages(sR).equipes['t-rx2-849']], [200, [true, 'premium', false], true]);
+  const rSvy = await sR.appel('/api/monitor/entreprise/supprimer', { t: 't-rvy-849', confirme: true }, PR);
+  v('⛔⛔ suppression TOTALE de la voisine rvy : la période de rv, sous son propre identifiant, reste',
+    [rSvy.s, SERVIE(await sR.etat('t-rv-849')), !!lireUsages(sR).equipes['t-rv-849']], [200, [true, 'premium', false], true]);
+
   /* le rappel J-7 de l'entreprise recréée — le passage des rappels se fait au démarrage : on redémarre le serveur sur les
      MÊMES données, rappels presque immédiats, et on attend le COURRIEL (pas le chronomètre) */
-  const EJ = { r: { t: 't-r-849', nom: 'r', code: codeEspace('t-r-849'), email: mail('renait-j7'), ts: MAINT - 9000, formule: 'pro', quantite: 1 } };
-  const UJ = { 'VIEUX-BANC-849': { n: 1, equipes: { 't-r-849': { date: jour(-85), finLe: jour(5), em: em(mail('renait-j7')) } } } };
+  /* (relecture finale) q a DÉJÀ reçu son rappel pour cette échéance (`rappelFin`, sur son entrée d'annuaire) : recréée, elle
+     n'en reçoit pas un second. Ses gestes passent AVANT ceux de r : le passage des rappels lit les périodes dans l'ordre du
+     registre, donc q2 est jugée avant r2 — quand le courriel de r2 part, le sort de q2 est déjà décidé (au geste, pas au
+     chronomètre). */
+  const EJ = { r: { t: 't-r-849', nom: 'r', code: codeEspace('t-r-849'), email: mail('renait-j7'), ts: MAINT - 9000, formule: 'pro', quantite: 1 },
+    q: { t: 't-q-849', nom: 'q', code: codeEspace('t-q-849'), email: mail('deja-j7'), ts: MAINT - 9000, formule: 'pro', quantite: 1, rappelFin: jour(5) } };
+  const UJ = { 'VIEUX-BANC-849': { n: 2, equipes: { 't-r-849': { date: jour(-85), finLe: jour(5), em: em(mail('renait-j7')) },
+    't-q-849': { date: jour(-85), finLe: jour(5), em: em(mail('deja-j7')) } } } };
   const sJ = await demarrer(EJ, UJ, [], {}, { smtp: portSmtp });
   const PJ = await sJ.patron();
+  const rQ1 = await sJ.appel('/api/monitor/espaces/renaitre', { nom: 'q', confirme: true }, PJ);
+  const rQ2 = await sJ.appel('/api/monitor/espaces', { nom: 'q2', code: codeEspace('t-q2-849'), email: mail('deja-j7'), origine: 'tour' }, PJ);
+  v('(population) q, déjà prévenue de sa fin, repart à neuf puis la Tour la recrée', [rQ1.s, rQ2.s, SERVIE(await sJ.etat('t-q2-849'))], [200, 200, [true, 'premium', false]]);
   const rJ1 = await sJ.appel('/api/monitor/espaces/renaitre', { nom: 'r', confirme: true }, PJ);
   const rJ2 = await sJ.appel('/api/monitor/espaces', { nom: 'r2', code: codeEspace('t-r2-849'), email: mail('renait-j7'), origine: 'tour' }, PJ);
   v('(population) r, en période (fin dans 5 jours), repart à neuf puis la Tour la recrée', [rJ1.s, rJ2.s, SERVIE(await sJ.etat('t-r2-849'))], [200, 200, [true, 'premium', false]]);
@@ -297,6 +383,7 @@ globalThis.fetch = async function (url, opts) {
   for (let i = 0; i < 200 && !rappel; i++) { rappel = sJ2.journal().split('\n').find(l => /rappel échéance envoyé/.test(l)) || ''; if (!rappel) await dormir(100); }
   const recusJ = fct.pour(mail('renait-j7')).slice(avantJ);
   v('⛔⛔ le rappel J-7 part vers l\'entreprise recréée (sinon elle était servie puis suspendue sans un mot)', [!!rappel, recusJ.length >= 1], [true, true]);
+  v('⛔ … mais pas une seconde fois vers celle qui avait DÉJÀ reçu le sien pour cette échéance', fct.pour(mail('deja-j7')).length, 0);
 
   console.log('\n  E · un tarif qu\'on ne sait pas lire');
   v('⛔ fiche SANS formule, abonnement d\'OP GESTION illisible : Business Premium (elle avait tout l\'accès)', SERVIE(await s1.etat('t-e1-849')), [true, 'premium', false]);
@@ -317,8 +404,11 @@ globalThis.fetch = async function (url, opts) {
   console.log('\n  A · registre des codes illisible, un code sur la fiche');
   const E2 = {
     a1: { t: 't-a1-849', nom: 'a1', email: mail('a1'), ts: MAINT - 1000, formule: 'pro', quantite: 1, codePromo: 'VIEUX-BANC-849' },
-    a2: { t: 't-a2-849', nom: 'a2', email: mail('a2'), ts: MAINT - 1000, formule: 'pro', quantite: 1, codePromo: 'VIEUX-BANC-849' } };
-  const S2 = [abo('sub_a1', 'past_due', 'pro', 1, 't-a1-849', mail('a1'))];
+    a2: { t: 't-a2-849', nom: 'a2', email: mail('a2'), ts: MAINT - 1000, formule: 'pro', quantite: 1, codePromo: 'VIEUX-BANC-849' },
+    /* A bis (relecture finale) : une voisine d'adresse (a4), et un impayé SANS référence à cette adresse — de qui ? */
+    a3: { t: 't-a3-849', nom: 'a3', email: mail('dupa'), ts: MAINT - 1000, formule: 'pro', quantite: 1, codePromo: 'VIEUX-BANC-849' },
+    a4: { t: 't-a4-849', nom: 'a4', email: mail('dupa'), ts: MAINT - 2000, formule: 'pro', quantite: 1 } };
+  const S2 = [abo('sub_a1', 'past_due', 'pro', 1, 't-a1-849', mail('a1')), abo('sub_a4', 'past_due', 'pro', 1, '', mail('dupa'))];
   const s2 = await demarrer(E2, '{"VIEUX-BANC-849": {"n": 1, "equipes": {', S2,
     { sub_a1: { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: 'https://invoice.stripe.com/i/banc-849-a1' } } });
   vrai('le vrai serveur démarre, isolé (registre des codes TRONQUÉ)', s2.vivant);
@@ -330,6 +420,8 @@ globalThis.fetch = async function (url, opts) {
   vrai('   … et la Tour le voit comme un impayé', la1.impaye === true);
   v('   … sans impayé, le doute sert toujours la formule du code (on ne coupe pas une période qu\'on ne peut plus lire)',
     SERVIE(await s2.etat('t-a2-849')), [true, 'premium', false]);
+  v('⛔⛔ … et l\'impayé AMBIGU d\'une voisine d\'adresse (sans référence) ne la suspend pas : on ne sait ni si elle paie, ni qui doit',
+    SERVIE(await s2.etat('t-a3-849')), [true, 'premium', false]);
 
   /* ══ 3. STRIPE MUET — la Tour ne dit pas « payé » quand le serveur ne SAIT pas ═══════════════════════════ */
   console.log('\n  H · Stripe muet : la Tour dit « non vérifiable », pas « payé »');

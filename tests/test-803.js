@@ -95,9 +95,10 @@ console.log('\n══ 0. Les quatre chemins qui activent un code passent par la 
      répond 503 — AVANT le courriel « votre code est actif ». */
   vrai('l\'application : un registre non écrit défait et répond 503, AVANT le courriel', /if \(!savePromoUsages\(\)\) \{ u\.n--; delete u\.equipes\[team\];[\s\S]{0,160}return res\.status\(503\)/.test(valider) && valider.indexOf('if (!savePromoUsages())') < valider.indexOf('mailPromoActive('));
   vrai('   la Tour aussi', /if \(!savePromoUsages\(\)\) \{ u\.n--; delete u\.equipes\[t\];[\s\S]{0,260}return res\.status\(503\)/.test(tour) && tour.indexOf('if (!savePromoUsages())') < tour.indexOf('mailPromoActive('));
-  /* (30 septembre 2026 : un IMPAYÉ que Stripe dit passe avant ce doute — joué sur le vrai serveur par `test-849`, § A) */
-  vrai('le doute paie : registre illisible ET code posé sur l\'espace (après l\'impayé Stripe)',
-    /if \(promosIllisible && e\.codePromo\) \{\s*const vI = await stripeVerdict\(e\);\s*if \(impayeBloque\(e, vI\.s, vI\.imp\)\) return bloqueImpaye\(vI\.imp\);\s*return \{ paye: true,/.test(CODE_SRV));
+  /* (30 septembre 2026 : un IMPAYÉ que Stripe dit — SÛREMENT le sien — passe avant ce doute ; joué sur le vrai serveur par
+     `test-849`, § A et § A bis) */
+  vrai('le doute paie : registre illisible ET code posé sur l\'espace (après l\'impayé Stripe sûrement le sien)',
+    /if \(promosIllisible && e\.codePromo\) \{\s*const vI = await stripeVerdict\(e\);\s*if \(vI\.imp && \(vI\.imp\.surs \|\| \[\]\)\.length && impayeBloque\(e, vI\.s, vI\.imp\)\) return bloqueImpaye\(vI\.imp\);\s*return \{ paye: true,/.test(CODE_SRV));
   vrai('⛔ plus aucun rapprochement par le NOM d\'accès (slug)', !/eq\.slug/.test(CODE_SRV));
   vrai('   … et son inventaire compte de la même façon', /const promos = \[\.\.\.new Set\(promoCles\(t, slugs, emails\)\.map\(x => x\.code\)\)\];/.test(CODE_SRV));
 
