@@ -5403,7 +5403,11 @@ function packPeindre(){
       /* ce que l'application REÇOIT quand ce n'est pas la fiche : la formule payée, ou celle du code (`abnFormule`) */
       +(d.formuleServie&&d.formuleServie!==d.formule?' · l’application reçoit\u202f: <b>'+esc(ABN_F[d.formuleServie]||d.formuleServie)+'</b> ('+abnEcart(d)+')':'');
   } else {
-    el.innerHTML='Aucune formule attribuée pour l\'instant — choisis-en une et Enregistrer.';
+    /* v2.78 — une fiche SANS formule ne reçoit plus tout l'accès (Justin, 30 septembre 2026 : « Suspend ») : elle reçoit ce
+       qu'elle paie ou ce qui lui est offert (période d'un code, Stripe) ; sinon l'application est SUSPENDUE — on le dit ici */
+    el.innerHTML='Aucune formule attribuée'+(d.paye===false
+      ?' · <b style="color:var(--redText)">application suspendue</b> (rien de payé ni offert) — choisis une formule et Enregistrer\u202f; pour la faire essayer, le statut « En essai » avec une date de fin.'
+      :(d.paye&&d.formuleServie?' · l’application reçoit\u202f: <b>'+esc(ABN_F[d.formuleServie]||d.formuleServie)+'</b> ('+abnEcart(d)+').':' pour l\'instant — choisis-en une et Enregistrer.'));
   }
 }
 function tourPackPrefill(nom){
@@ -7685,7 +7689,7 @@ function vueEntreprises(){
     {cle:'inconnu',titre:'À identifier',bloc:'reg-bloc',opt:false,
      sous:'Sans entrée d’annuaire : ni nom, ni adresse, ni formule. Un essai oublié — ou une cliente dont le nom s’est perdu. Ouvrez-en un pour trancher.'},
     {cle:'mien',titre:'Mes espaces d’essai',bloc:'reg-bloc mien',opt:true,
-     sous:'Ouverts depuis la Tour, sans formule attribuée. Une cliente qui apparaîtrait ici n’a simplement pas encore de formule — attribuez-la et elle remonte dans Clientes.'}
+     sous:'Ouverts depuis la Tour, sans formule attribuée — donc SUSPENDUS tant que rien n’est payé ni offert : pour en ouvrir un, sa fiche → Abonnement → « En essai » avec une date de fin. Une cliente qui apparaîtrait ici n’a simplement pas encore de formule — attribuez-la et elle remonte dans Clientes.'}
   ];
   var groupes='';
   GROUPES.forEach(function(g){
@@ -9008,7 +9012,9 @@ async function pbCreer(btn){
          et les identifiants ci-dessous suffisent. */
       '<div class="sec">LES IDENTIFIANTS</div>'+
       '<div style="margin:6px 0 14px;font-size:15px;line-height:1.9">Identifiant : <b>'+esc(e.ident)+'</b><br>Mot de passe provisoire : <b>'+esc(e.mdp||mdp)+'</b> <span style="color:var(--muted);font-size:12px">(l’app fait choisir le vrai mot de passe à la 1re connexion)</span></div>'+
-      '<div class="encart"><div class="encart-tx">Cette adresse ouvre la <b>version publique</b>, avec ses vraies données. Elle n’a rien à voir avec un accès bêta : la bêta n’ouvre que la bêta.</div></div>');
+      '<div class="encart"><div class="encart-tx">Cette adresse ouvre la <b>version publique</b>, avec ses vraies données. Elle n’a rien à voir avec un accès bêta : la bêta n’ouvre que la bêta.</div></div>'+
+      /* v2.78 — sans formule, l'espace est SUSPENDU tant que rien n'est payé ni offert (Justin, 30 septembre 2026 : « Suspend ») */
+      '<div class="encart" style="margin-top:10px"><div class="encart-tx">⏸ <b>Sans formule, l’application s’ouvre suspendue</b> (rien de payé ni offert). Pour t’en servir : Entreprises → sa fiche → Abonnement → une formule et le statut « En essai » avec une date de fin.</div></div>');
     /* Ce panneau n'a pas de message type : on oublie celui du panneau précédent, sinon
        lgMessagePoser irait réécrire une zone qui n'est plus à l'écran. */
     LG_MSG_MODELE=''; LG_ZONE='';
@@ -9051,6 +9057,8 @@ function pubLigne(e){
       '<span class="past '+(e.origine==='site'?'p-vert':'p-orange')+'">'+(e.origine==='site'?'🏢 Client du site':'🌍 Ouvert d’ici')+'</span> '+
       '<span class="past '+(e.opMessages?'p-vert':'p-gris')+'" title="OP MESSAGES est une application à part, avec son propre abonnement">'+(e.opMessages?'💬 OP MESSAGES ouvert':'💬 OP MESSAGES fermé')+'</span> '+
       '<span class="past '+(e.suspendu?'p-rouge':(r.derniere?'p-vert':'p-gris'))+'">'+(e.suspendu?'⏸ Suspendu':(r.derniere?'Actif':'Jamais ouvert'))+'</span>'+
+      /* v2.78 — ouvert, mais rien de payé ni offert : l'application est suspendue (Justin, 30 septembre 2026 : « Suspend ») */
+      (!e.suspendu&&e.paye===false?' <span class="past p-orange" title="Rien de payé ni offert — Entreprises → sa fiche → Abonnement">⏸ Application suspendue</span>':'')+
     '</div>'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'+
       (e.email?'<button class="btn-fant" onclick="tourLienEntreprise(\''+jsq(e.email)+'\',\''+jsq(e.nom||'')+'\',false,\''+jsq(e.ident||'')+'\')">🔗 Revoir le lien</button>':'')+
@@ -9104,7 +9112,9 @@ function accLigneBeta(c){
    espace d'entreprise, avec de vraies données qui se synchronisent. */
 function accLignePub(e){
   var r=e.resume||{};
-  var etat=e.suspendu?'Suspendu':(r.derniere?'Actif':'Jamais ouvert');
+  /* v2.78 — « Suspendu » ici, c'est l'accès COUPÉ ; un espace qui ne paie rien est ouvert mais son application suspendue */
+  var nonPaye=!e.suspendu&&e.paye===false;
+  var etat=e.suspendu?'Suspendu':(nonPaye?'Rien de payé':(r.derniere?'Actif':'Jamais ouvert'));
   var f2=['<b>'+etat+'</b>'];
   if(r.utilisateurs7) f2.push(r.utilisateurs7+' utilisateur'+(r.utilisateurs7>1?'s':'')+' / 7 j');
   if(r.derniere) f2.push('dernière connexion '+esc(fmtJour(r.derniere)));
@@ -9116,6 +9126,7 @@ function accLignePub(e){
      de virer au gris. Ce qui compte, c'est ce qui est OUVERT. */
   var p=[],reste=0;
   if(e.suspendu) p.push('<span class="past p-rouge">⏸ Suspendu</span>');
+  if(nonPaye) p.push('<span class="past p-orange">⏸ Application suspendue</span>');
   if(!e.annuaire){ if(p.length<2) p.push('<span class="past p-ambre">⚠️ Aucun compte</span>'); else reste++; }
   if(e.opMessages){ if(p.length<2) p.push('<span class="past p-vert">💬 OP MESSAGES</span>'); else reste++; }
   if(reste) p.push('<span class="reg-plus">+'+reste+'</span>');

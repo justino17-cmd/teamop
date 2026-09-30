@@ -82,7 +82,14 @@ const arreter = async () => { try { if (enfant) enfant.kill('SIGKILL'); } catch 
     /* … et une quatrième, qui ne paie rien ET que la Tour a suspendue il y a deux jours */
     riensus: esp('riensus', 'ent-rien-sus', { formule: 'pro', aboStatut: undefined }),
     /* … et une fiche écrite à la main avec une formule que personne ne connaît (la Tour et les codes la refusent) */
-    inconnue: esp('inconnue', 'ent-inconnue', { formule: 'decouverte', aboStatut: 'actif' }) }));
+    inconnue: esp('inconnue', 'ent-inconnue', { formule: 'decouverte', aboStatut: 'actif' }),
+    /* ⛔⛔ … et deux fiches SANS formule (Justin, 30 septembre 2026, à « les suspendre aussi ? » : « Suspend ») : l'une ne
+       paie rien, l'autre est en période offerte — les codes promo n'y touchent pas */
+    sansf: esp('sansf', 'ent-sans-formule', { formule: undefined, aboStatut: undefined }),
+    sansfpromo: esp('sansfpromo', 'ent-sans-formule-promo', { formule: undefined, aboStatut: undefined }) }));
+  /* la période offerte de « ent-sans-formule-promo » — un code FICTIF (règle du dépôt : aucun vrai code dans un fichier suivi) */
+  fs.writeFileSync(path.join(banc, 'data', 'promos-usages.json'), JSON.stringify({
+    'ESSAI-SANSF-BANC': { n: 1, equipes: { 'ent-sans-formule-promo': { date: '2026-09-01', finLe: '2099-12-31' } } } }));
   /* trois états dans le même fichier : suspendu d'hier (sursis vivant), suspendu il y a
      9 jours (sursis épuisé), et FERMÉ pour de bon (absent de `suspendus`). */
   fs.writeFileSync(path.join(banc, 'data', 'entreprises-fermees.json'), JSON.stringify({
@@ -135,6 +142,29 @@ const arreter = async () => { try { if (enfant) enfant.kill('SIGKILL'); } catch 
        l'ignorait (elle gardait ce qu'elle avait), celle d'aujourd'hui la lit comme une suspension — le serveur le dit d'abord */
     v('⛔ une fiche à la formule inconnue, réglée « active » à la main : suspendue, sans formule — jamais servie telle quelle',
       forme(await etat('ent-inconnue')), [true, 0, false, true, undefined]);
+    /* ⛔⛔ UNE FICHE SANS FORMULE (Justin, 30 septembre 2026 : « Suspend »). Jusque-là, la route répondait AVANT de regarder ce
+       qu'elle payait : tout l'accès, à une entreprise jamais réglée dans la Tour. */
+    const sansf = await etat('ent-sans-formule');
+    v('⛔⛔ une fiche SANS formule qui ne paie rien : SUSPENDUE, sursis écoulé, sans formule — plus tout l\'accès', forme(sansf), [true, 0, false, true, undefined]);
+    v('   … et elle garde son état VIVANT (OP MESSAGES, métier, version) : suspendue n\'est pas fermée', [typeof sansf.opMessages, 'versionMin' in sansf], ['boolean', true]);
+    const sansfp = await etat('ent-sans-formule-promo');
+    v('⛔⛔ une fiche sans formule EN PÉRIODE OFFERTE : servie, payée, à la formule du code (Business Premium) — les codes n\'y touchent pas',
+      [sansfp.paye, sansfp.formule, sansfp.suspendu, /^code promo ESSAI-SANSF-BANC \(jusqu'au 2099-12-31\)$/.test(sansfp.motif || '')], [true, 'premium', false, true]);
+    /* ⛔ le témoin qui garde la limite : une entreprise ABSENTE de l'annuaire ne se décide pas — un annuaire illisible au
+       démarrage rendrait tout le monde inconnu, et les suspendre couperait toutes les entreprises sur une panne de notre côté */
+    const hors = await etat('ent-hors-annuaire');
+    v('   (témoin) une entreprise ABSENTE de l\'annuaire : ni suspendue ni servie — la réponse d\'avant, inchangée',
+      [hors.ok, hors.suspendu, hors.formule, hors.paye, hors.verificationImpossible, hors.ferme], [true, false, undefined, undefined, undefined, undefined]);
+    /* ⛔ L'HORLOGE DE CONSERVATION (pas de clé Stripe ici : on SAIT) — la fiche sans formule qui ne paie pas est datée, et son
+       motif commence par « aucune formule » : c'est ce que `conservation.js` lit pour « jamais abonnée » ; celle en période
+       offerte, non. On attend le GESTE (la date posée), jamais un chronomètre. */
+    const lireC1 = () => { try { return JSON.parse(fs.readFileSync(path.join(banc, 'data', 'conservation.json'), 'utf8')); } catch (e) { return null; } };
+    let c1 = lireC1();
+    for (let k = 0; k < 150 && !(c1 && c1['ent-rien']); k++) { await dormir(100); c1 = lireC1(); }
+    vrai('(population) le balayage de conservation a eu lieu (« ent-rien », qui ne paie rien, est datée)', !!(c1 && c1['ent-rien']));
+    vrai('⛔ la fiche SANS formule qui ne paie rien est datée, motif « aucune formule … » (jamais abonnée)',
+      !!(c1 && c1['ent-sans-formule'] && /^aucune formule/.test(c1['ent-sans-formule'].motif || '')), c1 && JSON.stringify(c1['ent-sans-formule']));
+    vrai('   … et celle en période offerte ne l\'est pas', !!c1 && !c1['ent-sans-formule-promo']);
   }
 
   /* ══ 2 bis. ⛔⛔ DANS LE DOUTE, ON NE COUPE PAS — STRIPE MUET AU DÉMARRAGE (relectures du 30 septembre 2026, rejouées) ══
@@ -146,7 +176,7 @@ const arreter = async () => { try { if (enfant) enfant.kill('SIGKILL'); } catch 
     try { enfant.kill('SIGKILL'); } catch (e) {}
     const banc2 = path.join(banc, 'stripe-muet');
     fs.mkdirSync(path.join(banc2, 'data'), { recursive: true });
-    for (const f of ['espaces.json', 'entreprises-fermees.json']) fs.copyFileSync(path.join(banc, 'data', f), path.join(banc2, 'data', f));
+    for (const f of ['espaces.json', 'entreprises-fermees.json', 'promos-usages.json']) fs.copyFileSync(path.join(banc, 'data', f), path.join(banc2, 'data', f));
     const cfg = JSON.parse(fs.readFileSync(path.join(banc, 'config.json'), 'utf8'));
     cfg.stripe = { secretKey: 'sk_de_banc_761' };
     fs.writeFileSync(path.join(banc2, 'config.json'), JSON.stringify(cfg));
@@ -185,6 +215,9 @@ globalThis.fetch = async function (url, opts) {
       v('⛔⛔ rien de payé qu\'on SACHE (fiche Pro), Stripe muet : on ne sait pas — ni suspendue, ni servie (`verificationImpossible`)',
         [...doute(rien), rien.suspendu], [true, undefined, undefined, undefined, false]);
       v('⛔ … une fiche « Gratuit » d\'avant aussi (Stripe pourrait la payer)', doute(await etat2('ent-gratuit')), [true, undefined, undefined, undefined]);
+      v('⛔ … et une fiche SANS formule aussi — elle n\'est plus servie d\'office, mais on ne la suspend pas sur une panne', doute(await etat2('ent-sans-formule')), [true, undefined, undefined, undefined]);
+      const sansfp2 = await etat2('ent-sans-formule-promo');
+      v('   (témoin) la fiche sans formule EN PÉRIODE OFFERTE : servie sans Stripe — la période se lit chez nous', [sansfp2.formule, sansfp2.paye, sansfp2.verificationImpossible], ['premium', true, undefined]);
       const sus2 = await etat2('ent-rien-sus');
       v('   … la suspension de la Tour voyage avec (l\'application l\'ignore tant qu\'on ne sait pas)', [sus2.verificationImpossible, sus2.suspendu, sus2.sursisJours], [true, true, 5]);
       const paye2 = await etat2('ent-paye');
@@ -197,6 +230,7 @@ globalThis.fetch = async function (url, opts) {
       v('⛔⛔ … et le DOUTE n\'a rien effacé : « ent-rien » (Stripe muet, on ne sait pas) garde sa date — elle ne se rattrape pas',
         cons && cons['ent-rien'] && cons['ent-rien'].depuis, VIEUX_CONS);
       vrai('   … ni rien posé : « ent-gratuit » (on ne sait pas non plus) n\'a pas de date', !!cons && !cons['ent-gratuit']);
+      vrai('   … ni « ent-sans-formule » (on ne sait pas non plus)', !!cons && !cons['ent-sans-formule']);
     }
   }
 

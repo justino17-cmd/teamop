@@ -108,7 +108,13 @@ vrai('la règle de la fiche « Gratuit » payée par un abonnement illisible (`g
 const RELECTURES = ['payeInconnu', 'accesSuspenduPar', 'jourApres', 'aboEchuMotif', 'formuleGratuitIllisible'].map(extraire);
 vrai('le doute, la règle de suspension, le lendemain, l\'essai échu et la formule d\'une fiche Gratuit illisible sont trouvés dans le fichier réel',
   RELECTURES.every(Boolean) && /inconnu: true/.test(RELECTURES[0]) && /RANG_FORMULE\.includes\(f\)/.test(RELECTURES[1]));
-AIDES.push(CONSTS, ...PLACES, LIGNES, LBL2, CACHE_MS, ...IMPAYE, ...BLOQUE, ...SERVIE, MANUEL, ILLISIBLE, ...RELECTURES);
+/* … et la fiche SANS formule (Justin, 30 septembre 2026 : « Suspend ») : UNE définition, `ficheSansFormule`, lue par
+   `espacePaye`, `impayeBloque`, `aboManuelDe`, `aboEchuMotif` et `gratuitPayeIllisible`, avec le libellé de son motif —
+   sans elles, `espacePaye` jetait dès le premier appel (« ficheSansFormule is not defined ») */
+const SANS_F = [extraire('ficheSansFormule'), (/^const ficheSansFormuleLbl = .*$/m.exec(SRC) || [''])[0]];
+vrai('la fiche sans formule (`ficheSansFormule`) et le libellé de son motif sont trouvés dans le fichier réel',
+  SANS_F.every(Boolean) && /!e\.formule \|\| e\.formule === 'gratuit'/.test(SANS_F[0]) && /aucune formule/.test(SANS_F[1]));
+AIDES.push(CONSTS, ...PLACES, LIGNES, LBL2, CACHE_MS, ...IMPAYE, ...BLOQUE, ...SERVIE, MANUEL, ILLISIBLE, ...RELECTURES, ...SANS_F);
 const PARAMS = ['config', 'espStripeCache', 'promoUsages', 'stripeAbosBruts', 'console', 'savePromoUsages', 'mailPromoActive', 'espacesReg', 'espaceParT', 'crypto', 'promosIllisible'];
 const construire = () => new Function(...PARAMS, AIDES.join('\n') + '\n' + SRC.slice(i, fin) + '\nreturn espacePaye;');
 const avec = (abos) => construire()(
@@ -678,6 +684,36 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('   … et un abonnement qui porte OP MESSAGES ET une ligne d\'OP GESTION à tarif fait à la main : Pro aussi (il paie OP GESTION)',
       [gratuiteMain.paye, gratuiteMain.formuleServie], [true, 'pro']);
 
+    /* ⛔⛔ UNE FICHE SANS FORMULE PREND LE CHEMIN DE LA FICHE « GRATUIT » (Justin, 30 septembre 2026, à « les suspendre aussi ? » :
+       « Suspend » — `ficheSansFormule`). Jusque-là, `espacePaye` sortait sur « aucune formule » AVANT de regarder la période
+       offerte et Stripe, et `/api/espaces/etat` lui ouvrait tout. Elle reçoit désormais ce qu'elle paie, et rien de payé la
+       suspend ; le motif garde « aucune formule » EN TÊTE — l'horloge de conservation y lit « jamais abonnée ». */
+    const SANS = o => ESP(Object.assign({ formule: undefined }, o || {}));
+    const sansRien = await avec([])(SANS());
+    v('⛔⛔ fiche SANS formule, ni abonnement ni code : PAS payée — suspendue, et le motif commence par « aucune formule » (conservation)',
+      [sansRien.paye, sansRien.formuleServie, /^aucune formule posée dans la Tour — aucun paiement ni code promo : suspendue jusqu'au règlement$/.test(sansRien.motif)], [false, undefined, true]);
+    const sansPaie = await avec([apres([L('business', 2)])])(SANS());
+    v('⛔ fiche sans formule, abonnement Business × 2 : BUSINESS, 2 places — elle reçoit ce qu\'elle paie', lit(sansPaie), [true, 'business', 2]);
+    const sansMsg = await avec([apres([L('msg', 1)])])(SANS());
+    v('   fiche sans formule qui ne paie qu\'OP MESSAGES : PAS payée, et le motif le dit',
+      [sansMsg.paye, /^aucune formule posée dans la Tour — seul OP MESSAGES est payé/.test(sansMsg.motif)], [false, true]);
+    const sansAncien = await avec([avant([L('pro', 1)])])(SANS());
+    v('⛔ fiche sans formule payée par un abonnement d\'AVANT la bascule (illisible) : on ne coupe pas — Pro, et le motif le dit',
+      [sansAncien.paye, sansAncien.formuleServie, /fiche sans formule, abonnement illisible : Pro servi/.test(sansAncien.motif)], [true, 'pro', true]);
+    const sansPeriode = await avecTout({ promos: [{ code: 'ESSAI-BANC-SANSF', mois: 3 }], usages: { 'ESSAI-BANC-SANSF': { n: 1, equipes: { 'ent-x': { date: '2026-09-01', finLe: '2099-12-31' } } } } })(SANS());
+    v('⛔⛔ fiche sans formule EN PÉRIODE OFFERTE : servie, à la formule du code (Business Premium) — les codes promo n\'y touchent pas',
+      [sansPeriode.paye, sansPeriode.promoCode, sansPeriode.formuleServie], [true, 'ESSAI-BANC-SANSF', 'premium']);
+    const sansImpaye = await avec([apres([L('pro', 1)], { status: 'past_due' })])(SANS());
+    v('⛔ fiche sans formule, sa carte refusée : l\'impayé, comme partout (`bloque`)', [sansImpaye.paye, sansImpaye.bloque], [false, true]);
+    const sansManuel = await avec([])(SANS({ aboStatut: 'actif', aboPar: 'Banc' }));
+    v('⛔ fiche sans formule réglée « active » à la main (une entrée d\'avant — la Tour exige une formule) : ce réglage ne sert rien, suspendue',
+      [sansManuel.paye, /^aucune formule posée dans la Tour/.test(sansManuel.motif)], [false, true]);
+    const sansManuelImp = await avec([])(SANS({ aboStatut: 'impaye', aboPar: 'Banc' }));
+    v('   … un « impayé » posé à la main garde son sens : bloquée', [sansManuelImp.paye, sansManuelImp.bloque], [false, true]);
+    const sansPerimee = await perimee([apres([L('msg', 1)])])(SANS());
+    v('   ⛔ liste Stripe PÉRIMÉE, seul OP MESSAGES y est : un doute, comme pour une fiche « Gratuit » — ni suspendue, ni servie',
+      [sansPerimee.paye, sansPerimee.inconnu], [true, true]);
+
     /* OP MESSAGES n'est pas une formule d'OP GESTION */
     const msgSeul = await avec([apres([L('msg', 3)])])(ESP());
     v('⛔ fiche Business Premium qui ne paie qu\'OP MESSAGES (abonnement d\'après) : OP GESTION n\'est PAS payé (suspendu — plus de Gratuit), et le motif le dit sans « formule payée »',
@@ -854,6 +890,15 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
       { stripe: { secretKey: 'sk_de_banc' }, promos: [] }, { ts: 0, data: null, enCours: null, echecTs: 0 }, {}, async () => { throw new Error('Stripe muet (banc)'); },
       { log() {}, error() {} }, () => true, () => {}, reg, null, require('crypto'), false, () => false, () => false, () => null);
     v('⛔ Stripe illisible : « Mon espace » ne dit rien — ni « Suspendu », ni une formule', await lecteurMuet(REG)('patron@alpha.fr'), '');
+    /* ⛔⛔ UNE FICHE SANS FORMULE (Justin, 30 septembre 2026 : « Suspend ») : « Mon espace » ne se taisait plus seulement
+       parce que la Tour n'avait rien posé — il dit ce que l'application fait : suspendue si rien n'est payé, la formule payée
+       ou offerte sinon, rien dans le doute */
+    const SANSF = { alpha: Object.assign({}, REG.alpha, { formule: undefined }) };
+    v('⛔⛔ fiche SANS formule, rien de payé : « Suspendu » — l\'application l\'est', await lecteur(SANSF, [])('patron@alpha.fr'), { statut: 'suspendu' });
+    v('   fiche sans formule, payée Pro chez Stripe : « Pro »', await lecteur(SANSF, [abo('patron@alpha.fr', 'pro', 2)])('patron@alpha.fr'), 'Pro');
+    v('   fiche sans formule, en période offerte : la formule du code', await lecteur(SANSF, [], [{ code: 'ESSAI-BANC-SANSF', mois: 3 }],
+      { 'ESSAI-BANC-SANSF': { n: 1, equipes: { 'ent-alpha': { date: '2026-09-01', finLe: '2099-12-31' } } } })('patron@alpha.fr'), 'Business Premium');
+    v('   fiche sans formule, Stripe illisible : rien — on ne sait pas', await lecteurMuet(SANSF)('patron@alpha.fr'), '');
     v('   une période offerte : la formule du code', await lecteur(REG, [], [{ code: 'ESSAI-BANC-NEUF', mois: 3 }],
       { 'ESSAI-BANC-NEUF': { n: 1, equipes: { 'ent-alpha': { date: '2026-09-01', finLe: '2099-12-31' } } } })('patron@alpha.fr'), 'Business Premium');
     const DEUX = Object.assign({}, REG, { beta: { nom: 'Beta', t: 'ent-beta', email: 'patron@alpha.fr', formule: 'pro', ts: 3 } });

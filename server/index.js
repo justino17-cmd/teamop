@@ -2456,9 +2456,20 @@ function impayeBloque(e, s, imp) {
   if (!imp) return false;
   const gestion = s ? (s.memes || []).filter(aboDeGestion) : [];
   if (gestion.length) return false;
-  if (s || (e && e.formule === 'gratuit')) return (imp.surs || []).length > 0;
+  if (s || ficheSansFormule(e)) return (imp.surs || []).length > 0;
   return true;
 }
+/* ⛔⛔ UNE FICHE SANS FORMULE PAYANTE : une fiche « Gratuit » d'avant, OU une fiche sur laquelle la Tour n'a jamais posé de
+   formule (Justin, 30 septembre 2026, à la question « une fiche sans formule garde tout l'accès : les suspendre aussi ? » :
+   « Suspend »). Les deux suivent le MÊME chemin : une période offerte (les codes promo ne sont pas touchés), puis Stripe — et
+   sans l'un ni l'autre, elles ne sont pas payées : `/api/espaces/etat` les sert suspendues. Jusque-là, une fiche sans formule
+   recevait tout l'accès : la route répondait avant même de regarder ce qu'elle payait. UNE définition, lue par
+   `impayeBloque`, `aboEchuMotif`, `aboManuelDe`, `gratuitPayeIllisible`, `espacePaye` et le rappel J-7
+   (`abonnementGestion`) : deux lectures de « sans formule » finiraient par répondre différemment. */
+function ficheSansFormule(e) { return !!e && (!e.formule || e.formule === 'gratuit'); }
+/* ce que la Tour lit dans le motif — et « aucune formule » en tête, pour l'horloge de conservation (`jamaisAbonne` : il n'y a
+   pas de fin d'abonnement à laquelle rattacher ses 24 mois ; `conservation.js` garde les 80 premiers caractères) */
+const ficheSansFormuleLbl = e => (e && e.formule === 'gratuit') ? 'formule Gratuit (retirée le 30 septembre 2026)' : 'aucune formule posée dans la Tour';
 /* ⛔⛔ DANS LE DOUTE, ON NE COUPE PAS — ET ON NE DÉCIDE RIEN (30 septembre 2026, relectures `gardien` B3 et A1, `relecteur`,
    rejouées). Stripe illisible (`stripeVerdict`) ou registre des codes illisible (une période offerte peut y être, tapée dans
    l'application sans toucher la fiche) : on ne SAIT pas si l'entreprise paie. Ces deux cas finissaient en « aucun paiement »
@@ -2494,7 +2505,7 @@ function jourApres(d) {
    paie, le motif le dit encore à la Tour */
 function aboEchuMotif(e) {
   const auj = new Date().toISOString().slice(0, 10);
-  return (e && e.formule !== 'gratuit' && (e.aboStatut === 'actif' || e.aboStatut === 'essai') && e.aboFin && e.aboFin < auj)
+  return (e && !ficheSansFormule(e) && (e.aboStatut === 'actif' || e.aboStatut === 'essai') && e.aboFin && e.aboFin < auj)
     ? (e.aboStatut === 'essai' ? 'essai' : 'abonnement') + ' terminé le ' + e.aboFin + ' (réglé par ' + (e.aboPar || 'TEAM OP') + ') — ' : '';
 }
 /* ⛔ LA FORMULE D'UNE FICHE « GRATUIT » QU'UN ABONNEMENT D'OP GESTION ILLISIBLE PAIE (`gratuitPayeIllisible`) : celle de son
@@ -2534,7 +2545,7 @@ const bloqueImpaye = imp => ({ paye: false, motif: motifImpaye(imp), impaye: tru
 function aboManuelDe(e, jour) {
   if (!(e && e.aboStatut)) return false;
   const court = e.aboStatut === 'actif' || e.aboStatut === 'essai';
-  if (court && e.formule === 'gratuit') return false;
+  if (court && ficheSansFormule(e)) return false;   // (sans formule non plus : quelle formule servirait-il ?)
   return !(court && e.aboFin && e.aboFin < (jour || new Date().toISOString().slice(0, 10)));
 }
 /* ⛔ UNE FICHE « GRATUIT » D'AVANT QU'UN ABONNEMENT ILLISIBLE PAIE : PRO, LA FORMULE D'ENTRÉE (30 septembre 2026). Un abonnement
@@ -2547,7 +2558,7 @@ function aboManuelDe(e, jour) {
 function gratuitPayeIllisible(e, s, fp) {
   /* (« aucune formule payée lisible » : `fp.f` vide, ou « gratuit » — OP MESSAGES lisible à côté d'une ligne d'OP GESTION à
      tarif inconnu ne dit rien de la formule, et l'entreprise paie OP GESTION) */
-  return !!(e && e.formule === 'gratuit' && s && (s.surs || []).some(aboDeGestion) && !(fp && fp.f && fp.f !== 'gratuit'));
+  return !!(ficheSansFormule(e) && s && (s.surs || []).some(aboDeGestion) && !(fp && fp.f && fp.f !== 'gratuit'));
 }
 async function espacePaye(e, opts) {
   /* ⛔⛔ `lecture` : RÉPONDRE SANS RIEN ACTIVER (24 septembre 2026, relevé par `gardien`).
@@ -2563,7 +2574,8 @@ async function espacePaye(e, opts) {
      paie » : l'horloge de suppression ne démarre pas sur un client qui a un code à activer),
      et rien n'est écrit ni envoyé. */
   const lecture = !!(opts && opts.lecture);
-  if (!e || !e.formule) return { paye: false, motif: 'aucune formule' };
+  /* (une fiche SANS formule ne sort plus ici : elle suit le chemin de la fiche « Gratuit », plus bas — `ficheSansFormule`) */
+  if (!e) return { paye: false, motif: 'aucune formule' };
   if (aboManuelDe(e)) {   // réglé à la main dans la Tour (un « actif » ou un « essai » échu n'arrive plus ici : `aboManuelDe`)
     if (e.aboStatut === 'actif' || e.aboStatut === 'essai') {
       return { paye: true, motif: (e.aboStatut === 'essai' ? 'essai offert' : 'abonnement activé') + ' par ' + (e.aboPar || 'TEAM OP') + (e.aboFin ? ' (jusqu\'au ' + e.aboFin + ')' : ''), finLe: e.aboFin || '' };
@@ -2579,7 +2591,8 @@ async function espacePaye(e, opts) {
      septembre 2026 : « ils choisissent le tarif qu'ils veulent ») — et, sans l'un ni l'autre, elle n'est PAS payée :
      `/api/espaces/etat` la sert suspendue, comme toute entreprise qui ne paie pas. Jusqu'au 30 septembre, « gratuit »
      passait ici pour payé. */
-  if (e.formule === 'gratuit') {
+  /* ⛔⛔ ET UNE FICHE SANS FORMULE PREND LE MÊME CHEMIN (Justin, 30 septembre 2026 : « Suspend ») — `ficheSansFormule`. */
+  if (ficheSansFormule(e)) {
     /* ⛔ UNE PÉRIODE OFFERTE EN COURS SERT LA FORMULE DU CODE, FICHE « GRATUIT » COMPRISE (règle 3 de Justin ; relecture
        adverse du 29 septembre). `/api/promo/valider` enregistre la période sans toucher la fiche : une entreprise Gratuit
        qui entrait un code dans l'application recevait Gratuit du serveur, pendant que le courriel J-7 lui parlait de
@@ -2599,7 +2612,7 @@ async function espacePaye(e, opts) {
        sûr, elle ne paie pas : suspendue (plus bas). */
     if (gratuitPayeIllisible(e, s, fp)) {
       const fI = formuleGratuitIllisible(s);
-      return { paye: true, motif: s.motif + ' — fiche « Gratuit » (formule retirée), abonnement illisible : ' + (FORMULE_LBL2[fI] || fI) + ' servi en attendant la Tour',
+      return { paye: true, motif: s.motif + ' — ' + (e.formule === 'gratuit' ? 'fiche « Gratuit » (formule retirée)' : 'fiche sans formule') + ', abonnement illisible : ' + (FORMULE_LBL2[fI] || fI) + ' servi en attendant la Tour',
         echeance: s.echeance, formuleServie: fI, placesStripe: placesDeFormule(e, fI, s.memes || []), impayesPartiels: imp ? imp.tous.length : 0 };
     }
     /* ⛔ on ne SAIT pas (Stripe illisible, ou une période offerte peut être dans un registre illisible) : rien n'est décidé */
@@ -2612,7 +2625,7 @@ async function espacePaye(e, opts) {
        qu'« accès suspendu ») */
     const pourquoi = !s ? 'aucun paiement ni code promo' : (fp && fp.f === 'gratuit') ? 'seul OP MESSAGES est payé'
       : 'l\'abonnement trouvé à son adresse n\'est pas sûrement le sien (adresse partagée)';
-    return { paye: false, motif: 'formule Gratuit (retirée le 30 septembre 2026) — ' + pourquoi + ' : suspendue jusqu\'au règlement' };
+    return { paye: false, motif: ficheSansFormuleLbl(e) + ' — ' + pourquoi + ' : suspendue jusqu\'au règlement' };
   }
   try {   // rattrapage : un code demandé à la demande d'accès mais jamais compté (espace recréé…) s'active ici
     if (e.codePromo && e.t) {
@@ -3167,7 +3180,8 @@ async function formuleServieDe(mail) {
     if (x && typeof x.email === 'string' && x.email.trim().toLowerCase() === m) { const t = espaceT(x); if (t) ts.add(String(t)); } }
   if (ts.size !== 1) return '';
   const e = espaceParT([...ts][0]);
-  if (!e || !e.formule || espaceFerme(espaceT(e))) return '';
+  /* (une fiche SANS formule passe aussi : non payée, l'application est suspendue — le dossier le dit, Justin : « Suspend ») */
+  if (!e || espaceFerme(espaceT(e))) return '';
   const p = await espacePaye(e, { lecture: true });
   /* ⛔ un impayé (carte refusée) : « Mon espace » dit « Suspendu » — l'application a grisé les fonctions payantes, le dossier
      ne doit pas dire « Actif » à côté (`avecFormuleServie`, portail.js).
@@ -5061,7 +5075,12 @@ app.post('/api/espaces/etat', (req, res) => {
      impayé garde son métier (ce n'est pas une fonction payante), et une entreprise sans formule aussi. */
   const metier = metierOk(e && e.metier);
   const versionMin = versionsCfg.min, enLigne = versionsCfg.enLigne;
-  if (!e || !e.formule) return res.json({ ok: true, opMessages, metier, versionMin, enLigne, suspendu, sursisJours });
+  /* ⛔⛔ UNE FICHE SANS FORMULE NE SORT PLUS ICI (Justin, 30 septembre 2026, « Suspend ») : elle passe par `espacePaye`, qui la
+     traite comme une fiche « Gratuit » d'avant (`ficheSansFormule`) — une période offerte ou un abonnement la servent, rien
+     de payé la suspend, un doute ne décide rien. Seule une entreprise ABSENTE de l'annuaire garde la réponse d'avant, sans
+     formule ni suspension : elle ne se décide pas (un annuaire illisible au démarrage rendrait TOUT LE MONDE inconnu — les
+     suspendre couperait toutes les entreprises d'un coup, sur une panne de notre côté). */
+  if (!e) return res.json({ ok: true, opMessages, metier, versionMin, enLigne, suspendu, sursisJours });
   /* ⛔ la formule SERVIE (`formulePayee`) : celle que l'entreprise paie, pas forcément celle de la fiche (29 septembre 2026) */
   espacePaye(e).then(p => {
     /* ⛔⛔ UN IMPAYÉ SE SERT COMME UNE SUSPENSION AU SURSIS ÉCOULÉ, SANS FORMULE (Justin, 29 septembre 2026 : « leur accès sont
@@ -9643,15 +9662,18 @@ function rappelImpayeMail(code, finLe, url) {
    repasserait en Gratuit : un abonnement résilié avant la fin (le sien, ou celui d'une autre entreprise à la même adresse
    qui la rendait « payée »), ou un abonnement résilié qui faisait seul monter une fiche Gratuit. On rejoue donc les mêmes
    règles (`espaceStripeDans`, `formuleEtPlaces`) sur les seuls abonnements encore vivants ce jour-là.
-   · réglée à la main dans la Tour, ou fiche sans formule : `espacePaye` décide sans lire Stripe — le courriel habituel,
-     comme avant (sans la promesse : `finEssaiPeriode` la refuse aussi) ;
+   · réglée à la main dans la Tour : `espacePaye` décide sans lire Stripe — le courriel habituel, comme avant (sans la
+     promesse : `finEssaiPeriode` la refuse aussi). Une fiche SANS formule, elle, se juge sur Stripe comme une fiche
+     « Gratuit » (30 septembre 2026) ;
    · Gratuit servi ce jour-là (OP MESSAGES seul, fiche Gratuit que rien de lisible ne fait monter) : le courriel habituel ;
    · les dates se lisent sur SES abonnements d'OP GESTION (`memes` : ni OP MESSAGES trouvé le premier, ni l'abonnement d'une
      autre entreprise à la même adresse — abonnée alors, sans date) ; plusieurs : le plus durable ;
    · les jours sont ceux de Paris (un renouvellement à 23 h 30 UTC tombe le lendemain chez le client). */
 async function abonnementGestion(e, finLe) {
   if (!(config.stripe && config.stripe.secretKey) || !e) return { etat: 'aucun' };
-  if (!e.formule || aboManuelDe(e, jourApres(finLe))) return { etat: 'aucun' };   // le lendemain de la période (`gardien` B2)
+  /* (une fiche SANS formule ne sort plus ici : `espacePaye` la juge sur Stripe, comme une fiche « Gratuit » — un abonnement
+     d'OP GESTION déjà payé la servira, et un lien de paiement ferait un second abonnement, prélevé en double) */
+  if (aboManuelDe(e, jourApres(finLe))) return { etat: 'aucun' };   // le lendemain de la période (`gardien` B2)
   try { await espaceStripe(e); } catch (err) {}
   /* ⛔ STRIPE ILLISIBLE — OU SEULEMENT UNE LISTE PÉRIMÉE (la dernière connue sert pendant une panne) : un paiement fait depuis
      n'y est pas, et on inviterait à payer une entreprise qui vient de le faire */
@@ -9683,7 +9705,9 @@ async function abonnementGestion(e, finLe) {
      2026 : suspendue) — le courriel habituel ; une fiche « Gratuit » qu'un abonnement d'OP GESTION illisible paie reçoit Pro
      (`gratuitPayeIllisible`) — elle est servie, pas de lien de paiement */
   const servie = gratuitPayeIllisible(e, s, fp) ? formuleGratuitIllisible(s) : ((fp && fp.f) || e.formule);
-  if (servie === 'gratuit') return { etat: 'aucun' };
+  /* « gratuit », RIEN (une fiche sans formule que rien de lisible ne paie) ou une formule que l'application ne connaît pas :
+     suspendue le lendemain (`accesSuspenduPar`) — le courriel habituel, avec son lien */
+  if (!RANG_FORMULE.includes(servie)) return { etat: 'aucun' };
   if (!gestion.length) return { etat: 'abonne', impaye: false, resilie: '', premier: '', prochaine: '' };
   /* le plus durable d'abord : non résilié ; puis actif, en essai ; puis celui qui court le plus loin — un impayé n'est plus
      parmi eux (`espaceStripeDans` ne compte que le payé) */

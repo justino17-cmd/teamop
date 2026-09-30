@@ -102,6 +102,9 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
   esp('petite', { formule: 'gratuit', quantite: 1, formuleTs: APRES, formulePar: 'Patron', email: 'commune@exemple-842.fr' });
   esp('grande', { formule: 'premium', quantite: 4, formuleTs: APRES, formulePar: 'Patron', email: 'commune@exemple-842.fr' });
   const tGC = esp('gratuitcode', { formule: 'gratuit', quantite: 1, formuleTs: APRES, formulePar: 'Patron' });
+  /* ⛔⛔ deux fiches SANS formule (Justin, 30 septembre 2026 : « Suspend ») : l'une ne paie rien, l'autre paie Pro chez Stripe */
+  esp('sansformule', {});
+  const tSP = esp('sansformulepaie', {});
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(E));
   /* les codes : l'un en cours (promoprem, promotour), l'autre FINI hier (promofini) */
   fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify({
@@ -148,6 +151,7 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
     abo('rl', tRL, 'active', [['business', 1]], S_AVANT),
     abo('pa', tPA, 'active', [['business', 1]], S_AVANT),
     abo('gp', tGP, 'active', [['business', 2]], S_APRES),
+    abo('sp', tSP, 'active', [['pro', 2]], S_APRES),
     abo('mg', tMG, 'active', [['msgpro', 2]], S_APRES),
     abo('mA', tMA, 'active', [['business', 1]], S_AVANT), abo('mB', tMA, 'active', [['premium', 2]], S_APRES),
     abo('rm1', 'ent-reparmsg-ancien-842', 'active', [['premium', 3]], S_APRES, 'reparmsg@exemple-842.fr'), abo('rm2', tRM, 'active', [['msgpro', 1]], S_APRES, 'reparmsg@exemple-842.fr'),
@@ -202,10 +206,10 @@ globalThis.fetch = async function (url, opts) {
        de formule Gratuit) : rien de payé, fiche « Gratuit » sans rien, OP MESSAGES seul, l'abonnement d'une voisine d'adresse.
        Les contrôles de population les écartent, NOMMÉS un par un. */
     const formeB = sl => tous[sl].suspendu === true && tous[sl].sursisJours === 0 && !('formule' in tous[sl]) && !('places' in tous[sl]);
-    v('   (population) ce qui n\'est pas payé est servi sans formule ni places — rien de payé (impaye, nouvelle), l\'impayé posé à la main (detour), fiche Gratuit sans rien (gratuitrien), OP MESSAGES seul (msgseul), l\'adresse d\'une autre (petite) — et eux seuls',
-      Object.keys(E).filter(formeB), ['impaye', 'nouvelle', 'detour', 'gratuitrien', 'msgseul', 'petite']);
+    v('   (population) ce qui n\'est pas payé est servi sans formule ni places — rien de payé (impaye, nouvelle), l\'impayé posé à la main (detour), fiche Gratuit sans rien (gratuitrien), OP MESSAGES seul (msgseul), l\'adresse d\'une autre (petite), une fiche SANS formule qui ne paie rien (sansformule) — et eux seuls',
+      Object.keys(E).filter(formeB), ['impaye', 'nouvelle', 'detour', 'gratuitrien', 'msgseul', 'petite', 'sansformule']);
     v('⛔ pour CHAQUE entreprise, `quantite` = le nombre réglé dans la Tour, jamais multiplié (la v760 fait × 2 ou × 3 elle-même)',
-      Object.keys(E).filter(sl => !formeB(sl) && tous[sl].quantite !== E[sl].quantite), []);
+      Object.keys(E).filter(sl => !formeB(sl) && tous[sl].quantite !== (E[sl].quantite || 1)), []);   // (une fiche sans nombre réglé : 1, comme le serveur)
     vrai('   et `places` est rendu partout (hors impayé)', Object.keys(E).filter(sl => !formeB(sl)).every(sl => Number.isInteger(tous[sl].places)));
     const pl = sl => tous[sl].places;
 
@@ -267,7 +271,8 @@ globalThis.fetch = async function (url, opts) {
     /* ⛔ ET PERSONNE D'AUTRE NE BOUGE : sur toute la population du banc, la formule servie est celle de la fiche, sauf les
        écarts NOMMÉS ici — un écart de plus serait une entreprise dont la formule change sans que personne l'ait voulu */
     /* (msgseul n'y est plus : OP MESSAGES seul n'est pas payé, il est servi sans formule — 30 septembre 2026) */
-    const ECARTS = { mauvaistarif: 'pro', tarifhaut: 'premium', gratuitpaie: 'business', montetarif: 'premium', promotour: 'premium', promonu: 'premium', gratuitcode: 'premium' };
+    const ECARTS = { mauvaistarif: 'pro', tarifhaut: 'premium', gratuitpaie: 'business', montetarif: 'premium', promotour: 'premium', promonu: 'premium', gratuitcode: 'premium',
+      sansformulepaie: 'pro' };
     vrai('population : ' + Object.keys(E).length + ' entreprises relues', Object.keys(E).length >= 40);
     v('⛔ toutes les autres reçoivent la formule de leur fiche (hors ce qui n\'est pas payé, servi sans formule)', Object.keys(E).filter(sl => !formeB(sl) && tous[sl].formule !== (ECARTS[sl] || E[sl].formule)).map(sl => sl + ' : ' + tous[sl].formule), []);
     vrai('   … et une entreprise servie AVEC formule est toujours payée (la forme « formule + paye:false » n\'est plus jamais servie)', Object.keys(E).filter(sl => 'formule' in tous[sl]).every(sl => tous[sl].paye === true));
@@ -355,6 +360,23 @@ globalThis.fetch = async function (url, opts) {
     v('   … et la fiche d\'une entreprise dit ce que l\'application reçoit (la vraie packPeindre, sur la réponse du serveur)',
       [/l’application reçoit\u202f: Pro \(payée\)/.test(peint(stMT)), /l’application reçoit\u202f: Business Premium \(offerte par le code\)/.test(peint(stPT)),
         /reçoit/.test(peint((await appel('/api/monitor/espaces/statut', { nom: 'ancienprem' }, PATRON)).j))], [true, true, false]);
+    /* ⛔⛔ UNE FICHE SANS FORMULE (Justin, 30 septembre 2026 : « Suspend ») : la fiche de la Tour dit ce que l'application en
+       fait — suspendue quand rien n'est payé, la formule payée sinon (la vraie packPeindre, sur la vraie réponse) */
+    const stSF = (await appel('/api/monitor/espaces/statut', { nom: 'sansformule' }, PATRON)).j;
+    const stSP = (await appel('/api/monitor/espaces/statut', { nom: 'sansformulepaie' }, PATRON)).j;
+    v('⛔⛔ fiche SANS formule, rien de payé : la Tour dit « application suspendue » ; payée Pro : « l’application reçoit Pro (payée) »',
+      [/^Aucune formule attribuée · application suspendue \(rien de payé ni offert\)/.test(peint(stSF)), /^Aucune formule attribuée · l’application reçoit\u202f: Pro \(payée\)\.$/.test(peint(stSP))],
+      [true, true]);
+    v('   (population) le serveur les sert ainsi : non payée / payée Pro', [stSF.paye, stSP.paye, stSP.formuleServie], [false, true, 'pro']);
+    /* … et la ligne d'un accès à la version publique (onglet Accès — la VRAIE `accLignePub`, sur la vraie ligne de la liste) :
+       « Suspendu », là, c'est l'accès COUPÉ ; ouvert mais rien de payé, l'application est suspendue et la ligne le dit */
+    const ctxA = { esc: ctxP.esc, jsq: x => String(x), sigle: x => String(x || '?').slice(0, 2), fmtJour: x => String(x) };
+    require('vm').createContext(ctxA);
+    require('vm').runInContext(fonctionTour('accLignePub'), ctxA);
+    const ligneA = sl => ctxA.accLignePub(Object.assign({ annuaire: 1 }, li(sl))).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    v('⛔ la ligne d\'un accès public SANS formule, rien de payé : « Rien de payé » et « ⏸ Application suspendue » ; payée Pro : ni l\'un ni l\'autre',
+      [/Rien de payé/.test(ligneA('sansformule')), /⏸ Application suspendue/.test(ligneA('sansformule')),
+        /Rien de payé|Application suspendue/.test(ligneA('sansformulepaie'))], [true, true, false]);
     v('   … la formule de la fiche en toutes lettres, comme ce que l\'application reçoit (« premium » à côté de « Business Premium » se lisait comme deux formules)',
       /^Formule actuelle\u202f: Business Premium · /.test(peint(stMT)) ? 'lu' : peint(stMT), 'lu');
     /* le toast de « 💳 Statut paiement » (la VRAIE `tourStatutPack`, sur la même réponse) : les deux formules en toutes lettres */
