@@ -27,7 +27,7 @@ sois fait pour demain matin ». Fait, dans cet ordre, chaque envoi après ses pr
    VERSION-STABLE, les bancs et la documentation de la branche. Avant : suite complète dans l'arbre 204 · 12 027, code 0 ;
    syntaxe 39 pages ; régénération du site et de la bêta : 0 écart avec la branche. Après : app.html (767), sw.js (v967) et
    les pages du site servis octet pour octet ; CI de `main` : voir la ligne suivante.
-   CI de `acbfbc8` : EN COURS au moment de ce commit (« Vérifications », « Vérification des pages ») — le résultat suit.
+   CI de `acbfbc8` : « Vérifications » et « Vérification des pages » VERTES (runs 1403 et 523).
 
 **Ce qui reste à Justin, dans l'ordre :**
 - **Recharger la Tour** : une v2.75 restée ouverte refuse « Accepter » d'une demande « Gratuit » (400, sans perte).
