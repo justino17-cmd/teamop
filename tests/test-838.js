@@ -10,6 +10,10 @@
    réglé ») : le forfait Gratuit n'existe plus. On ne « passe » plus de Gratuit à Pro pour toute l'équipe — une base
    d'avant restée en « gratuit » se lit Pro — et la « formule réservée qui attend son paiement » n'existe plus non plus :
    ce qui n'est pas payé, le serveur le suspend, et c'est la branche « règle-le d'abord » qui répond.
+   ⛔ CHAQUE PAGE SE JUGE À SA VERSION : sur `main`, la bêta passe en v767 pendant que l'application en service reste en
+   v763 jusqu'à sa publication (« publie », une phrase de Justin). Une page d'avant la v767 garde les attentes d'avant
+   (Gratuit → Pro pour toute l'équipe, formule réservée), une page v767 celles d'aujourd'hui — sinon le banc tomberait
+   sur `main` pour une page qui fait exactement ce qu'elle doit faire à sa version.
 
    Ce banc EXÉCUTE les vraies `forfait`, `planPlaces`, `abosManquants` et `proposerAbonnement` (app.html ET beta.html),
    puis fait LIRE l'adresse qu'elles ouvrent par le VRAI script de la page de paiement (racine, et sa copie d'aperçu) :
@@ -64,6 +68,9 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
   for (const APPLI of APPLIS) {
     console.log('\n' + APPLI);
     const SRC = sansCommentaires(lire(APPLI));
+    const VERSION = parseInt((SRC.match(/const APP_VERSION = '(\d+)/) || [])[1], 10) || 0;
+    const V767 = VERSION >= 767;
+    vrai('(population) la version de la page est lue : v' + VERSION, VERSION >= 763);
     const bloc = debut => {
       const i = SRC.indexOf(debut); if (i < 0) return '';
       const j = SRC.indexOf('{', i); let p = 0;
@@ -77,7 +84,7 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
       essai: bloc('function essaiCouvreEquipe(){'), srv: bloc('function placesSrvActives(){'),
       acces: bloc('function accesSuspendu(){'),
     };
-    v('les fonctions sont trouvées', Object.keys(FN).filter(k => !FN[k]), []);
+    v('les fonctions sont trouvées', Object.keys(FN).filter(k => !FN[k] && (V767 || k !== 'acces')), []);
     v('⛔ une seule définition de chacune (une seconde gagnerait partout, en silence)',
       ['function abosManquants(', 'function proposerAbonnement(', 'function planPlaces(', 'function planPlaceLibre(', 'function essaiCouvreEquipe(', 'function placesSrvActives('].map(n => SRC.split(n).length - 1), [1, 1, 1, 1, 1, 1]);
     /* les deux portes qui créent un compte passent toujours par là quand il n'y a plus de place */
@@ -94,7 +101,7 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
         var _susp = { suspendu: ${!!susp}, sursis: ${JSON.stringify(sursis)} };
         var _placesSrv = null, _placesSrvF = '';
         var BETA_ESSAI = ${!!beta};
-        ${FN.srv}\n${FN.grise}\n${FN.acces}\n${FN.forfait}\n${FN.places}\n${FN.libre}\n${FN.manquants}\n${FN.proposer}\n${FN.essai}
+        ${FN.srv}\n${FN.grise}\n${FN.acces || ''}\n${FN.forfait}\n${FN.places}\n${FN.libre}\n${FN.manquants}\n${FN.proposer}\n${FN.essai}
         function todayISO(){ return '2026-09-28'; }
         function toast(m){ __toasts.push(String(m)); }
         function confirm(m){ __questions.push(String(m)); return ${!!oui}; }
@@ -129,9 +136,16 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
     /* 5. ⛔ v767 — plus de Gratuit : une base d'AVANT restée en « gratuit » (écrit par l'application quand le serveur disait
           « pas payé ») se lit Pro — 1 abonnement Pro de plus, pas un changement de formule de toute l'équipe */
     m = jouer({ f: 'gratuit', qty: 1, n: 1 });
-    v('base d\'avant en « gratuit », 1 personne, une 2ᵉ : lue Pro — 1 abonnement Pro de plus', qs(adresse(m)), { formule: 'pro', utilisateurs: '1' });
-    vrai('… la question parle de la formule Pro, jamais du Gratuit ni d\'un « passe en Pro »',
-      (m.__questions[0] || '').includes('Formule Pro : 1 utilisateur pour 1 place.') && !/gratuit|passe en Pro/i.test(m.__questions[0] || ''), m.__questions[0]);
+    if (V767) {
+      v('base d\'avant en « gratuit », 1 personne, une 2ᵉ : lue Pro — 1 abonnement Pro de plus', qs(adresse(m)), { formule: 'pro', utilisateurs: '1' });
+      vrai('… la question parle de la formule Pro, jamais du Gratuit ni d\'un « passe en Pro »',
+        (m.__questions[0] || '').includes('Formule Pro : 1 utilisateur pour 1 place.') && !/gratuit|passe en Pro/i.test(m.__questions[0] || ''), m.__questions[0]);
+    } else {
+      /* avant la v767 : depuis le forfait Gratuit, on change de formule — TOUTE l'équipe passe en Pro */
+      v('(v' + VERSION + ') Gratuit, 1 personne, une 2ᵉ : Pro pour 2 (la place gratuite ne s\'ajoute pas à un abonnement payant)', qs(adresse(m)), { formule: 'pro', utilisateurs: '2' });
+      vrai('… « passe en Pro : un abonnement par utilisateur, soit 2 abonnements », « active la formule Pro »',
+        (m.__questions[0] || '').includes('passe en Pro : un abonnement par utilisateur, soit 2 abonnements.') && (m.__questions[0] || '').includes('TEAM OP active la formule Pro sur ton espace.'), m.__questions[0]);
+    }
 
     /* 6. « Annuler » : rien ne s'ouvre */
     m = jouer({ f: 'pro', qty: 7, n: 7, oui: false });
@@ -154,17 +168,26 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
     }
     /* 8 bis. ⛔ LA BÊTA N'EST JAMAIS SUSPENDUE (`BETA_ESSAI`), ici non plus (troisième relecture de `relecteur`, 30 septembre
        2026 : ces deux lectures de la suspension ne passaient pas par la règle — la VRAIE fonction, jouée des deux côtés) */
-    m = jouer({ f: 'business', qty: 3, n: 6, susp: true, sursis: 0, beta: true });
-    vrai('⛔ la bêta, un état « suspendu » : pas de renvoi au règlement — la proposition normale (la page de paiement, les places qui manquent)',
-      !m.__questions.some(q => /règle-le d'abord/.test(q)) && m.__ouverts.length === 1 && /recap-abonnement\.html/.test(m.__ouverts[0][0]), [m.__questions, m.__ouverts]);
+    if (V767) {
+      m = jouer({ f: 'business', qty: 3, n: 6, susp: true, sursis: 0, beta: true });
+      vrai('⛔ la bêta, un état « suspendu » : pas de renvoi au règlement — la proposition normale (la page de paiement, les places qui manquent)',
+        !m.__questions.some(q => /règle-le d'abord/.test(q)) && m.__ouverts.length === 1 && /recap-abonnement\.html/.test(m.__ouverts[0][0]), [m.__questions, m.__ouverts]);
+    }
 
     /* 9. ⛔ v767 — une « formule réservée » laissée dans la base par une version d'AVANT (`db.formuleAttente`) ne décide plus
           rien : le serveur ne réserve plus de formule impayée, il SUSPEND (la branche 8). Elle ne détourne donc plus vers
           l'espace client une entreprise qui paie et veut simplement une place de plus. */
-    m = jouer({ f: 'business', qty: 3, n: 3, attente: { formule: 'business', quantite: 3 } });
-    v('une « formule réservée » d\'avant restée dans la base : sans objet — la page de paiement, pour la place qui manque',
-      [m.__ouverts.length, qs(adresse(m))], [1, { formule: 'business', utilisateurs: '1' }]);
-    vrai('… et la question ne parle pas d\'une formule « qui attend son paiement »', !/attend son paiement/.test(m.__questions[0] || ''), m.__questions[0]);
+    if (V767) {
+      m = jouer({ f: 'business', qty: 3, n: 3, attente: { formule: 'business', quantite: 3 } });
+      v('une « formule réservée » d\'avant restée dans la base : sans objet — la page de paiement, pour la place qui manque',
+        [m.__ouverts.length, qs(adresse(m))], [1, { formule: 'business', utilisateurs: '1' }]);
+      vrai('… et la question ne parle pas d\'une formule « qui attend son paiement »', !/attend son paiement/.test(m.__questions[0] || ''), m.__questions[0]);
+    } else {
+      /* avant la v767 : une formule réservée qui attend son paiement — c'est elle qu'il faut payer */
+      m = jouer({ f: 'gratuit', qty: 1, n: 1, attente: { formule: 'business', quantite: 3 } });
+      vrai('(v' + VERSION + ') formule Business ×3 réservée, pas encore payée : l\'espace client, pour la payer', m.__ouverts.length === 1 && m.__ouverts[0][0] === 'https://teamop.fr/espace.html', m.__ouverts);
+      vrai('… « Ta formule Business ×3 attend son paiement »', (m.__questions[0] || '').includes('Ta formule Business ×3 attend son paiement'), m.__questions[0]);
+    }
 
     /* 9 bis. ⛔ UN ABONNEMENT = UN UTILISATEUR, QUELLE QUE SOIT LA FORMULE (Justin, 28 septembre 2026, v762) — et pendant
        la période offerte par un code promo, le code couvre TOUTE l'équipe : la porte s'ouvre, les places ne changent pas. */
@@ -179,13 +202,13 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
     v('… plus le lendemain de la fin', libre({ f: 'premium', qty: 1, n: 7, essai: ESSAI({ finLe: '2026-09-27' }) }), false);
     v('… ni un essai marqué terminé', libre({ f: 'premium', qty: 1, n: 7, essai: ESSAI({ termine: true }) }), false);
     v('… ni pendant une suspension dont le sursis est écoulé (ce qui grise le forfait grise aussi cette largesse)', libre({ f: 'premium', qty: 1, n: 7, essai: ESSAI(), susp: true, sursis: 0 }), false);
-    v('⛔ … sauf sur la bêta, qui n\'est jamais suspendue : la largesse du code reste', libre({ f: 'premium', qty: 1, n: 7, essai: ESSAI(), susp: true, sursis: 0, beta: true }), true);
+    if (V767) v('⛔ … sauf sur la bêta, qui n\'est jamais suspendue : la largesse du code reste', libre({ f: 'premium', qty: 1, n: 7, essai: ESSAI(), susp: true, sursis: 0, beta: true }), true);
     v('… et le nombre de places, lui, ne ment pas pendant le code (la page de paiement et « il manque N » le lisent)',
       vm.runInContext('planPlaces()', monde({ f: 'premium', qty: 1, n: 7, essai: ESSAI() })), 1);
 
     /* 10. ⛔ LA COUTURE : l'adresse ouverte par l'application, lue par le VRAI script de la page de paiement */
     for (const PAGE of PAGES_PAIEMENT) {
-      for (const [cas, o, attendu] of [['Pro, 7 pour 7', { f: 'pro', qty: 7, n: 7 }, 1], ['Pro, 8 pour 6', { f: 'pro', qty: 6, n: 8 }, 3], ['base d\'avant en « gratuit », lue Pro', { f: 'gratuit', qty: 1, n: 1 }, 1]]) {
+      for (const [cas, o, attendu] of [['Pro, 7 pour 7', { f: 'pro', qty: 7, n: 7 }, 1], ['Pro, 8 pour 6', { f: 'pro', qty: 6, n: 8 }, 3], V767 ? ['base d\'avant en « gratuit », lue Pro', { f: 'gratuit', qty: 1, n: 1 }, 1] : ['(v' + VERSION + ') Gratuit → Pro', { f: 'gratuit', qty: 1, n: 1 }, 2]]) {
         const u = adresse(jouer(o));
         const p = paiement(lire(PAGE), u.slice(u.indexOf('?')));
         if (!p) { vrai(PAGE + ' : le script de la page s\'exécute', false); continue; }
