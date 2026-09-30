@@ -32,6 +32,8 @@ const INIT = `try{ localStorage.setItem('elanB_sync_team','t-sonde-susp'); local
     if(/\\/api\\/espaces\\/etat$/.test(s)){ window.__nEtat++;
       if(window.__proxy502) return Promise.resolve(new Response('<html>502</html>',{status:502,headers:{'Content-Type':'text/html'}}));
       return Promise.resolve(new Response(JSON.stringify(window.__ETAT),{status:200,headers:{'Content-Type':'application/json'}})); }
+    if(/\\/api\\/promo\\/valider$/.test(s)&&window.__promo){ window.__nPromo=(window.__nPromo||0)+1;
+      return Promise.resolve(new Response(JSON.stringify(window.__promo),{status:200,headers:{'Content-Type':'application/json'}})); }
     if(/api\\.teamop\\.fr/.test(s)) return Promise.resolve(new Response('{"error":"sonde"}',{status:503,headers:{'Content-Type':'application/json'}}));
     return __f0(u,o); };`;
 function cdpClient(ws) { let id = 0; const A = new Map(), E = [];
@@ -124,6 +126,18 @@ function cdpClient(ws) { let id = 0; const A = new Map(), E = [];
     vrai('⛔ UN rappel à l\'administrateur : « l’accès à l’application est suspendu jusqu’au règlement… Rien n’est perdu »', rappels.length === 1 && /suspendu jusqu'au règlement/.test(rappels[0]) && /Rien n'est perdu/.test(rappels[0]), A3.toasts);
     await ev('await forfaitServeurSync(true); return 1;'); await dormir(300);
     vrai('   … et un seul par jour (une seconde lecture ne le répète pas)', (await etatEcran()).toasts.filter(t => /Abonnement non réglé/.test(t)).length === 1);
+    /* « ＋ Créer » pendant la suspension : l'écran qui explique (`relecteur`, 30 septembre 2026 — « Aucune création ouverte à ton
+       compte » était faux, et ne menait nulle part). Depuis les Paramètres, la seule rubrique ouverte. */
+    /* ⚠️ l'écran de départ se lit AVANT le clic : lu après, c'est le clic lui-même qu'on relevait (premier passage, 30
+       septembre 2026 — la sonde accusait l'application d'avoir quitté les Paramètres toute seule ; un journal de go() avec
+       sa pile a montré qu'aucun autre appel n'avait eu lieu) */
+    const cr = await ev(`window.__toasts=[]; const cur=current; const b=document.getElementById('creer-btn'); const r=b?b.getBoundingClientRect():null;
+      const vu=!!(b&&b.offsetParent!==null&&r.width>0&&r.height>0); if(vu) b.click(); return {vu, cur};`);
+    await dormir(600);
+    const CR = await etatEcran();
+    vrai('(population) le bouton « ＋ Créer » est visible au bureau pendant la suspension, et on part des Paramètres', cr.vu && cr.cur === 'parametres', cr);
+    vrai('⛔ « ＋ Créer » pendant la suspension mène à « Accès suspendu » — pas « Aucune création ouverte à ton compte »',
+      CR.current === 'suspendu' && !CR.toasts.some(t => /Aucune création/.test(t)), [CR.current, CR.toasts]);
     /* revenir sur l'application relit l'état tant qu'elle est suspendue */
     const n0 = (await etatEcran()).nEtat;
     await ev(`document.dispatchEvent(new Event('visibilitychange')); return document.visibilityState;`); await dormir(600);
@@ -134,6 +148,24 @@ function cdpClient(ws) { let id = 0; const A = new Map(), E = [];
     vrai('⛔ une vérification impossible ne rouvre rien (dans le doute, on ne coupe pas — et on ne rouvre pas non plus)', (await etatEcran()).acces === true);
     await ev('window.__proxy502=true; await forfaitServeurSync(true); window.__proxy502=false; return 1;'); await dormir(300);
     vrai('⛔ une page d\'erreur du proxy (502) ne rouvre rien non plus', (await etatEcran()).acces === true);
+    /* « J'ai réglé — vérifier » quand on n'a PAS pu lire l'état : on ne dit pas « toujours suspendu » sur une réponse qu'on n'a
+       pas eue (`relecteur`, 30 septembre 2026) — le vrai bouton, sur l'écran « Accès suspendu » */
+    await ev(`go('dashboard'); return 1;`); await dormir(500);
+    const verifier = async () => { await ev('window.__toasts=[]; return 1;');
+      const clic = await ev(`const b=[...document.querySelectorAll('#content button')].find(x=>/J’ai réglé — vérifier/.test(x.textContent)); if(!b) return false; b.click(); return true;`);
+      await dormir(1500); return { clic, toasts: await ev('return window.__toasts.slice();') }; };
+    const dit = (x, re) => x.toasts.some(t => re.test(t));
+    const vi = await verifier();   // l'état posé plus haut : vérification impossible
+    vrai('⛔ « J’ai réglé — vérifier », vérification impossible : « Vérification impossible pour l’instant » — pas « Toujours suspendu »',
+      vi.clic && dit(vi, /Vérification impossible pour l’instant/) && !dit(vi, /Toujours suspendu/), vi);
+    await ev('window.__proxy502=true; return 1;');
+    const v502 = await verifier();
+    await ev('window.__proxy502=false; return 1;');
+    vrai('   … une page d’erreur du proxy (502) : pareil', v502.clic && dit(v502, /Vérification impossible pour l’instant/) && !dit(v502, /Toujours suspendu/), v502);
+    await poserEtat(SUSP);
+    const vs = await verifier();
+    vrai('   (témoin) une réponse LUE, toujours suspendue : « Toujours suspendu : le règlement n’est pas encore arrivé »',
+      vs.clic && dit(vs, /Toujours suspendu : le règlement n’est pas encore arrivé/) && !dit(vs, /Vérification impossible/), vs);
     /* le règlement : « J'ai réglé — vérifier » sur une réponse payée */
     await ev(`go('dashboard'); return 1;`); await dormir(500);
     await poserEtat(PAYE);
@@ -150,6 +182,28 @@ function cdpClient(ws) { let id = 0; const A = new Map(), E = [];
     const V = await etatEcran();
     vrai('⛔ un serveur d\'AVANT (formule + paye:false) : suspendue — `db.forfait` intact, pas d\'attente, pas de bandeau, aucun save()',
       V.acces === true && V.forfait === 'business' && !V.attente && !V.bandeau && V.saves === s1, [V.acces, V.forfait, V.attente, V.bandeau, V.saves - s1]);
+    /* « J'ai un code promo » depuis l'écran suspendu : le code pris, l'état se relit AVANT « Code accepté » — sinon l'écran
+       restait suspendu sous un message qui dit l'inverse (`relecteur`, 30 septembre 2026). Le serveur simulé sert alors la
+       période offerte, comme le vrai une fois le code enregistré. (Code FICTIF : aucun code ne s'écrit dans le dépôt.) */
+    await poserEtat(SUSP); await ev('await forfaitServeurSync(true); return 1;');
+    await ev(`go('dashboard'); return 1;`); await dormir(500);
+    const finP = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10), debP = new Date().toISOString().slice(0, 10);
+    const PERIODE = { ok: true, formule: 'premium', quantite: 1, places: 3, paye: true, motif: 'période offerte', opMessages: false, metier: '', versionMin: 0, enLigne: 0, suspendu: false, sursisJours: null };
+    const pr0 = await ev(`window.__nPromo=0; const b=[...document.querySelectorAll('#content button')].find(x=>/J’ai un code promo/.test(x.textContent)); if(!b) return {clic:false};
+      b.click(); return {clic:true};`);
+    await dormir(700);
+    const pr1 = await ev(`const i=document.getElementById('promo-inp'); const b=i&&i.parentElement?[...i.parentElement.querySelectorAll('button')].find(x=>/Activer/.test(x.textContent)):null;
+      if(!i||!b) return {cur: current, champ: !!i, bouton: !!b};
+      window.__promo=${JSON.stringify({ ok: true, finLe: finP, mois: 3, formule: 'premium', debut: debP })}; window.__ETAT=${JSON.stringify(PERIODE)};
+      const n0=window.__nEtat; i.value='SONDE-FICTIF'; b.click(); return {cur: current, champ: true, bouton: true, n0};`);
+    await dormir(1500);
+    const PR = await etatEcran();
+    const modal = await ev(`const o=document.getElementById('overlay'); const m=document.querySelector('#overlay .modal, .modal'); return { ouvert: !!(o&&o.classList.contains('open')), txt: ((m&&m.textContent)||'').replace(/\\s+/g,' ').trim().slice(0,200), nPromo: window.__nPromo };`);
+    vrai('(population) « 🎁 J’ai un code promo » mène aux Paramètres, où le champ et « Activer » sont là', pr0.clic && pr1.cur === 'parametres' && pr1.champ && pr1.bouton, [pr0, pr1]);
+    vrai('   … et le code est bien parti au serveur (simulé)', modal.nPromo === 1, modal);
+    vrai('⛔ code accepté depuis la suspension : l’état est relu AVANT l’annonce — accès rouvert, plus un seul 🔒, « Code accepté »',
+      PR.acces === false && PR.classe === false && PR.navVerrou === 0 && PR.nEtat > pr1.n0 && /Code accepté/.test(modal.txt), [PR.acces, PR.classe, PR.navVerrou, PR.nEtat, pr1.n0, modal]);
+    await ev('try{ closeModal(); }catch(e){} return 1;');
 
     /* ══ 2. LE TECHNICIEN, AU TÉLÉPHONE ══ */
     await c.envoyer('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
