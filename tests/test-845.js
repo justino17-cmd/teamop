@@ -112,6 +112,11 @@ console.log('\n── 845 · carte refusée = impayé : l\'accès payant bloqué
     });
   }
   Object.assign(espaces.tou, { aboStatut: 'actif', aboPar: 'Banc' });
+  /* ⛔⛔ « tou » a un SECOND nom, plus récent, SANS formule — un annuaire d'avant, quand « Revoir le lien » ne reportait pas la
+     fiche (relecture de `gardien` sur A3, 30 septembre 2026). C'est lui que l'application lit (`espaceParT` sert le plus
+     récent) : la facturation doit suivre l'ENTREPRISE (`facturationDe`), sinon elle est suspendue et la page de paiement
+     l'envoie régler une facture pendant qu'elle est réglée à la main. */
+  espaces.toub = { t: espaces.tou.t, nom: 'Banc toub', email: adr('tou'), ts: MAINT - 500 };
   Object.assign(espaces.man, { aboStatut: 'impaye', aboPar: 'Banc' });
   /* partd : pas de référence — seule l'adresse (partagée) la désigne */
   delete subs.find(x => x.id === 'sub_partd_0').metadata.espace;
@@ -242,6 +247,8 @@ globalThis.fetch = async function (url, opts) {
     vrai('⛔ incomplete (jamais payé) n\'est pas un impayé — mais pas payée non plus : suspendue, la même forme publique (la Tour ne la dit pas en impayé, § 4)', FORME_B(E.inc));
     vrai('⛔ OP MESSAGES refusé, rien d\'OP GESTION — pas un impayé d\'OP GESTION, mais rien d\'OP GESTION de payé : suspendue', FORME_B(E.msg));
     vrai('⛔ réglée à la main dans la Tour (actif) — la Tour prime : payée, sa formule', E.tou.paye === true && E.tou.formule === 'premium' && !E.tou.impaye && E.tou.suspendu === false);
+    vrai('   (population) … et l\'application la lit sous son SECOND nom, plus récent, sans formule (la facturation suit l\'entreprise)',
+      espaces.toub.t === espaces.tou.t && espaces.toub.ts > espaces.tou.ts && !espaces.toub.formule && !espaces.toub.aboStatut);
     vrai('⛔ une période offerte en cours prime sur l\'impayé — payée (code promo)', E.per.paye === true && /code promo ESSAI-BANC-845/.test(E.per.motif || '') && E.per.suspendu === false);
     vrai('⛔ un payé ET un refusé — payée, sa formule, pas suspendue', E.mix.paye === true && E.mix.formule === 'pro' && !E.mix.impaye && E.mix.suspendu === false);
     vrai('⛔   mais SANS les places du refusé (moins que le témoin aux deux abonnements payés : ' + E.mix.places + ' contre ' + E.deux.places + ')',
@@ -475,6 +482,8 @@ globalThis.fetch = async function (url, opts) {
     vrai('   l\'entreprise qui vient de régler : le paiement normal', r.s === 200 && r.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && sessions().length === n0 + 3);
     const neuf = async (slug, corps) => { const n = sessions().length; const q = await payer(slug, corps);
       return q.s === 200 && q.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && !q.j.facture && sessions().length === n + 1; };
+    vrai('⛔⛔ réglée à la main, visée par son SECOND nom (sans formule) : le paiement normal — jamais la facture en attente, l\'application la sert',
+      await neuf('tou', { ref: 'toub' }));
     vrai('⛔ le nom d\'accès repris : la nouvelle entreprise paie normalement — JAMAIS la facture de l\'ancienne (nom, adresse, montant d\'une autre)',
       await neuf('nouv', { price: P.pro, ref: espaces.nouv.t }) && !appelsStripe().some(x => /sub_ancienne\b/.test(x.u)));
     r = await payer('nouvb', { price: P.business, ref: espaces.nouvb.t });

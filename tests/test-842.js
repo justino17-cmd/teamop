@@ -109,6 +109,10 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
      SECOND nom (relecture de `gardien` sur A3, 30 septembre 2026, rejouée par la vraie route — § 5 ter) */
   esp('renomme', { formule: 'premium', quantite: 3, formuleTs: APRES, formulePar: 'Patron', aboStatut: 'actif', aboPar: 'Patron', aboTs: APRES,
     email: 'renomme@exemple-842.fr' });
+  /* ⛔⛔ … et un annuaire d'AVANT : une entreprise à deux noms, le plus récent (« multib ») inscrit sans formule ni abonnement,
+     l'ancien (« multia ») en Business Premium réglé « actif » à la main — une seule entreprise, une seule facturation */
+  const tMU = esp('multia', { formule: 'premium', quantite: 1, formuleTs: APRES, formulePar: 'Patron', aboStatut: 'actif', aboPar: 'Patron', aboTs: APRES, ts: 1 });
+  esp('multib', { t: tMU, ts: 2 });
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(E));
   /* les codes : l'un en cours (promoprem, promotour), l'autre FINI hier (promofini) */
   fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify({
@@ -276,7 +280,8 @@ globalThis.fetch = async function (url, opts) {
        écarts NOMMÉS ici — un écart de plus serait une entreprise dont la formule change sans que personne l'ait voulu */
     /* (msgseul n'y est plus : OP MESSAGES seul n'est pas payé, il est servi sans formule — 30 septembre 2026) */
     const ECARTS = { mauvaistarif: 'pro', tarifhaut: 'premium', gratuitpaie: 'business', montetarif: 'premium', promotour: 'premium', promonu: 'premium', gratuitcode: 'premium',
-      sansformulepaie: 'pro' };
+      sansformulepaie: 'pro',
+      multib: 'premium' };   // (le nom récent, sans formule, d'une entreprise en Business Premium : la facturation suit l'entreprise)
     vrai('population : ' + Object.keys(E).length + ' entreprises relues', Object.keys(E).length >= 40);
     v('⛔ toutes les autres reçoivent la formule de leur fiche (hors ce qui n\'est pas payé, servi sans formule)', Object.keys(E).filter(sl => !formeB(sl) && tous[sl].formule !== (ECARTS[sl] || E[sl].formule)).map(sl => sl + ' : ' + tous[sl].formule), []);
     vrai('   … et une entreprise servie AVEC formule est toujours payée (la forme « formule + paye:false » n\'est plus jamais servie)', Object.keys(E).filter(sl => 'formule' in tous[sl]).every(sl => tous[sl].paye === true));
@@ -409,6 +414,32 @@ globalThis.fetch = async function (url, opts) {
     const stR = (await appel('/api/monitor/espaces/statut', { nom: 'renommeneuf' }, PATRON)).j;
     v('   … et la Tour le dit sous le nom neuf : payée, Business Premium', [stR.paye, stR.formuleServie], [true, 'premium']);
 
+    /* ⛔⛔ 5 quater — UN ANNUAIRE D'AVANT À DEUX NOMS : UNE ENTREPRISE, UNE FACTURATION, par TOUS les chemins de la Tour */
+    console.log('\n5 quater. Une entreprise à deux noms (annuaire d\'avant) : une seule facturation, où qu\'on la regarde');
+    v('⛔⛔ l\'application (par son nom le plus récent, sans formule) : servie Business Premium, payée — pas suspendue',
+      [tous.multib.formule, tous.multib.paye, tous.multib.suspendu], ['premium', true, false]);
+    const listeM = (await appel('/api/monitor/espaces/liste', undefined, PATRON)).j.espaces || [];
+    const liM = sl => (listeM.find(x => x.slug === sl) || {});
+    v('⛔⛔ la liste de la Tour : les DEUX noms disent la facturation de l\'entreprise (formule, nombre, payée)',
+      ['multia', 'multib'].map(sl => [liM(sl).formule, liM(sl).quantite, liM(sl).paye]), [['premium', 1, true], ['premium', 1, true]]);
+    const stMB = (await appel('/api/monitor/espaces/statut', { nom: 'multib' }, PATRON)).j;
+    v('⛔⛔ la fiche du nom récent : Business Premium, réglé « actif » — ce que la Tour va régler, c\'est la facturation de l\'entreprise',
+      [stMB.formule, stMB.aboStatut, stMB.paye], ['premium', 'actif', true]);
+    /* un réglage sur l'ANCIEN nom s'applique à l'entreprise (avant : l'application lisait l'autre nom, rien ne changeait) */
+    let rM = await appel('/api/monitor/espaces/formule', { nom: 'multia', formule: 'business', quantite: 2 }, PATRON);
+    const eM1 = await etat('multib');
+    v('⛔⛔ la formule réglée sur l\'ANCIEN nom : l\'application la reçoit (Business, 2), toujours payée',
+      [rM.s, eM1.formule, eM1.quantite, eM1.paye], [200, 'business', 2, true]);
+    /* ⛔ régler la formule du NOUVEAU nom ne perd pas l'abonnement réglé à la main sur l'ancien (la route part de la
+       facturation de l'entreprise, puis l'écrit sur tous ses noms) — sans ça : Pro, pas d'abonnement, SUSPENDUE */
+    rM = await appel('/api/monitor/espaces/formule', { nom: 'multib', formule: 'pro', quantite: 1 }, PATRON);
+    const eM2 = await etat('multib');
+    v('⛔⛔ la formule réglée sur le NOUVEAU nom : Pro, et l\'abonnement réglé « actif » tient — servie, payée',
+      [rM.s, eM2.formule, eM2.paye, eM2.suspendu], [200, 'pro', true, false]);
+    const regM = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'));
+    v('   … et les deux noms portent la même fiche dans l\'annuaire (formule, nombre, réglage à la main)',
+      ['multia', 'multib'].map(sl => [regM[sl].formule, regM[sl].quantite, regM[sl].aboStatut]), [['pro', 1, 'actif'], ['pro', 1, 'actif']]);
+
     const APP = fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8');
     const sansCom = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
     // Le serveur part AVANT l'application (mise en ligne n° 1, puis la v763) : le même banc tourne donc sur une
@@ -467,8 +498,8 @@ globalThis.fetch = async function (url, opts) {
 
     console.log('\n7. Rien n\'est écrit, rien ne fuit');
     const apres = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'));
-    v('⛔ le registre n\'a bougé que par les deux gestes de la Tour : les places se calculent, elles ne s\'écrivent pas',
-      Object.keys(E).filter(sl => (apres[sl] || {}).quantite !== E[sl].quantite), ['ancienbiz']);
+    v('⛔ le registre n\'a bougé que par les gestes de la Tour : les places se calculent, elles ne s\'écrivent pas',
+      Object.keys(E).filter(sl => (apres[sl] || {}).quantite !== E[sl].quantite), ['ancienbiz', 'multib']);   // (multib : sa fiche, réglée au § 5 quater)
     vrai('⛔ le journal ne recopie aucune adresse en clair', !/\w@exemple-842\.fr/i.test(journal));
   } catch (e) { ko++; console.log('  ✗ exception : ' + (e && e.stack || e)); }
 

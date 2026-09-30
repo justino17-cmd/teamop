@@ -254,7 +254,7 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
      ce banc sont tombés ainsi, sur une route juste. */
   /* (et `aboManuelDe`, 30 septembre 2026 : `finEssaiPeriode` lit « réglé à la main » par la même définition qu'`espacePaye`
      — sans elle, elle jetait, et toute facturation différée retombait en immédiate) */
-  const AIDES_ROUTE = ['espaceT', 'espacesDeRef', 'facturationDe', 'espaceParT', 'finEssaiPeriode', 'periodeOfferte', 'formulePromo', 'formuleDuCode', 'aboManuelDe', 'jourApres'].map(extraire).concat([CONSTS]);
+  const AIDES_ROUTE = ['espaceT', 'espacesDeRef', 'facturationGroupes', 'nomsEntreprise', 'facturationDe', 'espaceParT', 'finEssaiPeriode', 'periodeOfferte', 'formulePromo', 'formuleDuCode', 'aboManuelDe', 'jourApres'].map(extraire).concat([CONSTS]);
   vrai('la route et ses aides (dont finEssaiPeriode et aboManuelDe) sont trouvées dans le fichier réel', AIDES_ROUTE.every(Boolean));
   const PRIX_PRO = (/^\s*pro: \['(price_\w+)'/m.exec(SRC) || [])[1], PRIX_PREMIUM = (/^\s*premium: \['(price_\w+)'/m.exec(SRC) || [])[1];
   vrai('les tarifs Pro et Business Premium du serveur sont lus', /^price_/.test(PRIX_PRO || '') && /^price_/.test(PRIX_PREMIUM || ''));
@@ -867,7 +867,7 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
      ou quand l'entreprise est fermée. */
   {
     /* (`espaceParT` sert la facturation de l'ENTREPRISE — `facturationDe`, relecture de `gardien` du 30 septembre 2026) */
-    const FSD = extraire('formuleServieDe'), EPT = extraire('facturationDe') + '\n' + extraire('espaceParT');
+    const FSD = extraire('formuleServieDe'), EPT = ['facturationGroupes', 'nomsEntreprise', 'facturationDe', 'espaceParT'].map(extraire).join('\n');
     vrai('formuleServieDe, espaceParT et facturationDe sont trouvées dans le fichier réel', !!FSD && !!extraire('espaceParT') && !!extraire('facturationDe') && /espacePaye\(e, \{ lecture: true \}\)/.test(FSD));
     const APRES = Math.floor(Date.parse('2026-10-01T00:00:00Z') / 1000);
     const prix = k => (new RegExp('^\\s*' + k + ": \\['(price_\\w+)'", 'm').exec(SRC) || [])[1];

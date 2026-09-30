@@ -113,9 +113,9 @@ console.log('\n══ 1. Les vraies fonctions de la règle, exécutées ══')
 const NOMS = ['promoAujourdhui', 'promoDateFr', 'promoEmpreinteMail', 'promoIdentite', 'promoServiA', 'promoAutreActif',
   'promoEntree', 'promoPresente', 'promoRefusServi', 'promoMarquerAvantRenaitre', 'promoCles', 'promoHeritier', 'promoEffacerEntreprise', 'espaceParT',
   /* (`espaceParT` sert la facturation de l'ENTREPRISE — `facturationDe`, qui lit `espaceT` : relecture de `gardien`, 30 septembre 2026) */
-  'facturationDe', 'espaceT'];
+  'facturationDe', 'espaceT', 'facturationGroupes', 'nomsEntreprise'];
 const SOURCES = NOMS.map(n => extraire(SRV, n));
-vrai('population : les seize fonctions sont trouvées dans le fichier réel', SOURCES.length === 16 && SOURCES.every(Boolean));
+vrai('population : les dix-huit fonctions sont trouvées dans le fichier réel', SOURCES.length === 18 && SOURCES.every(Boolean));
 function bac(espacesReg, promoUsages, illisible) {
   const trace = { ecrit: 0 };
   const api = new Function('espacesReg', 'promoUsages', 'crypto', 'savePromoUsages', 'etatIllisible',

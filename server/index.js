@@ -2235,9 +2235,9 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
   /* ⛔⛔ UN NOM NEUF POUR UNE ENTREPRISE CONNUE REPREND SA FICHE (relecture de `gardien`, 30 septembre 2026, rejouée) : ce nom
      devient la référence (`espaceParT` sert la plus récente). Reporté depuis `prev` seul — le même nom —, il naissait sans
      formule, sans abonnement réglé à la main, sans OP MESSAGES ni métier : l'entreprise était suspendue. On reporte depuis
-     l'entrée la plus récente de la même entreprise, quel que soit son nom (`ref`, plus haut ; `facturationDe` pour la
-     facturation, si elle-même l'avait perdue). */
-  const base = Object.keys(prev).length ? prev : (ref ? facturationDe(ref) : {});
+     l'entrée la plus récente de la même entreprise, quel que soit son nom (`ref`, plus haut), et la facturation depuis
+     l'ENTREPRISE (`facturationDe`) — pour un nom déjà connu aussi : sa fiche peut être plus ancienne que la sienne. */
+  const base = facturationDe(Object.keys(prev).length ? prev : (ref || {}));
   const origine = ((req.body || {}).origine === 'tour') ? 'tour' : (base.origine || 'site');
   /* « opMessages » se reporte, comme la formule. Cette route reconstruit l'entrée de zéro, et
      elle est appelée par « Revoir le lien de connexion » aussi bien que par l'ouverture d'un
@@ -2350,12 +2350,14 @@ app.post('/api/monitor/espaces/formule', monPatronStrict, (req, res) => {
   if (f === 'gratuit') return res.status(400).json({ error: REFUS_GRATUIT });
   if (!RANG_FORMULE.includes(f)) return res.status(400).json({ error: 'formule inconnue' });
   const q = Math.max(1, Math.min(50, parseInt((req.body || {}).quantite, 10) || 1));
+  facturationReprendre(e);   // une entreprise, une facturation : on part de la sienne, pas de la fiche de ce nom
   /* ⛔ la date ne bouge que si la formule ou le nombre change (`gardien`) : un simple réenregistrement effaçait les
      places d'avant la v763 (`placesServies`) sans que la Tour le montre */
   if (e.formule !== f || placesQ(e) !== q) { e.formulePar = req.tourUser.nom; e.formuleTs = Date.now(); }
   if (e.formule && e.formule !== f) e.formuleDepuis = Date.now();   // une formule CHANGÉE (voir `placesStripe`)
   e.formule = f; e.quantite = q;
   try { if (!e.t) { const o = JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')); e.t = String(o.t || ''); } } catch (err) {}
+  facturationPartager(e, [0, 1]);   // … écrite sur TOUS les noms de l'entreprise (l'abonnement repris compris)
   espacesEcrire();
   console.log('Tour :', req.tourUser.nom, 'attribue', f, '×' + q, 'à', slug);
   // le « Mon espace » du client reflète l'attribution : accès activé + abonnement affiché
@@ -2378,6 +2380,7 @@ app.post('/api/monitor/espaces/abonnement', monPatronStrict, (req, res) => {
   const fin = monStr(b.fin, 10);
   if (fin && !/^\d{4}-\d{2}-\d{2}$/.test(fin)) return res.status(400).json({ error: 'date de fin invalide (AAAA-MM-JJ)' });
   const q = Math.max(1, Math.min(50, parseInt(b.quantite, 10) || 1));
+  facturationReprendre(e);   // une entreprise, une facturation : on part de la sienne, pas de la fiche de ce nom
   if (e.formule !== f || placesQ(e) !== q) { e.formulePar = req.tourUser.nom; e.formuleTs = Date.now(); }
   if (e.formule && e.formule !== f) e.formuleDepuis = Date.now();   // une formule CHANGÉE (voir `placesStripe`)
   e.formule = f; e.quantite = q;
@@ -2393,6 +2396,7 @@ app.post('/api/monitor/espaces/abonnement', monPatronStrict, (req, res) => {
   }
   e.aboStatut = stNeuf; e.aboFin = fin;
   try { if (!e.t) { const o = JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')); e.t = String(o.t || ''); } } catch (err) {}
+  facturationPartager(e, [0, 1]);   // … écrite sur TOUS les noms de l'entreprise
   espacesEcrire();
   console.log('Tour :', req.tourUser.nom, 'règle l\'abonnement de', slug, ':', f, '×' + q, st, fin || '');
   // la fiche client (site « Mon espace ») reflète le réglage
@@ -2596,6 +2600,31 @@ async function espacePaye(e, opts) {
     if (e.aboStatut === 'impaye') return { paye: false, motif: 'impayé (réglé par ' + (e.aboPar || 'TEAM OP') + ')', impaye: true, bloque: true };
     return { paye: false, motif: { suspendu: 'suspendu', annule: 'annulé' }[e.aboStatut] + ' (réglé par ' + (e.aboPar || 'TEAM OP') + ')' };
   }
+  /* ⛔⛔ LE RATTRAPAGE D'UN CODE EN ATTENTE PASSE AVANT LA FICHE SANS FORMULE OU « GRATUIT » (30 septembre 2026, trouvé en
+     écrivant le banc de la relecture de `gardien`). Il était placé après, « réservé aux fiches payantes » — écrit quand une
+     fiche Gratuit gardait l'accès. Depuis la suspension, une entreprise sans formule dont le code VALABLE attendait d'être
+     compté était suspendue au lieu d'être servie. Justin : « ceux qui ont un code promotionnel qui correspond à un forfait
+     payant ne sont pas impactés ». Les conditions ne changent pas (code connu, jamais servi à cette entreprise, un seul à la
+     fois, plafond) ; activé, la période offerte le sert juste en dessous. */
+  try {   // rattrapage : un code demandé à la demande d'accès mais jamais compté (espace recréé…) s'active ici
+    if (e.codePromo && e.t) {
+      const c = String(e.codePromo).toUpperCase();
+      const p = (config.promos || []).find(x => String(x.code || '').trim().toUpperCase() === c);
+      const u0 = promoUsages[c] || { n: 0, equipes: {} };
+      /* ⛔ `promoServiA`, pas `u0.equipes[e.t]` : après « repartir à neuf », l'entreprise a un
+         NOUVEL identifiant, et un code qu'elle avait déjà servi redevenait neuf ici — le
+         rattrapage l'activait une seconde fois, avec une période neuve (voir `promoPresente`).
+         Et « un seul code à la fois », comme les quatre autres chemins : celui-ci ne le faisait pas. */
+      if (p && !promosIllisible && !promoServiA(c, e.t, e.slug) && !promoAutreActif(c, e.t, e.slug) && !(p.maxUtilisations && u0.n >= p.maxUtilisations)) {
+        if (lecture) return { paye: true, motif: 'code promo ' + c + ' en attente — il s\'active au prochain lancement de l\'application', promoCode: c, enAttente: true, formuleServie: formulePromo(e, c) || (RANG_FORMULE.includes(e.formule) ? e.formule : 'premium') };
+        const dF = new Date(); dF.setMonth(dF.getMonth() + Math.max(1, Number(p.mois) || 1));
+        u0.n++; u0.equipes[e.t] = promoEntree(dF.toISOString().slice(0, 10), e.t, e.slug);
+        promoUsages[c] = u0; savePromoUsages();
+        console.log('code promo', c, 'activé en rattrapage pour', e.t);
+        mailPromoActive(e.t, c, dF.toISOString().slice(0, 10), ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium');
+      }
+    }
+  } catch (err) {}
   /* ⛔⛔ PLUS DE FORMULE GRATUITE (Justin, 30 septembre 2026 : « si une entreprise ne paye plus, le service est suspendu
      tant que c'est pas réglé » — et les codes promo n'y touchent pas). Une fiche « Gratuit » est un reste d'avant : la Tour
      ne la pose plus (ses deux routes la refusent). Elle reçoit ce qu'elle PAIE — une période offerte, puis Stripe (29
@@ -2607,7 +2636,7 @@ async function espacePaye(e, opts) {
     /* ⛔ UNE PÉRIODE OFFERTE EN COURS SERT LA FORMULE DU CODE, FICHE « GRATUIT » COMPRISE (règle 3 de Justin ; relecture
        adverse du 29 septembre). `/api/promo/valider` enregistre la période sans toucher la fiche : une entreprise Gratuit
        qui entrait un code dans l'application recevait Gratuit du serveur, pendant que le courriel J-7 lui parlait de
-       Business Premium. On LIT la période (rien ne s'active ici : le rattrapage reste réservé aux fiches payantes). */
+       Business Premium. On LIT la période (un code en attente vient d'être rattrapé, juste au-dessus). */
     const po = periodeOfferte(e);
     if (po) return po;
     const { s, imp, illisible, perimee } = await stripeVerdict(e);
@@ -2638,25 +2667,6 @@ async function espacePaye(e, opts) {
       : 'l\'abonnement trouvé à son adresse n\'est pas sûrement le sien (adresse partagée)';
     return { paye: false, motif: ficheSansFormuleLbl(e) + ' — ' + pourquoi + ' : suspendue jusqu\'au règlement' };
   }
-  try {   // rattrapage : un code demandé à la demande d'accès mais jamais compté (espace recréé…) s'active ici
-    if (e.codePromo && e.t) {
-      const c = String(e.codePromo).toUpperCase();
-      const p = (config.promos || []).find(x => String(x.code || '').trim().toUpperCase() === c);
-      const u0 = promoUsages[c] || { n: 0, equipes: {} };
-      /* ⛔ `promoServiA`, pas `u0.equipes[e.t]` : après « repartir à neuf », l'entreprise a un
-         NOUVEL identifiant, et un code qu'elle avait déjà servi redevenait neuf ici — le
-         rattrapage l'activait une seconde fois, avec une période neuve (voir `promoPresente`).
-         Et « un seul code à la fois », comme les quatre autres chemins : celui-ci ne le faisait pas. */
-      if (p && !promosIllisible && !promoServiA(c, e.t, e.slug) && !promoAutreActif(c, e.t, e.slug) && !(p.maxUtilisations && u0.n >= p.maxUtilisations)) {
-        if (lecture) return { paye: true, motif: 'code promo ' + c + ' en attente — il s\'active au prochain lancement de l\'application', promoCode: c, enAttente: true, formuleServie: formulePromo(e, c) || e.formule };
-        const dF = new Date(); dF.setMonth(dF.getMonth() + Math.max(1, Number(p.mois) || 1));
-        u0.n++; u0.equipes[e.t] = promoEntree(dF.toISOString().slice(0, 10), e.t, e.slug);
-        promoUsages[c] = u0; savePromoUsages();
-        console.log('code promo', c, 'activé en rattrapage pour', e.t);
-        mailPromoActive(e.t, c, dF.toISOString().slice(0, 10), ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium');
-      }
-    }
-  } catch (err) {}
   /* Registre des codes ILLISIBLE : on ne peut plus savoir si la période de cet espace court encore.
      « En cas de doute, on dit ça paie » — pour un espace qui porte un code (relecture de `gardien`) :
      sinon l'application grisait une entreprise en pleine période offerte, et l'horloge de
@@ -3247,7 +3257,8 @@ console.log('Places : bascule « 1 compte par abonnement » au', new Date(PLACES
 // liste complète des espaces (formule attribuée, payé/promo) — pour l'onglet Abonnements de la Tour
 app.get('/api/monitor/espaces/liste', monAdmin, async (req, res) => {
   const sortie = [];
-  for (const [slug, e] of Object.entries(espacesReg)) {
+  for (const [slug, e0] of Object.entries(espacesReg)) {
+    const e = facturationDe(e0);   // la ligne entière dit la facturation de l'ENTREPRISE (formule, nombre, places, réglage)
     let p = { paye: false, motif: '' };
     /* ⛔ `Object.assign({ slug }, e)` ET PAS `e` : l'entrée brute du registre NE PORTE PAS de
        champ `slug` (la ligne qui l'écrit ne le pose pas), alors qu'`espacePaye()` rattache un
@@ -3255,7 +3266,7 @@ app.get('/api/monitor/espaces/liste', monAdmin, async (req, res) => {
        enrichie, via `espaceParT()` : la Tour, elle, rattachait par le `t` seul. Le jour où la
        référence gravée vaut le SLUG, l'application dirait « payé » et la Tour « impayé »,
        sur la même entreprise, au même instant — et on chercherait du côté de Stripe. */
-    try { p = await espacePaye(Object.assign({ slug }, facturationDe(e)), { lecture: true }); } catch (err) {}   // une LISTE n'active aucun code
+    try { p = await espacePaye(Object.assign({ slug }, e), { lecture: true }); } catch (err) {}   // une LISTE n'active aucun code
     sortie.push({ slug, nom: e.nom || slug, email: e.email || '', formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', quantite: e.quantite || 1, places: placesServies(e, p),
       paye: p.paye, motif: p.motif, promoCode: p.promoCode || '', finLe: p.finLe || '', echeance: p.echeance || '', attribueLe: e.formuleTs || 0, par: e.formulePar || '',
       /* carte refusée : les fonctions payantes sont bloquées jusqu'au règlement (`bloque`) ; `impayeStripe` : il vient d'un
@@ -3301,9 +3312,9 @@ app.get('/api/monitor/espaces/liste', monAdmin, async (req, res) => {
 // statut complet d'un espace, côté contrôle
 app.post('/api/monitor/espaces/statut', monAdmin, async (req, res) => {
   const slug = espSlug(monStr((req.body || {}).nom, 80));   // borné : voir /api/espaces/ouvrir
-  const e = espacesReg[slug];
-  if (!e) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son lien de connexion' });
-  const p = await espacePaye(Object.assign({ slug }, facturationDe(e)), { lecture: true });   // le slug n'est pas dans l'entrée — voir /liste ; une LECTURE n'active aucun code
+  if (!espacesReg[slug]) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son lien de connexion' });
+  const e = facturationDe(espacesReg[slug]);   // la fiche montre la facturation de l'ENTREPRISE : c'est elle que la Tour règle
+  const p = await espacePaye(Object.assign({ slug }, e), { lecture: true });   // le slug n'est pas dans l'entrée — voir /liste ; une LECTURE n'active aucun code
   res.json({ ok: true, formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', promoCode: p.promoCode || '', quantite: e.quantite || 1, places: placesServies(e, p), email: e.email || '', paye: p.paye, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '', metier: metierOk(e.metier),
     impaye: !!p.bloque, impayeStripe: !!p.impayeStripe, impayesPartiels: p.impayesPartiels || 0 });
 });
@@ -4813,7 +4824,8 @@ app.post('/api/monitor/espaces/promo', monPatronStrict, (req, res) => {
   }
   e.codePromo = c;
   const f = ['pro', 'business', 'premium'].includes(p.formule) ? p.formule : 'premium';
-  if (!e.formule || e.formule === 'gratuit') { e.formule = f; e.quantite = e.quantite || 1; e.formulePar = req.tourUser.nom + ' (code)'; e.formuleTs = Date.now(); }
+  const fE = facturationDe(e).formule;   // (celle de l'ENTREPRISE : un autre de ses noms peut porter mieux)
+  if (!fE || fE === 'gratuit') { e.formule = f; e.quantite = e.quantite || 1; e.formulePar = req.tourUser.nom + ' (code)'; e.formuleTs = Date.now(); }
   espacesEcrire();
   console.log('Tour :', req.tourUser.nom, 'active le code', c, 'pour', slug, '→ fin', finLe);
   res.json({ ok: true, code: c, formule: e.formule, finLe, dejaUtilise: pres.etat === 'actif' });
@@ -4952,29 +4964,48 @@ app.post('/api/monitor/espaces/mail-acces', monPatronStrict, async (req, res) =>
 });
 // l'app d'un espace demande sa formule attribuée (public — ne révèle que la formule)
 /* Fiche d'un espace de l'annuaire à partir de son identifiant d'équipe (avec son nom de lien) */
-/* ⛔⛔ LA FACTURATION D'UNE ENTREPRISE À PLUSIEURS NOMS SUIT L'ENTREPRISE, PAS SON DERNIER NOM (relecture de `gardien`,
-   30 septembre 2026, rejouée par les vraies routes de la Tour). Un second nom pour le même identifiant (`tourEspaceDe` le
-   fait pour une entreprise renommée) devenait la référence (`espaceParT` sert la plus récente) SANS formule ni abonnement
-   réglé à la main : une entreprise payée par virement était SUSPENDUE, et datée « jamais abonnée ». La Tour ne sait pas
-   RETIRER une formule — une entrée récente qui n'en a pas ne l'a jamais eue, elle ne la refuse pas : elle prend donc la
-   facturation de l'entrée la plus récente de la même entreprise qui en porte une. La route qui enregistre un nom la reporte
-   désormais elle-même ; ceci répare les annuaires d'avant. Lue par `espaceParT` (l'application, « Mon espace », le rappel
-   J-7), la liste et le statut de la Tour, l'horloge de conservation et la page de paiement : UNE lecture. */
+/* ⛔⛔ UNE ENTREPRISE, UNE FACTURATION — QUEL QUE SOIT LE NOM PAR LEQUEL ON LA REGARDE (relecture de `gardien`, 30 septembre
+   2026, rejouée par les vraies routes de la Tour). Une entreprise renommée porte plusieurs noms (`tourEspaceDe`) ; le plus
+   récent est celui que l'application lit (`espaceParT`). Un second nom inscrit sans formule ni abonnement réglé à la main
+   SUSPENDAIT une entreprise payée par virement (datée « jamais abonnée »), pendant que la Tour, la page de paiement et
+   l'horloge de conservation lisaient chacune un nom différent.
+   La règle : la facturation se lit par GROUPE — la formule (et son nombre), l'abonnement réglé à la main —, chacun pris sur
+   le nom le plus récent qui le porte. La Tour ne sait pas RETIRER une formule, et « auto » s'écrit `''` (une décision) :
+   un groupe absent n'a jamais été réglé sur ce nom, il ne refuse rien. Lue par `espaceParT` (l'application, « Mon
+   espace », le rappel J-7), la liste et le statut de la Tour, l'horloge de conservation et la page de paiement : UNE
+   lecture. Et quand la Tour règle un groupe sur un nom, elle l'écrit sur TOUS les noms (`facturationPartager`). */
+function facturationGroupes() {   // (dans une fonction : une constante de module lue au démarrage serait en zone morte)
+  return [
+    { porte: x => !!x.formule, champs: ['formule', 'quantite', 'formulePar', 'formuleTs', 'formuleDepuis'] },
+    { porte: x => x.aboStatut !== undefined && x.aboStatut !== null, champs: ['aboStatut', 'aboFin', 'aboPar', 'aboTs', 'aboDepuis'] } ];
+}
+/* Les noms d'une même entreprise : son identifiant, sans égard à la casse (le paiement le lit ainsi). */
+function nomsEntreprise(e) {
+  const t = String(espaceT(e) || '').toLowerCase(); if (!t) return [];
+  return Object.values(espacesReg || {}).filter(x => x && String(espaceT(x) || '').toLowerCase() === t);
+}
 function facturationDe(e) {
-  /* (la liste vit DANS la fonction : une constante de module lue avant sa ligne — un appel au démarrage — serait en zone
-     morte, la leçon du 19 septembre 2026) */
-  const CHAMPS_FACTURATION = ['formule', 'quantite', 'formulePar', 'formuleTs', 'formuleDepuis', 'aboStatut', 'aboFin', 'aboPar', 'aboTs', 'aboDepuis'];
-  if (!e || e.formule || e.aboStatut) return e;
-  const t = String(espaceT(e) || '').toLowerCase(); if (!t) return e;
-  let src = null;
-  for (const x of Object.values(espacesReg || {})) {
-    if (!x || !x.formule || String(espaceT(x) || '').toLowerCase() !== t) continue;
-    if (!src || (x.ts || 0) > (src.ts || 0)) src = x;
-  }
-  if (!src) return e;
+  if (!e) return e;
+  const noms = nomsEntreprise(e);
+  if (noms.length < 2) return e;   // un seul nom : sa fiche EST la facturation
+  const parRecence = noms.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
   const r = Object.assign({}, e);
-  for (const k of CHAMPS_FACTURATION) if (src[k] !== undefined) r[k] = src[k];
+  for (const g of facturationGroupes()) {
+    const src = parRecence.find(g.porte);
+    for (const k of g.champs) { if (src && src[k] !== undefined) r[k] = src[k]; else delete r[k]; }
+  }
   return r;
+}
+/* La Tour règle la facturation sur UN nom : elle part de celle de l'entreprise (`facturationDe` — sinon un nom ancien
+   repartirait de sa fiche périmée : « depuis quand elle paie » remis à aujourd'hui, ses places d'avant perdues), puis
+   l'écrit sur TOUS ses noms. */
+function facturationReprendre(e) {
+  const f = facturationDe(e);
+  if (f !== e) for (const g of facturationGroupes()) for (const k of g.champs) { if (f[k] !== undefined) e[k] = f[k]; else delete e[k]; }
+}
+function facturationPartager(e, groupes) {
+  const gs = facturationGroupes().filter((g, i) => groupes.includes(i));
+  for (const x of nomsEntreprise(e)) if (x !== e) for (const g of gs) for (const k of g.champs) { if (e[k] !== undefined) x[k] = e[k]; else delete x[k]; }
 }
 function espaceParT(t) {
   if (!t) return null;
@@ -8467,7 +8498,8 @@ app.post('/api/clients/sync', async (req, res) => {
         const fPromo = ['pro', 'business', 'premium'].includes(pDef.formule) ? pDef.formule : 'premium';
         if (eMaj) {
           eMaj.codePromo = pc;
-          if (!eMaj.formule || eMaj.formule === 'gratuit') { eMaj.formule = fPromo; eMaj.quantite = eMaj.quantite || 1; eMaj.formulePar = 'code ' + pc + ' (site)'; eMaj.formuleTs = Date.now(); }
+          const fE = facturationDe(eMaj).formule;   // (celle de l'ENTREPRISE : un autre de ses noms peut porter mieux)
+          if (!fE || fE === 'gratuit') { eMaj.formule = fPromo; eMaj.quantite = eMaj.quantite || 1; eMaj.formulePar = 'code ' + pc + ' (site)'; eMaj.formuleTs = Date.now(); }
           espacesEcrire();
         }
         if (nouveau) { console.log('code promo du site relayé →', pc, tEsp, 'fin', finLe);

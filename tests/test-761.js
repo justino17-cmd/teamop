@@ -69,7 +69,9 @@ const arreter = async () => { try { if (enfant) enfant.kill('SIGKILL'); } catch 
   fs.mkdirSync(path.join(banc, 'data'), { recursive: true });
   const vap = webpush.generateVAPIDKeys();
   fs.writeFileSync(path.join(banc, 'config.json'), JSON.stringify({
-    vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', monitorPass: 'x' }));
+    vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', monitorPass: 'x',
+    /* un code FICTIF (règle du dépôt), en attente sur une entrée d'avant — le rattrapage l'active (§ 2, « ent-ancien-rat ») */
+    promos: [{ code: 'ESSAI-RATTRAPAGE-BANC', formule: 'premium', mois: 3 }] }));
   const esp = (slug, t, o) => Object.assign({ slug, nom: slug, email: slug + '@x.fr', t, code: b64({ t, k: CLE }),
     ts: 1, formule: 'premium', quantite: 1, aboStatut: 'actif' }, o || {});
   fs.writeFileSync(path.join(banc, 'data', 'espaces.json'), JSON.stringify({
@@ -93,6 +95,8 @@ const arreter = async () => { try { if (enfant) enfant.kill('SIGKILL'); } catch 
        (« Revoir le lien » d'avant ne la reportait pas) pendant que l'ancien porte Business Premium réglé « actif » à la main */
     ancien: esp('ancien', 'ent-ancien', { t: undefined, formule: undefined, aboStatut: undefined }),
     ancienpro: esp('ancienpro', 'ent-ancien-pro', { t: undefined, formule: 'pro', aboStatut: undefined }),
+    /* … et une troisième, dont le code (validé avant la règle) attend encore d'être activé : le rattrapage lisait `e.t` */
+    ancienrat: esp('ancienrat', 'ent-ancien-rat', { t: undefined, formule: undefined, aboStatut: undefined, codePromo: 'ESSAI-RATTRAPAGE-BANC' }),
     multia: esp('multia', 'ent-multi', { ts: 1 }),
     multib: esp('multib', 'ent-multi', { ts: 2, formule: undefined, aboStatut: undefined, quantite: undefined }) }));
   /* la période offerte de « ent-sans-formule-promo » — un code FICTIF (règle du dépôt : aucun vrai code dans un fichier suivi) */
@@ -172,6 +176,11 @@ const arreter = async () => { try { if (enfant) enfant.kill('SIGKILL'); } catch 
     /* (le code FICTIF n'est pas dans la configuration de ce banc : la fiche garde sa formule — règle gardée par `test-842`) */
     v('⛔⛔ … et réglée Pro, en période offerte : servie, payée, à sa formule (Pro) — pas suspendue',
       [ancp.paye, ancp.formule, ancp.suspendu], [true, 'pro', false]);
+    const rat = await etat('ent-ancien-rat');
+    const usagesR = (() => { try { return JSON.parse(fs.readFileSync(path.join(banc, 'data', 'promos-usages.json'), 'utf8')); } catch (e) { return {}; } })();
+    const uR = (usagesR['ESSAI-RATTRAPAGE-BANC'] || {}).equipes || {};
+    v('⛔⛔ une entrée d\'avant dont le code attendait : le rattrapage l\'active À SON IDENTIFIANT (lu dans le code) — servie, payée, Business Premium',
+      [rat.paye, rat.formule, rat.suspendu, !!uR['ent-ancien-rat'], '' in uR], [true, 'premium', false, true, false]);
     /* ⛔⛔ relecture de `gardien` (B2) : une entreprise à DEUX noms — la facturation suit l'ENTREPRISE, pas son dernier nom */
     const mul = await etat('ent-multi');
     v('⛔⛔ entreprise à deux noms, le plus récent SANS formule, l\'ancien en Business Premium réglé « actif » : servie Business Premium, payée — pas suspendue',
@@ -191,6 +200,9 @@ const arreter = async () => { try { if (enfant) enfant.kill('SIGKILL'); } catch 
     vrai('   … et celle en période offerte ne l\'est pas', !!c1 && !c1['ent-sans-formule-promo']);
     vrai('⛔ … ni les deux entrées d\'avant en période offerte (identifiant dans le code seul)', !!c1 && !c1['ent-ancien'] && !c1['ent-ancien-pro'],
       c1 && JSON.stringify([c1['ent-ancien'], c1['ent-ancien-pro']]));
+    /* (le balayage LIT sans rien activer : un code valable en attente compte comme payé — « en cas de doute, on dit ça paie ») */
+    vrai('⛔ … ni l\'entrée d\'avant, sans formule, dont le code attendait (le balayage l\'a lue AVANT le rattrapage)', !!c1 && !c1['ent-ancien-rat'],
+      c1 && JSON.stringify(c1['ent-ancien-rat']));
     vrai('⛔ … ni l\'entreprise à deux noms (son dernier nom n\'a pas de formule, l\'entreprise en a une)', !!c1 && !c1['ent-multi'], c1 && JSON.stringify(c1['ent-multi']));
   }
 
