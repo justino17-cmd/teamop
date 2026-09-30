@@ -179,10 +179,23 @@ const ROUGE = 'var(--m-err)', VERT = 'var(--m-ok)';
        le délai (28 septembre 2026, CI de `main` : 1 ✗ ici, 5 passages sur 5 en local en ~1 s). La boucle sort dès qu'il
        arrive — attendre plus longtemps ne coûte rien quand tout va bien. Et un échec DIT pourquoi (courriels reçus,
        journal du serveur), sinon il ne reste qu'« attendu true, reçu false ». */
+    /* ⛔ LE courriel de CE geste : le lien de MOT DE PASSE (`mode=resetPassword`), adressé à zoé, lu après décodage
+       quoted-printable (« = » y devient « =3D », une ligne longue s'y coupe par « = »). « zoe » + « reinit.html » ne
+       suffisait pas : le courriel de CONFIRMATION de l'inscription, qui part derrière la réponse — donc souvent après
+       `avant` —, porte les deux. Mesuré le 29 septembre 2026 : détourner le lien de mot de passe vers une autre adresse
+       laissait ce contrôle au vert. */
+    const qp = m => m.replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+    const lienMdp = m => /^To:.*zoe@exemple\.fr/mi.test(m) && /\/reinit\.html\?mode=resetPassword&jeton=[\w-]{16,}/.test(qp(m));
     let arrive = false; const t0 = Date.now();
-    for (let i = 0; i < 150 && !arrive; i++) { await dormir(100); arrive = facteurSrv.recus.slice(avant).some(m => /zoe@exemple\.fr/.test(m) && /reinit\.html/.test(m)); }
-    vrai('   et le courriel est VRAIMENT parti (le relais l\'a reçu, avec son lien)', arrive);
-    if (!arrive) console.log('      reçus depuis la demande : ' + (facteurSrv.recus.length - avant) + ' courriel(s) en ' + (Date.now() - t0) + ' ms ; journal du serveur :\n      '
+    for (let i = 0; i < 150 && !arrive; i++) { await dormir(100); arrive = facteurSrv.recus.slice(avant).some(lienMdp); }
+    vrai('   et le courriel est VRAIMENT parti (le relais l\'a reçu, avec SON lien — celui du mot de passe, pas celui de l\'inscription)', arrive);
+    /* Un échec DIT ce qui est arrivé : le destinataire et le sujet de chaque courriel reçu (jamais le corps, qui porte
+       le lien). Le 29 septembre 2026 au soir, la suite complète a rendu « 1 courriel(s) en 15081 ms » sans dire
+       lequel — et le banc passait seul (2/2) comme sous charge (4/4) : la prochaine fois, la sortie le nommera. */
+    const entete = (m, k) => ((m.match(new RegExp('^' + k + ': ?(.*)$', 'mi')) || [])[1] || '?').slice(0, 90);
+    if (!arrive) console.log('      reçus depuis la demande : ' + (facteurSrv.recus.length - avant) + ' courriel(s) en ' + (Date.now() - t0) + ' ms'
+      + facteurSrv.recus.slice(avant).map(m => '\n      · à ' + entete(m, 'To') + ' — « ' + entete(m, 'Subject') + ' »').join('')
+      + ' ; journal du serveur :\n      '
       + S.journal().split('\n').filter(l => /courriel|mail|smtp|ECONN|erreur/i.test(l)).slice(-8).join('\n      '));
     vrai('une adresse inconnue : « vient de partir » aussi', PARTI(inconnu));
     await dormir(300);
