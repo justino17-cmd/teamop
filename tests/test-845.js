@@ -352,6 +352,14 @@ globalThis.fetch = async function (url, opts) {
     vrai('⛔ … et une vérification impossible non plus', av5.acces() === true && av5.vu.saves === 0);
     repP = { ok: true, formule: 'pro', quantite: 1, places: 1, paye: true, motif: 'abonnement Stripe (active)', suspendu: false, sursisJours: null }; await av5.sync();
     vrai('   (témoin) une réponse PAYÉE, elle, rouvre tout', av5.acces() === false && av5.vu.saves === 0);
+    /* ⛔ ET ELLE DIT SI L'ÉTAT A ÉTÉ LU (30 septembre 2026, `relecteur`) : « J'ai réglé — vérifier » (`suspensionVerifier`)
+       affirmait « toujours suspendu : le règlement n'est pas arrivé » sur une vérification qui n'avait PAS eu lieu */
+    const lu1 = await appareil('inc', 'technicien', serveurAvant({ ok: true, verificationImpossible: true, suspendu: false, sursisJours: null })).sync();
+    const lu2 = await appareil('inc', 'technicien', async () => ({ ok: false, json: async () => ({}) })).sync();
+    const lu3 = await appareil('inc', 'technicien').sync();   // le vrai serveur : suspendue — l'état est lu
+    const lu4 = await appareil('inc', 'technicien', serveurAvant({ ok: true, formule: 'pro', quantite: 1, places: 1, paye: true, motif: '', suspendu: false, sursisJours: null })).sync();
+    v('⛔ `forfaitServeurSync` dit si l\'état a été LU : vérification impossible, page d\'erreur → non ; suspendue, payée → oui',
+      [lu1, lu2, lu3, lu4].map(Boolean), [false, false, true, true]);
 
     console.log('\n3. Le règlement : l\'accès revient seul, sans rien réparer');
     etatStripe.subs.find(s => s.id === 'sub_ret_0').status = 'active'; delete etatStripe.factures.sub_ret_0; poser();
