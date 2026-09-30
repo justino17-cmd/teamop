@@ -14,7 +14,7 @@
 <link rel="manifest" href="manifest-teamop.webmanifest">
 <link rel="apple-touch-icon" href="icons/teamop-apple-touch.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/teamop-favicon-32.png">
-<title>Espace client — TEAM OP</title> <meta name="description" content="Espace client TEAM OP : créez votre compte, retrouvez vos applications, vos demandes d'accès et les nouveautés."> <link rel="canonical" href="https://teamop.fr/espace.html"> <meta property="og:type" content="website"> <meta property="og:locale" content="fr_FR"> <meta property="og:site_name" content="TEAM OP"> <meta property="og:title" content="Espace client — TEAM OP"> <meta property="og:description" content="Espace client TEAM OP : créez votre compte, retrouvez vos applications, vos demandes d'accès et les nouveautés."> <meta property="og:url" content="https://teamop.fr/espace.html"> <meta property="og:image" content="https://teamop.fr/vitrine/v2/captures/mac-tableau-jour-1x.webp"> <meta property="og:image:width" content="1512"> <meta property="og:image:height" content="982"> <meta property="og:image:alt" content="OP GESTION sur un Mac : le tableau de bord d'une entreprise de démonstration"> <meta name="twitter:card" content="summary_large_image">
+<title>Espace client — TEAM OP</title> <meta name="description" content="Espace client TEAM OP : créez votre compte, retrouvez vos applications, vos demandes d'accès et les nouveautés."> <link rel="canonical" href="https://teamop.fr/espace.html"> <meta property="og:type" content="website"> <meta property="og:locale" content="fr_FR"> <meta property="og:site_name" content="TEAM OP"> <meta property="og:title" content="Espace client — TEAM OP"> <meta property="og:description" content="Espace client TEAM OP : créez votre compte, retrouvez vos applications, vos demandes d'accès et les nouveautés."> <meta property="og:url" content="https://teamop.fr/espace.html"> <meta property="og:image" content="https://teamop.fr/vitrine/v2/captures/partage-tableau-jour.jpg"> <meta property="og:image:width" content="1200"> <meta property="og:image:height" content="630"> <meta property="og:image:alt" content="OP GESTION sur un Mac : le tableau de bord d'une entreprise de démonstration"> <meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="/vitrine/v2/theme.css">
 <style>
   /* ══ LE PORTAIL AU THÈME DU SITE (27 septembre 2026 au soir) ══════════════════════════════════════════════════════
@@ -284,6 +284,13 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   try { document.getElementById('year').textContent = new Date().getFullYear(); } catch(_) {}
   if ('serviceWorker' in navigator) { window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
   const ADMIN_EMAIL="justin.17553@gmail.com";
+  /* ⚠️ Défini ICI, en tête du script : `openView` le lit, et une déclaration plus bas serait en zone morte si une vue
+     s'affichait avant elle. Les métiers de l'application, dans l'ordre de `METIERS_ORDRE` (app.html) et de `METIERS_OK` (serveur) : c'est la Tour qui
+     pose le métier sur l'espace, prérempli avec celui-ci — et l'application se règle dessus (Justin, 29 septembre 2026 :
+     « chaque métier qu'on a sur le site, quand ils ont l'application, ça correspond à leur métier »). Depuis le 30 septembre,
+     « autre » est un pack comme les autres (le réglage neutre de l'application) : il n'y a plus d'option à part, le besoin
+     précise le reste. `tests/test-848.js` compare les listes. */
+  const METIER_L={'3d':'3D — Hygiène anti-nuisibles',plomberie:'Plomberie',electricite:'Électricité',chauffage:'Chauffage / Climatisation',serrurerie:'Serrurerie',nettoyage:'Nettoyage / Propreté',maconnerie:'Maçonnerie / Gros œuvre',menuiserie:'Menuiserie',peinture:'Peinture / Revêtements',paysagiste:'Paysagiste / Espaces verts',couverture:'Couverture / Zinguerie',multiservices:'Multiservices / Maintenance',autre:'Autre métier de terrain'};
   /* ⛔ LE PORTAIL PARLE À NOTRE SERVEUR, ET SEULEMENT À LUI — sortie de Firebase, décision de
      Justin du 25 septembre 2026. Jusque-là, un interrupteur (`PORTAIL_SERVEUR`, fermé) gardait
      Firebase en service ; il est parti avec les trois balises du kit de Google, parce qu'un
@@ -785,6 +792,13 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
      banc qui fait parler la page à un serveur local l'atteint sans retouche. */
   const CLI_SYNC_URL=API_PORTAIL+'/api/clients/sync', CLI_SYNC_KEY='top_client_sync', CLI_SYNC_DELAI=600000;
   function cliSigne(s){ let h=5381; for(let i=0;i<s.length;i++){ h=((h*33)^s.charCodeAt(i))>>>0; } return h.toString(36); }
+  /* ⛔ PLUS DE FORMULE GRATUITE (Justin, 30 septembre 2026 : « si une entreprise ne paye plus, le service est suspendu tant
+     que c'est pas réglé »). « Découverte » était le nom affiché par défaut — celui de l'ancienne formule gratuite — et un
+     dossier peut encore porter « Gratuit » : sans formule payée, on le DIT, sans « Actif » à côté.
+     ⚠️ Des DÉCLARATIONS de fonction, hissées : `cliResume` (juste en dessous) et les vues du compte les lisent, et une vue peut s'afficher
+     avant que le script n'arrive ici — une `const` serait alors en zone morte (la leçon de `METIER_L`, en tête du script). */
+  function planNom(d){ const p=String((d&&d.plan)||'').trim(); return (p&&!/^(découverte|gratuit)$/i.test(p))?p:''; }
+  function planEtat(d){ return !planNom(d)?'Aucun abonnement':(d.planStatus==='suspendu'?'Suspendu':(d.planStatus==='essai'?'Essai':'Actif')); }
   function cliResume(user,d){
     d=d||{};
     const nom=((d.name||((d.prenom||'')+' '+(d.nom||'')))+'').trim();
@@ -796,13 +810,14 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       app:String((x&&x.app)||''), formule:String((x&&x.formule)||''),
       statut:String((x&&x.statut)||'nouveau'), date:parseInt(x&&x.date,10)||0,
       besoin:String((x&&x.besoin)||'').slice(0,200), users:String((x&&x.users)||'').slice(0,10),
-      code:String((x&&x.code)||'').slice(0,40), lien:String((x&&x.lien)||'').slice(0,60) }));
+      code:String((x&&x.code)||'').slice(0,40), lien:String((x&&x.lien)||'').slice(0,60),
+      metier:String((x&&x.metier)||'').slice(0,20) }));
     let promo='', promoCode='', promoFin='';
     try{ const pi=promoInfo(d); if(pi){ promo=(pi.code+' — '+pi.label+' (reste '+pi.jours+' j)').slice(0,60);
       promoCode=String(pi.code||'').toUpperCase().slice(0,40);
       promoFin=new Date(Date.now()+Math.max(0,pi.jours||0)*86400000).toISOString().slice(0,10); } }catch(e){ promo=''; }
     return { email:String((user&&user.email)||''), nom, prenom:String(d.prenom||'').slice(0,40), nomFam:String(d.nom||'').slice(0,40), tel:String(d.tel||'').slice(0,30), entreprise:String(d.company||''), inscrit, apps, demandes,
-      plan:String(d.plan||'Découverte'), promoCode, promoFin,
+      plan:String(planNom(d)), promoCode, promoFin,
       planStatus:String(d.planStatus||'actif'),
       promo };
   }
@@ -897,7 +912,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     const avaL=((prenom[0]||user.email||'?')[0]||'?').toUpperCase();
     const docs=Array.isArray(d.docs)?d.docs:[];
     const _pi0=promoInfo(d);
-    const planTxt=(d.plan||'Découverte')+' · '+(d.planStatus==='suspendu'?'Suspendu':(d.planStatus==='essai'?'Essai':'Actif'))+(_pi0?(' · 🎁 '+_pi0.label+' — reste '+_pi0.jours+' j'):'');
+    const planTxt=(planNom(d)||'Aucune formule')+' · '+planEtat(d)+(_pi0?(' · 🎁 '+_pi0.label+' — reste '+_pi0.jours+' j'):'');
     const ROW=(v,ic,title,sub,badge)=>`<div class="setrow" onclick="openView('${v}')"><span class="si">${ic}</span><div class="sl"><b>${title}${badge||''}</b><span>${sub}</span></div><span class="sc">›</span></div>`;
     $('space').innerHTML=`
       <div class="hero-cli"><div class="cli-ava">${avaL}</div><div style="flex:1;min-width:0"><div class="hi">Bonjour ${esc(prenom||'👋')} 👋</div><div class="hs">${esc(d.company||'Ton espace TeamOP')} ${_cliBadge(d)}</div></div></div>
@@ -960,6 +975,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
             ${dm.company?('🏢 Entreprise : <b>'+esc(dm.company)+'</b><br>'):''}
             ${dm.tel?('📞 Téléphone : <b>'+esc(dm.tel)+'</b><br>'):''}
             ${dm.lien?('🔗 Nom du lien : <b>'+esc(dm.lien)+'</b><br>'):''}
+            ${METIER_L[dm.metier]?('🧰 Métier : <b>'+esc(METIER_L[dm.metier])+'</b><br>'):''}
             ${dm.code?('🎁 Code : <b>'+esc(dm.code)+'</b><br>'):''}
             ${dm.users?('👥 Utilisateurs souhaités : <b>'+esc(String(dm.users))+'</b><br>'):''}
             ${dm.formule?('💼 Formule envisagée : <b>'+esc(dm.formule)+'</b><br>'):''}
@@ -990,8 +1006,10 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
         <div id="r-lien-msg" style="margin-top:6px;font-size:12.5px"></div></div>
         <div class="field"><label>Application</label><input value="OP GESTION" disabled style="opacity:.65"><input type="hidden" id="r-app" value="OP GESTION"></div>
         <p class="muted" style="margin:-6px 0 12px;font-size:12px">💬 <b>OP MESSAGES</b> est une application indépendante : compte personnel gratuit, abonnement à part — tout se passe directement dans l'application.</p>
+        <div class="field"><label>Votre métier *</label><select id="r-metier"><option value="" disabled ${ed&&ed.metier?'':'selected'}>— Choisissez votre métier —</option>${Object.keys(METIER_L).map(k=>`<option value="${k}" ${ed&&ed.metier===k?'selected':''}>${esc(METIER_L[k])}</option>`).join('')}</select>
+        <p class="muted" style="margin:6px 0 0;font-size:12px">Votre application est réglée sur votre métier : types d'intervention, fiche de terrain et modules.</p></div>
         <div style="display:flex;gap:10px"><div class="field" style="flex:1"><label>Nombre d'utilisateurs *</label><input id="r-users" type="number" min="1" max="250" placeholder="ex. 5" value="${ed&&ed.users?esc(String(ed.users)):''}"></div>
-        <div class="field" style="flex:1.4"><label>Formule OP GESTION *</label><select id="r-formule"><option value="" disabled ${ed&&ed.formule&&ed.formule!=='Je ne sais pas encore'?'':'selected'}>— Choisissez votre formule —</option>${['Gratuit','Pro','Business','Business Premium'].map(o=>`<option ${ed&&ed.formule===o?'selected':''}>${o}</option>`).join('')}</select></div></div>
+        <div class="field" style="flex:1.4"><label>Formule OP GESTION *</label><select id="r-formule"><option value="" disabled ${ed&&ed.formule&&ed.formule!=='Je ne sais pas encore'?'':'selected'}>— Choisissez votre formule —</option>${['Pro','Business','Business Premium'].map(o=>`<option ${ed&&ed.formule===o?'selected':''}>${o}</option>`).join('')}</select></div></div>
         <div class="field"><label>Code teste / code promo (facultatif)</label>
         <div style="display:flex;gap:8px"><input id="r-code" placeholder="ex. BIENVENUE3" style="flex:1;text-transform:uppercase" value="${esc((ed&&ed.code)||'')}" onblur="verifCodeDemande()"><button class="btn sm ghost" type="button" onclick="verifCodeDemande()">Vérifier</button></div>
         <div id="r-code-msg"></div></div>
@@ -1003,7 +1021,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       const pi=promoInfo(d);
       // 1) l'offre en cours
       body=`${promoBanner(d)}
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><div style="font-size:19px;font-weight:800">${esc(d.plan||'Découverte')}</div><div class="muted">${d.planStatus==='suspendu'?'Suspendu':(d.planStatus==='essai'?"Période d'essai":'Actif')}</div></div><span class="badge ${d.planStatus==='suspendu'?'b-prog':'b-done'}">${d.planStatus==='suspendu'?'⏸ Suspendu':'● Actif'}</span></div>`;
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><div style="font-size:19px;font-weight:800">${esc(planNom(d)||'Aucune formule')}</div><div class="muted">${!planNom(d)?'Aucun abonnement en cours':(d.planStatus==='suspendu'?'Suspendu jusqu’au règlement — vos données sont conservées':(d.planStatus==='essai'?"Période d'essai":'Actif'))}</div></div>${!planNom(d)?'':`<span class="badge ${d.planStatus==='suspendu'?'b-prog':'b-done'}">${d.planStatus==='suspendu'?'⏸ Suspendu':'● Actif'}</span>`}</div>`;
       // 2) applications activées
       body+=`<div class="grp2" style="margin-top:18px">Applications activées</div>`;
       const lignes=Object.keys(APPS).map(k=>{ const a=APPS[k]; const actif=apps.includes(k);
@@ -1028,8 +1046,8 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       const pi=promoInfo(d);
       const contrats=[];
       if(pi) contrats.push({t:'promo',ic:'🎁',name:'Contrat — Offre '+pi.label,sub:'Applications : '+pi.apps.map(k=>APPS[k].name).join(' + ')+' · jusqu\'au '+new Date(pi.until).toLocaleDateString('fr-FR')});
-      if(d.plan&&d.plan!=='Découverte') contrats.push({t:'abo',ic:'💼',name:'Contrat d\'abonnement — Formule '+d.plan,sub:'Votre abonnement TeamOP'+(d.planStatus==='suspendu'?' (suspendu)':'')});
-      (Array.isArray(d.apps)?d.apps.filter(k=>APPS[k]):[]).forEach(k=>contrats.push({t:'app',k,ic:'📱',name:'Contrat de mise à disposition — '+APPS[k].name,sub:'Formule '+(d.plan||'Découverte')}));
+      if(planNom(d)) contrats.push({t:'abo',ic:'💼',name:'Contrat d\'abonnement — Formule '+planNom(d),sub:'Votre abonnement TeamOP'+(d.planStatus==='suspendu'?' (suspendu)':'')});
+      (Array.isArray(d.apps)?d.apps.filter(k=>APPS[k]):[]).forEach(k=>contrats.push({t:'app',k,ic:'📱',name:'Contrat de mise à disposition — '+APPS[k].name,sub:'Formule '+(planNom(d)||'—')}));
       const genHtml=contrats.length?`<div class="grp2" style="margin-top:2px">Contrats TeamOP</div>`+contrats.map((c,i)=>`<a class="docr" href="#" onclick="event.preventDefault();contratVoir(${i})"><span style="font-size:20px">${c.ic}</span><div style="flex:1;min-width:0"><b style="font-size:14px">${esc(c.name)}</b><span class="muted" style="display:block">${esc(c.sub)}</span></div><span style="color:var(--op-l);font-size:13px;font-weight:700">Voir / Imprimer ↗</span></a>`).join(''):'';
       window._contrats=contrats;
       const adminHtml=docs.length?`<div class="grp2" style="margin-top:${contrats.length?'16px':'2px'}">Documents TeamOP</div>`+docs.map(doc=>`<a class="docr" href="${esc(doc.url||'#')}" target="_blank" rel="noopener"><span style="font-size:20px">${esc(doc.ic||'📄')}</span><div style="flex:1;min-width:0"><b style="font-size:14px">${esc(doc.name||'Document')}</b><span class="muted" style="display:block">${esc(doc.date||'')}</span></div><span style="color:var(--op-l);font-size:13px;font-weight:700">Ouvrir ↗</span></a>`).join(''):'';
@@ -1041,7 +1059,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     else if(v==='pass'){ body=`<p class="muted" style="margin-bottom:12px">Un <b>code de sécurité</b> sera envoyé à votre e-mail pour confirmer.</p><div id="pw-err"></div><div class="field"><label>Mot de passe actuel</label><input id="pw-cur" type="password" autocomplete="current-password"></div><div class="field"><label>Nouveau mot de passe</label><input id="pw-new" type="password" placeholder="8 caractères min." autocomplete="new-password"></div><div class="field"><label>Confirmer</label><input id="pw-new2" type="password" autocomplete="new-password"></div><button class="btn sm block" id="pw-send" onclick="pwSend()">M'envoyer le code</button><div id="pw-code"></div>`; }
     else if(v==='notif'){ body=`<p class="muted" style="margin-bottom:12px">Soyez prévenu des nouveautés, réponses et documents — même navigateur fermé.</p><button class="btn sm" id="cli-push" onclick="cliPushSub()">${(typeof Notification!=='undefined'&&Notification.permission==='granted')?'✓ Activées sur cet appareil':'Activer les notifications'}</button>`; }
     else if(v==='news'){ body=`<div id="news-list"><p class="muted center">Chargement…</p></div>`; }
-    else if(v==='faq'){ body=[['Comment activer une application ?','Faites une demande dans « Mes applications → Demander un accès ». Dès validation, elle apparaît dans « Mes applications ».'],['Mes données sont-elles sécurisées ?','Oui : chiffrement de bout en bout (AES-256) et espace totalement isolé par entreprise.'],['Comment ajouter mes collègues ?','Depuis l\'application (Administration → Utilisateurs), créez leurs comptes et réglez leurs permissions.'],['Comment changer mon offre ?','Écrivez-nous via le Support ou à contact@teamop.fr.']].map(f=>`<div class="faq" onclick="this.classList.toggle('open')"><div class="faq-q">${esc(f[0])}<span class="faq-c">›</span></div><div class="faq-a"><p>${esc(f[1])}</p></div></div>`).join(''); }
+    else if(v==='faq'){ body=[['Comment activer une application ?','Faites une demande dans « Mes demandes d\'accès ». Dès validation, elle apparaît dans « Mes applications ».'],['Mes données sont-elles sécurisées ?','Oui : elles sont chiffrées (AES-256) sur l\'appareil avant l\'envoi, et chaque entreprise a son espace, avec sa propre clé.'],['Comment ajouter mes collègues ?','Depuis l\'application (Administration → Utilisateurs), créez leurs comptes et réglez leurs permissions.'],['Comment changer mon offre ?','Écrivez-nous via le Support ou à contact@teamop.fr.']].map(f=>`<div class="faq" onclick="this.classList.toggle('open')"><div class="faq-q">${esc(f[0])}<span class="faq-c">›</span></div><div class="faq-a"><p>${esc(f[1])}</p></div></div>`).join(''); }
     else if(v==='support'){ body=`<p class="muted" style="margin-bottom:12px">Une question ? Écrivez-nous, nous répondons directement ici.</p><div class="msgs" id="msgs"><p class="muted center">Aucun message.</p></div><div class="row"><input id="m-text" placeholder="Écrire un message…"><button class="btn sm" onclick="sendMsg('${user.uid}','client')">Envoyer</button></div>`; }
     else if(v==='del'){ body=`<div id="del-err"></div><p class="muted" style="margin-bottom:12px">Cette action est <b>irréversible</b>. Confirmez avec votre mot de passe.</p><div class="field"><label>Mot de passe actuel</label><input id="del-pass" type="password"></div><button class="btn sm block" style="background:var(--red);border-color:var(--red)" onclick="delGo()">Supprimer définitivement</button>`; }
 
@@ -1166,11 +1184,11 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     let objet='',duree='',prix='';
     if(c.t==='promo'&&pi){ objet='Mise à disposition des applications '+esc(pi.apps.map(k=>APPS[k].name).join(' et '))+' dans le cadre de l\'offre promotionnelle « '+esc(pi.label)+' » (code '+esc(pi.code)+').';
       duree='Du '+new Date((d.promo&&d.promo.activatedAt)||Date.now()).toLocaleDateString('fr-FR')+' au '+new Date(pi.until).toLocaleDateString('fr-FR')+' inclus. À l\'issue de cette période, l\'accès se poursuit uniquement par la souscription d\'un abonnement sur teamop.fr.';
-      prix='Gratuit pendant la durée de l\'offre. Aucun prélèvement automatique à l\'issue : sans souscription, le compte repasse en formule Gratuit.'; }
+      prix='Gratuit pendant la durée de l\'offre. Aucun prélèvement automatique à l\'issue : sans souscription, l\'accès à l\'application est suspendu jusqu\'au règlement — les données sont conservées.'; }
     else if(c.t==='abo'){ objet='Souscription de l\'abonnement TeamOP formule « '+esc(d.plan||'')+' », donnant accès aux applications de la suite TEAM OP selon les droits de cette formule, avec un compte utilisateur par abonnement souscrit, quelle que soit la formule.';
       duree='Abonnement sans engagement de durée, reconduit tacitement par période mensuelle ou annuelle selon le cycle choisi, résiliable à tout moment depuis l\'espace client ou par e-mail.';
       prix='Prix de la formule en vigueur affiché sur teamop.fr/tarifs.html au jour de la souscription (TVA non applicable, art. 293 B du CGI), payé par carte bancaire via Stripe. Les reçus sont envoyés par e-mail à chaque échéance.'; }
-    else { objet='Mise à disposition de l\'application '+esc((APPS[c.k]||{}).name||'')+' au titre de la formule « '+esc(d.plan||'Découverte')+' ».';
+    else { objet='Mise à disposition de l\'application '+esc((APPS[c.k]||{}).name||'')+' au titre de la formule « '+esc(planNom(d)||'—')+' ».';
       duree='Abonnement sans engagement de durée, reconduit par période mensuelle (ou annuelle selon la formule choisie), résiliable à tout moment.';
       prix='Selon la formule en vigueur affichée sur teamop.fr/tarifs.html au jour de la souscription, payée par carte bancaire via Stripe.'; }
     const w=window.open('','_blank'); if(!w) return alert('Autorisez les fenêtres pop-up pour voir le contrat.');
@@ -1188,7 +1206,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       <h2>3. Prix</h2><p>${prix}</p>
       <h2>4. Utilisateurs</h2><p>Chaque abonnement donne un compte utilisateur, quelle que soit la formule : le nombre de comptes disponibles est le nombre d'abonnements souscrits. L'application applique automatiquement cette limite. Pendant une période offerte par un code promotionnel, tous les comptes de l'entreprise sont couverts.</p>
       <h2>5. Données</h2><p>Les données appartiennent au client. Elles sont chiffrées (AES-256), hébergées dans un espace isolé par entreprise, exportables à tout moment, et <b>ne sont jamais supprimées en cas de changement ou d'arrêt de formule</b>.</p>
-      <h2>6. Résiliation</h2><p>Sans engagement : le client peut arrêter à tout moment depuis son espace ou par e-mail à contact@teamop.fr. L'accès payant cesse à la fin de la période en cours ; le compte repasse alors en formule Gratuit, données conservées.</p>
+      <h2>6. Résiliation</h2><p>Sans engagement : le client peut arrêter à tout moment depuis le Support de son espace ou par e-mail à contact@teamop.fr. L'accès à l'application cesse à la fin de la période en cours : il est suspendu, les données sont conservées, et tout revient à la souscription d'un nouvel abonnement.</p>
       <h2>7. Droit applicable</h2><p>Le présent contrat est soumis au droit français.</p>
       <div class="sig"><div>TEAM OP<br>Justin Biret</div><div>Le client<br>${esc((d.prenom||'')+' '+(d.nom||''))}</div></div>
       </body></html>`);
@@ -1246,11 +1264,13 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     const formule=codeInfo?codeInfo.lib:(($('r-formule')&&$('r-formule').value)||'');
     const prenom=($('r-prenom')&&$('r-prenom').value||'').trim(), nomF=($('r-nom')&&$('r-nom').value||'').trim(), tel=($('r-tel')&&$('r-tel').value||'').trim();
     const lienNom=($('r-lien')&&$('r-lien').value||'').trim();
+    const metier=($('r-metier')&&$('r-metier').value)||'';
     // Tous les champs sont obligatoires : on liste précisément ce qui manque.
     const manque=[];
     if(!prenom) manque.push('prénom'); if(!nomF) manque.push('nom'); if(!company) manque.push('entreprise');
     if(!tel) manque.push('téléphone'); if(!lienNom||!lienSlug(lienNom)) manque.push('nom du lien');
     if(!(users>=1)) manque.push('nombre d\'utilisateurs');
+    if(!metier) manque.push('métier');
     if(!formule||formule==='Je ne sais pas encore') manque.push('formule'); if(!besoin) manque.push('besoin');
     if(manque.length){ $('req-msg').innerHTML='<div class="err">⚠️ Tous les champs sont obligatoires — il manque : <b>'+esc(manque.join(', '))+'</b>.</div>'; $('req-msg').scrollIntoView({behavior:'smooth',block:'center'}); return; }
     if(!/^[0-9+][0-9 .()\/-]{8,19}$/.test(tel)){ $('req-msg').innerHTML='<div class="err">⚠️ Numéro de téléphone invalide (ex. 06 12 34 56 78).</div>'; $('req-msg').scrollIntoView({behavior:'smooth',block:'center'}); return; }
@@ -1265,16 +1285,16 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       let dem;
       if(window._demEdit){
         const i=liste.findIndex(x=>x.date===window._demEdit);
-        dem=Object.assign({},(i>=0?liste[i]:{}),{app,company,besoin,users:users||null,formule,tel,lien:lienNom,code:codeInfo?codeInfo.code:'',modifie:Date.now()});
+        dem=Object.assign({},(i>=0?liste[i]:{}),{app,company,besoin,users:users||null,formule,tel,lien:lienNom,metier,code:codeInfo?codeInfo.code:'',modifie:Date.now()});
         if(!dem.date) dem.date=Date.now();
         if(i>=0) liste[i]=dem; else liste.push(dem);
         await fs.collection('teamop_requests').doc(uid).set({app,company,besoin,prenom,nom:nomF,name:(prenom+' '+nomF).trim(),tel,demandes:liste,updatedAt:FV.serverTimestamp()},{merge:true});
-        await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'client',text:'✏️ Demande modifiée : '+app+(users?(' · '+users+' utilisateur(s)'):'')+(formule&&formule!=='Je ne sais pas encore'?(' · formule '+formule):'')+' — '+besoin,ts:FV.serverTimestamp()});
+        await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'client',text:'✏️ Demande modifiée : '+app+(users?(' · '+users+' utilisateur(s)'):'')+(formule&&formule!=='Je ne sais pas encore'?(' · formule '+formule):'')+(METIER_L[metier]?(' · métier '+METIER_L[metier]):'')+' — '+besoin,ts:FV.serverTimestamp()});
       } else {
-        dem={app,company,besoin,users:users||null,formule,tel,lien:lienNom,code:codeInfo?codeInfo.code:'',date:Date.now(),statut:'nouveau'};
+        dem={app,company,besoin,users:users||null,formule,tel,lien:lienNom,metier,code:codeInfo?codeInfo.code:'',date:Date.now(),statut:'nouveau'};
         liste.push(dem);
         await fs.collection('teamop_requests').doc(uid).set({app,company,besoin,prenom,nom:nomF,name:(prenom+' '+nomF).trim(),tel,status:'nouveau',email:auth.currentUser.email,uid,demandes:liste,updatedAt:FV.serverTimestamp()},{merge:true});
-        await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'client',text:'📩 Demande : '+app+(users?(' · '+users+' utilisateur(s)'):'')+(formule&&formule!=='Je ne sais pas encore'?(' · formule '+formule):'')+' — '+besoin,ts:FV.serverTimestamp()});
+        await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'client',text:'📩 Demande : '+app+(users?(' · '+users+' utilisateur(s)'):'')+(formule&&formule!=='Je ne sais pas encore'?(' · formule '+formule):'')+(METIER_L[metier]?(' · métier '+METIER_L[metier]):'')+' — '+besoin,ts:FV.serverTimestamp()});
         try{ await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'admin',text:'✅ Votre demande a bien été prise en compte ! Notre équipe l\'étudie et revient vers vous au plus vite. Si nous avons besoin de renseignements supplémentaires, nous vous contacterons ici même. Vous pouvez modifier votre demande à tout moment dans « Mes demandes d\'accès ».',ts:FV.serverTimestamp()}); }catch(e){}
       }
       _meDoc=Object.assign({},_meDoc,{status:(window._demEdit?(_meDoc&&_meDoc.status)||'nouveau':'nouveau'),app,company,besoin,prenom,nom:nomF,name:(prenom+' '+nomF).trim(),tel,demandes:liste});
@@ -1377,7 +1397,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       alert(apps.length?'Accès activés ✅ ('+apps.map(k=>APPS[k].name).join(', ')+')':'Accès retirés (aucune application cochée)');
     }catch(e){ alert('Erreur : '+(e.message||e)); }
   }
-  async function setPlan(uid){ const plan=prompt("Nom de l'offre (ex. Découverte, Pro, Entreprise) :",'Pro'); if(plan===null) return;
+  async function setPlan(uid){ const plan=prompt("Nom de l'offre (ex. Pro, Business, Business Premium) :",'Pro'); if(plan===null) return;
     const st=(prompt('Statut : actif / essai / suspendu','actif')||'actif').trim().toLowerCase();
     try{ await fs.collection('teamop_requests').doc(uid).set({plan:plan.trim(),planStatus:st,updatedAt:FV.serverTimestamp()},{merge:true}); alert('Offre mise à jour ✅'); }catch(e){ alert('Erreur : '+(e.message||e)); } }
   async function addDoc(uid){ const name=prompt('Nom du document (ex. Contrat 2026, Facture n°12) :'); if(!name) return;

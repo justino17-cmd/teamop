@@ -3,7 +3,7 @@
 <head><base href="/"><meta name="robots" content="noindex">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Récapitulatif — TEAM OP</title> <meta name="description" content="Récapitulatif de votre formule TEAM OP avant le paiement : ce qui est inclus, le nombre d'utilisateurs et le prix TTC par mois."> <link rel="canonical" href="https://teamop.fr/recap-abonnement.html"> <meta property="og:type" content="website"> <meta property="og:locale" content="fr_FR"> <meta property="og:site_name" content="TEAM OP"> <meta property="og:title" content="Récapitulatif — TEAM OP"> <meta property="og:description" content="Récapitulatif de votre formule TEAM OP avant le paiement : ce qui est inclus, le nombre d'utilisateurs et le prix TTC par mois."> <meta property="og:url" content="https://teamop.fr/recap-abonnement.html"> <meta property="og:image" content="https://teamop.fr/vitrine/v2/captures/mac-tableau-jour-1x.webp"> <meta property="og:image:width" content="1512"> <meta property="og:image:height" content="982"> <meta property="og:image:alt" content="OP GESTION sur un Mac : le tableau de bord d'une entreprise de démonstration"> <meta name="twitter:card" content="summary_large_image">
+<title>Récapitulatif — TEAM OP</title> <meta name="description" content="Récapitulatif de votre formule TEAM OP avant le paiement : ce qui est inclus, le nombre d'utilisateurs et le prix TTC par mois."> <link rel="canonical" href="https://teamop.fr/recap-abonnement.html"> <meta property="og:type" content="website"> <meta property="og:locale" content="fr_FR"> <meta property="og:site_name" content="TEAM OP"> <meta property="og:title" content="Récapitulatif — TEAM OP"> <meta property="og:description" content="Récapitulatif de votre formule TEAM OP avant le paiement : ce qui est inclus, le nombre d'utilisateurs et le prix TTC par mois."> <meta property="og:url" content="https://teamop.fr/recap-abonnement.html"> <meta property="og:image" content="https://teamop.fr/vitrine/v2/captures/partage-tableau-jour.jpg"> <meta property="og:image:width" content="1200"> <meta property="og:image:height" content="630"> <meta property="og:image:alt" content="OP GESTION sur un Mac : le tableau de bord d'une entreprise de démonstration"> <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/teamop-favicon-32.png">
 <meta name="theme-color" content="#f0f3f8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1426" media="(prefers-color-scheme: dark)">
@@ -443,7 +443,7 @@
 <script>
 /* =====================================================================
    RÉCAPITULATIF AVANT PAIEMENT — TEAM OP
-   Ouvrir avec ?formule=gratuit | pro | business | premium
+   Ouvrir avec ?formule=pro | business | premium (msgpro, msgpremium pour OP MESSAGES)
    Exemple : recap-abonnement.html?formule=business
 
    Le paiement se fait depuis un COMPTE TEAM OP (voir « LE COMPTE » plus bas) :
@@ -457,7 +457,7 @@
    ⚠️ Ces liens existent toujours chez Stripe tant qu'ils n'y sont pas désactivés : les retirer d'ici empêche de les
    trouver sur le site, pas de s'en servir (geste de Justin : tableau de bord Stripe → Liens de paiement). */
 const CONFIG_STRIPE = {
-  /* Le Gratuit ne passe pas par Stripe : */
+  /* une formule à 0 € (Perso, d'OP MESSAGES) ne passe pas par Stripe : */
   inscriptionGratuite: '/apercu/espace.html'
 };
 
@@ -479,29 +479,8 @@ const STRIPE_PRICES = {
    ne facturerait pas. Le plafond de la page est celui-là, pas un autre. */
 const MAX_ABONNEMENTS = 50;
 const FORMULES = {
-  gratuit: {
-    groupe: 'gestion',
-    nom: 'Gratuit',
-    desc: 'Pour découvrir TEAM OP et gérer ses premières interventions',
-    prixMensuel: 0,
-    utilisateurs: 1,
-    couleur: 'var(--m-link)',
-    fond: 'color-mix(in srgb, var(--m-link) 12%, transparent)',
-    badge: null,
-    boutonTexte: 'Créer mon compte gratuit',
-    boutonFond: 'var(--m-accent)',
-    droits: [
-      { ok: true,  titre: 'Planning des interventions', detail: 'jour · semaine · mois' },
-      { ok: true,  titre: 'Fiches clients', detail: 'et historique des passages' },
-      { ok: true,  titre: 'Rapports d\'intervention simples', detail: '' },
-      { ok: true,  titre: 'App web + mobile', detail: 'iPhone, Android, Mac, PC' },
-      { ok: true,  titre: 'Temps réel', detail: 'toute l\'équipe voit les mêmes données au même moment' },
-      { ok: true,  titre: 'Données chiffrées', detail: 'AES-256, espace isolé' },
-      { ok: true,  titre: 'Support par e-mail', detail: '' },
-      { ok: false, titre: 'Rapports complets, devis et factures', detail: 'disponibles dès la formule Pro' },
-      { ok: false, titre: 'Stock, bons de commande, registre', detail: 'disponibles dès la formule Business' }
-    ]
-  },
+  /* ⛔ PLUS DE FORMULE GRATUITE D'OP GESTION — Justin, 29 septembre 2026 : « je veux que l'application soit payante
+     directement ». Un ancien lien `?formule=gratuit` ouvre Pro (voir ÉTAT). Le compte TEAM OP, lui, reste gratuit. */
   pro: {
     groupe: 'gestion',
     nom: 'Pro',
@@ -514,13 +493,18 @@ const FORMULES = {
     boutonTexte: 'Continuer vers le paiement',
     boutonFond: 'var(--m-accent)',
     droits: [
-      { ok: true,  titre: 'Tout Gratuit inclus', detail: 'planning, fiches clients, app web + mobile...' },
-      { ok: true,  titre: 'Rapports complets', detail: 'photos, signatures, compte-rendu assisté' },
+      { ok: true,  titre: 'Planning des interventions', detail: 'jour · semaine · mois' },
+      { ok: true,  titre: 'Fiches clients', detail: 'et historique des passages' },
+      { ok: true,  titre: 'Rapports d\'intervention', detail: 'photos, signatures, envoi en PDF' },
       { ok: true,  titre: 'Tournées du jour', detail: 'carte, temps de trajet et ordre optimisé' },
       { ok: true,  titre: 'Récurrences (contrats)', detail: 'et passages multiples' },
-      { ok: true,  titre: 'Détection des conflits', detail: 'planning et absences' },
+      { ok: true,  titre: 'Conflits signalés', detail: 'planning et absences' },
       { ok: true,  titre: 'Devis et factures', detail: '' },
+      { ok: true,  titre: 'Pointage des heures', detail: '' },
       { ok: true,  titre: 'Exports CSV', detail: 'et notifications push' },
+      { ok: true,  titre: 'App web + mobile', detail: 'iPhone, Android, Mac, PC — à jour en quelques secondes' },
+      { ok: true,  titre: 'Données chiffrées', detail: 'AES-256, espace isolé' },
+      { ok: true,  titre: 'Support par e-mail', detail: '' },
       { ok: false, titre: 'Stock, bons de commande, registre 3D', detail: 'disponibles dès la formule Business' }
     ]
   },
@@ -532,26 +516,26 @@ const FORMULES = {
     utilisateurs: 1,
     couleur: 'var(--m-link)',
     fond: 'color-mix(in srgb, var(--m-link) 12%, transparent)',
-    badge: { texte: 'Le plus choisi', fond: 'var(--m-link)', couleur: 'var(--m-bg)' },
+    badge: null,
     boutonTexte: 'Continuer vers le paiement',
     boutonFond: 'var(--m-accent)',
     droits: [
-      { ok: true,  titre: 'Tout Pro inclus', detail: 'rapports complets, devis et factures, tournées...' },
-      { ok: true,  titre: 'Stock et box', detail: 'inventaire, seuils, alertes automatiques' },
+      { ok: true,  titre: 'Tout Pro inclus', detail: 'rapports, devis et factures, tournées, pointage...' },
+      { ok: true,  titre: 'Stock', detail: 'inventaire et seuils d\'alerte — box pour le métier 3D' },
       { ok: true,  titre: 'Bons de commande fournisseurs', detail: 'PDF pro, envoi en 1 clic' },
       { ok: true,  titre: 'Commande suggérée', detail: 'et réception qui crédite le stock' },
       { ok: true,  titre: 'Boîte mail intégrée', detail: 'rattachée aux bons' },
-      { ok: true,  titre: 'Registre sanitaire et biocides', detail: 'AMM, Certibiocide, courbes' },
+      { ok: true,  titre: 'Registre sanitaire', detail: 'métier 3D : tous les passages et les produits appliqués' },
       { ok: true,  titre: 'Télécollecte et comptabilité', detail: 'rôles fins' },
       { ok: true,  titre: 'Votre logo dans l\'application', detail: '' },
       { ok: true,  titre: 'Support prioritaire', detail: '' },
-      { ok: false, titre: 'OP MESSAGES et personnalisation complète', detail: 'disponibles avec Business Premium' }
+      { ok: false, titre: 'OP MESSAGES et votre couleur d\'entreprise', detail: 'disponibles avec Business Premium' }
     ]
   },
   premium: {
     groupe: 'gestion',
     nom: 'Business Premium',
-    desc: 'Le maximum : messagerie d\'équipe, espace client et service 24h/24',
+    desc: 'Le maximum : votre couleur, le service 24h/24 et OP MESSAGES dès sa réouverture',
     prixMensuel: 50,
     utilisateurs: 1,
     couleur: 'var(--m-link)',
@@ -561,12 +545,9 @@ const FORMULES = {
     boutonFond: 'var(--m-accent)',
     droits: [
       { ok: true,  titre: 'Tout Business inclus', detail: 'stock, bons de commande, registre, boîte mail...' },
-      { ok: true,  titre: '100 % de toutes les applications', detail: 'de la suite, sans limite' },
-      { ok: true,  titre: 'OP MESSAGES complet', detail: 'canaux, appels, visio illimitée HD' },
-      { ok: true,  titre: 'Espace client', detail: 'vos clients suivent leurs interventions' },
-      { ok: true,  titre: 'Statistiques avancées', detail: 'multi-sites / multi-équipes' },
-      { ok: true,  titre: 'Personnalisation complète', detail: 'logo, nom, votre couleur' },
-      { ok: true,  titre: '3 mois offerts', detail: 'sur chaque future application' },
+      { ok: true,  titre: 'Toutes les fonctions d\'OP GESTION', detail: 'pour votre métier, sans limite' },
+      { ok: true,  titre: 'OP MESSAGES inclus', detail: 'dès sa réouverture : canaux, appels, visio' },
+      { ok: true,  titre: 'Votre logo et votre couleur', detail: 'dans l\'application, pour toute l\'équipe' },
       { ok: true,  titre: 'Création sur mesure', detail: 'on développe une application selon vos besoins' },
       { ok: true,  titre: 'Service 24h/24 — 7j/7', detail: 'accompagnement à la mise en route' }
     ]
@@ -643,6 +624,7 @@ const OPMSG_BIENTOT = true;
 /* ---------- ÉTAT ---------- */
 const params = new URLSearchParams(window.location.search);
 let formuleActive = params.get('formule') || 'business';
+if (formuleActive === 'gratuit') formuleActive = 'pro';   // un lien d'avant le 29 septembre 2026 : la formule d'entrée, désormais
 if (!FORMULES[formuleActive]) formuleActive = 'business';
 let cycleAnnuel = params.get('cycle') === 'annuel';   // revient du portail avec le cycle choisi (lienPortail)
 /* Préremplissage : recap-abonnement.html?formule=business&utilisateurs=7 */
@@ -1014,6 +996,10 @@ function rendrePaiement() {
     else if (r && r.status === 429) compteMsg = { texte: 'Trop de tentatives d\'affilée : patientez une minute, puis réessayez.', erreur: true };
     /* un impayé sans facture ouverte : définitif tant que TEAM OP ne l'a pas réglé — « réessayez » mentirait */
     else if (r && r.status === 409 && j && j.error === 'impaye_sans_facture') compteMsg = { texte: 'Un prélèvement précédent de votre abonnement n\'a pas abouti et doit être réglé avant tout nouveau paiement : écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+    /* l'impayé vient d'être réglé : l'accès revient à la prochaine lecture de la liste — une minute d'ordinaire, plus longtemps
+       si la liste de Stripe est en panne : pas de délai promis (troisième relecture de `gardien`). Un paiement de plus serait un
+       SECOND abonnement, prélevé en double (30 septembre 2026). Ce n'est pas une erreur. */
+    else if (r && r.status === 409 && j && j.error === 'impaye_regle') compteMsg = { texte: 'Votre règlement est bien arrivé : l\'accès revient dès que notre vérification le confirme, en général en moins d\'une minute. Rouvrez ensuite votre application. Rien de plus n\'a été payé.', erreur: false };
     else if (r && r.status === 502 && j && j.error === 'stripe_indisponible') compteMsg = { texte: 'Le service de paiement ne répond pas pour vérifier un prélèvement en attente : réessayez dans quelques minutes. Rien n\'a été payé.', erreur: true };
     else compteMsg = { texte: 'Le paiement n\'a pas pu s\'ouvrir — rien n\'a été payé. Réessayez dans un instant, ou écrivez à support@teamop.fr.', erreur: true };
     rendrePaiement();

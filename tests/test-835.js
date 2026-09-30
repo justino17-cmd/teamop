@@ -29,9 +29,12 @@ const DIR = path.join(RACINE, 'apercu', 'site');
 const texte = h => h.replace(/<script[\s\S]*?<\/script>/g, ' ').replace(/<style[\s\S]*?<\/style>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;| | /g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ');
 
 console.log('1. les pages sont la sortie du générateur');
-/* les huit pages d'origine, et les quatre pages métier du plan SEO de Justin (29 septembre 2026 : « une page = une URL = un
-   mot-clé principal ») — test-846 garde leur référencement */
-v('douze pages : les huit du site et les quatre pages métier', CLES.slice().sort(), ['applications', 'creer', 'elan', 'index', 'logiciel-anti-nuisibles', 'logiciel-chauffage-climatisation', 'logiciel-electricien', 'logiciel-plombier', 'metiers', 'opmessages', 'pourquoi', 'tarifs']);
+/* les huit pages d'origine, les cinq pages métier et les six pages par fonction du plan SEO de Justin (29 septembre 2026 :
+   « une page = une URL = un mot-clé principal » ; le soir même : « une page par fonction […], plus une page nettoyage ») —
+   test-846 garde leur référencement */
+v('dix-neuf pages : les huit du site, les cinq pages métier et les six pages par fonction', CLES.slice().sort(), ['applications', 'creer', 'elan', 'index', 'logiciel-anti-nuisibles',
+  'logiciel-bons-de-commande', 'logiciel-chauffage-climatisation', 'logiciel-devis-factures', 'logiciel-electricien', 'logiciel-gestion-de-stock', 'logiciel-nettoyage',
+  'logiciel-planning-interventions', 'logiciel-plombier', 'logiciel-pointage', 'logiciel-registre-sanitaire', 'metiers', 'opmessages', 'pourquoi', 'tarifs']);
 const PAGES = {};
 for (const c of CLES) {
   const f = path.join(DIR, c + '.html');
@@ -52,7 +55,17 @@ const bloc = app.slice(app.indexOf('const PLANS={'), app.indexOf('};', app.index
 vrai('PLANS se lit dans app.html', bloc.length > 100);
 const PLANS = {};
 for (const m of bloc.matchAll(/(\w+):\{l:'([^']+)',prix:'([^']+)',maxU:(\d+)/g)) PLANS[m[1]] = { nom: m[2], prix: m[3], places: +m[4] };
-v('quatre formules dans l\'application', Object.keys(PLANS), ['gratuit', 'pro', 'business', 'premium']);
+/* ⛔ PLUS DE FORMULE GRATUITE, NI SUR LE SITE NI DANS L'APPLICATION (Justin, 30 septembre 2026 : « si une entreprise ne
+   paye plus, le service est suspendu tant que c'est pas réglé »). L'application a exactement les formules que le site vend. */
+/* Le site se publie sans attendre l'application : celle d'AVANT la v767 porte encore Gratuit (que le site ne vend plus, et
+   que personne ne peut plus acheter) — écart DÉCLARÉ, borné à cette seule formule et à ces versions. */
+const VERSION_APP = +((app.match(/APP_VERSION *= *'(\d+)'/) || [])[1] || 0);
+vrai('(population) la version de l\'application est lue (' + VERSION_APP + ')', VERSION_APP >= 763);
+const HORS_SITE = VERSION_APP >= 767 ? [] : ['gratuit'];
+v('les formules de l\'application sont exactement celles que le site vend' + (HORS_SITE.length ? ' (+ Gratuit, tant que la v' + VERSION_APP + ' est servie)' : ', sans Gratuit (v767)'),
+  Object.keys(PLANS).filter(k => !HORS_SITE.includes(k)), GEN.FORMULES_GESTION.map(f => f.cle));
+v('   … et ce sont Pro, Business et Business Premium', GEN.FORMULES_GESTION.map(f => f.cle), ['pro', 'business', 'premium']);
+vrai('   … un écart déclaré est un écart RÉEL (sinon le retirer d\'ici)', HORS_SITE.every(k => k in PLANS));
 /* ⛔ UN ABONNEMENT = UN UTILISATEUR — Justin, 27 septembre 2026 au soir : « à partir d'aujourd'hui c'est 1 utilisateur par
    abonnement ». Le site (et la page de paiement, `test-837`) le disent tout de suite. L'application, elle, le fera avec la
    version qui porte `maxU:1` — publiée sur SA phrase, comme toute version. ENTRE LES DEUX, l'application en service donne
@@ -101,9 +114,13 @@ for (const c of CLES) for (const m of PAGES[c].matchAll(/\s(?:href|src|srcset)="
 }
 vrai('population : ' + liens + ' liens et sources relus', liens > 300);
 v('aucun lien mort', morts, []);
-vrai('les formules mènent à la page d\'abonnement — son aperçu dans l\'aperçu (4 formules)', ['gratuit', 'pro', 'business', 'premium'].every(k => PAGES.tarifs.includes('href="/apercu/recap-abonnement.html?formule=' + k + '"')));
+/* ⛔ PLUS DE FORMULE GRATUITE D'OP GESTION SUR LE SITE — Justin, 29 septembre 2026 : « je veux que l'application soit
+   payante directement ». Trois formules, Pro, Business, Business Premium ; aucune carte ne mène à `?formule=gratuit`. */
+v('⛔ les formules d\'OP GESTION du site : Pro, Business, Business Premium — aucune gratuite', [GEN.FORMULES_GESTION.map(f => f.cle), GEN.FORMULES_GESTION.filter(f => +f.prix === 0).length], [['pro', 'business', 'premium'], 0]);
+vrai('les formules mènent à la page d\'abonnement — son aperçu dans l\'aperçu (3 formules)', ['pro', 'business', 'premium'].every(k => PAGES.tarifs.includes('href="/apercu/recap-abonnement.html?formule=' + k + '"')));
 const tarifsRacine = GEN.page('tarifs', { racine: true });
-vrai('… et la vraie page à la racine (4 formules)', ['gratuit', 'pro', 'business', 'premium'].every(k => tarifsRacine.includes('href="/recap-abonnement.html?formule=' + k + '"')));
+vrai('… et la vraie page à la racine (3 formules)', ['pro', 'business', 'premium'].every(k => tarifsRacine.includes('href="/recap-abonnement.html?formule=' + k + '"')));
+v('⛔ aucune page ne mène à « ?formule=gratuit » ni ne promet un « compte gratuit » d\'application', Object.keys(GEN.PAGES).filter(c => /formule=gratuit|Créer mon compte gratuit/.test(GEN.page(c, { racine: true }))), []);
 vrai('⛔ la racine n\'envoie jamais vers un aperçu', Object.keys(GEN.PAGES).every(c => !/href="\/apercu\//.test(GEN.page(c, { racine: true }))));
 
 console.log('5. chaque écran d\'appareil, jour et nuit');
@@ -249,7 +266,28 @@ vrai('jamais « demande envoyée »', !/demande envoy[ée]/i.test(texte(PAGES.cr
 const js = fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.js'), 'utf8').replace(/^\s*\/\*[\s\S]*?\*\//gm, ' ');
 vrai('site.js prépare un mailto vers support@teamop.fr', /location\.href = 'mailto:support@teamop\.fr\?subject='/.test(js));
 vrai('le métier part en tête de la demande', /lignes\.push\('MÉTIER CHOISI : '/.test(js));
-v('12 métiers proposés, 6 packs prêts', [(PAGES.creer.match(/class="metier-puce"/g) || []).length, (PAGES.creer.match(/data-pret="1"/g) || []).length], [12, 6]);
+/* v766 (Justin, 30 septembre 2026 : « oui, fais ce qu'il faut ») : chaque métier du site a son pack dans l'application —
+   plus aucun « Sur mesure avec vous ». Et chaque puce porte une clé que l'application CONNAÎT (METIERS_ORDRE, lu dans
+   app.html) : une clé qu'elle ne connaîtrait pas partirait en 3D, le défaut de `metierId`. */
+/* ⛔ ET « PRÊT » SE LIT DANS L'APPLICATION SERVIE AVEC LE SITE : le site se publie sans attendre l'application (la v763 en
+   service ne connaît que six packs, la bêta v766 les douze). Une puce « prête » porte une clé que l'application CONNAÎT ; une
+   clé qu'elle ne connaît pas se dit « Sur mesure avec vous » — jamais l'inverse. Publier l'application, c'est donc aussi
+   régénérer le site : sinon ce contrôle tombe. */
+{
+  const ordreApp = (fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8').match(/const METIERS_ORDRE=\[([^\]]*)\]/) || ['', ''])[1].split(',').map(x => x.trim().replace(/'/g, '')).filter(Boolean);
+  const puces = [...PAGES.creer.matchAll(/class="metier-puce"[^>]*data-pack="([^"]+)"[^>]*data-pret="([01])"/g)].map(m => [m[1], m[2] === '1']);
+  vrai('(population) la liste des packs de l\'application est lue (' + ordreApp.length + ' métiers)', ordreApp.length >= 6 && ordreApp[0] === '3d');
+  v('12 métiers proposés', [puces.length, (PAGES.creer.match(/class="metier-puce"/g) || []).length], [12, 12]);
+  v('⛔ une puce est « prête » si et seulement si l\'application connaît sa clé', puces.filter(([k, pr]) => pr !== ordreApp.includes(k)).map(([k]) => k), []);
+  v('   packs prêts : ' + puces.filter(([, pr]) => pr).length, puces.filter(([, pr]) => pr).length, ordreApp.filter(k => k !== 'autre').length);
+  const intro = texte((PAGES.metiers.match(/<h2 class="h2">Les métiers couverts\.<\/h2><p class="intro">([^<]*)</) || ['', ''])[1]);
+  vrai('   la page Métiers dit le même nombre : « ' + intro + ' »', intro.startsWith(ordreApp.filter(k => k !== 'autre').length + ' packs'));
+  v('   la page Métiers : « Démarrer avec ce pack » exactement sur les packs connus', (PAGES.metiers.match(/Démarrer avec ce pack/g) || []).length, ordreApp.length);
+  v('   la page Métiers : « PACK DISPONIBLE / COMPLET » exactement sur les packs connus (les autres : « PACK BIENTÔT »)',
+    [(PAGES.metiers.match(/>PACK (DISPONIBLE|COMPLET)</g) || []).length, (PAGES.metiers.match(/>PACK BIENTÔT</g) || []).length],
+    [ordreApp.filter(k => k !== 'autre').length, puces.filter(([, pr]) => !pr).length]);
+  v('   « Autre métier de terrain » seulement si l\'application porte son réglage général', PAGES.metiers.includes('Autre métier de terrain'), ordreApp.includes('autre'));
+}
 
 console.log('9. référencement');
 for (const c of CLES) vrai(c + ' : l\'aperçu porte « noindex »', PAGES[c].includes('<meta name="robots" content="noindex">'));
@@ -261,8 +299,12 @@ vrai('le logo de la barre est celui de TEAM OP', CLES.every(c => PAGES[c].includ
    les icônes TEAM OP, dont une de 192 px, et AUCUNE icône d'OP GESTION (vertes : icons/icon-*, icons/opgestion-*,
    icons/apple-touch-icon.png) ne sert d'icône de page. */
 const ICONES = c => (PAGES[c].match(/<link rel="(?:icon|apple-touch-icon|shortcut icon)"[^>]*>/g) || []);
-vrai('population : ' + CLES.reduce((n, c) => n + ICONES(c).length, 0) + ' icônes de page déclarées', CLES.every(c => ICONES(c).length >= 4));
-vrai('chaque page déclare le favicon, l\'icône 32 px ET l\'icône 192 px de TEAM OP', CLES.every(c => ['href="/favicon.ico"', 'href="/icons/teamop-favicon-32.png"', 'sizes="192x192" href="/icons/teamop-192.png"'].every(x => ICONES(c).some(l => l.includes(x)))));
+/* ⚠️ La page OP MESSAGES porte le logo d'OP MESSAGES dans l'onglet (Justin, 29 septembre 2026) — pour Google, un seul logo
+   par nom d'hôte : celui de l'ACCUEIL, qui reste TEAM OP. */
+vrai('population : ' + CLES.reduce((n, c) => n + ICONES(c).length, 0) + ' icônes de page déclarées', CLES.every(c => ICONES(c).length >= (c === 'opmessages' ? 3 : 4)));
+vrai('⛔ l\'accueil — celui que Google affiche pour tout teamop.fr — déclare le favicon, l\'icône 32 px ET l\'icône 192 px de TEAM OP', ['href="/favicon.ico"', 'href="/icons/teamop-favicon-32.png"', 'sizes="192x192" href="/icons/teamop-192.png"'].every(x => ICONES('index').some(l => l.includes(x))));
+vrai('la page OP MESSAGES porte les icônes d\'OP MESSAGES (32 px, 192 px, écran d\'accueil) et aucune de TEAM OP', ['href="/icons/opmsg-favicon-32.png"', 'sizes="192x192" href="/icons/opmsg-192.png"', 'href="/icons/opmsg-apple-touch.png"'].every(x => ICONES('opmessages').some(l => l.includes(x))) && !ICONES('opmessages').some(l => /teamop-|favicon\.ico/.test(l)));
+vrai('chaque autre page déclare le favicon, l\'icône 32 px ET l\'icône 192 px de TEAM OP', CLES.filter(c => c !== 'opmessages').every(c => ['href="/favicon.ico"', 'href="/icons/teamop-favicon-32.png"', 'sizes="192x192" href="/icons/teamop-192.png"'].every(x => ICONES(c).some(l => l.includes(x)))));
 v('aucune icône d\'OP GESTION (verte) ne sert d\'icône de page', CLES.filter(c => ICONES(c).some(l => /icons\/(?:icon-|opgestion-|apple-touch-icon\.png)/.test(l))), []);
 
 const idsDoubles = CLES.map(c => { const n = {}; for (const m of PAGES[c].matchAll(/\sid="([^"]+)"/g)) n[m[1]] = (n[m[1]] || 0) + 1; return Object.keys(n).filter(k => n[k] > 1).map(k => c + '#' + k); }).flat();

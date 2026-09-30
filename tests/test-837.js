@@ -86,7 +86,7 @@ const TAR = lire('tarifs.html');
 const GEN = require(path.join(RACINE, 'scripts', 'site-marine.js'));
 const racineGeneree = TAR === GEN.page('tarifs', { racine: true });
 const tt = texte(TAR), meta = (TAR.match(/<meta name="description" content="([^"]*)"/) || [])[1] || '';
-vrai('la page porte bien les formules (population : ' + (TAR.match(/<div class="places">/g) || []).length + ' places)', (TAR.match(/<div class="places">/g) || []).length === 7);
+vrai('la page porte bien les formules (population : ' + (TAR.match(/<div class="places">/g) || []).length + ' places)', (TAR.match(/<div class="places">/g) || []).length === 6);   // 3 OP GESTION (plus de Gratuit, 29 septembre 2026) + 3 OP MESSAGES
 vrai('⛔ plus aucune formule ne vend plusieurs utilisateurs', !/[2-9] utilisateurs inclus/.test(tt) && !/\(\d utilisateurs/.test(meta));
 v('les cinq formules payantes disent « 1 utilisateur par abonnement »', (TAR.match(/<div class="places">1 utilisateur par abonnement<\/div>/g) || []).length, 5);
 vrai('l\'introduction le dit : « Un abonnement par utilisateur »', tt.includes('Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements.'));
@@ -196,7 +196,9 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
     if (!b) continue;
     await b.api.compteLu;   // la page lit le compte au chargement, puis se redessine
     const F = b.api.FORMULES, cles = Object.keys(F);
-    v('population : sept formules (4 OP GESTION, 3 OP MESSAGES)', cles.length, 7);
+    /* ⛔ plus de formule gratuite d'OP GESTION (Justin, 29 septembre 2026 : « je veux que l'application soit payante
+       directement ») : trois formules d'OP GESTION, trois d'OP MESSAGES (dont Perso, qui reste gratuite — autre application) */
+    v('population : six formules (3 OP GESTION, 3 OP MESSAGES), plus aucun « gratuit » d\'OP GESTION', [cles.length, cles.filter(k => F[k].groupe === 'gestion'), 'gratuit' in F], [6, ['pro', 'business', 'premium'], false]);
     v('⛔ chaque formule compte 1 utilisateur par abonnement', cles.filter(k => F[k].utilisateurs !== 1), []);
     v('⛔ le plafond de la page est celui du serveur (' + PLAFOND_SERVEUR + ')', b.api.MAX_ABONNEMENTS, PLAFOND_SERVEUR);
     /* ⚠️ le plafond d'avant se cherche sous la forme du CODE (`Math.min(250,`, `max="250"`) : « 250 » tout court tombe dans
@@ -240,10 +242,11 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
     // une adresse venue de l'application (utilisateurs=N) au-delà du plafond
     const gros = executer(PAGE, '?formule=pro&utilisateurs=400');
     v('une adresse qui demande 400 personnes est ramenée au plafond', gros.api.etat().nbUsersVoulu, PLAFOND_SERVEUR);
-    // Gratuit : un compte, aucun compteur
+    // un lien d'avant (« ?formule=gratuit », mails, favoris) : la formule d'entrée, Pro — jamais une page vide ni Business
     const g = executer(PAGE, '?formule=gratuit');
-    vrai('Gratuit : « Avec cette offre, vous avez 1 compte utilisateur », sans « Un abonnement chacune »', g.droits().includes('Avec cette offre, vous avez 1 compte utilisateur') && !g.droits().includes('Un abonnement chacune'));
-    vrai('… et pas de compteur d\'abonnements', !g.paiement().includes('COMBIEN D\'UTILISATEURS'));
+    await g.api.compteLu;
+    v('⛔ un ancien lien « ?formule=gratuit » ouvre Pro', g.api.etat().formuleActive, 'pro');
+    vrai('… à 15 € par mois, avec son compteur d\'abonnements', g.paiement().includes('15 € TTC') && g.paiement().includes('Formule Pro · 1 utilisateur par abonnement'));
   }
 
   /* ── 3. le site et la page de paiement vendent le même prix par utilisateur ─────────────────────────────── */
@@ -252,13 +255,14 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
   const prixSite = {};
   for (const f of GEN.FORMULES_GESTION) prixSite[f.cle] = +f.prix;
   for (const f of GEN.FORMULES_MESSAGES) if (f.nom === 'Messages Pro') prixSite.msgpro = +f.prix; else if (f.nom === 'Messages Business Premium') prixSite.msgpremium = +f.prix;
-  v('population : six formules comparées', Object.keys(prixSite).length, 6);
+  v('population : cinq formules payantes comparées (Pro, Business, Business Premium, Messages Pro, Messages Business Premium)', Object.keys(prixSite).length, 5);
   v('chaque formule coûte le même prix sur le site et au paiement', Object.keys(prixSite).filter(k => !R || !R.api.FORMULES[k] || R.api.FORMULES[k].prixMensuel !== prixSite[k]), []);
 
   /* ── 4. tout ce que le dépôt SERT, recensé — pas une liste écrite à la main ─────────────────────────────────── */
   /* La première version de ce banc ne relisait que les pages qu'on savait concernées : la relecture en a trouvé deux autres,
      servies et sans `noindex`, qui vendaient encore 2 et 3 utilisateurs (`apercu/tarifs.html`, restée d'un cycle d'aperçu
-     antérieur, et la maquette `apercu/site-apple.html`). « Un recensement part du dépôt, jamais d'une liste » (CLAUDE.md). */
+     antérieur, et la maquette `apercu/site-apple.html` — toutes deux supprimées depuis, le 30 septembre 2026). « Un recensement
+     part du dépôt, jamais d'une liste » (CLAUDE.md). */
   console.log('4. aucune page servie ne vend plusieurs utilisateurs par abonnement');
   const { execSync } = require('child_process');
   let suivis = [];
