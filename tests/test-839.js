@@ -68,9 +68,12 @@ function merci(fichier, recherche) {
   }
   vrai('la phrase est dans l\'INTRODUCTION, au-dessus des formules (là où l\'on regarde les prix)',
     /<p class="intro">[^<]*Pour payer, il faut un compte TEAM OP/.test(TARIFS['tarifs.html (en service)']));
-  /* (les anciennes pages d'aperçu — `apercu/tarifs.html`, la maquette `apercu/site-apple.html` — sont supprimées : Justin,
-     30 septembre 2026, « l'ancienne tu peux les supprimer ». Elles ne reviennent pas en silence.) */
-  v('les anciennes pages d\'aperçu (tarifs, maquette) ne sont plus servies', ['apercu/tarifs.html', 'apercu/site-apple.html'].filter(existe), []);
+  /* Les anciennes pages d'aperçu (`apercu/tarifs.html`, la maquette `apercu/site-apple.html`) sont supprimées sur la branche
+     (Justin, 30 septembre 2026 : « l'ancienne tu peux les supprimer »). ⚠️ Ce banc est aussi dans la liste du serveur, qui
+     tourne contre les pages de `main` quand le serveur part SEUL — là, elles existent encore jusqu'à la mise en ligne des
+     pages : tant qu'elles sont servies, elles disent la même phrase (exiger leur absence ferait tomber ce déploiement-là). */
+  for (const f of ['apercu/tarifs.html', 'apercu/site-apple.html'].filter(existe))
+    vrai(f + ' (ancienne page d\'aperçu, encore servie) : la même phrase', texte(lire(f)).includes(PHRASE));
 
   /* ── 2. plus aucun lien de paiement anonyme servi — recensé depuis le dépôt ─────────────────────────────── */
   console.log('2. plus aucun lien de paiement anonyme servi');
