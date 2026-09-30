@@ -2735,16 +2735,8 @@ async function espacePaye(e, opts) {
 function periodeOfferte(e) {
   try {
     const auj = new Date().toISOString().slice(0, 10);
-    /* ⛔ « REPARTIR À NEUF » NE COUPE PAS UNE PÉRIODE EN COURS — et ne la prête à personne d'autre (`promoRenaissance`). La
-       Tour la reporte sur l'entreprise recréée (route « lien ») ; ici, le filet si ce report n'a pas eu lieu. Calculé seulement
-       si l'identifiant n'a rien donné, et une panne de ce repli ne fait jamais perdre la période trouvée par l'identifiant. */
-    const tE = espaceT(e);
-    let ren = null;
-    const renaissance = () => { if (!ren) { try { ren = promoRenaissance(tE, promoIdentite(tE, e.slug).ems); } catch (err) { ren = []; } } return ren; };
-    const enCours = eq => !!(eq && eq.finLe && eq.finLe >= auj);
     for (const [code, u] of Object.entries(promoUsages || {})) {
-      let eq = u && u.equipes && u.equipes[tE];   // (`espaceT` : une entrée ancienne n'a son identifiant que dans son code)
-      if (!enCours(eq)) { const r = renaissance().find(x => x.code === code); if (r) eq = r.eq; }
+      const eq = u && u.equipes && u.equipes[espaceT(e)];   // (`espaceT` : une entrée ancienne n'a son identifiant que dans son code)
       /* ⛔ une période offerte sert TOUJOURS une formule payante (30 septembre 2026) : un code retiré de `config.promos` ne dit
          plus sa formule, et une fiche « Gratuit » d'avant n'en a pas à servir — la formule d'un code par défaut, Business
          Premium (`formuleDuCode`), plutôt que « gratuit », que `/api/espaces/etat` sert désormais SUSPENDU : une entreprise
@@ -9449,8 +9441,11 @@ function promoMarquerAvantRenaitre(t, slug, email) {
    lit par identifiant, ne la voyait pas. Ce qui distingue l'entreprise recréée n'est pas l'adresse, c'est le GESTE :
    `promoMarquerAvantRenaitre` pose `renait` (quand, et les voisines d'adresse déjà vivantes). Rend les périodes EN COURS
    qu'une entreprise `t` (d'empreintes `ems`) peut reprendre : sous un identifiant qui n'est plus à l'annuaire, à son adresse,
-   si elle n'était pas une voisine, et pas déjà reprise par une autre. Une période d'avant ce marqueur ne se reprend pas
-   toute seule : la Tour la reporte en réappliquant le même code (`promoPresente` : même échéance, rien ne se recompte). */
+   si elle n'était pas une voisine, et pas déjà reprise par une autre. La reprise se fait à la création (route « lien »,
+   `promoReprendreRenaissance`) et s'ÉCRIT sous le nouvel identifiant : ensuite l'application, le rappel J-7 et la facturation
+   différée la lisent comme toute période (`periodeOfferte`, par identifiant) — aucune lecture ne prête rien. Une période
+   d'avant ce marqueur ne se reprend pas toute seule : la Tour la reporte en réappliquant le même code (`promoPresente` :
+   même échéance, rien ne se recompte). */
 function promoRenaissance(t, ems) {
   const out = [];
   if (!t || !ems || !ems.size) return out;

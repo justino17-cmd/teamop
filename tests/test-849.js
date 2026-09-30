@@ -167,6 +167,10 @@ globalThis.fetch = async function (url, opts) {
     pla: { t: 't-pl-849', nom: 'pla', email: mail('pl'), ts: MAINT - 9000, formule: 'premium', quantite: 1, formuleTs: Date.parse('2025-03-01'),
       aboStatut: 'impaye', aboPar: 'Ancien', aboTs: Date.parse('2025-06-01'), aboDepuis: Date.parse('2025-01-01') },
     plb: { t: 't-pl-849', nom: 'plb', email: mail('pl'), ts: MAINT - 1000 },
+    /* B bis : le même, sans date d'abonnée (données d'avant le repère) : un impayé disait « elle payait » depuis son réglage */
+    pma: { t: 't-pm-849', nom: 'pma', email: mail('pm'), ts: MAINT - 9000, formule: 'premium', quantite: 1, formuleTs: Date.parse('2025-03-01'),
+      aboStatut: 'impaye', aboPar: 'Ancien', aboTs: Date.parse('2025-06-01') },
+    pmb: { t: 't-pm-849', nom: 'pmb', email: mail('pm'), ts: MAINT - 1000 },
     /* E : sans formule (et « Gratuit », témoin), payée par un tarif qu'on ne sait pas lire */
     e1: { t: 't-e1-849', nom: 'e1', email: mail('e1'), ts: MAINT - 1000 },
     e2: { t: 't-e2-849', nom: 'e2', email: mail('e2'), ts: MAINT - 1000, formule: 'gratuit', quantite: 1 },
@@ -224,6 +228,11 @@ globalThis.fetch = async function (url, opts) {
   v('⛔⛔ « actif » reposé par la Tour sur le nom récent : l\'abonnée d\'avant garde ses 3 places (Business Premium)', [rPl.s, ePl.paye, ePl.formule, ePl.places], [200, true, 'premium', 3]);
   const regPl = JSON.parse(fs.readFileSync(path.join(s1.D, 'espaces.json'), 'utf8'));
   v('   … « depuis quand elle paie » reste celle d\'avant, sur ses deux noms', [regPl.pla.aboDepuis, regPl.plb.aboDepuis], [Date.parse('2025-01-01'), Date.parse('2025-01-01')]);
+  const rPm = await s1.appel('/api/monitor/espaces/abonnement', { nom: 'pmb', formule: 'premium', quantite: 1, statut: 'actif', fin: '' }, PATRON);
+  const ePm = await s1.etat('t-pm-849');
+  const regPm = JSON.parse(fs.readFileSync(path.join(s1.D, 'espaces.json'), 'utf8'));
+  v('⛔ … et sans date d\'avant le repère : l\'impayé périmé disait « elle payait depuis son réglage » — 3 places, datées de lui',
+    [rPm.s, ePm.places, regPm.pma.aboDepuis, regPm.pmb.aboDepuis], [200, 3, Date.parse('2025-06-01'), Date.parse('2025-06-01')]);
 
   console.log('\n  D · « repartir à neuf » pendant une période offerte — les vraies routes de la Tour');
   const fct = facteur(); facteurs.push(fct);
@@ -235,10 +244,13 @@ globalThis.fetch = async function (url, opts) {
     x: { t: 't-x-849', nom: 'x', code: codeEspace('t-x-849'), email: mail('dup'), ts: MAINT - 9000, formule: 'pro', quantite: 1 },    // en période offerte
     y: { t: 't-y-849', nom: 'y', code: codeEspace('t-y-849'), email: mail('dup'), ts: MAINT - 5000 },                                 // voisine d'adresse, DÉJÀ là
     k: { t: 't-k-849', nom: 'k', code: codeEspace('t-k-849'), email: mail('dupk'), ts: MAINT - 9000, formule: 'pro', quantite: 1 },   // en période, supprimée TOTALEMENT
-    l: { t: 't-l-849', nom: 'l', code: codeEspace('t-l-849'), email: mail('dupk'), ts: MAINT - 5000 } };                              // … sa voisine d'adresse
+    l: { t: 't-l-849', nom: 'l', code: codeEspace('t-l-849'), email: mail('dupk'), ts: MAINT - 5000 },                               // … sa voisine d'adresse
+    m1: { t: 't-m-849', nom: 'm1', code: codeEspace('t-m-849'), email: mail('dupm'), ts: MAINT - 9000, formule: 'pro', quantite: 1 },  // une entreprise à DEUX noms,
+    m2: { t: 't-m-849', nom: 'm2', code: codeEspace('t-m-849'), email: mail('dupm'), ts: MAINT - 8000, formule: 'pro', quantite: 1 } };// en période
   const UD = { 'VIEUX-BANC-849': { n: 2, equipes: {
     't-x-849': { date: jour(-10), finLe: jour(30), em: em(mail('dup')) },
-    't-k-849': { date: jour(-10), finLe: jour(30), em: em(mail('dupk')) } } } };
+    't-k-849': { date: jour(-10), finLe: jour(30), em: em(mail('dupk')) },
+    't-m-849': { date: jour(-10), finLe: jour(30), em: em(mail('dupm')) } } } };
   const sD = await demarrer(ED, UD, [], {}, { smtp: portSmtp });
   vrai('le vrai serveur démarre, isolé (courriel de banc : les gestes de suppression en exigent un)', sD.vivant);
   const PD = await sD.patron();
@@ -262,6 +274,10 @@ globalThis.fetch = async function (url, opts) {
   v('⛔ une troisième entreprise créée ensuite à la même adresse ne la reprend pas (une seule fois) : suspendue', [rW.s, SUSP(await sD.etat('t-w-849'))], [200, true]);
   const rK = await sD.appel('/api/monitor/entreprise/supprimer', { t: 't-k-849', confirme: true }, PD);
   v('⛔⛔ suppression TOTALE de k : sa période n\'est pas prêtée à sa voisine d\'adresse l (suspendue)', [rK.s, SUSP(await sD.etat('t-l-849'))], [200, true]);
+  const rM1 = await sD.appel('/api/monitor/espaces/renaitre', { nom: 'm1', confirme: true }, PD);
+  const rM3 = await sD.appel('/api/monitor/espaces', { nom: 'm3', code: codeEspace('t-m3-849'), email: mail('dupm'), origine: 'tour' }, PD);
+  v('⛔ un seul nom d\'une entreprise à deux noms repart à neuf : l\'entreprise VIT encore (son autre nom) — elle garde sa période, la nouvelle ne la prend pas',
+    [rM1.s, rM3.s, SERVIE(await sD.etat('t-m-849')), SUSP(await sD.etat('t-m3-849'))], [200, 200, [true, 'premium', false], true]);
 
   /* le rappel J-7 de l'entreprise recréée — le passage des rappels se fait au démarrage : on redémarre le serveur sur les
      MÊMES données, rappels presque immédiats, et on attend le COURRIEL (pas le chronomètre) */
