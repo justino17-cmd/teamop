@@ -283,6 +283,10 @@ vrai('le métier part en tête de la demande', /lignes\.push\('MÉTIER CHOISI : 
   const intro = texte((PAGES.metiers.match(/<h2 class="h2">Les métiers couverts\.<\/h2><p class="intro">([^<]*)</) || ['', ''])[1]);
   vrai('   la page Métiers dit le même nombre : « ' + intro + ' »', intro.startsWith(ordreApp.filter(k => k !== 'autre').length + ' packs'));
   v('   la page Métiers : « Démarrer avec ce pack » exactement sur les packs connus', (PAGES.metiers.match(/Démarrer avec ce pack/g) || []).length, ordreApp.length);
+  v('   la page Métiers : « PACK DISPONIBLE / COMPLET » exactement sur les packs connus (les autres : « PACK BIENTÔT »)',
+    [(PAGES.metiers.match(/>PACK (DISPONIBLE|COMPLET)</g) || []).length, (PAGES.metiers.match(/>PACK BIENTÔT</g) || []).length],
+    [ordreApp.filter(k => k !== 'autre').length, puces.filter(([, pr]) => !pr).length]);
+  v('   « Autre métier de terrain » seulement si l\'application porte son réglage général', PAGES.metiers.includes('Autre métier de terrain'), ordreApp.includes('autre'));
 }
 
 console.log('9. référencement');
