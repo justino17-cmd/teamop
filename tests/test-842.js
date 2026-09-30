@@ -105,6 +105,10 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
   /* ⛔⛔ deux fiches SANS formule (Justin, 30 septembre 2026 : « Suspend ») : l'une ne paie rien, l'autre paie Pro chez Stripe */
   esp('sansformule', {});
   const tSP = esp('sansformulepaie', {});
+  /* ⛔⛔ une entreprise réglée à la main (Business Premium × 3, « actif », payée par virement) que la Tour va inscrire sous un
+     SECOND nom (relecture de `gardien` sur A3, 30 septembre 2026, rejouée par la vraie route — § 5 ter) */
+  esp('renomme', { formule: 'premium', quantite: 3, formuleTs: APRES, formulePar: 'Patron', aboStatut: 'actif', aboPar: 'Patron', aboTs: APRES,
+    email: 'renomme@exemple-842.fr' });
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(E));
   /* les codes : l'un en cours (promoprem, promotour), l'autre FINI hier (promofini) */
   fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify({
@@ -386,6 +390,24 @@ globalThis.fetch = async function (url, opts) {
     ctxS.tourStatutPack('mauvaistarif'); await new Promise(r => setImmediate(r));
     v('   … et le toast de « 💳 Statut paiement » (la vraie tourStatutPack) : « 📦 Business Premium → l’application reçoit Pro — ✅ payé »',
       /^📦 Business Premium → l’application reçoit Pro — ✅ payé \(/.test(ctxS.toastVu) ? 'lu' : ctxS.toastVu, 'lu');
+
+    /* ⛔⛔ 5 ter — UN SECOND NOM POUR UNE ENTREPRISE CONNUE (relecture de `gardien` sur A3, 30 septembre 2026). Le nom neuf devient
+       la référence (`espaceParT` sert la plus récente) ; la route le reportait depuis le MÊME nom (vide) : né sans formule ni
+       abonnement réglé à la main, il SUSPENDAIT une entreprise payée par virement. Joué par la vraie route de la Tour. */
+    console.log('\n5 ter. Un second nom pour une entreprise réglée à la main : rien ne change pour elle');
+    const avantR = await etat('renomme');
+    v('   (témoin) avant : servie Business Premium, payée, ses 3 abonnements', [avantR.formule, avantR.paye, avantR.quantite, avantR.suspendu], ['premium', true, 3, false]);
+    const rR = await appel('/api/monitor/espaces', { nom: 'renommeneuf', code: E.renomme.code, origine: 'tour' }, PATRON);
+    v('   la Tour inscrit le second nom (même code, même clé : aucune question)', rR.s, 200);
+    const apresR = await etat('renomme');
+    v('⛔⛔ après : EXACTEMENT la même réponse — formule, paiement, abonnements, places, pas de suspension',
+      [apresR.formule, apresR.paye, apresR.quantite, apresR.places, apresR.suspendu], [avantR.formule, avantR.paye, avantR.quantite, avantR.places, false]);
+    const regR = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'));
+    const neuf = regR[Object.keys(regR).find(k => k !== 'renomme' && regR[k] && regR[k].t === E.renomme.t) || ''] || {};
+    v('⛔⛔ … et l\'entrée neuve PORTE la fiche de l\'entreprise : formule, nombre, abonnement réglé à la main, adresse',
+      [neuf.formule, neuf.quantite, neuf.aboStatut, neuf.aboPar, neuf.email], ['premium', 3, 'actif', 'Patron', 'renomme@exemple-842.fr']);
+    const stR = (await appel('/api/monitor/espaces/statut', { nom: 'renommeneuf' }, PATRON)).j;
+    v('   … et la Tour le dit sous le nom neuf : payée, Business Premium', [stR.paye, stR.formuleServie], [true, 'premium']);
 
     const APP = fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8');
     const sansCom = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');

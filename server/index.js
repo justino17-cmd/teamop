@@ -2209,10 +2209,10 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
      Sans égard à la casse de l'identifiant (le paiement le lit sans casse : « ACME-CD34 » serait une autre entreprise
      pour ce contrôle et la même pour Stripe). La même clé ne demande rien : c'est le même code, collé une seconde fois. */
   let cleConfirmee = null;
+  let ref = null;   // l'entrée la plus récente de cette entreprise (tous noms confondus) — reprise plus bas pour un nom NEUF
   if (t) {
     const cleDe = (c) => { try { return String(JSON.parse(Buffer.from(String(c || ''), 'base64').toString('utf8')).k || ''); } catch (e) { return ''; } };
     const cleNeuve = cleDe(code);
-    let ref = null;
     for (const e2 of Object.values(espacesReg)) {
       if (!e2 || espaceT(e2).toLowerCase() !== t.toLowerCase()) continue;
       if (!ref || (e2.ts || 0) > (ref.ts || 0)) ref = e2;
@@ -2232,24 +2232,30 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
      inscrite sur le site. Les deux vivent dans le même annuaire — c'est voulu, ce sont de
      vrais espaces — mais les mélanger à l'écran, c'est risquer de supprimer un client en
      croyant faire le ménage. Seul l'appelant sait : la fiche d'un client ne l'envoie pas. */
-  const origine = ((req.body || {}).origine === 'tour') ? 'tour' : (prev.origine || 'site');
+  /* ⛔⛔ UN NOM NEUF POUR UNE ENTREPRISE CONNUE REPREND SA FICHE (relecture de `gardien`, 30 septembre 2026, rejouée) : ce nom
+     devient la référence (`espaceParT` sert la plus récente). Reporté depuis `prev` seul — le même nom —, il naissait sans
+     formule, sans abonnement réglé à la main, sans OP MESSAGES ni métier : l'entreprise était suspendue. On reporte depuis
+     l'entrée la plus récente de la même entreprise, quel que soit son nom (`ref`, plus haut ; `facturationDe` pour la
+     facturation, si elle-même l'avait perdue). */
+  const base = Object.keys(prev).length ? prev : (ref ? facturationDe(ref) : {});
+  const origine = ((req.body || {}).origine === 'tour') ? 'tour' : (base.origine || 'site');
   /* « opMessages » se reporte, comme la formule. Cette route reconstruit l'entrée de zéro, et
      elle est appelée par « Revoir le lien de connexion » aussi bien que par l'ouverture d'un
      accès : sans ce report, redonner son lien à une entreprise lui REFERMAIT OP MESSAGES —
      sans erreur, sans journal, sans que rien à l'écran ne le dise. Mesuré par le gardien. */
-  espacesReg[slug] = { nom, code, t, ts: Date.now(), par: req.tourUser.nom, origine, email: emailNeuf || prev.email || '',
-    opMessages: prev.opMessages,
-    formule: prev.formule, quantite: prev.quantite, formulePar: prev.formulePar, formuleTs: prev.formuleTs,
+  espacesReg[slug] = { nom, code, t, ts: Date.now(), par: req.tourUser.nom, origine, email: emailNeuf || base.email || '',
+    opMessages: base.opMessages,
+    formule: base.formule, quantite: base.quantite, formulePar: base.formulePar, formuleTs: base.formuleTs,
     /* ⛔ le métier se reporte comme la formule (29 septembre 2026) : sans ça, « Revoir le lien de connexion » le
        remettait à « non réglé » — l'application garderait le sien, mais la Tour afficherait un métier à re-poser */
-    metier: prev.metier, metierPar: prev.metierPar, metierTs: prev.metierTs,
+    metier: base.metier, metierPar: base.metierPar, metierTs: base.metierTs,
     /* ⛔⛔ L'ABONNEMENT RÉGLÉ À LA MAIN SE REPORTE AUSSI (30 septembre 2026). Cette route le perdait : une entreprise
        « abonnement activé par TEAM OP » (un virement, un accord) retombait sur Stripe, qui ne la connaît pas — l'application
        d'avant affichait « Paye ton abonnement » à toute l'équipe, et depuis qu'une entreprise qui ne paie pas est SUSPENDUE,
        un simple « Revoir le lien de connexion » l'aurait coupée. Un « impayé » posé à la main se levait de la même façon.
        `aboDepuis` et `formuleDepuis` datent les places des abonnements d'avant (`gardien`, M4) : les perdre en retirait. */
-    aboStatut: prev.aboStatut, aboFin: prev.aboFin, aboPar: prev.aboPar, aboTs: prev.aboTs, aboDepuis: prev.aboDepuis,
-    formuleDepuis: prev.formuleDepuis };
+    aboStatut: base.aboStatut, aboFin: base.aboFin, aboPar: base.aboPar, aboTs: base.aboTs, aboDepuis: base.aboDepuis,
+    formuleDepuis: base.formuleDepuis };
   /* La confirmation se garde avec l'entrée : qui a dit « oui, c'est la nouvelle clé », et quand. */
   if (cleConfirmee) espacesReg[slug].cleConfirmee = cleConfirmee;
   /* ⛔ ÉCRIT, OU ON LE DIT — et on défait l'entrée en mémoire. Répondre `ok` sur une écriture
@@ -2576,6 +2582,11 @@ async function espacePaye(e, opts) {
   const lecture = !!(opts && opts.lecture);
   /* (une fiche SANS formule ne sort plus ici : elle suit le chemin de la fiche « Gratuit », plus bas — `ficheSansFormule`) */
   if (!e) return { paye: false, motif: 'aucune formule' };
+  /* ⛔⛔ L'IDENTIFIANT D'UNE ENTRÉE ANCIENNE NE VIT QUE DANS SON CODE (relecture de `gardien`, 30 septembre 2026, rejouée) :
+     la période offerte (`periodeOfferte`) et le rattrapage d'un code lisaient `e.t` — vide pour ces entrées-là. Une entreprise
+     en pleine période offerte était donc suspendue (et datée « jamais abonnée » par l'horloge de conservation) pendant que le
+     rappel J-7, qui passe par `espaceT`, lui promettait « rien n'est prélevé avant… ». On le pose une fois, ici. */
+  if (!e.t) { const tCode = espaceT(e); if (tCode) e = Object.assign({}, e, { t: tCode }); }
   if (aboManuelDe(e)) {   // réglé à la main dans la Tour (un « actif » ou un « essai » échu n'arrive plus ici : `aboManuelDe`)
     if (e.aboStatut === 'actif' || e.aboStatut === 'essai') {
       return { paye: true, motif: (e.aboStatut === 'essai' ? 'essai offert' : 'abonnement activé') + ' par ' + (e.aboPar || 'TEAM OP') + (e.aboFin ? ' (jusqu\'au ' + e.aboFin + ')' : ''), finLe: e.aboFin || '' };
@@ -2695,7 +2706,7 @@ function periodeOfferte(e) {
   try {
     const auj = new Date().toISOString().slice(0, 10);
     for (const [code, u] of Object.entries(promoUsages || {})) {
-      const eq = u && u.equipes && u.equipes[e.t];
+      const eq = u && u.equipes && u.equipes[espaceT(e)];   // (`espaceT` : une entrée ancienne n'a son identifiant que dans son code)
       /* ⛔ une période offerte sert TOUJOURS une formule payante (30 septembre 2026) : un code retiré de `config.promos` ne dit
          plus sa formule, et une fiche « Gratuit » d'avant n'en a pas à servir — la formule d'un code par défaut, Business
          Premium (`formuleDuCode`), plutôt que « gratuit », que `/api/espaces/etat` sert désormais SUSPENDU : une entreprise
@@ -2825,7 +2836,7 @@ async function factureImpayeARegler(visees, payeurMin) {
   if (e) {
     let p = null;
     /* le nom d'accès voyage avec l'entrée (`espacesDeRef` et l'annuaire le posent) : `espacePaye` rattache par `[slug, t]` */
-    try { p = await espacePaye(Object.assign({ slug: e.slug }, e), { lecture: true }); } catch (err) { p = null; }
+    try { p = await espacePaye(Object.assign({ slug: e.slug }, facturationDe(e)), { lecture: true }); } catch (err) { p = null; }
     if (!p || !p.bloque) return null;
     let imp = null;
     try { imp = impayesGestion(e, espStripeCache.data || liste); } catch (err) { imp = null; }
@@ -3244,7 +3255,7 @@ app.get('/api/monitor/espaces/liste', monAdmin, async (req, res) => {
        enrichie, via `espaceParT()` : la Tour, elle, rattachait par le `t` seul. Le jour où la
        référence gravée vaut le SLUG, l'application dirait « payé » et la Tour « impayé »,
        sur la même entreprise, au même instant — et on chercherait du côté de Stripe. */
-    try { p = await espacePaye(Object.assign({ slug }, e), { lecture: true }); } catch (err) {}   // une LISTE n'active aucun code
+    try { p = await espacePaye(Object.assign({ slug }, facturationDe(e)), { lecture: true }); } catch (err) {}   // une LISTE n'active aucun code
     sortie.push({ slug, nom: e.nom || slug, email: e.email || '', formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', quantite: e.quantite || 1, places: placesServies(e, p),
       paye: p.paye, motif: p.motif, promoCode: p.promoCode || '', finLe: p.finLe || '', echeance: p.echeance || '', attribueLe: e.formuleTs || 0, par: e.formulePar || '',
       /* carte refusée : les fonctions payantes sont bloquées jusqu'au règlement (`bloque`) ; `impayeStripe` : il vient d'un
@@ -3292,7 +3303,7 @@ app.post('/api/monitor/espaces/statut', monAdmin, async (req, res) => {
   const slug = espSlug(monStr((req.body || {}).nom, 80));   // borné : voir /api/espaces/ouvrir
   const e = espacesReg[slug];
   if (!e) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son lien de connexion' });
-  const p = await espacePaye(Object.assign({ slug }, e), { lecture: true });   // le slug n'est pas dans l'entrée — voir /liste ; une LECTURE n'active aucun code
+  const p = await espacePaye(Object.assign({ slug }, facturationDe(e)), { lecture: true });   // le slug n'est pas dans l'entrée — voir /liste ; une LECTURE n'active aucun code
   res.json({ ok: true, formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', promoCode: p.promoCode || '', quantite: e.quantite || 1, places: placesServies(e, p), email: e.email || '', paye: p.paye, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '', metier: metierOk(e.metier),
     impaye: !!p.bloque, impayeStripe: !!p.impayeStripe, impayesPartiels: p.impayesPartiels || 0 });
 });
@@ -4941,6 +4952,30 @@ app.post('/api/monitor/espaces/mail-acces', monPatronStrict, async (req, res) =>
 });
 // l'app d'un espace demande sa formule attribuée (public — ne révèle que la formule)
 /* Fiche d'un espace de l'annuaire à partir de son identifiant d'équipe (avec son nom de lien) */
+/* ⛔⛔ LA FACTURATION D'UNE ENTREPRISE À PLUSIEURS NOMS SUIT L'ENTREPRISE, PAS SON DERNIER NOM (relecture de `gardien`,
+   30 septembre 2026, rejouée par les vraies routes de la Tour). Un second nom pour le même identifiant (`tourEspaceDe` le
+   fait pour une entreprise renommée) devenait la référence (`espaceParT` sert la plus récente) SANS formule ni abonnement
+   réglé à la main : une entreprise payée par virement était SUSPENDUE, et datée « jamais abonnée ». La Tour ne sait pas
+   RETIRER une formule — une entrée récente qui n'en a pas ne l'a jamais eue, elle ne la refuse pas : elle prend donc la
+   facturation de l'entrée la plus récente de la même entreprise qui en porte une. La route qui enregistre un nom la reporte
+   désormais elle-même ; ceci répare les annuaires d'avant. Lue par `espaceParT` (l'application, « Mon espace », le rappel
+   J-7), la liste et le statut de la Tour, l'horloge de conservation et la page de paiement : UNE lecture. */
+function facturationDe(e) {
+  /* (la liste vit DANS la fonction : une constante de module lue avant sa ligne — un appel au démarrage — serait en zone
+     morte, la leçon du 19 septembre 2026) */
+  const CHAMPS_FACTURATION = ['formule', 'quantite', 'formulePar', 'formuleTs', 'formuleDepuis', 'aboStatut', 'aboFin', 'aboPar', 'aboTs', 'aboDepuis'];
+  if (!e || e.formule || e.aboStatut) return e;
+  const t = String(espaceT(e) || '').toLowerCase(); if (!t) return e;
+  let src = null;
+  for (const x of Object.values(espacesReg || {})) {
+    if (!x || !x.formule || String(espaceT(x) || '').toLowerCase() !== t) continue;
+    if (!src || (x.ts || 0) > (src.ts || 0)) src = x;
+  }
+  if (!src) return e;
+  const r = Object.assign({}, e);
+  for (const k of CHAMPS_FACTURATION) if (src[k] !== undefined) r[k] = src[k];
+  return r;
+}
 function espaceParT(t) {
   if (!t) return null;
   const slugs = Object.keys(espacesReg).filter(s => { const x = espacesReg[s];
@@ -4948,7 +4983,7 @@ function espaceParT(t) {
     try { const o = JSON.parse(Buffer.from(x.code, 'base64').toString('utf8')); return String(o.t || '') === t; } catch (err) { return false; } });
   if (!slugs.length) return null;
   const slug = slugs.sort((a, b) => (espacesReg[b].ts || 0) - (espacesReg[a].ts || 0))[0];   // plusieurs noms pour le même espace : le plus récent
-  return Object.assign({ slug }, espacesReg[slug]);
+  return facturationDe(Object.assign({ slug }, espacesReg[slug]));   // … et sa facturation, celle de l'entreprise (`facturationDe`)
 }
 /* ⛔ TOUTES les entreprises qu'une référence de paiement désigne — celles qu'`espacePaye()` reconnaîtrait pour
    `metadata.espace` : par NOM D'ACCÈS ou par IDENTIFIANT, sans casse. Le verrou de `/api/stripe/checkout` (« B »)
@@ -7207,7 +7242,7 @@ try {
            sa date (`balayer`), et le balayage suivant, qui saura, décidera.
            ⛔ `lecture: true` : balayer n'ACTIVE aucun code promo en attente (voir `espacePaye`). */
         let r = null;
-        try { r = await espacePaye(Object.assign({}, e, { slug: slug }), { lecture: true }); } catch (err) { r = null; }
+        try { r = await espacePaye(Object.assign({}, facturationDe(e), { slug: slug }), { lecture: true }); } catch (err) { r = null; }
         if (!r || r.doute || r.inconnu) continue;
         sortie.push({ t: t, paye: !!r.paye, motif: String(r.motif || '') });
       }

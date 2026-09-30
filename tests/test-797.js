@@ -111,7 +111,7 @@ const vrai = (t, a) => v(t, !!a, true);
      `finEssaiPeriode` (et ce qu'elle lit : `periodeOfferte`, la formule du code, `promoUsages`, `espaceFerme`). Sans elles,
      la route jetait (« finEssaiPeriode is not defined ») et répondait 500 : ce banc est tombé ainsi le jour même — trois
      contrôles, et le job `bancs` du déploiement avec eux (`relecteur`). Le serveur d'avant ne les a pas : `aide` rend ''. */
-  const AIDES_ROUTE = ['espaceT', 'espacesDeRef', 'espaceParT', 'finEssaiPeriode', 'periodeOfferte', 'formulePromo', 'formuleDuCode'].map(aide).join('\n') + '\n' + (iCst > 0 && iPQ > iCst ? SRC.slice(iCst, iPQ) : '');
+  const AIDES_ROUTE = ['espaceT', 'espacesDeRef', 'facturationDe', 'espaceParT', 'finEssaiPeriode', 'periodeOfferte', 'formulePromo', 'formuleDuCode'].map(aide).join('\n') + '\n' + (iCst > 0 && iPQ > iCst ? SRC.slice(iCst, iPQ) : '');
   const ESPACES = { monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr' } };
   const appeler = async (body, hdr, espaces) => {
     let envoye = '', statut = 0, sortie = null;

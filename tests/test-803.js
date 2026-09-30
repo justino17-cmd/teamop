@@ -111,9 +111,11 @@ console.log('\n══ 0. Les quatre chemins qui activent un code passent par la 
 /* ══ 1. LES VRAIES FONCTIONS DE LA RÈGLE, EXÉCUTÉES ═══════════════════════════════════════════ */
 console.log('\n══ 1. Les vraies fonctions de la règle, exécutées ══');
 const NOMS = ['promoAujourdhui', 'promoDateFr', 'promoEmpreinteMail', 'promoIdentite', 'promoServiA', 'promoAutreActif',
-  'promoEntree', 'promoPresente', 'promoRefusServi', 'promoMarquerAvantRenaitre', 'promoCles', 'promoHeritier', 'promoEffacerEntreprise', 'espaceParT'];
+  'promoEntree', 'promoPresente', 'promoRefusServi', 'promoMarquerAvantRenaitre', 'promoCles', 'promoHeritier', 'promoEffacerEntreprise', 'espaceParT',
+  /* (`espaceParT` sert la facturation de l'ENTREPRISE — `facturationDe`, qui lit `espaceT` : relecture de `gardien`, 30 septembre 2026) */
+  'facturationDe', 'espaceT'];
 const SOURCES = NOMS.map(n => extraire(SRV, n));
-vrai('population : les quatorze fonctions sont trouvées dans le fichier réel', SOURCES.every(Boolean));
+vrai('population : les seize fonctions sont trouvées dans le fichier réel', SOURCES.length === 16 && SOURCES.every(Boolean));
 function bac(espacesReg, promoUsages, illisible) {
   const trace = { ecrit: 0 };
   const api = new Function('espacesReg', 'promoUsages', 'crypto', 'savePromoUsages', 'etatIllisible',

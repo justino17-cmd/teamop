@@ -309,9 +309,14 @@ async function monter() {
     /* 2525 n'est pas 465 : `secure` reste faux, donc pas de TLS à fabriquer pour un banc. */
     smtp: { host: '127.0.0.1', port: portMail, user: 'banc', pass: 'banc', from: 'banc@exemple.fr' },
   }));
+  /* ⛔ LES ENTREPRISES DU BANC PAIENT (formule réglée « actif » à la main dans la Tour). Depuis le 30 septembre 2026, ce qui
+     n'est pas payé est suspendu SANS sursis — une fiche sans formule comprise (Justin : « Suspend ») : les sept jours de
+     sursis d'une suspension posée dans la Tour ne servent qu'une entreprise que la facturation dit payée (§ suspension,
+     plus bas). Même règle que `test-796`. */
+  const PAYE = { formule: 'pro', quantite: 1, aboStatut: 'actif', aboPar: 'Banc' };
   fs.writeFileSync(path.join(data, 'espaces.json'), JSON.stringify({
-    [SLUG]: { slug: SLUG, nom: 'Entreprise du banc', email: 'banc@exemple.fr', t: T, code: b64({ t: T, k: CLE }), ts: 1 },
-    [SLUG2]: { slug: SLUG2, nom: 'Entreprise de la course', email: 'course@exemple.fr', t: T2, code: b64({ t: T2, k: CLE2 }), ts: 1 },
+    [SLUG]: { slug: SLUG, nom: 'Entreprise du banc', email: 'banc@exemple.fr', t: T, code: b64({ t: T, k: CLE }), ts: 1, ...PAYE },
+    [SLUG2]: { slug: SLUG2, nom: 'Entreprise de la course', email: 'course@exemple.fr', t: T2, code: b64({ t: T2, k: CLE2 }), ts: 1, ...PAYE },
   }));
   const port = await portLibre();
   enfant = spawn(process.execPath, [path.join(RACINE, 'server', 'index.js')], {

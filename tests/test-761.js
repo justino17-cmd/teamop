@@ -86,10 +86,19 @@ const arreter = async () => { try { if (enfant) enfant.kill('SIGKILL'); } catch 
     /* ⛔⛔ … et deux fiches SANS formule (Justin, 30 septembre 2026, à « les suspendre aussi ? » : « Suspend ») : l'une ne
        paie rien, l'autre est en période offerte — les codes promo n'y touchent pas */
     sansf: esp('sansf', 'ent-sans-formule', { formule: undefined, aboStatut: undefined }),
-    sansfpromo: esp('sansfpromo', 'ent-sans-formule-promo', { formule: undefined, aboStatut: undefined }) }));
+    sansfpromo: esp('sansfpromo', 'ent-sans-formule-promo', { formule: undefined, aboStatut: undefined }),
+    /* ⛔⛔ relecture de `gardien` sur A3 (30 septembre 2026), rejouée : deux entreprises qui PAIENT et que le changement
+       suspendait. (1) des entrées d'AVANT, dont l'identifiant ne vit que dans le code (pas de `t` en clair), en période
+       offerte — sans formule, puis réglée Pro ; (2) une entreprise à DEUX noms dont le plus récent n'a pas de formule
+       (« Revoir le lien » d'avant ne la reportait pas) pendant que l'ancien porte Business Premium réglé « actif » à la main */
+    ancien: esp('ancien', 'ent-ancien', { t: undefined, formule: undefined, aboStatut: undefined }),
+    ancienpro: esp('ancienpro', 'ent-ancien-pro', { t: undefined, formule: 'pro', aboStatut: undefined }),
+    multia: esp('multia', 'ent-multi', { ts: 1 }),
+    multib: esp('multib', 'ent-multi', { ts: 2, formule: undefined, aboStatut: undefined, quantite: undefined }) }));
   /* la période offerte de « ent-sans-formule-promo » — un code FICTIF (règle du dépôt : aucun vrai code dans un fichier suivi) */
   fs.writeFileSync(path.join(banc, 'data', 'promos-usages.json'), JSON.stringify({
-    'ESSAI-SANSF-BANC': { n: 1, equipes: { 'ent-sans-formule-promo': { date: '2026-09-01', finLe: '2099-12-31' } } } }));
+    'ESSAI-SANSF-BANC': { n: 3, equipes: { 'ent-sans-formule-promo': { date: '2026-09-01', finLe: '2099-12-31' },
+      'ent-ancien': { date: '2026-09-01', finLe: '2099-12-31' }, 'ent-ancien-pro': { date: '2026-09-01', finLe: '2099-12-31' } } } }));
   /* trois états dans le même fichier : suspendu d'hier (sursis vivant), suspendu il y a
      9 jours (sursis épuisé), et FERMÉ pour de bon (absent de `suspendus`). */
   fs.writeFileSync(path.join(banc, 'data', 'entreprises-fermees.json'), JSON.stringify({
@@ -152,6 +161,21 @@ const arreter = async () => { try { if (enfant) enfant.kill('SIGKILL'); } catch 
       [sansfp.paye, sansfp.formule, sansfp.suspendu, /^code promo ESSAI-SANSF-BANC \(jusqu'au 2099-12-31\)$/.test(sansfp.motif || '')], [true, 'premium', false, true]);
     /* ⛔ le témoin qui garde la limite : une entreprise ABSENTE de l'annuaire ne se décide pas — un annuaire illisible au
        démarrage rendrait tout le monde inconnu, et les suspendre couperait toutes les entreprises sur une panne de notre côté */
+    /* ⛔⛔ relecture de `gardien` (B1) : l'identifiant d'une entrée d'AVANT ne vit que dans son code. La période offerte le
+       lisait en clair (`e.t`, vide) : l'entreprise était SUSPENDUE, pendant que le rappel J-7 lui promettait « rien n'est
+       prélevé avant… ». */
+    vrai('(population) les deux entrées d\'avant n\'ont PAS d\'identifiant en clair — seulement dans leur code',
+      (() => { const a = JSON.parse(fs.readFileSync(path.join(banc, 'data', 'espaces.json'), 'utf8')); return !('t' in a.ancien) && !('t' in a.ancienpro) && /ent-ancien/.test(Buffer.from(a.ancien.code, 'base64').toString()); })());
+    const anc = await etat('ent-ancien'), ancp = await etat('ent-ancien-pro');
+    v('⛔⛔ une entrée d\'avant (identifiant dans le code seul), SANS formule, en période offerte : servie, payée, Business Premium — pas suspendue',
+      [anc.paye, anc.formule, anc.suspendu, /^code promo ESSAI-SANSF-BANC/.test(anc.motif || '')], [true, 'premium', false, true]);
+    /* (le code FICTIF n'est pas dans la configuration de ce banc : la fiche garde sa formule — règle gardée par `test-842`) */
+    v('⛔⛔ … et réglée Pro, en période offerte : servie, payée, à sa formule (Pro) — pas suspendue',
+      [ancp.paye, ancp.formule, ancp.suspendu], [true, 'pro', false]);
+    /* ⛔⛔ relecture de `gardien` (B2) : une entreprise à DEUX noms — la facturation suit l'ENTREPRISE, pas son dernier nom */
+    const mul = await etat('ent-multi');
+    v('⛔⛔ entreprise à deux noms, le plus récent SANS formule, l\'ancien en Business Premium réglé « actif » : servie Business Premium, payée — pas suspendue',
+      [mul.paye, mul.formule, mul.suspendu], [true, 'premium', false]);
     const hors = await etat('ent-hors-annuaire');
     v('   (témoin) une entreprise ABSENTE de l\'annuaire : ni suspendue ni servie — la réponse d\'avant, inchangée',
       [hors.ok, hors.suspendu, hors.formule, hors.paye, hors.verificationImpossible, hors.ferme], [true, false, undefined, undefined, undefined, undefined]);
@@ -165,6 +189,9 @@ const arreter = async () => { try { if (enfant) enfant.kill('SIGKILL'); } catch 
     vrai('⛔ la fiche SANS formule qui ne paie rien est datée, motif « aucune formule … » (jamais abonnée)',
       !!(c1 && c1['ent-sans-formule'] && /^aucune formule/.test(c1['ent-sans-formule'].motif || '')), c1 && JSON.stringify(c1['ent-sans-formule']));
     vrai('   … et celle en période offerte ne l\'est pas', !!c1 && !c1['ent-sans-formule-promo']);
+    vrai('⛔ … ni les deux entrées d\'avant en période offerte (identifiant dans le code seul)', !!c1 && !c1['ent-ancien'] && !c1['ent-ancien-pro'],
+      c1 && JSON.stringify([c1['ent-ancien'], c1['ent-ancien-pro']]));
+    vrai('⛔ … ni l\'entreprise à deux noms (son dernier nom n\'a pas de formule, l\'entreprise en a une)', !!c1 && !c1['ent-multi'], c1 && JSON.stringify(c1['ent-multi']));
   }
 
   /* ══ 2 bis. ⛔⛔ DANS LE DOUTE, ON NE COUPE PAS — STRIPE MUET AU DÉMARRAGE (relectures du 30 septembre 2026, rejouées) ══

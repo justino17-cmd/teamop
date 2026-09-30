@@ -254,7 +254,7 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
      ce banc sont tombés ainsi, sur une route juste. */
   /* (et `aboManuelDe`, 30 septembre 2026 : `finEssaiPeriode` lit « réglé à la main » par la même définition qu'`espacePaye`
      — sans elle, elle jetait, et toute facturation différée retombait en immédiate) */
-  const AIDES_ROUTE = ['espaceT', 'espacesDeRef', 'espaceParT', 'finEssaiPeriode', 'periodeOfferte', 'formulePromo', 'formuleDuCode', 'aboManuelDe', 'jourApres'].map(extraire).concat([CONSTS]);
+  const AIDES_ROUTE = ['espaceT', 'espacesDeRef', 'facturationDe', 'espaceParT', 'finEssaiPeriode', 'periodeOfferte', 'formulePromo', 'formuleDuCode', 'aboManuelDe', 'jourApres'].map(extraire).concat([CONSTS]);
   vrai('la route et ses aides (dont finEssaiPeriode et aboManuelDe) sont trouvées dans le fichier réel', AIDES_ROUTE.every(Boolean));
   const PRIX_PRO = (/^\s*pro: \['(price_\w+)'/m.exec(SRC) || [])[1], PRIX_PREMIUM = (/^\s*premium: \['(price_\w+)'/m.exec(SRC) || [])[1];
   vrai('les tarifs Pro et Business Premium du serveur sont lus', /^price_/.test(PRIX_PRO || '') && /^price_/.test(PRIX_PREMIUM || ''));
@@ -487,11 +487,16 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
        sur une phrase au lieu d'une ligne de code : les commentaires s'enlèvent d'abord. */
     const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
     const appels = [];
-    const re = /(?<!function )espacePaye\(([^)]+)\)/g;
+    /* ⚠️ l'argument se lit PARENTHÈSES ÉQUILIBRÉES (30 septembre 2026) : `[^)]+` s'arrêtait à la première fermante, et
+       `espacePaye(Object.assign({}, facturationDe(e), { slug: slug }))` rendait « Object.assign({}, facturationDe(e » —
+       sans le slug qui est pourtant là. Le banc accusait un appel juste. */
+    const re = /(?<!function )espacePaye\(/g;
     let m;
     while ((m = re.exec(CODE))) {
+      let prof = 1, k = m.index + m[0].length;
+      for (; k < CODE.length && prof; k++) { if (CODE[k] === '(') prof++; else if (CODE[k] === ')') prof--; }
       const avant = CODE.slice(Math.max(0, m.index - 600), m.index);
-      appels.push({ arg: m[1].trim(), parT: /espaceParT\(/.test(avant) });
+      appels.push({ arg: CODE.slice(m.index + m[0].length, k - 1).trim(), parT: /espaceParT\(/.test(avant) });
     }
     vrai('   il y a bien plusieurs appelants à garder', appels.length >= 3);
     const sansSlug = appels.filter(a2 => !/slug/.test(a2.arg) && !a2.parT).map(a2 => a2.arg);
@@ -861,8 +866,9 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
      servie — et rien quand ce n'est pas payé, quand l'adresse porte deux entreprises (une adresse = une entreprise, Justin),
      ou quand l'entreprise est fermée. */
   {
-    const FSD = extraire('formuleServieDe'), EPT = extraire('espaceParT');
-    vrai('formuleServieDe et espaceParT sont trouvées dans le fichier réel', !!FSD && !!EPT && /espacePaye\(e, \{ lecture: true \}\)/.test(FSD));
+    /* (`espaceParT` sert la facturation de l'ENTREPRISE — `facturationDe`, relecture de `gardien` du 30 septembre 2026) */
+    const FSD = extraire('formuleServieDe'), EPT = extraire('facturationDe') + '\n' + extraire('espaceParT');
+    vrai('formuleServieDe, espaceParT et facturationDe sont trouvées dans le fichier réel', !!FSD && !!extraire('espaceParT') && !!extraire('facturationDe') && /espacePaye\(e, \{ lecture: true \}\)/.test(FSD));
     const APRES = Math.floor(Date.parse('2026-10-01T00:00:00Z') / 1000);
     const prix = k => (new RegExp('^\\s*' + k + ": \\['(price_\\w+)'", 'm').exec(SRC) || [])[1];
     const abo = (mail, k, q) => ABO({ created: APRES, customer: { email: mail }, items: { data: [{ price: { id: prix(k) }, quantity: q }] } });
