@@ -260,6 +260,10 @@ globalThis.fetch = async function (url, opts) {
   v('« Repartir à neuf » de x : fait, et la période garde la marque du GESTE (les voisines d\'adresse déjà vivantes y sont nommées)',
     [rR.s, !!uR.renait, (uR.renait || {}).voisins], [200, true, ['t-y-849']]);
   v('⛔⛔ la voisine d\'adresse qui existait déjà n\'en profite pas : suspendue', SUSP(await sD.etat('t-y-849')), true);
+  /* (AVANT que la Tour recrée x : sinon c'est « une seule fois » qui protège la voisine, et la règle des voisines n'est jamais jouée) */
+  const rY = await sD.appel('/api/monitor/espaces', { nom: 'y', code: codeEspace('t-y-849'), email: mail('dup'), origine: 'tour' }, PD);
+  v('⛔⛔ « Revoir le lien » de la voisine y, AVANT que x soit recréée, ne la lui donne pas : suspendue, aucune période sous son identifiant',
+    [rY.s, SUSP(await sD.etat('t-y-849')), !!lireUsages(sD).equipes['t-y-849']], [200, true, false]);
   const rX2 = await sD.appel('/api/monitor/espaces', { nom: 'x2', code: codeEspace('t-x2-849'), email: mail('dup'), origine: 'tour' }, PD);
   const eX2 = await sD.etat('t-x2-849');
   v('⛔⛔ la Tour recrée l\'entreprise (route « lien ») : sa période la suit — Business Premium, payée', [rX2.s, ...SERVIE(eX2)], [200, true, 'premium', false]);
@@ -267,9 +271,6 @@ globalThis.fetch = async function (url, opts) {
   const uX2 = lireUsages(sD);
   v('   … reprise sous son NOUVEL identifiant (le rappel J-7 la lit donc), même échéance, rien de recompté, et marquée « reprise »',
     [(uX2.equipes['t-x2-849'] || {}).finLe, (uX2.equipes['t-x2-849'] || {}).reporte, uX2.n, ((uX2.equipes['t-x-849'] || {}).renait || {}).repris], [jour(30), true, 2, 't-x2-849']);
-  const rY = await sD.appel('/api/monitor/espaces', { nom: 'y', code: codeEspace('t-y-849'), email: mail('dup'), origine: 'tour' }, PD);
-  v('⛔ « Revoir le lien » de la voisine y ne la lui donne pas : suspendue, aucune période sous son identifiant',
-    [rY.s, SUSP(await sD.etat('t-y-849')), !!lireUsages(sD).equipes['t-y-849']], [200, true, false]);
   const rW = await sD.appel('/api/monitor/espaces', { nom: 'w', code: codeEspace('t-w-849'), email: mail('dup'), origine: 'tour' }, PD);
   v('⛔ une troisième entreprise créée ensuite à la même adresse ne la reprend pas (une seule fois) : suspendue', [rW.s, SUSP(await sD.etat('t-w-849'))], [200, true]);
   const rK = await sD.appel('/api/monitor/entreprise/supprimer', { t: 't-k-849', confirme: true }, PD);
