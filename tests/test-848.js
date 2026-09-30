@@ -245,11 +245,23 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
        nom est à une autre entreprise » ne lisait que `prev.t` : le nom d'une entrée d'avant, repris avec le code d'une AUTRE
        entreprise, passait — et, depuis que cette route reporte l'abonnement réglé à la main, l'autre héritait de son « actif ». */
     const CODE_AUTRE = Buffer.from(JSON.stringify({ t: 't-autre-848', k: 'k-autre-848-' + 'y'.repeat(20) }), 'utf8').toString('base64').replace(/=+$/, '');
+    /* ⚠️ Joué SANS adresse et avec la MÊME adresse : avec une AUTRE adresse, c'est la garde « déjà relié à une autre
+       adresse », plus bas dans la route, qui refuse — elle cachait celle-ci (mutation M31 du 30 septembre 2026 : ne lire que
+       `prev.t` ne faisait rien tomber, la première version de ce contrôle n'envoyait qu'une autre adresse). */
+    const rR2a = await appel('/api/monitor/espaces', { nom: 'ancien-sans-t', code: CODE_AUTRE }, PATRON);
+    const rR2b = await appel('/api/monitor/espaces', { nom: 'ancien-sans-t', code: CODE_AUTRE, email: 'anc@exemple-848.fr' }, PATRON);
     const rR2 = await appel('/api/monitor/espaces', { nom: 'ancien-sans-t', code: CODE_AUTRE, email: 'autre@exemple-848.fr' }, PATRON);
     await dormir(300);
     const anc2 = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'))[cle('ancien-sans-t')] || {};
-    v('⛔ le nom d\'une entrée d\'avant (sans `t`, il vit dans son code), repris avec le code d\'une AUTRE entreprise : refusé (409) — la fiche et son abonnement restent les siens',
-      [rR2.s, anc2.code === CODE_ANC, anc2.aboStatut], [409, true, 'actif']);
+    v('⛔ le nom d\'une entrée d\'avant (sans `t`, il vit dans son code), repris avec le code d\'une AUTRE entreprise — sans adresse, avec la sienne, avec une autre : refusé (409) les trois fois — la fiche et son abonnement restent les siens',
+      [rR2a.s, rR2b.s, rR2.s, anc2.code === CODE_ANC, anc2.aboStatut], [409, 409, 409, true, 'actif']);
+    /* (témoin) la même entrée redonnée avec SON code — « Revoir le lien » d'une entreprise d'avant — passe, et garde son
+       abonnement : la garde ne refuse que l'identifiant d'une AUTRE entreprise */
+    const rR2c = await appel('/api/monitor/espaces', { nom: 'ancien-sans-t', code: CODE_ANC }, PATRON);
+    await dormir(300);
+    const anc3 = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'))[cle('ancien-sans-t')] || {};
+    v('   (témoin) la même entrée redonnée avec SON code : acceptée (200), son identifiant et son abonnement restent',
+      [rR2c.s, anc3.t, anc3.aboStatut], [200, 't-anc-848', 'actif']);
     const E2 = await etat('plombier-banc'), st2 = (await appel('/api/monitor/espaces/statut', { nom: 'plombier-banc' }, PATRON)).j;
     v('⛔⛔ … et l\'abonnement réglé à la main RESTE : toujours payée, servie avec sa formule — pas suspendue', [E2.formule, E2.paye, E2.suspendu, st2.paye, st2.aboStatut], ['pro', true, false, true, 'actif']);
     v('⛔ une entreprise SANS formule reçoit aussi son métier (la réponse qui sort avant la formule)', (await etat('sans-formule')).metier, 'nettoyage');
