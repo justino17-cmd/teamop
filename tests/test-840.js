@@ -236,7 +236,9 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
       /Nous avons trouvé 7 utilisateurs actifs dans votre espace/.test(O) && /7 × 50 € = 350 € TTC par mois/.test(O)
       && /Continuer : https:\/\/teamop\.fr\/recap-abonnement\.html\?formule=premium&utilisateurs=7/.test(O));
     vrai('omicron — ce qui se passe sans abonnement, et la phrase pour qui a déjà payé',
-      new RegExp('Sans abonnement, après le ' + fr(jour(5)).replace(/\//g, '\\/') + ', l\'application repassera en formule Gratuit').test(O)
+      /* (v767 : plus de formule Gratuit — sans abonnement, l'accès est SUSPENDU jusqu'au règlement, les données restent) */
+      new RegExp('Sans abonnement, après le ' + fr(jour(5)).replace(/\//g, '\\/') + ', l\'accès à l\'application sera suspendu jusqu\'au règlement — vos données sont conservées').test(O)
+      && !/formule Gratuit/.test(O)
       && /Déjà abonné \? Rien à faire : votre abonnement prend le relais/.test(O));
     vrai('omicron — payer se fait avec l\'adresse qui reçoit le message (celle de l\'entreprise : « B »)', /connectez-vous avec l'adresse qui reçoit ce message/.test(O));
     /* ⛔ LE CLIENT CHOISIT SA FORMULE, DANS CE COURRIEL (Justin, 29 septembre 2026 : « à la fin du code promo, s'ils veulent

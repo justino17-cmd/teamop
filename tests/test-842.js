@@ -197,10 +197,13 @@ globalThis.fetch = async function (url, opts) {
     console.log('\n1. `quantite` garde son sens pour la v760 en service ; les places ont leur champ');
     const tous = {}; for (const slug of Object.keys(E)) tous[slug] = await etat(slug);
     /* ⛔ un impayé (carte refusée, ou posé à la main dans la Tour) se sert SANS formule ni places, comme une suspension au sursis
-       écoulé (29 septembre 2026, test-845) : l'application grise sans rien écrire. Les contrôles de population l'écartent, NOMMÉ. */
+       écoulé (29 septembre 2026, test-845) : l'application grise sans rien écrire. ⛔⛔ ET DEPUIS LE 30 SEPTEMBRE 2026, TOUT CE
+       QUI N'EST PAS PAYÉ (Justin : « si une entreprise ne paye plus, le service est suspendu tant que c'est pas réglé » ; plus
+       de formule Gratuit) : rien de payé, fiche « Gratuit » sans rien, OP MESSAGES seul, l'abonnement d'une voisine d'adresse.
+       Les contrôles de population les écartent, NOMMÉS un par un. */
     const formeB = sl => tous[sl].suspendu === true && tous[sl].sursisJours === 0 && !('formule' in tous[sl]) && !('places' in tous[sl]);
-    v('   (population) l\'impayé posé à la main dans la Tour (detour) est servi sans formule ni places — et lui seul ici',
-      Object.keys(E).filter(formeB), ['detour']);
+    v('   (population) ce qui n\'est pas payé est servi sans formule ni places — rien de payé (impaye, nouvelle), l\'impayé posé à la main (detour), fiche Gratuit sans rien (gratuitrien), OP MESSAGES seul (msgseul), l\'adresse d\'une autre (petite) — et eux seuls',
+      Object.keys(E).filter(formeB), ['impaye', 'nouvelle', 'detour', 'gratuitrien', 'msgseul', 'petite']);
     v('⛔ pour CHAQUE entreprise, `quantite` = le nombre réglé dans la Tour, jamais multiplié (la v760 fait × 2 ou × 3 elle-même)',
       Object.keys(E).filter(sl => !formeB(sl) && tous[sl].quantite !== E[sl].quantite), []);
     vrai('   et `places` est rendu partout (hors impayé)', Object.keys(E).filter(sl => !formeB(sl)).every(sl => Number.isInteger(tous[sl].places)));
@@ -214,7 +217,7 @@ globalThis.fetch = async function (url, opts) {
     v('⛔ formule réglée APRÈS la bascule → 1', pl('neufbiz'), 1);
     v('⛔ essai offert → 1', pl('essaibiz'), 1);
     v('⛔ formule venue d\'un code du site, puis « actif » → 1', pl('sitecode'), 1);
-    v('⛔ impayé → 1', [tous.impaye.paye, pl('impaye')], [false, 1]);
+    v('⛔ rien de payé (fiche Business, ni abonnement ni code) → suspendue, sans places (v767)', [tous.impaye.paye, tous.impaye.suspendu, pl('impaye')], [false, true, undefined]);
 
     console.log('\n3. Les périodes offertes ne gardent rien');
     v('⛔ code en cours (repère « code » dans la formule) → 1', [tous.promoprem.paye, pl('promoprem')], [true, 1]);
@@ -250,12 +253,12 @@ globalThis.fetch = async function (url, opts) {
 
     console.log('\n4 ter. La formule servie : ce qui est payé, ou ce que la période offerte sert (Justin, 29 septembre 2026)');
     v('⛔ fiche Gratuit qui paie Business × 2 : l\'application reçoit BUSINESS, payée, 2 places', [tous.gratuitpaie.formule, tous.gratuitpaie.paye, pl('gratuitpaie')], ['business', true, 2]);
-    v('   contre-épreuve : fiche Gratuit sans abonnement — Gratuit, comme avant', [tous.gratuitrien.formule, tous.gratuitrien.paye, pl('gratuitrien')], ['gratuit', true, 1]);
-    v('⛔ fiche Business qui ne paie qu\'OP MESSAGES : OP GESTION reçoit Gratuit', [tous.msgseul.formule, tous.msgseul.paye], ['gratuit', true]);
+    v('   contre-épreuve : fiche Gratuit sans abonnement — SUSPENDUE (le Gratuit n\'existe plus depuis le 30 septembre 2026)', [tous.gratuitrien.formule, tous.gratuitrien.paye, tous.gratuitrien.suspendu], [undefined, false, true]);
+    v('⛔ fiche Business qui ne paie qu\'OP MESSAGES : OP GESTION n\'est pas payé — suspendue (plus de Gratuit servi)', [tous.msgseul.formule, tous.msgseul.paye, tous.msgseul.suspendu], [undefined, false, true]);
     v('⛔ un Business d\'avant + deux Business Premium d\'après : Business Premium (le plus d\'abonnements), 4 places — l\'ancien garde ses 2 places de Business (jamais le × 3 : ce serait 5), et monter n\'en retire aucune', [tous.montetarif.formule, pl('montetarif')], ['premium', 4]);
     v('⛔⛔ « repartie à neuf » : Business Premium × 3 gravé à l\'ancien identifiant + OP MESSAGES gravé au neuf → Business Premium, 3 places (pas « Gratuit » : relecture adverse du 29 septembre)', [tous.reparmsg.formule, tous.reparmsg.paye, pl('reparmsg')], ['premium', true, 3]);
     v('⛔ fiche Pro, dix Pro + un Business Premium pour le patron : Pro, 11 places — pas Business Premium avec une seule', [tous.melee.formule, pl('melee')], ['pro', 11]);
-    v('⛔ fiche Gratuit à la même adresse qu\'une entreprise qui paie Business Premium sans référence : Gratuit — un paiement ne sert pas deux entreprises (et l\'autre garde ses 4)', [tous.petite.formule, tous.grande.formule, pl('grande')], ['gratuit', 'premium', 4]);
+    v('⛔ fiche Gratuit à la même adresse qu\'une entreprise qui paie Business Premium sans référence : SUSPENDUE — un paiement ne sert pas deux entreprises (et l\'autre garde ses 4)', [tous.petite.formule, tous.petite.suspendu, tous.grande.formule, pl('grande')], [undefined, true, 'premium', 4]);
     v('⛔ fiche Gratuit avec un code en cours (validé dans l\'application, la fiche n\'a pas bougé) : Business Premium, le plus gros forfait', [tous.gratuitcode.formule, tous.gratuitcode.paye], ['premium', true]);
     v('⛔⛔ période offerte : un code Business Premium sur une fiche Business sert BUSINESS PREMIUM (« le plus gros forfait »)', [tous.promotour.formule, tous.promotour.paye], ['premium', true]);
     v('   un code qui ne dit pas sa formule : Business Premium', tous.promonu.formule, 'premium');
@@ -263,9 +266,11 @@ globalThis.fetch = async function (url, opts) {
     v('   un code retiré de la configuration : la fiche garde sa formule (Pro)', [tous.promohors.formule, tous.promohors.paye], ['pro', true]);
     /* ⛔ ET PERSONNE D'AUTRE NE BOUGE : sur toute la population du banc, la formule servie est celle de la fiche, sauf les
        écarts NOMMÉS ici — un écart de plus serait une entreprise dont la formule change sans que personne l'ait voulu */
-    const ECARTS = { mauvaistarif: 'pro', tarifhaut: 'premium', gratuitpaie: 'business', msgseul: 'gratuit', montetarif: 'premium', promotour: 'premium', promonu: 'premium', gratuitcode: 'premium' };
+    /* (msgseul n'y est plus : OP MESSAGES seul n'est pas payé, il est servi sans formule — 30 septembre 2026) */
+    const ECARTS = { mauvaistarif: 'pro', tarifhaut: 'premium', gratuitpaie: 'business', montetarif: 'premium', promotour: 'premium', promonu: 'premium', gratuitcode: 'premium' };
     vrai('population : ' + Object.keys(E).length + ' entreprises relues', Object.keys(E).length >= 40);
-    v('⛔ toutes les autres reçoivent la formule de leur fiche, payées ou non (hors impayé)', Object.keys(E).filter(sl => !formeB(sl) && tous[sl].formule !== (ECARTS[sl] || E[sl].formule)).map(sl => sl + ' : ' + tous[sl].formule), []);
+    v('⛔ toutes les autres reçoivent la formule de leur fiche (hors ce qui n\'est pas payé, servi sans formule)', Object.keys(E).filter(sl => !formeB(sl) && tous[sl].formule !== (ECARTS[sl] || E[sl].formule)).map(sl => sl + ' : ' + tous[sl].formule), []);
+    vrai('   … et une entreprise servie AVEC formule est toujours payée (la forme « formule + paye:false » n\'est plus jamais servie)', Object.keys(E).filter(sl => 'formule' in tous[sl]).every(sl => tous[sl].paye === true));
 
     console.log('\n5. La Tour : réenregistrer sans rien changer n\'efface rien, et elle voit les places servies');
     const PATRON = (await appel('/api/monitor/login', { nom: 'Patron', pass: 'mot-de-passe-banc-842' })).j.token;
@@ -317,7 +322,10 @@ globalThis.fetch = async function (url, opts) {
       v('⛔ la Tour écrit la formule servie et l\'écart, sur les lignes du vrai serveur',
         [ctxT.abnFormule(li('mauvaistarif')), ctxT.abnFormule(li('promotour')), ctxT.abnFormule(li('msgseul')), ctxT.abnFormule(li('gratuitpaie'), ' ×1')],
         ['Pro (payée\u202f; la fiche dit Business Premium)', 'Business Premium (offerte par le code\u202f; la fiche dit Business)',
-          'Gratuit (OP GESTION non payé\u202f; la fiche dit Business)', 'Business (payée\u202f; la fiche dit Gratuit ×1)']);
+          'Business', 'Business (payée\u202f; la fiche dit Gratuit ×1)']);
+      /* (v767 : OP MESSAGES seul n'est plus « Gratuit servi » — la ligne garde la fiche, et dit « rien de payé : application
+         suspendue » à côté, parce que la liste la sert non payée) */
+      v('   … et la liste sert msgseul NON payée : la ligne de la Tour dit « application suspendue »', li('msgseul').paye, false);
       v('   sans écart, la fiche seule, comme avant (et « ×N » après elle)', [ctxT.abnFormule(li('ancienajout')), ctxT.abnFormule(li('ancienprem'), ' ×2')], ['Business Premium', 'Business Premium ×2']);
       v('   une ligne d\'un serveur d\'avant (sans `formuleServie`) : la fiche', ctxT.abnFormule({ formule: 'pro' }), 'Pro');
     }
@@ -378,7 +386,11 @@ globalThis.fetch = async function (url, opts) {
     const iSync = sansCom.indexOf('async function forfaitServeurSync(');
     const corpsSync = sansCom.slice(iSync, sansCom.indexOf('\nasync function ', iSync + 10) > 0 ? sansCom.indexOf('\nasync function ', iSync + 10) : iSync + 6000);
     vrai('forfaitServeurSync est trouvée', iSync > 0 && corpsSync.length > 500);
-    vrai('⛔ elle range les places servies EN MÉMOIRE (`_placesSrv`), depuis `j.places`', /_placesSrv=\(j\.paye&&j\.places!=null\)/.test(corpsSync));
+    /* (v767 : ce qui n'est pas payé sort AVANT, places vidées — une réponse qui arrive ici est payée) */
+    vrai('⛔ elle range les places servies EN MÉMOIRE (`_placesSrv`), depuis `j.places` — seulement d\'une réponse payée (le non-payé sort avant, `_placesSrv` vidé)',
+      /_placesSrv=\(j\.places!=null\)\?Math\.max\(1,parseInt\(j\.places,10\)\|\|1\):null/.test(corpsSync)
+      && /if\(nonPaye\|\|!\(j\.formule&&PLANS\[j\.formule\]\)\)\{ _placesSrv=null; return; \}/.test(corpsSync)
+      && corpsSync.indexOf('_placesSrv=null; return;') < corpsSync.indexOf('_placesSrv=(j.places!=null)'));
     vrai('⛔ `db.forfaitQty` reste le nombre d\'abonnements (`j.quantite`), comme la v760 : aucune boucle de synchro entre versions',
       /const q=Math\.max\(1,parseInt\(j\.quantite,10\)\|\|1\);/.test(corpsSync) && !/db\.\w+\s*=[^;\n]*j\.places/.test(corpsSync));
     }

@@ -792,6 +792,13 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
      banc qui fait parler la page à un serveur local l'atteint sans retouche. */
   const CLI_SYNC_URL=API_PORTAIL+'/api/clients/sync', CLI_SYNC_KEY='top_client_sync', CLI_SYNC_DELAI=600000;
   function cliSigne(s){ let h=5381; for(let i=0;i<s.length;i++){ h=((h*33)^s.charCodeAt(i))>>>0; } return h.toString(36); }
+  /* ⛔ PLUS DE FORMULE GRATUITE (Justin, 30 septembre 2026 : « si une entreprise ne paye plus, le service est suspendu tant
+     que c'est pas réglé »). « Découverte » était le nom affiché par défaut — celui de l'ancienne formule gratuite — et un
+     dossier peut encore porter « Gratuit » : sans formule payée, on le DIT, sans « Actif » à côté.
+     ⚠️ Des DÉCLARATIONS de fonction, hissées : `cliResume` (juste en dessous) et les vues du compte les lisent, et une vue peut s'afficher
+     avant que le script n'arrive ici — une `const` serait alors en zone morte (la leçon de `METIER_L`, en tête du script). */
+  function planNom(d){ const p=String((d&&d.plan)||'').trim(); return (p&&!/^(découverte|gratuit)$/i.test(p))?p:''; }
+  function planEtat(d){ return !planNom(d)?'Aucun abonnement':(d.planStatus==='suspendu'?'Suspendu':(d.planStatus==='essai'?'Essai':'Actif')); }
   function cliResume(user,d){
     d=d||{};
     const nom=((d.name||((d.prenom||'')+' '+(d.nom||'')))+'').trim();
@@ -810,7 +817,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       promoCode=String(pi.code||'').toUpperCase().slice(0,40);
       promoFin=new Date(Date.now()+Math.max(0,pi.jours||0)*86400000).toISOString().slice(0,10); } }catch(e){ promo=''; }
     return { email:String((user&&user.email)||''), nom, prenom:String(d.prenom||'').slice(0,40), nomFam:String(d.nom||'').slice(0,40), tel:String(d.tel||'').slice(0,30), entreprise:String(d.company||''), inscrit, apps, demandes,
-      plan:String(d.plan||'Découverte'), promoCode, promoFin,
+      plan:String(planNom(d)), promoCode, promoFin,
       planStatus:String(d.planStatus||'actif'),
       promo };
   }
@@ -905,7 +912,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     const avaL=((prenom[0]||user.email||'?')[0]||'?').toUpperCase();
     const docs=Array.isArray(d.docs)?d.docs:[];
     const _pi0=promoInfo(d);
-    const planTxt=(d.plan||'Découverte')+' · '+(d.planStatus==='suspendu'?'Suspendu':(d.planStatus==='essai'?'Essai':'Actif'))+(_pi0?(' · 🎁 '+_pi0.label+' — reste '+_pi0.jours+' j'):'');
+    const planTxt=(planNom(d)||'Aucune formule')+' · '+planEtat(d)+(_pi0?(' · 🎁 '+_pi0.label+' — reste '+_pi0.jours+' j'):'');
     const ROW=(v,ic,title,sub,badge)=>`<div class="setrow" onclick="openView('${v}')"><span class="si">${ic}</span><div class="sl"><b>${title}${badge||''}</b><span>${sub}</span></div><span class="sc">›</span></div>`;
     $('space').innerHTML=`
       <div class="hero-cli"><div class="cli-ava">${avaL}</div><div style="flex:1;min-width:0"><div class="hi">Bonjour ${esc(prenom||'👋')} 👋</div><div class="hs">${esc(d.company||'Ton espace TeamOP')} ${_cliBadge(d)}</div></div></div>
@@ -1014,7 +1021,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       const pi=promoInfo(d);
       // 1) l'offre en cours
       body=`${promoBanner(d)}
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><div style="font-size:19px;font-weight:800">${esc(d.plan||'Découverte')}</div><div class="muted">${d.planStatus==='suspendu'?'Suspendu':(d.planStatus==='essai'?"Période d'essai":'Actif')}</div></div><span class="badge ${d.planStatus==='suspendu'?'b-prog':'b-done'}">${d.planStatus==='suspendu'?'⏸ Suspendu':'● Actif'}</span></div>`;
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><div style="font-size:19px;font-weight:800">${esc(planNom(d)||'Aucune formule')}</div><div class="muted">${!planNom(d)?'Aucun abonnement en cours':(d.planStatus==='suspendu'?'Suspendu jusqu’au règlement — vos données sont conservées':(d.planStatus==='essai'?"Période d'essai":'Actif'))}</div></div>${!planNom(d)?'':`<span class="badge ${d.planStatus==='suspendu'?'b-prog':'b-done'}">${d.planStatus==='suspendu'?'⏸ Suspendu':'● Actif'}</span>`}</div>`;
       // 2) applications activées
       body+=`<div class="grp2" style="margin-top:18px">Applications activées</div>`;
       const lignes=Object.keys(APPS).map(k=>{ const a=APPS[k]; const actif=apps.includes(k);
@@ -1039,8 +1046,8 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       const pi=promoInfo(d);
       const contrats=[];
       if(pi) contrats.push({t:'promo',ic:'🎁',name:'Contrat — Offre '+pi.label,sub:'Applications : '+pi.apps.map(k=>APPS[k].name).join(' + ')+' · jusqu\'au '+new Date(pi.until).toLocaleDateString('fr-FR')});
-      if(d.plan&&d.plan!=='Découverte') contrats.push({t:'abo',ic:'💼',name:'Contrat d\'abonnement — Formule '+d.plan,sub:'Votre abonnement TeamOP'+(d.planStatus==='suspendu'?' (suspendu)':'')});
-      (Array.isArray(d.apps)?d.apps.filter(k=>APPS[k]):[]).forEach(k=>contrats.push({t:'app',k,ic:'📱',name:'Contrat de mise à disposition — '+APPS[k].name,sub:'Formule '+(d.plan||'Découverte')}));
+      if(planNom(d)) contrats.push({t:'abo',ic:'💼',name:'Contrat d\'abonnement — Formule '+planNom(d),sub:'Votre abonnement TeamOP'+(d.planStatus==='suspendu'?' (suspendu)':'')});
+      (Array.isArray(d.apps)?d.apps.filter(k=>APPS[k]):[]).forEach(k=>contrats.push({t:'app',k,ic:'📱',name:'Contrat de mise à disposition — '+APPS[k].name,sub:'Formule '+(planNom(d)||'—')}));
       const genHtml=contrats.length?`<div class="grp2" style="margin-top:2px">Contrats TeamOP</div>`+contrats.map((c,i)=>`<a class="docr" href="#" onclick="event.preventDefault();contratVoir(${i})"><span style="font-size:20px">${c.ic}</span><div style="flex:1;min-width:0"><b style="font-size:14px">${esc(c.name)}</b><span class="muted" style="display:block">${esc(c.sub)}</span></div><span style="color:var(--op-l);font-size:13px;font-weight:700">Voir / Imprimer ↗</span></a>`).join(''):'';
       window._contrats=contrats;
       const adminHtml=docs.length?`<div class="grp2" style="margin-top:${contrats.length?'16px':'2px'}">Documents TeamOP</div>`+docs.map(doc=>`<a class="docr" href="${esc(doc.url||'#')}" target="_blank" rel="noopener"><span style="font-size:20px">${esc(doc.ic||'📄')}</span><div style="flex:1;min-width:0"><b style="font-size:14px">${esc(doc.name||'Document')}</b><span class="muted" style="display:block">${esc(doc.date||'')}</span></div><span style="color:var(--op-l);font-size:13px;font-weight:700">Ouvrir ↗</span></a>`).join(''):'';
@@ -1177,11 +1184,11 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     let objet='',duree='',prix='';
     if(c.t==='promo'&&pi){ objet='Mise à disposition des applications '+esc(pi.apps.map(k=>APPS[k].name).join(' et '))+' dans le cadre de l\'offre promotionnelle « '+esc(pi.label)+' » (code '+esc(pi.code)+').';
       duree='Du '+new Date((d.promo&&d.promo.activatedAt)||Date.now()).toLocaleDateString('fr-FR')+' au '+new Date(pi.until).toLocaleDateString('fr-FR')+' inclus. À l\'issue de cette période, l\'accès se poursuit uniquement par la souscription d\'un abonnement sur teamop.fr.';
-      prix='Gratuit pendant la durée de l\'offre. Aucun prélèvement automatique à l\'issue : sans souscription, le compte repasse en formule Gratuit.'; }
+      prix='Gratuit pendant la durée de l\'offre. Aucun prélèvement automatique à l\'issue : sans souscription, l\'accès à l\'application est suspendu jusqu\'au règlement — les données sont conservées.'; }
     else if(c.t==='abo'){ objet='Souscription de l\'abonnement TeamOP formule « '+esc(d.plan||'')+' », donnant accès aux applications de la suite TEAM OP selon les droits de cette formule, avec un compte utilisateur par abonnement souscrit, quelle que soit la formule.';
       duree='Abonnement sans engagement de durée, reconduit tacitement par période mensuelle ou annuelle selon le cycle choisi, résiliable à tout moment depuis l\'espace client ou par e-mail.';
       prix='Prix de la formule en vigueur affiché sur teamop.fr/tarifs.html au jour de la souscription (TVA non applicable, art. 293 B du CGI), payé par carte bancaire via Stripe. Les reçus sont envoyés par e-mail à chaque échéance.'; }
-    else { objet='Mise à disposition de l\'application '+esc((APPS[c.k]||{}).name||'')+' au titre de la formule « '+esc(d.plan||'Découverte')+' ».';
+    else { objet='Mise à disposition de l\'application '+esc((APPS[c.k]||{}).name||'')+' au titre de la formule « '+esc(planNom(d)||'—')+' ».';
       duree='Abonnement sans engagement de durée, reconduit par période mensuelle (ou annuelle selon la formule choisie), résiliable à tout moment.';
       prix='Selon la formule en vigueur affichée sur teamop.fr/tarifs.html au jour de la souscription, payée par carte bancaire via Stripe.'; }
     const w=window.open('','_blank'); if(!w) return alert('Autorisez les fenêtres pop-up pour voir le contrat.');
@@ -1199,7 +1206,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       <h2>3. Prix</h2><p>${prix}</p>
       <h2>4. Utilisateurs</h2><p>Chaque abonnement donne un compte utilisateur, quelle que soit la formule : le nombre de comptes disponibles est le nombre d'abonnements souscrits. L'application applique automatiquement cette limite. Pendant une période offerte par un code promotionnel, tous les comptes de l'entreprise sont couverts.</p>
       <h2>5. Données</h2><p>Les données appartiennent au client. Elles sont chiffrées (AES-256), hébergées dans un espace isolé par entreprise, exportables à tout moment, et <b>ne sont jamais supprimées en cas de changement ou d'arrêt de formule</b>.</p>
-      <h2>6. Résiliation</h2><p>Sans engagement : le client peut arrêter à tout moment depuis le Support de son espace ou par e-mail à contact@teamop.fr. L'accès payant cesse à la fin de la période en cours ; le compte repasse alors en formule Gratuit, données conservées.</p>
+      <h2>6. Résiliation</h2><p>Sans engagement : le client peut arrêter à tout moment depuis le Support de son espace ou par e-mail à contact@teamop.fr. L'accès à l'application cesse à la fin de la période en cours : il est suspendu, les données sont conservées, et tout revient à la souscription d'un nouvel abonnement.</p>
       <h2>7. Droit applicable</h2><p>Le présent contrat est soumis au droit français.</p>
       <div class="sig"><div>TEAM OP<br>Justin Biret</div><div>Le client<br>${esc((d.prenom||'')+' '+(d.nom||''))}</div></div>
       <div id="apercu-ruban" style="position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:99999;font:600 12px/1 -apple-system,system-ui,sans-serif;letter-spacing:.06em;color:#fff;background:#B26E12;padding:8px 14px;border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.25);pointer-events:none">APERÇU · refonte en cours</div></body></html>`);
@@ -1390,7 +1397,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       alert(apps.length?'Accès activés ✅ ('+apps.map(k=>APPS[k].name).join(', ')+')':'Accès retirés (aucune application cochée)');
     }catch(e){ alert('Erreur : '+(e.message||e)); }
   }
-  async function setPlan(uid){ const plan=prompt("Nom de l'offre (ex. Découverte, Pro, Entreprise) :",'Pro'); if(plan===null) return;
+  async function setPlan(uid){ const plan=prompt("Nom de l'offre (ex. Pro, Business, Business Premium) :",'Pro'); if(plan===null) return;
     const st=(prompt('Statut : actif / essai / suspendu','actif')||'actif').trim().toLowerCase();
     try{ await fs.collection('teamop_requests').doc(uid).set({plan:plan.trim(),planStatus:st,updatedAt:FV.serverTimestamp()},{merge:true}); alert('Offre mise à jour ✅'); }catch(e){ alert('Erreur : '+(e.message||e)); } }
   async function addDoc(uid){ const name=prompt('Nom du document (ex. Contrat 2026, Facture n°12) :'); if(!name) return;

@@ -55,7 +55,10 @@ const bloc = app.slice(app.indexOf('const PLANS={'), app.indexOf('};', app.index
 vrai('PLANS se lit dans app.html', bloc.length > 100);
 const PLANS = {};
 for (const m of bloc.matchAll(/(\w+):\{l:'([^']+)',prix:'([^']+)',maxU:(\d+)/g)) PLANS[m[1]] = { nom: m[2], prix: m[3], places: +m[4] };
-v('quatre formules dans l\'application', Object.keys(PLANS), ['gratuit', 'pro', 'business', 'premium']);
+/* ⛔ PLUS DE FORMULE GRATUITE, NI SUR LE SITE NI DANS L'APPLICATION (Justin, 30 septembre 2026 : « si une entreprise ne
+   paye plus, le service est suspendu tant que c'est pas réglé »). L'application a exactement les formules que le site vend. */
+v('trois formules dans l\'application — exactement celles que le site vend, sans Gratuit (v767)', Object.keys(PLANS), GEN.FORMULES_GESTION.map(f => f.cle));
+v('   … et ce sont Pro, Business et Business Premium', Object.keys(PLANS), ['pro', 'business', 'premium']);
 /* ⛔ UN ABONNEMENT = UN UTILISATEUR — Justin, 27 septembre 2026 au soir : « à partir d'aujourd'hui c'est 1 utilisateur par
    abonnement ». Le site (et la page de paiement, `test-837`) le disent tout de suite. L'application, elle, le fera avec la
    version qui porte `maxU:1` — publiée sur SA phrase, comme toute version. ENTRE LES DEUX, l'application en service donne

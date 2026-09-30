@@ -40,7 +40,12 @@ setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 90 s'); console.log
    un motif ou une fonction se cherche dans le code, jamais dans une phrase. */
 const nu = s => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 const APPN = nu(APP), TOURN = nu(TOUR), PORTN = nu(PORTAIL), SRVN = nu(SRV);
-/* Une fonction du fichier, ancrée sur sa DÉCLARATION, bornée par ses accolades (chaînes et gabarits sautés). */
+/* Une fonction du fichier, ancrée sur sa DÉCLARATION, bornée par ses accolades (chaînes, gabarits, commentaires et
+   expressions régulières sautés).
+   ⚠️ Jusqu'au 30 septembre 2026, ni les commentaires de fin de ligne ni les expressions régulières n'étaient sautés, et le
+   banc tombait juste PAR CHANCE : `forfaitServeurSync` porte `/…jusqu'au…/` — une apostrophe impaire — que compensait
+   l'apostrophe de « s'il » dans un commentaire de fin de ligne. Le commentaire parti (v767), la tranche débordait de
+   21 000 caractères et le bac à sable ne se compilait plus. */
 function fonction(src, nom) {
   const m = new RegExp('(^|\\n)[ \\t]*(?:async )?function ' + nom + '\\(').exec(src); if (!m) return '';
   const d0 = src.indexOf('function ' + nom + '(', m.index) - (/async function/.test(m[0]) ? 6 : 0);
@@ -51,6 +56,22 @@ function fonction(src, nom) {
     const c = src[k];
     if (q) { if (c === '\\') { k++; continue; } if (c === q) q = null; continue; }
     if (c === "'" || c === '"' || c === '`') { q = c; continue; }
+    if (c === '/' && src[k + 1] === '/') { const n = src.indexOf('\n', k); k = n < 0 ? src.length : n; continue; }
+    if (c === '/' && src[k + 1] === '*') { const n = src.indexOf('*/', k + 2); k = n < 0 ? src.length : n + 1; continue; }
+    /* une barre oblique après un opérateur, une ouverture ou `return` ouvre une expression régulière ; après un nom, un
+       nombre ou une fermeture, c'est une division */
+    if (c === '/' && /(?:[(,=:[!&|?{};]|\breturn|\btypeof)\s*$/.test(src.slice(Math.max(0, k - 12), k))) {
+      let cls = false;
+      for (k++; k < src.length; k++) {
+        const d = src[k];
+        if (d === '\\') { k++; continue; }
+        if (d === '\n') break;
+        if (cls) { if (d === ']') cls = false; continue; }
+        if (d === '[') { cls = true; continue; }
+        if (d === '/') break;
+      }
+      continue;
+    }
     if (c === '{') prof++; else if (c === '}') { prof--; if (!prof) break; }
   }
   return src.slice(d0, k + 1);
@@ -117,8 +138,12 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
   const cle = nom => String(nom).toLowerCase().replace(/[^a-z0-9]+/g, '');
   const CODE_PLO = Buffer.from(JSON.stringify({ t: 't-plo-848', k: 'k-plo-848-' + 'x'.repeat(20), a: 'paul', n: 'plombier-banc' }), 'utf8').toString('base64').replace(/=+$/, '');
   const espaces = {
-    [cle('plombier-banc')]: esp('t-plo-848', 'plombier-banc', 'plo@exemple-848.fr', { formule: 'pro', quantite: 1, formuleTs: MAINT - 1000, formulePar: 'Banc', code: CODE_PLO }),
-    [cle('elan-banc')]: esp('t-ela-848', 'elan-banc', 'ela@exemple-848.fr', { formule: 'premium', quantite: 1, formuleTs: MAINT - 1000, formulePar: 'Banc' }),
+    /* ⚠️ PAYÉES (abonnement réglé à la main dans la Tour) : depuis le 30 septembre 2026, une entreprise qui ne paie pas est
+       servie SUSPENDUE, sans formule — c'est la réponse AVEC formule qu'on veut ici, comme chez un client qui paie. */
+    [cle('plombier-banc')]: esp('t-plo-848', 'plombier-banc', 'plo@exemple-848.fr', { formule: 'pro', quantite: 1, formuleTs: MAINT - 1000, formulePar: 'Banc', code: CODE_PLO, aboStatut: 'actif', aboPar: 'Banc', aboTs: MAINT - 1000 }),
+    [cle('elan-banc')]: esp('t-ela-848', 'elan-banc', 'ela@exemple-848.fr', { formule: 'premium', quantite: 1, formuleTs: MAINT - 1000, formulePar: 'Banc', aboStatut: 'actif', aboPar: 'Banc', aboTs: MAINT - 1000 }),
+    /* une entreprise qui ne paie RIEN (ni abonnement, ni code) : suspendue — et son métier est réglé */
+    [cle('suspendue-banc')]: esp('t-sus-848', 'suspendue-banc', 'sus@exemple-848.fr', { formule: 'pro', quantite: 1, metier: 'peinture' }),
     [cle('sans-formule')]: esp('t-sans-848', 'sans-formule', 'sans@exemple-848.fr', { metier: 'nettoyage' }),
     [cle('ecrit-main')]: esp('t-main-848', 'ecrit-main', 'main@exemple-848.fr', { formule: 'pro', quantite: 1, metier: 'boulangerie' })
   };
@@ -148,10 +173,10 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
 
   try {
     console.log('\n2. Le portail DEMANDE le métier (les vraies `sendRequest` et `cliResume` d\'espace.html)');
-    const noms2 = ['lienSlug', 'sendRequest', 'cliResume'];
+    const noms2 = ['lienSlug', 'sendRequest', 'planNom', 'cliResume'];
     const src2 = noms2.map(n => fonction(PORTN, n));
     const ligneMet = (/^[ \t]*const METIER_L=\{[^\n]*\};$/m.exec(PORTN) || [''])[0];
-    vrai('(population) sendRequest, cliResume et la liste des métiers sont trouvés dans le code du portail', src2.every(Boolean) && !!ligneMet, noms2.filter((n, i) => !src2[i]).join(', '));
+    vrai('(population) sendRequest, planNom, cliResume et la liste des métiers sont trouvés dans le code du portail', src2.every(Boolean) && !!ligneMet, noms2.filter((n, i) => !src2[i]).join(', '));
     const portail = (valeurs) => {
       const el = {}; const ecrits = [], fil = [], vues = [];
       for (const [id, val] of Object.entries(valeurs)) el[id] = { value: val, innerHTML: '', scrollIntoView() {} };
@@ -206,7 +231,14 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
        qu'on lui nomme — c'est déjà arrivé à OP MESSAGES. Sans le report, le métier retombait à « non réglé ». */
     const rl = await appel('/api/monitor/espaces', { nom: 'plombier-banc', code: CODE_PLO, email: 'plo@exemple-848.fr' }, PATRON);
     v('⛔ « Lien de connexion » redonné (la fiche est reconstruite) : le métier RESTE', [rl.s, (await etat('plombier-banc')).metier, (await appel('/api/monitor/espaces/statut', { nom: 'plombier-banc' }, PATRON)).j.metier], [200, 'plomberie', 'plomberie']);
+    /* ⛔⛔ … ET L'ABONNEMENT RÉGLÉ À LA MAIN AUSSI (30 septembre 2026). La reconstruction le perdait : l'entreprise retombait
+       sur Stripe, qui ne la connaît pas — et depuis qu'une entreprise qui ne paie pas est suspendue, ce simple geste de la
+       Tour l'aurait COUPÉE. */
+    const E2 = await etat('plombier-banc'), st2 = (await appel('/api/monitor/espaces/statut', { nom: 'plombier-banc' }, PATRON)).j;
+    v('⛔⛔ … et l\'abonnement réglé à la main RESTE : toujours payée, servie avec sa formule — pas suspendue', [E2.formule, E2.paye, E2.suspendu, st2.paye, st2.aboStatut], ['pro', true, false, true, 'actif']);
     v('⛔ une entreprise SANS formule reçoit aussi son métier (la réponse qui sort avant la formule)', (await etat('sans-formule')).metier, 'nettoyage');
+    const ES = await etat('suspendue-banc');
+    v('⛔ une entreprise qui ne paie pas est SUSPENDUE (sans formule) — et reçoit AUSSI son métier', [ES.suspendu, ES.sursisJours, ES.formule, ES.paye, ES.metier], [true, 0, undefined, false, 'peinture']);
     v('⛔ une valeur hors liste écrite à la main dans l\'annuaire n\'est jamais servie', (await etat('ecrit-main')).metier, '');
     v('⛔ ELAN (jamais réglée) ne reçoit rien : l\'application ne bougera pas', (await etat('elan-banc')).metier, '');
     /* les quatre réponses d'un espace vivant, lues dans le CODE de la route : la réponse « impayé » (qui demande Stripe) et
@@ -217,7 +249,8 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
       [reponses.length, reponses.filter(r => /\bmetier\b/.test(r)).length, reponses.filter(r => /ferme: true/.test(r)).length], [5, 4, 1]);
 
     console.log('\n5. L\'application l\'APPLIQUE (les vraies `forfaitServeurSync` et `metierServeurAppliquer` d\'app.html, v' + ((/APP_VERSION = '(\d+)'/.exec(APP) || [])[1] || '?') + ')');
-    const NOMS5 = ['forfaitServeurSync', 'metierServeurAppliquer', 'metierId', 'metierPack', 'intTypes', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'suspensionRappel', 'forfait', 'bandeauFormule'];
+    /* (le bandeau « Paye ton abonnement » n'existe plus depuis la v767 : ce qui n'est pas payé est suspendu — `accesSuspendu`) */
+    const NOMS5 = ['forfaitServeurSync', 'metierServeurAppliquer', 'metierId', 'metierPack', 'intTypes', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'accesSuspendu', 'suspensionClasse', 'suspensionRappel', 'forfait'];
     const FN5 = NOMS5.map(n => fonction(APPN, n));
     const PLANS_SRC = litteral(APPN, 'const PLANS={'), SUSP = (/^let _susp = \{[^\n]*\};$/m.exec(APPN) || [''])[0];
     const INT_TYPES_SRC = (/^const INT_TYPES = \[[^\n]*\];$/m.exec(APPN) || [''])[0];
@@ -232,7 +265,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
         + 'let db=' + JSON.stringify(Object.assign({ forfait: E.formule || 'gratuit', forfaitQty: 1, forfaitSrv: 'teamop' }, base || {})) + '; let _opMsgOuvert=false;\n'
         + 'const METIERS=' + litteral(APPN, 'const METIERS={') + ';\n' + INT_TYPES_SRC + '\nconst BETA_ESSAI=false;\n'
         + PLANS_SRC.replace(/^/, 'const PLANS=') + ';\nvar _placesSrv=null,_placesSrvF="";\n' + SUSP + '\n' + FN5.join('\n')
-        + '\nreturn { sync: forfaitServeurSync, appliquer: metierServeurAppliquer, metierId, intTypes, db: () => db };';
+        + '\nreturn { sync: forfaitServeurSync, appliquer: metierServeurAppliquer, metierId, intTypes, db: () => db, suspendu: accesSuspendu };';
       const f = new Function('fetch', 'localStorage', 'PUSH_API', 'toast', 'renderNav', 'go', 'save', 'logEvent', 'todayISO', 'espaceQuitter', 'suiteRefresh', 'views', 'document', 'esc', code);
       const a = f((u, o) => fetch(u, o), { getItem: k => (LS.has(k) ? LS.get(k) : null), setItem: (k, x) => LS.set(k, String(x)), removeItem: k => LS.delete(k) },
         B, m => vu.toasts.push(String(m)), () => { vu.nav++; }, () => {}, () => { vu.saves++; vu.ordre.push('save'); }, (t, d) => { vu.journal.push(t + ' · ' + d); vu.ordre.push('journal'); }, () => new Date().toISOString().slice(0, 10),
@@ -270,6 +303,11 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
     const SF = appareil('sans-formule');
     await SF.sync();
     v('⛔ sans formule attribuée, le métier s\'applique quand même (il est lu AVANT le test sur la formule)', SF.metierId(), 'nettoyage');
+    const SU = appareil('suspendue-banc');
+    await SU.sync();
+    v('⛔ SUSPENDUE : le métier s\'applique aussi, l\'accès est suspendu, et `db.forfait` n\'est PAS réécrit (le règlement rend tout)',
+      [SU.metierId(), SU.suspendu(), SU.db().forfait], ['peinture', true, 'pro']);
+    v('   (témoin) une entreprise PAYÉE n\'est pas suspendue', A.suspendu(), false);
     const X = appareil('elan-banc');
     v('⛔ une valeur étrangère n\'entre jamais (hors liste, propriété héritée, pas une chaîne)',
       ['boulangerie', '__proto__', 'toString', 'constructor', 42, null].map(m => X.appliquer({ metier: m })).concat([X.db().metier === undefined]), [false, false, false, false, false, false, true]);

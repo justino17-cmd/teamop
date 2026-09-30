@@ -505,7 +505,8 @@ const USAGES = { [CODE]: { n: 3, equipes: {
        que le registre est abîmé — et rien ne s'active pour autant (le fichier, ci-dessous, est intact). */
     v('⛔ un espace qui porte un code : dans le doute, PAYÉ — et il le dit', [r.json.paye, /illisible/.test(r.json.motif || '')], [true, true]);
     r = await I.appel('POST', '/api/espaces/etat', { t: 'ent-ps-1' });
-    v('   le témoin : un espace SANS code n\'en profite pas', [r.json.formule, r.json.paye], ['premium', false]);
+    /* (v767 : ce qui n'est pas payé est servi SUSPENDU, sans formule — plus de « formule avec paye:false ») */
+    v('   le témoin : un espace SANS code n\'en profite pas — pas payé, donc suspendu (sans formule)', [r.json.formule, r.json.paye, r.json.suspendu], [undefined, false, true]);
     v('⛔ le fichier abîmé est INTACT (récupérable), pas écrasé', I.brut(), CASSE);
     vrai('   … et le journal le crie', /promos-usages\.json ILLISIBLE/.test(I.journal()));
     arreterTout();

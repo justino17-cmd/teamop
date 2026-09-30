@@ -5287,7 +5287,8 @@ async function tourAccepterDemande(email,nom){
   var c=(CLI.list||[]).find(function(x){ return x.email===email; })||{};
   var dems=(c.demandes||[]).map(function(d,i){ return {d:(d&&typeof d==='object')?d:{},i:i}; });
   var dm=(dems.slice().sort(function(a,b){ return (b.d.date||0)-(a.d.date||0); })[0]||{d:{}}).d;
-  var F={'business premium':'premium','premium':'premium','business':'business','pro':'pro','gratuit':'gratuit'};
+  /* une demande d'avant le 29 septembre 2026 qui disait « Gratuit » : la formule d'entrée, Pro (plus de Gratuit) */
+  var F={'business premium':'premium','premium':'premium','business':'business','pro':'pro','gratuit':'pro'};
   var formule=F[String(dm.formule||'').toLowerCase()]||'business';
   var q=Math.max(1,parseInt(dm.users,10)||1);
   var ident=prompt('Identifiant de départ (son prénom — il pourra le changer à sa première connexion) :',tourIdentDefaut(email));
@@ -5376,7 +5377,9 @@ function packPeindre(){
   if(!PACK.charge){ el.textContent=PACK.nom?'Chargement du statut…':''; return; }
   if(PACK.err){ el.innerHTML='<span style="color:var(--redText)">'+esc(PACK.err)+'</span>'; return; }
   var d=PACK.d||{};
-  var sf=document.getElementById('abo-f')||document.getElementById('pack-f'); if(sf&&d.formule) sf.value=d.formule;
+  /* une fiche « Gratuit » d'avant la v2.78 : la liste n'a plus cette formule — elle reste VIDE, pour qu'on en choisisse une
+     (l'enregistrement le demande), plutôt que d'afficher Pro qu'on enregistrerait sans l'avoir choisi */
+  var sf=document.getElementById('abo-f')||document.getElementById('pack-f'); if(sf&&d.formule) sf.value=(d.formule==='gratuit'?'':d.formule);
   var sq=document.getElementById('abo-q')||document.getElementById('pack-q'); if(sq) sq.value=d.quantite||1;
   var ss=document.getElementById('abo-st'); if(ss) ss.value=d.aboStatut||'auto';
   var sd=document.getElementById('abo-fin'); if(sd) sd.value=d.aboFin||'';
@@ -5391,6 +5394,8 @@ function packPeindre(){
     /* la formule en toutes lettres, comme « l’application reçoit » juste après (et le toast de « 💳 Statut paiement ») :
        « premium » à côté de « Business Premium » se lisait comme deux formules */
     el.innerHTML='Formule actuelle\u202f: <b>'+esc(ABN_F[d.formule]||d.formule)+(d.quantite>1?' ×'+d.quantite:'')+'</b> · statut\u202f: <b>'+esc(ST[d.aboStatut||'auto']||d.aboStatut)+'</b>'+(d.aboFin?' · jusqu\'au <b>'+esc(d.aboFin)+'</b>':'')
+      /* ce que l'application en fait : une entreprise qui ne paie pas est SUSPENDUE (plus de Gratuit, v2.78) */
+      +(d.paye===false?' · <b style="color:var(--redText)">application suspendue</b> (rien de payé'+(d.formule==='gratuit'?'\u202f; la formule Gratuit n’existe plus — choisis-en une':'')+')':'')
       /* les places que l'application v763 donne VRAIMENT (serveur : `placesServies` — le payé chez Stripe, les places gardées
          d'avant la v763) : sans elles, réenregistrer une entreprise d'avant pouvait lui retirer des places sans que la Tour
          le montre (`gardien`, 28 septembre 2026) */
@@ -5428,6 +5433,7 @@ function supConnecterBoite(){
 function tourAboEnregistrer(nom,btn){
   var f=(document.getElementById('abo-f')||{}).value, q=parseInt((document.getElementById('abo-q')||{}).value,10)||1;
   var st=(document.getElementById('abo-st')||{}).value||'auto', fin=(document.getElementById('abo-fin')||{}).value||'';
+  if(!f){ toast('Choisis une formule — Pro, Business ou Business Premium'); return; }
   if(btn){ btn.disabled=true; btn.textContent='💾 Enregistrement…'; }
   apiPost('/api/monitor/espaces/abonnement',{nom:nom,formule:f,quantite:q,statut:st,fin:fin}).then(function(r){
     if(r&&r.ok&&r.d&&r.d.ok){ toast('💾 Abonnement enregistré : '+f+(q>1?' ×'+q:'')+' · '+st+(fin?' jusqu\'au '+fin:'')+' — actif à la prochaine ouverture de leur app'); tourPackPrefill(nom); setTimeout(chargerEspaces,300); }
@@ -7478,7 +7484,7 @@ function cliStatut(c){
   if(p==='trialing'||p==='essai') return ['En essai','p-info'];
   if(p==='past_due'||p==='unpaid'||p==='impaye') return ['Impayé','p-ambre'];
   if(p==='canceled'||p==='annule') return ['Annulé','p-gris'];
-  return [c.plan?String(c.plan):'Gratuit','p-gris'];
+  return [c.plan?String(c.plan):'Sans formule','p-gris'];
 }
 /* 📣 L'annonce de mise à jour : un e-mail (beau gabarit TeamOP) à TOUTES les
    entreprises qui ont une adresse. Le texte vit sur le serveur. */
@@ -8447,7 +8453,9 @@ function blocGestionClient(){
         /* ⛔ UN ABONNEMENT = UN UTILISATEUR, quelle que soit la formule (Justin, 27 et 28 septembre 2026) : les formules ne
            portent plus de nombre de places — c'est le NOMBRE D'ABONNEMENTS, juste à côté, qui les donne. « Business · 2
            places » faisait régler deux abonnements pour quatre personnes : l'application (v762) n'en ouvre plus que deux. */
-        '<option value="gratuit">Gratuit</option><option value="pro">Pro</option><option value="business" selected>Business</option><option value="premium">Business Premium</option></select>'+
+        /* ⛔ v2.78 — PLUS DE FORMULE GRATUITE (Justin, 30 septembre 2026 : « si une entreprise ne paye plus, le service est
+           suspendu tant que c'est pas réglé ») : le serveur la refuse. Pour offrir un temps d'essai : « En essai » et une date. */
+        '<option value="pro">Pro</option><option value="business" selected>Business</option><option value="premium">Business Premium</option></select>'+
       '<input id="abo-q" type="number" min="1" max="50" value="1" title="Nombre d’abonnements — un par utilisateur" aria-label="Nombre d’abonnements, un par utilisateur" class="inp ch-n">'+
       '<select id="abo-st" title="Statut de l’abonnement" aria-label="Statut de l’abonnement" class="sel-f">'+
         '<option value="auto">Automatique (Stripe / code promo)</option><option value="actif">✅ Actif (activé par TEAM OP)</option><option value="essai">🧪 En essai</option><option value="impaye">⚠️ Impayé</option><option value="suspendu">⏸ Suspendu</option><option value="annule">✕ Annulé</option></select>'+
@@ -8866,7 +8874,8 @@ function abnFormule(e,q){
   return (ABN_F[s]||s)+' ('+abnEcart(e)+'\u202f; la fiche dit '+lf+')';
 }
 /* pourquoi la formule servie n'est pas celle de la fiche — une période offerte sert celle du code ; sinon c'est le tarif
-   payé, et « Gratuit » veut dire qu'aucun tarif d'OP GESTION n'est payé (OP MESSAGES seul, par exemple) */
+   payé. (« Gratuit » servi — OP GESTION non payé — vient d'un serveur d'avant le 30 septembre 2026 : le serveur d'aujourd'hui
+   dit alors « pas payé », et la ligne « application suspendue ».) */
 function abnEcart(e){ return e.promoCode?'offerte par le code':(e.formuleServie==='gratuit'?'OP GESTION non payé':'payée'); }
 /* une ligne à écart porte la classe `abn-ecart` : elle se lit sur deux lignes plutôt que de se couper (voir la règle) */
 function abnAEcart(e){ return !!(e&&e.formuleServie&&e.formuleServie!==(e.formule||'')); }
@@ -8884,8 +8893,9 @@ function blocEspaces(){
         '<span class="reg-av gris">'+esc(sigle(e.nom||e.email||'?'))+'</span>'+
         '<span class="reg-txt"><span class="reg-t1">'+esc(e.nom||e.email||'—')+'</span>'+
         '<span class="reg-l2'+(abnAEcart(e)?' abn-ecart':'')+'">'+esc(abnFormule(e,e.quantite>1?' ×'+e.quantite:''))+
-        (e.paye?(e.promoCode?' · offert jusqu’au '+esc(e.finLe||'?')+' · '+joursRestants(e.finLe||''):' · payé'+(e.places?' · '+nMot(e.places,'place servie','places servies'):'')):' · en attente de paiement')+'</span></span>'+
-        '<span class="reg-fin">'+(e.paye?'':'<span class="past p-rouge">💳 En attente</span>')+
+        (e.paye?(e.promoCode?' · offert jusqu’au '+esc(e.finLe||'?')+' · '+joursRestants(e.finLe||''):' · payé'+(e.places?' · '+nMot(e.places,'place servie','places servies'):'')):' · rien de payé : application suspendue')+'</span></span>'+
+        /* v2.78 — plus de Gratuit : une entreprise qui ne paie pas est SUSPENDUE, on le dit tel quel */
+        '<span class="reg-fin">'+(e.paye?'':'<span class="past p-rouge">⏸ Suspendue</span>')+
         '<span class="reg-chev" aria-hidden="true">›</span></span></button>'; }).join('')+'</div>')+'</div>';
 }
 

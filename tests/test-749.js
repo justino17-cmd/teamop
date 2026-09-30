@@ -314,8 +314,12 @@ const corps=(nom)=>{ const i=NU.indexOf('function '+nom+'('); if(i<0) return '';
     /if\(BETA_ESSAI\)\s*return false;/.test(pb));
   const mb=NU.slice(NU.indexOf('function metierBloque('), NU.indexOf('function metierBloque(')+220);
   vrai('⛔ … ni le métier', /if\(BETA_ESSAI\)\s*return false;/.test(mb));
-  vrai('⛔ et en PRODUCTION le forfait Gratuit bloque toujours « pointage »',
-    /gratuit:\[[^\]]*'pointage'/.test(NU));
+  /* v767 — le Gratuit n'existe plus (Justin, 30 septembre 2026) : « Pointage » est dans toutes les formules. Le contre-contrôle
+     garde la même chose qu'avant — en PRODUCTION, le forfait décide toujours — sur la formule d'entrée, Pro. */
+  vrai('⛔ et en PRODUCTION le forfait Pro bloque toujours ses catégories réservées (« stock »)',
+    /\bpro:\[[^\]]*'stock'/.test(NU));
+  vrai('⛔ … et la suspension (ce qui n\'est pas payé) ne s\'applique pas sur la bêta, seulement en production',
+    /function accesSuspendu\(\)\{ return !BETA_ESSAI && suspensionGrise\(\); \}/.test(NU));
 
   /* ⛔ L'OBLIGATION DE CRÉER UN MOT DE PASSE SAUTE SUR LA BÊTA, PAS AILLEURS — Justin,
      22 septembre 2026 : « l'obligation qu'on a faite pour créer les mots de passe, peut-être

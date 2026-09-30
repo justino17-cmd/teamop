@@ -4,9 +4,12 @@
    d'un seul » : « oui il faudrait faire ça ».
 
    La page de paiement compte un abonnement par personne (test-837) et ouvre un abonnement NEUF, à côté de ceux qui
-   courent déjà : l'application doit donc lui demander ce qui MANQUE. Sauf depuis le forfait Gratuit, où l'on change de
-   formule — toute l'équipe passe en Pro. Et trois cas n'ouvrent pas d'abonnement neuf du tout : qui n'est pas
-   administrateur, un abonnement en attente de règlement, une formule réservée qui attend son paiement.
+   courent déjà : l'application doit donc lui demander ce qui MANQUE. Et deux cas n'ouvrent pas d'abonnement neuf du
+   tout : qui n'est pas administrateur, et un abonnement en attente de règlement.
+   ⛔ v767 (Justin, 30 septembre 2026 : « si une entreprise ne paye plus, le service est suspendu tant que c'est pas
+   réglé ») : le forfait Gratuit n'existe plus. On ne « passe » plus de Gratuit à Pro pour toute l'équipe — une base
+   d'avant restée en « gratuit » se lit Pro — et la « formule réservée qui attend son paiement » n'existe plus non plus :
+   ce qui n'est pas payé, le serveur le suspend, et c'est la branche « règle-le d'abord » qui répond.
 
    Ce banc EXÉCUTE les vraies `forfait`, `planPlaces`, `abosManquants` et `proposerAbonnement` (app.html ET beta.html),
    puis fait LIRE l'adresse qu'elles ouvrent par le VRAI script de la page de paiement (racine, et sa copie d'aperçu) :
@@ -121,11 +124,12 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
     m = jouer({ f: 'premium', qty: 1, n: vm.runInContext('planPlaces()', monde({ f: 'premium', qty: 1 })) });
     v('Business Premium plein : 1 abonnement de plus', qs(adresse(m)), { formule: 'premium', utilisateurs: '1' });
 
-    /* 5. depuis le forfait Gratuit : on change de formule — TOUTE l'équipe passe en Pro */
+    /* 5. ⛔ v767 — plus de Gratuit : une base d'AVANT restée en « gratuit » (écrit par l'application quand le serveur disait
+          « pas payé ») se lit Pro — 1 abonnement Pro de plus, pas un changement de formule de toute l'équipe */
     m = jouer({ f: 'gratuit', qty: 1, n: 1 });
-    v('Gratuit, 1 personne, une 2ᵉ : Pro pour 2 (la place gratuite ne s\'ajoute pas à un abonnement payant)', qs(adresse(m)), { formule: 'pro', utilisateurs: '2' });
-    vrai('… « passe en Pro : un abonnement par utilisateur, soit 2 abonnements », « active la formule Pro »',
-      (m.__questions[0] || '').includes('passe en Pro : un abonnement par utilisateur, soit 2 abonnements.') && (m.__questions[0] || '').includes('TEAM OP active la formule Pro sur ton espace.'), m.__questions[0]);
+    v('base d\'avant en « gratuit », 1 personne, une 2ᵉ : lue Pro — 1 abonnement Pro de plus', qs(adresse(m)), { formule: 'pro', utilisateurs: '1' });
+    vrai('… la question parle de la formule Pro, jamais du Gratuit ni d\'un « passe en Pro »',
+      (m.__questions[0] || '').includes('Formule Pro : 1 utilisateur pour 1 place.') && !/gratuit|passe en Pro/i.test(m.__questions[0] || ''), m.__questions[0]);
 
     /* 6. « Annuler » : rien ne s'ouvre */
     m = jouer({ f: 'pro', qty: 7, n: 7, oui: false });
@@ -147,10 +151,13 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
         m.__ouverts.length === 1 && m.__ouverts[0][0] === 'https://teamop.fr/espace.html' && /règle-le d'abord/.test(m.__questions[0] || ''), m.__ouverts);
     }
 
-    /* 9. une formule réservée qui attend son paiement : c'est elle qu'il faut payer */
-    m = jouer({ f: 'gratuit', qty: 1, n: 1, attente: { formule: 'business', quantite: 3 } });
-    vrai('formule Business ×3 réservée, pas encore payée : l\'espace client, pour la payer', m.__ouverts.length === 1 && m.__ouverts[0][0] === 'https://teamop.fr/espace.html', m.__ouverts);
-    vrai('… « Ta formule Business ×3 attend son paiement »', (m.__questions[0] || '').includes('Ta formule Business ×3 attend son paiement'), m.__questions[0]);
+    /* 9. ⛔ v767 — une « formule réservée » laissée dans la base par une version d'AVANT (`db.formuleAttente`) ne décide plus
+          rien : le serveur ne réserve plus de formule impayée, il SUSPEND (la branche 8). Elle ne détourne donc plus vers
+          l'espace client une entreprise qui paie et veut simplement une place de plus. */
+    m = jouer({ f: 'business', qty: 3, n: 3, attente: { formule: 'business', quantite: 3 } });
+    v('une « formule réservée » d\'avant restée dans la base : sans objet — la page de paiement, pour la place qui manque',
+      [m.__ouverts.length, qs(adresse(m))], [1, { formule: 'business', utilisateurs: '1' }]);
+    vrai('… et la question ne parle pas d\'une formule « qui attend son paiement »', !/attend son paiement/.test(m.__questions[0] || ''), m.__questions[0]);
 
     /* 9 bis. ⛔ UN ABONNEMENT = UN UTILISATEUR, QUELLE QUE SOIT LA FORMULE (Justin, 28 septembre 2026, v762) — et pendant
        la période offerte par un code promo, le code couvre TOUTE l'équipe : la porte s'ouvre, les places ne changent pas. */
@@ -170,7 +177,7 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
 
     /* 10. ⛔ LA COUTURE : l'adresse ouverte par l'application, lue par le VRAI script de la page de paiement */
     for (const PAGE of PAGES_PAIEMENT) {
-      for (const [cas, o, attendu] of [['Pro, 7 pour 7', { f: 'pro', qty: 7, n: 7 }, 1], ['Pro, 8 pour 6', { f: 'pro', qty: 6, n: 8 }, 3], ['Gratuit → Pro', { f: 'gratuit', qty: 1, n: 1 }, 2]]) {
+      for (const [cas, o, attendu] of [['Pro, 7 pour 7', { f: 'pro', qty: 7, n: 7 }, 1], ['Pro, 8 pour 6', { f: 'pro', qty: 6, n: 8 }, 3], ['base d\'avant en « gratuit », lue Pro', { f: 'gratuit', qty: 1, n: 1 }, 1]]) {
         const u = adresse(jouer(o));
         const p = paiement(lire(PAGE), u.slice(u.indexOf('?')));
         if (!p) { vrai(PAGE + ' : le script de la page s\'exécute', false); continue; }
