@@ -2346,11 +2346,11 @@ Le choix est donc écrit, agent par agent, dans le frontmatter de `.claude/agent
 
 | Agent | Modèle | Effort | Pourquoi |
 |---|---|---|---|
-| `verificateur` | `haiku` | `low` | Constate, ne décide pas : syntaxe, versions servies, `/health` |
+| `verificateur` | `sonnet` | `low` | Constate, ne décide pas : syntaxe, versions servies, `/health` |
 | `testeur` | `sonnet` | `medium` | Écrit du Playwright et lit des échecs — du raisonnement, pas le plus cher |
 | `deployeur` | `sonnet` | `high` | Le rituel est écrit (skill `publication`), mais une erreur se paie en clients |
-| `concepteur` | `opus` | `high` | Refonte visuelle et mouvement : un jugement de goût, pas un contrôle mécanique |
-| `gardien` | `opus` | `high` | Penser comme un attaquant se juge aussi. Une route qui fuit ne plante pas — le coût se compare à celui d'une fuite |
+| `concepteur` | `sonnet` | `high` | Refonte visuelle et mouvement : un jugement de goût, pas un contrôle mécanique |
+| `gardien` | `sonnet` | `high` | Penser comme un attaquant se juge aussi. Une route qui fuit ne plante pas — le coût se compare à celui d'une fuite |
 | `relecteur` | `sonnet` | `high` | Applique des critères écrits à un diff : systématique, pas créatif. Mais il passe après chaque changement, donc son coût unitaire compte |
 
 Les deux derniers comblent ce que la CI ne fait pas : elle ne vérifie que les secrets commités
@@ -2369,15 +2369,19 @@ workflow, compter des occurrences dans un fichier. Justin l'a vu passer et a tra
 prends un truc plus léger pour pas que ça mange toutes les ressources. »
 
 La règle est la même que pour les sous-agents nommés, et elle tient en une phrase :
-**Opus là où le JUGEMENT est le produit ; Sonnet ou Haiku là où la RIGUEUR suffit.**
+**⛔ DEPUIS LE 30 SEPTEMBRE 2026 : TOUT EN SONNET.** Justin : « passe tous les agents en sonnet ». Les six agents du dépôt
+(`.claude/agents/*.md`), les agents de workflow (`agent(prompt, {model:'sonnet', …})`) et les sous-agents sans définition
+(`CLAUDE_CODE_SUBAGENT_MODEL`) tournent en Sonnet ; seul l'EFFORT varie encore selon la tâche (tableau ci-dessous). La
+règle d'avant (« Opus là où le jugement est le produit, Sonnet ou Haiku là où la rigueur suffit ») ne revient que sur sa
+phrase.
 
 | ce que fait l'agent | modèle | effort | pourquoi |
 |---|---|---|---|
 | recenser, cartographier, lire un fichier et en rendre la structure | `sonnet` | `medium` | il constate ; une erreur se voit au premier contrôle |
-| vérifier une affirmation mécanique (ce motif est-il là ? ce fichier contient-il X ?) | `haiku` | `low` | c'est un `grep` qui rédige |
+| vérifier une affirmation mécanique (ce motif est-il là ? ce fichier contient-il X ?) | `sonnet` | `low` | c'est un `grep` qui rédige |
 | attaquer une proposition, chercher la faille | `sonnet` | `high` | systématique plus que créatif — mais il faut de la profondeur |
-| concevoir une architecture, trancher entre deux options, synthétiser | `opus` | `high` | c'est un jugement, et il se paie une fois |
-| sécurité et conformité | `opus` | `high` | penser comme un attaquant se juge ; le coût se compare à celui d'une fuite |
+| concevoir une architecture, trancher entre deux options, synthétiser | `sonnet` | `high` | c'est un jugement, et il se paie une fois |
+| sécurité et conformité | `sonnet` | `high` | penser comme un attaquant se juge ; le coût se compare à celui d'une fuite |
 
 Concrètement, dans un script de workflow : `agent(prompt, {model:'sonnet', effort:'medium'})`.
 **Ne jamais omettre `model` sur une phase de lecture** — l'omission coûte cher et ne se voit

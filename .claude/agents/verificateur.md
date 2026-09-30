@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Bash
 # Modèle et effort choisis pour cet agent, pour ne pas faire tourner Opus sur tout.
 #   Contrôles mécaniques : syntaxe, versions servies, /health. Rien à décider,
 #   tout à constater — le petit modèle suffit et coûte le moins cher.
-model: haiku
+model: sonnet
 effort: low
 ---
 

@@ -6,7 +6,7 @@ tools: Read, Edit, Grep, Glob, Bash
 #   Seul agent où c'est justifié : juger si un mouvement, un espacement, une hiérarchie
 #   "sonnent juste" est un jugement de goût, pas un contrôle mécanique. Les trois autres
 #   agents constatent ou suivent un rituel écrit ; celui-ci décide. Opus, effort haut.
-model: opus
+model: sonnet
 effort: high
 ---
 

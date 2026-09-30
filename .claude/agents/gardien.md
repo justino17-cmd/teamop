@@ -7,7 +7,7 @@ tools: Read, Grep, Glob, Bash
 #   jugement, pas une liste à cocher. Une route qui renvoie un champ de trop ne
 #   « plante » pas — elle fuit, silencieusement, des données de vrais clients.
 #   Le coût se compare à celui d'une fuite, pas à celui d'un test.
-model: opus
+model: sonnet
 effort: high
 ---
 
