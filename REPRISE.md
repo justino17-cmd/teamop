@@ -13,6 +13,32 @@ de ligne du tout.
 
 ---
 
+# ✅ 30 SEPTEMBRE 2026 — LE SITE EST EN SERVICE (`e9ab8d0` sur `main`) — L'APPLICATION, LA TOUR ET LE SERVEUR ATTENDENT « POUSSE »
+
+Justin : « tu pourra mettre le site a jour ». Parti sur `main` : le SITE seul (pages de la racine, portail `espace.html`,
+page de paiement, connexion, pages juridiques, `sitemap.xml`, image de partage, générateur et bancs du site). **Rien de
+`server/`** (pas de déploiement du VPS), ni `app.html`/`sw.js` (la v763 reste servie), ni `tour.html`, ni `.github/`.
+Ce qui est en ligne : plus de Gratuit nulle part sur le site, 7 pages par fonction ou métier, portail sans « Découverte »
+avec le métier demandé (le relais du serveur en service le garde tel quel), CGV « suspendu jusqu'au règlement », anciennes
+copies d'aperçu et maquette `apercu/site-apple.html` retirées.
+
+⛔ **UN PACK « PRÊT » SUR LE SITE EST UN PACK QUE L'APPLICATION SERVIE CONNAÎT** (`72c370d`, `1f87384`) : le générateur
+lit `METIERS_ORDRE` dans `app.html`. En ligne aujourd'hui (v763) : **6 packs prêts, 6 « bientôt »**, pas de carte
+« Autre métier ». ⚠️ **Publier l'application (v766 et plus), c'est AUSSI régénérer le site** (`node scripts/site-marine.js`
+et `--racine`) dans le même commit : sinon le site promet moins que l'application, et `test-835` §8 tombe — c'est voulu.
+Même mécanique pour Gratuit : `test-835` §3 tolère « gratuit » dans l'application seulement avant la v767.
+
+Preuves (copie de `main` avant l'envoi) : suite complète **201 suites · 11 694 vérifications, code 0** ; syntaxe 39 pages ;
+les sept scripts de « Vérification des pages » et `verif-secrets.sh`, code 0 ; mutations du générateur sous une application
+à 6 packs : 3 sur 4 mordent, la 4ᵉ est équivalente (le compte « 12 » n'est écrit que quand l'application porte les 12).
+⚠️ Trouvé en relisant la liste avant l'envoi : trois fichiers de `.github/` de la branche s'étaient glissés dans la copie
+(surveillance, `ci.yml`, `deploiement.yml`) — remis à l'état de `main`, les 9 bancs qui les lisent relancés, verts.
+**Une mise en ligne du site se fabrique par liste de fichiers relue**, jamais par « tout le diff sauf… ».
+Vérifié en ligne après GitHub Pages : **25 pages sur 25 servies octet pour octet**, `sitemap.xml` et l'image de partage aussi ;
+`apercu/site-apple.html`, `apercu/index.html`, `apercu/tarifs.html` → 404 ; `app.html` et `tour.html` servis inchangés.
+
+---
+
 # ⏳ 30 SEPTEMBRE 2026, SOIR — UNE ENTREPRISE SANS FORMULE EST SUSPENDUE AUSSI ; UNE ENTREPRISE, UNE FACTURATION ; L'ANCIENNE MAQUETTE DU SITE SUPPRIMÉE — ATTEND « POUSSE »
 
 Justin, aux deux questions restées ouvertes plus bas (A3 et la maquette) :
