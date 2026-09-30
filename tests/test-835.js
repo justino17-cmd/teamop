@@ -256,7 +256,16 @@ vrai('jamais « demande envoyée »', !/demande envoy[ée]/i.test(texte(PAGES.cr
 const js = fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.js'), 'utf8').replace(/^\s*\/\*[\s\S]*?\*\//gm, ' ');
 vrai('site.js prépare un mailto vers support@teamop.fr', /location\.href = 'mailto:support@teamop\.fr\?subject='/.test(js));
 vrai('le métier part en tête de la demande', /lignes\.push\('MÉTIER CHOISI : '/.test(js));
-v('12 métiers proposés, 6 packs prêts', [(PAGES.creer.match(/class="metier-puce"/g) || []).length, (PAGES.creer.match(/data-pret="1"/g) || []).length], [12, 6]);
+/* v766 (Justin, 30 septembre 2026 : « oui, fais ce qu'il faut ») : chaque métier du site a son pack dans l'application —
+   plus aucun « Sur mesure avec vous ». Et chaque puce porte une clé que l'application CONNAÎT (METIERS_ORDRE, lu dans
+   app.html) : une clé qu'elle ne connaîtrait pas partirait en 3D, le défaut de `metierId`. */
+v('12 métiers proposés, 12 packs prêts', [(PAGES.creer.match(/class="metier-puce"/g) || []).length, (PAGES.creer.match(/data-pret="1"/g) || []).length], [12, 12]);
+{
+  const ordreApp = (fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8').match(/const METIERS_ORDRE=\[([^\]]*)\]/) || ['', ''])[1].split(',').map(x => x.trim().replace(/'/g, '')).filter(Boolean);
+  const cles = [...PAGES.creer.matchAll(/class="metier-puce"[^>]*data-pack="([^"]+)"/g)].map(m => m[1]);
+  vrai('(population) la liste des packs de l\'application est lue (' + ordreApp.length + ' métiers)', ordreApp.length >= 13 && ordreApp[0] === '3d');
+  v('⛔ chaque puce de « Créer » porte une clé de pack que l\'application connaît', cles.filter(k => !ordreApp.includes(k)), []);
+}
 
 console.log('9. référencement');
 for (const c of CLES) vrai(c + ' : l\'aperçu porte « noindex »', PAGES[c].includes('<meta name="robots" content="noindex">'));

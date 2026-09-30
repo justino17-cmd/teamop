@@ -287,9 +287,10 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   /* ⚠️ Défini ICI, en tête du script : `openView` le lit, et une déclaration plus bas serait en zone morte si une vue
      s'affichait avant elle. Les métiers de l'application, dans l'ordre de `METIERS_ORDRE` (app.html) et de `METIERS_OK` (serveur) : c'est la Tour qui
      pose le métier sur l'espace, prérempli avec celui-ci — et l'application se règle dessus (Justin, 29 septembre 2026 :
-     « chaque métier qu'on a sur le site, quand ils ont l'application, ça correspond à leur métier »). « autre » reste du
-     côté du portail : le serveur ne garde que la liste, le besoin dit le reste. `tests/test-848.js` compare les listes. */
-  const METIER_L={'3d':'3D — Hygiène anti-nuisibles',plomberie:'Plomberie',electricite:'Électricité',chauffage:'Chauffage / Climatisation',serrurerie:'Serrurerie',nettoyage:'Nettoyage / Propreté'};
+     « chaque métier qu'on a sur le site, quand ils ont l'application, ça correspond à leur métier »). Depuis le 30 septembre,
+     « autre » est un pack comme les autres (le réglage neutre de l'application) : il n'y a plus d'option à part, le besoin
+     précise le reste. `tests/test-848.js` compare les listes. */
+  const METIER_L={'3d':'3D — Hygiène anti-nuisibles',plomberie:'Plomberie',electricite:'Électricité',chauffage:'Chauffage / Climatisation',serrurerie:'Serrurerie',nettoyage:'Nettoyage / Propreté',maconnerie:'Maçonnerie / Gros œuvre',menuiserie:'Menuiserie',peinture:'Peinture / Revêtements',paysagiste:'Paysagiste / Espaces verts',couverture:'Couverture / Zinguerie',multiservices:'Multiservices / Maintenance',autre:'Autre métier de terrain'};
   /* ⛔ LE PORTAIL PARLE À NOTRE SERVEUR, ET SEULEMENT À LUI — sortie de Firebase, décision de
      Justin du 25 septembre 2026. Jusque-là, un interrupteur (`PORTAIL_SERVEUR`, fermé) gardait
      Firebase en service ; il est parti avec les trois balises du kit de Google, parce qu'un
@@ -998,7 +999,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
         <div id="r-lien-msg" style="margin-top:6px;font-size:12.5px"></div></div>
         <div class="field"><label>Application</label><input value="OP GESTION" disabled style="opacity:.65"><input type="hidden" id="r-app" value="OP GESTION"></div>
         <p class="muted" style="margin:-6px 0 12px;font-size:12px">💬 <b>OP MESSAGES</b> est une application indépendante : compte personnel gratuit, abonnement à part — tout se passe directement dans l'application.</p>
-        <div class="field"><label>Votre métier *</label><select id="r-metier"><option value="" disabled ${ed&&ed.metier?'':'selected'}>— Choisissez votre métier —</option>${Object.keys(METIER_L).map(k=>`<option value="${k}" ${ed&&ed.metier===k?'selected':''}>${esc(METIER_L[k])}</option>`).join('')}<option value="autre" ${ed&&ed.metier==='autre'?'selected':''}>Un autre métier — précisez-le dans votre besoin</option></select>
+        <div class="field"><label>Votre métier *</label><select id="r-metier"><option value="" disabled ${ed&&ed.metier?'':'selected'}>— Choisissez votre métier —</option>${Object.keys(METIER_L).map(k=>`<option value="${k}" ${ed&&ed.metier===k?'selected':''}>${esc(METIER_L[k])}</option>`).join('')}</select>
         <p class="muted" style="margin:6px 0 0;font-size:12px">Votre application est réglée sur votre métier : types d'intervention, fiche de terrain et modules.</p></div>
         <div style="display:flex;gap:10px"><div class="field" style="flex:1"><label>Nombre d'utilisateurs *</label><input id="r-users" type="number" min="1" max="250" placeholder="ex. 5" value="${ed&&ed.users?esc(String(ed.users)):''}"></div>
         <div class="field" style="flex:1.4"><label>Formule OP GESTION *</label><select id="r-formule"><option value="" disabled ${ed&&ed.formule&&ed.formule!=='Je ne sais pas encore'?'':'selected'}>— Choisissez votre formule —</option>${['Pro','Business','Business Premium'].map(o=>`<option ${ed&&ed.formule===o?'selected':''}>${o}</option>`).join('')}</select></div></div>

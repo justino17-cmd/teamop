@@ -96,11 +96,16 @@ console.log('\n══ 3 bis. ⛔ LA MAQUETTE NE PROMET RIEN QUE LE SITE REFUSE �
   v('⛔ aucune ne se trouve dans la maquette', FAUX.filter(([re])=>re.test(NU)).map(([,nom])=>nom), []);
   v('⛔ « temps réel » réservé à OP MESSAGES — un seul emploi, dans sa carte (comme sur le site)',
     [...NU.matchAll(/temps réel|instantané/gi)].map(m=>NU.slice(m.index-20,m.index)), ['versation : chat en ']);
-  v('⛔ les métiers présentés comme prêts sont les six packs de l\'application (METIERS_ORDRE)',
-    [...S.matchAll(/<div class="carte"><h3>([^<]+)<\/h3>/g)].map(m=>m[1]).filter(n=>!/^(Bientôt|Autre)$/.test(n)).length,
-    (APPH.match(/const METIERS_ORDRE=\[([^\]]*)\]/)||['',''])[1].split(',').filter(Boolean).length);
-  v('   … sous leurs noms', [...S.matchAll(/<div class="carte"><h3>([^<]+)<\/h3>/g)].map(m=>m[1]),
-    ['3D','Plomberie','Électricité','Chauffage · Clim','Serrurerie','Nettoyage','Bientôt','Autre']);
+  /* Depuis la v766 (Justin, 30 septembre 2026), chaque métier du site a son pack, « Autre » compris : la section ne
+     porte plus de carte « Bientôt ». Les cartes se lisent dans la SEULE section #metiers (celles des applications ont
+     la même classe). */
+  const SM=(S.match(/<section id="metiers">[\s\S]*?<\/section>/)||[''])[0];
+  const cartesMet=[...SM.matchAll(/<div class="carte(?: toute)?"><h3>([^<]+)<\/h3>/g)].map(m=>m[1]);
+  v('⛔ les métiers présentés sont les packs de l\'application (METIERS_ORDRE), « Autre » compris — plus aucun « Bientôt »',
+    [cartesMet.length, cartesMet.includes('Bientôt')],
+    [(APPH.match(/const METIERS_ORDRE=\[([^\]]*)\]/)||['',''])[1].split(',').filter(Boolean).length, false]);
+  v('   … sous leurs noms', cartesMet,
+    ['3D','Plomberie','Électricité','Chauffage · Clim','Serrurerie','Nettoyage','Maçonnerie','Menuiserie','Peinture','Espaces verts','Couverture','Multiservices','Autre']);
   v('⛔ un impayé ne « revient » à aucun forfait gratuit (il n\'y en a plus sur le site)', /forfait gratuit/i.test(NU), false);
 }
 

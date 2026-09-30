@@ -8017,7 +8017,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '765';
+const APP_VERSION = '766';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -8786,9 +8786,82 @@ const METIERS={
             'Réapprovisionnement des consommables'],
     releves:[{k:'surface',l:'Surface traitée',u:'m²'},{k:'agents',l:'Nombre d’agents',u:''},
              {k:'tps',l:'Temps passé sur site',u:'h'}],
+    masque:['registre','carteBox','devisXylo','boxes'] },
+
+  /* ⛔ UN PACK POUR CHAQUE MÉTIER DU SITE (Justin, 30 septembre 2026 : « je veux que chaque métier qu'on a sur le site,
+     quand ils ont l'application, ça correspond à leur métier… pour tous » — puis « oui, fais ce qu'il faut »). Les six
+     suivants étaient « pack bientôt » ou « sur mesure » sur le site ; sans eux, ces entreprises ouvraient en 3D (le défaut
+     de `metierId`, gardé pour les entreprises d'avant le choix du métier). « Autre métier de terrain » est le réglage
+     NEUTRE : il ne parle ni de nuisibles ni d'un métier qu'on ne connaît pas. Mêmes quatre modules masqués que les autres
+     packs : le registre, les box et le devis xylophage n'existent que pour le 3D. */
+  'maconnerie':{ nom:'Maçonnerie / Gros œuvre', ic:'🧱', sous:'Construction · rénovation · gros œuvre',
+    types:['Construction neuve','Rénovation','Extension / agrandissement','Dalle & fondations','Murs & cloisons',
+           'Enduits & façades','Ouverture de mur','Reprise de fissures','Dallage / terrasse','Visite technique / devis'],
+    presta:['Implantation et traçage','Terrassement / fouilles','Coffrage','Ferraillage','Coulage du béton',
+            'Montage de parpaings / briques','Pose de linteau','Enduit / crépi','Jointoiement',
+            'Évacuation des gravats','Nettoyage du chantier'],
+    releves:[{k:'surface',l:'Surface réalisée',u:'m²'},{k:'volume',l:'Béton coulé',u:'m³'},
+             {k:'lineaire',l:'Linéaire de mur',u:'ml'},{k:'tps',l:'Temps passé sur site',u:'h'}],
+    masque:['registre','carteBox','devisXylo','boxes'] },
+
+  'menuiserie':{ nom:'Menuiserie', ic:'🚪', sous:'Pose · agencement · fermetures',
+    types:['Pose de fenêtres','Pose de portes','Volets & fermetures','Agencement intérieur','Placards & dressings',
+           'Escalier','Parquet','Réparation / dépannage','Prise de cotes','Visite technique / devis'],
+    presta:['Prise de cotes','Dépose de l’existant','Pose et calage','Réglage des ouvrants','Fixation et scellement',
+            'Pose de la quincaillerie','Calfeutrement et joints','Finitions (habillage, champlats)',
+            'Évacuation des déchets','Nettoyage du chantier'],
+    releves:[{k:'cotes',l:'Cotes relevées (L × H)',u:'',txt:true},{k:'elements',l:'Éléments posés',u:''},
+             {k:'materiau',l:'Matériau / essence',u:'',txt:true},{k:'tps',l:'Temps passé sur site',u:'h'}],
+    masque:['registre','carteBox','devisXylo','boxes'] },
+
+  'peinture':{ nom:'Peinture / Revêtements', ic:'🖌️', sous:'Intérieur · extérieur · sols',
+    types:['Peinture intérieure','Peinture extérieure / façade','Revêtements muraux','Revêtements de sol',
+           'Préparation des supports','Ravalement','Traitement anti-humidité','Décoration','Retouches / reprises',
+           'Visite technique / devis'],
+    presta:['Protection des sols et du mobilier','Lessivage','Rebouchage et ponçage','Impression / sous-couche',
+            'Première couche','Deuxième couche','Pose de papier peint / toile','Reprise des angles et raccords',
+            'Dépose des protections','Nettoyage du chantier'],
+    releves:[{k:'surface',l:'Surface traitée',u:'m²'},{k:'couches',l:'Nombre de couches',u:''},
+             {k:'teinte',l:'Teinte / référence',u:'',txt:true},{k:'tps',l:'Temps passé sur site',u:'h'}],
+    masque:['registre','carteBox','devisXylo','boxes'] },
+
+  'paysagiste':{ nom:'Paysagiste / Espaces verts', ic:'🌿', sous:'Entretien · création · élagage',
+    types:['Tonte','Taille de haies','Élagage / abattage','Débroussaillage','Entretien de massifs','Création de jardin',
+           'Plantation','Arrosage automatique','Ramassage des feuilles','Contrat d’entretien','Visite technique / devis'],
+    presta:['Tonte et finitions','Taille','Désherbage','Scarification','Bêchage / griffage','Paillage','Plantation',
+            'Évacuation des déchets verts','Réglage de l’arrosage','Nettoyage du site'],
+    releves:[{k:'surface',l:'Surface entretenue',u:'m²'},{k:'haie',l:'Haie taillée',u:'ml'},
+             {k:'dechets',l:'Déchets verts évacués',u:'m³'},{k:'tps',l:'Temps passé sur site',u:'h'}],
+    masque:['registre','carteBox','devisXylo','boxes'] },
+
+  'couverture':{ nom:'Couverture / Zinguerie', ic:'🏠', sous:'Toiture · gouttières · étanchéité',
+    types:['Réparation de toiture','Recherche de fuite','Remplacement de tuiles / ardoises','Gouttières & descentes',
+           'Zinguerie','Démoussage & traitement','Étanchéité de toit-terrasse','Fenêtre de toit','Isolation des combles',
+           'Visite technique / devis'],
+    presta:['Mise en sécurité (échafaudage, harnais)','Inspection de la toiture','Remplacement d’éléments de couverture',
+            'Réfection des faîtages','Nettoyage des gouttières','Pose / soudure du zinc','Démoussage',
+            'Application d’hydrofuge','Évacuation des déchets','Nettoyage du chantier'],
+    releves:[{k:'surface',l:'Surface traitée',u:'m²'},{k:'lineaire',l:'Gouttière / zinc posé',u:'ml'},
+             {k:'hauteur',l:'Hauteur de travail',u:'m'},{k:'tps',l:'Temps passé sur site',u:'h'}],
+    masque:['registre','carteBox','devisXylo','boxes'] },
+
+  'multiservices':{ nom:'Multiservices / Maintenance', ic:'🛠️', sous:'Petits travaux · maintenance · contrats',
+    types:['Petits travaux','Maintenance préventive','Dépannage','Plomberie simple','Électricité simple',
+           'Montage / installation','Remplacement de pièce','Contrat de maintenance','Visite technique / devis'],
+    presta:['Diagnostic','Réparation','Remplacement de pièce','Réglage','Montage','Fixation',
+            'Contrôle du bon fonctionnement','Explications au client','Nettoyage du chantier'],
+    releves:[{k:'tps',l:'Temps passé sur site',u:'h'},{k:'materiel',l:'Pièces / matériel fournis',u:'',txt:true}],
+    masque:['registre','carteBox','devisXylo','boxes'] },
+
+  'autre':{ nom:'Autre métier de terrain', ic:'🧰', sous:'Interventions · entretien · dépannage',
+    types:['Intervention','Dépannage','Entretien','Installation','Contrôle / vérification','Réparation',
+           'Contrat d’entretien','Visite technique / devis'],
+    presta:['Diagnostic','Intervention réalisée','Remplacement de pièce','Réglage','Essai et contrôle',
+            'Explications au client','Nettoyage du chantier'],
+    releves:[{k:'tps',l:'Temps passé sur site',u:'h'},{k:'materiel',l:'Matériel utilisé',u:'',txt:true}],
     masque:['registre','carteBox','devisXylo','boxes'] }
 };
-const METIERS_ORDRE=['3d','plomberie','electricite','chauffage','serrurerie','nettoyage'];
+const METIERS_ORDRE=['3d','plomberie','electricite','chauffage','serrurerie','nettoyage','maconnerie','menuiserie','peinture','paysagiste','couverture','multiservices','autre'];
 /* Le pack produits et les fiches fournisseurs appartiennent AU MÉTIER, pas à l'application : ils sont
    rattachés ici plutôt que lus en constantes globales par cataloguePoser. Ce qui change : un métier
    sans pack (plomberie, nettoyage…) n'a ni bouton « ↻ Catalogue OP » ni fiches à poser — c'est la

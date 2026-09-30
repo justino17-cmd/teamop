@@ -80,16 +80,24 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
   const lblSrv = evalue(litteral(SRVN, 'const METIERS_LBL = {'));
   const lblTour = evalue(litteral(TOURN, 'var MET_L={'));
   const lblPort = evalue(litteral(PORTN, 'const METIER_L={'));
-  vrai('(population) les quatre listes se lisent dans le CODE (app.html, serveur, Tour, portail) et portent six métiers',
-    [ordreApp, ordreSrv, Object.keys(lblTour), Object.keys(lblPort)].every(l => Array.isArray(l) && l.length === 6), JSON.stringify(ordreApp));
+  vrai('(population) les quatre listes se lisent dans le CODE (app.html, serveur, Tour, portail) et portent treize métiers (les douze du site, plus « Autre »)',
+    [ordreApp, ordreSrv, Object.keys(lblTour), Object.keys(lblPort)].every(l => Array.isArray(l) && l.length === 13), JSON.stringify(ordreApp));
   v('⛔ le serveur accepte exactement les métiers de l\'application, dans le même ordre (METIERS_OK = METIERS_ORDRE)', ordreSrv, ordreApp);
   v('⛔ la Tour propose exactement ces métiers (MET_L)', Object.keys(lblTour), ordreApp);
   v('⛔ le portail demande exactement ces métiers (METIER_L)', Object.keys(lblPort), ordreApp);
   v('⛔ chaque métier a un pack dans l\'application (METIERS)', ordreApp.map(k => !!(METIERS_APP[k] && METIERS_APP[k].nom)), ordreApp.map(() => true));
   const noms = ordreApp.map(k => METIERS_APP[k].nom);
   v('   les libellés sont ceux des packs, partout (serveur, Tour, portail)', [ordreApp.map(k => lblSrv[k]), ordreApp.map(k => lblTour[k]), ordreApp.map(k => lblPort[k])], [noms, noms, noms]);
-  v('   cinq packs portent leurs propres types d\'intervention ; le 3D garde la liste historique', ordreApp.map(k => Array.isArray(METIERS_APP[k].types) && METIERS_APP[k].types.length > 3),
-    [false, true, true, true, true, true]);
+  v('   les douze autres packs portent leurs propres types d\'intervention ; le 3D garde la liste historique', ordreApp.map(k => Array.isArray(METIERS_APP[k].types) && METIERS_APP[k].types.length > 3),
+    [false, true, true, true, true, true, true, true, true, true, true, true, true]);
+  const hors3D = ordreApp.filter(k => k !== '3d');
+  v('⛔ chaque pack hors 3D masque les quatre modules du 3D (registre, carte des box, devis xylophage, box) — un maçon ne reçoit pas le registre sanitaire',
+    hors3D.map(k => ['registre', 'carteBox', 'devisXylo', 'boxes'].every(m => (METIERS_APP[k].masque || []).indexOf(m) >= 0)), hors3D.map(() => true));
+  v('   … et porte la fiche de rapport de son métier : des prestations et des relevés à lui',
+    hors3D.map(k => Array.isArray(METIERS_APP[k].presta) && METIERS_APP[k].presta.length >= 5 && Array.isArray(METIERS_APP[k].releves) && METIERS_APP[k].releves.length >= 2),
+    hors3D.map(() => true));
+  v('⛔ aucun pack hors 3D ne parle de nuisibles (c\'était le défaut : un plombier recevait « Dératisation ») — « Autre » compris',
+    hors3D.filter(k => /dératis|désinsect|xylophag|nuisible|rongeur|cafard|punaise|termite/i.test([METIERS_APP[k].nom, METIERS_APP[k].sous].concat(METIERS_APP[k].types, METIERS_APP[k].presta).join(' | '))), []);
 
   let webpush;
   try { webpush = require(path.join(RACINE, 'server', 'node_modules', 'web-push')); }
@@ -108,7 +116,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
     [cle('plombier-banc')]: esp('t-plo-848', 'plombier-banc', 'plo@exemple-848.fr', { formule: 'pro', quantite: 1, formuleTs: MAINT - 1000, formulePar: 'Banc', code: CODE_PLO }),
     [cle('elan-banc')]: esp('t-ela-848', 'elan-banc', 'ela@exemple-848.fr', { formule: 'premium', quantite: 1, formuleTs: MAINT - 1000, formulePar: 'Banc' }),
     [cle('sans-formule')]: esp('t-sans-848', 'sans-formule', 'sans@exemple-848.fr', { metier: 'nettoyage' }),
-    [cle('ecrit-main')]: esp('t-main-848', 'ecrit-main', 'main@exemple-848.fr', { formule: 'pro', quantite: 1, metier: 'maconnerie' })
+    [cle('ecrit-main')]: esp('t-main-848', 'ecrit-main', 'main@exemple-848.fr', { formule: 'pro', quantite: 1, metier: 'boulangerie' })
   };
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(espaces));
   const MAIL = 'plo@exemple-848.fr', brut = crypto.randomBytes(32).toString('hex');
@@ -180,7 +188,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
     console.log('\n4. La Tour le POSE sur l\'espace, et le serveur le REND (`/api/espaces/etat`)');
     v('avant tout réglage : le métier n\'est pas servi (vide)', (await etat('plombier-banc')).metier, '');
     v('⛔ sans la garde de la Tour, la route refuse — le PATRON seul, comme la formule (un métier hors 3D retire Boxes et Registre)', (await appel('/api/monitor/espaces/metier', { nom: 'plombier-banc', metier: 'plomberie' })).s, 403);
-    v('⛔ un métier hors liste est refusé (400), rien ne change', [(await appel('/api/monitor/espaces/metier', { nom: 'plombier-banc', metier: 'maconnerie' }, PATRON)).s, (await etat('plombier-banc')).metier], [400, '']);
+    v('⛔ un métier hors liste est refusé (400), rien ne change', [(await appel('/api/monitor/espaces/metier', { nom: 'plombier-banc', metier: 'boulangerie' }, PATRON)).s, (await etat('plombier-banc')).metier], [400, '']);
     v('   un espace inconnu : 404', (await appel('/api/monitor/espaces/metier', { nom: 'inconnu-848', metier: 'plomberie' }, PATRON)).s, 404);
     const r1 = await appel('/api/monitor/espaces/metier', { nom: 'plombier-banc', metier: 'plomberie' }, PATRON);
     v('⛔ la Tour règle « plomberie » (200)', [r1.s, r1.j.metier], [200, 'plomberie']);
@@ -260,7 +268,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
     v('⛔ sans formule attribuée, le métier s\'applique quand même (il est lu AVANT le test sur la formule)', SF.metierId(), 'nettoyage');
     const X = appareil('elan-banc');
     v('⛔ une valeur étrangère n\'entre jamais (hors liste, propriété héritée, pas une chaîne)',
-      ['maconnerie', '__proto__', 'toString', 'constructor', 42, null].map(m => X.appliquer({ metier: m })).concat([X.db().metier === undefined]), [false, false, false, false, false, false, true]);
+      ['boulangerie', '__proto__', 'toString', 'constructor', 42, null].map(m => X.appliquer({ metier: m })).concat([X.db().metier === undefined]), [false, false, false, false, false, false, true]);
     v('   une réponse de serveur d\'AVANT (sans le champ) : rien', X.appliquer({ ok: true, formule: 'pro' }), false);
 
     console.log('\n6. La Tour (vraies `tourAccepterDemande`, `tourMetierEnregistrer`, `packPeindre`) contre ce serveur');
@@ -298,7 +306,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
     const T2 = tourCtx({ 'met-f': 'serrurerie' }, [cli], MAIL);
     await T2.ctx.tourMetierEnregistrer('plombier-banc', null);
     v('⛔ « Enregistrer le métier » (fiche) : serrurerie, rendue par le serveur', (await etat('plombier-banc')).metier, 'serrurerie');
-    const T3 = tourCtx({ 'met-f': 'maconnerie' }, [cli], MAIL);
+    const T3 = tourCtx({ 'met-f': 'boulangerie' }, [cli], MAIL);
     const avant3 = (await etat('plombier-banc')).metier;
     await T3.ctx.tourMetierEnregistrer('plombier-banc', null);
     v('⛔ une valeur hors liste dans la liste de la Tour : refusée AVANT le serveur, rien ne change', [T3.toasts.some(t => /Métier inconnu/.test(t)), (await etat('plombier-banc')).metier], [true, avant3]);

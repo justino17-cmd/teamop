@@ -2936,7 +2936,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.77</div>
+    <div class="lg-pied">console interne · v2.78</div>
   </div>
 </div>
 
@@ -2978,7 +2978,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.77</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.78</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2990,7 +2990,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.77</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.78</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3256,7 +3256,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.77';
+var TOUR_VERSION='v2.78';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -8851,8 +8851,9 @@ function vueAbonnements(){
 var ABN_F={gratuit:'Gratuit',pro:'Pro',business:'Business',premium:'Business Premium'};
 /* v2.77 — LES MÉTIERS DE L'APPLICATION (Justin, 29 septembre 2026 : « chaque métier qu'on a sur le site, quand ils ont
    l'application, ça correspond à leur métier ») : les clés de `METIERS_ORDRE` (app.html) et de `METIERS_OK` (serveur),
-   dans le même ordre — `tests/test-848.js` compare les trois listes. */
-var MET_L={'3d':'3D — Hygiène anti-nuisibles',plomberie:'Plomberie',electricite:'Électricité',chauffage:'Chauffage / Climatisation',serrurerie:'Serrurerie',nettoyage:'Nettoyage / Propreté'};
+   dans le même ordre — `tests/test-848.js` compare les trois listes. v2.78 (30 septembre 2026, « oui, fais ce qu'il faut ») :
+   les six métiers du site qui n'avaient pas de pack en ont un, et « Autre métier de terrain » est le réglage neutre. */
+var MET_L={'3d':'3D — Hygiène anti-nuisibles',plomberie:'Plomberie',electricite:'Électricité',chauffage:'Chauffage / Climatisation',serrurerie:'Serrurerie',nettoyage:'Nettoyage / Propreté',maconnerie:'Maçonnerie / Gros œuvre',menuiserie:'Menuiserie',peinture:'Peinture / Revêtements',paysagiste:'Paysagiste / Espaces verts',couverture:'Couverture / Zinguerie',multiservices:'Multiservices / Maintenance',autre:'Autre métier de terrain'};
 function metDemande(c){ var d=((c&&c.demandes)||[]).filter(function(x){ return x&&typeof x==='object'&&MET_L[x.metier]; }).sort(function(a,b){ return (b.date||0)-(a.date||0); })[0]; return d?d.metier:''; }
 /* La formule que l'application REÇOIT (serveur : `formuleServie`) — celle que l'entreprise paie, ou celle qu'une période
    offerte sert — et l'écart quand ce n'est pas celle de la fiche. Justin, 29 septembre 2026 : « ils choisissent le tarif

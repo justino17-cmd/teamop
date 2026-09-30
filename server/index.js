@@ -2296,9 +2296,10 @@ app.post('/api/monitor/espaces/lien-existant', monPatronStrict, (req, res) => {
    liste est refusée ici, parce que l'application l'ignorerait EN SILENCE. `tests/test-848.js` compare les deux listes.
    ⚠️ Vide veut dire « non réglé » : l'application garde alors ce qu'elle avait (ELAN, réglée avant ce chantier, ne
    reçoit rien et ne bouge pas). */
-const METIERS_OK = ['3d', 'plomberie', 'electricite', 'chauffage', 'serrurerie', 'nettoyage'];
+const METIERS_OK = ['3d', 'plomberie', 'electricite', 'chauffage', 'serrurerie', 'nettoyage', 'maconnerie', 'menuiserie', 'peinture', 'paysagiste', 'couverture', 'multiservices', 'autre'];
 const metierOk = m => (METIERS_OK.includes(m) ? m : '');
-const METIERS_LBL = { '3d': '3D — Hygiène anti-nuisibles', plomberie: 'Plomberie', electricite: 'Électricité', chauffage: 'Chauffage / Climatisation', serrurerie: 'Serrurerie', nettoyage: 'Nettoyage / Propreté' };
+const METIERS_LBL = { '3d': '3D — Hygiène anti-nuisibles', plomberie: 'Plomberie', electricite: 'Électricité', chauffage: 'Chauffage / Climatisation', serrurerie: 'Serrurerie', nettoyage: 'Nettoyage / Propreté',
+  maconnerie: 'Maçonnerie / Gros œuvre', menuiserie: 'Menuiserie', peinture: 'Peinture / Revêtements', paysagiste: 'Paysagiste / Espaces verts', couverture: 'Couverture / Zinguerie', multiservices: 'Multiservices / Maintenance', autre: 'Autre métier de terrain' };
 app.post('/api/monitor/espaces/metier', monPatronStrict, (req, res) => {
   const slug = espSlug(monStr((req.body || {}).nom, 80));   // borné : voir /api/espaces/ouvrir
   const e = espacesReg[slug];

@@ -2936,7 +2936,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.76</div>
+    <div class="lg-pied">console interne · v2.78</div>
   </div>
 </div>
 
@@ -2978,7 +2978,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.76</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.78</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2990,7 +2990,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.76</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.78</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3256,7 +3256,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.76';
+var TOUR_VERSION='v2.78';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -5312,6 +5312,15 @@ async function tourAccepterDemande(email,nom){
   var r;
   try{ r=await apiPost('/api/monitor/espaces/formule',{nom:e.nom,formule:formule,quantite:q}); }catch(err){ toast('Serveur injoignable'); return; }
   if(!(r&&r.ok)){ toast((r&&r.d&&r.d.error)||'Formule non attribuée'); return; }
+  /* v2.77 — le métier de la demande se pose avec la formule : c'est lui qui règle l'application (types d'intervention,
+     fiche de terrain, modules). Refusé ou injoignable : on le DIT, et le reste de l'acceptation continue — il se règle
+     ensuite dans la fiche (« MÉTIER »). */
+  var metierDem=MET_L[dm.metier]?dm.metier:'', metierPose='';
+  if(metierDem){
+    try{ var rm=await apiPost('/api/monitor/espaces/metier',{nom:e.nom,metier:metierDem});
+      if(rm&&rm.ok&&rm.d&&rm.d.ok) metierPose=metierDem; else toast('Métier non posé : '+((rm&&rm.d&&rm.d.error)||'refusé')+' — règle-le dans la fiche'); }
+    catch(err){ toast('Métier non posé (serveur injoignable) — règle-le dans la fiche'); }
+  }
   tourPackPrefill(e.nom);
   /* Les demandes de ce client sont traitées : c'est ce que la création automatique marquait, sans que personne les
      ait lues. Ici quelqu'un les a lues. */
@@ -5321,7 +5330,7 @@ async function tourAccepterDemande(email,nom){
   var F2={gratuit:'Gratuit',pro:'Pro',business:'Business',premium:'Business Premium'};
   var adrF='teamop.fr/e/'+(e.slug||espSlugJs(e.nom));
   var promoTxt=promo?('\n\n🎁 Ton code « '+(promo.code||codeDem)+' » est activé : '+(F2[formule]||formule)+' offert jusqu\'au '+promo.finLe+', pour toute ton équipe — aucune carte bancaire.'):'';
-  var txt='Bienvenue sur OP GESTION !\n\nTa demande est acceptée — ta formule « '+(F2[formule]||formule)+' »'+(q>1?' ×'+q:'')+' est réservée.'+promoTxt+'\n\nUNE SEULE ADRESSE À RETENIR, pour toi et pour toute ton équipe :\n'+adrF
+  var txt='Bienvenue sur OP GESTION !\n\nTa demande est acceptée — ta formule « '+(F2[formule]||formule)+' »'+(q>1?' ×'+q:'')+' est réservée.'+(metierPose?'\nTon application est réglée pour ton métier : '+MET_L[metierPose]+'.':'')+promoTxt+'\n\nUNE SEULE ADRESSE À RETENIR, pour toi et pour toute ton équipe :\n'+adrF
     +'\n\nPOUR ENTRER :\n• Identifiant : '+ident+'\n• Mot de passe provisoire : '+(mdpAff||'(à te faire redonner par TEAM OP)')+'\nL\'app te fait choisir TON vrai mot de passe et ton e-mail.'
     +(promo?'':'\n\nPour débloquer tous les avantages de ta formule : paye ton abonnement (l\'app te guide, bouton « Payer mon abonnement »).')
     +'\n\nTu crées ensuite les comptes de ton équipe dans Utilisateurs : chacun se connecte pareil — la même adresse, son identifiant, son mot de passe. Aucun code, rien à conserver.\n\nBonne prise en main !\n— TEAM OP · teamop.fr';
@@ -5371,6 +5380,12 @@ function packPeindre(){
   var sq=document.getElementById('abo-q')||document.getElementById('pack-q'); if(sq) sq.value=d.quantite||1;
   var ss=document.getElementById('abo-st'); if(ss) ss.value=d.aboStatut||'auto';
   var sd=document.getElementById('abo-fin'); if(sd) sd.value=d.aboFin||'';
+  /* le métier : celui de l'espace ; tant qu'il n'est pas réglé, la liste propose celui de la demande (à enregistrer) */
+  var sm=document.getElementById('met-f'), mi=document.getElementById('met-info');
+  if(sm){ var cm=(CLI.list||[]).filter(function(x){ return x.email===CLI.sel; })[0], dmM=metDemande(cm);
+    sm.value=d.metier||dmM||'';
+    if(mi) mi.innerHTML=d.metier?'Métier réglé\u202f: <b>'+esc(MET_L[d.metier]||d.metier)+'</b> — l’application le reçoit à sa prochaine ouverture.'
+      :'Métier <b>non réglé</b> — l’application reste en 3D'+(dmM?'. Demandé\u202f: <b>'+esc(MET_L[dmM])+'</b>, à enregistrer.':'.'); }
   var ST={auto:'automatique',actif:'activé par TEAM OP',essai:'en essai',impaye:'impayé',suspendu:'suspendu',annule:'annulé'};
   if(d.formule){
     /* la formule en toutes lettres, comme « l’application reçoit » juste après (et le toast de « 💳 Statut paiement ») :
@@ -5419,6 +5434,17 @@ function tourAboEnregistrer(nom,btn){
     else toast((r&&r.d&&r.d.error)||'Refusé — mets le serveur à jour (git pull) ou réservé au patron');
     if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer'; }
   }).catch(function(){ toast('Serveur injoignable'); if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer'; } });
+}
+/* 💾 v2.77 — le métier de l'espace (liste fermée, vérifiée aussi par le serveur) */
+function tourMetierEnregistrer(nom,btn){
+  var m=(document.getElementById('met-f')||{}).value||'';
+  if(m&&!MET_L[m]){ toast('Métier inconnu'); return; }
+  if(btn){ btn.disabled=true; btn.textContent='💾 Enregistrement…'; }
+  return apiPost('/api/monitor/espaces/metier',{nom:nom,metier:m}).then(function(r){
+    if(r&&r.ok&&r.d&&r.d.ok){ toast(m?('🧰 Métier « '+MET_L[m]+' » — l’application le reçoit à sa prochaine ouverture'):'Métier retiré — l’application garde celui qu’elle a'); tourPackPrefill(nom); }
+    else toast((r&&r.d&&r.d.error)||'Refusé — mets le serveur à jour');
+    if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer le métier'; }
+  }).catch(function(){ toast('Serveur injoignable'); if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer le métier'; } });
 }
 function tourAttribuerPack(nom){
   var f=(document.getElementById('pack-f')||{}).value, q=parseInt((document.getElementById('pack-q')||{}).value,10)||1;
@@ -8373,6 +8399,7 @@ function blocGestionClient(){
       var tr=traites[x.i];
       var lig=[];
       if(d.formule) lig.push('💼 '+d.formule);
+      if(MET_L[d.metier]) lig.push('🧰 '+MET_L[d.metier]);
       if(d.users) lig.push('👥 '+nMot(d.users,'utilisateur','utilisateurs'));
       if(d.lien) lig.push('🔗 '+d.lien);
       if(d.code) lig.push('🎁 '+d.code);
@@ -8393,7 +8420,7 @@ function blocGestionClient(){
      confirmation avant d'agir — deux remplissages verts côte à côte se disputaient l'œil sans
      que l'un soit plus important que l'autre. */
   return '<div class="sec">GÉRER CE CLIENT</div>'+
-    '<div class="note">'+esc(c.metier||'métier non renseigné')+' · statut du site : <span class="past '+s[1]+'">'+esc(s[0])+'</span></div>'+
+    '<div class="note">'+esc(metDemande(c)?'métier demandé : '+MET_L[metDemande(c)]:'métier non précisé à la demande')+' · statut du site : <span class="past '+s[1]+'">'+esc(s[0])+'</span></div>'+
     '<div class="sous-act">'+
       '<button type="button" class="btn-plein" onclick="compoOuvrir(\''+jsq(c.email)+'\');setTab(\'support\')">Écrire à '+esc(prenom)+'</button>'+
       '<button type="button" class="btn-fant" onclick="tourAccepterDemande(\''+jsq(c.email)+'\',\''+jsq(nm)+'\')">✅ Accepter la demande</button>'+
@@ -8405,6 +8432,14 @@ function blocGestionClient(){
          l'usage, les connexions et le carnet d'adresses. Deux boutons dont un incomplet,
          c'est une invitation à se tromper. */
       '</div>'+
+    /* v2.77 — LE MÉTIER DE L'ESPACE : il règle l'application (types d'intervention, fiche de terrain, modules). Posé
+       ici par TEAM OP, prérempli avec la demande ; l'application le reçoit à sa prochaine ouverture. */
+    '<div class="sous-sec"><div class="sec">MÉTIER</div>'+
+      '<div class="form-rang">'+
+      '<select id="met-f" title="Métier de l’application" aria-label="Métier de l’application" class="sel-f"><option value="">— non réglé (3D) —</option>'+
+        Object.keys(MET_L).map(function(k){ return '<option value="'+k+'">'+esc(MET_L[k])+'</option>'; }).join('')+'</select>'+
+      '<button type="button" class="btn-plein" onclick="tourMetierEnregistrer(\''+jsq(nm)+'\',this)">💾 Enregistrer le métier</button></div>'+
+      '<div id="met-info" class="note">Chargement…</div></div>'+
     '<div class="sous-sec"><div class="sec">ABONNEMENT</div>'+
       '<div class="note">Réglé ici par TEAM OP : formule, nombre d’abonnements (<b>un par utilisateur</b>), statut et date de fin. Ce réglage <b>prime</b> sur Stripe et les codes promo, et s’applique à l’espace « '+esc(nm)+' » à sa prochaine ouverture de l’app. Client depuis le '+esc(fmtJour(c.inscrit))+' · statut site : <span class="past '+s[1]+'">'+esc(s[0])+'</span></div>'+
       '<div class="form-rang">'+
@@ -8814,6 +8849,12 @@ function vueAbonnements(){
       '<div class="encart-tx">Pour modifier ou annuler un abonnement, utilisez le bouton « Ouvrir dans Stripe » — rien ne se modifie depuis cette console.</div></div>';
 }
 var ABN_F={gratuit:'Gratuit',pro:'Pro',business:'Business',premium:'Business Premium'};
+/* v2.77 — LES MÉTIERS DE L'APPLICATION (Justin, 29 septembre 2026 : « chaque métier qu'on a sur le site, quand ils ont
+   l'application, ça correspond à leur métier ») : les clés de `METIERS_ORDRE` (app.html) et de `METIERS_OK` (serveur),
+   dans le même ordre — `tests/test-848.js` compare les trois listes. v2.78 (30 septembre 2026, « oui, fais ce qu'il faut ») :
+   les six métiers du site qui n'avaient pas de pack en ont un, et « Autre métier de terrain » est le réglage neutre. */
+var MET_L={'3d':'3D — Hygiène anti-nuisibles',plomberie:'Plomberie',electricite:'Électricité',chauffage:'Chauffage / Climatisation',serrurerie:'Serrurerie',nettoyage:'Nettoyage / Propreté',maconnerie:'Maçonnerie / Gros œuvre',menuiserie:'Menuiserie',peinture:'Peinture / Revêtements',paysagiste:'Paysagiste / Espaces verts',couverture:'Couverture / Zinguerie',multiservices:'Multiservices / Maintenance',autre:'Autre métier de terrain'};
+function metDemande(c){ var d=((c&&c.demandes)||[]).filter(function(x){ return x&&typeof x==='object'&&MET_L[x.metier]; }).sort(function(a,b){ return (b.date||0)-(a.date||0); })[0]; return d?d.metier:''; }
 /* La formule que l'application REÇOIT (serveur : `formuleServie`) — celle que l'entreprise paie, ou celle qu'une période
    offerte sert — et l'écart quand ce n'est pas celle de la fiche. Justin, 29 septembre 2026 : « ils choisissent le tarif
    qu'ils veulent » ; un code promo sert le plus gros forfait « pour mieux montrer l'application ». Sans l'écart, une fiche
