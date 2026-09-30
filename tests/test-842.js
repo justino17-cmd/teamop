@@ -113,6 +113,10 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
      l'ancien (« multia ») en Business Premium réglé « actif » à la main — une seule entreprise, une seule facturation */
   const tMU = esp('multia', { formule: 'premium', quantite: 1, formuleTs: APRES, formulePar: 'Patron', aboStatut: 'actif', aboPar: 'Patron', aboTs: APRES, ts: 1 });
   esp('multib', { t: tMU, ts: 2 });
+  /* … et une autre, en Business (sans abonnement réglé à la main) sous son ancien nom, dont le nom récent n'a rien : la
+     Tour y appliquera un code Pro — il ne doit pas la faire descendre (« la formule n'écrase que le vide ») */
+  const tMC = esp('multic', { formule: 'business', quantite: 1, formuleTs: APRES, formulePar: 'Patron', ts: 1 });
+  esp('multid', { t: tMC, ts: 2 });
   fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(E));
   /* les codes : l'un en cours (promoprem, promotour), l'autre FINI hier (promofini) */
   fs.writeFileSync(path.join(D, 'promos-usages.json'), JSON.stringify({
@@ -215,7 +219,7 @@ globalThis.fetch = async function (url, opts) {
        Les contrôles de population les écartent, NOMMÉS un par un. */
     const formeB = sl => tous[sl].suspendu === true && tous[sl].sursisJours === 0 && !('formule' in tous[sl]) && !('places' in tous[sl]);
     v('   (population) ce qui n\'est pas payé est servi sans formule ni places — rien de payé (impaye, nouvelle), l\'impayé posé à la main (detour), fiche Gratuit sans rien (gratuitrien), OP MESSAGES seul (msgseul), l\'adresse d\'une autre (petite), une fiche SANS formule qui ne paie rien (sansformule) — et eux seuls',
-      Object.keys(E).filter(formeB), ['impaye', 'nouvelle', 'detour', 'gratuitrien', 'msgseul', 'petite', 'sansformule']);
+      Object.keys(E).filter(formeB), ['impaye', 'nouvelle', 'detour', 'gratuitrien', 'msgseul', 'petite', 'sansformule', 'multic', 'multid']);
     v('⛔ pour CHAQUE entreprise, `quantite` = le nombre réglé dans la Tour, jamais multiplié (la v760 fait × 2 ou × 3 elle-même)',
       Object.keys(E).filter(sl => !formeB(sl) && tous[sl].quantite !== (E[sl].quantite || 1)), []);   // (une fiche sans nombre réglé : 1, comme le serveur)
     vrai('   et `places` est rendu partout (hors impayé)', Object.keys(E).filter(sl => !formeB(sl)).every(sl => Number.isInteger(tous[sl].places)));
@@ -281,7 +285,8 @@ globalThis.fetch = async function (url, opts) {
     /* (msgseul n'y est plus : OP MESSAGES seul n'est pas payé, il est servi sans formule — 30 septembre 2026) */
     const ECARTS = { mauvaistarif: 'pro', tarifhaut: 'premium', gratuitpaie: 'business', montetarif: 'premium', promotour: 'premium', promonu: 'premium', gratuitcode: 'premium',
       sansformulepaie: 'pro',
-      multib: 'premium' };   // (le nom récent, sans formule, d'une entreprise en Business Premium : la facturation suit l'entreprise)
+      multib: 'premium',   // (le nom récent, sans formule, d'une entreprise en Business Premium : la facturation suit l'entreprise)
+      multid: 'business' };
     vrai('population : ' + Object.keys(E).length + ' entreprises relues', Object.keys(E).length >= 40);
     v('⛔ toutes les autres reçoivent la formule de leur fiche (hors ce qui n\'est pas payé, servi sans formule)', Object.keys(E).filter(sl => !formeB(sl) && tous[sl].formule !== (ECARTS[sl] || E[sl].formule)).map(sl => sl + ' : ' + tous[sl].formule), []);
     vrai('   … et une entreprise servie AVEC formule est toujours payée (la forme « formule + paye:false » n\'est plus jamais servie)', Object.keys(E).filter(sl => 'formule' in tous[sl]).every(sl => tous[sl].paye === true));
@@ -425,20 +430,32 @@ globalThis.fetch = async function (url, opts) {
     const stMB = (await appel('/api/monitor/espaces/statut', { nom: 'multib' }, PATRON)).j;
     v('⛔⛔ la fiche du nom récent : Business Premium, réglé « actif » — ce que la Tour va régler, c\'est la facturation de l\'entreprise',
       [stMB.formule, stMB.aboStatut, stMB.paye], ['premium', 'actif', true]);
-    /* un réglage sur l'ANCIEN nom s'applique à l'entreprise (avant : l'application lisait l'autre nom, rien ne changeait) */
-    let rM = await appel('/api/monitor/espaces/formule', { nom: 'multia', formule: 'business', quantite: 2 }, PATRON);
+    /* ⛔ régler la formule du NOUVEAU nom (qui n'a rien) ne perd pas l'abonnement réglé à la main sur l'ancien : la route part
+       de la facturation de l'ENTREPRISE, puis l'écrit sur tous ses noms — sans ça : Pro, pas d'abonnement, SUSPENDUE */
+    let rM = await appel('/api/monitor/espaces/formule', { nom: 'multib', formule: 'pro', quantite: 1 }, PATRON);
     const eM1 = await etat('multib');
-    v('⛔⛔ la formule réglée sur l\'ANCIEN nom : l\'application la reçoit (Business, 2), toujours payée',
-      [rM.s, eM1.formule, eM1.quantite, eM1.paye], [200, 'business', 2, true]);
-    /* ⛔ régler la formule du NOUVEAU nom ne perd pas l'abonnement réglé à la main sur l'ancien (la route part de la
-       facturation de l'entreprise, puis l'écrit sur tous ses noms) — sans ça : Pro, pas d'abonnement, SUSPENDUE */
-    rM = await appel('/api/monitor/espaces/formule', { nom: 'multib', formule: 'pro', quantite: 1 }, PATRON);
-    const eM2 = await etat('multib');
     v('⛔⛔ la formule réglée sur le NOUVEAU nom : Pro, et l\'abonnement réglé « actif » tient — servie, payée',
-      [rM.s, eM2.formule, eM2.paye, eM2.suspendu], [200, 'pro', true, false]);
+      [rM.s, eM1.formule, eM1.paye, eM1.suspendu], [200, 'pro', true, false]);
+    /* un réglage sur l'ANCIEN nom s'applique à l'entreprise (avant : l'application lisait l'autre nom, rien ne changeait) */
+    rM = await appel('/api/monitor/espaces/formule', { nom: 'multia', formule: 'business', quantite: 2 }, PATRON);
+    const eM2 = await etat('multib');
+    v('⛔⛔ la formule réglée sur l\'ANCIEN nom : l\'application la reçoit (Business, 2), toujours payée',
+      [rM.s, eM2.formule, eM2.quantite, eM2.paye], [200, 'business', 2, true]);
     const regM = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'));
     v('   … et les deux noms portent la même fiche dans l\'annuaire (formule, nombre, réglage à la main)',
-      ['multia', 'multib'].map(sl => [regM[sl].formule, regM[sl].quantite, regM[sl].aboStatut]), [['pro', 1, 'actif'], ['pro', 1, 'actif']]);
+      ['multia', 'multib'].map(sl => [regM[sl].formule, regM[sl].quantite, regM[sl].aboStatut]), [['business', 2, 'actif'], ['business', 2, 'actif']]);
+    /* … et l'ABONNEMENT réglé sur l'ancien nom aussi : « impayé » posé à la main — l'application le sert comme tel */
+    rM = await appel('/api/monitor/espaces/abonnement', { nom: 'multia', formule: 'business', quantite: 2, statut: 'impaye', fin: '' }, PATRON);
+    const eM3 = await etat('multib');
+    v('⛔⛔ « impayé » réglé sur l\'ANCIEN nom : l\'application la sert suspendue, sans formule (comme tout impayé)',
+      [rM.s, eM3.suspendu, eM3.sursisJours, 'formule' in eM3], [200, true, 0, false]);
+    /* ⛔ un code appliqué par la Tour au nom récent (sans formule) d'une entreprise en Business sous son ancien nom : la
+       formule de l'ENTREPRISE décide de « n'écrase que le vide » — un code Pro ne la fait pas descendre */
+    const rC = await appel('/api/monitor/espaces/promo', { nom: 'multid', code: 'PETIT-BANC-842' }, PATRON);
+    const eC = await etat('multid');
+    const regC = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'));
+    v('⛔⛔ un code Pro appliqué au nom récent : l\'entreprise reste en Business (servie, payée par la période) — la fiche n\'est pas réécrite en Pro',
+      [rC.s, eC.formule, eC.paye, regC.multid.formule], [200, 'business', true, undefined]);
 
     const APP = fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8');
     const sansCom = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
@@ -499,7 +516,7 @@ globalThis.fetch = async function (url, opts) {
     console.log('\n7. Rien n\'est écrit, rien ne fuit');
     const apres = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'));
     v('⛔ le registre n\'a bougé que par les gestes de la Tour : les places se calculent, elles ne s\'écrivent pas',
-      Object.keys(E).filter(sl => (apres[sl] || {}).quantite !== E[sl].quantite), ['ancienbiz', 'multib']);   // (multib : sa fiche, réglée au § 5 quater)
+      Object.keys(E).filter(sl => (apres[sl] || {}).quantite !== E[sl].quantite), ['ancienbiz', 'multia', 'multib']);   // (multia, multib : réglées au § 5 quater)
     vrai('⛔ le journal ne recopie aucune adresse en clair', !/\w@exemple-842\.fr/i.test(journal));
   } catch (e) { ko++; console.log('  ✗ exception : ' + (e && e.stack || e)); }
 

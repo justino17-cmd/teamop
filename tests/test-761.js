@@ -98,7 +98,11 @@ const arreter = async () => { try { if (enfant) enfant.kill('SIGKILL'); } catch 
     /* … et une troisième, dont le code (validé avant la règle) attend encore d'être activé : le rattrapage lisait `e.t` */
     ancienrat: esp('ancienrat', 'ent-ancien-rat', { t: undefined, formule: undefined, aboStatut: undefined, codePromo: 'ESSAI-RATTRAPAGE-BANC' }),
     multia: esp('multia', 'ent-multi', { ts: 1 }),
-    multib: esp('multib', 'ent-multi', { ts: 2, formule: undefined, aboStatut: undefined, quantite: undefined }) }));
+    multib: esp('multib', 'ent-multi', { ts: 2, formule: undefined, aboStatut: undefined, quantite: undefined }),
+    /* … et une autre, groupe par groupe : son nom récent porte une FORMULE (Pro) mais jamais d'abonnement réglé à la main ;
+       l'ancien, Business Premium réglé « actif ». L'entreprise : Pro (le plus récent qui en porte une), « actif » (idem) */
+    multie: esp('multie', 'ent-multi-2', { ts: 1 }),
+    multif: esp('multif', 'ent-multi-2', { ts: 2, formule: 'pro', aboStatut: undefined }) }));
   /* la période offerte de « ent-sans-formule-promo » — un code FICTIF (règle du dépôt : aucun vrai code dans un fichier suivi) */
   fs.writeFileSync(path.join(banc, 'data', 'promos-usages.json'), JSON.stringify({
     'ESSAI-SANSF-BANC': { n: 3, equipes: { 'ent-sans-formule-promo': { date: '2026-09-01', finLe: '2099-12-31' },
@@ -185,6 +189,9 @@ const arreter = async () => { try { if (enfant) enfant.kill('SIGKILL'); } catch 
     const mul = await etat('ent-multi');
     v('⛔⛔ entreprise à deux noms, le plus récent SANS formule, l\'ancien en Business Premium réglé « actif » : servie Business Premium, payée — pas suspendue',
       [mul.paye, mul.formule, mul.suspendu], [true, 'premium', false]);
+    const mul2 = await etat('ent-multi-2');
+    v('⛔⛔ … et groupe par groupe : le nom récent règle la FORMULE (Pro), l\'ancien l\'abonnement réglé « actif » — servie Pro, payée',
+      [mul2.paye, mul2.formule, mul2.suspendu], [true, 'pro', false]);
     const hors = await etat('ent-hors-annuaire');
     v('   (témoin) une entreprise ABSENTE de l\'annuaire : ni suspendue ni servie — la réponse d\'avant, inchangée',
       [hors.ok, hors.suspendu, hors.formule, hors.paye, hors.verificationImpossible, hors.ferme], [true, false, undefined, undefined, undefined, undefined]);
