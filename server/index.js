@@ -2269,6 +2269,8 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
      await : ~100 ms de PBKDF2 que personne n'attend, et un échec ne doit pas faire rater
      l'inscription — il se dit au journal. */
   annuaireSemerDepuisCode(t, code).catch(() => {});
+  /* une entreprise « repartie à neuf » que la Tour recrée : sa période offerte la suit (`promoReprendreRenaissance`) */
+  try { if (promoReprendreRenaissance(t, espacesReg[slug].email)) console.log('Tour : période offerte reprise par l\'entreprise', t, '(repartie à neuf)'); } catch (err) {}
   if (cleConfirmee) console.log('Tour :', req.tourUser.nom, 'confirme une clé DIFFÉRENTE pour l\'espace', t);   // l'identifiant suffit : le nom d'accès est souvent celui d'une personne
   res.json({ ok: true, slug });
 });
@@ -2733,23 +2735,16 @@ async function espacePaye(e, opts) {
 function periodeOfferte(e) {
   try {
     const auj = new Date().toISOString().slice(0, 10);
-    /* ⛔ « REPARTIR À NEUF » NE COUPE PAS UNE PÉRIODE EN COURS (relecture de la poussée, 30 septembre 2026, rejouée par les
-       vraies routes de la Tour) : l'entreprise revient sous un NOUVEL identifiant, et sa période reste sous l'ancien,
-       marquée de l'empreinte de son e-mail (`promoMarquerAvantRenaitre`). Lue par `t` seul, elle naissait SUSPENDUE —
-       ELAN comprise, si le geste était fait pendant sa période. On la reconnaît donc aussi à l'empreinte de ses adresses
-       (`promoIdentite`, la mémoire des codes), mais SEULEMENT sous un identifiant qui ne désigne plus aucune entreprise de
-       l'annuaire (`garde-…` compris) : deux entreprises vivantes à la même adresse ne se prêtent pas une période. */
-    /* (l'empreinte ne se calcule que si l'identifiant n'a rien donné — et une panne de ce repli ne fait jamais perdre la
-       période trouvée par l'identifiant) */
+    /* ⛔ « REPARTIR À NEUF » NE COUPE PAS UNE PÉRIODE EN COURS — et ne la prête à personne d'autre (`promoRenaissance`). La
+       Tour la reporte sur l'entreprise recréée (route « lien ») ; ici, le filet si ce report n'a pas eu lieu. Calculé seulement
+       si l'identifiant n'a rien donné, et une panne de ce repli ne fait jamais perdre la période trouvée par l'identifiant. */
     const tE = espaceT(e);
-    let ems = null;
-    const mesEms = () => { if (!ems) { try { ems = promoIdentite(tE, e.slug).ems; } catch (err) { ems = new Set(); } } return ems; };
-    const vivante = cle => Object.values(espacesReg || {}).some(x => !!x && String(espaceT(x) || '') === cle);
+    let ren = null;
+    const renaissance = () => { if (!ren) { try { ren = promoRenaissance(tE, promoIdentite(tE, e.slug).ems); } catch (err) { ren = []; } } return ren; };
     const enCours = eq => !!(eq && eq.finLe && eq.finLe >= auj);
     for (const [code, u] of Object.entries(promoUsages || {})) {
       let eq = u && u.equipes && u.equipes[tE];   // (`espaceT` : une entrée ancienne n'a son identifiant que dans son code)
-      if (!enCours(eq) && mesEms().size) eq = Object.entries((u && u.equipes) || {}).map(([cle, x]) =>
-        (cle !== tE && enCours(x) && x.em && mesEms().has(x.em) && !vivante(cle)) ? x : null).find(Boolean) || eq;
+      if (!enCours(eq)) { const r = renaissance().find(x => x.code === code); if (r) eq = r.eq; }
       /* ⛔ une période offerte sert TOUJOURS une formule payante (30 septembre 2026) : un code retiré de `config.promos` ne dit
          plus sa formule, et une fiche « Gratuit » d'avant n'en a pas à servir — la formule d'un code par défaut, Business
          Premium (`formuleDuCode`), plutôt que « gratuit », que `/api/espaces/etat` sert désormais SUSPENDU : une entreprise
@@ -3013,9 +3008,15 @@ function espaceStripeDans(e, liste, statuts, tSeul) {
      minuscules à l'écriture, et une majuscule sur la page Stripe suffisait à bloquer un
      client qui avait pourtant payé. */
   const mel = String(e.email || '').trim().toLowerCase();
-  /* (ses adresses : la sienne, puis celles de ses autres noms — voir `autresNoms`) */
-  const mels = [mel, ...autresNoms.map(sl => String(espacesReg[sl].email || '').trim().toLowerCase())].filter(Boolean);
   const monT = String(espaceT(e) || '').toLowerCase();
+  /* (ses adresses : la sienne, puis celles de ses autres noms — voir `autresNoms`. ⛔ Mais seulement celles qu'AUCUNE autre
+     entreprise de l'annuaire ne porte (relecture des correctifs, 30 septembre 2026, rejouée) : une ancienne adresse reprise par
+     une voisine ne désigne plus la nôtre — elle lui empruntait son abonnement (« payée », et ses places), lui attribuait son
+     impayé, et rendait « partagée » notre propre adresse, si bien qu'un impayé gravé à notre ancien nom ne bloquait plus et que
+     la page de paiement vendait un second abonnement. Notre adresse ACTUELLE, elle, garde la règle d'avant (`partagee`).) */
+  const aUneAutre = m => Object.keys(espacesReg || {}).some(sl => { const x = espacesReg[sl];
+    return !!x && String(x.email || '').trim().toLowerCase() === m && String(espaceT(x) || '').toLowerCase() !== monT; });
+  const mels = [mel, ...autresNoms.map(sl => String(espacesReg[sl].email || '').trim().toLowerCase()).filter(m => m && m !== mel && !aUneAutre(m))].filter(Boolean);
   const tDe = r => { const x = espacesReg[r]; return String((x && espaceT(x)) || r).toLowerCase(); };
   const refDe = sb => String((sb.metadata && sb.metadata.espace) || '').toLowerCase();
   const parMail = sb => mels.length > 0 && !!sb.customer && typeof sb.customer === 'object' && mels.includes(String(sb.customer.email || '').trim().toLowerCase());
@@ -5045,8 +5046,17 @@ function facturationDe(e) {
        sur le nom le plus récent. Seul un réglage d'avant peut n'être que sur un ancien nom — on ne le croit pas (dans le
        doute, on ne coupe pas ; la Tour montre la fiche). Un réglage POSITIF d'un ancien nom, lui, remonte : c'est ce qui
        a fait naître cette lecture (une entreprise payée par virement, suspendue). */
-    if (src && src !== parRecence[0] && g.champs[0] === 'aboStatut' && ['annule', 'suspendu', 'impaye'].includes(src.aboStatut)) src = null;
-    for (const k of g.champs) { if (src && src[k] !== undefined) r[k] = src[k]; else delete r[k]; }
+    let fait = null;
+    if (src && src !== parRecence[0] && g.champs[0] === 'aboStatut' && ['annule', 'suspendu', 'impaye'].includes(src.aboStatut)) {
+      /* ⛔ … mais « depuis quand elle paie » (`aboDepuis`) est un FAIT, pas une décision : sans lui, le « actif » que la Tour
+         repose ensuite datait l'abonnement d'aujourd'hui, et une abonnée d'avant perdait pour toujours ses places ×2/×3 (relecture
+         des correctifs, 30 septembre 2026, rejouée). Un impayé ou une suspension d'avant sans date disait « elle payait » depuis
+         son réglage (`aboTs`) — ce que la route « abonnement » en déduisait. */
+      const dep = src.aboDepuis != null ? src.aboDepuis : (src.aboStatut !== 'annule' ? (src.aboTs || 0) : undefined);
+      if (dep !== undefined) fait = { aboDepuis: dep };
+      src = null;
+    }
+    for (const k of g.champs) { if (src && src[k] !== undefined) r[k] = src[k]; else if (fait && fait[k] !== undefined) r[k] = fait[k]; else delete r[k]; }
   }
   return r;
 }
@@ -9421,11 +9431,51 @@ function promoAutreActif(c, t, slug) {
 function promoMarquerAvantRenaitre(t, slug, email) {
   const em = promoEmpreinteMail(email); let n = 0;
   if (!em) return 0;
+  /* (et `renait` : QUAND, et les entreprises VIVANTES qui portaient déjà cette adresse — elles ne reprendront pas sa période,
+     `promoRenaissance`) */
+  const voisins = [...new Set(Object.values(espacesReg || {}).filter(x => !!x && String(espaceT(x) || '') !== t
+    && promoEmpreinteMail(x.email) === em).map(x => String(espaceT(x) || '')).filter(Boolean))];
   for (const u of Object.values(promoUsages || {})) {
     const eq = u && u.equipes && t ? u.equipes[t] : null; if (!eq) continue;
-    eq.em = em; n++;
+    eq.em = em; eq.renait = { le: Date.now(), voisins }; n++;
   }
   if (n) savePromoUsages();
+  return n; }
+/* ⛔ LA PÉRIODE D'UNE ENTREPRISE « REPARTIE À NEUF » LA SUIT — ELLE SEULE (relecture des correctifs, 30 septembre 2026, rejouée).
+   « Repartir à neuf » retire l'entreprise de l'annuaire, et la Tour la recrée aussitôt sous un NOUVEL identifiant (route
+   « lien ») : sa période offerte restait sous l'ancien, et l'entreprise recréée naissait SUSPENDUE — ELAN comprise, si le
+   geste était fait pendant sa période. La reconnaître à la seule empreinte de l'e-mail PRÊTAIT la période à toute autre
+   entreprise à la même adresse (une voisine qui existait déjà, l'héritière d'une suppression totale), et le rappel J-7, qui
+   lit par identifiant, ne la voyait pas. Ce qui distingue l'entreprise recréée n'est pas l'adresse, c'est le GESTE :
+   `promoMarquerAvantRenaitre` pose `renait` (quand, et les voisines d'adresse déjà vivantes). Rend les périodes EN COURS
+   qu'une entreprise `t` (d'empreintes `ems`) peut reprendre : sous un identifiant qui n'est plus à l'annuaire, à son adresse,
+   si elle n'était pas une voisine, et pas déjà reprise par une autre. Une période d'avant ce marqueur ne se reprend pas
+   toute seule : la Tour la reporte en réappliquant le même code (`promoPresente` : même échéance, rien ne se recompte). */
+function promoRenaissance(t, ems) {
+  const out = [];
+  if (!t || !ems || !ems.size) return out;
+  const auj = promoAujourdhui();
+  const vivante = cle => Object.values(espacesReg || {}).some(x => !!x && String(espaceT(x) || '') === cle);
+  for (const [code, u] of Object.entries(promoUsages || {})) {
+    for (const [cle, eq] of Object.entries((u && u.equipes) || {})) {
+      if (cle === t || !eq || !eq.renait || !eq.em || !ems.has(eq.em) || !eq.finLe || eq.finLe < auj) continue;
+      if ((eq.renait.voisins || []).includes(t) || (eq.renait.repris && eq.renait.repris !== t) || vivante(cle)) continue;
+      out.push({ code, cle, eq });
+    }
+  }
+  return out; }
+/* La Tour recrée une entreprise repartie à neuf (route « lien ») : sa période la suit, sous son NOUVEL identifiant — le
+   rappel J-7, la facturation différée et l'application la lisent alors comme toute période (par identifiant). Rien ne se
+   recompte (`u.n`), et la période n'est reprise qu'une fois (`repris`). */
+function promoReprendreRenaissance(t, email) {
+  const em = promoEmpreinteMail(email); if (!em || promosIllisible) return 0;
+  let n = 0;
+  for (const { code, eq } of promoRenaissance(t, new Set([em]))) {
+    const u = promoUsages[code];
+    if (!u.equipes[t]) { const { renait, ...reste } = eq; u.equipes[t] = Object.assign(reste, { reporte: true }); n++; }
+    eq.renait = Object.assign({}, eq.renait, { repris: t });
+  }
+  if (n && !savePromoUsages()) console.error('⛔ période offerte reprise en mémoire seulement (promos-usages.json non écrit) pour l\'entreprise', t);
   return n; }
 /* Toutes les utilisations d'une entreprise, pour la suppression TOTALE : celles de son identifiant,
    et celles d'un identifiant d'avant « repartir à neuf » qui portent son e-mail. Une utilisation qui
