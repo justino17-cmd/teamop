@@ -4894,16 +4894,15 @@ app.post('/api/monitor/espaces/promo', monPatronStrict, (req, res) => {
 //    Une seule adresse par entreprise (dédoublonnée), tout passe par le beau
 //    gabarit TeamOP et le journal des e-mails.
 const ANNONCE = {
-  version: '748',
-  sujet: '🔒 OP GESTION quitte Google — et une grande mise à jour',
-  intro: 'Bonjour,<br>votre application OP GESTION vient d\'être mise à jour. À la prochaine ouverture, chaque téléphone affiche un écran de mise à jour : un seul bouton, quelques secondes.',
+  version: '767',
+  sujet: '🆕 OP GESTION : l\'application de votre métier, et du nouveau sur l\'abonnement',
+  intro: 'Bonjour,<br>votre application OP GESTION vient d\'être mise à jour. La nouvelle version s\'installe d\'elle-même, sans interrompre une saisie, et un message le confirme à l\'ouverture suivante.',
   points: [
-    ['🔒 Vos données restent chez nous', 'La synchronisation de votre équipe passait jusqu\'ici par un service de Google (Firebase). Elle passe désormais par notre propre serveur : vos données y arrivent chiffrées par vos appareils, et une copie de sauvegarde en est faite chaque nuit. Mêmes écrans, mêmes données, mêmes habitudes.'],
-    ['⬆️ Chaque appareil doit prendre la mise à jour', 'Un téléphone resté sur l\'ancienne version ne peut plus enregistrer pour l\'équipe : un écran le lui dit, avec un seul bouton. Ce qu\'il avait déjà saisi part vers l\'équipe dès qu\'il est à jour — rien n\'est perdu.'],
-    ['✨ Des dizaines d\'améliorations', 'Un nouvel habillage, de jour comme de nuit, à votre couleur ; des droits réglables case par case pour chaque personne ; un stockage hors des box, avec le suivi de qui prend quoi ; le rapport d\'intervention envoyé en PDF ; le plan d\'implantation à chaque passage ; et l\'en-tête de chaque document au nom de la bonne société.'],
-    ['🔑 Espace client : un nouveau mot de passe, une seule fois', 'Si vous gérez votre abonnement sur teamop.fr, votre espace client a lui aussi quitté Google. La première fois, touchez « Mot de passe oublié ? » : un lien arrive par e-mail, vous choisissez votre mot de passe, et vous retrouvez toutes vos informations.']
+    ['🧰 L\'application de votre métier', 'OP GESTION connaît désormais treize métiers : 3D (hygiène anti-nuisibles), plomberie, électricité, chauffage et climatisation, serrurerie, nettoyage, maçonnerie, menuiserie, peinture, espaces verts, couverture, multiservices et autres métiers de terrain. Les types d\'intervention, les prestations et les relevés suivent le vôtre. Rien ne change tant que vous n\'avez rien demandé : pour régler le vôtre, écrivez à contact@teamop.fr.'],
+    ['📅 Les contrats à renouveler', 'L\'écran Contrats montre ceux qui arrivent à échéance — « Fin dans 12 j », « Échu » sur chaque ligne — et la cloche le rappelle aux personnes qui gèrent les contrats. Rien ne se renouvelle tout seul : vous gardez la main.'],
+    ['💳 Plus de formule gratuite', 'L\'application se sert désormais avec un abonnement ou une période offerte. Une période offerte en cours va jusqu\'à sa date de fin, et un courriel vous le rappelle sept jours avant. Si le paiement s\'arrête, l\'accès est suspendu jusqu\'au règlement : rien n\'est effacé ni perdu, et tout revient dès que c\'est réglé. Seul l\'administrateur de l\'entreprise voit pourquoi, avec le bouton pour régler ; le reste de l\'équipe ne voit aucun message de paiement.']
   ],
-  fin: 'Votre adresse et vos identifiants OP GESTION continuent de fonctionner, sans rien changer.'
+  fin: 'Votre adresse et vos identifiants OP GESTION ne changent pas.'
 };
 app.post('/api/monitor/annonce', monPatronStrict, async (req, res) => {
   if (!mailer) return res.status(503).json({ error: 'e-mail non configuré sur le serveur' });
