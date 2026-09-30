@@ -2326,13 +2326,19 @@ app.post('/api/monitor/espaces/metier', monPatronStrict, (req, res) => {
   if (!e) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son « Lien de connexion » (fiche entreprise)' });
   const m = monStr((req.body || {}).metier, 20);
   if (m && !METIERS_OK.includes(m)) return res.status(400).json({ error: 'métier inconnu' });
-  if ((e.metier || '') !== m) {
-    const avant = { metier: e.metier, metierPar: e.metierPar, metierTs: e.metierTs };
-    e.metier = m; e.metierPar = m ? req.tourUser.nom : ''; e.metierTs = Date.now();
+  /* ⛔ LE MÉTIER EST CELUI DE L'ENTREPRISE, SUR TOUS SES NOMS (relecture de la poussée, 30 septembre 2026, rejouée) : posé
+     sur un ancien nom, il n'atteignait pas l'application (qui lit le plus récent), et « Revoir le lien » sur un ancien nom
+     le faisait revenir en arrière. Comme la facturation (`facturationPartager`). */
+  const noms = nomsEntreprise(e).length ? nomsEntreprise(e) : [e];
+  if (noms.some(x => (x.metier || '') !== m)) {
+    const avant = noms.map(x => ({ x, v: { metier: x.metier, metierPar: x.metierPar, metierTs: x.metierTs } }));
+    const ts = Date.now();
+    for (const x of noms) { x.metier = m; x.metierPar = m ? req.tourUser.nom : ''; x.metierTs = ts; }
     /* écrit, ou on le dit — et on défait en mémoire : sinon le serveur servirait ce métier jusqu'au redémarrage,
        puis l'ancien, sans que la Tour l'ait jamais su (même règle que la création d'un espace) */
-    if (!espacesEcrire()) { Object.assign(e, avant); return res.status(500).json({ error: 'L\'annuaire n\'a pas pu être enregistré — le métier n\'a pas changé.' }); }
-    console.log('Tour :', req.tourUser.nom, 'règle le métier', m || '(aucun)', 'de', slug);
+    if (!espacesEcrire()) { avant.forEach(a => Object.assign(a.x, a.v)); return res.status(500).json({ error: 'L\'annuaire n\'a pas pu être enregistré — le métier n\'a pas changé.' }); }
+    /* (l'identifiant, jamais le nom d'accès : il est souvent celui d'une personne) */
+    console.log('Tour :', req.tourUser.nom, 'règle le métier', m || '(aucun)', 'de l\'entreprise', espaceT(e) || '(sans identifiant)');
   }
   res.json({ ok: true, slug, metier: m });
 });
@@ -2522,8 +2528,12 @@ function aboEchuMotif(e) {
    TARIF quand il est connu — un abonnement d'avant la bascule au tarif Business Premium reste Business Premium (`gardien` A5 :
    `formulePayee` compte ces abonnements à la formule de la fiche, et une fiche « Gratuit » n'en a pas) ; Pro, la formule
    d'entrée, à défaut. Le plus d'abonnements décide, à égalité le plus bas — la règle de `formulePayee`. UNE définition, lue
-   par `espacePaye` et le rappel J-7. */
-function formuleGratuitIllisible(s) {
+   par `espacePaye` et le rappel J-7.
+   ⛔ Le « Pro à défaut » vaut pour une fiche « Gratuit » (c'est un gain pour elle). Une fiche SANS formule avait tout l'accès
+   jusqu'ici (l'application garde son forfait, Business Premium par défaut) : lui servir Pro sur un tarif qu'on ne sait pas
+   lire grisait les fonctions qu'elle paie peut-être — elle garde Business Premium (relecture de la poussée, 30 septembre
+   2026 : on ne coupe pas une entreprise qui paie peut-être). */
+function formuleGratuitIllisible(s, e) {
   const parRang = RANG_FORMULE.map(() => 0);
   for (const sb of ((s && s.surs) || []).filter(aboDeGestion)) {
     for (const it of ((sb && sb.items && Array.isArray(sb.items.data)) ? sb.items.data : [])) {
@@ -2534,7 +2544,7 @@ function formuleGratuitIllisible(s) {
   }
   let rang = -1;
   for (let k = 0; k < parRang.length; k++) if (parRang[k] > 0 && (rang < 0 || parRang[k] > parRang[rang])) rang = k;
-  return rang >= 0 ? RANG_FORMULE[rang] : 'pro';
+  return rang >= 0 ? RANG_FORMULE[rang] : ((e && e.formule === 'gratuit') ? 'pro' : 'premium');
 }
 const bloqueImpaye = imp => ({ paye: false, motif: motifImpaye(imp), impaye: true, impayeStripe: true, bloque: true,
   echeance: imp.abo.current_period_end ? new Date(imp.abo.current_period_end * 1000).toISOString().slice(0, 10) : '' });
@@ -2651,7 +2661,7 @@ async function espacePaye(e, opts) {
        (`gratuitPayeIllisible`, `formuleGratuitIllisible`) ; le motif le dit, pour que la Tour corrige la fiche. Sans rien de
        sûr, elle ne paie pas : suspendue (plus bas). */
     if (gratuitPayeIllisible(e, s, fp)) {
-      const fI = formuleGratuitIllisible(s);
+      const fI = formuleGratuitIllisible(s, e);
       return { paye: true, motif: s.motif + ' — ' + (e.formule === 'gratuit' ? 'fiche « Gratuit » (formule retirée)' : 'fiche sans formule') + ', abonnement illisible : ' + (FORMULE_LBL2[fI] || fI) + ' servi en attendant la Tour',
         echeance: s.echeance, formuleServie: fI, placesStripe: placesDeFormule(e, fI, s.memes || []), impayesPartiels: imp ? imp.tous.length : 0 };
     }
@@ -2671,10 +2681,18 @@ async function espacePaye(e, opts) {
      « En cas de doute, on dit ça paie » — pour un espace qui porte un code (relecture de `gardien`) :
      sinon l'application grisait une entreprise en pleine période offerte, et l'horloge de
      conservation la datait. Rien n'est écrit ; `/health` et la surveillance crient déjà. */
-  if (promosIllisible && e.codePromo) return { paye: true, motif: 'code promo ' + String(e.codePromo).toUpperCase() + ' — registre des codes illisible, dans le doute on ne coupe pas', promoCode: String(e.codePromo).toUpperCase(), doute: true,
+  /* ⛔ …SAUF UN IMPAYÉ QUE STRIPE DIT (relecture de la poussée, 30 septembre 2026, rejouée) : ce retour passait AVANT Stripe —
+     une entreprise dont la carte est refusée, et qui avait eu un jour un code, recevait Business Premium « payé », le
+     sursis de la Tour, et la page de paiement lui vendait un SECOND abonnement au lieu de sa facture. Le doute porte sur
+     la période offerte ; l'impayé, Stripe l'a dit (même règle qu'une liste périmée : il bloque encore). */
+  if (promosIllisible && e.codePromo) {
+    const vI = await stripeVerdict(e);
+    if (impayeBloque(e, vI.s, vI.imp)) return bloqueImpaye(vI.imp);
+    return { paye: true, motif: 'code promo ' + String(e.codePromo).toUpperCase() + ' — registre des codes illisible, dans le doute on ne coupe pas', promoCode: String(e.codePromo).toUpperCase(), doute: true,
     /* la formule du CODE, comme la période qu'on ne peut plus lire (seconde relecture de `gardien`) : la fiche seule
        faisait retomber une entreprise Pro en période Business Premium, `db.forfait` réécrit et synchronisé */
     formuleServie: formulePromo(e, e.codePromo) || e.formule };
+  }
   const po = periodeOfferte(e);   // code promo : compté par espace (teamId = identifiant de l'espace)
   if (po) return po;
   const { s, imp, illisible, perimee } = await stripeVerdict(e);
@@ -2715,8 +2733,19 @@ async function espacePaye(e, opts) {
 function periodeOfferte(e) {
   try {
     const auj = new Date().toISOString().slice(0, 10);
+    /* ⛔ « REPARTIR À NEUF » NE COUPE PAS UNE PÉRIODE EN COURS (relecture de la poussée, 30 septembre 2026, rejouée par les
+       vraies routes de la Tour) : l'entreprise revient sous un NOUVEL identifiant, et sa période reste sous l'ancien,
+       marquée de l'empreinte de son e-mail (`promoMarquerAvantRenaitre`). Lue par `t` seul, elle naissait SUSPENDUE —
+       ELAN comprise, si le geste était fait pendant sa période. On la reconnaît donc aussi à l'empreinte de ses adresses
+       (`promoIdentite`, la mémoire des codes), mais SEULEMENT sous un identifiant qui ne désigne plus aucune entreprise de
+       l'annuaire (`garde-…` compris) : deux entreprises vivantes à la même adresse ne se prêtent pas une période. */
+    const tE = espaceT(e), ems = promoIdentite(tE, e.slug).ems;
+    const vivante = cle => Object.values(espacesReg || {}).some(x => !!x && String(espaceT(x) || '') === cle);
+    const enCours = eq => !!(eq && eq.finLe && eq.finLe >= auj);
     for (const [code, u] of Object.entries(promoUsages || {})) {
-      const eq = u && u.equipes && u.equipes[espaceT(e)];   // (`espaceT` : une entrée ancienne n'a son identifiant que dans son code)
+      let eq = u && u.equipes && u.equipes[tE];   // (`espaceT` : une entrée ancienne n'a son identifiant que dans son code)
+      if (!enCours(eq) && ems.size) eq = Object.entries((u && u.equipes) || {}).map(([cle, x]) =>
+        (cle !== tE && enCours(x) && x.em && ems.has(x.em) && !vivante(cle)) ? x : null).find(Boolean) || eq;
       /* ⛔ une période offerte sert TOUJOURS une formule payante (30 septembre 2026) : un code retiré de `config.promos` ne dit
          plus sa formule, et une fiche « Gratuit » d'avant n'en a pas à servir — la formule d'un code par défaut, Business
          Premium (`formuleDuCode`), plutôt que « gratuit », que `/api/espaces/etat` sert désormais SUSPENDU : une entreprise
@@ -2954,7 +2983,15 @@ function espaceStripeDans(e, liste, statuts, tSeul) {
      ⚠️ Le `t` se lit par `espaceT` — en clair, OU dans le code des entrées les plus anciennes : c'est lui que la
      route de paiement grave (« B »), et `e.t` seul ne voyait pas ces entrées-là, rattachées alors par la seule
      adresse (`gardien`, rejoué) — un changement d'adresse et le paiement se perdait. */
-  const refs = (tSeul ? [String(espaceT(e) || '').toLowerCase()] : [String(e.slug || '').toLowerCase(), String(espaceT(e) || '').toLowerCase()]).filter(Boolean);
+  /* ⛔⛔ UNE ENTREPRISE, UNE FACTURATION — JUSQU'À STRIPE (relecture de la poussée, 30 septembre 2026, rejouée) : la formule
+     d'une entreprise renommée se lit sur tous ses noms (`facturationDe`), mais son abonnement ne se cherchait qu'avec le
+     nom et l'adresse du plus récent. Payée par un abonnement gravé à son ANCIEN nom d'accès (d'anciennes pages de
+     paiement), ou trouvé par l'adresse de l'ancien nom, elle passait de servie à SUSPENDUE. Ses autres noms (même
+     identifiant) comptent donc ici comme le sien — leurs noms d'accès et leurs adresses. */
+  const autresNoms = Object.keys(espacesReg || {}).filter(sl => { const x = espacesReg[sl]; const tx = String((x && espaceT(x)) || '').toLowerCase();
+    return !!x && !!tx && tx === String(espaceT(e) || '').toLowerCase() && String(sl).toLowerCase() !== String(e.slug || '').toLowerCase(); });
+  const refs = (tSeul ? [String(espaceT(e) || '').toLowerCase()] : [String(e.slug || '').toLowerCase(), String(espaceT(e) || '').toLowerCase(),
+    ...autresNoms.map(sl => String(sl).toLowerCase())]).filter(Boolean);
   const st = Array.isArray(statuts) && statuts.length ? statuts : STATUTS_PAYES;
   const vivant = sb => !!sb && st.includes(sb.status);
   let abo = refs.length ? liste.find(sb => vivant(sb)
@@ -2972,15 +3009,17 @@ function espaceStripeDans(e, liste, statuts, tSeul) {
      minuscules à l'écriture, et une majuscule sur la page Stripe suffisait à bloquer un
      client qui avait pourtant payé. */
   const mel = String(e.email || '').trim().toLowerCase();
+  /* (ses adresses : la sienne, puis celles de ses autres noms — voir `autresNoms`) */
+  const mels = [mel, ...autresNoms.map(sl => String(espacesReg[sl].email || '').trim().toLowerCase())].filter(Boolean);
   const monT = String(espaceT(e) || '').toLowerCase();
   const tDe = r => { const x = espacesReg[r]; return String((x && espaceT(x)) || r).toLowerCase(); };
   const refDe = sb => String((sb.metadata && sb.metadata.espace) || '').toLowerCase();
-  const parMail = sb => !!mel && sb.customer && typeof sb.customer === 'object' && String(sb.customer.email || '').trim().toLowerCase() === mel;
+  const parMail = sb => mels.length > 0 && !!sb.customer && typeof sb.customer === 'object' && mels.includes(String(sb.customer.email || '').trim().toLowerCase());
   /* ⚠️ une adresse PARTAGÉE avec une autre entreprise de l'annuaire rend un abonnement sans référence ambigu : celle
      qui a déjà un abonnement à son nom ne le prend pas (sinon il compterait chez les deux) ; celle qui n'est
      rattachée que par l'adresse le garde, comme avant. (Déclarée AVANT `aMoi`, qui la lit.) */
-  const partagee = !!mel && Object.keys(espacesReg || {}).some(sl => { const x = espacesReg[sl]; return !!x && x !== e
-    && String(sl).toLowerCase() !== String(e.slug || '').toLowerCase() && String(x.email || '').trim().toLowerCase() === mel
+  const partagee = mels.length > 0 && Object.keys(espacesReg || {}).some(sl => { const x = espacesReg[sl]; return !!x && x !== e
+    && String(sl).toLowerCase() !== String(e.slug || '').toLowerCase() && mels.includes(String(x.email || '').trim().toLowerCase())
     && !(monT && String(espaceT(x) || '').toLowerCase() === monT); });   // ses propres autres noms (même `t`) ne la « partagent » pas
   /* ⛔ UN IMPAYÉ GRAVÉ AU NOM D'ACCÈS (d'anciennes pages envoyaient le nom, pas l'identifiant) n'est à elle que s'il porte
      AUSSI son adresse, ET QUE PERSONNE D'AUTRE NE LA PORTE. Le nom seul ne prouve rien — libéré puis repris, il désigne
@@ -2997,7 +3036,7 @@ function espaceStripeDans(e, liste, statuts, tSeul) {
      à deux noms (l'autre nom garde l'ancien `t`), un nom libéré puis repris — et une entreprise qui paie se lisait
      NON PAYÉE. On ne coupe jamais une entreprise qui paie peut-être ; la limite connue reste : deux entreprises à la
      même adresse, et l'abonnement de l'une rend l'autre « payée » (la Tour seule range deux entrées ainsi). */
-  if (!abo && mel) {
+  if (!abo && mels.length) {
     abo = liste.find(sb => vivant(sb) && parMail(sb));
     parQuoi = 'adresse e-mail';
   }
@@ -4991,7 +5030,16 @@ function facturationDe(e) {
   const parRecence = noms.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
   const r = Object.assign({}, e);
   for (const g of facturationGroupes()) {
-    const src = parRecence.find(g.porte);
+    let src = parRecence.find(g.porte);
+    /* ⛔ UN RÉGLAGE NÉGATIF PÉRIMÉ NE REMONTE PAS D'UN ANCIEN NOM (relecture de la poussée, 30 septembre 2026, rejouée) : un
+       « annulé », « suspendu » ou « impayé » posé jadis sur un nom, puis un nom neuf créé par l'ancienne route (qui ne le
+       reportait pas) — le serveur d'avant servait l'entreprise sur le nom neuf depuis. Lu par groupe, il la SUSPENDAIT à
+       la mise en ligne, abonnement Stripe payé compris. Depuis cette version, un réglage de la Tour s'écrit sur TOUS les
+       noms (`facturationPartager`) et un nom neuf le reprend (route « lien ») : un réglage négatif vivant est donc aussi
+       sur le nom le plus récent. Seul un réglage d'avant peut n'être que sur un ancien nom — on ne le croit pas (dans le
+       doute, on ne coupe pas ; la Tour montre la fiche). Un réglage POSITIF d'un ancien nom, lui, remonte : c'est ce qui
+       a fait naître cette lecture (une entreprise payée par virement, suspendue). */
+    if (src && src !== parRecence[0] && g.champs[0] === 'aboStatut' && ['annule', 'suspendu', 'impaye'].includes(src.aboStatut)) src = null;
     for (const k of g.champs) { if (src && src[k] !== undefined) r[k] = src[k]; else delete r[k]; }
   }
   return r;
@@ -9771,7 +9819,7 @@ async function abonnementGestion(e, finLe) {
   /* la formule servie le lendemain, décidée comme `espacePaye` la décidera : « gratuit » n'est plus servi (30 septembre
      2026 : suspendue) — le courriel habituel ; une fiche « Gratuit » qu'un abonnement d'OP GESTION illisible paie reçoit Pro
      (`gratuitPayeIllisible`) — elle est servie, pas de lien de paiement */
-  const servie = gratuitPayeIllisible(e, s, fp) ? formuleGratuitIllisible(s) : ((fp && fp.f) || e.formule);
+  const servie = gratuitPayeIllisible(e, s, fp) ? formuleGratuitIllisible(s, e) : ((fp && fp.f) || e.formule);
   /* « gratuit », RIEN (une fiche sans formule que rien de lisible ne paie) ou une formule que l'application ne connaît pas :
      suspendue le lendemain (`accesSuspenduPar`) — le courriel habituel, avec son lien */
   if (!RANG_FORMULE.includes(servie)) return { etat: 'aucun' };
