@@ -705,6 +705,13 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
       [sansPeriode.paye, sansPeriode.promoCode, sansPeriode.formuleServie], [true, 'ESSAI-BANC-SANSF', 'premium']);
     const sansImpaye = await avec([apres([L('pro', 1)], { status: 'past_due' })])(SANS());
     v('⛔ fiche sans formule, sa carte refusée : l\'impayé, comme partout (`bloque`)', [sansImpaye.paye, sansImpaye.bloque], [false, true]);
+    /* … mais l'impayé SANS référence d'une AUTRE entreprise à la même adresse ne la dit pas « impayée » (`impayeBloque` : la
+       règle de la fiche « Gratuit », qu'elle suit) — elle n'est pas payée pour autant : suspendue, motif « aucune formule » */
+    const sansVoisine = { slug: 'sansvoisine', t: 'ent-sansvoisine', email: 'pat@acme.fr' };
+    const sansImpVois = await avecTout({ abos: [apres([L('pro', 1)], { status: 'past_due', customer: { email: 'pat@acme.fr' } })],
+      reg: { sansVoisine, grande: { slug: 'grande', t: 'ent-grande', email: 'pat@acme.fr', formule: 'premium' } } })(sansVoisine);
+    v('⛔ fiche sans formule, l\'impayé SANS référence d\'une voisine d\'adresse : pas « impayée » (ce n\'est pas le sien) — suspendue, motif « aucune formule »',
+      [sansImpVois.paye, sansImpVois.bloque, /^aucune formule posée dans la Tour/.test(sansImpVois.motif)], [false, undefined, true]);
     const sansManuel = await avec([])(SANS({ aboStatut: 'actif', aboPar: 'Banc' }));
     v('⛔ fiche sans formule réglée « active » à la main (une entrée d\'avant — la Tour exige une formule) : ce réglage ne sert rien, suspendue',
       [sansManuel.paye, /^aucune formule posée dans la Tour/.test(sansManuel.motif)], [false, true]);
