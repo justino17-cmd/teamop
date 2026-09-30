@@ -58,7 +58,7 @@ console.log('\n── 849 · la relecture de la poussée, rejouée sur le vrai s
     const R = path.join(banc, 's' + (++n)), D = path.join(R, 'data'); fs.mkdirSync(D, { recursive: true });
     fs.writeFileSync(path.join(D, 'espaces.json'), JSON.stringify(espaces));
     fs.writeFileSync(path.join(D, 'promos-usages.json'), typeof usages === 'string' ? usages : JSON.stringify(usages));
-    const ETAT = path.join(R, 'stripe.json'); fs.writeFileSync(ETAT, JSON.stringify({ subs, factures: factures || {} }));
+    const ETAT = path.join(R, 'stripe.json'); fs.writeFileSync(ETAT, JSON.stringify(subs === null ? { muet: true, subs: [], factures: {} } : { subs, factures: factures || {} }));
     const PRE = path.join(R, 'stripe-simule.js');
     fs.writeFileSync(PRE, `const vrai = globalThis.fetch; const fs = require('fs');
 globalThis.fetch = async function (url, opts) {
@@ -66,6 +66,7 @@ globalThis.fetch = async function (url, opts) {
   if (!u.startsWith('https://api.stripe.com/')) return vrai.apply(this, arguments);
   const E = JSON.parse(fs.readFileSync(${JSON.stringify(ETAT)}, 'utf8'));
   const json = (c, st) => new Response(JSON.stringify(c), { status: st || 200, headers: { 'content-type': 'application/json' } });
+  if (E.muet) return json({ error: { message: 'panne du banc' } }, 500);
   if (u.startsWith('https://api.stripe.com/v1/checkout/sessions')) return json({ id: 'cs_banc_849', url: 'https://checkout.stripe.com/c/pay/banc-849' });
   const r1 = /^https:\\/\\/api\\.stripe\\.com\\/v1\\/subscriptions\\/([^?]+)/.exec(u);
   if (r1) { const sb = E.subs.find(x => x.id === decodeURIComponent(r1[1])); const f = E.factures[decodeURIComponent(r1[1])] || {};
@@ -202,6 +203,23 @@ globalThis.fetch = async function (url, opts) {
   vrai('   … et la Tour le voit comme un impayé', la1.impaye === true);
   v('   … sans impayé, le doute sert toujours la formule du code (on ne coupe pas une période qu\'on ne peut plus lire)',
     SERVIE(await s2.etat('t-a2-849')), [true, 'premium', false]);
+
+  /* ══ 3. STRIPE MUET — la Tour ne dit pas « payé » quand le serveur ne SAIT pas ═══════════════════════════ */
+  console.log('\n  H · Stripe muet : la Tour dit « non vérifiable », pas « payé »');
+  const s3 = await demarrer({ z1: { t: 't-z1-849', nom: 'z1', email: mail('z1'), ts: MAINT - 1000, formule: 'pro', quantite: 1 },
+    z2: { t: 't-z2-849', nom: 'z2', email: mail('z2'), ts: MAINT - 1000, formule: 'pro', quantite: 1, aboStatut: 'actif', aboPar: 'Banc' } }, {}, null);
+  vrai('le vrai serveur démarre, isolé (Stripe muet)', s3.vivant);
+  vrai('(population) l\'application reçoit « vérification impossible » (rien n\'est décidé)', (await s3.etat('t-z1-849')).verificationImpossible === true);
+  const P3 = await s3.patron();
+  const L3 = ((await s3.appel('/api/monitor/espaces/liste', undefined, P3)).j.espaces || []);
+  const z1 = L3.find(x => x.t === 't-z1-849') || {}, z2 = L3.find(x => x.t === 't-z2-849') || {};
+  v('⛔ la liste de la Tour : « on ne sait pas » se distingue de « payée » (inconnu), la réglée à la main non', [z1.paye, z1.inconnu, z2.paye, z2.inconnu], [true, true, true, false]);
+  const st3 = (await s3.appel('/api/monitor/espaces/statut', { nom: 'z1' }, P3)).j;
+  v('   … et la fiche (statut) aussi', [st3.paye, st3.inconnu], [true, true]);
+  const TOUR = fs.readFileSync(path.join(RACINE, 'tour.html'), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+  vrai('⛔ la Tour ne range pas une entreprise « non vérifiable » parmi les réglées', /attribPayees=\(ESP\.list\|\|\[\]\)\.filter\(function\(e\)\{ return e\.formule&&e\.paye&&!e\.inconnu&&!e\.promoCode; \}\)/.test(TOUR));
+  vrai('   … sa ligne dit « non vérifiable » avant « payé »', /\(e\.paye\?\(e\.inconnu\?' · paiement non vérifiable/.test(TOUR));
+  vrai('   … et le message de la fiche aussi', /r\.d\.paye\?\(r\.d\.inconnu\?'❔ paiement non vérifiable/.test(TOUR));
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   fin();

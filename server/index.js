@@ -2739,13 +2739,17 @@ function periodeOfferte(e) {
        ELAN comprise, si le geste était fait pendant sa période. On la reconnaît donc aussi à l'empreinte de ses adresses
        (`promoIdentite`, la mémoire des codes), mais SEULEMENT sous un identifiant qui ne désigne plus aucune entreprise de
        l'annuaire (`garde-…` compris) : deux entreprises vivantes à la même adresse ne se prêtent pas une période. */
-    const tE = espaceT(e), ems = promoIdentite(tE, e.slug).ems;
+    /* (l'empreinte ne se calcule que si l'identifiant n'a rien donné — et une panne de ce repli ne fait jamais perdre la
+       période trouvée par l'identifiant) */
+    const tE = espaceT(e);
+    let ems = null;
+    const mesEms = () => { if (!ems) { try { ems = promoIdentite(tE, e.slug).ems; } catch (err) { ems = new Set(); } } return ems; };
     const vivante = cle => Object.values(espacesReg || {}).some(x => !!x && String(espaceT(x) || '') === cle);
     const enCours = eq => !!(eq && eq.finLe && eq.finLe >= auj);
     for (const [code, u] of Object.entries(promoUsages || {})) {
       let eq = u && u.equipes && u.equipes[tE];   // (`espaceT` : une entrée ancienne n'a son identifiant que dans son code)
-      if (!enCours(eq) && ems.size) eq = Object.entries((u && u.equipes) || {}).map(([cle, x]) =>
-        (cle !== tE && enCours(x) && x.em && ems.has(x.em) && !vivante(cle)) ? x : null).find(Boolean) || eq;
+      if (!enCours(eq) && mesEms().size) eq = Object.entries((u && u.equipes) || {}).map(([cle, x]) =>
+        (cle !== tE && enCours(x) && x.em && mesEms().has(x.em) && !vivante(cle)) ? x : null).find(Boolean) || eq;
       /* ⛔ une période offerte sert TOUJOURS une formule payante (30 septembre 2026) : un code retiré de `config.promos` ne dit
          plus sa formule, et une fiche « Gratuit » d'avant n'en a pas à servir — la formule d'un code par défaut, Business
          Premium (`formuleDuCode`), plutôt que « gratuit », que `/api/espaces/etat` sert désormais SUSPENDU : une entreprise
@@ -3307,7 +3311,9 @@ app.get('/api/monitor/espaces/liste', monAdmin, async (req, res) => {
        sur la même entreprise, au même instant — et on chercherait du côté de Stripe. */
     try { p = await espacePaye(Object.assign({ slug }, e), { lecture: true }); } catch (err) {}   // une LISTE n'active aucun code
     sortie.push({ slug, nom: e.nom || slug, email: e.email || '', formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', quantite: e.quantite || 1, places: placesServies(e, p),
-      paye: p.paye, motif: p.motif, promoCode: p.promoCode || '', finLe: p.finLe || '', echeance: p.echeance || '', attribueLe: e.formuleTs || 0, par: e.formulePar || '',
+      /* `inconnu` : on ne SAIT pas (Stripe muet, registre illisible — `payeInconnu`) ; `paye` y vaut vrai pour ne couper
+         personne, et la Tour disait « payé » — elle dit désormais « non vérifiable » (relecture de la poussée, 30 septembre 2026) */
+      paye: p.paye, inconnu: !!p.inconnu, motif: p.motif, promoCode: p.promoCode || '', finLe: p.finLe || '', echeance: p.echeance || '', attribueLe: e.formuleTs || 0, par: e.formulePar || '',
       /* carte refusée : les fonctions payantes sont bloquées jusqu'au règlement (`bloque`) ; `impayeStripe` : il vient d'un
          abonnement Stripe (la Tour le montre déjà par sa ligne Stripe — sinon réglé à la main) ; `impayesPartiels` : des
          abonnements refusés parmi d'autres payés (leurs places ne sont pas servies) */
@@ -3354,7 +3360,7 @@ app.post('/api/monitor/espaces/statut', monAdmin, async (req, res) => {
   if (!espacesReg[slug]) return res.status(404).json({ error: 'Espace inconnu — génère d\'abord son lien de connexion' });
   const e = facturationDe(espacesReg[slug]);   // la fiche montre la facturation de l'ENTREPRISE : c'est elle que la Tour règle
   const p = await espacePaye(Object.assign({ slug }, e), { lecture: true });   // le slug n'est pas dans l'entrée — voir /liste ; une LECTURE n'active aucun code
-  res.json({ ok: true, formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', promoCode: p.promoCode || '', quantite: e.quantite || 1, places: placesServies(e, p), email: e.email || '', paye: p.paye, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '', metier: metierOk(e.metier),
+  res.json({ ok: true, formule: e.formule || '', formuleServie: p.formuleServie || e.formule || '', promoCode: p.promoCode || '', quantite: e.quantite || 1, places: placesServies(e, p), email: e.email || '', paye: p.paye, inconnu: !!p.inconnu, motif: p.motif, aboStatut: e.aboStatut || 'auto', aboFin: e.aboFin || '', finLe: p.finLe || '', metier: metierOk(e.metier),
     impaye: !!p.bloque, impayeStripe: !!p.impayeStripe, impayesPartiels: p.impayesPartiels || 0 });
 });
 // ── Activité par onglet (anonyme : noms d'écrans + compteurs, par espace) ──

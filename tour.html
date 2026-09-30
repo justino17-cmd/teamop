@@ -5420,7 +5420,7 @@ function tourPackPrefill(nom){
 }
 function tourStatutPack(nom){
   apiPost('/api/monitor/espaces/statut',{nom:nom}).then(function(r){
-    if(r&&r.ok&&r.d) toast(r.d.formule?('📦 '+(ABN_F[r.d.formule]||r.d.formule)+(r.d.quantite>1?' ×'+r.d.quantite:'')+(r.d.formuleServie&&r.d.formuleServie!==r.d.formule?' → l’application reçoit '+(ABN_F[r.d.formuleServie]||r.d.formuleServie):'')+' — '+(r.d.paye?'✅ payé ('+r.d.motif+')':'💳 en attente de paiement')):'Aucune formule attribuée');
+    if(r&&r.ok&&r.d) toast(r.d.formule?('📦 '+(ABN_F[r.d.formule]||r.d.formule)+(r.d.quantite>1?' ×'+r.d.quantite:'')+(r.d.formuleServie&&r.d.formuleServie!==r.d.formule?' → l’application reçoit '+(ABN_F[r.d.formuleServie]||r.d.formuleServie):'')+' — '+(r.d.paye?(r.d.inconnu?'❔ paiement non vérifiable pour l’instant ('+r.d.motif+')':'✅ payé ('+r.d.motif+')'):'💳 en attente de paiement')):'Aucune formule attribuée');
     else toast((r&&r.d&&r.d.error)||'Statut indisponible');
   }).catch(function(){ toast('Serveur injoignable'); });
 }
@@ -8817,7 +8817,9 @@ function vueAbonnements(){
   }
   /* Payées hors Stripe et attribuées depuis la console : rangée secondaire, rien à
      surveiller — mais elles existent, et elles n'étaient nulle part. */
-  var attribPayees=(ESP.list||[]).filter(function(e){ return e.formule&&e.paye&&!e.promoCode; });
+  /* (`inconnu` : le serveur ne SAIT pas — Stripe muet, registre illisible ; `paye` y vaut vrai pour ne couper personne. Ce
+     n'est pas « déjà réglée » : la ligne le dit plus bas, relecture de la poussée du 30 septembre 2026) */
+  var attribPayees=(ESP.list||[]).filter(function(e){ return e.formule&&e.paye&&!e.inconnu&&!e.promoCode; });
   if(attribPayees.length&&!f) G.push(abnGroupe('Attribuées depuis la console',attribPayees.length,
     'Une formule posée à la main, déjà réglée. Elles n’apparaissent pas chez Stripe.',true,
     '<div class="reg-bloc mien">'+attribPayees.map(function(e){
@@ -8897,7 +8899,7 @@ function blocEspaces(){
         '<span class="reg-av gris">'+esc(sigle(e.nom||e.email||'?'))+'</span>'+
         '<span class="reg-txt"><span class="reg-t1">'+esc(e.nom||e.email||'—')+'</span>'+
         '<span class="reg-l2'+(abnAEcart(e)?' abn-ecart':'')+'">'+esc(abnFormule(e,e.quantite>1?' ×'+e.quantite:''))+
-        (e.paye?(e.promoCode?' · offert jusqu’au '+esc(e.finLe||'?')+' · '+joursRestants(e.finLe||''):' · payé'+(e.places?' · '+nMot(e.places,'place servie','places servies'):'')):' · rien de payé : application suspendue')+'</span></span>'+
+        (e.paye?(e.inconnu?' · paiement non vérifiable pour l’instant (rien n’est décidé)':e.promoCode?' · offert jusqu’au '+esc(e.finLe||'?')+' · '+joursRestants(e.finLe||''):' · payé'+(e.places?' · '+nMot(e.places,'place servie','places servies'):'')):' · rien de payé : application suspendue')+'</span></span>'+
         /* v2.78 — plus de Gratuit : une entreprise qui ne paie pas est SUSPENDUE, on le dit tel quel */
         '<span class="reg-fin">'+(e.paye?'':'<span class="past p-rouge">⏸ Suspendue</span>')+
         '<span class="reg-chev" aria-hidden="true">›</span></span></button>'; }).join('')+'</div>')+'</div>';
