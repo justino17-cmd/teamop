@@ -448,8 +448,16 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   le sens qui ne coupe personne : un doute lève sa grisaille jusqu'à la réponse suivante. `test-842`, `test-845` et `test-803`
   gardent les DEUX pages, chacune par sa forme ; `scratchpad/simuler-serveur-seul.sh` joue la liste serveur contre `main`,
   `scratchpad/mutations-serveur-seul.py` y éprouve les branches de la v763.
-  ⚠️ Reste ouvert : une fiche SANS formule garde tout l'accès (question à Justin) ; le code promo reste dans le motif public —
-  deux champs à part d'abord, lus par une application publiée et exigée, le retrait ensuite (`REPRISE.md`). `test-761` (le vrai
+  ⛔ **UNE FICHE SANS FORMULE SUIT LE MÊME CHEMIN** (Justin, 30 septembre 2026, à « les suspendre aussi ? » : « Suspend ») :
+  `ficheSansFormule` (aucune formule, ou « gratuit ») — période offerte, Stripe, impayé, doute, sinon suspendue ; son motif
+  commence par « aucune formule » (l'horloge de conservation y lit « jamais abonnée »), « Mon espace » dit « Suspendu », le
+  rappel J-7 la juge sur Stripe (déjà abonnée : pas de lien vers un second abonnement). Seule une entreprise ABSENTE de
+  l'annuaire garde l'ancienne réponse, ni formule ni suspension : un annuaire illisible au démarrage rendrait tout le monde
+  inconnu. ⚠️ Un espace d'essai ouvert depuis la Tour (« Accès à la version publique ») s'ouvre donc SUSPENDU : lui poser une
+  formule et « En essai » avec une date de fin — la Tour le dit. Et un banc qui veut une entreprise « qui travaille » la fait
+  PAYER (`test-796`) : une fiche nue est suspendue.
+  ⚠️ Reste ouvert : le code promo reste dans le motif public — deux champs à part d'abord, lus par une application publiée
+  et exigée, le retrait ensuite (`REPRISE.md`). `test-761` (le vrai
   serveur, dont un second au Stripe muet), `test-727`, `test-775`, `test-803`, `test-838`, `test-840`, `test-842`, `test-844`,
   `test-845`, `test-848`, `scratchpad/mutations-suspension.py`, `scratchpad/sonde-suspension.js` (au navigateur, sur une copie
   de la bêta en règle de production).
