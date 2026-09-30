@@ -13,38 +13,43 @@ de ligne du tout.
 
 ---
 
-# ✅ 30 SEPTEMBRE 2026, NUIT — SECONDE RELECTURE DU SERVEUR AVANT « POUSSE » : SIX DÉFAUTS CORRIGÉS (`test-849`)
+# ✅ 30 SEPTEMBRE 2026, NUIT — TROIS RELECTURES DU SERVEUR AVANT « POUSSE » : TOUT CE QUI A ÉTÉ REJOUÉ EST CORRIGÉ (`test-849`)
 
-Promise avant d'envoyer le serveur : une relecture adverse (cinq angles, chaque constat reproduit PUIS attaqué par un
-second agent, tous en Sonnet depuis la consigne de Justin). Elle a rejoué le serveur neuf contre celui de `main` sur des
-annuaires d'AVANT, et trouvé des entreprises traitées à l'envers. Corrigé sur la branche (`3b94e44`, `f23a0e2`) :
+Promise avant d'envoyer le serveur : des relectures adverses (chaque constat reproduit sur le vrai serveur, PUIS attaqué par
+un second agent, tous en Sonnet depuis la consigne de Justin). Elles ont rejoué le serveur neuf contre celui de `main` sur des
+annuaires d'AVANT. Corrigé sur la branche (`3b94e44`, `f23a0e2`, `dd5e232`, `2cd51cb`, puis `b01fdf6` pour la dernière) :
 
 | | le défaut, rejoué | le correctif |
 |---|---|---|
-| A | registre des codes illisible + un code sur la fiche + carte refusée : Business Premium « payé », et la page de paiement vendait un SECOND abonnement | l'impayé que Stripe dit passe avant le doute du registre |
-| B | un « annulé »/« suspendu »/« impayé » d'avant resté sur un ANCIEN nom suspendait l'entreprise qui paie sous le nom récent | un réglage négatif ne remonte que du nom le plus récent (la Tour d'aujourd'hui l'écrit sur tous les noms : rien de vivant ne se perd) |
-| C | entreprise renommée payée par un abonnement gravé à l'ANCIEN nom d'accès, ou trouvé par l'adresse de l'ancien nom : suspendue | `espaceStripeDans` cherche aussi par les noms et adresses de ses autres noms (même identifiant) |
-| D | « repartir à neuf » pendant une période offerte (ELAN comprise) : suspendue | la période restée sous l'ancien identifiant sert (empreinte de l'e-mail, identifiant qui n'est plus à l'annuaire — jamais celle d'une autre entreprise vivante) |
+| A | registre des codes illisible + un code sur la fiche + carte refusée : Business Premium « payé », et la page de paiement vendait un SECOND abonnement | l'impayé que Stripe dit passe avant le doute du registre — ⚠️ seulement s'il est SÛREMENT le sien : l'impayé sans référence d'une voisine d'adresse ne suspend pas une entreprise dont la période court peut-être |
+| B | un « annulé »/« suspendu »/« impayé » d'avant resté sur un ANCIEN nom suspendait l'entreprise qui paie sous le nom récent | un réglage négatif ne remonte que du nom le plus récent (la Tour d'aujourd'hui l'écrit sur tous les noms) ; « abonnée depuis » est gardée comme un fait |
+| C | entreprise renommée payée par un abonnement gravé à l'ANCIEN nom d'accès, ou trouvé par l'adresse de l'ancien nom : suspendue | `espaceStripeDans` cherche aussi par ses autres noms et leurs adresses — jamais une adresse qu'une autre entreprise porte (`aUneAutre`), jamais un abonnement gravé à l'IDENTIFIANT d'une autre entreprise vivante (`tAutre` : la sœur qui a changé d'adresse), et « partagée » se décide abonnement par abonnement (`partageeDe`) |
+| D | « repartir à neuf » pendant une période offerte (ELAN comprise) : suspendue | `renaitre` pose la marque du geste (`renait` : quand, les voisines déjà là, le rappel J-7 déjà envoyé) ; la route « lien » reprend la période sous le NOUVEL identifiant — à la CRÉATION seulement (« Revoir le lien » d'une entreprise existante ne la prend pas), une seule fois, jamais une voisine |
+| D bis | supprimer TOTALEMENT une voisine d'adresse effaçait la période d'une entreprise VIVANTE, ou sa mémoire d'un code déjà servi (le code redevenait neuf) | `promoCles` ne prend ni l'utilisation d'un identifiant vivant, ni celle dont l'adresse est portée par une autre entreprise vivante |
 | E | fiche SANS formule payée par un tarif illisible : servie Pro | Business Premium (Pro reste pour une fiche « Gratuit ») |
 | F · G | le métier posé sur un ancien nom n'atteignait pas l'application ; son journal portait le nom d'accès | écrit sur tous les noms ; le journal porte l'identifiant |
 | H | pendant une panne Stripe, la Tour écrivait « payé » là où le serveur dit « on ne sait pas » | `inconnu` dans la liste et la fiche ; la Tour dit « paiement non vérifiable pour l'instant » |
 
-Preuves : `test-849` **35 ✓** (trois vrais serveurs, dont un au registre tronqué et un au Stripe muet) ; sur le serveur
-d'avant les correctifs, **11 ✗, un par défaut** ; **16/16 mutations mordent** (`scratchpad/mutations-849.py`,
-`mutations-849b.py`) ; `test-727` et `test-803` suivis ; suite complète de la branche **204 suites · 11 992
-vérifications, code 0**.
+Preuves : `test-849` **70 ✓** (neuf vrais serveurs : registre lisible, tronqué, Stripe muet, « repartir à neuf » et
+suppressions par les vraies routes de la Tour, le rappel J-7 après redémarrage) ; sur le serveur d'avant la dernière relecture
+(`c78b936`), **15 ✗** ; **15/15 mutations** de la dernière relecture mordent (`scratchpad/mutations-849d.py`), après 23/23 et
+16/16 aux précédentes ; liste serveur **50 suites · 3 413 vérifications** ; suite de la branche **204 suites · 12 010
+vérifications, code 0** (avant `b01fdf6` — relancée avant l'envoi).
 
 Laissé tel quel, et pourquoi :
-- **« repartir à neuf » d'une entreprise réglée à la main** (virement, « actif ») : le réglage part avec l'ancienne entrée
-  — c'est le sens du geste ; le patron le repose. Écrit ici pour que ce ne soit pas une surprise.
+- **Deux entreprises à la MÊME adresse partagent la mémoire des codes** (limite écrite en tête des codes promo) : la voisine qui
+  PRÉSENTE le code d'une autre reçoit sa période (`promoPresente`). La relecture l'a rejoué ; c'est le modèle « l'adresse,
+  c'est l'entreprise » — le changer est une décision de produit. Ne pas créer deux entreprises à la même adresse.
+- **Une entreprise à DEUX noms qui repart à neuf sur un seul nom** : l'ancien identifiant vit encore (l'autre nom) et garde la
+  période ; la recréée naît suspendue. Joué et voulu dans `test-849` — retirer d'abord l'autre nom.
+- **Les périodes d'entreprises reparties à neuf AVANT ce déploiement** n'ont pas la marque du geste : elles ne se reprennent pas
+  seules. Remède : réappliquer le même code dans la Tour (même échéance, rien ne se recompte).
+- **« repartir à neuf » d'une entreprise réglée à la main** (virement, « actif ») : le réglage part avec l'ancienne entrée —
+  c'est le sens du geste ; le patron le repose.
 - **Une Tour v2.75 restée ouverte** refuserait « Accepter » d'une demande « Gratuit » (400, sans perte) : la v2.78 part dans
   le même envoi — **recharger la Tour après la mise en ligne**.
 - **La v763** dit « revenu au forfait gratuit » à l'administrateur d'une entreprise suspendue : transitoire, la v767 part
   juste après.
-- Les ADRESSES d'un nom neuf : depuis le 27 septembre, la Tour refuse d'accoler une autre adresse à une entreprise connue.
-  Avant, possible : C couvre ce cas désormais.
-
----
 
 # ✅ 30 SEPTEMBRE 2026 — LE SITE EST EN SERVICE (`e9ab8d0` sur `main`) — L'APPLICATION, LA TOUR ET LE SERVEUR ATTENDENT « POUSSE »
 
