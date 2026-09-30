@@ -751,6 +751,12 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('   pas payée : « Suspendu » — l\'application l\'est', await lecteur(REG, [])('patron@alpha.fr'), { statut: 'suspendu' });
     v('   ⛔ une fiche « Gratuit » d\'avant réglée « active » à la main : « Suspendu » aussi — ce réglage ne paie rien (`aboManuelDe`)',
       await lecteur({ alpha: Object.assign({}, REG.alpha, { formule: 'gratuit', aboStatut: 'actif' }) }, [])('patron@alpha.fr'), { statut: 'suspendu' });
+    /* ⛔ … MAIS PENDANT SA PÉRIODE OFFERTE, ELLE EST SERVIE : `aboManuelDe` la laisse à la règle du Gratuit, qui lit la période
+       d'abord. Si le réglage à la main passait devant (la mutation M4), la période d'un code — ELAN en est une — serait
+       SUSPENDUE en pleine période, et le rappel J-7 ne partirait plus. */
+    v('   ⛔ la même fiche « Gratuit » réglée « active » à la main, EN PÉRIODE OFFERTE : la formule du code — pas suspendue',
+      await lecteur({ alpha: Object.assign({}, REG.alpha, { formule: 'gratuit', aboStatut: 'actif' }) }, [], [{ code: 'ESSAI-BANC-NEUF', mois: 3 }],
+        { 'ESSAI-BANC-NEUF': { n: 1, equipes: { 'ent-alpha': { date: '2026-09-01', finLe: '2099-12-31' } } } })('patron@alpha.fr'), 'Business Premium');
     v('   (témoin) la même, réglée « active » à la main en Business Premium : Business Premium',
       await lecteur({ alpha: Object.assign({}, REG.alpha, { aboStatut: 'actif' }) }, [])('patron@alpha.fr'), 'Business Premium');
     v('   une période offerte : la formule du code', await lecteur(REG, [], [{ code: 'ESSAI-BANC-NEUF', mois: 3 }],

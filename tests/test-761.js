@@ -80,7 +80,9 @@ const arreter = async () => { try { if (enfant) enfant.kill('SIGKILL'); } catch 
     gratuit: esp('gratuit', 'ent-gratuit', { formule: 'gratuit', aboStatut: undefined }),
     gratuitactif: esp('gratuitactif', 'ent-gratuit-actif', { formule: 'gratuit', aboStatut: 'actif' }),
     /* … et une quatrième, qui ne paie rien ET que la Tour a suspendue il y a deux jours */
-    riensus: esp('riensus', 'ent-rien-sus', { formule: 'pro', aboStatut: undefined }) }));
+    riensus: esp('riensus', 'ent-rien-sus', { formule: 'pro', aboStatut: undefined }),
+    /* … et une fiche écrite à la main avec une formule que personne ne connaît (la Tour et les codes la refusent) */
+    inconnue: esp('inconnue', 'ent-inconnue', { formule: 'decouverte', aboStatut: 'actif' }) }));
   /* trois états dans le même fichier : suspendu d'hier (sursis vivant), suspendu il y a
      9 jours (sursis épuisé), et FERMÉ pour de bon (absent de `suspendus`). */
   fs.writeFileSync(path.join(banc, 'data', 'entreprises-fermees.json'), JSON.stringify({
@@ -129,6 +131,10 @@ const arreter = async () => { try { if (enfant) enfant.kill('SIGKILL'); } catch 
        tout pendant une semaine — plus qu'à une entreprise que la Tour n'a pas touchée. */
     v('⛔ rien de payé ET suspendue dans la Tour il y a 2 jours : aucun jour de sursis — la suspension ne rend pas d\'accès à qui ne paie pas',
       forme(await etat('ent-rien-sus')), [true, 0, false, true, undefined]);
+    /* ⛔ une formule que l'application ne sait pas servir ne se sert pas, même « payée » à la main : l'application d'avant
+       l'ignorait (elle gardait ce qu'elle avait), celle d'aujourd'hui la lit comme une suspension — le serveur le dit d'abord */
+    v('⛔ une fiche à la formule inconnue, réglée « active » à la main : suspendue, sans formule — jamais servie telle quelle',
+      forme(await etat('ent-inconnue')), [true, 0, false, true, undefined]);
   }
 
   console.log('\n══ 3. ⛔ LES VRAIES FONCTIONS DE L’ÉCRAN, EXÉCUTÉES ══\n');

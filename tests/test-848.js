@@ -205,6 +205,10 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
     vrai('   le fil de la demande le dit (« métier Chauffage / Climatisation »)', P.fil.some(m => /métier Chauffage \/ Climatisation/.test(m.text || '')), JSON.stringify(P.fil.map(m => m.text)));
     const resume = P.ctx.cliResume({ email: MAIL }, { demandes: [dem[0], { app: 'OP GESTION', metier: 'n-importe-quoi<b>', date: 1 }] });
     v('⛔ la fiche relayée à la Tour (`cliResume`) garde le métier de chaque demande', resume.demandes.map(d => d.metier), ['chauffage', 'n-importe-quoi<b>']);
+    /* ⛔ v767 — un dossier d'avant qui porte « Gratuit » (ou « Découverte », son ancien nom) n'a plus d'abonnement : la
+       fiche relayée à la Tour ne dit pas « Gratuit » (la vraie `planNom`, par la vraie `cliResume`) */
+    v('⛔ un dossier d\'avant en « Gratuit » ou « Découverte » : la fiche relayée ne porte plus de formule ; « Pro » passe',
+      ['Gratuit', 'découverte', ' Découverte ', 'Pro'].map(p => P.ctx.cliResume({ email: MAIL }, { plan: p, demandes: [] }).plan), ['', '', '', 'Pro']);
     v('   … et le choix de formule du formulaire n\'offre plus « Gratuit » (Justin, 29 septembre 2026 : l\'application est payante)',
       /\$\{\['Pro','Business','Business Premium'\]\.map\(o=>/.test(PORTN) && !/\['Gratuit','Pro','Business','Business Premium'\]/.test(PORTN), true);
 

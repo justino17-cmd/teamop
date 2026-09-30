@@ -339,6 +339,19 @@ globalThis.fetch = async function (url, opts) {
     const av4 = appareil('inc', 'technicien', async () => ({ ok: false, json: async () => ({}) }));
     await av4.sync();
     vrai('⛔ une page d\'erreur du proxy (502, `{}`) ne décide rien non plus', av4.acces() === false && av4.db().forfait === 'pro' && av4.vu.saves === 0);
+    /* ⛔ ET DANS L'AUTRE SENS — c'est là qu'une panne coûte : un appareil SUSPENDU qui reçoit une page d'erreur du proxy, ou
+       une vérification impossible, RESTE suspendu. `{}` se lisait « pas suspendue » et rouvrait l'accès (mutation M13) ; la
+       vérification impossible porte `suspendu:false` quand la Tour n'a rien posé (mutation M14). */
+    let repP = { ok: true, paye: false, motif: 'accès suspendu', suspendu: true, sursisJours: 0 }, httpP = true;
+    const av5 = appareil('inc', 'technicien', async () => ({ ok: httpP, json: async () => repP }));
+    await av5.sync();
+    vrai('(témoin) cet appareil est d\'abord suspendu', av5.acces() === true);
+    httpP = false; repP = {}; await av5.sync();
+    vrai('⛔ suspendu, puis une page d\'erreur du proxy (502, `{}`) : il RESTE suspendu — une panne ne rouvre pas l\'accès', av5.acces() === true && av5.vu.saves === 0);
+    httpP = true; repP = { ok: true, verificationImpossible: true, suspendu: false, sursisJours: null }; await av5.sync();
+    vrai('⛔ … et une vérification impossible non plus', av5.acces() === true && av5.vu.saves === 0);
+    repP = { ok: true, formule: 'pro', quantite: 1, places: 1, paye: true, motif: 'abonnement Stripe (active)', suspendu: false, sursisJours: null }; await av5.sync();
+    vrai('   (témoin) une réponse PAYÉE, elle, rouvre tout', av5.acces() === false && av5.vu.saves === 0);
 
     console.log('\n3. Le règlement : l\'accès revient seul, sans rien réparer');
     etatStripe.subs.find(s => s.id === 'sub_ret_0').status = 'active'; delete etatStripe.factures.sub_ret_0; poser();

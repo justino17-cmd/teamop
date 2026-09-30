@@ -275,6 +275,14 @@ globalThis.fetch = async function (url, opts) {
     console.log('\n5. La Tour : réenregistrer sans rien changer n\'efface rien, et elle voit les places servies');
     const PATRON = (await appel('/api/monitor/login', { nom: 'Patron', pass: 'mot-de-passe-banc-842' })).j.token;
     vrai('la Tour ouvre une session de patron', PATRON);
+    /* ⛔ v767 — LA TOUR NE POSE PLUS « GRATUIT » (30 septembre 2026) : ses deux routes le refusent, avec la raison, et la
+       fiche ne bouge pas. Sans ce refus, un clic suffisait à faire d'une entreprise payante une entreprise suspendue. */
+    const avantG = (await etat('ancienprem')).formule;
+    const rG1 = await appel('/api/monitor/espaces/formule', { nom: 'ancienprem', formule: 'gratuit', quantite: 1 }, PATRON);
+    const rG2 = await appel('/api/monitor/espaces/abonnement', { nom: 'ancienprem', formule: 'gratuit', quantite: 1, statut: 'actif', fin: '' }, PATRON);
+    v('⛔ « Attribuer » Gratuit : refusé (400), et la raison est dite', [rG1.s, /n'existe plus/.test((rG1.j || {}).error || '')], [400, true]);
+    v('⛔ … « Abonnement » réglé en Gratuit : refusé aussi', [rG2.s, /n'existe plus/.test((rG2.j || {}).error || '')], [400, true]);
+    v('   … et la formule servie n\'a pas bougé', [avantG, (await etat('ancienprem')).formule], ['premium', 'premium']);
     let r = await appel('/api/monitor/espaces/abonnement', { nom: 'ancienbiz', formule: 'business', quantite: 1, statut: 'actif', fin: dans(300) }, PATRON);
     v('⛔ la fiche d\'une entreprise d\'avant réenregistrée (seule la date de fin change) → toujours 2 places', [r.s, (await etat('ancienbiz')).places], [200, 2]);
     r = await appel('/api/monitor/espaces/formule', { nom: 'ancienprem', formule: 'premium', quantite: 2 }, PATRON);
