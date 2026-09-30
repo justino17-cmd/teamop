@@ -339,14 +339,10 @@ globalThis.fetch = async function (url, opts) {
     rx: { t: 't-rx-849', nom: 'rx', code: codeEspace('t-rx-849'), email: mail('dupr'), ts: MAINT - 9000, formule: 'pro', quantite: 1 },
     ry: { t: 't-ry-849', nom: 'ry', code: codeEspace('t-ry-849'), email: mail('dupr'), ts: MAINT - 5000 },
     rv: { t: 't-rv-849', nom: 'rv', code: codeEspace('t-rv-849'), email: mail('dupv'), ts: MAINT - 9000, formule: 'pro', quantite: 1 },
-    rvy: { t: 't-rvy-849', nom: 'rvy', code: codeEspace('t-rvy-849'), email: mail('dupv'), ts: MAINT - 5000 },
-    /* (rz a CHANGÉ d'adresse depuis son code : son utilisation porte encore l'empreinte de l'ancienne — celle de rvy. C'est
-       l'identifiant VIVANT qui la protège, pas l'adresse : sans ce cas, une garde masquait l'autre) */
-    rz: { t: 't-rz-849', nom: 'rz', code: codeEspace('t-rz-849'), email: mail('rz-neuve'), ts: MAINT - 9000, formule: 'pro', quantite: 1 } };
-  const UR = { 'VIEUX-BANC-849': { n: 3, equipes: {
+    rvy: { t: 't-rvy-849', nom: 'rvy', code: codeEspace('t-rvy-849'), email: mail('dupv'), ts: MAINT - 5000 } };
+  const UR = { 'VIEUX-BANC-849': { n: 2, equipes: {
     't-rx-849': { date: jour(-10), finLe: jour(30), em: em(mail('dupr')) },
-    't-rv-849': { date: jour(-10), finLe: jour(30), em: em(mail('dupv')) },
-    't-rz-849': { date: jour(-10), finLe: jour(30), em: em(mail('dupv')) } } } };
+    't-rv-849': { date: jour(-10), finLe: jour(30), em: em(mail('dupv')) } } } };
   const sR = await demarrer(ER, UR, [], {}, { smtp: portSmtp });
   const PR = await sR.patron();
   const rRx = await sR.appel('/api/monitor/espaces/renaitre', { nom: 'rx', confirme: true }, PR);
@@ -360,8 +356,16 @@ globalThis.fetch = async function (url, opts) {
   const rSvy = await sR.appel('/api/monitor/entreprise/supprimer', { t: 't-rvy-849', confirme: true }, PR);
   v('⛔⛔ suppression TOTALE de la voisine rvy : la période de rv, sous son propre identifiant, reste',
     [rSvy.s, SERVIE(await sR.etat('t-rv-849')), !!lireUsages(sR).equipes['t-rv-849']], [200, [true, 'premium', false], true]);
-  v('⛔ … et celle de rz, qui a changé d\'adresse depuis (l\'empreinte de son utilisation est celle de rvy) : son identifiant est vivant, elle reste',
-    [SERVIE(await sR.etat('t-rz-849')), !!lireUsages(sR).equipes['t-rz-849']], [[true, 'premium', false], true]);
+  /* (rz a CHANGÉ d'adresse depuis son code : son utilisation porte encore l'empreinte de l'ancienne — celle de rzy, que plus
+     aucune autre entreprise vivante ne porte. C'est l'identifiant VIVANT qui la protège, pas l'adresse. Un serveur à part :
+     dans le précédent, rv porte l'adresse de sa voisine, et une garde masquait l'autre.) */
+  const sZ = await demarrer({
+    rz: { t: 't-rz-849', nom: 'rz', code: codeEspace('t-rz-849'), email: mail('rz-neuve'), ts: MAINT - 9000, formule: 'pro', quantite: 1 },
+    rzy: { t: 't-rzy-849', nom: 'rzy', code: codeEspace('t-rzy-849'), email: mail('dupz'), ts: MAINT - 5000 } },
+    { 'VIEUX-BANC-849': { n: 1, equipes: { 't-rz-849': { date: jour(-10), finLe: jour(30), em: em(mail('dupz')) } } } }, [], {}, { smtp: portSmtp });
+  const rSzy = await sZ.appel('/api/monitor/entreprise/supprimer', { t: 't-rzy-849', confirme: true }, await sZ.patron());
+  v('⛔ suppression TOTALE de rzy, dont rz portait l\'adresse quand elle a pris son code : l\'identifiant de rz est vivant, sa période reste',
+    [rSzy.s, SERVIE(await sZ.etat('t-rz-849')), !!lireUsages(sZ).equipes['t-rz-849']], [200, [true, 'premium', false], true]);
 
   /* (relecture finale) la mémoire d'un code DÉJÀ SERVI, gardée pour l'entreprise qui vit sous un nouvel identifiant (`garde-…`,
      posée quand la Tour supprime l'ancien identifiant), ne part pas avec la suppression d'une voisine d'adresse : sinon le code
