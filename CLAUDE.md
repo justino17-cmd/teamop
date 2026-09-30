@@ -57,7 +57,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**204 suites dans `tests/`**, sans dépendance ni installation (recompté le 30 septembre 2026 —
+**203 suites dans `tests/`**, sans dépendance ni installation (recompté le 30 septembre 2026 —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -125,7 +125,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 204 suites · 11 941 vérifications (mesuré en local le 30/09/2026, branche 2a8b4fa)
+bash scripts/bancs-ci.sh        # 203 suites · 11 948 vérifications (mesuré en local le 30/09/2026, branche 9f23d0b)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
@@ -456,6 +456,13 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   inconnu. ⚠️ Un espace d'essai ouvert depuis la Tour (« Accès à la version publique ») s'ouvre donc SUSPENDU : lui poser une
   formule et « En essai » avec une date de fin — la Tour le dit. Et un banc qui veut une entreprise « qui travaille » la fait
   PAYER (`test-796`) : une fiche nue est suspendue.
+  ⛔⛔ **UNE ENTREPRISE, UNE FACTURATION** (relecture de `gardien`, rejouée : deux entreprises qui PAIENT étaient suspendues) :
+  une entreprise à plusieurs noms (même `t`) lit sa formule et son abonnement réglé à la main PAR GROUPE, chacun sur le nom le
+  plus récent qui le porte (`facturationDe`) — application, « Mon espace », J-7, liste et fiche de la Tour, conservation, page
+  de paiement ; la Tour part de cette facturation et l'écrit sur TOUS les noms (`facturationReprendre`, `facturationPartager`).
+  Un nouveau chemin qui lit ou écrit une facturation passe par là. L'identifiant d'une entrée d'avant se lit dans son code
+  (`espaceT`), et le rattrapage d'un code en attente passe AVANT la branche sans formule : un code valable n'est pas « impacté ».
+  `test-761`, `test-842` § 5 ter et quater, `test-845`, série B de `scratchpad/mutations-suspension.py`.
   ⚠️ Reste ouvert : le code promo reste dans le motif public — deux champs à part d'abord, lus par une application publiée
   et exigée, le retrait ensuite (`REPRISE.md`). `test-761` (le vrai
   serveur, dont un second au Stripe muet), `test-727`, `test-775`, `test-803`, `test-838`, `test-840`, `test-842`, `test-844`,

@@ -13,6 +13,80 @@ de ligne du tout.
 
 ---
 
+# ⏳ 30 SEPTEMBRE 2026, SOIR — UNE ENTREPRISE SANS FORMULE EST SUSPENDUE AUSSI ; UNE ENTREPRISE, UNE FACTURATION ; L'ANCIENNE MAQUETTE DU SITE SUPPRIMÉE — ATTEND « POUSSE »
+
+Justin, aux deux questions restées ouvertes plus bas (A3 et la maquette) :
+- **A3** (« une fiche SANS formule dans l'annuaire garde tout l'accès — les suspendre aussi ? ») : **« Suspend »**.
+- **La maquette** : « Bah pour le site on garde la maquette qu'on a à l'heure actuelle, l'ancienne tu peux les supprimer oui ».
+
+**Sur la branche, rien sur `main`** : `d8a0ece` (serveur + Tour), `cfcf3fa`, `1995fc3`, `87cfd22`, `ead95af` (bancs),
+`f340a62` (mutations), `c00f7df` (maquette), `4afd8b0` (CLAUDE) ; puis la relecture de `gardien` : `479fecf`, `f9d5cc5`,
+`2cf0604` (serveur et bancs), `9f23d0b` (mutations), puis ce fichier et `CLAUDE.md`.
+
+1. **Une fiche sans formule suit le chemin de l'ancienne fiche « Gratuit »** (`ficheSansFormule`, UNE définition, lue par
+   `espacePaye`, `impayeBloque`, `aboManuelDe`, `aboEchuMotif`, `gratuitPayeIllisible` et le rappel J-7) :
+   · une période offerte ou un abonnement la servent (les codes promo n'y touchent pas — période en cours : la formule du
+     code, Business Premium par défaut) ; sa carte refusée : l'impayé ; rien de payé : **suspendue** ; un doute (Stripe
+     illisible, liste périmée, registre des codes illisible) : rien n'est décidé ;
+   · son motif commence par « aucune formule posée dans la Tour — … » : l'horloge de conservation y lit « jamais abonnée » ;
+   · « Mon espace » dit « Suspendu » quand l'application l'est ; le rappel J-7 la juge sur Stripe (déjà abonnée : « prend le
+     relais », sans lien vers un second abonnement) ;
+   · ⚠️ **seule une entreprise ABSENTE de l'annuaire garde l'ancienne réponse** (ni formule ni suspension) : un annuaire
+     illisible au démarrage rendrait tout le monde inconnu, et les suspendre couperait toutes les entreprises d'un coup ;
+   · **Tour (v2.78, non publiée)** : la fiche d'une entreprise sans formule dit « application suspendue (rien de payé ni
+     offert) » et comment l'ouvrir ; le groupe « Mes espaces d'essai » et l'accès à la version publique le disent aussi
+     (« ⏸ Application suspendue » sur la ligne).
+   · **trouvé par la simulation « serveur seul »** : `test-796` jouait la frontière suspension / fermeture sur des fiches
+     SANS formule — qui recevaient tout l'accès. Ses entreprises paient désormais (réglées « actif » à la main), comme celles
+     que la Tour suspend vraiment (`87cfd22`) ; `test-735` pareil (`479fecf`).
+
+2. **La relecture de `gardien` a trouvé deux entreprises qui PAIENT et que ce changement suspendait — rejouées, corrigées ;
+   et leurs bancs en ont trouvé deux autres :**
+   · **une entrée d'AVANT dont l'identifiant ne vit que dans le code** (pas de `t` en clair) : la période offerte le lisait en
+     clair — suspendue en pleine période offerte, datée « jamais abonnée », pendant que le rappel J-7 lui promettait « rien
+     n'est prélevé avant… ». `espacePaye` pose l'identifiant depuis le code ;
+   · **le rattrapage d'un code promo en attente** (validé avant la règle, jamais compté) était placé APRÈS la branche « sans
+     formule / Gratuit », « réservé aux fiches payantes » : une entreprise sans formule dont le code valable attendait était
+     suspendue — contre « ceux qui ont un code promotionnel … ne sont pas impactés ». Il passe avant, conditions inchangées ;
+   · **une entreprise à PLUSIEURS NOMS** (renommée : « Code espace collé », `tourEspaceDe`) : le nom le plus récent est celui
+     que l'application lit, et la route qui l'inscrivait le reportait depuis le même nom — vide : né sans formule ni
+     abonnement réglé à la main, l'entreprise payée par virement était SUSPENDUE. Et la Tour, la page de paiement et
+     l'horloge de conservation lisaient chacune un nom différent ;
+   · **→ « une entreprise, une facturation »** (`facturationDe`) : la formule (et son nombre) et l'abonnement réglé à la main
+     se lisent par GROUPE, chacun sur le nom le plus récent qui le porte — par l'application, « Mon espace », le rappel J-7,
+     la liste et la fiche de la Tour, l'horloge de conservation et la page de paiement. Quand la Tour règle la formule ou
+     l'abonnement sur un nom, elle part de la facturation de l'entreprise et l'écrit sur TOUS ses noms (sinon régler la
+     formule du nom récent perdait l'abonnement réglé sur l'ancien : suspendue ; et un réglage sur l'ancien nom ne changeait
+     rien). Un nom neuf reprend la fiche de l'entreprise ; un code appliqué ne fait pas descendre une entreprise dont un
+     autre nom porte mieux. **Aucune réparation à faire sur le VPS** : les annuaires d'avant se lisent justes tels quels.
+
+3. **L'ancienne maquette supprimée** (`c00f7df`) : `apercu/site-apple.html` et son banc `test-756`, plus les anciennes copies
+   d'aperçu du site à l'ANCIEN dessin (`apercu/index`, `applications`, `creer`, `elan`, `opmessages`, `pourquoi`, `metiers`,
+   `tarifs`, et `fond-anime-teamop.js` qu'elles seules chargeaient) — elles montraient encore la formule Gratuit, aucune page
+   ne les liait. Restent : le site en service (racine), son aperçu (`apercu/site/`), les aperçus du portail et de la Tour.
+   ⚠️ `test-839` est dans la liste du serveur, qui tourne contre les pages de `main` : là, ces pages existent jusqu'à la mise en
+   ligne — il leur demande la phrase tant qu'elles sont servies, pas leur absence (`ead95af`).
+
+**⚠️ À SAVOIR AVANT « POUSSE » (en plus de la liste plus bas)** :
+- dès le serveur en ligne, **toute fiche SANS formule qui n'a ni période offerte ni abonnement est SUSPENDUE** — y compris les
+  espaces que TEAM OP s'est ouverts depuis la Tour (« Accès à la version publique », « Mes espaces d'essai »). À regarder dans
+  la Tour avant de pousser : pour garder un espace d'essai ouvert, sa fiche → Abonnement → une formule et « En essai » avec
+  une date de fin. ⚠️ La Tour de PRODUCTION ne peut pas montrer lesquelles le seront : c'est le serveur neuf qui décide ;
+- la limite A2 (deux entreprises à la même adresse) s'étend aux fiches sans formule : une fiche sans formule à l'adresse
+  d'une autre qui paie, avec un abonnement d'avant la bascule sans référence, est suspendue (dans le doute, on ne prête pas
+  l'abonnement d'une autre) ;
+- l'application EN SERVICE (v763) lit la forme suspendue sans rien écrire ; une fiche sans formule PAYÉE par Stripe lui
+  arrive désormais avec une formule : la v763 réécrit alors `db.forfait` (et affiche « débloqué ») — c'est le comportement
+  d'une fiche payée, voulu ;
+- `npm audit --omit=dev` dans `server/` : 3 vulnérabilités dont 1 HAUTE (`nodemailer`, `mailparser`) — sans rapport avec
+  ce chantier, à traiter à part (mise à jour des dépendances, avec ses bancs).
+
+**Preuves** : **91/91 mutations mordent** (`scratchpad/mutations-suspension.py`, dont la série B : identifiant d'avant, rattrapage, une entreprise à plusieurs noms — B2 seule est neutre, expliquée) ; `test-761` 81 ✓, `test-842` 112 ✓, `test-845` 92 ✓, `test-727` 226 ✓, `test-735` 248 ✓ ; simulation « serveur seul » contre les pages de `main` : **49 suites · 3 336 vérifications**, code 0 ; suite complète : **203 suites · 11 948 vérifications**, code 0 (9f23d0b).
+⚠️ **La seconde relecture de `gardien` sur ces correctifs n'a pas pu se faire** (limite d'utilisation atteinte, puis arrêtée pour économiser — Justin : « fini bien et vite sans trop consommer ») : à relancer avant « pousse » (`git diff 4afd8b0..HEAD -- server/`).
+
+
+---
+
 # ⏳ 30 SEPTEMBRE 2026 — UN PACK POUR CHAQUE MÉTIER (BÊTA v766, TOUR v2.78) ; PLUS DE FORMULE GRATUITE NULLE PART : CE QUI N'EST PAS PAYÉ EST SUSPENDU JUSQU'AU RÈGLEMENT (BÊTA v767) — ATTEND « POUSSE »
 
 Justin, dans l'ordre :
@@ -21,9 +95,8 @@ Justin, dans l'ordre :
 - **Codes promo** : « Les code promotionnel non rien à voir avec le forfait gratuit donc se qui on un code promotionnel qui
   correspond en un forfait payant il sont pas impacter ».
 - **Point 3** (la maquette `apercu/site-apple.html`) : « j'ai pas compris » → réexpliqué simplement (une ancienne ébauche du
-  site, encore joignable par son adresse, qu'aucune page ne lie), **question posée : « Je la supprime ? (oui / non) » — PAS
-  DE RÉPONSE ENCORE.** Si oui : retirer le fichier ET adapter `test-756`, `test-836`, `test-837`, `test-839` et
-  `scratchpad/sonde-maquette-apple.js`, qui la lisent.
+  site, encore joignable par son adresse, qu'aucune page ne lie), question posée : « Je la supprime ? » → **oui, le soir : supprimée**
+  (section du dessus).
 
 **Sur la branche, rien sur `main`** — packs : `f05d90e`, `5fb4062`, `2f8fcfa` ; suspension : `7ea5837`, `4f11e02`,
 `7a2ea58`, `0178125`, puis les relectures `77a7f6d`, `c8dba73`, `4db9bfa`, `4d4e9fc`, la seconde `cbbd3d5` et la troisième
@@ -150,8 +223,7 @@ Justin, dans l'ordre :
   · page de paiement : pendant une panne de la seule LISTE, un compte sans entreprise identifiable dont un impayé vient d'être
     réglé se voit refuser tout achat (409 `impaye_regle`) jusqu'au retour de la liste — rien n'est vendu en double.
 
-**❓ QUESTION À JUSTIN (A3) : une fiche SANS formule dans l'annuaire garde tout l'accès** (la réponse d'avant la formule,
-inchangée) — c'est le cas des espaces jamais réglés dans la Tour. Les suspendre aussi ?
+**✅ A3 TRANCHÉE LE SOIR (« Suspend ») : une fiche SANS formule qui ne paie rien est suspendue aussi** — section du dessus.
 
 **⚠️ À SAVOIR AVANT « POUSSE » (dit à Justin) :**
 - **ELAN** est en période offerte (code promo) : rien ne change pour eux pendant la période. À la fin, sans abonnement,
@@ -291,7 +363,7 @@ ce qui n'est pas payé est SUSPENDU jusqu'au règlement. Voir la section du 30 s
 ⚠️ **Dettes toujours ouvertes** : celles de la section suivante, plus :
 - les totaux d'heures de NUIT dans Archives et sur la fiche technicien (`minutes()` sur des « HH:MM » : un pointage
   23:50 → 00:20 y compte 0) ; l'écran Pointage, lui, lit les horodatages ;
-- `apercu/site-apple.html` : corrigée, mais le site Marine l'a remplacée — la retirer reste la décision de Justin.
+- `apercu/site-apple.html` : retirée le 30 septembre au soir (oui de Justin).
 
 ---
 
@@ -483,8 +555,8 @@ les 13 du départ + les 20 que la relecture faisait passer) ; au navigateur (`sc
 téléphone 360 et 390 × bureau × jour et nuit, puis la transition sur des pages d'avant FIXES — `798d4ca~1`, qui ne
 disparaissent pas quand `main` avance —, avec les fichiers neufs puis avec l'ANCIEN `mode.js`) : 964 ✓ 0 ✗ (contre-épreuve sans la garde : 10 ✗ ; les pages de `main` : 120 ✗).
 
-⚠️ **Restes connus, à décider par Justin (rien d'urgent, aucun bouton)** : `apercu/site-apple.html` (maquette de
-comparaison, servie à qui connaît l'adresse, garde son sélecteur Jour / Nuit / Auto — test-756 l'exige) ; `guide-email.html`,
+⚠️ **Restes connus, à décider par Justin (rien d'urgent, aucun bouton)** : (la maquette `apercu/site-apple.html` est retirée depuis le
+30 septembre au soir) ; `guide-email.html`,
 `creer-application.html` et les anciens `apercu/*.html` sont en sombre fixe (ni bouton ni mode, mais pas « automatiques ») ;
 le manifeste du site (`manifest-teamop.webmanifest`) donne un écran de démarrage sombre à la version installée (un manifeste
 ne sait pas suivre l'appareil).
