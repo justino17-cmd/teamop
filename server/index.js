@@ -2772,7 +2772,8 @@ async function factureOuverteDe(subId, sk) {
    · `past_due` sans facture ouverte → 409 `impaye_sans_facture` (rien n'est créé : TEAM OP règle à la main) ; `unpaid` sans
      facture ouverte → le paiement normal (Stripe ne réessaie plus : aucun double prélèvement possible) ;
    · réglé depuis (actif, en essai) → 409 `impaye_regle` si aucun autre n'est à régler : l'accès revient à la prochaine
-     lecture de la liste (une minute) ; un abonnement neuf naîtrait À CÔTÉ de celui qui court — prélevé en double (troisième
+     lecture de la liste (une minute d'ordinaire ; à son retour si elle est en panne — la page ne promet donc aucun délai) ;
+     un abonnement neuf naîtrait À CÔTÉ de celui qui court — prélevé en double (troisième
      relecture de `gardien`, 30 septembre 2026 : une liste périmée, ou la minute qui suit un règlement) ; annulé depuis → on
      passe au suivant, puis au paiement normal ;
    · un candidat, mais Stripe ne répond pas à sa relecture → 502 : on refuse plutôt que de risquer un double prélèvement.
