@@ -57,8 +57,15 @@ const PLANS = {};
 for (const m of bloc.matchAll(/(\w+):\{l:'([^']+)',prix:'([^']+)',maxU:(\d+)/g)) PLANS[m[1]] = { nom: m[2], prix: m[3], places: +m[4] };
 /* ⛔ PLUS DE FORMULE GRATUITE, NI SUR LE SITE NI DANS L'APPLICATION (Justin, 30 septembre 2026 : « si une entreprise ne
    paye plus, le service est suspendu tant que c'est pas réglé »). L'application a exactement les formules que le site vend. */
-v('trois formules dans l\'application — exactement celles que le site vend, sans Gratuit (v767)', Object.keys(PLANS), GEN.FORMULES_GESTION.map(f => f.cle));
-v('   … et ce sont Pro, Business et Business Premium', Object.keys(PLANS), ['pro', 'business', 'premium']);
+/* Le site se publie sans attendre l'application : celle d'AVANT la v767 porte encore Gratuit (que le site ne vend plus, et
+   que personne ne peut plus acheter) — écart DÉCLARÉ, borné à cette seule formule et à ces versions. */
+const VERSION_APP = +((app.match(/APP_VERSION *= *'(\d+)'/) || [])[1] || 0);
+vrai('(population) la version de l\'application est lue (' + VERSION_APP + ')', VERSION_APP >= 763);
+const HORS_SITE = VERSION_APP >= 767 ? [] : ['gratuit'];
+v('les formules de l\'application sont exactement celles que le site vend' + (HORS_SITE.length ? ' (+ Gratuit, tant que la v' + VERSION_APP + ' est servie)' : ', sans Gratuit (v767)'),
+  Object.keys(PLANS).filter(k => !HORS_SITE.includes(k)), GEN.FORMULES_GESTION.map(f => f.cle));
+v('   … et ce sont Pro, Business et Business Premium', GEN.FORMULES_GESTION.map(f => f.cle), ['pro', 'business', 'premium']);
+vrai('   … un écart déclaré est un écart RÉEL (sinon le retirer d\'ici)', HORS_SITE.every(k => k in PLANS));
 /* ⛔ UN ABONNEMENT = UN UTILISATEUR — Justin, 27 septembre 2026 au soir : « à partir d'aujourd'hui c'est 1 utilisateur par
    abonnement ». Le site (et la page de paiement, `test-837`) le disent tout de suite. L'application, elle, le fera avec la
    version qui porte `maxU:1` — publiée sur SA phrase, comme toute version. ENTRE LES DEUX, l'application en service donne
@@ -262,12 +269,20 @@ vrai('le métier part en tête de la demande', /lignes\.push\('MÉTIER CHOISI : 
 /* v766 (Justin, 30 septembre 2026 : « oui, fais ce qu'il faut ») : chaque métier du site a son pack dans l'application —
    plus aucun « Sur mesure avec vous ». Et chaque puce porte une clé que l'application CONNAÎT (METIERS_ORDRE, lu dans
    app.html) : une clé qu'elle ne connaîtrait pas partirait en 3D, le défaut de `metierId`. */
-v('12 métiers proposés, 12 packs prêts', [(PAGES.creer.match(/class="metier-puce"/g) || []).length, (PAGES.creer.match(/data-pret="1"/g) || []).length], [12, 12]);
+/* ⛔ ET « PRÊT » SE LIT DANS L'APPLICATION SERVIE AVEC LE SITE : le site se publie sans attendre l'application (la v763 en
+   service ne connaît que six packs, la bêta v766 les douze). Une puce « prête » porte une clé que l'application CONNAÎT ; une
+   clé qu'elle ne connaît pas se dit « Sur mesure avec vous » — jamais l'inverse. Publier l'application, c'est donc aussi
+   régénérer le site : sinon ce contrôle tombe. */
 {
   const ordreApp = (fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8').match(/const METIERS_ORDRE=\[([^\]]*)\]/) || ['', ''])[1].split(',').map(x => x.trim().replace(/'/g, '')).filter(Boolean);
-  const cles = [...PAGES.creer.matchAll(/class="metier-puce"[^>]*data-pack="([^"]+)"/g)].map(m => m[1]);
-  vrai('(population) la liste des packs de l\'application est lue (' + ordreApp.length + ' métiers)', ordreApp.length >= 13 && ordreApp[0] === '3d');
-  v('⛔ chaque puce de « Créer » porte une clé de pack que l\'application connaît', cles.filter(k => !ordreApp.includes(k)), []);
+  const puces = [...PAGES.creer.matchAll(/class="metier-puce"[^>]*data-pack="([^"]+)"[^>]*data-pret="([01])"/g)].map(m => [m[1], m[2] === '1']);
+  vrai('(population) la liste des packs de l\'application est lue (' + ordreApp.length + ' métiers)', ordreApp.length >= 6 && ordreApp[0] === '3d');
+  v('12 métiers proposés', [puces.length, (PAGES.creer.match(/class="metier-puce"/g) || []).length], [12, 12]);
+  v('⛔ une puce est « prête » si et seulement si l\'application connaît sa clé', puces.filter(([k, pr]) => pr !== ordreApp.includes(k)).map(([k]) => k), []);
+  v('   packs prêts : ' + puces.filter(([, pr]) => pr).length, puces.filter(([, pr]) => pr).length, ordreApp.filter(k => k !== 'autre').length);
+  const intro = texte((PAGES.metiers.match(/<h2 class="h2">Les métiers couverts\.<\/h2><p class="intro">([^<]*)</) || ['', ''])[1]);
+  vrai('   la page Métiers dit le même nombre : « ' + intro + ' »', intro.startsWith(ordreApp.filter(k => k !== 'autre').length + ' packs'));
+  v('   la page Métiers : « Démarrer avec ce pack » exactement sur les packs connus', (PAGES.metiers.match(/Démarrer avec ce pack/g) || []).length, ordreApp.length);
 }
 
 console.log('9. référencement');

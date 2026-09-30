@@ -30,6 +30,14 @@ const fs = require('fs'), path = require('path');
 const RACINE = path.join(__dirname, '..');
 const A_LA_RACINE = process.argv.includes('--racine');
 const DEST = A_LA_RACINE ? RACINE : path.join(RACINE, 'apercu', 'site');
+/* ⛔ UN PACK « PRÊT » EST UN PACK QUE L'APPLICATION CONNAÎT — lu dans `app.html` (METIERS_ORDRE), jamais écrit ici. Le site
+   se publie sans attendre l'application (30 septembre 2026 : les six packs de la v766 vivent sur la bêta, l'application en
+   service n'en connaît que six) : un pack qu'elle ne connaît pas se dit « bientôt », et ce qui ne passe qu'avec la v766
+   (« Autre métier », le compte « 12 packs ») ne se dit pas — une clé inconnue partirait en 3D, le défaut de `metierId`.
+   Publier l'application, c'est donc aussi régénérer le site (`test-835` §8 le rappelle). */
+const PACKS_APP = ((fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8').match(/const METIERS_ORDRE=\[([^\]]*)\]/) || ['', ''])[1])
+  .split(',').map(x => x.trim().replace(/'/g, '')).filter(Boolean);
+const packPret = k => PACKS_APP.includes(k) ? 1 : 0;
 
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 /* les insécables de la typographie française, posés une fois ici (« : ; ! ? » et guillemets) */
@@ -518,6 +526,7 @@ const PAGES = {
       + `</div></div>
           <div><h3>Votre métier</h3><p>${fr('Votre application démarre avec les catégories d\'intervention, la fiche de terrain et les modules de votre métier.')}</p><div class="metiers-choix">`
       + [['3d', '3D — Anti-nuisibles', 'Dératisation · désinsectisation · désinfection', 1], ['plomberie', 'Plomberie', 'Dépannage · sanitaire · réseaux', 1], ['electricite', 'Électricité', 'Installation · normes · dépannage', 1], ['chauffage', 'Chauffage / Climatisation', 'CVC · entretien · contrats', 1], ['serrurerie', 'Serrurerie', 'Ouverture · sécurité · accès', 1], ['nettoyage', 'Nettoyage / Propreté', 'Bureaux · remise en état · vitrerie', 1], ['maconnerie', 'Maçonnerie / Gros œuvre', 'Construction · rénovation', 1], ['menuiserie', 'Menuiserie', 'Pose · agencement · fermetures', 1], ['peinture', 'Peinture / Revêtements', 'Intérieur · extérieur · sols', 1], ['paysagiste', 'Paysagiste / Espaces verts', 'Entretien · création · élagage', 1], ['couverture', 'Couverture / Zinguerie', 'Toiture · gouttières · étanchéité', 1], ['multiservices', 'Multiservices / Maintenance', 'Petits travaux · contrats', 1]]
+        .map(([k, n, s]) => [k, n, s, packPret(k)])
         .map(([k, n, s, p]) => `<button type="button" class="metier-puce" aria-pressed="false" data-pack="${k}" data-nom="${esc(n)}" data-pret="${p}"><b>${fr(n)}</b><small>${fr(s)}</small><i${p ? ' class="pret"' : ''}>${p ? 'Pack prêt' : 'Sur mesure avec vous'}</i></button>`).join('')
       + `</div></div>
           <div><h3>2 · Ce dont vous avez besoin</h3><p>${fr('Cochez tout ce qui vous parle — on affine ensemble après.')}</p><div class="besoins">`
@@ -534,7 +543,7 @@ const PAGES = {
       + `<section class="page" style="padding-top:10px;padding-bottom:20px"><div class="cartes-3">`
       + [['1', 'Renseignez votre entreprise', 'Nom, coordonnées… et surtout votre métier, dans votre demande d\'accès.'], ['2', 'Tout se met en place', 'Types d\'intervention, fiche de rapport et modules de votre métier sont réglés pour vous à l\'ouverture de votre espace. Vos produits et fournisseurs, vous les ajoutez à votre rythme.'], ['3', 'Vous travaillez', 'Planning, rapports, devis et factures : votre équipe est opérationnelle dès le premier jour.']]
         .map(([n, t, d]) => `<div class="etape-carte"><b class="n">${n}</b><b class="t">${fr(t)}</b><span>${fr(d)}</span></div>`).join('')
-      + `</div></section><section class="page" style="padding-top:60px;padding-bottom:20px"><h2 class="h2">Les métiers couverts.</h2><p class="intro">${fr('12 packs préconfigurés, et un réglage général pour tous les autres métiers de terrain.')}</p><div class="packs">`
+      + `</div></section><section class="page" style="padding-top:60px;padding-bottom:20px"><h2 class="h2">Les métiers couverts.</h2><p class="intro">${fr(PACKS_APP.includes('autre') ? PACKS_APP.filter(k => k !== 'autre').length + ' packs préconfigurés, et un réglage général pour tous les autres métiers de terrain.' : PACKS_APP.length + ' packs préconfigurés déjà disponibles, d\'autres en préparation.')}</p><div class="packs">`
       + [['m-3d', 'PACK COMPLET', 'bug', '3D — Hygiène anti-nuisibles', 'Dératisation · désinsectisation · désinfection', ['Registre sanitaire et biocides (AMM, Certibiocide)', 'Fiches de traitement par nuisible', 'Plans d\'appâtage et postes par site', 'Courbe d\'évolution de l\'infestation'], 1],
         ['m-plomberie', 'PACK DISPONIBLE', 'pipe', 'Plomberie', 'Dépannage · sanitaire · réseaux', ['Interventions type : fuite, chauffe-eau, débouchage…', 'Stock de pièces et consommables', 'Devis-factures et photos avant/après'], 1],
         ['m-electricite', 'PACK DISPONIBLE', 'bolt', 'Électricité', 'Installation · mise aux normes · dépannage', ['Interventions type : tableau, mise aux normes, contrôle…', 'Matériel électrique en stock avec seuils', 'Rapports signés sur place'], 1],
@@ -551,6 +560,8 @@ const PAGES = {
         ['m-couverture', 'PACK DISPONIBLE', 'building', 'Couverture / Zinguerie', 'Toiture · gouttières · étanchéité', ['Interventions type : fuite, tuiles, gouttières, démoussage…', 'Relevés : surface, gouttière posée, hauteur de travail', 'Photos avant/après dans le rapport'], 1],
         ['m-multiservices', 'PACK DISPONIBLE', 'wrench', 'Multiservices / Maintenance', 'Petits travaux · maintenance · contrats', ['Interventions type : dépannage, petits travaux, maintenance…', 'Contrats de maintenance : chaque passage généré d\'un clic', 'Relevés : temps passé, pièces fournies'], 1],
         ['m-autre', 'RÉGLAGE GÉNÉRAL', 'tool', 'Autre métier de terrain', 'Interventions · entretien · dépannage', ['Types d\'intervention généraux : dépannage, entretien, installation…', 'Rapport : prestations réalisées et temps passé'], 1]]
+        .filter(([id]) => id !== 'm-autre' || PACKS_APP.includes('autre'))
+        .map(([id, tag, i, t, s, pts]) => [id, packPret(id.slice(2)) ? tag : 'PACK BIENTÔT', i, t, s, pts, packPret(id.slice(2))])
         .map(([id, tag, i, t, s, pts, pret]) => `<article class="pack" id="${id}"><span class="tag${pret ? ' pret' : ''}">${tag}</span><span class="tete"><span class="tuile">${ic(i)}</span><span><b>${fr(t)}</b><small>${fr(s)}</small></span></span>`
           + (pts.length ? `<ul>${pts.map(p => `<li>${COCHE(13)}<span>${fr(p)}</span></li>`).join('')}</ul>` : '')
           + (pret ? `<a href="${ESPACE()}">Démarrer avec ce pack ›</a>` : '<a href="creer.html">En parler avec nous ›</a>') + '</article>').join('')
