@@ -13,6 +13,39 @@ de ligne du tout.
 
 ---
 
+# ✅ 30 SEPTEMBRE 2026, NUIT — SECONDE RELECTURE DU SERVEUR AVANT « POUSSE » : SIX DÉFAUTS CORRIGÉS (`test-849`)
+
+Promise avant d'envoyer le serveur : une relecture adverse (cinq angles, chaque constat reproduit PUIS attaqué par un
+second agent, tous en Sonnet depuis la consigne de Justin). Elle a rejoué le serveur neuf contre celui de `main` sur des
+annuaires d'AVANT, et trouvé des entreprises traitées à l'envers. Corrigé sur la branche (`3b94e44`, `f23a0e2`) :
+
+| | le défaut, rejoué | le correctif |
+|---|---|---|
+| A | registre des codes illisible + un code sur la fiche + carte refusée : Business Premium « payé », et la page de paiement vendait un SECOND abonnement | l'impayé que Stripe dit passe avant le doute du registre |
+| B | un « annulé »/« suspendu »/« impayé » d'avant resté sur un ANCIEN nom suspendait l'entreprise qui paie sous le nom récent | un réglage négatif ne remonte que du nom le plus récent (la Tour d'aujourd'hui l'écrit sur tous les noms : rien de vivant ne se perd) |
+| C | entreprise renommée payée par un abonnement gravé à l'ANCIEN nom d'accès, ou trouvé par l'adresse de l'ancien nom : suspendue | `espaceStripeDans` cherche aussi par les noms et adresses de ses autres noms (même identifiant) |
+| D | « repartir à neuf » pendant une période offerte (ELAN comprise) : suspendue | la période restée sous l'ancien identifiant sert (empreinte de l'e-mail, identifiant qui n'est plus à l'annuaire — jamais celle d'une autre entreprise vivante) |
+| E | fiche SANS formule payée par un tarif illisible : servie Pro | Business Premium (Pro reste pour une fiche « Gratuit ») |
+| F · G | le métier posé sur un ancien nom n'atteignait pas l'application ; son journal portait le nom d'accès | écrit sur tous les noms ; le journal porte l'identifiant |
+| H | pendant une panne Stripe, la Tour écrivait « payé » là où le serveur dit « on ne sait pas » | `inconnu` dans la liste et la fiche ; la Tour dit « paiement non vérifiable pour l'instant » |
+
+Preuves : `test-849` **35 ✓** (trois vrais serveurs, dont un au registre tronqué et un au Stripe muet) ; sur le serveur
+d'avant les correctifs, **11 ✗, un par défaut** ; **16/16 mutations mordent** (`scratchpad/mutations-849.py`,
+`mutations-849b.py`) ; `test-727` et `test-803` suivis ; suite complète de la branche **204 suites · 11 992
+vérifications, code 0**.
+
+Laissé tel quel, et pourquoi :
+- **« repartir à neuf » d'une entreprise réglée à la main** (virement, « actif ») : le réglage part avec l'ancienne entrée
+  — c'est le sens du geste ; le patron le repose. Écrit ici pour que ce ne soit pas une surprise.
+- **Une Tour v2.75 restée ouverte** refuserait « Accepter » d'une demande « Gratuit » (400, sans perte) : la v2.78 part dans
+  le même envoi — **recharger la Tour après la mise en ligne**.
+- **La v763** dit « revenu au forfait gratuit » à l'administrateur d'une entreprise suspendue : transitoire, la v767 part
+  juste après.
+- Les ADRESSES d'un nom neuf : depuis le 27 septembre, la Tour refuse d'accoler une autre adresse à une entreprise connue.
+  Avant, possible : C couvre ce cas désormais.
+
+---
+
 # ✅ 30 SEPTEMBRE 2026 — LE SITE EST EN SERVICE (`e9ab8d0` sur `main`) — L'APPLICATION, LA TOUR ET LE SERVEUR ATTENDENT « POUSSE »
 
 Justin : « tu pourra mettre le site a jour ». Parti sur `main` : le SITE seul (pages de la racine, portail `espace.html`,
