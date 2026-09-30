@@ -140,12 +140,16 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     xenia: ['t-xenia-844', 'Xenia Voisine', 'voisine@exemple-844.fr'],    // fiche GRATUIT : l'impayé SANS référence de yod, à la même adresse
     resh: ['t-resh-844', 'Resh Essai Tour', 'resh@exemple-844.fr'],        // « essai offert » réglé dans la Tour, FINI avant la période ; en essai chez Stripe
     gimel: ['t-gimel-844', 'Gimel Sans Formule', 'gimel@exemple-844.fr'],  // fiche SANS formule, a payé pendant la période (en essai chez Stripe)
-    dalet: ['t-dalet-844', 'Dalet Sans Formule', 'dalet@exemple-844.fr'] }; // fiche SANS formule, aucun abonnement
+    dalet: ['t-dalet-844', 'Dalet Sans Formule', 'dalet@exemple-844.fr'],  // fiche SANS formule, aucun abonnement
+    hei: ['t-hei-844', 'Hei Sans Formule', 'partagehei@exemple-844.fr'] };  // fiche SANS formule ; à son adresse, l'abonnement SANS référence de vav
   const espaces = {}, usages = { 'ESSAI-BANC-844': { n: 0, equipes: {} } };
   const periode = t => { usages['ESSAI-BANC-844'].n++; usages['ESSAI-BANC-844'].equipes[t] = { date: jour(-80), finLe: FIN, em: '' }; };
   for (const [slug, [t, nom, email]] of Object.entries(ENT)) { espaces[slug] = { t, nom, email, ts: MAINTENANT - 1000, formule: 'premium' }; periode(t); }
   espaces.pi.formule = 'gratuit'; espaces.psi.formule = 'gratuit'; espaces.xenia.formule = 'gratuit';
-  delete espaces.gimel.formule; delete espaces.dalet.formule;   // jamais réglées dans la Tour (Justin, 30 septembre 2026 : « Suspend »)
+  delete espaces.gimel.formule; delete espaces.dalet.formule; delete espaces.hei.formule;   // jamais réglées dans la Tour (Justin, 30 septembre 2026 : « Suspend »)
+  /* vav : sans période, à l'adresse de hei ; son abonnement ne porte AUCUNE référence (l'adresse seule) — il n'est sûrement ni
+     à l'une ni à l'autre */
+  espaces.vav = { t: 't-vav-844', nom: 'Vav Abonnée', email: 'partagehei@exemple-844.fr', ts: MAINTENANT - 2000, formule: 'premium' };
   Object.assign(espaces.omega, { aboStatut: 'impaye', aboPar: 'Banc' });
   Object.assign(espaces.resh, { aboStatut: 'essai', aboFin: jour(2), aboPar: 'Banc' });
   /* omicron et chi : SANS période offerte (pas de rappel), chacune abonnée à son nom, à l'adresse d'une entreprise qui en a une */
@@ -169,6 +173,7 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     abo('t-alpha-844', 'alpha@exemple-844.fr', 'trialing', P_PREMIUM, { trial_end: secondes(DEBUT), current_period_end: secondes(DEBUT) }),
     abo('t-resh-844', 'resh@exemple-844.fr', 'trialing', P_PREMIUM, { trial_end: secondes(DEBUT), current_period_end: secondes(DEBUT) }),
     abo('t-gimel-844', 'gimel@exemple-844.fr', 'trialing', P_PREMIUM, { trial_end: secondes(DEBUT), current_period_end: secondes(DEBUT) }),
+    abo('t-vav-844', 'partagehei@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(9)), metadata: {} }),
     /* renouvelé à 23 h 30 UTC la veille : c'est déjà le jour d'après à Paris — le courriel dit le jour du client */
     abo('t-beta-844', 'beta@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(20)) - 1800 }),
     abo('t-epsilon-844', 'epsilon@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
@@ -412,6 +417,11 @@ globalThis.fetch = async function (url, opts) {
     const Gi = de('gimel');
     vrai('⛔⛔ gimel (fiche SANS formule, a payé pendant la période : en essai) — « prend le relais », AUCUN lien de paiement ni promesse',
       RELAIS.test(Gi) && !PAIEMENT.test(Gi) && !PROMESSE.test(Gi) && Gi.includes('Le premier prélèvement de votre abonnement aura lieu le ' + fr(DEBUT) + '.'));
+    /* … et quand l'abonnement trouvé à son adresse n'est SÛREMENT pas le sien (l'adresse d'une autre, sans référence) : le
+       lendemain, `espacePaye` la suspend (rien de payé qui soit à elle) — le courriel le dit, avec son lien */
+    const Hi = de('partagehei');
+    vrai('⛔ hei (fiche SANS formule ; à son adresse, l\'abonnement sans référence d\'une autre) — le courriel habituel et son lien, pas « prend le relais »',
+      HABITUEL(Hi) && !RELAIS.test(Hi));
     const Da = de('dalet');
     vrai('   dalet (fiche sans formule, aucun abonnement) — le courriel habituel, lien de paiement et promesse', HABITUEL(Da) && PROMESSE.test(Da));
     const Dl = de('delta');
