@@ -4,7 +4,8 @@ description: Vérifie toute la plateforme TeamOP — syntaxe JavaScript des page
 tools: Read, Grep, Glob, Bash
 # Modèle et effort choisis pour cet agent, pour ne pas faire tourner Opus sur tout.
 #   Contrôles mécaniques : syntaxe, versions servies, /health. Rien à décider,
-#   tout à constater — le petit modèle suffit et coûte le moins cher.
+#   tout à constater — effort bas.
+#   ⛔ Justin, 30 septembre 2026 : « passe tous les agents en sonnet » — Sonnet ici aussi ; l'effort garde le jugement.
 model: sonnet
 effort: low
 ---
