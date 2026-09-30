@@ -75,6 +75,7 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
       places: bloc('function planPlaces(){'), libre: bloc('function planPlaceLibre(){'),
       manquants: bloc('function abosManquants(){'), proposer: bloc('function proposerAbonnement(){'),
       essai: bloc('function essaiCouvreEquipe(){'), srv: bloc('function placesSrvActives(){'),
+      acces: bloc('function accesSuspendu(){'),
     };
     v('les fonctions sont trouvées', Object.keys(FN).filter(k => !FN[k]), []);
     v('⛔ une seule définition de chacune (une seconde gagnerait partout, en silence)',
@@ -84,7 +85,7 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
       (SRC.match(/if\(!id && !planPlaceLibre\(\)\)\{ proposerAbonnement\(\); return; \}/g) || []).length, 2);
 
     /* le bac à sable : les vraies fonctions ; confirm, toast et window.open sont les doubles qui notent */
-    const monde = ({ f = 'business', qty = 1, n = 1, role = 'admin', susp = false, sursis = null, attente = null, oui = true, essai = null } = {}) => {
+    const monde = ({ f = 'business', qty = 1, n = 1, role = 'admin', susp = false, sursis = null, attente = null, oui = true, essai = null, beta = false } = {}) => {
       const ctx = { JSON, Math, Object, Array, String, Number, __toasts: [], __questions: [], __ouverts: [],
         db: { forfait: f, forfaitQty: qty, users: Array.from({ length: n }, (_, i) => ({ id: 'u' + i })), formuleAttente: attente, forfaitEssai: essai },
         currentUser: role ? { id: 'moi', role } : null };
@@ -92,7 +93,8 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
       vm.runInContext(`${FN.PLANS};
         var _susp = { suspendu: ${!!susp}, sursis: ${JSON.stringify(sursis)} };
         var _placesSrv = null, _placesSrvF = '';
-        ${FN.srv}\n${FN.grise}\n${FN.forfait}\n${FN.places}\n${FN.libre}\n${FN.manquants}\n${FN.proposer}\n${FN.essai}
+        var BETA_ESSAI = ${!!beta};
+        ${FN.srv}\n${FN.grise}\n${FN.acces}\n${FN.forfait}\n${FN.places}\n${FN.libre}\n${FN.manquants}\n${FN.proposer}\n${FN.essai}
         function todayISO(){ return '2026-09-28'; }
         function toast(m){ __toasts.push(String(m)); }
         function confirm(m){ __questions.push(String(m)); return ${!!oui}; }
@@ -150,6 +152,11 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
       vrai('abonnement en attente de règlement (sursis ' + sursis + ' j) : l\'espace client, jamais un abonnement de plus',
         m.__ouverts.length === 1 && m.__ouverts[0][0] === 'https://teamop.fr/espace.html' && /règle-le d'abord/.test(m.__questions[0] || ''), m.__ouverts);
     }
+    /* 8 bis. ⛔ LA BÊTA N'EST JAMAIS SUSPENDUE (`BETA_ESSAI`), ici non plus (troisième relecture de `relecteur`, 30 septembre
+       2026 : ces deux lectures de la suspension ne passaient pas par la règle — la VRAIE fonction, jouée des deux côtés) */
+    m = jouer({ f: 'business', qty: 3, n: 6, susp: true, sursis: 0, beta: true });
+    vrai('⛔ la bêta, un état « suspendu » : pas de renvoi au règlement — la proposition normale (la page de paiement, les places qui manquent)',
+      !m.__questions.some(q => /règle-le d'abord/.test(q)) && m.__ouverts.length === 1 && /recap-abonnement\.html/.test(m.__ouverts[0][0]), [m.__questions, m.__ouverts]);
 
     /* 9. ⛔ v767 — une « formule réservée » laissée dans la base par une version d'AVANT (`db.formuleAttente`) ne décide plus
           rien : le serveur ne réserve plus de formule impayée, il SUSPEND (la branche 8). Elle ne détourne donc plus vers
@@ -172,6 +179,7 @@ const APPLIS = ['app.html', 'beta.html'].filter(existe);
     v('… plus le lendemain de la fin', libre({ f: 'premium', qty: 1, n: 7, essai: ESSAI({ finLe: '2026-09-27' }) }), false);
     v('… ni un essai marqué terminé', libre({ f: 'premium', qty: 1, n: 7, essai: ESSAI({ termine: true }) }), false);
     v('… ni pendant une suspension dont le sursis est écoulé (ce qui grise le forfait grise aussi cette largesse)', libre({ f: 'premium', qty: 1, n: 7, essai: ESSAI(), susp: true, sursis: 0 }), false);
+    v('⛔ … sauf sur la bêta, qui n\'est jamais suspendue : la largesse du code reste', libre({ f: 'premium', qty: 1, n: 7, essai: ESSAI(), susp: true, sursis: 0, beta: true }), true);
     v('… et le nombre de places, lui, ne ment pas pendant le code (la page de paiement et « il manque N » le lisent)',
       vm.runInContext('planPlaces()', monde({ f: 'premium', qty: 1, n: 7, essai: ESSAI() })), 1);
 

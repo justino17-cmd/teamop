@@ -13911,7 +13911,7 @@ function suspensionClasse(){ try{ document.documentElement.classList.toggle('acc
    d'APPAREIL, rangée par compte — jamais dans `db`, qui partirait à toute l'équipe. */
 function suspensionRappel(){
   try{
-    if(!_susp.suspendu || !currentUser || currentUser.role!=='admin') return;
+    if(BETA_ESSAI || !_susp.suspendu || !currentUser || currentUser.role!=='admin') return;   // la bêta n'est jamais suspendue
     const cle=suspensionCle()+'_rappel_'+currentUser.id, jour=todayISO();
     if(localStorage.getItem(cle)===jour) return;
     localStorage.setItem(cle,jour);
@@ -16060,8 +16060,8 @@ views.suspendu=function(){
 /* « J'ai réglé » : on redemande l'état au serveur (il relit Stripe à la minute pour un impayé). S'il rouvre, `suspensionPoser`
    ramène l'écran d'où l'on vient ; sinon on le dit — un bouton qui ne répond rien fait taper dix fois. */
 async function suspensionVerifier(btn){
-  let txt='';
-  try{ if(btn){ txt=btn.textContent; btn.disabled=true; btn.textContent='Vérification…'; } }catch(e){}
+  let html='';
+  try{ if(btn){ html=btn.innerHTML; btn.disabled=true; btn.textContent='Vérification…'; } }catch(e){}
   try{
     let lu=false; try{ lu=await forfaitServeurSync(true); }catch(e){}
     if(accesSuspendu()){
@@ -16074,8 +16074,10 @@ async function suspensionVerifier(btn){
   }finally{
     /* ⛔ LE BOUTON SE REND TOUJOURS (seconde relecture de `relecteur`, 30 septembre 2026). Touché depuis la carte des
        Paramètres, rien ne repeignait l'écran : il restait grisé sur « Vérification… », et il fallait quitter la page pour
-       réessayer. Un écran redessiné entre-temps l'a remplacé : celui-là n'est plus dans la page, on n'y touche pas. */
-    try{ if(btn&&btn.isConnected){ btn.disabled=false; btn.textContent=txt; } }catch(e){}
+       réessayer. Un écran redessiné entre-temps l'a remplacé : celui-là n'est plus dans la page, on n'y touche pas.
+       ⚠️ Son HTML, pas son texte : le « ↻ » y est devenu un <svg> (`icones()`), que `textContent` ne contient pas — rendu par
+       le texte, le bouton revenait sans son icône (troisième relecture de `relecteur`). */
+    try{ if(btn&&btn.isConnected){ btn.disabled=false; btn.innerHTML=html; } }catch(e){}
   }
 }
 function go(view){

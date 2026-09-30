@@ -250,7 +250,15 @@ globalThis.fetch = async function (url, opts) {
     /* ⛔ LA BÊTA N'EST JAMAIS SUSPENDUE : c'est l'outil de travail de l'équipe, et son espace n'a pas d'abonnement. */
     bac.BETA_ESSAI = true;
     v('⛔ sur la bêta (BETA_ESSAI), rien n’est suspendu ni grisé', [A.acces(), A.bloque('dashboard'), A.bloque('produits')], [false, false, false]);
+    /* … ni RAPPELÉ (troisième relecture de `relecteur`, 30 septembre 2026 : le rappel lisait `_susp` en direct) — la marque du jour
+       oubliée d'abord, sinon on mesurerait la marque et pas la règle */
+    const oublierRappel = () => { for (const k of Object.keys(rangement)) if (/_rappel_/.test(k)) delete rangement[k]; bac.toasts.length = 0; };
+    oublierRappel(); A.rappel();
+    v('⛔ … ni rappelé : aucun « Abonnement non réglé » à l’administrateur de la bêta', bac.toasts, []);
     bac.BETA_ESSAI = false;
+    oublierRappel(); A.rappel();
+    vrai('   (témoin) hors bêta, le même état rappelle l’administrateur', bac.toasts.length === 1 && /Abonnement non réglé/.test(bac.toasts[0]), bac.toasts);
+    oublierRappel();   // la marque que le témoin vient de poser : la suite du banc part d'un jour sans rappel, comme avant
     A.poser({ suspendu: false, sursisJours: null });
     v('⛔ réglé : tout revient, sans rien recalculer', [A.acces(), A.forfait(), A.bloque('produits'), A.bloque('dashboard')], [false, 'premium', false, false]);
 
@@ -308,17 +316,23 @@ globalThis.fetch = async function (url, opts) {
     vrai('   … lue, et toujours suspendue : l\u2019administrateur lit que le règlement n\u2019est pas encore arrivé', J.tr.toasts.length === 1 && /Toujours suspendu/.test(J.tr.toasts[0]), J.tr.toasts);
     /* ⛔ LE BOUTON SE REND TOUJOURS (seconde relecture de `relecteur`, 30 septembre 2026) : touché depuis la carte des Paramètres
        (rien ne repeint l'écran), il restait grisé sur « Vérification… » et il fallait quitter la page pour réessayer */
-    const jeuB = (lu, cur) => { const tr = { pendant: null }; const b = { textContent: '↻ J\u2019ai réglé — vérifier', disabled: false, isConnected: true };
+    /* le bouton tel que la page le porte : son « ↻ » est devenu un <svg> (`icones()`), que `textContent` ne contient PAS — rendu par
+       son texte, il revenait sans son icône (troisième relecture de `relecteur`, 30 septembre 2026) */
+    const BOUTON = '<svg class="rf-ic" aria-hidden="true"></svg> J\u2019ai réglé — vérifier';
+    const jeuB = (lu, cur) => { const tr = { pendant: null };
+      const b = { _h: BOUTON, disabled: false, isConnected: true,
+        get innerHTML() { return this._h; }, set innerHTML(x) { this._h = String(x); },
+        get textContent() { return this._h.replace(/<[^>]*>/g, ''); }, set textContent(x) { this._h = String(x); } };
       const f = new Function('currentUser', 'accesSuspendu', 'go', 'toast', 'creerDispo', 'document', 'forfaitServeurSync', 'current', 'views',
         CO + '\n' + SV + '\nreturn { creerOuvrir, suspensionVerifier };')(
         { id: 'u-761', role: 'admin' }, () => true, () => {}, () => {}, () => [], { getElementById: () => null },
         async () => { tr.pendant = [b.disabled, b.textContent]; return lu; }, cur, { suspendu() { b.isConnected = false; } });
       return { f, tr, b }; };
     let B = jeuB(true, 'parametres'); await B.f.suspensionVerifier(B.b);
-    v('⛔ depuis les Paramètres, toujours suspendue : grisé PENDANT la vérification, puis rendu — actif, son libellé',
-      [B.tr.pendant, B.b.disabled, B.b.textContent], [[true, 'Vérification…'], false, '↻ J\u2019ai réglé — vérifier']);
+    v('⛔ depuis les Paramètres, toujours suspendue : grisé PENDANT la vérification, puis rendu — actif, son libellé ET son icône',
+      [B.tr.pendant, B.b.disabled, B.b.innerHTML], [[true, 'Vérification…'], false, BOUTON]);
     B = jeuB(false, 'parametres'); await B.f.suspensionVerifier(B.b);
-    v('   … vérification impossible : rendu aussi', [B.b.disabled, B.b.textContent], [false, '↻ J\u2019ai réglé — vérifier']);
+    v('   … vérification impossible : rendu aussi, icône comprise', [B.b.disabled, B.b.innerHTML], [false, BOUTON]);
     B = jeuB(true, 'suspendu'); await B.f.suspensionVerifier(B.b);
     v('   (témoin) sur l\u2019écran « Accès suspendu », redessiné : l\u2019ancien bouton n\u2019est plus dans la page, on n\u2019y touche pas',
       [B.b.isConnected, B.b.disabled], [false, true]);

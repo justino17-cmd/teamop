@@ -135,14 +135,14 @@ function cdpClient(ws) { let id = 0; const A = new Map(), E = [];
        rien ne repeint cet écran — le bouton doit se RENDRE, sinon il reste grisé sur « Vérification… » et il faut quitter la
        page pour réessayer. On marque LE bouton touché : c'est lui qui doit revenir actif, avec son libellé. */
     const pv0 = await ev(`window.__toasts=[]; const b=[...document.querySelectorAll('#content button')].find(x=>/J['’]ai réglé — vérifier/.test(x.textContent));
-      if(!b) return {vu:false, cur: current}; b.dataset.sonde='pv'; const avant=b.textContent; b.click(); return {vu:true, cur: current, avant, pendant: [b.disabled, b.textContent]};`);
+      if(!b) return {vu:false, cur: current}; b.dataset.sonde='pv'; const avant=b.textContent, svgAvant=!!b.querySelector('svg'); b.click(); return {vu:true, cur: current, avant, svgAvant, pendant: [b.disabled, b.textContent]};`);
     await dormir(1500);
     const pv1 = await ev(`const b=document.querySelector('#content button[data-sonde="pv"]');
-      return b ? {cur: current, disabled: b.disabled, txt: b.textContent, toasts: window.__toasts.slice()} : {cur: current, absent: true};`);
-    vrai('(population) la carte « Forfait » des Paramètres porte « J’ai réglé — vérifier » ; touché, il se grise PENDANT la vérification',
-      pv0.vu && pv0.cur === 'parametres' && pv0.pendant[0] === true && /Vérification…/.test(pv0.pendant[1]), pv0);
-    vrai('⛔ … toujours suspendue : le MÊME bouton revient actif, avec son libellé — et l’administrateur lit que le règlement n’est pas arrivé',
-      !pv1.absent && pv1.cur === 'parametres' && pv1.disabled === false && pv1.txt === pv0.avant && (pv1.toasts || []).some(t => /Toujours suspendu/.test(t)), pv1);
+      return b ? {cur: current, disabled: b.disabled, txt: b.textContent, svg: !!b.querySelector('svg'), toasts: window.__toasts.slice()} : {cur: current, absent: true};`);
+    vrai('(population) la carte « Forfait » des Paramètres porte « J’ai réglé — vérifier », son « ↻ » dessiné (un <svg>) ; touché, il se grise PENDANT la vérification',
+      pv0.vu && pv0.cur === 'parametres' && pv0.svgAvant === true && pv0.pendant[0] === true && /Vérification…/.test(pv0.pendant[1]), pv0);
+    vrai('⛔ … toujours suspendue : le MÊME bouton revient actif, avec son libellé ET son icône — et l’administrateur lit que le règlement n’est pas arrivé',
+      !pv1.absent && pv1.cur === 'parametres' && pv1.disabled === false && pv1.txt === pv0.avant && pv1.svg === true && (pv1.toasts || []).some(t => /Toujours suspendu/.test(t)), pv1);
     /* « ＋ Créer » pendant la suspension : l'écran qui explique (`relecteur`, 30 septembre 2026 — « Aucune création ouverte à ton
        compte » était faux, et ne menait nulle part). Depuis les Paramètres, la seule rubrique ouverte. */
     /* ⚠️ l'écran de départ se lit AVANT le clic : lu après, c'est le clic lui-même qu'on relevait (premier passage, 30

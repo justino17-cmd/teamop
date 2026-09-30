@@ -590,6 +590,16 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     const impPerimee = await perimee([apres([L('pro', 2)], { status: 'past_due' })])(ESP({ formule: 'pro' }));
     v('   ⛔ un IMPAYÉ lu dans la liste périmée bloque encore (Stripe l\'a dit ; la page de paiement relit la facture en direct)',
       [impPerimee.paye, impPerimee.bloque, impPerimee.inconnu], [false, true, undefined]);
+    /* ⛔ … et trouvée dans la liste périmée SANS rien d'OP GESTION à elle (OP MESSAGES seul) : elle a pu acheter OP GESTION pendant
+       la panne — on ne sait pas non plus, fiche Pro comme fiche « Gratuit » d'avant (troisième relecture de `gardien`) */
+    const msgPro = await perimee([apres([L('msg', 1)])])(ESP({ formule: 'pro' }));
+    const msgGra = await perimee([apres([L('msg', 1)])])(ESP({ formule: 'gratuit' }));
+    v('⛔ liste PÉRIMÉE, seul OP MESSAGES y est payé : un doute — fiche Pro comme fiche « Gratuit » d\'avant',
+      [msgPro.paye, msgPro.inconnu, msgGra.paye, msgGra.inconnu], [true, true, true, true]);
+    const msgFrais = await avecTout({ abos: [apres([L('msg', 1)])] })(ESP({ formule: 'pro' }));
+    const msgFraisG = await avecTout({ abos: [apres([L('msg', 1)])] })(ESP({ formule: 'gratuit' }));
+    v('   (témoin) la même liste FRAÎCHE décide : OP GESTION n\'est pas payé — suspendue, les deux fiches',
+      [msgFrais.paye, msgFrais.inconnu, msgFraisG.paye, msgFraisG.inconnu], [false, undefined, false, undefined]);
     const fraiche = await avecTout({ abos: [apres([L('pro', 2)], { customer: { email: 'autre@ailleurs.fr' } })] })(ESP({ formule: 'pro' }));
     v('   (témoin) la même absence dans une liste FRAÎCHE décide : pas payée', [fraiche.paye, fraiche.inconnu], [false, undefined]);
     /* la date du premier échec — ce que `/health` publie (`stripeEchecMin`) : posée au premier échec, gardée au suivant, remise
@@ -1005,6 +1015,18 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
       [mp("code promo ESSAI-BANC-SEPT (jusqu'au 2026-12-31)"), mp("abonnement activé par Justin (jusqu'au 2026-12-31)"),
        mp('abonnement Stripe (active, par adresse e-mail)'), mp('code promo ESSAI-BANC-SEPT — registre des codes illisible, dans le doute on ne coupe pas'), mp('')],
       ["code promo ESSAI-BANC-SEPT (jusqu'au 2026-12-31)", 'accès actif', 'accès actif', 'accès actif', 'accès actif']);
+    /* ⛔ UNE PANNE SE RELIT D'ELLE-MÊME (troisième relecture de `gardien`) : sans ça, un échec que personne ne relit ferait crier la
+       surveillance toutes les heures, pour toujours, sur une panne finie */
+    const SRP = extraire('stripeRelirePanne');
+    vrai('stripeRelirePanne est trouvée dans le fichier réel', /function stripeRelirePanne\(\)/.test(SRP));
+    const relire = cache => { let k = 0; const r = new Function('espStripeCache', 'stripeListe', SRP + '\nreturn stripeRelirePanne;')(cache, () => { k++; return Promise.resolve([]); })(); return [r, k]; };
+    const T0 = Date.now();
+    v('⛔ une panne se relit d\'elle-même : échec en cours, minute d\'attente passée → relue ; lecture en cours, échec de moins d\'une minute, aucun échec → rien',
+      [relire({ echecDepuis: T0 - 3600000, echecTs: T0 - 120000, enCours: null }), relire({ echecDepuis: T0 - 3600000, echecTs: T0 - 120000, enCours: {} }),
+       relire({ echecDepuis: T0 - 30000, echecTs: T0 - 30000, enCours: null }), relire({ echecDepuis: 0, echecTs: 0, enCours: null })],
+      [[true, 1], [false, 0], [false, 0], [false, 0]]);
+    vrai('   … et le serveur la lance toutes les cinq minutes (lu dans son code, commentaires retirés)',
+      /\nsetInterval\(stripeRelirePanne, 5 \* 60000\)\.unref\(\);/.test(SRC.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ')));
   }
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

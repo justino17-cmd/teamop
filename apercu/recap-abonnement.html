@@ -996,6 +996,9 @@ function rendrePaiement() {
     else if (r && r.status === 429) compteMsg = { texte: 'Trop de tentatives d\'affilée : patientez une minute, puis réessayez.', erreur: true };
     /* un impayé sans facture ouverte : définitif tant que TEAM OP ne l'a pas réglé — « réessayez » mentirait */
     else if (r && r.status === 409 && j && j.error === 'impaye_sans_facture') compteMsg = { texte: 'Un prélèvement précédent de votre abonnement n\'a pas abouti et doit être réglé avant tout nouveau paiement : écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+    /* l'impayé vient d'être réglé : l'accès revient à la prochaine lecture (une minute) — un paiement de plus serait un SECOND
+       abonnement, prélevé en double (troisième relecture de `gardien`, 30 septembre 2026). Ce n'est pas une erreur. */
+    else if (r && r.status === 409 && j && j.error === 'impaye_regle') compteMsg = { texte: 'Votre règlement est bien arrivé : l\'accès revient d\'ici une minute. Rouvrez votre application. Rien de plus n\'a été payé.', erreur: false };
     else if (r && r.status === 502 && j && j.error === 'stripe_indisponible') compteMsg = { texte: 'Le service de paiement ne répond pas pour vérifier un prélèvement en attente : réessayez dans quelques minutes. Rien n\'a été payé.', erreur: true };
     else compteMsg = { texte: 'Le paiement n\'a pas pu s\'ouvrir — rien n\'a été payé. Réessayez dans un instant, ou écrivez à support@teamop.fr.', erreur: true };
     rendrePaiement();

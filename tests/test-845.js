@@ -456,14 +456,23 @@ globalThis.fetch = async function (url, opts) {
     r = await payer('pan', { ref: espaces.pan.t });
     v('⛔ Stripe muet à la relecture : 502 — on refuse plutôt que de risquer un double prélèvement', [r.s, r.j.error, sessions().length], [502, 'stripe_indisponible', n0]);
     r = await payer('regl', { ref: espaces.regl.t });
-    vrai('⛔ refusée dans la liste, RÉGLÉE à la relecture : le paiement normal (une page de paiement neuve)', r.s === 200 && r.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && sessions().length === n0 + 1);
+    /* ⛔⛔ RÉGLÉE depuis la liste (la relecture la dit ACTIVE) : l'accès revient à la prochaine lecture — un abonnement neuf naîtrait
+       à côté de celui qui court, prélevé en DOUBLE. C'était « le paiement normal » jusqu'au 30 septembre 2026 (troisième relecture
+       de `gardien`) : dans la minute qui suit un règlement, ou avec une liste périmée, un second abonnement se vendait. */
+    v('⛔⛔ refusée dans la liste, RÉGLÉE à la relecture : 409 `impaye_regle` — RIEN de créé (un second abonnement serait prélevé en double)',
+      [r.s, r.j.error, sessions().length], [409, 'impaye_regle', n0]);
+    for (const PAGE of ['recap-abonnement.html', 'apercu/recap-abonnement.html']) {
+      const CODE = fs.readFileSync(path.join(__dirname, '..', PAGE), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
+      vrai('   ' + PAGE + ' le dit — un message, pas une erreur (« Votre règlement est bien arrivé »)',
+        /else if \(r && r\.status === 409 && j && j\.error === 'impaye_regle'\) compteMsg = \{ texte: 'Votre règlement est bien arrivé(?:[^'\\]|\\.)*', erreur: false \};/.test(CODE));
+    }
     r = await payer('imp', { price: P.msg, ref: espaces.imp.t });
-    vrai('   OP MESSAGES (pas encore en vente, pas un impayé d\'OP GESTION) : le paiement normal', r.s === 200 && r.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && sessions().length === n0 + 2);
+    vrai('   OP MESSAGES (pas encore en vente, pas un impayé d\'OP GESTION) : le paiement normal', r.s === 200 && r.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && sessions().length === n0 + 1);
     r = await payer('x', { ref: espaces.x.t });
     vrai('⛔ une entreprise payée, dont la VOISINE est en impayé : le paiement normal — jamais la facture d\'une autre',
-      r.s === 200 && r.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && sessions().length === n0 + 3);
+      r.s === 200 && r.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && sessions().length === n0 + 2);
     r = await payer('ret', { price: P.business, ref: espaces.ret.t });
-    vrai('   l\'entreprise qui vient de régler : le paiement normal', r.s === 200 && r.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && sessions().length === n0 + 4);
+    vrai('   l\'entreprise qui vient de régler : le paiement normal', r.s === 200 && r.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && sessions().length === n0 + 3);
     const neuf = async (slug, corps) => { const n = sessions().length; const q = await payer(slug, corps);
       return q.s === 200 && q.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && !q.j.facture && sessions().length === n + 1; };
     vrai('⛔ le nom d\'accès repris : la nouvelle entreprise paie normalement — JAMAIS la facture de l\'ancienne (nom, adresse, montant d\'une autre)',

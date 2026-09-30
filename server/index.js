@@ -2164,7 +2164,7 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
   /* ⛔ un code sans identifiant d'espace n'enregistre rien (seconde relecture de `gardien`, 30 septembre 2026) : la garde
      « ce nom est à une autre entreprise », juste en dessous, ne peut rien comparer — l'entrée était réécrite SANS `t`, avec
      l'abonnement réglé à la main de la précédente, et l'entreprise d'origine sortait de l'annuaire */
-  if (!t) return res.status(400).json({ error: 'code illisible : il ne porte pas l\'identifiant de l\'espace — recopie-le depuis un appareil de l\'entreprise' });
+  if (!t) return res.status(400).json({ error: 'code illisible : il ne porte pas l\'identifiant de l\'espace — recharge la Tour, puis refais le geste' });
   const prev = espacesReg[slug] || {};
   // un nom = une seule entreprise : refus si le nom est déjà pris par un AUTRE espace
   /* (`espaceT` : une entrée d'avant sans `t` le porte dans son code — `gardien` R2, 30 septembre 2026 : depuis que cette route
@@ -2605,6 +2605,9 @@ async function espacePaye(e, opts) {
     /* ⛔ on ne SAIT pas (Stripe illisible, ou une période offerte peut être dans un registre illisible) : rien n'est décidé */
     if (illisible) return payeInconnu(perimee ? 'liste Stripe périmée (la relecture a échoué)' : 'Stripe illisible');
     if (promosIllisible) return payeInconnu('registre des codes illisible');
+    /* ⛔ trouvée dans une liste PÉRIMÉE, mais sans rien d'OP GESTION à elle (OP MESSAGES seul, l'abonnement d'une voisine) :
+       elle a pu acheter OP GESTION pendant la panne — on ne sait pas (troisième relecture de `gardien`, 30 septembre 2026) */
+    if (perimee) return payeInconnu('liste Stripe périmée (la relecture a échoué)');
     /* rien de payé qui soit à elle : suspendue. Le motif dit pourquoi — à la Tour seulement (`/api/espaces/etat` ne sert
        qu'« accès suspendu ») */
     const pourquoi = !s ? 'aucun paiement ni code promo' : (fp && fp.f === 'gratuit') ? 'seul OP MESSAGES est payé'
@@ -2657,7 +2660,8 @@ async function espacePaye(e, opts) {
     const nImp = imp ? imp.tous.length : 0;
     /* ⛔ rien d'OP GESTION de payé — OP MESSAGES seul, lignes lisibles (`formulePayee`) : il n'y a plus de formule Gratuit à
        servir (30 septembre 2026). OP GESTION n'est pas payé, donc suspendu jusqu'au règlement ; le motif le dit à la Tour. */
-    if (f === 'gratuit') return promosIllisible ? payeInconnu('registre des codes illisible')
+    if (f === 'gratuit') return perimee ? payeInconnu('liste Stripe périmée (la relecture a échoué)')   // (même raison, plus haut)
+      : promosIllisible ? payeInconnu('registre des codes illisible')
       : { paye: false, motif: aboEchuMotif(e) + s.motif + ' — OP GESTION non payé (seul OP MESSAGES l\'est)' };
     return { paye: true, motif: s.motif + (f === e.formule ? '' : ' — formule payée : ' + (FORMULE_LBL2[f] || f))
       + (nImp ? ' — ' + nImp + ' abonnement' + (nImp > 1 ? 's' : '') + ' en impayé : ' + (nImp > 1 ? 'leurs' : 'ses') + ' places ne sont pas servies' : ''), echeance: s.echeance, formuleServie: f,
@@ -2742,7 +2746,10 @@ function finEssaiPeriode(visees, adresse, maintenant) {
 async function factureOuverteDe(subId, sk) {
   const httpsOk = u => /^https:\/\//.test(String(u || ''));
   const d = await stripeMonGet('https://api.stripe.com/v1/subscriptions/' + encodeURIComponent(subId) + '?expand[]=latest_invoice', sk);
-  if (!d || !STATUTS_IMPAYES.includes(d.status)) return { impaye: false, url: '' };
+  if (!d) return { impaye: false, url: '' };
+  /* le statut, MÊME RÉGLÉ (troisième relecture de `gardien`, 30 septembre 2026) : « réglé depuis la liste » (actif, en essai —
+     l'abonnement court) n'est pas « annulé depuis » (plus rien ne court). La page de paiement et le rappel J-7 les distinguent. */
+  if (!STATUTS_IMPAYES.includes(d.status)) return { impaye: false, url: '', statut: String(d.status || '') };
   const li = d.latest_invoice;
   if (li && typeof li === 'object' && li.status === 'open' && httpsOk(li.hosted_invoice_url)) return { impaye: true, url: String(li.hosted_invoice_url), statut: d.status };
   const f = await stripeMonGet('https://api.stripe.com/v1/invoices?subscription=' + encodeURIComponent(subId) + '&status=open&limit=1', sk);
@@ -2764,7 +2771,10 @@ async function factureOuverteDe(subId, sk) {
    · toujours impayé, avec une facture ouverte → `{ url }` (seule une adresse https:// part, comme la Tour) ;
    · `past_due` sans facture ouverte → 409 `impaye_sans_facture` (rien n'est créé : TEAM OP règle à la main) ; `unpaid` sans
      facture ouverte → le paiement normal (Stripe ne réessaie plus : aucun double prélèvement possible) ;
-   · réglé depuis → on passe au suivant, puis au paiement normal ;
+   · réglé depuis (actif, en essai) → 409 `impaye_regle` si aucun autre n'est à régler : l'accès revient à la prochaine
+     lecture de la liste (une minute) ; un abonnement neuf naîtrait À CÔTÉ de celui qui court — prélevé en double (troisième
+     relecture de `gardien`, 30 septembre 2026 : une liste périmée, ou la minute qui suit un règlement) ; annulé depuis → on
+     passe au suivant, puis au paiement normal ;
    · un candidat, mais Stripe ne répond pas à sa relecture → 502 : on refuse plutôt que de risquer un double prélèvement.
    ⚠️ La LISTE elle-même illisible (jamais lue, Stripe en panne) ne bloque PAS le paiement : sans elle on ne sait pas s'il y a
    un impayé, et refuser TOUS les paiements pendant une panne de la liste coûterait plus (la dernière liste connue sert,
@@ -2807,17 +2817,32 @@ async function factureImpayeARegler(visees, payeurMin) {
     try { imp = impayesGestion(e, espStripeCache.data || liste); } catch (err) { imp = null; }
     if (imp) cand = imp.tous.filter(sb => sb && sb.id && (imp.surs.includes(sb) || (duCompte(sb) && !autre(sb))));
   } else cand = liste.filter(sb => sb && sb.id && STATUTS_IMPAYES.includes(sb.status) && aboDeGestion(sb) && duCompte(sb) && !autre(sb));
+  let regle = false;
   for (const sb of cand.slice(0, 10)) {
     let f = null;
     try { f = await factureOuverteDe(sb.id, sk); }
     catch (err) { console.error('paiement : relecture d\'un impayé impossible —', stripeLog(err)); return { refus: 502, error: 'stripe_indisponible' }; }
-    if (!f.impaye) continue;   // réglé depuis la liste
+    if (!f.impaye) { if (STATUTS_PAYES.includes(f.statut)) regle = true; continue; }   // réglé (ou annulé) depuis la liste
     if (f.url) return { url: f.url };
     if (f.statut === 'unpaid') continue;   // Stripe ne réessaie plus : pas de double prélèvement, le paiement normal suit
     return { refus: 409, error: 'impaye_sans_facture' };
   }
+  if (regle) return { refus: 409, error: 'impaye_regle' };
   return null;
 }
+/* ⛔ UNE PANNE DE STRIPE SE RELIT D'ELLE-MÊME (troisième relecture de `gardien`, 30 septembre 2026). `stripeEchecMin` compte
+   depuis le premier échec et ne revient à zéro qu'à une lecture réussie — or on ne relit Stripe que quand quelqu'un le
+   demande. Un seul échec, puis plus personne qui passe par Stripe (toutes les entreprises réglées à la main ou en période
+   offerte) : la surveillance aurait crié toutes les heures, pour toujours, sur une panne finie. C'est la leçon de `mailRefus` :
+   une alarme crie sur la RÉCENCE. Toutes les cinq minutes, tant qu'un échec est en cours, qu'aucune lecture ne tourne et que la
+   minute d'attente est passée, on relit. */
+function stripeRelirePanne() {
+  if (!espStripeCache.echecDepuis || espStripeCache.enCours) return false;
+  if (Date.now() - espStripeCache.echecTs <= 60000) return false;
+  stripeListe().catch(() => {});
+  return true;
+}
+setInterval(stripeRelirePanne, 5 * 60000).unref();
 /* La liste des abonnements Stripe (tous statuts), relue quand elle a plus de `ageMax` ms (au plus `STRIPE_CACHE_MS`) —
    `null` sans clé Stripe ; jette seulement quand elle n'a JAMAIS pu être lue. Partagée par le verdict « payé »
    (`espaceStripe`), la page de paiement (`factureImpayeARegler`) et le rappel J-7. */
@@ -9750,11 +9775,16 @@ async function rappelsEcheances() {
           if (ab.etat === 'impaye') {
             let lue = null, echec = false;
             for (const sb of (ab.surs || []).slice(0, 5)) {
-              try { const f = await factureOuverteDe(sb.id, config.stripe.secretKey); if (f.impaye) { lue = f; break; } if (!lue) lue = f; }
+              try { const f = await factureOuverteDe(sb.id, config.stripe.secretKey); if (f.impaye) { lue = f; break; }
+                if (!lue || (STATUTS_PAYES.includes(f.statut) && !STATUTS_PAYES.includes(lue.statut))) lue = f; }
               catch (err) { echec = true; break; }
             }
             if (echec && limite > auj) { console.log('rappel échéance reporté →', masqueMail(dest), '(fin ' + eq.finLe + ', impayé : facture illisible, nouvel essai au prochain passage)'); continue; }
-            if (lue && !lue.impaye) { ab.etat = 'abonne'; ab.impaye = false; ab.resilie = ''; ab.premier = ''; ab.prochaine = ''; }
+            /* réglée depuis la liste : l'abonnement COURT (actif, en essai) — « prend le relais ». ANNULÉ depuis, il ne prend
+               le relais de rien : le courriel habituel, avec son lien (troisième relecture, 30 septembre 2026 — il disait « vous
+               n'avez rien à faire » à une entreprise suspendue le lendemain de la fin) */
+            if (lue && !lue.impaye && STATUTS_PAYES.includes(lue.statut)) { ab.etat = 'abonne'; ab.impaye = false; ab.resilie = ''; ab.premier = ''; ab.prochaine = ''; }
+            else if (lue && !lue.impaye) { ab.etat = 'aucun'; ab.impaye = false; }
             else urlFacture = (lue && lue.url) || '';
             /* l'attente de la facture rend la main à son tour : on relit, comme plus haut */
             const el2 = eligible(code, t, eq0.finLe);

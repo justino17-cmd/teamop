@@ -134,6 +134,7 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     sampi: ['t-sampi-844', 'Sampi Impayée', 'sampi@exemple-844.fr'],       // IMPAYÉE (unpaid) : sa facture ouverte n'est que dans la liste des factures
     qoppa: ['t-qoppa-844', 'Qoppa Sans Facture', 'qoppa@exemple-844.fr'],  // IMPAYÉE (past_due), et AUCUNE facture ouverte chez Stripe
     jota: ['t-jota-844', 'Jota Réglée', 'jota@exemple-844.fr'],            // en impayé dans la liste, RÉGLÉE depuis (la relecture la dit active)
+    tsade: ['t-tsade-844', 'Tsade Annulée', 'tsade@exemple-844.fr'],       // en impayé dans la liste, ANNULÉE depuis (la relecture la dit canceled)
     heta: ['t-heta-844', 'Heta Mixte', 'heta@exemple-844.fr'],             // un abonnement actif ET un autre en impayé
     chet: ['t-chet-844', 'Chet Messages', 'chet@exemple-844.fr'],          // OP MESSAGES payé, OP GESTION en impayé
     xenia: ['t-xenia-844', 'Xenia Voisine', 'voisine@exemple-844.fr'],    // fiche GRATUIT : l'impayé SANS référence de yod, à la même adresse
@@ -210,6 +211,7 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     abo('t-sampi-844', 'sampi@exemple-844.fr', 'unpaid', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
     abo('t-qoppa-844', 'qoppa@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
     abo('t-jota-844', 'jota@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
+    abo('t-tsade-844', 'tsade@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
     abo('t-heta-844', 'heta@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(21)) }),
     autre(abo('t-heta-844', 'heta@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }), 'sub_t-heta-844-refus'),
     /* chet : OP MESSAGES payé (trouvé le premier), OP GESTION en impayé */
@@ -233,6 +235,7 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
       ouvertes: [{ object: 'invoice', status: 'open', hosted_invoice_url: FACT('sampi') }] },
     'sub_t-qoppa-844': { latest_invoice: null, ouvertes: [] },
     'sub_t-jota-844': { status: 'active', latest_invoice: { object: 'invoice', status: 'paid', hosted_invoice_url: FACT('jota') } },
+    'sub_t-tsade-844': { status: 'canceled', latest_invoice: { object: 'invoice', status: 'void', hosted_invoice_url: FACT('tsade') } },
     'sub_t-heta-844-refus': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('heta') } },
     'sub_t-chet-844': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('chet') } },
     'sub_t-wau-844': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('wau') } },
@@ -381,6 +384,12 @@ globalThis.fetch = async function (url, opts) {
     const J = de('jota');
     vrai('⛔ jota (en impayé dans la liste, RÉGLÉE depuis : la relecture la dit active) — « prend le relais », ni facture ni lien de paiement',
       RELAIS.test(J) && !/n'a pas abouti/.test(J) && !/invoice\.stripe\.com/.test(J) && !PAIEMENT.test(J) && !PROMESSE.test(J));
+    /* ⛔ ANNULÉE depuis la liste : elle ne prend le relais de RIEN — « vous n'avez rien à faire » à une entreprise suspendue le
+       lendemain de la fin (troisième relecture, 30 septembre 2026). Le courriel habituel, son lien et sa promesse. */
+    const Ts = de('tsade');
+    vrai('⛔ tsade (en impayé dans la liste, ANNULÉE depuis : la relecture la dit canceled) — le courriel habituel, lien de paiement et promesse ; ni « prend le relais », ni facture',
+      HABITUEL(Ts) && PROMESSE.test(Ts) && !RELAIS.test(Ts) && !/n'a pas abouti/.test(Ts) && !Ts.includes(FACT('tsade')));
+    vrai('   (population) sa relecture a bien eu lieu chez Stripe', /banc-stripe: relecture sub_t-tsade-844/.test(journal));
     const Ch = de('chet');
     vrai('⛔ chet (OP MESSAGES payé, OP GESTION en impayé) — l\'impayé, et la facture d\'OP GESTION : OP MESSAGES ne prend pas le relais',
       IMPAYE(Ch) && Ch.includes(FACT('chet')) && !/Plus que quelques jours/.test(Ch));
