@@ -85,6 +85,10 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
   v('⛔ le serveur accepte exactement les métiers de l\'application, dans le même ordre (METIERS_OK = METIERS_ORDRE)', ordreSrv, ordreApp);
   v('⛔ la Tour propose exactement ces métiers (MET_L)', Object.keys(lblTour), ordreApp);
   v('⛔ le portail demande exactement ces métiers (METIER_L)', Object.keys(lblPort), ordreApp);
+  /* Jusqu'au 30 septembre 2026, le portail ajoutait « Un autre métier » à la main, hors de METIER_L : une valeur que le
+     serveur jetait. « autre » est désormais un pack — une option écrite en plus ferait DEUX « autre » dans la liste. */
+  v('   … et n\'en ajoute aucun à la main dans son <select> (les options viennent toutes de METIER_L)',
+    [...PORTN.matchAll(/<option value="([a-z0-9]+)"/g)].map(m => m[1]).filter(k => Object.prototype.hasOwnProperty.call(lblPort, k)), []);
   v('⛔ chaque métier a un pack dans l\'application (METIERS)', ordreApp.map(k => !!(METIERS_APP[k] && METIERS_APP[k].nom)), ordreApp.map(() => true));
   const noms = ordreApp.map(k => METIERS_APP[k].nom);
   v('   les libellés sont ceux des packs, partout (serveur, Tour, portail)', [ordreApp.map(k => lblSrv[k]), ordreApp.map(k => lblTour[k]), ordreApp.map(k => lblPort[k])], [noms, noms, noms]);
