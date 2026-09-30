@@ -13,6 +13,176 @@ de ligne du tout.
 
 ---
 
+# ⏳ 30 SEPTEMBRE 2026 — UN PACK POUR CHAQUE MÉTIER (BÊTA v766, TOUR v2.78) ; PLUS DE FORMULE GRATUITE NULLE PART : CE QUI N'EST PAS PAYÉ EST SUSPENDU JUSQU'AU RÈGLEMENT (BÊTA v767) — ATTEND « POUSSE »
+
+Justin, dans l'ordre :
+- **Packs** : « 1 oui fait se qu'il faut » → un pack pour chacun des métiers du site qui n'en avaient pas.
+- **Impayé** : « 2 si une entreprise ne payent plu le servisse sont suppendu ok tant que c'st pas réglé ».
+- **Codes promo** : « Les code promotionnel non rien à voir avec le forfait gratuit donc se qui on un code promotionnel qui
+  correspond en un forfait payant il sont pas impacter ».
+- **Point 3** (la maquette `apercu/site-apple.html`) : « j'ai pas compris » → réexpliqué simplement (une ancienne ébauche du
+  site, encore joignable par son adresse, qu'aucune page ne lie), **question posée : « Je la supprime ? (oui / non) » — PAS
+  DE RÉPONSE ENCORE.** Si oui : retirer le fichier ET adapter `test-756`, `test-836`, `test-837`, `test-839` et
+  `scratchpad/sonde-maquette-apple.js`, qui la lisent.
+
+**Sur la branche, rien sur `main`** — packs : `f05d90e`, `5fb4062`, `2f8fcfa` ; suspension : `7ea5837`, `4f11e02`,
+`7a2ea58`, `0178125`, puis les relectures `77a7f6d`, `c8dba73`, `4db9bfa`, `4d4e9fc`, la seconde `cbbd3d5` et la troisième
+`2a8b4fa`, `f8355fd`.
+
+1. **Un pack pour chaque métier** (bêta v766, Tour v2.78) : maçonnerie, menuiserie, peinture, espaces verts, couverture,
+   multiservices et « Autre métier de terrain » — types d'intervention, prestations et relevés à eux, aucun mot de nuisibles,
+   et les quatre modules du 3D masqués (registre, carte des box, devis xylophage, box). Les quatre listes (application,
+   serveur, Tour, portail) portent les mêmes treize métiers, dans le même ordre. Preuves : `test-848`, 14/14 mutations
+   (`scratchpad/mutations-packs-metier.py`), sonde `scratchpad/sonde-packs-metier.js` 154 ✓ (contre-épreuve sur la v765 : 4 ✗).
+
+2. **Plus de formule Gratuit : une entreprise qui ne paie pas est SUSPENDUE jusqu'au règlement** (bêta v767) :
+   · **serveur** : `/api/espaces/etat` sert TOUT ce qui n'est pas payé sous la forme de la suspension — sans formule,
+     `suspendu:true`, `sursisJours:0`, motif public « accès suspendu ». La forme « formule + `paye:false` » n'est plus jamais
+     servie. La règle vit à UN endroit, `accesSuspenduPar(p, f)` (bloqué, non payé, ou formule que l'application ne connaît
+     pas), lue aussi par « Mon espace » (`formuleServieDe`) : les deux disent « suspendu » exactement ensemble.
+     ⛔ **Les sept jours de sursis d'une suspension posée DANS LA TOUR (20 septembre) ne servent qu'une entreprise que la
+     facturation dit PAYÉE** (un virement qui n'arrive pas) ; à qui ne paie déjà pas, aucun jour — la v763 la grisait sur-le-
+     champ, un sursis lui aurait rouvert tout pendant une semaine (`4f11e02`, `test-761`).
+     Une fiche « Gratuit » d'avant ne paie rien d'elle-même : période offerte, Stripe, sinon suspendue ; OP MESSAGES seul ne
+     paie pas OP GESTION. La Tour ne peut plus poser « Gratuit » (les deux routes le refusent, avec la raison). Courriels :
+     « l'accès sera suspendu jusqu'au règlement — vos données sont conservées ».
+   · **trouvé en chemin, et corrigé** : « Revoir le lien de connexion » reconstruisait la fiche et PERDAIT l'abonnement réglé
+     à la main (`aboStatut`, sa fin, `aboDepuis`, `formuleDepuis`) — une entreprise payée par virement aurait été suspendue
+     par un simple geste de la Tour ; une période offerte dont le code a quitté la configuration servait « gratuit » (donc,
+     désormais, une suspension en pleine période) → sa fiche, ou Business Premium.
+   · **application (bêta v767)** : plus de Gratuit dans `PLANS` ; un « gratuit » resté dans une base d'avant se lit Pro ; la
+     facturation n'écrit plus jamais `db.forfait` (le bandeau « Paye ton abonnement » est retiré). Sursis écoulé = **accès
+     suspendu** : menu grisé (🔒), onglets du bas grisés, toute rubrique mène à l'écran « Accès suspendu » — l'administrateur
+     y lit pourquoi et règle (« Régler mon abonnement », « J'ai réglé — vérifier », « J'ai un code promo ») ; les autres lisent
+     seulement que leur administrateur peut rétablir l'accès. **Les Paramètres restent ouverts.** Revenir sur l'application relit l'état
+     tant qu'elle est suspendue (la dette « l'appareil ne relit qu'au lancement » du 29 septembre). **La bêta n'est jamais
+     suspendue** (son espace n'a pas d'abonnement).
+   · **Tour, portail, mentions légales** : plus de formule Gratuit à choisir ni à afficher ; « Sans formule », « ⏸ Suspendue
+     jusqu'au paiement ».
+
+3. **Les relectures (`gardien`, `relecteur`) — corrigé** (`77a7f6d`, `c8dba73`, `4db9bfa`) :
+   · ⛔ **dans le doute, on ne coupe pas** : Stripe illisible (la clé posée, aucune liste jamais lue) ou registre des codes
+     illisible → `payeInconnu` : l'application reçoit `verificationImpossible` (elle garde ce qu'elle savait, n'écrit rien),
+     « Mon espace » ne dit rien (l'horloge de conservation comptait alors « payé » : corrigé à la seconde relecture, point 4).
+     Avant : « rien de payé », donc une entreprise qui paie suspendue à la première panne de Stripe ;
+   · ⛔ **un réglage fait à la main dans la Tour ne décide que tant qu'il court** : `aboManuelDe(e, jour)` — un « actif » ou
+     « essai » échu ne décide plus (la Tour lit « abonnement terminé le … » dans le motif) ; le rappel J-7 et la facturation
+     différée le jugent au lendemain de la fin de la période (`jourApres(finLe)`), le jour où `espacePaye` décidera ;
+   · une fiche « Gratuit » payée par un abonnement d'OP GESTION SÛREMENT à elle mais illisible reçoit la formule de ses
+     tarifs connus (`formuleGratuitIllisible`, Pro à défaut) — pas « Pro » d'office pour un Business Premium d'avant ;
+   · « Revoir le lien » : la garde « ce nom est à une autre entreprise » lit l'identifiant d'une entrée d'AVANT dans son code
+     (`espaceT(prev)`), sinon l'autre héritait de son abonnement réglé à la main (409) ;
+   · application : « ＋ Créer » pendant la suspension mène à l'écran « Accès suspendu » (il disait « Aucune création ouverte à
+     ton compte ») ; « J'ai réglé — vérifier » dit « Vérification impossible pour l'instant » quand il n'a pas pu lire l'état
+     (`forfaitServeurSync` rend désormais VRAI quand l'état a été lu) ; un code promo tapé depuis l'écran suspendu relit
+     l'état AVANT d'annoncer « Code accepté » ; textes de la Tour (courriel de bienvenue, panneau).
+
+4. **La seconde relecture (`gardien`, `relecteur`) — corrigé** (`cbbd3d5`) :
+   · ⛔ **l'horloge de conservation ne lit plus un doute** : elle comptait « payé » une entreprise qu'on ne sait pas lire —
+     donc elle EFFAÇAIT la date d'une entreprise qui ne paie pas, à chaque panne de Stripe (rejoué dans `test-761`, second
+     serveur au Stripe muet : la date d'« ent-rien » reste, celle du témoin réglé à la main se lève) ;
+   · ⛔ **une liste Stripe PÉRIMÉE ne dit plus qui ne paie pas** : la relecture a échoué, la dernière liste connue sert encore
+     à servir qui y paie ; mais une entreprise qui a payé DEPUIS n'y est pas — elle était suspendue sans sursis. Son absence
+     est désormais un doute. ⚠️ **Décision assumée** : un impayé LU dans cette liste bloque encore — Stripe l'a dit, et la page
+     de paiement relit la facture en direct avant d'y envoyer ; en faire un doute rouvrirait l'achat d'un SECOND abonnement ;
+   · une liste **TRONQUÉE** au plafond de dix pages jette au lieu de servir (les plus anciens abonnés en disparaissaient) ;
+   · **Stripe illisible se voit** : `stripeEchecMin` dans `/health` et `/api/monitor/sante`, la surveillance crie à
+     90 minutes (« personne n'est suspendu, mais une entreprise qui vient de payer reste suspendue ») ;
+   · le doute du registre des codes sert la formule du CODE (une fiche Pro en période Business Premium retombait en Pro) ;
+   · « Mon espace » dit « Suspendu » quand la Tour a suspendu une entreprise payée et que ses sept jours sont passés ;
+   · ⛔ **le motif public ne nomme plus personne** : pour une entreprise payée, `/api/espaces/etat` ne garde que « code promo X
+     (jusqu'au D) » (ce que l'application lit) — le nom de la personne de la Tour qui a réglé l'abonnement, le chemin Stripe,
+     l'état d'un registre deviennent « accès actif ». Le motif complet reste lisible dans la Tour ;
+   · la Tour refuse (400) un code sans identifiant d'espace (il réécrivait une entrée sans `t`, l'entreprise d'origine
+     sortait de l'annuaire) ;
+   · application : « J'ai réglé — vérifier » rend TOUJOURS son bouton (depuis les Paramètres, il restait grisé sur
+     « Vérification… ») ; l'infobulle du 🔒 ne parle de règlement qu'à l'administrateur ; un non-administrateur lit « Ton
+     administrateur peut le rétablir depuis son application » (« est prévenu » promettait un avis qui n'existe pas) ; un code
+     accepté depuis la suspension sans que l'accès se rouvre le DIT ; la bêta n'est suspendue par aucun chemin ;
+   · ⚠️ **laissé tel quel, exprès** : registre des codes illisible ET impayé Stripe → bloquée (l'impayé est un fait de Stripe,
+     le registre n'y change rien).
+
+5. **La troisième relecture — corrigé** (`2a8b4fa`) :
+   · ⛔⛔ **un impayé RÉGLÉ ne se rachète pas** : la page de paiement relisait l'abonnement refusé, le trouvait réglé (actif)… et
+     ouvrait un abonnement NEUF à côté de lui — prélevé en double. C'était possible dans la minute qui suit un règlement (la
+     liste des impayés se relit à la minute), et durablement avec une liste périmée ; `test-845` attendait même ce paiement
+     (« réglée à la relecture : le paiement normal »). Désormais : 409 `impaye_regle`, et la page dit « Votre règlement est
+     bien arrivé : l'accès revient dès que notre vérification le confirme, en général en moins d'une minute » (sans délai
+     promis : pendant une panne de la seule liste de Stripe, l'accès attend son retour — `f8355fd`). Un abonnement ANNULÉ
+     depuis, lui, laisse passer au paiement normal ;
+   · le rappel J-7 disait « votre abonnement prend le relais, vous n'avez rien à faire » à une entreprise dont l'abonnement
+     refusé avait été ANNULÉ depuis — suspendue le lendemain de la fin, sans avoir été prévenue. Désormais : le courriel
+     habituel, son lien et sa promesse (`test-844`, entreprise « tsade ») ;
+   · une liste périmée ne suspend pas non plus une entreprise qui y est trouvée sans rien d'OP GESTION à elle (OP MESSAGES
+     seul, l'abonnement d'une voisine) : elle a pu acheter pendant la panne — un doute ;
+   · **une panne de Stripe se relit d'elle-même** toutes les cinq minutes : un seul échec que plus personne ne relit (toutes
+     les entreprises en période offerte ou réglées à la main) aurait fait crier la surveillance toutes les heures, pour
+     toujours — la leçon de `mailRefus` ;
+   · application : « J'ai réglé — vérifier » se rend AVEC son icône (le « ↻ » est un dessin, que le texte seul perdait) ; la
+     bêta ne reçoit jamais le rappel de paiement ; `test-838` jetait sur la règle de la bêta (la suite complète l'a vu) — il
+     la joue désormais des deux côtés.
+
+**⏸ REPORTÉ, ET POURQUOI :**
+- **R1 — le code promo reste dans le motif public** : depuis `cbbd3d5`, la réponse publique ne dit plus que « code promo X
+  (jusqu'au D) » ou « accès actif ». Le code lui-même y reste parce que l'application le lit DANS ce texte
+  (`forfaitServeurSync`, v763 comme v767). Donc : d'abord deux champs à part, lus par une application publiée et exigée —
+  ensuite seulement retirer le code du motif (les appareils d'abord, la porte ensuite).
+- **A2 — deux entreprises à la même adresse** : une fiche « Gratuit » n'est pas servie par l'abonnement de sa voisine
+  (`gratuitPayeIllisible` exige un abonnement SÛREMENT à elle) — elle est suspendue. Limite connue, cohérente avec « une
+  adresse = une entreprise » (règle du 29 septembre).
+- **A4 — l'horloge de conservation lit « jamais abonné » dans le TEXTE du motif** (`/aucune formule/`) : une ancienne fiche
+  « Gratuit » qui n'a jamais payé porte « formule Gratuit (retirée le 30 septembre 2026) … » et passe pour « abonnement
+  terminé ». Sans effet aujourd'hui (le drapeau ne décide rien, rien n'est supprimé ni envoyé) ; à reprendre le jour où la
+  suppression s'écrira — par un champ, pas par un texte. Et l'horloge datera désormais ces fiches : elles ne paient pas.
+- **`npm audit` (production)** : trois avis modérés (`ip-address`, `nodemailer`, `mailparser`) — à traiter au prochain passage
+  serveur, seuls.
+- **Notes de la troisième relecture, sans correctif** (`gardien`) :
+  · registre des codes illisible, fiche Pro payée par Stripe et un VIEUX code Business Premium resté sur la fiche : servie en
+    Business Premium le temps de la panne, puis de nouveau Pro — personne n'est suspendu ni facturé à tort, mais la v763
+    réécrit sa formule deux fois (avec le toast « débloqué »). Rendre un doute à cette branche l'éviterait : à trancher ;
+  · une entreprise qui ferait jeter `espacePaye` à chaque passage ne serait jamais datée par l'horloge de conservation, sans
+    rien qui le montre (compter les entreprises sautées dans `conservation.sante()`, en nombres seulement) ;
+  · plafond de dix pages atteint (1 000 abonnements) et cache froid : tout devient un doute durable — l'alarme de 90 minutes
+    le dit ; relever le plafond bien avant ;
+  · rappel J-7 : un abonnement redevenu actif mais résilié AVANT le lendemain de la fin dit encore « prend le relais »
+    (`factureOuverteDe` ne rend ni `cancel_at` ni la fin de période — les rendre fermerait ce cas et donnerait au courriel sa
+    « prochaine échéance ») ; rare : la liste a au plus cinq minutes ;
+  · page de paiement : pendant une panne de la seule LISTE, un compte sans entreprise identifiable dont un impayé vient d'être
+    réglé se voit refuser tout achat (409 `impaye_regle`) jusqu'au retour de la liste — rien n'est vendu en double.
+
+**❓ QUESTION À JUSTIN (A3) : une fiche SANS formule dans l'annuaire garde tout l'accès** (la réponse d'avant la formule,
+inchangée) — c'est le cas des espaces jamais réglés dans la Tour. Les suspendre aussi ?
+
+**⚠️ À SAVOIR AVANT « POUSSE » (dit à Justin) :**
+- **ELAN** est en période offerte (code promo) : rien ne change pour eux pendant la période. À la fin, sans abonnement,
+  suspendue — le courriel J-7 le leur dit sept jours avant. **La date de fin se lit dans la Tour** (fiche ELAN).
+- **À regarder dans la Tour, fiche par fiche, avant le serveur** (le serveur de production décide encore l'ancienne règle,
+  la Tour ne peut pas afficher « ⏸ Suspendue » avant lui) : une formule « Gratuit » sans période offerte ni abonnement, ou un
+  abonnement réglé à la main dont la date de fin est passée → **suspendue dès le serveur en ligne**. `gardien` n'a pas pu
+  compter ces fiches : l'annuaire de production vit sur le VPS.
+- **Serveur seul en ligne, application v763 en service — ÉPROUVÉ** (`scratchpad/simuler-serveur-seul.sh` : la liste
+  serveur jouée contre les pages de `main`, 49 suites · 3 300 vérifications, code 0 ; `scratchpad/mutations-serveur-seul.py` : 4/4 mutations sur les branches v763 — témoins : 842 → 96 ✓, 845 → 83 ✓) : la v763 lit déjà
+  la forme de la suspension — elle grise les catégories payantes sans rien écrire, et le rappel ne va qu'à l'administrateur.
+  Mieux qu'avant : une entreprise qui n'a jamais payé ne reçoit plus « formule + paye:false », donc la v763 n'écrit plus le
+  Gratuit dans sa base et ne pose plus le bandeau à toute l'équipe. ⚠️ Sa limite, dans le sens qui ne coupe personne : une
+  vérification impossible (Stripe muet) lève sa grisaille jusqu'à la réponse suivante. La suspension COMPLÈTE (écran « Accès
+  suspendu », « ＋ Créer », « J'ai réglé — vérifier ») arrive avec la publication de la v767.
+- Dans « Paramètres », le choix de formule n'est plus modifiable que par l'équipe TEAM OP (lecture seule pour un client).
+
+**Preuves** : bancs 727 (211 ✓), 761 (62 ✓), 803 (148 ✓), 838 (79 ✓), 842 (96 ✓), 844 (77 ✓), 845 (90 ✓), 848 (64 ✓) ;
+**65/65 mutations** (`scratchpad/mutations-suspension.py` — M31 ne mordait pas : `test-848` envoyait une AUTRE adresse, et
+une autre garde de la route refusait avant celle qu'on voulait garder ; le cas se joue désormais sans adresse et avec la
+même, `4db9bfa`) ; sonde au navigateur `scratchpad/sonde-suspension.js` **39 ✓** (contre-épreuves : 3 ✗ sur la bêta d'avant
+la seconde relecture — exactement ses trois défauts visibles : le bouton resté grisé, l'infobulle et le texte du technicien —,
+1 ✗ sur celle d'avant la troisième — le bouton rendu sans son icône —, 24 ✗ sur la vraie bêta, 26 ✗ sur la v766) ; suite
+complète **204 suites · 11 941 vérifications, code 0** (`2a8b4fa` ; `f8355fd` ne change qu'un texte, et les treize bancs qui
+lisent la page de paiement repassent) ; relectures : trois tours de `gardien` et `relecteur`, le dernier (`gardien`, sur
+`2a8b4fa`) sans rien de bloquant — une promesse de délai retirée (`f8355fd`). ⚠️ **La suite complète a vu ce que les
+bancs retouchés ne voyaient pas** : `test-838` jetait sur la règle de la bêta (`BETA_ESSAI` absent de son bac à sable) —
+seule la suite entière le montrait, parce qu'aucun des bancs modifiés ne le lançait.
+
+---
+
 # ⏳ 29 SEPTEMBRE 2026, NUIT (FIN) — LE MÉTIER DE CHAQUE ENTREPRISE, DE LA DEMANDE À L'APPLICATION (BÊTA v765, TOUR v2.77) ; PLUS DE FORMULE GRATUITE SUR LE SITE ; TROIS BANCS QUI NE PROUVAIENT PAS CE QU'ILS DISAIENT — ATTEND « POUSSE »
 
 Justin, dans l'ordre :
@@ -115,6 +285,8 @@ l'application garde `PLANS.gratuit` et `PLAN_BLOQUE.gratuit` — c'est aussi ce 
 promo). ⛔ **Pas à l'aveugle** : lire d'abord la formule de chaque entreprise vivante (ELAN comprise) dans l'annuaire, et
 décider ce que voit un impayé quand « Gratuit » n'existe plus (Justin, 29/09 : « pas de paiement, pas d'accès au service
 payant » ; « rien n'est perdu »). Chantier de demain.
+→ ✅ **Fait le 30 septembre 2026** (bêta v767 et serveur, sur la branche — attend « pousse ») : plus de Gratuit nulle part,
+ce qui n'est pas payé est SUSPENDU jusqu'au règlement. Voir la section du 30 septembre, en tête.
 
 ⚠️ **Dettes toujours ouvertes** : celles de la section suivante, plus :
 - les totaux d'heures de NUIT dans Archives et sur la fiche technicien (`minutes()` sur des « HH:MM » : un pointage
