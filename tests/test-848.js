@@ -255,6 +255,17 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
     const anc2 = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'))[cle('ancien-sans-t')] || {};
     v('⛔ le nom d\'une entrée d\'avant (sans `t`, il vit dans son code), repris avec le code d\'une AUTRE entreprise — sans adresse, avec la sienne, avec une autre : refusé (409) les trois fois — la fiche et son abonnement restent les siens',
       [rR2a.s, rR2b.s, rR2.s, anc2.code === CODE_ANC, anc2.aboStatut], [409, 409, 409, true, 'actif']);
+    /* ⛔ un code SANS identifiant d'espace n'enregistre rien (seconde relecture de `gardien`, 30 septembre 2026) : la garde « ce
+       nom est à une autre entreprise » ne pouvait rien comparer — l'entrée était réécrite sans `t`, avec l'abonnement réglé à
+       la main de la précédente, et l'entreprise d'origine sortait de l'annuaire */
+    const CODE_SANS_T = Buffer.from(JSON.stringify({ k: 'k-sans-t-848-' + 'w'.repeat(20) }), 'utf8').toString('base64').replace(/=+$/, '');
+    const rSansT = await appel('/api/monitor/espaces', { nom: 'ancien-sans-t', code: CODE_SANS_T }, PATRON);
+    const rSansT2 = await appel('/api/monitor/espaces', { nom: 'nouveau-sans-t', code: CODE_SANS_T }, PATRON);
+    await dormir(300);
+    const regSansT = JSON.parse(fs.readFileSync(path.join(D, 'espaces.json'), 'utf8'));
+    v('⛔ un code sans identifiant d\'espace : refusé (400), sur un nom connu comme sur un nom neuf — la fiche d\'avant reste la sienne',
+      [rSansT.s, rSansT2.s, (regSansT[cle('ancien-sans-t')] || {}).code === CODE_ANC, (regSansT[cle('ancien-sans-t')] || {}).aboStatut, regSansT[cle('nouveau-sans-t')]],
+      [400, 400, true, 'actif', undefined]);
     /* (témoin) la même entrée redonnée avec SON code — « Revoir le lien » d'une entreprise d'avant — passe, et garde son
        abonnement : la garde ne refuse que l'identifiant d'une AUTRE entreprise */
     const rR2c = await appel('/api/monitor/espaces', { nom: 'ancien-sans-t', code: CODE_ANC }, PATRON);
@@ -264,6 +275,10 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
       [rR2c.s, anc3.t, anc3.aboStatut], [200, 't-anc-848', 'actif']);
     const E2 = await etat('plombier-banc'), st2 = (await appel('/api/monitor/espaces/statut', { nom: 'plombier-banc' }, PATRON)).j;
     v('⛔⛔ … et l\'abonnement réglé à la main RESTE : toujours payée, servie avec sa formule — pas suspendue', [E2.formule, E2.paye, E2.suspendu, st2.paye, st2.aboStatut], ['pro', true, false, true, 'actif']);
+    /* ⛔ ce que cette réponse dit à qui connaît `t` (seconde relecture de `gardien`, 30 septembre 2026) : ni le NOM de la personne
+       de la Tour qui a réglé l'abonnement, ni le chemin du paiement — la Tour, gardée, garde le motif complet */
+    v('⛔ … et son motif public ne nomme personne : « accès actif » — la Tour, elle, lit qui l\'a réglé',
+      [E2.motif, /Banc/.test(String(st2.motif || ''))], ['accès actif', true]);
     v('⛔ une entreprise SANS formule reçoit aussi son métier (la réponse qui sort avant la formule)', (await etat('sans-formule')).metier, 'nettoyage');
     const ES = await etat('suspendue-banc');
     v('⛔ une entreprise qui ne paie pas est SUSPENDUE (sans formule) — et reçoit AUSSI son métier', [ES.suspendu, ES.sursisJours, ES.formule, ES.paye, ES.metier], [true, 0, undefined, false, 'peinture']);

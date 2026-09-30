@@ -499,7 +499,7 @@ process.on('unhandledRejection', (r) => {
   incidentNoter('rejet');
   console.error('⛔ promesse rejetée sans gestionnaire —', String((r && (r.code || r.name)) || typeof r).slice(0, 40), '·', incidentOu(r));
 });
-app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: !!pieces, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
+app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce: ANNONCE.version, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, atts: !!pieces, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), stripeEchecMin: stripeEchecMin(), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus,
   /* Quatre entiers agrégés : ils disent si la porte des routes mail peut se fermer,
      et ne disent rien de personne — ni adresse, ni espace, ni contenu. Sans eux,
      la suite se déciderait à l'aveugle : /api/mail/cles est protégée par une clé de
@@ -2161,6 +2161,10 @@ app.post('/api/monitor/espaces', monPatronStrict, (req, res) => {
   if (!slug || !code) return res.status(400).json({ error: 'nom et code requis' });
   let t = '';
   try { const o = JSON.parse(Buffer.from(code, 'base64').toString('utf8')); t = String(o.t || ''); } catch (e) {}
+  /* ⛔ un code sans identifiant d'espace n'enregistre rien (seconde relecture de `gardien`, 30 septembre 2026) : la garde
+     « ce nom est à une autre entreprise », juste en dessous, ne peut rien comparer — l'entrée était réécrite SANS `t`, avec
+     l'abonnement réglé à la main de la précédente, et l'entreprise d'origine sortait de l'annuaire */
+  if (!t) return res.status(400).json({ error: 'code illisible : il ne porte pas l\'identifiant de l\'espace — recopie-le depuis un appareil de l\'entreprise' });
   const prev = espacesReg[slug] || {};
   // un nom = une seule entreprise : refus si le nom est déjà pris par un AUTRE espace
   /* (`espaceT` : une entrée d'avant sans `t` le porte dans son code — `gardien` R2, 30 septembre 2026 : depuis que cette route
@@ -2391,7 +2395,13 @@ app.post('/api/monitor/espaces/abonnement', monPatronStrict, (req, res) => {
   res.json({ ok: true, slug, formule: f, quantite: q, statut: e.aboStatut || 'auto', fin });
 });
 // payé ? — le réglage manuel du patron d'abord ; sinon trois portes : formule gratuite, code promo actif, abonnement Stripe actif
-const espStripeCache = { ts: 0, data: null, enCours: null, echecTs: 0 };
+const espStripeCache = { ts: 0, data: null, enCours: null, echecTs: 0, echecDepuis: 0 };
+/* ⛔ DEPUIS COMBIEN DE MINUTES STRIPE NE SE LIT PLUS (seconde relecture de `gardien`, 30 septembre 2026) — `0` quand la
+   dernière lecture a réussi (ou qu'il n'y en a jamais eu d'échec). Depuis que le doute ne coupe plus personne
+   (`payeInconnu`), une clé révoquée ou fausse ne se voit plus chez les clients : personne n'est suspendu, mais une
+   entreprise qui vient de payer reste suspendue et les rappels J-7 attendent. `/health` le publie (un nombre, rien sur
+   personne) et `.github/scripts/surveillance.js` crie. */
+function stripeEchecMin() { return espStripeCache.echecDepuis ? Math.floor((Date.now() - espStripeCache.echecDepuis) / 60000) : 0; }
 /* La liste des abonnements se relit au plus toutes les cinq minutes ; plus vieille, elle est PÉRIMÉE : pendant une panne de
    Stripe, la dernière liste connue sert (on ne coupe pas une entreprise qui paie), mais un paiement fait depuis n'y est pas
    — le rappel J-7 ne décide rien dessus (`abonnementGestion`). La variable : pour les bancs seulement. */
@@ -2415,8 +2425,18 @@ async function stripeVerdict(e) {
      panne sans liste connue (`stripeListe` rend alors `[]` pendant la minute qui suit l'échec). `espaceStripe` rend `null`
      comme pour une entreprise sans abonnement ; `illisible` le distingue (`payeInconnu`). Sans clé, Stripe n'est pas
      configuré : personne n'y paie (un serveur d'essai, les bancs). */
-  const illisible = !s && !!(config.stripe && config.stripe.secretKey) && !espStripeCache.data;
-  return { s, imp, illisible };
+  const cle = !!(config.stripe && config.stripe.secretKey);
+  /* ⛔ ET UNE LISTE PÉRIMÉE NE DIT PAS QUI NE PAIE PAS (seconde relecture de `gardien`, 30 septembre 2026). Après
+     `espaceStripe`, une liste plus vieille que `STRIPE_CACHE_MS` veut dire que la relecture a ÉCHOUÉ (ou qu'on attend la
+     minute qui suit un échec, `stripeListe`). Elle sert encore à SERVIR une entreprise qui y paie (on ne coupe pas le
+     temps d'une panne) ; mais une entreprise qui a payé depuis n'y est pas — la fin d'une période offerte, un premier
+     abonnement : son ABSENCE ne prouve rien, et elle était suspendue sans sursis. C'était déjà la règle du rappel J-7
+     (`abonnementGestion`). ⚠️ Un IMPAYÉ lu dans cette liste, lui, bloque encore (`espacePaye`, avant ce doute) : c'est ce
+     que Stripe a DIT, pas un silence — et la page de paiement relit la facture en direct avant d'y envoyer
+     (`factureImpayeARegler`) ; en faire un doute l'aurait laissée ouvrir un SECOND abonnement à côté de l'impayé. */
+  const perimee = cle && !!espStripeCache.data && Date.now() - espStripeCache.ts > STRIPE_CACHE_MS;
+  const illisible = !s && cle && (!espStripeCache.data || perimee);
+  return { s, imp, illisible, perimee };
 }
 /* le motif d'un impayé — distinct d'« aucun paiement » : la Tour le montre, et l'horloge de conservation le garde (la fin d'un
    abonnement n'est pas un abandon) */
@@ -2455,6 +2475,16 @@ function payeInconnu(pourquoi) {
    30 septembre 2026). `f` : la formule servie. Pas payé, bloqué, ou une formule que l'application ne sait pas servir. (Le
    doute `inconnu` ne passe pas par ici : il ne décide rien.) */
 function accesSuspenduPar(p, f) { return !!(p && (p.bloque || !p.paye || !RANG_FORMULE.includes(f))); }
+/* ⛔ CE QUE LA RÉPONSE PAYÉE DIT À QUI CONNAÎT `t` (seconde relecture de `gardien`, 30 septembre 2026). Le motif complet est
+   pour la Tour, qui est gardée : il portait le NOM de la personne de la Tour qui a réglé l'abonnement, le chemin par lequel
+   Stripe a rattaché l'entreprise (« par adresse e-mail »), l'état d'un registre du serveur. L'application ne lit du motif
+   que la forme « code promo X (jusqu'au AAAA-MM-JJ) » (`forfaitServeurSync`, v763 comme v767 — elle y prend le code et la
+   fin de la période) : c'est la seule qui passe, le reste devient « accès actif ». ⚠️ Le code promo lui-même reste lisible
+   tant que l'application le lit dans ce texte (R1, `REPRISE.md` : deux champs à part d'abord, le retrait ensuite). */
+function motifPublic(m) {
+  const s = String(m || '');
+  return /^code promo \S+ \(jusqu'au \d{4}-\d{2}-\d{2}\)$/.test(s) ? s : 'accès actif';
+}
 /* le lendemain d'une date « AAAA-MM-JJ » (UTC) — le premier jour où une période offerte ne sert plus ; `''` sinon */
 function jourApres(d) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(d || ''));
@@ -2556,7 +2586,7 @@ async function espacePaye(e, opts) {
        Business Premium. On LIT la période (rien ne s'active ici : le rattrapage reste réservé aux fiches payantes). */
     const po = periodeOfferte(e);
     if (po) return po;
-    const { s, imp, illisible } = await stripeVerdict(e);
+    const { s, imp, illisible, perimee } = await stripeVerdict(e);
     const fp = s ? formuleEtPlaces(e, s) : null;
     if (fp && fp.f && fp.f !== 'gratuit') return { paye: true, motif: s.motif + ' — formule payée : ' + (FORMULE_LBL2[fp.f] || fp.f), echeance: s.echeance, formuleServie: fp.f, placesStripe: fp.places,
       impayesPartiels: imp ? imp.tous.length : 0 };
@@ -2573,7 +2603,7 @@ async function espacePaye(e, opts) {
         echeance: s.echeance, formuleServie: fI, placesStripe: placesDeFormule(e, fI, s.memes || []), impayesPartiels: imp ? imp.tous.length : 0 };
     }
     /* ⛔ on ne SAIT pas (Stripe illisible, ou une période offerte peut être dans un registre illisible) : rien n'est décidé */
-    if (illisible) return payeInconnu('Stripe illisible');
+    if (illisible) return payeInconnu(perimee ? 'liste Stripe périmée (la relecture a échoué)' : 'Stripe illisible');
     if (promosIllisible) return payeInconnu('registre des codes illisible');
     /* rien de payé qui soit à elle : suspendue. Le motif dit pourquoi — à la Tour seulement (`/api/espaces/etat` ne sert
        qu'« accès suspendu ») */
@@ -2604,10 +2634,13 @@ async function espacePaye(e, opts) {
      « En cas de doute, on dit ça paie » — pour un espace qui porte un code (relecture de `gardien`) :
      sinon l'application grisait une entreprise en pleine période offerte, et l'horloge de
      conservation la datait. Rien n'est écrit ; `/health` et la surveillance crient déjà. */
-  if (promosIllisible && e.codePromo) return { paye: true, motif: 'code promo ' + String(e.codePromo).toUpperCase() + ' — registre des codes illisible, dans le doute on ne coupe pas', promoCode: String(e.codePromo).toUpperCase(), doute: true };
+  if (promosIllisible && e.codePromo) return { paye: true, motif: 'code promo ' + String(e.codePromo).toUpperCase() + ' — registre des codes illisible, dans le doute on ne coupe pas', promoCode: String(e.codePromo).toUpperCase(), doute: true,
+    /* la formule du CODE, comme la période qu'on ne peut plus lire (seconde relecture de `gardien`) : la fiche seule
+       faisait retomber une entreprise Pro en période Business Premium, `db.forfait` réécrit et synchronisé */
+    formuleServie: formulePromo(e, e.codePromo) || e.formule };
   const po = periodeOfferte(e);   // code promo : compté par espace (teamId = identifiant de l'espace)
   if (po) return po;
-  const { s, imp, illisible } = await stripeVerdict(e);
+  const { s, imp, illisible, perimee } = await stripeVerdict(e);
   if (s) {
     /* ⛔ LA FORMULE SUIT CE QUI EST PAYÉ (Justin, 29 septembre 2026 : « ils choisissent le tarif qu'ils veulent » ; un code
        promo ouvre Business Premium « pour mieux montrer l'application », et à la fin chacun choisit sa formule). La route de
@@ -2635,7 +2668,7 @@ async function espacePaye(e, opts) {
      écoulé), et tout revient dès que Stripe dit l'abonnement payé. */
   if (impayeBloque(e, null, imp)) return bloqueImpaye(imp);
   /* ⛔ on ne SAIT pas : dans le doute, rien n'est décidé (`payeInconnu`) — jusqu'ici, « aucun paiement », donc suspendue */
-  if (illisible) return payeInconnu('Stripe illisible');
+  if (illisible) return payeInconnu(perimee ? 'liste Stripe périmée (la relecture a échoué)' : 'Stripe illisible');
   if (promosIllisible) return payeInconnu('registre des codes illisible');
   return { paye: false, motif: aboEchuMotif(e) + 'aucun paiement ni code promo' };
 }
@@ -2802,8 +2835,8 @@ async function stripeListe(ageMax) {
   if (Date.now() - espStripeCache.ts > age || !espStripeCache.data) {
     if (!espStripeCache.enCours && Date.now() - espStripeCache.echecTs > 60000) {
       espStripeCache.enCours = stripeAbosBruts(sk)
-        .then(d => { espStripeCache.data = d; espStripeCache.ts = Date.now(); espStripeCache.echecTs = 0; },
-          err => { espStripeCache.echecTs = Date.now(); throw err; })
+        .then(d => { espStripeCache.data = d; espStripeCache.ts = Date.now(); espStripeCache.echecTs = 0; espStripeCache.echecDepuis = 0; },
+          err => { espStripeCache.echecTs = Date.now(); espStripeCache.echecDepuis = espStripeCache.echecDepuis || Date.now(); throw err; })
         .finally(() => { espStripeCache.enCours = null; });
     }
     if (espStripeCache.enCours) {
@@ -3119,7 +3152,11 @@ async function formuleServieDe(mail) {
   const f = p.paye ? (p.formuleServie || e.formule) : '';
   /* ⛔ la règle de `/api/espaces/etat`, UNE définition (`accesSuspenduPar`) : pas payé, bloqué, OU une formule que
      l'application ne connaît pas — l'application est suspendue, le dossier le dit */
-  if (accesSuspenduPar(p, f)) return { statut: 'suspendu' };
+  /* ⛔ … ET LA SUSPENSION POSÉE DANS LA TOUR, SURSIS ÉCOULÉ (seconde relecture de `gardien`, 30 septembre 2026) : payée
+     mais suspendue par la Tour depuis sept jours, l'application est suspendue (`sursisJours:0` → `accesSuspendu`) — le
+     dossier ne peut pas dire « Pro » à côté */
+  const tE = espaceT(e);
+  if (accesSuspenduPar(p, f) || (espaceEstSuspendu(tE) && sursisJoursDe(tE) === 0)) return { statut: 'suspendu' };
   return FORMULE_LBL2[f] || '';
 }
 function placesStripe(e, abos) {
@@ -5027,7 +5064,7 @@ app.post('/api/espaces/etat', (req, res) => {
     if (p.inconnu) return res.json({ ok: true, verificationImpossible: true, opMessages, metier, versionMin, enLigne, suspendu, sursisJours });
     const fServie = p.formuleServie || e.formule;
     if (accesSuspenduPar(p, fServie)) return res.json({ ok: true, paye: false, motif: 'accès suspendu', opMessages, metier, versionMin, enLigne, suspendu: true, sursisJours: 0 });
-    res.json({ ok: true, formule: fServie, quantite: e.quantite || 1, places: placesServies(e, p), paye: true, motif: p.motif, opMessages, metier, versionMin, enLigne, suspendu, sursisJours });
+    res.json({ ok: true, formule: fServie, quantite: e.quantite || 1, places: placesServies(e, p), paye: true, motif: motifPublic(p.motif), opMessages, metier, versionMin, enLigne, suspendu, sursisJours });
   })
     /* ⛔ LA VÉRIFICATION IMPOSSIBLE NE DÉCIDE RIEN. Elle rendait la formule avec `paye:false` : à la moindre panne ici,
        l'application v763 réécrivait `db.forfait` au Gratuit chez une entreprise qui paie, et le répandait à toute l'équipe
@@ -7115,14 +7152,19 @@ try {
         const e = espacesReg[slug];
         const t = espaceT(e);
         if (!t) continue;
-        let paye = true, motif = '';
-        /* ⛔ EN CAS DE DOUTE, ON DIT « ÇA PAIE ». Une exception ici ne doit JAMAIS démarrer une
-           horloge de suppression : entre une horloge en retard et une horloge qui tourne à
-           tort sur un client à jour, il n'y a pas d'hésitation. */
-        /* ⛔ `lecture: true` : balayer n'ACTIVE aucun code promo en attente (voir `espacePaye`). */
-        try { const r = await espacePaye(Object.assign({}, e, { slug: slug }), { lecture: true }); paye = !!r.paye; motif = String(r.motif || ''); }
-        catch (err) { paye = true; motif = ''; }
-        sortie.push({ t: t, paye: paye, motif: motif });
+        /* ⛔⛔ UN DOUTE NE POSE NI NE LÈVE AUCUNE HORLOGE (seconde relecture de `gardien`, 30 septembre 2026). Pour
+           `balayer`, « payé » veut dire « le client est revenu » : il EFFACE la date. Or le doute rend `paye:true`
+           (`payeInconnu` — Stripe illisible, liste périmée, registre des codes illisible : « dans le doute, on ne coupe
+           pas »). Une panne de Stripe au redémarrage du serveur — le premier balayage part aussitôt, cache froid —
+           effaçait donc la date de TOUTES les entreprises qui ne paient pas, et la date ne se rattrape pas. Une
+           exception faisait pareil (on la disait « payée ») : avant le doute, l'erreur allait dans l'autre sens, une
+           date posée à tort, levée au balayage suivant. Ni l'un ni l'autre n'est listé : une entreprise absente GARDE
+           sa date (`balayer`), et le balayage suivant, qui saura, décidera.
+           ⛔ `lecture: true` : balayer n'ACTIVE aucun code promo en attente (voir `espacePaye`). */
+        let r = null;
+        try { r = await espacePaye(Object.assign({}, e, { slug: slug }), { lecture: true }); } catch (err) { r = null; }
+        if (!r || r.doute || r.inconnu) continue;
+        sortie.push({ t: t, paye: !!r.paye, motif: String(r.motif || '') });
       }
       return sortie;
     },
@@ -7949,7 +7991,7 @@ app.get('/api/monitor/sante', monAdmin, (req, res) => {
   const vis = monIssues.filter(i => req.tourUser.apps.includes(monAppDeTag(i.app)));   // même filtre que /issues : des chiffres qui contredisent la liste ne servent personne
   const compteurs = { nouveau: 0, encours: 0, corrige: 0, ignore: 0 };
   for (const i of vis) compteurs[i.statut] = (compteurs[i.statut] || 0) + 1;
-  res.json({ ok: true, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus, issues: compteurs, issuesTotal: vis.length });
+  res.json({ ok: true, uptime: Math.round(process.uptime()), subs: Object.keys(subs).length, email: !!mailer, boite: !!(config.imap && config.imap.user), stripe: !!(config.stripe && config.stripe.secretKey), stripeEchecMin: stripeEchecMin(), bugs1h: bugTimes.filter(t => t > Date.now() - 3600000).length, bugs24h: bugTimes.filter(t => t > Date.now() - 86400000).length, lastRefus, issues: compteurs, issuesTotal: vis.length });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -8680,6 +8722,15 @@ async function stripeAbosBruts(sk) {
     tous = tous.concat(lot);
     apres = lot.length ? lot[lot.length - 1].id : '';
     encore = !!d2.has_more;
+  }
+  /* ⛔ UNE LISTE TRONQUÉE N'EST PAS UNE LISTE (seconde relecture de `gardien`, 30 septembre 2026). Stripe liste du plus
+     récent au plus ancien, et `status=all` compte les abonnements résiliés : au plafond, les PLUS ANCIENS clients
+     disparaissaient sans un mot — et depuis qu'une entreprise qui ne paie pas est suspendue, une entreprise qui paie
+     depuis le début l'aurait été. On jette : pour `stripeListe` c'est une lecture ratée (la dernière liste connue sert,
+     sinon le doute, `stripeVerdict`), `/health` le compte (`stripeEchecMin`) et le journal dit quoi faire. */
+  if (encore) {
+    console.error('⛔ liste Stripe TRONQUÉE au plafond (' + tous.length + ' abonnements, il en reste) — rien n\'est décidé sur une liste incomplète : relever le plafond de stripeAbosBruts');
+    throw new Error('liste Stripe tronquée au plafond (' + tous.length + ' abonnements)');
   }
   return tous;
 }

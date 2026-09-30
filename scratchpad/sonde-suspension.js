@@ -10,7 +10,9 @@
      · l'administrateur voit pourquoi et comment régler ; le technicien, pas un mot de paiement ;
      · « J'ai réglé — vérifier » sur une réponse PAYÉE : tout revient d'un coup (écran, menu) ;
      · un serveur d'AVANT (formule + paye:false) : suspendue pareil, sans rien écrire ni poser de bandeau ;
-     · une vérification impossible, une page d'erreur : rien ne change ; revenir sur l'application relit l'état.
+     · une vérification impossible, une page d'erreur : rien ne change ; revenir sur l'application relit l'état ;
+     · (seconde relecture de `relecteur`) « J'ai réglé — vérifier » touché depuis la carte des Paramètres rend SON bouton ;
+       l'infobulle du 🔒 ne parle de règlement qu'à l'administrateur ; le technicien lit ce qui est vrai.
    Contre-épreuves : CONTRE=beta (la vraie bêta : jamais suspendue) ; SOURCE=<beta d'avant> (v766 : ne connaît pas l'écran).
    Usage : node sonde-suspension.js · CONTRE=beta node … · SOURCE=/chemin/beta-766.html node … */
 const fs = require('fs'), os = require('os'), path = require('path'), net = require('net'), http = require('http');
@@ -90,6 +92,7 @@ function cdpClient(ws) { let id = 0; const A = new Map(), E = [];
         current, txt: txt.replace(/\\s+/g,' ').trim().slice(0,600), boutons,
         navTotal: nav.length, navLibres: nav.filter(x=>!x.classList.contains('nav-verrou')).map(x=>x.dataset.view||x.textContent.trim()),
         navVerrou: nav.filter(x=>x.classList.contains('nav-verrou')).length, onglets,
+        verrouTitres: [...new Set(nav.filter(x=>x.classList.contains('nav-verrou')).map(x=>x.title))],
         forfait: db.forfait, attente: db.formuleAttente||null, bandeau: !!document.getElementById('bandeau-formule'),
         saves: window.__saves, toasts: window.__toasts.slice(), nEtat: window.__nEtat };`);
     const poserEtat = (o) => ev(`window.__ETAT=${JSON.stringify(o)}; return 1;`);
@@ -118,6 +121,8 @@ function cdpClient(ws) { let id = 0; const A = new Map(), E = [];
     vrai('⛔ l\'administrateur lit POURQUOI et COMMENT : « Régler mon abonnement », « J’ai réglé — vérifier », « code promo », « Tes données sont conservées »',
       A.boutons.some(b => /Régler mon abonnement/.test(b)) && A.boutons.some(b => /J’ai réglé — vérifier/.test(b)) && A.boutons.some(b => /code promo/.test(b)) && /Tes données sont conservées/.test(A.txt), A.boutons);
     vrai('⛔ le menu est GRISÉ (🔒) — toutes les rubriques sauf les Paramètres', A.navVerrou >= 10 && A.navLibres.every(v => v === 'parametres'), { verrou: A.navVerrou, libres: A.navLibres, total: A.navTotal });
+    vrai('   … et l’infobulle de ses 🔒, à l’administrateur : « Accès suspendu jusqu’au règlement de l’abonnement »',
+      A.verrouTitres.length === 1 && A.verrouTitres[0] === 'Accès suspendu jusqu’au règlement de l’abonnement', A.verrouTitres);
     await ev(`go('parametres'); return 1;`); await dormir(500);
     const A3 = await etatEcran();
     vrai('⛔ les Paramètres restent ouverts (l\'administrateur y règle son abonnement)', A3.current === 'parametres', A3.current);
@@ -126,6 +131,18 @@ function cdpClient(ws) { let id = 0; const A = new Map(), E = [];
     vrai('⛔ UN rappel à l\'administrateur : « l’accès à l’application est suspendu jusqu’au règlement… Rien n’est perdu »', rappels.length === 1 && /suspendu jusqu'au règlement/.test(rappels[0]) && /Rien n'est perdu/.test(rappels[0]), A3.toasts);
     await ev('await forfaitServeurSync(true); return 1;'); await dormir(300);
     vrai('   … et un seul par jour (une seconde lecture ne le répète pas)', (await etatEcran()).toasts.filter(t => /Abonnement non réglé/.test(t)).length === 1);
+    /* « J'ai réglé — vérifier » depuis la carte « Forfait » des Paramètres (seconde relecture de `relecteur`, 30 septembre 2026) :
+       rien ne repeint cet écran — le bouton doit se RENDRE, sinon il reste grisé sur « Vérification… » et il faut quitter la
+       page pour réessayer. On marque LE bouton touché : c'est lui qui doit revenir actif, avec son libellé. */
+    const pv0 = await ev(`window.__toasts=[]; const b=[...document.querySelectorAll('#content button')].find(x=>/J['’]ai réglé — vérifier/.test(x.textContent));
+      if(!b) return {vu:false, cur: current}; b.dataset.sonde='pv'; const avant=b.textContent; b.click(); return {vu:true, cur: current, avant, pendant: [b.disabled, b.textContent]};`);
+    await dormir(1500);
+    const pv1 = await ev(`const b=document.querySelector('#content button[data-sonde="pv"]');
+      return b ? {cur: current, disabled: b.disabled, txt: b.textContent, toasts: window.__toasts.slice()} : {cur: current, absent: true};`);
+    vrai('(population) la carte « Forfait » des Paramètres porte « J’ai réglé — vérifier » ; touché, il se grise PENDANT la vérification',
+      pv0.vu && pv0.cur === 'parametres' && pv0.pendant[0] === true && /Vérification…/.test(pv0.pendant[1]), pv0);
+    vrai('⛔ … toujours suspendue : le MÊME bouton revient actif, avec son libellé — et l’administrateur lit que le règlement n’est pas arrivé',
+      !pv1.absent && pv1.cur === 'parametres' && pv1.disabled === false && pv1.txt === pv0.avant && (pv1.toasts || []).some(t => /Toujours suspendu/.test(t)), pv1);
     /* « ＋ Créer » pendant la suspension : l'écran qui explique (`relecteur`, 30 septembre 2026 — « Aucune création ouverte à ton
        compte » était faux, et ne menait nulle part). Depuis les Paramètres, la seule rubrique ouverte. */
     /* ⚠️ l'écran de départ se lit AVANT le clic : lu après, c'est le clic lui-même qu'on relevait (premier passage, 30
@@ -216,8 +233,10 @@ function cdpClient(ws) { let id = 0; const A = new Map(), E = [];
     await ev(`go('dashboard'); return 1;`); await dormir(600);
     const T = await etatEcran();
     vrai('⛔ le technicien : suspendu aussi, l\'écran « Accès suspendu »', T.acces === true && T.current === 'suspendu', [T.acces, T.current]);
-    vrai('⛔ … sans un mot de paiement (« c’est pas aux utilisateurs de savoir si l’entreprise paye ») — « Ton administrateur est prévenu »',
-      /Ton administrateur est prévenu/.test(T.txt) && !/abonnement|paiement|payer|réglé|Régler/i.test(T.txt), T.txt.slice(0, 300));
+    vrai('⛔ … sans un mot de paiement (« c’est pas aux utilisateurs de savoir si l’entreprise paye ») — et ce qui est vrai : « Ton administrateur peut le rétablir »',
+      /Ton administrateur peut le rétablir depuis son application/.test(T.txt) && !/prévenu/.test(T.txt) && !/abonnement|paiement|payer|réglé|Régler/i.test(T.txt), T.txt.slice(0, 300));
+    vrai('⛔ … et l’infobulle de ses 🔒 ne parle pas de règlement : « Accès momentanément suspendu »',
+      T.navVerrou >= 1 && T.verrouTitres.length === 1 && T.verrouTitres[0] === 'Accès momentanément suspendu', { n: T.navVerrou, titres: T.verrouTitres });
     vrai('   … ses deux gestes : « Réessayer », « Mes réglages » — pas « Régler mon abonnement »', T.boutons.some(b => /Réessayer/.test(b)) && T.boutons.some(b => /Mes réglages/.test(b)) && !T.boutons.some(b => /Régler mon abonnement/.test(b)), T.boutons);
     vrai('⛔ … et AUCUN rappel de paiement pour lui', !T.toasts.some(t => /Abonnement|abonnement/.test(t)), T.toasts);
     const ongletsGris = T.onglets.filter(o => o.k !== '_plus' && o.k !== 'parametres');

@@ -157,6 +157,13 @@ globalThis.fetch = async function (url, opts) {
   if (u.startsWith('https://api.stripe.com/')) { fs.appendFileSync(${JSON.stringify(APPELS)}, u + '\\n'); throw new Error('Stripe muet (banc 761)'); }
   return vrai.apply(this, arguments);
 };\n`);
+    /* ⛔ L'HORLOGE DE CONSERVATION ET LE DOUTE (seconde relecture de `gardien`, 30 septembre 2026, rejouée) : deux dates posées
+       AVANT le démarrage — le premier balayage part tout de suite, Stripe muet. Un doute ne lève ni ne pose rien : « ent-rien »
+       (on ne sait pas si elle paie) GARDE sa date, qui ne se rattrape pas ; « ent-paye » (réglée à la main : on le SAIT) voit
+       la sienne levée — c'est le témoin qui prouve que le balayage a bien eu lieu. */
+    const VIEUX_CONS = Date.now() - 40 * 86400000;
+    fs.writeFileSync(path.join(banc2, 'data', 'conservation.json'), JSON.stringify({
+      'ent-rien': { depuis: VIEUX_CONS, motif: 'aucun paiement ni code promo' }, 'ent-paye': { depuis: VIEUX_CONS, motif: 'banc 761' } }));
     const PORT2 = PORT + 1;
     enfant = spawn(process.execPath, ['--require', MUET, path.join(RACINE, 'server', 'index.js')], {
       env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc2, 'config.json'), TEAMOP_DATA: path.join(banc2, 'data'), PORT: String(PORT2) }), stdio: 'ignore' });
@@ -171,6 +178,10 @@ globalThis.fetch = async function (url, opts) {
       const rien = await etat2('ent-rien');
       let appels = ''; try { appels = fs.readFileSync(APPELS, 'utf8'); } catch (e) {}
       vrai('(population) le serveur a bien demandé la liste à Stripe, et Stripe n\'a pas répondu', /api\.stripe\.com\/v1\/subscriptions/.test(appels));
+      /* ⛔ ET ÇA SE VOIT (seconde relecture de `gardien`, 30 septembre 2026) : `/health` publie depuis combien de minutes Stripe
+         ne se lit plus — la surveillance crie à 90 (`test-727` § 11). Ici le premier échec a moins d'une minute. */
+      const h2 = await (await fetch(B2 + '/health')).json().catch(() => ({}));
+      v('⛔ `/health` publie la minute d\'échec de Stripe (`stripeEchecMin`) : 0 — le premier échec a moins d\'une minute', h2.stripeEchecMin, 0);
       v('⛔⛔ rien de payé qu\'on SACHE (fiche Pro), Stripe muet : on ne sait pas — ni suspendue, ni servie (`verificationImpossible`)',
         [...doute(rien), rien.suspendu], [true, undefined, undefined, undefined, false]);
       v('⛔ … une fiche « Gratuit » d\'avant aussi (Stripe pourrait la payer)', doute(await etat2('ent-gratuit')), [true, undefined, undefined, undefined]);
@@ -178,6 +189,14 @@ globalThis.fetch = async function (url, opts) {
       v('   … la suspension de la Tour voyage avec (l\'application l\'ignore tant qu\'on ne sait pas)', [sus2.verificationImpossible, sus2.suspendu, sus2.sursisJours], [true, true, 5]);
       const paye2 = await etat2('ent-paye');
       v('   (témoin) ce qu\'on SAIT sans Stripe décide toujours : le réglage à la main — Business Premium, payée', [paye2.formule, paye2.paye, paye2.verificationImpossible], ['premium', true, undefined]);
+      /* l'horloge : on attend le GESTE (la date du témoin levée, le fichier réécrit), jamais un chronomètre */
+      const lireCons = () => { try { return JSON.parse(fs.readFileSync(path.join(banc2, 'data', 'conservation.json'), 'utf8')); } catch (e) { return null; } };
+      let cons = lireCons();
+      for (let k = 0; k < 150 && cons && cons['ent-paye']; k++) { await dormir(100); cons = lireCons() || cons; }
+      vrai('(population) le balayage de conservation a eu lieu : la date d\'« ent-paye » (réglée à la main, on SAIT qu\'elle paie) est levée', !!cons && !cons['ent-paye']);
+      v('⛔⛔ … et le DOUTE n\'a rien effacé : « ent-rien » (Stripe muet, on ne sait pas) garde sa date — elle ne se rattrape pas',
+        cons && cons['ent-rien'] && cons['ent-rien'].depuis, VIEUX_CONS);
+      vrai('   … ni rien posé : « ent-gratuit » (on ne sait pas non plus) n\'a pas de date', !!cons && !cons['ent-gratuit']);
     }
   }
 
@@ -287,6 +306,32 @@ globalThis.fetch = async function (url, opts) {
       J.tr.toasts.length === 1 && /Vérification impossible/.test(J.tr.toasts[0]) && !/Toujours suspendu/.test(J.tr.toasts[0]), J.tr.toasts);
     J = jeu(true, true); await J.f.suspensionVerifier(null);
     vrai('   … lue, et toujours suspendue : l\u2019administrateur lit que le règlement n\u2019est pas encore arrivé', J.tr.toasts.length === 1 && /Toujours suspendu/.test(J.tr.toasts[0]), J.tr.toasts);
+    /* ⛔ LE BOUTON SE REND TOUJOURS (seconde relecture de `relecteur`, 30 septembre 2026) : touché depuis la carte des Paramètres
+       (rien ne repeint l'écran), il restait grisé sur « Vérification… » et il fallait quitter la page pour réessayer */
+    const jeuB = (lu, cur) => { const tr = { pendant: null }; const b = { textContent: '↻ J\u2019ai réglé — vérifier', disabled: false, isConnected: true };
+      const f = new Function('currentUser', 'accesSuspendu', 'go', 'toast', 'creerDispo', 'document', 'forfaitServeurSync', 'current', 'views',
+        CO + '\n' + SV + '\nreturn { creerOuvrir, suspensionVerifier };')(
+        { id: 'u-761', role: 'admin' }, () => true, () => {}, () => {}, () => [], { getElementById: () => null },
+        async () => { tr.pendant = [b.disabled, b.textContent]; return lu; }, cur, { suspendu() { b.isConnected = false; } });
+      return { f, tr, b }; };
+    let B = jeuB(true, 'parametres'); await B.f.suspensionVerifier(B.b);
+    v('⛔ depuis les Paramètres, toujours suspendue : grisé PENDANT la vérification, puis rendu — actif, son libellé',
+      [B.tr.pendant, B.b.disabled, B.b.textContent], [[true, 'Vérification…'], false, '↻ J\u2019ai réglé — vérifier']);
+    B = jeuB(false, 'parametres'); await B.f.suspensionVerifier(B.b);
+    v('   … vérification impossible : rendu aussi', [B.b.disabled, B.b.textContent], [false, '↻ J\u2019ai réglé — vérifier']);
+    B = jeuB(true, 'suspendu'); await B.f.suspensionVerifier(B.b);
+    v('   (témoin) sur l\u2019écran « Accès suspendu », redessiné : l\u2019ancien bouton n\u2019est plus dans la page, on n\u2019y touche pas',
+      [B.b.isConnected, B.b.disabled], [false, true]);
+    /* ⛔ ce que voit qui n'est pas administrateur (seconde relecture de `relecteur`) : l'infobulle du 🔒 ne parle de règlement
+       qu'à l'administrateur, et l'écran suspendu ne promet pas un avis qui n'existe pas */
+    vrai('⛔ le 🔒 du menu : « règlement de l\u2019abonnement » pour l\u2019administrateur seul, « momentanément suspendu » pour les autres',
+      /const verrouTitre=\(currentUser&&currentUser\.role==='admin'\)\?'Accès suspendu jusqu’au règlement de l’abonnement':'Accès momentanément suspendu';/.test(NU)
+      && /class="nav-item nav-verrou" style="opacity:\.38" title="\$\{verrouTitre\}"/.test(NU) && !/title="Accès suspendu jusqu’au règlement/.test(NU));
+    vrai('   … et l\u2019écran suspendu d\u2019un non-administrateur dit ce qui est vrai : son administrateur peut rétablir l\u2019accès (pas « prévenu »)',
+      /<b>Ton administrateur peut le rétablir depuis son application\.<\/b>/.test(NU) && !/Ton administrateur est prévenu/.test(NU));
+    /* ⛔ la bêta n'est jamais suspendue, ici non plus : les deux lectures directes de la suspension passent par la règle */
+    vrai('⛔ la largesse d\u2019une période offerte et la proposition d\u2019abonnement lisent la règle de la bêta (`accesSuspendu`, `BETA_ESSAI`)',
+      /function essaiCouvreEquipe\(\)\{[^\n]*&&!accesSuspendu\(\)\); \}/.test(NU) && /if\(!BETA_ESSAI&&_susp\.suspendu\)\{ if\(confirm\('Abonnement en attente de règlement/.test(NU));
     /* (le passage lui-même — une réponse du serveur qui suspend, une autre qui rend — est JOUÉ contre le vrai serveur par
        `test-845` et `test-848`, avec les vraies `forfaitServeurSync`) */
     vrai('⛔⛔ `forfaitServeurSync` appelle bien suspensionPoser et suspensionRappel — hors d’une vérification impossible',

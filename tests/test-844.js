@@ -492,7 +492,9 @@ globalThis.fetch = async function (url, opts) {
       await demarrer('puis-panne', { TEAMOP_STRIPE_CACHE_MS: '1000', TEAMOP_RAPPELS_DELAI_MS: '3000' }));
     const etat = await fetch(B + '/api/espaces/etat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ t: 't-omicron-844' }) })
       .then(r => r.json()).catch(() => ({}));
-    vrai('(population) la liste est lue une fois, fraîche : omicron se lit « payé » par Stripe', etat.paye === true && /abonnement Stripe/.test(String(etat.motif || '')));
+    /* (omicron n'a ni période offerte ni réglage à la main : payée, c'est Stripe qui l'a dit ; le motif public est neutre depuis
+       le 30 septembre 2026, seconde relecture de `gardien`) */
+    vrai('(population) la liste est lue une fois, fraîche : omicron se lit « payé » par Stripe', etat.paye === true && etat.formule === 'premium' && !etat.verificationImpossible);
     await attendre(1);
     vrai('⛔ vieux : rien — la liste a plus d\'une seconde (la fenêtre), un paiement fait depuis n\'y serait pas',
       lus(avant2b).length === 0 && /rappel échéance reporté → v\*+@exemple-844\.fr/.test(journal) && !marques()('vieux'));

@@ -573,6 +573,46 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('   fiche Pro, abonnement Business Premium × 2 : BUSINESS PREMIUM, 2 places', lit(haut), [true, 'premium', 2]);
     const pareil = await avec([apres([L('business', 3)])])(ESP({ formule: 'business' }));
     v('   fiche Business, abonnement Business × 3 : Business, 3 places — et le motif ne parle d\'aucun écart', [...lit(pareil), /formule payée/.test(pareil.motif)], [true, 'business', 3, false]);
+
+    /* ⛔ UNE LISTE PÉRIMÉE NE DIT PAS QUI NE PAIE PAS (seconde relecture de `gardien`, 30 septembre 2026). La relecture a
+       échoué : la dernière liste connue sert encore à SERVIR qui y paie ; mais une entreprise qui a payé depuis n'y est pas —
+       son absence ne prouve rien (elle était suspendue sans sursis). Un impayé qu'on y lit, lui, bloque encore : c'est ce que
+       Stripe a dit, et la page de paiement relit la facture en direct avant d'y envoyer. */
+    const VIEUX = Date.now() - 10 * 60000;   // plus vieux que `STRIPE_CACHE_MS` (cinq minutes)
+    const panne = async () => { throw new Error('Stripe en panne (banc 727)'); };
+    const perimee = (abos, cache) => avecTout({ abos, cache: cache || { ts: VIEUX, data: abos, enCours: null, echecTs: 0, echecDepuis: 0 }, lire: panne });
+    const absente = await perimee([apres([L('pro', 2)], { customer: { email: 'autre@ailleurs.fr' } })])(ESP({ formule: 'pro' }));
+    v('⛔ liste PÉRIMÉE (la relecture a échoué), l\'entreprise n\'y est pas : on ne sait pas — ni suspendue, ni servie',
+      [absente.paye, absente.inconnu, /liste Stripe périmée/.test(absente.motif || '')], [true, true, true]);
+    const presente = await perimee([apres([L('pro', 2)])])(ESP({ formule: 'pro' }));
+    v('   … elle y paie : servie (la dernière liste connue sert — on ne coupe pas le temps d\'une panne)',
+      [presente.paye, presente.inconnu, presente.formuleServie], [true, undefined, 'pro']);
+    const impPerimee = await perimee([apres([L('pro', 2)], { status: 'past_due' })])(ESP({ formule: 'pro' }));
+    v('   ⛔ un IMPAYÉ lu dans la liste périmée bloque encore (Stripe l\'a dit ; la page de paiement relit la facture en direct)',
+      [impPerimee.paye, impPerimee.bloque, impPerimee.inconnu], [false, true, undefined]);
+    const fraiche = await avecTout({ abos: [apres([L('pro', 2)], { customer: { email: 'autre@ailleurs.fr' } })] })(ESP({ formule: 'pro' }));
+    v('   (témoin) la même absence dans une liste FRAÎCHE décide : pas payée', [fraiche.paye, fraiche.inconnu], [false, undefined]);
+    /* la date du premier échec — ce que `/health` publie (`stripeEchecMin`) : posée au premier échec, gardée au suivant, remise
+       à zéro par une lecture réussie */
+    const cacheP = { ts: VIEUX, data: [], enCours: null, echecTs: 0, echecDepuis: 0 };
+    await perimee([], cacheP)(ESP({ formule: 'pro' }));
+    const premier = cacheP.echecDepuis;
+    /* une minute a passé depuis le premier échec (la date recule d'autant) : le second échec la GARDE — sans ce recul, deux
+       échecs dans la même milliseconde ne distingueraient pas « gardée » de « réécrite » */
+    cacheP.echecTs = 0; cacheP.echecDepuis = premier - 60000;
+    await perimee([], cacheP)(ESP({ formule: 'pro' }));
+    const second = cacheP.echecDepuis;
+    cacheP.echecTs = 0;
+    await avecTout({ cache: cacheP, lire: async () => [] })(ESP({ formule: 'pro' }));
+    v('⛔ la date du premier échec : posée, GARDÉE au second échec, remise à zéro par une lecture réussie',
+      [premier > 0, second === premier - 60000, cacheP.echecDepuis], [true, true, 0]);
+    /* ⛔ LE DOUTE DU REGISTRE SERT LA FORMULE DU CODE (seconde relecture de `gardien`) : une fiche Pro en période Business
+       Premium, registre des codes illisible — la fiche seule la faisait retomber en Pro, `db.forfait` réécrit et synchronisé */
+    const douteCode = await construire()({ stripe: { secretKey: 'sk_de_banc' }, promos: [{ code: 'ESSAI-DOUTE-SEPT', formule: 'premium', mois: 3 }] },
+      { ts: Date.now(), data: [] }, {}, async () => [], { error() {}, log() {} }, () => true, () => {}, {}, () => null, require('crypto'), true)(
+      ESP({ formule: 'pro', codePromo: 'ESSAI-DOUTE-SEPT' }));
+    v('⛔ registre des codes illisible, une fiche Pro qui porte un code Business Premium : dans le doute, payée — au tarif du CODE',
+      [douteCode.paye, douteCode.doute, douteCode.formuleServie], [true, true, 'premium']);
     /* ⛔ PLUSIEURS FORMULES PAYÉES : celle qui porte le PLUS d'abonnements, à égalité la plus BASSE (relecture adverse du
        29 septembre, rejoué : « la plus haute » donnait Business Premium avec UNE place à dix abonnements Pro et un Premium) */
     const deux = await avec([apres([L('pro', 2)]), apres([L('premium', 1)])])(ESP({ formule: 'business' }));
@@ -773,14 +813,21 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     const APRES = Math.floor(Date.parse('2026-10-01T00:00:00Z') / 1000);
     const prix = k => (new RegExp('^\\s*' + k + ": \\['(price_\\w+)'", 'm').exec(SRC) || [])[1];
     const abo = (mail, k, q) => ABO({ created: APRES, customer: { email: mail }, items: { data: [{ price: { id: prix(k) }, quantity: q }] } });
-    const lecteur = (reg, abos, promos, usages, fermes) => new Function(...PARAMS, 'espaceFerme', AIDES.join('\n') + '\n' + EPT + '\n' + SRC.slice(i, fin) + '\n' + FSD + '\nreturn formuleServieDe;')(
+    const lecteur = (reg, abos, promos, usages, fermes, susp) => new Function(...PARAMS, 'espaceFerme', 'espaceEstSuspendu', 'sursisJoursDe', AIDES.join('\n') + '\n' + EPT + '\n' + SRC.slice(i, fin) + '\n' + FSD + '\nreturn formuleServieDe;')(
       { stripe: { secretKey: 'sk_de_banc' }, promos: promos || [] }, { ts: Date.now(), data: abos || [] }, usages || {}, async () => abos || [],
-      { log() {}, error() {} }, () => true, () => {}, reg, null, require('crypto'), false, t => (fermes || []).includes(t));
+      { log() {}, error() {} }, () => true, () => {}, reg, null, require('crypto'), false, t => (fermes || []).includes(t),
+      t => !!(susp && t in susp), t => (susp && t in susp) ? susp[t] : null);
     const REG = { alpha: { nom: 'Alpha', t: 'ent-alpha', email: ' Patron@Alpha.fr ', formule: 'premium', ts: 2 } };
     v('⛔ payée Pro sur une fiche Business Premium : « Mon espace » dit Pro (l\'adresse sans casse ni espaces)', await lecteur(REG, [abo('patron@alpha.fr', 'pro', 3)])('PATRON@alpha.fr'), 'Pro');
     /* ⛔ v767 : pas payée = l'application est SUSPENDUE ; « Mon espace » le dit (jusqu'au 30 septembre : rien, et le dossier
        gardait ce que la Tour avait posé — « Actif » à côté d'une application suspendue) */
     v('   pas payée : « Suspendu » — l\'application l\'est', await lecteur(REG, [])('patron@alpha.fr'), { statut: 'suspendu' });
+    /* ⛔ … ET LA SUSPENSION POSÉE DANS LA TOUR, SURSIS ÉCOULÉ (seconde relecture de `gardien`, 30 septembre 2026) : payée, mais
+       suspendue par la Tour depuis sept jours — l'application est suspendue (`sursisJours:0`), « Mon espace » le dit */
+    v('⛔ payée Pro, suspendue dans la Tour, sursis écoulé : « Suspendu » — comme l\'application',
+      await lecteur(REG, [abo('patron@alpha.fr', 'pro', 3)], null, null, null, { 'ent-alpha': 0 })('patron@alpha.fr'), { statut: 'suspendu' });
+    v('   (témoin) suspendue dans la Tour, trois jours de sursis : sa formule — l\'application l\'est encore',
+      await lecteur(REG, [abo('patron@alpha.fr', 'pro', 3)], null, null, null, { 'ent-alpha': 3 })('patron@alpha.fr'), 'Pro');
     v('   ⛔ une fiche « Gratuit » d\'avant réglée « active » à la main : « Suspendu » aussi — ce réglage ne paie rien (`aboManuelDe`)',
       await lecteur({ alpha: Object.assign({}, REG.alpha, { formule: 'gratuit', aboStatut: 'actif' }) }, [])('patron@alpha.fr'), { statut: 'suspendu' });
     /* ⛔ … MAIS PENDANT SA PÉRIODE OFFERTE, ELLE EST SERVIE : `aboManuelDe` la laisse à la règle du Gratuit, qui lit la période
@@ -793,9 +840,9 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
       await lecteur({ alpha: Object.assign({}, REG.alpha, { aboStatut: 'actif' }) }, [])('patron@alpha.fr'), 'Business Premium');
     /* ⛔ Stripe illisible (muet, aucune liste connue — le cache froid d'un redémarrage) : « Mon espace » ne dit RIEN, ni
        « Suspendu » ni une formule — le dossier garde ce que la Tour y a posé (`payeInconnu`, 30 septembre 2026) */
-    const lecteurMuet = (reg) => new Function(...PARAMS, 'espaceFerme', AIDES.join('\n') + '\n' + EPT + '\n' + SRC.slice(i, fin) + '\n' + FSD + '\nreturn formuleServieDe;')(
+    const lecteurMuet = (reg) => new Function(...PARAMS, 'espaceFerme', 'espaceEstSuspendu', 'sursisJoursDe', AIDES.join('\n') + '\n' + EPT + '\n' + SRC.slice(i, fin) + '\n' + FSD + '\nreturn formuleServieDe;')(
       { stripe: { secretKey: 'sk_de_banc' }, promos: [] }, { ts: 0, data: null, enCours: null, echecTs: 0 }, {}, async () => { throw new Error('Stripe muet (banc)'); },
-      { log() {}, error() {} }, () => true, () => {}, reg, null, require('crypto'), false, () => false);
+      { log() {}, error() {} }, () => true, () => {}, reg, null, require('crypto'), false, () => false, () => false, () => null);
     v('⛔ Stripe illisible : « Mon espace » ne dit rien — ni « Suspendu », ni une formule', await lecteurMuet(REG)('patron@alpha.fr'), '');
     v('   une période offerte : la formule du code', await lecteur(REG, [], [{ code: 'ESSAI-BANC-NEUF', mois: 3 }],
       { 'ESSAI-BANC-NEUF': { n: 1, equipes: { 'ent-alpha': { date: '2026-09-01', finLe: '2099-12-31' } } } })('patron@alpha.fr'), 'Business Premium');
@@ -924,6 +971,40 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('⛔ une fonction qui jette ne casse pas le paiement : `null`, et la page s\'ouvre (facturation immédiate)',
       new Function('espacesReg', 'promoUsages', 'espaceFerme', 'config', AIDES_ROUTE.join('\n') + '\nreturn finEssaiPeriode;')(
         ESPACES_DEFAUT, PERIODE(F30), () => { throw new Error('annuaire illisible'); }, { promos: [] })(VISEE, PAYEUR), null);
+  }
+
+  /* ══ 11. SECONDE RELECTURE DE `gardien` (30 septembre 2026) : la liste tronquée, la minute d'échec, le motif public ══ */
+  console.log('\n── 11 · une liste tronquée, Stripe illisible durablement, ce que la réponse payée dit à tous ──');
+  {
+    /* ⛔ UNE LISTE TRONQUÉE N'EST PAS UNE LISTE : au plafond de dix pages, les PLUS ANCIENS abonnements disparaissaient sans
+       un mot — une entreprise qui paie depuis le début aurait été suspendue */
+    const SAB = extraire('stripeAbosBruts');
+    vrai('stripeAbosBruts est trouvée dans le fichier réel', /async function stripeAbosBruts\(sk\)/.test(SAB));
+    const pages = (combien) => { let k = 0; return async () => { k++; return { data: [{ id: 'sub_banc_' + k }], has_more: k < combien }; }; };
+    const jouer = async (combien) => { const journal = [];
+      try { const r = await new Function('stripeMonGet', 'stripeAbosDetail', 'console', SAB + '\nreturn stripeAbosBruts;')(pages(combien), null,
+        { error: (...a) => journal.push(a.join(' ')), log() {} })('sk_de_banc'); return { n: r.length, journal }; }
+      catch (e) { return { jete: String(e && e.message), journal }; } };
+    const court = await jouer(3), long = await jouer(50);
+    v('   (témoin) trois pages : les trois abonnements, rien au journal', [court.n, court.journal.length], [3, 0]);
+    vrai('⛔ plus de dix pages : la liste JETTE (une lecture ratée : la dernière liste connue sert, sinon le doute), et le journal le dit',
+      /tronquée/.test(long.jete || '') && long.journal.some(m => /TRONQUÉE/.test(m)));
+    /* ⛔ DEPUIS COMBIEN DE MINUTES STRIPE NE SE LIT PLUS — ce que `/health` publie et ce sur quoi la surveillance crie */
+    const SEM = extraire('stripeEchecMin');
+    const echecMin = depuis => new Function('espStripeCache', SEM + '\nreturn stripeEchecMin;')({ echecDepuis: depuis })();
+    v('⛔ `stripeEchecMin` : 95 minutes d\'échecs → 95 ; la dernière lecture a réussi → 0', [echecMin(Date.now() - 95 * 60000), echecMin(0)], [95, 0]);
+    const SURV = fs.readFileSync(path.join(__dirname, '..', '.github', 'scripts', 'surveillance.js'), 'utf8')
+      .replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    vrai('⛔ la surveillance CRIE quand Stripe ne se lit plus depuis 90 minutes (lu dans son code, commentaires retirés)',
+      /if \(j\.stripeEchecMin >= 90\) \{\s*problems\.push\('⛔⛔ STRIPE ILLISIBLE DEPUIS ' \+ j\.stripeEchecMin/.test(SURV));
+    /* ⛔ LE MOTIF DE LA RÉPONSE PAYÉE, À QUI CONNAÎT `t` : la seule forme que l'application lit (le code et la fin d'une période
+       offerte) ; le reste — le nom de la personne de la Tour, le chemin Stripe, l'état d'un registre — devient « accès actif » */
+    const MP = extraire('motifPublic');
+    const mp = new Function(MP + '\nreturn motifPublic;')();
+    v('⛔ le motif public : la période offerte passe telle quelle, tout le reste devient « accès actif »',
+      [mp("code promo ESSAI-BANC-SEPT (jusqu'au 2026-12-31)"), mp("abonnement activé par Justin (jusqu'au 2026-12-31)"),
+       mp('abonnement Stripe (active, par adresse e-mail)'), mp('code promo ESSAI-BANC-SEPT — registre des codes illisible, dans le doute on ne coupe pas'), mp('')],
+      ["code promo ESSAI-BANC-SEPT (jusqu'au 2026-12-31)", 'accès actif', 'accès actif', 'accès actif', 'accès actif']);
   }
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

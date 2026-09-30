@@ -13814,7 +13814,7 @@ function planPlaces(){ if(placesSrvActives()) return _placesSrv;
    (`rappelsEcheances`, serveur), avec le nombre et la somme. ⚠️ Pas pendant une suspension : ce qui grise le forfait
    grise aussi cette largesse. `planPlaces` reste le vrai nombre (la page de paiement et « il manque N abonnements » le
    lisent) : seule la PORTE s'ouvre. */
-function essaiCouvreEquipe(){ const e=db&&db.forfaitEssai; return !!(e&&!e.termine&&e.finLe&&e.finLe>=todayISO()&&!suspensionGrise()); }
+function essaiCouvreEquipe(){ const e=db&&db.forfaitEssai; return !!(e&&!e.termine&&e.finLe&&e.finLe>=todayISO()&&!accesSuspendu()); }
 function planPlaceLibre(){ return essaiCouvreEquipe() || db.users.length<planPlaces(); }
 /* ⛔ PLUS DE PLACE → LA PAGE DE PAIEMENT, POUR CE QUI MANQUE — PAS POUR TOUTE L'ÉQUIPE (v760).
    Justin, 27 septembre 2026 : un abonnement = un utilisateur. La page de paiement compte donc un abonnement par
@@ -13830,7 +13830,7 @@ function planPlaceLibre(){ return essaiCouvreEquipe() || db.users.length<planPla
 function abosManquants(){ return Math.max(1, db.users.length+1-planPlaces()); }
 function proposerAbonnement(){
   if(!currentUser||currentUser.role!=='admin'){ toast('Plus de place utilisateur libre — seul l\'administrateur peut en ajouter',4500); return; }
-  if(_susp.suspendu){ if(confirm('Abonnement en attente de règlement : règle-le d\'abord, tes places reviennent avec lui.\n\nOuvrir l\'espace client ?')) window.open('https://teamop.fr/espace.html','_blank'); return; }
+  if(!BETA_ESSAI&&_susp.suspendu){ if(confirm('Abonnement en attente de règlement : règle-le d\'abord, tes places reviennent avec lui.\n\nOuvrir l\'espace client ?')) window.open('https://teamop.fr/espace.html','_blank'); return; }
   const f=forfait(), n=abosManquants(), u=db.users.length, p=planPlaces(), s=k=>k>1?'s':'';
   const msg='Formule '+PLANS[f].l+' : '+u+' utilisateur'+s(u)+' pour '+p+' place'+s(p)+'.\n\nUn abonnement = un utilisateur : pour en ajouter un, il faut '+n+' abonnement'+s(n)+' '+PLANS[f].l+' de plus.'
     +'\n\nAprès le paiement, '+(n>1?'les places s\'ajoutent d\'elles-mêmes':'la place s\'ajoute d\'elle-même')+' à ton espace en quelques minutes (rouvre l\'application).'
@@ -13999,13 +13999,17 @@ async function promoAppliquer(codeDirect){
     /* ⛔ DEPUIS L'ÉCRAN « ACCÈS SUSPENDU » (« J'ai un code promo ») : le code est pris, le serveur sert désormais la période — on
        relit l'état AVANT d'annoncer « Code accepté », sinon l'écran restait suspendu sous un message qui dit l'inverse
        (`relecteur`, 30 septembre 2026, vérifié à l'exécution) */
-    try{ if(typeof _susp!=='undefined'&&_susp&&_susp.suspendu) await forfaitServeurSync(true); }catch(e){}
+    let encoreSusp=false;
+    try{ if(typeof _susp!=='undefined'&&_susp&&_susp.suspendu){ await forfaitServeurSync(true); encoreSusp=accesSuspendu(); } }catch(e){}
+    /* ⛔ … et si la relecture n'a pas rouvert l'accès (réseau, serveur), on le DIT sous l'annonce (seconde relecture de
+       `relecteur`) : « Code accepté » au-dessus d'un écran resté suspendu, c'était l'annonce d'un accès qu'on n'a pas */
+    const noteSusp=encoreSusp?'<p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin:0 0 14px">⏳ L’accès se rouvre dès que le serveur le confirme — touche « J’ai réglé — vérifier » dans un moment.</p>':'';
     openModal(deja
       ?`<div class="modal-head"><h3>🎁 Code déjà actif</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-      <p style="color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:14px">Le code <b>${esc(code)}</b> offre déjà la formule <b style="color:var(--acc-txt)">${PLANS[f].l}</b> à ton entreprise, jusqu'au <b>${fmtShort(j.finLe)}</b>.<br><br>Rien ne change : un code promo ne sert qu'une fois, et il ne se prolonge pas. Avant la fin, un rappel te préviendra pour prendre l'abonnement.</p>
+      <p style="color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:14px">Le code <b>${esc(code)}</b> offre déjà la formule <b style="color:var(--acc-txt)">${PLANS[f].l}</b> à ton entreprise, jusqu'au <b>${fmtShort(j.finLe)}</b>.<br><br>Rien ne change : un code promo ne sert qu'une fois, et il ne se prolonge pas. Avant la fin, un rappel te préviendra pour prendre l'abonnement.</p>${noteSusp}
       <button class="btn" style="width:100%;justify-content:center;padding:13px" onclick="closeModal();if(current==='parametres')views.parametres()">Compris</button>`
       :`<div class="modal-head"><h3>🎉 Code accepté !</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-      <p style="color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:14px">La formule <b style="color:var(--acc-txt)">${PLANS[f].l}</b> est activée pour toute l'équipe : <b>${j.mois} mois offert(s)</b>, jusqu'au <b>${fmtShort(j.finLe)}</b>.<br><br>Aucune carte bancaire n'est enregistrée. Avant la fin, un rappel te préviendra pour prendre l'abonnement et continuer sans coupure.</p>
+      <p style="color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:14px">La formule <b style="color:var(--acc-txt)">${PLANS[f].l}</b> est activée pour toute l'équipe : <b>${j.mois} mois offert(s)</b>, jusqu'au <b>${fmtShort(j.finLe)}</b>.<br><br>Aucune carte bancaire n'est enregistrée. Avant la fin, un rappel te préviendra pour prendre l'abonnement et continuer sans coupure.</p>${noteSusp}
       <button class="btn" style="width:100%;justify-content:center;padding:13px" onclick="closeModal();if(current==='parametres')views.parametres()">C'est parti !</button>`);
   }catch(e){ toast('Le serveur ne répond pas — réessaie'); }
 }
@@ -15812,8 +15816,11 @@ function renderNav(){ try{ applyBrand(); }catch(e){}
     const repete = rows.some(r=>!r.verrou && t(r.it.l)===t(sec.g));
     const tete = repete ? `<div class="nav-coupe" aria-hidden="true"></div>`
                         : `<div class="nav-label">${esc(t(sec.g))}</div>`;
+    /* ⛔ l'infobulle du 🔒 ne parle de règlement qu'à l'administrateur (seconde relecture de `relecteur`, 30 septembre 2026 :
+       « c'est pas aux utilisateurs de savoir si l'entreprise paye ou pas ») */
+    const verrouTitre=(currentUser&&currentUser.role==='admin')?'Accès suspendu jusqu’au règlement de l’abonnement':'Accès momentanément suspendu';
     return tete + rows.map(r=> r.verrou
-      ? `<div class="nav-item nav-verrou" style="opacity:.38" title="Accès suspendu jusqu’au règlement de l’abonnement" onclick="go('${r.it.k}')"><span class="ico" style="--cat-j:#636366;--cat-n:#8E8E93">🔒</span>${esc(t(r.it.l))}</div>`
+      ? `<div class="nav-item nav-verrou" style="opacity:.38" title="${verrouTitre}" onclick="go('${r.it.k}')"><span class="ico" style="--cat-j:#636366;--cat-n:#8E8E93">🔒</span>${esc(t(r.it.l))}</div>`
       : `<div class="nav-item${multiEnCours(r.it.k)?' nav-encours':''}" data-view="${r.it.k}" onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${r.it.k}','_blank');return;}go('${r.it.k}')" onauxclick="if(event.button===1)window.open('app.html#v=${r.it.k}','_blank')">${r.it.ic?`<span class="ico" style="${catVars(r.it.k)}">${r.it.ic}</span>`:''}${esc(t(r.it.l))}${multiEnCours(r.it.k)?' <span class="multi-pt" title="Tu as quelque chose en cours ici"></span>':''}${r.it.b?` <span class="badge" data-badge="${r.it.b}">0</span>`:''}${_favEdit?favorisEtoile(r.it.k):''}</div>`
     ).join('');
   }).join('');
@@ -16043,7 +16050,7 @@ views.suspendu=function(){
         <button class="btn ghost" style="justify-content:center" onclick="go('parametres')">🎁 J’ai un code promo</button>
       </div>
       <p style="color:var(--t3);font-size:12.5px;line-height:1.6;margin:14px 0 0">Un abonnement par utilisateur, prix TTC par mois :<br>${formules}</p>`
-    :`<p style="color:var(--t2);font-size:14.5px;line-height:1.65;margin:0 0 16px">L’accès à l’application est suspendu pour le moment. <b>Ton administrateur est prévenu.</b> Ton travail est conservé : tout revient dès que l’accès est rétabli.</p>
+    :`<p style="color:var(--t2);font-size:14.5px;line-height:1.65;margin:0 0 16px">L’accès à l’application est suspendu pour le moment. <b>Ton administrateur peut le rétablir depuis son application.</b> Ton travail est conservé : tout revient dès que l’accès est rétabli.</p>
       <div style="display:flex;flex-direction:column;gap:9px">
         <button class="btn" style="justify-content:center;padding:13px" onclick="suspensionVerifier(this)">↻ Réessayer</button>
         <button class="btn ghost" style="justify-content:center" onclick="go('parametres')">⚙️ Mes réglages</button>
@@ -16053,14 +16060,22 @@ views.suspendu=function(){
 /* « J'ai réglé » : on redemande l'état au serveur (il relit Stripe à la minute pour un impayé). S'il rouvre, `suspensionPoser`
    ramène l'écran d'où l'on vient ; sinon on le dit — un bouton qui ne répond rien fait taper dix fois. */
 async function suspensionVerifier(btn){
-  try{ if(btn){ btn.disabled=true; btn.textContent='Vérification…'; } }catch(e){}
-  let lu=false; try{ lu=await forfaitServeurSync(true); }catch(e){}
-  if(accesSuspendu()){
-    /* ⛔ une vérification qui n'a pas pu se faire (hors ligne, serveur ou Stripe injoignable) ne CONFIRME rien : on ne dit pas
-       « le règlement n'est pas arrivé » sur une réponse qu'on n'a pas eue (`relecteur`, 30 septembre 2026) */
-    toast(!lu?'Vérification impossible pour l’instant (réseau ou serveur) — réessaie dans un moment.'
-      :(currentUser&&currentUser.role==='admin'?'Toujours suspendu : le règlement n’est pas encore arrivé. Réessaie dans une minute.':'L’accès est toujours suspendu.'),5000);
-    try{ if(current==='suspendu') views.suspendu(); }catch(e){}
+  let txt='';
+  try{ if(btn){ txt=btn.textContent; btn.disabled=true; btn.textContent='Vérification…'; } }catch(e){}
+  try{
+    let lu=false; try{ lu=await forfaitServeurSync(true); }catch(e){}
+    if(accesSuspendu()){
+      /* ⛔ une vérification qui n'a pas pu se faire (hors ligne, serveur ou Stripe injoignable) ne CONFIRME rien : on ne dit
+         pas « le règlement n'est pas arrivé » sur une réponse qu'on n'a pas eue (`relecteur`, 30 septembre 2026) */
+      toast(!lu?'Vérification impossible pour l’instant (réseau ou serveur) — réessaie dans un moment.'
+        :(currentUser&&currentUser.role==='admin'?'Toujours suspendu : le règlement n’est pas encore arrivé. Réessaie dans une minute.':'L’accès est toujours suspendu.'),5000);
+      try{ if(current==='suspendu') views.suspendu(); }catch(e){}
+    }
+  }finally{
+    /* ⛔ LE BOUTON SE REND TOUJOURS (seconde relecture de `relecteur`, 30 septembre 2026). Touché depuis la carte des
+       Paramètres, rien ne repeignait l'écran : il restait grisé sur « Vérification… », et il fallait quitter la page pour
+       réessayer. Un écran redessiné entre-temps l'a remplacé : celui-là n'est plus dans la page, on n'y touche pas. */
+    try{ if(btn&&btn.isConnected){ btn.disabled=false; btn.textContent=txt; } }catch(e){}
   }
 }
 function go(view){

@@ -394,12 +394,20 @@ globalThis.fetch = async function (url, opts) {
     const iSync = sansCom.indexOf('async function forfaitServeurSync(');
     const corpsSync = sansCom.slice(iSync, sansCom.indexOf('\nasync function ', iSync + 10) > 0 ? sansCom.indexOf('\nasync function ', iSync + 10) : iSync + 6000);
     vrai('forfaitServeurSync est trouvée', iSync > 0 && corpsSync.length > 500);
+    /* ⛔ LA v763 EN SERVICE ET LA v767 DE LA BÊTA RANGENT LES PLACES CHACUNE À SA FAÇON — et le serveur peut partir seul, ce
+       banc tournant alors contre la page de `main` (30 septembre 2026). Chacune se garde par SA forme : une v767 revenue à la
+       forme d'avant tombe, une v763 aussi. */
+    if (verApp >= 767) {
     /* (v767 : ce qui n'est pas payé sort AVANT, places vidées — une réponse qui arrive ici est payée) */
     vrai('⛔ elle range les places servies EN MÉMOIRE (`_placesSrv`), depuis `j.places` — seulement d\'une réponse payée (le non-payé sort avant, `_placesSrv` vidé)',
       /_placesSrv=\(j\.places!=null\)\?Math\.max\(1,parseInt\(j\.places,10\)\|\|1\):null/.test(corpsSync)
       /* (depuis le 30 septembre 2026, elle rend VRAI quand l'état a été lu — `suspensionVerifier` le demande) */
       && /if\(nonPaye\|\|!\(j\.formule&&PLANS\[j\.formule\]\)\)\{ _placesSrv=null; return !j\.verificationImpossible; \}/.test(corpsSync)
       && corpsSync.indexOf('_placesSrv=null; return') < corpsSync.indexOf('_placesSrv=(j.places!=null)'));
+    } else {
+    vrai('⛔ (v' + verApp + ') elle range les places servies EN MÉMOIRE (`_placesSrv`), depuis `j.places` — seulement d\'une réponse payée',
+      /_placesSrv=\(j\.paye&&j\.places!=null\)\?Math\.max\(1,parseInt\(j\.places,10\)\|\|1\):null/.test(corpsSync));
+    }
     vrai('⛔ `db.forfaitQty` reste le nombre d\'abonnements (`j.quantite`), comme la v760 : aucune boucle de synchro entre versions',
       /const q=Math\.max\(1,parseInt\(j\.quantite,10\)\|\|1\);/.test(corpsSync) && !/db\.\w+\s*=[^;\n]*j\.places/.test(corpsSync));
     }
