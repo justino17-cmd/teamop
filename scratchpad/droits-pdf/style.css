@@ -1,0 +1,110 @@
+@page{size:A4;margin:14mm 15mm 16mm 15mm;
+  @bottom-left{content:"OP GESTION · Comment fonctionnent les droits · version ${APP_VERSION}";font:7.5pt 'Liberation Sans',Arial,sans-serif;color:#6b7f78}
+  @bottom-right{content:counter(page) " / " counter(pages);font:7.5pt 'Liberation Sans',Arial,sans-serif;color:#6b7f78}}
+@page:first{@bottom-left{content:none}}
+:root{--vert:#0b3b2e;--menthe:#6aa896;--pale:#eef8f4;--pale2:#dcf3ea;--encre:#16241f;--gris:#51625c;--trait:#d5e4de;--orange:#d98a1c}
+*{box-sizing:border-box}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{margin:0;font:9.3pt/1.45 'Liberation Sans',Arial,'DejaVu Sans',sans-serif;color:var(--encre);background:#fff;font-kerning:normal}
+b{font-weight:700;color:#0e2a22}
+p{margin:0 0 6pt}
+.couv{margin:0 0 8pt;padding:0 0 11pt;border-bottom:1.5pt solid var(--vert)}
+.marque{display:flex;align-items:center;gap:9pt;margin-bottom:14pt}
+.marque img{width:34pt;height:34pt;border-radius:8pt}
+.marque b{display:block;font-size:11pt;letter-spacing:.14em;color:var(--vert)}
+.marque span{font-size:8.5pt;color:var(--gris)}
+h1{font-size:27pt;line-height:1.08;letter-spacing:-.02em;margin:0 0 5pt;color:var(--vert)}
+.chapeau{font-size:12.5pt;color:#2d4a40;margin:0 0 5pt}
+.meta{font-size:8pt;color:var(--gris);margin:0}
+h2{font-size:14.5pt;letter-spacing:-.01em;color:var(--vert);margin:13pt 0 6pt;display:flex;align-items:center;gap:7pt;break-after:avoid}
+h2 span{display:inline-flex;align-items:center;justify-content:center;min-width:19pt;height:19pt;padding:0 4pt;border-radius:6pt;background:var(--vert);color:#fff;font-size:9.5pt;flex-shrink:0}
+h2.saut{break-before:page;margin-top:0}
+h3{font-size:9.8pt;margin:0 0 3pt;color:#0e2a22}
+.h3{font-size:11pt;color:var(--vert);margin:10pt 0 5pt;break-after:avoid}
+.saut-avant{break-before:page;margin-top:0}
+.grille2{display:grid;grid-template-columns:1fr 1fr;gap:6pt;margin:0 0 6pt}
+.grille3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6pt;margin:0 0 5pt}
+.carte{background:var(--pale);border:.6pt solid var(--trait);border-radius:8pt;padding:7pt 9pt;break-inside:avoid}
+.carte p{margin:0;color:#23372f;font-size:8.9pt}
+.note{font-size:8.6pt;color:var(--gris)}
+.serre{font-size:8.8pt;margin-bottom:4pt}
+.encart{background:var(--pale);border-left:3pt solid var(--menthe);border-radius:4pt;padding:6pt 10pt;margin:7pt 0;font-size:8.9pt;break-inside:avoid}
+.encart.alerte{background:#fff6e8;border-left-color:var(--orange)}
+/* l'éditeur dessiné */
+.ecran{border:.8pt solid #c9d8d2;border-radius:12pt;padding:8pt 10pt 7pt;margin:3pt auto 6pt;background:#fbfdfc;break-inside:avoid;width:80%}
+.ecran-t{display:flex;align-items:center;gap:8pt;margin-bottom:5pt}
+.ecran-t .av{width:21pt;height:21pt;border-radius:50%;background:var(--vert);color:#fff;font-size:7.8pt;font-weight:700;display:flex;align-items:center;justify-content:center}
+.ecran-t b{display:block;font-size:9.2pt}.ecran-t span{font-size:7.6pt;color:var(--gris)}
+.resume{font-size:8pt;color:#2d4a40;background:var(--pale2);border-radius:6pt;padding:3.5pt 7pt;margin-bottom:4pt}
+.cat{display:flex;align-items:center;gap:6pt;border-bottom:.5pt solid #e1ebe7;padding:3pt 2pt;font-size:8.2pt}
+.cat .ct{flex:1;font-weight:700;color:#1b3129}.cat .cn{color:var(--gris);font-size:7.6pt}.cat .chev{color:#8aa39a;font-size:7pt;width:8pt;text-align:center}
+.cat.ouverte{border-bottom:0;background:#f2f8f5;border-radius:5pt 5pt 0 0}
+.cat-corps{background:#f2f8f5;border-radius:0 0 5pt 5pt;padding:0 8pt 4pt;margin-bottom:2pt;border-bottom:.5pt solid #e1ebe7}
+.sec{font-size:7pt;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#4d9179;margin:4pt 0 1pt}
+.rg{display:flex;align-items:center;justify-content:space-between;gap:6pt;font-size:7.9pt;padding:1.1pt 0}
+.rg em{font-style:normal;color:var(--gris);font-size:7.1pt;margin-left:4pt}
+.sw{display:inline-block;width:18pt;height:10.5pt;border-radius:6pt;background:#d3dcd8;position:relative;flex-shrink:0}
+.sw::after{content:"";position:absolute;top:1.25pt;left:1.25pt;width:8pt;height:8pt;border-radius:50%;background:#fff}
+.sw.on{background:#2f8a67}.sw.on::after{left:8.75pt}
+.pied{display:flex;align-items:center;gap:6pt;margin-top:5pt;font-size:7.7pt}
+.faux-sel{border:.6pt solid #c9d8d2;border-radius:6pt;padding:2.5pt 7pt;color:#2d4a40;background:#fff}
+.faux-bt{background:var(--vert);color:#fff;border-radius:7pt;padding:3pt 9pt;font-weight:700}
+.faux-bt.g{background:#fff;color:var(--vert);border:.6pt solid #c9d8d2;font-weight:400}
+.lien{color:#2f6f5a;text-decoration:underline;font-size:7.3pt}
+.pastille{display:inline-flex;align-items:center;justify-content:center;width:12.5pt;height:12.5pt;border-radius:50%;background:var(--orange);color:#fff;font-size:7.6pt;font-weight:700;margin-left:auto;flex-shrink:0}
+.cat .pastille{margin-left:4pt}
+.legende{margin:2pt 0 0;padding-left:14pt;font-size:8.6pt;columns:2;column-gap:16pt}
+.legende li{margin-bottom:3pt;break-inside:avoid}
+.legende li::marker{color:var(--orange);font-weight:700}
+/* les catégories */
+.cb{border:.6pt solid var(--trait);border-radius:8pt;margin:0 0 6pt;break-inside:avoid;overflow:hidden}
+.cb-t{display:flex;align-items:baseline;justify-content:space-between;gap:10pt;background:var(--pale2);padding:4.5pt 9pt}
+.cb-t b{font-size:9.6pt;color:var(--vert)}.cb-t span{font-size:7.6pt;color:var(--gris)}
+.cb-m{padding:5pt 9pt 3pt;display:flex;flex-wrap:wrap;gap:3pt 5pt;font-size:8.2pt}
+.cb-m span{background:#f4f8f6;border:.5pt solid #e0ebe6;border-radius:5pt;padding:1pt 5pt}
+.cb-m em{font-style:normal;color:var(--gris);font-size:7.2pt}
+.cb-s{display:grid;grid-template-columns:1fr 1fr;gap:4pt 12pt;padding:3pt 9pt 6pt}
+.cb-s .sp b{display:block;font-size:8.3pt}
+.cb-s .sp span{display:block;color:#3f544c;font-size:7.5pt;line-height:1.38;margin-top:1pt}
+.cb.autres{background:#fbfdfc}
+.cb-n{font-size:7.9pt;color:#2d4a40;padding:0 9pt 6pt;margin:0}
+/* tableaux */
+table{width:100%;border-collapse:collapse;margin:3pt 0 7pt}
+th,td{text-align:left;vertical-align:top}
+.simple{font-size:8.7pt}
+.simple thead th{background:var(--pale2);color:var(--vert);font-size:8.1pt;padding:4pt 7pt}
+.simple tbody th{width:20%;background:var(--pale);color:var(--vert);font-size:8.5pt;padding:4.5pt 7pt;border-bottom:.6pt solid #fff}
+.simple td{padding:4.5pt 7pt;border-bottom:.6pt solid var(--trait)}
+.simple tr{break-inside:avoid}
+.rbs{display:flex;flex-wrap:wrap;gap:2.5pt 3.5pt}
+.rb{background:#f4f8f6;border:.5pt solid #e0ebe6;border-radius:5pt;padding:.4pt 4.5pt;font-size:7.8pt}
+.rb.nu{background:none;border:0;padding-left:0;color:var(--gris)}
+.etapes{display:grid;grid-template-columns:repeat(5,1fr);gap:6pt;margin:3pt 0 6pt}
+.etape{background:var(--pale);border-radius:8pt;padding:7pt 8pt;border:.6pt solid var(--trait);break-inside:avoid}
+.etape>b{display:inline-flex;width:15pt;height:15pt;border-radius:50%;background:var(--vert);color:#fff;align-items:center;justify-content:center;font-size:8pt;margin-bottom:4pt}
+.etape h3{font-size:8.7pt}.etape p{font-size:7.9pt;margin:0;color:#2d4a40;line-height:1.4}
+.flux{display:flex;align-items:stretch;gap:6pt;margin:3pt 0 7pt;break-inside:avoid}
+.flux .bloc{flex:1;background:var(--pale);border:.6pt solid var(--trait);border-radius:8pt;padding:7pt 9pt;font-size:8.7pt;display:flex;align-items:center;justify-content:center;text-align:center}
+.flux .bloc span{display:block}
+.flux .fl{display:flex;align-items:center;color:var(--menthe);font-size:15pt;font-weight:700}
+.pas{margin:2pt 0 7pt;padding-left:15pt}.pas li{margin-bottom:3.5pt}
+.pas li::marker{color:var(--vert);font-weight:700}
+.matrice{font-size:7.6pt;margin-top:2pt}
+.matrice thead th{background:var(--vert);color:#fff;font-size:7.3pt;padding:3.5pt 3pt;font-weight:700;line-height:1.15}
+.matrice th.r{text-align:center;width:10.5%}
+.matrice td{padding:.62pt 5pt;border-bottom:.4pt solid #e3ece8;line-height:1.28}
+.matrice td.c{text-align:center}
+.matrice tr.grp td{background:var(--pale2);color:var(--vert);font-weight:700;font-size:7.4pt;padding:1.3pt 5pt}
+.matrice tr.total td{border-top:1pt solid var(--vert);font-weight:700;padding-top:2.5pt}
+.matrice .adm{background:#f4f7f6}
+.matrice thead th.adm{background:#2c5446}
+.matrice i{font-style:normal}.matrice .oui{color:#1f7a57;font-size:8pt}.matrice .non{color:#b9c7c1}
+.matrice tr{break-inside:avoid}
+.caps{font-size:8pt}
+.caps td{padding:2.2pt 5pt}
+.caps td.liste{font-size:7.9pt;color:#2d4a40;line-height:1.45;padding:3.5pt 5pt}
+.savoir{margin:2pt 0 0;padding-left:13pt;font-size:8.9pt}.savoir li{margin-bottom:3.5pt}
+
+.carte b.ligne{display:block;margin-bottom:2pt}
+.simple .sous{font-size:7.8pt;color:var(--gris);margin-top:2pt;line-height:1.4}
+.simple .sous.haut{margin:0 0 3pt;color:#2d4a40;font-size:8.2pt}

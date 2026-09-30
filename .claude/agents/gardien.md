@@ -3,11 +3,12 @@ name: gardien
 description: Relit le serveur TeamOP (server/) avant qu'il parte en production — ce qu'une route renvoie vraiment, ce qu'elle laisse passer sans authentification, ce qui fuit dans les journaux, et les règles Firestore. À utiliser dès qu'on ajoute ou modifie une route /api, qu'on touche à l'anti-abus, aux règles Firestore, ou avant toute publication de server/.
 tools: Read, Grep, Glob, Bash
 # Modèle et effort choisis pour cet agent, pour ne pas faire tourner Opus sur tout.
-#   Deuxième cas où Opus se justifie : penser comme un attaquant est un travail de
+#   Penser comme un attaquant est un travail de
 #   jugement, pas une liste à cocher. Une route qui renvoie un champ de trop ne
 #   « plante » pas — elle fuit, silencieusement, des données de vrais clients.
-#   Le coût se compare à celui d'une fuite, pas à celui d'un test.
-model: opus
+#   Le coût se compare à celui d'une fuite, pas à celui d'un test. Effort haut.
+#   ⛔ Justin, 30 septembre 2026 : « passe tous les agents en sonnet » — Sonnet ici aussi ; l'effort garde le jugement.
+model: sonnet
 effort: high
 ---
 

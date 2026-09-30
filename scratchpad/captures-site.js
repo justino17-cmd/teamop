@@ -9,7 +9,9 @@
            SEULES=mac-tableau,iphone-box node scratchpad/captures-site.js */
 const fs = require('fs'), path = require('path');
 const { ouvrir, dormir } = require('./pilote.js');
-const SORTIE = process.env.SORTIE || path.join(__dirname, '..', 'vitrine', 'captures');
+/* ⛔ vitrine/v2/ : les pages EN LIGNE lisent vitrine/captures/ — y réécrire changerait le site en service sans
+   la phrase de Justin. La v2 du site (aperçu) lit ses propres captures. */
+const SORTIE = process.env.SORTIE || path.join(__dirname, '..', 'vitrine', 'v2', 'captures');
 fs.mkdirSync(SORTIE, { recursive: true });
 
 /* L'entreprise de démonstration. Les identifiants sont FIXES (pas d'uid()) : deux passages donnent la
@@ -41,16 +43,16 @@ const DONNEES = `
   let n=0; const I=(j,h,duree,k,type,titre,techs,statut,extra)=>Object.assign({id:'demo-i-'+(++n),num:'INT-'+String(1200+n).padStart(4,'0'),
     date:j===null?'':J(j),heure:h,duree,clientId:'demo-c-'+k,adresse:adr(k),type,titre,techId:techs[0]||'',techIds:techs.slice(),statut,prio:'normale',desc:'',compteRendu:''},extra||{});
   db.interventions=[
-    I(0,'08:00',60,'maree','Contrat anti nuisibles (HACCP)','Contrôle HACCP mensuel',[T.leo],'terminee',{compteRendu:'12 postes contrôlés, aucune consommation.'}),
-    I(0,'09:30',120,'minimes','Dératisation','Dératisation réserve et quai',[T.leo,T.karim],'encours',{prio:'haute',
+    I(0,'08:00',60,'maree','Contrat anti nuisibles (HACCP)','Contrôle HACCP mensuel',[T.leo],'terminee',{montant:78,compteRendu:'12 postes contrôlés, aucune consommation.',rapportEnvoye:{ts:Date.now()-3600000}}),
+    I(0,'09:30',120,'minimes','Dératisation','Dératisation réserve et quai',[T.leo,T.karim],'encours',{prio:'haute',montant:180,
       desc:'Traces de rongeurs signalées côté quai de livraison. Poser les postes sécurisés et contrôler la réserve sèche.',
       checklist:[{t:'Inspection du quai de livraison',done:true},{t:'Pose de 6 postes sécurisés',done:true},{t:'Contrôle réserve sèche',done:false},{t:'Photos et rapport signé',done:false}]}),
     I(0,'10:00',60,'tilleuls','Détection punaise de lit','Détection — appartement 3B',[],'planifiee'),
-    I(0,'11:00',90,'phare','Désinsectisation blattes','Traitement cuisine au gel',[T.sofia],'planifiee'),
+    I(0,'11:00',90,'phare','Désinsectisation blattes','Traitement cuisine au gel',[T.sofia],'planifiee',{montant:240}),
     I(0,'14:00',90,'plage','Désinsectisation punaise de lit','Chambres 12 et 14',[T.nina],'planifiee'),
     I(0,'14:30',60,'glycines','Visite technique','Visite de contrôle trimestrielle',[T.karim],'planifiee'),
     I(0,'16:00',60,'pins','Désinsectisation guêpes / frelons','Nid de frelons — sanitaires',[T.leo],'planifiee',{prio:'haute'}),
-    I(0,'16:30',60,'moulin','Contrat anti nuisibles (HACCP)','Passage préventif',[T.sofia],'planifiee'),
+    I(0,'16:30',60,'moulin','Contrat anti nuisibles (HACCP)','Passage préventif',[T.sofia],'planifiee',{montant:60}),
     I(1,'08:30',90,'port','Dératisation','Contrôle des postes',[T.karim],'planifiee'),
     I(1,'10:30',60,'maree','Désinsectisation mites','Mites alimentaires — réserve',[T.nina],'planifiee'),
     I(1,'14:00',120,'glycines','Contrat anti nuisibles (HACCP)','Passage cuisine centrale',[T.leo,T.sofia],'planifiee'),
@@ -63,9 +65,9 @@ const DONNEES = `
     I(6,'13:30',90,'pins','Désinsectisation guêpes / frelons','Contrôle du site',[T.karim],'planifiee'),
     I(6,'10:00',60,'glycines','Désinsectisation blattes','Contrôle cuisine',[T.sofia],'planifiee'),
     I(6,'09:00',60,'maree','Contrat anti nuisibles (HACCP)','Contrôle HACCP',[T.leo],'planifiee'),
-    I(-1,'09:00',60,'port','Dératisation','Contrôle des postes',[T.karim],'terminee'),
-    I(-1,'14:00',90,'plage','Désinsectisation punaise de lit','Chambre 8',[T.nina],'terminee'),
-    I(-4,'10:00',60,'phare','Désinsectisation blattes','Traitement cuisine',[T.sofia],'terminee'),
+    I(-1,'09:00',60,'port','Dératisation','Contrôle des postes',[T.karim],'terminee',{compteRendu:'8 postes contrôlés, 2 consommations côté cour : appâts remplacés.',rapportEnvoye:{ts:Date.now()-86400000}}),
+    I(-1,'14:00',90,'plage','Désinsectisation punaise de lit','Chambre 8',[T.nina],'terminee',{compteRendu:'Traitement vapeur et insecticide, literie isolée. Contrôle dans 15 jours.',rapportEnvoye:{ts:Date.now()-80000000}}),
+    I(-4,'10:00',60,'phare','Désinsectisation blattes','Traitement cuisine',[T.sofia],'terminee',{compteRendu:'Gel appliqué sous les plans de travail et derrière les fours.'}),
     I(null,'',60,'moulin','Désinsectisation fourmis','Fourmis — cour intérieure',[],'aplanifier'),
     I(null,'',90,'tilleuls','Dératisation','Caves — bâtiment B',[],'aplanifier')];
   /* les produits : des références du catalogue du métier (noms publics de fabricants), rangés par produitCreer */
@@ -86,7 +88,7 @@ const DONNEES = `
         'DEMI MASQUE':2,'PISTOLET APLI-GEL':1})},
     {id:'demo-b-2',numero:'BX-021',nom:'Utilitaire — Karim Benali',categorie:'Véhicule',adresse:'Dépôt de La Rochelle',ville:'La Rochelle',techIds:[T.karim],actif:true,
       stock:S({'ADVION GEL BLATTES 30G':8,'TATHRIN NEXT - 500ML':1,'NOTRAC BLOC 28G SEAU DE 8KG':5,'POSTE RAT COMPACT - ROTECH®':12,'PIÈGE BLATTES GEOTRAP':30,'GANTS NITRILE JETABLES SUPER NITRO':3})},
-    {id:'demo-b-3',numero:'BX-032',nom:'Utilitaire — Sofia Rossi',categorie:'Véhicule',adresse:'Dépôt de La Rochelle',ville:'La Rochelle',techIds:[T.sofia],actif:true,
+    {id:'demo-b-3',numero:'BX-032',nom:'Utilitaire — Sofia Rossi',categorie:'Véhicule',adresse:'Dépôt de La Rochelle',ville:'La Rochelle',techIds:[T.sofia,T.nina],actif:true,
       stock:S({'ADVION GEL BLATTES 30G':11,'MAGNUM GEL CAFARDS SERINGUE 40G':9,'PIÈGE BLATTES GEOTRAP':16,'PULVÉRISATEUR GLORIA PRO 5L':1,'DEMI MASQUE':1})}];
   db.demandes=[
     {id:'demo-d-1',num:'DC-2026-041',date:J(0),boxId:'demo-b-1',boxNumero:'BX-014',boxNom:'Utilitaire — Léo Martin',lignes:[{produitId:P['GANTS NITRILE JETABLES SUPER NITRO'],quantite:4},{produitId:P['AÉROSOL MEGASHOT GUÊPES FRELONS 750 ML'],quantite:6}],chefId:T.leo,chefNom:'Léo Martin',statut:'enAttente',notes:'Saison des frelons'},
@@ -100,9 +102,34 @@ const DONNEES = `
       paiements:[{id:'demo-p-2',mode:'Virement',montant:640,date:J(-1),reference:'VIR-0000',statut:'encaisse'}]},
     {id:'demo-e-3',numero:'ENV-2026-033',clientNom:'Brasserie Le Phare',adresse:'2 place du Phare',ville:'La Rochelle',technicienId:T.sofia,actif:true,dateCreation:J(-2),
       paiements:[{id:'demo-p-3',mode:'Carte',montant:240,date:J(-2),reference:'',statut:'encaisse'}]}];
+  /* devis, factures, contrats — pour les cases « Devis, factures et contrats » et « Encaissements » du site */
+  const L=(designation,qte,pu)=>({designation,qte,pu});
+  db.devis=[
+    {id:'demo-dv-1',num:'DEV-2026-018',clientId:'demo-c-maree',date:J(-6),statut:'accepte',tva:20,notes:'Contrat HACCP — 12 passages par an',lignes:[L('Passage de contrôle HACCP',12,65),L('Postes d’appâtage sécurisés',8,14)]},
+    {id:'demo-dv-2',num:'DEV-2026-019',clientId:'demo-c-tilleuls',date:J(-2),statut:'envoye',tva:20,notes:'Punaises de lit — appartement 3B',lignes:[L('Détection canine',1,180),L('Traitement vapeur + insecticide',2,210)]},
+    {id:'demo-dv-3',num:'DEV-2026-020',clientId:'demo-c-plage',date:J(0),statut:'brouillon',tva:20,notes:'Traitement préventif avant saison',lignes:[L('Désinsectisation chambres',14,38)]}];
+  db.factures=[
+    {id:'demo-f-1',num:'FAC-2026-061',clientId:'demo-c-port',devisId:'',date:J(-5),statut:'payee',tva:20,notes:'Contrôle des postes',lignes:[L('Contrôle des postes',1,150)]},
+    {id:'demo-f-2',num:'FAC-2026-062',clientId:'demo-c-plage',devisId:'',date:J(-3),statut:'payee',tva:20,notes:'Punaises de lit — chambre 8',lignes:[L('Traitement punaises de lit',1,420),L('Détection canine',1,113.33)]},
+    {id:'demo-f-3',num:'FAC-2026-063',clientId:'demo-c-phare',devisId:'',date:J(-2),statut:'envoyee',tva:20,notes:'Traitement cuisine au gel',lignes:[L('Traitement gel blattes',1,200)]},
+    {id:'demo-f-4',num:'FAC-2026-064',clientId:'demo-c-glycines',devisId:'',date:J(-1),statut:'envoyee',tva:20,notes:'Visite trimestrielle',lignes:[L('Visite de contrôle',1,95)]},
+    {id:'demo-f-5',num:'FAC-2026-065',clientId:'demo-c-maree',devisId:'demo-dv-1',date:J(0),statut:'brouillon',tva:20,notes:'Contrôle HACCP mensuel',lignes:[L('Passage de contrôle HACCP',1,65)]}];
+  db.contrats=[
+    {id:'demo-ct-1',num:'CTR-2026-011',clientId:'demo-c-maree',titre:'Contrat HACCP mensuel',frequence:'mensuel',dateDebut:J(-120),dateFin:J(245),montant:65,statut:'actif',notes:''},
+    {id:'demo-ct-2',num:'CTR-2026-012',clientId:'demo-c-glycines',titre:'Visites trimestrielles',frequence:'trimestriel',dateDebut:J(-60),dateFin:J(305),montant:95,statut:'actif',notes:''}];
+  const R=(k,j,heure,montant,mode,client,t,nom)=>({id:'demo-r-'+k,ts:Date.now()-k*600000,date:J(j),heure,montant,mode,nbChq:mode==='CHQ'?1:0,interId:'',factureId:'',clientNom:client,techId:t,declarantId:'',declarantNom:nom,source:'telecollecte',note:'',jourValide:j<0,par:''});
+  db.registres=[R(1,0,'09:05',78,'CB','Restaurant La Marée',T.leo,'Léo Martin'),R(2,0,'10:40',180,'CHQ','Supermarché des Minimes',T.karim,'Karim Benali'),
+    R(3,0,'11:55',240,'CB','Brasserie Le Phare',T.sofia,'Sofia Rossi'),R(4,0,'12:20',60,'ESP','Crèche Les Petits Pas',T.sofia,'Sofia Rossi'),
+    R(5,-1,'10:10',150,'CHQ','Boulangerie du Port',T.karim,'Karim Benali'),R(6,-1,'15:45',640,'VIR','Hôtel de la Plage',T.nina,'Nina Dubois')]; db._regMigre=true;
   db.vehicules=[{id:'demo-v-1',plaque:'AA-000-AA',marque:'Renault',modele:'Trafic',statut:'service'},{id:'demo-v-2',plaque:'AA-000-AB',marque:'Citroën',modele:'Jumpy',statut:'service'},{id:'demo-v-3',plaque:'AA-000-AC',marque:'Peugeot',modele:'Expert',statut:'service'}];
   db.dashLayout=['interventions','boxes','aCommander','validationsDR','encaissements']; db.dashV2=1;
   if(!db.users.some(u=>u.id==='demo-admin')) db.users.push({id:'demo-admin',prenom:'Camille',nom:'Laurent',login:'camille',role:'admin',actif:true,essai:true});
+  /* l'équipe, pour la case « Équipe et rôles » : des comptes FICTIFS, rôles que l'application propose */
+  [['demo-u-leo','Léo','Martin','leo','technicien',T.leo],['demo-u-karim','Karim','Benali','karim','chefEquipe',T.karim],['demo-u-sofia','Sofia','Rossi','sofia','technicien',T.sofia],
+   ['demo-u-nina','Nina','Dubois','nina','technicien',T.nina],['demo-u-julie','Julie','Moreau','julie','commercial',''],['demo-u-thomas','Thomas','Petit','thomas','compta','']]
+    .forEach(([id,prenom,nom,login,role,techId])=>{ if(!db.users.some(u=>u.id===id)) db.users.push({id,prenom,nom,login,role,techId,actif:true,essai:true,email:login+'@exemple.fr',pwdHash:'demonstration'}); });
+  { const a=db.users.find(u=>u.id==='demo-admin'); a.email='camille@exemple.fr'; a.pwdHash=a.pwdHash||'demonstration'; }
+  db.forfaitQty=3;
   save(); currentUser=db.users.find(u=>u.id==='demo-admin');
   try{ ['onboarded_','push_ask_','photo_prompt_'].forEach(k=>localStorage.setItem('elanB_'+k+'demo-admin','1')); }catch(e){}
   return {produits:db.produits.length, interventions:db.interventions.length, boxes:db.boxes.length};`;
@@ -148,6 +175,20 @@ const ECRANS = [
   /* la box, en HAUT de sa fiche : « Scanner · Arrivage · Relevé », les trois gestes que la carte « Au dépôt »
      nomme. ⚠️ Descendre jusqu'aux produits faisait passer la fiche SOUS l'horloge (essayé : illisible). */
   { nom: 'iphone-box',      app: 'iphone', geste: `go('boxes'); await new Promise(r=>setTimeout(r,500)); openBox('demo-b-1');` },
+  /* ── les cases « Ce que fait OP GESTION » : un écran par case (Justin, 27 septembre au soir) ── */
+  { nom: 'mac-interventions',    app: 'mac',    geste: `go('interventions');` },
+  /* « Ma journée » : ce que le TECHNICIEN a dans la poche le matin — l'écran le plus parlant du planning au téléphone */
+  { nom: 'iphone-journee',       app: 'iphone', qui: 'demo-u-leo', geste: `go('interventions');` },
+  { nom: 'iphone-compta',        app: 'iphone', geste: `go('comptabilite');` },
+  { nom: 'iphone-factures',      app: 'iphone', geste: `go('factures');` },
+  { nom: 'iphone-rapports',      app: 'iphone', geste: `go('rapports');` },
+  { nom: 'mac-utilisateurs',     app: 'mac',    geste: `go('utilisateurs');` },
+  { nom: 'iphone-notifs',        app: 'iphone', geste: `go('dashboard');`, apres: `try{ openNotif(); }catch(e){}` },
+  /* la case « Sécurisé » : l'écran de connexion, tel qu'une personne le voit en ouvrant l'application.
+     ⚠️ EN DERNIER : il cache l'application, les écrans suivants n'auraient plus rien à montrer. */
+  { nom: 'iphone-connexion',     app: 'iphone', geste: `renderLogin();`, ecranConnexion: true, texteMin: 40,
+    /* la pastille « BÊTA » est celle de la bêta, pas de l'application qu'on montre : masquée, pas retirée */
+    apres: `const lg=document.getElementById('login'); let n=0; lg.querySelectorAll('*').forEach(e=>{ if(/^\\W*BÊTA$/.test(e.textContent.trim()) && !e.querySelector('input')){ e.style.visibility='hidden'; n++; } }); if(!n) throw new Error('pastille BÊTA introuvable');` },
 ];
 
 async function poser(S, A, theme) {
@@ -268,6 +309,7 @@ function htmlMac(src, nuit) {
         await S.ev(PROPRE);
         /* chaque écran s'ouvre comme depuis le menu : pas de « ‹ Planning » hérité de la capture d'avant */
         await S.ev(`window._viewStack=[]; current=''; return 1;`);   // `go()` empile la vue courante : sans vue courante, rien ne s'empile
+        await S.ev(`currentUser=db.users.find(u=>u.id===${JSON.stringify(E.qui || 'demo-admin')}); return 1;`);
         await S.ev(E.geste + ' return 1;');
         await dormir(1400);
         await S.ev(PROPRE);
@@ -277,10 +319,11 @@ function htmlMac(src, nuit) {
         const etat = await S.ev(`await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); void document.body.offsetWidth;
           const c=document.getElementById('content');
           const fam=getComputedStyle(document.body).fontFamily;
-          return {vue:current, texte:(c?c.innerText:'').length, hl:!!document.getElementById('hl-ecran'),
+          const lg=document.getElementById('login');
+          return {vue:current, texte:(c?c.innerText:'').length, connexion:(lg&&getComputedStyle(lg).display!=='none'?lg.innerText:'').length, hl:!!document.getElementById('hl-ecran'),
             large:document.documentElement.scrollWidth, fen:innerWidth, police:fam.slice(0,80), sx:scrollX, sy:scrollY};`);
         if (etat.hl) throw new Error(E.nom + ' : écran « Connexion requise » par-dessus');
-        if (etat.texte < 200) throw new Error(E.nom + ' : écran presque vide (' + etat.texte + ' signes) — ' + JSON.stringify(etat));
+        if ((E.ecranConnexion ? etat.connexion : etat.texte) < (E.texteMin || 200)) throw new Error(E.nom + ' : écran presque vide (' + etat.texte + ' signes) — ' + JSON.stringify(etat));
         if (etat.large > etat.fen + 1) throw new Error(E.nom + ' : la page déborde de côté (' + etat.large + ' > ' + etat.fen + ')');
         /* ⚠️ le rectangle de capture est en coordonnées du DOCUMENT : une page défilée se photographie à sa position */
         const cap = await S.c.envoyer('Page.captureScreenshot', { format: 'png', clip: { x: etat.sx, y: etat.sy, width: A.w, height: A.h, scale: 1 } });

@@ -6199,6 +6199,11 @@ html[data-refonte] .tabbar:has(.tab-cur) .tab.active::after{
 }
 .tab:active{transform:scale(.94)}
 @media (prefers-reduced-motion: reduce){ .tab,.tab-ic{transition:none} .tab:active{transform:none} }
+/* ⛔ v767 — SUSPENDUE, LA BARRE GARDE SES ONGLETS, GRISÉS (Justin, 20 septembre 2026 : « tous les onglets deviennent
+   gris »). L'icône et le libellé seulement — jamais le bouton, que la pastille et la bulle mesurent. « Plus » et les
+   Paramètres restent pleins : ils mènent au menu et au règlement. */
+html.acces-suspendu .tab:not([data-tab="_plus"]):not([data-tab="parametres"]) .tab-ic,
+html.acces-suspendu .tab:not([data-tab="_plus"]):not([data-tab="parametres"]) .tab-l{opacity:.42}
 
 /* Le contenu s'arrête au-dessus de la barre — sinon la dernière ligne d'une liste est
    inatteignable, ce qui ne se voit qu'en bas d'un écran plein. */
@@ -8017,7 +8022,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '763';
+const APP_VERSION = '767';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -8786,9 +8791,82 @@ const METIERS={
             'Réapprovisionnement des consommables'],
     releves:[{k:'surface',l:'Surface traitée',u:'m²'},{k:'agents',l:'Nombre d’agents',u:''},
              {k:'tps',l:'Temps passé sur site',u:'h'}],
+    masque:['registre','carteBox','devisXylo','boxes'] },
+
+  /* ⛔ UN PACK POUR CHAQUE MÉTIER DU SITE (Justin, 30 septembre 2026 : « je veux que chaque métier qu'on a sur le site,
+     quand ils ont l'application, ça correspond à leur métier… pour tous » — puis « oui, fais ce qu'il faut »). Les six
+     suivants étaient « pack bientôt » ou « sur mesure » sur le site ; sans eux, ces entreprises ouvraient en 3D (le défaut
+     de `metierId`, gardé pour les entreprises d'avant le choix du métier). « Autre métier de terrain » est le réglage
+     NEUTRE : il ne parle ni de nuisibles ni d'un métier qu'on ne connaît pas. Mêmes quatre modules masqués que les autres
+     packs : le registre, les box et le devis xylophage n'existent que pour le 3D. */
+  'maconnerie':{ nom:'Maçonnerie / Gros œuvre', ic:'🧱', sous:'Construction · rénovation · gros œuvre',
+    types:['Construction neuve','Rénovation','Extension / agrandissement','Dalle & fondations','Murs & cloisons',
+           'Enduits & façades','Ouverture de mur','Reprise de fissures','Dallage / terrasse','Visite technique / devis'],
+    presta:['Implantation et traçage','Terrassement / fouilles','Coffrage','Ferraillage','Coulage du béton',
+            'Montage de parpaings / briques','Pose de linteau','Enduit / crépi','Jointoiement',
+            'Évacuation des gravats','Nettoyage du chantier'],
+    releves:[{k:'surface',l:'Surface réalisée',u:'m²'},{k:'volume',l:'Béton coulé',u:'m³'},
+             {k:'lineaire',l:'Linéaire de mur',u:'ml'},{k:'tps',l:'Temps passé sur site',u:'h'}],
+    masque:['registre','carteBox','devisXylo','boxes'] },
+
+  'menuiserie':{ nom:'Menuiserie', ic:'🚪', sous:'Pose · agencement · fermetures',
+    types:['Pose de fenêtres','Pose de portes','Volets & fermetures','Agencement intérieur','Placards & dressings',
+           'Escalier','Parquet','Réparation / dépannage','Prise de cotes','Visite technique / devis'],
+    presta:['Prise de cotes','Dépose de l’existant','Pose et calage','Réglage des ouvrants','Fixation et scellement',
+            'Pose de la quincaillerie','Calfeutrement et joints','Finitions (habillage, champlats)',
+            'Évacuation des déchets','Nettoyage du chantier'],
+    releves:[{k:'cotes',l:'Cotes relevées (L × H)',u:'',txt:true},{k:'elements',l:'Éléments posés',u:''},
+             {k:'materiau',l:'Matériau / essence',u:'',txt:true},{k:'tps',l:'Temps passé sur site',u:'h'}],
+    masque:['registre','carteBox','devisXylo','boxes'] },
+
+  'peinture':{ nom:'Peinture / Revêtements', ic:'🖌️', sous:'Intérieur · extérieur · sols',
+    types:['Peinture intérieure','Peinture extérieure / façade','Revêtements muraux','Revêtements de sol',
+           'Préparation des supports','Ravalement','Traitement anti-humidité','Décoration','Retouches / reprises',
+           'Visite technique / devis'],
+    presta:['Protection des sols et du mobilier','Lessivage','Rebouchage et ponçage','Impression / sous-couche',
+            'Première couche','Deuxième couche','Pose de papier peint / toile','Reprise des angles et raccords',
+            'Dépose des protections','Nettoyage du chantier'],
+    releves:[{k:'surface',l:'Surface traitée',u:'m²'},{k:'couches',l:'Nombre de couches',u:''},
+             {k:'teinte',l:'Teinte / référence',u:'',txt:true},{k:'tps',l:'Temps passé sur site',u:'h'}],
+    masque:['registre','carteBox','devisXylo','boxes'] },
+
+  'paysagiste':{ nom:'Paysagiste / Espaces verts', ic:'🌿', sous:'Entretien · création · élagage',
+    types:['Tonte','Taille de haies','Élagage / abattage','Débroussaillage','Entretien de massifs','Création de jardin',
+           'Plantation','Arrosage automatique','Ramassage des feuilles','Contrat d’entretien','Visite technique / devis'],
+    presta:['Tonte et finitions','Taille','Désherbage','Scarification','Bêchage / griffage','Paillage','Plantation',
+            'Évacuation des déchets verts','Réglage de l’arrosage','Nettoyage du site'],
+    releves:[{k:'surface',l:'Surface entretenue',u:'m²'},{k:'haie',l:'Haie taillée',u:'ml'},
+             {k:'dechets',l:'Déchets verts évacués',u:'m³'},{k:'tps',l:'Temps passé sur site',u:'h'}],
+    masque:['registre','carteBox','devisXylo','boxes'] },
+
+  'couverture':{ nom:'Couverture / Zinguerie', ic:'🏠', sous:'Toiture · gouttières · étanchéité',
+    types:['Réparation de toiture','Recherche de fuite','Remplacement de tuiles / ardoises','Gouttières & descentes',
+           'Zinguerie','Démoussage & traitement','Étanchéité de toit-terrasse','Fenêtre de toit','Isolation des combles',
+           'Visite technique / devis'],
+    presta:['Mise en sécurité (échafaudage, harnais)','Inspection de la toiture','Remplacement d’éléments de couverture',
+            'Réfection des faîtages','Nettoyage des gouttières','Pose / soudure du zinc','Démoussage',
+            'Application d’hydrofuge','Évacuation des déchets','Nettoyage du chantier'],
+    releves:[{k:'surface',l:'Surface traitée',u:'m²'},{k:'lineaire',l:'Gouttière / zinc posé',u:'ml'},
+             {k:'hauteur',l:'Hauteur de travail',u:'m'},{k:'tps',l:'Temps passé sur site',u:'h'}],
+    masque:['registre','carteBox','devisXylo','boxes'] },
+
+  'multiservices':{ nom:'Multiservices / Maintenance', ic:'🛠️', sous:'Petits travaux · maintenance · contrats',
+    types:['Petits travaux','Maintenance préventive','Dépannage','Plomberie simple','Électricité simple',
+           'Montage / installation','Remplacement de pièce','Contrat de maintenance','Visite technique / devis'],
+    presta:['Diagnostic','Réparation','Remplacement de pièce','Réglage','Montage','Fixation',
+            'Contrôle du bon fonctionnement','Explications au client','Nettoyage du chantier'],
+    releves:[{k:'tps',l:'Temps passé sur site',u:'h'},{k:'materiel',l:'Pièces / matériel fournis',u:'',txt:true}],
+    masque:['registre','carteBox','devisXylo','boxes'] },
+
+  'autre':{ nom:'Autre métier de terrain', ic:'🧰', sous:'Interventions · entretien · dépannage',
+    types:['Intervention','Dépannage','Entretien','Installation','Contrôle / vérification','Réparation',
+           'Contrat d’entretien','Visite technique / devis'],
+    presta:['Diagnostic','Intervention réalisée','Remplacement de pièce','Réglage','Essai et contrôle',
+            'Explications au client','Nettoyage du chantier'],
+    releves:[{k:'tps',l:'Temps passé sur site',u:'h'},{k:'materiel',l:'Matériel utilisé',u:'',txt:true}],
     masque:['registre','carteBox','devisXylo','boxes'] }
 };
-const METIERS_ORDRE=['3d','plomberie','electricite','chauffage','serrurerie','nettoyage'];
+const METIERS_ORDRE=['3d','plomberie','electricite','chauffage','serrurerie','nettoyage','maconnerie','menuiserie','peinture','paysagiste','couverture','multiservices','autre'];
 /* Le pack produits et les fiches fournisseurs appartiennent AU MÉTIER, pas à l'application : ils sont
    rattachés ici plutôt que lus en constantes globales par cataloguePoser. Ce qui change : un métier
    sans pack (plomberie, nettoyage…) n'a ni bouton « ↻ Catalogue OP » ni fiches à poser — c'est la
@@ -8810,11 +8888,38 @@ function metierSet(id){
   if(!currentUser||currentUser.role!=='admin'){ toast('Seul l’administrateur peut changer le métier'); return; }
   const av=metierId(); if(av===id){ toast('C’est déjà ton métier'); return; }
   if(!confirm('Passer l’application en « '+METIERS[id].nom+' » ?\n\nCe qui change : les catégories d’intervention, la fiche de rapport et les modules affichés.\nTes clients, ton planning et tes interventions ne sont pas touchés — tu peux revenir en arrière à tout moment.')) return;
-  db.metier=id; save();
-  /* v751 : `logJournal` n'a jamais existé — la ligne ne s'écrivait pas, en silence (ESLint, vérification de A à Z). */
+  db.metier=id;
+  /* v751 : `logJournal` n'a jamais existé — la ligne ne s'écrivait pas, en silence (ESLint, vérification de A à Z).
+     v765 : et elle s'écrit AVANT le save() — logEvent ne range rien (voir metierServeurAppliquer). */
   try{ logEvent('Métier de l’entreprise',METIERS[id].nom,'admin'); }catch(e){}
+  save();
   toast(METIERS[id].ic+' Métier « '+METIERS[id].nom+' » activé');
   views.parametres();
+}
+/* ⛔ v765 — LE MÉTIER VIENT DE TEAM OP (Justin, 29 septembre 2026 : « je veux que chaque métier qu'on a sur le site,
+   quand ils ont l'application, ça correspond à leur métier ; active tous les packs, pour tous »). Jusqu'à la v764, rien
+   ne le portait jusqu'ici : `db.metier` ne s'écrivait que par `metierSet`, dont les cartes ne s'affichent qu'à l'équipe
+   TEAM OP — toute autre entreprise partait en 3D, un plombier recevait « Dératisation » et le registre sanitaire, et ce
+   que dit « Mon métier » (« choisi lors de ta demande d'application — il est déjà réglé ici ») était faux.
+   Désormais la demande d'accès le demande, la Tour le pose sur l'espace, et /api/espaces/etat le rend à chaque ouverture
+   (`forfaitServeurSync`), par le même chemin que la formule attribuée :
+   · vide ou hors de `METIERS` = « non réglé » : on ne touche à RIEN (ELAN, réglée avant ce chantier, reste en 3D) ;
+   · déjà le bon : rien ne s'écrit — pas de `save()` à chaque ouverture ;
+   · sinon il s'écrit dans la base, comme la formule, pour que toute l'équipe ait le même pack, et le menu se redessine
+     (le métier masque des rubriques). `tests/test-848.js` le joue contre le vrai serveur. */
+function metierServeurAppliquer(j){
+  const m=j&&j.metier;
+  if(!m||typeof m!=='string'||!Object.prototype.hasOwnProperty.call(METIERS,m)||db.metier===m) return false;
+  const av=metierId();
+  /* la ligne de journal AVANT l'enregistrement : logEvent ne range rien, et une ligne écrite après le save() n'existait
+     qu'en mémoire — mesuré au navigateur (scratchpad/sonde-metier-serveur.js) : elle disparaissait au rechargement */
+  db.metier=m;
+  try{ logEvent('Métier de l’entreprise',METIERS[m].nom+' — réglé par TEAM OP','admin'); }catch(e){}
+  save();
+  try{ renderNav(); }catch(e){}
+  try{ if(currentUser&&current&&views[current]) views[current](); }catch(e){}
+  if(av!==m&&currentUser) try{ toast(METIERS[m].ic+' Application réglée pour : '+METIERS[m].nom); }catch(e){}
+  return true;
 }
 /* ── prestations realisees + releves : la fiche metier qui remplace le diagnostic 3D ── */
 function metPrestaToggle(id,lbl){
@@ -13677,9 +13782,13 @@ function avecSousCats(items){ return items.flatMap(it=>[it].concat(SOUS_CATS.fil
 function showAside(){ return localStorage.getItem('elan_aside')==='1'; }
 
 /* Accès d'un module pour un utilisateur donné : surcharge par utilisateur > défaut du rôle */
-/* ═══ FORFAITS (Gratuit / Pro / Business / Business Premium) — l'accès suit la formule choisie ═══ */
+/* ═══ FORMULES (Pro / Business / Business Premium) — l'accès suit la formule payée ═══
+   ⛔ v767 — PLUS DE FORMULE GRATUITE (Justin, 29 septembre 2026 pour le site : « je veux que l'application soit payante
+   directement » ; 30 septembre pour l'application : « si une entreprise ne paye plus, le service est suspendu tant que c'est
+   pas réglé »). Une entreprise qui ne paie pas n'a plus de repli : elle est SUSPENDUE (voir « LA SUSPENSION » plus bas),
+   données conservées. Un « gratuit » resté dans une base d'avant se lit comme Pro, la formule d'entrée (`forfait()`) : il ne
+   décide plus rien, c'est le serveur qui dit, à chaque ouverture, ce qui est payé. */
 const PLANS={
-  gratuit:{l:'Gratuit',prix:'0 €',maxU:1,desc:'1 utilisateur · planning, clients, rapports simples'},
   pro:{l:'Pro',prix:'15 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · rapports complets, récurrences, tournées optimisées, devis & factures'},
   business:{l:'Business',prix:'25 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · + stock & box, bons fournisseurs, boîte mail, réglementaire, compta · votre logo dans l\'application'},
   premium:{l:'Business Premium',prix:'50 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · accès 100 % à toutes les fonctions d\'OP GESTION · service 24h/24 · logo, nom & couleur de votre entreprise'}
@@ -13705,44 +13814,35 @@ function planPlaces(){ if(placesSrvActives()) return _placesSrv;
    (`rappelsEcheances`, serveur), avec le nombre et la somme. ⚠️ Pas pendant une suspension : ce qui grise le forfait
    grise aussi cette largesse. `planPlaces` reste le vrai nombre (la page de paiement et « il manque N abonnements » le
    lisent) : seule la PORTE s'ouvre. */
-function essaiCouvreEquipe(){ const e=db&&db.forfaitEssai; return !!(e&&!e.termine&&e.finLe&&e.finLe>=todayISO()&&!suspensionGrise()); }
+function essaiCouvreEquipe(){ const e=db&&db.forfaitEssai; return !!(e&&!e.termine&&e.finLe&&e.finLe>=todayISO()&&!accesSuspendu()); }
 function planPlaceLibre(){ return essaiCouvreEquipe() || db.users.length<planPlaces(); }
 /* ⛔ PLUS DE PLACE → LA PAGE DE PAIEMENT, POUR CE QUI MANQUE — PAS POUR TOUTE L'ÉQUIPE (v760).
    Justin, 27 septembre 2026 : un abonnement = un utilisateur. La page de paiement compte donc un abonnement par
    personne, et elle ouvre un abonnement NEUF, à côté de ceux qui courent déjà. Préremplir le nombre de PERSONNES
    (`db.users.length+1`) proposait à une équipe de sept qui veut un huitième… huit abonnements de plus.
-   Depuis le forfait Gratuit, c'est l'inverse : on CHANGE de formule, et la place gratuite ne s'ajoute pas à un
-   abonnement payant — toute l'équipe passe en Pro, un abonnement par personne.
-   Trois cas n'ont pas à ouvrir un abonnement neuf, et le faisaient :
+   Deux cas n'ont pas à ouvrir un abonnement neuf, et le faisaient :
    · qui n'est pas administrateur : ce n'est pas à lui d'abonner l'entreprise (« c'est pas aux utilisateurs de
      savoir si l'entreprise paye ou pas ») — on lui dit seulement qu'il n'y a plus de place ;
-   · un abonnement en attente de règlement : un abonnement de plus ne règle pas celui qui est dû (et le serveur
-     tiendrait l'espace pour payé dès qu'UN abonnement vit) — on renvoie à l'espace client, comme le rappel ;
-   · une formule réservée qui attend son paiement : c'est ELLE qu'il faut payer, comme le dit le bandeau.
+   · un abonnement en attente de règlement (ou l'accès suspendu) : un abonnement de plus ne règle pas celui qui est dû
+     (et le serveur tiendrait l'espace pour payé dès qu'UN abonnement vit) — on renvoie à l'espace client, comme le rappel.
    ⚠️ Depuis la v763, les places suivent ce qui est payé chez Stripe (`places` de /api/espaces/etat) : un abonnement de
-   plus donne sa place de lui-même, en quelques minutes (le serveur relit Stripe toutes les cinq). Passer du Gratuit à
-   Pro, en revanche, reste un geste de TEAM OP : c'est la Tour qui pose la formule. */
-function abosManquants(){ return forfait()==='gratuit' ? db.users.length+1 : Math.max(1, db.users.length+1-planPlaces()); }
+   plus donne sa place de lui-même, en quelques minutes (le serveur relit Stripe toutes les cinq). */
+function abosManquants(){ return Math.max(1, db.users.length+1-planPlaces()); }
 function proposerAbonnement(){
   if(!currentUser||currentUser.role!=='admin'){ toast('Plus de place utilisateur libre — seul l\'administrateur peut en ajouter',4500); return; }
-  if(_susp.suspendu){ if(confirm('Abonnement en attente de règlement : règle-le d\'abord, tes places reviennent avec lui.\n\nOuvrir l\'espace client ?')) window.open('https://teamop.fr/espace.html','_blank'); return; }
-  const att=db.formuleAttente;
-  if(att&&PLANS[att.formule]){ if(confirm('Ta formule '+PLANS[att.formule].l+(att.quantite>1?' ×'+att.quantite:'')+' attend son paiement : ses places s\'ouvrent dès qu\'elle est payée.\n\nOuvrir l\'espace client pour la payer ?')) window.open('https://teamop.fr/espace.html','_blank'); return; }
-  const f=forfait(), cible=(f==='gratuit')?'pro':f, n=abosManquants(), u=db.users.length, p=planPlaces(), s=k=>k>1?'s':'';
-  const msg=(f==='gratuit'
-    ? 'Formule Gratuit : 1 place utilisateur, déjà prise.\n\nPour travailler à '+n+', passe en Pro : un abonnement par utilisateur, soit '+n+' abonnements.'
-    : 'Formule '+PLANS[f].l+' : '+u+' utilisateur'+s(u)+' pour '+p+' place'+s(p)+'.\n\nUn abonnement = un utilisateur : pour en ajouter un, il faut '+n+' abonnement'+s(n)+' '+PLANS[f].l+' de plus.')
-    +'\n\nAprès le paiement, '+(f==='gratuit'?'TEAM OP active la formule Pro sur ton espace.':(n>1?'les places s\'ajoutent d\'elles-mêmes':'la place s\'ajoute d\'elle-même')+' à ton espace en quelques minutes (rouvre l\'application).')
+  if(!BETA_ESSAI&&_susp.suspendu){ if(confirm('Abonnement en attente de règlement : règle-le d\'abord, tes places reviennent avec lui.\n\nOuvrir l\'espace client ?')) window.open('https://teamop.fr/espace.html','_blank'); return; }
+  const f=forfait(), n=abosManquants(), u=db.users.length, p=planPlaces(), s=k=>k>1?'s':'';
+  const msg='Formule '+PLANS[f].l+' : '+u+' utilisateur'+s(u)+' pour '+p+' place'+s(p)+'.\n\nUn abonnement = un utilisateur : pour en ajouter un, il faut '+n+' abonnement'+s(n)+' '+PLANS[f].l+' de plus.'
+    +'\n\nAprès le paiement, '+(n>1?'les places s\'ajoutent d\'elles-mêmes':'la place s\'ajoute d\'elle-même')+' à ton espace en quelques minutes (rouvre l\'application).'
     +'\n\nOuvrir la page de paiement ?';
-  if(confirm(msg)) window.open('https://teamop.fr/recap-abonnement.html?formule='+cible+'&utilisateurs='+n,'_blank'); }
+  if(confirm(msg)) window.open('https://teamop.fr/recap-abonnement.html?formule='+f+'&utilisateurs='+n,'_blank'); }
 function setForfaitQty(d){ const q=Math.max(1,(db.forfaitQty||1)+d);
   if(d<0 && db.users.length>(PLANS[forfait()].maxU||1)*q){ toast('Impossible : '+db.users.length+' comptes utilisent les places actuelles'); return; }
   db.forfaitQty=q; logEvent('Abonnements '+PLANS[forfait()].l,'×'+q,'auth'); save(); toast(q+' abonnement(s) — '+planPlaces()+' place(s)'); if(current==='parametres') views.parametres(); }
 const PLAN_BLOQUE={
   premium:[],
   business:[],
-  pro:['produits','stock','mouvements','boxes','conso','saisieConso','produitsDonnes','demandes','histoDemandes','validations','boiteMail','fournisseurs','bons','commandes','brouillon','registre','telecollecte','comptabilite','enveloppes'],
-  gratuit:['produits','stock','mouvements','boxes','conso','saisieConso','produitsDonnes','demandes','histoDemandes','validations','boiteMail','fournisseurs','bons','commandes','brouillon','registre','telecollecte','comptabilite','enveloppes','devis','factures','contrats','devisXylo','archives','carteInt','carteBox','secteurs','taches','absences','statistiques','vehicules','pointage','messagerie','chantiers','modulesElan']
+  pro:['produits','stock','mouvements','boxes','conso','saisieConso','produitsDonnes','demandes','histoDemandes','validations','boiteMail','fournisseurs','bons','commandes','brouillon','registre','telecollecte','comptabilite','enveloppes']
 };
 /* ══ LA SUSPENSION POUR IMPAYÉ ═══════════════════════════════════════════════════════════
    ⛔⛔ CE QUI EXISTAIT AVANT CE BLOC ÉTAIT PIRE QUE RIEN. Mesuré le 22 septembre 2026 sur un
@@ -13766,14 +13866,24 @@ const PLAN_BLOQUE={
 
    ⛔ ET ÇA NE S'ÉCRIT PAS DANS `db`. Un état de FACTURATION n'appartient pas aux données de
    l'entreprise : l'y mettre partirait à la synchro, et surtout `db.forfait` doit rester la
-   formule VRAIE. On ne touche donc jamais `db.forfait` — seul l'effet de `forfait()` change,
-   et le règlement rend tout d'un coup, sans rien recalculer. */
+   formule VRAIE. On ne touche donc jamais `db.forfait` — seul l'accès change, et le règlement
+   rend tout d'un coup, sans rien recalculer.
+
+   ⛔⛔ v767 — IL N'Y A PLUS DE FORFAIT GRATUIT OÙ REVENIR. Justin, 30 septembre 2026 : « si une
+   entreprise ne paye plus, le service est suspendu tant que c'est pas réglé ». Le sursis écoulé
+   ne grise plus les seules catégories payantes : il SUSPEND l'application — le menu reste,
+   GRISÉ (« tous les onglets deviennent gris »), et tout mène à l'écran « Accès suspendu »
+   (`views.suspendu`), sauf les Paramètres, où l'administrateur règle son abonnement. Le serveur
+   sert désormais sous cette forme TOUT ce qui n'est pas payé : période offerte finie sans
+   abonnement, carte refusée, abonnement arrêté, fiche « Gratuit » d'avant. Rien n'est perdu :
+   la synchro continue, les brouillons restent, et le paiement rend tout d'un coup. */
 let _susp = { suspendu:false, sursis:null };
 function suspensionCle(){ try{ return STORE_KEY+'_susp'; }catch(e){ return 'elan_susp'; } }
 function suspensionCharger(){
   try{ const v=JSON.parse(localStorage.getItem(suspensionCle())||'null');
     if(v && typeof v==='object') _susp={ suspendu:!!v.suspendu, sursis:(v.sursis===null||v.sursis===undefined)?null:(+v.sursis||0) };
   }catch(e){}
+  suspensionClasse();
 }
 /* Appelée par la réponse du serveur. ⚠️ `sursisJours` ABSENT (une version de serveur plus
    ancienne) ne veut pas dire « fini » : on ne grise que sur un 0 REÇU. Entre « trop » et
@@ -13783,43 +13893,59 @@ function suspensionPoser(j){
   _susp={ suspendu:!!(j&&j.suspendu),
           sursis:(j && j.sursisJours!==undefined && j.sursisJours!==null) ? (+j.sursisJours||0) : null };
   try{ localStorage.setItem(suspensionCle(), JSON.stringify(_susp)); }catch(e){}
-  if(av!==_susp.suspendu || avs!==_susp.sursis){ try{ renderNav(); }catch(e){} try{ if(current) go(current); }catch(e){} }
+  suspensionClasse();
+  if(av!==_susp.suspendu || avs!==_susp.sursis){ try{ renderNav(); }catch(e){} try{ renderOnglets(); }catch(e){} try{ if(current) go(current); }catch(e){} }
 }
 function suspensionSursis(){ return _susp.sursis; }
-/* Le sursis est ÉCOULÉ : les catégories payantes grisent, et l'espace revient au gratuit. */
+/* Le sursis est ÉCOULÉ. */
 function suspensionGrise(){ return !!_susp.suspendu && _susp.sursis===0; }
+/* ⛔ v767 — L'ACCÈS EST SUSPENDU : tout se grise et mène à l'écran « Accès suspendu », sauf les Paramètres.
+   La bêta n'est jamais suspendue — même raison que `planBloque` : c'est l'outil de travail de l'équipe, et son espace n'a
+   pas d'abonnement (une copie où BETA_ESSAI vaut false éprouve la règle de production : `scratchpad/sonde-suspension.js`). */
+function accesSuspendu(){ return !BETA_ESSAI && suspensionGrise(); }
+function suspensionBloque(k){ return k!=='parametres' && accesSuspendu(); }
+/* La classe qui grise les onglets de la barre du bas : posée sur <html>, qui ne se réécrit jamais (la barre, si). */
+function suspensionClasse(){ try{ document.documentElement.classList.toggle('acces-suspendu', accesSuspendu()); }catch(e){} }
 /* ⛔ UN RAPPEL PAR JOUR, ET SUR LE COMPTE ADMIN SEULEMENT. Justin : « c'est pas aux
    utilisateurs de savoir si l'entreprise paye ou pas ». La marque du jour est un état
    d'APPAREIL, rangée par compte — jamais dans `db`, qui partirait à toute l'équipe. */
 function suspensionRappel(){
   try{
-    if(!_susp.suspendu || !currentUser || currentUser.role!=='admin') return;
+    if(BETA_ESSAI || !_susp.suspendu || !currentUser || currentUser.role!=='admin') return;   // la bêta n'est jamais suspendue
     const cle=suspensionCle()+'_rappel_'+currentUser.id, jour=todayISO();
     if(localStorage.getItem(cle)===jour) return;
     localStorage.setItem(cle,jour);
     const n=_susp.sursis;
     if(n===null) return;
-    if(n>0) toast('⚠️ Abonnement en attente de règlement — il reste '+n+' jour'+(n>1?'s':'')+'. Passé ce délai, les catégories payantes seront grisées et l\'espace reviendra au forfait gratuit. Aucune donnée n\'est perdue.',9000);
-    else toast('⚠️ Abonnement non réglé — les catégories payantes sont grisées et l\'espace est revenu au forfait gratuit. Rien n\'est perdu : tout revient dès le règlement.',9000);
+    if(n>0) toast('⚠️ Abonnement en attente de règlement — il reste '+n+' jour'+(n>1?'s':'')+'. Passé ce délai, l\'accès à l\'application sera suspendu jusqu\'au règlement. Aucune donnée n\'est perdue.',9000);
+    else toast('⚠️ Abonnement non réglé — l\'accès à l\'application est suspendu jusqu\'au règlement. Rien n\'est perdu : tout revient dès le paiement.',9000);
   }catch(e){}
 }
 function forfait(){
   /* ⛔ ON NE TOUCHE PAS `db.forfait` : la formule VRAIE reste celle que le serveur a dite.
-     Seul l'EFFET change, donc le règlement rend tout d'un coup — rien à recalculer, rien à
-     réparer, et aucune écriture dans les données du client pour un motif de facturation. */
-  if(suspensionGrise()) return 'gratuit';
-  return (db&&db.forfait)||'premium'; }   // les espaces existants gardent tout
+     Une suspension ne change plus la formule (v767 — il n'y a plus de Gratuit où revenir) :
+     c'est l'ACCÈS qui se ferme (`accesSuspendu`), et le règlement rend tout d'un coup.
+     ⚠️ Un « gratuit » resté dans une base d'avant la v767 (écrit par l'application quand le serveur
+     disait « pas payé », ou choisi dans les Paramètres) se lit comme Pro : il ne décide plus rien —
+     le serveur dit, à chaque ouverture, ce qui est payé, et suspend ce qui ne l'est pas. */
+  const f=db&&db.forfait;
+  if(!f) return 'premium';   // les espaces existants gardent tout
+  return PLANS[f]?f:'pro'; }
 /* BETA_ESSAI : LA BETA VOIT TOUT, PAR CONSTRUCTION. C'est l'outil de travail de l'equipe —
    une categorie masquee par le FORFAIT ou par le METIER est une categorie qu'on ne peut plus
    eprouver. Mesure le 21 septembre 2026 : « Pointage » avait disparu de la beta pour cette
    seule raison (il est dans PLAN_BLOQUE.gratuit), et personne ne pouvait le tester. Le garde
    est BETA_ESSAI, pose par beta-build.js, et lui seul : en production il vaut false, donc le
    forfait continue de decider chez un client — c'est ce qui est facture. */
-function planBloque(k){ if(BETA_ESSAI) return false; return (PLAN_BLOQUE[forfait()]||[]).includes(k); }
+/* ⛔ v767 — ET LA SUSPENSION PASSE PAR ICI : tout ce qui demande « cette rubrique est-elle ouverte ? » (le menu, la barre,
+   la recherche, les notifications, le bouton « Créer ») la voit fermée, sauf les Paramètres. `horsSusp` : ce que la personne
+   verrait sans la suspension — le menu grisé et la barre du bas le lisent, pour montrer ce qui reviendra au règlement. */
+function planBloque(k,horsSusp){ if(BETA_ESSAI) return false; if(!horsSusp&&suspensionBloque(k)) return true; return (PLAN_BLOQUE[forfait()]||[]).includes(k); }
 function planOpMsg(){ return true; }        // OP MESSAGES : application indépendante — son propre abonnement se gère dans OP MESSAGES
 /* ── CODE PROMO ── on tape le code chez nous (pas sur la page de paiement) :
    la formule s'active pour X mois offerts, sans carte bancaire. Un rappel
-   prévient avant la fin ; passé la date, l'espace repasse en Gratuit. */
+   prévient avant la fin ; passé la date, sans abonnement, l'accès est suspendu
+   jusqu'au règlement (v767 — il n'y a plus de Gratuit). */
 /* Le code saisi sur la page d'abonnement par quelqu'un qui n'avait pas encore d'espace. Il ne
    sert qu'à pré-remplir le champ : il n'active rien, et il s'efface dès qu'un code a été
    appliqué, pour ne pas ressurgir des mois plus tard. */
@@ -13870,28 +13996,36 @@ async function promoAppliquer(codeDirect){
       save(); renderNav();
       try{ suiteRefresh(); }catch(e){}
     }
+    /* ⛔ DEPUIS L'ÉCRAN « ACCÈS SUSPENDU » (« J'ai un code promo ») : le code est pris, le serveur sert désormais la période — on
+       relit l'état AVANT d'annoncer « Code accepté », sinon l'écran restait suspendu sous un message qui dit l'inverse
+       (`relecteur`, 30 septembre 2026, vérifié à l'exécution) */
+    let encoreSusp=false;
+    try{ if(typeof _susp!=='undefined'&&_susp&&_susp.suspendu){ await forfaitServeurSync(true); encoreSusp=accesSuspendu(); } }catch(e){}
+    /* ⛔ … et si la relecture n'a pas rouvert l'accès (réseau, serveur), on le DIT sous l'annonce (seconde relecture de
+       `relecteur`) : « Code accepté » au-dessus d'un écran resté suspendu, c'était l'annonce d'un accès qu'on n'a pas */
+    const noteSusp=encoreSusp?'<p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin:0 0 14px">⏳ L’accès se rouvre dès que le serveur le confirme — touche « J’ai réglé — vérifier » dans un moment.</p>':'';
     openModal(deja
       ?`<div class="modal-head"><h3>🎁 Code déjà actif</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-      <p style="color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:14px">Le code <b>${esc(code)}</b> offre déjà la formule <b style="color:var(--acc-txt)">${PLANS[f].l}</b> à ton entreprise, jusqu'au <b>${fmtShort(j.finLe)}</b>.<br><br>Rien ne change : un code promo ne sert qu'une fois, et il ne se prolonge pas. Avant la fin, un rappel te préviendra pour prendre l'abonnement.</p>
+      <p style="color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:14px">Le code <b>${esc(code)}</b> offre déjà la formule <b style="color:var(--acc-txt)">${PLANS[f].l}</b> à ton entreprise, jusqu'au <b>${fmtShort(j.finLe)}</b>.<br><br>Rien ne change : un code promo ne sert qu'une fois, et il ne se prolonge pas. Avant la fin, un rappel te préviendra pour prendre l'abonnement.</p>${noteSusp}
       <button class="btn" style="width:100%;justify-content:center;padding:13px" onclick="closeModal();if(current==='parametres')views.parametres()">Compris</button>`
       :`<div class="modal-head"><h3>🎉 Code accepté !</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-      <p style="color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:14px">La formule <b style="color:var(--acc-txt)">${PLANS[f].l}</b> est activée pour toute l'équipe : <b>${j.mois} mois offert(s)</b>, jusqu'au <b>${fmtShort(j.finLe)}</b>.<br><br>Aucune carte bancaire n'est enregistrée. Avant la fin, un rappel te préviendra pour prendre l'abonnement et continuer sans coupure.</p>
+      <p style="color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:14px">La formule <b style="color:var(--acc-txt)">${PLANS[f].l}</b> est activée pour toute l'équipe : <b>${j.mois} mois offert(s)</b>, jusqu'au <b>${fmtShort(j.finLe)}</b>.<br><br>Aucune carte bancaire n'est enregistrée. Avant la fin, un rappel te préviendra pour prendre l'abonnement et continuer sans coupure.</p>${noteSusp}
       <button class="btn" style="width:100%;justify-content:center;padding:13px" onclick="closeModal();if(current==='parametres')views.parametres()">C'est parti !</button>`);
   }catch(e){ toast('Le serveur ne répond pas — réessaie'); }
 }
+/* ⛔ v767 — LA FIN D'UNE PÉRIODE OFFERTE NE TOUCHE PLUS `db.forfait`. L'appareil la tenait pour la vérité : il réécrivait
+   la formule au Gratuit (synchronisé chez toute l'équipe) et disait « L'espace est repassé en formule Gratuite » — y compris
+   à une entreprise qui s'était abonnée pendant la période. C'est le SERVEUR qui sait si elle paie : il sert la formule payée,
+   ou la suspension, et l'écran « Accès suspendu » dit alors à l'administrateur que la période est finie. On garde la marque
+   « terminé » (le champ du code promo la lit). Et le rappel des sept jours ne va qu'à l'administrateur : « c'est pas aux
+   utilisateurs de savoir si l'entreprise paye ou pas » (Justin, 20 septembre 2026). */
 function promoEssaiCheck(){ const e=db.forfaitEssai; if(!e||!e.finLe) return;
   const today=todayISO();
-  if(e.finLe<today){
-    if(!e.termine){ e.termine=true; const f=e.formule; db.forfait='gratuit'; save(); renderNav();
-      const cible=(f==='gratuit')?'pro':f;
-      openModal(`<div class="modal-head"><h3>🎁 Ton essai est terminé</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-        <p style="color:var(--t2);font-size:14px;line-height:1.7;margin-bottom:14px">Tes <b>${e.mois} mois offerts</b> en <b>${PLANS[f]?PLANS[f].l:''}</b> se sont terminés le ${fmtShort(e.finLe)}. L'espace est repassé en formule <b>Gratuite</b> — tes données sont intactes.<br><br>Pour retrouver toutes les fonctions, prends l'abonnement — un par utilisateur (2 minutes) :</p>
-        <button class="btn" style="width:100%;justify-content:center;padding:13px;margin-bottom:8px" onclick="window.open('https://teamop.fr/recap-abonnement.html?formule=${cible}&utilisateurs='+db.users.length,'_blank')">Prendre l'abonnement ${PLANS[f]?PLANS[f].l:''}</button>
-        <button class="btn ghost" style="width:100%;justify-content:center" onclick="closeModal()">Plus tard</button>`); }
-    return; }
+  if(e.finLe<today){ if(!e.termine){ e.termine=true; save(); } return; }
+  if(!currentUser||currentUser.role!=='admin') return;
   const rest=Math.ceil((new Date(e.finLe+'T00:00:00')-new Date(today+'T00:00:00'))/86400000);
   e.rappels=e.rappels||{};
-  if(rest<=7&&!e.rappels.j7){ e.rappels.j7=true; save(); toast('🎁 Ton essai '+(PLANS[e.formule]?PLANS[e.formule].l:'')+' se termine dans '+rest+' jour(s) — pense à prendre l\'abonnement (un par utilisateur)'); }
+  if(rest<=7&&!e.rappels.j7){ e.rappels.j7=true; save(); toast('🎁 Ta période offerte '+(PLANS[e.formule]?PLANS[e.formule].l:'')+' se termine dans '+rest+' jour'+(rest>1?'s':'')+' — sans abonnement, l\'accès sera suspendu jusqu\'au règlement (un abonnement par utilisateur).'); }
 }
 /* Formule attribuée par TeamOP depuis la Tour de contrôle : l'espace la reçoit
    tout seul à l'ouverture de l'app (annuaire serveur, par espace). */
@@ -13900,6 +14034,10 @@ async function forfaitServeurSync(silencieux){
   try{
     const r=await fetch(PUSH_API+'/api/espaces/etat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({t})});
     const j=await r.json().catch(()=>({}));
+    /* ⛔ v767 — UNE RÉPONSE QUI N'EN EST PAS UNE NE DÉCIDE RIEN. Une page d'erreur du proxy (502 pendant un redémarrage)
+       se lisait `{}` : `suspensionPoser` en concluait « pas suspendue » et rouvrait l'accès. Toutes les réponses de la
+       route portent `ok:true` — ce qui ne le porte pas n'est pas l'état de l'espace. */
+    if(!r.ok||!j||j.ok!==true) return;
     if(j&&j.ferme){
       /* L'entreprise a été fermée par TeamOP : cet appareil se vide et se déconnecte.
          Il retirait la base sans retirer le drapeau de vidage : au rechargement, le client à
@@ -13920,57 +14058,51 @@ async function forfaitServeurSync(silencieux){
        « return » ci-dessous, et gardait donc la messagerie affichée sans que personne ne l'ait
        ouverte. */
     try{ const av=_opMsgOuvert; _opMsgOuvert=!!(j&&j.opMessages); if(av!==_opMsgOuvert&&currentUser) suiteRefresh(); }catch(e){}
+    /* le métier réglé par TEAM OP : lu AVANT le test sur la formule, comme `opMessages` — une entreprise sans formule
+       attribuée a déjà son métier (`metierServeurAppliquer`) */
+    try{ metierServeurAppliquer(j); }catch(e){}
     /* ⛔ L'ÉTAT DE FACTURATION SE LIT AVANT LE TEST SUR LA FORMULE, pour la même raison
        qu'`opMessages` juste au-dessus : un espace sans formule attribuée sortait par le
-       `return` ci-dessous, et serait resté suspendu sans que rien ne grise jamais. */
-    try{ suspensionPoser(j); suspensionRappel(); }catch(e){}
-    if(!(j&&j.formule&&PLANS[j.formule])){ _placesSrv=null; return; }
+       `return` ci-dessous, et serait resté suspendu sans que rien ne grise jamais.
+       ⛔ v767 — PAS PAYÉ = SUSPENDU, QUELLE QUE SOIT LA FORME. Le serveur d'aujourd'hui sert tout ce qui n'est pas payé
+       sans formule, `suspendu:true` et `sursisJours:0`. Un serveur d'AVANT sert encore la formule avec `paye:false`, ou
+       « gratuit » : l'application y répondait par le bandeau « Paye ton abonnement » à toute l'équipe et `db.forfait` réécrit
+       au Gratuit — elle les lit désormais comme la suspension, sans rien écrire. Et une vérification que le serveur n'a pas
+       pu faire (`verificationImpossible`) ne change RIEN : l'appareil garde ce qu'il savait — dans le doute, on ne coupe
+       pas, et on ne rouvre pas non plus. */
+    const nonPaye=!!(j.formule&&(j.paye!==true||!PLANS[j.formule]));
+    if(!j.verificationImpossible){ try{ suspensionPoser(nonPaye?Object.assign({},j,{suspendu:true,sursisJours:0}):j); suspensionRappel(); }catch(e){} }
+    /* (elle rend VRAI quand l'état a été LU — `suspensionVerifier` le demande : une vérification qui n'a pas eu lieu ne
+       confirme rien) */
+    if(nonPaye||!(j.formule&&PLANS[j.formule])){ _placesSrv=null; return !j.verificationImpossible; }
     const q=Math.max(1,parseInt(j.quantite,10)||1);
-    const placesAv=_placesSrv; _placesSrv=(j.paye&&j.places!=null)?Math.max(1,parseInt(j.places,10)||1):null; _placesSrvF=j.formule;
-    const avaitAttente=!!db.formuleAttente;
-    if(j.paye){
-      db.formuleAttente=null;
-      // code promo activé côté serveur ou depuis le site : l'app l'affiche comme un essai
-      try{ const pm=/code promo (\S+) \(jusqu'au (\d{4}-\d{2}-\d{2})\)/.exec(j.motif||'');
-        if(pm){ const eE=db.forfaitEssai;
-          if(!eE||eE.code!==pm[1]||eE.finLe!==pm[2]){
-            const mois=Math.max(1,Math.round((new Date(pm[2]+'T00:00:00')-Date.now())/2592000000));
-            db.forfaitEssai={code:pm[1],formule:j.formule,debut:todayISO(),finLe:pm[2],mois,rappels:(eE&&eE.rappels)||{}};
-            save(); if(current==='parametres') views.parametres();
-          } } }catch(e){}
-      if(avaitAttente) renderNav();   // enlève les rubriques cadenassées du menu
-      if(db.forfait!==j.formule||(db.forfaitQty||1)!==q){
-        db.forfait=j.formule; db.forfaitQty=q; db.forfaitSrv='teamop';
-        logEvent('Formule débloquée',PLANS[j.formule].l+(q>1?' ×'+q:'')+' — '+(j.motif||''),'auth');
-        save(); renderNav();
-        toast('🎉 '+PLANS[j.formule].l+(q>1?' ×'+q:'')+' débloqué — bonne gestion !');
-      }
-      bandeauFormule();   // enlève le bandeau s'il était là
-    } else {
-      db.formuleAttente={formule:j.formule,quantite:q};
-      // pas payé → l'espace reste (ou repasse) en Découverte tant que la formule réservée n'est pas réglée
-      if((db.forfaitSrv==='teamop'||db.forfait===undefined)&&db.forfait!=='gratuit'){ db.forfait='gratuit'; db.forfaitQty=1; db.forfaitSrv='teamop'; save(); }
-      renderNav();   // fait apparaître (grisées 🔒) les rubriques de la formule réservée
-      bandeauFormule();
-      if(!silencieux&&bandeauFormule._premier===undefined){ bandeauFormule._premier=1; }
+    const placesAv=_placesSrv; _placesSrv=(j.places!=null)?Math.max(1,parseInt(j.places,10)||1):null; _placesSrvF=j.formule;
+    if(db.formuleAttente) db.formuleAttente=null;   // le « formule réservée, pas payée » d'une version d'avant : sans objet
+    // code promo activé côté serveur ou depuis le site : l'app l'affiche comme un essai
+    try{ const pm=/code promo (\S+) \(jusqu'au (\d{4}-\d{2}-\d{2})\)/.exec(j.motif||'');
+      if(pm){ const eE=db.forfaitEssai;
+        if(!eE||eE.code!==pm[1]||eE.finLe!==pm[2]){
+          const mois=Math.max(1,Math.round((new Date(pm[2]+'T00:00:00')-Date.now())/2592000000));
+          db.forfaitEssai={code:pm[1],formule:j.formule,debut:todayISO(),finLe:pm[2],mois,rappels:(eE&&eE.rappels)||{}};
+          save(); if(current==='parametres') views.parametres();
+        } } }catch(e){}
+    if(db.forfait!==j.formule||(db.forfaitQty||1)!==q){
+      db.forfait=j.formule; db.forfaitQty=q; db.forfaitSrv='teamop';
+      logEvent('Formule débloquée',PLANS[j.formule].l+(q>1?' ×'+q:'')+' — '+(j.motif||''),'auth');
+      save(); renderNav();
+      toast('🎉 '+PLANS[j.formule].l+(q>1?' ×'+q:'')+' débloqué — bonne gestion !');
     }
+    try{ const b=document.getElementById('bandeau-formule'); if(b) b.remove(); }catch(e){}   // le bandeau d'une version d'avant
     /* l'écran se redessine APRÈS la formule écrite, pas avant (`gardien`, M2) */
     if(placesAv!==_placesSrv&&(current==='parametres'||current==='utilisateurs')) try{ views[current](); }catch(e){}
+    return true;
   }catch(e){}
 }
-/* Bandeau « paye ton abonnement ou active un code promo » — tant que la formule réservée n'est pas payée */
-function bandeauFormule(){
-  let el=document.getElementById('bandeau-formule');
-  const att=db.formuleAttente;
-  if(!att||!currentUser){ if(el) el.remove(); return; }
-  const nomF=(PLANS[att.formule]||{}).l||att.formule;
-  if(!el){ el=document.createElement('div'); el.id='bandeau-formule'; document.body.appendChild(el); }
-  el.style.cssText='position:fixed;left:12px;right:12px;bottom:14px;z-index:80;background:var(--card);border:1px solid color-mix(in srgb,var(--org) 55%,transparent);border-radius:14px;padding:12px 14px;box-shadow:0 8px 30px rgba(0,0,0,.35);display:flex;gap:10px;align-items:center;flex-wrap:wrap;max-width:560px;margin:0 auto';
-  el.innerHTML='<span style="font-size:20px">💳</span><div style="flex:1;min-width:180px;font-size:13px;line-height:1.5;color:var(--t1)"><b>Ta formule '+esc(nomF)+(att.quantite>1?' ×'+att.quantite:'')+' t\'attend</b><br><span style="color:var(--t3);font-size:12px">Paye ton abonnement ou active un code promo pour tout débloquer.</span></div>'+
-    '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" onclick="window.open(\'https://teamop.fr/espace.html\',\'_blank\')">💳 Payer mon abonnement</button>'+
-    '<button class="btn ghost sm" onclick="this.textContent=\'Vérification…\';forfaitServeurSync().then(()=>{ if(db.formuleAttente){ toast(\'Pas encore de paiement ni de code — réessaie après avoir payé\'); bandeauFormule(); } })">✅ J\'ai payé / code activé</button></div>';
-}
-try{ document.addEventListener('visibilitychange',()=>{ try{ if(document.visibilityState==='visible'&&db&&db.formuleAttente) forfaitServeurSync(true); }catch(e){} }); }catch(e){}
+/* ⛔ v767 — REVENIR SUR L'APPLICATION APRÈS AVOIR PAYÉ ROUVRE L'ACCÈS. L'administrateur règle dans un autre onglet (l'espace
+   client) puis revient : sans ce rappel, l'appareil ne relisait l'état qu'au lancement — la dette notée le 29 septembre 2026
+   (« l'appareil, lui, ne relit qu'au lancement »). Une relecture quand l'application redevient visible, tant qu'elle est
+   suspendue (ou en sursis), et seulement alors : le serveur relit Stripe à la minute pour un impayé. */
+try{ document.addEventListener('visibilitychange',()=>{ try{ if(document.visibilityState==='visible'&&db&&_susp.suspendu) forfaitServeurSync(true); }catch(e){} }); }catch(e){}
 function setForfait(p){ if(!PLANS[p]) return; db.forfait=p; logEvent('Forfait choisi',PLANS[p].l,'auth'); save(); renderNav();
   try{ suiteRefresh(); }catch(e){}
   try{ avatarAccentSync(); }catch(e){}
@@ -13999,7 +14131,7 @@ function moduleReglage(u,k){ if(!u) return null;
   const pr=tableDuRole(u.role);
   if(pr && Object.prototype.hasOwnProperty.call(pr,k)) return {src:'role',v:pr[k]!==false};
   return null; }
-function userSeesModule(u,k){ if(!u) return false; if(planBloque(k)) return false; if(metierBloque(k)) return false; if(u.role==='admin') return true;
+function userSeesModule(u,k,horsSusp){ if(!u) return false; if(planBloque(k,horsSusp)) return false; if(metierBloque(k)) return false; if(u.role==='admin') return true;
   /* ⛔ v753 — « Validations DR » S'OUVRE D'OFFICE DES DEUX CÔTÉS, AVANT tout réglage. Celui qui valide
      (la case « Valider les mouvements… ») y valide ; celui qui attend (soumis à la validation) y suit ses
      mouvements et la décision du DR — le contenu reste filtré : chacun n'y voit que ce qui le concerne
@@ -14604,23 +14736,6 @@ function visibleTechniciens(list){
   if(can('voirEquipe')){ const p=perimetreTechIds(); return (list||[]).filter(t=>t&&(!p||p.has(t.id))); }
   if(!currentUser) return [];
   const tid=myTechId(); return (list||[]).filter(t=>t&&tid&&t.id===tid); }
-/* Formule impayée : les rubriques de la formule réservée restent VISIBLES dans le
-   menu, mais grisées avec un cadenas — on voit ce qu'on récupère en payant. */
-function verrouFormule(item){
-  try{
-    const att=db.formuleAttente; if(!att||!att.formule||!PLANS[att.formule]) return false;
-    if(!planBloque(item.k)) return false;                                  // déjà visible normalement
-    if((PLAN_BLOQUE[att.formule]||[]).includes(item.k)) return false;      // même sa formule ne l'inclut pas
-    const f0=db.forfait; let ok=false;
-    try{ db.forfait=att.formule; ok=canSee(item); } finally { db.forfait=f0; }
-    return ok;
-  }catch(e){ return false; }
-}
-function verrouMessage(){
-  const att=db.formuleAttente||{};
-  toast('🔒 Réservé à ta formule '+((PLANS[att.formule]||{}).l||'')+' — paye ton abonnement (ou active un code promo) pour débloquer');
-  try{ bandeauFormule(); }catch(e){}
-}
 /* ── LA LOUPE DU MENU ────────────────────────────────────────────────────────────────────
    Le menu compte jusqu'à 44 rubriques réparties en huit groupes : sur un écran d'ordinateur il
    faut le parcourir des yeux, et sur un téléphone le faire défiler. Un champ discret en tête
@@ -14952,6 +15067,9 @@ function creerDispo(){
 }
 function creerOuvrir(){
   if(!currentUser) return;
+  /* ⛔ v767 — SUSPENDUE : rien ne se crée ; « Aucune création ouverte à ton compte » était faux et ne menait nulle part
+     (`relecteur`, 30 septembre 2026) — le bouton mène à l'écran qui explique, et où l'administrateur règle */
+  if(typeof accesSuspendu==='function'&&accesSuspendu()){ go('suspendu'); return; }
   const l=creerDispo();
   if(!l.length){ toast('Aucune création ouverte à ton compte'); return; }
   const ov=document.getElementById('creer'); if(!ov) return;
@@ -15010,7 +15128,9 @@ const ONGLETS_DEFAUT=['dashboard','interventions','planning','boxes'];
 const ONGLETS_MAX=4;
 /* Toutes les rubriques que CETTE personne peut voir, à plat, dans l'ordre du menu. */
 function ongletsDispo(){
-  try{ return NAV.flatMap(s=>s.items).filter(it=>canSee(it)); }catch(e){ return []; }
+  /* ⛔ v767 — suspendue, la barre garde ses onglets, grisés (`html.acces-suspendu`) : un toucher mène à l'écran « Accès
+     suspendu ». Sans ça, elle se vidait — ou se remplissait des seuls Paramètres. */
+  try{ const susp=accesSuspendu(); return NAV.flatMap(s=>s.items).filter(it=>canSee(it)||(susp&&!!currentUser&&userSeesModule(currentUser,it.k,true))); }catch(e){ return []; }
 }
 function ongletItem(k){ try{ return NAV.flatMap(s=>s.items).find(x=>x.k===k)||null; }catch(e){ return null; } }
 /* ⛔ ON FILTRE TOUJOURS SUR CE QUE LA PERSONNE PEUT VOIR. Un onglet choisi avant qu'un droit
@@ -15676,11 +15796,14 @@ function favorisBloc(){
   return `<div class="nav-label nav-label-fav"><span>Favoris</span>${bouton}</div>`+lignes+vide;
 }
 function renderNav(){ try{ applyBrand(); }catch(e){}
-  const att=db.formuleAttente;
+  /* ⛔ v767 — SUSPENDUE, L'ENTREPRISE GARDE SON MENU, GRISÉ. Justin, 20 septembre 2026 : « tous les onglets deviennent
+     gris » — on voit tout ce qui revient au règlement, rien n'a disparu. Un toucher mène à l'écran « Accès suspendu »
+     (`go`). Chaque rubrique garde ses règles (droits, formule, métier) : on ne grise que ce que la personne verrait. */
+  const susp=accesSuspendu();
   $('nav').innerHTML = favorisBloc() + NAV.map(sec=>{
     const rows = sec.items.map(it=>{
       if(canSee(it)) return {it,verrou:false};
-      if(att && verrouFormule(it)) return {it,verrou:true};
+      if(susp && currentUser && userSeesModule(currentUser,it.k,true)) return {it,verrou:true};
       return null;
     }).filter(Boolean);
     if(!rows.length) return '';
@@ -15693,8 +15816,11 @@ function renderNav(){ try{ applyBrand(); }catch(e){}
     const repete = rows.some(r=>!r.verrou && t(r.it.l)===t(sec.g));
     const tete = repete ? `<div class="nav-coupe" aria-hidden="true"></div>`
                         : `<div class="nav-label">${esc(t(sec.g))}</div>`;
+    /* ⛔ l'infobulle du 🔒 ne parle de règlement qu'à l'administrateur (seconde relecture de `relecteur`, 30 septembre 2026 :
+       « c'est pas aux utilisateurs de savoir si l'entreprise paye ou pas ») */
+    const verrouTitre=(currentUser&&currentUser.role==='admin')?'Accès suspendu jusqu’au règlement de l’abonnement':'Accès momentanément suspendu';
     return tete + rows.map(r=> r.verrou
-      ? `<div class="nav-item nav-verrou" style="opacity:.38;cursor:not-allowed" title="Réservé à ta formule ${esc((PLANS[att.formule]||{}).l||'')} — en attente de paiement" onclick="verrouMessage()"><span class="ico" style="--cat-j:#636366;--cat-n:#8E8E93">🔒</span>${esc(t(r.it.l))}</div>`
+      ? `<div class="nav-item nav-verrou" style="opacity:.38" title="${verrouTitre}" onclick="go('${r.it.k}')"><span class="ico" style="--cat-j:#636366;--cat-n:#8E8E93">🔒</span>${esc(t(r.it.l))}</div>`
       : `<div class="nav-item${multiEnCours(r.it.k)?' nav-encours':''}" data-view="${r.it.k}" onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${r.it.k}','_blank');return;}go('${r.it.k}')" onauxclick="if(event.button===1)window.open('app.html#v=${r.it.k}','_blank')">${r.it.ic?`<span class="ico" style="${catVars(r.it.k)}">${r.it.ic}</span>`:''}${esc(t(r.it.l))}${multiEnCours(r.it.k)?' <span class="multi-pt" title="Tu as quelque chose en cours ici"></span>':''}${r.it.b?` <span class="badge" data-badge="${r.it.b}">0</span>`:''}${_favEdit?favorisEtoile(r.it.k):''}</div>`
     ).join('');
   }).join('');
@@ -15900,16 +16026,76 @@ const VUES_RETIREES={audit:'historique', permissions:'utilisateurs', chantiers:'
    allumée, aucun onglet sous la bulle — on ne voyait plus où l'on était. Le menu, la barre du
    bas et le glissement de page la lisent tous les trois. */
 const VUE_PARENT=Object.fromEntries(SOUS_CATS.map(s=>[s.k,s.parent]));
+/* ⛔ v767 — L'ÉCRAN « ACCÈS SUSPENDU ». Justin, 30 septembre 2026 : « si une entreprise ne paye plus, le service est suspendu
+   tant que c'est pas réglé » ; 20 septembre : « rien n'est perdu », et « c'est pas aux utilisateurs de savoir si l'entreprise
+   paye ou pas. Que le compte admin ». L'administrateur y lit pourquoi et règle ; les autres lisent seulement que l'accès est
+   suspendu et que leur administrateur est prévenu — pas un mot de paiement. */
+views.suspendu=function(){
+  if(!accesSuspendu()){ go('dashboard'); return; }
+  const admin=!!currentUser&&currentUser.role==='admin';
+  setHeader('Accès suspendu',admin?'Abonnement à régler':'Momentanément indisponible');
+  const e=db.forfaitEssai, finie=!!(e&&e.finLe&&e.finLe<todayISO());
+  const pourquoi=finie
+    ? `Ta période offerte${e.code?` (code <b>${esc(e.code)}</b>)`:''} s’est terminée le <b>${fmtShort(e.finLe)}</b>, et aucun abonnement n’a pris le relais.`
+    : 'L’abonnement d’OP GESTION de ton entreprise n’est pas réglé.';
+  const formules=Object.keys(PLANS).map(k=>`${esc(PLANS[k].l)} · ${esc(PLANS[k].prix)}`).join('<br>');
+  $('content').innerHTML=`<div class="card susp-carte" style="max-width:620px;margin:0 auto">
+    <div style="font-size:34px;line-height:1;margin-bottom:12px" aria-hidden="true">⏸</div>
+    <h3 style="margin:0 0 10px;font-size:20px">L’accès à OP GESTION est suspendu</h3>
+    ${admin?`<p style="color:var(--t2);font-size:14.5px;line-height:1.65;margin:0 0 10px">${pourquoi}</p>
+      <p style="color:var(--t2);font-size:14.5px;line-height:1.65;margin:0 0 16px"><b>Tes données sont conservées</b> — clients, interventions, planning, stock : rien n’est perdu. Tout revient dès le règlement, pour toute l’équipe.</p>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <button class="btn" style="justify-content:center;padding:13px" onclick="window.open('https://teamop.fr/espace.html','_blank')">💳 Régler mon abonnement</button>
+        <button class="btn ghost" style="justify-content:center" onclick="suspensionVerifier(this)">↻ J’ai réglé — vérifier</button>
+        <button class="btn ghost" style="justify-content:center" onclick="go('parametres')">🎁 J’ai un code promo</button>
+      </div>
+      <p style="color:var(--t3);font-size:12.5px;line-height:1.6;margin:14px 0 0">Un abonnement par utilisateur, prix TTC par mois :<br>${formules}</p>`
+    :`<p style="color:var(--t2);font-size:14.5px;line-height:1.65;margin:0 0 16px">L’accès à l’application est suspendu pour le moment. <b>Ton administrateur peut le rétablir depuis son application.</b> Ton travail est conservé : tout revient dès que l’accès est rétabli.</p>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <button class="btn" style="justify-content:center;padding:13px" onclick="suspensionVerifier(this)">↻ Réessayer</button>
+        <button class="btn ghost" style="justify-content:center" onclick="go('parametres')">⚙️ Mes réglages</button>
+      </div>`}
+  </div>`;
+};
+/* « J'ai réglé » : on redemande l'état au serveur (il relit Stripe à la minute pour un impayé). S'il rouvre, `suspensionPoser`
+   ramène l'écran d'où l'on vient ; sinon on le dit — un bouton qui ne répond rien fait taper dix fois. */
+async function suspensionVerifier(btn){
+  let html='';
+  try{ if(btn){ html=btn.innerHTML; btn.disabled=true; btn.textContent='Vérification…'; } }catch(e){}
+  try{
+    let lu=false; try{ lu=await forfaitServeurSync(true); }catch(e){}
+    if(accesSuspendu()){
+      /* ⛔ une vérification qui n'a pas pu se faire (hors ligne, serveur ou Stripe injoignable) ne CONFIRME rien : on ne dit
+         pas « le règlement n'est pas arrivé » sur une réponse qu'on n'a pas eue (`relecteur`, 30 septembre 2026) */
+      toast(!lu?'Vérification impossible pour l’instant (réseau ou serveur) — réessaie dans un moment.'
+        :(currentUser&&currentUser.role==='admin'?'Toujours suspendu : le règlement n’est pas encore arrivé. Réessaie dans une minute.':'L’accès est toujours suspendu.'),5000);
+      try{ if(current==='suspendu') views.suspendu(); }catch(e){}
+    }
+  }finally{
+    /* ⛔ LE BOUTON SE REND TOUJOURS (seconde relecture de `relecteur`, 30 septembre 2026). Touché depuis la carte des
+       Paramètres, rien ne repeignait l'écran : il restait grisé sur « Vérification… », et il fallait quitter la page pour
+       réessayer. Un écran redessiné entre-temps l'a remplacé : celui-là n'est plus dans la page, on n'y touche pas.
+       ⚠️ Son HTML, pas son texte : le « ↻ » y est devenu un <svg> (`icones()`), que `textContent` ne contient pas — rendu par
+       le texte, le bouton revenait sans son icône (troisième relecture de `relecteur`). */
+    try{ if(btn&&btn.isConnected){ btn.disabled=false; btn.innerHTML=html; } }catch(e){}
+  }
+}
 function go(view){
   /* ⛔ LA CAPTURE PASSE AVANT TOUT : dès que current a changé, ce qu'on quittait est perdu. */
   try{ multiCapturer(); }catch(e){}
   if(!views[view] && VUES_RETIREES[view]) view=VUES_RETIREES[view];
   if(!views[view]) view='dashboard';
+  /* ⛔ v767 — SUSPENDUE : toute rubrique mène à l'écran « Accès suspendu », sauf les Paramètres (l'administrateur y règle
+     son abonnement, chacun y garde ses réglages et sa déconnexion). Le tableau de bord compris : la garde ci-dessous ne le
+     regarde jamais. AVANT elle, aussi : son « réglable dans Permissions » serait faux ici. Et l'écran s'efface de lui-même
+     quand l'accès revient (une adresse #v=suspendu restée, un rechargement après paiement). */
+  if(accesSuspendu()){ if(view!=='parametres') view='suspendu'; }
+  else if(view==='suspendu') view='dashboard';
   _ecranRendu=null;   // on quitte le détail pour une rubrique : plus rien à redessiner
   try{ usageNote(view); }catch(e){}
   // garde d'accès : une vue qu'on n'a pas le droit de voir (menu, rôle, forfait)
   // n'est pas atteignable non plus en tapant l'adresse à la main
-  if(view!=='dashboard'&&currentUser){ try{
+  if(view!=='dashboard'&&view!=='suspendu'&&currentUser){ try{
     const cible=(view==='carteBox'||VUE_PARENT[view]==='boxes')?'boxes':view;   // la carte des box et les sous-catégories suivent les droits des box
     let item=null; NAV.forEach(s=>s.items.forEach(it=>{ if(it.k===cible) item=it; }));
     /* … et une sous-catégorie a AUSSI ses propres droits : « Produits donnés » est fermé au
@@ -20965,11 +21151,11 @@ function applyBrand(){ const img=$('brand-logo'), nm=$('brand-name'), sub=$('bra
 /* Écusson à afficher sur l'avatar : logo de l'entreprise si elle en a un (Business / Premium), sinon logo du forfait */
 function brandBadgeSrc(){ try{ const E=(db&&db.entreprise)||{}, f=forfait(); if(['business','premium'].includes(f)&&E.logo) return E.logo; return PLAN_BADGE[f]||'icons/plan-gestion.png'; }catch(e){ return 'icons/plan-gestion.png'; } }
 /* Identifiant court de l'écusson actuel — sert à savoir si les avatars doivent être régénérés */
-function brandBadgeKey(){ try{ const E=(db&&db.entreprise)||{}, f=forfait(); return (['business','premium'].includes(f)&&E.logo)?('ent-'+E.logo.length):f; }catch(e){ return 'gratuit'; } }
+function brandBadgeKey(){ try{ const E=(db&&db.entreprise)||{}, f=forfait(); return (['business','premium'].includes(f)&&E.logo)?('ent-'+E.logo.length):f; }catch(e){ return 'pro'; } }
 /* 🎖️ Logo du forfait dans la barre latérale — prouve l'abonnement actif ;
    si l'entreprise a son propre logo (Business / Business Premium), c'est lui qui s'affiche à la place */
-const PLAN_BADGE={gratuit:'icons/plan-gestion.png',pro:'icons/plan-gestion-pro.png',business:'icons/plan-gestion-business.png',premium:'icons/plan-gestion-premium.png'};
-const PLAN_COLOR={gratuit:'#93a9d4',pro:'#4a9b7f',business:'#3b82f6',premium:'#a78bfa'};
+const PLAN_BADGE={pro:'icons/plan-gestion-pro.png',business:'icons/plan-gestion-business.png',premium:'icons/plan-gestion-premium.png'};
+const PLAN_COLOR={pro:'#4a9b7f',business:'#3b82f6',premium:'#a78bfa'};
 /* Couleur choisie par l'entreprise — valable uniquement avec le forfait Business Premium */
 function entCouleur(){ try{ const E=(db&&db.entreprise)||{}; return (forfait()==='premium'&&/^#[0-9a-fA-F]{6}$/.test(E.couleur||''))?E.couleur:null; }catch(e){ return null; } }
 function entCouleurSet(hex){ if(!/^#[0-9a-fA-F]{6}$/.test(hex)) return; db.entreprise=db.entreprise||{}; db.entreprise.couleur=hex;
@@ -34139,11 +34325,17 @@ views.parametres=function(){
   if(currentUser.role!=='admin'){ $('content').innerHTML=_app+`<div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;padding:14px 16px"><span style="color:var(--t2);font-size:13.5px">Version installée</span><b class="mono">v${APP_VERSION}</b></div><div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;padding:14px 16px;gap:10px"><span style="color:var(--t2);font-size:13.5px">Session</span><button class="btn danger sm" onclick="if(confirm('Se déconnecter ?')) logout()">⏻ Déconnexion</button></div>`; return; }
   $('content').innerHTML=_app+`
     <div class="card"><div class="card-head"><h3>💳 Forfait de l'espace</h3></div>
-      <p style="color:var(--t2);font-size:13.5px;margin-bottom:12px">La formule choisie s'applique à toute l'équipe : les menus non inclus disparaissent de l'application. <span style="color:var(--t3)">(La facturation arrive bientôt — le choix est libre pour l'instant.)</span></p>
-      ${Object.entries(PLANS).map(([k,p])=>`<div class="pl-row" onclick="setForfait('${k}')" style="border-left:3px solid ${forfait()===k?'var(--acc)':'transparent'}">
+      ${accesSuspendu()?`<div style="margin-bottom:12px;background:color-mix(in srgb,var(--org) 12%,transparent);border:1px solid color-mix(in srgb,var(--org) 40%,transparent);border-radius:12px;padding:11px 13px;font-size:13.5px;line-height:1.55">⏸ <b>Accès suspendu</b> — l'abonnement n'est pas réglé. Tes données sont conservées ; tout revient dès le paiement.
+        <div style="margin-top:9px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" onclick="window.open('https://teamop.fr/espace.html','_blank')">💳 Régler mon abonnement</button><button class="btn ghost sm" onclick="suspensionVerifier(this)">↻ J'ai réglé — vérifier</button></div></div>`:''}
+      ${/* ⛔ v767 — LA FORMULE VIENT DE L'ABONNEMENT, ELLE NE SE CHOISIT PLUS ICI. Cette carte disait « La facturation arrive
+           bientôt — le choix est libre pour l'instant » : la facturation est là, et le serveur réécrit à chaque ouverture la
+           formule payée — un choix fait ici ne durait que jusqu'à la suivante. On la MONTRE ; on en change en payant la neuve
+           (l'espace client), et la bêta de l'équipe TEAM OP garde le choix libre, pour éprouver chaque formule. */''}
+      <p style="color:var(--t2);font-size:13.5px;margin-bottom:12px">${equipeTeamOP()?'La formule choisie s\'applique à toute l\'équipe : les menus non inclus disparaissent de l\'application. <span style="color:var(--t3)">(Équipe TEAM OP : le choix est libre, pour les essais.)</span>':'Ta formule vient de ton abonnement et s\'applique à toute l\'équipe. Pour en changer, prends la nouvelle depuis ton <a href="https://teamop.fr/espace.html" target="_blank" rel="noopener">espace client</a> : l\'application suit ce qui est payé.'}</p>
+      ${Object.entries(PLANS).map(([k,p])=>`<div class="pl-row"${equipeTeamOP()?` onclick="setForfait('${k}')"`:''} style="border-left:3px solid ${forfait()===k?'var(--acc)':'transparent'}${equipeTeamOP()?'':';cursor:default'}">
         <div class="pl-info"><div class="pl-title">${forfait()===k?'✓ ':''}${p.l} <span style="color:var(--t3);font-weight:400;font-size:12px">· ${p.prix}</span></div>
         <div class="pl-meta">${p.desc}</div></div>
-        ${forfait()===k?'<span class="st st-green">Actif</span>':'<span style="color:var(--t3)">Choisir ›</span>'}</div>`).join('')}
+        ${forfait()===k?(accesSuspendu()?'<span class="st st-org">Suspendue</span>':'<span class="st st-green">Active</span>'):(equipeTeamOP()?'<span style="color:var(--t3)">Choisir ›</span>':'')}</div>`).join('')}
       ${db.forfaitEssai&&!db.forfaitEssai.termine?`<div style="margin-top:10px;background:color-mix(in srgb,var(--acc) 10%,transparent);border:1px solid color-mix(in srgb,var(--acc) 35%,transparent);border-radius:12px;padding:11px 13px;font-size:13px;line-height:1.5">🎁 <b>${db.forfaitEssai.mois} mois offert(s)</b> (code ${esc(db.forfaitEssai.code)}) — ${PLANS[db.forfaitEssai.formule]?PLANS[db.forfaitEssai.formule].l:''} actif jusqu'au <b>${fmtShort(db.forfaitEssai.finLe)}</b>, sans carte enregistrée. Un rappel te préviendra avant la fin.</div>`:''}
       <div class="fgroup" style="margin-top:10px"><div class="frow"><span class="frow-lbl">🎁 Code promo</span><div class="frow-val" style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
         ${db.forfaitEssai&&!db.forfaitEssai.termine
@@ -34187,12 +34379,12 @@ views.parametres=function(){
       <p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:10px">OP GESTION s'installe comme une <b>vraie application</b> (icône, plein écran, hors-ligne) sur <b>iPhone, Android, Mac et Windows</b>.</p>
       <button class="btn" onclick="installApp()">Installer / voir comment</button>
       <div style="font-size:13px;color:var(--t3);margin-top:10px;line-height:1.6">${installInstructions()}</div></div>`}
-    ${currentUser.role==='admin'?`<div class="card"><div class="card-head"><h3>Synchronisation temps réel (équipe)</h3>${syncEnabled()?`<span class="tag" style="background:color-mix(in srgb,var(--acc) 18%,transparent);color:var(--acc-txt)">● ${_syncOn?'Connecté':'Activée'}</span>`:'<span class="tag" style="background:rgba(239,68,68,.15);color:var(--red)">Désactivée</span>'}</div>
-      ${syncEnabled()?`<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:10px">✅ <b>Tout est synchronisé en temps réel</b> entre tous les appareils de l'équipe. <b>Rien à configurer</b> — chaque personne est reliée automatiquement au cloud dès qu'elle ouvre l'app.</p>
+    ${currentUser.role==='admin'?`<div class="card"><div class="card-head"><h3>Synchronisation de l'équipe</h3>${syncEnabled()?`<span class="tag" style="background:color-mix(in srgb,var(--acc) 18%,transparent);color:var(--acc-txt)">● ${_syncOn?'Connecté':'Activée'}</span>`:'<span class="tag" style="background:rgba(239,68,68,.15);color:var(--red)">Désactivée</span>'}</div>
+      ${syncEnabled()?`<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:10px">✅ <b>Tout se synchronise en quelques secondes</b> entre tous les appareils de l'équipe. <b>Rien à configurer</b> — chaque personne est reliée automatiquement au cloud dès qu'elle ouvre l'app.</p>
       <p style="font-size:12.5px;color:var(--t3);margin-bottom:10px">Sur un nouvel appareil : ouvrir l'app + <b>Forcer la mise à jour</b>, et c'est relié.</p>
       <div style="margin:14px 0;padding:14px;border:1px solid var(--brd);border-radius:14px;background:color-mix(in srgb,var(--acc) 6%,transparent)">
-        <div style="font-weight:700;margin-bottom:6px">Chiffrement de bout en bout</div>
-        <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:10px">Toutes les données envoyées dans le cloud sont <b>chiffrées (AES-256)</b>. Sans la clé d'équipe, elles sont <b>illisibles</b>, même par quelqu'un qui aurait accès au serveur. La clé est dans le <b>lien de connexion</b> de ton entreprise : il n'y a rien à taper ni à noter.</p>
+        <div style="font-weight:700;margin-bottom:6px">Chiffrement sur l'appareil</div>
+        <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:10px">Toutes les données partent <b>chiffrées (AES-256)</b> depuis l'appareil, avant l'envoi. Chaque entreprise a <b>sa propre clé</b> : elle est dans le <b>lien de connexion</b> de ton entreprise, il n'y a rien à taper ni à noter.</p>
       </div>
       <button class="btn ghost" onclick="syncDisable()">Désactiver sur cet appareil</button>`
       :`<p style="color:var(--t2);font-size:14px;line-height:1.6;margin-bottom:10px">La synchro est <b>désactivée sur cet appareil</b> (les données restent locales).</p>
@@ -34264,8 +34456,8 @@ views.parametres=function(){
       ${['business','premium'].includes(forfait())?`
       <div class="form-sec">🏷️ Marque dans l'application <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--acc-txt)">— inclus avec ton forfait</span></div>
       ${forfait()==='premium'
-        ?`<p style="color:var(--t2);font-size:12.5px;line-height:1.55;margin-bottom:10px">Business Premium : ton <b>logo</b>, le <b>nom de ton entreprise</b> et ta <b>couleur</b> (thème de couleur) s'appliquent à l'application pour toute l'équipe.</p>`
-        :`<p style="color:var(--t2);font-size:12.5px;line-height:1.55;margin-bottom:10px">Business : ton <b>logo</b> s'affiche en haut de la barre latérale pour toute l'équipe. Le <b>nom d'entreprise</b> et la <b>couleur</b> dans l'application sont réservés au <b>Business Premium</b>.</p>`}
+        ?`<p style="color:var(--t2);font-size:12.5px;line-height:1.55;margin-bottom:10px">Business Premium : ton <b>logo</b> et ta <b>couleur</b> (thème de couleur) s'appliquent à l'application pour toute l'équipe.</p>`
+        :`<p style="color:var(--t2);font-size:12.5px;line-height:1.55;margin-bottom:10px">Business : ton <b>logo</b> s'affiche en haut de la barre latérale pour toute l'équipe. La <b>couleur</b> de l'entreprise dans l'application est réservée au <b>Business Premium</b>.</p>`}
       <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px">
         <span style="width:52px;height:52px;border-radius:14px;flex-shrink:0;border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--bg2)">${E.logo?`<img src="${E.logo}" style="width:100%;height:100%;object-fit:cover">`:'<span style="font-size:20px">🏷️</span>'}</span>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -34283,7 +34475,7 @@ views.parametres=function(){
         </div>
       </div>
       <p style="font-size:12px;color:var(--t3);margin:0 0 10px">La couleur de l'entreprise devient le <b>thème de couleur</b> de toute l'équipe (contours, boutons, sélections). Chaque utilisateur peut toujours choisir une couleur perso dans ses Paramètres.</p>`:''}`
-      :`<div class="detail-desc" style="margin-top:10px">🏷️ <b>Personnalisation</b> : avec <b>Business</b>, ton logo en haut de l'application — avec <b>Business Premium</b>, logo + nom d'entreprise + couleur (thème de couleur). Avec Gratuit et Pro, l'interface reste standard.</div>`}
+      :`<div class="detail-desc" style="margin-top:10px">🏷️ <b>Personnalisation</b> : avec <b>Business</b>, ton logo en haut de l'application — avec <b>Business Premium</b>, logo + nom d'entreprise + couleur (thème de couleur). Avec Pro, l'interface reste standard.</div>`}
       <button class="btn" onclick="entSave()">Enregistrer</button>
     </div>`; })():''}
     ${(()=>{ return `<div class="card"><div class="card-head"><h3>✉️ Mes envois</h3></div>
@@ -37238,15 +37430,41 @@ function envoiDoc(kind,id,canal){ if(!permGarde('ventes','modifier',kind==='devi
 
 /* ═══════════════ CONTRATS DE MAINTENANCE ═══════════════ */
 const CTR_ST={actif:{l:'Actif',c:'st-green'},suspendu:{l:'Suspendu',c:'st-org'},expire:{l:'Expiré',c:'st-red'}};
+/* ⛔ RAPPELS D'ÉCHÉANCE DES CONTRATS — Justin, 29 septembre 2026 : « rappels d'échéance, ça il faudra le faire ». Le
+   site les promettait (page Métiers), l'application ne les faisait pas. Un contrat ACTIF dont la date de fin tombe dans
+   les CTR_RAPPEL_J jours — ou est déjà passée — se signale : un bandeau en tête de l'écran Contrats, une pastille sur sa
+   ligne, et une ligne dans la cloche de qui peut le RENOUVELER (changer sa date de fin, c'est modifier une vente).
+   Trois règles :
+   · tout se CALCULE à l'affichage, rien ne s'écrit (« ouvrir un écran n'écrit pas ») : le statut ne passe pas tout
+     seul à « Expiré » — c'est un geste, par le ✎ ;
+   · UNE liste pour l'écran et pour la cloche (ctrRappels, sur visibleDocs comme l'écran) : la cloche ne nomme que ce
+     que l'écran montre ;
+   · la cloche se lit aux CASES — voir le module Contrats (userSeesModule : formule et métier compris) et modifier une
+     vente —, jamais au nom du rôle. Son identifiant porte la date de fin : un contrat renouvelé repart à zéro.
+   Un contrat sans statut (fiche d'avant le champ) compte pour actif ; sans date de fin, il n'a pas d'échéance. */
+const CTR_RAPPEL_J=30;
+function ctrEcheance(ct,auj){ if(!ct||(ct.statut||'actif')!=='actif'||!/^\d{4}-\d{2}-\d{2}$/.test(ct.dateFin||'')) return null;
+  const j=Math.round((new Date(ct.dateFin+'T00:00:00')-new Date((auj||todayISO())+'T00:00:00'))/86400000);
+  return j<=CTR_RAPPEL_J?j:null; }
+function ctrRappels(auj){ return visibleDocs(db.contrats||[]).map(ct=>({ct,j:ctrEcheance(ct,auj)})).filter(x=>x.j!==null).sort((a,b)=>a.j-b.j); }
+function ctrEcheanceTexte(j){ return j<0?'terminé depuis '+(-j)+' j':j===0?'se termine aujourd’hui':'se termine dans '+j+' j'; }
+function ctrPastille(j){ if(j==null) return ''; return ` <span class="st ${j<0?'st-red':'st-org'}" style="white-space:nowrap">${j<0?'Échu':j===0?'Fin aujourd’hui':'Fin dans '+j+' j'}</span>`; }
+function ctrBandeau(ech,cMod){ if(!ech.length) return ''; const n=ech.length;
+  return `<div class="card ctr-echeances" style="border:1px solid var(--org);background:color-mix(in srgb,var(--org) 8%,transparent);padding:12px;margin-bottom:12px">
+    <div style="font-weight:700;color:var(--t1)">⏰ ${n} contrat${n>1?'s':''} à renouveler</div>
+    <div style="font-size:13px;color:var(--t2);margin:4px 0 6px">La date de fin arrive dans les ${CTR_RAPPEL_J} jours, ou elle est passée : renouvelez en changeant la date de fin, ou passez le contrat en « Expiré ».</div>
+    ${ech.map(({ct,j})=>`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--brd)"><div style="flex:1 1 220px;min-width:0;color:var(--t1)"><b>${esc(ct.num)}</b> · ${esc(ct.titre)}${ct.clientId?' — '+esc(clientName(ct.clientId)):''}<div style="font-size:12.5px;color:var(--t2)">${ctrEcheanceTexte(j)} (${fmtShort(ct.dateFin)})</div></div>${cMod?`<button class="btn ghost sm" onclick="formContrat('${ct.id}')">✎ Mettre à jour</button>`:''}</div>`).join('')}
+  </div>`; }
 const FREQ={mensuel:'Mensuel',trimestriel:'Trimestriel',semestriel:'Semestriel',annuel:'Annuel'};
 views.contrats=function(){
   const list=[...visibleDocs(db.contrats)].sort((a,b)=>(b.dateDebut||'').localeCompare(a.dateDebut||''));
   /* v738 (relecture) : chaque bouton lit la case que SA fonction lit — comme Devis et Factures */
   const cAj=canCat('ventes','ajouter'), cMod=canCat('ventes','modifier'), cSup=canCat('ventes','supprimer'), iAj=canCat('int','ajouter');
+  const ech=ctrRappels(), echDe=new Map(ech.map(x=>[x.ct.id,x.j]));   // les rappels d'échéance (ctrEcheance)
   setHeader('Contrats','Contrats de maintenance & récurrents',cAj?`<button class="btn" onclick="formContrat()">＋ Contrat</button>`:'');
-  const rows=list.map(ct=>`<tr><td class="strong mono">${esc(ct.num)}</td><td class="strong">${esc(ct.titre)}</td><td>${esc(clientName(ct.clientId))}</td><td>${FREQ[ct.frequence]||'—'}</td><td>${eur(ct.montant)}</td><td>${fmtShort(ct.dateDebut)} → ${fmtShort(ct.dateFin)}</td><td>${badge(CTR_ST,ct.statut)}</td>
+  const rows=list.map(ct=>`<tr data-ctr="${esc(ct.id)}"><td class="strong mono">${esc(ct.num)}</td><td class="strong">${esc(ct.titre)}</td><td>${esc(clientName(ct.clientId))}</td><td>${FREQ[ct.frequence]||'—'}</td><td>${eur(ct.montant)}</td><td>${fmtShort(ct.dateDebut)} → ${fmtShort(ct.dateFin)}${ctrPastille(echDe.get(ct.id))}</td><td>${badge(CTR_ST,ct.statut)}</td>
     <td style="text-align:right;white-space:nowrap">${iAj?`<button class="btn sm" title="Générer la prochaine intervention" onclick="genererInterventionContrat('${ct.id}')">🔁</button> `:''}${cMod?`<button class="btn ghost sm" onclick="formContrat('${ct.id}')">✎</button> `:''}${cSup?`<button class="btn danger sm" onclick="delItem('contrats','${ct.id}')">🗑</button>`:''}</td></tr>`).join('');
-  $('content').innerHTML=`<div class="card" style="background:color-mix(in srgb,var(--acc) 7%,transparent);border-color:color-mix(in srgb,var(--acc) 30%,transparent)"><div style="font-size:13px;color:var(--t2)">Le bouton <b>Générer</b> crée automatiquement la prochaine intervention planifiée selon la fréquence du contrat.</div></div>
+  $('content').innerHTML=`${ctrBandeau(ech,cMod)}<div class="card" style="background:color-mix(in srgb,var(--acc) 7%,transparent);border-color:color-mix(in srgb,var(--acc) 30%,transparent)"><div style="font-size:13px;color:var(--t2)">Le bouton <b>Générer</b> crée automatiquement la prochaine intervention planifiée selon la fréquence du contrat.</div></div>
     ${list.length? tableCard(['N°','Intitulé','Client','Fréquence','Montant','Période','Statut',''],rows):`<div class="card">${emptyState('📑','Aucun contrat.',cAj?'Créer':'',cAj?'formContrat()':'')}</div>`}`;
 };
 function ctrFreqDays(f){ return {mensuel:30,trimestriel:91,semestriel:182,annuel:365}[f]||30; }   // contrats (minuscules) — distinct de freqDays des box
@@ -38669,6 +38887,13 @@ function computeNotifs(){ const out=[]; const today=todayISO(); if(!currentUser)
       const bx=b.boxId?(db.boxes||[]).find(x=>x.id===b.boxId):null;
       out.push({id:'bonarr:'+b.id,ic:'📥',txt:`Bon <b>${esc(bonNum(b))}</b> réceptionné${b.recuPar?' par <b>'+esc(b.recuPar)+'</b>':''} — <b>en attente de ta validation</b>${bx?' · '+esc(bx.nom||bx.numero||''):''}`,act:"go('validations');cible('mvt','"+(((db.boxMvtAttente||[]).find(function(x){return x.bcId===b.id&&x.statut==='enAttente';})||{}).id||"")+"')"}); });
   }
+  /* Les rappels d'échéance des contrats (ctrEcheance) : à qui peut les RENOUVELER — voir le module Contrats, formule
+     et métier compris (userSeesModule ; notifVoitModule ouvre tout à l'administrateur, même sur une formule qui grise
+     l'écran), et modifier une vente. La liste est celle de l'écran. Pas d'horodatage, comme le stock bas : c'est un
+     ÉTAT, pas un évènement — le tri, stable, garde l'ordre de ctrRappels, le plus urgent en tête. */
+  if(userSeesModule(currentUser,'contrats')&&canCat('ventes','modifier')) ctrRappels(today).forEach(({ct,j})=>out.push({id:'ctrech:'+ct.id+':'+ct.dateFin,
+    ic:'📑',txt:`<b>${j<0?'Contrat échu':'Contrat à renouveler'}</b> — ${esc(ct.num)}${ct.clientId?' · '+esc(clientName(ct.clientId)):''} : ${ctrEcheanceTexte(j)}`,
+    act:"go('contrats');cible('ctr','"+ct.id+"')"}));
   // élague les éléments « vus » qui n'existent plus
   const ids=new Set(out.map(n=>n.id)); let ch=false; for(const id of [...notifSeen.keys()]) if(!ids.has(id)){ notifSeen.delete(id); ch=true; } if(ch) saveNotifSeen();
   /* Une notification LUE disparaît immédiatement ; les nouvelles restent, les plus récentes
@@ -39628,7 +39853,7 @@ function enterApp(u){ currentUser=u;
   setTimeout(()=>{ try{ ordresVerifier(); }catch(e){} },3200);          // suppressions ordonnées depuis la Tour
   try{ if(!navigator.onLine) horsLigneDebut('démarrage'); }catch(e){}
   setTimeout(()=>{ try{ lienLisibleCharger(); }catch(e){} },3000);     // le lien de connexion de l'annuaire, pour la fiche d'accès et Paramètres
-  setTimeout(()=>{ try{ bandeauFormule(); }catch(e){} },1500); }
+}
 /* TEST/DÉMO — ajoute une fois une télécollecte d'exemple si aucune n'existe, pour voir le rendu en Comptabilité. À retirer plus tard. */
 function maybeDemoTelecollecte(){ return; if(!currentUser) return;
   if(localStorage.getItem('elan_demo_tele')) return; localStorage.setItem('elan_demo_tele','1');
@@ -40984,7 +41209,7 @@ function syncNow(){
      On dit ce qu'on fait, et c'est l'accusé de réception qui dira que c'est fait. */
   if(_syncOn){ _pushManuel=true; syncPush(true); toast('Envoi à l\'équipe…',1800); }
   else if(typeof syncEnabled==='function' && syncEnabled()){ _syncEnCours=false; try{updateSyncBtn();}catch(e){} syncInit().then(()=>toast('Reconnexion à l\'équipe…')); }
-  else { _syncEnCours=false; try{updateSyncBtn();}catch(e){} toast('Active la synchro temps réel dans Paramètres'); go('parametres'); }
+  else { _syncEnCours=false; try{updateSyncBtn();}catch(e){} toast('Active la synchro dans Paramètres'); go('parametres'); }
   /* ⚠️ FILET : syncPush() a six portes de sortie silencieuses (version bloquée, nuage
      illisible, hors ligne, écran de connexion, premier instantané non reçu, application en
      cours). Aucune ne rappellera jamais updateSyncBtn. Sans ce filet, le bouton tournerait

@@ -5,8 +5,9 @@ tools: Read, Edit, Grep, Glob, Bash
 # Modèle et effort choisis pour cet agent, pour ne pas faire tourner Opus sur tout.
 #   Seul agent où c'est justifié : juger si un mouvement, un espacement, une hiérarchie
 #   "sonnent juste" est un jugement de goût, pas un contrôle mécanique. Les trois autres
-#   agents constatent ou suivent un rituel écrit ; celui-ci décide. Opus, effort haut.
-model: opus
+#   agents constatent ou suivent un rituel écrit ; celui-ci décide. Effort haut.
+#   ⛔ Justin, 30 septembre 2026 : « passe tous les agents en sonnet » — Sonnet ici aussi ; l'effort garde le jugement.
+model: sonnet
 effort: high
 ---
 

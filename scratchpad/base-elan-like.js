@@ -69,7 +69,7 @@ const journal = Array.from({ length: 500 }, (_, i) => ({
 
 const users = Array.from({ length: 14 }, (_, i) => ({
   id: 'u' + i, prenom: 'Prénom' + i, nom: 'Nom' + i, login: 'u' + i,
-  role: i === 0 ? 'admin' : pick(['tech', 'dr', 'tech', 'tech']), actif: true, pinHash: '',
+  role: i === 0 ? 'admin' : pick(['technicien', 'dr', 'technicien', 'technicien']), actif: true, pinHash: '',
 }));
 
 const devis = Array.from({ length: 40 }, (_, i) => ({ id: 'd' + i, num: 'DEV-2026-' + (100 + i), clientId: 'c' + tir(80),
@@ -81,7 +81,7 @@ const factures = Array.from({ length: 60 }, (_, i) => ({ id: 'f' + i, num: 'FAC-
 const bons = Array.from({ length: 50 }, (_, i) => ({ id: 'bo' + i, num: 'BC-2026-' + (100 + i), fournisseur: 'f' + tir(5),
   date: new Date(J - tir(150) * 86400000).toISOString().slice(0, 10), lignes: Array.from({ length: 2 + tir(8) }, () => ({ produit: 'p' + tir(220), qte: 1 + tir(20) })) }));
 const fournisseurs = Array.from({ length: 5 }, (_, i) => ({ id: 'f' + i, nom: 'Fournisseur ' + i, email: 'info' + i + '@ex.fr', notes: phrase(18) }));
-const techniciens = users.filter(u => u.role === 'tech').map(u => ({ id: 't' + u.id, nom: u.prenom + ' ' + u.nom, userId: u.id }));
+const techniciens = users.filter(u => u.role === 'technicien').map(u => ({ id: 't' + u.id, nom: u.prenom + ' ' + u.nom, userId: u.id }));
 
 const db = { users, clients, produits, boxes, interventions, mouvements, journal, devis, factures, bons,
   fournisseurs, techniciens, enveloppes: [], vehicules: [], demandes: [], contrats: [], pointages: [],

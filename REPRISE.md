@@ -13,6 +13,1006 @@ de ligne du tout.
 
 ---
 
+# ✅ 30 SEPTEMBRE 2026, NUIT — TROIS RELECTURES DU SERVEUR AVANT « POUSSE » : TOUT CE QUI A ÉTÉ REJOUÉ EST CORRIGÉ (`test-849`)
+
+Promise avant d'envoyer le serveur : des relectures adverses (chaque constat reproduit sur le vrai serveur, PUIS attaqué par
+un second agent, tous en Sonnet depuis la consigne de Justin). Elles ont rejoué le serveur neuf contre celui de `main` sur des
+annuaires d'AVANT. Corrigé sur la branche (`3b94e44`, `f23a0e2`, `dd5e232`, `2cd51cb`, puis `b01fdf6` pour la dernière) :
+
+| | le défaut, rejoué | le correctif |
+|---|---|---|
+| A | registre des codes illisible + un code sur la fiche + carte refusée : Business Premium « payé », et la page de paiement vendait un SECOND abonnement | l'impayé que Stripe dit passe avant le doute du registre — ⚠️ seulement s'il est SÛREMENT le sien : l'impayé sans référence d'une voisine d'adresse ne suspend pas une entreprise dont la période court peut-être |
+| B | un « annulé »/« suspendu »/« impayé » d'avant resté sur un ANCIEN nom suspendait l'entreprise qui paie sous le nom récent | un réglage négatif ne remonte que du nom le plus récent (la Tour d'aujourd'hui l'écrit sur tous les noms) ; « abonnée depuis » est gardée comme un fait |
+| C | entreprise renommée payée par un abonnement gravé à l'ANCIEN nom d'accès, ou trouvé par l'adresse de l'ancien nom : suspendue | `espaceStripeDans` cherche aussi par ses autres noms et leurs adresses — jamais une adresse qu'une autre entreprise porte (`aUneAutre`), jamais un abonnement gravé à l'IDENTIFIANT d'une autre entreprise vivante (`tAutre` : la sœur qui a changé d'adresse), et « partagée » se décide abonnement par abonnement (`partageeDe`) |
+| D | « repartir à neuf » pendant une période offerte (ELAN comprise) : suspendue | `renaitre` pose la marque du geste (`renait` : quand, les voisines déjà là, le rappel J-7 déjà envoyé) ; la route « lien » reprend la période sous le NOUVEL identifiant — à la CRÉATION seulement (« Revoir le lien » d'une entreprise existante ne la prend pas), une seule fois, jamais une voisine |
+| D bis | supprimer TOTALEMENT une voisine d'adresse effaçait la période d'une entreprise VIVANTE, ou sa mémoire d'un code déjà servi (le code redevenait neuf) | `promoCles` ne prend ni l'utilisation d'un identifiant vivant, ni celle dont l'adresse est portée par une autre entreprise vivante |
+| E | fiche SANS formule payée par un tarif illisible : servie Pro | Business Premium (Pro reste pour une fiche « Gratuit ») |
+| F · G | le métier posé sur un ancien nom n'atteignait pas l'application ; son journal portait le nom d'accès | écrit sur tous les noms ; le journal porte l'identifiant |
+| H | pendant une panne Stripe, la Tour écrivait « payé » là où le serveur dit « on ne sait pas » | `inconnu` dans la liste et la fiche ; la Tour dit « paiement non vérifiable pour l'instant » |
+
+Preuves : `test-849` **70 ✓** (neuf vrais serveurs : registre lisible, tronqué, Stripe muet, « repartir à neuf » et
+suppressions par les vraies routes de la Tour, le rappel J-7 après redémarrage) ; sur le serveur d'avant la dernière relecture
+(`c78b936`), **15 ✗** ; **15/15 mutations** de la dernière relecture mordent (`scratchpad/mutations-849d.py`), après 23/23 et
+16/16 aux précédentes ; liste serveur **50 suites · 3 413 vérifications** ; suite de la branche **204 suites · 12 010
+vérifications, code 0** (avant `b01fdf6` — relancée avant l'envoi).
+
+Laissé tel quel, et pourquoi :
+- **Deux entreprises à la MÊME adresse partagent la mémoire des codes** (limite écrite en tête des codes promo) : la voisine qui
+  PRÉSENTE le code d'une autre reçoit sa période (`promoPresente`). La relecture l'a rejoué ; c'est le modèle « l'adresse,
+  c'est l'entreprise » — le changer est une décision de produit. Ne pas créer deux entreprises à la même adresse.
+- **Une entreprise à DEUX noms qui repart à neuf sur un seul nom** : l'ancien identifiant vit encore (l'autre nom) et garde la
+  période ; la recréée naît suspendue. Joué et voulu dans `test-849` — retirer d'abord l'autre nom.
+- **Les périodes d'entreprises reparties à neuf AVANT ce déploiement** n'ont pas la marque du geste : elles ne se reprennent pas
+  seules. Remède : réappliquer le même code dans la Tour (même échéance, rien ne se recompte).
+- **« repartir à neuf » d'une entreprise réglée à la main** (virement, « actif ») : le réglage part avec l'ancienne entrée —
+  c'est le sens du geste ; le patron le repose.
+- **Une Tour v2.75 restée ouverte** refuserait « Accepter » d'une demande « Gratuit » (400, sans perte) : la v2.78 part dans
+  le même envoi — **recharger la Tour après la mise en ligne**.
+- **La v763** dit « revenu au forfait gratuit » à l'administrateur d'une entreprise suspendue : transitoire, la v767 part
+  juste après.
+
+# ✅ 30 SEPTEMBRE 2026 — LE SITE EST EN SERVICE (`e9ab8d0` sur `main`) — L'APPLICATION, LA TOUR ET LE SERVEUR ATTENDENT « POUSSE »
+
+Justin : « tu pourra mettre le site a jour ». Parti sur `main` : le SITE seul (pages de la racine, portail `espace.html`,
+page de paiement, connexion, pages juridiques, `sitemap.xml`, image de partage, générateur et bancs du site). **Rien de
+`server/`** (pas de déploiement du VPS), ni `app.html`/`sw.js` (la v763 reste servie), ni `tour.html`, ni `.github/`.
+Ce qui est en ligne : plus de Gratuit nulle part sur le site, 7 pages par fonction ou métier, portail sans « Découverte »
+avec le métier demandé (le relais du serveur en service le garde tel quel), CGV « suspendu jusqu'au règlement », anciennes
+copies d'aperçu et maquette `apercu/site-apple.html` retirées.
+
+⛔ **UN PACK « PRÊT » SUR LE SITE EST UN PACK QUE L'APPLICATION SERVIE CONNAÎT** (`72c370d`, `1f87384`) : le générateur
+lit `METIERS_ORDRE` dans `app.html`. En ligne aujourd'hui (v763) : **6 packs prêts, 6 « bientôt »**, pas de carte
+« Autre métier ». ⚠️ **Publier l'application (v766 et plus), c'est AUSSI régénérer le site** (`node scripts/site-marine.js`
+et `--racine`) dans le même commit : sinon le site promet moins que l'application, et `test-835` §8 tombe — c'est voulu.
+Même mécanique pour Gratuit : `test-835` §3 tolère « gratuit » dans l'application seulement avant la v767.
+
+Preuves (copie de `main` avant l'envoi) : suite complète **201 suites · 11 694 vérifications, code 0** ; syntaxe 39 pages ;
+les sept scripts de « Vérification des pages » et `verif-secrets.sh`, code 0 ; mutations du générateur sous une application
+à 6 packs : 3 sur 4 mordent, la 4ᵉ est équivalente (le compte « 12 » n'est écrit que quand l'application porte les 12).
+⚠️ Trouvé en relisant la liste avant l'envoi : trois fichiers de `.github/` de la branche s'étaient glissés dans la copie
+(surveillance, `ci.yml`, `deploiement.yml`) — remis à l'état de `main`, les 9 bancs qui les lisent relancés, verts.
+**Une mise en ligne du site se fabrique par liste de fichiers relue**, jamais par « tout le diff sauf… ».
+Vérifié en ligne après GitHub Pages : **25 pages sur 25 servies octet pour octet**, `sitemap.xml` et l'image de partage aussi ;
+`apercu/site-apple.html`, `apercu/index.html`, `apercu/tarifs.html` → 404 ; `app.html` et `tour.html` servis inchangés.
+
+---
+
+# ⏳ 30 SEPTEMBRE 2026, SOIR — UNE ENTREPRISE SANS FORMULE EST SUSPENDUE AUSSI ; UNE ENTREPRISE, UNE FACTURATION ; L'ANCIENNE MAQUETTE DU SITE SUPPRIMÉE — ATTEND « POUSSE »
+
+Justin, aux deux questions restées ouvertes plus bas (A3 et la maquette) :
+- **A3** (« une fiche SANS formule dans l'annuaire garde tout l'accès — les suspendre aussi ? ») : **« Suspend »**.
+- **La maquette** : « Bah pour le site on garde la maquette qu'on a à l'heure actuelle, l'ancienne tu peux les supprimer oui ».
+
+**Sur la branche, rien sur `main`** : `d8a0ece` (serveur + Tour), `cfcf3fa`, `1995fc3`, `87cfd22`, `ead95af` (bancs),
+`f340a62` (mutations), `c00f7df` (maquette), `4afd8b0` (CLAUDE) ; puis la relecture de `gardien` : `479fecf`, `f9d5cc5`,
+`2cf0604` (serveur et bancs), `9f23d0b` (mutations), puis ce fichier et `CLAUDE.md`.
+
+1. **Une fiche sans formule suit le chemin de l'ancienne fiche « Gratuit »** (`ficheSansFormule`, UNE définition, lue par
+   `espacePaye`, `impayeBloque`, `aboManuelDe`, `aboEchuMotif`, `gratuitPayeIllisible` et le rappel J-7) :
+   · une période offerte ou un abonnement la servent (les codes promo n'y touchent pas — période en cours : la formule du
+     code, Business Premium par défaut) ; sa carte refusée : l'impayé ; rien de payé : **suspendue** ; un doute (Stripe
+     illisible, liste périmée, registre des codes illisible) : rien n'est décidé ;
+   · son motif commence par « aucune formule posée dans la Tour — … » : l'horloge de conservation y lit « jamais abonnée » ;
+   · « Mon espace » dit « Suspendu » quand l'application l'est ; le rappel J-7 la juge sur Stripe (déjà abonnée : « prend le
+     relais », sans lien vers un second abonnement) ;
+   · ⚠️ **seule une entreprise ABSENTE de l'annuaire garde l'ancienne réponse** (ni formule ni suspension) : un annuaire
+     illisible au démarrage rendrait tout le monde inconnu, et les suspendre couperait toutes les entreprises d'un coup ;
+   · **Tour (v2.78, non publiée)** : la fiche d'une entreprise sans formule dit « application suspendue (rien de payé ni
+     offert) » et comment l'ouvrir ; le groupe « Mes espaces d'essai » et l'accès à la version publique le disent aussi
+     (« ⏸ Application suspendue » sur la ligne).
+   · **trouvé par la simulation « serveur seul »** : `test-796` jouait la frontière suspension / fermeture sur des fiches
+     SANS formule — qui recevaient tout l'accès. Ses entreprises paient désormais (réglées « actif » à la main), comme celles
+     que la Tour suspend vraiment (`87cfd22`) ; `test-735` pareil (`479fecf`).
+
+2. **La relecture de `gardien` a trouvé deux entreprises qui PAIENT et que ce changement suspendait — rejouées, corrigées ;
+   et leurs bancs en ont trouvé deux autres :**
+   · **une entrée d'AVANT dont l'identifiant ne vit que dans le code** (pas de `t` en clair) : la période offerte le lisait en
+     clair — suspendue en pleine période offerte, datée « jamais abonnée », pendant que le rappel J-7 lui promettait « rien
+     n'est prélevé avant… ». `espacePaye` pose l'identifiant depuis le code ;
+   · **le rattrapage d'un code promo en attente** (validé avant la règle, jamais compté) était placé APRÈS la branche « sans
+     formule / Gratuit », « réservé aux fiches payantes » : une entreprise sans formule dont le code valable attendait était
+     suspendue — contre « ceux qui ont un code promotionnel … ne sont pas impactés ». Il passe avant, conditions inchangées ;
+   · **une entreprise à PLUSIEURS NOMS** (renommée : « Code espace collé », `tourEspaceDe`) : le nom le plus récent est celui
+     que l'application lit, et la route qui l'inscrivait le reportait depuis le même nom — vide : né sans formule ni
+     abonnement réglé à la main, l'entreprise payée par virement était SUSPENDUE. Et la Tour, la page de paiement et
+     l'horloge de conservation lisaient chacune un nom différent ;
+   · **→ « une entreprise, une facturation »** (`facturationDe`) : la formule (et son nombre) et l'abonnement réglé à la main
+     se lisent par GROUPE, chacun sur le nom le plus récent qui le porte — par l'application, « Mon espace », le rappel J-7,
+     la liste et la fiche de la Tour, l'horloge de conservation et la page de paiement. Quand la Tour règle la formule ou
+     l'abonnement sur un nom, elle part de la facturation de l'entreprise et l'écrit sur TOUS ses noms (sinon régler la
+     formule du nom récent perdait l'abonnement réglé sur l'ancien : suspendue ; et un réglage sur l'ancien nom ne changeait
+     rien). Un nom neuf reprend la fiche de l'entreprise ; un code appliqué ne fait pas descendre une entreprise dont un
+     autre nom porte mieux. **Aucune réparation à faire sur le VPS** : les annuaires d'avant se lisent justes tels quels.
+
+3. **L'ancienne maquette supprimée** (`c00f7df`) : `apercu/site-apple.html` et son banc `test-756`, plus les anciennes copies
+   d'aperçu du site à l'ANCIEN dessin (`apercu/index`, `applications`, `creer`, `elan`, `opmessages`, `pourquoi`, `metiers`,
+   `tarifs`, et `fond-anime-teamop.js` qu'elles seules chargeaient) — elles montraient encore la formule Gratuit, aucune page
+   ne les liait. Restent : le site en service (racine), son aperçu (`apercu/site/`), les aperçus du portail et de la Tour.
+   ⚠️ `test-839` est dans la liste du serveur, qui tourne contre les pages de `main` : là, ces pages existent jusqu'à la mise en
+   ligne — il leur demande la phrase tant qu'elles sont servies, pas leur absence (`ead95af`).
+
+**⚠️ À SAVOIR AVANT « POUSSE » (en plus de la liste plus bas)** :
+- dès le serveur en ligne, **toute fiche SANS formule qui n'a ni période offerte ni abonnement est SUSPENDUE** — y compris les
+  espaces que TEAM OP s'est ouverts depuis la Tour (« Accès à la version publique », « Mes espaces d'essai »). À regarder dans
+  la Tour avant de pousser : pour garder un espace d'essai ouvert, sa fiche → Abonnement → une formule et « En essai » avec
+  une date de fin. ⚠️ La Tour de PRODUCTION ne peut pas montrer lesquelles le seront : c'est le serveur neuf qui décide ;
+- la limite A2 (deux entreprises à la même adresse) s'étend aux fiches sans formule : une fiche sans formule à l'adresse
+  d'une autre qui paie, avec un abonnement d'avant la bascule sans référence, est suspendue (dans le doute, on ne prête pas
+  l'abonnement d'une autre) ;
+- l'application EN SERVICE (v763) lit la forme suspendue sans rien écrire ; une fiche sans formule PAYÉE par Stripe lui
+  arrive désormais avec une formule : la v763 réécrit alors `db.forfait` (et affiche « débloqué ») — c'est le comportement
+  d'une fiche payée, voulu ;
+- `npm audit --omit=dev` dans `server/` : 3 vulnérabilités dont 1 HAUTE (`nodemailer`, `mailparser`) — sans rapport avec
+  ce chantier, à traiter à part (mise à jour des dépendances, avec ses bancs).
+
+**Preuves** : **91/91 mutations mordent** (`scratchpad/mutations-suspension.py`, dont la série B : identifiant d'avant, rattrapage, une entreprise à plusieurs noms — B2 seule est neutre, expliquée) ; `test-761` 81 ✓, `test-842` 112 ✓, `test-845` 92 ✓, `test-727` 226 ✓, `test-735` 248 ✓ ; simulation « serveur seul » contre les pages de `main` : **49 suites · 3 336 vérifications**, code 0 ; suite complète : **203 suites · 11 948 vérifications**, code 0 (9f23d0b).
+⚠️ **La seconde relecture de `gardien` sur ces correctifs n'a pas pu se faire** (limite d'utilisation atteinte, puis arrêtée pour économiser — Justin : « fini bien et vite sans trop consommer ») : à relancer avant « pousse » (`git diff 4afd8b0..HEAD -- server/`).
+
+
+---
+
+# ⏳ 30 SEPTEMBRE 2026 — UN PACK POUR CHAQUE MÉTIER (BÊTA v766, TOUR v2.78) ; PLUS DE FORMULE GRATUITE NULLE PART : CE QUI N'EST PAS PAYÉ EST SUSPENDU JUSQU'AU RÈGLEMENT (BÊTA v767) — ATTEND « POUSSE »
+
+Justin, dans l'ordre :
+- **Packs** : « 1 oui fait se qu'il faut » → un pack pour chacun des métiers du site qui n'en avaient pas.
+- **Impayé** : « 2 si une entreprise ne payent plu le servisse sont suppendu ok tant que c'st pas réglé ».
+- **Codes promo** : « Les code promotionnel non rien à voir avec le forfait gratuit donc se qui on un code promotionnel qui
+  correspond en un forfait payant il sont pas impacter ».
+- **Point 3** (la maquette `apercu/site-apple.html`) : « j'ai pas compris » → réexpliqué simplement (une ancienne ébauche du
+  site, encore joignable par son adresse, qu'aucune page ne lie), question posée : « Je la supprime ? » → **oui, le soir : supprimée**
+  (section du dessus).
+
+**Sur la branche, rien sur `main`** — packs : `f05d90e`, `5fb4062`, `2f8fcfa` ; suspension : `7ea5837`, `4f11e02`,
+`7a2ea58`, `0178125`, puis les relectures `77a7f6d`, `c8dba73`, `4db9bfa`, `4d4e9fc`, la seconde `cbbd3d5` et la troisième
+`2a8b4fa`, `f8355fd`.
+
+1. **Un pack pour chaque métier** (bêta v766, Tour v2.78) : maçonnerie, menuiserie, peinture, espaces verts, couverture,
+   multiservices et « Autre métier de terrain » — types d'intervention, prestations et relevés à eux, aucun mot de nuisibles,
+   et les quatre modules du 3D masqués (registre, carte des box, devis xylophage, box). Les quatre listes (application,
+   serveur, Tour, portail) portent les mêmes treize métiers, dans le même ordre. Preuves : `test-848`, 14/14 mutations
+   (`scratchpad/mutations-packs-metier.py`), sonde `scratchpad/sonde-packs-metier.js` 154 ✓ (contre-épreuve sur la v765 : 4 ✗).
+
+2. **Plus de formule Gratuit : une entreprise qui ne paie pas est SUSPENDUE jusqu'au règlement** (bêta v767) :
+   · **serveur** : `/api/espaces/etat` sert TOUT ce qui n'est pas payé sous la forme de la suspension — sans formule,
+     `suspendu:true`, `sursisJours:0`, motif public « accès suspendu ». La forme « formule + `paye:false` » n'est plus jamais
+     servie. La règle vit à UN endroit, `accesSuspenduPar(p, f)` (bloqué, non payé, ou formule que l'application ne connaît
+     pas), lue aussi par « Mon espace » (`formuleServieDe`) : les deux disent « suspendu » exactement ensemble.
+     ⛔ **Les sept jours de sursis d'une suspension posée DANS LA TOUR (20 septembre) ne servent qu'une entreprise que la
+     facturation dit PAYÉE** (un virement qui n'arrive pas) ; à qui ne paie déjà pas, aucun jour — la v763 la grisait sur-le-
+     champ, un sursis lui aurait rouvert tout pendant une semaine (`4f11e02`, `test-761`).
+     Une fiche « Gratuit » d'avant ne paie rien d'elle-même : période offerte, Stripe, sinon suspendue ; OP MESSAGES seul ne
+     paie pas OP GESTION. La Tour ne peut plus poser « Gratuit » (les deux routes le refusent, avec la raison). Courriels :
+     « l'accès sera suspendu jusqu'au règlement — vos données sont conservées ».
+   · **trouvé en chemin, et corrigé** : « Revoir le lien de connexion » reconstruisait la fiche et PERDAIT l'abonnement réglé
+     à la main (`aboStatut`, sa fin, `aboDepuis`, `formuleDepuis`) — une entreprise payée par virement aurait été suspendue
+     par un simple geste de la Tour ; une période offerte dont le code a quitté la configuration servait « gratuit » (donc,
+     désormais, une suspension en pleine période) → sa fiche, ou Business Premium.
+   · **application (bêta v767)** : plus de Gratuit dans `PLANS` ; un « gratuit » resté dans une base d'avant se lit Pro ; la
+     facturation n'écrit plus jamais `db.forfait` (le bandeau « Paye ton abonnement » est retiré). Sursis écoulé = **accès
+     suspendu** : menu grisé (🔒), onglets du bas grisés, toute rubrique mène à l'écran « Accès suspendu » — l'administrateur
+     y lit pourquoi et règle (« Régler mon abonnement », « J'ai réglé — vérifier », « J'ai un code promo ») ; les autres lisent
+     seulement que leur administrateur peut rétablir l'accès. **Les Paramètres restent ouverts.** Revenir sur l'application relit l'état
+     tant qu'elle est suspendue (la dette « l'appareil ne relit qu'au lancement » du 29 septembre). **La bêta n'est jamais
+     suspendue** (son espace n'a pas d'abonnement).
+   · **Tour, portail, mentions légales** : plus de formule Gratuit à choisir ni à afficher ; « Sans formule », « ⏸ Suspendue
+     jusqu'au paiement ».
+
+3. **Les relectures (`gardien`, `relecteur`) — corrigé** (`77a7f6d`, `c8dba73`, `4db9bfa`) :
+   · ⛔ **dans le doute, on ne coupe pas** : Stripe illisible (la clé posée, aucune liste jamais lue) ou registre des codes
+     illisible → `payeInconnu` : l'application reçoit `verificationImpossible` (elle garde ce qu'elle savait, n'écrit rien),
+     « Mon espace » ne dit rien (l'horloge de conservation comptait alors « payé » : corrigé à la seconde relecture, point 4).
+     Avant : « rien de payé », donc une entreprise qui paie suspendue à la première panne de Stripe ;
+   · ⛔ **un réglage fait à la main dans la Tour ne décide que tant qu'il court** : `aboManuelDe(e, jour)` — un « actif » ou
+     « essai » échu ne décide plus (la Tour lit « abonnement terminé le … » dans le motif) ; le rappel J-7 et la facturation
+     différée le jugent au lendemain de la fin de la période (`jourApres(finLe)`), le jour où `espacePaye` décidera ;
+   · une fiche « Gratuit » payée par un abonnement d'OP GESTION SÛREMENT à elle mais illisible reçoit la formule de ses
+     tarifs connus (`formuleGratuitIllisible`, Pro à défaut) — pas « Pro » d'office pour un Business Premium d'avant ;
+   · « Revoir le lien » : la garde « ce nom est à une autre entreprise » lit l'identifiant d'une entrée d'AVANT dans son code
+     (`espaceT(prev)`), sinon l'autre héritait de son abonnement réglé à la main (409) ;
+   · application : « ＋ Créer » pendant la suspension mène à l'écran « Accès suspendu » (il disait « Aucune création ouverte à
+     ton compte ») ; « J'ai réglé — vérifier » dit « Vérification impossible pour l'instant » quand il n'a pas pu lire l'état
+     (`forfaitServeurSync` rend désormais VRAI quand l'état a été lu) ; un code promo tapé depuis l'écran suspendu relit
+     l'état AVANT d'annoncer « Code accepté » ; textes de la Tour (courriel de bienvenue, panneau).
+
+4. **La seconde relecture (`gardien`, `relecteur`) — corrigé** (`cbbd3d5`) :
+   · ⛔ **l'horloge de conservation ne lit plus un doute** : elle comptait « payé » une entreprise qu'on ne sait pas lire —
+     donc elle EFFAÇAIT la date d'une entreprise qui ne paie pas, à chaque panne de Stripe (rejoué dans `test-761`, second
+     serveur au Stripe muet : la date d'« ent-rien » reste, celle du témoin réglé à la main se lève) ;
+   · ⛔ **une liste Stripe PÉRIMÉE ne dit plus qui ne paie pas** : la relecture a échoué, la dernière liste connue sert encore
+     à servir qui y paie ; mais une entreprise qui a payé DEPUIS n'y est pas — elle était suspendue sans sursis. Son absence
+     est désormais un doute. ⚠️ **Décision assumée** : un impayé LU dans cette liste bloque encore — Stripe l'a dit, et la page
+     de paiement relit la facture en direct avant d'y envoyer ; en faire un doute rouvrirait l'achat d'un SECOND abonnement ;
+   · une liste **TRONQUÉE** au plafond de dix pages jette au lieu de servir (les plus anciens abonnés en disparaissaient) ;
+   · **Stripe illisible se voit** : `stripeEchecMin` dans `/health` et `/api/monitor/sante`, la surveillance crie à
+     90 minutes (« personne n'est suspendu, mais une entreprise qui vient de payer reste suspendue ») ;
+   · le doute du registre des codes sert la formule du CODE (une fiche Pro en période Business Premium retombait en Pro) ;
+   · « Mon espace » dit « Suspendu » quand la Tour a suspendu une entreprise payée et que ses sept jours sont passés ;
+   · ⛔ **le motif public ne nomme plus personne** : pour une entreprise payée, `/api/espaces/etat` ne garde que « code promo X
+     (jusqu'au D) » (ce que l'application lit) — le nom de la personne de la Tour qui a réglé l'abonnement, le chemin Stripe,
+     l'état d'un registre deviennent « accès actif ». Le motif complet reste lisible dans la Tour ;
+   · la Tour refuse (400) un code sans identifiant d'espace (il réécrivait une entrée sans `t`, l'entreprise d'origine
+     sortait de l'annuaire) ;
+   · application : « J'ai réglé — vérifier » rend TOUJOURS son bouton (depuis les Paramètres, il restait grisé sur
+     « Vérification… ») ; l'infobulle du 🔒 ne parle de règlement qu'à l'administrateur ; un non-administrateur lit « Ton
+     administrateur peut le rétablir depuis son application » (« est prévenu » promettait un avis qui n'existe pas) ; un code
+     accepté depuis la suspension sans que l'accès se rouvre le DIT ; la bêta n'est suspendue par aucun chemin ;
+   · ⚠️ **laissé tel quel, exprès** : registre des codes illisible ET impayé Stripe → bloquée (l'impayé est un fait de Stripe,
+     le registre n'y change rien).
+
+5. **La troisième relecture — corrigé** (`2a8b4fa`) :
+   · ⛔⛔ **un impayé RÉGLÉ ne se rachète pas** : la page de paiement relisait l'abonnement refusé, le trouvait réglé (actif)… et
+     ouvrait un abonnement NEUF à côté de lui — prélevé en double. C'était possible dans la minute qui suit un règlement (la
+     liste des impayés se relit à la minute), et durablement avec une liste périmée ; `test-845` attendait même ce paiement
+     (« réglée à la relecture : le paiement normal »). Désormais : 409 `impaye_regle`, et la page dit « Votre règlement est
+     bien arrivé : l'accès revient dès que notre vérification le confirme, en général en moins d'une minute » (sans délai
+     promis : pendant une panne de la seule liste de Stripe, l'accès attend son retour — `f8355fd`). Un abonnement ANNULÉ
+     depuis, lui, laisse passer au paiement normal ;
+   · le rappel J-7 disait « votre abonnement prend le relais, vous n'avez rien à faire » à une entreprise dont l'abonnement
+     refusé avait été ANNULÉ depuis — suspendue le lendemain de la fin, sans avoir été prévenue. Désormais : le courriel
+     habituel, son lien et sa promesse (`test-844`, entreprise « tsade ») ;
+   · une liste périmée ne suspend pas non plus une entreprise qui y est trouvée sans rien d'OP GESTION à elle (OP MESSAGES
+     seul, l'abonnement d'une voisine) : elle a pu acheter pendant la panne — un doute ;
+   · **une panne de Stripe se relit d'elle-même** toutes les cinq minutes : un seul échec que plus personne ne relit (toutes
+     les entreprises en période offerte ou réglées à la main) aurait fait crier la surveillance toutes les heures, pour
+     toujours — la leçon de `mailRefus` ;
+   · application : « J'ai réglé — vérifier » se rend AVEC son icône (le « ↻ » est un dessin, que le texte seul perdait) ; la
+     bêta ne reçoit jamais le rappel de paiement ; `test-838` jetait sur la règle de la bêta (la suite complète l'a vu) — il
+     la joue désormais des deux côtés.
+
+**⏸ REPORTÉ, ET POURQUOI :**
+- **R1 — le code promo reste dans le motif public** : depuis `cbbd3d5`, la réponse publique ne dit plus que « code promo X
+  (jusqu'au D) » ou « accès actif ». Le code lui-même y reste parce que l'application le lit DANS ce texte
+  (`forfaitServeurSync`, v763 comme v767). Donc : d'abord deux champs à part, lus par une application publiée et exigée —
+  ensuite seulement retirer le code du motif (les appareils d'abord, la porte ensuite).
+- **A2 — deux entreprises à la même adresse** : une fiche « Gratuit » n'est pas servie par l'abonnement de sa voisine
+  (`gratuitPayeIllisible` exige un abonnement SÛREMENT à elle) — elle est suspendue. Limite connue, cohérente avec « une
+  adresse = une entreprise » (règle du 29 septembre).
+- **A4 — l'horloge de conservation lit « jamais abonné » dans le TEXTE du motif** (`/aucune formule/`) : une ancienne fiche
+  « Gratuit » qui n'a jamais payé porte « formule Gratuit (retirée le 30 septembre 2026) … » et passe pour « abonnement
+  terminé ». Sans effet aujourd'hui (le drapeau ne décide rien, rien n'est supprimé ni envoyé) ; à reprendre le jour où la
+  suppression s'écrira — par un champ, pas par un texte. Et l'horloge datera désormais ces fiches : elles ne paient pas.
+- **`npm audit` (production)** : trois avis modérés (`ip-address`, `nodemailer`, `mailparser`) — à traiter au prochain passage
+  serveur, seuls.
+- **Notes de la troisième relecture, sans correctif** (`gardien`) :
+  · registre des codes illisible, fiche Pro payée par Stripe et un VIEUX code Business Premium resté sur la fiche : servie en
+    Business Premium le temps de la panne, puis de nouveau Pro — personne n'est suspendu ni facturé à tort, mais la v763
+    réécrit sa formule deux fois (avec le toast « débloqué »). Rendre un doute à cette branche l'éviterait : à trancher ;
+  · une entreprise qui ferait jeter `espacePaye` à chaque passage ne serait jamais datée par l'horloge de conservation, sans
+    rien qui le montre (compter les entreprises sautées dans `conservation.sante()`, en nombres seulement) ;
+  · plafond de dix pages atteint (1 000 abonnements) et cache froid : tout devient un doute durable — l'alarme de 90 minutes
+    le dit ; relever le plafond bien avant ;
+  · rappel J-7 : un abonnement redevenu actif mais résilié AVANT le lendemain de la fin dit encore « prend le relais »
+    (`factureOuverteDe` ne rend ni `cancel_at` ni la fin de période — les rendre fermerait ce cas et donnerait au courriel sa
+    « prochaine échéance ») ; rare : la liste a au plus cinq minutes ;
+  · page de paiement : pendant une panne de la seule LISTE, un compte sans entreprise identifiable dont un impayé vient d'être
+    réglé se voit refuser tout achat (409 `impaye_regle`) jusqu'au retour de la liste — rien n'est vendu en double.
+
+**✅ A3 TRANCHÉE LE SOIR (« Suspend ») : une fiche SANS formule qui ne paie rien est suspendue aussi** — section du dessus.
+
+**⚠️ À SAVOIR AVANT « POUSSE » (dit à Justin) :**
+- **ELAN** est en période offerte (code promo) : rien ne change pour eux pendant la période. À la fin, sans abonnement,
+  suspendue — le courriel J-7 le leur dit sept jours avant. **La date de fin se lit dans la Tour** (fiche ELAN).
+- **À regarder dans la Tour, fiche par fiche, avant le serveur** (le serveur de production décide encore l'ancienne règle,
+  la Tour ne peut pas afficher « ⏸ Suspendue » avant lui) : une formule « Gratuit » sans période offerte ni abonnement, ou un
+  abonnement réglé à la main dont la date de fin est passée → **suspendue dès le serveur en ligne**. `gardien` n'a pas pu
+  compter ces fiches : l'annuaire de production vit sur le VPS.
+- **Serveur seul en ligne, application v763 en service — ÉPROUVÉ** (`scratchpad/simuler-serveur-seul.sh` : la liste
+  serveur jouée contre les pages de `main`, 49 suites · 3 300 vérifications, code 0 ; `scratchpad/mutations-serveur-seul.py` : 4/4 mutations sur les branches v763 — témoins : 842 → 96 ✓, 845 → 83 ✓) : la v763 lit déjà
+  la forme de la suspension — elle grise les catégories payantes sans rien écrire, et le rappel ne va qu'à l'administrateur.
+  Mieux qu'avant : une entreprise qui n'a jamais payé ne reçoit plus « formule + paye:false », donc la v763 n'écrit plus le
+  Gratuit dans sa base et ne pose plus le bandeau à toute l'équipe. ⚠️ Sa limite, dans le sens qui ne coupe personne : une
+  vérification impossible (Stripe muet) lève sa grisaille jusqu'à la réponse suivante. La suspension COMPLÈTE (écran « Accès
+  suspendu », « ＋ Créer », « J'ai réglé — vérifier ») arrive avec la publication de la v767.
+- Dans « Paramètres », le choix de formule n'est plus modifiable que par l'équipe TEAM OP (lecture seule pour un client).
+
+**Preuves** : bancs 727 (211 ✓), 761 (62 ✓), 803 (148 ✓), 838 (79 ✓), 842 (96 ✓), 844 (77 ✓), 845 (90 ✓), 848 (64 ✓) ;
+**65/65 mutations** (`scratchpad/mutations-suspension.py` — M31 ne mordait pas : `test-848` envoyait une AUTRE adresse, et
+une autre garde de la route refusait avant celle qu'on voulait garder ; le cas se joue désormais sans adresse et avec la
+même, `4db9bfa`) ; sonde au navigateur `scratchpad/sonde-suspension.js` **39 ✓** (contre-épreuves : 3 ✗ sur la bêta d'avant
+la seconde relecture — exactement ses trois défauts visibles : le bouton resté grisé, l'infobulle et le texte du technicien —,
+1 ✗ sur celle d'avant la troisième — le bouton rendu sans son icône —, 24 ✗ sur la vraie bêta, 26 ✗ sur la v766) ; suite
+complète **204 suites · 11 941 vérifications, code 0** (`2a8b4fa` ; `f8355fd` ne change qu'un texte, et les treize bancs qui
+lisent la page de paiement repassent) ; relectures : trois tours de `gardien` et `relecteur`, le dernier (`gardien`, sur
+`2a8b4fa`) sans rien de bloquant — une promesse de délai retirée (`f8355fd`). ⚠️ **La suite complète a vu ce que les
+bancs retouchés ne voyaient pas** : `test-838` jetait sur la règle de la bêta (`BETA_ESSAI` absent de son bac à sable) —
+seule la suite entière le montrait, parce qu'aucun des bancs modifiés ne le lançait.
+
+---
+
+# ⏳ 29 SEPTEMBRE 2026, NUIT (FIN) — LE MÉTIER DE CHAQUE ENTREPRISE, DE LA DEMANDE À L'APPLICATION (BÊTA v765, TOUR v2.77) ; PLUS DE FORMULE GRATUITE SUR LE SITE ; TROIS BANCS QUI NE PROUVAIENT PAS CE QU'ILS DISAIENT — ATTEND « POUSSE »
+
+Justin, dans l'ordre :
+- **Métier** : « Je veux que chaque métier qu'on a sur le site quand ils ont l'application, ça correspond à leur métier,
+  fais ça et active tous les packs. Je veux que tu le fasses pour tous. » (au lieu de « retirer les pages non 3D »).
+- **Support** : « Oui, je l'assure » → « Service 24h/24, 7j/7 » et « Support prioritaire » restent.
+- **Promesses** : « Retirer les deux (Recommandé) » → plus de « 3 mois offerts sur chaque future application », plus de
+  badge « Le plus choisi ».
+- **Gratuit** : « On va retirer l'application gratuite du site, je veux que l'application soit payante directement donc tu
+  peux supprimer du site la version gratuite et du serveur et de tout car ça serait une perte d'argent énorme ».
+- **Logos** : « change moi les logo ici aussi le premier lui de TEAM OP ET lautre OP MESSAGE », puis, capture de Google à
+  l'appui : « tu vois bien que c'est pas mon logo c'est lui de op gestion ».
+
+**Sur la branche, rien sur `main`** (`0d0f9f0`, `8d3887e`, `a3641f4`, `3da16ef`, `da7824b`, `84ddaa9`, puis les bancs
+`e9550ff`, `37225f9`, `3ea1130`, voir le point 4) :
+
+1. **Le métier, de bout en bout** (`0d0f9f0`, `8d3887e`, `3da16ef`) :
+   · **portail** (`espace.html`) : la demande d'accès demande le métier (les six packs, plus « Un autre métier — précisez-le
+     dans votre besoin ») ; sans métier, elle ne part pas ; la fiche relayée à la Tour le garde ;
+   · **serveur** : `/api/clients/sync` garde le métier demandé, en liste fermée (`metierOk`) ; route neuve
+     `POST /api/monitor/espaces/metier`, **patron seul** (`monPatronStrict` : un métier hors 3D retire Boxes et Registre),
+     écrite par `espacesEcrire()` et défaite si l'écriture échoue ; `/api/espaces/etat` rend `metier` sur les quatre
+     réponses d'un espace vivant ; **« Lien de connexion » (la fiche reconstruite) GARDE le métier** — défaut trouvé par le
+     banc, corrigé ; le courriel de la demande dit le métier ;
+   · **Tour v2.77** : une section MÉTIER sur la fiche d'une entreprise (liste + « Enregistrer le métier ») ; « Accepter la
+     demande » pose le métier DEMANDÉ, et le message de bienvenue le dit (« Ton application est réglée pour ton métier : … ») ;
+   · **application (bêta v765)** : `forfaitServeurSync` appelle `metierServeurAppliquer(j)` AVANT le test de la formule.
+     Seul un métier de `METIERS`, différent de celui de la base, s'applique ; **la ligne de journal s'écrit AVANT `save()`**
+     (défaut trouvé AU NAVIGATEUR : écrite après, elle se perdait au rechargement — `logEvent` ne range rien) ; menu et écran
+     redessinés, l'administrateur prévenu. **Un métier vide ou absent ne change rien** : ELAN (jamais réglée) reste en 3D.
+   Preuves : `test-848` **51 ✓** (le vrai serveur et les vraies fonctions d'`espace.html`, de `tour.html` et d'`app.html` —
+   la couture entière : demande → acceptation → application réglée), **16/16 mutations** (`scratchpad/mutations-848.py`) ;
+   sonde au navigateur `scratchpad/sonde-metier-serveur.js` **14 ✓**, contre-épreuve : la v764 **7 ✗**, la v765 d'avant le
+   correctif d'ordre **1 ✗** ; `test-841` **47 ✓**.
+
+2. **Le site : plus de formule Gratuit, « 3 mois offerts » et « Le plus choisi » retirés, 39 phrases fausses corrigées**
+   (`a3641f4`) : `FORMULES_GESTION` = Pro, Business, Business Premium ; le portail ne propose plus Gratuit ;
+   `recap-abonnement.html` sans formule gratuite (`?formule=gratuit` → Pro) ; résiliation « depuis le Support de son espace
+   client ou en écrivant à contact@teamop.fr » (`mentions-legales.html:71`) ; pages métier : « En indiquant X dans votre
+   demande d'accès, OP GESTION se règle sur votre métier dès l'ouverture de votre espace ». `test-846` **362 ✓** (21 motifs
+   refusés de plus, avec leurs contre-épreuves), `test-835` 472 ✓, `test-837` 92 ✓, `test-839` 197 ✓ ; **8/8 mutations**
+   (`scratchpad/mutations-site-gratuit.py`).
+   · **La maquette `apercu/site-apple.html`** (servie à qui connaît l'adresse) montrait encore Gratuit à 0 €, « Le plus
+     choisi », un impayé qui « revient au forfait gratuit », « au même moment », « un seul compte », et deux métiers sans pack
+     présentés comme prêts (Espaces verts, Sécurité) : onze phrases remplacées par celles du site, rien d'inventé (`da7824b`).
+     `test-756` relit désormais le générateur (formules, ordre, prix), la liste des promesses refusées de `test-846` et
+     `METIERS_ORDRE` d'`app.html` : **46 ✓, 11/11 mutations** (`scratchpad/mutations-756-maquette.py`) ; sonde
+     `scratchpad/sonde-maquette-apple.js` **24 ✓** (bureau, 390 et 360 px), contre-épreuve sur la maquette de `main` : 12 ✗.
+
+3. **Logos** : le site sert bien le logo TEAM OP (vérifié en ligne) ; Google montre encore celui d'OP GESTION depuis SA
+   copie. Geste donné à Justin : Search Console → Inspection de l'URL → `https://teamop.fr/` → « Demander une indexation »
+   (quelques jours). ⚠️ **Google ne montre qu'UN logo par nom de domaine** (celui de l'accueil) : `teamop.fr/opmessages.html`
+   ne peut pas avoir le sien dans les résultats — seul un sous-domaine (`messages.teamop.fr`) le permettrait, décision de
+   Justin. L'onglet du navigateur, lui, montre le logo OP MESSAGES sur `opmessages.html` (`ICONES(cle)`, `site-marine.js`).
+
+4. **Trois bancs qui ne prouvaient pas ce qu'ils disaient — c'est la suite complète qui les a montrés** :
+   · `test-756` : sa liste de noms RECOPIÉE a vu le Gratuit de la maquette par chance (tarifs.html ne le portait plus) ; il
+     relit la source (point 2) ;
+   · `test-831` : « le courriel est VRAIMENT parti » cherchait « zoe » et « reinit.html » — or **le courriel de CONFIRMATION
+     de l'inscription**, qui part derrière la réponse, donc souvent après le repère, porte les deux : détourner le lien de
+     mot de passe vers une autre adresse laissait le banc VERT. Il exige le lien `mode=resetPassword` adressé à zoé, décodé
+     du quoted-printable, et un échec nomme chaque courriel reçu (destinataire, sujet) : **3/3 mutations** ;
+   · `test-811` : trois appels de « créer un compte » font ~60 ms ; sous une charge que j'avais lancée MOI-MÊME pendant la
+     passe (cinq lectures de l'historique de la conversation, 1,3 Go, ~10 Go de mémoire chacune), un seul à-coup passait le
+     seuil. Il compare des **médianes** et dit les durées ; la mutation « une adresse connue saute la dérivation » tombe
+     (rapport 0,05, deux fois sur deux).
+   ⚠️ **Non expliqué** : dans cette passe, `test-831` a reçu UN courriel qui n'était ni celui de l'inscription ni celui du
+   mot de passe, et pas le lien en 15 s. Non reproduit (seul 2/2, sous charge 4/4) — sa sortie le nommera s'il revient.
+   ⚠️ **Côté serveur, vu et laissé** (négligeable) : `/api/compte/creer` écrit le registre deux fois pour une adresse libre
+   (le compte, le jeton de confirmation) et zéro pour une connue — de l'ordre de la milliseconde sur une machine normale.
+
+5. **Suite complète sur `3ea1130`, machine au calme : 204 suites · 11 821 vérifications, code 0.** Les deux passes
+   d'avant : `3da16ef` → 204 · 11 827, seul `test-756` rouge (le Gratuit de la maquette) ; `84ddaa9` → 204 · 11 819,
+   `test-811` et `test-831` rouges pendant mes lectures lourdes (point 4), verts seuls, sous charge, puis dans cette passe.
+
+⏳ **CE QUI ATTEND « POUSSE »** (remplace la liste de la section suivante) :
+- **le serveur** (`server/index.js` : route du métier, `/api/espaces/etat`, `/api/clients/sync`, le statut, le courriel de
+  la demande) → **déploiement du VPS** (`deploiement.yml`, bancs d'abord) ;
+- **la Tour v2.77** ; **le portail** (`espace.html`) ; `recap-abonnement.html`, `mentions-legales.html` ; **le site** (pages
+  publiques, plan du site, `scripts/site-marine.js`) et tous leurs aperçus, maquette `apercu/site-apple.html` comprise ; les
+  bancs et `bancs-ci.sh` ;
+- **la bêta v765** (`beta.html`) — elle porte aussi les rappels d'échéance de la v764.
+- ⛔ **Sans `app.html` ni `sw.js`** : ils attendent la phrase de Justin pour CE changement (« publie la 765 »). **Et c'est là
+  que tient la promesse du site** : sans la 765, serveur et Tour posent le métier, mais l'application en service (763) ne le
+  lit pas — une entreprise ouvre en 3D, comme aujourd'hui, et le site (la page plombier EN LIGNE dit déjà « OP GESTION se
+  règle sur votre métier ») promet plus que l'application ne tient. Avec la 765, c'est vrai. `test-847` et `test-848` lisent
+  `app.html` : ils ne partent sur `main` qu'avec elle.
+
+⚠️ **Le métier — ce qui ne suit pas encore, à décider par Justin** : les quatre métiers « PACK BIENTÔT » du site
+(maçonnerie, menuiserie, peinture, espaces verts) et « Un autre métier » **n'ont pas de pack dans l'application**. Le serveur
+ne garde que les six métiers de l'application (liste fermée) : pour les autres, rien n'est posé et **l'application ouvre en
+3D** (Boxes, Registre sanitaire, types « Dératisation ») — le défaut de `metierId()`, gardé exprès pour ELAN. C'était le cas
+de TOUS les métiers avant ce soir : pas une régression. Proposition : un pack par métier « bientôt » et un pack « Autre métier
+de terrain » neutre (types généraux, sans les modules 3D), sur le modèle des six (`METIERS`, `app.html` ~8732) — leur contenu
+(types d'intervention, prestations, relevés) est à valider par Justin avant d'écrire.
+
+⚠️ **Gratuit — fait sur le site, PAS encore dans le serveur ni l'application** (Justin : « et du serveur et de tout ») :
+l'application garde `PLANS.gratuit` et `PLAN_BLOQUE.gratuit` — c'est aussi ce que voit une entreprise suspendue au sursis
+écoulé ou bloquée pour impayé (catégories payantes grisées) ; le serveur accepte encore la formule « gratuit » (Tour, codes
+promo). ⛔ **Pas à l'aveugle** : lire d'abord la formule de chaque entreprise vivante (ELAN comprise) dans l'annuaire, et
+décider ce que voit un impayé quand « Gratuit » n'existe plus (Justin, 29/09 : « pas de paiement, pas d'accès au service
+payant » ; « rien n'est perdu »). Chantier de demain.
+→ ✅ **Fait le 30 septembre 2026** (bêta v767 et serveur, sur la branche — attend « pousse ») : plus de Gratuit nulle part,
+ce qui n'est pas payé est SUSPENDU jusqu'au règlement. Voir la section du 30 septembre, en tête.
+
+⚠️ **Dettes toujours ouvertes** : celles de la section suivante, plus :
+- les totaux d'heures de NUIT dans Archives et sur la fiche technicien (`minutes()` sur des « HH:MM » : un pointage
+  23:50 → 00:20 y compte 0) ; l'écran Pointage, lui, lit les horodatages ;
+- `apercu/site-apple.html` : retirée le 30 septembre au soir (oui de Justin).
+
+---
+
+# ⏳ 29 SEPTEMBRE 2026, NUIT (SUITE) — « FAIT TOUT ÇA » : RAPPELS D'ÉCHÉANCE (BÊTA v764), SIX PAGES PAR FONCTION ET UNE PAGE NETTOYAGE, LE SITE NE PROMET PLUS RIEN QUE L'APPLICATION NE TIENT PAS ; INVENTAIRE FIREBASE « COMPLET » — ATTEND « POUSSE »
+
+Justin, reprenant ma liste mot pour mot : **« 1. Rappels d'échéance des contrats … 2. Référencement, la suite : une page par
+fonction (stock, planning, devis et factures, bons de commande, pointage, registre), plus une page nettoyage. 3. Petits restes
+du site : trois descriptions trop longues pour Google (accueil, tarifs, ELAN) ; l'image de partage, mal lue par LinkedIn ;
+« Temps réel »… 4. La suite de la sortie de Firebase … fait tout ça »**, puis : « fais ça bien, que tout fonctionne ».
+
+**Sur la branche, rien sur `main`** (commits `e468a3c`, `a18e713`, `a531b3c`, `56ed05f`, `2b3fb92`, `7a4bd99`, `5bbf41b`,
+`0e5b48d`) :
+1. **Rappels d'échéance des contrats — BÊTA v764** (`a18e713`). Un contrat actif (ou sans statut) qui finit dans les 30 jours,
+   ou déjà fini : bandeau « N contrats à renouveler » sur l'écran Contrats (délai, date, « ✎ Mettre à jour » à qui peut
+   modifier), pastille « Fin dans N j » / « Échu » sur sa ligne, ligne dans la cloche (à qui voit le module Contrats — formule
+   et métier compris — ET peut modifier une vente ; le geste ouvre Contrats et vise la ligne ; l'identifiant porte la date de
+   fin, un contrat renouvelé repart à zéro). **Tout se calcule, rien ne s'écrit** : un contrat ne passe pas tout seul à
+   « Expiré ». Une seule liste pour l'écran et la cloche (`ctrRappels`). `test-847` 36 ✓ (heure de Paris autour des deux
+   changements d'heure) ; sonde au doigt `scratchpad/sonde-ctr-echeances.js` **28 ✓** (bureau et téléphone, comptable qui
+   voit sans modifier, technicien qui ne voit rien, aucune écriture), contre-épreuve sur la 763 : 19 ✗. ⛔ **La production
+   ne l'a pas** (règle du 23 septembre : rien en version publique tant qu'OP GESTION vit chez Firebase) — le site ne le
+   promet donc plus (`e468a3c`).
+2. **Six pages par fonction et une page nettoyage** (`5bbf41b`) : `logiciel-planning-interventions`, `-gestion-de-stock`,
+   `-devis-factures`, `-bons-de-commande`, `-pointage`, `-registre-sanitaire`, `logiciel-nettoyage` — même gabarit que les
+   pages métier, 552 à 673 mots, un H1, titre ≤ 60, description ≤ 155, liens tarifs et inscription, menu (Applications,
+   Métiers), pied de chaque page, plan du site (21 adresses). **Chaque phrase relue dans `app.html` v763 en service** — la
+   liste des vérifications est en tête de `FONCTIONS` (`scripts/site-marine.js`) ; chaque page dit dans quelle formule la
+   fonction commence (`PLAN_BLOQUE`), et `test-846` § 4 bis le vérifie carte par carte.
+3. **Petits restes** (`e468a3c`) : descriptions ≤ 155 sur les 21 pages publiques ; image de partage en JPEG 1200 × 630
+   (86 Ko, `vitrine/v2/captures/partage-tableau-jour.jpg`) ; « temps réel » seulement pour OP MESSAGES (une messagerie).
+   **Et la relecture a trouvé plus grave que le « temps réel »** (`2b3fb92`, `7a4bd99`, `0e5b48d`) — des promesses que
+   l'application ne tient pas, sur le site, la page de paiement, le portail et les Paramètres de la bêta :
+   · « chiffré de bout en bout », « à vous seul » : le serveur garde la clé de chaque équipe → « chiffrées (AES-256) sur
+     l'appareil avant l'envoi, chaque entreprise a sa propre clé » ;
+   · **Business Premium promettait un espace client, des statistiques avancées, le multi-sites et le nom de
+     l'application remplacé : rien de cela n'existe** → « votre logo et votre couleur d'entreprise, pour toute l'équipe »,
+     et « OP MESSAGES inclus dès sa réouverture » (plus « OP MESSAGES complet, visio HD » : il est fermé). ⚠️ **À dire à
+     Justin** : la liste de Premium est plus courte qu'avant — c'est la vraie ;
+   · « export Factur-X » (un XML nu), « récapitulatif à la comptable » (jamais appelé), « confirmations de rendez-vous »
+     (aucun bouton), « devis avec photos » (xylophage seul), SMS « avec le PDF » (le résumé seul s'ouvre sur le téléphone).
+   `test-846` refuse ces 25 formulations, avec leur contre-épreuve (les phrases justes qui les remplacent) : **361 ✓**.
+4. **Sortie de Firebase, étape 8 FAITE** : Justin a cliqué « Faire l'inventaire » dans la Tour (route vérifiée d'abord :
+   elle lit et recopie, écrit sa preuve, ne supprime rien, ne coupe rien) → **« complet — 1 entreprise : 1 document,
+   0 absente de Google, 0 fermée »**. Reste l'**étape 9, le 25 octobre (J+30)** — rappel déjà programmé
+   (`trig_01MPuFwNnQEN7YYLr98Ysv19`) : `reglage.js documents.copieFirebase=false`, redémarrer, puis supprimer les données
+   Firebase d'OP GESTION (pas OP MESSAGES, qui y vit encore).
+5. **`test-641` tombait dans la suite complète (2 fois sur 2), jamais seul** (`56ed05f`) : 0/15 sous deux cœurs pris,
+   0/12 sous quatre, 0/10 sous pression disque, 0/3 derrière les onze suites qui le précèdent — la cause exacte n'est PAS
+   reproduite. Ce qui l'est : le bloc v683 pariait 900 ms sur une écriture différée de 500 ms, et son premier contrôle
+   passait aussi sur un fichier jamais écrit (`null` attendu = `null` d'un fichier absent). Il attend désormais que
+   `monitor.json` porte le rapport et compare des identifiants (112 ✓) ; `bancs-ci.sh` montre les deux lignes qui suivent
+   un ✗ (attendu / obtenu) — **si ça retombe, la valeur lue sera dans la sortie de la CI.**
+
+⛔ **Remplacé par la liste de la section du dessus (nuit, fin).** Ancienne liste : **CE QUI ATTEND « POUSSE »** : le site (19 pages publiques, plan du site, pages voisines, portail, page de paiement, leurs
+aperçus), `scripts/site-marine.js`, les bancs du site, `test-641`, `bancs-ci.sh` **et la bêta v764** (`beta.html`). ⛔ **Sans
+`app.html` ni `sw.js`** (la production reste en v763) **ni `test-847`** (il lit `app.html` : sur `main`, il tomberait sur la
+763). Aucun fichier de `server/` : le VPS ne bouge pas.
+
+⚠️ **Dettes vues en chemin, NON corrigées** (aucune ne casse rien chez un client ; toutes retirées des promesses du site) :
+- une notification POUSSÉE ouvre l'application, pas la fiche (le serveur retire exprès le fragment de l'adresse) ; seule la
+  cloche mène à la fiche ;
+- « nouvelle intervention » prévient toute l'équipe, pas le seul technicien affecté ;
+- `envoyerComptaComplet` : du code mort (aucun appelant) ;
+- pas de bouton de confirmation de rendez-vous au client ;
+- l'« export Factur-X » est un XML nu, pas une facture Factur-X (PDF/A-3 + XML) ;
+- la capture `iphone-box` montre une box « Utilitaire — Léo Martin », catégorie « Véhicule » — contraire au site (« une box
+  est un lieu, pas un véhicule ») : à refaire le jour où les captures seront reprises.
+
+⏳ **À Justin, pas urgent** : G2 — garder « OP GESTION » comme nom du produit (recommandé : c'est le nom de l'application et
+de son logo ; TEAM OP est l'éditeur, déjà écrit comme tel) ou le renommer « TEAM OP » ; et confirmer qu'il a retiré les
+cartes de formule en dollars.
+
+---
+
+# ✅ 29 SEPTEMBRE 2026, NUIT — TOUT EST EN SERVICE (`5e57196`, puis `142e19c`) ; LA VÉRIFICATION DE `main` ÉTAIT ROUGE PAR UN BANC — CORRIGÉE, VERTE (run 519)
+
+**En service sur le « pousse » de Justin** : `main` `3785a0f` → `a8fb0fa` (le fichier de Google, seul) → `12d0101` (le site
+suit l'appareil pour le jour et la nuit) → `12beeec` (facturation différée, carte refusée = impayé, Tour v2.76) →
+`b588c28` (référencement) → **`5e57196`** (`test-846` nomme le fichier de Google). Déploiement du serveur n° 103 : bancs
+puis VPS verts, `/health` propre (0 bug) ; les 52 fichiers publics servis à l'identique (empreintes comparées) ; `ci.yml`
+verte. Avant de pousser, cet arbre : suite complète 202 suites · 11 471, code 0 ; liste serveur 49 · 3 243, code 0.
+
+⛔ **« Vérification des pages » (run 518) ROUGE sur `5e57196`** — `test-844` 67 ✓ 1 ✗ : « la Tour supprime sigma pendant
+l'attente (200) — Stripe n'a pas encore répondu ». Le SERVEUR est juste (sigma n'a rien reçu : le contrôle suivant est
+vert) ; le BANC pariait. Son faux Stripe répondait en 3 s et la suppression devait tenir dedans. Mesuré ici : l'horloge de
+conservation lit Stripe à 0,25 s du démarrage, le passage des rappels attendait CETTE lecture, et la suppression — qui
+appelle vraiment Google — rendait à 3,03 s pour une fenêtre fermée à 3,24 s. Reproduit à l'identique en ralentissant
+Google de 4 s (l'ancien banc : 67 ✓ 1 ✗, le même ✗). C'était sa première exécution sur GitHub : `verification.yml` ne
+tourne que sur `main`.
+✅ **Corrigé** — branche `6c1006b` ; pour `main`, **`142e19c`** dans `scratchpad/pub-essai` (sur `5e57196`, un seul
+fichier : `tests/test-844.js`). Le Stripe du banc RETIENT la lecture du passage des rappels (reconnue à sa pile d'appels)
+jusqu'à ce que le banc la relâche ; un cache court (300 ms) fait lire le passage lui-même ; un témoin suit mutee et
+stigma ; les rappels de chaque phase sont comptés. `test-844` 74 ✓ (21 s au lieu de 31), stable (trois passages, un cœur
+saturé, Google ralenti de 4 s) ; mutations N17, N23, I44 : **3/3 mordent** ; contre-épreuves du banc : sans la porte
+12 ✗, sans le cache court 10 ✗ (il crie, il ne passe pas à vide). Suite complète de `142e19c` : **202 suites ·
+11 477 vérifications, code 0**.
+✅ **Poussé sur le « pousse » de Justin** : `main` = **`142e19c`** ; « Vérification des pages » **run 519 VERT** (20 h 02 →
+20 h 11 UTC). Il ne touche que `tests/` — rien n'a changé pour un client, et `deploiement.yml` ne se déclenche que sur
+`server/**` (le VPS n'a pas bougé).
+⚠️ **Dette vue en chemin** : la route de suppression d'une entreprise appelle VRAIMENT Google (un jeton anonyme créé puis
+effacé sur le projet de production, un effacement Firestore refusé par la règle), et les bancs qui la jouent aussi —
+`test-844`, `test-832`, `server/test-connexion.js` (qui attend 61 s d'un coup sur GitHub). Sans effet sur les données,
+mais contraire à « tout se passe sur 127.0.0.1 » : à couper dans les bancs (un faux `fetch` pour `googleapis.com`),
+jamais dans le serveur.
+
+**Faits avec Justin, pas à pas, le même soir** :
+- **Google Search Console** : propriété `https://teamop.fr/` VALIDÉE (fichier `google151be914dcdfaf7e.html` — ⛔ ne jamais
+  le retirer) ; `sitemap.xml` déclaré (« Impossible de récupérer » avant la première lecture de Google : normal ; une
+  entrée « / » déclarée par erreur est sans effet). ✅ **Lu par Google le soir même** : `sitemap.xml` « Opération
+  effectuée », **14 pages découvertes** (capture de Justin) ; l'entrée « / » reste en erreur, sans effet — elle se retire
+  par les trois points de sa ligne, « Supprimer le sitemap ».
+- **Fiche d'établissement Google** : ARRÊTÉE — elle exige une adresse où l'on reçoit des clients ; TEAM OP vend en ligne.
+- **G2 / Capterra** (Capterra appartient désormais à G2) : OP GESTION **approuvé et publié sur G2, Capterra, GetApp et
+  Software Advice** ; Justin administrateur de la fiche (compte `contact@teamop.fr`, my.G2). Trois captures d'écran sans
+  données de client ; langue déclarée : **le français seul** (l'anglais et l'espagnol de l'application ne traduisent que
+  les menus et les boutons principaux). ⛔ Aucune adresse de client donnée à G2 (« obtenir des avis » : refusé, RGPD) ;
+  aucune offre payante. **Prix** : G2 n'offre pas le choix de la devise (les cartes de formule s'affichent en dollars, et
+  chaque enregistrement les DOUBLAIT) — recommandé à Justin : **supprimer toutes les cartes de formule** et ne garder que
+  le texte des prix (les quatre formules du site, en euros TTC, « sans engagement ») et le lien vers `tarifs.html`. ⏳ Non
+  confirmé qu'il l'a fait : à lui demander. Les catégories (gestion des interventions, anti-nuisibles, nettoyage) et les
+  fonctions peuvent attendre.
+
+---
+
+# ✅ 29 SEPTEMBRE 2026, SOIR — RÉFÉRENCEMENT (SEO) : EN SERVICE (`b588c28`, puis `5e57196`)
+
+✅ **Parti avec le « pousse » du 29 au soir** (section du dessus). Ce qui suit est le détail d'origine ; restent ouverts les
+points « à lui ou à décider » — sauf la Search Console (validée, plan du site déclaré) et la publication (faite).
+
+Justin : « Fais l'optimisation SEO avec les fichiers fournis » (plan d'action, pages métier, en-tête, plan du site,
+robots) ; résumé montré avant le commit, réponse « oui ». Commit de la branche : voir `git log --grep référencement`.
+- `robots.txt` (ouvre tout sauf connexion, espace, `/apercu/`) et `sitemap.xml` FABRIQUÉ par `scripts/site-marine.js`.
+- Canonique + Open Graph + titre et description propres sur chaque page ; JSON-LD à l'accueil seul, prix lus dans
+  `FORMULES_GESTION` ; la 404 sans canonique ; les aperçus en noindex sans canonique.
+- Quatre pages métier (`logiciel-anti-nuisibles`, `-plombier`, `-electricien`, `-chauffage-climatisation`), dans le menu
+  Métiers et le plan du site ; chaque phrase vérifiée contre app.html v763 (`test-846` §4 refuse « temps réel »,
+  « code-barres », « relance automatique », « chantier », la box hors de la page 3D…).
+- Preuves : `test-846` 220 ✓, `test-835` 349 ✓, `test-836` 304 ✓, `scratchpad/mutations-seo.py` 24/24.
+⚠️ Ce qui reste, et qui est à lui ou à décider :
+- Google Search Console : propriété « Préfixe de l'URL » `https://teamop.fr/` créée par Justin ; le fichier de validation
+  `google151be914dcdfaf7e.html` est EN LIGNE (poussé SEUL sur `main`, `a8fb0fa`, sur son « oui ») — ⛔ ne jamais le retirer
+  (Google retire la propriété) ; `test-846` le nomme. Reste : « Valider », puis déclarer `sitemap.xml` APRÈS le « pousse » ;
+- trois descriptions au-delà de 155 signes (accueil — son texte —, tarifs, ELAN) : Google coupe ;
+- l'image de partage est en WebP (LinkedIn la lit mal) ;
+- `metiers.html` promet des « rappels d'échéance » de contrat qui n'existent pas, et « Temps réel » reste sur le site.
+  ⛔ Justin : « rappels d'échéance, ça il faudra le faire » — la FONCTION est à écrire (bêta), pas la phrase à retirer ;
+- sous-traitance et registre des traitements sont des brouillons « à faire relire » : en ligne, hors du plan du site ;
+- publication : le référencement touche les mêmes pages que la mise en ligne n° 2 ; il se pose PAR-DESSUS `08ad1bc`
+  (dans un arbre à part) quand Justin dira « pousse ».
+- Justin veut « le moindre mot → notre application en premier » (gestion des stocks, etc.) : réponse faite (personne ne
+  peut le garantir ; des pages par FONCTION et des mots précis, le temps, les liens) — sa décision attendue.
+
+---
+
+# ✅ 29 SEPTEMBRE 2026, SOIR — SITE : LE JOUR ET LA NUIT SUIVENT L'APPAREIL, PLUS DE BOUTON — EN SERVICE (`12d0101`)
+
+Justin, capture de son iPhone à l'appui (l'en-tête du site : logo, ☾, « Espace client », ☰) : **« Sur le site je veux pas
+le bouton jour nuit je veux que sa soit automatique »**. Retour à ce que disait la maquette (THEME.md § 0, « sans bouton ») ;
+le bouton du 27 septembre au soir (« je veux vraiment un mode jour et un mode nuit ») est retiré.
+
+✅ **Ce qui est fait** (branche : `798d4ca`, `6d529aa`, puis la relecture adverse : `e9039ce`, `30a2549`, `a157cae`, `191e2cb`)
+· **Les 8 pages du site** (générateur `scripts/site-marine.js`, racine ET `apercu/site/`) et **les 10 pages voisines**
+  (portail `espace.html`, `connexion.html`, `reinit.html`, `recap-abonnement.html`, `merci.html`, les quatre pages
+  juridiques, `404.html`) et leurs copies d'aperçu : plus de bouton ☀︎/☾ ni de `<script src="/vitrine/v2/mode.js">`.
+· **La tête du mode** (`TETE_MODE`, identique partout) : les deux couleurs de barre suivent l'appareil, `color-scheme:
+  light dark`, et son script **efface le choix qu'avait rangé l'ancien bouton** (`teamop_site_mode`) — sans ça, qui avait
+  appuyé restait collé à son mode, sans bouton pour en sortir. ⛔ **Elle garde ses CINQ lignes** : les pages juridiques
+  sont citées par numéro de ligne (`mentions-legales.html:74`…, test-836 § 6).
+· **`site.css` et `theme.css`** : la nuit n'a plus qu'un bloc, sous `prefers-color-scheme` ; plus de mode forcé. La SEULE
+  règle du bouton est la garde `.mode, .coin-mode { display: none !important }` : une page d'avant restée en cache, avec
+  l'ANCIEN `mode.js` qu'un service worker garde, le démasquait — et la feuille neuve ne le stylait plus (bouton brut, deux
+  dessins à pleine taille). La marge du haut de 64 px, posée pour le coin du bouton, redevient 28 px (4 pages).
+· ⛔ **`vitrine/v2/mode.js` RESTE** — et la raison écrite d'abord était FAUSSE (l'installation du service worker n'en
+  dépend pas : chaque ressource s'y charge à part). La vraie : une page restée en cache le demande, et le service worker
+  ne remplace sa copie que par une réponse RÉUSSIE (un 404 ne se range jamais) et reprend l'ancien cache à chaque
+  version — supprimé, l'ancienne copie (qui démasquait le bouton) resterait servie POUR TOUJOURS. Il ne fait plus
+  qu'effacer l'ancien choix et le mode que la vieille tête a posé. Ne pas le supprimer, même quand `sw.js` sera republié.
+
+**La relecture adverse du soir** (5 angles, 26 agents, chaque constat revérifié) a surtout trouvé des bancs trop
+étroits : `class="mode"` exact (un `class="mode on"`, un `id="bascule">☾`, un `src` sans barre passaient), le PREMIER
+bloc de la feuille seulement, les scripts jugés par motif (un `mode.js` commenté par `//`, un `type="text/plain"`
+passaient), rien sur `color-scheme` ni sur la tête des 8 pages du site. D'où **`tests/mode-site.js`**, partagé par les deux
+bancs : restes de mode par la FONCTION dans le CODE, les deux scripts EXÉCUTÉS (`node:vm`), la forme entière des feuilles,
+les couleurs en dur (`@media` compris) ; et **`test-836` § 9 recense toutes les pages suivies** (exceptions nommées :
+`app.html`, `beta.html`, `messages*.html`, la Tour, la maquette `apercu/site-apple.html`).
+
+**Preuves** : `test-835` **278 ✓**, `test-836` **304 ✓** ; **33 mutations sur 33 mordent** (`scratchpad/mutations-site-auto.py` :
+les 13 du départ + les 20 que la relecture faisait passer) ; au navigateur (`scratchpad/sonde-site-auto.js`, 18 pages ×
+téléphone 360 et 390 × bureau × jour et nuit, puis la transition sur des pages d'avant FIXES — `798d4ca~1`, qui ne
+disparaissent pas quand `main` avance —, avec les fichiers neufs puis avec l'ANCIEN `mode.js`) : 964 ✓ 0 ✗ (contre-épreuve sans la garde : 10 ✗ ; les pages de `main` : 120 ✗).
+
+⚠️ **Restes connus, à décider par Justin (rien d'urgent, aucun bouton)** : (la maquette `apercu/site-apple.html` est retirée depuis le
+30 septembre au soir) ; `guide-email.html`,
+`creer-application.html` et les anciens `apercu/*.html` sont en sombre fixe (ni bouton ni mode, mais pas « automatiques ») ;
+le manifeste du site (`manifest-teamop.webmanifest`) donne un écran de démarrage sombre à la version installée (un manifeste
+ne sait pas suivre l'appareil).
+
+### ✅ LA MISE EN LIGNE DU SITE — PARTIE en `12d0101` (refaite sur `a8fb0fa`, le `main` du soir)
+Dans l'arbre `scratchpad/pub-site` (session du 29 septembre) : **`fa20873`**, un seul commit sur `main` à `3785a0f`,
+**49 fichiers, aucun de `server/`** (ne déploie pas le VPS), `app.html` et `sw.js` intacts. Pour tous sauf
+`recap-abonnement.html`, `merci.html` et leurs aperçus, la branche d'avant était identique à `main` (copiés de la branche) ;
+ces quatre-là portent sur `main` une version plus ancienne (la n° 2 attend) : le même changement y a été appliqué par le
+même script (`scratchpad/site-auto.py`, puis la marge), et les aperçus refaits sont identiques à ceux de la branche.
+Suite complète de CET arbre : non rejouée seule — la n° 2, qui la contient, passe 201 suites · 11 179.
+La **mise en ligne n° 2** est refaite PAR-DESSUS (`08ad1bc`, sur `fa20873`, dans `scratchpad/pub-essai`) : pousser la n° 2 emporte le site.
+**Sur « pousse »** : vérifier que `origin/main` est toujours `3785a0f`, puis `git push origin HEAD:main` depuis
+`scratchpad/pub-essai` (site + serveur) — ou, pour le site SEUL (« pousse le site »), depuis `scratchpad/pub-site`.
+**Si les arbres ont disparu** : reconstruire depuis la branche (`git show <branche>:<fichier>`), et pour `merci.html` /
+`recap-abonnement.html` repartir de `main` et rejouer `scratchpad/site-auto.py` puis la marge (64 → 28 px).
+
+⚠️ **Une branche parasite `nothing`** (29 septembre au soir, une commande de trop y avait poussé le commit du site) :
+**supprimée par Justin le soir même** (vérifié : `git ls-remote` ne la montre plus ; `main` intact).
+
+---
+
+# ✅ 29 SEPTEMBRE 2026, SOIR — CARTE REFUSÉE = IMPAYÉ : LES FONCTIONS PAYANTES BLOQUÉES JUSQU'AU RÈGLEMENT — EN SERVICE (`12beeec`, déploiement n° 103)
+
+Justin, en corrigeant le rapport de l'après-midi (qui disait « l'application continue de marcher pendant que Stripe
+réessaie ») : **« 1. À la fin de la période offerte, Stripe prélève. Oui / 2. […] Il passe en impayé directement / 3.
+[…] Non leur accès son bloqué le temps qu'il que c'est pas payé / 4. […] Rien n'est perdu mais pas de payement pas
+d'accès au service payant »**. ⛔ La phrase « `past_due` compté comme payé pendant les nouvelles tentatives » (section
+suivante, et `CLAUDE.md` jusqu'à ce soir) était la règle d'AVANT : elle est **retournée**.
+
+✅ **Ce qui est fait** (branche : `94aca44`, `8b095d0`, `b8894f7`, `a64f8df`, `dbc0d1a`, `f8535d2`)
+· **Payé = `active` ou `trialing`, et c'est tout** (`STATUTS_PAYES`). `past_due` (Stripe réessaie) et `unpaid` (Stripe a
+  fini) d'OP GESTION sont des **impayés** (`impayesGestion`), rattachés par les MÊMES règles que le payé
+  (`espaceStripeDans` avec `STATUTS_IMPAYES`) — ⛔ mais **par l'identifiant seul** (`tSeul`) : un nom d'accès libéré puis
+  repris ne fait pas hériter l'impayé d'une autre entreprise (`gardien` #1). `incomplete` (jamais payé), `canceled`, un
+  OP MESSAGES refusé seul : pas des impayés, comme avant.
+· ⛔⛔ **`/api/espaces/etat` sert un impayé comme une suspension au sursis écoulé, SANS formule** (`bloque` →
+  `{paye:false, suspendu:true, sursisJours:0}`, motif public neutre « accès payant suspendu » — la route est publique
+  avec le seul `t`, elle ne dit ni « impayé » ni par quel chemin, `gardien` #10) : c'est la seule réponse que
+  l'application EN SERVICE (v763, aucune version à publier) sait griser **sans rien écrire dans `db`**
+  (`suspensionPoser` → `forfait()` rend « gratuit »), avec le rappel quotidien **à l'administrateur seul** (« Abonnement
+  non réglé — les catégories payantes sont grisées… rien n'est perdu ») — et tout revient d'un coup au règlement. Une
+  réponse AVEC formule et `paye:false` aurait posé le bandeau « Paye ton abonnement » à toute l'équipe, réécrit
+  `db.forfait` (synchronisé) et mené à un SECOND abonnement : mesuré sur les vraies fonctions (`test-845` §2,
+  contre-épreuve).
+· **Une seule règle de blocage, `impayeBloque`** (lue par `espacePaye` ET par le rappel J-7) :
+  · un abonnement d'OP GESTION **payé à elle** → servie (un refusé parmi des payés : **sans les places du refusé**,
+    `placesStripe` ne compte que le payé ; le motif le dit, la Tour le voit, `impayesPartiels`) — **Q1** ;
+  · payée seulement par **OP MESSAGES** ou par une **voisine d'adresse**, ou fiche **Gratuit** → bloquée seulement si
+    l'impayé est **sûrement le sien** (gravé à son nom, ou une adresse que personne d'autre ne porte) : une fiche Gratuit
+    jamais abonnée n'est plus « suspendue » par l'impayé d'un tiers (`gardien` #4, #7) ; OP MESSAGES payé ne masque plus
+    l'impayé d'OP GESTION ;
+  · rien de payé → bloquée ;
+  · réglée à la main dans la Tour en « payé », période offerte en cours : elles priment, comme avant.
+· ⛔ **L'« impayé » posé à la main dans la Tour prend la même forme** (`gardien` #6) : grisé tout de suite, rappel à
+  l'administrateur seul — plus de bandeau à toute l'équipe ni de `db.forfait` réécrit. Voir **Q2**.
+· **Un impayé se relit à la minute** (`STRIPE_IMPAYE_FRAIS_MS`, la liste se garde cinq minutes pour qui paie ; une
+  lecture à la fois, pas pendant une panne) : l'accès revient vite après règlement — au serveur (voir plus bas pour
+  l'appareil).
+· ⛔ **La page de paiement** (`factureImpayeARegler`) : seule une entreprise **BLOQUÉE** est envoyée à sa **facture en
+  attente** (la page Stripe, carte changée comprise), relue chez Stripe au moment de payer (`factureOuverteDe`) — jamais
+  un abonnement neuf, jamais la facture d'un abonnement gravé à une AUTRE entreprise (`gardien` #1, #3). Une entreprise
+  servie (un refusé parmi des payés) **achète normalement** (`gardien` #2). `past_due` sans facture ouverte : **409**
+  `impaye_sans_facture` (TEAM OP règle à la main) ; `unpaid` sans facture : le paiement normal (`relecteur` #1) ; Stripe
+  muet à la relecture : **502** (jamais un paiement neuf qui serait prélevé en double le jour où Stripe réussit sa
+  tentative) ; réglé depuis la liste : le paiement normal. `recap-abonnement.html` (et son aperçu) le **dit** avant de
+  suivre la facture (« Un prélèvement précédent de votre abonnement n'a pas abouti : sa facture en attente s'ouvre… rien
+  d'autre ne sera prélevé »), et le 409 comme le 502 ont leur phrase, « Rien n'a été payé » (`gardien` #5).
+· **Courriel J-7** : un impayé reçoit « ⏳ … — **un prélèvement est à régler** » (le jour où les fonctions payantes
+  seront bloquées, « rien n'est perdu », le bouton **« Régler ma facture »** vers la facture relue — sinon l'adresse de
+  contact ; ni « prend le relais », ni page de paiement, ni promesse) ; un refusé parmi des payés : « prend le relais.
+  Mais le dernier prélèvement d'un autre de vos abonnements n'a pas abouti : les places qu'il paie sont suspendues » ;
+  le premier prélèvement d'un essai dit « S'il n'aboutit pas, les fonctions payantes seront bloquées jusqu'au
+  règlement » ; Stripe muet à la relecture : le rappel attend tant que c'est utile, puis part sans lien. L'annuaire se
+  relit APRÈS la lecture de la facture : une entreprise supprimée pendant ce temps ne reçoit rien (`test-844` phase 5).
+· **Tour v2.76** : « Paiements en échec — ses fonctions payantes sont bloquées jusqu'au règlement. Rien n'est perdu. » ;
+  dans Abonnements, « **Impayé — fonctions payantes bloquées** » / « 💳 Impayé », **une ligne par entreprise** (plus de
+  doublon avec « Formule attribuée, jamais payée », `relecteur` #4). `/liste` et `/statut` rendent `impaye`,
+  `impayeStripe` et `impayesPartiels`. « **Mon espace** » dit « Suspendu » (`planStatus`, une copie : rien n'est écrit).
+· **L'horloge de conservation** pose sa date avec le motif de l'impayé et la retire au règlement : rien n'est supprimé
+  (aucune suppression n'existe, et les 24 mois repartent au retour).
+
+❓ **Ce qui attend Justin**
+· **Q1** — une entreprise à plusieurs abonnements dont UN est refusé : on bloque **tout** l'accès payant, ou
+  **seulement les places** de l'abonnement refusé (ce qui est fait) ? (La v763 ne désactive pas un compte en trop : elle
+  refuse d'en créer un nouveau — désactiver relève de la bêta.)
+· **Q2** — la suspension À LA MAIN depuis la Tour garde ses **sept jours de sursis** (décision du 20 septembre) ; un
+  impayé Stripe, et désormais l'« impayé » posé à la main, n'en ont aucun. On garde les sept jours pour la suspension ?
+· **Q3** — le réglage Stripe « si toutes les nouvelles tentatives échouent » : **« Marquer l'abonnement comme impayé »**
+  (recommandé : l'entreprise reste bloquée, prévenue, et règle sa facture) plutôt qu'« Annuler l'abonnement » (`canceled`
+  sort du circuit de l'impayé : l'application repasse en Gratuit « normal » — bandeau « Paye ton abonnement » à toute
+  l'équipe, `db.forfait` réécrit — et il faut un nouvel abonnement).
+· ⛔ **Avant « pousse »** (`relecteur` #8) : ouvrir la Tour → Abonnements → la liste des impayés. Toute entreprise
+  `past_due` ou `unpaid` à cet instant **passe au gris au déploiement** — c'est la règle voulue, mais autant savoir qui.
+
+⚠️ **Ce qu'il faut savoir**
+· **Un appareil resté ouvert** ne relit l'état qu'au lancement (v763, `forfaitServeurSync`) : grisé ou rendu à la
+  réouverture — dans les deux sens. Et l'administrateur grisé n'a dans l'application **ni bouton ni bandeau pour
+  payer** : le chemin, c'est le courriel J-7, le courriel de facture de Stripe, ou la page de paiement. ⚠️ Qui vient de
+  régler et revient à la page de paiement parce que son appareil est encore gris y prend un abonnement **de plus** (dès
+  que la liste est relue, il n'est plus bloqué : paiement normal). Dette **bêta** : relire l'état au retour au premier
+  plan quand l'application est suspendue, et donner à l'administrateur grisé le lien de sa facture.
+· **Les places d'un impayé complet** ne sont pas retirées : grisée, l'entreprise peut encore créer des comptes (v763).
+  Bêta.
+· **Un bandeau « Ta formule t'attend » déjà enregistré** dans `db` survit à l'impayé et reparaît à chaque ouverture ; au
+  premier passage en grisé, un compte qui était dans une rubrique payante lit « Rubrique pas ouverte à ton compte
+  (réglable dans Permissions) » — faux sur la raison. Bêta.
+· **La fenêtre « Ton essai est terminé… Prendre l'abonnement »** (`promoEssaiCheck`, v763) s'ouvre à la première
+  personne qui se connecte le lendemain de la fin d'un code, **sans demander au serveur** — y compris chez qui paie déjà.
+  Son bouton mène à la page de paiement : un impayé y trouve sa facture (serveur), mais une entreprise qui paie pourrait
+  y prendre un abonnement DE PLUS. Limite d'AVANT, plus visible avec la facturation différée : à corriger sur la
+  **bêta** (demander au serveur avant d'ouvrir la fenêtre).
+· **Pendant une panne de Stripe**, la dernière liste connue sert : une entreprise qui vient de régler reste grisée le
+  temps de la panne (avant ce soir, `past_due` passait pour payé : une panne ne bloquait personne).
+· **Adresse partagée** (limite connue, `test-845` « partd ») : à une adresse que deux entreprises portent, un impayé
+  sans référence n'est « sûrement » à aucune — si la voisine paie, l'entreprise reste servie. Et un impayé gravé au
+  NOM d'accès (anciennes pages) à une adresse que porte une AUTRE entreprise ne bloque personne (`test-845` « nomp » :
+  relecture adverse du soir, le nom repris par une autre entreprise à la même adresse la bloquait et lui servait la
+  facture de l'ancienne — corrigé `e9039ce`, mutation I36c) : on ne sait pas qui le doit, l'accès reste ouvert.
+· **« Repartir à neuf » sur une entreprise à DEUX noms** (limite d'avant, relecture adverse, rejoué) : le nom reparti
+  prend un nouvel identifiant, l'autre garde l'ancien ; un impayé gravé à l'ANCIEN identifiant ne bloque pas le nouveau
+  (le code ne distingue pas « mon autre nom » d'« une autre entreprise à la même adresse » une fois les identifiants
+  différents). Dans le sens qui ne coupe personne ; à revoir avec `gardien` s'il faut le fermer.
+· Les textes de la Tour sont relus, pas gardés par un banc.
+
+**Preuves** : `test-845` **76 ✓ (nouveau, dans la liste serveur)** — le vrai serveur, un Stripe simulé relu à chaque
+appel, et **les vraies fonctions d'app.html v763** (`forfaitServeurSync`, `suspensionPoser`, `forfait`…) : grisé sans
+écriture, pas de bandeau, rappel à l'administrateur seul et une fois par jour, retour au règlement ; OP MESSAGES payé,
+fiche Gratuit, adresse partagée, impayé posé à la main, nom d'accès repris (autre adresse, SON impayé, gravé à son nom,
+repris à la MÊME adresse) ; la Tour (une ligne par entreprise),
+« Mon espace », la page de paiement (facture, 409, 502, `unpaid` sans facture, réglé depuis, entreprise servie, OP
+MESSAGES, la voisine, le nom repris) ; la relecture à la minute ; **26 ✗ contre le serveur d'avant** ; `test-844`
+**68 ✓** (quinze entreprises de plus, une phase « relecture muette », une entreprise supprimée pendant la lecture de sa
+facture) ; `test-842` 91 ✓, `test-839` 199 ✓, `test-727` 177 ✓, `test-797` 24 ✓ ; `803`, `811`, `813`, `828`, `829`,
+`833`, `840`, `843`, `641`, `726` verts ; **mutations : série I 46/46 sur le code final** (dont I36 — le nom d'accès
+sans son adresse — et I36c — le nom repris à la même adresse —, trous trouvés et fermés ce soir ; les 52 autres
+(E, N, P, R) : 52/52 mordent, rejouées sur le code final (`scratchpad/mut-autres.log`, arbre propre après le lot) ; R1 et R3 de la formule servie rejouées après le déplacement de `partagee`)
+(`scratchpad/mutations-essai.py`, arbre à part) ; relectures : `gardien` (11 constats) et `relecteur` (9), puis une
+relecture adverse à 5 angles (26 agents) — tous traités ou écrits ci-dessus ; liste serveur et suite complète : liste 49 suites · 3 243, code 0 ; suite complète 201 suites · 11 179, code 0 ; les onze contrôles de `verification.yml` verts ; bêta régénérée identique.
+
+### ✅ LA MISE EN LIGNE N° 2 — PARTIE en `12beeec` (facturation différée + impayé ; déploiement n° 103)
+Dans l'arbre `scratchpad/pub-essai` (session du 29 septembre) : un seul commit (à faire, après les preuves) sur `main` à `3785a0f` — il
+**remplace `f2d0781`** (section suivante), qui ne part plus. Il emporte vingt-deux fichiers : les seize de `f2d0781`
+(`server/index.js`, `merci.html` et son aperçu, `apercu/tour.html` — désormais v2.76 —, `.gitignore`,
+`scripts/bancs-serveur.liste`, `scripts/preparer-deploiement-serveur.sh`, `test-727`, `797`, `839`, `840`, `844`, quatre
+scripts du scratchpad), plus **`tour.html` v2.76** (la Tour doit parler de l'impayé le jour où le serveur le rend),
+`server/portail.js`, `recap-abonnement.html` et son aperçu, `test-842` et **`test-845`** (nouveau). Tous identiques à la branche (empreintes comparées) ; pour chacun, la branche d'avant
+le changement était identique à `main` : le report est exactement ce diff. `app.html`, `sw.js` et `beta.html` ne bougent
+pas.
+Preuves de CET arbre : en cours (liste serveur, suite complète, contrôles de la CI de `main`) — le commit n'est pas encore fait.
+**Sur « pousse » de Justin** : vérifier que `origin/main` est toujours `3785a0f` (sinon reconstruire), puis
+`git push origin HEAD:main` depuis cet arbre. **Si l'arbre a disparu** : arbre détaché sur `origin/main`, y prendre depuis
+la branche les fichiers ci-dessus (`git show <branche>:<fichier> > <fichier>`), relancer la liste serveur, commiter.
+**Après** : le déploiement du serveur (bancs puis VPS ; `/health`, dont l'`uptime` repart), `tour.html`, `merci.html`,
+`recap-abonnement.html` et leurs aperçus servis octet pour octet, la CI de `main` verte.
+
+---
+
+# ⏳ 29 SEPTEMBRE 2026, APRÈS-MIDI — « 2 OUI » : LE PREMIER PRÉLÈVEMENT À LA FIN DU CODE PROMO — PRÊT, DANS LA MISE EN LIGNE N° 2 REFAITE (SECTION AU-DESSUS)
+
+Justin, aux cinq points du matin : **« Pousse / 2 oui / 3 je le ferais se soir la je peux pas / 4 déjà fait depuis
+longtemps / 5 rien ne traîne »** ; puis **« Encore à faire avant de te demander « pousse » : Fais les trois »** (traiter ce
+que les relectures remontent, relancer la suite complète, finir la mise en ligne n° 2) **« Et si la carte est refusée,
+c'est considéré comme un [impayé] »**.
+· **1** → ✅ la mise en ligne du matin (`3785a0f`) est **EN SERVICE**, vérifiée (section suivante) ;
+· **2** → payer pendant une période offerte ne prélève plus rien avant sa fin : **fait, relu trois fois, éprouvé, prêt**
+  (ci-dessous) — il attend SA phrase (« pousse ») : un push de `server/` sur `main` déploie le VPS ;
+· **3** → Search Console (« Inspection de l'URL » → `https://teamop.fr/` → « Demander une indexation », pour le logo) :
+  **Justin le fait ce soir** ;
+· **4** → l'ancienne paire de clés du coffre IONOS : **supprimée depuis longtemps** (#132 clos) ;
+· **5** → **aucun** code de réduction Stripe à 100 % ne traîne ;
+· **carte refusée** → **c'est un impayé**. ⛔ La réponse écrite ici l'après-midi (« le circuit existe déjà » : `past_due`
+  compté comme payé pendant les nouvelles tentatives de Stripe, suspension à la main avec sept jours de sursis, « rien à
+  écrire ») était FAUSSE sur ce que Justin veut : il l'a corrigée le soir même — « leur accès sont bloqués le temps que
+  c'est pas payé ». C'est la section au-dessus.
+
+✅ **Ce qui est fait** (branche : `df5f329` … `a0db61d`)
+· **`finEssaiPeriode`** (`server/index.js`) : la fin d'essai à donner à Stripe = **le lendemain de la fin de la période,
+  0 h UTC** — l'instant où l'application cesse de servir la formule du code. Pour l'entreprise de la référence vérifiée
+  (verrou « B ») ou, sans référence, celle de l'adresse du compte — et, ⛔ **dans les deux cas, l'adresse du compte doit la
+  désigner SEULE** (`gardien`). Rien (facturation immédiate, comme avant) pour OP MESSAGES, une entreprise fermée, une entrée
+  sans identifiant, ⛔ **un abonnement réglé à la main dans la Tour** (`aboStatut`), ni hors des bornes de Stripe (**48 h**
+  + 10 min de marge, **deux ans**).
+· **`/api/stripe/checkout`** : `subscription_data[trial_end]` et le retour `merci.html?debut=AAAA-MM-JJ` ; Stripe montre
+  lui-même l'essai et la date sur sa page.
+· **`merci.html`** (et son aperçu) : « **Abonnement confirmé** — ta période offerte continue : rien n'est prélevé avant le
+  JJ/MM/AAAA ». Une date mal formée, impossible, passée ou lointaine laisse le texte d'origine.
+· **Courriel J-7, entreprise SANS abonnement** : « 💳 En vous abonnant au plus tard le JJ/MM, rien n'est prélevé avant le
+  JJ/MM/AAAA » — seulement quand c'est vrai ; la limite annoncée est l'**avant-veille** de la fin.
+· ⛔ **Courriel J-7, entreprise DÉJÀ ABONNÉE** (`gardien` : le courriel habituel l'invitait à payer une seconde fois —
+  un second abonnement, prélevé EN DOUBLE) : `rappelAbonneMail`, **sans aucun lien de paiement** — « Votre abonnement prend
+  le relais : vous n'avez rien à faire », avec le jour du premier prélèvement (en essai) ou la prochaine échéance (un
+  impayé a désormais son propre courriel, avec le lien de sa facture : section au-dessus) ; résiliée mais courant
+  au-delà, « jusqu'au JJ/MM/AAAA » (et le prélèvement d'avant, si elle est en essai), puis Gratuit.
+· ⛔⛔ **Qui est « abonnée » : ce qu'`espacePaye` décidera LE LENDEMAIN DE LA FIN** (seconde relecture de `gardien`) — les
+  mêmes règles (`espaceStripeDans`, sortie d'`espaceStripe` en fonction pure, et `formuleEtPlaces`) rejouées sur les SEULS
+  abonnements encore vivants ce jour-là. Décider sur l'état d'aujourd'hui disait « rien à faire » à des entreprises que
+  l'application repasserait en Gratuit : un abonnement résilié avant la fin — le sien, celui d'une AUTRE entreprise à la
+  même adresse qui la rendait « payée », ou celui qui faisait seul monter une fiche Gratuit.
+  · OP MESSAGES seul, fiche Gratuit que rien de lisible ne fait monter, résiliée avant la fin → le courriel habituel ;
+  · réglée à la main dans la Tour, ou fiche sans formule → le courriel habituel, **comme avant** (Stripe ne décide rien
+    pour elle), sans la promesse ;
+  · dates lues sur SES abonnements d'OP GESTION (ni OP MESSAGES trouvé le premier, ni l'entreprise voisine : abonnée alors,
+    sans date), au **jour de Paris** ; plusieurs : actif, puis en essai, puis en impayé ;
+  · ⛔ **Stripe illisible, ou sa liste périmée** (plus de cinq minutes — la dernière connue sert pendant une panne, un
+    paiement fait depuis n'y est pas) : le rappel **attend le passage suivant** (six heures), sans marque, tant que la
+    promesse aurait un délai ; ensuite il part, **SANS** elle.
+· **La boucle des rappels relit tout après l'attente de Stripe** (annuaire, période, adresse, réglage de la Tour) : une
+  entreprise supprimée ou réglée dans la Tour pendant ce temps attend le passage suivant ; et **une entreprise qui jette
+  n'arrête plus les autres**.
+· **Tour** : le revenu mensuel ne compte plus les abonnements en essai.
+
+⚠️ **Ce qu'il faut savoir**
+· **Un réglage Stripe à choisir** — devenu **Q3** (section au-dessus) : depuis le soir, `past_due` n'est plus payé ;
+  « Marquer l'abonnement comme impayé » garde l'entreprise dans le circuit de l'impayé (bloquée, prévenue, sa facture à
+  régler), « Annuler » l'en sort (Gratuit « normal », nouvel abonnement à prendre). Et, en filet, le **rappel de fin
+  d'essai** de Stripe (Abonnements et e-mails) : notre J-7 le fait, mais pas pour qui paie dans les sept derniers jours.
+· **Stripe en panne longtemps** : le rappel J-7 attend, puis part au plus tard l'avant-veille de la fin, sans promesse.
+· **À moins de deux jours de la fin** : Stripe refuse un essai si court → facturation immédiate (le courriel ne le promet
+  pas).
+· **Outre-mer à l'ouest** (Antilles, Guyane) : la limite du courriel tient en métropole ; là-bas, les dernières heures de
+  l'avant-veille facturent tout de suite.
+· **Réglée à la main dans la Tour** (limite d'AVANT, pas neuve) : le J-7 habituel l'invite à payer, mais un paiement Stripe
+  ne débloque rien tant que la Tour n'est pas remise sur « auto » (`espacePaye` lit la Tour avant Stripe). À trancher un
+  jour (ne rien envoyer et prévenir TEAM OP ?) — `gardien` le propose ; ce n'est pas le report qui l'a créé.
+· **Un appareil où l'application est installée, réseau lent (> 2 s)** : `merci.html` est dans le cache du service worker
+  (cherchée fraîche d'abord) — l'ancien texte s'afficherait. Se range à la prochaine version de l'application.
+· **Un code de réduction Stripe « répété N mois »** saisi à la page de paiement court dès la création : ses mois tombent
+  pendant l'essai, où rien n'est facturé.
+· **Deux paiements coup sur coup** (deux onglets) : deux abonnements — comme avant.
+
+**Preuves** : `test-727` 175 ✓ (la vraie route, les bornes à la milliseconde, les gardes de défense, le revenu
+mensuel), `test-839` 191 ✓ (le vrai serveur → la vraie `merci.html`), `test-840` 53 ✓, **`test-844` 47 ✓
+(nouveau)** — le vrai serveur, un facteur SMTP et un **Stripe simulé dans son processus** : dix-huit entreprises (en essai,
+active renouvelée à 23 h 30 UTC, impayée, OP MESSAGES seul, sans abonnement, résiliée pendant l'essai, résiliée au-delà,
+OP MESSAGES + OP GESTION, abonnement d'avant la bascule, adresse partagée qui dure, adresse partagée résiliée, fiche Gratuit
+× 2, réglée dans la Tour, essai résilié après l'essai, plusieurs abonnements × 2, résiliation sans date), Stripe en panne,
+liste périmée, et **deux courses** jouées par les vraies routes de la Tour pendant que le serveur attend Stripe (une
+entreprise supprimée, un abonnement réglé à la main) ; `test-797`, `803`, `811`, `813`, `842`, `843` verts ; **49
+mutations sur 49 mordent, rejouées sur le code final `a0db61d`** (`scratchpad/mutations-essai.py`, arbre à part ; E4 et
+N5 retirées, équivalentes, raison écrite dans le script) ; au navigateur, `merci.html` **89 ✓** et le courriel J-7
+**57 ✓** (dont les quatre variantes « déjà abonnée », jour et nuit) ; liste serveur 48 suites · 3 135 ; suite complète
+200 suites · 11 052 (code 0) ; relectures : `gardien` deux fois (tous ses constats traités), `relecteur` (la procédure
+de déploiement emportait le serveur sans `merci.html` — corrigé, `PAGES_LIEES` ; sa remarque 2 vérifiée et gardée :
+`espacePaye` lit la même entrée sans l'adresse d'un autre nom, la lui prêter rendrait le courriel plus optimiste que
+l'application).
+
+### ⛔ LA MISE EN LIGNE N° 2 D'ORIGINE (`f2d0781`) NE PART PLUS
+Elle a été **refaite** dans le même arbre (`scratchpad/pub-essai`) avec l'impayé du soir : voir « La mise en ligne n° 2 —
+refaite », section au-dessus. Pousser `f2d0781` aujourd'hui publierait un serveur qui compte `past_due` comme payé.
+
+---
+
+# ✅ 29 SEPTEMBRE 2026, MATIN — LES TROIS RÉPONSES DE JUSTIN SUR LE PAIEMENT : LE CLIENT CHOISIT SON TARIF, L'APPLICATION REÇOIT CE QUI EST PAYÉ, LE CODE PROMO AU PLUS GROS FORFAIT — EN SERVICE (`3785a0f`, DÉPLOIEMENT N° 102)
+
+Justin, au réveil, aux trois questions de la nuit (plus bas) : **« 1 il choisit ce tarif qu'il veut »** ; **« 2 […] une
+e-mail par abonnement par entreprise ; s'ils en ont besoin de plusieurs […] ils feront une autre e-mail, c'est tout »** ;
+**« Si ils ont un code promo Business Premium et qu'à la fin du code promo ils veulent changer la version, ils pourront le
+faire dans le [courriel] des sept jours. Le code promo, mets-le [au] plus gros forfait, mais c'est pour mieux montrer
+l'application. »**
+
+⛔ **La garde des tarifs de la nuit (mise en ligne n° 3, `5865b0a`) est à moitié RETOURNÉE, et `5865b0a` ne part plus** :
+son refus « tarif sous la formule de la fiche » (403 `tarif_formule`) aurait bloqué exactement le client qui, au bout de
+son code Business Premium, prend Pro. La moitié qui reste : seul un tarif de la page passe (400 `tarif_inconnu`).
+L'arbre `scratchpad/pub-tarifs` est périmé ; la nouvelle mise en ligne est plus bas.
+
+✅ **Ce qui est fait** (branche : `601f7a6`, `1b59987`, `7b7538b`, `6d46d67`, `4f9d7d0`, `66d384d`, `e67ea78`, `324d9e2`,
+`06c1448`, `1372ea6`, `b03842a`, `89d3385`)
+· **La formule que l'application reçoit est celle qui est PAYÉE** (`formulePayee`, `server/index.js`) : payer Pro donne Pro,
+  même sur une fiche Business Premium ; `/api/espaces/etat` rend `formule` = la formule servie ; la Tour reçoit
+  `formuleServie` à côté de `formule`. Les règles, chacune rejouée par la relecture adverse (plus bas) :
+  · plusieurs formules payées : celle qui porte le **plus d'abonnements**, à égalité la plus **basse** (plus de places
+    plutôt que moins) — ses places comptent les abonnements de cette formule et au-dessus ;
+  · ⛔ ce qu'on ne sait pas lire garde la **FICHE** — un abonnement d'avant la bascule des places (29 septembre, 4 h UTC :
+    souscrit par un ancien lien, à un autre tarif ; il compte à la formule de la fiche et **interdit de descendre sous
+    elle**), un tarif fait à la main chez Stripe, un abonnement **sans ligne lisible** : on ne coupe pas une entreprise qui
+    paie ;
+  · des abonnements d'après qui ne sont QUE d'OP MESSAGES (lignes lisibles) : Gratuit pour OP GESTION (le motif le dit :
+    « OP GESTION non payé : formule Gratuit ») ;
+  · ⛔ **monter** au-dessus de la fiche seulement sur ce qui est **sûrement** à elle (gravé à son nom, ou trouvé par une
+    adresse que personne d'autre ne porte — `surs`) ; **descendre** seulement **sans doute** (aucun abonnement d'OP GESTION
+    ambigu à la même adresse — `douteux`) ; une référence orpheline (« repartie à neuf ») compte aussi quand le premier
+    abonnement vient de la référence ;
+  · **monter ne retire jamais de places** : une abonnée d'avant qui achète une formule au-dessus garde au moins ce que sa
+    fiche lui donnait.
+· **Une fiche « Gratuit » qui paie reçoit ce qu'elle paie** (elle sortait d'`espacePaye` avant de regarder Stripe), et une
+  fiche « Gratuit » en période offerte reçoit la formule du code (lue, rien ne s'active).
+· **Une période offerte sert la formule du CODE** (`formulePromo`) : celle de `config.promos`, **Business Premium quand le
+  code n'en dit pas**, jamais sous la fiche ; un code retiré de la configuration garde la fiche. Le courriel « votre code
+  est activé » et la réponse de `/api/promo/valider` annoncent CETTE formule (l'aperçu public, qui ne prouve rien : la
+  formule du code seul).
+· **Les places d'une formule servie autre que la fiche** (`placesDeFormule`) : c'est une formule changée APRÈS la bascule —
+  ses anciens abonnements ne prennent pas son multiplicateur. Une donnée Stripe mal formée ne coupe pas (`formuleEtPlaces`).
+· **Le courriel J-7** présente la formule que la période sert, puis **les deux autres**, chacune avec son prix, le total
+  pour l'équipe et son lien (`?formule=…&utilisateurs=N`) ; sans formule connue, les trois. C'est là que le client choisit.
+  Les liens restent lisibles de nuit (règle vérifiée DANS le bloc sombre).
+· **« Mon espace » (le portail) dit la formule SERVIE** (`formuleServieDe`, `avecFormuleServie` : `/api/portail/moi`,
+  `/demande`, `/promo`), **pour une adresse PROUVÉE seulement** ; rien de servi (pas payé, entreprise fermée, adresse qui
+  porte deux entreprises) → le dossier dit ce que la Tour y a posé. Il n'attend jamais Stripe plus de **2 s**.
+· **Stripe** : une seule lecture à la fois (les lectures simultanées la partagent) ; après un échec, une minute de pause
+  (avant : trois abandons de 12 s à chaque appel) ; pendant une panne, la dernière liste connue sert (sans liste : « non
+  payé », comme avant).
+· **La page de paiement** : le message `tarif_formule` retiré ; changer de formule garde le nombre d'utilisateurs.
+· **La Tour** (`abnFormule`, `abnEcart`) : dans Abonnements, la liste des entreprises et la fiche d'une entreprise, la
+  formule SERVIE et l'écart (« Pro (payée ; la fiche dit Business Premium) », « Business Premium (offerte par le code ; la
+  fiche dit Business) », « Gratuit (OP GESTION non payé ; la fiche dit Business) ») — une ligne à écart se lit EN ENTIER,
+  échéance comprise ; la fiche et le toast « 💳 Statut paiement » écrivent les formules en toutes lettres.
+
+**La relecture adverse** (deux réfutateurs par constat, sur le diff du matin) : les constats confirmés sont **tous
+corrigés** — la plus haute formule qui coupait des places ; monter sur l'abonnement d'une autre entreprise à la même
+adresse ; descendre en Gratuit par l'achat d'OP MESSAGES quand l'abonnement d'OP GESTION était ambigu ; la référence
+orpheline écartée ; un abonnement sans ligne qui disait Gratuit ; un ancien abonnement qui laissait descendre ; acheter
+plus cher qui retirait des places ; la fiche Gratuit en période offerte ; le courriel « code activé » et l'application qui
+annonçaient la formule du code seule (et l'aperçu public qui aurait dit la fiche) ; la rafale sur Stripe et « Mon espace »
+qui l'attendait 36 à 48 s ; la ligne à écart qui mangeait l'échéance à 360 px ; la règle de nuit du J-7 qu'un motif
+laissait passer hors du bloc sombre ; le témoin de `test-803` qui gardait l'ancienne attente. Et, trouvé en
+relisant le correctif : pendant une panne de Stripe, l'appel qui attendait la relecture ratée rendait « non payé » alors
+qu'une liste connue était là (la dernière liste connue sert désormais, `89d3385`).
+
+**Seconde relecture** (agent `relecteur`, en lecture seule, sur `b03842a` et `89d3385`) : **aucun défaut bloquant** —
+aucun chemin où une entreprise reçoit une formule qu'elle ne paie pas, ni où une entreprise qui paie est coupée par une
+exception ; aucune promesse rejetée sans gestionnaire (cache Stripe, `Promise.race` du portail). Quatre remarques,
+NOTÉES et pas corrigées avant la mise en ligne :
+1. pendant une panne de Stripe, le premier appel après les cinq minutes du cache ATTEND la relecture (jusqu'à 36 s) avant
+   de servir la liste connue — `/api/espaces/etat` et la Tour comprises (le portail est borné à 2 s). C'est mieux qu'en
+   service (chaque appel attend puis rend « non payé »), et on pourrait faire mieux encore : servir la liste connue tout de
+   suite et relire en tâche de fond. Mais ça change le chemin NORMAL (une liste servie un cycle plus tard) : ça se fait
+   avec ses bancs, pas la veille d'une mise en ligne ;
+2. à froid (cache vide) et Stripe muet : « non payé » pendant la minute de pause — comme en service, sans l'attente ;
+3. ⚠️ **À RELIRE AVANT DE VENDRE OP MESSAGES** : un abonnement OP GESTION introuvable (adresse de facturation différente,
+   sans référence — la limite connue) plus un OP MESSAGES gravé à la référence donneraient « Gratuit ». Aujourd'hui
+   personne ne peut acheter OP MESSAGES, et une entreprise dans ce cas est réglée à la main dans la Tour (`aboStatut`, qui
+   passe avant Stripe) ;
+4. `/api/espaces/etat` reste ouvert sur `t` (depuis toujours) : une fiche Gratuit qui paie y montre maintenant sa formule
+   payée et son motif, comme le faisaient déjà les fiches payantes.
+
+**Preuves** : `test-727` 141 ✓, `test-803` 145 ✓, `test-811` 75 ✓, `test-813` 68 ✓, `test-839` 172 ✓,
+`test-840` 48 ✓, `test-842` 90 ✓ ; liste serveur **47 suites · 3 030** (plancher relevé à 3 000) ; **56 mutations sur 56 mordent**
+(`scratchpad/mutations-formule-servie.py`, jouées dans une copie à part) ; sonde de la Tour
+`scratchpad/sonde-tour-formule-servie.js` **108 ✓ 0 ✗** (téléphone 390 et 360, bureau, nuit et jour) et sonde du
+tiroir de la v2.75 **71 ✓ 0 ✗** ; suite complète **199 suites · 10 947**, code 0, dans l'arbre de la mise en ligne comme
+sur la branche ; les contrôles de
+`verification.yml` (versions, connexion 67 cas, accès 17 cas, bêta identique à sa génération), `verif-secrets` et
+`verifier-theme` verts.
+
+### ✅ LA MISE EN LIGNE — EN SERVICE (paiement + Tour v2.75)
+✅ **Poussée le 29 septembre sur « Pousse » de Justin** : déploiement du serveur n° 102 vert (bancs, puis le VPS),
+`/health` propre, `tour.html` et `recap-abonnement.html` servis octet pour octet, CI de `main` verte 4/4 (CI n° 1331,
+« Vérification des pages » n° 516, Pages n° 1290). Ce qui suit est la fiche de fabrication, gardée pour mémoire.
+Dans l'arbre `scratchpad/pub-paiement` (session du 29 septembre, matin) : **`3785a0f`**, un seul commit sur `main` à
+`8fbd34a`. Il emporte `server/index.js`, `server/portail.js`, `recap-abonnement.html`, `apercu/recap-abonnement.html`,
+`tour.html` (v2.75), `scripts/bancs-serveur.liste` (plancher 3 000), `scripts/preparer-deploiement-serveur.sh`,
+`tests/test-727`, `797`, `803`, `811`, `813`, `839`, `840`, `842`, `843` (neuf) et cinq fichiers du scratchpad (sondes et
+mutations de la Tour et de la formule servie) — tous identiques à la branche (vérifié par `cmp`) ; les workflows restent
+ceux de `main` (la liste serveur). `app.html`, `sw.js` et `beta.html` ne bougent pas (v763 des deux côtés).
+Preuves de CET arbre : liste serveur **47 suites · 3 030** ; suite complète **199 suites · 10 947**, code 0 ; les contrôles de
+`verification.yml`, `verif-secrets` et `verifier-theme` verts.
+**Sur « pousse » de Justin** : vérifier que `origin/main` est toujours `8fbd34a` (sinon reconstruire), puis
+`git push origin HEAD:main` depuis cet arbre. **Si l'arbre a disparu** : arbre détaché sur `origin/main`, y prendre depuis
+la branche les fichiers ci-dessus (`git checkout <commit de la branche> -- …`), relancer la liste serveur, commiter.
+**Après** : le déploiement du serveur (bancs puis VPS ; `/health`, dont l'`uptime` repart), `tour.html` et
+`recap-abonnement.html` servis octet pour octet, la CI de `main` verte ; puis, dans la Tour, Abonnements : l'écart de
+formule de chaque entreprise (ELAN d'abord).
+
+⚠️ **Ce qu'il faut savoir en le publiant** :
+· **ELAN** (code promo en cours) : si sa fiche est sous Business Premium alors que son code est Business Premium, elle verra
+  Business Premium pendant sa période (la règle de Justin) ; si sa fiche est déjà Business Premium, rien ne change. À
+  regarder dans la Tour après le déploiement (Abonnements : l'écart s'y lit).
+· **« Les sept jours »** sont ceux du courriel J-7 : à la fin d'un code non payé, l'application repasse en Gratuit tout de
+  suite (sans sursis — le sursis de sept jours est celui d'un IMPAYÉ). Payer pendant la période ne décalait pas la
+  facturation — ✅ décidé « oui » le 29 à midi : rien n'est prélevé avant la fin du code (section du dessus).
+· **Deux entreprises à la même adresse** (réponse 2 : une adresse = une entreprise) : elles ne se prêtent plus une
+  formule, mais le verdict « payé » et les places, si (le repli par l'adresse d'avant) ; dans le doute, chacune garde sa
+  fiche. Ne pas créer deux entreprises à la même adresse dans la Tour.
+· **Des tarifs mêlés** (dix Pro et un Business Premium) : Pro, onze places.
+· **Stripe en panne** : la dernière liste connue sert ; sans elle, « non payé » comme avant, un essai par minute.
+· **OP MESSAGES seul** (pas encore en vente) : l'application v763 recevrait Gratuit avec son message habituel
+  « 🎉 Gratuit débloqué » (celui de tout changement de formule — à reprendre dans l'application, sur la bêta) ; avant,
+  elle recevait la formule de la fiche sans la payer. Un abonnement d'avant la bascule garde la fiche.
+
+✅ **Ses réponses, le 29 à midi** : « pousse » (fait, ci-dessus) ; `trial_end` : **« oui »** (section du dessus, prête) ;
+Search Console : **il le fait ce soir** ; l'ancienne paire du coffre IONOS : **supprimée depuis longtemps** (#132) ; codes
+Stripe à 100 % : **aucun**. Reste, plus tard : exiger la v763.
+⏳ **Ce qui reste au dépôt** : retirer l'ancien `vitrine/` et les deux empreintes v1 — pas avant quelques jours ;
+l'application (bêta) : un message juste quand la formule DESCEND ; servir la liste Stripe connue sans attendre pendant une
+panne (remarque 1 de la seconde relecture, avec ses bancs). ✅ `apercu/tour.html` régénéré en v2.75 (`16e49bd`) — il part
+avec la mise en ligne n° 2. ⚠️ `stash@{0}` (un brouillon de `tour.html` sur `publication/apercu-tour`) n'est PAS jetée :
+46 de ses 113 lignes seulement se retrouvent dans la Tour d'aujourd'hui ; elle ne vit que dans le conteneur de cette
+session, et disparaîtra avec lui.
+
+---
+
 # ✅ 28 SEPTEMBRE 2026, NUIT — PLUS AUCUN CODE (LIENS SEULEMENT), LE NOUVEAU SITE ET SON PORTAIL, LES PLACES PAYÉES ; PUIS L'APPLICATION v763 (1 COMPTE PAR ABONNEMENT) ET LA CI DE `main` RÉPARÉE
 
 Justin, dans la soirée : **« je veux plus de code, que des liens pour les connexions »** ; **« c'est nous qui créons les
@@ -69,13 +1069,104 @@ couvre toute l'équipe, rien ne change pour eux.
 mise en ligne n° 1 : 197 suites · 10 514 ; arbre de la v763 : 198 suites · 10 752, liste serveur avec le nouveau
 compteur 47 suites · 2 904.
 
-⏳ **Ce qui reste à Justin** : Search Console → « Inspection de l'URL » → `https://teamop.fr/` → « Demander une
+⛔ **Remplacé le 29 au matin (en tête)** — ~~⏳ **Ce qui reste à Justin** : **dire « pousse »** pour les deux mises en ligne prêtes (garde des tarifs, Tour v2.75 —
+plus bas) ; les trois décisions plus bas~~ ; Search Console → « Inspection de l'URL » → `https://teamop.fr/` → « Demander une
 indexation » (le logo) ; supprimer l'ancienne paire de clés du coffre IONOS (#132) ; regarder chez Stripe qu'aucun code
 de réduction à 100 % ne traîne (un abonnement payé à 0 € donnerait maintenant des places) ; plus tard, exiger la v763
 dans la Tour quand tout le parc est à jour (rien ne l'oblige : aucun changement de format).
-⏳ **Ce qui reste au dépôt** : retirer l'ancien `vitrine/` et les deux empreintes v1 (voir plus haut) ; la liste blanche
-des tarifs à `/api/stripe/checkout` (repoussée : `test-839` paie un tarif fictif) ; le cas « deux entreprises à la même
-adresse » (il faudrait savoir quelles entrées de l'annuaire sont VIVANTES).
+⏳ **Ce qui reste au dépôt** : retirer l'ancien `vitrine/` et les deux empreintes v1 (voir plus haut) — pas avant
+quelques jours ; la liste blanche des tarifs est FAITE (elle part avec la mise en ligne du 29, en tête ; sa moitié
+« tarif sous la fiche » est retirée).
+
+## ⛔ PÉRIMÉ LE 29 AU MATIN — ~~PLUS TARD DANS LA NUIT — DEUX MISES EN LIGNE PRÊTES, BLOQUÉES PAR LE GARDE-FOU DES PERMISSIONS~~
+
+⛔ **Ce qui suit est l'histoire de la nuit, pas l'état** : la mise en ligne n° 3 (`5865b0a`) NE PART PLUS — sa garde « tarif
+sous la formule de la fiche » est retournée par la réponse 1 de Justin (le client choisit son tarif) ; la Tour v2.75 part
+avec la mise en ligne du 29 (en tête) ; l'arbre `scratchpad/pub-tarifs` est périmé ; les trois décisions ont leurs
+réponses (en tête).
+
+Justin, en partant dormir : **« Fait tout ce qu'il faut faire, moi je vais dormir, il faut que demain matin au réveil tout
+soit fait. »** Tout ce qui suit est fait, prouvé, commité et poussé sur la branche. ⛔ **La poussée sur `main` a été
+REFUSÉE par le garde-fou des permissions** (« Production Deploy ») : elle attend une phrase de Justin (« pousse »). Ne pas
+la contourner — ni par un autre outil, ni en morceaux.
+
+### ⛔ Mise en ligne n° 3 — ABANDONNÉE LE 29 AU MATIN — la garde des tarifs de `/api/stripe/checkout` (serveur + page de paiement)
+La route ouvrait un paiement pour N'IMPORTE QUEL tarif du compte Stripe envoyé par le navigateur — et pour
+`espacePaye()`, un abonnement vivant suffit à rendre une entreprise « payée » : une fiche Business Premium se payait au
+tarif Pro. Désormais : seul un tarif de la page (`STRIPE_PRIX_FORMULE`, `STRIPE_PRIX_MESSAGES`) passe (400
+`tarif_inconnu`) ; un tarif SOUS la formule de l'entreprise est refusé avant Stripe (403 `tarif_formule`, la formule est
+dite) — la formule de la fiche que l'application lit (`espaceParT`) quand la référence est reconnue, et SANS référence
+(téléphone du patron, fenêtre privée) celle des entreprises à l'adresse du compte, le même repli qu'`espacePaye()` ; un
+tarif est un texte. Le courriel J-7 prend la formule de la fiche d'abord. La page de paiement dit les deux refus, et
+changer de formule garde le nombre d'utilisateurs (il repartait à 1) et efface le refus d'avant. Le script
+`preparer-deploiement-serveur.sh` emporte désormais la page de paiement (`PAGES_LIEES`) : ses bancs la lisent.
+· Branche : `f790676`, `ea1f773`, `55c19e6`, `a2958a7`. Commit de publication fabriqué : `5865b0a` (sur `8fbd34a`, dans
+  un arbre du scratchpad — PERDU si le conteneur meurt). **Pour le refaire** : arbre détaché sur `origin/main`, y copier
+  depuis la branche `server/index.js`, `recap-abonnement.html`, `apercu/recap-abonnement.html`, `tests/test-727.js`,
+  `test-797`, `test-839`, `test-840`, `scripts/preparer-deploiement-serveur.sh`, `scripts/bancs-serveur.liste` (les
+  neuf sont identiques à la branche, vérifié par `cmp`), relancer la liste serveur, commiter, pousser.
+· Preuves (arbre de publication) : suite complète **198 suites · 10 782** ; liste serveur **47 · 2 934** (plancher 2 900) ;
+  les dix contrôles de `verification.yml` et `verif-secrets` verts. Mutations : 6/6 serveur, 1/1 page. Relecture
+  adverse (attaquant + relecteur, deux réfutateurs par constat) : ce qui visait ce diff est corrigé (le repli sans
+  référence ; la formule de la fiche plutôt que le maximum des noms ; un tableau en guise de tarif ; le J-7 ; le nombre
+  qui repartait à 1 ; le cas « code ≠ fiche » que `test-840` ne jouait pas ; le script de déploiement).
+· Après la poussée : surveiller le déploiement (bancs puis VPS), `/health` (`uptime` qui repart), la page servie
+  (`curl teamop.fr/recap-abonnement.html | grep tarif_formule`), la CI de `main`.
+
+### Tour v2.75 — la pastille ≡ au téléphone et son tiroir (le menu complet) — PART AVEC LA MISE EN LIGNE DU 29 (en tête)
+Justin, 27 septembre 2026, captures à l'appui : **« je voudrais aussi ça pour avoir accès à toutes les catégories dans la
+tour »** (la pastille ≡ d'OP GESTION) ; **« sur la tour sur telephone je [veux] aussi ce menu »** (le menu du bureau).
+Commencé ce jour-là, mis de côté (`stash@{0}`, « tiroir v2.70 en cours ») pour des urgences, jamais repris — retrouvé
+cette nuit. Repris sur la v2.74 : pastille ronde en verre en haut à gauche, alignée sur l'avatar ; tiroir qui part du
+bord gauche (marque, qui conduit, GESTION / MESSAGES, sections, vues avec icône et compteur, vue ouverte marquée,
+« Personnaliser la barre », « Quitter », version) ; voile, Échap, glissé vers la gauche au doigt (le tactile, pas le
+pointeur), glissé vertical qui fait défiler, le tap qui suit un glissé avalé, focus rendu à la pastille, Tab qui tourne,
+jamais deux panneaux (« Plus » se referme), fermé si l'écran passe à 900 px. Rien au bureau.
+· Branche : `bb68256`, `03f0564` (+ la relecture, plus bas). `test-843` (neuf) 59 ✓ ; sonde au doigt
+  `scratchpad/sonde-tour-tiroir.js` **61 ✓ 0 ✗** (nuit, jour, bureau) ; contre-épreuve sur la v2.74 : la sonde tombe,
+  le banc 7 ✓ 59 ✗ ; 12/12 mutations (`scratchpad/mutations-tour-tiroir.py`, sur des copies) ; bancs de la Tour 828,
+  829, 830, 832, 833, 835, 841 verts. ⚠️ La Tour n'a ni manifeste ni mode plein écran : sur iPhone elle s'ouvre dans
+  Safari, où l'encoche du haut vaut 0 — tout l'en-tête est à 6 px (mesuré), la pastille y est alignée.
+· Relecture adverse (dessin + diff, deux réfutateurs par constat) — six constats confirmés, tous corrigés (`0c26fc4`) :
+  le tiroir se rouvrait DÉFILÉ (remis à zéro une fois MONTRÉ : caché, il ignore `scrollTop` et le navigateur lui rend
+  son ancien défilement — premier essai sans effet, vu par la sonde) ; à 360 et 390 px un nom long s'écrivait SOUS
+  « GESTION » (colonne bornée, ellipse ; le nom entier est en tête du tiroir) ; `verifier-theme` passait au rouge sur
+  une variable bâtie (`APP_TEINTE`) ; un tiroir ouvert gardait un contenu périmé après Ctrl+Maj+M, le retour ou un
+  compteur (`tiroirRafraichir`, appelé par `setTab`, `setBdg`, `majCompteursApp` ; jamais sous un doigt posé) ; en
+  « animations réduites » il ne suivait plus le doigt (`.glisse`) ; la sonde jouait un contrôle creux (le clic qui
+  suit un glissé est maintenant JOUÉ). Après : sonde **71 ✓ 0 ✗** (contre la version d'avant : 10 ✗), `test-843`
+  **67 ✓**, **18/18** mutations, `verifier-theme` 0. Ce que la relecture a mesuré et qui tient : contraste au pixel
+  (≥ 4,7 partout dans le tiroir), la pastille n'est pas une loupe, 44 px partout, iPhone SE (le pied atteignable),
+  jamais deux panneaux avec « Ma barre », aucun survol collé, aucune erreur JavaScript.
+· Publication : `tour.html` + `tests/test-843.js` + les trois fichiers du scratchpad (sonde, mesure, mutations). Le
+  `stash@{0}` peut être jeté une fois la v2.75 en service.
+
+### ⛔ PÉRIMÉ LE 29 AU MATIN — ~~LES DEUX, PRÊTES EN UN SEUL ENVOI~~ (la nouvelle mise en ligne est en tête)
+Dans l'arbre `scratchpad/pub-tarifs` (session du 28 au 29 septembre) : `5865b0a` (garde des tarifs) puis `86b2845`
+(Tour v2.75), sur `main` à `8fbd34a`. Suite complète de CET arbre : **199 suites · 10 849**, code 0 ; les dix contrôles
+de `verification.yml`, `verif-secrets` et `verifier-theme` verts. Sur « pousse » de Justin : `git push origin HEAD:main`
+depuis cet arbre (vérifier d'abord que `origin/main` est toujours `8fbd34a`, sinon reconstruire). Si l'arbre a disparu,
+le reconstruire depuis la branche (les fichiers y sont identiques, vérifié par `cmp`) : la liste de la mise en ligne
+n° 3 plus haut, puis `tour.html`, `tests/test-843.js`, `scratchpad/sonde-tour-tiroir.js`, `scratchpad/mesure-entete-tour.js`,
+`scratchpad/mutations-tour-tiroir.py`. Après : déploiement du serveur (bancs puis VPS, `/health` dont l'`uptime` repart —
+il valait 4 224 s juste avant), `tour.html` et `recap-abonnement.html` servis octet pour octet, CI de `main` verte.
+
+### ✅ RÉPONDU LE 29 AU MATIN — ce qui attendait une DÉCISION de Justin (relecture adverse de la garde des tarifs)
+Les réponses de Justin et ce qu'elles sont devenues sont en tête : (1) le client choisit son tarif, l'application reçoit
+la formule PAYÉE (plus de refus, l'écart se lit dans la Tour) ; (2) une adresse = une entreprise (dans le doute, chacune
+garde sa fiche) ; (3) à la fin du code, le client change de formule par le courriel J-7, et le code sert le plus gros
+forfait. Le texte d'origine :
+1. **Payer d'abord au tarif bas, la formule ensuite** : un prospect paie Pro (ou OP MESSAGES), puis sa demande « Business
+   Premium » est acceptée dans la Tour → « payée » en Business Premium, 1 place. Même chose pour une entreprise Gratuite qui
+   paie Pro puis monte par un code promo. Cause : `espacePaye()` ne compare jamais le tarif de l'abonnement à la formule de
+   la fiche. Ce n'est pas une régression (avant, n'importe quel tarif suffisait). Le correctif touche le verdict « payé »,
+   donc le risque de couper une entreprise qui paie : **à trancher**. Proposition : pour un abonnement créé APRÈS la
+   bascule seulement, « payé » exige un tarif de la formule ou au-dessus ; sinon la Tour AFFICHE l'écart (« payé au tarif
+   Pro, formule Business Premium ») au lieu de couper, et TEAM OP décide (sursis, ou ramener la formule).
+2. **Deux entreprises à la même adresse** (limite connue, écrite dans le code) : payer au tarif de l'une rend l'autre
+   « payée » par le repli sur l'adresse. Le même correctif que (1) la fermerait.
+3. **Après un code promo Business Premium**, la fiche reste en Premium : le client ne peut plus payer seul un tarif Pro ou
+   Business (refus dit à l'écran, « écrivez à support@teamop.fr »). Voulu ?
 
 ---
 
@@ -301,9 +1392,10 @@ il envoie gardaient chacune leur vieille feuille. Recensé depuis les liens du s
   (`test-836` les compare jeton par jeton), plus les couleurs d'état MESURÉES (≥ 4,5 dans les deux modes) et
   l'indication des champs (celle du navigateur tombait à 2,43 la nuit).
 · `vitrine/v2/mode.js` : le jour / nuit sorti de `site.js`, tel quel, partagé (même clé `teamop_site_mode` : le choix
-  fait sur le site suit sur le portail, et inversement — mesuré). La tête du mode est désormais dans une fonction
+  fait sur le site suit sur le portail, et inversement — mesuré). ⛔ **Bouton RETIRÉ le 29 septembre au soir** (Justin :
+  « je veux que ça soit automatique ») : mode.js ne fait plus qu'effacer l'ancien choix — voir la section du 29 en tête. La tête du mode est désormais dans une fonction
   (plus de variable globale `m` dans les pages qui l'embarquent) ; les 8 pages du site régénérées avec.
-· Les dix pages : même tête, même bouton ☀︎/☾ (au coin quand la page n'a pas de barre), messages de connexion en
+· Les dix pages : même tête, même bouton ☀︎/☾ (**retiré le 29 septembre au soir**) (au coin quand la page n'a pas de barre), messages de connexion en
   JETONS (le rouge de nuit était illisible sur le blanc), champs à 16 px (Safari zoomait à 15), commandes à 44 px au
   doigt (l'œil des mots de passe, le nombre d'utilisateurs de recap), recap : toutes les formules à la couleur du
   site (plus de violet ni de bleu ciel), « Ouvrir » d'OP MESSAGES lisible (1,83 → texte clair sur le bleu nuit).
@@ -342,7 +1434,7 @@ de `sw.js`** en y ajoutant `/vitrine/v2/theme.css` et `/vitrine/v2/mode.js` : il
 SUIVANTE). ⚠️ Toucher `sw.js` est une publication à part entière : la demander dans la même phrase.
 `fond-anime-teamop.js` part avec l'ancien `espace.html` (et sa ligne d'`ASSETS` avec lui).
 
-# 🟡 27 SEPTEMBRE 2026, SOIR — SITE v2 EN APERÇU : UNE VRAIE CAPTURE PAR CASE, LA CARTE TOUCHÉE EN BLEU, UN BOUTON JOUR / NUIT — ATTEND « REMPLACE LE SITE »
+# 🟡 27 SEPTEMBRE 2026, SOIR — SITE v2 EN APERÇU : UNE VRAIE CAPTURE PAR CASE, LA CARTE TOUCHÉE EN BLEU, UN BOUTON JOUR / NUIT (RETIRÉ LE 29 AU SOIR : LE SITE SUIT L'APPAREIL) — ATTEND « REMPLACE LE SITE »
 
 Justin, sur les tarifs en ligne : « pourquoi il y en a un qui est en bleu et les autres sont noirs ? […] ça serait
 bien que quand on clique sur les cases, ça affiche en bleu », « les mêmes couleurs pour OP MESSAGES » (qui revient :
@@ -357,7 +1449,8 @@ relue par `test-835` §10. ⛔ Le générateur écrit l'aperçu par défaut ; `-
 · **Le bleu** = la formule mise en avant (« Le plus choisi »). Il suit désormais le doigt : toucher une carte
   (clic ou clavier) lui donne la bordure et le bouton bleus, dans SON groupe ; l'étiquette « Le plus choisi » reste
   où elle est. OP MESSAGES a les mêmes couleurs ; ses boutons disent toujours « Bientôt disponible ».
-· **Jour / nuit** : bouton ☀︎/☾ dans la barre, sur les 8 pages. Il force l'autre mode, gardé sur l'appareil
+· ⛔ **RETIRÉ LE 29 SEPTEMBRE AU SOIR** (« je veux que ça soit automatique ») — ce qui suit est l'histoire.
+  **Jour / nuit** : bouton ☀︎/☾ dans la barre, sur les 8 pages. Il force l'autre mode, gardé sur l'appareil
   (`teamop_site_mode`), posé AVANT le premier rendu (pas d'éclair blanc) ; revenir au mode de l'appareil efface le
   choix. Les écrans des iPhone et Mac suivent (le `media` de leurs `<source>` est réécrit).
 · **Une capture par case** : les dix cases d'elan.html montrent chacune SON écran — Mac pour les grandes, iPhone pour
@@ -1448,7 +2541,7 @@ pour le retour arrière puis supprimée (étape 9) — promis par `sous-traitanc
 | 5 | Justin, dans la Tour, AUSSITÔT | « Exiger la dernière version » (748) | encadré : « porte de version chez Google : v748 » (confirmée, pas seulement posée) |
 | 6 | Justin, dans la Tour | ✅ l'annonce v748 — envoyée le 26 septembre au matin | nombre d'entreprises prévenues (affiché par la Tour à l'envoi ; le serveur ne l'écrit qu'à son journal) |
 | 7 | l'agent | surveiller `/health` : `copiesEchec1h`, `copiesEnAttente1h`, `illisibles1h`, `processus` | zéros |
-| 8 | Justin, J+quelques jours | « Faire l'inventaire » dans la Tour | « complet » |
+| 8 | Justin, J+quelques jours | ✅ « Faire l'inventaire » dans la Tour — fait le 29 septembre au soir | « complet — 1 entreprise : 1 document, 0 absente de Google, 0 fermée » |
 | 9 | Justin, J+30 | `node /opt/teamop/repo/server/reglage.js documents.copieFirebase=false`, redémarrer, puis supprimer les données Firebase d'OP GESTION (pas OP MESSAGES, qui y vit encore, fermée) | `/health` : `copieFirebase:false` |
 
 ⚠️ **De 2 à 4 d'une traite** : dès `comptes.actif=true`, le serveur ne croit plus un jeton Google

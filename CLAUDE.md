@@ -57,7 +57,7 @@ cd server && npm audit --omit=dev  # failles dans les dépendances de production
 node --check server/index.js       # contrôle de syntaxe, depuis la racine
 ```
 
-**195 suites dans `tests/`**, sans dépendance ni installation (recompté dans la nuit du 27 septembre 2026, `test-839` compris —
+**203 suites dans `tests/`**, sans dépendance ni installation (recompté le 30 septembre 2026 —
 ce nombre vieillit vite, le relire plutôt que le croire). La plupart extraient les fonctions
 réelles d'`app.html` et les exécutent : elles testent donc le fichier livré.
 
@@ -71,6 +71,7 @@ Quatre familles visent `server/`, et elles ne se remplacent pas :
 | `test-735`, `test-803` | les fonctions RÉELLES d'`app.html` **plus** le vrai serveur | que l'APPAREIL et le SERVEUR se parlent |
 | `test-740`, `test-741`, `test-831` | les fonctions RÉELLES d'`espace.html`, de `reinit.html` et de `connexion.html`, plus le vrai serveur | que le PORTAIL et le SERVEUR se parlent — et que l'écran DIT ce que le serveur a répondu |
 | `test-744` | le VRAI `op-fs.js` contre le vrai serveur, deux appareils | que le filtre de lecture ne CACHE rien |
+| `test-848` | les fonctions RÉELLES d'`espace.html`, de `tour.html` ET d'`app.html`, plus le vrai serveur | que le MÉTIER demandé au portail arrive, par la Tour et le serveur, dans l'application — la couture entière |
 | `test-833` | les fonctions RÉELLES de `tour.html`, plus le vrai serveur — et un serveur d'AVANT (un relais qui retire le champ neuf) | que la TOUR et le SERVEUR se parlent, dans les deux ordres de publication |
 
 ⛔ Les deux dernières lignes existent parce que les deux premières ne peuvent pas voir un défaut
@@ -124,7 +125,7 @@ porte les deux pièges du comptage (bandeaux d'un autre format, banc qui meurt A
 et sort en 1 dès qu'une suite tombe.
 
 ```bash
-bash scripts/bancs-ci.sh        # 195 suites · 10 536 vérifications (mesuré en local dans la nuit du 27/09/2026, bêta v761)
+bash scripts/bancs-ci.sh        # 203 suites · 11 948 vérifications (mesuré en local le 30/09/2026, branche 9f23d0b)
 node tests/test-726.js          # le câblage du SERVEUR : 143 vérifications, ~12 s
 node tests/test-735.js          # le câblage APPAREIL ↔ SERVEUR : 210 vérifications, ~75 s
 ```
@@ -240,6 +241,21 @@ mot peut se retrouver en tête de ligne. Pris le 27 septembre 2026 : `test-832` 
 de suppression, sur une partie seulement des messages — le défaut était dans le facteur. Le facteur de `test-813`
 (et de tout banc qui le recopie) ne le fait pas encore : à corriger le jour où il lira un texte long.
 
+⛔ **UN BANC QUI ATTEND UN COURRIEL VISE LE LIEN DE SON GESTE, JAMAIS DEUX MOTS.** Pris le 29 septembre 2026 : `test-831`
+attendait « mot de passe oublié » en cherchant l'adresse et « reinit.html » — le courriel de CONFIRMATION de l'inscription,
+parti derrière la réponse juste avant, porte les deux. Détourner le vrai courriel vers une autre adresse ne faisait rien
+tomber. On vise le lien du geste (`mode=resetPassword`), lu dans l'en-tête `To` et le corps DÉCODÉ (quoted-printable :
+« = » y devient « =3D »), et un échec nomme chaque courriel reçu — destinataire et sujet, jamais le corps.
+
+⛔ **UNE COURSE DE BANC SE JOUE AU GESTE, JAMAIS AU CHRONOMÈTRE — ET LA CI A LE VRAI RÉSEAU.** Pris le 29 septembre 2026
+(run 518 de « Vérification des pages », sur `main`) : `test-844` pariait qu'une suppression de la Tour tiendrait dans
+les 3 s d'un Stripe « lent ». Ici elle rendait à 3,03 s pour une fenêtre fermée à 3,24 s — 0,2 s de marge que rien ne
+montrait ; sur GitHub, derrière. Le faux Stripe RETIENT désormais la lecture visée (reconnue à sa pile d'appels) jusqu'à
+ce que le banc la relâche. Deux leçons : **la marge d'une fenêtre se mesure avant de parier dessus** (un vert ne dit pas
+de combien il passe) ; et une route qui appelle Google (la suppression d'une entreprise : jeton anonyme, effacement
+Firestore) y part VRAIMENT, depuis la CI comme d'ici — un banc qui la joue dépend du réseau tant qu'il ne remplace pas
+ce `fetch`.
+
 ⛔ **UNE APOSTROPHE DANS LE MOT DE `${var:?mot}` CASSE LE PARSE DU SCRIPT ENTIER.** Bash
 re-interprète les quotes à l'intérieur du mot, **même entre guillemets doubles** :
 `"${1:?le SHA n'a pas été transmis}"` ouvre une simple quote qui ne se referme jamais, et le
@@ -337,6 +353,132 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   ⚠️ La suppression TOTALE efface la mémoire des codes avec le reste — voulu, geste de la Tour —
   SAUF celle d'une entreprise VIVANTE (supprimer l'ancien identifiant d'une entreprise repartie à
   neuf) : `promoEffacerEntreprise`. Et un registre non écrit se DIT (503), avant le courriel.
+- ⛔⛔ **LA FORMULE QUE L'APPLICATION REÇOIT EST CELLE QUI EST PAYÉE — `espacePaye` → `formuleServie`, JAMAIS LA FICHE SEULE.**
+  Justin, 29 septembre 2026 : « il choisit le tarif qu'il veut » ; « une e-mail par abonnement par entreprise » ; « le code
+  promo, mets-le au plus gros forfait, c'est pour mieux montrer l'application » ; à la fin du code, le client change de
+  formule dans le courriel des sept jours (J-7). La page de paiement accepte donc tout tarif DE LA PAGE (`tarif_inconnu` pour
+  le reste — une nuit, elle a refusé un tarif sous la fiche : c'était bloquer exactement le client qui, au bout de son code,
+  prend Pro). `formulePayee` décide, et chaque règle a été rejouée par une relecture adverse :
+  · le tarif payé (abonnement d'après la bascule des places) ; plusieurs formules : celle qui porte le PLUS d'abonnements, à
+    égalité la plus basse — « la plus haute » donnait Business Premium à UNE place pour dix Pro et un Premium ;
+  · ⛔ ce qu'on ne sait pas lire garde la FICHE — un abonnement d'avant la bascule (et il interdit de descendre sous elle),
+    un tarif fait à la main, un abonnement sans ligne lisible : on ne coupe pas une entreprise qui paie ; OP MESSAGES seul
+    (lignes lisibles) : rien de payé pour OP GESTION, donc suspendue (plus de Gratuit depuis le 30 septembre 2026) ;
+  · ⛔ MONTER au-dessus de la fiche seulement sur ce qui est SÛREMENT à elle (gravé à son nom, ou une adresse que personne
+    d'autre ne porte), DESCENDRE seulement sans doute (`surs`, `douteux` d'`espaceStripe`) ; monter ne retire jamais de places.
+  Une période offerte sert `formulePromo` (le code, Business Premium par défaut, jamais sous la fiche), fiche Gratuit
+  comprise ; le courriel « code activé » et `/api/promo/valider` l'annoncent (l'aperçu PUBLIC : la formule du code seul, il ne
+  dit rien de la fiche). « Mon espace » la montre à une adresse PROUVÉE seulement, sans attendre Stripe plus de 2 s ; Stripe
+  se lit une fois à la fois, et pendant une panne la dernière liste connue sert. Un nouveau chemin qui dit une formule à
+  l'application ou au client passe par là ou n'existe pas. ⚠️ Une adresse = une entreprise : deux entreprises à la même
+  adresse ne se prêtent plus une formule, mais le verdict « payé » et les places, si (limite d'avant) — ne pas en créer.
+  `test-727` §8, `test-842`, `test-840`, `test-803`, `test-811`, `scratchpad/mutations-formule-servie.py`.
+- ⛔⛔ **PAYER PENDANT UNE PÉRIODE OFFERTE NE PRÉLÈVE RIEN AVANT SA FIN — `finEssaiPeriode` EST LE SEUL VERDICT, ET LE
+  RAPPEL J-7 DIT CE QU'`espacePaye` DÉCIDERA LE LENDEMAIN DE LA FIN.** Justin, 29 septembre 2026 (« 2 oui ») :
+  `subscription_data[trial_end]` = le lendemain de `finLe`, 0 h UTC, seulement si l'adresse du compte désigne l'entreprise
+  SEULE (référence comprise), sans `aboStatut`, entre 48 h (+ 10 min) et deux ans — sinon facturation immédiate.
+  ⛔ Le courriel J-7 ne propose JAMAIS un lien de paiement à une entreprise que l'application servira encore après la
+  période : un second paiement est un second abonnement, prélevé EN DOUBLE (`gardien`, rejoué). « Servie » se décide en
+  rejouant `espaceStripeDans` (la décision de rattachement d'`espaceStripe`, sortie en fonction pure : UNE définition) et
+  `formuleEtPlaces` sur les SEULS abonnements vivants ce jour-là (`abonnementGestion`) — l'état d'aujourd'hui disait
+  « rien à faire » à des entreprises que l'application suspendrait le lendemain (seconde relecture de `gardien`). Stripe
+  illisible ou liste périmée (`STRIPE_CACHE_MS`) : le rappel attend le passage suivant tant que la promesse aurait un
+  délai, puis part sans elle. ⚠️ Une attente de Stripe dans une boucle rend la main au serveur : tout se relit après
+  (`eligible`, `sig`), et une entreprise qui jette n'arrête pas les autres. Une carte refusée au premier prélèvement est un
+  impayé (Justin) : la règle suivante. `test-727` §10, `test-839`, `test-840`, `test-844` (Stripe simulé dans le
+  processus du serveur, deux courses jouées par les vraies routes de la Tour), `scratchpad/mutations-essai.py`.
+- ⛔⛔ **CARTE REFUSÉE = IMPAYÉ, ET PAS D'ACCÈS PAYANT TANT QUE CE N'EST PAS RÉGLÉ — UN IMPAYÉ SE SERT SANS FORMULE.**
+  Justin, 29 septembre 2026 : « leur accès sont bloqués le temps que c'est pas payé » ; « rien n'est perdu, mais pas de
+  paiement, pas d'accès au service payant ». Payé = `active` ou `trialing` (`STATUTS_PAYES`), et c'est tout ; `past_due` et
+  `unpaid` d'OP GESTION sont des impayés (`impayesGestion`), rattachés par les règles du payé (`espaceStripeDans`) mais
+  par l'IDENTIFIANT (`tSeul` : un nom d'accès repris n'hérite pas de l'impayé d'une autre) — un impayé gravé au NOM
+  d'accès (anciennes pages) ne compte que s'il porte AUSSI son adresse (mutation I36 : sans ça, l'accès restait ouvert),
+  et que personne d'autre dans l'annuaire ne porte cette adresse (I36c : un nom repris par une autre entreprise à la même
+  adresse la bloquait, avec la facture de l'ancienne) — là, on ne sait pas qui le doit : il ne bloque personne.
+  ⛔ UNE règle décide du blocage, `impayeBloque` (lue par `espacePaye` ET le rappel J-7) : un abonnement d'OP GESTION payé à elle la sert (sans
+  les places du refusé) ; payée seulement par OP MESSAGES, par une voisine d'adresse, ou fiche Gratuit : bloquée si
+  l'impayé est SÛREMENT le sien ; rien de payé : bloquée. ⛔ `/api/espaces/etat` sert un bloqué comme une suspension au
+  sursis écoulé, SANS formule, motif public neutre (« accès suspendu ») : c'est la seule forme que l'application en service grise
+  sans écrire dans `db`, avec le message à l'administrateur seul ; une réponse AVEC formule et `paye:false` pose le
+  bandeau « Paye ton abonnement » à toute l'équipe, réécrit `db.forfait` et mène à un SECOND abonnement — l'« impayé »
+  posé à la main dans la Tour prend la même forme. La page de paiement n'envoie à la FACTURE en attente qu'une entreprise
+  BLOQUÉE, jamais la facture d'une autre (409 `past_due` sans facture, 502 si Stripe ne répond pas à la relecture) ; une
+  entreprise servie achète normalement. Un impayé se relit à la minute (`STRIPE_IMPAYE_FRAIS_MS`) : l'accès revient seul
+  au règlement — au serveur ; l'appareil relit l'état quand on revient sur l'application, tant qu'elle est suspendue
+  (bêta v767 ; la v763 en service ne relit qu'au lancement). `test-845` (le vrai serveur ET les
+  vraies fonctions d'app.html), `test-844`, série I de `scratchpad/mutations-essai.py`.
+- ⛔⛔ **PLUS DE FORMULE GRATUITE — CE QUI N'EST PAS PAYÉ EST SUSPENDU JUSQU'AU RÈGLEMENT, ET DANS LE DOUTE ON NE DÉCIDE RIEN.**
+  Justin, 30 septembre 2026 : « si une entreprise ne paye plus, le service est suspendu tant que c'est pas réglé » ; « les codes
+  promotionnels n'ont rien à voir avec le forfait gratuit : ceux qui ont un code qui correspond à un forfait payant ne sont pas
+  impactés ». `/api/espaces/etat` sert tout ce qui n'est pas payé SANS formule (`suspendu:true`, `sursisJours:0`, motif public
+  « accès suspendu ») ; la forme « formule + `paye:false` » n'est plus jamais servie. UNE règle, `accesSuspenduPar(p, f)`
+  (bloqué, non payé, ou formule que l'application ne connaît pas), lue par la route ET « Mon espace » (`formuleServieDe`, qui
+  suit aussi une suspension posée dans la Tour au sursis écoulé). ⛔ Les sept jours de sursis d'une suspension posée dans la
+  Tour ne servent qu'une entreprise que la facturation dit PAYÉE — à qui ne paie pas, aucun jour (un sursis lui rouvrirait tout
+  une semaine).
+  ⛔ **Une panne de NOTRE côté ne suspend personne** : Stripe illisible (clé posée et aucune liste lue ; une liste PÉRIMÉE où
+  l'entreprise n'est pas, ou n'a rien d'OP GESTION à elle — la relecture a échoué, l'absence ne prouve rien ; une liste TRONQUÉE
+  au plafond jette), registre des codes illisible → `payeInconnu` : l'application reçoit `verificationImpossible` et garde ce
+  qu'elle savait, « Mon espace » ne dit rien, l'horloge de conservation ne pose ni ne lève aucune date. ⚠️ Un impayé LU dans
+  une liste périmée bloque encore (Stripe l'a dit) : en faire un doute rouvrirait l'achat d'un second abonnement. Et un impayé
+  RÉGLÉ depuis la liste ne se rachète pas : la page de paiement relit l'abonnement, et s'il court de nouveau → 409
+  `impaye_regle` (un abonnement neuf naîtrait à côté de lui, prélevé en double). Stripe illisible se voit : `stripeEchecMin`
+  dans `/health`, la surveillance crie à 90 minutes, et une panne se relit d'elle-même (`stripeRelirePanne`) — sinon un seul
+  échec que personne ne relit crierait pour toujours.
+  ⛔ Le `motif` de la réponse PAYÉE est public (qui connaît `t`) : `motifPublic` n'y laisse que « code promo X (jusqu'au D) » —
+  ce que l'application lit —, le reste devient « accès actif » ; le motif complet est pour la Tour, gardée.
+  ⛔ Un réglage fait à la main dans la Tour ne décide que tant qu'il court : `aboManuelDe(e, jour)` (un « actif »/« essai » échu
+  ne décide plus, `aboEchuMotif` le dit à la Tour ; un « actif » sur une fiche Gratuit ne paie rien), et le rappel J-7 comme la
+  facturation différée le jugent à `jourApres(finLe)` — le jour où `espacePaye` décidera. Le rappel J-7 ne dit « prend le
+  relais » qu'à un abonnement qui COURT (réglé depuis la liste, oui ; annulé depuis, non). Une fiche « Gratuit » d'avant ne paie
+  rien d'elle-même : période offerte, Stripe, sinon suspendue ; payée par un abonnement d'OP GESTION SÛREMENT à elle mais
+  illisible, elle reçoit la formule de ses tarifs connus (`gratuitPayeIllisible`, `formuleGratuitIllisible`, Pro à défaut) —
+  sinon le J-7 lui aurait proposé un second abonnement, prélevé en double. La Tour ne pose plus « Gratuit » (les deux routes le
+  refusent) ; « Revoir le lien » garde l'abonnement réglé à la main, refuse (409) le nom d'une entrée d'avant repris avec le
+  code d'une autre (`espaceT(prev)`) et refuse (400) un code sans identifiant d'espace.
+  Application (bêta v767) : plus de Gratuit dans `PLANS` (un « gratuit » d'une base d'avant se lit Pro) ; la facturation
+  n'écrit plus JAMAIS `db.forfait`. Sursis écoulé = `accesSuspendu()` : menu et onglets grisés, toute rubrique mène à
+  `views.suspendu` (l'administrateur y lit pourquoi et règle ; les autres, pas un mot de paiement, ni dans l'infobulle du 🔒),
+  **les Paramètres restent ouverts**, « ＋ Créer » mène à l'écran suspendu ; revenir sur l'application relit l'état tant qu'elle
+  est suspendue ; `forfaitServeurSync` rend VRAI seulement quand l'état a été LU — « J'ai réglé — vérifier » ne dit pas
+  « toujours suspendu » sur une réponse qu'il n'a pas eue, et rend toujours son bouton (icône comprise). ⛔ **La bêta n'est
+  jamais suspendue** (`BETA_ESSAI`, même raison que `planBloque`) : l'accès, la largesse d'une période offerte, la proposition
+  d'abonnement et le rappel lisent tous la règle (`test-761`, `test-838`).
+  ⚠️ Le serveur peut partir SEUL : la v763 en service lit déjà la forme suspendue (elle grise sans rien écrire) ; sa limite, dans
+  le sens qui ne coupe personne : un doute lève sa grisaille jusqu'à la réponse suivante. `test-842`, `test-845` et `test-803`
+  gardent les DEUX pages, chacune par sa forme ; `scratchpad/simuler-serveur-seul.sh` joue la liste serveur contre `main`,
+  `scratchpad/mutations-serveur-seul.py` y éprouve les branches de la v763.
+  ⛔ **UNE FICHE SANS FORMULE SUIT LE MÊME CHEMIN** (Justin, 30 septembre 2026, à « les suspendre aussi ? » : « Suspend ») :
+  `ficheSansFormule` (aucune formule, ou « gratuit ») — période offerte, Stripe, impayé, doute, sinon suspendue ; son motif
+  commence par « aucune formule » (l'horloge de conservation y lit « jamais abonnée »), « Mon espace » dit « Suspendu », le
+  rappel J-7 la juge sur Stripe (déjà abonnée : pas de lien vers un second abonnement). Seule une entreprise ABSENTE de
+  l'annuaire garde l'ancienne réponse, ni formule ni suspension : un annuaire illisible au démarrage rendrait tout le monde
+  inconnu. ⚠️ Un espace d'essai ouvert depuis la Tour (« Accès à la version publique ») s'ouvre donc SUSPENDU : lui poser une
+  formule et « En essai » avec une date de fin — la Tour le dit. Et un banc qui veut une entreprise « qui travaille » la fait
+  PAYER (`test-796`) : une fiche nue est suspendue.
+  ⛔⛔ **UNE ENTREPRISE, UNE FACTURATION** (relecture de `gardien`, rejouée : deux entreprises qui PAIENT étaient suspendues) :
+  une entreprise à plusieurs noms (même `t`) lit sa formule et son abonnement réglé à la main PAR GROUPE, chacun sur le nom le
+  plus récent qui le porte (`facturationDe`) — application, « Mon espace », J-7, liste et fiche de la Tour, conservation, page
+  de paiement ; la Tour part de cette facturation et l'écrit sur TOUS les noms (`facturationReprendre`, `facturationPartager`).
+  Un nouveau chemin qui lit ou écrit une facturation passe par là. L'identifiant d'une entrée d'avant se lit dans son code
+  (`espaceT`), et le rattrapage d'un code en attente passe AVANT la branche sans formule : un code valable n'est pas « impacté ».
+  `test-761`, `test-842` § 5 ter et quater, `test-845`, série B de `scratchpad/mutations-suspension.py`.
+  ⚠️ Reste ouvert : le code promo reste dans le motif public — deux champs à part d'abord, lus par une application publiée
+  et exigée, le retrait ensuite (`REPRISE.md`). `test-761` (le vrai
+  serveur, dont un second au Stripe muet), `test-727`, `test-775`, `test-803`, `test-838`, `test-840`, `test-842`, `test-844`,
+  `test-845`, `test-848`, `scratchpad/mutations-suspension.py`, `scratchpad/sonde-suspension.js` (au navigateur, sur une copie
+  de la bêta en règle de production).
+- ⛔ **LE SITE SUIT L'APPAREIL POUR LE JOUR ET LA NUIT — PAS DE BOUTON.** Justin, 29 septembre 2026, capture à l'appui :
+  « Sur le site je veux pas le bouton jour nuit, je veux que ça soit automatique ». Les 8 pages de `scripts/site-marine.js`
+  et les 10 pages voisines (portail, connexion, paiement, pages juridiques, 404) lisent `prefers-color-scheme`, rien
+  d'autre ; `TETE_MODE` efface l'ancien choix (`teamop_site_mode`) et garde CINQ lignes (les pages juridiques sont citées
+  par numéro de ligne). ⛔ `vitrine/v2/mode.js` RESTE : une page restée en cache le demande, et le service worker ne
+  remplace sa copie que par une réponse réussie (il reprend même l'ancien cache à chaque version) — supprimé, l'ANCIENNE
+  copie, qui démasquait le bouton, resterait servie. (Ce n'est PAS l'installation du service worker qui en dépend : écrit
+  ici à tort le 29 septembre.) Et la garde qui ne dépend d'aucun cache est dans les deux feuilles :
+  `.mode, .coin-mode { display: none !important }`, la seule règle du bouton permise. Les contrôles communs vivent dans
+  `tests/mode-site.js` (par la FONCTION, dans le code, scripts EXÉCUTÉS, feuilles entières), et `test-836` § 9 recense
+  toutes les pages suivies. `test-835`, `test-836`, `scratchpad/mutations-site-auto.py`, `scratchpad/sonde-site-auto.js`.
 - ⛔⛔ **UNE SESSION PROUVE UN MOT DE PASSE, PAS UNE ADRESSE.** 25 septembre 2026 (`gardien`, G1,
   rejoué) : n'importe qui ouvrait un compte à l'adresse de contact d'une entreprise — publique — et
   `/api/clients/sync` la croyait prouvée : une demande « Gratuit » faisait retomber une entreprise
@@ -479,9 +621,10 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   copie à jour, la confondre avec une fermeture couperait un impayé de ses propres données, en
   contradiction directe avec `mentions-legales.html:74`. ⚠️ `tests/test-641.js` compte désormais
   TROIS : si ce chiffre repasse à quatre, la question n'est pas « qui a cassé le compte » mais
-  « est-ce qu'on vient de recouper les impayés ? ». ⚠️ Et la contrainte qui REMPLACE la coupure
-  — onglets payants grisés au bout de sept jours, retour au forfait gratuit, rappel quotidien
-  réservé au compte admin — **n'est pas encore écrite** : voir `REPRISE.md`. Sur la fermeture d'un client, on coupe **avant** d'effacer — mais la fenêtre est
+  « est-ce qu'on vient de recouper les impayés ? ». ✅ La contrainte qui REMPLACE la coupure — sept
+  jours de sursis, rappel quotidien réservé au compte admin — est écrite depuis la v715 ; et depuis le
+  30 septembre 2026 il n'y a plus de « forfait gratuit » où revenir : au bout des sept jours, l'accès est
+  SUSPENDU jusqu'au règlement (règle « PLUS DE FORMULE GRATUITE », plus haut). Rien n'est coupé ni effacé. Sur la fermeture d'un client, on coupe **avant** d'effacer — mais la fenêtre est
   **raccourcie, pas fermée**, et l'écrire autrement ferait croire le contraire : `validSince`
   n'invalide que le rafraîchissement, donc un appareil qui tient un jeton encore valable peut
   RECRÉER le document après l'effacement. ⚠️ **Rien n'est instantané — jusqu'à UNE HEURE** :
@@ -1146,6 +1289,9 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   `data-tip`, « Ouvrir le menu »). ⚠️ Et un recensement « sans nom » doit écarter les CONTENEURS
   qui bloquent un clic (`onclick="event.stopPropagation()"`) : ils n'agissent pas, et sans ce tri
   la mesure en comptait 51 de trop. `tests/test-777.js`, `scratchpad/sans-nom.js`.
+  ⚠️ Corollaire (30 septembre 2026) : un bouton qu'on grise (« Vérification… ») puis qu'on REND se garde par son
+  `innerHTML`, jamais par son `textContent` — le texte ne contient plus l'icône, et le bouton revenait sans elle
+  (`suspensionVerifier`, `test-761`, la sonde de la suspension compte le `<svg>` avant et après).
 - ⛔⛔ **TOUS LES AUDITS TOURNAIENT EN ADMINISTRATEUR — L'ÉCRAN DU TECHNICIEN N'Y PARAISSAIT
   JAMAIS.** C'est pourtant lui qui tient le téléphone. Mesuré le 23 septembre 2026 en se
   connectant comme technicien, noms longs : dans « Ma journée » (`renderIntTechDay`), heure et
@@ -2200,11 +2346,11 @@ Le choix est donc écrit, agent par agent, dans le frontmatter de `.claude/agent
 
 | Agent | Modèle | Effort | Pourquoi |
 |---|---|---|---|
-| `verificateur` | `haiku` | `low` | Constate, ne décide pas : syntaxe, versions servies, `/health` |
+| `verificateur` | `sonnet` | `low` | Constate, ne décide pas : syntaxe, versions servies, `/health` |
 | `testeur` | `sonnet` | `medium` | Écrit du Playwright et lit des échecs — du raisonnement, pas le plus cher |
 | `deployeur` | `sonnet` | `high` | Le rituel est écrit (skill `publication`), mais une erreur se paie en clients |
-| `concepteur` | `opus` | `high` | Refonte visuelle et mouvement : un jugement de goût, pas un contrôle mécanique |
-| `gardien` | `opus` | `high` | Penser comme un attaquant se juge aussi. Une route qui fuit ne plante pas — le coût se compare à celui d'une fuite |
+| `concepteur` | `sonnet` | `high` | Refonte visuelle et mouvement : un jugement de goût, pas un contrôle mécanique |
+| `gardien` | `sonnet` | `high` | Penser comme un attaquant se juge aussi. Une route qui fuit ne plante pas — le coût se compare à celui d'une fuite |
 | `relecteur` | `sonnet` | `high` | Applique des critères écrits à un diff : systématique, pas créatif. Mais il passe après chaque changement, donc son coût unitaire compte |
 
 Les deux derniers comblent ce que la CI ne fait pas : elle ne vérifie que les secrets commités
@@ -2223,15 +2369,19 @@ workflow, compter des occurrences dans un fichier. Justin l'a vu passer et a tra
 prends un truc plus léger pour pas que ça mange toutes les ressources. »
 
 La règle est la même que pour les sous-agents nommés, et elle tient en une phrase :
-**Opus là où le JUGEMENT est le produit ; Sonnet ou Haiku là où la RIGUEUR suffit.**
+**⛔ DEPUIS LE 30 SEPTEMBRE 2026 : TOUT EN SONNET.** Justin : « passe tous les agents en sonnet ». Les six agents du dépôt
+(`.claude/agents/*.md`), les agents de workflow (`agent(prompt, {model:'sonnet', …})`) et les sous-agents sans définition
+(`CLAUDE_CODE_SUBAGENT_MODEL`) tournent en Sonnet ; seul l'EFFORT varie encore selon la tâche (tableau ci-dessous). La
+règle d'avant (« Opus là où le jugement est le produit, Sonnet ou Haiku là où la rigueur suffit ») ne revient que sur sa
+phrase.
 
 | ce que fait l'agent | modèle | effort | pourquoi |
 |---|---|---|---|
 | recenser, cartographier, lire un fichier et en rendre la structure | `sonnet` | `medium` | il constate ; une erreur se voit au premier contrôle |
-| vérifier une affirmation mécanique (ce motif est-il là ? ce fichier contient-il X ?) | `haiku` | `low` | c'est un `grep` qui rédige |
+| vérifier une affirmation mécanique (ce motif est-il là ? ce fichier contient-il X ?) | `sonnet` | `low` | c'est un `grep` qui rédige |
 | attaquer une proposition, chercher la faille | `sonnet` | `high` | systématique plus que créatif — mais il faut de la profondeur |
-| concevoir une architecture, trancher entre deux options, synthétiser | `opus` | `high` | c'est un jugement, et il se paie une fois |
-| sécurité et conformité | `opus` | `high` | penser comme un attaquant se juge ; le coût se compare à celui d'une fuite |
+| concevoir une architecture, trancher entre deux options, synthétiser | `sonnet` | `high` | c'est un jugement, et il se paie une fois |
+| sécurité et conformité | `sonnet` | `high` | penser comme un attaquant se juge ; le coût se compare à celui d'une fuite |
 
 Concrètement, dans un script de workflow : `agent(prompt, {model:'sonnet', effort:'medium'})`.
 **Ne jamais omettre `model` sur une phase de lecture** — l'omission coûte cher et ne se voit

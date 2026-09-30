@@ -84,14 +84,22 @@ vrai('population : go() est trouvée', G.length > 200, G.length);
 const a0 = G.indexOf('multiCapturer(); }catch(e){}'), a1 = G.indexOf('_ecranRendu=null;');
 vrai('population : l’aiguillage de go() est découpé', a0 > 0 && a1 > a0);
 let aiguille = null;
-try { aiguille = new Function('views', 'VUES_RETIREES', 'view', G.slice(a0 + 'multiCapturer(); }catch(e){}'.length, a1) + '\nreturn view;'); } catch (e) {}
+/* v767 — l'aiguillage lit aussi `accesSuspendu()` (une entreprise suspendue va à l'écran « Accès suspendu ») : le bac à
+   sable la fournit, et on la joue dans les DEUX sens — libre, puis suspendue. Sans elle, la tranche jetait
+   « accesSuspendu is not defined » et le banc mourait avant son total. */
+try { aiguille = new Function('views', 'VUES_RETIREES', 'view', 'accesSuspendu', G.slice(a0 + 'multiCapturer(); }catch(e){}'.length, a1) + '\nreturn view;'); } catch (e) {}
 vrai('… et il s’exécute', typeof aiguille === 'function');
 if (aiguille) {
-  const vues = { dashboard: 1, historique: 1, utilisateurs: 1, interventions: 1 };
-  vrai('go("audit") → historique', aiguille(vues, VR, 'audit') === 'historique');
-  vrai('go("permissions") → utilisateurs', aiguille(vues, VR, 'permissions') === 'utilisateurs');
-  vrai('un écran vivant n’est jamais détourné', aiguille(vues, VR, 'interventions') === 'interventions');
-  vrai('un nom inconnu retombe sur le tableau de bord', aiguille(vues, VR, 'nexistepas') === 'dashboard');
+  const vues = { dashboard: 1, historique: 1, utilisateurs: 1, interventions: 1, parametres: 1, suspendu: 1 };
+  const libre = () => false, suspendue = () => true;
+  vrai('go("audit") → historique', aiguille(vues, VR, 'audit', libre) === 'historique');
+  vrai('go("permissions") → utilisateurs', aiguille(vues, VR, 'permissions', libre) === 'utilisateurs');
+  vrai('un écran vivant n’est jamais détourné', aiguille(vues, VR, 'interventions', libre) === 'interventions');
+  vrai('un nom inconnu retombe sur le tableau de bord', aiguille(vues, VR, 'nexistepas', libre) === 'dashboard');
+  vrai('⛔ suspendue : un écran vivant mène à « Accès suspendu »', aiguille(vues, VR, 'interventions', suspendue) === 'suspendu');
+  vrai('⛔ … un ancien lien aussi (l’adresse de suite ne contourne pas la suspension)', aiguille(vues, VR, 'audit', suspendue) === 'suspendu');
+  vrai('⛔ … mais les Paramètres restent ouverts (on y règle son abonnement)', aiguille(vues, VR, 'parametres', suspendue) === 'parametres');
+  vrai('⛔ l’accès revenu, une adresse #v=suspendu restée mène au tableau de bord', aiguille(vues, VR, 'suspendu', libre) === 'dashboard');
   vrai('⛔ l’adresse de suite passe AVANT le repli sur le tableau de bord',
     G.indexOf('VUES_RETIREES[view]') > 0 && G.indexOf('VUES_RETIREES[view]') < G.indexOf("if(!views[view]) view='dashboard'"));
 }

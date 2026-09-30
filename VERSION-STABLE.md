@@ -1,5 +1,30 @@
 # Point stable TeamOP
 
+**Version stable : v767** — publiée dans la nuit du 30 septembre au 1er octobre 2026, sur la phrase de Justin « Mais après ça tu publie » (juste après
+« pousse » : le serveur, la Tour v2.78 et la bêta v767, mis en ligne d'abord pour que l'application trouve le serveur qu'elle
+attend). Les v764, v765 et v766 n'ont jamais été publiées seules : elles partent avec elle.
+
+v767 — ce qui change pour une entreprise :
+- **Plus de formule Gratuit : ce qui n'est pas payé est suspendu jusqu'au règlement.** Une entreprise sans abonnement ni
+  période offerte voit l'écran « Accès suspendu » : rien n'est perdu ni effacé, les Paramètres restent ouverts ;
+  l'administrateur y lit pourquoi et règle, puis « J'ai réglé — vérifier » rouvre tout ; les autres personnes ne voient
+  aucun mot de paiement. Un code promo en cours sert Business Premium : **ELAN, en période offerte, ne voit aucune
+  différence.** Le choix de formule, dans Paramètres, n'est plus modifiable que par TEAM OP.
+- **Chaque entreprise reçoit l'application de SON métier.** Treize métiers (3D, plomberie, électricité, chauffage /
+  climatisation, serrurerie, nettoyage, maçonnerie, menuiserie, peinture, espaces verts, couverture, multiservices, autre
+  métier de terrain) : types d'intervention, prestations et relevés du métier, les modules du 3D masqués ailleurs. Le métier
+  se demande sur le portail et se pose dans la Tour ; un métier jamais réglé reste 3D (ELAN ne change pas).
+- **Rappels d'échéance des contrats** : « N contrats à renouveler » sur l'écran Contrats, « Fin dans N j » / « Échu » sur la
+  ligne, et une ligne dans la cloche pour qui voit et modifie les contrats. Tout se calcule, rien ne s'écrit tout seul.
+Chez ELAN : rien n'est effacé ni écrit dans leurs données ; métier 3D et période offerte inchangés. Aucun format de données
+ne change : une v763 et une v767 travaillent ensemble. Exiger la v767 dans la Tour quand elle ne montre plus d'appareil
+ancien (ce n'est pas une urgence : la v763 lit déjà la forme de la suspension, sans rien écrire).
+Publiés juste avant elle (« pousse ») : le serveur (plus de Gratuit, suspension, « une entreprise, une facturation », le
+métier et les packs, nodemailer et mailparser à jour), la Tour v2.78, la bêta v767. Le site passe avec elle à douze packs
+« prêts » : il lit la liste dans l'application servie.
+
+## Ancien point
+
 **Version stable : v763** — publiée le 28 septembre 2026 au soir, sur la réponse de Justin « Oui, publie ce soir » (à
 « L'application OP GESTION v763 […] je la publie ce soir pour tout le monde (ELAN compris) ? »), avec « Oui, elles gardent »
 (les entreprises déjà abonnées gardent leurs places) et « Oui, automatique » (les places suivent le paiement).

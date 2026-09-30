@@ -42,13 +42,18 @@ const CODE=['const _prefVue={};','function prefLocalLire(k){',
   'const ONGLETS_DEFAUT=','const ONGLETS_MAX=','function ongletsDispo(){','function ongletItem(k){',
   'function ongletsLire(){'].map(h=>decoupe(h)).join('\n');
 
-/* On rejoue le menu et les droits : rien d'autre n'est lu par ces fonctions. */
-const monter=(navVu, range)=>new Function('navVu','range',`
+/* On rejoue le menu et les droits : rien d'autre n'est lu par ces fonctions.
+   v767 : la SUSPENSION aussi — `ongletsDispo` la lit (`accesSuspendu`, et `userSeesModule` hors suspension). Suspendue,
+   `canSee` ne voit plus rien (tout est fermé sauf les Paramètres, `planBloque`) : la garde va avec la fonction extraite. */
+const monter=(navVu, range, susp)=>new Function('navVu','range','susp',`
   const NAV=navVu;
-  const canSee=it=>it.vu!==false;
+  const accesSuspendu=()=>!!susp;
+  const currentUser={id:'u-751'};
+  const userSeesModule=(u,k,horsSusp)=>{ const it=NAV.flatMap(s=>s.items).find(x=>x.k===k); return !!it&&it.vu!==false&&(!!horsSusp||!susp||k==='parametres'); };
+  const canSee=it=>userSeesModule(currentUser,it.k);
   const localStorage={getItem:()=>range, setItem(){}, removeItem(){}};
   ${CODE}
-  return { ongletsLire, ongletsDispo, ongletItem, ONGLETS_MAX, ONGLETS_DEFAUT };`)(navVu,range);
+  return { ongletsLire, ongletsDispo, ongletItem, ONGLETS_MAX, ONGLETS_DEFAUT, canSee };`)(navVu,range,susp);
 
 const MENU=[
   {g:'Tableau de bord', items:[{k:'dashboard',l:'Tableau de bord'},{k:'statistiques',l:'Stats',vu:false},{k:'audit',l:'Audit',vu:false}]},
@@ -94,6 +99,15 @@ console.log('\n══ 2. ⛔ JAMAIS UN ONGLET VERS UN ÉCRAN INTERDIT ══\n')
   v('deux rubriques visibles → deux onglets, pas quatre inventés', M.ongletsLire(), ['interventions','planning']);
   const rien=monter([{g:'X',items:[{k:'a',l:'A',vu:false}]}],'');
   v('aucune rubrique visible → aucune barre, et rien qui plante', rien.ongletsLire(), []);
+}
+
+console.log('\n══ 2 bis. ⛔ SUSPENDUE, LA BARRE GARDE SES ONGLETS (v767) ══\n');
+{ /* Justin, 20 septembre 2026 : « tous les onglets deviennent gris » — gris, pas disparus. Suspendue, `canSee` ne voit plus
+     que les Paramètres : sans la lecture hors suspension, la barre se vidait (ou ne gardait que « Plus »). */
+  const libre=monter(MENU,'clients,produits'), susp=monter(MENU,'clients,produits',true);
+  vrai('(population) suspendue, canSee ne voit plus AUCUNE rubrique du menu — le cas se joue vraiment', MENU.flatMap(s=>s.items).every(it=>!susp.canSee(it)) && libre.ongletsLire().length===4);
+  v('⛔ suspendue : les MÊMES onglets qu\'hors suspension (grisés par la page, pas retirés)', susp.ongletsLire(), libre.ongletsLire());
+  v('   … et jamais une rubrique que la personne ne verrait pas de toute façon', susp.ongletsDispo().filter(i=>i.vu===false).map(i=>i.k), []);
 }
 
 console.log('\n══ 3. CE QUI EST GARDÉ DANS LE CODE ══\n');

@@ -48,7 +48,7 @@ const P = {
   USER_CAPS: constante('const USER_CAPS=[', '\n];'), PERM_GRPS: ligne('const PERM_GRPS=['), PERM_GRP_OF: ligne('const PERM_GRP_OF='),
   PERM_SPECIAUX: ligne('const PERM_SPECIAUX={'), CAPS_HERITE: constante('const CAPS_HERITE = {', '\n};'), CAPS: ligne('const CAPS = Object.fromEntries('),
   defaultPerms: bloc('function defaultPerms(){'), moduleHeriteRole: bloc('function moduleHeriteRole(role,k){'), reprise: bloc('function reprendreDroitsImplicites(){'),
-  tableDuRole: bloc('function tableDuRole(role){'), moduleReglage: bloc('function moduleReglage(u,k){'), userSeesModule: bloc('function userSeesModule(u,k){'),
+  tableDuRole: bloc('function tableDuRole(role){'), moduleReglage: bloc('function moduleReglage(u,k){'), userSeesModule: bloc('function userSeesModule(u,k,horsSusp){'),
   capDeduitRegle: bloc('function capDeduitRegle(cap){'), userCap: bloc('function userCap(u,cap){'), can: bloc('function can(cap){'),
   catDeduitRegle: bloc('function catDeduitRegle(grp,droit){'), catDroit: bloc('function catDroit(u,grp,droit){'),
   valideSoumis: bloc('function valideSoumis(u){'), validationsOuvertes: bloc('function validationsOuvertes(u){'), validationsNote: bloc('function validationsNote(valideur){'),

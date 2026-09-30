@@ -73,7 +73,10 @@ async function ouvrir(opts) {
     : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--enable-gpu-rasterization', '--ignore-gpu-blocklist'];
   const chrome = spawn(CHROME, ['--headless=new', '--no-sandbox', ...rendu, '--disable-dev-shm-usage',
     '--remote-debugging-port=' + pc, '--user-data-dir=' + path.join(BANC, 'ch'), 'about:blank'],
-    { stdio: ['ignore', 'pipe', 'pipe'] });
+    { stdio: ['ignore', 'pipe', 'pipe'], detached: true });
+  /* ⛔ tuer le GROUPE, pas le seul processus principal : ses enfants (GPU, rendu) lui survivaient et
+     tournaient encore une heure plus tard — onze processus orphelins retrouvés le 26 septembre 2026. */
+  const tuerChrome = () => { try { process.kill(-chrome.pid, 'SIGKILL'); } catch (e) { try { chrome.kill('SIGKILL'); } catch (x) {} } };
   for (let i = 0; i < 150; i++) { await dormir(100);
     try { if ((await fetch('http://127.0.0.1:' + pc + '/json/version')).ok) break; } catch (e) {} }
 
@@ -110,7 +113,7 @@ async function ouvrir(opts) {
   let pret = false;
   for (let i = 0; i < 300; i++) { await dormir(300);
     try { if (await ev('return typeof db !== "undefined" && !!db')) { pret = true; break; } } catch (e) {} }
-  if (!pret) { try { chrome.kill('SIGKILL'); } catch (e) {} try { statique.close(); } catch (e) {}
+  if (!pret) { tuerChrome(); try { statique.close(); } catch (e) {}
     throw new Error('la page n’a pas démarré : `db` absent après 90 s (charge de la machine ? erreur au chargement ?)'); }
   /* les fenêtres modales natives bloquent le pilotage : on répond toujours oui */
   await ev('window.confirm=()=>true; window.alert=()=>{}; window.prompt=(q,d)=>d||""; return 1;');
@@ -118,9 +121,9 @@ async function ouvrir(opts) {
   /* ⛔ UNE SONDE COUPÉE PAR `timeout` NE FERMAIT PAS SON NAVIGATEUR. Mesuré le 24 septembre 2026 :
      deux Chromium orphelins depuis 1 h 48, dont un processus GPU à 98 % de CPU — c'est ce qui fait
      tomber les bancs de temps (règle du dépôt). Le signal de fin tue le navigateur avec la sonde. */
-  for (const sig of ['SIGTERM', 'SIGINT', 'SIGHUP']) process.once(sig, () => { try { chrome.kill('SIGKILL'); } catch (e) {} process.exit(130); });
-  process.once('exit', () => { try { chrome.kill('SIGKILL'); } catch (e) {} });
-  const fermer = () => { try { chrome.kill('SIGKILL'); } catch (e) {} try { statique.close(); } catch (e) {}
+  for (const sig of ['SIGTERM', 'SIGINT', 'SIGHUP']) process.once(sig, () => { tuerChrome(); process.exit(130); });
+  process.once('exit', () => { tuerChrome(); });
+  const fermer = () => { tuerChrome(); try { statique.close(); } catch (e) {}
     try { fs.rmSync(BANC, { recursive: true, force: true }); } catch (e) {} };
   return { ev, c, exceptions, consoleErr, fermer, BASE, version };
 }
