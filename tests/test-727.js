@@ -94,7 +94,27 @@ vrai('les statuts payés et impayés, la relecture d\'un impayé et son motif so
 const BLOQUE = [extraire('impayeBloque'), (/^const bloqueImpaye = [\s\S]*?\}\);$/m.exec(SRC) || [''])[0]];
 vrai('la règle du blocage (`impayeBloque`) et sa forme (`bloqueImpaye`) sont trouvées dans le fichier réel',
   /function impayeBloque\(e, s, imp\)/.test(BLOQUE[0]) && /bloque: true/.test(BLOQUE[1]) && /echeance:/.test(BLOQUE[1]));
-AIDES.push(CONSTS, ...PLACES, LIGNES, LBL2, CACHE_MS, ...IMPAYE, ...BLOQUE, ...SERVIE);
+/* ⛔ et l'abonnement réglé à la main (30 septembre 2026, plus de formule Gratuit) : `espacePaye` le lit par UNE définition,
+   `aboManuelDe` — une fiche « Gratuit » d'avant réglée « active » n'a plus rien de payant à servir */
+const MANUEL = extraire('aboManuelDe');
+vrai('la règle de l\'abonnement réglé à la main (`aboManuelDe`) est trouvée dans le fichier réel', /function aboManuelDe\(e, jour\)/.test(MANUEL));
+/* … et celle de la fiche « Gratuit » qu'un abonnement d'OP GESTION illisible paie (`gratuitPayeIllisible`, lue aussi par le J-7) */
+const ILLISIBLE = extraire('gratuitPayeIllisible');
+vrai('la règle de la fiche « Gratuit » payée par un abonnement illisible (`gratuitPayeIllisible`) est trouvée dans le fichier réel', /function gratuitPayeIllisible\(e, s, fp\)/.test(ILLISIBLE));
+/* … et, depuis les relectures du 30 septembre 2026 : le DOUTE qui ne décide rien (`payeInconnu`), la règle unique de la
+   suspension (`accesSuspenduPar`), le lendemain d'une période (`jourApres`), l'essai échu dit à la Tour (`aboEchuMotif`) et la
+   formule d'une fiche Gratuit qu'un abonnement illisible paie (`formuleGratuitIllisible`) — sans elles, `espacePaye` jetait
+   (« aboEchuMotif is not defined ») */
+const RELECTURES = ['payeInconnu', 'accesSuspenduPar', 'jourApres', 'aboEchuMotif', 'formuleGratuitIllisible'].map(extraire);
+vrai('le doute, la règle de suspension, le lendemain, l\'essai échu et la formule d\'une fiche Gratuit illisible sont trouvés dans le fichier réel',
+  RELECTURES.every(Boolean) && /inconnu: true/.test(RELECTURES[0]) && /RANG_FORMULE\.includes\(f\)/.test(RELECTURES[1]));
+/* … et la fiche SANS formule (Justin, 30 septembre 2026 : « Suspend ») : UNE définition, `ficheSansFormule`, lue par
+   `espacePaye`, `impayeBloque`, `aboManuelDe`, `aboEchuMotif` et `gratuitPayeIllisible`, avec le libellé de son motif —
+   sans elles, `espacePaye` jetait dès le premier appel (« ficheSansFormule is not defined ») */
+const SANS_F = [extraire('ficheSansFormule'), (/^const ficheSansFormuleLbl = .*$/m.exec(SRC) || [''])[0]];
+vrai('la fiche sans formule (`ficheSansFormule`) et le libellé de son motif sont trouvés dans le fichier réel',
+  SANS_F.every(Boolean) && /!e\.formule \|\| e\.formule === 'gratuit'/.test(SANS_F[0]) && /aucune formule/.test(SANS_F[1]));
+AIDES.push(CONSTS, ...PLACES, LIGNES, LBL2, CACHE_MS, ...IMPAYE, ...BLOQUE, ...SERVIE, MANUEL, ILLISIBLE, ...RELECTURES, ...SANS_F);
 const PARAMS = ['config', 'espStripeCache', 'promoUsages', 'stripeAbosBruts', 'console', 'savePromoUsages', 'mailPromoActive', 'espacesReg', 'espaceParT', 'crypto', 'promosIllisible'];
 const construire = () => new Function(...PARAMS, AIDES.join('\n') + '\n' + SRC.slice(i, fin) + '\nreturn espacePaye;');
 const avec = (abos) => construire()(
@@ -232,8 +252,10 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
      d'OP GESTION — la vraie, avec `periodeOfferte` et la formule du code, qui lisent `promoUsages`, `espaceFerme` et
      `config.promos`. Sans elles, la route jetait (« finEssaiPeriode is not defined ») et répondait 500 : 30 contrôles de
      ce banc sont tombés ainsi, sur une route juste. */
-  const AIDES_ROUTE = ['espaceT', 'espacesDeRef', 'espaceParT', 'finEssaiPeriode', 'periodeOfferte', 'formulePromo', 'formuleDuCode'].map(extraire).concat([CONSTS]);
-  vrai('la route et ses aides (dont finEssaiPeriode) sont trouvées dans le fichier réel', AIDES_ROUTE.every(Boolean));
+  /* (et `aboManuelDe`, 30 septembre 2026 : `finEssaiPeriode` lit « réglé à la main » par la même définition qu'`espacePaye`
+     — sans elle, elle jetait, et toute facturation différée retombait en immédiate) */
+  const AIDES_ROUTE = ['espaceT', 'espacesDeRef', 'facturationGroupes', 'nomsEntreprise', 'facturationDe', 'espaceParT', 'finEssaiPeriode', 'periodeOfferte', 'formulePromo', 'formuleDuCode', 'aboManuelDe', 'jourApres'].map(extraire).concat([CONSTS]);
+  vrai('la route et ses aides (dont finEssaiPeriode et aboManuelDe) sont trouvées dans le fichier réel', AIDES_ROUTE.every(Boolean));
   const PRIX_PRO = (/^\s*pro: \['(price_\w+)'/m.exec(SRC) || [])[1], PRIX_PREMIUM = (/^\s*premium: \['(price_\w+)'/m.exec(SRC) || [])[1];
   vrai('les tarifs Pro et Business Premium du serveur sont lus', /^price_/.test(PRIX_PRO || '') && /^price_/.test(PRIX_PREMIUM || ''));
   const ESPACES_DEFAUT = { monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr' } };
@@ -465,11 +487,16 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
        sur une phrase au lieu d'une ligne de code : les commentaires s'enlèvent d'abord. */
     const CODE = SRC.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
     const appels = [];
-    const re = /(?<!function )espacePaye\(([^)]+)\)/g;
+    /* ⚠️ l'argument se lit PARENTHÈSES ÉQUILIBRÉES (30 septembre 2026) : `[^)]+` s'arrêtait à la première fermante, et
+       `espacePaye(Object.assign({}, facturationDe(e), { slug: slug }))` rendait « Object.assign({}, facturationDe(e » —
+       sans le slug qui est pourtant là. Le banc accusait un appel juste. */
+    const re = /(?<!function )espacePaye\(/g;
     let m;
     while ((m = re.exec(CODE))) {
+      let prof = 1, k = m.index + m[0].length;
+      for (; k < CODE.length && prof; k++) { if (CODE[k] === '(') prof++; else if (CODE[k] === ')') prof--; }
       const avant = CODE.slice(Math.max(0, m.index - 600), m.index);
-      appels.push({ arg: m[1].trim(), parT: /espaceParT\(/.test(avant) });
+      appels.push({ arg: CODE.slice(m.index + m[0].length, k - 1).trim(), parT: /espaceParT\(/.test(avant) });
     }
     vrai('   il y a bien plusieurs appelants à garder', appels.length >= 3);
     const sansSlug = appels.filter(a2 => !/slug/.test(a2.arg) && !a2.parT).map(a2 => a2.arg);
@@ -557,6 +584,56 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('   fiche Pro, abonnement Business Premium × 2 : BUSINESS PREMIUM, 2 places', lit(haut), [true, 'premium', 2]);
     const pareil = await avec([apres([L('business', 3)])])(ESP({ formule: 'business' }));
     v('   fiche Business, abonnement Business × 3 : Business, 3 places — et le motif ne parle d\'aucun écart', [...lit(pareil), /formule payée/.test(pareil.motif)], [true, 'business', 3, false]);
+
+    /* ⛔ UNE LISTE PÉRIMÉE NE DIT PAS QUI NE PAIE PAS (seconde relecture de `gardien`, 30 septembre 2026). La relecture a
+       échoué : la dernière liste connue sert encore à SERVIR qui y paie ; mais une entreprise qui a payé depuis n'y est pas —
+       son absence ne prouve rien (elle était suspendue sans sursis). Un impayé qu'on y lit, lui, bloque encore : c'est ce que
+       Stripe a dit, et la page de paiement relit la facture en direct avant d'y envoyer. */
+    const VIEUX = Date.now() - 10 * 60000;   // plus vieux que `STRIPE_CACHE_MS` (cinq minutes)
+    const panne = async () => { throw new Error('Stripe en panne (banc 727)'); };
+    const perimee = (abos, cache) => avecTout({ abos, cache: cache || { ts: VIEUX, data: abos, enCours: null, echecTs: 0, echecDepuis: 0 }, lire: panne });
+    const absente = await perimee([apres([L('pro', 2)], { customer: { email: 'autre@ailleurs.fr' } })])(ESP({ formule: 'pro' }));
+    v('⛔ liste PÉRIMÉE (la relecture a échoué), l\'entreprise n\'y est pas : on ne sait pas — ni suspendue, ni servie',
+      [absente.paye, absente.inconnu, /liste Stripe périmée/.test(absente.motif || '')], [true, true, true]);
+    const presente = await perimee([apres([L('pro', 2)])])(ESP({ formule: 'pro' }));
+    v('   … elle y paie : servie (la dernière liste connue sert — on ne coupe pas le temps d\'une panne)',
+      [presente.paye, presente.inconnu, presente.formuleServie], [true, undefined, 'pro']);
+    const impPerimee = await perimee([apres([L('pro', 2)], { status: 'past_due' })])(ESP({ formule: 'pro' }));
+    v('   ⛔ un IMPAYÉ lu dans la liste périmée bloque encore (Stripe l\'a dit ; la page de paiement relit la facture en direct)',
+      [impPerimee.paye, impPerimee.bloque, impPerimee.inconnu], [false, true, undefined]);
+    /* ⛔ … et trouvée dans la liste périmée SANS rien d'OP GESTION à elle (OP MESSAGES seul) : elle a pu acheter OP GESTION pendant
+       la panne — on ne sait pas non plus, fiche Pro comme fiche « Gratuit » d'avant (troisième relecture de `gardien`) */
+    const msgPro = await perimee([apres([L('msg', 1)])])(ESP({ formule: 'pro' }));
+    const msgGra = await perimee([apres([L('msg', 1)])])(ESP({ formule: 'gratuit' }));
+    v('⛔ liste PÉRIMÉE, seul OP MESSAGES y est payé : un doute — fiche Pro comme fiche « Gratuit » d\'avant',
+      [msgPro.paye, msgPro.inconnu, msgGra.paye, msgGra.inconnu], [true, true, true, true]);
+    const msgFrais = await avecTout({ abos: [apres([L('msg', 1)])] })(ESP({ formule: 'pro' }));
+    const msgFraisG = await avecTout({ abos: [apres([L('msg', 1)])] })(ESP({ formule: 'gratuit' }));
+    v('   (témoin) la même liste FRAÎCHE décide : OP GESTION n\'est pas payé — suspendue, les deux fiches',
+      [msgFrais.paye, msgFrais.inconnu, msgFraisG.paye, msgFraisG.inconnu], [false, undefined, false, undefined]);
+    const fraiche = await avecTout({ abos: [apres([L('pro', 2)], { customer: { email: 'autre@ailleurs.fr' } })] })(ESP({ formule: 'pro' }));
+    v('   (témoin) la même absence dans une liste FRAÎCHE décide : pas payée', [fraiche.paye, fraiche.inconnu], [false, undefined]);
+    /* la date du premier échec — ce que `/health` publie (`stripeEchecMin`) : posée au premier échec, gardée au suivant, remise
+       à zéro par une lecture réussie */
+    const cacheP = { ts: VIEUX, data: [], enCours: null, echecTs: 0, echecDepuis: 0 };
+    await perimee([], cacheP)(ESP({ formule: 'pro' }));
+    const premier = cacheP.echecDepuis;
+    /* une minute a passé depuis le premier échec (la date recule d'autant) : le second échec la GARDE — sans ce recul, deux
+       échecs dans la même milliseconde ne distingueraient pas « gardée » de « réécrite » */
+    cacheP.echecTs = 0; cacheP.echecDepuis = premier - 60000;
+    await perimee([], cacheP)(ESP({ formule: 'pro' }));
+    const second = cacheP.echecDepuis;
+    cacheP.echecTs = 0;
+    await avecTout({ cache: cacheP, lire: async () => [] })(ESP({ formule: 'pro' }));
+    v('⛔ la date du premier échec : posée, GARDÉE au second échec, remise à zéro par une lecture réussie',
+      [premier > 0, second === premier - 60000, cacheP.echecDepuis], [true, true, 0]);
+    /* ⛔ LE DOUTE DU REGISTRE SERT LA FORMULE DU CODE (seconde relecture de `gardien`) : une fiche Pro en période Business
+       Premium, registre des codes illisible — la fiche seule la faisait retomber en Pro, `db.forfait` réécrit et synchronisé */
+    const douteCode = await construire()({ stripe: { secretKey: 'sk_de_banc' }, promos: [{ code: 'ESSAI-DOUTE-SEPT', formule: 'premium', mois: 3 }] },
+      { ts: Date.now(), data: [] }, {}, async () => [], { error() {}, log() {} }, () => true, () => {}, {}, () => null, require('crypto'), true)(
+      ESP({ formule: 'pro', codePromo: 'ESSAI-DOUTE-SEPT' }));
+    v('⛔ registre des codes illisible, une fiche Pro qui porte un code Business Premium : dans le doute, payée — au tarif du CODE',
+      [douteCode.paye, douteCode.doute, douteCode.formuleServie], [true, true, 'premium']);
     /* ⛔ PLUSIEURS FORMULES PAYÉES : celle qui porte le PLUS d'abonnements, à égalité la plus BASSE (relecture adverse du
        29 septembre, rejoué : « la plus haute » donnait Business Premium avec UNE place à dix abonnements Pro et un Premium) */
     const deux = await avec([apres([L('pro', 2)]), apres([L('premium', 1)])])(ESP({ formule: 'business' }));
@@ -572,15 +649,87 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
        en Gratuit jusqu'à un geste de la Tour */
     const gratuitePaie = await avec([apres([L('business', 2)])])(ESP({ formule: 'gratuit' }));
     v('⛔ fiche Gratuit, abonnement Business × 2 : BUSINESS, 2 places', lit(gratuitePaie), [true, 'business', 2]);
+    /* ⛔⛔ v767 (Justin, 30 septembre 2026 : « si une entreprise ne paye plus, le service est suspendu tant que c'est pas
+       réglé ») : le Gratuit n'existe plus — une fiche « Gratuit » qui ne paie rien n'est PAS payée (`/api/espaces/etat` la
+       sert suspendue). Jusqu'au 30 septembre, ces deux contre-épreuves attendaient « payé, gratuit ». */
     const gratuiteRien = await avec([])(ESP({ formule: 'gratuit' }));
-    v('   contre-épreuve : fiche Gratuit sans abonnement — Gratuit, comme avant', [gratuiteRien.paye, gratuiteRien.motif, gratuiteRien.formuleServie], [true, 'gratuit', undefined]);
+    v('   contre-épreuve : fiche Gratuit sans abonnement — PAS payée : suspendue jusqu\'au règlement (le Gratuit n\'existe plus)',
+      [gratuiteRien.paye, /aucun paiement ni code promo : suspendue jusqu'au règlement/.test(gratuiteRien.motif), gratuiteRien.formuleServie], [false, true, undefined]);
     const gratuiteMsg = await avec([apres([L('msg', 1)])])(ESP({ formule: 'gratuit' }));
-    v('   fiche Gratuit qui ne paie qu\'OP MESSAGES : Gratuit', [gratuiteMsg.paye, gratuiteMsg.motif, gratuiteMsg.formuleServie], [true, 'gratuit', undefined]);
+    v('   fiche Gratuit qui ne paie qu\'OP MESSAGES : PAS payée — OP MESSAGES ne sert pas OP GESTION, et le motif le dit',
+      [gratuiteMsg.paye, /seul OP MESSAGES est payé/.test(gratuiteMsg.motif), gratuiteMsg.formuleServie], [false, true, undefined]);
+    /* ⛔ … mais on ne coupe pas une entreprise qui paie : un abonnement d'OP GESTION SÛREMENT à elle qu'on ne sait pas lire
+       (d'avant la bascule, ou une ligne à tarif fait à la main) sert la formule d'entrée, Pro — `gratuitPayeIllisible`, la
+       même règle que le rappel J-7 rejoue (`test-844`) */
+    const gratuiteAncien = await avec([avant([L('pro', 1)])])(ESP({ formule: 'gratuit' }));
+    v('⛔ fiche Gratuit payée par un abonnement d\'AVANT la bascule (tarif illisible) : on ne coupe pas — Pro, et le motif le dit à la Tour',
+      [gratuiteAncien.paye, gratuiteAncien.formuleServie, /abonnement illisible : Pro servi/.test(gratuiteAncien.motif)], [true, 'pro', true]);
+    /* ⛔ … et son TARIF, quand il est connu (`gardien` A5, 30 septembre 2026) : un abonnement d'avant la bascule au tarif
+       Business Premium reste Business Premium — Pro seulement quand le tarif ne se lit pas (`formuleGratuitIllisible`) */
+    const gratuiteAncienPrem = await avec([avant([L('premium', 1)])])(ESP({ formule: 'gratuit' }));
+    v('⛔ fiche Gratuit payée par un abonnement d\'AVANT la bascule au tarif Business Premium : Business Premium, pas Pro — et le motif le dit',
+      [gratuiteAncienPrem.paye, gratuiteAncienPrem.formuleServie, /abonnement illisible : Business Premium servi/.test(gratuiteAncienPrem.motif)], [true, 'premium', true]);
+
+    /* ⛔⛔ UN « ESSAI » OU UN « ACTIF » RÉGLÉ À LA MAIN ET ÉCHU NE DÉCIDE PLUS (`gardien` B1, 30 septembre 2026). « Essai offert
+       jusqu'au … » — le geste que la Tour conseille — l'emportait encore APRÈS sa fin sur Stripe et sur la période offerte :
+       l'entreprise qui avait payé entre-temps restait suspendue jusqu'à ce que la Tour efface le réglage. */
+    const hier = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const echuStripe = await avec([apres([L('premium', 1)])])(ESP({ aboStatut: 'essai', aboFin: hier, aboPar: 'Banc' }));
+    v('⛔⛔ « essai offert » réglé dans la Tour, ÉCHU, et un abonnement Stripe payé depuis : payée par Stripe — plus suspendue jusqu\'à ce que la Tour efface le réglage',
+      [echuStripe.paye, echuStripe.formuleServie, /abonnement Stripe/.test(echuStripe.motif)], [true, 'premium', true]);
+    const echuPeriode = await avecTout({ usages: { 'ESSAI-ECHU-727': { n: 1, equipes: { 'ent-x': { date: '2026-09-01', finLe: '2099-12-31' } } } },
+      promos: [{ code: 'ESSAI-ECHU-727', formule: 'premium', mois: 3 }] })(ESP({ aboStatut: 'essai', aboFin: hier, aboPar: 'Banc' }));
+    v('⛔ … et en pleine période offerte : servie par le code (« les codes n\'y touchent pas »)', [echuPeriode.paye, /code promo ESSAI-ECHU-727/.test(echuPeriode.motif)], [true, true]);
+    const echuRien = await avec([])(ESP({ aboStatut: 'actif', aboFin: hier, aboPar: 'Banc' }));
+    v('   … rien d\'autre : non payée, et le motif dit encore à la Tour que l\'abonnement réglé à la main est terminé',
+      [echuRien.paye, /^abonnement terminé le \d{4}-\d{2}-\d{2} \(réglé par Banc\) — aucun paiement ni code promo$/.test(echuRien.motif)], [false, true]);
+    const courant = await avec([])(ESP({ aboStatut: 'essai', aboFin: '2099-12-31', aboPar: 'Banc' }));
+    v('   (témoin) un essai réglé à la main qui COURT encore décide toujours : payé, sans Stripe', [courant.paye, /^essai offert par Banc/.test(courant.motif)], [true, true]);
+    const gratuiteMain = await avec([apres([L('msg', 1), { price: { id: 'price_cree_a_la_main' }, quantity: 2 }])])(ESP({ formule: 'gratuit' }));
+    v('   … et un abonnement qui porte OP MESSAGES ET une ligne d\'OP GESTION à tarif fait à la main : Pro aussi (il paie OP GESTION)',
+      [gratuiteMain.paye, gratuiteMain.formuleServie], [true, 'pro']);
+
+    /* ⛔⛔ UNE FICHE SANS FORMULE PREND LE CHEMIN DE LA FICHE « GRATUIT » (Justin, 30 septembre 2026, à « les suspendre aussi ? » :
+       « Suspend » — `ficheSansFormule`). Jusque-là, `espacePaye` sortait sur « aucune formule » AVANT de regarder la période
+       offerte et Stripe, et `/api/espaces/etat` lui ouvrait tout. Elle reçoit désormais ce qu'elle paie, et rien de payé la
+       suspend ; le motif garde « aucune formule » EN TÊTE — l'horloge de conservation y lit « jamais abonnée ». */
+    const SANS = o => ESP(Object.assign({ formule: undefined }, o || {}));
+    const sansRien = await avec([])(SANS());
+    v('⛔⛔ fiche SANS formule, ni abonnement ni code : PAS payée — suspendue, et le motif commence par « aucune formule » (conservation)',
+      [sansRien.paye, sansRien.formuleServie, /^aucune formule posée dans la Tour — aucun paiement ni code promo : suspendue jusqu'au règlement$/.test(sansRien.motif)], [false, undefined, true]);
+    const sansPaie = await avec([apres([L('business', 2)])])(SANS());
+    v('⛔ fiche sans formule, abonnement Business × 2 : BUSINESS, 2 places — elle reçoit ce qu\'elle paie', lit(sansPaie), [true, 'business', 2]);
+    const sansMsg = await avec([apres([L('msg', 1)])])(SANS());
+    v('   fiche sans formule qui ne paie qu\'OP MESSAGES : PAS payée, et le motif le dit',
+      [sansMsg.paye, /^aucune formule posée dans la Tour — seul OP MESSAGES est payé/.test(sansMsg.motif)], [false, true]);
+    const sansAncien = await avec([avant([L('pro', 1)])])(SANS());
+    v('⛔ fiche sans formule payée par un abonnement d\'AVANT la bascule (illisible) : on ne coupe pas — Pro, et le motif le dit',
+      [sansAncien.paye, sansAncien.formuleServie, /fiche sans formule, abonnement illisible : Pro servi/.test(sansAncien.motif)], [true, 'pro', true]);
+    const sansPeriode = await avecTout({ promos: [{ code: 'ESSAI-BANC-SANSF', mois: 3 }], usages: { 'ESSAI-BANC-SANSF': { n: 1, equipes: { 'ent-x': { date: '2026-09-01', finLe: '2099-12-31' } } } } })(SANS());
+    v('⛔⛔ fiche sans formule EN PÉRIODE OFFERTE : servie, à la formule du code (Business Premium) — les codes promo n\'y touchent pas',
+      [sansPeriode.paye, sansPeriode.promoCode, sansPeriode.formuleServie], [true, 'ESSAI-BANC-SANSF', 'premium']);
+    const sansImpaye = await avec([apres([L('pro', 1)], { status: 'past_due' })])(SANS());
+    v('⛔ fiche sans formule, sa carte refusée : l\'impayé, comme partout (`bloque`)', [sansImpaye.paye, sansImpaye.bloque], [false, true]);
+    /* … mais l'impayé SANS référence d'une AUTRE entreprise à la même adresse ne la dit pas « impayée » (`impayeBloque` : la
+       règle de la fiche « Gratuit », qu'elle suit) — elle n'est pas payée pour autant : suspendue, motif « aucune formule » */
+    const sansVoisine = { slug: 'sansvoisine', t: 'ent-sansvoisine', email: 'pat@acme.fr' };
+    const sansImpVois = await avecTout({ abos: [apres([L('pro', 1)], { status: 'past_due', customer: { email: 'pat@acme.fr' } })],
+      reg: { sansVoisine, grande: { slug: 'grande', t: 'ent-grande', email: 'pat@acme.fr', formule: 'premium' } } })(sansVoisine);
+    v('⛔ fiche sans formule, l\'impayé SANS référence d\'une voisine d\'adresse : pas « impayée » (ce n\'est pas le sien) — suspendue, motif « aucune formule »',
+      [sansImpVois.paye, sansImpVois.bloque, /^aucune formule posée dans la Tour/.test(sansImpVois.motif)], [false, undefined, true]);
+    const sansManuel = await avec([])(SANS({ aboStatut: 'actif', aboPar: 'Banc' }));
+    v('⛔ fiche sans formule réglée « active » à la main (une entrée d\'avant — la Tour exige une formule) : ce réglage ne sert rien, suspendue',
+      [sansManuel.paye, /^aucune formule posée dans la Tour/.test(sansManuel.motif)], [false, true]);
+    const sansManuelImp = await avec([])(SANS({ aboStatut: 'impaye', aboPar: 'Banc' }));
+    v('   … un « impayé » posé à la main garde son sens : bloquée', [sansManuelImp.paye, sansManuelImp.bloque], [false, true]);
+    const sansPerimee = await perimee([apres([L('msg', 1)])])(SANS());
+    v('   ⛔ liste Stripe PÉRIMÉE, seul OP MESSAGES y est : un doute, comme pour une fiche « Gratuit » — ni suspendue, ni servie',
+      [sansPerimee.paye, sansPerimee.inconnu], [true, true]);
 
     /* OP MESSAGES n'est pas une formule d'OP GESTION */
     const msgSeul = await avec([apres([L('msg', 3)])])(ESP());
-    v('⛔ fiche Business Premium qui ne paie qu\'OP MESSAGES (abonnement d\'après) : OP GESTION reçoit Gratuit, et le motif le dit sans « formule payée »',
-      [msgSeul.paye, msgSeul.formuleServie, /OP GESTION non payé : formule Gratuit/.test(msgSeul.motif), /formule payée/.test(msgSeul.motif)], [true, 'gratuit', true, false]);
+    v('⛔ fiche Business Premium qui ne paie qu\'OP MESSAGES (abonnement d\'après) : OP GESTION n\'est PAS payé (suspendu — plus de Gratuit), et le motif le dit sans « formule payée »',
+      [msgSeul.paye, msgSeul.formuleServie, /OP GESTION non payé \(seul OP MESSAGES l'est\)/.test(msgSeul.motif), /formule payée/.test(msgSeul.motif)], [false, undefined, true, false]);
 
     /* ⛔ CE QU'ON NE SAIT PAS LIRE GARDE LA FICHE : on ne coupe pas une entreprise qui paie */
     const ancien = await avec([avant([L('pro', 1)])])(ESP());
@@ -615,8 +764,16 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     const petite = { slug: 'petite', t: 'ent-petite', email: 'pat@acme.fr', formule: 'gratuit' };
     const partage = await avecTout({ abos: [apres([L('premium', 4)], { customer: { email: 'pat@acme.fr' } })],
       reg: { petite, grande: { slug: 'grande', t: 'ent-grande', email: 'pat@acme.fr', formule: 'premium' } } })(petite);
-    v('⛔ fiche Gratuit, et un abonnement SANS référence d\'une AUTRE entreprise à la même adresse : Gratuit — un paiement ne sert pas deux entreprises',
-      [partage.paye, partage.motif, partage.formuleServie], [true, 'gratuit', undefined]);
+    /* ⛔ v767 : PAS payée, donc suspendue — et surtout PAS « Pro servi » : la branche « abonnement illisible » ne sert que
+       ce qui est SÛREMENT à elle (`surs`). Sans cette condition, la voisine payait l'accès de la petite. */
+    v('⛔ fiche Gratuit, et un abonnement SANS référence d\'une AUTRE entreprise à la même adresse : PAS payée (suspendue) — un paiement ne sert pas deux entreprises',
+      [partage.paye, /pas sûrement le sien/.test(partage.motif), partage.formuleServie], [false, true, undefined]);
+    /* ⛔ v767 : une période offerte dont le code a QUITTÉ la configuration ne dit plus sa formule — sur une fiche « Gratuit »
+       d'avant, elle servait « gratuit », que `/api/espaces/etat` suspend désormais : une entreprise en pleine période offerte
+       aurait été coupée. La formule d'un code par défaut (Business Premium), jamais « gratuit ». */
+    const codeParti = await avecTout({ usages: { 'ESSAI-PARTI-727': { n: 1, equipes: { 'ent-petite': { date: '2026-09-01', finLe: '2099-12-31' } } } }, promos: [], reg: { petite } })(petite);
+    v('⛔ période offerte en cours, code retiré de la configuration, fiche Gratuit : payée, Business Premium — jamais « gratuit »',
+      [codeParti.paye, codeParti.formuleServie], [true, 'premium']);
     const seule = await avecTout({ abos: [apres([L('premium', 4)], { customer: { email: 'pat@acme.fr' } })], reg: { petite } })(petite);
     v('   contre-épreuve : la même, seule à son adresse — elle paie : Business Premium, 4 places', lit(seule), [true, 'premium', 4]);
     const b = { slug: 'bravo', t: 'ent-b', email: 'pat@acme.fr', formule: 'premium' };
@@ -643,7 +800,11 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     const cache2 = { ts: 0, data: null, enCours: null, echecTs: 0 };
     const ep2 = avecTout({ cache: cache2, lire: async () => { essais++; throw new Error('Stripe muet'); } });
     const p1 = await ep2(ESP()), p2 = await ep2(ESP());
-    v('⛔ Stripe en panne : un essai, puis une minute de pause — sans rien inventer (non payé, comme avant)', [essais, p1.paye, p2.paye], [1, false, false]);
+    /* ⛔ v767 (relectures du 30 septembre 2026, `gardien` B3) : sans liste connue, « non payé » était une SUSPENSION complète de
+       toute l'équipe pour une panne de Stripe au redémarrage du serveur. On ne sait pas : `inconnu` — `/api/espaces/etat` le
+       sert `verificationImpossible`, et l'appareil garde ce qu'il savait. Rien d'inventé pour autant : ni formule, ni places. */
+    v('⛔ Stripe en panne sans liste connue : un essai, puis une minute de pause — et DANS LE DOUTE rien n\'est décidé (ni « non payé », ni une formule)',
+      [essais, p1.inconnu, p2.inconnu, p1.formuleServie, p2.formuleServie, 'placesStripe' in p1], [1, true, true, undefined, undefined, false]);
     cache2.echecTs = Date.now() - 61000;
     await ep2(ESP());
     v('   la minute passée, on réessaie', essais, 2);
@@ -705,17 +866,52 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
      servie — et rien quand ce n'est pas payé, quand l'adresse porte deux entreprises (une adresse = une entreprise, Justin),
      ou quand l'entreprise est fermée. */
   {
-    const FSD = extraire('formuleServieDe'), EPT = extraire('espaceParT');
-    vrai('formuleServieDe et espaceParT sont trouvées dans le fichier réel', !!FSD && !!EPT && /espacePaye\(e, \{ lecture: true \}\)/.test(FSD));
+    /* (`espaceParT` sert la facturation de l'ENTREPRISE — `facturationDe`, relecture de `gardien` du 30 septembre 2026) */
+    const FSD = extraire('formuleServieDe'), EPT = ['facturationGroupes', 'nomsEntreprise', 'facturationDe', 'espaceParT'].map(extraire).join('\n');
+    vrai('formuleServieDe, espaceParT et facturationDe sont trouvées dans le fichier réel', !!FSD && !!extraire('espaceParT') && !!extraire('facturationDe') && /espacePaye\(e, \{ lecture: true \}\)/.test(FSD));
     const APRES = Math.floor(Date.parse('2026-10-01T00:00:00Z') / 1000);
     const prix = k => (new RegExp('^\\s*' + k + ": \\['(price_\\w+)'", 'm').exec(SRC) || [])[1];
     const abo = (mail, k, q) => ABO({ created: APRES, customer: { email: mail }, items: { data: [{ price: { id: prix(k) }, quantity: q }] } });
-    const lecteur = (reg, abos, promos, usages, fermes) => new Function(...PARAMS, 'espaceFerme', AIDES.join('\n') + '\n' + EPT + '\n' + SRC.slice(i, fin) + '\n' + FSD + '\nreturn formuleServieDe;')(
+    const lecteur = (reg, abos, promos, usages, fermes, susp) => new Function(...PARAMS, 'espaceFerme', 'espaceEstSuspendu', 'sursisJoursDe', AIDES.join('\n') + '\n' + EPT + '\n' + SRC.slice(i, fin) + '\n' + FSD + '\nreturn formuleServieDe;')(
       { stripe: { secretKey: 'sk_de_banc' }, promos: promos || [] }, { ts: Date.now(), data: abos || [] }, usages || {}, async () => abos || [],
-      { log() {}, error() {} }, () => true, () => {}, reg, null, require('crypto'), false, t => (fermes || []).includes(t));
+      { log() {}, error() {} }, () => true, () => {}, reg, null, require('crypto'), false, t => (fermes || []).includes(t),
+      t => !!(susp && t in susp), t => (susp && t in susp) ? susp[t] : null);
     const REG = { alpha: { nom: 'Alpha', t: 'ent-alpha', email: ' Patron@Alpha.fr ', formule: 'premium', ts: 2 } };
     v('⛔ payée Pro sur une fiche Business Premium : « Mon espace » dit Pro (l\'adresse sans casse ni espaces)', await lecteur(REG, [abo('patron@alpha.fr', 'pro', 3)])('PATRON@alpha.fr'), 'Pro');
-    v('   pas payée : rien (le dossier garde ce que la Tour a posé)', await lecteur(REG, [])('patron@alpha.fr'), '');
+    /* ⛔ v767 : pas payée = l'application est SUSPENDUE ; « Mon espace » le dit (jusqu'au 30 septembre : rien, et le dossier
+       gardait ce que la Tour avait posé — « Actif » à côté d'une application suspendue) */
+    v('   pas payée : « Suspendu » — l\'application l\'est', await lecteur(REG, [])('patron@alpha.fr'), { statut: 'suspendu' });
+    /* ⛔ … ET LA SUSPENSION POSÉE DANS LA TOUR, SURSIS ÉCOULÉ (seconde relecture de `gardien`, 30 septembre 2026) : payée, mais
+       suspendue par la Tour depuis sept jours — l'application est suspendue (`sursisJours:0`), « Mon espace » le dit */
+    v('⛔ payée Pro, suspendue dans la Tour, sursis écoulé : « Suspendu » — comme l\'application',
+      await lecteur(REG, [abo('patron@alpha.fr', 'pro', 3)], null, null, null, { 'ent-alpha': 0 })('patron@alpha.fr'), { statut: 'suspendu' });
+    v('   (témoin) suspendue dans la Tour, trois jours de sursis : sa formule — l\'application l\'est encore',
+      await lecteur(REG, [abo('patron@alpha.fr', 'pro', 3)], null, null, null, { 'ent-alpha': 3 })('patron@alpha.fr'), 'Pro');
+    v('   ⛔ une fiche « Gratuit » d\'avant réglée « active » à la main : « Suspendu » aussi — ce réglage ne paie rien (`aboManuelDe`)',
+      await lecteur({ alpha: Object.assign({}, REG.alpha, { formule: 'gratuit', aboStatut: 'actif' }) }, [])('patron@alpha.fr'), { statut: 'suspendu' });
+    /* ⛔ … MAIS PENDANT SA PÉRIODE OFFERTE, ELLE EST SERVIE : `aboManuelDe` la laisse à la règle du Gratuit, qui lit la période
+       d'abord. Si le réglage à la main passait devant (la mutation M4), la période d'un code — ELAN en est une — serait
+       SUSPENDUE en pleine période, et le rappel J-7 ne partirait plus. */
+    v('   ⛔ la même fiche « Gratuit » réglée « active » à la main, EN PÉRIODE OFFERTE : la formule du code — pas suspendue',
+      await lecteur({ alpha: Object.assign({}, REG.alpha, { formule: 'gratuit', aboStatut: 'actif' }) }, [], [{ code: 'ESSAI-BANC-NEUF', mois: 3 }],
+        { 'ESSAI-BANC-NEUF': { n: 1, equipes: { 'ent-alpha': { date: '2026-09-01', finLe: '2099-12-31' } } } })('patron@alpha.fr'), 'Business Premium');
+    v('   (témoin) la même, réglée « active » à la main en Business Premium : Business Premium',
+      await lecteur({ alpha: Object.assign({}, REG.alpha, { aboStatut: 'actif' }) }, [])('patron@alpha.fr'), 'Business Premium');
+    /* ⛔ Stripe illisible (muet, aucune liste connue — le cache froid d'un redémarrage) : « Mon espace » ne dit RIEN, ni
+       « Suspendu » ni une formule — le dossier garde ce que la Tour y a posé (`payeInconnu`, 30 septembre 2026) */
+    const lecteurMuet = (reg) => new Function(...PARAMS, 'espaceFerme', 'espaceEstSuspendu', 'sursisJoursDe', AIDES.join('\n') + '\n' + EPT + '\n' + SRC.slice(i, fin) + '\n' + FSD + '\nreturn formuleServieDe;')(
+      { stripe: { secretKey: 'sk_de_banc' }, promos: [] }, { ts: 0, data: null, enCours: null, echecTs: 0 }, {}, async () => { throw new Error('Stripe muet (banc)'); },
+      { log() {}, error() {} }, () => true, () => {}, reg, null, require('crypto'), false, () => false, () => false, () => null);
+    v('⛔ Stripe illisible : « Mon espace » ne dit rien — ni « Suspendu », ni une formule', await lecteurMuet(REG)('patron@alpha.fr'), '');
+    /* ⛔⛔ UNE FICHE SANS FORMULE (Justin, 30 septembre 2026 : « Suspend ») : « Mon espace » ne se taisait plus seulement
+       parce que la Tour n'avait rien posé — il dit ce que l'application fait : suspendue si rien n'est payé, la formule payée
+       ou offerte sinon, rien dans le doute */
+    const SANSF = { alpha: Object.assign({}, REG.alpha, { formule: undefined }) };
+    v('⛔⛔ fiche SANS formule, rien de payé : « Suspendu » — l\'application l\'est', await lecteur(SANSF, [])('patron@alpha.fr'), { statut: 'suspendu' });
+    v('   fiche sans formule, payée Pro chez Stripe : « Pro »', await lecteur(SANSF, [abo('patron@alpha.fr', 'pro', 2)])('patron@alpha.fr'), 'Pro');
+    v('   fiche sans formule, en période offerte : la formule du code', await lecteur(SANSF, [], [{ code: 'ESSAI-BANC-SANSF', mois: 3 }],
+      { 'ESSAI-BANC-SANSF': { n: 1, equipes: { 'ent-alpha': { date: '2026-09-01', finLe: '2099-12-31' } } } })('patron@alpha.fr'), 'Business Premium');
+    v('   fiche sans formule, Stripe illisible : rien — on ne sait pas', await lecteurMuet(SANSF)('patron@alpha.fr'), '');
     v('   une période offerte : la formule du code', await lecteur(REG, [], [{ code: 'ESSAI-BANC-NEUF', mois: 3 }],
       { 'ESSAI-BANC-NEUF': { n: 1, equipes: { 'ent-alpha': { date: '2026-09-01', finLe: '2099-12-31' } } } })('patron@alpha.fr'), 'Business Premium');
     const DEUX = Object.assign({}, REG, { beta: { nom: 'Beta', t: 'ent-beta', email: 'patron@alpha.fr', formule: 'pro', ts: 3 } });
@@ -843,6 +1039,52 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     v('⛔ une fonction qui jette ne casse pas le paiement : `null`, et la page s\'ouvre (facturation immédiate)',
       new Function('espacesReg', 'promoUsages', 'espaceFerme', 'config', AIDES_ROUTE.join('\n') + '\nreturn finEssaiPeriode;')(
         ESPACES_DEFAUT, PERIODE(F30), () => { throw new Error('annuaire illisible'); }, { promos: [] })(VISEE, PAYEUR), null);
+  }
+
+  /* ══ 11. SECONDE RELECTURE DE `gardien` (30 septembre 2026) : la liste tronquée, la minute d'échec, le motif public ══ */
+  console.log('\n── 11 · une liste tronquée, Stripe illisible durablement, ce que la réponse payée dit à tous ──');
+  {
+    /* ⛔ UNE LISTE TRONQUÉE N'EST PAS UNE LISTE : au plafond de dix pages, les PLUS ANCIENS abonnements disparaissaient sans
+       un mot — une entreprise qui paie depuis le début aurait été suspendue */
+    const SAB = extraire('stripeAbosBruts');
+    vrai('stripeAbosBruts est trouvée dans le fichier réel', /async function stripeAbosBruts\(sk\)/.test(SAB));
+    const pages = (combien) => { let k = 0; return async () => { k++; return { data: [{ id: 'sub_banc_' + k }], has_more: k < combien }; }; };
+    const jouer = async (combien) => { const journal = [];
+      try { const r = await new Function('stripeMonGet', 'stripeAbosDetail', 'console', SAB + '\nreturn stripeAbosBruts;')(pages(combien), null,
+        { error: (...a) => journal.push(a.join(' ')), log() {} })('sk_de_banc'); return { n: r.length, journal }; }
+      catch (e) { return { jete: String(e && e.message), journal }; } };
+    const court = await jouer(3), long = await jouer(50);
+    v('   (témoin) trois pages : les trois abonnements, rien au journal', [court.n, court.journal.length], [3, 0]);
+    vrai('⛔ plus de dix pages : la liste JETTE (une lecture ratée : la dernière liste connue sert, sinon le doute), et le journal le dit',
+      /tronquée/.test(long.jete || '') && long.journal.some(m => /TRONQUÉE/.test(m)));
+    /* ⛔ DEPUIS COMBIEN DE MINUTES STRIPE NE SE LIT PLUS — ce que `/health` publie et ce sur quoi la surveillance crie */
+    const SEM = extraire('stripeEchecMin');
+    const echecMin = depuis => new Function('espStripeCache', SEM + '\nreturn stripeEchecMin;')({ echecDepuis: depuis })();
+    v('⛔ `stripeEchecMin` : 95 minutes d\'échecs → 95 ; la dernière lecture a réussi → 0', [echecMin(Date.now() - 95 * 60000), echecMin(0)], [95, 0]);
+    const SURV = fs.readFileSync(path.join(__dirname, '..', '.github', 'scripts', 'surveillance.js'), 'utf8')
+      .replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    vrai('⛔ la surveillance CRIE quand Stripe ne se lit plus depuis 90 minutes (lu dans son code, commentaires retirés)',
+      /if \(j\.stripeEchecMin >= 90\) \{\s*problems\.push\('⛔⛔ STRIPE ILLISIBLE DEPUIS ' \+ j\.stripeEchecMin/.test(SURV));
+    /* ⛔ LE MOTIF DE LA RÉPONSE PAYÉE, À QUI CONNAÎT `t` : la seule forme que l'application lit (le code et la fin d'une période
+       offerte) ; le reste — le nom de la personne de la Tour, le chemin Stripe, l'état d'un registre — devient « accès actif » */
+    const MP = extraire('motifPublic');
+    const mp = new Function(MP + '\nreturn motifPublic;')();
+    v('⛔ le motif public : la période offerte passe telle quelle, tout le reste devient « accès actif »',
+      [mp("code promo ESSAI-BANC-SEPT (jusqu'au 2026-12-31)"), mp("abonnement activé par Justin (jusqu'au 2026-12-31)"),
+       mp('abonnement Stripe (active, par adresse e-mail)'), mp('code promo ESSAI-BANC-SEPT — registre des codes illisible, dans le doute on ne coupe pas'), mp('')],
+      ["code promo ESSAI-BANC-SEPT (jusqu'au 2026-12-31)", 'accès actif', 'accès actif', 'accès actif', 'accès actif']);
+    /* ⛔ UNE PANNE SE RELIT D'ELLE-MÊME (troisième relecture de `gardien`) : sans ça, un échec que personne ne relit ferait crier la
+       surveillance toutes les heures, pour toujours, sur une panne finie */
+    const SRP = extraire('stripeRelirePanne');
+    vrai('stripeRelirePanne est trouvée dans le fichier réel', /function stripeRelirePanne\(\)/.test(SRP));
+    const relire = cache => { let k = 0; const r = new Function('espStripeCache', 'stripeListe', SRP + '\nreturn stripeRelirePanne;')(cache, () => { k++; return Promise.resolve([]); })(); return [r, k]; };
+    const T0 = Date.now();
+    v('⛔ une panne se relit d\'elle-même : échec en cours, minute d\'attente passée → relue ; lecture en cours, échec de moins d\'une minute, aucun échec → rien',
+      [relire({ echecDepuis: T0 - 3600000, echecTs: T0 - 120000, enCours: null }), relire({ echecDepuis: T0 - 3600000, echecTs: T0 - 120000, enCours: {} }),
+       relire({ echecDepuis: T0 - 30000, echecTs: T0 - 30000, enCours: null }), relire({ echecDepuis: 0, echecTs: 0, enCours: null })],
+      [[true, 1], [false, 0], [false, 0], [false, 0]]);
+    vrai('   … et le serveur la lance toutes les cinq minutes (lu dans son code, commentaires retirés)',
+      /\nsetInterval\(stripeRelirePanne, 5 \* 60000\)\.unref\(\);/.test(SRC.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ')));
   }
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

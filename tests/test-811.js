@@ -250,9 +250,18 @@ console.log('\n── 811 · les clients du portail repris de Google : leur comp
 
     /* ── durées et plafonds (C4, N5) ── */
     const chrono = async (corps) => { const t0 = Date.now(); await post('/api/compte/creer', corps); return Date.now() - t0; };
-    let connu = 0, libre = 0;
-    for (let i = 0; i < 3; i++) { connu += await chrono({ email: 'client.ancien@exemple.fr', h: emp('x' + i) }); libre += await chrono({ email: 'libre' + i + '@exemple.fr', h: emp('x' + i) }); }
-    v('⛔ « créer un compte » dure autant sur une adresse connue que sur une libre (la durée ne dit plus qui existe)', connu / libre > 0.5, true);
+    /* La MÉDIANE de trois mesures, pas leur somme : trois appels font ~60 ms en tout, un seul à-coup de la machine
+       (une écriture du registre retenue par un disque occupé) suffisait à passer le seuil. Le défaut gardé — une
+       adresse connue qui saute la dérivation — rend les TROIS mesures courtes : la médiane le voit pareil. */
+    const tc = [], tl = [];
+    for (let i = 0; i < 3; i++) { tc.push(await chrono({ email: 'client.ancien@exemple.fr', h: emp('x' + i) })); tl.push(await chrono({ email: 'libre' + i + '@exemple.fr', h: emp('x' + i) })); }
+    const mediane = t => t.slice().sort((x, y) => x - y)[1];
+    const connu = mediane(tc), libre = mediane(tl);
+    /* Les durées sont DITES : une adresse libre écrit deux fois le registre (le compte, puis le jeton de confirmation),
+       une connue non — sur une machine dont le disque est pris, l'écart grandit, et un rouge sans chiffres ne dit pas
+       de combien (seconde passe complète du 29 septembre 2026, sous une charge que j'avais moi-même lancée). */
+    v('⛔ « créer un compte » dure autant sur une adresse connue que sur une libre (la durée ne dit plus qui existe) — médianes : connue '
+      + connu + ' ms [' + tc.join(', ') + '], libre ' + libre + ' ms [' + tl.join(', ') + '], rapport ' + (connu / libre).toFixed(2), connu / libre > 0.5, true);
     lent = 400;
     const t1 = Date.now(); r = await post('/api/compte/mdp/demander', { email: 'client.ancien@exemple.fr' }); const dt = Date.now() - t1;
     lent = 0;

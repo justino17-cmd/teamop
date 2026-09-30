@@ -133,3 +133,7 @@ tests/test-844.js
 # d'app.html (celle de `main`, en service) : grisé sans rien écrire, l'administrateur seul prévenu, tout revient au
 # règlement ; la page de paiement rend la facture en attente au lieu d'un second abonnement.
 tests/test-845.js
+# 30 septembre 2026 : la relecture de la poussée, rejouée sur le vrai serveur — un impayé Stripe sous un registre des codes
+# illisible, un réglage négatif d'avant sur un ancien nom, l'abonnement d'une entreprise renommée (ancien nom, ancienne
+# adresse), « repartir à neuf » en période offerte, un tarif illisible sur une fiche sans formule, le métier sur tous les noms.
+tests/test-849.js

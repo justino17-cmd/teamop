@@ -73,6 +73,14 @@ function get(url) {
     if (j.registres && (j.registres.espaces === false || j.registres.fermes === false || j.registres.promos === false)) {
       problems.push('⛔⛔ UN REGISTRE DU SERVEUR EST ILLISIBLE (' + [j.registres.espaces === false ? 'espaces.json — l’annuaire des entreprises' : '', j.registres.fermes === false ? 'entreprises-fermees.json — les fermetures ne s’appliquent plus' : '', j.registres.promos === false ? 'promos-usages.json — les codes déjà servis sont oubliés, les périodes offertes en cours ne comptent plus' : ''].filter(Boolean).join(' ; ') + '). Le fichier n’est plus réécrit : le réparer (ou le restaurer depuis la sauvegarde) PUIS redémarrer. Sur le VPS : journalctl -u teamop-api | grep ILLISIBLE');
     }
+    /* ⛔⛔ STRIPE QU'ON NE LIT PLUS (seconde relecture de `gardien`, 30 septembre 2026). Depuis que le doute ne coupe plus
+       personne (`payeInconnu`), une clé Stripe révoquée ou fausse ne se voit plus chez les clients. `stripeEchecMin` : depuis
+       combien de minutes les lectures échouent sans une seule réussite. Le balayage de conservation relit Stripe chaque
+       heure : à 90 minutes, au moins deux lectures ont échoué — une panne d'une minute ne crie pas. `>= 90` : un serveur
+       d'avant, sans le champ, ne crie pas. */
+    if (j.stripeEchecMin >= 90) {
+      problems.push('⛔⛔ STRIPE ILLISIBLE DEPUIS ' + j.stripeEchecMin + ' MIN — le serveur ne sait plus qui paie : personne n’est suspendu, mais une entreprise qui vient de payer reste suspendue et les rappels J-7 attendent. Vérifier la clé Stripe du serveur et l’accès à api.stripe.com. Sur le VPS : journalctl -u teamop-api | grep -i stripe');
+    }
     if (j.conservation && j.conservation.erreur) {
       problems.push('⛔⛔ L’HORLOGE DE CONSERVATION NE TOURNE PLUS (' + j.conservation.erreur + ') — plus aucune date « ne paie plus depuis » n’est enregistrée, et ces dates NE SE RATTRAPENT PAS : chaque heure de panne est une information perdue pour toujours. Sur le VPS : journalctl -u teamop-api | grep conservation');
     } else if (j.conservation && j.conservation.actif) {

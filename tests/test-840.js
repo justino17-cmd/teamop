@@ -236,7 +236,9 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
       /Nous avons trouvé 7 utilisateurs actifs dans votre espace/.test(O) && /7 × 50 € = 350 € TTC par mois/.test(O)
       && /Continuer : https:\/\/teamop\.fr\/recap-abonnement\.html\?formule=premium&utilisateurs=7/.test(O));
     vrai('omicron — ce qui se passe sans abonnement, et la phrase pour qui a déjà payé',
-      new RegExp('Sans abonnement, après le ' + fr(jour(5)).replace(/\//g, '\\/') + ', l\'application repassera en formule Gratuit').test(O)
+      /* (v767 : plus de formule Gratuit — sans abonnement, l'accès est SUSPENDU jusqu'au règlement, les données restent) */
+      new RegExp('Sans abonnement, après le ' + fr(jour(5)).replace(/\//g, '\\/') + ', l\'accès à l\'application sera suspendu jusqu\'au règlement — vos données sont conservées').test(O)
+      && !/formule Gratuit/.test(O)
       && /Déjà abonné \? Rien à faire : votre abonnement prend le relais/.test(O));
     vrai('omicron — payer se fait avec l\'adresse qui reçoit le message (celle de l\'entreprise : « B »)', /connectez-vous avec l'adresse qui reçoit ce message/.test(O));
     /* ⛔ LE CLIENT CHOISIT SA FORMULE, DANS CE COURRIEL (Justin, 29 septembre 2026 : « à la fin du code promo, s'ils veulent
@@ -287,11 +289,15 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
       O.includes(promesseHtml(5)) && O.indexOf(promesseHtml(5)) > O.indexOf('(2 mois offerts)</span>') && O.indexOf(promesseHtml(5)) < O.indexOf('<b>Ou une autre formule'));
     vrai('   kappa (fin dans 3 jours) : au plus tard le ' + L(3) + ', premier prélèvement le ' + DB(3), de('kappa').includes(promesseTxt(3)) && de('kappa').includes(promesseHtml(3)));
     const promet = m => /rien n'est prélevé avant le/.test(m);
-    /* ⚠️ ni à psi : son essai est réglé à la MAIN dans la Tour (`aboStatut`), et `espacePaye` s'arrête dessus avant la période
-       offerte — sa page de paiement ne diffère rien, le courriel ne le promet donc pas (`gardien`, 29 septembre 2026) */
-    v('⛔ la promesse part à qui elle est VRAIE — ni à rho (son adresse porte deux entreprises), ni à pi (la limite serait aujourd\'hui), ni à psi (essai réglé dans la Tour)',
-      recus.filter(promet).map(destinataire).sort(), ['eta@exemple-840.fr', 'kappa@exemple-840.fr', 'lambda-inconnue@exemple-840.fr', 'mu@exemple-840.fr', 'nu@exemple-840.fr', 'omicron@exemple-840.fr', 'xi@exemple-840.fr']);
-    vrai('   (population) rho, pi et psi ont bien reçu leur rappel — sans la promesse', !!R && !!P && !!de('psi') && !promet(R) && !promet(P) && !promet(de('psi')));
+    /* ⛔ ET À PSI, DEPUIS LE 30 SEPTEMBRE 2026 (`gardien` B1) : son essai réglé à la MAIN dans la Tour finit AVANT le code —
+       le jour où la facturation commencerait (le lendemain de la période), il ne décide plus (`aboManuelDe(e, jour)`), la page
+       de paiement diffère bien jusque-là (`finEssaiPeriode`), donc le courriel peut le promettre. Avant, le réglage lu au jour
+       d'AUJOURD'HUI l'emportait : ni promesse, et une facturation immédiate de jours que le code couvrait encore. (Un essai
+       qui court AU-DELÀ du code ne reçoit aucun rappel : chi, plus haut.) */
+    v('⛔ la promesse part à qui elle est VRAIE — ni à rho (son adresse porte deux entreprises), ni à pi (la limite serait aujourd\'hui) ; à psi, oui (son essai réglé dans la Tour finit avant le code)',
+      recus.filter(promet).map(destinataire).sort(), ['eta@exemple-840.fr', 'kappa@exemple-840.fr', 'lambda-inconnue@exemple-840.fr', 'mu@exemple-840.fr', 'nu@exemple-840.fr', 'omicron@exemple-840.fr', 'psi@exemple-840.fr', 'xi@exemple-840.fr']);
+    vrai('   (population) rho et pi ont bien reçu leur rappel — sans la promesse', !!R && !!P && !promet(R) && !promet(P));
+    vrai('⛔ psi : la promesse porte la fin de SON code (au plus tard le ' + L(4) + ', rien n\'est prélevé avant le ' + DB(4) + ')', de('psi').includes(promesseTxt(4)));
     /* ⛔ UN CODE RETIRÉ DE LA CONFIGURATION : sa formule n'est plus connue — aucun prix inventé (le repli sur Premium
        chiffrait 50 € par utilisateur une entreprise dont le code était peut-être un Pro) */
     const M = de('mu');

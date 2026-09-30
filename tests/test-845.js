@@ -112,6 +112,11 @@ console.log('\n── 845 · carte refusée = impayé : l\'accès payant bloqué
     });
   }
   Object.assign(espaces.tou, { aboStatut: 'actif', aboPar: 'Banc' });
+  /* ⛔⛔ « tou » a un SECOND nom, plus récent, SANS formule — un annuaire d'avant, quand « Revoir le lien » ne reportait pas la
+     fiche (relecture de `gardien` sur A3, 30 septembre 2026). C'est lui que l'application lit (`espaceParT` sert le plus
+     récent) : la facturation doit suivre l'ENTREPRISE (`facturationDe`), sinon elle est suspendue et la page de paiement
+     l'envoie régler une facture pendant qu'elle est réglée à la main. */
+  espaces.toub = { t: espaces.tou.t, nom: 'Banc toub', email: adr('tou'), ts: MAINT - 500 };
   Object.assign(espaces.man, { aboStatut: 'impaye', aboPar: 'Banc' });
   /* partd : pas de référence — seule l'adresse (partagée) la désigne */
   delete subs.find(x => x.id === 'sub_partd_0').metadata.espace;
@@ -220,9 +225,12 @@ globalThis.fetch = async function (url, opts) {
       headers: Object.assign({ 'Content-Type': 'application/json' }, jeton ? { Authorization: 'Bearer ' + jeton } : {}, ip ? { 'X-Forwarded-For': ip } : {}), body: corps === undefined ? undefined : JSON.stringify(corps) });
     let j = null; try { j = await r.json(); } catch (e) {} return { s: r.status, j: j || {} }; };
   const etat = async slug => (await appel('/api/espaces/etat', { t: espaces[slug].t })).j;
-  /* la forme B : pas de formule ni de places ; et ⛔ la route est PUBLIQUE (qui connaît `t`) : ni le mot « impayé », ni Stripe */
+  /* la forme B : pas de formule ni de places ; et ⛔ la route est PUBLIQUE (qui connaît `t`) : ni le mot « impayé », ni Stripe.
+     ⛔⛔ v767 (Justin, 30 septembre 2026 : « si une entreprise ne paye plus, le service est suspendu tant que c'est pas réglé ») :
+     TOUT ce qui n'est pas payé la prend — un impayé comme une entreprise qui n'a jamais rien payé. La réponse publique ne les
+     distingue plus ; la Tour, gardée, le fait (`impaye`, § 4). */
   const FORME_B = j => j.ok === true && j.paye === false && j.suspendu === true && j.sursisJours === 0 && !('formule' in j) && !('places' in j)
-    && !('impaye' in j) && j.motif === 'accès payant suspendu';
+    && !('impaye' in j) && j.motif === 'accès suspendu';
 
   try {
     console.log('\n1. /api/espaces/etat : un impayé se sert comme une suspension au sursis écoulé, sans formule');
@@ -234,39 +242,45 @@ globalThis.fetch = async function (url, opts) {
     vrai('⛔ fiche GRATUIT dont le Pro payé est refusé — la même forme (l\'administrateur est prévenu, rien n\'est écrit)', FORME_B(E.gra));
     vrai('⛔ OP MESSAGES payé, OP GESTION refusé — un impayé, pas le « Gratuit » d\'une entreprise qui n\'aurait pris qu\'OP MESSAGES', FORME_B(E.mog));
     vrai('⛔ fiche Gratuit, OP MESSAGES payé, son Pro refusé — la même forme', FORME_B(E.mgr));
-    vrai('⛔ incomplete (jamais payé) N\'EST PAS un impayé — la réponse d\'avant : sa formule, `paye:false`, sans `impaye` ni suspension',
-      E.inc.formule === 'pro' && E.inc.paye === false && !E.inc.impaye && E.inc.suspendu === false && E.inc.motif === 'aucun paiement ni code promo');
-    vrai('⛔ OP MESSAGES refusé, rien d\'OP GESTION — pas un impayé d\'OP GESTION : la réponse d\'avant', E.msg.formule === 'premium' && E.msg.paye === false && !E.msg.impaye && E.msg.suspendu === false);
+    /* ⛔ v767 : ce qui N'EST PAS un impayé mais n'est pas payé non plus est SUSPENDU aussi — la même forme publique ; ce n'est
+       pas un impayé pour la Tour (§ 4 : `impaye` faux) */
+    vrai('⛔ incomplete (jamais payé) n\'est pas un impayé — mais pas payée non plus : suspendue, la même forme publique (la Tour ne la dit pas en impayé, § 4)', FORME_B(E.inc));
+    vrai('⛔ OP MESSAGES refusé, rien d\'OP GESTION — pas un impayé d\'OP GESTION, mais rien d\'OP GESTION de payé : suspendue', FORME_B(E.msg));
     vrai('⛔ réglée à la main dans la Tour (actif) — la Tour prime : payée, sa formule', E.tou.paye === true && E.tou.formule === 'premium' && !E.tou.impaye && E.tou.suspendu === false);
+    vrai('   (population) … et l\'application la lit sous son SECOND nom, plus récent, sans formule (la facturation suit l\'entreprise)',
+      espaces.toub.t === espaces.tou.t && espaces.toub.ts > espaces.tou.ts && !espaces.toub.formule && !espaces.toub.aboStatut);
     vrai('⛔ une période offerte en cours prime sur l\'impayé — payée (code promo)', E.per.paye === true && /code promo ESSAI-BANC-845/.test(E.per.motif || '') && E.per.suspendu === false);
     vrai('⛔ un payé ET un refusé — payée, sa formule, pas suspendue', E.mix.paye === true && E.mix.formule === 'pro' && !E.mix.impaye && E.mix.suspendu === false);
     vrai('⛔   mais SANS les places du refusé (moins que le témoin aux deux abonnements payés : ' + E.mix.places + ' contre ' + E.deux.places + ')',
       Number.isInteger(E.mix.places) && Number.isInteger(E.deux.places) && E.mix.places < E.deux.places);
-    vrai('   et son motif le dit', /1 abonnement en impayé : ses places ne sont pas servies/.test(E.mix.motif || ''));
+    /* (depuis le 30 septembre 2026, le motif détaillé est pour la Tour, gardée — § 4 : la réponse publique ne dit que « accès
+       actif », seconde relecture de `gardien`) */
+    v('   son motif PUBLIC ne détaille rien : « accès actif » (la Tour lit le détail, § 4)', E.mix.motif, 'accès actif');
     vrai('   (témoin) payée sans rien de refusé : la réponse normale', E.x.paye === true && E.x.formule === 'premium' && !/impayé/.test(E.x.motif || ''));
     /* ── les cas de la relecture adverse ── */
-    vrai('⛔ un nom d\'accès REPRIS : l\'impayé de l\'ancienne entreprise, gravé à ce nom, ne bloque pas la nouvelle (un impayé ne se rattache qu\'à l\'identifiant)',
-      E.nouv.paye === true && E.nouv.formule === 'gratuit' && E.nouv.suspendu === false);
+    /* (v767 : ces fiches « Gratuit » ne paient rien — suspendues de toute façon ; que l'impayé d'une AUTRE ne leur soit pas
+       rattaché se lit dans la Tour, § 4) */
+    vrai('⛔ un nom d\'accès REPRIS : rien de payé, donc suspendue — mais l\'impayé de l\'ancienne entreprise, gravé à ce nom, ne lui est pas rattaché (§ 4)',
+      FORME_B(E.nouv));
     vrai('   … et une entreprise au nom repris qui a SON impayé est bloquée par le sien', FORME_B(E.nouvb));
     vrai('⛔ un impayé gravé à SON nom d\'accès (anciennes pages) et à SON adresse est bien le sien : bloquée (sinon l\'accès payant restait ouvert)', FORME_B(E.nomg));
-    vrai('⛔ le nom repris par une AUTRE entreprise à la MÊME adresse : elle n\'hérite pas de l\'impayé gravé à ce nom — servie, pas bloquée',
-      E.nomp.paye === true && E.nomp.suspendu === false && !E.nomp.impaye);
+    vrai('⛔ le nom repris par une AUTRE entreprise à la MÊME adresse : rien de payé, suspendue — sans hériter de l\'impayé gravé à ce nom (§ 4)',
+      FORME_B(E.nomp));
     vrai('   … et l\'ancienne titulaire non plus (limite connue, dans le sens qui ne coupe personne : à une adresse partagée, le nom ne départage rien)',
-      E.nompa.paye === true && E.nompa.suspendu === false && !E.nompa.impaye);
+      FORME_B(E.nompa));
     vrai('⛔ payée, avec un vieil abonnement refusé : servie (ses places payées), pas bloquée', E.paie.paye === true && E.paie.formule === 'pro' && E.paie.suspendu === false
       && E.paieu.paye === true && E.paieu.suspendu === false);
     vrai('   unpaid sans facture ouverte : bloquée comme les autres', FORME_B(E.unv));
     vrai('⛔ l\'impayé posé À LA MAIN dans la Tour : la même forme que l\'impayé Stripe (plus de bandeau à toute l\'équipe, ni `db` réécrit)', FORME_B(E.man));
-    vrai('   (en attente de Justin, Q3) un abonnement ANNULÉ par Stripe : la réponse d\'avant (formule, non payée) — pas un impayé',
-      E.can.formule === 'business' && E.can.paye === false && E.can.suspendu === false && !('impaye' in E.can));
+    vrai('   un abonnement ANNULÉ par Stripe : pas un impayé (§ 4), mais plus rien de payé — suspendue (v767)', FORME_B(E.can));
     vrai('⛔ adresse partagée — la payée (gravée) reste servie', E.partc.paye === true && E.partc.formule === 'pro' && E.partc.suspendu === false);
-    vrai('⛔ adresse partagée — la fiche Gratuit jamais abonnée n\'est PAS dite en impayé par l\'abonnement refusé d\'une voisine',
-      E.parta.paye === true && E.parta.formule === 'gratuit' && E.parta.suspendu === false);
+    vrai('⛔ adresse partagée — la fiche Gratuit jamais abonnée : rien de payé, suspendue — et PAS dite en impayé par l\'abonnement refusé d\'une voisine (§ 4)',
+      FORME_B(E.parta));
     vrai('⛔ adresse partagée — la refusée (gravée à elle) est bloquée : l\'abonnement payé de sa VOISINE ne lui prête pas l\'accès payant', FORME_B(E.partb));
     vrai('   adresse partagée — un refusé SANS référence (un doute) ne bloque pas quand un payé est trouvé à l\'adresse (la limite connue : une adresse = une entreprise)',
       E.partd.paye === true && E.partd.suspendu === false);
-    vrai('⛔ adresse partagée où RIEN n\'est payé — le refusé sans référence bloque (la forme qui n\'écrit rien), la fiche Gratuit voisine non',
-      FORME_B(E.duoa) && E.duob.paye === true && E.duob.suspendu === false);
+    vrai('⛔ adresse partagée où RIEN n\'est payé — le refusé sans référence bloque, et la fiche Gratuit voisine, qui ne paie rien, est suspendue aussi (sans impayé, § 4)',
+      FORME_B(E.duoa) && FORME_B(E.duob));
     /* ⛔ PAS DE RAFALE : la liste se garde pour qui paie ; un impayé la fait relire au plus une fois par fenêtre */
     const listes = () => appelsStripe().filter(x => /\/v1\/subscriptions\?/.test(x.u)).length;
     await dormir(1100);
@@ -281,38 +295,115 @@ globalThis.fetch = async function (url, opts) {
     const bloc = (debut) => { const d0 = APP.indexOf(debut); if (d0 < 0) return ''; let p = 0;
       for (let k = APP.indexOf('{', d0); k < APP.length; k++) { if (APP[k] === '{') p++; else if (APP[k] === '}') { p--; if (!p) return APP.slice(d0, k + 1); } } return ''; };
     const fonction = nom => { const a = bloc('async function ' + nom + '('); return a || bloc('function ' + nom + '('); };
-    const NOMS = ['forfaitServeurSync', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'suspensionRappel', 'forfait', 'bandeauFormule'];
+    /* ⛔ LE SERVEUR PEUT PARTIR SEUL (`scripts/bancs-serveur.liste`, contre l'app.html de `main`) : la v763 EN SERVICE et la
+       v767 de la bêta ne lisent pas la suspension de la même façon. Chacune est jouée contre CE serveur, avec SES attentes — la
+       v763 grise les catégories payantes (`forfait()` rend « gratuit ») sans rien écrire ; la v767 suspend l'accès. */
+    const VER_APP = parseInt((/APP_VERSION\s*=\s*'(\d+)'/.exec(APP) || [])[1], 10) || 0, V767 = VER_APP >= 767;
+    vrai('la version de l\'application se lit (v' + VER_APP + ')', VER_APP >= 763);
+    /* (le bandeau « Paye ton abonnement » n'existe plus depuis la v767 : ce qui n'est pas payé est suspendu — `accesSuspendu`) */
+    const NOMS = V767 ? ['forfaitServeurSync', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'accesSuspendu', 'suspensionClasse', 'suspensionRappel', 'forfait']
+      : ['forfaitServeurSync', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'suspensionRappel', 'forfait', 'bandeauFormule'];
     const FN = NOMS.map(fonction), PLANS_SRC = bloc('const PLANS={'), SUSP = (/^let _susp = \{[^\n]*\};$/m.exec(APP) || [''])[0];
-    vrai('(population) les huit fonctions, PLANS et l\'état de suspension sont trouvés dans le fichier réel',
-      FN.every(Boolean) && /const PLANS=\{/.test(PLANS_SRC) && !!SUSP && /suspensionPoser\(j\)/.test(FN[0]));
+    vrai('(population) les ' + NOMS.length + ' fonctions de la v' + VER_APP + ', PLANS et l\'état de suspension sont trouvés dans le fichier réel',
+      FN.every(Boolean) && /const PLANS=\{/.test(PLANS_SRC) && !!SUSP && (V767 ? /suspensionPoser\(nonPaye\?/ : /suspensionPoser\(j\)/).test(FN[0]));
     /* un appareil : son rangement, son compte, sa base — et ce qu'il fait VOIR (toasts, bandeau) ou ÉCRIRE (save) */
-    const appareil = (slug, role) => {
+    const appareil = (slug, role, fetchAutre) => {
       const LS = new Map([['elan_sync_team', espaces[slug].t]]);
       const vu = { toasts: [], saves: 0, bandeau: 0 };
       const doc = { getElementById: () => null, createElement: () => { vu.bandeau++; return { style: {}, remove() {} }; }, body: { appendChild() {} } };
       const code = 'let STORE_KEY="elanB_banc845"; let currentUser=' + JSON.stringify({ id: 'u-' + role, role }) + '; let current="dashboard";\n'
         + 'let db=' + JSON.stringify({ forfait: espaces[slug].formule, forfaitQty: 1, forfaitSrv: 'teamop' }) + '; let _opMsgOuvert=false;\n'
         + PLANS_SRC + ';\nvar _placesSrv=null,_placesSrvF="";\n' + SUSP + '\n' + FN.join('\n')
-        + '\nreturn { sync: forfaitServeurSync, forfait, db: () => db, susp: () => _susp };';
+        + '\nconst BETA_ESSAI=false;\nreturn { sync: forfaitServeurSync, forfait, db: () => db, susp: () => _susp, acces: (typeof accesSuspendu === "function" ? accesSuspendu : () => null) };';
       const f = new Function('fetch', 'localStorage', 'PUSH_API', 'toast', 'renderNav', 'go', 'save', 'logEvent', 'todayISO', 'espaceQuitter', 'suiteRefresh', 'views', 'document', 'esc', code);
-      const a = f((u, o) => fetch(u, o), { getItem: k => (LS.has(k) ? LS.get(k) : null), setItem: (k, x) => LS.set(k, String(x)), removeItem: k => LS.delete(k) },
+      const a = f(fetchAutre || ((u, o) => fetch(u, o)), { getItem: k => (LS.has(k) ? LS.get(k) : null), setItem: (k, x) => LS.set(k, String(x)), removeItem: k => LS.delete(k) },
         B, m => vu.toasts.push(String(m)), () => {}, () => {}, () => { vu.saves++; }, () => {}, () => new Date().toISOString().slice(0, 10), () => {}, () => {}, {}, doc, s => String(s));
       a.vu = vu; return a;
     };
     const admin = appareil('ret', 'admin'), tech = appareil('ret', 'technicien');
     await admin.sync(); await tech.sync();
-    v('⛔ l\'administrateur d\'une entreprise refusée : `forfait()` rend « gratuit » (catégories payantes grisées)', admin.forfait(), 'gratuit');
+    if (V767) {
+    /* ⛔ v767 : plus de Gratuit où revenir — l'ACCÈS est suspendu (tout grisé sauf les Paramètres), la formule vraie reste */
+    v('⛔ l\'administrateur d\'une entreprise refusée : l\'accès est SUSPENDU (`accesSuspendu`), `forfait()` garde la formule vraie', [admin.acces(), admin.forfait()], [true, 'business']);
     v('⛔   et `db` n\'est PAS touché : sa formule vraie reste, aucune écriture (rien ne part à la synchro)', [admin.db().forfait, admin.db().formuleAttente, admin.vu.saves], ['business', undefined, 0]);
     vrai('⛔   pas de bandeau « Paye ton abonnement » (il mènerait à un SECOND abonnement)', admin.vu.bandeau === 0 && tech.vu.bandeau === 0);
-    vrai('   le rappel de l\'administrateur : « Abonnement non réglé… rien n\'est perdu »', admin.vu.toasts.length === 1 && /Abonnement non réglé — les catégories payantes sont grisées/.test(admin.vu.toasts[0]));
+    vrai('   le rappel de l\'administrateur : « Abonnement non réglé… suspendu jusqu\'au règlement… rien n\'est perdu »', admin.vu.toasts.length === 1
+      && /Abonnement non réglé — l'accès à l'application est suspendu jusqu'au règlement/.test(admin.vu.toasts[0]) && /Rien n'est perdu/.test(admin.vu.toasts[0]));
+    vrai('⛔ le technicien : suspendu aussi, et AUCUN message (« c\'est pas aux utilisateurs de savoir si l\'entreprise paye ») — ni écriture',
+      tech.acces() === true && tech.vu.toasts.length === 0 && tech.vu.saves === 0 && tech.db().forfait === 'business');
+    await admin.sync();
+    v('   un seul rappel par jour : une seconde ouverture le même jour ne le répète pas', admin.vu.toasts.length, 1);
+    /* ⛔ v767 : incomplete (jamais payé) n'est plus servie « formule + paye:false » — suspendue, comme l'impayé : rien d'écrit */
+    const incA = appareil('inc', 'technicien'); await incA.sync();
+    vrai('⛔ incomplete (jamais payé) : suspendue elle aussi — rien d\'écrit, pas de bandeau, pas d\'attente',
+      incA.acces() === true && incA.db().forfait === 'pro' && !incA.db().formuleAttente && incA.vu.saves === 0 && incA.vu.bandeau === 0);
+    /* ⛔ LA VRAIE CONTRE-ÉPREUVE : un serveur d'AVANT (formule + `paye:false`, ou « gratuit ») — la v763 y écrivait `db.forfait` au
+       Gratuit et posait le bandeau à toute l'équipe ; la v767 la lit comme une suspension, sans rien écrire. Et une vérification
+       impossible (`verificationImpossible`) ne change rien : l'appareil garde ce qu'il savait. */
+    const serveurAvant = rep => async () => ({ ok: true, json: async () => rep });
+    const av1 = appareil('inc', 'technicien', serveurAvant({ ok: true, formule: 'pro', quantite: 1, paye: false, motif: 'aucun paiement ni code promo', suspendu: false, sursisJours: null }));
+    await av1.sync();
+    vrai('⛔ un serveur d\'AVANT (formule + `paye:false`) : suspendue — `db.forfait` intact, pas de « formule en attente », pas de bandeau, rien d\'écrit',
+      av1.acces() === true && av1.db().forfait === 'pro' && !av1.db().formuleAttente && av1.vu.saves === 0 && av1.vu.bandeau === 0);
+    const av2 = appareil('inc', 'technicien', serveurAvant({ ok: true, formule: 'gratuit', quantite: 1, paye: true, motif: 'gratuit', suspendu: false, sursisJours: null }));
+    await av2.sync();
+    vrai('⛔ un serveur d\'AVANT qui sert « gratuit » : suspendue aussi — `db.forfait` n\'est pas réécrit au Gratuit',
+      av2.acces() === true && av2.db().forfait === 'pro' && av2.vu.saves === 0);
+    const av3 = appareil('inc', 'technicien', serveurAvant({ ok: true, verificationImpossible: true, suspendu: false, sursisJours: null }));
+    await av3.sync();
+    vrai('⛔ une vérification impossible ne décide rien : ni suspendue, ni formule réécrite', av3.acces() === false && av3.db().forfait === 'pro' && av3.vu.saves === 0);
+    const av4 = appareil('inc', 'technicien', async () => ({ ok: false, json: async () => ({}) }));
+    await av4.sync();
+    vrai('⛔ une page d\'erreur du proxy (502, `{}`) ne décide rien non plus', av4.acces() === false && av4.db().forfait === 'pro' && av4.vu.saves === 0);
+    /* ⛔ ET DANS L'AUTRE SENS — c'est là qu'une panne coûte : un appareil SUSPENDU qui reçoit une page d'erreur du proxy, ou
+       une vérification impossible, RESTE suspendu. `{}` se lisait « pas suspendue » et rouvrait l'accès (mutation M13) ; la
+       vérification impossible porte `suspendu:false` quand la Tour n'a rien posé (mutation M14). */
+    let repP = { ok: true, paye: false, motif: 'accès suspendu', suspendu: true, sursisJours: 0 }, httpP = true;
+    const av5 = appareil('inc', 'technicien', async () => ({ ok: httpP, json: async () => repP }));
+    await av5.sync();
+    vrai('(témoin) cet appareil est d\'abord suspendu', av5.acces() === true);
+    httpP = false; repP = {}; await av5.sync();
+    vrai('⛔ suspendu, puis une page d\'erreur du proxy (502, `{}`) : il RESTE suspendu — une panne ne rouvre pas l\'accès', av5.acces() === true && av5.vu.saves === 0);
+    httpP = true; repP = { ok: true, verificationImpossible: true, suspendu: false, sursisJours: null }; await av5.sync();
+    vrai('⛔ … et une vérification impossible non plus', av5.acces() === true && av5.vu.saves === 0);
+    repP = { ok: true, formule: 'pro', quantite: 1, places: 1, paye: true, motif: 'abonnement Stripe (active)', suspendu: false, sursisJours: null }; await av5.sync();
+    vrai('   (témoin) une réponse PAYÉE, elle, rouvre tout', av5.acces() === false && av5.vu.saves === 0);
+    /* ⛔ ET ELLE DIT SI L'ÉTAT A ÉTÉ LU (30 septembre 2026, `relecteur`) : « J'ai réglé — vérifier » (`suspensionVerifier`)
+       affirmait « toujours suspendu : le règlement n'est pas arrivé » sur une vérification qui n'avait PAS eu lieu */
+    const lu1 = await appareil('inc', 'technicien', serveurAvant({ ok: true, verificationImpossible: true, suspendu: false, sursisJours: null })).sync();
+    const lu2 = await appareil('inc', 'technicien', async () => ({ ok: false, json: async () => ({}) })).sync();
+    const lu3 = await appareil('inc', 'technicien').sync();   // le vrai serveur : suspendue — l'état est lu
+    const lu4 = await appareil('inc', 'technicien', serveurAvant({ ok: true, formule: 'pro', quantite: 1, places: 1, paye: true, motif: '', suspendu: false, sursisJours: null })).sync();
+    v('⛔ `forfaitServeurSync` dit si l\'état a été LU : vérification impossible, page d\'erreur → non ; suspendue, payée → oui',
+      [lu1, lu2, lu3, lu4].map(Boolean), [false, false, true, true]);
+    } else {
+    /* ── la v763 EN SERVICE contre CE serveur : ce qu'elle reçoit (la forme suspendue, sans formule) est celle qu'elle grise
+       sans rien écrire ── */
+    v('⛔ (v' + VER_APP + ') l\'administrateur d\'une entreprise refusée : `forfait()` rend « gratuit » (catégories payantes grisées)', admin.forfait(), 'gratuit');
+    v('⛔   et `db` n\'est PAS touché : sa formule vraie reste, aucune écriture (rien ne part à la synchro)', [admin.db().forfait, admin.db().formuleAttente, admin.vu.saves], ['business', undefined, 0]);
+    vrai('⛔   pas de bandeau « Paye ton abonnement » (il mènerait à un SECOND abonnement)', admin.vu.bandeau === 0 && tech.vu.bandeau === 0);
+    vrai('   le rappel de l\'administrateur : « Abonnement non réglé… »', admin.vu.toasts.length === 1 && /Abonnement non réglé/.test(admin.vu.toasts[0]));
     vrai('⛔ le technicien : grisé aussi, et AUCUN message (« c\'est pas aux utilisateurs de savoir si l\'entreprise paye ») — ni écriture',
       tech.forfait() === 'gratuit' && tech.vu.toasts.length === 0 && tech.vu.saves === 0 && tech.db().forfait === 'business');
     await admin.sync();
     v('   un seul rappel par jour : une seconde ouverture le même jour ne le répète pas', admin.vu.toasts.length, 1);
-    /* la contre-épreuve : la réponse qu'un impayé NE reçoit PAS */
+    /* ⛔ CE QUE LE SERVEUR NEUF CHANGE POUR LA v763 : une entreprise qui n'a jamais rien payé (incomplete) recevait « formule +
+       `paye:false` » — la v763 écrivait alors `db.forfait` au Gratuit, posait l'attente et le bandeau à toute l'équipe (un
+       SECOND abonnement au bout). Elle reçoit désormais la forme suspendue : grisée, rien d'écrit. */
     const incA = appareil('inc', 'technicien'); await incA.sync();
-    vrai('(contre-épreuve) une réponse AVEC formule et `paye:false` (incomplete), elle, ÉCRIT `db.forfait`, pose l\'attente et le bandeau — à toute l\'équipe',
-      incA.db().forfait === 'gratuit' && !!incA.db().formuleAttente && incA.vu.saves > 0 && incA.vu.bandeau > 0);
+    vrai('⛔ (v' + VER_APP + ') incomplete (jamais payé) : grisée — et RIEN d\'écrit, ni attente, ni bandeau (le serveur ne sert plus « formule + paye:false »)',
+      incA.forfait() === 'gratuit' && incA.db().forfait === 'pro' && !incA.db().formuleAttente && incA.vu.saves === 0 && incA.vu.bandeau === 0);
+    /* ⚠️ LA LIMITE CONNUE DE LA v763, dans le sens qui ne coupe personne : elle pose l'état de chaque réponse — une vérification
+       impossible (Stripe muet) porte `suspendu:false` quand la Tour n'a rien posé, et la grisaille se lève jusqu'à la réponse
+       suivante. Rien ne s'écrit. (La v767 garde ce qu'elle savait.) */
+    let repV = { ok: true, paye: false, motif: 'accès suspendu', suspendu: true, sursisJours: 0 };
+    const avV = appareil('inc', 'technicien', async () => ({ ok: true, json: async () => repV }));
+    await avV.sync();
+    vrai('(témoin) cet appareil v' + VER_APP + ' est d\'abord grisé', avV.forfait() === 'gratuit');
+    repV = { ok: true, verificationImpossible: true, suspendu: false, sursisJours: null }; await avV.sync();
+    vrai('⚠️ (v' + VER_APP + ', limite connue) une vérification impossible lève la grisaille — et n\'écrit RIEN (formule vraie, aucun enregistrement)',
+      avV.forfait() === 'pro' && avV.db().forfait === 'pro' && avV.vu.saves === 0 && avV.vu.bandeau === 0);
+    }
 
     console.log('\n3. Le règlement : l\'accès revient seul, sans rien réparer');
     etatStripe.subs.find(s => s.id === 'sub_ret_0').status = 'active'; delete etatStripe.factures.sub_ret_0; poser();
@@ -320,7 +411,8 @@ globalThis.fetch = async function (url, opts) {
     const R = await etat('ret');
     vrai('⛔ Stripe dit l\'abonnement payé : la réponse normale — payée, sa formule, plus de suspension', R.paye === true && R.formule === 'business' && !R.impaye && R.suspendu === false);
     await admin.sync(); await tech.sync();
-    v('⛔ l\'application rend tout : `forfait()` redevient la formule vraie, chez l\'administrateur et le technicien', [admin.forfait(), tech.forfait()], ['business', 'business']);
+    if (V767) v('⛔ l\'application rend tout : l\'accès revient, la formule vraie, chez l\'administrateur et le technicien', [admin.acces(), tech.acces(), admin.forfait(), tech.forfait()], [false, false, 'business', 'business']);
+    else v('⛔ (v' + VER_APP + ') l\'application rend tout : `forfait()` redevient la formule vraie, chez l\'administrateur et le technicien', [admin.forfait(), tech.forfait()], ['business', 'business']);
     v('   toujours sans avoir rien réécrit de la formule', [admin.db().forfait, tech.db().forfait], ['business', 'business']);
 
     console.log('\n4. La Tour et « Mon espace » le voient');
@@ -330,6 +422,9 @@ globalThis.fetch = async function (url, opts) {
     const ligne = slug => L.find(x => x.slug === slug) || {};
     v('⛔ la liste de la Tour : `impaye` pour les bloquées (past_due, unpaid, fiche Gratuit, réglée à la main), pas pour les autres',
       Object.keys(ENT).filter(s => ligne(s).impaye).sort(), ['duoa', 'gra', 'imp', 'man', 'mgr', 'mog', 'nomg', 'nouvb', 'pan', 'partb', 'regl', 'sans', 'unp', 'unv', 'y']);
+    /* ⛔ v767 : la réponse publique ne distingue plus l'impayé de « rien de payé » (les deux sont suspendus, § 1) ; la Tour, si */
+    v('⛔ (relecture adverse) le nom repris, l\'adresse partagée, l\'annulé, l\'incomplet, OP MESSAGES refusé : suspendus, mais PAS en impayé pour la Tour',
+      ['nouv', 'nomp', 'nompa', 'parta', 'duob', 'can', 'inc', 'msg'].map(sl => [!!ligne(sl).impaye, ligne(sl).paye]), ['nouv', 'nomp', 'nompa', 'parta', 'duob', 'can', 'inc', 'msg'].map(() => [false, false]));
     v('   `impayeStripe` : toutes sauf la réglée à la main (la Tour ne la montre qu\'une fois : sa ligne Stripe, ou celle-ci)',
       Object.keys(ENT).filter(s => ligne(s).impaye && !ligne(s).impayeStripe), ['man']);
     v('   `impayesPartiels` : 1 pour l\'entreprise au payé ET au refusé, 0 pour son témoin', [ligne('mix').impayesPartiels, ligne('deux').impayesPartiels], [1, 0]);
@@ -337,6 +432,9 @@ globalThis.fetch = async function (url, opts) {
     vrai('   la fiche d\'une entreprise refusée : non payée, `impaye`, le motif de l\'impayé', St.paye === false && St.impaye === true && /impayé Stripe \(past_due, par [^)]+\) — accès payant bloqué/.test(St.motif || ''));
     const Su = (await appel('/api/monitor/espaces/statut', { nom: 'unp' }, PATRON)).j;
     vrai('   … et celle d\'un unpaid le dit (le motif tient dans les 80 signes de l\'horloge de conservation)', /impayé Stripe \(unpaid/.test(Su.motif || '') && String(Su.motif || '').length <= 80);
+    const StMix = (await appel('/api/monitor/espaces/statut', { nom: 'mix' }, PATRON)).j;
+    vrai('   la fiche d\'une entreprise au payé ET au refusé : la Tour lit pourquoi une partie des places n\'est pas servie',
+      /1 abonnement en impayé : ses places ne sont pas servies/.test(StMix.motif || ''));
     const Mi = (await appel('/api/portail/moi', undefined, jetons.imp)).j;
     vrai('⛔ « Mon espace » d\'une entreprise refusée : « Suspendu » (pas « Actif » à côté de fonctions grisées), sa formule inchangée',
       Mi.ok === true && Mi.dossier && Mi.dossier.planStatus === 'suspendu' && Mi.dossier.plan === 'Business');
@@ -365,16 +463,27 @@ globalThis.fetch = async function (url, opts) {
     r = await payer('pan', { ref: espaces.pan.t });
     v('⛔ Stripe muet à la relecture : 502 — on refuse plutôt que de risquer un double prélèvement', [r.s, r.j.error, sessions().length], [502, 'stripe_indisponible', n0]);
     r = await payer('regl', { ref: espaces.regl.t });
-    vrai('⛔ refusée dans la liste, RÉGLÉE à la relecture : le paiement normal (une page de paiement neuve)', r.s === 200 && r.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && sessions().length === n0 + 1);
+    /* ⛔⛔ RÉGLÉE depuis la liste (la relecture la dit ACTIVE) : l'accès revient à la prochaine lecture — un abonnement neuf naîtrait
+       à côté de celui qui court, prélevé en DOUBLE. C'était « le paiement normal » jusqu'au 30 septembre 2026 (troisième relecture
+       de `gardien`) : dans la minute qui suit un règlement, ou avec une liste périmée, un second abonnement se vendait. */
+    v('⛔⛔ refusée dans la liste, RÉGLÉE à la relecture : 409 `impaye_regle` — RIEN de créé (un second abonnement serait prélevé en double)',
+      [r.s, r.j.error, sessions().length], [409, 'impaye_regle', n0]);
+    for (const PAGE of ['recap-abonnement.html', 'apercu/recap-abonnement.html']) {
+      const CODE = fs.readFileSync(path.join(__dirname, '..', PAGE), 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
+      vrai('   ' + PAGE + ' le dit — un message, pas une erreur (« Votre règlement est bien arrivé »)',
+        /else if \(r && r\.status === 409 && j && j\.error === 'impaye_regle'\) compteMsg = \{ texte: 'Votre règlement est bien arrivé(?:[^'\\]|\\.)*', erreur: false \};/.test(CODE));
+    }
     r = await payer('imp', { price: P.msg, ref: espaces.imp.t });
-    vrai('   OP MESSAGES (pas encore en vente, pas un impayé d\'OP GESTION) : le paiement normal', r.s === 200 && r.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && sessions().length === n0 + 2);
+    vrai('   OP MESSAGES (pas encore en vente, pas un impayé d\'OP GESTION) : le paiement normal', r.s === 200 && r.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && sessions().length === n0 + 1);
     r = await payer('x', { ref: espaces.x.t });
     vrai('⛔ une entreprise payée, dont la VOISINE est en impayé : le paiement normal — jamais la facture d\'une autre',
-      r.s === 200 && r.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && sessions().length === n0 + 3);
+      r.s === 200 && r.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && sessions().length === n0 + 2);
     r = await payer('ret', { price: P.business, ref: espaces.ret.t });
-    vrai('   l\'entreprise qui vient de régler : le paiement normal', r.s === 200 && r.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && sessions().length === n0 + 4);
+    vrai('   l\'entreprise qui vient de régler : le paiement normal', r.s === 200 && r.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && sessions().length === n0 + 3);
     const neuf = async (slug, corps) => { const n = sessions().length; const q = await payer(slug, corps);
       return q.s === 200 && q.j.url === 'https://checkout.stripe.com/c/pay/banc-845' && !q.j.facture && sessions().length === n + 1; };
+    vrai('⛔⛔ réglée à la main, visée par son SECOND nom (sans formule) : le paiement normal — jamais la facture en attente, l\'application la sert',
+      await neuf('tou', { ref: 'toub' }));
     vrai('⛔ le nom d\'accès repris : la nouvelle entreprise paie normalement — JAMAIS la facture de l\'ancienne (nom, adresse, montant d\'une autre)',
       await neuf('nouv', { price: P.pro, ref: espaces.nouv.t }) && !appelsStripe().some(x => /sub_ancienne\b/.test(x.u)));
     r = await payer('nouvb', { price: P.business, ref: espaces.nouvb.t });

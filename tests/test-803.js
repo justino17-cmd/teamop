@@ -95,7 +95,10 @@ console.log('\n══ 0. Les quatre chemins qui activent un code passent par la 
      répond 503 — AVANT le courriel « votre code est actif ». */
   vrai('l\'application : un registre non écrit défait et répond 503, AVANT le courriel', /if \(!savePromoUsages\(\)\) \{ u\.n--; delete u\.equipes\[team\];[\s\S]{0,160}return res\.status\(503\)/.test(valider) && valider.indexOf('if (!savePromoUsages())') < valider.indexOf('mailPromoActive('));
   vrai('   la Tour aussi', /if \(!savePromoUsages\(\)\) \{ u\.n--; delete u\.equipes\[t\];[\s\S]{0,260}return res\.status\(503\)/.test(tour) && tour.indexOf('if (!savePromoUsages())') < tour.indexOf('mailPromoActive('));
-  vrai('le doute paie : registre illisible ET code posé sur l\'espace', /if \(promosIllisible && e\.codePromo\) return \{ paye: true,/.test(CODE_SRV));
+  /* (30 septembre 2026 : un IMPAYÉ que Stripe dit — SÛREMENT le sien — passe avant ce doute ; joué sur le vrai serveur par
+     `test-849`, § A et § A bis) */
+  vrai('le doute paie : registre illisible ET code posé sur l\'espace (après l\'impayé Stripe sûrement le sien)',
+    /if \(promosIllisible && e\.codePromo\) \{\s*const vI = await stripeVerdict\(e\);\s*if \(vI\.imp && \(vI\.imp\.surs \|\| \[\]\)\.length && impayeBloque\(e, vI\.s, vI\.imp\)\) return bloqueImpaye\(vI\.imp\);\s*return \{ paye: true,/.test(CODE_SRV));
   vrai('⛔ plus aucun rapprochement par le NOM d\'accès (slug)', !/eq\.slug/.test(CODE_SRV));
   vrai('   … et son inventaire compte de la même façon', /const promos = \[\.\.\.new Set\(promoCles\(t, slugs, emails\)\.map\(x => x\.code\)\)\];/.test(CODE_SRV));
 
@@ -111,9 +114,11 @@ console.log('\n══ 0. Les quatre chemins qui activent un code passent par la 
 /* ══ 1. LES VRAIES FONCTIONS DE LA RÈGLE, EXÉCUTÉES ═══════════════════════════════════════════ */
 console.log('\n══ 1. Les vraies fonctions de la règle, exécutées ══');
 const NOMS = ['promoAujourdhui', 'promoDateFr', 'promoEmpreinteMail', 'promoIdentite', 'promoServiA', 'promoAutreActif',
-  'promoEntree', 'promoPresente', 'promoRefusServi', 'promoMarquerAvantRenaitre', 'promoCles', 'promoHeritier', 'promoEffacerEntreprise', 'espaceParT'];
+  'promoEntree', 'promoPresente', 'promoRefusServi', 'promoMarquerAvantRenaitre', 'promoCles', 'promoHeritier', 'promoEffacerEntreprise', 'espaceParT',
+  /* (`espaceParT` sert la facturation de l'ENTREPRISE — `facturationDe`, qui lit `espaceT` : relecture de `gardien`, 30 septembre 2026) */
+  'facturationDe', 'espaceT', 'facturationGroupes', 'nomsEntreprise'];
 const SOURCES = NOMS.map(n => extraire(SRV, n));
-vrai('population : les quatorze fonctions sont trouvées dans le fichier réel', SOURCES.every(Boolean));
+vrai('population : les dix-huit fonctions sont trouvées dans le fichier réel', SOURCES.length === 18 && SOURCES.every(Boolean));
 function bac(espacesReg, promoUsages, illisible) {
   const trace = { ecrit: 0 };
   const api = new Function('espacesReg', 'promoUsages', 'crypto', 'savePromoUsages', 'etatIllisible',
@@ -503,9 +508,18 @@ const USAGES = { [CODE]: { n: 3, equipes: {
     r = await I.appel('POST', '/api/espaces/etat', { t: 'ent-fs-1' });
     /* ⛔ LE DOUTE PAIE (relecture de `gardien`) : un espace qui porte un code n'est pas grisé parce
        que le registre est abîmé — et rien ne s'active pour autant (le fichier, ci-dessous, est intact). */
-    v('⛔ un espace qui porte un code : dans le doute, PAYÉ — et il le dit', [r.json.paye, /illisible/.test(r.json.motif || '')], [true, true]);
+    /* (depuis le 30 septembre 2026, c'est la Tour, gardée, qui lit pourquoi — la réponse publique dit « accès actif », seconde
+       relecture de `gardien`) */
+    const stFs = (await I.appel('POST', '/api/monitor/espaces/statut', { nom: 'fleuristesonde' }, { Authorization: 'Bearer ' + tI.token })).json || {};
+    v('⛔ un espace qui porte un code : dans le doute, PAYÉ — et la Tour lit pourquoi (la réponse publique : « accès actif »)',
+      [r.json.paye, /illisible/.test(stFs.motif || ''), r.json.motif], [true, true, 'accès actif']);
     r = await I.appel('POST', '/api/espaces/etat', { t: 'ent-ps-1' });
-    v('   le témoin : un espace SANS code n\'en profite pas', [r.json.formule, r.json.paye], ['premium', false]);
+    /* ⛔ v767 (relectures du 30 septembre 2026, `gardien` A1) : un espace SANS code sur sa fiche peut quand même avoir une
+       période offerte — tapée dans l'application, elle n'est écrite QUE dans ce registre. Illisible, on ne sait pas : il
+       n'est ni payé ni suspendu, la route répond `verificationImpossible` et l'appareil garde ce qu'il savait. (Avant : « pas
+       payé » — une entreprise en pleine période offerte suspendue parce qu'un fichier est abîmé.) */
+    v('   le témoin : un espace SANS code sur sa fiche n\'est pas « payé » — mais pas suspendu non plus : on ne sait pas, rien n\'est décidé',
+      [r.json.formule, r.json.paye, r.json.suspendu, r.json.verificationImpossible], [undefined, undefined, false, true]);
     v('⛔ le fichier abîmé est INTACT (récupérable), pas écrasé', I.brut(), CASSE);
     vrai('   … et le journal le crie', /promos-usages\.json ILLISIBLE/.test(I.journal()));
     arreterTout();
@@ -571,6 +585,42 @@ const USAGES = { [CODE]: { n: 3, equipes: {
       const dbB2 = { users: [{}], forfait: 'gratuit', forfaitEssai: null };   // un autre appareil, qui ne le savait pas
       const Bn = page('ent-bs-1', K.bs, dbB2);
       await Bn.f(CODE);
+      /* (iv bis) ⛔ DEPUIS L'ÉCRAN « ACCÈS SUSPENDU » (« J'ai un code promo », `relecteur`, 30 septembre 2026, vérifié à
+         l'exécution) : le code accepté fait RELIRE l'état, et AVANT d'annoncer « Code accepté » — sinon l'écran restait
+         suspendu sous un message qui dit l'inverse. La vraie fonction, un serveur qui accepte, une relecture qu'on compte.
+         ⛔ Et si la relecture n'a PAS rouvert l'accès (réseau, serveur), l'annonce le dit (seconde relecture de `relecteur`).
+         L'écran « Accès suspendu » naît avec la v767 : la v763 en service (le serveur peut partir seul, ce banc tourne alors
+         contre la page de `main`) n'a rien à relire — on le vérifie au lieu de le supposer. */
+      const VER_PAGE = parseInt((/APP_VERSION\s*=\s*'(\d+)'/.exec(APP) || [])[1], 10) || 0;
+      if (VER_PAGE >= 767) {
+      const suspendue = (susp, encore) => {
+        const tr = { relu: 0, reluAuMessage: null, modals: [] };
+        const f = new Function('fetch', 'PUSH_API', 'enteteEquipe', 'syncTeam', 'db', 'PLANS', 'todayISO', 'fmtShort', 'esc', 'localStorage',
+          'logEvent', 'save', 'renderNav', 'suiteRefresh', 'openModal', 'toast', '$', 'current', 'views', '_susp', 'forfaitServeurSync', 'accesSuspendu',
+          fR + '\n' + fA + '\nreturn promoAppliquer;')(
+          async () => ({ ok: true, status: 200, json: async () => ({ ok: true, formule: 'premium', mois: 3, finLe: dans(3), dejaUtilise: false }) }),
+          S2.B, async h => h, () => 'ent-susp-803', { users: [{}], forfait: 'pro', forfaitEssai: null }, PLANS,
+          () => AUJ, d => String(d), s => String(s), { removeItem() {} }, () => {}, () => {}, () => {}, () => {},
+          h => { tr.modals.push(h); tr.reluAuMessage = tr.relu; }, () => {}, () => null, 'parametres', {}, susp, async () => { tr.relu++; return true; },
+          () => !!encore);
+        return { f, tr };
+      };
+      const NOTE = /L’accès se rouvre dès que le serveur le confirme/;
+      const Su = suspendue({ suspendu: true, sursis: 0 }, false);
+      await Su.f('ESSAI-SUSP-803');
+      v('⛔ code accepté DEPUIS une suspension : l\u2019état est relu une fois, AVANT « 🎉 Code accepté » — l\u2019accès rouvert, rien de plus à dire',
+        [Su.tr.relu, Su.tr.reluAuMessage, /Code accepté/.test(Su.tr.modals[0] || ''), NOTE.test(Su.tr.modals[0] || '')], [1, 1, true, false]);
+      const Sr = suspendue({ suspendu: true, sursis: 0 }, true);
+      await Sr.f('ESSAI-SUSP-803');
+      v('⛔ … la relecture n\u2019a PAS rouvert l\u2019accès (réseau, serveur) : l\u2019annonce le dit, et dit quoi faire',
+        [Sr.tr.relu, /Code accepté/.test(Sr.tr.modals[0] || ''), NOTE.test(Sr.tr.modals[0] || ''), /J’ai réglé — vérifier/.test(Sr.tr.modals[0] || '')], [1, true, true, true]);
+      const Li = suspendue({ suspendu: false, sursis: null }, false);
+      await Li.f('ESSAI-SUSP-803');
+      v('   (témoin) hors suspension : rien de plus — pas de relecture, pas de note', [Li.tr.relu, /Code accepté/.test(Li.tr.modals[0] || ''), NOTE.test(Li.tr.modals[0] || '')], [0, true, false]);
+      } else {
+      vrai('   (iv bis) la page v' + VER_PAGE + ' n\u2019a pas d\u2019écran « Accès suspendu » (il naît avec la v767) : sa fonction ne lit pas la suspension',
+        VER_PAGE >= 763 && !/_susp|accesSuspendu/.test(fA));
+      }
       v('   … sur un appareil qui ne le savait pas : la période s\u2019inscrit, SANS journal « activé »', [dbB2.forfait, (dbB2.forfaitEssai || {}).finLe, (dbB2.forfaitEssai || {}).debut, Bn.tr.save, Bn.tr.logs], ['premium', dans(3), AUJ, 1, []]);
     }
     /* (v) le témoin, sur les deux pages : un code neuf s'active comme avant. */

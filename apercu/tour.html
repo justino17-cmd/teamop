@@ -2936,7 +2936,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.76</div>
+    <div class="lg-pied">console interne · v2.78</div>
   </div>
 </div>
 
@@ -2978,7 +2978,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.76</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.78</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2990,7 +2990,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.76</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.78</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3256,7 +3256,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.76';
+var TOUR_VERSION='v2.78';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -5174,7 +5174,7 @@ function tourAccesSupprimer(slug,nom){
     chargerAccesPublics(); chargerClients();
   }).catch(function(){ toast('Serveur injoignable'); });
 }
-/* ✅ Accepter la demande : espace + lien + formule demandée (en attente de paiement) + message de bienvenue prêt */
+/* ✅ Accepter la demande : espace + lien + formule demandée (suspendue jusqu'au paiement, 30 septembre 2026) + message de bienvenue prêt */
 function tourPanneau(html,o){
   var v=document.getElementById('tour-panneau'); if(v) v.remove();
   var d=document.createElement('div'); d.id='tour-panneau';
@@ -5287,7 +5287,8 @@ async function tourAccepterDemande(email,nom){
   var c=(CLI.list||[]).find(function(x){ return x.email===email; })||{};
   var dems=(c.demandes||[]).map(function(d,i){ return {d:(d&&typeof d==='object')?d:{},i:i}; });
   var dm=(dems.slice().sort(function(a,b){ return (b.d.date||0)-(a.d.date||0); })[0]||{d:{}}).d;
-  var F={'business premium':'premium','premium':'premium','business':'business','pro':'pro','gratuit':'gratuit'};
+  /* une demande d'avant le 29 septembre 2026 qui disait « Gratuit » : la formule d'entrée, Pro (plus de Gratuit) */
+  var F={'business premium':'premium','premium':'premium','business':'business','pro':'pro','gratuit':'pro'};
   var formule=F[String(dm.formule||'').toLowerCase()]||'business';
   var q=Math.max(1,parseInt(dm.users,10)||1);
   var ident=prompt('Identifiant de départ (son prénom — il pourra le changer à sa première connexion) :',tourIdentDefaut(email));
@@ -5312,6 +5313,15 @@ async function tourAccepterDemande(email,nom){
   var r;
   try{ r=await apiPost('/api/monitor/espaces/formule',{nom:e.nom,formule:formule,quantite:q}); }catch(err){ toast('Serveur injoignable'); return; }
   if(!(r&&r.ok)){ toast((r&&r.d&&r.d.error)||'Formule non attribuée'); return; }
+  /* v2.77 — le métier de la demande se pose avec la formule : c'est lui qui règle l'application (types d'intervention,
+     fiche de terrain, modules). Refusé ou injoignable : on le DIT, et le reste de l'acceptation continue — il se règle
+     ensuite dans la fiche (« MÉTIER »). */
+  var metierDem=MET_L[dm.metier]?dm.metier:'', metierPose='';
+  if(metierDem){
+    try{ var rm=await apiPost('/api/monitor/espaces/metier',{nom:e.nom,metier:metierDem});
+      if(rm&&rm.ok&&rm.d&&rm.d.ok) metierPose=metierDem; else toast('Métier non posé : '+((rm&&rm.d&&rm.d.error)||'refusé')+' — règle-le dans la fiche'); }
+    catch(err){ toast('Métier non posé (serveur injoignable) — règle-le dans la fiche'); }
+  }
   tourPackPrefill(e.nom);
   /* Les demandes de ce client sont traitées : c'est ce que la création automatique marquait, sans que personne les
      ait lues. Ici quelqu'un les a lues. */
@@ -5321,14 +5331,14 @@ async function tourAccepterDemande(email,nom){
   var F2={gratuit:'Gratuit',pro:'Pro',business:'Business',premium:'Business Premium'};
   var adrF='teamop.fr/e/'+(e.slug||espSlugJs(e.nom));
   var promoTxt=promo?('\n\n🎁 Ton code « '+(promo.code||codeDem)+' » est activé : '+(F2[formule]||formule)+' offert jusqu\'au '+promo.finLe+', pour toute ton équipe — aucune carte bancaire.'):'';
-  var txt='Bienvenue sur OP GESTION !\n\nTa demande est acceptée — ta formule « '+(F2[formule]||formule)+' »'+(q>1?' ×'+q:'')+' est réservée.'+promoTxt+'\n\nUNE SEULE ADRESSE À RETENIR, pour toi et pour toute ton équipe :\n'+adrF
+  var txt='Bienvenue sur OP GESTION !\n\nTa demande est acceptée — ta formule « '+(F2[formule]||formule)+' »'+(q>1?' ×'+q:'')+' est réservée.'+(metierPose?'\nTon application est réglée pour ton métier : '+MET_L[metierPose]+'.':'')+promoTxt+'\n\nUNE SEULE ADRESSE À RETENIR, pour toi et pour toute ton équipe :\n'+adrF
     +'\n\nPOUR ENTRER :\n• Identifiant : '+ident+'\n• Mot de passe provisoire : '+(mdpAff||'(à te faire redonner par TEAM OP)')+'\nL\'app te fait choisir TON vrai mot de passe et ton e-mail.'
-    +(promo?'':'\n\nPour débloquer tous les avantages de ta formule : paye ton abonnement (l\'app te guide, bouton « Payer mon abonnement »).')
+    +(promo?'':'\n\nTon accès s\'ouvre dès que ton abonnement est réglé : au premier lancement, l\'application affiche « Accès suspendu » et le bouton « Régler mon abonnement ».')
     +'\n\nTu crées ensuite les comptes de ton équipe dans Utilisateurs : chacun se connecte pareil — la même adresse, son identifiant, son mot de passe. Aucun code, rien à conserver.\n\nBonne prise en main !\n— TEAM OP · teamop.fr';
   tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:4px">✅ Demande acceptée — '+esc(e.nom)+'</div>'+
     '<div style="color:var(--muted);font-size:13px;margin-bottom:16px">L\'espace est prêt. Il ne te reste qu\'à envoyer l\'e-mail au client.</div>'+
     '<div class="sec">FORMULE RÉSERVÉE</div><div style="margin:6px 0 14px;font-size:15px"><b>'+esc(F2[formule]||formule)+(q>1?' ×'+q:'')+'</b> '+
-      (promo?'<span class="past p-vert">🎁 offerte jusqu’au '+esc(promo.finLe)+'</span>':'<span class="past p-orange">💳 en attente de paiement</span>')+'</div>'+
+      (promo?'<span class="past p-vert">🎁 offerte jusqu’au '+esc(promo.finLe)+'</span>':'<span class="past p-orange">⏸ suspendue jusqu’au paiement</span>')+'</div>'+
     (codeDem&&!promo?'<div class="encart" style="margin:0 0 14px"><div class="encart-tx">⚠️ Code promo « '+esc(codeDem)+' » de la demande non appliqué : '+esc(promoErr)+'</div></div>':'')+
     '<div class="sec">SON ADRESSE <span style="color:var(--muted);font-weight:400;text-transform:none">— c\'est elle qu\'on donne aux équipes</span></div>'+
     '<div style="display:flex;gap:8px;align-items:center;margin:6px 0 14px"><span id="acc-adr" class="mono" style="flex:1;word-break:break-all;font-size:14px;color:var(--link);font-weight:700">'+esc(adrF)+'</span><button class="btn-fant" onclick="tourCopie(\'acc-adr\',this)">Copier</button></div>'+
@@ -5367,15 +5377,25 @@ function packPeindre(){
   if(!PACK.charge){ el.textContent=PACK.nom?'Chargement du statut…':''; return; }
   if(PACK.err){ el.innerHTML='<span style="color:var(--redText)">'+esc(PACK.err)+'</span>'; return; }
   var d=PACK.d||{};
-  var sf=document.getElementById('abo-f')||document.getElementById('pack-f'); if(sf&&d.formule) sf.value=d.formule;
+  /* une fiche « Gratuit » d'avant la v2.78 : la liste n'a plus cette formule — elle reste VIDE, pour qu'on en choisisse une
+     (l'enregistrement le demande), plutôt que d'afficher Pro qu'on enregistrerait sans l'avoir choisi */
+  var sf=document.getElementById('abo-f')||document.getElementById('pack-f'); if(sf&&d.formule) sf.value=(d.formule==='gratuit'?'':d.formule);
   var sq=document.getElementById('abo-q')||document.getElementById('pack-q'); if(sq) sq.value=d.quantite||1;
   var ss=document.getElementById('abo-st'); if(ss) ss.value=d.aboStatut||'auto';
   var sd=document.getElementById('abo-fin'); if(sd) sd.value=d.aboFin||'';
+  /* le métier : celui de l'espace ; tant qu'il n'est pas réglé, la liste propose celui de la demande (à enregistrer) */
+  var sm=document.getElementById('met-f'), mi=document.getElementById('met-info');
+  if(sm){ var cm=(CLI.list||[]).filter(function(x){ return x.email===CLI.sel; })[0], dmM=metDemande(cm);
+    sm.value=d.metier||dmM||'';
+    if(mi) mi.innerHTML=d.metier?'Métier réglé\u202f: <b>'+esc(MET_L[d.metier]||d.metier)+'</b> — l’application le reçoit à sa prochaine ouverture.'
+      :'Métier <b>non réglé</b> — l’application reste en 3D'+(dmM?'. Demandé\u202f: <b>'+esc(MET_L[dmM])+'</b>, à enregistrer.':'.'); }
   var ST={auto:'automatique',actif:'activé par TEAM OP',essai:'en essai',impaye:'impayé',suspendu:'suspendu',annule:'annulé'};
   if(d.formule){
     /* la formule en toutes lettres, comme « l’application reçoit » juste après (et le toast de « 💳 Statut paiement ») :
        « premium » à côté de « Business Premium » se lisait comme deux formules */
     el.innerHTML='Formule actuelle\u202f: <b>'+esc(ABN_F[d.formule]||d.formule)+(d.quantite>1?' ×'+d.quantite:'')+'</b> · statut\u202f: <b>'+esc(ST[d.aboStatut||'auto']||d.aboStatut)+'</b>'+(d.aboFin?' · jusqu\'au <b>'+esc(d.aboFin)+'</b>':'')
+      /* ce que l'application en fait : une entreprise qui ne paie pas est SUSPENDUE (plus de Gratuit, v2.78) */
+      +(d.paye===false?' · <b style="color:var(--redText)">application suspendue</b> (rien de payé'+(d.formule==='gratuit'?'\u202f; la formule Gratuit n’existe plus — choisis-en une':'')+')':'')
       /* les places que l'application v763 donne VRAIMENT (serveur : `placesServies` — le payé chez Stripe, les places gardées
          d'avant la v763) : sans elles, réenregistrer une entreprise d'avant pouvait lui retirer des places sans que la Tour
          le montre (`gardien`, 28 septembre 2026) */
@@ -5383,7 +5403,11 @@ function packPeindre(){
       /* ce que l'application REÇOIT quand ce n'est pas la fiche : la formule payée, ou celle du code (`abnFormule`) */
       +(d.formuleServie&&d.formuleServie!==d.formule?' · l’application reçoit\u202f: <b>'+esc(ABN_F[d.formuleServie]||d.formuleServie)+'</b> ('+abnEcart(d)+')':'');
   } else {
-    el.innerHTML='Aucune formule attribuée pour l\'instant — choisis-en une et Enregistrer.';
+    /* v2.78 — une fiche SANS formule ne reçoit plus tout l'accès (Justin, 30 septembre 2026 : « Suspend ») : elle reçoit ce
+       qu'elle paie ou ce qui lui est offert (période d'un code, Stripe) ; sinon l'application est SUSPENDUE — on le dit ici */
+    el.innerHTML='Aucune formule attribuée'+(d.paye===false
+      ?' · <b style="color:var(--redText)">application suspendue</b> (rien de payé ni offert) — choisis une formule et Enregistrer\u202f; pour la faire essayer, le statut « En essai » avec une date de fin.'
+      :(d.paye&&d.formuleServie?' · l’application reçoit\u202f: <b>'+esc(ABN_F[d.formuleServie]||d.formuleServie)+'</b> ('+abnEcart(d)+').':' pour l\'instant — choisis-en une et Enregistrer.'));
   }
 }
 function tourPackPrefill(nom){
@@ -5396,7 +5420,7 @@ function tourPackPrefill(nom){
 }
 function tourStatutPack(nom){
   apiPost('/api/monitor/espaces/statut',{nom:nom}).then(function(r){
-    if(r&&r.ok&&r.d) toast(r.d.formule?('📦 '+(ABN_F[r.d.formule]||r.d.formule)+(r.d.quantite>1?' ×'+r.d.quantite:'')+(r.d.formuleServie&&r.d.formuleServie!==r.d.formule?' → l’application reçoit '+(ABN_F[r.d.formuleServie]||r.d.formuleServie):'')+' — '+(r.d.paye?'✅ payé ('+r.d.motif+')':'💳 en attente de paiement')):'Aucune formule attribuée');
+    if(r&&r.ok&&r.d) toast(r.d.formule?('📦 '+(ABN_F[r.d.formule]||r.d.formule)+(r.d.quantite>1?' ×'+r.d.quantite:'')+(r.d.formuleServie&&r.d.formuleServie!==r.d.formule?' → l’application reçoit '+(ABN_F[r.d.formuleServie]||r.d.formuleServie):'')+' — '+(r.d.paye?(r.d.inconnu?'❔ paiement non vérifiable pour l’instant ('+r.d.motif+')':'✅ payé ('+r.d.motif+')'):'💳 en attente de paiement')):'Aucune formule attribuée');
     else toast((r&&r.d&&r.d.error)||'Statut indisponible');
   }).catch(function(){ toast('Serveur injoignable'); });
 }
@@ -5413,12 +5437,24 @@ function supConnecterBoite(){
 function tourAboEnregistrer(nom,btn){
   var f=(document.getElementById('abo-f')||{}).value, q=parseInt((document.getElementById('abo-q')||{}).value,10)||1;
   var st=(document.getElementById('abo-st')||{}).value||'auto', fin=(document.getElementById('abo-fin')||{}).value||'';
+  if(!f){ toast('Choisis une formule — Pro, Business ou Business Premium'); return; }
   if(btn){ btn.disabled=true; btn.textContent='💾 Enregistrement…'; }
   apiPost('/api/monitor/espaces/abonnement',{nom:nom,formule:f,quantite:q,statut:st,fin:fin}).then(function(r){
     if(r&&r.ok&&r.d&&r.d.ok){ toast('💾 Abonnement enregistré : '+f+(q>1?' ×'+q:'')+' · '+st+(fin?' jusqu\'au '+fin:'')+' — actif à la prochaine ouverture de leur app'); tourPackPrefill(nom); setTimeout(chargerEspaces,300); }
     else toast((r&&r.d&&r.d.error)||'Refusé — mets le serveur à jour (git pull) ou réservé au patron');
     if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer'; }
   }).catch(function(){ toast('Serveur injoignable'); if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer'; } });
+}
+/* 💾 v2.77 — le métier de l'espace (liste fermée, vérifiée aussi par le serveur) */
+function tourMetierEnregistrer(nom,btn){
+  var m=(document.getElementById('met-f')||{}).value||'';
+  if(m&&!MET_L[m]){ toast('Métier inconnu'); return; }
+  if(btn){ btn.disabled=true; btn.textContent='💾 Enregistrement…'; }
+  return apiPost('/api/monitor/espaces/metier',{nom:nom,metier:m}).then(function(r){
+    if(r&&r.ok&&r.d&&r.d.ok){ toast(m?('🧰 Métier « '+MET_L[m]+' » — l’application le reçoit à sa prochaine ouverture'):'Métier retiré — l’application garde celui qu’elle a'); tourPackPrefill(nom); }
+    else toast((r&&r.d&&r.d.error)||'Refusé — mets le serveur à jour');
+    if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer le métier'; }
+  }).catch(function(){ toast('Serveur injoignable'); if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer le métier'; } });
 }
 function tourAttribuerPack(nom){
   var f=(document.getElementById('pack-f')||{}).value, q=parseInt((document.getElementById('pack-q')||{}).value,10)||1;
@@ -7452,7 +7488,7 @@ function cliStatut(c){
   if(p==='trialing'||p==='essai') return ['En essai','p-info'];
   if(p==='past_due'||p==='unpaid'||p==='impaye') return ['Impayé','p-ambre'];
   if(p==='canceled'||p==='annule') return ['Annulé','p-gris'];
-  return [c.plan?String(c.plan):'Gratuit','p-gris'];
+  return [c.plan?String(c.plan):'Sans formule','p-gris'];
 }
 /* 📣 L'annonce de mise à jour : un e-mail (beau gabarit TeamOP) à TOUTES les
    entreprises qui ont une adresse. Le texte vit sur le serveur. */
@@ -7653,7 +7689,7 @@ function vueEntreprises(){
     {cle:'inconnu',titre:'À identifier',bloc:'reg-bloc',opt:false,
      sous:'Sans entrée d’annuaire : ni nom, ni adresse, ni formule. Un essai oublié — ou une cliente dont le nom s’est perdu. Ouvrez-en un pour trancher.'},
     {cle:'mien',titre:'Mes espaces d’essai',bloc:'reg-bloc mien',opt:true,
-     sous:'Ouverts depuis la Tour, sans formule attribuée. Une cliente qui apparaîtrait ici n’a simplement pas encore de formule — attribuez-la et elle remonte dans Clientes.'}
+     sous:'Ouverts depuis la Tour, sans formule attribuée — donc SUSPENDUS tant que rien n’est payé ni offert : pour en ouvrir un, sa fiche → Abonnement → « En essai » avec une date de fin. Une cliente qui apparaîtrait ici n’a simplement pas encore de formule — attribuez-la et elle remonte dans Clientes.'}
   ];
   var groupes='';
   GROUPES.forEach(function(g){
@@ -8373,6 +8409,7 @@ function blocGestionClient(){
       var tr=traites[x.i];
       var lig=[];
       if(d.formule) lig.push('💼 '+d.formule);
+      if(MET_L[d.metier]) lig.push('🧰 '+MET_L[d.metier]);
       if(d.users) lig.push('👥 '+nMot(d.users,'utilisateur','utilisateurs'));
       if(d.lien) lig.push('🔗 '+d.lien);
       if(d.code) lig.push('🎁 '+d.code);
@@ -8393,7 +8430,7 @@ function blocGestionClient(){
      confirmation avant d'agir — deux remplissages verts côte à côte se disputaient l'œil sans
      que l'un soit plus important que l'autre. */
   return '<div class="sec">GÉRER CE CLIENT</div>'+
-    '<div class="note">'+esc(c.metier||'métier non renseigné')+' · statut du site : <span class="past '+s[1]+'">'+esc(s[0])+'</span></div>'+
+    '<div class="note">'+esc(metDemande(c)?'métier demandé : '+MET_L[metDemande(c)]:'métier non précisé à la demande')+' · statut du site : <span class="past '+s[1]+'">'+esc(s[0])+'</span></div>'+
     '<div class="sous-act">'+
       '<button type="button" class="btn-plein" onclick="compoOuvrir(\''+jsq(c.email)+'\');setTab(\'support\')">Écrire à '+esc(prenom)+'</button>'+
       '<button type="button" class="btn-fant" onclick="tourAccepterDemande(\''+jsq(c.email)+'\',\''+jsq(nm)+'\')">✅ Accepter la demande</button>'+
@@ -8405,6 +8442,14 @@ function blocGestionClient(){
          l'usage, les connexions et le carnet d'adresses. Deux boutons dont un incomplet,
          c'est une invitation à se tromper. */
       '</div>'+
+    /* v2.77 — LE MÉTIER DE L'ESPACE : il règle l'application (types d'intervention, fiche de terrain, modules). Posé
+       ici par TEAM OP, prérempli avec la demande ; l'application le reçoit à sa prochaine ouverture. */
+    '<div class="sous-sec"><div class="sec">MÉTIER</div>'+
+      '<div class="form-rang">'+
+      '<select id="met-f" title="Métier de l’application" aria-label="Métier de l’application" class="sel-f"><option value="">— non réglé (3D) —</option>'+
+        Object.keys(MET_L).map(function(k){ return '<option value="'+k+'">'+esc(MET_L[k])+'</option>'; }).join('')+'</select>'+
+      '<button type="button" class="btn-plein" onclick="tourMetierEnregistrer(\''+jsq(nm)+'\',this)">💾 Enregistrer le métier</button></div>'+
+      '<div id="met-info" class="note">Chargement…</div></div>'+
     '<div class="sous-sec"><div class="sec">ABONNEMENT</div>'+
       '<div class="note">Réglé ici par TEAM OP : formule, nombre d’abonnements (<b>un par utilisateur</b>), statut et date de fin. Ce réglage <b>prime</b> sur Stripe et les codes promo, et s’applique à l’espace « '+esc(nm)+' » à sa prochaine ouverture de l’app. Client depuis le '+esc(fmtJour(c.inscrit))+' · statut site : <span class="past '+s[1]+'">'+esc(s[0])+'</span></div>'+
       '<div class="form-rang">'+
@@ -8412,7 +8457,9 @@ function blocGestionClient(){
         /* ⛔ UN ABONNEMENT = UN UTILISATEUR, quelle que soit la formule (Justin, 27 et 28 septembre 2026) : les formules ne
            portent plus de nombre de places — c'est le NOMBRE D'ABONNEMENTS, juste à côté, qui les donne. « Business · 2
            places » faisait régler deux abonnements pour quatre personnes : l'application (v762) n'en ouvre plus que deux. */
-        '<option value="gratuit">Gratuit</option><option value="pro">Pro</option><option value="business" selected>Business</option><option value="premium">Business Premium</option></select>'+
+        /* ⛔ v2.78 — PLUS DE FORMULE GRATUITE (Justin, 30 septembre 2026 : « si une entreprise ne paye plus, le service est
+           suspendu tant que c'est pas réglé ») : le serveur la refuse. Pour offrir un temps d'essai : « En essai » et une date. */
+        '<option value="pro">Pro</option><option value="business" selected>Business</option><option value="premium">Business Premium</option></select>'+
       '<input id="abo-q" type="number" min="1" max="50" value="1" title="Nombre d’abonnements — un par utilisateur" aria-label="Nombre d’abonnements, un par utilisateur" class="inp ch-n">'+
       '<select id="abo-st" title="Statut de l’abonnement" aria-label="Statut de l’abonnement" class="sel-f">'+
         '<option value="auto">Automatique (Stripe / code promo)</option><option value="actif">✅ Actif (activé par TEAM OP)</option><option value="essai">🧪 En essai</option><option value="impaye">⚠️ Impayé</option><option value="suspendu">⏸ Suspendu</option><option value="annule">✕ Annulé</option></select>'+
@@ -8770,7 +8817,9 @@ function vueAbonnements(){
   }
   /* Payées hors Stripe et attribuées depuis la console : rangée secondaire, rien à
      surveiller — mais elles existent, et elles n'étaient nulle part. */
-  var attribPayees=(ESP.list||[]).filter(function(e){ return e.formule&&e.paye&&!e.promoCode; });
+  /* (`inconnu` : le serveur ne SAIT pas — Stripe muet, registre illisible ; `paye` y vaut vrai pour ne couper personne. Ce
+     n'est pas « déjà réglée » : la ligne le dit plus bas, relecture de la poussée du 30 septembre 2026) */
+  var attribPayees=(ESP.list||[]).filter(function(e){ return e.formule&&e.paye&&!e.inconnu&&!e.promoCode; });
   if(attribPayees.length&&!f) G.push(abnGroupe('Attribuées depuis la console',attribPayees.length,
     'Une formule posée à la main, déjà réglée. Elles n’apparaissent pas chez Stripe.',true,
     '<div class="reg-bloc mien">'+attribPayees.map(function(e){
@@ -8814,6 +8863,12 @@ function vueAbonnements(){
       '<div class="encart-tx">Pour modifier ou annuler un abonnement, utilisez le bouton « Ouvrir dans Stripe » — rien ne se modifie depuis cette console.</div></div>';
 }
 var ABN_F={gratuit:'Gratuit',pro:'Pro',business:'Business',premium:'Business Premium'};
+/* v2.77 — LES MÉTIERS DE L'APPLICATION (Justin, 29 septembre 2026 : « chaque métier qu'on a sur le site, quand ils ont
+   l'application, ça correspond à leur métier ») : les clés de `METIERS_ORDRE` (app.html) et de `METIERS_OK` (serveur),
+   dans le même ordre — `tests/test-848.js` compare les trois listes. v2.78 (30 septembre 2026, « oui, fais ce qu'il faut ») :
+   les six métiers du site qui n'avaient pas de pack en ont un, et « Autre métier de terrain » est le réglage neutre. */
+var MET_L={'3d':'3D — Hygiène anti-nuisibles',plomberie:'Plomberie',electricite:'Électricité',chauffage:'Chauffage / Climatisation',serrurerie:'Serrurerie',nettoyage:'Nettoyage / Propreté',maconnerie:'Maçonnerie / Gros œuvre',menuiserie:'Menuiserie',peinture:'Peinture / Revêtements',paysagiste:'Paysagiste / Espaces verts',couverture:'Couverture / Zinguerie',multiservices:'Multiservices / Maintenance',autre:'Autre métier de terrain'};
+function metDemande(c){ var d=((c&&c.demandes)||[]).filter(function(x){ return x&&typeof x==='object'&&MET_L[x.metier]; }).sort(function(a,b){ return (b.date||0)-(a.date||0); })[0]; return d?d.metier:''; }
 /* La formule que l'application REÇOIT (serveur : `formuleServie`) — celle que l'entreprise paie, ou celle qu'une période
    offerte sert — et l'écart quand ce n'est pas celle de la fiche. Justin, 29 septembre 2026 : « ils choisissent le tarif
    qu'ils veulent » ; un code promo sert le plus gros forfait « pour mieux montrer l'application ». Sans l'écart, une fiche
@@ -8825,7 +8880,8 @@ function abnFormule(e,q){
   return (ABN_F[s]||s)+' ('+abnEcart(e)+'\u202f; la fiche dit '+lf+')';
 }
 /* pourquoi la formule servie n'est pas celle de la fiche — une période offerte sert celle du code ; sinon c'est le tarif
-   payé, et « Gratuit » veut dire qu'aucun tarif d'OP GESTION n'est payé (OP MESSAGES seul, par exemple) */
+   payé. (« Gratuit » servi — OP GESTION non payé — vient d'un serveur d'avant le 30 septembre 2026 : le serveur d'aujourd'hui
+   dit alors « pas payé », et la ligne « application suspendue ».) */
 function abnEcart(e){ return e.promoCode?'offerte par le code':(e.formuleServie==='gratuit'?'OP GESTION non payé':'payée'); }
 /* une ligne à écart porte la classe `abn-ecart` : elle se lit sur deux lignes plutôt que de se couper (voir la règle) */
 function abnAEcart(e){ return !!(e&&e.formuleServie&&e.formuleServie!==(e.formule||'')); }
@@ -8843,8 +8899,9 @@ function blocEspaces(){
         '<span class="reg-av gris">'+esc(sigle(e.nom||e.email||'?'))+'</span>'+
         '<span class="reg-txt"><span class="reg-t1">'+esc(e.nom||e.email||'—')+'</span>'+
         '<span class="reg-l2'+(abnAEcart(e)?' abn-ecart':'')+'">'+esc(abnFormule(e,e.quantite>1?' ×'+e.quantite:''))+
-        (e.paye?(e.promoCode?' · offert jusqu’au '+esc(e.finLe||'?')+' · '+joursRestants(e.finLe||''):' · payé'+(e.places?' · '+nMot(e.places,'place servie','places servies'):'')):' · en attente de paiement')+'</span></span>'+
-        '<span class="reg-fin">'+(e.paye?'':'<span class="past p-rouge">💳 En attente</span>')+
+        (e.paye?(e.inconnu?' · paiement non vérifiable pour l’instant (rien n’est décidé)':e.promoCode?' · offert jusqu’au '+esc(e.finLe||'?')+' · '+joursRestants(e.finLe||''):' · payé'+(e.places?' · '+nMot(e.places,'place servie','places servies'):'')):' · rien de payé : application suspendue')+'</span></span>'+
+        /* v2.78 — plus de Gratuit : une entreprise qui ne paie pas est SUSPENDUE, on le dit tel quel */
+        '<span class="reg-fin">'+(e.paye?'':'<span class="past p-rouge">⏸ Suspendue</span>')+
         '<span class="reg-chev" aria-hidden="true">›</span></span></button>'; }).join('')+'</div>')+'</div>';
 }
 
@@ -8957,7 +9014,9 @@ async function pbCreer(btn){
          et les identifiants ci-dessous suffisent. */
       '<div class="sec">LES IDENTIFIANTS</div>'+
       '<div style="margin:6px 0 14px;font-size:15px;line-height:1.9">Identifiant : <b>'+esc(e.ident)+'</b><br>Mot de passe provisoire : <b>'+esc(e.mdp||mdp)+'</b> <span style="color:var(--muted);font-size:12px">(l’app fait choisir le vrai mot de passe à la 1re connexion)</span></div>'+
-      '<div class="encart"><div class="encart-tx">Cette adresse ouvre la <b>version publique</b>, avec ses vraies données. Elle n’a rien à voir avec un accès bêta : la bêta n’ouvre que la bêta.</div></div>');
+      '<div class="encart"><div class="encart-tx">Cette adresse ouvre la <b>version publique</b>, avec ses vraies données. Elle n’a rien à voir avec un accès bêta : la bêta n’ouvre que la bêta.</div></div>'+
+      /* v2.78 — sans formule, l'espace est SUSPENDU tant que rien n'est payé ni offert (Justin, 30 septembre 2026 : « Suspend ») */
+      '<div class="encart" style="margin-top:10px"><div class="encart-tx">⏸ <b>Sans formule, l’application s’ouvre suspendue</b> (rien de payé ni offert). Pour t’en servir : Entreprises → sa fiche → Abonnement → une formule et le statut « En essai » avec une date de fin.</div></div>');
     /* Ce panneau n'a pas de message type : on oublie celui du panneau précédent, sinon
        lgMessagePoser irait réécrire une zone qui n'est plus à l'écran. */
     LG_MSG_MODELE=''; LG_ZONE='';
@@ -9000,6 +9059,8 @@ function pubLigne(e){
       '<span class="past '+(e.origine==='site'?'p-vert':'p-orange')+'">'+(e.origine==='site'?'🏢 Client du site':'🌍 Ouvert d’ici')+'</span> '+
       '<span class="past '+(e.opMessages?'p-vert':'p-gris')+'" title="OP MESSAGES est une application à part, avec son propre abonnement">'+(e.opMessages?'💬 OP MESSAGES ouvert':'💬 OP MESSAGES fermé')+'</span> '+
       '<span class="past '+(e.suspendu?'p-rouge':(r.derniere?'p-vert':'p-gris'))+'">'+(e.suspendu?'⏸ Suspendu':(r.derniere?'Actif':'Jamais ouvert'))+'</span>'+
+      /* v2.78 — ouvert, mais rien de payé ni offert : l'application est suspendue (Justin, 30 septembre 2026 : « Suspend ») */
+      (!e.suspendu&&e.paye===false?' <span class="past p-orange" title="Rien de payé ni offert — Entreprises → sa fiche → Abonnement">⏸ Application suspendue</span>':'')+
     '</div>'+
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'+
       (e.email?'<button class="btn-fant" onclick="tourLienEntreprise(\''+jsq(e.email)+'\',\''+jsq(e.nom||'')+'\',false,\''+jsq(e.ident||'')+'\')">🔗 Revoir le lien</button>':'')+
@@ -9053,7 +9114,9 @@ function accLigneBeta(c){
    espace d'entreprise, avec de vraies données qui se synchronisent. */
 function accLignePub(e){
   var r=e.resume||{};
-  var etat=e.suspendu?'Suspendu':(r.derniere?'Actif':'Jamais ouvert');
+  /* v2.78 — « Suspendu » ici, c'est l'accès COUPÉ ; un espace qui ne paie rien est ouvert mais son application suspendue */
+  var nonPaye=!e.suspendu&&e.paye===false;
+  var etat=e.suspendu?'Suspendu':(nonPaye?'Rien de payé':(r.derniere?'Actif':'Jamais ouvert'));
   var f2=['<b>'+etat+'</b>'];
   if(r.utilisateurs7) f2.push(r.utilisateurs7+' utilisateur'+(r.utilisateurs7>1?'s':'')+' / 7 j');
   if(r.derniere) f2.push('dernière connexion '+esc(fmtJour(r.derniere)));
@@ -9065,6 +9128,7 @@ function accLignePub(e){
      de virer au gris. Ce qui compte, c'est ce qui est OUVERT. */
   var p=[],reste=0;
   if(e.suspendu) p.push('<span class="past p-rouge">⏸ Suspendu</span>');
+  if(nonPaye) p.push('<span class="past p-orange">⏸ Application suspendue</span>');
   if(!e.annuaire){ if(p.length<2) p.push('<span class="past p-ambre">⚠️ Aucun compte</span>'); else reste++; }
   if(e.opMessages){ if(p.length<2) p.push('<span class="past p-vert">💬 OP MESSAGES</span>'); else reste++; }
   if(reste) p.push('<span class="reg-plus">+'+reste+'</span>');

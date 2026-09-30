@@ -25,7 +25,10 @@
      · ⛔ les dates sont celles de SES abonnements OP GESTION (pas d'OP MESSAGES trouvé le premier, pas de l'entreprise
        voisine) ; plusieurs : le plus durable (actif, puis en essai, puis en impayé) ;
      · la règle de la formule servie (`formulePayee`) : OP MESSAGES d'AVANT la bascule garde la fiche servie — abonnée ; une
-       fiche GRATUIT que rien de lisible ne fait monter reste Gratuit — le courriel habituel ;
+       fiche GRATUIT que rien ne fait monter n'est plus servie (30 septembre 2026 : le Gratuit n'existe plus, elle est
+       suspendue) — le courriel habituel ; ⛔ mais un abonnement d'OP GESTION SÛREMENT à elle qu'on ne sait pas lire (d'avant
+       la bascule) la sert en Pro (`gratuitPayeIllisible`, la même règle qu'`espacePaye`) — abonnée, SANS lien de paiement
+       (un second abonnement serait prélevé en double) ;
      · ⛔ réglée à la main dans la Tour (`aboStatut`) : Stripe ne décide rien — le courriel habituel, comme avant, sans
        promesse ;
      · ⛔ Stripe illisible, ou sa liste PÉRIMÉE (la dernière connue sert pendant une panne) : on ne sait pas s'il a payé —
@@ -131,14 +134,24 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     sampi: ['t-sampi-844', 'Sampi Impayée', 'sampi@exemple-844.fr'],       // IMPAYÉE (unpaid) : sa facture ouverte n'est que dans la liste des factures
     qoppa: ['t-qoppa-844', 'Qoppa Sans Facture', 'qoppa@exemple-844.fr'],  // IMPAYÉE (past_due), et AUCUNE facture ouverte chez Stripe
     jota: ['t-jota-844', 'Jota Réglée', 'jota@exemple-844.fr'],            // en impayé dans la liste, RÉGLÉE depuis (la relecture la dit active)
+    tsade: ['t-tsade-844', 'Tsade Annulée', 'tsade@exemple-844.fr'],       // en impayé dans la liste, ANNULÉE depuis (la relecture la dit canceled)
     heta: ['t-heta-844', 'Heta Mixte', 'heta@exemple-844.fr'],             // un abonnement actif ET un autre en impayé
     chet: ['t-chet-844', 'Chet Messages', 'chet@exemple-844.fr'],          // OP MESSAGES payé, OP GESTION en impayé
-    xenia: ['t-xenia-844', 'Xenia Voisine', 'voisine@exemple-844.fr'] };   // fiche GRATUIT : l'impayé SANS référence de yod, à la même adresse
+    xenia: ['t-xenia-844', 'Xenia Voisine', 'voisine@exemple-844.fr'],    // fiche GRATUIT : l'impayé SANS référence de yod, à la même adresse
+    resh: ['t-resh-844', 'Resh Essai Tour', 'resh@exemple-844.fr'],        // « essai offert » réglé dans la Tour, FINI avant la période ; en essai chez Stripe
+    gimel: ['t-gimel-844', 'Gimel Sans Formule', 'gimel@exemple-844.fr'],  // fiche SANS formule, a payé pendant la période (en essai chez Stripe)
+    dalet: ['t-dalet-844', 'Dalet Sans Formule', 'dalet@exemple-844.fr'],  // fiche SANS formule, aucun abonnement
+    hei: ['t-hei-844', 'Hei Sans Formule', 'partagehei@exemple-844.fr'] };  // fiche SANS formule ; à son adresse, l'abonnement SANS référence de vav
   const espaces = {}, usages = { 'ESSAI-BANC-844': { n: 0, equipes: {} } };
   const periode = t => { usages['ESSAI-BANC-844'].n++; usages['ESSAI-BANC-844'].equipes[t] = { date: jour(-80), finLe: FIN, em: '' }; };
   for (const [slug, [t, nom, email]] of Object.entries(ENT)) { espaces[slug] = { t, nom, email, ts: MAINTENANT - 1000, formule: 'premium' }; periode(t); }
   espaces.pi.formule = 'gratuit'; espaces.psi.formule = 'gratuit'; espaces.xenia.formule = 'gratuit';
+  delete espaces.gimel.formule; delete espaces.dalet.formule; delete espaces.hei.formule;   // jamais réglées dans la Tour (Justin, 30 septembre 2026 : « Suspend »)
+  /* vav : sans période, à l'adresse de hei ; son abonnement ne porte AUCUNE référence (l'adresse seule) — il n'est sûrement ni
+     à l'une ni à l'autre */
+  espaces.vav = { t: 't-vav-844', nom: 'Vav Abonnée', email: 'partagehei@exemple-844.fr', ts: MAINTENANT - 2000, formule: 'premium' };
   Object.assign(espaces.omega, { aboStatut: 'impaye', aboPar: 'Banc' });
+  Object.assign(espaces.resh, { aboStatut: 'essai', aboFin: jour(2), aboPar: 'Banc' });
   /* omicron et chi : SANS période offerte (pas de rappel), chacune abonnée à son nom, à l'adresse d'une entreprise qui en a une */
   espaces.omicron = { t: 't-omicron-844', nom: 'Omicron Abonnée', email: 'partage@exemple-844.fr', ts: MAINTENANT - 2000, formule: 'premium' };
   espaces.chi = { t: 't-chi-844', nom: 'Chi Résiliée', email: 'voisins@exemple-844.fr', ts: MAINTENANT - 2000, formule: 'premium' };
@@ -158,6 +171,9 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
   const autre = (x, id) => Object.assign(x, { id });
   const ABOS = [
     abo('t-alpha-844', 'alpha@exemple-844.fr', 'trialing', P_PREMIUM, { trial_end: secondes(DEBUT), current_period_end: secondes(DEBUT) }),
+    abo('t-resh-844', 'resh@exemple-844.fr', 'trialing', P_PREMIUM, { trial_end: secondes(DEBUT), current_period_end: secondes(DEBUT) }),
+    abo('t-gimel-844', 'gimel@exemple-844.fr', 'trialing', P_PREMIUM, { trial_end: secondes(DEBUT), current_period_end: secondes(DEBUT) }),
+    abo('t-vav-844', 'partagehei@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(9)), metadata: {} }),
     /* renouvelé à 23 h 30 UTC la veille : c'est déjà le jour d'après à Paris — le courriel dit le jour du client */
     abo('t-beta-844', 'beta@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(20)) - 1800 }),
     abo('t-epsilon-844', 'epsilon@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
@@ -181,8 +197,9 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     /* chi (voisine de phi, sans période) : abonnée à son nom, mais RÉSILIÉE avant la fin de la période de phi */
     abo('t-chi-844', 'voisins@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(3)), cancel_at_period_end: true,
       cancel_at: secondes(jour(3)) }),
-    /* psi (fiche Gratuit) : un ancien abonnement qu'on ne sait pas lire, et un Pro payé pendant la période puis résilié */
-    abo('t-psi-844', 'psi@exemple-844.fr', 'active', P_PREMIUM, { created: secondes('2025-12-01'), current_period_end: secondes(jour(15)) }),
+    /* psi (fiche Gratuit) : OP MESSAGES (lisible : il ne sert pas OP GESTION), et un Pro payé pendant la période puis résilié.
+       (Jusqu'au 30 septembre 2026, c'était un ancien abonnement illisible : il sert désormais Pro — voir pi.) */
+    abo('t-psi-844', 'psi@exemple-844.fr', 'active', P_MSG, { current_period_end: secondes(jour(15)) }),
     autre(abo('t-psi-844', 'psi@exemple-844.fr', 'trialing', P_PRO, { trial_end: secondes(DEBUT), current_period_end: secondes(DEBUT),
       cancel_at_period_end: true, cancel_at: secondes(DEBUT) }), 'sub_t-psi-844-pro'),
     abo('t-omega-844', 'omega@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(20)) }),
@@ -203,6 +220,7 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
     abo('t-sampi-844', 'sampi@exemple-844.fr', 'unpaid', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
     abo('t-qoppa-844', 'qoppa@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
     abo('t-jota-844', 'jota@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
+    abo('t-tsade-844', 'tsade@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }),
     abo('t-heta-844', 'heta@exemple-844.fr', 'active', P_PREMIUM, { current_period_end: secondes(jour(21)) }),
     autre(abo('t-heta-844', 'heta@exemple-844.fr', 'past_due', P_PREMIUM, { current_period_end: secondes(jour(25)) }), 'sub_t-heta-844-refus'),
     /* chet : OP MESSAGES payé (trouvé le premier), OP GESTION en impayé */
@@ -226,6 +244,7 @@ console.log('\n── 844 · le rappel des 7 jours à une entreprise déjà abon
       ouvertes: [{ object: 'invoice', status: 'open', hosted_invoice_url: FACT('sampi') }] },
     'sub_t-qoppa-844': { latest_invoice: null, ouvertes: [] },
     'sub_t-jota-844': { status: 'active', latest_invoice: { object: 'invoice', status: 'paid', hosted_invoice_url: FACT('jota') } },
+    'sub_t-tsade-844': { status: 'canceled', latest_invoice: { object: 'invoice', status: 'void', hosted_invoice_url: FACT('tsade') } },
     'sub_t-heta-844-refus': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('heta') } },
     'sub_t-chet-844': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('chet') } },
     'sub_t-wau-844': { latest_invoice: { object: 'invoice', status: 'open', hosted_invoice_url: FACT('wau') } },
@@ -374,6 +393,12 @@ globalThis.fetch = async function (url, opts) {
     const J = de('jota');
     vrai('⛔ jota (en impayé dans la liste, RÉGLÉE depuis : la relecture la dit active) — « prend le relais », ni facture ni lien de paiement',
       RELAIS.test(J) && !/n'a pas abouti/.test(J) && !/invoice\.stripe\.com/.test(J) && !PAIEMENT.test(J) && !PROMESSE.test(J));
+    /* ⛔ ANNULÉE depuis la liste : elle ne prend le relais de RIEN — « vous n'avez rien à faire » à une entreprise suspendue le
+       lendemain de la fin (troisième relecture, 30 septembre 2026). Le courriel habituel, son lien et sa promesse. */
+    const Ts = de('tsade');
+    vrai('⛔ tsade (en impayé dans la liste, ANNULÉE depuis : la relecture la dit canceled) — le courriel habituel, lien de paiement et promesse ; ni « prend le relais », ni facture',
+      HABITUEL(Ts) && PROMESSE.test(Ts) && !RELAIS.test(Ts) && !/n'a pas abouti/.test(Ts) && !Ts.includes(FACT('tsade')));
+    vrai('   (population) sa relecture a bien eu lieu chez Stripe', /banc-stripe: relecture sub_t-tsade-844/.test(journal));
     const Ch = de('chet');
     vrai('⛔ chet (OP MESSAGES payé, OP GESTION en impayé) — l\'impayé, et la facture d\'OP GESTION : OP MESSAGES ne prend pas le relais',
       IMPAYE(Ch) && Ch.includes(FACT('chet')) && !/Plus que quelques jours/.test(Ch));
@@ -386,6 +411,19 @@ globalThis.fetch = async function (url, opts) {
       && H.includes('Prochaine échéance de votre abonnement : le ' + fr(jour(21)) + '.') && !/vous n'avez rien à faire/.test(H) && !PAIEMENT.test(H) && !PROMESSE.test(H));
     const G = de('gamma');
     vrai('⛔ gamma (OP MESSAGES seul : OP GESTION n\'est pas payé) — le courriel habituel, lien de paiement ET promesse', HABITUEL(G) && PROMESSE.test(G));
+    /* ⛔⛔ UNE FICHE SANS FORMULE SE JUGE SUR STRIPE, COMME `espacePaye` LA JUGERA LE LENDEMAIN (Justin, 30 septembre 2026 :
+       « Suspend »). Jusque-là, le rappel lui envoyait le courriel habituel sans regarder Stripe — à gimel, déjà abonnée, un
+       lien vers un SECOND abonnement, prélevé en double. */
+    const Gi = de('gimel');
+    vrai('⛔⛔ gimel (fiche SANS formule, a payé pendant la période : en essai) — « prend le relais », AUCUN lien de paiement ni promesse',
+      RELAIS.test(Gi) && !PAIEMENT.test(Gi) && !PROMESSE.test(Gi) && Gi.includes('Le premier prélèvement de votre abonnement aura lieu le ' + fr(DEBUT) + '.'));
+    /* … et quand l'abonnement trouvé à son adresse n'est SÛREMENT pas le sien (l'adresse d'une autre, sans référence) : le
+       lendemain, `espacePaye` la suspend (rien de payé qui soit à elle) — le courriel le dit, avec son lien */
+    const Hi = de('partagehei');
+    vrai('⛔ hei (fiche SANS formule ; à son adresse, l\'abonnement sans référence d\'une autre) — le courriel habituel et son lien, pas « prend le relais »',
+      HABITUEL(Hi) && !RELAIS.test(Hi));
+    const Da = de('dalet');
+    vrai('   dalet (fiche sans formule, aucun abonnement) — le courriel habituel, lien de paiement et promesse', HABITUEL(Da) && PROMESSE.test(Da));
     const Dl = de('delta');
     vrai('   delta (aucun abonnement) — le courriel habituel, lien de paiement et promesse (au plus tard le ' + fr(jour(3)).slice(0, 5) + ')',
       HABITUEL(Dl) && Dl.includes('En vous abonnant au plus tard le ' + fr(jour(3)).slice(0, 5) + ', rien n\'est prélevé avant le ' + fr(DEBUT)));
@@ -395,7 +433,8 @@ globalThis.fetch = async function (url, opts) {
     const K = de('kappa');
     vrai('⛔ kappa (résiliée, court jusqu\'au ' + fr(jour(20)) + ') — « jusqu\'au » et la suite, ni « rien à faire », ni lien de paiement, ni promesse',
       K.includes('Votre abonnement prend le relais jusqu\'au ' + fr(jour(20)) + '.') && K.includes('Votre abonnement a été résilié : il s\'arrête le ' + fr(jour(20)) + '.')
-      && /repassera en formule Gratuit/.test(K) && !/vous n'avez rien à faire/.test(K) && !/Prochaine échéance/.test(K) && !PAIEMENT.test(K) && !PROMESSE.test(K));
+      && /l'accès à l'application sera suspendu jusqu'au règlement/.test(K) && !/formule Gratuit/.test(K)
+      && !/vous n'avez rien à faire/.test(K) && !/Prochaine échéance/.test(K) && !PAIEMENT.test(K) && !PROMESSE.test(K));
     const Mu = de('mu');
     vrai('⛔ mu (OP MESSAGES trouvé en premier, OP GESTION en essai) — la date du premier prélèvement d\'OP GESTION (' + fr(DEBUT) + '), pas l\'échéance d\'OP MESSAGES',
       Mu.includes('Le premier prélèvement de votre abonnement aura lieu le ' + fr(DEBUT) + '.') && !Mu.includes(fr(jour(12))) && !PAIEMENT.test(Mu) && !PROMESSE.test(Mu));
@@ -406,7 +445,18 @@ globalThis.fetch = async function (url, opts) {
     vrai('⛔ xi (adresse partagée avec omicron, abonnée et qui dure) — abonnée comme le dira `espacePaye`, mais SANS les dates d\'omicron (' + fr(jour(9)) + ')',
       RELAIS.test(Xi) && !Xi.includes(fr(jour(9))) && !/Prochaine échéance|premier prélèvement/.test(Xi) && !PAIEMENT.test(Xi));
     const Pi = de('pi');
-    vrai('⛔ pi (fiche GRATUIT, abonnement d\'avant la bascule : `espacePaye` lui servira Gratuit) — le courriel habituel', HABITUEL(Pi));
+    /* ⛔ v767 : le Gratuit n'existe plus. Un abonnement d'OP GESTION d'avant la bascule, SÛREMENT à elle, la sert en Pro le
+       lendemain (`gratuitPayeIllisible`) : le courriel ne lui propose PAS de payer — un second abonnement serait prélevé en
+       double. Jusqu'au 30 septembre, elle recevait « le courriel habituel » : servie Gratuit, on l'invitait à payer. */
+    vrai('⛔ pi (fiche GRATUIT, un abonnement d\'avant la bascule SÛREMENT à elle : `espacePaye` lui servira Pro) — abonnée : « prend le relais », prochaine échéance ' + fr(jour(15)) + ', sans lien de paiement ni promesse',
+      RELAIS.test(Pi) && Pi.includes('Prochaine échéance de votre abonnement : le ' + fr(jour(15)) + '.') && !PAIEMENT.test(Pi) && !PROMESSE.test(Pi));
+    /* ⛔⛔ `gardien` B2 (30 septembre 2026, rejoué) : son « essai offert » réglé dans la Tour finit AVANT la période, et elle a
+       payé pendant la période. Le rappel lisait le réglage au jour d'AUJOURD'HUI (encore en cours) : « réglée à la main » —
+       le courriel habituel, AVEC un lien de paiement, donc un second abonnement prélevé en double. Le lendemain de la
+       période, le réglage est fini : c'est Stripe qui décide, comme `espacePaye` le fera. */
+    const Re = de('resh');
+    vrai('⛔⛔ resh (« essai offert » de la Tour fini avant la période ; en essai chez Stripe) — « prend le relais », sans lien de paiement ni promesse',
+      RELAIS.test(Re) && !PAIEMENT.test(Re) && !PROMESSE.test(Re));
     const Up = de('upsilon');
     vrai('   upsilon (deux abonnements, le résilié trouvé d\'abord) — le plus durable décide : prochaine échéance ' + fr(jour(18)) + ', pas « résilié »',
       RELAIS.test(Up) && Up.includes('Prochaine échéance de votre abonnement : le ' + fr(jour(18)) + '.') && !/résilié/.test(Up));
@@ -414,7 +464,7 @@ globalThis.fetch = async function (url, opts) {
     vrai('⛔ phi (sa voisine chi, abonnée, est RÉSILIÉE avant la fin de la période : le lendemain, rien ne la rend « payée ») — le courriel habituel, sans promesse (adresse partagée)',
       HABITUEL(Ph) && !PROMESSE.test(Ph));
     const Ps = de('psi');
-    vrai('⛔ psi (fiche GRATUIT : son Pro, résilié avec la période, la faisait seul monter) — le courriel habituel, pas « prend le relais »', HABITUEL(Ps));
+    vrai('⛔ psi (fiche GRATUIT, OP MESSAGES à côté : son Pro, résilié avec la période, la faisait seul monter) — le courriel habituel, pas « prend le relais »', HABITUEL(Ps));
     const Om = de('omega');
     vrai('⛔ omega (réglée à la main dans la Tour, en impayé : Stripe ne décide rien) — le courriel habituel, comme avant, SANS la promesse',
       HABITUEL(Om) && !PROMESSE.test(Om));
@@ -473,7 +523,9 @@ globalThis.fetch = async function (url, opts) {
       await demarrer('puis-panne', { TEAMOP_STRIPE_CACHE_MS: '1000', TEAMOP_RAPPELS_DELAI_MS: '3000' }));
     const etat = await fetch(B + '/api/espaces/etat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ t: 't-omicron-844' }) })
       .then(r => r.json()).catch(() => ({}));
-    vrai('(population) la liste est lue une fois, fraîche : omicron se lit « payé » par Stripe', etat.paye === true && /abonnement Stripe/.test(String(etat.motif || '')));
+    /* (omicron n'a ni période offerte ni réglage à la main : payée, c'est Stripe qui l'a dit ; le motif public est neutre depuis
+       le 30 septembre 2026, seconde relecture de `gardien`) */
+    vrai('(population) la liste est lue une fois, fraîche : omicron se lit « payé » par Stripe', etat.paye === true && etat.formule === 'premium' && !etat.verificationImpossible);
     await attendre(1);
     vrai('⛔ vieux : rien — la liste a plus d\'une seconde (la fenêtre), un paiement fait depuis n\'y serait pas',
       lus(avant2b).length === 0 && /rappel échéance reporté → v\*+@exemple-844\.fr/.test(journal) && !marques()('vieux'));

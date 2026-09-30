@@ -55,7 +55,10 @@ function tour(API, TOKEN, clients) {
   const noms = ['hAuth', 'apiPost', 'esc', 'jsq', 'espSlugJs', 'tourSha256', 'tourLienServeur', 'tourEspaceDe', 'tourIdentDefaut',
     'tourMdpDefaut', 'tourMailAcces', 'lgMessagePoser', 'tourLienEntreprise', 'tourAccepterDemande'];
   const src = noms.map(n => (n === 'esc' || n === 'jsq') ? courte(n) : fonction(n));
-  const manque = noms.filter((n, i) => !src[i]);
+  /* v2.77 : l'acceptation lit la liste des métiers (`MET_L`, le métier demandé se pose sur l'espace — test-848) ; la VRAIE
+     ligne de la Tour, pas une copie : sans elle, la fonction extraite jette dès sa première ligne sur le métier */
+  src.unshift((/^var MET_L=\{[^\n]*\};$/m.exec(CODE) || [''])[0]);
+  const manque = noms.filter((n, i) => !src[i + 1]).concat(src[0] ? [] : ['MET_L']);
   if (manque.length) return { manque };
   const L = {
     toasts: [], panneaux: [], prompts: [], elems: {}, rangement: new Map() };
@@ -182,7 +185,7 @@ console.log('\n── 841 · plus de code : la Tour crée le lien après la dema
       [eR.formule, eR.quantite, eR.promoCode], ['premium', 3, 'BIENVENUE-BANC-841']);
     const pan = T.panneaux.slice(-1)[0] || '';
     vrai('le panneau « Demande acceptée » s\'ouvre', /Demande acceptée/.test(pan));
-    vrai('⛔ il dit la période offerte, pas « en attente de paiement »', /offerte jusqu/.test(pan) && !/en attente de paiement/.test(pan));
+    vrai('⛔ il dit la période offerte, pas « suspendue jusqu’au paiement »', /offerte jusqu/.test(pan) && !/suspendue jusqu|en attente de paiement/.test(pan));
     vrai('⛔ AUCUN code d\'accès dans le panneau', !/CODE D.ACC|lg-acces|__CODE__|code d.acc/i.test(pan));
     vrai('   l\'adresse de l\'espace y est, telle que le SERVEUR l\'a nommée', pan.indexOf('teamop.fr/e/' + eR.slug) >= 0);
     const lg = T.ctx.__lg();
@@ -222,8 +225,12 @@ console.log('\n── 841 · plus de code : la Tour crée le lien après la dema
     v('l\'espace est créé, la formule demandée (Business × 2), AUCUN code posé', [!!eY.slug, eY.formule, eY.quantite, eY.promoCode || null], [true, 'business', 2, null]);
     const pan2 = T2.panneaux.slice(-1)[0] || '';
     vrai('⛔ le panneau dit que le code n\'est pas appliqué, et pourquoi (la réponse du serveur)', /INVENTE-QX-841.*non appliqué.*Code promo inconnu/.test(pan2));
-    vrai('   et la formule attend son paiement', /en attente de paiement/.test(pan2));
-    vrai('   et le message invite à payer, sans rien promettre d\'offert', /paye ton abonnement/.test(T2.ctx.__lg().modele) && !/offert jusqu/.test(T2.ctx.__lg().modele));
+    /* ⛔ v767 (30 septembre 2026) : plus de Gratuit où attendre — sans code, l'entreprise est SUSPENDUE jusqu'au paiement, et le
+       message le dit avec le bouton qui existe (« Payer mon abonnement » et son bandeau ont disparu, `relecteur`) */
+    vrai('   et la formule est suspendue jusqu\'au paiement', /suspendue jusqu’au paiement/.test(pan2));
+    vrai('   et le message dit comment l\'accès s\'ouvre (« Régler mon abonnement »), sans rien promettre d\'offert ni nommer un bouton disparu',
+      /accès s'ouvre dès que ton abonnement est réglé/.test(T2.ctx.__lg().modele) && /« Régler mon abonnement »/.test(T2.ctx.__lg().modele)
+      && !/Payer mon abonnement/.test(T2.ctx.__lg().modele) && !/offert jusqu/.test(T2.ctx.__lg().modele));
 
     /* ══ 3. UN ESPACE DÉJÀ INSCRIT, OUVERT DEPUIS UN AUTRE APPAREIL : pas de mot de passe inventé ═════════════ */
     console.log('\n3. Revoir le lien d\'un espace déjà inscrit, depuis un autre appareil');
