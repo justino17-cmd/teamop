@@ -13,6 +13,32 @@ de ligne du tout.
 
 ---
 
+# ✅ 1er OCTOBRE 2026, NUIT — TOUT EST EN SERVICE : SERVEUR, TOUR v2.78, BÊTA v767 (`4bfd3b4`) PUIS APPLICATION v767 (`acbfbc8`)
+
+Justin, 30 septembre au soir : « pousse », « Mais après ça tu publie », puis « Fait tout se qu'il faut faire je veux que sa
+sois fait pour demain matin ». Fait, dans cet ordre, chaque envoi après ses preuves :
+1. **`4bfd3b4`** — le serveur des trois relectures (section suivante) et son annonce v767 (le TEXTE seulement), la Tour
+   v2.78, la bêta v767. Fabriqué par `scripts/preparer-deploiement-serveur.sh` sur `main` `e9ab8d0`, plus la bêta et les trois
+   bancs qui la lisent (735, 831, 838). Avant : suite complète DANS l'arbre de l'envoi 202 suites · 11 854, code 0 ; liste
+   serveur 50 · 3 404. Après : déploiement n° 104 vert (bancs PUIS VPS), « Vérifications » verte (l'audit des dépendances, rouge
+   depuis `e9ab8d0`, repasse au vert), « Vérification des pages » verte ; `/health` : annonce 767, redémarré, 0 erreur, Stripe lu,
+   registres lisibles ; tour.html, apercu/tour.html, beta.html, recap-abonnement.html, merci.html servis octet pour octet.
+2. **`acbfbc8`** — l'application v767 (cache v967), le site régénéré (12 packs « prêts » : il lit l'application servie),
+   VERSION-STABLE, les bancs et la documentation de la branche. Avant : suite complète dans l'arbre 204 · 12 027, code 0 ;
+   syntaxe 39 pages ; régénération du site et de la bêta : 0 écart avec la branche. Après : app.html (767), sw.js (v967) et
+   les pages du site servis octet pour octet ; CI de `main` : voir la ligne suivante.
+   CI de `acbfbc8` : EN COURS au moment de ce commit (« Vérifications », « Vérification des pages ») — le résultat suit.
+
+**Ce qui reste à Justin, dans l'ordre :**
+- **Recharger la Tour** : une v2.75 restée ouverte refuse « Accepter » d'une demande « Gratuit » (400, sans perte).
+- **L'annonce v767 ne part que par son clic** : Tour → « 📣 Annoncer la mise à jour ». Sujet « 🆕 OP GESTION : l'application de
+  votre métier, et du nouveau sur l'abonnement » ; trois points (le métier, les contrats à renouveler, plus de formule gratuite)
+  — texte dans `server/index.js` (`ANNONCE`). Elle part à TOUTES les entreprises qui ont une adresse, une fois.
+- **Exiger la v767** plus tard, quand la Tour ne montre plus d'appareil ancien — pas urgent : une v763 lit déjà la suspension
+  sans rien écrire, et aucun format de données ne change.
+- Une entreprise repartie à neuf AVANT cette nuit et encore en période offerte : réappliquer son code dans la Tour (même
+  échéance, rien ne se recompte) — voir « Laissé tel quel » plus bas.
+
 # ✅ 30 SEPTEMBRE 2026, NUIT — TROIS RELECTURES DU SERVEUR AVANT « POUSSE » : TOUT CE QUI A ÉTÉ REJOUÉ EST CORRIGÉ (`test-849`)
 
 Promise avant d'envoyer le serveur : des relectures adverses (chaque constat reproduit sur le vrai serveur, PUIS attaqué par
@@ -51,7 +77,7 @@ Laissé tel quel, et pourquoi :
 - **La v763** dit « revenu au forfait gratuit » à l'administrateur d'une entreprise suspendue : transitoire, la v767 part
   juste après.
 
-# ✅ 30 SEPTEMBRE 2026 — LE SITE EST EN SERVICE (`e9ab8d0` sur `main`) — L'APPLICATION, LA TOUR ET LE SERVEUR ATTENDENT « POUSSE »
+# ✅ 30 SEPTEMBRE 2026 — LE SITE EST EN SERVICE (`e9ab8d0` sur `main`) — L'APPLICATION, LA TOUR ET LE SERVEUR ONT SUIVI DANS LA NUIT (`4bfd3b4`, `acbfbc8`)
 
 Justin : « tu pourra mettre le site a jour ». Parti sur `main` : le SITE seul (pages de la racine, portail `espace.html`,
 page de paiement, connexion, pages juridiques, `sitemap.xml`, image de partage, générateur et bancs du site). **Rien de
@@ -77,7 +103,7 @@ Vérifié en ligne après GitHub Pages : **25 pages sur 25 servies octet pour oc
 
 ---
 
-# ⏳ 30 SEPTEMBRE 2026, SOIR — UNE ENTREPRISE SANS FORMULE EST SUSPENDUE AUSSI ; UNE ENTREPRISE, UNE FACTURATION ; L'ANCIENNE MAQUETTE DU SITE SUPPRIMÉE — ATTEND « POUSSE »
+# ✅ 30 SEPTEMBRE 2026, SOIR — UNE ENTREPRISE SANS FORMULE EST SUSPENDUE AUSSI ; UNE ENTREPRISE, UNE FACTURATION ; L'ANCIENNE MAQUETTE DU SITE SUPPRIMÉE — EN SERVICE (`4bfd3b4`, `acbfbc8`)
 
 Justin, aux deux questions restées ouvertes plus bas (A3 et la maquette) :
 - **A3** (« une fiche SANS formule dans l'annuaire garde tout l'accès — les suspendre aussi ? ») : **« Suspend »**.
@@ -151,7 +177,7 @@ Justin, aux deux questions restées ouvertes plus bas (A3 et la maquette) :
 
 ---
 
-# ⏳ 30 SEPTEMBRE 2026 — UN PACK POUR CHAQUE MÉTIER (BÊTA v766, TOUR v2.78) ; PLUS DE FORMULE GRATUITE NULLE PART : CE QUI N'EST PAS PAYÉ EST SUSPENDU JUSQU'AU RÈGLEMENT (BÊTA v767) — ATTEND « POUSSE »
+# ✅ 30 SEPTEMBRE 2026 — UN PACK POUR CHAQUE MÉTIER (TOUR v2.78) ; PLUS DE FORMULE GRATUITE NULLE PART : CE QUI N'EST PAS PAYÉ EST SUSPENDU JUSQU'AU RÈGLEMENT — EN SERVICE (v767 : `4bfd3b4`, `acbfbc8`)
 
 Justin, dans l'ordre :
 - **Packs** : « 1 oui fait se qu'il faut » → un pack pour chacun des métiers du site qui n'en avaient pas.
@@ -319,7 +345,7 @@ seule la suite entière le montrait, parce qu'aucun des bancs modifiés ne le la
 
 ---
 
-# ⏳ 29 SEPTEMBRE 2026, NUIT (FIN) — LE MÉTIER DE CHAQUE ENTREPRISE, DE LA DEMANDE À L'APPLICATION (BÊTA v765, TOUR v2.77) ; PLUS DE FORMULE GRATUITE SUR LE SITE ; TROIS BANCS QUI NE PROUVAIENT PAS CE QU'ILS DISAIENT — ATTEND « POUSSE »
+# ✅ 29 SEPTEMBRE 2026, NUIT (FIN) — LE MÉTIER DE CHAQUE ENTREPRISE, DE LA DEMANDE À L'APPLICATION (v765, TOUR v2.77) ; PLUS DE FORMULE GRATUITE SUR LE SITE ; TROIS BANCS QUI NE PROUVAIENT PAS CE QU'ILS DISAIENT — EN SERVICE (avec la v767, `acbfbc8`)
 
 Justin, dans l'ordre :
 - **Métier** : « Je veux que chaque métier qu'on a sur le site quand ils ont l'application, ça correspond à leur métier,
@@ -431,7 +457,7 @@ ce qui n'est pas payé est SUSPENDU jusqu'au règlement. Voir la section du 30 s
 
 ---
 
-# ⏳ 29 SEPTEMBRE 2026, NUIT (SUITE) — « FAIT TOUT ÇA » : RAPPELS D'ÉCHÉANCE (BÊTA v764), SIX PAGES PAR FONCTION ET UNE PAGE NETTOYAGE, LE SITE NE PROMET PLUS RIEN QUE L'APPLICATION NE TIENT PAS ; INVENTAIRE FIREBASE « COMPLET » — ATTEND « POUSSE »
+# ✅ 29 SEPTEMBRE 2026, NUIT (SUITE) — « FAIT TOUT ÇA » : RAPPELS D'ÉCHÉANCE (v764), SIX PAGES PAR FONCTION ET UNE PAGE NETTOYAGE, LE SITE NE PROMET PLUS RIEN QUE L'APPLICATION NE TIENT PAS ; INVENTAIRE FIREBASE « COMPLET » — EN SERVICE (avec la v767, `acbfbc8`)
 
 Justin, reprenant ma liste mot pour mot : **« 1. Rappels d'échéance des contrats … 2. Référencement, la suite : une page par
 fonction (stock, planning, devis et factures, bons de commande, pointage, registre), plus une page nettoyage. 3. Petits restes
