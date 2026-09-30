@@ -35,7 +35,7 @@ MUT = [
    "  if (court && ficheSansFormule(e)) return false;   // (sans formule non plus : quelle formule servirait-il ?)\n",
    "", ['727', '761']),
   ('M5 « Revoir le lien » : l\'abonnement réglé à la main n\'est plus reporté', S,
-   "    aboStatut: prev.aboStatut, aboFin: prev.aboFin, aboPar: prev.aboPar, aboTs: prev.aboTs, aboDepuis: prev.aboDepuis,\n    formuleDepuis: prev.formuleDepuis };",
+   "    aboStatut: base.aboStatut, aboFin: base.aboFin, aboPar: base.aboPar, aboTs: base.aboTs, aboDepuis: base.aboDepuis,\n    formuleDepuis: base.formuleDepuis };",
    "    };", ['848']),
   ('M6 période offerte d\'un code retiré : retombe sur « gratuit »', S,
    "formuleServie: formulePromo(e, code) || (RANG_FORMULE.includes(e.formule) ? e.formule : 'premium') };",
@@ -250,6 +250,53 @@ MUT = [
   ('A12 Tour : la ligne d\'un accès public ne dit plus que l\'application est suspendue', T,
    "  var nonPaye=!e.suspendu&&e.paye===false;",
    "  var nonPaye=false;", ['842']),
+  # ── Relecture de `gardien` sur A3 (30 septembre 2026) : deux entreprises qui PAIENT, suspendues à tort — et ce que ses bancs
+  #    ont trouvé ensuite (le rattrapage d'un code, une entreprise à plusieurs noms réglée par la Tour) ──
+  ('B1 espacePaye : l\'identifiant d\'une entrée d\'avant n\'est plus lu dans son code (le rattrapage ne l\'active plus)', S,
+   "  if (!e.t) { const tCode = espaceT(e); if (tCode) e = Object.assign({}, e, { t: tCode }); }\n",
+   "", ['761']),
+  ('B2 periodeOfferte : l\'identifiant lu en clair seulement (seule, neutre : `espacePaye` le pose déjà)', S,
+   "      const eq = u && u.equipes && u.equipes[espaceT(e)];",
+   "      const eq = u && u.equipes && u.equipes[e.t];", ['761', '727']),
+  ('B2b les deux ensemble : une entrée d\'avant en période offerte redevient suspendue', S,
+   "  if (!e.t) { const tCode = espaceT(e); if (tCode) e = Object.assign({}, e, { t: tCode }); }\n",
+   "", ['761'], [("      const eq = u && u.equipes && u.equipes[espaceT(e)];", "      const eq = u && u.equipes && u.equipes[e.t];")]),
+  ('B3 espaceParT : sert la fiche du dernier nom, sans la facturation de l\'entreprise', S,
+   "  return facturationDe(Object.assign({ slug }, espacesReg[slug]));",
+   "  return Object.assign({ slug }, espacesReg[slug]);", ['761', '842', '845']),
+  ('B4 facturationDe : plus « groupe par groupe » — un nom qui porte une formule garde sa fiche entière', S,
+   "  if (noms.length < 2) return e;   // un seul nom : sa fiche EST la facturation",
+   "  if (noms.length < 2 || e.formule || e.aboStatut) return e;", ['761']),
+  ('B5 Tour (formule) : repart de la fiche du nom, pas de la facturation de l\'entreprise', S,
+   "  const q = Math.max(1, Math.min(50, parseInt((req.body || {}).quantite, 10) || 1));\n  facturationReprendre(e);",
+   "  const q = Math.max(1, Math.min(50, parseInt((req.body || {}).quantite, 10) || 1));", ['842']),
+  ('B6 Tour (formule) : n\'écrit plus sur les autres noms de l\'entreprise', S,
+   "  facturationPartager(e, [0, 1]);   // … écrite sur TOUS les noms de l'entreprise (l'abonnement repris compris)",
+   "", ['842']),
+  ('B7 Tour (abonnement) : n\'écrit plus sur les autres noms de l\'entreprise', S,
+   "  facturationPartager(e, [0, 1]);   // … écrite sur TOUS les noms de l'entreprise\n",
+   "", ['842']),
+  ('B8 liste de la Tour : la ligne d\'un nom dit sa fiche, pas la facturation de l\'entreprise', S,
+   "    const e = facturationDe(e0);   // la ligne entière",
+   "    const e = e0;   // la ligne entière", ['842']),
+  ('B9 fiche de la Tour (statut) : la fiche du nom, pas la facturation de l\'entreprise', S,
+   "  const e = facturationDe(espacesReg[slug]);   // la fiche montre",
+   "  const e = espacesReg[slug];   // la fiche montre", ['842']),
+  ('B10 horloge de conservation : lit la fiche de chaque nom (une entreprise payée datée « jamais abonnée »)', S,
+   "        try { r = await espacePaye(Object.assign({}, facturationDe(e), { slug: slug }), { lecture: true }); } catch (err) { r = null; }",
+   "        try { r = await espacePaye(Object.assign({}, e, { slug: slug }), { lecture: true }); } catch (err) { r = null; }", ['761']),
+  ('B11 page de paiement : l\'impayé se juge sur la fiche du nom visé', S,
+   "    try { p = await espacePaye(Object.assign({ slug: e.slug }, facturationDe(e)), { lecture: true }); } catch (err) { p = null; }",
+   "    try { p = await espacePaye(Object.assign({ slug: e.slug }, e), { lecture: true }); } catch (err) { p = null; }", ['845']),
+  ('B12 route d\'un nom neuf : reporte depuis le même nom seulement (né sans formule ni abonnement)', S,
+   "  const base = facturationDe(Object.keys(prev).length ? prev : (ref || {}));",
+   "  const base = prev;", ['842']),
+  ('B13 rattrapage d\'un code : de nouveau « réservé aux fiches payantes »', S,
+   "    if (e.codePromo && e.t) {",
+   "    if (e.codePromo && e.t && !ficheSansFormule(e)) {", ['761']),
+  ('B14 code appliqué par la Tour : la fiche du nom décide (un code Pro fait descendre l\'entreprise)', S,
+   "  const fE = facturationDe(e).formule;   // (celle de l'ENTREPRISE : un autre de ses noms peut porter mieux)\n  if (!fE || fE === 'gratuit') { e.formule = f;",
+   "  const fE = e.formule;\n  if (!fE || fE === 'gratuit') { e.formule = f;", ['842']),
 ]
 
 def appliquer(fichier, avant, apres):
@@ -274,10 +321,15 @@ def banc(n):
 # Mutations NEUTRES, vérifiées à la main : elles ne changent AUCUN comportement (une autre ligne fait déjà le travail).
 # M10 : `formuleServieDe` pose `f = ''` quand rien n'est payé, donc `!RANG_FORMULE.includes(f)` suspend déjà — retirer
 # `!p.paye` du test ne change rien. Une mutation neutre ne dit rien du banc (CLAUDE.md, « une mutation qui ne casse rien »).
-NEUTRES = set()   # (M10 était neutre tant que « Mon espace » avait sa propre copie de la règle ; elle lit désormais `accesSuspenduPar`)
+NEUTRES = {'B2'}   # (M10 était neutre tant que « Mon espace » avait sa propre copie de la règle ; elle lit désormais `accesSuspenduPar`)
+# B2 : `periodeOfferte` n'est appelée que par `espacePaye` (après que B1 a posé l'identifiant) et avec `{ t }` explicite (rappel
+# J-7) — lire `e.t` y revient au même. Elle garde `espaceT` pour un appelant futur ; B2b (les deux ensemble) mord.
 bilan = []
-for (nom, fichier, avant, apres, bancs) in MUT:
+for m in MUT:
+    (nom, fichier, avant, apres, bancs) = m[:5]
     err = appliquer(fichier, avant, apres)
+    for (av2, ap2) in (m[5] if len(m) > 5 else []):
+        err = err or appliquer(fichier, av2, ap2)
     if err:
         bilan.append((nom, 'ANCRE', err)); print('✗ ' + nom + ' — ' + err, flush=True); continue
     # la mutation a bien touché le fichier (et lui seul)
