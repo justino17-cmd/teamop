@@ -78,13 +78,16 @@ const arreter = async () => { try { if (enfant) enfant.kill('SIGKILL'); } catch 
     /* v767 — trois entreprises qui ne paient RIEN (ni abonnement, ni code, ni réglage à la main qui paie) */
     rien: esp('rien', 'ent-rien', { formule: 'pro', aboStatut: undefined }),
     gratuit: esp('gratuit', 'ent-gratuit', { formule: 'gratuit', aboStatut: undefined }),
-    gratuitactif: esp('gratuitactif', 'ent-gratuit-actif', { formule: 'gratuit', aboStatut: 'actif' }) }));
+    gratuitactif: esp('gratuitactif', 'ent-gratuit-actif', { formule: 'gratuit', aboStatut: 'actif' }),
+    /* … et une quatrième, qui ne paie rien ET que la Tour a suspendue il y a deux jours */
+    riensus: esp('riensus', 'ent-rien-sus', { formule: 'pro', aboStatut: undefined }) }));
   /* trois états dans le même fichier : suspendu d'hier (sursis vivant), suspendu il y a
      9 jours (sursis épuisé), et FERMÉ pour de bon (absent de `suspendus`). */
   fs.writeFileSync(path.join(banc, 'data', 'entreprises-fermees.json'), JSON.stringify({
-    espaces: ['ent-impaye', 'ent-vieux', 'ent-ferme'],
-    suspendus: ['ent-impaye', 'ent-vieux'],
-    suspendusLe: { 'ent-impaye': Date.now() - 2 * 86400000, 'ent-vieux': Date.now() - 9 * 86400000 } }));
+    espaces: ['ent-impaye', 'ent-vieux', 'ent-ferme', 'ent-rien-sus'],
+    suspendus: ['ent-impaye', 'ent-vieux', 'ent-rien-sus'],
+    suspendusLe: { 'ent-impaye': Date.now() - 2 * 86400000, 'ent-vieux': Date.now() - 9 * 86400000,
+      'ent-rien-sus': Date.now() - 2 * 86400000 } }));
 
   const PORT = 8400 + (process.pid % 500);
   enfant = spawn(process.execPath, [path.join(RACINE, 'server', 'index.js')], {
@@ -120,6 +123,12 @@ const arreter = async () => { try { if (enfant) enfant.kill('SIGKILL'); } catch 
     v('⛔⛔ une fiche « Gratuit » d\'avant, rien de payé : suspendue aussi (le Gratuit n\'existe plus)', forme(await etat('ent-gratuit')), [true, 0, false, true, undefined]);
     v('⛔ une fiche « Gratuit » réglée « active » à la main : suspendue aussi — ce réglage ne paie rien', forme(await etat('ent-gratuit-actif')), [true, 0, false, true, undefined]);
     v('   (témoin) la même fiche réglée à la main mais en PREMIUM : servie, payée', [paye.formule, paye.paye], ['premium', true]);
+    /* ⛔ LES SEPT JOURS DE SURSIS (20 septembre 2026) SERVENT L'ENTREPRISE QUE LA FACTURATION DIT PAYÉE ET QUE LA TOUR
+       SUSPEND — « ent-impaye » plus haut, qui garde 5 jours. À qui ne paie DÉJÀ pas, la suspension de la Tour ne rend
+       aucun jour : l'application en service (v763) la mettait au Gratuit sur-le-champ, et un sursis ici lui ROUVRIRAIT
+       tout pendant une semaine — plus qu'à une entreprise que la Tour n'a pas touchée. */
+    v('⛔ rien de payé ET suspendue dans la Tour il y a 2 jours : aucun jour de sursis — la suspension ne rend pas d\'accès à qui ne paie pas',
+      forme(await etat('ent-rien-sus')), [true, 0, false, true, undefined]);
   }
 
   console.log('\n══ 3. ⛔ LES VRAIES FONCTIONS DE L’ÉCRAN, EXÉCUTÉES ══\n');

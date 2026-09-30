@@ -4940,6 +4940,11 @@ app.post('/api/espaces/etat', (req, res) => {
        l'application v763 y répondait par le bandeau « Paye ton abonnement » à toute l'équipe et un `db.forfait` réécrit
        (voir plus haut) ; celle-ci, elle la grise sans rien écrire, et les applications suivantes suspendent tout. Une
        formule que l'application ne connaît pas ne se sert pas non plus. */
+    /* ⚠️ `sursisJours: 0` MÊME QUAND LA TOUR L'A SUSPENDUE HIER. Les sept jours de sursis (20 septembre 2026) servent
+       l'entreprise que la facturation dit PAYÉE et que la Tour suspend (un virement qui n'arrive pas) : elle garde son
+       accès sept jours, puis tout se grise — c'est la réponse payée, plus bas, qui porte ce sursis. À qui ne paie DÉJÀ
+       pas, la suspension de la Tour ne rend aucun jour : la v763 la mettait au Gratuit sur-le-champ, et un sursis ici
+       lui rouvrirait tout pendant une semaine, plus qu'à une entreprise que la Tour n'a pas touchée. `test-761`. */
     const fServie = p.formuleServie || e.formule;
     if (p.bloque || !p.paye || !RANG_FORMULE.includes(fServie)) return res.json({ ok: true, paye: false, motif: 'accès suspendu', opMessages, metier, versionMin, enLigne, suspendu: true, sursisJours: 0 });
     res.json({ ok: true, formule: fServie, quantite: e.quantite || 1, places: placesServies(e, p), paye: true, motif: p.motif, opMessages, metier, versionMin, enLigne, suspendu, sursisJours });
