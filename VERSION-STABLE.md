@@ -1,6 +1,6 @@
 # Point stable TeamOP
 
-**Version stable : v767** — publiée le 30 septembre 2026, sur la phrase de Justin « Mais après ça tu publie » (juste après
+**Version stable : v767** — publiée dans la nuit du 30 septembre au 1er octobre 2026, sur la phrase de Justin « Mais après ça tu publie » (juste après
 « pousse » : le serveur, la Tour v2.78 et la bêta v767, mis en ligne d'abord pour que l'application trouve le serveur qu'elle
 attend). Les v764, v765 et v766 n'ont jamais été publiées seules : elles partent avec elle.
 
