@@ -199,6 +199,32 @@ async function proxyCompteur(portCible) {
       v('⛔ même en REPRENANT depuis avant le retrait, Carl ne se voit pas rejouer les messages qu\'il n\'a plus le droit de lire', fc2.messages().filter(e => e.data.conv === G && e.data.seq > avant.j.seq).length, 0);
     }
 
+    console.log('\nUn membre ARRIVÉ APRÈS ne rejoue pas les accusés de lecture d\'avant, et ne devine pas l\'existence d\'un message d\'avant (relecture du gardien, remarques 3 et 4)');
+    {
+      await fermerTout();
+      const Dv = await T.connecter(svc, og, 'dave', 'pw-dave-12345');
+      await contact(A, Dv);
+      const point = (await B.get('/api/sync')).j.gid;
+      const G2 = (await A.post('/api/conversations/groupe', { nom: 'Avant-Après', membres: [B.moi.id] })).j.conversation.id;
+      const avantM = await envoyer(A, G2, 'avant son arrivée');
+      await B.post('/api/conversations/' + G2 + '/lu', { seq: avantM.j.seq });
+      await A.post('/api/conversations/' + G2 + '/membres/ajouter', { uids: [Dv.moi.id] });
+      const apresM = await envoyer(A, G2, 'après son arrivée');
+      const fd = await flux(Dv, { lastEventId: point });
+      await fd.attendre(e => e.event === 'message' && e.data.seq === apresM.j.seq);
+      vrai('population : Dave reprend depuis avant la création du groupe et reçoit ce qui lui appartient (le message d\'après son arrivée)', fd.messages().some(e => e.data.seq === apresM.j.seq));
+      v('⛔ …mais AUCUN accusé de lecture d\'avant son arrivée (Bob avait lu le message 2 avant lui) ne lui est rejoué', fd.evenements.filter(e => e.event === 'lu' && e.data.conv === G2).length, 0);
+      await B.post('/api/conversations/' + G2 + '/lu', { seq: apresM.j.seq });
+      vrai('population : un accusé d\'APRÈS son arrivée, lui, lui parvient (le filtre ne coupe pas tout)', !!(await fd.attendre(e => e.event === 'lu' && e.data.conv === G2 && e.data.uid === B.moi.id && e.data.seq === apresM.j.seq)));
+      const lu = fd.evenements.find(e => e.event === 'lu' && e.data.conv === G2);
+      vrai('l\'accusé porte l\'heure de la lecture (c\'est ce que la page écrit sous « Lu »)', Number.isInteger(lu.data.ts) && lu.data.ts > 1e12);
+      const existant = await Dv.post('/api/conversations/' + G2 + '/messages/modifier', { seq: avantM.j.seq, texte: 'pirate' });
+      const inexistant = await Dv.post('/api/conversations/' + G2 + '/messages/modifier', { seq: 9999, texte: 'pirate' });
+      v('⛔ modifier un message d\'AVANT son arrivée répond comme un message qui n\'existe pas (404 des deux côtés, aucune différence à deviner)', [existant.code, existant.j.error, inexistant.code, inexistant.j.error], [404, 'introuvable', 404, 'introuvable']);
+      const sien = await Dv.post('/api/conversations/' + G2 + '/messages/modifier', { seq: apresM.j.seq, texte: 'pirate' });
+      v('et un message d\'après son arrivée, qui n\'est pas le sien, reste un refus franc (403) : il le voit déjà', sien.code, 403);
+    }
+
     console.log('\nLa saisie est ÉPHÉMÈRE : poussée, sans identifiant, jamais stockée, jamais rejouée');
     {
       await fermerTout();

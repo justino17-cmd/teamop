@@ -719,6 +719,10 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function messageModifier({ conv, seq, auteur, texte }) {
     return tx(() => {
       const r = Q('SELECT auteur, ts, type, supprime_le FROM message WHERE conv = ? AND seq = ?').get(conv, seq);
+      /* ⛔ UN MESSAGE D'AVANT L'ARRIVÉE N'EXISTE PAS : sans cette ligne, modifier le message d'un autre rendait 403 s'il existait et 404
+         sinon — de quoi deviner l'existence d'un message qu'on n'a pas le droit de lire (relecture du gardien, remarque 4). */
+      const m = Q('SELECT depuis_seq FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, auteur);
+      if (!m || seq < m.depuis_seq) throw erreur('introuvable');
       if (!r || r.supprime_le) throw erreur('introuvable');
       if (r.auteur !== auteur) throw erreur('interdit');
       if (r.type !== 'texte') throw erreur('type');
@@ -822,7 +826,10 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
        · il porte sur une conversation dont `uid` est MEMBRE ACTIF — et, pour les événements d'un
          message, seulement si le message date d'APRÈS son arrivée (`depuis_seq`).
      Un membre retiré n'est plus membre actif : plus rien ne lui arrive, y compris ce qui était
-     déjà écrit mais pas encore envoyé. */
+     déjà écrit mais pas encore envoyé.
+     ⛔ UN ACCUSÉ DE LECTURE (`lu`) NE SE REJOUE QU'À CEUX QUI ÉTAIENT LÀ : il porte l'identifiant de qui a lu et jusqu'où, pas un
+     texte — mais un membre arrivé après (`rejoint`) apprenait, en rouvrant le flux à `Last-Event-ID: 0`, qui lisait quoi avant lui
+     (relecture du gardien, 2 octobre 2026, remarque 3). */
   function evenementsPour(uid, apresGid, limite = 200) {
     const rows = Q(`
       SELECT j.gid, j.genre, j.conv, j.uid, j.ref, j.ts FROM journal j
@@ -830,7 +837,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         AND ( j.uid = ?
               OR ( j.uid IS NULL AND j.conv IS NOT NULL AND EXISTS (
                      SELECT 1 FROM membre m WHERE m.conv = j.conv AND m.uid = ? AND m.quitte_le IS NULL
-                       AND ( j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction') OR CAST(j.ref AS INTEGER) >= m.depuis_seq ) ) ) )
+                       AND ( j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction') OR CAST(j.ref AS INTEGER) >= m.depuis_seq )
+                       AND ( j.genre <> 'lu' OR j.ts > m.rejoint ) ) ) )
       ORDER BY j.gid LIMIT ?`).all(apresGid, uid, uid, limite);
     const evenements = [];
     for (const j of rows) { const e = materialiser(j, uid); if (e) evenements.push(e); }
@@ -872,7 +880,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       case 'msg_reaction': return { gid, event: 'reaction', data: { conv: j.conv, seq: parseInt(j.ref, 10), reactions: reactionsDe(j.conv, parseInt(j.ref, 10)) } };
       case 'conv_maj': return { gid, event: 'conversation', data: { conv: j.conv } };
       case 'retire': return { gid, event: 'retire', data: { conv: j.conv } };
-      case 'lu': { const [u, s] = String(j.ref).split(':'); return { gid, event: 'lu', data: { conv: j.conv, uid: u, seq: parseInt(s, 10) } }; }
+      case 'lu': { const [u, s] = String(j.ref).split(':'); return { gid, event: 'lu', data: { conv: j.conv, uid: u, seq: parseInt(s, 10), ts: num(j.ts) } }; }   // `ts` : l'heure de la lecture — c'est ce que la page écrit sous « Lu 14:06 »
       case 'notif': {
         const r = Q('SELECT id, type, titre_ch, texte_ch, cible, ts, lue FROM notification WHERE id = ? AND uid = ?').get(j.ref, uid);
         return r ? { gid, event: 'notification', data: notifRang(r) } : null;
