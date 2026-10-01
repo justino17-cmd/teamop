@@ -428,6 +428,12 @@ Aucune étape ne touche `app.html`, `beta.html`, `sw.js` ni `server/`.
 
 ### Étape 2 : comptes publics et push
 
+> ⛔ **Décision de Justin, 1er octobre 2026 au soir** : « les liens de connexion c'est que pour le côté pro ; pour l'utilisateur
+> classique c'est avec leur numéro de téléphone ». Le compte PERSO naît et se connecte par NUMÉRO DE TÉLÉPHONE (code SMS à usage
+> unique, plafonné par numéro et par adresse, jamais affiché dans les journaux) ; l'inscription par courriel ci-dessous est
+> remplacée pour le Perso. Le PRO entre par un lien de connexion créé par TEAM OP. Un SMS est un service tiers payant : prestataire,
+> coût par SMS et sous-traitance à fixer avec Justin avant d'écrire le code.
+
 - **Contenu** : inscription par courriel, vérification, mot de passe oublié, sessions et appareils, changement d'adresse, export et suppression, notifications push (paire VAPID propre, portée de service worker propre), réglages.
 - **Justin teste** : il s'inscrit avec une vraie adresse derrière la porte, reçoit le courriel, récupère un mot de passe, voit ses appareils. Il reçoit un push sur son téléphone.
 - **Gestes de Justin** : adresse d'envoi dédiée (SPF, DKIM, DMARC) avec identifiants en saisie masquée ; sur iPhone, « Ajouter à l'écran d'accueil » sinon pas de push.

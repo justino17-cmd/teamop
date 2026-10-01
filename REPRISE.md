@@ -94,6 +94,11 @@ je veux pas qu'il soit sur Firebase »**, avec le choix laissé (« sur le serve
 serveur ») — choisi : **un service À PART sur le même VPS** (son propre processus, son port, son dossier de données, ses
 comptes de personnes, aucun code partagé avec `server/index.js`), écrit pour déménager sur une machine à lui sans rien
 réécrire ; un serveur dédié deviendra utile quand les appels et la visio (relais TURN, bande passante) tourneront pour de vrai.
+⛔ **DEUX FAÇONS D'ENTRER DANS OP MESSAGES** — Justin, 1er octobre 2026 au soir : « les liens de connexion c'est que pour le côté
+pro ; pour l'utilisateur classique c'est avec leur numéro de téléphone ». Le PRO (espace d'entreprise) entre par le lien de
+connexion que NOUS créons, comme OP GESTION ; le PERSO (tout public) s'inscrit et se connecte par son NUMÉRO DE TÉLÉPHONE (code
+reçu par SMS). Cela REMPLACE l'« inscription par courriel » de l'étape 2 de `design/opmessages/SERVEUR.md`. Questions posées à
+Justin le même soir : prestataire SMS, et retrouver ses contacts par numéro (façon WhatsApp) ou non.
 ✅ **Serveur d'OP MESSAGES, étape 1 FAITE sur la branche** (fusion `d70ba05`) : `server-msg/` (node:sqlite, scellé AES-256-GCM,
 SSE, porte bêta par la Tour en boucle locale, groupes, lu, saisie, présence), son installation (`install-msg.sh`, unité durcie,
 utilisateur `opmsg`), son déploiement (`.github/workflows/deploiement-messages.yml`, une clé SSH par instance) et le mode
