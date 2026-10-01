@@ -111,6 +111,14 @@ Puis : **« avec toutes les langues disponibles »** → OP MESSAGES multilingue
 branchement de l'interface sur le serveur (il réécrit la même page : deux chantiers en même temps sur les mêmes textes se
 marcheraient dessus). Première vague : les langues les plus parlées et celles de l'Union européenne ; le système en accepte autant
 qu'on veut ; chaque traduction relue par un second agent.
+Puis : **« fais mieux que WhatsApp pour tout, et donne-moi des idées »** — idées proposées le 1er octobre au soir (en attente de son
+choix ; ce qui coûte de l'argent à chaque usage va dans le Pro) : 1. connexion par Face ID / empreinte (plus de SMS) ;
+2. tous ses appareils sans téléphone principal allumé ; 3. deux espaces dans la même appli, Perso et Pro, avec des heures de
+travail (plus de notification pro le soir : droit à la déconnexion) ; 4. traduction automatique des messages (Pro) ;
+5. vocaux transcrits en texte (Pro) ; 6. messages programmés et « rappelle-moi » ; 7. sondages et listes de tâches cochables
+dans un groupe ; 8. position en direct pour une équipe sur le terrain (Pro, limitée dans le temps) ; 9. export d'une conversation
+en PDF (Pro) ; 10. fils de réponse dans les groupes et mentions ; 11. réunions visio sans compte pour l'invité ; 12. données en
+France, sans publicité. ⚠️ 4 et 5 envoient le contenu à un service d'IA : sous-traitance à écrire avant (comme `agent-devis.js`).
 ✅ **Serveur d'OP MESSAGES, étape 1 FAITE sur la branche** (fusion `d70ba05`) : `server-msg/` (node:sqlite, scellé AES-256-GCM,
 SSE, porte bêta par la Tour en boucle locale, groupes, lu, saisie, présence), son installation (`install-msg.sh`, unité durcie,
 utilisateur `opmsg`), son déploiement (`.github/workflows/deploiement-messages.yml`, une clé SSH par instance) et le mode
