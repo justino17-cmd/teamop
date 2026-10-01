@@ -116,7 +116,7 @@ async function appuiLong(S, sel) {
   const bb = await S.page.locator(sel).first().boundingBox(); if (!bb) throw new Error('appui long : ' + sel + ' sans boîte');
   const c = await S.ctx.newCDPSession(S.page), x = bb.x + bb.width / 2, y = bb.y + bb.height / 2;
   await c.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
-  await dormir(700);
+  await dormir(1000);                                    // le menu s'ouvre à 480 ms : le doigt se lève 520 ms APRÈS son ouverture (passé les 350 ms où la page ignore tout clic) — le clic du relâcher tombe sur le fond
   await c.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await c.detach().catch(() => {}); S.gestes++;
 }
