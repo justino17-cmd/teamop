@@ -226,7 +226,7 @@ async function flux(c, opts = {}) {
       for (;;) {
         const { done, value } = await lecteur.read();
         if (done) break;
-        analyserTrames(etat, dec.decode(value, { stream: true }), t => { if (t.commentaire) f.commentaires++; else { let d = null; try { d = t.data ? JSON.parse(t.data) : null; } catch (e) {} f.evenements.push({ id: t.id === null ? null : parseInt(t.id, 10), event: t.event, data: d, brut: t.data }); } });
+        analyserTrames(etat, dec.decode(value, { stream: true }), t => { if (t.commentaire || t.event === 'pouls') f.commentaires++; else {   /* `pouls` : la pulsation du service (un VRAI événement depuis le 2 octobre — un commentaire `:` ne se voit pas du JavaScript), comptée avec les trames de garde */ let d = null; try { d = t.data ? JSON.parse(t.data) : null; } catch (e) {} f.evenements.push({ id: t.id === null ? null : parseInt(t.id, 10), event: t.event, data: d, brut: t.data }); } });
       }
     } catch (e) {}
     f.ferme = true;

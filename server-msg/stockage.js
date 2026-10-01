@@ -651,6 +651,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (p) {
         const clair = p.corps_ch && !p.supprime_le ? ouvrirOuNull('message', 'corps_ch', aadMsg(l.id, p.seq, p.auteur), p.corps_ch) : null;
         o.apercu = { seq: p.seq, auteur: p.auteur, type: p.type, supprime: !!p.supprime_le, texte: clair === null ? null : debut(clair, 120) };
+        /* ⛔ le NOM de l'auteur d'un aperçu de groupe : sans lui, la liste disait « Quelqu'un : … » pour tout membre qui n'est pas dans mes contacts (le cas
+           central d'un groupe par lien) et ne le corrigeait qu'à l'ouverture. Seulement quelqu'un qui est MEMBRE ACTIF de cette conversation — ses noms
+           sont déjà dans `membresDetail` de la même conversation, rien de plus n'est dit. */
+        if (l.type === 'groupe' && p.type !== 'systeme' && p.auteur) {
+          const a = Q(`SELECT p.id, p.prenom, p.nom FROM membre m JOIN personne p ON p.id = m.uid WHERE m.conv = ? AND m.uid = ? AND m.quitte_le IS NULL`).get(l.id, p.auteur);
+          if (a) o.apercu.par = { id: a.id, prenom: a.prenom, nom: a.nom };
+        }
         if (p.corps_ch && !p.supprime_le && clair === null) o.apercu.illisible = true;
       }
       if (l.type === 'direct') {
@@ -845,6 +852,23 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return { evenements, dernier: rows.length ? num(rows[rows.length - 1].gid) : apresGid, plein: rows.length >= limite };
   }
 
+  /* ⛔ LE DERNIER IDENTIFIANT QUE CETTE PERSONNE A LE DROIT DE CONNAÎTRE — jamais le compteur global du journal. `bonjour`, `resync` et `/api/sync`
+     rendaient `journalMax()` : n'importe quel compte, sans lien avec personne, lisait donc à tout instant combien d'événements le service avait écrits
+     (relecture du gardien, 2 octobre 2026, remarque 3) — de quoi voir QUAND quelqu'un écrit n'importe où, y compris contre `presence:false` et `accuses:false`.
+     Le plus grand identifiant d'un événement qui la CONCERNE est un point de reprise tout aussi bon : rien d'ultérieur ne la concerne, et
+     `Last-Event-ID` rejoue ce qui suit. 0 quand rien ne la concerne encore. */
+  function gidVisible(uid) {
+    /* ⛔ la MÊME règle de visibilité que `evenementsPour`, recopiée À LA LETTRE (`tests/test-901.js` exige que chaque requête soit un littéral : pas de morceau partagé par
+       interpolation) — et `tests/test-907.js` compare les deux sur des cas où elles divergeraient si l'une bougeait seule. */
+    const r = Q(`SELECT MAX(j.gid) AS g FROM journal j
+      WHERE ( j.uid = ?
+              OR ( j.uid IS NULL AND j.conv IS NOT NULL AND EXISTS (
+                     SELECT 1 FROM membre m WHERE m.conv = j.conv AND m.uid = ? AND m.quitte_le IS NULL
+                       AND ( j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction') OR CAST(j.ref AS INTEGER) >= m.depuis_seq )
+                       AND ( j.genre <> 'lu' OR j.ts > m.rejoint ) ) ) )`).get(uid, uid);
+    return r && r.g !== null && r.g !== undefined ? num(r.g) : 0;
+  }
+
   function materialiser(j, uid) {
     const gid = num(j.gid);
     switch (j.genre) {
@@ -925,7 +949,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     membresAjouter, membreRetirer, membreQuitter, membreRole, membrePrefs, membreLu, autreDirect, ecritureAutorisee,
     messageEnvoyer, messageExiste, messagesDe, messageModifier, messageSupprimer, messageReagir, reactionsDe, purgerExpires,
     notifCreer, notifListe, notifLues, notifNonLues,
-    journalMax, journalMin, journalElaguer, evenementsPour,
+    journalMax, journalMin, journalElaguer, evenementsPour, gidVisible,
   };
 }
 

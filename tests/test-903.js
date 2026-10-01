@@ -64,13 +64,17 @@ const nb = (svc, table) => { const d = lireDb(svc); try { return d.prepare('SELE
         vrai(p + ' : CSP stricte (script-src \'self\', default-src \'none\', frame-ancestors \'none\', base-uri \'none\'), nosniff, no-referrer, COOP/CORP same-origin',
           /default-src 'none'/.test(csp) && /script-src 'self'/.test(csp) && /frame-ancestors 'none'/.test(csp) && /base-uri 'none'/.test(csp) && !/script-src[^;]*unsafe/.test(csp)
           && r.h.get('x-content-type-options') === 'nosniff' && r.h.get('referrer-policy') === 'no-referrer'
-          && r.h.get('cross-origin-opener-policy') === 'same-origin' && r.h.get('cross-origin-resource-policy') === 'same-origin' && /camera=\(self\)/.test(r.h.get('permissions-policy') || ''));
+          && r.h.get('cross-origin-opener-policy') === 'same-origin' && r.h.get('cross-origin-resource-policy') === 'same-origin' && r.h.get('permissions-policy') === 'camera=(), microphone=()');
         const cors = Array.from(r.h.keys()).filter(k => /^access-control-/.test(k));
         v('⛔ ' + p + ' : AUCUN en-tête Access-Control-*', cors, []);
       }
       vrai('le serveur ne dit pas qu\'il est Express (X-Powered-By absent)', !(await c.get('/health')).h.get('x-powered-by'));
       const pre = await fetch(svc.base + '/api/moi', { method: 'OPTIONS', headers: { Origin: 'https://evil.example', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'content-type,x-opm' } });
       vrai('⛔ une requête préalable (OPTIONS) d\'un autre site ne reçoit AUCUNE permission : le navigateur bloquera', !pre.headers.get('access-control-allow-origin') && !pre.headers.get('access-control-allow-headers') && pre.status !== 204);
+      for (const chemin of ['/API/moi', '/Api/conversations', '/api/moi']) {
+        const r = await c.get(chemin);
+        vrai('⛔ ' + chemin + ' : « Cache-Control: no-store » quelle que soit la CASSE du préfixe (le routeur d\'Express répond à `/API/moi` — relecture du gardien)', /no-store/.test(r.h.get('cache-control') || ''));
+      }
       vrai('HSTS absent en http local (un bac d\'essai n\'apprend pas à refuser le http), pas de Cache-Control public sur l\'API', !(await c.get('/api/config')).h.get('strict-transport-security') && /no-store/.test((await c.get('/api/config')).h.get('cache-control')));
     }
 

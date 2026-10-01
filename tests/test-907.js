@@ -294,7 +294,7 @@ async function proxyCompteur(portCible) {
       v('les cinq premiers vivent toujours', cinq.filter(f => f.ferme).length, 0);
       const p0 = cinq[0].commentaires;
       await T.attendre(() => cinq[0].commentaires >= p0 + 3, 5000);
-      vrai('⛔ la pulsation `:` tombe sur un flux au repos (150 ms ici, 20 s en production) : le relais ne coupe pas un flux silencieux', cinq[0].commentaires >= p0 + 3);
+      vrai('⛔ la pulsation (événement `pouls`) tombe sur un flux au repos (150 ms ici, 20 s en production) : le relais ne coupe pas un flux silencieux', cinq[0].commentaires >= p0 + 3);
       cinq[4].fermer(); await cinq[4].attendreFerme();
       const reprise = await T.attendre(async () => { const f = await T.flux(E); if (f.statut === 200) { cinq.push(f); return f; } return null; }, 4000);
       vrai('un flux fermé libère une place : un nouveau passe', !!reprise);

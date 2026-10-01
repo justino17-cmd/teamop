@@ -330,6 +330,14 @@ console.log('\nLa visibilité des événements : la même requête sert la repri
   v('mais il reçoit l\'événement qui lui dit qu\'il est parti', apres.map(e => e.event), ['retire']);
   v('et Carl, resté, reçoit bien le message (le contrôle ne coupe pas tout)', a.S.evenementsPour(ca.id, evC[evC.length - 1].gid).evenements.filter(e => e.event === 'message').length, 2);
   vrai('l\'ajout a écrit un événement de conversation (gid renvoyé)', ajout.gid > 0);
+  /* ⛔ `gidVisible` (le point de reprise rendu au client à la place du compteur global — relecture du gardien, remarque 3) recopie la règle de `evenementsPour` à la lettre :
+     chacun des deux ne doit pas bouger sans l'autre. On les compare pour CHAQUE personne, dans une base où ils divergeraient (arrivée tardive, retrait, personne sans rien). */
+  const ev2 = pers(a.S, 'eve');
+  a.S.messageEnvoyer({ conv: g, auteur: al.id, cid: 'cid-vis-00004', texte: 'après le retrait de bob' });
+  const toutes = [al, bo, ca, ev2].map(p => [p.id, a.S.gidVisible(p.id), a.S.evenementsPour(p.id, 0, 100000).dernier]);
+  v('⛔ gidVisible(personne) = le dernier identifiant que `evenementsPour` lui rend, pour chacune des quatre', toutes.map(([, g1, g2]) => g1 === g2), [true, true, true, true]);
+  vrai('population : ces valeurs ne sont pas toutes égales ni nulles (Alice voit tout, Bob s\'est arrêté à son retrait, Eve n\'a rien : 0)', toutes[0][1] > toutes[1][1] && toutes[1][1] > 0 && toutes[3][1] === 0 && a.S.journalMax() > toutes[1][1]);
+  vrai('⛔ et aucune n\'est le compteur global du journal sauf pour qui a vraiment le dernier événement (Bob et Eve ne le voient pas)', a.S.gidVisible(bo.id) < a.S.journalMax() && a.S.gidVisible(ev2.id) < a.S.journalMax());
 }
 
 console.log('\nGroupes : dernier admin, départ, conversation vide');

@@ -150,11 +150,12 @@ function creerHandlers(ctx) {
 
   H['sync'] = (req, res) => {
     const max = stockage.journalMax();
-    if (req.query.depuis === undefined) return res.json({ gid: max, evenements: [], resync: false, plein: false });
+    /* ⛔ jamais le compteur global (`max`) dans la réponse : le dernier identifiant qui concerne CETTE personne (relecture du gardien, remarque 3) */
+    if (req.query.depuis === undefined) return res.json({ gid: stockage.gidVisible(req.moi.id), evenements: [], resync: false, plein: false });
     if (!/^\d{1,15}$/.test(String(req.query.depuis))) return refus(res, 400, 'champ_invalide');
     const n = parseInt(req.query.depuis, 10), min = stockage.journalMin();
     const perdu = n > max || (min === null ? n < max : min > n + 1);
-    if (perdu) return res.json({ gid: max, evenements: [], resync: true, plein: false });
+    if (perdu) return res.json({ gid: stockage.gidVisible(req.moi.id), evenements: [], resync: true, plein: false });
     const r = stockage.evenementsPour(req.moi.id, n, 200);
     res.json({ gid: r.dernier, evenements: r.evenements, resync: false, plein: r.plein });
   };

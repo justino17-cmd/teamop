@@ -42,7 +42,8 @@ function construireApp(ctx) {
       'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'no-referrer',
-      'Permissions-Policy': 'camera=(self), microphone=(self)',
+      /* le service ne lance aucun appel ni vocal tant que l'étape 4 (pièces) et l'étape 7 (appels) ne sont pas faites : la page n'a pas à pouvoir demander le micro ni la caméra */
+      'Permissions-Policy': 'camera=(), microphone=()',
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Resource-Policy': 'same-origin',
     });
@@ -53,10 +54,9 @@ function construireApp(ctx) {
   });
 
   /* ── L'état du processus (pour /health et le plancher de disque) ─────────────────────── */
-  app.use((req, res, next) => {
-    if (req.path.startsWith('/api/')) res.set('Cache-Control', 'no-store');
-    next();
-  });
+  /* ⛔ le routeur d'Express ne distingue pas la casse (`/API/moi` répond) : `no-store` se pose donc sur le PRÉFIXE monté, jamais sur un `startsWith` sensible à la casse
+     (relecture du gardien : `/Api/conversations` rendait les données du compte sans l'en-tête). */
+  app.use('/api', (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 
   /* ── Plafond général par adresse (le flux et /health n'y sont pas : un seul flux par onglet) ── */
   app.use('/api', (req, res, next) => {

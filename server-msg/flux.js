@@ -17,8 +17,8 @@
  * et la requête de visibilité elle-même exclut un ancien membre — même pour un événement déjà
  * écrit mais pas encore envoyé.
  *
- * ⛔ AU REPOS, UN FLUX NE COÛTE QUE SA PULSATION : un commentaire `:` toutes les 20 s, aucune
- * requête. C'est la leçon de la boucle du 25 septembre — deux appareils au repos ne doivent pas
+ * ⛔ AU REPOS, UN FLUX NE COÛTE QUE SA PULSATION : un événement `pouls` toutes les 20 s,
+ * aucune requête. C'est la leçon de la boucle du 25 septembre — deux appareils au repos ne doivent pas
  * s'interroger. `tests/test-907.js` compte les requêtes par minute de deux flux ouverts.
  *
  * Limites : 5 flux par personne et 200 par adresse (refus 429 avec `Retry-After`, jamais
@@ -88,18 +88,22 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
     ecrire(f, 'retry: 2000\n\n');
 
     const max = stockage.journalMax();
+    /* ⛔ Le client ne reçoit JAMAIS `max` (le compteur global du journal) : seulement le dernier identifiant qui LE concerne (`gidVisible`). `f.dernier` reste, lui, le
+       compteur interne : rien d'intermédiaire ne concerne cette personne (c'est ce qu'est « le dernier »), donc partir de `max` ne saute rien.
+       `pouls_ms` : le rythme des pulsations, pour que la page sache combien de silence veut dire « connexion à moitié morte » (voir `pulsation` plus bas). */
+    const vis = stockage.gidVisible(uid);
     /* ⛔ Un ENTIER, rien d'autre : `parseInt('1.5')` valait 1 et `parseInt('1e3')` valait 1 aussi. */
     let n = /^\d{1,15}$/.test(String(lastId)) ? parseInt(lastId, 10) : NaN;
     if (!Number.isInteger(n) || n < 0) {
       f.dernier = max;
-      ecrire(f, trame(max, 'bonjour', { gid: max }));
+      ecrire(f, trame(vis, 'bonjour', { gid: vis, pouls_ms: config.pulsationMs }));
     } else {
       const min = stockage.journalMin();
       /* Plus rien à rejouer sur ce point précis → `resync` : le client relit la liste. Un journal
          plus jeune que le client (base restaurée) en est un cas aussi. */
       const perdu = n > max || (min === null ? n < max : min > n + 1);
-      if (perdu) { f.dernier = max; ecrire(f, trame(max, 'resync', { gid: max })); }
-      else { f.dernier = n; ecrire(f, trame(n, 'bonjour', { gid: n, reprise: true })); tirer(f); }
+      if (perdu) { f.dernier = max; ecrire(f, trame(vis, 'resync', { gid: vis, pouls_ms: config.pulsationMs })); }
+      else { f.dernier = n; ecrire(f, trame(n, 'bonjour', { gid: n, reprise: true, pouls_ms: config.pulsationMs })); tirer(f); }
     }
     if ((parUid.get(uid) || new Set()).size === 1) apparue(uid);
     return { ok: true };
@@ -143,7 +147,9 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
     const t = horloge();
     for (const f of Array.from(flux)) {
       if (t - f.ouvertA > DUREE_MAX_MS) { fermer(f, 'duree'); continue; }
-      ecrire(f, ': p\n\n');
+      /* ⛔ un VRAI événement, pas un commentaire `:` — `EventSource` n'expose jamais un commentaire au JavaScript, donc la page ne pouvait pas savoir qu'une
+         connexion s'était tue (câble débranché, NAT expiré, veille) : elle ne voyait plus rien arriver et ne disait rien. Sans `id` : jamais rejoué, jamais écrit. */
+      ecrire(f, trame(null, 'pouls', {}));
     }
   }, config.pulsationMs);
   if (pulsation.unref) pulsation.unref();
