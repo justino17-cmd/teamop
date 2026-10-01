@@ -197,7 +197,12 @@ if (fs.existsSync(dep)) {
     v('   ⛔ il ne jette PAS le code de sortie de chaque banc', /node "\$f" 2>&1\) \|\| true/.test(t), false);
   }
   const utilise = fichiers.filter(f => /bancs-ci\.sh/.test(fs.readFileSync(path.join(DIR, f), 'utf8')));
-  v('   et les deux workflows l\'appellent, lui', utilise.sort(), ['ci.yml', 'deploiement.yml']);
+  /* ⛔ TROIS appelants, et c'est voulu : la CI (toute branche), le déploiement d'OP GESTION (`server/**`) et celui
+     d'OP MESSAGES (`server-msg/**`, 1er octobre 2026 — design/opmessages/SERVEUR.md § 3.10). Le troisième lance le
+     MÊME compteur avec SA liste (`scripts/bancs-messages.liste`) et son plancher : deux copies d'un compteur divergent
+     toujours, et un quatrième appelant doit être un geste conscient, pas un bloc recopié. `test-933` garde ce que le
+     troisième lance et dans quel ordre. */
+  v('   et les trois workflows l\'appellent, lui', utilise.sort(), ['ci.yml', 'deploiement-messages.yml', 'deploiement.yml']);
 }
 
 /* ⛔ LA LISTE DES BANCS DU SERVEUR — ce que le déploiement du serveur SEUL lance sur `main`

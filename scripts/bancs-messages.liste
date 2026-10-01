@@ -1,18 +1,23 @@
-# Les suites qui gardent le SERVICE d'OP MESSAGES (`server-msg/`) — celles que son déploiement lance.
+# Les suites qui gardent OP MESSAGES : le service (`server-msg/`), son installation, son déploiement, sa surveillance.
+# Celles que `.github/workflows/deploiement-messages.yml` lance avant de toucher au VPS.
 #
-# ⛔ POURQUOI UNE LISTE À PART. OP MESSAGES est un service séparé d'OP GESTION (décision de Justin,
-# 22 septembre et 1er octobre 2026) : il se déploie seul (`.github/workflows/deploiement-messages.yml`),
-# et ne doit dépendre ni d'`app.html` ni de `tour.html` — ces suites-là tombent contre les pages de
-# `main`. Les suites d'ici ne lisent que `server-msg/` (et, pour deux d'entre elles, un VRAI
-# `server/index.js` lancé en boucle locale pour éprouver la porte bêta : la couture réelle).
-# ⛔ ELLES SONT DISJOINTES de `scripts/bancs-serveur.liste` : `test-900` le vérifie.
-# ⚠️ Une ligne qui nomme un fichier absent fait ÉCHOUER le compteur (`scripts/bancs-ci.sh`) : une suite
-# renommée ou oubliée dans un commit ne sort pas de la porte en silence.
+# ⛔ POURQUOI UNE LISTE À PART, ET PAS `bancs-serveur.liste`. OP MESSAGES est un service séparé d'OP GESTION (décision de
+# Justin, 22 septembre et 1er octobre 2026) : il se déploie seul, et ne dépend ni d'`app.html` ni de `tour.html` — ces
+# suites-là tombent contre les pages de `main`. Les suites d'ici ne lisent AUCUNE page d'OP GESTION (`test-933` le vérifie)
+# et sont DISJOINTES de `scripts/bancs-serveur.liste` (`test-900` et `test-933`). Deux d'entre elles lancent un VRAI
+# `server/index.js` en boucle locale pour éprouver la porte bêta : la couture réelle, sans page.
 #
-# Une suite par ligne (900-929 : le service ; 930-939 : le déploiement). La ligne `#plancher N` est
-# le nombre MINIMAL de vérifications : sans `server-msg/node_modules`, les suites se déclarent vertes
-# avec 0 vérification — le plancher rattrape ce faux vert. Le relever quand on ajoute une suite,
-# jamais le baisser pour passer.
+# ⚠️ Une ligne qui nomme un fichier absent fait ÉCHOUER le compteur (`scripts/bancs-ci.sh`) : une suite renommée ne sort
+# pas de la porte en silence. Les suites entrent AUSSI dans la suite complète (`tests/test-*.js`) : la liste n'est pas une
+# exclusion, c'est ce que la porte de déploiement exige.
+#
+# Une suite par ligne (900-929 : le service ; 930-939 : installation, déploiement, surveillance).
+# ⛔ LE PLANCHER : moins de vérifications que ça, c'est que des suites ont sauté leur partie exécutée (sans
+# `server-msg/node_modules`, celles du service se déclarent vertes). Le relever quand on ajoute une suite, jamais le baisser.
+# 1er octobre 2026 : 1000 sur 900-909, 433 sur 930-934, soit 1433.
+#plancher 1433
+#
+# ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
 tests/test-901.js
 tests/test-902.js
@@ -23,4 +28,10 @@ tests/test-906.js
 tests/test-907.js
 tests/test-908.js
 tests/test-909.js
-#plancher 1000
+#
+# ── Installation, déploiement, surveillance ─────────────────────────────────────────────────────────────────────────────
+tests/test-930.js
+tests/test-931.js
+tests/test-932.js
+tests/test-933.js
+tests/test-934.js
