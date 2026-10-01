@@ -247,7 +247,7 @@ vrai('des blocs run: sont lus (population avant verdict)', blocs.length >= 6);
   const bloc = (/^OPMSG_FICHIERS=\(([\s\S]*?)\)\s*$/m.exec(c) || [])[1] || '';
   const fichiers = bloc.split(/\s+/).filter(Boolean);
   vrai('le script de préparation nomme les fichiers d\'OP MESSAGES qui partent (population avant verdict)', fichiers.length >= 6);
-  for (const f of ['server-msg', '.github/workflows/deploiement-messages.yml', '.github/scripts/surveillance-messages.js', 'scripts/bancs-messages.liste', 'design/opmessages', 'tests/bac-messages.js', '.gitignore'])
+  for (const f of ['server-msg', '.github/workflows/deploiement-messages.yml', '.github/scripts/surveillance-messages.js', 'scripts/bancs-messages.liste', 'design/opmessages', 'tests/bac-messages.js', 'tests/outils-msg.js', 'tests/lib-horloge-msg.js', '.gitignore'])
     vrai('⛔ « ' + f + ' » part avec le serveur (sinon rien d\'OP MESSAGES n\'arrive sur main, ou ses bancs tombent sur « introuvable »)', fichiers.includes(f));
   vrai('   les suites de la liste d\'OP MESSAGES sont extraites une à une, et la liste doit être peuplée', /mapfile -t SUITES_MSG < <\(grep -vE '\^\[\[:space:\]\]\*\(#\|\$\)' scripts\/bancs-messages\.liste\)/.test(c) && /-ge 5/.test(c));
   vrai('⛔ il lance les bancs d\'OP MESSAGES AVEC LEUR plancher, avant de commiter',

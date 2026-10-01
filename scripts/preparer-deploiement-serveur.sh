@@ -54,8 +54,11 @@ for f in "${SUITES[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
 # 1 bis. OP MESSAGES : le service, son workflow, sa liste, sa surveillance, son mode d'emploi, l'aide partagée des bancs.
 # ⚠️ `tests/bac-messages.js` n'est pas une suite (le compteur ne le lance pas) mais `test-931` et `test-932` le chargent :
 #    oublié, ils tomberaient ici sur « module introuvable », sur un déploiement juste.
+# ⚠️ Et `tests/outils-msg.js` + `tests/lib-horloge-msg.js` : l'aide partagée des suites 900 à 910 (le service lancé en processus,
+#    le faux OP GESTION, l'horloge décalable). Oubliés à la fusion des deux chantiers, la porte d'OP MESSAGES tombait sur « module
+#    introuvable » sur un déploiement juste.
 OPMSG_FICHIERS=(server-msg .github/workflows/deploiement-messages.yml .github/scripts/surveillance-messages.js
-                scripts/bancs-messages.liste design/opmessages tests/bac-messages.js .gitignore)
+                scripts/bancs-messages.liste design/opmessages tests/bac-messages.js tests/outils-msg.js tests/lib-horloge-msg.js .gitignore)
 for f in "${OPMSG_FICHIERS[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
 mapfile -t SUITES_MSG < <(grep -vE '^[[:space:]]*(#|$)' scripts/bancs-messages.liste)
 # ⚠️ Même exigence que pour la liste du serveur : une liste vide ou tronquée ferait passer la porte sur rien.
