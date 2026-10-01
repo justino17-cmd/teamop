@@ -126,12 +126,14 @@
       o.setAttribute('aria-selected', on ? 'true' : 'false'); o.tabIndex = on ? 0 : -1;
       var p = document.getElementById(o.getAttribute('aria-controls')); if (p) p.hidden = !on;
     });
+    /* ce qui dépend d'un onglet (les options et le comparatif d'OP GESTION) se masque avec lui : sous OP MESSAGES, qui n'a pas d'options, ils resteraient affichés */
+    $$('[data-onglet]').forEach(function (b) { b.hidden = b.getAttribute('data-onglet') !== cible; });
   }
   if (onglets.length) {
     onglets.forEach(function (o) { o.addEventListener('click', function () { choisir(o.getAttribute('aria-controls')); }); });
     var suivreAncre = function () {
       var h = location.hash.replace('#', '');
-      if (h === 'opmessages') choisir('formules-msg'); else if (h === 'elan') choisir('formules-gestion');
+      if (h === 'opmessages') choisir('formules-msg'); else if (h === 'elan' || h === 'options' || h === 'comparatif') choisir('formules-gestion');
     };
     suivreAncre(); window.addEventListener('hashchange', suivreAncre);
   }

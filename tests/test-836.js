@@ -305,5 +305,18 @@ console.log('\n══ 9. TOUTES LES PAGES DU DÉPÔT : AUCUN BOUTON DE MODE HORS
   v('   et chaque exception sert encore (une exception vide est une décision prise pour du vide)', Object.keys(EXCEPTIONS).filter(f => servies.indexOf(f) < 0), []);
 }
 
+console.log('\n══ 10. LES RÈGLES DES OPTIONS DU PRO NE PORTENT AUCUNE COULEUR EN DUR (le jour et la nuit suivent l\'appareil) ══\n');
+/* Le tableau comparatif et les cartes d'options (1er octobre 2026) vivent dans la feuille du site, que le portail partage : une
+   couleur écrite en dur n'y suivrait pas la nuit. On lit le BLOC de règles (de son titre jusqu'aux « questions »), pas la feuille
+   entière : un banc qui lit tout ne voit pas qui a écrit quoi. */
+{
+  const css = fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.css'), 'utf8');
+  const i = css.indexOf('/* ── les options du Pro et le tableau comparatif'), j = css.indexOf('/* questions */');
+  vrai('le bloc des options est trouvé dans la feuille (' + (j - i) + ' signes)', i > 0 && j > i + 2000);
+  const code = css.slice(i, j).replace(/\/\*[\s\S]*?\*\//g, ' ');
+  v('aucune couleur hexadécimale, rgb() ni nom de couleur — seulement des jetons (var(--…)) et l\'ombre rgba(0,0,0,…) des cartes', code.match(/#[0-9a-fA-F]{3,8}\b|\brgb\(|\brgba\((?!0,0,0,)|(?<![-\w])(white|black|red|green|blue)(?![-\w])/g) || [], []);
+  v('et le bloc ne redéfinit aucun jeton (il les LIT)', code.match(/--[\w-]+\s*:/g) || [], []);
+}
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

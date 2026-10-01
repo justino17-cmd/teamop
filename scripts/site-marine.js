@@ -29,13 +29,17 @@
 const fs = require('fs'), path = require('path');
 const RACINE = path.join(__dirname, '..');
 const A_LA_RACINE = process.argv.includes('--racine');
+/* ⛔ LES OPTIONS DU PRO NE PARTENT À LA RACINE QUE SUR UN GESTE : `--options`, en plus de `--racine` (voir « LES OPTIONS DU
+   PRO » plus bas : l'aperçu les montre, la racine non, tant que l'application SERVIE ne les ouvre pas). */
+const OPTIONS_DEMANDEES = process.argv.includes('--options');
 const DEST = A_LA_RACINE ? RACINE : path.join(RACINE, 'apercu', 'site');
 /* ⛔ UN PACK « PRÊT » EST UN PACK QUE L'APPLICATION CONNAÎT — lu dans `app.html` (METIERS_ORDRE), jamais écrit ici. Le site
    se publie sans attendre l'application (30 septembre 2026 : les six packs de la v766 vivent sur la bêta, l'application en
    service n'en connaît que six) : un pack qu'elle ne connaît pas se dit « bientôt », et ce qui ne passe qu'avec la v766
    (« Autre métier », le compte « 12 packs ») ne se dit pas — une clé inconnue partirait en 3D, le défaut de `metierId`.
    Publier l'application, c'est donc aussi régénérer le site (`test-835` §8 le rappelle). */
-const PACKS_APP = ((fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8').match(/const METIERS_ORDRE=\[([^\]]*)\]/) || ['', ''])[1])
+const APP_HTML = fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8');
+const PACKS_APP = ((APP_HTML.match(/const METIERS_ORDRE=\[([^\]]*)\]/) || ['', ''])[1])
   .split(',').map(x => x.trim().replace(/'/g, '')).filter(Boolean);
 const packPret = k => PACKS_APP.includes(k) ? 1 : 0;
 
@@ -113,7 +117,8 @@ const VOLETS = {
     grands: [L('3D — Anti-nuisibles', 'logiciel-anti-nuisibles.html', 'Pack complet : registre sanitaire, biocides'), L('Plomberie', 'logiciel-plombier.html'), L('Électricité', 'logiciel-electricien.html'), L('Chauffage / Climatisation', 'logiciel-chauffage-climatisation.html'), L('Nettoyage / Propreté', 'logiciel-nettoyage.html')],
     petits: [L('Tous les métiers', 'metiers.html')] },
   tarifs: { label: 'Tarifs', href: 'tarifs.html', titre: 'Explorer les tarifs',
-    grands: [L('Tarifs OP GESTION', 'tarifs.html#elan', 'Pro 15 € · Business 25 € · Business Premium 50 €'), L('Tarifs OP MESSAGES', 'tarifs.html#opmessages', 'Perso · Pro · Premium — bientôt disponible')],
+    /* le sous-titre se LIT dans FORMULES_GESTION (une seconde liste de prix recopiée divergerait) — par un accesseur : la table est plus bas */
+    grands: [{ label: 'Tarifs OP GESTION', href: 'tarifs.html#elan', get sous() { return FORMULES_GESTION.map(f => f.nom + ' ' + f.prix + ' €').join(' · '); } }, L('Tarifs OP MESSAGES', 'tarifs.html#opmessages', 'Perso · Pro · Premium — bientôt disponible')],
     petits: [L('Comparer toutes les formules', 'tarifs.html'), L('Questions fréquentes', 'tarifs.html#faq')] },
   pourquoi: { label: 'Pourquoi TEAM OP', href: 'pourquoi.html', titre: 'Pourquoi TEAM OP',
     grands: [L('Au service des entreprises', 'pourquoi.html#partenaire', 'On écoute, on adapte, on construit avec vous'), L('Sécurité et engagements', 'pourquoi.html#engagements', 'Chiffrement AES-256, vos données à vous')],
@@ -127,7 +132,15 @@ let POUR_LA_RACINE = A_LA_RACINE;
 const hors = c => (POUR_LA_RACINE ? '' : '/apercu') + c;
 const ESPACE = () => hors('/espace.html'), CONNEXION = () => hors('/connexion.html?choix=1');
 
+/* le menu, tel que CETTE génération le montre : avec les options du Pro (aperçu), le volet Tarifs y mène ; sans (racine), il est
+   VOLETS tel quel — octet pour octet ce qui est en service */
+function voletsActifs() {
+  if (!AVEC_OPTIONS) return VOLETS;
+  const t = VOLETS.tarifs;
+  return Object.assign({}, VOLETS, { tarifs: Object.assign({}, t, { petits: [L('Les options du Pro', 'tarifs.html#options'), L('Comparer toutes les formules', 'tarifs.html#comparatif')].concat(t.petits.filter(l => l.href !== 'tarifs.html')) }) });
+}
 function entete(section, sousnav) {
+  const VOLETS = voletsActifs();
   const liens = Object.keys(VOLETS).map(k => `<a href="${VOLETS[k].href}" data-fly="${k}" aria-haspopup="true" aria-expanded="false"${section === k ? ' aria-current="page"' : ''}>${esc(VOLETS[k].label)}</a>`).join('');
   const volets = Object.keys(VOLETS).map(k => { const v = VOLETS[k]; return `<div class="fly" id="fly-${k}"><div class="fly-in"><div><div class="fly-t">${esc(v.titre)}</div><div class="fly-grand">`
     + v.grands.map(l => `<a href="${l.href}"><b>${esc(l.label)}</b>${l.sous ? `<small>${fr(l.sous)}</small>` : ''}</a>`).join('')
@@ -147,6 +160,7 @@ function entete(section, sousnav) {
 }
 
 function pied() {
+  const VOLETS = voletsActifs();
   const cols = [['Applications', VOLETS.applications], ['Métiers', VOLETS.metiers], ['Tarifs', VOLETS.tarifs]].map(([t, v]) => `<div><b>${t}</b>` + v.grands.concat(v.petits).map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + '</div>').join('')
     + '<div><b>TEAM OP</b>' + VOLETS.pourquoi.grands.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + `<a href="${ESPACE()}">Espace client</a><a href="${CONNEXION()}">Se connecter</a></div>`;
   return `<footer class="pied"><div class="pied-in"><div class="cols">${cols}</div>
@@ -217,13 +231,215 @@ const FORMULES_MESSAGES = [
   F('', 'Messages Pro', '15', '€ / mois', '1 utilisateur par abonnement', 'La messagerie de votre entreprise, propre et séparée du perso.', 'Tout Perso, plus', ['Espace entreprise (SIRET) : vos équipes, vos règles', 'Canaux d\'équipe (# équipe, # dépôt…) et canal général', 'Épingles, favoris, archivage, recherche', 'Mentions @, réponses, messages vocaux', 'Notifications push, gestion des membres'], true, 'Équipes'),
   F('', 'Messages Business Premium', '25', '€ / mois', '1 utilisateur par abonnement', 'La totale : visio illimitée et priorité au support.', 'Tout Messages Pro, plus', ['Réunions visio illimitées : HD, partage d\'écran', 'Réunions planifiées avec invitations, appels de groupe', 'Couleurs de conversation et personnalisation avancée', 'Support prioritaire', 'Inclus avec le Business Premium d\'OP GESTION']),
 ];
+/* ══ LES OPTIONS DU PRO — Justin, 1er octobre 2026 : « Plus cher » (cahier des charges, section 1 : l'offre et ses prix) ══════
+   Le Pro (15 €) s'étoffe de quatre options PAR UTILISATEUR ET PAR MOIS — Stock 9 €, Achats fournisseurs 6 €, Encaissements et
+   compta 6 €, Registre sanitaire (métier 3D) 6 € ; Business et Business Premium les ont toutes. À l'année : 10 mois payés sur 12.
+   ⛔ UNE TABLE, TROIS RENDUS. `OPTIONS_SITE` (les prix) et `CATALOGUE` (ce que chaque formule ouvre, ligne par ligne) nourrissent
+   les cartes de formule, le bloc « Les options du Pro » ET le tableau comparatif : trois copies écrites à la main divergeraient
+   (une carte qui dit 9 €, un tableau qui dit 6 €). `tests/test-855.js` relit les trois contre la table.
+   ⛔ LE SITE NE VEND PAS CE QUE L'APPLICATION NE LIVRE PAS (règle d'or n° 6 du cahier des charges : « les appareils d'abord, la porte
+   ensuite »). Trois verrous :
+   1. l'APERÇU (`apercu/site/`, `noindex`) montre toujours les options : c'est lui que Justin regarde pour valider ;
+   2. la RACINE ne les montre que si `app.html` DÉCLARE `OPTIONS_GESTION` (la carte des options servies, lue ici SANS rien exécuter)
+      ET qu'on a dit `--options` : l'application de la branche n'est pas l'application servie, et lire `app.html` ne prouve pas qu'elle
+      est publiée — c'est un geste de Justin, pas une déduction. Sans l'un ou l'autre, la racine est octet pour octet celle d'avant ;
+   3. quelle que soit la sortie, si `app.html` déclare `OPTIONS_GESTION`, le générateur REFUSE (il jette) de vendre une option qu'elle
+      ne connaît pas, ou à un prix, ou avec des écrans, qui ne sont pas les siens. Aujourd'hui `app.html` ne la déclare pas : l'aperçu
+      vend dans le vide, c'est voulu, et la ligne d'avertissement de la commande le dit. */
+const MOIS_OFFERTS = 2;
+const euro = n => String(n).replace('.', ',') + ' €';
+const surAn = p => p * (12 - MOIS_OFFERTS);
+const OPTIONS_SITE = [
+  { cle: 'stock', nom: 'Stock (et box pour la 3D)', court: 'Stock', prix: 9, vues: ['produits', 'stock', 'mouvements', 'saisieConso', 'boxes', 'carteBox', 'produitsDonnes', 'demandes', 'histoDemandes', 'brouillon', 'validations'],
+    d: 'Le stock produit par produit, les mouvements tracés et, pour le métier 3D, les box.' },
+  { cle: 'achats', nom: 'Achats fournisseurs', court: 'Achats', prix: 6, vues: ['fournisseurs', 'bons', 'commandes', 'boiteMail'],
+    d: 'Vos fournisseurs, vos bons de commande en PDF et leur suivi, avec la boîte mail intégrée.' },
+  { cle: 'compta', nom: 'Encaissements et compta', court: 'Compta', prix: 6, vues: ['comptabilite', 'telecollecte', 'enveloppes'],
+    d: 'Ce qui est encaissé chaque jour, technicien par technicien, et la comptabilité qui en découle.' },
+  { cle: 'sanitaire', nom: 'Registre sanitaire (métier 3D)', court: 'Registre', prix: 6, vues: ['registre', 'produits'], metier3d: true,
+    d: 'Le registre sanitaire des passages et des biocides, pour les entreprises 3D.' },
+];
+const optDe = cle => OPTIONS_SITE.find(o => o.cle === cle);
+const prixOpt = cle => optDe(cle).prix;
+const PRIX_OPT_MIN = Math.min(...OPTIONS_SITE.map(o => o.prix));
+const MIN2 = OPTIONS_SITE.map(o => o.prix).sort((a, b) => a - b).slice(0, 2).reduce((a, b) => a + b, 0);
+/* UNE LIGNE PAR CAPACITÉ, DITE UNE FOIS : { t, pro, business, premium } — 1 = inclus, 0 = non, une clé d'option (ou une liste de
+   clés : il les faut TOUTES) = « en option » pour le Pro. Une catégorie qui porte `opt` donne cette option à ses lignes par défaut.
+   Chaque phrase reprend ce que le site disait déjà de l'application (relu dans app.html v763), jamais une promesse neuve. */
+const CATALOGUE = [
+  { id: 'planning', t: 'Planning et interventions', l: [
+    { t: 'Planning des interventions : jour, semaine, mois' },
+    { t: 'Tournées du jour : carte, temps de trajet, ordre optimisé' },
+    { t: 'Rapports d\'intervention : photos, signatures, envoi en PDF' },
+    { t: 'Récurrences (contrats) et passages multiples' },
+    { t: 'Conflits de planning et absences signalés' }] },
+  { id: 'clients', t: 'Clients, devis et factures', l: [
+    { t: 'Fiches clients et historique des passages' },
+    { t: 'Devis et factures en PDF à votre en-tête' },
+    { t: 'Contrats d\'entretien' }] },
+  { id: 'equipe', t: 'Équipe', l: [
+    { t: 'Pointage des heures, absences et congés' },
+    { t: 'Exports CSV, notifications push' },
+    { t: 'App web + mobile (iPhone, Android, Mac, PC), données chiffrées AES-256' }] },
+  { id: 'stock', opt: 'stock', t: 'Stock', l: [
+    { t: 'Produits et stock : inventaire, seuils d\'alerte, un total par produit' },
+    { t: 'Mouvements tracés : arrivage avec photo du bon, sortie « pour qui », corrections' },
+    { t: 'Box pour le métier 3D : points de stock et carte des box' },
+    { t: 'Demandes de l\'équipe, validées par un responsable' }] },
+  { id: 'achats', opt: 'achats', t: 'Achats fournisseurs', l: [
+    { t: 'Bons de commande en PDF, envoyés par e-mail au fournisseur' },
+    { t: 'Fournisseurs et commandes en cours' },
+    { t: 'Boîte mail intégrée, rattachée aux bons' },
+    { t: 'Commande suggérée et réception qui entre en stock', pro: ['stock', 'achats'], note: 'avec l\'option Stock' }] },
+  { id: 'compta', opt: 'compta', t: 'Encaissements et compta', l: [
+    { t: 'Télécollecte : les encaissements du jour, technicien par technicien' },
+    { t: 'Comptabilité : synthèse, TVA collectée, export CSV' }] },
+  { id: 'sanitaire', opt: 'sanitaire', t: 'Registre sanitaire (métier 3D)', l: [
+    { t: 'Registre sanitaire : les passages et les produits appliqués' },
+    { t: 'Dossier sanitaire du client, à imprimer en PDF' },
+    { t: 'Catalogue de produits : l\'AMM d\'un biocide s\'y renseigne' }] },
+  { id: 'marque', t: 'Votre marque et le service', l: [
+    { t: 'Support par e-mail' },
+    { t: 'Support prioritaire', pro: 0 },
+    { t: 'Votre logo dans l\'application', pro: 0 },
+    { t: 'Votre couleur d\'entreprise dans l\'application', pro: 0, business: 0 },
+    { t: 'OP MESSAGES inclus dès sa réouverture', pro: 0, business: 0 },
+    { t: 'Création sur mesure d\'une application selon vos besoins', pro: 0, business: 0 },
+    { t: 'Service 24h/24, 7j/7 et accompagnement à la mise en route', pro: 0, business: 0 }] },
+];
+const FORMULES_COL = ['pro', 'business', 'premium'];
+const valeur = (c, l, col) => l[col] !== undefined ? l[col] : (col === 'pro' ? (c.opt || 1) : 1);
+const clesDe = v => Array.isArray(v) ? v : typeof v === 'string' ? [v] : [];
+const PLUS_O = PLUS.replace('width="14" height="14"', 'width="13" height="13"');
+const noteDe = l => l.note ? ` <em>(${fr(l.note)})</em>` : '';
+/* ce qu'une carte de formule liste : le Pro ce qu'il a (et ses options, une ligne chacune), les autres CE QU'ILS AJOUTENT */
+function groupesDe(col) {
+  const prec = col === 'premium' ? 'business' : 'pro';
+  return CATALOGUE.map(c => ({ id: c.id, t: c.t,
+    l: c.l.filter(l => col === 'pro' ? valeur(c, l, 'pro') === 1 : valeur(c, l, col) === 1 && valeur(c, l, prec) !== 1) })).filter(g => g.l.length);
+}
+function detailFormule(f) {
+  const groupes = groupesDe(f.cle).map(g => `<div class="groupe"><div class="groupe-t">${fr(g.t)}</div><ul>`
+    + g.l.map(l => `<li>${COCHE()}<span>${fr(l.t)}${noteDe(l)}</span></li>`).join('') + '</ul></div>').join('');
+  const opts = f.cle !== 'pro' ? '' : `<div class="groupe options"><div class="groupe-t">En option avec le Pro</div><ul>`
+    + OPTIONS_SITE.map(o => `<li class="opt">${PLUS_O}<span>${fr(o.nom)} <b>+${euro(o.prix)}</b></span></li>`).join('')
+    + `</ul><a class="voir" href="#options">Voir les options ›</a></div>`;
+  return groupes + opts;
+}
+const anDe = f => `<div class="an">ou ${euro(surAn(+f.prix))} par an : ${MOIS_OFFERTS} mois offerts</div>`;
+
+/* ── lire `OPTIONS_GESTION` dans app.html SANS l'exécuter (ni vm ni eval : le générateur lit du code, il n'en lance pas) ──
+   On retire les commentaires de bloc qui COMMENCENT une ligne (les seuls que ce dépôt utilise pour expliquer du code — un
+   motif plus gourmand avale du vrai code, CLAUDE.md), puis on parcourt les accolades en reconnaissant chaînes et commentaires
+   de fin de ligne : une apostrophe française dans un commentaire ne doit pas ouvrir une « chaîne » qui mange le reste. */
+function lireOptionsApp(src) {
+  const code = String(src).replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, m => m.replace(/[^\n]/g, ' ')).replace(/^[ \t]*\/\/.*$/gm, m => ' '.repeat(m.length));
+  const d = /^[ \t]*(?:const|let|var)\s+OPTIONS_GESTION\s*=\s*\{/m.exec(code);
+  if (!d) return null;
+  const debut = d.index + d[0].length - 1;
+  let prof = 0, cle = null, corps = 0;
+  const res = {};
+  for (let i = debut; i < code.length; i++) {
+    const ch = code[i];
+    if (ch === '"' || ch === "'" || ch === '`') { for (i++; i < code.length && code[i] !== ch; i++) if (code[i] === '\\') i++; continue; }
+    if (ch === '/' && code[i + 1] === '/') { while (i < code.length && code[i] !== '\n') i++; continue; }
+    if (ch === '/' && code[i + 1] === '*') { i = code.indexOf('*/', i + 2); if (i < 0) break; i++; continue; }
+    if (ch === '{') {
+      prof++;
+      if (prof === 2) { const m = /([A-Za-z_$][\w$]*)\s*:\s*$/.exec(code.slice(Math.max(debut, i - 80), i)); cle = m && m[1]; corps = i + 1; }
+    } else if (ch === '}') {
+      if (prof === 2 && cle) {
+        const b = code.slice(corps, i), px = /\bprix\s*:\s*['"]?\s*(\d+(?:[.,]\d+)?)/.exec(b), vu = /\bvues\s*:\s*\[([^\]]*)\]/.exec(b);
+        res[cle] = { prix: px ? +px[1].replace(',', '.') : undefined, vues: vu ? [...vu[1].matchAll(/['"]([^'"]+)['"]/g)].map(x => x[1]) : undefined };
+        cle = null;
+      }
+      prof--;
+      if (prof === 0) return res;
+    }
+  }
+  throw new Error('OPTIONS_GESTION : accolade jamais refermée dans app.html — le site ne peut pas dire ce que l\'application ouvre');
+}
+/* le verrou n° 3 : tout ce que le site vend, l'application le connaît, au même prix et avec les mêmes écrans */
+function verifierOptions(appOptions) {
+  const maux = [];
+  for (const o of OPTIONS_SITE) {
+    const a = appOptions[o.cle];
+    if (!a) { maux.push('« ' + o.cle + ' » : le site la vend, app.html ne la connaît pas'); continue; }
+    if (a.prix !== undefined && a.prix !== o.prix) maux.push('« ' + o.cle + ' » : le site la vend ' + o.prix + ' €, app.html ' + a.prix + ' €');
+    if (a.vues && JSON.stringify(a.vues.slice().sort()) !== JSON.stringify(o.vues.slice().sort())) maux.push('« ' + o.cle + ' » : le site dit qu\'elle ouvre [' + o.vues + '], app.html [' + a.vues + ']');
+  }
+  if (maux.length) throw new Error('Le site refuse de vendre ce que l\'application ne livre pas :\n  · ' + maux.join('\n  · '));
+}
+const OPTIONS_APP_REELLE = lireOptionsApp(APP_HTML);
+/* l'état d'UNE génération : { actif, appOptions } — `o.appSrc` remplace app.html (les bancs jouent une application qui les connaît) */
+function etatOptions(racine, o) {
+  o = o || {};
+  const appOptions = o.appSrc !== undefined ? lireOptionsApp(o.appSrc) : OPTIONS_APP_REELLE;
+  if (appOptions) verifierOptions(appOptions);
+  if (!racine) return { actif: true, appOptions };
+  if (!o.options) return { actif: false, appOptions };
+  if (!appOptions) throw new Error('--options : app.html ne déclare pas OPTIONS_GESTION — la racine ne vend pas ce que l\'application ne connaît pas');
+  return { actif: true, appOptions };
+}
+let AVEC_OPTIONS = etatOptions(A_LA_RACINE, { options: OPTIONS_DEMANDEES }).actif;
+
+/* le bloc « Les options du Pro » : quatre cartes, une par option, avec ce qu'elle ouvre (les lignes du CATALOGUE) */
+function blocOptions() {
+  const pro = +prixDe('pro'), bus = +prixDe('business');
+  const carte = o => { const c = CATALOGUE.find(x => x.opt === o.cle);
+    return `<article class="option" id="option-${o.cle}"><div class="o-t"><b>${fr(o.nom)}</b></div>`
+      + `<div class="o-prix"><b>+${euro(o.prix)}</b><span>par utilisateur et par mois</span></div><div class="o-an">ou +${euro(surAn(o.prix))} par an : ${MOIS_OFFERTS} mois offerts</div>`
+      + `<p class="o-d">${fr(o.d)}</p><ul>` + c.l.map(l => `<li>${COCHE(13)}<span>${fr(l.t)}${noteDe(l)}</span></li>`).join('') + '</ul>'
+      + (o.metier3d ? `<p class="o-3d">${fr('Réservée au métier 3D : OP GESTION masque le registre pour les autres métiers.')}</p>` : '')
+      + `<a class="o-cta" href="${hors('/recap-abonnement.html')}?formule=pro&amp;options=${o.cle}">${fr('Ajouter au Pro')}</a></article>`; };
+  return `<section class="options-pro" id="options" aria-labelledby="options-t"><h2 class="h2 moyen" id="options-t">Les options du Pro.</h2>`
+    + `<p class="intro">${fr('Gardez le Pro à ' + euro(pro) + ' et ajoutez seulement ce dont vous avez besoin. Une option se paie par utilisateur et par mois, en plus du Pro, et couvre toute l\'équipe : prenez-en autant que d\'abonnements Pro.')}</p>`
+    + `<div class="options-grille">${OPTIONS_SITE.map(carte).join('')}</div>`
+    + `<p class="options-calcul">${fr('Pro avec l\'option Stock : ' + euro(pro + prixOpt('stock')) + ', moins que Business (' + euro(bus) + '). Dès deux options, Business revient moins cher : Pro avec deux options coûte au moins ' + euro(pro + MIN2) + '. Business et Business Premium incluent les quatre options.')}</p></section>`;
+}
+function cellule(v) {
+  if (v === 1) return `<td>${COCHE(16)}<span class="vh">inclus</span></td>`;
+  if (!v) return '<td><span aria-hidden="true">—</span><span class="vh">non inclus</span></td>';
+  const ks = clesDe(v);
+  return '<td class="opt-cell"><span class="vh">en option : </span>' + (ks.length === 1 ? `+${euro(prixOpt(ks[0]))}` : ks.map(k => fr(optDe(k).court)).join(' + ')) + '</td>';
+}
+/* le tableau comparatif : généré depuis CATALOGUE, jamais écrit à la main — une ligne de plus dans la table, une ligne de plus ici */
+function blocComparatif() {
+  const F = FORMULES_GESTION;
+  const tete = `<tr><th scope="col" class="c-fn">Fonction</th>` + F.map(f => `<th scope="col">${fr(f.nom)}<small>${euro(f.prix)} par mois</small></th>`).join('') + '</tr>';
+  const corps = CATALOGUE.map(c => {
+    const o = c.opt && optDe(c.opt);
+    return `<tbody><tr class="cat"><th scope="rowgroup" colspan="4"><span class="cat-t">${fr(c.t)}${o ? `<small>option du Pro : +${euro(o.prix)} par utilisateur et par mois</small>` : ''}</span></th></tr>`
+      + c.l.map(l => `<tr><th scope="row">${fr(l.t)}${noteDe(l)}</th>` + FORMULES_COL.map(col => cellule(valeur(c, l, col))).join('') + '</tr>').join('') + '</tbody>';
+  }).join('');
+  const prix = `<tbody><tr class="cat"><th scope="rowgroup" colspan="4"><span class="cat-t">Prix</span></th></tr>`
+    + `<tr><th scope="row">Par utilisateur et par mois</th>` + F.map(f => `<td class="px">${euro(f.prix)}</td>`).join('') + '</tr>'
+    + `<tr><th scope="row">À l'année : ${MOIS_OFFERTS} mois offerts</th>` + F.map(f => `<td class="px">${euro(surAn(+f.prix))}</td>`).join('') + '</tr></tbody>';
+  return `<section class="comparatif" id="comparatif" aria-labelledby="comparatif-t"><h2 class="h2 moyen" id="comparatif-t">Comparer les formules.</h2>`
+    + `<p class="intro">${fr('Ce que chaque formule ouvre, ligne par ligne. Les box et le registre sanitaire ne concernent que le métier 3D.')}</p>`
+    + `<p class="glisse">${fr('Faites glisser le tableau pour voir toutes les formules.')}</p>`
+    + `<div class="table-defile" role="region" aria-labelledby="comparatif-t" tabindex="0"><table class="tableau-formules"><caption class="vh">Comparatif des formules OP GESTION</caption><thead>${tete}</thead>${corps}${prix}</table></div></section>`;
+}
+
 function formules(liste, attente) {
+  /* avec les options (aperçu), les cartes d'OP GESTION listent catégorie par catégorie ; sans (racine), la liste d'avant, inchangée */
+  const detail = AVEC_OPTIONS && !attente;
   return liste.map(f => `<article class="formule${f.phare ? ' phare' : ''}"><div><div class="n">${f.tag ? `<i>${fr(f.tag)}</i>` : ''}<b>${fr(f.nom)}</b></div>`
-    + `<div class="prix"><b>${f.prix}</b><span>${fr(f.per)}</span></div><div class="places">${fr(f.places)}</div><div class="d">${fr(f.desc)}</div></div>`
-    + `<div class="inclus"><small>${fr(f.tete)}</small><ul>${f.points.map(p => `<li>${COCHE()}<span>${fr(p)}</span></li>`).join('')}</ul></div>`
+    + `<div class="prix"><b>${f.prix}</b><span>${fr(f.per)}</span></div>${detail ? anDe(f) : ''}<div class="places">${fr(f.places)}</div><div class="d">${fr(f.desc)}</div></div>`
+    + `<div class="inclus"><small>${fr(f.tete)}</small>` + (detail ? detailFormule(f) : `<ul>${f.points.map(p => `<li>${COCHE()}<span>${fr(p)}</span></li>`).join('')}</ul>`) + '</div>'
     + (attente ? '<span class="cta attente">Bientôt disponible</span>'
       : `<a class="cta" href="${hors('/recap-abonnement.html')}?formule=${f.cle}">${f.prix === '0' ? 'Créer mon compte' : 'Choisir ' + fr(f.nom)}</a>`)
     + '</article>').join('');
+}
+
+/* la FAQ des options (aperçu) : chaque somme se calcule dans la table — une réponse qui recopie « 24 € » diverge au premier changement de prix */
+function FAQ_OPTIONS() {
+  const pro = +prixDe('pro'), bus = +prixDe('business'), prem = +prixDe('premium');
+  return [
+    ['Comment fonctionnent les options du Pro ?', 'Ce sont des catégories d\'OP GESTION que vous ajoutez au Pro : ' + OPTIONS_SITE.map(o => o.nom + ' ' + euro(o.prix)).join(', ') + ', par utilisateur et par mois. Une option couvre toute l\'équipe : prenez-en autant que d\'abonnements Pro. Business et Business Premium incluent les quatre.'],
+    ['Business ou Pro avec des options ?', 'Pro avec l\'option Stock fait ' + euro(pro + prixOpt('stock')) + ' par utilisateur et par mois, moins que Business (' + euro(bus) + '). Avec deux options, Pro coûte au moins ' + euro(pro + MIN2) + ' : Business, qui les inclut toutes, revient moins cher.'],
+    ['Et si je paie à l\'année ?', 'À l\'année, vous payez ' + (12 - MOIS_OFFERTS) + ' mois au lieu de 12 : ' + MOIS_OFFERTS + ' mois offerts, pour la formule comme pour les options. Pro : ' + euro(surAn(pro)) + ' par utilisateur et par an, Business : ' + euro(surAn(bus)) + ', Business Premium : ' + euro(surAn(prem)) + '.'],
+  ];
 }
 
 /* ── les pages ── */
@@ -325,7 +541,56 @@ const METIERS = {
     formules: ["Les fiches d'intervention avec photos et signatures, les tournées du jour, les contrats et les récurrences, les devis et les factures, le pointage des agents.",
       "Tout Pro, plus le stock de consommables avec ses seuils d'alerte, les bons de commande et la commande suggérée, la télécollecte des encaissements et la comptabilité."] },
 };
-function pageMetier(m) {
+/* ══ AVEC LES OPTIONS, LES PHRASES QUI DISAIENT « PRO N'A NI STOCK… » DEVIENNENT VRAIES (aperçu seulement) ═══════════════════════
+   Sans option, le Pro n'ouvrait ni le stock, ni les achats, ni la télécollecte, ni le registre : les pages le disaient. Avec elles,
+   « Pro n'a pas de stock » est FAUX (le Pro peut l'ajouter) et « avec la formule Business » aussi, pour la télécollecte (l'option
+   Encaissements et compta l'ouvre). Chaque retouche ci-dessous remplace une phrase EXACTE du texte d'origine ; une phrase qui ne se
+   trouve plus fait jeter le générateur (un texte d'origine réécrit ne doit pas laisser la retouche viser du vide). */
+const SUBST_OPTIONS = [
+  ['Avec la formule Business : ce qui était prévu, ce qui est encaissé, l\'écart du jour.', 'Avec Business, ou l\'option Encaissements et compta du Pro : ce qui était prévu, ce qui est encaissé, l\'écart du jour.'],
+  ['avec la formule Business, l\'encaissement de chaque', 'avec Business, ou l\'option Encaissements et compta du Pro, l\'encaissement de chaque'],
+  ['Avec la formule Business, la télécollecte rapproche', 'Avec Business, ou l\'option Encaissements et compta du Pro, la télécollecte rapproche'],
+];
+const optSeule = cle => `en option avec le Pro (+${euro(prixOpt(cle))} par utilisateur et par mois)`;
+/* les retouches d'une page : de quoi remplacer (chapeau, description, cartes Pro et Business) ou compléter (un bloc) — une fonction,
+   parce que les prix se lisent dans la table au moment de dire */
+const PAGE_OPTIONS = {
+  'logiciel-anti-nuisibles': () => ({
+    formules: ['Les fiches d\'intervention avec photos et signatures, les plans d\'appâtage, le Certibiocide, les tournées du jour, les contrats et les récurrences, les devis et les factures. Le registre sanitaire, le catalogue de produits avec leur AMM et le dossier sanitaire s\'ajoutent avec l\'option Registre sanitaire (+' + euro(prixOpt('sanitaire')) + '), le stock et les box avec l\'option Stock (+' + euro(prixOpt('stock')) + ').'],
+    ajouts: { 1: ' Le registre et le dossier sanitaire sont inclus dans Business, et ' + optSeule('sanitaire') + '.', 3: ' Le stock et les box sont inclus dans Business, et ' + optSeule('stock') + '.' } }),
+  'logiciel-plombier': () => ({ pro: true, ajouts: { 1: ' Le stock est inclus dans Business, et ' + optSeule('stock') + '.' } }),
+  'logiciel-electricien': () => ({ pro: true, ajouts: { 1: ' Le stock est inclus dans Business, et ' + optSeule('stock') + '.' } }),
+  'logiciel-chauffage-climatisation': () => ({ pro: true, ajouts: { 2: ' Le stock est inclus dans Business, et ' + optSeule('stock') + '.' } }),
+  'logiciel-nettoyage': () => ({ pro: true, ajouts: { 4: ' Le stock est inclus dans Business, et ' + optSeule('stock') + '.' } }),
+  'logiciel-gestion-de-stock': () => ({
+    desc: 'Votre stock produit par produit : arrivages, sorties tracées, seuils d\'alerte et commande suggérée. Option du Pro, inclus dans Business.',
+    chapeau: 'Combien il en reste, qui a pris quoi, et quoi commander : OP GESTION, l\'application de TEAM OP, suit votre stock sur téléphone comme sur ordinateur, et trace chaque mouvement. Le stock est ' + optSeule('stock') + ', et inclus dans la formule Business.',
+    formules: ['Pas de stock dans Pro seul : le planning, les fiches d\'intervention, les devis et les factures, les contrats, la carte des interventions et le pointage. Le stock s\'y ajoute avec l\'option Stock (+' + euro(prixOpt('stock')) + ').'] }),
+  'logiciel-bons-de-commande': () => ({
+    desc: 'Préparez vos bons de commande, envoyez-les en PDF au fournisseur, réceptionnez la livraison, photo du bon à l\'appui. Option du Pro, inclus dans Business.',
+    chapeau: 'Ce qu\'il faut commander, à qui, et ce qui est arrivé : OP GESTION, l\'application de TEAM OP, relie vos commandes fournisseurs à votre stock. Les bons de commande sont ' + optSeule('achats') + ', et inclus dans la formule Business.',
+    formules: ['Pas de bons de commande dans Pro seul : le planning, les fiches d\'intervention, les devis et les factures, les contrats, la carte des interventions et le pointage. Ils s\'ajoutent avec l\'option Achats fournisseurs (+' + euro(prixOpt('achats')) + ') ; avec l\'option Stock en plus, la commande suggérée se prépare depuis vos seuils et la réception entre en stock.'] }),
+  'logiciel-registre-sanitaire': () => ({
+    chapeau: 'Pour une entreprise de dératisation, désinsectisation et désinfection, le registre est incontournable. OP GESTION, l\'application de TEAM OP, le remplit à partir des interventions elles-mêmes. Le registre est ' + optSeule('sanitaire') + ', pour le métier 3D, et inclus dans la formule Business.',
+    formules: ['Pas d\'écran Registre dans Pro seul : il s\'ajoute avec l\'option Registre sanitaire (métier 3D), qui apporte aussi le dossier sanitaire et le catalogue de produits avec leur AMM. Le Pro garde les fiches d\'intervention, les plans d\'appâtage, le Certibiocide, les devis, les factures et les contrats.'],
+    ajouts: { 3: ' Le dossier sanitaire fait partie de l\'option Registre sanitaire du Pro, et de la formule Business.', 4: ' Les box font partie de l\'option Stock du Pro, et de la formule Business.' } }),
+};
+const PRO_NON_3D = () => ' Le stock, les bons de commande et la comptabilité s\'ajoutent au Pro en option, dès ' + euro(PRIX_OPT_MIN) + ' par utilisateur et par mois.';
+const sub = t => SUBST_OPTIONS.reduce((x, [de, vers]) => x.split(de).join(vers), t);
+/* la description d'une page, avec ou sans les options — un accesseur de PAGES : l'état change d'une génération à l'autre */
+const descDe = (k, d) => AVEC_OPTIONS && PAGE_OPTIONS[k] && PAGE_OPTIONS[k]().desc || d;
+function retouche(m, k) {
+  if (!AVEC_OPTIONS) return m;
+  const o = PAGE_OPTIONS[k] ? PAGE_OPTIONS[k]() : {};
+  const remplace = o.formules || [];
+  const formules = remplace.concat(m.formules.slice(remplace.length)).map((f, i) => (i === 0 && o.pro ? f + PRO_NON_3D() : f));
+  const blocs = m.blocs.map(([h, ps], i) => [h, ps.map((t, j) => sub(t) + (o.ajouts && o.ajouts[i] !== undefined && j === ps.length - 1 ? o.ajouts[i] : ''))]);
+  return Object.assign({}, m, { chapeau: sub(o.chapeau || m.chapeau), formules: formules.map(sub), blocs,
+    duo: m.duo.map(d => [d[0], d[1], sub(d[2]), d[3], d[4]]) });
+}
+
+function pageMetier(m0, k) {
+  const m = retouche(m0, k);
   const duo = `<section class="duo">` + m.duo.map(([pt, h3, p, nom, alt]) => `<div class="grande-carte"><div class="haut"><div class="petit-titre">${fr(pt)}</div><h3>${fr(h3)}</h3><p>${fr(p)}</p></div>
           <div class="bas"><div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone(nom, alt)}</div></div></div>`).join('') + '</section>';
   const bloc = ([h2, ps], i) => `<section class="bloc${i % 2 ? ' teinte' : ''}"><div class="bloc-in texte-metier"><h2 class="h2 moyen">${fr(h2)}</h2>` + ps.map(t => `<p>${fr(t)}</p>`).join('') + '</div></section>';
@@ -465,6 +730,17 @@ const FONCTIONS = {
       "L'écran Registre sanitaire, qui réunit les passages et les produits appliqués, le stock et les box, les bons de commande aux fournisseurs."] },
 };
 
+/* un texte d'origine réécrit ne doit pas laisser une retouche viser du vide : on le vérifie ICI, au chargement, sur tout le texte */
+{
+  const tout = JSON.stringify([METIERS, FONCTIONS]);
+  for (const [de] of SUBST_OPTIONS) if (!tout.includes(JSON.stringify(de).slice(1, -1))) throw new Error('retouche des options : la phrase « ' + de + ' » n\'est plus dans les pages métier ni fonction');
+  for (const [k, f] of Object.entries(PAGE_OPTIONS)) {
+    const m = METIERS[k] || FONCTIONS[k], o = f();
+    if (!m) throw new Error('retouche des options : la page « ' + k + ' » n\'existe pas');
+    for (const i of Object.keys(o.ajouts || {})) if (!m.blocs[i]) throw new Error('retouche des options : « ' + k + ' » n\'a pas de bloc ' + i);
+  }
+}
+
 const PAGES = {
   index: { titre: 'TEAM OP — Logiciel de gestion pour entreprises de terrain', desc: 'Logiciel français pour entreprises de terrain : interventions, planning, stock, devis et factures. Anti-nuisibles, artisans. ' + DES_PRO,
     ogDesc: 'Interventions, stock, registre sanitaire, encaissements et équipe, sur mobile, tablette et ordinateur.',
@@ -477,7 +753,7 @@ const PAGES = {
       <section class="duo">
         <div class="grande-carte"><div class="haut"><div class="petit-titre">Sur le terrain</div><h3>${fr('La fiche d\'intervention, dans la poche.')}</h3><p>${fr('Client, adresse, produits, photos et signature : tout est sur la fiche.')}</p></div>
           <div class="bas"><div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone('iphone-intervention', 'OP GESTION sur un iPhone : une fiche d\'intervention en cours')}</div></div></div>
-        <div class="grande-carte"><div class="haut"><div class="petit-titre">Au dépôt</div><h3>Le stock, à jour.</h3><p>${fr('Avec la formule Business : arrivage, sortie, relevé — chaque mouvement est tracé et met le stock à jour.')}</p></div>
+        <div class="grande-carte"><div class="haut"><div class="petit-titre">Au dépôt</div><h3>Le stock, à jour.</h3><p>${fr(AVEC_OPTIONS ? 'Avec Business, ou l\'option Stock du Pro : arrivage, sortie, relevé — chaque mouvement est tracé et met le stock à jour.' : 'Avec la formule Business : arrivage, sortie, relevé — chaque mouvement est tracé et met le stock à jour.')}</p></div>
           <div class="bas"><div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone('iphone-box', 'OP GESTION sur un iPhone : la fiche d\'une box et ses gestes')}</div></div></div>
       </section>
       <section class="page" style="padding-top:90px;padding-bottom:40px"><h2 class="h2">${fr('Tout TEAM OP, en un coup d\'œil.')}</h2><div class="teasers">`
@@ -567,26 +843,27 @@ const PAGES = {
           + (pret ? `<a href="${ESPACE()}">Démarrer avec ce pack ›</a>` : '<a href="creer.html">En parler avec nous ›</a>') + '</article>').join('')
       + '</div></section>' },
 
-  ...Object.fromEntries(Object.entries(METIERS).map(([k, m]) => [k, { section: 'metiers', titre: m.titre, desc: m.desc, priorite: m.priorite, corps: () => pageMetier(m) }])),
-  ...Object.fromEntries(Object.entries(FONCTIONS).map(([k, m]) => [k, { section: 'applications', titre: m.titre, desc: m.desc, priorite: m.priorite, corps: () => pageMetier(m) }])),
+  ...Object.fromEntries(Object.entries(METIERS).map(([k, m]) => [k, { section: 'metiers', titre: m.titre, get desc() { return descDe(k, m.desc); }, priorite: m.priorite, corps: () => pageMetier(m, k) }])),
+  ...Object.fromEntries(Object.entries(FONCTIONS).map(([k, m]) => [k, { section: 'applications', titre: m.titre, get desc() { return descDe(k, m.desc); }, priorite: m.priorite, corps: () => pageMetier(m, k) }])),
 
-  tarifs: { section: 'tarifs', titre: 'Tarifs — TEAM OP', desc: 'Tarifs TEAM OP : Pro ' + prixDe('pro') + ' €, Business ' + prixDe('business') + ' €, Business Premium ' + prixDe('premium') + ' €, par mois et par utilisateur, TTC et sans engagement.',
+  tarifs: { section: 'tarifs', titre: 'Tarifs — TEAM OP', get desc() { return 'Tarifs TEAM OP : Pro ' + prixDe('pro') + ' €, Business ' + prixDe('business') + ' €, Business Premium ' + prixDe('premium') + ' €, par mois et par utilisateur, TTC et sans engagement.' + (AVEC_OPTIONS ? ' Options du Pro dès ' + euro(PRIX_OPT_MIN) + '.' : ''); },
     corps: () => scene('Tarifs', 'Des tarifs simples et clairs.', 'Choisissez votre formule, et changez-en quand votre équipe grandit. Sans engagement, sans frais cachés.', '', { courte: true })
       + `<section class="tarifs" id="tarifs"><span id="elan"></span><span id="opmessages"></span><div class="tarifs-in">
         <p class="intro">${fr('Prix TTC par mois, sans engagement. Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements. Pour payer, il faut un compte TEAM OP : créez-le d\'abord, c\'est gratuit.')}</p>
         <div class="segment" role="tablist" aria-label="Application"><button type="button" role="tab" id="onglet-gestion" aria-controls="formules-gestion" aria-selected="true">OP GESTION</button><button type="button" role="tab" id="onglet-msg" aria-controls="formules-msg" aria-selected="false" tabindex="-1">OP MESSAGES</button></div>
         <div class="formules" id="formules-gestion" role="tabpanel" aria-labelledby="onglet-gestion" style="--n:${FORMULES_GESTION.length}">${formules(FORMULES_GESTION)}</div>
-        <div class="formules" id="formules-msg" role="tabpanel" aria-labelledby="onglet-msg" style="--n:3" hidden>${formules(FORMULES_MESSAGES, true)}</div>
+        ${AVEC_OPTIONS ? `<div class="suite-gestion" data-onglet="formules-gestion">${blocOptions()}${blocComparatif()}</div>\n        ` : ''}<div class="formules" id="formules-msg" role="tabpanel" aria-labelledby="onglet-msg" style="--n:3" hidden>${formules(FORMULES_MESSAGES, true)}</div>
         <p class="note-msg">${fr('OP MESSAGES change d\'infrastructure : ses formules ouvriront avec la nouvelle version, et rien n\'est facturé d\'ici là.')}</p>
       </div></section>
       <section class="faq" id="faq"><h2 class="h2 moyen">Questions fréquentes.</h2><div class="liste">`
       + [['Faut-il un compte pour payer ?', 'Oui. Créez d\'abord votre compte TEAM OP — c\'est gratuit — et confirmez votre adresse e-mail : le paiement se fait ensuite depuis ce compte. Sans compte, il n\'est pas possible de payer : c\'est ce qui rattache chaque abonnement à la personne qui l\'a souscrit et à son entreprise.'],
-        ['Puis-je changer de formule à tout moment ?', 'Oui. Vous passez de Pro à Business ou à Business Premium quand vous voulez, et vous pouvez redescendre ou arrêter sur simple demande au support — aucun engagement de durée.'],
-        ['Comment fonctionnent les places utilisateur ?', 'Un abonnement donne un compte utilisateur, quelle que soit la formule. Besoin de plus ? Ajoutez un abonnement par personne : les places s\'additionnent (par exemple, Business\u00a0×\u00a03\u00a0=\u00a03\u00a0comptes).'],
+        ['Puis-je changer de formule à tout moment ?', 'Oui. Vous passez de Pro à Business ou à Business Premium quand vous voulez, et vous pouvez redescendre ou arrêter sur simple demande au support — aucun engagement de durée.' + (AVEC_OPTIONS ? ' Une option s\'ajoute à tout moment depuis la page d\'abonnement, et se retire sur simple demande au support, comme un changement de formule.' : '')],
+        ['Comment fonctionnent les places utilisateur ?', 'Un abonnement donne un compte utilisateur, quelle que soit la formule. Besoin de plus ? Ajoutez un abonnement par personne : les places s\'additionnent (par exemple, Business\u00a0×\u00a03\u00a0=\u00a03\u00a0comptes).']
+        ].concat(AVEC_OPTIONS ? FAQ_OPTIONS() : []).concat([
         ['Faut-il installer quelque chose ?', 'Non. TEAM OP s\'ouvre dans le navigateur, sans rien télécharger. Vous pouvez aussi l\'ajouter à l\'écran d\'accueil de votre téléphone ou de votre ordinateur, comme une application : en un clic sur Android et sur ordinateur, et sur iPhone par Partager puis « Sur l\'écran d\'accueil ».'],
         ['Mes données sont-elles en sécurité ?', 'Oui : vos données sont chiffrées (AES-256) sur l\'appareil avant l\'envoi, chaque entreprise a son espace et sa clé, et une sauvegarde complète s\'exporte à tout moment.'],
         ['Y a-t-il des frais d\'installation ?', 'Non, aucun frais caché. L\'accompagnement à la mise en route est inclus dans Business Premium.'],
-        ['Que se passe-t-il si j\'arrête ?', 'Vos données vous appartiennent : vous exportez tout en un clic avant de partir. Rien n\'est retenu en otage.']]
+        ['Que se passe-t-il si j\'arrête ?', 'Vos données vous appartiennent : vous exportez tout en un clic avant de partir. Rien n\'est retenu en otage.']])
         .map(([q, r], n) => `<div class="q"><button type="button" aria-expanded="false" aria-controls="r${n}"><b>${fr(q)}</b>${PLUS.replace('width="14" height="14"', 'width="16" height="16"')}</button><div class="r" id="r${n}"><div><p>${fr(r)}</p></div></div></div>`).join('')
       + '</div></section>' },
 
@@ -678,6 +955,14 @@ const ICONES = cle => cle === 'opmessages'
 function page(cle, o) {
   const P = PAGES[cle], racine = o ? !!o.racine : A_LA_RACINE;
   POUR_LA_RACINE = racine;
+  /* l'état des options vaut pour CETTE page, puis il est rendu : un banc qui génère la racine puis lit PAGES[c].desc ne lit pas celle-là */
+  const avant = AVEC_OPTIONS;
+  AVEC_OPTIONS = etatOptions(racine, { options: o ? o.options : racine && OPTIONS_DEMANDEES, appSrc: o && o.appSrc }).actif;
+  try {
+    return rendre(cle, P, racine);
+  } finally { AVEC_OPTIONS = avant; }
+}
+function rendre(cle, P, racine) {
   return `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -705,6 +990,8 @@ ${pied()}
 }
 
 if (require.main === module) {
+  if (!A_LA_RACINE && !OPTIONS_APP_REELLE) console.log('⚠ aperçu : app.html ne déclare pas encore OPTIONS_GESTION — l\'aperçu montre les options du Pro, la racine non (elle ne les montrera qu\'avec --racine --options, quand l\'application les connaîtra)');
+  if (OPTIONS_DEMANDEES && !A_LA_RACINE) console.log('⚠ --options ne sert qu\'avec --racine : l\'aperçu les montre toujours');
   fs.mkdirSync(DEST, { recursive: true });
   for (const cle of Object.keys(PAGES)) {
     const f = path.join(DEST, cle + '.html');
@@ -713,4 +1000,5 @@ if (require.main === module) {
   }
   if (A_LA_RACINE) { fs.writeFileSync(path.join(RACINE, 'sitemap.xml'), sitemap()); console.log('✓ sitemap.xml'); }
 }
-module.exports = { PAGES, page, FORMULES_GESTION, FORMULES_MESSAGES, VOLETS, DEST, TETE_MODE, SITE_URL, urlDe, sitemap, JSONLD, IMAGE_PARTAGE };
+module.exports = { PAGES, page, FORMULES_GESTION, FORMULES_MESSAGES, VOLETS, DEST, TETE_MODE, SITE_URL, urlDe, sitemap, JSONLD, IMAGE_PARTAGE,
+  OPTIONS_SITE, CATALOGUE, SUBST_OPTIONS, MOIS_OFFERTS, lireOptionsApp, etatOptions, FAQ_OPTIONS, voletsActifs: o => { const a = AVEC_OPTIONS; AVEC_OPTIONS = !!o; try { return voletsActifs(); } finally { AVEC_OPTIONS = a; } } };

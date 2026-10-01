@@ -253,6 +253,20 @@ vrai('case à Mac : hauteur du contenu, plafond = la hauteur d\'avant, 24 px sou
 vrai('grande case à Mac : plafond = la hauteur d\'avant des grandes cases', cssCode.includes('.tuile-f.large .vue.v-mac { max-height: ' + hLarge + '; }'));
 vrai('« Partout » garde sa hauteur (l\'iPhone posé devant occupe le bas)', !/\.vue\.duo \{[^}]*height/.test(cssCode));
 
+console.log('6 quater. les options du Pro : dans l\'aperçu, jamais dans le bloc d\'OP MESSAGES, jamais à la racine sans l\'application qui les connaît');
+/* (cahier des charges des options, 1er octobre 2026 ; le détail est gardé par `test-855`) Ici, la couture avec CE banc : le bloc
+   d'options et le tableau ne sont ni dans les cartes d'OP GESTION (`--n:3`, `test-837`), ni dans le bloc d'OP MESSAGES (§ 7), et
+   l'onglet les masque ; les trois formules gardent leurs trois liens (§ 4) ; la racine, elle, n'en porte aucune trace. */
+{
+  const gestion = (PAGES.tarifs.match(/<div class="formules" id="formules-gestion"[\s\S]*?<\/div>\s*<div class="suite-gestion"/) || [''])[0];
+  vrai('les cartes d\'OP GESTION se terminent avant le bloc des options (rien ne se glisse dans la grille de trois colonnes)', gestion.length > 500 && (gestion.match(/<article class="formule/g) || []).length === 3);
+  vrai('les options et le comparatif sont portés par un bloc lié à l\'onglet OP GESTION', /<div class="suite-gestion" data-onglet="formules-gestion"><section class="options-pro" id="options"[\s\S]*<section class="comparatif" id="comparatif"/.test(PAGES.tarifs));
+  const blocMsg = (PAGES.tarifs.match(/<div class="formules" id="formules-msg"[\s\S]*?<\/div>\s*<p class="note-msg">/) || [''])[0];
+  vrai('aucun bloc d\'options dans celui d\'OP MESSAGES', blocMsg.length > 500 && !/options-pro|comparatif|class="option"/.test(blocMsg));
+  vrai('(racine) la page des tarifs n\'a aucune trace des options tant que l\'application ne les déclare pas', !/suite-gestion|options-pro|id="comparatif"|data-onglet/.test(tarifsRacine));
+  vrai('(population) l\'application de cette branche ' + (/^[ \t]*(?:const|let|var)\s+OPTIONS_GESTION\s*=/m.test(app) ? 'DÉCLARE' : 'ne déclare pas encore') + ' OPTIONS_GESTION — le générateur lit la même chose que ce banc', GEN.lireOptionsApp(app) === null ? !/^[ \t]*(?:const|let|var)\s+OPTIONS_GESTION\s*=/m.test(app) : true);
+}
+
 console.log('7. OP MESSAGES : bientôt disponible, rien ne se choisit');
 const msg = (PAGES.tarifs.match(/<div class="formules" id="formules-msg"[\s\S]*?<\/div>\s*<p class="note-msg">/) || [''])[0];
 vrai('le bloc des formules OP MESSAGES est trouvé', msg.length > 500);

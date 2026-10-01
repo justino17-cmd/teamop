@@ -379,6 +379,72 @@ h1, h2, h3 { text-wrap: balance; }
 .formule .cta.attente { cursor: inherit; }
 .note-msg { margin: 18px auto 0; max-width: 620px; text-align: center; font-size: 14px; line-height: 1.5; color: var(--sub); }
 
+/* ── les options du Pro et le tableau comparatif (cahier des charges des options, 1er octobre 2026) ──
+   ⛔ AUCUNE de ces classes n'est `.formule`, `.formules` ni `.places` : `site.js` y poserait la carte bleue qui se déplace, et `test-837`
+   compte les places. Le bloc d'options et le tableau vivent dans `.suite-gestion`, que l'onglet « OP MESSAGES » masque avec les cartes
+   d'OP GESTION (`data-onglet`, site.js) — sinon ils resteraient affichés sous la messagerie, qui n'a pas d'options. */
+.vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.formule .an { font-size: 13px; color: var(--sub); margin-top: 4px; }
+.formule .groupe + .groupe { margin-top: 16px; }
+.formule .groupe-t { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+.formule li em { font-style: normal; color: var(--sub); }
+.formule .groupe.options { border-top: 1px solid var(--line); padding-top: 14px; }
+.formule li.opt svg { color: var(--link); }
+.formule li.opt b { white-space: nowrap; color: var(--link); font-weight: 600; }
+.formule .voir { display: inline-block; margin-top: 10px; font-size: 14px; }
+.suite-gestion[hidden] { display: none; }
+.options-pro, .comparatif { margin-top: clamp(56px,7vw,90px); }
+.options-pro > .h2, .comparatif > .h2 { text-align: center; }
+.tarifs .options-pro > .intro, .tarifs .comparatif > .intro { margin: 14px auto 28px; }
+.options-grille { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 16px; align-items: stretch; }
+@media (max-width: 1100px) { .options-grille { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 560px) { .options-grille { grid-template-columns: minmax(0,1fr); } }
+.option { border-radius: 22px; background: var(--tile); padding: 24px 22px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.option .o-t b { font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+.option .o-prix { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
+.option .o-prix b { font-family: var(--titre); font-size: 34px; line-height: 1; font-weight: 700; letter-spacing: -.03em; }
+.option .o-prix span, .option .o-an { font-size: 13px; color: var(--sub); }
+.option .o-d { margin: 4px 0 0; font-size: 14px; line-height: 1.45; color: var(--body); }
+.option ul { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.option li { display: flex; align-items: flex-start; gap: 9px; font-size: 13.5px; line-height: 1.4; }
+.option li svg { flex: none; margin-top: 3px; color: var(--link); }
+.option li em { font-style: normal; color: var(--sub); }
+.option .o-3d { margin: 0; font-size: 12.5px; line-height: 1.4; color: var(--sub); }
+.option .o-cta { margin-top: auto; text-align: center; font-size: 15px; padding: 11px 0; border-radius: 999px; background: var(--seg); color: var(--text); }
+.option .o-cta:hover { text-decoration: none; opacity: .9; }
+.options-calcul { margin: 22px auto 0; max-width: 680px; text-align: center; font-size: 15px; line-height: 1.5; color: var(--body); }
+.glisse { display: none; margin: 0 0 8px; font-size: 13px; color: var(--sub); text-align: center; }
+@media (max-width: 760px) { .glisse { display: block; } }
+/* le tableau défile DANS son cadre : la page ne bouge jamais de côté (mesuré à 360 px). La première colonne reste, et le titre de
+   chaque catégorie aussi (un `span` collant : une cellule qui s'étend sur quatre colonnes ne peut pas coller toute seule). */
+.table-defile { position: relative; overflow-x: auto; max-width: 100%; border-radius: 22px; background: var(--tile); box-shadow: 0 1px 3px rgba(0,0,0,.06); overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+.table-defile:focus-visible { outline-offset: -2px; }
+.tableau-formules { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 640px; font-size: 14px; }
+.tableau-formules th, .tableau-formules td { padding: 12px 14px; text-align: center; vertical-align: middle; border-bottom: 1px solid var(--line); }
+.tableau-formules thead th { font-size: 15px; font-weight: 600; padding: 16px 14px; }
+.tableau-formules thead th small { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 400; color: var(--sub); }
+.tableau-formules thead .c-fn, .tableau-formules tbody th[scope="row"] { position: sticky; left: 0; z-index: 1; text-align: left; background: var(--tile); box-shadow: 1px 0 0 var(--line); }
+.tableau-formules tbody th[scope="row"] { min-width: 230px; font-weight: 400; color: var(--body); line-height: 1.35; }
+.tableau-formules tbody th[scope="row"] em { font-style: normal; color: var(--sub); }
+.tableau-formules tr.cat th { text-align: left; padding: 10px 14px; font-size: 13px; font-weight: 600; color: var(--text); background: var(--card); }
+.tableau-formules .cat-t { display: inline-block; position: sticky; left: 14px; max-width: min(520px, calc(100vw - 96px)); white-space: normal; }
+.tableau-formules .cat-t small { display: block; font-weight: 400; color: var(--sub); }
+.tableau-formules td svg { display: inline-block; vertical-align: middle; color: var(--link); }
+.tableau-formules td { color: var(--sub); }
+.tableau-formules td.opt-cell { color: var(--link); font-weight: 600; white-space: nowrap; }
+.tableau-formules td.px { color: var(--text); font-weight: 600; }
+.tableau-formules tbody:last-child tr:last-child > * { border-bottom: 0; }
+@media (max-width: 560px) {
+  .tableau-formules { min-width: 480px; font-size: 13px; }
+  .tableau-formules th, .tableau-formules td { padding: 10px 8px; }
+  .tableau-formules tbody th[scope="row"], .tableau-formules thead .c-fn { min-width: 150px; max-width: 150px; }
+  .tableau-formules .cat-t { left: 8px; }
+}
+@media (pointer: coarse) {
+  .option .o-cta { padding: 12px 0; min-height: 44px; display: flex; align-items: center; justify-content: center; }
+  .formule .voir { display: inline-flex; align-items: center; min-height: 44px; }
+}
+
 /* questions */
 .faq { max-width: 1320px; margin: 0 auto; padding: clamp(60px,8vw,110px) 22px 20px; }
 .faq .liste { border-top: 1px solid var(--line); margin-top: 26px; }

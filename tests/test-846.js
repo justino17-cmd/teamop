@@ -273,6 +273,7 @@ console.log('\n══ 7. CE QUE GOOGLE ET LES RÉSEAUX LISENT — ET AUCUNE PROM
         est une décision à écrire, pas un passage tacite. On lit la page moins ses commentaires (un commentaire ne
         s'affiche pas), balises et scripts compris (les formules du paiement vivent dans un script). */
   const source = f => lire(f).replace(/<!--[\s\S]*?-->/g, ' ').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+  const source2 = h => h.replace(/<!--[\s\S]*?-->/g, ' ').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
   const INSTANT = /temps réel|instantané/i, tous = re => new RegExp(re.source, 'gi');
   const PERMIS = [
     ['applications.html', 'une seule conversation\u202f: chat en ',   // l'espace fine insécable du site, devant « : »
@@ -349,6 +350,29 @@ console.log('\n══ 7. CE QUE GOOGLE ET LES RÉSEAUX LISENT — ET AUCUNE PROM
   const fausses = [];
   for (const f of PUBLIQUES.concat('404.html')) { const s = source(f); for (const [re, nom] of FAUX) { const m = s.match(re); if (m) fausses.push(f + ' : ' + nom + ' — « …' + s.slice(Math.max(0, m.index - 40), m.index + m[0].length).replace(/\s+/g, ' ') + ' »'); } }
   v('⛔ aucune page publique ne promet ce que l\'application ne fait pas (population : ' + (PUBLIQUES.length + 1) + ' pages)', fausses, []);
+  /* ⛔ L'APERÇU AVEC LES OPTIONS DU PRO (1er octobre 2026) : les pages de la racine ne portent pas les phrases neuves (cartes
+     détaillées, options, tableau, FAQ de l'annuel, retouches des pages métier et fonction) — la boucle ci-dessus ne les lit donc
+     jamais. Elles sont soumises aux MÊMES motifs, sur le HTML que le générateur écrit dans l'aperçu : une promesse fausse ne passe
+     pas parce qu'elle n'est pas encore à la racine. */
+  {
+    const tousAper = CLES.map(c => [c, source2(GEN.page(c))]);
+    const fa = [];
+    for (const [c, sA] of tousAper) for (const [re, nom] of FAUX) { const m = sA.match(re); if (m) fa.push(c + ' (aperçu) : ' + nom + ' — « …' + sA.slice(Math.max(0, m.index - 40), m.index + m[0].length).replace(/\s+/g, ' ') + ' »'); }
+    v('⛔ aucune page de l\'aperçu (options du Pro comprises) ne promet ce que l\'application ne fait pas (population : ' + tousAper.length + ' pages)', fa, []);
+    const emplois = h => [...source2(h.slice(h.indexOf('<main>'), h.indexOf('</main>'))).matchAll(tous(INSTANT))].length;   // le corps : la tête de la racine (Open Graph) n\'est pas celle de l\'aperçu
+    v('⛔ « temps réel » / « instantané » : l\'aperçu en porte exactement autant que la racine, page par page (les emplois NOMMÉS de OP MESSAGES, aucun de plus)',
+      CLES.filter(c => emplois(GEN.page(c)) !== emplois(GEN.page(c, { racine: true }))), []);
+    const tA = source2(GEN.page('tarifs'));
+    vrai('   … et c\'est la même phrase nommée, dans le bloc d\'OP MESSAGES, ni dans les options ni dans le tableau', tA.indexOf('synchro en temps réel') > tA.indexOf('id="formules-msg"') && tA.indexOf('synchro en temps réel') < tA.indexOf('id="faq"'));
+    const neuf = (tA.match(/<div class="formules" id="formules-gestion"[\s\S]*?<div class="formules" id="formules-msg"/) || [''])[0];
+    v('   les cartes d\'OP GESTION, les options et le tableau n\'écrivent ni « 100 % des fonctions » ni « illimité » (population : ' + neuf.length + ' signes)', [neuf.length > 5000, /100\s*%\s+des fonctions|\billimit/i.test(neuf)], [true, false]);
+    v('   les pages métier et fonction de l\'aperçu : titre ≤ 60, description ≤ 155, un seul H1, 400 mots au moins, liens vers les tarifs et l\'inscription',
+      METIERS.concat(FONCTIONS).filter(c => { const h = GEN.page(c); const t = (h.match(/<title>([^<]*)<\/title>/) || [])[1] || '', d = dec((h.match(/<meta name="description" content="([^"]*)"/) || [])[1] || '');
+        const mots = dec(h.slice(h.indexOf('<main>'), h.indexOf('</main>')).replace(/<script[\s\S]*?<\/script>/g, ' ').replace(/<[^>]+>/g, ' ')).split(/\s+/).filter(Boolean).length;
+        return dec(t).length > 60 || d.length > 155 || h1Hors(h) !== 1 || mots < 400 || !/href="tarifs\.html"/.test(h) || !/\/espace\.html"/.test(h); }), []);
+    v('   la carte Pro des pages stock, bons et registre dit encore « Pas d… » (les options ne la rendent pas muette)',
+      ['logiciel-gestion-de-stock', 'logiciel-bons-de-commande', 'logiciel-registre-sanitaire'].filter(c => !/<div class="carte-v"><b>Pro<\/b>[\s\S]*?Pas d/.test(GEN.page(c))), []);
+  }
   vrai('   (population) les motifs reconnaissent les phrases d\'avant', [
     'Contrats d\'entretien à récurrence automatique', 'Passages planifiés et rappels d\'échéance', 'Chaque produit tracé, jusque dans le camion',
     'Contrats récurrents planifiés automatiquement', 'Chaque box / poste : produits', 'toute l\'équipe voit les mêmes données au même moment',
