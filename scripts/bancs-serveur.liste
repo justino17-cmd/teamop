@@ -48,7 +48,7 @@
 # 1er octobre 2026 : 3 546 (51 suites) avec `test-850` (les options du Pro, 133 vérifications) — plancher relevé à 3 330.
 # 1er octobre 2026, intégration : 3 577 (51 suites) — `test-850` à 150 vérifications (l'ajout d'option suit le cycle du Pro payé, `utiliser_ajout`,
 # « Mon espace » ne lit pas des options écrites par le client) — plancher relevé à 3 350.
-#plancher 3350
+#plancher 3370
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
