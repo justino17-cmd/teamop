@@ -102,7 +102,10 @@ Justin le même soir : retrouver ses contacts par numéro → **« Oui, comme Wh
 de liste ouverte) ; prestataire SMS → il a demandé « pourquoi c'est payant » : réponse donnée (chaque SMS est facturé par les
 opérateurs ; on limite à un SMS à l'inscription et sur un nouvel appareil), Justin : « Go, le faire — mais le but c'est qu'on
 gagne de l'argent » → **OVHcloud SMS**, en construction côté serveur (inscription par numéro, un SMS à l'inscription et sur un
-nouvel appareil seulement, pays et mobiles seuls, plafonds par numéro / réseau / jour, bouclier anti-fraude « SMS pumping »).
+nouvel appareil seulement, mobiles seuls, plafonds par numéro / réseau / jour, bouclier anti-fraude « SMS pumping »).
+Puis : **« je veux une connexion pour tous les pays, je veux voir plus que WhatsApp »** → TOUS les pays ouverts ; la protection
+passe du « où » au « combien » : table de prix par pays, budget en euros par jour (global et par pays), un pays qui s'emballe passe
+seul en bouclier. Proposé à Justin pour la suite : la connexion par clé d'accès (Face ID / empreinte) qui remplace le SMS.
 ✅ **Serveur d'OP MESSAGES, étape 1 FAITE sur la branche** (fusion `d70ba05`) : `server-msg/` (node:sqlite, scellé AES-256-GCM,
 SSE, porte bêta par la Tour en boucle locale, groupes, lu, saisie, présence), son installation (`install-msg.sh`, unité durcie,
 utilisateur `opmsg`), son déploiement (`.github/workflows/deploiement-messages.yml`, une clé SSH par instance) et le mode
