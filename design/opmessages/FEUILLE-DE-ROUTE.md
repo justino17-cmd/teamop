@@ -21,7 +21,20 @@ Ce qui coûte de l'argent à chaque usage (SMS, IA, stockage lourd) va dans Mess
 Gestes de Justin qui viendront : installer la bêta (`INSTALLER-LE-SERVEUR.md`), compte OVH SMS, ouverture des ports d'appel,
 choix du service de reconnaissance vocale, validation des textes juridiques.
 
-## Idées en plus, proposées le 1er octobre 2026 au soir (en attente du choix de Justin)
+## Idées en plus — Justin : « fait tout » (1er octobre 2026 au soir), rangées dans les lots
+
+| Idées | Lot | Note honnête |
+|---|---|---|
+| 13 boîte partagée, 14 lien/QR « Écrivez-nous », 15 réponses automatiques et accueil, 16 tableau du patron | D (avec les espaces Pro) | ce qui fait payer le Pro ; 14 donne à un client un contact d'entreprise sans compte Perso obligatoire (à cadrer : anti-spam) |
+| 17 résumé IA de ce qu'on a raté | E (avec traduction et transcription) | Pro ; sous-traitance IA écrite avant |
+| 18 message urgent | F | ⚠️ une application WEB ne peut PAS faire sonner un iPhone en silencieux (pas d'alerte critique hors application native) : on fait une notification prioritaire répétée jusqu'à lecture, plafonnée ; la vraie sonnerie en silencieux viendra avec une application des stores |
+| 19 conversations verrouillées par Face ID | B (avec les clés d'accès) | |
+| 20 sauvegarde automatique chez nous | déjà par construction (les messages vivent sur notre serveur, sauvegardés hors site : étape 3 du serveur) | à DIRE sur le site et dans l'appli : changer de téléphone ne perd rien |
+| 21 gros caractères et fort contraste | A (avec les langues : mêmes écrans repris) | règle aussi le défaut ouvert « le texte ne suit pas la taille du système » |
+| 22 envoi à l'heure du destinataire | C (avec les messages programmés) | |
+| 23 parrainage | D (avec le paiement Messages Pro) | un mois offert par Stripe (essai prolongé), jamais un code promo écrit dans une page servie |
+
+Liste d'origine :
 
 13. Boîte partagée pour les entreprises : plusieurs employés répondent aux clients depuis UN contact d'entreprise (Pro) ;
 14. lien et QR code « Écrivez-nous » pour les clients d'une entreprise, sans donner de numéro perso (Pro) ;
