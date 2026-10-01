@@ -275,7 +275,8 @@ OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/configurer-sms.js
 Il demande cinq valeurs : le nom du service, l'expéditeur, puis les trois clés (**masquées** : rien ne s'affiche pendant la frappe). Il **éprouve** les clés
 avant d'écrire (un appel signé qui ne coûte rien, aucun SMS) et dit tout de suite si la clé est fausse (« OVH refuse la signature »), si le droit manque
 (« 403 »), ou si le service n'existe pas (« 404 »). Il n'écrit le fichier qu'une fois tout validé, en gardant son propriétaire. **Ce qu'il affiche peut se
-recoller.** Puis :
+recoller.** (Il lit ta frappe caractère par caractère, sans jamais l'écrire à l'écran : même un retour arrière, une flèche ou un collage ne
+font rien paraître — vérifié sous un vrai terminal.) Puis :
 
 ```bash
 systemctl restart teamop-msg@beta
@@ -310,12 +311,16 @@ Valeurs par défaut du service (fichier `/etc/opmsg/beta.json`, bloc `sms`, vali
 | `budgetPays` | — | un pays à lui : `{"IN":{"jour":8,"heure":3}}` |
 | `prix` | grille OVH | un prix à corriger : `{"BR":0.09}` (en euros par SMS) |
 | `interdits` | — | des plages refusées d'office : `["+2519","+9919"]` |
-| `bouclier` | automatique, par pays en emballement | `{"pays":["IN"]}` force la preuve de travail pour un pays ; `{"global":true}` pour tous (urgence) |
+| `bouclier` | automatique, par pays en emballement **et dès 40 % du budget** | `{"pays":["IN"]}` force la preuve de travail pour un pays ; `{"global":true}` pour tous (urgence) |
+| `emballement.partBudget` | **0,4** | la part d'un budget (pays ou total, heure ou jour) à partir de laquelle la preuve de travail est exigée ; `1` = jamais |
+| `reserve` | **40 %** du budget global pour la France et ses départements | `{"part":0.4,"pays":["FR","RE"]}` : les autres pays n'en prennent que 60 % ; `{"part":0}` supprime la réserve |
 
 **Quand `/health` dit `budgetJourPct` ≥ 80** (ou que la surveillance crie) : regarde si c'est un vrai succès (beaucoup d'inscriptions) ou une attaque
 (un pays seul qui explose, `boucliers` ≥ 1). Un vrai succès se règle en **relevant `budgetPays` pays par pays** — jamais en relevant tout d'un coup.
 Une attaque se règle en **forçant le bouclier** du pays, ou en l'interdisant (`interdits`). Les gens qui tombent sur le budget voient « SMS
-momentanément indisponibles » : c'est le prix de la protection, et ça ne dure pas plus de 24 h.
+momentanément indisponibles » : c'est le prix de la protection, et ça ne dure pas plus de 24 h. Dès 40 % d'un budget, le service demande à chacun une
+**preuve de travail** (une seconde de calcul sur le téléphone, 5 s d'attente) : un attaquant la paie, une personne honnête la fait sans le savoir.
+Ce qui est « indisponible » pour les AUTRES pays (60 % du budget global) ne l'est pas pour la France (la réserve).
 ⚠️ Les défauts sont **prudents pour un lancement** : avec 3 € par pays, un pays comme l'Inde ou le Brésil ne laisse passer que quelques dizaines
 d'inscriptions par jour. **Dis-moi dans quels pays tu attends des gens** et je règle `budgetPays` en conséquence.
 

@@ -49,7 +49,8 @@ const { MIN, HEURE, JOUR } = TEL;
     vrai('⛔ le compte ne rend JAMAIS le numéro (ni dans la réponse, ni dans /api/moi)', !bon.txt.includes(chiffres(NUM).slice(2)) && !(await alice.get('/api/moi')).txt.includes(chiffres(NUM).slice(2)));
     const moi = await alice.get('/api/moi');
     v('la session est posée : GET /api/moi → 200, la même personne', [moi.code, moi.j.moi.id], [200, bon.j.moi.id]);
-    v('⛔ un code ne sert qu\'UNE fois : le même code rejoué (autre appareil) → 401', (await T.client(base, { xff: ip() }).post('/api/tel/verifier', { numero: NUM, code: code1, prenom: 'X' })).code, 401);
+    v('⛔ un code ne sert qu\'UNE fois : le même code rejoué DEPUIS LE MÊME APPAREIL (celui qui l\'a demandé : c\'est le seul cas où le lien à l\'appareil ne le refuse pas déjà) → 401', (await alice.post('/api/tel/verifier', { numero: NUM, code: code1, prenom: 'X' })).code, 401);
+    v('   et depuis un autre appareil aussi → 401', (await T.client(base, { xff: ip() }).post('/api/tel/verifier', { numero: NUM, code: code1, prenom: 'X' })).code, 401);
 
     console.log('\n── 914 · ⛔ MOINS DE SMS : session perdue, appareil connu → reconnexion SANS SMS ──');
     const jobsAvant = ovh.jobs.length;
