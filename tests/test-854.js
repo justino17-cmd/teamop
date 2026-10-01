@@ -158,6 +158,12 @@ const txt = h => String(h).replace(/<[^>]+>/g, '').replace(/ /g, ' ');
 
   console.log('\n4. La fiche (vraie `packPeindre` → `optsPeindre`, sur le balisage réel)');
   vrai('(population) le balisage porte le bloc, ses quatre cases et sa ligne d\'info', !!T0.E['abo-opts'] && !!T0.E['abo-opts-info'] && T0.cases().every(Boolean) && T0.E['abo-opts'].hidden === true);
+  /* le banc rejoue `onchange="optsSynchro()"` à la main (`regle`) : le BALISAGE de la fiche doit donc le porter vraiment, sur la formule ET sur le
+     statut, et poser le bloc des options dans la fiche (code de `vueDossier`, commentaires retirés) */
+  vrai('⛔ la formule et le statut de la fiche portent `onchange="optsSynchro()"` (sinon les cases ne suivent pas ce qu\'on choisit)',
+    /id="abo-f"[^\n]*onchange="optsSynchro\(\)"/.test(TOURN) && /id="abo-st"[^\n]*onchange="optsSynchro\(\)"/.test(TOURN));
+  vrai('⛔ la fiche pose le bloc des options sous la ligne de statut (`optsCasesHtml()` après `#pack-info`)', /id="pack-info" class="note">Chargement du statut…<\/div>'\+\s*optsCasesHtml\(\)\+/.test(TOURN));
+  vrai('⛔ `packPeindre` appelle `optsPeindre(d)` (code, commentaires retirés)', /optsPeindre\(d\);\s*\}\s*function tourPackPrefill/.test(TOURN));
   const F = tour();
   F.peindre({ formule: 'pro', quantite: 3, aboStatut: 'actif', paye: true, places: 3 });
   vrai('⛔ SERVEUR D\'AVANT (aucun champ d\'option) : le bloc reste CACHÉ — la Tour se tait', F.E['abo-opts'].hidden === true && F.E['abo-opts-info'].innerHTML === '', JSON.stringify(F.E['abo-opts']));
