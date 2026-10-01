@@ -8022,7 +8022,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '767-beta';
+const APP_VERSION = '768-beta';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -13055,6 +13055,7 @@ function espaceQuitter(){
   const P=STORE_KEY.split('_')[0]+'_';   // « elan_ » en production, « elanB_ » en bêta
   try{
     localStorage.removeItem(STORE_KEY);
+    localStorage.removeItem(STORE_KEY+'_opts');   // v768 : les options servies de l'entreprise quittée
     localStorage.removeItem(P+'vierge_v1');
     localStorage.setItem(P+'frais','1');
     ['anthropic_key','devis_code','sync_cfg','annuaire_cache','mail_lus','mail_supp','usage','espace_admin']
@@ -13784,8 +13785,8 @@ function showAside(){ return localStorage.getItem('elanB_aside')==='1'; }
    données conservées. Un « gratuit » resté dans une base d'avant se lit comme Pro, la formule d'entrée (`forfait()`) : il ne
    décide plus rien, c'est le serveur qui dit, à chaque ouverture, ce qui est payé. */
 const PLANS={
-  pro:{l:'Pro',prix:'15 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · rapports complets, récurrences, tournées optimisées, devis & factures'},
-  business:{l:'Business',prix:'25 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · + stock & box, bons fournisseurs, boîte mail, réglementaire, compta · votre logo dans l\'application'},
+  pro:{l:'Pro',prix:'15 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · rapports complets, récurrences, tournées optimisées, devis & factures · en option : stock, achats, compta, registre sanitaire'},
+  business:{l:'Business',prix:'25 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · + toutes les options du Pro comprises : stock & box, bons fournisseurs, boîte mail, réglementaire, compta · votre logo dans l\'application'},
   premium:{l:'Business Premium',prix:'50 € / mois par utilisateur',maxU:1,desc:'1 utilisateur par abonnement · accès 100 % à toutes les fonctions d\'OP GESTION · service 24h/24 · logo, nom & couleur de votre entreprise'}
 };
 /* ⛔ UN ABONNEMENT = UN UTILISATEUR, QUELLE QUE SOIT LA FORMULE — Justin, 27 septembre 2026 (le site et la page de
@@ -13837,7 +13838,7 @@ function setForfaitQty(d){ const q=Math.max(1,(db.forfaitQty||1)+d);
 const PLAN_BLOQUE={
   premium:[],
   business:[],
-  pro:['produits','stock','mouvements','boxes','conso','saisieConso','produitsDonnes','demandes','histoDemandes','validations','boiteMail','fournisseurs','bons','commandes','brouillon','registre','telecollecte','comptabilite','enveloppes']
+  pro:['produits','stock','mouvements','boxes','carteBox','saisieConso','produitsDonnes','demandes','histoDemandes','validations','boiteMail','fournisseurs','bons','commandes','brouillon','registre','telecollecte','comptabilite','enveloppes']
 };
 /* ══ LA SUSPENSION POUR IMPAYÉ ═══════════════════════════════════════════════════════════
    ⛔⛔ CE QUI EXISTAIT AVANT CE BLOC ÉTAIT PIRE QUE RIEN. Mesuré le 22 septembre 2026 sur un
@@ -13935,8 +13936,79 @@ function forfait(){
 /* ⛔ v767 — ET LA SUSPENSION PASSE PAR ICI : tout ce qui demande « cette rubrique est-elle ouverte ? » (le menu, la barre,
    la recherche, les notifications, le bouton « Créer ») la voit fermée, sauf les Paramètres. `horsSusp` : ce que la personne
    verrait sans la suspension — le menu grisé et la barre du bas le lisent, pour montrer ce qui reviendra au règlement. */
-function planBloque(k,horsSusp){ if(BETA_ESSAI) return false; if(!horsSusp&&suspensionBloque(k)) return true; return (PLAN_BLOQUE[forfait()]||[]).includes(k); }
+function planBloque(k,horsSusp){ if(BETA_ESSAI) return false; if(!horsSusp&&suspensionBloque(k)) return true; return (PLAN_BLOQUE[forfait()]||[]).includes(k)&&!optionOuvre(k); }
 function planOpMsg(){ return true; }        // OP MESSAGES : application indépendante — son propre abonnement se gère dans OP MESSAGES
+/* ═══ LES OPTIONS DU PRO (bêta v768, décision de Justin du 1er octobre 2026 : « Plus cher ») ═══════════════════════════════
+   Pro ouvre le cœur du métier ; Stock, Achats, Compta et Registre sanitaire s'y ajoutent À LA CARTE, par utilisateur et par
+   mois. Business et Business Premium les ont toutes (leur liste PLAN_BLOQUE est vide : rien à rouvrir).
+   ⛔ UNE OPTION NE DIT RIEN DE CE QUI EST PAYÉ. Le serveur sert `options` (un tableau de clés) dans la réponse « payé » de
+   /api/espaces/etat, et l'application s'en sert pour une seule chose : rouvrir des rubriques que PLAN_BLOQUE.pro ferme. Elle
+   n'ajoute aucune place (`planPlaces` ne les lit pas), ne lève aucune suspension (la suspension passe AVANT dans
+   `planBloque`), ne touche pas `db.forfait`. Et ça ne s'écrit PAS dans `db` : un état de facturation partirait à la synchro,
+   et une v767 (qui ne le connaît pas) et une v768 se renverraient deux valeurs sans fin — la raison de `_placesSrv` et de
+   `_susp`. Mémoire d'appareil + copie dans localStorage (`STORE_KEY+'_opts'`, rangée AVEC l'identifiant de l'entreprise : un
+   appareil qui change d'espace ne lit jamais les options de l'autre).
+   ⛔ UN CHAMP ABSENT N'EST PAS « AUCUNE OPTION ». Un serveur d'avant, un doute, une suspension, une réponse en panne : l'appareil
+   garde ce qu'il savait. Seul un tableau — même vide — remplace. Premier démarrage hors ligne : la copie du dernier état
+   connu sert, sinon un client qui a payé perdrait ses écrans au tunnel.
+   `sanitaire` ouvre `produits` (l'AMM d'un biocide se renseigne sur la fiche produit) et `registre` ; la rubrique reste en plus
+   soumise à `metierBloque` (3D seulement) : une option ne lève jamais le métier. Une clé de PLAN_BLOQUE.pro est ouverte si AU
+   MOINS UNE option servie la contient (`produits` est dans deux). Les prix sont ceux du serveur (`OPTIONS_PRIX_MOIS`) : une
+   grille, quatre copies, comparées par `tests/test-852.js`. */
+const OPTIONS_GESTION={
+  stock:{l:'Stock',prix:9,d:'Produits, stock, mouvements, box et leur carte, demandes et validations du DR.',vues:['produits','stock','mouvements','saisieConso','boxes','carteBox','produitsDonnes','demandes','histoDemandes','brouillon','validations']},
+  achats:{l:'Achats fournisseurs',prix:6,d:'Fournisseurs, bons de commande, commandes en cours, boîte mail.',vues:['fournisseurs','bons','commandes','boiteMail']},
+  compta:{l:'Encaissements et compta',prix:6,d:'Comptabilité, télécollecte, enveloppes d\'encaissement.',vues:['comptabilite','telecollecte','enveloppes']},
+  sanitaire:{l:'Registre sanitaire (métier 3D)',prix:6,metier3d:true,d:'Registre sanitaire, dossier sanitaire du client, n° AMM des produits.',vues:['registre','produits']}
+};
+var _optsSrv;                // les clés servies — SANS valeur ici : cette ligne s'exécute après `load()`, une valeur y effacerait ce qu'il a lu
+var _etatLuLe=0;             // l'heure de la dernière lecture réussie de l'état de facturation (relecture au retour sur l'application)
+function optionsCle(){ try{ return STORE_KEY+'_opts'; }catch(e){ return 'elanB_opts'; } }
+/* ce que le serveur dit, nettoyé : seules les clés CONNUES de cette version (une option neuve d'un serveur plus récent n'ouvre rien ici) */
+function optionsLire(l){ return Array.isArray(l)?Array.from(new Set(l.filter(c=>typeof c==='string'&&Object.prototype.hasOwnProperty.call(OPTIONS_GESTION,c)))).sort():[]; }
+function optionsCharger(){
+  try{ const v=JSON.parse(localStorage.getItem(optionsCle())||'null'), t=localStorage.getItem('elanB_sync_team')||'';
+    if(v&&typeof v==='object'&&t&&v.t===t) _optsSrv=optionsLire(v.o);
+  }catch(e){}
+}
+/* Appelée par la réponse « payé » du serveur — la SEULE écriture de `_optsSrv`. Un redessin seulement si la liste a changé. */
+function optionsPoser(l){
+  const av=(_optsSrv||[]).join('|'); _optsSrv=optionsLire(l);
+  try{ localStorage.setItem(optionsCle(),JSON.stringify({t:localStorage.getItem('elanB_sync_team')||'',o:_optsSrv})); }catch(e){}
+  if(av!==_optsSrv.join('|')){ try{ renderNav(); }catch(e){} try{ renderOnglets(); }catch(e){} try{ if(current) go(current); }catch(e){} }
+}
+function optionServie(c){ return (_optsSrv||[]).indexOf(c)>=0; }
+/* la rubrique `k` est-elle rouverte par une option servie ? */
+function optionOuvre(k){ return (_optsSrv||[]).some(c=>OPTIONS_GESTION[c]&&OPTIONS_GESTION[c].vues.indexOf(k)>=0); }
+/* les options qui ouvriraient la rubrique `k` (pour dire laquelle acheter) */
+function optionsDe(k){ return Object.keys(OPTIONS_GESTION).filter(c=>OPTIONS_GESTION[c].vues.indexOf(k)>=0); }
+/* ⛔ « RÉGLABLE DANS PERMISSIONS » SERAIT FAUX : aucune case ne rouvre ce que la FORMULE ferme. Ce que `go()` dit, pour la
+   première rubrique que la formule ferme — l'administrateur sait quoi acheter, les autres ne lisent pas un mot de paiement. */
+function formuleFermeMsg(){
+  for(let i=0;i<arguments.length;i++){ const k=arguments[i]; if(!k||!planBloque(k,true)) continue;
+    if(!currentUser||currentUser.role!=='admin') return '🔒 Cette rubrique n\'est pas incluse dans la formule de l\'entreprise';
+    const o=optionsDe(k).map(c=>'l\'option '+OPTIONS_GESTION[c].l+' (+'+OPTIONS_GESTION[c].prix+' € par utilisateur et par mois)');
+    return '🔒 Cette rubrique '+(o.length?'s\'ajoute avec '+o.join(' ou ')+' ou avec Business':'est incluse avec Business'); }
+  return ''; }
+/* l'état d'une option sur l'écran des Paramètres : servie ✓, ou « Ajouter » pour l'administrateur seul */
+function optionsCarteHtml(){
+  const f=forfait();
+  if(f!=='pro') return '<div class="pl-meta" style="margin-top:10px">✓ Toutes les options (stock, achats, compta, registre sanitaire) sont incluses dans '+esc(PLANS[f].l)+'.</div>';
+  const admin=!!currentUser&&currentUser.role==='admin';
+  const lignes=Object.entries(OPTIONS_GESTION).filter(([c,o])=>!(o.metier3d&&metierBloque('registre'))).map(([c,o])=>{ const on=BETA_ESSAI||optionServie(c);
+    return '<div class="pl-row" style="cursor:default"><div class="pl-info"><div class="pl-title">'+(on?'✓ ':'')+esc(o.l)+' <span style="color:var(--t3);font-weight:400;font-size:12px">· +'+o.prix+' € / mois par utilisateur</span></div>'
+      +'<div class="pl-meta">'+esc(o.d)+'</div></div>'+(on?'<span class="st st-green">'+(BETA_ESSAI?'Ouverte (bêta)':'Active')+'</span>':(admin?'<button class="btn sm" onclick="optionAjouter(\''+c+'\')">Ajouter</button>':''))+'</div>'; }).join('');
+  return '<div style="margin-top:12px"><div style="font-weight:700;font-size:13.5px;margin-bottom:4px">Options du Pro</div>'
+    +'<div style="font-size:12.5px;color:var(--t3);margin-bottom:6px">À la carte, par utilisateur et par mois — ou tout compris avec Business.</div>'+lignes+'</div>'; }
+/* « Ajouter » : la page de paiement, avec l'option pré-cochée. Pré-remplissage seulement — la page et le serveur ne croient rien
+   de l'adresse : tarif, quantité et droit d'ajouter viennent du serveur. */
+function optionAjouter(c){
+  if(!currentUser||currentUser.role!=='admin'){ toast('Seul l\'administrateur peut ajouter une option',4500); return; }
+  const o=OPTIONS_GESTION[c]; if(!o) return;
+  if(!BETA_ESSAI&&_susp.suspendu){ if(confirm('Abonnement en attente de règlement : règle-le d\'abord, les options reviennent avec lui.\n\nOuvrir l\'espace client ?')) window.open('https://teamop.fr/espace.html','_blank'); return; }
+  const n=Math.max(1,planPlaces());
+  if(confirm('Option « '+o.l+' » : +'+o.prix+' € TTC par utilisateur et par mois, pour les '+n+' abonnement'+(n>1?'s':'')+' Pro de l\'entreprise.\n\nElle s\'ouvre d\'elle-même à toute l\'équipe quelques minutes après le paiement (rouvre l\'application).\n\nOuvrir la page de paiement ?')) window.open('https://teamop.fr/recap-abonnement.html?formule=pro&options='+encodeURIComponent(c),'_blank'); }
+try{ optionsCharger(); }catch(e){}   // ICI et pas dans `load()` : `load()` s'exécute avant cette ligne, `OPTIONS_GESTION` y serait encore dans sa zone morte
 /* ── CODE PROMO ── on tape le code chez nous (pas sur la page de paiement) :
    la formule s'active pour X mois offerts, sans carte bancaire. Un rappel
    prévient avant la fin ; passé la date, sans abonnement, l'accès est suspendu
@@ -14033,6 +14105,7 @@ async function forfaitServeurSync(silencieux){
        se lisait `{}` : `suspensionPoser` en concluait « pas suspendue » et rouvrait l'accès. Toutes les réponses de la
        route portent `ok:true` — ce qui ne le porte pas n'est pas l'état de l'espace. */
     if(!r.ok||!j||j.ok!==true) return;
+    try{ _etatLuLe=Date.now(); }catch(e){}   // une réponse qui compte : la relecture au retour sur l'application part de là
     if(j&&j.ferme){
       /* L'entreprise a été fermée par TeamOP : cet appareil se vide et se déconnecte.
          Il retirait la base sans retirer le drapeau de vidage : au rechargement, le client à
@@ -14088,6 +14161,10 @@ async function forfaitServeurSync(silencieux){
       toast('🎉 '+PLANS[j.formule].l+(q>1?' ×'+q:'')+' débloqué — bonne gestion !');
     }
     try{ const b=document.getElementById('bandeau-formule'); if(b) b.remove(); }catch(e){}   // le bandeau d'une version d'avant
+    /* ⛔ LES OPTIONS DU PRO : lues ICI seulement — réponse PAYÉE, après la formule écrite (le redessin d'`optionsPoser` lit `forfait()`).
+       Un tableau remplace (même vide : Business et Premium les ont toutes) ; un champ absent, ou autre chose qu'un tableau, garde ce
+       que l'appareil savait. Jamais dans `db`, jamais dans `paye`, `quantite` ni `places`. */
+    try{ if(Array.isArray(j.options)) optionsPoser(j.options); }catch(e){}
     /* l'écran se redessine APRÈS la formule écrite, pas avant (`gardien`, M2) */
     if(placesAv!==_placesSrv&&(current==='parametres'||current==='utilisateurs')) try{ views[current](); }catch(e){}
     return true;
@@ -14097,7 +14174,7 @@ async function forfaitServeurSync(silencieux){
    client) puis revient : sans ce rappel, l'appareil ne relisait l'état qu'au lancement — la dette notée le 29 septembre 2026
    (« l'appareil, lui, ne relit qu'au lancement »). Une relecture quand l'application redevient visible, tant qu'elle est
    suspendue (ou en sursis), et seulement alors : le serveur relit Stripe à la minute pour un impayé. */
-try{ document.addEventListener('visibilitychange',()=>{ try{ if(document.visibilityState==='visible'&&db&&_susp.suspendu) forfaitServeurSync(true); }catch(e){} }); }catch(e){}
+try{ document.addEventListener('visibilitychange',()=>{ try{ if(document.visibilityState==='visible'&&db&&(_susp.suspendu||Date.now()-(_etatLuLe||0)>300000)) forfaitServeurSync(true); }catch(e){} }); }catch(e){}
 function setForfait(p){ if(!PLANS[p]) return; db.forfait=p; logEvent('Forfait choisi',PLANS[p].l,'auth'); save(); renderNav();
   try{ suiteRefresh(); }catch(e){}
   try{ avatarAccentSync(); }catch(e){}
@@ -16095,7 +16172,10 @@ function go(view){
     let item=null; NAV.forEach(s=>s.items.forEach(it=>{ if(it.k===cible) item=it; }));
     /* … et une sous-catégorie a AUSSI ses propres droits : « Produits donnés » est fermé au
        commercial et à la comptable par défaut (`defaultPerms`), même quand ils voient les Box. */
-    if((item && !canSee(item)) || (VUE_PARENT[view] && !userSeesModule(currentUser,view))){ view='dashboard'; try{ toast('🔒 Cette rubrique n\'est pas ouverte à ton compte (réglable dans Permissions)'); }catch(e){} }
+    /* ⛔ v768 — « réglable dans Permissions » est FAUX quand c'est la FORMULE qui ferme : aucune case ne rouvre une option non
+       souscrite. La rubrique demandée est retenue avant que `view` ne change, pour dire laquelle acheter (`formuleFermeMsg`). */
+    const demandee=view;
+    if((item && !canSee(item)) || (VUE_PARENT[view] && !userSeesModule(currentUser,view))){ view='dashboard'; try{ toast(formuleFermeMsg(cible,demandee)||'🔒 Cette rubrique n\'est pas ouverte à ton compte (réglable dans Permissions)'); }catch(e){} }
   }catch(e){} }
   closeModal();
   planPleinQuitteSiBesoin(view);
@@ -24836,7 +24916,7 @@ function ficheClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) return;
     ${(()=>{ const pp=c.prefPassage||{}; const hasPref=(pp.jours&&pp.jours.length)||pp.techId||(pp.creneau&&pp.creneau!=='indifferent')||pp.prevenir48||pp.appelerAvant;
       return hasPref?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;font-size:11px">${pp.jours&&pp.jours.length?`<span class="tag">📅 ${pp.jours.map(j=>['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'][j]).join(' · ')}</span>`:''}${pp.creneau&&pp.creneau!=='indifferent'?`<span class="tag">🕘 ${pp.creneau==='matin'?'Matin':pp.creneau==='apresmidi'?'Après-midi':'Heure fixe '+(pp.heureFixe||'')}</span>`:''}${pp.techId?`<span class="tag">👷 ${esc(techName(pp.techId))}</span>`:''}${pp.prevenir48?'<span class="tag">📧 Prévenir 48 h avant</span>':''}${pp.appelerAvant?'<span class="tag">📞 Appeler avant</span>':''}</div>`:''; })()}
     ${garSectionHtml(c.id)}
-    ${cliIsPro(c)?`<div style="background:var(--card2);border:1px solid var(--brd);border-radius:12px;padding:12px 14px;margin:10px 0">
+    ${cliIsPro(c)&&!planBloque('registre',true)?`<div style="background:var(--card2);border:1px solid var(--brd);border-radius:12px;padding:12px 14px;margin:10px 0">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="flex:1;font-size:13.5px">📕 Dossier sanitaire</b>
         <button class="btn sm" onclick="papDossierSanitaire('${c.id}')">Générer le dossier complet (PDF)</button></div>
       <div style="font-size:11.5px;color:var(--t3);margin-top:5px">Plan de lutte, relevés des 12 derniers passages, produits & n° AMM, Certibiocide des techniciens, courbe d'activité par zone, attestation de passage.</div>
@@ -26669,6 +26749,7 @@ views.stock=function(){
   renderStockList();
 };
 function stockExportBon(){
+  if(planBloque('bons',true)){ toast('Les bons de commande sont une option : Achats fournisseurs (ou Business)'); return; }   // v768 : Stock sans Achats
   let lines=stockLines().filter(l=>boxEtat(l.eff).k!=='enStock');
   const q=norm(stockSearch); if(q) lines=lines.filter(l=>norm((l.p.nom||'')+' '+(l.p.ref||'')+' '+(l.p.categorie||'')).includes(q));
   if(!lines.length){ toast('Rien à commander — tout est en stock 👍'); return; }
@@ -26687,8 +26768,8 @@ function renderStockList(){ const el=$('stock-list'); if(!el)return; let lines=s
   lines.sort((a,b)=>(a.p.nom||'').localeCompare(b.p.nom||''));
   if(!lines.length){ el.innerHTML=`<div class="card">${emptyState('🗃️',stockSearch?'Aucun résultat.':(stockageVisible()?'Aucun produit en stock — ni dans le stockage, ni dans les box. Un arrivage les fera entrer.':'Aucun produit en stock dans les box. Ouvre une box et ajoute des produits.'),'','')}</div>`; return; }
   const barreExport=stockFiltreManque?`<div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:14px 16px;margin-bottom:10px;border-left:3px solid var(--org)">
-    <span style="flex:1;min-width:180px;font-size:13.5px"><b>${lines.length} produit(s) à commander</b> — exporte-les en bon de commande, prêt à compléter.</span>
-    <button class="btn sm" onclick="stockExportBon()">🛒 Créer le bon de commande</button>
+    <span style="flex:1;min-width:180px;font-size:13.5px"><b>${lines.length} produit(s) à commander</b>${planBloque('bons',true)?'.':' — exporte-les en bon de commande, prêt à compléter.'}</span>
+    ${planBloque('bons',true)?'':'<button class="btn sm" onclick="stockExportBon()">🛒 Créer le bon de commande</button>'}
     <button class="btn ghost sm" onclick="stockFiltreManque=false;views.stock()">Voir tout</button></div>`:'';
   // Rangé par état : d'abord ce qui manque, puis ce qu'il faut commander, puis le reste
   const grp={epuise:[],aCommander:[],enStock:[]};
@@ -29927,7 +30008,7 @@ function validerDemande(id,statut){ if(!currentUser||!can('validerDR')){ toast('
     const bonId=uid();
     d.bonId=bonId;   // le fil ne se coupe plus : la demande suit son bon
     db.bons.push({id:bonId,demandeId:d.id,numero:num,date:todayISO(),fournisseurId:'',boxId:d.boxId||'',statut:'brouillon',faitPar:fullName(currentUser),notes:'Depuis demande '+d.num,lignes:(d.lignes||[]).map(l=>{const p=produit(l.produitId);return {produitId:l.produitId,reference:p.ref||'',designation:p.nom||'',categorie:p.categorie||'',cartons:0,upc:p.qteCarton||0,quantite:l.quantite,prixUnitaireHT:p.prix||0,tvaRate:20,commentaire:''};})});
-    logEvent('Demande validée',`${d.num} → bon de commande ${num}`,'demande',d.chefId); toast('Validée — bon de commande créé');
+    logEvent('Demande validée',`${d.num} → bon de commande ${num}`,'demande',d.chefId); toast(planBloque('bons',true)?'Validée':'Validée — bon de commande créé');
     delegationTracer(d,`Demande ${d.num} validée`);
     respBonsPrevenir(db.bons[db.bons.length-1],d);
   } else { logEvent('Demande refusée',`${d.num}`+(d.motifRefus?' — '+d.motifRefus:''),'demande',d.chefId); toast('Demande refusée');
@@ -29942,7 +30023,8 @@ function validerDemande(id,statut){ if(!currentUser||!can('validerDR')){ toast('
    personne. */
 function respBonsIds(){ return (db.users||[]).filter(u=>u&&u.actif!==false&&u.acces&&u.acces.caps&&u.acces.caps.respBons===true).map(u=>u.id); }
 function respBonsMoi(){ return !!(currentUser&&currentUser.acces&&currentUser.acces.caps&&currentUser.acces.caps.respBons===true); }
-function respBonsPrevenir(bon,d){ try{ const dest=respBonsIds().filter(id=>id!==(currentUser&&currentUser.id)); if(!dest.length) return;
+function respBonsPrevenir(bon,d){ try{ if(planBloque('bons',true)) return;   // v768 : Stock sans Achats — un lien vers `#v=bons` mènerait à une rubrique fermée
+  const dest=respBonsIds().filter(id=>id!==(currentUser&&currentUser.id)); if(!dest.length) return;
   pushNotify('🛒 Bon de commande à préparer',bonNum(bon)+' · '+(d.boxNom||boxLabel(d.boxId)||'')+' · demande de '+(d.chefNom||userName(d.chefId)||'')+', validée par '+fullName(currentUser),'/app.html#v=bons',dest); }catch(e){} }
 /* ⛔ LA PERSONNE QUI GÈRE LA BOX EST PRÉVENUE, MÊME SI ELLE NE VALIDE PAS.
    Demande de Justin, 8 septembre 2026 : « le DR reçoit une notification, il clique, il voit
@@ -30623,7 +30705,7 @@ function ficheBon(id,simple,retourBox){ const b=db.bons.find(x=>x.id===id); if(!
       <div><div class="dt-lbl">Fournisseur</div><div class="dt-val">${esc(fournName(b.fournisseurId)||b.fournisseur||'—')}</div></div>
       <div><div class="dt-lbl">Date</div><div class="dt-val">${fmtShort(b.date)}</div></div>
       <div><div class="dt-lbl">Fait par</div><div class="dt-val">${esc(b.faitPar)||'—'}</div></div>
-      ${b.boxId?`<div><div class="dt-lbl">Box concernée</div><div class="dt-val" style="cursor:pointer;color:var(--acc-txt)" onclick="closeModal();openBox('${b.boxId}')">📦 ${esc((db.boxes.find(x=>x.id===b.boxId)||{}).nom||(db.boxes.find(x=>x.id===b.boxId)||{}).numero||'Box')}</div></div>`:''}
+      ${b.boxId&&!planBloque('boxes',true)?`<div><div class="dt-lbl">Box concernée</div><div class="dt-val" style="cursor:pointer;color:var(--acc-txt)" onclick="closeModal();openBox('${b.boxId}')">📦 ${esc((db.boxes.find(x=>x.id===b.boxId)||{}).nom||(db.boxes.find(x=>x.id===b.boxId)||{}).numero||'Box')}</div></div>`:''}
       ${liv?`<div style="grid-column:1/-1"><div class="dt-lbl">Livraison</div><div class="dt-val">${esc(b.nomSiteLivraison?b.nomSiteLivraison+' — ':'')}${esc(liv)}</div></div>`:''}</div>
     <div class="tbl-wrap" style="margin-top:14px"><table class="tbl"><thead><tr><th>Réf</th><th>Désignation</th><th>Quantité</th></tr></thead><tbody>
       ${(b.lignes||[]).map(l=>`<tr><td class="mono">${esc(l.reference)||'—'}</td><td class="strong">${esc(l.designation)}${l.commentaire?`<div style="font-size:11.5px;font-weight:400;color:var(--t3)">💬 ${esc(l.commentaire)}</div>`:''}</td><td style="white-space:nowrap">${esc(bonQteTxt(l))}</td></tr>`).join('')}
@@ -30631,8 +30713,9 @@ function ficheBon(id,simple,retourBox){ const b=db.bons.find(x=>x.id===id); if(!
     <div style="text-align:right;margin-top:12px;font-size:14px;color:var(--t2)">${(b.lignes||[]).length} article(s) · <b style="color:var(--acc-txt);font-size:16px">${bonQteTotTxt(b)}</b></div>
     ${b.notes?`<div class="detail-desc">${esc(b.notes)}</div>`:''}
     ${b.arrivage?`<div class="form-sec">Réception du ${fmtShort(b.arrivage.date)}${b.arrivage.par?' · '+esc(b.arrivage.par):''}</div><div class="detail-desc" style="margin-top:6px">${b.arrivage.conforme?'Livraison conforme.':'Écart de livraison.'}${b.arrivage.notes?'<br>'+esc(b.arrivage.notes):''}</div>${(b.arrivage.lignes||[]).some(l=>l.qteRecue!==l.qteCommandee)?`<div class="tbl-wrap" style="margin-top:8px"><table class="tbl"><thead><tr><th>Désignation</th><th>Commandé</th><th>Reçu</th></tr></thead><tbody>${b.arrivage.lignes.map(l=>`<tr><td>${esc(l.designation)}</td><td>${l.qteCommandee}</td><td style="color:${l.qteRecue===l.qteCommandee?'var(--acc-txt)':'var(--red)'}">${l.qteRecue}</td></tr>`).join('')}</tbody></table></div>`:''}`:''}
-    ${(b.statut==='envoyee'||b.statut==='enLivraison')?`<div class="detail-desc" style="margin-top:12px">📦 <b>Pour la réceptionner :</b> ouvre la box <b>${esc(boxLabel(b.boxId)||'concernée')}</b> et touche <b>Arrivage</b>. Cette commande y sera proposée, avec ses quantités préremplies — et c'est là qu'on prend la photo du bon de livraison. <b>Reçu moins que prévu ?</b> Mets le vrai nombre : le bon restera ouvert pour le reste.</div>`:''}
-    ${b.statut==='partielle'?`<div class="detail-desc" style="margin-top:12px">📦 <b>Livraison partielle.</b> Il reste dû : <b>${esc(bonResteTxt(b))}</b>. Relance le fournisseur, et quand le complément arrive, ouvre la box <b>${esc(boxLabel(b.boxId)||'concernée')}</b> → <b>Arrivage</b> : cette commande y sera proposée, préremplie avec ce qui manque.</div>`:''}
+    ${(b.statut==='envoyee'||b.statut==='enLivraison'||b.statut==='partielle')&&planBloque('boxes',true)?`<div class="detail-desc" style="margin-top:12px">📦 <b>Commande reçue ?</b> Sans l'option Stock, la réception ne touche à aucun stock : elle note seulement la date et qui l'a reçue.<div style="margin-top:8px"><button type="button" class="btn sm" onclick="bonMarquerRecue('${b.id}')">✓ Marquer reçue</button></div></div>`:''}
+    ${(b.statut==='envoyee'||b.statut==='enLivraison')&&!planBloque('boxes',true)?`<div class="detail-desc" style="margin-top:12px">📦 <b>Pour la réceptionner :</b> ouvre la box <b>${esc(boxLabel(b.boxId)||'concernée')}</b> et touche <b>Arrivage</b>. Cette commande y sera proposée, avec ses quantités préremplies — et c'est là qu'on prend la photo du bon de livraison. <b>Reçu moins que prévu ?</b> Mets le vrai nombre : le bon restera ouvert pour le reste.</div>`:''}
+    ${b.statut==='partielle'&&!planBloque('boxes',true)?`<div class="detail-desc" style="margin-top:12px">📦 <b>Livraison partielle.</b> Il reste dû : <b>${esc(bonResteTxt(b))}</b>. Relance le fournisseur, et quand le complément arrive, ouvre la box <b>${esc(boxLabel(b.boxId)||'concernée')}</b> → <b>Arrivage</b> : cette commande y sera proposée, préremplie avec ce qui manque.</div>`:''}
     ${(()=>{ /* La comparaison reste consultable APRÈS la validation : le mouvement garde son
          statut au lieu d'être effacé, donc le bon peut toujours dire ce qui est arrivé. */
       const mv=(db.boxMvtAttente||[]).filter(m=>m.bcId===b.id).sort((x,y)=>(y.ts||0)-(x.ts||0))[0];
@@ -30656,11 +30739,11 @@ function formBon(id){ if(!peutCommander()){ refusCommander(); return; } const b=
              d'office comme avant — on peut juste en ajouter une autre depuis le bon. */
           return `<div class="frow"><span class="frow-lbl">Société (en-tête)</span><div class="frow-val"><select name="societe" onchange="bonSocietePick(this)"><option value="">${esc(bcEntete())} — en-tête par défaut</option>${socs.map(s=>`<option value="${esc(s)}" ${cur===s?'selected':''}>${esc(s)}</option>`).join('')}<option value="__creer">＋ Nouvelle société…</option></select></div></div>`; })()}
         <div class="frow"><span class="frow-lbl">Fournisseur</span><div class="frow-val" style="display:flex;gap:6px;align-items:center"><select name="fournisseurId" style="flex:1;min-width:0" onchange="bonTotRefresh()"><option value="">— Auto (selon les produits) —</option>${db.fournisseurs.map(f=>`<option value="${f.id}" ${f.id===b.fournisseurId?'selected':''}>${esc(f.nom)}</option>`).join('')}</select>${canCat('com','modifier')?`<button type="button" class="btn ghost sm" title="Modifier les infos du fournisseur (e-mail…)" onclick="bonFourEdit()">✎</button>`:''}<button type="button" class="btn ghost sm" title="Créer un nouveau fournisseur" onclick="bonFourNew()">＋</button></div></div>
-        <div class="frow"><span class="frow-lbl">Box concernée</span><div class="frow-val"><select name="boxId" onchange="bonBoxPick(this.value)"><option value="">— Aucune —</option>${(()=>{
+        ${planBloque('boxes',true)?`<input type="hidden" name="boxId" value="${esc(b.boxId||'')}">`:`<div class="frow"><span class="frow-lbl">Box concernée</span><div class="frow-val"><select name="boxId" onchange="bonBoxPick(this.value)"><option value="">— Aucune —</option>${(()=>{
           /* la box déjà liée reste proposée même hors de mon périmètre (v622) ou désactivée : sinon le
              sélecteur retombe sur « Aucune » et la première sauvegarde, même d'une simple note, détache la box en silence */
           const opts=visibleBoxes(db.boxes).filter(x=>x.actif!==false); const liee=b.boxId&&!opts.some(x=>x.id===b.boxId)?(db.boxes||[]).find(x=>x.id===b.boxId):null; if(liee) opts.unshift(liee);
-          return opts.map(x=>`<option value="${x.id}" ${x.id===b.boxId?'selected':''}>${esc(x.numero||'')}${x.numero&&x.nom?' — ':''}${esc(x.nom||'')}${x===liee?(x.actif===false?' (désactivée)':' (hors de mon périmètre)'):''}</option>`).join(''); })()}</select></div></div>
+          return opts.map(x=>`<option value="${x.id}" ${x.id===b.boxId?'selected':''}>${esc(x.numero||'')}${x.numero&&x.nom?' — ':''}${esc(x.nom||'')}${x===liee?(x.actif===false?' (désactivée)':' (hors de mon périmètre)'):''}</option>`).join(''); })()}</select></div></div>`}
         <div class="frow"><span class="frow-lbl">Statut</span><div class="frow-val"><select name="statut">${Object.entries(STATBC).map(([k,v])=>`<option value="${k}" ${(b.statut||'prete')===k?'selected':''}>${v.l}</option>`).join('')}</select></div></div>
       </div>
       <div class="form-sec" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">Articles (<span id="bon-lignes-count"></span>)<span style="flex:1"></span><button type="button" class="btn ghost sm" onclick="bonQtyOpen()">📋 Tableau</button><button type="button" class="btn sm" onclick="bonCatOpen()">📖 Catalogue</button></div>
@@ -31119,6 +31202,19 @@ function bonRecu(id){ const b=db.bons.find(x=>x.id===id);
     else{ p.qte=(p.qte||0)+q; db.mouvements.unshift({id:uid(),ts:Date.now(),produitId:p.id,type:'entree',qte:q,motif:'Réception '+bonNum(b),vehiculeId:''}); } } } });
   logEvent('Commande réceptionnée',bonNum(b),'commande'); save(); toast('Réceptionné — stock mis à jour'); go(current);
 }
+/* ⛔ v768 — ACHATS SANS STOCK : « ✓ MARQUER REÇUE » NE TOUCHE À AUCUN STOCK. La réception d'une commande n'existait que par
+   « Arrivage » sur une box (`bonReception` renvoie vers elle) : sans l'option Stock, les bons ne sortaient jamais de « Commandes
+   en cours ». Ce geste-ci note la livraison — date, personne — et rien d'autre : ni `bonRecu` (il écrit un mouvement et
+   incrémente), ni une box. Avec l'option Stock il se refuse : la réception passe alors par l'arrivage, qui compte le stock. */
+function bonMarquerRecue(id){ if(!peutCommander()){ refusCommander(); return; }
+  const b=db.bons.find(x=>x.id===id);
+  if(!b){ toast('Ce bon n’existe plus — la liste vient d’être mise à jour'); return; }
+  if(!planBloque('boxes',true)){ toast('La réception passe par « Arrivage » sur la box — c\'est là que le stock est compté',5000); return; }
+  if(b.statut!=='envoyee'&&b.statut!=='enLivraison'&&b.statut!=='partielle'){ toast('Ce bon n\'est pas en attente de livraison'); return; }
+  b.statut='livree'; b.recuLe=todayISO(); b.recuPar=fullName(currentUser);
+  b.arrivage={date:todayISO(),par:fullName(currentUser),conforme:true,notes:'Réception notée sans mouvement de stock (option Stock non souscrite).',lignes:[]};
+  logEvent('Commande réceptionnée',bonNum(b)+' — sans mouvement de stock','commande'); save();
+  toast('✓ Commande marquée reçue — aucun stock touché'); closeModal(); go(current); }
 /* ── Réception détaillée (Arrivage) : contrôle des quantités reçues ── */
 let recLignes=[];
 /* ⛔ ANCIEN CHEMIN DE RÉCEPTION — PLUS AUCUN BOUTON N'Y MÈNE (8 septembre 2026).
@@ -31741,7 +31837,9 @@ views.commandes=function(){
   const list=visibleBons(db.bons).filter(b=>['envoyee','enLivraison','arrivageNote','partielle'].includes(b.statut));   // ses box seulement (sauf « voir tout »)
   /* Dire où va la suite : une commande reçue quitte cet écran, et sans un mot personne ne sait
      où la retrouver — on croit l'avoir perdue. */
-  const pied=`<div style="font-size:12.5px;color:var(--t3);margin:14px 2px 0;line-height:1.6">📄 Une commande <b>reçue</b> quitte cette liste : on la retrouve sur la <b>fiche de sa box</b> (« Commandes passées »), avec son PDF, et dans <b>Bons de commande</b>. Rien n'est effacé.</div>`;
+  const pied=planBloque('boxes',true)
+    ? `<div style="font-size:12.5px;color:var(--t3);margin:14px 2px 0;line-height:1.6">📄 Une commande <b>reçue</b> quitte cette liste : on la retrouve dans <b>Bons de commande</b>, avec son PDF. Rien n'est effacé.</div>`
+    : `<div style="font-size:12.5px;color:var(--t3);margin:14px 2px 0;line-height:1.6">📄 Une commande <b>reçue</b> quitte cette liste : on la retrouve sur la <b>fiche de sa box</b> (« Commandes passées »), avec son PDF, et dans <b>Bons de commande</b>. Rien n'est effacé.</div>`;
   $('content').innerHTML=(list.length? list.map(b=>{
     /* Entre l'envoi et l'arrivage, une commande est EN COURS DE LIVRAISON — et tant que
        personne n'a noté l'arrivage, elle y reste. « Envoyée » seul laissait croire que le
@@ -31753,7 +31851,7 @@ views.commandes=function(){
        c'est la seule information qui permet de relancer le fournisseur. */
     const manque=b.statut==='partielle'?` · <b style="color:var(--org)">reste dû : ${esc(bonResteTxt(b))}</b>`:'';
     const suivi=enRoute+manque+(b.recuPar?` · reçu le ${fmtShort(b.recuLe)} par ${esc(b.recuPar)}`:'')+(b.valideDrNom?` · validé par ${esc(b.valideDrNom)}`:'');
-    return `<div class="pl-row" onclick="ficheBon('${b.id}')"><div class="pl-info"><div class="pl-title">${esc(fournName(b.fournisseurId)||b.fournisseur||'Fournisseur')} · ${(b.lignes||[]).length} article(s)</div><div class="pl-meta">${esc(bonNum(b))} · ${bonQteTotTxt(b)}${suivi}</div></div>${b.statut==='arrivageNote'?'<span class="st st-purple">📦 Arrivée — attente DR</span>':badge(STATBC,b.statut)}${currentUser&&currentUser.role==='admin'?`<button type="button" class="dos-x" onclick="event.stopPropagation();cmdEnCoursSuppr('${b.id}')" title="Supprimer définitivement" aria-label="Supprimer cette commande">🗑</button>`:''}</div>`;}).join('') : emptyState('📥','Aucune commande en cours.','',''))+pied;
+    return `<div class="pl-row" onclick="ficheBon('${b.id}')"><div class="pl-info"><div class="pl-title">${esc(fournName(b.fournisseurId)||b.fournisseur||'Fournisseur')} · ${(b.lignes||[]).length} article(s)</div><div class="pl-meta">${esc(bonNum(b))} · ${bonQteTotTxt(b)}${suivi}</div></div>${b.statut==='arrivageNote'?'<span class="st st-purple">📦 Arrivée — attente DR</span>':badge(STATBC,b.statut)}${planBloque('boxes',true)&&peutCommander()&&['envoyee','enLivraison','partielle'].includes(b.statut)?`<button type="button" class="btn sm" onclick="event.stopPropagation();bonMarquerRecue('${b.id}')">✓ Marquer reçue</button>`:''}${currentUser&&currentUser.role==='admin'?`<button type="button" class="dos-x" onclick="event.stopPropagation();cmdEnCoursSuppr('${b.id}')" title="Supprimer définitivement" aria-label="Supprimer cette commande">🗑</button>`:''}</div>`;}).join('') : emptyState('📥','Aucune commande en cours.','',''))+pied;
 };
 
 /* ═══════════════ VÉHICULES (fiche complète : carte grise, assurance, conducteur — modèle ELAN) ═══════════════ */
@@ -32759,7 +32857,7 @@ function journalGo(id){ const j=db.journal.find(x=>x.id===id); if(!j) return;
      « 10 » se trouve dans n'importe quelle date. Et l'ouverture déduite ne pose rien (sansAuto) —
      relire l'historique ne modifie pas une box. */
   const motEntier=(mot)=>{ const k=norm(mot); return k.length>=3&&new RegExp('(^|[^a-z0-9])'+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^a-z0-9]|$)').test(dn); };
-  m=visibleBoxes(db.boxes).find(x=>(x.nom&&x.nom.length>2&&dn.includes(norm(x.nom)))||(x.numero&&motEntier(String(x.numero))));
+  m=planBloque('boxes',true)?null:visibleBoxes(db.boxes).find(x=>(x.nom&&x.nom.length>2&&dn.includes(norm(x.nom)))||(x.numero&&motEntier(String(x.numero))));   // v768 : sans l'option Stock, pas d'`openBox` (il ne passe pas par `go()`)
   if(m){ openBox(m.id,{sansAuto:true}); return; }
   m=db.produits.find(x=>x.nom&&x.nom.length>3&&dn.includes(norm(x.nom)));
   if(m){ go('produits'); setTimeout(()=>{ try{ prdSearch=m.nom; views.produits(); }catch(e){} },60); return; }
@@ -33138,6 +33236,10 @@ const profilNomSw=k=>(String(k).indexOf('cat_')===0?k:('cap_'+k));
    data-val-force) se lit à sa valeur PROPRE, pas à l'interrupteur verrouillé : l'ouverture d'office
    n'est pas une décision, et l'écrire la ferait survivre à la case qui la donne. */
 function usrMenuLu(zone,k){ const c=zone.querySelector('[data-d="mod_'+k+'"]'); if(!c) return null;
+  /* ⛔ v768 — UN MODULE QUE LA FORMULE FERME N'EST PAS UN RÉGLAGE : l'interrupteur s'y affiche décoché (`userSeesModule`), et
+     l'enregistrer écrivait `false` en dur chez la personne — l'option achetée plus tard resterait fermée pour tous les comptes
+     enregistrés sous Pro (`moduleReglage` lit ce `false` explicite). Rien n'est écrit : la valeur d'avant reste (ou l'absence). */
+  if(planBloque(k,true)) return null;
   if(c.dataset&&c.dataset.valForce==='1') return c.dataset.valAv==='1';
   return !!c.checked; }
 function profilLireZone(zone){
@@ -34260,7 +34362,7 @@ views.parametres=function(){
       </div>
       <p style="color:var(--t3);font-size:11.5px;margin-top:9px">Tout ce qui est créé est marqué « démonstration » : le bouton de retrait n'efface que ça, jamais tes vraies données. (Visible uniquement par l'équipe TEAM OP.)</p>
     </div>`:''}
-    ${currentUser.role==='admin'?`<div class="card"><div class="card-head"><h3>🔒 Contrôle des mouvements de stock</h3></div>
+    ${currentUser.role==='admin'&&!planBloque('mouvements',true)?`<div class="card"><div class="card-head"><h3>🔒 Contrôle des mouvements de stock</h3></div>
       <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:12px">Jusqu'ici, la validation du DR se cochait <b>fiche par fiche</b>. Il suffisait d'oublier la case en créant un compte pour qu'un mouvement de stock parte sans contrôle — et personne ne s'en apercevait. Un contrôle qu'on peut oublier n'est pas un contrôle.</p>
       <label class="frow" style="cursor:pointer"><span class="frow-lbl">Toute sortie de stock passe par le DR</span>
         <span class="frow-val"><label class="switch"><input type="checkbox" ${db.validDRTous?'checked':''} onchange="validDRTousSet(this.checked)"><span class="track"></span><span class="knob"></span></label></span></label>
@@ -34331,6 +34433,7 @@ views.parametres=function(){
         <div class="pl-info"><div class="pl-title">${forfait()===k?'✓ ':''}${p.l} <span style="color:var(--t3);font-weight:400;font-size:12px">· ${p.prix}</span></div>
         <div class="pl-meta">${p.desc}</div></div>
         ${forfait()===k?(accesSuspendu()?'<span class="st st-org">Suspendue</span>':'<span class="st st-green">Active</span>'):(equipeTeamOP()?'<span style="color:var(--t3)">Choisir ›</span>':'')}</div>`).join('')}
+      ${optionsCarteHtml()}
       ${db.forfaitEssai&&!db.forfaitEssai.termine?`<div style="margin-top:10px;background:color-mix(in srgb,var(--acc) 10%,transparent);border:1px solid color-mix(in srgb,var(--acc) 35%,transparent);border-radius:12px;padding:11px 13px;font-size:13px;line-height:1.5">🎁 <b>${db.forfaitEssai.mois} mois offert(s)</b> (code ${esc(db.forfaitEssai.code)}) — ${PLANS[db.forfaitEssai.formule]?PLANS[db.forfaitEssai.formule].l:''} actif jusqu'au <b>${fmtShort(db.forfaitEssai.finLe)}</b>, sans carte enregistrée. Un rappel te préviendra avant la fin.</div>`:''}
       <div class="fgroup" style="margin-top:10px"><div class="frow"><span class="frow-lbl">🎁 Code promo</span><div class="frow-val" style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
         ${db.forfaitEssai&&!db.forfaitEssai.termine
@@ -34365,7 +34468,7 @@ views.parametres=function(){
       <p style="color:var(--t3);font-size:13px;margin-bottom:10px">Ajoutez des champs sur-mesure aux rapports d'intervention (texte, nombre, oui/non, liste, ou tableau).</p>
       ${(db.champsPerso||[]).length? (db.champsPerso||[]).map(f=>`<div class="perm-row"><div class="pn">${esc(f.label)} <span class="tag">${CHAMP_TYPES[f.type]||f.type}</span>${f.options?` <span style="color:var(--t3);font-size:12px">(${f.options.map(esc).join(', ')})</span>`:''}${f.colonnes?` <span style="color:var(--t3);font-size:12px">[${f.colonnes.map(esc).join(', ')}]</span>`:''}</div><button class="btn danger sm" onclick="delItem('champsPerso','${f.id}')">🗑</button></div>`).join('') : '<div style="color:var(--t3);font-size:13px">Aucun champ personnalisé.</div>'}
     </div>`:''}
-    ${isFinanceMgr()?`<div class="card"><div class="card-head"><h3>Comptabilité</h3></div>
+    ${isFinanceMgr()&&!planBloque('comptabilite',true)?`<div class="card"><div class="card-head"><h3>Comptabilité</h3></div>
       <p style="color:var(--t2);font-size:14px;line-height:1.6">Tout est <b>centralisé automatiquement</b> dans la <b>Comptabilité</b> : dès qu'un technicien fait sa télécollecte, elle y apparaît et le responsable est notifié — <b>aucun email</b> à configurer.</p>
       <button class="btn ghost sm" style="margin-top:10px" onclick="go('comptabilite')">Ouvrir la Comptabilité →</button></div>`:''}
     <div class="card"><div class="card-head"><h3>Sécurité</h3></div>
@@ -34587,9 +34690,13 @@ const RAZ_LIGNES=[
    n:()=>(db.journal||[]).length}
 ];
 let _razChoix={};
+/* ⛔ v768 — UNE LIGNE QUE LA FORMULE FERME N'EST NI MONTRÉE NI APPLIQUÉE : « Stock & commandes » effaçait, par défaut, des données
+   qu'un Pro sans l'option Stock ne voit nulle part. `m` : la rubrique qui porte la ligne. */
+const RAZ_RUBRIQUE={stock:'stock',mouv:'mouvements',attente:'demandes',bons:'bons'};
+const razLignes=()=>RAZ_LIGNES.filter(l=>!(RAZ_RUBRIQUE[l.k]&&planBloque(RAZ_RUBRIQUE[l.k],true)));
 function remiseZero(){
   if(!currentUser||currentUser.role!=='admin'){ toast('Réservé aux administrateurs'); return; }
-  RAZ_LIGNES.forEach(l=>{ if(_razChoix[l.k]===undefined) _razChoix[l.k]=!!l.defaut; });
+  razLignes().forEach(l=>{ if(_razChoix[l.k]===undefined) _razChoix[l.k]=!!l.defaut; });
   const mail=((currentUser.email||'').trim());
   openModal(`<div class="modal-head"><h3>↻ Repartir sur une base propre</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="card" style="border-color:color-mix(in srgb,var(--acc) 40%,transparent);background:color-mix(in srgb,var(--acc) 6%,transparent);margin-bottom:12px">
@@ -34610,12 +34717,12 @@ function remiseZero(){
    c'est exactement le premier. Le second est la table rase, protections comprises. */
 function razPreset(quoi){
   var stock={stock:1,mouv:1,attente:1,bons:1,journal:1,inter:0,clients:0,vente:0};
-  RAZ_LIGNES.forEach(function(l){ _razChoix[l.k]=(quoi==='tout')?1:!!stock[l.k]; });
+  razLignes().forEach(function(l){ _razChoix[l.k]=(quoi==='tout')?1:!!stock[l.k]; });
   var el=$('raz-list'); if(el) el.innerHTML=razLignesHtml();
   toast(quoi==='tout'?'Tout est coché — relis avant de continuer':'Stock et commandes cochés');
 }
 function razLignesHtml(){
-  return RAZ_LIGNES.map(l=>{ const n=(()=>{ try{ return l.n(); }catch(e){ return 0; } })();
+  return razLignes().map(l=>{ const n=(()=>{ try{ return l.n(); }catch(e){ return 0; } })();
     const on=!!_razChoix[l.k];
     return `<label style="display:flex;gap:11px;align-items:flex-start;padding:11px 12px;border:1px solid ${on?'color-mix(in srgb,var(--org,#e8a33d) 45%,transparent)':'var(--brd)'};border-radius:12px;margin-bottom:8px;cursor:pointer;background:${on?'color-mix(in srgb,var(--org,#e8a33d) 7%,transparent)':'transparent'}">
       <input type="checkbox" ${on?'checked':''} onchange="razCocher('${l.k}',this.checked)" style="width:20px;height:20px;flex-shrink:0;margin-top:1px">
@@ -34626,7 +34733,7 @@ function razLignesHtml(){
 }
 function razCocher(k,v){ _razChoix[k]=!!v; const el=$('raz-list'); if(el) el.innerHTML=razLignesHtml(); }
 function razSuite(mail){
-  const choisis=RAZ_LIGNES.filter(l=>_razChoix[l.k]);
+  const choisis=razLignes().filter(l=>_razChoix[l.k]);
   if(!choisis.length){ toast('Coche au moins une ligne'); return; }
   const total=choisis.reduce((t,l)=>{ try{ return t+l.n(); }catch(e){ return t; } },0);
   if(!total){ toast('Ces lignes sont déjà vides — il n\'y a rien à remettre à zéro'); return; }
@@ -34665,7 +34772,8 @@ function razMot(){ const w=(($('raz-mot')||{}).value||'').trim().toUpperCase().r
 function razAppliquer(){
   /* La sauvegarde AVANT tout le reste : si le téléchargement échoue, on n'a rien effacé. */
   try{ exportData(); }catch(e){ toast('⚠️ Sauvegarde impossible — rien n\'a été effacé'); return; }
-  const c=_razChoix, faits=[];
+  const c=Object.assign({},_razChoix), faits=[];
+  RAZ_LIGNES.forEach(l=>{ if(!razLignes().includes(l)) c[l.k]=false; });   // une ligne cochée avant un changement de formule ne s'applique pas
   if(c.stock){ (db.boxes||[]).forEach(b=>{ Object.keys(b.stock||{}).forEach(pid=>{ b.stock[pid]={ctn:0,u:0}; }); }); faits.push('stock des box'); }
   if(c.mouv){ db.mouvements=[]; db.produitsDonnes=[]; faits.push('mouvements'); }
   if(c.attente){ (db.boxes||[]).forEach(b=>{ b.arrivages=[]; }); db.demandes=[]; db.boxMvtAttente=[]; db.brouillons=[]; faits.push('arrivages et validations en attente'); }
@@ -38679,7 +38787,11 @@ function saveNotifSeen(){ localStorage.setItem(notifSeenCle(), JSON.stringify(Ob
 /* Chacun ne voit QUE les notifications qui le concernent : ses box (assignées, dont il est responsable,
    ou visibles par tous) et les modules auxquels il a accès — jamais celles des autres services ni des
    autres box. En cas de doute (erreur), on ne montre PAS. */
-function notifVoitModule(k){ try{ if(!currentUser) return false; if(currentUser.role==='admin') return true; return !!userSeesModule(currentUser,k); }catch(e){ return false; } }
+/* ⛔ v768 — L'ADMINISTRATEUR NE COURT-CIRCUITE PAS LA FORMULE. `return true` d'office lui servait « Stock bas », les arrivages, les
+   bons à préparer, les enveloppes, la télécollecte d'une catégorie que son abonnement ne contient pas — chaque clic menait à un
+   `go()` refusé. Sans cette ligne il passerait par `userSeesModule`, qui ajoute aussi sa suspension (tout se tait) : on garde
+   ce qu'il avait là, seule la formule ferme (`planBloque(k,true)`). */
+function notifVoitModule(k){ try{ if(!currentUser) return false; if(currentUser.role==='admin') return !planBloque(k,true); return !!userSeesModule(currentUser,k); }catch(e){ return false; } }
 function notifBoxOk(b){ if(!b||!currentUser) return false; if(b.respUserId&&b.respUserId===currentUser.id&&stkLienOk(b,currentUser)) return true; try{ return visibleBoxes([b]).length>0; }catch(e){ return false; } }
 /* box « qui me concerne » pour les alertes opérationnelles : admin / DR → toutes celles qu'ils voient ;
    les autres (chef d'équipe, technicien…) → uniquement celles qui leur sont assignées ou dont ils sont responsables */
@@ -38768,7 +38880,7 @@ function computeNotifs(){ const out=[]; const today=todayISO(); if(!currentUser)
       out.push({id:'retard:'+retard.length+':'+plusVieille,ic:'⏰',txt:`<b>${retard.length} intervention${retard.length>1?'s':''} en retard</b> — non effectuée${retard.length>1?'s':''}, la plus ancienne du ${fmtShort(plusVieille)}`,act:"go('interventions')"}); } }
   if(can('voirCompta') && (notifVoitModule('factures')||notifVoitModule('comptabilite'))){
     const imp=(db.factures||[]).filter(f=>f.statut==='envoyee'||f.statut==='retard');
-    if(imp.length) out.push({id:'impayees:'+imp.length+':'+imp.map(f=>f.id).sort().join('').slice(-16),ic:'⏳',txt:`<b>${imp.length} facture${imp.length>1?'s':''} impayée${imp.length>1?'s':''}</b>`,act:"go('comptabilite')"}); }
+    if(imp.length) out.push({id:'impayees:'+imp.length+':'+imp.map(f=>f.id).sort().join('').slice(-16),ic:'⏳',txt:`<b>${imp.length} facture${imp.length>1?'s':''} impayée${imp.length>1?'s':''}</b>`,act:notifVoitModule('comptabilite')?"go('comptabilite')":"go('factures')"}); }
   // Télécollecte effectuée → la personne qui gère la compta ET le DR sont avertis
   if(can('voirCompta') && notifVoitModule('telecollecte')){
     const recent=Date.now()-2*86400000;
