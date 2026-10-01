@@ -5,13 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <!-- ⛔ AUCUN APPEL RÉSEAU, GARDÉ PAR LE NAVIGATEUR ET PAS SEULEMENT PAR LA SOBRIÉTÉ DU CODE : default-src 'none' refuse tout
-     fetch, toute police, tout script distant. Seuls le logo de la page (même dossier) et la photo choisie par la personne
-     (blob:, jamais envoyée nulle part) sont permis. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+     fetch, toute police, tout script distant. Seuls sont permis : le logo (icons/opmsg-*.png, même origine), le module de
+     données `source.js` (même dossier), et ce que la personne fabrique ici même — une photo réduite ou un vocal enregistré
+     (blob:, jamais envoyés nulle part). `media-src blob:` n'existe que pour réécouter son propre vocal. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' blob:; media-src blob:; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#eef3fb" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2e6b" media="(prefers-color-scheme: dark)">
 <title>OP MESSAGES — aperçu</title>
-<link rel="icon" href="opmsg-logo.jpeg" type="image/jpeg">
+<link rel="icon" href="../../icons/opmsg-favicon-32.png" type="image/png" sizes="32x32">
 <style>
 /* ══ 1. LES JETONS — LE DOCUMENT `design/opmessages/THEME-OPMESSAGES.md` EST LA SOURCE ══════════════════════════════════
    Les valeurs du tableau « Couleurs » du document sont recopiées ici telles quelles ; celles que le document ne cite pas
@@ -19,11 +21,17 @@
    `tokens(dark)` de la maquette source (« OP Messages Apple.dc.html », l. 583-595). `tests/test-856.js` RELIT le document et
    compare, jeton par jeton, jour ET nuit : un banc qui recopie des valeurs garde une croyance, un banc qui relit la source
    garde un accord (la leçon de test-759).
-   ⛔ Le jour et la nuit suivent l'APPAREIL (prefers-color-scheme) et rien d'autre : pas de bouton, pas de clé rangée. */
+   ⛔ Le jour et la nuit suivent l'APPAREIL (prefers-color-scheme) et rien d'autre : pas de bouton, pas de clé rangée.
+   TROIS jetons sont à NOUS, ils ne sont ni dans le document ni dans la maquette — écarts déclarés un par un dans test-856 :
+   · --sub-meta : le « secondaire » du document (.6 de jour) tombe à ~4,1:1 sur le coin bleu du décor — trop clair pour une
+     légende de 11 px (datage, « Lu », nom d'auteur, mention d'aperçu). Mesuré au pixel : ≥ 4,5 jour et nuit avec celui-ci ;
+   · --rond-bord : le contour des cases décochées (rgba(120,120,128,.4)) faisait ~1,4:1 sur la carte — il en faut 3 (WCAG 1.4.11) ;
+   · --on-fill : l'encre posée sur --fill (bulle envoyée, pastille, flèche d'envoi) : une surface, une encre. */
 :root {
   --text: #0e1a3f;
   --sub: rgba(14,26,63,.6);
   --faint: rgba(14,26,63,.3);
+  --sub-meta: rgba(14,26,63,.72);
   --accent: #2a4a9c;
   --fill: #2a4a9c;
   --fill-soft: rgba(42,74,156,.12);
@@ -44,6 +52,8 @@
   --sheet-bg: rgba(242,242,247,.94);
   --notif-bg: rgba(255,255,255,.82);
   --toggle-off: rgba(120,120,128,.16);
+  --rond-bord: rgba(60,60,67,.6);
+  --on-fill: #ffffff;
   --group-r: 12px;
   --handle: rgba(0,0,0,.72);
   --tab-active-bg: rgba(255,255,255,.88);
@@ -65,6 +75,7 @@
     --text: #ffffff;
     --sub: rgba(220,228,250,.66);
     --faint: rgba(220,228,250,.32);
+    --sub-meta: rgba(220,228,250,.78);
     --accent: #7ea2f0;
     --fill: #3b63c4;
     --fill-soft: rgba(126,162,240,.22);
@@ -85,6 +96,8 @@
     --sheet-bg: rgba(28,28,30,.92);
     --notif-bg: rgba(44,44,46,.82);
     --toggle-off: rgba(120,120,128,.32);
+    --rond-bord: rgba(235,235,245,.6);
+    --on-fill: #ffffff;
     --group-r: 12px;
     --handle: rgba(255,255,255,.8);
     --tab-active-bg: rgba(42,74,156,.8);
@@ -106,6 +119,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 /* ⛔ le décor va sur <html> : le fond de <html> se propage au canevas et se peint en tout premier (CLAUDE.md). */
 html {
+  color-scheme: light dark;
   background-color: var(--base);
   background-image: var(--screen);
   background-attachment: fixed;
@@ -122,11 +136,12 @@ body {
   line-height: 1.3;
   -webkit-font-smoothing: antialiased;
 }
-button, input { font: inherit; color: inherit; }
+button, input, textarea { font: inherit; color: inherit; }
 button { border: 0; background: none; padding: 0; margin: 0; cursor: pointer; touch-action: manipulation; text-align: inherit; }
 a { color: inherit; text-decoration: none; -webkit-touch-callout: none; }
 ul { list-style: none; margin: 0; padding: 0; }
 h1, h2, p { margin: 0; }
+svg.ic.plein { fill: currentColor; stroke: none; }
 svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .sr-seul { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -152,6 +167,9 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 }
 
 .vue[hidden] { display: none; }
+/* ⛔ une colonne de liste n'a pas de raison de faire 2 268 px à 2 560 : l'écran Messages passe en maître-détail dès 1 100 px
+   (§ 9), et les autres vues sont bornées */
+.vue { max-width: 1000px; margin-inline: auto; }
 .entete-vue { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 4px; }
 .lien-texte { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; font-size: 17px; color: var(--accent); }
 .grand-titre {
@@ -177,14 +195,17 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
   flex: 1; min-width: 0; height: 44px; border: 0; outline: 0; background: transparent; padding: 0;
   font-size: 17px; color: var(--text); caret-color: var(--accent); -webkit-appearance: none; appearance: none;
 }
-.recherche input::placeholder { color: var(--sub); opacity: 1; }
+.recherche input::placeholder { color: var(--sub-meta); opacity: 1; }
 .recherche input::-webkit-search-cancel-button { display: none; }
 .recherche:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* épinglés : 4 cercles de 60 dans des colonnes de 76 */
 .epingles { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 12px; scrollbar-width: none; }
 .epingles::-webkit-scrollbar { display: none; }
-.epingle { flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 76px; }
+.epingle { flex: none; width: 76px; }
+.epingle-bouton { width: 100%; min-height: 44px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; transition: transform .12s ease-out; }
+.epingle-bouton:active { transform: scale(.95); }
+.epingle-bouton[aria-current="true"] .epingle-nom { color: var(--accent); font-weight: 600; }
 .epingle .avatar { width: 60px; height: 60px; font-size: 20px; }
 .epingle-nom { font-size: 12px; max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -199,28 +220,33 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 
 /* la liste : une carte, des lignes de 72 px minimum */
 .carte-liste { border-radius: var(--group-r); overflow: hidden; background: var(--card); }
-.conv { display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 14px; min-height: 72px; border-bottom: var(--sep); }
-.conv:last-child { border-bottom: 0; }
+.carte-liste > li { border-bottom: var(--sep); }
+.carte-liste > li:last-child { border-bottom: 0; }
+/* la ligne est un BOUTON (clavier, lecteur d'écran, doigt) : toute sa largeur répond */
+.conv { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 14px; min-height: 72px; color: var(--text); transition: background-color .2s, transform .12s ease-out; }
+.conv:active { transform: scale(.985); }
+.conv[aria-current="true"] { background: var(--fill-soft); }
+@media (hover: hover) { .conv:not([aria-current="true"]):hover { background: var(--field); } }
 .conv-point { width: 10px; flex: none; display: flex; justify-content: center; }
 .point { width: 10px; height: 10px; border-radius: 50%; background: var(--fill); }
 .conv .avatar { width: 50px; height: 50px; font-size: 18px; }
 .conv-corps { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .conv-ligne { display: flex; align-items: baseline; gap: 8px; }
 .conv-nom { min-width: 0; font-size: 17px; font-weight: 600; letter-spacing: -.02em; line-height: 22px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.conv-heure { margin-left: auto; font-size: 15px; color: var(--sub); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.conv-heure { margin-left: auto; font-size: 15px; color: var(--sub-meta); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .chev { width: 7px; height: 12px; flex: none; fill: none; stroke: var(--faint); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; align-self: center; }
-.conv-apercu { font-size: 15px; line-height: 20px; color: var(--sub); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.conv-apercu { font-size: 15px; line-height: 20px; color: var(--sub-meta); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .conv-neuve { animation: entree .5s cubic-bezier(.32,.72,0,1) both; }
-.vide { padding: 22px 16px; text-align: center; font-size: 15px; color: var(--sub); }
+.vide { padding: 22px 16px; text-align: center; font-size: 15px; color: var(--sub-meta); }
 @keyframes entree { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
 
-.mention-apercu { margin: 18px 4px 0; text-align: center; font-size: 12px; line-height: 16px; color: var(--sub); }
+.mention-apercu { margin: 18px 4px 0; text-align: center; font-size: 12px; line-height: 16px; color: var(--sub-meta); }
 
 /* les écrans qui arrivent aux étapes suivantes : des coquilles « bientôt » */
 .coquille { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 38px 24px; border-radius: var(--group-r); background: var(--card); text-align: center; }
 .coquille-icone { width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; background: var(--fill-soft); color: var(--accent); font-size: 28px; }
 .coquille h2 { font-size: 20px; line-height: 25px; font-weight: 700; letter-spacing: -.02em; }
-.coquille p { max-width: 34ch; font-size: 15px; line-height: 20px; color: var(--sub); }
+.coquille p { max-width: 34ch; font-size: 15px; line-height: 20px; color: var(--sub-meta); }
 
 /* ══ 4. LA BARRE D'ONGLETS (téléphone) — pilule flottante en verre, bulle sur l'onglet actif ═══════════════════════════════
    Les colonnes sont ÉGALES et se déduisent de leur NOMBRE ; le JavaScript ne pose qu'un NUMÉRO (--i), le CSS calcule la
@@ -240,7 +266,7 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 }
 .tab {
   position: relative; z-index: 1; min-height: 50px; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  color: var(--sub); font-size: 11px; font-weight: 500; letter-spacing: .01em; transition: color .25s, transform .12s ease-out;
+  color: var(--sub-meta); font-size: 11px; font-weight: 500; letter-spacing: .01em; transition: color .25s, transform .12s ease-out;
 }
 .tab .ic { font-size: 24px; }
 .tab:active { transform: scale(.94); }
@@ -269,7 +295,7 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .moi .avatar { width: 26px; height: 26px; font-size: 11px; }
 .moi-texte { min-width: 0; display: flex; flex-direction: column; }
 .moi-nom { font-size: 13px; font-weight: 600; }
-.moi-statut { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sub); }
+.moi-statut { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sub-meta); }
 .moi-statut i { width: 6px; height: 6px; border-radius: 50%; background: var(--vert); }
 
 /* ══ 6. LA FEUILLE « NOUVEAU GROUPE » — monte du bas (téléphone), fenêtre centrée de 520 px (bureau) ══════════════════════ */
@@ -286,9 +312,9 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
   outline: none;
 }
 .feuille-ouverte .feuille { transform: none; visibility: visible; transition: transform .45s cubic-bezier(.32,.72,0,1), visibility 0s; }
-@media (min-width: 900px) {
+@media (min-width: 700px) {
   .feuille {
-    left: 50%; right: auto; top: 50%; bottom: auto; width: 520px; max-width: calc(100vw - 32px); max-height: min(86vh, 720px);
+    left: 50%; right: auto; top: 50%; bottom: auto; width: 520px; max-width: calc(100vw - 32px); max-height: min(calc(100vh - 48px), 900px); max-height: min(calc(100dvh - 48px), 900px);
     border-radius: 22px; border-bottom: var(--line);
     transform: translate(-50%, calc(-50% + 16px)) scale(.97); opacity: 0;
     transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s, visibility 0s linear .35s;
@@ -298,7 +324,7 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .feuille-tete { flex: none; touch-action: none; user-select: none; -webkit-user-select: none; }
 .poignee { padding: 8px 0 4px; display: grid; place-items: center; }
 .poignee i { width: 36px; height: 5px; border-radius: 999px; background: var(--faint); }
-@media (min-width: 900px) { .poignee { display: none; } .feuille-tete { padding-top: 8px; } }
+@media (min-width: 700px) { .poignee { display: none; } .feuille-tete { padding-top: 8px; } }
 .feuille-barre { display: flex; align-items: center; gap: 8px; padding: 2px 16px 6px; }
 .feuille-barre h2 { flex: 1; text-align: center; font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -.017em; }
 .feuille-bouton { min-height: 44px; min-width: 64px; display: inline-flex; align-items: center; font-size: 17px; color: var(--accent); }
@@ -313,7 +339,7 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .g-photo input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 0; }
 .g-photo.avec-image .ic { display: none; }
 .g-nom { flex: 1; min-width: 0; height: 44px; padding: 0 14px; border: 0; border-radius: 12px; background: var(--card); font-size: 17px; color: var(--text); caret-color: var(--accent); outline: none; -webkit-appearance: none; appearance: none; }
-.g-nom::placeholder { color: var(--sub); opacity: 1; }
+.g-nom::placeholder { color: var(--sub-meta); opacity: 1; }
 .g-nom:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* membres choisis : puces avatar avec ✕ — toute la puce est la cible (≥ 44 px), la croix n'est que le signe */
@@ -326,7 +352,7 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .puce-x .ic { width: 9px; height: 9px; stroke-width: 3.2; }
 .puce-nom { max-width: 64px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.rubrique { display: flex; align-items: baseline; justify-content: space-between; padding: 0 4px 8px; font-size: 13px; color: var(--sub); text-transform: uppercase; }
+.rubrique { display: flex; align-items: baseline; justify-content: space-between; padding: 0 4px 8px; font-size: 13px; color: var(--sub-meta); text-transform: uppercase; }
 .rubrique span { font-variant-numeric: tabular-nums; }
 .carte { border-radius: 12px; overflow: hidden; background: var(--card); margin-bottom: 18px; }
 .contact { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 14px; border-bottom: var(--sep); color: var(--text); }
@@ -334,16 +360,16 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .contact .avatar { width: 38px; height: 38px; font-size: 14px; }
 .contact-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .contact-nom { font-size: 17px; letter-spacing: -.02em; }
-.contact-role { font-size: 13px; color: var(--sub); }
-.rond { width: 24px; height: 24px; flex: none; border-radius: 50%; border: 2px solid rgba(120,120,128,.4); display: grid; place-items: center; transition: background-color .2s, border-color .2s; color: var(--coche); font-size: 12px; }
+.contact-role { font-size: 13px; color: var(--sub-meta); }
+.rond { width: 24px; height: 24px; flex: none; border-radius: 50%; border: 2px solid var(--rond-bord); display: grid; place-items: center; transition: background-color .2s, border-color .2s; color: var(--coche); font-size: 12px; }
 .rond .ic { stroke-width: 3.2; opacity: 0; transition: opacity .2s; }
 .contact[aria-checked="true"] .rond { background: var(--fill); border-color: var(--fill); }
 .contact[aria-checked="true"] .rond .ic { opacity: 1; }
 .reglage { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 14px; border-bottom: var(--sep); color: var(--text); }
 .reglage:last-child { border-bottom: 0; }
 .reglage-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 17px; }
-.reglage-texte small { font-size: 13px; color: var(--sub); }
-.reglage-valeur { font-size: 15px; color: var(--sub); }
+.reglage-texte small { font-size: 13px; color: var(--sub-meta); }
+.reglage-valeur { font-size: 15px; color: var(--sub-meta); }
 .reglage .chev { width: 8px; height: 13px; }
 .interrupteur { width: 51px; height: 31px; flex: none; border-radius: 999px; background: var(--toggle-off); position: relative; transition: background-color .25s; }
 .interrupteur::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.25); transition: transform .25s cubic-bezier(.32,.72,0,1); }
@@ -366,18 +392,162 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .notif-corps { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .notif-tete { display: flex; align-items: baseline; gap: 8px; }
 .notif-tete b { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
-.notif-tete span { margin-left: auto; font-size: 13px; color: var(--sub); }
+.notif-tete span { margin-left: auto; font-size: 13px; color: var(--sub-meta); }
 .notif-texte { font-size: 15px; line-height: 20px; letter-spacing: -.01em; text-wrap: pretty; overflow-wrap: anywhere; }
-.notif-aide { font-size: 13px; line-height: 17px; color: var(--sub); overflow-wrap: anywhere; }
+.notif-aide { font-size: 13px; line-height: 17px; color: var(--sub-meta); overflow-wrap: anywhere; }
 .notif-aide:empty { display: none; }
 
 /* un petit mot qui s'efface seul (« Modifier » n'est pas encore dessiné) */
+/* ⛔ centré par left/right + margin:auto + width:max-content, JAMAIS par left:50% + translate(-50%) : à largeur automatique, la boîte
+   ne prend que la place qui reste à droite de son bord gauche (180 px sur 360, deux lignes) — CLAUDE.md, « boîte absolue centrée ». */
 .mot {
-  position: fixed; z-index: 49; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 56px); max-width: calc(100vw - 32px); padding: 9px 16px; border-radius: 999px;
-  background: rgba(28,28,30,.9); color: #fff; font-size: 14px; line-height: 18px; pointer-events: none;
-  transform: translate(-50%, -8px); opacity: 0; transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s;
+  position: fixed; z-index: 49; left: 16px; right: 16px; margin: 0 auto; width: max-content; max-width: min(440px, calc(100vw - 32px));
+  top: calc(env(safe-area-inset-top, 0px) + 56px); padding: 9px 16px; border-radius: 18px; text-align: center;
+  background: rgba(28,28,30,.9); color: #fff; font-size: 14px; line-height: 18px; pointer-events: none; overflow-wrap: anywhere;
+  transform: translateY(-8px); opacity: 0; transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s;
 }
-.mot.on { transform: translate(-50%, 0); opacity: 1; }
+.mot.on { transform: none; opacity: 1; }
+
+/* ══ 9. LA CONVERSATION — téléphone : un écran qui recouvre la liste ; 900-1 099 : elle remplace la liste, avec un retour ;
+   dès 1 100 px : MAÎTRE-DÉTAIL, la liste (colonne bornée) et la conversation côte à côte ═══════════════════════════════════
+   Ce que la maquette dessine (nav en verre, bulles 20/6, photos 118×88, vocal, « Lu », saisie, champ « Message ») est ici ; ce
+   qu'elle ne dessine pas (un vrai champ, le retour, le défilement, l'enregistrement) est ajouté sans toucher aux jetons. */
+:root { --col-liste: clamp(340px, 30vw, 440px); }
+.conv-ecran {
+  position: fixed; z-index: 30; top: var(--vvt, 0px); left: 0; right: 0; height: var(--vvh, 100%); display: none; flex-direction: column; min-height: 0;
+  background-color: var(--base); background-image: var(--screen); background-attachment: fixed; outline: none;
+}
+html[data-conv] .conv-ecran { display: flex; }
+.conv-vide {
+  position: fixed; z-index: 20; top: 0; bottom: 0; right: 0; left: calc(236px + var(--col-liste)); display: none; place-items: center; padding: 24px; text-align: center;
+  border-left: var(--sep);
+}
+.conv-vide p { max-width: 28ch; font-size: 15px; line-height: 20px; color: var(--sub-meta); }
+.conv-vide .coquille-icone { margin: 0 auto 12px; }
+@keyframes pousse { from { transform: translateX(28px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (max-width: 899.98px) {
+  html[data-conv] .conv-ecran { animation: pousse .38s cubic-bezier(.32,.72,0,1) both; }
+  html[data-conv] .tabs { display: none; }
+}
+@media (max-width: 1099.98px) { html[data-conv], html[data-conv] body { overflow: hidden; } }
+@media (min-width: 900px) { .conv-ecran { left: 236px; } }
+@media (min-width: 1100px) {
+  html[data-vue="messages"] .app { grid-template-columns: 236px var(--col-liste) minmax(0, 1fr); }
+  html[data-vue="messages"] .contenu { padding-left: 16px; padding-right: 16px; }
+  html[data-vue="messages"] .conv-ecran { left: calc(236px + var(--col-liste)); border-left: var(--sep); }
+  html[data-vue="messages"]:not([data-conv]) .conv-vide { display: grid; }
+  .conv-nav .conv-retour { display: none; }
+}
+html:not([data-vue="messages"]) .conv-ecran { display: none; }
+
+.conv-nav {
+  flex: none; display: flex; align-items: center; gap: 6px;
+  padding: calc(env(safe-area-inset-top, 0px) + 2px) max(10px, env(safe-area-inset-right, 0px)) 8px max(10px, env(safe-area-inset-left, 0px));
+  background: var(--nav-bar); -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%); border-bottom: var(--line);
+}
+.conv-gauche, .conv-droite { flex: none; width: 76px; display: flex; align-items: center; }
+.conv-droite { justify-content: flex-end; }
+.conv-retour { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-size: 17px; }
+.conv-retour svg { width: 12px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.badge { min-width: 18px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--fill); color: var(--on-fill); font-size: 12px; font-weight: 600; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+.conv-cam { min-height: 44px; min-width: 44px; display: inline-grid; place-items: center; color: var(--accent); font-size: 24px; }
+.conv-titre { flex: 1; min-width: 0; min-height: 44px; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--text); }
+.conv-titre .avatar { width: 44px; height: 44px; font-size: 16px; }
+.conv-titre-nom { max-width: 100%; display: flex; align-items: center; gap: 3px; font-size: 12px; line-height: 16px; }
+.conv-titre-nom > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conv-titre-nom .chev { width: 7px; height: 11px; stroke: var(--sub); }
+
+.conv-fil {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-color: var(--faint) transparent;
+  padding: 12px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
+}
+.conv-fil:focus-visible { outline-offset: -3px; }
+/* ⛔ la colonne se borne : à 2 560 px, une bulle à 78 % de la fenêtre serait une ligne de 1 900 px */
+.conv-colonne { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 3px; }
+.datage, .systeme { text-align: center; font-size: 11px; line-height: 14px; color: var(--sub-meta); overflow-wrap: anywhere; }
+.datage { font-weight: 600; margin: 6px 0 10px; }
+.systeme { margin: 10px 8px; }
+.msg { display: flex; flex-direction: column; gap: 2px; margin-top: 10px; }
+.msg.suite { margin-top: 2px; }
+.msg.de-moi { align-items: flex-end; }
+.msg.de-autre { align-items: flex-start; }
+.msg-nom { padding: 0 12px; font-size: 11px; line-height: 14px; color: var(--sub-meta); }
+.bulle {
+  max-width: 78%; padding: 8px 13px; font-size: 17px; line-height: 22px; letter-spacing: -.02em; text-wrap: pretty;
+  overflow-wrap: anywhere; white-space: pre-wrap; user-select: text; -webkit-user-select: text;
+}
+.recue { background: var(--bubble-in); color: var(--bubble-in-fg); border-radius: 20px 20px 20px 6px; }
+.envoyee { background: var(--fill); color: var(--on-fill); border-radius: 20px 20px 6px 20px; }
+.photos { display: flex; flex-wrap: wrap; gap: 4px; max-width: 78%; }
+.msg.de-moi .photos { justify-content: flex-end; }
+.photo { position: relative; width: 118px; height: 88px; padding: 0; border-radius: 14px; overflow: hidden; display: grid; place-items: center; background: var(--field); color: var(--sub); }
+.photo .ic { font-size: 22px; stroke-width: 1.8; }
+.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.photos.une .photo { width: 200px; height: 150px; max-width: 100%; }
+button.photo { transition: transform .12s ease-out; }
+button.photo:active { transform: scale(.97); }
+.vocal { min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 10px 14px; max-width: 78%; text-align: left; }
+.vocal-disque { width: 28px; height: 28px; flex: none; display: grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, currentColor 18%, transparent); font-size: 12px; }
+.vocal-disque .pause, .vocal[data-lecture] .vocal-disque .play { display: none; }
+.vocal[data-lecture] .vocal-disque .pause { display: block; }
+.onde { display: flex; align-items: center; gap: 2px; height: 20px; }
+.onde i { width: 3px; border-radius: 2px; background: currentColor; opacity: .9; }
+.vocal[data-lecture] .onde i { opacity: .45; }
+.vocal[data-lecture] .onde i.joue { opacity: 1; }
+.vocal-duree { font-size: 13px; font-variant-numeric: tabular-nums; }
+.statut { padding: 0 12px; font-size: 11px; line-height: 14px; color: var(--sub-meta); }
+.saisie-ind { align-self: flex-start; display: flex; align-items: center; gap: 4px; padding: 10px 14px; margin-top: 8px; border-radius: 20px 20px 20px 6px; background: var(--bubble-in); }
+.saisie-ind i { width: 7px; height: 7px; border-radius: 50%; background: var(--sub); animation: saisie 1.2s infinite; }
+.saisie-ind i:nth-child(2) { animation-delay: .2s; }
+.saisie-ind i:nth-child(3) { animation-delay: .4s; }
+@keyframes saisie { 0%, 60%, 100% { opacity: .35; transform: none; } 30% { opacity: 1; transform: translateY(-2px); } }
+
+.avis-saisie {
+  flex: none; margin: 0 max(12px, env(safe-area-inset-right, 0px)) 6px max(12px, env(safe-area-inset-left, 0px)); padding: 9px 14px; border-radius: 14px;
+  background: var(--card); border: var(--line); color: var(--text); font-size: 14px; line-height: 19px; overflow-wrap: anywhere;
+}
+.composer {
+  flex: none; padding: 8px max(12px, env(safe-area-inset-right, 0px)) max(10px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+  background: var(--nav-bar); -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+}
+.compo-ligne, .enreg { max-width: 860px; margin: 0 auto; display: flex; align-items: flex-end; gap: 6px; }
+.compo-bouton { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; color: var(--sub); font-size: 22px; touch-action: manipulation; transition: transform .12s ease-out; }
+.compo-bouton:active { transform: scale(.92); }
+.compo-bouton .disque { display: grid; place-items: center; border-radius: 50%; }
+.compo-plus .disque { width: 34px; height: 34px; background: var(--field); font-size: 16px; }
+.compo-plus .ic { stroke-width: 2.4; }
+.compo-micro { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.envoyer { color: var(--on-fill); }
+.envoyer .disque { width: 28px; height: 28px; background: var(--fill); font-size: 14px; }
+.envoyer .ic { stroke-width: 2.6; }
+.pilule-saisie { --pad-y: 7px; flex: 1; min-width: 0; min-height: 36px; display: flex; align-items: flex-end; border-radius: 18px; border: var(--line); background: var(--input-bg); }
+.pilule-saisie:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.pilule-saisie textarea {
+  flex: 1; min-width: 0; height: 36px; max-height: calc(5 * 22px + 2 * var(--pad-y)); padding: var(--pad-y) 6px var(--pad-y) 14px; border: 0; outline: 0; resize: none; background: transparent;
+  font-size: 17px; line-height: 22px; letter-spacing: -.02em; color: var(--text); caret-color: var(--accent); overflow-y: auto; -webkit-appearance: none; appearance: none;
+}
+.pilule-saisie textarea::placeholder { color: var(--sub-meta); opacity: 1; }
+@media (pointer: coarse) {
+  .compo-bouton { width: 44px; height: 44px; }
+  .pilule-saisie { --pad-y: 11px; min-height: 44px; border-radius: 22px; }
+  .pilule-saisie textarea { height: 44px; }
+}
+.compo-ferme { margin: 0 auto; max-width: 860px; padding: 11px 8px; text-align: center; font-size: 15px; line-height: 20px; color: var(--text); }
+.enreg { align-items: center; min-height: 44px; }
+.enreg-annuler { color: var(--rouge); }
+.enreg-point { width: 10px; height: 10px; flex: none; border-radius: 50%; background: var(--rouge); animation: pulse 1s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.enreg-duree { min-width: 40px; font-size: 17px; font-variant-numeric: tabular-nums; }
+.enreg-onde { flex: 1; min-width: 0; height: 28px; display: flex; align-items: center; justify-content: flex-end; gap: 2px; overflow: hidden; }
+.enreg-onde i { width: 3px; flex: none; border-radius: 2px; background: var(--accent); }
+
+/* la photo agrandie : un voile noir, la photo en entier, une croix de 44 px — Échap, le retour système et le voile la ferment */
+.visionneuse {
+  position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: calc(env(safe-area-inset-top, 0px) + 56px) 12px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  background: rgba(0,0,0,.88);
+}
+.visionneuse img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px; display: block; }
+.visionneuse-fermer { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 6px); right: max(8px, env(safe-area-inset-right, 0px)); width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.16); color: #fff; font-size: 18px; }
 
 /* ══ 8. LES RÉGLAGES DE L'APPAREIL : transparence et mouvement ═════════════════════════════════════════════════════════════
    ⛔ Retirer le flou SANS rendre de matière laisserait un texte posé sur ce qui passe dessous : on remplace la vitre par un
@@ -409,11 +579,18 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
   <symbol id="i-photo" viewBox="0 0 24 24"><path d="M12 15a4 4 0 0 0 4-4V8a4 4 0 0 0-8 0v3a4 4 0 0 0 4 4Zm-8 6a8 8 0 0 1 16 0M9 4l1-1.5h4L15 4"/></symbol>
   <symbol id="i-coche" viewBox="0 0 24 24"><path d="M5 12.5 10 17.5 19 7"/></symbol>
   <symbol id="i-croix" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M20 15.5 15.5 11 7 19"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-haut" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+  <symbol id="i-corbeille" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5v14l11-7z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></symbol>
 </svg>
 
 <div class="app" id="app">
   <aside class="side" data-glass="1" aria-label="Barre latérale">
-    <div class="side-marque"><img src="opmsg-logo.jpeg" alt="" width="28" height="28"><b>OP MESSAGES</b></div>
+    <div class="side-marque"><img src="../../icons/opmsg-192.png" alt="" width="28" height="28"><b>OP MESSAGES</b></div>
     <nav aria-label="Navigation principale" id="nav-side"></nav>
     <div class="side-fin">
       <div class="moi"><span class="avatar av0" aria-hidden="true" id="moi-avatar"></span><span class="moi-texte"><span class="moi-nom" id="moi-nom"></span><span class="moi-statut"><i></i>Disponible</span></span></div>
@@ -440,6 +617,42 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
   <nav class="tabs" id="tabs" data-glass="1" aria-label="Navigation principale">
     <span class="tabs-bulle" aria-hidden="true"></span>
   </nav>
+
+  <section class="conv-vide" id="conv-vide"><div><span class="coquille-icone" aria-hidden="true"><svg class="ic"><use href="#i-chat"/></svg></span><p>Choisissez une conversation pour la lire et y répondre.</p></div></section>
+
+  <section class="conv-ecran" id="conv-ecran" role="region" aria-label="Conversation" tabindex="-1">
+    <header class="conv-nav" data-glass="1">
+      <div class="conv-gauche">
+        <button type="button" class="conv-retour presse" id="conv-retour" aria-label="Retour aux conversations"><svg viewBox="0 0 12 20" aria-hidden="true"><path d="M10 2 2 10l8 8"/></svg><span class="badge" id="conv-badge" hidden>0</span></button>
+      </div>
+      <button type="button" class="conv-titre presse" id="conv-titre" aria-label="Infos de la conversation (bientôt)"></button>
+      <div class="conv-droite">
+        <button type="button" class="conv-cam presse" id="conv-cam" aria-label="Appel vidéo : ouvre l'onglet Appels"><svg class="ic" aria-hidden="true"><use href="#i-video"/></svg></button>
+      </div>
+    </header>
+    <div class="conv-fil" id="conv-fil" role="log" aria-live="off" aria-label="Messages" tabindex="0">
+      <div class="conv-colonne" id="conv-messages" aria-busy="true"></div>
+    </div>
+    <p class="avis-saisie" id="avis" role="status" aria-live="polite" hidden></p>
+    <footer class="composer" data-glass="1">
+      <div class="compo-ligne" id="compo">
+        <button type="button" class="compo-bouton compo-plus presse" id="compo-plus" aria-label="Joindre une photo"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
+        <input type="file" id="compo-fichier" class="sr-seul" accept="image/*" multiple tabindex="-1" aria-hidden="true">
+        <div class="pilule-saisie">
+          <textarea id="saisie" rows="1" maxlength="4000" placeholder="Message" aria-label="Écrire un message" autocomplete="off" autocapitalize="sentences" spellcheck="true"></textarea>
+          <button type="button" class="compo-bouton envoyer presse" id="envoyer" aria-label="Envoyer le message" hidden><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-haut"/></svg></span></button>
+        </div>
+        <button type="button" class="compo-bouton compo-micro presse" id="compo-micro" aria-label="Enregistrer un message vocal : maintenir, ou toucher pour démarrer"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></button>
+      </div>
+      <div class="enreg" id="enreg" role="group" aria-label="Enregistrement du message vocal" hidden>
+        <button type="button" class="compo-bouton enreg-annuler presse" id="enreg-annuler" aria-label="Annuler l'enregistrement"><svg class="ic" aria-hidden="true"><use href="#i-corbeille"/></svg></button>
+        <span class="enreg-point" aria-hidden="true"></span><span class="enreg-duree" id="enreg-duree">0:00</span>
+        <span class="enreg-onde" id="enreg-onde" aria-hidden="true"></span>
+        <button type="button" class="compo-bouton envoyer presse" id="enreg-envoyer" aria-label="Envoyer le message vocal"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-haut"/></svg></span></button>
+      </div>
+      <p class="compo-ferme" id="compo-ferme" hidden>Seuls les admins peuvent écrire dans ce groupe.</p>
+    </footer>
+  </section>
 </div>
 
 <div class="voile" id="voile"></div>
@@ -468,37 +681,32 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
   </div>
 </section>
 
+<div class="visionneuse" id="visionneuse" role="dialog" aria-modal="true" aria-label="Photo agrandie" hidden>
+  <button type="button" class="visionneuse-fermer presse" id="visionneuse-fermer" aria-label="Fermer la photo"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button>
+  <img id="visionneuse-img" alt="">
+</div>
+
 <div class="notif" id="notif" data-glass="1" role="status" aria-live="polite" aria-atomic="true">
-  <img src="opmsg-logo.jpeg" alt="" width="38" height="38">
+  <img src="../../icons/opmsg-192.png" alt="" width="38" height="38">
   <span class="notif-corps"><span class="notif-tete"><b>OP MESSAGES</b><span>maintenant</span></span><span class="notif-texte" id="notif-texte"></span><span class="notif-aide" id="notif-aide"></span></span>
 </div>
 <div class="mot" id="mot" role="status" aria-live="polite"></div>
 
+<script src="source.js"></script>
 <script>
 (function () {
   'use strict';
 
-  /* ═══ 1. LES DONNÉES D'EXEMPLE — séparées du rendu ═══════════════════════════════════════════════════════════════════════
-     ⛔ Tout ce qui est ici est FICTIF : aucune personne, aucune entreprise. Le modèle suit « Modèle de données minimal » de
-     THEME-OPMESSAGES.md (Contact, Conversation) ; le jour où de vraies données arrivent, ce bloc est le seul qui change :
-     le rendu (§ 3 et suivants) ne lit que ces formes-là. `messages: []` est la place de l'étape 2 (la Conversation). */
-  const MOI = { id: 'moi', initiales: 'AM', nom: 'Alex Morel' };
-  const CONTACTS = [
-    { id: 'c1', initiales: 'CR', nom: 'Camille Roux',   role: 'Co-hôte · responsable', avatar: 1 },
-    { id: 'c2', initiales: 'ML', nom: 'Mathis Lambert', role: 'Technicien',            avatar: 2 },
-    { id: 'c3', initiales: 'IG', nom: 'Inès Garnier',   role: 'Technicienne',          avatar: 3 },
-    { id: 'c4', initiales: 'HP', nom: 'Hugo Perrin',    role: 'Comptable',             avatar: 4 },
-    { id: 'c5', initiales: 'LF', nom: 'Lina Fabre',     role: 'Technicienne',          avatar: 0 },
-    { id: 'c6', initiales: 'NC', nom: 'Noé Carpentier', role: 'Apprenti',              avatar: 5 }
-  ];
-  const CONVERSATIONS = [
-    { id: 'v1', type: 'groupe', nom: 'Équipe dépôt',          court: 'dépôt',        membres: ['moi', 'c2', 'c3', 'c5'], admins: ['moi'], annoncesSeulement: false, ephemeres: 0, messages: [], apercu: 'Mathis : Photo du compteur envoyée 📎',         heure: '14:02', nonLu: true,  avatar: 0, epingle: true },
-    { id: 'v2', type: 'direct', nom: 'Camille Roux',          court: 'Camille Roux', membres: ['moi', 'c1'],            admins: [],      annoncesSeulement: false, ephemeres: 0, messages: [], apercu: 'Tu peux confirmer le créneau de jeudi ?',       heure: '13:40', nonLu: true,  avatar: 1, epingle: true },
-    { id: 'v3', type: 'groupe', nom: 'Chantier Les Tilleuls', court: 'Les Tilleuls', membres: ['moi', 'c3', 'c6'],       admins: ['moi'], annoncesSeulement: false, ephemeres: 0, messages: [], apercu: 'Inès : Béton livré, on attaque demain 8 h',     heure: '12:15', nonLu: false, avatar: 2, epingle: true },
-    { id: 'v4', type: 'direct', nom: 'Mathis Lambert',        court: 'Mathis Lambert', membres: ['moi', 'c2'],          admins: [],      annoncesSeulement: false, ephemeres: 0, messages: [], apercu: 'Message vocal · 0:08',                           heure: 'Hier',  nonLu: false, avatar: 3, epingle: true },
-    { id: 'v5', type: 'groupe', nom: 'Général',               court: 'Général',      membres: ['moi', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6'], admins: ['moi'], annoncesSeulement: true, ephemeres: 0, messages: [], apercu: 'Alex : Réunion d\'équipe mardi 14 h ✓', heure: 'Hier', nonLu: false, avatar: 4, epingle: false },
-    { id: 'v6', type: 'direct', nom: 'Hugo Perrin',           court: 'Hugo Perrin',  membres: ['moi', 'c4'],            admins: [],      annoncesSeulement: false, ephemeres: 0, messages: [], apercu: 'Merci, facture reçue.',                          heure: 'Lun.',  nonLu: false, avatar: 5, epingle: false }
-  ];
+  /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
+     ⛔ Cette page ne contient AUCUNE donnée et n'en modifie AUCUNE : tout ce qu'elle sait des personnes et des conversations vient de
+     `window.OPMSG_SOURCE` (source.js), et tout ce qu'elle change passe par une de ses méthodes (envoyer, marquerLu, creerGroupe).
+     Brancher le serveur d'OP MESSAGES, plus tard, c'est remplacer ce seul objet : les écrans ci-dessous ne bougent pas.
+     Ce que la page garde est un INSTANTANÉ de ce que la source a rendu, rafraîchi quand elle le dit (`ecouter`). */
+  const $ = id => document.getElementById(id);
+  const source = window.OPMSG_SOURCE;
+  if (!source) { $('contenu').innerHTML = '<p class="vide">Les données de l\'aperçu n\'ont pas pu être chargées.</p>'; return; }
+  const MOI = source.moi();
+  const CONTACTS = source.contacts();
   const VUES = {
     messages: { titre: 'Messages',  icone: 'i-chat' },
     appels:   { titre: 'Appels',    icone: 'i-phone', texte: 'L\'historique des appels et les appels de groupe, audio ou vidéo.' },
@@ -507,51 +715,81 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
   };
   const ORDRE = ['messages', 'appels', 'reunions', 'reglages'];
   const EPHEMERES = [[0, 'Désactivés'], [86400, '24 heures'], [604800, '7 jours'], [7776000, '90 jours']];
+  const VOCAL_MIN_MS = 800, VOCAL_MAX_MS = 180000, TENU_MS = 600, TEXTE_MAX = 4000;
 
-  /* ═══ 2. L'ÉTAT — un seul objet ═══════════════════════════════════════════════════════════════════════════════════════════ */
+  /* ═══ 2. L'ÉTAT — un seul objet, que des instantanés et des gestes en cours ════════════════════════════════════════════════ */
   const etat = {
-    vue: 'messages',
-    conversations: CONVERSATIONS.map(c => Object.assign({}, c)),
-    recherche: '',
-    groupe: groupeVierge()
+    route: null,                  // { vue, conv, feuille, photo } — c'est elle qui est écrite dans l'historique
+    conversations: [],            // la liste, telle que la source l'a rendue
+    conv: null, convDonnees: null, jeton: 0,
+    recherche: '', neuves: new Set(), brouillons: {}, scrollListe: 0, forcerBas: false,
+    groupe: groupeVierge(), garderPhoto: false, photo: null, creation: false
   };
   function groupeVierge() { return { ouvert: false, nom: '', photo: null, choisis: [], recherche: '', ephemeres: 0, annonces: false }; }
 
   /* ═══ 3. OUTILS ═══════════════════════════════════════════════════════════════════════════════════════════════════════════ */
-  const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   /* la recherche ignore accents et casse : « ines » trouve « Inès » */
   const norme = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
-  const prenom = c => c.nom.split(' ')[0];
   const contactDe = id => CONTACTS.find(c => c.id === id);
+  const prenom = c => c.nom.split(' ')[0];
   const icone = (id, cls) => '<svg class="ic' + (cls ? ' ' + cls : '') + '" aria-hidden="true"><use href="#' + id + '"/></svg>';
   const CHEVRON = '<svg class="chev" viewBox="0 0 8 13" aria-hidden="true"><path d="M1.5 1.5 6.5 6.5 1.5 11.5"/></svg>';
-  /* l'avatar d'une photo choisie s'écrit en style direct : l'adresse est un blob: fabriqué par la page, jamais une saisie */
-  const avatar = (c, extra) => '<span class="avatar av' + c.avatar + '"' + (c.photo ? ' style="background-image:url(' + esc(c.photo) + ')"' : '') + ' aria-hidden="true">' + (c.photo ? '' : esc(c.initiales || (c.type === 'groupe' ? '#' : ''))) + '</span>';
+  const blob = u => typeof u === 'string' && /^blob:/.test(u);
+  /* l'avatar d'une photo choisie s'écrit en style direct : l'adresse est un blob: fabriqué par la page, vérifié, puis échappé */
+  const avatar = c => '<span class="avatar av' + (((c.avatar | 0) % 6 + 6) % 6) + '"' + (blob(c.photo) ? ' style="background-image:url(' + esc(c.photo) + ')"' : '') + ' aria-hidden="true">' + (blob(c.photo) ? '' : esc(c.initiales || '')) + '</span>';
+
+  /* les dates : l'heure du jour, « Hier », le jour de la semaine, puis la date — tout se calcule sur l'horloge de l'appareil */
+  const FMT_HEURE = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const FMT_JOUR = new Intl.DateTimeFormat('fr-FR', { weekday: 'short' });
+  const FMT_DATE = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' });
+  const maj1 = s => s.charAt(0).toUpperCase() + s.slice(1);
+  const debutDeJour = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  const ecartJours = (t, ref) => Math.round((debutDeJour(ref) - debutDeJour(t)) / 86400000);
+  function libelleListe(t) {
+    const now = Date.now(), j = ecartJours(t, now);
+    if (now - t < 60000 && now >= t) return 'maintenant';
+    if (j <= 0) return FMT_HEURE.format(t);
+    if (j === 1) return 'Hier';
+    return j < 7 ? maj1(FMT_JOUR.format(t)) : FMT_DATE.format(t);
+  }
+  function libelleDatage(t) {
+    const j = ecartJours(t, Date.now()), h = FMT_HEURE.format(t);
+    if (j <= 0) return 'Aujourd\'hui ' + h;
+    if (j === 1) return 'Hier ' + h;
+    return (j < 7 ? maj1(FMT_JOUR.format(t)) : FMT_DATE.format(t)) + ' ' + h;
+  }
+  const duree = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
 
   /* ═══ 4. LA LISTE MESSAGES ════════════════════════════════════════════════════════════════════════════════════════════════ */
-  function ligneConv(c) {
-    const ini = c.type === 'groupe' ? '#' : (contactDe(c.membres.find(m => m !== 'moi')) || { initiales: '?' }).initiales;
-    return '<li class="conv' + (c.neuve ? ' conv-neuve' : '') + '" data-id="' + esc(c.id) + '">' +
-      '<span class="conv-point">' + (c.nonLu ? '<i class="point"></i><span class="sr-seul">Non lu</span>' : '') + '</span>' +
-      avatar({ avatar: c.avatar, photo: c.photo, initiales: ini, type: c.type }) +
-      '<span class="conv-corps"><span class="conv-ligne"><span class="conv-nom">' + esc(c.nom) + '</span><span class="conv-heure">' + esc(c.heure) + '</span>' + CHEVRON + '</span>' +
-      '<span class="conv-apercu">' + esc(c.apercu) + '</span></span></li>';
+  function ligneConv(c, neuve) {
+    const sel = etat.conv === c.id;
+    return '<li' + (neuve ? ' class="conv-neuve"' : '') + '><button type="button" class="conv presse" data-ouvrir="' + esc(c.id) + '"' + (sel ? ' aria-current="true"' : '') + '>' +
+      '<span class="conv-point">' + (c.nonLu ? '<i class="point"></i><span class="sr-seul">Non lu</span>' : '') + '</span>' + avatar(c) +
+      '<span class="conv-corps"><span class="conv-ligne"><span class="conv-nom">' + esc(c.nom) + '</span><span class="conv-heure">' + esc(libelleListe(c.t)) + '</span>' + CHEVRON + '</span>' +
+      '<span class="conv-apercu">' + esc(c.apercu) + '</span></span></button></li>';
   }
   function rendreListe() {
     const q = norme(etat.recherche);
     const vues = etat.conversations.filter(c => !q || norme(c.nom).includes(q) || norme(c.apercu).includes(q));
-    $('liste-conv').innerHTML = vues.length ? vues.map(ligneConv).join('') :
+    /* ⛔ une conversation neuve s'anime UNE fois : le drapeau est consommé par ce rendu, pas gardé — sinon chaque frappe dans la
+       recherche (qui refait toute la liste) rejouerait l'entrée de chaque groupe créé depuis le début */
+    const neuves = new Set(etat.neuves); etat.neuves.clear();
+    $('liste-conv').innerHTML = vues.length ? vues.map(c => ligneConv(c, neuves.has(c.id))).join('') :
       '<li class="vide">Aucun résultat pour « ' + esc(etat.recherche.trim()) + ' »</li>';
     /* épinglés : les conversations marquées, une colonne de 76 px chacune (nom court, jamais coupé en deux) */
     const pins = etat.conversations.filter(c => c.epingle);
-    $('epingles').innerHTML = pins.map(c => '<li class="epingle">' +
-      avatar({ avatar: c.avatar, photo: c.photo, initiales: c.type === 'groupe' ? '#' : (contactDe(c.membres.find(m => m !== 'moi')) || { initiales: '?' }).initiales, type: c.type }) +
-      '<span class="epingle-nom">' + esc(c.court || c.nom) + '</span></li>').join('');
+    $('epingles').innerHTML = pins.map(c => '<li class="epingle"><button type="button" class="epingle-bouton" data-ouvrir="' + esc(c.id) + '"' + (etat.conv === c.id ? ' aria-current="true"' : '') + '>' +
+      avatar(c) + '<span class="epingle-nom">' + esc(c.court || c.nom) + '</span></button></li>').join('');
     $('epingles').hidden = !pins.length;
+    majBadge();
+  }
+  async function rafraichirListe() {
+    etat.conversations = await source.lister();
+    rendreListe();
   }
 
-  /* ═══ 5. LES AUTRES ÉCRANS — des coquilles « bientôt » (étapes 2 à 5) ════════════════════════════════════════════════════
+  /* ═══ 5. LES AUTRES ÉCRANS — des coquilles « bientôt » (étapes 3 à 5) ═════════════════════════════════════════════════════
      Ajouter un écran = remplir UNE entrée de VUES et écrire une fonction de rendu ici ; la navigation, l'état et les
      jetons ne bougent pas. */
   function rendreCoquille(cle) {
@@ -559,33 +797,448 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
     sec.innerHTML = '<div class="entete-vue"></div><h1 class="grand-titre" id="titre-' + cle + '">' + esc(v.titre) + '</h1>' +
       '<div class="coquille"><span class="coquille-icone">' + icone(v.icone) + '</span><h2>Bientôt disponible</h2><p>' + esc(v.texte) + ' Cet écran n\'est pas encore dessiné dans l\'aperçu.</p></div>';
   }
-
-  /* ═══ 6. LA NAVIGATION — une vue à la fois, un numéro pour la bulle ═════════════════════════════════════════════════════ */
   function construireNavigation() {
     const lien = (cle, cls) => '<a href="#' + cle + '" class="' + cls + '" data-vue="' + cle + '">' + icone(VUES[cle].icone) + '<span>' + esc(VUES[cle].titre) + '</span></a>';
     $('nav-side').innerHTML = ORDRE.map(c => lien(c, 'side-lien')).join('');
     $('tabs').insertAdjacentHTML('beforeend', ORDRE.map(c => lien(c, 'tab')).join(''));
   }
-  function aller(cle) {
-    if (!VUES[cle]) cle = 'messages';
-    etat.vue = cle;
-    ORDRE.forEach(k => { $('vue-' + k).hidden = k !== cle; });
-    document.querySelectorAll('[data-vue]').forEach(a => { if (a.dataset.vue === cle) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-    $('tabs').style.setProperty('--i', ORDRE.indexOf(cle));
-    document.title = VUES[cle].titre + ' — OP MESSAGES, aperçu';
+
+  /* ═══ 6. LA NAVIGATION — UNE ROUTE, UNE ENTRÉE D'HISTORIQUE PAR COUCHE ═════════════════════════════════════════════════════
+     La route dit tout ce qui est ouvert : la vue, la conversation, la feuille « Nouveau groupe », la photo agrandie. Chaque couche
+     qu'on ouvre POUSSE une entrée (le retour système — Android, le geste d'iOS, le bouton du navigateur — la referme au lieu de
+     quitter la page) ; chaque couche qu'on ferme à la main REND cette entrée (`history.back()`), et c'est `popstate` — un seul
+     chemin — qui ferme vraiment. ⛔ « UN GESTE, UNE NAVIGATION » (CLAUDE.md) : cette page n'écoute AUCUN geste de balayage à elle,
+     donc le navigateur n'a pas de second retour à jouer ; et un bouton qui ferme ne ferme pas ET ne navigue pas — il navigue, et
+     la fermeture suit. Une entrée neuve n'est posée que si quelque chose s'ouvre : passer d'une conversation à l'autre (au bureau)
+     REMPLACE l'entrée au lieu d'en empiler. */
+  const memeRoute = (a, b) => !!a && !!b && a.vue === b.vue && (a.conv || null) === (b.conv || null) && !!a.feuille === !!b.feuille && (a.photo || null) === (b.photo || null);
+  const urlDe = r => '#' + r.vue + (r.conv ? '/' + encodeURIComponent(r.conv) : '');
+  function routeDepuisHash() {
+    const p = location.hash.slice(1).split('/');
+    let conv = null; try { conv = p[1] ? decodeURIComponent(p[1]) : null; } catch (e) { conv = null; }
+    return { vue: VUES[p[0]] ? p[0] : 'messages', conv: p[0] === 'messages' ? conv : null, feuille: false, photo: null };
   }
+  const entree = () => (history.state && history.state.opmsg) ? history.state : null;
+  function parentDe(r) {
+    if (r.photo) return Object.assign({}, r, { photo: null });
+    if (r.feuille) return Object.assign({}, r, { feuille: false });
+    if (r.conv) return Object.assign({}, r, { conv: null });
+    return null;
+  }
+  function pousser(r) {
+    const h = entree();
+    history.pushState({ opmsg: 1, n: h ? h.n + 1 : 1, r, p: etat.route }, '', urlDe(r));
+    appliquer(r);
+  }
+  function remplacer(r) {
+    const h = entree();
+    history.replaceState({ opmsg: 1, n: h ? h.n : 0, r, p: h ? h.p : null }, '', urlDe(r));
+    appliquer(r);
+  }
+  /* fermer la couche du dessus : on rend l'entrée qu'on avait posée — ou, arrivé par un lien direct (aucune entrée à rendre), on
+     remplace par la route d'en dessous */
+  function fermerCouche() {
+    const parent = parentDe(etat.route); if (!parent) return;
+    const h = entree();
+    if (h && h.n > 0 && h.p && memeRoute(h.p, parent)) history.back(); else remplacer(parent);
+  }
+  window.addEventListener('popstate', e => appliquer(e.state && e.state.opmsg ? e.state.r : routeDepuisHash()));
+
+  /* appliquer(route) : l'écran DIT la route, rien d'autre. Elle ne pousse jamais d'historique — elle est jouée aussi par popstate. */
+  function appliquer(r) {
+    const prec = etat.route; etat.route = r;
+    const racine = document.documentElement;
+    if (!prec || prec.vue !== r.vue) {
+      ORDRE.forEach(k => { $('vue-' + k).hidden = k !== r.vue; });
+      document.querySelectorAll('[data-vue]').forEach(a => { if (a.dataset.vue === r.vue) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+      $('tabs').style.setProperty('--i', ORDRE.indexOf(r.vue));
+      document.title = VUES[r.vue].titre + ' — OP MESSAGES, aperçu';
+      if (prec) window.scrollTo(0, 0);
+    }
+    racine.dataset.vue = r.vue;
+    const veutConv = r.vue === 'messages' ? (r.conv || null) : null;
+    if (veutConv !== etat.conv) { if (veutConv) ouvrirConv(veutConv); else fermerConv(); }
+    if (r.feuille && !etat.groupe.ouvert) ouvrirFeuilleDom(); else if (!r.feuille && etat.groupe.ouvert) fermerFeuilleDom();
+    const cle = r.photo || null;
+    if (cle !== etat.photo) { if (cle) ouvrirPhotoDom(cle); else fermerPhotoDom(); }
+    synchroInert();
+  }
+  /* ce qui n'est pas au premier plan ne reçoit ni le focus ni le lecteur d'écran : la feuille et la photo rendent TOUT inerte,
+     la conversation rend la liste inerte quand elle la recouvre (jusqu'à 1 099 px) */
+  const largeBureau = matchMedia('(min-width: 1100px)');
+  function synchroInert() {
+    $('app').inert = !!(etat.groupe.ouvert || etat.photo);
+    $('contenu').inert = !!(etat.conv && !largeBureau.matches);
+  }
+  if (largeBureau.addEventListener) largeBureau.addEventListener('change', synchroInert);
+
   document.addEventListener('click', e => {
     const a = e.target.closest('a[data-vue]');
-    if (!a) return;
-    e.preventDefault();
-    const cle = a.dataset.vue;
-    if (location.hash !== '#' + cle) history.pushState(null, '', '#' + cle);
-    aller(cle);
-    window.scrollTo(0, 0);
+    if (a) {
+      e.preventDefault();
+      const r = { vue: a.dataset.vue, conv: null, feuille: false, photo: null };
+      if (memeRoute(etat.route, r)) window.scrollTo(0, 0); else pousser(r);
+      return;
+    }
+    const o = e.target.closest('[data-ouvrir]');
+    if (o) ouvrirDepuisListe(o.dataset.ouvrir, o);
   });
-  window.addEventListener('popstate', () => aller(location.hash.slice(1)));
 
-  /* ═══ 7. LA BANNIÈRE ET LE PETIT MOT ═══════════════════════════════════════════════════════════════════════════════════════ */
+  /* ═══ 7. LA CONVERSATION ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+  function majBadge() {
+    const n = etat.conversations.filter(c => c.id !== etat.conv && c.nonLu).length;
+    const b = $('conv-badge');
+    b.hidden = n === 0; b.textContent = n;
+    $('conv-retour').setAttribute('aria-label', n ? 'Retour aux conversations, ' + n + (n === 1 ? ' autre conversation non lue' : ' autres conversations non lues') : 'Retour aux conversations');
+  }
+  function ouvrirDepuisListe(id, declencheurEl) {
+    etat.declencheurConv = declencheurEl;
+    const r = Object.assign({}, etat.route, { vue: 'messages', conv: id, feuille: false, photo: null });
+    if (etat.conv) remplacer(r); else pousser(r);
+  }
+  function rendreEntete(c) {
+    $('conv-titre').innerHTML = avatar(c) + '<span class="conv-titre-nom"><span>' + esc(c.nom) + '</span>' + CHEVRON + '</span>';
+    $('conv-titre').setAttribute('aria-label', c.nom + ' — infos du ' + (c.type === 'groupe' ? 'groupe' : 'contact') + ' (bientôt)');
+  }
+  const nomAuteur = id => { const c = contactDe(id); return c ? prenom(c) : '?'; };
+
+  function htmlMessage(c, m, premier, estDernierEnvoye) {
+    const moi = m.auteur === 'moi';
+    const sens = moi ? 'envoyee' : 'recue';
+    let h = '<div class="msg ' + (moi ? 'de-moi' : 'de-autre') + (premier ? '' : ' suite') + '" data-mid="' + esc(m.id) + '">';
+    if (!moi && c.type === 'groupe' && premier) h += '<span class="msg-nom">' + esc(nomAuteur(m.auteur)) + '</span>';
+    if (m.photos) {
+      h += '<span class="photos' + (m.photos.length === 1 ? ' une' : '') + '">' + m.photos.map((p, i) => blob(p.url) ?
+        '<button type="button" class="photo presse" data-photo="' + esc(m.id) + '|' + i + '" aria-label="Agrandir la photo ' + (i + 1) + ' sur ' + m.photos.length + '"><img src="' + esc(p.url) + '" alt="Photo envoyée par ' + esc(moi ? 'vous' : nomAuteur(m.auteur)) + '"></button>' :
+        '<span class="photo" role="img" aria-label="Photo d\'exemple">' + icone('i-image') + '</span>').join('') + '</span>';
+    } else if (m.vocal) {
+      h += '<button type="button" class="vocal ' + sens + ' presse" data-lire="' + esc(m.id) + '" aria-label="Lire le message vocal de ' + duree(m.vocal.dur) + '">' +
+        '<span class="vocal-disque">' + icone('i-play', 'plein play') + icone('i-pause', 'plein pause') + '</span>' +
+        '<span class="onde" aria-hidden="true">' + (m.vocal.bars && m.vocal.bars.length ? m.vocal.bars : [8, 14, 18, 10, 16, 6, 12, 18, 9, 14]).map(n => '<i style="height:' + Math.max(4, Math.min(20, n | 0)) + 'px"></i>').join('') + '</span>' +
+        '<span class="vocal-duree">' + duree(m.vocal.dur) + '</span></button>';
+    } else {
+      h += '<span class="bulle ' + sens + '">' + esc(m.texte) + '</span>';
+    }
+    if (estDernierEnvoye) h += '<span class="statut">' + (m.lu ? 'Lu ' + FMT_HEURE.format(m.lu) : 'Envoyé') + '</span>';
+    return h + '</div>';
+  }
+  function htmlMessages(c) {
+    let h = '', prec = null;
+    const dernierEnvoye = c.messages.filter(m => m.auteur === 'moi' && !m.systeme).pop();
+    c.messages.forEach(m => {
+      const coupure = !prec || m.t - prec.t >= 3600000 || debutDeJour(m.t) !== debutDeJour(prec.t);
+      if (coupure) h += '<div class="datage">' + esc(libelleDatage(m.t)) + '</div>';
+      if (m.systeme) { h += '<div class="systeme">' + esc(m.texte) + '</div>'; prec = m; return; }
+      const serie = !coupure && prec && !prec.systeme && prec.auteur === m.auteur && m.t - prec.t < 300000;
+      h += htmlMessage(c, m, !serie, dernierEnvoye && m.id === dernierEnvoye.id);
+      prec = m;
+    });
+    if (c.saisie) h += '<div class="saisie-ind" role="img" aria-label="' + esc(nomAuteur(c.saisie.contact)) + ' est en train d\'écrire"><i></i><i></i><i></i></div>';
+    return h;
+  }
+  function rendreConv(c, force) {
+    const fil = $('conv-fil');
+    const colle = force || etat.forcerBas || (fil.scrollHeight - fil.scrollTop - fil.clientHeight < 80);
+    etat.forcerBas = false;
+    etat.convDonnees = c;
+    rendreEntete(c);
+    $('conv-messages').innerHTML = htmlMessages(c);
+    $('conv-messages').setAttribute('aria-busy', 'false');
+    /* « Seuls les admins écrivent » : une personne qui n'est pas admin lit, elle n'écrit pas */
+    const ferme = c.annoncesSeulement && c.admins.indexOf('moi') < 0;
+    $('compo').hidden = ferme || !!enr.etat && enr.etat !== 'repos'; $('compo-ferme').hidden = !ferme;
+    appliquerLecture();
+    if (colle) defilerBas();
+  }
+  function defilerBas() { const f = $('conv-fil'); f.scrollTop = f.scrollHeight; }
+  const trouverMessage = mid => etat.convDonnees && etat.convDonnees.messages.find(m => m.id === mid);
+
+  async function ouvrirConv(id) {
+    const jeton = ++etat.jeton;
+    if (!etat.conv) etat.scrollListe = window.scrollY;
+    etat.conv = id; etat.convDonnees = null;
+    document.documentElement.dataset.conv = '1';
+    const resume = etat.conversations.find(c => c.id === id);
+    if (resume) rendreEntete(resume);
+    $('conv-messages').innerHTML = ''; $('conv-messages').setAttribute('aria-busy', 'true');
+    $('saisie').value = etat.brouillons[id] || ''; ajusterSaisie(); majBoutons(); masquerAvis();
+    rendreListe();
+    let c = null; try { c = await source.ouvrir(id); } catch (e) { c = null; }
+    if (jeton !== etat.jeton) return;                       // une autre conversation (ou la liste) a pris la place pendant l'attente
+    if (!c) { remplacer({ vue: 'messages', conv: null, feuille: false, photo: null }); mot('Cette conversation n\'existe plus.'); return; }
+    rendreConv(c, true);
+    synchroInert();
+    if (matchMedia('(pointer: fine)').matches) $('saisie').focus({ preventScroll: true }); else $('conv-ecran').focus({ preventScroll: true });
+    try { await source.marquerLu(id); } catch (e) { /* la source le dira par ecouter */ }
+  }
+  function fermerConv() {
+    etat.jeton++;
+    const id = etat.conv;
+    if (id) etat.brouillons[id] = $('saisie').value;
+    etat.conv = null; etat.convDonnees = null;
+    delete document.documentElement.dataset.conv;
+    arreterLecture(); annulerEnregistrement();
+    rendreListe();
+    synchroInert();
+    const dec = etat.declencheurConv; etat.declencheurConv = null;
+    requestAnimationFrame(() => {
+      window.scrollTo(0, etat.scrollListe);
+      const ligne = id && document.querySelector('[data-ouvrir="' + id.replace(/"/g, '') + '"]');
+      if (ligne) ligne.focus({ preventScroll: true }); else if (dec && dec.isConnected && dec.focus) dec.focus({ preventScroll: true });
+    });
+  }
+  async function rafraichirConv() {
+    const id = etat.conv; if (!id) return;
+    const jeton = etat.jeton;
+    const c = await source.ouvrir(id);
+    if (jeton !== etat.jeton || !c) return;
+    rendreConv(c, false);
+  }
+  $('conv-retour').addEventListener('click', fermerCouche);
+  $('conv-cam').addEventListener('click', () => pousser({ vue: 'appels', conv: null, feuille: false, photo: null }));
+  $('conv-titre').addEventListener('click', () => mot('Les infos du ' + (etat.convDonnees && etat.convDonnees.type === 'groupe' ? 'groupe' : 'contact') + ' arrivent bientôt'));
+
+  /* ── la saisie : un VRAI champ, qui grandit jusqu'à 5 lignes ── */
+  function ajusterSaisie() {
+    const ta = $('saisie');
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, parseFloat(getComputedStyle(ta).maxHeight) || 124) + 'px';
+  }
+  function majBoutons() {
+    const a = $('saisie').value.trim().length > 0;
+    $('envoyer').hidden = !a; $('compo-micro').hidden = a;
+  }
+  const MESSAGES_ERREUR = { interdit: 'Seuls les admins peuvent écrire dans ce groupe.', 'trop-long': 'Ce message est trop long (4 000 signes au plus).', introuvable: 'Cette conversation n\'existe plus.' };
+  let minAvis = 0;
+  function avis(texte) {
+    clearTimeout(minAvis);
+    const a = $('avis'); a.textContent = texte; a.hidden = false;
+    minAvis = setTimeout(masquerAvis, 7000);
+  }
+  function masquerAvis() { clearTimeout(minAvis); $('avis').hidden = true; $('avis').textContent = ''; }
+  async function envoi(brouillon) {
+    const id = etat.conv; if (!id) return false;
+    etat.forcerBas = true;
+    try { await source.envoyer(id, brouillon); return true; }
+    catch (e) { etat.forcerBas = false; avis(MESSAGES_ERREUR[e && e.code] || 'Le message n\'a pas pu être envoyé.'); return false; }
+  }
+  async function envoyerTexte() {
+    const ta = $('saisie'), t = ta.value.replace(/\s+$/, '');
+    if (!t.trim()) return;
+    if (t.length > TEXTE_MAX) { avis(MESSAGES_ERREUR['trop-long']); return; }
+    const ok = await envoi({ texte: t });
+    if (!ok) return;
+    ta.value = ''; delete etat.brouillons[etat.conv]; ajusterSaisie(); majBoutons();
+  }
+  $('saisie').addEventListener('input', () => { ajusterSaisie(); majBoutons(); if (etat.conv) etat.brouillons[etat.conv] = $('saisie').value; });
+  $('saisie').addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || e.isComposing) return;
+    /* au bureau (une souris) : Entrée envoie, Maj+Entrée va à la ligne ; au doigt, Entrée va à la ligne (la flèche envoie) ;
+       Ctrl/Cmd+Entrée envoie partout */
+    if ((matchMedia('(pointer: fine)').matches && !e.shiftKey && !e.altKey) || e.ctrlKey || e.metaKey) { e.preventDefault(); envoyerTexte(); }
+  });
+  $('envoyer').addEventListener('mousedown', e => e.preventDefault());        // la flèche ne vole pas le focus (le clavier reste ouvert)
+  $('envoyer').addEventListener('click', envoyerTexte);
+
+  /* ── une photo : réduite par un canvas (le fichier d'origine ne part nulle part), validée par son décodage ── */
+  async function reduireImage(fichier, cote, qualite) {
+    if (!fichier || fichier.size > 40 * 1048576) throw new Error('trop-lourd');
+    let img;
+    try { img = await createImageBitmap(fichier, { imageOrientation: 'from-image' }); }
+    catch (e) {
+      img = await new Promise((ok, ko) => { const u = URL.createObjectURL(fichier), i = new Image(); i.onload = () => { URL.revokeObjectURL(u); ok(i); }; i.onerror = () => { URL.revokeObjectURL(u); ko(new Error('illisible')); }; i.src = u; });
+    }
+    const w0 = img.width || img.naturalWidth, h0 = img.height || img.naturalHeight;
+    if (!w0 || !h0 || w0 * h0 > 100e6) throw new Error('illisible');       // une image « vide » ou démesurée (bombe de décompression)
+    const k = Math.min(1, cote / Math.max(w0, h0)), w = Math.max(1, Math.round(w0 * k)), h = Math.max(1, Math.round(h0 * k));
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h); cx.drawImage(img, 0, 0, w, h);
+    if (img.close) img.close();
+    const b = await new Promise(r => cv.toBlob(r, 'image/jpeg', qualite));
+    if (!b) throw new Error('illisible');
+    return { blob: b, w, h };
+  }
+  $('compo-plus').addEventListener('click', () => $('compo-fichier').click());
+  $('compo-fichier').addEventListener('change', async e => {
+    const fichiers = Array.from(e.target.files || []).slice(0, 10); e.target.value = '';
+    const id = etat.conv; if (!id || !fichiers.length) return;
+    const bonnes = []; let ratees = 0;
+    for (const f of fichiers) {
+      try { const r = await reduireImage(f, 1280, .82); bonnes.push({ blob: r.blob, url: URL.createObjectURL(r.blob), w: r.w, h: r.h }); } catch (er) { ratees++; }
+    }
+    if (ratees) avis(ratees === 1 ? 'Une image n\'a pas pu être lue — elle n\'a pas été envoyée.' : ratees + ' images n\'ont pas pu être lues — elles n\'ont pas été envoyées.');
+    if (bonnes.length && id === etat.conv && !(await envoi({ photos: bonnes }))) bonnes.forEach(p => URL.revokeObjectURL(p.url));
+  });
+
+  /* ── la photo agrandie ── */
+  $('conv-messages').addEventListener('click', e => {
+    const p = e.target.closest('[data-photo]');
+    if (p) { etat.declencheurPhoto = p; pousser(Object.assign({}, etat.route, { photo: p.dataset.photo })); return; }
+    const v = e.target.closest('[data-lire]');
+    if (v) lireVocal(v.dataset.lire);
+  });
+  function ouvrirPhotoDom(cle) {
+    const [mid, i] = cle.split('|'), m = trouverMessage(mid), p = m && m.photos && m.photos[+i];
+    if (!p || !blob(p.url)) { remplacer(Object.assign({}, etat.route, { photo: null })); return; }
+    etat.photo = cle;
+    $('visionneuse-img').src = p.url;
+    $('visionneuse-img').alt = 'Photo envoyée par ' + (m.auteur === 'moi' ? 'vous' : nomAuteur(m.auteur));
+    $('visionneuse').hidden = false;
+    $('visionneuse-fermer').focus({ preventScroll: true });
+  }
+  function fermerPhotoDom() {
+    etat.photo = null;
+    $('visionneuse').hidden = true; $('visionneuse-img').removeAttribute('src');
+    const d = etat.declencheurPhoto; etat.declencheurPhoto = null;
+    requestAnimationFrame(() => { const b = d && d.isConnected ? d : null; if (b) b.focus({ preventScroll: true }); });
+  }
+  $('visionneuse-fermer').addEventListener('click', fermerCouche);
+  $('visionneuse').addEventListener('click', e => { if (e.target === $('visionneuse')) fermerCouche(); });
+  $('visionneuse').addEventListener('keydown', e => { if (e.key === 'Tab') { e.preventDefault(); $('visionneuse-fermer').focus(); } });   // un seul contrôle : le focus ne sort pas
+
+  /* ── le vocal : lecture ──
+     Un vocal ENREGISTRÉ ici se relit par `Audio`. Un vocal d'EXEMPLE (aucun fichier sonore dans l'aperçu) rejoue sa durée sans son :
+     la barre avance, le bouton passe en pause — c'est ce que verra la personne avec un vrai fichier. */
+  const lect = { mid: null, audio: null, minut: null, t0: 0 };
+  function progres(p) {
+    const b = document.querySelector('[data-lire="' + (lect.mid || '').replace(/"/g, '') + '"]'); if (!b) return;
+    const barres = b.querySelectorAll('.onde i'), n = Math.round(p * barres.length);
+    barres.forEach((x, i) => x.classList.toggle('joue', i < n));
+  }
+  function appliquerLecture() {
+    if (!lect.mid) return;
+    const b = document.querySelector('[data-lire="' + lect.mid.replace(/"/g, '') + '"]');
+    if (!b) { arreterLecture(); return; }
+    b.setAttribute('data-lecture', '1'); b.setAttribute('aria-label', 'Mettre en pause le message vocal');
+    progres(lect.audio && lect.audio.duration > 0 && isFinite(lect.audio.duration) ? lect.audio.currentTime / lect.audio.duration : (Date.now() - lect.t0) / 1000 / Math.max(1, dureeVocal(lect.mid)));
+  }
+  const dureeVocal = mid => { const m = trouverMessage(mid); return m && m.vocal ? m.vocal.dur : 1; };
+  function arreterLecture() {
+    clearInterval(lect.minut);
+    if (lect.audio) { try { lect.audio.pause(); } catch (e) { /* rien */ } lect.audio = null; }
+    const mid = lect.mid; lect.mid = null;
+    document.querySelectorAll('[data-lecture]').forEach(b => { b.removeAttribute('data-lecture'); b.setAttribute('aria-label', 'Lire le message vocal de ' + duree(dureeVocal(b.dataset.lire))); b.querySelectorAll('.onde i.joue').forEach(x => x.classList.remove('joue')); });
+    return mid;
+  }
+  function lireVocal(mid) {
+    const dejaCe = lect.mid === mid;
+    arreterLecture();
+    if (dejaCe) return;
+    const m = trouverMessage(mid); if (!m || !m.vocal) return;
+    lect.mid = mid; lect.t0 = Date.now();
+    if (blob(m.vocal.url)) {
+      const a = new Audio(m.vocal.url); lect.audio = a;
+      a.addEventListener('timeupdate', () => { if (lect.audio === a) progres(m.vocal.dur ? a.currentTime / m.vocal.dur : 0); });
+      a.addEventListener('ended', () => { if (lect.audio === a) arreterLecture(); });
+      a.addEventListener('error', () => { if (lect.audio === a) { arreterLecture(); avis('Ce message vocal n\'a pas pu être lu.'); } });
+      const p = a.play(); if (p && p.catch) p.catch(() => { if (lect.audio === a) { arreterLecture(); avis('Ce message vocal n\'a pas pu être lu.'); } });
+    } else {
+      lect.minut = setInterval(() => { const x = (Date.now() - lect.t0) / 1000 / m.vocal.dur; if (x >= 1) arreterLecture(); else progres(x); }, 100);
+    }
+    appliquerLecture();
+  }
+
+  /* ── le vocal : enregistrement (MediaRecorder) ──
+     Toucher le micro démarre un enregistrement qui DURE (la flèche l'envoie, la corbeille l'annule) ; le MAINTENIR plus d'une
+     demi-seconde l'envoie au relâcher. Le micro refusé, absent ou indisponible se DIT en une phrase — jamais une erreur dans la
+     console, jamais un bouton qui ne répond rien. */
+  const enr = { etat: 'repos', flux: null, rec: null, morceaux: [], t0: 0, minut: null, niveaux: [], ctx: null, ana: null, annule: false, tenu: false, tenuAuDebut: false, geste: 0 };
+  function afficherEnregistrement(on) {
+    $('enreg').hidden = !on;
+    const c = etat.convDonnees, ferme = c && c.annoncesSeulement && c.admins.indexOf('moi') < 0;
+    $('compo').hidden = on || !!ferme;
+  }
+  function nettoyerFlux() {
+    clearInterval(enr.minut);
+    if (enr.flux) enr.flux.getTracks().forEach(t => t.stop());
+    if (enr.ctx && enr.ctx.close) enr.ctx.close().catch(() => {});
+    enr.flux = null; enr.rec = null; enr.ctx = null; enr.ana = null;
+  }
+  function messageMicro(e) {
+    const n = e && e.name;
+    if (n === 'NotAllowedError' || n === 'SecurityError') return 'Le micro est refusé : autorisez-le dans les réglages de votre navigateur, puis réessayez.';
+    if (n === 'NotFoundError' || n === 'OverconstrainedError') return 'Aucun micro n\'a été trouvé sur cet appareil.';
+    if (n === 'NotReadableError' || n === 'AbortError') return 'Le micro est utilisé par une autre application : fermez-la, puis réessayez.';
+    return 'Le micro n\'a pas pu démarrer.';
+  }
+  async function demarrerEnregistrement() {
+    if (enr.etat !== 'repos' || !etat.conv) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') { avis('L\'enregistrement vocal n\'est pas disponible sur ce navigateur.'); return; }
+    enr.etat = 'demande'; enr.annule = false;
+    let flux;
+    try { flux = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch (e) { enr.etat = 'repos'; avis(messageMicro(e)); return; }
+    if (enr.etat !== 'demande' || !etat.conv) { flux.getTracks().forEach(t => t.stop()); enr.etat = 'repos'; return; }   // annulé (retour, Échap) pendant la demande
+    try {
+      const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+      const type = types.find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
+      enr.rec = new MediaRecorder(flux, type ? { mimeType: type } : undefined);
+    } catch (e) { flux.getTracks().forEach(t => t.stop()); enr.etat = 'repos'; avis('L\'enregistrement vocal n\'est pas disponible sur ce navigateur.'); return; }
+    enr.flux = flux; enr.morceaux = []; enr.niveaux = [];
+    enr.rec.ondataavailable = ev => { if (ev.data && ev.data.size) enr.morceaux.push(ev.data); };
+    enr.rec.onstop = finirEnregistrement;
+    /* le niveau sonore : de quoi dessiner la forme d'onde. Si le navigateur refuse l'analyse, la barre reste plate — le vocal part quand même. */
+    let buf = null;
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      enr.ctx = new AC(); enr.ana = enr.ctx.createAnalyser(); enr.ana.fftSize = 256;
+      enr.ctx.createMediaStreamSource(flux).connect(enr.ana); buf = new Uint8Array(enr.ana.fftSize);
+    } catch (e) { enr.ana = null; }
+    enr.rec.start(250);
+    enr.etat = 'enregistre'; enr.t0 = Date.now(); enr.tenuAuDebut = enr.tenu;
+    afficherEnregistrement(true);
+    $('enreg-duree').textContent = '0:00'; $('enreg-onde').innerHTML = '';
+    enr.minut = setInterval(() => {
+      const ms = Date.now() - enr.t0;
+      $('enreg-duree').textContent = duree(ms / 1000);
+      let niv = 0;
+      if (enr.ana && buf) { enr.ana.getByteTimeDomainData(buf); for (let i = 0; i < buf.length; i++) niv = Math.max(niv, Math.abs(buf[i] - 128) / 128); }
+      enr.niveaux.push(niv);
+      const o = $('enreg-onde'); o.insertAdjacentHTML('beforeend', '<i style="height:' + (4 + Math.round(Math.min(1, niv * 3) * 22)) + 'px"></i>');
+      while (o.children.length > 60) o.removeChild(o.firstChild);
+      if (ms >= VOCAL_MAX_MS) envoyerEnregistrement();
+    }, 100);
+  }
+  function envoyerEnregistrement() { if (enr.etat === 'enregistre' && enr.rec && enr.rec.state !== 'inactive') { enr.etat = 'arret'; enr.rec.stop(); } }
+  function annulerEnregistrement() {
+    if (enr.etat === 'demande') { enr.etat = 'repos'; return; }
+    if (enr.etat !== 'enregistre') return;
+    enr.annule = true; enr.etat = 'arret';
+    if (enr.rec && enr.rec.state !== 'inactive') enr.rec.stop(); else finirEnregistrement();
+  }
+  async function finirEnregistrement() {
+    const ms = Date.now() - enr.t0, morceaux = enr.morceaux, type = enr.rec && enr.rec.mimeType, annule = enr.annule, niveaux = enr.niveaux.slice();
+    nettoyerFlux(); enr.etat = 'repos'; enr.annule = false;
+    afficherEnregistrement(false);
+    if (annule) return;
+    if (ms < VOCAL_MIN_MS || !morceaux.length) { avis('Vocal trop court — il n\'a pas été envoyé.'); return; }
+    const b = new Blob(morceaux, { type: type || 'audio/webm' });
+    const n = 10, bars = [];
+    for (let i = 0; i < n; i++) { const part = niveaux.slice(Math.floor(i * niveaux.length / n), Math.floor((i + 1) * niveaux.length / n)); const v = part.length ? Math.max.apply(null, part) : 0; bars.push(6 + Math.round(Math.min(1, v * 3) * 12)); }
+    const url = URL.createObjectURL(b);
+    if (!(await envoi({ vocal: { blob: b, url, dur: ms / 1000, bars } }))) URL.revokeObjectURL(url);
+  }
+  const micro = $('compo-micro');
+  micro.addEventListener('contextmenu', e => e.preventDefault());
+  micro.addEventListener('pointerdown', e => {
+    if (e.button) return;
+    enr.geste = Date.now(); enr.tenu = true;
+    try { micro.setPointerCapture(e.pointerId); } catch (er) { /* rien */ }
+    demarrerEnregistrement();
+  });
+  const relache = () => {
+    if (!enr.tenu) return;
+    enr.tenu = false;
+    /* maintenu depuis le DÉBUT de l'enregistrement et assez longtemps : le relâcher envoie. Relâché plus tôt (un simple toucher, ou le
+       temps d'une demande d'autorisation) : l'enregistrement DURE, la flèche l'enverra. */
+    if (enr.etat === 'enregistre' && enr.tenuAuDebut && Date.now() - enr.t0 >= TENU_MS) envoyerEnregistrement();
+  };
+  micro.addEventListener('pointerup', relache); micro.addEventListener('pointercancel', relache);
+  micro.addEventListener('click', e => { if (e.detail === 0) demarrerEnregistrement(); });          // au clavier (Entrée, Espace) : un clic sans pointeur
+  $('enreg-envoyer').addEventListener('click', envoyerEnregistrement);
+  $('enreg-annuler').addEventListener('click', annulerEnregistrement);
+
+  /* ═══ 8. LA BANNIÈRE ET LE PETIT MOT ═══════════════════════════════════════════════════════════════════════════════════════ */
   let minNotif = 0, minMot = 0;
   function notifier(texte, aide) {
     clearTimeout(minNotif);
@@ -597,15 +1250,15 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
   function mot(texte) {
     clearTimeout(minMot);
     $('mot').textContent = texte; $('mot').classList.add('on');
-    minMot = setTimeout(() => $('mot').classList.remove('on'), 2200);
+    minMot = setTimeout(() => $('mot').classList.remove('on'), 2400);
   }
 
-  /* ═══ 8. LA FEUILLE « NOUVEAU GROUPE » ══════════════════════════════════════════════════════════════════════════════════════ */
+  /* ═══ 9. LA FEUILLE « NOUVEAU GROUPE » ══════════════════════════════════════════════════════════════════════════════════════ */
   let declencheur = null;
   const g = () => etat.groupe;
   function construireContacts() {
     $('g-contacts').innerHTML = CONTACTS.map(c =>
-      '<button type="button" class="contact presse" role="checkbox" aria-checked="false" data-id="' + c.id + '">' + avatar(c) +
+      '<button type="button" class="contact presse" role="checkbox" aria-checked="false" data-id="' + esc(c.id) + '">' + avatar(c) +
       '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span><span class="contact-role">' + esc(c.role) + '</span></span>' +
       '<span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join('') +
       '<p class="vide" id="g-aucun" hidden>Aucun contact ne correspond.</p>';
@@ -619,7 +1272,7 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
     });
     $('g-aucun').hidden = Array.from(document.querySelectorAll('#g-contacts .contact')).some(b => !b.hidden);
     $('g-puces').innerHTML = G.choisis.map(id => { const c = contactDe(id);
-      return '<li><button type="button" class="puce presse" data-retirer="' + id + '" aria-label="Retirer ' + esc(prenom(c)) + ' du groupe">' + avatar(c) +
+      return '<li><button type="button" class="puce presse" data-retirer="' + esc(id) + '" aria-label="Retirer ' + esc(prenom(c)) + ' du groupe">' + avatar(c) +
         '<span class="puce-x" aria-hidden="true">' + icone('i-croix') + '</span><span class="puce-nom">' + esc(prenom(c)) + '</span></button></li>'; }).join('');
     $('g-compteur').textContent = G.choisis.length + ' / ' + CONTACTS.length;
     $('g-creer').setAttribute('aria-disabled', G.choisis.length ? 'false' : 'true');
@@ -628,44 +1281,50 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
     $('g-photo').classList.toggle('avec-image', !!G.photo);
     $('g-photo').style.backgroundImage = G.photo ? 'url(' + G.photo + ')' : '';
   }
-  function ouvrirFeuille() {
-    declencheur = document.activeElement;
+  /* ouvrir = pousser la route ; l'écran suit dans ouvrirFeuilleDom (jouée aussi par le retour système) */
+  function ouvrirFeuille() { declencheur = document.activeElement; pousser(Object.assign({}, etat.route, { feuille: true })); }
+  function ouvrirFeuilleDom() {
+    if (!declencheur) declencheur = document.activeElement;
     etat.groupe = groupeVierge(); etat.groupe.ouvert = true;
     $('g-nom').value = ''; $('g-recherche').value = ''; $('g-photo-fichier').value = '';
     $('feuille-corps').scrollTop = 0;
     synchroFeuille();
-    $('app').inert = true;
     $('feuille').inert = false;
     document.documentElement.classList.add('feuille-ouverte');
     /* le focus va à la feuille, pas au champ : sur un téléphone, un champ focalisé ouvre le clavier et cache la moitié du
        contenu avant que la personne ait rien vu */
     requestAnimationFrame(() => $('feuille').focus({ preventScroll: true }));
   }
-  function fermerFeuille(garderPhoto) {
-    if (!etat.groupe.ouvert) return;
-    if (etat.groupe.photo && !garderPhoto) URL.revokeObjectURL(etat.groupe.photo);
+  function fermerFeuille(garderPhoto) { if (!etat.groupe.ouvert) return; etat.garderPhoto = !!garderPhoto; fermerCouche(); }
+  function fermerFeuilleDom() {
+    if (etat.groupe.photo && !etat.garderPhoto) URL.revokeObjectURL(etat.groupe.photo);
+    etat.garderPhoto = false;
     etat.groupe = groupeVierge();
     document.documentElement.classList.remove('feuille-ouverte');
-    $('app').inert = false;
     $('feuille').inert = true;
-    if (declencheur && declencheur.focus) declencheur.focus({ preventScroll: true });
+    synchroInert();
+    const d = declencheur; declencheur = null;
+    if (d && d.isConnected && d.focus) d.focus({ preventScroll: true });
   }
   function basculer(id) {
     const G = g(), i = G.choisis.indexOf(id);
     if (i < 0) G.choisis.push(id); else G.choisis.splice(i, 1);
     synchroFeuille();
   }
-  function creerGroupe() {
+  async function creerGroupe() {
     const G = g();
     if (!G.choisis.length) { $('g-compteur').textContent = 'Choisissez au moins un contact'; setTimeout(synchroFeuille, 1600); return; }
-    const membres = G.choisis.map(contactDe), prenoms = membres.map(prenom);
+    if (etat.creation) return;
+    etat.creation = true;
+    const prenoms = G.choisis.map(id => prenom(contactDe(id)));
     const nom = G.nom.trim() || 'Nouveau groupe';
-    etat.conversations.unshift({
-      id: 'g' + Date.now(), type: 'groupe', nom: nom + ' (' + (membres.length + 1) + ')', court: nom,
-      membres: ['moi'].concat(G.choisis), admins: ['moi'], annoncesSeulement: G.annonces, ephemeres: G.ephemeres, messages: [],
-      apercu: 'Vous avez créé le groupe · ' + prenoms.join(', '), heure: 'maintenant', nonLu: true, avatar: 3, photo: G.photo, neuve: true
-    });
-    rendreListe();
+    let c = null;
+    try { c = await source.creerGroupe({ nom: G.nom, membres: G.choisis, photo: G.photo, annonces: G.annonces, ephemeres: G.ephemeres }); }
+    catch (e) { c = null; }
+    etat.creation = false;
+    if (!c) { mot('Le groupe n\'a pas pu être créé.'); return; }
+    etat.neuves.add(c.id);
+    await rafraichirListe();
     fermerFeuille(true);
     /* 300 ms plus tard, comme la maquette : la feuille a le temps de partir, la bannière arrive dans une liste déjà visible */
     setTimeout(() => notifier('Vous avez été ajouté au groupe « ' + nom + ' »', 'Aperçu de la notification que reçoivent ' + prenoms.join(', ')), 300);
@@ -675,12 +1334,18 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
   $('g-annuler').addEventListener('click', () => fermerFeuille(false));
   $('voile').addEventListener('click', () => fermerFeuille(false));
   $('g-creer').addEventListener('click', creerGroupe);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && etat.groupe.ouvert) { e.preventDefault(); fermerFeuille(false); } });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    /* Échap ferme la couche du dessus : la photo, la feuille, un enregistrement en cours, la conversation */
+    if (etat.photo || etat.groupe.ouvert) { e.preventDefault(); fermerCouche(); }
+    else if (enr.etat === 'enregistre' || enr.etat === 'demande') { e.preventDefault(); annulerEnregistrement(); }
+    else if (etat.conv) { e.preventDefault(); fermerCouche(); }
+  });
   $('g-contacts').addEventListener('click', e => { const b = e.target.closest('.contact'); if (b) basculer(b.dataset.id); });
   $('g-puces').addEventListener('click', e => {
     const b = e.target.closest('[data-retirer]'); if (!b) return;
     const id = b.dataset.retirer; basculer(id);
-    const ligne = document.querySelector('#g-contacts .contact[data-id="' + id + '"]');
+    const ligne = document.querySelector('#g-contacts .contact[data-id="' + id.replace(/"/g, '') + '"]');
     if (ligne && !ligne.hidden) ligne.focus({ preventScroll: true });
   });
   $('g-nom').addEventListener('input', e => { g().nom = e.target.value; });
@@ -688,10 +1353,15 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
   $('g-recherche').addEventListener('input', e => { g().recherche = e.target.value; synchroFeuille(); });
   $('g-ephemeres').addEventListener('click', () => { const G = g(); const i = EPHEMERES.findIndex(e => e[0] === G.ephemeres); G.ephemeres = EPHEMERES[(i + 1) % EPHEMERES.length][0]; synchroFeuille(); });
   $('g-annonces').addEventListener('click', () => { g().annonces = !g().annonces; synchroFeuille(); });
-  $('g-photo-fichier').addEventListener('change', e => {
+  /* la photo du groupe : réduite à 512 px par un canvas et VALIDÉE par son décodage — une image illisible laisse la pastille de repli, et le dit */
+  $('g-photo-fichier').addEventListener('change', async e => {
     const f = e.target.files && e.target.files[0]; if (!f) return;
+    let r = null;
+    try { r = await reduireImage(f, 512, .85); } catch (er) { r = null; }
+    if (!etat.groupe.ouvert) return;                          // la feuille s'est fermée pendant le décodage
+    if (!r) { e.target.value = ''; mot(g().photo ? 'Cette image n\'a pas pu être lue : la photo choisie avant est conservée.' : 'Cette image n\'a pas pu être lue : le groupe garde sa pastille.'); return; }
     if (g().photo) URL.revokeObjectURL(g().photo);
-    g().photo = URL.createObjectURL(f); synchroFeuille();
+    g().photo = URL.createObjectURL(r.blob); synchroFeuille();
   });
   $('recherche-conv').addEventListener('input', e => { etat.recherche = e.target.value; rendreListe(); });
   $('btn-modifier').addEventListener('click', () => mot('« Modifier » arrive bientôt'));
@@ -700,7 +1370,7 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
         (apple-design §6) au lieu de juger la seule position de relâchement. Le relâchement rend la main au CSS, qui repart
         de la valeur visible : un geste repris au vol ne saute pas. ── */
   (function () {
-    const tete = $('feuille-tete'), f = $('feuille'), mobile = matchMedia('(max-width: 899.98px)');
+    const tete = $('feuille-tete'), f = $('feuille'), mobile = matchMedia('(max-width: 699.98px)');
     let d = null;
     tete.addEventListener('pointerdown', e => {
       if (!mobile.matches || !etat.groupe.ouvert || e.target.closest('button')) return;
@@ -729,13 +1399,35 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
   /* sur iOS, :active ne se pose qu'avec un écouteur de toucher quelque part : sans lui, la réponse au doigt attend le relâché */
   document.addEventListener('touchstart', function () {}, { passive: true });
 
-  /* ═══ 9. LE DÉMARRAGE ═══════════════════════════════════════════════════════════════════════════════════════════════════════ */
-  $('moi-avatar').textContent = MOI.initiales; $('moi-nom').textContent = MOI.nom;
-  construireNavigation();
-  construireContacts();
-  rendreListe();
-  ['appels', 'reunions', 'reglages'].forEach(rendreCoquille);
-  aller(location.hash.slice(1));
+  /* le clavier d'un iPhone ne rétrécit pas la page, il rétrécit la fenêtre VISUELLE : la conversation suit celle-là, sinon le champ
+     de saisie reste caché derrière (mesuré impossible dans ce navigateur de test : écrit d'après la spécification, dit dans le rapport) */
+  if (window.visualViewport) {
+    const vv = window.visualViewport, root = document.documentElement.style;
+    const suivre = () => {
+      if (vv.scale <= 1.01 && vv.height < window.innerHeight - 80) { root.setProperty('--vvh', vv.height + 'px'); root.setProperty('--vvt', vv.offsetTop + 'px'); if (etat.conv) defilerBas(); }
+      else { root.removeProperty('--vvh'); root.removeProperty('--vvt'); }
+    };
+    vv.addEventListener('resize', suivre); vv.addEventListener('scroll', suivre);
+  }
+
+  /* ═══ 10. LE DÉMARRAGE ═══════════════════════════════════════════════════════════════════════════════════════════════════════ */
+  async function demarrer() {
+    $('moi-avatar').textContent = MOI.initiales; $('moi-nom').textContent = MOI.nom;
+    construireNavigation();
+    construireContacts();
+    ['appels', 'reunions', 'reglages'].forEach(rendreCoquille);
+    etat.conversations = await source.lister();
+    const r0 = routeDepuisHash();
+    history.replaceState({ opmsg: 1, n: 0, r: r0, p: null }, '', urlDe(r0));
+    rendreListe();
+    appliquer(r0);
+    /* la source dit quand quelque chose change : la liste et la conversation ouverte se refont, rien d'autre */
+    source.ecouter(ev => {
+      if (ev.type === 'liste') rafraichirListe();
+      if (ev.type === 'conversation' && ev.id === etat.conv) rafraichirConv();
+    });
+  }
+  demarrer();
 })();
 </script>
 </body>

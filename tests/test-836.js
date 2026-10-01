@@ -290,6 +290,7 @@ console.log('\n══ 9. TOUTES LES PAGES DU DÉPÔT : AUCUN BOUTON DE MODE HORS
     'messages-beta.html': 'OP MESSAGES bêta : même thème',
     'tour.html': 'la Tour : la console du patron, avec son propre jour et nuit — ce n\'est pas le site',
     'apercu/tour.html': 'la Tour en aperçu : même chose',
+    'apercu/opmessages/index.html': 'OP MESSAGES en aperçu (écrans du paquet) : page d\'application, qui n\'a aucune feuille commune (CSP default-src \'none\') et déclare donc son color-scheme elle-même (meta + :root) — jour/nuit par prefers-color-scheme, sans bouton',
     /* (`apercu/site-apple.html`, la maquette de comparaison, est supprimée — Justin, 30 septembre 2026 : « pour le site on
        garde la maquette qu'on a à l'heure actuelle, l'ancienne tu peux les supprimer ») */
   };
