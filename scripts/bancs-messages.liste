@@ -15,7 +15,8 @@
 # ⛔ LE PLANCHER : moins de vérifications que ça, c'est que des suites ont sauté leur partie exécutée (sans
 # `server-msg/node_modules`, celles du service se déclarent vertes). Le relever quand on ajoute une suite, jamais le baisser.
 # 1er octobre 2026 (après la relecture adverse) : 16 suites, 1593 vérifications mesurées par `bash scripts/bancs-ci.sh $(liste)`.
-#plancher 1595
+# 1er octobre 2026 (l'interface de Justin branchée sur le service : test-911 l'appareil et le service, test-912 le générateur) : 18 suites, 1721 vérifications.
+#plancher 1721
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
@@ -29,6 +30,8 @@ tests/test-907.js
 tests/test-908.js
 tests/test-909.js
 tests/test-910.js
+tests/test-911.js
+tests/test-912.js
 #
 # ── Installation, déploiement, surveillance ─────────────────────────────────────────────────────────────────────────────
 tests/test-930.js
