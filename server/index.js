@@ -2224,7 +2224,8 @@ app.post('/api/beta/login', (req, res) => {
   monLock.delete(ident); monLog(ident, true, req, '');
   // `id` : l'identifiant du COMPTE (b + hexadécimaux), jamais réutilisé. OP MESSAGES s'en sert pour reconnaître une
   // personne : un accès supprimé puis recréé sous le même `login` est une autre personne (relecture du gardien, 1er octobre 2026).
-  res.json({ ok: true, login: c.login, nom: c.nom, id: c.id });
+  // `apps` : ce que l'accès ouvre. L'autre service (OP MESSAGES) exige d'y lire SON nom : un OP GESTION d'avant ce champ ne le dit pas, et la porte reste fermée plutôt que d'ouvrir à tout accès.
+  res.json({ ok: true, login: c.login, nom: c.nom, id: c.id, apps: betaApps(c) });
 });
 // Un appareil resté connecté redemande si sa porte est toujours ouverte : « coupé » depuis
 // la Tour doit fermer aussi les sessions déjà ouvertes. Même réponse pour un accès inconnu.
@@ -2240,7 +2241,7 @@ app.post('/api/beta/etat', (req, res) => {
   if (Array.isArray(ids)) {
     const ouverts = {};
     for (const id of ids.slice(0, 100)) { if (typeof id === 'string' && /^b[0-9a-f]{6,32}$/.test(id)) ouverts[id] = betaComptes.some(x => x.id === id && ouvert(x)); }
-    return res.json({ ouverts });
+    return res.json({ ouverts, app: appVoulue });   // `app` rendu en écho : un OP GESTION d'avant ne le fait pas, et l'autre service ne coupe ni ne maintient rien sur une réponse qui ne répond pas à SA question
   }
   const login = monStr((req.body || {}).login, 40).trim().toLowerCase();
   const c = betaComptes.find(x => x.login === login);

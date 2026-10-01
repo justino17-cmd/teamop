@@ -154,6 +154,10 @@ const json = async (base, methode, chemin, corps, entetes) => {
       v('beta.html (sans `app`) : « gestion » seul passe, « messages » seul est refusé comme un mauvais mot de passe',
         [(await json(og.base, 'POST', '/api/beta/login', { login: 'gaston', pass: 'pw-gaston-reel1' })).code, (await json(og.base, 'POST', '/api/beta/login', { login: 'mona', pass: 'pw-mona-reel12' })).j.error],
         [200, 'identifiant ou mot de passe incorrect']);
+      const lgApps = await json(og.base, 'POST', '/api/beta/login', { login: 'duo', pass: 'pw-duo-reel123', app: 'messages' });
+      v('⛔ la VRAIE route de connexion DIT ce que l\'accès ouvre (`apps`) : la porte d\'OP MESSAGES l\'exige, un OP GESTION d\'avant ne le dit pas et la laisse fermée', [lgApps.code, lgApps.j.apps], [200, ['gestion', 'messages']]);
+      const etApp = await json(og.base, 'POST', '/api/beta/etat', { ids: [d.j.compte.id, g.j.compte.id], app: 'messages' });
+      v('⛔ la VRAIE route d\'état répond pour l\'application demandée, avec son écho : « gestion » seul → false, les deux → true', [etApp.j.app, etApp.j.ouverts], ['messages', { [d.j.compte.id]: true, [g.j.compte.id]: false }]);
       v('une application inconnue : 400', (await json(og.base, 'POST', '/api/beta/login', { login: 'duo', pass: 'pw-duo-reel123', app: 'compta' })).code, 400);
       // La relecture : on retire « messages » à Duo depuis la Tour (la vraie route), sa session OP MESSAGES se coupe ; on le lui rend, il rentre.
       const cd = await T.connecter(svc, {}, 'duo', 'pw-duo-reel123', ip());

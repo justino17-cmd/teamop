@@ -84,6 +84,9 @@ function creerPorteBeta({ config, quotas, stockage, fetchImpl = fetch, horloge =
 
     if (r.statut === 200 && r.j && r.j.ok === true && typeof r.j.login === 'string' && REGEX_LOGIN.test(r.j.login)) {
       if (typeof r.j.id !== 'string' || !REGEX_ID.test(r.j.id)) { rembourserTout(); return { statut: 503, corps: { error: 'porte_indisponible' } }; }
+      /* ⛔ OP GESTION doit DIRE que cet accès ouvre « messages ». Un OP GESTION d'avant le champ ignore `app` et répond « ok » à
+         tout accès de sa bêta : sans cette lecture, la porte s'ouvrirait à des gens qui n'ont jamais eu OP MESSAGES. Fermée par défaut. */
+      if (!Array.isArray(r.j.apps) || !r.j.apps.includes(APP)) { rembourserTout(); return { statut: 503, corps: { error: 'porte_indisponible' } }; }
       const nom = typeof r.j.nom === 'string' ? r.j.nom : r.j.login;
       const personne = stockage.personneCreer({ identifiant: 'beta:' + r.j.id, prenom: nom, nom: '', origine: 'beta', verifie: true });
       ouvertures++;
@@ -116,7 +119,8 @@ function creerPorteBeta({ config, quotas, stockage, fetchImpl = fetch, horloge =
       const paquet = actives.slice(i, i + PAQUET_ETAT);
       try {
         const r = await appeler('/api/beta/etat', { ids: Array.from(new Set(paquet.map(p => p.bid))), app: APP }, '127.0.0.1');
-        if (r.statut !== 200 || !r.j || !r.j.ouverts || typeof r.j.ouverts !== 'object') { echec = true; continue; }
+        // `app` en écho : une réponse d'un OP GESTION d'avant (qui ignore `app` et parle d'OP GESTION) ne coupe ni ne maintient personne.
+        if (r.statut !== 200 || !r.j || r.j.app !== APP || !r.j.ouverts || typeof r.j.ouverts !== 'object') { echec = true; continue; }
         for (const p of paquet) {
           const o = r.j.ouverts[p.bid];
           if (o === false) { stockage.sessionsSupprimerPersonne(p.id); coupes.push(p.id); }

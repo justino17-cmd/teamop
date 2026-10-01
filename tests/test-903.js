@@ -263,6 +263,17 @@ const nb = (svc, table) => { const d = lireDb(svc); try { return d.prepare('SELE
       og.mode = 'sans_id';
       const e3 = await T.client(svc.base).post('/api/beta/entrer', { login: 'rose', pass: 'pw-rose-12345' });
       v('⛔ une réponse de connexion SANS identifiant de compte : 503 porte_indisponible (on ne retombe jamais sur le texte du login)', [e3.code, e3.j.error], [503, 'porte_indisponible']);
+      // Un OP GESTION d'AVANT `apps` ignore `app` et dit « ok » à tout accès de sa bêta : la porte exige qu'il DISE « messages », sinon elle reste fermée.
+      og.mode = 'normal';
+      const c4 = T.client(svc.base); await c4.post('/api/beta/entrer', { login: 'rose', pass: 'pw-rose-12345' });
+      og.mode = 'sans_apps';
+      const e4 = await T.client(svc.base).post('/api/beta/entrer', { login: 'rose', pass: 'pw-rose-12345' });
+      v('⛔ une réponse de connexion qui ne dit pas « messages » dans `apps` (un OP GESTION d\'avant) : 503 porte_indisponible, personne n\'entre', [e4.code, e4.j.error], [503, 'porte_indisponible']);
+      og.mode = 'etat_sans_app';
+      const m2 = og.appels.length;
+      await T.attendre(() => og.appels.slice(m2).filter(a => a.chemin === '/api/beta/etat').length >= 3, 8000);
+      v('⛔ une relecture sans l\'écho de `app` (un OP GESTION d\'avant, qui répond « false » à tous) ne coupe PERSONNE', [(await c4.get('/api/moi')).code], [200]);
+      vrai('   et la relecture le SAIT : relecturesEchec monte', (await T.client(svc.base).get('/health')).j.porte.relecturesEchec >= 1);
       og.mode = 'normal';
     }
 
