@@ -365,6 +365,24 @@ vrai('   le seul programme relancé dans systemctl est le proxy (reload) et notr
   vrai('   et deux clés DIFFÉRENTES (celle de la production n\'est pas celle de la bêta)', new Set(lignes.map(l => l.split(' ')[3])).size === 2);
 }
 
+/* ══ 10 bis. LA VRAIE POSE DE CLÉ DU SERVICE, À LA PLACE DU FAUX ═════════════════════════════════════════
+   Le faux de ce bac suit le contrat (« --stdin », la clé sur l'entrée) — mais un faux peut dériver du vrai : les deux moitiés
+   étaient justes chacune et ne se parlaient pas (install-msg.sh passait la clé en ARGUMENT, que le vrai outil ignore et remplace,
+   sur la bêta, par une clé GÉNÉRÉE : la base aurait été scellée avec une clé que personne n'a au séquestre). On joue donc
+   l'installation entière avec le VRAI `server-msg/poser-cle.js`. */
+{
+  const b = neuf('nginx');
+  b.commit({ 'server-msg/poser-cle.js': fs.readFileSync(path.join(__dirname, '..', 'server-msg', 'poser-cle.js'), 'utf8') }, 'la vraie pose de clé');
+  const r = b.installer('beta', ENTREE);
+  v('⛔ l\'installation entière réussit avec la VRAIE pose de clé', r.rc, 0);
+  v('⛔ la clé posée est CELLE QUI A ÉTÉ COLLÉE (pas une clé générée par l\'outil)', (b.lire('etc/opmsg/beta.kek') || '').trim(), CLE);
+  v('   en 0600, et le dossier /etc/opmsg reste lisible (755) : il porte aussi la configuration que le service lit sous SON utilisateur', [modeDe(b, 'etc/opmsg/beta.kek'), modeDe(b, 'etc/opmsg')], ['600', '755']);
+  vrai('   le drop-in systemd est posé APRÈS la clé et pointe vers elle', /LoadCredential=kek:.*\/etc\/opmsg\/beta\.kek/.test(b.lire('etc/systemd/system/teamop-msg@beta.service.d/kek.conf') || ''));
+  vrai('⛔ la clé n\'est nulle part dans ce que l\'installation affiche', !r.sortie.includes(CLE));
+  const r2 = b.installer('beta', '');
+  v('   rejouée, avec la vraie pose de clé : sortie 0 et la clé ne change pas', [r2.rc, (b.lire('etc/opmsg/beta.kek') || '').trim()], [0, CLE]);
+}
+
 /* ══ 11. LES REFUS D'ENTRÉE, ET CE QUI MANQUE ══════════════════════════════════════════════════════════ */
 {
   const b = neuf('nginx');
