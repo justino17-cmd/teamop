@@ -34,8 +34,8 @@
    · --accent-txt et --side-actif-fg : l'accent de NUIT (#7ea2f0) est une couleur d'aplat, pas d'une lettre — posé en texte sur le décor bleu (« Modifier »,
      la pastille « Groupe ») il tombait à 4,2:1 et 3,6:1, et sur le fond vif de la barre latérale (saturate 180 %) à 2,65:1 (mesuré au pixel, 1er octobre 2026).
      Le texte prend sa propre teinte (jour : l'accent, qui passe) ; l'accent reste celui des aplats, des anneaux de focus et des contours ;
-   · --rouge-txt : le #ff453a du paquet (« manqué », « raccrocher ») est une couleur d'APLAT : en texte de 17 px sur la carte il fait 3,5:1 de jour et ~3,5:1 de nuit.
-     Le NOM d'un appel manqué prend sa propre teinte (jour #d70015, nuit #ff9a93) ; l'aplat de « Raccrocher » garde le rouge du paquet (non-texte : 3:1 suffit) ;
+   · --rouge-txt : le #ff453a du paquet (« manqué », « raccrocher ») est une couleur d'APLAT : en texte de 17 px sur la carte il fait 3,5:1 de jour et ~3,5:1 de nuit (le décor de nuit est plus clair vers le coin du haut : #ff9a93 y tombait à 3,7:1).
+     Le NOM d'un appel manqué prend sa propre teinte (jour #d70015, nuit #ffaaa4) ; l'aplat de « Raccrocher » garde le rouge du paquet (non-texte : 3:1 suffit) ;
    · --appel-fond, --appel-voile, --appel-bouton : l'écran d'appel est SOMBRE dans les deux modes (le paquet : « il ne s'adapte pas au thème jour »), donc leurs
      valeurs sont les mêmes de jour et de nuit — le voile sombre posé sur la couleur d'un avatar est ce qui rend le blanc lisible sur l'orange. */
 :root {
@@ -130,7 +130,7 @@
     --tab-active-shadow: 0 6px 16px rgba(34,59,110,.3), inset 0 1px 0 rgba(255,255,255,.28);
     --screen: linear-gradient(112deg, rgba(255,255,255,0) 58%, rgba(255,255,255,.05) 58.2%), radial-gradient(120% 90% at 0% 0%, #24408a 0%, rgba(36,64,138,0) 55%), linear-gradient(160deg, #1a2e6b, #0e1a3f);
     --rouge: #ff453a;
-    --rouge-txt: #ff9a93;
+    --rouge-txt: #ffaaa4;
     --vert: #30d158;
     --appel-fond: linear-gradient(160deg, #24408a, #0e1a3f);
     --appel-voile: rgba(14,26,63,.62);

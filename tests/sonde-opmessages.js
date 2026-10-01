@@ -83,10 +83,11 @@ async function ouvrirPage(b, pf, o) {
   await page.addInitScript(() => {
     window.__rejets = []; window.addEventListener('unhandledrejection', e => window.__rejets.push(String(e.reason && e.reason.message || e.reason)));
     window.__pops = 0; window.addEventListener('popstate', () => window.__pops++);
-    window.__micro = { demandes: 0, pistes: [] };
+    window.__micro = { demandes: 0, pistes: [], delai: 0 };
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       const orig = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
-      navigator.mediaDevices.getUserMedia = async c => { window.__micro.demandes++; const f = await orig(c); f.getTracks().forEach(t => window.__micro.pistes.push(t)); return f; };
+      /* `delai` : le temps que la PERSONNE met à répondre à la demande d'autorisation (un bac à sable répond en 50 ms ; une vraie boîte de dialogue en plusieurs secondes) */
+      navigator.mediaDevices.getUserMedia = async c => { window.__micro.demandes++; if (window.__micro.delai) await new Promise(r => setTimeout(r, window.__micro.delai)); const f = await orig(c); f.getTracks().forEach(t => window.__micro.pistes.push(t)); return f; };
     }
     window.__audios = []; const play = HTMLMediaElement.prototype.play; HTMLMediaElement.prototype.play = function () { window.__audios.push(this); return play.apply(this, arguments); };
   });
@@ -1666,10 +1667,13 @@ async function etapeAppelsSorties(S) {
   /* sortir AVANT que l'autorisation ait répondu : la piste qui arrive après est arrêtée aussitôt */
   await allerAppels(S);
   const n0 = await nPistes(S);
-  await geste(S, ligneCamille); await dormir(30);
-  await S.page.goBack(); S.gestes++; await dormir(1800);
+  await S.page.evaluate(() => { window.__micro.delai = 900; });                   // la personne met 0,9 s à répondre à la demande d'autorisation
+  await geste(S, ligneCamille); await dormir(250);
+  const demandee = await S.page.evaluate(() => window.__micro.demandes);
+  await S.page.goBack(); S.gestes++; await dormir(2200);
+  await S.page.evaluate(() => { window.__micro.delai = 0; });
   const pt = await pistesDe(S, n0), ap = await S.page.evaluate(() => document.documentElement.dataset.appel || null);
-  v(nom + ' : retour système AVANT la réponse du navigateur à la demande d\'autorisation : aucune piste ne reste vivante (' + libPistes(pt) + ')', !ap && pt.every(x => x.s === 'ended'), { pt, ap });
+  v(nom + ' : (population) la demande d\'autorisation était EN COURS quand on a raccroché (demandes : ' + demandee + ', pistes arrivées ensuite : ' + pt.length + ') ; retour système AVANT la réponse : aucune piste ne reste vivante (' + libPistes(pt) + ')', !ap && demandee >= 1 && pt.length === 2 && pt.every(x => x.s === 'ended'), { pt, ap, demandee });
   /* deux touchers dans le même instant ne lancent pas deux appels */
   const n1 = await nPistes(S), h1 = await nHist(S);
   await S.page.evaluate(() => { const b = document.querySelector('#liste-appels [data-rappeler]'); b.click(); b.click(); }); await attendreAppel(S); await dormir(300);
@@ -1893,19 +1897,25 @@ async function etapeAppelsStress(b, base, W) {
 }
 
 /* le bloc d'appels sur UN appareil, page neuve (les mutations le jouent seul : --seul=appels, --seul=appels-bureau) */
-async function scenarioAppels(b, base, pf, dark) {
+/* un BLOC d'appels, seul : la liste et le segmenté, l'audio, les sorties, la feuille, la conversation, les détails — chacun a son scénario (appels-<bloc>, appels-<bloc>-bureau) pour que
+   les mutations n'aient pas à rejouer les sept à chaque fois */
+const BLOCS_APPELS = {
+  liste: async S => { await etapeAppelsListe(S); await etapeAppelsSegmente(S); }, audio: etapeAppelsAudio, sorties: etapeAppelsSorties, feuille: etapeAppelsFeuille, conv: etapeAppelsConversation, info: etapeAppelsInfo
+};
+async function scenarioAppels(b, base, pf, dark, bloc) {
   const S = await nouvelle(b, base, pf, { dark, nom: pf.nom + ' ' + (dark ? 'nuit' : 'jour') });
-  console.log('\n════ ' + S.nom + ' — appels seuls ════');
-  await etapesAppels(S);
+  console.log('\n════ ' + S.nom + ' — appels' + (bloc ? ' (' + bloc + ' seul)' : ' seuls') + ' ════');
+  if (bloc) { await allerAppels(S); await BLOCS_APPELS[bloc](S); } else await etapesAppels(S);
   const rej = await S.page.evaluate(() => window.__rejets);
-  v(S.nom + ' : (population) ' + S.gestes + ' gestes portés, ' + (S.contrastes || 0) + ' contrastes lus au pixel — 0 erreur JavaScript, 0 rejet non rattrapé, 0 erreur console', S.gestes > 60 && S.erreurs.length === 0 && rej.length === 0 && S.console.length === 0, { erreurs: S.erreurs, rejets: rej, console: S.console });
+  v(S.nom + ' : (population) ' + S.gestes + ' gestes portés, ' + (S.contrastes || 0) + ' contrastes lus au pixel — 0 erreur JavaScript, 0 rejet non rattrapé, 0 erreur console', S.gestes > (bloc ? 4 : 60) && S.erreurs.length === 0 && rej.length === 0 && S.console.length === 0, { erreurs: S.erreurs, rejets: rej, console: S.console });
   await S.fermer();
 }
-const SEULS_APPELS = new Set(['appels', 'appels-bureau']);       // déjà joués par chaque parcours : jamais deux fois dans la sonde complète
+const SEULS_APPELS = new Set(['appels', 'appels-bureau'].concat(...Object.keys(BLOCS_APPELS).map(k => ['appels-' + k, 'appels-' + k + '-bureau'])));       // déjà joués par chaque parcours : jamais deux fois dans la sonde complète
 
 const CORRECTIFS = {
   'appels': (b, base) => scenarioAppels(b, base, PROFILS.iphone, false),
   'appels-bureau': (b, base) => scenarioAppels(b, base, PROFILS.bureau1440, false),
+  ...Object.fromEntries([].concat(...Object.keys(BLOCS_APPELS).map(k => [['appels-' + k, (b, base) => scenarioAppels(b, base, PROFILS.iphone, false, k)], ['appels-' + k + '-bureau', (b, base) => scenarioAppels(b, base, PROFILS.bureau1440, false, k)]]))),
   'vocal-conv': (b, base) => corrVocalChangeConv(b, base),
   'double-toucher': async (b, base, F) => { for (const pf of [PROFILS.iphone, PROFILS.android360, PROFILS.bureau1440]) await corrDoubleToucher(b, base, F, pf); },
   'adresses': (b, base) => corrAdresses(b, base),

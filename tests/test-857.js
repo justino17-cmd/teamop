@@ -244,7 +244,8 @@ async function controler(PAGE, SRC, DOC) {
   const neutre = (await controler(PAGE, SRC, DOC)).filter(r => !r[1]).length;
   dire('copie INTACTE : 0 constat rouge (le banc ne crie pas au loup)', neutre === 0, ' — ' + neutre + ' rouge(s)');
   let mordent = 0, banc = 0, sondeSeule = 0, malVisees = 0;
-  for (const m of MUTATIONS) {
+  const SERIE = MUTATIONS.filter(m => !m.suite);                // la série A (étape 3) est éprouvée par tests/test-859.js
+  for (const m of SERIE) {
     const mut = appliquer(m, PAGE, SRC);
     if (!mut.change) { malVisees++; dire('mutation ' + m.id + ' « ' + m.nom + ' » : le motif ne trouve rien à muter (mutation mal visée)', false); continue; }
     if (!m.banc) {
@@ -258,7 +259,7 @@ async function controler(PAGE, SRC, DOC) {
     if (nomme) mordent++;
     dire(m.id + ' « ' + m.nom + ' » : ' + rouges.length + ' ✗, dont celui qui la garde' + (m.sonde ? ' (et la sonde la voit aussi)' : ''), nomme, '\n      rouges : ' + JSON.stringify(rouges.slice(0, 4)));
   }
-  dire('(population) ' + MUTATIONS.length + ' mutations : ' + banc + ' attrapées par ce banc, ' + sondeSeule + ' réservées à la sonde, ' + malVisees + ' mal visée(s) — ' + mordent + ' gardées', malVisees === 0 && mordent === MUTATIONS.length && MUTATIONS.length >= 25 && banc >= 20);
+  dire('(population) ' + SERIE.length + ' mutations : ' + banc + ' attrapées par ce banc, ' + sondeSeule + ' réservées à la sonde, ' + malVisees + ' mal visée(s) — ' + mordent + ' gardées', malVisees === 0 && mordent === SERIE.length && SERIE.length >= 25 && banc >= 20);
 
   console.log('\n═══ test-857 : ' + ok + ' ✓ ' + ko + ' ✗ ═══\n');
   process.exit(ko ? 1 : 0);

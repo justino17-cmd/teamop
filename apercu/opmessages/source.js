@@ -134,13 +134,14 @@
       return { groupe: true, nom: cv ? cv.nom : noms, court: cv ? cv.court : noms, initiales: '#', avatar: cv ? cv.avatar : 3, photo: cv ? cv.photo : null };
     }
     const enregistrerAppel = (corps, minutes) => Object.assign({ id: 'h' + (++seq), repetitions: 1, t: a(minutes) }, corps);
+    /* ⛔ volontairement PAS rangés par date : un serveur rend ce qu'il veut, c'est `appels()` qui trie — un historique déjà trié cacherait un tri retiré (mutation A02) */
     const historique = [
-      enregistrerAppel({ type: 'video', sens: 'entrant', conv: 'v2', membres: ['c1'], duree: 540 }, 50),
-      enregistrerAppel({ type: 'audio', sens: 'manque',  conv: 'v4', membres: ['c2'], duree: 0 }, 150),
-      enregistrerAppel({ type: 'video', sens: 'entrant', conv: 'v3', membres: ['c3', 'c6'], duree: 2520 }, 26 * 60),
       enregistrerAppel({ type: 'audio', sens: 'sortant', conv: null, membres: ['c5'], duree: 190 }, 27 * 60),
+      enregistrerAppel({ type: 'video', sens: 'entrant', conv: 'v2', membres: ['c1'], duree: 540 }, 50),
       enregistrerAppel({ type: 'audio', sens: 'manque',  conv: 'v6', membres: ['c4'], duree: 0, repetitions: 2 }, 3 * 24 * 60 + 40),
-      enregistrerAppel({ type: 'video', sens: 'sortant', conv: 'v1', membres: ['c2', 'c3', 'c5'], duree: 960 }, 4 * 24 * 60 + 20)
+      enregistrerAppel({ type: 'audio', sens: 'manque',  conv: 'v4', membres: ['c2'], duree: 0 }, 150),
+      enregistrerAppel({ type: 'video', sens: 'sortant', conv: 'v1', membres: ['c2', 'c3', 'c5'], duree: 960 }, 4 * 24 * 60 + 20),
+      enregistrerAppel({ type: 'video', sens: 'entrant', conv: 'v3', membres: ['c3', 'c6'], duree: 2520 }, 26 * 60)
     ];
     const vueAppel = r => Object.assign({ groupe: false }, identiteAppel(r.membres, r.conv), { id: r.id, type: r.type, sens: r.sens, conv: r.conv, membres: r.membres.slice(), repetitions: r.repetitions, t: r.t, duree: r.duree });
     const enCours = new Map();
