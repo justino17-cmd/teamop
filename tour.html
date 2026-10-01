@@ -612,6 +612,11 @@ input.inp,select.sel-f{display:block;line-height:normal}
    soit le taux de teinte qu'on essaie — c'est le seul couple qui ne se rattrape pas. */
 .reg-plus{background:var(--tint-gris);color:var(--text2);border-radius:var(--r-pill);
   padding:3px 9px;font-size:11px;font-weight:600;white-space:nowrap}
+/* v2.80 — une pastille par option servie (« Stock », « Achats »…) à côté de la formule : même couple d'encres que « +n »
+   (--text2 sur --tint-gris), jamais .past.p-gris (4,44:1) ; elle porte un MOT, et reste dans la ligne de la formule */
+.opt-p{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:var(--r-pill);background:var(--tint-gris);color:var(--text2);
+  font-size:11px;font-weight:600;line-height:1.5;white-space:nowrap;vertical-align:1px}
+.abo-opts[hidden]{display:none}
 
 /* ── GROUPES 2 ET 3 · CE QUI N'EST PAS UNE CLIENTE ─── posé sur la page, aucune surface ───
    Volontairement PAS --inset comme fond : le jour, #F4F5F9 est à un point de la page #F2F3F7,
@@ -2936,7 +2941,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.79</div>
+    <div class="lg-pied">console interne · v2.80</div>
   </div>
 </div>
 
@@ -2978,7 +2983,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.79</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.80</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2990,7 +2995,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.79</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.80</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3256,7 +3261,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.79';
+var TOUR_VERSION='v2.80';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -5375,6 +5380,86 @@ function chargerEspaces(){
    pourtant bien. Même faute que celle déjà corrigée sur #esp-formules, rejouée ici.
    Elle garde donc un état, et c'est le rendu qui peint — comme regPliage(). */
 var PACK={nom:'',charge:false,err:'',d:null};
+/* ⛔ v2.80 — LES OPTIONS DU PRO (Justin, 1er octobre 2026 : « Plus cher »). Stock, Achats, Encaissements et Registre
+   sanitaire s'ajoutent à la formule Pro ; Business et Business Premium les ont toutes. La Tour les MONTRE (ce que
+   l'application reçoit, et les lignes d'option chez Stripe) et les RÈGLE à la main avec l'abonnement. Quatre règles :
+   · une option ne se lit que dans les champs du serveur (`optionsServies` : ce que l'application reçoit ; `options` : ce que
+     TEAM OP a réglé ; `optionsLignes` : les lignes d'option Stripe) — jamais déduite d'un nom ou d'un montant ;
+   · ⛔ un serveur qui ne rend aucun de ces champs (« d'avant », ou un doute) : la Tour SE TAIT — pas de cases, pas de ligne,
+     pas de pastille, et l'enregistrement n'envoie pas `options` (l'ancien réglage reste tel quel) ;
+   · une option réglée à la main ne vaut que sous Pro + Actif/En essai : hors de là les cases sont grisées et l'enregistrement
+     envoie `[]` (le serveur refuse le reste, et `[]` est toujours permis) ;
+   · une clé inconnue de la Tour reste lisible telle quelle (jamais cachée), et ne sert jamais de clé de table. */
+var OPT_CLES=['stock','achats','compta','sanitaire'];
+var OPT_L={stock:'Stock',achats:'Achats fournisseurs',compta:'Encaissements et compta',sanitaire:'Registre sanitaire (3D)'};
+var OPT_C={stock:'Stock',achats:'Achats',compta:'Compta',sanitaire:'Sanitaire'};
+var OPT_P={stock:9,achats:6,compta:6,sanitaire:6};
+var OPT_ST={active:'payée',trialing:'en essai',past_due:'impayée',unpaid:'impayée',canceled:'annulée',incomplete:'non réglée'};
+/* le libellé d'une clé : celui de la table pour les quatre connues, la clé elle-même sinon (`court` : la pastille de la liste) */
+function optsLib(k,court){ k=String(k==null?'':k); return OPT_CLES.indexOf(k)>=0?(court?OPT_C[k]:OPT_L[k]):k; }
+/* un tableau de clés propre (chaînes, sans doublon, dans l'ordre de l'offre) — ou null quand le serveur n'a RIEN dit : la
+   différence entre « aucune option » (un tableau vide) et « le serveur ne sait pas » (absent) est tout le propos */
+function optsClesDe(v){
+  if(!Array.isArray(v)) return null;
+  var o=[]; v.forEach(function(k){ if(typeof k==='string'&&k&&o.indexOf(k)<0) o.push(k); });
+  return o.sort(function(a,b){ var i=OPT_CLES.indexOf(a), j=OPT_CLES.indexOf(b); return ((i<0?99:i)-(j<0?99:j))||(a<b?-1:a>b?1:0); });
+}
+/* les options servies d'une ligne de la liste : celles qu'elle porte, sinon celles de la même entreprise dans la liste des
+   espaces (même identifiant `t`) ; rien de lisible = aucune pastille */
+function optsServiesDe(o){
+  if(!o) return [];
+  if(Array.isArray(o.optionsServies)) return optsClesDe(o.optionsServies);
+  var e=((typeof ESP!=='undefined'&&ESP&&ESP.list)||[]).filter(function(x){ return x&&o.t&&x.t===o.t; })[0];
+  return e?(optsClesDe(e.optionsServies)||[]):[];
+}
+function optsPastilles(o){
+  return optsServiesDe(o).map(function(k){ return '<span class="opt-p" title="Option servie : '+esc(optsLib(k))+'">'+esc(optsLib(k,1))+'</span>'; }).join('');
+}
+/* les lignes d'option chez Stripe : « Stock ×3 (payée) · Achats ×2 (impayée) » */
+function optsLignesTexte(d){
+  var L=d&&Array.isArray(d.optionsLignes)?d.optionsLignes:null; if(!L) return '';
+  return L.filter(function(x){ return x&&typeof x==='object'; }).map(function(x){
+    var q=parseInt(x.quantite,10), st=Object.prototype.hasOwnProperty.call(OPT_ST,x.statut)?OPT_ST[x.statut]:(x.statut||'?');
+    return esc(optsLib(x.cle))+(q>0?' ×'+q:'')+' ('+esc(st)+')'; }).join(' · ');
+}
+/* le bloc de la fiche : caché tant que le serveur n'a rien dit des options (`optsPeindre` l'ouvre) */
+function optsCasesHtml(){
+  return '<div id="abo-opts" class="abo-opts" hidden>'+
+    '<div class="note">Options du Pro, réglées à la main avec l’abonnement : elles s’ajoutent à une formule <b>Pro</b> au statut <b>Actif</b> ou <b>En essai</b>. Business et Business Premium les ont toutes.</div>'+
+    '<div class="eq-apps">'+OPT_CLES.map(function(k){
+      return '<label><input type="checkbox" id="abo-o-'+k+'" value="'+k+'"> '+esc(OPT_L[k])+' <span class="sous">+'+OPT_P[k]+' €</span></label>'; }).join('')+'</div>'+
+    '<div id="abo-opts-info" class="note"></div></div>';
+}
+function optsEligible(){
+  var f=(document.getElementById('abo-f')||{}).value, st=(document.getElementById('abo-st')||{}).value;
+  return f==='pro'&&(st==='actif'||st==='essai');
+}
+function optsSynchro(){
+  var ok=optsEligible();
+  OPT_CLES.forEach(function(k){ var c=document.getElementById('abo-o-'+k); if(c) c.disabled=!ok; });
+}
+function optsVisible(){ var b=document.getElementById('abo-opts'); return !!b&&!b.hidden; }
+/* ce qu'on envoie : les cases cochées SI le réglage les permet, sinon [] (qui retire — le serveur le permet toujours) */
+function optsChoisies(){
+  if(!optsEligible()) return [];
+  return OPT_CLES.filter(function(k){ var c=document.getElementById('abo-o-'+k); return c&&c.checked; });
+}
+function optsPeindre(d){
+  var b=document.getElementById('abo-opts'); if(!b) return;
+  var servies=optsClesDe(d&&d.optionsServies), reglees=optsClesDe(d&&d.options);
+  if(!servies&&!reglees){ b.hidden=true; return; }
+  b.hidden=false;
+  OPT_CLES.forEach(function(k){ var c=document.getElementById('abo-o-'+k); if(c) c.checked=!!reglees&&reglees.indexOf(k)>=0; });
+  optsSynchro();
+  var info=document.getElementById('abo-opts-info'); if(!info) return;
+  var fs=d.formuleServie||d.formule, t='';
+  if(servies){
+    if(!servies.length&&(fs==='business'||fs==='premium')) t='Toutes les options sont <b>incluses</b> dans '+esc(ABN_F[fs]);
+    else t=servies.length?'Options servies à l’application : <b>'+servies.map(function(k){ return esc(optsLib(k)); }).join(', ')+'</b>':'Aucune option servie à l’application';
+  }
+  var l=optsLignesTexte(d); if(l) t+=(t?' · ':'')+'lignes Stripe : '+l;
+  info.innerHTML=t;
+}
 function packPeindre(){
   var el=document.getElementById('pack-info'); if(!el) return;
   if(!PACK.charge){ el.textContent=PACK.nom?'Chargement du statut…':''; return; }
@@ -5412,6 +5497,8 @@ function packPeindre(){
       ?' · <b style="color:var(--redText)">application suspendue</b> (rien de payé ni offert) — choisis une formule et Enregistrer\u202f; pour la faire essayer, le statut « En essai » avec une date de fin.'
       :(d.paye&&d.formuleServie?' · l’application reçoit\u202f: <b>'+esc(ABN_F[d.formuleServie]||d.formuleServie)+'</b> ('+abnEcart(d)+').':' pour l\'instant — choisis-en une et Enregistrer.'));
   }
+  /* v2.80 — les options : le serveur les dit, ou la Tour se tait */
+  optsPeindre(d);
 }
 function tourPackPrefill(nom){
   PACK={nom:nom||'',charge:false,err:'',d:null}; packPeindre();
@@ -5442,8 +5529,10 @@ function tourAboEnregistrer(nom,btn){
   var st=(document.getElementById('abo-st')||{}).value||'auto', fin=(document.getElementById('abo-fin')||{}).value||'';
   if(!f){ toast('Choisis une formule — Pro, Business ou Business Premium'); return; }
   if(btn){ btn.disabled=true; btn.textContent='💾 Enregistrement…'; }
-  apiPost('/api/monitor/espaces/abonnement',{nom:nom,formule:f,quantite:q,statut:st,fin:fin}).then(function(r){
-    if(r&&r.ok&&r.d&&r.d.ok){ toast('💾 Abonnement enregistré : '+f+(q>1?' ×'+q:'')+' · '+st+(fin?' jusqu\'au '+fin:'')+' — actif à la prochaine ouverture de leur app'); tourPackPrefill(nom); setTimeout(chargerEspaces,300); }
+  /* v2.80 — `options` ne part que si le bloc est ouvert (le serveur sait les options) : un serveur d'avant ne reçoit rien de neuf */
+  var corps={nom:nom,formule:f,quantite:q,statut:st,fin:fin}; if(optsVisible()) corps.options=optsChoisies();
+  apiPost('/api/monitor/espaces/abonnement',corps).then(function(r){
+    if(r&&r.ok&&r.d&&r.d.ok){ toast('💾 Abonnement enregistré : '+f+(q>1?' ×'+q:'')+(corps.options&&corps.options.length?' + '+corps.options.map(function(k){ return optsLib(k,1); }).join(', '):'')+' · '+st+(fin?' jusqu\'au '+fin:'')+' — actif à la prochaine ouverture de leur app'); tourPackPrefill(nom); setTimeout(chargerEspaces,300); }
     else toast((r&&r.d&&r.d.error)||'Refusé — mets le serveur à jour (git pull) ou réservé au patron');
     if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer'; }
   }).catch(function(){ toast('Serveur injoignable'); if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer'; } });
@@ -7643,7 +7732,7 @@ function vueEntreprises(){
     var join=function(t){ return t.filter(Boolean).join(' · '); };
 
     if(nature==='cliente'){
-      var l2=join([ o.formule?'<b>'+esc(o.formule)+'</b>':'',
+      var l2=join([ o.formule?'<b>'+esc(o.formule)+'</b>'+optsPastilles(o):'',
                     o.utilisateurs7?o.utilisateurs7+' pers. connectée'+(o.utilisateurs7>1?'s':''):'',
                     o.appareils7?o.appareils7+' appareil'+(o.appareils7>1?'s':''):'' ]);
       var l3=join([ o.derniere?esc(fmtJour(o.derniere)):'jamais connectée',
@@ -8456,7 +8545,7 @@ function blocGestionClient(){
     '<div class="sous-sec"><div class="sec">ABONNEMENT</div>'+
       '<div class="note">Réglé ici par TEAM OP : formule, nombre d’abonnements (<b>un par utilisateur</b>), statut et date de fin. Ce réglage <b>prime</b> sur Stripe et les codes promo, et s’applique à l’espace « '+esc(nm)+' » à sa prochaine ouverture de l’app. Client depuis le '+esc(fmtJour(c.inscrit))+' · statut site : <span class="past '+s[1]+'">'+esc(s[0])+'</span></div>'+
       '<div class="form-rang">'+
-      '<select id="abo-f" title="Formule" aria-label="Formule" class="sel-f">'+
+      '<select id="abo-f" title="Formule" aria-label="Formule" class="sel-f" onchange="optsSynchro()">'+
         /* ⛔ UN ABONNEMENT = UN UTILISATEUR, quelle que soit la formule (Justin, 27 et 28 septembre 2026) : les formules ne
            portent plus de nombre de places — c'est le NOMBRE D'ABONNEMENTS, juste à côté, qui les donne. « Business · 2
            places » faisait régler deux abonnements pour quatre personnes : l'application (v762) n'en ouvre plus que deux. */
@@ -8464,12 +8553,13 @@ function blocGestionClient(){
            suspendu tant que c'est pas réglé ») : le serveur la refuse. Pour offrir un temps d'essai : « En essai » et une date. */
         '<option value="pro">Pro</option><option value="business" selected>Business</option><option value="premium">Business Premium</option></select>'+
       '<input id="abo-q" type="number" min="1" max="50" value="1" title="Nombre d’abonnements — un par utilisateur" aria-label="Nombre d’abonnements, un par utilisateur" class="inp ch-n">'+
-      '<select id="abo-st" title="Statut de l’abonnement" aria-label="Statut de l’abonnement" class="sel-f">'+
+      '<select id="abo-st" title="Statut de l’abonnement" aria-label="Statut de l’abonnement" class="sel-f" onchange="optsSynchro()">'+
         '<option value="auto">Automatique (Stripe / code promo)</option><option value="actif">✅ Actif (activé par TEAM OP)</option><option value="essai">🧪 En essai</option><option value="impaye">⚠️ Impayé</option><option value="suspendu">⏸ Suspendu</option><option value="annule">✕ Annulé</option></select>'+
       '<input id="abo-fin" type="date" title="Valable jusqu’au (vide = sans fin)" aria-label="Valable jusqu’au" class="inp ch-d">'+
       '<button type="button" class="btn-plein" onclick="tourAboEnregistrer(\''+jsq(nm)+'\',this)">💾 Enregistrer</button>'+
       '<button type="button" class="btn-fant" onclick="tourStatutPack(\''+jsq(nm)+'\')">💳 Statut paiement</button></div>'+
       '<div id="pack-info" class="note">Chargement du statut…</div>'+
+      optsCasesHtml()+
       '<div class="form-rang">'+
       /* ⛔ PAS DE CODE PROMO RÉEL DANS UN EXEMPLE. `tour.html` est un fichier statique servi par
          GitHub Pages : l'authentification de la Tour est côté JavaScript, elle n'empêche pas de

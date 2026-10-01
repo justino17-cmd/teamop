@@ -375,7 +375,7 @@ globalThis.fetch = async function (url, opts) {
     const infoP = { innerHTML: '', textContent: '' };
     ctxP.document = { getElementById: id => (id === 'pack-info' ? infoP : null) };
     require('vm').createContext(ctxP);
-    require('vm').runInContext(ABN + '\n' + fonctionTour('abnEcart') + '\n' + fonctionTour('packPeindre'), ctxP);
+    require('vm').runInContext(ABN + '\n' + fonctionTour('abnEcart') + '\n' + fonctionTour('packPeindre') + '\n' + fonctionTour('optsPeindre'), ctxP);   /* v2.80 : `packPeindre` peint aussi les options — sans bloc dans ce faux DOM, `optsPeindre` rend la main (test-854 les joue) */
     const peint = d => { ctxP.PACK = { nom: 'x', charge: true, err: '', d }; infoP.innerHTML = ''; ctxP.packPeindre(); return infoP.innerHTML.replace(/<[^>]+>/g, ''); };
     v('   … et la fiche d\'une entreprise dit ce que l\'application reçoit (la vraie packPeindre, sur la réponse du serveur)',
       [/l’application reçoit\u202f: Pro \(payée\)/.test(peint(stMT)), /l’application reçoit\u202f: Business Premium \(offerte par le code\)/.test(peint(stPT)),

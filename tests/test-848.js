@@ -359,7 +359,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
     v('   une réponse de serveur d\'AVANT (sans le champ) : rien', X.appliquer({ ok: true, formule: 'pro' }), false);
 
     console.log('\n6. La Tour (vraies `tourAccepterDemande`, `tourMetierEnregistrer`, `packPeindre`) contre ce serveur');
-    const NOMS6 = ['hAuth', 'apiPost', 'metDemande', 'tourMetierEnregistrer', 'packPeindre', 'tourAccepterDemande'];
+    const NOMS6 = ['hAuth', 'apiPost', 'metDemande', 'tourMetierEnregistrer', 'packPeindre', 'optsPeindre', 'tourAccepterDemande'];   // v2.80 : `packPeindre` peint aussi les options (sans bloc dans ce faux DOM, `optsPeindre` rend la main — test-854 les joue)
     const FN6 = NOMS6.map(n => fonction(TOURN, n));
     const ligneMetL = (/^var MET_L=\{[^\n]*\};$/m.exec(TOURN) || [''])[0];
     vrai('(population) les fonctions et la liste des métiers sont trouvées dans le code de la Tour', FN6.every(Boolean) && !!ligneMetL, NOMS6.filter((n, i) => !FN6[i]).join(', '));
