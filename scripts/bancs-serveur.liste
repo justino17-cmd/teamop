@@ -46,7 +46,9 @@
 # 29 septembre 2026, soir : 3 243 contre les pages de `main` (49 suites), `test-845` compris (carte refusée = impayé,
 # le nom d'accès repris à la même adresse) — plancher relevé à 3 200.
 # 1er octobre 2026 : 3 546 (51 suites) avec `test-850` (les options du Pro, 133 vérifications) — plancher relevé à 3 330.
-#plancher 3330
+# 1er octobre 2026, intégration : 3 577 (51 suites) — `test-850` à 150 vérifications (l'ajout d'option suit le cycle du Pro payé, `utiliser_ajout`,
+# « Mon espace » ne lit pas des options écrites par le client) — plancher relevé à 3 350.
+#plancher 3350
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
