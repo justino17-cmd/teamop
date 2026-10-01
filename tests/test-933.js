@@ -199,7 +199,7 @@ vrai('des blocs run: sont lus (population avant verdict)', blocs.length >= 6);
   vrai('   la clé d\'hôte du VPS est celle de deploiement.yml (deux lignes, mêmes octets) — une clé d\'hôte publique n\'est pas un secret', connus(src).length === 4 && connus(dep).length === 2
     && connus(src).every((l, k, a) => l === connus(dep)[k % 2 === 0 ? 0 : 1] || connus(dep).includes(l)));
   vrai('⛔ la production n\'accepte pas un « non installé » silencieux (elle a été demandée : un vert ne doit pas laisser croire qu\'elle est déployée)',
-    /non installé/.test(J['deployer-prod'].join('\n')) && /exit 1/.test(J['deployer-prod'].join('\n').split('non installé')[1] || ''));
+    /grep -q 'non installé'; then\s*\n\s*echo "::error::[^\n]*"\s*\n\s*exit 1\s*\n\s*fi/.test(J['deployer-prod'].join('\n')));
   vrai('   la bêta, elle, accepte « non installé » (le code se fusionne avant l\'installation) : avertissement, pas d\'échec',
     /::notice::/.test(J['deployer-beta'].join('\n')) && !/non installé[\s\S]{0,200}exit 1/.test(J['deployer-beta'].join('\n')));
   vrai('   la bêta sans secret ne rougit pas non plus (on le dit, on sort en 0)', /VPS_SSH_KEY_MSG absent[\s\S]{0,200}exit 0/.test(J['deployer-beta'].join('\n')));
@@ -226,7 +226,7 @@ vrai('des blocs run: sont lus (population avant verdict)', blocs.length >= 6);
     const sansMoi = L.filter(f => f !== 'tests/test-933.js');   // ce banc NOMME ces pages dans son propre motif : il ne se lit pas lui-même
     const lecteurs = sansMoi.filter(f => fs.existsSync(path.join(RACINE, f))).filter(f => /\b(app|beta|tour|espace|connexion|reinit)\.html\b/.test(sansCommentaires(fs.readFileSync(path.join(RACINE, f), 'utf8'))));
     v('⛔ aucune suite de la liste ne lit une page d\'OP GESTION (app, beta, tour, espace, connexion, reinit)', lecteurs, []);
-    vrai('   les suites de la liste ne dépendent pas du dossier de dépendances d\'OP GESTION (server/node_modules)', !sansMoi.some(f => /server\/node_modules/.test(fs.readFileSync(path.join(RACINE, f), 'utf8'))));
+    vrai('   les suites de la liste ne dépendent pas du dossier de dépendances d\'OP GESTION (server/node_modules)', !sansMoi.filter(f => fs.existsSync(path.join(RACINE, f))).some(f => /server\/node_modules/.test(fs.readFileSync(path.join(RACINE, f), 'utf8'))));
   }
 }
 

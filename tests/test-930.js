@@ -139,7 +139,12 @@ for (const f of SCRIPTS) {
     const md = lire(doc);
     const blocs = [...md.matchAll(/```(?:bash)?\n([\s\S]*?)```/g)].map(m => m[1]);
     vrai('il porte des blocs de commandes (population avant verdict)', blocs.length >= 8);
-    const commandes = blocs.join('\n');
+    /* ⛔ LES COMMANDES, C'EST AUSSI CE QUI EST ÉCRIT ENTRE ACCENTS GRAVES DANS UNE PHRASE (« `systemctl status …` ») : Justin
+       les copie de la même façon. Une première version ne lisait que les blocs, et la mutation « cat de la configuration dans
+       une puce » restait verte — la population lue était trop petite. */
+    const enLigne = [...md.matchAll(/`([^`\n]+)`/g)].map(m => m[1]);
+    vrai('il porte aussi des commandes en ligne (population avant verdict)', enLigne.length >= 10);
+    const commandes = blocs.join('\n') + '\n' + enLigne.join('\n');
     const interdits = [
       ['aucun cat de la clé maître ni du dossier de configuration (sauf la relecture masquée, V=$(cat …) : le contenu va dans une variable, pas à l\'écran)', /(?<!V=\$\()\bcat\s+\S*(\.kek|\/etc\/opmsg)/],
       ['aucun cat de la configuration (elle porte la clé privée VAPID)', /\bcat\s+\S*\.json/],
