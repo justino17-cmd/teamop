@@ -18,7 +18,7 @@
    banc doit TOMBER sur le contrôle qui porte ce nom. Une copie intacte ne doit rien faire tomber (sinon le banc crie au loup).
    La page ET le document sont relus à chaque exécution : rien n'est figé ici. */
 const fs = require('fs'), path = require('path');
-const RACINE = path.join(__dirname, '..');
+const RACINE = process.env.OPMSG_RACINE ? path.resolve(process.env.OPMSG_RACINE) : path.join(__dirname, '..');
 const lire = f => fs.readFileSync(path.join(RACINE, f), 'utf8');
 
 /* ── ce que le DOCUMENT ne cite pas : les valeurs de la fonction `tokens(dark)` de la maquette source
@@ -36,6 +36,23 @@ const MAQUETTE = {
 };
 /* l'ombre de la pastille d'onglet actif : citée par la maquette (l. 620), pas par le document */
 const PASTILLE = { jour: '0 4px 14px rgba(0,0,0,.12), inset 0 1px 0 #fff', nuit: '0 6px 16px rgba(34,59,110,.3), inset 0 1px 0 rgba(255,255,255,.28)' };
+/* ── TROIS jetons ne sont NI dans le document NI dans la maquette : ils sont à nous, et chacun dit pourquoi (l'étape 2 les a mesurés au pixel) ──
+   · --sub-meta : le « secondaire » du document tombe à ~4,1:1 sur le coin bleu du décor, trop clair pour une légende de 11 px ;
+   · --rond-bord : le contour d'une case décochée faisait ~1,4:1 sur la carte (WCAG 1.4.11 en demande 3) ;
+   · --on-fill : l'encre posée sur --fill (une surface, une encre — CLAUDE.md). */
+const NOUS = {
+  jour: { '--sub-meta': 'rgba(14,26,63,.72)', '--rond-bord': 'rgba(60,60,67,.6)', '--on-fill': '#ffffff' },
+  nuit: { '--sub-meta': 'rgba(220,228,250,.78)', '--rond-bord': 'rgba(235,235,245,.6)', '--on-fill': '#ffffff' }
+};
+/* ── des jetons DÉCLARÉS que l'étape 2 n'utilise pas encore : nommés un par un, avec l'écran qui les lira. Un jeton déclaré et lu par personne est
+   du code mort qui a l'air d'une garde — la règle de CLAUDE.md sur les champs de /health, appliquée aux variables CSS. Le banc exige les DEUX sens :
+   tout jeton inutilisé est nommé ici, et tout jeton nommé ici est bien inutilisé (sinon la décision date d'avant). ── */
+const POUR_PLUS_TARD = {
+  '--sheet': 'la fiche détail de l\'agenda (étape 4)',
+  '--seg-track': 'le contrôle segmenté Tous / Manqués de l\'écran Appels (étape 3)',
+  '--seg-knob': 'le curseur de ce même segmenté (étape 3)',
+  '--handle': 'la barre d\'accueil d\'iOS : un cadre de la MAQUETTE, jamais dessiné (CLAUDE.md) — déclaré parce que le document le cite, lu par aucun écran'
+};
 /* les noms des personnes et des lieux de la MAQUETTE : inventés, ou trop proches de données réelles — aucun ne doit se retrouver
    dans une page servie publiquement (le paquet le dit lui-même : « les données des maquettes sont des exemples ») */
 const NOMS_INTERDITS = ['ELAN', 'Elan', 'Dumas', 'Bernard', 'Karim', 'Julie', 'Marc ', 'Ali Sadi', 'Thomas Moreau', 'Les Pins', 'Certibiocide', 'Justin', 'DC-2026'];
@@ -78,7 +95,7 @@ function regle(css, sel) {
 const prop = (corps, p) => { const m = new RegExp('(?:^|[;\\s])' + ech(p) + '\\s*:\\s*([^;]+)').exec(corps); return m ? m[1].trim() : null; };
 
 /* ══ LE CONTRÔLE — rend la liste des constats, sans rien imprimer (la contre-épreuve le rejoue sur des copies) ══ */
-function controler(PAGE, DOC) {
+function controler(PAGE, DOC, SRC) {
   const R = [];
   const v = (t, a, b) => R.push([t, JSON.stringify(a) === JSON.stringify(b), JSON.stringify(a) !== JSON.stringify(b) ? '\n      attendu : ' + JSON.stringify(b) + '\n      obtenu  : ' + JSON.stringify(a) : '']);
   const vrai = (t, c, d) => R.push([t, !!c, c ? '' : (d ? '\n      ' + d : '')]);
@@ -87,6 +104,7 @@ function controler(PAGE, DOC) {
   const CSS = sansCommentairesCss(style);
   const script = (/<script>([\s\S]*?)<\/script>/.exec(PAGE) || [, ''])[1];
   const JS = sansCommentairesJs(script);
+  const SRCJS = sansCommentairesJs(SRC);
   const HTML = PAGE.replace(/<style>[\s\S]*?<\/style>/, ' ').replace(/<script>[\s\S]*?<\/script>/, ' ').replace(/<!--[\s\S]*?-->/g, ' ');
   const T = jetons(CSS);
 
@@ -123,7 +141,15 @@ function controler(PAGE, DOC) {
     /* ce que le document ne cite pas : la maquette source, déclaré */
     for (const [n, val] of Object.entries(MAQUETTE[mode])) v('jeton de la maquette « ' + n + ' » — ' + mode, net(vars[n] || ''), net(val));
     v('ombre de la pastille d\'onglet actif — ' + mode + ' (maquette, l. 620)', net(vars['--tab-active-shadow'] || ''), net(PASTILLE[mode]));
+    for (const [n, val] of Object.entries(NOUS[mode])) v('jeton À NOUS « ' + n + ' » — ' + mode + ' (ni document ni maquette)', net(vars[n] || ''), net(val));
   }
+  v('les trois jetons à nous ne sont PAS dans le tableau du document (sinon ils quittent cette liste)', Object.keys(NOUS.jour).filter(n => lignes.some(r => r.join(' ').includes(n))), []);
+  /* (h) un jeton déclaré est lu quelque part, ou nommé « pour une étape à venir » — et inversement */
+  const lu = n => new RegExp('var\\(\\s*' + ech(n) + '(?![\\w-])').test(CSS + ' ' + HTML + ' ' + script);
+  const inutiles = Object.keys(T.jour).filter(n => !lu(n));
+  v('(h) tout jeton déclaré mais lu par personne est NOMMÉ « pour une étape à venir » (' + Object.keys(T.jour).length + ' jetons examinés, ' + inutiles.length + ' inutilisés : ' + inutiles.join(' ') + ')',
+    inutiles.filter(n => !(n in POUR_PLUS_TARD)), []);
+  v('(h) et tout jeton nommé « pour une étape à venir » est bien inutilisé (sinon la décision date d\'avant)', Object.keys(POUR_PLUS_TARD).filter(n => lu(n) || !(n in T.jour)), []);
   /* statuts et avatars : les lignes de prose du document */
   v('statuts : manqué / quitter #ff453a, en ligne / parle #30d158', [couleur(T.jour['--rouge'] || ''), couleur(T.jour['--vert'] || ''), couleur(T.nuit['--rouge'] || ''), couleur(T.nuit['--vert'] || '')],
     [(/manqué (#[0-9a-f]+)/.exec(DOC) || [])[1], (/parle (#[0-9a-f]+)/.exec(DOC) || [])[1], (/manqué (#[0-9a-f]+)/.exec(DOC) || [])[1], (/parle (#[0-9a-f]+)/.exec(DOC) || [])[1]].map(c => couleur(c || '?')));
@@ -132,7 +158,8 @@ function controler(PAGE, DOC) {
   /* 2. LE VERRE — « backdrop-filter: blur(30px) saturate(180%) sur barres et panneaux ; barre d'onglets blur(36px) saturate(200%) » ── */
   const verre = (sel) => (prop(regle(CSS, sel), 'backdrop-filter') || '').replace(/\s+/g, ' ');
   const verreWk = (sel) => (prop(regle(CSS, sel), '-webkit-backdrop-filter') || '').replace(/\s+/g, ' ');
-  v('verre : le jumeau -webkit- de chaque vitre dit la même chose (Safari ne lit que lui sur les versions d\'avant)', ['.tabs', '.side', '.feuille', '.notif'].filter(s => verre(s) !== verreWk(s)), []);
+  v('verre : le jumeau -webkit- de chaque vitre dit la même chose (Safari ne lit que lui sur les versions d\'avant)', ['.tabs', '.side', '.feuille', '.notif', '.conv-nav', '.composer'].filter(s => verre(s) !== verreWk(s)), []);
+  v('verre : la barre de la conversation et la barre de saisie sont à blur(30px) saturate(180%) (le document : « barres et panneaux »)', [verre('.conv-nav'), verre('.composer')], ['blur(30px) saturate(180%)', 'blur(30px) saturate(180%)']);
   v('verre : la barre d\'onglets est à blur(36px) saturate(200%) (le document)', [/blur\(36px\) saturate\(200%\)/.test(DOC), verre('.tabs')], [true, 'blur(36px) saturate(200%)']);
   v('verre : la barre latérale à blur(30px) saturate(180%) (le document)', [/blur\(30px\) saturate\(180%\)/.test(DOC), verre('.side')], [true, 'blur(30px) saturate(180%)']);
   v('verre : la feuille et la bannière à blur(40px) saturate(180%) (la maquette : panneaux et notification)', [verre('.feuille'), verre('.notif')], ['blur(40px) saturate(180%)', 'blur(40px) saturate(180%)']);
@@ -169,53 +196,61 @@ function controler(PAGE, DOC) {
   v('   et leurs titres', ['Messages', 'Appels', 'Réunions', 'Réglages'].filter(t => !new RegExp("titre: '" + t + "'").test(JS)), []);
   vrai('la barre latérale porte le statut « Disponible »', />Disponible</.test(HTML) || /<i><\/i>Disponible/.test(HTML));
   vrai('la bulle de l\'onglet actif se place par UN numéro (--i) et le CSS : aucune largeur recopiée en JavaScript', /translate:\s*calc\(var\(--i\)/.test(CSS) && /setProperty\('--i'/.test(JS) && !/offsetWidth|getBoundingClientRect/.test(JS));
-  const iDonnees = script.indexOf('═══ 1.'), iEtat = script.indexOf('═══ 2.');
-  vrai('les données d\'exemple sont dans un BLOC à part, AVANT l\'état et le rendu', iDonnees > 0 && iEtat > iDonnees && script.indexOf('const CONTACTS') > iDonnees && script.indexOf('const CONVERSATIONS') > iDonnees && script.indexOf('const CONVERSATIONS') < iEtat);
-  const noms = [...script.slice(iDonnees, iEtat).matchAll(/nom: '([^']+)'/g)].map(m => m[1]);
-  vrai('(population) ' + noms.length + ' noms d\'exemple dans le bloc de données', noms.length >= 12);
-  v('⛔ aucun de ces noms n\'est écrit dans le RENDU (le jour où de vraies données arrivent, un seul bloc change)', noms.filter(n => script.slice(iEtat).includes("'" + n + "'") || script.slice(iEtat).includes('"' + n + '"')), []);
+  /* les données d'exemple vivent dans un MODULE à part (apercu/opmessages/source.js) : la page ne contient aucun nom, aucun message — elle parle à
+     window.OPMSG_SOURCE. Le jour où le serveur d'OP MESSAGES arrive, c'est ce fichier-là qui est remplacé, rien d'autre. */
+  const noms = [...SRCJS.matchAll(/nom: '([^']+)'/g)].map(m => m[1]);
+  vrai('(population) ' + noms.length + ' noms d\'exemple dans source.js (le module de données)', noms.length >= 12);
+  v('⛔ aucun de ces noms n\'est écrit dans la PAGE (le jour où de vraies données arrivent, un seul fichier change)', noms.filter(n => PAGE.replace(/<!--[\s\S]*?-->/g, ' ').includes("'" + n + "'") || PAGE.includes('>' + n + '<')), []);
+  vrai('la page lit ses données par window.OPMSG_SOURCE, chargé AVANT elle par un <script src="source.js"> (le seul script externe permis)',
+    /<script src="source\.js"><\/script>/.test(PAGE) && PAGE.indexOf('<script src="source.js">') < PAGE.indexOf('<script>\n') && /window\.OPMSG_SOURCE/.test(JS) && !/\bconst (CONTACTS|CONVERSATIONS) = \[/.test(JS) && /racine\.OPMSG_SOURCE = creerSourceApercu\(\)/.test(SRCJS));
   vrai('chaque écran « bientôt » a sa coquille rendue par la même fonction (une vue par écran)', /\['appels', 'reunions', 'reglages'\]\.forEach\(rendreCoquille\)/.test(JS) && /function rendreCoquille/.test(JS));
   vrai('la page DIT que ce sont des données d\'exemple', /Aperçu — données d'exemple/.test(HTML));
 
   /* 5. RIEN DE L'EXTÉRIEUR ── */
   const entier = PAGE.replace(/<!--[\s\S]*?-->/g, ' ');
   v('⛔ aucune adresse http(s):// dans la page (feuille, police, script, image, lien)', [...new Set(entier.match(/https?:\/\/[^\s"'<>)]*/g) || [])], []);
-  v('⛔ aucun <script src>, <link> autre que l\'icône locale, <iframe>, <img> distant, @import, url(http)',
-    [(entier.match(/<script[^>]*\ssrc=/g) || []).length, (entier.match(/<link\b(?![^>]*rel="icon"[^>]*href="opmsg-logo\.jpeg")[^>]*>/g) || []).length, (entier.match(/<iframe|@import|url\(\s*["']?https?:/g) || []).length], [0, 0, 0]);
-  v('⛔ aucune image qui ne soit pas le logo local', [...new Set((entier.match(/<img[^>]*\ssrc="[^"]*"/g) || []).map(s => /src="([^"]*)"/.exec(s)[1]))], ['opmsg-logo.jpeg']);
+  v('⛔ aucun <script src> autre que source.js, <link> autre que l\'icône locale, <iframe>, <img> distant, @import, url(http)',
+    [(entier.match(/<script[^>]*\ssrc="(?!source\.js")/g) || []).length, (entier.match(/<link\b(?![^>]*rel="icon"[^>]*href="\.\.\/\.\.\/icons\/opmsg-favicon-32\.png")[^>]*>/g) || []).length, (entier.match(/<iframe|@import|url\(\s*["']?https?:/g) || []).length], [0, 0, 0]);
+  v('⛔ aucune image écrite dans le balisage qui ne soit le logo du dépôt (icons/opmsg-192.png) ; les photos et vocaux de la personne ne naissent que de blob:', [...new Set((HTML.match(/<img[^>]*\ssrc="[^"]*"/g) || []).map(s => /src="([^"]*)"/.exec(s)[1]))], ['../../icons/opmsg-192.png']);
   const reseau = /\bfetch\s*\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon|importScripts|\bimport\s*\(|serviceWorker|firebase|navigator\.connection/i;
   v('⛔ aucun appel réseau, aucun service worker, aucun Firebase dans le script', JS.match(reseau), null);
+  v('⛔ ni dans le module de données (source.js) : aucun fetch, aucune socket, aucun rangement sur l\'appareil', SRCJS.match(new RegExp(reseau.source + '|localStorage|sessionStorage|indexedDB|document\\.cookie', 'i')), null);
   v('⛔ rien n\'est rangé sur l\'appareil (ni localStorage, ni sessionStorage, ni IndexedDB, ni cookie) : un aperçu ne garde rien', JS.match(/localStorage|sessionStorage|indexedDB|document\.cookie/), null);
   const csp = (/http-equiv="Content-Security-Policy"\s+content="([^"]*)"/.exec(PAGE) || [, ''])[1];
   vrai('le NAVIGATEUR refuse lui-même tout appel : politique default-src \'none\', connect-src jamais rouvert, images limitées à la page et à blob:',
-    /default-src 'none'/.test(csp) && !/connect-src/.test(csp) && /img-src 'self' blob:/.test(csp) && !/https?:|\*/.test(csp), csp);
+    /default-src 'none'/.test(csp) && !/connect-src/.test(csp) && /img-src 'self' blob:/.test(csp) && /media-src blob:(;|$)/.test(csp) && /script-src 'self' 'unsafe-inline'/.test(csp) && !/https?:|\*/.test(csp), csp);
   vrai('<meta name="robots" content="noindex">', /<meta name="robots" content="noindex">/.test(PAGE));
   vrai('aucune adresse canonique, aucun manifeste d\'application, aucun Open Graph (c\'est un aperçu, pas une page à référencer)', !/rel="canonical"|rel="manifest"|property="og:/.test(PAGE));
   vrai('<html lang="fr">, viewport-fit=cover (les encoches se lisent par env(safe-area-inset-*))', /<html lang="fr">/.test(PAGE) && /viewport-fit=cover/.test(PAGE) && /env\(safe-area-inset-top/.test(CSS) && /env\(safe-area-inset-bottom/.test(CSS));
 
   /* 6. NI BOUTON DE THÈME, NI BARRE D'ÉTAT, NI BARRE D'ADRESSE, NI FEUX macOS ── */
-  v('⛔ le jour et la nuit suivent l\'appareil : aucun bouton de thème, aucune classe « mode », aucun data-theme / data-mode, aucun ☀ ☾, aucun color-scheme forcé',
-    [/class="[^"]*\bmode\b|data-theme|data-mode|[☀☾☼🌙🌞]|<meta name="color-scheme"/.test(HTML), /(?:^|[^-\w])color-scheme\s*:/.test(CSS), /<button[^>]*>\s*(?:jour|nuit|auto)\s*<\/button>/i.test(HTML)], [false, false, false]);
+  v('⛔ le jour et la nuit suivent l\'appareil : aucun bouton de thème, aucune classe « mode », aucun data-theme / data-mode, aucun ☀ ☾, aucun color-scheme FORCÉ sur un seul mode',
+    [/class="[^"]*\bmode\b|data-theme|data-mode|[☀☾☼🌙🌞]/.test(HTML), /(?:^|[^-\w])color-scheme\s*:\s*(?:only\s+)?(?:light|dark)\s*[;}]/.test(CSS), /<meta name="color-scheme" content="(?!light dark")/.test(PAGE), /<button[^>]*>\s*(?:jour|nuit|auto)\s*<\/button>/i.test(HTML)], [false, false, false, false]);
+  vrai('(f) color-scheme déclaré AUX DEUX : <meta name="color-scheme" content="light dark"> et :root/html { color-scheme: light dark } (champs, défilement et fond de formulaire suivent l\'appareil)', /<meta name="color-scheme" content="light dark">/.test(PAGE) && /(?:^|[^-\w])color-scheme\s*:\s*light dark\s*;/.test(CSS));
   vrai('le script ne lit ni n\'écrit le mode (aucun prefers-color-scheme en JavaScript : c\'est le CSS qui suit l\'appareil)', !/prefers-color-scheme|data-theme|dataset\.theme/.test(JS) && /@media\s*\(prefers-color-scheme:\s*dark\)/.test(CSS));
   v('⛔ aucune barre d\'état, aucun îlot, aucun cadre de téléphone, aucune barre de titre ni d\'adresse DESSINÉS (classes, identifiants, feux macOS, URL de maquette)',
     [(HTML + CSS).match(/(?:class|id)="[^"]*\b(?:status-?bar|statusbar|island|bezel|url-?bar|address-?bar|titlebar|traffic|home-?indicator)\b/i), (CSS + HTML).match(/#ff5f57|#febc2e|#28c840|teamop\.fr\/messages|[┘]/i), /\.(?:status-?bar|island|bezel|url-?bar|titlebar|traffic)\b/i.test(CSS)], [null, null, false]);
-  v('⛔ aucun nom de la maquette (personne, chantier, devis) : seuls des exemples INVENTÉS', NOMS_INTERDITS.filter(n => (PAGE.replace(/<!--[\s\S]*?-->/g, ' ')).includes(n)), []);
+  v('⛔ aucun nom de la maquette (personne, chantier, devis) : seuls des exemples INVENTÉS', NOMS_INTERDITS.filter(n => ((PAGE + SRC).replace(/<!--[\s\S]*?-->/g, ' ')).includes(n)), []);
   return R;
 }
 
 /* ══ EXÉCUTION ═══════════════════════════════════════════════════════════════════════════════════════════════════════ */
-const PAGE = lire('apercu/opmessages/index.html'), DOC = lire('design/opmessages/THEME-OPMESSAGES.md');
+const PAGE = lire('apercu/opmessages/index.html'), DOC = lire('design/opmessages/THEME-OPMESSAGES.md'), SRC = lire('apercu/opmessages/source.js');
 let ok = 0, ko = 0;
 const dire = (t, bon, d) => { if (bon) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d || '')); } };
 
 console.log('\n══ 1. LA PAGE CONTRE SON DOCUMENT ══\n');
-const base = controler(PAGE, DOC);
+const base = controler(PAGE, DOC, SRC);
 for (const [t, bon, d] of base) dire(t, bon, d);
 dire('(population) ' + base.length + ' contrôles joués sur la page réelle', base.length >= 100);
 
 console.log('\n══ 2. LES FICHIERS DE RÉFÉRENCE SONT DANS LE DÉPÔT ══\n');
 dire('design/opmessages/THEME-OPMESSAGES.md et PROMPT-CLAUDE-CODE.md existent, non vides', DOC.length > 2000 && lire('design/opmessages/PROMPT-CLAUDE-CODE.md').length > 500);
-dire('le logo de la page est là (apercu/opmessages/opmsg-logo.jpeg, un JPEG)', (() => { const b = fs.readFileSync(path.join(RACINE, 'apercu/opmessages/opmsg-logo.jpeg')); return b[0] === 0xFF && b[1] === 0xD8 && b.length > 5000; })());
+dire('le logo de la page est celui du DÉPÔT (icons/opmsg-192.png et icons/opmsg-favicon-32.png : des PNG de 192 et 32 px), plus un JPEG de 886 px de 59 Ko pour un logo de 28 px', (() => {
+  const png = (f, w) => { const b = fs.readFileSync(path.join(RACINE, f)); return b.slice(1, 4).toString() === 'PNG' && b.readUInt32BE(16) === w; };
+  return png('icons/opmsg-192.png', 192) && png('icons/opmsg-favicon-32.png', 32) && !fs.existsSync(path.join(RACINE, 'apercu/opmessages/opmsg-logo.jpeg'));
+})());
+dire('le module de données est là (apercu/opmessages/source.js, non vide)', SRC.length > 3000);
 /* ⛔ un aperçu n'est un aperçu que tant qu'AUCUN point d'entrée client ne mène à lui : ni l'application, ni la page d'OP MESSAGES
    (fermée), ni le service worker (qui la mettrait en cache), ni le plan du site */
 const POINTS_D_ENTREE = ['app.html', 'beta.html', 'messages.html', 'messages-beta.html', 'opmessages.html', 'sw.js', 'sitemap.xml', 'index.html', 'tarifs.html', 'manifest-opmsg.webmanifest']
@@ -238,17 +273,24 @@ const MUTATIONS = [
   ['un filtre de fond sans sa surface (la barre latérale perd son background)', 'page', p => p.replace('  background: var(--sidebar); -webkit-backdrop-filter', '  -webkit-backdrop-filter'), /AVEC sa surface/],
   ['« transparence réduite » retire le flou SANS rendre d\'aplat', 'page', p => p.replace('background: var(--solide) !important; }', '}'), /transparence réduite/],
   ['le mouvement réduit n\'est plus respecté', 'page', p => p.replace('animation: none !important;', ''), /mouvement réduit/],
+  ['un jeton déclaré que personne ne lit et que personne ne nomme (--zz-mort)', 'page', p => p.replace('  --handle: rgba(0,0,0,.72);', '  --handle: rgba(0,0,0,.72);\n  --zz-mort: #123456;').replace('    --handle: rgba(255,255,255,.8);', '    --handle: rgba(255,255,255,.8);\n    --zz-mort: #123456;'), /\(h\) tout jeton déclaré mais lu par personne/],
+  ['un jeton « pour plus tard » qu\'un écran lit déjà (--seg-knob utilisé)', 'page', p => p.replace('.badge { min-width: 18px;', '.badge { background-image: none; outline-color: var(--seg-knob); min-width: 18px;'), /\(h\) et tout jeton nommé/],
+  ['un jeton à nous change d\'un chiffre (--sub-meta jour .72 → .62)', 'page', p => p.replace('--sub-meta: rgba(14,26,63,.72);', '--sub-meta: rgba(14,26,63,.62);'), /À NOUS « --sub-meta » — jour/],
   ['une feuille de style externe (Google Fonts)', 'page', p => p.replace('<title>', '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter">\n<title>'), /aucune adresse http/],
   ['la politique du navigateur s\'ouvre (connect-src *)', 'page', p => p.replace("form-action 'none'", "form-action 'none'; connect-src *"), /NAVIGATEUR refuse/],
   ['un appel réseau dans le script', 'page', p => p.replace("'use strict';", "'use strict'; fetch('/x');"), /aucun appel réseau/],
+  ['un appel réseau dans le module de données', 'src', c => c.replace("'use strict';", "'use strict'; fetch('/x');"), /ni dans le module de données/],
+  ['un second script externe (un CDN)', 'page', p => p.replace('<script src="source.js"></script>', '<script src="source.js"></script><script src="app.js"></script>'), /aucun <script src> autre que source\.js/],
+  ['les données reviennent dans la page (const CONVERSATIONS)', 'page', p => p.replace("  const MOI = source.moi();", "  const CONVERSATIONS = [];\n  const MOI = source.moi();"), /lit ses données par window\.OPMSG_SOURCE/],
   ['un rangement sur l\'appareil (localStorage)', 'page', p => p.replace("'use strict';", "'use strict'; localStorage.setItem('a', 1);"), /rien n'est rangé/],
   ['noindex retiré', 'page', p => p.replace('<meta name="robots" content="noindex">', ''), /noindex/],
   ['un bouton de thème rendu à la page', 'page', p => p.replace('<main class="contenu"', '<button class="mode" type="button">Nuit</button><main class="contenu"'), /aucun bouton de thème/],
-  ['un color-scheme forcé dans la feuille', 'page', p => p.replace('html {\n  background-color', 'html {\n  color-scheme: light;\n  background-color'), /aucun bouton de thème/],
+  ['un color-scheme FORCÉ sur le jour dans la feuille', 'page', p => p.replace('  color-scheme: light dark;\n  background-color', '  color-scheme: light;\n  background-color'), /aucun bouton de thème/],
+  ['le color-scheme n\'est plus déclaré (la meta est retirée)', 'page', p => p.replace('<meta name="color-scheme" content="light dark">', ''), /\(f\) color-scheme déclaré/],
   ['une barre d\'état dessinée', 'page', p => p.replace('<main class="contenu"', '<div class="status-bar">06:52</div><main class="contenu"'), /aucune barre d'état/],
   ['les feux macOS dessinés', 'page', p => p.replace('.vue[hidden]', '.feu { background: #ff5f57; }\n.vue[hidden]'), /aucune barre d'état/],
   ['un texte à 10 px', 'page', p => p.replace('.mention-apercu { margin: 18px 4px 0; text-align: center; font-size: 12px;', '.mention-apercu { margin: 18px 4px 0; text-align: center; font-size: 10px;'), /RIEN sous 11 px/],
-  ['un nom de la maquette dans la page (Julie Dumas)', 'page', p => p.replace("'Camille Roux',   role", "'Julie Dumas',   role"), /aucun nom de la maquette/],
+  ['un nom de la maquette dans le module de données (Julie Dumas)', 'src', c => c.replace("nom: 'Camille Roux',   role", "nom: 'Julie Dumas',   role"), /aucun nom de la maquette/],
   ['un nom d\'exemple écrit dans le RENDU', 'page', p => p.replace('function rendreCoquille', "function rendreCoquille_x() { return 'Camille Roux'; }\n  function rendreCoquille"), /aucun de ces noms/],
   ['le titre grand format change (34 → 32 px)', 'page', p => p.replace('font-size: 34px; line-height: 41px', 'font-size: 32px; line-height: 41px'), /Large Title/],
   ['la bulle d\'onglet se mesure en JavaScript', 'page', p => p.replace("$('tabs').style.setProperty('--i'", "$('tabs').offsetWidth; $('tabs').style.setProperty('--i'"), /bulle de l'onglet actif/],
@@ -256,15 +298,15 @@ const MUTATIONS = [
   ['le document change (la valeur du texte de jour)', 'doc', d => d.replace('| texte | #0e1a3f |', '| texte | #0e1a40 |'), /« texte » .* jour/],
   ['le document change (l\'accent de nuit)', 'doc', d => d.replace('#7ea2f0', '#7ea2f1'), /« accent » .* nuit/]
 ];
-const neutre = controler(PAGE, DOC).filter(r => !r[1]).length;
+const neutre = controler(PAGE, DOC, SRC).filter(r => !r[1]).length;
 dire('copie INTACTE : 0 constat rouge (le banc ne crie pas au loup)', neutre === 0, ' — ' + neutre + ' rouge(s)');
 let mordent = 0;
 for (const [nom, cible, f, attendu] of MUTATIONS) {
-  const p2 = cible === 'page' ? f(PAGE) : PAGE, d2 = cible === 'doc' ? f(DOC) : DOC;
-  const change = (cible === 'page' ? p2 !== PAGE : d2 !== DOC);
+  const p2 = cible === 'page' ? f(PAGE) : PAGE, d2 = cible === 'doc' ? f(DOC) : DOC, c2 = cible === 'src' ? f(SRC) : SRC;
+  const change = (cible === 'page' ? p2 !== PAGE : cible === 'doc' ? d2 !== DOC : c2 !== SRC);
   /* ⛔ une mutation qui ne change rien est une mutation MAL VISÉE : on le dit, on ne conclut rien sur le banc */
   if (!change) { dire('mutation « ' + nom + ' » : le motif ne trouve rien à muter (mutation mal visée)', false); continue; }
-  const rouges = controler(p2, d2).filter(r => !r[1]).map(r => r[0]);
+  const rouges = controler(p2, d2, c2).filter(r => !r[1]).map(r => r[0]);
   const nomme = rouges.some(t => attendu.test(t));
   if (nomme) mordent++;
   dire('mutation « ' + nom + ' » : ' + rouges.length + ' ✗, dont celui qui la garde', nomme, '\n      rouges : ' + JSON.stringify(rouges.slice(0, 4)));
