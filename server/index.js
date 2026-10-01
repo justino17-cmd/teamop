@@ -2476,6 +2476,10 @@ app.post('/api/monitor/espaces/formule', monPatronStrict, (req, res) => {
   if (e.formule !== f || placesQ(e) !== q) { e.formulePar = req.tourUser.nom; e.formuleTs = Date.now(); }
   if (e.formule && e.formule !== f) e.formuleDepuis = Date.now();   // une formule CHANGÉE (voir `placesStripe`)
   e.formule = f; e.quantite = q;
+  /* ⛔ des options réglées à la main ne survivent pas à une formule qui les contient déjà (`gardien`, 1er octobre 2026, rejoué) : même
+     règle que `/api/monitor/espaces/abonnement` (sous Business, un réglage d'option ne dit plus rien). Sans cela, Business puis de nouveau
+     Pro rendait les options à l'entreprise, sous l'abonnement « actif » resté en place — sans que personne les ait redemandées. */
+  if (f !== 'pro' && optionsDeTour(e.options).length) { e.options = []; e.optionsPar = req.tourUser.nom; e.optionsTs = Date.now(); }
   try { if (!e.t) { const o = JSON.parse(Buffer.from(e.code, 'base64').toString('utf8')); e.t = String(o.t || ''); } } catch (err) {}
   facturationPartager(e, [0, 1]);   // … écrite sur TOUS les noms de l'entreprise (l'abonnement repris compris)
   espacesEcrire();

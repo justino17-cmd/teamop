@@ -104,6 +104,13 @@ async function stripe(methode, chemin, corps, cleIdem) {
       const l = await stripe('GET', '/v1/prices?lookup_keys[]=' + encodeURIComponent(cle) + '&limit=1');
       const ex = (l.data || [])[0];
       if (ex) {
+        /* ⛔ UN TARIF ARCHIVÉ OU D'UN AUTRE RYTHME N'EST PAS UN TARIF TROUVÉ (`gardien`, 1er octobre 2026, rejoué). La recherche par clé rend
+           aussi les tarifs ARCHIVÉS : un tarif retiré de la vente était imprimé « existe déjà » — et son identifiant collé dans le
+           serveur, où Stripe refuse tout paiement qui le porte. Un mensuel qui est en fait annuel (ou l'inverse) ferait payer un
+           autre calendrier que celui qu'affiche la page. Rien n'est modifié ici : on s'arrête et on dit quoi regarder. */
+        if (ex.active === false) echec('⚠️  ' + cle + ' existe chez Stripe (' + ex.id + ') mais il est ARCHIVÉ : il ne peut plus servir à un paiement. Rien n\'a été modifié — réactive-le dans le tableau de bord Stripe, ou change sa clé de recherche, puis relance.');
+        const rythme = ex.recurring && ex.recurring.interval;
+        if (rythme !== n) echec('⚠️  ' + cle + ' existe chez Stripe (' + ex.id + ') mais son rythme est « ' + (rythme || 'aucun') + ' » au lieu de « ' + n + ' » : le client paierait un autre calendrier que celui de la page. Rien n\'a été modifié — corrige-le dans le tableau de bord Stripe, puis relance.');
         trouves++; res[k][cycle] = ex.id; if (!produit) produit = typeof ex.product === 'string' ? ex.product : ((ex.product && ex.product.id) || '');
         if (ex.unit_amount !== montant) { alertes++; dis('⚠️  ' + cle + ' existe déjà à ' + ex.unit_amount / 100 + ' € (la grille dit ' + montant / 100 + ' €) : NON modifié — un tarif Stripe se remplace, c\'est ta décision.'); }
         else dis('✓ ' + cle + ' existe déjà (' + ex.id + ')');

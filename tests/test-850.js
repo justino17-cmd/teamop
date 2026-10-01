@@ -367,6 +367,17 @@ globalThis.fetch = async function (url, opts) {
   v('⛔ … mais sous Business elles s\'effacent (un réglage qui ne dit plus rien)', [rB.s, rB.j.options, S1.lireReg().p1.options], [200, [], []]);
   const rV = await ab({ formule: 'business', options: [] });
   v('   `[]` se permet toujours (le retrait)', [rV.s, rV.j.options], [200, []]);
+  /* ⛔ « Attribuer une formule » (autre route de la Tour) ne laissait pas les options derrière lui (`gardien`, 1er octobre 2026) : Business,
+     puis de nouveau Pro, et les options réglées à la main REVENAIENT sous l'abonnement « actif » resté en place. Même règle que l'abonnement :
+     un réglage d'option qui ne dit plus rien s'efface. */
+  await ab({ options: ['stock'] });
+  const fo = corps => S1.appel('/api/monitor/espaces/formule', Object.assign({ nom: 'p1', formule: 'pro', quantite: 3 }, corps), PATRON);
+  const rF0 = await fo({});
+  v('   (contre-épreuve) attribuer Pro, le même, à une entreprise réglée Pro + Stock : les options RESTENT', [rF0.s, S1.lireReg().p1.options], [200, ['stock']]);
+  const rF1 = await fo({ formule: 'business' });
+  v('⛔⛔ attribuer Business efface les options réglées à la main (avant : elles restaient)', [rF1.s, S1.lireReg().p1.options], [200, []]);
+  const rF2 = await fo({});
+  v('⛔ … et elles ne REVIENNENT pas quand on repasse en Pro : ni dans le registre, ni dans ce que l\'application lit', [rF2.s, S1.lireReg().p1.options, OPT(await S1.etat('p1'))], [200, [], []]);
   void regAvant;
   /* deux noms : écrit sur TOUS */
   const rP2 = await ab({ options: ['compta'] }, 'p2new');
@@ -697,6 +708,20 @@ globalThis.fetch = async function (url, opts) {
   FAUX.poser({ produits: [{ id: 'prod_s', name: 'x', metadata: { opg_option: 'stock' }, active: true }], prix: [{ id: 'price_vieux', product: 'prod_s', lookup_key: 'opg_option_stock_mensuel', unit_amount: 800, currency: 'eur', recurring: { interval: 'month' }, tax_behavior: 'inclusive', metadata: { opg_option: 'stock' } }], n: 20 });
   so = FAUX.lancer([]);
   vrai('⛔ un tarif trouvé à 8 € (la grille : 9 €) est SIGNALÉ, jamais modifié ni recréé', /opg_option_stock_mensuel existe déjà à 8 €.*NON modifié/.test(so.out) && FAUX.etat().prix.filter(p => p.lookup_key === 'opg_option_stock_mensuel').length === 1 && FAUX.etat().prix.find(p => p.lookup_key === 'opg_option_stock_mensuel').unit_amount === 800);
+  /* ⛔ un tarif trouvé par sa clé mais ARCHIVÉ, ou d'un autre rythme : le script s'arrête (code 1), il ne l'imprime pas comme valable */
+  const ARCH = sandbox('archive');
+  ARCH.poser({ produits: [{ id: 'prod_s', name: 'x', metadata: { opg_option: 'stock' }, active: true }], prix: [{ id: 'price_archive', product: 'prod_s', lookup_key: 'opg_option_stock_mensuel', unit_amount: 900, currency: 'eur', active: false, recurring: { interval: 'month' }, tax_behavior: 'inclusive', metadata: { opg_option: 'stock' } }], n: 2 });
+  so = ARCH.lancer([]);
+  v('⛔⛔ un tarif trouvé par sa clé mais ARCHIVÉ : code 1, « ARCHIVÉ » dit, aucun bloc à coller (avant : « existe déjà » et son identifiant collé dans le serveur), rien de créé ni modifié',
+    [so.code, /ARCHIVÉ/.test(so.sortie), /STRIPE_PRIX_OPTION = \{/.test(so.out), posts(ARCH.appels()).length], [1, true, false, 0]);
+  const RYT = sandbox('rythme');
+  RYT.poser({ produits: [{ id: 'prod_s', name: 'x', metadata: { opg_option: 'stock' }, active: true }], prix: [{ id: 'price_an', product: 'prod_s', lookup_key: 'opg_option_stock_mensuel', unit_amount: 900, currency: 'eur', active: true, recurring: { interval: 'year' }, tax_behavior: 'inclusive', metadata: { opg_option: 'stock' } }], n: 2 });
+  so = RYT.lancer([]);
+  v('⛔ un tarif « mensuel » qui est en fait ANNUEL : code 1, le rythme est dit, rien de créé', [so.code, /rythme est « year » au lieu de « month »/.test(so.sortie), posts(RYT.appels()).length], [1, true, 0]);
+  const ACT = sandbox('actif');
+  ACT.poser({ produits: [{ id: 'prod_s', name: 'x', metadata: { opg_option: 'stock' }, active: true }], prix: [{ id: 'price_ok', product: 'prod_s', lookup_key: 'opg_option_stock_mensuel', unit_amount: 900, currency: 'eur', active: true, recurring: { interval: 'month' }, tax_behavior: 'inclusive', metadata: { opg_option: 'stock' } }], n: 2 });
+  so = ACT.lancer([]);
+  v('   (contre-épreuve) un tarif ACTIF au bon rythme est bien reconnu (« existe déjà ») et le script va au bout', [so.code, /opg_option_stock_mensuel existe déjà \(price_ok\)/.test(so.out)], [0, true]);
   /* Stripe refuse en citant la clé : elle ne sort pas */
   const PANNE = sandbox('panne');
   PANNE.poser({ echecPrix: true });
