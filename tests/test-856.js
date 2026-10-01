@@ -201,7 +201,7 @@ function controler(PAGE, DOC, SRC) {
   v('⛔ aucun de ces noms n\'est écrit dans la PAGE (le jour où de vraies données arrivent, un seul fichier change)', noms.filter(n => PAGE.replace(/<!--[\s\S]*?-->/g, ' ').includes("'" + n + "'") || PAGE.includes('>' + n + '<')), []);
   vrai('la page lit ses données par window.OPMSG_SOURCE, chargé AVANT elle par un <script src="source.js"> (le seul script externe permis)',
     /<script src="source\.js"><\/script>/.test(PAGE) && PAGE.indexOf('<script src="source.js">') < PAGE.indexOf('<script>\n') && /window\.OPMSG_SOURCE/.test(JS) && !/\bconst (CONTACTS|CONVERSATIONS) = \[/.test(JS) && /racine\.OPMSG_SOURCE = creerSourceApercu\(\)/.test(SRCJS));
-  vrai('chaque écran « bientôt » a sa coquille rendue par la même fonction (une vue par écran)', /\['reunions', 'reglages'\]\.forEach\(rendreCoquille\)/.test(JS) && /function rendreCoquille/.test(JS));
+  vrai('chaque écran « bientôt » a sa coquille rendue par la même fonction (une vue par écran)', /rendreCoquille\('reunions'\)/.test(JS) && /else rendreCoquille\('reglages'\)/.test(JS) && /function rendreCoquille/.test(JS));
   vrai('la page DIT que ce sont des données d\'exemple', /Aperçu — données d'exemple/.test(HTML));
 
   /* 5. RIEN DE L'EXTÉRIEUR ── */
@@ -279,7 +279,7 @@ const MUTATIONS = [
   ['un appel réseau dans le script', 'page', p => p.replace("'use strict';", "'use strict'; fetch('/x');"), /aucun appel réseau/],
   ['un appel réseau dans le module de données', 'src', c => c.replace("'use strict';", "'use strict'; fetch('/x');"), /ni dans le module de données/],
   ['un second script externe (un CDN)', 'page', p => p.replace('<script src="source.js"></script>', '<script src="source.js"></script><script src="app.js"></script>'), /aucun <script src> autre que source\.js/],
-  ['les données reviennent dans la page (const CONVERSATIONS)', 'page', p => p.replace("  const MOI = source.moi();", "  const CONVERSATIONS = [];\n  const MOI = source.moi();"), /lit ses données par window\.OPMSG_SOURCE/],
+  ['les données reviennent dans la page (const CONVERSATIONS)', 'page', p => p.replace("  let MOI = null, CONTACTS = [];", "  const CONVERSATIONS = [];\n  let MOI = null, CONTACTS = [];"), /lit ses données par window\.OPMSG_SOURCE/],
   ['un rangement sur l\'appareil (localStorage)', 'page', p => p.replace("'use strict';", "'use strict'; localStorage.setItem('a', 1);"), /rien n'est rangé/],
   ['noindex retiré', 'page', p => p.replace('<meta name="robots" content="noindex">', ''), /noindex/],
   ['un bouton de thème rendu à la page', 'page', p => p.replace('<main class="contenu"', '<button class="mode" type="button">Nuit</button><main class="contenu"'), /aucun bouton de thème/],

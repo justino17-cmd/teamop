@@ -61,11 +61,18 @@
   };
   const dire = (code) => MESSAGES[code] || MESSAGES.inconnue;
 
+  /* Une attente lisible : « 40 s », « 15 min ». */
+  const attenteLisible = (s) => s < 90 ? s + ' s' : Math.ceil(s / 60) + ' min';
   class ErreurApi extends Error {
     constructor(code, statut, retry) {
       super(dire(code));
       this.name = 'ErreurApi'; this.code = code; this.statut = statut || 0; this.retry = retry || 0;
+      /* ⛔ `dit` : cette erreur a une phrase FRANÇAISE que l'écran peut montrer telle quelle. Une erreur d'ailleurs (une exception de la page
+         elle-même) ne porte pas ce drapeau : l'écran n'affiche alors qu'une phrase générique, jamais le message technique. */
+      this.dit = true;
     }
+    /* La phrase, avec l'attente quand le service l'a donnée (`Retry-After`) : « … (réessaie dans 15 min) ». */
+    phrase() { return this.retry > 0 ? this.message.replace(/\.$/, '') + ' (réessaie dans ' + attenteLisible(this.retry) + ').' : this.message; }
   }
 
   /* Un identifiant d'envoi unique : c'est lui qui rend un renvoi inoffensif (le service ne crée
@@ -166,22 +173,28 @@
       sync: (depuis) => appel('GET', '/api/sync' + rq({ depuis })),
 
       /* Le temps réel. `gestionnaires` : une fonction par événement (`message`, `lu`, `saisie`,
-         `presence`, `notification`, `conversation`, `retire`, `resync`…) + `ouvert()` et `erreur(e)`.
+         `presence`, `notification`, `conversation`, `retire`, `resync`…) + `ouvert()`, `erreur(e)` et `reseau('perdu'|'ok')`.
          Rend `{ fermer, dernierId }`. Le navigateur reconnecte tout seul en renvoyant
          `Last-Event-ID` ; si le service REFUSE (session coupée, trop d'onglets) l'EventSource se
          ferme pour de bon : on reconnecte alors à la main, avec le dernier identifiant vu, sauf si la
-         session est morte — là on le DIT (`session_requise`) et on s'arrête. */
+         session est morte — là on le DIT (`session_requise`) et on s'arrête.
+         ⛔ UN REFUS DU FLUX SE DIT. Un `EventSource` ne rend jamais le statut ni le corps d'un refus : un 429 `trop_de_flux` (cinq onglets
+         ouverts, ou le plafond par réseau) ne laissait à la page qu'un silence — « connectée », sans temps réel, et rien à l'écran
+         (relecture du gardien, remarque 2). Quand il se ferme, on LIT la réponse par un `fetch` du même flux (refermé aussitôt s'il
+         s'ouvre) et on dit son code. `reseau('perdu')` à la première coupure, `reseau('ok')` à la reprise : la page peut afficher
+         « reconnexion… » au lieu de se taire. */
       ecouter(gestionnaires) {
         if (!ES) throw new Error('EventSource indisponible');
         const g = gestionnaires || {};
         /* L'attente avant de reconnecter à la main : 2, 4, 8… secondes, plafonnée à 30 (réglable : les bancs la raccourcissent). */
         const attente = typeof o.attente === 'function' ? o.attente : (n) => Math.min(30000, 1000 * Math.pow(2, Math.min(n, 5)));
-        let es = null, ferme = false, dernier = null, essais = 0, minuterie = null;
-        const dit = (code) => { if (typeof g.erreur === 'function') g.erreur(new ErreurApi(code, 0, 0)); };
+        let es = null, ferme = false, dernier = null, essais = 0, minuterie = null, enPanne = false, dernierRefus = null;
+        const dit = (code, retry) => { if (typeof g.erreur === 'function') g.erreur(new ErreurApi(code, 0, retry || 0)); };
+        const coupure = () => { if (!enPanne) { enPanne = true; if (typeof g.reseau === 'function') g.reseau('perdu'); } };
         function ouvrir() {
           if (ferme) return;
           es = new ES(base + '/api/flux' + (dernier !== null ? '?depuis=' + dernier : ''));
-          es.onopen = () => { essais = 0; if (typeof g.ouvert === 'function') g.ouvert(); };
+          es.onopen = () => { essais = 0; dernierRefus = null; if (enPanne) { enPanne = false; if (typeof g.reseau === 'function') g.reseau('ok'); } if (typeof g.ouvert === 'function') g.ouvert(); };
           for (const nom of EVENEMENTS) {
             es.addEventListener(nom, (ev) => {
               if (ev.lastEventId) dernier = parseInt(ev.lastEventId, 10);
@@ -194,14 +207,31 @@
           es.addEventListener('fin', () => { try { es.close(); } catch (x) {} verifierPuisReconnecter(); });
           es.onerror = () => {
             if (ferme) return;
+            coupure();
             /* readyState 0 : le navigateur reconnecte seul. 2 : refus du service, on prend le relais. */
             if (es.readyState === 2) verifierPuisReconnecter();
           };
+        }
+        /* Lit la réponse du flux sans le garder : `null` s'il s'ouvre (on le referme tout de suite), sinon le code du refus. */
+        async function sonder() {
+          const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+          try {
+            const r = await f(base + '/api/flux' + (dernier !== null ? '?depuis=' + dernier : ''), { method: 'GET', headers: { Accept: 'text/event-stream' }, credentials: 'same-origin', cache: 'no-store', signal: ctl ? ctl.signal : undefined });
+            if (r.status === 200) { if (ctl) ctl.abort(); return null; }
+            let j = null; try { j = await r.json(); } catch (x) { j = null; }
+            const retry = parseInt(r.headers && r.headers.get ? (r.headers.get('Retry-After') || '') : '', 10) || (j && j.retry) || 0;
+            return { code: j && typeof j.error === 'string' && MESSAGES[j.error] ? j.error : (r.status >= 500 ? 'serveur' : 'inconnue'), retry };
+          } catch (x) { return { code: 'reseau', retry: 0 }; }
         }
         async function verifierPuisReconnecter() {
           if (ferme) return;
           try { await api.moi(); }
           catch (x) { if (x && x.code === 'session_requise') { dit('session_requise'); return; } }
+          const refus = await sonder();
+          if (ferme) return;
+          if (refus && refus.code === 'session_requise') { dit('session_requise'); return; }
+          /* Un refus se dit UNE fois par épisode (la reprise suivante, si elle échoue pareil, ne le répète pas). */
+          if (refus && refus.code !== dernierRefus) { dernierRefus = refus.code; dit(refus.code, refus.retry); }
           essais++;
           minuterie = setTimeout(ouvrir, attente(essais));
           if (minuterie && minuterie.unref) minuterie.unref();

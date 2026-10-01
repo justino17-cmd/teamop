@@ -78,8 +78,8 @@ const nb = (svc, table) => { const d = lireDb(svc); try { return d.prepare('SELE
     {
       const c = T.client(svc.base);
       const idx = await c.get('/');
-      vrai('/ sert la page (HTML, une seule balise script externe chacune, aucun script en ligne)', idx.code === 200 && /text\/html/.test(idx.h.get('content-type')) && !/<script(?![^>]*\bsrc=)[^>]*>/i.test(idx.txt) && (idx.txt.match(/<script\b/gi) || []).length === 2);
-      vrai('api.js et ui.js sont servis (javascript)', (await c.get('/api.js')).code === 200 && /javascript/.test((await c.get('/ui.js')).h.get('content-type')));
+      vrai('/ sert la page (HTML, trois scripts externes — api.js, source-serveur.js, opmsg-ui.js —, aucun script en ligne)', idx.code === 200 && /text\/html/.test(idx.h.get('content-type')) && !/<script(?![^>]*\bsrc=)[^>]*>/i.test(idx.txt) && (idx.txt.match(/<script\b/gi) || []).length === 3);
+      vrai('api.js, source-serveur.js et opmsg-ui.js sont servis (javascript) ; l\'ancien ui.js de l\'étape 1 ne l\'est plus', (await c.get('/api.js')).code === 200 && /javascript/.test((await c.get('/source-serveur.js')).h.get('content-type')) && /javascript/.test((await c.get('/opmsg-ui.js')).h.get('content-type')) && (await c.get('/ui.js')).code === 404);
       for (const p of ['/../config.js', '/..%2fconfig.js', '/%2e%2e/%2e%2e/etc/passwd', '/.env', '/.git/config', '/stockage.js', '/index.js', '/package.json', '/node_modules/express/package.json', '/public/index.html']) {
         const r = await c.get(p);
         v('⛔ ' + p + ' → 404 (ni code du service, ni dossier caché, ni sortie du dossier public)', r.code === 404 || r.code === 400, true);

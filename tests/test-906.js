@@ -1,10 +1,13 @@
-/* ⛔ CE QUE CE FICHIER GARDE — LA PAGE CONTRE LE SERVEUR : les VRAIES fonctions de `public/api.js` et la
-   VRAIE `public/ui.js`, exécutées contre le VRAI service (famille 5).
+/* ⛔ CE QUE CE FICHIER GARDE — LE CLIENT CONTRE LE SERVEUR : les VRAIES fonctions de `public/api.js`, exécutées
+   contre le VRAI service (famille 5).
 
    C'est la couture qui a déjà coûté trois fois à ce dépôt : deux moitiés justes chacune, qui ne se
    parlent pas (`CLAUDE.md`, « la couture la plus dangereuse »). Ici `api.js` — le client que la vraie
-   interface appellera — tourne dans Node avec un `fetch` à cookies et un `EventSource` de même cookie, et
-   `ui.js` tourne dans un DOM de poche qui NOTE chaque élément créé.
+   interface appelle — tourne dans Node avec un `fetch` à cookies et un `EventSource` de même cookie.
+   ⛔ L'ancienne page minimale de l'étape 1 (`ui.js`, jouée dans un DOM de poche) a été REMPLACÉE par la vraie interface de Justin (générée par
+   `scripts/opmsg-public.js`) : elle ne se joue plus dans un DOM de poche mais dans un vrai navigateur (`tests/sonde-opmessages-serveur.js`, où du HTML
+   piégé est injecté dans chaque champ), et son module de données contre le service dans `tests/test-911.js`. Ce qui reste ici : le client, ses refus, et
+   ce que la page servie ne doit jamais contenir.
 
    Les contrôles marqués ⛔ gardent des propriétés dont la perte ne se verrait PAS :
      · CHAQUE CODE D'ERREUR QUE LE SERVICE PEUT RENDRE A SA PHRASE (recensé dans le code du service, pas
@@ -12,9 +15,7 @@
      · UN `fetch` NE JETTE PAS SUR UN 4xx : un refus, une coupure, une page de relais ne sont JAMAIS une
        réussite — `fetch` avait annoncé « vient de partir » sur 6 cas faux sur 9 au portail d'OP GESTION ;
      · UN RENVOI NE CRÉE JAMAIS DEUX MESSAGES (même `cid`) ;
-     · TOUT TEXTE D'UN TIERS ENTRE PAR `textContent` : du HTML injecté dans un nom, un message, un nom de
-       groupe s'affiche TEL QUEL et ne crée aucun élément (la liste des éléments créés est relevée) ;
-     · LES IDENTIFIANTS QUE `ui.js` CHERCHE EXISTENT DANS `index.html` (un `getElementById` qui rend `null`
+     · LES IDENTIFIANTS QUE LA PAGE CHERCHE EXISTENT DANS `index.html` (un `getElementById` qui rend `null`
        tue la page au chargement, sans erreur visible pour les bancs qui ne chargent pas la page). */
 
 const fs = require('fs'), path = require('path'), http = require('http');
@@ -29,33 +30,6 @@ const { ErreurApi, MESSAGES, dire } = OPMSG;
    VRAIE page fait. On les redéfinit donc le temps d'exécuter `ui.js`, puis on remet les natifs. */
 const FETCH_NATIF = globalThis.fetch, ES_NATIF = globalThis.EventSource;
 const attrape = async (p) => { try { await p; return null; } catch (e) { return e; } };
-
-/* Un DOM de poche : assez pour `ui.js`, et il NOTE les éléments créés. */
-function fauxDom(html, ouvrirUrl) {
-  class El {
-    constructor(tag, id) { this.tagName = String(tag).toUpperCase(); this.id = id || ''; this.children = []; this._t = ''; this.hidden = false; this.value = ''; this.className = ''; this.listeners = {}; this.scrollTop = 0; this.scrollHeight = 0; this.type = ''; this.attrs = {}; }
-    get textContent() { return this._t + this.children.map(c => c.textContent).join(''); }
-    set textContent(x) { this._t = String(x); this.children = []; }
-    get firstChild() { return this.children[0] || null; }
-    appendChild(c) { this.children.push(c); return c; }
-    insertBefore(c, ref) { const i = ref ? this.children.indexOf(ref) : -1; if (i < 0) this.children.push(c); else this.children.splice(i, 0, c); return c; }
-    addEventListener(t, f) { (this.listeners[t] = this.listeners[t] || []).push(f); }
-    dispatch(t, ev) { for (const f of this.listeners[t] || []) f(Object.assign({ type: t, preventDefault() {} }, ev || {})); }
-    set innerHTML(x) { throw new Error('innerHTML utilisé : ' + String(x).slice(0, 40)); }
-    set outerHTML(x) { throw new Error('outerHTML utilisé'); }
-    insertAdjacentHTML() { throw new Error('insertAdjacentHTML utilisé'); }
-    setAttribute(k, x) { this.attrs[k] = String(x); }
-    tous(pred, sortie = []) { if (pred(this)) sortie.push(this); for (const c of this.children) c.tous(pred, sortie); return sortie; }
-  }
-  const sansScripts = html.replace(/<script[\s\S]*?<\/script>/gi, '');
-  const els = {};
-  for (const m of sansScripts.matchAll(/<([a-z0-9]+)\b[^>]*\bid="([^"]+)"[^>]*>/gi)) { els[m[2]] = new El(m[1], m[2]); if (/\bhidden\b/.test(m[0])) els[m[2]].hidden = true; }
-  const crees = [];
-  const document = { getElementById: (id) => els[id] || null, createElement: (tag) => { crees.push(String(tag).toLowerCase()); return new El(tag); }, write() { throw new Error('document.write utilisé'); } };
-  const location = { hash: '', origin: ouvrirUrl, pathname: '/' };
-  const history = { replaceState() {} };
-  return { els, crees, document, location, history, El };
-}
 
 (async () => {
   const og = await T.fauxOpGestion({ alice: { pass: 'pw-alice-1234', nom: 'Alice', actif: true }, bob: { pass: 'pw-bob-12345', nom: 'Bob', actif: true }, coupe: { pass: 'pw-coupe-123', nom: 'Coupé', actif: false }, dora: { pass: 'pw-dora-12345', nom: 'Dora', actif: true }, eve: { pass: 'pw-eve-123456', nom: 'Eve', actif: true }, fay: { pass: 'pw-fay-123456', nom: 'Fay', actif: true } });
@@ -184,131 +158,20 @@ function fauxDom(html, ouvrirUrl) {
       v('fusionner(): sans doublon, trié par seq, une mise à jour complète la ligne', liste.map(m => m.seq + ':' + m.texte + ':' + (m.modifie || '')), ['1:a:', '2:b:5']);
     }
 
-    console.log('\nLa page (ui.js) : les identifiants existent, aucun HTML n\'est interprété');
+    console.log('\nLa page servie (générée) : ses identifiants existent, rien ne s\'exécute hors de l\'origine, aucune donnée de démonstration');
     {
-      const html = fs.readFileSync(path.join(PUB, 'index.html'), 'utf8'), ui = fs.readFileSync(path.join(PUB, 'ui.js'), 'utf8');
+      const html = fs.readFileSync(path.join(PUB, 'index.html'), 'utf8'), ui = fs.readFileSync(path.join(PUB, 'opmsg-ui.js'), 'utf8');
       const ids = new Set(Array.from(html.matchAll(/\bid="([^"]+)"/g)).map(m => m[1]));
-      const cherches = new Set([...Array.from(T.sansCommentaires(ui).matchAll(/\$\('([^']+)'\)/g)).map(m => m[1]), ...Array.from(T.sansCommentaires(ui).matchAll(/getElementById\('([^']+)'\)/g)).map(m => m[1])]);
-      vrai('population : ui.js cherche plusieurs éléments (' + cherches.size + ') dans une page qui en porte ' + ids.size, cherches.size >= 15 && ids.size >= 15);
-      v('⛔ chaque identifiant que ui.js cherche existe dans index.html (sinon la page meurt au chargement)', Array.from(cherches).filter(i => !ids.has(i)), []);
       const code = T.sansCommentaires(ui);
-      v('⛔ ui.js n\'utilise ni innerHTML, ni outerHTML, ni insertAdjacentHTML, ni document.write, ni eval, ni new Function', /innerHTML|outerHTML|insertAdjacentHTML|document\.write|\beval\(|new Function\(/.test(code), false);
+      const cherches = new Set([...Array.from(code.matchAll(/\$\('([^']+)'\)/g)).map(m => m[1]), ...Array.from(code.matchAll(/getElementById\('([^']+)'\)/g)).map(m => m[1])]);
+      vrai('population : la page cherche plusieurs éléments (' + cherches.size + ') dans un document qui en porte ' + ids.size, cherches.size >= 60 && ids.size >= 60);
+      const ecrits = new Set(Array.from(ui.matchAll(/\bid="([^"]+)"/g)).map(m => m[1]));   // un identifiant que la page ÉCRIT elle-même (une feuille composée à l'ouverture)
+      v('⛔ chaque identifiant que la page cherche existe dans index.html, ou est écrit par la page elle-même (sinon elle meurt au chargement)', Array.from(cherches).filter(i => !ids.has(i) && !ecrits.has(i)), []);
+      v('⛔ la page n\'utilise ni document.write, ni eval, ni new Function (un HTML venu d\'un tiers ne devient jamais du code)', /document\.write|\beval\(|new Function\(/.test(code), false);
       v('index.html n\'a ni script en ligne, ni gestionnaire onclick/onerror en attribut', /<script(?![^>]*\bsrc=)[^>]*>|\son[a-z]+\s*=/i.test(html.replace(/<!--[\s\S]*?-->/g, '')), false);
       v('et aucun script ni feuille d\'un autre domaine', /(src|href)="https?:\/\//i.test(html), false);
-    }
-
-    console.log('\nLa VRAIE ui.js contre le VRAI service : du HTML injecté dans chaque champ s\'affiche tel quel, sans élément créé');
-    {
-      const PIEGE = '<img src=x onerror=alert(1)>', SCRIPT = '<script>window.piraté=1</script>', SVG = '<svg onload=alert(2)>';
-      // Bob : un nom piégé, un groupe au nom piégé, un message piégé.
-      const nb = T.navigateur(svc.base), cb = OPMSG.creer({ base: svc.base, fetch: nb.fetch, EventSource: nb.EventSource });
-      await cb.connexionBeta('bob', 'pw-bob-12345');
-      await cb.majMoi({ prenom: 'Bob' + PIEGE, nom: SCRIPT });
-      const bob = await cb.moi();
-      // Alice (via l'API) devient contact de Bob, puis la page d'Alice se connecte.
-      const na = T.navigateur(svc.base), ca = OPMSG.creer({ base: svc.base, fetch: na.fetch });
-      await ca.connexionBeta('alice', 'pw-alice-1234');
-      const l = await cb.lienContact({}); await ca.accepterLien(l.code);
-      const g = (await cb.groupe({ nom: 'Groupe ' + PIEGE + SVG, membres: [(await ca.moi()).id] })).conversation.id;
-      const d = (await cb.directe((await ca.moi()).id)).conversation.id;
-      await cb.envoyer(d, 'Salut ' + PIEGE + ' ' + SCRIPT);
-      await cb.envoyer(g, SVG);
-      await ca.deconnexion();
-
-      // La page d'Alice : même navigateur de poche (cookie), DOM de poche.
-      const nav2 = T.navigateur(svc.base);
-      const dom = fauxDom(fs.readFileSync(path.join(PUB, 'index.html'), 'utf8'), svc.base);
-      const fenetre = { OPMSG, location: dom.location };
-      const run = new Function('window', 'document', 'location', 'history', 'fetch', 'EventSource', fs.readFileSync(path.join(PUB, 'ui.js'), 'utf8'));
-      const f2 = (u, i) => nav2.fetch(u, i);
-      globalThis.fetch = f2; globalThis.EventSource = nav2.EventSource;
-      run(fenetre, dom.document, dom.location, dom.history, f2, nav2.EventSource);
-      vrai('la page démarre sans session : l\'écran de connexion reste affiché, l\'application cachée', await T.attendre(() => dom.els.appli.hidden === true && dom.els.connexion.hidden === false, 3000));
-      dom.els.login.value = 'alice'; dom.els.pass.value = 'pw-alice-1234';
-      dom.els['f-connexion'].dispatch('submit');
-      const ouverte = await T.attendre(() => dom.els.appli.hidden === false && dom.els.connexion.hidden === true, 5000);
-      /* Un échec dit POURQUOI (règle du dépôt : une mesure qui échoue doit nommer ce qu'elle a vu). */
-      if (!ouverte) console.log('    diagnostic : erreur affichée « ' + dom.els.erreur.textContent + ' », connexion.hidden=' + dom.els.connexion.hidden + ', appli.hidden=' + dom.els.appli.hidden);
-      vrai('⛔ la connexion par le formulaire ouvre l\'application (la VRAIE page parle au VRAI service)', ouverte);
-      const liste = await T.attendre(() => dom.els.liste.children.length >= 2 && dom.els.liste.textContent, 5000);
-      vrai('la liste des conversations est dessinée (2 : la directe et le groupe)', !!liste);
-      vrai('⛔ le nom piégé du groupe s\'affiche TEL QUEL (texte brut, caractères « < » compris)', dom.els.liste.textContent.includes('Groupe ' + PIEGE + SVG));
-      vrai('⛔ le nom piégé de Bob s\'affiche tel quel dans la liste des contacts directs', dom.els.liste.textContent.includes('Bob' + PIEGE));
-      vrai('⛔ l\'aperçu piégé du dernier message est du TEXTE', dom.els.liste.textContent.includes(SVG) || dom.els.liste.textContent.includes('Salut '));
-      // ouvrir la directe : le clic sur le bouton de la ligne
-      const boutons = dom.els.liste.tous(e => e.tagName === 'BUTTON');
-      const ligneDirecte = boutons.find(b => b.textContent.includes('Bob'));
-      ligneDirecte.dispatch('click');
-      vrai('⛔ la conversation ouverte montre le message piégé en TEXTE', !!(await T.attendre(() => dom.els.fil.textContent.includes('Salut ' + PIEGE + ' ' + SCRIPT), 5000)));
-      vrai('et son titre est le nom piégé, en texte', dom.els.titre.textContent.includes('Bob' + PIEGE));
-      // envoi depuis la page, avec du HTML dans le texte
-      dom.els.texte.value = '<b onmouseover=alert(3)>réponse</b>';
-      dom.els['f-envoi'].dispatch('submit');
-      vrai('⛔ le message envoyé par la page s\'affiche tel quel dans le fil', !!(await T.attendre(() => dom.els.fil.textContent.includes('<b onmouseover=alert(3)>réponse</b>'), 5000)));
-      vrai('et il est bien arrivé chez Bob, tel quel (aller-retour par le service)', !!(await T.attendre(async () => (await cb.messages(d)).messages.some(m => m.texte === '<b onmouseover=alert(3)>réponse</b>'), 5000)));
-      // réception en direct : Bob écrit, la page d'Alice le reçoit par le flux SSE
-      await cb.envoyer(d, 'EN DIRECT ' + SVG);
-      vrai('⛔ un message de Bob PARAÎT dans la page d\'Alice sans qu\'elle rafraîchisse (flux SSE réel), en texte', !!(await T.attendre(() => dom.els.fil.textContent.includes('EN DIRECT ' + SVG), 6000)));
-      /* Relecture adverse, D7 : un texte de plus de 2 Ko n'est pas porté par l'événement `message_modifie` (`relis`) ; la page
-         gardait « … » jusqu'au rechargement. Elle RELIT, comme pour un message neuf. */
-      {
-        const long1 = 'A'.repeat(2600), long2 = 'B'.repeat(2700);
-        const e1 = await cb.envoyer(d, long1);
-        vrai('un message de plus de 2 Ko paraît dans la page (relu, pas porté par l\'événement)', !!(await T.attendre(() => dom.els.fil.textContent.includes(long1), 6000)));
-        await cb.modifier(d, e1.seq, long2);
-        vrai('⛔ …et sa MODIFICATION aussi : la bulle montre le nouveau texte entier, pas « … »', !!(await T.attendre(() => dom.els.fil.textContent.includes(long2), 6000)));
-        vrai('   l\'ancien texte n\'y est plus', !dom.els.fil.textContent.includes(long1));
-      }
-      /* Un éphémère qui EXPIRE disparaît du fil : il n'y devient pas « Message supprimé » (relecture adverse, D9). */
-      {
-        const contactId = (await cb.contacts())[0].id;
-        const ge = (await cb.groupe({ nom: 'Fugace', membres: [contactId], ephemere_s: 86400 })).conversation.id;
-        await T.attendre(() => dom.els.liste.textContent.includes('Fugace'), 5000);
-        dom.els.liste.tous(e => e.tagName === 'BUTTON').find(b2 => b2.textContent.includes('Fugace')).dispatch('click');
-        await T.attendre(() => dom.els.titre.textContent.includes('Fugace'), 5000);
-        await cb.envoyer(ge, 'ce message va expirer');
-        vrai('le message éphémère paraît dans le fil', !!(await T.attendre(() => dom.els.fil.textContent.includes('ce message va expirer'), 6000)));
-        svc.avancer(86400000 + 120000);
-        vrai('⛔ expiré, il DISPARAÎT du fil (le balayeur du service l\'a purgé, la page l\'a retiré)', !!(await T.attendre(() => !dom.els.fil.textContent.includes('ce message va expirer'), 8000)));
-        v('⛔ …et la page n\'écrit pas « Message supprimé » à sa place', dom.els.fil.textContent.includes('Message supprimé'), false);
-        svc.avancer(-(86400000 + 120000));
-      }
-      const crees = new Set(dom.crees);
-      vrai('population : la page a créé des éléments (' + dom.crees.length + ')', dom.crees.length > 10);
-      v('⛔ AUCUN élément img, script, svg, iframe, style, a ou b n\'a été créé : seuls div, span, li, button', Array.from(crees).filter(t => !['div', 'span', 'li', 'button'].includes(t)), []);
-      v('⛔ le script injecté ne s\'est pas exécuté (window.piraté absent)', fenetre.piraté, undefined);
-      // la saisie : une frappe de la page part en éphémère, jamais stockée
-      dom.els.texte.value = 'en train…'; dom.els.texte.dispatch('input');
-      await T.dort(150);
-      v('une frappe ne crée aucun message (la saisie est éphémère)', (await cb.messages(d)).messages.filter(m => m.texte === 'en train…').length, 0);
-      // déconnexion par le bouton
-      dom.els['b-sortir'].dispatch('click');
-      vrai('« Sortir » : la page revient à l\'écran de connexion', await T.attendre(() => dom.els.connexion.hidden === false && dom.els.appli.hidden === true, 4000));
-      v('et la session est morte côté service (le cookie ne sert plus)', (await attrape(OPMSG.creer({ base: svc.base, fetch: nav2.fetch }).moi())).code, 'session_requise');
-    }
-
-    console.log('\nLe lien d\'invitation dans l\'adresse (#lien=…) : aperçu, acceptation, conversation ouverte');
-    {
-      const nb = T.navigateur(svc.base), cb = OPMSG.creer({ base: svc.base, fetch: nb.fetch, EventSource: nb.EventSource });
-      await cb.connexionBeta('eve', 'pw-eve-123456');
-      const lien = await cb.lienContact({ max: 1, jours: 1 });
-      const nav3 = T.navigateur(svc.base);
-      const dom = fauxDom(fs.readFileSync(path.join(PUB, 'index.html'), 'utf8'), svc.base);
-      dom.location.hash = '#lien=' + lien.code;
-      const run = new Function('window', 'document', 'location', 'history', 'fetch', 'EventSource', fs.readFileSync(path.join(PUB, 'ui.js'), 'utf8'));
-      globalThis.fetch = (u, i) => nav3.fetch(u, i); globalThis.EventSource = nav3.EventSource;
-      run({ OPMSG, location: dom.location }, dom.document, dom.location, dom.history, (u, i) => nav3.fetch(u, i), nav3.EventSource);
-      await T.attendre(() => dom.els.connexion.hidden === false, 3000);
-      dom.els.login.value = 'fay'; dom.els.pass.value = 'pw-fay-123456'; dom.els['f-connexion'].dispatch('submit');
-      const prop = await T.attendre(() => dom.els['a-accepter'].hidden === false && dom.els['a-accepter'].children.length && dom.els['a-accepter'].children[0], 6000);
-      vrai('⛔ le lien lu dans l\'adresse propose « Accepter l\'invitation de Eve » (aperçu, sans rien accepter encore)', prop && /Accepter l'invitation de Eve/.test(prop.textContent));
-      v('population : rien n\'est encore accepté (Fay n\'a pas Eve en contact avant le clic)', (await OPMSG.creer({ base: svc.base, fetch: nav3.fetch }).contacts()).some(c => c.prenom === 'Eve'), false);
-      prop.dispatch('click');
-      vrai('⛔ le clic accepte : Eve devient un contact et la conversation s\'ouvre', !!(await T.attendre(async () => (await OPMSG.creer({ base: svc.base, fetch: nav3.fetch }).contacts()).some(c => c.prenom === 'Eve' && c.mutuel), 5000)) && !!(await T.attendre(() => dom.els.titre.textContent.includes('Eve'), 5000)));
-      const nd = T.navigateur(svc.base), cdo = OPMSG.creer({ base: svc.base, fetch: nd.fetch });
-      await cdo.connexionBeta('dora', 'pw-dora-12345');
-      const e = await attrape(cdo.accepterLien(lien.code));
-      v('le lien à usage unique est épuisé (410 lien_invalide, dit)', e && e.code, 'lien_invalide');
+      v('⛔ la politique de la page rouvre le réseau vers le service SEUL (connect-src \'self\') et ne rend rien d\'autre', /Content-Security-Policy" content="[^"]*connect-src 'self'[;"]/.test(html) && !/connect-src [^;"]*(https?:|\*)/.test(html), true);
+      v('⛔ les données de DÉMONSTRATION de l\'aperçu n\'atteignent jamais la page servie (le service servirait de fausses conversations)', ['simulerRecu', 'creerSourceApercu', 'Camille Roux', 'Équipe dépôt'].filter(x => (html + ui + fs.readFileSync(path.join(PUB, 'source-serveur.js'), 'utf8')).includes(x)), []);
     }
   } catch (e) {
     console.log('  ✗ le banc est mort : ' + (e && e.stack || e));
