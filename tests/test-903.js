@@ -100,7 +100,7 @@ const nb = (svc, table) => { const d = lireDb(svc); try { return d.prepare('SELE
       vrai('⛔ le cookie : HttpOnly, SameSite=Strict, Path=/, Max-Age de 30 jours (le JavaScript de la page ne le voit jamais)', /^opm=opm_[A-Za-z0-9_-]{43}; /.test(sc) && /HttpOnly/.test(sc) && /SameSite=Strict/.test(sc) && /Path=\//.test(sc) && /Max-Age=2592000/.test(sc));
       vrai('⛔ le jeton n\'est PAS dans le corps de la réponse (il ne vit que dans le cookie HttpOnly)', !/opm_[A-Za-z0-9_-]{43}/.test(r.txt));
       const appel = logins(avant)[0];
-      v('OP GESTION a reçu exactement {login, pass}, la route /api/beta/login, une seule fois', [logins(avant).length, appel.chemin, appel.corps], [1, '/api/beta/login', { login: 'alice', pass: 'pw-alice-1234' }]);
+      v('OP GESTION a reçu exactement {login, pass, app:\'messages\'}, la route /api/beta/login, une seule fois (⛔ `app` : sans lui, un accès d\'OP GESTION entrerait ici)', [logins(avant).length, appel.chemin, appel.corps], [1, '/api/beta/login', { login: 'alice', pass: 'pw-alice-1234', app: 'messages' }]);
       vrai('⛔ sans proxy devant, l\'adresse transmise est celle du client (la boucle locale), jamais vide', /^(::ffff:)?127\.0\.0\.1$/.test(appel.xff || ''));
       const moi = await c.get('/api/moi');
       v('le cookie ouvre la session : /api/moi rend la personne', [moi.code, moi.j.moi.id === r.j.moi.id], [200, true]);
@@ -229,7 +229,7 @@ const nb = (svc, table) => { const d = lireDb(svc); try { return d.prepare('SELE
       const etats = og.appels.slice(n0).filter(a => a.chemin === '/api/beta/etat');
       vrai('population : trois relectures vues, ' + N + ' sessions bêta ouvertes', etats.length >= 3);
       vrai('⛔ CHAQUE relecture est UNE requête portant la liste des identifiants de compte (pas une par accès : 20 par minute au plus chez OP GESTION)',
-        etats.every(a => Array.isArray(a.corps.ids) && a.corps.ids.length >= N && a.corps.login === undefined && a.corps.ids.every(x => /^b[0-9a-f]{10}$/.test(x))));
+        etats.every(a => Array.isArray(a.corps.ids) && a.corps.ids.length >= N && a.corps.login === undefined && a.corps.app === 'messages' && a.corps.ids.every(x => /^b[0-9a-f]{10}$/.test(x))));
       // Un OP GESTION qui répond sans rien dire (ou à l'ancienne) ne coupe PERSONNE.
       og.mode = 'etat_vide';
       const m0 = og.appels.length;

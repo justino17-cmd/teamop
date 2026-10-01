@@ -38,6 +38,12 @@
 const { cleReseau } = require('./quotas');
 const REGEX_LOGIN = /^[a-z0-9._@-]{3,40}$/;
 const REGEX_ID = /^b[0-9a-f]{6,32}$/;   // l'identifiant d'un accès bêta chez OP GESTION : 'b' + 10 hexadécimaux
+/* ⛔ L'APPLICATION QU'ON DEMANDE À OP GESTION (1er octobre 2026). Un accès bêta porte la liste des applications qu'il ouvre
+   (`apps`, réglée depuis la Tour) : ce service demande donc TOUJOURS « messages ». Sans ça, tout accès d'OP GESTION — donné pour
+   tester une page de la bêta d'OP GESTION — entrerait ici. Un accès à qui on retire « messages » répond `false` à la relecture :
+   sa session se coupe comme celle d'un accès coupé. Un OP GESTION d'AVANT, qui ignore `app`, répondrait par l'accès « gestion » :
+   la Tour et le serveur se publient ensemble (le serveur d'abord), voir REPRISE.md. */
+const APP = 'messages';
 const PAQUET_ETAT = 50;                 // OP GESTION plafonne les accès bêta à 50
 
 function creerPorteBeta({ config, quotas, stockage, fetchImpl = fetch, horloge = Date.now }) {
@@ -73,7 +79,7 @@ function creerPorteBeta({ config, quotas, stockage, fetchImpl = fetch, horloge =
     const rembourserTout = () => { quotas.rembourser(cleIp); quotas.rembourser(cleLogin); };
 
     let r;
-    try { r = await appeler('/api/beta/login', { login: l, pass }, ip); }
+    try { r = await appeler('/api/beta/login', { login: l, pass, app: APP }, ip); }
     catch (e) { rembourserTout(); return { statut: 503, corps: { error: 'porte_indisponible' } }; }   // une panne de NOTRE côté n'use pas le plafond de l'essayeur
 
     if (r.statut === 200 && r.j && r.j.ok === true && typeof r.j.login === 'string' && REGEX_LOGIN.test(r.j.login)) {
@@ -109,7 +115,7 @@ function creerPorteBeta({ config, quotas, stockage, fetchImpl = fetch, horloge =
     for (let i = 0; i < actives.length; i += PAQUET_ETAT) {
       const paquet = actives.slice(i, i + PAQUET_ETAT);
       try {
-        const r = await appeler('/api/beta/etat', { ids: Array.from(new Set(paquet.map(p => p.bid))) }, '127.0.0.1');
+        const r = await appeler('/api/beta/etat', { ids: Array.from(new Set(paquet.map(p => p.bid))), app: APP }, '127.0.0.1');
         if (r.statut !== 200 || !r.j || !r.j.ouverts || typeof r.j.ouverts !== 'object') { echec = true; continue; }
         for (const p of paquet) {
           const o = r.j.ouverts[p.bid];
