@@ -301,9 +301,9 @@ globalThis.fetch = async function (url, opts) {
     const VER_APP = parseInt((/APP_VERSION\s*=\s*'(\d+)'/.exec(APP) || [])[1], 10) || 0, V767 = VER_APP >= 767;
     vrai('la version de l\'application se lit (v' + VER_APP + ')', VER_APP >= 763);
     /* (le bandeau « Paye ton abonnement » n'existe plus depuis la v767 : ce qui n'est pas payé est suspendu — `accesSuspendu`) */
-    const NOMS = V767 ? ['forfaitServeurSync', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'accesSuspendu', 'suspensionClasse', 'suspensionRappel', 'forfait']
+    const NOMS = V767 ? ['forfaitServeurSync', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'accesSuspendu', 'suspensionClasse', 'suspensionRappel', 'forfait', 'optionsCle', 'optionsLire', 'optionsPoser']   // v768 : les options servies se rangent à la lecture de l'état
       : ['forfaitServeurSync', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'suspensionRappel', 'forfait', 'bandeauFormule'];
-    const FN = NOMS.map(fonction), PLANS_SRC = bloc('const PLANS={'), SUSP = (/^let _susp = \{[^\n]*\};$/m.exec(APP) || [''])[0];
+    const FN = NOMS.map(fonction), PLANS_SRC = bloc('const PLANS={'), OPT_SRC = V767 ? bloc('const OPTIONS_GESTION={') : '', SUSP = (/^let _susp = \{[^\n]*\};$/m.exec(APP) || [''])[0];
     vrai('(population) les ' + NOMS.length + ' fonctions de la v' + VER_APP + ', PLANS et l\'état de suspension sont trouvés dans le fichier réel',
       FN.every(Boolean) && /const PLANS=\{/.test(PLANS_SRC) && !!SUSP && (V767 ? /suspensionPoser\(nonPaye\?/ : /suspensionPoser\(j\)/).test(FN[0]));
     /* un appareil : son rangement, son compte, sa base — et ce qu'il fait VOIR (toasts, bandeau) ou ÉCRIRE (save) */
@@ -313,7 +313,7 @@ globalThis.fetch = async function (url, opts) {
       const doc = { getElementById: () => null, createElement: () => { vu.bandeau++; return { style: {}, remove() {} }; }, body: { appendChild() {} } };
       const code = 'let STORE_KEY="elanB_banc845"; let currentUser=' + JSON.stringify({ id: 'u-' + role, role }) + '; let current="dashboard";\n'
         + 'let db=' + JSON.stringify({ forfait: espaces[slug].formule, forfaitQty: 1, forfaitSrv: 'teamop' }) + '; let _opMsgOuvert=false;\n'
-        + PLANS_SRC + ';\nvar _placesSrv=null,_placesSrvF="";\n' + SUSP + '\n' + FN.join('\n')
+        + PLANS_SRC + ';\nvar _placesSrv=null,_placesSrvF="";\n' + (OPT_SRC ? OPT_SRC + ';\nvar _optsSrv;var _etatLuLe=0;\n' : '') + SUSP + '\n' + FN.join('\n')
         + '\nconst BETA_ESSAI=false;\nreturn { sync: forfaitServeurSync, forfait, db: () => db, susp: () => _susp, acces: (typeof accesSuspendu === "function" ? accesSuspendu : () => null) };';
       const f = new Function('fetch', 'localStorage', 'PUSH_API', 'toast', 'renderNav', 'go', 'save', 'logEvent', 'todayISO', 'espaceQuitter', 'suiteRefresh', 'views', 'document', 'esc', code);
       const a = f(fetchAutre || ((u, o) => fetch(u, o)), { getItem: k => (LS.has(k) ? LS.get(k) : null), setItem: (k, x) => LS.set(k, String(x)), removeItem: k => LS.delete(k) },

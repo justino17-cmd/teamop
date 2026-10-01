@@ -288,11 +288,13 @@ globalThis.fetch = async function (url, opts) {
       let j = i + 1; for (;;) { const k = NU.indexOf('\nfunction ', j); if (k < 0) return NU.slice(i);
         j = k + 1; if (!/^function (suspension|forfait|planBloque)/.test(NU.slice(k + 1, k + 40))) return NU.slice(i, k); } };
     const NOMS = ['suspensionCle', 'suspensionCharger', 'suspensionPoser', 'suspensionSursis',
-                  'suspensionGrise', 'accesSuspendu', 'suspensionBloque', 'suspensionClasse', 'suspensionRappel', 'forfait', 'planBloque'];
+                  'suspensionGrise', 'accesSuspendu', 'suspensionBloque', 'suspensionClasse', 'suspensionRappel', 'forfait', 'planBloque', 'optionOuvre'];   // v768 : `planBloque` lit les options servies
     const src = NOMS.map(bloc).join('\n');
     vrai('⛔ les onze fonctions sont trouvées dans app.html (une tranche vide passe au vert sur tout)',
       NOMS.every(n => bloc(n).length > 20) && src.length > 900, NOMS.filter(n => bloc(n).length <= 20).join(', ') + ' — ' + src.length + ' caractères');
     const PB = /const PLAN_BLOQUE=\{[\s\S]*?\n\};/.exec(NU);
+    const OG = /const OPTIONS_GESTION=\{[\s\S]*?\n\};/.exec(NU);   // v768 : les options du Pro, que `planBloque` consulte
+    vrai('   et les options du Pro (`OPTIONS_GESTION`) aussi', !!OG);
     vrai('   et la liste des catégories payantes aussi', !!PB);
     /* v767 : `forfait()` lit les formules (un « gratuit » resté dans une base d'avant se lit Pro) */
     const PL = /const PLANS=\{[\s\S]*?\n\};/.exec(NU);
@@ -311,7 +313,7 @@ globalThis.fetch = async function (url, opts) {
       toast: function (t) { bac.toasts.push(String(t)); },
       renderNav: () => {}, go: () => {}, todayISO: () => '2026-09-22',
     };
-    const f = new Function('ctx', 'with(ctx){ ' + (PL ? PL[0] : '') + '\n' + (PB ? PB[0] : '') + '\n' + (ETAT ? ETAT[0] : '') + '\n' + src +
+    const f = new Function('ctx', 'with(ctx){ ' + (PL ? PL[0] : '') + '\n' + (PB ? PB[0] : '') + '\n' + (OG ? OG[0] : '') + '\nvar _optsSrv;\n' + (ETAT ? ETAT[0] : '') + '\n' + src +
       '\n return { poser:suspensionPoser, grise:suspensionGrise, sursis:suspensionSursis,' +
       ' forfait:forfait, bloque:planBloque, rappel:suspensionRappel, charger:suspensionCharger, acces:accesSuspendu }; }');
     const A = f(bac);

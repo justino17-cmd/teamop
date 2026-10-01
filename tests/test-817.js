@@ -38,11 +38,11 @@ const SYNCHRO = ['const COLLS_HORS_FUSION=', 'function collsFusion(d){', 'const 
   'function ombreRelever(o,os){', 'const TOMBE_JOURS=', 'function estampiller(){', 'function msElaguer(ms,st,now){',
   'function boxFusionFine(gagnante,perdante){', 'function tombesElaguer(t,now){', 'function tombesUnion(a,b){', 'function numMaxUnion(a,b){',
   'function fusionnerBases(local,remote,prioriteLocale){', 'function baseSignature(d){', 'function syncJournaux(){', 'function sigRenvoi(d){',
-  'function logEvent(action, detail, type=\'general\', cibleUserId){', 'let _razChoix={};', 'function razAppliquer(){'].map(h => decoupe(h)).join('\n');
+  'function logEvent(action, detail, type=\'general\', cibleUserId){', 'const RAZ_LIGNES=[', 'let _razChoix={};', 'const RAZ_RUBRIQUE=', 'const razLignes=', 'function razAppliquer(){'].map(h => decoupe(h)).join('\n');
 let seq = 0;
 const appareil = base => new Function('etat', `let db=etat.db; const syncEnabled=()=>true;
   let currentUser={id:'u1',nom:'Justin'}; const uid=()=>'L'+(etat.seq()).toString(36).padStart(7,'0');
-  const exportData=()=>{}, toast=()=>{}, go=()=>{}, closeModal=()=>{}, syncRetraitVoulu=()=>{};
+  const exportData=()=>{}, toast=()=>{}, go=()=>{}, closeModal=()=>{}, syncRetraitVoulu=()=>{}, planBloque=()=>false;
   let __saves=0; const save=()=>{ __saves++; estampiller(); }; const syncPush=()=>{};
   ${SYNCHRO}
   return { estampiller, ombreRelever, fusionnerBases, sigRenvoi, logEvent, razAppliquer,
