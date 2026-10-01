@@ -14,8 +14,8 @@
 # Une suite par ligne (900-929 : le service ; 930-939 : installation, déploiement, surveillance).
 # ⛔ LE PLANCHER : moins de vérifications que ça, c'est que des suites ont sauté leur partie exécutée (sans
 # `server-msg/node_modules`, celles du service se déclarent vertes). Le relever quand on ajoute une suite, jamais le baisser.
-# 1er octobre 2026 : 1000 sur 900-909, 433 sur 930-934, soit 1433.
-#plancher 1433
+# 1er octobre 2026 (après la relecture adverse) : 16 suites, 1593 vérifications mesurées par `bash scripts/bancs-ci.sh $(liste)`.
+#plancher 1593
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
