@@ -45,7 +45,8 @@
 # `test-844` compris, contre les pages de `main` — plancher relevé à 3 100.
 # 29 septembre 2026, soir : 3 243 contre les pages de `main` (49 suites), `test-845` compris (carte refusée = impayé,
 # le nom d'accès repris à la même adresse) — plancher relevé à 3 200.
-#plancher 3200
+# 1er octobre 2026 : 3 546 (51 suites) avec `test-850` (les options du Pro, 133 vérifications) — plancher relevé à 3 330.
+#plancher 3330
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -137,3 +138,10 @@ tests/test-845.js
 # illisible, un réglage négatif d'avant sur un ancien nom, l'abonnement d'une entreprise renommée (ancien nom, ancienne
 # adresse), « repartir à neuf » en période offerte, un tarif illisible sur une fiche sans formule, le métier sur tous les noms.
 tests/test-849.js
+# 1er octobre 2026 : les OPTIONS du Pro (Stock, Achats, Compta, Registre sanitaire), sur le vrai serveur et un Stripe simulé dans
+# son processus — une option ne fait jamais passer pour payé, n'ajoute aucune place, ne lève aucun blocage (cas a à h de la
+# carte de lecture, rejoués sur l'ancien code : ils tombent) ; la couverture stricte ; `options` dans la seule réponse payée
+# de `/api/espaces/etat` ; la Tour ; « Mon espace » ; ce qui part chez Stripe (lignes, cycle, quantités, `trial_end`) ; les
+# options ramenées au rachat de places ; l'impayé d'option ; le courriel des sept jours ; `server/stripe-options.js`
+# (idempotent, `--essai`, jamais la clé). Le banc ne lit AUCUNE page : il passe contre celles de `main`, comme le serveur seul.
+tests/test-850.js

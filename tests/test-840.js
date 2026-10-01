@@ -264,7 +264,7 @@ console.log('\n── 840 · le rappel des 7 jours : le nombre d\'utilisateurs, 
       (O.match(/<a href="[^"]*formule=(pro|business)[^"]*" class="m-lien"/g) || []).length === 2
       && !!sombre && sombre.split(REGLE_LIEN).length === 2 && O.split(REGLE_LIEN).length === 2);
     vrai('omicron — la version TEXTE propose aussi les deux autres, avec leurs liens',
-      /Ou une autre formule, si elle vous convient mieux \(un abonnement par utilisateur\) :\n· Pro : 15\u00a0€ TTC par mois et par utilisateur — 7 utilisateurs : 105\u00a0€ TTC par mois\n  https:\/\/teamop\.fr\/recap-abonnement\.html\?formule=pro&utilisateurs=7\n· Business : 25\u00a0€ TTC par mois et par utilisateur — 7 utilisateurs : 175\u00a0€ TTC par mois\n  https:\/\/teamop\.fr\/recap-abonnement\.html\?formule=business&utilisateurs=7/.test(O));
+      /Ou une autre formule, si elle vous convient mieux \(un abonnement par utilisateur\) :\n· Pro : 15\u00a0€ TTC par mois et par utilisateur — 7 utilisateurs : 105\u00a0€ TTC par mois\n  https:\/\/teamop\.fr\/recap-abonnement\.html\?formule=pro&utilisateurs=7(?:\n  Options du Pro : [^\n]*)?\n· Business : 25\u00a0€ TTC par mois et par utilisateur — 7 utilisateurs : 175\u00a0€ TTC par mois\n  https:\/\/teamop\.fr\/recap-abonnement\.html\?formule=business&utilisateurs=7/.test(O));
     const P = de('pi');
     vrai('pi — 1 utilisateur actif (au singulier), formule Business : 1 × 25 € = 25 €, 1 × 250 € = 250 € à l\'année',
       /1 utilisateur actif dans votre espace/.test(P) && /Formule <b>Business<\/b>/.test(P) && /1 × 25 € = 25 € TTC par mois/.test(P) && /1 × 250 € = 250 € TTC \(2 mois offerts\)/.test(P));

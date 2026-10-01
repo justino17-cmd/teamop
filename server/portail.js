@@ -187,8 +187,13 @@ function monterPortail(app, deps) {
     if (!v || typeof d.formuleServie !== 'function' || !verifie(mail)) return v;
     let minuteur = null;
     try {
-      const lbl = await Promise.race([Promise.resolve().then(() => d.formuleServie(mail)),
-        new Promise(r => { minuteur = setTimeout(() => r(''), FORMULE_DELAI); })]);
+      /* ⛔ LES OPTIONS DU PRO dans un champ À PART (`v.options`, des libellés — 1er octobre 2026), jamais collées dans la chaîne de la
+         formule que le contrat nomme (`v.plan`). Même lecture, même délai : une panne de Stripe ne fait pas attendre la page. */
+      const lire = async () => ({ lbl: await d.formuleServie(mail),
+        opts: typeof d.optionsServies === 'function' ? await Promise.resolve(d.optionsServies(mail)).catch(() => null) : null });
+      const rep = await Promise.race([lire(), new Promise(r => { minuteur = setTimeout(() => r({ lbl: '', opts: null }), FORMULE_DELAI); })]);
+      const lbl = rep.lbl;
+      if (Array.isArray(rep.opts)) v.options = rep.opts.filter(x => typeof x === 'string').slice(0, 8);
       if (typeof lbl === 'string' && lbl) v.plan = lbl;
       /* un impayé : la formule reste celle du dossier, son état se dit « Suspendu » (la vue est une COPIE : rien n'est écrit) */
       else if (lbl && typeof lbl === 'object' && lbl.statut === 'suspendu') v.planStatus = 'suspendu';
