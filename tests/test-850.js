@@ -383,6 +383,20 @@ globalThis.fetch = async function (url, opts) {
   vrai('   la chaîne de la formule ne parle pas des options', !/stock|achats/i.test(String(mC.plan)));
   v('   suspendue (a) : aucune option', [mA.planStatus, mA.options], ['suspendu', []]);
   v('   Business : aucune option à montrer', [mJ.plan, mJ.options], ['Business', []]);
+  /* ⛔⛔ un client n'écrit PAS ses options : `options` est un champ du serveur (CHAMPS_SERVEUR) — sinon « Mon espace » lui montrerait
+     « Stock » comme servi chaque fois que le serveur ne répond pas (doute, adresse partagée) */
+  const forge = ['Stock (et box pour la 3D)', 'Registre sanitaire (métier 3D)'];
+  const rF = await S1.appel('/api/portail/demande', { options: forge, sujet: 'banc 850' }, S1.jetons.i1);
+  const mI1 = await moi('i1');
+  v('⛔⛔ i1 (Stock × 2 sur trois places : rien de servi) écrit `options` dans sa demande : le serveur la reçoit (200) mais la page ne lit JAMAIS cette copie',
+    [rF.s, mI1.options === undefined ? 'absent' : mI1.options], [200, []]);
+  const rK = await S1.appel('/api/portail/demande', { options: forge }, S1.jetons.k);
+  const mK = await moi('k');
+  v('⛔ k partage son adresse avec k2 (le serveur ne choisit pas pour le client) : la copie forgée n\'apparaît PAS non plus — le champ est absent',
+    [rK.s, mK.options === undefined ? 'absent' : mK.options], [200, 'absent']);
+  const rapide = JSON.parse(fs.readFileSync(path.join(S1.D, 'portail.json'), 'utf8'));
+  const dosI1 = (rapide.d || {})[mail('i1')];
+  vrai('(population) le dossier de i1 existe bien (la demande l\'a créé) et NE PORTE PAS `options` : le serveur écarte ce champ à l\'écriture', !!dosI1 && dosI1.options === undefined && Object.keys(dosI1).length > 2)
 
   /* ══ 4. LA ROUTE DE PAIEMENT : ce qui PART chez Stripe ═══════════════════════════════════════════════════════════════════ */
   console.log('\n  Paiement · formule + options');
