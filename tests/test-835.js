@@ -12,7 +12,7 @@
       support@ ; aucune adresse externe ;
    5. chaque écran d'appareil a sa version jour ET nuit, et l'image existe ;
    6. aucun bouton de mode (le site suit le système, sans bouton — THEME.md § 0, et Justin le 29 septembre 2026) ;
-   7. OP MESSAGES : « Bientôt disponible », aucune formule ne se choisit ;
+   7. OP MESSAGES : « Bientôt disponible », aucune formule ne se choisit — deux formules (Perso, Messages Pro à 15 € avec tout) depuis le 1er octobre 2026 ;
    8. « Créer » ne dit jamais « demande envoyée » (c'est la messagerie de la personne qui l'envoie) ;
    9. un aperçu ne se référence pas (`noindex`), la page de racine si.
    La preuve au navigateur (menus, fenêtres, onglets, formulaire, débordement) vit dans
@@ -267,12 +267,41 @@ console.log('6 quater. les options du Pro : dans l\'aperçu, jamais dans le bloc
   vrai('(population) l\'application de cette branche ' + (/^[ \t]*(?:const|let|var)\s+OPTIONS_GESTION\s*=/m.test(app) ? 'DÉCLARE' : 'ne déclare pas encore') + ' OPTIONS_GESTION — le générateur lit la même chose que ce banc', GEN.lireOptionsApp(app) === null ? !/^[ \t]*(?:const|let|var)\s+OPTIONS_GESTION\s*=/m.test(app) : true);
 }
 
-console.log('7. OP MESSAGES : bientôt disponible, rien ne se choisit');
-const msg = (PAGES.tarifs.match(/<div class="formules" id="formules-msg"[\s\S]*?<\/div>\s*<p class="note-msg">/) || [''])[0];
+console.log('7. OP MESSAGES : bientôt disponible, rien ne se choisit — DEUX formules (Perso, Messages Pro à 15 € avec tout)');
+const BLOC_MSG = h => (h.match(/<div class="formules" id="formules-msg"[\s\S]*?<\/div>\s*<p class="note-msg">/) || [''])[0];
+const msg = BLOC_MSG(PAGES.tarifs);
 vrai('le bloc des formules OP MESSAGES est trouvé', msg.length > 500);
 vrai('aucun lien de formule dans OP MESSAGES', !/href=/.test(msg));
-v('trois « Bientôt disponible »', (msg.match(/Bientôt disponible/g) || []).length, 3);
+v('deux « Bientôt disponible » : une par carte, et il n\'y a que deux cartes', [(msg.match(/Bientôt disponible/g) || []).length, (msg.match(/<article class="formule/g) || []).length], [2, 2]);
+v('… et la grille le sait (`--n` = le nombre de cartes, pas un trois écrit à la main)', (msg.match(/id="formules-msg"[^>]*style="--n:(\d+)"/) || [])[1], '2');
 vrai('la page OP MESSAGES le dit', texte(PAGES.opmessages).includes('Bientôt disponible'));
+/* ⛔⛔ « À 15 € ILS ONT TOUTES LES OPTIONS » (Justin, 1er octobre 2026 : « un forfait gratuit comme il est là et un Pro à 15 euros ; lui
+   à 25 on le supprime ») : Messages Pro porte la liste COMPLÈTE de ce que promettait « Messages Business Premium », aucune page
+   générée ne propose la formule à 25 €, et le serveur la reconnaît toujours (un abonnement d'avant reste de l'OP MESSAGES : `test-842`,
+   `test-727` pour le refus de la vendre). Les promesses se lisent dans le TEXTE de la carte (balises retirées), une par une. */
+const CARTE_PRO = ((msg.match(/<article class="formule phare">[\s\S]*?<\/article>/) || [''])[0]);
+const T_PRO = texte(CARTE_PRO);
+vrai('population : la carte Messages Pro est trouvée, à 15 €', CARTE_PRO.length > 300 && /Messages Pro/.test(T_PRO) && />15</.test(CARTE_PRO));
+const PROMESSES_PRO = [
+  ['espace entreprise', /Espace entreprise \(SIRET\)/], ['canaux d\'équipe', /Canaux d'équipe/], ['réunions visio', /Réunions visio/], ['partage d\'écran', /partage d'écran/],
+  ['réunions planifiées avec invitations', /Réunions planifiées avec invitations/], ['appels de groupe', /appels de groupe/],
+  ['personnalisation', /personnalisation avancée/], ['support prioritaire', /Support prioritaire/] ];
+v('⛔ Messages Pro porte TOUT ce que promettait la formule à 25 € : visio, partage d\'écran, réunions planifiées, appels de groupe, personnalisation, support prioritaire',
+  PROMESSES_PRO.filter(([, re]) => !re.test(T_PRO)).map(([n]) => n), []);
+vrai('⛔ « illimitée » ne se dit que de la DURÉE (SERVEUR.md § 3.5) : la carte écrit « sans limite de durée » ET que le nombre de participants en vidéo reste limité', /sans limite de durée/.test(T_PRO) && /nombre de participants en vidéo reste limité/.test(T_PRO) && !/visio illimitée|participants illimités/i.test(T_PRO));
+vrai('⛔ plus un mot sur « le Business Premium d\'OP GESTION » : avec des comptes séparés, la liaison n\'existe pas (SERVEUR.md § 5, point 7)', !/Inclus avec le Business Premium|avec le Business Premium d'OP GESTION/i.test(msg));
+v('⛔ aucune carte d\'OP MESSAGES ne s\'appelle Premium ni ne coûte 25 €', [/Premium/.test(msg), />25</.test(msg), /25\s*€/.test(texte(msg))], [false, false, false]);
+v('(population) les noms des cartes d\'OP MESSAGES : Perso et Messages Pro, rien d\'autre', (msg.match(/<div class="n">[\s\S]*?<\/div>/g) || []).map(d => texte(d).trim().replace(/^Équipes /, '')), ['Perso', 'Messages Pro']);
+v('⛔ le volet « Tarifs OP MESSAGES » ne cite plus de Premium (« Perso · Pro — bientôt disponible »)', Object.keys(PAGES).filter(c => /Perso · Pro · (?:Business )?Premium/.test(PAGES[c])), []);
+v('⛔ AUCUNE page générée — aperçu ou racine, avec ou sans `--messages` — ne mène à la formule retirée (`formule=msgpremium`)',
+  Object.keys(GEN.PAGES).filter(c => [PAGES[c], GEN.page(c, { racine: true }), GEN.page(c, { racine: true, messages: true })].some(h => /formule=msgpremium/.test(h))), []);
+v('⛔ aucune page d\'APERÇU ne cite « Messages Business Premium » ni l\'offre à 25 € d\'OP MESSAGES', Object.keys(PAGES).filter(c => /Messages Business Premium|Messages Premium/.test(texte(PAGES[c]))), []);
+/* la RACINE est en service : elle dit encore les trois cartes d'avant (toutes « Bientôt disponible », sans lien) jusqu'à `--messages`,
+   le jour où Justin dit « remplace le site » — c'est ce qui la garde octet pour octet (§ 10) */
+const msgRacine = BLOC_MSG(GEN.page('tarifs', { racine: true })), msgRacineNeuf = BLOC_MSG(GEN.page('tarifs', { racine: true, messages: true }));
+v('(racine, en service) les trois cartes d\'avant, toutes « Bientôt disponible », aucun lien', [(msgRacine.match(/<article class="formule/g) || []).length, (msgRacine.match(/Bientôt disponible/g) || []).length, /href=/.test(msgRacine)], [3, 3, false]);
+v('(racine, `--messages`) les deux formules décidées, et la même carte que l\'aperçu', [(msgRacineNeuf.match(/<article class="formule/g) || []).length, texte(msgRacineNeuf) === texte(msg)], [2, true]);
+v('la donnée du générateur : FORMULES_MESSAGES = Perso, Messages Pro (15 €) ; les trois d\'avant restent nommées pour la racine', [GEN.FORMULES_MESSAGES.map(f => [f.nom, f.prix]), GEN.FORMULES_MESSAGES_EN_SERVICE.map(f => f.nom)], [[['Perso', '0'], ['Messages Pro', '15']], ['Perso', 'Messages Pro', 'Messages Business Premium']]);
 
 console.log('8. « Créer » part par e-mail, et le dit');
 vrai('le formulaire n\'a pas d\'action serveur', /<form class="demande" id="demande" novalidate>/.test(PAGES.creer));
@@ -333,7 +362,8 @@ v('aucun identifiant en double (#fonctions l\'était : la section ET les donnée
 /* le nom commercial d'une formule ne change pas avec le dessin du site : la maquette écrivait « Messages Premium »,
    le site en service et la page d'avant disaient « Messages Business Premium » (test-756 le relit dans tarifs.html) */
 const TAR_T = texte(GEN.page('tarifs', { racine: true }));
-v('les trois formules OP MESSAGES gardent leurs noms en service', ['Perso', 'Messages Pro', 'Messages Business Premium'].filter(n => !TAR_T.includes(n)), []);
+v('les trois formules OP MESSAGES gardent leurs noms en service (la racine ne change que sur « remplace le site » + `--messages`)', ['Perso', 'Messages Pro', 'Messages Business Premium'].filter(n => !TAR_T.includes(n)), []);
+v('… et l\'aperçu, lui, n\'en a que deux (Messages Business Premium, 25 €, est retirée de la vente)', ['Perso', 'Messages Pro'].filter(n => !texte(PAGES.tarifs).includes(n)).concat(/Messages Business Premium/.test(texte(PAGES.tarifs)) ? ['Messages Business Premium'] : []), []);
 vrai('plus de « Messages Premium » tout court', !/Messages Premium/.test(TAR_T));
 
 /* ⛔ LA RACINE EST EN SERVICE : elle ne bouge que sur « remplace le site ». Jusque-là, elle est la v1 publiée le

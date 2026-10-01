@@ -91,6 +91,10 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
   const tGP = esp('gratuitpaie', { formule: 'gratuit', quantite: 1, formuleTs: APRES, formulePar: 'Patron' });
   esp('gratuitrien', { formule: 'gratuit', quantite: 1, formuleTs: APRES, formulePar: 'Patron' });
   const tMG = esp('msgseul', { formule: 'business', quantite: 1, formuleTs: APRES, formulePar: 'Patron' });
+  /* ⛔ « MESSAGES BUSINESS PREMIUM » (25 €) EST RETIRÉE DE LA VENTE (Justin, 1er octobre 2026) — MAIS UN ABONNEMENT D'AVANT RESTE LU COMME
+     DE L'OP MESSAGES : si le serveur cessait de reconnaître ce tarif, il passerait pour un paiement d'OP GESTION (ou pour rien). Même
+     entreprise que `msgseul`, mêmes attentes, avec le tarif retiré. */
+  const tMP = esp('msgseulprem', { formule: 'business', quantite: 1, formuleTs: APRES, formulePar: 'Patron' });
   const tMA = esp('montetarif', { formule: 'business', quantite: 1, formuleTs: AVANT, formulePar: 'Patron' });
   const tPP = esp('promopetit', { formule: 'premium', quantite: 1, formuleTs: AVANT, formulePar: 'Patron (code)' });
   const tPN = esp('promonu', { formule: 'business', quantite: 1, formuleTs: AVANT, formulePar: 'Patron' });
@@ -170,6 +174,9 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
     abo('gp', tGP, 'active', [['business', 2]], S_APRES),
     abo('sp', tSP, 'active', [['pro', 2]], S_APRES),
     abo('mg', tMG, 'active', [['msgpro', 2]], S_APRES),
+    /* ⛔ SANS le nom du produit : `ligneMessages` lit aussi « messages » dans ce nom, et le tarif RETIRÉ passerait alors pour de l'OP
+       MESSAGES sans que le serveur le reconnaisse — c'est l'IDENTIFIANT du tarif que ce contrôle doit éprouver */
+    (a => { a.items.data.forEach(it => { it.price.product = { name: 'Abonnement TEAM OP' }; }); return a; })(abo('mp', tMP, 'active', [['msgpremium', 2]], S_APRES)),
     abo('mA', tMA, 'active', [['business', 1]], S_AVANT), abo('mB', tMA, 'active', [['premium', 2]], S_APRES),
     abo('rm1', 'ent-reparmsg-ancien-842', 'active', [['premium', 3]], S_APRES, 'reparmsg@exemple-842.fr'), abo('rm2', tRM, 'active', [['msgpro', 1]], S_APRES, 'reparmsg@exemple-842.fr'),
     abo('ml1', tML, 'active', [['pro', 10]], S_APRES), abo('ml2', tML, 'active', [['premium', 1]], S_APRES),
@@ -224,8 +231,8 @@ globalThis.fetch = async function (url, opts) {
        de formule Gratuit) : rien de payé, fiche « Gratuit » sans rien, OP MESSAGES seul, l'abonnement d'une voisine d'adresse.
        Les contrôles de population les écartent, NOMMÉS un par un. */
     const formeB = sl => tous[sl].suspendu === true && tous[sl].sursisJours === 0 && !('formule' in tous[sl]) && !('places' in tous[sl]);
-    v('   (population) ce qui n\'est pas payé est servi sans formule ni places — rien de payé (impaye, nouvelle), l\'impayé posé à la main (detour), fiche Gratuit sans rien (gratuitrien), OP MESSAGES seul (msgseul), l\'adresse d\'une autre (petite), une fiche SANS formule qui ne paie rien (sansformule) — et eux seuls',
-      Object.keys(E).filter(formeB), ['impaye', 'nouvelle', 'detour', 'gratuitrien', 'msgseul', 'petite', 'sansformule', 'multic', 'multid']);
+    v('   (population) ce qui n\'est pas payé est servi sans formule ni places — rien de payé (impaye, nouvelle), l\'impayé posé à la main (detour), fiche Gratuit sans rien (gratuitrien), OP MESSAGES seul (msgseul), OP MESSAGES seul au tarif RETIRÉ (msgseulprem), l\'adresse d\'une autre (petite), une fiche SANS formule qui ne paie rien (sansformule) — et eux seuls',
+      Object.keys(E).filter(formeB), ['impaye', 'nouvelle', 'detour', 'gratuitrien', 'msgseul', 'msgseulprem', 'petite', 'sansformule', 'multic', 'multid']);
     v('⛔ pour CHAQUE entreprise, `quantite` = le nombre réglé dans la Tour, jamais multiplié (la v760 fait × 2 ou × 3 elle-même)',
       Object.keys(E).filter(sl => !formeB(sl) && tous[sl].quantite !== (E[sl].quantite || 1)), []);   // (une fiche sans nombre réglé : 1, comme le serveur)
     vrai('   et `places` est rendu partout (hors impayé)', Object.keys(E).filter(sl => !formeB(sl)).every(sl => Number.isInteger(tous[sl].places)));
@@ -277,6 +284,8 @@ globalThis.fetch = async function (url, opts) {
     v('⛔ fiche Gratuit qui paie Business × 2 : l\'application reçoit BUSINESS, payée, 2 places', [tous.gratuitpaie.formule, tous.gratuitpaie.paye, pl('gratuitpaie')], ['business', true, 2]);
     v('   contre-épreuve : fiche Gratuit sans abonnement — SUSPENDUE (le Gratuit n\'existe plus depuis le 30 septembre 2026)', [tous.gratuitrien.formule, tous.gratuitrien.paye, tous.gratuitrien.suspendu], [undefined, false, true]);
     v('⛔ fiche Business qui ne paie qu\'OP MESSAGES : OP GESTION n\'est pas payé — suspendue (plus de Gratuit servi)', [tous.msgseul.formule, tous.msgseul.paye, tous.msgseul.suspendu], [undefined, false, true]);
+    v('⛔ … et au tarif RETIRÉ « Messages Business Premium » (25 €) : le serveur le reconnaît toujours comme de l\'OP MESSAGES — rien de payé pour OP GESTION, exactement comme Messages Pro',
+      [tous.msgseulprem.formule, tous.msgseulprem.paye, tous.msgseulprem.suspendu, PRIX.msgpremium && PRIX.msgpremium.length], [undefined, false, true, 2]);
     v('⛔ un Business d\'avant + deux Business Premium d\'après : Business Premium (le plus d\'abonnements), 4 places — l\'ancien garde ses 2 places de Business (jamais le × 3 : ce serait 5), et monter n\'en retire aucune', [tous.montetarif.formule, pl('montetarif')], ['premium', 4]);
     v('⛔⛔ « repartie à neuf » : Business Premium × 3 gravé à l\'ancien identifiant + OP MESSAGES gravé au neuf → Business Premium, 3 places (pas « Gratuit » : relecture adverse du 29 septembre)', [tous.reparmsg.formule, tous.reparmsg.paye, pl('reparmsg')], ['premium', true, 3]);
     v('⛔ fiche Pro, dix Pro + un Business Premium pour le patron : Pro, 11 places — pas Business Premium avec une seule', [tous.melee.formule, pl('melee')], ['pro', 11]);

@@ -13,6 +13,7 @@
    hors de `v2/` : `vitrine/racine-v1.json` en garde l'empreinte, et `tests/test-835.js` la relit.
      node scripts/site-marine.js                 → apercu/site/ (avec « noindex » : un aperçu ne se référence pas)
      node scripts/site-marine.js --racine        → à la racine, le jour où Justin dit de remplacer le site
+     node scripts/site-marine.js --racine --messages  → idem, avec les deux formules d'OP MESSAGES (Perso, Pro à 15 €) au lieu des trois d'avant
    ⛔ ON CORRIGE ICI, JAMAIS DANS UNE PAGE : `tests/test-835.js` régénère et exige des pages IDENTIQUES.
 
    Ce qui NE vient PAS de la maquette, et pourquoi (décisions de Justin, antérieures au zip) :
@@ -32,6 +33,11 @@ const A_LA_RACINE = process.argv.includes('--racine');
 /* ⛔ LES OPTIONS DU PRO NE PARTENT À LA RACINE QUE SUR UN GESTE : `--options`, en plus de `--racine` (voir « LES OPTIONS DU
    PRO » plus bas : l'aperçu les montre, la racine non, tant que l'application SERVIE ne les ouvre pas). */
 const OPTIONS_DEMANDEES = process.argv.includes('--options');
+/* ⛔ DE MÊME, LES DEUX FORMULES D'OP MESSAGES (Perso, Pro à 15 € avec tout — Justin, 1er octobre 2026) : l'aperçu les montre
+   toujours ; la racine garde les trois cartes d'avant (`FORMULES_MESSAGES_EN_SERVICE`) tant qu'on n'a pas dit `--messages`. */
+const MESSAGES_DEMANDEES = process.argv.includes('--messages');
+let MSG_NEUF = !A_LA_RACINE || MESSAGES_DEMANDEES;
+const formulesMsg = () => (MSG_NEUF ? FORMULES_MESSAGES : FORMULES_MESSAGES_EN_SERVICE);
 const DEST = A_LA_RACINE ? RACINE : path.join(RACINE, 'apercu', 'site');
 /* ⛔ UN PACK « PRÊT » EST UN PACK QUE L'APPLICATION CONNAÎT — lu dans `app.html` (METIERS_ORDRE), jamais écrit ici. Le site
    se publie sans attendre l'application (30 septembre 2026 : les six packs de la v766 vivent sur la bêta, l'application en
@@ -118,7 +124,7 @@ const VOLETS = {
     petits: [L('Tous les métiers', 'metiers.html')] },
   tarifs: { label: 'Tarifs', href: 'tarifs.html', titre: 'Explorer les tarifs',
     /* le sous-titre se LIT dans FORMULES_GESTION (une seconde liste de prix recopiée divergerait) — par un accesseur : la table est plus bas */
-    grands: [{ label: 'Tarifs OP GESTION', href: 'tarifs.html#elan', get sous() { return FORMULES_GESTION.map(f => f.nom + ' ' + f.prix + ' €').join(' · '); } }, L('Tarifs OP MESSAGES', 'tarifs.html#opmessages', 'Perso · Pro · Premium — bientôt disponible')],
+    grands: [{ label: 'Tarifs OP GESTION', href: 'tarifs.html#elan', get sous() { return FORMULES_GESTION.map(f => f.nom + ' ' + f.prix + ' €').join(' · '); } }, { label: 'Tarifs OP MESSAGES', href: 'tarifs.html#opmessages', get sous() { return formulesMsg().map(f => f.nom.replace(/^Messages (?:Business )?/, '')).join(' · ') + ' — bientôt disponible'; } }],
     petits: [L('Comparer toutes les formules', 'tarifs.html'), L('Questions fréquentes', 'tarifs.html#faq')] },
   pourquoi: { label: 'Pourquoi TEAM OP', href: 'pourquoi.html', titre: 'Pourquoi TEAM OP',
     grands: [L('Au service des entreprises', 'pourquoi.html#partenaire', 'On écoute, on adapte, on construit avec vous'), L('Sécurité et engagements', 'pourquoi.html#engagements', 'Chiffrement AES-256, vos données à vous')],
@@ -227,6 +233,21 @@ const FORMULES_GESTION = [
   F('premium', 'Business Premium', '50', '€ / mois', '1 utilisateur par abonnement', 'Le maximum : votre couleur, le service 24h/24 — et la messagerie d\'équipe à sa réouverture.', 'Tout Business, plus', ['Toutes les fonctions d\'OP GESTION pour votre métier, sans limite', 'OP MESSAGES inclus dès sa réouverture', 'Votre logo et votre couleur d\'entreprise, pour toute l\'équipe', 'Création sur mesure d\'une application selon vos besoins', 'Service 24h/24, 7j/7 et accompagnement à la mise en route']),
 ];
 const FORMULES_MESSAGES = [
+  F('', 'Perso', '0', '€ pour toujours', 'Compte personnel', 'La messagerie classique, gratuite : messages, appels et vidéo.', 'Inclus', ['Messages privés et groupes entre contacts', 'Appels audio illimités', 'Appels vidéo en tête-à-tête', 'Photos, vidéos, fichiers et messages vocaux', 'App web + mobile, synchro en temps réel']),
+  /* ⛔ DEUX FORMULES, PAS TROIS — Justin, 1er octobre 2026 : « un forfait gratuit comme il est là et un Pro à 15 euros ; lui à 25 on
+     le supprime ; à 15 euros ils ont toutes les options ». « Messages Business Premium » (25 €) est RETIRÉE DE LA VENTE : tout ce
+     qu'elle promettait (visio, partage d'écran, réunions planifiées, appels de groupe, personnalisation, support prioritaire) est
+     dans Messages Pro. Et la phrase « Inclus avec le Business Premium d'OP GESTION » est partie avec elle : OP MESSAGES aura son
+     serveur et des comptes de PERSONNES (« tout et séparé »), il n'existe plus de liaison avec l'abonnement d'OP GESTION à lire
+     (design/opmessages/SERVEUR.md § 5, point 7). ⚠️ « Illimitée » ne se dit que de la DURÉE : le nombre de participants en vidéo
+     est borné (maille d'appel, SERVEUR.md § 3.5) — la carte le dit, sans chiffre qu'on n'a pas encore mesuré sur de vrais téléphones. */
+  F('', 'Messages Pro', '15', '€ / mois', '1 utilisateur par abonnement', 'La messagerie de votre entreprise, séparée du perso, avec tout inclus : visio, réunions, support prioritaire.', 'Tout Perso, plus', ['Espace entreprise (SIRET) : vos équipes, vos règles', 'Canaux d\'équipe (# équipe, # dépôt…) et canal général', 'Épingles, favoris, archivage, recherche', 'Mentions @, réponses, messages vocaux', 'Notifications push, gestion des membres', 'Réunions visio sans limite de durée : HD, partage d\'écran (le nombre de participants en vidéo reste limité)', 'Réunions planifiées avec invitations, appels de groupe', 'Couleurs de conversation et personnalisation avancée', 'Support prioritaire'], true, 'Équipes'),
+];
+/* ⛔ CE QUE LA RACINE DIT TANT QUE JUSTIN N'A PAS DIT « REMPLACE LE SITE » : les trois cartes d'avant, dont celle à 25 €. La racine est la
+   sortie du générateur (`tests/test-835.js` §10 l'exige), donc elle ne bouge pas avec lui : l'aperçu montre les deux formules décidées
+   le 1er octobre 2026, la racine garde les trois jusqu'à `--messages` (en plus de `--racine`) — même mécanique que `--options`.
+   Ces trois cartes sont « Bientôt disponible » : rien ne se vend à 25 €, ni ici ni au serveur (`formule_retiree`). */
+const FORMULES_MESSAGES_EN_SERVICE = [
   F('', 'Perso', '0', '€ pour toujours', 'Compte personnel', 'La messagerie classique, gratuite : messages, appels et vidéo.', 'Inclus', ['Messages privés et groupes entre contacts', 'Appels audio illimités', 'Appels vidéo en tête-à-tête', 'Photos, vidéos, fichiers et messages vocaux', 'App web + mobile, synchro en temps réel']),
   F('', 'Messages Pro', '15', '€ / mois', '1 utilisateur par abonnement', 'La messagerie de votre entreprise, propre et séparée du perso.', 'Tout Perso, plus', ['Espace entreprise (SIRET) : vos équipes, vos règles', 'Canaux d\'équipe (# équipe, # dépôt…) et canal général', 'Épingles, favoris, archivage, recherche', 'Mentions @, réponses, messages vocaux', 'Notifications push, gestion des membres'], true, 'Équipes'),
   F('', 'Messages Business Premium', '25', '€ / mois', '1 utilisateur par abonnement', 'La totale : visio illimitée et priorité au support.', 'Tout Messages Pro, plus', ['Réunions visio illimitées : HD, partage d\'écran', 'Réunions planifiées avec invitations, appels de groupe', 'Couleurs de conversation et personnalisation avancée', 'Support prioritaire', 'Inclus avec le Business Premium d\'OP GESTION']),
@@ -852,7 +873,7 @@ const PAGES = {
         <p class="intro">${fr('Prix TTC par mois, sans engagement. Un abonnement par utilisateur : pour une équipe de cinq, prenez cinq abonnements. Pour payer, il faut un compte TEAM OP : créez-le d\'abord, c\'est gratuit.')}</p>
         <div class="segment" role="tablist" aria-label="Application"><button type="button" role="tab" id="onglet-gestion" aria-controls="formules-gestion" aria-selected="true">OP GESTION</button><button type="button" role="tab" id="onglet-msg" aria-controls="formules-msg" aria-selected="false" tabindex="-1">OP MESSAGES</button></div>
         <div class="formules" id="formules-gestion" role="tabpanel" aria-labelledby="onglet-gestion" style="--n:${FORMULES_GESTION.length}">${formules(FORMULES_GESTION)}</div>
-        ${AVEC_OPTIONS ? `<div class="suite-gestion" data-onglet="formules-gestion">${blocOptions()}${blocComparatif()}</div>\n        ` : ''}<div class="formules" id="formules-msg" role="tabpanel" aria-labelledby="onglet-msg" style="--n:3" hidden>${formules(FORMULES_MESSAGES, true)}</div>
+        ${AVEC_OPTIONS ? `<div class="suite-gestion" data-onglet="formules-gestion">${blocOptions()}${blocComparatif()}</div>\n        ` : ''}<div class="formules" id="formules-msg" role="tabpanel" aria-labelledby="onglet-msg" style="--n:${formulesMsg().length}" hidden>${formules(formulesMsg(), true)}</div>
         <p class="note-msg">${fr('OP MESSAGES change d\'infrastructure : ses formules ouvriront avec la nouvelle version, et rien n\'est facturé d\'ici là.')}</p>
       </div></section>
       <section class="faq" id="faq"><h2 class="h2 moyen">Questions fréquentes.</h2><div class="liste">`
@@ -956,11 +977,12 @@ function page(cle, o) {
   const P = PAGES[cle], racine = o ? !!o.racine : A_LA_RACINE;
   POUR_LA_RACINE = racine;
   /* l'état des options vaut pour CETTE page, puis il est rendu : un banc qui génère la racine puis lit PAGES[c].desc ne lit pas celle-là */
-  const avant = AVEC_OPTIONS;
+  const avant = AVEC_OPTIONS, avantMsg = MSG_NEUF;
   AVEC_OPTIONS = etatOptions(racine, { options: o ? o.options : racine && OPTIONS_DEMANDEES, appSrc: o && o.appSrc }).actif;
+  MSG_NEUF = !racine || !!(o ? o.messages : MESSAGES_DEMANDEES);
   try {
     return rendre(cle, P, racine);
-  } finally { AVEC_OPTIONS = avant; }
+  } finally { AVEC_OPTIONS = avant; MSG_NEUF = avantMsg; }
 }
 function rendre(cle, P, racine) {
   return `<!DOCTYPE html>
@@ -1000,5 +1022,5 @@ if (require.main === module) {
   }
   if (A_LA_RACINE) { fs.writeFileSync(path.join(RACINE, 'sitemap.xml'), sitemap()); console.log('✓ sitemap.xml'); }
 }
-module.exports = { PAGES, page, FORMULES_GESTION, FORMULES_MESSAGES, VOLETS, DEST, TETE_MODE, SITE_URL, urlDe, sitemap, JSONLD, IMAGE_PARTAGE,
+module.exports = { PAGES, page, FORMULES_GESTION, FORMULES_MESSAGES, FORMULES_MESSAGES_EN_SERVICE, VOLETS, DEST, TETE_MODE, SITE_URL, urlDe, sitemap, JSONLD, IMAGE_PARTAGE,
   OPTIONS_SITE, CATALOGUE, SUBST_OPTIONS, MOIS_OFFERTS, lireOptionsApp, etatOptions, FAQ_OPTIONS, voletsActifs: o => { const a = AVEC_OPTIONS; AVEC_OPTIONS = !!o; try { return voletsActifs(); } finally { AVEC_OPTIONS = a; } } };
