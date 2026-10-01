@@ -118,7 +118,7 @@ travail (plus de notification pro le soir : droit à la déconnexion) ; 4. tradu
 5. vocaux transcrits en texte (Pro) ; 6. messages programmés et « rappelle-moi » ; 7. sondages et listes de tâches cochables
 dans un groupe ; 8. position en direct pour une équipe sur le terrain (Pro, limitée dans le temps) ; 9. export d'une conversation
 en PDF (Pro) ; 10. fils de réponse dans les groupes et mentions ; 11. réunions visio sans compte pour l'invité ; 12. données en
-France, sans publicité. ⚠️ 4 et 5 envoient le contenu à un service d'IA : sous-traitance à écrire avant (comme `agent-devis.js`).
+France, sans publicité. ⚠️ 4 et 5 envoient le contenu à un service d'IA : sous-traitance à écrire avant (comme `agent-devis.js`). Justin : **« fait tout »** → les douze, en lots ordonnés : `design/opmessages/FEUILLE-DE-ROUTE.md`.
 ✅ **Serveur d'OP MESSAGES, étape 1 FAITE sur la branche** (fusion `d70ba05`) : `server-msg/` (node:sqlite, scellé AES-256-GCM,
 SSE, porte bêta par la Tour en boucle locale, groupes, lu, saisie, présence), son installation (`install-msg.sh`, unité durcie,
 utilisateur `opmsg`), son déploiement (`.github/workflows/deploiement-messages.yml`, une clé SSH par instance) et le mode
