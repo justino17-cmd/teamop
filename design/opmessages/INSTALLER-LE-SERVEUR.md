@@ -253,3 +253,11 @@ L'instance `prod` ne s'installe que sur ta phrase **« publie OP MESSAGES »**, 
 - **Un administrateur peut en retirer un autre**, y compris le créateur du groupe (« tous les administrateurs sont égaux ») :
   décision de produit à confirmer.
 - **Pas de sauvegarde de `msg.db`** avant l'étape 3 : ne pas mettre la production en service avant.
+- **Les écritures bloquent la boucle quand le disque est saturé** (`synchronous=FULL`, SQLite sur le fil principal) : mesuré en
+  faisant lire tout le disque par quatre processus pendant que cinq écrivains envoient — écriture p50 3 ms → 405 ms, p95 2 s, et
+  les lectures suivent. Choix assumé en tête de `stockage.js` (durabilité d'abord, `worker_thread` si la mesure l'exige) ;
+  l'unité donne déjà `IOWeight=20` (OP GESTION passe devant). À reprendre avant la production si la surveillance voit
+  `boucle.p99Ms` monter. ⚠️ Ce p99 est CUMULÉ depuis le démarrage : un incident le pollue jusqu'au redémarrage.
+- **`/api/beta/etat` (forme à un login) est publique côté OP GESTION** et dit si un login existe et est ouvert : un oracle
+  d'énumération d'avant ce chantier (les pages déjà déployées l'utilisent). La forme à identifiants de compte (`ids`) n'a pas ce
+  défaut (40 bits aléatoires). À retirer quand `beta.html` n'utilisera plus l'ancienne.
