@@ -477,10 +477,14 @@ globalThis.fetch = async function (url, opts) {
   const sansNbsp = x => x.replace(/ /g, ' ');
   vrai('⛔ j1 · fiche Pro dont seule une OPTION est payée : le courriel HABITUEL — l\'option n\'est pas un abonnement d\'OP GESTION (« votre abonnement prend le relais » mentirait)',
     /Pour continuer/.test(J1) && !/prend le relais :/.test(J1) && /Sans abonnement, après le/.test(J1));
-  vrai('⛔ j1 · la phrase des options du Pro, avec la grille du serveur, à côté de la ligne Pro (formule d\'aujourd\'hui : Business Premium)', sansNbsp(J1).includes(PHRASE));
+  /* le courriel a deux parties : la version TEXTE et la version HTML disent chacune la phrase (une mutation de l'une ne se voit pas dans l'autre) */
+  const texteDe = m => sansNbsp(String(m).split(/Content-Type: text\/html/)[0]), htmlDe = m => sansNbsp(String(m).split(/Content-Type: text\/html/)[1] || '');
+  vrai('⛔ j1 · la phrase des options du Pro, avec la grille du serveur, à côté de la ligne Pro (formule d\'aujourd\'hui : Business Premium) — en TEXTE', texteDe(J1).includes(PHRASE));
+  vrai('   … et dans la version HTML', htmlDe(J1).includes(PHRASE));
   vrai('⛔ j2 · Pro + option payés : « votre abonnement prend le relais », et pas de lien de paiement (un second abonnement serait prélevé en double)',
     /Votre abonnement prend le relais : vous n'avez rien à faire/.test(J2) && !/recap-abonnement\.html/.test(J2));
-  vrai('⛔ j3 · code Pro (la formule d\'aujourd\'hui est Pro) : la phrase sous son devis', sansNbsp(J3).includes(PHRASE) && /Formule <b>Pro<\/b>|formule Pro/.test(J3));
+  vrai('⛔ j3 · code Pro (la formule d\'aujourd\'hui est Pro) : la phrase sous son devis — en TEXTE', texteDe(J3).includes(PHRASE) && /formule Pro/.test(texteDe(J3)));
+  vrai('   … et dans la version HTML', htmlDe(J3).includes(PHRASE) && /<b>Formule Pro<\/b>/.test(htmlDe(J3)));
 
   await S1.arreter();
 
