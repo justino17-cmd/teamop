@@ -123,6 +123,7 @@
     function resume(c) {
       const direct = c.type === 'direct';
       if (direct && c.autre) noter(c.autre);
+      if (c.apercu && c.apercu.par) noter(c.apercu.par);   // ⛔ l'auteur du dernier message d'un GROUPE : son nom vient avec l'aperçu (sinon « Quelqu'un » tant que la conversation n'est pas ouverte)
       const nom = direct ? nomComplet(c.autre) : (c.nom || 'Groupe');
       let apercu = '';
       if (c.apercu) {
@@ -273,8 +274,12 @@
       emettre({ type: 'conversation', id: conv });
       relireListePlusTard();
     }
-    async function poster(p) {
+    /* ⛔ `retirer` : l'envoi qui a réussi QUITTE la file AVANT que l'écran soit redit. Sinon l'événement émis par `apresEnvoi` redessinait le fil pendant que le message
+       était encore dans la file : le vrai message (rangé) ET sa copie « En attente de connexion… » paraissaient ensemble, et rien ne redessinait après le retrait
+       (relecture du testeur, D1 : réponse perdue, renvoi réussi, le message resté en double 35 s). */
+    async function poster(p, retirer) {
       const r = await A.envoyer(p.conv, p.texte, { cid: p.cid, reponse_a: p.reponse || undefined });
+      if (retirer) retirer();
       apresEnvoi(p.conv, { seq: r.seq, id: r.id, auteur: moiApi.id, ts: r.ts, type: 'texte', texte: p.texte, repond_a: p.reponse || null, supprime: false, modifie: null, reactions: [] });
       return r;
     }
@@ -288,7 +293,7 @@
       viderEnCours = true;
       try {
         for (const p of file.slice()) {
-          try { await poster(p); file.splice(file.indexOf(p), 1); }
+          try { await poster(p, () => { const i = file.indexOf(p); if (i >= 0) file.splice(i, 1); }); }
           catch (e) {
             if (mort) return;
             if (erreurCoupure(e)) { p.essais++; planifierFile(p.essais); break; }
@@ -327,7 +332,14 @@
       if (dernier <= connu) return;
       if (c) c.luLocal = dernier;
       try { await A.marquerLu(id, dernier); }
-      catch (e) { if (c) c.luLocal = connu; throw e; }
+      catch (e) {
+        if (c) c.luLocal = connu;
+        /* ⛔ UN « LU » REFUSÉ SE DIT (relecture du gardien, remarque 2) : l'écran appelle `marquerLu` sans attendre de réponse et jette l'erreur (« la source le dira par
+           ecouter ») — or la source ne disait rien : disque plein (503) ou 429, aucun avis, le point « non lu » revenait au retour à la liste et l'autre ne verrait jamais « Lu ».
+           Une session morte a son propre écran, et une coupure son bandeau « Connexion perdue » : pas d'avis par-dessus. */
+        if (!mort && e && e.code !== 'session_requise' && e.code !== 'reseau') emettre({ type: 'avis', texte: 'Ton accusé de lecture n\'a pas pu être envoyé : ' + (e.dit ? (e.phrase ? e.phrase() : e.message) : 'erreur inattendue.') });
+        throw e;
+      }
       if (r) { r.lu_seq = dernier; r.non_lus = 0; }
       emettre({ type: 'liste' });
     }
@@ -422,7 +434,9 @@
     async function ajouterMembres(id, uids) { const r = await A.ajouterMembres(id, uids); await rafraichirDetail(id); emettre({ type: 'conversation', id }); return r; }
     async function quitter(id) { await A.quitter(id); convs.delete(id); await relireListe(); emettre({ type: 'liste' }); }
     async function lienGroupe(id) { const r = await A.lienGroupe(id, { max: 20, jours: 7 }); return { code: r.code, expireLe: r.expire_le }; }
-    async function lienContact() { const r = await A.lienContact({ max: 10, jours: 7 }); return { code: r.code, expireLe: r.expire_le }; }
+    /* ⛔ un lien de CONTACT sert UNE fois : celui qui s'échappe (historique synchronisé, transfert) ajoutait jusqu'à dix inconnus aux contacts mutuels de son auteur, sans son
+       accord à l'acceptation (relecture du gardien, remarque 6). Un lien de GROUPE garde plusieurs usages — une invitation s'envoie à plusieurs, et l'administrateur la révoque. */
+    async function lienContact() { const r = await A.lienContact({ max: 1, jours: 7 }); return { code: r.code, expireLe: r.expire_le }; }
     async function revoquerLiens() { const r = await A.revoquerLiensContact(); return r.n | 0; }
     async function lireLien(code) {
       const a = await A.lireLien(code);
@@ -539,6 +553,12 @@
         return true;   // une coupure n'est pas une session morte : on ne sait pas, on ne sort personne
       }
     }
+    /* La page revient (onglet visible, réseau revenu) : le flux est rouvert si une pulsation est en retard (`force` : toujours) — une connexion à moitié morte ne se
+       détecte pas toute seule avant des minutes (relecture du testeur, D3). */
+    function reveiller(force) {
+      if (!enMarche || mort || !ecoute || typeof ecoute.rouvrir !== 'function') return false;
+      return ecoute.rouvrir({ force: !!force });
+    }
     async function demarrer() {
       let m;
       try { m = await api0.moi(); }
@@ -567,9 +587,12 @@
     }
 
     const rejeter = (code) => () => Promise.reject(erreurLocale(code));
+    /* ⛔ combien de messages n'ont PAS encore quitté l'appareil (réseau coupé, service muet) : la page les perd quand elle repart de zéro ou qu'on la ferme — rien n'est rangé sur
+       l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
+    const enAttente = () => file.length;
     const source = {
       capacites: { service: true, connexion: true, photos: false, vocaux: false, appels: false, reunions: false, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, texteMax: 8000 },
-      demarrer, connexion, deconnexion, verifierSession, arreter,
+      demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       surSessionMorte: (cb) => { suiviMort = cb; },
       moi: () => moiApi ? Object.assign(vuePersonne(moiApi), { id: moiApi.id }) : null,
       contacts: () => contactsApi.map(vueContact).sort((x, y) => x.nom.localeCompare(y.nom, 'fr')),

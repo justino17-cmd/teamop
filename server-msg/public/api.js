@@ -182,27 +182,52 @@
          ouverts, ou le plafond par réseau) ne laissait à la page qu'un silence — « connectée », sans temps réel, et rien à l'écran
          (relecture du gardien, remarque 2). Quand il se ferme, on LIT la réponse par un `fetch` du même flux (refermé aussitôt s'il
          s'ouvre) et on dit son code. `reseau('perdu')` à la première coupure, `reseau('ok')` à la reprise : la page peut afficher
-         « reconnexion… » au lieu de se taire. */
+         « reconnexion… » au lieu de se taire.
+         ⛔ UNE CONNEXION À MOITIÉ MORTE SE DÉTECTE PAR SON SILENCE (relecture du testeur, D3). Un câble débranché, un NAT expiré, une veille : la
+         socket reste « ouverte » des minutes, `onerror` ne vient jamais, et la personne ne voit plus rien arriver SANS qu'aucun bandeau ne le dise
+         (mesuré : 90 s sans le message de l'autre, ni bandeau, ni reprise). Le service pousse un événement `pouls` toutes les `pouls_ms` (dit dans
+         `bonjour`) ; passé 2,5 fois ce rythme sans AUCUNE trame, la page ferme, dit `reseau('perdu')` et rouvre avec `Last-Event-ID`. `rouvrir()`
+         (retour sur l'onglet, réseau revenu) fait la même chose quand une pulsation est en retard — ou toujours avec `{ force: true }`. */
       ecouter(gestionnaires) {
         if (!ES) throw new Error('EventSource indisponible');
         const g = gestionnaires || {};
         /* L'attente avant de reconnecter à la main : 2, 4, 8… secondes, plafonnée à 30 (réglable : les bancs la raccourcissent). */
         const attente = typeof o.attente === 'function' ? o.attente : (n) => Math.min(30000, 1000 * Math.pow(2, Math.min(n, 5)));
         let es = null, ferme = false, dernier = null, essais = 0, minuterie = null, enPanne = false, dernierRefus = null;
+        let poulsMs = 0, veille = null, vuA = Date.now();
+        /* le silence tolérable : 2,5 pulsations ; avant que le service ait dit son rythme (`bonjour`), 45 s (le rythme de production est de 20 s) */
+        const silenceMax = () => (typeof o.silenceMs === 'number' ? o.silenceMs : (poulsMs > 0 ? Math.max(poulsMs * 2.5, 800) : 45000));
+        const armer = () => { vuA = Date.now(); if (veille) clearTimeout(veille); if (ferme) return; veille = setTimeout(silence, silenceMax()); if (veille && veille.unref) veille.unref(); };
+        /* le flux s'est tu : on le tient pour mort, on le DIT, on rouvre (le navigateur ne le ferait jamais : pour lui il est ouvert) */
+        function silence() {
+          if (ferme) return;
+          try { es && es.close(); } catch (x) {}
+          coupure();
+          essais++;
+          if (minuterie) clearTimeout(minuterie);
+          minuterie = setTimeout(ouvrir, attente(essais > 1 ? essais : 0)); if (minuterie && minuterie.unref) minuterie.unref();
+        }
         const dit = (code, retry) => { if (typeof g.erreur === 'function') g.erreur(new ErreurApi(code, 0, retry || 0)); };
         const coupure = () => { if (!enPanne) { enPanne = true; if (typeof g.reseau === 'function') g.reseau('perdu'); } };
         function ouvrir() {
           if (ferme) return;
+          if (minuterie) { clearTimeout(minuterie); minuterie = null; }
+          if (es) { try { es.close(); } catch (x) {} }
           es = new ES(base + '/api/flux' + (dernier !== null ? '?depuis=' + dernier : ''));
-          es.onopen = () => { essais = 0; dernierRefus = null; if (enPanne) { enPanne = false; if (typeof g.reseau === 'function') g.reseau('ok'); } if (typeof g.ouvert === 'function') g.ouvert(); };
+          armer();
+          es.onopen = () => { armer(); essais = 0; dernierRefus = null; if (enPanne) { enPanne = false; if (typeof g.reseau === 'function') g.reseau('ok'); } if (typeof g.ouvert === 'function') g.ouvert(); };
           for (const nom of EVENEMENTS) {
             es.addEventListener(nom, (ev) => {
+              armer();
               if (ev.lastEventId) dernier = parseInt(ev.lastEventId, 10);
               let d = null; try { d = ev.data ? JSON.parse(ev.data) : null; } catch (x) { return; }
               if (typeof g[nom] === 'function') g[nom](d);
             });
           }
-          es.addEventListener('bonjour', (ev) => { try { const d = JSON.parse(ev.data); if (dernier === null && Number.isInteger(d.gid)) dernier = d.gid; } catch (x) {} });
+          es.addEventListener('bonjour', (ev) => { try { const d = JSON.parse(ev.data); if (dernier === null && Number.isInteger(d.gid)) dernier = d.gid; if (d.pouls_ms > 0) poulsMs = d.pouls_ms; } catch (x) {} armer(); });
+          es.addEventListener('pouls', () => armer());
+          /* `resync` dit aussi le rythme (une reprise trop ancienne n'a pas de `bonjour`) */
+          es.addEventListener('resync', (ev) => { try { const d = JSON.parse(ev.data); if (d.pouls_ms > 0) poulsMs = d.pouls_ms; } catch (x) {} });
           /* `fin` : le service ferme exprès (session coupée, durée) — on ne reconnecte pas aveuglément. */
           es.addEventListener('fin', () => { try { es.close(); } catch (x) {} verifierPuisReconnecter(); });
           es.onerror = () => {
@@ -225,6 +250,7 @@
         }
         async function verifierPuisReconnecter() {
           if (ferme) return;
+          if (veille) { clearTimeout(veille); veille = null; }   // la reprise ci-dessous rouvre : la garde du silence repart avec le flux neuf
           try { await api.moi(); }
           catch (x) { if (x && x.code === 'session_requise') { dit('session_requise'); return; } }
           const refus = await sonder();
@@ -237,7 +263,20 @@
           if (minuterie && minuterie.unref) minuterie.unref();
         }
         ouvrir();
-        return { fermer() { ferme = true; if (minuterie) clearTimeout(minuterie); try { es && es.close(); } catch (x) {} }, dernierId: () => dernier };
+        return {
+          fermer() { ferme = true; if (minuterie) clearTimeout(minuterie); if (veille) clearTimeout(veille); try { es && es.close(); } catch (x) {} },
+          dernierId: () => dernier,
+          /* La page revient (onglet visible, réseau revenu) : si une pulsation est EN RETARD le flux est suspect, on le rouvre tout de suite ; `force` rouvre sans regarder.
+             Rend `true` quand il a rouvert. Un flux sain (une trame il y a moins d'une pulsation et demie) n'est pas touché : rouvrir à chaque changement d'onglet userait les
+             cinq flux par personne. */
+          rouvrir(opt) {
+            if (ferme) return false;
+            const force = !!(opt && opt.force);
+            if (!force && Date.now() - vuA < Math.max(poulsMs * 1.5, 500)) return false;
+            ouvrir();   // pas de bandeau « perdu » ici : s'il se rouvre, rien n'a été vu ; s'il échoue, `onerror` le dit
+            return true;
+          },
+        };
       },
     };
     return api;

@@ -384,6 +384,12 @@
       if (document.visibilityState === 'visible') { try { await source.marquerLu(id); } catch (e) { /* la source le dira par ecouter */ } }
     }
   }
+  /* ⛔ ce qui est arrivé pendant que l'onglet était CACHÉ se lit au retour : `rafraichirConv` ne marque lu que si la page est visible À L'ARRIVÉE, et rien ne le refaisait
+     ensuite — le point restait « non lu », et l'autre ne voyait jamais « Lu » (relecture du testeur, D4). */
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || !etat.conv || typeof source.marquerLu !== 'function') return;
+    Promise.resolve().then(() => source.marquerLu(etat.conv)).catch(() => { /* la source le dit si c'est refusé */ });
+  });
   function annoncer(m) {
     const corps = m.texte || (m.photos ? (m.photos.length > 1 ? m.photos.length + ' photos' : 'une photo') : m.vocal ? 'un message vocal de ' + duree(m.vocal.dur) : '');
     const r = $('conv-annonce'); r.textContent = '';
@@ -431,8 +437,10 @@
     if (etat.envoiEnCours) { etat.envoiSuivant = true; return; }     // deux clics dans le même instant ne postent pas deux messages ; un toucher pendant l'attente n'est pas perdu : le message suivant part ensuite
     const ta = $('saisie'), t = ta.value.replace(/\s+$/, '');
     if (!t.trim()) return;
-    if (t.length > TEXTE_MAX) { avis(texteTropLong(t.length)); return; }
+    const nt = nSignes(t);
+    if (nt > TEXTE_MAX) { avis(texteTropLong(nt)); return; }
     etat.envoiEnCours = true;
+    let refuse = false;
     const id = etat.conv, ctx = etat.contexte;
     /* ⛔ le champ se vide AVANT l'attente, pas après : la réponse du service peut mettre une seconde (4G), et ce qu'on a tapé entre-temps — le message SUIVANT — était effacé
        quand elle arrivait (mesuré : deux messages enchaînés, le second disparaissait du champ). Un envoi refusé rend le texte à la personne, sauf si elle a déjà écrit autre chose. */
@@ -444,6 +452,7 @@
         catch (e) { ok = false; avis(phrase(e, 'La modification n\'a pas pu être enregistrée.')); }
       } else ok = await envoi(ctx && ctx.type === 'reponse' ? { texte: t, reponse: ctx.mid } : { texte: t });
       if (!ok) {
+        refuse = true;
         if (etat.conv === id && !ta.value) { ta.value = t; etat.brouillons[id] = t; ajusterSaisie(); majBoutons(); }
         else if (!etat.brouillons[id]) etat.brouillons[id] = t;
         return;
@@ -453,7 +462,9 @@
     } finally {
       etat.envoiEnCours = false;
       const suivant = etat.envoiSuivant; etat.envoiSuivant = false;
-      if (suivant && ta.value.trim() && ta.value.replace(/\s+$/, '') !== t) envoyerTexte();   // un NOUVEAU texte attendait : il part (jamais celui qu'on vient de voir refuser)
+      /* ⛔ un texte attendait : il part — SAUF s'il est celui qu'on vient de voir REFUSER (le renvoyer en boucle). Un envoi RÉUSSI ne bloque pas un message identique : « ok » puis « ok »
+         250 ms plus tard, c'est deux messages (le second était avalé, relecture du testeur, D2) */
+      if (suivant && ta.value.trim() && !(refuse && ta.value.replace(/\s+$/, '') === t)) envoyerTexte();
     }
   }
   /* ⛔ une réponse ou une modification se compose DANS la saisie : une bande au-dessus dit laquelle, une croix l'abandonne (Échap aussi) */
@@ -471,10 +482,12 @@
   }
   $('compo-contexte-x').addEventListener('click', () => { annulerContexte(); $('saisie').focus({ preventScroll: true }); });
   /* ⛔ un texte plus long que la limite ne se COUPE pas en silence (le champ garde ce qu'on a collé, la fin comprise) : on le dit tout de suite, et l'envoi attend */
+  /* ⛔ des SIGNES, pas des unités UTF-16 : le service compte les points de code (8 000 émojis passent), et la page refusait dès 4 001 en annonçant un chiffre faux */
+  const nSignes = t => t.length <= TEXTE_MAX ? t.length : Array.from(t).length;
   const texteTropLong = n => 'Ce message est trop long : ' + (n - TEXTE_MAX).toLocaleString('fr-FR') + ' signes en trop (' + TEXTE_MAX.toLocaleString('fr-FR') + ' au plus).';
   $('saisie').addEventListener('input', () => {
     ajusterSaisie(); majBoutons(); if (etat.conv) etat.brouillons[etat.conv] = $('saisie').value;
-    const n = $('saisie').value.length;
+    const n = nSignes($('saisie').value);
     if (n > TEXTE_MAX) avis(texteTropLong(n)); else if (/trop long/.test($('avis').textContent)) masquerAvis();
     /* la frappe part aux autres (éphémère, jamais stockée) : la source la limite à une par 2 s */
     if (CAP.saisie && etat.conv && $('saisie').value.trim() && !(etat.contexte && etat.contexte.type === 'modif') && typeof source.saisie === 'function') source.saisie(etat.conv, true);
@@ -1218,17 +1231,34 @@
     deconnecte: 'Tu es déconnecté.'
   };
   const motifConnu = m => typeof m === 'string' && Object.prototype.hasOwnProperty.call(PHRASES_MOTIF, m);
+  /* ⛔ LE CHEMIN SE REFAIT SUR L'ORIGINE, jamais sur `location.pathname` seul : le service répond aussi à `//index.html` (`express.static` normalise), et
+     `location.replace('//index.html?m=…')` est une adresse SANS SCHÉMA — le navigateur la lit comme l'hôte « index.html » (relecture du gardien, remarque 4). */
+  const cheminSur = () => location.pathname.replace(/^\/{2,}/, '/');
   function lireMotif() {
-    let m = null; try { m = new URLSearchParams(location.search).get('m'); } catch (e) { m = null; }
-    if (location.search) { try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* rien */ } }
+    let m = null, n = 0;
+    try { const q = new URLSearchParams(location.search); m = q.get('m'); n = /^\d{1,2}$/.test(q.get('n') || '') ? parseInt(q.get('n'), 10) : 0; } catch (e) { m = null; }
+    if (location.search) { try { history.replaceState(null, '', cheminSur() + location.hash); } catch (e) { /* rien */ } }
+    etat.perdus = motifConnu(m) ? n : 0;
     return motifConnu(m) ? m : null;
   }
-  function repartir(motif) { location.replace(location.pathname + (motifConnu(motif) ? '?m=' + motif : '')); }
+  /* ⛔ un message qui n'a PAS quitté l'appareil (réseau coupé, service muet) ne survit ni à la déconnexion ni à une session morte : la page repart de zéro. Elle le DIT
+     à l'écran de connexion (le nombre seulement, jamais le texte : il traverse l'adresse) au lieu de le perdre en silence (gardien, remarque 1 ; testeur, D8). */
+  function repartir(motif) {
+    etat.partir = true;                                   // la garde « fermer la page » ne se met pas en travers de ce départ-là
+    let n = 0; try { n = typeof source.enAttente === 'function' ? Math.min(99, source.enAttente() | 0) : 0; } catch (e) { n = 0; }
+    location.replace(location.origin + cheminSur() + (motifConnu(motif) ? '?m=' + motif + (n > 0 ? '&n=' + n : '') : ''));
+  }
+  /* fermer ou recharger la page avec un message encore « En attente » le perdrait : le navigateur demande confirmation (rien n'est rangé sur l'appareil, c'est voulu) */
+  window.addEventListener('beforeunload', e => {
+    if (etat.partir || typeof source.enAttente !== 'function' || !(source.enAttente() > 0)) return;
+    e.preventDefault(); e.returnValue = '';
+  });
   const erreurConnexion = t => { const e = $('connexion-erreur'); e.textContent = t || ''; e.hidden = !t; };
   function afficherConnexion(motif, d) {
     $('app').hidden = true; $('connexion').hidden = false;
     document.title = 'Connexion' + SUFFIXE_TITRE;
     let t = motif ? PHRASES_MOTIF[motif] : '';
+    if (t && etat.perdus > 0) t += ' ' + (etat.perdus === 1 ? 'Un message n\'était pas encore parti : il n\'a pas été envoyé, écris-le de nouveau.' : etat.perdus + ' messages n\'étaient pas encore partis : ils n\'ont pas été envoyés, écris-les de nouveau.');
     if (!t && d && d.motif && d.motif !== 'session_requise') t = d.phrase || phrase(null, 'Le service ne répond pas.');
     erreurConnexion(t);
   }
@@ -1248,16 +1278,25 @@
   /* la session se relit quand on revient sur la page ou que le réseau revient : une autre personne dans le même navigateur, une session coupée */
   function surveillerSession() {
     if (typeof source.verifierSession !== 'function') return;
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') source.verifierSession(); });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { source.verifierSession(); if (typeof source.reveiller === 'function') source.reveiller(false); } });
     /* le réseau qui tombe se DIT tout de suite (le navigateur le sait avant que le flux n'échoue : une connexion déjà ouverte peut mettre longtemps à se rompre) ;
        rendu, il ne retire la bannière que si le flux n'est pas perdu — c'est le flux qui, en se rouvrant, dit « ok » */
     window.addEventListener('offline', () => { $('hors-ligne').hidden = false; });
-    window.addEventListener('online', () => { if (!fluxPerdu) $('hors-ligne').hidden = true; source.verifierSession(); });
+    window.addEventListener('online', () => { if (!fluxPerdu) $('hors-ligne').hidden = true; source.verifierSession(); if (typeof source.reveiller === 'function') source.reveiller(true); });   // le réseau a changé : le flux d'avant est suspect, on le rouvre sans regarder
   }
   /* une page revenue du cache de navigation (bfcache) après une déconnexion rendrait l'écran d'avant : on la recharge */
   window.addEventListener('pageshow', e => { if (e.persisted) location.reload(); });
 
   const lienDansAdresse = () => { const m = /(?:^|[#&])lien=([A-Za-z0-9_-]{20,64})/.exec(location.hash || ''); return m ? m[1] : null; };
+  /* ⛔ un lien ouvert dans un onglet DÉJÀ ouvert (seul le fragment change : aucun rechargement) ne faisait rien — la page n'écoutait le fragment qu'au démarrage (relecture du
+     testeur). Le changement de fragment a posé une entrée d'historique et fermé ce qui était ouvert (`popstate`) : on la DÉFAIT (`history.back()`, qui rend la route d'avant —
+     la conversation ouverte revient, et le code ne reste ni dans la barre ni dans l'historique), puis la feuille s'ouvre dessus. */
+  window.addEventListener('hashchange', () => {
+    const c = CAP.liens && etat.route ? lienDansAdresse() : null;
+    if (!c) return;
+    window.addEventListener('popstate', () => { etat.codeLien = c; declencheur = null; ouvrirFeuille('contact'); }, { once: true });
+    history.back();
+  });
   const ouvrirConvId = id => remplacer({ vue: 'messages', conv: id, feuille: false, photo: null, appel: null });
   async function copier(texte) {
     try { await navigator.clipboard.writeText(texte); return true; }
@@ -1292,7 +1331,7 @@
     const code = etat.codeLien; etat.codeLien = null;
     $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
       '<div class="rubrique"><span>Mon lien d\'invitation</span></div><div class="carte carte-pad">' +
-        '<p class="info-note">Envoie ce lien à quelqu\'un : en l\'ouvrant, il devient ton contact. Valable 7 jours.</p><div id="ct-lien"></div>' +
+        '<p class="info-note">Envoie ce lien à quelqu\'un : en l\'ouvrant, il devient ton contact. Il ne sert qu\'une fois et reste valable 7 jours.</p><div id="ct-lien"></div>' +
         '<div class="info-actions"><button type="button" class="mini" data-act="lien-creer">Créer un lien</button><button type="button" class="mini danger" data-act="lien-revoquer">Révoquer mes liens</button></div></div>' +
       '<div class="rubrique"><span>J\'ai reçu un lien</span></div><div class="carte carte-pad">' +
         '<div class="info-champ"><input id="ct-code" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Coller le lien reçu" aria-label="Lien reçu"><button type="button" class="mini" data-act="lien-lire">Voir</button></div><div id="ct-apercu"></div></div>' +
@@ -1307,7 +1346,10 @@
       (c.role ? '<span class="contact-role">' + esc(c.role) + '</span>' : '') + '</span>' + CHEVRON + '</button>').join('') : '<p class="vide">Aucun contact pour l\'instant.</p>';
   }
   async function lireLienSaisi() {
-    const m = /([A-Za-z0-9_-]{20,64})\s*$/.exec(($('ct-code').value || '').trim());
+    /* ⛔ ce qu'on colle est TOUT ce qu'on a reçu : une adresse suivie d'un point, entre guillemets, au milieu d'une phrase d'un message. Le code se lit derrière « lien= » ;
+       à défaut, le DERNIER mot qui ressemble à un code (jamais le premier : « Voici mon lien : … »). */
+    const brut = ($('ct-code').value || '').trim();
+    const m = /lien=([A-Za-z0-9_-]{20,64})/.exec(brut) || /(?:^|[^A-Za-z0-9_-])([A-Za-z0-9_-]{20,64})(?![A-Za-z0-9_-])(?!.*[^A-Za-z0-9_-][A-Za-z0-9_-]{20,64}(?![A-Za-z0-9_-]))/.exec(brut);
     $('ct-apercu').innerHTML = '';
     if (!m) { erreurInfo('Ce lien n\'est pas valable : colle le lien reçu en entier.'); return; }
     const a = await source.lireLien(m[1]);
@@ -1421,7 +1463,7 @@
     const mid = etat.menu.mid, id = etat.conv, m = trouverMessage(mid);
     const r = e.target.closest('[data-menu-reac]'), a = e.target.closest('[data-menu]');
     if (!m || !id || (!r && !a)) return;
-    if (r) { fermerMenu(); try { await source.reagir(id, mid, r.dataset.menuReac); } catch (er) { avis(phrase(er, 'La réaction n\'a pas pu être enregistrée.')); } return; }
+    if (r) { fermerMenu(); try { await source.reagir(id, mid, r.dataset.menuReac); masquerAvis(); } catch (er) { avis(phrase(er, 'La réaction n\'a pas pu être enregistrée.')); } return; }
     const act = a.dataset.menu;
     if (act === 'supprimer-tous' && a.dataset.pret !== '1') {                  // une suppression pour tous demande une seconde touche, dite
       $('menu-msg').innerHTML = '<p class="menu-question">Supprimer ce message pour tous ?</p><button type="button" class="menu-action danger" data-menu="supprimer-tous" data-pret="1">Supprimer pour tous</button><button type="button" class="menu-action" data-menu="annuler">Annuler</button>';
@@ -1431,7 +1473,7 @@
     if (act === 'repondre') { etat.contexte = { type: 'reponse', mid, nom: nomAuteur(m.auteur), texte: (m.texte || '').replace(/\s+/g, ' ').slice(0, 80) }; majContexte(); $('saisie').focus({ preventScroll: true }); }
     else if (act === 'copier') mot(await copier(m.texte || '') ? 'Texte copié' : 'Copie impossible');
     else if (act === 'modifier') { etat.contexte = { type: 'modif', mid, nom: '', texte: (m.texte || '').replace(/\s+/g, ' ').slice(0, 80) }; majContexte(); $('saisie').value = m.texte || ''; ajusterSaisie(); majBoutons(); $('saisie').focus({ preventScroll: true }); }
-    else if (act === 'supprimer-moi' || act === 'supprimer-tous') { try { await source.supprimer(id, mid, act === 'supprimer-moi' ? 'moi' : 'tous'); } catch (er) { avis(phrase(er, 'Le message n\'a pas pu être supprimé.')); } }
+    else if (act === 'supprimer-moi' || act === 'supprimer-tous') { try { await source.supprimer(id, mid, act === 'supprimer-moi' ? 'moi' : 'tous'); masquerAvis(); } catch (er) { avis(phrase(er, 'Le message n\'a pas pu être supprimé.')); } }
   });
   $('menu-msg').addEventListener('keydown', e => {
     if (e.key !== 'Tab') return;
@@ -1444,7 +1486,7 @@
     const p = e.target.closest('[data-actions]');
     if (p) { ouvrirMenuMessage(p.dataset.actions, p); return; }
     const r = e.target.closest('[data-reagir]');
-    if (r && etat.conv) source.reagir(etat.conv, r.dataset.reagir, r.dataset.emoji).catch(er => avis(phrase(er, 'La réaction n\'a pas pu être enregistrée.')));
+    if (r && etat.conv) source.reagir(etat.conv, r.dataset.reagir, r.dataset.emoji).then(masquerAvis, er => avis(phrase(er, 'La réaction n\'a pas pu être enregistrée.')));
   });
   $('conv-messages').addEventListener('contextmenu', e => {
     if (!CAP.actionsMessage) return;

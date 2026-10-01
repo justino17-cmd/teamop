@@ -813,7 +813,7 @@ html[data-service] .mention-apercu { display: none; }
 .info-erreur { margin: 0 4px 12px; font-size: 14px; line-height: 19px; color: var(--rouge-txt); overflow-wrap: anywhere; }
 .info-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .info-champ { display: flex; gap: 8px; margin-bottom: 10px; }
-.info-champ input, .lien-boite input { flex: 1; min-width: 0; height: 44px; padding: 0 12px; border: var(--line); border-radius: 12px; background: var(--input-bg); font-size: 15px; color: var(--text); caret-color: var(--accent); outline: none; -webkit-appearance: none; appearance: none; }
+.info-champ input, .lien-boite input { flex: 1; min-width: 0; height: 44px; padding: 0 12px; border: var(--line); border-radius: 12px; background: var(--input-bg); font-size: 16px; color: var(--text); caret-color: var(--accent); outline: none; -webkit-appearance: none; appearance: none; }
 .info-champ input:focus, .lien-boite input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 .info-champ input::placeholder { color: var(--placeholder); opacity: 1; }
 .lien-boite { display: flex; gap: 8px; margin-bottom: 10px; }
@@ -886,7 +886,7 @@ html[data-service] .mention-apercu { display: none; }
 
 <!-- ⛔ L'ÉCRAN DE CONNEXION n'existe que dans la version servie par le service (la source de l'aperçu ne demande aucune connexion) : masqué ici, il n'est jamais affiché. -->
 <main class="connexion" id="connexion" hidden aria-labelledby="connexion-titre">
-  <form class="connexion-carte" id="f-connexion" novalidate>
+  <form class="connexion-carte" id="f-connexion" method="post" novalidate>
     <img src="opmsg-192.png" alt="" width="64" height="64">
     <h1 id="connexion-titre">OP MESSAGES</h1>
     <p class="connexion-sous">Connexion à l'accès d'essai</p>

@@ -60,13 +60,15 @@ function relais(portCible) {
     socks.add(c); socks.add(u);
     const fin = () => { c.destroy(); u.destroy(); socks.delete(c); socks.delete(u); };
     c.on('error', fin); u.on('error', fin); c.on('close', fin); u.on('close', fin);
-    c.on('data', d => { const t = d.toString('latin1'); const m = /^(GET|POST) (\S+) HTTP/.exec(t); if (m) journal.push({ ligne: m[1] + ' ' + m[2], reprise: /last-event-id:\s*\d+/i.test(t) || /[?&]depuis=\d+/.test(m[2]) }); u.write(d); });
-    u.on('data', d => c.write(d));
+    c.on('data', d => { if (c._muet) return; const t = d.toString('latin1'); const m = /^(GET|POST) (\S+) HTTP/.exec(t); if (m && /^\/api\/flux/.test(m[2])) c._flux = true; if (m) journal.push({ ligne: m[1] + ' ' + m[2], reprise: /last-event-id:\s*\d+/i.test(t) || /[?&]depuis=\d+/.test(m[2]) }); u.write(d); });
+    u.on('data', d => { if (c._muet) return; c.write(d); });   // `_muet` : la connexion reste OUVERTE et ne livre plus rien (ni octet, ni erreur)
   });
   return new Promise(ok => srv.listen(0, '127.0.0.1', () => ok({
     port: srv.address().port, base: 'http://127.0.0.1:' + srv.address().port, journal,
     couper() { ouvert = false; for (const x of Array.from(socks)) x.destroy(); },
     rendre() { ouvert = true; },
+    /* les connexions ouvertes en ce moment deviennent « à moitié mortes » : un câble débranché, un NAT expiré — aucune erreur, aucun octet. Les connexions NEUVES passent. */
+    muet() { for (const x of Array.from(socks)) if (x._flux) x._muet = true; },   // le FLUX seulement : une connexion de requêtes ordinaires muette bloquerait aussi les appels qui rouvrent le flux (le navigateur réutilise ses connexions)
     fermer() { ouvert = false; for (const x of Array.from(socks)) x.destroy(); try { srv.close(); } catch (e) { /* rien */ } },
   })));
 }
@@ -441,8 +443,13 @@ async function couple(b, env, cfg) {
     await toucher(A, '[data-act="lien-groupe"]');
     await verifier('« Inviter par un lien » : le lien du groupe est montré', A, () => !!document.getElementById('ci-lien-champ') && /#lien=/.test(document.getElementById('ci-lien-champ').value), null, 5000);
     const lienG = await A.page.inputValue('#ci-lien-champ');
+    const tLien = await A.page.evaluate(() => parseFloat(getComputedStyle(document.getElementById('ci-lien-champ')).fontSize));
+    vrai('⛔ D5 : le champ du lien de groupe fait 16 px au moins (iOS zoomerait la page sinon) — ' + tLien + ' px', tLien >= 16);
     await onglet(C, 'reglages'); await toucher(C, '#reg-contact');
-    await saisir(C, '#ct-code', lienG); await toucher(C, '[data-act="lien-lire"]');
+    const tCode = await C.page.evaluate(() => parseFloat(getComputedStyle(document.getElementById('ct-code')).fontSize));
+    vrai('⛔ D5 : le champ « Coller le lien reçu » fait 16 px au moins — ' + tCode + ' px', tCode >= 16);
+    /* ⛔ P4 : ce qu'on colle est TOUT ce qu'on a reçu — une phrase, des guillemets, un point final : le code se lit quand même */
+    await saisir(C, '#ct-code', 'Voici le lien du groupe : « ' + lienG + ' ». À bientôt !'); await toucher(C, '[data-act="lien-lire"]');
     await verifier('C colle le lien : l\'aperçu dit « t\'invite dans le groupe « ' + G + ' » »', C, g => (document.getElementById('ct-apercu').textContent || '').includes(g), G, 6000, () => texteVu(C, '#info-corps'));
     await toucher(C, '[data-act="lien-accepter"]');
     await verifier('C accepte : « Tu as rejoint le groupe », la conversation du groupe s\'ouvre', C, () => document.documentElement.dataset.conv === '1', null, 8000);
@@ -505,6 +512,24 @@ async function couple(b, env, cfg) {
     await verifier('la bannière disparaît quand le flux est revenu', B, () => document.getElementById('hors-ligne').hidden, null, 20000, () => texteVu(B, '#hors-ligne'));
     const apres = R.journal.slice(flux0).filter(j => /\/api\/flux/.test(j.ligne));
     vrai('⛔ la reprise a DEMANDÉ LA SUITE (Last-Event-ID / depuis=) au lieu de tout recommencer — ' + apres.length + ' ouverture(s) après la coupure, dont ' + apres.filter(j => j.reprise).length + ' avec reprise', apres.some(j => j.reprise));
+  });
+
+  await bloc('8 ter. Une connexion qui se TAIT (ouverte, jamais une erreur) : la page le détecte, le dit, rouvre et rattrape', async () => {
+    if (!env.relais) { console.log('  — pas de relais : bloc sauté'); return; }
+    const R = env.relais, flux0 = R.journal.filter(j => /\/api\/flux/.test(j.ligne)).length;
+    await ouvrirConvAvec(B, nomA); await ouvrirConvAvec(A, nomB);
+    const S1 = tag + '-silence';
+    R.muet();
+    await envoyerTexte(A, S1);
+    await dormir(1200);
+    vrai('population : la connexion muette ne livre rien — 1,2 s après l\'envoi, B n\'a PAS le message et aucune bannière ne le dit (la page ne sait rien)', (await bulle(B, S1).count()) === 0 && !(await visible(B, '#hors-ligne')));
+    await verifier('⛔ D3 : au bout de 2,5 pulsations (7,5 s ici, 50 s en production) la page DIT « connexion perdue » — alors qu\'aucune erreur n\'est venue', B, () => !document.getElementById('hors-ligne').hidden, null, 20000, () => texteVu(B, '#hors-ligne'));
+    await verifier('⛔ D3 : elle rouvre le flux, REPREND où elle en était (Last-Event-ID) et le message manqué paraît', B, t => (document.getElementById('conv-messages').textContent || '').includes(t), S1, 25000, () => texteVu(B, '#conv-messages'));
+    await verifier('et la bannière disparaît', B, () => document.getElementById('hors-ligne').hidden, null, 15000, () => texteVu(B, '#hors-ligne'));
+    await dormir(400);
+    v('un seul exemplaire du message chez B (population : il a été envoyé une fois)', await bulle(B, S1).count(), 1);
+    vrai('⛔ la reprise a DEMANDÉ LA SUITE (Last-Event-ID / depuis=) au lieu de tout recommencer', R.journal.slice(flux0).filter(j => /\/api\/flux/.test(j.ligne)).some(j => j.reprise));
+    await capturer(b, tag + '-10-silence-rattrape', [A, B]);
   });
 
   await bloc('9. Chaque refus du service est DIT, et la réussite suivante l\'efface', async () => {
@@ -570,6 +595,55 @@ async function couple(b, env, cfg) {
     await verifier('et un lien mal copié : « colle le lien reçu en entier » REMPLACE le refus d\'avant', C, () => /en entier/.test(document.getElementById('info-erreur').textContent) && !/plus valable/.test(document.getElementById('info-erreur').textContent), null, 4000);
     await toucher(C, '#g-annuler'); await toucher(A, '#g-annuler');
     } finally { await B.page.unrouteAll({ behavior: 'ignoreErrors' }).catch(() => {}); await A.page.unrouteAll({ behavior: 'ignoreErrors' }).catch(() => {}); }
+  });
+
+  await bloc('9 ter. Relectures du 2 octobre : deux messages identiques, le retour sur l\'onglet, un « Lu » refusé, un lien collé avec sa phrase', async () => {
+    await ouvrirConvAvec(B, nomA); await ouvrirConvAvec(A, nomB);
+    /* D2 — « ok » puis « ok » 250 ms plus tard, la réponse du service retardée : DEUX messages (le second était avalé : il ressemblait au texte qu'on venait de voir refuser) */
+    const OK = tag + '-ok';
+    await A.page.route('**/api/conversations/*/messages', async r => { if (r.request().method() === 'POST') await dormir(900); await r.continue(); });
+    await envoyerTexte(A, OK);
+    await dormir(250);
+    await envoyerTexte(A, OK);
+    const deux = (S) => verifier('⛔ D2 : ' + S.nom.split(' ')[0] + ' voit DEUX messages « ' + OK + ' » (envoyés à 250 ms d\'écart)', S, t => Array.from(document.querySelectorAll('#conv-messages .msg .bulle')).filter(x => x.textContent.trim() === t).length === 2, OK, 14000, () => texteVu(S, '#conv-messages'));
+    await deux(A); await deux(B);
+    await A.page.unroute('**/api/conversations/*/messages');
+    v('et le champ de saisie d\'Alice est vide (rien de renvoyé)', await A.page.inputValue('#saisie'), '');
+    const nonLus = () => B.page.evaluate(async () => { const r = await fetch('/api/conversations'); const j = await r.json(); return j.conversations.reduce((n, c) => n + (c.non_lus || 0), 0); });
+    /* D4 + G2 — l'onglet de B est CACHÉ pendant que le message arrive ; le service refuse son « Lu » (503) ; il revient : le refus se DIT ; puis un retour réussi marque lu */
+    const V = tag + '-cache';
+    await B.page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' }); document.dispatchEvent(new Event('visibilitychange')); });
+    await envoyerTexte(A, V);
+    await verifier('B (onglet caché) reçoit le message dans le fil', B, t => (document.getElementById('conv-messages').textContent || '').includes(t), V, 9000);
+    await dormir(700);
+    const nl0 = await nonLus();
+    vrai('population : tant que l\'onglet est caché, le message reste « non lu » chez le service (' + nl0 + ' non lu)', nl0 >= 1);
+    await B.page.route('**/api/conversations/*/lu', r => r.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'disque_plein' }) }));
+    await B.page.evaluate(() => { delete document.visibilityState; document.dispatchEvent(new Event('visibilitychange')); });
+    await attendreTexte('⛔ G2 : le « Lu » refusé par le service (503) se DIT (« accusé de lecture »), il ne se perd pas en silence', B, '#avis', 'accusé de lecture', 6000);
+    vrai('population : le refus a bien eu lieu (toujours « non lu » chez le service)', (await nonLus()) >= 1);
+    await B.page.unroute('**/api/conversations/*/lu');
+    await B.page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' }); document.dispatchEvent(new Event('visibilitychange')); delete document.visibilityState; document.dispatchEvent(new Event('visibilitychange')); });
+    await verifier('⛔ D4 : B revient sur l\'onglet — la conversation est marquée LUE chez le service (plus aucun non lu)', B, async () => { const r = await fetch('/api/conversations'); const j = await r.json(); return j.conversations.reduce((n, c) => n + (c.non_lus || 0), 0) === 0; }, null, 8000, async () => 'non lus : ' + await nonLus());
+    await verifier('et Alice voit « Lu » sous son message (B l\'a lu en revenant sur l\'onglet)', A, t => { const m = Array.from(document.querySelectorAll('#conv-messages .msg')).find(x => x.textContent.includes(t)); return !!m && /Lu \d\d:\d\d/.test(m.textContent); }, V, 9000);
+    /* un refus (réaction) ne survit pas à la réussite qui le dément */
+    const M = tag + '-ok';
+    await menuDe(B, M, cfg.pb.mobile ? 'plus' : 'droit');
+    await B.page.route('**/api/conversations/*/messages/reagir', r => r.fulfill({ status: 429, contentType: 'application/json', headers: { 'Retry-After': '30' }, body: JSON.stringify({ error: 'quota_atteint' }) }));
+    await toucher(B, '#menu-msg .menu-emoji[data-menu-reac="👍"]');
+    await attendreTexte('une réaction refusée (429) : l\'avis le dit', B, '#avis', 'réessaie dans 30 s', 4000);
+    await B.page.unroute('**/api/conversations/*/messages/reagir');
+    await menuDe(B, M, cfg.pb.mobile ? 'plus' : 'droit');
+    await toucher(B, '#menu-msg .menu-emoji[data-menu-reac="👍"]');
+    await verifier('⛔ la réaction qui RÉUSSIT efface le refus d\'avant (plus d\'avis à l\'écran)', B, () => document.getElementById('avis').hidden, null, 5000, () => texteVu(B, '#avis'));
+    /* un lien ouvert dans un onglet DÉJÀ ouvert (seul le fragment change) ouvre la feuille, et l'adresse est remise à la route */
+    const code = await A.page.evaluate(async () => { const r = await fetch('/api/contacts/lien', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-OPM': '1' }, body: JSON.stringify({ max: 1, jours: 7 }) }); return (await r.json()).code; });
+    vrai('population : Alice a un code de lien neuf (' + String(code).length + ' signes)', typeof code === 'string' && code.length >= 20);
+    await B.page.evaluate(c => { location.hash = '#lien=' + c; }, code);
+    await verifier('⛔ P4 : « #lien=… » dans un onglet déjà ouvert ouvre la feuille Contacts et lit le lien (« veut t\'ajouter »)', B, () => /veut t'ajouter/.test((document.getElementById('ct-apercu') || {}).textContent || ''), null, 8000, () => texteVu(B, '#info-corps'));
+    vrai('… et le code ne reste pas dans la barre d\'adresse', !/lien=/.test(await B.page.evaluate(() => location.href)));
+    await toucher(B, '#g-annuler');
+    await verifier('la feuille se referme (B retrouve sa conversation)', B, () => !document.documentElement.classList.contains('feuille-ouverte') && !!document.getElementById('saisie').offsetParent, null, 5000, () => texteVu(B, '#info-corps'));
   });
 
   await bloc('10. Ce qui est « bientôt » le dit — et n\'allume ni micro, ni caméra, ni sélecteur de fichier', async () => {
@@ -648,6 +722,57 @@ async function couple(b, env, cfg) {
     await verifier('la Tour rouvre l\'accès : B se reconnecte et retrouve ses conversations', B, () => document.querySelectorAll('#liste-conv .conv').length >= 1, null, 8000);
   });
 
+  await bloc('13 bis. Un message qui n\'est pas parti ne se perd pas EN SILENCE : fermer la page le demande, repartir le dit', async () => {
+    if (!env.relais) { console.log('  — pas de relais : bloc sauté'); return; }
+    const R = env.relais;
+    await ouvrirConvAvec(B, nomA);
+    const nouvelOnglet = async () => {
+      const page = await B.ctx.newPage(); page.setDefaultTimeout(9000);
+      const S2 = { ctx: B.ctx, page, pf: B.pf, nom: 'autre onglet de B', base: baseB, erreurs: [], gestes: 0 };
+      await page.goto(baseB + '/'); await enligne(S2);
+      return S2;
+    };
+    /* 1. fermer un onglet qui n'a RIEN en attente : aucune question */
+    const P1 = await nouvelOnglet();
+    const dlg1 = []; P1.page.on('dialog', d => { dlg1.push(d.type()); d.accept().catch(() => {}); });
+    await toucher(P1, '#liste-conv .conv'); await P1.page.waitForFunction(() => document.documentElement.dataset.conv === '1', null, { timeout: 5000 }).catch(() => {});
+    await P1.page.close({ runBeforeUnload: true });
+    await dormir(700);   // le dialogue d'un onglet fermé arrive APRÈS la fin de `close()` : lire tout de suite rendrait « aucun » à coup sûr
+    v('⛔ population : fermer un onglet sans message en attente ne pose AUCUNE question', dlg1, []);
+    /* 2. fermer un onglet qui a un message « En attente de connexion » : le navigateur DEMANDE confirmation (« quitter la page ? ») */
+    const P2 = await nouvelOnglet();
+    await toucher(P2, '#liste-conv .conv'); await P2.page.waitForFunction(() => document.documentElement.dataset.conv === '1', null, { timeout: 5000 }).catch(() => {});
+    const PERDU = tag + '-perdu-fermeture';
+    R.couper();
+    await verifier('l\'onglet est coupé : la bannière paraît', P2, () => !document.getElementById('hors-ligne').hidden, null, 15000, () => texteVu(P2, '#hors-ligne'));
+    await envoyerTexte(P2, PERDU);
+    await verifier('population : le message est « En attente de connexion… »', P2, t => { const m = Array.from(document.querySelectorAll('#conv-messages .msg')).find(x => x.textContent.includes(t)); return !!m && /En attente de connexion/.test(m.textContent); }, PERDU, 6000);
+    const dlg2 = []; P2.page.on('dialog', d => { dlg2.push(d.type()); d.accept().catch(() => {}); });
+    await P2.page.close({ runBeforeUnload: true });
+    await dormir(700);
+    v('⛔ G1 / D8 : fermer l\'onglet avec un message en attente DEMANDE confirmation (beforeunload) — rien n\'est rangé sur l\'appareil, la page le dit avant de le perdre', dlg2, ['beforeunload']);
+    R.rendre();
+    await dormir(800);
+    vrai('population : le message laissé en attente par l\'onglet fermé n\'est jamais arrivé chez Alice', (await bulle(A, PERDU).count()) === 0);
+    /* 3. la session meurt (accès coupé dans la Tour) pendant qu'un message est en attente : la page repart de zéro ET LE DIT */
+    await verifier('B est de retour en ligne (flux rétabli)', B, () => document.getElementById('hors-ligne').hidden, null, 20000, () => texteVu(B, '#hors-ligne'));
+    R.couper();
+    await verifier('B coupé : bannière', B, () => !document.getElementById('hors-ligne').hidden, null, 15000, () => texteVu(B, '#hors-ligne'));
+    await envoyerTexte(B, tag + '-perdu-un'); await envoyerTexte(B, tag + '-perdu-deux');
+    await verifier('population : deux messages en attente chez B (la source les compte)', B, () => window.OPMSG_SOURCE.enAttente() === 2, null, 6000, async () => 'enAttente = ' + await B.page.evaluate(() => window.OPMSG_SOURCE.enAttente()));
+    og.comptes[lb].actif = false;
+    await dormir(700);
+    R.rendre();
+    await verifier('⛔ G1 : l\'accès est coupé : la page repart ET dit que 2 messages n\'étaient pas partis (le nombre, jamais le texte)', B, () => !document.getElementById('connexion').hidden && /Ta session a pris fin/.test(document.getElementById('connexion-erreur').textContent) && /2 messages n'étaient pas encore partis/.test(document.getElementById('connexion-erreur').textContent), null, 25000, () => texteVu(B, '#connexion-erreur'));
+    vrai('⛔ le TEXTE des messages ne voyage pas dans l\'adresse ni sur l\'écran de connexion', !/perdu-un|perdu-deux/.test(await B.page.evaluate(() => location.href + ' ' + document.body.innerText.replace(/\s+/g, ' '))));
+    vrai('et l\'adresse a été nettoyée (plus de « ?m= » ni de « &n= »)', !/[?&](m|n)=/.test(await B.page.evaluate(() => location.href)));
+    og.comptes[lb].actif = true;
+    await saisir(B, '#c-login', lb); await saisir(B, '#c-pass', MOTS[lb]); await toucher(B, '#c-entrer');
+    await enligne(B);
+    vrai('B se reconnecte : plus de phrase sur les messages perdus (la page est neuve)', !/pas encore partis/.test(await B.page.evaluate(() => document.getElementById('connexion-erreur').textContent)));
+    vrai('population : aucun des deux messages n\'est arrivé chez Alice (ils ont été perdus, et dits)', (await bulle(A, tag + '-perdu-un').count()) === 0 && (await bulle(A, tag + '-perdu-deux').count()) === 0);
+  });
+
   await bloc('14. La déconnexion : ratée elle le dit et ne laisse rien à moitié, réussie elle vide tout', async () => {
     await onglet(B, 'reglages');
     await B.page.route('**/api/compte/deconnexion', r => r.abort('connectionfailed'));
@@ -669,6 +794,13 @@ async function couple(b, env, cfg) {
     const retour = await B.page.evaluate(() => ({ url: location.href, lignes: document.querySelectorAll('#liste-conv .conv').length, app: !document.getElementById('app').hidden, connexion: !document.getElementById('connexion').hidden }));
     vrai('population : le retour arrière a bien ramené sur une page de l\'application (' + retour.url + ')', retour.url.startsWith(baseB));
     v('le bouton « retour » du navigateur ne ressuscite rien (aucune liste, pas d\'application)', [retour.lignes, retour.app], [0, false]);
+    await B.page.goto(baseB + '/'); await connecter(B, lb);
+    /* ⛔ G4 : le service répond aussi à « //index.html » (express.static normalise) : `location.replace('//index.html?m=…')` est une adresse SANS SCHÉMA, lue comme l'hôte « index.html » */
+    await B.page.goto(baseB + '//index.html'); await enligne(B);
+    vrai('population : la page est bien servie depuis « //index.html » (chemin ' + await B.page.evaluate(() => location.pathname) + ')', (await B.page.evaluate(() => location.pathname)).startsWith('//'));
+    await onglet(B, 'reglages'); await toucher(B, '#reg-sortir');
+    await verifier('⛔ G4 : déconnecté depuis « //index.html », la page revient à l\'écran de connexion DU SERVICE (« Tu es déconnecté ») — pas vers l\'hôte « index.html »', B, () => !document.getElementById('connexion').hidden && /Tu es déconnecté/.test(document.getElementById('connexion-erreur').textContent), null, 8000, () => texteVu(B, '#connexion-erreur'));
+    v('et l\'hôte est celui du service', await B.page.evaluate(() => location.host), new URL(baseB).host);
     await B.page.goto(baseB + '/'); await connecter(B, lb);
   });
 
