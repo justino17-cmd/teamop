@@ -8,7 +8,7 @@
    Une mutation dont le motif ne trouve rien est MAL VISÉE : le banc le dit au lieu de conclure (CLAUDE.md : « une mutation qui ne mord pas peut être une
    mutation mal visée » — `s.replace(motif, autre, 1)` frappe la PREMIÈRE occurrence du fichier, pas celle qu'on croit : on vérifie le changement).
 
-   Lancer le lanceur :  node tests/mutations-opmessages.js            (toutes les mutations `sonde`, sur une copie — long)
+   Lancer le lanceur :  node tests/mutations-opmessages.js            (TOUTES les mutations ; la sonde ne se joue que pour celles qui la demandent — long)
                         node tests/mutations-opmessages.js M05 M12     (seulement celles-là)
    ⛔ Il ne touche JAMAIS l'arbre : une copie dans le dossier temporaire, une exécution par mutation, un délai par exécution. */
 const fs = require('fs'), path = require('path'), os = require('os'), { spawnSync } = require('child_process');
@@ -88,7 +88,6 @@ if (require.main === module) {
   const lignes = [];
   for (const m of MUTATIONS) {
     if (demandees.length && !demandees.includes(m.id)) continue;
-    if (!demandees.length && !m.sonde) continue;
     const tmp = copier(RACINE);
     const mut = appliquer(m, PAGE, SRC);
     if (!mut.change) { console.log(m.id + ' — MAL VISÉE : le motif ne trouve rien'); lignes.push([m.id, 'MAL VISÉE']); continue; }
@@ -96,10 +95,11 @@ if (require.main === module) {
     const env = { OPMSG_RACINE: tmp };
     const b857 = jouer('test-857.js', [], env, 120000), b856 = jouer('test-856.js', [], env, 120000);
     const args = ['--rapide'];
+    const aSonde = !!m.sonde;                       // une mutation du texte ou du module n'a pas besoin du navigateur : les bancs la voient, ou ils ne la voient pas
     if (m.scenario) args.splice(0, 1, '--seul=' + m.scenario);
     else if (m.profil) args.splice(0, 1, '--profil=' + m.profil, '--jour');
-    const s = jouer('sonde-opmessages.js', args, env, 480000);
-    const ligne = [m.id, 'bancs ' + (b857.ko + b856.ko > 0 ? 'TOMBENT (' + b857.ko + '+' + b856.ko + ' ✗)' : 'verts'), 'sonde ' + (s.ko > 0 ? 'TOMBE (' + s.ko + ' ✗)' : s.code === 0 ? 'verte' : 'MORTE (code ' + s.code + ')')];
+    const s = aSonde ? jouer('sonde-opmessages.js', args, env, 480000) : { code: 0, ko: 0, sortie: '', saute: true };
+    const ligne = [m.id, 'bancs ' + (b857.ko + b856.ko > 0 ? 'TOMBENT (' + b857.ko + '+' + b856.ko + ' ✗)' : 'verts'), 'sonde ' + (s.saute ? 'non jouée' : s.ko > 0 ? 'TOMBE (' + s.ko + ' ✗)' : s.code === 0 ? 'verte' : 'MORTE (code ' + s.code + ')')];
     console.log(ligne.join(' · ') + '   — ' + m.nom);
     const rouges = (s.sortie.match(/^ {2}✗ .*$/gm) || []).slice(0, 3).map(x => '      ' + x.slice(0, 200));
     if (rouges.length) console.log(rouges.join('\n'));
