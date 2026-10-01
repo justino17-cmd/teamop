@@ -29,6 +29,7 @@ const { creerFlux } = require('./flux');
 const { creerPorteBeta } = require('./porte-beta');
 const { construireApp } = require('./app');
 const { lireConfigSms, creerGarde } = require('./sms-garde');
+const { APPAREIL_ABS_MS } = require('./telephone');
 
 const VERSION = '1.1.0-telephone';
 const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays']);   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
@@ -97,7 +98,15 @@ function demarrer(env = process.env) {
     try {
       const r = stockage.purgerExpires(500);
       for (const c of r.convs) hub.reveiller({ conv: c });
-      if (++tours % 10 === 0) stockage.journalElaguer();
+      if (++tours % 10 === 0) {
+        stockage.journalElaguer();
+        /* ⛔ L'élagage des tables du téléphone : sans lui (la fonction existait, personne ne l'appelait), les empreintes de numéros de personnes
+           NON inscrites (un code demandé puis jamais prouvé), les recherches et les appareils expirés restaient indéfiniment. Chaque table a sa
+           rétention : le journal des SMS garde de quoi calculer l'emballement (7 jours d'historique, un jour de marge), un code expiré part
+           au bout d'une heure, les plafonds au bout de deux jours. */
+        const t = Date.now(), e = sms.cfg.emballement;
+        stockage.smsElaguer({ journalAvant: t - Math.max(e.historiqueMs, 7 * 86400000) - 86400000, codesAvant: t - 3600000, recherchesAvant: t - 2 * 86400000, tentativesAvant: t - 2 * 86400000, appareilsAbsMs: APPAREIL_ABS_MS });
+      }
     } catch (e) { journaliser('balayage_echec', { nom: e && (e.code || e.name) }); }
   }, config.balayageMs));
   if (porte) {

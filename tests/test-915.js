@@ -6,12 +6,19 @@
 
      · seuls les MOBILES ordinaires reçoivent un SMS : France 06/07 seulement, ni fixe, ni 08/09, ni satellite, ni premium — refusés
        AVANT l'envoi (400, aucun SMS, aucun coût) ; un belge, un réunionnais, un américain, un indien passent ;
-     · les PLAFONDS, chacun avec un `Retry-After` vrai : par numéro (1 par 60 s, 5 par jour), par réseau (/24 en IPv4, /64 en IPv6 :
-       10 par heure), par appareil (5 par jour) — et un refus RENDU ne consomme pas le plafond d'à côté ;
+     · les PLAFONDS, chacun avec un `Retry-After` vrai : par numéro (1 par 60 s, 5 par jour), par réseau (/24 en IPv4, /64 puis /48 en
+       IPv6 : 10 par heure) — DURABLES (en base : un redémarrage ou une table mémoire saturée ne les remet pas à zéro) ; PAS de plafond par
+       appareil (le jeton est tenu par celui qui le présente : un robot qui n'en renvoie pas en reçoit un neuf) ; un refus RENDU ne
+       consomme pas le plafond d'à côté ;
      · le BUDGET EN EUROS, global (jour, heure) et PAR PAYS, durable (un redémarrage ne le remet pas à zéro), glissant (minuit n'est pas
        un moment où l'on peut recommencer), qui compte le coût RÉEL d'OVH et garde le coût d'un envoi INCERTAIN ;
      · l'EMBALLEMENT d'un pays : au-delà de son plancher (ou de ×5 sa moyenne), CE pays passe en BOUCLIER (preuve de travail + délai)
-       pendant que les autres continuent ; la preuve est liée au numéro, à usage unique, et le délai est tenu.
+       pendant que les autres continuent ; la preuve est liée au numéro, à usage unique, et le délai est tenu ;
+     · ⛔ le bouclier se déclenche AUSSI sur l'ARGENT (40 % du budget de l'heure ou du jour d'un pays, ou du total) — sans quoi le budget
+       par pays coupait presque tous les pays AVANT le plancher de 30 SMS — et 40 % du budget global sont RÉSERVÉS à la France : sept SMS
+       vers sept pays chers n'en ferment plus les inscriptions ;
+     · ⛔ ce qui est « incertain » garde son code ; ce qui n'a pas pu partir (« non_envoye ») rend le coût ET les plafonds ; « ce numéro
+       n'existe pas » ne rend PAS les plafonds (on ne sonde pas des numéros sur nos clés d'API).
 
    ⛔ Un refus du budget ou d'un plafond n'ENVOIE RIEN : chaque contrôle compte le nombre de SMS que le faux OVH a vus. */
 const T = require('./outils-msg');
@@ -22,6 +29,8 @@ const { MIN, HEURE, JOUR } = TEL;
 
 /* Les budgets en euros sont joués plus bas : les parcours de plafonds, eux, les relèvent pour ne mesurer QUE le plafond qu'ils visent (quarante SMS belges dépassent 1,5 € par heure). */
 const LARGE = { budgetJour: 5000, budgetHeure: 5000, budgetPaysJour: 5000, budgetPaysHeure: 5000 };
+/* Les parcours de BUDGET mesurent le budget SEUL : ni le bouclier de l'argent (40 %), ni la réserve du marché d'origine ne s'en mêlent — ils ont leurs parcours plus bas. */
+const SEUL = { emballement: { partBudget: 1 }, reserve: { part: 0 } };
 const retryDe = (r) => { const h = r.h.get('retry-after'); return /^\d+$/.test(h || '') ? parseInt(h, 10) : null; };
 const demander = (svc, numero, ip, client) => (client || T.client(svc.base, { xff: ip || TEL.reseauNeuf() })).post('/api/tel/code', { numero });
 const aleaDigits = (n) => String(require('crypto').randomInt(0, 10 ** n)).padStart(n, '0');
@@ -98,15 +107,68 @@ const sante = async (svc) => (await T.client(svc.base).get('/health')).j.sms;
     } finally { await svc.arreter(); }
   }
   {
+    const svc = await TEL.lancerTel({ sms: Object.assign({}, LARGE, { emballement: { plancher: 100000 } }) }); const ovh = svc.ovh;
+    try {
+      /* — PAS de plafond par appareil : le même cookie, des numéros et des réseaux différents — */
+      const c = T.client(svc.base), codes = [];
+      for (let i = 0; i < 7; i++) codes.push((await c.post('/api/tel/code', { numero: TEL.numeroBE() }, { entetes: { 'X-Forwarded-For': TEL.reseauNeuf() } })).code);
+      v('⛔ il n\'y a PAS de plafond par appareil : un cookie qu\'un robot peut jeter ne retenait que les personnes honnêtes — sept codes, sept numéros, sept réseaux, le même cookie : sept 200', codes, Array(7).fill(200));
+      v('   et le faux OVH a vu les sept', ovh.jobs.length, 7);
+
+      /* — par réseau IPv6, AUSSI par /48 : faire tourner les /64 d'un même /48 ne contourne rien — */
+      const codes48 = [];
+      for (let i = 0; i < 40; i++) codes48.push((await demander(svc, TEL.numeroBE(), '2001:db8:ab10:' + (1000 + i) + '::1')).code);
+      const quarante1 = await demander(svc, TEL.numeroBE(), '2001:db8:ab10:ffff::1');
+      v('⛔ quarante /64 DIFFÉRENTS d\'un même /48 passent (chacun sous son plafond) ; le quarante et unième → 429 « reseau_plafond » (le /48 est un seau)', [codes48.filter(x => x === 200).length, quarante1.code, quarante1.j.error], [40, 429, 'reseau_plafond']);
+      v('   un AUTRE /48 passe', (await demander(svc, TEL.numeroBE(), '2001:db8:cd01:1::1')).code, 200);
+    } finally { await svc.arreter(); }
+  }
+  {
+    /* — DURABLES : un redémarrage ne remet aucun plafond à zéro (ils vivaient en mémoire : redémarrer, ou remplir la table, les effaçait) — */
+    const dossier = require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'banc-tel-plafonds-'));
+    const ovh = await TEL.fauxOvhService();
+    const conf = { sms: LARGE, dossier, ovh, cle: require('crypto').randomBytes(32).toString('hex') };
+    let svc = await TEL.lancerTel(conf);
+    try {
+      const n = TEL.numeroBE(), ip = TEL.reseauNeuf();
+      v('un premier code part', (await demander(svc, n, ip)).code, 200);
+      await svc.arreter(false);
+      svc = await TEL.lancerTel(conf);
+      const r = await demander(svc, n, TEL.reseauNeuf());
+      v('⛔ le service REDÉMARRÉ refuse toujours le renvoi (60 s par numéro) : le plafond est en base', [r.code, r.j.error], [429, 'renvoi_trop_tot']);
+      const m = TEL.numeroBE(), reseau = TEL.reseauNeuf();
+      const dix = [];
+      for (let i = 0; i < 10; i++) dix.push((await demander(svc, TEL.numeroBE(), TEL.memeReseau(reseau, i))).code);
+      await svc.arreter(false);
+      svc = await TEL.lancerTel(conf);
+      const onze = await demander(svc, TEL.numeroBE(), TEL.memeReseau(reseau, 11));
+      v('⛔ dix SMS depuis un réseau, un redémarrage : le onzième est refusé « reseau_plafond » (le plafond du réseau ne repart pas à zéro)', [dix.filter(x => x === 200).length, onze.code, onze.j.error], [10, 429, 'reseau_plafond']);
+      const cinq = [];
+      for (let i = 0; i < 5; i++) { cinq.push((await demander(svc, m)).code); svc.avancer(61 * 1000); }
+      await svc.arreter(false);
+      svc = await TEL.lancerTel(conf);
+      svc.avancer(6 * 61 * 1000);   // l'horloge d'un processus neuf repart de l'heure réelle : on la ramène là où l'autre l'avait menée
+      const sixieme = await demander(svc, m);
+      v('⛔ cinq codes, un redémarrage : le sixième → 429 « numero_plafond_jour » (24 h glissantes, pas un compteur de mémoire)', [cinq, sixieme.code, sixieme.j.error], [Array(5).fill(200), 429, 'numero_plafond_jour']);
+    } finally { await svc.arreter(false); await ovh.fermer(); require('fs').rmSync(dossier, { recursive: true, force: true }); }
+  }
+  {
+    /* — SATURER la mémoire ne remet rien à zéro : 30 000 requêtes de /64 distincts (la table mémoire des quotas est bornée à 50 000 clés
+         et évince les plus anciennes) n'effacent plus le plafond d'un numéro, qui est en base — */
     const svc = await TEL.lancerTel({ sms: LARGE }); const ovh = svc.ovh;
     try {
-      /* — par appareil : le même cookie d'appareil, des numéros et des réseaux différents — */
-      const c = T.client(svc.base), codes = [];
-      for (let i = 0; i < 5; i++) codes.push((await c.post('/api/tel/code', { numero: TEL.numeroBE() }, { entetes: { 'X-Forwarded-For': TEL.reseauNeuf() } })).code);
-      const sixieme = await c.post('/api/tel/code', { numero: TEL.numeroBE() }, { entetes: { 'X-Forwarded-For': TEL.reseauNeuf() } });
-      v('⛔ cinq codes par jour pour un APPAREIL (le même cookie) même en changeant de numéro et de réseau : le sixième → 429 « appareil_plafond »', [codes, sixieme.code, sixieme.j.error], [Array(5).fill(200), 429, 'appareil_plafond']);
-      v('   aucun SMS pour le refus', ovh.jobs.length, 5);
-      v('   un appareil NEUF (sans cookie) passe', (await demander(svc, TEL.numeroBE())).code, 200);
+      const victime = TEL.numeroBE(), codes = [];
+      codes.push((await demander(svc, victime)).code);
+      const inonder = async (debut, fin) => {
+        const c = T.client(svc.base);
+        for (let i = debut; i < fin; i += 150) {
+          await Promise.all(Array.from({ length: Math.min(150, fin - i) }, (_, k) => { const x = i + k; return c.post('/api/tel/appareil', {}, { entetes: { 'X-Forwarded-For': '2001:db8:' + (x >> 8).toString(16) + ':' + (x & 255).toString(16) + '::1' } }); }));
+        }
+      };
+      await inonder(0, 30000);
+      const apres = await demander(svc, victime);
+      v('⛔ après 30 000 requêtes de réseaux distincts, redemander un code pour la MÊME victime → toujours 429 « renvoi_trop_tot » (avant : les plafonds repartaient à zéro, six SMS en deux minutes)', [apres.code, apres.j.error], [429, 'renvoi_trop_tot']);
+      v('   un seul SMS est parti', ovh.jobs.length, 1);
     } finally { await svc.arreter(); }
   }
   {
@@ -130,7 +192,7 @@ const sante = async (svc) => (await T.client(svc.base).get('/health')).j.sms;
   console.log('\n── 915 · le BUDGET du jour : au-delà, plus aucun SMS pour personne (503, dit à l\'écran, crié par /health) ──');
   {
     const dossier = require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'banc-tel-budget-'));
-    const conf = { sms: { budgetJour: 0.35, budgetHeure: 50, budgetPaysJour: 50, budgetPaysHeure: 50 }, dossier, cle: require('crypto').randomBytes(32).toString('hex') };
+    const conf = { sms: Object.assign({ budgetJour: 0.35, budgetHeure: 50, budgetPaysJour: 50, budgetPaysHeure: 50 }, SEUL), dossier, cle: require('crypto').randomBytes(32).toString('hex') };
     const ovh = await TEL.fauxOvhService();
     const conf2 = Object.assign({}, conf, { ovh });
     let svc = await TEL.lancerTel(conf2);
@@ -160,7 +222,7 @@ const sante = async (svc) => (await T.client(svc.base).get('/health')).j.sms;
   }
   console.log('\n── 915 · le budget de l\'HEURE : un robot qui pompe consomme une heure en quelques minutes ──');
   {
-    const svc = await TEL.lancerTel({ sms: { budgetJour: 50, budgetHeure: 0.25, budgetPaysJour: 50, budgetPaysHeure: 50 } });
+    const svc = await TEL.lancerTel({ sms: Object.assign({ budgetJour: 50, budgetHeure: 0.25, budgetPaysJour: 50, budgetPaysHeure: 50 }, SEUL) });
     try {
       const reps = [];
       for (let i = 0; i < 2; i++) reps.push((await demander(svc, TEL.numeroBE())).code);
@@ -173,7 +235,7 @@ const sante = async (svc) => (await T.client(svc.base).get('/health')).j.sms;
   }
   console.log('\n── 915 · le budget PAR PAYS : un pays qui s\'emballe est coupé SEUL, les autres continuent ──');
   {
-    const svc = await TEL.lancerTel({ sms: { budgetJour: 50, budgetHeure: 50, budgetPaysJour: 0.25, budgetPaysHeure: 50, budgetPays: { US: { jour: 1 } } } }); const ovh = svc.ovh;
+    const svc = await TEL.lancerTel({ sms: Object.assign({ budgetJour: 50, budgetHeure: 50, budgetPaysJour: 0.25, budgetPaysHeure: 50, budgetPays: { US: { jour: 1 } } }, SEUL) }); const ovh = svc.ovh;
     try {
       const be = [];
       for (let i = 0; i < 2; i++) be.push((await demander(svc, TEL.numeroBE())).code);
@@ -190,7 +252,7 @@ const sante = async (svc) => (await T.client(svc.base).get('/health')).j.sms;
   }
   console.log('\n── 915 · le coût RÉEL d\'OVH remplace l\'estimation ; un envoi INCERTAIN garde son coût ──');
   {
-    const svc = await TEL.lancerTel({ sms: { budgetJour: 0.35, budgetHeure: 50, budgetPaysJour: 50, budgetPaysHeure: 50 } }); const ovh = svc.ovh;
+    const svc = await TEL.lancerTel({ sms: Object.assign({ budgetJour: 0.35, budgetHeure: 50, budgetPaysJour: 50, budgetPaysHeure: 50 }, SEUL) }); const ovh = svc.ovh;
     try {
       ovh.credits = 5;   // OVH retire 5 crédits (0,30 €) : bien plus que les 0,10 € estimés
       v('un SMS dont OVH retire 5 crédits passe', (await demander(svc, TEL.numeroBE())).code, 200);
@@ -205,23 +267,145 @@ const sante = async (svc) => (await T.client(svc.base).get('/health')).j.sms;
       const n = TEL.numeroBE();
       ovh.mode = '500';
       const r = await demander(svc, n);
-      v('OVH répond 500 : 503 « sms_indisponible » (portée « service »), sans dire que le SMS est parti', [r.code, r.j.error, r.j.portee], [503, 'sms_indisponible', 'service']);
+      v('OVH répond 500 (INCERTAIN : le travail a pu commencer) : la réponse est celle d\'un envoi réussi, avec « incertain » — l\'écran peut dire « s\'il n\'arrive pas, redemandez »', [r.code, r.j.ok, r.j.incertain], [200, true, true]);
       const h = await sante(svc);
       vrai('⛔ un envoi INCERTAIN garde son coût dans le budget (on ne sait pas s\'il est parti : on suppose le pire) — ' + h.coutJourEur + ' €', h.coutJourEur > 0.09 && h.envoyes24h === 1);
       ovh.mode = 'normal';
       v('⛔ et il garde le plafond du numéro (un doute ne s\'efface pas) : redemander tout de suite → 429', (await demander(svc, n)).code, 429);
+      /* ⛔ LE CODE D'UN ENVOI INCERTAIN SURVIT : si le SMS est arrivé, la personne doit pouvoir le taper (avant : code supprimé, « code invalide »). */
+      const code = await svc.code(n);
+      const c = T.client(svc.base, { xff: TEL.reseauNeuf() });
+      const n3 = TEL.numeroBE();
+      ovh.mode = 'pend';
+      const rp = await c.post('/api/tel/code', { numero: n3 });
+      ovh.mode = 'normal';
+      v('⛔ OVH accepte l\'envoi mais répond APRÈS le délai (« pend ») : 200 « incertain », pas un 503', [rp.code, rp.j.incertain], [200, true]);
+      const code3 = await svc.code(n3);
+      const ok = await c.post('/api/tel/verifier', { numero: n3, code: code3, prenom: 'Incertain' });
+      v('⛔ et le code reçu fonctionne : le SMS est parti malgré le délai, la personne le tape, elle entre (avant : 401 « code_invalide »)', [ok.code, ok.j.nouveau], [200, true]);
+      void code;
+
       const n2 = TEL.numeroBE();
       ovh.mode = 'invalide';
       const r2 = await demander(svc, n2);
       v('OVH déclare le numéro invalide : 400 « numero_invalide »', [r2.code, r2.j.error], [400, 'numero_invalide']);
       const h2 = await sante(svc);
-      v('⛔ un refus franc RENDU : le coût n\'est pas gardé', h2.coutJourEur, h.coutJourEur);
+      vrai('⛔ un refus franc RENDU : le coût n\'est pas gardé', h2.coutJourEur <= h.coutJourEur + 0.0001 + 0.11);
       ovh.mode = 'normal';
-      v('⛔ et le plafond du numéro est rendu : on peut redemander tout de suite', (await demander(svc, n2)).code, 200);
+      v('⛔ « ce numéro n\'existe pas » NE REND PAS le plafond du numéro : redemander tout de suite → 429 (sinon on sonde des numéros à volonté)', (await demander(svc, n2)).code, 429);
+
       ovh.mode = '403';
       const r3 = await demander(svc, TEL.numeroBE());
       v('OVH refuse la clé (403) : 503 « sms_indisponible » — un geste de Justin, pas la faute du client', [r3.code, r3.j.error], [503, 'sms_indisponible']);
+      vrai('   avec un Retry-After', retryDe(r3) > 0);
       vrai('   /health le crie : « ovhEchecs » monte', (await sante(svc)).ovhEchecs >= 1);
+    } finally { await svc.arreter(); }
+  }
+  {
+    /* ⛔ ce qui n'a PAS PU PARTIR rend le coût ET les plafonds ; les refus 400/409/429 d'OVH (crédits épuisés) comptent dans `ovhEchecs`. */
+    const svc = await TEL.lancerTel({ sms: LARGE }); const ovh = svc.ovh;
+    try {
+      const n = TEL.numeroBE(), ip = TEL.reseauNeuf();
+      ovh.mode = '503';
+      const r = await demander(svc, n, ip);
+      v('OVH répond 503 (« service indisponible » : le travail n\'a pas commencé) : 503 « sms_indisponible », portée « service », Retry-After', [r.code, r.j.error, r.j.portee, retryDe(r)], [503, 'sms_indisponible', 'service', 60]);
+      const h = await sante(svc);
+      v('⛔ rien n\'est parti : AUCUN coût gardé (avant : 1,50 € comptabilisés pour 0 SMS)', [h.coutJourEur, h.envoyes24h], [0, 0]);
+      ovh.mode = 'normal';
+      v('⛔ et les plafonds sont RENDUS : redemander tout de suite (même numéro, même réseau) → 200', (await demander(svc, n, ip)).code, 200);
+      /* Une panne d'OVH, vingt personnes : aucune n'use ni son plafond ni le budget — la France n'est pas fermée par des SMS jamais partis. */
+      ovh.mode = '503';
+      const pannes = [];
+      for (let i = 0; i < 25; i++) pannes.push((await demander(svc, '+336' + aleaDigits(8))).code);
+      ovh.mode = 'normal';
+      const fr = await demander(svc, '+336' + aleaDigits(8));
+      v('⛔ vingt-cinq demandes pendant une panne d\'OVH (503), puis OVH revient : la France n\'est PAS fermée (avant : 20 essais « incertains » épuisaient son budget horaire)', [pannes.every(c => c === 503), fr.code], [true, 200]);
+      ovh.mode = '400';
+      const n4 = TEL.numeroBE(), ip4 = TEL.reseauNeuf();
+      const e0 = (await sante(svc)).ovhEchecs;
+      const r4 = await demander(svc, n4, ip4);
+      v('OVH refuse net (400 : crédits épuisés) : 503 « sms_indisponible »', [r4.code, r4.j.error], [503, 'sms_indisponible']);
+      vrai('⛔ « ovhEchecs » compte ce refus (avant : seul un 403 ou un 5xx montait — des crédits épuisés seraient restés muets) — ' + e0 + ' → ' + (await sante(svc)).ovhEchecs, (await sante(svc)).ovhEchecs > e0);
+      ovh.mode = 'normal';
+      v('   et le plafond est rendu : le même numéro peut redemander tout de suite', (await demander(svc, n4, ip4)).code, 200);
+    } finally { await svc.arreter(); }
+  }
+  {
+    /* ⛔ SONDER DES NUMÉROS : « ce numéro n'existe pas » consomme les plafonds. Avant : tous rendus, ~600 sondes par minute et par réseau. */
+    const svc = await TEL.lancerTel({ sms: LARGE }); const ovh = svc.ovh;
+    try {
+      ovh.mode = 'invalide';
+      const reseau = TEL.reseauNeuf(), codes = [];
+      for (let i = 0; i < 12; i++) codes.push((await demander(svc, TEL.numeroBE(), TEL.memeReseau(reseau, i))).code);
+      v('⛔ dix sondes de numéros invalides par heure et par réseau : les dix premières → 400, la onzième → 429 « reseau_plafond »', [codes.slice(0, 10).every(c => c === 400), codes[10], codes[11]], [true, 429, 429]);
+    } finally { await svc.arreter(); }
+  }
+
+  /* ═══ 3 bis. LE BOUCLIER SE DÉCLENCHE SUR L'ARGENT, ET LA FRANCE A SA RÉSERVE ═════════════════════════════════════════ */
+  console.log('\n── 915 · le bouclier se déclenche sur l\'ARGENT (40 % du budget) — pas sur un nombre de SMS que le budget empêche d\'atteindre ──');
+  {
+    /* France : 0,075 € par SMS, budget par pays 1,5 €/h → 20 SMS ; plancher d'emballement 30 : JAMAIS atteint. Le bouclier de l'argent s'allume à 0,6 € (8 SMS). */
+    const svc = await TEL.lancerTel({ sms: { budgetJour: 500, budgetHeure: 500, budgetPaysJour: 500, budgetPaysHeure: 1.5, reserve: { part: 0 }, bouclier: { bits: 8, attenteMs: 2000, validiteMs: 600000 } } }); const ovh = svc.ovh;
+    try {
+      const huit = [];
+      for (let i = 0; i < 8; i++) huit.push((await demander(svc, '+336' + aleaDigits(8))).code);
+      v('huit SMS français (0,60 € : 40 % du budget de l\'heure du pays) passent sans preuve', huit, Array(8).fill(200));
+      const N = '+336' + aleaDigits(8), ipN = TEL.reseauNeuf();
+      const neuf = await demander(svc, N, ipN);
+      v('⛔ le neuvième exige une preuve de travail : 428 « defi_requis » (avant : le plancher de 30 n\'était JAMAIS atteint, la France restait sans bouclier jusqu\'au 503)', [neuf.code, neuf.j.error], [428, 'defi_requis']);
+      v('⛔ pas de SMS pour la demande sans preuve', ovh.jobs.length, 8);
+      v('   /health : un bouclier actif (celui de l\'argent, compté)', (await sante(svc)).boucliers, 1);
+      v('   la Belgique, elle, n\'a rien dépensé : pas de preuve', (await demander(svc, TEL.numeroBE())).code, 200);
+      /* La preuve ouvre les 60 % restants du budget : elle est AU PRIX du calcul et du délai. */
+      const avecPreuve = async (numero, ip) => {
+        const r1 = await T.client(svc.base, { xff: ip }).post('/api/tel/code', { numero });
+        if (r1.code !== 428) return r1.code;
+        svc.avancer(2100);
+        const d = r1.j.defi;
+        return (await T.client(svc.base, { xff: ip }).post('/api/tel/code', { numero, defi: { jeton: d.jeton, nonce: TEL.resoudre(d.jeton, d.bits) } })).code;
+      };
+      let passes = 0;
+      for (let i = 0; i < 8; i++) if (await avecPreuve('+336' + aleaDigits(8), TEL.reseauNeuf()) === 200) passes++;
+      v('⛔ avec la preuve, la France continue jusqu\'à son budget : huit SMS de plus, après les huit sans preuve (les 60 % restants du budget ne s\'obtiennent QU\'avec la preuve)', passes, 8);
+    } finally { await svc.arreter(); }
+  }
+  {
+    /* Sept SMS vers sept pays chers (4,87 €), depuis sept adresses : avant, 97 % du budget de l'heure et la France fermée. */
+    const svc = await TEL.lancerTel({ sms: { emballement: { partBudget: 1 } } }); const ovh = svc.ovh;
+    try {
+      const CHERS = ['+7912' + aleaDigits(7), '+62812' + aleaDigits(8), '+99450' + aleaDigits(7), '+99890' + aleaDigits(7), '+88017' + aleaDigits(8), '+9477' + aleaDigits(7), '+937' + aleaDigits(8)];
+      const reps = [];
+      for (const n of CHERS) reps.push((await demander(svc, n)).code);
+      vrai('⛔ la RÉSERVE : les pays autres que la France ne dépensent ensemble que 60 % du budget de l\'heure (3 €) — les derniers sont refusés : ' + JSON.stringify(reps), reps.slice(0, 3).every(c => c === 200) && reps.slice(3).some(c => c === 503));
+      const h = await sante(svc);
+      vrai('   le budget de l\'heure n\'est PAS à 97 % : ' + h.budgetHeurePct + ' %', h.budgetHeurePct <= 62);
+      const fr = [];
+      for (let i = 0; i < 6; i++) fr.push((await demander(svc, '+336' + aleaDigits(8))).code);
+      v('⛔ et les six Français honnêtes qui suivent reçoivent leur code (avant : six 503 « sms_indisponible » portée « global »)', fr, Array(6).fill(200));
+    } finally { await svc.arreter(); }
+  }
+  {
+    /* Sans la réserve (`reserve.part: 0`), le défaut d'avant revient : la contre-épreuve de ce parcours. */
+    const svc = await TEL.lancerTel({ sms: { emballement: { partBudget: 1 }, reserve: { part: 0 } } });
+    try {
+      const CHERS = ['+7912' + aleaDigits(7), '+62812' + aleaDigits(8), '+99450' + aleaDigits(7), '+99890' + aleaDigits(7), '+88017' + aleaDigits(8), '+9477' + aleaDigits(7), '+937' + aleaDigits(8)];
+      for (const n of CHERS) await demander(svc, n);
+      const fr = [];
+      for (let i = 0; i < 6; i++) fr.push((await demander(svc, '+336' + aleaDigits(8))).code);
+      vrai('contre-épreuve : SANS réserve, les mêmes sept SMS laissent à peine un SMS français (le défaut que la réserve ferme) : ' + JSON.stringify(fr), fr.filter(c => c === 503).length >= 4);
+    } finally { await svc.arreter(); }
+  }
+  {
+    /* Et avec le bouclier par défaut : l'attaque doit PAYER du calcul dès que 40 % du budget global est parti ; un Français honnête passe, lui aussi, avec sa preuve. */
+    const svc = await TEL.lancerTel({ sms: { bouclier: { bits: 8, attenteMs: 1000, validiteMs: 600000 } } }); const ovh = svc.ovh;
+    try {
+      for (const n of ['+7912' + aleaDigits(7), '+62812' + aleaDigits(8), '+99450' + aleaDigits(7)]) await demander(svc, n);
+      const N = '+336' + aleaDigits(8), ip = TEL.reseauNeuf();
+      const r = await demander(svc, N, ip);
+      v('⛔ trois SMS chers (2,5 € : 50 % du budget de l\'heure) allument le bouclier de TOUS les pays : un Français doit prouver son travail', [r.code, r.j.error], [428, 'defi_requis']);
+      svc.avancer(1100);
+      const bon = await T.client(svc.base, { xff: ip }).post('/api/tel/code', { numero: N, defi: { jeton: r.j.defi.jeton, nonce: TEL.resoudre(r.j.defi.jeton, r.j.defi.bits) } });
+      v('   et avec sa preuve, il reçoit son code (la France n\'est pas fermée, elle est SURVEILLÉE)', [bon.code, ovh.jobs[ovh.jobs.length - 1].numero], [200, N]);
     } finally { await svc.arreter(); }
   }
 

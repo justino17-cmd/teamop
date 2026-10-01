@@ -13,7 +13,18 @@
  *   2. L'EMBALLEMENT D'UN PAYS : plus de `facteur` (5) fois sa moyenne horaire des 7 derniers jours — avec un plancher — dans
  *      l'heure qui vient de passer. Ce pays-là, et lui SEUL, passe AUTOMATIQUEMENT en BOUCLIER : une preuve de travail faite main
  *      (SHA-256, `bits` zéros) ET un délai, avant tout nouveau SMS. Le bouclier dure `bouclierMs` après le dernier emballement.
- *   3. (ailleurs) plafonds par numéro, par réseau et par appareil, `Retry-After`, numéros mobiles seulement.
+ *      ⛔ LE BOUCLIER SE DÉCLENCHE AUSSI SUR L'ARGENT, pas seulement sur un nombre de SMS : dès que la dépense d'un pays (ou le total)
+ *      atteint `partBudget` (40 %) de son budget de l'heure ou du jour, TOUT nouveau SMS exige la preuve. Un nombre absolu ne s'atteint
+ *      JAMAIS pour presque tous les pays — le budget de 1,5 € par heure coupait la France à 20 SMS, bien avant le plancher de 30 : le
+ *      bouclier n'existait que pour 10 pays sur 207 (relecture adverse), et vingt requêtes anonymes fermaient les inscriptions.
+ *      Les 60 % restants du budget ne s'obtiennent donc QU'avec la preuve : un robot qui pompe paie du calcul et du temps.
+ *   2 bis. UNE PART DU BUDGET GLOBAL EST RÉSERVÉE AU MARCHÉ D'ORIGINE (`reserve`, 40 % pour la France et ses départements) : sept
+ *      SMS vers sept pays chers (4,87 €) consommaient 97 % du budget de l'heure et fermaient la France (relecture adverse). Les autres
+ *      pays se partagent les 60 % restants ; la France garde son propre budget par pays. `reserve.part: 0` supprime la réserve.
+ *   3. Les plafonds par numéro et par réseau, `Retry-After` : DURABLES (table `sms_tentative`, empreintes HMAC) et réservés DANS LA MÊME
+ *      TRANSACTION que le budget — une table mémoire qui se remplit ne les remet plus à zéro, un redémarrage non plus, et deux requêtes
+ *      simultanées ne franchissent ni l'un ni l'autre. Il n'y a PAS de plafond par appareil : le jeton d'appareil est tenu par celui qui
+ *      le présente, un robot qui ne renvoie pas son cookie en reçoit un neuf — le plafond ne retenait que les personnes honnêtes.
  *
  * ⛔ UN COÛT SE RÉSERVE AVANT L'ENVOI, DANS UNE TRANSACTION : deux requêtes simultanées ne peuvent pas franchir le budget ensemble.
  * Un envoi dont l'issue est INCERTAINE (délai, 5xx) garde son coût dans le budget — on suppose le pire ; seuls les refus francs du
@@ -68,8 +79,15 @@ function lireConfigSms(brut, instance) {
   }
   const e = objet(c.emballement);
   r.emballement = { facteur: nb(e, 'facteur', 5, 1, 1000, 'emballement.facteur'), plancher: nb(e, 'plancher', 30, 1, 100000, 'emballement.plancher'),
+    /* La part d'un budget (heure ou jour, d'un pays ou du total) à partir de laquelle la preuve de travail est exigée : 1 = jamais. */
+    partBudget: nb(e, 'partBudget', 0.4, 0.01, 1, 'emballement.partBudget'),
     fenetreMs: nb(e, 'fenetreMs', H, 1000, J, 'emballement.fenetreMs'), historiqueMs: nb(e, 'historiqueMs', 7 * J, H, 30 * J, 'emballement.historiqueMs'),
     bouclierMs: nb(e, 'bouclierMs', 6 * H, 1000, 7 * J, 'emballement.bouclierMs'), historiqueMinMs: nb(e, 'historiqueMinMs', J, 0, 30 * J, 'emballement.historiqueMinMs') };
+  /* La réserve du budget GLOBAL : la part que les autres pays ne peuvent pas entamer, au profit des pays listés (le marché d'origine). */
+  const rs = objet(c.reserve);
+  const paysRes = rs.pays === undefined ? ['FR', 'RE', 'GP', 'MQ', 'GF', 'YT', 'PM', 'NC', 'PF'] : rs.pays;
+  if (!Array.isArray(paysRes) || !paysRes.every(p => typeof p === 'string' && /^[A-Z]{2}$/.test(p))) throw err('reserve.pays : une liste de codes pays à deux lettres');
+  r.reserve = { part: nb(rs, 'part', 0.4, 0, 0.9, 'reserve.part'), pays: paysRes.slice() };
   const b = objet(c.bouclier);
   const forces = b.pays === undefined ? [] : b.pays;
   if (!Array.isArray(forces) || !forces.every(p => typeof p === 'string' && /^[A-Z]{2}$/.test(p))) throw err('bouclier.pays : une liste de codes pays à deux lettres');
@@ -126,19 +144,40 @@ function creerGarde({ cfg, instance, stockage, scelleur, horloge = Date.now, jou
     return o;
   }
 
-  /* ── Le budget : réserver le coût d'UN SMS, ou dire quel plafond bloque ── */
-  function reserver({ pays, cc }) {
+  /* ── Les plafonds, puis le budget : réserver UN SMS, ou dire ce qui bloque ──
+     `caps` : [{ code, k, max, fenetreMs }] dans l'ordre où on les juge ; chaque `k` est une EMPREINTE (numéro, réseau). Tout se décide DANS
+     LA MÊME TRANSACTION : un plafond refusé n'écrit rien, un budget refusé non plus, et deux requêtes simultanées ne passent pas ensemble.
+     Rend { ok:false, plafond:<code>, retry:<s> } | { ok:false, motif:'budget_…' } | { ok:true, id, cout }. */
+  function reserver({ pays, cc, caps = [] }) {
     const cout = coutEstime(pays, cc, cfg);
     return stockage.tx(() => {
       const t = horloge();
+      for (const c of caps) {
+        if (!(c.fenetreMs > 0)) continue;
+        const depuis = t - c.fenetreMs;
+        if (stockage.smsTentativesCompter(c.k, depuis) >= c.max) {
+          const premiere = stockage.smsTentativePremiere(c.k, depuis);
+          return { ok: false, plafond: c.code, retry: Math.max(1, Math.ceil(((premiere === null ? t : premiere) + c.fenetreMs - t) / 1000)) };
+        }
+      }
       const j = stockage.smsSommes(t - J), h = stockage.smsSommes(t - H), pj = stockage.smsSommes(t - J, pays), ph = stockage.smsSommes(t - H, pays);
       if (j.cout + cout > plafonds.jour) return { ok: false, motif: 'budget_jour' };
       if (h.cout + cout > plafonds.heure) return { ok: false, motif: 'budget_heure' };
+      /* ⛔ La réserve du marché d'origine : les AUTRES pays ne dépensent, ensemble, que la part restante du budget global. */
+      if (cfg.reserve.part > 0 && !cfg.reserve.pays.includes(pays)) {
+        const libre = 1 - cfg.reserve.part;
+        if (stockage.smsSommes(t - J, undefined, cfg.reserve.pays).cout + cout > plafonds.jour * libre) return { ok: false, motif: 'budget_jour' };
+        if (stockage.smsSommes(t - H, undefined, cfg.reserve.pays).cout + cout > plafonds.heure * libre) return { ok: false, motif: 'budget_heure' };
+      }
       if (pj.cout + cout > plafonds.paysJour(pays)) return { ok: false, motif: 'budget_pays_jour' };
       if (ph.cout + cout > plafonds.paysHeure(pays)) return { ok: false, motif: 'budget_pays_heure' };
-      return { ok: true, id: stockage.smsReserver({ pays, cout }), cout };
+      const id = stockage.smsReserver({ pays, cout });
+      stockage.smsTentativesNoter(id, caps.map(c => c.k).filter((k, i, a) => a.indexOf(k) === i), t);
+      return { ok: true, id, cout };
     });
   }
+  /* Rend les plafonds d'un SMS qui n'est jamais parti (refus franc du prestataire, rien d'envoyé). */
+  const rendre = (id) => stockage.smsTentativesRendre(id);
 
   /* ── L'emballement d'un pays → bouclier (persistant : il survit à l'arrêt de l'envoi qu'il provoque) ── */
   function emballe(pays) {
@@ -157,10 +196,22 @@ function creerGarde({ cfg, instance, stockage, scelleur, horloge = Date.now, jou
     const seuil = Math.max(e.plancher, e.facteur * moyenne);
     return recent + 1 > seuil;
   }
-  /* → null (aucun bouclier) ou { motif:'global'|'force'|'auto' } */
+  /* ⛔ Le bouclier de l'ARGENT : la dépense d'un pays (ou le total) a atteint `partBudget` de son budget de l'heure ou du jour. Dynamique :
+     il suit les fenêtres glissantes, il tombe seul quand la dépense redescend. → 'budget_global' | 'budget_pays' | null */
+  function bouclierBudget(pays) {
+    const part = cfg.emballement.partBudget;
+    if (!(part < 1)) return null;
+    const t = horloge(), atteint = (somme, plafond) => plafond > 0 && somme >= Math.round(plafond * part);
+    if (atteint(stockage.smsSommes(t - H).cout, plafonds.heure) || atteint(stockage.smsSommes(t - J).cout, plafonds.jour)) return 'budget_global';
+    if (atteint(stockage.smsSommes(t - H, pays).cout, plafonds.paysHeure(pays)) || atteint(stockage.smsSommes(t - J, pays).cout, plafonds.paysJour(pays))) return 'budget_pays';
+    return null;
+  }
+  /* → null (aucun bouclier) ou { motif:'global'|'force'|'auto'|'budget_global'|'budget_pays' } */
   function bouclierDe(pays) {
     if (cfg.bouclier.global) return { motif: 'global' };
     if (cfg.bouclier.pays.includes(pays)) return { motif: 'force' };
+    const bb = bouclierBudget(pays);
+    if (bb) return { motif: bb };
     if (emballe(pays)) {
       const deja = stockage.smsBouclierDe(pays);
       stockage.smsBouclierPoser({ pays, jusqua: horloge() + cfg.emballement.bouclierMs, motif: 'auto' });
@@ -172,6 +223,7 @@ function creerGarde({ cfg, instance, stockage, scelleur, horloge = Date.now, jou
   }
 
   /* ── Le défi (preuve de travail + délai), sans état côté serveur : un jeton signé, à usage unique ── */
+  const UTILISES_MAX = 20000;
   const utilises = new Map();   // identifiant de défi → échéance
   const macDe = (corps, num_h) => scelleur.hmac('sms', 'defi', corps + '|' + num_h).slice(0, 32);
   function defiEmettre({ pays, num_h }) {
@@ -196,8 +248,13 @@ function creerGarde({ cfg, instance, stockage, scelleur, horloge = Date.now, jou
     if (t < ts + cfg.bouclier.attenteMs || t > ts + cfg.bouclier.validiteMs) return false;
     if (zerosEnTete(crypto.createHash('sha256').update(jeton + ':' + nonce).digest()) < bits) return false;
     if (utilises.has(p[2])) return false;
-    for (const [k, fin] of utilises) if (fin <= t) utilises.delete(k);
-    if (utilises.size > 5000) return false;   // une table pleine refuse : un défi neuf se demande, il ne se rejoue pas
+    /* ⛔ Une table pleine ÉVINCE les plus anciens, elle ne REFUSE pas : refuser faisait d'une table remplie par un robot (5 000 défis
+       brûlés) un refus de TOUTE preuve, même juste, pendant dix minutes — un déni de service contre les personnes honnêtes. Chaque
+       défi coûte 18 bits de travail à qui le brûle ; rejouer un défi évincé exigerait de remplir 20 000 entrées d'abord. */
+    if (utilises.size >= UTILISES_MAX) {
+      for (const [k, fin] of utilises) if (fin <= t) utilises.delete(k);
+      for (const k of utilises.keys()) { if (utilises.size < UTILISES_MAX) break; utilises.delete(k); }
+    }
     utilises.set(p[2], ts + cfg.bouclier.validiteMs);
     return true;
   }
@@ -215,8 +272,24 @@ function creerGarde({ cfg, instance, stockage, scelleur, horloge = Date.now, jou
     }
     if (r.genre === 'incertain') { stockage.smsRegler(id, { etat: 'incertain', cout }); echecsOvh++; return { ok: false, genre: 'incertain' }; }
     stockage.smsRegler(id, { etat: 'refuse', cout: 0 });
-    if (r.genre === 'config') echecsOvh++;
+    /* ⛔ Tout ce qui n'est pas « ce numéro est invalide » est UNE PANNE DE NOTRE CÔTÉ (clés, crédits épuisés, expéditeur refusé, service
+       injoignable) : `ovhEchecs` la compte, pour que la surveillance la crie. Les refus 400/409/429 d'OVH n'y étaient pas — des
+       crédits épuisés seraient restés muets (relecture adverse). */
+    if (r.genre !== 'numero') echecsOvh++;
     return { ok: false, genre: r.genre };
+  }
+
+  /* Les pays dont l'ARGENT a déclenché le bouclier (un seul compte si c'est le total) : pour /health. */
+  function boucliersBudget() {
+    if (!(cfg.emballement.partBudget < 1) || cfg.bouclier.global) return 0;
+    const t = horloge();
+    let n = 0;
+    for (const { pays } of stockage.smsPaysSur(t - J)) {
+      const b = bouclierBudget(pays);
+      if (b === 'budget_global') return 1;
+      if (b === 'budget_pays' && !stockage.smsBouclierDe(pays) && !cfg.bouclier.pays.includes(pays)) n++;
+    }
+    return n;
   }
 
   /* ── Pour /health : des NOMBRES ── */
@@ -227,12 +300,12 @@ function creerGarde({ cfg, instance, stockage, scelleur, horloge = Date.now, jou
       mode, envoyes24h: j.n, coutJourEur: eur2(j.cout),
       budgetJourPct: plafonds.jour > 0 ? Math.round(j.cout / plafonds.jour * 100) : 100,
       budgetHeurePct: plafonds.heure > 0 ? Math.round(h.cout / plafonds.heure * 100) : 100,
-      boucliers: stockage.smsBoucliers().length + (cfg.bouclier.global ? 1 : 0),
+      boucliers: stockage.smsBoucliers().length + (cfg.bouclier.global ? 1 : 0) + boucliersBudget(),
       ovhEchecs: echecsOvh, refus: refusJour(),
     };
   }
 
-  return { mode, reserver, bouclierDe, defiEmettre, defiVerifier, envoyer, refuser, refusJour, sante, cfg, plafonds };
+  return { mode, reserver, rendre, bouclierDe, defiEmettre, defiVerifier, envoyer, refuser, refusJour, sante, cfg, plafonds };
 }
 
 module.exports = { lireConfigSms, creerGarde };

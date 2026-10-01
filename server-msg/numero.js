@@ -177,6 +177,10 @@ const NANP_SPECIAUX = new Set([500, 521, 522, 523, 524, 525, 526, 527, 528, 529,
    classique de la fraude au SMS), 888 humanitaire, 979 surtaxé mondial, 991 à 999 hors plan. */
 const SPECIAUX = ['800', '808', '870', '871', '872', '873', '874', '878', '881', '882', '883', '888', '979', '991', '990'];
 
+/* Les pays sans plage mobile connue où un « 0 » initial est PARTIE du numéro (Bénin : 10 chiffres depuis 2024, tous en « 01 » ; Saint-Marin :
+   « 0549 » ; Gabon : 8 chiffres dont le zéro) : on n'y retire jamais un zéro, on ne sait pas lequel est de ligne. */
+const ZERO_SIGNIFICATIF = new Set(['BJ', 'SM', 'GA']);
+
 const PAR_CC = new Map();
 for (const [cc, pays, mn, mx, mob, ref] of TABLE) PAR_CC.set(cc, { pays, mn, mx, mob, ref: ref || null });
 const CC_PARTAGES = new Set(Object.keys(PARTAGES));
@@ -242,6 +246,11 @@ function analyser(brut, { interdits = [] } = {}) {
       const sans = nsn.slice(1);
       const tombeJuste = (n) => n.length >= info.mn && n.length <= info.mx && (!info.mob || info.mob.test(n));
       if (!tombeJuste(nsn) && tombeJuste(sans)) nsn = sans;
+      /* ⛔ UN SEUL E.164 PAR TÉLÉPHONE. Dans un pays SANS plage mobile connue (`mob` nul), la longueur seule ne tranche pas : « +218 912345678 »
+         et « +218 0912345678 » tombaient tous les deux juste, donc deux numéros — deux SMS dans la minute, deux comptes pour une seule
+         ligne, et un blocage contourné (relecture adverse). Le zéro de ligne s'y retire dès que le reste a une longueur permise.
+         Les pays où le zéro FAIT PARTIE du numéro (`ZERO_SIGNIFICATIF`) le gardent. */
+      else if (!info.mob && !ZERO_SIGNIFICATIF.has(info.pays) && sans.length >= info.mn && sans.length <= info.mx) nsn = sans;
     }
   }
   if (nsn.length < info.mn || nsn.length > info.mx) return refus('longueur');

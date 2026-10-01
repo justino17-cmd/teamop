@@ -33,6 +33,8 @@ async function fauxOvhService() {
       if (etat.mode === 'pend') return;
       if (etat.mode === '403') return rep(403, { message: 'This call has not been granted' });
       if (etat.mode === '500') return rep(500, { message: 'Internal error' });
+      if (etat.mode === '503') return rep(503, { message: 'Service Unavailable' });       // le travail n'a pas commencé : rien n'est parti
+      if (etat.mode === '400') return rep(400, { message: 'Bad request : not enough credits' }); // un refus franc d'OVH qui n'est PAS « numéro invalide » (crédits épuisés…)
       const m = /^\/1\.0\/sms\/([^/]+)\/jobs$/.exec(req.url);
       if (!m || req.method !== 'POST' || decodeURIComponent(m[1]) !== SERVICE) return rep(404, { message: 'route inconnue' });
       let j = {}; try { j = JSON.parse(b); } catch (e) { return rep(400, { message: 'JSON' }); }

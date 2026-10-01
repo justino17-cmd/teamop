@@ -65,6 +65,7 @@ const MANIFESTE = [
   { id: 'tel.appareil',      m: 'POST', p: '/api/tel/appareil',                      garde: 'P' },
   { id: 'moi.confidentialite.lire', m: 'GET',  p: '/api/moi/confidentialite',        garde: 'S' },
   { id: 'moi.confidentialite', m: 'POST', p: '/api/moi/confidentialite',             garde: 'S' },
+  { id: 'moi.appareils.deconnecter', m: 'POST', p: '/api/moi/appareils/deconnecter', garde: 'S' },
   { id: 'contacts.chercher', m: 'POST', p: '/api/contacts/chercher',                 garde: 'V' },
   { id: 'contacts.ajouter',  m: 'POST', p: '/api/contacts/ajouter',                  garde: 'V' },
 ];

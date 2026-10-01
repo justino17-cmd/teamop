@@ -37,6 +37,50 @@ function configurer(env, lignes) {
   });
 }
 
+/* ⛔ LA SAISIE AU CLAVIER SE JOUE SOUS UN VRAI TERMINAL (pty). L'entrée redirigée ne voit pas ce que `readline` faisait : à chaque retour arrière ou
+   flèche, il REDESSINAIT « invite + ligne » en entier, et les secrets saisis jusque-là s'affichaient en clair (relecture adverse, rejouée sous pty).
+   `python3` ouvre le terminal (module `pty`), tape comme une personne qui se trompe — une faute corrigée par Retour arrière, une flèche gauche,
+   un collage, Ctrl-U — et rend TOUT ce que le terminal a affiché. */
+const PTY_PY = `
+import os, pty, sys, time, select, json
+cfg, base, node, script = sys.argv[1:5]
+env = dict(os.environ, OPMSG_CONFIG=cfg, OPMSG_OVH_URL=base)
+pid, fd = pty.fork()
+if pid == 0:
+    os.execvpe(node, [node, script], env)
+out = b''
+def lire(t):
+    global out
+    fin = time.time() + t
+    while time.time() < fin:
+        r, _, _ = select.select([fd], [], [], 0.05)
+        if r:
+            try: d = os.read(fd, 4096)
+            except OSError: return
+            if not d: return
+            out += d
+def envoyer(s, t=0.25):
+    os.write(fd, s); lire(t)
+lire(1.2)
+for etape in json.loads(sys.argv[5]):
+    envoyer(bytes.fromhex(etape[0]), etape[1])
+lire(2.5)
+try:
+    _, statut = os.waitpid(pid, os.WNOHANG)
+except Exception:
+    statut = 0
+print(json.dumps({'sortie': out.decode('utf8', 'replace'), 'statut': statut}))
+`;
+function configurerPty(env, etapes) {
+  return new Promise((resolve) => {
+    const p = spawn('python3', ['-c', PTY_PY, env.OPMSG_CONFIG, env.OPMSG_OVH_URL, process.execPath, path.join(T.SERVICE, 'configurer-sms.js'), JSON.stringify(etapes.map(([txt, t]) => [Buffer.from(txt, 'utf8').toString('hex'), t || 0.25]))], { stdio: ['ignore', 'pipe', 'pipe'] });
+    let sortie = '', err = ''; p.stdout.on('data', d => { sortie += d; }); p.stderr.on('data', d => { err += d; });
+    p.on('error', () => resolve({ introuvable: true, sortie: '' }));
+    p.on('close', () => { try { resolve(JSON.parse(sortie)); } catch (e) { resolve({ illisible: true, sortie: sortie + err }); } });
+    setTimeout(() => { try { p.kill('SIGKILL'); } catch (e) {} }, 40000).unref();
+  });
+}
+
 (async () => {
   console.log('\n── 918 · configurer-sms.js : saisie, épreuve des clés, écriture atomique, aucun secret affiché ──');
   {
@@ -94,9 +138,52 @@ function configurer(env, lignes) {
       const coupe = await configurer(env, bons);
       vrai('(OVH injoignable ou en panne pendant l\'épreuve : le script n\'écrit rien non plus — ' + coupe.code + ')', fs.readFileSync(chemin).equals(avant2) || coupe.code === 0);
     } finally { await ovh.fermer(); fs.rmSync(dossier, { recursive: true, force: true }); }
+    /* ── Le terminal : une faute corrigée, une flèche, un collage — RIEN de secret ne doit s'afficher ── */
+    {
+      const d2 = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-cfgsms-pty-'));
+      const ch2 = path.join(d2, 'beta.json'); fs.writeFileSync(ch2, '{"sms":{}}', { mode: 0o640 });
+      const ovh2 = await TEL.fauxOvhService();
+      try {
+        const etapes = [
+          [TEL.SERVICE + '\r'], ['OPMSG\r'],
+          [TEL.APP + '\r', 0.4],                                                // clé 1 : frappe sans faute
+          [TEL.SECRET + 'X'], ['\x7f'], ['\r', 0.4],                              // clé 2 : une lettre en trop, corrigée par RETOUR ARRIÈRE (ce que fait toute personne qui se trompe)
+          [TEL.CONSUMER.slice(0, -1)], ['\x1b[D'], ['\x1b[H'], ['\x1b[F'], [TEL.CONSUMER.slice(-1)], ['\r', 3],   // clé 3 : flèches gauche, Début, Fin, puis la dernière lettre
+        ];
+        const r = await configurerPty({ OPMSG_CONFIG: ch2, OPMSG_OVH_URL: ovh2.base }, etapes);
+        if (r.introuvable || r.illisible) vrai('⛔ python3 est requis pour jouer la saisie sous un vrai terminal (' + (r.introuvable ? 'introuvable' : 'sortie illisible : ' + String(r.sortie).slice(0, 200)) + ')', false);
+        else {
+          const t = r.sortie;
+          vrai('la population : le terminal a affiché les invites et le nom du service (' + t.length + ' caractères)', t.includes('Clé de consommateur') && t.includes(TEL.SERVICE));
+          v('⛔ AUCUN secret, ni complet ni en gros morceau (8 premiers caractères), n\'apparaît à l\'écran — ni à la frappe, ni après un retour arrière ou une flèche (avant : « Secret d\'application (masqué) : secret-banc-… » en clair)',
+            [TEL.APP, TEL.SECRET, TEL.CONSUMER].filter(x => t.includes(x) || t.includes(x.slice(0, 8)) || t.includes(x.slice(-8))), []);
+          const ecrit = JSON.parse(fs.readFileSync(ch2, 'utf8'));
+          v('   et les valeurs rangées sont les BONNES (la faute corrigée n\'est pas dedans ; la flèche n\'a pas déplacé le texte)', [ecrit.sms && ecrit.sms.ovh && ecrit.sms.ovh.appSecret === TEL.SECRET, ecrit.sms.ovh.consumerKey === TEL.CONSUMER, ecrit.sms.ovh.appKey === TEL.APP], [true, true, true]);
+          vrai('   le nom du service, lui, est visible (rien de secret) et le script le dit : « clés valides »', /clés valides/.test(t));
+        }
+        /* Ctrl-C au milieu d'une saisie : rien n'est écrit. */
+        fs.writeFileSync(ch2, '{"sms":{}}'); const avant = fs.readFileSync(ch2);
+        const c = await configurerPty({ OPMSG_CONFIG: ch2, OPMSG_OVH_URL: ovh2.base }, [[TEL.SERVICE + '\r'], ['OPMSG\r'], [TEL.APP.slice(0, 5)], ['\x03', 0.6]]);
+        vrai('Ctrl-C au milieu d\'une saisie masquée : « Abandon », le fichier est intact, et ce qui était tapé n\'est pas affiché', !c.introuvable && /Abandon/.test(c.sortie || '') && fs.readFileSync(ch2).equals(avant) && !(c.sortie || '').includes(TEL.APP.slice(0, 5) + 'k'));
+      } finally { await ovh2.fermer(); fs.rmSync(d2, { recursive: true, force: true }); }
+    }
+    /* ── Le fichier temporaire est créé en 0600 DÈS L'ÉCRITURE (avant : umask par défaut, 0644, puis chmod) ── */
+    {
+      const d3 = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-cfgsms-mode-'));
+      const ch3 = path.join(d3, 'beta.json'); fs.writeFileSync(ch3, '{"sms":{}}', { mode: 0o644 });
+      const journalModes = path.join(d3, 'modes.txt'), precharge = path.join(d3, 'precharge.js');
+      fs.writeFileSync(precharge, "const fs = require('fs'), ecrire = fs.writeFileSync; fs.writeFileSync = function (f, ...r) { const x = ecrire.call(this, f, ...r); if (String(f).includes('.tmp-')) fs.appendFileSync(" + JSON.stringify(journalModes) + ", (fs.statSync(f).mode & 0o777).toString(8) + '\\n'); return x; };");
+      const ovh3 = await TEL.fauxOvhService();
+      try {
+        const r = await configurer({ OPMSG_CONFIG: ch3, OPMSG_OVH_URL: ovh3.base, NODE_OPTIONS: '--require ' + precharge }, [TEL.SERVICE, 'OPMSG', TEL.APP, TEL.SECRET, TEL.CONSUMER]);
+        const modes = fs.existsSync(journalModes) ? fs.readFileSync(journalModes, 'utf8').trim().split('\n') : [];
+        vrai('la population : le fichier temporaire a été écrit au moins une fois (' + modes.length + ') et le script a réussi (' + r.code + ')', modes.length >= 1 && r.code === 0);
+        v('⛔ chaque écriture du fichier temporaire (les trois secrets) le crée en 0600 : aucun instant où il est lisible par tous', modes.filter(m => m !== '600'), []);
+      } finally { await ovh3.fermer(); fs.rmSync(d3, { recursive: true, force: true }); }
+    }
     const src = CODE('configurer-sms.js');
     vrai('⛔ le code ne lit JAMAIS un secret en argument de ligne de commande (`ps` le montrerait à toute la machine)', !/process\.argv/.test(src));
-    vrai('   il masque la saisie des trois clés (`_writeToOutput`) et ne réécrit pas une valeur masquée à l\'écran', /masque/.test(src) && /_writeToOutput/.test(src) && /\(masque \? '' : r\)/.test(src));
+    vrai('   il lit au clavier en MODE BRUT (`setRawMode`), sans `readline` (qui redessine la ligne — et les secrets — à chaque correction), et ne réécrit pas une valeur masquée à l\'écran même redirigée', /setRawMode\(true\)/.test(src) && !/readline/.test(src) && /\(masque \? '' : r\)/.test(src));
     vrai('   et il valide avec la MÊME fonction que le démarrage du service (`lireConfigSms`) avant ET après l\'écriture', (src.match(/lireConfigSms\(/g) || []).length >= 2);
   }
 
@@ -166,7 +253,7 @@ function configurer(env, lignes) {
     const corpsCode = tel.slice(tel.indexOf("H_['tel.code']"), tel.indexOf("H_['tel.verifier']"));
     vrai('population : la tranche du gestionnaire `tel.code` est trouvée (' + corpsCode.length + ' caractères)', corpsCode.length > 1500);
     const i = (s) => corpsCode.indexOf(s);
-    const ordre = ['analyse(b.numero)', "lireCookie(req, nomAppareil)", "sms.mode === 'inactif'", 'sms.bouclierDe(a.pays)', 'const portes = [', 'sms.reserver(', 'sms.envoyer('];
+    const ordre = ['analyse(b.numero)', "lireCookie(req, nomAppareil)", "sms.mode === 'inactif'", 'sms.bouclierDe(a.pays)', 'const caps = []', 'sms.reserver(', 'sms.envoyer('];
     const pos = ordre.map(i);
     vrai('⛔ l\'ordre des défenses est celui de la conception : numérotation, appareil connu, interrupteur, bouclier, plafonds, budget, envoi (toutes trouvées : ' + pos.join(' < ') + ')', pos.every(x => x > 0) && pos.every((x, k) => k === 0 || x > pos[k - 1]));
     vrai('⛔ rien n\'envoie un SMS ailleurs : UN seul appel à `sms.envoyer(` (telephone.js), UN seul à `ovh.envoyer(` (sms-garde.js), et aucun `fetch` hors de sms-ovh.js et de configurer-sms.js', (tel.match(/sms\.envoyer\(/g) || []).length === 1 && (code['sms-garde.js'].match(/ovh\.envoyer\(/g) || []).length === 1 && ['telephone.js', 'sms-garde.js', 'sms-prix.js', 'numero.js'].every(f => !/\bfetch\(|fetchImpl\(/.test(code[f])));

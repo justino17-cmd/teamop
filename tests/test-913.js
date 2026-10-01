@@ -11,8 +11,9 @@
      · la SIGNATURE, sur la méthode, l'URL complète, le corps et l'horodatage D'OVH (pas le nôtre) : une horloge qui dérive d'une
        heure signe quand même juste ;
      · les issues : un envoi réussi rend les crédits réellement retirés ; un numéro invalide est un refus franc ; des clés fausses, un
-       droit manquant, un service inconnu sont un refus de CONFIGURATION ; un délai, une coupure, un 5xx sont INCERTAINS (le coût reste
-       dans le budget : on ne sait pas si le SMS est parti) ;
+       droit manquant, un service inconnu sont un refus de CONFIGURATION ; un délai, une coupure EN ROUTE, un 500 sont INCERTAINS (le coût reste
+       dans le budget : on ne sait pas si le SMS est parti) ; ce qui s'est passé AVANT l'envoi (heure d'OVH illisible, DNS, connexion refusée,
+       503) est « non_envoye » : rien n'a pu partir, le coût et les plafonds sont rendus ;
      · ⛔ le module ne journalise rien et ne garde rien : ni numéro, ni texte (le code y est), ni clé.
 
    ⚠️ CE QUE CE BANC NE PEUT PAS DIRE : qu'OVH accepte vraiment cette signature. Il prouve que le module signe comme la documentation
@@ -32,9 +33,11 @@ async function fauxOvh(decalageS = 0) {
     let b = ''; req.on('data', d => { b += d; });
     req.on('end', () => {
       const rep = (code, o) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
+      if (req.url === '/1.0/auth/time' && etat.heure503) { etat.tempsLus++; return rep(503, { message: 'time indisponible' }); }
       if (req.url === '/1.0/auth/time') { etat.tempsLus++; res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end(String(Math.floor(Date.now() / 1000) + etat.decalageS)); }
       etat.appels.push({ m: req.method, u: req.url });
       if (etat.mode === 'pend') return;   // ne répond jamais
+      if (etat.mode === 'coupe') { req.socket.destroy(); return; }   // la requête est ARRIVÉE, la connexion tombe avant toute réponse : on ne sait pas si le SMS est parti
       /* SA signature, recalculée à la main : secret + clé de consommateur + méthode + URL COMPLÈTE + corps + horodatage. */
       const urlComplete = etat.base + req.url.replace(/^\/1\.0/, '');
       const ts = req.headers['x-ovh-timestamp'];
@@ -47,6 +50,7 @@ async function fauxOvh(decalageS = 0) {
       if (etat.mode === '404') return rep(404, { message: 'The requested object (serviceName = x) does not exist', class: 'Client::NotFound' });
       if (etat.mode === '400') return rep(400, { message: 'Bad request' });
       if (etat.mode === '500') return rep(500, { message: 'Internal error' });
+      if (etat.mode === '503') return rep(503, { message: 'Service Unavailable' });
       const m = /^\/1\.0\/sms\/([^/]+)\/jobs$/.exec(req.url);
       if (!m || req.method !== 'POST' || decodeURIComponent(m[1]) !== SERVICE) { etat.refusees++; return rep(404, { message: 'route inconnue' }); }
       let j = {}; try { j = JSON.parse(b); } catch (e) { return rep(400, { message: 'JSON' }); }
@@ -130,7 +134,28 @@ const cfg = (faux, extra) => ({ ovh: Object.assign({ appKey: APP, appSecret: SEC
     faux.mode = 'normal';
     v('et la voie revient quand le service revient', await essai('normal'), 'ok');
     await faux.fermer();
-    v('⛔ une coupure franche (le serveur n\'écoute plus) → « incertain »', await essai('normal'), 'incertain');
+    v('⛔ une connexion REFUSÉE (le serveur n\'écoute plus : rien n\'a pu partir) → « non_envoye », PAS « incertain » : le coût et les plafonds sont rendus', await essai('normal'), 'non_envoye');
+  }
+  console.log('\n── 913 · « incertain » ne couvre QUE ce qui a pu partir : l\'avant-envoi est « non_envoye » (relecture adverse) ──');
+  {
+    const faux = await fauxOvh();
+    const o = OVH.creerOvh(cfg(faux));
+    const essai = async (mode, extra) => { faux.mode = mode; Object.assign(faux, extra || {}); const r = await o.envoyer({ numero: '+32470123456', message: 'x' }); return r.ok ? 'ok' : r.genre; };
+    faux.heure503 = true;
+    v('⛔ l\'heure d\'OVH illisible (503 sur /auth/time) → « non_envoye » : la requête n\'est même pas écrite', await essai('normal'), 'non_envoye');
+    vrai('   et AUCUN POST n\'est arrivé chez OVH', faux.appels.length === 0 && faux.jobs.length === 0);
+    faux.heure503 = false;
+    v('⛔ un 503 sur l\'envoi (« service indisponible » : le travail n\'a pas commencé) → « non_envoye »', await essai('503'), 'non_envoye');
+    v('⛔ un 500 reste « incertain » (le travail a pu commencer)', await essai('500'), 'incertain');
+    v('⛔ une connexion COUPÉE après l\'arrivée de la requête → « incertain » (le SMS est peut-être parti)', await essai('coupe'), 'incertain');
+    vrai('   (la requête est bien arrivée chez OVH : ' + faux.appels.filter(a => a.m === 'POST').length + ' POST vus)', faux.appels.filter(a => a.m === 'POST').length >= 1);
+    await faux.fermer();
+  }
+  {
+    /* Un nom qui ne se résout pas : rien n'a pu partir non plus. */
+    const o = OVH.creerOvh({ ovh: { appKey: APP, appSecret: SECRET, consumerKey: CONSUMER, serviceName: SERVICE, expediteur: 'OPMSG', urlBase: 'http://nom-inexistant.invalid/1.0', timeoutMs: 1500 }, horloge: Date.now });
+    const r = await o.envoyer({ numero: '+32470123456', message: 'x' });
+    v('⛔ un nom qui ne se résout pas (DNS) → « non_envoye »', r.genre, 'non_envoye');
   }
   {
     /* Une signature refusée pour cause d'horloge ne coûte rien : on relit l'heure d'OVH et on retente UNE fois. */

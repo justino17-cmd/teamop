@@ -15,7 +15,8 @@
 # ⛔ LE PLANCHER : moins de vérifications que ça, c'est que des suites ont sauté leur partie exécutée (sans
 # `server-msg/node_modules`, celles du service se déclarent vertes). Le relever quand on ajoute une suite, jamais le baisser.
 # 2 octobre 2026 (compte par téléphone) : 23 suites, 2057 vérifications mesurées par `bash scripts/bancs-ci.sh $(liste)` (1er octobre, avant : 16 suites, 1593).
-#plancher 2057
+# 2 octobre 2026 (relecture adverse du compte par téléphone : argent, comptes, saisie des clés) : 24 suites (test-919), 2176 vérifications.
+#plancher 2176
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
@@ -30,7 +31,7 @@ tests/test-908.js
 tests/test-909.js
 tests/test-910.js
 #
-# ── Le compte PERSO par numéro de téléphone (2 octobre 2026) : numérotation, prix, envoi OVH, compte et appareil, plafonds et budgets, garde, recherche, pose des clés ──
+# ── Le compte PERSO par numéro de téléphone (2 octobre 2026) : numérotation, prix, envoi OVH, compte et appareil, plafonds et budgets, garde, recherche, pose des clés, un inconnu face au compte d'un autre ──
 tests/test-912.js
 tests/test-913.js
 tests/test-914.js
@@ -38,6 +39,7 @@ tests/test-915.js
 tests/test-916.js
 tests/test-917.js
 tests/test-918.js
+tests/test-919.js
 #
 # ── Installation, déploiement, surveillance ─────────────────────────────────────────────────────────────────────────────
 tests/test-930.js

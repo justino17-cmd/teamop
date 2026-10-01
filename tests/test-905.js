@@ -80,6 +80,7 @@ const MATRICE = {
   'tel.appareil':       { ok: () => ['POST', '/api/tel/appareil', {}], codes: [401] },
   'moi.confidentialite.lire': { ok: () => ['GET', '/api/moi/confidentialite'], codes: [200] },
   'moi.confidentialite': { ok: () => ['POST', '/api/moi/confidentialite', { trouvable: 'tous' }], codes: [200] },
+  'moi.appareils.deconnecter': { ok: () => ['POST', '/api/moi/appareils/deconnecter', {}], codes: [200] },
   'contacts.chercher':  { ok: () => ['POST', '/api/contacts/chercher', { numero: '+32470999888' }], codes: [200] },
   'contacts.ajouter':   { ok: (F) => ['POST', '/api/contacts/ajouter', { id: F.A }], codes: [400, 404] },   // sans recherche préalable, ou son propre identifiant : la garde V a passé, le geste dit non
 };

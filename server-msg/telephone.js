@@ -32,7 +32,7 @@ const { analyser } = require('./numero');
 const { cleReseau } = require('./quotas');
 
 const JOUR = 86400000, H = 3600000;
-const SESSION_TEL_MS = 90 * JOUR, APPAREIL_MS = 180 * JOUR;
+const SESSION_TEL_MS = 90 * JOUR, APPAREIL_MS = 180 * JOUR, APPAREIL_ABS_MS = 365 * JOUR;
 const CODE_RE = /^\d{6}$/, APPAREIL_RE = /^opd_[A-Za-z0-9_-]{43}$/, ID_PERS = /^p_[0-9a-f]{32}$/;
 const CTRL_NOM = /[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁦-⁩﻿]/g;
 const nettoyerNom = (s) => String(s).replace(CTRL_NOM, '').replace(/\s+/g, ' ').trim();
@@ -45,6 +45,12 @@ function reseauSms(ip) {
   const r = cleReseau(ip);
   const m = /^(\d{1,3}\.\d{1,3}\.\d{1,3})\.\d{1,3}$/.exec(r);
   return m ? m[1] + '.0/24' : r;
+}
+/* ⛔ Et l'IPv6 se compte AUSSI par /48 : un abonné qui a un /48 en tourne les 65 536 /64, et le plafond par /64 seul ne l'arrêtait pas
+   (14 SMS sur 14 acceptés vers la même victime, relecture adverse). → [{ cle, niveau }] du plus fin au plus large. */
+function reseauxSms(ip) {
+  const r = reseauSms(ip), g = /^([0-9a-f]{4}:[0-9a-f]{4}:[0-9a-f]{4}):[0-9a-f]{4}::\/64$/.exec(r);
+  return g ? [{ cle: r, niveau: 'r64' }, { cle: g[1] + '::/48', niveau: 'r48' }] : [{ cle: r, niveau: 'r' }];
 }
 
 function creerTelephone(ctx) {
@@ -90,10 +96,14 @@ function creerTelephone(ctx) {
   }
 
   const hNumero = (e164) => scelleur.hmac('tel', 'numero', e164);
+  const hReseau = (cle) => scelleur.hmac('tel', 'reseau', cle);
   const hCode = (num_h, code) => scelleur.hmac('tel', 'code', num_h + '|' + code);
   const egal = (a, b) => { const x = Buffer.from(a), y = Buffer.from(b); return x.length === y.length && crypto.timingSafeEqual(x, y); };
   const analyse = (n) => analyser(n, { interdits: cfg.interdits });
   const messageDe = (code) => 'Votre code OP MESSAGES : ' + code + (cfg.domaine ? '\n\n@' + cfg.domaine + ' #' + code : '');   // la 2e ligne : le format que Chrome et Safari savent remplir tout seul
+
+  /* La porte de TEST (jamais en production, `config.js` refuse le démarrage) : le code en clair, dans un fichier à part. */
+  const codeDeTest = (n, code) => { if (config.testCodes) { try { fs.appendFileSync(config.testCodes, JSON.stringify({ n, code }) + '\n'); } catch (er) { /* la porte de test ne casse pas le service */ } } };
 
   const H_ = {};
 
@@ -111,7 +121,7 @@ function creerTelephone(ctx) {
     /* Un appareil DÉJÀ vérifié pour ce numéro : on le reconnecte, sans SMS (le moins de SMS possible). */
     const vu = lireCookie(req, nomAppareil);
     if (vu && APPAREIL_RE.test(vu)) {
-      const ap = stockage.telAppareilLire(sha(vu));
+      const ap = stockage.telAppareilLire(sha(vu), APPAREIL_ABS_MS);
       const p = ap ? stockage.telPersonneParNumero('tel:' + a.e164) : null;
       if (ap && p && p.id === ap.personne && p.etat === 'actif') {
         const q = essai('tel_appareil_reco', reseauSms(req.ip), { max: 120, fenetreMs: H });
@@ -124,7 +134,7 @@ function creerTelephone(ctx) {
 
     if (sms.mode === 'inactif') { sms.refuser('sms_inactif'); return refus(res, 503, 'sms_indisponible', { portee: 'service' }); }
 
-    /* ⛔ Un pays en emballement (ou forcé) : preuve de travail et délai AVANT tout plafond consommé. */
+    /* ⛔ Un pays en emballement (ou forcé, ou dont l'argent a atteint sa part) : preuve de travail et délai AVANT tout plafond consommé. */
     if (sms.bouclierDe(a.pays)) {
       const d = b.defi && typeof b.defi === 'object' ? b.defi : null;
       if (!d || !sms.defiVerifier({ jeton: d.jeton, nonce: d.nonce, pays: a.pays, num_h })) {
@@ -135,42 +145,49 @@ function creerTelephone(ctx) {
       }
     }
 
-    /* Les plafonds, dans l'ordre : réseau, appareil, numéro (60 s), numéro (jour). Un refus rend ceux déjà pris. */
+    /* Les plafonds, dans l'ordre : réseau (/24, ou /64 puis /48), numéro (60 s), numéro (jour). ⛔ DURABLES et réservés dans la MÊME
+       transaction que le budget (`sms.reserver`) : aucune table mémoire à saturer, un redémarrage ne les remet pas à zéro. Il n'y a PAS de
+       plafond par appareil : le jeton d'appareil est tenu par celui qui le présente, un robot qui n'en renvoie pas reçoit un cookie neuf. */
     const dev = appareilDe(req, res);
-    const portes = [
-      ['tel_reseau', reseauSms(req.ip), { max: 10, fenetreMs: H }, 'reseau_plafond'],
-      ['tel_appareil', dev.h, { max: 5, fenetreMs: JOUR }, 'appareil_plafond'],
-      ['tel_num_60s', num_h, { max: 1, fenetreMs: cfg.renvoiMs }, 'renvoi_trop_tot'],
-      ['tel_num_jour', num_h, { max: 5, fenetreMs: JOUR }, 'numero_plafond_jour'],
-    ];
-    const pris = [];
-    for (const [nom, cle, def, code] of portes) {
-      const q = essai(nom, cle, def);
-      if (!q.ok) { rendre(pris); sms.refuser(code); return trop(res, code, q.retry); }
-      pris.push(q.cle);
+    const lim = (nom, def) => Object.assign({}, def, config.quotas[nom] || {});
+    const caps = [];
+    for (const rs of reseauxSms(req.ip)) {
+      const l = rs.niveau === 'r48' ? lim('tel_reseau48', { max: 40, fenetreMs: H }) : lim('tel_reseau', { max: 10, fenetreMs: H });
+      caps.push({ code: 'reseau_plafond', k: 'r:' + hReseau(rs.cle), max: l.max, fenetreMs: l.fenetreMs });
     }
+    const l60 = lim('tel_num_60s', { max: 1, fenetreMs: cfg.renvoiMs }), lj = lim('tel_num_jour', { max: 5, fenetreMs: JOUR });
+    caps.push({ code: 'renvoi_trop_tot', k: 'n:' + num_h, max: l60.max, fenetreMs: l60.fenetreMs });
+    caps.push({ code: 'numero_plafond_jour', k: 'n:' + num_h, max: lj.max, fenetreMs: lj.fenetreMs });
 
-    /* Le budget en euros : réservé ici, dans une transaction. Rien n'est écrit s'il est dépassé. */
-    const r = sms.reserver({ pays: a.pays, cc: a.cc });
+    const r = sms.reserver({ pays: a.pays, cc: a.cc, caps });
     if (!r.ok) {
-      rendre(pris); sms.refuser(r.motif);
+      if (r.plafond) { sms.refuser(r.plafond); return trop(res, r.plafond, r.retry); }
+      sms.refuser(r.motif);
       res.set('Retry-After', '1800');
       return refus(res, 503, 'sms_indisponible', { portee: /pays/.test(r.motif) ? 'pays' : 'global' });
     }
 
     const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
-    stockage.telCodePoser({ num_h, code_h: hCode(num_h, code), exp: horloge() + cfg.codeMs });
+    stockage.telCodePoser({ num_h, code_h: hCode(num_h, code), exp: horloge() + cfg.codeMs, ap_h: dev.h });
     const e = await sms.envoyer({ id: r.id, cout: r.cout, numero: a.e164, message: messageDe(code) });
+    const reponse = { ok: true, delai_s: Math.ceil(cfg.renvoiMs / 1000), expire_s: Math.ceil(cfg.codeMs / 1000), longueur: 6 };
     if (!e.ok) {
-      stockage.telCodeSupprimer(num_h);
-      if (e.genre !== 'incertain') rendre(pris);   // un refus franc ne coûte rien à la personne ; un doute garde ses plafonds
       sms.refuser('envoi_' + e.genre);
+      /* ⛔ « INCERTAIN » : le SMS est peut-être parti. On GARDE le code (s'il arrive, la personne doit pouvoir le taper : le supprimer la
+         laissait avec un SMS valable et un « code invalide »), on GARDE le coût et les plafonds (on suppose le pire), et on répond comme
+         pour un envoi réussi — avec `incertain`, pour que l'écran puisse dire « s'il n'arrive pas, redemandez dans une minute ». */
+      if (e.genre === 'incertain') { codeDeTest(a.e164, code); return res.json(Object.assign(reponse, { incertain: true })); }
+      stockage.telCodeSupprimer(num_h);
+      /* ⛔ « Ce numéro n'existe pas » (OVH) NE REND PAS les plafonds : sinon un robot sonde la validité de numéros à plusieurs centaines par
+         minute et par réseau, sur nos clés d'API. Tout le reste est une panne de NOTRE côté (rien n'est parti : clés, crédits, service
+         injoignable) : le coût et les plafonds sont rendus, la personne n'a rien consommé. */
       if (e.genre === 'numero') return refus(res, 400, 'numero_invalide');
+      sms.rendre(r.id);
+      res.set('Retry-After', '60');
       return refus(res, 503, 'sms_indisponible', { portee: 'service' });
     }
-    /* La porte de TEST (jamais en production, `config.js` refuse le démarrage) : le code en clair, dans un fichier à part. */
-    if (config.testCodes) { try { fs.appendFileSync(config.testCodes, JSON.stringify({ n: a.e164, code }) + '\n'); } catch (er) { /* la porte de test ne casse pas le service */ } }
-    res.json({ ok: true, delai_s: Math.ceil(cfg.renvoiMs / 1000), expire_s: Math.ceil(cfg.codeMs / 1000), longueur: 6 });
+    codeDeTest(a.e164, code);
+    res.json(reponse);
   };
 
   /* ══ 2. PROUVER LE CODE : CRÉER LE COMPTE OU CONNECTER ════════════════════════════════════════ */
@@ -178,37 +195,51 @@ function creerTelephone(ctx) {
     const b = corps(req);
     const a = analyse(b.numero);
     if (!a.ok) return refus(res, 400, 'numero_invalide');
-    if (typeof b.code !== 'string' || !CODE_RE.test(b.code)) return refus(res, 400, 'champ_invalide');
+    /* Un code collé avec ses espaces (« 123 456 », la présentation de beaucoup de SMS) est le même code : l'écran n'a pas à le deviner. */
+    const brut = typeof b.code === 'string' ? b.code.replace(/[\s\u00a0\u202f]/g, '') : b.code;
+    if (typeof brut !== 'string' || !CODE_RE.test(brut)) return refus(res, 400, 'champ_invalide');
     const num_h = hNumero(a.e164);
+    const dev = appareilDe(req, res);
+    /* ⛔ LES ÉCHECS SE COMPTENT PAR (numéro, APPAREIL), PAS PAR NUMÉRO SEUL : dix faux codes par heure d'un inconnu verrouillaient la vérification
+       du numéro de sa victime — qui, avec le BON code, recevait 429 pendant une heure (relecture adverse). Le compteur de l'inconnu est le sien. */
     const q1 = essai('tel_verif_reseau', reseauSms(req.ip), { max: 60, fenetreMs: H });
     if (!q1.ok) return trop(res, 'reseau_plafond', q1.retry);
-    const q2 = essai('tel_verif_num', num_h, { max: 10, fenetreMs: H });
+    const q2 = essai('tel_verif_num', num_h + '|' + dev.h, { max: 10, fenetreMs: H });
     if (!q2.ok) { rendre([q1.cle]); return trop(res, 'numero_plafond_jour', q2.retry); }
 
     /* ⛔ Le MÊME travail que le numéro ait un code en attente ou non : on calcule toujours l'empreinte du code reçu et on compare. */
-    const rec = stockage.telCodeEssayer(num_h, cfg.essaisCode);
-    const recu = hCode(num_h, b.code);
+    const rec = stockage.telCodeEssayer(num_h, cfg.essaisCode, dev.h);
+    const recu = hCode(num_h, brut);
     const attendu = rec ? rec.code_h : hCode(num_h, 'absent:' + crypto.randomBytes(8).toString('hex'));
     const juste = egal(recu, attendu) && !!rec;
     if (!juste) return refus(res, 401, 'code_invalide');
-    stockage.telCodeSupprimer(num_h);   // usage unique
 
     const identifiant = 'tel:' + a.e164;
     let p = stockage.telPersonneParNumero(identifiant), nouveau = false;
-    if (p) {
-      if (p.etat !== 'actif') return refus(res, 401, 'code_invalide');
-    } else {
-      let prenom = '', nom = '';
+    let prenom = '', nom = '';
+    if (!p) {
+      /* ⛔ Les champs se jugent AVANT de consommer le code : un prénom trop long ou mal typé répondait 400 APRÈS la suppression du code, et la
+         personne devait redemander un SMS (relecture adverse). Le code juste reste valable pour un second essai avec un prénom correct. */
       if (b.prenom !== undefined) { if (typeof b.prenom !== 'string') return refus(res, 400, 'champ_invalide'); prenom = nettoyerNom(b.prenom); if (prenom.length > 60) return refus(res, 400, 'champ_invalide'); }
       if (b.nom !== undefined) { if (typeof b.nom !== 'string') return refus(res, 400, 'champ_invalide'); nom = nettoyerNom(b.nom); if (nom.length > 60) return refus(res, 400, 'champ_invalide'); }
-      p = stockage.personneCreer({ identifiant, prenom, nom, origine: 'telephone', verifie: true });
-      nouveau = true;
-    }
+    } else if (p.etat !== 'actif') { stockage.telCodeSupprimer(num_h); return refus(res, 401, 'code_invalide'); }
+    stockage.telCodeSupprimer(num_h);   // usage unique
+    if (!p) { p = stockage.personneCreer({ identifiant, prenom, nom, origine: 'telephone', verifie: true }); nouveau = true; }
     rendre([q1.cle, q2.cle]);   // une réussite n'use pas le plafond des échecs
+    /* ⛔ Un compte existant, un appareil qu'il ne connaît pas : l'ancien titulaire d'un numéro réattribué (ou d'une SIM échangée) garde ses
+       appareils, et le nouveau entre dans SON compte. On PRÉVIENT les autres appareils (notification, tout de suite) ; « Déconnecter les
+       autres appareils » les coupe d'un geste (`moi.appareils.deconnecter`). Et un appareil ne se reconnecte pas SANS SMS plus d'un an. */
+    const connu = stockage.telAppareilLire(dev.h, APPAREIL_ABS_MS);
+    const appareilNouveau = !nouveau && !(connu && connu.personne === p.id);
     const moi = stockage.personneParId(p.id);
     ouvrirSession(res, p.id, b.appareil);
-    const dev = appareilDe(req, res);
     stockage.telAppareilLier({ h: dev.h, personne: p.id, nom: typeof b.appareil === 'string' ? nettoyerNom(b.appareil).slice(0, 40) : null, ttlMs: APPAREIL_MS });
+    if (appareilNouveau) {
+      try {
+        stockage.notifCreer({ uid: p.id, type: 'nouvel_appareil', titre: 'Nouvel appareil connecté', texte: 'Un appareil vient de se connecter à votre compte avec votre numéro de téléphone. Si ce n\'est pas vous, déconnectez les autres appareils.', cible: p.id });
+        hub.reveiller({ uids: [p.id] });
+      } catch (e) { /* une notification ratée ne défait pas la connexion */ }
+    }
     res.json({ ok: true, nouveau, moi });
   };
 
@@ -217,12 +248,24 @@ function creerTelephone(ctx) {
     const q = essai('tel_appareil_reco', reseauSms(req.ip), { max: 120, fenetreMs: H });
     if (!q.ok) return trop(res, 'reseau_plafond', q.retry);
     const v = lireCookie(req, nomAppareil);
-    const ap = v && APPAREIL_RE.test(v) ? stockage.telAppareilLire(sha(v)) : null;
+    const ap = v && APPAREIL_RE.test(v) ? stockage.telAppareilLire(sha(v), APPAREIL_ABS_MS) : null;
     const p = ap ? stockage.personneParId(ap.personne) : null;
     if (!p || p.etat !== 'actif') return refus(res, 401, 'appareil_inconnu');
     stockage.telAppareilToucher(sha(v), APPAREIL_MS);
     ouvrirSession(res, p.id, corps(req).appareil);
     res.json({ ok: true, moi: p });
+  };
+
+  /* « Déconnecter les autres appareils » : toutes les sessions et tous les jetons d'appareil de la personne SAUF ceux de l'appareil d'où l'on
+     le demande. Le geste de qui a perdu un téléphone, ou vu « Nouvel appareil connecté » sans l'avoir fait. */
+  H_['moi.appareils.deconnecter'] = (req, res) => {
+    const q = essai('deco_autres', req.moi.id, { max: 10, fenetreMs: H });
+    if (!q.ok) return trop(res, 'quota_atteint', q.retry);
+    const hs = stockage.sessionsSupprimerAutres(req.moi.id, req.sessionH);
+    for (const h of hs) hub.fermerSession(h);
+    const v = lireCookie(req, nomAppareil);
+    const appareils = stockage.telAppareilsSupprimerAutres(req.moi.id, v && APPAREIL_RE.test(v) ? sha(v) : '');
+    res.json({ ok: true, sessions: hs.length, appareils });
   };
 
   /* La déconnexion couvre aussi le jeton d'appareil : sinon « se déconnecter » se déferait toute seule au prochain lancement. */
@@ -319,4 +362,19 @@ function installerTelephone(H, ctx) {
   return t;
 }
 
-module.exports = { installerTelephone, creerTelephone, reseauSms, SESSION_TEL_MS, APPAREIL_MS };
+/* Une session de compte par numéro qui sert prolonge AUSSI le jeton d'appareil du même navigateur (appelé par la garde de session) : un utilisateur actif
+   pendant 160 jours puis absent 91 jours devait retaper un SMS, parce que seule une reconnexion sans SMS prolongeait le jeton. L'écriture reste
+   limitée à une par heure (`telAppareilToucher`). Le plafond absolu (`APPAREIL_ABS_MS`, depuis la dernière preuve par SMS) ne bouge pas. */
+function appareilToucherDe(req, config, stockage) {
+  const h = req.headers.cookie; if (!h) return;
+  const nom = config.cookie.nom + 'a';
+  for (const part of h.split(';')) {
+    const i = part.indexOf('='); if (i < 0) continue;
+    if (part.slice(0, i).trim() !== nom) continue;
+    const v = part.slice(i + 1).trim();
+    if (APPAREIL_RE.test(v)) stockage.telAppareilToucher(sha(v), APPAREIL_MS);
+    return;
+  }
+}
+
+module.exports = { installerTelephone, creerTelephone, reseauSms, reseauxSms, appareilToucherDe, SESSION_TEL_MS, APPAREIL_MS, APPAREIL_ABS_MS };

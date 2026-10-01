@@ -23,7 +23,7 @@ const express = require('express');
 const { MANIFESTE } = require('./manifeste');
 const { creerHandlers, ID_CONV } = require('./routes');
 const { cleReseau } = require('./quotas');
-const { installerTelephone, SESSION_TEL_MS } = require('./telephone');
+const { installerTelephone, appareilToucherDe, SESSION_TEL_MS } = require('./telephone');
 
 const NOM_ENTETE = 'x-opm';
 const SHA = (x) => crypto.createHash('sha256').update(x).digest('hex');
@@ -115,6 +115,7 @@ function construireApp(ctx) {
     if (!p || p.etat !== 'actif') return refus(res, 401, 'session_requise');
     /* Un compte par numéro : 90 jours glissants (le moins de SMS possible) ; les autres, 30. */
     stockage.sessionToucher(h, p.origine === 'telephone' ? SESSION_TEL_MS : 30 * 86400000);
+    if (p.origine === 'telephone') appareilToucherDe(req, config, stockage);   // l'usage prolonge aussi le jeton d'appareil du même navigateur
     req.moi = p; req.sessionH = h;
     next();
   }];

@@ -17,15 +17,14 @@
  * (`sms.budgetJour` 20 €, `sms.budgetPaysJour` 3 €…) et se règlent à la main, en connaissance de cause.
  */
 'use strict';
-const fs = require('fs'), readline = require('readline');
+const fs = require('fs');
 const { signer, URL_DEFAUT } = require('./sms-ovh');
 const { lireConfigSms } = require('./sms-garde');
 
 const CONFIG_PATH = process.env.OPMSG_CONFIG;
 const AU_CLAVIER = !!process.stdin.isTTY;
 
-let rl = null, lignes = null;
-if (AU_CLAVIER) rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
+let lignes = null;
 function lireToutStdin() {
   return new Promise(resolve => {
     let d = ''; process.stdin.setEncoding('utf8');
@@ -43,15 +42,42 @@ async function demander(question, masque) {
     process.stdout.write(question + (masque ? '' : r) + '\n');
     return r;
   }
-  return new Promise(resolve => {
-    if (masque) {
-      const ecrire = rl._writeToOutput;
-      rl._writeToOutput = function (s) { if (s.includes(question)) ecrire.call(rl, s); else ecrire.call(rl, ''); };
-      rl.question(question, r => { rl._writeToOutput = ecrire; process.stdout.write('\n'); resolve(String(r).trim()); });
-    } else rl.question(question, r => resolve(String(r).trim()));
+  return lireAuClavier(question, masque);
+}
+/* ⛔ AU CLAVIER : LECTURE EN MODE BRUT, CARACTÈRE PAR CARACTÈRE, SANS `readline`. La version d'avant masquait la frappe en neutralisant
+   `rl._writeToOutput` — mais `readline` REDESSINE « invite + ligne » en entier à chaque retour arrière, flèche gauche ou Ctrl-A : les secrets
+   saisis jusque-là s'affichaient EN CLAIR (rejoué sous pty : « Secret d'application (masqué) : secret-banc-… »), et Justin recolle toutes
+   ses sorties dans la conversation. Ici RIEN n'est jamais réécrit : ce qui est masqué ne reçoit aucun écho, ni à la frappe, ni à la
+   correction ; une valeur visible (nom du service) reçoit l'écho des caractères tapés et de l'effacement, et rien d'autre. Les séquences
+   d'échappement (flèches, Début, Fin, Suppr.) sont lues et IGNORÉES ; Ctrl-C abandonne ; Ctrl-U efface la ligne ; un collage de plusieurs
+   caractères est traité caractère par caractère. */
+function lireAuClavier(question, masque) {
+  return new Promise((resolve) => {
+    const entree = process.stdin;
+    process.stdout.write(question);
+    entree.setRawMode(true); entree.resume(); entree.setEncoding('utf8');
+    let tampon = '', echappement = 0;   // echappement : 0 aucun, 1 après ESC, 2 dans « ESC [ … » (jusqu'à l'octet final)
+    const effacerEcho = (n) => { if (!masque && n > 0) process.stdout.write('\b \b'.repeat(n)); };
+    const fini = () => { entree.removeListener('data', surDonnees); entree.setRawMode(false); entree.pause(); process.stdout.write('\n'); resolve(tampon.trim()); };
+    function surDonnees(morceau) {
+      for (const ch of morceau) {
+        const c = ch.codePointAt(0);
+        if (echappement === 1) { echappement = ch === '[' || ch === 'O' ? 2 : 0; continue; }
+        if (echappement === 2) { if (c >= 0x40 && c <= 0x7e) echappement = 0; continue; }
+        if (ch === '\x1b') { echappement = 1; continue; }
+        if (ch === '\r' || ch === '\n') { fini(); return; }
+        if (ch === '\x03') { entree.setRawMode(false); process.stdout.write('\n✗ Abandon. Rien n\'a été modifié.\n'); process.exit(130); }
+        if (ch === '\x7f' || ch === '\b') { if (tampon.length) { tampon = tampon.slice(0, -1); effacerEcho(1); } continue; }
+        if (ch === '\x15') { effacerEcho(tampon.length); tampon = ''; continue; }
+        if (c < 0x20 || (c >= 0x7f && c < 0xa0)) continue;
+        tampon += ch;
+        if (!masque) process.stdout.write(ch);
+      }
+    }
+    entree.on('data', surDonnees);
   });
 }
-const fermer = () => { if (rl) rl.close(); };
+const fermer = () => { if (AU_CLAVIER) { try { process.stdin.setRawMode(false); } catch (e) { /* déjà rendu */ } process.stdin.pause(); } };
 const echec = (m) => { console.error('\n✗ ' + m + ' Rien n\'a été modifié.'); fermer(); process.exit(1); };
 
 (async () => {
@@ -112,7 +138,9 @@ const echec = (m) => { console.error('\n✗ ' + m + ' Rien n\'a été modifié.'
 
   config.sms = Object.assign({}, sms, { ovh });
   const tmp = CONFIG_PATH + '.tmp-' + process.pid;
-  fs.writeFileSync(tmp, JSON.stringify(config, null, 2));
+  /* ⛔ Créé en 0600 DÈS L'ÉCRITURE (`mode`, flag `wx`) : écrit d'abord avec le umask par défaut (0644, dans un dossier en 0755) puis `chmod`,
+     le fichier portait les trois secrets lisibles par tous les comptes de la machine pendant l'intervalle. */
+  fs.writeFileSync(tmp, JSON.stringify(config, null, 2), { mode: 0o600, flag: 'wx' });
   fs.chmodSync(tmp, 0o600);
   /* ⛔ LE PROPRIÉTAIRE SUIT LE FICHIER : lancé en root, le renommage donnerait un fichier root:root en 0600, que le service
      (utilisateur `opmsg`) ne pourrait plus lire — il refuserait de démarrer. On recopie le propriétaire de l'ancien. */

@@ -24,13 +24,16 @@ const { DatabaseSync } = require('node:sqlite');
 const HEURE = 3600000, JOUR = 86400000;
 const bac = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-916-'));
 let n = 0;
-function neuf(cfgSms, instance) {
+/* `brut` : la configuration TELLE QUELLE (les défauts de production : bouclier à 40 % de l'argent, réserve du marché d'origine). Sans lui, les parcours de budget et d'emballement
+   mesurent leur propre règle SEULE : ni le bouclier de l'argent ni la réserve ne s'en mêlent. */
+function neuf(cfgSms, instance, brut, fetchImpl) {
   const chemin = path.join(bac, 'msg-' + (++n) + '.db'), kek = crypto.randomBytes(32), h = { t: 1790000000000 };
   const scelleur = creerScelleur(kek);
   const S = ouvrir({ chemin, scelleur, horloge: () => h.t });
   const journal = [];
-  const cfg = G.lireConfigSms(cfgSms || {}, instance || 'beta');
-  const garde = G.creerGarde({ cfg, instance: instance || 'beta', stockage: S, scelleur, horloge: () => h.t, journaliser: (e, c) => journal.push([e, c]) });
+  const c0 = cfgSms || {};
+  const cfg = G.lireConfigSms(brut ? c0 : Object.assign({ reserve: { part: 0 } }, c0, { emballement: Object.assign({ partBudget: 1 }, c0.emballement) }), instance || 'beta');
+  const garde = G.creerGarde(Object.assign({ cfg, instance: instance || 'beta', stockage: S, scelleur, horloge: () => h.t, journaliser: (e, c) => journal.push([e, c]) }, fetchImpl ? { fetchImpl } : {}));
   return { S, h, garde, cfg, journal, chemin, kek, scelleur };
 }
 const lance = (f) => { try { f(); return null; } catch (e) { return e.code + ' ' + e.message; } };
@@ -225,5 +228,172 @@ console.log('\n── 916 · la MIGRATION 2 refuse une base qui a des lignes orp
   apres.close();
 }
 
-fs.rmSync(bac, { recursive: true, force: true });
-fin();
+(async () => {
+console.log('\n── 916 · le bouclier de l\'ARGENT : 40 % du budget (pays, total, heure, jour) — pas un nombre de SMS que le budget empêche d\'atteindre ──');
+{
+  const d = G.lireConfigSms({}, 'beta');
+  v('les défauts : le bouclier s\'allume à 40 % ; 40 % du budget global sont réservés à la France et ses départements', [d.emballement.partBudget, d.reserve.part, d.reserve.pays.includes('FR'), d.reserve.pays.includes('RE')], [0.4, 0.4, true, true]);
+  const refus = (c) => { try { G.lireConfigSms(c, 'beta'); return null; } catch (e) { return e.code; } };
+  v('⛔ une part de bouclier absurde (0, 2) ou une réserve de 95 % ou un code pays en minuscules REFUSENT le démarrage', [refus({ emballement: { partBudget: 0 } }), refus({ emballement: { partBudget: 2 } }), refus({ reserve: { part: 0.95 } }), refus({ reserve: { pays: ['fr'] } })], ['CONFIG', 'CONFIG', 'CONFIG', 'CONFIG']);
+  const a = neuf({ budgetJour: 20, budgetHeure: 5, budgetPaysJour: 3, budgetPaysHeure: 1.5 }, 'beta', true);
+  const reserve = (pays, cc, n) => { for (let i = 0; i < n; i++) { const r = a.garde.reserver({ pays, cc }); if (!r.ok) return r; } return { ok: true }; };
+  reserve('FR', '33', 7);
+  v('sept SMS français (0,525 € : sous 40 % de 1,5 €) : pas de bouclier', a.garde.bouclierDe('FR'), null);
+  reserve('FR', '33', 1);
+  v('⛔ le huitième SMS (0,60 € = 40 % du budget de l\'heure du pays) : le bouclier s\'allume — le plancher de 30 n\'aurait JAMAIS été atteint (le budget coupe à 20)', a.garde.bouclierDe('FR'), { motif: 'budget_pays' });
+  v('   un autre pays qui n\'a rien dépensé : rien', a.garde.bouclierDe('BE'), null);
+  v('   /health compte ce bouclier (un nombre)', a.garde.sante().boucliers, 1);
+  reserve('RU', '7', 1); reserve('ID', '62', 1); reserve('AZ', '994', 1);
+  v('⛔ trois SMS vers trois pays chers (2,49 €, 50 % du budget global de l\'heure) : le bouclier du TOTAL s\'allume, pour TOUS les pays', [a.garde.bouclierDe('BE'), a.garde.bouclierDe('JP')], [{ motif: 'budget_global' }, { motif: 'budget_global' }]);
+  v('   et /health le compte une seule fois', a.garde.sante().boucliers, 1);
+  a.h.t += HEURE + 1000;
+  v('une heure plus tard, la dépense de l\'heure est retombée : le bouclier tombe SEUL (il suit la fenêtre glissante)', a.garde.bouclierDe('BE'), null);
+  a.S.fermer();
+  const b = neuf({ budgetJour: 20, budgetHeure: 5, budgetPaysJour: 3, budgetPaysHeure: 1.5, emballement: { partBudget: 1 } }, 'beta', true);
+  for (let i = 0; i < 18; i++) b.garde.reserver({ pays: 'FR', cc: '33' });
+  v('contre-épreuve : « partBudget: 1 » éteint ce bouclier (18 SMS français, 90 % du budget du pays)', b.garde.bouclierDe('FR'), null);
+  b.S.fermer();
+  const c = neuf({ budgetJour: 20, budgetHeure: 0, budgetPaysJour: 3, budgetPaysHeure: 1.5 }, 'beta', true);
+  v('un budget de zéro n\'allume pas un bouclier (il n\'y a rien à protéger : tout est refusé)', c.garde.bouclierDe('FR'), null);
+  c.S.fermer();
+}
+
+console.log('\n── 916 · la RÉSERVE du marché d\'origine : les autres pays ne se partagent que 60 % du budget global ──');
+{
+  const a = neuf({}, 'beta', true);
+  const r = [a.garde.reserver({ pays: 'RU', cc: '7' }), a.garde.reserver({ pays: 'ID', cc: '62' }), a.garde.reserver({ pays: 'AZ', cc: '994' }), a.garde.reserver({ pays: 'UZ', cc: '998' })];
+  v('RU, ID, AZ passent (2,49 € sur 3 €) ; UZ (3,11 €) dépasserait les 60 % du budget de l\'heure réservés aux AUTRES pays : « budget_heure »', [r[0].ok, r[1].ok, r[2].ok, r[3].ok, r[3].motif], [true, true, true, false, 'budget_heure']);
+  v('⛔ la France, elle, passe : la réserve est faite pour elle', a.garde.reserver({ pays: 'FR', cc: '33' }).ok, true);
+  v('   et un département (la Réunion) aussi', a.garde.reserver({ pays: 'RE', cc: '262' }).ok, true);
+  a.S.fermer();
+  const b = neuf({ reserve: { part: 0 } }, 'beta', true);
+  const r2 = [b.garde.reserver({ pays: 'RU', cc: '7' }), b.garde.reserver({ pays: 'ID', cc: '62' }), b.garde.reserver({ pays: 'AZ', cc: '994' }), b.garde.reserver({ pays: 'UZ', cc: '998' })];
+  v('contre-épreuve : SANS réserve, UZ passe (le total 3,11 € tient sous 5 €) — c\'est ainsi que sept pays chers ferment la France', r2.map(x => x.ok), [true, true, true, true]);
+  b.S.fermer();
+}
+
+console.log('\n── 916 · les PLAFONDS par numéro et par réseau : durables, glissants, réservés dans la MÊME transaction que le budget ──');
+{
+  const a = neuf({ budgetJour: 50, budgetHeure: 50, budgetPaysJour: 50, budgetPaysHeure: 50 });
+  const caps = (k, max, fenetreMs, code) => [{ code: code || 'plafond_x', k, max, fenetreMs }];
+  const r1 = a.garde.reserver({ pays: 'BE', cc: '32', caps: caps('n:aaa', 2, 60000) }), r2 = a.garde.reserver({ pays: 'BE', cc: '32', caps: caps('n:aaa', 2, 60000) });
+  const r3 = a.garde.reserver({ pays: 'BE', cc: '32', caps: caps('n:aaa', 2, 60000) });
+  v('deux passent, le troisième est refusé avec le NOM du plafond et un Retry-After de 1 à 60 s', [r1.ok, r2.ok, r3.ok, r3.plafond, r3.retry >= 1 && r3.retry <= 60], [true, true, false, 'plafond_x', true]);
+  v('⛔ le refus n\'a écrit AUCUN envoi (le journal compte deux lignes)', a.S.smsSommes(0).n, 2);
+  a.h.t += 61000;
+  v('la fenêtre GLISSE : soixante et une secondes plus tard, le plafond est libre', a.garde.reserver({ pays: 'BE', cc: '32', caps: caps('n:aaa', 2, 60000) }).ok, true);
+  const nb = a.S.smsTentativesCompter('n:aaa', 0);
+  const ra = a.garde.reserver({ pays: 'BE', cc: '32', caps: caps('n:bbb', 5, 86400000) });
+  v('un plafond est une ligne par SMS et par clé', a.S.smsTentativesCompter('n:bbb', 0), 1);
+  a.garde.rendre(ra.id);
+  v('⛔ rendre un SMS qui n\'est jamais parti rend SES lignes de plafond (et seulement les siennes)', [a.S.smsTentativesCompter('n:bbb', 0), a.S.smsTentativesCompter('n:aaa', 0)], [0, nb]);
+  a.S.fermer();
+  const b = neuf({ budgetJour: 0.05, budgetHeure: 50, budgetPaysJour: 50, budgetPaysHeure: 50 });
+  const rb = b.garde.reserver({ pays: 'FR', cc: '33', caps: caps('n:ccc', 5, 86400000) });
+  v('⛔ un budget refusé n\'a consommé AUCUN plafond (tout se décide dans la même transaction)', [rb.ok, rb.motif, b.S.smsTentativesCompter('n:ccc', 0)], [false, 'budget_jour', 0]);
+  b.S.fermer();
+  /* DURABLES : la base, rouverte, sait. */
+  const d = neuf({ budgetJour: 50, budgetHeure: 50, budgetPaysJour: 50, budgetPaysHeure: 50 });
+  d.garde.reserver({ pays: 'BE', cc: '32', caps: caps('n:ddd', 1, 60000) });
+  d.S.fermer();
+  const S2 = ouvrir({ chemin: d.chemin, scelleur: creerScelleur(d.kek), horloge: () => d.h.t });
+  v('⛔ la base rouverte garde le plafond (rien ne vit en mémoire)', S2.smsTentativesCompter('n:ddd', d.h.t - 60000), 1);
+  S2.fermer();
+}
+
+console.log('\n── 916 · le DÉFI : une table remplie par un robot ne refuse PAS les personnes honnêtes (elle évince les plus anciens) ──');
+{
+  const a = neuf({ bouclier: { bits: 8, attenteMs: 0, validiteMs: 600000 } });
+  const g = a.garde, numH = 'c'.repeat(64);
+  const nonceDe = (d) => { for (let i = 0; i < 1e7; i++) { const x = i.toString(36); if (crypto.createHash('sha256').update(d.jeton + ':' + x).digest()[0] === 0) return x; } };
+  let acceptes = 0;
+  for (let i = 0; i < 20100; i++) { const d = g.defiEmettre({ pays: 'BE', num_h: numH }); if (g.defiVerifier({ jeton: d.jeton, nonce: nonceDe(d), pays: 'BE', num_h: numH })) acceptes++; }
+  v('⛔ vingt mille cent défis brûlés (5 000 refusaient déjà toute preuve, pendant dix minutes) : TOUS acceptés — la table évince, elle ne refuse pas', acceptes, 20100);
+  const dn = g.defiEmettre({ pays: 'BE', num_h: numH }), nn = nonceDe(dn);
+  v('   et un client honnête, juste après, passe', g.defiVerifier({ jeton: dn.jeton, nonce: nn, pays: 'BE', num_h: numH }), true);
+  v('   son défi ne se rejoue toujours pas', g.defiVerifier({ jeton: dn.jeton, nonce: nn, pays: 'BE', num_h: numH }), false);
+  a.S.fermer();
+}
+
+console.log('\n── 916 · l\'ENVOI : « numéro invalide » n\'est pas une panne, « refus » et « non envoyé » en sont une (ovhEchecs) ──');
+{
+  const mode = { v: 'ok' };
+  const fauxFetch = async (url, o) => {
+    const rep = (st, corps) => ({ status: st, ok: st >= 200 && st < 300, text: async () => String(corps), json: async () => corps });
+    if (/auth\/time$/.test(url)) return rep(200, Math.floor(Date.now() / 1000));
+    if (mode.v === 'ok') return rep(200, { validReceivers: ['+32470123456'], invalidReceivers: [], ids: [1], totalCreditsRemoved: 1 });
+    if (mode.v === 'invalide') return rep(200, { validReceivers: [], invalidReceivers: ['+32470123456'], ids: [], totalCreditsRemoved: 0 });
+    if (mode.v === 'refus') return rep(400, { message: 'not enough credits' });
+    if (mode.v === '503') return rep(503, { message: 'Service Unavailable' });
+    if (mode.v === '500') return rep(500, { message: 'Internal' });
+    return rep(200, {});
+  };
+  const ovh = { appKey: 'abcdefgh', appSecret: 'abcdefgh', consumerKey: 'abcdefgh', serviceName: 'sms-xx1-1', expediteur: 'OPMSG', urlBase: 'http://ovh.test/1.0' };
+  const a = neuf({ ovh }, 'beta', true, fauxFetch);
+  const essai = async (m) => { mode.v = m; const r = a.garde.reserver({ pays: 'BE', cc: '32' }); const e = await a.garde.envoyer({ id: r.id, cout: r.cout, numero: '+32470123456', message: 'x' }); return [e.ok ? 'ok' : e.genre, a.garde.sante().ovhEchecs]; };
+  v('un envoi réussi : ovhEchecs à zéro', await essai('ok'), ['ok', 0]);
+  v('⛔ « numéro invalide » (400 du destinataire) ne compte PAS comme une panne', await essai('invalide'), ['numero', 0]);
+  v('⛔ un refus franc d\'OVH (400 : crédits épuisés) COMPTE (avant : seul un 403 ou un 5xx montait, des crédits épuisés seraient restés muets)', await essai('refus'), ['refus', 1]);
+  v('⛔ un 503 compte, et c\'est « non_envoye »', await essai('503'), ['non_envoye', 2]);
+  v('un 500 compte, et reste « incertain »', await essai('500'), ['incertain', 3]);
+  v('un envoi réussi remet le compteur à zéro', await essai('ok'), ['ok', 0]);
+  const refuses = a.S.smsSommes(0);
+  vrai('⛔ le journal : seuls les envois réussis et l\'incertain comptent en euros (3 lignes comptées sur 7, ' + refuses.n + ')', refuses.n === 3);
+  a.S.fermer();
+}
+
+console.log('\n── 916 · le CODE est lié à l\'appareil qui l\'a demandé ; l\'appareil est borné dans le temps ──');
+{
+  const a = neuf();
+  const S = a.S, num = 'n'.repeat(64);
+  S.telCodePoser({ num_h: num, code_h: 'h1', exp: a.h.t + 600000, ap_h: 'appareil-A' });
+  let autres = [];
+  for (let i = 0; i < 12; i++) autres.push(S.telCodeEssayer(num, 5, 'appareil-B'));
+  v('⛔ un AUTRE appareil (l\'inconnu qui connaît le numéro) : douze essais, aucun résultat — et ils ne brûlent PAS le code', [autres.every(x => x === null), S.telCodeEssayer(num, 5, 'appareil-A')], [true, { code_h: 'h1' }]);
+  const essais = S.telCodeEssayer(num, 5, 'appareil-A');
+  v('l\'appareil qui l\'a demandé garde ses cinq essais (on a compté UN essai juste avant, pas les douze de l\'autre)', essais, { code_h: 'h1' });
+  for (let i = 0; i < 3; i++) S.telCodeEssayer(num, 5, 'appareil-A');
+  v('au cinquième essai de SON appareil, le code est épuisé', S.telCodeEssayer(num, 5, 'appareil-A'), null);
+
+  const pers = S.personneCreer({ identifiant: 'tel:+32470000001', prenom: 'A', nom: '', origine: 'telephone', verifie: true });
+  S.telAppareilLier({ h: 'ap1', personne: pers.id, nom: 'x', ttlMs: 180 * JOUR });
+  v('un appareil lié se relit', S.telAppareilLire('ap1', 365 * JOUR).personne, pers.id);
+  a.h.t += 366 * JOUR;
+  S.telAppareilToucher('ap1', 180 * JOUR);
+  v('⛔ plafond ABSOLU : un an après sa dernière preuve par SMS, même « touché » tous les jours, il ne reconnecte plus (un numéro réattribué ne laisse pas l\'ancien titulaire connecté pour toujours)', S.telAppareilLire('ap1', 365 * JOUR), null);
+  S.telAppareilLier({ h: 'ap2', personne: pers.id, nom: 'y', ttlMs: 180 * JOUR });
+  a.h.t += 150 * JOUR;
+  S.telAppareilLier({ h: 'ap2', personne: pers.id, nom: 'y', ttlMs: 180 * JOUR });
+  a.h.t += 150 * JOUR;
+  v('un nouveau SMS remet la date de preuve à jour (300 jours après le premier lien, 150 après le second : reconnu)', S.telAppareilLire('ap2', 365 * JOUR) !== null, true);
+
+  const s1 = S.sessionAjouter({ h: 's1', personne: pers.id, ttlMs: JOUR }); const s2 = S.sessionAjouter({ h: 's2', personne: pers.id, ttlMs: JOUR }); S.sessionAjouter({ h: 's3', personne: pers.id, ttlMs: JOUR });
+  S.telAppareilLier({ h: 'ap3', personne: pers.id, nom: 'z', ttlMs: 180 * JOUR }); S.telAppareilLier({ h: 'ap4', personne: pers.id, nom: 'w', ttlMs: 180 * JOUR });
+  v('« déconnecter les autres » : toutes les sessions sauf celle d\'où l\'on le demande (on rend leurs empreintes pour fermer leurs flux)', S.sessionsSupprimerAutres(pers.id, 's2').sort(), ['s1', 's3']);
+  v('   et tous les jetons d\'appareil sauf le sien', [S.telAppareilsSupprimerAutres(pers.id, 'ap3') >= 1, S.telAppareilLire('ap3', 365 * JOUR) !== null, S.telAppareilLire('ap2', 365 * JOUR)], [true, true, null]);
+  vrai('   (la session gardée existe encore)', S.sessionLire('s2') !== null && S.sessionLire('s1') === null);
+  void s1; void s2;
+  a.S.fermer();
+}
+
+console.log('\n── 916 · l\'ÉLAGAGE : chaque table du téléphone a SA rétention (rien ne reste indéfiniment) ──');
+{
+  const a = neuf();
+  const S = a.S, t = a.h.t;
+  S.telCodePoser({ num_h: 'x'.repeat(64), code_h: 'h', exp: t - 2 * HEURE, ap_h: 'a' });   // un code expiré depuis deux heures : l'empreinte d'un numéro NON inscrit
+  const id = S.smsReserver({ pays: 'BE', cout: 100000 }); S.smsTentativesNoter(id, ['n:vieux'], t - 3 * JOUR); S.smsTentativesNoter(id, ['n:recent'], t - HEURE);
+  const vieux = S.smsReserver({ pays: 'BE', cout: 100000 }); S.smsRegler(vieux, { etat: 'envoye', cout: 100000 });
+  a.h.t = t + 10 * JOUR;
+  S.telCodePoser({ num_h: 'y'.repeat(64), code_h: 'h', exp: a.h.t + 10 * 60000, ap_h: 'a' });  // un code vivant
+  const brut = new DatabaseSync(a.chemin);
+  const compte = (tb) => Number(brut.prepare('SELECT COUNT(*) AS n FROM ' + tb).get().n);
+  const avant = [compte('code_tel'), compte('sms_tentative'), compte('sms_envoi')];
+  const n = S.smsElaguer({ journalAvant: a.h.t - 8 * JOUR, codesAvant: a.h.t - HEURE, recherchesAvant: a.h.t - 2 * JOUR, tentativesAvant: a.h.t - 2 * JOUR, appareilsAbsMs: 365 * JOUR });
+  const apres = [compte('code_tel'), compte('sms_tentative'), compte('sms_envoi')];
+  v('la population : un code expiré, un vivant ; deux lignes de plafond ; deux envois — tous plus vieux que leur rétention', avant, [2, 2, 2]);
+  vrai('⛔ rien ne reste de trop : les codes expirés, les plafonds de plus de deux jours et le journal de plus de huit jours sont partis (' + n + ' lignes) : ' + JSON.stringify(apres), apres[0] === 1 && apres[1] === 0 && apres[2] === 0);
+  brut.close();
+  a.S.fermer();
+}
+
+})().then(() => { try { fs.rmSync(bac, { recursive: true, force: true }); } catch (e) {} fin(); }).catch(e => { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; fin(); });
