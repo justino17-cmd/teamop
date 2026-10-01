@@ -32,7 +32,7 @@ const unique = (re, s) => { const m = (s || NU).match(re); return m ? m.length :
 const NOMS = ['forfaitServeurSync', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'accesSuspendu', 'suspensionBloque',
   'suspensionClasse', 'suspensionRappel', 'forfait', 'planBloque', 'optionsCle', 'optionsLire', 'optionsCharger', 'optionsPoser', 'optionServie',
   'optionOuvre', 'optionsDe', 'formuleFermeMsg', 'optionsCarteHtml', 'optionAjouter', 'notifVoitModule', 'usrMenuLu', 'bonMarquerRecue',
-  'respBonsPrevenir', 'stockExportBon'];
+  'respBonsPrevenir', 'stockExportBon', 'openScanner'];
 const FN = NOMS.map(fonction);
 const SRC = { PLANS: bloc('const PLANS={'), PLAN_BLOQUE: bloc('const PLAN_BLOQUE={'), OPT: bloc('const OPTIONS_GESTION={'),
   SUSP: (/^let _susp = \{[^\n]*\};$/m.exec(APP) || [''])[0], RAZ_RUB: bloc('const RAZ_RUBRIQUE={'), RAZ_FN: (/^const razLignes=.*$/m.exec(APP) || [''])[0] };
@@ -51,12 +51,13 @@ const TOUTES_PRO = ['produits', 'stock', 'mouvements', 'boxes', 'carteBox', 'sai
 /* ── un appareil : une machine à sable avec les VRAIES fonctions et des témoins ── */
 function machine(o = {}) {
   const LS = new Map(Object.entries(o.ls || {}));
-  const vu = { toasts: [], saves: 0, nav: 0, onglets: 0, gos: [], opens: [], pushs: [], logs: [], confirms: [], bons: [] };
+  const vu = { toasts: [], saves: 0, nav: 0, onglets: 0, gos: [], opens: [], pushs: [], logs: [], confirms: [], bons: [], scans: [] };
   const S = {
     fetch: o.fetch || ((u, x) => fetch(u, x)), PUSH_API: o.api || 'http://127.0.0.1:9', toast: m => vu.toasts.push(String(m)),
     renderNav: () => { vu.nav++; }, renderOnglets: () => { vu.onglets++; }, go: x => { vu.gos.push(x); }, save: () => { vu.saves++; },
     logEvent: (...a) => { vu.logs.push(a.join('|')); }, todayISO: () => '2026-10-01', espaceQuitter() {}, suiteRefresh() {}, views: {},
     document: { getElementById: () => null, documentElement: { classList: { toggle() {} } }, addEventListener() {} }, esc: s => String(s),
+    permGarde: () => true, stockageBox: () => false, stockageOuvert: () => false, STOCKAGE_ID: 'stockage', etiqOuvrir: (...a) => { vu.scans.push(a.join('|')); }, etiqVersBox() {},
     metierBloque: o.metierBloque || (() => false), window: { open: u => { vu.opens.push(u); } },
     confirm: () => { vu.confirms.push(1); return o.confirmer !== false; },
     peutCommander: () => o.peutCommander !== false, refusCommander: () => { vu.toasts.push('refus commander'); }, fullName: u => 'Prénom Nom',
@@ -74,7 +75,7 @@ function machine(o = {}) {
     + FN.join('\n') + '\n'
     + (o.raz ? SRC.RAZ_RUB + ';\nconst RAZ_LIGNES=' + JSON.stringify(RAZ_CLES.map(k => ({ k }))) + ';\n' + SRC.RAZ_FN + '\n' : '')
     + (o.charger ? 'optionsCharger();\n' : '')
-    + 'return { sync: forfaitServeurSync, planBloque, optionsPoser, optionsCharger, optionsLire, optionOuvre, optionServie, optionsDe, formuleFermeMsg, optionsCarteHtml, optionAjouter,\n'
+    + 'return { sync: forfaitServeurSync, planBloque, optionsPoser, optionsCharger, optionsLire, optionOuvre, optionServie, optionsDe, formuleFermeMsg, optionsCarteHtml, optionAjouter, openScanner,\n'
     + '  notifVoitModule, usrMenuLu, bonMarquerRecue, respBonsPrevenir, stockExportBon, accesSuspendu, forfait, suspensionPoser, db: () => db, opts: () => _optsSrv, etatLuLe: () => _etatLuLe,\n'
     + '  susp: () => _susp, setUser: u => { currentUser = u; }, setSusp: s => { _susp = s; }, ' + (o.raz ? 'razLignes, ' : '') + 'setDb: d => { db = d; } };';
   const noms = Object.keys(S);
@@ -287,6 +288,15 @@ const apres = (ms) => new Promise(r => setTimeout(r, ms));
     const mt = matrice('pro', [], { metierBloque: nett }); mt.setUser({ id: 'u-t', role: 'technicien' });
     vrai('   un autre rôle : le métier, sans « Paramètres » ni un mot de prix', dit(mt.formuleFermeMsg('boxes')) && !/Paramètres/.test(mt.formuleFermeMsg('boxes')));
     vrai('   un métier 3D (rien de masqué) : le message de formule d\'avant, inchangé', /option Registre sanitaire \(métier 3D\) \(\+6 €/.test(matrice('pro', [], { metierBloque: () => false }).formuleFermeMsg('registre'))); }
+  /* ⛔ LE SCANNER DU CATALOGUE ÉCRIT LE STOCK (l'ancien compteur) : sans l'option Stock, la fonction REFUSE — un Pro qui n'a que le Registre
+     sanitaire (qui ouvre Produits) ne règle pas un stock qu'il n'a pas payé (`gardien`, 1er octobre 2026, rejoué : « Scanner » ouvrait la caméra) */
+  { const sc = matrice('pro', ['sanitaire']); sc.openScanner();
+    v('⛔⛔ Pro + Registre sanitaire seul (Produits ouvert, Stock fermé) : « Scanner » REFUSE — aucun scanner ouvert, la formule le dit', [sc.vu.scans.length, /option Stock/.test(sc.vu.toasts.join('|'))], [0, true]);
+    const sa = matrice('pro', ['stock']); sa.openScanner();
+    v('   (contre-épreuve) Pro + Stock : le scanner s\'ouvre', [sa.vu.scans.length], [1]);
+    const sb = matrice('business', []); sb.openScanner();
+    v('   Business : le scanner s\'ouvre', [sb.vu.scans.length], [1]);
+    vrai('   et le BOUTON « Scanner » de Produits n\'est proposé que si le stock est ouvert (la rangée de gestes de la rubrique)', /\$\{planBloque\('stock'\)\?'':'<button class="btn ghost" onclick="openScanner\(\)">Scanner<\/button> '\}/.test(NU)); }
   const GO = fonction('go');
   vrai('⛔ `go()` retient la rubrique demandée AVANT de changer `view`, puis dit le message de la formule — le mot « Permissions » n\'est que le repli',
     /const demandee=view;\s*if\(\(item && !canSee\(item\)\) \|\| \(VUE_PARENT\[view\] && !userSeesModule\(currentUser,view\)\)\)\{ view='dashboard'; try\{ toast\(formuleFermeMsg\(cible,demandee\)\|\|'🔒 Cette rubrique n\\'est pas ouverte à ton compte \(réglable dans Permissions\)'\)/.test(GO.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ')));

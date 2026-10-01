@@ -26065,7 +26065,7 @@ function prixEffacer(){
 let prdOnglet='tous';   // tous | perso | catalogue
 views.produits=function(){
   const _np=prixPoses(), _cf=cataloguesFournisseurs();
-  setHeader('Produits',`Catalogue · ${db.produits.length} références`,`${_cf?'<button class="btn ghost" onclick="openFourCat()">🏭 Fournisseurs</button> ':''}${(_np&&can('effacerPrix'))?`<button class="btn ghost" onclick="prixEffacer()" title="Retirer les tarifs venus du catalogue fournisseur">💶 Effacer les prix (${_np})</button> `:''}${catalogueEnPlace()?'<button class="btn ghost" onclick="restoreCatalogue()">↻ Catalogue OP</button> ':''}<button class="btn ghost" onclick="openScanner()">Scanner</button> <button class="btn ghost" onclick="produitsCopier()" title="Copier la liste affichée, pour la coller dans un autre espace avec « ＋ Liste »">⧉ Copier la liste</button> <button class="btn ghost" onclick="formProduitsListe()">＋ Liste</button> <button class="btn" onclick="formProduit()">＋ Produit</button>`);
+  setHeader('Produits',`Catalogue · ${db.produits.length} références`,`${_cf?'<button class="btn ghost" onclick="openFourCat()">🏭 Fournisseurs</button> ':''}${(_np&&can('effacerPrix'))?`<button class="btn ghost" onclick="prixEffacer()" title="Retirer les tarifs venus du catalogue fournisseur">💶 Effacer les prix (${_np})</button> `:''}${catalogueEnPlace()?'<button class="btn ghost" onclick="restoreCatalogue()">↻ Catalogue OP</button> ':''}${planBloque('stock')?'':'<button class="btn ghost" onclick="openScanner()">Scanner</button> '}<button class="btn ghost" onclick="produitsCopier()" title="Copier la liste affichée, pour la coller dans un autre espace avec « ＋ Liste »">⧉ Copier la liste</button> <button class="btn ghost" onclick="formProduitsListe()">＋ Liste</button> <button class="btn" onclick="formProduit()">＋ Produit</button>`);
   const nbP=db.produits.filter(p=>p.perso).length, nbC=db.produits.length-nbP;
   /* « Mes produits » contre « Catalogue 3D » ne départage que là où un catalogue a été posé : chez une
      entreprise qui a tout créé elle-même, ce serait « Tous · 12 » et « Mes produits · 12 » — et un
@@ -35064,7 +35064,11 @@ function etiqOuvrir(mode,boxId){ const b=mode==='box'?(db.boxes||[]).find(x=>x.i
       ${etiqIos()?'<div class="etiq-astuce">Sur iPhone, l’appareil sait lire aussi : touche le champ, puis « Scanner le texte ».</div>':''}</div>`);
   etiqCamera(); }
 function openBoxScanner(boxId){ etiqOuvrir('box',boxId); }
-function openScanner(){ if(!permGarde('stock','modifier','le stock')) return;   // v737 : il règle le stock du catalogue
+function openScanner(){ if(!permGarde('stock','modifier','le stock')) return;
+    /* ⛔ LE SCANNER DU CATALOGUE ÉCRIT LE STOCK (`etiqAppliquerCat` : l'ancien compteur) : sans l'option Stock, une entreprise qui n'a que le
+       Registre sanitaire (qui ouvre la rubrique Produits pour l'AMM) réglait un stock qu'elle n'a pas payé (`gardien`, 1er octobre 2026) —
+       la fonction qui écrit lit la règle, pas seulement le bouton qui la propose */
+    if(planBloque('stock')){ toast(formuleFermeMsg('stock')||'🔒 Le stock n\'est pas inclus dans la formule de l\'entreprise'); return; }   // v737 : il règle le stock du catalogue
   /* v741 : le stock hors box vit dans le stockage — le scanner y range, par le chemin d'une box
      (validation du DR, « Pour qui ? »). Sans stockage, l'ancien compteur du catalogue. */
   if(stockageBox()){ if(stockageOuvert()) etiqVersBox(STOCKAGE_ID); return; }   // sans accès : on le dit, on n'écrit pas ailleurs
