@@ -33,7 +33,11 @@
      le « secondaire » tombait à 4,0:1 (lu au pixel, liste défilée avec la bannière descendue) ;
    · --accent-txt et --side-actif-fg : l'accent de NUIT (#7ea2f0) est une couleur d'aplat, pas d'une lettre — posé en texte sur le décor bleu (« Modifier »,
      la pastille « Groupe ») il tombait à 4,2:1 et 3,6:1, et sur le fond vif de la barre latérale (saturate 180 %) à 2,65:1 (mesuré au pixel, 1er octobre 2026).
-     Le texte prend sa propre teinte (jour : l'accent, qui passe) ; l'accent reste celui des aplats, des anneaux de focus et des contours. */
+     Le texte prend sa propre teinte (jour : l'accent, qui passe) ; l'accent reste celui des aplats, des anneaux de focus et des contours ;
+   · --rouge-txt : le #ff453a du paquet (« manqué », « raccrocher ») est une couleur d'APLAT : en texte de 17 px sur la carte il fait 3,5:1 de jour et ~3,5:1 de nuit.
+     Le NOM d'un appel manqué prend sa propre teinte (jour #d70015, nuit #ff9a93) ; l'aplat de « Raccrocher » garde le rouge du paquet (non-texte : 3:1 suffit) ;
+   · --appel-fond, --appel-voile, --appel-bouton : l'écran d'appel est SOMBRE dans les deux modes (le paquet : « il ne s'adapte pas au thème jour »), donc leurs
+     valeurs sont les mêmes de jour et de nuit — le voile sombre posé sur la couleur d'un avatar est ce qui rend le blanc lisible sur l'orange. */
 :root {
   --text: #0e1a3f;
   --sub: rgba(14,26,63,.6);
@@ -74,7 +78,11 @@
   --screen: linear-gradient(112deg, rgba(255,255,255,0) 58%, rgba(255,255,255,.4) 58.2%), radial-gradient(120% 90% at 0% 0%, #ffffff 0%, rgba(255,255,255,0) 55%), radial-gradient(110% 80% at 100% 100%, #c9d8f5 0%, rgba(201,216,245,0) 60%), linear-gradient(160deg, #eef3fb, #dfe8f8);
   /* — ce qui n'est pas dans le tableau du document : encres de statut, puces, plan de repli — */
   --rouge: #ff453a;
+  --rouge-txt: #d70015;
   --vert: #30d158;
+  --appel-fond: linear-gradient(160deg, #24408a, #0e1a3f);
+  --appel-voile: rgba(14,26,63,.62);
+  --appel-bouton: rgba(255,255,255,.18);
   --puce-x: #ffffff;
   --coche: #ffffff;
   --solide: #f6f8fd;
@@ -122,7 +130,11 @@
     --tab-active-shadow: 0 6px 16px rgba(34,59,110,.3), inset 0 1px 0 rgba(255,255,255,.28);
     --screen: linear-gradient(112deg, rgba(255,255,255,0) 58%, rgba(255,255,255,.05) 58.2%), radial-gradient(120% 90% at 0% 0%, #24408a 0%, rgba(36,64,138,0) 55%), linear-gradient(160deg, #1a2e6b, #0e1a3f);
     --rouge: #ff453a;
+    --rouge-txt: #ff9a93;
     --vert: #30d158;
+    --appel-fond: linear-gradient(160deg, #24408a, #0e1a3f);
+    --appel-voile: rgba(14,26,63,.62);
+    --appel-bouton: rgba(255,255,255,.18);
     --puce-x: #0e1a3f;
     --coche: #ffffff;
     --solide: #1b2d68;
@@ -576,6 +588,143 @@ button.photo:active { transform: scale(.97); }
 .visionneuse img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px; display: block; }
 .visionneuse-fermer { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 6px); right: max(8px, env(safe-area-inset-right, 0px)); width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.16); color: #fff; font-size: 18px; }
 
+/* ══ 10. L'ONGLET APPELS — le segmenté Tous / Manqués, la liste, la feuille « Nouvel appel » ═════════════════════════════════════
+   Le segmenté est une piste (--seg-track) et un curseur (--seg-knob) qui glisse d'une colonne : comme la barre d'onglets, il ne MESURE rien — le
+   JavaScript pose un numéro (--i), le CSS calcule la place (translate en pourcentage = la largeur du curseur = une colonne). Chaque moitié est un VRAI
+   bouton (aria-pressed) : le doigt, le clavier et le lecteur d'écran n'ont pas à deviner. 44 px au doigt (le paquet dessine 29), 32 à la souris. */
+.seg { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 2px; margin: 0 0 14px; border-radius: 9px; background: var(--seg-track); --i: 0; }
+.seg-knob {
+  position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / 2); border-radius: 7px; background: var(--seg-knob); box-shadow: 0 1px 3px rgba(0,0,0,.15);
+  translate: calc(var(--i) * 100%) 0; transition: translate .35s cubic-bezier(.32,.72,0,1);
+}
+.seg-bouton { position: relative; z-index: 1; min-height: 32px; text-align: center; font-size: 13px; font-weight: 400; color: var(--text); border-radius: 7px; transition: transform .12s ease-out; }
+.seg-bouton[aria-pressed="true"] { font-weight: 600; }
+.seg-bouton:active { transform: scale(.97); }
+@media (pointer: coarse) { .seg-bouton { min-height: 44px; } }
+.seg-bouton:focus-visible { outline-offset: -2px; }
+
+.appel-item { display: flex; align-items: stretch; }
+.appel-ligne { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px 0 10px 14px; min-height: 60px; color: var(--text); transition: background-color .2s, transform .12s ease-out; }
+.appel-ligne:active { transform: scale(.985); }
+@media (hover: hover) { .appel-ligne:hover { background: var(--field); } }
+.appel-ligne .avatar { width: 40px; height: 40px; font-size: 15px; }
+.appel-corps { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.appel-nom-ligne { font-size: 17px; letter-spacing: -.02em; line-height: 22px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.appel-nom-ligne.manque { color: var(--rouge-txt); }
+.appel-kind { display: flex; align-items: flex-start; gap: 5px; font-size: 15px; line-height: 20px; color: var(--sub-meta); }
+.appel-kind .ic { width: 13px; height: 13px; margin-top: 3.5px; stroke-width: 2; }
+.appel-kind span { min-width: 0; overflow-wrap: anywhere; }      /* ⛔ un libellé coupé par une ellipse ne nomme rien : « Appel vidéo entrant · 9 … » passe sur deux lignes */
+.appel-heure { font-size: 15px; color: var(--sub-meta); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.appel-info { flex: none; width: 52px; min-height: 60px; display: grid; place-items: center; color: var(--accent); transition: transform .12s ease-out; }
+.appel-info:active { transform: scale(.9); }
+.appel-info .ic { width: 22px; height: 22px; stroke-width: 1.7; }
+.carte-liste .appel-ligne:focus-visible, .carte-liste .appel-info:focus-visible { outline-offset: -3px; }
+
+/* la feuille a trois visages : « Nouveau groupe », « Appel de groupe », « Détails » d'un appel — le même cadre, le même voile, le même chemin d'historique */
+.g-resume { flex: 1; min-width: 0; font-size: 17px; line-height: 22px; color: var(--text); overflow-wrap: anywhere; }
+.g-choix { display: flex; gap: 8px; margin-bottom: 18px; }
+.g-pilule { flex: 1; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 999px; background: var(--toggle-off); color: var(--text); font-size: 15px; font-weight: 600; transition: background-color .2s, transform .12s ease-out; }
+.g-pilule .ic { font-size: 16px; stroke-width: 2; }
+.g-pilule:active { transform: scale(.97); }
+.g-pilule[aria-checked="true"] { background: var(--fill); color: var(--on-fill); }
+.feuille[data-mode="appel"] .g-photo, .feuille[data-mode="appel"] .g-nom { display: none; }
+.info-tete { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.info-tete .avatar { width: 64px; height: 64px; font-size: 22px; }
+.info-nom { margin: 0; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.info-sous { margin: 0; font-size: 15px; line-height: 20px; color: var(--sub-meta); overflow-wrap: anywhere; }
+.info-corps .reglage .ic { font-size: 22px; color: var(--accent); }
+.info-corps .reglage-texte { color: var(--accent-txt); }
+
+/* ══ 11. L'ÉCRAN D'APPEL — sombre de jour comme de nuit (le paquet), sans barre d'onglets ; au bureau il occupe la ZONE DE CONTENU, la barre latérale reste ══
+   Trois mises en page, qu'une SEULE donnée choisit (data-mise) : « audio » (un avatar de 120, le nom en 30), « video » (l'autre en plein écran, « Vous » en
+   vignette de 104 × 150 : la VRAIE caméra) et « groupe » (une grille de participants, « Vous » parmi eux). La mise en page suit la caméra, pas le type de l'appel :
+   une caméra refusée laisse un appel audio, une caméra allumée en cours d'appel le fait basculer. */
+.appel-ecran {
+  position: fixed; z-index: 35; top: 0; left: 0; right: 0; bottom: 0; display: none; flex-direction: column; min-height: 0; overflow: hidden;
+  background: var(--appel-fond); color: #fff; outline: none;
+}
+html[data-appel] .appel-ecran { display: flex; }
+html[data-appel], html[data-appel] body { overflow: hidden; }
+html[data-appel] .tabs { display: none; }
+@media (min-width: 900px) { .appel-ecran { left: 236px; } }
+@media (max-width: 899.98px) { html[data-appel] .appel-ecran { animation: pousse .38s cubic-bezier(.32,.72,0,1) both; } }
+
+.appel-tete {
+  position: relative; z-index: 2; flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 56px) max(20px, env(safe-area-inset-right, 0px)) 0 max(20px, env(safe-area-inset-left, 0px));
+}
+.appel-avatar { width: 120px; height: 120px; font-size: 44px; margin-bottom: 10px; box-shadow: 0 20px 50px rgba(0,0,0,.35); }
+.appel-nom { margin: 0; max-width: 100%; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI Variable Display', 'Segoe UI', Roboto, 'Noto Sans', 'Helvetica Neue', Helvetica, system-ui, sans-serif;
+  font-size: 30px; line-height: 36px; font-weight: 600; letter-spacing: -.02em; overflow-wrap: anywhere; text-shadow: 0 1px 8px rgba(0,0,0,.3); }
+.appel-statut { margin: 0; font-size: 15px; line-height: 20px; color: rgba(255,255,255,.86); font-variant-numeric: tabular-nums; text-shadow: 0 1px 8px rgba(0,0,0,.3); }
+.appel-mention { margin: 0; font-size: 12px; line-height: 16px; color: rgba(255,255,255,.82); }
+.appel-avis {
+  position: relative; z-index: 3; flex: none; margin: 10px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); align-self: center; max-width: 440px;
+  padding: 10px 14px; border-radius: 14px; background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.18); font-size: 14px; line-height: 19px; text-align: center; overflow-wrap: anywhere;
+}
+.appel-scene { display: none; }
+.appel-bas {
+  position: relative; z-index: 2; flex: none; margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 22px;
+  padding: 16px max(24px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 20px) max(24px, env(safe-area-inset-left, 0px));
+}
+.appel-commandes { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 14px; width: 100%; max-width: 460px; }
+.appel-cmd { min-width: 68px; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 13px; line-height: 16px; color: #fff; text-align: center; transition: transform .12s ease-out; }
+.appel-cmd:active { transform: scale(.94); }
+.appel-cmd .rond-cmd { width: 68px; height: 68px; display: grid; place-items: center; border-radius: 50%; background: var(--appel-bouton); color: #fff; transition: background-color .2s, color .2s; }
+.appel-cmd .rond-cmd .ic { width: 28px; height: 28px; stroke-width: 1.8; }
+.appel-cmd[aria-pressed="true"] .rond-cmd { background: #fff; color: #000; }
+.appel-raccrocher { width: 68px; height: 68px; display: grid; place-items: center; border-radius: 50%; background: var(--rouge); color: #fff; box-shadow: 0 10px 30px rgba(255,69,58,.4); transition: transform .12s ease-out; }
+.appel-raccrocher:active { transform: scale(.94); }
+.appel-raccrocher .ic { width: 30px; height: 30px; stroke-width: 2; }
+.appel-ecran :focus-visible { outline-color: #fff; }
+@media (max-height: 640px) { .appel-tete { padding-top: calc(env(safe-area-inset-top, 0px) + 20px); } .appel-avatar { width: 88px; height: 88px; font-size: 32px; } }
+
+/* les participants : une vignette = la couleur de l'avatar SOUS un voile sombre (le blanc n'est pas lisible sur l'orange nu), le nom sur sa pastille */
+.tuile {
+  position: relative; display: grid; place-items: center; border-radius: 18px; overflow: hidden; min-width: 0; background-size: cover;
+}
+.tuile::before { content: ""; position: absolute; inset: 0; background: var(--appel-voile); }
+.tuile.vous { background-image: linear-gradient(180deg, #4f78d6, #2a4a9c); }
+.tuile-av { position: relative; width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.2); font-size: 22px; font-weight: 600; }
+.tuile-nom, .tuile-etat {
+  position: absolute; left: 8px; max-width: calc(100% - 16px); padding: 2px 8px; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-size: 13px; line-height: 18px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tuile-nom { bottom: 8px; font-weight: 600; }
+.tuile-etat { top: 8px; }
+.tuile video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; background: #000; }
+.tuile[data-camera="on"] video { display: block; }
+.tuile[data-camera="on"] .tuile-av { display: none; }
+
+.appel-ecran[data-mise="video"] .appel-scene, .appel-ecran[data-mise="groupe"] .appel-scene { display: block; }
+.appel-ecran[data-mise="video"] .appel-avatar, .appel-ecran[data-mise="groupe"] .appel-avatar { display: none; }
+.appel-ecran[data-mise="video"] .appel-nom, .appel-ecran[data-mise="groupe"] .appel-nom { font-size: 17px; line-height: 22px; }
+.appel-ecran[data-mise="video"] .appel-tete { padding-top: calc(env(safe-area-inset-top, 0px) + 14px); }
+.appel-ecran[data-mise="video"] .appel-tete::before { content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: 0; bottom: -40px; background: linear-gradient(180deg, rgba(8,14,38,.7), rgba(8,14,38,0)); }
+.appel-ecran[data-mise="video"] .appel-bas::before { content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: 0; bottom: 0; background: linear-gradient(0deg, rgba(8,14,38,.72), rgba(8,14,38,0)); }
+/* 1 : 1 en vidéo — l'autre prend tout l'écran (sous l'en-tête et les commandes), « Vous » flotte en haut à droite */
+.appel-ecran[data-mise="video"] .appel-scene { position: absolute; z-index: 1; inset: 0; }
+.appel-ecran[data-mise="video"] .tuile { position: absolute; inset: 0; border-radius: 0; }
+.appel-ecran[data-mise="video"] .tuile-av { width: 110px; height: 110px; font-size: 40px; }
+.appel-ecran[data-mise="video"] .tuile-nom { left: max(16px, env(safe-area-inset-left, 0px)); bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 112px); }
+.appel-ecran[data-mise="video"] .tuile.vous {
+  inset: auto; top: calc(env(safe-area-inset-top, 0px) + 110px); right: max(14px, env(safe-area-inset-right, 0px)); width: 104px; height: 150px; border-radius: 16px;
+  background-image: linear-gradient(180deg, #4f78d6, #2a4a9c); border: 1px solid rgba(255,255,255,.35); box-shadow: 0 10px 30px rgba(0,0,0,.4); z-index: 2;
+}
+.appel-ecran[data-mise="video"] .tuile.vous .tuile-av { width: 44px; height: 44px; font-size: 16px; }
+.appel-ecran[data-mise="video"] .tuile.vous .tuile-nom { left: 8px; top: auto; bottom: 6px; }
+@media (min-width: 900px) { .appel-ecran[data-mise="video"] .tuile.vous { width: 176px; height: 132px; top: 96px; } }
+/* groupe — la grille : des colonnes qui se déduisent de la largeur, la zone défile si les vignettes ne tiennent pas */
+.appel-ecran[data-mise="groupe"] .appel-scene {
+  position: relative; z-index: 1; flex: 1; min-height: 0; margin-top: 10px; overflow-y: auto; overscroll-behavior: contain;
+  padding: 4px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 10px; align-content: start;
+  grid-template-columns: repeat(auto-fill, minmax(min(150px, 44%), 1fr)); width: 100%; max-width: 980px; margin-inline: auto;
+}
+.appel-ecran[data-mise="groupe"] .tuile { aspect-ratio: 1; min-height: 120px; }
+.appel-ecran[data-mise="groupe"] .appel-tete { padding-top: calc(env(safe-area-inset-top, 0px) + 20px); }
+.appel-ecran[data-mise="groupe"] .appel-bas { margin-top: 0; }
+.appel-ecran[data-mise="groupe"] .appel-scene:focus-visible { outline-offset: -3px; }
+
 /* ══ 8. LES RÉGLAGES DE L'APPAREIL : transparence et mouvement ═════════════════════════════════════════════════════════════
    ⛔ Retirer le flou SANS rendre de matière laisserait un texte posé sur ce qui passe dessous : on remplace la vitre par un
    aplat plein (« un filtre de fond se déclare AVEC sa surface », et l'inverse aussi). */
@@ -591,7 +740,9 @@ button.photo:active { transform: scale(.97); }
   .tab[aria-current="page"], .side-lien[aria-current="page"] { outline: 2px solid Highlight; }
   /* en couleurs forcées les fonds disparaissent : seuls les CONTOURS restent — une bulle, une photo, un vocal en gardent un, sinon émis et reçu ne se
      distinguent plus que par l'alignement, et l'onde n'a plus de couleur à peindre */
-  .bulle, .photo, .vocal, .saisie-ind, .pilule-saisie, .avis-saisie { border: 1px solid CanvasText; }
+  .bulle, .photo, .vocal, .saisie-ind, .pilule-saisie, .avis-saisie, .tuile, .appel-avis, .g-pilule, .seg { border: 1px solid CanvasText; }
+  .appel-cmd .rond-cmd, .appel-raccrocher { border: 2px solid CanvasText; }
+  .seg-bouton[aria-pressed="true"], .g-pilule[aria-checked="true"] { outline: 2px solid Highlight; }
   .onde i, .enreg-onde i { background: CanvasText; }
   .badge, .point { forced-color-adjust: none; background: Highlight; color: HighlightText; }
 }
@@ -618,6 +769,13 @@ button.photo:active { transform: scale(.97); }
   <symbol id="i-corbeille" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol>
   <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5v14l11-7z"/></symbol>
   <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></symbol>
+  <symbol id="i-mic-off" viewBox="0 0 24 24"><path d="M9 3h6v12H9zM5 11a7 7 0 0 0 14 0M12 18v3M4 4l16 16"/></symbol>
+  <symbol id="i-video-off" viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Zm12 3 4-2.5v9L16 14M3 3l18 18"/></symbol>
+  <symbol id="i-hautparleur" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4Zm12-1a5 5 0 0 1 0 8m3-11a9 9 0 0 1 0 14"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v.5M11 12h1v4h1"/></symbol>
+  <symbol id="i-entrant" viewBox="0 0 24 24"><path d="M5 19 19 5M9 5h10v10"/></symbol>
+  <symbol id="i-sortant" viewBox="0 0 24 24"><path d="M19 5 5 19M15 19H5V9"/></symbol>
+  <symbol id="i-raccrocher" viewBox="0 0 24 24"><path d="M3 12a15 15 0 0 1 18 0l-2 3-4-1.5v-2a9 9 0 0 0-6 0v2L5 15l-2-3Z"/></symbol>
 </svg>
 
 <div class="app" id="app">
@@ -640,7 +798,19 @@ button.photo:active { transform: scale(.97); }
       <ul class="epingles" id="epingles" role="list" aria-label="Conversations épinglées"></ul>
       <ul class="carte-liste" id="liste-conv" role="list" aria-label="Conversations"></ul>
     </section>
-    <section class="vue" id="vue-appels" aria-labelledby="titre-appels" hidden></section>
+    <section class="vue" id="vue-appels" aria-labelledby="titre-appels" hidden>
+      <div class="entete-vue">
+        <button type="button" class="lien-texte presse" id="btn-modifier-appels">Modifier</button>
+        <button type="button" class="lien-texte presse" id="btn-nouvel-appel" aria-haspopup="dialog">Nouvel appel</button>
+      </div>
+      <h1 class="grand-titre" id="titre-appels">Appels</h1>
+      <div class="seg" id="seg-appels" role="group" aria-label="Filtrer les appels">
+        <span class="seg-knob" aria-hidden="true"></span>
+        <button type="button" class="seg-bouton" data-filtre="tous" aria-pressed="true">Tous</button>
+        <button type="button" class="seg-bouton" data-filtre="manques" aria-pressed="false">Manqués</button>
+      </div>
+      <ul class="carte-liste" id="liste-appels" role="list" aria-label="Appels"></ul>
+    </section>
     <section class="vue" id="vue-reunions" aria-labelledby="titre-reunions" hidden></section>
     <section class="vue" id="vue-reglages" aria-labelledby="titre-reglages" hidden></section>
     <p class="mention-apercu">Aperçu — données d'exemple</p>
@@ -659,7 +829,7 @@ button.photo:active { transform: scale(.97); }
       </div>
       <button type="button" class="conv-titre presse" id="conv-titre" aria-label="Infos de la conversation (bientôt)"></button>
       <div class="conv-droite">
-        <button type="button" class="conv-cam presse" id="conv-cam" aria-label="Appel vidéo : ouvre l'onglet Appels"><svg class="ic" aria-hidden="true"><use href="#i-video"/></svg></button>
+        <button type="button" class="conv-cam presse" id="conv-cam" aria-label="Appel vidéo"><svg class="ic" aria-hidden="true"><use href="#i-video"/></svg></button>
       </div>
     </header>
     <div class="conv-fil" id="conv-fil" role="log" aria-live="off" aria-label="Messages" tabindex="0">
@@ -687,7 +857,30 @@ button.photo:active { transform: scale(.97); }
       <p class="compo-ferme" id="compo-ferme" hidden>Seuls les admins peuvent écrire dans ce groupe.</p>
     </footer>
   </section>
+
+  <section class="appel-ecran" id="appel-ecran" role="region" aria-label="Appel" tabindex="-1" data-mise="audio">
+    <header class="appel-tete">
+      <span class="avatar appel-avatar" id="appel-avatar" aria-hidden="true"></span>
+      <h2 class="appel-nom" id="appel-nom"></h2>
+      <p class="appel-statut" id="appel-statut"></p>
+      <p class="appel-mention">Aperçu — les autres participants sont simulés</p>
+    </header>
+    <p class="appel-avis" id="appel-avis" role="status" aria-live="polite" hidden></p>
+    <div class="appel-scene" id="appel-scene" role="list" aria-label="Participants">
+      <div class="tuile vous" id="appel-vous" role="listitem" data-camera="off"><video id="appel-video-local" muted playsinline autoplay aria-label="Votre caméra"></video><span class="tuile-av" aria-hidden="true" id="appel-vous-av"></span><span class="tuile-nom">Vous</span></div>
+    </div>
+    <div class="appel-bas">
+      <div class="appel-commandes" role="group" aria-label="Commandes de l'appel">
+        <button type="button" class="appel-cmd" id="appel-micro" aria-pressed="false" aria-label="Couper le micro"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></span><span class="appel-cmd-texte">Micro</span></button>
+        <button type="button" class="appel-cmd" id="appel-hp" aria-pressed="false" aria-label="Haut-parleur"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-hautparleur"/></svg></span><span class="appel-cmd-texte">Haut-parleur</span></button>
+        <button type="button" class="appel-cmd" id="appel-cam" aria-pressed="false" aria-label="Activer la caméra"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-video-off"/></svg></span><span class="appel-cmd-texte">Caméra</span></button>
+        <button type="button" class="appel-cmd" id="appel-msg" aria-label="Message : raccrocher et ouvrir la conversation"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg></span><span class="appel-cmd-texte">Message</span></button>
+      </div>
+      <button type="button" class="appel-raccrocher" id="appel-raccrocher" aria-label="Raccrocher"><svg class="ic" aria-hidden="true"><use href="#i-raccrocher"/></svg></button>
+    </div>
+  </section>
 </div>
+<p class="sr-seul" id="annonce-appel" role="status" aria-live="polite" aria-atomic="true"></p>
 
 <div class="voile" id="voile"></div>
 <section class="feuille" id="feuille" data-glass="1" role="dialog" aria-modal="true" aria-labelledby="feuille-titre" tabindex="-1" inert>
@@ -703,6 +896,11 @@ button.photo:active { transform: scale(.97); }
     <div class="g-identite">
       <label class="g-photo" id="g-photo" title="Ajouter une photo au groupe"><svg class="ic" aria-hidden="true"><use href="#i-photo"/></svg><span class="sr-seul">Photo du groupe</span><input type="file" id="g-photo-fichier" accept="image/*"></label>
       <input type="text" class="g-nom" id="g-nom" placeholder="Nom du groupe" maxlength="40" autocomplete="off" enterkeyhint="done" aria-label="Nom du groupe">
+      <p class="g-resume" id="g-resume" aria-live="polite" hidden></p>
+    </div>
+    <div class="g-choix" id="g-choix" role="radiogroup" aria-label="Type d'appel" hidden>
+      <button type="button" class="g-pilule presse" role="radio" aria-checked="true" data-type="audio"><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg>Audio</button>
+      <button type="button" class="g-pilule presse" role="radio" aria-checked="false" data-type="video"><svg class="ic" aria-hidden="true"><use href="#i-video"/></svg>Vidéo</button>
     </div>
     <label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher un contact</span><input type="search" id="g-recherche" placeholder="Rechercher un contact" autocomplete="off" enterkeyhint="search"></label>
     <ul class="puces" id="g-puces" role="list" aria-label="Membres choisis"></ul>
@@ -713,6 +911,7 @@ button.photo:active { transform: scale(.97); }
       <button type="button" class="reglage presse" id="g-annonces" role="switch" aria-checked="false"><span class="reglage-texte">Seuls les admins écrivent<small>Groupe d'annonces</small></span><span class="interrupteur" aria-hidden="true"></span></button>
     </div>
   </div>
+  <div class="feuille-corps info-corps" id="info-corps" hidden></div>
 </section>
 
 <div class="visionneuse" id="visionneuse" role="dialog" aria-modal="true" aria-label="Photo agrandie" hidden>
@@ -743,7 +942,7 @@ button.photo:active { transform: scale(.97); }
   const CONTACTS = source.contacts();
   const VUES = {
     messages: { titre: 'Messages',  icone: 'i-chat' },
-    appels:   { titre: 'Appels',    icone: 'i-phone', texte: 'L\'historique des appels et les appels de groupe, audio ou vidéo.' },
+    appels:   { titre: 'Appels',    icone: 'i-phone' },
     reunions: { titre: 'Réunions',  icone: 'i-video', texte: 'L\'agenda, la programmation, les invités et les rappels.' },
     reglages: { titre: 'Réglages',  icone: 'i-gear',  texte: 'Le compte, les notifications et la confidentialité.' }
   };
@@ -757,9 +956,12 @@ button.photo:active { transform: scale(.97); }
     conversations: [],            // la liste, telle que la source l'a rendue
     conv: null, convDonnees: null, jeton: 0,
     recherche: '', neuves: new Set(), brouillons: {}, scrollListe: 0, posVues: {}, forcerBas: false, envoiEnCours: false,
-    groupe: groupeVierge(), garderPhoto: false, photo: null, creation: false
+    groupe: groupeVierge(), garderPhoto: false, photo: null, creation: false,
+    appels: [], filtreAppels: 'tous', jetonAppels: 0,        // l'historique tel que la source l'a rendu pour le filtre choisi
+    appelId: null, appelUI: null, jetonAppel: 0, appelDemarre: false, declencheurAppel: null     // l'appel en cours : son identifiant (celui de la route), l'état local (médias, minuterie), un jeton qui périme les attentes
   };
-  function groupeVierge() { return { ouvert: false, nom: '', photo: null, choisis: [], recherche: '', ephemeres: 0, annonces: false }; }
+  /* `mode` : ce que la feuille est en train d'être — 'chat' (Nouveau groupe), 'appel' (Appel de groupe : audio ou vidéo) ou 'info' (les détails d'un appel de l'historique) */
+  function groupeVierge() { return { ouvert: false, mode: 'chat', nom: '', photo: null, choisis: [], recherche: '', ephemeres: 0, annonces: false, video: false, info: null }; }
 
   /* ═══ 3. OUTILS ═══════════════════════════════════════════════════════════════════════════════════════════════════════════ */
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -845,17 +1047,18 @@ button.photo:active { transform: scale(.97); }
      donc le navigateur n'a pas de second retour à jouer ; et un bouton qui ferme ne ferme pas ET ne navigue pas — il navigue, et
      la fermeture suit. Une entrée neuve n'est posée que si quelque chose s'ouvre : passer d'une conversation à l'autre (au bureau)
      REMPLACE l'entrée au lieu d'en empiler. */
-  const memeRoute = (a, b) => !!a && !!b && a.vue === b.vue && (a.conv || null) === (b.conv || null) && !!a.feuille === !!b.feuille && (a.photo || null) === (b.photo || null);
+  const memeRoute = (a, b) => !!a && !!b && a.vue === b.vue && (a.conv || null) === (b.conv || null) && !!a.feuille === !!b.feuille && (a.photo || null) === (b.photo || null) && (a.appel || null) === (b.appel || null);
   const urlDe = r => '#' + r.vue + (r.conv ? '/' + encodeURIComponent(r.conv) : '');
   function routeDepuisHash() {
     const p = location.hash.slice(1).split('/');
     let conv = null; try { conv = p[1] ? decodeURIComponent(p[1]) : null; } catch (e) { conv = null; }
     /* ⛔ `VUES[p[0]]` lit aussi la chaîne de prototypes : « #constructor » ou « #__proto__ » passaient pour des vues et laissaient les quatre masquées */
     const vue = Object.prototype.hasOwnProperty.call(VUES, p[0]) ? p[0] : 'messages';
-    return { vue, conv: vue === 'messages' && p[0] === 'messages' ? conv : null, feuille: false, photo: null };
+    return { vue, conv: vue === 'messages' && p[0] === 'messages' ? conv : null, feuille: false, photo: null, appel: null };
   }
   const entree = () => (history.state && history.state.opmsg) ? history.state : null;
   function parentDe(r) {
+    if (r.appel) return Object.assign({}, r, { appel: null });
     if (r.photo) return Object.assign({}, r, { photo: null });
     if (r.feuille) return Object.assign({}, r, { feuille: false });
     if (r.conv) return Object.assign({}, r, { conv: null });
@@ -901,9 +1104,12 @@ button.photo:active { transform: scale(.97); }
     racine.dataset.vue = r.vue;
     const veutConv = r.vue === 'messages' ? (r.conv || null) : null;
     if (veutConv !== etat.conv) { if (veutConv) ouvrirConv(veutConv); else fermerConv(); }
-    if (r.feuille && !etat.groupe.ouvert) ouvrirFeuilleDom(); else if (!r.feuille && etat.groupe.ouvert) fermerFeuilleDom();
+    if (r.feuille && !etat.groupe.ouvert) ouvrirFeuilleDom(r.feuille); else if (!r.feuille && etat.groupe.ouvert) fermerFeuilleDom();
     const cle = r.photo || null;
     if (cle !== etat.photo) { if (cle) ouvrirPhotoDom(cle); else fermerPhotoDom(); }
+    /* l'appel est la couche du DESSUS : la route qui n'en porte plus le raccroche (retour système, Échap, onglet, bouton — un seul chemin, comme la photo) */
+    const veutAppel = r.appel || null;
+    if (veutAppel !== etat.appelId) { if (veutAppel) afficherAppel(veutAppel); else quitterAppel(); }
     synchroInert();
   }
   /* ce qui n'est pas au premier plan ne reçoit ni le focus ni le lecteur d'écran : la feuille et la photo rendent TOUT inerte,
@@ -911,7 +1117,9 @@ button.photo:active { transform: scale(.97); }
   const largeBureau = matchMedia('(min-width: 1100px)');
   function synchroInert() {
     $('app').inert = !!(etat.groupe.ouvert || etat.photo);
-    $('contenu').inert = !!(etat.conv && !largeBureau.matches);
+    /* un appel recouvre la liste ET la conversation (au bureau, la barre latérale reste, et reste active : l'onglet qu'on touche raccroche) */
+    $('contenu').inert = !!(etat.appelId || (etat.conv && !largeBureau.matches));
+    $('conv-ecran').inert = !!etat.appelId; $('conv-vide').inert = !!etat.appelId;
   }
   if (largeBureau.addEventListener) largeBureau.addEventListener('change', synchroInert);
 
@@ -919,8 +1127,9 @@ button.photo:active { transform: scale(.97); }
     const a = e.target.closest('a[data-vue]');
     if (a) {
       e.preventDefault();
-      const r = { vue: a.dataset.vue, conv: null, feuille: false, photo: null };
-      if (memeRoute(etat.route, r)) window.scrollTo(0, 0); else pousser(r);
+      const r = { vue: a.dataset.vue, conv: null, feuille: false, photo: null, appel: null };
+      /* un onglet touché PENDANT un appel prend la place de l'entrée de l'appel (il raccroche) : pas d'entrée morte « appel terminé » qu'un retour ferait retomber dessus */
+      if (memeRoute(etat.route, r)) window.scrollTo(0, 0); else if (etat.appelId) remplacer(r); else pousser(r);
       return;
     }
     const o = e.target.closest('[data-ouvrir]');
@@ -936,12 +1145,13 @@ button.photo:active { transform: scale(.97); }
   }
   function ouvrirDepuisListe(id, declencheurEl) {
     etat.declencheurConv = declencheurEl;
-    const r = Object.assign({}, etat.route, { vue: 'messages', conv: id, feuille: false, photo: null });
+    const r = Object.assign({}, etat.route, { vue: 'messages', conv: id, feuille: false, photo: null, appel: null });
     if (etat.conv) remplacer(r); else pousser(r);
   }
   function rendreEntete(c) {
     $('conv-titre').innerHTML = avatar(c) + '<span class="conv-titre-nom"><span>' + esc(c.nom) + '</span>' + CHEVRON + '</span>';
     $('conv-titre').setAttribute('aria-label', c.nom + ' — infos du ' + (c.type === 'groupe' ? 'groupe' : 'contact') + ' (bientôt)');
+    $('conv-cam').setAttribute('aria-label', 'Appel vidéo avec ' + c.nom);
   }
   const nomAuteur = id => { const c = contactDe(id); return c ? prenom(c) : '?'; };
 
@@ -1032,7 +1242,7 @@ button.photo:active { transform: scale(.97); }
     rendreListe();
     let c = null; try { c = await source.ouvrir(id); } catch (e) { c = null; }
     if (jeton !== etat.jeton) return;                       // une autre conversation (ou la liste) a pris la place pendant l'attente
-    if (!c) { remplacer({ vue: 'messages', conv: null, feuille: false, photo: null }); mot('Cette conversation n\'existe plus.'); return; }
+    if (!c) { remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null }); mot('Cette conversation n\'existe plus.'); return; }
     rendreConv(c, true);
     synchroInert();
     if (matchMedia('(pointer: fine)').matches) $('saisie').focus({ preventScroll: true }); else $('conv-ecran').focus({ preventScroll: true });
@@ -1075,7 +1285,12 @@ button.photo:active { transform: scale(.97); }
     setTimeout(() => { r.textContent = nomAuteur(m.auteur) + ' : ' + corps; }, 60);
   }
   $('conv-retour').addEventListener('click', fermerCouche);        // ⛔ pas de garde ici : « Retour » est en haut à gauche, rien de ce que la garde protège n'a jamais été là — la garder avalait un « Retour » tapé juste après un envoi
-  $('conv-cam').addEventListener('click', () => { if (!retap()) pousser({ vue: 'appels', conv: null, feuille: false, photo: null }); });
+  /* la caméra de la conversation lance l'appel VIDÉO de CETTE conversation (les autres membres, jamais moi) ; raccrocher revient ici, d'où l'appel est parti */
+  $('conv-cam').addEventListener('click', () => {
+    if (retap()) return;
+    const c = etat.convDonnees || etat.conversations.find(x => x.id === etat.conv); if (!c) return;
+    lancerAppel({ membres: c.membres.filter(x => x !== MOI.id), video: true, conv: c.id }, $('conv-cam'));
+  });
   $('conv-titre').addEventListener('click', () => mot('Les infos du ' + (etat.convDonnees && etat.convDonnees.type === 'groupe' ? 'groupe' : 'contact') + ' arrivent bientôt'));
 
   /* ── la saisie : un VRAI champ, qui grandit jusqu'à 5 lignes ── */
@@ -1394,22 +1609,44 @@ button.photo:active { transform: scale(.97); }
     });
     $('g-aucun').hidden = Array.from(document.querySelectorAll('#g-contacts .contact')).some(b => !b.hidden);
     $('g-puces').innerHTML = G.choisis.map(id => { const c = contactDe(id);
-      return '<li><button type="button" class="puce presse" data-retirer="' + esc(id) + '" aria-label="Retirer ' + esc(prenom(c)) + ' du groupe">' + avatar(c) +
+      return '<li><button type="button" class="puce presse" data-retirer="' + esc(id) + '" aria-label="Retirer ' + esc(prenom(c)) + (G.mode === 'appel' ? ' de l\'appel' : ' du groupe') + '">' + avatar(c) +
         '<span class="puce-x" aria-hidden="true">' + icone('i-croix') + '</span><span class="puce-nom">' + esc(prenom(c)) + '</span></button></li>'; }).join('');
     $('g-compteur').textContent = G.choisis.length + ' / ' + CONTACTS.length;
     $('g-creer').setAttribute('aria-disabled', G.choisis.length ? 'false' : 'true');
+    /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
+    const appel = G.mode === 'appel', info = G.mode === 'info';
+    $('feuille').dataset.mode = G.mode;
+    $('feuille-titre').textContent = info ? 'Détails' : appel ? 'Appel de groupe' : 'Nouveau groupe';
+    $('g-annuler').textContent = info ? 'Fermer' : 'Annuler';
+    $('g-creer').textContent = appel ? 'Appeler' : 'Créer';
+    $('g-creer').style.visibility = info ? 'hidden' : '';
+    $('g-creer').tabIndex = info ? -1 : 0; if (info) $('g-creer').setAttribute('aria-hidden', 'true'); else $('g-creer').removeAttribute('aria-hidden');
+    $('feuille-corps').hidden = info; $('info-corps').hidden = !info;
+    $('g-reglages').hidden = appel; $('g-choix').hidden = !appel; $('g-resume').hidden = !appel;
+    $('g-resume').textContent = G.choisis.length ? G.choisis.length + (G.choisis.length > 1 ? ' participants' : ' participant') : 'Choisir les participants';
+    document.querySelectorAll('#g-choix .g-pilule').forEach(b => b.setAttribute('aria-checked', (b.dataset.type === 'video') === G.video ? 'true' : 'false'));
     $('g-ephemeres-val').textContent = EPHEMERES.find(e => e[0] === G.ephemeres)[1];
     $('g-annonces').setAttribute('aria-checked', G.annonces ? 'true' : 'false');
     $('g-photo').classList.toggle('avec-image', !!G.photo);
     $('g-photo').style.backgroundImage = G.photo ? 'url(' + G.photo + ')' : '';
   }
   /* ouvrir = pousser la route ; l'écran suit dans ouvrirFeuilleDom (jouée aussi par le retour système) */
-  function ouvrirFeuille() { declencheur = document.activeElement; pousser(Object.assign({}, etat.route, { feuille: true })); }
-  function ouvrirFeuilleDom() {
+  function ouvrirFeuille(mode) { declencheur = document.activeElement; pousser(Object.assign({}, etat.route, { feuille: mode || 'chat' })); }
+  /* la route dit QUELLE feuille : 'chat' (Nouveau groupe), 'appel' (Appel de groupe), 'info:<id d'un appel>' (ses détails) */
+  function ouvrirFeuilleDom(f) {
+    const [mode, arg] = String(f === true ? 'chat' : f).split(':');
     if (!declencheur) declencheur = document.activeElement;
-    etat.groupe = groupeVierge(); etat.groupe.ouvert = true;
+    etat.groupe = groupeVierge();
+    etat.groupe.mode = mode === 'appel' || mode === 'info' ? mode : 'chat';
+    if (etat.groupe.mode === 'info') {
+      etat.groupe.info = etat.appels.find(x => x.id === arg) || null;
+      /* un appel qui n'est plus dans la liste (lien d'historique ancien, filtre changé) : pas de feuille vide, on rend la route d'en dessous */
+      if (!etat.groupe.info) { declencheur = null; setTimeout(() => { if (etat.route && etat.route.feuille) remplacer(parentDe(etat.route)); }, 0); return; }
+    }
+    etat.groupe.ouvert = true;
     $('g-nom').value = ''; $('g-recherche').value = ''; $('g-photo-fichier').value = '';
-    $('feuille-corps').scrollTop = 0;
+    $('feuille-corps').scrollTop = 0; $('info-corps').scrollTop = 0;
+    if (etat.groupe.mode === 'info') rendreInfo(etat.groupe.info);
     synchroFeuille();
     $('feuille').inert = false;
     document.documentElement.classList.add('feuille-ouverte');
@@ -1433,6 +1670,14 @@ button.photo:active { transform: scale(.97); }
     if (i < 0) G.choisis.push(id); else G.choisis.splice(i, 1);
     synchroFeuille();
   }
+  /* « Appeler » : l'appel part avec les contacts choisis, et la feuille cède la place à l'écran d'appel (son entrée d'historique est REMPLACÉE : raccrocher revient à la liste) */
+  async function appelerDepuisFeuille() {
+    const G = g();
+    if (!G.choisis.length) { $('g-compteur').textContent = 'Choisissez au moins un contact'; setTimeout(synchroFeuille, 1600); return; }
+    if (etat.creation) return;
+    etat.creation = true;
+    try { await lancerAppel({ membres: G.choisis.slice(), video: G.video }, $('btn-nouvel-appel'), true); } finally { etat.creation = false; }
+  }
   async function creerGroupe() {
     const G = g();
     if (!G.choisis.length) { $('g-compteur').textContent = 'Choisissez au moins un contact'; setTimeout(synchroFeuille, 1600); return; }
@@ -1452,16 +1697,18 @@ button.photo:active { transform: scale(.97); }
     setTimeout(() => notifier('Vous avez été ajouté au groupe « ' + nom + ' »', 'Aperçu de la notification que reçoivent ' + prenoms.join(', ')), 300);
   }
 
-  $('btn-groupe').addEventListener('click', ouvrirFeuille);
+  $('btn-groupe').addEventListener('click', () => ouvrirFeuille('chat'));
   $('g-annuler').addEventListener('click', () => fermerFeuille(false));
   $('voile').addEventListener('click', () => fermerFeuille(false));
-  $('g-creer').addEventListener('click', creerGroupe);
+  $('g-creer').addEventListener('click', () => { if (g().mode === 'appel') appelerDepuisFeuille(); else if (g().mode === 'chat') creerGroupe(); });
+  $('g-choix').addEventListener('click', e => { const b = e.target.closest('.g-pilule'); if (!b) return; g().video = b.dataset.type === 'video'; synchroFeuille(); });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     /* dans le champ de recherche de la liste, Échap EFFACE la recherche (puis ne fait rien) : il ne ferme pas la conversation affichée à côté */
     if (e.target === $('recherche-conv') && !etat.photo && !etat.groupe.ouvert) { if (e.target.value) { e.preventDefault(); e.target.value = ''; etat.recherche = ''; rendreListe(); } return; }
-    /* Échap ferme la couche du dessus : la photo, la feuille, un enregistrement en cours, la conversation */
+    /* Échap ferme la couche du dessus : la photo, la feuille, un appel (il raccroche), un enregistrement en cours, la conversation */
     if (etat.photo || etat.groupe.ouvert) { e.preventDefault(); fermerCouche(); }
+    else if (etat.appelId) { e.preventDefault(); fermerCouche(); }
     else if (enr.etat === 'enregistre' || enr.etat === 'demande') { e.preventDefault(); annulerEnregistrement(); }
     else if (etat.conv) { e.preventDefault(); fermerCouche(); }
   });
@@ -1544,15 +1791,273 @@ button.photo:active { transform: scale(.97); }
   }
 
   /* « maintenant » n'est vrai qu'une minute : la liste ne se refait que sur événement, donc l'heure de chaque ligne se remet à jour toute seule */
-  setInterval(() => { document.querySelectorAll('#liste-conv .conv-heure[data-t]').forEach(e => { const x = libelleListe(+e.dataset.t); if (e.textContent !== x) e.textContent = x; }); }, 20000);
+  setInterval(() => { document.querySelectorAll('#liste-conv .conv-heure[data-t], #liste-appels .appel-heure[data-t]').forEach(e => { const x = libelleListe(+e.dataset.t); if (e.textContent !== x) e.textContent = x; }); }, 20000);
 
-  /* ═══ 10. LE DÉMARRAGE ═══════════════════════════════════════════════════════════════════════════════════════════════════════ */
+  /* ═══ 10. LES APPELS — l'historique, la feuille « Nouvel appel », l'écran d'appel ═══════════════════════════════════════════════════
+     ⛔ Ce que la SOURCE sait d'un appel : qui, quand, combien de temps, qui a répondu. Ce qu'elle ne sait pas, et ne saura jamais : les médias. Le micro et la caméra
+     sont à l'APPAREIL (getUserMedia) : cette page les demande, les tient, et les RELÂCHE — chaque piste est arrêtée (readyState « ended ») à la fin de l'appel, par
+     QUEL QUE SOIT le chemin qui le termine (raccrocher, retour système, Échap, un autre onglet, « Message »). Un chemin qui oublierait de les arrêter laisserait
+     le voyant de la caméra allumé après l'appel : c'est la faute que ce bloc garde en un seul endroit (`quitterAppel`). */
+  const dureeAppel = s => { s = Math.max(0, Math.floor(+s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60, p = n => String(n).padStart(2, '0'); return (h ? h + ':' + p(m) : p(m)) + ':' + p(x); };
+  const dureeCourte = s => { s = Math.max(0, Math.floor(+s || 0)); if (s < 60) return s + ' s'; const m = Math.floor(s / 60); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0'); };
+  const SENS_APPEL = { entrant: ' entrant', sortant: ' sortant', manque: ' manqué' };
+  function libelleAppel(a) {
+    let t = (a.groupe ? 'Appel de groupe' : 'Appel') + (a.type === 'video' ? ' vidéo' : '') + (SENS_APPEL[a.sens] || '');
+    if (a.sens === 'manque' && a.repetitions > 1) t += ' (' + a.repetitions + ')';
+    if (a.groupe) t += ' · ' + (a.membres.length + 1) + ' participants';
+    if (a.duree > 0) t += ' · ' + dureeCourte(a.duree);
+    return t;
+  }
+  function ligneAppel(a) {
+    const manque = a.sens === 'manque', ic = a.type === 'video' ? 'i-video' : a.sens === 'sortant' ? 'i-sortant' : 'i-entrant';
+    return '<li class="appel-item"><button type="button" class="appel-ligne presse" data-rappeler="' + esc(a.id) + '" aria-label="' + esc('Rappeler ' + a.nom + ' — ' + libelleAppel(a) + ', ' + libelleListe(a.t)) + '">' + avatar(a) +
+      '<span class="appel-corps"><span class="appel-nom-ligne' + (manque ? ' manque' : '') + '">' + esc(a.nom) + '</span><span class="appel-kind">' + icone(ic) + '<span>' + esc(libelleAppel(a)) + '</span></span></span>' +
+      '<span class="appel-heure" data-t="' + (+a.t || 0) + '">' + esc(libelleListe(a.t)) + '</span></button>' +
+      '<button type="button" class="appel-info presse" data-infos="' + esc(a.id) + '" aria-label="' + esc('Détails de l\'appel avec ' + a.nom) + '">' + icone('i-info') + '</button></li>';
+  }
+  function rendreAppels() {
+    const actif = document.activeElement, cle = actif && actif.closest && actif.closest('#liste-appels') ? (actif.dataset.rappeler ? 'rappeler' : actif.dataset.infos ? 'infos' : null) : null, val = cle ? actif.dataset[cle] : null;
+    $('liste-appels').innerHTML = etat.appels.length ? etat.appels.map(ligneAppel).join('') : '<li class="vide">' + (etat.filtreAppels === 'manques' ? 'Aucun appel manqué' : 'Aucun appel') + '</li>';
+    document.querySelectorAll('#seg-appels [data-filtre]').forEach(b => b.setAttribute('aria-pressed', b.dataset.filtre === etat.filtreAppels ? 'true' : 'false'));
+    $('seg-appels').style.setProperty('--i', etat.filtreAppels === 'manques' ? 1 : 0);
+    if (cle) { const b = $('liste-appels').querySelector('[data-' + cle + '="' + val.replace(/"/g, '') + '"]'); if (b) b.focus({ preventScroll: true }); }
+  }
+  async function rafraichirAppels() {
+    const n = ++etat.jetonAppels;
+    let l = null; try { l = await source.appels(etat.filtreAppels); } catch (e) { l = null; }
+    if (n !== etat.jetonAppels || !l) return;               // un filtre plus récent a pris la place pendant l'attente
+    etat.appels = l; rendreAppels();
+  }
+  $('seg-appels').addEventListener('click', e => {
+    const b = e.target.closest('[data-filtre]'); if (!b || b.dataset.filtre === etat.filtreAppels) return;
+    etat.filtreAppels = b.dataset.filtre; rafraichirAppels();
+  });
+  $('liste-appels').addEventListener('click', e => {
+    const r = e.target.closest('[data-rappeler]'), i = e.target.closest('[data-infos]');
+    if (r) { const a = etat.appels.find(x => x.id === r.dataset.rappeler); if (a) rappeler(a, a.type, false, r); }
+    else if (i) { const a = etat.appels.find(x => x.id === i.dataset.infos); if (a) { declencheur = i; pousser(Object.assign({}, etat.route, { feuille: 'info:' + a.id })); } }
+  });
+  $('btn-nouvel-appel').addEventListener('click', () => ouvrirFeuille('appel'));
+  $('btn-modifier-appels').addEventListener('click', () => mot('« Modifier » arrive bientôt'));
+
+  /* les détails d'un appel : la même feuille, un autre corps — qui, quand, combien de temps, et les trois gestes (rappeler, l'autre type d'appel, écrire) */
+  function rendreInfo(a) {
+    const autre = a.type === 'video' ? 'audio' : 'video', ligne = (act, ic, txt) => '<button type="button" class="reglage presse" data-info-act="' + act + '">' + icone(ic) + '<span class="reglage-texte">' + txt + '</span>' + CHEVRON + '</button>';
+    $('info-corps').innerHTML =
+      '<div class="info-tete">' + avatar(a) + '<div><h3 class="info-nom">' + esc(a.nom) + '</h3><p class="info-sous">' + esc(libelleAppel(a)) + '</p><p class="info-sous">' + esc(libelleDatage(a.t)) + '</p></div></div>' +
+      '<div class="carte">' + ligne('rappeler', a.type === 'video' ? 'i-video' : 'i-phone', 'Rappeler') + ligne('autre', autre === 'video' ? 'i-video' : 'i-phone', autre === 'video' ? 'Appel vidéo' : 'Appel audio') + ligne('message', 'i-chat', 'Message') + '</div>' +
+      (a.groupe ? '<div class="rubrique"><span>Participants</span><span>' + (a.membres.length + 1) + '</span></div><div class="carte">' +
+        '<div class="contact"><span class="avatar av0" aria-hidden="true">' + esc(MOI.initiales) + '</span><span class="contact-texte"><span class="contact-nom">Vous</span></span></div>' +
+        a.membres.map(id => { const c = contactDe(id); return c ? '<div class="contact">' + avatar(c) + '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span><span class="contact-role">' + esc(c.role) + '</span></span></div>' : ''; }).join('') + '</div>' : '');
+  }
+  $('info-corps').addEventListener('click', e => {
+    const b = e.target.closest('[data-info-act]'), a = g().info; if (!b || !a) return;
+    if (b.dataset.infoAct === 'message') ouvrirConversationAvec(a.membres, a.conv);
+    else rappeler(a, b.dataset.infoAct === 'autre' ? (a.type === 'video' ? 'audio' : 'video') : a.type, true, b);
+  });
+
+  /* « Message » (pendant ou après un appel) : la conversation de ces personnes — la source la CRÉE si elle n'existe pas. Si l'on vient d'elle, c'est un retour d'historique
+     (l'écran d'avant), sinon la route est remplacée : jamais deux entrées pour la même conversation. */
+  async function ouvrirConversationAvec(membres, conv) {
+    let id = conv || null;
+    if (!id) { try { const c = await source.conversationPour(membres); id = c && c.id; } catch (e) { id = null; } }
+    if (!id) { mot('La conversation n\'a pas pu être ouverte.'); return; }
+    const cible = { vue: 'messages', conv: id, feuille: false, photo: null, appel: null }, h = entree();
+    if (h && h.n > 0 && h.p && memeRoute(h.p, cible)) history.back(); else remplacer(cible);
+  }
+  function rappeler(a, type, depuisFeuille, declencheurEl) { return lancerAppel({ membres: a.membres.slice(), video: type === 'video', conv: a.conv }, declencheurEl || document.activeElement, !!depuisFeuille); }
+  /* lancer = demander à la source, PUIS pousser la route (l'écran suit dans afficherAppel, jouée aussi par le retour système). Depuis une feuille, l'entrée de la feuille est remplacée. */
+  async function lancerAppel(spec, declencheurEl, depuisFeuille) {
+    if (etat.appelId || etat.appelDemarre) return false;           // deux touchers dans le même instant ne lancent pas deux appels
+    etat.appelDemarre = true;
+    let c = null; try { c = await source.demarrerAppel(spec); } catch (e) { c = null; }
+    etat.appelDemarre = false;
+    if (!c) { mot('L\'appel n\'a pas pu être lancé.'); return false; }
+    etat.declencheurAppel = declencheurEl && declencheurEl.id ? '#' + declencheurEl.id : declencheurEl && declencheurEl.dataset && declencheurEl.dataset.rappeler ? '[data-rappeler="' + declencheurEl.dataset.rappeler.replace(/"/g, '') + '"]' : null;
+    const r = Object.assign({}, etat.route, { feuille: false, photo: null, appel: c.id });
+    if (depuisFeuille && etat.route.feuille) remplacer(r); else pousser(r);
+    return true;
+  }
+
+  /* ── l'écran d'appel ── */
+  const annonceAppel = t => { const r = $('annonce-appel'); r.textContent = ''; setTimeout(() => { r.textContent = t; }, 60); };
+  function messageMedia(e, quoi) {
+    const n = e && e.name, cam = quoi === 'camera';
+    if (n === 'NotAllowedError' || n === 'SecurityError') return cam ? 'La caméra est refusée : autorisez-la dans les réglages de votre navigateur, puis touchez Caméra.' : 'Le micro est refusé : autorisez-le dans les réglages de votre navigateur, puis touchez Micro.';
+    if (n === 'NotFoundError' || n === 'OverconstrainedError') return cam ? 'Aucune caméra n\'a été trouvée sur cet appareil.' : 'Aucun micro n\'a été trouvé sur cet appareil.';
+    if (n === 'NotReadableError' || n === 'AbortError') return (cam ? 'La caméra' : 'Le micro') + ' est utilisé' + (cam ? 'e' : '') + ' par une autre application : fermez-la, puis réessayez.';
+    return cam ? 'La caméra n\'a pas pu démarrer.' : 'Le micro n\'a pas pu démarrer.';
+  }
+  let minAvisAppel = 0;
+  function avisAppel(texte) {
+    clearTimeout(minAvisAppel);
+    const a = $('appel-avis'); a.textContent = texte; a.hidden = false;
+    minAvisAppel = setTimeout(() => { a.hidden = true; }, 12000);
+  }
+  const gum = c => navigator.mediaDevices.getUserMedia(c);
+  const mediasDispo = () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  /* poser des pistes : chacune est GARDÉE (A.pistes) pour être arrêtée, et une caméra débranchée en cours d'appel se voit (« ended ») */
+  function poserPistes(A, flux) {
+    flux.getTracks().forEach(t => {
+      A.pistes.push(t);
+      if (t.kind === 'audio') { A.audio = t; t.enabled = A.micro; }
+      else { A.video = t; t.addEventListener('ended', () => { if (A.video === t && !A.fini) { A.video = null; majCamera(A); rendreAppel(); } }); }
+    });
+    majCamera(A);
+  }
+  /* ⛔ LE SEUL ENDROIT QUI RELÂCHE : toute piste, tout flux, l'élément vidéo. Appelé de quitterAppel, et seulement de là (et de l'arrivée tardive d'une piste, ci-dessous). */
+  function arreterPistes(A) {
+    A.pistes.forEach(t => { try { t.stop(); } catch (e) { /* déjà arrêtée */ } });
+    A.pistes = []; A.audio = null; A.video = null; A.camera = false;
+    const v = $('appel-video-local'); try { v.pause(); } catch (e) { /* rien */ } v.srcObject = null;
+  }
+  function majCamera(A) {
+    A.camera = !!(A.video && A.video.readyState === 'live');
+    const v = $('appel-video-local'), vous = $('appel-vous');
+    vous.dataset.camera = A.camera ? 'on' : 'off';
+    if (A.camera) { if (!v.srcObject || v.srcObject.getVideoTracks()[0] !== A.video) v.srcObject = new MediaStream([A.video]); const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+    else v.srcObject = null;
+  }
+  /* un flux obtenu APRÈS la fin de l'appel (la demande d'autorisation était en cours) est arrêté tout de suite : jamais une caméra allumée pour un appel qui n'existe plus */
+  const perime = A => A.fini || etat.appelUI !== A;
+  async function acquerirMedias(A, veutVideo) {
+    if (!mediasDispo()) { A.mediaPret = true; avisAppel('Le micro et la caméra ne sont pas disponibles sur ce navigateur : l\'appel continue sans eux.'); rendreAppel(); return; }
+    let flux = null, errCombine = null, errAudio = null;
+    if (veutVideo) { try { flux = await gum({ audio: true, video: true }); } catch (e) { errCombine = e; } if (perime(A)) { if (flux) flux.getTracks().forEach(t => t.stop()); return; } }
+    if (!flux) { try { flux = await gum({ audio: true }); } catch (e) { errAudio = e; } if (perime(A)) { if (flux) flux.getTracks().forEach(t => t.stop()); return; } }
+    let dit = '';
+    if (flux) { poserPistes(A, flux); if (veutVideo && !A.video) dit = messageMedia(errCombine, 'camera') + ' L\'appel continue en audio.'; }
+    else {
+      dit = messageMedia(errAudio, 'micro') + ' L\'appel continue sans micro.';
+      if (veutVideo) {
+        let fv = null; try { fv = await gum({ video: true }); } catch (e) { fv = null; }
+        if (perime(A)) { if (fv) fv.getTracks().forEach(t => t.stop()); return; }
+        if (fv) poserPistes(A, fv); else dit += ' La caméra n\'a pas pu démarrer non plus.';
+      }
+    }
+    A.mediaPret = true;
+    if (dit) avisAppel(dit);
+    rendreAppel();
+  }
+  async function basculerMicro() {
+    const A = etat.appelUI; if (!A || !A.snap) return;
+    if (!A.audio) {                                                // pas de micro (refusé, absent) : toucher le bouton RÉESSAIE — la personne a pu changer l'autorisation
+      try {
+        const f = await gum({ audio: true });
+        if (perime(A)) { f.getTracks().forEach(t => t.stop()); return; }
+        A.micro = true; poserPistes(A, f); avisAppelEffacer(); rendreAppel(); annonceAppel('Micro activé');
+      } catch (e) { if (!perime(A)) avisAppel(messageMedia(e, 'micro') + ' L\'appel continue sans micro.'); }
+      return;
+    }
+    A.micro = !A.micro; A.audio.enabled = A.micro; rendreAppel(); annonceAppel(A.micro ? 'Micro activé' : 'Micro coupé');
+  }
+  const avisAppelEffacer = () => { clearTimeout(minAvisAppel); $('appel-avis').hidden = true; };
+  async function basculerCamera() {
+    const A = etat.appelUI; if (!A || !A.snap || A.cameraEnCours) return;
+    if (A.camera) {                                                 // éteindre = ARRÊTER la piste (le voyant s'éteint), pas seulement la masquer
+      if (A.video) { A.pistes = A.pistes.filter(t => t !== A.video); try { A.video.stop(); } catch (e) { /* rien */ } A.video = null; }
+      majCamera(A); rendreAppel(); annonceAppel('Caméra coupée'); return;
+    }
+    A.cameraEnCours = true;
+    try {
+      const f = await gum({ video: true });
+      if (perime(A)) { f.getTracks().forEach(t => t.stop()); return; }
+      poserPistes(A, f); avisAppelEffacer(); rendreAppel(); annonceAppel('Caméra activée');
+    } catch (e) { if (!perime(A)) { avisAppel(messageMedia(e, 'camera') + ' L\'appel continue en audio.'); rendreAppel(); } }
+    finally { A.cameraEnCours = false; }
+  }
+  function statutAppel(A) {
+    const s = A.snap; if (!s) return '';
+    if (s.etat === 'sonne') return 'Sonnerie…';
+    const muet = A.mediaPret && (!A.micro || !A.audio);
+    return (muet ? 'Micro coupé' : A.camera ? 'Vidéo activée' : 'Appel en cours') + ' · ' + dureeAppel((Date.now() - (s.debut || Date.now())) / 1000);
+  }
+  /* ⛔ la durée se relit quatre fois par seconde, pas une : une minuterie à 1 s, lancée AVANT que l'autre réponde, n'est pas calée sur le début de l'appel et affiche un chiffre en retard de près d'une seconde */
+  const majStatutAppel = () => { const A = etat.appelUI; if (!A) return; const t = statutAppel(A), e = $('appel-statut'); if (e.textContent !== t) e.textContent = t; };
+  /* l'écran DIT l'état : la mise en page, le nom, les vignettes (refaites seulement quand ce qui les décide change), les commandes */
+  function rendreAppel() {
+    const A = etat.appelUI; if (!A || !A.snap) return;
+    const s = A.snap, E = $('appel-ecran'), mise = s.membres.length >= 2 ? 'groupe' : (A.camera ? 'video' : 'audio');
+    E.dataset.mise = mise;
+    const scene = $('appel-scene'); if (mise === 'groupe') scene.tabIndex = 0; else scene.removeAttribute('tabindex');
+    $('appel-nom').textContent = s.nom;
+    const av = $('appel-avatar'); av.className = 'avatar appel-avatar av' + (((s.avatar | 0) % 6 + 6) % 6);
+    av.textContent = blob(s.photo) ? '' : (s.initiales || ''); av.style.backgroundImage = blob(s.photo) ? 'url("' + s.photo.replace(/["\\]/g, '') + '")' : '';
+    const sig = mise + '|' + s.membres.map(m => m.id + ':' + m.etat).join(',');
+    if (A.sig !== sig) {
+      A.sig = sig;
+      scene.querySelectorAll('.tuile:not(.vous)').forEach(t => t.remove());
+      const vous = $('appel-vous');
+      s.membres.forEach(m => {
+        const t = document.createElement('div');
+        t.className = 'tuile av' + (((m.avatar | 0) % 6 + 6) % 6); t.setAttribute('role', 'listitem'); t.dataset.membre = m.id; t.dataset.etat = m.etat;
+        t.innerHTML = '<span class="tuile-av" aria-hidden="true">' + esc(m.initiales) + '</span><span class="tuile-nom">' + esc(mise === 'video' ? 'Vidéo de ' + m.prenom : m.prenom) + '</span>' + (m.etat === 'sonne' ? '<span class="tuile-etat">Sonnerie…</span>' : '');
+        scene.insertBefore(t, vous);
+      });
+    }
+    $('appel-vous-av').textContent = MOI.initiales;
+    const muet = A.mediaPret && (!A.micro || !A.audio);
+    const bm = $('appel-micro'); bm.setAttribute('aria-pressed', muet ? 'true' : 'false'); bm.setAttribute('aria-label', muet ? 'Activer le micro' : 'Couper le micro');
+    bm.querySelector('.appel-cmd-texte').textContent = muet ? 'Muet' : 'Micro'; bm.querySelector('use').setAttribute('href', muet ? '#i-mic-off' : '#i-mic');
+    $('appel-hp').setAttribute('aria-pressed', A.haut ? 'true' : 'false');
+    const bc = $('appel-cam'); bc.setAttribute('aria-pressed', A.camera ? 'true' : 'false'); bc.setAttribute('aria-label', A.camera ? 'Couper la caméra' : 'Activer la caméra');
+    bc.querySelector('use').setAttribute('href', A.camera ? '#i-video' : '#i-video-off');
+    majStatutAppel();
+  }
+  async function afficherAppel(id) {
+    const jeton = ++etat.jetonAppel;
+    etat.appelId = id;
+    document.documentElement.dataset.appel = '1';
+    const A = etat.appelUI = { id, jeton, snap: null, micro: true, haut: false, camera: false, pistes: [], audio: null, video: null, minut: 0, fini: false, cameraEnCours: false, mediaPret: false, sig: '' };
+    $('appel-nom').textContent = ''; $('appel-statut').textContent = ''; $('appel-avis').hidden = true;
+    $('appel-ecran').dataset.mise = 'audio';
+    synchroInert();
+    let snap = null; try { snap = await source.appel(id); } catch (e) { snap = null; }
+    if (jeton !== etat.jetonAppel) return;                       // raccroché pendant l'attente
+    if (!snap || snap.etat === 'termine') { remplacer(parentDe(etat.route)); mot('Cet appel est terminé.'); return; }
+    A.snap = snap; rendreAppel();
+    A.minut = setInterval(majStatutAppel, 250);
+    $('appel-ecran').focus({ preventScroll: true });
+    acquerirMedias(A, snap.type === 'video');
+  }
+  /* un changement dit par la source (quelqu'un répond, l'appel est fini ailleurs) */
+  async function rafraichirAppel() {
+    const A = etat.appelUI; if (!A || !A.snap) return;
+    let snap = null; try { snap = await source.appel(A.id); } catch (e) { snap = null; }
+    if (perime(A) || !snap) return;
+    const avant = A.snap.etat; A.snap = snap;
+    if (snap.etat === 'termine') { fermerCouche(); return; }
+    if (avant === 'sonne' && snap.etat === 'en-cours') annonceAppel('Appel connecté');
+    rendreAppel();
+  }
+  /* ⛔ LA SORTIE UNIQUE : tout chemin qui retire la couche « appel » de la route passe ici, et rien d'autre ne raccroche. Les pistes sont arrêtées d'ABORD, de façon synchrone ;
+     la source l'apprend ensuite (terminerAppel crée la ligne d'historique), et l'écran en garde une phrase pour le lecteur d'écran. */
+  function quitterAppel() {
+    const A = etat.appelUI, id = etat.appelId, cle = etat.declencheurAppel;
+    etat.jetonAppel++; etat.appelId = null; etat.appelUI = null; etat.declencheurAppel = null;
+    if (A) { A.fini = true; clearInterval(A.minut); arreterPistes(A); }
+    avisAppelEffacer();
+    delete document.documentElement.dataset.appel;
+    synchroInert();
+    requestAnimationFrame(() => { const b = cle && document.querySelector(cle); if (b && !etat.appelId && b.getClientRects().length) b.focus({ preventScroll: true }); });
+    if (id) source.terminerAppel(id).then(rec => annonceAppel('Appel terminé · ' + dureeAppel(rec.duree)), () => { /* l'appel n'existait plus chez la source */ });
+  }
+  $('appel-raccrocher').addEventListener('click', fermerCouche);
+  $('appel-micro').addEventListener('click', basculerMicro);
+  $('appel-hp').addEventListener('click', () => { const A = etat.appelUI; if (!A || !A.snap) return; A.haut = !A.haut; rendreAppel(); annonceAppel(A.haut ? 'Haut-parleur activé' : 'Haut-parleur coupé'); });
+  $('appel-cam').addEventListener('click', basculerCamera);
+  $('appel-msg').addEventListener('click', () => { const A = etat.appelUI; if (A && A.snap) ouvrirConversationAvec(A.snap.membres.map(m => m.id), A.snap.conv); });
+  /* la page qu'on ferme libère le micro et la caméra elle-même ; on le fait aussi tout de suite : un onglet mis en cache (bfcache) garderait sinon ses pistes vivantes */
+  window.addEventListener('pagehide', () => { if (etat.appelUI) arreterPistes(etat.appelUI); });
+
+  /* ═══ 11. LE DÉMARRAGE ═══════════════════════════════════════════════════════════════════════════════════════════════════════ */
   async function demarrer() {
     $('moi-avatar').textContent = MOI.initiales; $('moi-nom').textContent = MOI.nom;
     construireNavigation();
     construireContacts();
-    ['appels', 'reunions', 'reglages'].forEach(rendreCoquille);
+    ['reunions', 'reglages'].forEach(rendreCoquille);
     etat.conversations = await source.lister();
+    etat.appels = await source.appels('tous'); rendreAppels();
     const r0 = routeDepuisHash();
     history.replaceState({ opmsg: 1, n: 0, r: r0, p: null }, '', urlDe(r0));
     rendreListe();
@@ -1561,6 +2066,8 @@ button.photo:active { transform: scale(.97); }
     source.ecouter(ev => {
       if (ev.type === 'liste') rafraichirListe();
       if (ev.type === 'conversation' && ev.id === etat.conv) rafraichirConv();
+      if (ev.type === 'appels') rafraichirAppels();
+      if (ev.type === 'appel' && ev.id === etat.appelId) rafraichirAppel();
     });
   }
   demarrer();
