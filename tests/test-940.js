@@ -77,6 +77,9 @@ console.log('\n── 940 · la Tour v2.81 ouvre les accès bêta d\'OP MESSAGES
   const D = path.join(banc, 'data'); fs.mkdirSync(D, { recursive: true });
   const vap = webpush.generateVAPIDKeys(), MDP = 'mot-de-passe-du-banc-940';
   fs.writeFileSync(path.join(banc, 'config.json'), JSON.stringify({ vapidPublicKey: vap.publicKey, vapidPrivateKey: vap.privateKey, apiKey: 'banc', adminPassHash: sha(MDP) }));
+  /* ⛔ UN FICHIER D'AVANT : un accès écrit par le serveur d'AVANT `apps` n'a pas le champ. Le banc ne peut pas le fabriquer par la route
+     (le serveur neuf grave toujours `apps` à la création) : on l'écrit comme l'ancien serveur l'écrivait, AVANT de démarrer. */
+  fs.writeFileSync(path.join(D, 'beta-comptes.json'), JSON.stringify([{ id: 'b0a1b2c3d4e5', login: 'ancien', nom: 'Accès d\'avant', chantier: 'écrit avant apps', hash: sha('pw-ancien-940-a'), actif: true, ts: Date.now() - 86400000, creePar: 'Patron' }]));
   const PORT = await libre();
   let journal = '';
   enfant = spawn(process.execPath, [SERVEUR], { env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, 'config.json'), TEAMOP_DATA: D, PORT: String(PORT) }), stdio: ['ignore', 'pipe', 'pipe'] });
@@ -105,7 +108,7 @@ console.log('\n── 940 · la Tour v2.81 ouvre les accès bêta d\'OP MESSAGES
     v('   la console MESSAGES le montre', TM.run('btDeLaConsole().map(function(c){ return c.login; })'), ['mona']);
     const TG = tour(B, PATRON, 'gestion');
     TG.run('chargerEssais()'); await TG.attendre('BT.loaded');
-    v('⛔ la console GESTION ne le montre PAS (il n\'ouvre pas la bêta d\'OP GESTION)', TG.run('btDeLaConsole().length'), 0);
+    v('⛔ la console GESTION ne le montre PAS (il n\'ouvre pas la bêta d\'OP GESTION) : elle ne montre que l\'accès d\'avant', TG.run('btDeLaConsole().map(function(c){ return c.login; })'), ['ancien']);
     vrai('   et sa liste ne contient pas son identifiant', !/mona/.test(TG.run('accBlocBeta()')));
     vrai('   la liste de la console MESSAGES, elle, le contient', /mona/.test(TM.run('accBlocBeta()')));
 
@@ -114,7 +117,7 @@ console.log('\n── 940 · la Tour v2.81 ouvre les accès bêta d\'OP MESSAGES
     TG.run('btAjouter()');
     vrai('population : créé', await TG.attendre('BT.comptes.some(function(c){ return c.login==="gaston"; })'));
     v('apps = [\'gestion\']', (await parLogin('gaston')).apps, ['gestion']);
-    v('la console GESTION le montre, et lui seul', TG.run('btDeLaConsole().map(function(c){ return c.login; })'), ['gaston']);
+    v('la console GESTION le montre, avec l\'accès d\'avant (« gestion » par défaut)', TG.run('btDeLaConsole().map(function(c){ return c.login; })').sort(), ['ancien', 'gaston']);
     TM.run('chargerEssais()'); await TM.attendre('BT.comptes.length>=2');
     v('la console MESSAGES ne le montre pas', TM.run('btDeLaConsole().map(function(c){ return c.login; })'), ['mona']);
 
@@ -188,6 +191,12 @@ console.log('\n── 940 · la Tour v2.81 ouvre les accès bêta d\'OP MESSAGES
     v('la console MESSAGES ne le montre pas', TM.run('btDeLaConsole().some(function(c){ return c.login==="avant"; })'), false);
     v('une liste d\'applications fausse est refusée : 400 (vide, inconnue, pas une liste)', [(await appel('/api/monitor/beta', { login: 'x1x', pass: 'pw-x1x-940-aa', apps: [] }, PATRON)).s, (await appel('/api/monitor/beta', { login: 'x2x', pass: 'pw-x2x-940-aa', apps: ['compta'] }, PATRON)).s, (await appel('/api/monitor/beta/apps', { id: ancien.j.compte.id, apps: 'messages' }, PATRON)).s], [400, 400, 400]);
     v('la route /apps d\'un accès inconnu : 404, et sans jeton de patron : refusée', [(await appel('/api/monitor/beta/apps', { id: 'bnexistepas', apps: ['gestion'] }, PATRON)).s, [401, 403].includes((await appel('/api/monitor/beta/apps', { id: ancien.j.compte.id, apps: ['messages'] })).s)], [404, true]);
+
+    const anc = await parLogin('ancien');
+    v('⛔ un accès ÉCRIT PAR LE SERVEUR D\'AVANT (fichier sans `apps`) est rendu « gestion » seul — rien ne s\'ouvre en silence', anc && anc.apps, ['gestion']);
+    v('   la console MESSAGES ne le montre pas', TM.run('btDeLaConsole().some(function(c){ return c.login==="ancien"; })'), false);
+    const ancMsg = await login('ancien', 'pw-ancien-940-a', 'messages');
+    v('   et la porte d\'OP MESSAGES le refuse comme un mauvais mot de passe, alors que OP GESTION l\'accepte', [ancMsg.s, ancMsg.j, (await login('ancien', 'pw-ancien-940-a')).s], [403, mauvais.j, 200]);
 
     console.log('\n9. Face à un serveur D\'AVANT (qui ne connaît pas `apps`) la Tour le DIT au lieu de croire');
     relais = http.createServer((q, r) => {
