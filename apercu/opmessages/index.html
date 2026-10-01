@@ -1158,12 +1158,12 @@ html[data-service] .mention-apercu { display: none; }
      remarque 2) : la liste reste celle d'avant, une phrase explique pourquoi elle n'est pas à jour et « Réessayer » la relit. Une réussite efface le refus d'avant. */
   function montrerErreurListe(e) { $('liste-erreur-texte').textContent = phrase(e, 'La liste n\'a pas pu être mise à jour.'); $('liste-erreur').hidden = false; }
   function masquerErreurListe() { $('liste-erreur').hidden = true; $('liste-erreur-texte').textContent = ''; }
-  async function rafraichirListe() {
-    let l; try { l = await source.lister(); } catch (e) { montrerErreurListe(e); return; }
+  async function rafraichirListe(forcer) {
+    let l; try { l = await source.lister(forcer === true); } catch (e) { montrerErreurListe(e); return; }
     etat.conversations = l; masquerErreurListe();
     rendreListe();
   }
-  $('liste-erreur-bouton').addEventListener('click', rafraichirListe);
+  $('liste-erreur-bouton').addEventListener('click', () => rafraichirListe(true));
 
   /* ═══ 5. LES AUTRES ÉCRANS — des coquilles « bientôt » (étapes 3 à 5) ═════════════════════════════════════════════════════
      Ajouter un écran = remplir UNE entrée de VUES et écrire une fonction de rendu ici ; la navigation, l'état et les

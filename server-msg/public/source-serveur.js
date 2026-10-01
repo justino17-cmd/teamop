@@ -159,8 +159,9 @@
       });
       return enRelecture;
     }
-    const lister = async () => {
-      if (!listeFraiche) await relireListe();
+    /* `forcer` : relire même si la liste est fraîche (le bouton « Réessayer » d'un refus ne doit pas se contenter de la copie qu'il a déjà) */
+    const lister = async (forcer) => {
+      if (forcer || !listeFraiche) await relireListe();
       return convsApi.map(resume).sort((x, y) => y.t - x.t);
     };
 
