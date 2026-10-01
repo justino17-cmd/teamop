@@ -67,6 +67,14 @@ je veux pas qu'il soit sur Firebase »**, avec le choix laissé (« sur le serve
 serveur ») — choisi : **un service À PART sur le même VPS** (son propre processus, son port, son dossier de données, ses
 comptes de personnes, aucun code partagé avec `server/index.js`), écrit pour déménager sur une machine à lui sans rien
 réécrire ; un serveur dédié deviendra utile quand les appels et la visio (relais TURN, bande passante) tourneront pour de vrai.
+✅ **Serveur d'OP MESSAGES, étape 1 FAITE sur la branche** (fusion `d70ba05`) : `server-msg/` (node:sqlite, scellé AES-256-GCM,
+SSE, porte bêta par la Tour en boucle locale, groupes, lu, saisie, présence), son installation (`install-msg.sh`, unité durcie,
+utilisateur `opmsg`), son déploiement (`.github/workflows/deploiement-messages.yml`, une clé SSH par instance) et le mode
+d'emploi de Justin `design/opmessages/INSTALLER-LE-SERVEUR.md`. Conception : `design/opmessages/SERVEUR.md`. Liste
+`scripts/bancs-messages.liste` 16 suites · 1 595 (900-910, 930-934), 51/51 mutations de la relecture adverse ; suite complète de la
+branche 228 · 14 574, code 0. ⚠️ Il touche `server/index.js` sur DEUX points (`/api/beta/login` rend `id`, `/api/beta/etat`
+accepte `ids`) : publier le serveur d'OP GESTION AVANT celui d'OP MESSAGES (sinon la porte reste fermée, 503, sans danger).
+Rien d'installé ni de poussé sur `main` ; restent ouverts D11, G12, G14, G15, G17 (listés dans le mode d'emploi).
 
 ---
 
