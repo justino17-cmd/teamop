@@ -137,7 +137,13 @@ personnes, réunions jusqu'à 10) / Pro 15 € / Sur mesure, options à la carte
 rangées dans la feuille de route ; **les 14 décisions ACCEPTÉES par Justin (« Fait tout », même soir)**, dont : formule à 5 €, monter le serveur de visio
 AVANT d'ouvrir le Pro, un abonnement par entreprise pour Messages, aucun achat dans l'application des stores (règle 3.1.3(c)).
 Puis : **« j'aimerais tester l'application aussi ; fais un lien bêta dans la Tour, le même système pour les accès comme OP
-GESTION »** → accès bêta d'OP MESSAGES gérés dans la console MESSAGES de la Tour, comme ceux d'OP GESTION (en construction).
+GESTION »** → accès bêta d'OP MESSAGES gérés dans la console MESSAGES de la Tour, comme ceux d'OP GESTION — FAIT (Tour v2.81, `e1a726c`).
+Puis, sur les 5 réglages du compte par téléphone (réserve de 40 % pour la France, 3 € par jour et par pays, contact mutuel
+« comme WhatsApp », 10 SMS par heure et par réseau, `/health` public) : **« tout ça je veux le faire, mais avant de payer quoi que
+ce soit je veux tester »** → les 5 réglages par défaut sont GARDÉS ; ⛔ **RIEN DE PAYANT AVANT SES ESSAIS** : la bêta tourne sur
+le VPS déjà payé, entre par les accès de la Tour, n'envoie AUCUN SMS (mode « journal »), appelle en direct jusqu'à 4 sans serveur
+de visio. Crédit SMS OVH, machine de visio et tarifs Stripe ne s'achètent qu'APRÈS ses essais, sur sa phrase. Pour essayer
+l'inscription par téléphone sans SMS : des « numéros d'essai » à code fixe, bêta seulement (lot A, avec l'écran d'inscription).
 ✅ **Serveur d'OP MESSAGES, étape 1 FAITE sur la branche** (fusion `d70ba05`) : `server-msg/` (node:sqlite, scellé AES-256-GCM,
 SSE, porte bêta par la Tour en boucle locale, groupes, lu, saisie, présence), son installation (`install-msg.sh`, unité durcie,
 utilisateur `opmsg`), son déploiement (`.github/workflows/deploiement-messages.yml`, une clé SSH par instance) et le mode

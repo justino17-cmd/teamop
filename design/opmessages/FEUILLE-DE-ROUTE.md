@@ -9,7 +9,7 @@ Ce qui coûte de l'argent à chaque usage (SMS, IA, stockage lourd) va dans Mess
 |---|---|---|---|
 | 0 (en cours) | Étape 3 Appels (aperçu), formules, interface branchée sur `server-msg`, test à plusieurs personnes | — | |
 | 0 bis (en cours) | Inscription par téléphone, tous pays, budgets en euros, contacts par numéro | — | côté serveur |
-| A | Toutes les langues : interface + SMS, droite à gauche | 0, 0 bis | écran d'inscription par téléphone avec |
+| A | Toutes les langues : interface + SMS, droite à gauche | 0, 0 bis | écran d'inscription par téléphone avec ; et des **numéros d'essai à code fixe, bêta seulement** (refusés au démarrage en production) — Justin : « avant de payer quoi que ce soit je veux tester » : l'inscription s'essaie sans un seul SMS |
 | B | Idée 1 : connexion par clé d'accès (Face ID / empreinte, WebAuthn fait main) ; idée 2 : tous ses appareils, écran « Mes appareils » | A | supprime presque tous les SMS |
 | C | Idée 3 : sondages et listes de tâches ; idée 4 : messages programmés, « rappelle-moi » ; idée 5 : fils de réponse et mentions | A | gratuit |
 | D | Idée 8 : deux espaces Perso et Pro, heures de travail (droit à la déconnexion) — avec les espaces d'entreprise (étape 5 du serveur : lien de connexion créé par TEAM OP, Messages Pro 15 €, Stripe) | B | ce qui fait payer |
