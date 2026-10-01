@@ -330,10 +330,10 @@ const anDe = f => `<div class="an">ou ${euro(surAn(+f.prix))} par an : ${MOIS_OF
 
 /* ── lire `OPTIONS_GESTION` dans app.html SANS l'exécuter (ni vm ni eval : le générateur lit du code, il n'en lance pas) ──
    On retire les commentaires de bloc qui COMMENCENT une ligne (les seuls que ce dépôt utilise pour expliquer du code — un
-   motif plus gourmand avale du vrai code, CLAUDE.md), puis on parcourt les accolades en reconnaissant chaînes et commentaires
-   de fin de ligne : une apostrophe française dans un commentaire ne doit pas ouvrir une « chaîne » qui mange le reste. */
+   motif plus gourmand avale du vrai code, CLAUDE.md) ; une déclaration commentée ne COMMENCE pas la ligne par `const`, le
+   motif ne la voit donc pas. On parcourt ensuite les accolades en reconnaissant chaînes et commentaires de fin de ligne : une apostrophe française dans un commentaire ne doit pas ouvrir une « chaîne » qui mange le reste. */
 function lireOptionsApp(src) {
-  const code = String(src).replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, m => m.replace(/[^\n]/g, ' ')).replace(/^[ \t]*\/\/.*$/gm, m => ' '.repeat(m.length));
+  const code = String(src).replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, m => m.replace(/[^\n]/g, ' '));
   const d = /^[ \t]*(?:const|let|var)\s+OPTIONS_GESTION\s*=\s*\{/m.exec(code);
   if (!d) return null;
   const debut = d.index + d[0].length - 1;

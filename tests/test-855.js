@@ -178,6 +178,8 @@ console.log('6. les phrases « Pro n\'a ni stock… » ne sont plus fausses');
   }
   vrai('population : les retouches de phrase touchent bien des pages (' + appliquees + ')', appliquees >= 6);
   const stock = nb(texte(GEN.page('logiciel-gestion-de-stock'))), stockR = nb(texte(GEN.page('logiciel-gestion-de-stock', { racine: true })));
+  GEN.page('tarifs', { racine: true });
+  vrai('⛔ générer la racine ne laisse pas son état derrière : l\'aperçu garde ses options (description des tarifs, menu)', /Options du Pro/.test(GEN.PAGES.tarifs.desc) && /tarifs\.html#options/.test(GEN.page('index')));
   vrai('page Stock : la carte Pro dit « Pas de stock dans Pro seul » et l\'option Stock ; la racine garde « Pas de stock dans Pro : »', /Pas de stock dans Pro seul/.test(stock) && /option Stock \(\+9 €\)/.test(stock) && /Pas de stock dans Pro :/.test(stockR));
   vrai('page Bons : les bons sont une option Achats, et la commande suggérée demande aussi le Stock', /Pas de bons de commande dans Pro seul/.test(nb(texte(GEN.page('logiciel-bons-de-commande')))) && /option Achats fournisseurs \(\+6 €\)/.test(nb(texte(GEN.page('logiciel-bons-de-commande')))) && /option Stock en plus/.test(nb(texte(GEN.page('logiciel-bons-de-commande')))));
   const reg = nb(texte(GEN.page('logiciel-registre-sanitaire')));
