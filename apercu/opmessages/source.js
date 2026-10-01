@@ -15,7 +15,30 @@
                                   refuse (promesse rejetée, `erreur.code`) : 'introuvable' · 'vide' · 'trop-long' · 'interdit'
      marquerLu(id)              → remet à zéro les non-lus de la conversation
      creerGroupe({nom,membres,photo,annonces,ephemeres}) → la conversation créée (son premier message est un message système)
-     ecouter(cb)                → s'abonne ; cb({type:'liste'}) ou cb({type:'conversation', id}) ; rend la fonction qui se désabonne
+     ecouter(cb)                → s'abonne ; cb({type:'liste'}), cb({type:'conversation', id}), cb({type:'appels'}) (l'historique a changé)
+                                  ou cb({type:'appel', id}) (un appel en cours a changé : un participant répond, l'appel se termine) ; rend la
+                                  fonction qui se désabonne
+
+   ── LES APPELS (étape 3) ──
+     appels(filtre)             → [appel] triés du plus récent au plus ancien. filtre = undefined | 'tous' | 'manques' ; tout autre filtre est refusé
+                                  ('invalide'). Un appel de l'historique :
+                                  { id, type:'audio'|'video', sens:'entrant'|'sortant'|'manque', groupe, conv:<id de conversation>|null,
+                                    membres:[<id de contact>] (les AUTRES : jamais moi), nom, court, initiales, avatar, photo,
+                                    repetitions (≥ 1 : « Appel manqué (2) » = deux manqués d'affilée de la même personne), t (ms, début), duree (secondes,
+                                    0 pour un manqué ou un appel annulé avant qu'on réponde) }
+     demarrerAppel({membres, video, conv}) → l'appel EN COURS (voir appel()). membres = au moins un contact connu (doublons et inconnus écartés) ;
+                                  conv facultatif (sinon la source retrouve la conversation qui réunit exactement ces personnes, ou null).
+                                  refuse : 'vide' (aucun contact) · 'introuvable' (conv inconnue) · 'occupe' (un appel est déjà en cours : un seul à la fois)
+     appel(id)                  → { id, etat:'sonne'|'en-cours'|'termine', type, groupe, conv, nom, court, initiales, avatar, photo,
+                                    membres:[{id, nom, prenom, initiales, avatar, etat:'sonne'|'connecte', camera}], debut:null|ms (le premier qui répond),
+                                    fin:null|ms, duree (secondes) } ou null si l'identifiant est inconnu. La DURÉE QUI COURT n'est pas poussée seconde par
+                                    seconde : l'écran la calcule (maintenant - debut), la source ne dit que « debut ».
+     terminerAppel(id)          → l'appel de l'historique que ce raccrochage crée (sens 'sortant', duree depuis debut). IDEMPOTENT : raccrocher deux
+                                    fois rend le MÊME appel, sans doublon dans l'historique. refuse : 'introuvable'.
+     conversationPour(membres)  → le résumé de la conversation qui réunit exactement moi + ces contacts ; elle est CRÉÉE si elle n'existe pas (un
+                                    échange direct, ou un groupe nommé d'après les prénoms) — c'est ce que fait « Message » pendant un appel.
+   ⛔ Les médias (micro, caméra) ne passent PAS par la source : ils vivent dans la page (getUserMedia). Un serveur ne verra jamais une piste ; il dira
+   seulement qui participe, qui a répondu, quand l'appel a commencé et fini.
    Un message : { id, auteur:'moi'|<id de contact>, t (ms, epoch), lu:null|ms, ET l'UN de
                   texte | photos:[{url,w,h}|{exemple:true}] | vocal:{url,dur,bars[]} | systeme:true + texte }.
 
@@ -40,6 +63,8 @@
     const maintenant = options.maintenant || (() => Date.now());
     const planifier = options.planifier || ((f, ms) => setTimeout(f, ms));
     const delaiLu = options.delaiLu == null ? 1500 : options.delaiLu;
+    /* un appel sonne 1,2 s puis les autres répondent l'un après l'autre (350 ms d'écart) — dans l'aperçu seulement ; < 0 : personne ne répond (un banc pilote la suite) */
+    const delaiReponse = options.delaiReponse == null ? 1200 : options.delaiReponse;
     let seq = 0;
 
     const MOI = { id: 'moi', initiales: 'AM', nom: 'Alex Morel' };
@@ -99,6 +124,33 @@
     ];
     const trouver = id => convs.find(c => c.id === id);
     const initialesDe = c => c.type === 'groupe' ? '#' : (contactDe(c.membres.find(x => x !== 'moi')) || { initiales: '?' }).initiales;
+
+    /* ── les appels : l'historique (des exemples, instants relatifs à « maintenant » comme les messages) et les appels en cours ── */
+    const convExistante = ids => convs.find(c => c.membres.length === ids.length + 1 && ids.every(i => c.membres.includes(i)));
+    /* ce que l'écran montre d'un appel : un échange direct porte la personne, un groupe porte la conversation qui le réunit — ou, à défaut, les prénoms */
+    function identiteAppel(ids, conv) {
+      if (ids.length === 1) { const c = contactDe(ids[0]); return { groupe: false, nom: c.nom, court: c.nom, initiales: c.initiales, avatar: c.avatar, photo: null }; }
+      const cv = conv ? trouver(conv) : null, noms = ids.map(prenom).join(', ').slice(0, 40);
+      return { groupe: true, nom: cv ? cv.nom : noms, court: cv ? cv.court : noms, initiales: '#', avatar: cv ? cv.avatar : 3, photo: cv ? cv.photo : null };
+    }
+    const enregistrerAppel = (corps, minutes) => Object.assign({ id: 'h' + (++seq), repetitions: 1, t: a(minutes) }, corps);
+    /* ⛔ volontairement PAS rangés par date : un serveur rend ce qu'il veut, c'est `appels()` qui trie — un historique déjà trié cacherait un tri retiré (mutation A02) */
+    const historique = [
+      enregistrerAppel({ type: 'audio', sens: 'sortant', conv: null, membres: ['c5'], duree: 190 }, 27 * 60),
+      enregistrerAppel({ type: 'video', sens: 'entrant', conv: 'v2', membres: ['c1'], duree: 540 }, 50),
+      enregistrerAppel({ type: 'audio', sens: 'manque',  conv: 'v6', membres: ['c4'], duree: 0, repetitions: 2 }, 3 * 24 * 60 + 40),
+      enregistrerAppel({ type: 'audio', sens: 'manque',  conv: 'v4', membres: ['c2'], duree: 0 }, 150),
+      enregistrerAppel({ type: 'video', sens: 'sortant', conv: 'v1', membres: ['c2', 'c3', 'c5'], duree: 960 }, 4 * 24 * 60 + 20),
+      enregistrerAppel({ type: 'video', sens: 'entrant', conv: 'v3', membres: ['c3', 'c6'], duree: 2520 }, 26 * 60)
+    ];
+    const vueAppel = r => Object.assign({ groupe: false }, identiteAppel(r.membres, r.conv), { id: r.id, type: r.type, sens: r.sens, conv: r.conv, membres: r.membres.slice(), repetitions: r.repetitions, t: r.t, duree: r.duree });
+    const enCours = new Map();
+    const unAppelOuvert = () => Array.from(enCours.values()).some(x => x.etat !== 'termine');
+    function vueEnCours(x) {
+      const fin = x.fin || maintenant(), duree = x.debut ? Math.max(0, Math.round((fin - x.debut) / 1000)) : 0;
+      return Object.assign(identiteAppel(x.membres.map(m => m.id), x.conv), { id: x.id, etat: x.etat, type: x.type, conv: x.conv, debut: x.debut, fin: x.fin, duree,
+        membres: x.membres.map(m => { const c = contactDe(m.id); return { id: m.id, nom: c.nom, prenom: c.nom.split(' ')[0], initiales: c.initiales, avatar: c.avatar, etat: m.etat, camera: m.camera }; }) });
+    }
 
     /* ── ce que la liste dit d'une conversation : le dernier message, avec son auteur ── */
     function apercuDe(c, dernier) {
@@ -171,6 +223,54 @@
           annoncesSeulement: !!spec.annonces, ephemeres: spec.ephemeres | 0, avatar: 3, photo: spec.photo || null, epingle: false, nonLus: 1, saisie: null, cree: t,
           messages: [{ id: 'm' + (++seq), auteur: 'moi', t, lu: null, systeme: true, texte: 'Vous avez créé le groupe · ' + membres.map(prenom).join(', ') }]
         };
+        convs.unshift(c);
+        emettre({ type: 'liste' });
+        return Promise.resolve(resume(c));
+      },
+      /* ── les appels ── */
+      appels(filtre) {
+        if (filtre != null && filtre !== 'tous' && filtre !== 'manques') return Promise.reject(erreur('invalide'));
+        return Promise.resolve(historique.filter(r => filtre !== 'manques' || r.sens === 'manque').map(vueAppel).sort((x, y) => y.t - x.t));
+      },
+      demarrerAppel(spec) {
+        spec = spec || {};
+        const ids = (spec.membres || []).filter((x, i, tab) => contactDe(x) && tab.indexOf(x) === i);
+        if (!ids.length) return Promise.reject(erreur('vide'));
+        if (spec.conv != null && !trouver(spec.conv)) return Promise.reject(erreur('introuvable'));
+        if (unAppelOuvert()) return Promise.reject(erreur('occupe'));
+        const video = !!spec.video, conv = spec.conv != null ? spec.conv : (convExistante(ids) || {}).id || null;
+        const x = { id: 'a' + (++seq), etat: 'sonne', type: video ? 'video' : 'audio', conv, t0: maintenant(), debut: null, fin: null, membres: ids.map(id => ({ id, etat: 'sonne', camera: video })) };
+        enCours.set(x.id, x);
+        /* les autres répondent l'un après l'autre : le premier fait commencer l'appel (« debut »), chacun est dit aux écouteurs */
+        if (delaiReponse >= 0) x.membres.forEach((m, i) => planifier(() => {
+          if (x.etat === 'termine' || m.etat === 'connecte') return;
+          m.etat = 'connecte';
+          if (!x.debut) { x.debut = maintenant(); x.etat = 'en-cours'; }
+          emettre({ type: 'appel', id: x.id });
+        }, delaiReponse + i * 350));
+        emettre({ type: 'appel', id: x.id });
+        return Promise.resolve(vueEnCours(x));
+      },
+      appel(id) { const x = enCours.get(id); return Promise.resolve(x ? vueEnCours(x) : null); },
+      terminerAppel(id) {
+        const x = enCours.get(id);
+        if (!x) return Promise.reject(erreur('introuvable'));
+        if (x.etat === 'termine') return Promise.resolve(vueAppel(x.histo));            // raccrocher deux fois : le même appel, pas deux lignes d'historique
+        x.etat = 'termine'; x.fin = maintenant();
+        const duree = x.debut ? Math.max(0, Math.round((x.fin - x.debut) / 1000)) : 0;
+        x.histo = { id: 'h' + (++seq), type: x.type, sens: 'sortant', conv: x.conv, membres: x.membres.map(m => m.id), repetitions: 1, t: x.t0, duree };
+        historique.unshift(x.histo);
+        emettre({ type: 'appel', id: x.id }); emettre({ type: 'appels' });
+        return Promise.resolve(vueAppel(x.histo));
+      },
+      conversationPour(membres) {
+        const ids = (membres || []).filter((x, i, tab) => contactDe(x) && tab.indexOf(x) === i);
+        if (!ids.length) return Promise.reject(erreur('vide'));
+        const existante = convExistante(ids);
+        if (existante) return Promise.resolve(resume(existante));
+        if (ids.length > 1) return source.creerGroupe({ nom: ids.map(prenom).join(', '), membres: ids });
+        const ct = contactDe(ids[0]);
+        const c = { id: 'd' + (++seq), type: 'direct', nom: ct.nom, court: ct.nom, membres: ['moi', ids[0]], admins: [], annoncesSeulement: false, ephemeres: 0, avatar: ct.avatar, photo: null, epingle: false, nonLus: 0, saisie: null, cree: maintenant(), messages: [] };
         convs.unshift(c);
         emettre({ type: 'liste' });
         return Promise.resolve(resume(c));

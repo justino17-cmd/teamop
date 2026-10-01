@@ -83,10 +83,11 @@ async function ouvrirPage(b, pf, o) {
   await page.addInitScript(() => {
     window.__rejets = []; window.addEventListener('unhandledrejection', e => window.__rejets.push(String(e.reason && e.reason.message || e.reason)));
     window.__pops = 0; window.addEventListener('popstate', () => window.__pops++);
-    window.__micro = { demandes: 0, pistes: [] };
+    window.__micro = { demandes: 0, pistes: [], delai: 0 };
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       const orig = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
-      navigator.mediaDevices.getUserMedia = async c => { window.__micro.demandes++; const f = await orig(c); f.getTracks().forEach(t => window.__micro.pistes.push(t)); return f; };
+      /* `delai` : le temps que la PERSONNE met à répondre à la demande d'autorisation (un bac à sable répond en 50 ms ; une vraie boîte de dialogue en plusieurs secondes) */
+      navigator.mediaDevices.getUserMedia = async c => { window.__micro.demandes++; if (window.__micro.delai) await new Promise(r => setTimeout(r, window.__micro.delai)); const f = await orig(c); f.getTracks().forEach(t => window.__micro.pistes.push(t)); return f; };
     }
     window.__audios = []; const play = HTMLMediaElement.prototype.play; HTMLMediaElement.prototype.play = function () { window.__audios.push(this); return play.apply(this, arguments); };
   });
@@ -764,16 +765,16 @@ async function etapeRetour(S) {
   await S.page.keyboard.press('Escape'); S.gestes++; await attendreListe(S); await dormir(300);
   const r3 = await hist(S);
   v(nom + ' : Échap ramène à la liste (entrée rendue, n = ' + r3.n + ')', !r3.conv && r3.n === 0, r3);
-  /* la caméra mène à Appels, coquille « bientôt » ; le retour revient à la conversation */
+  /* la caméra lance l'appel VIDÉO de cette conversation (étape 3) ; le retour système raccroche et revient à la conversation d'où l'appel est parti */
   await ouvrirConv(S, 'v1', 'Équipe dépôt');
-  await geste(S, '#conv-cam'); await attendre(S, () => document.documentElement.dataset.vue === 'appels'); await dormir(500);
-  const c1 = await S.page.evaluate(() => ({ vue: document.documentElement.dataset.vue, conv: document.documentElement.dataset.conv || null, titre: document.querySelector('#vue-appels h1').textContent, bientot: document.querySelector('#vue-appels .coquille h2').textContent, visible: !document.getElementById('vue-appels').hidden,
-    tabs: getComputedStyle(document.getElementById('tabs')).display !== 'none', courant: (document.querySelector('[data-vue][aria-current=page]') || {}).dataset && document.querySelector('[data-vue][aria-current=page]').dataset.vue }));
-  v(nom + ' : la caméra mène à l\'onglet Appels (coquille « ' + c1.bientot + ' »), la conversation est fermée, ' + (S.pf.w < 900 ? 'la barre d\'onglets est revenue, l\'onglet courant est Appels' : 'l\'entrée de la barre latérale est « Appels »'), c1.vue === 'appels' && !c1.conv && c1.visible && c1.titre === 'Appels' && c1.bientot === 'Bientôt disponible' && c1.courant === 'appels' && (S.pf.w < 900 ? c1.tabs : true), c1);
-  await mesurerLargeur(S, nom + ' · coquille Appels');
-  await S.page.goBack(); S.gestes++; await attendreConv(S, 'Équipe dépôt'); await dormir(300);
-  const c2 = await hist(S);
-  v(nom + ' : le retour système revient à la conversation d\'où l\'on est parti la caméra', c2.vue === 'messages' && c2.conv === '1' && c2.hash === '#messages/v1', c2);
+  const nP0 = await nPistes(S);
+  await geste(S, '#conv-cam'); await attendre(S, () => !!document.documentElement.dataset.appel); await dormir(700);
+  const c1 = await lireAppel(S);
+  v(nom + ' : la caméra de la conversation lance l\'appel de « ' + c1.nom + ' » (l\'écran d\'appel couvre la conversation, la barre d\'onglets est ' + (S.pf.w < 900 ? 'masquée' : 'absente') + ')', c1.appel === '1' && c1.nom === 'Équipe dépôt' && c1.display === 'flex' && c1.tabs === 'none' && c1.hash === '#messages/v1', c1);
+  await mesurerLargeur(S, nom + ' · appel lancé depuis la conversation');
+  await S.page.goBack(); S.gestes++; await attendreConv(S, 'Équipe dépôt'); await dormir(500);
+  const c2 = await hist(S), p2 = await pistesDe(S, nP0), ap2 = await S.page.evaluate(() => document.documentElement.dataset.appel || null);
+  v(nom + ' : le retour système raccroche et revient à la conversation d\'où l\'on est parti (pistes de l\'appel : ' + p2.map(x => x.k + ' ' + x.s).join(', ') + ')', c2.vue === 'messages' && c2.conv === '1' && c2.hash === '#messages/v1' && !ap2 && p2.every(x => x.s === 'ended'), { c2, p2, ap2 });
   await fermerConv(S);
   /* bouton de la barre latérale ouvert pendant une conversation (au-delà de 900 px) */
   if (S.pf.w >= 900) {
@@ -1179,8 +1180,8 @@ async function corrDoubleToucher(b, base, F, pf) {
   await geste(S, '#conv-messages .photo[data-photo] >> nth=-1'); await dormir(400);
   const ouverte = await S.page.evaluate(() => !document.getElementById('visionneuse').hidden);
   await deuxFois('#visionneuse-fermer', 90); await dormir(700);
-  const p2 = await S.page.evaluate(() => ({ vue: document.documentElement.dataset.vue, conv: document.documentElement.dataset.conv || null, photo: !document.getElementById('visionneuse').hidden }));
-  v(S.nom + ' : (population) la photo était agrandie (' + ouverte + ') ; double toucher sur sa croix → fermée, la conversation reste, l\'onglet Appels ne s\'ouvre pas (vue « ' + p2.vue + ' »)', ouverte && !p2.photo && p2.vue === 'messages' && p2.conv === '1', p2);
+  const p2 = await S.page.evaluate(() => ({ vue: document.documentElement.dataset.vue, conv: document.documentElement.dataset.conv || null, photo: !document.getElementById('visionneuse').hidden, appel: document.documentElement.dataset.appel || null }));
+  v(S.nom + ' : (population) la photo était agrandie (' + ouverte + ') ; double toucher sur sa croix → fermée, la conversation reste, la caméra ne lance PAS d\'appel (vue « ' + p2.vue + ' », appel : ' + p2.appel + ')', ouverte && !p2.photo && p2.vue === 'messages' && p2.conv === '1' && !p2.appel, p2);
   /* deux clics DANS LE MÊME INSTANT sur « envoyer » : un seul message */
   await S.page.locator('#saisie').fill('une seule fois'); await S.page.locator('#saisie').dispatchEvent('input');
   const nS = await nb(S, '#conv-messages .msg');
@@ -1486,7 +1487,435 @@ async function corrListeApresCreation(b, base) {
   }
 }
 
+/* ══ ÉTAPE 3 — LES APPELS : l'onglet, le segmenté, la feuille « Nouvel appel », l'écran d'appel, les pistes RELÂCHÉES ═════════════════════════════════════════════════
+   ⛔ Ce que cette étape garde avant tout : un appel qui finit laisse le micro et la caméra LIBRES (readyState « ended » sur chaque piste que getUserMedia a rendue), par
+   QUEL QUE SOIT le chemin — raccrocher, retour système, Échap, un autre onglet, « Message », ou une sortie avant même que l'autorisation ait répondu. Les pistes sont lues
+   dans l'instrument posé avant la page (window.__micro.pistes), jamais déduites de l'écran. Les autres participants sont SIMULÉS (la source, 1,2 s de sonnerie puis
+   350 ms d'écart) ; la caméra et le micro sont les vrais (périphériques factices du navigateur). */
+const nPistes = S => S.page.evaluate(() => window.__micro.pistes.length);
+const pistesDe = (S, n0) => S.page.evaluate(n => window.__micro.pistes.slice(n).map(t => ({ k: t.kind, s: t.readyState, e: t.enabled })), n0);
+const nHist = S => S.page.evaluate(async () => (await window.OPMSG_SOURCE.appels()).length);
+const sansPiste = (S, n0) => pistesDe(S, n0).then(p => p.length > 0 && p.every(x => x.s === 'ended'));
+const libPistes = p => p.map(x => x.k + ' ' + x.s).join(', ') || 'aucune';
+const lireAppel = S => S.page.evaluate(() => {
+  const E = document.getElementById('appel-ecran'), rect = e => { const b = e.getBoundingClientRect(); return { x: Math.round(b.left), y: Math.round(b.top), w: Math.round(b.width), h: Math.round(b.height), r: Math.round(b.right), b: Math.round(b.bottom) }; };
+  const vous = document.getElementById('appel-vous'), vid = document.getElementById('appel-video-local'), bm = document.getElementById('appel-micro'), bc = document.getElementById('appel-cam'), bh = document.getElementById('appel-hp');
+  const av = document.getElementById('appel-avis');
+  return { appel: document.documentElement.dataset.appel || null, mise: E.dataset.mise, nom: document.getElementById('appel-nom').textContent, statut: document.getElementById('appel-statut').textContent, ecran: rect(E), display: getComputedStyle(E).display,
+    tabs: getComputedStyle(document.getElementById('tabs')).display, hash: location.hash, n: history.state && history.state.n, inertContenu: document.getElementById('contenu').inert, inertConv: document.getElementById('conv-ecran').inert,
+    avatarVu: getComputedStyle(document.getElementById('appel-avatar')).display !== 'none', nomPx: parseFloat(getComputedStyle(document.getElementById('appel-nom')).fontSize),
+    tuiles: [...document.querySelectorAll('#appel-scene .tuile:not(.vous)')].map(t => Object.assign({ id: t.dataset.membre, nom: t.querySelector('.tuile-nom').textContent, etat: t.querySelector('.tuile-etat') ? t.querySelector('.tuile-etat').textContent : null }, rect(t))),
+    vous: Object.assign({ camera: vous.dataset.camera }, rect(vous)),
+    video: { w: vid.videoWidth, h: vid.videoHeight, joue: !vid.paused && vid.readyState >= 2, pistes: vid.srcObject ? vid.srcObject.getVideoTracks().map(t => t.readyState) : null },
+    micro: { pressed: bm.getAttribute('aria-pressed'), texte: bm.querySelector('.appel-cmd-texte').textContent, label: bm.getAttribute('aria-label') }, hp: hpEtat(bh), cam: { pressed: bc.getAttribute('aria-pressed'), label: bc.getAttribute('aria-label') },
+    boutons: ['appel-micro', 'appel-hp', 'appel-cam', 'appel-msg', 'appel-raccrocher'].map(id => { const r = rect(document.getElementById(id)); return id.slice(6) + ' ' + r.w + '×' + r.h; }),
+    avis: av.hidden ? null : av.textContent };
+  function hpEtat(b) { return b.getAttribute('aria-pressed'); }
+});
+const attendreAppel = (S, delai) => attendre(S, () => /(Appel en cours|Vidéo activée|Micro coupé) · \d\d:\d\d/.test(document.getElementById('appel-statut').textContent), null, delai || 7000);
+const attendreTous = (S, delai) => attendre(S, () => !!document.documentElement.dataset.appel && document.querySelectorAll('#appel-scene .tuile:not(.vous) .tuile-etat').length === 0 && document.querySelectorAll('#appel-scene .tuile:not(.vous)').length > 0, null, delai || 8000);
+const sansAppel = S => attendre(S, () => !document.documentElement.dataset.appel, null, 5000);
+const secondes = t => { const m = /(\d\d):(\d\d)$/.exec(t || ''); return m ? +m[1] * 60 + +m[2] : -1; };
+const lienAppels = S => S.pf.w < 900 ? '#tabs [data-vue="appels"]' : '#nav-side [data-vue="appels"]';
+async function allerAppels(S) { await geste(S, lienAppels(S)); await attendre(S, () => document.documentElement.dataset.vue === 'appels' && !document.documentElement.dataset.conv); await dormir(500); }
+const ligneManque = '#liste-appels [data-rappeler]:has(.manque) >> nth=0';
+const ligneCamille = '#liste-appels [data-rappeler]:has(.appel-nom-ligne:text-is("Camille Roux")) >> nth=0';      // un appel VIDÉO : l\'historique des étapes d\'avant ajoute des lignes en tête, la première n\'est plus la même
+
+/* A — la liste, contre la source : mêmes appels, même ordre, les manqués en rouge, rien qui dépasse */
+async function etapeAppelsListe(S) {
+  const nom = S.nom;
+  titre(nom + ' — l\'onglet Appels');
+  await allerAppels(S);
+  const L = await S.page.evaluate(async () => {
+    const src = await window.OPMSG_SOURCE.appels(), q = s => [...document.querySelectorAll(s)];
+    const sonde = document.createElement('i'); sonde.style.color = 'var(--rouge-txt)'; document.body.appendChild(sonde); const rouge = getComputedStyle(sonde).color; sonde.remove();
+    const lignes = q('#liste-appels .appel-item').map(li => ({ nom: li.querySelector('.appel-nom-ligne').textContent, manque: li.querySelector('.appel-nom-ligne').classList.contains('manque'), couleur: getComputedStyle(li.querySelector('.appel-nom-ligne')).color, kind: li.querySelector('.appel-kind span').textContent,
+      icone: li.querySelector('.appel-kind use').getAttribute('href'), heure: li.querySelector('.appel-heure').textContent, rappeler: !!li.querySelector('[data-rappeler]'), info: !!li.querySelector('[data-infos]') }));
+    const knob = document.querySelector('.seg-knob').getBoundingClientRect(), seg = q('#seg-appels [data-filtre]').map(b => ({ f: b.dataset.filtre, t: b.textContent, p: b.getAttribute('aria-pressed'), x: b.getBoundingClientRect().left }));
+    return { src: src.map(a => ({ nom: a.nom, sens: a.sens, type: a.type })), lignes, rouge, seg, knobX: knob.left, h1: document.querySelector('#vue-appels h1').textContent, courant: (document.querySelector('[data-vue][aria-current=page]') || {}).dataset.vue,
+      pasCoquille: !document.querySelector('#vue-appels .coquille'), titre: document.title };
+  });
+  v(nom + ' : (population) la liste montre ' + L.lignes.length + ' appels, exactement ceux de la source, dans son ordre (' + L.lignes.map(l => l.nom).join(' · ') + ')', L.lignes.length === L.src.length && L.lignes.length >= 6 && L.lignes.every((l, i) => l.nom === L.src[i].nom), L);
+  const manques = L.src.filter(a => a.sens === 'manque').length;
+  v(nom + ' : (population) ' + manques + ' appels manqués dans la source — chacun a son NOM en rouge (la teinte --rouge-txt, ' + L.rouge + '), aucun autre ne l\'a', manques >= 2 && L.lignes.filter(l => l.manque).length === manques && L.lignes.every((l, i) => l.manque === (L.src[i].sens === 'manque') && (l.couleur === L.rouge) === l.manque), L);
+  v(nom + ' : chaque ligne dit son type par une icône (vidéo : caméra ; entrant / manqué : flèche entrante ; sortant : flèche sortante), son heure, et porte DEUX boutons (rappeler, détails)',
+    L.lignes.every((l, i) => l.rappeler && l.info && /^\d\d:\d\d$|^maintenant$|^Hier$|^[A-ZÉ][a-zéû]+\.?$|^\d{1,2} [a-zéû.]+$/.test(l.heure) && l.icone === (L.src[i].type === 'video' ? '#i-video' : L.src[i].sens === 'sortant' ? '#i-sortant' : '#i-entrant')), L.lignes);
+  v(nom + ' : le libellé nomme le type, le sens, le nombre de manqués d\'affilée et la durée (« ' + L.lignes.map(l => l.kind).join(' | ') + ' »)',
+    L.lignes[0].kind === 'Appel vidéo entrant · 9 min' && L.lignes.some(l => l.kind === 'Appel manqué') && L.lignes.some(l => l.kind === 'Appel manqué (2)') && L.lignes.some(l => /^Appel de groupe vidéo entrant · 3 participants · 42 min$/.test(l.kind)) && L.lignes.some(l => l.kind === 'Appel sortant · 3 min'), L.lignes);
+  v(nom + ' : titre « ' + L.h1 + ' », l\'onglet Appels est le courant, la coquille « bientôt » n\'existe plus, « Tous » est choisi (curseur au premier cran)', L.h1 === 'Appels' && L.courant === 'appels' && L.pasCoquille && L.seg.map(b => b.f + ':' + b.p).join() === 'tous:true,manques:false' && Math.abs(L.knobX - L.seg[0].x) <= 3 && /^Appels/.test(L.titre), L);
+  await mesurerLargeur(S, nom + ' · Appels'); await mesurerTextes(S, nom + ' · Appels'); await mesurerCibles(S, nom + ' · Appels');
+  await contraste(S, '#liste-appels .appel-nom-ligne.manque', { nom: 'nom d\'un appel MANQUÉ (17 px, --rouge-txt sur la carte)' });
+  await contraste(S, '#liste-appels .appel-kind span', { nom: 'type d\'appel (15 px)' });
+  await contraste(S, '#liste-appels .appel-heure', { nom: 'heure d\'un appel (15 px)' });
+  await contrasteTout(S, nom + ' · Appels', { minimum: 14 });
+}
+
+/* B — le segmenté : il FILTRE (la source), son curseur suit, il se règle au clavier */
+async function etapeAppelsSegmente(S) {
+  const nom = S.nom;
+  titre(nom + ' — le segmenté Tous / Manqués');
+  const lire = () => S.page.evaluate(async () => ({ noms: [...document.querySelectorAll('#liste-appels .appel-nom-ligne')].map(e => e.textContent), manques: [...document.querySelectorAll('#liste-appels .appel-nom-ligne')].map(e => e.classList.contains('manque')),
+    src: (await window.OPMSG_SOURCE.appels('manques')).map(a => a.nom), tous: (await window.OPMSG_SOURCE.appels()).length,
+    p: [...document.querySelectorAll('#seg-appels [data-filtre]')].map(b => b.getAttribute('aria-pressed')).join(), knob: Math.round(document.querySelector('.seg-knob').getBoundingClientRect().left), x1: Math.round(document.querySelectorAll('#seg-appels [data-filtre]')[1].getBoundingClientRect().left), x0: Math.round(document.querySelectorAll('#seg-appels [data-filtre]')[0].getBoundingClientRect().left),
+    vide: (document.querySelector('#liste-appels .vide') || {}).textContent || null }));
+  const t0 = await lire();
+  await geste(S, '#seg-appels [data-filtre="manques"]'); await dormir(600);
+  const m = await lire();
+  v(nom + ' : « Manqués » ne garde QUE les manqués de la source (' + m.noms.join(' · ') + ' — la source en rend ' + m.src.length + ', sur ' + m.tous + ' appels), tous en rouge', m.noms.length === m.src.length && m.noms.length >= 2 && m.noms.length < t0.noms.length && m.noms.join() === m.src.join() && m.manques.every(Boolean), { t0, m });
+  v(nom + ' : le curseur a glissé sous « Manqués » (' + m.knob + ' px, la moitié droite commence à ' + m.x1 + ' ; avant : ' + t0.knob + ' px), et l\'état est dit (aria-pressed ' + m.p + ')', Math.abs(m.knob - m.x1) <= 3 && Math.abs(t0.knob - t0.x0) <= 3 && m.p === 'false,true', { t0, m });
+  await mesurerLargeur(S, nom + ' · Manqués'); await contrasteTout(S, nom + ' · Manqués', { minimum: 6 });
+  await geste(S, '#seg-appels [data-filtre="tous"]'); await dormir(600);
+  const t1 = await lire();
+  v(nom + ' : « Tous » rend toute la liste (' + t1.noms.length + ' appels), le curseur revient (' + t1.knob + ' px)', t1.noms.join() === t0.noms.join() && Math.abs(t1.knob - t1.x0) <= 3 && t1.p === 'true,false', t1);
+  /* le clavier : Tab jusqu'au segmenté, Espace choisit */
+  await S.page.locator('#seg-appels [data-filtre="manques"]').focus(); await S.page.keyboard.press('Space'); await dormir(500);
+  const k = await lire();
+  v(nom + ' : au clavier, Espace sur « Manqués » filtre aussi (' + k.noms.length + ' lignes)', k.noms.length === m.noms.length && k.p === 'false,true');
+  await S.page.locator('#seg-appels [data-filtre="tous"]').focus(); await S.page.keyboard.press('Enter'); await dormir(500);
+  v(nom + ' : et Entrée sur « Tous » rend tout', (await lire()).noms.length === t0.noms.length);
+}
+
+/* C — rappeler un manqué : l'écran d'appel audio, la durée qui court, micro, haut-parleur, caméra en cours d'appel, raccrocher */
+async function etapeAppelsAudio(S) {
+  const nom = S.nom, desk = S.pf.w >= 900;
+  titre(nom + ' — rappeler un manqué : l\'appel audio');
+  const n0 = await nPistes(S), h0 = await nHist(S), hi0 = await hist(S);
+  await geste(S, ligneManque); await dormir(200);
+  const r0 = await lireAppel(S);
+  v(nom + ' : toucher un manqué le RAPPELLE : l\'écran d\'appel s\'ouvre sur « ' + r0.nom + ' », et dit « ' + r0.statut + ' » le temps que l\'autre réponde', r0.appel === '1' && r0.nom === 'Mathis Lambert' && r0.statut === 'Sonnerie…', r0);
+  await attendreAppel(S); await dormir(300);
+  const c = await lireAppel(S), pi = await pistesDe(S, n0), hi1 = await hist(S);
+  const geo = desk ? (c.ecran.x === 236 && c.ecran.r === S.pf.w && c.ecran.y === 0 && c.ecran.b === S.pf.h) : (c.ecran.x === 0 && c.ecran.r === S.pf.w && c.ecran.y === 0 && c.ecran.b === S.pf.h);
+  v(nom + ' : l\'écran d\'appel ' + (desk ? 'occupe la ZONE DE CONTENU (236 → ' + S.pf.w + ' px) : la barre latérale reste' : 'couvre tout l\'écran (' + c.ecran.w + '×' + c.ecran.h + ') sans barre d\'onglets') + ', la liste et la conversation sont inertes', geo && c.display === 'flex' && c.tabs === 'none' && c.inertContenu && c.inertConv, c);
+  if (desk) v(nom + ' : au bureau la barre latérale reste visible et active pendant l\'appel (l\'onglet qu\'on touche raccroche)', await S.page.evaluate(() => { const s = document.querySelector('.side'), r = s.getBoundingClientRect(); return getComputedStyle(s).display !== 'none' && r.width === 236 && !s.closest('[inert]'); }));
+  v(nom + ' : l\'appel a une entrée d\'historique (n ' + hi0.n + ' → ' + hi1.n + '), l\'adresse reste ' + hi1.hash, hi1.n === hi0.n + 1 && hi1.hash === '#appels', { hi0, hi1 });
+  v(nom + ' : mise en page « audio » — l\'avatar de 120 px, le nom en ' + c.nomPx + ' px, « ' + c.statut + ' » ; les 4 commandes et « Raccrocher » existent (' + c.boutons.join(', ') + ')', c.mise === 'audio' && c.avatarVu && c.nomPx === 30 && /^Appel en cours · 00:0\d$/.test(c.statut) && c.boutons.length === 5 && c.boutons.every(b => /×/.test(b)), c);
+  v(nom + ' : le micro est RÉEL — UNE piste audio « live » a été demandée au navigateur (' + libPistes(pi) + '), aucune caméra pour un appel audio', pi.length === 1 && pi[0].k === 'audio' && pi[0].s === 'live' && pi[0].e === true, pi);
+  /* la durée qui COURT */
+  const s1 = secondes(c.statut); await dormir(2300); const s2 = secondes((await lireAppel(S)).statut);
+  v(nom + ' : la durée COURT (' + s1 + ' s → ' + s2 + ' s après 2,3 s) — elle se calcule sur l\'horloge, la source ne dit que le début', s2 - s1 >= 2 && s2 - s1 <= 4, { s1, s2 });
+  await S.page.clock.fastForward(75000); await dormir(1300);
+  const s3 = secondes((await lireAppel(S)).statut);
+  v(nom + ' : et reste juste quand l\'horloge saute (75 s de plus → ' + s3 + ' s, soit « ' + dureeTexte(s3) + ' »)', s3 >= s2 + 74 && s3 <= s2 + 80, { s2, s3 });
+  await mesurerLargeur(S, nom + ' · appel audio'); await mesurerTextes(S, nom + ' · appel audio'); await mesurerCibles(S, nom + ' · appel audio');
+  await contrasteTout(S, nom + ' · appel audio', { minimum: 6, sansDefilement: true });
+  /* micro */
+  await geste(S, '#appel-micro'); await dormir(350);
+  const mu = await lireAppel(S), pm = await pistesDe(S, n0);
+  v(nom + ' : « Micro » coupe le micro pour de bon (piste enabled = ' + pm[0].e + '), le bouton est pressé (« ' + mu.micro.texte + ' »), le statut dit « ' + mu.statut.split(' · ')[0] + ' »', pm[0].e === false && mu.micro.pressed === 'true' && mu.micro.texte === 'Muet' && /^Micro coupé · /.test(mu.statut) && mu.micro.label === 'Activer le micro', { mu, pm });
+  await geste(S, '#appel-micro'); await dormir(350);
+  const mu2 = await lireAppel(S), pm2 = await pistesDe(S, n0);
+  v(nom + ' : un second toucher le rend (piste enabled = ' + pm2[0].e + ', « ' + mu2.statut.split(' · ')[0] + ' »)', pm2[0].e === true && mu2.micro.pressed === 'false' && /^Appel en cours · /.test(mu2.statut), { mu2, pm2 });
+  /* haut-parleur : une bascule d'état, dite */
+  await geste(S, '#appel-hp'); await dormir(250); const hp1 = (await lireAppel(S)).hp; await geste(S, '#appel-hp'); await dormir(250); const hp2 = (await lireAppel(S)).hp;
+  v(nom + ' : « Haut-parleur » bascule (aria-pressed ' + hp1 + ' puis ' + hp2 + ')', hp1 === 'true' && hp2 === 'false');
+  /* la caméra, allumée EN COURS d'appel */
+  await geste(S, '#appel-cam'); await attendre(S, () => document.getElementById('appel-ecran').dataset.mise === 'video', null, 5000); await dormir(900);
+  const vi = await lireAppel(S), pv = await pistesDe(S, n0);
+  v(nom + ' : « Caméra » en cours d\'appel allume la VRAIE caméra (' + libPistes(pv) + ') : l\'écran passe en vidéo — « ' + vi.statut.split(' · ')[0] + ' »', vi.mise === 'video' && pv.length === 2 && pv[1].k === 'video' && pv[1].s === 'live' && /^Vidéo activée/.test(vi.statut) && vi.cam.pressed === 'true', { vi, pv });
+  v(nom + ' : la vignette « Vous » montre le flux de la caméra (' + vi.video.w + '×' + vi.video.h + ', ' + (vi.video.joue ? 'lecture en cours' : 'à l\'arrêt') + ') et mesure ' + vi.vous.w + '×' + vi.vous.h + ' (' + (desk ? '176×132' : '104×150') + ')', vi.vous.camera === 'on' && vi.video.w > 0 && vi.video.h > 0 && vi.video.joue && vi.video.pistes.join() === 'live' && (desk ? (vi.vous.w === 176 && vi.vous.h === 132) : (vi.vous.w === 104 && vi.vous.h === 150 && vi.vous.r <= S.pf.w - 12)), vi);
+  v(nom + ' : l\'autre participant remplit l\'écran (' + vi.tuiles[0].w + '×' + vi.tuiles[0].h + ' pour ' + vi.ecran.w + '×' + vi.ecran.h + '), « ' + vi.tuiles[0].nom + ' », le nom passe à ' + vi.nomPx + ' px, l\'avatar de 120 s\'efface', vi.tuiles.length === 1 && vi.tuiles[0].w === vi.ecran.w && vi.tuiles[0].h === vi.ecran.h && vi.tuiles[0].nom === 'Vidéo de Mathis' && vi.nomPx === 17 && !vi.avatarVu, vi);
+  await mesurerLargeur(S, nom + ' · appel vidéo'); await mesurerTextes(S, nom + ' · appel vidéo'); await mesurerCibles(S, nom + ' · appel vidéo');
+  await contrasteTout(S, nom + ' · appel vidéo', { minimum: 8, sansDefilement: true });
+  /* éteindre la caméra = ARRÊTER la piste (le voyant s'éteint), l'écran revient à l'audio */
+  await geste(S, '#appel-cam'); await dormir(700);
+  const ex = await lireAppel(S), pe = await pistesDe(S, n0);
+  v(nom + ' : éteindre la caméra ARRÊTE sa piste (' + libPistes(pe) + ') — le voyant s\'éteint — et l\'écran revient à l\'audio', ex.mise === 'audio' && pe[0].s === 'live' && pe[1].s === 'ended' && ex.vous.camera === 'off' && ex.video.pistes === null && ex.cam.pressed === 'false', { ex, pe });
+  /* raccrocher */
+  await geste(S, '#appel-raccrocher'); await sansAppel(S); await dormir(700);
+  const fin = await lireAppel(S), pf = await pistesDe(S, n0), hi2 = await hist(S), h1 = await nHist(S);
+  const li = await S.page.evaluate(() => { const r = document.querySelector('#liste-appels .appel-item'); return { nom: r.querySelector('.appel-nom-ligne').textContent, kind: r.querySelector('.appel-kind span').textContent, n: document.querySelectorAll('#liste-appels .appel-item').length, foyer: document.activeElement && document.activeElement.dataset.rappeler || null, src: null }; });
+  v(nom + ' : « Raccrocher » : l\'écran se ferme, TOUTES les pistes sont arrêtées (' + libPistes(pf) + '), l\'entrée d\'historique est rendue (n ' + hi2.n + ')', fin.appel === null && fin.display === 'none' && pf.every(x => x.s === 'ended') && hi2.n === hi0.n && hi2.vue === 'appels', { fin, pf, hi2 });
+  v(nom + ' : l\'appel entre dans l\'historique : ' + h0 + ' → ' + h1 + ' appels, en tête « ' + li.nom + ' — ' + li.kind + ' » (sortant, 1 min : l\'horloge a sauté de 75 s), la liste en compte ' + li.n, h1 === h0 + 1 && li.n === h1 && li.nom === 'Mathis Lambert' && li.kind === 'Appel sortant · 1 min', { li, h0, h1 });
+  v(nom + ' : le focus revient sur la ligne rappelée (« ' + li.foyer + ' »)', !!li.foyer, li);
+  v(nom + ' : un appel de plus n\'est pas refusé « occupé » : la source a bien terminé le précédent', await S.page.evaluate(async () => { try { const a = await window.OPMSG_SOURCE.demarrerAppel({ membres: ['c2'] }); await window.OPMSG_SOURCE.terminerAppel(a.id); return true; } catch (e) { return e.code; } }));
+}
+const dureeTexte = s => Math.floor(s / 60) + ' min ' + (s % 60) + ' s';
+
+/* D — TOUS les chemins de sortie, pistes comprises (vidéo : micro ET caméra) */
+async function etapeAppelsSorties(S) {
+  const nom = S.nom, desk = S.pf.w >= 900;
+  titre(nom + ' — quitter l\'écran d\'appel par tous les chemins');
+  const lignes = '#liste-appels [data-rappeler]';
+  const CHEMINS = [
+    ['raccrocher', async () => geste(S, '#appel-raccrocher'), 'appels'],
+    ['le retour système', async () => { await S.page.goBack(); S.gestes++; }, 'appels'],
+    ['Échap', async () => { await S.page.keyboard.press('Escape'); S.gestes++; }, 'appels'],
+    ['« Message »', async () => geste(S, '#appel-msg'), 'conv']
+  ];
+  if (desk) CHEMINS.splice(3, 0, ['un autre onglet de la barre latérale', async () => geste(S, '#nav-side [data-vue="reunions"]'), 'reunions']);
+  else info('au téléphone la barre d\'onglets est masquée pendant l\'appel : le chemin « autre onglet » n\'existe pas (écart au paquet, gardé : écran d\'appel SANS barre d\'onglets)');
+  let bons = 0, pistesTotal = 0;
+  for (const [nomC, sortir, ou] of CHEMINS) {
+    await allerAppels(S);
+    const n0 = await nPistes(S), h0 = await nHist(S), hi0 = await hist(S);
+    await geste(S, ligneCamille);                                  // Camille Roux : un appel VIDÉO
+    await attendreAppel(S); await attendre(S, () => document.getElementById('appel-ecran').dataset.mise === 'video', null, 5000); await dormir(500);
+    const vivant = await pistesDe(S, n0), ouvert = await lireAppel(S);
+    await sortir(); await dormir(900);
+    const ap = await S.page.evaluate(() => ({ appel: document.documentElement.dataset.appel || null, vue: document.documentElement.dataset.vue, conv: document.documentElement.dataset.conv || null, titre: (document.querySelector('.conv-titre-nom > span') || {}).textContent || null, n: history.state && history.state.n,
+      ouvert: !!document.documentElement.dataset.appel, vid: document.getElementById('appel-video-local').srcObject === null }));
+    const pf = await pistesDe(S, n0), h1 = await nHist(S);
+    const lieu = ou === 'appels' ? (ap.vue === 'appels' && !ap.conv && ap.n === hi0.n) : ou === 'reunions' ? (ap.vue === 'reunions' && ap.n === hi0.n + 1) : (ap.vue === 'messages' && ap.conv === '1' && ap.titre === 'Camille Roux' && ap.n === hi0.n + 1);
+    const bon = vivant.length === 2 && vivant.every(x => x.s === 'live') && ouvert.mise === 'video' && !ap.appel && pf.length === 2 && pf.every(x => x.s === 'ended') && ap.vid && lieu && h1 === h0 + 1;
+    if (bon) { bons++; pistesTotal += pf.length; }
+    v(nom + ' : quitter par ' + nomC + ' — l\'appel vidéo avait micro + caméra « live » (' + libPistes(vivant) + '), il finit : ' + libPistes(pf) + ', l\'élément vidéo est vidé, on arrive ' + (ou === 'appels' ? 'sur la liste (entrée rendue, n ' + ap.n + ')' : ou === 'reunions' ? 'sur Réunions' : 'dans la conversation « ' + ap.titre + ' »') + ', l\'historique gagne l\'appel (' + h0 + ' → ' + h1 + ')', bon, { vivant, pf, ap, hi0, h0, h1 });
+    if (ou === 'conv') { await fermerConv(S); }
+    if (ou === 'reunions') { await S.page.goBack(); await attendre(S, () => document.documentElement.dataset.vue === 'appels'); await dormir(300); }
+  }
+  v(nom + ' : (population) ' + CHEMINS.length + ' chemins joués, ' + bons + ' sans défaut — ' + pistesTotal + ' pistes relâchées au total', bons === CHEMINS.length && pistesTotal === 2 * CHEMINS.length);
+  /* sortir AVANT que l'autorisation ait répondu : la piste qui arrive après est arrêtée aussitôt */
+  await allerAppels(S);
+  const n0 = await nPistes(S);
+  await S.page.evaluate(() => { window.__micro.delai = 900; });                   // la personne met 0,9 s à répondre à la demande d'autorisation
+  await geste(S, ligneCamille); await dormir(250);
+  const demandee = await S.page.evaluate(() => window.__micro.demandes);
+  await S.page.goBack(); S.gestes++; await dormir(2200);
+  await S.page.evaluate(() => { window.__micro.delai = 0; });
+  const pt = await pistesDe(S, n0), ap = await S.page.evaluate(() => document.documentElement.dataset.appel || null);
+  v(nom + ' : (population) la demande d\'autorisation était EN COURS quand on a raccroché (demandes : ' + demandee + ', pistes arrivées ensuite : ' + pt.length + ') ; retour système AVANT la réponse : aucune piste ne reste vivante (' + libPistes(pt) + ')', !ap && demandee >= 1 && pt.length === 2 && pt.every(x => x.s === 'ended'), { pt, ap, demandee });
+  /* deux touchers dans le même instant ne lancent pas deux appels */
+  const n1 = await nPistes(S), h1 = await nHist(S);
+  await S.page.evaluate(() => { const b = document.querySelector('#liste-appels [data-rappeler]'); b.click(); b.click(); }); await attendreAppel(S); await dormir(300);
+  const dbl = await S.page.evaluate(() => ({ appel: document.documentElement.dataset.appel, n: history.state.n }));
+  await geste(S, '#appel-raccrocher'); await sansAppel(S); await dormir(500);
+  const h2 = await nHist(S), fin = await hist(S);
+  v(nom + ' : deux clics synchrones sur une ligne ne lancent QU\'UN appel (un seul de plus dans l\'historique : ' + h1 + ' → ' + h2 + ', les pistes sont toutes relâchées)', h2 === h1 + 1 && fin.n === dbl.n - 1 && (await pistesDe(S, n1)).every(x => x.s === 'ended'), { dbl, fin });
+}
+
+/* E — « Nouvel appel » : la feuille en mode appel, audio ou vidéo, puis la GRILLE */
+async function etapeAppelsFeuille(S) {
+  const nom = S.nom, desk = S.pf.w >= 900;
+  titre(nom + ' — « Nouvel appel » : la feuille, puis l\'appel de groupe');
+  await allerAppels(S);
+  const hi0 = await hist(S), h0 = await nHist(S), n0 = await nPistes(S);
+  await geste(S, '#btn-nouvel-appel'); await dormir(800);
+  const s = await S.page.evaluate(() => { const vis = id => { const e = document.getElementById(id); return getComputedStyle(e).display !== 'none' && !e.hidden && e.getClientRects().length > 0; };
+    return { titre: document.getElementById('feuille-titre').textContent, creer: document.getElementById('g-creer').textContent, creerOff: document.getElementById('g-creer').getAttribute('aria-disabled'), annuler: document.getElementById('g-annuler').textContent, resume: document.getElementById('g-resume').textContent, choix: vis('g-choix'),
+      pilules: [...document.querySelectorAll('#g-choix .g-pilule')].map(b => b.textContent.trim() + ':' + b.getAttribute('aria-checked')).join(), photo: vis('g-photo'), nomChamp: vis('g-nom'), reglages: vis('g-reglages'), contacts: document.querySelectorAll('#g-contacts .contact').length, compteur: document.getElementById('g-compteur').textContent,
+      mode: document.getElementById('feuille').dataset.mode, ouverte: document.documentElement.classList.contains('feuille-ouverte'), infoVu: vis('info-corps') }; });
+  const hi1 = await hist(S);
+  v(nom + ' : « Nouvel appel » ouvre la feuille « ' + s.titre + ' » (« Appeler » grisé, résumé « ' + s.resume + ' », Audio / Vidéo — ' + s.pilules + '), sans photo, sans nom, sans réglages de groupe', s.mode === 'appel' && s.titre === 'Appel de groupe' && s.creer === 'Appeler' && s.creerOff === 'true' && s.resume === 'Choisir les participants' && s.choix && s.pilules === 'Audio:true,Vidéo:false' && !s.photo && !s.nomChamp && !s.reglages && s.contacts === 6 && s.compteur === '0 / 6' && !s.infoVu && s.ouverte, s);
+  v(nom + ' : la feuille pose une entrée d\'historique (n ' + hi0.n + ' → ' + hi1.n + ')', hi1.n === hi0.n + 1 && hi1.feuille, { hi0, hi1 });
+  await mesurerLargeur(S, nom + ' · feuille Nouvel appel'); await mesurerTextes(S, nom + ' · feuille Nouvel appel'); await mesurerCibles(S, nom + ' · feuille Nouvel appel'); await mesurerChamps(S, nom + ' · feuille Nouvel appel');
+  await contrasteTout(S, nom + ' · feuille « Nouvel appel »', { minimum: 10 });
+  await geste(S, '#g-creer', { force: true }); await dormir(400);
+  const i0 = await S.page.evaluate(() => ({ ouverte: document.documentElement.classList.contains('feuille-ouverte'), appel: document.documentElement.dataset.appel || null }));
+  v(nom + ' : « Appeler » sans participant ne lance rien (feuille ouverte, aucun appel : ' + (await nHist(S)) + ' dans l\'historique)', i0.ouverte && !i0.appel && (await nHist(S)) === h0, i0);
+  for (const id of ['c1', 'c3']) { await geste(S, '#g-contacts .contact[data-id="' + id + '"]'); await dormir(120); }
+  const t = await S.page.evaluate(() => ({ resume: document.getElementById('g-resume').textContent, creerOff: document.getElementById('g-creer').getAttribute('aria-disabled'), puces: [...document.querySelectorAll('#g-puces .puce')].map(p => p.getAttribute('aria-label')) }));
+  v(nom + ' : deux contacts choisis → « ' + t.resume + ' », « Appeler » actif, les puces disent « ' + t.puces[0] + ' »', t.resume === '2 participants' && t.creerOff === 'false' && /Retirer Camille de l'appel/.test(t.puces[0]), t);
+  await geste(S, '#g-choix [data-type="video"]'); await dormir(250);
+  const pv = await S.page.evaluate(() => [...document.querySelectorAll('#g-choix .g-pilule')].map(b => b.getAttribute('aria-checked')).join());
+  await geste(S, '#g-choix [data-type="audio"]'); await dormir(250);
+  const pa = await S.page.evaluate(() => [...document.querySelectorAll('#g-choix .g-pilule')].map(b => b.getAttribute('aria-checked')).join());
+  v(nom + ' : Vidéo / Audio basculent (radio : ' + pv + ' puis ' + pa + ')', pv === 'false,true' && pa === 'true,false');
+  await geste(S, '#g-annuler'); await dormir(800);
+  const an = await S.page.evaluate(() => ({ ouverte: document.documentElement.classList.contains('feuille-ouverte'), appel: document.documentElement.dataset.appel || null }));
+  const hi2 = await hist(S);
+  v(nom + ' : « Annuler » referme la feuille, rend l\'entrée (n ' + hi2.n + '), ne lance rien (historique ' + h0 + ' → ' + (await nHist(S)) + ', pistes demandées : ' + ((await nPistes(S)) - n0) + ')', !an.ouverte && !an.appel && hi2.n === hi0.n && (await nHist(S)) === h0 && (await nPistes(S)) === n0, { an, hi2 });
+  /* un appel de groupe AUDIO : trois participants */
+  await geste(S, '#btn-nouvel-appel'); await dormir(800);
+  for (const id of ['c1', 'c3', 'c5']) { await geste(S, '#g-contacts .contact[data-id="' + id + '"]'); await dormir(120); }
+  const r1 = await S.page.evaluate(() => document.getElementById('g-resume').textContent);
+  await geste(S, '#g-creer'); await dormir(250);
+  const sonne = await lireAppel(S);
+  v(nom + ' : « Appeler » lance l\'appel de groupe (« ' + r1 + ' ») : l\'écran s\'ouvre sur « ' + sonne.nom + ' », la feuille cède sa place (l\'entrée est REMPLACÉE : n ' + sonne.n + '), chaque participant « sonne »', sonne.appel === '1' && sonne.nom === 'Camille, Inès, Lina' && r1 === '3 participants' && sonne.n === hi1.n && sonne.mise === 'groupe' && sonne.tuiles.length === 3 && sonne.tuiles.every(x => x.etat === 'Sonnerie…'), sonne);
+  await attendreTous(S); await dormir(400);
+  const g = await lireAppel(S), pg = await pistesDe(S, n0);
+  v(nom + ' : mise en page « groupe » — la GRILLE de ' + (g.tuiles.length + 1) + ' vignettes (3 participants + « Vous »), chacune nommée (' + g.tuiles.map(x => x.nom).join(', ') + '), plus personne ne sonne, statut « ' + g.statut + ' »', g.mise === 'groupe' && g.tuiles.map(x => x.nom).join() === 'Camille,Inès,Lina' && g.tuiles.every(x => !x.etat) && !g.avatarVu && g.nomPx === 17 && /^Appel en cours · 00:0\d$/.test(g.statut), g);
+  v(nom + ' : la grille est DANS l\'écran (' + g.tuiles.map(x => x.w + '×' + x.h).join(', ') + ' — plus la vignette « Vous » ' + g.vous.w + '×' + g.vous.h + ') et aucune ne sort de ' + (desk ? 'la zone' : 'la fenêtre') + ' de ' + g.ecran.w + ' px', g.tuiles.concat([g.vous]).every(x => x.w >= 100 && x.h >= 100 && x.x >= g.ecran.x - 1 && x.r <= g.ecran.r + 1), g);
+  v(nom + ' : appel de groupe AUDIO : le micro seul est demandé (' + libPistes(pg) + '), « Vous » n\'a pas de caméra (' + g.vous.camera + ')', pg.length === 1 && pg[0].k === 'audio' && pg[0].s === 'live' && g.vous.camera === 'off', { pg, g });
+  await mesurerLargeur(S, nom + ' · appel de groupe'); await mesurerTextes(S, nom + ' · appel de groupe'); await mesurerCibles(S, nom + ' · appel de groupe');
+  await contrasteTout(S, nom + ' · appel de groupe', { minimum: 8, sansDefilement: true });
+  await geste(S, '#appel-cam'); await attendre(S, () => document.getElementById('appel-vous').dataset.camera === 'on', null, 5000); await dormir(900);
+  const gc = await lireAppel(S), pgc = await pistesDe(S, n0);
+  v(nom + ' : la caméra s\'allume en cours d\'appel de groupe : « Vous » montre la VRAIE caméra dans la grille (' + gc.video.w + '×' + gc.video.h + ', ' + libPistes(pgc) + '), la grille reste une grille', gc.mise === 'groupe' && gc.vous.camera === 'on' && gc.video.w > 0 && gc.video.joue && pgc.length === 2 && pgc[1].s === 'live' && gc.vous.w >= 100, gc);
+  await contrasteTout(S, nom + ' · appel de groupe, caméra allumée', { minimum: 8, sansDefilement: true });
+  await geste(S, '#appel-raccrocher'); await sansAppel(S); await dormir(700);
+  const hi3 = await hist(S), h1 = await nHist(S), pf = await pistesDe(S, n0);
+  const li = await S.page.evaluate(() => { const r = document.querySelector('#liste-appels .appel-item'); return { nom: r.querySelector('.appel-nom-ligne').textContent, kind: r.querySelector('.appel-kind span').textContent, avatar: r.querySelector('.avatar').textContent, manque: r.querySelector('.manque') !== null }; });
+  v(nom + ' : « Raccrocher » : pistes arrêtées (' + libPistes(pf) + '), retour à la liste (n ' + hi3.n + '), l\'appel de groupe entre en tête de l\'historique : « ' + li.nom + ' — ' + li.kind + ' »', pf.every(x => x.s === 'ended') && hi3.n === hi0.n && h1 === h0 + 1 && li.nom === 'Camille, Inès, Lina' && li.avatar === '#' && /^Appel de groupe sortant · 4 participants · \d+ s$/.test(li.kind) && !li.manque, { li, pf, hi3 });
+  /* un appel de groupe VIDÉO : la caméra est allumée d'emblée */
+  await geste(S, '#btn-nouvel-appel'); await dormir(800);
+  for (const id of ['c2', 'c4']) { await geste(S, '#g-contacts .contact[data-id="' + id + '"]'); await dormir(120); }
+  await geste(S, '#g-choix [data-type="video"]'); await geste(S, '#g-creer'); await attendreTous(S); await attendre(S, () => document.getElementById('appel-vous').dataset.camera === 'on', null, 5000); await dormir(500);
+  const gv = await lireAppel(S), pgv = await pistesDe(S, n0 + 2);
+  v(nom + ' : « Vidéo » + « Appeler » : l\'appel de groupe démarre CAMÉRA ALLUMÉE (' + libPistes(pgv) + '), « Vous » montre la caméra, statut « ' + gv.statut.split(' · ')[0] + ' »', gv.mise === 'groupe' && gv.vous.camera === 'on' && pgv.length === 2 && pgv.every(x => x.s === 'live') && /^Vidéo activée/.test(gv.statut), { gv, pgv });
+  await contrasteTout(S, nom + ' · appel de groupe vidéo', { minimum: 8, sansDefilement: true });
+  await geste(S, '#appel-raccrocher'); await sansAppel(S); await dormir(500);
+  v(nom + ' : et ses pistes sont relâchées aussi (' + libPistes(await pistesDe(S, n0 + 2)) + ')', await sansPiste(S, n0 + 2));
+}
+
+/* F — la caméra de la CONVERSATION lance l'appel vidéo de cette conversation ; « Message » ramène à elle */
+async function etapeAppelsConversation(S) {
+  const nom = S.nom;
+  titre(nom + ' — depuis la conversation : caméra, « Message »');
+  await geste(S, S.pf.w < 900 ? '#tabs [data-vue="messages"]' : '#nav-side [data-vue="messages"]'); await attendre(S, () => document.documentElement.dataset.vue === 'messages'); await dormir(400);
+  const n0 = await nPistes(S), h0 = await nHist(S);
+  await ouvrirConv(S, 'v2', 'Camille Roux');
+  const hi0 = await hist(S);
+  await geste(S, '#conv-cam'); await attendreAppel(S); await attendre(S, () => document.getElementById('appel-ecran').dataset.mise === 'video', null, 5000); await dormir(500);
+  const a = await lireAppel(S), pa = await pistesDe(S, n0), hi1 = await hist(S);
+  v(nom + ' : la caméra de « Camille Roux » lance SON appel vidéo : « ' + a.nom + ' », caméra et micro vivants (' + libPistes(pa) + '), une entrée de plus (n ' + hi0.n + ' → ' + hi1.n + '), l\'adresse reste ' + hi1.hash, a.nom === 'Camille Roux' && a.mise === 'video' && pa.length === 2 && pa.every(x => x.s === 'live') && hi1.n === hi0.n + 1 && hi1.hash === '#messages/v2' && a.inertConv, { a, pa, hi1 });
+  await geste(S, '#appel-msg'); await sansAppel(S); await attendreConv(S, 'Camille Roux'); await dormir(600);
+  const m = await hist(S), pm = await pistesDe(S, n0), h1 = await nHist(S);
+  v(nom + ' : « Message » raccroche (pistes : ' + libPistes(pm) + ') et ramène à la conversation de Camille Roux — c\'est un RETOUR d\'historique (n ' + m.n + ', pas d\'entrée en double)', m.conv === '1' && m.hash === '#messages/v2' && m.n === hi0.n && pm.every(x => x.s === 'ended') && h1 === h0 + 1, { m, pm, hi0 });
+  v(nom + ' : la conversation est de nouveau active (le fond n\'est plus inerte)', await S.page.evaluate(() => !document.getElementById('conv-ecran').inert && !document.getElementById('app').inert));
+  await geste(S, '#conv-cam'); await attendreAppel(S); await dormir(300);
+  await geste(S, '#appel-raccrocher'); await sansAppel(S); await attendreConv(S, 'Camille Roux'); await dormir(500);
+  const r = await hist(S);
+  v(nom + ' : raccrocher revient aussi à la conversation (n ' + r.n + ')', r.conv === '1' && r.n === hi0.n && (await sansPiste(S, n0)), r);
+  await fermerConv(S);
+  /* un groupe : tous les autres membres, jamais moi */
+  await ouvrirConv(S, 'v1', 'Équipe dépôt');
+  await geste(S, '#conv-cam'); await attendreTous(S); await dormir(400);
+  const gr = await lireAppel(S);
+  v(nom + ' : la caméra d\'un GROUPE appelle les autres membres : « ' + gr.nom + ' », ' + gr.tuiles.length + ' vignettes (' + gr.tuiles.map(x => x.nom).join(', ') + ') et « Vous » — jamais moi parmi eux', gr.nom === 'Équipe dépôt' && gr.mise === 'groupe' && gr.tuiles.map(x => x.nom).join() === 'Mathis,Inès,Lina' && !gr.tuiles.some(x => x.id === 'moi'), gr);
+  await mesurerLargeur(S, nom + ' · appel de groupe depuis la conversation');
+  await geste(S, '#appel-raccrocher'); await attendreConv(S, 'Équipe dépôt'); await dormir(500);
+  await fermerConv(S);
+  /* « Message » depuis l'historique : la conversation de la personne ; sans conversation, elle est créée */
+  await allerAppels(S);
+  await geste(S, '#liste-appels [data-rappeler]:has(.appel-nom-ligne:text-is("Lina Fabre"))'); await attendreAppel(S);
+  const hi2 = await hist(S);
+  await geste(S, '#appel-msg'); await sansAppel(S); await attendreConv(S, 'Lina Fabre'); await dormir(500);
+  const lf = await S.page.evaluate(async () => ({ conv: document.documentElement.dataset.conv || null, titre: document.querySelector('.conv-titre-nom > span').textContent.trim(), n: history.state.n, dans: (await window.OPMSG_SOURCE.lister()).filter(c => c.nom === 'Lina Fabre').length }));
+  v(nom + ' : « Message » pendant un appel à une personne SANS conversation (Lina Fabre) la CRÉE et l\'ouvre (« ' + lf.titre + ' », une seule dans la source : ' + lf.dans + '), route remplacée (n ' + hi2.n + ' → ' + lf.n + ')', lf.conv === '1' && lf.titre === 'Lina Fabre' && lf.dans === 1 && lf.n === hi2.n, { lf, hi2 });
+  await fermerConv(S);
+  await allerAppels(S);
+  await geste(S, '#liste-appels [data-rappeler]:has(.appel-nom-ligne:text-is("Lina Fabre")) >> nth=0'); await attendreAppel(S);
+  await geste(S, '#appel-msg'); await sansAppel(S); await attendreConv(S, 'Lina Fabre'); await dormir(400);
+  v(nom + ' : un second « Message » vers elle rouvre la MÊME conversation (toujours une seule : ' + (await S.page.evaluate(async () => (await window.OPMSG_SOURCE.lister()).filter(c => c.nom === 'Lina Fabre').length)) + ')', (await S.page.evaluate(async () => (await window.OPMSG_SOURCE.lister()).filter(c => c.nom === 'Lina Fabre').length)) === 1);
+  await fermerConv(S);
+}
+
+/* G — les détails d'un appel : la même feuille, un autre corps */
+async function etapeAppelsInfo(S) {
+  const nom = S.nom;
+  titre(nom + ' — les détails d\'un appel');
+  await allerAppels(S);
+  const hi0 = await hist(S), n0 = await nPistes(S);
+  await geste(S, '#liste-appels .appel-item:has(.manque) [data-infos] >> nth=0'); await dormir(800);
+  const d = await S.page.evaluate(() => { const vis = id => { const e = document.getElementById(id); return getComputedStyle(e).display !== 'none' && !e.hidden && e.getClientRects().length > 0; };
+    return { titre: document.getElementById('feuille-titre').textContent, fermer: document.getElementById('g-annuler').textContent, creerVu: getComputedStyle(document.getElementById('g-creer')).visibility, mode: document.getElementById('feuille').dataset.mode, info: vis('info-corps'), groupeCorps: vis('feuille-corps'),
+      nom: document.querySelector('.info-nom').textContent, sous: [...document.querySelectorAll('.info-sous')].map(e => e.textContent), actions: [...document.querySelectorAll('[data-info-act]')].map(b => b.textContent.trim()), hash: location.hash }; });
+  const hi1 = await hist(S);
+  v(nom + ' : le « i » d\'un manqué ouvre « ' + d.titre + ' » (' + d.nom + ' — ' + d.sous.join(' · ') + '), trois gestes : ' + d.actions.join(' / ') + ' ; « ' + d.fermer + ' » à gauche, pas de bouton à droite', d.mode === 'info' && d.titre === 'Détails' && d.info && !d.groupeCorps && d.nom === 'Mathis Lambert' && d.sous[0] === 'Appel manqué' && d.actions.join() === 'Rappeler,Appel vidéo,Message' && d.fermer === 'Fermer' && d.creerVu === 'hidden' && hi1.n === hi0.n + 1, { d, hi1 });
+  await mesurerLargeur(S, nom + ' · détails'); await mesurerTextes(S, nom + ' · détails'); await mesurerCibles(S, nom + ' · détails');
+  await contrasteTout(S, nom + ' · détails d\'un appel', { minimum: 6 });
+  await geste(S, '#g-annuler'); await dormir(800);
+  const hi2 = await hist(S);
+  v(nom + ' : « Fermer » referme la feuille et rend l\'entrée (n ' + hi2.n + ')', !hi2.feuille && hi2.n === hi0.n, hi2);
+  /* un groupe : la liste des participants */
+  await geste(S, '#liste-appels .appel-item:has(.appel-nom-ligne:text-is("Chantier Les Tilleuls")) [data-infos]'); await dormir(800);
+  const gp = await S.page.evaluate(() => ({ rub: (document.querySelector('.info-corps .rubrique') || {}).textContent, noms: [...document.querySelectorAll('.info-corps .contact-nom')].map(e => e.textContent) }));
+  v(nom + ' : le détail d\'un groupe liste ses participants (« ' + gp.rub + ' » : ' + gp.noms.join(', ') + ')', gp.noms.join() === 'Vous,Inès Garnier,Noé Carpentier', gp);
+  await contrasteTout(S, nom + ' · détails d\'un groupe', { minimum: 6 });
+  await geste(S, '#g-annuler'); await dormir(700);
+  /* Appel vidéo (l'AUTRE type que celui du manqué) puis Rappeler, depuis les détails */
+  await geste(S, '#liste-appels .appel-item:has(.manque) [data-infos] >> nth=0'); await dormir(800);
+  await geste(S, '[data-info-act="autre"]'); await attendreAppel(S); await attendre(S, () => document.getElementById('appel-ecran').dataset.mise === 'video', null, 5000); await dormir(400);
+  const av = await lireAppel(S), pv = await pistesDe(S, n0), hi3 = await hist(S);
+  v(nom + ' : « Appel vidéo » depuis les détails d\'un manqué AUDIO lance un appel vidéo (' + libPistes(pv) + '), la feuille est remplacée (n ' + hi3.n + ', pas d\'entrée en plus)', av.nom === 'Mathis Lambert' && av.mise === 'video' && pv.length === 2 && pv.every(x => x.s === 'live') && hi3.n === hi0.n + 1 && !hi3.feuille, { av, pv, hi3 });
+  await geste(S, '#appel-raccrocher'); await sansAppel(S); await dormir(600);
+  const hi4 = await hist(S);
+  v(nom + ' : raccrocher revient à la liste (n ' + hi4.n + '), pistes arrêtées', hi4.n === hi0.n && hi4.vue === 'appels' && (await sansPiste(S, n0)), hi4);
+  await geste(S, '#liste-appels .appel-item:has(.manque) [data-infos] >> nth=0'); await dormir(800);
+  await geste(S, '[data-info-act="rappeler"]'); await attendreAppel(S); await dormir(400);
+  const ra = await lireAppel(S);
+  v(nom + ' : « Rappeler » depuis les détails d\'un manqué audio : appel AUDIO (mise « ' + ra.mise + ' »)', ra.mise === 'audio' && ra.nom === 'Mathis Lambert', ra);
+  await geste(S, '#appel-raccrocher'); await sansAppel(S); await dormir(500);
+  await geste(S, '#liste-appels .appel-item:has(.manque) [data-infos] >> nth=0'); await dormir(800);
+  await geste(S, '[data-info-act="message"]'); await attendreConv(S, 'Mathis Lambert'); await dormir(500);
+  const ms = await hist(S);
+  v(nom + ' : « Message » depuis les détails ouvre la conversation de Mathis Lambert (route remplacée : n ' + ms.n + ')', ms.conv === '1' && ms.hash === '#messages/v4' && !ms.feuille && ms.n === hi0.n + 1, ms);
+  await fermerConv(S);
+}
+
+/* tout le bloc, dans l'ordre, sur un parcours */
+async function etapesAppels(S) {
+  await etapeAppelsListe(S);
+  await etapeAppelsSegmente(S);
+  await etapeAppelsAudio(S);
+  await etapeAppelsSorties(S);
+  await etapeAppelsFeuille(S);
+  await etapeAppelsConversation(S);
+  await etapeAppelsInfo(S);
+}
+
+/* H — le refus, l'absence : une phrase claire, l'appel CONTINUE, jamais une erreur, jamais une piste oubliée */
+async function etapeAppelsIndisponible(b, base, pf, nom, cas) {
+  titre(nom + ' — appel avec ' + cas.nom);
+  const S = await ouvrirPage(b, pf, { base, permissions: cas.permissions, url: PAGE_URL + '#appels' });
+  S.nom = nom;
+  if (cas.refuser) { const cb = await b.newBrowserCDPSession(); for (const p of cas.refuser) await cb.send('Browser.setPermission', { permission: { name: p }, setting: 'denied', origin: base }); }
+  const n0 = await nPistes(S);
+  await geste(S, ligneCamille);                                               // Camille Roux : un appel VIDÉO
+  await attendreAppel(S); await dormir(900);
+  const a = await lireAppel(S), p = await pistesDe(S, n0);
+  v(nom + ' : ' + cas.nom + ' — l\'appel CONTINUE (« ' + a.statut + ' »), la phrase dit pourquoi : « ' + a.avis + ' » ; pistes : ' + libPistes(p), cas.attendu.test(a.avis || '') && /^(Appel en cours|Micro coupé) · /.test(a.statut) && a.mise === 'audio' && p.length === cas.pistes && a.cam.pressed === 'false', { a, p });
+  v(nom + ' : ' + cas.nom + ' — l\'écran reste une mise en page AUDIO (pas de vidéo vide), le bouton Caméra reste actif (« ' + a.cam.label + ' »)', a.mise === 'audio' && a.cam.label === 'Activer la caméra' && a.vous.camera === 'off');
+  await geste(S, '#appel-cam'); await dormir(900);
+  const a2 = await lireAppel(S), p2 = await pistesDe(S, n0);
+  v(nom + ' : ' + cas.nom + ' — toucher « Caméra » le redit au lieu de ne rien répondre (« ' + a2.avis + ' »), toujours en audio', cas.camera.test(a2.avis || '') && a2.mise === 'audio' && p2.length === cas.pistes, { a2, p2 });
+  if (cas.micro) {
+    await geste(S, '#appel-micro'); await dormir(900);
+    const a3 = await lireAppel(S);
+    v(nom + ' : ' + cas.nom + ' — « Micro » REESSAIE et redit le refus (« ' + a3.avis + ' »), le bouton dit « ' + a3.micro.texte + ' »', cas.micro.test(a3.avis || '') && a3.micro.texte === 'Muet', a3);
+  }
+  await mesurerLargeur(S, nom + ' · ' + cas.nom); await contrasteTout(S, nom + ' · appel, ' + cas.nom, { minimum: 8, sansDefilement: true });
+  await geste(S, '#appel-raccrocher'); await sansAppel(S); await dormir(500);
+  v(nom + ' : ' + cas.nom + ' — raccrocher : toutes les pistes arrêtées (' + libPistes(await pistesDe(S, n0)) + ')', (await pistesDe(S, n0)).every(x => x.s === 'ended'));
+  v(nom + ' : ' + cas.nom + ' — 0 erreur JavaScript, 0 rejet, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0 && (await S.page.evaluate(() => window.__rejets.length)) === 0, { e: S.erreurs, c: S.console });
+  await S.fermer();
+}
+
+/* I — les plus longues valeurs plausibles : un groupe au nom de 40 signes, six membres, appelé depuis sa conversation, à 360 / 393 / 412 px */
+async function etapeAppelsStress(b, base, W) {
+  titre('appel : valeurs les plus longues plausibles à ' + W + ' px');
+  const pf = { nom: 'stress appel ' + W, w: W, h: 780, dpr: 1, mobile: true, insets: null };
+  const S = await ouvrirPage(b, pf, { base }); S.nom = pf.nom;
+  await geste(S, '#btn-groupe'); await dormir(700);
+  for (const id of ['c1', 'c2', 'c3', 'c4', 'c5', 'c6']) { await geste(S, '#g-contacts .contact[data-id="' + id + '"]'); await dormir(80); }
+  await geste(S, '#g-nom'); await taper(S, 'M'.repeat(40)); await S.page.keyboard.press('Enter');
+  await geste(S, '#g-creer'); await dormir(1300);
+  await geste(S, '#liste-conv [data-ouvrir]'); await attendreConv(S, 'MMMM'); await dormir(400);
+  await geste(S, '#conv-cam'); await attendreTous(S); await dormir(500);
+  const a = await lireAppel(S);
+  v('stress ' + W + ' : appel de groupe au nom de 40 signes et 6 autres : ' + a.tuiles.length + ' vignettes, le nom (' + a.nom.length + ' signes) se COUPE sans pousser la page, les commandes restent dans l\'écran (' + a.boutons.join(', ') + ')', a.nom.length >= 40 && a.tuiles.length === 6 && a.mise === 'groupe', a);
+  await mesurerLargeur(S, 'stress ' + W + ' · appel de groupe, nom de 40 signes'); await mesurerCibles(S, 'stress ' + W + ' · appel de groupe');
+  const dedans = await S.page.evaluate(() => ['appel-micro', 'appel-hp', 'appel-cam', 'appel-msg', 'appel-raccrocher'].map(id => { const r = document.getElementById(id).getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight; }));
+  v('stress ' + W + ' : les 4 commandes et « Raccrocher » sont ENTIÈRES dans la fenêtre (' + dedans.filter(Boolean).length + ' sur 5)', dedans.every(Boolean), dedans);
+  await contrasteTout(S, 'stress ' + W + ' · appel de groupe', { minimum: 8, sansDefilement: true });
+  await geste(S, '#appel-raccrocher'); await attendreConv(S, 'MMMM'); await fermerConv(S); await allerAppels(S);
+  await mesurerLargeur(S, 'stress ' + W + ' · Appels avec un nom de 40 signes');
+  const n = await S.page.evaluate(() => { const e = document.querySelector('#liste-appels .appel-nom-ligne'); return { t: e.textContent.length, coupe: e.scrollWidth > e.clientWidth, w: e.clientWidth }; });
+  v('stress ' + W + ' : dans la liste, le nom de ' + n.t + ' signes est COUPÉ par une ellipse (boîte de ' + n.w + ' px)', n.coupe && n.w > 60, n);
+  v('stress ' + W + ' : 0 erreur JavaScript, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0, { e: S.erreurs, c: S.console });
+  await S.fermer();
+}
+
+/* le bloc d'appels sur UN appareil, page neuve (les mutations le jouent seul : --seul=appels, --seul=appels-bureau) */
+/* un BLOC d'appels, seul : la liste et le segmenté, l'audio, les sorties, la feuille, la conversation, les détails — chacun a son scénario (appels-<bloc>, appels-<bloc>-bureau) pour que
+   les mutations n'aient pas à rejouer les sept à chaque fois */
+const BLOCS_APPELS = {
+  liste: async S => { await etapeAppelsListe(S); await etapeAppelsSegmente(S); }, audio: etapeAppelsAudio, sorties: etapeAppelsSorties, feuille: etapeAppelsFeuille, conv: etapeAppelsConversation, info: etapeAppelsInfo
+};
+async function scenarioAppels(b, base, pf, dark, bloc) {
+  const S = await nouvelle(b, base, pf, { dark, nom: pf.nom + ' ' + (dark ? 'nuit' : 'jour') });
+  console.log('\n════ ' + S.nom + ' — appels' + (bloc ? ' (' + bloc + ' seul)' : ' seuls') + ' ════');
+  if (bloc) { await allerAppels(S); await BLOCS_APPELS[bloc](S); } else await etapesAppels(S);
+  const rej = await S.page.evaluate(() => window.__rejets);
+  v(S.nom + ' : (population) ' + S.gestes + ' gestes portés, ' + (S.contrastes || 0) + ' contrastes lus au pixel — 0 erreur JavaScript, 0 rejet non rattrapé, 0 erreur console', S.gestes > (bloc ? 4 : 60) && S.erreurs.length === 0 && rej.length === 0 && S.console.length === 0, { erreurs: S.erreurs, rejets: rej, console: S.console });
+  await S.fermer();
+}
+const SEULS_APPELS = new Set(['appels', 'appels-bureau'].concat(...Object.keys(BLOCS_APPELS).map(k => ['appels-' + k, 'appels-' + k + '-bureau'])));       // déjà joués par chaque parcours : jamais deux fois dans la sonde complète
+
 const CORRECTIFS = {
+  'appels': (b, base) => scenarioAppels(b, base, PROFILS.iphone, false),
+  'appels-bureau': (b, base) => scenarioAppels(b, base, PROFILS.bureau1440, false),
+  ...Object.fromEntries([].concat(...Object.keys(BLOCS_APPELS).map(k => [['appels-' + k, (b, base) => scenarioAppels(b, base, PROFILS.iphone, false, k)], ['appels-' + k + '-bureau', (b, base) => scenarioAppels(b, base, PROFILS.bureau1440, false, k)]]))),
   'vocal-conv': (b, base) => corrVocalChangeConv(b, base),
   'double-toucher': async (b, base, F) => { for (const pf of [PROFILS.iphone, PROFILS.android360, PROFILS.bureau1440]) await corrDoubleToucher(b, base, F, pf); },
   'adresses': (b, base) => corrAdresses(b, base),
@@ -1528,6 +1957,7 @@ async function parcours(b, base, F, pf, dark) {
   await etapeEpingles(S);
   await etapeFeuille(S, F);
   await etapeGroupeCree(S);
+  await etapesAppels(S);
   await finParcours(S);
 }
 
@@ -1554,7 +1984,7 @@ async function principal() {
       if (veut('redimension')) await etapeRedimension(b, srv.base);
       if (veut('stress')) for (const W of [360, 393, 412]) await etapeStress(b, srv.base, W);
       /* les correctifs de la relecture et du testeur adverse : tous (--seul=correctifs), ou un seul par son nom (--seul=vocal-conv …) */
-      for (const [nomC, f] of Object.entries(CORRECTIFS)) if (scenario === 'correctifs' || (veut(nomC) && !(nomC === 'contrastes' && !scenario))) {
+      for (const [nomC, f] of Object.entries(CORRECTIFS)) if (scenario === 'correctifs' || (veut(nomC) && !((nomC === 'contrastes' || SEULS_APPELS.has(nomC)) && !scenario))) {
         /* un scénario qui JETTE (un geste qui ne trouve plus sa cible parce que le défaut qu'il garde est revenu) est un constat rouge, pas une sonde morte */
         try { await f(b, srv.base, F); } catch (e) { v('scénario « ' + nomC + ' » interrompu — ' + String(e && e.message || e).split('\n')[0].slice(0, 200), false); }
       }   // 'contrastes' : déjà joué par chaque parcours
@@ -1571,6 +2001,19 @@ async function principal() {
         const b2 = await lancer(['--use-fake-ui-for-media-stream']);        // aucun périphérique factice : le navigateur ne trouve AUCUN micro
         try { await etapeMicroIndisponible(b2, srv.base, PROFILS.iphone, 'iPhone 393', { nom: 'absent', permissions: ['microphone'], attendu: /Aucun micro/ }); await etapeMicroIndisponible(b2, srv.base, PROFILS.bureau1440, 'bureau 1440', { nom: 'absent', permissions: ['microphone'], attendu: /Aucun micro/ }); } finally { await b2.close(); }
       }
+      /* les APPELS sans caméra ou sans micro : trois causes réelles, trois navigateurs (les mêmes drapeaux que le micro : jamais `--use-fake-ui` quand on refuse) */
+      if (veut('appels-refus')) {
+        const CAS = [
+          { arg: ['--use-fake-device-for-media-stream'], cas: { nom: 'caméra refusée (micro accordé)', permissions: ['microphone'], refuser: ['camera'], attendu: /caméra est refusée/, camera: /caméra est refusée/, pistes: 1 } },
+          { arg: ['--use-fake-device-for-media-stream'], cas: { nom: 'micro ET caméra refusés', permissions: [], refuser: ['microphone', 'camera'], attendu: /micro est refusé[\s\S]*sans micro/, camera: /caméra est refusée/, micro: /micro est refusé/, pistes: 0 } },
+          { arg: ['--use-fake-ui-for-media-stream'], cas: { nom: 'aucun périphérique (ni micro ni caméra)', permissions: ['microphone', 'camera'], attendu: /Aucun micro/, camera: /Aucune caméra/, micro: /Aucun micro/, pistes: 0 } }
+        ];
+        for (const { arg, cas } of CAS) {
+          const bc = await lancer(arg);
+          try { await etapeAppelsIndisponible(bc, srv.base, PROFILS.iphone, 'iPhone 393', cas); await etapeAppelsIndisponible(bc, srv.base, PROFILS.bureau1440, 'bureau 1440', cas); } finally { await bc.close(); }
+        }
+      }
+      if (veut('appels-stress')) for (const W of [360, 393, 412]) await etapeAppelsStress(b, srv.base, W);
     }
   } finally { await b.close(); srv.fermer(); }
   console.log('\n(durée : ' + Math.round((Date.now() - t0) / 1000) + ' s)');

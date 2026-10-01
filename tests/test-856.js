@@ -49,8 +49,6 @@ const NOUS = {
    tout jeton inutilisé est nommé ici, et tout jeton nommé ici est bien inutilisé (sinon la décision date d'avant). ── */
 const POUR_PLUS_TARD = {
   '--sheet': 'la fiche détail de l\'agenda (étape 4)',
-  '--seg-track': 'le contrôle segmenté Tous / Manqués de l\'écran Appels (étape 3)',
-  '--seg-knob': 'le curseur de ce même segmenté (étape 3)',
   '--handle': 'la barre d\'accueil d\'iOS : un cadre de la MAQUETTE, jamais dessiné (CLAUDE.md) — déclaré parce que le document le cite, lu par aucun écran'
 };
 /* les noms des personnes et des lieux de la MAQUETTE : inventés, ou trop proches de données réelles — aucun ne doit se retrouver
@@ -203,7 +201,7 @@ function controler(PAGE, DOC, SRC) {
   v('⛔ aucun de ces noms n\'est écrit dans la PAGE (le jour où de vraies données arrivent, un seul fichier change)', noms.filter(n => PAGE.replace(/<!--[\s\S]*?-->/g, ' ').includes("'" + n + "'") || PAGE.includes('>' + n + '<')), []);
   vrai('la page lit ses données par window.OPMSG_SOURCE, chargé AVANT elle par un <script src="source.js"> (le seul script externe permis)',
     /<script src="source\.js"><\/script>/.test(PAGE) && PAGE.indexOf('<script src="source.js">') < PAGE.indexOf('<script>\n') && /window\.OPMSG_SOURCE/.test(JS) && !/\bconst (CONTACTS|CONVERSATIONS) = \[/.test(JS) && /racine\.OPMSG_SOURCE = creerSourceApercu\(\)/.test(SRCJS));
-  vrai('chaque écran « bientôt » a sa coquille rendue par la même fonction (une vue par écran)', /\['appels', 'reunions', 'reglages'\]\.forEach\(rendreCoquille\)/.test(JS) && /function rendreCoquille/.test(JS));
+  vrai('chaque écran « bientôt » a sa coquille rendue par la même fonction (une vue par écran)', /\['reunions', 'reglages'\]\.forEach\(rendreCoquille\)/.test(JS) && /function rendreCoquille/.test(JS));
   vrai('la page DIT que ce sont des données d\'exemple', /Aperçu — données d'exemple/.test(HTML));
 
   /* 5. RIEN DE L'EXTÉRIEUR ── */
@@ -274,7 +272,7 @@ const MUTATIONS = [
   ['« transparence réduite » retire le flou SANS rendre d\'aplat', 'page', p => p.replace('background: var(--solide) !important; }', '}'), /transparence réduite/],
   ['le mouvement réduit n\'est plus respecté', 'page', p => p.replace('animation: none !important;', ''), /mouvement réduit/],
   ['un jeton déclaré que personne ne lit et que personne ne nomme (--zz-mort)', 'page', p => p.replace('  --handle: rgba(0,0,0,.72);', '  --handle: rgba(0,0,0,.72);\n  --zz-mort: #123456;').replace('    --handle: rgba(255,255,255,.8);', '    --handle: rgba(255,255,255,.8);\n    --zz-mort: #123456;'), /\(h\) tout jeton déclaré mais lu par personne/],
-  ['un jeton « pour plus tard » qu\'un écran lit déjà (--seg-knob utilisé)', 'page', p => p.replace('.badge { min-width: 18px;', '.badge { background-image: none; outline-color: var(--seg-knob); min-width: 18px;'), /\(h\) et tout jeton nommé/],
+  ['un jeton « pour plus tard » qu\'un écran lit déjà (--sheet utilisé)', 'page', p => p.replace('.badge { min-width: 18px;', '.badge { background-image: none; outline-color: var(--sheet); min-width: 18px;'), /\(h\) et tout jeton nommé/],
   ['un jeton à nous change d\'un chiffre (--sub-meta jour .72 → .62)', 'page', p => p.replace('--sub-meta: rgba(14,26,63,.72);', '--sub-meta: rgba(14,26,63,.62);'), /À NOUS « --sub-meta » — jour/],
   ['une feuille de style externe (Google Fonts)', 'page', p => p.replace('<title>', '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter">\n<title>'), /aucune adresse http/],
   ['la politique du navigateur s\'ouvre (connect-src *)', 'page', p => p.replace("form-action 'none'", "form-action 'none'; connect-src *"), /NAVIGATEUR refuse/],

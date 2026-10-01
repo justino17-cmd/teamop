@@ -189,11 +189,11 @@ async function controler(PAGE, SRC, DOC) {
 
   /* 4. L'HISTORIQUE : UN GESTE, UNE NAVIGATION ───────────────────────────────────────────────────────────────────────────────── */
   vrai('⛔ une couche qu\'on ouvre POUSSE une entrée (history.pushState) ; une couche qu\'on ferme la RENDS (history.back), ou, sans entrée à rendre, remplace la route', /history\.pushState\(\{ opmsg: 1, n: h \? h\.n \+ 1 : 1/.test(JS) && /history\.back\(\)/.test(JS) && /history\.replaceState\(\{ opmsg: 1, n: h \? h\.n : 0/.test(JS));
-  vrai('⛔ ouvrir une conversation, la feuille « Nouveau groupe » et la photo passent toutes par pousser() (une entrée par couche)', /function ouvrirDepuisListe[\s\S]*?pousser\(r\)/.test(JS) && /function ouvrirFeuille\(\)[^\n]*pousser\(/.test(JS) && /pousser\(Object\.assign\(\{\}, etat\.route, \{ photo: p\.dataset\.photo \}\)\)/.test(JS));
+  vrai('⛔ ouvrir une conversation, la feuille « Nouveau groupe » et la photo passent toutes par pousser() (une entrée par couche)', /function ouvrirDepuisListe[\s\S]*?pousser\(r\)/.test(JS) && /function ouvrirFeuille\(mode\)[^\n]*pousser\(/.test(JS) && /pousser\(Object\.assign\(\{\}, etat\.route, \{ photo: p\.dataset\.photo \}\)\)/.test(JS));
   vrai('le retour système (popstate) rejoue la route de l\'entrée — il ne ferme rien lui-même', /window\.addEventListener\('popstate', e => appliquer\(/.test(JS));
   vrai('⛔ « UN GESTE, UNE NAVIGATION » : aucun écouteur de balayage à la page (touchmove, touchend, swipe) — le navigateur n\'a pas de second retour à jouer ; le seul touchstart est le vide qui réveille :active sur iOS', !/addEventListener\('touch(?:move|end|cancel)'|swipe|overscroll-behavior-x/.test(JS + CSS) && (JS.match(/addEventListener\('touchstart'/g) || []).length === 1 && /addEventListener\('touchstart', function \(\) \{\}, \{ passive: true \}\)/.test(JS));
   vrai('Échap ferme la couche du dessus : la photo, la feuille, un enregistrement, la conversation (dans cet ordre)', /if \(e\.key !== 'Escape'\) return;[\s\S]{0,420}etat\.photo \|\| etat\.groupe\.ouvert[\s\S]{0,260}enr\.etat === 'enregistre'[\s\S]{0,200}etat\.conv/.test(JS));
-  vrai('la liste recouverte devient inerte (inert) et la photo ou la feuille rendent tout le fond inerte', /\$\('contenu'\)\.inert = !!\(etat\.conv && !largeBureau\.matches\)/.test(JS) && /\$\('app'\)\.inert = !!\(etat\.groupe\.ouvert \|\| etat\.photo\)/.test(JS));
+  vrai('la liste recouverte devient inerte (inert) et la photo ou la feuille rendent tout le fond inerte', /\$\('contenu'\)\.inert = !!\(etat\.appelId \|\| \(etat\.conv && !largeBureau\.matches\)\)/.test(JS) && /\$\('app'\)\.inert = !!\(etat\.groupe\.ouvert \|\| etat\.photo\)/.test(JS));
   vrai('la liste revient à sa position : elle est notée à l\'ouverture et rendue à la fermeture', /etat\.scrollListe = window\.scrollY/.test(JS) && /window\.scrollTo\(0, etat\.scrollListe\)/.test(JS));
   vrai('la feuille et la conversation se ferment par le MÊME chemin (fermerCouche) : annuler, voile, retour, Échap, glissé', (JS.match(/fermerCouche\b/g) || []).length >= 6 && /function fermerFeuille\(garderPhoto\) \{[^}]*fermerCouche\(\)/.test(JS));
 
@@ -225,7 +225,7 @@ async function controler(PAGE, SRC, DOC) {
   vrai('liste : l\'heure de chaque ligne se remet à jour seule (data-t, toutes les 20 s) ; un texte arabe a sa direction (dir=auto) ; les trois listes sont des role="list" [sonde : fil-stable]', /conv-heure" data-t="/.test(JS) && /\}, 20000\);/.test(JS) && /class="bulle \' \+ sens \+ \'" dir="auto"/.test(JS) && ['id="epingles" role="list"', 'id="liste-conv" role="list"', 'id="g-puces" role="list"'].every(t => HTML.includes(t)));
   vrai('collage : le champ ne coupe pas en silence (plus de maxlength à 4 000), la limite se DIT dès la frappe ; Échap dans la recherche l\'efface sans fermer la conversation [sonde : collage]', /const texteTropLong = n =>/.test(JS) && /if \(n > TEXTE_MAX\) avis\(texteTropLong\(n\)\)/.test(JS) && /if \(e\.target === \$\('recherche-conv'\) && !etat\.photo && !etat\.groupe\.ouvert\)/.test(JS));
   vrai('images : une image dont l\'en-tête est bon et le corps abîmé est refusée (decode() + preuve qu\'un point a été dessiné), un fichier tronqué aussi (PNG, GIF, WebP) [sonde : images]', /i\.decode\(\)\.then\(\(\) => fini\(true\), \(\) => fini\(false\)\)/.test(JS) && /if \(!dessine\) throw new Error\('illisible'\);/.test(JS) && /if \(await fichierTronque\(fichier\)\) throw new Error\('illisible'\);/.test(JS) && /async function fichierTronque\(f\)/.test(JS));
-  vrai('couleurs forcées : une bulle, une photo, un vocal et le champ gardent un contour ; l\'onde garde une couleur [sonde : couleurs-forcees]', /@media \(forced-colors: active\) \{[\s\S]*?\.bulle, \.photo, \.vocal, \.saisie-ind, \.pilule-saisie, \.avis-saisie \{ border: 1px solid CanvasText; \}[\s\S]*?\.onde i, \.enreg-onde i \{ background: CanvasText; \}/.test(CSS));
+  vrai('couleurs forcées : une bulle, une photo, un vocal et le champ gardent un contour ; l\'onde garde une couleur [sonde : couleurs-forcees]', /@media \(forced-colors: active\) \{[\s\S]*?\.bulle, \.photo, \.vocal, \.saisie-ind, \.pilule-saisie, \.avis-saisie(?:, [.\w-]+)* \{ border: 1px solid CanvasText; \}[\s\S]*?\.onde i, \.enreg-onde i \{ background: CanvasText; \}/.test(CSS));
   vrai('écrans étroits : la barre de la feuille et celle des onglets peuvent RÉTRÉCIR (min-width 0, libellé coupé par une ellipse), plus de 64 px de plancher par bouton [sonde : etroit]', /\.feuille-barre h2 \{[^}]*min-width: 0[^}]*text-overflow: ellipsis/.test(CSS) && /\.feuille-bouton \{[^}]*min-width: 44px/.test(CSS) && /\.tab \{[^}]*min-width: 0/.test(CSS) && /\.tab span \{[^}]*text-overflow: ellipsis/.test(CSS));
   return R;
 }
@@ -244,7 +244,8 @@ async function controler(PAGE, SRC, DOC) {
   const neutre = (await controler(PAGE, SRC, DOC)).filter(r => !r[1]).length;
   dire('copie INTACTE : 0 constat rouge (le banc ne crie pas au loup)', neutre === 0, ' — ' + neutre + ' rouge(s)');
   let mordent = 0, banc = 0, sondeSeule = 0, malVisees = 0;
-  for (const m of MUTATIONS) {
+  const SERIE = MUTATIONS.filter(m => !m.suite);                // la série A (étape 3) est éprouvée par tests/test-859.js
+  for (const m of SERIE) {
     const mut = appliquer(m, PAGE, SRC);
     if (!mut.change) { malVisees++; dire('mutation ' + m.id + ' « ' + m.nom + ' » : le motif ne trouve rien à muter (mutation mal visée)', false); continue; }
     if (!m.banc) {
@@ -258,7 +259,7 @@ async function controler(PAGE, SRC, DOC) {
     if (nomme) mordent++;
     dire(m.id + ' « ' + m.nom + ' » : ' + rouges.length + ' ✗, dont celui qui la garde' + (m.sonde ? ' (et la sonde la voit aussi)' : ''), nomme, '\n      rouges : ' + JSON.stringify(rouges.slice(0, 4)));
   }
-  dire('(population) ' + MUTATIONS.length + ' mutations : ' + banc + ' attrapées par ce banc, ' + sondeSeule + ' réservées à la sonde, ' + malVisees + ' mal visée(s) — ' + mordent + ' gardées', malVisees === 0 && mordent === MUTATIONS.length && MUTATIONS.length >= 25 && banc >= 20);
+  dire('(population) ' + SERIE.length + ' mutations : ' + banc + ' attrapées par ce banc, ' + sondeSeule + ' réservées à la sonde, ' + malVisees + ' mal visée(s) — ' + mordent + ' gardées', malVisees === 0 && mordent === SERIE.length && SERIE.length >= 25 && banc >= 20);
 
   console.log('\n═══ test-857 : ' + ok + ' ✓ ' + ko + ' ✗ ═══\n');
   process.exit(ko ? 1 : 0);
