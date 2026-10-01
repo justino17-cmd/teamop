@@ -917,7 +917,11 @@ async function etapeDefilement(b, base) {
     await geste(S, '#liste-conv [data-ouvrir="v6"]'); await attendreConv(S, 'Hugo Perrin'); await dormir(600);
     const y1 = await S.page.evaluate(() => Math.round(scrollY));
     v(S.nom + ' : la conversation ouverte laisse la liste où elle est (' + y1 + ' px)', Math.abs(y1 - y0.y) <= 1, { y0, y1 });
+    /* ce que fait iOS quand le clavier s'ouvre sur le champ : la FENÊTRE est ramenée en haut pendant que la conversation est ouverte. Sans ce geste, la
+       position gardée par le navigateur masquait la mémoire de la liste (mutation S04 : la sonde restait verte) */
+    await S.page.evaluate(() => window.scrollTo(0, 0)); await dormir(200);
     await fermerConv(S);
+    await dormir(300);
     const y2 = await S.page.evaluate(() => Math.round(scrollY));
     v(S.nom + ' : retour à la liste → MÊME position de défilement (' + y0.y + ' px avant, ' + y2 + ' px après)', Math.abs(y2 - y0.y) <= 1, { y0, y2 });
     v(S.nom + ' : 0 erreur JavaScript, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0, { e: S.erreurs, c: S.console });
