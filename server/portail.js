@@ -76,8 +76,8 @@ function monterPortail(app, deps) {
   const DOSSIER_MAX = 64000, DOSSIER_MAX_NV = 16000, FIL_MAX_NV = 30, NV_MAX = 1000;
   /* `verifie(mail)` vient de `comptes.js`. Sans lui, personne n'est vérifié : le défaut prudent. */
   const verifie = (mail) => { try { return typeof d.verifie === 'function' && !!d.verifie(mail); } catch (e) { return false; } };
-  /* Réservé au PATRON (`gardien`, C5) : ce qui écrit des comptes, décide d'un abonnement ou dépose
-     un code d'accès. Sans garde patron fournie, la garde de la Tour s'applique — jamais aucune. */
+  /* Réservé au PATRON (`gardien`, C5) : ce qui écrit des comptes ou décide d'un abonnement. Sans garde patron
+     fournie, la garde de la Tour s'applique — jamais aucune. */
   const patron = d.patron || d.admin;
 
   const CHEMIN = path.join(DOSSIER, 'portail.json');
@@ -97,6 +97,27 @@ function monterPortail(app, deps) {
     fs.renameSync(tmp, CHEMIN);
   }
   lire();
+  /* ⛔ Les anciens codes d'accès s'effacent au DÉMARRAGE, avant toute requête : un message d'avant le 1er octobre
+     2026 portait la clé d'équipe d'un espace, et une page restée en cache (`sw.js` précache `espace.html`) en
+     ferait encore un bouton. On COMPTE, on n'affiche rien : le contenu est un secret (règle du dépôt). Un fichier
+     qui ne s'écrit pas laisse les codes en mémoire… mais la lecture les retire aussi (`sansCode`). */
+  function purgerCodes() {
+    let n = 0;
+    for (const mail of Object.keys(reg.f)) {
+      for (const m of (a(reg.f, mail) || [])) {
+        if (m && typeof m === 'object' && ('access' in m || 'accessName' in m)) { delete m.access; delete m.accessName; n++; }
+      }
+    }
+    if (n) {
+      try { ecrire(); journal('codes d\'accès retirés des fils :', n); }
+      catch (e) { journal('codes d\'accès retirés en mémoire, fichier non écrit —', e.code || 'erreur'); }
+    }
+    return n;
+  }
+  purgerCodes();
+  /* Ce qui part vers une page ne porte que les trois champs d'un message : rien d'autre ne sort, même si un jour
+     un champ revenait dans le fichier (restauration d'une vieille sauvegarde). */
+  const sansCode = (m) => ({ de: m && m.de, t: m && m.t, ts: m && m.ts });
 
   const porteur = (req) => {
     const m = /^Bearer\s+([A-Fa-f0-9]{64})$/.exec(String(req.headers['authorization'] || ''));
@@ -108,17 +129,15 @@ function monterPortail(app, deps) {
      un fil sans plafond grossit jusqu'à ce que le fichier entier devienne illisible, et c'est
      alors TOUS les clients qui perdent leur conversation, pas un. On garde les 500 derniers
      messages — largement au-delà d'un échange commercial, et borné pour toujours. */
-  /* ⛔ `sup` PORTE LE CODE D'ACTIVATION D'UN ESPACE, ET SEULE LA TOUR PEUT LE POSER.
-     `espace.html:1240` fait apparaître le bouton « 🚀 Activer mon espace » dès qu'un message
-     porte `access` — c'est la seule porte d'entrée d'un client dans OP GESTION. Le laisser
-     passer depuis le corps d'une requête CLIENT, ce serait laisser n'importe qui se fabriquer
-     ce bouton dans son propre fil. C'est la règle déjà payée sur `/api/clients/sync` : une
-     valeur du CORPS ne décide jamais d'un accès. Les deux appels clients n'ont donc que trois
-     arguments, et le quatrième n'existe que sur la route `admin`. */
-  function ajouterMsg(mail, de, texte, sup) {
+  /* ⛔⛔ PLUS AUCUN CODE D'ACCÈS DANS UN FIL — Justin, 1er octobre 2026 : « il faut supprimer le code d'accès, car
+     c'est à nous de créer leur lien de connexion et leur espace ». Un message portait jadis `access` (le code
+     d'activation d'un espace, c'est-à-dire sa CLÉ d'équipe en base64) et `espace.html` en faisait un bouton
+     « 🚀 Activer mon espace ». Depuis le 28 septembre, un espace naît dans la Tour (« Accepter la demande ») et son
+     lien part par courriel (`/api/monitor/espaces/mail-acces`) : ce champ ne s'écrit plus, ne se sert plus, et ceux
+     qui restent dans `portail.json` sont effacés au démarrage (`purgerCodes`). Un message n'a plus que trois champs. */
+  function ajouterMsg(mail, de, texte) {
     const f = a(reg.f, mail) || (reg.f[mail] = []);
     const m = { de: de === 'admin' ? 'admin' : 'client', t: borne(texte, MSG_MAX), ts: Date.now() };
-    if (sup && sup.access) { m.access = borne(sup.access, 2000); m.accessName = borne(sup.accessName, 200); }
     f.push(m);
     const max = verifie(mail) ? FIL_MAX : FIL_MAX_NV;
     if (f.length > max) f.splice(0, f.length - max);
@@ -231,7 +250,7 @@ function monterPortail(app, deps) {
     const mail = qui(req);
     if (!mail) return res.status(401).json({ error: 'session_refusee' });
     const refus = refusPortail(mail); if (refus) return res.status(403).json({ error: refus });
-    return res.json({ ok: true, messages: (a(reg.f, mail) || []).slice(-200) });
+    return res.json({ ok: true, messages: (a(reg.f, mail) || []).slice(-200).map(sansCode) });
   });
 
   app.post('/api/portail/message', (req, res) => {
@@ -296,24 +315,20 @@ function monterPortail(app, deps) {
   app.get('/api/monitor/portail/fil', admin, (req, res) => {
     const mail = norm(req.query.email);
     if (!mailOk(mail)) return res.status(400).json({ error: 'email_invalide' });
-    res.json({ ok: true, email: mail, messages: (a(reg.f, mail) || []).slice(-200), verifie: verifie(mail) });
+    res.json({ ok: true, email: mail, messages: (a(reg.f, mail) || []).slice(-200).map(sansCode), verifie: verifie(mail) });
   });
 
-  /* ⛔ UN CODE D'ACCÈS NE PART QU'À UNE ADRESSE PROUVÉE, ET SEUL LE PATRON L'ENVOIE (`gardien`,
-     C4-C5). `access` fait apparaître « 🚀 Activer mon espace » : c'est l'entrée d'un client dans
-     OP GESTION. Déposé dans le fil d'un compte que n'importe qui a pu créer avec l'adresse d'un
-     autre, il ouvrait l'espace à ce quelqu'un. Un message sans code, lui, reste à la Tour. */
-  app.post('/api/monitor/portail/message', admin, (req, res, next) => {
+  /* ⛔ UN MESSAGE DE LA TOUR NE PORTE PLUS DE CODE D'ACCÈS (1er octobre 2026, voir `ajouterMsg`). Une requête qui en
+     présente un est REFUSÉE (410) plutôt que de partir sans lui : l'outil qui l'envoie croirait avoir donné un accès
+     que personne ne recevra. L'espace et son lien se donnent par la Tour (« Accepter la demande », « Lien de
+     connexion »). */
+  app.post('/api/monitor/portail/message', admin, (req, res) => {
     const b = req.body || {};
-    if (b.access) return patron(req, res, next);
-    return next();
-  }, (req, res) => {
-    const b = req.body || {};
+    if (b.access !== undefined || b.accessName !== undefined) return res.status(410).json({ error: 'code_acces_retire' });
     const mail = norm(b.email);
     const t = borne(b.texte, MSG_MAX);
     if (!mailOk(mail) || !t.trim()) return res.status(400).json({ error: 'email_et_texte_requis' });
-    if (b.access && !verifie(mail)) return res.status(409).json({ error: 'adresse_non_verifiee' });
-    ajouterMsg(mail, 'admin', t, { access: b.access, accessName: b.accessName });
+    ajouterMsg(mail, 'admin', t);
     ecrire();
     res.json({ ok: true });
   });

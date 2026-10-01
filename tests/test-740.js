@@ -250,9 +250,10 @@ const arreter = async () => {
     });
     vrai('⛔ `onSnapshot` tire immédiatement, sans attendre un battement', !!vuFil && vuFil.size === 1);
 
-    /* ⛔ `access` PORTE LE CODE D'ACTIVATION DE L'ESPACE. `espace.html` ne montre le bouton
-       « 🚀 Activer mon espace » que si le message en porte un : c'est la seule porte d'entrée
-       d'un nouveau client dans OP GESTION. Le laisser tomber murerait cette entrée. */
+    /* ⛔⛔ PLUS AUCUN CODE D'ACCÈS (Justin, 1er octobre 2026 : « c'est à nous de créer leur lien de connexion et leur
+       espace »). Un message portait jadis `access` — la clé d'un espace — et la page en faisait un bouton « 🚀 Activer
+       mon espace ». La Tour ne peut plus en déposer : REFUS 410, avant comme après la preuve de l'adresse, et rien
+       n'arrive dans le fil. */
     const tour = await (await fetch(S.B + '/api/monitor/login', { method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nom: 'Patron', pass: MDP_ADMIN }) })).json();
@@ -260,7 +261,7 @@ const arreter = async () => {
     const rRefus = await fetch(S.B + '/api/monitor/portail/message', { method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tour.token },
       body: JSON.stringify({ email: 'zoe@exemple.fr', texte: 'Votre espace est prêt', access: 'CODE-ABCXYZ', accessName: 'Bernard Hygiène' }) });
-    v('⛔ un code d\'accès vers une adresse jamais prouvée : refusé (409) — c\'est peut-être quelqu\'un qui a tapé son adresse', rRefus.status, 409);
+    v('⛔ un code d\'accès vers une adresse jamais prouvée : refusé (410, plus de code)', [rRefus.status, (await rRefus.json()).error], [410, 'code_acces_retire']);
     /* Zoé ouvre le lien reçu à la création de son compte : son adresse est prouvée. */
     let lettreV = '';
     for (let i = 0; i < 60 && !lettreV; i++) { lettreV = lisible(facteurSrv.recus.filter(m => /mode=verifyEmail/.test(lisible(m))).pop() || ''); if (!lettreV) await dormir(100); }
@@ -271,10 +272,14 @@ const arreter = async () => {
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tour.token },
       body: JSON.stringify({ email: 'zoe@exemple.fr', texte: 'Votre espace est prêt',
         access: 'CODE-ABCXYZ', accessName: 'Bernard Hygiène' }) });
-    v('   elle poste un message avec un code', rAcc.status, 200);
-    const avecCode = (await fil.orderBy('ts', 'asc').get()).docs.map(d => d.data()).filter(m => m.access);
-    v('⛔ le code d\'activation traverse jusqu\'à la page', (avecCode[0] || {}).access, 'CODE-ABCXYZ');
-    v('   et le nom de l\'espace avec lui', (avecCode[0] || {}).accessName, 'Bernard Hygiène');
+    v('⛔ même vers une adresse prouvée, un code d\'accès est refusé (410)', rAcc.status, 410);
+    const rSans = await fetch(S.B + '/api/monitor/portail/message', { method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tour.token },
+      body: JSON.stringify({ email: 'zoe@exemple.fr', texte: 'Votre lien de connexion vient de partir par courriel' }) });
+    v('   un message ordinaire de la Tour passe toujours', rSans.status, 200);
+    const filZoe = (await fil.orderBy('ts', 'asc').get()).docs.map(d => d.data());
+    v('   et il arrive dans le fil', filZoe.some(m => /Votre lien de connexion/.test(m.text || '')), true);
+    v('⛔ aucun message du fil ne porte de code d\'accès', filZoe.filter(m => m.access || m.accessName).length, 0);
 
     /* ⛔ ET UN CLIENT NE PEUT PAS SE FABRIQUER CE BOUTON. On forge la requête à la main —
        l'adaptateur n'envoie que `texte`, mais un adaptateur n'est pas une garde : c'est le
