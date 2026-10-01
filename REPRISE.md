@@ -119,6 +119,13 @@ travail (plus de notification pro le soir : droit à la déconnexion) ; 4. tradu
 dans un groupe ; 8. position en direct pour une équipe sur le terrain (Pro, limitée dans le temps) ; 9. export d'une conversation
 en PDF (Pro) ; 10. fils de réponse dans les groupes et mentions ; 11. réunions visio sans compte pour l'invité ; 12. données en
 France, sans publicité. ⚠️ 4 et 5 envoient le contenu à un service d'IA : sous-traitance à écrire avant (comme `agent-devis.js`). Justin : **« fait tout »** → les douze, en lots ordonnés : `design/opmessages/FEUILLE-DE-ROUTE.md`.
+Puis, même soir : **« ici fait tout »** pour onze idées de plus (13 boîte partagée d'entreprise, 14 lien et QR « Écrivez-nous »,
+15 réponses automatiques, 16 tableau du patron, 17 résumé IA d'une conversation, 18 message urgent, 19 conversations verrouillées
+par Face ID, 20 sauvegarde automatique, 21 gros caractères, 22 envoi à l'heure du destinataire, 23 parrainage) — rangées dans les
+mêmes lots ; **« prends plein d'idées que les autres font, pour gagner le marché »** → étude des concurrents en cours
+(`design/opmessages/VEILLE-CONCURRENCE.md` à venir ; les idées retenues seront numérotées à partir de 24) ; **« l'application sera
+sur l'App Store »** → lot I (enveloppe native, CallKit, carnet d'adresses, règles d'Apple qui coûtent) ; et **« J'ai les deux »** :
+Justin a DÉJÀ le compte Apple Developer et un Mac — on compile et on signe chez lui ; reste à ouvrir le compte Google Play.
 ✅ **Serveur d'OP MESSAGES, étape 1 FAITE sur la branche** (fusion `d70ba05`) : `server-msg/` (node:sqlite, scellé AES-256-GCM,
 SSE, porte bêta par la Tour en boucle locale, groupes, lu, saisie, présence), son installation (`install-msg.sh`, unité durcie,
 utilisateur `opmsg`), son déploiement (`.github/workflows/deploiement-messages.yml`, une clé SSH par instance) et le mode
