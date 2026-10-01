@@ -38,7 +38,14 @@ réunions façon Zoom ; `design/opmessages/`, ordre en 5 étapes, « montre-moi 
 étape »). ⛔ Justin, même jour, à « même compte qu'OP GESTION ou serveur à part ? » : **« tout et séparé »** — la décision
 du 22 septembre tient : OP MESSAGES aura son propre serveur et ses comptes de personnes. Les écrans se construisent dans
 une page d'aperçu à part (`apercu/opmessages/`, données d'exemple, aucun appel réseau) ; rien ne touche `messages.html`.
-Étape 1 (liste Messages + groupes) en construction.
+Étape 1 (liste Messages + groupes, feuille « Nouveau groupe », navigation) FAITE en aperçu (72127e5). Étape 2 (écran Conversation) FAITE en
+aperçu le 1er octobre 2026 : route en historique (une entrée par couche, rejouée par `popstate`), bulles/datage/« Lu »/saisie à 3 points,
+composeur (textarea >= 16 px), photo réduite par canvas, vocal MediaRecorder réel, maître-détail dès ~1100 px. Les données passent par un
+MODULE SÉPARÉ (`apercu/opmessages/source.js` : `lister/ouvrir/envoyer/marquerLu/ecouter`) — le jour du serveur à part, on le remplace par un
+module qui parle à ce serveur, rien d'autre ne change. Gardée par `tests/test-856.js`, `test-857.js` (module et `esc` exécutés), la sonde
+`tests/sonde-opmessages.js` (vrais gestes, 8 profils, jour/nuit, mouvement réduit) et ses mutations (`tests/mutations-opmessages.js`).
+⚠️ Non mesuré ici : le clavier iOS (`visualViewport`, écrit d'après la spécification — à voir sur un iPhone), la lecture sonore d'un vocal
+d'exemple (simulée). RESTE : étape 3 (Appels : écran d'appel, segmenté Tous/Manqués, `--seg-track`/`--seg-knob`), puis agenda et réunions.
 Puis, même jour : **formules d'OP MESSAGES** — « un forfait gratuit comme il est là et un Pro à 15 euros ; lui à 25 on le
 supprime ; à 15 euros ils ont toutes les options » (Perso 0 €, Messages Pro 15 € avec tout ; Messages Business Premium
 retiré de la vente — ses lignes Stripe restent RECONNUES comme OP MESSAGES par le serveur) ; **« je veux un op message
