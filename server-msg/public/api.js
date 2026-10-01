@@ -171,6 +171,8 @@
       ecouter(gestionnaires) {
         if (!ES) throw new Error('EventSource indisponible');
         const g = gestionnaires || {};
+        /* L'attente avant de reconnecter à la main : 2, 4, 8… secondes, plafonnée à 30 (réglable : les bancs la raccourcissent). */
+        const attente = typeof o.attente === 'function' ? o.attente : (n) => Math.min(30000, 1000 * Math.pow(2, Math.min(n, 5)));
         let es = null, ferme = false, dernier = null, essais = 0, minuterie = null;
         const dit = (code) => { if (typeof g.erreur === 'function') g.erreur(new ErreurApi(code, 0, 0)); };
         function ouvrir() {
@@ -198,7 +200,7 @@
           try { await api.moi(); }
           catch (x) { if (x && x.code === 'session_requise') { dit('session_requise'); return; } }
           essais++;
-          minuterie = setTimeout(ouvrir, Math.min(30000, 1000 * Math.pow(2, Math.min(essais, 5))));
+          minuterie = setTimeout(ouvrir, attente(essais));
           if (minuterie && minuterie.unref) minuterie.unref();
         }
         ouvrir();

@@ -18,6 +18,8 @@ const fs = require('fs'), os = require('os'), path = require('path'), net = requ
 const { spawn } = require('child_process');
 const RACINE = path.join(__dirname, '..');
 const SERVICE = path.join(RACINE, 'server-msg');
+/* Le `fetch` NATIF, capturé à l'import : un banc qui exécute `api.js` redéfinit `globalThis.fetch` pour la page — nos propres appels ne doivent pas passer par elle. */
+const FETCH = globalThis.fetch;
 
 const dort = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -61,6 +63,7 @@ async function lancerService(opts = {}) {
   /* Fusion à UN niveau : quotas, beta et cookie se complètent, ils ne se remplacent pas. */
   const cfg = Object.assign({}, defauts, o.config);
   for (const k of ['quotas', 'beta', 'cookie']) if (o.config && o.config[k] && typeof o.config[k] === 'object') cfg[k] = Object.assign({}, defauts[k], o.config[k]);
+  if (o.quotasProd) cfg.quotas = {};   // les plafonds de PRODUCTION, tels que le service les porte
   fs.writeFileSync(cfgPath, JSON.stringify(cfg));
   const env = Object.assign({}, process.env, {
     OPMSG_CONFIG: cfgPath, OPMSG_DATA: data, OPMSG_INSTANCE: o.instance, PORT: String(port),
@@ -87,7 +90,7 @@ async function lancerService(opts = {}) {
     },
   };
   if (o.attendreSante) {
-    const vivant = await attendre(async () => { if (sorti !== null) return 'mort'; try { return (await fetch(base + '/health')).ok; } catch (e) { return false; } }, 10000, 50);
+    const vivant = await attendre(async () => { if (sorti !== null) return 'mort'; try { return (await FETCH(base + '/health')).ok; } catch (e) { return false; } }, 10000, 50);
     if (vivant !== true) { const s = sortie.texte(); await svc.arreter(); throw new Error('le service n\'a pas démarré : ' + (vivant === 'mort' ? 'sorti avant /health' : 'délai') + '\n' + s.slice(0, 800)); }
   }
   return svc;
@@ -153,7 +156,7 @@ function client(base, opts = {}) {
     if (methode !== 'GET' && !extra.sansOrigine && o.origin) h.Origin = extra.origin || o.origin;
     if (methode !== 'GET' && o.entete && !extra.sansEntete) h['X-OPM'] = '1';
     if (o.xff && !h['X-Forwarded-For']) h['X-Forwarded-For'] = o.xff;
-    const r = await fetch(base + chemin, { method: methode, headers: h, body: corps === undefined || methode === 'GET' ? undefined : (typeof corps === 'string' ? corps : JSON.stringify(corps)), redirect: 'manual' });
+    const r = await FETCH(base + chemin, { method: methode, headers: h, body: corps === undefined || methode === 'GET' ? undefined : (typeof corps === 'string' ? corps : JSON.stringify(corps)), redirect: 'manual' });
     lireSetCookie(r);
     let j = null, txt = '';
     try { txt = await r.text(); j = txt ? JSON.parse(txt) : null; } catch (e) { j = null; }
@@ -165,7 +168,7 @@ function client(base, opts = {}) {
     post: (c, b, e) => appel('POST', c, b === undefined ? {} : b, e),
     cookie: () => jar.get(o.nomCookie) || null,
     poserCookie: (v) => { if (v === null) jar.delete(o.nomCookie); else jar.set(o.nomCookie, v); },
-    enteteCookie: cookieHeader,
+    enteteCookie: cookieHeader, absorber: lireSetCookie,
   };
 }
 
@@ -202,7 +205,7 @@ async function flux(c, opts = {}) {
   const h = { Accept: 'text/event-stream' };
   const ck = c.enteteCookie(); if (ck) h.Cookie = ck;
   if (opts.lastEventId !== undefined && opts.lastEventId !== null) h['Last-Event-ID'] = String(opts.lastEventId);
-  const r = await fetch(c.base + '/api/flux' + (opts.requete || ''), { headers: h, signal: ctrl.signal });
+  const r = await FETCH(c.base + '/api/flux' + (opts.requete || ''), { headers: h, signal: ctrl.signal });
   const f = { statut: r.status, evenements: [], commentaires: 0, ferme: false, retourne: r, entetes: r.headers };
   if (r.status !== 200) { try { f.corps = await r.json(); } catch (e) {} return Object.assign(f, { fermer() {} }); }
   const etat = { tampon: '' };
@@ -242,7 +245,7 @@ function fabriqueEventSource(c) {
       const ck = c.enteteCookie(); if (ck) h.Cookie = ck;
       if (this._dernier !== null) h['Last-Event-ID'] = String(this._dernier);
       let r;
-      try { r = await fetch(c.base + this.url, { headers: h, signal: this._ctrl.signal }); }
+      try { r = await FETCH(/^https?:/.test(this.url) ? this.url : c.base + this.url, { headers: h, signal: this._ctrl.signal }); }
       catch (e) { if (this._ferme) return; this.readyState = 0; this._emettre('error', { type: 'error' }); setTimeout(() => this._connecter(), 100); return; }
       /* Comme un navigateur : tout statut autre que 200 FERME définitivement le flux. */
       if (r.status !== 200) { this.readyState = 2; this._emettre('error', { type: 'error', statut: r.status }); return; }
@@ -300,4 +303,24 @@ function sauterSiSansDependances() {
   }
 }
 
-module.exports = { RACINE, SERVICE, dort, portLibre, attendre, lancerService, fauxOpGestion, client, connecter, flux, fabriqueEventSource, analyserTrames, lireBase, sansCommentaires, compteur, sauterSiSansDependances, Sortie };
+/* Un « navigateur » pour exécuter `public/api.js` et `public/ui.js` dans Node : un `fetch` qui garde
+   les cookies, pose l'`Origin` de la page sur toute écriture (ce que fait un navigateur) et résout les
+   chemins relatifs sur le service ; un `EventSource` de même cookie. `origin` se change pour jouer une
+   page d'un AUTRE site. */
+function navigateur(base, opts = {}) {
+  const c = client(base, opts);
+  const origin = opts.origin || base;
+  const f = async (url, init = {}) => {
+    const full = String(url).startsWith('/') ? base + url : String(url);
+    const h = Object.assign({}, init.headers || {});
+    const m = (init.method || 'GET').toUpperCase();
+    const ck = c.enteteCookie(); if (ck) h.Cookie = ck;
+    if (m !== 'GET' && m !== 'HEAD') h.Origin = origin;
+    const r = await FETCH(full, { method: m, headers: h, body: init.body, redirect: 'manual' });
+    c.absorber(r);
+    return r;
+  };
+  return { fetch: f, EventSource: fabriqueEventSource(c), client: c };
+}
+
+module.exports = { navigateur, RACINE, SERVICE, dort, portLibre, attendre, lancerService, fauxOpGestion, client, connecter, flux, fabriqueEventSource, analyserTrames, lireBase, sansCommentaires, compteur, sauterSiSansDependances, Sortie };
