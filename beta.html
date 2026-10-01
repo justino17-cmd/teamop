@@ -30102,7 +30102,7 @@ views.bons=function(){
   const prets=mes.filter(b=>b.statut==='prete').length;
   setHeader('Bons de commande',`${mes.length} bon(s)${can('voirTout')?'':' (mes box)'}`,
     peutCommander()
-      ? `<button class="btn ghost" onclick="bonSuggere()">⚡ Commande suggérée</button><button class="btn ghost" onclick="openRegroupBons()">Regrouper</button><button class="btn" onclick="formBon()">＋ Nouveau</button>`
+      ? `${planBloque('boxes',true)?'':'<button class="btn ghost" onclick="bonSuggere()">⚡ Commande suggérée</button>'}<button class="btn ghost" onclick="openRegroupBons()">Regrouper</button><button class="btn" onclick="formBon()">＋ Nouveau</button>`
       : `<span class="st" style="font-size:11px">👁️ Consultation seule</span>`);
   $('content').innerHTML=`
     <div class="filters" style="gap:0;background:var(--bg1);border:1px solid var(--brd);border-radius:10px;padding:3px;display:inline-flex">
@@ -30984,7 +30984,11 @@ function bonPdfDraftFour(k){ const d=_bonDraftGroups; if(!d) return; const ls=d.
    Seuil de la fiche : le total que Stock montre sous le seuil (besoin = remonter à 2 × seuil).
    ⛔ v741 : le PLUS GRAND des deux besoins, pas leur somme — le total contient déjà les box, les
    additionner commanderait deux fois la même chose. */
+/* ⛔ LA COMMANDE SUGGÉRÉE SE CALCULE SUR LE STOCK (les seuils, le stock des box) : sans l'option Stock, un Pro qui n'a que les Achats ne
+   la voit pas — elle partirait de données que plus rien ne tient à jour. C'est ce que dit le site (« commande suggérée : avec l'option
+   Stock », `CATALOGUE`) ; le bouton et la fonction suivent la même règle que « Marquer reçue » (`bonMarquerRecue`). */
 function bonSuggere(){ if(!peutCommander()){ refusCommander(); return; }
+  if(planBloque('boxes',true)){ toast('La commande suggérée se calcule sur le stock : elle s\'ajoute avec l\'option Stock (ou avec Business)',5000); return; }
   const need={};
   visibleBoxes(db.boxes||[]).filter(b=>b.actif!==false).forEach(b=>{ const st=b.stock||{};
     Object.keys(st).forEach(pid=>{ const u=(st[pid]||{}).u||0; if(u<=2){ const p=produit(pid); if(!p.id) return; need[pid]=(need[pid]||0)+Math.max(3-u,1); } }); });

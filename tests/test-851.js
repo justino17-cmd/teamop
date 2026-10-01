@@ -351,6 +351,8 @@ const apres = (ms) => new Promise(r => setTimeout(r, ms));
     /planBloque\('boxes',true\)&&peutCommander\(\)&&\['envoyee','enLivraison','partielle'\]\.includes\(b\.statut\)\?`<button type="button" class="btn sm" onclick="event\.stopPropagation\(\);bonMarquerRecue\('\$\{b\.id\}'\)">✓ Marquer reçue<\/button>`:''/.test(NU)
     && /const pied=planBloque\('boxes',true\)\s*\?/.test(NU));
   vrai('⛔ « Validée » ne dit plus « bon de commande créé » quand les bons sont fermés', /toast\(planBloque\('bons',true\)\?'Validée':'Validée — bon de commande créé'\)/.test(NU));
+  vrai('⛔ Achats SANS Stock : « ⚡ Commande suggérée » n\'est pas proposée (elle se calcule sur le stock — le site le dit : « avec l\'option Stock »), et la fonction elle-même refuse',
+    /\$\{planBloque\('boxes',true\)\?'':'<button class="btn ghost" onclick="bonSuggere\(\)">⚡ Commande suggérée<\/button>'\}/.test(NU) && /function bonSuggere\(\)\{ if\(!peutCommander\(\)\)\{ refusCommander\(\); return; \}\s*if\(planBloque\('boxes',true\)\)\{ toast\('La commande suggérée se calcule sur le stock/.test(NU));
   vrai('⛔ la barre « produits à commander » du Stock ne propose plus le bon sans l\'option Achats', /\$\{planBloque\('bons',true\)\?'':'<button class="btn sm" onclick="stockExportBon\(\)">/.test(NU));
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
