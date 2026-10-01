@@ -20,7 +20,21 @@ d'argent »). Prix choisis par Justin (question « Plus cher ») : options du Pr
 (3D) **+6 €** ; à l'année 10 mois. Business (25 €) et Business Premium (50 €) ont toutes les catégories. Pro + 2 options
 ≥ 27 € > Business : les entreprises 3D restent sur Business. Le contrat entre les pièces : `scratchpad/SPEC-OPTIONS.md`
 (clé `sanitaire`, jamais `registre`). Cinq pièces en construction en parallèle (serveur, application bêta v768, page de
-paiement, Tour, site en aperçu), chacune dans son arbre de travail — à fusionner, éprouver ensemble, relire.
+paiement, Tour, site en aperçu), réunies sur la branche (`d04560e`), puis intégrées et attaquées (gardien + testeur) :
+✅ **PRÊTES, RIEN EN VENTE** (`9177884`) — suite 212 · 12 971, liste serveur 51 · 3 593 (plancher 3 370), test-852 (les cinq
+copies de la grille), test-858 (de bout en bout : vraies fonctions de l'application, de la page et de la Tour contre le vrai
+serveur et un Stripe simulé). Défauts trouvés et fermés en route : un client déjà en Pro qui « ajoute » une option achetait un
+SECOND Pro (mode `ajout=options` de bout en bout, refus 409 `utiliser_ajout`, cycle de l'option lu chez Stripe sur le Pro payé,
+jamais dans le corps) ; un reclic dans la minute prélevait l'option en double (liste Stripe RELUE pour toute décision d'achat,
+502 si elle ne se relit pas) ; des options ajoutées d'office sans être annoncées (409 `options_suivent` avec le surcoût, le
+second clic les demande) ; `options` écrivable par un client dans « Mon espace » (`CHAMPS_SERVEUR`) ; « Attribuer une formule »
+qui gardait les options sous Business ; `stripe-options.js` qui prenait un tarif ARCHIVÉ pour « existe déjà » ; le scanner du
+catalogue qui écrivait le stock sans l'option Stock ; le métier masqué pris pour une option à vendre. ⚠️ Le verrou est côté
+APPAREIL (copie `_opts`, même modèle que `db.forfait`) : ce n'est pas une garde serveur, ne pas le présenter comme tel.
+Ordre de mise en vente (chaque étape sur sa phrase, et la règle du 23 septembre levée d'abord) : 1. publier v768, attendre
+le parc, l'exiger ; 2. pousser le serveur, tarifs d'option VIDES (rien ne change) ; 3. Justin lance sur le VPS
+`node server/stripe-options.js --essai` puis sans `--essai` (clé jamais affichée ; il colle les deux blocs `price_…`) ;
+4. on les pose dans `server/index.js` et `recap-abonnement.html` (test-852 compare), second déploiement + page ; 5. le site.
 ⛔ Ordre de mise en vente : l'application qui OUVRE l'option publiée et exigée → les tarifs Stripe des options créés
 par Justin (`server/stripe-options.js`, à lancer sur le VPS) → serveur et page de paiement → site. Avant, l'option se
 paierait et n'ouvrirait rien.
