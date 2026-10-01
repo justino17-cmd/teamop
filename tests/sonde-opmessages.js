@@ -583,6 +583,12 @@ async function etapeVocal(S) {
   await S.page.evaluate(() => document.getElementById('enreg-envoyer').click()); await dormir(500);
   const t1 = await S.page.evaluate(() => ({ avis: document.getElementById('avis').hidden ? null : document.getElementById('avis').textContent, compo: !document.getElementById('compo').hidden }));
   v(nom + ' : un vocal de moins d\'une seconde n\'est pas envoyé et le dit (« ' + t1.avis + ' »)', (await nMsg()) === n1 && /trop court/.test(t1.avis || '') && t1.compo, t1);
+  /* trop court, mais PAS vide : 450 ms de prise (le navigateur a eu le temps de livrer des morceaux). Seule la durée minimale la refuse — sans ce cas, la
+     garde « aucun morceau » masquait la durée minimale (mutation S11, jouée le 1er octobre 2026 : la sonde restait verte avec un minimum de 0) */
+  await geste(S, '#compo-micro'); await attendre(S, () => !document.getElementById('enreg').hidden, null, 4000); await dormir(450);
+  await S.page.evaluate(() => document.getElementById('enreg-envoyer').click()); await dormir(500);
+  const t2 = await S.page.evaluate(() => ({ avis: document.getElementById('avis').hidden ? null : document.getElementById('avis').textContent, compo: !document.getElementById('compo').hidden }));
+  v(nom + ' : une prise de 450 ms (pas vide) est refusée elle aussi — durée minimale, pas seulement « rien enregistré » (« ' + t2.avis + ' »)', (await nMsg()) === n1 && /trop court/.test(t2.avis || '') && t2.compo, t2);
   /* maintenir : le relâcher envoie */
   const c = await S.page.evaluate(() => { const r = document.getElementById('compo-micro').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
   if (bureau) { await S.page.mouse.move(c.x, c.y); await S.page.mouse.down(); await dormir(1300); await S.page.mouse.up(); }
