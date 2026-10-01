@@ -20,3 +20,17 @@ Ce qui coûte de l'argent à chaque usage (SMS, IA, stockage lourd) va dans Mess
 
 Gestes de Justin qui viendront : installer la bêta (`INSTALLER-LE-SERVEUR.md`), compte OVH SMS, ouverture des ports d'appel,
 choix du service de reconnaissance vocale, validation des textes juridiques.
+
+## Idées en plus, proposées le 1er octobre 2026 au soir (en attente du choix de Justin)
+
+13. Boîte partagée pour les entreprises : plusieurs employés répondent aux clients depuis UN contact d'entreprise (Pro) ;
+14. lien et QR code « Écrivez-nous » pour les clients d'une entreprise, sans donner de numéro perso (Pro) ;
+15. réponses automatiques hors horaires et message d'accueil (Pro) ;
+16. résumé IA « ce que tu as raté » dans un groupe chargé (Pro, sous-traitance IA) ;
+17. message urgent qui sonne même en silencieux, plafonné (Pro) ;
+18. conversations verrouillées par Face ID ;
+19. sauvegarde automatique chez nous, sans Google Drive ni iCloud ;
+20. parrainage : un mois de Pro offert quand un ami passe au Pro ;
+21. mode gros caractères et contraste renforcé ;
+22. envoi à l'heure du destinataire (fuseaux horaires) pour les équipes à l'étranger ;
+23. tableau du patron : temps de réponse aux clients, messages en attente (Pro).
