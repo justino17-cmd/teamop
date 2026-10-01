@@ -20,7 +20,7 @@
 #      `poser-cle.js` passe par un masqueur qui efface 64 hexadécimaux de suite ;
 #    · la paire VAPID de la configuration s'écrit dans le fichier (chmod 600) sans passer par l'écran ;
 #    · la clé SSH de déploiement : ici n'arrive que sa moitié PUBLIQUE (la privée reste chez Justin
-#      puis dans le secret GitHub `VPS_SSH_KEY_MSG`).
+#      puis dans le secret GitHub `VPS_SSH_KEY_MSG_BETA` ou `VPS_SSH_KEY_MSG_PROD`, une clé par instance).
 #
 #  ⛔ IL EST REJOUABLE. Deux passages donnent le même état : la configuration existante n'est pas
 #  réécrite, la clé n'est pas retouchée, un fichier de proxy identique n'est pas relancé pour rien.
@@ -179,8 +179,12 @@ masquer() { sed -E 's/[0-9A-Fa-f]{64}/[clé masquée]/g'; }
 poser_cle() {
   # Mêmes noms que `server/poser-cle.js` (TEAMOP_*), préfixe OPMSG_ : sur le VPS ils valent les
   # chemins par défaut ; les bancs les détournent vers leur bac à sable.
-  if ! OPMSG_KEK_DIR="$ETC" OPMSG_DATA="$DATA" OPMSG_DROPIN_DIR="$SYSD/$UNITE.service.d" \
-       node "$SRC/server-msg/poser-cle.js" "$INSTANCE" "$@" 2>&1 | masquer; then
+  # ⛔ LA CLÉ ARRIVE SUR L'ENTRÉE STANDARD (`--stdin`), JAMAIS EN ARGUMENT : un argument se lit dans `ps` par tout compte du VPS.
+  # (Le contrat avec `server-msg/poser-cle.js` : « <instance> --stdin » et la clé sur l'entrée ; « <instance> » seul pour constater.)
+  # `pipefail` (posé en tête) fait échouer la ligne si l'outil échoue, pas seulement le masqueur.
+  local cle="${1:-}"
+  if ! { if [ -n "$cle" ]; then printf '%s\n' "$cle"; fi; } | OPMSG_KEK_DIR="$ETC" OPMSG_DATA="$DATA" OPMSG_DROPIN_DIR="$SYSD/$UNITE.service.d" \
+       node "$SRC/server-msg/poser-cle.js" "$INSTANCE" ${cle:+--stdin} 2>&1 | masquer; then
     echo ""
     echo "  ⛔ Installation INTERROMPUE — voir le message ci-dessus."
     echo "     Le service n'a pas été (re)démarré : rien n'est cassé, rien n'est perdu."
@@ -298,7 +302,7 @@ chown root:root "$OPT/deployer.sh"
 chmod 755 "$OPT/deployer.sh"
 
 # ── 7. La clé SSH de la CI, à COMMANDE FORCÉE ──────────────────────────────────────────────
-# `VPS_SSH_KEY_MSG` ne peut rien faire d'autre que lancer le déployeur : `restrict` coupe terminal,
+# Chaque clé de déploiement (`VPS_SSH_KEY_MSG_BETA`, `VPS_SSH_KEY_MSG_PROD`) ne peut rien faire d'autre que lancer le déployeur POUR SON INSTANCE : `restrict` coupe terminal,
 # redirections de ports, agent et X11 ; `command=` remplace ce que le client demande (il n'arrive au
 # déployeur que dans SSH_ORIGINAL_COMMAND, que celui-ci valide). Une clé volée dans GitHub ne donne
 # donc PAS un shell root.
@@ -306,7 +310,7 @@ chmod 755 "$OPT/deployer.sh"
 mkdir -p "$SSHD"; chmod 700 "$SSHD"
 AUTH="$SSHD/authorized_keys"
 touch "$AUTH"; chmod 600 "$AUTH"
-MARQUE="opmsg-deploiement"
+MARQUE="opmsg-deploiement-$INSTANCE"   # une ligne PAR instance : la clé de la bêta et celle de la production coexistent
 PUB="${OPMSG_CLE_PUBLIQUE:-}"
 if [ -z "$PUB" ] && ! grep -q " $MARQUE\$" "$AUTH"; then
   read -rp "  Colle la ligne PUBLIQUE de la clé de déploiement (ssh-ed25519 AAAA…, rien de secret), ou Entrée pour plus tard : " PUB || true
@@ -316,7 +320,7 @@ if [ -n "$PUB" ]; then
   [[ "$PUB" =~ $RE_PUB ]] \
     || { echo "  ✗ ce n'est pas une clé publique SSH sur une ligne (ssh-ed25519 AAAA…). Rien n'est écrit."; exit 1; }
   TYPE="${PUB%% *}"; RESTE="${PUB#* }"; BLOB="${RESTE%% *}"
-  LIGNE="restrict,command=\"/opt/opmsg/deployer.sh\" $TYPE $BLOB $MARQUE"
+  LIGNE="restrict,command=\"/opt/opmsg/deployer.sh --seulement=$INSTANCE\" $TYPE $BLOB $MARQUE"
   # Une seule ligne à nous, remplacée à chaque passage : deux passages ne la dupliquent pas.
   grep -v " $MARQUE\$" "$AUTH" > "$AUTH.nouveau" || true
   printf '%s\n' "$LIGNE" >> "$AUTH.nouveau"
@@ -326,7 +330,7 @@ elif grep -q " $MARQUE\$" "$AUTH"; then
   echo "   clé de déploiement déjà posée"
 else
   echo "   ⚠️ pas de clé de déploiement : la CI ne pourra pas déployer. Relance avec OPMSG_CLE_PUBLIQUE=…"
-  echo "      (la ligne à ajouter est : restrict,command=\"/opt/opmsg/deployer.sh\" ssh-ed25519 <clé publique> $MARQUE)"
+  echo "      (la ligne à ajouter est : restrict,command=\"/opt/opmsg/deployer.sh --seulement=$INSTANCE\" ssh-ed25519 <clé publique> $MARQUE)"
 fi
 
 # ── 8. Le proxy : LE SIEN, dans un fichier à part, validé AVANT d'être rechargé ───────────────
@@ -357,6 +361,11 @@ if [ "$PROXY" = nginx ]; then
 
   BLOC_HTTP="# Posé par server-msg/install-msg.sh — réécrit à chaque installation, ne pas éditer à la main.
 # Ce fichier est LE SEUL qu'OP MESSAGES pose dans nginx : le bloc de l'API d'OP GESTION n'est pas touché.
+# ⛔ Un plafond de débit par adresse AVANT le service (relecture du gardien, point 8) : le service a ses propres plafonds, mais
+# des envois lents et nombreux atteignaient Node directement (8 192 descripteurs). 20 requêtes par seconde et par adresse,
+# 60 de rafale ; le flux SSE (une seule requête longue par onglet) n'y passe pas.
+limit_req_zone \$binary_remote_addr zone=opmsg_$INSTANCE:10m rate=20r/s;
+limit_req_status 429;
 server {
     listen 80;
     listen [::]:80;
@@ -378,10 +387,10 @@ $H2_ON
     ssl_certificate     /etc/letsencrypt/live/$DOMAINE/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/$DOMAINE/privkey.pem;
 
-    # Les pièces arrivent en flux : le service refuse lui-même au-delà du quota, mais nginx doit
-    # laisser passer le plus gros fichier d'un espace Pro.
-    client_max_body_size 110m;
-    proxy_request_buffering off;
+    # ⛔ 64 Ko, corps TAMPONNÉ (le défaut de nginx) : le service refuse déjà au-delà de 64 Ko, et l'étape 1 n'a aucune route de
+    # pièces. Un corps de 110 Mo non tamponné tenait un descripteur de Node ouvert pendant tout l'envoi d'un client lent. L'étape 4
+    # (pièces) fera sa propre exception, sur SA route seulement.
+    client_max_body_size 64k;
 
     location = /api/flux {
         proxy_pass http://127.0.0.1:$PORT;
@@ -398,6 +407,7 @@ $H2_ON
     }
 
     location / {
+        limit_req zone=opmsg_$INSTANCE burst=60 nodelay;
         proxy_pass http://127.0.0.1:$PORT;
         proxy_http_version 1.1;
         proxy_set_header Connection \"\";
@@ -449,6 +459,11 @@ else
   cat > "$FICHIER_CDY" <<CADDY
 # Posé par server-msg/install-msg.sh — réécrit à chaque installation, ne pas éditer à la main.
 $DOMAINE {
+    # 64 Ko au plus (le service refuse déjà au-delà ; l'étape 4, pièces, fera sa propre exception). Pas de plafond de débit ici :
+    # Caddy n'en a pas sans greffon, c'est celui du service qui protège.
+    request_body {
+        max_size 64KB
+    }
     reverse_proxy 127.0.0.1:$PORT {
         # Le flux SSE ne doit pas être retenu dans un tampon.
         flush_interval -1

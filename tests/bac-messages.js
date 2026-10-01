@@ -39,24 +39,31 @@ http.createServer((q, r) => {
    que `install-msg.sh` doit empêcher d'atteindre l'écran. Elle sert donc aussi de piège. */
 const POSER_CLE_FACTICE = `'use strict';
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
-const inst = process.argv[2], arg = String(process.argv[3] || '').trim();
+/* LE CONTRAT DU VRAI \`server-msg/poser-cle.js\` : « <instance> » seul constate ; « <instance> --stdin » pose la clé lue sur l'ENTRÉE
+   STANDARD. Une clé passée en ARGUMENT n'est pas lue (le vrai outil l'ignore — et GÉNÈRE une clé neuve sur la bêta : c'est le défaut
+   que ce faux reproduit exactement, pour que le banc voie l'installation se tromper de convention). */
+const inst = process.argv[2], extra = process.argv.slice(3);
+const parStdin = extra.includes('--stdin');
+const enArgument = extra.filter(x => x !== '--stdin').length > 0;
 const DIR = process.env.OPMSG_KEK_DIR, DATA = process.env.OPMSG_DATA, DROP = process.env.OPMSG_DROPIN_DIR;
 const KEK = path.join(DIR, inst + '.kek');
-fs.appendFileSync(path.join(process.env.BAC_ETAT, 'poser-cle.log'), 'instance=' + inst + ' cle_en_argument=' + (arg ? 'oui' : 'non') + '\\n');
+let arg = '';
+if (parStdin) { try { arg = fs.readFileSync(0, 'utf8').trim(); } catch (e) {} }
+fs.appendFileSync(path.join(process.env.BAC_ETAT, 'poser-cle.log'), 'instance=' + inst + ' cle_en_argument=' + (enArgument ? 'oui' : 'non') + ' par_stdin=' + (parStdin ? 'oui' : 'non') + '\\n');
 const existante = () => { try { const v = fs.readFileSync(KEK, 'utf8').trim(); return /^[0-9a-f]{64}$/i.test(v) ? v : null; } catch (e) { return null; } };
 const dropin = () => { fs.mkdirSync(DROP, { recursive: true }); fs.writeFileSync(path.join(DROP, 'kek.conf'), '[Service]\\nLoadCredential=kek:' + KEK + '\\n'); };
 const poser = (h) => { fs.mkdirSync(DIR, { recursive: true }); fs.writeFileSync(KEK, h, { mode: 0o600 }); };
 const bases = fs.existsSync(path.join(DATA, 'msg.db')) ? 1 : 0;
 if (existante()) { dropin(); console.log('Une clé est DÉJÀ posée. On n\\'y touche pas.'); process.exit(0); }
-if (arg) {
-  if (!/^[0-9a-f]{64}$/i.test(arg)) { console.error('Attendu : 64 hexadécimaux'); process.exit(1); }
+if (parStdin) {
+  if (!/^[0-9a-f]{64}$/i.test(arg)) { console.error('Attendu sur l\\'entrée standard : 64 hexadécimaux'); process.exit(1); }
   poser(arg.toLowerCase()); dropin();
   if (process.env.FACTICE_AFFICHE) console.log('Clé posée : ' + arg);          // un outil négligent
   console.log('Clé du séquestre posée.'); process.exit(0);
 }
 if (bases) { console.error('INCIDENT : des données existent et la clé est ABSENTE'); process.exit(1); }
 const neuve = crypto.randomBytes(32).toString('hex'); poser(neuve); dropin();
-console.log('Clé maître générée : ' + neuve);                                 // le piège : l'outil de server/ fait ça
+console.log('Clé maître générée : ' + neuve);                                 // le piège : un appel sans --stdin génère
 process.exit(0);
 `;
 
@@ -244,8 +251,11 @@ function bac(opts = {}) {
     return { rc: r.status, sortie: String(r.stdout || '') + String(r.stderr || '') };
   };
   /* Comme la CI : la commande arrive dans SSH_ORIGINAL_COMMAND, jamais en argument. */
-  b.deployerSsh = (commande, env) => {
-    const r = spawnSync('bash', [path.join(b.R, 'opt', 'opmsg', 'deployer.sh')], { encoding: 'utf8', timeout: 120000,
+  b.deployerSsh = (commande, env, seulement) => {
+    /* `command="/opt/opmsg/deployer.sh --seulement=beta"` : l'argument vient de la ligne d'authorized_keys, pas du client.
+       `seulement === null` joue une ligne SANS borne (installation d'avant, ligne écrite à la main). */
+    const args = [path.join(b.R, 'opt', 'opmsg', 'deployer.sh')].concat(seulement === null ? [] : ['--seulement=' + (seulement || 'beta')]);
+    const r = spawnSync('bash', args, { encoding: 'utf8', timeout: 120000,
       env: b.env(Object.assign({ SSH_ORIGINAL_COMMAND: commande }, env || {})) });
     return { rc: r.status, sortie: String(r.stdout || '') + String(r.stderr || '') };
   };

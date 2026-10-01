@@ -43,8 +43,11 @@ const existante = () => { try { return /^[0-9a-fA-F]{64}$/.test(fs.readFileSync(
 const baseExiste = () => { try { return fs.existsSync(path.join(DATA, 'msg.db')); } catch (e) { return false; } };
 
 function poser(hex) {
-  fs.mkdirSync(DIR, { recursive: true });
-  try { fs.chmodSync(DIR, 0o700); } catch (e) {}
+  /* ⛔ ON NE TOUCHE PAS AUX DROITS DU DOSSIER. `/etc/opmsg` porte aussi la configuration (`<instance>.json`, lue par le service sous
+     l'utilisateur `opmsg`) : le resserrer à 0700 la rendait illisible pour lui et le premier déploiement échouait sur « fichier
+     illisible » (relecture du gardien, point 1 — le banc d'installation tournait en root et ne pouvait pas le voir). Le secret,
+     c'est le FICHIER de la clé : 0600, à root. Un dossier créé ici naît en 0755 (lisible, pas modifiable). */
+  fs.mkdirSync(DIR, { recursive: true, mode: 0o755 });
   fs.writeFileSync(CHEMIN, hex, { mode: 0o600 });   // créée en 0600 d'emblée, pas resserrée après coup
   try { fs.chmodSync(CHEMIN, 0o600); } catch (e) {}
 }

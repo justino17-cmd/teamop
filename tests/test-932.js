@@ -140,6 +140,18 @@ v('⛔ rien d\'OP GESTION touché : aucun appel à teamop-api, aucun chemin sous
     const rx = b.deployerSsh('beta ' + sha1, {});
     vrai('   la demande sans option aussi', rx.rc === 0 && /non installé/.test(rx.sortie));
   }
+  /* ⛔ UNE CLÉ = UNE INSTANCE (relecture du gardien, point 7) : la clé de la bêta, même avec une demande « prod », ne déploie pas la
+     production ; une ligne SANS borne (installation d'avant) est refusée. */
+  const rpro = b.deployerSsh('prod ' + sha1, {}, 'beta');
+  v('⛔ la clé de la BÊTA demande « prod » : refusé (2), rien n\'est déployé', [rpro.rc, /ne déploie que « beta »/.test(rpro.sortie)], [2, true]);
+  const rbeta = b.deployerSsh('beta ' + sha1, {}, 'prod');
+  v('⛔ la clé de la PRODUCTION demande « beta » : refusé aussi', [rbeta.rc, /ne déploie que « prod »/.test(rbeta.sortie)], [2, true]);
+  const rsans = b.deployerSsh('beta ' + sha1, {}, null);
+  v('⛔ une ligne authorized_keys SANS borne (--seulement absent) : refusée — elle déploierait aussi la production', [rsans.rc, /pas bornée à une instance/.test(rsans.sortie)], [2, true]);
+  for (const mauvais of ['--seulement=staging', '--seulement=beta;prod', '--seulement=', '--seulement=BETA']) {
+    const r2 = spawnSync('bash', [path.join(b.R, 'opt/opmsg/deployer.sh'), mauvais], { encoding: 'utf8', env: b.env({ SSH_ORIGINAL_COMMAND: 'beta ' + sha1 }) });
+    v('   la borne « ' + mauvais + ' » n\'est pas une borne valable : refusée', r2.status, 2);
+  }
   // Argument ET demande : on refuse la double source (un client ne choisit pas ses arguments).
   const ra = spawnSync('bash', [path.join(b.R, 'opt/opmsg/deployer.sh'), 'beta', sha1], { encoding: 'utf8', env: b.env({ SSH_ORIGINAL_COMMAND: 'beta ' + sha1 }) });
   v('⛔ des arguments EN PLUS d\'une demande ssh : refusés', ra.status, 2);

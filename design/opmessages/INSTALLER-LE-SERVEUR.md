@@ -12,13 +12,18 @@ secrets d'OP MESSAGES (la clé maître, la clé SSH de déploiement, la paire VA
 | secret | où il naît | où il vit | ce que tu colles dans la conversation |
 |---|---|---|---|
 | clé maître (64 hexadécimaux) | sur **ton Mac**, dans le presse-papiers | ton gestionnaire de mots de passe, puis `/etc/opmsg/beta.kek` (saisie masquée) | **jamais** |
-| clé SSH de déploiement | sur **ton Mac** | le secret GitHub `VPS_SSH_KEY_MSG` (sa moitié publique sur le VPS) | **jamais** la privée |
+| clé SSH de déploiement **de la bêta** | sur **ton Mac** | le secret GitHub `VPS_SSH_KEY_MSG_BETA` (sa moitié publique sur le VPS) | **jamais** la privée |
+| clé SSH de déploiement **de la production** (plus tard) | sur **ton Mac**, **une autre paire** | le secret de l'**environnement** `msg-prod` : `VPS_SSH_KEY_MSG_PROD` | **jamais** la privée |
 | paire VAPID (notifications) | sur le VPS, par le script | `/etc/opmsg/beta.json` (chmod 600) | jamais — elle n'est même pas affichée |
 
 ⚠️ **Tant que le code d'OP MESSAGES (`server-msg/`) n'est pas sur `main`, rien de ceci n'est possible** : le
 script d'installation copie le déployeur et la pose de clé depuis `main`. On attend donc le « pousse ».
-Rien de ce que fait ce document ne touche à OP GESTION : ni `teamop-api`, ni `/opt/teamop`, ni le bloc
-d'`api.teamop.fr` du proxy.
+⛔ **L'ORDRE DU « POUSSE » : le serveur d'OP GESTION d'abord, OP MESSAGES ensuite.** La porte bêta d'OP MESSAGES
+reconnaît une personne à l'**identifiant de son compte** (`id`, rendu par `/api/beta/login`) et relit les accès en une
+requête (`/api/beta/etat` avec `ids`) : ces deux lignes sont dans `server/index.js`, et un OP GESTION qui ne les a pas
+**ferme la porte** (503 `porte_indisponible`) — fermée par défaut, jamais ouverte par défaut. Le déploiement du serveur
+(`scripts/preparer-deploiement-serveur.sh`) précède donc l'installation d'OP MESSAGES. Rien d'autre n'est touché chez
+OP GESTION : ni `teamop-api` (hors ces deux lignes), ni `/opt/teamop`, ni le bloc d'`api.teamop.fr` du proxy.
 
 ---
 
@@ -69,25 +74,30 @@ faire **64 caractères**. Fais une **seconde copie** (papier, comme pour la clé
 Elle permet à GitHub de lancer le déploiement, et **rien d'autre** (le VPS la lie à une commande forcée).
 
 ```bash
-ssh-keygen -t ed25519 -N "" -C opmsg-deploiement -f ~/opmsg-deploiement
-pbcopy < ~/opmsg-deploiement.pub
+ssh-keygen -t ed25519 -N "" -C opmsg-deploiement-beta -f ~/opmsg-deploiement-beta
+pbcopy < ~/opmsg-deploiement-beta.pub
 ```
 
 **Ce que tu dois voir** : l'empreinte de la clé et un petit dessin (ce n'est pas un secret) ; le presse-papiers
-contient maintenant la ligne **publique** (`ssh-ed25519 AAAA… opmsg-deploiement`). Garde-la : le script la
+contient maintenant la ligne **publique** (`ssh-ed25519 AAAA… opmsg-deploiement-beta`). Garde-la : le script la
 demandera à la section 6.
 
 Puis la moitié **privée** va dans GitHub, directement, sans rien afficher :
 
 ```bash
-gh secret set VPS_SSH_KEY_MSG < ~/opmsg-deploiement
-rm -P ~/opmsg-deploiement
+gh secret set VPS_SSH_KEY_MSG_BETA < ~/opmsg-deploiement-beta
+rm -P ~/opmsg-deploiement-beta
 ```
 
-**Ce que tu dois voir** : `✓ Set Actions secret VPS_SSH_KEY_MSG`. Si tu n'as pas `gh` : sur GitHub, dépôt →
-Settings → Secrets and variables → Actions → *New repository secret* → nom `VPS_SSH_KEY_MSG`, valeur =
-`pbcopy < ~/opmsg-deploiement` puis coller dans le champ ; puis `rm -P ~/opmsg-deploiement`.
+**Ce que tu dois voir** : `✓ Set Actions secret VPS_SSH_KEY_MSG_BETA`. Si tu n'as pas `gh` : sur GitHub, dépôt →
+Settings → Secrets and variables → Actions → *New repository secret* → nom `VPS_SSH_KEY_MSG_BETA`, valeur =
+`pbcopy < ~/opmsg-deploiement-beta` puis coller dans le champ ; puis `rm -P ~/opmsg-deploiement-beta`.
 Après la suppression, il n'existe plus de copie de la clé privée hors de GitHub.
+
+⛔ **Une clé par instance, jamais la même pour la bêta et la production.** Sur le VPS la ligne publique est liée à
+`deployer.sh --seulement=beta` : cette clé ne déploie **que** la bêta, même si on lui demande « prod ». Et celle de la
+production sera un secret de l'**environnement** `msg-prod` (section 11), que GitHub ne remet à un job qu'après ton
+approbation : une branche qui lance un workflow ne peut donc pas lire la clé de la production.
 
 ## 5. Télécharger le script d'installation
 
@@ -199,6 +209,10 @@ L'instance `prod` ne s'installe que sur ta phrase **« publie OP MESSAGES »**, 
 3. **L'environnement GitHub `msg-prod`** : dépôt → Settings → Environments → *New environment* → `msg-prod` →
    *Required reviewers* → **toi**. Sans relecteur obligatoire, la protection n'existe pas : c'est ce réglage
    qui transforme ta phrase en geste, le workflow ne peut pas le poser lui-même.
+   **Et la clé SSH de la production y vit** : sur ton Mac, `ssh-keygen -t ed25519 -N "" -C opmsg-deploiement-prod -f ~/opmsg-deploiement-prod`,
+   puis `gh secret set VPS_SSH_KEY_MSG_PROD --env msg-prod < ~/opmsg-deploiement-prod` (secret **de l'environnement**, pas du dépôt),
+   `rm -P ~/opmsg-deploiement-prod`, et la ligne publique `pbcopy < ~/opmsg-deploiement-prod.pub` que le script demandera à
+   l'étape suivante.
 4. Sur le VPS (sans le drapeau, le script refuse et ne fait rien) :
 
    ```bash
@@ -226,4 +240,16 @@ L'instance `prod` ne s'installe que sur ta phrase **« publie OP MESSAGES »**, 
   restauration ait réussi.
 - **Pas de TURN** (appels), pas de Stripe, pas de courriel d'envoi : étapes 7, 5 et 2.
 - **Pas de pare-feu ni de bande passante** : non vérifiés (§ 6 de la conception).
-- **Aucune modification de `server/`, `app.html`, `sw.js`** ni du bloc d'`api.teamop.fr`.
+- **Aucune modification de `app.html`, `sw.js`** ni du bloc d'`api.teamop.fr`. Côté `server/`, deux lignes seulement
+  (l'identifiant de compte dans `/api/beta/login`, la liste `ids` dans `/api/beta/etat`) — voir l'ordre du « pousse » plus haut.
+
+## Ce qui reste ouvert après la relecture adverse (à trancher avant la production, pas avant la bêta)
+
+- **Un seul utilisateur système `opmsg` pour la bêta et la production** : un code qui s'exécuterait dans la bêta pourrait
+  lire les fichiers de la base de production (scellée, mais ses tailles et son journal sont lisibles). Un utilisateur par
+  instance demande de toucher l'unité, le déployeur et l'installation ensemble.
+- **`deployer.sh`, `lancer.sh` et l'unité ne sont copiés qu'à l'installation** : un correctif du déployeur sur `main` n'atteint
+  le VPS qu'en relançant `bash /root/install-msg.sh beta` (rejouable, sans risque).
+- **Un administrateur peut en retirer un autre**, y compris le créateur du groupe (« tous les administrateurs sont égaux ») :
+  décision de produit à confirmer.
+- **Pas de sauvegarde de `msg.db`** avant l'étape 3 : ne pas mettre la production en service avant.

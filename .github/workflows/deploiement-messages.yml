@@ -61,6 +61,10 @@ jobs:
           node-version: '22'
       - name: Dépendances du service
         run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix server-msg
+      # ⛔ test-904 lance le VRAI `server/index.js` pour éprouver la porte bêta (la couture réelle entre les deux services). Sans
+      # ses dépendances il SAUTE, vert, avec 0 vérification : le plancher de la liste, lui, compte ses 40 et ferait échouer le job.
+      - name: Dépendances d'OP GESTION (pour la couture réelle, test-904)
+        run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix server
       - name: Syntaxe des fichiers du service
         run: |
           find server-msg -name '*.js' -not -path '*/node_modules/*' -print0 | xargs -0 -n1 node --check
@@ -78,7 +82,7 @@ jobs:
       group: deploiement-vps     # le même groupe qu'`deploiement.yml` : jamais deux déploiements ensemble
       cancel-in-progress: false  # et on ne coupe pas un déploiement en cours
     env:
-      CLE_SSH: ${{ secrets.VPS_SSH_KEY_MSG }}
+      CLE_SSH: ${{ secrets.VPS_SSH_KEY_MSG_BETA }}
       SHA_VOULU: ${{ inputs.sha || github.sha }}
       RETOUR: ${{ inputs.retour && 'retour' || '' }}
     steps:
@@ -88,7 +92,7 @@ jobs:
       - name: Préparer l'accès SSH
         run: |
           if [ -z "$CLE_SSH" ]; then
-            echo "::notice::VPS_SSH_KEY_MSG absent : OP MESSAGES n'est pas installé sur le VPS, rien n'est déployé."
+            echo "::notice::VPS_SSH_KEY_MSG_BETA absent : OP MESSAGES n'est pas installé sur le VPS, rien n'est déployé."
             echo "PRET=non" >> "$GITHUB_ENV"
             exit 0
           fi
@@ -139,13 +143,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     # ⛔ L'ENVIRONNEMENT QUI PORTE LA PHRASE DE JUSTIN : le job attend l'approbation du relecteur
-    # obligatoire avant de recevoir le moindre secret.
+    # obligatoire avant de recevoir le moindre secret. ⛔ Et la clé de production est un secret DE CET ENVIRONNEMENT
+    # (`VPS_SSH_KEY_MSG_PROD`), pas du dépôt : sinon quiconque peut lancer un workflow sur une branche lisait aussi la clé
+    # de la production et déployait sans passer par l'approbation (relecture du gardien, point 7). Côté VPS, chaque clé est
+    # d'ailleurs bornée à SON instance (`deployer.sh --seulement=…`) : la clé de la bêta ne déploie pas la production.
     environment: msg-prod
     concurrency:
       group: deploiement-vps
       cancel-in-progress: false
     env:
-      CLE_SSH: ${{ secrets.VPS_SSH_KEY_MSG }}
+      CLE_SSH: ${{ secrets.VPS_SSH_KEY_MSG_PROD }}
       SHA_VOULU: ${{ inputs.sha || github.sha }}
       RETOUR: ${{ inputs.retour && 'retour' || '' }}
     steps:
@@ -153,7 +160,7 @@ jobs:
         run: |
           # Ici l'absence de la clé n'est PAS un « non installé » silencieux : on a demandé la
           # production, un vert ne doit pas le laisser croire.
-          [ -n "$CLE_SSH" ] || { echo "::error::VPS_SSH_KEY_MSG est absent : la production ne peut pas être déployée."; exit 1; }
+          [ -n "$CLE_SSH" ] || { echo "::error::VPS_SSH_KEY_MSG_PROD est absent : la production ne peut pas être déployée."; exit 1; }
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           printf '%s\n' "$CLE_SSH" > ~/.ssh/id_msg
           chmod 600 ~/.ssh/id_msg

@@ -178,7 +178,7 @@ vrai('des blocs run: sont lus (population avant verdict)', blocs.length >= 6);
 {
   const lignesSecrets = src.split('\n').filter(l => /secrets\./.test(l) && !/^\s*#/.test(l));
   vrai('la clé SSH est lue dans un secret (population avant verdict)', lignesSecrets.length === 2);
-  v('⛔ le secret n\'entre que par un `env:` du job — jamais interpolé dans un script', lignesSecrets.filter(l => !/^      CLE_SSH: \$\{\{ secrets\.VPS_SSH_KEY_MSG \}\}$/.test(l)), []);
+  v('⛔ le secret n\'entre que par un `env:` du job — jamais interpolé dans un script (UNE clé par instance : la bêta n\'a pas celle de la production)', lignesSecrets.filter(l => !/^      CLE_SSH: \$\{\{ secrets\.VPS_SSH_KEY_MSG_(BETA|PROD) \}\}$/.test(l)), []);
   v('⛔ aucun `${{ … }}` dans un bloc run: (une valeur venue de l\'extérieur — le sha, la cible — y deviendrait une commande)',
     blocs.filter(b => /\$\{\{/.test(b.texte)).map(b => b.ligne), []);
   v('⛔ aucun journalctl (le dépôt est public, les journaux d\'un run sont lus par tous pendant 90 jours)', /journalctl/.test(code), false);
@@ -202,8 +202,8 @@ vrai('des blocs run: sont lus (population avant verdict)', blocs.length >= 6);
     /grep -q 'non installé'; then\s*\n\s*echo "::error::[^\n]*"\s*\n\s*exit 1\s*\n\s*fi/.test(J['deployer-prod'].join('\n')));
   vrai('   la bêta, elle, accepte « non installé » (le code se fusionne avant l\'installation) : avertissement, pas d\'échec',
     /::notice::/.test(J['deployer-beta'].join('\n')) && !/non installé[\s\S]{0,200}exit 1/.test(J['deployer-beta'].join('\n')));
-  vrai('   la bêta sans secret ne rougit pas non plus (on le dit, on sort en 0)', /VPS_SSH_KEY_MSG absent[\s\S]{0,200}exit 0/.test(J['deployer-beta'].join('\n')));
-  vrai('   la production sans secret ROUGIT', /VPS_SSH_KEY_MSG est absent[\s\S]{0,200}exit 1/.test(J['deployer-prod'].join('\n')));
+  vrai('   la bêta sans secret ne rougit pas non plus (on le dit, on sort en 0)', /VPS_SSH_KEY_MSG_BETA absent[\s\S]{0,200}exit 0/.test(J['deployer-beta'].join('\n')));
+  vrai('   la production sans secret ROUGIT', /VPS_SSH_KEY_MSG_PROD est absent[\s\S]{0,200}exit 1/.test(J['deployer-prod'].join('\n')));
 }
 
 /* ══ 5. LA LISTE DES BANCS D'OP MESSAGES ══════════════════════════════════════════════════════════════ */
@@ -226,7 +226,14 @@ vrai('des blocs run: sont lus (population avant verdict)', blocs.length >= 6);
     const sansMoi = L.filter(f => f !== 'tests/test-933.js');   // ce banc NOMME ces pages dans son propre motif : il ne se lit pas lui-même
     const lecteurs = sansMoi.filter(f => fs.existsSync(path.join(RACINE, f))).filter(f => /\b(app|beta|tour|espace|connexion|reinit)\.html\b/.test(sansCommentaires(fs.readFileSync(path.join(RACINE, f), 'utf8'))));
     v('⛔ aucune suite de la liste ne lit une page d\'OP GESTION (app, beta, tour, espace, connexion, reinit)', lecteurs, []);
-    vrai('   les suites de la liste ne dépendent pas du dossier de dépendances d\'OP GESTION (server/node_modules)', !sansMoi.filter(f => fs.existsSync(path.join(RACINE, f))).some(f => /server\/node_modules/.test(fs.readFileSync(path.join(RACINE, f), 'utf8'))));
+    /* UNE exception, nommée : `test-904` lance le VRAI `server/index.js` — c'est la couture réelle de la porte bêta, la seule chose que
+       le faux OP GESTION de poche ne peut pas garder. Il saute vert, avec 0 vérification, sans `server/node_modules` : le workflow doit
+       donc les installer (sinon le plancher de la liste, qui compte ses vérifications, ferait échouer chaque déploiement). */
+    const DEPEND_DU_SERVEUR = ['tests/test-904.js'];
+    v('   seule la couture réelle (test-904) dépend du dossier de dépendances d\'OP GESTION (server/node_modules) — et elle est nommée ici',
+      sansMoi.filter(f => fs.existsSync(path.join(RACINE, f))).filter(f => /server\/node_modules/.test(fs.readFileSync(path.join(RACINE, f), 'utf8'))), DEPEND_DU_SERVEUR);
+    vrai('⛔ le workflow INSTALLE les dépendances d\'OP GESTION avant les bancs (sans elles test-904 saute vert et le plancher fait échouer le job)',
+      /npm ci [^\n]*--prefix server\s*$/m.test(src) && src.indexOf('--prefix server\n') < src.indexOf('bancs-ci.sh'));
   }
 }
 

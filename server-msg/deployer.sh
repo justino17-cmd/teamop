@@ -3,8 +3,9 @@
 #  Déployeur d'OP MESSAGES — posé par `install-msg.sh` dans /opt/opmsg/deployer.sh, possédé par root.
 #
 #  Usage direct (sur le VPS) :  /opt/opmsg/deployer.sh <beta|prod> <sha de 40 hexadécimaux> [retour]
-#  Usage par la CI : la clé `VPS_SSH_KEY_MSG` est à COMMANDE FORCÉE sur ce fichier ; ce que la CI
-#  demande (« beta <sha> ») n'arrive que dans SSH_ORIGINAL_COMMAND, et c'est ICI qu'on le valide.
+#  Usage par la CI : chaque clé de déploiement (`VPS_SSH_KEY_MSG_BETA`, `VPS_SSH_KEY_MSG_PROD`) est à COMMANDE FORCÉE sur ce
+#  fichier, avec SON instance en argument (`deployer.sh --seulement=beta`) ; ce que la CI demande (« beta <sha> ») n'arrive
+#  que dans SSH_ORIGINAL_COMMAND, et c'est ICI qu'on le valide — y compris que l'instance demandée est celle de la clé.
 #
 #  Ce qu'il fait, dans l'ordre : un verrou, la mise à jour de SON miroir du dépôt, l'export de
 #  releases/<sha>, `npm ci` en tant que `opmsg`, la bascule du lien `current`, le redémarrage, puis
@@ -21,7 +22,10 @@ set -euo pipefail
 R="${OPMSG_RACINE:-}"
 if [ -n "${SSH_ORIGINAL_COMMAND:-}" ]; then
   R=""
-  [ "$#" -eq 0 ] || { echo "refusé : arguments inattendus"; exit 2; }
+  # ⛔ Chaque clé est BORNÉE à une instance par la ligne `command=` d'authorized_keys, que le client ne choisit pas. Une clé
+  # sans cette borne (installation d'avant, ligne écrite à la main) est refusée : elle déploierait aussi la production.
+  [[ "$#" -eq 1 && "${1:-}" =~ ^--seulement=(beta|prod)$ ]] || { echo "refusé : cette clé n'est pas bornée à une instance (--seulement=beta|prod)"; exit 2; }
+  SEULEMENT="${BASH_REMATCH[1]}"
   case "$SSH_ORIGINAL_COMMAND" in
     *$'\n'*|*$'\r'*) echo "refusé : la demande doit tenir sur une ligne"; exit 2 ;;
   esac
@@ -31,6 +35,7 @@ else
   CIBLE="${1:-}"; SHA="${2:-}"; OPTION="${3:-}"
 fi
 [[ "$CIBLE" =~ ^(beta|prod)$ ]]       || { echo "refusé : l'instance doit valoir beta ou prod"; exit 2; }
+[ -z "${SEULEMENT:-}" ] || [ "$CIBLE" = "$SEULEMENT" ] || { echo "refusé : cette clé ne déploie que « $SEULEMENT »"; exit 2; }
 [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]        || { echo "refusé : il faut un SHA complet (40 hexadécimaux)"; exit 2; }
 [[ "${OPTION:-}" =~ ^(retour)?$ ]]    || { echo "refusé : seule l'option « retour » existe"; exit 2; }
 

@@ -114,7 +114,8 @@ for (const f of SCRIPTS) {
     /\[ "\$INSTANCE" = "prod" \] && \[ "\$\{OPMSG_PUBLIE:-\}" != "oui" \]/.test(code) && code.indexOf('OPMSG_PUBLIE') < code.indexOf('mkdir -p'));
   vrai('⛔ le proxy est validé (nginx -t / caddy validate) avant d\'être rechargé', code.indexOf('nginx -t') > 0 && code.indexOf('nginx -t') < code.indexOf('systemctl reload nginx') && code.indexOf('caddy validate') < code.indexOf('systemctl reload caddy'));
   vrai('   le miroir est le SIEN (/opt/opmsg/repo), cloné sans blobs', /MIROIR="\$OPT\/repo"/.test(code) && /--filter=blob:none/.test(code));
-  vrai('   la commande SSH est FORCÉE (restrict, command=) vers le déployeur', /restrict,command=\\"\/opt\/opmsg\/deployer\.sh\\"/.test(code));
+  vrai('   la commande SSH est FORCÉE (restrict, command=) vers le déployeur, BORNÉE à l\'instance de la clé (--seulement=$INSTANCE)', /restrict,command=\\"\/opt\/opmsg\/deployer\.sh --seulement=\$INSTANCE\\"/.test(code));
+  vrai('   et la ligne porte une marque PAR instance (la clé de la bêta et celle de la production coexistent, l\'une ne remplace pas l\'autre)', /MARQUE="opmsg-deploiement-\$INSTANCE"/.test(code));
   vrai('   Node 22 est exigé (node:sqlite)', /-ge 22/.test(code));
 }
 {
@@ -158,7 +159,7 @@ for (const f of SCRIPTS) {
     for (const [nom, re] of [
       ['la clé maître naît dans le presse-papiers (openssl rand -hex 32 | pbcopy)', /openssl rand -hex 32 \| pbcopy/],
       ['la clé SSH est faite sans phrase de passe, sur le Mac', /ssh-keygen -t ed25519 -N ""/],
-      ['la privée va dans le secret GitHub sans s\'afficher (gh secret set … <)', /gh secret set VPS_SSH_KEY_MSG < /],
+      ['la privée de la bêta va dans le secret GitHub sans s\'afficher (gh secret set … <)', /gh secret set VPS_SSH_KEY_MSG_BETA < /],
       ['puis elle est effacée du Mac', /rm -P ~\/opmsg-deploiement/],
       ['la clé du service se compare SANS l\'afficher (cmp -s)', /cmp -s \/etc\/opmsg\/beta\.kek \/run\/credentials\/teamop-msg@beta\.service\/kek/],
       ['les copies se relisent en saisie masquée (read -rsp)', /read -rsp "Colle \(ou tape\) la clé/],
@@ -203,13 +204,19 @@ for (const f of SCRIPTS) {
     const env = Object.assign({}, process.env, { OPMSG_KEK_DIR: path.join(d, 'etc'), OPMSG_DATA: path.join(d, 'data'), OPMSG_DROPIN_DIR: path.join(d, 'dropin') });
     const K = 'a1b2c3d4'.repeat(8);
     fs.mkdirSync(env.OPMSG_DATA, { recursive: true });
+    fs.mkdirSync(env.OPMSG_KEK_DIR, { recursive: true }); fs.chmodSync(env.OPMSG_KEK_DIR, 0o755);   // comme install-msg.sh le crée AVANT la pose de clé
     const lancer = (...args) => spawnSync(process.execPath, [reelle, 'beta', ...args], { encoding: 'utf8', env });
-    const r = lancer(K);
-    v('la VRAIE pose de clé accepte « beta <64 hexadécimaux> » avec les variables d\'environnement d\'install-msg.sh', r.status, 0);
+    /* Le contrat : la clé du séquestre arrive par l'ENTRÉE STANDARD (`--stdin`), jamais en argument (visible dans `ps`). */
+    const lancerStdin = (entree) => spawnSync(process.execPath, [reelle, 'beta', '--stdin'], { encoding: 'utf8', env, input: entree });
+    const r = lancerStdin(K + '\n');
+    v('la VRAIE pose de clé accepte « beta --stdin » avec la clé sur l\'entrée standard et les variables d\'environnement d\'install-msg.sh', r.status, 0);
     v('   elle écrit la clé là où install-msg.sh la cherche (<dossier>/beta.kek) en 0600', [(() => { try { return fs.readFileSync(path.join(d, 'etc', 'beta.kek'), 'utf8').trim(); } catch (e) { return null; } })(),
       (() => { try { return (fs.statSync(path.join(d, 'etc', 'beta.kek')).mode & 0o777).toString(8); } catch (e) { return null; } })()], [K, '600']);
     vrai('   et le drop-in porte LoadCredential=kek: (le nom que le service lit dans $CREDENTIALS_DIRECTORY)',
       /LoadCredential=kek:/.test((() => { try { return fs.readFileSync(path.join(d, 'dropin', 'kek.conf'), 'utf8'); } catch (e) { return ''; } })()));
+    vrai('⛔ elle n\'AFFICHE pas la clé', !String(r.stdout).includes(K) && !String(r.stderr).includes(K));
+    v('⛔ le dossier de la clé reste lisible (755) : il porte aussi la configuration que le service lit sous SON utilisateur (0700 la lui rendait illisible)',
+      (fs.statSync(path.join(d, 'etc')).mode & 0o777).toString(8), '755');
     const r2 = lancer();
     v('   rappelée sans clé (déjà posée) : sortie 0, la clé ne change pas', [r2.status, fs.readFileSync(path.join(d, 'etc', 'beta.kek'), 'utf8').trim()], [0, K]);
     const d2 = fs.mkdtempSync(path.join(os.tmpdir(), 'opmsg-cle-'));

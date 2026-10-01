@@ -22,6 +22,7 @@ const { v, vrai } = t;
 const CLE = 'c0ffee' + 'ab12'.repeat(14) + '0f';               // 64 hexadécimaux, reconnaissable
 const CLE2 = 'beef01' + '9a8b'.repeat(14) + 'e1';
 const PUB = 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGq6Fake0Fake0Fake0Fake0Fake0Fake0Fake0Fake0 deploy@mac';
+const PUB2 = 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGq6Fake1Fake1Fake1Fake1Fake1Fake1Fake1Fake1 deploy@mac';   // la clé de DÉPLOIEMENT de la production : une autre paire que celle de la bêta
 const ENTREE = CLE + '\n' + CLE + '\n' + PUB + '\n';
 const OUTILS = ['bash', 'git', 'flock', 'curl', 'node'].every(o => spawnSync('bash', ['-c', 'command -v ' + o]).status === 0);
 vrai('les outils du bac sont là (bash, git, flock, curl, node)', OUTILS);
@@ -119,8 +120,8 @@ vrai('   le service est démarré à l\'amorçage', /systemctl enable teamop-msg
 /* ══ 3. LA CLÉ SSH DE LA CI : COMMANDE FORCÉE ══════════════════════════════════════════════════════ */
 const auth = (b1.lire('root/.ssh/authorized_keys') || '').split('\n').filter(Boolean);
 v('⛔ authorized_keys porte exactement UNE ligne à nous', auth.length, 1);
-v('   et c\'est une COMMANDE FORCÉE, restreinte : elle ne peut lancer que le déployeur',
-  auth[0], 'restrict,command="/opt/opmsg/deployer.sh" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGq6Fake0Fake0Fake0Fake0Fake0Fake0Fake0Fake0 opmsg-deploiement');
+v('   et c\'est une COMMANDE FORCÉE, restreinte : elle ne peut lancer que le déployeur, POUR SON INSTANCE (--seulement=beta)',
+  auth[0], 'restrict,command="/opt/opmsg/deployer.sh --seulement=beta" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGq6Fake0Fake0Fake0Fake0Fake0Fake0Fake0Fake0 opmsg-deploiement-beta');
 v('   les droits du dossier .ssh et du fichier', [modeDe(b1, 'root/.ssh'), modeDe(b1, 'root/.ssh/authorized_keys')], ['700', '600']);
 
 /* ══ 4. LE PROXY : UN FICHIER À PART, VALIDÉ AVANT D'ÊTRE RECHARGÉ, ET LE BLOC D'api.teamop.fr INTACT ═══ */
@@ -136,6 +137,10 @@ vrai('⛔ le flux SSE n\'est PAS retenu en tampon', /proxy_buffering off;/.test(
 vrai('⛔ et nginx ne le coupe pas à 60 s (3700 s)', /proxy_read_timeout 3700s;/.test(fluxBloc));
 vrai('⛔ X-Forwarded-For est ÉCRASÉ par l\'adresse vue par nginx, jamais complété (req.ip, trust proxy 1)',
   (ngx.match(/proxy_set_header X-Forwarded-For \$remote_addr;/g) || []).length === 2 && !/proxy_add_x_forwarded_for/.test(ngx));
+vrai('⛔ le corps d\'une requête est limité à 64 Ko et TAMPONNÉ (le service refuse déjà au-delà ; l\'étape 1 n\'a aucune route de pièces) — 110 Mo non tamponnés tenaient un descripteur de Node ouvert pour un client lent',
+  /client_max_body_size 64k;/.test(ngx) && !/client_max_body_size 110m/.test(ngx) && !/proxy_request_buffering off/.test(ngx));
+vrai('⛔ un plafond de débit par adresse (limit_req) devant le service — hors flux SSE, qui n\'est qu\'une requête longue par onglet',
+  /limit_req_zone \$binary_remote_addr zone=opmsg_beta:10m rate=\d+r\/s;/.test(ngx) && /location \/ \{\s*\n\s*limit_req zone=opmsg_beta burst=\d+ nodelay;/.test(ngx) && !/location = \/api\/flux \{[^}]*limit_req/.test(ngx));
 vrai('   HTTP/2 à la forme de nginx 1.24 (`listen … ssl http2`) — Ubuntu 24.04', /listen 443 ssl http2;/.test(ngx) && !/^\s*http2 on;/m.test(ngx));
 vrai('   le port 80 redirige vers https et laisse passer Let\'s Encrypt', /acme-challenge/.test(ngx) && /return 301 https:\/\/msg-beta\.teamop\.fr\$request_uri;/.test(ngx));
 vrai('   les en-têtes de sécurité sont ceux du SERVICE (pas de doublon posé par nginx)', !/add_header/.test(ngx));
@@ -243,7 +248,7 @@ vrai('   le seul programme relancé dans systemctl est le proxy (reload) et notr
   v('⛔ une ligne qui tente de sortir de la commande forcée est refusée', [r2.rc, /touch/.test(b2.lire('root/.ssh/authorized_keys') || '')], [1, false]);
   const b3 = neuf('nginx');
   const r3 = b3.installer('beta', CLE + '\n' + CLE + '\n', { OPMSG_CLE_PUBLIQUE: PUB });
-  v('   la clé publique peut aussi venir de l\'environnement (installation sans question)', [r3.rc, (b3.lire('root/.ssh/authorized_keys') || '').includes('restrict,command="/opt/opmsg/deployer.sh"')], [0, true]);
+  v('   la clé publique peut aussi venir de l\'environnement (installation sans question)', [r3.rc, (b3.lire('root/.ssh/authorized_keys') || '').includes('restrict,command="/opt/opmsg/deployer.sh --seulement=beta"')], [0, true]);
   const b4 = neuf('nginx');
   const r4 = b4.installer('beta', CLE + '\n' + CLE + '\n\n');
   v('   sans clé publique (Entrée) : l\'installation va au bout et DIT que la CI ne pourra pas déployer', [r4.rc, /la CI ne pourra pas déployer/.test(r4.sortie)], [0, true]);
@@ -303,6 +308,7 @@ vrai('   le seul programme relancé dans systemctl est le proxy (reload) et notr
   const f = b.lire('etc/caddy/opmsg/beta.caddy') || '';
   vrai('   le bloc d\'OP MESSAGES est dans SON fichier', /^msg-beta\.teamop\.fr \{/m.test(f) && new RegExp('reverse_proxy 127\\.0\\.0\\.1:' + b.port).test(f));
   vrai('⛔ SSE non retenu en tampon, et X-Forwarded-For écrasé par l\'adresse vue (jamais complété)', /flush_interval -1/.test(f) && /header_up X-Forwarded-For \{remote_host\}/.test(f));
+  vrai('⛔ Caddy aussi borne le corps à 64 Ko', /request_body \{\s*max_size 64KB\s*\}/.test(f));
   vrai('   validé AVANT le rechargement', b.journal().indexOf('caddy validate') >= 0 && b.journal().indexOf('caddy validate') < b.journal().indexOf('reload caddy'));
   vrai('   nginx n\'a pas été touché (ni rechargé ni écrit)', !/reload nginx|nginx -t/.test(b.journal()) && !b.existe('etc/nginx/sites-available/opmsg-beta.conf'));
   b.installer('beta', '', { OPMSG_PROXY: '' });
@@ -344,7 +350,7 @@ vrai('   le seul programme relancé dans systemctl est le proxy (reload) et notr
   const b = neuf('nginx');
   const portProd = String(Number(b.port) + 1);
   const rb = b.installer('beta', ENTREE);
-  const rp = b.installer('prod', CLE2 + '\n' + CLE2 + '\n\n', { OPMSG_PUBLIE: 'oui', OPMSG_PORT: portProd });
+  const rp = b.installer('prod', CLE2 + '\n' + CLE2 + '\n' + PUB2 + '\n', { OPMSG_PUBLIE: 'oui', OPMSG_PORT: portProd });
   v('prod avec la phrase : s\'installe', [rb.rc, rp.rc], [0, 0]);
   const cb = JSON.parse(b.lire('etc/opmsg/beta.json')), cp = JSON.parse(b.lire('etc/opmsg/prod.json'));
   vrai('⛔ chaque instance a SA paire VAPID (un abonnement push de la bêta ne doit pas se retrouver en production)', cb.vapidPrivateKey !== cp.vapidPrivateKey && cb.vapidPublicKey !== cp.vapidPublicKey);
@@ -353,7 +359,10 @@ vrai('   le seul programme relancé dans systemctl est le proxy (reload) et notr
   vrai('   chacune a son dossier de données, ses releases et son unité (teamop-msg@prod)', b.existe('opt/opmsg/prod/data') && b.existe('opt/opmsg/prod/releases') && /enable teamop-msg@prod/.test(b.journal()));
   v('   un seul utilisateur, un seul miroir', [(b.journal().match(/useradd /g) || []).length, fs.readdirSync(path.join(b.R, 'opt/opmsg')).filter(n => n === 'repo').length], [1, 1]);
   v('   le fichier de proxy de la production est à part de celui de la bêta', [b.existe('etc/nginx/sites-available/opmsg-prod.conf'), /server_name msg\.teamop\.fr;/.test(b.lire('etc/nginx/sites-available/opmsg-prod.conf') || '')], [true, true]);
-  v('⛔ une seule ligne de clé SSH de déploiement pour les deux (la même clé CI, le même déployeur)', (b.lire('root/.ssh/authorized_keys') || '').split('\n').filter(Boolean).length, 1);
+  const lignes = (b.lire('root/.ssh/authorized_keys') || '').split('\n').filter(Boolean);
+  v('⛔ UNE ligne de clé SSH PAR instance, chacune bornée à la sienne : la clé de la bêta ne déploie pas la production (un secret par environnement)',
+    [lignes.length, lignes.some(l => /--seulement=beta" .* opmsg-deploiement-beta$/.test(l) && !/--seulement=prod/.test(l)), lignes.some(l => /--seulement=prod" .* opmsg-deploiement-prod$/.test(l) && !/--seulement=beta/.test(l))], [2, true, true]);
+  vrai('   et deux clés DIFFÉRENTES (celle de la production n\'est pas celle de la bêta)', new Set(lignes.map(l => l.split(' ')[3])).size === 2);
 }
 
 /* ══ 11. LES REFUS D'ENTRÉE, ET CE QUI MANQUE ══════════════════════════════════════════════════════════ */
