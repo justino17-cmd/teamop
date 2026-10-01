@@ -76,12 +76,19 @@ console.log('\nAucun chemin d\'OP GESTION, aucun domaine tiers, aucune adresse d
 console.log('\nLes dépendances sont celles d\'OP GESTION, aux mêmes versions');
 {
   const a = JSON.parse(fs.readFileSync(path.join(MSG, 'package.json'), 'utf8')), b = JSON.parse(fs.readFileSync(path.join(RACINE, 'server', 'package.json'), 'utf8'));
-  v('trois dépendances, pas une de plus (surface d\'attaque)', Object.keys(a.dependencies).sort(), ['express', 'nodemailer', 'web-push']);
-  v('mêmes versions que server/package.json', ['express', 'nodemailer', 'web-push'].map(k => a.dependencies[k] === b.dependencies[k]), [true, true, true]);
+  const DECLAREES = Object.keys(a.dependencies).sort();
+  v('une seule dépendance à l\'étape 1 (surface d\'attaque) : express — nodemailer et web-push reviennent AVEC le code qui les importe (étape 2)', DECLAREES, ['express']);
+  /* ⛔ Une dépendance déclarée que personne n'importe est de la surface d'attaque pour rien (relecture du gardien, point 13) :
+     chaque dépendance de package.json est `require`d par au moins un fichier du service. */
+  const requis = new Set();
+  for (const p of sources) for (const m of code(p).matchAll(/require\(\s*['"]([^'".\/][^'"]*)['"]\s*\)/g)) requis.add(m[1].split('/')[0]);
+  v('⛔ chaque dépendance déclarée est importée par le service (aucune dépendance morte)', DECLAREES.filter(k => !requis.has(k)), []);
+  v('mêmes versions que server/package.json', DECLAREES.map(k => a.dependencies[k] === b.dependencies[k]), DECLAREES.map(() => true));
   vrai('un package-lock.json est commité', fs.existsSync(path.join(MSG, 'package-lock.json')));
   const lock = JSON.parse(fs.readFileSync(path.join(MSG, 'package-lock.json'), 'utf8')), lockB = JSON.parse(fs.readFileSync(path.join(RACINE, 'server', 'package-lock.json'), 'utf8'));
   v('versions RÉSOLUES identiques à celles d\'OP GESTION',
-    ['express', 'nodemailer', 'web-push'].map(k => lock.packages['node_modules/' + k].version === lockB.packages['node_modules/' + k].version), [true, true, true]);
+    DECLAREES.map(k => lock.packages['node_modules/' + k].version === lockB.packages['node_modules/' + k].version), DECLAREES.map(() => true));
+  v('⛔ le verrou ne porte aucun paquet de nodemailer ni de web-push (npm ci n\'installerait rien d\'inutilisé)', Object.keys(lock.packages).filter(k => /node_modules\/(nodemailer|web-push)$/.test(k)), []);
   const gi = fs.readFileSync(path.join(RACINE, '.gitignore'), 'utf8');
   vrai('server-msg/node_modules est ignoré (jamais commité)', /^server-msg\/node_modules\/$/m.test(gi));
 }
