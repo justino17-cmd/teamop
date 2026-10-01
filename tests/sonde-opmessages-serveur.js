@@ -644,6 +644,13 @@ async function couple(b, env, cfg) {
     vrai('… et le code ne reste pas dans la barre d\'adresse', !/lien=/.test(await B.page.evaluate(() => location.href)));
     await toucher(B, '#g-annuler');
     await verifier('la feuille se referme (B retrouve sa conversation)', B, () => !document.documentElement.classList.contains('feuille-ouverte') && !!document.getElementById('saisie').offsetParent, null, 5000, () => texteVu(B, '#info-corps'));
+    /* ⛔ des SIGNES, pas des unités UTF-16 : le service compte les points de code (8 000 émojis passent) ; la page refusait dès 4 001 et annonçait un chiffre faux */
+    await B.page.evaluate(() => { const t = document.getElementById('saisie'); t.value = '😀'.repeat(5000); t.dispatchEvent(new Event('input', { bubbles: true })); });
+    await dormir(300);
+    vrai('⛔ 5 000 émojis (10 000 unités UTF-16, 5 000 signes) : aucun « trop long » — le service les accepte', !/trop long/.test(await lire(B, '#avis')) || (await visible(B, '#avis')) === false);
+    await B.page.evaluate(() => { const t = document.getElementById('saisie'); t.value = '😀'.repeat(8001); t.dispatchEvent(new Event('input', { bubbles: true })); });
+    await attendreTexte('⛔ 8 001 émojis : « 1 signes en trop » (le compte est celui du service, pas 4 000 de trop)', B, '#avis', '1 signes en trop', 3000);
+    await B.page.evaluate(() => { const t = document.getElementById('saisie'); t.value = ''; t.dispatchEvent(new Event('input', { bubbles: true })); });
   });
 
   await bloc('10. Ce qui est « bientôt » le dit — et n\'allume ni micro, ni caméra, ni sélecteur de fichier', async () => {
