@@ -759,7 +759,7 @@ html[data-service] .mention-apercu { display: none; }
 
 /* la coupure du temps réel : une bande qui reste tant que la connexion n'est pas revenue — jamais un écran qui fait semblant d'être à jour */
 .hors-ligne {
-  position: fixed; z-index: 55; top: 0; left: 0; right: 0; padding: calc(env(safe-area-inset-top, 0px) + 6px) 16px 7px;
+  position: fixed; z-index: 55; top: 0; left: 0; right: 0; padding: calc(env(safe-area-inset-top, 0px) + 6px) 16px 7px; pointer-events: none;   /* un texte : il ne couvre pas les commandes de dessous */
   background: rgba(28,28,30,.94); color: #fff; font-size: 14px; line-height: 18px; text-align: center; overflow-wrap: anywhere;
 }
 .liste-erreur {
@@ -824,6 +824,10 @@ html[data-service] .mention-apercu { display: none; }
 .reglage.danger .reglage-texte { color: var(--rouge-txt); }
 .contact .mini { margin-left: 6px; }
 .contact-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+/* un membre qu'on peut gérer : le nom garde au moins 150 px, et les boutons passent SOUS lui quand la ligne est trop étroite (Android 360 : « Moreau » passait sous « Nommer admin ») */
+.contact.avec-actions { flex-wrap: wrap; }
+.contact.avec-actions .contact-texte { flex: 1 1 150px; }
+.contact.avec-actions .contact-actions { margin-left: auto; }
 .badge-admin { margin-left: 6px; font-size: 12px; font-weight: 600; color: var(--accent-txt); }
 
 /* ══ 8. LES RÉGLAGES DE L'APPAREIL : transparence et mouvement ═════════════════════════════════════════════════════════════

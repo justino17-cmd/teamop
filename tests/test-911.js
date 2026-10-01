@@ -341,6 +341,13 @@ const json = async (base, methode, chemin, corps, entetes) => {
       vrai('⛔ lister() qui échoue LÈVE une erreur dite (la page garde l\'ancienne liste et affiche la phrase) — elle ne rend pas une liste vide', eL && eL.dit === true && eL.code === 'quota_atteint' && eL.retry === 40);
       z.reseau.forcer = null;
       vrai('et la liste revient dès que le service répond', Array.isArray(await z.src.lister()));
+      /* ⛔ la relecture de la liste que déclenche UN ÉVÉNEMENT (le message d'un autre) et que le service refuse ne se perd pas en silence : la source le DIT à l'écran */
+      await B.src.ouvrir(conv);
+      A.reseau.forcer = /^GET \/api\/conversations$/;
+      await B.src.envoyer(conv, { texte: 'relecture refusée par le service' });
+      const eR = await A.attendreEv(e => e.type === 'liste' && e.erreur && e.erreur.code === 'quota_atteint', 6000);
+      A.reseau.forcer = null;
+      vrai('⛔ une relecture de liste (déclenchée par un message reçu) REFUSÉE par le service (429) est DITE : un événement « liste » porte l\'erreur, avec sa phrase et son attente', !!eR && eR.erreur.dit === true && eR.erreur.retry === 40 && /réessaie dans 40 s/.test(eR.erreur.phrase()));
       z.reseau.forcer = /^GET \/api\/conversations\/c_/; z.reseau.forcerReponse = [503, { error: 'disque_plein' }];
       const eO = await attrape(A.src.ouvrir(conv)); void eO;
       z.reseau.forcer = null; z.reseau.forcerReponse = null;

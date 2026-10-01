@@ -153,7 +153,8 @@
       enRelecture = new Promise((ok) => {
         planifier(async () => {
           enRelecture = null;
-          try { await relireListe(); emettre({ type: 'liste' }); } catch (e) { /* le prochain événement ou le prochain `lister()` réessaie et DIT l'échec */ }
+          /* ⛔ une relecture que le service refuse (429, 503) ne se perd PAS en silence : l'écran garde sa liste et DIT pourquoi elle n'est plus à jour (« Réessayer » la relit) */
+          try { await relireListe(); emettre({ type: 'liste' }); } catch (e) { emettre({ type: 'liste', erreur: e }); }
           ok();
         }, delaiRelireMs);
       });

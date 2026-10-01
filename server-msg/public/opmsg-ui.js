@@ -425,25 +425,36 @@
     const id = cible || etat.conv; if (!id) return false;
     if (id === etat.conv) etat.forcerBas = true;
     try { await source.envoyer(id, brouillon); return true; }
-    catch (e) { etat.forcerBas = false; avis(MESSAGES_ERREUR[e && e.code] || 'Le message n\'a pas pu être envoyé.'); return false; }
+    catch (e) { etat.forcerBas = false; avis(e && e.dit ? phrase(e) : (MESSAGES_ERREUR[e && e.code] || 'Le message n\'a pas pu être envoyé.')); return false; }   // ⛔ un refus du service se dit avec SA phrase (« réessaie dans 40 s ») : seule une erreur de l'aperçu garde les trois phrases d'avant
   }
   async function envoyerTexte() {
-    if (etat.envoiEnCours) return;                         // deux clics dans le même instant ne postent pas deux messages
+    if (etat.envoiEnCours) { etat.envoiSuivant = true; return; }     // deux clics dans le même instant ne postent pas deux messages ; un toucher pendant l'attente n'est pas perdu : le message suivant part ensuite
     const ta = $('saisie'), t = ta.value.replace(/\s+$/, '');
     if (!t.trim()) return;
     if (t.length > TEXTE_MAX) { avis(texteTropLong(t.length)); return; }
     etat.envoiEnCours = true;
+    const id = etat.conv, ctx = etat.contexte;
+    /* ⛔ le champ se vide AVANT l'attente, pas après : la réponse du service peut mettre une seconde (4G), et ce qu'on a tapé entre-temps — le message SUIVANT — était effacé
+       quand elle arrivait (mesuré : deux messages enchaînés, le second disparaissait du champ). Un envoi refusé rend le texte à la personne, sauf si elle a déjà écrit autre chose. */
+    ta.value = ''; delete etat.brouillons[id]; ajusterSaisie(); majBoutons();
     try {
-      const id = etat.conv, ctx = etat.contexte;
       let ok;
       if (ctx && ctx.type === 'modif') {
         try { await source.modifier(id, ctx.mid, t); ok = true; }
         catch (e) { ok = false; avis(phrase(e, 'La modification n\'a pas pu être enregistrée.')); }
       } else ok = await envoi(ctx && ctx.type === 'reponse' ? { texte: t, reponse: ctx.mid } : { texte: t });
-      if (!ok) return;
-      if (ctx) { etat.contexte = null; majContexte(); }
-      ta.value = ''; delete etat.brouillons[id]; ajusterSaisie(); majBoutons(); masquerAvis();
-    } finally { etat.envoiEnCours = false; }
+      if (!ok) {
+        if (etat.conv === id && !ta.value) { ta.value = t; etat.brouillons[id] = t; ajusterSaisie(); majBoutons(); }
+        else if (!etat.brouillons[id]) etat.brouillons[id] = t;
+        return;
+      }
+      if (ctx && etat.contexte === ctx) { etat.contexte = null; majContexte(); }
+      masquerAvis();
+    } finally {
+      etat.envoiEnCours = false;
+      const suivant = etat.envoiSuivant; etat.envoiSuivant = false;
+      if (suivant && ta.value.trim() && ta.value.replace(/\s+$/, '') !== t) envoyerTexte();   // un NOUVEAU texte attendait : il part (jamais celui qu'on vient de voir refuser)
+    }
   }
   /* ⛔ une réponse ou une modification se compose DANS la saisie : une bande au-dessus dit laquelle, une croix l'abandonne (Échap aussi) */
   function majContexte() {
@@ -1221,6 +1232,7 @@
     if (!t && d && d.motif && d.motif !== 'session_requise') t = d.phrase || phrase(null, 'Le service ne répond pas.');
     erreurConnexion(t);
   }
+  let fluxPerdu = false;                                  // le temps réel est-il rompu ? (dit par la source)
   let connexionEnCours = false;
   $('f-connexion').addEventListener('submit', async ev => {
     ev.preventDefault();
@@ -1237,7 +1249,10 @@
   function surveillerSession() {
     if (typeof source.verifierSession !== 'function') return;
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') source.verifierSession(); });
-    window.addEventListener('online', () => source.verifierSession());
+    /* le réseau qui tombe se DIT tout de suite (le navigateur le sait avant que le flux n'échoue : une connexion déjà ouverte peut mettre longtemps à se rompre) ;
+       rendu, il ne retire la bannière que si le flux n'est pas perdu — c'est le flux qui, en se rouvrant, dit « ok » */
+    window.addEventListener('offline', () => { $('hors-ligne').hidden = false; });
+    window.addEventListener('online', () => { if (!fluxPerdu) $('hors-ligne').hidden = true; source.verifierSession(); });
   }
   /* une page revenue du cache de navigation (bfcache) après une déconnexion rendrait l'écran d'avant : on la recharge */
   window.addEventListener('pageshow', e => { if (e.persisted) location.reload(); });
@@ -1320,7 +1335,7 @@
       '<button type="button" class="reglage presse" data-act="ephemeres"' + off + '><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur">' + esc(eph[1]) + '</span>' + (i.moiAdmin ? CHEVRON : '') + '</button></div>';
     if (g) {
       h += '<div class="rubrique"><span>Membres</span><span>' + i.membres.length + '</span></div><div class="carte">' + i.membres.map(m =>
-        '<div class="contact">' + avatar(m) + '<span class="contact-texte"><span class="contact-nom">' + esc(m.moi ? 'Vous' : m.nom) + (m.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (m.enLigne && !m.moi ? '<span class="contact-role">En ligne</span>' : '') + '</span>' +
+        '<div class="contact' + (i.moiAdmin && !m.moi ? ' avec-actions' : '') + '">' + avatar(m) + '<span class="contact-texte"><span class="contact-nom">' + esc(m.moi ? 'Vous' : m.nom) + (m.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (m.enLigne && !m.moi ? '<span class="contact-role">En ligne</span>' : '') + '</span>' +
         (i.moiAdmin && !m.moi ? '<span class="contact-actions"><button type="button" class="mini" data-act="admin" data-uid="' + esc(m.id) + '" data-admin="' + (m.role === 'admin' ? '0' : '1') + '">' + (m.role === 'admin' ? 'Retirer l\'admin' : 'Nommer admin') +
           '</button><button type="button" class="mini danger" data-act="retirer" data-uid="' + esc(m.id) + '">Retirer</button></span>' : '') + '</div>').join('') + '</div>';
       if (i.moiAdmin) {
@@ -1396,8 +1411,13 @@
     const premier = $('menu-msg').querySelector('button'); if (premier) premier.focus({ preventScroll: true });
   }
   $('menu-fond').addEventListener('click', async e => {
+    if (!etat.menu) return;
+    /* ⛔ le relâcher d'un appui long ne tombe ni dans le menu qu'il vient d'ouvrir NI sur le fond qui le ferme : le navigateur produit le clic de ce qui est SOUS le doigt au
+       relâcher, c'est-à-dire le fond, qui fermait le menu à peine ouvert (mesuré au doigt : « le menu ne s'ouvre pas »). On avale le premier clic qui suit le relâcher, OÙ QU'IL
+       TOMBE et seulement lui — passé une demi-seconde, c'est un nouveau geste */
+    const m0 = etat.menu;
+    if (Date.now() - m0.t < 350 || (m0.appuiLong && !m0.avale && m0.relache && Date.now() - m0.relache < 500)) { m0.avale = true; return; }
     if (e.target === $('menu-fond')) { fermerMenu(); return; }
-    if (!etat.menu || Date.now() - etat.menu.t < 350) return;                // le relâcher d'un appui long ne tombe pas dans le menu qu'il vient d'ouvrir
     const mid = etat.menu.mid, id = etat.conv, m = trouverMessage(mid);
     const r = e.target.closest('[data-menu-reac]'), a = e.target.closest('[data-menu]');
     if (!m || !id || (!r && !a)) return;
@@ -1437,10 +1457,12 @@
     $('conv-messages').addEventListener('pointerdown', e => {
       if (!CAP.actionsMessage || e.pointerType === 'mouse' || e.button) return;
       const msg = e.target.closest('.msg[data-mid]'); if (!msg || e.target.closest('button')) return;
-      annule(); lp = { x: e.clientX, y: e.clientY, h: setTimeout(() => { lp = null; ouvrirMenuMessage(msg.dataset.mid, msg.querySelector('.msg-plus') || msg); }, 480) };
+      annule(); lp = { x: e.clientX, y: e.clientY, h: setTimeout(() => { lp = null; ouvrirMenuMessage(msg.dataset.mid, msg.querySelector('.msg-plus') || msg); if (etat.menu) etat.menu.appuiLong = true; }, 480) };
     });
     $('conv-messages').addEventListener('pointermove', e => { if (lp && Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > 10) annule(); });
     $('conv-messages').addEventListener('pointerup', annule); $('conv-messages').addEventListener('pointercancel', annule);
+    /* le doigt qui se lève APRÈS l'ouverture du menu : on note l'heure, le clic qui suit est avalé (voir le menu) */
+    document.addEventListener('pointerup', e => { if (etat.menu && etat.menu.appuiLong && e.pointerType !== 'mouse') etat.menu.relache = Date.now(); }, true);
     $('conv-fil').addEventListener('scroll', annule, { passive: true });
   })();
   $('precedents').addEventListener('click', async () => {
@@ -1489,7 +1511,7 @@
     appliquer(r0);
     /* la source dit quand quelque chose change : la liste et la conversation ouverte se refont, rien d'autre */
     source.ecouter(ev => {
-      if (ev.type === 'liste') rafraichirListe();
+      if (ev.type === 'liste') { if (ev.erreur) montrerErreurListe(ev.erreur); else rafraichirListe(); }   // une relecture refusée par le service se DIT
       if (ev.type === 'conversation') {
         if (ev.id === etat.conv) rafraichirConv();
         if (etat.groupe.ouvert && etat.groupe.mode === 'convinfo' && etat.groupe.convId === ev.id) rendreConvInfo();
@@ -1497,7 +1519,7 @@
       if (ev.type === 'appels' && CAP.appels) rafraichirAppels();
       if (ev.type === 'appel' && ev.id === etat.appelId) rafraichirAppel();
       if (ev.type === 'contacts') surContacts();
-      if (ev.type === 'reseau') $('hors-ligne').hidden = ev.etat === 'ok';
+      if (ev.type === 'reseau') { fluxPerdu = ev.etat !== 'ok'; $('hors-ligne').hidden = ev.etat === 'ok'; }
       if (ev.type === 'arrivee') surArrivee(ev);
       if (ev.type === 'notification') notifier(ev.titre || 'OP MESSAGES', ev.texte || '');
       if (ev.type === 'retire') surRetire(ev.id);
