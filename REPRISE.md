@@ -146,6 +146,32 @@ d'emploi de Justin `design/opmessages/INSTALLER-LE-SERVEUR.md`. Conception : `de
 branche 228 · 14 574, code 0. ⚠️ Il touche `server/index.js` sur DEUX points (`/api/beta/login` rend `id`, `/api/beta/etat`
 accepte `ids`) : publier le serveur d'OP GESTION AVANT celui d'OP MESSAGES (sinon la porte reste fermée, 503, sans danger).
 Rien d'installé ni de poussé sur `main` ; restent ouverts D11, G12, G14, G15, G17 (listés dans le mode d'emploi).
+✅ **Compte PERSO par numéro de téléphone — FAIT côté serveur (2 octobre 2026, sur la branche d'un arbre à part, rien poussé)** :
+`server-msg/telephone.js` (routes `/api/tel/code`, `/api/tel/verifier`, `/api/tel/appareil`, `/api/contacts/chercher`,
+`/api/contacts/ajouter`, `/api/moi/confidentialite`), `numero.js` (E.164 fait main, mobiles seuls, tous les pays), `sms-garde.js`
+(budgets en euros par jour/heure, global et PAR PAYS, durables ; emballement d'un pays → bouclier à preuve de travail), `sms-prix.js`
+(207 destinations d'OVH), `sms-ovh.js` (signature « $1$ » faite main), `configurer-sms.js` (clés en saisie masquée, éprouvées avant
+d'être écrites). Migration 2 de `stockage.js` (table `personne` reconstruite). Conception et chiffres : `design/opmessages/SERVEUR.md`
+§ étape 2 ; gestes de Justin chez OVH et coût de 1 000 / 10 000 inscriptions : `INSTALLER-LE-SERVEUR.md` § 10 bis. Bancs `test-912`
+à `919` + `tests/mutations-telephone.js` (73 mutations sur copie, 73/73 tombent). ⚠️ **NON VÉRIFIÉ : un SMS réel** (aucun compte OVH dans le dépôt, le
+banc joue un faux OVH qui recalcule la signature) ; **non construits** : l'interface (autre équipe), l'appel vocal (on ne sait pas si
+OVH le permet), les clés d'accès WebAuthn (proposées à Justin comme étape suivante), le changement de numéro, la suppression de compte
+(devra effacer `appareil_tel`), le Pro par lien de connexion (étape 5). Défauts de budget par pays prudents (3 €/jour : 2 SMS russes) :
+à relever pays par pays selon où les gens s'inscrivent.
+✅ **Relecture adverse (`gardien` + `testeur`, 2 octobre 2026) FAITE et corrigée** : chaque constat rejoué contre le vrai service, puis
+corrigé avec le contrôle de banc vu TOMBER sur le code d'avant. **Argent** : le bouclier se déclenche aussi à 40 % d'un budget (avant :
+inatteignable pour 197 pays sur 207, vingt requêtes anonymes fermaient la France) ; 40 % du budget global réservés à la France
+(`sms.reserve` : sept SMS vers sept pays chers la fermaient) ; plafonds par numéro et par réseau (et /48 en IPv6) DURABLES en base
+(`sms_tentative`), plus de plafond par appareil ; une panne d'OVH (« non_envoye ») rend coût et plafonds, un envoi « incertain » garde
+son code et répond comme un succès (`incertain: true`), « numéro invalide » garde les plafonds, les refus 400/409/429 d'OVH comptent dans
+`ovhEchecs` ; le code se pose après l'envoi ; table de défis qui évince ; l'élagage tourne enfin. **Comptes** : le code est lié à
+l'appareil qui l'a demandé (un inconnu ne brûle plus le code de sa victime), nouvel appareil → notification, `POST
+/api/moi/appareils/deconnecter`, jeton d'appareil borné à un an et prolongé par l'usage, un seul E.164 par téléphone (zéro de ligne),
+prénom invalide sans consommer le code. **`configurer-sms.js`** : lecture en mode brut (un retour arrière réaffichait les secrets saisis ;
+rejoué sous pty), fichier temporaire créé en 0600. ⚠️ **NON corrigés, à décider par Justin** (détail : `SERVEUR.md` § 2.7) :
+`contacts/ajouter` crée un contact MUTUEL sans l'accord de la personne trouvée ; `/health` public montre le coût et les budgets ; 10 SMS par
+heure et par /24 (NAT d'opérateur) ; pays hors table de prix estimés à 1,05 € ; prénom vide accepté. La réserve France (40 %) est un
+choix de produit à confirmer. La migration 2 a été corrigée en place (jamais déployée).
 
 ---
 

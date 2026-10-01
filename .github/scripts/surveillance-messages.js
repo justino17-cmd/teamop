@@ -30,18 +30,31 @@ const CHAMPS_SURVEILLES = [
   'sauvegarde.ageH',       // la dernière copie réussie ne doit pas dater de plus d'un jour
   'stripeEchecMin',        // Stripe illisible depuis trop longtemps : la facturation ne se relit plus
   'base.illisibles',       // des lignes chiffrées qui ne s'ouvrent plus (octet retourné, restauration mélangée) : jamais normal
-  'porte.relecturesEchec'  // la relecture des accès bêta échoue depuis des minutes : un accès coupé dans la Tour garderait sa session
+  'porte.relecturesEchec', // la relecture des accès bêta échoue depuis des minutes : un accès coupé dans la Tour garderait sa session
+  /* ⛔ LES SMS (compte Perso par numéro) : « le but c'est qu'on gagne de l'argent » — chaque SMS est un coût, et la fraude au
+     « SMS pumping » vise justement les destinations chères. Ces cinq champs sont l'alarme d'argent ; la garde vit dans `sms-garde.js`. */
+  'sms.mode',              // en production, tout autre mode que « ovh » veut dire : plus aucun code ne part, personne ne peut s'inscrire
+  'sms.coutJourEur',       // le coût réel des dernières 24 h : au-delà du seuil d'argent, on crie même si le budget tient encore
+  'sms.budgetJourPct',     // le budget du jour, en pourcentage : à 80 %, quelqu'un doit regarder avant que les inscriptions s'arrêtent
+  'sms.budgetHeurePct',    // idem pour l'heure : un robot qui pompe consomme l'heure en quelques minutes
+  'sms.boucliers',         // un pays est passé en « preuve de travail » (emballement) : une attaque, ou un vrai pic — un humain tranche
+  'sms.ovhEchecs',         // des envois refusés ou perdus à la suite : clés expirées, crédits épuisés, expéditeur non validé
+  'sms.refus'              // les refus du jour par motif : un motif « budget_… » qui monte, c'est le budget qui coupe des inscriptions
 ];
 
 /* Les champs vus et PAS surveillés, chacun avec sa raison. Une entrée qui parle d'un champ qui n'existe
    plus est une décision prise pour du vide : le banc le contrôle aussi. */
 const CHAMPS_VUS = {
-  'sauvegarde.essaiJours': 'l\'exercice de restauration est mensuel et se décide par un humain (§ 3.7), pas par une alarme horaire'
+  'sauvegarde.essaiJours': 'l\'exercice de restauration est mensuel et se décide par un humain (§ 3.7), pas par une alarme horaire',
+  'sms.envoyes24h': 'le nombre de SMS est une information ; ce qui compte est l\'ARGENT (sms.coutJourEur et les budgets), qui est surveillé'
 };
 
 const SEUIL_SAUVEGARDE_H = 26;   // une copie par heure promise, un jour de grâce pour un week-end de panne légère
 const SEUIL_RELECTURES = 5;      // la relecture passe chaque minute : cinq échecs de suite, c'est cinq minutes sans pouvoir couper un accès
 const SEUIL_STRIPE_MIN = 90;     // la règle d'OP GESTION : la surveillance crie à 90 minutes de Stripe illisible
+const SEUIL_SMS_PCT = 80;        // le budget du jour ou de l'heure consommé à 80 % : on regarde avant la coupure
+const SEUIL_SMS_EUR = 12;        // le coût réel d'une journée au-delà duquel on crie (le budget par défaut est de 20 €) ; OPMSG_SMS_SEUIL_EUR le change
+const SEUIL_SMS_ECHECS = 3;      // trois envois de suite refusés ou perdus par OVH
 
 /* beta ou prod, d'après le domaine interrogé — pour comparer à ce que le service dit de lui-même. */
 function instanceDe(url) {
@@ -76,6 +89,19 @@ function evaluer(j, instanceAttendue) {
   }
   if (typeof j.stripeEchecMin === 'number' && j.stripeEchecMin > SEUIL_STRIPE_MIN) {
     p.push('Stripe illisible depuis ' + Math.round(j.stripeEchecMin) + ' min');
+  }
+  if (j.sms && typeof j.sms === 'object') {
+    const seuilEur = Number.isFinite(parseFloat(process.env.OPMSG_SMS_SEUIL_EUR)) ? parseFloat(process.env.OPMSG_SMS_SEUIL_EUR) : SEUIL_SMS_EUR;
+    if (j.instance === 'prod' && j.sms.mode !== 'ovh') p.push('les SMS sont éteints en production (mode « ' + String(j.sms.mode).replace(/[^a-z]/g, '') + ' ») — plus personne ne peut s\'inscrire');
+    if (typeof j.sms.coutJourEur === 'number' && j.sms.coutJourEur > seuilEur) p.push('SMS : ' + j.sms.coutJourEur + ' € dépensés en 24 h (seuil ' + seuilEur + ' €) — une fraude au SMS ? regarder la répartition par pays');
+    if (typeof j.sms.budgetJourPct === 'number' && j.sms.budgetJourPct >= SEUIL_SMS_PCT) p.push('SMS : ' + j.sms.budgetJourPct + ' % du budget du jour consommé');
+    if (typeof j.sms.budgetHeurePct === 'number' && j.sms.budgetHeurePct >= SEUIL_SMS_PCT) p.push('SMS : ' + j.sms.budgetHeurePct + ' % du budget de l\'heure consommé — un emballement ?');
+    if (typeof j.sms.boucliers === 'number' && j.sms.boucliers > 0) p.push('SMS : ' + j.sms.boucliers + ' pays en mode bouclier (preuve de travail) — une attaque, ou un vrai pic ?');
+    if (typeof j.sms.ovhEchecs === 'number' && j.sms.ovhEchecs >= SEUIL_SMS_ECHECS) p.push('SMS : ' + j.sms.ovhEchecs + ' envois de suite refusés ou perdus par OVH — clés, crédits ou expéditeur ?');
+    if (j.sms.refus && typeof j.sms.refus === 'object') {
+      const coupes = Object.entries(j.sms.refus).filter(([m, n]) => /^budget_/.test(m) && typeof n === 'number' && n > 0);
+      if (coupes.length) p.push('SMS : des inscriptions refusées faute de budget (' + coupes.map(([m, n]) => m.replace(/[^a-z_]/g, '') + ' ×' + n).join(', ') + ')');
+    }
   }
   return p;
 }

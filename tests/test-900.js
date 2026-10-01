@@ -64,7 +64,14 @@ console.log('\nAucun chemin d\'OP GESTION, aucun domaine tiers, aucune adresse d
     const c = code(p), nom = path.basename(p);
     if (/\/(opt|etc)\/teamop/.test(c) && !permis.has(nom)) interdits.push(nom + ' : chemin /opt|/etc/teamop');
     if (/firebase|firestore|googleapis|gstatic|google\.com|fcm\./i.test(c)) interdits.push(nom + ' : trace de Firebase / Google');
-    for (const m of c.matchAll(/https?:\/\/([a-zA-Z0-9.-]+)/g)) if (!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(m[1])) interdits.push(nom + ' : adresse ' + m[1]);
+    /* ⛔ UNE SEULE EXCEPTION, NOMMÉE : `sms-ovh.js` porte les trois points d'entrée de l'API d'OVHcloud (Europe, Canada, États-Unis) — le
+       prestataire SMS est une décision de Justin (1er octobre 2026), et la production refuse toute autre base (nos clés de signature ne
+       partent pas ailleurs). Tout autre fichier, et tout autre hôte dans celui-là, reste interdit. */
+    for (const m of c.matchAll(/https?:\/\/([a-zA-Z0-9.-]+)/g)) {
+      if (/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(m[1])) continue;
+      if (nom === 'sms-ovh.js' && /^(?:eu|ca)\.api\.ovh\.com$|^api\.us\.ovhcloud\.com$/.test(m[1])) continue;
+      interdits.push(nom + ' : adresse ' + m[1]);
+    }
     for (const m of c.matchAll(/\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/g)) if (m[1] !== '127.0.0.1') interdits.push(nom + ' : adresse IP ' + m[1]);
     if (/teamop\.fr/i.test(c)) interdits.push(nom + ' : domaine teamop.fr en dur');
   }

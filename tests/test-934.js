@@ -28,7 +28,7 @@ const code = sansCommentairesJs(fs.readFileSync(FICHIER, 'utf8'));
 vrai('une fois les commentaires retirés il reste du code (sinon les motifs ci-dessous passeraient sur du néant)', code.split('\n').filter(l => l.trim()).length > 40);
 v('le module n\'a rien lancé en étant chargé (main ne tourne que lancé en direct)', typeof S.evaluer, 'function');
 
-const SAIN = { ok: true, instance: 'beta', sha: 'a'.repeat(40), sauvegarde: { configuree: true, ageH: 0.5, essaiJours: 12 }, stripeEchecMin: 0 };
+const SAIN = { ok: true, instance: 'beta', sha: 'a'.repeat(40), sauvegarde: { configuree: true, ageH: 0.5, essaiJours: 12 }, stripeEchecMin: 0, sms: { mode: 'journal', envoyes24h: 3, coutJourEur: 0.2, budgetJourPct: 1, budgetHeurePct: 0, boucliers: 0, ovhEchecs: 0, refus: {} } };
 
 /* ══ 1. L'ÉVALUATION ═════════════════════════════════════════════════════════════════════════════════ */
 v('un /health sain ne fait rien crier', S.evaluer(SAIN, 'beta'), []);
@@ -36,7 +36,7 @@ v('   un /health minimal (ok, instance, sha) — ce que le contrat garantit — 
 vrai('⛔ ok:false crie', S.evaluer(Object.assign({}, SAIN, { ok: false }), 'beta').some(p => /ok n'est pas vrai/.test(p)));
 vrai('⛔ ok absent crie aussi (un service qui ne le dit pas n\'est pas sain)', S.evaluer({ instance: 'beta', sha: 'a'.repeat(40) }, 'beta').length >= 1);
 vrai('⛔ une instance qui n\'est pas celle du domaine crie (la production derrière le domaine de la bêta)', S.evaluer(Object.assign({}, SAIN, { instance: 'prod' }), 'beta').some(p => /mauvais service/.test(p)));
-vrai('   sans instance attendue, on ne compare pas (un domaine inconnu ne fait pas crier à tort)', S.evaluer(Object.assign({}, SAIN, { instance: 'prod' }), null).length === 0);
+vrai('   sans instance attendue, on ne compare pas (un domaine inconnu ne fait pas crier à tort)', S.evaluer(Object.assign({}, SAIN, { instance: 'prod', sms: Object.assign({}, SAIN.sms, { mode: 'ovh' }) }), null).length === 0);   // (en production, un mode SMS autre qu'« ovh » crie : c'est la ligne 8 ci-dessous)
 vrai('⛔ un sha absent crie (le déployeur n\'a pas posé OPMSG_SHA)', S.evaluer({ ok: true, instance: 'beta' }, 'beta').some(p => /sha/.test(p)));
 vrai('   un sha illisible aussi', S.evaluer(Object.assign({}, SAIN, { sha: 'zzz' }), 'beta').some(p => /sha/.test(p)));
 vrai('   un sha abrégé (7 caractères) est accepté : le déployeur le tolère aussi', S.evaluer(Object.assign({}, SAIN, { sha: 'abc1234' }), 'beta').length === 0);
