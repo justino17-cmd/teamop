@@ -139,6 +139,21 @@ const cookieAppareil = (c) => { const m = /(?:^|; )opma=([^;]+)/.exec(c.enteteCo
       vrai('   (et un seul SMS est parti, vers le numéro SANS zéro)', ovh.jobs.filter(j => j.numero === '+2189' + corps).length === 1 && ovh.jobs.filter(j => j.numero === '+21809' + corps).length === 0);
     }
 
+    /* ═══ 5 bis. LA COURSE : UN SEUL SMS, UN SEUL SUCCÈS ═════════════════════════════════════════════════════════════════ */
+    console.log('\n── 919 · la course : quarante demandes simultanées pour un numéro envoient UN SMS ; dix preuves simultanées du même code : UN succès ──');
+    {
+      const N = TEL.numeroBE(), c = T.client(base, { xff: TEL.reseauNeuf() });
+      await c.post('/api/tel/verifier', { numero: N, code: '000000' });   // un navigateur a UN cookie d'appareil : on le pose avant la course (quarante réponses en poseraient quarante)
+      const jobs = ovh.jobs.length;
+      const reps = await Promise.all(Array.from({ length: 40 }, () => c.post('/api/tel/code', { numero: N })));
+      const comptes = {}; for (const r of reps) comptes[r.code] = (comptes[r.code] || 0) + 1;
+      v('⛔ quarante demandes simultanées pour le même numéro : UN SMS (les autres → 429), plafond réservé dans la transaction', [comptes[200], comptes[429], ovh.jobs.length - jobs], [1, 39, 1]);
+      const code = await svc.code(N);
+      const ver = await Promise.all(Array.from({ length: 10 }, () => c.post('/api/tel/verifier', { numero: N, code, prenom: 'Course' })));
+      const ok = ver.filter(r => r.code === 200).length;
+      v('⛔ dix preuves simultanées du même code (le même appareil) : EXACTEMENT un succès (usage unique)', [ok, ver.filter(r => r.code === 401).length], [1, 9]);
+    }
+
     /* ═══ 6. L'ÉLAGAGE TOURNE ════════════════════════════════════════════════════════════════════════════════════════════ */
     console.log('\n── 919 · l\'ÉLAGAGE tourne : les empreintes d\'un numéro non inscrit et les plafonds ne restent pas indéfiniment ──');
     {
