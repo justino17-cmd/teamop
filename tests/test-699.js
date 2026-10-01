@@ -103,7 +103,16 @@ console.log('\n── 699 · mot de passe + e-mail obligatoires, apparence parta
      inscription d'une entreprise se voyait répondre, 600 ms après avoir choisi son mot de
      passe, « Sécurité — active ton accès : choisis un mot de passe DIFFÉRENT ». Ça ne bloquait
      pas — mais c'était le premier contact d'un client avec le produit. */
-  v('⛔ la création du compte administrateur marque la campagne', /admin\.actif=true; admin\.secu=SECU_MDP;/.test(APP), true);
+  /* ⛔ LE FORMULAIRE « CRÉEZ VOTRE COMPTE ADMINISTRATEUR » N'EXISTE PLUS (1er octobre 2026, 9014b4f) :
+     Justin, « c'est à nous de créer leur lien de connexion et leur espace » — l'administrateur naît dans la
+     Tour, avec un mot de passe PROVISOIRE (`mustChangePwd`), donc la campagne s'impose à sa première connexion
+     par `secuAFaire` (testé plus haut : un compte sans `secu` est retenu). Ce contrôle gardait « le chemin
+     marque la campagne » ; il garde désormais que le chemin n'a pas REVENU : un formulaire de création qui
+     reviendrait écrirait un administrateur dans le navigateur, hors de la Tour — et devrait marquer la campagne. */
+  v('⛔ le formulaire de création du compte administrateur n\'existe plus (la Tour le crée)',
+    /function (renderCreateAdmin|submitCreateAdmin|renderCreateAdminAttente)\(/.test(APP), false);
+  v('⛔ … et aucun chemin n\'écrit un administrateur actif dans le navigateur sans marquer la campagne',
+    /admin\.actif=true/.test(APP) ? /admin\.actif=true; admin\.secu=SECU_MDP;/.test(APP) : true, true);
   v('⛔ le rattachement d’un compte teamop.fr aussi', /_site\.pwdHash=await sha256\(pin\); _site\.secu=SECU_MDP;/.test(APP), true);
 }
 

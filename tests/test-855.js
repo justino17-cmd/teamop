@@ -105,8 +105,16 @@ console.log('2. trois rendus, une source');
   vrai('#options et #comparatif existent dans l\'aperçu', /id="options"/.test(APER) && /id="comparatif"/.test(APER));
 }
 
+/* ⛔ L'APPLICATION D'AVANT LES OPTIONS, FABRIQUÉE À PARTIR DE LA VRAIE. Ce banc jouait « app.html + une déclaration
+   en plus » tant que app.html ne connaissait pas les options. Depuis la v768 elle les DÉCLARE (vraiment) : la lecture
+   rend la première déclaration, la vraie, et les fixtures qui s'y ajoutaient n'étaient plus lues (7 ✗ le 1er octobre). On
+   rend donc à la fixture une application SANS déclaration — la vraie, dont la constante est renommée — et la déclaration
+   jouée vient d'elle seule. Un renommage qui ne trouverait rien se DIT (population). */
+const APP_REELLE = lire('app.html');
+const APP_SANS = APP_REELLE.replace(/^([ \t]*)const OPTIONS_GESTION=/m, '$1const OPTIONS_GESTION_RENOMMEE=');
 console.log('3. LA RACINE NE CHANGE PAS');
 {
+  vrai('(population) la fixture « sans options » est bien l\'application SANS déclaration, et la vraie en porte une', APP_SANS !== APP_REELLE && GEN.lireOptionsApp(APP_SANS) === null && Object.keys(GEN.lireOptionsApp(APP_REELLE) || {}).length === 4);
   const cles = Object.keys(GEN.PAGES);
   const changees = cles.filter(c => GEN.page(c, { racine: true }) !== lire(c + '.html'));
   v('population : ' + cles.length + ' pages à la racine', cles.length, 19);
@@ -114,15 +122,15 @@ console.log('3. LA RACINE NE CHANGE PAS');
   vrai('la racine n\'a ni bloc d\'options, ni tableau, ni ancre #options, ni carte détaillée', !/id="options"|id="comparatif"|suite-gestion|class="groupe|class="an"/.test(RAC) && !/tarifs\.html#(options|comparatif)/.test(GEN.page('index', { racine: true })));
   const APP_OPTIONS = 'const OPTIONS_GESTION={\n  stock:{l:\'Stock\',prix:9,vues:[\'produits\',\'stock\',\'mouvements\',\'saisieConso\',\'boxes\',\'carteBox\',\'produitsDonnes\',\'demandes\',\'histoDemandes\',\'brouillon\',\'validations\']},\n  achats:{l:\'Achats\',prix:6,vues:[\'fournisseurs\',\'bons\',\'commandes\',\'boiteMail\']},\n  compta:{l:\'Compta\',prix:6,vues:[\'comptabilite\',\'telecollecte\',\'enveloppes\']},\n  sanitaire:{l:\'Registre\',prix:6,vues:[\'registre\',\'produits\'],metier3d:true}\n};\n';
   vrai('(population) la fixture d\'une application qui connaît les options est lue : 4 options', Object.keys(GEN.lireOptionsApp(APP_OPTIONS) || {}).length === 4);
-  vrai('⛔ MÊME UNE application qui les connaît ne les met pas à la racine sans le geste « --options » (page identique à celle d\'avant)', GEN.page('tarifs', { racine: true, appSrc: lire('app.html') + '\n' + APP_OPTIONS }) === RAC);
-  const avec = GEN.page('tarifs', { racine: true, options: true, appSrc: lire('app.html') + '\n' + APP_OPTIONS });
+  vrai('⛔ MÊME UNE application qui les connaît ne les met pas à la racine sans le geste « --options » (page identique à celle d\'avant)', GEN.page('tarifs', { racine: true, appSrc: APP_SANS + '\n' + APP_OPTIONS }) === RAC);
+  const avec = GEN.page('tarifs', { racine: true, options: true, appSrc: APP_SANS + '\n' + APP_OPTIONS });
   vrai('… avec le geste ET une application qui les connaît, la racine les montre', /id="options"/.test(avec) && /id="comparatif"/.test(avec) && /href="\/recap-abonnement\.html\?formule=pro&amp;options=stock"/.test(avec) && !/\/apercu\//.test(avec.replace(/<meta name="robots"[^>]*>/, '')));
-  jette('⛔ « --options » sur une application qui ne les connaît pas : le générateur refuse', () => GEN.page('tarifs', { racine: true, options: true }), /ne déclare pas OPTIONS_GESTION/);
+  jette('⛔ « --options » sur une application qui ne les connaît pas : le générateur refuse', () => GEN.page('tarifs', { racine: true, options: true, appSrc: APP_SANS }), /ne déclare pas OPTIONS_GESTION/);
 }
 
 console.log('4. le verrou : le site ne vend pas ce que l\'application ne livre pas');
 {
-  const app = lire('app.html');
+  const app = APP_SANS;
   const base = o => 'const OPTIONS_GESTION={' + Object.entries(o).map(([k, x]) => k + ':{prix:' + x[0] + ',vues:[' + x[1].map(s => "'" + s + "'").join(',') + ']}').join(',') + '};\n';
   const V = { stock: [9, GEN.OPTIONS_SITE[0].vues], achats: [6, GEN.OPTIONS_SITE[1].vues], compta: [6, GEN.OPTIONS_SITE[2].vues], sanitaire: [6, GEN.OPTIONS_SITE[3].vues] };
   const sans = k => { const o = { ...V }; delete o[k]; return o; };
@@ -134,6 +142,10 @@ console.log('4. le verrou : le site ne vend pas ce que l\'application ne livre p
     jette('(' + ou + ') un prix différent : refus', () => GEN.page('tarifs', { ...o, appSrc: app + '\n' + base({ ...V, stock: [7, V.stock[1]] }) }), /« stock » : le site la vend 9 €, app\.html 7 €/);
     jette('(' + ou + ') d\'autres écrans : refus', () => GEN.page('tarifs', { ...o, appSrc: app + '\n' + base({ ...V, achats: [6, ['bons']] }) }), /« achats » : le site dit qu'elle ouvre/);
   }
+  // la VRAIE déclaration d'app.html : la garde la lit et la laisse passer ; la moindre dérive de SA grille la fait refuser
+  jette('⛔ la vraie app.html dont l\'option Stock passe à 7 € : refus', () => GEN.page('tarifs', { racine: false, appSrc: APP_REELLE.replace("stock:{l:'Stock',prix:9,", "stock:{l:'Stock',prix:7,") }), /« stock » : le site la vend 9 €, app\.html 7 €/);
+  jette('⛔ la vraie app.html dont l\'option Compta perd un écran : refus', () => GEN.page('tarifs', { racine: false, appSrc: APP_REELLE.replace("vues:['comptabilite','telecollecte','enveloppes']", "vues:['comptabilite','telecollecte']") }), /« compta » : le site dit qu'elle ouvre/);
+  vrai('la vraie app.html passe la garde (aperçu et racine avec le geste)', GEN.page('tarifs', { racine: false, appSrc: APP_REELLE }).includes('id="options"') && GEN.page('tarifs', { racine: true, options: true, appSrc: APP_REELLE }).includes('id="options"'));
   // la lecture ne se laisse pas tromper : un commentaire, une apostrophe, une accolade dans une chaîne
   v('un commentaire de ligne qui cite la constante ne la déclare pas', GEN.lireOptionsApp('// const OPTIONS_GESTION = { stock:{prix:9} };\nconst x=1;'), null);
   v('un commentaire de bloc en début de ligne non plus', GEN.lireOptionsApp('/* const OPTIONS_GESTION = { stock:{prix:9} }; */\nconst x=1;'), null);

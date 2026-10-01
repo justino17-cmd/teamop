@@ -5385,7 +5385,7 @@ var PACK={nom:'',charge:false,err:'',d:null};
    sanitaire s'ajoutent à la formule Pro ; Business et Business Premium les ont toutes. La Tour les MONTRE (ce que
    l'application reçoit, et les lignes d'option chez Stripe) et les RÈGLE à la main avec l'abonnement. Quatre règles :
    · une option ne se lit que dans les champs du serveur (`optionsServies` : ce que l'application reçoit ; `options` : ce que
-     TEAM OP a réglé ; `optionsLignes` : les lignes d'option Stripe) — jamais déduite d'un nom ou d'un montant ;
+     TEAM OP a réglé ; `optionsStripe` : les lignes d'option Stripe) — jamais déduite d'un nom ou d'un montant ;
    · ⛔ un serveur qui ne rend aucun de ces champs (« d'avant », ou un doute) : la Tour SE TAIT — pas de cases, pas de ligne,
      pas de pastille, et l'enregistrement n'envoie pas `options` (l'ancien réglage reste tel quel) ;
    · une option réglée à la main ne vaut que sous Pro + Actif/En essai : hors de là les cases sont grisées et l'enregistrement
@@ -5418,7 +5418,7 @@ function optsPastilles(o){
 }
 /* les lignes d'option chez Stripe : « Stock ×3 (payée) · Achats ×2 (impayée) » */
 function optsLignesTexte(d){
-  var L=d&&Array.isArray(d.optionsLignes)?d.optionsLignes:null; if(!L) return '';
+  var L=d&&Array.isArray(d.optionsStripe)?d.optionsStripe:null; if(!L) return '';
   return L.filter(function(x){ return x&&typeof x==='object'; }).map(function(x){
     var q=parseInt(x.quantite,10), st=Object.prototype.hasOwnProperty.call(OPT_ST,x.statut)?OPT_ST[x.statut]:(x.statut||'?');
     return esc(optsLib(x.cle))+(q>0?' ×'+q:'')+' ('+esc(st)+')'; }).join(' · ');

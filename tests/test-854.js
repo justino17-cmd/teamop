@@ -8,7 +8,7 @@
    Ce banc fait parler les VRAIES fonctions de rendu et d'envoi de `tour.html` (`packPeindre`, `optsPeindre`,
    `tourPackPrefill`, `tourAboEnregistrer`, `apiPost`…, extraites du fichier livré, jamais recopiées) à un serveur de
    référence écrit d'après le CONTRAT (`/api/monitor/espaces/statut`, `/abonnement`, `/liste` ; champs `optionsServies`,
-   `options`, `optionsLignes`) — en deux versions : « neuf » et « d'avant » (le même, sans ces champs). Le DOM de la fiche est
+   `options`, `optionsStripe`) — en deux versions : « neuf » et « d'avant » (le même, sans ces champs). Le DOM de la fiche est
    fabriqué à partir des `id` du balisage que la Tour écrit elle-même (`optsCasesHtml`) : une case retirée du balisage tombe ici.
    Le serveur du dépôt ne connaît pas encore les options quand ce banc est écrit : la COUTURE réelle (les noms de champs lus par
    la Tour contre ceux que `server/index.js` écrit) se contrôle dès que le serveur les porte — ce banc le dit sans le compter
@@ -84,7 +84,7 @@ const serveur = http.createServer((req, res) => {
     const rep = (s, o) => { res.writeHead(s, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
     if (req.headers.authorization !== 'Bearer ' + TOKEN) return rep(401, { error: 'non' });
     let b = {}; try { b = JSON.parse(corps || '{}'); } catch (e) {}
-    const vue = e => { const o = Object.assign({}, e); if (MODE === 'avant') { delete o.options; delete o.optionsServies; delete o.optionsLignes; } return o; };
+    const vue = e => { const o = Object.assign({}, e); if (MODE === 'avant') { delete o.options; delete o.optionsServies; delete o.optionsStripe; } return o; };
     if (req.url === '/api/monitor/espaces/statut') return ET[b.nom] ? rep(200, vue(ET[b.nom])) : rep(404, { error: 'inconnu' });
     if (req.url === '/api/monitor/espaces/liste') return rep(200, { espaces: Object.keys(ET).map(n => Object.assign({ nom: n, t: 't-' + n }, vue(ET[n]))) });
     if (req.url === '/api/monitor/espaces/abonnement') {
@@ -139,10 +139,10 @@ const txt = h => String(h).replace(/<[^>]+>/g, '').replace(/ /g, ' ');
     [T0.ctx.optsLib('sanitaire'), T0.ctx.optsLib('compta', 1), T0.ctx.optsLib('zeta'), T0.ctx.optsLib('constructor'), T0.ctx.optsLib('__proto__', 1), T0.ctx.optsLib(null)],
     ['Registre sanitaire (3D)', 'Compta', 'zeta', 'constructor', '__proto__', '']);
   v('les lignes Stripe : « Stock ×3 (payée) · Achats ×2 (impayée) » ; un statut inconnu reste lisible ; une clé hostile est échappée',
-    txt(T0.ctx.optsLignesTexte({ optionsLignes: [{ cle: 'stock', quantite: 3, statut: 'active' }, { cle: 'achats', quantite: 2, statut: 'past_due' }, { cle: '<b>x</b>', quantite: 1, statut: 'constructor' }, null] })),
+    txt(T0.ctx.optsLignesTexte({ optionsStripe: [{ cle: 'stock', quantite: 3, statut: 'active' }, { cle: 'achats', quantite: 2, statut: 'past_due' }, { cle: '<b>x</b>', quantite: 1, statut: 'constructor' }, null] })),
     'Stock ×3 (payée) · Achats fournisseurs ×2 (impayée) · &lt;b&gt;x&lt;/b&gt; ×1 (constructor)');
-  vrai('   … et la clé hostile ne devient JAMAIS une balise', !/<b>x<\/b>/.test(T0.ctx.optsLignesTexte({ optionsLignes: [{ cle: '<b>x</b>', quantite: 1, statut: 'active' }] })));
-  v('   pas de lignes (serveur d\'avant) : rien', [T0.ctx.optsLignesTexte({}), T0.ctx.optsLignesTexte({ optionsLignes: 'x' })], ['', '']);
+  vrai('   … et la clé hostile ne devient JAMAIS une balise', !/<b>x<\/b>/.test(T0.ctx.optsLignesTexte({ optionsStripe: [{ cle: '<b>x</b>', quantite: 1, statut: 'active' }] })));
+  v('   pas de lignes (serveur d\'avant) : rien', [T0.ctx.optsLignesTexte({}), T0.ctx.optsLignesTexte({ optionsStripe: 'x' })], ['', '']);
 
   console.log('\n3. La pastille de la liste (vraie `optsPastilles`)');
   const past = o => (T0.ctx.optsPastilles(o).match(/class="opt-p"[^>]*>[^<]*/g) || []).map(x => x.replace(/^.*>/, ''));
@@ -168,7 +168,7 @@ const txt = h => String(h).replace(/<[^>]+>/g, '').replace(/ /g, ' ');
   F.peindre({ formule: 'pro', quantite: 3, aboStatut: 'actif', paye: true, places: 3 });
   vrai('⛔ SERVEUR D\'AVANT (aucun champ d\'option) : le bloc reste CACHÉ — la Tour se tait', F.E['abo-opts'].hidden === true && F.E['abo-opts-info'].innerHTML === '', JSON.stringify(F.E['abo-opts']));
   F.E['abo-f'].value = 'pro'; F.E['abo-st'].value = 'actif';
-  F.peindre({ formule: 'pro', quantite: 3, aboStatut: 'actif', paye: true, formuleServie: 'pro', places: 3, options: ['stock'], optionsServies: ['stock'], optionsLignes: [{ cle: 'stock', quantite: 3, statut: 'active' }] });
+  F.peindre({ formule: 'pro', quantite: 3, aboStatut: 'actif', paye: true, formuleServie: 'pro', places: 3, options: ['stock'], optionsServies: ['stock'], optionsStripe: [{ cle: 'stock', quantite: 3, statut: 'active' }] });
   v('serveur neuf, Pro actif, réglé à la main : Stock coché, les trois autres non, les cases ouvertes', [F.E['abo-opts'].hidden, F.cases().map(c => c.checked), F.cases().map(c => c.disabled)], [false, [true, false, false, false], [false, false, false, false]]);
   v('   la ligne dit les options servies ET la ligne Stripe', txt(F.E['abo-opts-info'].innerHTML), 'Options servies à l’application : Stock · lignes Stripe : Stock ×3 (payée)');
   vrai('   et la fiche garde son texte habituel (formule, statut, places)', /Formule actuelle : Pro ×3 · statut : activé par TEAM OP/.test(txt(F.E['pack-info'].innerHTML)) && /places servies : 3/.test(txt(F.E['pack-info'].innerHTML)));
@@ -176,7 +176,7 @@ const txt = h => String(h).replace(/<[^>]+>/g, '').replace(/ /g, ' ');
   F.peindre({ formule: 'business', quantite: 2, aboStatut: 'actif', paye: true, formuleServie: 'business', options: [], optionsServies: [] });
   v('⛔ Business : toutes les options sont incluses, et les cases sont GRISÉES (une option réglée à la main exige Pro)', [txt(F.E['abo-opts-info'].innerHTML), F.cases().map(c => c.disabled)], ['Toutes les options sont incluses dans Business', [true, true, true, true]]);
   F.E['abo-f'].value = 'pro'; F.E['abo-st'].value = 'auto';
-  F.peindre({ formule: 'pro', quantite: 2, aboStatut: 'auto', paye: true, formuleServie: 'pro', options: [], optionsServies: ['achats', 'compta'], optionsLignes: [{ cle: 'achats', quantite: 2, statut: 'active' }, { cle: 'compta', quantite: 2, statut: 'trialing' }] });
+  F.peindre({ formule: 'pro', quantite: 2, aboStatut: 'auto', paye: true, formuleServie: 'pro', options: [], optionsServies: ['achats', 'compta'], optionsStripe: [{ cle: 'achats', quantite: 2, statut: 'active' }, { cle: 'compta', quantite: 2, statut: 'trialing' }] });
   v('Pro en statut automatique (Stripe) : les options servies se lisent, les cases sont grisées', [txt(F.E['abo-opts-info'].innerHTML), F.cases().map(c => c.disabled), F.cases().map(c => c.checked)],
     ['Options servies à l’application : Achats fournisseurs, Encaissements et compta · lignes Stripe : Achats fournisseurs ×2 (payée) · Encaissements et compta ×2 (en essai)', [true, true, true, true], [false, false, false, false]]);
   F.E['abo-st'].value = 'essai';
@@ -194,7 +194,7 @@ const txt = h => String(h).replace(/<[^>]+>/g, '').replace(/ /g, ' ');
   vrai('   une fiche en erreur ou en chargement ne touche pas au bloc (et ne jette rien)', true);
 
   console.log('\n5. Enregistrer (vraie `tourAboEnregistrer`, vrai `apiPost` sur le réseau) contre le serveur de référence');
-  const nouveau = (nom, o) => { ET[nom] = Object.assign({ formule: 'pro', quantite: 3, aboStatut: 'actif', aboFin: '', paye: true, formuleServie: 'pro', options: [], optionsServies: [], optionsLignes: [] }, o); };
+  const nouveau = (nom, o) => { ET[nom] = Object.assign({ formule: 'pro', quantite: 3, aboStatut: 'actif', aboFin: '', paye: true, formuleServie: 'pro', options: [], optionsServies: [], optionsStripe: [] }, o); };
   const enregistrer = async (A, nom) => { const n = RECU.length, nt = A.toasts.length; A.ctx.tourAboEnregistrer(nom, null); await A.attendre(() => A.toasts.length > nt && RECU.length > n); await new Promise(r => setTimeout(r, 30)); return RECU[RECU.length - 1]; };
   MODE = 'neuf'; REFUS = '';
   nouveau('plombier', {});
@@ -238,7 +238,7 @@ const txt = h => String(h).replace(/<[^>]+>/g, '').replace(/ /g, ' ');
   console.log('\n7. La couture réelle (serveur du dépôt)');
   if (!SERVEUR_A_LES_OPTIONS) console.log('  … le serveur de cet arbre ne porte pas encore `optionsServies` : les noms de champs lus par la Tour ne sont pas comparés aux siens (non compté — le banc se resserre seul dès qu\'il les porte)');
   else {
-    for (const champ of ['optionsServies', 'optionsLignes']) vrai('⛔ `' + champ + '` : le serveur l\'écrit, la Tour le lit', new RegExp('\\b' + champ + '\\b').test(SRVN) && new RegExp('\\b' + champ + '\\b').test(TOURN));
+    for (const champ of ['optionsServies', 'optionsStripe']) vrai('⛔ `' + champ + '` : le serveur l\'écrit, la Tour le lit', new RegExp('\\b' + champ + '\\b').test(SRVN) && new RegExp('\\b' + champ + '\\b').test(TOURN));
     vrai('⛔ `/api/monitor/espaces/abonnement` du serveur lit `options` du corps, comme la Tour l\'envoie', /\/api\/monitor\/espaces\/abonnement[\s\S]{0,3000}?\bb?\.?options\b/.test(SRVN));
   }
   serveur.close();
