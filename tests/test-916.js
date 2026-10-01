@@ -206,5 +206,24 @@ console.log('\n── 916 · la MIGRATION 2 : `personne` reconstruite sans perdr
   vrai('⛔ aucun numéro en clair n\'est un argument de ce module : toutes les fonctions du téléphone reçoivent une empreinte (`num_h`) ou l\'identifiant scellé', !/telCode\w*\(\s*\{?\s*numero/.test(stockSrc) && !/function tel\w+\(\s*\{?\s*numero/.test(stockSrc));
 }
 
+console.log('\n── 916 · la MIGRATION 2 refuse une base qui a des lignes orphelines (et ne la laisse pas à moitié migrée) ──');
+{
+  const chemin = path.join(bac, 'orpheline.db'), kek = crypto.randomBytes(32), h = { t: 1790000000000 };
+  const v1 = ouvrir({ chemin, scelleur: creerScelleur(kek), horloge: () => h.t, migrations: MIGRATIONS.slice(0, 1) });
+  v1.personneCreer({ identifiant: 'beta:alice', prenom: 'Alice', nom: 'A', origine: 'beta', verifie: true });
+  v1.fermer();
+  const brut = new DatabaseSync(chemin);
+  brut.exec('PRAGMA foreign_keys = OFF');
+  brut.prepare('INSERT INTO session(h, personne, appareil, cree, vu, exp) VALUES(?, ?, ?, ?, ?, ?)').run('o'.repeat(64), 'p_' + 'f'.repeat(32), 'x', 1, 1, 9e15);
+  const orphelins = brut.prepare('PRAGMA foreign_key_check').all().length;
+  brut.close();
+  vrai('la population : la base d\'avant porte ' + orphelins + ' ligne orpheline (session d\'une personne qui n\'existe pas)', orphelins === 1);
+  v('⛔ la migration REFUSE (`migration_orphelins`) plutôt que de reconstruire `personne` au-dessus d\'un lien cassé', lance(() => ouvrir({ chemin, scelleur: creerScelleur(kek), horloge: () => h.t })), 'migration_orphelins migration_orphelins');
+  const apres = new DatabaseSync(chemin);
+  v('⛔ et elle ne laisse rien à moitié fait : la base est toujours au schéma 1, la table `personne` d\'origine est là, aucune table neuve', [apres.prepare('PRAGMA user_version').get().user_version, apres.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name IN ('personne', 'code_tel', 'sms_envoi')").get().n], [1, 1]);
+  vrai('   et la copie « avant-v2 » existe (on peut revenir)', fs.existsSync(chemin + '.avant-v2'));
+  apres.close();
+}
+
 fs.rmSync(bac, { recursive: true, force: true });
 fin();

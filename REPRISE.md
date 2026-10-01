@@ -118,7 +118,7 @@ Rien d'installé ni de poussé sur `main` ; restent ouverts D11, G12, G14, G15, 
 (207 destinations d'OVH), `sms-ovh.js` (signature « $1$ » faite main), `configurer-sms.js` (clés en saisie masquée, éprouvées avant
 d'être écrites). Migration 2 de `stockage.js` (table `personne` reconstruite). Conception et chiffres : `design/opmessages/SERVEUR.md`
 § étape 2 ; gestes de Justin chez OVH et coût de 1 000 / 10 000 inscriptions : `INSTALLER-LE-SERVEUR.md` § 10 bis. Bancs `test-912`
-à `918` + `tests/mutations-telephone.js` (48 mutations sur copie). ⚠️ **NON VÉRIFIÉ : un SMS réel** (aucun compte OVH dans le dépôt, le
+à `918` + `tests/mutations-telephone.js` (48 mutations sur copie, 48/48 tombent). ⚠️ **NON VÉRIFIÉ : un SMS réel** (aucun compte OVH dans le dépôt, le
 banc joue un faux OVH qui recalcule la signature) ; **non construits** : l'interface (autre équipe), l'appel vocal (on ne sait pas si
 OVH le permet), les clés d'accès WebAuthn (proposées à Justin comme étape suivante), le changement de numéro, la suppression de compte
 (devra effacer `appareil_tel`), le Pro par lien de connexion (étape 5). Défauts de budget par pays prudents (3 €/jour : 2 SMS russes) :

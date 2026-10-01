@@ -187,9 +187,15 @@ const { MIN, HEURE, JOUR } = TEL;
     {
       const n = TEL.numeroBE(), c = await TEL.inscrire(svc, n, 'Denis');
       const jobs = ovh.jobs.length;
+      const jetonAppareil = /opma=([^;]+)/.exec(c.enteteCookie())[1];
+      vrai('(population : le client porte bien un jeton d\'appareil avant de se déconnecter)', /^opd_/.test(jetonAppareil));
       const sortie = await c.post('/api/compte/deconnexion', {});
-      v('POST /api/compte/deconnexion → 200', sortie.code, 200);
+      v('POST /api/compte/deconnexion → 200, et le cookie d\'appareil est effacé du navigateur', [sortie.code, /opma=/.test(c.enteteCookie())], [200, false]);
       v('⛔ le jeton d\'appareil ne reconnecte plus', (await c.post('/api/tel/appareil', {})).code, 401);
+      /* ⛔ Le cookie EFFACÉ côté navigateur ne prouve rien : un jeton RECOPIÉ (volé avant la déconnexion) doit être mort CÔTÉ SERVEUR. */
+      const rejoue = T.client(base, { xff: ip() });
+      rejoue.absorber({ headers: { getSetCookie: () => ['opma=' + jetonAppareil + '; Path=/'] } });
+      v('⛔ le même jeton RECOPIÉ à la main (un cookie volé avant la déconnexion) → 401 : il est coupé côté serveur, pas seulement effacé du navigateur', (await rejoue.post('/api/tel/appareil', {})).code, 401);
       svc.avancer(61 * 1000);
       const r = await c.post('/api/tel/code', { numero: n });
       v('et se reconnecter DEMANDE un SMS (aucun raccourci après une déconnexion volontaire)', [r.code, r.j.connecte, ovh.jobs.length], [200, undefined, jobs + 1]);
