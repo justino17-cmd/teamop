@@ -127,6 +127,13 @@ mêmes lots ; **« prends plein d'idées que les autres font, pour gagner le mar
 feuille de route, dix en tête ★ ; en attente de Justin : 51 prix d'entrée, 66 pont WhatsApp, 69 promesse sur l'identité) ; **« l'application sera
 sur l'App Store »** → lot I (enveloppe native, CallKit, carnet d'adresses, règles d'Apple qui coûtent) ; et **« J'ai les deux »** :
 Justin a DÉJÀ le compte Apple Developer et un Mac — on compile et on signe chez lui ; reste à ouvrir le compte Google Play.
+Puis : **« à 15 €, la différence c'est qu'on a tout le système comme Zoom, qui n'est pas payant comme Zoom […] des réunions qui
+peuvent durer plus d'une heure, elle s'arrête que quand l'admin coupe ; il faut que les 15 € soient bien justifiés, et que ce
+soit bien pour les entreprises ; après on peut faire des options un peu moins chères ; s'il faut baisser, une formule à 5 € pour
+les petites entreprises avec un genre de Zoom illimité ; propose-moi tout ce qu'on peut rajouter — la meilleure application de
+communication pour le travail, mieux que WhatsApp qui bugue comme jamais »** → réunions SANS limite de durée (seul l'hôte ou
+l'administrateur coupe) ; une offre complète est en préparation (`design/opmessages/OFFRE-PRO.md`) : grille, options, coût réel,
+fiabilité ; la formule à 5 € et le prix des options attendent sa décision.
 ✅ **Serveur d'OP MESSAGES, étape 1 FAITE sur la branche** (fusion `d70ba05`) : `server-msg/` (node:sqlite, scellé AES-256-GCM,
 SSE, porte bêta par la Tour en boucle locale, groupes, lu, saisie, présence), son installation (`install-msg.sh`, unité durcie,
 utilisateur `opmsg`), son déploiement (`.github/workflows/deploiement-messages.yml`, une clé SSH par instance) et le mode
