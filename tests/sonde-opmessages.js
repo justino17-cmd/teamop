@@ -1473,6 +1473,19 @@ async function corrContrastes(b, base) {
   }
 }
 
+/* le libellé d'un onglet inactif est posé sur du VERRE : après la création d'un groupe (une rangée de plus, la bannière descendue) la liste passe autrement sous la barre */
+async function corrListeApresCreation(b, base) {
+  titre('la liste après la création d\'un groupe, de nuit (rangées claires derrière la barre d\'onglets)');
+  for (const pf of [PROFILS.iphone, PROFILS.android360]) {
+    const S = await nouvelle(b, base, pf, { dark: true, nom: pf.nom + ' nuit' });
+    await geste(S, '#btn-groupe'); await dormir(800);
+    await geste(S, '#g-contacts .contact[data-id="c1"]'); await geste(S, '#g-creer'); await dormir(1400);
+    await contrasteTout(S, S.nom + ' · liste après création (bannière descendue)', { attente: 100, minimum: 12 });
+    await contrasteTout(S, S.nom + ' · liste après création (bannière partie)', { attente: 3200, minimum: 12 });
+    await S.fermer();
+  }
+}
+
 const CORRECTIFS = {
   'vocal-conv': (b, base) => corrVocalChangeConv(b, base),
   'double-toucher': async (b, base, F) => { for (const pf of [PROFILS.iphone, PROFILS.android360, PROFILS.bureau1440]) await corrDoubleToucher(b, base, F, pf); },
@@ -1485,7 +1498,8 @@ const CORRECTIFS = {
   'defilement-vues': (b, base) => corrDefilementVues(b, base),
   'couleurs-forcees': (b, base) => corrCouleursForcees(b, base),
   'etroit': (b, base) => corrEtroit(b, base),
-  'contrastes': (b, base) => corrContrastes(b, base)
+  'contrastes': (b, base) => corrContrastes(b, base),
+  'liste-defilee': (b, base) => corrListeApresCreation(b, base)
 };
 
 /* ══ LA FIN D'UN PARCOURS : les comptes ═══════════════════════════════════════════════════════════════════════════════════════════ */

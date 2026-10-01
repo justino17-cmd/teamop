@@ -29,6 +29,8 @@
    · --on-fill : l'encre posée sur --fill (bulle envoyée, pastille, flèche d'envoi) : une surface, une encre ;
    · --placeholder : le texte d'un champ VIDE, sur la matière du champ (--field, plus claire que la carte) : la légende de 11 px passe, le placeholder de 17 px posé sur
      ce fond tombait à 4,0–4,2:1 de nuit (lu au pixel, tout le texte de l'écran) ;
+   · --tab-inactif-fg : le libellé (11 px) d'un onglet inactif est posé sur du VERRE : sa lisibilité dépend de ce qui défile derrière la barre. De nuit, avec une rangée claire derrière,
+     le « secondaire » tombait à 4,0:1 (lu au pixel, liste défilée avec la bannière descendue) ;
    · --accent-txt et --side-actif-fg : l'accent de NUIT (#7ea2f0) est une couleur d'aplat, pas d'une lettre — posé en texte sur le décor bleu (« Modifier »,
      la pastille « Groupe ») il tombait à 4,2:1 et 3,6:1, et sur le fond vif de la barre latérale (saturate 180 %) à 2,65:1 (mesuré au pixel, 1er octobre 2026).
      Le texte prend sa propre teinte (jour : l'accent, qui passe) ; l'accent reste celui des aplats, des anneaux de focus et des contours. */
@@ -38,6 +40,7 @@
   --faint: rgba(14,26,63,.3);
   --sub-meta: rgba(14,26,63,.72);
   --placeholder: rgba(14,26,63,.72);
+  --tab-inactif-fg: rgba(14,26,63,.72);
   --accent: #2a4a9c;
   --accent-txt: #2a4a9c;
   --side-actif-fg: #2a4a9c;
@@ -86,6 +89,7 @@
     --faint: rgba(220,228,250,.32);
     --sub-meta: rgba(220,228,250,.78);
     --placeholder: rgba(236,241,255,.9);
+    --tab-inactif-fg: rgba(236,241,255,.9);
     --accent: #7ea2f0;
     --accent-txt: #c7d6fb;
     --side-actif-fg: #ffffff;
@@ -284,7 +288,7 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 }
 .tab {
   position: relative; z-index: 1; min-width: 0; min-height: 50px; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  color: var(--sub-meta); font-size: 11px; font-weight: 500; letter-spacing: .01em; transition: color .25s, transform .12s ease-out;
+  color: var(--tab-inactif-fg); font-size: 11px; font-weight: 500; letter-spacing: .01em; transition: color .25s, transform .12s ease-out;
 }
 .tab .ic { font-size: 24px; }
 .tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
