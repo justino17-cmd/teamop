@@ -39,6 +39,14 @@ réunions façon Zoom ; `design/opmessages/`, ordre en 5 étapes, « montre-moi 
 du 22 septembre tient : OP MESSAGES aura son propre serveur et ses comptes de personnes. Les écrans se construisent dans
 une page d'aperçu à part (`apercu/opmessages/`, données d'exemple, aucun appel réseau) ; rien ne touche `messages.html`.
 Étape 1 (liste Messages + groupes) en construction.
+Puis, même jour : **formules d'OP MESSAGES** — « un forfait gratuit comme il est là et un Pro à 15 euros ; lui à 25 on le
+supprime ; à 15 euros ils ont toutes les options » (Perso 0 €, Messages Pro 15 € avec tout ; Messages Business Premium
+retiré de la vente — ses lignes Stripe restent RECONNUES comme OP MESSAGES par le serveur) ; **« je veux un op message
+beta aussi »** (la nouvelle interface sur `messages-beta.html`, derrière les comptes bêta de la Tour) ; et **« OP MESSAGES
+je veux pas qu'il soit sur Firebase »**, avec le choix laissé (« sur le serveur aussi, ou si tu préfères je crée un nouveau
+serveur ») — choisi : **un service À PART sur le même VPS** (son propre processus, son port, son dossier de données, ses
+comptes de personnes, aucun code partagé avec `server/index.js`), écrit pour déménager sur une machine à lui sans rien
+réécrire ; un serveur dédié deviendra utile quand les appels et la visio (relais TURN, bande passante) tourneront pour de vrai.
 
 ---
 
