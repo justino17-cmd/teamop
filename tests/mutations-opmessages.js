@@ -107,6 +107,10 @@ function copier(racine) {
     fs.mkdirSync(dst, { recursive: true });
     for (const f of fs.readdirSync(src)) if (fs.statSync(path.join(src, f)).isFile() && (d !== 'icons' || /^opmsg-/.test(f))) fs.copyFileSync(path.join(src, f), path.join(dst, f));
   }
+  /* les points d'entrée que test-856 relit (« aucun point d'entrée client ne mène à l'aperçu ») : sans eux, il comptait 0 fichier et rendait 1 ✗ sur une copie INTACTE,
+     que le lanceur prenait pour une mutation qui mord */
+  for (const f of ['app.html', 'beta.html', 'messages.html', 'messages-beta.html', 'opmessages.html', 'sw.js', 'sitemap.xml', 'index.html', 'tarifs.html', 'manifest-opmsg.webmanifest'])
+    if (fs.existsSync(path.join(racine, f))) fs.copyFileSync(path.join(racine, f), path.join(tmp, f));
   return tmp;
 }
 function jouer(script, args, env, delai) {

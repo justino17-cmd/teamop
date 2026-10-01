@@ -364,7 +364,7 @@ async function fabriquerFichiers(b, base) {
   /* trois PNG de 300 × 200 : un bon, un dont l'EN-TÊTE est valide et le corps abîmé (il « charge », mesure 300 × 200 et ne dessine rien), un tronqué */
   const bon = pngDe(300, 200);
   F.valide = path.join(dossier, 'valide.png'); fs.writeFileSync(F.valide, bon);
-  F.corrompue = path.join(dossier, 'corrompue.png'); fs.writeFileSync(F.corrompue, Buffer.concat([bon.slice(0, 60), Buffer.alloc(200, 7)]));
+  F.corrompue = path.join(dossier, 'corrompue.png'); fs.writeFileSync(F.corrompue, Buffer.concat([bon.slice(0, 60), Buffer.alloc(200, 7), bon.slice(bon.length - 12)]));      // le morceau de FIN (IEND) est là : seul le décodage peut la refuser
   F.tronquee = path.join(dossier, 'tronquee.png'); fs.writeFileSync(F.tronquee, bon.slice(0, bon.length - 60));
   return F;
 }
@@ -1526,7 +1526,10 @@ async function principal() {
       if (veut('redimension')) await etapeRedimension(b, srv.base);
       if (veut('stress')) for (const W of [360, 393, 412]) await etapeStress(b, srv.base, W);
       /* les correctifs de la relecture et du testeur adverse : tous (--seul=correctifs), ou un seul par son nom (--seul=vocal-conv …) */
-      for (const [nomC, f] of Object.entries(CORRECTIFS)) if (scenario === 'correctifs' || (veut(nomC) && !(nomC === 'contrastes' && !scenario))) await f(b, srv.base, F);   // 'contrastes' : déjà joué par chaque parcours
+      for (const [nomC, f] of Object.entries(CORRECTIFS)) if (scenario === 'correctifs' || (veut(nomC) && !(nomC === 'contrastes' && !scenario))) {
+        /* un scénario qui JETTE (un geste qui ne trouve plus sa cible parce que le défaut qu'il garde est revenu) est un constat rouge, pas une sonde morte */
+        try { await f(b, srv.base, F); } catch (e) { v('scénario « ' + nomC + ' » interrompu — ' + String(e && e.message || e).split('\n')[0].slice(0, 200), false); }
+      }   // 'contrastes' : déjà joué par chaque parcours
       if (veut('reglages')) await etapeReglages(b, srv.base);
       /* le micro REFUSÉ (la permission est retirée) et le micro ABSENT (aucun périphérique) : deux navigateurs, deux causes réelles */
       if (veut('micro')) {

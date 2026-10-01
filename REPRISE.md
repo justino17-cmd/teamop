@@ -43,7 +43,25 @@ aperçu le 1er octobre 2026 : route en historique (une entrée par couche, rejou
 composeur (textarea >= 16 px), photo réduite par canvas, vocal MediaRecorder réel, maître-détail dès ~1100 px. Les données passent par un
 MODULE SÉPARÉ (`apercu/opmessages/source.js` : `lister/ouvrir/envoyer/marquerLu/ecouter`) — le jour du serveur à part, on le remplace par un
 module qui parle à ce serveur, rien d'autre ne change. Gardée par `tests/test-856.js`, `test-857.js` (module et `esc` exécutés), la sonde
-`tests/sonde-opmessages.js` (vrais gestes, 8 profils, jour/nuit, mouvement réduit) et ses mutations (`tests/mutations-opmessages.js`).
+`tests/sonde-opmessages.js` (vrais gestes, 12 parcours = 6 appareils × jour/nuit, mouvement et transparence réduits, 2 560 px, micro refusé/absent) et ses mutations
+(`tests/mutations-opmessages.js`, 73 : séries M, S et C).
+**Relecture et testeur adverse de l'étape 2 (1er octobre 2026) — tout rejoué, tout corrigé, chaque correctif a son scénario de sonde ET sa mutation (série C)** :
+un vocal commencé dans une conversation partait dans l'autre au bureau (`ouvrirConv` ne coupait pas la prise ; le vocal part aussi vers la conversation où il a
+COMMENCÉ) ; un double toucher sur la flèche d'envoi lançait une prise de son (même piège sur l'envoi d'un vocal et sur la croix de la photo : garde de 400 ms) ;
+`#constructor` donnait une page blanche (`VUES[…]` lit les prototypes) ; une image à l'en-tête bon et au corps abîmé partait blanche (`decode()` + preuve qu'un point a
+été dessiné, et les PNG/GIF/WebP tronqués sont refusés) ; l'accent de NUIT tombait à 2,65:1 (lien actif de la barre latérale), 3,6:1 (« Groupe »), 4,2:1 (« Modifier »),
+4,3:1 (légende d'une ligne choisie), 4,0:1 (placeholder) — jetons `--accent-txt`, `--side-actif-fg`, `--sub-meta-sel`, `--placeholder` ; l'anneau de focus était coupé par
+les cartes et les listes qui défilent ; la feuille laissait Tab sortir ; un message reçu n'était ni annoncé (région `#conv-annonce`) ni lu ; la liste perdait sa
+position après un tour par Appels (la position se lisait APRÈS avoir masqué la vue) ; le fil était refait en entier à chaque événement (photos recréées, focus perdu) ; le
+texte collé était coupé en silence à 4 000 signes ; Échap dans la recherche fermait la conversation d'à côté ; « maintenant » restait figé ; couleurs forcées (contours) ;
+zoom 175-200 % (la barre de la feuille et les onglets rétrécissent). ⛔ La leçon de méthode : **la sonde mesurait une vingtaine de contrastes choisis à la main** — la
+faute exacte que ce fichier décrit (« une population qu'on énumère soi-même ») ; elle relève maintenant TOUT le texte de l'écran dans le DOM (`contrasteTout`) et NOMME
+ce qu'elle ne mesure pas. **Reste ouvert, à décider avec Justin** : (1) écarts au paquet non validés — la flèche d'envoi n'est montrée qu'avec du texte (le micro disparaît
+alors ; le paquet montre la flèche dans la pilule ET le micro à droite en permanence) et le chevron de retour est masqué dès 1 100 px (la capture cible Mac le montre) ;
+(2) le texte ne suit PAS la taille de police racine (523 `px` contre 5 `rem` : le zoom du navigateur marche, pas le réglage de taille de texte du système) — tout le
+dépôt est en px, le convertir en bloc ferait déborder les hauteurs fixes (44 px) : à décider avec le système de design ; (3) un brouillon n'est gardé qu'en mémoire (perdu au
+rechargement : voulu pour l'aperçu, à reprendre avec le serveur) ; (4) un PNG simplement tronqué est refusé, mais un JPEG tronqué part en image partielle (des octets
+suivent légitimement son marqueur de fin : le refuser refuserait de vraies photos).
 ⚠️ Non mesuré ici : le clavier iOS (`visualViewport`, écrit d'après la spécification — à voir sur un iPhone), la lecture sonore d'un vocal
 d'exemple (simulée). RESTE : étape 3 (Appels : écran d'appel, segmenté Tous/Manqués, `--seg-track`/`--seg-knob`), puis agenda et réunions.
 Puis, même jour : **formules d'OP MESSAGES** — « un forfait gratuit comme il est là et un Pro à 15 euros ; lui à 25 on le
