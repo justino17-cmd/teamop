@@ -239,6 +239,117 @@ async function contraste(S, sel, o) {
   return R;
 }
 
+/* ══ LE CONTRASTE DE TOUT LE TEXTE, AU PIXEL — la population part du DOM, jamais d'une liste ════════════════════════════════════════
+   ⛔ « UNE POPULATION QU'ON ÉNUMÈRE SOI-MÊME EST UNE RÉPONSE QU'ON S'ÉCRIT SOI-MÊME » (CLAUDE.md). La première sonde lisait une vingtaine d'éléments choisis à la
+   main : le lien actif de la barre latérale de nuit (2,65:1), la pastille « Groupe » (3,6:1), « Modifier » (4,2:1), la légende d'une ligne choisie (4,3:1) et le
+   placeholder de la recherche (4,47:1) lui ont échappé — la relecture et le testeur adverse les ont trouvés. Ici : TOUT nœud de texte visible de l'écran (et le
+   placeholder de chaque champ vide), relevé par un TreeWalker, mesuré sur deux captures du MÊME écran — texte peint, puis texte rendu transparent (le fond réellement
+   peint : décor, verre, bulle) — et comparé à la couleur CALCULÉE de l'encre.
+   Ce qui n'est pas mesuré est NOMMÉ, jamais passé sous silence : texte masqué ou hors fenêtre, texte recouvert par autre chose (elementFromPoint au centre), texte en
+   transition d'opacité, contrôle désactivé (exempté par WCAG 1.4.3), initiales d'avatar (redondantes avec le nom lu à côté, aria-hidden, sur le dégradé du paquet).
+   Le seuil est 4,5:1, ou 3:1 pour un grand texte (≥ 24 px, ou ≥ 18,66 px gras). Une couleur qu'on ne sait pas lire (autre forme que rgb() et color(srgb …)) est JETÉE
+   et comptée — elle fait tomber le contrôle, on ne la devine pas. */
+const JS_RELEVER = () => {
+  const W = innerWidth, H = innerHeight, out = [], sauts = { masque: 0, hors: 0, recouvert: 0, transition: 0, desactive: 0, avatar: 0, illisible: 0 };
+  const parse = c => {
+    let m = /^rgba?\(([\d.]+)[, ]+([\d.]+)[, ]+([\d.]+)(?:[,/ ]+([\d.]+%?))?\)$/.exec(c);
+    if (m) return [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : (m[4].endsWith('%') ? parseFloat(m[4]) / 100 : +m[4])];
+    m = /^color\(srgb ([\d.]+) ([\d.]+) ([\d.]+)(?: \/ ([\d.]+%?))?\)$/.exec(c);
+    if (m) return [+m[1] * 255, +m[2] * 255, +m[3] * 255, m[4] === undefined ? 1 : (m[4].endsWith('%') ? parseFloat(m[4]) / 100 : +m[4])];
+    return null;
+  };
+  const opacite = e => { let o = 1; for (let x = e; x && x.nodeType === 1; x = x.parentElement) o *= parseFloat(getComputedStyle(x).opacity); return o; };
+  const nom = e => (e.id ? '#' + e.id : e.tagName.toLowerCase() + (e.className && typeof e.className === 'string' ? '.' + e.className.trim().split(/\s+/)[0] : ''));
+  const poser = (e, rects, texte, ink, fs, gras, placeholder) => {
+    if (e.closest('.sr-seul')) return;
+    const cs = getComputedStyle(e);
+    if (cs.visibility === 'hidden' || cs.display === 'none' || e.closest('[hidden]')) { sauts.masque++; return; }
+    if (e.closest('[aria-hidden="true"]') && e.closest('.avatar')) { sauts.avatar++; return; }
+    if (e.closest('[aria-disabled="true"], :disabled')) { sauts.desactive++; return; }
+    const o = opacite(e); if (o < 0.99) { sauts.transition++; return; }
+    const c = parse(ink); if (!c) { sauts.illisible++; return; }
+    for (const r of rects) {
+      if (r.width < 2 || r.height < 2) continue;
+      if (r.left < -0.5 || r.top < -0.5 || r.right > W + 0.5 || r.bottom > H + 0.5) { sauts.hors++; continue; }
+      const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      if (!top || !(e.contains(top) || top.contains(e))) { sauts.recouvert++; continue; }
+      out.push({ nom: nom(e), texte: texte.slice(0, 24), x: r.left, y: r.top, w: r.width, h: r.height, ink: c, fs, gras, placeholder: !!placeholder });
+    }
+  };
+  const marche = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let t;
+  while ((t = marche.nextNode())) {
+    const txt = t.textContent.trim(); if (!txt) continue;
+    const e = t.parentElement; if (!e || /^(SCRIPT|STYLE|NOSCRIPT|TEXTAREA|OPTION)$/.test(e.tagName)) continue;
+    const rg = document.createRange(); rg.selectNodeContents(t);
+    const cs = getComputedStyle(e);
+    poser(e, Array.from(rg.getClientRects()), txt, cs.color, parseFloat(cs.fontSize), parseInt(cs.fontWeight, 10) >= 700, false);
+  }
+  for (const e of document.querySelectorAll('input[placeholder], textarea[placeholder]')) {
+    if (e.value || e.type === 'file' || e.type === 'hidden') continue;
+    const cs = getComputedStyle(e), ph = getComputedStyle(e, '::placeholder'), r = e.getBoundingClientRect();
+    const pl = parseFloat(cs.paddingLeft) + parseFloat(cs.borderLeftWidth), pr = parseFloat(cs.paddingRight) + parseFloat(cs.borderRightWidth);
+    const lh = Math.min(r.height, parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.3);
+    const boite = { left: r.left + pl, right: r.right - pr, top: r.top + (r.height - lh) / 2, bottom: r.top + (r.height + lh) / 2, width: r.width - pl - pr, height: lh };
+    poser(e, [boite], e.placeholder, ph.color, parseFloat(cs.fontSize), false, true);
+  }
+  return { noeuds: out, sauts, W, H };
+};
+const JS_MESURER = async ([a, b, noeuds, k]) => {
+  const dec = async s => { const bl = new Blob([Uint8Array.from(atob(s), c => c.charCodeAt(0))], { type: 'image/png' }); const bm = await createImageBitmap(bl); const c = document.createElement('canvas'); c.width = bm.width; c.height = bm.height; const x = c.getContext('2d'); x.drawImage(bm, 0, 0); return x.getImageData(0, 0, bm.width, bm.height); };
+  const A = await dec(a), B = await dec(b);
+  const lin = c => { c /= 255; return c <= .03928 ? c / 12.92 : Math.pow((c + .055) / 1.055, 2.4); };
+  const L = (r, g, bb) => .2126 * lin(r) + .7152 * lin(g) + .0722 * lin(bb);
+  return noeuds.map(n => {
+    const x0 = Math.max(0, Math.floor(n.x * k)), y0 = Math.max(0, Math.floor(n.y * k)), x1 = Math.min(B.width, Math.ceil((n.x + n.w) * k)), y1 = Math.min(B.height, Math.ceil((n.y + n.h) * k));
+    let min = 99, pixels = 0, nink = 0;
+    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+      const i = (y * B.width + x) * 4, br = B.data[i], bg = B.data[i + 1], bb = B.data[i + 2], al = n.ink[3];
+      const l1 = L(al * n.ink[0] + (1 - al) * br, al * n.ink[1] + (1 - al) * bg, al * n.ink[2] + (1 - al) * bb), l2 = L(br, bg, bb);
+      const c = (Math.max(l1, l2) + .05) / (Math.min(l1, l2) + .05); pixels++; if (c < min) min = c;
+      if (Math.abs(A.data[i] - br) + Math.abs(A.data[i + 1] - bg) + Math.abs(A.data[i + 2] - bb) > 90) nink++;
+    }
+    return { nom: n.nom, texte: n.texte, fs: n.fs, gras: n.gras, placeholder: n.placeholder, min, pixels, nink };
+  });
+};
+/* un passage : relever, capturer le texte peint puis transparent, mesurer. Rend les mesures. */
+async function passageContraste(S) {
+  const R = await S.page.evaluate(JS_RELEVER);
+  const vue = (await S.page.screenshot()).toString('base64');
+  const style = await S.page.addStyleTag({ content: '*, *::before, *::after { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; caret-color: transparent !important; } ::placeholder { color: transparent !important; -webkit-text-fill-color: transparent !important; }' });
+  await dormir(90);
+  const fond = (await S.page.screenshot()).toString('base64');
+  await style.evaluate(e => e.remove());
+  const k = S.pf.dpr || 1;
+  const M = await S.page.evaluate(JS_MESURER, [vue, fond, R.noeuds, k]);
+  return { M, sauts: R.sauts };
+}
+async function contrasteTout(S, etiquette, o) {
+  o = o || {};
+  await dormir(o.attente || 700);
+  const total = {}, sauts = { masque: 0, hors: 0, recouvert: 0, transition: 0, desactive: 0, avatar: 0, illisible: 0 };
+  const passes = [async () => {}];
+  const defil = await S.page.evaluate(() => ({ fen: document.documentElement.scrollHeight - innerHeight, fil: (f => f.offsetParent ? f.scrollHeight - f.clientHeight : 0)(document.getElementById('conv-fil')), corps: (f => f.scrollHeight - f.clientHeight)(document.getElementById('feuille-corps')), feuille: document.documentElement.classList.contains('feuille-ouverte') }));
+  if (defil.fen > 30 && !defil.feuille && !o.sansDefilement) passes.push(async () => { await S.page.evaluate(() => scrollTo(0, 99999)); await dormir(250); });
+  if (defil.fil > 30 && !o.sansDefilement) { passes.push(async () => { await S.page.evaluate(() => { const f = document.getElementById('conv-fil'); f.scrollTop = 0; }); await dormir(250); }); }
+  if (defil.feuille && defil.corps > 30 && !o.sansDefilement) passes.push(async () => { await S.page.evaluate(() => { const f = document.getElementById('feuille-corps'); f.scrollTop = f.scrollHeight; }); await dormir(250); });
+  let n = 0;
+  for (const p of passes) {
+    await p(); n++;
+    const { M, sauts: s } = await passageContraste(S);
+    for (const k of Object.keys(s)) sauts[k] += s[k];
+    for (const m of M) { const cle = m.nom + '|' + m.texte + '|' + (m.placeholder ? 'ph' : ''); if (!total[cle] || m.min < total[cle].min) total[cle] = m; }
+  }
+  await S.page.evaluate(() => { scrollTo(0, 0); const f = document.getElementById('conv-fil'); if (f && f.offsetParent) f.scrollTop = f.scrollHeight; });
+  const toutes = Object.values(total), peints = toutes.filter(m => m.nink >= 1), nonPeints = toutes.length - peints.length;
+  const trop = peints.filter(m => m.min < ((m.fs >= 24 || (m.fs >= 18.66 && m.gras)) ? 3 : 4.5));
+  const pire = peints.length ? peints.reduce((a, b) => b.min < a.min ? b : a) : null;
+  S.contrastes = (S.contrastes || 0) + peints.length;
+  v(etiquette + ' : (population) TOUT le texte lu au pixel — ' + peints.length + ' textes distincts peints (' + peints.filter(m => m.placeholder).length + ' placeholders) sur ' + n + ' passage(s) · nommés et non mesurés : ' + sauts.recouvert + ' recouverts, ' + sauts.hors + ' hors fenêtre, ' + sauts.transition + ' en transition, ' + sauts.desactive + ' désactivés, ' + sauts.avatar + ' initiales d\'avatar, ' + sauts.masque + ' masqués, ' + nonPeints + ' sans encre peinte, ' + sauts.illisible + ' couleurs illisibles · le pire : ' + (pire ? '« ' + pire.texte + ' » ' + pire.min.toFixed(2) + ':1' : 'aucun'),
+    peints.length >= (o.minimum || 8) && sauts.illisible === 0 && trop.length === 0, { sousLeSeuil: trop.map(m => m.nom + ' « ' + m.texte + ' » ' + m.min.toFixed(2) + ':1 (' + m.fs + 'px)').slice(0, 12), peints: peints.length, sauts });
+  return { peints, trop };
+}
+
 /* ── un fichier d'essai fabriqué par le navigateur lui-même (aucune dépendance) : une grande image de 2 400 × 1 600, une image « cassée »
       (de l'octet quelconque rangé sous un nom .png), et une image de 192 px du dépôt ── */
 async function fabriquerFichiers(b, base) {
@@ -250,7 +361,22 @@ async function fabriquerFichiers(b, base) {
   const F = { grande: path.join(dossier, 'grande.png'), cassee: path.join(dossier, 'cassee.png'), petite: path.join(RACINE, 'icons', 'opmsg-192.png'), dossier };
   fs.writeFileSync(F.grande, Buffer.from(b64, 'base64'));
   fs.writeFileSync(F.cassee, Buffer.from('ceci n\'est pas une image — des octets quelconques '.repeat(40)));
+  /* trois PNG de 300 × 200 : un bon, un dont l'EN-TÊTE est valide et le corps abîmé (il « charge », mesure 300 × 200 et ne dessine rien), un tronqué */
+  const bon = pngDe(300, 200);
+  F.valide = path.join(dossier, 'valide.png'); fs.writeFileSync(F.valide, bon);
+  F.corrompue = path.join(dossier, 'corrompue.png'); fs.writeFileSync(F.corrompue, Buffer.concat([bon.slice(0, 60), Buffer.alloc(200, 7)]));
+  F.tronquee = path.join(dossier, 'tronquee.png'); fs.writeFileSync(F.tronquee, bon.slice(0, bon.length - 60));
   return F;
+}
+
+/* ── un PNG fabriqué (zlib, sans dépendance) : de quoi en fabriquer un dont l'EN-TÊTE est bon et le corps abîmé, ou tronqué ── */
+function crc32(buf) { let c, crc = 0xffffffff; for (let n = 0; n < buf.length; n++) { c = (crc ^ buf[n]) & 0xff; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; crc = (crc >>> 8) ^ c; } return (crc ^ 0xffffffff) >>> 0; }
+function morceau(t, d) { const l = Buffer.alloc(4); l.writeUInt32BE(d.length); const td = Buffer.concat([Buffer.from(t), d]); const c = Buffer.alloc(4); c.writeUInt32BE(crc32(td)); return Buffer.concat([l, td, c]); }
+function pngDe(w, h) {
+  const zlib = require('zlib'), raw = Buffer.alloc((w * 3 + 1) * h);
+  for (let y = 0; y < h; y++) { raw[y * (w * 3 + 1)] = 0; for (let x = 0; x < w; x++) { const o = y * (w * 3 + 1) + 1 + x * 3; raw[o] = (x * 255 / w) | 0; raw[o + 1] = (y * 255 / h) | 0; raw[o + 2] = 128; } }
+  const ih = Buffer.alloc(13); ih.writeUInt32BE(w, 0); ih.writeUInt32BE(h, 4); ih[8] = 8; ih[9] = 2;
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), morceau('IHDR', ih), morceau('IDAT', zlib.deflateSync(raw, { level: 1 })), morceau('IEND', Buffer.alloc(0))]);
 }
 
 /* ── petits gestes ── */
@@ -300,6 +426,7 @@ async function etapeListe(S) {
   await contraste(S, '.mention-apercu', { nom: 'mention « Aperçu — données d\'exemple » (12 px)' });
   if (S.pf.w < 900) await contraste(S, '#tabs .tab:not([aria-current]) span', { nom: 'libellé d\'un onglet inactif (11 px, sur le verre de la barre)' });
   else await contraste(S, '.moi-statut', { nom: 'statut « Disponible » de la barre latérale (11 px)' });
+  await contrasteTout(S, nom + ' · liste', { minimum: 12 });
 }
 
 /* ══ ÉTAPE 2 — LA CONVERSATION ════════════════════════════════════════════════════════════════════════════════════════════════ */
@@ -355,6 +482,7 @@ async function etapeConversation(S) {
   /* la police ne bouge pas, le texte ne se coupe pas : une bulle ne déborde jamais de sa colonne */
   const b = await S.page.evaluate(() => { const col = document.getElementById('conv-messages').getBoundingClientRect(); return [...document.querySelectorAll('.bulle, .vocal, .photos')].map(e => e.getBoundingClientRect().width / col.width); });
   v(nom + ' : aucune bulle ne dépasse 78 % de sa colonne (' + b.length + ' bulles mesurées, la plus large ' + (Math.max(...b) * 100).toFixed(0) + ' %)', b.length >= 6 && Math.max(...b) <= 0.781, b);
+  await contrasteTout(S, nom + ' · conversation', { minimum: 8 });
 }
 
 /* ── lire les six conversations : chacune s'ouvre, dit la même chose que la source, et rend la liste à sa place ── */
@@ -691,6 +819,7 @@ async function etapeFeuille(S, F) {
   await mesurerLargeur(S, nom + ' · feuille'); await mesurerTextes(S, nom + ' · feuille'); await mesurerCibles(S, nom + ' · feuille'); await mesurerChamps(S, nom + ' · feuille');
   await contraste(S, '#g-contacts .contact:first-child .rond', { bordure: true, seuil: 3, nom: 'contour d\'une case décochée (non-texte, ≥ 3:1)' });
   await contraste(S, '#g-contacts .contact:first-child .contact-role', { nom: 'rôle d\'un contact (13 px)' });
+  await contrasteTout(S, nom + ' · feuille « Nouveau groupe »', { minimum: 10 });
   /* Créer est inerte tant qu'aucun contact n'est choisi */
   const nAv = await nb(S, '#liste-conv > li');
   await geste(S, '#g-creer', { force: true }); await dormir(300);      // aria-disabled : Playwright le croit inactif, un doigt, lui, touche quand même
@@ -746,6 +875,7 @@ async function etapeFeuille(S, F) {
   const bn = c.banniere;
   v(nom + ' : la bannière est visible et dans l\'écran (haut ' + Math.round(bn.haut) + ' px), dit « Vous avez été ajouté au groupe « Équipe terrain » » et nomme les membres prévenus ; zone vivante', bn.on && bn.op > 0.95 && bn.haut >= (S.pf.insets ? S.pf.insets.top : 0) && bn.g >= 0 && bn.d <= bn.w && /Vous avez été ajouté au groupe « Équipe terrain »/.test(bn.texte) && /Camille, Inès, Mathis/.test(bn.aide) && bn.role === 'status', bn);
   v(nom + ' : (a) UNE seule ligne rejoue son entrée (' + c.neuves + ' conversation neuve)', c.neuves === 1, c);
+  await contrasteTout(S, nom + ' · liste avec la bannière descendue', { attente: 100, minimum: 12, sansDefilement: true });
   await dormir(3300);
   const J = await S.page.evaluate(() => ({ j: window.__j, on: document.getElementById('notif').classList.contains('on'), bas: document.getElementById('notif').getBoundingClientRect().bottom }));
   const tClic = J.j.find(e => e[0] === 'clic')[1], tOn = J.j.find(e => e[0] === 'on')[1], tOff = J.j.find(e => e[0] === 'off')[1];
@@ -972,6 +1102,378 @@ async function etapeStress(b, base, W) {
   await S.fermer();
 }
 
+/* ══ LES CORRECTIFS DE LA RELECTURE ET DU TESTEUR ADVERSE (1er octobre 2026) — chacun JOUÉ sur une page neuve, nommé, mutable seul (--seul=<nom>) ══════════════
+   Tout ce qui suit a d'abord été REPRODUIT sur le code d'avant (les scripts du testeur, puis ces contrôles contre une copie sans le correctif : voir
+   tests/mutations-opmessages.js, série C). Chaque contrôle prouve d'abord que l'état de départ est celui qu'il croit (la population), puis mesure. */
+const PROFIL_ETROIT = w => ({ nom: 'fenêtre ' + w, w, h: 780, dpr: 2, mobile: true, insets: null });
+async function nouvelle(b, base, pf, o) { const S = await ouvrirPage(b, pf, Object.assign({ base }, o || {})); S.nom = (o && o.nom) || pf.nom; return S; }
+const microDemandes = S => S.page.evaluate(() => window.__micro.demandes);
+const pistesVivantes = S => S.page.evaluate(() => window.__micro.pistes.filter(t => t.readyState === 'live').length);
+const compteMsg = (S, id) => S.page.evaluate(async i => (await window.OPMSG_SOURCE.ouvrir(i)).messages.length, id);
+
+/* D1 — un vocal commencé dans une conversation ne part JAMAIS dans une autre (maître-détail : la liste reste cliquable à côté) */
+async function corrVocalChangeConv(b, base) {
+  const pf = PROFILS.bureau1440, S = await nouvelle(b, base, pf);
+  titre(S.nom + ' — changer de conversation en pleine prise de son');
+  await ouvrirConv(S, 'v1', 'Équipe dépôt');
+  const avant = { v1: await compteMsg(S, 'v1'), v3: await compteMsg(S, 'v3') };
+  await geste(S, '#compo-micro'); await attendre(S, () => !document.getElementById('enreg').hidden, null, 4000); await dormir(500);
+  const vivant0 = await pistesVivantes(S);
+  v(S.nom + ' : (population) la prise de son tourne chez « Équipe dépôt » (barre d\'enregistrement visible, ' + vivant0 + ' piste vivante)', vivant0 === 1 && await S.page.evaluate(() => !document.getElementById('enreg').hidden));
+  await geste(S, '#liste-conv [data-ouvrir="v3"]'); await attendreConv(S, 'Chantier Les Tilleuls'); await dormir(900);
+  const r = await S.page.evaluate(() => ({ enreg: !document.getElementById('enreg').hidden, compo: !document.getElementById('compo').hidden, micro: !document.getElementById('compo-micro').hidden, titre: document.querySelector('.conv-titre-nom > span').textContent.trim(), pistes: window.__micro.pistes.map(t => t.readyState) }));
+  v(S.nom + ' : changer de conversation ANNULE la prise (barre disparue, champ rendu, micro relâché : ' + r.pistes.join() + ')', !r.enreg && r.compo && r.micro && r.pistes.every(x => x === 'ended') && r.titre === 'Chantier Les Tilleuls', r);
+  const apres = { v1: await compteMsg(S, 'v1'), v3: await compteMsg(S, 'v3') };
+  v(S.nom + ' : aucun vocal n\'est posté, ni chez Camille-le-départ ni dans la conversation d\'arrivée (messages ' + JSON.stringify(avant) + ' → ' + JSON.stringify(apres) + ')', apres.v1 === avant.v1 && apres.v3 === avant.v3, { avant, apres });
+  /* et la lecture d'un vocal s'arrête aussi quand on change de conversation */
+  await ouvrirConv(S, 'v4', 'Mathis Lambert'); await geste(S, '.vocal[data-lire]'); await dormir(400);
+  const lit = await S.page.evaluate(() => !!document.querySelector('[data-lecture]'));
+  await geste(S, '#liste-conv [data-ouvrir="v2"]'); await attendreConv(S, 'Camille Roux'); await dormir(500);
+  const l2 = await S.page.evaluate(() => ({ lecture: !!document.querySelector('[data-lecture]'), audios: window.__audios.filter(a => !a.paused).length }));
+  v(S.nom + ' : (population) un vocal se « lisait » (' + lit + ') ; changer de conversation l\'arrête (plus de bouton en pause, ' + l2.audios + ' audio qui joue)', lit && !l2.lecture && l2.audios === 0, l2);
+  v(S.nom + ' : 0 erreur JavaScript, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0, { e: S.erreurs, c: S.console });
+  await S.fermer();
+}
+
+/* le toucher qui revient : double toucher sur la flèche d'envoi, sur l'envoi d'un vocal, sur la croix de la photo — sur chaque appareil */
+async function corrDoubleToucher(b, base, F, pf) {
+  const S = await nouvelle(b, base, pf);
+  titre(S.nom + ' — le double toucher (' + (pf.mobile ? 'doigt' : 'souris') + ')');
+  const deuxFois = async (sel, ecart) => {
+    const c = await S.page.evaluate(s => { const r = document.querySelector(s).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; }, sel);
+    if (pf.mobile) { await S.page.touchscreen.tap(c.x, c.y); await dormir(ecart); await S.page.touchscreen.tap(c.x, c.y); }
+    else { await S.page.mouse.click(c.x, c.y); await dormir(ecart); await S.page.mouse.click(c.x, c.y); }
+    S.gestes += 2;
+  };
+  await ouvrirConv(S, 'v3', 'Chantier Les Tilleuls');
+  let bon = 0;
+  for (const ecart of [60, 120, 220]) {
+    await S.page.locator('#saisie').fill('double ' + ecart); await S.page.locator('#saisie').dispatchEvent('input');
+    const n0 = await nb(S, '#conv-messages .msg'), d0 = await microDemandes(S);
+    await deuxFois('#envoyer', ecart); await dormir(700);
+    const r = await S.page.evaluate(() => ({ enreg: !document.getElementById('enreg').hidden, n: document.querySelectorAll('#conv-messages .msg').length }));
+    const ok = r.n === n0 + 1 && !r.enreg && (await microDemandes(S)) === d0;
+    if (ok) bon++;
+    v(S.nom + ' : double toucher sur la flèche d\'envoi (' + ecart + ' ms d\'écart) → UN message, aucune prise de son lancée (micro demandé ' + ((await microDemandes(S)) - d0) + ' fois)', ok, r);
+    if (r.enreg) { await S.page.evaluate(() => document.getElementById('enreg-annuler').click()); await dormir(300); }
+    await dormir(450);
+  }
+  v(S.nom + ' : (population) 3 écarts joués, ' + bon + ' sans défaut', bon === 3);
+  /* le vocal : la barre d'enregistrement remplace le champ ; un second toucher sur « envoyer » ne doit pas lancer une nouvelle prise */
+  await dormir(300);
+  const nV = await nb(S, '#conv-messages .msg'), dV = await microDemandes(S);
+  await geste(S, '#compo-micro'); await attendre(S, () => !document.getElementById('enreg').hidden, null, 4000); await dormir(1100);
+  await deuxFois('#enreg-envoyer', 90); await dormir(900);
+  const v2 = await S.page.evaluate(() => ({ enreg: !document.getElementById('enreg').hidden, n: document.querySelectorAll('#conv-messages .msg').length, vocaux: document.querySelectorAll('.vocal.envoyee').length }));
+  v(S.nom + ' : double toucher sur l\'envoi d\'un vocal → UN vocal, pas de seconde prise (micro demandé ' + ((await microDemandes(S)) - dV) + ' fois, barre ' + (v2.enreg ? 'OUVERTE' : 'fermée') + ')', v2.n === nV + 1 && !v2.enreg && (await microDemandes(S)) - dV === 1, v2);
+  await dormir(500);
+  /* la croix de la photo agrandie est juste au-dessus de la caméra de la conversation */
+  await choisirFichiers(S, F.valide); await attendre(S, n => document.querySelectorAll('#conv-messages .msg').length > n, v2.n); await dormir(600);
+  await geste(S, '#conv-messages .photo[data-photo] >> nth=-1'); await dormir(400);
+  const ouverte = await S.page.evaluate(() => !document.getElementById('visionneuse').hidden);
+  await deuxFois('#visionneuse-fermer', 90); await dormir(700);
+  const p2 = await S.page.evaluate(() => ({ vue: document.documentElement.dataset.vue, conv: document.documentElement.dataset.conv || null, photo: !document.getElementById('visionneuse').hidden }));
+  v(S.nom + ' : (population) la photo était agrandie (' + ouverte + ') ; double toucher sur sa croix → fermée, la conversation reste, l\'onglet Appels ne s\'ouvre pas (vue « ' + p2.vue + ' »)', ouverte && !p2.photo && p2.vue === 'messages' && p2.conv === '1', p2);
+  /* deux clics DANS LE MÊME INSTANT sur « envoyer » : un seul message */
+  await S.page.locator('#saisie').fill('une seule fois'); await S.page.locator('#saisie').dispatchEvent('input');
+  const nS = await nb(S, '#conv-messages .msg');
+  await S.page.evaluate(() => { const e = document.getElementById('envoyer'); e.click(); e.click(); }); await dormir(600);
+  const n2 = (await nb(S, '#conv-messages .msg')) - nS;
+  v(S.nom + ' : deux clics synchrones sur « envoyer » postent UN message (' + n2 + ')', n2 === 1);
+  v(S.nom + ' : 0 erreur JavaScript, 0 rejet, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0 && (await S.page.evaluate(() => window.__rejets.length)) === 0, { e: S.erreurs, c: S.console });
+  await S.fermer();
+}
+
+/* #constructor, #__proto__ : la chaîne de prototypes n'est pas une vue */
+async function corrAdresses(b, base) {
+  titre('adresses piégées : les noms de la chaîne de prototypes ne sont pas des vues');
+  let bons = 0;
+  const cas = ['#constructor', '#__proto__', '#toString', '#hasOwnProperty', '#valueOf', '#constructor/v1', '#messages/__proto__'];
+  for (const h of cas) {
+    const S = await nouvelle(b, base, PROFILS.bureau1440, { url: PAGE_URL + h, nom: 'bureau 1440 ' + h }); await dormir(500);
+    const r = await S.page.evaluate(() => ({ vue: document.documentElement.dataset.vue, visibles: [...document.querySelectorAll('.vue')].filter(x => !x.hidden).map(x => x.id), titre: document.title, liste: document.querySelectorAll('#liste-conv .conv').length, hash: location.hash }));
+    const ok = r.vue === 'messages' && r.visibles.join() === 'vue-messages' && /^Messages/.test(r.titre) && r.liste === 6 && S.erreurs.length === 0 && S.console.length === 0;
+    if (ok) bons++;
+    v('adresse « ' + h + ' » → la liste des messages s\'affiche (vue « ' + r.vue + ' », ' + r.visibles.length + ' vue visible, titre « ' + r.titre + ' », ' + r.liste + ' conversations, adresse ' + r.hash + ')', ok, { r, e: S.erreurs });
+    await S.fermer();
+  }
+  v('(population) ' + cas.length + ' adresses jouées, ' + bons + ' sans défaut', bons === cas.length);
+}
+
+/* l'anneau de focus est dans le conteneur qui coupe (géométrie), la feuille garde le focus (piège), Tab ne sort jamais */
+const JS_ANNEAU = () => {
+  const e = document.activeElement; if (!e || e === document.body) return { aucun: true };
+  let c = null, cs = null;
+  for (let x = e, i = 0; x && i < 4; x = x.parentElement, i++) { const s = getComputedStyle(x); if (s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0 && parseFloat(s.opacity) > 0 && (x === e || x.matches(':focus-within'))) { c = x; cs = s; break; } }
+  const nom = (e.id ? '#' + e.id : e.tagName.toLowerCase() + '.' + String(e.className).split(' ')[0]) + (e.dataset && (e.dataset.ouvrir || e.dataset.id) ? '[' + (e.dataset.ouvrir || e.dataset.id) + ']' : '');
+  if (!c) return { nom, sans: true };
+  const r = c.getBoundingClientRect(), ext = (parseFloat(cs.outlineOffset) || 0) + parseFloat(cs.outlineWidth);
+  const ring = { l: r.left - ext, t: r.top - ext, r: r.right + ext, b: r.bottom + ext };
+  const coupes = [];
+  for (let a = c.parentElement; a; a = a.parentElement) {
+    const s = getComputedStyle(a), ox = s.overflowX !== 'visible', oy = s.overflowY !== 'visible';
+    if (!ox && !oy) continue;
+    const ar = a.getBoundingClientRect();
+    const bl = parseFloat(s.borderLeftWidth) || 0, bt = parseFloat(s.borderTopWidth) || 0, br = parseFloat(s.borderRightWidth) || 0, bb = parseFloat(s.borderBottomWidth) || 0;
+    const cl = { l: ar.left + bl, t: ar.top + bt, r: ar.right - br, b: ar.bottom - bb };
+    const sort = { g: ox && ring.l < cl.l - 0.5 ? Math.round(cl.l - ring.l) : 0, d: ox && ring.r > cl.r + 0.5 ? Math.round(ring.r - cl.r) : 0, h: oy && ring.t < cl.t - 0.5 ? Math.round(cl.t - ring.t) : 0, bas: oy && ring.b > cl.b + 0.5 ? Math.round(ring.b - cl.b) : 0 };
+    // un conteneur qui DÉFILE n'est jugé que s'il montre la zone : un anneau hors de sa fenêtre visible n'est pas coupé par lui mais par le défilement
+    if (sort.g || sort.d || sort.h || sort.bas) coupes.push((a.id ? '#' + a.id : a.tagName.toLowerCase() + '.' + String(a.className).split(' ')[0]) + ' ' + JSON.stringify(sort));
+  }
+  return { nom, ext, coupes };
+};
+async function corrFocus(b, base) {
+  const pf = PROFILS.bureau1440, S = await nouvelle(b, base, pf);
+  titre(S.nom + ' — l\'anneau de focus clavier, et le piège de la feuille');
+  await S.page.locator('#btn-modifier').focus();
+  let stops = [], aucun = 0;
+  for (let i = 0; i < 40; i++) { await S.page.keyboard.press('Tab'); S.gestes++; const a = await S.page.evaluate(JS_ANNEAU); if (a.aucun) { aucun++; continue; } stops.push(a); }
+  const dansLesCoupeurs = stops.filter(a => /^(button\.epingle-bouton|button\.conv)/.test(a.nom));
+  const coupes = stops.filter(a => a.coupes && a.coupes.length);
+  v(S.nom + ' : (population) 40 Tab au clavier → ' + stops.length + ' arrêts examinés, dont ' + dansLesCoupeurs.length + ' dans les listes qui coupent (épinglés + lignes) ; ' + aucun + ' sans focus', dansLesCoupeurs.length >= 10 && stops.length >= 20, { stops: stops.map(a => a.nom) });
+  v(S.nom + ' : AUCUN anneau de focus n\'est coupé par le conteneur qui l\'abrite (' + coupes.length + ' coupés)', coupes.length === 0, coupes.slice(0, 6).map(a => a.nom + ' ← ' + a.coupes.join(' ; ')));
+  v(S.nom + ' : tout arrêt de focus DESSINE un anneau (aucun contrôle sans repère)', stops.filter(a => a.sans).length === 0, stops.filter(a => a.sans).map(a => a.nom));
+  /* la feuille */
+  await geste(S, '#btn-groupe'); await dormir(800);
+  await geste(S, '#g-contacts .contact[data-id="c1"]'); await geste(S, '#g-contacts .contact[data-id="c2"]'); await dormir(200);
+  await S.page.locator('#feuille').focus();
+  const dedans = [], anneaux = [];
+  let sortis = 0;
+  for (let i = 0; i < 45; i++) {
+    await S.page.keyboard.press('Tab'); S.gestes++;
+    const r = await S.page.evaluate(() => ({ dedans: !!document.activeElement.closest('#feuille'), a: null }));
+    if (!r.dedans) sortis++;
+    dedans.push(r.dedans); anneaux.push(await S.page.evaluate(JS_ANNEAU));
+  }
+  v(S.nom + ' : (population) 45 Tab dans la feuille → ' + anneaux.filter(a => a.nom).length + ' arrêts, ' + new Set(anneaux.map(a => a.nom)).size + ' contrôles distincts atteints', new Set(anneaux.map(a => a.nom)).size >= 12);
+  v(S.nom + ' : le focus ne SORT JAMAIS de la feuille modale en tournant avec Tab (' + sortis + ' sorties sur 45)', sortis === 0);
+  let sortisM = 0; for (let i = 0; i < 20; i++) { await S.page.keyboard.press('Shift+Tab'); S.gestes++; if (!(await S.page.evaluate(() => !!document.activeElement.closest('#feuille')))) sortisM++; }
+  v(S.nom + ' : et à rebours avec Maj+Tab (' + sortisM + ' sorties sur 20)', sortisM === 0);
+  const coupesF = anneaux.filter(a => a.coupes && a.coupes.length);
+  v(S.nom + ' : dans la feuille non plus, aucun anneau coupé (' + coupesF.length + ' coupés)', coupesF.length === 0, coupesF.slice(0, 5).map(a => a.nom + ' ← ' + a.coupes.join(' ; ')));
+  await S.page.keyboard.press('Escape'); await dormir(500);
+  v(S.nom + ' : 0 erreur JavaScript, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0, { e: S.erreurs, c: S.console });
+  await S.fermer();
+}
+
+/* un message qui ARRIVE : annoncé au lecteur d'écran, lu (la conversation est sous les yeux), sans faire sauter celui qui relit l'historique */
+async function corrMessageRecu(b, base, pf) {
+  const S = await nouvelle(b, base, pf);
+  titre(S.nom + ' — un message reçu pendant que la conversation est ouverte');
+  await ouvrirConv(S, 'v1', 'Équipe dépôt');
+  const etat0 = await S.page.evaluate(async () => ({ fil: document.getElementById('conv-fil').getAttribute('aria-live'), ann: document.getElementById('conv-annonce').getAttribute('aria-live'), role: document.getElementById('conv-annonce').getAttribute('role'), nonLus: (await window.OPMSG_SOURCE.lister()).find(c => c.id === 'v1').nonLus }));
+  v(S.nom + ' : (population) le fil n\'est PAS une zone vivante (aria-live « ' + etat0.fil + ' »), une région à part l\'est (« ' + etat0.ann + ' », ' + etat0.role + ') ; « Équipe dépôt » n\'a plus de non-lu (' + etat0.nonLus + ')', etat0.fil === 'off' && etat0.ann === 'polite' && etat0.role === 'status' && etat0.nonLus === 0, etat0);
+  /* assez d'historique pour que le fil défile, puis on remonte lire */
+  for (let i = 1; i <= 7; i++) await S.page.evaluate(i => window.OPMSG_SOURCE.envoyer('v1', { texte: 'Historique numéro ' + i + ' : un message assez long pour occuper de la place dans le fil de la conversation.' }), i);
+  await dormir(500);
+  await S.page.evaluate(() => { document.getElementById('conv-fil').scrollTop = 0; }); await dormir(250);
+  const haut0 = await S.page.evaluate(() => { const f = document.getElementById('conv-fil'); return { top: f.scrollTop, defile: f.scrollHeight - f.clientHeight }; });
+  const n0 = await nb(S, '#conv-messages .msg');
+  await S.page.evaluate(() => window.OPMSG_SOURCE.simulerRecu('v1', { texte: 'Message neuf du dépôt' }, 'c3')); await dormir(900);
+  const r = await S.page.evaluate(async () => ({ annonce: document.getElementById('conv-annonce').textContent, n: document.querySelectorAll('#conv-messages .msg').length, top: document.getElementById('conv-fil').scrollTop, nonLu: (await window.OPMSG_SOURCE.lister()).find(c => c.id === 'v1').nonLu, point: !!document.querySelector('#liste-conv [data-ouvrir="v1"] .point') }));
+  v(S.nom + ' : (population) le fil défile (' + Math.round(haut0.defile) + ' px à parcourir), on est remonté en haut (' + Math.round(haut0.top) + ' px)', haut0.defile > 100 && haut0.top < 2, haut0);
+  v(S.nom + ' : le message arrive dans le fil (' + n0 + ' → ' + r.n + ') et est ANNONCÉ au lecteur d\'écran : « ' + r.annonce + ' »', r.n === n0 + 1 && /Inès : Message neuf du dépôt/.test(r.annonce), r);
+  v(S.nom + ' : la conversation affichée est LUE — plus de non-lu dans la source (' + r.nonLu + '), plus de point dans la liste (' + r.point + ')', !r.nonLu && !r.point, r);
+  v(S.nom + ' : celui qui relit l\'historique ne saute pas en bas (position ' + Math.round(haut0.top) + ' → ' + Math.round(r.top) + ' px)', Math.abs(r.top - haut0.top) <= 2, r);
+  /* une conversation PAS ouverte : le point apparaît, rien n'est annoncé */
+  await S.page.evaluate(() => { document.getElementById('conv-annonce').textContent = ''; });
+  await S.page.evaluate(() => window.OPMSG_SOURCE.simulerRecu('v3', { texte: 'Pour un autre fil' }, 'c6')); await dormir(500);
+  const a = await S.page.evaluate(async () => ({ annonce: document.getElementById('conv-annonce').textContent, v3: (await window.OPMSG_SOURCE.lister()).find(c => c.id === 'v3').nonLu, point: !!document.querySelector('#liste-conv [data-ouvrir="v3"] .point'), badge: document.getElementById('conv-badge').hidden ? null : document.getElementById('conv-badge').textContent }));
+  v(S.nom + ' : un message pour une AUTRE conversation reste non lu (point dans la liste ' + a.point + '), n\'est pas annoncé (« ' + a.annonce + ' »), et le badge du retour le compte (' + a.badge + ')', a.v3 && a.point && a.annonce === '' && +a.badge >= 2, a);
+  /* un message envoyé par moi n'est pas « annoncé » comme reçu */
+  await S.page.evaluate(() => window.OPMSG_SOURCE.envoyer('v1', { texte: 'de moi' })); await dormir(500);
+  v(S.nom + ' : un message de MOI n\'est pas annoncé comme reçu', (await S.page.evaluate(() => document.getElementById('conv-annonce').textContent)) === '');
+  v(S.nom + ' : 0 erreur JavaScript, 0 rejet, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0 && (await S.page.evaluate(() => window.__rejets.length)) === 0, { e: S.erreurs, c: S.console });
+  await S.fermer();
+}
+
+/* le fil n'est pas refait à chaque événement : mêmes nœuds, mêmes photos, focus gardé ; l'heure de la liste se remet à jour seule */
+async function corrFilStable(b, base, F) {
+  const pf = PROFILS.bureau1440, S = await nouvelle(b, base, pf);
+  titre(S.nom + ' — le fil ne se refait pas à chaque événement');
+  await ouvrirConv(S, 'v2', 'Camille Roux');
+  await choisirFichiers(S, F.valide); await attendre(S, n => document.querySelectorAll('#conv-messages .msg').length > n, 3); await dormir(700);
+  await S.page.evaluate(() => { window.__img = document.querySelector('#conv-messages .photo img'); window.__bulle = document.querySelector('#conv-messages .bulle'); window.__dernier = [...document.querySelectorAll('#conv-messages .msg')].pop(); });
+  await S.page.locator('#conv-messages .photo[data-photo]').last().focus();
+  const avant = await S.page.evaluate(() => ({ statut: window.__dernier.querySelector('.statut') && window.__dernier.querySelector('.statut').textContent, foyer: document.activeElement.dataset.photo || null }));
+  await dormir(2000);                                         // « Lu » arrive 1,5 s après l'envoi dans une conversation à plusieurs
+  await S.page.evaluate(() => window.OPMSG_SOURCE.simulerRecu('v2', { texte: 'Réponse de Camille' })); await dormir(800);
+  const ap = await S.page.evaluate(() => ({ memeImg: window.__img === document.querySelector('#conv-messages .photo img') && window.__img.isConnected, memeBulle: window.__bulle === document.querySelector('#conv-messages .bulle') && window.__bulle.isConnected, memeDernier: window.__dernier.isConnected && window.__dernier === [...document.querySelectorAll('#conv-messages .msg')].find(m => m === window.__dernier),
+    statut: window.__dernier.querySelector('.statut') && window.__dernier.querySelector('.statut').textContent, foyer: document.activeElement.dataset.photo || null, n: document.querySelectorAll('#conv-messages .msg').length }));
+  v(S.nom + ' : (population) la photo envoyée est dans le fil, le focus est sur elle (' + avant.foyer + '), son statut dit « ' + avant.statut + ' »', !!avant.foyer && !!avant.statut);
+  v(S.nom + ' : après le « Lu » ET un message reçu, la photo, la bulle et le message envoyé sont les MÊMES nœuds (pas recréés : ni scintillement, ni sélection perdue)', ap.memeImg && ap.memeBulle && ap.memeDernier, ap);
+  v(S.nom + ' : le statut a changé EN PLACE (« ' + avant.statut + ' » → « ' + ap.statut + ' »), le focus est resté sur la photo', /^Lu \d\d:\d\d$/.test(ap.statut || '') && ap.foyer === avant.foyer, { avant, ap });
+  /* l'heure de la liste : « maintenant » ne dure pas */
+  await S.page.evaluate(() => window.OPMSG_SOURCE.envoyer('v6', { texte: 'à l\'instant' })); await dormir(400);
+  const h0 = await S.page.evaluate(() => document.querySelector('#liste-conv li:first-child .conv-heure').textContent);
+  await S.page.clock.fastForward(75000); await dormir(400);
+  const h1 = await S.page.evaluate(() => document.querySelector('#liste-conv li:first-child .conv-heure').textContent);
+  v(S.nom + ' : l\'heure d\'une ligne se remet à jour seule (« ' + h0 + ' » → « ' + h1 + ' » 75 s plus tard, sans événement)', h0 === 'maintenant' && /^\d\d:\d\d$/.test(h1), { h0, h1 });
+  /* bidi : un texte arabe s'aligne à droite, un français à gauche */
+  await ouvrirConv(S, 'v2', 'Camille Roux');
+  await S.page.evaluate(() => window.OPMSG_SOURCE.envoyer('v2', { texte: 'مرحبا بالجميع' })); await dormir(400);
+  const d = await S.page.evaluate(() => { const b = [...document.querySelectorAll('#conv-messages .bulle')].pop(); return { dir: b.getAttribute('dir'), direction: getComputedStyle(b).direction, texte: b.textContent }; });
+  v(S.nom + ' : un message en arabe a sa direction (dir=auto → ' + d.direction + ')', d.dir === 'auto' && d.direction === 'rtl', d);
+  v(S.nom + ' : 0 erreur JavaScript, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0, { e: S.erreurs, c: S.console });
+  await S.fermer();
+}
+
+/* le texte collé n'est pas coupé en silence ; Échap dans la recherche ne ferme pas la conversation à côté */
+async function corrCollageEchap(b, base) {
+  const pf = PROFILS.bureau1440, S = await nouvelle(b, base, pf);
+  titre(S.nom + ' — texte collé trop long, et Échap dans la recherche');
+  await ouvrirConv(S, 'v3', 'Chantier Les Tilleuls');
+  await geste(S, '#saisie');
+  const n0 = await nb(S, '#conv-messages .msg');
+  await S.page.keyboard.insertText('x'.repeat(5400)); await dormir(300);
+  const r = await S.page.evaluate(() => ({ n: document.getElementById('saisie').value.length, avis: document.getElementById('avis').hidden ? null : document.getElementById('avis').textContent }));
+  v(S.nom + ' : 5 400 signes collés → le champ GARDE ce qu\'on a collé (' + r.n + ') et DIT que c\'est trop long : « ' + r.avis + ' »', r.n === 5400 && /1\s400 signes en trop/.test(r.avis || ''), r);
+  await S.page.keyboard.press('Control+Enter'); await dormir(400);
+  v(S.nom + ' : et rien ne part tant que c\'est trop long (messages ' + n0 + ' → ' + (await nb(S, '#conv-messages .msg')) + ')', (await nb(S, '#conv-messages .msg')) === n0);
+  await S.page.locator('#saisie').fill('x'.repeat(4000)); await S.page.locator('#saisie').dispatchEvent('input'); await dormir(200);
+  v(S.nom + ' : redescendu à 4 000 signes pile, l\'avertissement s\'efface', await S.page.evaluate(() => document.getElementById('avis').hidden));
+  await S.page.locator('#saisie').fill(''); await S.page.locator('#saisie').dispatchEvent('input');
+  /* Échap dans le champ de recherche de la liste (maître-détail) */
+  await S.page.locator('#recherche-conv').fill('chantier'); await S.page.locator('#recherche-conv').focus(); await dormir(200);
+  const e0 = await S.page.evaluate(() => ({ lignes: document.querySelectorAll('#liste-conv .conv').length, conv: document.documentElement.dataset.conv || null }));
+  await S.page.keyboard.press('Escape'); await dormir(300);
+  const e1 = await S.page.evaluate(() => ({ lignes: document.querySelectorAll('#liste-conv .conv').length, val: document.getElementById('recherche-conv').value, conv: document.documentElement.dataset.conv || null }));
+  await S.page.keyboard.press('Escape'); await dormir(300);
+  const e2 = await S.page.evaluate(() => ({ conv: document.documentElement.dataset.conv || null, titre: document.querySelector('.conv-titre-nom > span').textContent.trim() }));
+  v(S.nom + ' : (population) la recherche « chantier » filtre la liste (' + e0.lignes + ' ligne), la conversation est ouverte à côté', e0.lignes === 1 && e0.conv === '1', e0);
+  v(S.nom + ' : Échap dans la recherche l\'EFFACE (' + e1.lignes + ' lignes, valeur « ' + e1.val + ' ») sans fermer la conversation ; un second Échap non plus (conversation « ' + e2.titre + ' » toujours ouverte)', e1.val === '' && e1.lignes === 6 && e1.conv === '1' && e2.conv === '1', { e1, e2 });
+  await geste(S, '#saisie'); await S.page.keyboard.press('Escape'); await attendreListe(S);
+  v(S.nom + ' : Échap dans le champ de saisie, lui, ferme toujours la conversation', !(await S.page.evaluate(() => document.documentElement.dataset.conv)));
+  v(S.nom + ' : 0 erreur JavaScript, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0, { e: S.erreurs, c: S.console });
+  await S.fermer();
+}
+
+/* une image dont l'en-tête est bon et le corps abîmé : refusée, dite — et une bonne passe */
+async function corrImages(b, base, F) {
+  const pf = PROFILS.iphone, S = await nouvelle(b, base, pf);
+  titre(S.nom + ' — images abîmées');
+  await ouvrirConv(S, 'v2', 'Camille Roux');
+  let bons = 0;
+  for (const [nomF, f, attendu] of [['corrompue (en-tête bon, corps abîmé)', F.corrompue, false], ['tronquée', F.tronquee, false], ['sans en-tête (octets quelconques)', F.cassee, false], ['valide', F.valide, true]]) {
+    const n0 = await nb(S, '#conv-messages .msg');
+    await S.page.evaluate(() => { document.getElementById('avis').hidden = true; document.getElementById('avis').textContent = ''; });
+    await choisirFichiers(S, f); await dormir(1000);
+    const r = await S.page.evaluate(async () => { const m = [...document.querySelectorAll('#conv-messages .msg')].pop(); const im = m && m.querySelector('.photo img'); let uniq = 0;
+      if (im) { await new Promise(r => im.complete ? r() : im.addEventListener('load', r)); const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; const x = c.getContext('2d'); x.drawImage(im, 0, 0); const d = x.getImageData(0, 0, c.width, c.height).data; const u = new Set(); for (let i = 0; i < d.length; i += 4 * 37) u.add(d[i] + ',' + d[i + 1] + ',' + d[i + 2]); uniq = u.size; }
+      return { n: document.querySelectorAll('#conv-messages .msg').length, uniq, avis: document.getElementById('avis').hidden ? null : document.getElementById('avis').textContent }; });
+    const ok = attendu ? (r.n === n0 + 1 && r.uniq > 100 && !r.avis) : (r.n === n0 && /n'a pas pu être lue/.test(r.avis || ''));
+    if (ok) bons++;
+    v(S.nom + ' : image ' + nomF + ' → ' + (attendu ? 'envoyée, avec de vraies couleurs (' + r.uniq + ' teintes dans la vignette)' : 'REFUSÉE et dite (« ' + r.avis + ' », messages ' + n0 + ' → ' + r.n + ')'), ok, r);
+  }
+  v('(population) 4 images jouées, ' + bons + ' conformes', bons === 4);
+  /* la photo du groupe : une corrompue laisse la pastille */
+  await fermerConv(S);
+  await geste(S, '#btn-groupe'); await dormir(800);
+  await S.page.setInputFiles('#g-photo-fichier', F.corrompue); await dormir(900);
+  const g = await S.page.evaluate(() => ({ avec: document.getElementById('g-photo').classList.contains('avec-image'), mot: document.getElementById('mot').classList.contains('on') ? document.getElementById('mot').textContent : null }));
+  v(S.nom + ' : une photo de groupe corrompue laisse la pastille et le dit (« ' + g.mot + ' »)', !g.avec && /pastille/.test(g.mot || ''), g);
+  v(S.nom + ' : 0 erreur JavaScript, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0, { e: S.erreurs, c: S.console });
+  await S.fermer();
+}
+
+/* la liste garde sa position de défilement après un tour par une autre vue */
+async function corrDefilementVues(b, base) {
+  titre('la liste retrouve sa position après un tour par Appels (retour système, puis onglet)');
+  for (const [pf, h] of [[PROFILS.android360, 420], [{ nom: 'bureau 1024', w: 1024, h: 768, dpr: 1, mobile: false, insets: null }, 420]]) {
+    const S = await nouvelle(b, base, pf, { h }); S.nom = pf.nom + ' (fenêtre de ' + h + ' px)';
+    await S.page.evaluate(() => window.scrollTo(0, 99999)); await dormir(300);
+    const y0 = await S.page.evaluate(() => ({ y: Math.round(scrollY), max: document.documentElement.scrollHeight - innerHeight }));
+    v(S.nom + ' : (population) la liste défile (' + y0.max + ' px) et on est descendu à ' + y0.y + ' px', y0.max > 40 && y0.y > 40, y0);
+    const lien = S.pf.w < 900 ? '#tabs [data-vue="appels"]' : '#nav-side [data-vue="appels"]', lienM = S.pf.w < 900 ? '#tabs [data-vue="messages"]' : '#nav-side [data-vue="messages"]';
+    await geste(S, lien); await dormir(500);
+    const yA = await S.page.evaluate(() => ({ y: Math.round(scrollY), vue: document.documentElement.dataset.vue }));
+    v(S.nom + ' : Appels s\'ouvre en haut (' + yA.y + ' px)', yA.vue === 'appels' && yA.y === 0, yA);
+    await S.page.goBack(); await dormir(600);
+    const y1 = await S.page.evaluate(() => ({ y: Math.round(scrollY), vue: document.documentElement.dataset.vue }));
+    v(S.nom + ' : le retour système rend la liste à SA position (' + y0.y + ' px avant, ' + y1.y + ' px après)', y1.vue === 'messages' && Math.abs(y1.y - y0.y) <= 1, { y0, y1 });
+    await geste(S, lien); await dormir(400);
+    await geste(S, lienM); await dormir(600);
+    const y2 = await S.page.evaluate(() => Math.round(scrollY));
+    v(S.nom + ' : et en touchant l\'onglet Messages (' + y2 + ' px)', Math.abs(y2 - y0.y) <= 1, { y0, y2 });
+    await geste(S, lienM); await dormir(500);
+    const y3 = await S.page.evaluate(() => Math.round(scrollY));
+    v(S.nom + ' : toucher l\'onglet DÉJÀ courant ramène en haut (' + y3 + ' px)', y3 === 0, y3);
+    v(S.nom + ' : 0 erreur JavaScript, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0, { e: S.erreurs, c: S.console });
+    await S.fermer();
+  }
+}
+
+/* couleurs forcées : seuls les contours restent, les bulles en ont un */
+async function corrCouleursForcees(b, base) {
+  const pf = PROFILS.iphone, S = await nouvelle(b, base, pf, { media: [{ name: 'forced-colors', value: 'active' }] });
+  titre(S.nom + ' — couleurs forcées (forced-colors: active)');
+  const f = await S.page.evaluate(() => matchMedia('(forced-colors: active)').matches);
+  v(S.nom + ' : (population) l\'appareil demande les couleurs forcées (' + f + ')', f);
+  await ouvrirConv(S, 'v1', 'Équipe dépôt'); await dormir(300);
+  const r = await S.page.evaluate(() => { const g = s => [...document.querySelectorAll(s)].map(e => { const c = getComputedStyle(e); return { s: c.borderTopStyle, w: parseFloat(c.borderTopWidth) }; });
+    return { bulles: g('.bulle'), photos: g('.photo'), vocal: g('.vocal'), saisie: g('.pilule-saisie'), onde: [...document.querySelectorAll('.vocal .onde i')].map(e => getComputedStyle(e).backgroundColor) }; });
+  const ok = x => x.length > 0 && x.every(y => y.s === 'solid' && y.w >= 1);
+  v(S.nom + ' : (population) ' + r.bulles.length + ' bulles, ' + r.photos.length + ' photos, ' + r.vocal.length + ' vocal, ' + r.saisie.length + ' champ — tous ont un CONTOUR (émis et reçu se distinguent encore sans fond)', ok(r.bulles) && ok(r.photos) && ok(r.vocal) && ok(r.saisie), r);
+  v(S.nom + ' : les barres de l\'onde ont une couleur peinte (' + r.onde.length + ' barres, ex. ' + r.onde[0] + ')', r.onde.length >= 10 && r.onde.every(c => c !== 'rgba(0, 0, 0, 0)'), r.onde);
+  v(S.nom + ' : 0 erreur JavaScript, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0, { e: S.erreurs, c: S.console });
+  await S.fermer();
+}
+
+/* un écran étroit (zoom du navigateur à 175 % et 200 % sur un téléphone : 225 et 197 px de large) */
+async function corrEtroit(b, base) {
+  titre('écrans étroits : zoom du navigateur à 175 % et 200 % sur un téléphone (225 et 197 px)');
+  for (const W of [225, 197]) {
+    const S = await nouvelle(b, base, PROFIL_ETROIT(W), { nom: 'étroit ' + W });
+    const t = await S.page.evaluate(() => { const bar = document.getElementById('tabs').getBoundingClientRect(); return { bar: [Math.round(bar.left), Math.round(bar.right)], tabs: [...document.querySelectorAll('#tabs .tab')].map(e => { const r = e.getBoundingClientRect(), s = e.querySelector('span').getBoundingClientRect(); return { l: Math.round(r.left), r: Math.round(r.right), sl: Math.round(s.left), sr: Math.round(s.right) }; }) }; });
+    v(S.nom + ' : (population) ' + t.tabs.length + ' onglets dans la barre (' + t.bar.join('→') + ') — chaque libellé reste DANS la barre', t.tabs.length === 4 && t.tabs.every(x => x.sl >= t.bar[0] - 1 && x.sr <= t.bar[1] + 1 && x.l >= t.bar[0] - 1 && x.r <= t.bar[1] + 1), t);
+    await mesurerLargeur(S, S.nom + ' · liste');
+    await geste(S, '#btn-groupe'); await dormir(800);
+    const f = await S.page.evaluate(() => { const r = id => { const b = document.getElementById(id).getBoundingClientRect(); return { l: Math.round(b.left), r: Math.round(b.right), t: Math.round(b.top), b: Math.round(b.bottom) }; }; const f = r('feuille'); return { W: innerWidth, creer: r('g-creer'), annuler: r('g-annuler'), titre: r('feuille-titre'), feuille: f, creerTexte: document.getElementById('g-creer').textContent }; });
+    const dedans = x => x.l >= f.feuille.l - 1 && x.r <= f.feuille.r + 1;
+    v(S.nom + ' : dans la feuille « Nouveau groupe », « Annuler » (' + f.annuler.l + '→' + f.annuler.r + ') et « Créer » (' + f.creer.l + '→' + f.creer.r + ') tiennent dans la fenêtre de ' + f.W + ' px, sans se chevaucher ni cacher le titre', dedans(f.creer) && dedans(f.annuler) && f.annuler.r <= f.titre.l + 1 && f.titre.r <= f.creer.l + 1 && f.creer.r <= f.W, f);
+    await mesurerLargeur(S, S.nom + ' · feuille'); await mesurerCibles(S, S.nom + ' · feuille');
+    await S.page.keyboard.press('Escape'); await dormir(500);
+    await ouvrirConv(S, 'v1', 'Équipe dépôt');
+    const c = await S.page.evaluate(() => { const r = s => { const e = document.querySelector(s), b = e.getBoundingClientRect(); return { l: Math.round(b.left), r: Math.round(b.right), w: Math.round(b.width) }; }; return { W: innerWidth, saisie: r('#saisie'), micro: r('#compo-micro'), cam: r('#conv-cam'), titre: r('.conv-titre'), retour: r('#conv-retour') }; });
+    v(S.nom + ' : en conversation, le champ de saisie (' + c.saisie.w + ' px), le micro et la caméra restent dans la fenêtre de ' + c.W + ' px', c.saisie.w >= 60 && c.micro.r <= c.W && c.cam.r <= c.W && c.retour.l >= 0, c);
+    await mesurerLargeur(S, S.nom + ' · conversation');
+    v(S.nom + ' : 0 erreur JavaScript, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0, { e: S.erreurs, c: S.console });
+    await S.fermer();
+  }
+}
+
+/* le contraste de TOUT le texte, trois états, jour et nuit, téléphone et bureau */
+async function corrContrastes(b, base) {
+  titre('le contraste de tout le texte, lu au pixel (liste, conversation, feuille — jour et nuit, téléphone et bureau)');
+  for (const [pf, dark] of [[PROFILS.iphone, false], [PROFILS.iphone, true], [PROFILS.bureau1440, false], [PROFILS.bureau1440, true]]) {
+    const S = await nouvelle(b, base, pf, { dark, nom: pf.nom + ' ' + (dark ? 'nuit' : 'jour') });
+    await contrasteTout(S, S.nom + ' · liste', { minimum: 12 });
+    await ouvrirConv(S, 'v1', 'Équipe dépôt'); await dormir(300);
+    await contrasteTout(S, S.nom + ' · conversation', { minimum: 8 });
+    await fermerConv(S);
+    await geste(S, '#btn-groupe'); await dormir(800);
+    await geste(S, '#g-contacts .contact[data-id="c1"]'); await geste(S, '#g-contacts .contact[data-id="c2"]'); await dormir(250);
+    await contrasteTout(S, S.nom + ' · feuille « Nouveau groupe »', { minimum: 10 });
+    v(S.nom + ' : 0 erreur JavaScript, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0, { e: S.erreurs, c: S.console });
+    await S.fermer();
+  }
+}
+
+const CORRECTIFS = {
+  'vocal-conv': (b, base) => corrVocalChangeConv(b, base),
+  'double-toucher': async (b, base, F) => { for (const pf of [PROFILS.iphone, PROFILS.android360, PROFILS.bureau1440]) await corrDoubleToucher(b, base, F, pf); },
+  'adresses': (b, base) => corrAdresses(b, base),
+  'focus': (b, base) => corrFocus(b, base),
+  'recu': async (b, base) => { for (const pf of [PROFILS.iphone, PROFILS.bureau1440]) await corrMessageRecu(b, base, pf); },
+  'fil-stable': (b, base, F) => corrFilStable(b, base, F),
+  'collage': (b, base) => corrCollageEchap(b, base),
+  'images': (b, base, F) => corrImages(b, base, F),
+  'defilement-vues': (b, base) => corrDefilementVues(b, base),
+  'couleurs-forcees': (b, base) => corrCouleursForcees(b, base),
+  'etroit': (b, base) => corrEtroit(b, base),
+  'contrastes': (b, base) => corrContrastes(b, base)
+};
+
 /* ══ LA FIN D'UN PARCOURS : les comptes ═══════════════════════════════════════════════════════════════════════════════════════════ */
 const AUTORISES = new Set(['/apercu/opmessages/index.html', '/apercu/opmessages/source.js', '/icons/opmsg-192.png', '/icons/opmsg-favicon-32.png']);
 async function finParcours(S) {
@@ -1023,6 +1525,8 @@ async function principal() {
       if (veut('large')) await etapeLarge(b, srv.base);
       if (veut('redimension')) await etapeRedimension(b, srv.base);
       if (veut('stress')) for (const W of [360, 393, 412]) await etapeStress(b, srv.base, W);
+      /* les correctifs de la relecture et du testeur adverse : tous (--seul=correctifs), ou un seul par son nom (--seul=vocal-conv …) */
+      for (const [nomC, f] of Object.entries(CORRECTIFS)) if (scenario === 'correctifs' || (veut(nomC) && !(nomC === 'contrastes' && !scenario))) await f(b, srv.base, F);   // 'contrastes' : déjà joué par chaque parcours
       if (veut('reglages')) await etapeReglages(b, srv.base);
       /* le micro REFUSÉ (la permission est retirée) et le micro ABSENT (aucun périphérique) : deux navigateurs, deux causes réelles */
       if (veut('micro')) {

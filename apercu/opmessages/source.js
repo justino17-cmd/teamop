@@ -175,6 +175,17 @@
         emettre({ type: 'liste' });
         return Promise.resolve(resume(c));
       },
+      /* ⚠️ APERÇU SEULEMENT, hors contrat : un serveur dira « un message est arrivé » par `ecouter`. Ici personne n'écrit de l'autre côté, alors cette méthode joue
+         l'arrivée d'un message d'un AUTRE (la sonde et test-857 s'en servent pour éprouver ce que la page fait d'un message reçu : l'annoncer, le lire). */
+      simulerRecu(id, corps, auteur) {
+        const c = trouver(id);
+        if (!c) return Promise.reject(erreur('introuvable'));
+        const de = auteur || c.membres.find(x => x !== 'moi');
+        const msg = Object.assign({ id: 'm' + (++seq), auteur: de, t: maintenant(), lu: null }, corps || { texte: 'Bien reçu.' });
+        c.messages.push(msg); c.nonLus++;
+        emettre({ type: 'conversation', id: c.id }); emettre({ type: 'liste' });
+        return Promise.resolve(copieMessage(msg));
+      },
       ecouter(cb) {
         ecouteurs.push(cb);
         return () => { const i = ecouteurs.indexOf(cb); if (i >= 0) ecouteurs.splice(i, 1); };
