@@ -106,6 +106,11 @@ nouvel appareil seulement, mobiles seuls, plafonds par numéro / réseau / jour,
 Puis : **« je veux une connexion pour tous les pays, je veux voir plus que WhatsApp »** → TOUS les pays ouverts ; la protection
 passe du « où » au « combien » : table de prix par pays, budget en euros par jour (global et par pays), un pays qui s'emballe passe
 seul en bouclier. Proposé à Justin pour la suite : la connexion par clé d'accès (Face ID / empreinte) qui remplace le SMS.
+Puis : **« avec toutes les langues disponibles »** → OP MESSAGES multilingue : interface ET SMS dans la langue de la personne
+(langue de l'appareil par défaut, choix dans Réglages), écriture de droite à gauche (arabe, hébreu, persan, ourdou). À faire APRÈS le
+branchement de l'interface sur le serveur (il réécrit la même page : deux chantiers en même temps sur les mêmes textes se
+marcheraient dessus). Première vague : les langues les plus parlées et celles de l'Union européenne ; le système en accepte autant
+qu'on veut ; chaque traduction relue par un second agent.
 ✅ **Serveur d'OP MESSAGES, étape 1 FAITE sur la branche** (fusion `d70ba05`) : `server-msg/` (node:sqlite, scellé AES-256-GCM,
 SSE, porte bêta par la Tour en boucle locale, groupes, lu, saisie, présence), son installation (`install-msg.sh`, unité durcie,
 utilisateur `opmsg`), son déploiement (`.github/workflows/deploiement-messages.yml`, une clé SSH par instance) et le mode
