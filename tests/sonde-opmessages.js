@@ -1180,6 +1180,13 @@ async function corrDoubleToucher(b, base, F, pf) {
   await S.page.evaluate(() => { const e = document.getElementById('envoyer'); e.click(); e.click(); }); await dormir(600);
   const n2 = (await nb(S, '#conv-messages .msg')) - nS;
   v(S.nom + ' : deux clics synchrones sur « envoyer » postent UN message (' + n2 + ')', n2 === 1);
+  /* et la garde ne mange pas un VRAI geste : « Retour » tapé tout de suite après un envoi ferme la conversation (la garde l'avalait : trouvé par la sonde complète) */
+  if (pf.w < 1100) {
+    await S.page.locator('#saisie').fill('puis retour aussitôt'); await S.page.locator('#saisie').dispatchEvent('input');
+    await geste(S, '#envoyer'); await geste(S, '#conv-retour');
+    const ferme = await attendreListe(S);
+    v(S.nom + ' : « Retour » tapé aussitôt après un envoi ferme bien la conversation (la garde du second toucher ne le retient pas)', ferme);
+  }
   v(S.nom + ' : 0 erreur JavaScript, 0 rejet, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0 && (await S.page.evaluate(() => window.__rejets.length)) === 0, { e: S.erreurs, c: S.console });
   await S.fermer();
 }
