@@ -101,7 +101,7 @@ function monde(opts) {
     function notifyDrBoxLow(){} function notifyDrBoxMove(){} function boxMvtEnvoyer(){} function valideursPour(){ return []; } function pushNotify(){}
     function intHisto(i,t){ (i.histo=i.histo||[]).push(t); }
     function roleDeNom(){ return ''; }
-    function peutCommander(){ return true; } function refusCommander(){}
+    function peutCommander(){ return true; } function refusCommander(){} function planBloque(){ return false; }   /* v768 : bonSuggere refuse sans l'option Stock (Achats seuls) ; ici, le stock est ouvert */
     function formBon(){} function renderBonLignes(){} function bonQtyOpen(){}
     function permGarde(){ return true; }
     function etiqVersBox(id){ __etiq.push('box:'+id); } function etiqOuvrir(m){ __etiq.push(m); }
@@ -423,7 +423,7 @@ console.log('\n── 794 · 17. ⛔⛔ le stockage ne PARLE qu’à qui a la pe
       function perimetreTechIds(){ return null; } function perimetreUserIds(){ return null; }
       function drPerimetre(){ return new Set(__drp||[]); } function delegationsRecues(){ return []; } function remplacantDe(x){ return x; }
       function produit(id){ return db.produits.find(p=>p.id===id)||{}; }
-      function peutCommander(){ return true; } function refusCommander(){} function formBon(){} function renderBonLignes(){} function bonQtyOpen(){}
+      function peutCommander(){ return true; } function refusCommander(){} function planBloque(){ return false; } function formBon(){} function renderBonLignes(){} function bonQtyOpen(){}
       function toast(m){ __toasts.push(String(m)); }`, ctx);
     return ctx; };
   const gens = () => [{ id: 'uA', prenom: 'Justin', nom: 'Roux', role: 'admin' },
