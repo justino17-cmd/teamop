@@ -2139,7 +2139,9 @@ app.post('/api/monitor/users/apps', monPatronStrict, (req, res) => {
 const BETA_PATH = path.join(DATA_DIR, 'beta-comptes.json');
 let betaComptes = [];
 try { betaComptes = JSON.parse(fs.readFileSync(BETA_PATH, 'utf8')) || []; } catch (e) {}
-function betaSave() { try { fs.writeFileSync(BETA_PATH, JSON.stringify(betaComptes)); } catch (e) { console.error('beta save:', e.message); } }
+// Temporaire puis renommage, comme `espacesEcrire` : une coupure pendant l'écriture laissait un fichier tronqué, que le
+// chargement avale (catch vide) — tous les accès bêta perdus au redémarrage (relevé par `gardien`, 1er octobre 2026).
+function betaSave() { try { const tmp = BETA_PATH + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(betaComptes)); fs.renameSync(tmp, BETA_PATH); } catch (e) { console.error('beta save:', e.message); } }
 // Le chantier — ce que la personne teste — n'est pas décoratif : un accès bêta sans raison
 // écrite est un accès qu'on n'ose plus couper parce qu'on ne sait plus à quoi il servait.
 /* ⛔ QUELLE APPLICATION UN ACCÈS OUVRE (1er octobre 2026 — Justin : « fais un lien bêta dans la Tour [pour OP MESSAGES], le même
@@ -2243,6 +2245,10 @@ app.post('/api/beta/etat', (req, res) => {
     for (const id of ids.slice(0, 100)) { if (typeof id === 'string' && /^b[0-9a-f]{6,32}$/.test(id)) ouverts[id] = betaComptes.some(x => x.id === id && ouvert(x)); }
     return res.json({ ouverts, app: appVoulue });   // `app` rendu en écho : un OP GESTION d'avant ne le fait pas, et l'autre service ne coupe ni ne maintient rien sur une réponse qui ne répond pas à SA question
   }
+  // La forme {login} est PUBLIQUE et sans mot de passe (beta.html relit ainsi son propre accès) : elle ne répond que pour
+  // OP GESTION. Lui demander une autre application dirait à n'importe qui si un identifiant ouvre OP MESSAGES — un cran
+  // d'oracle de plus (relevé par `gardien`) ; OP MESSAGES relit par `ids`, qu'on ne devine pas.
+  if (appVoulue !== 'gestion') return res.status(400).json({ error: 'forme ids exigée' });
   const login = monStr((req.body || {}).login, 40).trim().toLowerCase();
   const c = betaComptes.find(x => x.login === login);
   res.json({ ouvert: ouvert(c) });

@@ -121,8 +121,12 @@ const json = async (base, methode, chemin, corps, entetes) => {
       vrai('⛔ la VRAIE route de connexion d\'OP GESTION rend l\'identifiant du compte (b + 10 hexadécimaux), celui que la Tour affiche', lg.code === 200 && /^b[0-9a-f]{10}$/.test(lg.j.id) && lg.j.id === a1.j.compte.id);
       const et = await json(og.base, 'POST', '/api/beta/etat', { ids: [a1.j.compte.id, a2.j.compte.id, 'b' + 'f'.repeat(10), 'pas-un-id', 42], app: 'messages' });
       v('⛔ la VRAIE route d\'état répond pour une LISTE d\'identifiants : ouvert → true, inconnu → false, forme invalide ignorée', [et.code, et.j.ouverts], [200, { [a1.j.compte.id]: true, [a2.j.compte.id]: true, ['b' + 'f'.repeat(10)]: false }]);
+      // La forme {login} est publique : elle ne répond QUE pour OP GESTION (beta.html), sinon elle dirait à n'importe qui
+      // si un identifiant ouvre OP MESSAGES (relevé par `gardien`). OP MESSAGES relit par `ids`.
       const ancien = await json(og.base, 'POST', '/api/beta/etat', { login: 'alice', app: 'messages' });
-      v('   l\'ancienne forme (un login) répond toujours', ancien.j, { ouvert: true });
+      v('⛔ l\'ancienne forme (un login) refuse de répondre pour OP MESSAGES : pas d\'oracle public', [ancien.code, ancien.j], [400, { error: 'forme ids exigée' }]);
+      const ancienG = await json(og.base, 'POST', '/api/beta/etat', { login: 'alice' });
+      vrai('   et répond toujours pour OP GESTION (beta.html)', ancienG.code === 200 && typeof ancienG.j.ouvert === 'boolean');
       // Supprimée puis recréée sous le même login : une AUTRE personne chez OP MESSAGES.
       const d1 = await creer('dora', 'pw-dora-reel1', 'Dora');
       const c1 = T.client(svc.base, { xff: ip() });
