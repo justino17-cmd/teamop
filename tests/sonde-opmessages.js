@@ -271,14 +271,18 @@ const JS_RELEVER = () => {
     for (const r of rects) {
       if (r.width < 2 || r.height < 2) continue;
       if (r.left < -0.5 || r.top < -0.5 || r.right > W + 0.5 || r.bottom > H + 0.5) { sauts.hors++; continue; }
-      if (!e.closest('.notif, .mot') && calques.some(c => r.left < c.right && r.right > c.left && r.top < c.bottom && r.bottom > c.top)) { sauts.recouvert++; continue; }
+      if (!e.closest('.notif, .mot, #tabs') && calques.some(c => r.left < c.right && r.right > c.left && r.top < c.bottom && r.bottom > c.top)) { sauts.recouvert++; continue; }
       const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       if (!top || !(e.contains(top) || top.contains(e))) { sauts.recouvert++; continue; }
       out.push({ nom: nom(e), texte: texte.slice(0, 24), x: r.left, y: r.top, w: r.width, h: r.height, ink: c, fs, gras, placeholder: !!placeholder });
     }
   };
   /* une bannière ou un petit mot VISIBLE passe devant ce qu'il couvre sans le recevoir (pointer-events:none) : elementFromPoint ne le voit pas, on le recense à part */
-  const calques = Array.from(document.querySelectorAll('.notif.on, .mot.on')).map(e => e.getBoundingClientRect());
+  const calques = Array.from(document.querySelectorAll('.notif.on, .mot.on')).map(e => { const r = e.getBoundingClientRect(); return { left: r.left - 64, right: r.right + 64, top: r.top - 64, bottom: r.bottom + 64 }; });      // + 64 px : l'ombre de la bannière (0 18px 44px) assombrit ce qui l'entoure
+  /* la barre d'onglets flottante est du verre posé sur ce qui défile : un texte qui la TOUCHE (sa ligne passe sous le bord, dans son ombre) n'est pas lu — la passe où il est
+     dégagé (défilement) le mesure ; ce n'est pas un défaut du texte, c'est la position du défilement */
+  const barre = document.getElementById('tabs');
+  if (barre && getComputedStyle(barre).display !== 'none') { const r = barre.getBoundingClientRect(); calques.push({ left: r.left - 24, right: r.right + 24, top: r.top - 24, bottom: r.bottom + 24 }); }
   const marche = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   let t;
   while ((t = marche.nextNode())) {
