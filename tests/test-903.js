@@ -33,6 +33,10 @@ const nb = (svc, table) => { const d = lireDb(svc); try { return d.prepare('SELE
 (async () => {
   const og = await T.fauxOpGestion(COMPTES());
   const svc = await T.lancerService({ urlGestion: og.url, horloge: true, config: { beta: { relectureMs: 250, timeoutMs: 500 } } });
+  /* ⛔ La relecture de l'état des accès (toutes les 250 ms ici) APPELLE AUSSI OP GESTION (`/api/beta/etat`, adresse 127.0.0.1) : compter
+     « tous les appels reçus » dépend alors du moment où elle passe — 1 fois sur 6 environ, un appel de relecture s'intercalait et
+     faisait accuser le service de relayer l'adresse du VPS. On ne compte que les appels de CONNEXION. */
+  const logins = (n0) => og.appels.slice(n0).filter(a => a.chemin === '/api/beta/login');
   try {
     console.log('Le service démarre, /health est agrégé, et il n\'écoute que sur la boucle locale');
     {
@@ -94,8 +98,8 @@ const nb = (svc, table) => { const d = lireDb(svc); try { return d.prepare('SELE
       const sc = r.h.getSetCookie()[0];
       vrai('⛔ le cookie : HttpOnly, SameSite=Strict, Path=/, Max-Age de 30 jours (le JavaScript de la page ne le voit jamais)', /^opm=opm_[A-Za-z0-9_-]{43}; /.test(sc) && /HttpOnly/.test(sc) && /SameSite=Strict/.test(sc) && /Path=\//.test(sc) && /Max-Age=2592000/.test(sc));
       vrai('⛔ le jeton n\'est PAS dans le corps de la réponse (il ne vit que dans le cookie HttpOnly)', !/opm_[A-Za-z0-9_-]{43}/.test(r.txt));
-      const appel = og.appels[avant];
-      v('OP GESTION a reçu exactement {login, pass}, la route /api/beta/login, une seule fois', [og.appels.length - avant, appel.chemin, appel.corps], [1, '/api/beta/login', { login: 'alice', pass: 'pw-alice-1234' }]);
+      const appel = logins(avant)[0];
+      v('OP GESTION a reçu exactement {login, pass}, la route /api/beta/login, une seule fois', [logins(avant).length, appel.chemin, appel.corps], [1, '/api/beta/login', { login: 'alice', pass: 'pw-alice-1234' }]);
       vrai('⛔ sans proxy devant, l\'adresse transmise est celle du client (la boucle locale), jamais vide', /^(::ffff:)?127\.0\.0\.1$/.test(appel.xff || ''));
       const moi = await c.get('/api/moi');
       v('le cookie ouvre la session : /api/moi rend la personne', [moi.code, moi.j.moi.id === r.j.moi.id], [200, true]);
@@ -115,7 +119,7 @@ const nb = (svc, table) => { const d = lireDb(svc); try { return d.prepare('SELE
       }
       const n0 = og.appels.length;
       await T.client(svc.base).post('/api/beta/entrer', { login: 'a b', pass: 'xxxxxxxx' });
-      v('⛔ une entrée mal formée n\'atteint pas OP GESTION (aucun relais de n\'importe quoi)', og.appels.length - n0, 0);
+      v('⛔ une entrée mal formée n\'atteint pas OP GESTION (aucun relais de n\'importe quoi)', logins(n0).length, 0);
     }
 
     console.log('\n⛔ La porte est FERMÉE PAR DÉFAUT : quand OP GESTION se tait, personne n\'entre');
@@ -151,7 +155,7 @@ const nb = (svc, table) => { const d = lireDb(svc); try { return d.prepare('SELE
       const n0 = og.appels.length;
       await T.client(svc.base).post('/api/beta/entrer', { login: 'bob', pass: 'pw-bob-12345' }, { entetes: { 'X-Forwarded-For': '203.0.113.9' } });
       await T.client(svc.base).post('/api/beta/entrer', { login: 'bob', pass: 'pw-bob-12345' }, { entetes: { 'X-Forwarded-For': '10.0.0.1, 6.6.6.6, 203.0.113.77' } });
-      const vus = og.appels.slice(n0).map(a => a.xff);
+      const vus = logins(n0).map(a => a.xff);
       v('⛔ derrière un proxy : OP GESTION reçoit l\'entrée posée par NOTRE proxy (la dernière) — les entrées forgées devant sont ignorées', vus, ['203.0.113.9', '203.0.113.77']);
     }
 

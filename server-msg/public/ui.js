@@ -4,7 +4,7 @@
  * d'autre : la vraie interface se branchera sur `api.js`, qui est la couture.
  *
  * ⛔ TOUT TEXTE VENU D'UN TIERS (nom, message, nom de groupe) ENTRE PAR `textContent`, JAMAIS PAR
- * `innerHTML` : un message « <img src=x onerror=…> » doit s'afficher tel quel. `tests/test-900.js`
+ * `innerHTML` : un message « <img src=x onerror=…> » doit s'afficher tel quel. `tests/test-906.js`
  * refuse `innerHTML`, `insertAdjacentHTML`, `document.write` et `eval` dans ce fichier.
  * ⛔ CHAQUE ESSAI REMET LE VERDICT À ZÉRO (`dire('')`) : un refus d'avant ne survit pas à la
  * réussite qui le dément (règle du dépôt, `_err()` d'`espace.html`).

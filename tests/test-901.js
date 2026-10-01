@@ -170,6 +170,15 @@ console.log('\n`seq` s\'attribue dans la transaction et ne bouge pas quand l\'é
   const t = a.S.tx(() => { a.S.messageEnvoyer({ conv: c, auteur: al.id, cid: 'cid-seq-0003', texte: 'trois' }); return 'ok'; });
   const e2 = lance(() => a.S.tx(() => { a.S.messageEnvoyer({ conv: c, auteur: al.id, cid: 'cid-seq-0004', texte: 'quatre' }); throw new Error('annulé'); }));
   v('une transaction englobante qui échoue annule aussi ce que ses appels internes ont écrit', [t, e2, a.S.messagesDe(c, al.id).messages.map(m => m.seq)], ['ok', 'annulé', [1, 2, 3]]);
+  /* ⛔ LE CAS CI-DESSUS NE JOUE PAS LA FENÊTRE QUI COMPTE : la panne simulée tombe AVANT la première écriture (on scelle
+     avant d'insérer), donc retirer la transaction ne changeait rien — la mutation « seq hors transaction » survivait.
+     Ici la panne tombe APRÈS l'insertion du message ET la mise à jour de `dernier_seq` : seul un ROLLBACK les défait. */
+  const piege = a.brut(); piege.exec("CREATE TRIGGER panne_journal BEFORE INSERT ON journal WHEN NEW.genre = 'msg_nouveau' BEGIN SELECT RAISE(ABORT, 'panne-apres-insertion'); END"); piege.close();
+  const e3 = lance(() => a.S.messageEnvoyer({ conv: c, auteur: al.id, cid: 'cid-seq-0005', texte: 'cinq' }));
+  const b3 = a.brut();
+  v('⛔ une panne APRÈS l\'insertion défait TOUT : ni message orphelin, ni dernier_seq avancé', [e3 !== null, b3.prepare('SELECT dernier_seq FROM conversation WHERE id = ?').get(c).dernier_seq, b3.prepare('SELECT COUNT(*) AS n FROM message WHERE conv = ? AND cid = ?').get(c, 'cid-seq-0005').n], [true, 3, 0]);
+  b3.exec('DROP TRIGGER panne_journal'); b3.close();
+  v('et le renvoi réussit ensuite avec le numéro suivant, sans trou', a.S.messageEnvoyer({ conv: c, auteur: al.id, cid: 'cid-seq-0005', texte: 'cinq' }).seq, 4);
 }
 
 console.log('\n`lu_seq` est monotone, et les non-lus se comptent juste');

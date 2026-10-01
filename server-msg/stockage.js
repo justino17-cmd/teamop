@@ -6,7 +6,7 @@
  *
  * ⛔ TOUT L'ACCÈS SQL PASSE PAR ICI. Aucune requête ailleurs dans `server-msg/` : un cloisonnement
  * qui n'a qu'une porte se surveille, et si Node casse un jour l'API de `node:sqlite` (module
- * encore expérimental), changer de moteur ne touche que ce fichier. `tests/test-900.js` refuse
+ * encore expérimental), changer de moteur ne touche que ce fichier. `tests/test-901.js` refuse
  * tout `.prepare(` / `.exec(` hors de ce module, et ici tout argument de requête qui n'est pas
  * un littéral (concaténation = injection SQL qui attend).
  * ⛔ REQUÊTES PARAMÉTRÉES SEULEMENT. Une valeur venue du monde entre par `?`, jamais dans le
