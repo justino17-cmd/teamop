@@ -27,6 +27,9 @@ const PREFS_PERSONNE = ['presence', 'apercu_notif', 'accuses'];
 const CTRL_NOM = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g;
 const nettoyerNom = (s) => String(s).replace(CTRL_NOM, '').replace(/\s+/g, ' ').trim();
 const nettoyerTexte = (s) => String(s).replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\u2028\u2029]/g, '');
+/* Un message qui ne montre RIEN (espaces, marques de largeur nulle, marques bidirectionnelles) n'est pas un message : il
+   ferait une bulle vide, ou retournerait le texte qui suit. */
+const INVISIBLE = /^[\s\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff\u00ad]*$/u;
 const sha = (x) => crypto.createHash('sha256').update(x).digest('hex');
 const corps = (req) => (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? req.body : {};
 const entier = (x) => Number.isInteger(x) ? x : null;
@@ -380,7 +383,7 @@ function creerHandlers(ctx) {
     if (typeof b.texte !== 'string') return refus(res, 400, 'champ_invalide');
     if (b.texte.length > MSG_MAX * 2) return refus(res, 413, 'trop_long');
     const texte = nettoyerTexte(b.texte);
-    if (!texte.trim()) return refus(res, 400, 'champ_invalide');
+    if (INVISIBLE.test(texte)) return refus(res, 400, 'champ_invalide');
     if (Array.from(texte).length > MSG_MAX) return refus(res, 413, 'trop_long');
     let repondA = null;
     if (b.reponse_a !== undefined && b.reponse_a !== null) {
@@ -414,7 +417,7 @@ function creerHandlers(ctx) {
     const t = corps(req).texte;
     if (typeof t !== 'string' || t.length > MSG_MAX * 2) return refus(res, 400, 'champ_invalide');
     const texte = nettoyerTexte(t);
-    if (!texte.trim()) return refus(res, 400, 'champ_invalide');
+    if (INVISIBLE.test(texte)) return refus(res, 400, 'champ_invalide');
     if (Array.from(texte).length > MSG_MAX) return refus(res, 413, 'trop_long');
     const r = stockage.messageModifier({ conv: req.conv.conv.id, seq: s, auteur: req.moi.id, texte });
     hub.reveiller({ conv: req.conv.conv.id });

@@ -22,4 +22,5 @@ tests/test-905.js
 tests/test-906.js
 tests/test-907.js
 tests/test-908.js
-#plancher 600
+tests/test-909.js
+#plancher 998
