@@ -614,7 +614,8 @@ input.inp,select.sel-f{display:block;line-height:normal}
   padding:3px 9px;font-size:11px;font-weight:600;white-space:nowrap}
 /* v2.80 — une pastille par option servie (« Stock », « Achats »…) à côté de la formule : même couple d'encres que « +n »
    (--text2 sur --tint-gris), jamais .past.p-gris (4,44:1) ; elle porte un MOT, et reste dans la ligne de la formule */
-.opt-p{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:var(--r-pill);background:var(--tint-gris);color:var(--text2);
+.reg-opts{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.opt-p{display:inline-block;padding:1px 8px;border-radius:var(--r-pill);background:var(--tint-gris);color:var(--text2);
   font-size:11px;font-weight:600;line-height:1.5;white-space:nowrap;vertical-align:1px}
 .abo-opts[hidden]{display:none}
 
@@ -7732,7 +7733,7 @@ function vueEntreprises(){
     var join=function(t){ return t.filter(Boolean).join(' · '); };
 
     if(nature==='cliente'){
-      var l2=join([ o.formule?'<b>'+esc(o.formule)+'</b>'+optsPastilles(o):'',
+      var l2=join([ o.formule?'<b>'+esc(o.formule)+'</b>':'',
                     o.utilisateurs7?o.utilisateurs7+' pers. connectée'+(o.utilisateurs7>1?'s':''):'',
                     o.appareils7?o.appareils7+' appareil'+(o.appareils7>1?'s':''):'' ]);
       var l3=join([ o.derniere?esc(fmtJour(o.derniere)):'jamais connectée',
@@ -7742,6 +7743,9 @@ function vueEntreprises(){
         '<span class="reg-av">'+esc(sigle(nm))+'</span>'+
         '<span class="reg-txt"><span class="reg-t1" title="'+esc(nm)+'">'+esc(nm)+'</span>'+
           (l2?'<span class="reg-l2">'+l2+'</span>':'')+
+          /* v2.80 — les options servies ont LEUR rangée (qui passe à la ligne) : dans la ligne de la formule, qui se coupe en
+             ellipse, la quatrième pastille disparaissait à 390 px (mesuré) */
+          (optsPastilles(o)?'<span class="reg-opts">'+optsPastilles(o)+'</span>':'')+
           (l3?'<span class="reg-l3">'+l3+'</span>':'')+'</span>'+
         '<span class="reg-fin"><span class="reg-alertes">'+alertes+'</span>'+
           '<span class="reg-chev" aria-hidden="true">›</span></span></button>';

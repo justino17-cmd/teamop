@@ -154,7 +154,7 @@ const txt = h => String(h).replace(/<[^>]+>/g, '').replace(/ /g, ' ');
     [past({ t: 'ent-1' }), past({ t: 'ent-2' }), past({ t: 'ent-inconnue' }), past({})], [['Achats'], [], [], []]);
   vrai('   la clé hostile d\'une option servie est échappée', !/<img/.test(T0.ctx.optsPastilles({ optionsServies: ['<img src=x onerror=alert(1)>'] })));
   T0.ctx.ESP.list = [];
-  vrai('⛔ la ligne de la liste PORTE la pastille (code de `vueEntreprises`, commentaires retirés)', /o\.formule\?'<b>'\+esc\(o\.formule\)\+'<\/b>'\+optsPastilles\(o\):''/.test(TOURN));
+  vrai('⛔ la ligne de la liste PORTE la pastille (code de `vueEntreprises`, commentaires retirés)', /\(optsPastilles\(o\)\?'<span class="reg-opts">'\+optsPastilles\(o\)\+'<\/span>':''\)/.test(TOURN));
 
   console.log('\n4. La fiche (vraie `packPeindre` → `optsPeindre`, sur le balisage réel)');
   vrai('(population) le balisage porte le bloc, ses quatre cases et sa ligne d\'info', !!T0.E['abo-opts'] && !!T0.E['abo-opts-info'] && T0.cases().every(Boolean) && T0.E['abo-opts'].hidden === true);
