@@ -198,7 +198,7 @@ else
   K1=""; K2=""
   read -rsp "  Colle la clé maître (64 hexadécimaux, rien ne s'affiche), puis Entrée : " K1 || true; echo
   read -rsp "  Colle-la une seconde fois, pour être sûr de la copie : " K2 || true; echo
-  K1="${K1// /}"; K2="${K2// /}"; K1="${K1,,}"; K2="${K2,,}"
+  K1="${K1//[[:space:]]/}"; K2="${K2//[[:space:]]/}"; K1="${K1,,}"; K2="${K2,,}"   # espaces, tabulations, retour chariot d'un collage
   if [ -z "$K1" ]; then
     echo "  ⛔ Aucune clé saisie. On ne la génère pas ici : elle s'afficherait sur ce VPS."
     echo "     Sur ton Mac :  openssl rand -hex 32 | pbcopy   (rien ne s'affiche ; colle dans ton gestionnaire)"

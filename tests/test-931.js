@@ -42,6 +42,7 @@ v('   le service répond, avec le sha du dépôt (le bon code tourne)', (b1.sant
 v('   et c\'est la release de CE sha qui est liée', b1.lien('beta'), sha1);
 vrai('   /health dit ok, instance beta', (b1.sante('beta') || {}).ok === true && (b1.sante('beta') || {}).instance === 'beta');
 vrai('   la sortie finit sur l\'état de /health, rien d\'autre de la machine', /\/health : ok=true instance=beta sha=[0-9a-f]{8}/.test(r1.sortie));
+vrai('   le miroir est un clone NU et SANS blobs (l\'historique du dépôt pèse plus d\'un gigaoctet à cause des pages)', /bare = true/.test(b1.lire('opt/opmsg/repo/config') || '') && /partialclonefilter = blob:none/.test(b1.lire('opt/opmsg/repo/config') || ''));
 v('   l\'utilisateur système est créé une seule fois', (b1.journal().match(/useradd /g) || []).length, 1);
 vrai('   sans shell et sans dossier personnel', /--system/.test(b1.journal()) && /--no-create-home/.test(b1.journal()) && /nologin/.test(b1.journal()));
 
@@ -221,6 +222,13 @@ vrai('   le seul programme relancé dans systemctl est le proxy (reload) et notr
   const r = b.installer('beta', ENTREE, { FACTICE_AFFICHE: '1' });
   v('⛔ même si la pose de clé affichait la clé, l\'écran ne la montre pas', [r.rc, r.sortie.includes(CLE)], [0, false]);
   vrai('   il y a écrit « [clé masquée] » à la place', /\[clé masquée\]/.test(r.sortie));
+}
+
+{
+  // Un collage depuis un terminal ajoute souvent un retour chariot ou des espaces : la clé reste la même.
+  const b = neuf('nginx');
+  const r = b.installer('beta', '  ' + CLE + '\r\n' + CLE + ' \r\n' + PUB + '\n');
+  v('une clé collée avec espaces et retour chariot est posée telle quelle', [r.rc, (b.lire('etc/opmsg/beta.kek') || '').trim()], [0, CLE]);
 }
 
 /* ══ 7. LA CLÉ PUBLIQUE DE DÉPLOIEMENT : SEULEMENT UNE CLÉ PUBLIQUE ═══════════════════════════════════ */
