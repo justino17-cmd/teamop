@@ -264,6 +264,9 @@ globalThis.fetch = async function (url, opts) {
   M.ent('c6j'); M.sub('c6j', 'active', [PRO(3)]); const sj = M.sub('c6j', 'past_due', [OPL('stock', 3)]); M.facture(sj, 'https://invoice.stripe.com/i/banc-850-c6j');
   M.ent('c6k', { aboStatut: 'actif', aboPar: 'Banc', options: [] }); M.sub('c6k', 'active', [PRO(3)]);
   M.ent('c6l'); M.usage('VIEUX-BANC-850', 'c6l', jour(30)); M.sub('c6l', 'trialing', [PRO(3)]);
+  M.ent('c6m'); M.sub('c6m', 'active', [[P.pro[1], 3]]);
+  M.ent('c6n'); M.sub('c6n', 'active', [PRO(1)]); M.sub('c6n', 'active', [[P.pro[1], 2]]);
+  M.ent('c6o'); M.sub('c6o', 'active', [PRO(2)]); M.sub('c6o', 'active', [[P.pro[1], 1]]);
   M.ent('c7a'); M.sub('c7a', 'active', [PRO(3)]); M.sub('c7a', 'active', [OPL('stock', 3)]); M.sub('c7a', 'active', [OPL('achats', 3)]);
   /* le courriel des sept jours : j1 (option seule : PAS abonnée), j2 (Pro + option : abonnée), j3 (code Pro, rien d'abonné) */
   M.ent('j1'); M.usage('VIEUX-BANC-850', 'j1', jour(5)); M.sub('j1', 'active', [OPL('stock', 2)]);
@@ -424,9 +427,19 @@ globalThis.fetch = async function (url, opts) {
   r = await payer('c6e', { options: ['stock'], ref: 't-c6e-850', quantity: 99, price: undefined });
   v('⛔⛔ Pro × 3 payé : l\'option SEULE — une ligne, la quantité du SERVEUR (3 places), jamais celle du corps (99), gravée à l\'entreprise',
     [r.s, ligN(dernier()), dernier().get('subscription_data[metadata][espace]'), dernier().get('client_reference_id')], [200, ['stock:M×3'], 't-c6e-850', 't-c6e-850']);
+  /* ⛔⛔ LE CYCLE D'UNE OPTION AJOUTÉE SEULE EST CELUI DU PRO QUE L'ENTREPRISE PAIE, JAMAIS CELUI DU CORPS (1er octobre 2026, relecture
+     d'intégration : le serveur lisait `cycle` du corps — un Pro annuel recevait l'option au mois, et un corps pouvait choisir) */
   r = await payer('c6e', { options: ['achats', 'compta'], ref: 't-c6e-850', cycle: 'annuel' });
-  v('⛔ au cycle du corps : à l\'année (deux options, deux lignes, le tarif annuel)', [r.s, ligN(dernier())], [200, ['achats:A×3', 'compta:A×3']]);
-  v('   un cycle inconnu : 400 `cycle_inconnu`', (await payer('c6e', { options: ['stock'], ref: 't-c6e-850', cycle: 'trimestriel' })).j.error, 'cycle_inconnu');
+  v('⛔⛔ Pro payé AU MOIS : l\'option est mensuelle, quoi que le corps demande (`cycle: annuel` ignoré)', [r.s, ligN(dernier())], [200, ['achats:M×3', 'compta:M×3']]);
+  v('   une valeur de cycle quelconque, même inconnue, ne fait rien non plus (plus de `cycle_inconnu` : le corps n\'a pas de cycle)', (await payer('c6e', { options: ['stock'], ref: 't-c6e-850', cycle: 'trimestriel' })).s, 200);
+  r = await payer('c6m', { options: ['stock', 'sanitaire'], ref: 't-c6m-850' });
+  v('⛔⛔ Pro payé À L\'ANNÉE : les options sont annuelles, sans que le corps le dise (un seul calendrier de prélèvement)', [r.s, ligN(dernier())], [200, ['stock:A×3', 'sanitaire:A×3']]);
+  r = await payer('c6m', { options: ['stock'], ref: 't-c6m-850', cycle: 'mensuel' });
+  v('⛔ … et le corps ne la ramène pas au mois en le demandant', [r.s, ligN(dernier())], [200, ['stock:A×3']]);
+  r = await payer('c6n', { options: ['stock'], ref: 't-c6n-850' });
+  v('   deux Pro de cycles mêlés (1 au mois, 2 à l\'année) : le cycle qui porte le plus de places — l\'année', [r.s, ligN(dernier())], [200, ['stock:A×3']]);
+  r = await payer('c6o', { options: ['stock'], ref: 't-c6o-850' });
+  v('   (2 au mois, 1 à l\'année) : le mois', [r.s, ligN(dernier())], [200, ['stock:M×3']]);
   v('⛔ une option DÉJÀ SERVIE : 409 `option_deja` (payée deux fois sinon) — seule ou avec une autre',
     [(await payer('c6g', { options: ['stock'], ref: 't-c6g-850' })).j.error, (await payer('c6g', { options: ['achats', 'stock'], ref: 't-c6g-850' })).j.error], ['option_deja', 'option_deja']);
   r = await payer('c6g', { options: ['achats'], ref: 't-c6g-850' });
@@ -449,8 +462,21 @@ globalThis.fetch = async function (url, opts) {
   r = await payer('c7a', { price: P.pro[0], quantity: 1, ref: 't-c7a-850' });
   v('⛔⛔ Pro × 3 + Stock + Achats servis ; un abonnement Pro de plus, SANS option demandée : les deux options suivent, × 1 — sinon l\'équipe perdrait son Stock',
     [r.s, ligN(dernier())], [200, ['pro:M×1', 'stock:M×1', 'achats:M×1']]);
+  r = await payer('c7a', { price: P.pro[1], quantity: 2, ref: 't-c7a-850', options: ['stock'] });
+  v('   à l\'année, avec une option qu\'elle a DÉJÀ (demandée ou non) : celles d\'office, tarifs annuels, ordre de la grille', [r.s, ligN(dernier())], [200, ['pro:A×2', 'stock:A×2', 'achats:A×2']]);
+  /* ⛔⛔ PRO + OPTION NON SERVIE POUR UNE ENTREPRISE QUI A DÉJÀ SON PRO = UN SECOND ABONNEMENT PRO (la page de paiement envoie toujours un
+     `price` : le lien « Ajouter » de l'application menait là). Refusé, rien chez Stripe, et on dit où aller : l'ajout d'option seule. */
+  const n7 = nSess();
   r = await payer('c7a', { price: P.pro[1], quantity: 2, ref: 't-c7a-850', options: ['compta'] });
-  v('   à l\'année, avec une option demandée en plus : celles d\'office + la demandée, tarifs annuels, ordre de la grille', [r.s, ligN(dernier())], [200, ['pro:A×2', 'stock:A×2', 'achats:A×2', 'compta:A×2']]);
+  v('⛔⛔ Pro payé qui demande Pro + une option qu\'il N\'A PAS : 409 `utiliser_ajout`, rien n\'est créé (sinon un second Pro, et une option qui ne couvre pas les places)', [r.s, r.j.error, nSess() - n7], [409, 'utiliser_ajout', 0]);
+  r = await payer('c6e', { price: P.pro[0], quantity: 1, ref: 't-c6e-850', options: ['stock'] });
+  v('⛔ … même sans aucune option servie : le Pro est déjà là, l\'option se prend SEULE', [r.s, r.j.error, nSess() - n7], [409, 'utiliser_ajout', 0]);
+  r = await payer('c6l', { price: P.pro[0], quantity: 1, ref: 't-c6l-850', options: ['achats'] });
+  v('⛔ … y compris un Pro payé en période offerte (essai Stripe) : l\'option se prend seule, `trial_end` en suit la fin', [r.s, r.j.error, nSess() - n7], [409, 'utiliser_ajout', 0]);
+  r = await payer('c1', { price: P.pro[0], quantity: 2, ref: 't-c1-850', options: ['stock', 'compta'] });
+  v('   (contre-épreuve) une entreprise SANS Pro payé achète son Pro et ses options ensemble', [r.s, ligN(dernier())], [200, ['pro:M×2', 'stock:M×2', 'compta:M×2']]);
+  r = await payer('c6d', { price: P.pro[0], quantity: 1, ref: 't-c6d-850', options: ['stock'] });
+  v('   (contre-épreuve) une entreprise Business qui prend un Pro avec une option : le paiement normal suit (Business n\'est pas le Pro)', [r.s, ligN(dernier())], [200, ['pro:M×1', 'stock:M×1']]);
   r = await payer('c7a', { price: P.business[0], quantity: 1, ref: 't-c7a-850' });
   v('   un tarif Business n\'en ramène aucune (il a tout)', [r.s, ligN(dernier())], [200, ['business:M×1']]);
   r = await payer('c6e', { price: P.pro[0], quantity: 1, ref: 't-c6e-850' });
@@ -521,12 +547,16 @@ globalThis.fetch = async function (url, opts) {
   v('   rien n\'est parti chez Stripe, et la formule seule se paie toujours', [S4.sessions().length - nv, (await S4.appel('/api/stripe/checkout', { price: P.pro[0], quantity: 1, ref: 't-v1-850' }, S4.jetons.v1)).s], [0, 200]);
   v('   l\'application, elle, ne reçoit aucune option inventée (`[]`)', OPT(await S4.etat('v1')), []);
   await S4.arreter();
-  const M5 = monde(); M5.ent('v2'); M5.sub('v2', 'active', [PRO(3)]);
+  const M5 = monde(); M5.ent('v2'); M5.ent('v3'); M5.sub('v3', 'active', [PRO(3)]); M5.ent('v4'); M5.sub('v4', 'active', [[P.pro[1], 3]]);
   const S5 = await demarrer(M5, { fichier: copie(tablePartielle) });
   r = await S5.appel('/api/stripe/checkout', { price: P.pro[0], quantity: 1, ref: 't-v2-850', options: ['stock'] }, S5.jetons.v2);
   v('⛔ le tarif MENSUEL posé, l\'annuel vide : le mois se vend', [r.s, ligN(S5.sessions().pop())], [200, ['pro:M×1', 'stock:M×1']]);
   r = await S5.appel('/api/stripe/checkout', { price: P.pro[1], quantity: 1, ref: 't-v2-850', options: ['stock'] }, S5.jetons.v2);
   v('⛔ … l\'année non (le cycle choisit l\'index du tarif)', [r.s, r.j.error], [400, 'option_indisponible']);
+  r = await S5.appel('/api/stripe/checkout', { options: ['stock'], ref: 't-v3-850' }, S5.jetons.v3);
+  v('⛔ ajout d\'option SEULE, Pro payé au mois : le tarif mensuel posé suffit', [r.s, ligN(S5.sessions().pop())], [200, ['stock:M×3']]);
+  r = await S5.appel('/api/stripe/checkout', { options: ['stock'], ref: 't-v4-850', cycle: 'mensuel' }, S5.jetons.v4);
+  v('⛔⛔ ajout d\'option SEULE, Pro payé à l\'année et tarif annuel vide : `option_indisponible` — le serveur ne retombe PAS sur le mois que le corps propose', [r.s, r.j.error], [400, 'option_indisponible']);
   await S5.arreter();
 
   /* ══ 8. server/stripe-options.js : créer les tarifs chez Stripe ══════════════════════════════════════════════════════ */

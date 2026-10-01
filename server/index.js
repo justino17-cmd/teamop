@@ -649,7 +649,7 @@ app.post('/api/stripe/checkout', async (req, res) => {
     const payeur = m ? cm.parJeton(m[1]) : '';
     if (!payeur) return res.status(401).json({ error: 'compte_requis' });
     if (!cm.verifie(payeur)) return res.status(403).json({ error: 'adresse_non_verifiee' });
-    const { price, quantity, ref, options, cycle } = req.body || {};
+    const { price, quantity, ref, options } = req.body || {};
     const qty = Math.min(50, Math.max(1, parseInt(quantity, 10) || 1));
     /* ⛔⛔ LES OPTIONS DU PRO (1er octobre 2026) — LE CORPS NE PORTE QUE DES CLÉS (règle 1 de CLAUDE.md : une valeur du corps ne décide
        jamais de ce qu'une entreprise a payé). Une option se demande par sa CLÉ (`stock`, `achats`, `compta`, `sanitaire`) : le tarif,
@@ -678,14 +678,15 @@ app.post('/api/stripe/checkout', async (req, res) => {
     /* ⛔ Business, Business Premium et OP MESSAGES n'ont pas d'options à vendre : les premiers les ont TOUTES, le dernier n'est
        pas OP GESTION — une option en plus serait payée pour rien (`option_incluse`) */
     if (opts.length && !optionSeule && rangDuPrix !== 0) return res.status(400).json({ error: 'option_incluse' });
-    /* le cycle : celui du tarif de la formule (index 0 mensuel, 1 annuel — Stripe n'accepte qu'UN intervalle par abonnement) ; pour
-       un ajout d'option seule, celui du corps, mensuel par défaut. Une valeur inconnue se refuse : facturer au mois quelqu'un
-       qui voulait l'année serait une surprise sur son relevé */
-    const cycleIdx = optionSeule ? (cycle === undefined || cycle === null || cycle === 'mensuel' ? 0 : (cycle === 'annuel' ? 1 : -1)) : STRIPE_PRIX_FORMULE.pro.indexOf(String(price));
-    if (optionSeule && cycleIdx < 0) return res.status(400).json({ error: 'cycle_inconnu' });
+    /* le cycle : celui du tarif de la formule (index 0 mensuel, 1 annuel — Stripe n'accepte qu'UN intervalle par abonnement).
+       ⛔ POUR UN AJOUT D'OPTION SEULE, C'EST CELUI DU PRO QUE L'ENTREPRISE PAIE DÉJÀ, lu chez Stripe plus bas (`cycleDuPro`) — jamais
+       le corps de la requête (règle 1 de CLAUDE.md : une valeur du corps ne décide pas de ce qui est facturé). Un Pro payé à l'année
+       reçoit l'option à l'année : une option mensuelle posée sur un Pro annuel serait un second calendrier de prélèvement, et un
+       relevé qui surprend. Le corps n'a donc plus de `cycle` : une valeur qu'il enverrait est ignorée. */
+    let cycleIdx = optionSeule ? -1 : STRIPE_PRIX_FORMULE.pro.indexOf(String(price));
     /* ⛔ tant que Justin n'a pas créé les tarifs chez Stripe (`stripe-options.js`), ils sont VIDES : rien ne se vend — les
        appareils d'abord, la porte ensuite */
-    if (opts.some(k => !(STRIPE_PRIX_OPTION[k] || [])[cycleIdx])) return res.status(400).json({ error: 'option_indisponible' });
+    if (opts.some(k => optionSeule ? !(STRIPE_PRIX_OPTION[k] || []).some(Boolean) : !(STRIPE_PRIX_OPTION[k] || [])[cycleIdx])) return res.status(400).json({ error: 'option_indisponible' });
     /* ⛔ B — « ON VERROUILLE » (Justin, 28 septembre 2026) : SEUL UN COMPTE DE L'ENTREPRISE PAIE POUR ELLE.
        La référence d'espace vient de la PAGE (le marqueur de l'appareil) : un compte confirmé rattachait donc SON
        paiement à l'espace de n'importe quelle autre entreprise, qui devenait « payée » dans `espacePaye()` (`gardien`,
@@ -771,6 +772,7 @@ app.post('/api/stripe/checkout', async (req, res) => {
       let s0 = null; try { s0 = await espaceStripe(eV); } catch (err) { s0 = null; }
       let fp0 = null; try { fp0 = s0 ? formuleEtPlaces(eV, s0) : null; } catch (err) { fp0 = null; }
       const servies = (fp0 && fp0.f === 'pro' && fp0.places > 0) ? optionsServies('pro', fp0.places, s0) : [];
+      let demandees = [];   // les options que le CORPS demande, avant que celles déjà servies ne suivent d'office
       if (optionSeule) {
         /* « payée Pro par un abonnement Stripe qui est le sien » : `formuleEtPlaces` lit les seuls abonnements SÛREMENT à elle
            (`surs`) et rend le Pro payé, ses places ; ni un réglage de la Tour (`aboManuelDe` : il décide sans lire Stripe, une
@@ -782,7 +784,10 @@ app.post('/api/stripe/checkout', async (req, res) => {
         if (opts.some(k => servies.includes(k))) return res.status(409).json({ error: 'option_deja' });
         const payees = optionsPayeesQte(s0);
         for (const k of opts) qtes[k] = Math.min(50, Math.max(1, fp0.places - (payees[k] || 0)));
+        cycleIdx = cycleDuPro(s0);
+        if (opts.some(k => !(STRIPE_PRIX_OPTION[k] || [])[cycleIdx])) return res.status(400).json({ error: 'option_indisponible' });
       } else {
+        demandees = opts.slice();
         for (const k of servies) if (!opts.includes(k)) opts.push(k);
         opts = OPTIONS_CLES.filter(k => opts.includes(k));
         if (opts.some(k => !(STRIPE_PRIX_OPTION[k] || [])[cycleIdx])) return res.status(400).json({ error: 'option_indisponible' });
@@ -790,6 +795,14 @@ app.post('/api/stripe/checkout', async (req, res) => {
       const dueOpt = await impayeOptionARegler(eV, opts);
       if (dueOpt && dueOpt.url) { console.log('paiement : facture d\'une option impayée servie à la place d\'un abonnement neuf'); return res.json({ url: dueOpt.url, facture: true }); }
       if (dueOpt && dueOpt.refus) return res.status(dueOpt.refus).json({ error: dueOpt.error });
+      /* ⛔⛔ PRO + OPTIONS POUR UNE ENTREPRISE QUI A DÉJÀ SON PRO = UN SECOND ABONNEMENT PRO, ET L'OPTION NE COUVRE PLUS SES PLACES
+         (1er octobre 2026, relecture d'intégration). Acheter ici « Pro × n + Stock × n » ajoute n places ; l'option, payée pour
+         ces n places seulement, ne couvre pas les places d'avant (couverture stricte, `optionsServies`) : le client paie un
+         abonnement Pro de trop ET une option qui n'ouvre rien. Les options déjà servies suivent d'office le nouvel abonnement
+         (plus bas) ; une option qui NE l'est PAS se prend par l'ajout d'option seule (sans `price` : Stripe ne reçoit que la
+         ligne d'option, pour les places qui manquent) — 409 `utiliser_ajout`, rien chez Stripe. Seule une entreprise que Stripe
+         dit déjà Pro payée est concernée : une entreprise neuve, ou en période offerte, achète son Pro et ses options ensemble. */
+      if (!optionSeule && fp0 && fp0.f === 'pro' && fp0.places > 0 && demandees.some(k => !servies.includes(k))) return res.status(409).json({ error: 'utiliser_ajout' });
     }
     const p = new URLSearchParams();
     p.append('mode', 'subscription');
@@ -3455,6 +3468,24 @@ function optionsPayeesQte(s) {
     }
   }
   return payees;
+}
+/* ⛔ LE CYCLE D'UNE OPTION QU'ON AJOUTE SEULE EST CELUI DU PRO QUE L'ENTREPRISE PAIE (index 0 mensuel, 1 annuel — l'ordre de
+   `STRIPE_PRIX_FORMULE`), lu sur les abonnements SÛREMENT à elle au statut payé : les lignes Pro (par identifiant de tarif) et, pour un
+   tarif qu'on ne sait pas lire (un abonnement d'avant la bascule), l'intervalle que Stripe déclare sur le tarif. Plusieurs cycles à la
+   fois (un Pro au mois et un Pro à l'année) : celui qui porte le plus de places, à égalité le mensuel — jamais un choix du corps. */
+function cycleDuPro(s) {
+  const poids = [0, 0];
+  for (const sb of (s && s.surs) || []) {
+    if (!sb || !STATUTS_PAYES.includes(sb.status)) continue;
+    for (const it of ((sb.items && Array.isArray(sb.items.data)) ? sb.items.data : [])) {
+      const g = classerLigne(it);
+      let c = -1;
+      if (g.genre === 'formule' && g.rang === 0) c = STRIPE_PRIX_FORMULE.pro.indexOf(prixDeLigne(it));
+      else if (g.genre === 'inconnu') { const iv = it && it.price && it.price.recurring && it.price.recurring.interval; c = iv === 'year' ? 1 : (iv === 'month' ? 0 : -1); }
+      if (c >= 0) poids[c] += Math.max(1, parseInt(it && it.quantity, 10) || 0);
+    }
+  }
+  return poids[1] > poids[0] ? 1 : 0;
 }
 /* les clés d'option d'une liste quelconque (réglage de la Tour) : seulement les connues, une fois chacune, dans l'ordre de la grille */
 const optionsDeTour = l => OPTIONS_CLES.filter(k => Array.isArray(l) && l.includes(k));
