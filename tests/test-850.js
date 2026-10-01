@@ -230,6 +230,10 @@ globalThis.fetch = async function (url, opts) {
   /* k · l'option d'une VOISINE d'adresse (non gravée, adresse partagée) : ni servie, ni un doute qui empêche de descendre sous la fiche */
   M.ent('k', { formule: 'premium' }); M.ent('k2', { formule: 'pro', email: mail('k') });
   M.sub('k', 'active', [PRO(1)]); M.sub('k', 'active', [OPL('stock', 1)], { nonGrave: true });
+  /* k3 · adresse PARTAGÉE, rien de gravé : le Pro et l'option sont trouvés par l'adresse seule — rien n'est SÛREMENT à elle, donc aucune option servie
+     (la fiche garde sa formule : on ne coupe pas) */
+  M.ent('k3'); M.ent('k4', { email: mail('k3') });
+  M.sub('k3', 'active', [PRO(1)], { nonGrave: true }); M.sub('k3', 'active', [OPL('stock', 1)], { nonGrave: true });
   /* l · une option IMPAYÉE à côté d'un Pro qui paie */
   M.ent('l'); M.sub('l', 'active', [PRO(3)]); const sl = M.sub('l', 'past_due', [OPL('stock', 3)]); M.facture(sl, 'https://invoice.stripe.com/i/banc-850-l');
   /* m · période offerte (code Business Premium) : aucune option, même payée */
@@ -295,6 +299,7 @@ globalThis.fetch = async function (url, opts) {
   console.log('\n  j · Business a tout ; k, l · ce qui n\'est pas à elle ou pas payé ne sert pas');
   v('⛔ j · Business × 2 + une option × 2 : Business, `options: []` (toutes les rubriques sont déjà ouvertes)', VU(await S1.etat('j')), [true, 'business', 2, []]);
   v('⛔⛔ k · l\'option d\'une voisine d\'adresse n\'est ni servie, ni un doute : la formule payée (Pro) sous la fiche Business Premium', VU(await S1.etat('k')), [true, 'pro', 1, []]);
+  v('⛔⛔ k3 · adresse partagée, abonnements non gravés : l\'option n\'est PAS sûrement à elle — aucune option servie', OPT(await S1.etat('k3')), []);
   v('⛔ l · une option IMPAYÉE à côté d\'un Pro qui paie : servie Pro, aucune option, pas suspendue', VU(await S1.etat('l')), [true, 'pro', 3, []]);
 
   console.log('\n  m, n, o · période offerte, réglé à la main, plusieurs noms');
