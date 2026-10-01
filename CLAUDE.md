@@ -2374,6 +2374,10 @@ La règle est la même que pour les sous-agents nommés, et elle tient en une ph
 (`CLAUDE_CODE_SUBAGENT_MODEL`) tournent en Sonnet ; seul l'EFFORT varie encore selon la tâche (tableau ci-dessous). La
 règle d'avant (« Opus là où le jugement est le produit, Sonnet ou Haiku là où la rigueur suffit ») ne revient que sur sa
 phrase.
+⛔ **ET SANS MANGER SA CONSOMMATION DE LA SEMAINE** — Justin, 1er octobre 2026 : « fais tout ce qu'il faut faire, juste je veux
+pas que ça mange ma consommation hebdomadaire ». Un chantier de RECHERCHE ou de PROPOSITION tient en 3 agents (deux chercheurs,
+un rédacteur qui se relit lui-même) ; un chantier de CODE garde sa relecture adverse (gardien + testeur), sans doublon ; jamais
+deux workflows sur le même sujet ; un agent de lecture en `effort: 'medium'` au plus.
 
 | ce que fait l'agent | modèle | effort | pourquoi |
 |---|---|---|---|

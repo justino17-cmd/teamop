@@ -51,7 +51,7 @@ function creerHandlers(ctx) {
   }
   /* Un compte public de moins de 24 h a des limites plus basses (SERVEUR.md § 3.6). Un accès bêta
      n'est pas un compte public : ses testeurs ne sont pas des inconnus. */
-  const facteurJeune = (moi) => (moi.origine === 'compte' && horloge() - moi.cree < JOUR) ? 1 / 3 : 1;
+  const facteurJeune = (moi) => (moi.origine !== 'beta' && horloge() - moi.cree < JOUR) ? 1 / 3 : 1;
 
   function erreurStockage(res, e) {
     switch (e && e.code) {

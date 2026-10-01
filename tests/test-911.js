@@ -539,7 +539,7 @@ const json = async (base, methode, chemin, corps, entetes) => {
       try {
         const tour = await json(reel.base, 'POST', '/api/monitor/login', { nom: 'Patron', pass: 'mot-de-passe-de-la-tour-banc' });
         const H = { Authorization: 'Bearer ' + tour.j.token };
-        const ouvrirAcces = async (login, pass, nom) => (await json(reel.base, 'POST', '/api/monitor/beta', { login, pass, nom, chantier: 'banc 911' }, H)).j.compte;
+        const ouvrirAcces = async (login, pass, nom) => (await json(reel.base, 'POST', '/api/monitor/beta', { login, pass, nom, chantier: 'banc 911', apps: ['messages'] }, H)).j.compte;
         const ca = await ouvrirAcces('alice', 'pw-alice-reel1', 'Alice Réelle'), cb = await ouvrirAcces('bruno', 'pw-bruno-reel1', 'Bruno Réel');
         vrai('population : deux accès ouverts depuis la Tour (la vraie route)', !!(ca && cb && ca.id && cb.id));
         svc2 = await T.lancerService({ urlGestion: reel.base, horloge: true, config: { pulsationMs: 400, presenceGraceMs: 300, beta: { relectureMs: 250, timeoutMs: 1500 } } });

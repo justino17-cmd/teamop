@@ -20,7 +20,7 @@
  *   · l'ensemble servi n'appelle pas au moins dix routes `/api/` distinctes ;
  *   · un `<script>` en ligne, un gestionnaire `onclick=` en attribut ou une ressource d'un autre domaine reste dans la page ;
  *   · une des substitutions ne trouve pas exactement UNE cible (une interface qui change de forme ne passe pas en silence).
- * `tests/test-912.js` mute chacune de ces gardes sur une COPIE et exige que le générateur tombe.
+ * `tests/test-941.js` mute chacune de ces gardes sur une COPIE et exige que le générateur tombe.
  *
  * Usage :  node scripts/opmsg-public.js              écrit `server-msg/public/{index.html, opmsg-ui.js, opmsg-*.png}`
  *          node scripts/opmsg-public.js --verifier   ne fait qu'une chose : dit si ce qui est commité est ce que le générateur produirait (code 1 sinon)
@@ -69,7 +69,7 @@ function generer(o) {
   const metaCsp = /<meta http-equiv="Content-Security-Policy" content="[^"]*">/;
   html = remplacerUnique(html, metaCsp, '<meta http-equiv="Content-Security-Policy" content="' + CSP_SERVICE + '">', 'la politique de la page (CSP)');
   /* le commentaire qui précède la politique de l'aperçu affirmait « aucun appel réseau » : faux ici, il est remplacé par la règle de CETTE page */
-  html = remplacerUnique(html, /<!-- ⛔ AUCUN APPEL RÉSEAU[\s\S]*?-->\n/, '<!-- ⛔ FICHIER GÉNÉRÉ par scripts/opmsg-public.js depuis apercu/opmessages/index.html — NE PAS LE MODIFIER À LA MAIN (tests/test-912.js compare).\n     La politique ci-dessous est celle du SERVICE : seul `connect-src \'self\'` rouvre le réseau (vers le service lui-même, jamais un autre domaine), les scripts viennent tous de\n     cette origine (le script en ligne de l\'aperçu est extrait dans opmsg-ui.js), les images et les médias ne sortent pas de la page. -->\n', 'le commentaire de politique');
+  html = remplacerUnique(html, /<!-- ⛔ AUCUN APPEL RÉSEAU[\s\S]*?-->\n/, '<!-- ⛔ FICHIER GÉNÉRÉ par scripts/opmsg-public.js depuis apercu/opmessages/index.html — NE PAS LE MODIFIER À LA MAIN (tests/test-941.js compare).\n     La politique ci-dessous est celle du SERVICE : seul `connect-src \'self\'` rouvre le réseau (vers le service lui-même, jamais un autre domaine), les scripts viennent tous de\n     cette origine (le script en ligne de l\'aperçu est extrait dans opmsg-ui.js), les images et les médias ne sortent pas de la page. -->\n', 'le commentaire de politique');
 
   /* ── 4. les retouches de forme ── */
   html = html.split('../../icons/opmsg-').join('opmsg-');

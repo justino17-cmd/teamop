@@ -77,7 +77,7 @@ function bac(role, app) {
   const c = bac('collaborateur', 'gestion');
   v('par défaut (collaborateur) : le Courrier à la place d’Accès', c.ctx.barreLire(), ['accueil', 'surveillance', 'entreprises', 'support']);
   const m = bac('patron', 'messages');
-  v('par défaut (console MESSAGES) : Accès n’y existe pas, le Courrier prend sa place', m.ctx.barreLire(), ['accueil', 'surveillance', 'entreprises', 'support']);
+  v('par défaut (console MESSAGES) : Accès y existe depuis la v2.81 (la bêta d’OP MESSAGES a ses accès) : la barre est celle de GESTION', m.ctx.barreLire(), ['accueil', 'surveillance', 'entreprises', 'essais']);
   v('la liste des vues suit le menu visible (patron, GESTION : 11 vues)', p.ctx.barreDispo().length, 11);
   v('…(collaborateur : ni Accès, ni Équipe, ni Journal, ni Sauvegardes — ce que le serveur lui refuse)', c.ctx.barreDispo().map(o => o.t).filter(t => ['essais', 'equipe', 'journal', 'donnees'].includes(t)), []);
 }
@@ -90,7 +90,7 @@ function bac(role, app) {
   v('une vue inconnue ou des blancs sont ignorés', lire(' , journal , inconnue ,'), ['journal', 'accueil', 'surveillance', 'entreprises']);
   v('au-delà de quatre, les quatre premières valides', lire('journal,equipe,donnees,devisia,abonnements'), ['journal', 'equipe', 'donnees', 'devisia']);
   const m = bac('patron', 'messages'); m.rangement.set('tour_barre_gestion', 'journal,equipe');
-  v('une console, une barre : le choix de GESTION ne touche pas MESSAGES', m.ctx.barreLire(), ['accueil', 'surveillance', 'entreprises', 'support']);
+  v('une console, une barre : le choix de GESTION ne touche pas MESSAGES', m.ctx.barreLire(), ['accueil', 'surveillance', 'entreprises', 'essais']);
   const c = bac('collaborateur', 'gestion'); c.rangement.set('tour_barre_gestion', 'essais,equipe,journal');
   v('⛔ une vue que le compte ne voit pas n’entre jamais dans sa barre, même « choisie »', c.ctx.barreLire(), ['accueil', 'surveillance', 'entreprises', 'support']);
   const mv = bac('patron', 'messages'); mv.rangement.set('tour_barre_messages', 'devisia,abonnements,journal');

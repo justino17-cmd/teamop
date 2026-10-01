@@ -46,7 +46,7 @@ const lance = (f) => { try { f(); return null; } catch (e) { return e.code || e.
 console.log('Les migrations (PRAGMA user_version) sont numérotées, rejouables, et gardent une copie');
 {
   const a = neuf();
-  v('une base neuve est au schéma 1', a.S.schema(), 1);
+  v('une base neuve est au schéma 2 (la migration 2 — le téléphone — s\'applique à la création)', a.S.schema(), 2);
   const p = pers(a.S, 'alice');
   a.S.fermer();
   const b = ouvrir({ chemin: a.chemin, scelleur: creerScelleur(a.kek), horloge: () => a.h.t });
@@ -59,17 +59,17 @@ console.log('Les migrations (PRAGMA user_version) sont numérotées, rejouables,
   v('⛔ la migration 1 rejouée sur une base déjà migrée ne casse rien (IF NOT EXISTS) et n\'efface rien', rejouee, 'alice');
   if (c) c.fermer();
 
-  const m2 = MIGRATIONS.concat([{ v: 2, sql: ['CREATE TABLE IF NOT EXISTS essai_v2(x INTEGER)', 'PRAGMA user_version = 2'] }]);
+  const m2 = MIGRATIONS.concat([{ v: 3, sql: ['CREATE TABLE IF NOT EXISTS essai_v3(x INTEGER)', 'PRAGMA user_version = 3'] }]);
   const d = neuf({ migrations: MIGRATIONS });
   pers(d.S, 'avant'); d.S.fermer();
   const e = ouvrir({ chemin: d.chemin, scelleur: creerScelleur(d.kek), horloge: () => d.h.t, migrations: m2 });
-  v('une migration 2 s\'applique une fois (schéma 2)', e.schema(), 2);
-  vrai('⛔ une copie « avant-v2 » a été conservée (VACUUM INTO) avant de migrer une base qui a vécu', fs.existsSync(d.chemin + '.avant-v2'));
-  const copie = new DatabaseSync(d.chemin + '.avant-v2');
-  v('la copie est la base d\'AVANT (schéma 1, sans la table neuve)', [copie.prepare('PRAGMA user_version').get().user_version, copie.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name='essai_v2'").get().n], [1, 0]);
+  v('une migration suivante (3) s\'applique une fois (schéma 3)', e.schema(), 3);
+  vrai('⛔ une copie « avant-v3 » a été conservée (VACUUM INTO) avant de migrer une base qui a vécu', fs.existsSync(d.chemin + '.avant-v3'));
+  const copie = new DatabaseSync(d.chemin + '.avant-v3');
+  v('la copie est la base d\'AVANT (schéma 2, sans la table neuve)', [copie.prepare('PRAGMA user_version').get().user_version, copie.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name='essai_v3'").get().n], [2, 0]);
   copie.close(); e.fermer();
   const f2 = neuf({ migrations: m2 });
-  vrai('une base NEUVE n\'a pas de copie à garder (rien n\'a vécu)', !fs.existsSync(f2.chemin + '.avant-v1') && !fs.existsSync(f2.chemin + '.avant-v2'));
+  vrai('une base NEUVE n\'a pas de copie à garder (rien n\'a vécu)', !fs.existsSync(f2.chemin + '.avant-v1') && !fs.existsSync(f2.chemin + '.avant-v2') && !fs.existsSync(f2.chemin + '.avant-v3'));
 }
 
 console.log('\nLe scellage : rien en clair sur le disque, une mauvaise clé est refusée');

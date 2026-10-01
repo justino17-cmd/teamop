@@ -198,6 +198,140 @@ avertissement. Désormais, **chaque poussée sur `main` qui touche `server-msg/`
 
 ---
 
+## 10 bis. Les SMS d'OP MESSAGES (OVHcloud) — pour l'étape 2, avant la première inscription réelle
+
+Le compte PERSO naît et se connecte par **numéro de téléphone** (un code par SMS) : c'est ta décision du 1er octobre 2026, et **OVHcloud**
+envoie les SMS. Tant que ces gestes ne sont pas faits, **rien ne casse** : la bêta tourne en mode « journal » (aucun SMS ne part, le code n'est
+écrit nulle part), et la production répond 503 `sms_indisponible`. Il n'y a **aucune urgence** avant que l'interface d'inscription soit branchée.
+
+⛔ **Les trois clés d'OVH sont des secrets** (clé d'application, secret d'application, clé de consommateur) : elles vont **de la console OVH à
+ton gestionnaire de mots de passe**, puis **au VPS en saisie masquée** (`configurer-sms.js`). Tu ne les recolles **jamais** dans la conversation.
+Ce que tu peux recoller : le nom du service SMS, l'expéditeur, et tout ce que le script et `/health` affichent.
+
+⚠️ **Ce que je n'ai PAS pu vérifier** : je n'ai pas de compte OVH. Les noms d'écrans ci-dessous sont ceux que je connais de l'espace client
+d'OVHcloud ; s'ils ont changé, **dis-moi ce que tu vois** plutôt que de deviner. Et l'envoi réel — un SMS qui arrive vraiment — n'a jamais été
+constaté : c'est la vérification du geste 7.
+
+### 1. Créer le compte SMS
+
+Espace client OVHcloud → **Télécom** → **SMS** → commander un **compte SMS** (« sms-xx123456-1 » : c'est son **nom de service**, à noter). Rien à
+acheter d'autre à cette étape.
+
+### 2. L'expéditeur
+
+Dans ce compte SMS, créer un **expéditeur alphanumérique** : `OPMSG` (1 à 11 lettres ou chiffres, sans espace ni accent) et attendre sa
+validation par OVH. ⚠️ Dans certains pays (États-Unis, Canada, Inde, quelques autres) l'expéditeur alphanumérique est **réécrit ou refusé** par
+les opérateurs : le SMS peut arriver d'un numéro quelconque, ou ne pas arriver. C'est à constater pays par pays, avec de vrais téléphones.
+
+### 3. L'envoi à l'international
+
+Tu veux « une connexion pour **tous** les pays » : dans les réglages du compte SMS, **autoriser l'envoi vers l'étranger** (OVH limite les
+destinations par défaut ; l'écran exact est à relire). Ouvrir tous les pays est possible **parce que le service plafonne l'argent, pas la
+géographie** : voir le geste 8.
+
+### 4. Les crédits — et SANS recharge automatique
+
+Acheter des crédits (un SMS vers la France coûte 1 crédit, soit 0,06 € d'après la grille relevée le 1er octobre 2026 ; vers l'étranger, de 0,25 à
+14 crédits selon le pays). ⛔ **Ne PAS activer la recharge automatique** : c'est la deuxième ligne de défense, derrière les budgets du service.
+Ton solde de crédits est le **plafond absolu** de ce qu'une fraude peut dépenser, même si tout le reste cédait. Pour démarrer : **100 €** de
+crédits suffisent pour des semaines (le service s'arrête de lui-même à 20 € par jour).
+
+**Ce que ça coûte**, calculé par le service (`sms-prix.js`, grille OVH : 1 crédit = 0,06 €, **sans** la marge de 25 % que le service ajoute à son
+estimation) — avec une inscription = 1 SMS (le cas idéal), ou 1,15 SMS (15 % de renvois et de nouveaux appareils, plus réaliste) :
+
+| | 1 000 inscriptions, 1 SMS | 1 000, 1,15 SMS | 10 000, 1 SMS | 10 000, 1,15 SMS |
+|---|---|---|---|---|
+| **France seulement** | 60 € | 69 € | 600 € | 690 € |
+| **Mélange international** (ci-dessous) | 95 € | 110 € | 953 € | 1 096 € |
+
+Le mélange supposé (à remplacer par les vrais pays quand on les connaîtra) : France 40 %, Belgique 10 %, Maroc 8 %, États-Unis 6 %, Algérie,
+Sénégal, Côte d'Ivoire, Inde, Brésil 4 % chacun, Réunion, Cameroun, Royaume-Uni, Allemagne 3 % chacun, Canada, Espagne 2 % chacun : **1,59
+crédit par SMS en moyenne, soit 0,095 €**. ⚠️ Un seul pays cher change tout : 10 000 SMS vers la Russie coûtent **8 370 €** (13,95 crédits).
+Avec le service, **une attaque vers la Russie coûte au plus 3 € par jour** (le budget de ce pays).
+
+### 5. Créer les clés d'API — avec les SEULS droits nécessaires
+
+Sur la page de création de clés d'OVHcloud (`https://eu.api.ovh.com/createToken/`, depuis ton navigateur — pas depuis le VPS) : un nom (« opmsg-sms »), une durée
+« illimitée », et **exactement deux droits**, restreints à TON service (remplace `sms-xx123456-1`) :
+
+```
+GET   /sms/sms-xx123456-1
+POST  /sms/sms-xx123456-1/jobs
+```
+
+**Rien d'autre** : pas `/*`, pas `/me`, pas de droit de lecture des factures, pas de suppression. Avec ces deux droits, une clé volée peut envoyer
+des SMS (jusqu'à épuisement des crédits, d'où le geste 4) et lire l'état du service — pas toucher à ton compte OVH. La page affiche les trois
+valeurs (clé d'application, secret d'application, clé de consommateur) **une seule fois** : copie-les **directement** dans ton gestionnaire de mots
+de passe. (Si la page ne donne que la clé de consommateur, l'application se crée à part sur `https://eu.api.ovh.com/createApp/` ; l'écran dira.)
+
+### 6. Les poser sur le VPS — saisie masquée
+
+Sur le VPS, en root :
+
+```bash
+OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/configurer-sms.js
+```
+
+Il demande cinq valeurs : le nom du service, l'expéditeur, puis les trois clés (**masquées** : rien ne s'affiche pendant la frappe). Il **éprouve** les clés
+avant d'écrire (un appel signé qui ne coûte rien, aucun SMS) et dit tout de suite si la clé est fausse (« OVH refuse la signature »), si le droit manque
+(« 403 »), ou si le service n'existe pas (« 404 »). Il n'écrit le fichier qu'une fois tout validé, en gardant son propriétaire. **Ce qu'il affiche peut se
+recoller.** (Il lit ta frappe caractère par caractère, sans jamais l'écrire à l'écran : même un retour arrière, une flèche ou un collage ne
+font rien paraître — vérifié sous un vrai terminal.) Puis :
+
+```bash
+systemctl restart teamop-msg@beta
+```
+
+### 7. Vérifier — un vrai SMS sur ton téléphone
+
+```bash
+curl -s https://msg-beta.teamop.fr/health
+```
+
+**À voir** : `"sms":{"mode":"ovh", …}` (et non `journal` ni `inactif`), `"envoyes24h":0`, `"budgetJourPct":0`. Puis, avec **ton propre numéro** (en
+format international, `+33…`), un seul essai :
+
+```bash
+curl -s -X POST https://msg-beta.teamop.fr/api/tel/code -H 'Content-Type: application/json' -H 'Origin: https://msg-beta.teamop.fr' -H 'X-OPM: 1' -d '{"numero":"+33XXXXXXXXX"}'
+```
+
+**À voir** : `{"ok":true,"delai_s":60,"expire_s":600,"longueur":6}` — et un SMS « Votre code OP MESSAGES : ****** » sur ton téléphone, dans la minute.
+**Si le SMS n'arrive pas** : colle la réponse du `curl` et la ligne `sms` de `/health` (rien de secret). `"ovhEchecs":1` veut dire qu'OVH a refusé l'envoi
+(clé, droit, crédits ou expéditeur) ; un `503` veut dire qu'un budget ou un plafond a coupé. Dis-moi aussi **ce que le téléphone affiche comme
+expéditeur** (c'est le geste 2, constaté).
+
+### 8. Les budgets — ce qui coupe, et ce que tu peux régler
+
+Valeurs par défaut du service (fichier `/etc/opmsg/beta.json`, bloc `sms`, validé au démarrage) :
+
+| réglage | défaut | ce que ça borne |
+|---|---|---|
+| `budgetJour` / `budgetHeure` | **20 €** / 5 € | tout le service : au pire 600 € par mois |
+| `budgetPaysJour` / `budgetPaysHeure` | **3 €** / 1,5 € | un pays : ~30 SMS belges par jour, **2 russes** |
+| `budgetPays` | — | un pays à lui : `{"IN":{"jour":8,"heure":3}}` |
+| `prix` | grille OVH | un prix à corriger : `{"BR":0.09}` (en euros par SMS) |
+| `interdits` | — | des plages refusées d'office : `["+2519","+9919"]` |
+| `bouclier` | automatique, par pays en emballement **et dès 40 % du budget** | `{"pays":["IN"]}` force la preuve de travail pour un pays ; `{"global":true}` pour tous (urgence) |
+| `emballement.partBudget` | **0,4** | la part d'un budget (pays ou total, heure ou jour) à partir de laquelle la preuve de travail est exigée ; `1` = jamais |
+| `reserve` | **40 %** du budget global pour la France et ses départements | `{"part":0.4,"pays":["FR","RE"]}` : les autres pays n'en prennent que 60 % ; `{"part":0}` supprime la réserve |
+
+**Quand `/health` dit `budgetJourPct` ≥ 80** (ou que la surveillance crie) : regarde si c'est un vrai succès (beaucoup d'inscriptions) ou une attaque
+(un pays seul qui explose, `boucliers` ≥ 1). Un vrai succès se règle en **relevant `budgetPays` pays par pays** — jamais en relevant tout d'un coup.
+Une attaque se règle en **forçant le bouclier** du pays, ou en l'interdisant (`interdits`). Les gens qui tombent sur le budget voient « SMS
+momentanément indisponibles » : c'est le prix de la protection, et ça ne dure pas plus de 24 h. Dès 40 % d'un budget, le service demande à chacun une
+**preuve de travail** (une seconde de calcul sur le téléphone, 5 s d'attente) : un attaquant la paie, une personne honnête la fait sans le savoir.
+Ce qui est « indisponible » pour les AUTRES pays (60 % du budget global) ne l'est pas pour la France (la réserve).
+⚠️ Les défauts sont **prudents pour un lancement** : avec 3 € par pays, un pays comme l'Inde ou le Brésil ne laisse passer que quelques dizaines
+d'inscriptions par jour. **Dis-moi dans quels pays tu attends des gens** et je règle `budgetPays` en conséquence.
+
+### 9. Ce qu'OVH reçoit (pour les textes légaux)
+
+Le **numéro de téléphone** et le **texte du SMS** (qui contient le code) — rien d'autre : ni nom, ni conversation, ni adresse. OVHcloud devient
+sous-traitant au sens du RGPD (à ajouter à `sous-traitance.html` et au registre des traitements avant l'ouverture au public). Le service ne garde
+**jamais** un numéro en clair : scellé au repos, haché pour l'unicité, absent des journaux et de `/health`.
+
+---
+
 ## 11. La production — PAS MAINTENANT
 
 L'instance `prod` ne s'installe que sur ta phrase **« publie OP MESSAGES »**, après l'étape 9 de la conception

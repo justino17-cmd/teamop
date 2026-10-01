@@ -59,7 +59,7 @@ console.log('\n── 854 · la Tour règle et montre les options du Pro, et se 
 console.log('\n1. Population');
 vrai('(population) les ' + NOMS.length + ' fonctions de la Tour sont trouvées dans son code', FN.every(Boolean), NOMS.filter((n, i) => !FN[i]).join(', '));
 vrai('(population) les six tables à une ligne et la liste des clés sont trouvées', VARS.every(Boolean) && CLES !== '[]', VARS.map((x, i) => x ? '' : i).join(','));
-vrai('la Tour porte sa version v2.80', /\bvar TOUR_VERSION='v2\.80'/.test(TOURN));
+vrai('la Tour porte sa version v2.81', /\bvar TOUR_VERSION='v2\.81'/.test(TOURN));
 
 /* ── le CONTRAT (SPEC §1) : les clés et les prix par utilisateur et par mois. La Tour les écrit à part ; quand le serveur les porte, c'est lui qu'on lit. */
 const CONTRAT = { stock: 9, achats: 6, compta: 6, sanitaire: 6 };

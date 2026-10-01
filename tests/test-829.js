@@ -72,7 +72,7 @@ vrai('population : renderVue dessine des vues', rendues.length >= 11, rendues.le
 v('le menu et renderVue connaissent les MÊMES vues (aucune orpheline, aucune fantôme)', [...cles].sort(), [...new Set(rendues)].sort());
 v('la liste des vues de GESTION est DÉDUITE du menu, dans son ordre', P.VUES_PAR_APP.gestion,
   cles.filter(k => P.MENU.some(g => g.vues.some(x => x[0] === k && x[2].split(' ').includes('gestion')))));
-v('…celle de MESSAGES aussi', P.VUES_PAR_APP.messages, ['accueil', 'entreprises', 'surveillance', 'support', 'equipe', 'journal']);
+v('…celle de MESSAGES aussi', P.VUES_PAR_APP.messages, ['accueil', 'entreprises', 'surveillance', 'support', 'essais', 'equipe', 'journal']);
 vrai('⛔ plus aucune liste des vues écrite à la main', /var VUES_PAR_APP=\{gestion:vuesDe\('gestion'\),messages:vuesDe\('messages'\)\};/.test(CODE) && !/\nvar VUES=/.test(CODE));
 
 console.log('\n2. Un nom par vue, partout');

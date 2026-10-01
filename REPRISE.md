@@ -94,6 +94,56 @@ je veux pas qu'il soit sur Firebase »**, avec le choix laissé (« sur le serve
 serveur ») — choisi : **un service À PART sur le même VPS** (son propre processus, son port, son dossier de données, ses
 comptes de personnes, aucun code partagé avec `server/index.js`), écrit pour déménager sur une machine à lui sans rien
 réécrire ; un serveur dédié deviendra utile quand les appels et la visio (relais TURN, bande passante) tourneront pour de vrai.
+⛔ **DEUX FAÇONS D'ENTRER DANS OP MESSAGES** — Justin, 1er octobre 2026 au soir : « les liens de connexion c'est que pour le côté
+pro ; pour l'utilisateur classique c'est avec leur numéro de téléphone ». Le PRO (espace d'entreprise) entre par le lien de
+connexion que NOUS créons, comme OP GESTION ; le PERSO (tout public) s'inscrit et se connecte par son NUMÉRO DE TÉLÉPHONE (code
+reçu par SMS). Cela REMPLACE l'« inscription par courriel » de l'étape 2 de `design/opmessages/SERVEUR.md`. Questions posées à
+Justin le même soir : retrouver ses contacts par numéro → **« Oui, comme WhatsApp »** (on trouve quelqu'un en tapant son numéro, jamais
+de liste ouverte) ; prestataire SMS → il a demandé « pourquoi c'est payant » : réponse donnée (chaque SMS est facturé par les
+opérateurs ; on limite à un SMS à l'inscription et sur un nouvel appareil), Justin : « Go, le faire — mais le but c'est qu'on
+gagne de l'argent » → **OVHcloud SMS**, en construction côté serveur (inscription par numéro, un SMS à l'inscription et sur un
+nouvel appareil seulement, mobiles seuls, plafonds par numéro / réseau / jour, bouclier anti-fraude « SMS pumping »).
+Puis : **« je veux une connexion pour tous les pays, je veux voir plus que WhatsApp »** → TOUS les pays ouverts ; la protection
+passe du « où » au « combien » : table de prix par pays, budget en euros par jour (global et par pays), un pays qui s'emballe passe
+seul en bouclier. Proposé à Justin pour la suite : la connexion par clé d'accès (Face ID / empreinte) qui remplace le SMS.
+Puis : **« avec toutes les langues disponibles »** → OP MESSAGES multilingue : interface ET SMS dans la langue de la personne
+(langue de l'appareil par défaut, choix dans Réglages), écriture de droite à gauche (arabe, hébreu, persan, ourdou). À faire APRÈS le
+branchement de l'interface sur le serveur (il réécrit la même page : deux chantiers en même temps sur les mêmes textes se
+marcheraient dessus). Première vague : les langues les plus parlées et celles de l'Union européenne ; le système en accepte autant
+qu'on veut ; chaque traduction relue par un second agent.
+Puis : **« fais mieux que WhatsApp pour tout, et donne-moi des idées »** — idées proposées le 1er octobre au soir (en attente de son
+choix ; ce qui coûte de l'argent à chaque usage va dans le Pro) : 1. connexion par Face ID / empreinte (plus de SMS) ;
+2. tous ses appareils sans téléphone principal allumé ; 3. deux espaces dans la même appli, Perso et Pro, avec des heures de
+travail (plus de notification pro le soir : droit à la déconnexion) ; 4. traduction automatique des messages (Pro) ;
+5. vocaux transcrits en texte (Pro) ; 6. messages programmés et « rappelle-moi » ; 7. sondages et listes de tâches cochables
+dans un groupe ; 8. position en direct pour une équipe sur le terrain (Pro, limitée dans le temps) ; 9. export d'une conversation
+en PDF (Pro) ; 10. fils de réponse dans les groupes et mentions ; 11. réunions visio sans compte pour l'invité ; 12. données en
+France, sans publicité. ⚠️ 4 et 5 envoient le contenu à un service d'IA : sous-traitance à écrire avant (comme `agent-devis.js`). Justin : **« fait tout »** → les douze, en lots ordonnés : `design/opmessages/FEUILLE-DE-ROUTE.md`.
+Puis, même soir : **« ici fait tout »** pour onze idées de plus (13 boîte partagée d'entreprise, 14 lien et QR « Écrivez-nous »,
+15 réponses automatiques, 16 tableau du patron, 17 résumé IA d'une conversation, 18 message urgent, 19 conversations verrouillées
+par Face ID, 20 sauvegarde automatique, 21 gros caractères, 22 envoi à l'heure du destinataire, 23 parrainage) — rangées dans les
+mêmes lots ; **« prends plein d'idées que les autres font, pour gagner le marché »** → étude des concurrents FAITE
+(`design/opmessages/VEILLE-CONCURRENCE.md` : 24 concurrents, 46 idées de plus, numérotées 24 à 69, rangées dans les lots de la
+feuille de route, dix en tête ★ ; en attente de Justin : 51 prix d'entrée, 66 pont WhatsApp, 69 promesse sur l'identité) ; **« l'application sera
+sur l'App Store »** → lot I (enveloppe native, CallKit, carnet d'adresses, règles d'Apple qui coûtent) ; et **« J'ai les deux »** :
+Justin a DÉJÀ le compte Apple Developer et un Mac — on compile et on signe chez lui ; reste à ouvrir le compte Google Play.
+Puis : **« à 15 €, la différence c'est qu'on a tout le système comme Zoom, qui n'est pas payant comme Zoom […] des réunions qui
+peuvent durer plus d'une heure, elle s'arrête que quand l'admin coupe ; il faut que les 15 € soient bien justifiés, et que ce
+soit bien pour les entreprises ; après on peut faire des options un peu moins chères ; s'il faut baisser, une formule à 5 € pour
+les petites entreprises avec un genre de Zoom illimité ; propose-moi tout ce qu'on peut rajouter — la meilleure application de
+communication pour le travail, mieux que WhatsApp qui bugue comme jamais »** → réunions SANS limite de durée (seul l'hôte ou
+l'administrateur coupe) ; offre complète FAITE (`design/opmessages/OFFRE-PRO.md`) : grille Perso 0 € / Essentiel 5 € (1 à 5
+personnes, réunions jusqu'à 10) / Pro 15 € / Sur mesure, options à la carte, coût et marge (≈ 9,40 € par siège Pro), idées 70 à 91
+rangées dans la feuille de route ; **les 14 décisions ACCEPTÉES par Justin (« Fait tout », même soir)**, dont : formule à 5 €, monter le serveur de visio
+AVANT d'ouvrir le Pro, un abonnement par entreprise pour Messages, aucun achat dans l'application des stores (règle 3.1.3(c)).
+Puis : **« j'aimerais tester l'application aussi ; fais un lien bêta dans la Tour, le même système pour les accès comme OP
+GESTION »** → accès bêta d'OP MESSAGES gérés dans la console MESSAGES de la Tour, comme ceux d'OP GESTION — FAIT (Tour v2.81, `e1a726c`).
+Puis, sur les 5 réglages du compte par téléphone (réserve de 40 % pour la France, 3 € par jour et par pays, contact mutuel
+« comme WhatsApp », 10 SMS par heure et par réseau, `/health` public) : **« tout ça je veux le faire, mais avant de payer quoi que
+ce soit je veux tester »** → les 5 réglages par défaut sont GARDÉS ; ⛔ **RIEN DE PAYANT AVANT SES ESSAIS** : la bêta tourne sur
+le VPS déjà payé, entre par les accès de la Tour, n'envoie AUCUN SMS (mode « journal »), appelle en direct jusqu'à 4 sans serveur
+de visio. Crédit SMS OVH, machine de visio et tarifs Stripe ne s'achètent qu'APRÈS ses essais, sur sa phrase. Pour essayer
+l'inscription par téléphone sans SMS : des « numéros d'essai » à code fixe, bêta seulement (lot A, avec l'écran d'inscription).
 ✅ **Serveur d'OP MESSAGES, étape 1 FAITE sur la branche** (fusion `d70ba05`) : `server-msg/` (node:sqlite, scellé AES-256-GCM,
 SSE, porte bêta par la Tour en boucle locale, groupes, lu, saisie, présence), son installation (`install-msg.sh`, unité durcie,
 utilisateur `opmsg`), son déploiement (`.github/workflows/deploiement-messages.yml`, une clé SSH par instance) et le mode
@@ -102,16 +152,42 @@ d'emploi de Justin `design/opmessages/INSTALLER-LE-SERVEUR.md`. Conception : `de
 branche 228 · 14 574, code 0. ⚠️ Il touche `server/index.js` sur DEUX points (`/api/beta/login` rend `id`, `/api/beta/etat`
 accepte `ids`) : publier le serveur d'OP GESTION AVANT celui d'OP MESSAGES (sinon la porte reste fermée, 503, sans danger).
 Rien d'installé ni de poussé sur `main` ; restent ouverts D11, G12, G14, G15, G17 (listés dans le mode d'emploi).
+✅ **Compte PERSO par numéro de téléphone — FAIT côté serveur (2 octobre 2026, sur la branche d'un arbre à part, rien poussé)** :
+`server-msg/telephone.js` (routes `/api/tel/code`, `/api/tel/verifier`, `/api/tel/appareil`, `/api/contacts/chercher`,
+`/api/contacts/ajouter`, `/api/moi/confidentialite`), `numero.js` (E.164 fait main, mobiles seuls, tous les pays), `sms-garde.js`
+(budgets en euros par jour/heure, global et PAR PAYS, durables ; emballement d'un pays → bouclier à preuve de travail), `sms-prix.js`
+(207 destinations d'OVH), `sms-ovh.js` (signature « $1$ » faite main), `configurer-sms.js` (clés en saisie masquée, éprouvées avant
+d'être écrites). Migration 2 de `stockage.js` (table `personne` reconstruite). Conception et chiffres : `design/opmessages/SERVEUR.md`
+§ étape 2 ; gestes de Justin chez OVH et coût de 1 000 / 10 000 inscriptions : `INSTALLER-LE-SERVEUR.md` § 10 bis. Bancs `test-912`
+à `919` + `tests/mutations-telephone.js` (73 mutations sur copie, 73/73 tombent). ⚠️ **NON VÉRIFIÉ : un SMS réel** (aucun compte OVH dans le dépôt, le
+banc joue un faux OVH qui recalcule la signature) ; **non construits** : l'interface (autre équipe), l'appel vocal (on ne sait pas si
+OVH le permet), les clés d'accès WebAuthn (proposées à Justin comme étape suivante), le changement de numéro, la suppression de compte
+(devra effacer `appareil_tel`), le Pro par lien de connexion (étape 5). Défauts de budget par pays prudents (3 €/jour : 2 SMS russes) :
+à relever pays par pays selon où les gens s'inscrivent.
+✅ **Relecture adverse (`gardien` + `testeur`, 2 octobre 2026) FAITE et corrigée** : chaque constat rejoué contre le vrai service, puis
+corrigé avec le contrôle de banc vu TOMBER sur le code d'avant. **Argent** : le bouclier se déclenche aussi à 40 % d'un budget (avant :
+inatteignable pour 197 pays sur 207, vingt requêtes anonymes fermaient la France) ; 40 % du budget global réservés à la France
+(`sms.reserve` : sept SMS vers sept pays chers la fermaient) ; plafonds par numéro et par réseau (et /48 en IPv6) DURABLES en base
+(`sms_tentative`), plus de plafond par appareil ; une panne d'OVH (« non_envoye ») rend coût et plafonds, un envoi « incertain » garde
+son code et répond comme un succès (`incertain: true`), « numéro invalide » garde les plafonds, les refus 400/409/429 d'OVH comptent dans
+`ovhEchecs` ; le code se pose après l'envoi ; table de défis qui évince ; l'élagage tourne enfin. **Comptes** : le code est lié à
+l'appareil qui l'a demandé (un inconnu ne brûle plus le code de sa victime), nouvel appareil → notification, `POST
+/api/moi/appareils/deconnecter`, jeton d'appareil borné à un an et prolongé par l'usage, un seul E.164 par téléphone (zéro de ligne),
+prénom invalide sans consommer le code. **`configurer-sms.js`** : lecture en mode brut (un retour arrière réaffichait les secrets saisis ;
+rejoué sous pty), fichier temporaire créé en 0600. ⚠️ **NON corrigés, à décider par Justin** (détail : `SERVEUR.md` § 2.7) :
+`contacts/ajouter` crée un contact MUTUEL sans l'accord de la personne trouvée ; `/health` public montre le coût et les budgets ; 10 SMS par
+heure et par /24 (NAT d'opérateur) ; pays hors table de prix estimés à 1,05 € ; prénom vide accepté. La réserve France (40 %) est un
+choix de produit à confirmer. La migration 2 a été corrigée en place (jamais déployée).
 
 ✅ **L'interface de Justin branchée sur `server-msg/`, testée à deux personnes (1er octobre 2026, sur la branche).** La page servie n'est PAS écrite à la
 main : `node scripts/opmsg-public.js` fabrique `server-msg/public/{index.html, opmsg-ui.js, icônes}` depuis `apercu/opmessages/index.html` en ne changeant
 que la pièce de données (`source.js` → `api.js` + `source-serveur.js`), le script en ligne (extrait : CSP `script-src 'self'`) et la politique de la page ;
 il REFUSE une sortie qui mentirait (source de démonstration, contrat non tenu, aucune route `/api/`, script en ligne, `onclick=`, domaine tiers). ⛔ Ne jamais
-retoucher à la main `server-msg/public/index.html` ni `opmsg-ui.js` : `tests/test-912.js` compare octet pour octet. Photos, vocaux, appels et réunions
+retoucher à la main `server-msg/public/index.html` ni `opmsg-ui.js` : `tests/test-941.js` compare octet pour octet. Photos, vocaux, appels et réunions
 DISENT « bientôt » dans la version servie (`source.capacites`) et restent simulés dans l'aperçu, qui n'a pas changé de comportement. Quand la page
 ou le serveur est refusé ou coupé, elle le DIT (401 → la page repart de zéro avec la phrase, 403, 404, 409, 410, 413, 429 avec « réessaie dans N s »,
 503, réseau) ; une autre personne dans le même navigateur, l'accès coupé dans la Tour ou la déconnexion font repartir la page : plus rien de la
-personne d'avant. Bancs : `tests/test-911.js` (l'appareil et le service se parlent, vrai OP GESTION compris, 117 ✓, 19/19 mutations), `tests/test-912.js`
+personne d'avant. Bancs : `tests/test-911.js` (l'appareil et le service se parlent, vrai OP GESTION compris, 117 ✓, 19/19 mutations), `tests/test-941.js`
 (le générateur, 28 ✓, 15/16 mutations — la seizième, le contrôle du contrat, est NEUTRALISÉE par la lecture des méthodes que la page appelle), la sonde
 `tests/sonde-opmessages-serveur.js` (deux couples de vrais navigateurs contre le vrai service, jour puis nuit, le câble TCP arraché ; 328 ✓, 16/16
 mutations ; `--rapide` pour un seul couple). Liste `scripts/bancs-messages.liste` 18 suites · 1 721, suite complète 232 · 15 017 (code 0), liste serveur 51 · 3 601.

@@ -122,16 +122,18 @@ async function fauxOpGestion(comptes) {
           if (!c || c.pass !== j.pass) return rep(403, { error: 'identifiant ou mot de passe incorrect' });
           if (!c.actif) return rep(403, { error: 'cet accès d\'essai a été coupé depuis la Tour de contrôle' });
           if (etat.mode === 'sans_id') return rep(200, { ok: true, login: String(j.login).toLowerCase(), nom: c.nom });   // un OP GESTION d'avant l'identifiant de compte
-          return rep(200, { ok: true, login: String(j.login).toLowerCase(), nom: c.nom, id: c.id || ('b' + crypto.createHash('sha1').update(String(j.login).toLowerCase()).digest('hex').slice(0, 10)) });
+          if (etat.mode === 'sans_apps') return rep(200, { ok: true, login: String(j.login).toLowerCase(), nom: c.nom, id: c.id || ('b' + crypto.createHash('sha1').update(String(j.login).toLowerCase()).digest('hex').slice(0, 10)) });   // un OP GESTION d'avant `apps` : ignore `app`, dit « ok » à tout accès
+          return rep(200, { ok: true, login: String(j.login).toLowerCase(), nom: c.nom, apps: ['messages'], id: c.id || ('b' + crypto.createHash('sha1').update(String(j.login).toLowerCase()).digest('hex').slice(0, 10)) });
         }
         /* Comme le vrai `/api/beta/etat` : un seul identifiant (`login`, ancien) OU une liste d'identifiants de compte (`ids`). */
         if (req.url === '/api/beta/etat') {
           if (etat.mode === 'etat_vide') return rep(200, { ouverts: {} });          // une réponse qui ne dit rien de personne
           if (etat.mode === 'etat_ancien') return rep(200, { ouvert: true });       // un OP GESTION d'avant la liste `ids`
+          if (etat.mode === 'etat_sans_app') { const ouverts = {}; for (const id of (j.ids || [])) ouverts[id] = false; return rep(200, { ouverts }); }   // un OP GESTION d'avant `app` : répond sans écho
           if (Array.isArray(j.ids)) {
             const ouverts = {};
             for (const id of j.ids.slice(0, 100)) ouverts[id] = Object.entries(etat.comptes).some(([l, c]) => (c.id || ('b' + crypto.createHash('sha1').update(l).digest('hex').slice(0, 10))) === id && c.actif);
-            return rep(200, { ouverts });
+            return rep(200, { ouverts, app: j.app });
           }
           const c = etat.comptes[String(j.login || '').toLowerCase()]; return rep(200, { ouvert: !!(c && c.actif) });
         }

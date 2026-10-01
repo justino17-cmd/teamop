@@ -145,6 +145,68 @@ const MIGRATIONS = [
     `CREATE TABLE IF NOT EXISTS purge(objet TEXT NOT NULL, genre TEXT NOT NULL, quand INTEGER NOT NULL)`,
     `PRAGMA user_version = 1`,
   ] },
+  /* ── 2 : LE TÉLÉPHONE (2 octobre 2026) ───────────────────────────────────────────────────────────────────────
+     Décision de Justin : le compte PERSO naît et se connecte par NUMÉRO DE TÉLÉPHONE. Quatre choses entrent :
+       · `personne.origine` accepte 'telephone' — SQLite ne change pas un CHECK en place : la table est RECONSTRUITE (procédure
+         officielle : clés étrangères coupées HORS transaction, copie, suppression, renommage). Le lanceur de migrations sait
+         le faire (`sansFk`) ; une copie `.avant-v2` de la base est gardée avant, comme pour toute migration d'une base qui a vécu ;
+       · `personne.trouvable` : « qui peut me trouver par mon numéro » (tous | personne) ;
+       · `code_tel`, `appareil_tel` : le code à usage unique (haché, jamais en clair, lié à l'APPAREIL qui l'a demandé — `ap_h` : les faux
+         essais d'un autre appareil ne brûlent pas le code de la personne) et le jeton d'appareil (haché) qui évite un SMS ;
+       · `sms_tentative` : les plafonds par numéro et par réseau, DURABLES (une ligne par SMS et par clé, des EMPREINTES HMAC — jamais un
+         numéro ni une adresse en clair — gardées 2 jours) : ils ne se perdent ni au redémarrage ni quand une table mémoire se remplit ;
+       · `sms_envoi` : UNE LIGNE PAR SMS (date, pays, coût en micro-euros) — jamais un numéro. C'est ce qui rend les budgets en euros
+         DURABLES : un redémarrage ne remet pas le budget du jour à zéro. `sms_bouclier` : les pays passés en mode « preuve de travail ».
+         `recherche_tel` : les recherches de contact par numéro (plafond par compte et par jour). */
+  { v: 2, sansFk: true, sql: [
+    `CREATE TABLE personne_v2(
+       id TEXT PRIMARY KEY,
+       email_h TEXT UNIQUE,
+       email_ch BLOB,
+       verifie_le INTEGER,
+       sel BLOB, mdp BLOB, params TEXT,
+       prenom TEXT NOT NULL DEFAULT '', nom TEXT NOT NULL DEFAULT '',
+       avatar_piece TEXT,
+       statut TEXT NOT NULL DEFAULT '',
+       langue TEXT NOT NULL DEFAULT 'fr', tz TEXT NOT NULL DEFAULT 'Europe/Paris',
+       prefs TEXT NOT NULL DEFAULT '{}',
+       etat TEXT NOT NULL DEFAULT 'actif',
+       suppression_le INTEGER, age_ok INTEGER, cgu_v TEXT,
+       origine TEXT NOT NULL DEFAULT 'compte' CHECK(origine IN ('compte','beta','telephone')),
+       essais INTEGER NOT NULL DEFAULT 0, bloque_jusqua INTEGER,
+       cree INTEGER NOT NULL,
+       trouvable TEXT NOT NULL DEFAULT 'tous' CHECK(trouvable IN ('tous','personne')))`,
+    `INSERT INTO personne_v2(id, email_h, email_ch, verifie_le, sel, mdp, params, prenom, nom, avatar_piece, statut, langue, tz, prefs, etat,
+                             suppression_le, age_ok, cgu_v, origine, essais, bloque_jusqua, cree)
+       SELECT id, email_h, email_ch, verifie_le, sel, mdp, params, prenom, nom, avatar_piece, statut, langue, tz, prefs, etat,
+              suppression_le, age_ok, cgu_v, origine, essais, bloque_jusqua, cree FROM personne`,
+    `DROP TABLE personne`,
+    `ALTER TABLE personne_v2 RENAME TO personne`,
+    `CREATE TABLE IF NOT EXISTS code_tel(
+       num_h TEXT PRIMARY KEY, code_h TEXT NOT NULL,
+       cree INTEGER NOT NULL, exp INTEGER NOT NULL, essais INTEGER NOT NULL DEFAULT 0, ap_h TEXT)`,
+    `CREATE TABLE IF NOT EXISTS appareil_tel(
+       h TEXT PRIMARY KEY,
+       personne TEXT NOT NULL REFERENCES personne(id) ON DELETE CASCADE,
+       nom TEXT, cree INTEGER NOT NULL, vu INTEGER NOT NULL, exp INTEGER NOT NULL)`,
+    `CREATE INDEX IF NOT EXISTS appareil_tel_personne ON appareil_tel(personne)`,
+    `CREATE TABLE IF NOT EXISTS sms_envoi(
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       ts INTEGER NOT NULL, pays TEXT NOT NULL, cout INTEGER NOT NULL,
+       etat TEXT NOT NULL CHECK(etat IN ('reserve','envoye','incertain','refuse')))`,
+    `CREATE INDEX IF NOT EXISTS sms_envoi_ts ON sms_envoi(ts)`,
+    `CREATE INDEX IF NOT EXISTS sms_envoi_pays ON sms_envoi(pays, ts)`,
+    `CREATE TABLE IF NOT EXISTS sms_tentative(
+       id INTEGER PRIMARY KEY AUTOINCREMENT, sms INTEGER NOT NULL, k TEXT NOT NULL, ts INTEGER NOT NULL)`,
+    `CREATE INDEX IF NOT EXISTS sms_tentative_k ON sms_tentative(k, ts)`,
+    `CREATE INDEX IF NOT EXISTS sms_tentative_sms ON sms_tentative(sms)`,
+    `CREATE TABLE IF NOT EXISTS sms_bouclier(
+       pays TEXT PRIMARY KEY, depuis INTEGER NOT NULL, jusqua INTEGER NOT NULL, motif TEXT NOT NULL)`,
+    `CREATE TABLE IF NOT EXISTS recherche_tel(
+       uid TEXT NOT NULL REFERENCES personne(id) ON DELETE CASCADE, ts INTEGER NOT NULL)`,
+    `CREATE INDEX IF NOT EXISTS recherche_tel_uid ON recherche_tel(uid, ts)`,
+    `PRAGMA user_version = 2`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -181,8 +243,16 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (m.v <= cur) continue;
     /* Une copie cohérente AVANT de toucher une base qui a déjà vécu. */
     if (existait && cur > 0) { try { Q('VACUUM INTO ?').run(chemin + '.avant-v' + m.v); } catch (e) { if (!/already exists/i.test(String(e.message))) throw e; } }
+    /* ⛔ Une migration qui RECONSTRUIT une table (`sansFk`) coupe les clés étrangères AVANT d'ouvrir la transaction — la commande est
+       sans effet à l'intérieur d'une transaction — et les rallume après, en contrôlant qu'aucune ligne n'est restée orpheline. */
+    if (m.sansFk === true) X('PRAGMA foreign_keys=OFF');
     X('BEGIN IMMEDIATE');
-    try { for (const s of m.sql) X(s); X('COMMIT'); } catch (e) { try { X('ROLLBACK'); } catch (e2) {} throw e; }
+    try {
+      for (const s of m.sql) X(s);
+      if (m.sansFk === true && Q('PRAGMA foreign_key_check').all().length > 0) throw erreur('migration_orphelins');
+      X('COMMIT');
+    } catch (e) { try { X('ROLLBACK'); } catch (e2) {} if (m.sansFk === true) X('PRAGMA foreign_keys=ON'); throw e; }
+    if (m.sansFk === true) X('PRAGMA foreign_keys=ON');
   }
 
   /* ── Le témoin de clé : un démarrage avec une MAUVAISE clé est refusé net ──────────── */
@@ -293,6 +363,14 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   function sessionSupprimer(h) { return num(Q('DELETE FROM session WHERE h = ?').run(h).changes); }
   function sessionsSupprimerPersonne(id) { return num(Q('DELETE FROM session WHERE personne = ?').run(id).changes); }
+  /* Les autres sessions d'une personne : rend leurs empreintes (l'appelant ferme leurs flux — une session supprimée dont le flux reste ouvert continue de recevoir). */
+  function sessionsSupprimerAutres(id, garderH) {
+    return tx(() => {
+      const hs = Q('SELECT h FROM session WHERE personne = ? AND h <> ?').all(id, garderH || '').map(r => r.h);
+      for (const h of hs) Q('DELETE FROM session WHERE h = ?').run(h);
+      return hs;
+    });
+  }
   function sessionsBetaActives() {
     const t = horloge();
     return Q(`SELECT DISTINCT p.id FROM personne p JOIN session s ON s.personne = p.id WHERE p.origine = 'beta' AND s.exp > ?`).all(t)
@@ -924,6 +1002,135 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     });
   }
 
+  /* ══ TÉLÉPHONE — codes, appareils, journal des SMS, boucliers, recherches (migration 2) ═════════════════
+     ⛔ Ce bloc ne reçoit JAMAIS un numéro en clair : `num_h` est l'empreinte HMAC calculée par l'appelant (`scelleur.hmac`), le code
+     n'arrive que sous forme de hachage, et `sms_envoi` ne porte ni numéro ni empreinte — seulement la date, le pays et le coût. Le
+     numéro d'une personne vit à UN endroit, scellé : `personne.email_ch` (identifiant `tel:+…`), comme une adresse e-mail. */
+
+  /* Le code à usage unique : UN code en attente par numéro (en demander un neuf remplace l'ancien et remet les essais à zéro). */
+  function telCodePoser({ num_h, code_h, exp, ap_h }) {
+    Q(`INSERT INTO code_tel(num_h, code_h, cree, exp, essais, ap_h) VALUES(?, ?, ?, ?, 0, ?)
+       ON CONFLICT(num_h) DO UPDATE SET code_h = excluded.code_h, cree = excluded.cree, exp = excluded.exp, essais = 0, ap_h = excluded.ap_h`).run(num_h, code_h, horloge(), exp, ap_h || null);
+  }
+  /* ⛔ UN ESSAI SE COMPTE AVANT D'ÊTRE JUGÉ : on incrémente puis on rend le hachage à comparer — jamais « comparer, puis compter si c'est
+     faux » (un appel interrompu entre les deux donnerait un essai gratuit). Un code expiré ou à cinq essais est supprimé : usage unique,
+     et il faut en redemander un (ce qui coûte un SMS, donc passe par tous les plafonds). Rend `null` si rien d'utilisable.
+     ⛔ LE CODE EST LIÉ À L'APPAREIL QUI L'A DEMANDÉ (`ap_h`) : un autre appareil — celui d'un inconnu qui ne connaît que le numéro — ne
+     peut ni le deviner ni le BRÛLER. Ses essais ne sont pas comptés sur le code de la personne (relecture adverse : cinq faux essais
+     d'un tiers rendaient son vrai code inutilisable) ; il reçoit `null`, comme pour un code absent. */
+  function telCodeEssayer(num_h, maxEssais, ap_h) {
+    return tx(() => {
+      const r = Q('SELECT code_h, exp, essais, ap_h FROM code_tel WHERE num_h = ?').get(num_h);
+      if (!r) return null;
+      if (r.exp <= horloge() || r.essais >= maxEssais) { Q('DELETE FROM code_tel WHERE num_h = ?').run(num_h); return null; }
+      if (r.ap_h && r.ap_h !== ap_h) return null;
+      Q('UPDATE code_tel SET essais = essais + 1 WHERE num_h = ?').run(num_h);
+      if (r.essais + 1 >= maxEssais) Q('UPDATE code_tel SET exp = ? WHERE num_h = ?').run(0, num_h);   // le dernier essai épuise le code, juste ou faux : la ligne tombera au prochain passage
+      return { code_h: r.code_h };
+    });
+  }
+  function telCodeSupprimer(num_h) { return num(Q('DELETE FROM code_tel WHERE num_h = ?').run(num_h).changes); }
+  function telCodeCree(num_h) { const r = Q('SELECT cree FROM code_tel WHERE num_h = ?').get(num_h); return r ? r.cree : null; }
+
+  /* Le jeton d'appareil : 10 appareils au plus par personne (les plus anciens partent). Une valeur déjà liée à quelqu'un d'autre
+     (un navigateur partagé) passe à la nouvelle personne : l'ancienne devra redemander un SMS, jamais l'inverse. */
+  const APPAREILS_MAX = 10;
+  function telAppareilLier({ h, personne, nom, ttlMs }) {
+    return tx(() => {
+      const t = horloge();
+      Q(`INSERT INTO appareil_tel(h, personne, nom, cree, vu, exp) VALUES(?, ?, ?, ?, ?, ?)
+         ON CONFLICT(h) DO UPDATE SET personne = excluded.personne, nom = excluded.nom, cree = excluded.cree, vu = excluded.vu, exp = excluded.exp`).run(h, personne, nom || null, t, t, t + ttlMs);
+      Q('DELETE FROM appareil_tel WHERE personne = ? AND h NOT IN (SELECT h FROM appareil_tel WHERE personne = ? ORDER BY vu DESC, cree DESC LIMIT ?)').run(personne, personne, APPAREILS_MAX);
+    });
+  }
+  /* `cree` est la date de la DERNIÈRE preuve par SMS de cet appareil (un nouveau lien la remet à jour). `absMs` borne la reconnexion SANS
+     SMS : au-delà, quelle que soit l'activité, il faut une nouvelle preuve — sinon un numéro réattribué ou une SIM échangée laisserait
+     l'ancien titulaire connecté pour toujours (le glissement de 180 jours ne s'arrête que sur une absence). */
+  function telAppareilLire(h, absMs) {
+    const r = Q('SELECT personne, exp, cree FROM appareil_tel WHERE h = ?').get(h);
+    if (!r) return null;
+    if (r.exp <= horloge() || (absMs && r.cree + absMs <= horloge())) { Q('DELETE FROM appareil_tel WHERE h = ?').run(h); return null; }
+    return { personne: r.personne, exp: r.exp, cree: r.cree };
+  }
+  /* Glissant, une écriture par heure au plus (comme les sessions). */
+  function telAppareilToucher(h, ttlMs) {
+    const t = horloge();
+    Q('UPDATE appareil_tel SET vu = ?, exp = ? WHERE h = ? AND vu < ?').run(t, t + ttlMs, h, t - 3600000);
+  }
+  function telAppareilSupprimer(h) { return num(Q('DELETE FROM appareil_tel WHERE h = ?').run(h).changes); }
+  function telAppareilsSupprimerPersonne(id) { return num(Q('DELETE FROM appareil_tel WHERE personne = ?').run(id).changes); }
+  /* « Déconnecter les autres appareils » : tout sauf l'appareil d'où l'on le demande. */
+  function telAppareilsSupprimerAutres(id, garderH) { return num(Q('DELETE FROM appareil_tel WHERE personne = ? AND h <> ?').run(id, garderH || '').changes); }
+  function telAppareilsDe(id) { return num(Q('SELECT COUNT(*) AS n FROM appareil_tel WHERE personne = ? AND exp > ?').get(id, horloge()).n); }
+
+  /* Le journal des SMS : une ligne par envoi, coût en micro-euros. « refuse » = le prestataire a refusé net, le coût est rendu. */
+  function smsReserver({ pays, cout }) {
+    return num(Q(`INSERT INTO sms_envoi(ts, pays, cout, etat) VALUES(?, ?, ?, 'reserve')`).run(horloge(), pays, cout).lastInsertRowid);
+  }
+  function smsRegler(id, { etat, cout }) {
+    Q('UPDATE sms_envoi SET etat = ?, cout = ? WHERE id = ?').run(etat, cout, id);
+  }
+  /* Les plafonds par numéro et par réseau : des EMPREINTES (HMAC) et des dates, jamais un numéro ni une adresse. Durables : un redémarrage
+     ne les remet pas à zéro, et aucune table mémoire à saturer ne les évince. Un SMS rendu (refus franc du prestataire) rend ses lignes. */
+  function smsTentativesNoter(sms, cles, ts) { for (const k of cles) Q('INSERT INTO sms_tentative(sms, k, ts) VALUES(?, ?, ?)').run(sms, k, ts === undefined ? horloge() : ts); }
+  function smsTentativesCompter(k, depuis) { return num(Q('SELECT COUNT(*) AS n FROM sms_tentative WHERE k = ? AND ts >= ?').get(k, depuis).n); }
+  function smsTentativePremiere(k, depuis) { const r = Q('SELECT MIN(ts) AS t FROM sms_tentative WHERE k = ? AND ts >= ?').get(k, depuis); return r && r.t !== null ? num(r.t) : null; }
+  function smsTentativesRendre(sms) { return num(Q('DELETE FROM sms_tentative WHERE sms = ?').run(sms).changes); }
+
+  /* Les sommes d'une fenêtre : nombre et coût, tous pays (`pays` nul), un seul, ou tous SAUF une liste (`hors` : le total moins chaque pays de
+     la liste — les requêtes restent des LITTÉRAUX, jamais un texte construit). Les envois refusés net ne comptent pas. */
+  function smsSommes(depuis, pays, hors) {
+    if (Array.isArray(hors) && hors.length) {
+      const t = smsSommes(depuis);
+      for (const p of hors) { const x = smsSommes(depuis, p); t.n -= x.n; t.cout -= x.cout; }
+      return t;
+    }
+    const r = pays
+      ? Q(`SELECT COUNT(*) AS n, COALESCE(SUM(cout), 0) AS cout FROM sms_envoi WHERE ts >= ? AND pays = ? AND etat <> 'refuse'`).get(depuis, pays)
+      : Q(`SELECT COUNT(*) AS n, COALESCE(SUM(cout), 0) AS cout FROM sms_envoi WHERE ts >= ? AND etat <> 'refuse'`).get(depuis);
+    return { n: num(r.n), cout: num(r.cout) };
+  }
+  function smsPremier(pays) { const r = Q(`SELECT MIN(ts) AS t FROM sms_envoi WHERE pays = ? AND etat <> 'refuse'`).get(pays); return r && r.t !== null ? num(r.t) : null; }
+  function smsPaysSur(depuis) {
+    return Q(`SELECT pays, COUNT(*) AS n, COALESCE(SUM(cout), 0) AS cout FROM sms_envoi WHERE ts >= ? AND etat <> 'refuse' GROUP BY pays ORDER BY cout DESC`).all(depuis)
+      .map(r => ({ pays: r.pays, n: num(r.n), cout: num(r.cout) }));
+  }
+  /* L'élagage : chaque table a SA rétention. Le journal des SMS garde de quoi calculer l'emballement (la moyenne des jours précédents) ;
+     un code expiré, lui, ne sert plus à rien (son empreinte de numéro n'a pas à rester) ; les plafonds ne regardent que les dernières 24 h. */
+  function smsElaguer({ journalAvant, codesAvant, recherchesAvant, tentativesAvant, appareilsAbsMs }) {
+    const t = horloge();
+    let n = 0;
+    n += num(Q('DELETE FROM sms_envoi WHERE ts < ?').run(journalAvant).changes);
+    n += num(Q('DELETE FROM code_tel WHERE exp < ?').run(codesAvant).changes);
+    n += num(Q('DELETE FROM recherche_tel WHERE ts < ?').run(recherchesAvant).changes);
+    n += num(Q('DELETE FROM sms_tentative WHERE ts < ?').run(tentativesAvant).changes);
+    n += num(Q('DELETE FROM sms_bouclier WHERE jusqua < ?').run(journalAvant).changes);
+    n += num(Q('DELETE FROM appareil_tel WHERE exp < ?').run(t).changes);
+    if (appareilsAbsMs) n += num(Q('DELETE FROM appareil_tel WHERE cree + ? < ?').run(appareilsAbsMs, t).changes);
+    return n;
+  }
+
+  /* Les boucliers : un pays en mode « preuve de travail » jusqu'à une date. */
+  function smsBouclierPoser({ pays, jusqua, motif }) {
+    Q(`INSERT INTO sms_bouclier(pays, depuis, jusqua, motif) VALUES(?, ?, ?, ?)
+       ON CONFLICT(pays) DO UPDATE SET jusqua = excluded.jusqua, motif = excluded.motif`).run(pays, horloge(), jusqua, motif);
+  }
+  function smsBouclierDe(pays) { const r = Q('SELECT jusqua, motif FROM sms_bouclier WHERE pays = ? AND jusqua > ?').get(pays, horloge()); return r ? { jusqua: num(r.jusqua), motif: r.motif } : null; }
+  function smsBoucliers() { return Q('SELECT pays, jusqua, motif FROM sms_bouclier WHERE jusqua > ? ORDER BY pays').all(horloge()).map(r => ({ pays: r.pays, jusqua: num(r.jusqua), motif: r.motif })); }
+
+  /* Les personnes qui ont un numéro : retrouvées par l'identifiant scellé `tel:+…`, avec leur réglage « qui peut me trouver ». */
+  function telPersonneParNumero(identifiant) {
+    const r = Q(`SELECT id, prenom, etat, trouvable FROM personne WHERE email_h = ? AND origine = 'telephone'`).get(scelleur.hmac('personne', 'email_h', identifiant));
+    return r ? { id: r.id, prenom: r.prenom, etat: r.etat, trouvable: r.trouvable } : null;
+  }
+  function telTrouvableLire(id) { const r = Q('SELECT trouvable FROM personne WHERE id = ?').get(id); return r ? r.trouvable : null; }
+  function telTrouvableMaj(id, valeur) { return num(Q('UPDATE personne SET trouvable = ? WHERE id = ?').run(valeur, id).changes); }
+
+  /* Les recherches de contact par numéro : un compte ne peut pas parcourir l'annuaire. */
+  function rechercheNoter(uid) { Q('INSERT INTO recherche_tel(uid, ts) VALUES(?, ?)').run(uid, horloge()); }
+  function rechercheCompter(uid, depuis) { return num(Q('SELECT COUNT(*) AS n FROM recherche_tel WHERE uid = ? AND ts >= ?').get(uid, depuis).n); }
+  function rechercheRendre(uid) { Q('DELETE FROM recherche_tel WHERE rowid = (SELECT MAX(rowid) FROM recherche_tel WHERE uid = ?)').run(uid); }
+
   /* ══ AGRÉGATS POUR /health — des NOMBRES, jamais un identifiant ══════════════════════════ */
   function stats() {
     return {
@@ -942,7 +1149,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   return {
     schema, instantane, fermer, tx, stats, metaLire, nouvelId, illisibles: () => illisibles,
     personneCreer, personneParIdentifiant, personneParId, personneIdentifiant, personneMaj,
-    sessionAjouter, sessionLire, sessionToucher, sessionSupprimer, sessionsSupprimerPersonne, sessionsBetaActives,
+    sessionAjouter, sessionLire, sessionToucher, sessionSupprimer, sessionsSupprimerPersonne, sessionsSupprimerAutres, sessionsBetaActives,
     contactLier, contactBloque, contactActif, contactsDe, contactsActifs, contactRetirer, contactEtat, contactLigne, peutVoir,
     lienCreer, lienValide, lienApercu, lienAccepter, liensRevoquerGroupe, liensRevoquerContact,
     convDirecteObtenir, convCreerGroupe, convSupprimer, convPourMembre, convListe, convMaj, membresActifs, membresDetail, nbAdmins,
@@ -950,6 +1157,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     messageEnvoyer, messageExiste, messagesDe, messageModifier, messageSupprimer, messageReagir, reactionsDe, purgerExpires,
     notifCreer, notifListe, notifLues, notifNonLues,
     journalMax, journalMin, journalElaguer, evenementsPour, gidVisible,
+    telCodePoser, telCodeEssayer, telCodeSupprimer, telCodeCree,
+    telAppareilLier, telAppareilLire, telAppareilToucher, telAppareilSupprimer, telAppareilsSupprimerPersonne, telAppareilsSupprimerAutres, telAppareilsDe,
+    smsTentativesNoter, smsTentativesCompter, smsTentativePremiere, smsTentativesRendre,
+    smsReserver, smsRegler, smsSommes, smsPremier, smsPaysSur, smsElaguer, smsBouclierPoser, smsBouclierDe, smsBoucliers,
+    telPersonneParNumero, telTrouvableLire, telTrouvableMaj, rechercheNoter, rechercheCompter, rechercheRendre,
   };
 }
 

@@ -2139,21 +2139,35 @@ app.post('/api/monitor/users/apps', monPatronStrict, (req, res) => {
 const BETA_PATH = path.join(DATA_DIR, 'beta-comptes.json');
 let betaComptes = [];
 try { betaComptes = JSON.parse(fs.readFileSync(BETA_PATH, 'utf8')) || []; } catch (e) {}
-function betaSave() { try { fs.writeFileSync(BETA_PATH, JSON.stringify(betaComptes)); } catch (e) { console.error('beta save:', e.message); } }
+// Temporaire puis renommage, comme `espacesEcrire` : une coupure pendant l'écriture laissait un fichier tronqué, que le
+// chargement avale (catch vide) — tous les accès bêta perdus au redémarrage (relevé par `gardien`, 1er octobre 2026).
+function betaSave() { try { const tmp = BETA_PATH + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(betaComptes)); fs.renameSync(tmp, BETA_PATH); } catch (e) { console.error('beta save:', e.message); } }
 // Le chantier — ce que la personne teste — n'est pas décoratif : un accès bêta sans raison
 // écrite est un accès qu'on n'ose plus couper parce qu'on ne sait plus à quoi il servait.
-const betaPublic = c => ({ id: c.id, login: c.login, nom: c.nom, chantier: c.chantier || '', actif: !!c.actif, ts: c.ts || 0, creePar: c.creePar || '', derniere: c.derniere || 0 });
+/* ⛔ QUELLE APPLICATION UN ACCÈS OUVRE (1er octobre 2026 — Justin : « fais un lien bêta dans la Tour [pour OP MESSAGES], le même
+   système pour les accès comme OP GESTION »). Un accès porte `apps`, sous-ensemble non vide de BETA_APPS. UN ACCÈS D'AVANT, qui
+   n'a pas le champ, vaut ['gestion'] : il n'ouvrait que la bêta d'OP GESTION, il ne s'ouvre pas à une application de plus en
+   silence. C'est la SEULE lecture du champ (`betaApps`) : la porte, la relecture et la Tour passent par elle, jamais par
+   `c.apps` directement — un accès au champ abîmé ne doit pas devenir un accès à tout. */
+const BETA_APPS = ['gestion', 'messages'];
+const betaApps = c => { const l = Array.isArray(c && c.apps) ? BETA_APPS.filter(a => c.apps.includes(a)) : []; return l.length ? l : ['gestion']; };
+/* Valide une liste reçue d'une requête : tableau non vide de noms CONNUS, sans doublon → la liste rangée dans l'ordre de BETA_APPS ; sinon null. */
+const betaAppsValides = v => (Array.isArray(v) && v.length && v.every(a => typeof a === 'string' && BETA_APPS.includes(a))) ? BETA_APPS.filter(a => v.includes(a)) : null;
+const betaPublic = c => ({ id: c.id, login: c.login, nom: c.nom, chantier: c.chantier || '', apps: betaApps(c), actif: !!c.actif, ts: c.ts || 0, creePar: c.creePar || '', derniere: c.derniere || 0 });
 app.get('/api/monitor/beta', monPatronStrict, (req, res) => { res.json({ comptes: betaComptes.map(betaPublic) }); });
 app.post('/api/monitor/beta', monPatronStrict, (req, res) => {
   const login = monStr((req.body || {}).login, 40).trim().toLowerCase();
   const nom = monStr((req.body || {}).nom, 60).trim();
   const pass = monStr((req.body || {}).pass, 200);
   const chantier = monStr((req.body || {}).chantier, 120).trim();
+  // `apps` absent = la Tour d'avant : l'accès ouvre OP GESTION seul. Présent mais faux = 400, jamais une valeur devinée.
+  const apps = (req.body || {}).apps === undefined ? ['gestion'] : betaAppsValides((req.body || {}).apps);
+  if (!apps) return res.status(400).json({ error: 'applications : une liste non vide parmi ' + BETA_APPS.join(', ') });
   if (!/^[a-z0-9._@-]{3,40}$/.test(login)) return res.status(400).json({ error: 'identifiant : 3 à 40 caractères, lettres, chiffres, . _ @ -' });
   if (pass.length < 8) return res.status(400).json({ error: 'mot de passe de 8 caractères minimum' });
   if (betaComptes.some(c => c.login === login)) return res.status(409).json({ error: 'cet identifiant existe déjà' });
   if (betaComptes.length >= 50) return res.status(400).json({ error: 'trop d\'accès d\'essai (50 max)' });
-  const c = { id: 'b' + crypto.randomBytes(5).toString('hex'), login, nom: nom || login, chantier, hash: monHash(pass), actif: true, ts: Date.now(), creePar: req.tourUser.nom };
+  const c = { id: 'b' + crypto.randomBytes(5).toString('hex'), login, nom: nom || login, chantier, apps, hash: monHash(pass), actif: true, ts: Date.now(), creePar: req.tourUser.nom };
   betaComptes.push(c); betaSave();
   res.json({ ok: true, compte: betaPublic(c) });
 });
@@ -2163,6 +2177,17 @@ app.post('/api/monitor/beta/chantier', monPatronStrict, (req, res) => {
   const c = betaComptes.find(x => x.id === (req.body || {}).id);
   if (!c) return res.status(404).json({ error: 'accès introuvable' });
   c.chantier = monStr((req.body || {}).chantier, 120).trim(); betaSave();
+  res.json({ ok: true, compte: betaPublic(c) });
+});
+// Quelles applications l'accès ouvre : réglable sans le supprimer (sinon la seule façon d'ajouter OP MESSAGES à quelqu'un serait de
+// lui refaire un mot de passe). Retirer une application ferme AUSSI les sessions déjà ouvertes dessus : l'autre service relit
+// `/api/beta/etat` avec son `app`, et cet accès-là y répond `false`.
+app.post('/api/monitor/beta/apps', monPatronStrict, (req, res) => {
+  const c = betaComptes.find(x => x.id === (req.body || {}).id);
+  if (!c) return res.status(404).json({ error: 'accès introuvable' });
+  const apps = betaAppsValides((req.body || {}).apps);
+  if (!apps) return res.status(400).json({ error: 'applications : une liste non vide parmi ' + BETA_APPS.join(', ') });
+  c.apps = apps; betaSave();
   res.json({ ok: true, compte: betaPublic(c) });
 });
 app.post('/api/monitor/beta/toggle', monPatronStrict, (req, res) => {
@@ -2182,6 +2207,9 @@ app.post('/api/monitor/beta/delete', monPatronStrict, (req, res) => {
 // pour le plafond par adresse. Réponse identique pour un identifiant inconnu et un mauvais
 // mot de passe : la route ne doit pas dire quels accès existent.
 app.post('/api/beta/login', (req, res) => {
+  // L'application qui demande (« gestion » par défaut : beta.html n'envoie rien). Un nom inconnu est une requête mal formée, pas un accès refusé.
+  const appVoulue = (req.body || {}).app === undefined ? 'gestion' : (req.body || {}).app;
+  if (!BETA_APPS.includes(appVoulue)) return res.status(400).json({ error: 'application inconnue' });
   const login = monStr((req.body || {}).login, 40).trim().toLowerCase();
   const pass = monStr((req.body || {}).pass, 200);
   const ident = 'bêta:' + login;
@@ -2190,28 +2218,40 @@ app.post('/api/beta/login', (req, res) => {
   const echec = (motif) => { const l = monLock.get(ident) || { fails: 0, until: 0 }; l.fails++; if (l.fails >= 5) { l.until = Date.now() + 15 * 60000; l.fails = 0; } monLock.set(ident, l); monLog(ident, false, req, motif); };
   const c = betaComptes.find(x => x.login === login);
   if (!c || !pass || monHash(pass) !== c.hash) { echec('identifiants'); return res.status(403).json({ error: 'identifiant ou mot de passe incorrect' }); }
+  // ⛔ Un accès qui n'ouvre pas CETTE application reçoit EXACTEMENT la réponse d'un mauvais mot de passe (même code, même texte, même
+  // décompte d'échecs) : sinon la porte dirait, à qui connaît un identifiant et un mot de passe, quelles applications il ouvre ailleurs.
+  if (!betaApps(c).includes(appVoulue)) { echec('identifiants'); return res.status(403).json({ error: 'identifiant ou mot de passe incorrect' }); }
   if (!c.actif) { echec('accès désactivé'); return res.status(403).json({ error: 'cet accès d\'essai a été coupé depuis la Tour de contrôle' }); }
   c.derniere = Date.now(); betaSave();
   monLock.delete(ident); monLog(ident, true, req, '');
   // `id` : l'identifiant du COMPTE (b + hexadécimaux), jamais réutilisé. OP MESSAGES s'en sert pour reconnaître une
   // personne : un accès supprimé puis recréé sous le même `login` est une autre personne (relecture du gardien, 1er octobre 2026).
-  res.json({ ok: true, login: c.login, nom: c.nom, id: c.id });
+  // `apps` : ce que l'accès ouvre. L'autre service (OP MESSAGES) exige d'y lire SON nom : un OP GESTION d'avant ce champ ne le dit pas, et la porte reste fermée plutôt que d'ouvrir à tout accès.
+  res.json({ ok: true, login: c.login, nom: c.nom, id: c.id, apps: betaApps(c) });
 });
 // Un appareil resté connecté redemande si sa porte est toujours ouverte : « coupé » depuis
 // la Tour doit fermer aussi les sessions déjà ouvertes. Même réponse pour un accès inconnu.
 app.post('/api/beta/etat', (req, res) => {
+  // L'application qui relit (« gestion » par défaut). Un accès à qui on a retiré cette application répond `false`, comme un accès coupé.
+  const appVoulue = (req.body || {}).app === undefined ? 'gestion' : (req.body || {}).app;
+  if (!BETA_APPS.includes(appVoulue)) return res.status(400).json({ error: 'application inconnue' });
+  const ouvert = x => !!(x && x.actif && betaApps(x).includes(appVoulue));
   // Une LISTE d'identifiants de compte (`ids`, 100 au plus) : OP MESSAGES relit tous ses accès ouverts en UNE requête —
   // une par accès dépassait le plafond de 20 par minute de `/api/beta` dès 21 sessions, et un accès coupé gardait la sienne.
   // Un identifiant inconnu (accès supprimé) répond `false`, comme un accès coupé.
   const ids = (req.body || {}).ids;
   if (Array.isArray(ids)) {
     const ouverts = {};
-    for (const id of ids.slice(0, 100)) { if (typeof id === 'string' && /^b[0-9a-f]{6,32}$/.test(id)) ouverts[id] = betaComptes.some(x => x.id === id && x.actif); }
-    return res.json({ ouverts });
+    for (const id of ids.slice(0, 100)) { if (typeof id === 'string' && /^b[0-9a-f]{6,32}$/.test(id)) ouverts[id] = betaComptes.some(x => x.id === id && ouvert(x)); }
+    return res.json({ ouverts, app: appVoulue });   // `app` rendu en écho : un OP GESTION d'avant ne le fait pas, et l'autre service ne coupe ni ne maintient rien sur une réponse qui ne répond pas à SA question
   }
+  // La forme {login} est PUBLIQUE et sans mot de passe (beta.html relit ainsi son propre accès) : elle ne répond que pour
+  // OP GESTION. Lui demander une autre application dirait à n'importe qui si un identifiant ouvre OP MESSAGES — un cran
+  // d'oracle de plus (relevé par `gardien`) ; OP MESSAGES relit par `ids`, qu'on ne devine pas.
+  if (appVoulue !== 'gestion') return res.status(400).json({ error: 'forme ids exigée' });
   const login = monStr((req.body || {}).login, 40).trim().toLowerCase();
   const c = betaComptes.find(x => x.login === login);
-  res.json({ ouvert: !!(c && c.actif) });
+  res.json({ ouvert: ouvert(c) });
 });
 
 /* ── Annuaire des espaces entreprise : « nom d'entreprise » → code de connexion ──
