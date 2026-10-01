@@ -106,12 +106,9 @@ const modifier = async (id, champs) => { const W = monde(base(), admin); const u
     v('contre-épreuve : changer la casse de SON propre nom n’est pas un doublon', [r4.u.prenom, r4.saves], ['karim', 1]); }
 
   console.log('\n── 795 · 4. les autres portes, et ce que l’écran montre ──');
-  { const CA = bloc('async function submitCreateAdmin(e){');
-    const iNom = CA.indexOf("if(!prenom||!nom){ show('Le prénom et le nom sont obligatoires.'); return; }"), iPush = CA.indexOf('db.users.push(admin)');
-    vrai('⛔ le premier administrateur : prénom et nom vérifiés (des espaces passent « required ») AVANT de créer le compte', iNom > 0 && iPush > iNom, [iNom, iPush]);
-    const iHa = CA.indexOf("h=compteHomonyme(prenom,nom,a0?a0.id:'');"), iMsg = CA.indexOf('if(h){ show(homonymeMessage(h,prenom,nom)); return; }');
-    vrai('⛔ … et jamais le nom d’un autre compte (le compte d’administrateur qu’on remplit est écarté), vérifié AVANT de le créer',
-      iHa > iNom && iMsg > iHa && iPush > iMsg && /const a0=db\.users\.find\(u=>u\.role==='admin'\)/.test(CA), [iHa, iMsg, iPush]);
+  { /* Le formulaire « Créez votre compte administrateur » du portail n'existe plus (1er octobre 2026 : plus de code
+       d'accès, l'espace et ses identifiants naissent dans la Tour) — une porte de moins qui crée un compte. */
+    vrai('⛔ le formulaire du portail qui créait le premier administrateur n’existe plus', !/async function submitCreateAdmin\(/.test(SRC), 'submitCreateAdmin');
     const ST = bloc('async function saveTech(e,id){');
     const iH = ST.indexOf('const h=compteHomonyme(ps[0],ps.slice(1).join(\' \'),\'\');'), iT = ST.indexOf('db.techniciens.push({id:tid,...obj});');
     vrai('⛔ la fiche technicien (qui crée un compte) vérifie AVANT de créer (joué par test-786)', iH > 0 && iT > iH, [iH, iT]);

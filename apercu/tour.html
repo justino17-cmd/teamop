@@ -4851,9 +4851,10 @@ async function tourEspaceDe(email,nom,ident,mdp,neuf,origine){
      un espace neuf, et son lien. */
   if(!sp){
     var slug=(nom||'espace').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,20)||'espace';
-    var al='abcdefghjkmnpqrstuvwxyz23456789', k='', i;
-    for(i=0;i<24;i++) k+=al[Math.floor(Math.random()*al.length)];
-    sp={t:slug+'-'+Math.random().toString(36).slice(2,6),k:k,n:nom||'',a:(ident||'admin'),m:(mdp||''),e:email};
+    /* ⛔ LA CLÉ D'UN ESPACE CHIFFRE SES DONNÉES : elle se tire au générateur CRYPTOGRAPHIQUE (`tirageSur`), jamais à
+       Math.random(). Même tirage pour le suffixe de l'identifiant. */
+    var k=tirageSur('abcdefghjkmnpqrstuvwxyz23456789',24);
+    sp={t:slug+'-'+tirageSur('abcdefghijklmnopqrstuvwxyz0123456789',4),k:k,n:nom||'',a:(ident||'admin'),m:(mdp||''),e:email};
     reg[email]=sp; localStorage.setItem('tour_liens',JSON.stringify(reg));
   }
   var code=btoa(unescape(encodeURIComponent(JSON.stringify(sp)))).replace(/=+$/,'');
@@ -4915,13 +4916,15 @@ function tourIdentDefaut(email){
    navigateur n'a pas gardé la trace n'a plus de mot de passe à afficher — et c'est honnête,
    voir `mdpInconnu` dans tourLienEntreprise. Avant, on en affichait un qui était de toute façon
    faux dès que le client avait changé le sien. */
+/* ⛔ UN SECRET SE TIRE AU GÉNÉRATEUR CRYPTOGRAPHIQUE, JAMAIS À Math.random() — prévisible à qui en observe assez de
+   sorties. La clé d'un espace (elle chiffre ses données) et les mots de passe donnés par la Tour (équipe, accès bêta,
+   accès publics) passent tous par ici. Tirage par REJET : 256 n'est pas un multiple de la taille de l'alphabet, un
+   simple modulo favoriserait ses premiers caractères. */
+function tirageSur(al,n){ var o='', b=new Uint8Array(1), lim=256-(256%al.length);
+  while(o.length<n){ crypto.getRandomValues(b); if(b[0]<lim) o+=al[b[0]%al.length]; } return o; }
 function tourMdpDefaut(){
-  var al='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789', m='', i;
-  try{
-    var b=new Uint8Array(10); crypto.getRandomValues(b);
-    for(i=0;i<10;i++) m+=al[b[i]%al.length];
-  }catch(e){ for(i=0;i<10;i++) m+=al[Math.floor(Math.random()*al.length)]; }
-  return 'OP-'+m;
+  /* sans repli sur Math.random() : un navigateur sans générateur cryptographique ne fabrique pas de mot de passe */
+  return 'OP-'+tirageSur('ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789',10);
 }
 function tourPromoEntreprise(nomEnt,btn){
   var inp=document.getElementById('pack-promo'); var code=((inp&&inp.value)||'').trim().toUpperCase();
@@ -8908,8 +8911,7 @@ function blocEspaces(){
 /* ══════════ 6. ÉQUIPE ══════════ */
 function eqChamp(k,v){ EQ[k]=v; }
 function eqGen(){
-  var a='abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!#%',p='';
-  for(var i=0;i<12;i++) p+=a[Math.floor(Math.random()*a.length)];
+  var p=tirageSur('abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!#%',12);
   EQ.pass=p; var e=$('eq-pass'); if(e){ e.value=p; e.type='text'; }
 }
 /* Donner ou retirer une console à un compte : le serveur relit ce droit à chaque requête,
@@ -8956,8 +8958,7 @@ function chargerEssais(){
 }
 function btChamp(k,v){ BT[k]=v; }
 function btGen(){
-  var a='abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!#%',p='';
-  for(var i=0;i<12;i++) p+=a[Math.floor(Math.random()*a.length)];
+  var p=tirageSur('abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!#%',12);
   BT.pass=p; var e=$('bt-pass'); if(e){ e.value=p; e.type='text'; }
 }
 function btAjouter(){
@@ -8977,8 +8978,7 @@ function btSuppr(id,login){ if(!confirm('Supprimer définitivement l’accès b�
   apiPost('/api/monitor/beta/delete',{id:id}).then(function(){ toast('Accès supprimé'); chargerEssais(); }); }
 function pbChamp(k,v){ PB[k]=v; }
 function pbGen(){
-  var a='abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!#%',p='';
-  for(var i=0;i<12;i++) p+=a[Math.floor(Math.random()*a.length)];
+  var p=tirageSur('abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!#%',12);
   PB.pass=p; var e=$('pb-pass'); if(e){ e.value=p; e.type='text'; }
 }
 /* Créer un accès à la version publique, c'est créer un ESPACE d'entreprise : le même chemin

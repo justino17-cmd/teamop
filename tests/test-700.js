@@ -147,7 +147,9 @@ console.log('\n── 700 · l\'écran de connexion, le lien de la Tour, et qui 
   v('tourMdpDefaut est trouvée', !!fn, true);
   v('⛔ elle ne dérive plus du nom du client', /nomFam|charAt\(0\)\.toUpperCase\(\)/.test(fn || ''), false);
   v('⛔ et ne rend plus « !! »', /\+'!!'/.test(fn || ''), false);
-  const tourMdpDefaut = new Function('crypto', fn + '; return tourMdpDefaut;')(require('crypto').webcrypto);
+  const tirage = extraire(TOUR, 'function tirageSur(al,n)');
+  v('⛔ elle passe par le tirage cryptographique, sans repli sur Math.random()', [!!tirage, /tirageSur\(/.test(fn || ''), /Math\.random\(/.test((fn || '').replace(/\/\*[\s\S]*?\*\//g, ''))], [true, true, false]);
+  const tourMdpDefaut = new Function('crypto', tirage + '\n' + fn + '; return tourMdpDefaut;')(require('crypto').webcrypto);
   const tirages = new Set();
   for (let i = 0; i < 200; i++) tirages.add(tourMdpDefaut('x@y.fr'));
   v('⛔ 200 tirages donnent 200 valeurs différentes', tirages.size, 200);

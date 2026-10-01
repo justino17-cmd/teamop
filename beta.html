@@ -11059,15 +11059,10 @@ async function syncInit(){ if(!syncEnabled()){ _syncOn=false; return; } if(_sync
             if(!porte.pinHash&&!porte.sansMdp&&!porte.compteSite) porte.pinHash=await sha256('1234');   // la même porte qu'avant : boot() posait ce code d'office à un compte sans mot de passe
             save(); try{ renderLogin(); }catch(_e){}
           } }catch(_e){}
-          /* Le portail a demandé de créer l'administrateur, et l'équipe est VIDE : le formulaire est la porte. */
-          try{ if(!currentUser && sessionStorage.getItem('elanB_create_admin')==='1') renderCreateAdmin(); }catch(_e){}
           if(currentUser) syncPush(true); return; }   // équipe vide → on amorce avec nos données
         /* L'équipe EXISTE : il n'y a aucune porte à poser. Les clés du lien sont oubliées ici, sinon
            elles attendraient un chargement futur pour renommer un compte qui n'est pas le leur. */
         adminDepartOublier();
-        /* …et le portail qui demandait de créer un administrateur n'a rien à créer : c'est la connexion. */
-        try{ if(sessionStorage.getItem('elanB_create_admin')==='1'){ sessionStorage.removeItem('elanB_create_admin');
-          if(!currentUser){ renderLogin(); toast('Votre entreprise a déjà ses comptes : connectez-vous avec votre identifiant.',8000); } } }catch(_e){}
         if(d.enc&&plain===null){ try{toast('Clé d\'équipe différente — données non lues');}catch(e){} return; }   // chiffré avec une autre clé → ne rien écraser
         /* Plus de « notre base est plus lourde, on garde la nôtre » : la fusion ci-dessous réunit les
            deux, et repousse si la nôtre avait quelque chose que l'équipe n'avait pas. */
@@ -39410,75 +39405,16 @@ async function boot(){
     }
   }catch(e){}
   if(ch) save();
-  if(sessionStorage.getItem('elanB_create_admin')==='1'){
-    /* ⛔ LE FORMULAIRE « CRÉEZ VOTRE COMPTE ADMINISTRATEUR » ATTEND QUE L'ÉQUIPE AIT PARLÉ. Le bouton
-       « 🚀 Activer mon espace » du portail (espace.html) reste dans le fil des messages POUR TOUJOURS.
-       Rejoué au navigateur sur la v756 (26 septembre 2026, `scratchpad/sonde-admin-fantome.js`, cas C) :
-       le retoucher depuis un nouveau téléphone, pour une entreprise qui EXISTE, ouvrait ce formulaire
-       AVANT d'avoir lu l'équipe — la personne y retapait son nom et son identifiant, et un SECOND
-       administrateur « Bruno Folrent @florent-3 » partait chez toute l'équipe. Rattaché et sans compte,
-       on lit donc l'équipe d'abord : vide, le formulaire est la porte ; habitée, c'est la connexion
-       (syncInit, premier instantané). */
-    if(!BETA_ESSAI && espaceRattache() && !(db.users||[]).length && syncEnabled()){
-      renderCreateAdminAttente(); try{ syncInit(); }catch(e){} return; }
-    renderCreateAdmin(); return; }
+  /* ⛔⛔ PLUS DE FORMULAIRE « CRÉEZ VOTRE COMPTE ADMINISTRATEUR » — Justin, 1er octobre 2026 : « il faut supprimer le
+     code d'accès, car c'est à nous de créer leur lien de connexion et leur espace ». Seul le bouton « 🚀 Activer mon
+     espace » du portail (retiré le même jour) posait ce drapeau ; un espace naît désormais dans la Tour, avec ses
+     identifiants de départ, et son lien part par courriel (la porte du lien : `adminDepartAppliquer`). Un drapeau
+     resté dans un onglet ouvert d'avant ne doit plus rien ouvrir : on l'efface. */
+  try{ sessionStorage.removeItem('elanB_create_admin'); }catch(e){}
   const u=db.users.find(x=>x.id===getSession()&&x.actif); if(u){ _cnxVia='session'; enterApp(u); }
   else { try{ if(syncEnabled()) syncInit(); }catch(e){} renderLogin();   // les comptes de l'entreprise arrivent AVANT la connexion (appareil neuf via le lien)
     // on venait de « Mot de passe oublié » avant la bascule d'espace : on rouvre la fenêtre, identifiant et e-mail pré-remplis
     try{ if(localStorage.getItem('elanB_apres_bascule')==='mdp-oublie'){ localStorage.removeItem('elanB_apres_bascule'); setTimeout(pwdForgotModal,500); } }catch(e){} } }
-/* L'attente du premier instantané, quand le portail demande de créer l'administrateur : on ne sait pas
-   encore si l'entreprise est neuve. Sans réseau, on le dit, et on offre de réessayer — personne ne
-   reste devant une attente sans fin. */
-function renderCreateAdminAttente(){ $('app-root').style.display='none'; $('login').style.display='flex';
-  $('login-box').innerHTML=`<img class="login-logo" src="icons/logo-day.png" alt="OP GESTION"><h2>Préparation de votre espace…</h2>
-    <p id="ca-attente" style="color:var(--t3);font-size:14px;margin:6px 0 0">On vérifie si votre entreprise a déjà ses comptes.</p>`;
-  setTimeout(()=>{ try{ if(_syncGotInitial) return; const p=$('ca-attente'); if(!p) return;
-    p.innerHTML='Pas de réponse du serveur : vérifiez la connexion à internet.<br><button class="btn" style="margin-top:12px" onclick="location.reload()">Réessayer</button>'; }catch(e){} },20000);
-}
-/* Premier accès à un nouvel espace entreprise : le client crée son compte administrateur */
-function renderCreateAdmin(){ $('app-root').style.display='none'; $('login').style.display='flex';
-  $('login-box').innerHTML=`<img class="login-logo" src="icons/logo-day.png" alt="OP GESTION"><h2>Bienvenue 👋</h2>
-    <form onsubmit="submitCreateAdmin(event)" autocomplete="off">
-      <div class="login-card">
-        <div class="login-card-title">Créez votre compte administrateur</div>
-        <p style="color:var(--t3);font-size:13px;margin:-4px 0 12px">C'est le compte principal de votre entreprise. Vous pourrez ensuite créer vos employés.</p>
-        <div class="field-row"><div class="field"><label>Prénom</label><input id="ca-prenom" required></div><div class="field"><label>Nom</label><input id="ca-nom" required></div></div>
-        <div class="field"><label>Identifiant de connexion</label><input id="ca-login" required placeholder="ex : admin" autocapitalize="off"></div>
-        <div class="field"><label>Mot de passe (8 caractères minimum)</label><input id="ca-pin" type="password" required minlength="8" placeholder="••••••••" autocomplete="new-password"></div>
-        <div class="field"><label>Confirmer le mot de passe</label><input id="ca-pin2" type="password" required minlength="8" placeholder="••••••••" autocomplete="new-password"></div>
-        <div id="ca-error" class="login-error" style="display:none"></div>
-        <button type="submit" class="btn" style="width:100%;justify-content:center;margin-top:6px">Créer mon compte administrateur</button>
-      </div>
-    </form>`;
-  setTimeout(()=>{ const el=$('ca-prenom'); if(el) el.focus(); },60);
-}
-async function submitCreateAdmin(e){ e.preventDefault();
-  const prenom=$('ca-prenom').value.trim(), nom=$('ca-nom').value.trim(), login=$('ca-login').value.trim().toLowerCase();
-  const pin=$('ca-pin').value.trim(), pin2=$('ca-pin2').value.trim();
-  const err=$('ca-error'); const show=m=>{ if(err){ err.textContent='⚠ '+m; err.style.display='block'; } };
-  if(!prenom||!nom){ show('Le prénom et le nom sont obligatoires.'); return; }   // v742 : des espaces passent « required »
-  { const a0=db.users.find(u=>u.role==='admin'), h=compteHomonyme(prenom,nom,a0?a0.id:'');   // v742 : jamais le nom d'un autre compte
-    if(h){ show(homonymeMessage(h,prenom,nom)); return; } }
-  if(pin.length<8){ show('Le mot de passe doit faire au moins 8 caractères.'); return; }
-  if(pin!==pin2){ show('Les deux mots de passe ne correspondent pas.'); return; }
-  let admin=db.users.find(u=>u.role==='admin');
-  if(!admin){ admin={id:uid(),role:'admin',actif:true}; db.users.push(admin); }
-  /* ⛔ ON NE RÉCLAME PAS DE CHANGER UN MOT DE PASSE QU'ON VIENT DE CHOISIR. Signalé par
-     `relecteur` le 15 septembre 2026, et c'est le défaut classique du travail à moitié fait :
-     `secu` a été posé sur les trois écrans qui CHANGENT un mot de passe, et oublié sur les
-     deux qui en CRÉENT un neuf. Sans cette ligne, la toute première inscription d'une
-     entreprise se voyait répondre, 600 ms après avoir choisi son mot de passe, « Sécurité —
-     active ton accès : choisis un mot de passe DIFFÉRENT ». Ça ne bloquait pas, mais c'était
-     le premier contact d'un client avec le produit.
-     ⚠️ L'e-mail, lui, reste exigé : cet écran ne le demande pas, donc `emailRappelModal`
-     prendra le relais — ce qui est exactement ce qu'on veut. */
-  admin.prenom=prenom; admin.nom=nom; admin.login=login||'admin'; admin.pwdHash=await sha256(pin); delete admin.pinHash; admin.actif=true; admin.secu=SECU_MDP;
-  sessionStorage.removeItem('elanB_create_admin');
-  sessionStorage.setItem('elanB_session',admin.id); localStorage.setItem('elanB_session',admin.id); localStorage.setItem('elanB_savedLogin',admin.login);
-  save();
-  try{ logEvent('Compte administrateur créé',`${prenom} ${nom} (@${admin.login})`,'auth'); }catch(_){}
-  enterApp(admin);
-}
 /* ── Photo de profil : photo perso ou avatar généré sur le fond du logo ELAN ── */
 const ACC_SW={green:'#1E7A4E',blue:'#2563EB',purple:'#7C3AED',orange:'#EA580C',teamop:'#152340',marine:'#152340',opgestion:'#0F4A3A'};
 const ACC_DARK={green:'#0E3B24',blue:'#12306E',purple:'#341B66',orange:'#7C2D0C',teamop:'#0B1426',marine:'#0B1426',opgestion:'#0B3B2E'};

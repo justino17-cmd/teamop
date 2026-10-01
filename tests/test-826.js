@@ -102,7 +102,7 @@ console.log('\n2. La vraie adminDepartAppliquer(), extraite du fichier et jouée
 
 function suite() {
   console.log('\n3. Les deux appelants, et ce que le premier instantané tranche');
-  const boot = tranche('async function boot(){', '\nfunction renderCreateAdmin(');
+  const boot = tranche('async function boot(){', '\nconst ACC_SW=');
   v('boot() est trouvée', boot.length > 1000, true);
   v('boot() passe par adminDepartAppliquer()', /try\{ if\(await adminDepartAppliquer\(\)\) ch=true; \}catch\(e\)\{\}/.test(boot), true);
   /* ⛔ C'était LE défaut : boot() effaçait les clés avant que l'équipe ait parlé. */
@@ -120,21 +120,20 @@ function suite() {
   const fabriques = (CODE.match(/prenom:'OP',nom:'Admin'/g) || []).length;
   v('trois endroits seulement écrivent « OP Admin » : le semis, migrate() hors entreprise, la porte', fabriques, 3);
 
-  /* ⛔ LA MÊME FAMILLE, PAR LE PORTAIL. « 🚀 Activer mon espace » (espace.html) reste dans le fil des
-     messages pour toujours ; le retoucher pour une entreprise qui EXISTE ouvrait « Créez votre compte
-     administrateur » avant d'avoir lu l'équipe — rejoué sur la v756 (sonde, cas C) : un SECOND
-     administrateur « Bruno Folrent @florent-3 » partait chez toute l'équipe. */
-  console.log('\n4. Le portail : le formulaire « Créez votre compte administrateur » attend que l\'équipe ait parlé');
-  v('⛔ boot() : rattaché et sans compte, le formulaire ATTEND (écran d\'attente + synchro), il ne s\'ouvre pas d\'office',
-    /if\(!BETA_ESSAI && espaceRattache\(\) && !\(db\.users\|\|\[\]\)\.length && syncEnabled\(\)\)\{\s*renderCreateAdminAttente\(\); try\{ syncInit\(\); \}catch\(e\)\{\} return; \}\s*renderCreateAdmin\(\); return; \}/.test(boot), true);
-  v('équipe vide : le formulaire est la porte', /try\{ if\(!currentUser && sessionStorage\.getItem\('elan_create_admin'\)==='1'\) renderCreateAdmin\(\); \}catch\(_e\)\{\}/.test(neuf), true);
-  /* ce bloc vit APRÈS le « return » de l'équipe vide et AVANT la lecture chiffrée : dans la tranche */
-  v('⛔ équipe habitée : la demande est oubliée et c\'est la CONNEXION qui s\'ouvre',
-    /adminDepartOublier\(\);[\s\S]{0,200}sessionStorage\.removeItem\('elan_create_admin'\);\s*if\(!currentUser\)\{ renderLogin\(\);/.test(neuf), true);
-  const att = (CODE.match(/function renderCreateAdminAttente\(\)\{[\s\S]*?\n\}/) || [''])[0];
-  v('l\'écran d\'attente existe, et sans réponse il le DIT et propose de réessayer', att.length > 100 && /Réessayer/.test(att) && /_syncGotInitial/.test(att), true);
-  v('la preuve au navigateur (cas C et D de la sonde) existe', fs.existsSync(__dirname + '/../scratchpad/sonde-admin-fantome.js')
-    && /Activer mon espace/.test(fs.readFileSync(__dirname + '/../scratchpad/sonde-admin-fantome.js', 'utf8')), true);
+  /* ⛔⛔ LA MÊME FAMILLE, PAR LE PORTAIL — ET ELLE N'EXISTE PLUS (1er octobre 2026). « 🚀 Activer mon espace »
+     (espace.html) ouvrait « Créez votre compte administrateur » ; rejoué sur la v756 (sonde, cas C), il avait fait naître
+     un SECOND administrateur chez ELAN. Justin : « il faut supprimer le code d'accès, car c'est à nous de créer leur lien
+     de connexion et leur espace ». Le bouton, le drapeau et le formulaire sont retirés : la seule porte d'un espace neuf
+     est celle du lien (la porte ci-dessus), avec les identifiants posés par la Tour. */
+  console.log('\n4. Le portail n\'ouvre plus aucun formulaire « Créez votre compte administrateur »');
+  v('⛔ plus aucune fonction du formulaire dans l\'application',
+    ['function renderCreateAdmin(', 'function renderCreateAdminAttente(', 'function submitCreateAdmin('].filter(f => CODE.includes(f)), []);
+  v('⛔ le drapeau du portail n\'est plus LU nulle part (seulement effacé au démarrage)',
+    [/sessionStorage\.getItem\('elan_create_admin'\)/.test(CODE), /sessionStorage\.removeItem\('elan_create_admin'\)/.test(boot)], [false, true]);
+  v('⛔ ni dans la branche « équipe vide », ni dans « équipe habitée »', /elan_create_admin/.test(neuf), false);
+  const ESP = fs.readFileSync(__dirname + '/../espace.html', 'utf8').replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ');
+  v('⛔ et le portail ne le pose plus : ni activate(), ni provision(), ni genSpace(), ni le bouton',
+    [/function activate\(/.test(ESP), /function provision\(/.test(ESP), /function genSpace\(/.test(ESP), /onclick="activate\(/.test(ESP), /elan_create_admin/.test(ESP)], [false, false, false, false, false]);
   fin();
 }
 function fin() { console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(ko ? 1 : 0); }
