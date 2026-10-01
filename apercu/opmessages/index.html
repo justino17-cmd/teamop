@@ -1070,9 +1070,9 @@ button.photo:active { transform: scale(.97); }
     const r = $('conv-annonce'); r.textContent = '';
     setTimeout(() => { r.textContent = nomAuteur(m.auteur) + ' : ' + corps; }, 60);
   }
-  $('conv-retour').addEventListener('click', () => { if (!retap()) fermerCouche(); });
+  $('conv-retour').addEventListener('click', fermerCouche);        // ⛔ pas de garde ici : « Retour » est en haut à gauche, rien de ce que la garde protège n'a jamais été là — la garder avalait un « Retour » tapé juste après un envoi
   $('conv-cam').addEventListener('click', () => { if (!retap()) pousser({ vue: 'appels', conv: null, feuille: false, photo: null }); });
-  $('conv-titre').addEventListener('click', () => retap() || mot('Les infos du ' + (etat.convDonnees && etat.convDonnees.type === 'groupe' ? 'groupe' : 'contact') + ' arrivent bientôt'));
+  $('conv-titre').addEventListener('click', () => mot('Les infos du ' + (etat.convDonnees && etat.convDonnees.type === 'groupe' ? 'groupe' : 'contact') + ' arrivent bientôt'));
 
   /* ── la saisie : un VRAI champ, qui grandit jusqu'à 5 lignes ── */
   function ajusterSaisie() {
@@ -1120,7 +1120,7 @@ button.photo:active { transform: scale(.97); }
   });
   /* un second toucher qui suit de près le premier tombe sur ce que le premier a LAISSÉ à sa place : la flèche d'envoi disparue, c'est le micro qui reçoit le
      toucher (et démarre une prise de son) ; la croix de la photo fermée, c'est la caméra. Pendant 400 ms après un geste qui change ce qu'il y a sous le doigt,
-     ces commandes ne répondent pas (mesuré : double toucher sur la flèche → enregistrement lancé, sur iPhone, Android et au bureau). */
+     les commandes qui prennent SA place (micro, « + », caméra) ne répondent pas (mesuré : double toucher sur la flèche → enregistrement lancé, sur iPhone, Android et au bureau). */
   let retapJusqua = 0;
   const armerRetap = () => { retapJusqua = Date.now() + 400; };
   const retap = () => Date.now() < retapJusqua;
@@ -1174,7 +1174,7 @@ button.photo:active { transform: scale(.97); }
     if (!b) throw new Error('illisible');
     return { blob: b, w, h };
   }
-  $('compo-plus').addEventListener('click', () => $('compo-fichier').click());
+  $('compo-plus').addEventListener('click', () => { if (!retap()) $('compo-fichier').click(); });          // la corbeille de la barre d'enregistrement est juste là, au même endroit
   $('compo-fichier').addEventListener('change', async e => {
     const fichiers = Array.from(e.target.files || []).slice(0, 10); e.target.value = '';
     const id = etat.conv; if (!id || !fichiers.length) return;
