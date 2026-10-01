@@ -11,6 +11,35 @@ connues, et ce qui attend une décision de Justin.
 Tenu à jour à chaque fois qu'un chantier change d'état. Une ligne fausse ici est pire que pas
 de ligne du tout.
 
+# ⏳ 1er OCTOBRE 2026, JOUR — TROIS CHANTIERS OUVERTS PAR JUSTIN
+
+**1. Les options à la carte du Pro** (« les forfaits 15 € 25 € 50 € bien détaillés par option qu'ils ont de base, mais
+modulables en ajoutant des catégories ; ça augmente un peu le prix ; un bon rapport qualité prix pour pas qu'on perde
+d'argent »). Prix choisis par Justin (question « Plus cher ») : options du Pro **par utilisateur et par mois** — Stock
+(box comprises pour la 3D) **+9 €**, Achats fournisseurs **+6 €**, Encaissements et compta **+6 €**, Registre sanitaire
+(3D) **+6 €** ; à l'année 10 mois. Business (25 €) et Business Premium (50 €) ont toutes les catégories. Pro + 2 options
+≥ 27 € > Business : les entreprises 3D restent sur Business. Le contrat entre les pièces : `scratchpad/SPEC-OPTIONS.md`
+(clé `sanitaire`, jamais `registre`). Cinq pièces en construction en parallèle (serveur, application bêta v768, page de
+paiement, Tour, site en aperçu), chacune dans son arbre de travail — à fusionner, éprouver ensemble, relire.
+⛔ Ordre de mise en vente : l'application qui OUVRE l'option publiée et exigée → les tarifs Stripe des options créés
+par Justin (`server/stripe-options.js`, à lancer sur le VPS) → serveur et page de paiement → site. Avant, l'option se
+paierait et n'ouvrirait rien.
+
+**2. Plus de code d'accès** (« c'est à nous de créer leur lien de connexion et leur espace »). Le serveur ne créait plus
+rien depuis le 28 septembre ; restaient le bouton « 🚀 Activer mon espace » et `activate()`/`provision()` du portail,
+`access` dans les fils (`server/portail.js`), le formulaire « Créez votre compte administrateur » de l'application, et
+la clé d'un espace neuf tirée par `Math.random()` dans la Tour. Tout retiré ou corrigé (cf0a9aa, 9014b4f, ab7c609 :
+Tour v2.79) ; **mise en service demandée par Justin** (« Oui, mets-le en service ») — en cours. La partie de
+l'application (le formulaire) reste en bêta jusqu'à la prochaine publication d'`app.html`. Reste, sans urgence : le
+registre `acces.json` côté serveur (ses deux routes répondent 410, ses codes n'ouvrent rien).
+
+**3. OP MESSAGES — le paquet de design de Justin** (thème jour/nuit, groupes façon WhatsApp, appels de groupe, agenda,
+réunions façon Zoom ; `design/opmessages/`, ordre en 5 étapes, « montre-moi mobile et bureau, jour et nuit, à chaque
+étape »). ⛔ Justin, même jour, à « même compte qu'OP GESTION ou serveur à part ? » : **« tout et séparé »** — la décision
+du 22 septembre tient : OP MESSAGES aura son propre serveur et ses comptes de personnes. Les écrans se construisent dans
+une page d'aperçu à part (`apercu/opmessages/`, données d'exemple, aucun appel réseau) ; rien ne touche `messages.html`.
+Étape 1 (liste Messages + groupes) en construction.
+
 ---
 
 # ✅ 1er OCTOBRE 2026, NUIT — TOUT EST EN SERVICE : SERVEUR, TOUR v2.78, BÊTA v767 (`4bfd3b4`) PUIS APPLICATION v767 (`acbfbc8`)
