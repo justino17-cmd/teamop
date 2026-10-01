@@ -44,7 +44,7 @@ composeur (textarea >= 16 px), photo réduite par canvas, vocal MediaRecorder r�
 MODULE SÉPARÉ (`apercu/opmessages/source.js` : `lister/ouvrir/envoyer/marquerLu/ecouter`) — le jour du serveur à part, on le remplace par un
 module qui parle à ce serveur, rien d'autre ne change. Gardée par `tests/test-856.js`, `test-857.js` (module et `esc` exécutés), la sonde
 `tests/sonde-opmessages.js` (vrais gestes, 12 parcours = 6 appareils × jour/nuit, mouvement et transparence réduits, 2 560 px, micro refusé/absent) et ses mutations
-(`tests/mutations-opmessages.js`, 74 : séries M, S et C). Sonde complète sur le code final : **1 930 ✓ 0 ✗**, 12 parcours (94 à 145 textes lus au pixel chacun), code 0, 1 393 s.
+(`tests/mutations-opmessages.js`, 75 : séries M, S et C). Sonde complète sur le code final : **1 930 ✓ 0 ✗**, 12 parcours (94 à 145 textes lus au pixel chacun), code 0, 1 393 s.
 **Relecture et testeur adverse de l'étape 2 (1er octobre 2026) — tout rejoué, tout corrigé, chaque correctif a son scénario de sonde ET sa mutation (série C)** :
 un vocal commencé dans une conversation partait dans l'autre au bureau (`ouvrirConv` ne coupait pas la prise ; le vocal part aussi vers la conversation où il a
 COMMENCÉ) ; un double toucher sur la flèche d'envoi lançait une prise de son (même piège sur l'envoi d'un vocal et sur la croix de la photo : garde de 400 ms) ;
