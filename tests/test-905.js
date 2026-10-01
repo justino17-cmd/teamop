@@ -72,6 +72,16 @@ const MATRICE = {
   'msg.modifier':       { ok: (F, a) => ['POST', '/api/conversations/' + F.G + '/messages/modifier', { seq: F.seqDe(a), texte: 'modifié' }], codes: [200] },
   'msg.supprimer':      { ok: (F, a) => ['POST', '/api/conversations/' + F.G + '/messages/supprimer', { seq: F.seqDe(a), pour: 'tous' }], codes: [200] },
   'msg.reagir':         { ok: (F) => ['POST', '/api/conversations/' + F.G + '/messages/reagir', { seq: 1, emoji: '👍' }], codes: [200] },
+  /* Le téléphone (étape 2). Les trois routes PUBLIQUES passent la garde pour tout le monde : `tel.code` avec un numéro belge NEUF à chaque
+     cellule (un plafond « 1 par 60 s par numéro » refuserait la deuxième sinon), `tel.verifier` avec un code que personne n'a demandé — la
+     réponse d'une garde P qui a passé est le 401 uniforme `code_invalide`, et `tel.appareil` sans jeton d'appareil le 401 `appareil_inconnu`. */
+  'tel.code':           { ok: () => ['POST', '/api/tel/code', { numero: '+3247' + String(crypto.randomInt(1000000, 9999999)) }], codes: [200] },
+  'tel.verifier':       { ok: () => ['POST', '/api/tel/verifier', { numero: '+32470123456', code: '000000' }], codes: [401] },
+  'tel.appareil':       { ok: () => ['POST', '/api/tel/appareil', {}], codes: [401] },
+  'moi.confidentialite.lire': { ok: () => ['GET', '/api/moi/confidentialite'], codes: [200] },
+  'moi.confidentialite': { ok: () => ['POST', '/api/moi/confidentialite', { trouvable: 'tous' }], codes: [200] },
+  'contacts.chercher':  { ok: () => ['POST', '/api/contacts/chercher', { numero: '+32470999888' }], codes: [200] },
+  'contacts.ajouter':   { ok: (F) => ['POST', '/api/contacts/ajouter', { id: F.A }], codes: [400, 404] },   // sans recherche préalable, ou son propre identifiant : la garde V a passé, le geste dit non
 };
 
 /* Ce que chaque garde doit répondre à chaque profil : { code, error } ou 'passe'. */

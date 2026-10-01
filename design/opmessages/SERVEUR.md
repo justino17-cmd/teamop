@@ -182,6 +182,9 @@ Codes communs : 400 `champ_invalide`, 401 `session_requise`, 402 `formule_requis
 - `GET /api/flux` (S, SSE) ; `GET /api/sync?depuis=<gid>` (S, reprise après `resync`).
 
 **Comptes** (étape 2 pour les comptes publics ; l'étape 1 ne livre que la porte bêta)
+- ⛔ **Le compte PERSO se crée et se connecte par NUMÉRO DE TÉLÉPHONE** (décision de Justin, 1er octobre 2026 ; livré côté serveur le 2 octobre, `telephone.js`) — voir l'étape 2 plus bas :
+  `POST /api/tel/code {numero}` (P), `POST /api/tel/verifier {numero, code, prenom?, nom?, appareil?}` (P), `POST /api/tel/appareil` (P, sans SMS), `GET|POST /api/moi/confidentialite` (S), `POST /api/contacts/chercher {numero}` (V), `POST /api/contacts/ajouter {id}` (V).
+- *Les routes par courriel ci-dessous sont l'ancienne conception du compte public ; elles ne sont plus bâties pour le Perso (le Pro entre par un lien de connexion créé par TEAM OP, étape 5).*
 - `POST /api/compte/creer {email, mdp, prenom, nom, age15, cgu}` (P). Répond `{ok:true}` toujours. Un compte existant reçoit un courriel d'avis.
 - `/api/compte/verifier {jeton}` (P) ; `/api/compte/renvoyer` (S).
 - `/api/compte/connexion {email, mdp, appareil}` (P) : 401 `identifiants`, 403 `adresse_non_confirmee` seulement après un mot de passe juste.
@@ -195,7 +198,7 @@ Codes communs : 400 `champ_invalide`, 401 `session_requise`, 402 `formule_requis
 - `GET /api/contacts` ; `/api/contacts/lien {max, jours}` (V) ; `/api/liens/lire {code}` (S, aperçu, n'accepte rien) ; `/api/liens/accepter {code}` (V).
 - `/api/contacts/retirer`, `/bloquer`, `/debloquer` (un blocage coupe messages, appels et présence).
 - `GET /api/personnes/:id` (V, 404 hors contact, espace ou conversation commune) ; `/api/signalements {cible, motif, messages?}` (V).
-- **Pas d'annuaire ni de recherche d'inconnu.** On trouve quelqu'un par lien, par QR, par courriel d'invitation à gabarit fixe, ou par espace commun.
+- **Pas d'annuaire, pas de liste, pas de recherche par nom.** On trouve quelqu'un par lien, par QR, par espace commun — et, depuis le 1er octobre 2026 (décision de Justin, « comme WhatsApp »), par son NUMÉRO EXACT : `POST /api/contacts/chercher`. ⛔ Ce n'est un annuaire que si on le laisse en être un : 30 recherches par jour et par compte (10 pour un compte de moins de 24 h, 5 par minute, plafond durable en base), même latence que le numéro existe ou non, même réponse neutre pour « pas de compte », « il m'a bloqué », « il ne veut pas être trouvé » et « c'est moi », et un réglage « qui peut me trouver par mon numéro » (tous | personne). Voir l'étape 2.
 
 **Conversations et groupes**
 - `GET /api/conversations` (S : dernier message, non-lus, épinglé, sourdine).
@@ -429,14 +432,76 @@ Aucune étape ne touche `app.html`, `beta.html`, `sw.js` ni `server/`.
 ### Étape 2 : comptes publics et push
 
 > ⛔ **Décision de Justin, 1er octobre 2026 au soir** : « les liens de connexion c'est que pour le côté pro ; pour l'utilisateur
-> classique c'est avec leur numéro de téléphone ». Le compte PERSO naît et se connecte par NUMÉRO DE TÉLÉPHONE (code SMS à usage
-> unique, plafonné par numéro et par adresse, jamais affiché dans les journaux) ; l'inscription par courriel ci-dessous est
-> remplacée pour le Perso. Le PRO entre par un lien de connexion créé par TEAM OP. Un SMS est un service tiers payant : prestataire,
-> coût par SMS et sous-traitance à fixer avec Justin avant d'écrire le code.
+> classique c'est avec leur numéro de téléphone » ; les contacts se retrouvent par numéro « comme WhatsApp » ; prestataire SMS :
+> **OVHcloud** (« go ») ; « je veux une connexion pour TOUS les pays, je veux voir plus que WhatsApp » ; et surtout « **le but c'est
+> qu'on gagne de l'argent** » : le Perso est gratuit, donc **chaque SMS est un coût**, et il ne doit exister AUCUNE possibilité de nous
+> faire payer des SMS en masse. L'inscription par courriel d'origine est remplacée pour le Perso. **Le PRO n'est pas construit ici** :
+> il entre par un **lien de connexion créé par TEAM OP** (étape 5, espaces Pro) — les liens de connexion ne sont pas pour le Perso.
 
-- **Contenu** : inscription par courriel, vérification, mot de passe oublié, sessions et appareils, changement d'adresse, export et suppression, notifications push (paire VAPID propre, portée de service worker propre), réglages.
-- **Justin teste** : il s'inscrit avec une vraie adresse derrière la porte, reçoit le courriel, récupère un mot de passe, voit ses appareils. Il reçoit un push sur son téléphone.
-- **Gestes de Justin** : adresse d'envoi dédiée (SPF, DKIM, DMARC) avec identifiants en saisie masquée ; sur iPhone, « Ajouter à l'écran d'accueil » sinon pas de push.
+#### 2.1 Ce qui est FAIT, côté serveur seulement (2 octobre 2026 — `server-msg/telephone.js`, `numero.js`, `sms-garde.js`, `sms-ovh.js`, `sms-prix.js`, `configurer-sms.js`)
+
+| route | garde | ce qu'elle fait |
+|---|---|---|
+| `POST /api/tel/code {numero}` | P | envoie UN code à 6 chiffres par SMS — ou, sur un appareil déjà vérifié pour ce numéro, **reconnecte sans SMS** |
+| `POST /api/tel/verifier {numero, code, prenom?, nom?, appareil?}` | P | prouve le code : crée le compte (origine `telephone`) ou connecte ; pose la session ET le jeton d'appareil |
+| `POST /api/tel/appareil` | P | se reconnecte avec le seul jeton d'appareil (cookie `__Host-opma`) : **aucun SMS** |
+| `POST /api/contacts/chercher {numero}` | V | `{trouve:true, id, prenom, deja_contact, ajout_possible}` ou `{trouve:false}` — la même réponse neutre dans tous les autres cas |
+| `POST /api/contacts/ajouter {id}` | V | n'ajoute qu'une personne qu'on vient de trouver (10 min), revérifiée à l'ajout (réglage, blocage) ; la prévient |
+| `GET\|POST /api/moi/confidentialite {trouvable}` | S | « qui peut me trouver par mon numéro » : `tous` (défaut) \| `personne` |
+
+**Identité** : le numéro est normalisé en E.164 (`numero.js`, fait main), **haché** (HMAC par la clé maître) pour l'unicité, et **scellé au repos** comme une adresse (`tel:+…` dans `personne.email_ch`). Il n'est **jamais** rendu : ni par `/api/moi`, ni par la recherche, ni par une notification, ni dans un journal, ni dans `/health`. Le code est tiré par `crypto.randomInt`, rangé **haché**, vit 10 minutes, 5 essais **comptés avant d'être jugés**, usage unique, comparaison à temps constant, et le même travail est fait que le numéro ait un code en attente ou non.
+
+**Des réponses uniformes** : `/api/tel/code` répond pareil pour un numéro avec compte et sans (un SMS part dans les deux cas) ; `/api/tel/verifier` répond `401 code_invalide` octet pour octet pour un code faux, périmé, déjà utilisé, un numéro sans compte ou sans code demandé. On ne dit jamais « ce numéro a un compte » avant la preuve du code.
+
+#### 2.2 ⛔ MOINS DE SMS (chaque SMS coûte)
+
+- **Un SMS à l'inscription et sur un NOUVEL appareil, jamais à chaque connexion.** Session de **90 jours glissants** (renouvelée à l'usage, une écriture par heure au plus) ; un appareil déjà vérifié porte un **jeton d'appareil** (`opd_…`, cookie `HttpOnly`/`Strict`/`__Host-`, **haché** en base, 180 jours glissants, 10 appareils par personne) qui le reconnecte **sans SMS**, même session perdue. « Se déconnecter » coupe aussi le jeton d'appareil (sinon la déconnexion se déferait au prochain lancement).
+- Renvoi du code : **pas avant 60 s** (`Retry-After` vrai). Un envoi dont OVH refuse le numéro rend ses plafonds ; un envoi dont l'issue est incertaine les garde.
+- **Proposé à Justin — la connexion par clé d'accès (passkey, WebAuthn : Face ID / empreinte)** : après la première inscription par SMS, le téléphone enregistre une clé d'accès ; les connexions suivantes et les nouveaux appareils de la même personne (synchronisation iCloud / Google) n'ont plus besoin d'aucun SMS. C'est le gain le plus net sur le coût ET sur la fraude (un robot ne déclenche rien). Elle demande une page (`navigator.credentials`), deux routes (`/api/passkey/enregistrer`, `/api/passkey/connexion`), le stockage de la clé publique, la vérification de signature (fait main avec `crypto`, comme tout le reste), et un SMS de secours pour le jour où la clé est perdue. **Étape suivante, non construite, à décider.**
+
+#### 2.3 ⛔ ANTI-FRAUDE ET PLAFONDS — « une connexion pour TOUS les pays » : on ne protège pas par le OÙ mais par le COMBIEN
+
+Aucune liste blanche de pays : tout numéro **mobile** valide du monde peut s'inscrire. Un SMS international coûte de 2 centimes à plus de 80 centimes (grille d'OVH), et la fraude au « SMS pumping » (des robots qui déclenchent des SMS vers des destinations chères ou surtaxées, dont le prix se partage avec le fraudeur) vise justement les pays chers. Les défenses, **dans l'ordre où une demande les traverse** :
+
+1. **Le plan de numérotation** (`numero.js`) : seuls les **mobiles ordinaires** reçoivent un SMS. France : 06 et 07 seulement (le 08 est surtaxé ou spécial, le 09 est la voix sur IP, 01 à 05 sont fixes) ; ni fixe, ni surtaxé, ni « premium », ni satellite (+870 à +883), ni gratuit mondial (+800, +808), ni communications personnelles ; les plages surtaxées nord-américaines (900, 976…) ; plus la liste de configuration `sms.interdits` (plages connues pour la fraude). Un numéro mal formé ou non mobile → **400, aucun SMS, aucun coût**. ⚠️ *Plusieurs pays ne distinguent pas mobile et fixe dans ce tableau (Amérique du Nord, Danemark, Mexique, petits pays) : un fixe de ceux-là peut recevoir une tentative, que le budget borne.*
+2. **Le bouclier d'un pays en emballement** : si un pays dépasse son plancher (`emballement.plancher`, 30 SMS par heure) **et** ×5 sa moyenne horaire des 7 derniers jours, **CE pays-là et lui seul** passe automatiquement en bouclier pour 6 h : une **preuve de travail faite main** (SHA-256, 18 bits ≈ 0,3 s de calcul sur un téléphone) **et** un délai (5 s) avant tout nouveau SMS (`428 defi_requis`). La preuve est signée, liée au numéro et au pays, à usage unique, valable 10 minutes. `sms.bouclier.pays` force un pays d'avance ; `sms.bouclier.global` est l'interrupteur d'urgence (tous les pays).
+3. **Les plafonds** (chacun avec un `Retry-After` vrai, un refus rendant ceux déjà pris) : par **réseau** (/24 en IPv4, /64 en IPv6 : 10 par heure), par **appareil** (5 par jour), par **numéro** (1 par 60 s, 5 par jour).
+4. **Le BUDGET EN EUROS**, réservé dans une transaction **avant** l'envoi (deux requêtes simultanées ne franchissent pas le budget ensemble), sur le journal **durable** `sms_envoi` (un redémarrage ne remet pas le budget à zéro), en fenêtres **glissantes** (24 h, 1 h — minuit n'est pas un moment où l'on peut recommencer) : `sms.budgetJour` (**20 €**), `sms.budgetHeure` (5 €), `sms.budgetPaysJour` (**3 €**), `sms.budgetPaysHeure` (1,5 €), surcharge par pays `sms.budgetPays.{BE:{jour,heure}}`. Au-delà : **503 `sms_indisponible`** (`portee: global|pays`), dit à l'écran, compté par motif dans `/health`. Le coût compté est le **coût RÉEL** d'OVH (`totalCreditsRemoved`) quand il est connu, sinon l'estimation de la **table de prix par pays** (`sms-prix.js` : 207 destinations relevées sur la grille publique d'OVH le 1er octobre 2026, 1 crédit = 0,06 €, marge de 25 %, **un pays absent coûte le pire connu : 1,05 €**) ; un envoi **incertain** (délai, 5xx) **garde son coût** (on suppose le pire), seul un refus franc le rend.
+5. **L'enveloppe maximale** : au pire, **20 € par jour, soit 600 € par mois** — quoi que fasse un attaquant. Et un seul pays coûte au plus 3 € par jour.
+
+⚠️ **Ce que les valeurs par défaut coûtent en inscriptions** : un SMS belge coûte 0,10 € estimé, donc 3 € par jour et par pays laissent passer ~30 SMS belges, ~40 français, ~17 allemands, **mais seulement 2 russes** (1,05 €) et 4 indonésiens. Pour un pays où l'on veut de vraies inscriptions (l'Inde, le Brésil, l'Algérie…), **Justin relève `sms.budgetPays.<PAYS>.jour`** en connaissance du prix. Voir `INSTALLER-LE-SERVEUR.md` § « SMS ».
+
+**Surveillance** : `/health` publie `sms.{mode, envoyes24h, coutJourEur, budgetJourPct, budgetHeurePct, boucliers, ovhEchecs, refus}` — des **nombres**, jamais un numéro, jamais un pays par numéro. `.github/scripts/surveillance-messages.js` crie : mode autre qu'`ovh` en production, plus de 12 € dépensés en 24 h, 80 % d'un budget, un bouclier actif, 3 échecs d'OVH de suite, un refus « budget_… ». (Non branchée sur un workflow : le DNS de `msg-beta` n'existe pas encore.)
+
+#### 2.4 L'envoi par OVHcloud (`sms-ovh.js`, fait main, aucune bibliothèque)
+
+`POST /sms/{serviceName}/jobs` `{message, sender, receivers:[numéro], noStopClause:true, priority:'high', validityPeriod:15}` ; signature **« $1$ » + SHA-1** de `secretApplication + clé consommateur + méthode + URL complète + corps + horodatage`, jointes par « + » ; l'horodatage est celui du **serveur d'OVH** (`GET /auth/time`), pas le nôtre. Message : « Votre code OP MESSAGES : 123456 », plus, si `sms.domaine` est posé, la ligne `@domaine #123456` que Chrome et Safari savent remplir tout seuls. Identifiants dans la configuration (`sms.ovh.{appKey, appSecret, consumerKey, serviceName, expediteur}`), posés par `configurer-sms.js` en **saisie masquée** et **éprouvés avant d'être écrits** (un appel signé qui ne coûte rien). Sans identifiants : en **bêta**, mode « journal » (aucun SMS ; le code n'est **jamais** écrit en clair dans un journal) ; en **production**, **503 `sms_indisponible`**. En production, la base d'API ne peut être que l'un des trois points d'entrée d'OVH (Europe, Canada, États-Unis) : nos clés de signature ne partent pas ailleurs.
+
+⚠️ **NON VÉRIFIÉ — l'envoi réel.** Ce dépôt n'a pas de compte OVH : le banc (`test-913`) joue un FAUX OVH qui recalcule la signature de son côté, ce qui prouve que le module signe comme la documentation publique le décrit, **pas qu'OVH l'accepte**. Restent à constater par Justin : un SMS qui arrive vraiment, l'expéditeur alphanumérique accepté (certains pays — États-Unis, Canada, Inde — exigent un expéditeur enregistré ou le réécrivent), l'envoi international activé sur le compte, le prix réel par pays.
+
+**Le code par APPEL VOCAL quand le SMS n'arrive pas** (« plus que WhatsApp », sans payer plus) : **non construit, et je ne sais pas si OVH le permet** pour un code à usage unique — OVHcloud vend aussi de la téléphonie, mais je n'ai pas pu vérifier qu'elle appelle un numéro étranger avec une voix de synthèse pour un code à usage unique, ni à quel prix. **Étape suivante proposée** : demander à OVH (ou à un autre prestataire vocal) le prix d'un appel sortant par pays ; un appel coûte bien plus qu'un SMS, donc il passerait par le même budget en euros, après un SMS non reçu et jamais sans lui. D'ici là, l'écran dit « pas reçu ? renvoyer dans 60 s », et l'appareil connu n'a besoin de rien.
+
+#### 2.5 Contacts par numéro (« comme WhatsApp », sans annuaire)
+
+Voir les routes ci-dessus. Plafond durable par compte et par jour **compté avant de savoir si le numéro existe** ; même latence plancher (`sms.rechercheLatenceMs`, 150 ms) que le numéro existe ou non ; un compte de moins de 24 h a un tiers des plafonds (recherches ET ajouts) ; `ajouter` ne marche que sur une personne qu'on **vient de trouver** (10 minutes, mémoire bornée) et se **revérifie** au moment de l'ajout. Une personne qui se règle sur `personne` n'est trouvée par personne ; un blocage la rend invisible à celui qu'elle a bloqué.
+
+#### 2.6 Stockage (migration 2) et configuration
+
+`personne` est **reconstruite** (SQLite ne change pas un `CHECK` en place) : `origine` accepte `telephone`, `trouvable` s'ajoute ; copie `.avant-v2` gardée ; clés étrangères coupées hors transaction puis contrôlées (`foreign_key_check`). Tables neuves : `code_tel` (haché), `appareil_tel` (haché), `sms_envoi` (**date, pays, coût — jamais un numéro**), `sms_bouclier`, `recherche_tel`. Configuration `sms.*` **validée au démarrage** (un budget négatif, des identifiants à moitié posés, une base d'OVH étrangère en production refusent le démarrage). La porte de test des codes (`OPMSG_TEST_CODES`, un fichier où le service écrit le code en clair pour les bancs) est **refusée au démarrage en production**.
+
+#### 2.7 Ce que ce chantier n'a PAS fait (étape 2, suite)
+
+- **L'interface** (`server-msg/public/` : écran d'inscription par numéro, sélecteur de pays, champ du code, « pas reçu ? ») : une autre équipe la branche ; elle appelle ces routes et lit `Retry-After`, `error` et `portee`.
+- **Les notifications push, l'export, la suppression de compte** : la suppression devra effacer `appareil_tel` (`telAppareilsSupprimerPersonne` existe, la cascade aussi) et, **pour un numéro réattribué par l'opérateur, ne jamais reconnecter l'ancien compte sur le seul numéro** sans nouveau code.
+- **Le changement de numéro** (un nouveau code vers le nouveau numéro ET une preuve de l'ancien appareil) ; **les clés d'accès** (§ 2.2) ; **l'appel vocal** (§ 2.4) ; **le PRO** par lien de connexion créé par TEAM OP (étape 5).
+- **Les textes légaux** : un numéro de téléphone est une donnée personnelle ; OVHcloud devient un sous-traitant (`sous-traitance.html`, registre des traitements) avant l'ouverture au public.
+- **La relecture adverse de l'agent `gardien`** sur ce chantier (ce que j'ai écrit s'éprouve par 7 suites et 30 mutations, pas par un regard extérieur).
+
+**Bancs** : `test-912` (plan de numérotation et prix), `913` (envoi OVH contre un faux qui vérifie la signature), `914` (inscription, session 90 jours glissants, nouvel appareil, reconnexion sans SMS, uniformité, canaris), `915` (plafonds, budgets, emballement, bouclier), `916` (garde et migration, modules seuls), `917` (recherche par numéro, anti-énumération), `918` (`configurer-sms.js`, surveillance, gardes de code). Mutations : `node tests/mutations-telephone.js`.
+
+- **Contenu** (reste de l'étape) : réglages, notifications push (paire VAPID propre, portée de service worker propre).
+- **Justin teste** : il s'inscrit avec son numéro derrière la porte, reçoit le SMS, se déconnecte et se reconnecte sans SMS, retrouve un collègue par son numéro. Il reçoit un push sur son téléphone.
+- **Gestes de Justin** : un compte SMS OVHcloud, l'envoi international activé, des crédits, une clé d'API aux droits minimaux posée en saisie masquée (`INSTALLER-LE-SERVEUR.md` § « SMS ») ; sur iPhone, « Ajouter à l'écran d'accueil » sinon pas de push.
 
 ### Étape 3 : sauvegarde hors site et exercice de restauration
 
@@ -496,7 +561,9 @@ Aucune étape ne touche `app.html`, `beta.html`, `sw.js` ni `server/`.
 2. **Proxy devant `api.teamop.fr`** : nginx ou Caddy. Une commande à coller. `REPRISE.md` dit nginx.
 3. **Périmètre gratuit et payant** : *je recommande* groupes de texte, appels et vidéo à 2 gratuits en Perso ; canaux, espace, réunions programmées, appels de groupe et partage d'écran pour l'hôte Pro ; rejoindre toujours gratuit.
 4. **Pas de chiffrement de bout en bout annoncé** : chiffré en transit et au repos seulement. *Recommandé*, le site ne doit rien promettre d'autre.
-5. **Âge minimal 15 ans et pas d'annuaire** (on ne trouve quelqu'un que par lien, QR ou espace commun) : *recommandé* pour un service tout public.
+5. **Âge minimal 15 ans et pas d'annuaire** : *recommandé* pour un service tout public. ✅ Tranché le 1er octobre 2026 pour la recherche : par **numéro exact seulement** (« comme WhatsApp »), plafonnée, jamais de liste ni de recherche par nom (§ 2.5).
+5 bis. **Clés d'accès (passkey, WebAuthn) et appel vocal** (§ 2.2 et 2.4) : deux gains sur le coût des SMS et l'accueil des gens dont le SMS n'arrive pas — *la clé d'accès recommandée*, l'appel vocal seulement si un prix par pays est connu.
+5 ter. **Les budgets SMS par pays** (20 €/jour, 3 €/jour/pays par défaut) : à relever pays par pays selon où les gens s'inscrivent vraiment (§ 2.3).
 6. **Quotas de stockage et tailles de pièces** : *je propose* photo 12 Mo, vocal 10 Mo, fichier 25 Mo en Perso et 100 Mo en Pro, 2 Go par personne en Perso et 20 Go par siège en Pro.
 7. **Palier « Business Premium 25 € » et « inclus avec le Business Premium d'OP GESTION »** (`tarifs.html`) : avec des comptes séparés, la liaison n'existe pas. *Recommandé* : retirer la phrase, ou un geste « cadeau » explicite plus tard, jamais une lecture continue d'OP GESTION.
 8. **Données existantes dans Firebase** : y a-t-il de vraies conversations à conserver ? Aucune migration n'est prévue. *Recommandé* : non, sauf si tu me dis qu'il y en a.
@@ -515,6 +582,8 @@ Aucune étape ne touche `app.html`, `beta.html`, `sw.js` ni `server/`.
 - Le coût de `synchronous=FULL` sur le disque du VPS (à mesurer à l'étape 1).
 - Le sens exact des deux prix `msgpro` (mensuel, annuel ou par place).
 - L'état des données Firebase d'OP MESSAGES.
+- **L'envoi réel de SMS par OVHcloud** (signature acceptée, expéditeur alphanumérique, envoi international, prix réel par pays) : le banc joue un faux OVH ; un SMS reçu sur un vrai téléphone est la preuve (§ 2.4). La table de prix (`sms-prix.js`) est une estimation relevée sur la grille publique, sans Porto Rico ni la République dominicaine (facturés au pire).
+- **Les plages mobiles de `numero.js`** : écrites d'après le plan de numérotation tel qu'on le connaît, à relire (une plage manquante REFUSERAIT un vrai mobile ; un pays « non vérifiable » accepte un fixe, que le budget borne).
 
 Fichiers de référence lus : `/home/user/teamop/server/install.sh`, `/home/user/teamop/server/index.js` (lignes 62, 78, 1233-1262, 2077-2100, 3132-3150), `/home/user/teamop/server/comptes.js`, `/home/user/teamop/server/socle.js`, `/home/user/teamop/.github/workflows/deploiement.yml`, `/home/user/teamop/scripts/bancs-ci.sh`, `/home/user/teamop/scripts/bancs-serveur.liste`, `/home/user/teamop/tests/test-728.js`, `/home/user/teamop/REPRISE.md` (lignes 2664-2672), `/home/user/teamop/apercu/opmessages/index.html`.
 

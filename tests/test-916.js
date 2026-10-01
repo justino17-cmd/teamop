@@ -1,0 +1,210 @@
+/* ⛔ CE QUE CE FICHIER GARDE — LA GARDE DES SMS ET LA MIGRATION DU TÉLÉPHONE, MODULES SEULS (famille 2 de SERVEUR.md § 3.11).
+
+   `server-msg/sms-garde.js` et `server-msg/stockage.js` montés eux-mêmes, clé, horloge et fichier injectés : ce que le HTTP de
+   `test-915` ne peut pas jouer parce que ça demande des SEMAINES d'historique.
+
+     · L'EMBALLEMENT se juge sur l'HISTORIQUE : un pays qui envoie 20 SMS par heure d'habitude n'est pas « emballé » à 50 ; un pays qui
+       en envoie 2 d'habitude l'est à 11 (×5 sa moyenne) — et sans historique (moins d'un jour), seul le PLANCHER décide ;
+     · LE DÉFI (preuve de travail) : signé et lié au numéro et au pays, délai tenu, validité bornée, usage unique, mémoire bornée ;
+     · LA CONFIGURATION `sms.*` est VALIDÉE au démarrage : un budget négatif, des identifiants à moitié posés, une base d'OVH étrangère en
+       production REFUSENT le démarrage plutôt que de tourner de travers ;
+     · LA MIGRATION 2 : reconstruit `personne` (SQLite ne change pas un CHECK en place) sans perdre une ligne, garde une copie, et le
+       compte par numéro entre.
+
+   ⛔ UNE ASSERTION SUR UN ENSEMBLE VIDE PASSE ET NE PROUVE RIEN : chaque verdict est précédé de la population qu'il aurait pu manquer. */
+const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
+const T = require('./outils-msg');
+T.sauterSiSansDependances();
+const { v, vrai, fin } = T.compteur();
+const { ouvrir, MIGRATIONS } = require(path.join(T.SERVICE, 'stockage.js'));
+const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
+const G = require(path.join(T.SERVICE, 'sms-garde.js'));
+const { DatabaseSync } = require('node:sqlite');
+
+const HEURE = 3600000, JOUR = 86400000;
+const bac = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-916-'));
+let n = 0;
+function neuf(cfgSms, instance) {
+  const chemin = path.join(bac, 'msg-' + (++n) + '.db'), kek = crypto.randomBytes(32), h = { t: 1790000000000 };
+  const scelleur = creerScelleur(kek);
+  const S = ouvrir({ chemin, scelleur, horloge: () => h.t });
+  const journal = [];
+  const cfg = G.lireConfigSms(cfgSms || {}, instance || 'beta');
+  const garde = G.creerGarde({ cfg, instance: instance || 'beta', stockage: S, scelleur, horloge: () => h.t, journaliser: (e, c) => journal.push([e, c]) });
+  return { S, h, garde, cfg, journal, chemin, kek, scelleur };
+}
+const lance = (f) => { try { f(); return null; } catch (e) { return e.code + ' ' + e.message; } };
+/* Seme `parHeure` SMS par heure pour un pays, sur `jours` jours qui finissent AVANT la dernière heure (l'historique « d'avant »). */
+function semer(a, pays, parHeure, jours) {
+  const fin0 = a.h.t;
+  for (let k = jours * 24; k >= 2; k--) { a.h.t = fin0 - k * HEURE; for (let i = 0; i < parHeure; i++) a.S.smsReserver({ pays, cout: 100000 }); }
+  a.h.t = fin0;
+}
+/* Envoie `m` SMS de plus dans la DERNIÈRE heure. */
+function recents(a, pays, m) { for (let i = 0; i < m; i++) { a.h.t += 1000; a.S.smsReserver({ pays, cout: 100000 }); } }
+
+console.log('\n── 916 · L\'EMBALLEMENT se juge sur l\'historique du pays (×5 sa moyenne, avec un plancher) ──');
+{
+  const a = neuf({ emballement: { plancher: 5, facteur: 5 } });
+  semer(a, 'BE', 2, 7);
+  const histo = a.S.smsSommes(0, 'BE').n;
+  vrai('la population : 7 jours à 2 SMS par heure = ' + histo + ' lignes d\'historique', histo >= 300);
+  recents(a, 'BE', 8);
+  v('⛔ moyenne 2/h, huit SMS dans l\'heure : le neuvième (8+1 ≤ 10) n\'est pas un emballement', a.garde.bouclierDe('BE'), null);
+  recents(a, 'BE', 2);
+  v('⛔ dix SMS dans l\'heure (×5 la moyenne) : le onzième est un EMBALLEMENT → bouclier automatique', a.garde.bouclierDe('BE'), { motif: 'auto' });
+  v('   le bouclier est durable (une ligne en base, jusqu\'à une date) — il survit à l\'arrêt de l\'envoi qu\'il a provoqué', [a.S.smsBoucliers().map(b => b.pays), a.S.smsBoucliers()[0].motif], [['BE'], 'auto']);
+  v('   et l\'événement est journalisé avec le PAYS seulement', a.journal.filter(j => j[0] === 'sms_bouclier'), [['sms_bouclier', { motif: 'auto', pays: 'BE' }]]);
+  v('⛔ un autre pays n\'est pas touché', a.garde.bouclierDe('FR'), null);
+  a.h.t += 7 * HEURE;
+  v('le bouclier tombe après `bouclierMs` (6 h) si l\'emballement a cessé', [a.garde.bouclierDe('BE'), a.S.smsBoucliers().length], [null, 0]);
+  a.S.fermer();
+}
+{
+  const a = neuf({ emballement: { plancher: 30, facteur: 5 } });
+  semer(a, 'IN', 20, 7);
+  vrai('la population : ' + a.S.smsSommes(0, 'IN').n + ' lignes (un pays gros : 20 par heure d\'habitude)', a.S.smsSommes(0, 'IN').n >= 3000);
+  recents(a, 'IN', 50);
+  v('⛔ un pays qui envoie 20 SMS/h d\'habitude n\'est pas emballé à 50 (le plancher de 30 est dépassé, mais 5 × 20 = 100 ne l\'est pas)', a.garde.bouclierDe('IN'), null);
+  recents(a, 'IN', 60);
+  v('   et il l\'est à 110', a.garde.bouclierDe('IN'), { motif: 'auto' });
+  a.S.fermer();
+}
+{
+  const a = neuf({ emballement: { plancher: 12, facteur: 5 } });
+  recents(a, 'BE', 11);
+  v('sans historique (moins d\'un jour) : seul le PLANCHER décide — onze SMS, le douzième passe', a.garde.bouclierDe('BE'), null);
+  recents(a, 'BE', 1);
+  v('⛔ douze SMS : le treizième dépasse le plancher → bouclier', a.garde.bouclierDe('BE'), { motif: 'auto' });
+  a.S.fermer();
+}
+{
+  const a = neuf({ emballement: { plancher: 5, facteur: 5 } });
+  /* Les lignes REFUSÉES par OVH ne comptent pas (rien n'est parti) : elles ne déclenchent pas un bouclier. */
+  for (let i = 0; i < 20; i++) { const id = a.S.smsReserver({ pays: 'BE', cout: 100000 }); a.S.smsRegler(id, { etat: 'refuse', cout: 0 }); }
+  v('vingt envois REFUSÉS net par OVH ne comptent pas comme un emballement', [a.S.smsSommes(0, 'BE').n, a.garde.bouclierDe('BE')], [0, null]);
+  a.S.fermer();
+}
+
+console.log('\n── 916 · le BUDGET : la somme se fait sur le journal durable, en micro-euros entiers ──');
+{
+  const a = neuf({ budgetJour: 1, budgetHeure: 1, budgetPaysJour: 1, budgetPaysHeure: 1 });
+  const r = [];
+  for (let i = 0; i < 14; i++) { const x = a.garde.reserver({ pays: 'FR', cc: '33' }); r.push(x.ok); }
+  v('un SMS français coûte 0,075 € : treize passent sous 1 € ; le quatorzième (0,975 + 0,075 > 1) est refusé', [r.filter(Boolean).length, r[13], a.garde.reserver({ pays: 'FR', cc: '33' }).motif], [13, false, 'budget_jour']);
+  vrai('⛔ aucune dérive de virgule : la somme exacte est 975 000 micro-euros', a.S.smsSommes(0).cout === 975000);
+  v('chaque motif porte son nom : l\'heure, puis le pays', (() => { const b = neuf({ budgetJour: 50, budgetHeure: 0.05, budgetPaysJour: 50, budgetPaysHeure: 50 }); const m1 = b.garde.reserver({ pays: 'FR', cc: '33' }).motif; const c = neuf({ budgetJour: 50, budgetHeure: 50, budgetPaysJour: 0.05, budgetPaysHeure: 50 }); const m2 = c.garde.reserver({ pays: 'FR', cc: '33' }).motif; const d = neuf({ budgetJour: 50, budgetHeure: 50, budgetPaysJour: 50, budgetPaysHeure: 0.05 }); const m3 = d.garde.reserver({ pays: 'FR', cc: '33' }).motif; return [m1, m2, m3]; })(), ['budget_heure', 'budget_pays_jour', 'budget_pays_heure']);
+  a.h.t += 24 * HEURE + 1;
+  v('la fenêtre glisse : 24 h plus tard, le budget est libre', a.garde.reserver({ pays: 'FR', cc: '33' }).ok, true);
+  a.S.fermer();
+}
+{
+  /* Deux réservations SIMULTANÉES ne franchissent pas le budget ensemble : la réservation est UNE transaction. */
+  const a = neuf({ budgetJour: 0.1, budgetHeure: 50, budgetPaysJour: 50, budgetPaysHeure: 50 });
+  const rs = [a.garde.reserver({ pays: 'FR', cc: '33' }), a.garde.reserver({ pays: 'FR', cc: '33' }), a.garde.reserver({ pays: 'FR', cc: '33' })];
+  v('⛔ budget de 0,10 € à 0,075 € le SMS : UN seul passe (la somme est relue DANS la transaction qui réserve)', rs.map(x => x.ok), [true, false, false]);
+  a.S.fermer();
+}
+{
+  /* `sante()` ne donne que des nombres et des motifs. */
+  const a = neuf({ budgetJour: 2 });
+  a.garde.reserver({ pays: 'FR', cc: '33' }); a.garde.refuser('numero_non_mobile'); a.garde.refuser('numero_non_mobile'); a.garde.refuser('reseau_plafond');
+  const s = a.garde.sante();
+  v('⛔ /health : le mode, des nombres et des refus par motif — rien d\'autre', Object.keys(s).sort(), ['boucliers', 'budgetHeurePct', 'budgetJourPct', 'coutJourEur', 'envoyes24h', 'mode', 'ovhEchecs', 'refus']);
+  v('   les refus du jour par motif', s.refus, { numero_non_mobile: 2, reseau_plafond: 1 });
+  v('   le budget du jour : 0,075 € sur 2 € = 4 %', [s.coutJourEur, s.budgetJourPct], [0.08, 4]);
+  a.h.t += 25 * HEURE;
+  v('les refus de plus de 24 h sortent du compte (et la mémoire est bornée)', a.garde.sante().refus, {});
+  v('mode : « journal » en bêta sans identifiants, « inactif » en production sans identifiants, « ovh » avec', [a.garde.mode, neuf({}, 'prod').garde.mode, neuf({ ovh: { appKey: 'abcdefgh', appSecret: 'abcdefgh', consumerKey: 'abcdefgh', serviceName: 'sms-ab1234-1', expediteur: 'OPMSG' } }, 'prod').garde.mode], ['journal', 'inactif', 'ovh']);
+  a.S.fermer();
+}
+
+console.log('\n── 916 · le DÉFI : signé, lié au numéro et au pays, délai tenu, validité bornée, usage unique ──');
+{
+  const a = neuf({ bouclier: { bits: 8, attenteMs: 2000, validiteMs: 600000 } });
+  const g = a.garde, nonceDe = (d) => { for (let i = 0; i < 1e7; i++) { const x = i.toString(36); if (crypto.createHash('sha256').update(d.jeton + ':' + x).digest()[0] === 0) return x; } };
+  const numH = 'a'.repeat(64);
+  const d = g.defiEmettre({ pays: 'BE', num_h: numH }), nonce = nonceDe(d);
+  v('un défi : un jeton, les bits, le délai', [typeof d.jeton, d.bits, d.attente_s], ['string', 8, 2]);
+  v('⛔ avant le délai (2 s) : refusé', g.defiVerifier({ jeton: d.jeton, nonce, pays: 'BE', num_h: numH }), false);
+  a.h.t += 2001;
+  v('⛔ un nonce qui ne donne pas les zéros : refusé', g.defiVerifier({ jeton: d.jeton, nonce: 'zzzzzz-pas-bon', pays: 'BE', num_h: numH }), false);
+  v('⛔ le même défi pour un AUTRE numéro : refusé (le jeton est signé AVEC l\'empreinte du numéro)', g.defiVerifier({ jeton: d.jeton, nonce, pays: 'BE', num_h: 'b'.repeat(64) }), false);
+  v('⛔ le même défi pour un AUTRE pays : refusé', g.defiVerifier({ jeton: d.jeton, nonce, pays: 'FR', num_h: numH }), false);
+  const trafique = d.jeton.replace(/\.8\./, '.1.');
+  v('⛔ un jeton dont on a baissé les bits à la main : refusé (la signature ne couvre plus)', g.defiVerifier({ jeton: trafique, nonce: '0', pays: 'BE', num_h: numH }), false);
+  const forge = d.jeton.slice(0, -4) + 'abcd';
+  v('⛔ un jeton à la signature fausse : refusé', g.defiVerifier({ jeton: forge, nonce, pays: 'BE', num_h: numH }), false);
+  v('des entrées absurdes ne lèvent jamais : refusées', [g.defiVerifier({}), g.defiVerifier({ jeton: 5, nonce: 6 }), g.defiVerifier({ jeton: 'x'.repeat(500), nonce: 'a' }), g.defiVerifier({ jeton: d.jeton, nonce: 'é'.repeat(5), pays: 'BE', num_h: numH })], [false, false, false, false]);
+  v('le bon : accepté une fois', g.defiVerifier({ jeton: d.jeton, nonce, pays: 'BE', num_h: numH }), true);
+  v('⛔ et PAS DEUX : le même rejoué est refusé (usage unique)', g.defiVerifier({ jeton: d.jeton, nonce, pays: 'BE', num_h: numH }), false);
+  const d2 = g.defiEmettre({ pays: 'BE', num_h: numH }), n2 = nonceDe(d2);
+  a.h.t += 11 * 60000;
+  v('⛔ un défi vieux de plus de 10 minutes : refusé (la preuve ne se stocke pas pour plus tard)', g.defiVerifier({ jeton: d2.jeton, nonce: n2, pays: 'BE', num_h: numH }), false);
+  a.S.fermer();
+}
+
+console.log('\n── 916 · la configuration `sms.*` est VALIDÉE au démarrage ──');
+{
+  const ref = G.lireConfigSms({}, 'prod');
+  v('⛔ les défauts : 20 € par jour, 5 € par heure, 3 € par pays et par jour, 1,5 € par pays et par heure', [ref.budgetJour, ref.budgetHeure, ref.budgetPaysJour, ref.budgetPaysHeure], [20, 5, 3, 1.5]);
+  v('   le code : 10 minutes, 5 essais, renvoi à 60 s ; la recherche : 30 par jour, 10 pour un compte neuf', [ref.codeMs, ref.essaisCode, ref.renvoiMs, ref.rechercheJour, ref.rechercheJourJeune], [600000, 5, 60000, 30, 10]);
+  v('   l\'emballement : ×5, plancher 30 ; le bouclier : 18 bits (≈ 0,3 s de calcul), 5 s de délai', [ref.emballement.facteur, ref.emballement.plancher, ref.bouclier.bits, ref.bouclier.attenteMs], [5, 30, 18, 5000]);
+  const REFUS = [
+    ['budget négatif', { budgetJour: -1 }], ['budget qui n\'est pas un nombre', { budgetJour: '20' }], ['budget infini', { budgetJour: Infinity }], ['budget NaN', { budgetHeure: NaN }],
+    ['code pays en minuscules', { budgetPays: { be: { jour: 1 } } }], ['prix négatif', { prix: { FR: -1 } }], ['prix de pays mal écrit', { prix: { 'France': 1 } }],
+    ['interdits : pas un tableau', { interdits: '+33' }], ['interdits : préfixe sans +', { interdits: ['33'] }], ['domaine invalide', { domaine: 'https://x' }],
+    ['bouclier : bits trop bas (un défi trivial)', { bouclier: { bits: 2 } }], ['bouclier : pays invalide', { bouclier: { pays: ['belgique'] } }], ['bouclier global pas booléen', { bouclier: { global: 'oui' } }],
+    ['⛔ identifiants OVH INCOMPLETS (une moitié de configuration ne passe pas en silence en mode journal)', { ovh: { appKey: 'abcdefgh', appSecret: 'abcdefgh' } }],
+    ['expéditeur trop long', { ovh: { appKey: 'abcdefgh', appSecret: 'abcdefgh', consumerKey: 'abcdefgh', serviceName: 'sms-ab1234-1', expediteur: 'UNEXPEDITEURTROPLONG' } }],
+    ['clé avec un espace', { ovh: { appKey: 'abc defgh', appSecret: 'abcdefgh', consumerKey: 'abcdefgh', serviceName: 'sms-ab1234-1', expediteur: 'OPMSG' } }],
+    ['emballement : facteur négatif', { emballement: { facteur: -3 } }], ['codeMs à zéro', { codeMs: 0 }],
+  ];
+  vrai('la population : ' + REFUS.length + ' configurations absurdes', REFUS.length >= 15);
+  for (const [nom, c] of REFUS) vrai(nom + ' → le démarrage est REFUSÉ (code CONFIG)', /^CONFIG /.test(String(lance(() => G.lireConfigSms(c, 'prod')))));
+  const ovh = { appKey: 'abcdefgh', appSecret: 'abcdefgh', consumerKey: 'abcdefgh', serviceName: 'sms-ab1234-1', expediteur: 'OPMSG' };
+  v('⛔ EN PRODUCTION, une base d\'API autre qu\'OVH est refusée (nos clés de signature ne partent pas ailleurs)', [lance(() => G.lireConfigSms({ ovh: Object.assign({ urlBase: 'https://evil.example.com/1.0' }, ovh) }, 'prod')) !== null, lance(() => G.lireConfigSms({ ovh: Object.assign({ urlBase: 'https://eu.api.ovh.com/1.0' }, ovh) }, 'prod'))], [true, null]);
+  v('   en bêta (les bancs), une base locale est permise', lance(() => G.lireConfigSms({ ovh: Object.assign({ urlBase: 'http://127.0.0.1:9/1.0' }, ovh) }, 'beta')), null);
+  v('une configuration entière et juste passe, et rend la liste des pays interdits telle quelle', G.lireConfigSms({ interdits: ['+2519', '+9919'], budgetPays: { BE: { jour: 2 } }, prix: { FR: 0.07, '+33': 0.08 }, ovh }, 'prod').interdits, ['+2519', '+9919']);
+  v('l\'objet de configuration brut n\'est jamais muté ni exposé tel quel (les secrets restent dans `ovh`, jamais dans /health)', Object.keys(neuf({ ovh }).garde.sante()).includes('ovh'), false);
+}
+
+console.log('\n── 916 · la MIGRATION 2 : `personne` reconstruite sans perdre une ligne, une copie gardée, le téléphone entre ──');
+{
+  const chemin = path.join(bac, 'ancienne.db'), kek = crypto.randomBytes(32), h = { t: 1790000000000 };
+  const v1 = ouvrir({ chemin, scelleur: creerScelleur(kek), horloge: () => h.t, migrations: MIGRATIONS.slice(0, 1) });
+  const al = v1.personneCreer({ identifiant: 'beta:alice', prenom: 'Alice', nom: 'A', origine: 'beta', verifie: true });
+  const bo = v1.personneCreer({ identifiant: 'beta:bob', prenom: 'Bob', nom: 'B', origine: 'beta', verifie: true });
+  v1.contactLier(al.id, bo.id);
+  const conv = v1.convDirecteObtenir(al.id, bo.id).id;
+  v1.messageEnvoyer({ conv, auteur: al.id, cid: 'cid-migr-0001', texte: 'écrit AVANT la migration' });
+  v1.sessionAjouter({ h: 'h'.repeat(64), personne: al.id, appareil: 'x', ttlMs: 86400000 });
+  v('une base d\'AVANT est au schéma 1', v1.schema(), 1);
+  v1.fermer();
+  const v2 = ouvrir({ chemin, scelleur: creerScelleur(kek), horloge: () => h.t });
+  v('⛔ rouverte avec la migration 2 : schéma 2', v2.schema(), 2);
+  vrai('⛔ une copie « avant-v2 » a été gardée AVANT de reconstruire la table', fs.existsSync(chemin + '.avant-v2'));
+  v('les deux personnes sont intactes (prénom, nom, origine)', [v2.personneParId(al.id), v2.personneParId(bo.id)].map(p => [p.prenom, p.nom, p.origine]), [['Alice', 'A', 'beta'], ['Bob', 'B', 'beta']]);
+  v('⛔ le contact, la conversation et le message écrit avant survivent (les clés étrangères ont suivi la reconstruction)', [v2.contactActif(al.id, bo.id), v2.messagesDe(conv, al.id).messages.map(m => m.texte)], [true, ['écrit AVANT la migration']]);
+  v('la session survit', v2.sessionLire('h'.repeat(64)).personne, al.id);
+  v('⛔ la nouvelle colonne « qui peut me trouver » vaut « tous » pour les personnes d\'avant (le comportement d\'un compte ne change pas)', [v2.telTrouvableLire(al.id), v2.telTrouvableLire(bo.id)], ['tous', 'tous']);
+  const brut = new DatabaseSync(chemin);
+  v('aucune ligne orpheline après la reconstruction (foreign_key_check)', brut.prepare('PRAGMA foreign_key_check').all().length, 0);
+  v('les clés étrangères sont REMISES en marche après la migration', brut.prepare('PRAGMA foreign_keys').get().foreign_keys, 1);
+  const tel = v2.personneCreer({ identifiant: 'tel:+32470123456', prenom: 'Tel', nom: '', origine: 'telephone', verifie: true });
+  v('⛔ le compte par numéro entre (origine « telephone » acceptée par la table reconstruite)', [tel.origine, v2.telPersonneParNumero('tel:+32470123456').id === tel.id], ['telephone', true]);
+  vrai('   l\'origine reste CONTRAINTE : une valeur inventée est refusée par la base elle-même', lance(() => brut.prepare("INSERT INTO personne(id, origine, cree) VALUES('p_x', 'pirate', 1)").run()) !== null);
+  vrai('   « qui peut me trouver » aussi', lance(() => brut.prepare("UPDATE personne SET trouvable = 'les-amis' WHERE id = ?").run(al.id)) !== null);
+  brut.close();
+  v('un numéro n\'est trouvé QUE par son empreinte scellée : un identifiant d\'une autre origine ne le retrouve pas', [v2.telPersonneParNumero('beta:alice'), v2.telPersonneParNumero('tel:+32470123457')], [null, null]);
+  v2.telAppareilLier({ h: 'a'.repeat(64), personne: tel.id, nom: 'x', ttlMs: 1000 });
+  v2.fermer();
+  const v2b = ouvrir({ chemin, scelleur: creerScelleur(kek), horloge: () => h.t });
+  v('rouvrir une base DÉJÀ migrée ne rejoue rien et garde le compte par numéro et son appareil', [v2b.schema(), v2b.telPersonneParNumero('tel:+32470123456').id === tel.id, v2b.telAppareilLire('a'.repeat(64)) !== null], [2, true, true]);
+  v2b.fermer();
+  const stockSrc = T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, 'stockage.js'), 'utf8'));
+  vrai('⛔ aucun numéro en clair n\'est un argument de ce module : toutes les fonctions du téléphone reçoivent une empreinte (`num_h`) ou l\'identifiant scellé', !/telCode\w*\(\s*\{?\s*numero/.test(stockSrc) && !/function tel\w+\(\s*\{?\s*numero/.test(stockSrc));
+}
+
+fs.rmSync(bac, { recursive: true, force: true });
+fin();

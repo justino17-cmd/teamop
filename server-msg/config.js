@@ -94,6 +94,11 @@ function charger(env = process.env) {
   const kek = lireCle(env.CREDENTIALS_DIRECTORY);
   const port = parseInt(env.PORT || '8091', 10);
   if (!(port > 0 && port < 65536)) { const e = new Error('config: PORT invalide'); e.code = 'CONFIG'; throw e; }
+  /* ⛔ LA PORTE DE TEST DES CODES SMS : un fichier où le service écrit le code EN CLAIR, pour que les bancs jouent une inscription sans
+     prestataire. Elle est FERMÉE en production : une variable d'environnement oubliée dans une unité systemd ne doit pas écrire des codes
+     de connexion en clair sur le disque — le démarrage est refusé, avant toute création de dossier. */
+  const testCodes = env.OPMSG_TEST_CODES ? path.resolve(String(env.OPMSG_TEST_CODES)) : null;
+  if (testCodes && instance !== 'beta') { const e = new Error('config: OPMSG_TEST_CODES (porte de test des codes SMS) est refusée en production'); e.code = 'CONFIG'; throw e; }
   const cookie = Object.assign({ nom: '__Host-opm', secure: true }, cfg.cookie || {});
   /* Le préfixe __Host- impose Secure : un cookie « __Host-… » sans Secure est refusé par le
      navigateur, donc personne ne pourrait se connecter. On le refuse ICI plutôt qu'en production. */
@@ -106,6 +111,8 @@ function charger(env = process.env) {
     cookie,
     beta: Object.assign({ urlGestion: 'http://127.0.0.1:8080', relectureMs: 60000, timeoutMs: 5000 }, cfg.beta || {}),
     quotas: cfg.quotas && typeof cfg.quotas === 'object' ? cfg.quotas : {},
+    sms: cfg.sms && typeof cfg.sms === 'object' && !Array.isArray(cfg.sms) ? cfg.sms : {},   // validée par `lireConfigSms` (sms-garde.js)
+    testCodes: testCodes,
     disqueMinMo: Number.isFinite(cfg.disqueMinMo) ? cfg.disqueMinMo : 512,
     pulsationMs: Number.isFinite(cfg.pulsationMs) ? cfg.pulsationMs : 20000,
     presenceGraceMs: Number.isFinite(cfg.presenceGraceMs) ? cfg.presenceGraceMs : 20000,

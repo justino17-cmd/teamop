@@ -58,6 +58,15 @@ const MANIFESTE = [
   { id: 'msg.modifier',      m: 'POST', p: '/api/conversations/:id/messages/modifier', garde: 'M' },
   { id: 'msg.supprimer',     m: 'POST', p: '/api/conversations/:id/messages/supprimer', garde: 'M' },
   { id: 'msg.reagir',        m: 'POST', p: '/api/conversations/:id/messages/reagir', garde: 'M' },
+  /* Étape 2 : le compte PERSO par numéro de téléphone (`telephone.js`). Les trois premières sont PUBLIQUES (garde P) : on ne peut pas
+     avoir de session avant d'en avoir une — leur défense est dans les plafonds, le budget en euros et les réponses uniformes. */
+  { id: 'tel.code',          m: 'POST', p: '/api/tel/code',                          garde: 'P' },
+  { id: 'tel.verifier',      m: 'POST', p: '/api/tel/verifier',                      garde: 'P' },
+  { id: 'tel.appareil',      m: 'POST', p: '/api/tel/appareil',                      garde: 'P' },
+  { id: 'moi.confidentialite.lire', m: 'GET',  p: '/api/moi/confidentialite',        garde: 'S' },
+  { id: 'moi.confidentialite', m: 'POST', p: '/api/moi/confidentialite',             garde: 'S' },
+  { id: 'contacts.chercher', m: 'POST', p: '/api/contacts/chercher',                 garde: 'V' },
+  { id: 'contacts.ajouter',  m: 'POST', p: '/api/contacts/ajouter',                  garde: 'V' },
 ];
 
 module.exports = { MANIFESTE };

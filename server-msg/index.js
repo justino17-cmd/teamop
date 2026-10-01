@@ -28,9 +28,10 @@ const { creerQuotas } = require('./quotas');
 const { creerFlux } = require('./flux');
 const { creerPorteBeta } = require('./porte-beta');
 const { construireApp } = require('./app');
+const { lireConfigSms, creerGarde } = require('./sms-garde');
 
-const VERSION = '1.0.0-etape1';
-const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route']);
+const VERSION = '1.1.0-telephone';
+const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays']);   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
 
 function journaliser(evt, champs) {
   const o = { t: new Date().toISOString(), evt: String(evt).slice(0, 40) };
@@ -49,6 +50,9 @@ function demarrer(env = process.env) {
   const quotas = creerQuotas(Date.now);
   const hub = creerFlux({ stockage, config, horloge: Date.now });
   const porte = config.instance === 'beta' ? creerPorteBeta({ config, quotas, stockage, horloge: Date.now }) : null;
+  /* Les SMS : la configuration est VALIDÉE ici (un budget négatif, des identifiants à moitié posés, une URL d'OVH étrangère en production
+     refusent le démarrage plutôt que de tourner de travers), puis la garde (budgets, emballement, bouclier) et l'envoi par OVH. */
+  const sms = creerGarde({ cfg: lireConfigSms(config.sms, config.instance), instance: config.instance, stockage, scelleur, horloge: Date.now, journaliser });
   const demarreA = Date.now();
   const boucle = monitorEventLoopDelay({ resolution: 20 }); boucle.enable();
 
@@ -63,7 +67,7 @@ function demarrer(env = process.env) {
   const minuteurDisque = setInterval(mesurerDisque, 30000); minuteurDisque.unref();
 
   const ctx = {
-    config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION,
+    config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION, scelleur, sms,
     maxMembres: stockageMod.MAX_MEMBRES, delaiModifMs: stockageMod.DELAI_MODIF_MS,
     disque: { bas: () => disqueBas },
     /* ⛔ /health est PUBLIQUE et AGRÉGÉE : des nombres et des états, jamais un identifiant, un
@@ -77,6 +81,7 @@ function demarrer(env = process.env) {
       boucle: { p99Ms: Math.round(boucle.percentile(99) / 1e6 * 10) / 10 },
       disque: { bas: disqueBas },
       quotasRefus: quotas.refus(),
+      sms: sms.sante(),   // des nombres : le coût du jour, le pourcentage du budget, les refus par motif — jamais un numéro
     }),
   };
 

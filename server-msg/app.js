@@ -23,6 +23,7 @@ const express = require('express');
 const { MANIFESTE } = require('./manifeste');
 const { creerHandlers, ID_CONV } = require('./routes');
 const { cleReseau } = require('./quotas');
+const { installerTelephone, SESSION_TEL_MS } = require('./telephone');
 
 const NOM_ENTETE = 'x-opm';
 const SHA = (x) => crypto.createHash('sha256').update(x).digest('hex');
@@ -112,7 +113,8 @@ function construireApp(ctx) {
     const s = stockage.sessionLire(h);
     const p = s && stockage.personneParId(s.personne);
     if (!p || p.etat !== 'actif') return refus(res, 401, 'session_requise');
-    stockage.sessionToucher(h, 30 * 86400000);
+    /* Un compte par numéro : 90 jours glissants (le moins de SMS possible) ; les autres, 30. */
+    stockage.sessionToucher(h, p.origine === 'telephone' ? SESSION_TEL_MS : 30 * 86400000);
     req.moi = p; req.sessionH = h;
     next();
   }];
@@ -130,6 +132,7 @@ function construireApp(ctx) {
   /* ── Les routes : UNIQUEMENT depuis le manifeste ─────────────────────────────────────── */
   const H = creerHandlers(ctx);
   H['health'] = (req, res) => res.json(ctx.sante());
+  installerTelephone(H, ctx);   // le compte PERSO par numéro : ses gestionnaires et la déconnexion qui coupe aussi le jeton d'appareil
   /* Les écritures authentifiées ont un plafond propre, par compte (en plus de celui de l'adresse). */
   const limiteEcriture = (req, res, next) => {
     const q = Object.assign({ max: 300, fenetreMs: 60000 }, config.quotas.ecriture || {});

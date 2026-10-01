@@ -111,6 +111,18 @@ d'emploi de Justin `design/opmessages/INSTALLER-LE-SERVEUR.md`. Conception : `de
 branche 228 · 14 574, code 0. ⚠️ Il touche `server/index.js` sur DEUX points (`/api/beta/login` rend `id`, `/api/beta/etat`
 accepte `ids`) : publier le serveur d'OP GESTION AVANT celui d'OP MESSAGES (sinon la porte reste fermée, 503, sans danger).
 Rien d'installé ni de poussé sur `main` ; restent ouverts D11, G12, G14, G15, G17 (listés dans le mode d'emploi).
+✅ **Compte PERSO par numéro de téléphone — FAIT côté serveur (2 octobre 2026, sur la branche d'un arbre à part, rien poussé)** :
+`server-msg/telephone.js` (routes `/api/tel/code`, `/api/tel/verifier`, `/api/tel/appareil`, `/api/contacts/chercher`,
+`/api/contacts/ajouter`, `/api/moi/confidentialite`), `numero.js` (E.164 fait main, mobiles seuls, tous les pays), `sms-garde.js`
+(budgets en euros par jour/heure, global et PAR PAYS, durables ; emballement d'un pays → bouclier à preuve de travail), `sms-prix.js`
+(207 destinations d'OVH), `sms-ovh.js` (signature « $1$ » faite main), `configurer-sms.js` (clés en saisie masquée, éprouvées avant
+d'être écrites). Migration 2 de `stockage.js` (table `personne` reconstruite). Conception et chiffres : `design/opmessages/SERVEUR.md`
+§ étape 2 ; gestes de Justin chez OVH et coût de 1 000 / 10 000 inscriptions : `INSTALLER-LE-SERVEUR.md` § 10 bis. Bancs `test-912`
+à `918` + `tests/mutations-telephone.js` (48 mutations sur copie). ⚠️ **NON VÉRIFIÉ : un SMS réel** (aucun compte OVH dans le dépôt, le
+banc joue un faux OVH qui recalcule la signature) ; **non construits** : l'interface (autre équipe), l'appel vocal (on ne sait pas si
+OVH le permet), les clés d'accès WebAuthn (proposées à Justin comme étape suivante), le changement de numéro, la suppression de compte
+(devra effacer `appareil_tel`), le Pro par lien de connexion (étape 5). Défauts de budget par pays prudents (3 €/jour : 2 SMS russes) :
+à relever pays par pays selon où les gens s'inscrivent. À faire passer par `gardien` avant la production.
 
 ---
 
