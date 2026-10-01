@@ -132,8 +132,10 @@ peuvent durer plus d'une heure, elle s'arrête que quand l'admin coupe ; il faut
 soit bien pour les entreprises ; après on peut faire des options un peu moins chères ; s'il faut baisser, une formule à 5 € pour
 les petites entreprises avec un genre de Zoom illimité ; propose-moi tout ce qu'on peut rajouter — la meilleure application de
 communication pour le travail, mieux que WhatsApp qui bugue comme jamais »** → réunions SANS limite de durée (seul l'hôte ou
-l'administrateur coupe) ; une offre complète est en préparation (`design/opmessages/OFFRE-PRO.md`) : grille, options, coût réel,
-fiabilité ; la formule à 5 € et le prix des options attendent sa décision.
+l'administrateur coupe) ; offre complète FAITE (`design/opmessages/OFFRE-PRO.md`) : grille Perso 0 € / Essentiel 5 € (1 à 5
+personnes, réunions jusqu'à 10) / Pro 15 € / Sur mesure, options à la carte, coût et marge (≈ 9,40 € par siège Pro), idées 70 à 91
+rangées dans la feuille de route ; **14 décisions attendent Justin** (section 10), dont : formule à 5 €, monter le serveur de visio
+AVANT d'ouvrir le Pro, un abonnement par entreprise pour Messages, aucun achat dans l'application des stores (règle 3.1.3(c)).
 ✅ **Serveur d'OP MESSAGES, étape 1 FAITE sur la branche** (fusion `d70ba05`) : `server-msg/` (node:sqlite, scellé AES-256-GCM,
 SSE, porte bêta par la Tour en boucle locale, groupes, lu, saisie, présence), son installation (`install-msg.sh`, unité durcie,
 utilisateur `opmsg`), son déploiement (`.github/workflows/deploiement-messages.yml`, une clé SSH par instance) et le mode

@@ -70,3 +70,32 @@ sont celles que l'étude met en tête pour le chiffre d'affaires.
 | 51 prix d'entrée 5-7 €, remises, tarif « actif du mois » ; 66 pont WhatsApp (frais Meta au message, contraire au prix fixe) ; 69 promesse « jamais de pièce d'identité » | en attente de Justin | 51 change les formules qu'il a fixées ; 66 crée une dépendance à Meta ; 69 demande l'avis d'un juriste |
 | 67 coquille native pour les stores | I | ✅ décidée (« l'application sera sur l'App Store », « J'ai les deux ») |
 
+## Idées 70 à 91 — l'offre entreprise (Justin : « que les 15 € soient bien justifiés, pour les entreprises »)
+
+Détail, coûts, marges et les 14 décisions qui attendent Justin : `OFFRE-PRO.md`. ⚠️ Sa recommandation n° 8 change l'ordre :
+monter le serveur de visio (LiveKit, étape 10 de `SERVEUR.md`) AVANT d'ouvrir le Pro — sans lui, 4 en vidéo et 6 en audio au plus.
+
+| Idée | Titre | Formule | Lot |
+|---|---|---|---|
+| 70 | Garde-fous des réunions (salle vide fermée, « Toujours là ? », jamais de coupure d'une vraie réunion, une réunion à la fois par siège) | petite + Pro | G |
+| 71 | Compteur d'usage et budget d'heures visibles de l'administrateur, « ce que le Pro vous rapporte » | petite + Pro | G (écran dans D) |
+| 72 | Co-hôtes et rapport de présence exportable | Pro | G |
+| 73 | Enregistrement en ligne des réunions avec bandeau REC, consentement, conservation réglable, quota puis option | Pro (quota) puis option 4 € | G, après le serveur de visio |
+| 74 | Créer une réunion depuis Google Agenda ou Outlook | Pro | G (plus tard) |
+| 75 | Visite à distance de chantier : caméra arrière, annotation, capture rangée dans l'intervention OP GESTION | Pro | J |
+| 76 | Mode « salle de réunion » (tablette ou écran en continu) | option 5 € par salle | G |
+| 77 | Astreinte avec escalade (appel de la personne suivante sans réponse) | Pro | F |
+| 78 | Statut de présence métier (en intervention, en route, en pause) | Pro | D puis J |
+| 79 | Téléphone perdu ou départ : l'administrateur déconnecte tous les appareils et efface l'appli à distance | Pro | D |
+| 80 | Règles de sécurité imposées par l'administrateur (code ou Face ID obligatoire) | Pro | D |
+| 81 | Connexion entreprise SAML et SCIM | option | plus tard (après D) |
+| 82 | Kit de démarrage par métier (canaux, réponses rapides, checklists nettoyage et anti-nuisibles) | Pro | D |
+| 83 | Dossier RGPD prêt à signer pour l'entreprise cliente (sous-traitance, sous-traitants, registre type) | Pro | H |
+| 84 | « Remis » vrai : accusé après écriture sur disque, preuves rejouées avant chaque version et publiées | Perso | A |
+| 85 | Page d'état publique hébergée hors du serveur, avec message dans l'application pendant une panne | Perso | H |
+| 86 | Engagement de disponibilité écrit (99,9 %) avec avoir, seulement quand un second serveur existe | Pro | H (plus tard) |
+| 87 | Pack de SMS prépayé (100 SMS pour 12 €) | option | D (avec l'idée 35) |
+| 88 | Stockage en plus (100 Go pour 5 € par entreprise) | option | D (avec l'idée 50) |
+| 89 | Téléphonie via un partenaire opérateur (numéro d'appel de réunion, numéros pro) | option | plus tard (après le lancement) |
+| 90 | Facturation à l'année (10 mois pour 12) et essai de 14 jours du Pro ouvert par TEAM OP | Pro + petite | D |
+| 91 | Facturation d'entreprise : factures avec SIRET et TVA du client, prélèvement SEPA, contact de facturation | Pro + petite | D |
