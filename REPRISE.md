@@ -85,7 +85,7 @@ suivent légitimement son marqueur de fin : le refuser refuserait de vraies phot
 (5) sous ~250 px de large (zoom navigateur à 200 % et plus sur un téléphone) la liste perd ses noms de conversation (colonne de texte écrasée) et le champ de saisie tombe à 54 px ; les barres de la feuille et des onglets, elles, tiennent dès 197 px (corrigé, `corrEtroit`) ;
 (6) la sonde a connu UN accroc non reproduit : au premier passage complet, la barre d'enregistrement d'« iPad 820 nuit » s'est refermée aussitôt (relâcher compté comme un maintien > 600 ms sous charge) ; rejoué 3 fois, plus jamais — à surveiller, pas à ignorer.
 ⚠️ Non mesuré ici : le clavier iOS (`visualViewport`, écrit d'après la spécification — à voir sur un iPhone), la lecture sonore d'un vocal
-d'exemple (simulée). RESTE : étape 3 (Appels : écran d'appel, segmenté Tous/Manqués, `--seg-track`/`--seg-knob`), puis agenda et réunions.
+d'exemple (simulée). ✅ **Étape 3 FAITE en aperçu (1er octobre 2026)** : onglet Appels (Tous/Manqués, « Nouvel appel » par la feuille de groupe, « Rappeler »), écran d'appel (audio, vidéo, groupe ; micro et caméra RÉELS par `getUserMedia`, repli audio puis vidéo seule, toutes les pistes relâchées par la sortie unique `quitterAppel`) ; jeton `--rouge-txt` (le rouge du paquet ne tient pas 4,5:1 en lettres). Mesuré le 1er octobre : sonde de l'aperçu **3 172 ✓ 0 ✗** (12 parcours, 4 appareils + 2 bureaux, jour et nuit, scénarios d'appels, de refus de caméra et micro, valeurs longues), lanceur `tests/mutations-opmessages.js` **109/109 mutations tombent au banc** (série A, A01-A34 : les appels), captures lues sur iPhone, Android, iPad et bureau en jour et nuit. ⚠️ Au premier passage complet, la sonde est morte UNE fois sur le même accroc que (6) ci-dessus (« iPad 820 jour », la barre d'enregistrement refermée aussitôt) : rejoué en entier, 0 ✗ ; l'accroc revient donc sous charge, il n'est toujours pas reproduit à froid (3 passages seuls verts). Écarts à faire valider par Justin : « Message » depuis l'écran d'appel raccroche et ramène à la conversation ; « Clavier » et « Ajouter » absents (le paquet ne les décrit pas) ; segmenté à 44 px (plancher tactile). L'appel reste SIMULÉ (l'interlocuteur répond après 1,2 s) : la signalisation entre deux personnes est l'étape 7, côté `server-msg/`. RESTE : agenda et réunions.
 Puis, même jour : **formules d'OP MESSAGES** — « un forfait gratuit comme il est là et un Pro à 15 euros ; lui à 25 on le
 supprime ; à 15 euros ils ont toutes les options » (Perso 0 €, Messages Pro 15 € avec tout ; Messages Business Premium
 retiré de la vente — ses lignes Stripe restent RECONNUES comme OP MESSAGES par le serveur) ; **« je veux un op message
@@ -102,6 +102,24 @@ d'emploi de Justin `design/opmessages/INSTALLER-LE-SERVEUR.md`. Conception : `de
 branche 228 · 14 574, code 0. ⚠️ Il touche `server/index.js` sur DEUX points (`/api/beta/login` rend `id`, `/api/beta/etat`
 accepte `ids`) : publier le serveur d'OP GESTION AVANT celui d'OP MESSAGES (sinon la porte reste fermée, 503, sans danger).
 Rien d'installé ni de poussé sur `main` ; restent ouverts D11, G12, G14, G15, G17 (listés dans le mode d'emploi).
+
+✅ **L'interface de Justin branchée sur `server-msg/`, testée à deux personnes (1er octobre 2026, sur la branche).** La page servie n'est PAS écrite à la
+main : `node scripts/opmsg-public.js` fabrique `server-msg/public/{index.html, opmsg-ui.js, icônes}` depuis `apercu/opmessages/index.html` en ne changeant
+que la pièce de données (`source.js` → `api.js` + `source-serveur.js`), le script en ligne (extrait : CSP `script-src 'self'`) et la politique de la page ;
+il REFUSE une sortie qui mentirait (source de démonstration, contrat non tenu, aucune route `/api/`, script en ligne, `onclick=`, domaine tiers). ⛔ Ne jamais
+retoucher à la main `server-msg/public/index.html` ni `opmsg-ui.js` : `tests/test-912.js` compare octet pour octet. Photos, vocaux, appels et réunions
+DISENT « bientôt » dans la version servie (`source.capacites`) et restent simulés dans l'aperçu, qui n'a pas changé de comportement. Quand la page
+ou le serveur est refusé ou coupé, elle le DIT (401 → la page repart de zéro avec la phrase, 403, 404, 409, 410, 413, 429 avec « réessaie dans N s »,
+503, réseau) ; une autre personne dans le même navigateur, l'accès coupé dans la Tour ou la déconnexion font repartir la page : plus rien de la
+personne d'avant. Bancs : `tests/test-911.js` (l'appareil et le service se parlent, vrai OP GESTION compris, 117 ✓, 19/19 mutations), `tests/test-912.js`
+(le générateur, 28 ✓, 15/16 mutations — la seizième, le contrôle du contrat, est NEUTRALISÉE par la lecture des méthodes que la page appelle), la sonde
+`tests/sonde-opmessages-serveur.js` (deux couples de vrais navigateurs contre le vrai service, jour puis nuit, le câble TCP arraché ; 328 ✓, 16/16
+mutations ; `--rapide` pour un seul couple). Liste `scripts/bancs-messages.liste` 18 suites · 1 721, suite complète 232 · 15 017 (code 0), liste serveur 51 · 3 601.
+La sonde a trouvé SEPT défauts de l'interface, corrigés : le relâcher d'un appui long fermait le menu à peine ouvert ; le champ était vidé après la
+réponse du service (le message suivant, déjà tapé, disparaissait) ; un refus d'envoi ne disait pas sa phrase ; une relecture de liste refusée se perdait en
+silence ; la bannière « hors ligne » n'écoutait pas le navigateur ; à 360 px le nom d'un membre passait sous « Nommer admin » ; la bannière couvrait les
+commandes du haut. **Reste** : les photos et vocaux (étape 4, pièces jointes côté service), les appels (étape 7) et les réunions ; la bêta
+`messages-beta.html` n'est pas encore pointée sur cette interface (#305) ; l'installation du service sur le VPS (gestes de Justin, mode d'emploi).
 
 ---
 
