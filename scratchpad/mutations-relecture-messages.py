@@ -96,7 +96,7 @@ mut('service', 'S17  la route de révocation d\'un groupe disparaît du manifest
 mut('service', 'S18  la révocation d\'un groupe est ouverte à tout membre (garde M au lieu de A)', MAN,
     [("p: '/api/conversations/:id/liens/revoquer', garde: 'A'", "p: '/api/conversations/:id/liens/revoquer', garde: 'M'", 1)], ['test-905.js', 'test-910.js'])
 mut('service', 'S19  l\'événement d\'expiration n\'est pas distribué aux membres (genre absent de la requête de visibilité)', ST,
-    [("j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction')", "j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_reaction')", 1)], ['test-910.js'])
+    [("j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction')", "j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_reaction')", 1)], ['test-901.js', 'test-910.js'])
 mut('service', 'S20  /health ne publie plus les lignes illisibles', IDX,
     [(", illisibles: stockage.illisibles() }", " }", 1)], ['test-903.js'])
 mut('service', 'S21  le compteur de lignes illisibles ne monte pas', ST,
