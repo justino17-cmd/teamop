@@ -59,7 +59,7 @@ function fauxDom(html, ouvrirUrl) {
 
 (async () => {
   const og = await T.fauxOpGestion({ alice: { pass: 'pw-alice-1234', nom: 'Alice', actif: true }, bob: { pass: 'pw-bob-12345', nom: 'Bob', actif: true }, coupe: { pass: 'pw-coupe-123', nom: 'Coupé', actif: false }, dora: { pass: 'pw-dora-12345', nom: 'Dora', actif: true }, eve: { pass: 'pw-eve-123456', nom: 'Eve', actif: true }, fay: { pass: 'pw-fay-123456', nom: 'Fay', actif: true } });
-  const svc = await T.lancerService({ urlGestion: og.url, horloge: true, config: { beta: { timeoutMs: 400 }, quotas: { msg: { max: 6, fenetreMs: 60000 }, saisie: { max: 1, fenetreMs: 2000 } } } });
+  const svc = await T.lancerService({ urlGestion: og.url, horloge: true, config: { beta: { timeoutMs: 400 }, quotas: { msg: { max: 6, fenetreMs: 60000 }, saisie: { max: 1, fenetreMs: 2000 } }, balayageMs: 150 } });
   try {
     console.log('api.js : la connexion et les refus de la porte sont DITS, jamais avalés');
     const nav = T.navigateur(svc.base);
@@ -249,6 +249,30 @@ function fauxDom(html, ouvrirUrl) {
       // réception en direct : Bob écrit, la page d'Alice le reçoit par le flux SSE
       await cb.envoyer(d, 'EN DIRECT ' + SVG);
       vrai('⛔ un message de Bob PARAÎT dans la page d\'Alice sans qu\'elle rafraîchisse (flux SSE réel), en texte', !!(await T.attendre(() => dom.els.fil.textContent.includes('EN DIRECT ' + SVG), 6000)));
+      /* Relecture adverse, D7 : un texte de plus de 2 Ko n'est pas porté par l'événement `message_modifie` (`relis`) ; la page
+         gardait « … » jusqu'au rechargement. Elle RELIT, comme pour un message neuf. */
+      {
+        const long1 = 'A'.repeat(2600), long2 = 'B'.repeat(2700);
+        const e1 = await cb.envoyer(d, long1);
+        vrai('un message de plus de 2 Ko paraît dans la page (relu, pas porté par l\'événement)', !!(await T.attendre(() => dom.els.fil.textContent.includes(long1), 6000)));
+        await cb.modifier(d, e1.seq, long2);
+        vrai('⛔ …et sa MODIFICATION aussi : la bulle montre le nouveau texte entier, pas « … »', !!(await T.attendre(() => dom.els.fil.textContent.includes(long2), 6000)));
+        vrai('   l\'ancien texte n\'y est plus', !dom.els.fil.textContent.includes(long1));
+      }
+      /* Un éphémère qui EXPIRE disparaît du fil : il n'y devient pas « Message supprimé » (relecture adverse, D9). */
+      {
+        const contactId = (await cb.contacts())[0].id;
+        const ge = (await cb.groupe({ nom: 'Fugace', membres: [contactId], ephemere_s: 86400 })).conversation.id;
+        await T.attendre(() => dom.els.liste.textContent.includes('Fugace'), 5000);
+        dom.els.liste.tous(e => e.tagName === 'BUTTON').find(b2 => b2.textContent.includes('Fugace')).dispatch('click');
+        await T.attendre(() => dom.els.titre.textContent.includes('Fugace'), 5000);
+        await cb.envoyer(ge, 'ce message va expirer');
+        vrai('le message éphémère paraît dans le fil', !!(await T.attendre(() => dom.els.fil.textContent.includes('ce message va expirer'), 6000)));
+        svc.avancer(86400000 + 120000);
+        vrai('⛔ expiré, il DISPARAÎT du fil (le balayeur du service l\'a purgé, la page l\'a retiré)', !!(await T.attendre(() => !dom.els.fil.textContent.includes('ce message va expirer'), 8000)));
+        v('⛔ …et la page n\'écrit pas « Message supprimé » à sa place', dom.els.fil.textContent.includes('Message supprimé'), false);
+        svc.avancer(-(86400000 + 120000));
+      }
       const crees = new Set(dom.crees);
       vrai('population : la page a créé des éléments (' + dom.crees.length + ')', dom.crees.length > 10);
       v('⛔ AUCUN élément img, script, svg, iframe, style, a ou b n\'a été créé : seuls div, span, li, button', Array.from(crees).filter(t => !['div', 'span', 'li', 'button'].includes(t)), []);

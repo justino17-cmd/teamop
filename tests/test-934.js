@@ -45,6 +45,10 @@ vrai('⛔ une sauvegarde de 30 h crie', S.evaluer(Object.assign({}, SAIN, { sauv
 v('   une sauvegarde de 26 h ne crie pas encore (le seuil est « plus de 26 h »)', S.evaluer(Object.assign({}, SAIN, { sauvegarde: { configuree: true, ageH: 26 } }), 'beta'), []);
 vrai('⛔ Stripe illisible depuis 120 minutes crie', S.evaluer(Object.assign({}, SAIN, { stripeEchecMin: 120 }), 'beta').some(p => /Stripe/.test(p)));
 v('   à 90 minutes pile, non (la règle d\'OP GESTION : on crie AU-DELÀ de 90)', S.evaluer(Object.assign({}, SAIN, { stripeEchecMin: 90 }), 'beta'), []);
+vrai('⛔ une ligne chiffrée illisible crie (le service avale l\'erreur de lecture : sans ce champ, personne ne le saurait)', S.evaluer(Object.assign({}, SAIN, { base: { ok: true, schema: 1, illisibles: 2 } }), 'beta').some(p => /illisible/.test(p)));
+v('   zéro ligne illisible : rien', S.evaluer(Object.assign({}, SAIN, { base: { ok: true, schema: 1, illisibles: 0 } }), 'beta'), []);
+vrai('⛔ la relecture des accès bêta qui échoue depuis plus de cinq passages crie', S.evaluer(Object.assign({}, SAIN, { porte: { relecturesEchec: 6 } }), 'beta').some(p => /relecture/.test(p)));
+v('   à cinq passages pile, non', S.evaluer(Object.assign({}, SAIN, { porte: { relecturesEchec: 5 } }), 'beta'), []);
 vrai('   un /health qui n\'est pas un objet crie sans planter', S.evaluer(null, 'beta').length === 1 && S.evaluer('texte', 'beta').length === 1);
 vrai('⛔ aucun problème ne contient d\'identifiant, d\'adresse ni de corps : seulement des mots de la surveillance (le dépôt est public)',
   S.evaluer({ ok: false, instance: 'x@y.fr', sha: 'jeton-secret', sauvegarde: { configuree: false }, stripeEchecMin: 500 }, 'beta').every(p => !/x@y\.fr|jeton-secret/.test(p)));

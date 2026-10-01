@@ -113,17 +113,31 @@ console.log('\nUne ligne recopiée ou permutée ne s\'ouvre plus (données assoc
   const poser = (conv, seq, blob) => brut.prepare('UPDATE message SET corps_ch = ? WHERE conv = ? AND seq = ?').run(blob, conv, seq);
   const c1s1 = corps(c1, 1), c1s2 = corps(c1, 2), gs2 = corps(g.id, 2);
   poser(c1, 1, c1s2); poser(c1, 2, c1s1);
-  v('⛔ deux corps PERMUTÉS dans une conversation → la lecture refuse', lance(() => a.S.messagesDe(c1, al.id)), 'scelle_invalide');
+  /* ⛔ Une ligne qui ne s'ouvre pas ne rend JAMAIS un texte qui n'est pas le sien : elle se dit `illisible`, sans
+     texte, et les lignes saines de la même page continuent d'être lues (relecture adverse, D8 : avant, UNE ligne
+     abîmée rendait 500 sur toute la conversation, et sur la liste de tous ses membres). */
+  const illisible = (seqAbime, seqSain) => {
+    const r = a.S.messagesDe(c1, al.id).messages, ab = r.find(m => m.seq === seqAbime), sa = r.find(m => m.seq === seqSain);
+    return [ab && ab.illisible === true && ab.texte === null, !!sa && !sa.illisible && typeof sa.texte === 'string'];
+  };
+  const avantIll = a.S.stats().illisibles;
+  poser(c1, 1, c1s2); poser(c1, 2, c1s1);
+  v('⛔ deux corps PERMUTÉS dans une conversation → les deux lignes se disent illisibles, aucune ne rend le texte de l\'autre', [a.S.messagesDe(c1, al.id).messages.map(m => [m.illisible === true, m.texte])], [[[true, null], [true, null]]]);
   poser(c1, 1, c1s1); poser(c1, 2, c1s2);
   poser(c1, 1, gs2);
-  v('⛔ un corps RECOPIÉ d\'une autre conversation → la lecture refuse', lance(() => a.S.messagesDe(c1, al.id)), 'scelle_invalide');
+  v('⛔ un corps RECOPIÉ d\'une autre conversation → illisible, sans texte ; la ligne saine est lue', illisible(1, 2), [true, true]);
   poser(c1, 1, c1s1);
   brut.prepare('UPDATE message SET auteur = ? WHERE conv = ? AND seq = 1').run(bo.id, c1);
-  v('⛔ l\'AUTEUR changé sur la ligne → la lecture refuse (il est dans les données associées)', lance(() => a.S.messagesDe(c1, al.id)), 'scelle_invalide');
+  v('⛔ l\'AUTEUR changé sur la ligne → illisible (il est dans les données associées)', illisible(1, 2), [true, true]);
   brut.prepare('UPDATE message SET auteur = ? WHERE conv = ? AND seq = 1').run(al.id, c1);
   const tronque = Buffer.from(c1s1); tronque[tronque.length - 1] ^= 0xff;
   poser(c1, 1, tronque);
-  v('⛔ un octet modifié → la lecture refuse', lance(() => a.S.messagesDe(c1, al.id)), 'scelle_invalide');
+  v('⛔ un octet modifié → illisible', illisible(1, 2), [true, true]);
+  vrai('⛔ ces refus laissent une TRACE : le compteur `illisibles` du /health a monté (une erreur avalée sans trace est une panne silencieuse)', a.S.stats().illisibles >= avantIll + 5);
+  v('la liste des conversations survit à la ligne abîmée, et son aperçu le dit', (() => { const l = a.S.convListe(al.id).find(x => x.id === c1); return [!!l, l.apercu && l.apercu.seq]; })(), [true, 2]);
+  poser(c1, 2, tronque);
+  v('⛔ même quand c\'est le DERNIER message qui est abîmé (celui que la liste montre) : la liste répond, l\'aperçu est illisible', (() => { const l = a.S.convListe(al.id).find(x => x.id === c1); return [l.apercu.illisible === true, l.apercu.texte]; })(), [true, null]);
+  poser(c1, 2, c1s2);
   poser(c1, 1, c1s1);
   v('contre-épreuve : tout remis en place, tout s\'ouvre de nouveau', a.S.messagesDe(c1, al.id).messages.map(m => m.texte), ['premier', 'second']);
   brut.close();
@@ -264,7 +278,7 @@ console.log('\nLes messages éphémères (horloge injectable) — la ligne ENTI�
   vrai('⛔ le texte n\'est plus nulle part dans le fichier', !octets(a.chemin).includes(Buffer.from('ZXEPHEMERE')));
   v('l\'identifiant est noté dans `purge`', brut.prepare("SELECT COUNT(*) AS n FROM purge WHERE genre = 'message_ephemere'").get().n >= 1, true);
   v('le message du groupe durable est intact', a.S.messagesDe(dur, al.id).messages.some(x => x.texte === 'ZXDURABLE'), true);
-  v('un événement de suppression est écrit pour prévenir les flux', brut.prepare("SELECT COUNT(*) AS n FROM journal WHERE genre = 'msg_supprime' AND conv = ?").get(eph).n >= 1, true);
+  v('un événement d\'EXPIRATION (pas de suppression « pour tous ») est écrit pour prévenir les flux', brut.prepare("SELECT COUNT(*) AS n FROM journal WHERE genre = 'msg_expire' AND conv = ?").get(eph).n >= 1, true);
   brut.close();
   a.S.convMaj({ conv: dur, par: al.id, ephemere_s: 604800 });
   a.S.messageEnvoyer({ conv: dur, auteur: al.id, cid: 'cid-eph-00003', texte: 'après réglage' });

@@ -32,7 +32,7 @@
       const t = el('span', '', titreConv(c));
       if (c.non_lus) t.appendChild(el('span', 'badge', String(c.non_lus)));
       b.appendChild(t);
-      b.appendChild(el('span', 'doux', c.apercu ? (c.apercu.supprime ? 'Message supprimé' : (c.apercu.texte || '')) : 'Aucun message'));
+      b.appendChild(el('span', 'doux', c.apercu ? (c.apercu.supprime ? 'Message supprimé' : (c.apercu.illisible ? 'Message illisible' : (c.apercu.texte || ''))) : 'Aucun message'));
       b.addEventListener('click', () => ouvrir(c.id).catch(echec));
       li.appendChild(b); ul.appendChild(li);
     }
@@ -43,7 +43,7 @@
     for (const m of etat.messages) {
       if (m.type === 'systeme') { fil.appendChild(el('div', 'bulle systeme', libelleSysteme(m))); continue; }
       const b = el('div', 'bulle' + (etat.moi && m.auteur === etat.moi.id ? ' moi' : ''));
-      b.textContent = m.supprime ? 'Message supprimé' : (m.texte === null || m.texte === undefined ? '…' : m.texte);
+      b.textContent = m.supprime ? 'Message supprimé' : (m.illisible ? 'Message illisible' : (m.texte === null || m.texte === undefined ? '…' : m.texte));
       if (!(etat.moi && m.auteur === etat.moi.id)) { const q = el('div', 'doux', nomDe(m.auteur)); b.insertBefore(q, b.firstChild); }
       fil.appendChild(b);
     }
@@ -93,8 +93,14 @@
         }
         chargerListe().catch(echec);
       },
-      message_modifie: (d) => { if (etat.courante && d.conv === etat.courante.id) { window.OPMSG.fusionner(etat.messages, { seq: d.seq, texte: d.texte === undefined ? null : d.texte }); dessinerFil(); } },
-      message_supprime: (d) => { if (etat.courante && d.conv === etat.courante.id) { const m = etat.messages.find(x => x.seq === d.seq); if (m) { if (d.pour === 'moi') etat.messages = etat.messages.filter(x => x.seq !== d.seq); else { m.supprime = true; m.texte = null; } dessinerFil(); } } },
+      /* ⛔ Un texte de plus de 2 Ko n'est pas porté par l'événement (`relis`) : on le RELIT, comme pour un message neuf —
+         sinon la bulle gardait « … » jusqu'au rechargement (relecture adverse, D7). */
+      message_modifie: (d) => {
+        if (!(etat.courante && d.conv === etat.courante.id)) return;
+        if (d.relis) api.messages(d.conv, { apres_seq: d.seq - 1, limite: 1 }).then(r => { r.messages.forEach(m => window.OPMSG.fusionner(etat.messages, m)); dessinerFil(); }).catch(() => {});
+        else { window.OPMSG.fusionner(etat.messages, { seq: d.seq, texte: d.texte === undefined ? null : d.texte, illisible: d.illisible === true }); dessinerFil(); }
+      },
+      message_supprime: (d) => { if (etat.courante && d.conv === etat.courante.id) { const m = etat.messages.find(x => x.seq === d.seq); if (m) { if (d.pour === 'moi' || d.pour === 'expire') etat.messages = etat.messages.filter(x => x.seq !== d.seq); else { m.supprime = true; m.texte = null; } dessinerFil(); } } },
       conversation: () => chargerListe().catch(echec),
       retire: (d) => { if (etat.courante && d.conv === etat.courante.id) { etat.courante = null; $('titre').textContent = ''; $('fil').textContent = ''; $('f-envoi').hidden = true; } chargerListe().catch(echec); },
       resync: () => { chargerListe().catch(echec); if (etat.courante) ouvrir(etat.courante.id).catch(echec); },

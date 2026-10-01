@@ -19,7 +19,7 @@ T.sauterSiSansDependances();
 const { v, vrai, fin } = T.compteur();
 const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
 const { creerMdp } = require(path.join(T.SERVICE, 'mdp.js'));
-const { creerQuotas, MAX_CLES } = require(path.join(T.SERVICE, 'quotas.js'));
+const { creerQuotas, cleReseau, MAX_CLES } = require(path.join(T.SERVICE, 'quotas.js'));
 const { charger, lireCle } = require(path.join(T.SERVICE, 'config.js'));
 const lance = (f) => { try { f(); return null; } catch (e) { return e.message || String(e); } };
 
@@ -108,9 +108,27 @@ const lance = (f) => { try { f(); return null; } catch (e) { return e.message ||
     for (let i = 0; i < MAX_CLES; i++) g.essai('ip' + i, 1, 60000);
     v('population : la table est PLEINE (' + MAX_CLES + ' clés vivantes)', g.taille(), MAX_CLES);
     const nouveau = g.essai('une-de-plus', 1, 60000);
-    v('⛔ pleine de clés vivantes, une clé NEUVE est refusée (fermé par défaut), la table ne grossit pas', [nouveau.ok, g.taille()], [false, MAX_CLES]);
+    v('⛔ pleine de clés vivantes, une clé NEUVE est ACCEPTÉE (la table se saturait : 50 500 adresses distinctes fermaient la porte à toute adresse neuve), et la table ne grossit pas',
+      [nouveau.ok, g.taille() <= MAX_CLES, g.evinces() >= 1], [true, true, true]);
+    v('⛔ ce sont les PLUS ANCIENNES qui partent (la première clé n\'est plus comptée, la dernière l\'est encore)', [g.essai('ip0', 1, 60000).ok, g.essai('une-de-plus', 1, 60000).ok], [true, false]);
     h.t += 60001;
     v('quand les fenêtres échoient, on balaie et on accepte de nouveau', [g.essai('une-de-plus', 1, 60000).ok, g.taille() < MAX_CLES], [true, true]);
+    {
+      const petit = creerQuotas(() => h.t, 100);
+      for (let i = 0; i < 500; i++) petit.essai('k' + i, 1, 60000);
+      vrai('la table à plafond réglable reste bornée (100) après 500 clés vivantes', petit.taille() <= 100);
+      const r1 = creerQuotas(() => h.t);
+      r1.essai('c', 2, 60000); r1.essai('c', 2, 60000); r1.rembourser('c');
+      v('⛔ une tentative REMBOURSÉE ne compte plus (un succès n\'use pas le plafond des échecs)', [r1.essai('c', 2, 60000).ok, r1.essai('c', 2, 60000).ok], [true, false]);
+      r1.rembourser('inconnue');
+      vrai('   rembourser une clé inconnue ne plante pas', true);
+    }
+    console.log('  `cleReseau` : l\'IPv6 se compte par /64, l\'IPv4 mappée comme une IPv4');
+    v('⛔ deux adresses d\'un même /64 ont la même clé', cleReseau('2001:db8:1:2:aaaa:bbbb:cccc:dddd'), cleReseau('2001:db8:1:2::1'));
+    vrai('   un autre /64 en a une autre', cleReseau('2001:db8:1:3::1') !== cleReseau('2001:db8:1:2::1'));
+    v('   ::ffff:1.2.3.4 est 1.2.3.4', cleReseau('::ffff:1.2.3.4'), '1.2.3.4');
+    v('   une IPv4 reste telle quelle, une adresse illisible aussi', [cleReseau('203.0.113.7'), cleReseau('pas-une-adresse'), cleReseau('1::2::3')], ['203.0.113.7', 'pas-une-adresse', '1::2::3']);
+    v('   la zone (%eth0) ne change pas la clé', cleReseau('fe80::1%eth0'), cleReseau('fe80::1'));
   }
 
   console.log('\nLa configuration : tout vient de l\'environnement, une erreur dit pourquoi sans jamais dire la clé');
@@ -146,6 +164,14 @@ const lance = (f) => { try { f(); return null; } catch (e) { return e.message ||
     fs.writeFileSync(path.join(cred, 'kek'), CLE);
     fs.writeFileSync(cfg, '{pas du json');
     v('un JSON illisible est refusé sans citer son contenu', /illisible|invalide/.test(lance(() => charger(base))) && !/pas du json/.test(lance(() => charger(base))), true);
+    fs.writeFileSync(cfg, JSON.stringify({ origine: 'https://exemple.invalide' }));
+    v('⛔ la clé `origine` (celle que l\'INSTALLATION écrit) est lue comme `origines` — elle était ignorée, et la garde d\'origine retombait sur Origin = Host sans le dire', charger(base).origines, ['https://exemple.invalide']);
+    fs.writeFileSync(cfg, JSON.stringify({ origine: 'https://exemple.invalide/chemin' }));
+    v('⛔ une origine qui n\'en est pas une (chemin) REFUSE le démarrage plutôt que de relâcher la garde', /origine invalide/.test(lance(() => charger(base))), true);
+    fs.writeFileSync(cfg, JSON.stringify({ origines: ['pas une origine'] }));
+    v('   idem pour une liste mal formée', /origine invalide/.test(lance(() => charger(base))), true);
+    fs.writeFileSync(cfg, JSON.stringify({}));
+    v('   sans aucune origine configurée : `null` (le service retombe sur Origin = Host, et le dit ici)', charger(base).origines, null);
     fs.writeFileSync(cfg, JSON.stringify({ cookie: { nom: '__Host-opm', secure: false } }));
     v('⛔ un cookie __Host- sans Secure est refusé (le navigateur le jetterait : personne ne se connecterait)', /__Host- exige secure/.test(lance(() => charger(base))), true);
     fs.writeFileSync(cfg, JSON.stringify({ cookie: { nom: 'opm', secure: false } }));

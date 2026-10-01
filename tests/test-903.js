@@ -45,6 +45,7 @@ const nb = (svc, table) => { const d = lireDb(svc); try { return d.prepare('SELE
       v('/health répond 200 {ok:true, instance, sha}', [h.code, h.j.ok, h.j.instance, h.j.sha], [200, true, 'beta', 'banc0000']);
       v('⛔ /health n\'a QUE des champs agrégés (la liste exacte — en ajouter un oblige à trancher ici)', Object.keys(h.j).sort(), ['base', 'boucle', 'disque', 'flux', 'instance', 'ok', 'porte', 'quotasRefus', 'sha', 'uptimeS', 'version']);
       vrai('⛔ aucun identifiant de personne ni de conversation dans /health', !/\b[pcm]_[0-9a-f]{32}\b/.test(h.txt));
+      v('⛔ /health PUBLIE le compteur de lignes illisibles (un nombre, jamais lesquelles) : c\'est ce que lit la surveillance', [h.j.base.illisibles, Object.keys(h.j.base).sort()], [0, ['illisibles', 'ok', 'schema']]);
       vrai('la boucle d\'événements est mesurée (p99 en ms)', typeof h.j.boucle.p99Ms === 'number');
       const autres = [].concat(...Object.values(os.networkInterfaces())).filter(i => i.family === 'IPv4' && !i.internal).map(i => i.address);
       let atteint = [];
@@ -216,6 +217,53 @@ const nb = (svc, table) => { const d = lireDb(svc); try { return d.prepare('SELE
       og.comptes.bob.actif = true;
       v('rouvert depuis la Tour, il rentre de nouveau', (await T.client(svc.base).post('/api/beta/entrer', { login: 'bob', pass: 'pw-bob-12345' })).code, 200);
       fa.fermer(); fb.fermer();
+    }
+
+    console.log('\nLa relecture des accès : UNE requête pour tous (le plafond d\'OP GESTION est de 20 par minute), et ce qu\'OP GESTION ne dit pas ne coupe personne');
+    {
+      const N = 30, clients = [];
+      for (let i = 1; i <= N; i++) og.comptes['usr' + i] = { pass: 'pw-usr' + i + '-12345', nom: 'Usr' + i, actif: true };
+      for (let i = 1; i <= N; i++) clients.push(await T.connecter(svc, og, 'usr' + i, 'pw-usr' + i + '-12345'));
+      const n0 = og.appels.length;
+      await T.attendre(() => og.appels.slice(n0).filter(a => a.chemin === '/api/beta/etat').length >= 3, 8000);
+      const etats = og.appels.slice(n0).filter(a => a.chemin === '/api/beta/etat');
+      vrai('population : trois relectures vues, ' + N + ' sessions bêta ouvertes', etats.length >= 3);
+      vrai('⛔ CHAQUE relecture est UNE requête portant la liste des identifiants de compte (pas une par accès : 20 par minute au plus chez OP GESTION)',
+        etats.every(a => Array.isArray(a.corps.ids) && a.corps.ids.length >= N && a.corps.login === undefined && a.corps.ids.every(x => /^b[0-9a-f]{10}$/.test(x))));
+      // Un OP GESTION qui répond sans rien dire (ou à l'ancienne) ne coupe PERSONNE.
+      og.mode = 'etat_vide';
+      const m0 = og.appels.length;
+      await T.attendre(() => og.appels.slice(m0).filter(a => a.chemin === '/api/beta/etat').length >= 3, 8000);
+      v('⛔ une réponse qui ne mentionne personne ne coupe personne (absent ≠ coupé)', [(await clients[0].get('/api/moi')).code, (await clients[N - 1].get('/api/moi')).code], [200, 200]);
+      og.mode = 'etat_ancien';
+      const m1 = og.appels.length;
+      await T.attendre(() => og.appels.slice(m1).filter(a => a.chemin === '/api/beta/etat').length >= 3, 8000);
+      v('⛔ un OP GESTION d\'avant (réponse `ouvert` sans `ouverts`) ne coupe personne non plus', [(await clients[0].get('/api/moi')).code, (await clients[N - 1].get('/api/moi')).code], [200, 200]);
+      vrai('   et la relecture le SAIT : relecturesEchec monte', (await T.client(svc.base).get('/health')).j.porte.relecturesEchec >= 1);
+      og.mode = 'normal';
+      // Couper le PREMIER et le DERNIER de trente : avec une requête par accès, le plafond d'OP GESTION (429) en laissait deux ouverts.
+      og.comptes.usr1.actif = false; og.comptes['usr' + N].actif = false;
+      const coupes = await T.attendre(async () => (await clients[0].get('/api/moi')).code === 401 && (await clients[N - 1].get('/api/moi')).code === 401, 8000);
+      vrai('⛔ le premier ET le dernier accès coupés voient leur session fermée', !!coupes);
+      v('   les vingt-huit autres sont intacts', (await Promise.all(clients.slice(1, N - 1).map(c => c.get('/api/moi')))).filter(r => r.code === 200).length, N - 2);
+    }
+
+    console.log('\nUne personne est un COMPTE, pas un texte : un accès supprimé puis recréé sous le même login est une autre personne');
+    {
+      og.comptes.rose = { id: 'b0000aaaa01', pass: 'pw-rose-12345', nom: 'Rose', actif: true };
+      const r1 = await T.client(svc.base).post('/api/beta/entrer', { login: 'rose', pass: 'pw-rose-12345' });
+      await T.client(svc.base).post('/api/beta/entrer', { login: 'rose', pass: 'pw-rose-12345' });
+      const rose1 = r1.j.moi.id;
+      const c1 = T.client(svc.base); const e1 = await c1.post('/api/beta/entrer', { login: 'rose', pass: 'pw-rose-12345' });
+      v('la même personne se reconnaît à son compte (même identifiant à chaque entrée)', e1.j.moi.id, rose1);
+      og.comptes.rose = { id: 'b0000bbbb02', pass: 'pw-rose-12345', nom: 'Rose', actif: true };   // supprimée, recréée : même login, AUTRE compte
+      const e2 = await T.client(svc.base).post('/api/beta/entrer', { login: 'rose', pass: 'pw-rose-12345' });
+      vrai('⛔ le nouveau compte « rose » n\'est PAS la personne de l\'ancien (pas ses contacts, ses conversations, ses confidences)', e2.code === 200 && e2.j.moi.id !== rose1);
+      // Un OP GESTION qui ne rend pas d'identifiant (trop ancien) ferme la porte plutôt que de retomber sur le login.
+      og.mode = 'sans_id';
+      const e3 = await T.client(svc.base).post('/api/beta/entrer', { login: 'rose', pass: 'pw-rose-12345' });
+      v('⛔ une réponse de connexion SANS identifiant de compte : 503 porte_indisponible (on ne retombe jamais sur le texte du login)', [e3.code, e3.j.error], [503, 'porte_indisponible']);
+      og.mode = 'normal';
     }
 
     console.log('\nDéconnexion, session expirée (horloge avancée), cookie invalide');

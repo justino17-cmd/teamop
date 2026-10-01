@@ -68,6 +68,17 @@ function lireCle(dossier) {
   return Buffer.from(v, 'hex');
 }
 
+/* ⛔ Les origines autorisées : la liste `origines`, OU la chaîne `origine` que l'installation écrit (`install-msg.sh`). Les deux
+   noms n'étaient pas lus pareil — l'installation écrivait `origine`, le service lisait `origines` — et la clé était IGNORÉE : la
+   vérification retombait sur « Origin = Host », sans que rien ne le dise (relecture du gardien, point 9). Une valeur qui n'est
+   pas une origine (schéma, hôte, port — ni chemin, ni requête) REFUSE le démarrage plutôt que de relâcher la garde. */
+function origines(cfg) {
+  const liste = Array.isArray(cfg.origines) ? cfg.origines.map(String) : (typeof cfg.origine === 'string' && cfg.origine ? [cfg.origine] : null);
+  const FORME = new RegExp('^https?:' + '//[A-Za-z0-9.-]+(:\\d{1,5})?$');   // schéma, hôte, port : ni chemin, ni requête
+  if (liste && !liste.every(o => FORME.test(o))) { const e = new Error('config: origine invalide (attendu : schéma, hôte et port éventuel, sans chemin)'); e.code = 'CONFIG'; throw e; }
+  return liste && liste.length ? liste : null;
+}
+
 function charger(env = process.env) {
   const manque = (n) => { const e = new Error('config: ' + n + ' est obligatoire'); e.code = 'CONFIG'; return e; };
   const instance = env.OPMSG_INSTANCE;
@@ -91,7 +102,7 @@ function charger(env = process.env) {
     instance, port, kek,
     dataDir: path.resolve(env.OPMSG_DATA),
     sha: String(env.OPMSG_SHA || '').replace(/[^0-9a-zA-Z._-]/g, '').slice(0, 64) || 'inconnu',
-    origines: Array.isArray(cfg.origines) ? cfg.origines.map(String) : null,
+    origines: origines(cfg),
     cookie,
     beta: Object.assign({ urlGestion: 'http://127.0.0.1:8080', relectureMs: 60000, timeoutMs: 5000 }, cfg.beta || {}),
     quotas: cfg.quotas && typeof cfg.quotas === 'object' ? cfg.quotas : {},

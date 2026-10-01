@@ -114,6 +114,45 @@ const json = async (base, methode, chemin, corps, entetes) => {
       f.fermer(); f2.fermer();
     }
 
+    console.log('\nL\'identité d\'une personne est l\'identifiant du COMPTE d\'OP GESTION, et les accès se relisent en UNE requête');
+    {
+      const lg = await json(og.base, 'POST', '/api/beta/login', { login: 'alice', pass: 'pw-alice-reel1' });
+      vrai('⛔ la VRAIE route de connexion d\'OP GESTION rend l\'identifiant du compte (b + 10 hexadécimaux), celui que la Tour affiche', lg.code === 200 && /^b[0-9a-f]{10}$/.test(lg.j.id) && lg.j.id === a1.j.compte.id);
+      const et = await json(og.base, 'POST', '/api/beta/etat', { ids: [a1.j.compte.id, a2.j.compte.id, 'b' + 'f'.repeat(10), 'pas-un-id', 42] });
+      v('⛔ la VRAIE route d\'état répond pour une LISTE d\'identifiants : ouvert → true, inconnu → false, forme invalide ignorée', [et.code, et.j.ouverts], [200, { [a1.j.compte.id]: true, [a2.j.compte.id]: true, ['b' + 'f'.repeat(10)]: false }]);
+      const ancien = await json(og.base, 'POST', '/api/beta/etat', { login: 'alice' });
+      v('   l\'ancienne forme (un login) répond toujours (les pages déjà déployées l\'utilisent)', ancien.j, { ouvert: true });
+      // Supprimée puis recréée sous le même login : une AUTRE personne chez OP MESSAGES.
+      const d1 = await creer('dora', 'pw-dora-reel1', 'Dora');
+      const c1 = T.client(svc.base, { xff: ip() });
+      const e1 = await c1.post('/api/beta/entrer', { login: 'dora', pass: 'pw-dora-reel1' });
+      await c1.post('/api/moi/maj', { statut: 'confidence de Dora' });
+      await json(og.base, 'POST', '/api/monitor/beta/delete', { id: d1.j.compte.id }, H);
+      const d2 = await creer('dora', 'pw-dora-reel2', 'Dora');
+      const c2 = T.client(svc.base, { xff: ip() });
+      const e2 = await c2.post('/api/beta/entrer', { login: 'dora', pass: 'pw-dora-reel2' });
+      vrai('⛔ le login « dora » recréé est une AUTRE personne (autre identifiant, rien de l\'ancienne : pas son statut)', d2.j.compte.id !== d1.j.compte.id && e2.code === 200 && e2.j.moi.id !== e1.j.moi.id && e2.j.moi.statut !== 'confidence de Dora' && (await c2.get('/api/moi')).j.moi.statut === '');
+      vrai('   et l\'ancienne session de Dora (compte supprimé) a été fermée par la relecture', !!(await T.attendre(async () => (await c1.get('/api/moi')).code === 401, 8000)));
+    }
+
+    console.log('\nTrente sessions bêta : couper le premier et le dernier ferme les deux (une requête de relecture, pas trente)');
+    {
+      const N = 30, cs = [];
+      for (let i = 1; i <= N; i++) {
+        const l = 'essai' + String(i).padStart(2, '0');
+        const cr = await creer(l, 'pw-' + l + '-reel', 'Essai ' + i);
+        if (cr.code !== 200) { cs.push(null); continue; }
+        cs.push({ id: cr.j.compte.id, c: await T.connecter(svc, {}, l, 'pw-' + l + '-reel', ip()) });
+      }
+      vrai('population : ' + N + ' sessions bêta ouvertes (plus que les 20 relectures par minute que tolère OP GESTION)', cs.every(x => x && x.c));
+      await json(og.base, 'POST', '/api/monitor/beta/toggle', { id: cs[0].id }, H);
+      await json(og.base, 'POST', '/api/monitor/beta/toggle', { id: cs[N - 1].id }, H);
+      const ferme = await T.attendre(async () => (await cs[0].c.get('/api/moi')).code === 401 && (await cs[N - 1].c.get('/api/moi')).code === 401, 10000);
+      vrai('⛔ les sessions du PREMIER et du DERNIER accès coupés sont fermées (avec une requête par accès, OP GESTION répondait 429 au-delà de 20 et deux restaient ouvertes)', !!ferme);
+      v('   les autres restent ouvertes', (await Promise.all(cs.slice(1, N - 1).map(x => x.c.get('/api/moi')))).filter(r => r.code === 200).length, N - 2);
+      vrai('   et la relecture ne s\'est pas heurtée au plafond d\'OP GESTION (aucun échec persistant)', (await T.client(svc.base).get('/health')).j.porte.relecturesEchec === 0);
+    }
+
     console.log('\nDeux formes de jeton, deux mondes : aucun ne passe chez l\'autre');
     {
       const c = await T.connecter(svc, {}, 'alice', 'pw-alice-reel1', ip());

@@ -30,6 +30,7 @@
  * blocage, se désactive (`prefs.presence:false`), et garde 20 s de grâce : recharger la page
  * ne fait pas clignoter « hors ligne ».
  */
+const { cleReseau } = require('./quotas');
 const MAX_PAR_PERSONNE = 5, MAX_PAR_IP = 200, MAX_TAMPON = 1 << 20, DUREE_MAX_MS = 24 * 3600 * 1000;
 
 const trame = (id, event, data) => (id !== null && id !== undefined ? 'id: ' + id + '\n' : '') + 'event: ' + event + '\ndata: ' + JSON.stringify(data) + '\n\n';
@@ -70,7 +71,8 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
 
   /* Ouvre un flux : `{ ok:false, code, retry }` s'il est refusé (le gestionnaire répond alors en
      JSON et un EventSource neuf n'est pas recréé en boucle), sinon `{ ok:true }`. */
-  function ouvrir({ uid, h, ip, req, res, lastId }) {
+  function ouvrir({ uid, h, ip: ipBrute, req, res, lastId }) {
+    const ip = cleReseau(ipBrute);   // le plafond par adresse se compte par réseau (/64 en IPv6)
     const pers = parUid.get(uid);
     if ((pers ? pers.size : 0) >= MAX_PAR_PERSONNE || (parIp.get(ip) || 0) >= MAX_PAR_IP) { refus++; return { ok: false, code: 'trop_de_flux', retry: 5 }; }
     res.status(200);
@@ -86,7 +88,8 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
     ecrire(f, 'retry: 2000\n\n');
 
     const max = stockage.journalMax();
-    let n = lastId === undefined || lastId === null || lastId === '' ? NaN : parseInt(lastId, 10);
+    /* ⛔ Un ENTIER, rien d'autre : `parseInt('1.5')` valait 1 et `parseInt('1e3')` valait 1 aussi. */
+    let n = /^\d{1,15}$/.test(String(lastId)) ? parseInt(lastId, 10) : NaN;
     if (!Number.isInteger(n) || n < 0) {
       f.dernier = max;
       ecrire(f, trame(max, 'bonjour', { gid: max }));

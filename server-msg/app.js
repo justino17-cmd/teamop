@@ -22,6 +22,7 @@ const path = require('path'), crypto = require('crypto');
 const express = require('express');
 const { MANIFESTE } = require('./manifeste');
 const { creerHandlers, ID_CONV } = require('./routes');
+const { cleReseau } = require('./quotas');
 
 const NOM_ENTETE = 'x-opm';
 const SHA = (x) => crypto.createHash('sha256').update(x).digest('hex');
@@ -61,7 +62,7 @@ function construireApp(ctx) {
   app.use('/api', (req, res, next) => {
     if (req.path === '/flux') return next();
     const q = Object.assign({ max: 600, fenetreMs: 60000 }, config.quotas.ip || {});
-    const r = quotas.essai('ip:' + req.ip, q.max, q.fenetreMs);
+    const r = quotas.essai('ip:' + cleReseau(req.ip), q.max, q.fenetreMs);   // ⛔ par réseau (/64 en IPv6), jamais par adresse complète
     if (r.ok) return next();
     res.set('Retry-After', String(r.retry));
     journaliser('quota_refuse', { quota: 'ip' });

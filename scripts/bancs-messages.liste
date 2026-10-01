@@ -28,6 +28,7 @@ tests/test-906.js
 tests/test-907.js
 tests/test-908.js
 tests/test-909.js
+tests/test-910.js
 #
 # ── Installation, déploiement, surveillance ─────────────────────────────────────────────────────────────────────────────
 tests/test-930.js

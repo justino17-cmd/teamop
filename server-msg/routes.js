@@ -16,6 +16,7 @@
  * bidirectionnelles sont retirés des noms (un nom ne doit pas retourner le texte qui le suit).
  */
 const crypto = require('crypto');
+const { cleReseau } = require('./quotas');
 
 const ID_CONV = /^c_[0-9a-f]{32}$/, ID_PERS = /^p_[0-9a-f]{32}$/, CID = /^[A-Za-z0-9_-]{8,64}$/, CODE = /^[A-Za-z0-9_-]{20,64}$/;
 const EPHEMERES = [0, 86400, 604800, 7776000];
@@ -71,13 +72,15 @@ function creerHandlers(ctx) {
     config.cookie.nom + '=' + valeur + '; Path=/; HttpOnly; SameSite=Strict; Max-Age=' + maxAge + (config.cookie.secure ? '; Secure' : '');
   function ouvrirSession(res, personne, appareil) {
     const jeton = 'opm_' + crypto.randomBytes(32).toString('base64url');
-    stockage.sessionAjouter({ h: sha(jeton), personne, appareil: typeof appareil === 'string' ? nettoyerNom(appareil).slice(0, 40) : null, ttlMs: SESSION_MS });
+    const evincees = stockage.sessionAjouter({ h: sha(jeton), personne, appareil: typeof appareil === 'string' ? nettoyerNom(appareil).slice(0, 40) : null, ttlMs: SESSION_MS });
+    /* ⛔ Une session évincée ferme SON flux : supprimée de la base, elle recevait encore les messages pendant 24 h. */
+    for (const h of evincees) hub.fermerSession(h);
     res.append('Set-Cookie', cookieTexte(jeton, SESSION_MS / 1000));
   }
 
   function detail(uid, id) {
     const r = stockage.convPourMembre(id, uid); if (!r) return null;
-    const membres = stockage.membresDetail(id);
+    const membres = stockage.membresDetail(id, uid);
     const conversation = Object.assign({}, r.conv, { membres_n: membres.length });
     if (r.conv.type === 'direct') { const a = membres.find(m => m.id !== uid); if (a) conversation.autre = { id: a.id, prenom: a.prenom, nom: a.nom }; }
     return { conversation, membres, moi: r.moi };
@@ -185,7 +188,7 @@ function creerHandlers(ctx) {
   };
 
   H['liens.lire'] = (req, res) => {
-    if (!plafond(res, 'lien_ip', req.ip, { max: 60, fenetreMs: 60000 })) return;
+    if (!plafond(res, 'lien_ip', cleReseau(req.ip), { max: 60, fenetreMs: 60000 })) return;
     const c = corps(req).code;
     if (typeof c !== 'string' || !CODE.test(c)) return refus(res, 410, 'lien_invalide');
     const a = stockage.lienApercu(sha(c));
@@ -194,7 +197,7 @@ function creerHandlers(ctx) {
   };
 
   H['liens.accepter'] = (req, res) => {
-    if (!plafond(res, 'lien_ip', req.ip, { max: 60, fenetreMs: 60000 })) return;
+    if (!plafond(res, 'lien_ip', cleReseau(req.ip), { max: 60, fenetreMs: 60000 })) return;
     const c = corps(req).code;
     if (typeof c !== 'string' || !CODE.test(c)) return refus(res, 410, 'lien_invalide');
     const r = stockage.lienAccepter({ h: sha(c), uid: req.moi.id });
@@ -214,7 +217,9 @@ function creerHandlers(ctx) {
   };
   H['contacts.retirer'] = (req, res) => {
     const u = cibleContact(req, res); if (!u) return;
-    if (!stockage.contactRetirer(req.moi.id, u)) return refus(res, 404, 'introuvable');
+    /* Un blocage que NOUS avons posé n'est pas levé par un retrait : « bloquer et retirer » est un geste valable. */
+    const l = stockage.contactLigne(req.moi.id, u);
+    if (!stockage.contactRetirer(req.moi.id, u) && !(l && l.etat === 'bloque')) return refus(res, 404, 'introuvable');
     res.json({ ok: true });
   };
   H['contacts.bloquer'] = (req, res) => {
@@ -233,6 +238,9 @@ function creerHandlers(ctx) {
   H['personnes.lire'] = (req, res) => {
     const id = req.params.id;
     if (!ID_PERS.test(id) || !stockage.peutVoir(req.moi.id, id)) return refus(res, 404, 'introuvable');
+    /* ⛔ Qui nous a bloqués ne se laisse pas lire : on ne voit plus le profil de celui qui nous a bloqués. L'inverse reste vrai. */
+    const contre = stockage.contactLigne(id, req.moi.id);
+    if (contre && contre.etat === 'bloque') return refus(res, 404, 'introuvable');
     const p = stockage.personneParId(id); if (!p) return refus(res, 404, 'introuvable');
     res.json({ personne: { id: p.id, prenom: p.prenom, nom: p.nom, statut: p.statut, contact: !!stockage.contactLigne(req.moi.id, id) } });
   };
@@ -330,6 +338,13 @@ function creerHandlers(ctx) {
     res.status(201).json({ code, expire_le: horloge() + b.jours * JOUR });
   };
 
+  /* Révoquer les liens d'invitation : ceux du groupe (administrateur) ou les miens, de contact. Le nombre révoqué est rendu. */
+  H['conv.liens.revoquer'] = (req, res) => {
+    if (req.conv.conv.type !== 'groupe') return refus(res, 409, 'conversation_directe');
+    res.json({ ok: true, n: stockage.liensRevoquerGroupe(req.conv.conv.id) });
+  };
+  H['contacts.liens.revoquer'] = (req, res) => res.json({ ok: true, n: stockage.liensRevoquerContact(req.moi.id) });
+
   H['conv.quitter'] = (req, res) => {
     const c = req.conv.conv;
     const r = stockage.membreQuitter({ conv: c.id, uid: req.moi.id });
@@ -360,6 +375,8 @@ function creerHandlers(ctx) {
   H['conv.saisie'] = (req, res) => {
     const a = corps(req).actif;
     if (typeof a !== 'boolean') return refus(res, 400, 'champ_invalide');
+    /* ⛔ Une directe bloquée (ou sans contact mutuel) ne reçoit plus rien, pas même une frappe : même règle que l'envoi. */
+    if (!stockage.ecritureAutorisee(req.conv.conv.id, req.moi.id)) return refus(res, 404, 'introuvable');
     if (!plafond(res, 'saisie', req.moi.id + ':' + req.conv.conv.id, { max: 1, fenetreMs: 2000 })) return;
     hub.emettre(stockage.membresActifs(req.conv.conv.id).filter(u => u !== req.moi.id), 'saisie', { conv: req.conv.conv.id, uid: req.moi.id, actif: a });
     res.json({ ok: true });

@@ -71,7 +71,7 @@ function demarrer(env = process.env) {
     sante: () => ({
       ok: true, instance: config.instance, sha: config.sha, version: VERSION,
       uptimeS: Math.round((Date.now() - demarreA) / 1000),
-      base: { ok: true, schema: stockage.schema() },
+      base: { ok: true, schema: stockage.schema(), illisibles: stockage.illisibles() },   // des lignes chiffrées qui ne s'ouvrent pas : un nombre, jamais lesquelles
       flux: hub.stats(),
       porte: porte ? porte.etat() : null,
       boucle: { p99Ms: Math.round(boucle.percentile(99) / 1e6 * 10) / 10 },

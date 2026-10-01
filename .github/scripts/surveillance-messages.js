@@ -28,7 +28,9 @@ const CHAMPS_SURVEILLES = [
   'sha',                   // le code qui tourne : 7 à 40 hexadécimaux, sinon le déploiement n'a pas posé OPMSG_SHA
   'sauvegarde.configuree', // une sauvegarde jamais branchée est une croyance, pas une sauvegarde
   'sauvegarde.ageH',       // la dernière copie réussie ne doit pas dater de plus d'un jour
-  'stripeEchecMin'         // Stripe illisible depuis trop longtemps : la facturation ne se relit plus
+  'stripeEchecMin',        // Stripe illisible depuis trop longtemps : la facturation ne se relit plus
+  'base.illisibles',       // des lignes chiffrées qui ne s'ouvrent plus (octet retourné, restauration mélangée) : jamais normal
+  'porte.relecturesEchec'  // la relecture des accès bêta échoue depuis des minutes : un accès coupé dans la Tour garderait sa session
 ];
 
 /* Les champs vus et PAS surveillés, chacun avec sa raison. Une entrée qui parle d'un champ qui n'existe
@@ -38,6 +40,7 @@ const CHAMPS_VUS = {
 };
 
 const SEUIL_SAUVEGARDE_H = 26;   // une copie par heure promise, un jour de grâce pour un week-end de panne légère
+const SEUIL_RELECTURES = 5;      // la relecture passe chaque minute : cinq échecs de suite, c'est cinq minutes sans pouvoir couper un accès
 const SEUIL_STRIPE_MIN = 90;     // la règle d'OP GESTION : la surveillance crie à 90 minutes de Stripe illisible
 
 /* beta ou prod, d'après le domaine interrogé — pour comparer à ce que le service dit de lui-même. */
@@ -64,6 +67,12 @@ function evaluer(j, instanceAttendue) {
     if (j.sauvegarde.configuree !== false && typeof j.sauvegarde.ageH === 'number' && j.sauvegarde.ageH > SEUIL_SAUVEGARDE_H) {
       p.push('la dernière sauvegarde date de ' + Math.round(j.sauvegarde.ageH) + ' h');
     }
+  }
+  if (j.base && typeof j.base === 'object' && typeof j.base.illisibles === 'number' && j.base.illisibles > 0) {
+    p.push(j.base.illisibles + ' ligne(s) chiffrée(s) illisible(s) depuis le démarrage — la base est peut-être abîmée');
+  }
+  if (j.porte && typeof j.porte === 'object' && typeof j.porte.relecturesEchec === 'number' && j.porte.relecturesEchec > SEUIL_RELECTURES) {
+    p.push('la relecture des accès bêta échoue depuis ' + j.porte.relecturesEchec + ' passages — un accès coupé ne fermerait plus sa session');
   }
   if (typeof j.stripeEchecMin === 'number' && j.stripeEchecMin > SEUIL_STRIPE_MIN) {
     p.push('Stripe illisible depuis ' + Math.round(j.stripeEchecMin) + ' min');

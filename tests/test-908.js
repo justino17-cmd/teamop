@@ -59,15 +59,49 @@ const entierRetry = (r) => { const x = r.h.get('retry-after'); return /^\d+$/.te
       v('sans proxy, l\'adresse de la connexion TCP sert (127.0.0.1) : un seau à part', direct.code, 200);
     }
 
-    console.log('\nLe plafond par IDENTIFIANT : 5 essais par 15 minutes, d\'où qu\'ils viennent');
+    console.log('\nLe plafond par IDENTIFIANT : 5 essais ÉCHOUÉS par 15 minutes ET PAR RÉSEAU — pas un verrou pour la victime');
     {
       const appels0 = og.appels.length;
       const codes = [];
-      for (let i = 0; i < 6; i++) codes.push((await T.client(svc.base).post('/api/beta/entrer', { login: 'Cible', pass: 'faux-faux-' + i }, { entetes: { 'X-Forwarded-For': ip() } })).code);
-      v('⛔ cinq essais depuis cinq adresses différentes, le sixième est refusé (429) : on ne contourne pas le plafond d\'un identifiant en changeant d\'adresse', codes, [401, 401, 401, 401, 401, 429]);
-      v('et OP GESTION n\'a vu que cinq appels (casse de l\'identifiant normalisée : « Cible » et « cible » partagent le plafond)', og.appels.length - appels0, 5);
-      const bon = await T.client(svc.base).post('/api/beta/entrer', { login: 'cible', pass: 'pw-cible-1234' }, { entetes: { 'X-Forwarded-For': ip() } });
-      v('⛔ même avec le BON mot de passe, l\'identifiant plafonné reste refusé (sinon le plafond ne protège pas le bon mot de passe d\'être trouvé)', bon.code, 429);
+      for (let i = 0; i < 6; i++) codes.push((await T.client(svc.base).post('/api/beta/entrer', { login: 'Cible', pass: 'faux-faux-' + i }, { entetes: { 'X-Forwarded-For': '203.0.113.90' } })).code);
+      v('⛔ cinq essais ratés depuis la même adresse, le sixième est refusé (429) — casse de l\'identifiant normalisée', codes, [401, 401, 401, 401, 401, 429]);
+      v('et OP GESTION n\'a vu que cinq appels', og.appels.length - appels0, 5);
+      const bon = await T.client(svc.base).post('/api/beta/entrer', { login: 'cible', pass: 'pw-cible-1234' }, { entetes: { 'X-Forwarded-For': '203.0.113.90' } });
+      v('⛔ même avec le BON mot de passe, la même adresse reste refusée (sinon le plafond ne protège pas le bon mot de passe d\'être trouvé)', bon.code, 429);
+    }
+    {
+      // Relecture adverse, D6 : cinq mauvais mots de passe tapés depuis cinq adresses sur « alice » verrouillaient Alice 15 min.
+      const codes = [];
+      for (let i = 0; i < 5; i++) codes.push((await T.client(svc.base).post('/api/beta/entrer', { login: 'alice', pass: 'faux-faux-' + i }, { entetes: { 'X-Forwarded-For': ip() } })).code);
+      v('cinq essais ratés sur « alice » depuis cinq adresses DIFFÉRENTES : tous vont jusqu\'à OP GESTION', codes, [401, 401, 401, 401, 401]);
+      const legitime = await T.client(svc.base).post('/api/beta/entrer', { login: 'alice', pass: 'pw-alice-1234' }, { entetes: { 'X-Forwarded-For': ip() } });
+      v('⛔ Alice, avec le bon mot de passe depuis SON adresse, entre : un inconnu ne verrouille pas la victime d\'un identifiant', legitime.code, 200);
+    }
+    {
+      // Relecture adverse, D6 (2e moitié) : les connexions RÉUSSIES usaient le plafond — la 6e d'une équipe derrière une même sortie réseau était refusée.
+      const sortie = '203.0.113.91', codes = [];
+      for (let i = 0; i < 8; i++) codes.push((await T.client(svc.base).post('/api/beta/entrer', { login: i % 2 ? 'bob' : 'alice', pass: i % 2 ? 'pw-bob-12345' : 'pw-alice-1234' }, { entetes: { 'X-Forwarded-For': sortie } })).code);
+      v('⛔ huit connexions RÉUSSIES depuis la même sortie réseau en moins de 15 min : toutes passent (un succès se rembourse)', codes, [200, 200, 200, 200, 200, 200, 200, 200]);
+      // …mais des échecs entre deux succès comptent toujours.
+      const mix = [];
+      for (let i = 0; i < 6; i++) mix.push((await T.client(svc.base).post('/api/beta/entrer', { login: 'bob', pass: 'faux-' + i }, { entetes: { 'X-Forwarded-For': sortie } })).code);
+      v('   et cinq ÉCHECS à la suite sur cette sortie ferment la sixième (429) : le plafond des échecs reste entier', mix, [401, 401, 401, 401, 401, 429]);
+    }
+    {
+      // Une panne d'OP GESTION n'use pas le plafond de l'essayeur : il n'a rien fait de mal.
+      const sortie = '203.0.113.92';
+      og.mode = 'panne';
+      const pannes = [];
+      for (let i = 0; i < 7; i++) pannes.push((await T.client(svc.base).post('/api/beta/entrer', { login: 'alice', pass: 'pw-alice-1234' }, { entetes: { 'X-Forwarded-For': sortie } })).code);
+      og.mode = 'normal';
+      v('⛔ sept essais pendant une panne d\'OP GESTION : tous 503 — aucun n\'a usé le plafond', pannes, [503, 503, 503, 503, 503, 503, 503]);
+      v('   et la panne finie, la même adresse entre', (await T.client(svc.base).post('/api/beta/entrer', { login: 'alice', pass: 'pw-alice-1234' }, { entetes: { 'X-Forwarded-For': sortie } })).code, 200);
+    }
+    {
+      // Le plafond se compte par RÉSEAU : un /64 IPv6 est UN seau, quelle que soit l'adresse complète.
+      const codes = [];
+      for (let i = 0; i < 6; i++) codes.push((await T.client(svc.base).post('/api/beta/entrer', { login: 'autre', pass: 'faux-faux-' + i }, { entetes: { 'X-Forwarded-For': '2001:db8:aaaa:bbbb:' + (i + 1) + ':' + (i + 7) + '::' + (i + 1) } })).code);
+      v('⛔ six adresses IPv6 d\'un MÊME /64 partagent le plafond : le sixième essai est refusé (429)', codes, [401, 401, 401, 401, 401, 429]);
     }
 
     console.log('\nLes plafonds du § 3.6, chacun avec un Retry-After vrai');

@@ -247,7 +247,9 @@ const cid = (p) => 'cid-' + p + '-' + hex() + hex();
       const e = await envoyer(P.alice, Ge, 'ceci disparaîtra');
       v('le message est lisible au départ', (await P.bob.get('/api/conversations/' + Ge + '/messages')).j.messages.some(x => x.texte === 'ceci disparaîtra'), true);
       svc.avancer(25 * 3600000);
-      const parti = await T.attendre(async () => !(await P.bob.get('/api/conversations/' + Ge + '/messages')).j.messages.some(x => x.seq === e.j.seq), 6000, 50);
+      /* ⛔ On attend la LIGNE, pas la lecture : depuis la relecture adverse les lectures filtrent l'échéance tout de suite
+         (le message « part » avant le balayeur) ; remettre l'horloge avant le passage du balayeur laisserait la ligne. */
+      const parti = await T.attendre(() => { const d = lire(); try { return d.prepare('SELECT COUNT(*) AS n FROM message WHERE conv = ? AND seq = ?').get(Ge, e.j.seq).n === 0; } finally { d.close(); } }, 6000, 50);
       svc.avancer(-25 * 3600000);
       vrai('⛔ le balayeur du service (pas un appel direct) a retiré le message échu', !!parti);
       const d = lire(); try { v('et la ligne n\'existe plus sur le disque', d.prepare('SELECT COUNT(*) AS n FROM message WHERE conv = ? AND seq = ?').get(Ge, e.j.seq).n, 0); } finally { d.close(); }

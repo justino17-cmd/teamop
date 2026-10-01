@@ -42,7 +42,7 @@ const MAX_MEMBRES = 1024;
 const DELAI_MODIF_MS = 15 * 60 * 1000;
 const JOURNAL_JOURS = 7, JOURNAL_LIGNES = 10000;
 const TAILLE_PORTEE = 2048;   // un texte de 2 Ko ou moins est porté dans l'événement
-const GENRES_SEQ = ['msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_reaction'];
+const GENRES_SEQ = ['msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction'];
 
 /* ══ LES MIGRATIONS ════════════════════════════════════════════════════════════════════════ */
 const MIGRATIONS = [
@@ -203,7 +203,16 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const sceller = (table, champ, aad, clair) => scelleur.sceller(table, champ, aad, clair);
   const ouvrirS = (table, champ, aad, blob) => scelleur.ouvrir(table, champ, aad, blob);
   const aadMsg = (conv, seq, auteur) => conv + '|' + seq + '|' + auteur;
-  const nomDe = (id, blob) => blob ? ouvrirS('conversation', 'nom_ch', id + '|nom', blob) : null;
+  /* ⛔ UNE LIGNE ILLISIBLE RESTE UNE LIGNE ILLISIBLE (relecture adverse, 1er octobre 2026). Un chiffré qui ne
+     s'ouvre pas (octet retourné sur le disque, restauration mélangée) levait jusque dans `convListe`, et UNE ligne
+     abîmée rendait 500 sur la liste de TOUS les membres de la conversation et coupait la reprise d'un flux. On
+     l'attrape à l'ouverture : la ligne se dit `illisible`, les autres continuent — et le compte s'en SOUVIENT
+     (`/health`, `illisibles`), parce qu'une erreur avalée sans trace est la panne silencieuse type de ce dépôt. */
+  let illisibles = 0;
+  function ouvrirOuNull(table, champ, aad, blob) {
+    try { return ouvrirS(table, champ, aad, blob); } catch (e) { illisibles++; return null; }
+  }
+  const nomDe = (id, blob) => blob ? ouvrirOuNull('conversation', 'nom_ch', id + '|nom', blob) : null;
   const debut = (s, n) => { const a = Array.from(String(s)); return a.length > n ? a.slice(0, n).join('') : String(s); };
 
   /* ── Le journal : une ligne par événement ───────────────────────────────────────────── */
@@ -263,8 +272,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return tx(() => {
       const t = horloge();
       Q('INSERT INTO session(h, personne, appareil, cree, vu, exp) VALUES(?, ?, ?, ?, ?, ?)').run(h, personne, appareil || null, t, t, t + ttlMs);
-      /* Dix appareils au plus : les plus anciens sont fermés — une session volée ne s'accumule pas. */
-      Q('DELETE FROM session WHERE personne = ? AND h NOT IN (SELECT h FROM session WHERE personne = ? ORDER BY vu DESC, cree DESC LIMIT ?)').run(personne, personne, SESSIONS_MAX);
+      /* Dix appareils au plus : les plus anciens sont fermés — une session volée ne s'accumule pas.
+         ⛔ ON RENDRE LEURS EMPREINTES : l'appelant ferme leurs flux. Une session supprimée dont le flux reste
+         ouvert continuait de recevoir les messages pendant 24 h (relecture adverse, D3). */
+      const evincees = Q('SELECT h FROM session WHERE personne = ? AND h NOT IN (SELECT h FROM session WHERE personne = ? ORDER BY vu DESC, cree DESC LIMIT ?)').all(personne, personne, SESSIONS_MAX).map(r => r.h);
+      for (const e of evincees) Q('DELETE FROM session WHERE h = ?').run(e);
+      return evincees;
     });
   }
   function sessionLire(h) {
@@ -283,7 +296,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function sessionsBetaActives() {
     const t = horloge();
     return Q(`SELECT DISTINCT p.id FROM personne p JOIN session s ON s.personne = p.id WHERE p.origine = 'beta' AND s.exp > ?`).all(t)
-      .map(r => ({ id: r.id, login: String(personneIdentifiant(r.id) || '').replace(/^beta:/, '') }));
+      .map(r => ({ id: r.id, bid: String(personneIdentifiant(r.id) || '').replace(/^beta:/, '') }));   // `bid` : l'identifiant du compte chez OP GESTION
   }
 
   /* ══ CONTACTS ════════════════════════════════════════════════════════════════════════════ */
@@ -317,8 +330,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
               JOIN contact r ON r.de = c.vers AND r.vers = c.de
               WHERE c.de = ? AND c.etat = 'ok' AND r.etat = 'ok'`).all(uid).map(r => r.id);
   }
+  /* ⛔ RETIRER NE LÈVE JAMAIS UN BLOCAGE. Les deux lignes d'une relation sont deux POINTS DE VUE ; la ligne `bloque`
+     de l'un est SA décision. L'ancienne version supprimait les deux : le bloqué « retirait » son contact, la ligne de
+     blocage de l'autre disparaissait avec, et il se rétablissait par le lien multi-usage encore valable (relecture
+     adverse, D1). On ne supprime que les lignes `ok`. */
   function contactRetirer(a, b) {
-    return tx(() => num(Q('DELETE FROM contact WHERE (de = ? AND vers = ?) OR (de = ? AND vers = ?)').run(a, b, b, a).changes));
+    return tx(() => num(Q(`DELETE FROM contact WHERE etat = 'ok' AND ((de = ? AND vers = ?) OR (de = ? AND vers = ?))`).run(a, b, b, a).changes));
   }
   function contactEtat(a, b, etat) {
     return num(Q('UPDATE contact SET etat = ? WHERE de = ? AND vers = ?').run(etat, a, b).changes);
@@ -338,9 +355,16 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     Q('INSERT INTO lien(h, genre, cible, par, cree, exp, restants) VALUES(?, ?, ?, ?, ?, ?, ?)').run(h, genre, cible || null, par, t, t + ttlMs, max);
   }
   /* Expiré, révoqué et épuisé répondent PAREIL (`null`) : ne pas dire lequel des trois. */
+  /* ⛔ Un lien de groupe MEURT avec le droit de son créateur : si celui qui l'a créé n'est plus administrateur
+     (rétrogradé, parti, retiré), son lien ne vaut plus rien. Sinon un droit retiré survivait dans un code déjà
+     distribué (relecture du gardien, point 5). */
   function lienValide(h) {
-    return Q('SELECT genre, cible, par, restants FROM lien WHERE h = ? AND revoque = 0 AND exp > ? AND restants > 0').get(h, horloge()) || null;
+    return Q(`SELECT genre, cible, par, restants FROM lien l WHERE h = ? AND revoque = 0 AND exp > ? AND restants > 0
+              AND (genre <> 'groupe' OR EXISTS (SELECT 1 FROM membre m WHERE m.conv = l.cible AND m.uid = l.par AND m.role = 'admin' AND m.quitte_le IS NULL))`).get(h, horloge()) || null;
   }
+  /* Révoquer : tous les liens d'un groupe (`cible`), ou tous les liens de contact d'une personne (`par`). */
+  function liensRevoquerGroupe(conv) { return num(Q(`UPDATE lien SET revoque = 1 WHERE genre = 'groupe' AND cible = ? AND revoque = 0`).run(conv).changes); }
+  function liensRevoquerContact(par) { return num(Q(`UPDATE lien SET revoque = 1 WHERE genre = 'contact' AND par = ? AND revoque = 0`).run(par).changes); }
   function lienApercu(h) {
     const l = lienValide(h); if (!l) return null;
     const par = personneParId(l.par); if (!par) return null;
@@ -401,8 +425,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     Q('INSERT INTO message(conv, seq, id, auteur, cid, ts, type, corps_ch, meta_ch, repond_a, expire_ts) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
       .run(conv, seq, id, auteur, cid, ts, type, corps, metaCh, repondA == null ? null : repondA, expire);
     Q('UPDATE conversation SET dernier_seq = ?, dernier_ts = ? WHERE id = ?').run(seq, ts, conv);
-    /* Celui qui écrit a lu jusqu'ici (et la mise à jour reste monotone). */
-    Q('UPDATE membre SET lu_seq = ? WHERE conv = ? AND uid = ? AND lu_seq < ?').run(seq, conv, auteur, seq);
+    /* ⛔ ENVOYER N'EST PAS LIRE. Celui qui écrit a lu son propre message, pas ce qui précède : `lu_seq` ne suit son
+       message que si RIEN n'attendait d'être lu (`lu_seq = seq - 1`). L'ancienne version le portait à `seq` quoi qu'il
+       arrive, et un envoi sorti d'une file hors ligne marquait lus les messages d'autrui jamais vus (relecture
+       adverse, D2). Monotone par construction : on ne fait qu'avancer d'un cran. */
+    Q('UPDATE membre SET lu_seq = ? WHERE conv = ? AND uid = ? AND lu_seq = ?').run(seq, conv, auteur, seq - 1);
     const gid = journalAjouter('msg_nouveau', conv, null, seq);
     return { deja: false, seq, ts, id, gid };
   }
@@ -421,10 +448,17 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return { conv: convRang(c), moi: { role: m.role, depuis_seq: m.depuis_seq, lu_seq: m.lu_seq, muet_jusqua: m.muet_jusqua, epingle: !!m.epingle, archive: !!m.archive } };
   }
   function membresActifs(conv) { return Q('SELECT uid FROM membre WHERE conv = ? AND quitte_le IS NULL').all(conv).map(r => r.uid); }
-  function membresDetail(conv) {
-    return Q(`SELECT p.id, p.prenom, p.nom, m.role, m.depuis_seq, m.lu_seq FROM membre m JOIN personne p ON p.id = m.uid
+  /* ⛔ « ACCUSÉS DE LECTURE : NON » S'APPLIQUE : qui l'a coupé ne montre son `lu_seq` à PERSONNE d'autre (`null`), et
+     `viewer` — celui qui regarde — voit toujours le sien. Le réglage était accepté et ne faisait rien (relecture
+     adverse, D4). */
+  const accuses = (prefs) => !(prefs && prefs.accuses === false);
+  function membresDetail(conv, viewer) {
+    return Q(`SELECT p.id, p.prenom, p.nom, p.prefs, m.role, m.depuis_seq, m.lu_seq FROM membre m JOIN personne p ON p.id = m.uid
               WHERE m.conv = ? AND m.quitte_le IS NULL ORDER BY m.rejoint, m.rowid`).all(conv)
-      .map(r => ({ id: r.id, prenom: r.prenom, nom: r.nom, role: r.role, depuis_seq: r.depuis_seq, lu_seq: r.lu_seq }));
+      .map(r => {
+        let prefs = {}; try { prefs = JSON.parse(r.prefs) || {}; } catch (e) {}
+        return { id: r.id, prenom: r.prenom, nom: r.nom, role: r.role, depuis_seq: r.depuis_seq, lu_seq: (r.id === viewer || accuses(prefs)) ? r.lu_seq : null };
+      });
   }
   function nbAdmins(conv) { return num(Q(`SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND quitte_le IS NULL AND role = 'admin'`).get(conv).n); }
 
@@ -494,6 +528,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const m = Q('SELECT role FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
       if (!m) throw erreur('introuvable');
       Q('UPDATE membre SET quitte_le = ? WHERE conv = ? AND uid = ?').run(horloge(), conv, uid);
+      /* ⛔ Le retiré CONNAÎT les codes d'invitation du groupe : on les révoque tous (un administrateur en recrée un). */
+      liensRevoquerGroupe(conv);
       messageSysteme(conv, par, { k: 'membre_retire', uid });
       const gid = journalAjouter('retire', conv, uid, '');
       return { gid };
@@ -583,7 +619,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const cible = Math.min(seq, c.dernier_seq);
       const r = Q('UPDATE membre SET lu_seq = ? WHERE conv = ? AND uid = ? AND lu_seq < ?').run(cible, conv, uid, cible);
       let gid = 0;
-      if (num(r.changes) > 0) gid = journalAjouter('lu', conv, null, uid + ':' + cible);
+      /* Sans accusés, l'événement n'est adressé qu'à son titulaire (ses autres appareils) : les membres ne l'apprennent pas. */
+      if (num(r.changes) > 0) gid = journalAjouter('lu', conv, accuses((personneParId(uid) || {}).prefs) ? null : uid, uid + ':' + cible);
       return { lu_seq: Math.max(m.lu_seq, cible), gid };
     });
   }
@@ -594,24 +631,28 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
              m.role, m.lu_seq, m.depuis_seq, m.muet_jusqua, m.epingle, m.archive,
              (SELECT COUNT(*) FROM message x
                 WHERE x.conv = c.id AND x.seq > m.lu_seq AND x.seq >= m.depuis_seq AND x.auteur <> m.uid
-                  AND x.type <> 'systeme' AND x.supprime_le IS NULL
+                  AND x.type <> 'systeme' AND x.supprime_le IS NULL AND (x.expire_ts IS NULL OR x.expire_ts > ?)
                   AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = m.uid)) AS non_lus,
              (SELECT COUNT(*) FROM membre y WHERE y.conv = c.id AND y.quitte_le IS NULL) AS membres_n
       FROM membre m JOIN conversation c ON c.id = m.conv
       WHERE m.uid = ? AND m.quitte_le IS NULL AND (c.type <> 'direct' OR c.dernier_seq > 0 OR c.cree_par = m.uid)
-      ORDER BY m.epingle DESC, c.dernier_ts DESC, c.id`).all(uid);
+      ORDER BY m.epingle DESC, c.dernier_ts DESC, c.id`).all(horloge(), uid);
     return lignes.map(l => {
       const o = {
         id: l.id, type: l.type, nom: nomDe(l.id, l.nom_ch), annonces_seules: !!l.annonces_seules, ephemere_s: l.ephemere_s,
         dernier_seq: l.dernier_seq, dernier_ts: l.dernier_ts, role: l.role, lu_seq: l.lu_seq, non_lus: num(l.non_lus),
         membres_n: num(l.membres_n), epingle: !!l.epingle, archive: !!l.archive, muet_jusqua: l.muet_jusqua, apercu: null, autre: null,
       };
+      /* ⛔ Un éphémère ÉCHU n'est plus un aperçu, même si le balayeur n'est pas encore passé (il passe toutes les 60 s). */
       const p = Q(`SELECT seq, auteur, type, corps_ch, supprime_le FROM message x
-                   WHERE x.conv = ? AND x.seq >= ?
+                   WHERE x.conv = ? AND x.seq >= ? AND (x.expire_ts IS NULL OR x.expire_ts > ?)
                      AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)
-                   ORDER BY x.seq DESC LIMIT 1`).get(l.id, l.depuis_seq, uid);
-      if (p) o.apercu = { seq: p.seq, auteur: p.auteur, type: p.type, supprime: !!p.supprime_le,
-        texte: p.corps_ch && !p.supprime_le ? debut(ouvrirS('message', 'corps_ch', aadMsg(l.id, p.seq, p.auteur), p.corps_ch), 120) : null };
+                   ORDER BY x.seq DESC LIMIT 1`).get(l.id, l.depuis_seq, horloge(), uid);
+      if (p) {
+        const clair = p.corps_ch && !p.supprime_le ? ouvrirOuNull('message', 'corps_ch', aadMsg(l.id, p.seq, p.auteur), p.corps_ch) : null;
+        o.apercu = { seq: p.seq, auteur: p.auteur, type: p.type, supprime: !!p.supprime_le, texte: clair === null ? null : debut(clair, 120) };
+        if (p.corps_ch && !p.supprime_le && clair === null) o.apercu.illisible = true;
+      }
       if (l.type === 'direct') {
         const a = Q(`SELECT p.id, p.prenom, p.nom FROM membre m JOIN personne p ON p.id = m.uid WHERE m.conv = ? AND m.uid <> ?`).get(l.id, uid);
         if (a) o.autre = { id: a.id, prenom: a.prenom, nom: a.nom };
@@ -643,7 +684,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const o = { seq: r.seq, id: r.id, auteur: r.auteur, ts: r.ts, type: r.type, repond_a: r.repond_a, modifie: r.modifie || null, supprime: !!r.supprime_le, texte: null, meta: null, reactions: reactions || [] };
     if (r.auteur === moi) o.cid = r.cid;
     if (!r.supprime_le) {
-      if (r.corps_ch) o.texte = ouvrirS('message', 'corps_ch', aadMsg(conv, r.seq, r.auteur), r.corps_ch);
+      if (r.corps_ch) { o.texte = ouvrirOuNull('message', 'corps_ch', aadMsg(conv, r.seq, r.auteur), r.corps_ch); if (o.texte === null) o.illisible = true; }
       if (r.meta_ch) { try { o.meta = JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, r.seq, r.auteur), r.meta_ch)); } catch (e) { o.meta = null; } }
     }
     return o;
@@ -656,14 +697,14 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     let rows, aPlus = false;
     if (apresSeq !== null) {
       rows = Q(`SELECT seq, id, auteur, cid, ts, type, corps_ch, meta_ch, repond_a, modifie, supprime_le FROM message x
-                WHERE x.conv = ? AND x.seq >= ? AND x.seq > ?
+                WHERE x.conv = ? AND x.seq >= ? AND x.seq > ? AND (x.expire_ts IS NULL OR x.expire_ts > ?)
                   AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)
-                ORDER BY x.seq ASC LIMIT ?`).all(conv, m.depuis_seq, apresSeq, uid, lim);
+                ORDER BY x.seq ASC LIMIT ?`).all(conv, m.depuis_seq, apresSeq, horloge(), uid, lim);
     } else {
       rows = Q(`SELECT seq, id, auteur, cid, ts, type, corps_ch, meta_ch, repond_a, modifie, supprime_le FROM message x
-                WHERE x.conv = ? AND x.seq >= ? AND x.seq < ?
+                WHERE x.conv = ? AND x.seq >= ? AND x.seq < ? AND (x.expire_ts IS NULL OR x.expire_ts > ?)
                   AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)
-                ORDER BY x.seq DESC LIMIT ?`).all(conv, m.depuis_seq, avantSeq === null ? 9007199254740991 : avantSeq, uid, lim + 1);
+                ORDER BY x.seq DESC LIMIT ?`).all(conv, m.depuis_seq, avantSeq === null ? 9007199254740991 : avantSeq, horloge(), uid, lim + 1);
       if (rows.length > lim) { aPlus = true; rows.pop(); }
       rows.reverse();
     }
@@ -733,7 +774,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       for (const d of dus) {
         Q('DELETE FROM message WHERE conv = ? AND seq = ?').run(d.conv, d.seq);
         Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(d.id, 'message_ephemere', t);
-        journalAjouter('msg_supprime', d.conv, null, d.seq);
+        journalAjouter('msg_expire', d.conv, null, d.seq);   // ⛔ « expire », pas « supprimé pour tous » : la page le retire sans écrire « Message supprimé »
         convs.add(d.conv);
       }
       return { n: dus.length, convs: Array.from(convs) };
@@ -751,10 +792,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       return { id, gid: journalAjouter('notif', null, uid, id) };
     });
   }
-  const notifRang = (r) => ({
-    id: r.id, type: r.type, titre: ouvrirS('notification', 'titre_ch', r.id + '|titre', r.titre_ch),
-    texte: ouvrirS('notification', 'texte_ch', r.id + '|texte', r.texte_ch), cible: r.cible, ts: r.ts, lue: !!r.lue,
-  });
+  const notifRang = (r) => {
+    const titre = ouvrirOuNull('notification', 'titre_ch', r.id + '|titre', r.titre_ch), texte = ouvrirOuNull('notification', 'texte_ch', r.id + '|texte', r.texte_ch);
+    const o = { id: r.id, type: r.type, titre: titre === null ? '' : titre, texte: texte === null ? '' : texte, cible: r.cible, ts: r.ts, lue: !!r.lue };
+    if (titre === null || texte === null) o.illisible = true;
+    return o;
+  };
   function notifListe(uid, limite = 50) {
     return Q('SELECT id, type, titre_ch, texte_ch, cible, ts, lue FROM notification WHERE uid = ? ORDER BY ts DESC, id DESC LIMIT ?').all(uid, Math.max(1, Math.min(200, limite | 0))).map(notifRang);
   }
@@ -787,7 +830,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         AND ( j.uid = ?
               OR ( j.uid IS NULL AND j.conv IS NOT NULL AND EXISTS (
                      SELECT 1 FROM membre m WHERE m.conv = j.conv AND m.uid = ? AND m.quitte_le IS NULL
-                       AND ( j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_reaction') OR CAST(j.ref AS INTEGER) >= m.depuis_seq ) ) ) )
+                       AND ( j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction') OR CAST(j.ref AS INTEGER) >= m.depuis_seq ) ) ) )
       ORDER BY j.gid LIMIT ?`).all(apresGid, uid, uid, limite);
     const evenements = [];
     for (const j of rows) { const e = materialiser(j, uid); if (e) evenements.push(e); }
@@ -799,15 +842,16 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     switch (j.genre) {
       case 'msg_nouveau': {
         const seq = parseInt(j.ref, 10);
-        const r = Q('SELECT seq, id, auteur, cid, ts, type, corps_ch, meta_ch, repond_a, supprime_le FROM message x WHERE x.conv = ? AND x.seq = ? AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)').get(j.conv, seq, uid);
+        const r = Q('SELECT seq, id, auteur, cid, ts, type, corps_ch, meta_ch, repond_a, supprime_le FROM message x WHERE x.conv = ? AND x.seq = ? AND (x.expire_ts IS NULL OR x.expire_ts > ?) AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)').get(j.conv, seq, horloge(), uid);
         if (!r) return null;   // purgé ou masqué depuis : l'événement de purge suit, ou il n'y a rien à dire
         const d = { conv: j.conv, seq: r.seq, id: r.id, auteur: r.auteur, ts: r.ts, type: r.type, repond_a: r.repond_a };
         if (r.auteur === uid) d.cid = r.cid;
         if (r.supprime_le) d.supprime = true;
         else {
           if (r.corps_ch) {
-            const t = ouvrirS('message', 'corps_ch', aadMsg(j.conv, r.seq, r.auteur), r.corps_ch);
-            if (Buffer.byteLength(t, 'utf8') <= TAILLE_PORTEE) d.texte = t; else d.relis = true;
+            const t = ouvrirOuNull('message', 'corps_ch', aadMsg(j.conv, r.seq, r.auteur), r.corps_ch);
+            if (t === null) d.illisible = true;
+            else if (Buffer.byteLength(t, 'utf8') <= TAILLE_PORTEE) d.texte = t; else d.relis = true;
           }
           if (r.meta_ch) { try { d.meta = JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(j.conv, r.seq, r.auteur), r.meta_ch)); } catch (e) {} }
         }
@@ -817,12 +861,14 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         const seq = parseInt(j.ref, 10);
         const r = Q('SELECT auteur, corps_ch, modifie, supprime_le FROM message WHERE conv = ? AND seq = ?').get(j.conv, seq);
         if (!r || r.supprime_le || !r.corps_ch) return null;
-        const t = ouvrirS('message', 'corps_ch', aadMsg(j.conv, seq, r.auteur), r.corps_ch);
+        const t = ouvrirOuNull('message', 'corps_ch', aadMsg(j.conv, seq, r.auteur), r.corps_ch);
         const d = { conv: j.conv, seq, modifie: r.modifie };
-        if (Buffer.byteLength(t, 'utf8') <= TAILLE_PORTEE) d.texte = t; else d.relis = true;
+        if (t === null) d.illisible = true;
+        else if (Buffer.byteLength(t, 'utf8') <= TAILLE_PORTEE) d.texte = t; else d.relis = true;
         return { gid, event: 'message_modifie', data: d };
       }
       case 'msg_supprime': return { gid, event: 'message_supprime', data: { conv: j.conv, seq: parseInt(j.ref, 10), pour: j.uid ? 'moi' : 'tous' } };
+      case 'msg_expire': return { gid, event: 'message_supprime', data: { conv: j.conv, seq: parseInt(j.ref, 10), pour: 'expire' } };
       case 'msg_reaction': return { gid, event: 'reaction', data: { conv: j.conv, seq: parseInt(j.ref, 10), reactions: reactionsDe(j.conv, parseInt(j.ref, 10)) } };
       case 'conv_maj': return { gid, event: 'conversation', data: { conv: j.conv } };
       case 'retire': return { gid, event: 'retire', data: { conv: j.conv } };
@@ -854,6 +900,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       messages: num(Q('SELECT COALESCE(SUM(dernier_seq), 0) AS n FROM conversation').get().n),
       sessions: num(Q('SELECT COUNT(*) AS n FROM session WHERE exp > ?').get(horloge()).n),
       journal: num(Q('SELECT COUNT(*) AS n FROM journal').get().n),
+      illisibles,
     };
   }
   const schema = () => versionActuelle();
@@ -861,11 +908,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function fermer() { try { db.close(); } catch (e) {} }
 
   return {
-    schema, instantane, fermer, tx, stats, metaLire, nouvelId,
+    schema, instantane, fermer, tx, stats, metaLire, nouvelId, illisibles: () => illisibles,
     personneCreer, personneParIdentifiant, personneParId, personneIdentifiant, personneMaj,
     sessionAjouter, sessionLire, sessionToucher, sessionSupprimer, sessionsSupprimerPersonne, sessionsBetaActives,
     contactLier, contactBloque, contactActif, contactsDe, contactsActifs, contactRetirer, contactEtat, contactLigne, peutVoir,
-    lienCreer, lienValide, lienApercu, lienAccepter,
+    lienCreer, lienValide, lienApercu, lienAccepter, liensRevoquerGroupe, liensRevoquerContact,
     convDirecteObtenir, convCreerGroupe, convSupprimer, convPourMembre, convListe, convMaj, membresActifs, membresDetail, nbAdmins,
     membresAjouter, membreRetirer, membreQuitter, membreRole, membrePrefs, membreLu, autreDirect, ecritureAutorisee,
     messageEnvoyer, messageExiste, messagesDe, messageModifier, messageSupprimer, messageReagir, reactionsDe, purgerExpires,

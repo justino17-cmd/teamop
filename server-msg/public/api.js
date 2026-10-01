@@ -143,6 +143,9 @@
       retirerMembre: (id, uid) => appel('POST', '/api/conversations/' + e(id) + '/membres/retirer', { uid }),
       admin: (id, uid, admin) => appel('POST', '/api/conversations/' + e(id) + '/admins', { uid, admin }),
       lienGroupe: (id, o2) => appel('POST', '/api/conversations/' + e(id) + '/lien', o2 || {}),
+      /* Révoquer les codes d'invitation : ceux du groupe (administrateur), ou mes liens de contact. */
+      revoquerLiensGroupe: (id) => appel('POST', '/api/conversations/' + e(id) + '/liens/revoquer'),
+      revoquerLiensContact: () => appel('POST', '/api/contacts/liens/revoquer'),
       quitter: (id) => appel('POST', '/api/conversations/' + e(id) + '/quitter'),
       prefs: (id, champs) => appel('POST', '/api/conversations/' + e(id) + '/prefs', champs),
       messages: (id, q) => appel('GET', '/api/conversations/' + e(id) + '/messages' + rq(q)),
