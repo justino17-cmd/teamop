@@ -181,7 +181,8 @@ function executer(PAGE, recherche) {
   const paiement = () => texte(conteneurs.cartePaiement.innerHTML);
   const droits = () => texte(conteneurs.carteDroits.innerHTML);
   const html = () => conteneurs.cartePaiement.innerHTML;
-  return { api, derniers, envoye, window, paiement, droits, html };
+  const selecteur = () => texte(conteneurs.selecteurFormules.innerHTML);
+  return { api, derniers, envoye, window, paiement, droits, html, selecteur };
 }
 
 const PAGES_PAIEMENT = ['recap-abonnement.html', 'apercu/recap-abonnement.html'].filter(existe);
@@ -198,7 +199,9 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
     const F = b.api.FORMULES, cles = Object.keys(F);
     /* ⛔ plus de formule gratuite d'OP GESTION (Justin, 29 septembre 2026 : « je veux que l'application soit payante
        directement ») : trois formules d'OP GESTION, trois d'OP MESSAGES (dont Perso, qui reste gratuite — autre application) */
-    v('population : six formules (3 OP GESTION, 3 OP MESSAGES), plus aucun « gratuit » d\'OP GESTION', [cles.length, cles.filter(k => F[k].groupe === 'gestion'), 'gratuit' in F], [6, ['pro', 'business', 'premium'], false]);
+    /* ⛔ ET DEPUIS LE 1er OCTOBRE 2026 : OP MESSAGES n'a que DEUX formules (Perso, Messages Pro à 15 € avec tout — Justin : « lui à 25 on
+       le supprime »). Cinq au total ; `msgpremium` n'est plus une formule de la page (son tarif reste dans `STRIPE_PRICES`, § 3). */
+    v('population : cinq formules (3 OP GESTION, 2 OP MESSAGES), plus aucun « gratuit » d\'OP GESTION ni « msgpremium »', [cles.length, cles.filter(k => F[k].groupe === 'gestion'), cles.filter(k => F[k].groupe === 'msg'), 'gratuit' in F, 'msgpremium' in F], [5, ['pro', 'business', 'premium'], ['msggratuit', 'msgpro'], false, false]);
     v('⛔ chaque formule compte 1 utilisateur par abonnement', cles.filter(k => F[k].utilisateurs !== 1), []);
     v('⛔ le plafond de la page est celui du serveur (' + PLAFOND_SERVEUR + ')', b.api.MAX_ABONNEMENTS, PLAFOND_SERVEUR);
     /* ⚠️ le plafond d'avant se cherche sous la forme du CODE (`Math.min(250,`, `max="250"`) : « 250 » tout court tombe dans
@@ -254,9 +257,41 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
   const R = executer(lire('recap-abonnement.html'), '?formule=business');
   const prixSite = {};
   for (const f of GEN.FORMULES_GESTION) prixSite[f.cle] = +f.prix;
-  for (const f of GEN.FORMULES_MESSAGES) if (f.nom === 'Messages Pro') prixSite.msgpro = +f.prix; else if (f.nom === 'Messages Business Premium') prixSite.msgpremium = +f.prix;
-  v('population : cinq formules payantes comparées (Pro, Business, Business Premium, Messages Pro, Messages Business Premium)', Object.keys(prixSite).length, 5);
+  for (const f of GEN.FORMULES_MESSAGES) if (f.nom === 'Messages Pro') prixSite.msgpro = +f.prix;
+  v('population : quatre formules payantes comparées (Pro, Business, Business Premium, Messages Pro) — Messages Business Premium est retirée', Object.keys(prixSite).length, 4);
   v('chaque formule coûte le même prix sur le site et au paiement', Object.keys(prixSite).filter(k => !R || !R.api.FORMULES[k] || R.api.FORMULES[k].prixMensuel !== prixSite[k]), []);
+
+  /* ⛔⛔ MESSAGES PRO PORTE TOUT, ET LA FORMULE À 25 € NE SE VEND PLUS (Justin, 1er octobre 2026 : « à 15 euros ils ont toutes les options ;
+     lui à 25 on le supprime ») — la page de paiement : aucun choix, aucun bouton, un lien d'avant ouvre Messages Pro et le DIT ; le
+     tarif RESTE dans la table (le serveur le reconnaît toujours, `test-842`) mais sans aucune formule affichée. */
+  console.log('3 bis. OP MESSAGES au paiement : deux formules, la formule à 25 € retirée');
+  for (const pf of PAGES_PAIEMENT) {
+    const PG = lire(pf);
+    const m = executer(PG, '?formule=msgpro'); await m.api.compteLu;
+    v(pf + ' · ⛔ la table des formules : aucune « msgpremium » (ni un nom « Premium » d\'OP MESSAGES, ni 25 €)', [Object.keys(m.api.FORMULES).includes('msgpremium'), Object.values(m.api.FORMULES).filter(f => f.groupe === 'msg').some(f => /Premium/.test(f.nom) || f.prixMensuel === 25)], [false, false]);
+    v('   … mais son TARIF Stripe reste dans la table (un abonnement d\'avant reste reconnu : le serveur la lit, `test-842` compare)', ['msgpro', 'msgpremium'].map(k => !!(m.api.STRIPE_PRICES[k] && /^price_/.test(m.api.STRIPE_PRICES[k].mensuel) && /^price_/.test(m.api.STRIPE_PRICES[k].annuel))), [true, true]);
+    const sel = m.selecteur();
+    v('   le sélecteur d\'OP MESSAGES ne propose que Messages Perso et Messages Pro', [/Messages Perso/.test(sel), /Messages Pro\b/.test(sel), /Premium/.test(sel)], [true, true, false]);
+    const d = m.droits();
+    const MANQUE = [['visio', /Réunions visio sans limite de durée/], ['partage d\'écran', /partage d'écran/], ['réunions planifiées', /Réunions planifiées/], ['appels de groupe', /appels de groupe/], ['personnalisation', /personnalisation avancée/], ['support prioritaire', /Support prioritaire/], ['espace entreprise', /Espace entreprise \(SIRET\)/], ['canaux', /Canaux d'équipe/]];
+    v(pf + ' · ⛔ Messages Pro porte TOUTE la liste : visio, partage d\'écran, réunions planifiées, appels de groupe, personnalisation, support prioritaire, espace et canaux', MANQUE.filter(([, re]) => !re.test(d)).map(([n]) => n), []);
+    vrai('   … et il ne reste AUCUN droit « non inclus » ni renvoi vers la formule à 25 € (« disponibles avec Messages Business Premium »)', !/Non inclus dans cette formule/.test(d) && !/Business Premium/.test(d) && !/avec le Business Premium de la suite/.test(d));
+    vrai('   « illimitée » ne se dit que de la durée, et le nombre de participants en vidéo reste dit limité', /sans limite de durée/.test(d) && /nombre de participants en vidéo reste limité/.test(d) && !/visio illimitée|sans limite\b(?! de durée)/i.test(d));
+    vrai('   15 € par mois, 1 utilisateur par abonnement', /15 € TTC/.test(m.paiement()) || /Messages Pro/.test(m.droits()));
+    /* un lien d'avant (mail, favori, page en cache) : Messages Pro, avec un mot — jamais Business, jamais une page vide */
+    const r = executer(PG, '?formule=msgpremium'); await r.api.compteLu;
+    v(pf + ' · ⛔ ?formule=msgpremium ouvre MESSAGES PRO', r.api.etat().formuleActive, 'msgpro');
+    vrai('   … et la page DIT que la formule n\'est plus proposée, que tout est dans Messages Pro, à 15 €', /Messages Business Premium n'est plus proposée/.test(r.droits()) && /comprises dans Messages Pro, à 15 €/.test(r.droits()));
+    const g = executer(PG, '?formule=msgpro'); await g.api.compteLu;
+    vrai('   (témoin) ?formule=msgpro, lui, ne porte pas ce mot', !/n'est plus proposée/.test(g.droits()));
+    const e = executer(PG, '?formule=msgpremium&utilisateurs=3'); await e.api.compteLu;
+    v('   le NOMBRE d\'un lien d\'avant se garde (le mot ne remet pas à 1)', e.api.etat().nbUsersVoulu, 3);
+    /* aucune adresse ne rend la formule retirée ACTIVE : c'est `formuleActive` qui choisit le tarif envoyé (`STRIPE_PRICES[formuleActive]`).
+       (OP MESSAGES est « Bientôt disponible » : la page n'y affiche aucun bouton — rejouer « Payer » ne prouverait rien, un ensemble vide.) */
+    const ACTIVES = [];
+    for (const q of ['?formule=msgpremium', '?formule=msgpremium&cycle=annuel', '?formule=msgpremium&utilisateurs=5', '?formule=msgpremium&ajout=options&options=stock', '?formule=MSGPREMIUM']) { const x = executer(PG, q); await x.api.compteLu; ACTIVES.push(x.api.etat().formuleActive); }
+    v('   ⛔ aucune adresse ne rend « msgpremium » active (population : ' + ACTIVES.length + ' adresses jouées) — jamais de tarif retiré envoyé', ACTIVES.filter(a => a === 'msgpremium'), []);
+  }
 
   /* ── 4. tout ce que le dépôt SERT, recensé — pas une liste écrite à la main ─────────────────────────────────── */
   /* La première version de ce banc ne relisait que les pages qu'on savait concernées : la relecture en a trouvé deux autres,

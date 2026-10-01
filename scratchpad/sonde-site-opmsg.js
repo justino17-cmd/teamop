@@ -73,7 +73,7 @@ let ok = 0, ko = 0; const vrai = (t, c, d) => { c ? ok++ : ko++; console.log((c 
   }
 
   console.log('\n══ recap-abonnement.html ══');
-  for (const f of ['msggratuit', 'msgpro', 'msgpremium']) {
+  for (const f of ['msggratuit', 'msgpro']) {
     exc = await aller('/recap-abonnement.html?formule=' + f, 1280, 900);
     const r = await S.ev(`const c=document.getElementById('cartePaiement'); return {txt:c.innerText, payer:!!document.getElementById('btnPayer'), droits:document.getElementById('carteDroits').innerText.length}`);
     vrai(f + ' : « Bientôt disponible », pas de bouton de paiement', /Bientôt disponible/.test(r.txt) && !r.payer, r);
@@ -81,6 +81,10 @@ let ok = 0, ko = 0; const vrai = (t, c, d) => { c ? ok++ : ko++; console.log((c 
     vrai(f + ' : aucune erreur', exc().length === 0, exc());
     if (f === 'msgpro') await cliche('site-recap-msgpro', '#cartePaiement', 12);
   }
+  /* 1er octobre 2026 : « Messages Business Premium » (25 €) est retirée de la vente — son ancien lien ouvre Messages Pro et le dit */
+  exc = await aller('/recap-abonnement.html?formule=msgpremium', 1280, 900);
+  const rp = await S.ev(`return {nom:document.querySelector('.nom-formule').innerText, note:(document.getElementById('noteFormuleRetiree')||{}).innerText||'', puces:[...document.querySelectorAll('.puce-formule')].map(b=>b.innerText)}`);
+  vrai('msgpremium : ouvre Messages Pro, avec le mot, et le sélecteur n\'a que deux puces', rp.nom === 'Messages Pro' && /n'est plus proposée/.test(rp.note) && rp.puces.length === 2 && !rp.puces.some(x => /Premium/.test(x)), rp);
   /* contre-épreuve : une formule OP GESTION garde son paiement */
   exc = await aller('/recap-abonnement.html?formule=business', 1280, 900);
   const g = await S.ev(`return {payer:!!document.getElementById('btnPayer'), txt:document.getElementById('cartePaiement').innerText.slice(0,80)}`);

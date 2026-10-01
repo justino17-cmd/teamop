@@ -675,6 +675,12 @@ app.post('/api/stripe/checkout', async (req, res) => {
        donne Pro, quelle que soit la fiche. */
     const rangDuPrix = optionSeule ? -1 : RANG_FORMULE.findIndex(k => STRIPE_PRIX_FORMULE[k].includes(String(price)));
     if (!optionSeule && rangDuPrix < 0 && !STRIPE_PRIX_MESSAGES.includes(String(price))) return res.status(400).json({ error: 'tarif_inconnu' });
+    /* ⛔ « MESSAGES BUSINESS PREMIUM » (25 €) EST RETIRÉE DE LA VENTE — Justin, 1er octobre 2026 : « un Pro à 15 euros ; lui à 25 on le
+       supprime ; à 15 euros ils ont toutes les options ». On refuse d'en VENDRE un neuf, et SEULEMENT cela : le tarif reste dans
+       `STRIPE_PRIX_FORMULE` et `STRIPE_PRIX_MESSAGES`, parce qu'un abonnement d'avant doit rester LU comme de l'OP MESSAGES (sans
+       quoi `ligneMessages` le laisserait passer pour un paiement d'OP GESTION, ou pour rien). Retirer le tarif de ces listes
+       ferait cela en silence ; refuser ici ne casse personne. Le refus vient AVANT toute lecture de Stripe : rien n'est créé. */
+    if (!optionSeule && STRIPE_PRIX_FORMULE.msgpremium.includes(String(price))) return res.status(400).json({ error: 'formule_retiree' });
     /* ⛔ Business, Business Premium et OP MESSAGES n'ont pas d'options à vendre : les premiers les ont TOUTES, le dernier n'est
        pas OP GESTION — une option en plus serait payée pour rien (`option_incluse`) */
     if (opts.length && !optionSeule && rangDuPrix !== 0) return res.status(400).json({ error: 'option_incluse' });

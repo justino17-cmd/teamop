@@ -310,6 +310,18 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
   {
     const inconnu = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'monclient-9f2a' });
     v('⛔ un tarif qui n\'est pas sur la page : 400 tarif_inconnu, rien chez Stripe', [inconnu.statut, inconnu.sortie && inconnu.sortie.error, inconnu.appels], [400, 'tarif_inconnu', 0]);
+    /* ⛔ « MESSAGES BUSINESS PREMIUM » (25 €) EST RETIRÉE DE LA VENTE (Justin, 1er octobre 2026 : « lui à 25 on le supprime ») : le serveur
+       REFUSE d'en vendre un neuf — 400 `formule_retiree`, rien chez Stripe, AVANT toute lecture — mais son tarif reste connu (un abonnement
+       d'avant reste lu comme de l'OP MESSAGES : `test-842`). Messages Pro, lui, se vend toujours (§ plus bas, `PRIX_MSG`). */
+    const PRIX_MSGPREM = (/^\s*msgpremium: \['(price_\w+)'/m.exec(SRC) || [])[1], PRIX_MSGPRO0 = (/^\s*msgpro: \['(price_\w+)'/m.exec(SRC) || [])[1];
+    vrai('(population) les deux tarifs d\'OP MESSAGES du serveur sont lus, et ils diffèrent', /^price_/.test(PRIX_MSGPREM || '') && /^price_/.test(PRIX_MSGPRO0 || '') && PRIX_MSGPREM !== PRIX_MSGPRO0);
+    const retiree = await appeler({ price: PRIX_MSGPREM, quantity: 1, ref: 'monclient-9f2a' });
+    v('⛔ le tarif de « Messages Business Premium » : 400 formule_retiree, rien chez Stripe', [retiree.statut, retiree.sortie && retiree.sortie.error, retiree.appels], [400, 'formule_retiree', 0]);
+    const retireeAn = await appeler({ price: (/^\s*msgpremium: \['price_\w+', '(price_\w+)'/m.exec(SRC) || [])[1], quantity: 1 });
+    v('   … le tarif ANNUEL aussi, sans référence d\'espace', [retireeAn.statut, retireeAn.sortie && retireeAn.sortie.error, retireeAn.appels], [400, 'formule_retiree', 0]);
+    const msgPro = await appeler({ price: PRIX_MSGPRO0, quantity: 1, ref: 'monclient-9f2a' });
+    v('   (témoin) Messages Pro, lui, se vend toujours : la page de paiement s\'ouvre', [msgPro.statut || 200, msgPro.appels], [200, 1]);
+    vrai('⛔ et le serveur CONNAÎT toujours le tarif retiré (`STRIPE_PRIX_FORMULE.msgpremium`, `STRIPE_PRIX_MESSAGES`) : un abonnement d\'avant reste de l\'OP MESSAGES', /STRIPE_PRIX_MESSAGES\s*=\s*STRIPE_PRIX_FORMULE\.msgpro\.concat\(STRIPE_PRIX_FORMULE\.msgpremium\)/.test(SRC));
     const PREM = { monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr', formule: 'premium' } };
     const gravee = r => new URLSearchParams(r.envoye).get('subscription_data[metadata][espace]');
     const bas = await appeler({ price: PRIX_PRO, quantity: 4, ref: 'monclient-9f2a' }, undefined, undefined, PREM);

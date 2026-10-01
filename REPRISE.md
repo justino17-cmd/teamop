@@ -88,7 +88,15 @@ suivent légitimement son marqueur de fin : le refuser refuserait de vraies phot
 d'exemple (simulée). RESTE : étape 3 (Appels : écran d'appel, segmenté Tous/Manqués, `--seg-track`/`--seg-knob`), puis agenda et réunions.
 Puis, même jour : **formules d'OP MESSAGES** — « un forfait gratuit comme il est là et un Pro à 15 euros ; lui à 25 on le
 supprime ; à 15 euros ils ont toutes les options » (Perso 0 €, Messages Pro 15 € avec tout ; Messages Business Premium
-retiré de la vente — ses lignes Stripe restent RECONNUES comme OP MESSAGES par le serveur) ; **« je veux un op message
+retiré de la vente — ses lignes Stripe restent RECONNUES comme OP MESSAGES par le serveur) — ✅ **FAIT sur la branche** : le serveur
+refuse d'en VENDRE un neuf (400 `formule_retiree`, `test-727`) et le reconnaît toujours (`test-842`, `msgseulprem`) ; la page de
+paiement n'a plus que Messages Perso et Messages Pro (toute la liste, visio « sans limite de durée », participants en vidéo dits
+limités), `?formule=msgpremium` ouvre Messages Pro et le dit ; le site en APERÇU montre deux cartes. ⛔ La RACINE du site garde ses trois
+cartes d'avant tant que Justin n'a pas dit « remplace le site » (`node scripts/site-marine.js --racine --messages` à ce moment-là :
+`test-835` § 10 exige racine = sortie du générateur) ; `recap-abonnement.html` à la racine est modifiée sur la branche seulement, elle
+n'atteint `main` que sur sa phrase. ⚠️ Reste : « OP MESSAGES inclus dès sa réouverture » dans la carte et le tableau d'OP GESTION
+**Business Premium** (`FORMULES_GESTION`, `CATALOGUE`, `PREMIUM_METIER`) — même promesse de liaison que la phrase retirée, à trancher
+avec Justin (comptes séparés) ; je n'y ai pas touché. **« je veux un op message
 beta aussi »** (la nouvelle interface sur `messages-beta.html`, derrière les comptes bêta de la Tour) ; et **« OP MESSAGES
 je veux pas qu'il soit sur Firebase »**, avec le choix laissé (« sur le serveur aussi, ou si tu préfères je crée un nouveau
 serveur ») — choisi : **un service À PART sur le même VPS** (son propre processus, son port, son dossier de données, ses
