@@ -15,7 +15,8 @@
 # ⛔ LE PLANCHER : moins de vérifications que ça, c'est que des suites ont sauté leur partie exécutée (sans
 # `server-msg/node_modules`, celles du service se déclarent vertes). Le relever quand on ajoute une suite, jamais le baisser.
 # 1er octobre 2026 (après la relecture adverse) : 16 suites, 1593 vérifications mesurées par `bash scripts/bancs-ci.sh $(liste)`.
-#plancher 1595
+# 1er octobre 2026, accès bêta par application (Tour v2.81) : 1 616 vérifications (test-903 et test-904 gardent `app`, `apps` et la porte fermée face à un OP GESTION d'avant) — plancher relevé à 1 610.
+#plancher 1610
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js

@@ -150,8 +150,8 @@ const json = async (base, methode, chemin, corps, entetes) => {
       v('un accès « messages » seul entre', (await essaye('mona', 'pw-mona-reel12')).code, 200);
       v('un accès qui a les deux entre', (await essaye('duo', 'pw-duo-reel123')).code, 200);
       v('un accès d\'avant (sans `apps`) n\'entre pas : il n\'ouvrait qu\'OP GESTION', (await essaye('avant', 'pw-avant-reel1')).code, 401);
-      // Côté OP GESTION lui-même : la bêta d'OP GESTION (beta.html n'envoie pas `app`) ne change pas.
-      v('beta.html (sans `app`) : « gestion » seul passe, « messages » seul est refusé comme un mauvais mot de passe',
+      // Côté OP GESTION lui-même : la bêta d'OP GESTION (la page n'envoie pas `app`) ne change pas.
+      v('la page bêta d\'OP GESTION (sans `app`) : « gestion » seul passe, « messages » seul est refusé comme un mauvais mot de passe',
         [(await json(og.base, 'POST', '/api/beta/login', { login: 'gaston', pass: 'pw-gaston-reel1' })).code, (await json(og.base, 'POST', '/api/beta/login', { login: 'mona', pass: 'pw-mona-reel12' })).j.error],
         [200, 'identifiant ou mot de passe incorrect']);
       const lgApps = await json(og.base, 'POST', '/api/beta/login', { login: 'duo', pass: 'pw-duo-reel123', app: 'messages' });
