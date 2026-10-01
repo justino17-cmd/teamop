@@ -2400,6 +2400,14 @@ la sonde donnait faux 18 fois sur 21. Il avait `Edit` et `Bash` : la phrase ne l
 lecture, `agentType: 'Explore'` retire `Edit`/`Write` (pas `Bash` : le risque baisse, il ne disparaît
 pas).
 
+⛔ **UN ARBRE ISOLÉ DE WORKFLOW (`isolation: 'worktree'`) NE NAÎT PAS TOUJOURS SUR LA BRANCHE DE TRAVAIL.** Mesuré le
+1er octobre 2026 : sur cinq lancements, trois arbres sont nés sur `main` (`0bd1fbd`, `acbfbc8`) au lieu de
+`claude/op-gestion-interface-yb6p32` — un chantier entier (trois agents, 1,3 million de jetons) s'est arrêté net, faute du
+travail de la veille. Tout agent isolé commence donc par `git reset --hard <branche de travail>` (sa propre branche d'arbre,
+neuve : rien n'y est perdu ; jamais de checkout de la branche de travail, extraite ailleurs) puis PROUVE par `git log -3` qu'il
+voit le dernier commit attendu. Et à la fusion, on reprend ses commits par `git cherry-pick` (ou on fusionne sa branche) en
+regardant d'abord `git merge-base` : une base sur `main` fait remonter des dizaines de commits de publication.
+
 Tout autre sous-agent (recherche, revue de code, exploration) retombe sur
 `CLAUDE_CODE_SUBAGENT_MODEL` dans `.claude/settings.json` — Sonnet. La session
 principale, elle, garde le modèle choisi dans le terminal : ce fichier ne la touche pas.
