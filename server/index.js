@@ -2193,11 +2193,22 @@ app.post('/api/beta/login', (req, res) => {
   if (!c.actif) { echec('accès désactivé'); return res.status(403).json({ error: 'cet accès d\'essai a été coupé depuis la Tour de contrôle' }); }
   c.derniere = Date.now(); betaSave();
   monLock.delete(ident); monLog(ident, true, req, '');
-  res.json({ ok: true, login: c.login, nom: c.nom });
+  // `id` : l'identifiant du COMPTE (b + hexadécimaux), jamais réutilisé. OP MESSAGES s'en sert pour reconnaître une
+  // personne : un accès supprimé puis recréé sous le même `login` est une autre personne (relecture du gardien, 1er octobre 2026).
+  res.json({ ok: true, login: c.login, nom: c.nom, id: c.id });
 });
 // Un appareil resté connecté redemande si sa porte est toujours ouverte : « coupé » depuis
 // la Tour doit fermer aussi les sessions déjà ouvertes. Même réponse pour un accès inconnu.
 app.post('/api/beta/etat', (req, res) => {
+  // Une LISTE d'identifiants de compte (`ids`, 100 au plus) : OP MESSAGES relit tous ses accès ouverts en UNE requête —
+  // une par accès dépassait le plafond de 20 par minute de `/api/beta` dès 21 sessions, et un accès coupé gardait la sienne.
+  // Un identifiant inconnu (accès supprimé) répond `false`, comme un accès coupé.
+  const ids = (req.body || {}).ids;
+  if (Array.isArray(ids)) {
+    const ouverts = {};
+    for (const id of ids.slice(0, 100)) { if (typeof id === 'string' && /^b[0-9a-f]{6,32}$/.test(id)) ouverts[id] = betaComptes.some(x => x.id === id && x.actif); }
+    return res.json({ ouverts });
+  }
   const login = monStr((req.body || {}).login, 40).trim().toLowerCase();
   const c = betaComptes.find(x => x.login === login);
   res.json({ ouvert: !!(c && c.actif) });
