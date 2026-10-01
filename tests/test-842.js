@@ -131,7 +131,12 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
   /* Stripe simulé : les abonnements, TOUS statuts confondus, comme `stripeAbosBruts` les demande. Les tarifs sont les
      VRAIS identifiants (publics) de la page de paiement. */
   const RECAP = fs.readFileSync(path.join(RACINE, 'recap-abonnement.html'), 'utf8');
-  const PRIX = {}; for (const m of RECAP.matchAll(/^\s*(\w+):\s*\{ mensuel: '(price_\w+)', annuel: '(price_\w+)' \}/gm)) PRIX[m[1]] = [m[2], m[3]];
+  /* ⛔ LE BLOC `STRIPE_PRICES`, PAS TOUTE LA PAGE : les options du Pro vivent dans `STRIPE_PRICES_OPTIONS`, une table à part
+     (test-852 les compare au serveur). Lues sur toute la page, leurs lignes — de la même forme dès que Justin y colle ses
+     identifiants — passeraient pour des formules et feraient tomber la population de cinq (1er octobre 2026). */
+  const iPrix = RECAP.indexOf('const STRIPE_PRICES = {'), fPrix = RECAP.indexOf('\n};', iPrix);
+  const BLOC_PRIX = iPrix > 0 && fPrix > iPrix ? RECAP.slice(iPrix, fPrix) : '';
+  const PRIX = {}; for (const m of BLOC_PRIX.matchAll(/^\s*(\w+):\s*\{ mensuel: '(price_\w+)', annuel: '(price_\w+)' \}/gm)) PRIX[m[1]] = [m[2], m[3]];
   const S_AVANT = Math.floor(AVANT / 1000), S_APRES = Math.floor((BASCULE + 60000) / 1000);
   const abo = (id, espace, status, lignes, cree, email) => ({ id, status, created: cree, metadata: espace ? { espace } : {},
     customer: { id: 'cus_' + id, email: email || '' }, current_period_end: Math.floor(Date.now() / 1000) + 20 * 86400,
@@ -207,6 +212,7 @@ globalThis.fetch = async function (url, opts) {
     console.log('\n0. Les tarifs du serveur sont ceux de la page de paiement');
     const SRV = fs.readFileSync(SERVEUR, 'utf8');
     const srvPrix = {}; for (const m of SRV.matchAll(/^\s*(\w+): \['(price_\w+)', '(price_\w+)'\]/gm)) srvPrix[m[1]] = [m[2], m[3]];
+    vrai('le bloc STRIPE_PRICES de la page est trouvé (une tranche vide passerait sur tout)', BLOC_PRIX.length > 100);
     vrai('population : cinq formules payantes lues dans la page (' + Object.keys(PRIX).join(', ') + ')', Object.keys(PRIX).length === 5);
     v('⛔ STRIPE_PRIX_FORMULE (serveur) = STRIPE_PRICES (recap-abonnement.html) — un tarif changé d\'un seul côté, et des clients qui paient n\'auraient plus de places', srvPrix, PRIX);
 

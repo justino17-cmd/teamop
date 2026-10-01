@@ -797,6 +797,11 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
      ⚠️ Des DÉCLARATIONS de fonction, hissées : `cliResume` (juste en dessous) et les vues du compte les lisent, et une vue peut s'afficher
      avant que le script n'arrive ici — une `const` serait alors en zone morte (la leçon de `METIER_L`, en tête du script). */
   function planNom(d){ const p=String((d&&d.plan)||'').trim(); return (p&&!/^(découverte|gratuit)$/i.test(p))?p:''; }
+  /* ⛔ LES OPTIONS DU PRO SERVIES (1er octobre 2026) : un champ À PART que le SERVEUR donne (`d.options`, des libellés), jamais
+     collé dans `d.plan` — `cliResume` renvoie `plan` au serveur, et une option ne doit jamais passer pour une formule. Pas de
+     formule, ou suspendu : rien (une option ne vaut rien sans la formule qui la porte). Absent ou autre chose qu'un tableau de
+     textes : rien non plus — dans le doute, on ne dit rien. Une DÉCLARATION, hissée comme `planNom`. */
+  function optionsServies(d){ if(!planNom(d)||(d&&d.planStatus==='suspendu')) return []; const o=d&&d.options; return Array.isArray(o)?o.filter(x=>typeof x==='string'&&x.trim()).map(x=>x.trim().slice(0,60)).slice(0,4):[]; }
   function planEtat(d){ return !planNom(d)?'Aucun abonnement':(d.planStatus==='suspendu'?'Suspendu':(d.planStatus==='essai'?'Essai':'Actif')); }
   function cliResume(user,d){
     d=d||{};
@@ -1020,7 +1025,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       const pi=promoInfo(d);
       // 1) l'offre en cours
       body=`${promoBanner(d)}
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><div style="font-size:19px;font-weight:800">${esc(planNom(d)||'Aucune formule')}</div><div class="muted">${!planNom(d)?'Aucun abonnement en cours':(d.planStatus==='suspendu'?'Suspendu jusqu’au règlement — vos données sont conservées':(d.planStatus==='essai'?"Période d'essai":'Actif'))}</div></div>${!planNom(d)?'':`<span class="badge ${d.planStatus==='suspendu'?'b-prog':'b-done'}">${d.planStatus==='suspendu'?'⏸ Suspendu':'● Actif'}</span>`}</div>`;
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><div style="font-size:19px;font-weight:800">${esc(planNom(d)||'Aucune formule')}</div><div class="muted">${!planNom(d)?'Aucun abonnement en cours':(d.planStatus==='suspendu'?'Suspendu jusqu’au règlement — vos données sont conservées':(d.planStatus==='essai'?"Période d'essai":'Actif'))}</div></div>${!planNom(d)?'':`<span class="badge ${d.planStatus==='suspendu'?'b-prog':'b-done'}">${d.planStatus==='suspendu'?'⏸ Suspendu':'● Actif'}</span>`}</div>${(()=>{ const o=optionsServies(d); return o.length?`<div style="margin-top:12px"><div class="muted" style="margin-bottom:6px">Options du Pro comprises dans votre abonnement</div><div style="display:flex;gap:6px;flex-wrap:wrap">${o.map(x=>`<span class="badge b-done">${esc(x)}</span>`).join('')}</div></div>`:''; })()}`;
       // 2) applications activées
       body+=`<div class="grp2" style="margin-top:18px">Applications activées</div>`;
       const lignes=Object.keys(APPS).map(k=>{ const a=APPS[k]; const actif=apps.includes(k);

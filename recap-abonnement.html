@@ -276,6 +276,32 @@
     color: var(--vert);
     margin-top: 2px;
   }
+  /* ===== LES OPTIONS DU PRO : des cases de 44 px, prix à droite, aucun mot ne se coupe ===== */
+  .bloc-options, .options-incluses {
+    margin: 10px 0 14px;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--m-link) 6%, transparent);
+    border: 1px solid color-mix(in srgb, var(--m-link) 20%, transparent);
+  }
+  .bloc-options { padding: 12px 14px 4px; }
+  .titre-options { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; color: var(--m-sub); margin-bottom: 2px; }
+  .titre-options span { font-weight: 500; letter-spacing: 0; }
+  .option-case {
+    display: flex; align-items: center; gap: 12px;
+    min-height: 44px; padding: 10px 0;
+    border-top: 1px solid var(--bordure);
+    cursor: pointer;
+  }
+  .titre-options + .option-case { border-top: 0; }
+  .option-case input { width: 22px; height: 22px; margin: 0; flex-shrink: 0; accent-color: var(--m-accent); cursor: pointer; }
+  .option-texte { flex: 1; min-width: 0; font-size: 14px; line-height: 1.35; }
+  .option-texte b { display: block; font-weight: 600; color: var(--texte); overflow-wrap: anywhere; }
+  .option-texte .detail { display: block; font-size: 12px; color: var(--texte-3); overflow-wrap: anywhere; }
+  .option-prix { flex-shrink: 0; font-size: 13.5px; font-weight: 600; color: var(--texte); white-space: nowrap; }
+  .option-prix small { font-size: 11.5px; font-weight: 500; color: var(--texte-3); }
+  .options-incluses { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; font-size: 13px; line-height: 1.45; color: var(--texte-2); }
+  .options-incluses b { color: var(--texte); font-weight: 600; }
+  .options-incluses svg { width: 14px; height: 14px; margin-top: 3px; flex-shrink: 0; color: var(--vert); }
   .btn-payer {
     width: 100%;
     padding: 13px 22px;
@@ -471,6 +497,22 @@ const STRIPE_PRICES = {
   msgpremium: { mensuel: 'price_1TwV6mFKFKIrVWLD7DkH3P9f', annuel: 'price_1TwgeFFKFKIrVWLDgqaRlO6V' }
 };
 
+/* ⛔ LES OPTIONS DU PRO ONT LEUR PROPRE TABLE, JAMAIS DANS `STRIPE_PRICES` (1er octobre 2026, « Plus cher » — Justin). Deux
+   raisons : `tests/test-842.js` exige que `STRIPE_PRICES` porte exactement les cinq formules et les compare une à une au
+   serveur ; et une option n'est pas une formule — le serveur n'accepte JAMAIS un `price_…` d'option venu de la page, il
+   reçoit des CLÉS (`options: ['stock']`) et en tire ses tarifs et sa quantité (une valeur du corps ne décide pas de ce qui
+   est payé).
+   ⛔ VIDES TANT QUE JUSTIN N'A PAS CRÉÉ LES TARIFS CHEZ STRIPE (`node server/stripe-options.js`, sur le VPS) : une option
+   dont les DEUX tarifs (mensuel et annuel) ne sont pas posés n'a pas de case — la page en service ne vend rien de ce que
+   l'application publiée n'ouvre pas encore (les appareils d'abord, la porte ensuite). Les identifiants collés ici sont ceux
+   du serveur : `tests/test-852.js` les compare. Une ligne par option, dans l'ordre des clés. */
+const STRIPE_PRICES_OPTIONS = {
+  stock:     { mensuel: '', annuel: '' },
+  achats:    { mensuel: '', annuel: '' },
+  compta:    { mensuel: '', annuel: '' },
+  sanitaire: { mensuel: '', annuel: '' }
+};
+
 /* ⛔ UN ABONNEMENT = UN UTILISATEUR, dans toutes les formules — Justin, 27 septembre 2026 au soir : « à partir
    d'aujourd'hui c'est 1 utilisateur par abonnement ». Avant : 2 en Business, 3 en Business Premium et en Messages
    Business Premium. `utilisateurs` reste écrit pour chaque formule, et vaut 1 partout : `tests/test-837.js` le relit.
@@ -505,7 +547,7 @@ const FORMULES = {
       { ok: true,  titre: 'App web + mobile', detail: 'iPhone, Android, Mac, PC — à jour en quelques secondes' },
       { ok: true,  titre: 'Données chiffrées', detail: 'AES-256, espace isolé' },
       { ok: true,  titre: 'Support par e-mail', detail: '' },
-      { ok: false, titre: 'Stock, bons de commande, registre 3D', detail: 'disponibles dès la formule Business' }
+      { ok: false, parOptions: true, titre: 'Stock, bons de commande, registre 3D', detail: 'disponibles dès la formule Business' }
     ]
   },
   business: {
@@ -615,6 +657,18 @@ const FORMULES = {
 };
 
 const REMISE_ANNUELLE = 2; // 2 mois offerts sur l'année
+
+/* ---------- LES OPTIONS DU PRO ---------- */
+/* Réservées au Pro : Business et Business Premium les ont TOUTES (cahier des charges du 1er octobre 2026, section 1).
+   Même grille que le serveur (`OPTIONS_PRIX_MOIS`), l'application (`OPTIONS_GESTION`) et le site : `tests/test-852.js` les
+   compare. Prix TTC par utilisateur et par mois ; à l'année, dix mois (REMISE_ANNUELLE) comme la formule.
+   ⚠️ La clé du registre sanitaire est `sanitaire`, jamais `registre` (déjà une vue de l'application). */
+const OPTIONS_GESTION = {
+  stock:     { nom: 'Stock',                           prixMensuel: 9, desc: 'produits, mouvements, demandes, validations — et les box pour le métier 3D' },
+  achats:    { nom: 'Achats fournisseurs',             prixMensuel: 6, desc: 'fournisseurs, bons de commande, commande suggérée, boîte mail' },
+  compta:    { nom: 'Encaissements et compta',         prixMensuel: 6, desc: 'comptabilité, télécollecte, enveloppes' },
+  sanitaire: { nom: 'Registre sanitaire (métier 3D)',  prixMensuel: 6, desc: 'registre des passages, produits appliqués, dossier sanitaire', metier3d: true }
+};
 /* OP MESSAGES est fermé le temps de passer sur son propre serveur (décision de Justin, 22 et
    23 septembre 2026 : « tu peux marquer bientôt disponible »). Une formule qu'on ne peut pas
    servir ne se vend pas : ni paiement, ni compte gratuit. Ses droits restent LISIBLES à gauche,
@@ -629,6 +683,19 @@ if (!FORMULES[formuleActive]) formuleActive = 'business';
 let cycleAnnuel = params.get('cycle') === 'annuel';   // revient du portail avec le cycle choisi (lienPortail)
 /* Préremplissage : recap-abonnement.html?formule=business&utilisateurs=7 */
 let nbUsersVoulu = Math.min(MAX_ABONNEMENTS, parseInt(params.get('utilisateurs'), 10) || 0);   // 0 = automatique (1 : un abonnement)
+/* Les options cochées. Venues de l'adresse (`options=stock,achats` — l'application y mène — ou `stock.achats`, la forme qui
+   survit à l'aller-retour par le portail : `RETOUR_PAIEMENT` d'espace.html n'accepte pas la virgule), réduites aux clés
+   CONNUES et dédoublonnées : une clé inventée n'entre jamais dans le panier. Elles ne valent que pour le Pro. */
+const optionsDeAdresse = (txt) => Object.keys(OPTIONS_GESTION).filter(k => String(txt || '').split(/[,.\s]+/).indexOf(k) >= 0);
+let optionsChoisies = formuleActive === 'pro' ? optionsDeAdresse(params.get('options')) : [];
+/* Une option n'a une case que si ses DEUX tarifs sont posés (mensuel ET annuel : la case suit le cycle, et un tarif manquant
+   ferait échouer le paiement côté serveur au lieu de masquer la case — comme `annuelDispo` pour les formules). */
+const optionsDispo = () => Object.keys(OPTIONS_GESTION).filter(k => { const t = STRIPE_PRICES_OPTIONS[k] || {}; return /^price_\w+$/.test(t.mensuel || '') && /^price_\w+$/.test(t.annuel || ''); });
+/* Ce qui part vraiment : le Pro seulement, les options cochées ET en vente, dans l'ordre de la grille. */
+const optionsActives = () => formuleActive === 'pro' ? optionsDispo().filter(k => optionsChoisies.indexOf(k) >= 0) : [];
+/* L'adresse de l'état courant (formule, nombre, cycle, options) : `replaceState` y garde la page rechargeable, le chemin
+   vers le portail y garde le panier (séparateur `.`, voir plus haut). */
+const adresseEtat = (sep) => '?formule=' + formuleActive + (nbUsersVoulu > 1 ? '&utilisateurs=' + nbUsersVoulu : '') + (cycleAnnuel ? '&cycle=annuel' : '') + (optionsActives().length ? '&options=' + optionsActives().join(sep) : '');
 
 /* ---------- LE COMPTE — PAS DE PAIEMENT SANS LUI ---------- */
 /* ⛔ PAS DE PAIEMENT SANS COMPTE — Justin, 27 septembre 2026 : « il faut bien préciser aux personnes qu'elles doivent
@@ -670,7 +737,7 @@ async function lireCompte() {
    page de retour s'écrit DANS `encodeURIComponent(` : `scripts/apercu.sh` réécrit tout autre `'recap-abonnement.html`
    vers l'aperçu, et `RETOUR_PAIEMENT` refuserait alors le retour. */
 const lienPortail = () => 'espace.html?retour=' + encodeURIComponent('recap-abonnement.html?formule=' + formuleActive
-  + (nbUsersVoulu > 1 ? '&utilisateurs=' + nbUsersVoulu : '') + (cycleAnnuel ? '&cycle=annuel' : ''));
+  + (nbUsersVoulu > 1 ? '&utilisateurs=' + nbUsersVoulu : '') + (cycleAnnuel ? '&cycle=annuel' : '') + (optionsActives().length ? '&options=' + optionsActives().join('.') : ''));
 /* Revenir sur l'onglet — après avoir confirmé son adresse ailleurs, ou depuis la page Stripe — relit le compte : c'est le
    geste que la personne fait, elle n'a pas à recharger la page pour qu'il compte. */
 let relectureEnCours = false;
@@ -726,7 +793,9 @@ function rendreSelecteur() {
          celle du lien (Justin, 29 septembre 2026 : « ils choisissent le tarif qu'ils veulent ») ; et un refus affiché
          visait l'AUTRE formule, il ne survit pas au changement */
       formuleActive = b.dataset.formule; compteMsg = null;
-      history.replaceState(null, '', '?formule=' + formuleActive + (nbUsersVoulu > 1 ? '&utilisateurs=' + nbUsersVoulu : '') + (cycleAnnuel ? '&cycle=annuel' : ''));
+      /* les options sont celles du PRO : Business et Premium les incluent toutes, un panier d'options ne les suit pas */
+      if (formuleActive !== 'pro') optionsChoisies = [];
+      history.replaceState(null, '', adresseEtat(','));
       rendreTout();
     });
   });
@@ -736,6 +805,11 @@ function rendreSelecteur() {
 function rendreDroits() {
   const f = FORMULES[formuleActive];
   const c = document.getElementById('carteDroits');
+  /* « disponibles dès la formule Business » devient « en option avec le Pro » SEULEMENT quand les options se vendent :
+     tant que leurs tarifs ne sont pas posés, la page ne promet rien qu'elle ne puisse pas encaisser */
+  const droits = f.droits.map(d => d.parOptions && optionsDispo().length
+    ? Object.assign({}, d, { titre: 'Stock, achats, compta, registre sanitaire (3D)', detail: 'en option avec le Pro — inclus dans Business' })
+    : d);
 
   const avatars = Array.from({ length: Math.min(f.utilisateurs, 5) }, () =>
     `<span class="avatar-rond" style="background:${f.fond}; color:${f.couleur};">
@@ -764,15 +838,15 @@ function rendreDroits() {
     </div>
 
     <div class="section-droits">Ce que cette formule vous donne le droit de faire</div>
-    ${f.droits.filter(d => d.ok).map(d => `
+    ${droits.filter(d => d.ok).map(d => `
       <div class="droit">
         <span class="coche"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
         <span><strong>${d.titre}</strong>${d.detail ? ` <span class="detail">— ${d.detail}</span>` : ''}</span>
       </div>`).join('')}
 
-    ${f.droits.some(d => !d.ok) ? `
+    ${droits.some(d => !d.ok) ? `
       <div class="section-droits">Non inclus dans cette formule</div>
-      ${f.droits.filter(d => !d.ok).map(d => `
+      ${droits.filter(d => !d.ok).map(d => `
         <div class="droit exclu">
           <span class="coche"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span>
           <span><strong>${d.titre}</strong>${d.detail ? ` <span class="detail">— ${d.detail}</span>` : ''}</span>
@@ -827,9 +901,13 @@ function rendrePaiement() {
   const annuelDispo = !gratuit && !!(STRIPE_PRICES[formuleActive] || {}).annuel;
   if (!annuelDispo) cycleAnnuel = false;
 
+  /* le Pro avec ses options : chaque option a la quantité de la formule (un utilisateur = une place de chaque), donc le prix
+     d'UN utilisateur est celui de la formule plus celui de ses options — et tout le reste (annuel, total) en découle */
+  const opts = gratuit ? [] : optionsActives();
+  const prixMensuelUnit = f.prixMensuel + opts.reduce((t, k) => t + OPTIONS_GESTION[k].prixMensuel, 0);
   const prixAffiche = cycleAnnuel && !gratuit
-    ? f.prixMensuel * (12 - REMISE_ANNUELLE)
-    : f.prixMensuel;
+    ? prixMensuelUnit * (12 - REMISE_ANNUELLE)
+    : prixMensuelUnit;
   const suffixe = gratuit ? 'pour toujours' : (cycleAnnuel ? '/ an' : '/ mois');
   const parUtilisateur = gratuit ? null
     : (cycleAnnuel ? prixAffiche / 12 / f.utilisateurs : prixAffiche / f.utilisateurs);
@@ -840,7 +918,7 @@ function rendrePaiement() {
       <span class="prix-grand">${gratuit ? '0 €' : totalAffiche + ' €'} <small>${suffixe}</small></span>
     </div>
     <div style="text-align:center; font-size:12.5px; color:var(--texte-2); margin-bottom: 6px;">
-      Formule ${f.nom} · 1 utilisateur par abonnement
+      Formule ${f.nom}${opts.length ? ' + ' + opts.length + ' option' + (opts.length > 1 ? 's' : '') : ''} · 1 utilisateur par abonnement
       ${parUtilisateur ? `<br>soit ${parUtilisateur.toFixed(2).replace('.', ',').replace(',00','')} € / mois par utilisateur` : ''}
     </div>
 
@@ -857,6 +935,21 @@ function rendrePaiement() {
       </div>
       ${nbAbos>1 && !((STRIPE_PRICES[formuleActive]||{})[cycleAnnuel?'annuel':'mensuel'])?`<div style="margin-top:9px;font-size:12px;color:var(--m-body);text-align:center;">⚠️ Sur la page de paiement, indiquez la quantité : <b style="color:var(--m-text);">${nbAbos}</b></div>`:''}
     </div>` : ''}
+    ${!gratuit && f.groupe === 'gestion' && formuleActive === 'pro' && optionsDispo().length ? `
+      <div class="bloc-options" role="group" aria-labelledby="titreOptions">
+        <div class="titre-options" id="titreOptions">OPTIONS DU PRO <span>· par utilisateur</span></div>
+        ${optionsDispo().map(k => { const o = OPTIONS_GESTION[k]; const on = opts.indexOf(k) >= 0; return `
+        <label class="option-case${on ? ' cochee' : ''}">
+          <input type="checkbox" data-option="${k}"${on ? ' checked' : ''}>
+          <span class="option-texte"><b>${o.nom}</b><span class="detail">${o.desc}</span></span>
+          <span class="option-prix">+&nbsp;${cycleAnnuel ? o.prixMensuel * (12 - REMISE_ANNUELLE) : o.prixMensuel}&nbsp;€<small>${cycleAnnuel ? ' / an' : ' / mois'}</small></span>
+        </label>`; }).join('')}
+      </div>` : ''}
+    ${!gratuit && f.groupe === 'gestion' && formuleActive !== 'pro' && optionsDispo().length ? `
+      <div class="options-incluses" role="note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        <span><b>Toutes les options sont incluses</b> — stock, achats, compta et registre sanitaire (métier 3D), sans rien à ajouter.</span>
+      </div>` : ''}
     ${!gratuit && annuelDispo ? `
       <div class="choix-cycle">
         <button class="cycle ${!cycleAnnuel ? 'actif' : ''}" data-cycle="mensuel">
@@ -873,10 +966,15 @@ function rendrePaiement() {
         <span>Abonnement ${f.nom}${nbAbos>1?' \u00d7 '+nbAbos:''}</span>
         <span>${(cycleAnnuel ? f.prixMensuel * 12 : f.prixMensuel) * nbAbos} €</span>
       </div>
+      ${opts.map(k => `
+      <div class="ligne-prix">
+        <span>Option ${OPTIONS_GESTION[k].nom}${nbAbos>1?' \u00d7 '+nbAbos:''}</span>
+        <span>${(cycleAnnuel ? OPTIONS_GESTION[k].prixMensuel * 12 : OPTIONS_GESTION[k].prixMensuel) * nbAbos} €</span>
+      </div>`).join('')}
       ${cycleAnnuel ? `
         <div class="ligne-prix" style="color:var(--vert);">
           <span>Remise annuelle (${REMISE_ANNUELLE} mois offerts)</span>
-          <span>− ${f.prixMensuel * REMISE_ANNUELLE * nbAbos} €</span>
+          <span>− ${prixMensuelUnit * REMISE_ANNUELLE * nbAbos} €</span>
         </div>` : ''}
       <div class="ligne-prix total">
         <span>Total ${cycleAnnuel ? 'annuel' : 'mensuel'}</span>
@@ -934,6 +1032,17 @@ function rendrePaiement() {
     });
   });
 
+  c.querySelectorAll('[data-option]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const k = inp.dataset.option;
+      optionsChoisies = optionsChoisies.filter(x => x !== k).concat(inp.checked ? [k] : []);
+      compteMsg = null;   // un refus affiché visait le panier d'avant
+      history.replaceState(null, '', adresseEtat(','));
+      rendrePaiement();
+      const n = c.querySelector('[data-option="' + k + '"]'); if (n) n.focus();   // le rendu réécrit tout : le clavier ne perd pas sa place
+    });
+  });
+
   const br = document.getElementById('btnRenvoiLien'); if (br) br.addEventListener('click', () => renvoyerLien(br));
   const ba = document.getElementById('btnAutreCompte'); if (ba) ba.addEventListener('click', () => changerCompte());
 
@@ -962,12 +1071,15 @@ function rendrePaiement() {
     };
     const btn = document.getElementById('btnPayer');
     const priceId = (STRIPE_PRICES[formuleActive] || {})[cycleAnnuel ? 'annuel' : 'mensuel'];
+    /* ⛔ Des CLÉS d'option, jamais un tarif ni un montant : le serveur en tire ses prix, ses places et son cycle. Vide hors du
+       Pro et tant que les tarifs ne sont pas posés — le corps part alors comme avant les options. */
+    const optionsEnvoyees = optionsActives();
     if (!priceId) { compteMsg = { texte: 'Cette formule ne se paie pas encore en ligne : écrivez à support@teamop.fr.', erreur: true }; rendrePaiement(); return; }
     btn.disabled = true; btn.innerHTML = 'Préparation du paiement…';
     let r = null, j = null;
     const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 15000);
     try {
-      r = await fetch(API_TEAMOP + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + compte.jeton }, body: JSON.stringify({ price: priceId, quantity: nbAbos, ref: espaceRattacheRef() }), signal: ctl.signal });
+      r = await fetch(API_TEAMOP + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + compte.jeton }, body: JSON.stringify({ price: priceId, quantity: nbAbos, ref: espaceRattacheRef(), options: optionsEnvoyees }), signal: ctl.signal });
       j = await r.json().catch(() => null);
     } catch (e) { r = null; }
     finally { clearTimeout(to); }
@@ -993,6 +1105,13 @@ function rendrePaiement() {
     /* un tarif que le serveur ne connaît pas (28 septembre 2026, nuit) : la page est ancienne. Aucun tarif de la page n'est
        refusé pour la formule de l'entreprise — le client choisit (Justin, 29 septembre 2026) */
     else if (r && r.status === 400 && j && j.error === 'tarif_inconnu') compteMsg = { texte: 'Ce tarif n\'est plus proposé : rechargez la page, puis réessayez. Rien n\'a été payé.', erreur: true };
+    /* les options (1er octobre 2026) : chaque refus du serveur se dit, aucun n'est un « réessayez » — rien n'est parti chez Stripe */
+    else if (r && r.status === 400 && j && j.error === 'option_inconnue') compteMsg = { texte: 'Une des options choisies n\'existe plus : rechargez la page, puis réessayez. Rien n\'a été payé.', erreur: true };
+    else if (r && r.status === 400 && j && j.error === 'option_indisponible') compteMsg = { texte: 'Une des options choisies n\'est pas encore en vente : décochez-la, ou rechargez la page. Rien n\'a été payé.', erreur: true };
+    else if (r && r.status === 400 && j && j.error === 'option_incluse') compteMsg = { texte: 'Business et Business Premium incluent déjà toutes les options : il n\'y a rien à ajouter. Rechargez la page. Rien n\'a été payé.', erreur: true };
+    else if (r && r.status === 409 && j && j.error === 'entreprise_requise') compteMsg = { texte: 'Pour ajouter une option à un abonnement existant, il faut l\'entreprise concernée : ouvrez cette page depuis votre application, ou écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+    else if (r && r.status === 409 && j && j.error === 'formule_requise') compteMsg = { texte: 'Une option se joint à un abonnement Pro déjà payé par votre entreprise, et il n\'y en a pas : choisissez Pro avec ses options, ou écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+    else if (r && r.status === 409 && j && j.error === 'option_deja') compteMsg = { texte: 'Une des options choisies est déjà active pour votre entreprise : rien à payer de plus pour elle. Décochez-la, ou rechargez la page. Rien n\'a été payé.', erreur: true };
     else if (r && r.status === 429) compteMsg = { texte: 'Trop de tentatives d\'affilée : patientez une minute, puis réessayez.', erreur: true };
     /* un impayé sans facture ouverte : définitif tant que TEAM OP ne l'a pas réglé — « réessayez » mentirait */
     else if (r && r.status === 409 && j && j.error === 'impaye_sans_facture') compteMsg = { texte: 'Un prélèvement précédent de votre abonnement n\'a pas abouti et doit être réglé avant tout nouveau paiement : écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
