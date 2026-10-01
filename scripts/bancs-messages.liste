@@ -15,8 +15,8 @@
 # ⛔ LE PLANCHER : moins de vérifications que ça, c'est que des suites ont sauté leur partie exécutée (sans
 # `server-msg/node_modules`, celles du service se déclarent vertes). Le relever quand on ajoute une suite, jamais le baisser.
 # 2 octobre 2026 (compte par téléphone) : 23 suites, 2057 vérifications mesurées par `bash scripts/bancs-ci.sh $(liste)` (1er octobre, avant : 16 suites, 1593).
-# 2 octobre 2026 (relecture adverse du compte par téléphone : argent, comptes, saisie des clés) : 24 suites (test-919), 2176 vérifications.
-#plancher 2176
+# 2 octobre 2026 (relecture adverse du compte par téléphone : argent, comptes, saisie des clés) : 24 suites (test-919), 2180 vérifications.
+#plancher 2180
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
