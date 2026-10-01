@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<!-- ⛔ AUCUN APPEL RÉSEAU, GARDÉ PAR LE NAVIGATEUR ET PAS SEULEMENT PAR LA SOBRIÉTÉ DU CODE : default-src 'none' refuse tout
+     fetch, toute police, tout script distant. Seuls le logo de la page (même dossier) et la photo choisie par la personne
+     (blob:, jamais envoyée nulle part) sont permis. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<meta name="theme-color" content="#eef3fb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a2e6b" media="(prefers-color-scheme: dark)">
+<title>OP MESSAGES — aperçu</title>
+<link rel="icon" href="opmsg-logo.jpeg" type="image/jpeg">
+<style>
+/* ══ 1. LES JETONS — LE DOCUMENT `design/opmessages/THEME-OPMESSAGES.md` EST LA SOURCE ══════════════════════════════════
+   Les valeurs du tableau « Couleurs » du document sont recopiées ici telles quelles ; celles que le document ne cite pas
+   (faint, inputBg, line, shadowBar, segTrack, segKnob, sheet, sheetBg, notifBg, toggleOff, handle) viennent de la fonction
+   `tokens(dark)` de la maquette source (« OP Messages Apple.dc.html », l. 583-595). `tests/test-856.js` RELIT le document et
+   compare, jeton par jeton, jour ET nuit : un banc qui recopie des valeurs garde une croyance, un banc qui relit la source
+   garde un accord (la leçon de test-759).
+   ⛔ Le jour et la nuit suivent l'APPAREIL (prefers-color-scheme) et rien d'autre : pas de bouton, pas de clé rangée. */
+:root {
+  --text: #0e1a3f;
+  --sub: rgba(14,26,63,.6);
+  --faint: rgba(14,26,63,.3);
+  --accent: #2a4a9c;
+  --fill: #2a4a9c;
+  --fill-soft: rgba(42,74,156,.12);
+  --card: rgba(255,255,255,.82);
+  --field: rgba(42,74,156,.1);
+  --input-bg: #ffffff;
+  --line: 0.5px solid rgba(60,60,67,.29);
+  --sep: 0.5px solid rgba(60,60,67,.2);
+  --nav-bar: rgba(255,255,255,.78);
+  --tab-bar: rgba(255,255,255,.72);
+  --shadow-bar: 0 12px 32px rgba(11,20,38,.12), inset 0 1px 0 #fff;
+  --bubble-in: #e6ecf7;
+  --bubble-in-fg: #0e1a3f;
+  --seg-track: rgba(118,118,128,.12);
+  --seg-knob: #fff;
+  --sidebar: rgba(255,255,255,.4);
+  --sheet: rgba(248,250,255,.94);
+  --sheet-bg: rgba(242,242,247,.94);
+  --notif-bg: rgba(255,255,255,.82);
+  --toggle-off: rgba(120,120,128,.16);
+  --group-r: 12px;
+  --handle: rgba(0,0,0,.72);
+  --tab-active-bg: rgba(255,255,255,.88);
+  --tab-active-fg: #1a2e6b;
+  --tab-active-shadow: 0 4px 14px rgba(0,0,0,.12), inset 0 1px 0 #fff;
+  --screen: linear-gradient(112deg, rgba(255,255,255,0) 58%, rgba(255,255,255,.4) 58.2%), radial-gradient(120% 90% at 0% 0%, #ffffff 0%, rgba(255,255,255,0) 55%), radial-gradient(110% 80% at 100% 100%, #c9d8f5 0%, rgba(201,216,245,0) 60%), linear-gradient(160deg, #eef3fb, #dfe8f8);
+  /* — ce qui n'est pas dans le tableau du document : encres de statut, puces, plan de repli — */
+  --rouge: #ff453a;
+  --vert: #30d158;
+  --puce-x: #ffffff;
+  --coche: #ffffff;
+  --solide: #f6f8fd;
+  --solide-feuille: #f2f2f7;
+  --solide-notif: #ffffff;
+  --base: #eef3fb;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #ffffff;
+    --sub: rgba(220,228,250,.66);
+    --faint: rgba(220,228,250,.32);
+    --accent: #7ea2f0;
+    --fill: #3b63c4;
+    --fill-soft: rgba(126,162,240,.22);
+    --card: rgba(255,255,255,.09);
+    --field: rgba(255,255,255,.14);
+    --input-bg: rgba(255,255,255,.06);
+    --line: 1px solid rgba(255,255,255,.14);
+    --sep: 0.5px solid rgba(84,84,88,.6);
+    --nav-bar: rgba(26,46,107,.72);
+    --tab-bar: rgba(255,255,255,.1);
+    --shadow-bar: 0 12px 32px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.16);
+    --bubble-in: rgba(255,255,255,.14);
+    --bubble-in-fg: #fff;
+    --seg-track: rgba(118,118,128,.24);
+    --seg-knob: #636366;
+    --sidebar: rgba(255,255,255,.04);
+    --sheet: rgba(20,32,74,.92);
+    --sheet-bg: rgba(28,28,30,.92);
+    --notif-bg: rgba(44,44,46,.82);
+    --toggle-off: rgba(120,120,128,.32);
+    --group-r: 12px;
+    --handle: rgba(255,255,255,.8);
+    --tab-active-bg: rgba(42,74,156,.8);
+    --tab-active-fg: #fff;
+    --tab-active-shadow: 0 6px 16px rgba(34,59,110,.3), inset 0 1px 0 rgba(255,255,255,.28);
+    --screen: linear-gradient(112deg, rgba(255,255,255,0) 58%, rgba(255,255,255,.05) 58.2%), radial-gradient(120% 90% at 0% 0%, #24408a 0%, rgba(36,64,138,0) 55%), linear-gradient(160deg, #1a2e6b, #0e1a3f);
+    --rouge: #ff453a;
+    --vert: #30d158;
+    --puce-x: #0e1a3f;
+    --coche: #ffffff;
+    --solide: #1b2d68;
+    --solide-feuille: #1c1c1e;
+    --solide-notif: #2c2c2e;
+    --base: #0e1a3f;
+  }
+}
+
+/* ══ 2. BASE ═══════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; }
+/* ⛔ le décor va sur <html> : le fond de <html> se propage au canevas et se peint en tout premier (CLAUDE.md). */
+html {
+  background-color: var(--base);
+  background-image: var(--screen);
+  background-attachment: fixed;
+  -webkit-text-size-adjust: 100%;
+  scrollbar-color: var(--faint) transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable Text', 'Segoe UI', Roboto, 'Noto Sans', 'Helvetica Neue', Helvetica, system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.3;
+  -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; color: inherit; }
+button { border: 0; background: none; padding: 0; margin: 0; cursor: pointer; touch-action: manipulation; text-align: inherit; }
+a { color: inherit; text-decoration: none; -webkit-touch-callout: none; }
+ul { list-style: none; margin: 0; padding: 0; }
+h1, h2, p { margin: 0; }
+svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sr-seul { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+[hidden] { display: none !important; }
+
+/* La réponse au toucher est IMMÉDIATE : l'état « pressé » se pose au doigt posé, pas au relâché (apple-design, §1). La transition
+   part de la valeur VISIBLE du moment — un geste interrompu repart d'où il est, sans saut. */
+.presse { transition: transform .12s ease-out, background-color .2s; }
+.presse:active { transform: scale(.97); }
+
+/* ══ 3. LA MISE EN PAGE — téléphone (barre d'onglets flottante) ET bureau (barre latérale de 236 px) ═════════════════════
+   La navigation se choisit à la LARGEUR, jamais au type d'appareil : un iPad en portrait (820) garde la barre d'onglets. */
+.app { min-height: 100vh; min-height: 100dvh; }
+.contenu {
+  min-width: 0;
+  padding: calc(env(safe-area-inset-top, 0px) + 6px) max(16px, env(safe-area-inset-right, 0px)) calc(120px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+}
+.side { display: none; }
+@media (min-width: 900px) {
+  .app { display: grid; grid-template-columns: 236px minmax(0, 1fr); }
+  .contenu { padding: 6px 28px 40px; }
+  .side { display: flex; }
+}
+
+.vue[hidden] { display: none; }
+.entete-vue { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 4px; }
+.lien-texte { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; font-size: 17px; color: var(--accent); }
+.grand-titre {
+  margin: 2px 4px 10px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI Variable Display', 'Segoe UI', Roboto, 'Noto Sans', 'Helvetica Neue', Helvetica, system-ui, sans-serif;
+  font-size: 34px; line-height: 41px; letter-spacing: .37px; font-weight: 700; color: var(--text);
+}
+/* le bouton « Groupe » : la zone qui répond fait 44 px, la pastille qu'on voit en fait 32 (le paquet dessine 32) */
+.btn-groupe { min-height: 44px; display: inline-flex; align-items: center; padding: 0; }
+.btn-groupe .pastille {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px 0 10px; border-radius: 999px;
+  background: var(--fill-soft); color: var(--accent); font-size: 15px; font-weight: 600; transition: transform .12s ease-out;
+}
+.btn-groupe:active .pastille { transform: scale(.95); }
+.btn-groupe .ic { font-size: 16px; stroke-width: 2.2; }
+
+.recherche {
+  display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; margin-bottom: 12px;
+  border-radius: 12px; background: var(--field); color: var(--sub);
+}
+.recherche .ic { font-size: 16px; stroke-width: 2.4; }
+.recherche input {
+  flex: 1; min-width: 0; height: 44px; border: 0; outline: 0; background: transparent; padding: 0;
+  font-size: 17px; color: var(--text); caret-color: var(--accent); -webkit-appearance: none; appearance: none;
+}
+.recherche input::placeholder { color: var(--sub); opacity: 1; }
+.recherche input::-webkit-search-cancel-button { display: none; }
+.recherche:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* épinglés : 4 cercles de 60 dans des colonnes de 76 */
+.epingles { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 12px; scrollbar-width: none; }
+.epingles::-webkit-scrollbar { display: none; }
+.epingle { flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 76px; }
+.epingle .avatar { width: 60px; height: 60px; font-size: 20px; }
+.epingle-nom { font-size: 12px; max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* avatars : dégradés du paquet (index 0 à 5) */
+.avatar { flex: none; display: grid; place-items: center; border-radius: 50%; color: #fff; font-weight: 600; background-size: cover; background-position: center; }
+.av0 { background-image: linear-gradient(180deg, #4f78d6, #2a4a9c); }
+.av1 { background-image: linear-gradient(180deg, #ff9f0a, #ff375f); }
+.av2 { background-image: linear-gradient(180deg, #30d158, #0a84ff); }
+.av3 { background-image: linear-gradient(180deg, #bf5af2, #5e5ce6); }
+.av4 { background-image: linear-gradient(180deg, #8e8e93, #636366); }
+.av5 { background-image: linear-gradient(180deg, #64d2ff, #5e5ce6); }
+
+/* la liste : une carte, des lignes de 72 px minimum */
+.carte-liste { border-radius: var(--group-r); overflow: hidden; background: var(--card); }
+.conv { display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 14px; min-height: 72px; border-bottom: var(--sep); }
+.conv:last-child { border-bottom: 0; }
+.conv-point { width: 10px; flex: none; display: flex; justify-content: center; }
+.point { width: 10px; height: 10px; border-radius: 50%; background: var(--fill); }
+.conv .avatar { width: 50px; height: 50px; font-size: 18px; }
+.conv-corps { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.conv-ligne { display: flex; align-items: baseline; gap: 8px; }
+.conv-nom { min-width: 0; font-size: 17px; font-weight: 600; letter-spacing: -.02em; line-height: 22px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conv-heure { margin-left: auto; font-size: 15px; color: var(--sub); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.chev { width: 7px; height: 12px; flex: none; fill: none; stroke: var(--faint); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; align-self: center; }
+.conv-apercu { font-size: 15px; line-height: 20px; color: var(--sub); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.conv-neuve { animation: entree .5s cubic-bezier(.32,.72,0,1) both; }
+.vide { padding: 22px 16px; text-align: center; font-size: 15px; color: var(--sub); }
+@keyframes entree { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+
+.mention-apercu { margin: 18px 4px 0; text-align: center; font-size: 12px; line-height: 16px; color: var(--sub); }
+
+/* les écrans qui arrivent aux étapes suivantes : des coquilles « bientôt » */
+.coquille { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 38px 24px; border-radius: var(--group-r); background: var(--card); text-align: center; }
+.coquille-icone { width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; background: var(--fill-soft); color: var(--accent); font-size: 28px; }
+.coquille h2 { font-size: 20px; line-height: 25px; font-weight: 700; letter-spacing: -.02em; }
+.coquille p { max-width: 34ch; font-size: 15px; line-height: 20px; color: var(--sub); }
+
+/* ══ 4. LA BARRE D'ONGLETS (téléphone) — pilule flottante en verre, bulle sur l'onglet actif ═══════════════════════════════
+   Les colonnes sont ÉGALES et se déduisent de leur NOMBRE ; le JavaScript ne pose qu'un NUMÉRO (--i), le CSS calcule la
+   place de la bulle : rien n'est mesuré, donc rien ne peut être mesuré trop tôt (CLAUDE.md, « une géométrie recopiée en
+   JavaScript dépend du moment où on la copie »). translate en pourcentage = largeur de la bulle = une colonne. */
+.tabs {
+  position: fixed; z-index: 18; left: max(14px, env(safe-area-inset-left, 0px)); right: max(14px, env(safe-area-inset-right, 0px));
+  bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) - 8px)); margin: 0 auto; max-width: 480px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 7px; border-radius: 34px;
+  background: var(--tab-bar); -webkit-backdrop-filter: blur(36px) saturate(200%); backdrop-filter: blur(36px) saturate(200%);
+  border: var(--line); box-shadow: var(--shadow-bar); --i: 0;
+}
+.tabs-bulle {
+  position: absolute; top: 7px; bottom: 7px; left: 7px; width: calc((100% - 20px) / 4); border-radius: 26px;
+  background: var(--tab-active-bg); box-shadow: var(--tab-active-shadow);
+  translate: calc(var(--i) * (100% + 2px)) 0; transition: translate .45s cubic-bezier(.32,.72,0,1);
+}
+.tab {
+  position: relative; z-index: 1; min-height: 50px; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  color: var(--sub); font-size: 11px; font-weight: 500; letter-spacing: .01em; transition: color .25s, transform .12s ease-out;
+}
+.tab .ic { font-size: 24px; }
+.tab:active { transform: scale(.94); }
+.tab[aria-current="page"] { color: var(--tab-active-fg); font-weight: 600; }
+/* ⛔ APRÈS la règle de .tabs (même spécificité : la dernière écrite gagne) — placée dans la requête du § 3, elle ne cachait rien et
+   la pilule se posait sur la barre latérale (relevé à la première capture au bureau). */
+@media (min-width: 900px) { .tabs { display: none; } }
+
+/* ══ 5. LA BARRE LATÉRALE (bureau) — 236 px, verre, statut « Disponible » ═════════════════════════════════════════════════ */
+.side {
+  position: sticky; top: 0; height: 100vh; height: 100dvh; flex-direction: column; gap: 2px; padding: 14px 10px;
+  background: var(--sidebar); -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+  border-right: var(--line);
+}
+.side-marque { display: flex; align-items: center; gap: 9px; padding: 2px 8px 14px; }
+.side-marque img { width: 28px; height: 28px; border-radius: 7px; display: block; }
+.side-marque b { font-size: 15px; font-weight: 600; letter-spacing: -.014em; }
+.side-lien { display: flex; align-items: center; gap: 9px; min-height: 32px; padding: 4px 8px; border-radius: 8px; font-size: 13px; color: var(--text); transition: background-color .2s, transform .12s ease-out; }
+.side-lien .ic { font-size: 16px; }
+.side-lien[aria-current="page"] { background: var(--fill-soft); color: var(--accent); font-weight: 600; }
+.side-lien:active { transform: scale(.98); }
+@media (hover: hover) { .side-lien:not([aria-current="page"]):hover { background: var(--field); } }
+@media (pointer: coarse) { .side-lien { min-height: 44px; } }
+.side-fin { margin-top: auto; }
+.moi { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: var(--field); }
+.moi .avatar { width: 26px; height: 26px; font-size: 11px; }
+.moi-texte { min-width: 0; display: flex; flex-direction: column; }
+.moi-nom { font-size: 13px; font-weight: 600; }
+.moi-statut { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sub); }
+.moi-statut i { width: 6px; height: 6px; border-radius: 50%; background: var(--vert); }
+
+/* ══ 6. LA FEUILLE « NOUVEAU GROUPE » — monte du bas (téléphone), fenêtre centrée de 520 px (bureau) ══════════════════════ */
+.voile {
+  position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.35); opacity: 0; visibility: hidden;
+  transition: opacity .3s, visibility 0s linear .3s;
+}
+.feuille-ouverte .voile { opacity: 1; visibility: visible; transition: opacity .3s, visibility 0s; }
+.feuille {
+  position: fixed; z-index: 41; left: 0; right: 0; bottom: 0; max-height: 88vh; max-height: 88dvh; display: flex; flex-direction: column;
+  border-radius: 30px 30px 0 0; background: var(--sheet-bg); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%);
+  border: var(--line); border-bottom: 0; box-shadow: 0 -16px 44px rgba(0,0,0,.24); overflow: hidden; color: var(--text);
+  transform: translateY(104%); visibility: hidden; transition: transform .45s cubic-bezier(.32,.72,0,1), visibility 0s linear .45s;
+  outline: none;
+}
+.feuille-ouverte .feuille { transform: none; visibility: visible; transition: transform .45s cubic-bezier(.32,.72,0,1), visibility 0s; }
+@media (min-width: 900px) {
+  .feuille {
+    left: 50%; right: auto; top: 50%; bottom: auto; width: 520px; max-width: calc(100vw - 32px); max-height: min(86vh, 720px);
+    border-radius: 22px; border-bottom: var(--line);
+    transform: translate(-50%, calc(-50% + 16px)) scale(.97); opacity: 0;
+    transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s, visibility 0s linear .35s;
+  }
+  .feuille-ouverte .feuille { transform: translate(-50%, -50%); opacity: 1; transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s, visibility 0s; }
+}
+.feuille-tete { flex: none; touch-action: none; user-select: none; -webkit-user-select: none; }
+.poignee { padding: 8px 0 4px; display: grid; place-items: center; }
+.poignee i { width: 36px; height: 5px; border-radius: 999px; background: var(--faint); }
+@media (min-width: 900px) { .poignee { display: none; } .feuille-tete { padding-top: 8px; } }
+.feuille-barre { display: flex; align-items: center; gap: 8px; padding: 2px 16px 6px; }
+.feuille-barre h2 { flex: 1; text-align: center; font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -.017em; }
+.feuille-bouton { min-height: 44px; min-width: 64px; display: inline-flex; align-items: center; font-size: 17px; color: var(--accent); }
+.feuille-bouton.fin { justify-content: flex-end; font-weight: 600; }
+.feuille-bouton[aria-disabled="true"] { color: rgba(120,120,128,.5); cursor: default; }
+.feuille-corps { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
+
+.g-identite { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.g-photo { position: relative; width: 64px; height: 64px; flex: none; border-radius: 50%; background: var(--fill-soft); background-size: cover; background-position: center; color: var(--accent); display: grid; place-items: center; cursor: pointer; overflow: hidden; font-size: 26px; transition: transform .12s ease-out; }
+.g-photo:active { transform: scale(.95); }
+.g-photo:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.g-photo input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 0; }
+.g-photo.avec-image .ic { display: none; }
+.g-nom { flex: 1; min-width: 0; height: 44px; padding: 0 14px; border: 0; border-radius: 12px; background: var(--card); font-size: 17px; color: var(--text); caret-color: var(--accent); outline: none; -webkit-appearance: none; appearance: none; }
+.g-nom::placeholder { color: var(--sub); opacity: 1; }
+.g-nom:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* membres choisis : puces avatar avec ✕ — toute la puce est la cible (≥ 44 px), la croix n'est que le signe */
+.puces { display: flex; gap: 10px; overflow-x: auto; padding: 2px 0 14px; scrollbar-width: none; }
+.puces::-webkit-scrollbar { display: none; }
+.puces:empty { display: none; }
+.puce { flex: none; position: relative; width: 64px; min-height: 44px; display: flex; flex-direction: column; align-items: center; gap: 5px; animation: entree .3s cubic-bezier(.32,.72,0,1) both; }
+.puce .avatar { width: 52px; height: 52px; font-size: 17px; }
+.puce-x { position: absolute; top: -2px; right: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--text); color: var(--puce-x); display: grid; place-items: center; }
+.puce-x .ic { width: 9px; height: 9px; stroke-width: 3.2; }
+.puce-nom { max-width: 64px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.rubrique { display: flex; align-items: baseline; justify-content: space-between; padding: 0 4px 8px; font-size: 13px; color: var(--sub); text-transform: uppercase; }
+.rubrique span { font-variant-numeric: tabular-nums; }
+.carte { border-radius: 12px; overflow: hidden; background: var(--card); margin-bottom: 18px; }
+.contact { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 14px; border-bottom: var(--sep); color: var(--text); }
+.contact:last-child { border-bottom: 0; }
+.contact .avatar { width: 38px; height: 38px; font-size: 14px; }
+.contact-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.contact-nom { font-size: 17px; letter-spacing: -.02em; }
+.contact-role { font-size: 13px; color: var(--sub); }
+.rond { width: 24px; height: 24px; flex: none; border-radius: 50%; border: 2px solid rgba(120,120,128,.4); display: grid; place-items: center; transition: background-color .2s, border-color .2s; color: var(--coche); font-size: 12px; }
+.rond .ic { stroke-width: 3.2; opacity: 0; transition: opacity .2s; }
+.contact[aria-checked="true"] .rond { background: var(--fill); border-color: var(--fill); }
+.contact[aria-checked="true"] .rond .ic { opacity: 1; }
+.reglage { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 14px; border-bottom: var(--sep); color: var(--text); }
+.reglage:last-child { border-bottom: 0; }
+.reglage-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 17px; }
+.reglage-texte small { font-size: 13px; color: var(--sub); }
+.reglage-valeur { font-size: 15px; color: var(--sub); }
+.reglage .chev { width: 8px; height: 13px; }
+.interrupteur { width: 51px; height: 31px; flex: none; border-radius: 999px; background: var(--toggle-off); position: relative; transition: background-color .25s; }
+.interrupteur::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.25); transition: transform .25s cubic-bezier(.32,.72,0,1); }
+.reglage[aria-checked="true"] .interrupteur { background: var(--vert); }
+.reglage[aria-checked="true"] .interrupteur::after { transform: translateX(20px); }
+
+/* ══ 7. LA BANNIÈRE DE NOTIFICATION — descend du haut, s'efface seule après ~3,5 s ═══════════════════════════════════════
+   Le chemin d'entrée est le chemin de sortie (apple-design, §7). Elle ne reçoit aucun toucher : on ne la rate pas, on ne
+   la ferme pas — elle ne se met jamais devant ce qu'on fait. */
+.notif {
+  --haut: max(10px, calc(env(safe-area-inset-top, 0px) + 8px));
+  position: fixed; z-index: 50; top: var(--haut); left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
+  margin: 0 auto; max-width: 440px; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 24px;
+  background: var(--notif-bg); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%);
+  border: var(--line); box-shadow: 0 18px 44px rgba(0,0,0,.28); color: var(--text); pointer-events: none;
+  transform: translateY(calc(-100% - var(--haut) - 24px)); opacity: 0; transition: transform .5s cubic-bezier(.32,.72,0,1), opacity .35s;
+}
+.notif.on { transform: none; opacity: 1; }
+.notif img { width: 38px; height: 38px; border-radius: 10px; display: block; flex: none; }
+.notif-corps { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.notif-tete { display: flex; align-items: baseline; gap: 8px; }
+.notif-tete b { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.notif-tete span { margin-left: auto; font-size: 13px; color: var(--sub); }
+.notif-texte { font-size: 15px; line-height: 20px; letter-spacing: -.01em; text-wrap: pretty; overflow-wrap: anywhere; }
+.notif-aide { font-size: 13px; line-height: 17px; color: var(--sub); overflow-wrap: anywhere; }
+.notif-aide:empty { display: none; }
+
+/* un petit mot qui s'efface seul (« Modifier » n'est pas encore dessiné) */
+.mot {
+  position: fixed; z-index: 49; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 56px); max-width: calc(100vw - 32px); padding: 9px 16px; border-radius: 999px;
+  background: rgba(28,28,30,.9); color: #fff; font-size: 14px; line-height: 18px; pointer-events: none;
+  transform: translate(-50%, -8px); opacity: 0; transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s;
+}
+.mot.on { transform: translate(-50%, 0); opacity: 1; }
+
+/* ══ 8. LES RÉGLAGES DE L'APPAREIL : transparence et mouvement ═════════════════════════════════════════════════════════════
+   ⛔ Retirer le flou SANS rendre de matière laisserait un texte posé sur ce qui passe dessous : on remplace la vitre par un
+   aplat plein (« un filtre de fond se déclare AVEC sa surface », et l'inverse aussi). */
+@media (prefers-reduced-transparency: reduce) {
+  [data-glass] { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background: var(--solide) !important; }
+  .feuille { background: var(--solide-feuille) !important; }
+  .notif { background: var(--solide-notif) !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition-duration: 0s !important; transition-delay: 0s !important; }
+}
+@media (forced-colors: active) {
+  .tab[aria-current="page"], .side-lien[aria-current="page"] { outline: 2px solid Highlight; }
+}
+</style>
+</head>
+<body>
+<noscript><p style="padding:24px;font:16px/1.4 system-ui,sans-serif">Cet aperçu d'OP MESSAGES a besoin de JavaScript.</p></noscript>
+
+<!-- Les icônes : des tracés de 24 × 24 (trait 1,9, bouts arrondis) du paquet, définis UNE fois. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H10l-5 4v-4H7a3 3 0 0 1-3-3V6Z"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Zm12 3 4-2.5v9L16 14"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm7.4-2.1.9-1.4-1.9-1.9a7 7 0 0 0-.4-1.5l1.2-1.7-1.6-1.6-1.7 1.2a7 7 0 0 0-1.5-.4L12.5 4h-1l-.6 2.1a7 7 0 0 0-1.5.4L7.7 5.3 6.1 6.9l1.2 1.7a7 7 0 0 0-.4 1.5L4.8 11v1l2.1.6a7 7 0 0 0 .4 1.5l-1.2 1.7 1.6 1.6 1.7-1.2a7 7 0 0 0 1.5.4l.6 2.1h1l.6-2.1a7 7 0 0 0 1.5-.4l1.7 1.2 1.6-1.6-1.2-1.7a7 7 0 0 0 .4-1.5l2.1-.6Z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.6 15.6 21 21"/></symbol>
+  <symbol id="i-groupe" viewBox="0 0 24 24"><path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 .4a2.6 2.6 0 1 0 0-5.2 2.6 2.6 0 0 0 0 5.2ZM3 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5m3-6c2.4.2 4 2 4 4.4M19 3v4m2-2h-4"/></symbol>
+  <symbol id="i-photo" viewBox="0 0 24 24"><path d="M12 15a4 4 0 0 0 4-4V8a4 4 0 0 0-8 0v3a4 4 0 0 0 4 4Zm-8 6a8 8 0 0 1 16 0M9 4l1-1.5h4L15 4"/></symbol>
+  <symbol id="i-coche" viewBox="0 0 24 24"><path d="M5 12.5 10 17.5 19 7"/></symbol>
+  <symbol id="i-croix" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
+</svg>
+
+<div class="app" id="app">
+  <aside class="side" data-glass="1" aria-label="Barre latérale">
+    <div class="side-marque"><img src="opmsg-logo.jpeg" alt="" width="28" height="28"><b>OP MESSAGES</b></div>
+    <nav aria-label="Navigation principale" id="nav-side"></nav>
+    <div class="side-fin">
+      <div class="moi"><span class="avatar av0" aria-hidden="true" id="moi-avatar"></span><span class="moi-texte"><span class="moi-nom" id="moi-nom"></span><span class="moi-statut"><i></i>Disponible</span></span></div>
+    </div>
+  </aside>
+
+  <main class="contenu" id="contenu">
+    <section class="vue" id="vue-messages" aria-labelledby="titre-messages">
+      <div class="entete-vue">
+        <button type="button" class="lien-texte presse" id="btn-modifier">Modifier</button>
+        <button type="button" class="btn-groupe" id="btn-groupe" aria-haspopup="dialog"><span class="pastille"><svg class="ic" aria-hidden="true"><use href="#i-groupe"/></svg>Groupe</span></button>
+      </div>
+      <h1 class="grand-titre" id="titre-messages">Messages</h1>
+      <label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher dans les conversations</span><input type="search" id="recherche-conv" placeholder="Rechercher" autocomplete="off" enterkeyhint="search"></label>
+      <ul class="epingles" id="epingles" aria-label="Conversations épinglées"></ul>
+      <ul class="carte-liste" id="liste-conv" aria-label="Conversations"></ul>
+    </section>
+    <section class="vue" id="vue-appels" aria-labelledby="titre-appels" hidden></section>
+    <section class="vue" id="vue-reunions" aria-labelledby="titre-reunions" hidden></section>
+    <section class="vue" id="vue-reglages" aria-labelledby="titre-reglages" hidden></section>
+    <p class="mention-apercu">Aperçu — données d'exemple</p>
+  </main>
+
+  <nav class="tabs" id="tabs" data-glass="1" aria-label="Navigation principale">
+    <span class="tabs-bulle" aria-hidden="true"></span>
+  </nav>
+</div>
+
+<div class="voile" id="voile"></div>
+<section class="feuille" id="feuille" data-glass="1" role="dialog" aria-modal="true" aria-labelledby="feuille-titre" tabindex="-1" inert>
+  <div class="feuille-tete" id="feuille-tete">
+    <div class="poignee" aria-hidden="true"><i></i></div>
+    <div class="feuille-barre">
+      <button type="button" class="feuille-bouton presse" id="g-annuler">Annuler</button>
+      <h2 id="feuille-titre">Nouveau groupe</h2>
+      <button type="button" class="feuille-bouton fin presse" id="g-creer" aria-disabled="true">Créer</button>
+    </div>
+  </div>
+  <div class="feuille-corps" id="feuille-corps">
+    <div class="g-identite">
+      <label class="g-photo" id="g-photo" title="Ajouter une photo au groupe"><svg class="ic" aria-hidden="true"><use href="#i-photo"/></svg><span class="sr-seul">Photo du groupe</span><input type="file" id="g-photo-fichier" accept="image/*"></label>
+      <input type="text" class="g-nom" id="g-nom" placeholder="Nom du groupe" maxlength="40" autocomplete="off" enterkeyhint="done" aria-label="Nom du groupe">
+    </div>
+    <label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher un contact</span><input type="search" id="g-recherche" placeholder="Rechercher un contact" autocomplete="off" enterkeyhint="search"></label>
+    <ul class="puces" id="g-puces" aria-label="Membres choisis"></ul>
+    <div class="rubrique"><span>Contacts de l'entreprise</span><span id="g-compteur" aria-live="polite">0 / 0</span></div>
+    <div class="carte" id="g-contacts" role="group" aria-label="Contacts de l'entreprise"></div>
+    <div class="carte" id="g-reglages">
+      <button type="button" class="reglage presse" id="g-ephemeres"><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur" id="g-ephemeres-val">Désactivés</span><svg class="chev" viewBox="0 0 8 13" aria-hidden="true"><path d="M1.5 1.5 6.5 6.5 1.5 11.5"/></svg></button>
+      <button type="button" class="reglage presse" id="g-annonces" role="switch" aria-checked="false"><span class="reglage-texte">Seuls les admins écrivent<small>Groupe d'annonces</small></span><span class="interrupteur" aria-hidden="true"></span></button>
+    </div>
+  </div>
+</section>
+
+<div class="notif" id="notif" data-glass="1" role="status" aria-live="polite" aria-atomic="true">
+  <img src="opmsg-logo.jpeg" alt="" width="38" height="38">
+  <span class="notif-corps"><span class="notif-tete"><b>OP MESSAGES</b><span>maintenant</span></span><span class="notif-texte" id="notif-texte"></span><span class="notif-aide" id="notif-aide"></span></span>
+</div>
+<div class="mot" id="mot" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ═══ 1. LES DONNÉES D'EXEMPLE — séparées du rendu ═══════════════════════════════════════════════════════════════════════
+     ⛔ Tout ce qui est ici est FICTIF : aucune personne, aucune entreprise. Le modèle suit « Modèle de données minimal » de
+     THEME-OPMESSAGES.md (Contact, Conversation) ; le jour où de vraies données arrivent, ce bloc est le seul qui change :
+     le rendu (§ 3 et suivants) ne lit que ces formes-là. `messages: []` est la place de l'étape 2 (la Conversation). */
+  const MOI = { id: 'moi', initiales: 'AM', nom: 'Alex Morel' };
+  const CONTACTS = [
+    { id: 'c1', initiales: 'CR', nom: 'Camille Roux',   role: 'Co-hôte · responsable', avatar: 1 },
+    { id: 'c2', initiales: 'ML', nom: 'Mathis Lambert', role: 'Technicien',            avatar: 2 },
+    { id: 'c3', initiales: 'IG', nom: 'Inès Garnier',   role: 'Technicienne',          avatar: 3 },
+    { id: 'c4', initiales: 'HP', nom: 'Hugo Perrin',    role: 'Comptable',             avatar: 4 },
+    { id: 'c5', initiales: 'LF', nom: 'Lina Fabre',     role: 'Technicienne',          avatar: 0 },
+    { id: 'c6', initiales: 'NC', nom: 'Noé Carpentier', role: 'Apprenti',              avatar: 5 }
+  ];
+  const CONVERSATIONS = [
+    { id: 'v1', type: 'groupe', nom: 'Équipe dépôt',          court: 'dépôt',        membres: ['moi', 'c2', 'c3', 'c5'], admins: ['moi'], annoncesSeulement: false, ephemeres: 0, messages: [], apercu: 'Mathis : Photo du compteur envoyée 📎',         heure: '14:02', nonLu: true,  avatar: 0, epingle: true },
+    { id: 'v2', type: 'direct', nom: 'Camille Roux',          court: 'Camille Roux', membres: ['moi', 'c1'],            admins: [],      annoncesSeulement: false, ephemeres: 0, messages: [], apercu: 'Tu peux confirmer le créneau de jeudi ?',       heure: '13:40', nonLu: true,  avatar: 1, epingle: true },
+    { id: 'v3', type: 'groupe', nom: 'Chantier Les Tilleuls', court: 'Les Tilleuls', membres: ['moi', 'c3', 'c6'],       admins: ['moi'], annoncesSeulement: false, ephemeres: 0, messages: [], apercu: 'Inès : Béton livré, on attaque demain 8 h',     heure: '12:15', nonLu: false, avatar: 2, epingle: true },
+    { id: 'v4', type: 'direct', nom: 'Mathis Lambert',        court: 'Mathis Lambert', membres: ['moi', 'c2'],          admins: [],      annoncesSeulement: false, ephemeres: 0, messages: [], apercu: 'Message vocal · 0:08',                           heure: 'Hier',  nonLu: false, avatar: 3, epingle: true },
+    { id: 'v5', type: 'groupe', nom: 'Général',               court: 'Général',      membres: ['moi', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6'], admins: ['moi'], annoncesSeulement: true, ephemeres: 0, messages: [], apercu: 'Alex : Réunion d\'équipe mardi 14 h ✓', heure: 'Hier', nonLu: false, avatar: 4, epingle: false },
+    { id: 'v6', type: 'direct', nom: 'Hugo Perrin',           court: 'Hugo Perrin',  membres: ['moi', 'c4'],            admins: [],      annoncesSeulement: false, ephemeres: 0, messages: [], apercu: 'Merci, facture reçue.',                          heure: 'Lun.',  nonLu: false, avatar: 5, epingle: false }
+  ];
+  const VUES = {
+    messages: { titre: 'Messages',  icone: 'i-chat' },
+    appels:   { titre: 'Appels',    icone: 'i-phone', texte: 'L\'historique des appels et les appels de groupe, audio ou vidéo.' },
+    reunions: { titre: 'Réunions',  icone: 'i-video', texte: 'L\'agenda, la programmation, les invités et les rappels.' },
+    reglages: { titre: 'Réglages',  icone: 'i-gear',  texte: 'Le compte, les notifications et la confidentialité.' }
+  };
+  const ORDRE = ['messages', 'appels', 'reunions', 'reglages'];
+  const EPHEMERES = [[0, 'Désactivés'], [86400, '24 heures'], [604800, '7 jours'], [7776000, '90 jours']];
+
+  /* ═══ 2. L'ÉTAT — un seul objet ═══════════════════════════════════════════════════════════════════════════════════════════ */
+  const etat = {
+    vue: 'messages',
+    conversations: CONVERSATIONS.map(c => Object.assign({}, c)),
+    recherche: '',
+    groupe: groupeVierge()
+  };
+  function groupeVierge() { return { ouvert: false, nom: '', photo: null, choisis: [], recherche: '', ephemeres: 0, annonces: false }; }
+
+  /* ═══ 3. OUTILS ═══════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  /* la recherche ignore accents et casse : « ines » trouve « Inès » */
+  const norme = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  const prenom = c => c.nom.split(' ')[0];
+  const contactDe = id => CONTACTS.find(c => c.id === id);
+  const icone = (id, cls) => '<svg class="ic' + (cls ? ' ' + cls : '') + '" aria-hidden="true"><use href="#' + id + '"/></svg>';
+  const CHEVRON = '<svg class="chev" viewBox="0 0 8 13" aria-hidden="true"><path d="M1.5 1.5 6.5 6.5 1.5 11.5"/></svg>';
+  /* l'avatar d'une photo choisie s'écrit en style direct : l'adresse est un blob: fabriqué par la page, jamais une saisie */
+  const avatar = (c, extra) => '<span class="avatar av' + c.avatar + '"' + (c.photo ? ' style="background-image:url(' + esc(c.photo) + ')"' : '') + ' aria-hidden="true">' + (c.photo ? '' : esc(c.initiales || (c.type === 'groupe' ? '#' : ''))) + '</span>';
+
+  /* ═══ 4. LA LISTE MESSAGES ════════════════════════════════════════════════════════════════════════════════════════════════ */
+  function ligneConv(c) {
+    const ini = c.type === 'groupe' ? '#' : (contactDe(c.membres.find(m => m !== 'moi')) || { initiales: '?' }).initiales;
+    return '<li class="conv' + (c.neuve ? ' conv-neuve' : '') + '" data-id="' + esc(c.id) + '">' +
+      '<span class="conv-point">' + (c.nonLu ? '<i class="point"></i><span class="sr-seul">Non lu</span>' : '') + '</span>' +
+      avatar({ avatar: c.avatar, photo: c.photo, initiales: ini, type: c.type }) +
+      '<span class="conv-corps"><span class="conv-ligne"><span class="conv-nom">' + esc(c.nom) + '</span><span class="conv-heure">' + esc(c.heure) + '</span>' + CHEVRON + '</span>' +
+      '<span class="conv-apercu">' + esc(c.apercu) + '</span></span></li>';
+  }
+  function rendreListe() {
+    const q = norme(etat.recherche);
+    const vues = etat.conversations.filter(c => !q || norme(c.nom).includes(q) || norme(c.apercu).includes(q));
+    $('liste-conv').innerHTML = vues.length ? vues.map(ligneConv).join('') :
+      '<li class="vide">Aucun résultat pour « ' + esc(etat.recherche.trim()) + ' »</li>';
+    /* épinglés : les conversations marquées, une colonne de 76 px chacune (nom court, jamais coupé en deux) */
+    const pins = etat.conversations.filter(c => c.epingle);
+    $('epingles').innerHTML = pins.map(c => '<li class="epingle">' +
+      avatar({ avatar: c.avatar, photo: c.photo, initiales: c.type === 'groupe' ? '#' : (contactDe(c.membres.find(m => m !== 'moi')) || { initiales: '?' }).initiales, type: c.type }) +
+      '<span class="epingle-nom">' + esc(c.court || c.nom) + '</span></li>').join('');
+    $('epingles').hidden = !pins.length;
+  }
+
+  /* ═══ 5. LES AUTRES ÉCRANS — des coquilles « bientôt » (étapes 2 à 5) ════════════════════════════════════════════════════
+     Ajouter un écran = remplir UNE entrée de VUES et écrire une fonction de rendu ici ; la navigation, l'état et les
+     jetons ne bougent pas. */
+  function rendreCoquille(cle) {
+    const v = VUES[cle], sec = $('vue-' + cle);
+    sec.innerHTML = '<div class="entete-vue"></div><h1 class="grand-titre" id="titre-' + cle + '">' + esc(v.titre) + '</h1>' +
+      '<div class="coquille"><span class="coquille-icone">' + icone(v.icone) + '</span><h2>Bientôt disponible</h2><p>' + esc(v.texte) + ' Cet écran n\'est pas encore dessiné dans l\'aperçu.</p></div>';
+  }
+
+  /* ═══ 6. LA NAVIGATION — une vue à la fois, un numéro pour la bulle ═════════════════════════════════════════════════════ */
+  function construireNavigation() {
+    const lien = (cle, cls) => '<a href="#' + cle + '" class="' + cls + '" data-vue="' + cle + '">' + icone(VUES[cle].icone) + '<span>' + esc(VUES[cle].titre) + '</span></a>';
+    $('nav-side').innerHTML = ORDRE.map(c => lien(c, 'side-lien')).join('');
+    $('tabs').insertAdjacentHTML('beforeend', ORDRE.map(c => lien(c, 'tab')).join(''));
+  }
+  function aller(cle) {
+    if (!VUES[cle]) cle = 'messages';
+    etat.vue = cle;
+    ORDRE.forEach(k => { $('vue-' + k).hidden = k !== cle; });
+    document.querySelectorAll('[data-vue]').forEach(a => { if (a.dataset.vue === cle) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+    $('tabs').style.setProperty('--i', ORDRE.indexOf(cle));
+    document.title = VUES[cle].titre + ' — OP MESSAGES, aperçu';
+  }
+  document.addEventListener('click', e => {
+    const a = e.target.closest('a[data-vue]');
+    if (!a) return;
+    e.preventDefault();
+    const cle = a.dataset.vue;
+    if (location.hash !== '#' + cle) history.pushState(null, '', '#' + cle);
+    aller(cle);
+    window.scrollTo(0, 0);
+  });
+  window.addEventListener('popstate', () => aller(location.hash.slice(1)));
+
+  /* ═══ 7. LA BANNIÈRE ET LE PETIT MOT ═══════════════════════════════════════════════════════════════════════════════════════ */
+  let minNotif = 0, minMot = 0;
+  function notifier(texte, aide) {
+    clearTimeout(minNotif);
+    $('notif-texte').textContent = texte;
+    $('notif-aide').textContent = aide || '';
+    $('notif').classList.add('on');
+    minNotif = setTimeout(() => $('notif').classList.remove('on'), 3600);   // ~3,5 s : le paquet dit 3,6 dans la maquette
+  }
+  function mot(texte) {
+    clearTimeout(minMot);
+    $('mot').textContent = texte; $('mot').classList.add('on');
+    minMot = setTimeout(() => $('mot').classList.remove('on'), 2200);
+  }
+
+  /* ═══ 8. LA FEUILLE « NOUVEAU GROUPE » ══════════════════════════════════════════════════════════════════════════════════════ */
+  let declencheur = null;
+  const g = () => etat.groupe;
+  function construireContacts() {
+    $('g-contacts').innerHTML = CONTACTS.map(c =>
+      '<button type="button" class="contact presse" role="checkbox" aria-checked="false" data-id="' + c.id + '">' + avatar(c) +
+      '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span><span class="contact-role">' + esc(c.role) + '</span></span>' +
+      '<span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join('') +
+      '<p class="vide" id="g-aucun" hidden>Aucun contact ne correspond.</p>';
+  }
+  function synchroFeuille() {
+    const G = g();
+    document.querySelectorAll('#g-contacts .contact').forEach(b => {
+      const c = contactDe(b.dataset.id);
+      b.setAttribute('aria-checked', G.choisis.includes(b.dataset.id) ? 'true' : 'false');
+      b.hidden = !!G.recherche && !norme(c.nom + ' ' + c.role).includes(norme(G.recherche));
+    });
+    $('g-aucun').hidden = Array.from(document.querySelectorAll('#g-contacts .contact')).some(b => !b.hidden);
+    $('g-puces').innerHTML = G.choisis.map(id => { const c = contactDe(id);
+      return '<li><button type="button" class="puce presse" data-retirer="' + id + '" aria-label="Retirer ' + esc(prenom(c)) + ' du groupe">' + avatar(c) +
+        '<span class="puce-x" aria-hidden="true">' + icone('i-croix') + '</span><span class="puce-nom">' + esc(prenom(c)) + '</span></button></li>'; }).join('');
+    $('g-compteur').textContent = G.choisis.length + ' / ' + CONTACTS.length;
+    $('g-creer').setAttribute('aria-disabled', G.choisis.length ? 'false' : 'true');
+    $('g-ephemeres-val').textContent = EPHEMERES.find(e => e[0] === G.ephemeres)[1];
+    $('g-annonces').setAttribute('aria-checked', G.annonces ? 'true' : 'false');
+    $('g-photo').classList.toggle('avec-image', !!G.photo);
+    $('g-photo').style.backgroundImage = G.photo ? 'url(' + G.photo + ')' : '';
+  }
+  function ouvrirFeuille() {
+    declencheur = document.activeElement;
+    etat.groupe = groupeVierge(); etat.groupe.ouvert = true;
+    $('g-nom').value = ''; $('g-recherche').value = ''; $('g-photo-fichier').value = '';
+    $('feuille-corps').scrollTop = 0;
+    synchroFeuille();
+    $('app').inert = true;
+    $('feuille').inert = false;
+    document.documentElement.classList.add('feuille-ouverte');
+    /* le focus va à la feuille, pas au champ : sur un téléphone, un champ focalisé ouvre le clavier et cache la moitié du
+       contenu avant que la personne ait rien vu */
+    requestAnimationFrame(() => $('feuille').focus({ preventScroll: true }));
+  }
+  function fermerFeuille(garderPhoto) {
+    if (!etat.groupe.ouvert) return;
+    if (etat.groupe.photo && !garderPhoto) URL.revokeObjectURL(etat.groupe.photo);
+    etat.groupe = groupeVierge();
+    document.documentElement.classList.remove('feuille-ouverte');
+    $('app').inert = false;
+    $('feuille').inert = true;
+    if (declencheur && declencheur.focus) declencheur.focus({ preventScroll: true });
+  }
+  function basculer(id) {
+    const G = g(), i = G.choisis.indexOf(id);
+    if (i < 0) G.choisis.push(id); else G.choisis.splice(i, 1);
+    synchroFeuille();
+  }
+  function creerGroupe() {
+    const G = g();
+    if (!G.choisis.length) { $('g-compteur').textContent = 'Choisissez au moins un contact'; setTimeout(synchroFeuille, 1600); return; }
+    const membres = G.choisis.map(contactDe), prenoms = membres.map(prenom);
+    const nom = G.nom.trim() || 'Nouveau groupe';
+    etat.conversations.unshift({
+      id: 'g' + Date.now(), type: 'groupe', nom: nom + ' (' + (membres.length + 1) + ')', court: nom,
+      membres: ['moi'].concat(G.choisis), admins: ['moi'], annoncesSeulement: G.annonces, ephemeres: G.ephemeres, messages: [],
+      apercu: 'Vous avez créé le groupe · ' + prenoms.join(', '), heure: 'maintenant', nonLu: true, avatar: 3, photo: G.photo, neuve: true
+    });
+    rendreListe();
+    fermerFeuille(true);
+    /* 300 ms plus tard, comme la maquette : la feuille a le temps de partir, la bannière arrive dans une liste déjà visible */
+    setTimeout(() => notifier('Vous avez été ajouté au groupe « ' + nom + ' »', 'Aperçu de la notification que reçoivent ' + prenoms.join(', ')), 300);
+  }
+
+  $('btn-groupe').addEventListener('click', ouvrirFeuille);
+  $('g-annuler').addEventListener('click', () => fermerFeuille(false));
+  $('voile').addEventListener('click', () => fermerFeuille(false));
+  $('g-creer').addEventListener('click', creerGroupe);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && etat.groupe.ouvert) { e.preventDefault(); fermerFeuille(false); } });
+  $('g-contacts').addEventListener('click', e => { const b = e.target.closest('.contact'); if (b) basculer(b.dataset.id); });
+  $('g-puces').addEventListener('click', e => {
+    const b = e.target.closest('[data-retirer]'); if (!b) return;
+    const id = b.dataset.retirer; basculer(id);
+    const ligne = document.querySelector('#g-contacts .contact[data-id="' + id + '"]');
+    if (ligne && !ligne.hidden) ligne.focus({ preventScroll: true });
+  });
+  $('g-nom').addEventListener('input', e => { g().nom = e.target.value; });
+  $('g-nom').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
+  $('g-recherche').addEventListener('input', e => { g().recherche = e.target.value; synchroFeuille(); });
+  $('g-ephemeres').addEventListener('click', () => { const G = g(); const i = EPHEMERES.findIndex(e => e[0] === G.ephemeres); G.ephemeres = EPHEMERES[(i + 1) % EPHEMERES.length][0]; synchroFeuille(); });
+  $('g-annonces').addEventListener('click', () => { g().annonces = !g().annonces; synchroFeuille(); });
+  $('g-photo-fichier').addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    if (g().photo) URL.revokeObjectURL(g().photo);
+    g().photo = URL.createObjectURL(f); synchroFeuille();
+  });
+  $('recherche-conv').addEventListener('input', e => { etat.recherche = e.target.value; rendreListe(); });
+  $('btn-modifier').addEventListener('click', () => mot('« Modifier » arrive bientôt'));
+
+  /* ── glisser la feuille vers le bas (téléphone) : elle suit le doigt 1:1, et à la fin on PROJETTE où le geste allait
+        (apple-design §6) au lieu de juger la seule position de relâchement. Le relâchement rend la main au CSS, qui repart
+        de la valeur visible : un geste repris au vol ne saute pas. ── */
+  (function () {
+    const tete = $('feuille-tete'), f = $('feuille'), mobile = matchMedia('(max-width: 899.98px)');
+    let d = null;
+    tete.addEventListener('pointerdown', e => {
+      if (!mobile.matches || !etat.groupe.ouvert || e.target.closest('button')) return;
+      d = { y0: e.clientY, h: [[e.timeStamp, e.clientY]], dy: 0 };
+      tete.setPointerCapture(e.pointerId); f.style.transition = 'none';
+    });
+    tete.addEventListener('pointermove', e => {
+      if (!d) return;
+      const dy = e.clientY - d.y0;
+      d.dy = dy > 0 ? dy : dy * 0.15;                      // au-dessus du point de départ : une résistance, pas un mur
+      f.style.transform = 'translateY(' + d.dy + 'px)';
+      d.h.push([e.timeStamp, e.clientY]); if (d.h.length > 6) d.h.shift();
+    });
+    const fin = e => {
+      if (!d) return;
+      const a = d.h[0], b = d.h[d.h.length - 1], dt = Math.max(1, b[0] - a[0]);
+      const v = (b[1] - a[1]) / dt * 1000;                  // px/s au relâché
+      const projete = d.dy + (v / 1000) * 0.99 / (1 - 0.99);
+      const ferme = e.type !== 'pointercancel' && projete > f.offsetHeight * 0.35;
+      d = null; f.style.transition = ''; f.style.transform = '';
+      if (ferme) fermerFeuille(false);
+    };
+    tete.addEventListener('pointerup', fin); tete.addEventListener('pointercancel', fin);
+  })();
+
+  /* sur iOS, :active ne se pose qu'avec un écouteur de toucher quelque part : sans lui, la réponse au doigt attend le relâché */
+  document.addEventListener('touchstart', function () {}, { passive: true });
+
+  /* ═══ 9. LE DÉMARRAGE ═══════════════════════════════════════════════════════════════════════════════════════════════════════ */
+  $('moi-avatar').textContent = MOI.initiales; $('moi-nom').textContent = MOI.nom;
+  construireNavigation();
+  construireContacts();
+  rendreListe();
+  ['appels', 'reunions', 'reglages'].forEach(rendreCoquille);
+  aller(location.hash.slice(1));
+})();
+</script>
+</body>
+</html>
