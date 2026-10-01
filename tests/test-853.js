@@ -83,9 +83,9 @@ function executer(PAGE, recherche, o) {
   };
   const api = new Function('window', 'document', 'history', 'localStorage', 'fetch', 'alert',
     code + '\n;return { optionsChoisies: () => optionsChoisies.slice(), optionsDispo, optionsActives, adresseEtat, lienPortail, compteLu,'
-      + ' etat: () => ({ compteMsg, formuleActive, cycleAnnuel, nbUsersVoulu }), OPTIONS_GESTION, STRIPE_PRICES, STRIPE_PRICES_OPTIONS, FORMULES };')(
+      + ' modeAjout: () => modeAjout, etat: () => ({ compteMsg, formuleActive, cycleAnnuel, nbUsersVoulu }), OPTIONS_GESTION, STRIPE_PRICES, STRIPE_PRICES_OPTIONS, FORMULES };')(
     window, document, { replaceState(a, b, u) { urls.push(u); } },
-    { getItem: k => (k === 'teamop_portail_jeton' ? 'e'.repeat(64) : k === 'elan_sync_team' ? 'entreprise-banc-1a2b' : null), removeItem() {} }, fetchFaux, () => {});
+    { getItem: k => (k === 'teamop_portail_jeton' ? 'e'.repeat(64) : k === 'elan_sync_team' ? (o.sansEspace ? null : 'entreprise-banc-1a2b') : null), removeItem() {} }, fetchFaux, () => {});
   const html = () => conteneurs.cartePaiement.innerHTML;
   const cases = () => conteneurs.cartePaiement.querySelectorAll('[data-option]');
   const clicCase = k => { const c = cases().find(x => x.dataset.option === k); c.checked = !c.checked; for (const h of c._h.change || []) h(); return c; };
@@ -253,6 +253,72 @@ const PAGES = ['recap-abonnement.html', 'apercu/recap-abonnement.html'].filter(e
     // un refus ne survit pas au geste suivant
     const rf = T('?formule=pro&options=stock', { reponse: () => ({ status: 400, body: { error: 'option_indisponible' } }) }); await rf.api.compteLu; await rf.payer();
     vrai('un refus affiché disparaît quand on change le panier (il visait l\'autre)', (rf.api.etat().compteMsg, rf.clicCase('achats'), rf.api.etat().compteMsg === null));
+
+    /* ══ LE MODE « AJOUT » (1er octobre 2026, relecture d'intégration) ══════════════════════════════════════════════════
+       Le lien de l'application (`?formule=pro&ajout=options&options=stock`) menait à une page qui envoyait TOUJOURS un `price` : un
+       client déjà en Pro y aurait acheté un SECOND abonnement Pro. En mode ajout la page ne choisit ni formule, ni nombre, ni cycle :
+       elle n'envoie que des CLÉS et la référence de l'entreprise — le serveur ajoute l'option au Pro payé, pour chaque utilisateur. */
+    console.log('2b. ' + f + ' — le mode « ajout » : ni price, ni quantity, ni cycle');
+    const A = (adr, o) => T(adr, o);
+    const aj = A('?formule=pro&ajout=options&options=stock,achats'); await aj.api.compteLu;
+    v('le mode est lu, la formule est Pro', [aj.api.modeAjout(), aj.api.etat().formuleActive], [true, 'pro']);
+    vrai('⛔ la page DIT ce qu\'elle fait : « ajoutée à votre abonnement Pro, pour chaque utilisateur »', /ajoutée à votre abonnement Pro, pour chaque utilisateur/.test(aj.paiement()));
+    v('les deux options de l\'adresse sont cochées, quatre cases en tout', [aj.cases().map(c => c.dataset.option), aj.cases().filter(c => c.checked).map(c => c.dataset.option)], [CLES, ['stock', 'achats']]);
+    vrai('⛔ AUCUN choix de formule, de nombre d\'utilisateurs ni de cycle (le serveur lit le Pro de l\'entreprise)', !/COMBIEN D'UTILISATEURS/.test(aj.paiement()) && aj.html().indexOf('id="nbUsers"') < 0 && aj.html().indexOf('data-cycle=') < 0 && aj.html().indexOf('class="ligne-prix') < 0 && aj.cases().length === 4);
+    vrai('… ni de total : le nombre de places ne se connaît pas ici', !/Total (mensuel|annuel)/.test(aj.paiement()) && !/ TTC/.test(aj.paiement()));
+    vrai('chaque case dit son prix par utilisateur, au mois et à l\'année (dix mois)', /\+ 9 € \/ mois · 90 € \/ an/.test(aj.paiement()) && /\+ 6 € \/ mois · 60 € \/ an/.test(aj.paiement()));
+    await aj.payer();
+    v('⛔⛔ le corps envoyé : des CLÉS et la RÉFÉRENCE de l\'entreprise, RIEN d\'autre (ni price, ni quantity, ni cycle)',
+      [aj.envoye.length, Object.keys(aj.envoye[0].corps).sort(), aj.envoye[0].corps.options, aj.envoye[0].corps.ref], [1, ['options', 'ref'], ['stock', 'achats'], 'entreprise-banc-1a2b']);
+    v('   et il part à la bonne route', aj.envoye[0].url.replace(/^https:\/\/api\.teamop\.fr/, ''), '/api/stripe/checkout');
+    v('   la page de paiement de Stripe s\'ouvre (la réponse du serveur)', aj.window.location.href, 'https://checkout.stripe.com/c/banc');
+    // l'adresse suit le panier, sans nombre ni cycle
+    aj.clicCase('compta');
+    v('cocher « compta » : l\'adresse garde le mode ajout et le panier', aj.urls[aj.urls.length - 1], '?formule=pro&ajout=options&options=stock,achats,compta');
+    // un nombre et un cycle de l'adresse ne servent à rien
+    const aj2 = A('?formule=pro&ajout=options&options=stock&utilisateurs=5&cycle=annuel'); await aj2.api.compteLu; await aj2.payer();
+    v('⛔ `utilisateurs=5` et `cycle=annuel` de l\'adresse ne passent PAS : le corps reste des clés et la référence', Object.keys(aj2.envoye[0].corps).sort(), ['options', 'ref']);
+    // le lien du portail garde le mode
+    vrai('« Créer mon compte pour payer » : le retour du portail garde le mode ajout et le panier', decodeURIComponent(aj.api.lienPortail().split('?retour=')[1]) === 'recap-abonnement.html?formule=pro&ajout=options&options=stock.achats.compta');
+    // la formule de l'adresse ne compte pas : le mode ajout est Pro
+    const ajB = A('?formule=business&ajout=options&options=stock'); await ajB.api.compteLu;
+    v('⛔ `formule=business` avec le mode ajout : Pro quand même (une option ne s\'ajoute qu\'au Pro)', [ajB.api.modeAjout(), ajB.api.etat().formuleActive], [true, 'pro']);
+    const ajX = A('?formule=pro&ajout=autre&options=stock'); await ajX.api.compteLu;
+    v('une autre valeur de `ajout` : la page normale', [ajX.api.modeAjout(), /COMBIEN D'UTILISATEURS/.test(ajX.paiement())], [false, true]);
+    // sans option cochée, sans entreprise : rien ne part
+    const ajV = A('?formule=pro&ajout=options'); await ajV.api.compteLu; await ajV.payer();
+    v('⛔ aucune option cochée : rien ne part, la page le dit', [ajV.envoye.length, /Cochez au moins une option/.test((ajV.api.etat().compteMsg || {}).texte || '')], [0, true]);
+    const ajE = A('?formule=pro&ajout=options&options=stock', { sansEspace: true }); await ajE.api.compteLu;
+    vrai('sans entreprise sur l\'appareil : la page dit d\'ouvrir depuis l\'application', /Ouvrez cette page depuis votre application/.test(ajE.paiement()));
+    await ajE.payer();
+    v('⛔ … et `ref` est OBLIGATOIRE : rien ne part sans elle, le message dit « entreprise concernée »', [ajE.envoye.length, /il faut l'entreprise concernée/.test((ajE.api.etat().compteMsg || {}).texte || '')], [0, true]);
+    // tarifs vides : la page en service ne vend rien
+    const ajS = executer(PAGE, '?formule=pro&ajout=options&options=stock'); await ajS.api.compteLu;
+    v('⛔ identifiants VIDES (la page en service) : aucune case, « pas encore en vente », bouton grisé', [ajS.cases().length, /ne sont pas encore en vente/.test(ajS.paiement()), /id="btnPayer"[^>]*disabled/.test(ajS.html())], [0, true, true]);
+    await ajS.payer();
+    v('   … et même forcé, rien ne part', ajS.envoye.length, 0);
+    // les six refus, dits en mode ajout
+    const REFUS_AJ = [
+      [400, 'option_inconnue', /n'existe plus/], [400, 'option_indisponible', /pas encore en vente/], [400, 'option_incluse', /incluent déjà toutes les options/],
+      [409, 'entreprise_requise', /il faut l'entreprise concernée/], [409, 'option_deja', /déjà active/]];
+    for (const [statut, code, motif] of REFUS_AJ) {
+      const r = A('?formule=pro&ajout=options&options=stock', { reponse: () => ({ status: statut, body: { error: code } }) }); await r.api.compteLu; await r.payer();
+      const msg = r.api.etat().compteMsg || {};
+      v('refus ' + statut + ' « ' + code + ' » en mode ajout : dit, « rien n\'a été payé », pas de redirection, la page reste en mode ajout', [motif.test(msg.texte || ''), /Rien n'a été payé/.test(msg.texte || ''), r.window.location.href, r.api.modeAjout()], [true, true, '', true]);
+    }
+    const fr = A('?formule=pro&ajout=options&options=stock', { reponse: () => ({ status: 409, body: { error: 'formule_requise' } }) }); await fr.api.compteLu; await fr.payer();
+    v('⛔ `formule_requise` en mode ajout (pas de Pro payé) : la page revient à la page normale, même panier, et le dit',
+      [fr.api.modeAjout(), /choisissez ci-dessous Pro avec ses options/.test((fr.api.etat().compteMsg || {}).texte || ''), /Rien n'a été payé/.test((fr.api.etat().compteMsg || {}).texte || ''), fr.cases().filter(c => c.checked).map(c => c.dataset.option), fr.urls[fr.urls.length - 1]],
+      [false, true, true, ['stock'], '?formule=pro&options=stock']);
+    // la page normale : Pro déjà payé + options → le serveur refuse `utiliser_ajout`, la page bascule en mode ajout
+    const ua = A('?formule=pro&options=stock,compta&utilisateurs=2', { reponse: b => (b.price ? { status: 409, body: { error: 'utiliser_ajout' } } : { status: 200, body: { url: 'https://checkout.stripe.com/c/ajout-banc' } }) }); await ua.api.compteLu; await ua.payer();
+    v('⛔⛔ `utiliser_ajout` (Pro déjà payé, option demandée avec un second Pro) : la page bascule en MODE AJOUT, même panier, et le dit',
+      [ua.api.modeAjout(), /ajoute, pour chaque utilisateur, au lieu d'un second abonnement Pro/.test((ua.api.etat().compteMsg || {}).texte || ''), /Rien n'a été payé/.test((ua.api.etat().compteMsg || {}).texte || ''), ua.urls[ua.urls.length - 1]],
+      [true, true, true, '?formule=pro&ajout=options&options=stock,compta']);
+    vrai('   … et le message est AFFICHÉ sur la page redessinée', /Votre entreprise a déjà un abonnement Pro/.test(ua.paiement()) && /ajoutée à votre abonnement Pro, pour chaque utilisateur/.test(ua.paiement()));
+    await ua.payer();
+    v('⛔ … le second clic envoie le corps de l\'ajout (clés + référence), le premier portait price et quantity', [ua.envoye.length, Object.keys(ua.envoye[0].corps).sort(), Object.keys(ua.envoye[1].corps).sort()], [2, ['options', 'price', 'quantity', 'ref'], ['options', 'ref']]);
+    v('   … et la page de paiement de Stripe s\'ouvre', ua.window.location.href, 'https://checkout.stripe.com/c/ajout-banc');
   }
 
   /* ── 3. « Mon espace » : les options servies, d'un champ à part ─────────────────────────────────────────── */

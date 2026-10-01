@@ -14007,7 +14007,7 @@ function optionAjouter(c){
   const o=OPTIONS_GESTION[c]; if(!o) return;
   if(!BETA_ESSAI&&_susp.suspendu){ if(confirm('Abonnement en attente de règlement : règle-le d\'abord, les options reviennent avec lui.\n\nOuvrir l\'espace client ?')) window.open('https://teamop.fr/espace.html','_blank'); return; }
   const n=Math.max(1,planPlaces());
-  if(confirm('Option « '+o.l+' » : +'+o.prix+' € TTC par utilisateur et par mois, pour les '+n+' abonnement'+(n>1?'s':'')+' Pro de l\'entreprise.\n\nElle s\'ouvre d\'elle-même à toute l\'équipe quelques minutes après le paiement (rouvre l\'application).\n\nOuvrir la page de paiement ?')) window.open('https://teamop.fr/recap-abonnement.html?formule=pro&options='+encodeURIComponent(c),'_blank'); }
+  if(confirm('Option « '+o.l+' » : +'+o.prix+' € TTC par utilisateur et par mois, pour les '+n+' abonnement'+(n>1?'s':'')+' Pro de l\'entreprise.\n\nElle s\'ouvre d\'elle-même à toute l\'équipe quelques minutes après le paiement (rouvre l\'application).\n\nOuvrir la page de paiement ?')) window.open('https://teamop.fr/recap-abonnement.html?formule=pro&ajout=options&options='+encodeURIComponent(c),'_blank'); }
 try{ optionsCharger(); }catch(e){}   // ICI et pas dans `load()` : `load()` s'exécute avant cette ligne, `OPTIONS_GESTION` y serait encore dans sa zone morte
 /* ── CODE PROMO ── on tape le code chez nous (pas sur la page de paiement) :
    la formule s'active pour X mois offerts, sans carte bancaire. Un rappel

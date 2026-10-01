@@ -325,7 +325,7 @@ const apres = (ms) => new Promise(r => setTimeout(r, ms));
     vrai('   Business : « Toutes les options sont incluses », aucun bouton', /Toutes les options.*incluses dans Business/.test(bz.optionsCarteHtml()) && !/optionAjouter/.test(bz.optionsCarteHtml())); }
   { const m = machine({ formule: 'pro', places: 3 }); m.optionsPoser([]);
     m.optionAjouter('stock');
-    v('⛔ « Ajouter » ouvre la page de paiement, formule Pro et UNE option — pré-remplissage seulement', [m.vu.confirms.length, m.vu.opens], [1, ['https://teamop.fr/recap-abonnement.html?formule=pro&options=stock']]);
+    v('⛔ « Ajouter » ouvre la page de paiement EN MODE AJOUT (ajout=options : sans price ni quantité, jamais un second Pro), formule Pro et UNE option', [m.vu.confirms.length, m.vu.opens], [1, ['https://teamop.fr/recap-abonnement.html?formule=pro&ajout=options&options=stock']]);
     m.optionAjouter('inconnue'); v('   une clé inconnue n\'ouvre rien', m.vu.opens.length, 1);
     const n = machine({ formule: 'pro', role: 'technicien' }); n.optionAjouter('stock');
     v('   un autre rôle : refusé, rien ne s\'ouvre', [n.vu.opens.length, /administrateur/.test(n.vu.toasts.join())], [0, true]);

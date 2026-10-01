@@ -680,6 +680,14 @@ const params = new URLSearchParams(window.location.search);
 let formuleActive = params.get('formule') || 'business';
 if (formuleActive === 'gratuit') formuleActive = 'pro';   // un lien d'avant le 29 septembre 2026 : la formule d'entrée, désormais
 if (!FORMULES[formuleActive]) formuleActive = 'business';
+/* ⛔⛔ LE MODE « AJOUT » (1er octobre 2026, relecture d'intégration) : `?formule=pro&ajout=options&options=stock` — le lien de
+   l'application (Paramètres → Formule → « Ajouter »). Cette page envoyait TOUJOURS un `price` : un client déjà en Pro y aurait
+   acheté un SECOND abonnement Pro (des places de trop, prélevées) avec l'option. En mode ajout, la page n'envoie ni `price` ni
+   `quantity` : seulement des CLÉS d'option et la référence de l'entreprise — le serveur ajoute l'option AU Pro que l'entreprise paie
+   déjà, pour chaque utilisateur (ce qui manque), au cycle de ce Pro. Rien de tout cela ne se choisit ici : ni formule, ni nombre,
+   ni cycle (le corps ne décide pas de ce qui est facturé). Le mode ne vaut que pour le Pro. */
+let modeAjout = params.get('ajout') === 'options';
+if (modeAjout) formuleActive = 'pro';
 let cycleAnnuel = params.get('cycle') === 'annuel';   // revient du portail avec le cycle choisi (lienPortail)
 /* Préremplissage : recap-abonnement.html?formule=business&utilisateurs=7 */
 let nbUsersVoulu = Math.min(MAX_ABONNEMENTS, parseInt(params.get('utilisateurs'), 10) || 0);   // 0 = automatique (1 : un abonnement)
@@ -695,7 +703,7 @@ const optionsDispo = () => Object.keys(OPTIONS_GESTION).filter(k => { const t = 
 const optionsActives = () => formuleActive === 'pro' ? optionsDispo().filter(k => optionsChoisies.indexOf(k) >= 0) : [];
 /* L'adresse de l'état courant (formule, nombre, cycle, options) : `replaceState` y garde la page rechargeable, le chemin
    vers le portail y garde le panier (séparateur `.`, voir plus haut). */
-const adresseEtat = (sep) => '?formule=' + formuleActive + (nbUsersVoulu > 1 ? '&utilisateurs=' + nbUsersVoulu : '') + (cycleAnnuel ? '&cycle=annuel' : '') + (optionsActives().length ? '&options=' + optionsActives().join(sep) : '');
+const adresseEtat = (sep) => modeAjout ? '?formule=pro&ajout=options' + (optionsActives().length ? '&options=' + optionsActives().join(sep) : '') : '?formule=' + formuleActive + (nbUsersVoulu > 1 ? '&utilisateurs=' + nbUsersVoulu : '') + (cycleAnnuel ? '&cycle=annuel' : '') + (optionsActives().length ? '&options=' + optionsActives().join(sep) : '');
 
 /* ---------- LE COMPTE — PAS DE PAIEMENT SANS LUI ---------- */
 /* ⛔ PAS DE PAIEMENT SANS COMPTE — Justin, 27 septembre 2026 : « il faut bien préciser aux personnes qu'elles doivent
@@ -736,8 +744,8 @@ async function lireCompte() {
 /* Le chemin vers le portail, et le retour : la formule, le nombre et le cycle survivent à l'aller-retour. ⚠️ Le nom de la
    page de retour s'écrit DANS `encodeURIComponent(` : `scripts/apercu.sh` réécrit tout autre `'/apercu/recap-abonnement.html`
    vers l'aperçu, et `RETOUR_PAIEMENT` refuserait alors le retour. */
-const lienPortail = () => '/apercu/espace.html?retour=' + encodeURIComponent('recap-abonnement.html?formule=' + formuleActive
-  + (nbUsersVoulu > 1 ? '&utilisateurs=' + nbUsersVoulu : '') + (cycleAnnuel ? '&cycle=annuel' : '') + (optionsActives().length ? '&options=' + optionsActives().join('.') : ''));
+const lienPortail = () => '/apercu/espace.html?retour=' + encodeURIComponent('recap-abonnement.html?formule=' + formuleActive + (modeAjout ? '&ajout=options' : '')
+  + (modeAjout ? '' : (nbUsersVoulu > 1 ? '&utilisateurs=' + nbUsersVoulu : '') + (cycleAnnuel ? '&cycle=annuel' : '') + (optionsActives().length ? '&options=' + optionsActives().join('.') : '')) + (modeAjout && optionsActives().length ? '&options=' + optionsActives().join('.') : ''));
 /* Revenir sur l'onglet — après avoir confirmé son adresse ailleurs, ou depuis la page Stripe — relit le compte : c'est le
    geste que la personne fait, elle n'a pas à recharger la page pour qu'il compte. */
 let relectureEnCours = false;
@@ -782,6 +790,7 @@ if (typeof window.addEventListener === 'function') window.addEventListener('page
 /* ---------- RENDU : SÉLECTEUR ---------- */
 function rendreSelecteur() {
   const c = document.getElementById('selecteurFormules');
+  if (modeAjout) { c.innerHTML = ''; return; }   // l'option s'ajoute au Pro de l'entreprise : aucune formule à choisir
   const groupe = FORMULES[formuleActive].groupe;
   c.innerHTML = Object.entries(FORMULES).filter(([cle, f]) => f.groupe === groupe).map(([cle, f]) =>
     `<button class="puce-formule ${cle === formuleActive ? 'active' : ''}" data-formule="${cle}">${f.nom}</button>`
@@ -868,12 +877,12 @@ function boutonCompte(f) {
     default: return ICONE_CARTE + f.boutonTexte;
   }
 }
-function blocCompte(f, nbAbos) {
+function blocCompte(f, nbAbos, ajout) {
   const msg = compteMsg ? `<div class="compte-msg${compteMsg.erreur ? ' erreur' : ''}" role="status">${echapper(compteMsg.texte)}</div>` : '';
   const qui = compte.nom ? `<b>${echapper(compte.nom)}</b> · ${echapper(compte.email)}` : `<b>${echapper(compte.email)}</b>`;
   switch (compte.etat) {
     case 'lecture': return '';
-    case 'aucun': return `<div class="compte-bloc" role="note"><b>Un compte TEAM OP d'abord.</b> Le paiement se fait depuis votre compte&nbsp;: créez-le (c'est gratuit) ou connectez-vous — vous revenez ici ensuite, avec votre choix (${nbAbos}&nbsp;abonnement${nbAbos > 1 ? 's' : ''} ${echapper(f.nom)}).${msg}</div>`;
+    case 'aucun': return `<div class="compte-bloc" role="note"><b>Un compte TEAM OP d'abord.</b> Le paiement se fait depuis votre compte&nbsp;: créez-le (c'est gratuit) ou connectez-vous — vous revenez ici ensuite, avec votre choix (${ajout ? 'des options à ajouter à votre abonnement ' + echapper(f.nom) : nbAbos + '&nbsp;abonnement' + (nbAbos > 1 ? 's' : '') + ' ' + echapper(f.nom)}).${msg}</div>`;
     case 'a_confirmer': return `<div class="compte-bloc attention" role="note"><b>Confirmez votre adresse e-mail.</b> Un lien vous a été envoyé à <b>${echapper(compte.email)}</b>&nbsp;: ouvrez-le, puis revenez sur cette page — le paiement s'ouvrira.<div class="compte-gestes"><button type="button" class="compte-geste" id="btnRenvoiLien">Renvoyer le lien</button><button type="button" class="compte-geste" id="btnAutreCompte">Changer de compte</button></div>${msg}</div>`;
     case 'injoignable': return `<div class="compte-bloc erreur" role="alert"><b>Le service TEAM OP ne répond pas.</b> Sans lui, le paiement ne peut pas se faire — rien n'a été payé. Réessayez dans un instant.${msg}</div>`;
     default: return `<div class="compte-bloc ok" role="note">Paiement rattaché à votre compte&nbsp;: ${qui}.<div class="compte-gestes"><button type="button" class="compte-geste" id="btnAutreCompte">Ce n'est pas vous&nbsp;? Changer de compte</button></div>${msg}</div>`;
@@ -882,6 +891,7 @@ function blocCompte(f, nbAbos) {
 
 /* ---------- RENDU : PAIEMENT ---------- */
 function rendrePaiement() {
+  if (modeAjout) { rendrePaiementAjout(); return; }
   const f = FORMULES[formuleActive];
   const c = document.getElementById('cartePaiement');
   if (OPMSG_BIENTOT && f.groupe === 'msg') {
@@ -1051,11 +1061,7 @@ function rendrePaiement() {
       window.location.href = CONFIG_STRIPE.inscriptionGratuite;
       return;
     }
-    if (compte.etat === 'lecture') return;
-    if (compte.etat === 'aucun') { window.location.href = lienPortail(); return; }
-    if (compte.etat !== 'pret') { compteMsg = null; compte = Object.assign({}, compte, { etat: 'lecture' }); rendrePaiement(); await relireCompte(); return; }
-    /* ⛔ on ne paie qu'au nom AFFICHÉ : une session changée ailleurs se relit d'abord (et se montre) */
-    if (sessionPortail() !== compte.jeton) { compteMsg = null; compte = { etat: 'lecture' }; rendrePaiement(); await relireCompte(); return; }
+    if (!(await paiementPret())) return;
     /* ⛔ SANS CETTE RÉFÉRENCE, LE CORRECTIF STRIPE DU SERVEUR NE SERT À RIEN.
        `/api/stripe/checkout` ne grave `subscription_data[metadata][espace]` sur l'abonnement
        que si la page lui envoie un `ref` — et cette page, la SEULE du site qui ouvre une page
@@ -1083,46 +1089,157 @@ function rendrePaiement() {
       j = await r.json().catch(() => null);
     } catch (e) { r = null; }
     finally { clearTimeout(to); }
-    /* ⛔ UN IMPAYÉ SE RÈGLE, IL NE SE RACHÈTE PAS (Justin, 29 septembre 2026 : carte refusée = impayé) — le serveur rend alors la
-       FACTURE EN ATTENTE, pas une page d'abonnement neuf : la page le DIT avant d'y aller (le montant n'est pas celui qu'on
-       vient de choisir), puis l'ouvre */
-    if (r && r.ok && j && j.url && j.facture) {
-      compteMsg = { texte: 'Un prélèvement précédent de votre abonnement n\'a pas abouti : sa facture en attente s\'ouvre. La régler rétablit l\'accès — rien d\'autre ne sera prélevé.' };
-      rendrePaiement();
-      setTimeout(() => { window.location.href = j.url; }, 2500);
-      return;
-    }
-    if (r && r.ok && j && j.url) { window.location.href = j.url; return; }
-    if (r && r.status === 401) { oublierSession(); compte = { etat: 'aucun' }; compteMsg = { texte: 'Votre session a expiré : reconnectez-vous, vous reviendrez ici.', erreur: true }; }
-    else if (r && r.status === 403 && j && j.error === 'adresse_non_verifiee') { compte = Object.assign({}, compte, { etat: 'a_confirmer' }); compteMsg = null; }
-    /* « B — on verrouille » (Justin, 28 septembre 2026) : l'appareil est relié à une entreprise, et ce compte n'est pas le
-       sien. Le refus est DÉFINITIF pour ce compte : « réessayez » mentirait — la page dit qui peut payer, et comment. */
-    else if (r && r.status === 403 && j && j.error === 'compte_autre_entreprise') compteMsg = { texte: 'Seul le compte de l\'entreprise peut payer pour elle, et ce compte n\'est pas le sien. Connectez-vous avec l\'adresse e-mail de l\'entreprise (« Changer de compte »), ou écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
-    /* l'entreprise n'a PAS d'adresse chez TEAM OP : aucun compte ne peut prouver qu'il est le sien — « connectez-vous avec
-       l'adresse de l'entreprise » serait une consigne impossible (`gardien`). C'est à TEAM OP de la renseigner. */
-    else if (r && r.status === 403 && j && j.error === 'entreprise_sans_adresse') compteMsg = { texte: 'Cette entreprise n\'a pas encore d\'adresse e-mail enregistrée chez TEAM OP : le paiement ne peut pas lui être rattaché. Écrivez à support@teamop.fr pour la faire ajouter, puis revenez payer. Rien n\'a été payé.', erreur: true };
-    else if (r && r.status === 403 && j && j.error === 'reference_ambigue') compteMsg = { texte: 'Le paiement ne peut pas être rattaché à votre entreprise sans vérification : écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
-    /* un tarif que le serveur ne connaît pas (28 septembre 2026, nuit) : la page est ancienne. Aucun tarif de la page n'est
-       refusé pour la formule de l'entreprise — le client choisit (Justin, 29 septembre 2026) */
-    else if (r && r.status === 400 && j && j.error === 'tarif_inconnu') compteMsg = { texte: 'Ce tarif n\'est plus proposé : rechargez la page, puis réessayez. Rien n\'a été payé.', erreur: true };
-    /* les options (1er octobre 2026) : chaque refus du serveur se dit, aucun n'est un « réessayez » — rien n'est parti chez Stripe */
-    else if (r && r.status === 400 && j && j.error === 'option_inconnue') compteMsg = { texte: 'Une des options choisies n\'existe plus : rechargez la page, puis réessayez. Rien n\'a été payé.', erreur: true };
-    else if (r && r.status === 400 && j && j.error === 'option_indisponible') compteMsg = { texte: 'Une des options choisies n\'est pas encore en vente : décochez-la, ou rechargez la page. Rien n\'a été payé.', erreur: true };
-    else if (r && r.status === 400 && j && j.error === 'option_incluse') compteMsg = { texte: 'Business et Business Premium incluent déjà toutes les options : il n\'y a rien à ajouter. Rechargez la page. Rien n\'a été payé.', erreur: true };
-    else if (r && r.status === 409 && j && j.error === 'entreprise_requise') compteMsg = { texte: 'Pour ajouter une option à un abonnement existant, il faut l\'entreprise concernée : ouvrez cette page depuis votre application, ou écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
-    else if (r && r.status === 409 && j && j.error === 'formule_requise') compteMsg = { texte: 'Une option se joint à un abonnement Pro déjà payé par votre entreprise, et il n\'y en a pas : choisissez Pro avec ses options, ou écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
-    else if (r && r.status === 409 && j && j.error === 'option_deja') compteMsg = { texte: 'Une des options choisies est déjà active pour votre entreprise : rien à payer de plus pour elle. Décochez-la, ou rechargez la page. Rien n\'a été payé.', erreur: true };
-    else if (r && r.status === 429) compteMsg = { texte: 'Trop de tentatives d\'affilée : patientez une minute, puis réessayez.', erreur: true };
-    /* un impayé sans facture ouverte : définitif tant que TEAM OP ne l'a pas réglé — « réessayez » mentirait */
-    else if (r && r.status === 409 && j && j.error === 'impaye_sans_facture') compteMsg = { texte: 'Un prélèvement précédent de votre abonnement n\'a pas abouti et doit être réglé avant tout nouveau paiement : écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
-    /* l'impayé vient d'être réglé : l'accès revient à la prochaine lecture de la liste — une minute d'ordinaire, plus longtemps
-       si la liste de Stripe est en panne : pas de délai promis (troisième relecture de `gardien`). Un paiement de plus serait un
-       SECOND abonnement, prélevé en double (30 septembre 2026). Ce n'est pas une erreur. */
-    else if (r && r.status === 409 && j && j.error === 'impaye_regle') compteMsg = { texte: 'Votre règlement est bien arrivé : l\'accès revient dès que notre vérification le confirme, en général en moins d\'une minute. Rouvrez ensuite votre application. Rien de plus n\'a été payé.', erreur: false };
-    else if (r && r.status === 502 && j && j.error === 'stripe_indisponible') compteMsg = { texte: 'Le service de paiement ne répond pas pour vérifier un prélèvement en attente : réessayez dans quelques minutes. Rien n\'a été payé.', erreur: true };
-    else compteMsg = { texte: 'Le paiement n\'a pas pu s\'ouvrir — rien n\'a été payé. Réessayez dans un instant, ou écrivez à support@teamop.fr.', erreur: true };
-    rendrePaiement();
+    traiterReponsePaiement(r, j);
   });
+}
+
+/* ---------- LE CLIC DE PAIEMENT : CE QUI EST COMMUN AUX DEUX MODES ---------- */
+/* « peut-on payer maintenant ? » — le compte se lit d'abord, et on ne paie qu'au nom AFFICHÉ */
+async function paiementPret() {
+  if (compte.etat === 'lecture') return false;
+  if (compte.etat === 'aucun') { window.location.href = lienPortail(); return false; }
+  if (compte.etat !== 'pret') { compteMsg = null; compte = Object.assign({}, compte, { etat: 'lecture' }); rendrePaiement(); await relireCompte(); return false; }
+  /* ⛔ on ne paie qu'au nom AFFICHÉ : une session changée ailleurs se relit d'abord (et se montre) */
+  if (sessionPortail() !== compte.jeton) { compteMsg = null; compte = { etat: 'lecture' }; rendrePaiement(); await relireCompte(); return false; }
+  return true;
+}
+/* ce que la réponse du serveur veut dire — l'ouverture de la page de paiement, ou UN refus qui se dit (jamais un « réessayez »
+   quand rien ne se rattrape par réessai). Partagé par le paiement normal et l'ajout d'option. */
+function traiterReponsePaiement(r, j) {
+  /* ⛔ UN IMPAYÉ SE RÈGLE, IL NE SE RACHÈTE PAS (Justin, 29 septembre 2026 : carte refusée = impayé) — le serveur rend alors la
+     FACTURE EN ATTENTE, pas une page d'abonnement neuf : la page le DIT avant d'y aller (le montant n'est pas celui qu'on
+     vient de choisir), puis l'ouvre */
+  if (r && r.ok && j && j.url && j.facture) {
+    compteMsg = { texte: 'Un prélèvement précédent de votre abonnement n\'a pas abouti : sa facture en attente s\'ouvre. La régler rétablit l\'accès — rien d\'autre ne sera prélevé.' };
+    rendrePaiement();
+    setTimeout(() => { window.location.href = j.url; }, 2500);
+    return;
+  }
+  if (r && r.ok && j && j.url) { window.location.href = j.url; return; }
+  if (r && r.status === 401) { oublierSession(); compte = { etat: 'aucun' }; compteMsg = { texte: 'Votre session a expiré : reconnectez-vous, vous reviendrez ici.', erreur: true }; }
+  else if (r && r.status === 403 && j && j.error === 'adresse_non_verifiee') { compte = Object.assign({}, compte, { etat: 'a_confirmer' }); compteMsg = null; }
+  /* « B — on verrouille » (Justin, 28 septembre 2026) : l'appareil est relié à une entreprise, et ce compte n'est pas le
+     sien. Le refus est DÉFINITIF pour ce compte : « réessayez » mentirait — la page dit qui peut payer, et comment. */
+  else if (r && r.status === 403 && j && j.error === 'compte_autre_entreprise') compteMsg = { texte: 'Seul le compte de l\'entreprise peut payer pour elle, et ce compte n\'est pas le sien. Connectez-vous avec l\'adresse e-mail de l\'entreprise (« Changer de compte »), ou écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+  /* l'entreprise n'a PAS d'adresse chez TEAM OP : aucun compte ne peut prouver qu'il est le sien — « connectez-vous avec
+     l'adresse de l'entreprise » serait une consigne impossible (`gardien`). C'est à TEAM OP de la renseigner. */
+  else if (r && r.status === 403 && j && j.error === 'entreprise_sans_adresse') compteMsg = { texte: 'Cette entreprise n\'a pas encore d\'adresse e-mail enregistrée chez TEAM OP : le paiement ne peut pas lui être rattaché. Écrivez à support@teamop.fr pour la faire ajouter, puis revenez payer. Rien n\'a été payé.', erreur: true };
+  else if (r && r.status === 403 && j && j.error === 'reference_ambigue') compteMsg = { texte: 'Le paiement ne peut pas être rattaché à votre entreprise sans vérification : écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+  /* un tarif que le serveur ne connaît pas (28 septembre 2026, nuit) : la page est ancienne. Aucun tarif de la page n'est
+     refusé pour la formule de l'entreprise — le client choisit (Justin, 29 septembre 2026) */
+  else if (r && r.status === 400 && j && j.error === 'tarif_inconnu') compteMsg = { texte: 'Ce tarif n\'est plus proposé : rechargez la page, puis réessayez. Rien n\'a été payé.', erreur: true };
+  /* les options (1er octobre 2026) : chaque refus du serveur se dit, aucun n'est un « réessayez » — rien n'est parti chez Stripe */
+  else if (r && r.status === 400 && j && j.error === 'option_inconnue') compteMsg = { texte: 'Une des options choisies n\'existe plus : rechargez la page, puis réessayez. Rien n\'a été payé.', erreur: true };
+  else if (r && r.status === 400 && j && j.error === 'option_indisponible') compteMsg = { texte: 'Une des options choisies n\'est pas encore en vente : décochez-la, ou rechargez la page. Rien n\'a été payé.', erreur: true };
+  else if (r && r.status === 400 && j && j.error === 'option_incluse') compteMsg = { texte: 'Business et Business Premium incluent déjà toutes les options : il n\'y a rien à ajouter. Rechargez la page. Rien n\'a été payé.', erreur: true };
+  else if (r && r.status === 409 && j && j.error === 'entreprise_requise') compteMsg = { texte: 'Pour ajouter une option à un abonnement existant, il faut l\'entreprise concernée : ouvrez cette page depuis votre application, ou écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+  /* ⛔⛔ UN PRO DÉJÀ PAYÉ ET DES OPTIONS DEMANDÉES AVEC UN NOUVEAU PRO : l'option s'AJOUTE, elle ne s'achète pas avec un second
+     abonnement (le serveur n'a rien créé). On bascule la page en mode ajout, avec le même panier — la personne vérifie et valide. */
+  else if (r && r.status === 409 && j && j.error === 'utiliser_ajout') {
+    modeAjout = true; formuleActive = 'pro'; history.replaceState(null, '', adresseEtat(','));
+    compteMsg = { texte: 'Votre entreprise a déjà un abonnement Pro : une option s\'y ajoute, pour chaque utilisateur, au lieu d\'un second abonnement Pro. Vérifiez votre choix, puis validez. Rien n\'a été payé.' };
+    rendreTout(); return;
+  }
+  /* en mode ajout, « pas de Pro payé » renvoie à la page normale (Pro avec ses options), le même panier */
+  else if (r && r.status === 409 && j && j.error === 'formule_requise' && modeAjout) {
+    modeAjout = false; history.replaceState(null, '', adresseEtat(','));
+    compteMsg = { texte: 'Votre entreprise n\'a pas d\'abonnement Pro payé auquel une option pourrait s\'ajouter : choisissez ci-dessous Pro avec ses options (ou écrivez à support@teamop.fr). Rien n\'a été payé.', erreur: true };
+    rendreTout(); return;
+  }
+  else if (r && r.status === 409 && j && j.error === 'formule_requise') compteMsg = { texte: 'Une option se joint à un abonnement Pro déjà payé par votre entreprise, et il n\'y en a pas : choisissez Pro avec ses options, ou écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+  else if (r && r.status === 409 && j && j.error === 'option_deja') compteMsg = { texte: 'Une des options choisies est déjà active pour votre entreprise : rien à payer de plus pour elle. Décochez-la, ou rechargez la page. Rien n\'a été payé.', erreur: true };
+  else if (r && r.status === 429) compteMsg = { texte: 'Trop de tentatives d\'affilée : patientez une minute, puis réessayez.', erreur: true };
+  /* un impayé sans facture ouverte : définitif tant que TEAM OP ne l'a pas réglé — « réessayez » mentirait */
+  else if (r && r.status === 409 && j && j.error === 'impaye_sans_facture') compteMsg = { texte: 'Un prélèvement précédent de votre abonnement n\'a pas abouti et doit être réglé avant tout nouveau paiement : écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+  /* l'impayé vient d'être réglé : l'accès revient à la prochaine lecture de la liste — une minute d'ordinaire, plus longtemps
+     si la liste de Stripe est en panne : pas de délai promis (troisième relecture de `gardien`). Un paiement de plus serait un
+     SECOND abonnement, prélevé en double (30 septembre 2026). Ce n'est pas une erreur. */
+  else if (r && r.status === 409 && j && j.error === 'impaye_regle') compteMsg = { texte: 'Votre règlement est bien arrivé : l\'accès revient dès que notre vérification le confirme, en général en moins d\'une minute. Rouvrez ensuite votre application. Rien de plus n\'a été payé.', erreur: false };
+  else if (r && r.status === 502 && j && j.error === 'stripe_indisponible') compteMsg = { texte: 'Le service de paiement ne répond pas pour vérifier un prélèvement en attente : réessayez dans quelques minutes. Rien n\'a été payé.', erreur: true };
+  else compteMsg = { texte: 'Le paiement n\'a pas pu s\'ouvrir — rien n\'a été payé. Réessayez dans un instant, ou écrivez à support@teamop.fr.', erreur: true };
+  rendrePaiement();
+}
+
+/* ---------- LE MODE « AJOUT » : une option de plus pour le Pro que l'entreprise paie déjà ---------- */
+/* l'entreprise rattachée à CET appareil — la même lecture que le paiement normal (`espaceRattacheRef`), sans elle le serveur
+   refuse (`entreprise_requise`) : une option se rattache à une entreprise précise */
+const espaceDeAppareil = () => { try { return String(localStorage.getItem('elan_sync_team') || '').trim(); } catch (e) { return ''; } };
+function rendrePaiementAjout() {
+  const f = FORMULES.pro;
+  const c = document.getElementById('cartePaiement');
+  const dispo = optionsDispo(), opts = optionsActives();
+  const refOk = !!espaceDeAppareil();
+  const fAjout = Object.assign({}, f, { boutonTexte: 'Ajouter à mon abonnement' });
+  c.innerHTML = `
+    <div style="text-align:center; margin:2px 0 8px; font-size:18px; font-weight:700; color:var(--texte);">Ajouter des options à votre abonnement Pro</div>
+    <div style="text-align:center; font-size:13px; line-height:1.55; color:var(--texte-2); margin-bottom:12px;">
+      Chaque option est <b>ajoutée à votre abonnement Pro, pour chaque utilisateur</b> de votre entreprise, au même rythme de facturation que lui (mensuel ou annuel).
+      Le nombre d'utilisateurs ne se choisit pas ici&nbsp;: il vient de votre abonnement, et seules les places qui manquent à l'option sont facturées.
+    </div>
+    ${dispo.length ? `
+      <div class="bloc-options" role="group" aria-labelledby="titreOptions">
+        <div class="titre-options" id="titreOptions">OPTIONS À AJOUTER <span>· par utilisateur</span></div>
+        ${dispo.map(k => { const o = OPTIONS_GESTION[k]; const on = opts.indexOf(k) >= 0; return `
+        <label class="option-case${on ? ' cochee' : ''}">
+          <input type="checkbox" data-option="${k}"${on ? ' checked' : ''}>
+          <span class="option-texte"><b>${o.nom}</b><span class="detail">${o.desc}</span></span>
+          <span class="option-prix">+&nbsp;${o.prixMensuel}&nbsp;€<small> / mois · ${o.prixMensuel * (12 - REMISE_ANNUELLE)}&nbsp;€ / an</small></span>
+        </label>`; }).join('')}
+      </div>` : `
+      <div class="options-incluses" role="note"><span><b>Les options ne sont pas encore en vente.</b> Rien n'est à payer pour l'instant — revenez bientôt.</span></div>`}
+    <button class="btn-payer" id="btnPayer" style="background:${f.boutonFond};"${compte.etat === 'lecture' || !dispo.length ? ' disabled' : ''}>
+      ${boutonCompte(fAjout)}
+    </button>
+    ${blocCompte(f, 1, true)}
+    ${refOk ? '' : `<div class="compte-bloc attention" role="note"><b>Ouvrez cette page depuis votre application</b> (Paramètres → Formule → Ajouter)&nbsp;: elle sait de quelle entreprise il s'agit. Sans elle, une option ne peut pas être rattachée à votre abonnement.</div>`}
+    <div class="note-paiement">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Paiement sécurisé par Stripe, depuis votre compte TEAM OP
+    </div>
+    <div class="garanties">
+      <div class="garantie">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Sans engagement — résiliable à tout moment
+      </div>
+      <div class="garantie">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Votre abonnement Pro ne change pas : l'option s'y ajoute
+      </div>
+    </div>
+  `;
+  c.querySelectorAll('[data-option]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const k = inp.dataset.option;
+      optionsChoisies = optionsChoisies.filter(x => x !== k).concat(inp.checked ? [k] : []);
+      compteMsg = null;
+      history.replaceState(null, '', adresseEtat(','));
+      rendrePaiement();
+      const n = c.querySelector('[data-option="' + k + '"]'); if (n) n.focus();
+    });
+  });
+  const br = document.getElementById('btnRenvoiLien'); if (br) br.addEventListener('click', () => renvoyerLien(br));
+  const ba = document.getElementById('btnAutreCompte'); if (ba) ba.addEventListener('click', () => changerCompte());
+  document.getElementById('btnPayer').addEventListener('click', payerAjout);
+}
+async function payerAjout() {
+  if (!(await paiementPret())) return;
+  /* ⛔ DES CLÉS ET LA RÉFÉRENCE, RIEN D'AUTRE : ni `price`, ni `quantity`, ni cycle — le serveur lit chez Stripe le Pro que
+     l'entreprise paie (ses places, son cycle) et n'ajoute que ce qui manque. Sans entreprise, on n'envoie rien (le serveur
+     répondrait `entreprise_requise`). */
+  const ref = espaceDeAppareil();
+  const optionsEnvoyees = optionsActives();
+  if (!ref) { compteMsg = { texte: 'Pour ajouter une option à un abonnement existant, il faut l\'entreprise concernée : ouvrez cette page depuis votre application (Paramètres → Formule), ou écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true }; rendrePaiement(); return; }
+  if (!optionsEnvoyees.length) { compteMsg = { texte: 'Cochez au moins une option à ajouter. Rien n\'a été payé.', erreur: true }; rendrePaiement(); return; }
+  const btn = document.getElementById('btnPayer');
+  btn.disabled = true; btn.innerHTML = 'Préparation du paiement…';
+  let r = null, j = null;
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 15000);
+  try {
+    r = await fetch(API_TEAMOP + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + compte.jeton }, body: JSON.stringify({ options: optionsEnvoyees, ref: ref }), signal: ctl.signal });
+    j = await r.json().catch(() => null);
+  } catch (e) { r = null; }
+  finally { clearTimeout(to); }
+  traiterReponsePaiement(r, j);
 }
 
 /* ---------- CODE PROMO — mois offerts sans carte ---------- */
@@ -1177,7 +1294,7 @@ function rendreTout() {
   rendreSelecteur();
   rendreDroits();
   rendrePaiement();
-  document.title = 'Récapitulatif ' + FORMULES[formuleActive].nom + ' — TEAM OP';
+  document.title = modeAjout ? 'Ajouter une option — TEAM OP' : 'Récapitulatif ' + FORMULES[formuleActive].nom + ' — TEAM OP';
 }
 
 rendreTout();

@@ -80,15 +80,22 @@ const vrai = (t, a) => v(t, !!a, true);
   vrai('la page fabrique le chemin vers le portail (lienPortail)', !!mLien);
   if (mLien) {
     /* `optionsActives` : le panier (vide ici — le chemin du portail ne change pas sans option ; avec, test-853) */
-    const lien = new Function('formuleActive', 'nbUsersVoulu', 'cycleAnnuel', 'optionsActives', 'return ' + mLien[1] + ';')('business', 7, true, () => []);
+    /* `modeAjout` : le mode « ajout d'option » de la page (faux ici ; ses chemins, test-858 et test-853) */
+    const faireLien = (...a) => new Function('formuleActive', 'nbUsersVoulu', 'cycleAnnuel', 'optionsActives', 'modeAjout', 'return ' + mLien[1] + ';')(...a);
+    const lien = faireLien('business', 7, true, () => [], false);
     const retour = decodeURIComponent(lien.split('?retour=')[1] || '');
     v('   … vers le portail, avec la formule, le nombre et le cycle choisis', [lien.split('?')[0], retour], ['espace.html', 'recap-abonnement.html?formule=business&utilisateurs=7&cycle=annuel']);
+    const lienAjout = faireLien('pro', 0, false, () => ['stock', 'achats'], true);
+    v('   en mode ajout : le retour garde le mode et le panier, sans nombre ni cycle',
+      decodeURIComponent(lienAjout.split('?retour=')[1] || ''), 'recap-abonnement.html?formule=pro&ajout=options&options=stock.achats');
     for (const e of ['espace.html', 'apercu/espace.html'].filter(x => fs.existsSync(path.join(__dirname, '..', x)))) {
       const E = fs.readFileSync(path.join(__dirname, '..', e), 'utf8');
       const mR = /const RETOUR_PAIEMENT=\(\(\)=>\{ try\{ const r=new URLSearchParams\(location\.search\)\.get\('retour'\)\|\|''; return (\/.*?\/)\.test\(r\)\?r:''; \}/.exec(E);
       vrai('   ' + e + ' : sa garde du retour est trouvée', !!mR);
       if (mR) vrai('⛔ ' + e + ' accepte le retour fabriqué par la page de paiement (sinon on ne revient jamais payer)',
         new Function('return ' + mR[1])().test(new URLSearchParams(lien.split('?')[1]).get('retour')));
+      if (mR) vrai('⛔ ' + e + ' accepte aussi le retour du MODE AJOUT (« Créer mon compte pour payer » depuis le lien de l\'application)',
+        new Function('return ' + mR[1])().test(new URLSearchParams(lienAjout.split('?')[1]).get('retour')));
     }
   }
 

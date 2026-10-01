@@ -118,7 +118,7 @@ function cdpClient(ws) { let id = 0; const A = new Map(), E = [];
     vrai('⛔ … et les cartes d\'une catégorie fermée n\'y sont plus : ni « Contrôle des mouvements de stock », ni « Comptabilité »', !/Contrôle des mouvements de stock/.test(P.txt) && !/Ouvrir la Comptabilité/.test(P.txt));
     await ev(`const b=[...document.querySelectorAll('#content button')].find(b=>/^Ajouter$/.test(b.textContent.trim())); window.__ouverts=[]; b.click(); return 1;`);
     const ou = await ev('return window.__ouverts;');
-    vrai('⛔ « Ajouter » (la première option, Stock) ouvre la page de paiement : formule Pro et UNE option', JSON.stringify(ou) === '["https://teamop.fr/recap-abonnement.html?formule=pro&options=stock"]', ou);
+    vrai('⛔ « Ajouter » (la première option, Stock) ouvre la page de paiement : formule Pro et UNE option', JSON.stringify(ou) === '["https://teamop.fr/recap-abonnement.html?formule=pro&ajout=options&options=stock"]', ou);
     /* la cloche, la fiche client */
     const notif = await ev(`return computeNotifs().map(n=>n.id).filter(i=>/^(stock|boxlow|arr|bonprep|env|tele|mvatt|dem):/.test(i));`);
     vrai('⛔ la cloche de l\'administrateur Pro sans option ne porte AUCUNE alerte du Stock, des bons, des enveloppes ou de la télécollecte (produit sous son seuil : posé)', notif.length === 0, notif);
