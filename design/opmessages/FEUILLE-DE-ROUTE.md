@@ -36,7 +36,7 @@ choix du service de reconnaissance vocale, validation des textes juridiques.
 | 22 envoi à l'heure du destinataire | C (avec les messages programmés) | |
 | 23 parrainage | D (avec le paiement Messages Pro) | un mois offert par Stripe (essai prolongé), jamais un code promo écrit dans une page servie |
 
-Liste d'origine :
+Liste d'origine (numérotée dans l'ordre de la PROPOSITION ; la table ci-dessus suit l'ordre où Justin les a reprises, qui fait foi) :
 
 13. Boîte partagée pour les entreprises : plusieurs employés répondent aux clients depuis UN contact d'entreprise (Pro) ;
 14. lien et QR code « Écrivez-nous » pour les clients d'une entreprise, sans donner de numéro perso (Pro) ;
@@ -49,3 +49,24 @@ Liste d'origine :
 21. mode gros caractères et contraste renforcé ;
 22. envoi à l'heure du destinataire (fuseaux horaires) pour les équipes à l'étranger ;
 23. tableau du patron : temps de réponse aux clients, messages en attente (Pro).
+
+## Idées 24 à 69 — l'étude des concurrents (Justin : « prends plein d'idées que les autres font, pour gagner le marché »)
+
+Détail, sources et ce qu'il ne faut PAS faire : `VEILLE-CONCURRENCE.md` (lire son encart d'abord : il corrige ce que l'étude
+ne savait pas — App Store décidé, connexion par numéro, formules fixées). Rangées dans les lots existants ; les dix marquées ★
+sont celles que l'étude met en tête pour le chiffre d'affaires.
+
+| Idées | Lot | Note |
+|---|---|---|
+| ★24 prix fixe tout compris, sans compteur (IA comprise, avec un plafond ÉCRIT, jamais « illimité ») ; 54 promesse de durée, journal public des changements ; 55 historique gratuit sans limite de jours (plafond de stockage) | H (textes du site) | se tient par l'architecture ; le site attend « remplace le site » |
+| ★38 installation guidée + test de notification ; ★39 vrai hors ligne (écrire sans réseau, envoi au retour) | A | pour la version web ; l'application des stores (I) règle le reste |
+| ★36 pseudo et QR (en PLUS du numéro) ; 47 inviter sans le carnet d'adresses (lien, QR, partage) ; 48 filtre anti-arnaque (inconnus dans « Demandes ») ; 62 petits raccourcis (non lu, modifier un envoi) | B | 47 se lie au parrainage (23) |
+| 42 rapport de lecture (qui a lu une consigne, relance en un clic) ; 43 annonces et listes de diffusion ; 56 éphémères réglés par l'administrateur ; 57 vocal à un appui ; 59 reformuler (« plus poli », « plus court ») ; 60 « transforme en tâche », rappel ; 64 « bravo » entre collègues | C | 59 et 60 passent par la sous-traitance IA (E) |
+| ★27 boîte partagée complète (étiquettes, « je prends », notes internes, délai de réponse) ; ★29 réponses rapides « / », horaires, ouvert/fermé ; ★26 formulaires dans la conversation (devis, rendez-vous, photos) ; ★33 salons invités par lien, sans compte ; ★35 relance d'un urgent non lu par courriel ou SMS ; 40 notifications sobres (résumé du jour, heures calmes par groupe) ; 49 checklists métier avec photos et signature ; 50 gros fichiers avec reprise et dossiers par client ; 52 administrateur en 10 secondes, départ d'un employé ; 53 conservation, journal d'audit, export légal ; 63 support humain en français | D | ce qui justifie 15 € plutôt que 3 à 5 € ; 35 a un coût par SMS : budget comme l'inscription |
+| ★28 brouillon de réponse IA relu par un humain (quota inclus) ; 44 notes de réunion avec consentement visible ; 45 sous-titres traduits en direct ; 46 recherche intelligente et assistant interne ; 68 choix du moteur IA | E | ⛔ sous-traitance IA écrite avant ; 46 et le chiffrement : à trancher avant de promettre |
+| 34 écrire au client par courriel puis SMS depuis la même boîte ; 37 import de l'historique WhatsApp et Slack ; 41 page « Confiance », pastille de chiffrement, bouton « IA coupée » ; 58 sauvegarde chiffrée avec clé d'accès | F | 41 : ne citer aucune certification qu'on n'a pas |
+| 61 salle de visio à adresse fixe, audio d'abord ; 65 grandes réunions de 50 à 200 | G | 65 demande un serveur de médias : gros chantier |
+| 25 devis ou facture « Accepter / Payer » dans la conversation ; 30 messages automatiques depuis OP GESTION ; 31 suivi de demande par lien, sans compte ; 32 conversation liée à une intervention ou un client | J (nouveau) — lien OP GESTION ↔ OP MESSAGES | notre avantage que personne ne copie ; ⛔ jamais en rebranchant OP MESSAGES sur le socle d'OP GESTION : une liaison volontaire entre deux comptes, conçue à part, après la sortie de Firebase |
+| 51 prix d'entrée 5-7 €, remises, tarif « actif du mois » ; 66 pont WhatsApp (frais Meta au message, contraire au prix fixe) ; 69 promesse « jamais de pièce d'identité » | en attente de Justin | 51 change les formules qu'il a fixées ; 66 crée une dépendance à Meta ; 69 demande l'avis d'un juriste |
+| 67 coquille native pour les stores | I | ✅ décidée (« l'application sera sur l'App Store », « J'ai les deux ») |
+
