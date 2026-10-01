@@ -168,7 +168,10 @@ function creerTelephone(ctx) {
     }
 
     const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
-    stockage.telCodePoser({ num_h, code_h: hCode(num_h, code), exp: horloge() + cfg.codeMs, ap_h: dev.h });
+    /* ⛔ Le code se POSE après l'envoi, jamais avant : un envoi qui échoue ne doit pas écraser — puis supprimer — le code valable d'un envoi
+       précédent (la personne a reçu un SMS, redemande pendant une panne d'OVH, et son premier code ne marchait plus). Rien ne peut répondre
+       entre l'envoi et la pose : tout est synchrone après l'`await`. */
+    const poserCode = () => stockage.telCodePoser({ num_h, code_h: hCode(num_h, code), exp: horloge() + cfg.codeMs, ap_h: dev.h });
     const e = await sms.envoyer({ id: r.id, cout: r.cout, numero: a.e164, message: messageDe(code) });
     const reponse = { ok: true, delai_s: Math.ceil(cfg.renvoiMs / 1000), expire_s: Math.ceil(cfg.codeMs / 1000), longueur: 6 };
     if (!e.ok) {
@@ -176,8 +179,7 @@ function creerTelephone(ctx) {
       /* ⛔ « INCERTAIN » : le SMS est peut-être parti. On GARDE le code (s'il arrive, la personne doit pouvoir le taper : le supprimer la
          laissait avec un SMS valable et un « code invalide »), on GARDE le coût et les plafonds (on suppose le pire), et on répond comme
          pour un envoi réussi — avec `incertain`, pour que l'écran puisse dire « s'il n'arrive pas, redemandez dans une minute ». */
-      if (e.genre === 'incertain') { codeDeTest(a.e164, code); return res.json(Object.assign(reponse, { incertain: true })); }
-      stockage.telCodeSupprimer(num_h);
+      if (e.genre === 'incertain') { poserCode(); codeDeTest(a.e164, code); return res.json(Object.assign(reponse, { incertain: true })); }
       /* ⛔ « Ce numéro n'existe pas » (OVH) NE REND PAS les plafonds : sinon un robot sonde la validité de numéros à plusieurs centaines par
          minute et par réseau, sur nos clés d'API. Tout le reste est une panne de NOTRE côté (rien n'est parti : clés, crédits, service
          injoignable) : le coût et les plafonds sont rendus, la personne n'a rien consommé. */
@@ -186,6 +188,7 @@ function creerTelephone(ctx) {
       res.set('Retry-After', '60');
       return refus(res, 503, 'sms_indisponible', { portee: 'service' });
     }
+    poserCode();
     codeDeTest(a.e164, code);
     res.json(reponse);
   };

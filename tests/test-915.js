@@ -313,6 +313,16 @@ const sante = async (svc) => (await T.client(svc.base).get('/health')).j.sms;
       v('⛔ rien n\'est parti : AUCUN coût gardé (avant : 1,50 € comptabilisés pour 0 SMS)', [h.coutJourEur, h.envoyes24h], [0, 0]);
       ovh.mode = 'normal';
       v('⛔ et les plafonds sont RENDUS : redemander tout de suite (même numéro, même réseau) → 200', (await demander(svc, n, ip)).code, 200);
+      /* ⛔ Un envoi qui échoue n'efface pas le code VALABLE d'un envoi précédent (avant : le code était posé avant l'envoi, puis supprimé sur l'échec). */
+      const nv = TEL.numeroBE(), cv = T.client(svc.base, { xff: TEL.reseauNeuf() });
+      await cv.post('/api/tel/code', { numero: nv });
+      const codeVieux = await svc.code(nv);
+      svc.avancer(61 * 1000);
+      ovh.mode = '503';
+      const rv = await cv.post('/api/tel/code', { numero: nv });
+      ovh.mode = 'normal';
+      const okv = await cv.post('/api/tel/verifier', { numero: nv, code: codeVieux, prenom: 'Premier' });
+      v('⛔ un premier code reçu, un renvoi pendant une panne d\'OVH (503) : le PREMIER code marche encore (avant : il était écrasé puis supprimé par l\'échec du renvoi)', [rv.code, okv.code, okv.j.nouveau], [503, 200, true]);
       /* Une panne d'OVH, vingt personnes : aucune n'use ni son plafond ni le budget — la France n'est pas fermée par des SMS jamais partis. */
       ovh.mode = '503';
       const pannes = [];
