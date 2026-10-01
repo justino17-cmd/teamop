@@ -327,6 +327,7 @@ globalThis.fetch = async function (url, opts) {
   M.ent('s7'); M.ent('s8', { email: mail('s7') });                                                                  // adresse PARTAGÉE : l'option n'est pas sûrement à elle
   M.sub('s7', 'active', [PRO(1)], { nonGrave: true }); M.sub('s7', 'active', [OPL('stock', 1)], { nonGrave: true });
   M.ent('s9'); M.sub('s9', 'active', [PRO(3)]); M.sub('s9', 'active', [OPL('stock', 3)]); M.sub('s9', 'active', [OPL('achats', 3)]);   // Stock + Achats
+  M.ent('s10', { formule: 'premium' }); M.sub('s10', 'active', [OPL('stock', 3)]);                              // fiche Business Premium dont l'abonnement n'est qu'UNE option : rien de payé
   M.ent('t1', { quantite: 1 });                                                                                     // réglée à la main dans la Tour (rien chez Stripe)
   /* le paiement : chacune son entreprise, son compte confirmé */
   M.ent('c1');                                                                                                      // aucun abonnement : elle achète Pro + options ensemble
@@ -381,6 +382,12 @@ globalThis.fetch = async function (url, opts) {
   {
     const { a } = await joue('s7');
     v('⛔⛔ une option payée à une ADRESSE PARTAGÉE (pas sûrement à l\'entreprise) : fermée — l\'option d\'une voisine n\'ouvre rien', [a.opts(), ouvert(a)], [[], []]);
+  }
+  {
+    const e = await S1.etat('s10');
+    vrai('⛔⛔ fiche Business Premium dont l\'abonnement n\'est qu\'UNE option : SUSPENDUE, et la réponse ne porte AUCUNE clé `options` (une option ne lève rien)', SUSP(e), JSON.stringify(e));
+    const { a } = await joue('s10');
+    vrai('⛔ l\'application suspendue ne range aucune option et ne rouvre rien', a.accesSuspendu() === true && a.opts() === undefined && a.planBloque('stock') === true, JSON.stringify([a.accesSuspendu(), a.opts()]));
   }
   {
     /* une entreprise dont le serveur ne répond pas : l'appareil GARDE ce qu'il savait — première lecture réussie, puis Stripe muet */
