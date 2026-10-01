@@ -21,7 +21,7 @@
               … --rapide           (le couple iPhone + bureau, jour seulement — pour les mutations)
               CAPTURES=/dossier    (les deux navigateurs côte à côte à chaque étape clé)
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner (pas de navigateur, pas de dépendances du service). */
-const fs = require('fs'), os = require('os'), path = require('path');
+const fs = require('fs'), os = require('os'), path = require('path'), net = require('net');
 const T = require('./outils-msg');
 const { v, vrai, fin } = T.compteur();
 T.sauterSiSansDependances();
@@ -48,6 +48,28 @@ const MOTS = {
   alice: 'pw-alice-1234', bruno: 'pw-bruno-1234', eve: 'pw-eve-123456', chloe: 'pw-chloe-1234', dave: 'pw-dave-12345', fred: 'pw-fred-12345', coupe: 'pw-coupe-123',
 };
 const NOMS = { alice: 'Alice Martin', bruno: 'Bruno Petit', eve: '<img src=x onerror=window.__pwn=1>Eve', chloe: 'Chloé Durand', dave: 'Dave Moreau', fred: 'Fred Lambert', coupe: 'Coupé' };
+
+/* ── le câble qu'on arrache : un relais TCP entre un navigateur et le service. `couper()` détruit les connexions ouvertes (le flux temps réel casse VRAIMENT : un
+   `setOffline` du navigateur ne rompt pas une connexion déjà établie) et refuse les nouvelles ; `rendre()` les accepte de nouveau. Il note la première ligne de
+   chaque requête (et si elle porte `Last-Event-ID` / `depuis=`) : la reprise du flux se prouve sur ce que le service a REÇU. ── */
+function relais(portCible) {
+  const socks = new Set(), journal = []; let ouvert = true;
+  const srv = net.createServer(c => {
+    if (!ouvert) { c.destroy(); return; }
+    const u = net.connect(portCible, '127.0.0.1');
+    socks.add(c); socks.add(u);
+    const fin = () => { c.destroy(); u.destroy(); socks.delete(c); socks.delete(u); };
+    c.on('error', fin); u.on('error', fin); c.on('close', fin); u.on('close', fin);
+    c.on('data', d => { const t = d.toString('latin1'); const m = /^(GET|POST) (\S+) HTTP/.exec(t); if (m) journal.push({ ligne: m[1] + ' ' + m[2], reprise: /last-event-id:\s*\d+/i.test(t) || /[?&]depuis=\d+/.test(m[2]) }); u.write(d); });
+    u.on('data', d => c.write(d));
+  });
+  return new Promise(ok => srv.listen(0, '127.0.0.1', () => ok({
+    port: srv.address().port, base: 'http://127.0.0.1:' + srv.address().port, journal,
+    couper() { ouvert = false; for (const x of Array.from(socks)) x.destroy(); },
+    rendre() { ouvert = true; },
+    fermer() { ouvert = false; for (const x of Array.from(socks)) x.destroy(); try { srv.close(); } catch (e) { /* rien */ } },
+  })));
+}
 
 /* ── l'ouverture d'une page : un contexte NEUF (ses propres cookies) par personne ── */
 async function ouvrir(b, base, pf, o) {
@@ -195,8 +217,9 @@ async function couple(b, env, cfg) {
   const nomA = NOMS[la], nomB = NOMS[lb];
   const prenomB = nomB.split(' ')[0], prenomC = NOMS[lc].replace(/^.*>/, '').split(' ')[0];
   console.log('\n══ ' + cfg.titre + ' ══');
+  const baseB = env.relais ? env.relais.base : base;       // B parle au service PAR le relais : on peut lui arracher le câble
   const A = await ouvrir(b, base, cfg.pa, { nuit: cfg.nuit, nom: nomA });
-  const B = await ouvrir(b, base, cfg.pb, { nuit: cfg.nuit, nom: nomB });
+  const B = await ouvrir(b, baseB, cfg.pb, { nuit: cfg.nuit, nom: nomB });
   const C = await ouvrir(b, base, cfg.pc, { nuit: cfg.nuit, nom: NOMS[lc] });
   const tous = [A, B, C];
   const bloc = async (titre, fn) => {
@@ -220,6 +243,13 @@ async function couple(b, env, cfg) {
     await saisir(A, '#c-login', la); await saisir(A, '#c-pass', 'pas-le-bon'); await toucher(A, '#c-entrer');
     await attendreTexte('un mauvais mot de passe : le refus est dit (identifiant ou mot de passe incorrect)', A, '#connexion-erreur', 'incorrect', 6000);
     vrai('et le mot de passe saisi n\'est pas gardé dans le champ', (await A.page.inputValue('#c-pass')) === '');
+    /* ⛔ le refus d'avant ne survit pas à l'essai suivant : il s'efface DÈS QU'ON REVALIDE, pas quand la réponse arrive (une réponse lente laissait l'ancien verdict à l'écran) */
+    await A.page.route('**/api/beta/entrer', async r => { await dormir(1200); await r.continue(); });
+    await saisir(A, '#c-pass', 'encore-faux'); await toucher(A, '#c-entrer');
+    await dormir(350);
+    v('essai suivant EN COURS (réponse retenue 1,2 s) : l\'ancien refus a DÉJÀ disparu de l\'écran', await visible(A, '#connexion-erreur'), false);
+    await attendreTexte('… puis l\'essai suivant écrit SON verdict', A, '#connexion-erreur', 'incorrect', 6000);
+    await A.page.unroute('**/api/beta/entrer');
     og.mode = 'panne';
     await saisir(A, '#c-pass', MOTS[la]); await toucher(A, '#c-entrer');
     await verifier('OP GESTION injoignable (503) : la phrase REMPLACE le refus d\'avant (« momentanément indisponible »), elle ne s\'y ajoute pas', A, () => { const t = document.getElementById('connexion-erreur').textContent; return /momentanément indisponible/.test(t) && !/incorrect/.test(t); }, null, 8000, () => texteVu(A, '#connexion-erreur'));
@@ -234,7 +264,7 @@ async function couple(b, env, cfg) {
     await enligne(A);
     vrai('la réussite ouvre l\'application : le nom de la personne est là (« ' + (await lire(A, '#moi-nom')) + ' ») et l\'écran de connexion est caché', (await lire(A, '#moi-nom')).includes(nomA.split(' ')[0]) && !(await visible(A, '#connexion')));
     vrai('et AUCUN refus d\'avant ne survit (la page repart d\'une page neuve : le champ d\'erreur est vide)', ((await lire(A, '#connexion-erreur')) || '') === '' || !(await visible(A, '#connexion-erreur')));
-    await B.page.goto(base + '/'); await connecter(B, lb);
+    await B.page.goto(baseB + '/'); await connecter(B, lb);
     await C.page.goto(base + '/'); await connecter(C, lc);
     const ck = (await A.ctx.cookies()).find(c => c.name === 'opm');
     vrai('le cookie de session existe, HttpOnly, SameSite, sans date de fin lointaine : la page ne peut pas le lire', !!ck && ck.httpOnly === true && /Lax|Strict/.test(ck.sameSite));
@@ -459,6 +489,24 @@ async function couple(b, env, cfg) {
     await verifier('et la bulle de B n\'est plus « en attente »', B, () => !/En attente de connexion/.test(document.getElementById('conv-messages').textContent), null, 10000);
   });
 
+  await bloc('8 bis. Le câble arraché (connexion TCP rompue net) : le flux casse, se rouvre tout seul et REPREND où il en était', async () => {
+    if (!env.relais) { console.log('  — pas de relais : bloc sauté'); return; }
+    const R = env.relais, flux0 = R.journal.filter(j => /\/api\/flux/.test(j.ligne)).length;
+    await ouvrirConvAvec(B, nomA); await ouvrirConvAvec(A, nomB);
+    vrai('population : B a ouvert son flux temps réel par le relais (' + flux0 + ' ouverture(s) vues)', flux0 >= 1);
+    R.couper();
+    await verifier('câble arraché : la bannière « connexion perdue » paraît chez B (le flux est VRAIMENT rompu)', B, () => !document.getElementById('hors-ligne').hidden, null, 15000, () => texteVu(B, '#hors-ligne'));
+    for (const k of [1, 2, 3]) await envoyerTexte(A, tag + '-cable' + k);
+    await dormir(600);
+    R.rendre();
+    await verifier('câble rendu : les trois messages arrivent chez B, dans l\'ordre', B, t => { const x = document.getElementById('conv-messages').textContent; const i = [1, 2, 3].map(k => x.indexOf(t + '-cable' + k)); return i.every(n => n >= 0) && i[0] < i[1] && i[1] < i[2]; }, tag, 30000, () => texteVu(B, '#conv-messages'));
+    await dormir(500);
+    v('et chacun UNE seule fois dans le fil de B (population : trois messages envoyés pendant la coupure)', await B.page.evaluate(t => [1, 2, 3].map(k => document.getElementById('conv-messages').textContent.split(t + '-cable' + k).length - 1), tag), [1, 1, 1]);
+    await verifier('la bannière disparaît quand le flux est revenu', B, () => document.getElementById('hors-ligne').hidden, null, 20000, () => texteVu(B, '#hors-ligne'));
+    const apres = R.journal.slice(flux0).filter(j => /\/api\/flux/.test(j.ligne));
+    vrai('⛔ la reprise a DEMANDÉ LA SUITE (Last-Event-ID / depuis=) au lieu de tout recommencer — ' + apres.length + ' ouverture(s) après la coupure, dont ' + apres.filter(j => j.reprise).length + ' avec reprise', apres.some(j => j.reprise));
+  });
+
   await bloc('9. Chaque refus du service est DIT, et la réussite suivante l\'efface', async () => {
     try {
     const reponse = (code, error, h, methode) => route => (methode && route.request().method() !== methode) ? route.continue() : route.fulfill({ status: code, contentType: 'application/json', headers: h || {}, body: JSON.stringify({ error }) });
@@ -619,9 +667,9 @@ async function couple(b, env, cfg) {
     await B.page.goBack().catch(() => {});
     await B.page.waitForTimeout(800);
     const retour = await B.page.evaluate(() => ({ url: location.href, lignes: document.querySelectorAll('#liste-conv .conv').length, app: !document.getElementById('app').hidden, connexion: !document.getElementById('connexion').hidden }));
-    vrai('population : le retour arrière a bien ramené sur une page de l\'application (' + retour.url + ')', retour.url.startsWith(base));
+    vrai('population : le retour arrière a bien ramené sur une page de l\'application (' + retour.url + ')', retour.url.startsWith(baseB));
     v('le bouton « retour » du navigateur ne ressuscite rien (aucune liste, pas d\'application)', [retour.lignes, retour.app], [0, false]);
-    await B.page.goto(base + '/'); await connecter(B, lb);
+    await B.page.goto(baseB + '/'); await connecter(B, lb);
   });
 
   await bloc('15. La présence : quand quelqu\'un ferme son navigateur, les autres le voient partir', async () => {
@@ -642,7 +690,7 @@ async function couple(b, env, cfg) {
     v(S.nom + ' (' + S.pf.nom + ') : aucune exception JavaScript non rattrapée', S.erreurs, []);
     const autres = S.console.filter(t => !/Failed to load resource|net::ERR_|EventSource|status of (4|5)\d\d/.test(t));
     v(S.nom + ' : aucune erreur de console autre qu\'un refus réseau attendu (' + S.console.length + ' refus réseau relevés)', autres, []);
-    const dehors = S.reseau.filter(u => !u.startsWith(base) && !u.startsWith('data:') && !u.startsWith('blob:') && u !== 'about:blank');
+    const dehors = S.reseau.filter(u => !u.startsWith(S.base) && !u.startsWith('data:') && !u.startsWith('blob:') && u !== 'about:blank');
     v(S.nom + ' : aucune requête hors du service (' + S.reseau.length + ' requêtes examinées)', dehors, []);
   }
   for (const S of tous) { try { await S.ctx.close(); } catch (e) { /* déjà fermé */ } }
@@ -651,7 +699,9 @@ async function couple(b, env, cfg) {
 /* ══ le lancement ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 (async () => {
   const og = await T.fauxOpGestion(Object.fromEntries(Object.keys(MOTS).map(l => [l, { pass: MOTS[l], nom: NOMS[l], actif: l !== 'coupe' }])));
-  const svc = await T.lancerService({ urlGestion: og.url, config: { pulsationMs: 3000, presenceGraceMs: 500, balayageMs: 500, beta: { relectureMs: 300, timeoutMs: 1500 } } });
+  const portSvc = await T.portLibre();
+  const relaisB = await (async () => { const r = await relais(portSvc); return r; })();
+  const svc = await T.lancerService({ port: portSvc, urlGestion: og.url, config: { origines: ['http://127.0.0.1:' + portSvc, relaisB.base], pulsationMs: 3000, presenceGraceMs: 500, balayageMs: 500, beta: { relectureMs: 300, timeoutMs: 1500 } } });
   let b = null;
   try {
     b = await pw.chromium.launch({ executablePath: CHROME, headless: true, args: ARGS });
@@ -659,11 +709,11 @@ async function couple(b, env, cfg) {
   try {
     const h = await (await fetch(svc.base + '/')).text();
     vrai('population : le service sert la page générée (' + h.length + ' octets, trois scripts)', (h.match(/<script[^>]+src=/g) || []).length === 3);
-    await couple(b, { og, svc }, { tag: 'jr', titre: 'Alice (iPhone 393, jour) et Bruno (bureau 1440, jour) — Eve (bureau 1024) les rejoint', logins: ['alice', 'bruno', 'eve'], intrus: 'chloe', pa: PROFILS.iphone, pb: PROFILS.bureau, pc: PROFILS.petit, nuit: false });
-    if (!RAPIDE) await couple(b, { og, svc }, { tag: 'nt', titre: 'Chloé (Android 360, nuit) et Dave (iPad 820, nuit) — Fred (iPhone 393) les rejoint', logins: ['chloe', 'dave', 'fred'], intrus: 'alice', pa: PROFILS.android, pb: PROFILS.ipad, pc: PROFILS.iphone, nuit: true });
+    await couple(b, { og, svc, relais: relaisB }, { tag: 'jr', titre: 'Alice (iPhone 393, jour) et Bruno (bureau 1440, jour) — Eve (bureau 1024) les rejoint', logins: ['alice', 'bruno', 'eve'], intrus: 'chloe', pa: PROFILS.iphone, pb: PROFILS.bureau, pc: PROFILS.petit, nuit: false });
+    if (!RAPIDE) await couple(b, { og, svc, relais: relaisB }, { tag: 'nt', titre: 'Chloé (Android 360, nuit) et Dave (iPad 820, nuit) — Fred (iPhone 393) les rejoint', logins: ['chloe', 'dave', 'fred'], intrus: 'alice', pa: PROFILS.android, pb: PROFILS.ipad, pc: PROFILS.iphone, nuit: true });
     const sortie = svc.sortie.texte();
     v('le service n\'a écrit AUCUNE erreur ni exception pendant tout le parcours (population : ' + sortie.split('\n').filter(Boolean).length + ' lignes de journal)', /Error|TypeError|unhandled|Exception/.test(sortie), false);
   } catch (e) { console.log('  ✗ la sonde est morte : ' + (e && e.stack || e)); process.exitCode = 1; }
-  finally { try { await b.close(); } catch (e) { /* rien */ } await svc.arreter(); await og.fermer(); }
+  finally { try { await b.close(); } catch (e) { /* rien */ } relaisB.fermer(); await svc.arreter(); await og.fermer(); }
   fin();
 })();

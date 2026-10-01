@@ -64,6 +64,7 @@ refuse('le module du service perd une méthode obligatoire (verifierSession)', '
 refuse('la page appelle une méthode que le module n\'a pas (source.inventee)', 'apercu/opmessages/index.html', s => s.replace("const SUFFIXE_TITRE", "source.inventee(); const SUFFIXE_TITRE"), /inventee/);
 refuse('le module n\'annonce plus ses capacités', 'server-msg/public/source-serveur.js', s => s.replace('capacites: { service: true', 'capacitesx: { service: true'), /capacit/);
 refuse('une seconde balise source.js dans la page', 'apercu/opmessages/index.html', s => s.replace('<script src="source.js"></script>', '<script src="source.js"></script><script src="source.js"></script>'), /UNE cible|source\.js/);
+refuse('le titre de l\'aperçu écrit DEUX fois (la substitution trouverait deux cibles et n\'en changerait qu\'une)', 'apercu/opmessages/index.html', s => s.replace('</head>', '<title>OP MESSAGES — aperçu</title></head>'), /UNE cible/);
 refuse('un second script en ligne', 'apercu/opmessages/index.html', s => s.replace('</body>', '<script>window.x = 1;</script></body>'), /UN script en ligne/);
 refuse('la politique de la page a changé de forme (plus de meta CSP)', 'apercu/opmessages/index.html', s => s.replace('http-equiv="Content-Security-Policy"', 'http-equiv="X-Autre"'), /CSP|politique/);
 refuse('un gestionnaire onclick= dans la page', 'apercu/opmessages/index.html', s => s.replace('<p class="hors-ligne"', '<p onclick="alert(1)" class="hors-ligne"'), /gestionnaire/);
