@@ -842,6 +842,9 @@ button.photo:active { transform: scale(.97); }
     const h = entree();
     if (h && h.n > 0 && h.p && memeRoute(h.p, parent)) history.back(); else remplacer(parent);
   }
+  /* la position de la liste est rendue PAR LA PAGE (etat.scrollListe, au retour), pas par la restauration native de l'historique : celle-ci diffère d'un
+     navigateur à l'autre (Safari iOS ne la rend pas toujours sur un retour système) et masquait, ici, le retrait de notre propre mémoire (sonde, S04) */
+  try { history.scrollRestoration = 'manual'; } catch (e) { /* un navigateur sans l'option garde la sienne */ }
   window.addEventListener('popstate', e => appliquer(e.state && e.state.opmsg ? e.state.r : routeDepuisHash()));
 
   /* appliquer(route) : l'écran DIT la route, rien d'autre. Elle ne pousse jamais d'historique — elle est jouée aussi par popstate. */
