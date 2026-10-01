@@ -567,13 +567,13 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
            C'est très exactement la couture que CLAUDE.md décrit — deux moitiés justes, chacune
            avec son banc, qui ne se parlent pas. Un banc qui ne fait pas parler la VRAIE fonction
            de la page au VRAI serveur ne la voit jamais.
-           ⚠️ `access` est recopié tel quel : c'est le code d'activation de l'espace, et le
-           bouton « 🚀 Activer mon espace » n'apparaît que s'il est là. Le perdre, c'est murer
-           l'entrée d'un nouveau client dans OP GESTION. */
+           ⛔ Un message n'a que trois champs (`de`, `t`, `ts`) : le code d'accès qu'il portait jadis
+           (`access`, la clé d'un espace) a été retiré le 1er octobre 2026 — l'espace et son lien de
+           connexion se donnent depuis la Tour, par courriel. */
         if(nom==='teamop_threads') return { doc: () => ({ collection: () => {
           const lire = async () => { const r = await appel('/api/portail/messages');
             const l = (r.j.messages||[]).map((m,i) => ({ id:'m'+i, data: () => ({
-              from: m.de, text: m.t, ts: m.ts, access: m.access, accessName: m.accessName }) }));
+              from: m.de, text: m.t, ts: m.ts }) }));
             return { forEach: f => l.forEach(f), docs: l, size: l.length, empty: !l.length }; };
           const q = {
             orderBy: () => q, limit: () => q, get: lire,
@@ -648,7 +648,6 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   };
   const NEWS_TAGS={ nouveau:['Nouveau','tg-nouveau'], beta:['Bêta — à tester','tg-beta'], officiel:['Version officielle','tg-officiel'], info:['Info','tg-info'] };
 
-  function genSpace(name){ const slug=(name||'espace').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,20)||'espace'; const r=crypto.getRandomValues(new Uint8Array(4)); const rnd=Array.from(r).map(b=>b.toString(16).padStart(2,'0')).join(''); const kb=crypto.getRandomValues(new Uint8Array(24)); let ks=''; kb.forEach(b=>ks+=String.fromCharCode(b)); const k=btoa(ks).replace(/[^A-Za-z0-9]/g,'').slice(0,28); const t=slug+'-'+rnd; const code=btoa(unescape(encodeURIComponent(JSON.stringify({t,k,n:name||''})))).replace(/=+$/,''); return {t,k,code,name:name||''}; }
 
   /* 🛒 Retour au paiement : espace.html?retour=recap-abonnement.html?formule=... (chemin strictement contrôlé) */
   const RETOUR_PAIEMENT=(()=>{ try{ const r=new URLSearchParams(location.search).get('retour')||''; return /^recap-abonnement\.html(\?[\w=&%.-]*)?$/.test(r)?r:''; }catch(e){ return ''; } })();
@@ -1383,7 +1382,7 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
             <label class="chk"><input type="checkbox" id="gr-opmsg-${doc.id}" ${apps.includes('opmsg')?'checked':''}> 💬 OP MESSAGES</label>
             <button class="btn sm green" onclick="grantApps('${doc.id}')">✅ Activer les accès</button>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm ghost" onclick="openThread('${doc.id}','${esc((d.company||d.email||'').replace(/'/g,''))}')">💬 Messagerie</button><button class="btn sm ghost" onclick="provision('${doc.id}','${esc((d.company||'Entreprise').replace(/'/g,''))}')">🏢 Espace OP GESTION (code équipe)</button><button class="btn sm ghost" onclick="setPlan('${doc.id}')">💼 Offre</button><button class="btn sm ghost" onclick="addDoc('${doc.id}')">📎 Document</button></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm ghost" onclick="openThread('${doc.id}','${esc((d.company||d.email||'').replace(/'/g,''))}')">💬 Messagerie</button><button class="btn sm ghost" onclick="setPlan('${doc.id}')">💼 Offre</button><button class="btn sm ghost" onclick="addDoc('${doc.id}')">📎 Document</button></div>
         </div>`;
       });
       list.innerHTML=html;
@@ -1406,14 +1405,6 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
     try{ await fs.collection('teamop_requests').doc(uid).set({docs:FV.arrayUnion(doc),updatedAt:FV.serverTimestamp()},{merge:true});
       await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'admin',text:'📄 Nouveau document disponible : '+name.trim()+' (voir « Mes documents »).',ts:FV.serverTimestamp()});
       alert('Document ajouté ✅'); }catch(e){ alert('Erreur : '+(e.message||e)); } }
-  async function provision(uid, company){
-    if(!confirm('Créer un espace OP GESTION pour « '+company+' » et envoyer l\'accès ?')) return;
-    const sp=genSpace(company);
-    try{ await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:'admin',text:'🏢 Votre espace « '+company+' » est prêt ! Cliquez sur « Activer mon espace » pour créer votre compte administrateur. Accès à usage unique.',access:sp.code,accessName:company,ts:FV.serverTimestamp()});
-      await fs.collection('teamop_requests').doc(uid).set({status:'fourni',updatedAt:FV.serverTimestamp()},{merge:true});
-      alert('Espace créé et accès envoyé ✅\n\nCode (à garder) :\n'+sp.code);
-    }catch(e){ alert('Erreur : '+(e.message||e)); }
-  }
   function openThread(uid,label){
     $('space').innerHTML=`<div style="margin-bottom:10px;text-align:center"><span class="link" onclick="location.reload()">← Retour aux demandes</span></div>
       <div class="panel"><h3 style="font-family:var(--m-titre);font-size:16px;margin-bottom:10px">${esc(label)}</h3>
@@ -1427,8 +1418,6 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
       const box=$('msgs'); if(!box) return; if(qs.empty){ box.innerHTML='<p class="muted center">Aucun message.</p>'; return; }
       let html=''; qs.forEach(doc=>{ const m=doc.data(); const mine=(role==='admin'&&m.from==='admin')||(role==='client'&&m.from==='client');
         html+=`<div class="msg ${mine?'me':'them'}">${esc(m.text||'')}`;
-        if(m.access&&role==='client'){ html+=`<div class="code">${esc(m.access)}</div><button class="btn green sm" style="margin-top:8px" onclick="activate('${esc(m.access)}')">🚀 Activer mon espace OP GESTION</button>`; }
-        else if(m.access&&role==='admin'){ html+=`<div class="code">${esc(m.access)}</div>`; }
         html+=`<div class="meta">${m.from==='admin'?'TeamOP':'Client'}</div></div>`;
       });
       box.innerHTML=html; box.scrollTop=box.scrollHeight;
@@ -1436,37 +1425,12 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
   }
   async function sendMsg(uid, role){ const inp=$('m-text'); const text=(inp.value||'').trim(); if(!text) return; inp.value='';
     try{ await fs.collection('teamop_threads').doc(uid).collection('msgs').add({from:role,text,ts:FV.serverTimestamp()}); }catch(e){ alert('Erreur : '+(e.message||e)); } }
-  function activate(code){ let o=null; try{ o=JSON.parse(decodeURIComponent(escape(atob(code)))); }catch(e){}
-    if(!o||!o.t||!o.k){ alert('Code invalide.'); return; }
-    if(!confirm('Activer votre espace « '+(o.n||o.t)+' » et créer votre compte administrateur OP GESTION ?')) return;
-    /* ⛔ C'EST LA PREMIÈRE MINUTE D'UN CLIENT DANS SON ESPACE — elle doit être vide, pas
-       peuplée de la démonstration. Cette porte retirait la base sans retirer le drapeau de
-       vidage : sur un appareil ayant déjà servi (un téléphone de terrain, un poste de
-       démonstration commerciale), app.html rejouait alors seed() SANS vider — 160 produits,
-       cinq fournisseurs, deux devis, deux factures, deux contrats et DEUX BOX DE
-       DÉMONSTRATION nommées « Cuisine — Restaurant Le Gourmet » et « Réserve — Boulangerie Au
-       Bon Pain ». Sans « elan_frais » en plus, la synchro ne fait pas « on adopte les données
-       de l'espace » : elle fait l'union, constate qu'on a ce que l'équipe n'a pas, et POUSSE.
-       Le tout premier contenu que reçoit le client est la démonstration.
-       Le pendant de espaceQuitter() dans app.html — mêmes clés, mêmes raisons ; écrit ici en
-       clair parce que cette page ne partage aucun code avec l'application. */
-    try{
-      localStorage.setItem('elan_sync_team',o.t); localStorage.setItem('elan_sync_secret',o.k); localStorage.setItem('elan_sync_on','1');
-      localStorage.removeItem('elan_gestion_v2');
-      localStorage.removeItem('elan_vierge_v1');
-      localStorage.setItem('elan_frais','1');
-      ['elan_anthropic_key','elan_devis_code','op_devis_code','elan_sync_cfg','elan_annuaire_cache','elan_mail_lus','elan_mail_supp','elan_usage','elan_espace_admin',
-       'elan_lien_lisible','elan_lien_lisible_t','elan_lien_lisible_ts','elan_lien_lisible_kh','elan_lien_lisible_nom','elan_lien_lisible_motif']
-        .forEach(function(k){ try{ localStorage.removeItem(k); }catch(_){} });
-      /* Les clés du socle portent l'espace dans leur nom (`elan_op_haut_<espace>`) : une liste
-         fixe les raterait. Même balayage que dans espaceQuitter() — et pour la même raison :
-         une borne haute qui survit à un changement d'espace fait taire la seconde écriture. */
-      Object.keys(localStorage).forEach(function(k){ if(k.indexOf('elan_op_')===0){ try{ localStorage.removeItem(k); }catch(_){} } });
-      sessionStorage.setItem('elan_create_admin','1');
-    }catch(e){}
-    try{ indexedDB.deleteDatabase('elan_cote'); }catch(e){}
-    window.location.href='app.html';
-  }
+  /* ⛔⛔ PLUS DE CODE D'ACCÈS NI D'ESPACE CRÉÉ D'ICI — Justin, 1er octobre 2026 : « il faut supprimer le code d'accès, car
+     c'est à nous de créer leur lien de connexion et leur espace ». Cette page fabriquait un espace (`provision`,
+     `genSpace` : une clé d'équipe tirée dans le navigateur, jamais inscrite à l'annuaire) et en faisait un bouton
+     « 🚀 Activer mon espace » (`activate`) qui écrivait la clé dans l'appareil et contournait la vérification du lien
+     (`teamopLienCheck`). Un espace naît désormais dans la Tour (« Accepter la demande ») et son lien de connexion
+     part par courriel : le client n'a qu'à l'ouvrir. `tests/test-857.js` garde l'absence de ces portes. */
 </script>
 <script>
 /* ══ Œil sur les mots de passe ════════════════════════════════════════════════

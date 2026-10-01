@@ -38,12 +38,13 @@ console.log('Quitter un espace remet l\'appareil VRAIMENT à neuf — les QUATRE
     (APP.match(/removeItem\(STORE_KEY\)/g)||[]).length,1);
   v('resetData() a disparu — elle rejouait le semis sur un appareil resté rattaché',
     /function resetData\(\)/.test(APP),false);
-  /* La quatrième porte : le lien d'activation d'un client. C'est sa PREMIÈRE minute. */
-  v('espace.html retire la base',/removeItem\('elan_gestion_v2'\)/.test(ESP),true);
-  v('espace.html retire le drapeau du vidage unique',/removeItem\('elan_vierge_v1'\)/.test(ESP),true);
-  v('espace.html pose le drapeau « frais »',/setItem\('elan_frais','1'\)/.test(ESP),true);
-  v('la raison est écrite à côté, dans les deux fichiers',
-    [/Restaurant Le Gourmet/.test(APP),/Restaurant Le Gourmet/.test(ESP)],[true,true]); }
+  /* La quatrième porte — « 🚀 Activer mon espace » du portail, qui écrivait la clé d'un espace dans l'appareil — N'EXISTE
+     PLUS (1er octobre 2026, Justin : « c'est à nous de créer leur lien de connexion et leur espace »). Si elle revenait,
+     elle devrait refaire tout ce que fait espaceQuitter() : on exige donc qu'elle soit ABSENTE, pas qu'elle soit juste. */
+  const ESPc=ESP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm,' ');
+  v('⛔ espace.html n\'écrit plus aucune clé d\'espace dans l\'appareil (plus de porte « Activer mon espace »)',
+    [/setItem\('elan_sync_team'/.test(ESPc),/setItem\('elan_sync_secret'/.test(ESPc),/function activate\(/.test(ESPc)],[false,false,false]);
+  v('la raison est écrite à côté, dans l\'application',/Restaurant Le Gourmet/.test(APP),true); }
 
 console.log('Le semis porte bien ce qu\'on refuse de déverser chez un client');
 { /* si ces données disparaissaient du semis, la garde perdrait son objet — le test le dirait */

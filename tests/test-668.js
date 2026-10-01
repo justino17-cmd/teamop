@@ -88,7 +88,9 @@ console.log('Le lien d’une entreprise vient du serveur, jamais du navigateur')
   /* Le fabricant reste — un nom vraiment neuf doit pouvoir obtenir son espace. Le supprimer
      fermerait la porte à toute nouvelle entreprise : ce n'est pas la création qui était
      fautive, c'est de créer SANS avoir demandé. */
-  v('…mais la création reste possible pour un nom vraiment neuf', /sp=\{t:slug\+'-'\+Math\.random/.test(t), true);
+  v('…mais la création reste possible pour un nom vraiment neuf', /sp=\{t:slug\+'-'\+tirageSur\(/.test(t), true);
+  /* ⛔ La clé d'un espace neuf chiffre ses données : générateur cryptographique, jamais Math.random() (1er octobre 2026). */
+  v('⛔ la clé d\'un espace neuf se tire au générateur cryptographique', [/var k=tirageSur\(/.test(t), /Math\.random\(/.test(t.replace(/\/\*[\s\S]*?\*\//g, ''))], [true, false]);
 
   const g = corps(TOUR, 'async function tourLienServeur(');
   v('la fonction existe', g.length > 200, true);

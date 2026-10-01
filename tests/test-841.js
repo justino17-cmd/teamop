@@ -53,7 +53,7 @@ function courte(nom) {
    un patron qui tape l'identifiant proposé, et tout ce que la page affiche, capturé. */
 function tour(API, TOKEN, clients) {
   const noms = ['hAuth', 'apiPost', 'esc', 'jsq', 'espSlugJs', 'tourSha256', 'tourLienServeur', 'tourEspaceDe', 'tourIdentDefaut',
-    'tourMdpDefaut', 'tourMailAcces', 'lgMessagePoser', 'tourLienEntreprise', 'tourAccepterDemande'];
+    'tirageSur', 'tourMdpDefaut', 'tourMailAcces', 'lgMessagePoser', 'tourLienEntreprise', 'tourAccepterDemande'];
   const src = noms.map(n => (n === 'esc' || n === 'jsq') ? courte(n) : fonction(n));
   /* v2.77 : l'acceptation lit la liste des métiers (`MET_L`, le métier demandé se pose sur l'espace — test-848) ; la VRAIE
      ligne de la Tour, pas une copie : sans elle, la fonction extraite jette dès sa première ligne sur le métier */

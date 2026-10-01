@@ -189,13 +189,18 @@ console.log('\n── 811 · les clients du portail repris de Google : leur comp
     for (let i = 0; i < 35; i++) await post('/api/portail/message', { texte: 'message ' + i }, { Authorization: 'Bearer ' + jn });
     v('⛔ le fil d\'une adresse non vérifiée est court (30 messages)', (portail._reg().f['neuf@exemple.fr'] || []).length, 30);
 
-    /* ── la Tour : un code d'accès ne part qu'à une adresse prouvée, et du patron (C4, C5) ── */
+    /* ── la Tour : PLUS AUCUN code d'accès (Justin, 1er octobre 2026) — ni du collaborateur, ni du patron, ni vers une
+       adresse prouvée : 410, et rien n'entre dans le fil ── */
+    const avantCodes = (portail._reg().f['client.ancien@exemple.fr'] || []).length;
     r = await post('/api/monitor/portail/message', { email: 'neuf@exemple.fr', texte: 'votre espace', access: 'CODE-ACCES' }, { 'x-admin': ADMIN });
-    v('⛔ un collaborateur ne dépose pas de code d\'accès', r.s, 403);
+    v('⛔ un collaborateur ne dépose pas de code d\'accès (410)', [r.s, r.j.error], [410, 'code_acces_retire']);
     r = await post('/api/monitor/portail/message', { email: 'neuf@exemple.fr', texte: 'votre espace', access: 'CODE-ACCES' }, { 'x-admin': PATRON });
-    v('⛔ ni le patron, vers une adresse jamais prouvée (409)', [r.s, r.j.error], [409, 'adresse_non_verifiee']);
+    v('⛔ ni le patron vers une adresse jamais prouvée', [r.s, r.j.error], [410, 'code_acces_retire']);
     r = await post('/api/monitor/portail/message', { email: 'client.ancien@exemple.fr', texte: 'votre espace', access: 'CODE-ACCES' }, { 'x-admin': PATRON });
-    v('   vers une adresse prouvée, oui', r.s, 200);
+    v('⛔ ni vers une adresse prouvée', [r.s, r.j.error], [410, 'code_acces_retire']);
+    r = await post('/api/monitor/portail/message', { email: 'client.ancien@exemple.fr', texte: 'votre espace', accessName: 'Espace' }, { 'x-admin': PATRON });
+    v('⛔ le nom d\'accès seul est refusé aussi', r.s, 410);
+    v('   et rien n\'est entré dans le fil', (portail._reg().f['client.ancien@exemple.fr'] || []).length, avantCodes);
     r = await post('/api/monitor/portail/message', { email: 'neuf@exemple.fr', texte: 'bonjour' }, { 'x-admin': ADMIN });
     v('   un message sans code reste possible pour un collaborateur', r.s, 200);
     r = await get('/api/monitor/portail/demandes', null, { 'x-admin': ADMIN });
@@ -323,6 +328,39 @@ console.log('\n── 811 · les clients du portail repris de Google : leur comp
       v('⛔ adresse NON prouvée : la formule servie ne se lit pas, et on ne la demande même pas',
         [q.s, q.j.dossier && q.j.dossier.plan, q2.j.dossier && q2.j.dossier.plan, demandes.length - n0], [200, undefined, undefined, 0]);
     } finally { srv2.close(); try { fs.rmSync(dir2, { recursive: true, force: true }); } catch (e) {} }
+    /* ── ⛔⛔ LES ANCIENS CODES D'ACCÈS S'EFFACENT AU DÉMARRAGE (1er octobre 2026) ──
+       Un `portail.json` d'avant porte des messages avec `access` (la clé d'un espace, en base64) : le portail qui démarre
+       les retire, RÉÉCRIT le fichier, le dit en COMPTANT (jamais le contenu), et la lecture n'en rend plus — ni au client,
+       ni à la Tour. Les messages, eux, restent. */
+    {
+      const dir3 = fs.mkdtempSync(path.join(os.tmpdir(), 'b811-c-'));
+      const vieux = { d: {}, a: [], f: { 'ancien@exemple.fr': [
+        { de: 'client', t: 'bonjour', ts: 1 },
+        { de: 'admin', t: 'Votre espace est prêt', ts: 2, access: 'eyJ0IjoiQ0xFLVNFQ1JFVEUtQkFOQyJ9', accessName: 'Espace de banc' },
+        { de: 'admin', t: 'second envoi', ts: 3, accessName: 'Nom seul' } ] } };
+      fs.writeFileSync(path.join(dir3, 'portail.json'), JSON.stringify(vieux));
+      const notes = [];
+      const app3 = express(); app3.use(express.json());
+      const p3 = require(path.join(RACINE, 'server', 'portail.js')).monterPortail(app3, {
+        dossier: dir3, parJeton: (j) => (j === 'c'.repeat(64) ? 'ancien@exemple.fr' : ''), quotaOk: () => true,
+        journal: (...x) => notes.push(x.join(' ')), verifie: () => true, admin, patron });
+      const fil3 = p3._reg().f['ancien@exemple.fr'] || [];
+      v('⛔ au démarrage, plus aucun message ne porte de code d\'accès', fil3.filter(m => 'access' in m || 'accessName' in m).length, 0);
+      v('   les trois messages sont toujours là', fil3.map(m => m.t), ['bonjour', 'Votre espace est prêt', 'second envoi']);
+      const disque = fs.readFileSync(path.join(dir3, 'portail.json'), 'utf8');
+      v('⛔ le fichier est réécrit sans les codes', [/access/.test(disque), /CLE-SECRETE|eyJ0Ijoi/.test(disque)], [false, false]);
+      v('   le journal COMPTE (2 messages), sans rien montrer du code', [notes.some(n => /codes d'accès retirés des fils : 2/.test(n)), notes.some(n => /eyJ0|Espace de banc|ancien@/.test(n))], [true, false]);
+      /* une sauvegarde d'avant restaurée par-dessus le fichier : la LECTURE ne rend toujours rien d'autre que trois champs */
+      p3._reg().f['ancien@exemple.fr'].push({ de: 'admin', t: 'restauré', ts: 4, access: 'CODE-RESTAURE' });
+      const srv3 = await new Promise(res => { const s3 = app3.listen(0, '127.0.0.1', () => res(s3)); });
+      try {
+        const B3 = 'http://127.0.0.1:' + srv3.address().port;
+        const mc = await (await fetch(B3 + '/api/portail/messages', { headers: { Authorization: 'Bearer ' + 'c'.repeat(64) } })).json();
+        v('⛔ le client ne lit jamais un code d\'accès, même revenu dans le fichier', [(mc.messages || []).length, (mc.messages || []).filter(m => m.access || m.accessName).length, Object.keys((mc.messages || [])[3] || {}).sort()], [4, 0, ['de', 't', 'ts']]);
+        const mt = await (await fetch(B3 + '/api/monitor/portail/fil?email=ancien@exemple.fr', { headers: { 'x-admin': ADMIN } })).json();
+        v('⛔ la Tour non plus', (mt.messages || []).filter(m => m.access || m.accessName).length, 0);
+      } finally { srv3.close(); try { fs.rmSync(dir3, { recursive: true, force: true }); } catch (e) {} }
+    }
   } catch (e) { ko++; console.log('  ✗ exception : ' + (e && e.stack || e)); }
   srv.close(); try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {}
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

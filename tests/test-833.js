@@ -333,7 +333,7 @@ console.log('\n── 833 · la Tour v2.69 supprime sans code : ses vraies fonct
     console.log('\n5. La Tour v2.72 : plus de code à coller ; un lien gardé périmé est oublié');
     const garde = (email, t, k) => ({ [email]: { t, k, n: 'Gardée', a: 'kappa', m: 'Mdp-833', e: email } });
     const espaceDe = (gardes) => {
-      const src = ['hAuth', 'apiPost', 'tourSha256', 'tourLienServeur', 'tourEspaceDe'].map(fonction);
+      const src = ['hAuth', 'apiPost', 'tourSha256', 'tourLienServeur', 'tirageSur', 'tourEspaceDe'].map(fonction);
       if (src.some(x => !x)) return null;
       const stock = { tour_liens: JSON.stringify(gardes || {}) }, confirms = [], toasts = [], prompts = [], posts = [];
       const ctx = { JSON, Object, String, Math, Promise, Uint8Array, TextEncoder, crypto: globalThis.crypto, atob, btoa,
