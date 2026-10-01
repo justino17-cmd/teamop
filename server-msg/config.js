@@ -1,0 +1,106 @@
+/* ══ LA CONFIGURATION ET LA GARDE DE DÉMARRAGE D'OP MESSAGES ═════════════════════════════════
+ *
+ * Tout vient de l'ENVIRONNEMENT : `OPMSG_CONFIG` (un fichier JSON), `OPMSG_DATA` (un dossier),
+ * `OPMSG_INSTANCE` (`beta` ou `prod`), `PORT` (8091 par défaut), `OPMSG_SHA` (posé par le
+ * déploiement), et la clé maître dans le credential systemd `kek` (`$CREDENTIALS_DIRECTORY/kek`).
+ * ⛔ Aucun chemin, aucune adresse de machine, aucun domaine en dur dans le code : une machine
+ * à lui, le jour venu, ne demande qu'une autre configuration.
+ *
+ * ⛔ LA GARDE DE SÉPARATION. Ce service n'est PAS OP GESTION : sa configuration, ses données et sa
+ * clé ne vivent jamais sous `/opt/teamop` ni `/etc/teamop`. Refuser ICI, au démarrage, est la
+ * dernière barrière — une unité mal copiée, un chemin collé de l'autre installation ferait sinon
+ * écrire une base de messages dans le dossier d'OP GESTION (sauvegardée avec lui, lisible par
+ * lui) sans que rien ne casse. Le refus passe AVANT toute création de dossier ou de fichier.
+ *
+ * ⛔ UN CHEMIN SE COMPARE RÉSOLU : un lien symbolique ou un `..` ne doit pas contourner la
+ * garde (`/opt/opmsg/../teamop/data`). Les liens sont suivis quand le chemin existe.
+ *
+ * Réglages du fichier JSON (tous optionnels) :
+ *   origines      ["https://…"]  Origines autorisées à écrire. Absent : l'origine DOIT être celle de
+ *                                l'en-tête Host (même origine). Un tableau fixe l'exclusivité.
+ *   cookie        {nom, secure}  `__Host-opm` et Secure par défaut. Seuls les bancs en http local
+ *                                relâchent l'un ou l'autre.
+ *   beta          {urlGestion, relectureMs, timeoutMs}   La porte (instance beta seulement).
+ *   quotas        {nom:{max,fenetreMs}}   Surcharge des plafonds de départ (bancs).
+ *   disqueMinMo   plancher d'espace libre sous lequel les écritures refusent (503).
+ *   pulsationMs, presenceGraceMs, balayageMs, relectureMs   Rythmes (bancs).
+ */
+const fs = require('fs'), path = require('path');
+
+const INTERDITS = ['/opt/teamop', '/etc/teamop'];
+
+function resolu(p) {
+  const abs = path.resolve(String(p));
+  // realpath si le chemin (ou son plus proche ancêtre existant) existe : suit les liens.
+  let cur = abs; const reste = [];
+  for (;;) {
+    try { const r = fs.realpathSync(cur); return path.join(r, ...reste.reverse()); }
+    catch (e) {
+      const parent = path.dirname(cur);
+      if (parent === cur) return abs;
+      reste.push(path.basename(cur)); cur = parent;
+    }
+  }
+}
+
+function sousArbre(p, racine) { return p === racine || p.startsWith(racine + path.sep); }
+
+/* Lève `separation: <nom>` si un des chemins est sous un arbre d'OP GESTION. */
+function verifierSeparation(chemins, interdits = INTERDITS) {
+  for (const [nom, p] of Object.entries(chemins)) {
+    if (!p) continue;
+    const r = resolu(p);
+    for (const interdit of interdits) {
+      if (sousArbre(r, interdit) || sousArbre(path.resolve(String(p)), interdit)) {
+        const e = new Error('separation: ' + nom + ' est sous ' + interdit + ' — OP MESSAGES ne vit jamais dans l\'arbre d\'OP GESTION');
+        e.code = 'SEPARATION'; throw e;
+      }
+    }
+  }
+}
+
+function lireCle(dossier) {
+  if (!dossier) { const e = new Error('cle: $CREDENTIALS_DIRECTORY absent — la clé maître arrive par le credential systemd « kek »'); e.code = 'CLE'; throw e; }
+  let v;
+  try { v = fs.readFileSync(path.join(dossier, 'kek'), 'utf8').trim(); }
+  catch (e) { const er = new Error('cle: credential « kek » illisible'); er.code = 'CLE'; throw er; }
+  if (!/^[0-9a-fA-F]{64}$/.test(v)) { const e = new Error('cle: le credential « kek » n\'est pas 64 caractères hexadécimaux'); e.code = 'CLE'; throw e; }
+  return Buffer.from(v, 'hex');
+}
+
+function charger(env = process.env) {
+  const manque = (n) => { const e = new Error('config: ' + n + ' est obligatoire'); e.code = 'CONFIG'; return e; };
+  const instance = env.OPMSG_INSTANCE;
+  if (instance !== 'beta' && instance !== 'prod') { const e = new Error('config: OPMSG_INSTANCE doit valoir beta ou prod'); e.code = 'CONFIG'; throw e; }
+  if (!env.OPMSG_CONFIG) throw manque('OPMSG_CONFIG');
+  if (!env.OPMSG_DATA) throw manque('OPMSG_DATA');
+  /* ⛔ LA GARDE D'ABORD — avant de lire la clé, avant de créer le moindre dossier. */
+  verifierSeparation({ OPMSG_CONFIG: env.OPMSG_CONFIG, OPMSG_DATA: env.OPMSG_DATA, CREDENTIALS_DIRECTORY: env.CREDENTIALS_DIRECTORY });
+  let cfg;
+  try { cfg = JSON.parse(fs.readFileSync(env.OPMSG_CONFIG, 'utf8')); }
+  catch (e) { const er = new Error('config: ' + (e && e.code === 'ENOENT' ? 'fichier introuvable' : 'fichier illisible ou JSON invalide')); er.code = 'CONFIG'; throw er; }
+  if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) { const e = new Error('config: le fichier doit contenir un objet JSON'); e.code = 'CONFIG'; throw e; }
+  const kek = lireCle(env.CREDENTIALS_DIRECTORY);
+  const port = parseInt(env.PORT || '8091', 10);
+  if (!(port > 0 && port < 65536)) { const e = new Error('config: PORT invalide'); e.code = 'CONFIG'; throw e; }
+  const cookie = Object.assign({ nom: '__Host-opm', secure: true }, cfg.cookie || {});
+  /* Le préfixe __Host- impose Secure : un cookie « __Host-… » sans Secure est refusé par le
+     navigateur, donc personne ne pourrait se connecter. On le refuse ICI plutôt qu'en production. */
+  if (/^__Host-/.test(cookie.nom) && !cookie.secure) { const e = new Error('config: un cookie __Host- exige secure:true'); e.code = 'CONFIG'; throw e; }
+  return {
+    instance, port, kek,
+    dataDir: path.resolve(env.OPMSG_DATA),
+    sha: String(env.OPMSG_SHA || '').replace(/[^0-9a-zA-Z._-]/g, '').slice(0, 64) || 'inconnu',
+    origines: Array.isArray(cfg.origines) ? cfg.origines.map(String) : null,
+    cookie,
+    beta: Object.assign({ urlGestion: 'http://127.0.0.1:8080', relectureMs: 60000, timeoutMs: 5000 }, cfg.beta || {}),
+    quotas: cfg.quotas && typeof cfg.quotas === 'object' ? cfg.quotas : {},
+    disqueMinMo: Number.isFinite(cfg.disqueMinMo) ? cfg.disqueMinMo : 512,
+    pulsationMs: Number.isFinite(cfg.pulsationMs) ? cfg.pulsationMs : 20000,
+    presenceGraceMs: Number.isFinite(cfg.presenceGraceMs) ? cfg.presenceGraceMs : 20000,
+    balayageMs: Number.isFinite(cfg.balayageMs) ? cfg.balayageMs : 60000,
+    minClient: Number.isInteger(cfg.minClient) ? cfg.minClient : 1,
+  };
+}
+
+module.exports = { charger, verifierSeparation, lireCle, INTERDITS };

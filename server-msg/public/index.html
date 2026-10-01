@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>OP MESSAGES</title>
+<!-- ⛔ Page MINIMALE de l'étape 1 : connexion bêta, conversations, envoi, réception en direct.
+     La vraie interface (apercu/opmessages) viendra par-dessus `api.js`, qui est la couture.
+     Un seul script externe par fichier (CSP : script-src 'self', aucun script en ligne). -->
+<style>
+  :root { --fond: #f5f6f8; --carte: #fff; --encre: #14181f; --doux: #5b6472; --trait: #dfe3ea; --acc: #1f4fd8; --sur-acc: #fff; --moi: #dce8ff; }
+  @media (prefers-color-scheme: dark) { :root { --fond: #0d1016; --carte: #171b23; --encre: #eef1f6; --doux: #9aa4b5; --trait: #2a303c; --acc: #6f97ff; --sur-acc: #0d1016; --moi: #1f3366; } }
+  * { box-sizing: border-box; }
+  html { background: var(--fond); }
+  body { margin: 0; font: 16px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--encre); background: var(--fond); min-height: 100dvh; }
+  main { max-width: 960px; margin: 0 auto; padding: 16px; display: grid; gap: 12px; }
+  h1 { font-size: 20px; margin: 0; }
+  .carte { background: var(--carte); border: 1px solid var(--trait); border-radius: 14px; padding: 12px; }
+  .mise { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 720px) { .mise { grid-template-columns: 280px minmax(0, 1fr); } }
+  input, button { font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--trait); background: var(--carte); color: var(--encre); min-height: 44px; }
+  button { cursor: pointer; background: var(--acc); color: var(--sur-acc); border-color: var(--acc); }
+  button.sec { background: transparent; color: var(--encre); border-color: var(--trait); }
+  .ligne { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+  .ligne > input { flex: 1 1 160px; min-width: 0; }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  li.conv > button { width: 100%; text-align: left; background: transparent; color: var(--encre); border-color: var(--trait); display: grid; gap: 2px; }
+  li.conv.actif > button { border-color: var(--acc); }
+  .doux { color: var(--doux); font-size: 14px; overflow-wrap: anywhere; }
+  .badge { background: var(--acc); color: var(--sur-acc); border-radius: 999px; padding: 0 8px; font-size: 13px; margin-left: 8px; }
+  #fil { display: grid; gap: 6px; max-height: 55dvh; overflow: auto; padding: 4px; }
+  .bulle { max-width: 80%; padding: 8px 12px; border-radius: 14px; background: var(--fond); border: 1px solid var(--trait); overflow-wrap: anywhere; white-space: pre-wrap; }
+  .bulle.moi { margin-left: auto; background: var(--moi); }
+  .bulle.systeme { margin: 0 auto; background: transparent; border: 0; color: var(--doux); font-size: 14px; }
+  .erreur { color: #b3261e; } @media (prefers-color-scheme: dark) { .erreur { color: #ff8a80; } }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>OP MESSAGES <span class="doux" id="etat"></span></h1>
+
+  <section class="carte" id="connexion">
+    <form class="ligne" id="f-connexion">
+      <input id="login" autocomplete="username" placeholder="Identifiant" aria-label="Identifiant" required>
+      <input id="pass" type="password" autocomplete="current-password" placeholder="Mot de passe" aria-label="Mot de passe" required>
+      <button type="submit">Entrer</button>
+    </form>
+    <p class="doux">Accès d'essai : l'identifiant et le mot de passe donnés par la Tour de contrôle.</p>
+  </section>
+
+  <div class="mise" id="appli" hidden>
+    <section class="carte">
+      <div class="ligne">
+        <button class="sec" id="b-lien" type="button">Mon lien de contact</button>
+        <button class="sec" id="b-sortir" type="button">Sortir</button>
+      </div>
+      <p class="doux" id="lien-affiche" hidden></p>
+      <form class="ligne" id="f-lien">
+        <input id="code" placeholder="Coller un lien reçu" aria-label="Lien reçu">
+        <button type="submit" class="sec">Ajouter</button>
+      </form>
+      <p class="doux" id="a-accepter" hidden></p>
+      <ul id="liste" aria-label="Conversations"></ul>
+    </section>
+    <section class="carte">
+      <h2 id="titre" style="font-size:17px;margin:0 0 8px"></h2>
+      <div id="fil" aria-live="polite"></div>
+      <p class="doux" id="saisie" hidden></p>
+      <form class="ligne" id="f-envoi" hidden>
+        <input id="texte" placeholder="Écrire un message" aria-label="Message" autocomplete="off">
+        <button type="submit">Envoyer</button>
+      </form>
+    </section>
+  </div>
+  <p class="erreur" id="erreur" role="alert"></p>
+</main>
+<script src="api.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>

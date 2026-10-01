@@ -1,5 +1,6 @@
 server/node_modules/
 server/*.log
+server-msg/node_modules/
 
 # ── Secrets : ne doivent jamais entrer dans l'historique ──
 # Un secret poussé une fois est compromis, même supprimé au commit suivant.

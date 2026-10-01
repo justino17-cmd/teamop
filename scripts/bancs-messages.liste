@@ -1,0 +1,25 @@
+# Les suites qui gardent le SERVICE d'OP MESSAGES (`server-msg/`) — celles que son déploiement lance.
+#
+# ⛔ POURQUOI UNE LISTE À PART. OP MESSAGES est un service séparé d'OP GESTION (décision de Justin,
+# 22 septembre et 1er octobre 2026) : il se déploie seul (`.github/workflows/deploiement-messages.yml`),
+# et ne doit dépendre ni d'`app.html` ni de `tour.html` — ces suites-là tombent contre les pages de
+# `main`. Les suites d'ici ne lisent que `server-msg/` (et, pour deux d'entre elles, un VRAI
+# `server/index.js` lancé en boucle locale pour éprouver la porte bêta : la couture réelle).
+# ⛔ ELLES SONT DISJOINTES de `scripts/bancs-serveur.liste` : `test-900` le vérifie.
+# ⚠️ Une ligne qui nomme un fichier absent fait ÉCHOUER le compteur (`scripts/bancs-ci.sh`) : une suite
+# renommée ou oubliée dans un commit ne sort pas de la porte en silence.
+#
+# Une suite par ligne (900-929 : le service ; 930-939 : le déploiement). La ligne `#plancher N` est
+# le nombre MINIMAL de vérifications : sans `server-msg/node_modules`, les suites se déclarent vertes
+# avec 0 vérification — le plancher rattrape ce faux vert. Le relever quand on ajoute une suite,
+# jamais le baisser pour passer.
+tests/test-900.js
+tests/test-901.js
+tests/test-902.js
+tests/test-903.js
+tests/test-904.js
+tests/test-905.js
+tests/test-906.js
+tests/test-907.js
+tests/test-908.js
+#plancher 600
