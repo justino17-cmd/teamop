@@ -271,11 +271,14 @@ const JS_RELEVER = () => {
     for (const r of rects) {
       if (r.width < 2 || r.height < 2) continue;
       if (r.left < -0.5 || r.top < -0.5 || r.right > W + 0.5 || r.bottom > H + 0.5) { sauts.hors++; continue; }
+      if (!e.closest('.notif, .mot') && calques.some(c => r.left < c.right && r.right > c.left && r.top < c.bottom && r.bottom > c.top)) { sauts.recouvert++; continue; }
       const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       if (!top || !(e.contains(top) || top.contains(e))) { sauts.recouvert++; continue; }
       out.push({ nom: nom(e), texte: texte.slice(0, 24), x: r.left, y: r.top, w: r.width, h: r.height, ink: c, fs, gras, placeholder: !!placeholder });
     }
   };
+  /* une bannière ou un petit mot VISIBLE passe devant ce qu'il couvre sans le recevoir (pointer-events:none) : elementFromPoint ne le voit pas, on le recense à part */
+  const calques = Array.from(document.querySelectorAll('.notif.on, .mot.on')).map(e => e.getBoundingClientRect());
   const marche = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   let t;
   while ((t = marche.nextNode())) {
