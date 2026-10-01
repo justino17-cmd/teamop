@@ -465,6 +465,16 @@ globalThis.fetch = async function (url, opts) {
     capture = lignesDe(dernier()).map(([px, q]) => [px, +q]);
   }
   {
+    /* ── LE SUIVI D'OFFICE SE DIT AVANT DE PAYER (`gardien`, 1er octobre 2026 : la page affichait 30 €, le client en payait 48) ── */
+    const p = page('?formule=pro&utilisateurs=2', 'c6g', S1); await attendrePage(p);
+    const n = nSess(); await p.payer();
+    v('⛔⛔ Pro × 3 + Stock × 3 payés, la page NORMALE achète 2 Pro sans option : le serveur refuse `options_suivent` (Stock, 18 € par mois), RIEN chez Stripe',
+      [p.reponses[0].s, p.reponses[0].j.error, p.reponses[0].j.options, p.reponses[0].j.surcout, nSess() - n], [409, 'options_suivent', ['stock'], 18, 0]);
+    v('   la page COCHE Stock, le total passe de 30 € à 48 €, et elle le dit avant tout paiement', [p.api.optionsActives(), /Total mensuel\s*48 € TTC/.test(p.texte()), /L'option Stock est déjà active pour votre entreprise/.test(p.api.etat().compteMsg.texte), p.window.location.href === ''], [['stock'], true, true, true]);
+    await p.payer();
+    v('⛔⛔ le second clic les demande : Stripe reçoit Pro × 2 ET Stock × 2 — exactement ce que la page affichait', [p.envoye[1].options, nSess() - n, ligN(dernier())], [['stock'], 1, ['pro:M×2', 'stock:M×2']]);
+  }
+  {
     /* ── le lien de l'application, directement : le mode ajout est LE mode du lien (`ajout=options`) ── */
     const p = page('?formule=pro&ajout=options&options=stock,sanitaire', 'c6m', S1); await attendrePage(p);
     const n = nSess(); await p.payer();

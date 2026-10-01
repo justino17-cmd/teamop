@@ -268,6 +268,8 @@ globalThis.fetch = async function (url, opts) {
   M.ent('c6n'); M.sub('c6n', 'active', [PRO(1)]); M.sub('c6n', 'active', [[P.pro[1], 2]]);
   M.ent('c6o'); M.sub('c6o', 'active', [PRO(2)]); M.sub('c6o', 'active', [[P.pro[1], 1]]);
   M.ent('c7a'); M.sub('c7a', 'active', [PRO(3)]); M.sub('c7a', 'active', [OPL('stock', 3)]); M.sub('c7a', 'active', [OPL('achats', 3)]);
+  M.ent('c8a'); M.sub('c8a', 'active', [PRO(3)]);
+  M.ent('c8b'); M.sub('c8b', 'active', [PRO(3)]);
   /* le courriel des sept jours : j1 (option seule : PAS abonnée), j2 (Pro + option : abonnée), j3 (code Pro, rien d'abonné) */
   M.ent('j1'); M.usage('VIEUX-BANC-850', 'j1', jour(5)); M.sub('j1', 'active', [OPL('stock', 2)]);
   M.ent('j2'); M.usage('VIEUX-BANC-850', 'j2', jour(5)); M.sub('j2', 'active', [PRO(1)]); M.sub('j2', 'active', [OPL('stock', 1)]);
@@ -473,11 +475,22 @@ globalThis.fetch = async function (url, opts) {
   v('⛔ la même option impayée, demandée AVEC un abonnement Pro de plus : sa facture aussi', [r.s, r.j.url, r.j.facture], [200, 'https://invoice.stripe.com/i/banc-850-c6j', true]);
 
   console.log('\n  Paiement · racheter des places RAMÈNE les options déjà payées');
+  /* ⛔⛔ LES OPTIONS DÉJÀ SERVIES SUIVENT — MAIS JAMAIS EN SILENCE (1er octobre 2026, `gardien`, rejoué : la page affichait 30 € et
+     le client en payait 48). Le serveur refuse d'abord (409 `options_suivent`, rien chez Stripe) avec les options et le surcoût ;
+     c'est le second envoi, qui les demande, qui part — et qui les ramène alors comme avant. */
+  const nSuit = nSess();
   r = await payer('c7a', { price: P.pro[0], quantity: 1, ref: 't-c7a-850' });
-  v('⛔⛔ Pro × 3 + Stock + Achats servis ; un abonnement Pro de plus, SANS option demandée : les deux options suivent, × 1 — sinon l\'équipe perdrait son Stock',
-    [r.s, ligN(dernier())], [200, ['pro:M×1', 'stock:M×1', 'achats:M×1']]);
+  v('⛔⛔ Pro × 3 + Stock + Achats servis ; un abonnement Pro de plus, SANS option demandée : 409 `options_suivent` (les deux, 15 € par mois en plus), RIEN chez Stripe',
+    [r.s, r.j.error, r.j.options, r.j.surcout, r.j.cycle, nSess() - nSuit], [409, 'options_suivent', ['stock', 'achats'], 15, 'mensuel', 0]);
+  r = await payer('c7a', { price: P.pro[0], quantity: 1, ref: 't-c7a-850', options: ['stock', 'achats'] });
+  v('   la page les coche et redemande : les deux options suivent, × 1 — sinon l\'équipe perdrait son Stock', [r.s, ligN(dernier())], [200, ['pro:M×1', 'stock:M×1', 'achats:M×1']]);
   r = await payer('c7a', { price: P.pro[1], quantity: 2, ref: 't-c7a-850', options: ['stock'] });
-  v('   à l\'année, avec une option qu\'elle a DÉJÀ (demandée ou non) : celles d\'office, tarifs annuels, ordre de la grille', [r.s, ligN(dernier())], [200, ['pro:A×2', 'stock:A×2', 'achats:A×2']]);
+  v('⛔ à l\'année, avec Stock demandé et Achats déjà servi : seule la manquante se dit (Achats × 2 × 10 mois = 120 €), rien n\'est créé',
+    [r.s, r.j.error, r.j.options, r.j.surcout, r.j.cycle, nSess() - nSuit - 1], [409, 'options_suivent', ['achats'], 120, 'annuel', 0]);
+  r = await payer('c7a', { price: P.pro[1], quantity: 2, ref: 't-c7a-850', options: ['stock', 'achats'] });
+  v('   une fois toutes demandées : tarifs annuels, ordre de la grille', [r.s, ligN(dernier())], [200, ['pro:A×2', 'stock:A×2', 'achats:A×2']]);
+  r = await payer('c7a', { price: P.pro[0], quantity: 1, ref: 't-c7a-850', options: ['achats', 'stock'] });
+  v('   (l\'ordre du corps ne change rien : celui de la grille)', [r.s, ligN(dernier())], [200, ['pro:M×1', 'stock:M×1', 'achats:M×1']]);
   /* ⛔⛔ PRO + OPTION NON SERVIE POUR UNE ENTREPRISE QUI A DÉJÀ SON PRO = UN SECOND ABONNEMENT PRO (la page de paiement envoie toujours un
      `price` : le lien « Ajouter » de l'application menait là). Refusé, rien chez Stripe, et on dit où aller : l'ajout d'option seule. */
   const n7 = nSess();
@@ -500,6 +513,26 @@ globalThis.fetch = async function (url, opts) {
   r = await payer('c6i', { price: P.pro[0], quantity: 1, ref: 't-c6i-850' });
   v('   (inchangé) Pro impayé + nouvel abonnement : la facture', [r.s, r.j.facture], [200, true]);
   v('⛔ le compte d\'une AUTRE entreprise ne peut pas y acheter des options (403, rien chez Stripe)', [(await payer('c1', { options: ['stock'], ref: 't-c6e-850' })).s, (await payer('c1', { options: ['stock'], ref: 't-c6e-850' })).j.error], [403, 'compte_autre_entreprise']);
+
+  /* ⛔⛔ UNE DÉCISION D'ACHAT SE PREND SUR UNE LISTE LUE POUR ELLE (1er octobre 2026, `gardien`, rejoué : r1.js, r4.js). Le client paie
+     « Ajouter Stock » et reclique dans la minute : la liste en cache ne voit pas son paiement — l'ajout repartait en 200 (un second
+     `stock × 3`, prélevé en double), et « Pro + 2 places » ne ramenait pas le Stock déjà payé (l'équipe le perdait : 5 places, Stock × 3).
+     Ici le cache dure dix minutes et le rafraîchissement d'un impayé une seconde : le premier envoi relit la liste, le paiement arrive
+     APRÈS, et le second envoi part dans la seconde — sur l'ancien code, la liste d'avant le servait encore. */
+  console.log('\n  Paiement · la liste des abonnements est relue AU MOMENT de décider (le paiement qu\'on vient de faire se voit)');
+  r = await payer('c8a', { options: ['stock'], ref: 't-c8a-850' });
+  v('   premier ajout de Stock : une seule ligne × 3', [r.s, ligN(dernier())], [200, ['stock:M×3']]);
+  M.sub('c8a', 'active', [OPL('stock', 3)]); S1.poser();   // le client vient de payer : Stripe le sait, le serveur ne l'a pas encore relu
+  const nFr = nSess();
+  r = await payer('c8a', { options: ['stock'], ref: 't-c8a-850' });
+  v('⛔⛔ le même ajout dans la seconde : 409 `option_deja` (avant : 200, un second Stock × 3 prélevé en double), rien chez Stripe', [r.s, r.j.error, nSess() - nFr], [409, 'option_deja', 0]);
+  r = await payer('c8b', { price: P.pro[0], quantity: 1, ref: 't-c8b-850' });
+  v('   (contre-épreuve) une entreprise Pro × 3 sans option : l\'achat d\'un Pro de plus se passe comme avant', [r.s, ligN(dernier())], [200, ['pro:M×1']]);
+  M.sub('c8b', 'active', [OPL('stock', 3)]); S1.poser();   // elle paie le Stock × 3 ; le rachat de places arrive dans la seconde
+  const nFr2 = nSess();
+  r = await payer('c8b', { price: P.pro[0], quantity: 2, ref: 't-c8b-850' });
+  v('⛔⛔ Pro + 2 places juste après le paiement du Stock × 3 : le Stock suit (409 `options_suivent`), il n\'est pas oublié (avant : `pro × 2` seul, Stock fermé pour toute l\'équipe)',
+    [r.s, r.j.error, r.j.options, r.j.surcout, nSess() - nFr2], [409, 'options_suivent', ['stock'], 18, 0]);
 
   console.log('\n  Paiement · la période offerte : la facturation attend sa fin, option comprise');
   const finPeriode = jour(30), lendemain = jour(31);
@@ -544,11 +577,18 @@ globalThis.fetch = async function (url, opts) {
   const e2 = await S2.etat('s2');
   v('⛔ la liste est PÉRIMÉE (la relecture échoue) : toujours servie Pro (on ne coupe pas) — mais `options` ABSENT : on ne sait pas, l\'application garde ce qu\'elle savait',
     [e2.paye, e2.formule, OPT(e2)], [true, 'pro', 'ABSENT']);
+  const nMu = S2.sessions().length;
+  r = await S2.appel('/api/stripe/checkout', { options: ['stock'], ref: 't-s2-850' }, S2.jetons.s2);
+  v('⛔⛔ … et un ACHAT d\'option ne se décide pas sur cette liste ancienne : 502 `stripe_indisponible`, rien chez Stripe (avant : décidé sur du périmé)', [r.s, r.j.error, S2.sessions().length - nMu], [502, 'stripe_indisponible', 0]);
+  r = await S2.appel('/api/stripe/checkout', { price: P.pro[0], quantity: 1, ref: 't-s2-850' }, S2.jetons.s2);
+  v('   … ni l\'achat d\'un Pro de plus, qui doit ramener les options servies : 502 aussi (avant : `pro` seul, fail-open)', [r.s, r.j.error, S2.sessions().length - nMu], [502, 'stripe_indisponible', 0]);
   await S2.arreter();
   const M3 = monde(); M3.ent('s3'); M3.sub('s3', 'active', [PRO(3)]); M3.sub('s3', 'active', [OPL('stock', 3)]);
   const S3 = await demarrer(M3, { fichier: fichierPlein, muet: true });
   const e3 = await S3.etat('s3');
   v('⛔ Stripe MUET depuis le démarrage : « vérification impossible », ni formule, ni suspension, ni options', [e3.verificationImpossible, 'options' in e3, 'formule' in e3], [true, false, false]);
+  r = await S3.appel('/api/stripe/checkout', { options: ['stock'], ref: 't-s3-850' }, S3.jetons.s3);
+  v('⛔ Stripe muet depuis le démarrage : un ajout d\'option → 502 `stripe_indisponible` (avant : 409 `formule_requise`, un faux verdict), rien n\'est parti', [r.s, r.j.error, S3.sessions().length], [502, 'stripe_indisponible', 0]);
   await S3.arreter();
 
   /* ══ 7. LES TARIFS VIDES : rien ne se vend ═══════════════════════════════════════════════════════════════════════════ */

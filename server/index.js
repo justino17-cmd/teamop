@@ -769,7 +769,20 @@ app.post('/api/stripe/checkout', async (req, res) => {
     const qtes = {};   // la quantité de chaque ligne d'option : celle de la formule, sauf pour un ajout d'option seule (ce qui manque)
     if (refGravee && visees.length && (optionSeule || rangDuPrix === 0)) {
       const eV = Object.assign({ slug: visees[0].slug }, facturationDe(visees[0]));
-      let s0 = null; try { s0 = await espaceStripe(eV); } catch (err) { s0 = null; }
+      /* ⛔⛔ LA LISTE DES ABONNEMENTS SE RELIT ICI, À L'INSTANT (1er octobre 2026, `gardien`, rejoué : `r1.js`, `r4.js`). Le cache
+         de 5 minutes (60 s pour un impayé) ne voit pas le paiement qu'un client vient de faire : « Ajouter Stock », payé, puis
+         recliqué dans la minute — l'ajout repartait en 200 (un SECOND `stock × 3`, prélevé en double) ; « Pro + 2 places » acheté
+         dans la fenêtre ne ramenait pas le Stock déjà payé, et l'équipe entière le perdait (5 places, Stock × 3). Chaque décision
+         de ce bloc (`servies`, `payees`, `utiliser_ajout`, `option_deja`) repose sur CETTE lecture. Elle n'est fraîche que si elle
+         date de quelques secondes : une panne de Stripe, ou une lecture ratée qu'on ne retente pas avant une minute, laisse une
+         liste ancienne — et alors on REFUSE (502 `stripe_indisponible`, rien n'a été payé) au lieu de décider sur du périmé. Ça ne
+         refuse que ce qui touche aux options (une option demandée, ou des options en vente que l'achat d'un Pro doit suivre) :
+         avant la mise en vente, l'achat d'un Pro seul se passe de la liste comme avant. */
+      const { s: s0, fraiche: listeFraiche } = await espaceStripeAchat(eV);
+      if (!listeFraiche && (optionSeule || opts.length > 0 || OPTIONS_CLES.some(k => (STRIPE_PRIX_OPTION[k] || []).some(Boolean)))) {
+        console.error('paiement : liste Stripe illisible ou périmée, rien de décidé sur les options');
+        return res.status(502).json({ error: 'stripe_indisponible' });
+      }
       let fp0 = null; try { fp0 = s0 ? formuleEtPlaces(eV, s0) : null; } catch (err) { fp0 = null; }
       const servies = (fp0 && fp0.f === 'pro' && fp0.places > 0) ? optionsServies('pro', fp0.places, s0) : [];
       let demandees = [];   // les options que le CORPS demande, avant que celles déjà servies ne suivent d'office
@@ -803,6 +816,20 @@ app.post('/api/stripe/checkout', async (req, res) => {
          ligne d'option, pour les places qui manquent) — 409 `utiliser_ajout`, rien chez Stripe. Seule une entreprise que Stripe
          dit déjà Pro payée est concernée : une entreprise neuve, ou en période offerte, achète son Pro et ses options ensemble. */
       if (!optionSeule && fp0 && fp0.f === 'pro' && fp0.places > 0 && demandees.some(k => !servies.includes(k))) return res.status(409).json({ error: 'utiliser_ajout' });
+      /* ⛔ LES OPTIONS DÉJÀ SERVIES SUIVENT UN RACHAT DE PLACES — MAIS LE CLIENT LE SAIT AVANT DE PAYER (1er octobre 2026, `gardien`,
+         rejoué : `r1.js` R5). Une entreprise Pro × 3 + Stock × 3 qui achète « Pro + 2 » sans option recevait pro × 2 + stock × 2 chez
+         Stripe : la page affichait 30 €, le client en payait 48. Le suivi d'office est nécessaire (sans lui, la couverture stricte
+         ferme le Stock pour toute l'équipe) mais il ne se fait JAMAIS en silence : 409 `options_suivent`, rien chez Stripe, avec
+         les options et le surcoût (celui que le serveur facturera). La page coche ces options, remet le total à jour, et c'est le
+         second clic — qui les demande — qui part. Une option que le corps demande déjà ne se redit pas. */
+      if (!optionSeule && fp0 && fp0.f === 'pro' && fp0.places > 0) {
+        const suivent = OPTIONS_CLES.filter(k => servies.includes(k) && !demandees.includes(k));   // dans l'ordre de la grille
+        if (suivent.length) {
+          const facteur = cycleIdx === 1 ? 12 - MOIS_OFFERTS_ANNEE : 1;
+          const surcout = suivent.reduce((t, k) => t + (OPTIONS_PRIX_MOIS[k] || 0) * qty * facteur, 0);
+          return res.status(409).json({ error: 'options_suivent', options: suivent, surcout, cycle: cycleIdx === 1 ? 'annuel' : 'mensuel' });
+        }
+      }
     }
     const p = new URLSearchParams();
     p.append('mode', 'subscription');
@@ -2528,6 +2555,19 @@ function stripeEchecMin() { return espStripeCache.echecDepuis ? Math.floor((Date
    Stripe, la dernière liste connue sert (on ne coupe pas une entreprise qui paie), mais un paiement fait depuis n'y est pas
    — le rappel J-7 ne décide rien dessus (`abonnementGestion`). La variable : pour les bancs seulement. */
 const STRIPE_CACHE_MS = Math.max(1, parseInt(process.env.TEAMOP_STRIPE_CACHE_MS, 10) || 5 * 60000);
+/* ⛔ une décision d'ACHAT (ajout d'option, rachat de places) ne se prend que sur une liste d'abonnements lue POUR ELLE : `espaceStripeAchat`
+   demande une relecture à chaque appel (l'âge toléré est d'une milliseconde) et dit si elle a abouti. Une relecture qui ratait (panne de
+   Stripe, lecture qu'on ne retente pas avant une minute) laisse la liste d'avant — jamais « assez récente » pour savoir si le client vient
+   de payer : on refuse, on ne devine pas. `STRIPE_ACHAT_JEU_MS` n'absorbe que le décalage d'horloge entre l'instant de la demande et la
+   date que la lecture a posée au retour. */
+const STRIPE_ACHAT_JEU_MS = 1000;
+/* ce que Stripe sert à une entreprise, LU À L'INSTANT pour une décision d'achat — et si cette lecture a abouti (`fraiche`) ou si
+   c'est une liste ancienne qui répond à sa place */
+async function espaceStripeAchat(e) {
+  const t0 = Date.now();
+  let s = null; try { s = await espaceStripe(e, 1); } catch (err) { s = null; }
+  return { s, fraiche: !!espStripeCache.data && espStripeCache.ts >= t0 - STRIPE_ACHAT_JEU_MS };
+}
 /* ⛔ UN IMPAYÉ SE RELIT À LA MINUTE (Justin, 29 septembre 2026 : l'accès revient dès que c'est réglé). La liste Stripe se
    garde cinq minutes : un client qui vient de régler sa facture resterait grisé jusque-là. Tant qu'une entreprise n'a que de
    l'impayé, la liste se relit si elle a plus d'une minute (toujours une seule lecture à la fois, et pas pendant une panne :

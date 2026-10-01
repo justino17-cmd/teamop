@@ -274,7 +274,7 @@ function merci(fichier, recherche) {
           /Réessayez dans un instant/.test(q.texte()), q.texte().includes('Rien n\'a été payé'), q.window.location.href], [true, true, false, true, '']);
       q = await essai(() => rep(502, { error: 'stripe_indisponible' }));
       v('   … Stripe muet à la relecture de l\'impayé (502) : « réessayez dans quelques minutes », rien n\'est parti',
-        [q.texte().includes('ne répond pas pour vérifier un prélèvement en attente'), q.texte().includes('Rien n\'a été payé'), q.window.location.href], [true, true, '']);
+        [q.texte().includes('ne répond pas pour vérifier vos abonnements et un éventuel prélèvement en attente'), q.texte().includes('Rien n\'a été payé'), q.window.location.href], [true, true, '']);
       q = await essai(() => rep(200, { url: 'https://invoice.stripe.com/i/banc-839', facture: true }));
       v('⛔ la facture en attente (200, `facture`) : la page le dit AVANT d\'y aller (le montant n\'est pas celui choisi)',
         [q.texte().includes('sa facture en attente s\'ouvre'), q.texte().includes('rien d\'autre ne sera prélevé'), q.window.location.href], [true, true, '']);

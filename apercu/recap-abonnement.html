@@ -1147,6 +1147,23 @@ function traiterReponsePaiement(r, j) {
     rendreTout(); return;
   }
   else if (r && r.status === 409 && j && j.error === 'formule_requise') compteMsg = { texte: 'Une option se joint à un abonnement Pro déjà payé par votre entreprise, et il n\'y en a pas : choisissez Pro avec ses options, ou écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+  /* ⛔ DES OPTIONS DÉJÀ ACTIVES SUIVENT LES NOUVEAUX UTILISATEURS — et le client le lit AVANT de payer (1er octobre 2026,
+     `gardien`, rejoué : la page affichait 30 € et le client en payait 48). Le serveur n'a rien créé : il rend les options et le
+     surcoût. On les COCHE (le total se met à jour de lui-même, c'est la même arithmétique que le serveur), on le dit, et c'est
+     le second clic — qui les demande — qui part. Une option que la page ne propose pas (tarif absent) ne peut pas s'afficher :
+     on le dit, et on ne boucle pas. */
+  else if (r && r.status === 409 && j && j.error === 'options_suivent' && Array.isArray(j.options)) {
+    const cles = j.options.filter(k => typeof k === 'string' && OPTIONS_GESTION[k] && optionsDispo().indexOf(k) >= 0);
+    if (!cles.length || cles.length !== j.options.length) compteMsg = { texte: 'Des options déjà actives pour votre entreprise suivent vos nouveaux utilisateurs, mais cette page ne sait pas les afficher : rechargez-la, ou écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+    else {
+      optionsChoisies = optionsChoisies.filter(x => cles.indexOf(x) < 0).concat(cles);
+      const noms = cles.map(k => OPTIONS_GESTION[k].nom).join(', ');
+      const somme = typeof j.surcout === 'number' && isFinite(j.surcout) ? ' (' + String(j.surcout).replace('.', ',') + '\u00a0€ TTC ' + (j.cycle === 'annuel' ? 'par an' : 'par mois') + ' en plus de la formule)' : '';
+      compteMsg = { texte: (cles.length > 1 ? 'Les options ' : 'L\'option ') + noms + (cles.length > 1 ? ' sont déjà actives' : ' est déjà active') + ' pour votre entreprise : ' + (cles.length > 1 ? 'elles suivent' : 'elle suit') + ' vos nouveaux utilisateurs' + somme + '. Le total ci-dessous les compte ; vérifiez-le, puis validez. Rien n\'a été payé.' };
+      history.replaceState(null, '', adresseEtat(','));
+      rendreTout(); return;
+    }
+  }
   else if (r && r.status === 409 && j && j.error === 'option_deja') compteMsg = { texte: 'Une des options choisies est déjà active pour votre entreprise : rien à payer de plus pour elle. Décochez-la, ou rechargez la page. Rien n\'a été payé.', erreur: true };
   else if (r && r.status === 429) compteMsg = { texte: 'Trop de tentatives d\'affilée : patientez une minute, puis réessayez.', erreur: true };
   /* un impayé sans facture ouverte : définitif tant que TEAM OP ne l'a pas réglé — « réessayez » mentirait */
@@ -1155,7 +1172,7 @@ function traiterReponsePaiement(r, j) {
      si la liste de Stripe est en panne : pas de délai promis (troisième relecture de `gardien`). Un paiement de plus serait un
      SECOND abonnement, prélevé en double (30 septembre 2026). Ce n'est pas une erreur. */
   else if (r && r.status === 409 && j && j.error === 'impaye_regle') compteMsg = { texte: 'Votre règlement est bien arrivé : l\'accès revient dès que notre vérification le confirme, en général en moins d\'une minute. Rouvrez ensuite votre application. Rien de plus n\'a été payé.', erreur: false };
-  else if (r && r.status === 502 && j && j.error === 'stripe_indisponible') compteMsg = { texte: 'Le service de paiement ne répond pas pour vérifier un prélèvement en attente : réessayez dans quelques minutes. Rien n\'a été payé.', erreur: true };
+  else if (r && r.status === 502 && j && j.error === 'stripe_indisponible') compteMsg = { texte: 'Le service de paiement ne répond pas pour vérifier vos abonnements et un éventuel prélèvement en attente : réessayez dans quelques minutes. Rien n\'a été payé.', erreur: true };
   else compteMsg = { texte: 'Le paiement n\'a pas pu s\'ouvrir — rien n\'a été payé. Réessayez dans un instant, ou écrivez à support@teamop.fr.', erreur: true };
   rendrePaiement();
 }

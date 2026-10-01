@@ -319,6 +319,20 @@ const PAGES = ['recap-abonnement.html', 'apercu/recap-abonnement.html'].filter(e
     await ua.payer();
     v('⛔ … le second clic envoie le corps de l\'ajout (clés + référence), le premier portait price et quantity', [ua.envoye.length, Object.keys(ua.envoye[0].corps).sort(), Object.keys(ua.envoye[1].corps).sort()], [2, ['options', 'price', 'quantity', 'ref'], ['options', 'ref']]);
     v('   … et la page de paiement de Stripe s\'ouvre', ua.window.location.href, 'https://checkout.stripe.com/c/ajout-banc');
+    // ⛔ le suivi d'office se DIT avant de payer (`options_suivent`, 1er octobre 2026) : la page coche les options, remet le total à jour, rien n'est parti
+    const os = A('?formule=pro&utilisateurs=2', { reponse: b => ((b.options || []).includes('stock') ? { status: 200, body: { url: 'https://checkout.stripe.com/c/suivent-banc' } } : { status: 409, body: { error: 'options_suivent', options: ['stock'], surcout: 18, cycle: 'mensuel' } }) }); await os.api.compteLu;
+    const avant = os.paiement().match(/Total mensuel\s*(\d+) € TTC/);
+    await os.payer();
+    const msgOs = (os.api.etat().compteMsg || {}).texte || '';
+    const apres = os.paiement().match(/Total mensuel\s*(\d+) € TTC/);
+    v('⛔⛔ `options_suivent` : la page COCHE l\'option qui suit, le dit avec son surcoût, « rien n\'a été payé », pas de redirection, pas de mode ajout',
+      [os.cases().filter(c => c.checked).map(c => c.dataset.option), /L'option Stock est déjà active pour votre entreprise : elle suit vos nouveaux utilisateurs \(18\u00a0€ TTC par mois en plus de la formule\)/.test(msgOs), /Rien n'a été payé/.test(msgOs), os.window.location.href, os.api.modeAjout(), os.envoye.length],
+      [['stock'], true, true, '', false, 1]);
+    v('   le TOTAL affiché compte désormais l\'option (2 × (15 + 9) = 48 € au lieu de 30 €) : le client le lit AVANT de valider', [avant && avant[1], apres && apres[1]], ['30', '48']);
+    await os.payer();
+    v('⛔ … le second clic les DEMANDE (options: [stock]) et la page de paiement de Stripe s\'ouvre', [os.envoye.length, os.envoye[1].corps.options, os.window.location.href], [2, ['stock'], 'https://checkout.stripe.com/c/suivent-banc']);
+    const oi = A('?formule=pro&utilisateurs=2', { reponse: () => ({ status: 409, body: { error: 'options_suivent', options: ['inconnue'], surcout: 5, cycle: 'mensuel' } }) }); await oi.api.compteLu; await oi.payer();
+    v('   une option que la page ne connaît pas : dit, jamais de boucle silencieuse (rien n\'est coché, rien n\'est parti de plus)', [oi.cases().filter(c => c.checked).length, /ne sait pas les afficher/.test((oi.api.etat().compteMsg || {}).texte || ''), oi.window.location.href], [0, true, '']);
   }
 
   /* ── 3. « Mon espace » : les options servies, d'un champ à part ─────────────────────────────────────────── */

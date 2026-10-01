@@ -266,7 +266,7 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     let envoye = '', statut = 0, sortie = null, appels = 0;
     const faux = { post: (chemin, h) => { faux._h = h; } };
     new Function('app', 'config', 'fetch', 'URLSearchParams', 'comptes', 'espacesReg', 'promoUsages', 'espaceFerme', 'factureImpayeARegler',
-      'espaceStripe', 'formuleEtPlaces', 'impayeOptionARegler', 'optionsServies', 'optionsPayeesQte',
+      'espaceStripeAchat', 'formuleEtPlaces', 'impayeOptionARegler', 'optionsServies', 'optionsPayeesQte',
       AIDES_ROUTE.join('\n') + '\n' + SRC.slice(iR, finR))(faux,
       { stripe: { secretKey: 'sk_de_banc' }, promos: [{ code: 'ESSAI-BANC-727', formule: 'premium', mois: 3 }] },
       async (url, opts) => { appels++; envoye = String(opts && opts.body || ''); return { ok: true, json: async () => ({ url: 'https://checkout.stripe.com/x' }) }; },
@@ -278,7 +278,7 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
          `formuleEtPlaces`, `optionsServies`) pour ramener d'office les options déjà payées et refuser un ajout
          sans Pro. Ce bac à sable n'a pas de liste Stripe : rien n'est servi, rien n'est impayé — le comportement des options
          (couverture, ajout d'office, impayé d'option, codes d'erreur) se joue sur le VRAI serveur, `test-850` */
-      async () => null, () => ({ f: null, places: null }), async () => null, () => [], () => ({}));
+      async () => ({ s: null, fraiche: true }), () => ({ f: null, places: null }), async () => null, () => [], () => ({}));
     await faux._h({ body, headers: entetes === undefined ? { authorization: 'Bearer ' + JETON_PROUVE } : entetes },
       { status(c) { statut = c; return this; }, json(o) { sortie = o; return this; } });
     return { envoye, statut, sortie, appels };
