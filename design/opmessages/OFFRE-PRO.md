@@ -1,6 +1,6 @@
 # OP MESSAGES — l'offre entreprise : pourquoi 15 €
 
-*Étude du 1er octobre 2026 — PROPOSITION : rien n'est décidé tant que Justin n'a pas répondu à la section 10, sauf les réunions sans limite de durée (sa phrase). Écrite pour être lue sur un téléphone. Tous les prix de concurrents sont des prix de catalogue américains en dollars, hors taxes, par personne et par mois, avec leur source et leur date. Quand je ne sais pas, je l'écris.*
+*Étude du 1er octobre 2026. ✅ DÉCIDÉE : Justin a répondu « Fait tout » le soir même — les 14 recommandations de la section 10 sont ACCEPTÉES telles qu'écrites. Écrite pour être lue sur un téléphone. Tous les prix de concurrents sont des prix de catalogue américains en dollars, hors taxes, par personne et par mois, avec leur source et leur date. Quand je ne sais pas, je l'écris.*
 
 ---
 
@@ -420,6 +420,8 @@ Pour comparer, pour 10 personnes d'une entreprise Pro : 94 € de marge par mois
 ---
 
 ## 10. Les décisions de Justin
+
+✅ **Justin, 1er octobre 2026 au soir : « Fait tout »** — les 14 recommandations ci-dessous sont acceptées.
 
 | # | Question | Ma recommandation |
 |---|---|---|

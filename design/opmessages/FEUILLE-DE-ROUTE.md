@@ -72,8 +72,15 @@ sont celles que l'étude met en tête pour le chiffre d'affaires.
 
 ## Idées 70 à 91 — l'offre entreprise (Justin : « que les 15 € soient bien justifiés, pour les entreprises »)
 
-Détail, coûts, marges et les 14 décisions qui attendent Justin : `OFFRE-PRO.md`. ⚠️ Sa recommandation n° 8 change l'ordre :
-monter le serveur de visio (LiveKit, étape 10 de `SERVEUR.md`) AVANT d'ouvrir le Pro — sans lui, 4 en vidéo et 6 en audio au plus.
+Détail, coûts et marges : `OFFRE-PRO.md`. ✅ **Justin, 1er octobre 2026 au soir : « Fait tout »** — les 14 décisions sont
+ACCEPTÉES : formule **Essentiel 5 €** (1 à 5 personnes, réunions sans limite de durée jusqu'à 10) ; Pro 15 € gardé (150 € l'année) ;
+« Sur mesure » sans grille publique ; aucun paquet avec OP GESTION avant le lot J ; options au prix de la section 3, à confirmer
+après mesure (au lancement : le pack de SMS seul) ; budget d'heures écrit, jamais de coupure sèche ; **le serveur de visio (LiveKit,
+étape 10 de `SERVEUR.md`) passe AVANT l'ouverture du Pro** ; aucun pourcentage de disponibilité avant un second serveur ; aucune
+vente dans l'application des stores (règle 3.1.3(c)) ; essai de 14 jours ouvert par TEAM OP ; support par courriel en un jour
+ouvré ; IA hébergée chez nous si possible ; **un abonnement par ENTREPRISE pour Messages** (pas le modèle d'OP GESTION).
+À construire en conséquence (lot D) : la formule Essentiel au serveur et sur le site (tarifs Stripe à créer par Justin), le
+plafond de 5 places, l'abonnement groupé.
 
 | Idée | Titre | Formule | Lot |
 |---|---|---|---|
