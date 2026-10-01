@@ -270,6 +270,23 @@ const apres = (ms) => new Promise(r => setTimeout(r, ms));
     vrai('⛔ un autre rôle : « non incluse dans la formule de l\'entreprise » — pas un mot de prix, pas de « Permissions »', /n'est pas incluse dans la formule de l'entreprise/.test(a3) && !/€|Business|Permissions|option/.test(a3), a3);
     v('une rubrique ouverte ne produit aucun message (et la première fermée parmi plusieurs est nommée)', [matrice('pro', ['stock']).formuleFermeMsg('stock'), /option Achats/.test(matrice('pro', ['stock']).formuleFermeMsg('boxes', 'bons'))], ['', true]);
     v('Business : jamais de message de formule', matrice('business', []).formuleFermeMsg('stock', 'bons'), ''); }
+  /* ⛔ LE MÉTIER FERME AVANT LA FORMULE (testeur, 1er octobre 2026, rejoué sur la bêta en règle de production) : un métier « nettoyage » masque
+     Registre, Box et leur carte — ni une option ni Business ne les ouvre. Le message invitait à acheter « l'option Stock » pour une Box
+     que le métier ferme, et renvoyait vers « Permissions » (faux : c'est le métier) pour Pro + Stock. */
+  { const nett = k => ['registre', 'boxes', 'carteBox', 'devisXylo'].includes(k);
+    const mn = matrice('pro', [], { metierBloque: nett });
+    const dit = x => /ne fait pas partie du métier de l'entreprise/.test(x) && !/€|option|Business|Permissions|abonnement/.test(x);
+    v('⛔ métier « nettoyage », Pro sans option : Registre, Box et sa carte disent le MÉTIER — pas d\'option, pas de prix, pas de « Permissions »', ['registre', 'boxes', 'carteBox'].map(k => dit(mn.formuleFermeMsg(k))), [true, true, true]);
+    vrai('   l\'administrateur lit où le régler (Paramètres → Mon métier)', /\(Paramètres → Mon métier\)/.test(mn.formuleFermeMsg('boxes')));
+    vrai('   Stock, lui, s\'achète toujours (le métier ne le masque pas)', /option Stock \(\+9 €/.test(mn.formuleFermeMsg('stock')));
+    const a4 = mn.formuleFermeMsg('produits');
+    vrai('   `produits` : seule l\'option Stock est proposée — « Registre sanitaire (métier 3D) » n\'ouvrirait rien pour ce métier', /option Stock \(\+9 €/.test(a4) && !/Registre sanitaire/.test(a4), a4);
+    const ms = matrice('pro', ['stock'], { metierBloque: nett });
+    vrai('⛔ Pro + Stock : la Box reste fermée PAR LE MÉTIER, et le message le dit (avant : « réglable dans Permissions »)', dit(ms.formuleFermeMsg('boxes')) && ms.formuleFermeMsg('produits') === '');
+    vrai('⛔ Business : le métier ferme encore le Registre — même message', dit(matrice('business', [], { metierBloque: nett }).formuleFermeMsg('registre')));
+    const mt = matrice('pro', [], { metierBloque: nett }); mt.setUser({ id: 'u-t', role: 'technicien' });
+    vrai('   un autre rôle : le métier, sans « Paramètres » ni un mot de prix', dit(mt.formuleFermeMsg('boxes')) && !/Paramètres/.test(mt.formuleFermeMsg('boxes')));
+    vrai('   un métier 3D (rien de masqué) : le message de formule d\'avant, inchangé', /option Registre sanitaire \(métier 3D\) \(\+6 €/.test(matrice('pro', [], { metierBloque: () => false }).formuleFermeMsg('registre'))); }
   const GO = fonction('go');
   vrai('⛔ `go()` retient la rubrique demandée AVANT de changer `view`, puis dit le message de la formule — le mot « Permissions » n\'est que le repli',
     /const demandee=view;\s*if\(\(item && !canSee\(item\)\) \|\| \(VUE_PARENT\[view\] && !userSeesModule\(currentUser,view\)\)\)\{ view='dashboard'; try\{ toast\(formuleFermeMsg\(cible,demandee\)\|\|'🔒 Cette rubrique n\\'est pas ouverte à ton compte \(réglable dans Permissions\)'\)/.test(GO.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ')));

@@ -13956,7 +13956,7 @@ function planOpMsg(){ return true; }        // OP MESSAGES : application indépe
    MOINS UNE option servie la contient (`produits` est dans deux). Les prix sont ceux du serveur (`OPTIONS_PRIX_MOIS`) : une
    grille, quatre copies, comparées par `tests/test-852.js`. */
 const OPTIONS_GESTION={
-  stock:{l:'Stock',prix:9,d:'Produits, stock, mouvements, box et leur carte, demandes et validations du DR.',vues:['produits','stock','mouvements','saisieConso','boxes','carteBox','produitsDonnes','demandes','histoDemandes','brouillon','validations']},
+  stock:{l:'Stock',prix:9,d:'Produits, stock, mouvements, demandes et validations du DR — et les box pour le métier 3D.',vues:['produits','stock','mouvements','saisieConso','boxes','carteBox','produitsDonnes','demandes','histoDemandes','brouillon','validations']},
   achats:{l:'Achats fournisseurs',prix:6,d:'Fournisseurs, bons de commande, commandes en cours, boîte mail.',vues:['fournisseurs','bons','commandes','boiteMail']},
   compta:{l:'Encaissements et compta',prix:6,d:'Comptabilité, télécollecte, enveloppes d\'encaissement.',vues:['comptabilite','telecollecte','enveloppes']},
   sanitaire:{l:'Registre sanitaire (métier 3D)',prix:6,metier3d:true,d:'Registre sanitaire, dossier sanitaire du client, n° AMM des produits.',vues:['registre','produits']}
@@ -13985,9 +13985,14 @@ function optionsDe(k){ return Object.keys(OPTIONS_GESTION).filter(c=>OPTIONS_GES
 /* ⛔ « RÉGLABLE DANS PERMISSIONS » SERAIT FAUX : aucune case ne rouvre ce que la FORMULE ferme. Ce que `go()` dit, pour la
    première rubrique que la formule ferme — l'administrateur sait quoi acheter, les autres ne lisent pas un mot de paiement. */
 function formuleFermeMsg(){
-  for(let i=0;i<arguments.length;i++){ const k=arguments[i]; if(!k||!planBloque(k,true)) continue;
+  for(let i=0;i<arguments.length;i++){ const k=arguments[i]; if(!k) continue;
+    /* ⛔ LE MÉTIER FERME AVANT LA FORMULE (testeur, 1er octobre 2026, rejoué) : « Registre », « Box » et sa carte n'existent pas pour un
+       métier qui les masque — ni une option ni Business ne les ouvre. Inviter à payer pour eux (« s'ajoute avec l'option Stock »), ou
+       renvoyer vers « Permissions » (« Pro + Stock : n'est pas ouverte à ton compte »), dit faux dans les deux sens. */
+    if(metierBloque(k)) return '🔒 Cette rubrique ne fait pas partie du métier de l\'entreprise'+(currentUser&&currentUser.role==='admin'?' (Paramètres → Mon métier)':'');
+    if(!planBloque(k,true)) continue;
     if(!currentUser||currentUser.role!=='admin') return '🔒 Cette rubrique n\'est pas incluse dans la formule de l\'entreprise';
-    const o=optionsDe(k).map(c=>'l\'option '+OPTIONS_GESTION[c].l+' (+'+OPTIONS_GESTION[c].prix+' € par utilisateur et par mois)');
+    const o=optionsDe(k).filter(c=>!(OPTIONS_GESTION[c].metier3d&&metierBloque('registre'))).map(c=>'l\'option '+OPTIONS_GESTION[c].l+' (+'+OPTIONS_GESTION[c].prix+' € par utilisateur et par mois)');
     return '🔒 Cette rubrique '+(o.length?'s\'ajoute avec '+o.join(' ou ')+' ou avec Business':'est incluse avec Business'); }
   return ''; }
 /* l'état d'une option sur l'écran des Paramètres : servie ✓, ou « Ajouter » pour l'administrateur seul */
