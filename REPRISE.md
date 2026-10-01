@@ -29,7 +29,9 @@ paierait et n'ouvrirait rien.
 rien depuis le 28 septembre ; restaient le bouton « 🚀 Activer mon espace » et `activate()`/`provision()` du portail,
 `access` dans les fils (`server/portail.js`), le formulaire « Créez votre compte administrateur » de l'application, et
 la clé d'un espace neuf tirée par `Math.random()` dans la Tour. Tout retiré ou corrigé (cf0a9aa, 9014b4f, ab7c609 :
-Tour v2.79) ; **mise en service demandée par Justin** (« Oui, mets-le en service ») — en cours. La partie de
+Tour v2.79) ; ✅ **EN SERVICE** (« Oui, mets-le en service ») : `main` `0bd1fbd`, déploiement n° 105 (VPS redémarré,
+`/health` propre), « Vérifications » 1409, « Vérification des pages » 524 et Pages vertes, `espace.html` et `tour.html`
+servis à l'identique. La partie de
 l'application (le formulaire) reste en bêta jusqu'à la prochaine publication d'`app.html`. Reste, sans urgence : le
 registre `acces.json` côté serveur (ses deux routes répondent 410, ses codes n'ouvrent rien).
 
@@ -38,7 +40,11 @@ réunions façon Zoom ; `design/opmessages/`, ordre en 5 étapes, « montre-moi 
 étape »). ⛔ Justin, même jour, à « même compte qu'OP GESTION ou serveur à part ? » : **« tout et séparé »** — la décision
 du 22 septembre tient : OP MESSAGES aura son propre serveur et ses comptes de personnes. Les écrans se construisent dans
 une page d'aperçu à part (`apercu/opmessages/`, données d'exemple, aucun appel réseau) ; rien ne touche `messages.html`.
-Étape 1 (liste Messages + groupes) en construction.
+Étape 1 (liste Messages + groupes) FAITE (`72127e5`, `1f92ed6` : bandeau sur le prompt du paquet, dont la phrase « même
+compte qu'OP GESTION » est annulée) ; captures envoyées à Justin. Étape 2 (Conversation) en construction, avec les neuf
+constats de la relecture de l'étape 1. Justin, même jour : **« je veux que tu testes tout de A à Z d'OP MESSAGES, elle doit
+fonctionner parfaitement »** — d'où `tests/sonde-opmessages.js`, une sonde CUMULATIVE dans le dépôt (pas le scratchpad) qui
+rejoue au navigateur tous les gestes de toutes les étapes, sur tous les appareils, et un testeur ADVERSE à chaque étape.
 Puis, même jour : **formules d'OP MESSAGES** — « un forfait gratuit comme il est là et un Pro à 15 euros ; lui à 25 on le
 supprime ; à 15 euros ils ont toutes les options » (Perso 0 €, Messages Pro 15 € avec tout ; Messages Business Premium
 retiré de la vente — ses lignes Stripe restent RECONNUES comme OP MESSAGES par le serveur) ; **« je veux un op message
