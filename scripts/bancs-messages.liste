@@ -1,0 +1,23 @@
+# Les suites qui gardent OP MESSAGES — celles que le workflow `deploiement-messages.yml` lance avant de toucher au VPS.
+#
+# ⛔ POURQUOI UNE LISTE À PART, ET PAS `bancs-serveur.liste`. OP MESSAGES est un service à part (design/opmessages/SERVEUR.md) :
+# son propre dossier (`server-msg/`), son propre workflow, sa propre porte. Les suites d'OP GESTION lisent `app.html` et
+# `tour.html`, qui ne sont pas ceux de `main` ; celles d'OP MESSAGES ne lisent AUCUNE page d'OP GESTION — `test-933` le
+# vérifie, et vérifie que les deux listes sont disjointes. Un bug du service ne doit pas bloquer le serveur d'OP GESTION,
+# ni l'inverse.
+#
+# ⚠️ Une ligne qui nomme un fichier absent fait ÉCHOUER le compteur (`scripts/bancs-ci.sh`) : une suite renommée ne peut pas
+# sortir de la porte en silence. Les suites entrent AUSSI dans la suite complète (`tests/test-*.js`) : la liste n'est pas
+# une exclusion, c'est ce que la porte de déploiement exige.
+#
+# ⛔ LE PLANCHER : moins de vérifications que ça, c'est que des suites ont sauté leur partie exécutée (sans
+# `server-msg/node_modules`, celles du service se déclarent vertes). Le relever quand on ajoute une suite, jamais le baisser.
+# 1er octobre 2026 : 430 sur les cinq suites d'installation et de déploiement (930 à 934) — plancher posé à 400.
+#plancher 400
+#
+# ── Installation, déploiement, surveillance ─────────────────────────────────────────────────────────────────────────────
+tests/test-930.js
+tests/test-931.js
+tests/test-932.js
+tests/test-933.js
+tests/test-934.js

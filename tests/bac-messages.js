@@ -78,7 +78,7 @@ case "$cmd" in
   restart|start)
     inst="\${1#teamop-msg@}"; p="$E/pid-$inst"
     [ -f "$p" ] && { kill "$(cat "$p")" 2>/dev/null || true; rm -f "$p"; sleep 0.2; }
-    [ -f "$E/refuse-demarrage" ] && exit 1
+    [ -f "$E/refuse-demarrage" ] && { rm -f "$E/refuse-demarrage"; exit 1; }   # refus UNIQUE : la relance du retour arrière doit pouvoir réussir
     port="$(sed -n 's/^PORT=//p' "$BAC_R/etc/opmsg/$inst.env")"
     cd "$BAC_R/opt/opmsg/$inst/current" || exit 1
     sha="$(basename "$(readlink -f "$BAC_R/opt/opmsg/$inst/current")")"
@@ -203,7 +203,8 @@ function bac(opts = {}) {
     OPMSG_RACINE: b.R,
     OPMSG_DEPOT: 'file://' + b.origine,
     OPMSG_PORT: b.port,
-    OPMSG_ESSAIS_SANTE: '25', OPMSG_PAUSE_SANTE: '0.2',   // 5 s d'attente de /health au lieu de 40 : un échec simulé ne coûte pas une demi-minute
+    OPMSG_ESSAIS_SANTE: '15', OPMSG_PAUSE_SANTE: '0.2',   // 3 s d'attente de /health au lieu de 40 : un échec simulé ne coûte pas une demi-minute
+    npm_config_offline: 'true', npm_config_fetch_retries: '0',   // aucun réseau dans un bac : un npm désaccordé doit échouer TOUT DE SUITE, pas après 70 s de tentatives
     OPMSG_PROXY: 'nginx',
     BAC_ETAT: b.E,
     BAC_R: b.R,

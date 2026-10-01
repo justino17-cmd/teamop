@@ -415,7 +415,7 @@ $H2_ON
     [ -z "$LIEN_NGX" ] || { mkdir -p "$(dirname "$LIEN_NGX")"; ln -sfn "$CIBLE_NGX" "$LIEN_NGX"; }
     if ! nginx -t >/dev/null 2>&1; then
       echo "  ⛔ nginx refuse la configuration (nginx -t) — rien n'est rechargé, mon fichier est remis comme avant."
-      if [ -n "$sauve" ]; then mv "$sauve" "$CIBLE_NGX"; else rm -f "$CIBLE_NGX" ${LIEN_NGX:+"$LIEN_NGX"}; fi
+      if [ -n "$sauve" ]; then mv "$sauve" "$CIBLE_NGX"; else rm -f "$CIBLE_NGX"; [ -z "$LIEN_NGX" ] || rm -f "$LIEN_NGX"; fi
       nginx -t 2>&1 | head -5 || true
       exit 1
     fi
