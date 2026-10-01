@@ -44,7 +44,7 @@ composeur (textarea >= 16 px), photo réduite par canvas, vocal MediaRecorder r�
 MODULE SÉPARÉ (`apercu/opmessages/source.js` : `lister/ouvrir/envoyer/marquerLu/ecouter`) — le jour du serveur à part, on le remplace par un
 module qui parle à ce serveur, rien d'autre ne change. Gardée par `tests/test-856.js`, `test-857.js` (module et `esc` exécutés), la sonde
 `tests/sonde-opmessages.js` (vrais gestes, 12 parcours = 6 appareils × jour/nuit, mouvement et transparence réduits, 2 560 px, micro refusé/absent) et ses mutations
-(`tests/mutations-opmessages.js`, 73 : séries M, S et C).
+(`tests/mutations-opmessages.js`, 74 : séries M, S et C). Sonde complète sur le code final : **1 930 ✓ 0 ✗**, 12 parcours (94 à 145 textes lus au pixel chacun), code 0, 1 393 s.
 **Relecture et testeur adverse de l'étape 2 (1er octobre 2026) — tout rejoué, tout corrigé, chaque correctif a son scénario de sonde ET sa mutation (série C)** :
 un vocal commencé dans une conversation partait dans l'autre au bureau (`ouvrirConv` ne coupait pas la prise ; le vocal part aussi vers la conversation où il a
 COMMENCÉ) ; un double toucher sur la flèche d'envoi lançait une prise de son (même piège sur l'envoi d'un vocal et sur la croix de la photo : garde de 400 ms) ;
@@ -62,6 +62,8 @@ alors ; le paquet montre la flèche dans la pilule ET le micro à droite en perm
 dépôt est en px, le convertir en bloc ferait déborder les hauteurs fixes (44 px) : à décider avec le système de design ; (3) un brouillon n'est gardé qu'en mémoire (perdu au
 rechargement : voulu pour l'aperçu, à reprendre avec le serveur) ; (4) un PNG simplement tronqué est refusé, mais un JPEG tronqué part en image partielle (des octets
 suivent légitimement son marqueur de fin : le refuser refuserait de vraies photos).
+(5) sous ~250 px de large (zoom navigateur à 200 % et plus sur un téléphone) la liste perd ses noms de conversation (colonne de texte écrasée) et le champ de saisie tombe à 54 px ; les barres de la feuille et des onglets, elles, tiennent dès 197 px (corrigé, `corrEtroit`) ;
+(6) la sonde a connu UN accroc non reproduit : au premier passage complet, la barre d'enregistrement d'« iPad 820 nuit » s'est refermée aussitôt (relâcher compté comme un maintien > 600 ms sous charge) ; rejoué 3 fois, plus jamais — à surveiller, pas à ignorer.
 ⚠️ Non mesuré ici : le clavier iOS (`visualViewport`, écrit d'après la spécification — à voir sur un iPhone), la lecture sonore d'un vocal
 d'exemple (simulée). RESTE : étape 3 (Appels : écran d'appel, segmenté Tous/Manqués, `--seg-track`/`--seg-knob`), puis agenda et réunions.
 Puis, même jour : **formules d'OP MESSAGES** — « un forfait gratuit comme il est là et un Pro à 15 euros ; lui à 25 on le
