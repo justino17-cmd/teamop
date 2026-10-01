@@ -179,6 +179,9 @@ vrai('des blocs run: sont lus (population avant verdict)', blocs.length >= 6);
   const lignesSecrets = src.split('\n').filter(l => /secrets\./.test(l) && !/^\s*#/.test(l));
   vrai('la clé SSH est lue dans un secret (population avant verdict)', lignesSecrets.length === 2);
   v('⛔ le secret n\'entre que par un `env:` du job — jamais interpolé dans un script (UNE clé par instance : la bêta n\'a pas celle de la production)', lignesSecrets.filter(l => !/^      CLE_SSH: \$\{\{ secrets\.VPS_SSH_KEY_MSG_(BETA|PROD) \}\}$/.test(l)), []);
+  vrai('⛔ CHAQUE job lit SA clé : la bêta VPS_SSH_KEY_MSG_BETA seule, la production VPS_SSH_KEY_MSG_PROD seule (sinon la clé de la bêta déploierait la production, ou la production ne serait pas protégée par son environnement)',
+    /secrets\.VPS_SSH_KEY_MSG_BETA/.test(J['deployer-beta'].join('\n')) && !/VPS_SSH_KEY_MSG_PROD/.test(J['deployer-beta'].join('\n'))
+    && /secrets\.VPS_SSH_KEY_MSG_PROD/.test(J['deployer-prod'].join('\n')) && !/secrets\.VPS_SSH_KEY_MSG_BETA/.test(J['deployer-prod'].join('\n')));
   v('⛔ aucun `${{ … }}` dans un bloc run: (une valeur venue de l\'extérieur — le sha, la cible — y deviendrait une commande)',
     blocs.filter(b => /\$\{\{/.test(b.texte)).map(b => b.ligne), []);
   v('⛔ aucun journalctl (le dépôt est public, les journaux d\'un run sont lus par tous pendant 90 jours)', /journalctl/.test(code), false);

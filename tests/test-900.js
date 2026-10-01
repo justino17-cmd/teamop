@@ -87,7 +87,7 @@ console.log('\nLes dépendances sont celles d\'OP GESTION, aux mêmes versions')
   vrai('un package-lock.json est commité', fs.existsSync(path.join(MSG, 'package-lock.json')));
   const lock = JSON.parse(fs.readFileSync(path.join(MSG, 'package-lock.json'), 'utf8')), lockB = JSON.parse(fs.readFileSync(path.join(RACINE, 'server', 'package-lock.json'), 'utf8'));
   v('versions RÉSOLUES identiques à celles d\'OP GESTION',
-    DECLAREES.map(k => lock.packages['node_modules/' + k].version === lockB.packages['node_modules/' + k].version), DECLAREES.map(() => true));
+    DECLAREES.map(k => ((lock.packages['node_modules/' + k] || {}).version !== undefined) && (lock.packages['node_modules/' + k] || {}).version === (lockB.packages['node_modules/' + k] || {}).version), DECLAREES.map(() => true));
   v('⛔ le verrou ne porte aucun paquet de nodemailer ni de web-push (npm ci n\'installerait rien d\'inutilisé)', Object.keys(lock.packages).filter(k => /node_modules\/(nodemailer|web-push)$/.test(k)), []);
   const gi = fs.readFileSync(path.join(RACINE, '.gitignore'), 'utf8');
   vrai('server-msg/node_modules est ignoré (jamais commité)', /^server-msg\/node_modules\/$/m.test(gi));

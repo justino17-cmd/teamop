@@ -10,7 +10,7 @@ Mêmes garde-fous que scratchpad/mutations-deploiement-messages.py (règles de C
   · le fichier muté est comparé à l'original AVANT (il doit différer) et la copie est TOUJOURS remise à l'identique après.
 Un témoin (copie sans mutation) passe d'abord sur tous les bancs visés.
 
-Usage : python3 scratchpad/mutations-relecture-messages.py [groupe|tout]   (groupes : service, porte, install, ui)
+Usage : python3 scratchpad/mutations-relecture-messages.py [groupe|tout] [S19,P11,…]   (groupes : service, porte, install, ui ; la liste d'identifiants restreint à ces mutations)
 """
 import os, re, shutil, subprocess, sys, tempfile, time
 
@@ -178,7 +178,11 @@ mut('ui', 'U02  un éphémère expiré devient « Message supprimé » au lieu d
 
 def main():
     groupe = sys.argv[1] if len(sys.argv) > 1 else 'tout'
+    seules = set(sys.argv[2].split(',')) if len(sys.argv) > 2 else None
     groupes = list(M) if groupe == 'tout' else [groupe]
+    if seules:
+        for g in groupes:
+            M[g] = [m for m in M[g] if m[0].split()[0] in seules]
     d = copie()
     print('copie :', d)
     bancs = sorted({b for g in groupes for (_, _, _, bs) in M[g] for b in bs})

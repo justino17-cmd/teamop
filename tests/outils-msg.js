@@ -299,7 +299,9 @@ function compteur() {
   const c = { ok: 0, ko: 0 };
   c.v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { c.ok++; console.log('  ✓ ' + t); } else { c.ko++; console.log('  ✗ ' + t + '\n      attendu : ' + JSON.stringify(b) + '\n      obtenu  : ' + JSON.stringify(a)); } };
   c.vrai = (t, a) => c.v(t, !!a, true);
-  c.fin = () => { console.log('\n' + c.ok + ' ✓  ' + c.ko + ' ✗'); process.exit(c.ko ? 1 : 0); };
+  /* ⛔ Un banc qui MEURT (exception attrapée, `process.exitCode = 1` posé par son `catch`) n'est pas un banc vert : sans cette ligne, `fin()`
+     sortait en 0 avec « 2 ✓ 0 ✗ » — la mutation « OP GESTION ne rend plus l'identifiant du compte » survivait à test-904 (relecture adverse). */
+  c.fin = () => { if (process.exitCode) c.ko++; console.log('\n' + c.ok + ' ✓  ' + c.ko + ' ✗'); process.exit(c.ko ? 1 : 0); };
   return c;
 }
 

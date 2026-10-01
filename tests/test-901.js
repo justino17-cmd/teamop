@@ -266,6 +266,10 @@ console.log('\nLes messages éphémères (horloge injectable) — la ligne ENTI�
   const dur = a.S.convCreerGroupe({ createur: al.id, nom: 'Durable', membres: [bo.id], annonces_seules: false, ephemere_s: 0 }).id;
   a.S.messageEnvoyer({ conv: eph, auteur: al.id, cid: 'cid-eph-00001', texte: 'ZXEPHEMERE' });
   a.S.messageEnvoyer({ conv: dur, auteur: al.id, cid: 'cid-eph-00002', texte: 'ZXDURABLE' });
+  // Une arrivée APRÈS le message éphémère : elle ne l'a jamais vu, l'annonce de sa purge ne la concerne pas non plus.
+  const ev0 = pers(a.S, 'eve'); a.S.contactLier(al.id, ev0.id);
+  a.S.membresAjouter({ conv: eph, par: al.id, uids: [ev0.id] });
+  const seqEph = a.S.messagesDe(eph, al.id).messages.find(x => x.texte === 'ZXEPHEMERE').seq;
   const avant = a.S.purgerExpires();
   v('population : rien d\'échu au départ, et la purge n\'efface rien', avant.n, 0);
   a.h.t += 86400 * 1000 - 1;
@@ -279,6 +283,9 @@ console.log('\nLes messages éphémères (horloge injectable) — la ligne ENTI�
   v('l\'identifiant est noté dans `purge`', brut.prepare("SELECT COUNT(*) AS n FROM purge WHERE genre = 'message_ephemere'").get().n >= 1, true);
   v('le message du groupe durable est intact', a.S.messagesDe(dur, al.id).messages.some(x => x.texte === 'ZXDURABLE'), true);
   v('un événement d\'EXPIRATION (pas de suppression « pour tous ») est écrit pour prévenir les flux', brut.prepare("SELECT COUNT(*) AS n FROM journal WHERE genre = 'msg_expire' AND conv = ?").get(eph).n >= 1, true);
+  const expiree = (uid) => a.S.evenementsPour(uid, 0, 500).evenements.filter(e => e.event === 'message_supprime' && e.data.conv === eph && e.data.seq === seqEph).map(e => e.data.pour);
+  v('⛔ l\'annonce de la purge dit « expire » à qui a vu le message', expiree(bo.id), ['expire']);
+  v('⛔ …et ne dit RIEN à qui est arrivé après (elle ne doit pas apprendre qu\'un message a existé avant elle)', expiree(ev0.id), []);
   brut.close();
   a.S.convMaj({ conv: dur, par: al.id, ephemere_s: 604800 });
   a.S.messageEnvoyer({ conv: dur, auteur: al.id, cid: 'cid-eph-00003', texte: 'après réglage' });
