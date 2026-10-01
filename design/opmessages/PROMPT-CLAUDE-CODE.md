@@ -1,3 +1,10 @@
+> ⛔ **ANNULÉ EN PARTIE : LA PHRASE « Même compte et même espace entreprise qu'OP GESTION ; connexion par lien
+> d'invitation » NE S'APPLIQUE PAS.** Elle vient du paquet de design. Justin a tranché autrement deux fois : le
+> 22 septembre 2026 (OP MESSAGES aura son propre serveur, avec des comptes de PERSONNES) et le 1er octobre 2026
+> (« tout et séparé », et « je veux pas qu'il soit sur Firebase »). OP MESSAGES ne se branche donc ni sur le socle
+> d'OP GESTION, ni sur Firebase. Voir `CLAUDE.md` (en tête) et `REPRISE.md`. Le reste de ce fichier (thème,
+> écrans, ordre des étapes) reste valable.
+
 # PROMPT pour Claude Code — OP MESSAGES (à coller tel quel)
 
 Tu travailles dans le dépôt `justino17-cmd/teamop`. Construis l'interface **OP MESSAGES** (messagerie d'équipe : messages, appels, réunions visio type Zoom) en suivant ce dossier.
