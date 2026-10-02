@@ -11,6 +11,32 @@ connues, et ce qui attend une décision de Justin.
 Tenu à jour à chaque fois qu'un chantier change d'état. Une ligne fausse ici est pire que pas
 de ligne du tout.
 
+# 🚧 2-3 OCTOBRE 2026, NUIT — OP MESSAGES : « FAIS TOUT CE QU'IL MANQUE, SAUF LE NUMÉRO DE TÉLÉPHONE »
+
+Justin, 2 octobre au soir : « Fais tout ce qu'il manque, sauf le système de numéro de téléphone, on le fera demain » (après avoir
+montré l'écran Réglages presque vide). Le reste de `design/opmessages/SERVEUR.md` § 4 est découpé en SEPT lots, construits l'un
+après l'autre par un agent (Sonnet) dans un arbre isolé, puis relus par `gardien` (serveur) et `testeur` (au navigateur), corrigés,
+et déployés sur la bêta (`msg-beta.teamop.fr`) par une poussée de `server-msg/` sur `main` :
+
+| lot | contenu | état |
+|---|---|---|
+| 1 | pièces (photos, vocaux, fichiers), photo de profil et de groupe, vrais Réglages (profil, confidentialité réciproque, appareils, stockage) | ✅ sur la branche (9cbc00b) — 68/68 mutations ; en relecture |
+| 2 | sauvegarde hors site chiffrée (étape 3), `restaurer.js essai`, `configurer-sauvegarde.js` | ✅ sur la branche (fusion 58aa408) — 65/65 mutations ; inerte tant que Justin n'a pas créé le bucket (guide § 10 ter) |
+| 3 | notifications push (VAPID propre), « Exporter mes données », « Supprimer mon compte » (J+14) | 🚧 en construction |
+| 4 | réunions programmées (étape 6) | à faire |
+| 5 | appels à deux, audio et vidéo (étape 7) — le relais TURN demande l'ouverture des ports par Justin | à faire |
+| 6 | appels de groupe et salle de réunion en maille (étape 8) | à faire |
+| 7 | espaces Pro, canaux, annuaire, abonnement en mode test (étape 5) | à faire |
+
+Liste des bancs d'OP MESSAGES après les lots 1 et 2 : **31 suites, 3 390 vérifications** (plancher 3380).
+⛔ **Un geste de Justin sera nécessaire au déploiement du lot 1** : le proxy du VPS borne tout corps à 64 Ko, donc aucune photo ne
+passe tant que `install-msg.sh` n'a pas été relancé (il réécrit le bloc nginx avec l'exception de 26 Mo sur `/api/pieces`, sans
+redemander aucune clé — `SERVEUR.md` § 4.4). Le déploiement par GitHub ne touche jamais au proxy.
+⚠️ Décision prise par l'agent, à confirmer par Justin : présence et accusés de lecture RÉCIPROQUES, aussi dans les groupes (comme
+WhatsApp). Réglages par défaut des pièces à confirmer : photo 12 Mo, vocal 10 Mo, fichier 25 Mo, 2 Go par personne.
+Corrigé à la fusion : un message « supprimé pour tous » est désormais noté dans `purge` (sinon une restauration l'aurait rendu
+lisible) ; la sauvegarde compte les pièces.
+
 # ✅ 2 OCTOBRE 2026, SOIR — OP MESSAGES BÊTA INSTALLÉE SUR LE VPS (`msg-beta.teamop.fr`)
 
 Faite par Justin, geste par geste, selon `design/opmessages/INSTALLER-LE-SERVEUR.md`, qui porte désormais ce qui a été vécu
@@ -40,9 +66,8 @@ Faite par Justin, geste par geste, selon `design/opmessages/INSTALLER-LE-SERVEUR
   `/api/beta/*`) fonctionne de bout en bout.
 
 **Ce qui reste, dans l'ordre** :
-1. ⚠️ La fiche d'accès de la Tour v2.81 dit encore « La bêta d'OP MESSAGES n'est pas encore installée… » (`tour.html`,
-   gardé par `test-940`) : la phrase est devenue fausse. Elle part avec la prochaine version de la Tour. Pour essayer
-   vraiment les messages, il faut un **second** accès (une autre personne, ou une fenêtre privée).
+1. ✅ La fiche d'accès de la Tour dit vrai depuis la v2.82 (0880dca, en service, servie octet pour octet ; suite de main
+   233 · 14 791). Pour essayer vraiment les messages, il faut un **second** accès (une autre personne, ou une fenêtre privée).
 2. Le VPS affiche « *** System restart required *** » (mises à jour du noyau) : un redémarrage coupe aussi OP GESTION. À
    planifier avec Justin, à une heure calme, jamais à la volée.
 3. Le jeton GitHub du VPS expire le 17 octobre 2026 : à remplacer avant, par un geste masqué.
