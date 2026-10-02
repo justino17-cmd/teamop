@@ -276,6 +276,32 @@
     color: var(--vert);
     margin-top: 2px;
   }
+  /* ===== LES OPTIONS DU PRO : des cases de 44 px, prix à droite, aucun mot ne se coupe ===== */
+  .bloc-options, .options-incluses {
+    margin: 10px 0 14px;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--m-link) 6%, transparent);
+    border: 1px solid color-mix(in srgb, var(--m-link) 20%, transparent);
+  }
+  .bloc-options { padding: 12px 14px 4px; }
+  .titre-options { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; color: var(--m-sub); margin-bottom: 2px; }
+  .titre-options span { font-weight: 500; letter-spacing: 0; }
+  .option-case {
+    display: flex; align-items: center; gap: 12px;
+    min-height: 44px; padding: 10px 0;
+    border-top: 1px solid var(--bordure);
+    cursor: pointer;
+  }
+  .titre-options + .option-case { border-top: 0; }
+  .option-case input { width: 22px; height: 22px; margin: 0; flex-shrink: 0; accent-color: var(--m-accent); cursor: pointer; }
+  .option-texte { flex: 1; min-width: 0; font-size: 14px; line-height: 1.35; }
+  .option-texte b { display: block; font-weight: 600; color: var(--texte); overflow-wrap: anywhere; }
+  .option-texte .detail { display: block; font-size: 12px; color: var(--texte-3); overflow-wrap: anywhere; }
+  .option-prix { flex-shrink: 0; font-size: 13.5px; font-weight: 600; color: var(--texte); white-space: nowrap; }
+  .option-prix small { font-size: 11.5px; font-weight: 500; color: var(--texte-3); }
+  .options-incluses { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; font-size: 13px; line-height: 1.45; color: var(--texte-2); }
+  .options-incluses b { color: var(--texte); font-weight: 600; }
+  .options-incluses svg { width: 14px; height: 14px; margin-top: 3px; flex-shrink: 0; color: var(--vert); }
   .btn-payer {
     width: 100%;
     padding: 13px 22px;
@@ -443,7 +469,7 @@
 <script>
 /* =====================================================================
    RÉCAPITULATIF AVANT PAIEMENT — TEAM OP
-   Ouvrir avec ?formule=pro | business | premium (msgpro, msgpremium pour OP MESSAGES)
+   Ouvrir avec ?formule=pro | business | premium (msggratuit, msgpro pour OP MESSAGES ; msgpremium est retirée de la vente et mène à msgpro)
    Exemple : recap-abonnement.html?formule=business
 
    Le paiement se fait depuis un COMPTE TEAM OP (voir « LE COMPTE » plus bas) :
@@ -468,7 +494,28 @@ const STRIPE_PRICES = {
   business:   { mensuel: 'price_1TwV4sFKFKIrVWLDvYSD9AWp', annuel: 'price_1TwgcVFKFKIrVWLDpFbHY1lM' },
   premium:    { mensuel: 'price_1TwV5qFKFKIrVWLD1iFJDsaR', annuel: 'price_1Twgd8FKFKIrVWLDavn9cJvz' },
   msgpro:     { mensuel: 'price_1TwV6EFKFKIrVWLD3Dvl6lzb', annuel: 'price_1TwgdtFKFKIrVWLDJ4xBhFlM' },
+  /* ⛔ « Messages Business Premium » (25 €) EST RETIRÉE DE LA VENTE — Justin, 1er octobre 2026 : « un Pro à 15 euros ; lui à 25 on le
+     supprime ; à 15 euros ils ont toutes les options ». Ces deux tarifs RESTENT dans la table : le serveur les reconnaît toujours
+     (un abonnement d'avant doit rester lu comme de l'OP MESSAGES, `STRIPE_PRIX_FORMULE`) et `test-842` compare les deux listes.
+     Mais ils n'ont plus aucune formule ici (`FORMULES`), donc aucun bouton, et le serveur refuse d'en VENDRE un neuf
+     (400 `formule_retiree`). Ne pas les rattacher de nouveau à une formule affichée. */
   msgpremium: { mensuel: 'price_1TwV6mFKFKIrVWLD7DkH3P9f', annuel: 'price_1TwgeFFKFKIrVWLDgqaRlO6V' }
+};
+
+/* ⛔ LES OPTIONS DU PRO ONT LEUR PROPRE TABLE, JAMAIS DANS `STRIPE_PRICES` (1er octobre 2026, « Plus cher » — Justin). Deux
+   raisons : `tests/test-842.js` exige que `STRIPE_PRICES` porte exactement les cinq formules et les compare une à une au
+   serveur ; et une option n'est pas une formule — le serveur n'accepte JAMAIS un `price_…` d'option venu de la page, il
+   reçoit des CLÉS (`options: ['stock']`) et en tire ses tarifs et sa quantité (une valeur du corps ne décide pas de ce qui
+   est payé).
+   ⛔ VIDES TANT QUE JUSTIN N'A PAS CRÉÉ LES TARIFS CHEZ STRIPE (`node server/stripe-options.js`, sur le VPS) : une option
+   dont les DEUX tarifs (mensuel et annuel) ne sont pas posés n'a pas de case — la page en service ne vend rien de ce que
+   l'application publiée n'ouvre pas encore (les appareils d'abord, la porte ensuite). Les identifiants collés ici sont ceux
+   du serveur : `tests/test-852.js` les compare. Une ligne par option, dans l'ordre des clés. */
+const STRIPE_PRICES_OPTIONS = {
+  stock:     { mensuel: '', annuel: '' },
+  achats:    { mensuel: '', annuel: '' },
+  compta:    { mensuel: '', annuel: '' },
+  sanitaire: { mensuel: '', annuel: '' }
 };
 
 /* ⛔ UN ABONNEMENT = UN UTILISATEUR, dans toutes les formules — Justin, 27 septembre 2026 au soir : « à partir
@@ -505,7 +552,7 @@ const FORMULES = {
       { ok: true,  titre: 'App web + mobile', detail: 'iPhone, Android, Mac, PC — à jour en quelques secondes' },
       { ok: true,  titre: 'Données chiffrées', detail: 'AES-256, espace isolé' },
       { ok: true,  titre: 'Support par e-mail', detail: '' },
-      { ok: false, titre: 'Stock, bons de commande, registre 3D', detail: 'disponibles dès la formule Business' }
+      { ok: false, parOptions: true, titre: 'Stock, bons de commande, registre 3D', detail: 'disponibles dès la formule Business' }
     ]
   },
   business: {
@@ -574,7 +621,7 @@ const FORMULES = {
   msgpro: {
     groupe: 'msg',
     nom: 'Messages Pro',
-    desc: 'La messagerie de votre entreprise, propre et séparée du perso',
+    desc: 'La messagerie de votre entreprise, séparée du perso, avec toutes les options',
     prixMensuel: 15,
     utilisateurs: 1,
     couleur: 'var(--m-link)',
@@ -582,6 +629,9 @@ const FORMULES = {
     badge: { texte: '⭐ Équipes', fond: 'var(--m-link)', couleur: 'var(--m-bg)' },
     boutonTexte: 'Continuer vers le paiement',
     boutonFond: 'var(--m-accent)',
+    /* TOUT ce que promettait « Messages Business Premium » est ici (Justin, 1er octobre 2026). « Illimitées » ne se dit que de la
+       DURÉE : le nombre de participants en vidéo est borné (design/opmessages/SERVEUR.md § 3.5). Rien sur l'abonnement d'OP GESTION :
+       les comptes d'OP MESSAGES sont séparés, aucune liaison à lire. */
     droits: [
       { ok: true,  titre: 'Tout Perso inclus', detail: 'messages, appels vidéo, fichiers...' },
       { ok: true,  titre: 'Espace entreprise (SIRET)', detail: 'vos équipes, vos règles' },
@@ -589,32 +639,31 @@ const FORMULES = {
       { ok: true,  titre: 'Épingles, favoris, archivage', detail: 'et recherche' },
       { ok: true,  titre: 'Mentions @, réponses', detail: 'messages vocaux' },
       { ok: true,  titre: 'Notifications push', detail: 'gestion des membres' },
-      { ok: false, titre: 'Réunions visio', detail: 'disponibles avec Messages Business Premium' }
-    ]
-  },
-  msgpremium: {
-    groupe: 'msg',
-    nom: 'Messages Business Premium',
-    desc: 'La totale : visio illimitée et priorité au support',
-    prixMensuel: 25,
-    utilisateurs: 1,
-    couleur: 'var(--m-link)',
-    fond: 'color-mix(in srgb, var(--m-link) 12%, transparent)',
-    badge: { texte: '👑 Premium', fond: 'var(--m-link)', couleur: 'var(--m-bg)' },
-    boutonTexte: 'Continuer vers le paiement',
-    boutonFond: 'var(--m-accent)',
-    droits: [
-      { ok: true,  titre: 'Tout Messages Pro inclus', detail: 'espace entreprise, canaux, épingles...' },
-      { ok: true,  titre: 'Réunions visio illimitées', detail: 'HD, partage d\'écran, sans limite' },
+      { ok: true,  titre: 'Réunions visio sans limite de durée', detail: 'HD, partage d\'écran · le nombre de participants en vidéo reste limité' },
       { ok: true,  titre: 'Réunions planifiées', detail: 'invitations · appels de groupe' },
       { ok: true,  titre: 'Couleurs de conversation', detail: 'et personnalisation avancée' },
-      { ok: true,  titre: 'Support prioritaire', detail: '' },
-      { ok: true,  titre: 'Inclus automatiquement', detail: 'avec le Business Premium de la suite' }
+      { ok: true,  titre: 'Support prioritaire', detail: '' }
     ]
   }
 };
 
+/* Une formule RETIRÉE de la vente : son lien (mail, favori, page en cache) ouvre la formule qui la remplace, et la page le dit —
+   jamais une page vide, jamais le choix par défaut (Business, d'OP GESTION) pour quelqu'un qui venait pour la messagerie. */
+const FORMULES_RETIREES = { msgpremium: { vers: 'msgpro', nom: 'Messages Business Premium' } };
+
 const REMISE_ANNUELLE = 2; // 2 mois offerts sur l'année
+
+/* ---------- LES OPTIONS DU PRO ---------- */
+/* Réservées au Pro : Business et Business Premium les ont TOUTES (cahier des charges du 1er octobre 2026, section 1).
+   Même grille que le serveur (`OPTIONS_PRIX_MOIS`), l'application (`OPTIONS_GESTION`) et le site : `tests/test-852.js` les
+   compare. Prix TTC par utilisateur et par mois ; à l'année, dix mois (REMISE_ANNUELLE) comme la formule.
+   ⚠️ La clé du registre sanitaire est `sanitaire`, jamais `registre` (déjà une vue de l'application). */
+const OPTIONS_GESTION = {
+  stock:     { nom: 'Stock',                           prixMensuel: 9, desc: 'produits, mouvements, demandes, validations — et les box pour le métier 3D' },
+  achats:    { nom: 'Achats fournisseurs',             prixMensuel: 6, desc: 'fournisseurs, bons de commande, commande suggérée, boîte mail' },
+  compta:    { nom: 'Encaissements et compta',         prixMensuel: 6, desc: 'comptabilité, télécollecte, enveloppes' },
+  sanitaire: { nom: 'Registre sanitaire (métier 3D)',  prixMensuel: 6, desc: 'registre des passages, produits appliqués, dossier sanitaire', metier3d: true }
+};
 /* OP MESSAGES est fermé le temps de passer sur son propre serveur (décision de Justin, 22 et
    23 septembre 2026 : « tu peux marquer bientôt disponible »). Une formule qu'on ne peut pas
    servir ne se vend pas : ni paiement, ni compte gratuit. Ses droits restent LISIBLES à gauche,
@@ -625,10 +674,33 @@ const OPMSG_BIENTOT = true;
 const params = new URLSearchParams(window.location.search);
 let formuleActive = params.get('formule') || 'business';
 if (formuleActive === 'gratuit') formuleActive = 'pro';   // un lien d'avant le 29 septembre 2026 : la formule d'entrée, désormais
+let formuleRetiree = null;   // { nom, vers } : la formule demandée par l'adresse n'est plus vendue — la page dit laquelle l'a remplacée
+if (FORMULES_RETIREES[formuleActive] && !FORMULES[formuleActive]) { formuleRetiree = FORMULES_RETIREES[formuleActive]; formuleActive = formuleRetiree.vers; }
 if (!FORMULES[formuleActive]) formuleActive = 'business';
+/* ⛔⛔ LE MODE « AJOUT » (1er octobre 2026, relecture d'intégration) : `?formule=pro&ajout=options&options=stock` — le lien de
+   l'application (Paramètres → Formule → « Ajouter »). Cette page envoyait TOUJOURS un `price` : un client déjà en Pro y aurait
+   acheté un SECOND abonnement Pro (des places de trop, prélevées) avec l'option. En mode ajout, la page n'envoie ni `price` ni
+   `quantity` : seulement des CLÉS d'option et la référence de l'entreprise — le serveur ajoute l'option AU Pro que l'entreprise paie
+   déjà, pour chaque utilisateur (ce qui manque), au cycle de ce Pro. Rien de tout cela ne se choisit ici : ni formule, ni nombre,
+   ni cycle (le corps ne décide pas de ce qui est facturé). Le mode ne vaut que pour le Pro. */
+let modeAjout = params.get('ajout') === 'options';
+if (modeAjout) formuleActive = 'pro';
 let cycleAnnuel = params.get('cycle') === 'annuel';   // revient du portail avec le cycle choisi (lienPortail)
 /* Préremplissage : recap-abonnement.html?formule=business&utilisateurs=7 */
 let nbUsersVoulu = Math.min(MAX_ABONNEMENTS, parseInt(params.get('utilisateurs'), 10) || 0);   // 0 = automatique (1 : un abonnement)
+/* Les options cochées. Venues de l'adresse (`options=stock,achats` — l'application y mène — ou `stock.achats`, la forme qui
+   survit à l'aller-retour par le portail : `RETOUR_PAIEMENT` d'/apercu/espace.html n'accepte pas la virgule), réduites aux clés
+   CONNUES et dédoublonnées : une clé inventée n'entre jamais dans le panier. Elles ne valent que pour le Pro. */
+const optionsDeAdresse = (txt) => Object.keys(OPTIONS_GESTION).filter(k => String(txt || '').split(/[,.\s]+/).indexOf(k) >= 0);
+let optionsChoisies = formuleActive === 'pro' ? optionsDeAdresse(params.get('options')) : [];
+/* Une option n'a une case que si ses DEUX tarifs sont posés (mensuel ET annuel : la case suit le cycle, et un tarif manquant
+   ferait échouer le paiement côté serveur au lieu de masquer la case — comme `annuelDispo` pour les formules). */
+const optionsDispo = () => Object.keys(OPTIONS_GESTION).filter(k => { const t = STRIPE_PRICES_OPTIONS[k] || {}; return /^price_\w+$/.test(t.mensuel || '') && /^price_\w+$/.test(t.annuel || ''); });
+/* Ce qui part vraiment : le Pro seulement, les options cochées ET en vente, dans l'ordre de la grille. */
+const optionsActives = () => formuleActive === 'pro' ? optionsDispo().filter(k => optionsChoisies.indexOf(k) >= 0) : [];
+/* L'adresse de l'état courant (formule, nombre, cycle, options) : `replaceState` y garde la page rechargeable, le chemin
+   vers le portail y garde le panier (séparateur `.`, voir plus haut). */
+const adresseEtat = (sep) => modeAjout ? '?formule=pro&ajout=options' + (optionsActives().length ? '&options=' + optionsActives().join(sep) : '') : '?formule=' + formuleActive + (nbUsersVoulu > 1 ? '&utilisateurs=' + nbUsersVoulu : '') + (cycleAnnuel ? '&cycle=annuel' : '') + (optionsActives().length ? '&options=' + optionsActives().join(sep) : '');
 
 /* ---------- LE COMPTE — PAS DE PAIEMENT SANS LUI ---------- */
 /* ⛔ PAS DE PAIEMENT SANS COMPTE — Justin, 27 septembre 2026 : « il faut bien préciser aux personnes qu'elles doivent
@@ -669,8 +741,8 @@ async function lireCompte() {
 /* Le chemin vers le portail, et le retour : la formule, le nombre et le cycle survivent à l'aller-retour. ⚠️ Le nom de la
    page de retour s'écrit DANS `encodeURIComponent(` : `scripts/apercu.sh` réécrit tout autre `'/apercu/recap-abonnement.html`
    vers l'aperçu, et `RETOUR_PAIEMENT` refuserait alors le retour. */
-const lienPortail = () => '/apercu/espace.html?retour=' + encodeURIComponent('recap-abonnement.html?formule=' + formuleActive
-  + (nbUsersVoulu > 1 ? '&utilisateurs=' + nbUsersVoulu : '') + (cycleAnnuel ? '&cycle=annuel' : ''));
+const lienPortail = () => '/apercu/espace.html?retour=' + encodeURIComponent('recap-abonnement.html?formule=' + formuleActive + (modeAjout ? '&ajout=options' : '')
+  + (modeAjout ? '' : (nbUsersVoulu > 1 ? '&utilisateurs=' + nbUsersVoulu : '') + (cycleAnnuel ? '&cycle=annuel' : '') + (optionsActives().length ? '&options=' + optionsActives().join('.') : '')) + (modeAjout && optionsActives().length ? '&options=' + optionsActives().join('.') : ''));
 /* Revenir sur l'onglet — après avoir confirmé son adresse ailleurs, ou depuis la page Stripe — relit le compte : c'est le
    geste que la personne fait, elle n'a pas à recharger la page pour qu'il compte. */
 let relectureEnCours = false;
@@ -715,6 +787,7 @@ if (typeof window.addEventListener === 'function') window.addEventListener('page
 /* ---------- RENDU : SÉLECTEUR ---------- */
 function rendreSelecteur() {
   const c = document.getElementById('selecteurFormules');
+  if (modeAjout) { c.innerHTML = ''; return; }   // l'option s'ajoute au Pro de l'entreprise : aucune formule à choisir
   const groupe = FORMULES[formuleActive].groupe;
   c.innerHTML = Object.entries(FORMULES).filter(([cle, f]) => f.groupe === groupe).map(([cle, f]) =>
     `<button class="puce-formule ${cle === formuleActive ? 'active' : ''}" data-formule="${cle}">${f.nom}</button>`
@@ -725,8 +798,10 @@ function rendreSelecteur() {
          perdait les « 4 utilisateurs » venus du courriel J-7 au moment où le client choisit une autre formule que
          celle du lien (Justin, 29 septembre 2026 : « ils choisissent le tarif qu'ils veulent ») ; et un refus affiché
          visait l'AUTRE formule, il ne survit pas au changement */
-      formuleActive = b.dataset.formule; compteMsg = null;
-      history.replaceState(null, '', '?formule=' + formuleActive + (nbUsersVoulu > 1 ? '&utilisateurs=' + nbUsersVoulu : '') + (cycleAnnuel ? '&cycle=annuel' : ''));
+      formuleActive = b.dataset.formule; compteMsg = null; formuleRetiree = null;
+      /* les options sont celles du PRO : Business et Premium les incluent toutes, un panier d'options ne les suit pas */
+      if (formuleActive !== 'pro') optionsChoisies = [];
+      history.replaceState(null, '', adresseEtat(','));
       rendreTout();
     });
   });
@@ -736,6 +811,11 @@ function rendreSelecteur() {
 function rendreDroits() {
   const f = FORMULES[formuleActive];
   const c = document.getElementById('carteDroits');
+  /* « disponibles dès la formule Business » devient « en option avec le Pro » SEULEMENT quand les options se vendent :
+     tant que leurs tarifs ne sont pas posés, la page ne promet rien qu'elle ne puisse pas encaisser */
+  const droits = f.droits.map(d => d.parOptions && optionsDispo().length
+    ? Object.assign({}, d, { titre: 'Stock, achats, compta, registre sanitaire (3D)', detail: 'en option avec le Pro — inclus dans Business' })
+    : d);
 
   const avatars = Array.from({ length: Math.min(f.utilisateurs, 5) }, () =>
     `<span class="avatar-rond" style="background:${f.fond}; color:${f.couleur};">
@@ -743,7 +823,9 @@ function rendreDroits() {
      </span>`
   ).join('');
 
-  c.innerHTML = `
+  const noteRetiree = formuleRetiree && formuleActive === formuleRetiree.vers
+    ? `<div class="compte-bloc attention" role="note" id="noteFormuleRetiree" style="margin:0 0 16px"><b>${formuleRetiree.nom} n'est plus proposée.</b> Toutes ses options sont maintenant comprises dans ${f.nom}, à ${f.prixMensuel}&nbsp;€ par utilisateur et par mois.</div>` : '';
+  c.innerHTML = `${noteRetiree}
     <div class="entete-formule">
       <div class="icone-formule" style="background:${f.fond}; color:${f.couleur};">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
@@ -764,15 +846,15 @@ function rendreDroits() {
     </div>
 
     <div class="section-droits">Ce que cette formule vous donne le droit de faire</div>
-    ${f.droits.filter(d => d.ok).map(d => `
+    ${droits.filter(d => d.ok).map(d => `
       <div class="droit">
         <span class="coche"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
         <span><strong>${d.titre}</strong>${d.detail ? ` <span class="detail">— ${d.detail}</span>` : ''}</span>
       </div>`).join('')}
 
-    ${f.droits.some(d => !d.ok) ? `
+    ${droits.some(d => !d.ok) ? `
       <div class="section-droits">Non inclus dans cette formule</div>
-      ${f.droits.filter(d => !d.ok).map(d => `
+      ${droits.filter(d => !d.ok).map(d => `
         <div class="droit exclu">
           <span class="coche"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span>
           <span><strong>${d.titre}</strong>${d.detail ? ` <span class="detail">— ${d.detail}</span>` : ''}</span>
@@ -794,12 +876,12 @@ function boutonCompte(f) {
     default: return ICONE_CARTE + f.boutonTexte;
   }
 }
-function blocCompte(f, nbAbos) {
+function blocCompte(f, nbAbos, ajout) {
   const msg = compteMsg ? `<div class="compte-msg${compteMsg.erreur ? ' erreur' : ''}" role="status">${echapper(compteMsg.texte)}</div>` : '';
   const qui = compte.nom ? `<b>${echapper(compte.nom)}</b> · ${echapper(compte.email)}` : `<b>${echapper(compte.email)}</b>`;
   switch (compte.etat) {
     case 'lecture': return '';
-    case 'aucun': return `<div class="compte-bloc" role="note"><b>Un compte TEAM OP d'abord.</b> Le paiement se fait depuis votre compte&nbsp;: créez-le (c'est gratuit) ou connectez-vous — vous revenez ici ensuite, avec votre choix (${nbAbos}&nbsp;abonnement${nbAbos > 1 ? 's' : ''} ${echapper(f.nom)}).${msg}</div>`;
+    case 'aucun': return `<div class="compte-bloc" role="note"><b>Un compte TEAM OP d'abord.</b> Le paiement se fait depuis votre compte&nbsp;: créez-le (c'est gratuit) ou connectez-vous — vous revenez ici ensuite, avec votre choix (${ajout ? 'des options à ajouter à votre abonnement ' + echapper(f.nom) : nbAbos + '&nbsp;abonnement' + (nbAbos > 1 ? 's' : '') + ' ' + echapper(f.nom)}).${msg}</div>`;
     case 'a_confirmer': return `<div class="compte-bloc attention" role="note"><b>Confirmez votre adresse e-mail.</b> Un lien vous a été envoyé à <b>${echapper(compte.email)}</b>&nbsp;: ouvrez-le, puis revenez sur cette page — le paiement s'ouvrira.<div class="compte-gestes"><button type="button" class="compte-geste" id="btnRenvoiLien">Renvoyer le lien</button><button type="button" class="compte-geste" id="btnAutreCompte">Changer de compte</button></div>${msg}</div>`;
     case 'injoignable': return `<div class="compte-bloc erreur" role="alert"><b>Le service TEAM OP ne répond pas.</b> Sans lui, le paiement ne peut pas se faire — rien n'a été payé. Réessayez dans un instant.${msg}</div>`;
     default: return `<div class="compte-bloc ok" role="note">Paiement rattaché à votre compte&nbsp;: ${qui}.<div class="compte-gestes"><button type="button" class="compte-geste" id="btnAutreCompte">Ce n'est pas vous&nbsp;? Changer de compte</button></div>${msg}</div>`;
@@ -808,6 +890,7 @@ function blocCompte(f, nbAbos) {
 
 /* ---------- RENDU : PAIEMENT ---------- */
 function rendrePaiement() {
+  if (modeAjout) { rendrePaiementAjout(); return; }
   const f = FORMULES[formuleActive];
   const c = document.getElementById('cartePaiement');
   if (OPMSG_BIENTOT && f.groupe === 'msg') {
@@ -827,9 +910,13 @@ function rendrePaiement() {
   const annuelDispo = !gratuit && !!(STRIPE_PRICES[formuleActive] || {}).annuel;
   if (!annuelDispo) cycleAnnuel = false;
 
+  /* le Pro avec ses options : chaque option a la quantité de la formule (un utilisateur = une place de chaque), donc le prix
+     d'UN utilisateur est celui de la formule plus celui de ses options — et tout le reste (annuel, total) en découle */
+  const opts = gratuit ? [] : optionsActives();
+  const prixMensuelUnit = f.prixMensuel + opts.reduce((t, k) => t + OPTIONS_GESTION[k].prixMensuel, 0);
   const prixAffiche = cycleAnnuel && !gratuit
-    ? f.prixMensuel * (12 - REMISE_ANNUELLE)
-    : f.prixMensuel;
+    ? prixMensuelUnit * (12 - REMISE_ANNUELLE)
+    : prixMensuelUnit;
   const suffixe = gratuit ? 'pour toujours' : (cycleAnnuel ? '/ an' : '/ mois');
   const parUtilisateur = gratuit ? null
     : (cycleAnnuel ? prixAffiche / 12 / f.utilisateurs : prixAffiche / f.utilisateurs);
@@ -840,7 +927,7 @@ function rendrePaiement() {
       <span class="prix-grand">${gratuit ? '0 €' : totalAffiche + ' €'} <small>${suffixe}</small></span>
     </div>
     <div style="text-align:center; font-size:12.5px; color:var(--texte-2); margin-bottom: 6px;">
-      Formule ${f.nom} · 1 utilisateur par abonnement
+      Formule ${f.nom}${opts.length ? ' + ' + opts.length + ' option' + (opts.length > 1 ? 's' : '') : ''} · 1 utilisateur par abonnement
       ${parUtilisateur ? `<br>soit ${parUtilisateur.toFixed(2).replace('.', ',').replace(',00','')} € / mois par utilisateur` : ''}
     </div>
 
@@ -857,6 +944,21 @@ function rendrePaiement() {
       </div>
       ${nbAbos>1 && !((STRIPE_PRICES[formuleActive]||{})[cycleAnnuel?'annuel':'mensuel'])?`<div style="margin-top:9px;font-size:12px;color:var(--m-body);text-align:center;">⚠️ Sur la page de paiement, indiquez la quantité : <b style="color:var(--m-text);">${nbAbos}</b></div>`:''}
     </div>` : ''}
+    ${!gratuit && f.groupe === 'gestion' && formuleActive === 'pro' && optionsDispo().length ? `
+      <div class="bloc-options" role="group" aria-labelledby="titreOptions">
+        <div class="titre-options" id="titreOptions">OPTIONS DU PRO <span>· par utilisateur</span></div>
+        ${optionsDispo().map(k => { const o = OPTIONS_GESTION[k]; const on = opts.indexOf(k) >= 0; return `
+        <label class="option-case${on ? ' cochee' : ''}">
+          <input type="checkbox" data-option="${k}"${on ? ' checked' : ''}>
+          <span class="option-texte"><b>${o.nom}</b><span class="detail">${o.desc}</span></span>
+          <span class="option-prix">+&nbsp;${cycleAnnuel ? o.prixMensuel * (12 - REMISE_ANNUELLE) : o.prixMensuel}&nbsp;€<small>${cycleAnnuel ? ' / an' : ' / mois'}</small></span>
+        </label>`; }).join('')}
+      </div>` : ''}
+    ${!gratuit && f.groupe === 'gestion' && formuleActive !== 'pro' && optionsDispo().length ? `
+      <div class="options-incluses" role="note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        <span><b>Toutes les options sont incluses</b> — stock, achats, compta et registre sanitaire (métier 3D), sans rien à ajouter.</span>
+      </div>` : ''}
     ${!gratuit && annuelDispo ? `
       <div class="choix-cycle">
         <button class="cycle ${!cycleAnnuel ? 'actif' : ''}" data-cycle="mensuel">
@@ -873,10 +975,15 @@ function rendrePaiement() {
         <span>Abonnement ${f.nom}${nbAbos>1?' \u00d7 '+nbAbos:''}</span>
         <span>${(cycleAnnuel ? f.prixMensuel * 12 : f.prixMensuel) * nbAbos} €</span>
       </div>
+      ${opts.map(k => `
+      <div class="ligne-prix">
+        <span>Option ${OPTIONS_GESTION[k].nom}${nbAbos>1?' \u00d7 '+nbAbos:''}</span>
+        <span>${(cycleAnnuel ? OPTIONS_GESTION[k].prixMensuel * 12 : OPTIONS_GESTION[k].prixMensuel) * nbAbos} €</span>
+      </div>`).join('')}
       ${cycleAnnuel ? `
         <div class="ligne-prix" style="color:var(--vert);">
           <span>Remise annuelle (${REMISE_ANNUELLE} mois offerts)</span>
-          <span>− ${f.prixMensuel * REMISE_ANNUELLE * nbAbos} €</span>
+          <span>− ${prixMensuelUnit * REMISE_ANNUELLE * nbAbos} €</span>
         </div>` : ''}
       <div class="ligne-prix total">
         <span>Total ${cycleAnnuel ? 'annuel' : 'mensuel'}</span>
@@ -934,6 +1041,17 @@ function rendrePaiement() {
     });
   });
 
+  c.querySelectorAll('[data-option]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const k = inp.dataset.option;
+      optionsChoisies = optionsChoisies.filter(x => x !== k).concat(inp.checked ? [k] : []);
+      compteMsg = null;   // un refus affiché visait le panier d'avant
+      history.replaceState(null, '', adresseEtat(','));
+      rendrePaiement();
+      const n = c.querySelector('[data-option="' + k + '"]'); if (n) n.focus();   // le rendu réécrit tout : le clavier ne perd pas sa place
+    });
+  });
+
   const br = document.getElementById('btnRenvoiLien'); if (br) br.addEventListener('click', () => renvoyerLien(br));
   const ba = document.getElementById('btnAutreCompte'); if (ba) ba.addEventListener('click', () => changerCompte());
 
@@ -942,11 +1060,7 @@ function rendrePaiement() {
       window.location.href = CONFIG_STRIPE.inscriptionGratuite;
       return;
     }
-    if (compte.etat === 'lecture') return;
-    if (compte.etat === 'aucun') { window.location.href = lienPortail(); return; }
-    if (compte.etat !== 'pret') { compteMsg = null; compte = Object.assign({}, compte, { etat: 'lecture' }); rendrePaiement(); await relireCompte(); return; }
-    /* ⛔ on ne paie qu'au nom AFFICHÉ : une session changée ailleurs se relit d'abord (et se montre) */
-    if (sessionPortail() !== compte.jeton) { compteMsg = null; compte = { etat: 'lecture' }; rendrePaiement(); await relireCompte(); return; }
+    if (!(await paiementPret())) return;
     /* ⛔ SANS CETTE RÉFÉRENCE, LE CORRECTIF STRIPE DU SERVEUR NE SERT À RIEN.
        `/api/stripe/checkout` ne grave `subscription_data[metadata][espace]` sur l'abonnement
        que si la page lui envoie un `ref` — et cette page, la SEULE du site qui ouvre une page
@@ -962,48 +1076,188 @@ function rendrePaiement() {
     };
     const btn = document.getElementById('btnPayer');
     const priceId = (STRIPE_PRICES[formuleActive] || {})[cycleAnnuel ? 'annuel' : 'mensuel'];
+    /* ⛔ Des CLÉS d'option, jamais un tarif ni un montant : le serveur en tire ses prix, ses places et son cycle. Vide hors du
+       Pro et tant que les tarifs ne sont pas posés — le corps part alors comme avant les options. */
+    const optionsEnvoyees = optionsActives();
     if (!priceId) { compteMsg = { texte: 'Cette formule ne se paie pas encore en ligne : écrivez à support@teamop.fr.', erreur: true }; rendrePaiement(); return; }
     btn.disabled = true; btn.innerHTML = 'Préparation du paiement…';
     let r = null, j = null;
     const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 15000);
     try {
-      r = await fetch(API_TEAMOP + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + compte.jeton }, body: JSON.stringify({ price: priceId, quantity: nbAbos, ref: espaceRattacheRef() }), signal: ctl.signal });
+      r = await fetch(API_TEAMOP + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + compte.jeton }, body: JSON.stringify({ price: priceId, quantity: nbAbos, ref: espaceRattacheRef(), options: optionsEnvoyees }), signal: ctl.signal });
       j = await r.json().catch(() => null);
     } catch (e) { r = null; }
     finally { clearTimeout(to); }
-    /* ⛔ UN IMPAYÉ SE RÈGLE, IL NE SE RACHÈTE PAS (Justin, 29 septembre 2026 : carte refusée = impayé) — le serveur rend alors la
-       FACTURE EN ATTENTE, pas une page d'abonnement neuf : la page le DIT avant d'y aller (le montant n'est pas celui qu'on
-       vient de choisir), puis l'ouvre */
-    if (r && r.ok && j && j.url && j.facture) {
-      compteMsg = { texte: 'Un prélèvement précédent de votre abonnement n\'a pas abouti : sa facture en attente s\'ouvre. La régler rétablit l\'accès — rien d\'autre ne sera prélevé.' };
-      rendrePaiement();
-      setTimeout(() => { window.location.href = j.url; }, 2500);
-      return;
-    }
-    if (r && r.ok && j && j.url) { window.location.href = j.url; return; }
-    if (r && r.status === 401) { oublierSession(); compte = { etat: 'aucun' }; compteMsg = { texte: 'Votre session a expiré : reconnectez-vous, vous reviendrez ici.', erreur: true }; }
-    else if (r && r.status === 403 && j && j.error === 'adresse_non_verifiee') { compte = Object.assign({}, compte, { etat: 'a_confirmer' }); compteMsg = null; }
-    /* « B — on verrouille » (Justin, 28 septembre 2026) : l'appareil est relié à une entreprise, et ce compte n'est pas le
-       sien. Le refus est DÉFINITIF pour ce compte : « réessayez » mentirait — la page dit qui peut payer, et comment. */
-    else if (r && r.status === 403 && j && j.error === 'compte_autre_entreprise') compteMsg = { texte: 'Seul le compte de l\'entreprise peut payer pour elle, et ce compte n\'est pas le sien. Connectez-vous avec l\'adresse e-mail de l\'entreprise (« Changer de compte »), ou écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
-    /* l'entreprise n'a PAS d'adresse chez TEAM OP : aucun compte ne peut prouver qu'il est le sien — « connectez-vous avec
-       l'adresse de l'entreprise » serait une consigne impossible (`gardien`). C'est à TEAM OP de la renseigner. */
-    else if (r && r.status === 403 && j && j.error === 'entreprise_sans_adresse') compteMsg = { texte: 'Cette entreprise n\'a pas encore d\'adresse e-mail enregistrée chez TEAM OP : le paiement ne peut pas lui être rattaché. Écrivez à support@teamop.fr pour la faire ajouter, puis revenez payer. Rien n\'a été payé.', erreur: true };
-    else if (r && r.status === 403 && j && j.error === 'reference_ambigue') compteMsg = { texte: 'Le paiement ne peut pas être rattaché à votre entreprise sans vérification : écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
-    /* un tarif que le serveur ne connaît pas (28 septembre 2026, nuit) : la page est ancienne. Aucun tarif de la page n'est
-       refusé pour la formule de l'entreprise — le client choisit (Justin, 29 septembre 2026) */
-    else if (r && r.status === 400 && j && j.error === 'tarif_inconnu') compteMsg = { texte: 'Ce tarif n\'est plus proposé : rechargez la page, puis réessayez. Rien n\'a été payé.', erreur: true };
-    else if (r && r.status === 429) compteMsg = { texte: 'Trop de tentatives d\'affilée : patientez une minute, puis réessayez.', erreur: true };
-    /* un impayé sans facture ouverte : définitif tant que TEAM OP ne l'a pas réglé — « réessayez » mentirait */
-    else if (r && r.status === 409 && j && j.error === 'impaye_sans_facture') compteMsg = { texte: 'Un prélèvement précédent de votre abonnement n\'a pas abouti et doit être réglé avant tout nouveau paiement : écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
-    /* l'impayé vient d'être réglé : l'accès revient à la prochaine lecture de la liste — une minute d'ordinaire, plus longtemps
-       si la liste de Stripe est en panne : pas de délai promis (troisième relecture de `gardien`). Un paiement de plus serait un
-       SECOND abonnement, prélevé en double (30 septembre 2026). Ce n'est pas une erreur. */
-    else if (r && r.status === 409 && j && j.error === 'impaye_regle') compteMsg = { texte: 'Votre règlement est bien arrivé : l\'accès revient dès que notre vérification le confirme, en général en moins d\'une minute. Rouvrez ensuite votre application. Rien de plus n\'a été payé.', erreur: false };
-    else if (r && r.status === 502 && j && j.error === 'stripe_indisponible') compteMsg = { texte: 'Le service de paiement ne répond pas pour vérifier un prélèvement en attente : réessayez dans quelques minutes. Rien n\'a été payé.', erreur: true };
-    else compteMsg = { texte: 'Le paiement n\'a pas pu s\'ouvrir — rien n\'a été payé. Réessayez dans un instant, ou écrivez à support@teamop.fr.', erreur: true };
-    rendrePaiement();
+    traiterReponsePaiement(r, j);
   });
+}
+
+/* ---------- LE CLIC DE PAIEMENT : CE QUI EST COMMUN AUX DEUX MODES ---------- */
+/* « peut-on payer maintenant ? » — le compte se lit d'abord, et on ne paie qu'au nom AFFICHÉ */
+async function paiementPret() {
+  if (compte.etat === 'lecture') return false;
+  if (compte.etat === 'aucun') { window.location.href = lienPortail(); return false; }
+  if (compte.etat !== 'pret') { compteMsg = null; compte = Object.assign({}, compte, { etat: 'lecture' }); rendrePaiement(); await relireCompte(); return false; }
+  /* ⛔ on ne paie qu'au nom AFFICHÉ : une session changée ailleurs se relit d'abord (et se montre) */
+  if (sessionPortail() !== compte.jeton) { compteMsg = null; compte = { etat: 'lecture' }; rendrePaiement(); await relireCompte(); return false; }
+  return true;
+}
+/* ce que la réponse du serveur veut dire — l'ouverture de la page de paiement, ou UN refus qui se dit (jamais un « réessayez »
+   quand rien ne se rattrape par réessai). Partagé par le paiement normal et l'ajout d'option. */
+function traiterReponsePaiement(r, j) {
+  /* ⛔ UN IMPAYÉ SE RÈGLE, IL NE SE RACHÈTE PAS (Justin, 29 septembre 2026 : carte refusée = impayé) — le serveur rend alors la
+     FACTURE EN ATTENTE, pas une page d'abonnement neuf : la page le DIT avant d'y aller (le montant n'est pas celui qu'on
+     vient de choisir), puis l'ouvre */
+  if (r && r.ok && j && j.url && j.facture) {
+    compteMsg = { texte: 'Un prélèvement précédent de votre abonnement n\'a pas abouti : sa facture en attente s\'ouvre. La régler rétablit l\'accès — rien d\'autre ne sera prélevé.' };
+    rendrePaiement();
+    setTimeout(() => { window.location.href = j.url; }, 2500);
+    return;
+  }
+  if (r && r.ok && j && j.url) { window.location.href = j.url; return; }
+  if (r && r.status === 401) { oublierSession(); compte = { etat: 'aucun' }; compteMsg = { texte: 'Votre session a expiré : reconnectez-vous, vous reviendrez ici.', erreur: true }; }
+  else if (r && r.status === 403 && j && j.error === 'adresse_non_verifiee') { compte = Object.assign({}, compte, { etat: 'a_confirmer' }); compteMsg = null; }
+  /* « B — on verrouille » (Justin, 28 septembre 2026) : l'appareil est relié à une entreprise, et ce compte n'est pas le
+     sien. Le refus est DÉFINITIF pour ce compte : « réessayez » mentirait — la page dit qui peut payer, et comment. */
+  else if (r && r.status === 403 && j && j.error === 'compte_autre_entreprise') compteMsg = { texte: 'Seul le compte de l\'entreprise peut payer pour elle, et ce compte n\'est pas le sien. Connectez-vous avec l\'adresse e-mail de l\'entreprise (« Changer de compte »), ou écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+  /* l'entreprise n'a PAS d'adresse chez TEAM OP : aucun compte ne peut prouver qu'il est le sien — « connectez-vous avec
+     l'adresse de l'entreprise » serait une consigne impossible (`gardien`). C'est à TEAM OP de la renseigner. */
+  else if (r && r.status === 403 && j && j.error === 'entreprise_sans_adresse') compteMsg = { texte: 'Cette entreprise n\'a pas encore d\'adresse e-mail enregistrée chez TEAM OP : le paiement ne peut pas lui être rattaché. Écrivez à support@teamop.fr pour la faire ajouter, puis revenez payer. Rien n\'a été payé.', erreur: true };
+  else if (r && r.status === 403 && j && j.error === 'reference_ambigue') compteMsg = { texte: 'Le paiement ne peut pas être rattaché à votre entreprise sans vérification : écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+  /* un tarif que le serveur ne connaît pas (28 septembre 2026, nuit) : la page est ancienne. Aucun tarif de la page n'est
+     refusé pour la formule de l'entreprise — le client choisit (Justin, 29 septembre 2026) */
+  else if (r && r.status === 400 && j && j.error === 'tarif_inconnu') compteMsg = { texte: 'Ce tarif n\'est plus proposé : rechargez la page, puis réessayez. Rien n\'a été payé.', erreur: true };
+  /* « Messages Business Premium » (25 €) n'est plus vendue : la page en cache la proposait encore — Messages Pro la remplace */
+  else if (r && r.status === 400 && j && j.error === 'formule_retiree') compteMsg = { texte: 'Cette formule n\'est plus vendue : Messages Pro (15 € par utilisateur et par mois) comprend toutes ses options. Rechargez la page. Rien n\'a été payé.', erreur: true };
+  /* les options (1er octobre 2026) : chaque refus du serveur se dit, aucun n'est un « réessayez » — rien n'est parti chez Stripe */
+  else if (r && r.status === 400 && j && j.error === 'option_inconnue') compteMsg = { texte: 'Une des options choisies n\'existe plus : rechargez la page, puis réessayez. Rien n\'a été payé.', erreur: true };
+  else if (r && r.status === 400 && j && j.error === 'option_indisponible') compteMsg = { texte: 'Une des options choisies n\'est pas encore en vente : décochez-la, ou rechargez la page. Rien n\'a été payé.', erreur: true };
+  else if (r && r.status === 400 && j && j.error === 'option_incluse') compteMsg = { texte: 'Business et Business Premium incluent déjà toutes les options : il n\'y a rien à ajouter. Rechargez la page. Rien n\'a été payé.', erreur: true };
+  else if (r && r.status === 409 && j && j.error === 'entreprise_requise') compteMsg = { texte: 'Pour ajouter une option à un abonnement existant, il faut l\'entreprise concernée : ouvrez cette page depuis votre application, ou écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+  /* ⛔⛔ UN PRO DÉJÀ PAYÉ ET DES OPTIONS DEMANDÉES AVEC UN NOUVEAU PRO : l'option s'AJOUTE, elle ne s'achète pas avec un second
+     abonnement (le serveur n'a rien créé). On bascule la page en mode ajout, avec le même panier — la personne vérifie et valide. */
+  else if (r && r.status === 409 && j && j.error === 'utiliser_ajout') {
+    modeAjout = true; formuleActive = 'pro'; history.replaceState(null, '', adresseEtat(','));
+    compteMsg = { texte: 'Votre entreprise a déjà un abonnement Pro : une option s\'y ajoute, pour chaque utilisateur, au lieu d\'un second abonnement Pro. Vérifiez votre choix, puis validez. Rien n\'a été payé.' };
+    rendreTout(); return;
+  }
+  /* en mode ajout, « pas de Pro payé » renvoie à la page normale (Pro avec ses options), le même panier */
+  else if (r && r.status === 409 && j && j.error === 'formule_requise' && modeAjout) {
+    modeAjout = false; history.replaceState(null, '', adresseEtat(','));
+    compteMsg = { texte: 'Votre entreprise n\'a pas d\'abonnement Pro payé auquel une option pourrait s\'ajouter : choisissez ci-dessous Pro avec ses options (ou écrivez à support@teamop.fr). Rien n\'a été payé.', erreur: true };
+    rendreTout(); return;
+  }
+  else if (r && r.status === 409 && j && j.error === 'formule_requise') compteMsg = { texte: 'Une option se joint à un abonnement Pro déjà payé par votre entreprise, et il n\'y en a pas : choisissez Pro avec ses options, ou écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+  /* ⛔ DES OPTIONS DÉJÀ ACTIVES SUIVENT LES NOUVEAUX UTILISATEURS — et le client le lit AVANT de payer (1er octobre 2026,
+     `gardien`, rejoué : la page affichait 30 € et le client en payait 48). Le serveur n'a rien créé : il rend les options et le
+     surcoût. On les COCHE (le total se met à jour de lui-même, c'est la même arithmétique que le serveur), on le dit, et c'est
+     le second clic — qui les demande — qui part. Une option que la page ne propose pas (tarif absent) ne peut pas s'afficher :
+     on le dit, et on ne boucle pas. */
+  else if (r && r.status === 409 && j && j.error === 'options_suivent' && Array.isArray(j.options)) {
+    const cles = j.options.filter(k => typeof k === 'string' && OPTIONS_GESTION[k] && optionsDispo().indexOf(k) >= 0);
+    if (!cles.length || cles.length !== j.options.length) compteMsg = { texte: 'Des options déjà actives pour votre entreprise suivent vos nouveaux utilisateurs, mais cette page ne sait pas les afficher : rechargez-la, ou écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+    else {
+      optionsChoisies = optionsChoisies.filter(x => cles.indexOf(x) < 0).concat(cles);
+      const noms = cles.map(k => OPTIONS_GESTION[k].nom).join(', ');
+      const somme = typeof j.surcout === 'number' && isFinite(j.surcout) ? ' (' + String(j.surcout).replace('.', ',') + '\u00a0€ TTC ' + (j.cycle === 'annuel' ? 'par an' : 'par mois') + ' en plus de la formule)' : '';
+      compteMsg = { texte: (cles.length > 1 ? 'Les options ' : 'L\'option ') + noms + (cles.length > 1 ? ' sont déjà actives' : ' est déjà active') + ' pour votre entreprise : ' + (cles.length > 1 ? 'elles suivent' : 'elle suit') + ' vos nouveaux utilisateurs' + somme + '. Le total ci-dessous les compte ; vérifiez-le, puis validez. Rien n\'a été payé.' };
+      history.replaceState(null, '', adresseEtat(','));
+      rendreTout(); return;
+    }
+  }
+  else if (r && r.status === 409 && j && j.error === 'option_deja') compteMsg = { texte: 'Une des options choisies est déjà active pour votre entreprise : rien à payer de plus pour elle. Décochez-la, ou rechargez la page. Rien n\'a été payé.', erreur: true };
+  else if (r && r.status === 429) compteMsg = { texte: 'Trop de tentatives d\'affilée : patientez une minute, puis réessayez.', erreur: true };
+  /* un impayé sans facture ouverte : définitif tant que TEAM OP ne l'a pas réglé — « réessayez » mentirait */
+  else if (r && r.status === 409 && j && j.error === 'impaye_sans_facture') compteMsg = { texte: 'Un prélèvement précédent de votre abonnement n\'a pas abouti et doit être réglé avant tout nouveau paiement : écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true };
+  /* l'impayé vient d'être réglé : l'accès revient à la prochaine lecture de la liste — une minute d'ordinaire, plus longtemps
+     si la liste de Stripe est en panne : pas de délai promis (troisième relecture de `gardien`). Un paiement de plus serait un
+     SECOND abonnement, prélevé en double (30 septembre 2026). Ce n'est pas une erreur. */
+  else if (r && r.status === 409 && j && j.error === 'impaye_regle') compteMsg = { texte: 'Votre règlement est bien arrivé : l\'accès revient dès que notre vérification le confirme, en général en moins d\'une minute. Rouvrez ensuite votre application. Rien de plus n\'a été payé.', erreur: false };
+  else if (r && r.status === 502 && j && j.error === 'stripe_indisponible') compteMsg = { texte: 'Le service de paiement ne répond pas pour vérifier vos abonnements et un éventuel prélèvement en attente : réessayez dans quelques minutes. Rien n\'a été payé.', erreur: true };
+  else compteMsg = { texte: 'Le paiement n\'a pas pu s\'ouvrir — rien n\'a été payé. Réessayez dans un instant, ou écrivez à support@teamop.fr.', erreur: true };
+  rendrePaiement();
+}
+
+/* ---------- LE MODE « AJOUT » : une option de plus pour le Pro que l'entreprise paie déjà ---------- */
+/* l'entreprise rattachée à CET appareil — la même lecture que le paiement normal (`espaceRattacheRef`), sans elle le serveur
+   refuse (`entreprise_requise`) : une option se rattache à une entreprise précise */
+const espaceDeAppareil = () => { try { return String(localStorage.getItem('elan_sync_team') || '').trim(); } catch (e) { return ''; } };
+function rendrePaiementAjout() {
+  const f = FORMULES.pro;
+  const c = document.getElementById('cartePaiement');
+  const dispo = optionsDispo(), opts = optionsActives();
+  const refOk = !!espaceDeAppareil();
+  const fAjout = Object.assign({}, f, { boutonTexte: 'Ajouter à mon abonnement' });
+  c.innerHTML = `
+    <div style="text-align:center; margin:2px 0 8px; font-size:18px; font-weight:700; color:var(--texte);">Ajouter des options à votre abonnement Pro</div>
+    <div style="text-align:center; font-size:13px; line-height:1.55; color:var(--texte-2); margin-bottom:12px;">
+      Chaque option est <b>ajoutée à votre abonnement Pro, pour chaque utilisateur</b> de votre entreprise, au même rythme de facturation que lui (mensuel ou annuel).
+      Le nombre d'utilisateurs ne se choisit pas ici&nbsp;: il vient de votre abonnement, et seules les places qui manquent à l'option sont facturées.
+    </div>
+    ${dispo.length ? `
+      <div class="bloc-options" role="group" aria-labelledby="titreOptions">
+        <div class="titre-options" id="titreOptions">OPTIONS À AJOUTER <span>· par utilisateur</span></div>
+        ${dispo.map(k => { const o = OPTIONS_GESTION[k]; const on = opts.indexOf(k) >= 0; return `
+        <label class="option-case${on ? ' cochee' : ''}">
+          <input type="checkbox" data-option="${k}"${on ? ' checked' : ''}>
+          <span class="option-texte"><b>${o.nom}</b><span class="detail">${o.desc}</span></span>
+          <span class="option-prix">+&nbsp;${o.prixMensuel}&nbsp;€<small> / mois · ${o.prixMensuel * (12 - REMISE_ANNUELLE)}&nbsp;€ / an</small></span>
+        </label>`; }).join('')}
+      </div>` : `
+      <div class="options-incluses" role="note"><span><b>Les options ne sont pas encore en vente.</b> Rien n'est à payer pour l'instant — revenez bientôt.</span></div>`}
+    <button class="btn-payer" id="btnPayer" style="background:${f.boutonFond};"${compte.etat === 'lecture' || !dispo.length ? ' disabled' : ''}>
+      ${boutonCompte(fAjout)}
+    </button>
+    ${blocCompte(f, 1, true)}
+    ${refOk ? '' : `<div class="compte-bloc attention" role="note"><b>Ouvrez cette page depuis votre application</b> (Paramètres → Formule → Ajouter)&nbsp;: elle sait de quelle entreprise il s'agit. Sans elle, une option ne peut pas être rattachée à votre abonnement.</div>`}
+    <div class="note-paiement">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Paiement sécurisé par Stripe, depuis votre compte TEAM OP
+    </div>
+    <div class="garanties">
+      <div class="garantie">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Sans engagement — résiliable à tout moment
+      </div>
+      <div class="garantie">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Votre abonnement Pro ne change pas : l'option s'y ajoute
+      </div>
+    </div>
+  `;
+  c.querySelectorAll('[data-option]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const k = inp.dataset.option;
+      optionsChoisies = optionsChoisies.filter(x => x !== k).concat(inp.checked ? [k] : []);
+      compteMsg = null;
+      history.replaceState(null, '', adresseEtat(','));
+      rendrePaiement();
+      const n = c.querySelector('[data-option="' + k + '"]'); if (n) n.focus();
+    });
+  });
+  const br = document.getElementById('btnRenvoiLien'); if (br) br.addEventListener('click', () => renvoyerLien(br));
+  const ba = document.getElementById('btnAutreCompte'); if (ba) ba.addEventListener('click', () => changerCompte());
+  document.getElementById('btnPayer').addEventListener('click', payerAjout);
+}
+async function payerAjout() {
+  if (!(await paiementPret())) return;
+  /* ⛔ DES CLÉS ET LA RÉFÉRENCE, RIEN D'AUTRE : ni `price`, ni `quantity`, ni cycle — le serveur lit chez Stripe le Pro que
+     l'entreprise paie (ses places, son cycle) et n'ajoute que ce qui manque. Sans entreprise, on n'envoie rien (le serveur
+     répondrait `entreprise_requise`). */
+  const ref = espaceDeAppareil();
+  const optionsEnvoyees = optionsActives();
+  if (!ref) { compteMsg = { texte: 'Pour ajouter une option à un abonnement existant, il faut l\'entreprise concernée : ouvrez cette page depuis votre application (Paramètres → Formule), ou écrivez à support@teamop.fr. Rien n\'a été payé.', erreur: true }; rendrePaiement(); return; }
+  if (!optionsEnvoyees.length) { compteMsg = { texte: 'Cochez au moins une option à ajouter. Rien n\'a été payé.', erreur: true }; rendrePaiement(); return; }
+  const btn = document.getElementById('btnPayer');
+  btn.disabled = true; btn.innerHTML = 'Préparation du paiement…';
+  let r = null, j = null;
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 15000);
+  try {
+    r = await fetch(API_TEAMOP + '/api/stripe/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + compte.jeton }, body: JSON.stringify({ options: optionsEnvoyees, ref: ref }), signal: ctl.signal });
+    j = await r.json().catch(() => null);
+  } catch (e) { r = null; }
+  finally { clearTimeout(to); }
+  traiterReponsePaiement(r, j);
 }
 
 /* ---------- CODE PROMO — mois offerts sans carte ---------- */
@@ -1058,7 +1312,7 @@ function rendreTout() {
   rendreSelecteur();
   rendreDroits();
   rendrePaiement();
-  document.title = 'Récapitulatif ' + FORMULES[formuleActive].nom + ' — TEAM OP';
+  document.title = modeAjout ? 'Ajouter une option — TEAM OP' : 'Récapitulatif ' + FORMULES[formuleActive].nom + ' — TEAM OP';
 }
 
 rendreTout();

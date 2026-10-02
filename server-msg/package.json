@@ -1,0 +1,16 @@
+{
+  "name": "teamop-msg",
+  "version": "1.0.0",
+  "description": "Serveur d'OP MESSAGES — messagerie TeamOP, service à part (sans Firebase, sans le socle d'OP GESTION)",
+  "main": "index.js",
+  "private": true,
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}

@@ -17,6 +17,12 @@
 # oublier une pièce — et la pièce oubliée est toujours celle qui garde (le `needs`, la liste,
 # la surveillance). Relancé demain, il repart du `main` de demain.
 #
+# ⛔ ET `server-msg/` PART AVEC (OP MESSAGES, service à part — design/opmessages/SERVEUR.md § 3.10) : son code, son
+# workflow de déploiement (`deploiement-messages.yml`), sa liste de bancs (`scripts/bancs-messages.liste`), sa surveillance,
+# le mode d'emploi de son installation, et les suites de la liste. Sans eux, rien d'OP MESSAGES n'arriverait jamais sur
+# `main` — et le workflow n'a de sens qu'AVEC ses bancs. Un push sur `server-msg/**` ne redémarre pas `teamop-api` : les
+# deux services se déploient chacun par son workflow, et ne partagent que la machine.
+#
 # Usage : bash scripts/preparer-deploiement-serveur.sh [dossier-de-l-arbre]
 set -euo pipefail
 RACINE="$(cd "$(dirname "$0")/.." && pwd)"
@@ -44,6 +50,26 @@ mapfile -t SUITES < <(grep -vE '^[[:space:]]*(#|$)' scripts/bancs-serveur.liste)
 # ⚠️ Une liste vide ou tronquée ferait passer la porte sur rien : on exige la population.
 [ "${#SUITES[@]}" -ge 25 ] || { echo "✗ la liste des bancs serveur n'a que ${#SUITES[@]} suite(s)"; exit 1; }
 for f in "${SUITES[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
+
+# 1 bis. OP MESSAGES : le service, son workflow, sa liste, sa surveillance, son mode d'emploi, l'aide partagée des bancs.
+# ⚠️ `tests/bac-messages.js` n'est pas une suite (le compteur ne le lance pas) mais `test-931` et `test-932` le chargent :
+#    oublié, ils tomberaient ici sur « module introuvable », sur un déploiement juste.
+# ⚠️ Et `tests/outils-msg.js` + `tests/lib-horloge-msg.js` : l'aide partagée des suites 900 à 910 (le service lancé en processus,
+#    le faux OP GESTION, l'horloge décalable). Oubliés à la fusion des deux chantiers, la porte d'OP MESSAGES tombait sur « module
+#    introuvable » sur un déploiement juste.
+# ⚠️ Et `tests/outils-tel.js` (l'aide des suites 914 à 919 du compte par téléphone : faux OVH, numéros d'essai) et
+#    `scripts/opmsg-public.js` (le générateur de l'interface servie, que `test-941` exécute) : oubliés le 2 octobre 2026, six
+#    suites mouraient ici sur « module introuvable » — la porte l'a dit, sur un déploiement juste. Et le générateur RELIT
+#    `apercu/opmessages/index.html`, le modèle d'où sort `server-msg/public/` (test-941 exige qu'ils soient d'accord) : l'aperçu
+#    part donc avec lui — une page d'aperçu à données fictives, aucun point d'entrée client ne change.
+OPMSG_FICHIERS=(server-msg .github/workflows/deploiement-messages.yml .github/scripts/surveillance-messages.js
+                scripts/bancs-messages.liste design/opmessages tests/bac-messages.js tests/outils-msg.js tests/lib-horloge-msg.js
+                tests/outils-tel.js scripts/opmsg-public.js apercu/opmessages .gitignore)
+for f in "${OPMSG_FICHIERS[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
+mapfile -t SUITES_MSG < <(grep -vE '^[[:space:]]*(#|$)' scripts/bancs-messages.liste)
+# ⚠️ Même exigence que pour la liste du serveur : une liste vide ou tronquée ferait passer la porte sur rien.
+[ "${#SUITES_MSG[@]}" -ge 5 ] || { echo "✗ la liste des bancs d'OP MESSAGES n'a que ${#SUITES_MSG[@]} suite(s)"; exit 1; }
+for f in "${SUITES_MSG[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
 # ⚠️ Les pages que ces suites font parler au serveur partent avec lui : `test-797`, `test-839` et `test-840` lisent la
 #    page de paiement (ses refus, sa grille de prix). Restée celle de `main`, elle ne saurait pas DIRE le refus que le
 #    serveur neuf rend — et les bancs tomberaient ici, sur un serveur juste (relecture adverse, 28 septembre 2026, nuit).
@@ -77,20 +103,30 @@ node -e '
 # ⛔ Le lien ne doit JAMAIS finir dans le commit, même si un banc tombe : on le retire à la sortie,
 #    quelle qu'elle soit (un arbre laissé avec lui, puis commité à la main, pousserait un lien
 #    vers le disque d'une session morte).
-trap 'rm -f "$DEST/server/node_modules"' EXIT
+[ -d "$RACINE/server-msg/node_modules" ] || { echo "✗ $RACINE/server-msg/node_modules manque (npm ci --omit=dev --ignore-scripts --prefix server-msg) : les suites d'OP MESSAGES SAUTERAIENT, vertes sans rien prouver"; exit 1; }
+trap 'rm -f "$DEST/server/node_modules" "$DEST/server-msg/node_modules"' EXIT
 ln -s "$RACINE/server/node_modules" server/node_modules
+ln -s "$RACINE/server-msg/node_modules" server-msg/node_modules
 for f in server/*.js; do node --check "$f"; done
+find server-msg -name '*.js' -not -path '*/node_modules/*' -print0 | xargs -0 -n1 node --check
+for f in server-msg/*.sh; do bash -n "$f"; done
 node scripts/verifier-syntaxe.js >/dev/null
 BANCS_PLANCHER="$(sed -n 's/^#plancher //p' scripts/bancs-serveur.liste)" bash scripts/bancs-ci.sh "${SUITES[@]}"
-rm server/node_modules
+# Et la porte d'OP MESSAGES — celle que son workflow lance avant de déployer, avec SON plancher (la liste du serveur n'a
+# pas le même nombre de vérifications : un seul plancher ferait passer l'une ou bloquer l'autre).
+BANCS_PLANCHER="$(sed -n 's/^#plancher //p' scripts/bancs-messages.liste)" bash scripts/bancs-ci.sh "${SUITES_MSG[@]}"
+rm server/node_modules server-msg/node_modules
 
 # 4. Le commit — dans l'arbre à part, JAMAIS poussé par ce script.
+# PIED_COMMIT (facultatif) : les lignes de fin du message (l'attribution de la session qui prépare), passées par
+# l'environnement — un commit déjà fait ne se réécrit pas après coup (« amend » d'un déploiement, refusé le 2 octobre 2026).
 # La version d'application se LIT sur le main de l'arbre : écrite en dur (« v695 »), elle a menti dans le message
 # du déploiement du 27 septembre 2026, main étant alors en v757.
 VAPP="$(sed -n "s/.*APP_VERSION *= *'\([0-9]*\)'.*/\1/p" app.html | head -1)"
 [ -n "$VAPP" ] || { echo "✗ APP_VERSION illisible dans app.html de main"; exit 1; }
 git add server .github/scripts/surveillance.js .github/workflows/deploiement.yml .github/workflows/ci.yml \
-        scripts/bancs-ci.sh scripts/bancs-serveur.liste scripts/preparer-deploiement-serveur.sh "${SUITES[@]}" "${PAGES_LIEES[@]}"
+        scripts/bancs-ci.sh scripts/bancs-serveur.liste scripts/preparer-deploiement-serveur.sh "${SUITES[@]}" "${PAGES_LIEES[@]}" \
+        "${OPMSG_FICHIERS[@]}" "${SUITES_MSG[@]}"
 git diff --cached --name-only | grep -q 'node_modules' && { echo "✗ node_modules dans le commit — rien ne se fait"; exit 1; }
 git -c user.name="$(git -C "$RACINE" config user.name || echo TeamOP)" \
     -c user.email="$(git -C "$RACINE" config user.email || echo noreply@teamop.fr)" \
@@ -99,7 +135,13 @@ Serveur seul : déploiement depuis ${SOURCE:0:8} (app.html et sw.js ne bougent p
 
 server/, sa surveillance (.github/scripts/surveillance.js) et ses bancs
 (scripts/bancs-serveur.liste, lancés par le job « bancs » dont le déploiement dépend).
-Préparé par scripts/preparer-deploiement-serveur.sh sur main = $BASE.
+Les pages que ces bancs font parler au serveur partent avec lui : ${PAGES_LIEES[*]}.
+server-msg/ (OP MESSAGES, service à part), son workflow (deploiement-messages.yml) et ses bancs
+(scripts/bancs-messages.liste) : la bêta se déploie à chaque poussée sur server-msg/, la production
+jamais sans l'approbation de l'environnement msg-prod.
+Préparé par scripts/preparer-deploiement-serveur.sh sur main = $BASE.${PIED_COMMIT:+
+
+$PIED_COMMIT}
 MSG
 echo
 git --no-pager diff --stat "$BASE" HEAD | tail -5

@@ -45,7 +45,11 @@
 # `test-844` compris, contre les pages de `main` — plancher relevé à 3 100.
 # 29 septembre 2026, soir : 3 243 contre les pages de `main` (49 suites), `test-845` compris (carte refusée = impayé,
 # le nom d'accès repris à la même adresse) — plancher relevé à 3 200.
-#plancher 3200
+# 1er octobre 2026 : 3 546 (51 suites) avec `test-850` (les options du Pro, 133 vérifications) — plancher relevé à 3 330.
+# 1er octobre 2026, intégration : 3 577 (51 suites) — `test-850` à 150 vérifications (l'ajout d'option suit le cycle du Pro payé, `utiliser_ajout`,
+# « Mon espace » ne lit pas des options écrites par le client) — plancher relevé à 3 350.
+# 1er octobre 2026 : `test-940` (la Tour v2.81 ouvre les accès bêta d'OP MESSAGES, ses vraies fonctions contre le vrai serveur) n'entre PAS ici : il lit `tour.html`, et `main` sert encore la v2.79 — comme `test-854` (v2.80). Il y entre le jour où la Tour v2.81 est publiée.
+#plancher 3370
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -137,3 +141,16 @@ tests/test-845.js
 # illisible, un réglage négatif d'avant sur un ancien nom, l'abonnement d'une entreprise renommée (ancien nom, ancienne
 # adresse), « repartir à neuf » en période offerte, un tarif illisible sur une fiche sans formule, le métier sur tous les noms.
 tests/test-849.js
+# 1er octobre 2026 : les OPTIONS du Pro (Stock, Achats, Compta, Registre sanitaire), sur le vrai serveur et un Stripe simulé dans
+# son processus — une option ne fait jamais passer pour payé, n'ajoute aucune place, ne lève aucun blocage (cas a à h de la
+# carte de lecture, rejoués sur l'ancien code : ils tombent) ; la couverture stricte ; `options` dans la seule réponse payée
+# de `/api/espaces/etat` ; la Tour ; « Mon espace » ; ce qui part chez Stripe (lignes, cycle, quantités, `trial_end`) ; les
+# options ramenées au rachat de places ; l'impayé d'option ; le courriel des sept jours ; `server/stripe-options.js`
+# (idempotent, `--essai`, jamais la clé). Le banc ne lit AUCUNE page : il passe contre celles de `main`, comme le serveur seul.
+tests/test-850.js
+# 2 octobre 2026 : le jour annoncé plus haut — le déploiement emporte la Tour v2.81 (`PAGES_LIEES`), `test-854` (les options
+# du Pro dans la Tour) et `test-940` entrent. 940 fait parler les VRAIES fonctions de la Tour au VRAI serveur : un accès bêta,
+# une application, un même identifiant dans les deux bêtas (Justin : « bien séparé dans la Tour »), et l'accueil d'OP MESSAGES
+# qui ne parle plus de Firebase.
+tests/test-854.js
+tests/test-940.js

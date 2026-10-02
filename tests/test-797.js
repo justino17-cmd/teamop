@@ -56,12 +56,16 @@ const vrai = (t, a) => v(t, !!a, true);
     const stockage = (cle) => (cle === 'elan_sync_team' ? 'monclient-9f2a' : cle === mSess[1] ? SESSION : null);
     /* `compte.jeton` : la session que `lireCompte()` a lue pour CE compte (test-839 joue lireCompte lui-même) — la page
        ne paie qu'avec elle, jamais avec une session changée entre-temps dans un autre onglet. */
-    const evaluer = (ls, expr) => new Function('localStorage', 'priceId', 'nbAbos',
-      mFn[0] + '\n' + mSess[0] + '\nconst compte = { jeton: sessionPortail() };\nreturn ' + expr + ';')({ getItem: ls }, PRIX_PAGE, 3);
+    /* `optionsEnvoyees` : les options cochées ET en vente (la page la calcule juste avant l'appel, depuis son panier) — le
+       banc la pose à la main, le calcul du panier est gardé par test-853 */
+    const evaluer = (ls, expr, opts) => new Function('localStorage', 'priceId', 'nbAbos', 'optionsEnvoyees',
+      mFn[0] + '\n' + mSess[0] + '\nconst compte = { jeton: sessionPortail() };\nreturn ' + expr + ';')({ getItem: ls }, PRIX_PAGE, 3, opts || []);
     corps = JSON.parse(evaluer(stockage, 'JSON.stringify(' + mBody[1] + ')'));
     entetes = evaluer(stockage, mEntetes[1]);
     v('⛔ le corps envoy\u00e9 par la page PORTE la r\u00e9f\u00e9rence de l\'espace', corps.ref, 'monclient-9f2a');
     v('   et garde le tarif et la quantit\u00e9', [corps.price, corps.quantity], [PRIX_PAGE, 3]);
+    v('⛔ le corps porte les CLÉS d\'option du panier, rien d\'autre (ni tarif ni montant)',
+      [corps.options, JSON.parse(evaluer(stockage, 'JSON.stringify(' + mBody[1] + ')', ['stock', 'achats'])).options], [[], ['stock', 'achats']]);
     v('⛔ la page envoie la session du compte dans Authorization, sous la forme que le serveur lit', entetes.Authorization, 'Bearer ' + SESSION);
     v('   la session est celle du portail (espace.html la range sous cette clé)', mSess[1], 'teamop_portail_jeton');
     /* Un prospect qui paie AVANT d'avoir un espace : pas de référence, et c'est prévu — le
@@ -75,15 +79,23 @@ const vrai = (t, a) => v(t, !!a, true);
   const mLien = /const lienPortail = \(\) => ([\s\S]*?\)\));/.exec(PAGE);
   vrai('la page fabrique le chemin vers le portail (lienPortail)', !!mLien);
   if (mLien) {
-    const lien = new Function('formuleActive', 'nbUsersVoulu', 'cycleAnnuel', 'return ' + mLien[1] + ';')('business', 7, true);
+    /* `optionsActives` : le panier (vide ici — le chemin du portail ne change pas sans option ; avec, test-853) */
+    /* `modeAjout` : le mode « ajout d'option » de la page (faux ici ; ses chemins, test-858 et test-853) */
+    const faireLien = (...a) => new Function('formuleActive', 'nbUsersVoulu', 'cycleAnnuel', 'optionsActives', 'modeAjout', 'return ' + mLien[1] + ';')(...a);
+    const lien = faireLien('business', 7, true, () => [], false);
     const retour = decodeURIComponent(lien.split('?retour=')[1] || '');
     v('   … vers le portail, avec la formule, le nombre et le cycle choisis', [lien.split('?')[0], retour], ['espace.html', 'recap-abonnement.html?formule=business&utilisateurs=7&cycle=annuel']);
+    const lienAjout = faireLien('pro', 0, false, () => ['stock', 'achats'], true);
+    v('   en mode ajout : le retour garde le mode et le panier, sans nombre ni cycle',
+      decodeURIComponent(lienAjout.split('?retour=')[1] || ''), 'recap-abonnement.html?formule=pro&ajout=options&options=stock.achats');
     for (const e of ['espace.html', 'apercu/espace.html'].filter(x => fs.existsSync(path.join(__dirname, '..', x)))) {
       const E = fs.readFileSync(path.join(__dirname, '..', e), 'utf8');
       const mR = /const RETOUR_PAIEMENT=\(\(\)=>\{ try\{ const r=new URLSearchParams\(location\.search\)\.get\('retour'\)\|\|''; return (\/.*?\/)\.test\(r\)\?r:''; \}/.exec(E);
       vrai('   ' + e + ' : sa garde du retour est trouvée', !!mR);
       if (mR) vrai('⛔ ' + e + ' accepte le retour fabriqué par la page de paiement (sinon on ne revient jamais payer)',
         new Function('return ' + mR[1])().test(new URLSearchParams(lien.split('?')[1]).get('retour')));
+      if (mR) vrai('⛔ ' + e + ' accepte aussi le retour du MODE AJOUT (« Créer mon compte pour payer » depuis le lien de l\'application)',
+        new Function('return ' + mR[1])().test(new URLSearchParams(lienAjout.split('?')[1]).get('retour')));
     }
   }
 

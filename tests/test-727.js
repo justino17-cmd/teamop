@@ -75,10 +75,13 @@ vrai('le calcul des places et ses constantes sont trouvés dans le fichier réel
 const iLig = SRC.indexOf('const prixDeLigne ='), iFP = SRC.indexOf('function formulePayee(');
 const LIGNES = (iLig > 0 && iFP > iLig) ? SRC.slice(iLig, iFP) : '';
 const LBL2 = (/^const FORMULE_LBL2 = .*$/m.exec(SRC) || [''])[0];
+/* ⛔ et les OPTIONS DU PRO (1er octobre 2026) : `espacePaye` rend `optionsServies`, lue par `optionsServies` (la règle unique) et
+   `optionsPayeesQte` ; le classement des lignes (`classerLigne`) est dans la tranche LIGNES ci-dessus, les tarifs d'option dans
+   CONSTS — sans eux, `espacePaye` jetait dès le premier appel (« optionsServies is not defined », 90 contrôles tombés ainsi) */
 const SERVIE = ['formulePayee', 'formuleDuCode', 'formulePromo', 'placesDeFormule', 'formuleEtPlaces', 'espaceStripe', 'periodeOfferte', 'espaceStripeDans',
-  'stripeListe', 'stripeVerdict'].map(extraire);
+  'stripeListe', 'stripeVerdict', 'optionsServies', 'optionsPayeesQte'].map(extraire);
 vrai('la formule servie, ses aides et le rattachement Stripe sont trouvés dans le fichier réel',
-  /ligneMessages/.test(LIGNES) && /Business Premium/.test(LBL2) && SERVIE.every(Boolean) && /^async function espaceStripe/.test(SERVIE[5]));
+  /ligneMessages/.test(LIGNES) && /function classerLigne/.test(LIGNES) && /STRIPE_PRIX_OPTION/.test(CONSTS) && /Business Premium/.test(LBL2) && SERVIE.every(Boolean) && /^async function espaceStripe/.test(SERVIE[5]));
 /* ⚠️ la fenêtre du cache Stripe (29 septembre 2026, seconde relecture de `gardien`) : `espaceStripe` la lit, et sans elle
    son premier appel jetait dans son `try` — tout paiement se lisait « non payé » (43 contrôles de ce banc tombés ainsi) */
 const CACHE_MS = (/^const STRIPE_CACHE_MS = .*$/m.exec(SRC) || [''])[0];
@@ -263,13 +266,19 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
     let envoye = '', statut = 0, sortie = null, appels = 0;
     const faux = { post: (chemin, h) => { faux._h = h; } };
     new Function('app', 'config', 'fetch', 'URLSearchParams', 'comptes', 'espacesReg', 'promoUsages', 'espaceFerme', 'factureImpayeARegler',
+      'espaceStripeAchat', 'formuleEtPlaces', 'impayeOptionARegler', 'optionsServies', 'optionsPayeesQte',
       AIDES_ROUTE.join('\n') + '\n' + SRC.slice(iR, finR))(faux,
       { stripe: { secretKey: 'sk_de_banc' }, promos: [{ code: 'ESSAI-BANC-727', formule: 'premium', mois: 3 }] },
       async (url, opts) => { appels++; envoye = String(opts && opts.body || ''); return { ok: true, json: async () => ({ url: 'https://checkout.stripe.com/x' }) }; },
       URLSearchParams, comptes === undefined ? COMPTES : comptes, espaces === undefined ? ESPACES_DEFAUT : espaces, usages || {}, t => (fermes || []).includes(t),
       /* un IMPAYÉ se règle sur sa facture (`factureImpayeARegler`, 29 septembre 2026) : ce bac à sable n'a pas de liste Stripe —
          la redirection se joue sur le VRAI serveur, avec un Stripe simulé qui connaît les impayés (`test-845`) */
-      async () => null);
+      async () => null,
+      /* ⛔ les OPTIONS DU PRO (1er octobre 2026) : la route lit ce que Stripe sert à l'entreprise visée (`espaceStripe`,
+         `formuleEtPlaces`, `optionsServies`) pour ramener d'office les options déjà payées et refuser un ajout
+         sans Pro. Ce bac à sable n'a pas de liste Stripe : rien n'est servi, rien n'est impayé — le comportement des options
+         (couverture, ajout d'office, impayé d'option, codes d'erreur) se joue sur le VRAI serveur, `test-850` */
+      async () => ({ s: null, fraiche: true }), () => ({ f: null, places: null }), async () => null, () => [], () => ({}));
     await faux._h({ body, headers: entetes === undefined ? { authorization: 'Bearer ' + JETON_PROUVE } : entetes },
       { status(c) { statut = c; return this; }, json(o) { sortie = o; return this; } });
     return { envoye, statut, sortie, appels };
@@ -301,6 +310,18 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
   {
     const inconnu = await appeler({ price: 'price_1Abc', quantity: 1, ref: 'monclient-9f2a' });
     v('⛔ un tarif qui n\'est pas sur la page : 400 tarif_inconnu, rien chez Stripe', [inconnu.statut, inconnu.sortie && inconnu.sortie.error, inconnu.appels], [400, 'tarif_inconnu', 0]);
+    /* ⛔ « MESSAGES BUSINESS PREMIUM » (25 €) EST RETIRÉE DE LA VENTE (Justin, 1er octobre 2026 : « lui à 25 on le supprime ») : le serveur
+       REFUSE d'en vendre un neuf — 400 `formule_retiree`, rien chez Stripe, AVANT toute lecture — mais son tarif reste connu (un abonnement
+       d'avant reste lu comme de l'OP MESSAGES : `test-842`). Messages Pro, lui, se vend toujours (§ plus bas, `PRIX_MSG`). */
+    const PRIX_MSGPREM = (/^\s*msgpremium: \['(price_\w+)'/m.exec(SRC) || [])[1], PRIX_MSGPRO0 = (/^\s*msgpro: \['(price_\w+)'/m.exec(SRC) || [])[1];
+    vrai('(population) les deux tarifs d\'OP MESSAGES du serveur sont lus, et ils diffèrent', /^price_/.test(PRIX_MSGPREM || '') && /^price_/.test(PRIX_MSGPRO0 || '') && PRIX_MSGPREM !== PRIX_MSGPRO0);
+    const retiree = await appeler({ price: PRIX_MSGPREM, quantity: 1, ref: 'monclient-9f2a' });
+    v('⛔ le tarif de « Messages Business Premium » : 400 formule_retiree, rien chez Stripe', [retiree.statut, retiree.sortie && retiree.sortie.error, retiree.appels], [400, 'formule_retiree', 0]);
+    const retireeAn = await appeler({ price: (/^\s*msgpremium: \['price_\w+', '(price_\w+)'/m.exec(SRC) || [])[1], quantity: 1 });
+    v('   … le tarif ANNUEL aussi, sans référence d\'espace', [retireeAn.statut, retireeAn.sortie && retireeAn.sortie.error, retireeAn.appels], [400, 'formule_retiree', 0]);
+    const msgPro = await appeler({ price: PRIX_MSGPRO0, quantity: 1, ref: 'monclient-9f2a' });
+    v('   (témoin) Messages Pro, lui, se vend toujours : la page de paiement s\'ouvre', [msgPro.statut || 200, msgPro.appels], [200, 1]);
+    vrai('⛔ et le serveur CONNAÎT toujours le tarif retiré (`STRIPE_PRIX_FORMULE.msgpremium`, `STRIPE_PRIX_MESSAGES`) : un abonnement d\'avant reste de l\'OP MESSAGES', /STRIPE_PRIX_MESSAGES\s*=\s*STRIPE_PRIX_FORMULE\.msgpro\.concat\(STRIPE_PRIX_FORMULE\.msgpremium\)/.test(SRC));
     const PREM = { monclient: { nom: 'Mon client', t: 'monclient-9f2a', email: 'paie@entreprise-banc.fr', formule: 'premium' } };
     const gravee = r => new URLSearchParams(r.envoye).get('subscription_data[metadata][espace]');
     const bas = await appeler({ price: PRIX_PRO, quantity: 4, ref: 'monclient-9f2a' }, undefined, undefined, PREM);
@@ -867,8 +888,8 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
      ou quand l'entreprise est fermée. */
   {
     /* (`espaceParT` sert la facturation de l'ENTREPRISE — `facturationDe`, relecture de `gardien` du 30 septembre 2026) */
-    const FSD = extraire('formuleServieDe'), EPT = ['facturationGroupes', 'nomsEntreprise', 'facturationDe', 'espaceParT'].map(extraire).join('\n');
-    vrai('formuleServieDe, espaceParT et facturationDe sont trouvées dans le fichier réel', !!FSD && !!extraire('espaceParT') && !!extraire('facturationDe') && /espacePaye\(e, \{ lecture: true \}\)/.test(FSD));
+    const FSD = [extraire('servieDe'), extraire('formuleServieDe'), extraire('optionsServiesDe')].join('\n'), EPT = ['facturationGroupes', 'nomsEntreprise', 'facturationDe', 'espaceParT'].map(extraire).join('\n');
+    vrai('formuleServieDe, espaceParT et facturationDe sont trouvées dans le fichier réel', !!extraire('servieDe') && !!extraire('formuleServieDe') && !!extraire('optionsServiesDe') && !!extraire('espaceParT') && !!extraire('facturationDe') && /espacePaye\(e, \{ lecture: true \}\)/.test(FSD));
     const APRES = Math.floor(Date.parse('2026-10-01T00:00:00Z') / 1000);
     const prix = k => (new RegExp('^\\s*' + k + ": \\['(price_\\w+)'", 'm').exec(SRC) || [])[1];
     const abo = (mail, k, q) => ABO({ created: APRES, customer: { email: mail }, items: { data: [{ price: { id: prix(k) }, quantity: q }] } });

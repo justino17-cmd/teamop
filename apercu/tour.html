@@ -612,6 +612,12 @@ input.inp,select.sel-f{display:block;line-height:normal}
    soit le taux de teinte qu'on essaie — c'est le seul couple qui ne se rattrape pas. */
 .reg-plus{background:var(--tint-gris);color:var(--text2);border-radius:var(--r-pill);
   padding:3px 9px;font-size:11px;font-weight:600;white-space:nowrap}
+/* v2.80 — une pastille par option servie (« Stock », « Achats »…) à côté de la formule : même couple d'encres que « +n »
+   (--text2 sur --tint-gris), jamais .past.p-gris (4,44:1) ; elle porte un MOT, et reste dans la ligne de la formule */
+.reg-opts{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.opt-p{display:inline-block;padding:1px 8px;border-radius:var(--r-pill);background:var(--tint-gris);color:var(--text2);
+  font-size:11px;font-weight:600;line-height:1.5;white-space:nowrap;vertical-align:1px}
+.abo-opts[hidden]{display:none}
 
 /* ── GROUPES 2 ET 3 · CE QUI N'EST PAS UNE CLIENTE ─── posé sur la page, aucune surface ───
    Volontairement PAS --inset comme fond : le jour, #F4F5F9 est à un point de la page #F2F3F7,
@@ -2936,7 +2942,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.79</div>
+    <div class="lg-pied">console interne · v2.81</div>
   </div>
 </div>
 
@@ -2978,7 +2984,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.79</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.81</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2990,7 +2996,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.79</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.81</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3036,15 +3042,15 @@ var APPS_TOUR={
    pour qui lit. La barre du bas n'a le droit qu'à une ABRÉVIATION du même mot (BAS_LIB).
    Chaque vue qui existait est rangée ici, aucune n'est retirée ; la bêta vit toujours DANS « Accès »,
    à côté de la version publique : deux portes qui ne doivent jamais se voir l'une sans l'autre
-   (vueEssais, reg-g-fixe). La console MESSAGES ne dessine pas Devis IA, Connexions, Abonnements,
-   Sauvegardes ni Accès — ils n'y ont rien à montrer (REPRISE.md, « une console par application »).
+   (vueEssais, reg-g-fixe). La console MESSAGES ne dessine pas Devis IA, Connexions, Abonnements
+   ni Sauvegardes — ils n'y ont rien à montrer (« Accès » y est depuis la v2.81 : la bêta d'OP MESSAGES a ses accès) (REPRISE.md, « une console par application »).
    Colonnes : [clé, nom, consoles, compteur?]. */
 var MENU=[
   {section:'Tour',vues:[['accueil','Accueil','gestion messages']]},
   {section:'Clients',vues:[['entreprises','Entreprises','gestion messages'],['abonnements','Abonnements','gestion'],
     ['connexions','Connexions','gestion'],['devisia','Devis IA','gestion']]},
   {section:'Support',vues:[['surveillance','Surveillance','gestion messages','bdg-surv'],['support','Courrier','gestion messages','bdg-supp']]},
-  {section:'Administration',vues:[['essais','Accès','gestion'],['equipe','Équipe','gestion messages'],['journal','Journal','gestion messages'],['donnees','Sauvegardes','gestion']]}
+  {section:'Administration',vues:[['essais','Accès','gestion messages'],['equipe','Équipe','gestion messages'],['journal','Journal','gestion messages'],['donnees','Sauvegardes','gestion']]}
 ];
 /* ⛔ CE QUI EST AU PATRON SEUL, ET LE SERVEUR LE DIT AUSSI : Accès, Équipe, Journal et Sauvegardes
    répondent « Réservé au patron » à tout autre compte (monPatronStrict). Le Journal et les Sauvegardes
@@ -3256,7 +3262,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.79';
+var TOUR_VERSION='v2.81';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -4079,7 +4085,7 @@ function chargerEtatMessages(){
     if(APP==='messages'&&TAB==='accueil') render();
   }).catch(function(e){ OPM.loaded=true; OPM.err=(e&&e.status===404)?'Le serveur ne connaît pas encore l’état d’OP MESSAGES (mise à jour du serveur en attente).':msgErreur(e); if(APP==='messages'&&TAB==='accueil') render(); });
 }
-var BT={comptes:[],loaded:false,err:'',login:'',nom:'',chantier:'',pass:''};
+var BT={comptes:[],loaded:false,err:'',login:'',nom:'',chantier:'',pass:'',aussi:false};
 /* PB — accès à la version PUBLIQUE (teamop.fr/app.html), pas à la bêta. Deux choses
    différentes qui vivent sur le même écran : la bêta n'ouvre que la bêta, un accès public
    ouvre un vrai espace d'entreprise, avec de vraies données qui se synchronisent. */
@@ -5375,6 +5381,86 @@ function chargerEspaces(){
    pourtant bien. Même faute que celle déjà corrigée sur #esp-formules, rejouée ici.
    Elle garde donc un état, et c'est le rendu qui peint — comme regPliage(). */
 var PACK={nom:'',charge:false,err:'',d:null};
+/* ⛔ v2.80 — LES OPTIONS DU PRO (Justin, 1er octobre 2026 : « Plus cher »). Stock, Achats, Encaissements et Registre
+   sanitaire s'ajoutent à la formule Pro ; Business et Business Premium les ont toutes. La Tour les MONTRE (ce que
+   l'application reçoit, et les lignes d'option chez Stripe) et les RÈGLE à la main avec l'abonnement. Quatre règles :
+   · une option ne se lit que dans les champs du serveur (`optionsServies` : ce que l'application reçoit ; `options` : ce que
+     TEAM OP a réglé ; `optionsStripe` : les lignes d'option Stripe) — jamais déduite d'un nom ou d'un montant ;
+   · ⛔ un serveur qui ne rend aucun de ces champs (« d'avant », ou un doute) : la Tour SE TAIT — pas de cases, pas de ligne,
+     pas de pastille, et l'enregistrement n'envoie pas `options` (l'ancien réglage reste tel quel) ;
+   · une option réglée à la main ne vaut que sous Pro + Actif/En essai : hors de là les cases sont grisées et l'enregistrement
+     envoie `[]` (le serveur refuse le reste, et `[]` est toujours permis) ;
+   · une clé inconnue de la Tour reste lisible telle quelle (jamais cachée), et ne sert jamais de clé de table. */
+var OPT_CLES=['stock','achats','compta','sanitaire'];
+var OPT_L={stock:'Stock',achats:'Achats fournisseurs',compta:'Encaissements et compta',sanitaire:'Registre sanitaire (3D)'};
+var OPT_C={stock:'Stock',achats:'Achats',compta:'Compta',sanitaire:'Sanitaire'};
+var OPT_P={stock:9,achats:6,compta:6,sanitaire:6};
+var OPT_ST={active:'payée',trialing:'en essai',past_due:'impayée',unpaid:'impayée',canceled:'annulée',incomplete:'non réglée'};
+/* le libellé d'une clé : celui de la table pour les quatre connues, la clé elle-même sinon (`court` : la pastille de la liste) */
+function optsLib(k,court){ k=String(k==null?'':k); return OPT_CLES.indexOf(k)>=0?(court?OPT_C[k]:OPT_L[k]):k; }
+/* un tableau de clés propre (chaînes, sans doublon, dans l'ordre de l'offre) — ou null quand le serveur n'a RIEN dit : la
+   différence entre « aucune option » (un tableau vide) et « le serveur ne sait pas » (absent) est tout le propos */
+function optsClesDe(v){
+  if(!Array.isArray(v)) return null;
+  var o=[]; v.forEach(function(k){ if(typeof k==='string'&&k&&o.indexOf(k)<0) o.push(k); });
+  return o.sort(function(a,b){ var i=OPT_CLES.indexOf(a), j=OPT_CLES.indexOf(b); return ((i<0?99:i)-(j<0?99:j))||(a<b?-1:a>b?1:0); });
+}
+/* les options servies d'une ligne de la liste : celles qu'elle porte, sinon celles de la même entreprise dans la liste des
+   espaces (même identifiant `t`) ; rien de lisible = aucune pastille */
+function optsServiesDe(o){
+  if(!o) return [];
+  if(Array.isArray(o.optionsServies)) return optsClesDe(o.optionsServies);
+  var e=((typeof ESP!=='undefined'&&ESP&&ESP.list)||[]).filter(function(x){ return x&&o.t&&x.t===o.t; })[0];
+  return e?(optsClesDe(e.optionsServies)||[]):[];
+}
+function optsPastilles(o){
+  return optsServiesDe(o).map(function(k){ return '<span class="opt-p" title="Option servie : '+esc(optsLib(k))+'">'+esc(optsLib(k,1))+'</span>'; }).join('');
+}
+/* les lignes d'option chez Stripe : « Stock ×3 (payée) · Achats ×2 (impayée) » */
+function optsLignesTexte(d){
+  var L=d&&Array.isArray(d.optionsStripe)?d.optionsStripe:null; if(!L) return '';
+  return L.filter(function(x){ return x&&typeof x==='object'; }).map(function(x){
+    var q=parseInt(x.quantite,10), st=Object.prototype.hasOwnProperty.call(OPT_ST,x.statut)?OPT_ST[x.statut]:(x.statut||'?');
+    return esc(optsLib(x.cle))+(q>0?' ×'+q:'')+' ('+esc(st)+')'; }).join(' · ');
+}
+/* le bloc de la fiche : caché tant que le serveur n'a rien dit des options (`optsPeindre` l'ouvre) */
+function optsCasesHtml(){
+  return '<div id="abo-opts" class="abo-opts" hidden>'+
+    '<div class="note">Options du Pro, réglées à la main avec l’abonnement : elles s’ajoutent à une formule <b>Pro</b> au statut <b>Actif</b> ou <b>En essai</b>. Business et Business Premium les ont toutes.</div>'+
+    '<div class="eq-apps">'+OPT_CLES.map(function(k){
+      return '<label><input type="checkbox" id="abo-o-'+k+'" value="'+k+'"> '+esc(OPT_L[k])+' <span class="sous">+'+OPT_P[k]+' €</span></label>'; }).join('')+'</div>'+
+    '<div id="abo-opts-info" class="note"></div></div>';
+}
+function optsEligible(){
+  var f=(document.getElementById('abo-f')||{}).value, st=(document.getElementById('abo-st')||{}).value;
+  return f==='pro'&&(st==='actif'||st==='essai');
+}
+function optsSynchro(){
+  var ok=optsEligible();
+  OPT_CLES.forEach(function(k){ var c=document.getElementById('abo-o-'+k); if(c) c.disabled=!ok; });
+}
+function optsVisible(){ var b=document.getElementById('abo-opts'); return !!b&&!b.hidden; }
+/* ce qu'on envoie : les cases cochées SI le réglage les permet, sinon [] (qui retire — le serveur le permet toujours) */
+function optsChoisies(){
+  if(!optsEligible()) return [];
+  return OPT_CLES.filter(function(k){ var c=document.getElementById('abo-o-'+k); return c&&c.checked; });
+}
+function optsPeindre(d){
+  var b=document.getElementById('abo-opts'); if(!b) return;
+  var servies=optsClesDe(d&&d.optionsServies), reglees=optsClesDe(d&&d.options);
+  if(!servies&&!reglees){ b.hidden=true; return; }
+  b.hidden=false;
+  OPT_CLES.forEach(function(k){ var c=document.getElementById('abo-o-'+k); if(c) c.checked=!!reglees&&reglees.indexOf(k)>=0; });
+  optsSynchro();
+  var info=document.getElementById('abo-opts-info'); if(!info) return;
+  var fs=d.formuleServie||d.formule, t='';
+  if(servies){
+    if(!servies.length&&(fs==='business'||fs==='premium')) t='Toutes les options sont <b>incluses</b> dans '+esc(ABN_F[fs]);
+    else t=servies.length?'Options servies à l’application : <b>'+servies.map(function(k){ return esc(optsLib(k)); }).join(', ')+'</b>':'Aucune option servie à l’application';
+  }
+  var l=optsLignesTexte(d); if(l) t+=(t?' · ':'')+'lignes Stripe : '+l;
+  info.innerHTML=t;
+}
 function packPeindre(){
   var el=document.getElementById('pack-info'); if(!el) return;
   if(!PACK.charge){ el.textContent=PACK.nom?'Chargement du statut…':''; return; }
@@ -5412,6 +5498,8 @@ function packPeindre(){
       ?' · <b style="color:var(--redText)">application suspendue</b> (rien de payé ni offert) — choisis une formule et Enregistrer\u202f; pour la faire essayer, le statut « En essai » avec une date de fin.'
       :(d.paye&&d.formuleServie?' · l’application reçoit\u202f: <b>'+esc(ABN_F[d.formuleServie]||d.formuleServie)+'</b> ('+abnEcart(d)+').':' pour l\'instant — choisis-en une et Enregistrer.'));
   }
+  /* v2.80 — les options : le serveur les dit, ou la Tour se tait */
+  optsPeindre(d);
 }
 function tourPackPrefill(nom){
   PACK={nom:nom||'',charge:false,err:'',d:null}; packPeindre();
@@ -5442,8 +5530,10 @@ function tourAboEnregistrer(nom,btn){
   var st=(document.getElementById('abo-st')||{}).value||'auto', fin=(document.getElementById('abo-fin')||{}).value||'';
   if(!f){ toast('Choisis une formule — Pro, Business ou Business Premium'); return; }
   if(btn){ btn.disabled=true; btn.textContent='💾 Enregistrement…'; }
-  apiPost('/api/monitor/espaces/abonnement',{nom:nom,formule:f,quantite:q,statut:st,fin:fin}).then(function(r){
-    if(r&&r.ok&&r.d&&r.d.ok){ toast('💾 Abonnement enregistré : '+f+(q>1?' ×'+q:'')+' · '+st+(fin?' jusqu\'au '+fin:'')+' — actif à la prochaine ouverture de leur app'); tourPackPrefill(nom); setTimeout(chargerEspaces,300); }
+  /* v2.80 — `options` ne part que si le bloc est ouvert (le serveur sait les options) : un serveur d'avant ne reçoit rien de neuf */
+  var corps={nom:nom,formule:f,quantite:q,statut:st,fin:fin}; if(optsVisible()) corps.options=optsChoisies();
+  apiPost('/api/monitor/espaces/abonnement',corps).then(function(r){
+    if(r&&r.ok&&r.d&&r.d.ok){ toast('💾 Abonnement enregistré : '+f+(q>1?' ×'+q:'')+(corps.options&&corps.options.length?' + '+corps.options.map(function(k){ return optsLib(k,1); }).join(', '):'')+' · '+st+(fin?' jusqu\'au '+fin:'')+' — actif à la prochaine ouverture de leur app'); tourPackPrefill(nom); setTimeout(chargerEspaces,300); }
     else toast((r&&r.d&&r.d.error)||'Refusé — mets le serveur à jour (git pull) ou réservé au patron');
     if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer'; }
   }).catch(function(){ toast('Serveur injoignable'); if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer'; } });
@@ -5822,8 +5912,8 @@ function vueAccueil(){
    douze messages non lus affichés comme quatre sans un mot, c'est une console qui cache du
    travail. */
 /* ══ LA CONSOLE OP MESSAGES ═══ elle ne montre que ce qui est VRAI aujourd'hui : l'application est en
-   travaux (messages.html affiche « change d'infrastructure », les collections sont sorties du projet
-   elan-gestion), et la seule donnée qui vit est le drapeau « ouvert à OP MESSAGES » par entreprise.
+   travaux (messages.html affiche « change d'infrastructure » ; elle aura son propre serveur, server-msg/),
+   et la seule donnée d'entreprise qui vit est le drapeau « ouvert à OP MESSAGES » par entreprise.
    Une Tour vide et honnête vaut mieux qu'une Tour pleine de zéros qui ressemblent à des mesures. */
 function vueAccueilMsg(){
   var jour=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); jour=jour.charAt(0).toUpperCase()+jour.slice(1);
@@ -5834,11 +5924,13 @@ function vueAccueilMsg(){
   if(!OPM.loaded) etat='<div class="carte"><div class="squel" style="height:14px;width:60%">&nbsp;</div><div class="squel" style="height:12px;width:90%;margin-top:8px">&nbsp;</div></div>';
   else if(OPM.err) etat='<div class="carte"><div class="ttl-carte">État d’OP MESSAGES</div><div style="color:var(--muted);font-size:13px">'+esc(OPM.err)+'</div></div>';
   else if(enTravaux) etat='<div class="carte" style="border-color:var(--app-brd)"><div class="ttl-carte"><span class="past p-ambre">En travaux</span> OP MESSAGES change d’infrastructure'+(d.depuis?' <span class="n">depuis le '+esc(d.depuis)+'</span>':'')+'</div>'+
-      '<div style="font-size:13px;color:var(--text2);line-height:1.6">'+(d.note?esc(d.note):'Les collections de messagerie sont sorties du projet elan-gestion ; bascule prévue sur son propre projet Firebase.')+'</div>'+
+      /* v2.81 — plus la note du serveur : elle parlait encore de Firebase (« bascule vers le projet OP MESSAGES »), et Justin l'a lue le 2 octobre 2026 */
+      '<div style="font-size:13px;color:var(--text2);line-height:1.6">OP MESSAGES aura son propre serveur, séparé d’OP GESTION et de Firebase. En attendant, l’application publique reste fermée ; la bêta s’essaie avec les accès de l’onglet <b>Accès</b>.</div>'+
       (MYROLE==='patron'?'<div class="sec" style="margin-top:12px">Ce qui attend pour la bascule</div><ul style="margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--text2);line-height:1.7">'+
-        '<li>la configuration web du nouveau projet Firebase (à créer dans la console Firebase)</li><li><span class="mono">FB_CONFIG</span> et <span class="mono">OPMSG_EN_TRAVAUX=false</span> dans messages.html et messages-beta.html, puis publication</li><li>les règles <span class="mono">firestore-opmessages.rules</span> collées dans le nouveau projet, Authentication activée</li></ul>'+
+        /* v2.81 — OP MESSAGES n'a plus de Firebase : il a son propre serveur (server-msg/), séparé d'OP GESTION */
+        '<li>installer le serveur d’OP MESSAGES sur le VPS — les gestes sont dans <span class="mono">design/opmessages/INSTALLER-LE-SERVEUR.md</span></li><li>la bêta : <span class="mono">msg-beta.teamop.fr</span>, ses accès s’ouvrent dans l’onglet <b>Accès</b> de cette console</li><li>puis <span class="mono">OPMSG_EN_TRAVAUX=false</span> dans messages.html, et publication</li></ul>'+
         '<div style="margin-top:12px"><button type="button" class="btn-fant" onclick="opmBascule()">Déclarer la bascule faite</button></div>':'')+'</div>';
-  else etat='<div class="carte"><div class="ttl-carte"><span class="past p-vert">En service</span> OP MESSAGES'+(d.projet?' <span class="n">projet '+esc(d.projet)+'</span>':'')+'</div></div>';
+  else etat='<div class="carte"><div class="ttl-carte"><span class="past p-vert">En service</span> OP MESSAGES'+(d.projet?' <span class="n">sur '+esc(d.projet)+'</span>':'')+'</div></div>';
   var tuile=function(l,n,go,cls){ return '<button type="button" class="kpi clic '+(cls||'')+'" onclick="'+go+'"><div class="l">'+l+'</div><div class="n">'+n+'</div></button>'; };
   var kpis='<div class="grille-kpi rang" style="margin:0 0 20px">'+
     tuile('Entreprises ouvertes à OP MESSAGES',ouvertes,"setTab('entreprises')")+
@@ -5850,14 +5942,14 @@ function vueAccueilMsg(){
   return '<div class="page-tete"><div class="page-txt"><div class="tt-section">'+esc(vueInfo('accueil').section+' · '+vueInfo('accueil').lib)+'</div><div class="ttl-page">Bonjour '+esc(MYNOM)+'</div><div class="desc">'+jour+' · Tour OP MESSAGES</div></div></div>'+etat+'<div style="height:16px"></div>'+kpis+'<div class="reg">'+sup+'</div>';
 }
 function opmBascule(){
-  var projet=prompt('Nom du projet Firebase OP MESSAGES (tel qu’il apparaît dans la console) :',''); if(!projet) return;
-  if(!confirm('Déclarer OP MESSAGES en service sur le projet « '+projet+' » ?\n\nÀ ne faire QU’APRÈS la publication de messages.html avec sa nouvelle configuration : l’accueil cessera d’afficher « en travaux ».')) return;
+  var projet=prompt('Nom du serveur d’OP MESSAGES (ex. msg.teamop.fr) :',''); if(!projet) return;
+  if(!confirm('Déclarer OP MESSAGES en service sur « '+projet+' » ?\n\nÀ ne faire QU’APRÈS l’installation du serveur et la publication de messages.html : l’accueil cessera d’afficher « en travaux ».')) return;
   apiPost('/api/monitor/messages/etat',{enTravaux:false,projet:projet}).then(function(r){ if(!(r&&r.ok)){ toast((r&&r.d&&r.d.error)||'Refusé'); return; }
     toast('OP MESSAGES déclaré en service'); JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a déclaré OP MESSAGES en service ('+projet+')'}); chargerEtatMessages(); }).catch(function(){ toast('Serveur injoignable'); });
 }
 /* Le seul écran ACTIONNABLE d'OP MESSAGES aujourd'hui : qui y est ouvert, et l'ouvrir ou le fermer. */
 function vueEntreprisesMsg(){
-  var tete=enTete('Entreprises','Les entreprises ouvertes à OP MESSAGES. Ouvrir ajoute la rangée SUITE dans leur OP GESTION ; la messagerie elle-même n’est pas disponible tant que la bascule n’est pas faite.');   /* v2.68 : le 3ᵉ argument (un ternaire vide des deux côtés) ne dessinait rien */
+  var tete=enTete('Entreprises','Les entreprises ouvertes à OP MESSAGES. Ouvrir ajoute la rangée SUITE dans leur OP GESTION ; la messagerie elle-même n’est pas disponible tant que son serveur n’est pas installé.');   /* v2.68 : le 3ᵉ argument (un ternaire vide des deux côtés) ne dessinait rien */
   if(!ENT.loaded) return tete+acSquel();
   if(ENT.err) return tete+acErr('Impossible de charger les entreprises',ENT.err,'chargerEntreprises()');
   /* tour.html n'a pas de norm() : on neutralise casse et accents ici, comme fait la recherche d'Entreprises */
@@ -7653,6 +7745,9 @@ function vueEntreprises(){
         '<span class="reg-av">'+esc(sigle(nm))+'</span>'+
         '<span class="reg-txt"><span class="reg-t1" title="'+esc(nm)+'">'+esc(nm)+'</span>'+
           (l2?'<span class="reg-l2">'+l2+'</span>':'')+
+          /* v2.80 — les options servies ont LEUR rangée (qui passe à la ligne) : dans la ligne de la formule, qui se coupe en
+             ellipse, la quatrième pastille disparaissait à 390 px (mesuré) */
+          (optsPastilles(o)?'<span class="reg-opts">'+optsPastilles(o)+'</span>':'')+
           (l3?'<span class="reg-l3">'+l3+'</span>':'')+'</span>'+
         '<span class="reg-fin"><span class="reg-alertes">'+alertes+'</span>'+
           '<span class="reg-chev" aria-hidden="true">›</span></span></button>';
@@ -8456,7 +8551,7 @@ function blocGestionClient(){
     '<div class="sous-sec"><div class="sec">ABONNEMENT</div>'+
       '<div class="note">Réglé ici par TEAM OP : formule, nombre d’abonnements (<b>un par utilisateur</b>), statut et date de fin. Ce réglage <b>prime</b> sur Stripe et les codes promo, et s’applique à l’espace « '+esc(nm)+' » à sa prochaine ouverture de l’app. Client depuis le '+esc(fmtJour(c.inscrit))+' · statut site : <span class="past '+s[1]+'">'+esc(s[0])+'</span></div>'+
       '<div class="form-rang">'+
-      '<select id="abo-f" title="Formule" aria-label="Formule" class="sel-f">'+
+      '<select id="abo-f" title="Formule" aria-label="Formule" class="sel-f" onchange="optsSynchro()">'+
         /* ⛔ UN ABONNEMENT = UN UTILISATEUR, quelle que soit la formule (Justin, 27 et 28 septembre 2026) : les formules ne
            portent plus de nombre de places — c'est le NOMBRE D'ABONNEMENTS, juste à côté, qui les donne. « Business · 2
            places » faisait régler deux abonnements pour quatre personnes : l'application (v762) n'en ouvre plus que deux. */
@@ -8464,12 +8559,13 @@ function blocGestionClient(){
            suspendu tant que c'est pas réglé ») : le serveur la refuse. Pour offrir un temps d'essai : « En essai » et une date. */
         '<option value="pro">Pro</option><option value="business" selected>Business</option><option value="premium">Business Premium</option></select>'+
       '<input id="abo-q" type="number" min="1" max="50" value="1" title="Nombre d’abonnements — un par utilisateur" aria-label="Nombre d’abonnements, un par utilisateur" class="inp ch-n">'+
-      '<select id="abo-st" title="Statut de l’abonnement" aria-label="Statut de l’abonnement" class="sel-f">'+
+      '<select id="abo-st" title="Statut de l’abonnement" aria-label="Statut de l’abonnement" class="sel-f" onchange="optsSynchro()">'+
         '<option value="auto">Automatique (Stripe / code promo)</option><option value="actif">✅ Actif (activé par TEAM OP)</option><option value="essai">🧪 En essai</option><option value="impaye">⚠️ Impayé</option><option value="suspendu">⏸ Suspendu</option><option value="annule">✕ Annulé</option></select>'+
       '<input id="abo-fin" type="date" title="Valable jusqu’au (vide = sans fin)" aria-label="Valable jusqu’au" class="inp ch-d">'+
       '<button type="button" class="btn-plein" onclick="tourAboEnregistrer(\''+jsq(nm)+'\',this)">💾 Enregistrer</button>'+
       '<button type="button" class="btn-fant" onclick="tourStatutPack(\''+jsq(nm)+'\')">💳 Statut paiement</button></div>'+
       '<div id="pack-info" class="note">Chargement du statut…</div>'+
+      optsCasesHtml()+
       '<div class="form-rang">'+
       /* ⛔ PAS DE CODE PROMO RÉEL DANS UN EXEMPLE. `tour.html` est un fichier statique servi par
          GitHub Pages : l'authentification de la Tour est côté JavaScript, elle n'empêche pas de
@@ -8964,11 +9060,16 @@ function btGen(){
 function btAjouter(){
   var login=(BT.login||'').trim().toLowerCase(), nom=(BT.nom||'').trim(), pass=BT.pass||'', chantier=(BT.chantier||'').trim();
   if(!login||!pass){ toast('Choisis un identifiant et un mot de passe'); return; }
-  apiPost('/api/monitor/beta',{login:login,nom:nom,pass:pass,chantier:chantier}).then(function(x){
+  /* v2.81 — un accès ouvre UNE application : celle de la console où on le crée (Justin : « bien séparé dans la Tour ») */
+  var apps=[(APP==='messages')?'messages':'gestion'];
+  apiPost('/api/monitor/beta',{login:login,nom:nom,pass:pass,chantier:chantier,apps:apps}).then(function(x){
     if(!x.ok){ toast('⚠️ '+(x.d.error||'refusé')); return; }
     BT.login=''; BT.nom=''; BT.chantier=''; BT.pass='';
-    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a ouvert l’accès bêta « '+login+' »'});
-    toast('Accès « '+login+' » ouvert'); chargerEssais();
+    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a ouvert l’accès bêta « '+login+' »'+(APP==='messages'?' (OP MESSAGES)':'')});
+    /* un serveur d'avant ignore `apps` et rend un accès sans le champ : il n'ouvre que OP GESTION — ne pas le laisser croire le contraire */
+    if(APP==='messages'&&!(x.d&&x.d.compte&&Array.isArray(x.d.compte.apps))){ toast('⚠️ Accès créé, mais le serveur ne connaît pas encore OP MESSAGES (mise à jour en attente) : il n’ouvre que la bêta d’OP GESTION'); }
+    else toast('Accès « '+login+' » ouvert');
+    chargerEssais();
   });
 }
 function btToggle(id){ apiPost('/api/monitor/beta/toggle',{id:id}).then(function(x){
@@ -8976,6 +9077,16 @@ function btToggle(id){ apiPost('/api/monitor/beta/toggle',{id:id}).then(function
   chargerEssais(); }); }
 function btSuppr(id,login){ if(!confirm('Supprimer définitivement l’accès bêta « '+login+' » ?')) return;
   apiPost('/api/monitor/beta/delete',{id:id}).then(function(){ toast('Accès supprimé'); chargerEssais(); }); }
+/* ══ v2.81 — UN ACCÈS, UNE APPLICATION (Justin, 1er octobre 2026 : « fais un lien bêta dans la Tour [pour OP MESSAGES], fais le même
+   système pour les accès comme OP GESTION » ; puis le 2 octobre, capture de la console MESSAGES à l'appui : « je veux pouvoir créer
+   les accès d'OP MESSAGES ici, car je veux que ça soit bien séparé dans la Tour »). Chaque console crée et montre les SIENS ; un même
+   identifiant peut exister dans les deux bêtas, chacun avec son mot de passe. Un accès porte `apps` (le serveur le grave à la
+   création) ; UN ACCÈS D'AVANT, sans le champ, vaut OP GESTION seul — la même lecture que le serveur (`betaApps`). ═══ */
+var BT_APPS=['gestion','messages'];
+var BETA_MSG_ADRESSE='https://msg-beta.teamop.fr';
+function btAppsDe(c){ var l=Array.isArray(c&&c.apps)?BT_APPS.filter(function(a){ return c.apps.indexOf(a)>=0; }):[]; return l.length?l:['gestion']; }
+function btAvec(c,app){ return btAppsDe(c).indexOf(app)>=0; }
+function btDeLaConsole(){ return (BT.comptes||[]).filter(function(c){ return btAvec(c,APP); }); }
 function pbChamp(k,v){ PB[k]=v; }
 function pbGen(){
   var p=tirageSur('abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!#%',12);
@@ -9182,10 +9293,17 @@ function accFicheBeta(id){
   var off=(c.actif===false);
   var lg=function(t,v){ return '<div style="display:flex;gap:10px;padding:7px 0;font-size:13px;line-height:1.5"><span style="color:var(--muted);min-width:118px;flex-shrink:0">'+t+'</span><span style="color:var(--text2);min-width:0;word-break:break-word">'+v+'</span></div>'; };
   var F='tourPanneauFermer();';
+  /* v2.81 — la fiche ne parle que de la bêta de la console ouverte : un accès n'ouvre qu'une application (l'autre bêta a les siens). */
+  var msg=(APP==='messages');
+  var enc=msg?('<div class="encart" style="margin-top:12px"><div class="encart-tx">Sur <b>msg-beta.teamop.fr</b> : cet identifiant et son mot de passe.'+
+    '<div style="display:flex;gap:8px;align-items:center;margin:8px 0"><span id="bt-lien-msg" class="mono" style="flex:1;word-break:break-all;font-weight:700;color:var(--link)">'+esc(BETA_MSG_ADRESSE)+'</span><button type="button" class="btn-fant" onclick="tourCopie(\'bt-lien-msg\',this)">Copier le lien</button></div>'+
+    '<span style="color:var(--muted);font-size:12px">La bêta d’OP MESSAGES n’est pas encore installée : tant que les gestes de <span class="mono">design/opmessages/INSTALLER-LE-SERVEUR.md</span> ne sont pas faits, cette adresse ne répond pas. L’accès, lui, est prêt — il s’ouvrira dès l’installation.</span></div></div>')
+    :'<div class="encart" style="margin-top:12px"><div class="encart-tx">Sur <b>teamop.fr/beta.html</b> : champ Entreprise <b>vide</b>, puis cet identifiant et son mot de passe. « Couper » ferme la porte immédiatement, même si le mot de passe est encore connu.</div></div>';
   tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:4px">'+esc(c.nom||c.login)+'</div>'+
-    '<div style="color:var(--muted);font-size:13px;margin-bottom:18px">Accès à teamop.fr/beta.html — jamais les données d’une entreprise.</div>'+
+    '<div style="color:var(--muted);font-size:13px;margin-bottom:18px">Accès à la bêta d’'+esc(APPS_TOUR[msg?'messages':'gestion'].nom)+' — et à rien d’autre, jamais les données d’une entreprise.</div>'+
     '<div class="sec">L’ACCÈS</div>'+
     lg('Identifiant','<span class="ac-slug">'+esc(c.login)+'</span>')+
+    lg('Ouvre',msg?'la bêta d’OP MESSAGES (<span class="mono">msg-beta.teamop.fr</span>)':'la bêta d’OP GESTION (<span class="mono">teamop.fr/beta.html</span>)')+
     lg('Chantier',c.chantier?esc(c.chantier):'<span class="ac-sans-chantier">non renseigné — écrivez ce que cette personne teste</span>')+
     lg('État',off?'⏸ Coupé — ne passe plus la porte, même avec le bon mot de passe':'Ouvert')+
     lg('Dernière connexion',c.derniere?esc(fmtJour(c.derniere)):'jamais connecté')+
@@ -9195,8 +9313,7 @@ function accFicheBeta(id){
       '<button type="button" class="btn-fant" onclick="'+F+'btChantier(\''+jsq(c.id)+'\',\''+jsq(c.chantier||'')+'\')">📝 '+(c.chantier?'Changer le chantier':'Écrire le chantier')+'</button>'+
       '<button type="button" class="btn-fant" onclick="'+F+'btToggle(\''+jsq(c.id)+'\')">'+(off?'▶️ Rouvrir':'⏸ Couper')+'</button>'+
       '<button type="button" class="btn-fant danger" onclick="'+F+'btSuppr(\''+jsq(c.id)+'\',\''+jsq(c.login)+'\')">🗑 Supprimer</button>'+
-    '</div>'+
-    '<div class="encart" style="margin-top:12px"><div class="encart-tx">Sur <b>teamop.fr/beta.html</b> : champ Entreprise <b>vide</b>, puis cet identifiant et son mot de passe. « Couper » ferme la porte immédiatement, même si le mot de passe est encore connu.</div></div>');
+    '</div>'+enc);
 }
 /* Le chantier peut changer sans que l'accès change de main : il se réécrit, sinon la seule
    façon de le corriger serait de supprimer l'accès et de le rouvrir. */
@@ -9214,10 +9331,14 @@ function accBlocBeta(){
   if(!BT.loaded) return squelListe(3);
   if(BT.err) return videTour('Accès illisibles',esc(BT.err),
     '<button type="button" class="btn-fant" onclick="chargerEssais()">Réessayer</button>');
-  var l=(BT.comptes||[]).slice().sort(function(a,b){
+  /* v2.81 — un serveur d'avant ne dit pas les applications : tout y vaut OP GESTION, et la console MESSAGES serait vide sans le dire */
+  if(APP==='messages'&&(BT.comptes||[]).length&&(BT.comptes||[]).every(function(c){ return !Array.isArray(c.apps); }))
+    return videTour('Le serveur ne connaît pas encore OP MESSAGES','Les accès bêta n’y disent pas encore quelle application ils ouvrent (mise à jour du serveur en attente) : aucun ne peut s’ouvrir à OP MESSAGES.',
+      '<button type="button" class="btn-fant" onclick="chargerEssais()">Réessayer</button>');
+  var l=btDeLaConsole().sort(function(a,b){
     var d=(a.actif===false?1:0)-(b.actif===false?1:0); if(d) return d;
     return (b.derniere||0)-(a.derniere||0); });
-  if(!l.length) return videTour('La bêta n’est ouverte à personne','Un accès bêta se donne à quelqu’un de l’équipe, pour un chantier précis — la personne, et l’écran qu’elle teste.',
+  if(!l.length) return videTour(APP==='messages'?'La bêta d’OP MESSAGES n’est ouverte à personne':'La bêta n’est ouverte à personne','Un accès bêta se donne à quelqu’un de l’équipe, pour un chantier précis — la personne, et l’écran qu’elle teste.',
     '<button type="button" class="btn-fant" onclick="accAllerForm(\'ac-f-beta\')">Ouvrir le premier accès</button>','essais');
   return '<div class="reg-bloc">'+l.map(accLigneBeta).join('')+'</div>';
 }
@@ -9229,7 +9350,42 @@ function accBlocPub(l){
     '<button type="button" class="btn-fant" onclick="accAllerForm(\'ac-f-pub\')">Ouvrir le premier espace</button>','essais');
   return '<div class="reg-cli">'+l.map(accLignePub).join('')+'</div>';
 }
+/* v2.81 — la console MESSAGES : la bêta d'OP MESSAGES, au même endroit et de la même forme que celle d'OP GESTION (liste, fiche, formulaire).
+   Pas de « version publique » ici : OP MESSAGES n'a pas d'espace d'entreprise à ouvrir depuis la Tour. */
+function vueEssaisMsg(){
+  var tete=enTete('Accès','Ce que l’équipe s’ouvre pour essayer OP MESSAGES, et rien d’autre : les accès à la bêta d’OP GESTION se créent dans sa console. Un même identifiant peut exister dans les deux, chacun avec son mot de passe.');
+  var tous=btDeLaConsole(), coupes=tous.filter(function(c){ return c.actif===false; }).length;
+  var gBeta='<div class="reg-g reg-g-fixe"><div class="ac-tete"><div class="reg-tete">'+
+    '<span class="reg-nom">Accès à la bêta d’OP MESSAGES</span>'+
+    (BT.loaded&&!BT.err?'<span class="reg-n">'+tous.length+(coupes?' · '+coupes+' coupé'+(coupes>1?'s':''):'')+'</span>':'')+
+    '<div class="reg-sous">N’ouvrent que msg-beta.teamop.fr — jamais les données d’une entreprise. L’identifiant et le mot de passe donnés ici.</div>'+
+    '</div><button type="button" class="ac-act" onclick="accAllerForm(\'ac-f-beta\')">Ouvrir un accès bêta</button></div>'+
+    accBlocBeta()+'</div>';
+  return tete+'<div class="deux ac-deux"><div class="col-liste"><div class="reg">'+gBeta+'</div></div><div class="col-detail">'+accFormBeta()+'</div></div>';
+}
+/* Le formulaire d'un accès bêta, commun aux deux consoles : il crée l'accès de la console ouverte, et l'encart dit SA bêta. */
+function accFormBeta(){
+  var msg=(APP==='messages');
+  return '<div class="carte ac-form" id="ac-f-beta"><div class="ttl-carte">Ouvrir un accès bêta'+(msg?' d’OP MESSAGES':'')+'</div>'+
+    '<div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">'+
+      '<div><div class="lbl">IDENTIFIANT</div><input class="inp mono" value="'+esc(BT.login)+'" oninput="btChamp(\'login\',this.value)" placeholder="ex. controle" autocapitalize="off" spellcheck="false"></div>'+
+      '<div><div class="lbl">NOM AFFICHÉ</div><input class="inp" value="'+esc(BT.nom)+'" oninput="btChamp(\'nom\',this.value)" placeholder="ex. Contrôle TEAM OP"></div>'+
+      /* CLAUDE.md : « Chaque accès doit dire qui travaille sur quoi » — la personne, ET le chantier. */
+      '<div><div class="lbl">CHANTIER</div><input class="inp" value="'+esc(BT.chantier||'')+'" oninput="btChamp(\'chantier\',this.value)" placeholder="'+(msg?'ex. conversations — envoi de photos':'ex. écran Devis — génération PDF')+'">'+
+        '<div style="font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5">Ce que cette personne teste : l’écran, la fonctionnalité ou la version. C’est ce qui permet de savoir, dans six mois, si l’accès sert encore.</div></div>'+
+      '<div><div class="lbl">MOT DE PASSE</div><div style="display:flex;gap:9px">'+
+        '<input class="inp mono" id="bt-pass" value="'+esc(BT.pass)+'" oninput="btChamp(\'pass\',this.value)" placeholder="12 caractères">'+
+        '<button type="button" class="btn-fant" onclick="btGen()">Générer</button></div></div>'+
+      '<button type="button" class="btn-plein" onclick="btAjouter()">Ouvrir l’accès</button>'+
+    '</div>'+
+    '<div class="encart" style="margin-top:16px">'+
+      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)">'+IC.cadenas+'</svg>'+
+      '<div class="encart-tx">'+(msg?'Sur <b>msg-beta.teamop.fr</b> : cet identifiant et ce mot de passe. « Couper » ferme la porte immédiatement, même si le mot de passe est encore connu. Cet accès n’ouvre QUE la bêta d’OP MESSAGES.'
+        :'Sur <b>teamop.fr/beta.html</b> : champ Entreprise <b>vide</b>, puis cet identifiant et ce mot de passe. « Couper » ferme la porte immédiatement, même si le mot de passe est encore connu.')+'</div></div>'+
+  '</div>';
+}
 function vueEssais(){
+  if(APP==='messages') return vueEssaisMsg();
   /* Quand il faut numéroter les sections dans une phrase d'introduction, c'est que la mise
      en page ne les sépare pas. Maintenant elle les sépare : le détail de chaque porte
      descend dans la phrase de son groupe, où il est lu au moment où il sert. */
@@ -9238,8 +9394,9 @@ function vueEssais(){
   /* PAS de return anticipé sur BT.loaded ni BT.err : une restriction sur une porte ne doit
      pas fermer l'autre, ni faire croire que l'écran est en panne. « Réservé au patron »
      s'affiche dans le groupe bêta, et le reste de l'écran continue de vivre. */
-  var coupes=(BT.comptes||[]).filter(function(c){ return c.actif===false; }).length;
-  var nBeta=(BT.comptes||[]).length;
+  var deLaConsole=btDeLaConsole();
+  var coupes=deLaConsole.filter(function(c){ return c.actif===false; }).length;
+  var nBeta=deLaConsole.length;
   var pubTour=(PBL.liste||[]).filter(function(e){ return e.origine!=='site'; });
   var susp=pubTour.filter(function(e){ return e.suspendu; }).length;
 
@@ -9256,23 +9413,7 @@ function vueEssais(){
     '</div><button type="button" class="ac-act" onclick="accAllerForm(\'ac-f-pub\')">Ouvrir un espace public</button></div>'+
     accBlocPub(pubTour)+'</div>';
 
-  var form='<div class="carte ac-form" id="ac-f-beta"><div class="ttl-carte">Ouvrir un accès bêta</div>'+
-    '<div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">'+
-      '<div><div class="lbl">IDENTIFIANT</div><input class="inp mono" value="'+esc(BT.login)+'" oninput="btChamp(\'login\',this.value)" placeholder="ex. controle" autocapitalize="off" spellcheck="false"></div>'+
-      '<div><div class="lbl">NOM AFFICHÉ</div><input class="inp" value="'+esc(BT.nom)+'" oninput="btChamp(\'nom\',this.value)" placeholder="ex. Contrôle TEAM OP"></div>'+
-      /* CLAUDE.md : « Chaque accès doit dire qui travaille sur quoi » — la personne, ET le
-         chantier. Un accès sans raison écrite est un accès qu'on n'ose plus couper. */
-      '<div><div class="lbl">CHANTIER</div><input class="inp" value="'+esc(BT.chantier||'')+'" oninput="btChamp(\'chantier\',this.value)" placeholder="ex. écran Devis — génération PDF">'+
-        '<div style="font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5">Ce que cette personne teste : l’écran, la fonctionnalité ou la version. C’est ce qui permet de savoir, dans six mois, si l’accès sert encore.</div></div>'+
-      '<div><div class="lbl">MOT DE PASSE</div><div style="display:flex;gap:9px">'+
-        '<input class="inp mono" id="bt-pass" value="'+esc(BT.pass)+'" oninput="btChamp(\'pass\',this.value)" placeholder="12 caractères">'+
-        '<button type="button" class="btn-fant" onclick="btGen()">Générer</button></div></div>'+
-      '<button type="button" class="btn-plein" onclick="btAjouter()">Ouvrir l’accès</button>'+
-    '</div>'+
-    '<div class="encart" style="margin-top:16px">'+
-      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)">'+IC.cadenas+'</svg>'+
-      '<div class="encart-tx">Sur <b>teamop.fr/beta.html</b> : champ Entreprise <b>vide</b>, puis cet identifiant et ce mot de passe. « Couper » ferme la porte immédiatement, même si le mot de passe est encore connu.</div></div>'+
-  '</div>';
+  var form=accFormBeta();
   /* La deuxième porte. Volontairement dans un cadre à elle : les confondre reviendrait à
      donner un espace client à qui ne devait tester qu'un écran. */
   var formPub='<div class="carte ac-form" id="ac-f-pub" style="margin-top:16px"><div class="ttl-carte">🌍 Ouvrir un accès à la version publique</div>'+

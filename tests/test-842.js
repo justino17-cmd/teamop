@@ -91,6 +91,10 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
   const tGP = esp('gratuitpaie', { formule: 'gratuit', quantite: 1, formuleTs: APRES, formulePar: 'Patron' });
   esp('gratuitrien', { formule: 'gratuit', quantite: 1, formuleTs: APRES, formulePar: 'Patron' });
   const tMG = esp('msgseul', { formule: 'business', quantite: 1, formuleTs: APRES, formulePar: 'Patron' });
+  /* ⛔ « MESSAGES BUSINESS PREMIUM » (25 €) EST RETIRÉE DE LA VENTE (Justin, 1er octobre 2026) — MAIS UN ABONNEMENT D'AVANT RESTE LU COMME
+     DE L'OP MESSAGES : si le serveur cessait de reconnaître ce tarif, il passerait pour un paiement d'OP GESTION (ou pour rien). Même
+     entreprise que `msgseul`, mêmes attentes, avec le tarif retiré. */
+  const tMP = esp('msgseulprem', { formule: 'business', quantite: 1, formuleTs: APRES, formulePar: 'Patron' });
   const tMA = esp('montetarif', { formule: 'business', quantite: 1, formuleTs: AVANT, formulePar: 'Patron' });
   const tPP = esp('promopetit', { formule: 'premium', quantite: 1, formuleTs: AVANT, formulePar: 'Patron (code)' });
   const tPN = esp('promonu', { formule: 'business', quantite: 1, formuleTs: AVANT, formulePar: 'Patron' });
@@ -131,7 +135,12 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
   /* Stripe simulé : les abonnements, TOUS statuts confondus, comme `stripeAbosBruts` les demande. Les tarifs sont les
      VRAIS identifiants (publics) de la page de paiement. */
   const RECAP = fs.readFileSync(path.join(RACINE, 'recap-abonnement.html'), 'utf8');
-  const PRIX = {}; for (const m of RECAP.matchAll(/^\s*(\w+):\s*\{ mensuel: '(price_\w+)', annuel: '(price_\w+)' \}/gm)) PRIX[m[1]] = [m[2], m[3]];
+  /* ⛔ LE BLOC `STRIPE_PRICES`, PAS TOUTE LA PAGE : les options du Pro vivent dans `STRIPE_PRICES_OPTIONS`, une table à part
+     (test-852 les compare au serveur). Lues sur toute la page, leurs lignes — de la même forme dès que Justin y colle ses
+     identifiants — passeraient pour des formules et feraient tomber la population de cinq (1er octobre 2026). */
+  const iPrix = RECAP.indexOf('const STRIPE_PRICES = {'), fPrix = RECAP.indexOf('\n};', iPrix);
+  const BLOC_PRIX = iPrix > 0 && fPrix > iPrix ? RECAP.slice(iPrix, fPrix) : '';
+  const PRIX = {}; for (const m of BLOC_PRIX.matchAll(/^\s*(\w+):\s*\{ mensuel: '(price_\w+)', annuel: '(price_\w+)' \}/gm)) PRIX[m[1]] = [m[2], m[3]];
   const S_AVANT = Math.floor(AVANT / 1000), S_APRES = Math.floor((BASCULE + 60000) / 1000);
   const abo = (id, espace, status, lignes, cree, email) => ({ id, status, created: cree, metadata: espace ? { espace } : {},
     customer: { id: 'cus_' + id, email: email || '' }, current_period_end: Math.floor(Date.now() / 1000) + 20 * 86400,
@@ -165,6 +174,9 @@ console.log('\n── 842 · les places se paient chez Stripe, et les abonnés d
     abo('gp', tGP, 'active', [['business', 2]], S_APRES),
     abo('sp', tSP, 'active', [['pro', 2]], S_APRES),
     abo('mg', tMG, 'active', [['msgpro', 2]], S_APRES),
+    /* ⛔ SANS le nom du produit : `ligneMessages` lit aussi « messages » dans ce nom, et le tarif RETIRÉ passerait alors pour de l'OP
+       MESSAGES sans que le serveur le reconnaisse — c'est l'IDENTIFIANT du tarif que ce contrôle doit éprouver */
+    (a => { a.items.data.forEach(it => { it.price.product = { name: 'Abonnement TEAM OP' }; }); return a; })(abo('mp', tMP, 'active', [['msgpremium', 2]], S_APRES)),
     abo('mA', tMA, 'active', [['business', 1]], S_AVANT), abo('mB', tMA, 'active', [['premium', 2]], S_APRES),
     abo('rm1', 'ent-reparmsg-ancien-842', 'active', [['premium', 3]], S_APRES, 'reparmsg@exemple-842.fr'), abo('rm2', tRM, 'active', [['msgpro', 1]], S_APRES, 'reparmsg@exemple-842.fr'),
     abo('ml1', tML, 'active', [['pro', 10]], S_APRES), abo('ml2', tML, 'active', [['premium', 1]], S_APRES),
@@ -207,6 +219,7 @@ globalThis.fetch = async function (url, opts) {
     console.log('\n0. Les tarifs du serveur sont ceux de la page de paiement');
     const SRV = fs.readFileSync(SERVEUR, 'utf8');
     const srvPrix = {}; for (const m of SRV.matchAll(/^\s*(\w+): \['(price_\w+)', '(price_\w+)'\]/gm)) srvPrix[m[1]] = [m[2], m[3]];
+    vrai('le bloc STRIPE_PRICES de la page est trouvé (une tranche vide passerait sur tout)', BLOC_PRIX.length > 100);
     vrai('population : cinq formules payantes lues dans la page (' + Object.keys(PRIX).join(', ') + ')', Object.keys(PRIX).length === 5);
     v('⛔ STRIPE_PRIX_FORMULE (serveur) = STRIPE_PRICES (recap-abonnement.html) — un tarif changé d\'un seul côté, et des clients qui paient n\'auraient plus de places', srvPrix, PRIX);
 
@@ -218,8 +231,8 @@ globalThis.fetch = async function (url, opts) {
        de formule Gratuit) : rien de payé, fiche « Gratuit » sans rien, OP MESSAGES seul, l'abonnement d'une voisine d'adresse.
        Les contrôles de population les écartent, NOMMÉS un par un. */
     const formeB = sl => tous[sl].suspendu === true && tous[sl].sursisJours === 0 && !('formule' in tous[sl]) && !('places' in tous[sl]);
-    v('   (population) ce qui n\'est pas payé est servi sans formule ni places — rien de payé (impaye, nouvelle), l\'impayé posé à la main (detour), fiche Gratuit sans rien (gratuitrien), OP MESSAGES seul (msgseul), l\'adresse d\'une autre (petite), une fiche SANS formule qui ne paie rien (sansformule) — et eux seuls',
-      Object.keys(E).filter(formeB), ['impaye', 'nouvelle', 'detour', 'gratuitrien', 'msgseul', 'petite', 'sansformule', 'multic', 'multid']);
+    v('   (population) ce qui n\'est pas payé est servi sans formule ni places — rien de payé (impaye, nouvelle), l\'impayé posé à la main (detour), fiche Gratuit sans rien (gratuitrien), OP MESSAGES seul (msgseul), OP MESSAGES seul au tarif RETIRÉ (msgseulprem), l\'adresse d\'une autre (petite), une fiche SANS formule qui ne paie rien (sansformule) — et eux seuls',
+      Object.keys(E).filter(formeB), ['impaye', 'nouvelle', 'detour', 'gratuitrien', 'msgseul', 'msgseulprem', 'petite', 'sansformule', 'multic', 'multid']);
     v('⛔ pour CHAQUE entreprise, `quantite` = le nombre réglé dans la Tour, jamais multiplié (la v760 fait × 2 ou × 3 elle-même)',
       Object.keys(E).filter(sl => !formeB(sl) && tous[sl].quantite !== (E[sl].quantite || 1)), []);   // (une fiche sans nombre réglé : 1, comme le serveur)
     vrai('   et `places` est rendu partout (hors impayé)', Object.keys(E).filter(sl => !formeB(sl)).every(sl => Number.isInteger(tous[sl].places)));
@@ -271,6 +284,8 @@ globalThis.fetch = async function (url, opts) {
     v('⛔ fiche Gratuit qui paie Business × 2 : l\'application reçoit BUSINESS, payée, 2 places', [tous.gratuitpaie.formule, tous.gratuitpaie.paye, pl('gratuitpaie')], ['business', true, 2]);
     v('   contre-épreuve : fiche Gratuit sans abonnement — SUSPENDUE (le Gratuit n\'existe plus depuis le 30 septembre 2026)', [tous.gratuitrien.formule, tous.gratuitrien.paye, tous.gratuitrien.suspendu], [undefined, false, true]);
     v('⛔ fiche Business qui ne paie qu\'OP MESSAGES : OP GESTION n\'est pas payé — suspendue (plus de Gratuit servi)', [tous.msgseul.formule, tous.msgseul.paye, tous.msgseul.suspendu], [undefined, false, true]);
+    v('⛔ … et au tarif RETIRÉ « Messages Business Premium » (25 €) : le serveur le reconnaît toujours comme de l\'OP MESSAGES — rien de payé pour OP GESTION, exactement comme Messages Pro',
+      [tous.msgseulprem.formule, tous.msgseulprem.paye, tous.msgseulprem.suspendu, PRIX.msgpremium && PRIX.msgpremium.length], [undefined, false, true, 2]);
     v('⛔ un Business d\'avant + deux Business Premium d\'après : Business Premium (le plus d\'abonnements), 4 places — l\'ancien garde ses 2 places de Business (jamais le × 3 : ce serait 5), et monter n\'en retire aucune', [tous.montetarif.formule, pl('montetarif')], ['premium', 4]);
     v('⛔⛔ « repartie à neuf » : Business Premium × 3 gravé à l\'ancien identifiant + OP MESSAGES gravé au neuf → Business Premium, 3 places (pas « Gratuit » : relecture adverse du 29 septembre)', [tous.reparmsg.formule, tous.reparmsg.paye, pl('reparmsg')], ['premium', true, 3]);
     v('⛔ fiche Pro, dix Pro + un Business Premium pour le patron : Pro, 11 places — pas Business Premium avec une seule', [tous.melee.formule, pl('melee')], ['pro', 11]);
@@ -369,7 +384,7 @@ globalThis.fetch = async function (url, opts) {
     const infoP = { innerHTML: '', textContent: '' };
     ctxP.document = { getElementById: id => (id === 'pack-info' ? infoP : null) };
     require('vm').createContext(ctxP);
-    require('vm').runInContext(ABN + '\n' + fonctionTour('abnEcart') + '\n' + fonctionTour('packPeindre'), ctxP);
+    require('vm').runInContext(ABN + '\n' + fonctionTour('abnEcart') + '\n' + fonctionTour('packPeindre') + '\n' + fonctionTour('optsPeindre'), ctxP);   /* v2.80 : `packPeindre` peint aussi les options — sans bloc dans ce faux DOM, `optsPeindre` rend la main (test-854 les joue) */
     const peint = d => { ctxP.PACK = { nom: 'x', charge: true, err: '', d }; infoP.innerHTML = ''; ctxP.packPeindre(); return infoP.innerHTML.replace(/<[^>]+>/g, ''); };
     v('   … et la fiche d\'une entreprise dit ce que l\'application reçoit (la vraie packPeindre, sur la réponse du serveur)',
       [/l’application reçoit\u202f: Pro \(payée\)/.test(peint(stMT)), /l’application reçoit\u202f: Business Premium \(offerte par le code\)/.test(peint(stPT)),

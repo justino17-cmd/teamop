@@ -1,0 +1,1058 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<!-- ⛔ FICHIER GÉNÉRÉ par scripts/opmsg-public.js depuis apercu/opmessages/index.html — NE PAS LE MODIFIER À LA MAIN (tests/test-941.js compare).
+     La politique ci-dessous est celle du SERVICE : seul `connect-src 'self'` rouvre le réseau (vers le service lui-même, jamais un autre domaine), les scripts viennent tous de
+     cette origine (le script en ligne de l'aperçu est extrait dans opmsg-ui.js), les images et les médias ne sortent pas de la page. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' blob:; media-src 'self' blob:; style-src 'unsafe-inline'; script-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#eef3fb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a2e6b" media="(prefers-color-scheme: dark)">
+<title>OP MESSAGES</title>
+<link rel="icon" href="opmsg-favicon-32.png" type="image/png" sizes="32x32">
+<style>
+/* ══ 1. LES JETONS — LE DOCUMENT `design/opmessages/THEME-OPMESSAGES.md` EST LA SOURCE ══════════════════════════════════
+   Les valeurs du tableau « Couleurs » du document sont recopiées ici telles quelles ; celles que le document ne cite pas
+   (faint, inputBg, line, shadowBar, segTrack, segKnob, sheet, sheetBg, notifBg, toggleOff, handle) viennent de la fonction
+   `tokens(dark)` de la maquette source (« OP Messages Apple.dc.html », l. 583-595). `tests/test-856.js` RELIT le document et
+   compare, jeton par jeton, jour ET nuit : un banc qui recopie des valeurs garde une croyance, un banc qui relit la source
+   garde un accord (la leçon de test-759).
+   ⛔ Le jour et la nuit suivent l'APPAREIL (prefers-color-scheme) et rien d'autre : pas de bouton, pas de clé rangée.
+   TROIS jetons sont à NOUS, ils ne sont ni dans le document ni dans la maquette — écarts déclarés un par un dans test-856 :
+   · --sub-meta : le « secondaire » du document (.6 de jour) tombe à ~4,1:1 sur le coin bleu du décor — trop clair pour une
+     légende de 11 px (datage, « Lu », nom d'auteur, mention d'aperçu). Mesuré au pixel : ≥ 4,5 jour et nuit avec celui-ci ;
+   · --rond-bord : le contour des cases décochées (rgba(120,120,128,.4)) faisait ~1,4:1 sur la carte — il en faut 3 (WCAG 1.4.11) ;
+   · --on-fill : l'encre posée sur --fill (bulle envoyée, pastille, flèche d'envoi) : une surface, une encre ;
+   · --placeholder : le texte d'un champ VIDE, sur la matière du champ (--field, plus claire que la carte) : la légende de 11 px passe, le placeholder de 17 px posé sur
+     ce fond tombait à 4,0–4,2:1 de nuit (lu au pixel, tout le texte de l'écran) ;
+   · --tab-inactif-fg : le libellé (11 px) d'un onglet inactif est posé sur du VERRE : sa lisibilité dépend de ce qui défile derrière la barre. De nuit, avec une rangée claire derrière,
+     le « secondaire » tombait à 4,0:1 (lu au pixel, liste défilée avec la bannière descendue) ;
+   · --accent-txt et --side-actif-fg : l'accent de NUIT (#7ea2f0) est une couleur d'aplat, pas d'une lettre — posé en texte sur le décor bleu (« Modifier »,
+     la pastille « Groupe ») il tombait à 4,2:1 et 3,6:1, et sur le fond vif de la barre latérale (saturate 180 %) à 2,65:1 (mesuré au pixel, 1er octobre 2026).
+     Le texte prend sa propre teinte (jour : l'accent, qui passe) ; l'accent reste celui des aplats, des anneaux de focus et des contours ;
+   · --rouge-txt : le #ff453a du paquet (« manqué », « raccrocher ») est une couleur d'APLAT : en texte de 17 px sur la carte il fait 3,5:1 de jour et ~3,5:1 de nuit (le décor de nuit est plus clair vers le coin du haut : #ff9a93 y tombait à 3,7:1).
+     Le NOM d'un appel manqué prend sa propre teinte (jour #d70015, nuit #ffaaa4) ; l'aplat de « Raccrocher » garde le rouge du paquet (non-texte : 3:1 suffit) ;
+   · --appel-fond, --appel-voile, --appel-bouton : l'écran d'appel est SOMBRE dans les deux modes (le paquet : « il ne s'adapte pas au thème jour »), donc leurs
+     valeurs sont les mêmes de jour et de nuit — le voile sombre posé sur la couleur d'un avatar est ce qui rend le blanc lisible sur l'orange. */
+:root {
+  --text: #0e1a3f;
+  --sub: rgba(14,26,63,.6);
+  --faint: rgba(14,26,63,.3);
+  --sub-meta: rgba(14,26,63,.72);
+  --placeholder: rgba(14,26,63,.72);
+  --tab-inactif-fg: rgba(14,26,63,.72);
+  --accent: #2a4a9c;
+  --accent-txt: #2a4a9c;
+  --side-actif-fg: #2a4a9c;
+  --fill: #2a4a9c;
+  --fill-soft: rgba(42,74,156,.12);
+  --card: rgba(255,255,255,.82);
+  --field: rgba(42,74,156,.1);
+  --input-bg: #ffffff;
+  --line: 0.5px solid rgba(60,60,67,.29);
+  --sep: 0.5px solid rgba(60,60,67,.2);
+  --nav-bar: rgba(255,255,255,.78);
+  --tab-bar: rgba(255,255,255,.72);
+  --shadow-bar: 0 12px 32px rgba(11,20,38,.12), inset 0 1px 0 #fff;
+  --bubble-in: #e6ecf7;
+  --bubble-in-fg: #0e1a3f;
+  --seg-track: rgba(118,118,128,.12);
+  --seg-knob: #fff;
+  --sidebar: rgba(255,255,255,.4);
+  --sheet: rgba(248,250,255,.94);
+  --sheet-bg: rgba(242,242,247,.94);
+  --notif-bg: rgba(255,255,255,.82);
+  --toggle-off: rgba(120,120,128,.16);
+  --rond-bord: rgba(60,60,67,.6);
+  --on-fill: #ffffff;
+  --sub-meta-sel: rgba(14,26,63,.72);
+  --group-r: 12px;
+  --handle: rgba(0,0,0,.72);
+  --tab-active-bg: rgba(255,255,255,.88);
+  --tab-active-fg: #1a2e6b;
+  --tab-active-shadow: 0 4px 14px rgba(0,0,0,.12), inset 0 1px 0 #fff;
+  --screen: linear-gradient(112deg, rgba(255,255,255,0) 58%, rgba(255,255,255,.4) 58.2%), radial-gradient(120% 90% at 0% 0%, #ffffff 0%, rgba(255,255,255,0) 55%), radial-gradient(110% 80% at 100% 100%, #c9d8f5 0%, rgba(201,216,245,0) 60%), linear-gradient(160deg, #eef3fb, #dfe8f8);
+  /* — ce qui n'est pas dans le tableau du document : encres de statut, puces, plan de repli — */
+  --rouge: #ff453a;
+  --rouge-txt: #d70015;
+  --vert: #30d158;
+  --appel-fond: linear-gradient(160deg, #24408a, #0e1a3f);
+  --appel-voile: rgba(14,26,63,.62);
+  --appel-bouton: rgba(255,255,255,.18);
+  --puce-x: #ffffff;
+  --coche: #ffffff;
+  --solide: #f6f8fd;
+  --solide-feuille: #f2f2f7;
+  --solide-notif: #ffffff;
+  --base: #eef3fb;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #ffffff;
+    --sub: rgba(220,228,250,.66);
+    --faint: rgba(220,228,250,.32);
+    --sub-meta: rgba(220,228,250,.78);
+    --placeholder: rgba(236,241,255,.9);
+    --tab-inactif-fg: rgba(236,241,255,.9);
+    --accent: #7ea2f0;
+    --accent-txt: #c7d6fb;
+    --side-actif-fg: #ffffff;
+    --fill: #3b63c4;
+    --fill-soft: rgba(126,162,240,.22);
+    --card: rgba(255,255,255,.09);
+    --field: rgba(255,255,255,.14);
+    --input-bg: rgba(255,255,255,.06);
+    --line: 1px solid rgba(255,255,255,.14);
+    --sep: 0.5px solid rgba(84,84,88,.6);
+    --nav-bar: rgba(26,46,107,.72);
+    --tab-bar: rgba(255,255,255,.1);
+    --shadow-bar: 0 12px 32px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.16);
+    --bubble-in: rgba(255,255,255,.14);
+    --bubble-in-fg: #fff;
+    --seg-track: rgba(118,118,128,.24);
+    --seg-knob: #636366;
+    --sidebar: rgba(255,255,255,.04);
+    --sheet: rgba(20,32,74,.92);
+    --sheet-bg: rgba(28,28,30,.92);
+    --notif-bg: rgba(44,44,46,.82);
+    --toggle-off: rgba(120,120,128,.32);
+    --rond-bord: rgba(235,235,245,.6);
+    --on-fill: #ffffff;
+    --sub-meta-sel: rgba(240,244,255,.92);
+    --group-r: 12px;
+    --handle: rgba(255,255,255,.8);
+    --tab-active-bg: rgba(42,74,156,.8);
+    --tab-active-fg: #fff;
+    --tab-active-shadow: 0 6px 16px rgba(34,59,110,.3), inset 0 1px 0 rgba(255,255,255,.28);
+    --screen: linear-gradient(112deg, rgba(255,255,255,0) 58%, rgba(255,255,255,.05) 58.2%), radial-gradient(120% 90% at 0% 0%, #24408a 0%, rgba(36,64,138,0) 55%), linear-gradient(160deg, #1a2e6b, #0e1a3f);
+    --rouge: #ff453a;
+    --rouge-txt: #ffaaa4;
+    --vert: #30d158;
+    --appel-fond: linear-gradient(160deg, #24408a, #0e1a3f);
+    --appel-voile: rgba(14,26,63,.62);
+    --appel-bouton: rgba(255,255,255,.18);
+    --puce-x: #0e1a3f;
+    --coche: #ffffff;
+    --solide: #1b2d68;
+    --solide-feuille: #1c1c1e;
+    --solide-notif: #2c2c2e;
+    --base: #0e1a3f;
+  }
+}
+
+/* ══ 2. BASE ═══════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; }
+/* ⛔ le décor va sur <html> : le fond de <html> se propage au canevas et se peint en tout premier (CLAUDE.md). */
+html {
+  color-scheme: light dark;
+  background-color: var(--base);
+  background-image: var(--screen);
+  background-attachment: fixed;
+  -webkit-text-size-adjust: 100%;
+  scrollbar-color: var(--faint) transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+html.feuille-ouverte, html.feuille-ouverte body { overflow: hidden; }
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable Text', 'Segoe UI', Roboto, 'Noto Sans', 'Helvetica Neue', Helvetica, system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.3;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, textarea { font: inherit; color: inherit; }
+button { border: 0; background: none; padding: 0; margin: 0; cursor: pointer; touch-action: manipulation; text-align: inherit; }
+a { color: inherit; text-decoration: none; -webkit-touch-callout: none; }
+ul { list-style: none; margin: 0; padding: 0; }
+h1, h2, p { margin: 0; }
+svg.ic.plein { fill: currentColor; stroke: none; }
+svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sr-seul { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+[hidden] { display: none !important; }
+
+/* La réponse au toucher est IMMÉDIATE : l'état « pressé » se pose au doigt posé, pas au relâché (apple-design, §1). La transition
+   part de la valeur VISIBLE du moment — un geste interrompu repart d'où il est, sans saut. */
+.presse { transition: transform .12s ease-out, background-color .2s; }
+.presse:active { transform: scale(.97); }
+
+/* ══ 3. LA MISE EN PAGE — téléphone (barre d'onglets flottante) ET bureau (barre latérale de 236 px) ═════════════════════
+   La navigation se choisit à la LARGEUR, jamais au type d'appareil : un iPad en portrait (820) garde la barre d'onglets. */
+.app { min-height: 100vh; min-height: 100dvh; }
+.contenu {
+  min-width: 0;
+  padding: calc(env(safe-area-inset-top, 0px) + 6px) max(16px, env(safe-area-inset-right, 0px)) calc(120px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+}
+.side { display: none; }
+@media (min-width: 900px) {
+  .app { display: grid; grid-template-columns: 236px minmax(0, 1fr); }
+  .contenu { padding: 6px 28px 40px; }
+  .side { display: flex; }
+}
+
+.vue[hidden] { display: none; }
+/* ⛔ une colonne de liste n'a pas de raison de faire 2 268 px à 2 560 : l'écran Messages passe en maître-détail dès 1 100 px
+   (§ 9), et les autres vues sont bornées */
+.vue { max-width: 1000px; margin-inline: auto; }
+.entete-vue { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 4px; }
+.lien-texte { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; font-size: 17px; color: var(--accent-txt); }
+.grand-titre {
+  margin: 2px 4px 10px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI Variable Display', 'Segoe UI', Roboto, 'Noto Sans', 'Helvetica Neue', Helvetica, system-ui, sans-serif;
+  font-size: 34px; line-height: 41px; letter-spacing: .37px; font-weight: 700; color: var(--text);
+}
+/* le bouton « Groupe » : la zone qui répond fait 44 px, la pastille qu'on voit en fait 32 (le paquet dessine 32) */
+.btn-groupe { min-height: 44px; display: inline-flex; align-items: center; padding: 0; }
+.btn-groupe .pastille {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px 0 10px; border-radius: 999px;
+  background: var(--fill-soft); color: var(--accent-txt); font-size: 15px; font-weight: 600; transition: transform .12s ease-out;
+}
+.btn-groupe:active .pastille { transform: scale(.95); }
+.btn-groupe .ic { font-size: 16px; stroke-width: 2.2; }
+
+.recherche {
+  display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; margin-bottom: 12px;
+  border-radius: 12px; background: var(--field); color: var(--sub);
+}
+.recherche .ic { font-size: 16px; stroke-width: 2.4; }
+.recherche input {
+  flex: 1; min-width: 0; height: 44px; border: 0; outline: 0; background: transparent; padding: 0;
+  font-size: 17px; color: var(--text); caret-color: var(--accent); -webkit-appearance: none; appearance: none;
+}
+.recherche input::placeholder { color: var(--placeholder); opacity: 1; }
+.recherche input::-webkit-search-cancel-button { display: none; }
+.recherche:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* épinglés : 4 cercles de 60 dans des colonnes de 76 */
+.epingles { display: flex; gap: 8px; overflow-x: auto; padding: 4px 4px 12px; margin: 0 -4px; scrollbar-width: none; }
+/* ⛔ l'ANNEAU de focus (2 px + 2 px de décalage) doit tenir DANS le conteneur qui coupe : `overflow-x:auto` coupe aussi en vertical, `overflow:hidden` des
+   cartes coupe tout. Mesuré au clavier à 1 440 px : il ne restait qu'un trait sur la ligne, un angle sur l'épinglé. Deux parades : du rembourrage (4 px)
+   là où le conteneur défile, un décalage NÉGATIF (l'anneau dessiné dedans) là où une ligne touche les bords de sa carte. */
+.epingle-bouton:focus-visible { outline-offset: 0; border-radius: 12px; }
+.carte-liste .conv:focus-visible, .carte .contact:focus-visible, .carte .reglage:focus-visible { outline-offset: -3px; }
+.epingles::-webkit-scrollbar { display: none; }
+.epingle { flex: none; width: 76px; }
+.epingle-bouton { width: 100%; min-height: 44px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; transition: transform .12s ease-out; }
+.epingle-bouton:active { transform: scale(.95); }
+.epingle-bouton[aria-current="true"] .epingle-nom { color: var(--accent-txt); font-weight: 600; }
+.epingle .avatar { width: 60px; height: 60px; font-size: 20px; }
+.epingle-nom { font-size: 12px; max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* avatars : dégradés du paquet (index 0 à 5) */
+.avatar { flex: none; display: grid; place-items: center; border-radius: 50%; color: #fff; font-weight: 600; background-size: cover; background-position: center; }
+.av0 { background-image: linear-gradient(180deg, #4f78d6, #2a4a9c); }
+.av1 { background-image: linear-gradient(180deg, #ff9f0a, #ff375f); }
+.av2 { background-image: linear-gradient(180deg, #30d158, #0a84ff); }
+.av3 { background-image: linear-gradient(180deg, #bf5af2, #5e5ce6); }
+.av4 { background-image: linear-gradient(180deg, #8e8e93, #636366); }
+.av5 { background-image: linear-gradient(180deg, #64d2ff, #5e5ce6); }
+
+/* la liste : une carte, des lignes de 72 px minimum */
+.carte-liste { border-radius: var(--group-r); overflow: hidden; background: var(--card); }
+.carte-liste > li { border-bottom: var(--sep); }
+.carte-liste > li:last-child { border-bottom: 0; }
+/* la ligne est un BOUTON (clavier, lecteur d'écran, doigt) : toute sa largeur répond */
+.conv { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 14px; min-height: 72px; color: var(--text); transition: background-color .2s, transform .12s ease-out; }
+.conv:active { transform: scale(.985); }
+.conv[aria-current="true"] { background: var(--fill-soft); --sub-meta: var(--sub-meta-sel); }
+@media (hover: hover) { .conv:not([aria-current="true"]):hover { background: var(--field); } }
+.conv-point { width: 10px; flex: none; display: flex; justify-content: center; }
+.point { width: 10px; height: 10px; border-radius: 50%; background: var(--fill); }
+.conv .avatar { width: 50px; height: 50px; font-size: 18px; }
+.conv-corps { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.conv-ligne { display: flex; align-items: baseline; gap: 8px; }
+.conv-nom { min-width: 0; font-size: 17px; font-weight: 600; letter-spacing: -.02em; line-height: 22px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conv-heure { margin-left: auto; font-size: 15px; color: var(--sub-meta); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.chev { width: 7px; height: 12px; flex: none; fill: none; stroke: var(--faint); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; align-self: center; }
+.conv-apercu { font-size: 15px; line-height: 20px; color: var(--sub-meta); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.conv-neuve { animation: entree .5s cubic-bezier(.32,.72,0,1) both; }
+.vide { padding: 22px 16px; text-align: center; font-size: 15px; color: var(--sub-meta); }
+@keyframes entree { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+
+.mention-apercu { margin: 18px 4px 0; text-align: center; font-size: 12px; line-height: 16px; color: var(--sub-meta); }
+
+/* les écrans qui arrivent aux étapes suivantes : des coquilles « bientôt » */
+.coquille { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 38px 24px; border-radius: var(--group-r); background: var(--card); text-align: center; }
+.coquille-icone { width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; background: var(--fill-soft); color: var(--accent); font-size: 28px; }
+.coquille h2 { font-size: 20px; line-height: 25px; font-weight: 700; letter-spacing: -.02em; }
+.coquille p { max-width: 34ch; font-size: 15px; line-height: 20px; color: var(--sub-meta); }
+
+/* ══ 4. LA BARRE D'ONGLETS (téléphone) — pilule flottante en verre, bulle sur l'onglet actif ═══════════════════════════════
+   Les colonnes sont ÉGALES et se déduisent de leur NOMBRE ; le JavaScript ne pose qu'un NUMÉRO (--i), le CSS calcule la
+   place de la bulle : rien n'est mesuré, donc rien ne peut être mesuré trop tôt (CLAUDE.md, « une géométrie recopiée en
+   JavaScript dépend du moment où on la copie »). translate en pourcentage = largeur de la bulle = une colonne. */
+.tabs {
+  position: fixed; z-index: 18; left: max(14px, env(safe-area-inset-left, 0px)); right: max(14px, env(safe-area-inset-right, 0px));
+  bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) - 8px)); margin: 0 auto; max-width: 480px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 7px; border-radius: 34px;
+  background: var(--tab-bar); -webkit-backdrop-filter: blur(36px) saturate(200%); backdrop-filter: blur(36px) saturate(200%);
+  border: var(--line); box-shadow: var(--shadow-bar); --i: 0;
+}
+.tabs-bulle {
+  position: absolute; top: 7px; bottom: 7px; left: 7px; width: calc((100% - 20px) / 4); border-radius: 26px;
+  background: var(--tab-active-bg); box-shadow: var(--tab-active-shadow);
+  translate: calc(var(--i) * (100% + 2px)) 0; transition: translate .45s cubic-bezier(.32,.72,0,1);
+}
+.tab {
+  position: relative; z-index: 1; min-width: 0; min-height: 50px; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  color: var(--tab-inactif-fg); font-size: 11px; font-weight: 500; letter-spacing: .01em; transition: color .25s, transform .12s ease-out;
+}
+.tab .ic { font-size: 24px; }
+.tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab:active { transform: scale(.94); }
+.tab[aria-current="page"] { color: var(--tab-active-fg); font-weight: 600; }
+/* ⛔ APRÈS la règle de .tabs (même spécificité : la dernière écrite gagne) — placée dans la requête du § 3, elle ne cachait rien et
+   la pilule se posait sur la barre latérale (relevé à la première capture au bureau). */
+@media (min-width: 900px) { .tabs { display: none; } }
+
+/* ══ 5. LA BARRE LATÉRALE (bureau) — 236 px, verre, statut « Disponible » ═════════════════════════════════════════════════ */
+.side {
+  position: sticky; top: 0; height: 100vh; height: 100dvh; flex-direction: column; gap: 2px; padding: 14px 10px;
+  background: var(--sidebar); -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+  border-right: var(--line);
+}
+.side-marque { display: flex; align-items: center; gap: 9px; padding: 2px 8px 14px; }
+.side-marque img { width: 28px; height: 28px; border-radius: 7px; display: block; }
+.side-marque b { font-size: 15px; font-weight: 600; letter-spacing: -.014em; }
+.side-lien { display: flex; align-items: center; gap: 9px; min-height: 32px; padding: 4px 8px; border-radius: 8px; font-size: 13px; color: var(--text); transition: background-color .2s, transform .12s ease-out; }
+.side-lien .ic { font-size: 16px; }
+.side-lien[aria-current="page"] { background: var(--fill-soft); color: var(--side-actif-fg); font-weight: 600; }
+.side-lien:active { transform: scale(.98); }
+@media (hover: hover) { .side-lien:not([aria-current="page"]):hover { background: var(--field); } }
+@media (pointer: coarse) { .side-lien { min-height: 44px; } }
+.side-fin { margin-top: auto; }
+.moi { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: var(--field); }
+.moi .avatar { width: 26px; height: 26px; font-size: 11px; }
+.moi-texte { min-width: 0; display: flex; flex-direction: column; }
+.moi-nom { font-size: 13px; font-weight: 600; }
+.moi-statut { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sub-meta); }
+.moi-statut i { width: 6px; height: 6px; border-radius: 50%; background: var(--vert); }
+
+/* ══ 6. LA FEUILLE « NOUVEAU GROUPE » — monte du bas (téléphone), fenêtre centrée de 520 px (bureau) ══════════════════════ */
+.voile {
+  position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.35); opacity: 0; visibility: hidden;
+  transition: opacity .3s, visibility 0s linear .3s;
+}
+.feuille-ouverte .voile { opacity: 1; visibility: visible; transition: opacity .3s, visibility 0s; }
+.feuille {
+  position: fixed; z-index: 41; left: 0; right: 0; bottom: 0; max-height: 88vh; max-height: 88dvh; display: flex; flex-direction: column;
+  border-radius: 30px 30px 0 0; background: var(--sheet-bg); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%);
+  border: var(--line); border-bottom: 0; box-shadow: 0 -16px 44px rgba(0,0,0,.24); overflow: hidden; color: var(--text);
+  transform: translateY(104%); visibility: hidden; transition: transform .45s cubic-bezier(.32,.72,0,1), visibility 0s linear .45s;
+  outline: none;
+}
+.feuille-ouverte .feuille { transform: none; visibility: visible; transition: transform .45s cubic-bezier(.32,.72,0,1), visibility 0s; }
+@media (min-width: 700px) {
+  .feuille {
+    left: 50%; right: auto; top: 50%; bottom: auto; width: 520px; max-width: calc(100vw - 32px); max-height: min(calc(100vh - 48px), 900px); max-height: min(calc(100dvh - 48px), 900px);
+    border-radius: 22px; border-bottom: var(--line);
+    transform: translate(-50%, calc(-50% + 16px)) scale(.97); opacity: 0;
+    transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s, visibility 0s linear .35s;
+  }
+  .feuille-ouverte .feuille { transform: translate(-50%, -50%); opacity: 1; transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s, visibility 0s; }
+}
+.feuille-tete { flex: none; touch-action: none; user-select: none; -webkit-user-select: none; }
+.poignee { padding: 8px 0 4px; display: grid; place-items: center; }
+.poignee i { width: 36px; height: 5px; border-radius: 999px; background: var(--faint); }
+@media (min-width: 700px) { .poignee { display: none; } .feuille-tete { padding-top: 8px; } }
+.feuille-barre { display: flex; align-items: center; gap: 4px; padding: 2px max(8px, 3vw) 6px; }
+.feuille-barre h2 { flex: 1; min-width: 0; text-align: center; font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -.017em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.feuille-bouton { min-height: 44px; min-width: 44px; padding: 0 8px; flex: none; display: inline-flex; align-items: center; font-size: 17px; color: var(--accent-txt); }
+.feuille-bouton.fin { justify-content: flex-end; font-weight: 600; }
+.feuille-bouton[aria-disabled="true"] { color: rgba(120,120,128,.5); cursor: default; }
+.feuille-corps { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 6px 16px calc(24px + env(safe-area-inset-bottom, 0px)); }      /* 6 px en haut : l'anneau de la photo du groupe (2 + 2 px) est coupé par `overflow` sinon */
+
+.g-identite { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.g-photo { position: relative; width: 64px; height: 64px; flex: none; border-radius: 50%; background: var(--fill-soft); background-size: cover; background-position: center; color: var(--accent); display: grid; place-items: center; cursor: pointer; overflow: hidden; font-size: 26px; transition: transform .12s ease-out; }
+.g-photo:active { transform: scale(.95); }
+.g-photo:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.g-photo input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 0; }
+.g-photo.avec-image .ic { display: none; }
+.g-nom { flex: 1; min-width: 0; height: 44px; padding: 0 14px; border: 0; border-radius: 12px; background: var(--card); font-size: 17px; color: var(--text); caret-color: var(--accent); outline: none; -webkit-appearance: none; appearance: none; }
+.g-nom::placeholder { color: var(--placeholder); opacity: 1; }
+.g-nom:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* membres choisis : puces avatar avec ✕ — toute la puce est la cible (≥ 44 px), la croix n'est que le signe */
+.puces { display: flex; gap: 10px; overflow-x: auto; padding: 4px 4px 14px; margin: 0 -4px; scrollbar-width: none; }
+.puce:focus-visible { outline-offset: 0; border-radius: 12px; }
+.puces::-webkit-scrollbar { display: none; }
+.puces:empty { display: none; }
+.puce { flex: none; position: relative; width: 64px; min-height: 44px; display: flex; flex-direction: column; align-items: center; gap: 5px; animation: entree .3s cubic-bezier(.32,.72,0,1) both; }
+.puce .avatar { width: 52px; height: 52px; font-size: 17px; }
+.puce-x { position: absolute; top: -2px; right: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--text); color: var(--puce-x); display: grid; place-items: center; }
+.puce-x .ic { width: 9px; height: 9px; stroke-width: 3.2; }
+.puce-nom { max-width: 64px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.rubrique { display: flex; align-items: baseline; justify-content: space-between; padding: 0 4px 8px; font-size: 13px; color: var(--sub-meta); text-transform: uppercase; }
+.rubrique span { font-variant-numeric: tabular-nums; }
+.carte { border-radius: 12px; overflow: hidden; background: var(--card); margin-bottom: 18px; }
+.contact { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 14px; border-bottom: var(--sep); color: var(--text); }
+.contact:last-child { border-bottom: 0; }
+.contact .avatar { width: 38px; height: 38px; font-size: 14px; }
+.contact-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.contact-nom { font-size: 17px; letter-spacing: -.02em; }
+.contact-role { font-size: 13px; color: var(--sub-meta); }
+.rond { width: 24px; height: 24px; flex: none; border-radius: 50%; border: 2px solid var(--rond-bord); display: grid; place-items: center; transition: background-color .2s, border-color .2s; color: var(--coche); font-size: 12px; }
+.rond .ic { stroke-width: 3.2; opacity: 0; transition: opacity .2s; }
+.contact[aria-checked="true"] .rond { background: var(--fill); border-color: var(--fill); }
+.contact[aria-checked="true"] .rond .ic { opacity: 1; }
+.reglage { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 14px; border-bottom: var(--sep); color: var(--text); }
+.reglage:last-child { border-bottom: 0; }
+.reglage-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 17px; }
+.reglage-texte small { font-size: 13px; color: var(--sub-meta); }
+.reglage-valeur { font-size: 15px; color: var(--sub-meta); }
+.reglage .chev { width: 8px; height: 13px; }
+.interrupteur { width: 51px; height: 31px; flex: none; border-radius: 999px; background: var(--toggle-off); position: relative; transition: background-color .25s; }
+.interrupteur::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.25); transition: transform .25s cubic-bezier(.32,.72,0,1); }
+.reglage[aria-checked="true"] .interrupteur { background: var(--vert); }
+.reglage[aria-checked="true"] .interrupteur::after { transform: translateX(20px); }
+
+/* ══ 7. LA BANNIÈRE DE NOTIFICATION — descend du haut, s'efface seule après ~3,5 s ═══════════════════════════════════════
+   Le chemin d'entrée est le chemin de sortie (apple-design, §7). Elle ne reçoit aucun toucher : on ne la rate pas, on ne
+   la ferme pas — elle ne se met jamais devant ce qu'on fait. */
+.notif {
+  --haut: max(10px, calc(env(safe-area-inset-top, 0px) + 8px));
+  position: fixed; z-index: 50; top: var(--haut); left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
+  margin: 0 auto; max-width: 440px; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 24px;
+  background: var(--notif-bg); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%);
+  border: var(--line); box-shadow: 0 18px 44px rgba(0,0,0,.28); color: var(--text); pointer-events: none;
+  transform: translateY(calc(-100% - var(--haut) - 24px)); opacity: 0; transition: transform .5s cubic-bezier(.32,.72,0,1), opacity .35s;
+}
+.notif.on { transform: none; opacity: 1; }
+.notif img { width: 38px; height: 38px; border-radius: 10px; display: block; flex: none; }
+.notif-corps { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.notif-tete { display: flex; align-items: baseline; gap: 8px; }
+.notif-tete b { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.notif-tete span { margin-left: auto; font-size: 13px; color: var(--sub-meta); }
+.notif-texte { font-size: 15px; line-height: 20px; letter-spacing: -.01em; text-wrap: pretty; overflow-wrap: anywhere; }
+.notif-aide { font-size: 13px; line-height: 17px; color: var(--sub-meta); overflow-wrap: anywhere; }
+.notif-aide:empty { display: none; }
+
+/* un petit mot qui s'efface seul (« Modifier » n'est pas encore dessiné) */
+/* ⛔ centré par left/right + margin:auto + width:max-content, JAMAIS par left:50% + translate(-50%) : à largeur automatique, la boîte
+   ne prend que la place qui reste à droite de son bord gauche (180 px sur 360, deux lignes) — CLAUDE.md, « boîte absolue centrée ». */
+.mot {
+  position: fixed; z-index: 49; left: 16px; right: 16px; margin: 0 auto; width: max-content; max-width: min(440px, calc(100vw - 32px));
+  top: calc(env(safe-area-inset-top, 0px) + 56px); padding: 9px 16px; border-radius: 18px; text-align: center;
+  background: rgba(28,28,30,.9); color: #fff; font-size: 14px; line-height: 18px; pointer-events: none; overflow-wrap: anywhere;
+  transform: translateY(-8px); opacity: 0; transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s;
+}
+.mot.on { transform: none; opacity: 1; }
+
+/* ⚠️ ÉCARTS AU PAQUET, À FAIRE VALIDER PAR JUSTIN (relecture du 1er octobre 2026) : (1) la flèche d'envoi n'est montrée qu'avec du texte, et le micro disparaît alors — le paquet
+   dessine la flèche dans la pilule ET le micro à droite en permanence ; (2) le chevron de retour et son badge sont masqués dès 1 100 px (la liste est à côté) — la capture
+   cible Mac les montre. Les deux sont défendables ; aucun n'est une décision prise. */
+/* ══ 9. LA CONVERSATION — téléphone : un écran qui recouvre la liste ; 900-1 099 : elle remplace la liste, avec un retour ;
+   dès 1 100 px : MAÎTRE-DÉTAIL, la liste (colonne bornée) et la conversation côte à côte ═══════════════════════════════════
+   Ce que la maquette dessine (nav en verre, bulles 20/6, photos 118×88, vocal, « Lu », saisie, champ « Message ») est ici ; ce
+   qu'elle ne dessine pas (un vrai champ, le retour, le défilement, l'enregistrement) est ajouté sans toucher aux jetons. */
+:root { --col-liste: clamp(340px, 30vw, 440px); }
+.conv-ecran {
+  position: fixed; z-index: 30; top: var(--vvt, 0px); left: 0; right: 0; height: var(--vvh, 100%); display: none; flex-direction: column; min-height: 0;
+  background-color: var(--base); background-image: var(--screen); background-attachment: fixed; outline: none;
+}
+html[data-conv] .conv-ecran { display: flex; }
+.conv-vide {
+  position: fixed; z-index: 20; top: 0; bottom: 0; right: 0; left: calc(236px + var(--col-liste)); display: none; place-items: center; padding: 24px; text-align: center;
+  border-left: var(--sep);
+}
+.conv-vide p { max-width: 28ch; font-size: 15px; line-height: 20px; color: var(--sub-meta); }
+.conv-vide .coquille-icone { margin: 0 auto 12px; }
+@keyframes pousse { from { transform: translateX(28px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (max-width: 899.98px) {
+  html[data-conv] .conv-ecran { animation: pousse .38s cubic-bezier(.32,.72,0,1) both; }
+  html[data-conv] .tabs { display: none; }
+}
+@media (max-width: 1099.98px) { html[data-conv], html[data-conv] body { overflow: hidden; } }
+@media (min-width: 900px) { .conv-ecran { left: 236px; } }
+@media (min-width: 1100px) {
+  html[data-vue="messages"] .app { grid-template-columns: 236px var(--col-liste) minmax(0, 1fr); }
+  html[data-vue="messages"] .contenu { padding-left: 16px; padding-right: 16px; }
+  html[data-vue="messages"] .conv-ecran { left: calc(236px + var(--col-liste)); border-left: var(--sep); }
+  html[data-vue="messages"]:not([data-conv]) .conv-vide { display: grid; }
+  .conv-nav .conv-retour { display: none; }
+}
+html:not([data-vue="messages"]) .conv-ecran { display: none; }
+
+.conv-nav {
+  flex: none; display: flex; align-items: center; gap: 6px;
+  padding: calc(env(safe-area-inset-top, 0px) + 2px) max(10px, env(safe-area-inset-right, 0px)) 8px max(10px, env(safe-area-inset-left, 0px));
+  background: var(--nav-bar); -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%); border-bottom: var(--line);
+}
+.conv-gauche, .conv-droite { flex: none; width: 76px; display: flex; align-items: center; }
+.conv-droite { justify-content: flex-end; }
+.conv-retour { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-size: 17px; }
+.conv-retour svg { width: 12px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.badge { min-width: 18px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--fill); color: var(--on-fill); font-size: 12px; font-weight: 600; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+.conv-cam { min-height: 44px; min-width: 44px; display: inline-grid; place-items: center; color: var(--accent); font-size: 24px; }
+.conv-titre { flex: 1; min-width: 0; min-height: 44px; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--text); }
+.conv-titre .avatar { width: 44px; height: 44px; font-size: 16px; }
+.conv-titre-nom { max-width: 100%; display: flex; align-items: center; gap: 3px; font-size: 12px; line-height: 16px; }
+.conv-titre-nom > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conv-titre-nom .chev { width: 7px; height: 11px; stroke: var(--sub); }
+
+.conv-fil {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-color: var(--faint) transparent;
+  padding: 12px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
+}
+.conv-fil:focus-visible { outline-offset: -3px; }
+/* ⛔ la colonne se borne : à 2 560 px, une bulle à 78 % de la fenêtre serait une ligne de 1 900 px */
+.conv-colonne { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 3px; }
+.datage, .systeme { text-align: center; font-size: 11px; line-height: 14px; color: var(--sub-meta); overflow-wrap: anywhere; }
+.datage { font-weight: 600; margin: 6px 0 10px; }
+.systeme { margin: 10px 8px; }
+.msg { display: flex; flex-direction: column; gap: 2px; margin-top: 10px; }
+.msg.suite { margin-top: 2px; }
+.msg.de-moi { align-items: flex-end; }
+.msg.de-autre { align-items: flex-start; }
+.msg-nom { padding: 0 12px; font-size: 11px; line-height: 14px; color: var(--sub-meta); }
+.bulle {
+  max-width: 78%; padding: 8px 13px; font-size: 17px; line-height: 22px; letter-spacing: -.02em; text-wrap: pretty;
+  overflow-wrap: anywhere; white-space: pre-wrap; user-select: text; -webkit-user-select: text;
+}
+.recue { background: var(--bubble-in); color: var(--bubble-in-fg); border-radius: 20px 20px 20px 6px; }
+.envoyee { background: var(--fill); color: var(--on-fill); border-radius: 20px 20px 6px 20px; }
+.photos { display: flex; flex-wrap: wrap; gap: 4px; max-width: 78%; }
+.msg.de-moi .photos { justify-content: flex-end; }
+.photo { position: relative; width: 118px; height: 88px; padding: 0; border-radius: 14px; overflow: hidden; display: grid; place-items: center; background: var(--field); color: var(--sub); }
+.photo .ic { font-size: 22px; stroke-width: 1.8; }
+.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.photos.une .photo { width: 200px; height: 150px; max-width: 100%; }
+button.photo { transition: transform .12s ease-out; }
+button.photo:active { transform: scale(.97); }
+.vocal { min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 10px 14px; max-width: 78%; text-align: left; }
+.vocal-disque { width: 28px; height: 28px; flex: none; display: grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, currentColor 18%, transparent); font-size: 12px; }
+.vocal-disque .pause, .vocal[data-lecture] .vocal-disque .play { display: none; }
+.vocal[data-lecture] .vocal-disque .pause { display: block; }
+.onde { display: flex; align-items: center; gap: 2px; height: 20px; }
+.onde i { width: 3px; border-radius: 2px; background: currentColor; opacity: .9; }
+.vocal[data-lecture] .onde i { opacity: .45; }
+.vocal[data-lecture] .onde i.joue { opacity: 1; }
+.vocal-duree { font-size: 13px; font-variant-numeric: tabular-nums; }
+.statut { padding: 0 12px; font-size: 11px; line-height: 14px; color: var(--sub-meta); }
+.saisie-ind { align-self: flex-start; display: flex; align-items: center; gap: 4px; padding: 10px 14px; margin-top: 8px; border-radius: 20px 20px 20px 6px; background: var(--bubble-in); }
+.saisie-ind i { width: 7px; height: 7px; border-radius: 50%; background: var(--sub); animation: saisie 1.2s infinite; }
+.saisie-ind i:nth-child(2) { animation-delay: .2s; }
+.saisie-ind i:nth-child(3) { animation-delay: .4s; }
+@keyframes saisie { 0%, 60%, 100% { opacity: .35; transform: none; } 30% { opacity: 1; transform: translateY(-2px); } }
+
+.avis-saisie {
+  flex: none; margin: 0 max(12px, env(safe-area-inset-right, 0px)) 6px max(12px, env(safe-area-inset-left, 0px)); padding: 9px 14px; border-radius: 14px;
+  background: var(--card); border: var(--line); color: var(--text); font-size: 14px; line-height: 19px; overflow-wrap: anywhere;
+}
+.composer {
+  flex: none; padding: 8px max(12px, env(safe-area-inset-right, 0px)) max(10px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+  background: var(--nav-bar); -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+}
+.compo-ligne, .enreg { max-width: 860px; margin: 0 auto; display: flex; align-items: flex-end; gap: 6px; }
+.compo-bouton { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; color: var(--sub); font-size: 22px; touch-action: manipulation; transition: transform .12s ease-out; }
+.compo-bouton:active { transform: scale(.92); }
+.compo-bouton .disque { display: grid; place-items: center; border-radius: 50%; }
+.compo-plus .disque { width: 34px; height: 34px; background: var(--field); font-size: 16px; }
+.compo-plus .ic { stroke-width: 2.4; }
+.compo-micro { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.envoyer { color: var(--on-fill); }
+.envoyer .disque { width: 28px; height: 28px; background: var(--fill); font-size: 14px; }
+.envoyer .ic { stroke-width: 2.6; }
+.pilule-saisie { --pad-y: 7px; flex: 1; min-width: 0; min-height: 36px; display: flex; align-items: flex-end; border-radius: 18px; border: var(--line); background: var(--input-bg); }
+.pilule-saisie:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.pilule-saisie textarea {
+  flex: 1; min-width: 0; height: 36px; max-height: calc(5 * 22px + 2 * var(--pad-y)); padding: var(--pad-y) 6px var(--pad-y) 14px; border: 0; outline: 0; resize: none; background: transparent;
+  font-size: 17px; line-height: 22px; letter-spacing: -.02em; color: var(--text); caret-color: var(--accent); overflow-y: auto; -webkit-appearance: none; appearance: none;
+}
+.pilule-saisie textarea::placeholder { color: var(--placeholder); opacity: 1; }
+@media (pointer: coarse) {
+  .compo-bouton { width: 44px; height: 44px; }
+  .pilule-saisie { --pad-y: 11px; min-height: 44px; border-radius: 22px; }
+  .pilule-saisie textarea { height: 44px; }
+}
+.compo-ferme { margin: 0 auto; max-width: 860px; padding: 11px 8px; text-align: center; font-size: 15px; line-height: 20px; color: var(--text); }
+.enreg { align-items: center; min-height: 44px; }
+.enreg-annuler { color: var(--rouge); }
+.enreg-point { width: 10px; height: 10px; flex: none; border-radius: 50%; background: var(--rouge); animation: pulse 1s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.enreg-duree { min-width: 40px; font-size: 17px; font-variant-numeric: tabular-nums; }
+.enreg-onde { flex: 1; min-width: 0; height: 28px; display: flex; align-items: center; justify-content: flex-end; gap: 2px; overflow: hidden; }
+.enreg-onde i { width: 3px; flex: none; border-radius: 2px; background: var(--accent); }
+
+/* la photo agrandie : un voile noir, la photo en entier, une croix de 44 px — Échap, le retour système et le voile la ferment */
+.visionneuse {
+  position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: calc(env(safe-area-inset-top, 0px) + 56px) 12px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  background: rgba(0,0,0,.88);
+}
+.visionneuse img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px; display: block; }
+.visionneuse-fermer { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 6px); right: max(8px, env(safe-area-inset-right, 0px)); width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.16); color: #fff; font-size: 18px; }
+
+/* ══ 10. L'ONGLET APPELS — le segmenté Tous / Manqués, la liste, la feuille « Nouvel appel » ═════════════════════════════════════
+   Le segmenté est une piste (--seg-track) et un curseur (--seg-knob) qui glisse d'une colonne : comme la barre d'onglets, il ne MESURE rien — le
+   JavaScript pose un numéro (--i), le CSS calcule la place (translate en pourcentage = la largeur du curseur = une colonne). Chaque moitié est un VRAI
+   bouton (aria-pressed) : le doigt, le clavier et le lecteur d'écran n'ont pas à deviner. 44 px au doigt (le paquet dessine 29), 32 à la souris. */
+.seg { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 2px; margin: 0 0 14px; border-radius: 9px; background: var(--seg-track); --i: 0; }
+.seg-knob {
+  position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / 2); border-radius: 7px; background: var(--seg-knob); box-shadow: 0 1px 3px rgba(0,0,0,.15);
+  translate: calc(var(--i) * 100%) 0; transition: translate .35s cubic-bezier(.32,.72,0,1);
+}
+.seg-bouton { position: relative; z-index: 1; min-height: 32px; text-align: center; font-size: 13px; font-weight: 400; color: var(--text); border-radius: 7px; transition: transform .12s ease-out; }
+.seg-bouton[aria-pressed="true"] { font-weight: 600; }
+.seg-bouton:active { transform: scale(.97); }
+@media (pointer: coarse) { .seg-bouton { min-height: 44px; } }
+.seg-bouton:focus-visible { outline-offset: -2px; }
+
+.appel-item { display: flex; align-items: stretch; }
+.appel-ligne { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px 0 10px 14px; min-height: 60px; color: var(--text); transition: background-color .2s, transform .12s ease-out; }
+.appel-ligne:active { transform: scale(.985); }
+@media (hover: hover) { .appel-ligne:hover { background: var(--field); } }
+.appel-ligne .avatar { width: 40px; height: 40px; font-size: 15px; }
+.appel-corps { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.appel-nom-ligne { font-size: 17px; letter-spacing: -.02em; line-height: 22px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.appel-nom-ligne.manque { color: var(--rouge-txt); }
+.appel-kind { display: flex; align-items: flex-start; gap: 5px; font-size: 15px; line-height: 20px; color: var(--sub-meta); }
+.appel-kind .ic { width: 13px; height: 13px; margin-top: 3.5px; stroke-width: 2; }
+.appel-kind span { min-width: 0; overflow-wrap: anywhere; }      /* ⛔ un libellé coupé par une ellipse ne nomme rien : « Appel vidéo entrant · 9 … » passe sur deux lignes */
+.appel-heure { font-size: 15px; color: var(--sub-meta); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.appel-info { flex: none; width: 52px; min-height: 60px; display: grid; place-items: center; color: var(--accent); transition: transform .12s ease-out; }
+.appel-info:active { transform: scale(.9); }
+.appel-info .ic { width: 22px; height: 22px; stroke-width: 1.7; }
+.carte-liste .appel-ligne:focus-visible, .carte-liste .appel-info:focus-visible { outline-offset: -3px; }
+
+/* la feuille a trois visages : « Nouveau groupe », « Appel de groupe », « Détails » d'un appel — le même cadre, le même voile, le même chemin d'historique */
+.g-resume { flex: 1; min-width: 0; font-size: 17px; line-height: 22px; color: var(--text); overflow-wrap: anywhere; }
+.g-choix { display: flex; gap: 8px; margin-bottom: 18px; }
+.g-pilule { flex: 1; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 999px; background: var(--toggle-off); color: var(--text); font-size: 15px; font-weight: 600; transition: background-color .2s, transform .12s ease-out; }
+.g-pilule .ic { font-size: 16px; stroke-width: 2; }
+.g-pilule:active { transform: scale(.97); }
+.g-pilule[aria-checked="true"] { background: var(--fill); color: var(--on-fill); }
+.feuille[data-mode="appel"] .g-photo, .feuille[data-mode="appel"] .g-nom { display: none; }
+.info-tete { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.info-tete .avatar { width: 64px; height: 64px; font-size: 22px; }
+.info-nom { margin: 0; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.info-sous { margin: 0; font-size: 15px; line-height: 20px; color: var(--sub-meta); overflow-wrap: anywhere; }
+.info-corps .reglage .ic { font-size: 22px; color: var(--accent); }
+.info-corps .reglage-texte { color: var(--accent-txt); }
+
+/* ══ 11. L'ÉCRAN D'APPEL — sombre de jour comme de nuit (le paquet), sans barre d'onglets ; au bureau il occupe la ZONE DE CONTENU, la barre latérale reste ══
+   Trois mises en page, qu'une SEULE donnée choisit (data-mise) : « audio » (un avatar de 120, le nom en 30), « video » (l'autre en plein écran, « Vous » en
+   vignette de 104 × 150 : la VRAIE caméra) et « groupe » (une grille de participants, « Vous » parmi eux). La mise en page suit la caméra, pas le type de l'appel :
+   une caméra refusée laisse un appel audio, une caméra allumée en cours d'appel le fait basculer. */
+.appel-ecran {
+  position: fixed; z-index: 35; top: 0; left: 0; right: 0; bottom: 0; display: none; flex-direction: column; min-height: 0; overflow: hidden;
+  background: var(--appel-fond); color: #fff; outline: none;
+}
+html[data-appel] .appel-ecran { display: flex; }
+html[data-appel], html[data-appel] body { overflow: hidden; }
+html[data-appel] .tabs { display: none; }
+@media (min-width: 900px) { .appel-ecran { left: 236px; } }
+@media (max-width: 899.98px) { html[data-appel] .appel-ecran { animation: pousse .38s cubic-bezier(.32,.72,0,1) both; } }
+
+.appel-tete {
+  position: relative; z-index: 2; flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 56px) max(20px, env(safe-area-inset-right, 0px)) 0 max(20px, env(safe-area-inset-left, 0px));
+}
+.appel-avatar { width: 120px; height: 120px; font-size: 44px; margin-bottom: 10px; box-shadow: 0 20px 50px rgba(0,0,0,.35); }
+.appel-nom { margin: 0; max-width: 100%; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI Variable Display', 'Segoe UI', Roboto, 'Noto Sans', 'Helvetica Neue', Helvetica, system-ui, sans-serif;
+  font-size: 30px; line-height: 36px; font-weight: 600; letter-spacing: -.02em; overflow-wrap: anywhere; text-shadow: 0 1px 8px rgba(0,0,0,.3); }
+.appel-statut { margin: 0; font-size: 15px; line-height: 20px; color: rgba(255,255,255,.86); font-variant-numeric: tabular-nums; text-shadow: 0 1px 8px rgba(0,0,0,.3); }
+.appel-mention { margin: 0; font-size: 12px; line-height: 16px; color: rgba(255,255,255,.82); }
+.appel-avis {
+  position: relative; z-index: 3; flex: none; margin: 10px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); align-self: center; max-width: 440px;
+  padding: 10px 14px; border-radius: 14px; background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.18); font-size: 14px; line-height: 19px; text-align: center; overflow-wrap: anywhere;
+}
+.appel-scene { display: none; }
+.appel-bas {
+  position: relative; z-index: 2; flex: none; margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 22px;
+  padding: 16px max(24px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 20px) max(24px, env(safe-area-inset-left, 0px));
+}
+.appel-commandes { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 14px; width: 100%; max-width: 460px; }
+.appel-cmd { min-width: 68px; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 13px; line-height: 16px; color: #fff; text-align: center; transition: transform .12s ease-out; }
+.appel-cmd:active { transform: scale(.94); }
+.appel-cmd .rond-cmd { width: 68px; height: 68px; display: grid; place-items: center; border-radius: 50%; background: var(--appel-bouton); color: #fff; transition: background-color .2s, color .2s; }
+.appel-cmd .rond-cmd .ic { width: 28px; height: 28px; stroke-width: 1.8; }
+.appel-cmd[aria-pressed="true"] .rond-cmd { background: #fff; color: #000; }
+.appel-raccrocher { width: 68px; height: 68px; display: grid; place-items: center; border-radius: 50%; background: var(--rouge); color: #fff; box-shadow: 0 10px 30px rgba(255,69,58,.4); transition: transform .12s ease-out; }
+.appel-raccrocher:active { transform: scale(.94); }
+.appel-raccrocher .ic { width: 30px; height: 30px; stroke-width: 2; }
+.appel-ecran :focus-visible { outline-color: #fff; }
+@media (max-height: 640px) { .appel-tete { padding-top: calc(env(safe-area-inset-top, 0px) + 20px); } .appel-avatar { width: 88px; height: 88px; font-size: 32px; } }
+
+/* les participants : une vignette = la couleur de l'avatar SOUS un voile sombre (le blanc n'est pas lisible sur l'orange nu), le nom sur sa pastille */
+.tuile {
+  position: relative; display: grid; place-items: center; border-radius: 18px; overflow: hidden; min-width: 0; background-size: cover;
+}
+.tuile::before { content: ""; position: absolute; inset: 0; background: var(--appel-voile); }
+.tuile.vous { background-image: linear-gradient(180deg, #4f78d6, #2a4a9c); }
+.tuile-av { position: relative; width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.2); font-size: 22px; font-weight: 600; }
+.tuile-nom, .tuile-etat {
+  position: absolute; left: 8px; max-width: calc(100% - 16px); padding: 2px 8px; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-size: 13px; line-height: 18px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tuile-nom { bottom: 8px; font-weight: 600; }
+.tuile-etat { top: 8px; }
+.tuile video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; background: #000; }
+.tuile[data-camera="on"] video { display: block; }
+.tuile[data-camera="on"] .tuile-av { display: none; }
+
+.appel-ecran[data-mise="video"] .appel-scene, .appel-ecran[data-mise="groupe"] .appel-scene { display: block; }
+.appel-ecran[data-mise="video"] .appel-avatar, .appel-ecran[data-mise="groupe"] .appel-avatar { display: none; }
+.appel-ecran[data-mise="video"] .appel-nom, .appel-ecran[data-mise="groupe"] .appel-nom { font-size: 17px; line-height: 22px; }
+.appel-ecran[data-mise="video"] .appel-tete { padding-top: calc(env(safe-area-inset-top, 0px) + 14px); }
+.appel-ecran[data-mise="video"] .appel-tete::before { content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: 0; bottom: -40px; background: linear-gradient(180deg, rgba(8,14,38,.7), rgba(8,14,38,0)); }
+.appel-ecran[data-mise="video"] .appel-bas::before { content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: 0; bottom: 0; background: linear-gradient(0deg, rgba(8,14,38,.72), rgba(8,14,38,0)); }
+/* 1 : 1 en vidéo — l'autre prend tout l'écran (sous l'en-tête et les commandes), « Vous » flotte en haut à droite */
+.appel-ecran[data-mise="video"] .appel-scene { position: absolute; z-index: 1; inset: 0; }
+.appel-ecran[data-mise="video"] .tuile { position: absolute; inset: 0; border-radius: 0; }
+.appel-ecran[data-mise="video"] .tuile-av { width: 110px; height: 110px; font-size: 40px; }
+.appel-ecran[data-mise="video"] .tuile-nom { left: max(16px, env(safe-area-inset-left, 0px)); bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 112px); }
+.appel-ecran[data-mise="video"] .tuile.vous {
+  inset: auto; top: calc(env(safe-area-inset-top, 0px) + 110px); right: max(14px, env(safe-area-inset-right, 0px)); width: 104px; height: 150px; border-radius: 16px;
+  background-image: linear-gradient(180deg, #4f78d6, #2a4a9c); border: 1px solid rgba(255,255,255,.35); box-shadow: 0 10px 30px rgba(0,0,0,.4); z-index: 2;
+}
+.appel-ecran[data-mise="video"] .tuile.vous .tuile-av { width: 44px; height: 44px; font-size: 16px; }
+.appel-ecran[data-mise="video"] .tuile.vous .tuile-nom { left: 8px; top: auto; bottom: 6px; }
+@media (min-width: 900px) { .appel-ecran[data-mise="video"] .tuile.vous { width: 176px; height: 132px; top: 96px; } }
+/* groupe — la grille : des colonnes qui se déduisent de la largeur, la zone défile si les vignettes ne tiennent pas */
+.appel-ecran[data-mise="groupe"] .appel-scene {
+  position: relative; z-index: 1; flex: 1; min-height: 0; margin-top: 10px; overflow-y: auto; overscroll-behavior: contain;
+  padding: 4px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 10px; align-content: start;
+  grid-template-columns: repeat(auto-fill, minmax(min(150px, 44%), 1fr)); width: 100%; max-width: 980px; margin-inline: auto;
+}
+.appel-ecran[data-mise="groupe"] .tuile { aspect-ratio: 1; min-height: 120px; }
+.appel-ecran[data-mise="groupe"] .appel-tete { padding-top: calc(env(safe-area-inset-top, 0px) + 20px); }
+.appel-ecran[data-mise="groupe"] .appel-bas { margin-top: 0; }
+.appel-ecran[data-mise="groupe"] .appel-scene:focus-visible { outline-offset: -3px; }
+
+/* ══ 12. LA VERSION SERVIE PAR LE SERVICE — connexion, actions sur un message, infos, liens ═════════════════════════════════
+   ⛔ RIEN DE CE BLOC NE SE VOIT DANS L'APERÇU : aucun de ces éléments n'y est affiché (la source de l'aperçu n'annonce aucune de ces capacités), donc les écrans
+   validés ne bougent pas. Chaque règle n'emploie que des jetons du § 1 : aucun blanc ni noir écrit en dur hors de ce que le paquet dessine déjà
+   (le rond de présence, la bande « hors connexion »). */
+html[data-service] .mention-apercu { display: none; }
+.avatar.en-ligne { position: relative; }
+.avatar .presence { position: absolute; right: -1px; bottom: -1px; width: 12px; height: 12px; border-radius: 50%; background: var(--vert); box-shadow: 0 0 0 2px var(--solide); }
+.epingle .avatar .presence, .conv .avatar .presence { width: 13px; height: 13px; }
+
+.connexion {
+  min-height: 100vh; min-height: 100dvh; display: grid; place-items: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 24px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 24px) max(16px, env(safe-area-inset-left, 0px));
+}
+.connexion-carte {
+  width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 12px; padding: 26px 22px 22px; border-radius: 22px; text-align: center;
+  background: var(--card); border: var(--line); box-shadow: var(--shadow-bar); -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+}
+.connexion-carte img { width: 64px; height: 64px; border-radius: 16px; margin: 0 auto; display: block; }
+.connexion-carte h1 { font-size: 26px; line-height: 32px; font-weight: 700; letter-spacing: -.02em; }
+.connexion-sous, .connexion-aide { font-size: 15px; line-height: 20px; color: var(--sub-meta); }
+.connexion-aide { font-size: 13px; line-height: 17px; }
+.connexion-erreur { padding: 10px 12px; border-radius: 12px; background: var(--field); border: var(--line); color: var(--text); font-size: 14px; line-height: 19px; text-align: left; overflow-wrap: anywhere; }
+.champ { display: block; }
+.champ input {
+  width: 100%; height: 48px; padding: 0 14px; border: var(--line); border-radius: 12px; background: var(--input-bg); font-size: 17px; color: var(--text);
+  caret-color: var(--accent); outline: none; -webkit-appearance: none; appearance: none;
+}
+.champ input::placeholder { color: var(--placeholder); opacity: 1; }
+.champ input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.connexion-bouton { min-height: 48px; border-radius: 14px; background: var(--fill); color: var(--on-fill); font-size: 17px; font-weight: 600; text-align: center; transition: transform .12s ease-out, opacity .2s; }
+.connexion-bouton:active { transform: scale(.98); }
+.connexion-bouton[aria-disabled="true"] { opacity: .6; cursor: default; }
+
+/* la coupure du temps réel : une bande qui reste tant que la connexion n'est pas revenue — jamais un écran qui fait semblant d'être à jour */
+.hors-ligne {
+  position: fixed; z-index: 55; top: 0; left: 0; right: 0; padding: calc(env(safe-area-inset-top, 0px) + 6px) 16px 7px; pointer-events: none;   /* un texte : il ne couvre pas les commandes de dessous */
+  background: rgba(28,28,30,.94); color: #fff; font-size: 14px; line-height: 18px; text-align: center; overflow-wrap: anywhere;
+}
+.liste-erreur {
+  display: flex; align-items: center; gap: 10px; margin: 0 0 12px; padding: 10px 14px; border-radius: 14px; background: var(--card); border: var(--line);
+  font-size: 14px; line-height: 19px; color: var(--text); overflow-wrap: anywhere;
+}
+.liste-erreur span { flex: 1; min-width: 0; }
+.liste-erreur button { flex: none; min-height: 44px; padding: 0 6px; color: var(--accent-txt); font-weight: 600; }
+.precedents { display: block; margin: 0 auto 10px; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--fill-soft); color: var(--accent-txt); font-size: 14px; font-weight: 600; }
+
+/* un message : sa réponse citée, ses réactions, sa marque « modifié », son état « en attente », son bouton d'actions (souris) — l'appui long le remplace au doigt */
+.msg-rang { max-width: 82%; display: flex; align-items: center; gap: 2px; }
+.msg.de-moi .msg-rang { flex-direction: row-reverse; }
+.msg-rang > .bulle, .msg-rang > .photos, .msg-rang > .vocal { max-width: 100%; min-width: 0; }
+.msg-plus { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; color: var(--sub); font-size: 18px; }
+@media (hover: hover) { .msg-plus { opacity: 0; } .msg:hover .msg-plus, .msg-plus:focus-visible { opacity: 1; } }
+@media (hover: none) { .msg-plus { display: none; } }
+.citation { display: block; max-width: 82%; padding: 6px 12px; border-radius: 12px; border-left: 3px solid var(--accent); background: var(--field); color: var(--sub-meta); font-size: 13px; line-height: 17px; overflow-wrap: anywhere; }
+.citation b { display: block; font-weight: 600; color: var(--text); }
+.bulle.supprimee { background: transparent; border: 1px solid var(--faint); color: var(--sub-meta); font-style: italic; }
+.mention-modifie { padding: 0 12px; font-size: 11px; line-height: 14px; color: var(--sub-meta); }
+.reactions { display: flex; flex-wrap: wrap; gap: 4px; max-width: 82%; }
+.msg.de-moi .reactions { justify-content: flex-end; }
+.reac { min-height: 28px; min-width: 28px; padding: 2px 8px; border-radius: 999px; background: var(--card); border: var(--line); font-size: 14px; line-height: 20px; color: var(--text); font-variant-numeric: tabular-nums; }
+.reac.moi { background: var(--fill-soft); border-color: var(--accent); }
+@media (pointer: coarse) { .reac { min-height: 32px; } }
+.compo-contexte { max-width: 860px; margin: 0 auto 6px; display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 12px; border-radius: 12px; border-left: 3px solid var(--accent); background: var(--field); font-size: 14px; line-height: 18px; }
+.compo-contexte-texte { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--sub-meta); }
+.compo-contexte-texte b { font-weight: 600; color: var(--text); }
+.compo-contexte button { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; color: var(--sub); font-size: 14px; }
+@media (pointer: coarse) { .compo-contexte button { width: 44px; height: 44px; } }
+
+/* le menu d'un message : une feuille de bas d'écran (téléphone), une fenêtre centrée (bureau) ; Échap, le fond et chaque geste le referment */
+.menu-fond { position: fixed; inset: 0; z-index: 70; display: grid; align-items: end; justify-items: center; padding: 0 12px calc(env(safe-area-inset-bottom, 0px) + 12px); background: rgba(0,0,0,.28); }
+@media (min-width: 700px) { .menu-fond { align-items: center; padding-bottom: 12px; } }
+.menu-msg { width: 100%; max-width: 360px; overflow: hidden; border-radius: 22px; background: var(--sheet-bg); border: var(--line); box-shadow: 0 16px 44px rgba(0,0,0,.28); color: var(--text); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%); }
+.menu-emojis { display: flex; justify-content: space-around; padding: 8px 6px; border-bottom: var(--sep); }
+.menu-emojis:empty { display: none; }
+.menu-emoji { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; font-size: 24px; transition: transform .12s ease-out; }
+.menu-emoji:active { transform: scale(.9); }
+.menu-emoji[aria-pressed="true"] { background: var(--fill-soft); }
+.menu-action { width: 100%; min-height: 48px; display: flex; align-items: center; padding: 0 18px; border-bottom: var(--sep); font-size: 17px; color: var(--text); }
+.menu-action:last-child { border-bottom: 0; }
+.menu-action.danger { color: var(--rouge-txt); }
+.menu-question { padding: 14px 18px 6px; font-size: 15px; line-height: 20px; text-align: center; }
+@media (hover: hover) { .menu-action:hover, .menu-emoji:hover { background: var(--field); } }
+
+/* les infos d'une conversation, les contacts et leurs liens : la même feuille, le même cadre */
+.carte-pad { padding: 12px 14px; }
+.info-note { margin: 0 0 10px; font-size: 13px; line-height: 17px; color: var(--sub-meta); }
+.info-erreur { margin: 0 4px 12px; font-size: 14px; line-height: 19px; color: var(--rouge-txt); overflow-wrap: anywhere; }
+.info-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.info-champ { display: flex; gap: 8px; margin-bottom: 10px; }
+.info-champ input, .lien-boite input { flex: 1; min-width: 0; height: 44px; padding: 0 12px; border: var(--line); border-radius: 12px; background: var(--input-bg); font-size: 16px; color: var(--text); caret-color: var(--accent); outline: none; -webkit-appearance: none; appearance: none; }
+.info-champ input:focus, .lien-boite input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.info-champ input::placeholder { color: var(--placeholder); opacity: 1; }
+.lien-boite { display: flex; gap: 8px; margin-bottom: 10px; }
+.mini { flex: none; min-height: 36px; padding: 0 14px; border-radius: 999px; background: var(--fill-soft); color: var(--accent-txt); font-size: 14px; font-weight: 600; text-align: center; transition: transform .12s ease-out; }
+.mini:active { transform: scale(.96); }
+.mini.danger { color: var(--rouge-txt); }
+@media (pointer: coarse) { .mini { min-height: 44px; } }
+.reglage.danger .reglage-texte { color: var(--rouge-txt); }
+.contact .mini { margin-left: 6px; }
+.contact-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+/* un membre qu'on peut gérer : le nom garde au moins 150 px, et les boutons passent SOUS lui quand la ligne est trop étroite (Android 360 : « Moreau » passait sous « Nommer admin ») */
+.contact.avec-actions { flex-wrap: wrap; }
+.contact.avec-actions .contact-texte { flex: 1 1 150px; }
+.contact.avec-actions .contact-actions { margin-left: auto; }
+.badge-admin { margin-left: 6px; font-size: 12px; font-weight: 600; color: var(--accent-txt); }
+
+/* ══ 8. LES RÉGLAGES DE L'APPAREIL : transparence et mouvement ═════════════════════════════════════════════════════════════
+   ⛔ Retirer le flou SANS rendre de matière laisserait un texte posé sur ce qui passe dessous : on remplace la vitre par un
+   aplat plein (« un filtre de fond se déclare AVEC sa surface », et l'inverse aussi). */
+@media (prefers-reduced-transparency: reduce) {
+  [data-glass] { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background: var(--solide) !important; }
+  .feuille { background: var(--solide-feuille) !important; }
+  .notif { background: var(--solide-notif) !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition-duration: 0s !important; transition-delay: 0s !important; }
+}
+@media (forced-colors: active) {
+  .tab[aria-current="page"], .side-lien[aria-current="page"] { outline: 2px solid Highlight; }
+  /* en couleurs forcées les fonds disparaissent : seuls les CONTOURS restent — une bulle, une photo, un vocal en gardent un, sinon émis et reçu ne se
+     distinguent plus que par l'alignement, et l'onde n'a plus de couleur à peindre */
+  .bulle, .photo, .vocal, .saisie-ind, .pilule-saisie, .avis-saisie, .tuile, .appel-avis, .g-pilule, .seg { border: 1px solid CanvasText; }
+  .appel-cmd .rond-cmd, .appel-raccrocher { border: 2px solid CanvasText; }
+  .seg-bouton[aria-pressed="true"], .g-pilule[aria-checked="true"] { outline: 2px solid Highlight; }
+  .onde i, .enreg-onde i { background: CanvasText; }
+  .badge, .point { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+}
+</style>
+</head>
+<body>
+<noscript><p style="padding:24px;font:16px/1.4 system-ui,sans-serif">OP MESSAGES a besoin de JavaScript.</p></noscript>
+
+<!-- Les icônes : des tracés de 24 × 24 (trait 1,9, bouts arrondis) du paquet, définis UNE fois. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H10l-5 4v-4H7a3 3 0 0 1-3-3V6Z"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Zm12 3 4-2.5v9L16 14"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm7.4-2.1.9-1.4-1.9-1.9a7 7 0 0 0-.4-1.5l1.2-1.7-1.6-1.6-1.7 1.2a7 7 0 0 0-1.5-.4L12.5 4h-1l-.6 2.1a7 7 0 0 0-1.5.4L7.7 5.3 6.1 6.9l1.2 1.7a7 7 0 0 0-.4 1.5L4.8 11v1l2.1.6a7 7 0 0 0 .4 1.5l-1.2 1.7 1.6 1.6 1.7-1.2a7 7 0 0 0 1.5.4l.6 2.1h1l.6-2.1a7 7 0 0 0 1.5-.4l1.7 1.2 1.6-1.6-1.2-1.7a7 7 0 0 0 .4-1.5l2.1-.6Z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.6 15.6 21 21"/></symbol>
+  <symbol id="i-groupe" viewBox="0 0 24 24"><path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 .4a2.6 2.6 0 1 0 0-5.2 2.6 2.6 0 0 0 0 5.2ZM3 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5m3-6c2.4.2 4 2 4 4.4M19 3v4m2-2h-4"/></symbol>
+  <symbol id="i-photo" viewBox="0 0 24 24"><path d="M12 15a4 4 0 0 0 4-4V8a4 4 0 0 0-8 0v3a4 4 0 0 0 4 4Zm-8 6a8 8 0 0 1 16 0M9 4l1-1.5h4L15 4"/></symbol>
+  <symbol id="i-coche" viewBox="0 0 24 24"><path d="M5 12.5 10 17.5 19 7"/></symbol>
+  <symbol id="i-croix" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M20 15.5 15.5 11 7 19"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-haut" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+  <symbol id="i-corbeille" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5v14l11-7z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></symbol>
+  <symbol id="i-mic-off" viewBox="0 0 24 24"><path d="M9 3h6v12H9zM5 11a7 7 0 0 0 14 0M12 18v3M4 4l16 16"/></symbol>
+  <symbol id="i-video-off" viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Zm12 3 4-2.5v9L16 14M3 3l18 18"/></symbol>
+  <symbol id="i-hautparleur" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4Zm12-1a5 5 0 0 1 0 8m3-11a9 9 0 0 1 0 14"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v.5M11 12h1v4h1"/></symbol>
+  <symbol id="i-entrant" viewBox="0 0 24 24"><path d="M5 19 19 5M9 5h10v10"/></symbol>
+  <symbol id="i-sortant" viewBox="0 0 24 24"><path d="M19 5 5 19M15 19H5V9"/></symbol>
+  <symbol id="i-points" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01" stroke-width="3.4"/></symbol>
+  <symbol id="i-raccrocher" viewBox="0 0 24 24"><path d="M3 12a15 15 0 0 1 18 0l-2 3-4-1.5v-2a9 9 0 0 0-6 0v2L5 15l-2-3Z"/></symbol>
+</svg>
+
+<!-- ⛔ L'ÉCRAN DE CONNEXION n'existe que dans la version servie par le service (la source de l'aperçu ne demande aucune connexion) : masqué ici, il n'est jamais affiché. -->
+<main class="connexion" id="connexion" hidden aria-labelledby="connexion-titre">
+  <form class="connexion-carte" id="f-connexion" method="post" novalidate>
+    <img src="opmsg-192.png" alt="" width="64" height="64">
+    <h1 id="connexion-titre">OP MESSAGES</h1>
+    <p class="connexion-sous">Connexion à l'accès d'essai</p>
+    <p class="connexion-erreur" id="connexion-erreur" role="alert" hidden></p>
+    <label class="champ"><span class="sr-seul">Identifiant</span><input id="c-login" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" placeholder="Identifiant"></label>
+    <label class="champ"><span class="sr-seul">Mot de passe</span><input id="c-pass" type="password" autocomplete="current-password" enterkeyhint="go" placeholder="Mot de passe"></label>
+    <button type="submit" class="connexion-bouton" id="c-entrer">Entrer</button>
+    <p class="connexion-aide">L'identifiant et le mot de passe sont ceux que la Tour de contrôle a donnés pour l'essai.</p>
+  </form>
+</main>
+<p class="hors-ligne" id="hors-ligne" role="status" hidden>Connexion perdue — reconnexion en cours…</p>
+
+<div class="app" id="app">
+  <aside class="side" data-glass="1" aria-label="Barre latérale">
+    <div class="side-marque"><img src="opmsg-192.png" alt="" width="28" height="28"><b>OP MESSAGES</b></div>
+    <nav aria-label="Navigation principale" id="nav-side"></nav>
+    <div class="side-fin">
+      <div class="moi"><span class="avatar av0" aria-hidden="true" id="moi-avatar"></span><span class="moi-texte"><span class="moi-nom" id="moi-nom"></span><span class="moi-statut"><i></i>Disponible</span></span></div>
+    </div>
+  </aside>
+
+  <main class="contenu" id="contenu">
+    <section class="vue" id="vue-messages" aria-labelledby="titre-messages">
+      <div class="entete-vue">
+        <button type="button" class="lien-texte presse" id="btn-modifier">Modifier</button>
+        <button type="button" class="btn-groupe" id="btn-groupe" aria-haspopup="dialog"><span class="pastille"><svg class="ic" aria-hidden="true"><use href="#i-groupe"/></svg>Groupe</span></button>
+      </div>
+      <h1 class="grand-titre" id="titre-messages">Messages</h1>
+      <label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher dans les conversations</span><input type="search" id="recherche-conv" placeholder="Rechercher" autocomplete="off" enterkeyhint="search"></label>
+      <p class="liste-erreur" id="liste-erreur" role="alert" hidden><span id="liste-erreur-texte"></span><button type="button" id="liste-erreur-bouton">Réessayer</button></p>
+      <ul class="epingles" id="epingles" role="list" aria-label="Conversations épinglées"></ul>
+      <ul class="carte-liste" id="liste-conv" role="list" aria-label="Conversations"></ul>
+    </section>
+    <section class="vue" id="vue-appels" aria-labelledby="titre-appels" hidden>
+      <div class="entete-vue">
+        <button type="button" class="lien-texte presse" id="btn-modifier-appels">Modifier</button>
+        <button type="button" class="lien-texte presse" id="btn-nouvel-appel" aria-haspopup="dialog">Nouvel appel</button>
+      </div>
+      <h1 class="grand-titre" id="titre-appels">Appels</h1>
+      <div class="seg" id="seg-appels" role="group" aria-label="Filtrer les appels">
+        <span class="seg-knob" aria-hidden="true"></span>
+        <button type="button" class="seg-bouton" data-filtre="tous" aria-pressed="true">Tous</button>
+        <button type="button" class="seg-bouton" data-filtre="manques" aria-pressed="false">Manqués</button>
+      </div>
+      <ul class="carte-liste" id="liste-appels" role="list" aria-label="Appels"></ul>
+    </section>
+    <section class="vue" id="vue-reunions" aria-labelledby="titre-reunions" hidden></section>
+    <section class="vue" id="vue-reglages" aria-labelledby="titre-reglages" hidden></section>
+    <p class="mention-apercu">Aperçu — données d'exemple</p>
+  </main>
+
+  <nav class="tabs" id="tabs" data-glass="1" aria-label="Navigation principale">
+    <span class="tabs-bulle" aria-hidden="true"></span>
+  </nav>
+
+  <section class="conv-vide" id="conv-vide"><div><span class="coquille-icone" aria-hidden="true"><svg class="ic"><use href="#i-chat"/></svg></span><p>Choisissez une conversation pour la lire et y répondre.</p></div></section>
+
+  <section class="conv-ecran" id="conv-ecran" role="region" aria-label="Conversation" tabindex="-1">
+    <header class="conv-nav" data-glass="1">
+      <div class="conv-gauche">
+        <button type="button" class="conv-retour presse" id="conv-retour" aria-label="Retour aux conversations"><svg viewBox="0 0 12 20" aria-hidden="true"><path d="M10 2 2 10l8 8"/></svg><span class="badge" id="conv-badge" hidden>0</span></button>
+      </div>
+      <button type="button" class="conv-titre presse" id="conv-titre" aria-label="Infos de la conversation (bientôt)"></button>
+      <div class="conv-droite">
+        <button type="button" class="conv-cam presse" id="conv-cam" aria-label="Appel vidéo"><svg class="ic" aria-hidden="true"><use href="#i-video"/></svg></button>
+      </div>
+    </header>
+    <div class="conv-fil" id="conv-fil" role="log" aria-live="off" aria-label="Messages" tabindex="0">
+      <!-- ⛔ la région annoncée ne reçoit QUE le message neuf d'un autre : si le fil entier était « aria-live », chaque rafraîchissement (« Lu 14:06 ») le relirait en bloc -->
+      <button type="button" class="precedents" id="precedents" hidden>Afficher les messages précédents</button>
+      <div class="conv-colonne" id="conv-messages" aria-busy="true"></div>
+    </div>
+    <p class="sr-seul" id="conv-annonce" role="status" aria-live="polite" aria-atomic="true"></p>
+    <p class="avis-saisie" id="avis" role="status" aria-live="polite" hidden></p>
+    <footer class="composer" data-glass="1">
+      <div class="compo-contexte" id="compo-contexte" hidden><span class="compo-contexte-texte" id="compo-contexte-texte"></span><button type="button" id="compo-contexte-x" aria-label="Annuler"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button></div>
+      <div class="compo-ligne" id="compo">
+        <button type="button" class="compo-bouton compo-plus presse" id="compo-plus" aria-label="Joindre une photo"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
+        <input type="file" id="compo-fichier" class="sr-seul" accept="image/*" multiple tabindex="-1" aria-hidden="true">
+        <div class="pilule-saisie">
+          <textarea id="saisie" rows="1" maxlength="100000" placeholder="Message" aria-label="Écrire un message" autocomplete="off" autocapitalize="sentences" spellcheck="true"></textarea>
+          <button type="button" class="compo-bouton envoyer presse" id="envoyer" aria-label="Envoyer le message" hidden><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-haut"/></svg></span></button>
+        </div>
+        <button type="button" class="compo-bouton compo-micro presse" id="compo-micro" aria-label="Enregistrer un message vocal : maintenir, ou toucher pour démarrer"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></button>
+      </div>
+      <div class="enreg" id="enreg" role="group" aria-label="Enregistrement du message vocal" hidden>
+        <button type="button" class="compo-bouton enreg-annuler presse" id="enreg-annuler" aria-label="Annuler l'enregistrement"><svg class="ic" aria-hidden="true"><use href="#i-corbeille"/></svg></button>
+        <span class="enreg-point" aria-hidden="true"></span><span class="enreg-duree" id="enreg-duree">0:00</span>
+        <span class="enreg-onde" id="enreg-onde" aria-hidden="true"></span>
+        <button type="button" class="compo-bouton envoyer presse" id="enreg-envoyer" aria-label="Envoyer le message vocal"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-haut"/></svg></span></button>
+      </div>
+      <p class="compo-ferme" id="compo-ferme" hidden>Seuls les admins peuvent écrire dans ce groupe.</p>
+    </footer>
+  </section>
+
+  <section class="appel-ecran" id="appel-ecran" role="region" aria-label="Appel" tabindex="-1" data-mise="audio">
+    <header class="appel-tete">
+      <span class="avatar appel-avatar" id="appel-avatar" aria-hidden="true"></span>
+      <h2 class="appel-nom" id="appel-nom"></h2>
+      <p class="appel-statut" id="appel-statut"></p>
+      <p class="appel-mention">Aperçu — les autres participants sont simulés</p>
+    </header>
+    <p class="appel-avis" id="appel-avis" role="status" aria-live="polite" hidden></p>
+    <div class="appel-scene" id="appel-scene" role="list" aria-label="Participants">
+      <div class="tuile vous" id="appel-vous" role="listitem" data-camera="off"><video id="appel-video-local" muted playsinline autoplay aria-label="Votre caméra"></video><span class="tuile-av" aria-hidden="true" id="appel-vous-av"></span><span class="tuile-nom">Vous</span></div>
+    </div>
+    <div class="appel-bas">
+      <div class="appel-commandes" role="group" aria-label="Commandes de l'appel">
+        <button type="button" class="appel-cmd" id="appel-micro" aria-pressed="false" aria-label="Couper le micro"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></span><span class="appel-cmd-texte">Micro</span></button>
+        <button type="button" class="appel-cmd" id="appel-hp" aria-pressed="false" aria-label="Haut-parleur"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-hautparleur"/></svg></span><span class="appel-cmd-texte">Haut-parleur</span></button>
+        <button type="button" class="appel-cmd" id="appel-cam" aria-pressed="false" aria-label="Activer la caméra"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-video-off"/></svg></span><span class="appel-cmd-texte">Caméra</span></button>
+        <button type="button" class="appel-cmd" id="appel-msg" aria-label="Message : raccrocher et ouvrir la conversation"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg></span><span class="appel-cmd-texte">Message</span></button>
+      </div>
+      <button type="button" class="appel-raccrocher" id="appel-raccrocher" aria-label="Raccrocher"><svg class="ic" aria-hidden="true"><use href="#i-raccrocher"/></svg></button>
+    </div>
+  </section>
+</div>
+<p class="sr-seul" id="annonce-appel" role="status" aria-live="polite" aria-atomic="true"></p>
+
+<div class="voile" id="voile"></div>
+<section class="feuille" id="feuille" data-glass="1" role="dialog" aria-modal="true" aria-labelledby="feuille-titre" tabindex="-1" inert>
+  <div class="feuille-tete" id="feuille-tete">
+    <div class="poignee" aria-hidden="true"><i></i></div>
+    <div class="feuille-barre">
+      <button type="button" class="feuille-bouton presse" id="g-annuler">Annuler</button>
+      <h2 id="feuille-titre">Nouveau groupe</h2>
+      <button type="button" class="feuille-bouton fin presse" id="g-creer" aria-disabled="true">Créer</button>
+    </div>
+  </div>
+  <div class="feuille-corps" id="feuille-corps">
+    <div class="g-identite">
+      <label class="g-photo" id="g-photo" title="Ajouter une photo au groupe"><svg class="ic" aria-hidden="true"><use href="#i-photo"/></svg><span class="sr-seul">Photo du groupe</span><input type="file" id="g-photo-fichier" accept="image/*"></label>
+      <input type="text" class="g-nom" id="g-nom" placeholder="Nom du groupe" maxlength="40" autocomplete="off" enterkeyhint="done" aria-label="Nom du groupe">
+      <p class="g-resume" id="g-resume" aria-live="polite" hidden></p>
+    </div>
+    <div class="g-choix" id="g-choix" role="radiogroup" aria-label="Type d'appel" hidden>
+      <button type="button" class="g-pilule presse" role="radio" aria-checked="true" data-type="audio"><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg>Audio</button>
+      <button type="button" class="g-pilule presse" role="radio" aria-checked="false" data-type="video"><svg class="ic" aria-hidden="true"><use href="#i-video"/></svg>Vidéo</button>
+    </div>
+    <label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher un contact</span><input type="search" id="g-recherche" placeholder="Rechercher un contact" autocomplete="off" enterkeyhint="search"></label>
+    <ul class="puces" id="g-puces" role="list" aria-label="Membres choisis"></ul>
+    <div class="rubrique"><span>Contacts de l'entreprise</span><span id="g-compteur" aria-live="polite">0 / 0</span></div>
+    <div class="carte" id="g-contacts" role="group" aria-label="Contacts de l'entreprise"></div>
+    <div class="carte" id="g-reglages">
+      <button type="button" class="reglage presse" id="g-ephemeres"><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur" id="g-ephemeres-val">Désactivés</span><svg class="chev" viewBox="0 0 8 13" aria-hidden="true"><path d="M1.5 1.5 6.5 6.5 1.5 11.5"/></svg></button>
+      <button type="button" class="reglage presse" id="g-annonces" role="switch" aria-checked="false"><span class="reglage-texte">Seuls les admins écrivent<small>Groupe d'annonces</small></span><span class="interrupteur" aria-hidden="true"></span></button>
+    </div>
+  </div>
+  <div class="feuille-corps info-corps" id="info-corps" hidden></div>
+</section>
+
+<div class="menu-fond" id="menu-fond" hidden><div class="menu-msg" id="menu-msg" role="dialog" aria-modal="true" aria-label="Actions du message"></div></div>
+
+<div class="visionneuse" id="visionneuse" role="dialog" aria-modal="true" aria-label="Photo agrandie" hidden>
+  <button type="button" class="visionneuse-fermer presse" id="visionneuse-fermer" aria-label="Fermer la photo"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button>
+  <img id="visionneuse-img" alt="">
+</div>
+
+<div class="notif" id="notif" data-glass="1" role="status" aria-live="polite" aria-atomic="true">
+  <img src="opmsg-192.png" alt="" width="38" height="38">
+  <span class="notif-corps"><span class="notif-tete"><b>OP MESSAGES</b><span>maintenant</span></span><span class="notif-texte" id="notif-texte"></span><span class="notif-aide" id="notif-aide"></span></span>
+</div>
+<div class="mot" id="mot" role="status" aria-live="polite"></div>
+
+<script src="api.js"></script>
+<script src="source-serveur.js"></script>
+<script src="opmsg-ui.js"></script>
+</body>
+</html>

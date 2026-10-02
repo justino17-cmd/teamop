@@ -1,0 +1,192 @@
+# Déploiement d'OP MESSAGES sur le VPS — un service à part (`server-msg/`), deux instances.
+#
+# Conception : design/opmessages/SERVEUR.md § 3.10. Mode d'emploi de l'installation :
+# design/opmessages/INSTALLER-LE-SERVEUR.md.
+#
+# ⛔ CE WORKFLOW N'EST PAS CELUI D'OP GESTION, ET LES DEUX NE SE MARCHENT PAS DESSUS.
+# `deploiement.yml` filtre sur `server/**` : un push sur `server-msg/` ne redémarre pas `teamop-api`,
+# et inversement. Les deux se partagent seulement le VPS — d'où le même groupe de `concurrency`.
+# ⚠️ Un groupe de concurrence ne garde qu'UN job en attente : si un troisième arrive pendant qu'un
+# déploiement tourne et qu'un autre attend, GitHub annule le plus ancien des deux EN ATTENTE. Pour
+# rejouer un déploiement annulé : Actions → ce workflow (ou « Déploiement du serveur ») → Run workflow.
+#
+# ⛔ LA BÊTA PART À CHAQUE POUSSÉE SUR `main` (après les bancs) ; LA PRODUCTION NE PART JAMAIS
+# TOUTE SEULE. Elle se lance à la main (`workflow_dispatch`, cible = prod) et attend l'approbation
+# de l'environnement GitHub `msg-prod`, dont Justin est le relecteur obligatoire : c'est sa phrase
+# « publie OP MESSAGES », traduite en geste. ⚠️ Le relecteur obligatoire se règle dans
+# Settings → Environments → msg-prod : ce fichier ne peut pas le poser, et sans lui la protection
+# n'existe pas (le mode d'emploi le fait faire).
+name: Déploiement d'OP MESSAGES
+
+on:
+  push:
+    branches: [main]
+    paths: ['server-msg/**', 'scripts/bancs-messages.liste', '.github/workflows/deploiement-messages.yml']
+  workflow_dispatch:
+    inputs:
+      cible:
+        description: "Instance à déployer (prod demande l'approbation de l'environnement msg-prod)"
+        type: choice
+        options: [beta, prod]
+        default: beta
+      sha:
+        description: "SHA complet du commit sur main (vide : le commit sélectionné)"
+        type: string
+        default: ''
+      retour:
+        description: "Autoriser un commit plus ANCIEN que celui en service (retour arrière voulu)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  # ⛔ LE VPS NE PART PAS SANS QU'UN BANC AIT RENDU SON VERDICT — la porte est dans CE workflow, pas
+  # dans `ci.yml` : GitHub Actions n'a pas de `needs` entre workflows (voir `deploiement.yml`).
+  # La liste est limitée aux suites d'OP MESSAGES, qui ne lisent ni `app.html` ni `tour.html` : celles
+  # d'OP GESTION tomberaient ici sans rapport avec ce qu'on déploie.
+  # ⚠️ Sans `npm ci`, les suites qui montent le VRAI service SAUTENT d'elles-mêmes et se déclarent
+  # vertes sans rien avoir exécuté — d'où le plancher de vérifications, pris de la liste.
+  bancs:
+    name: Bancs d'OP MESSAGES (avant de toucher au VPS)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Dépendances du service
+        run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix server-msg
+      # ⛔ test-904 lance le VRAI `server/index.js` pour éprouver la porte bêta (la couture réelle entre les deux services). Sans
+      # ses dépendances il SAUTE, vert, avec 0 vérification : le plancher de la liste, lui, compte ses 40 et ferait échouer le job.
+      - name: Dépendances d'OP GESTION (pour la couture réelle, test-904)
+        run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix server
+      - name: Syntaxe des fichiers du service
+        run: |
+          find server-msg -name '*.js' -not -path '*/node_modules/*' -print0 | xargs -0 -n1 node --check
+          for f in server-msg/*.sh; do bash -n "$f" || exit 1; done
+      - name: Les bancs d'OP MESSAGES
+        run: BANCS_PLANCHER=$(sed -n 's/^#plancher //p' scripts/bancs-messages.liste) bash scripts/bancs-ci.sh $(grep -vE '^[[:space:]]*(#|$)' scripts/bancs-messages.liste)
+
+  deployer-beta:
+    name: Déployer la bêta (msg-beta)
+    needs: bancs
+    if: github.event_name == 'push' || inputs.cible == 'beta'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    concurrency:
+      group: deploiement-vps     # le même groupe qu'`deploiement.yml` : jamais deux déploiements ensemble
+      cancel-in-progress: false  # et on ne coupe pas un déploiement en cours
+    env:
+      CLE_SSH: ${{ secrets.VPS_SSH_KEY_MSG_BETA }}
+      SHA_VOULU: ${{ inputs.sha || github.sha }}
+      RETOUR: ${{ inputs.retour && 'retour' || '' }}
+    steps:
+      # La clé de déploiement vient des secrets du dépôt, par l'ENVIRONNEMENT du job (jamais
+      # interpolée dans le script). Tant que le secret n'existe pas, OP MESSAGES n'est pas installé :
+      # on le dit et on sort en 0 — le code peut être fusionné avant l'installation (§ 3.10).
+      - name: Préparer l'accès SSH
+        run: |
+          if [ -z "$CLE_SSH" ]; then
+            echo "::notice::VPS_SSH_KEY_MSG_BETA absent : OP MESSAGES n'est pas installé sur le VPS, rien n'est déployé."
+            echo "PRET=non" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$CLE_SSH" > ~/.ssh/id_msg
+          chmod 600 ~/.ssh/id_msg
+          # La clé d'hôte du VPS est la même que pour `deploiement.yml` : une clé publique d'hôte
+          # n'est pas un secret, et la voir dans le diff permet de vérifier qu'elle n'a pas changé.
+          cat > ~/.ssh/known_hosts <<'EOF'
+          api.teamop.fr ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOx14gh/gaXmkrB1xVioeWjc2MHduIP9T5WRQZntZ+Sn
+          217.154.6.139 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOx14gh/gaXmkrB1xVioeWjc2MHduIP9T5WRQZntZ+Sn
+          EOF
+          chmod 600 ~/.ssh/known_hosts
+          echo "PRET=oui" >> "$GITHUB_ENV"
+
+      - name: Déployer sur le VPS (commande forcée)
+        if: env.PRET == 'oui'
+        run: |
+          # ⛔ PAS D’APOSTROPHE DANS LE MOT DE `${var:?mot}` — bash y RE-INTERPRÈTE les quotes, et le
+          # script entier cesse de se parser (voir deploiement.yml, 19 septembre 2026).
+          SHA="${SHA_VOULU:?SHA non transmis}"
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::il faut un SHA complet de 40 hexadécimaux"; exit 1; }
+          # La clé est à COMMANDE FORCÉE côté VPS : ce qui suit n'est pas un shell, c'est la demande
+          # que le déployeur valide lui-même (« beta <sha> [retour] »).
+          SORTIE=$(ssh -i ~/.ssh/id_msg -o BatchMode=yes -o ConnectTimeout=15 root@api.teamop.fr "beta $SHA $RETOUR") \
+            || { echo "$SORTIE"; echo "::error::le déploiement de la bêta a échoué."; exit 1; }
+          echo "$SORTIE"
+          if printf '%s' "$SORTIE" | grep -q 'non installé'; then
+            echo "::notice::OP MESSAGES bêta n'est pas installé sur le VPS : rien n'a été déployé."
+          fi
+          # ⛔ PAS DE journalctl ICI : le dépôt est PUBLIC, les journaux d'un run sont lisibles par
+          # n'importe qui pendant 90 jours, et le journal du VPS porte des identifiants.
+
+      # Le contrôle de l'extérieur, à travers le proxy : ce que le VPS ne peut pas vérifier lui-même.
+      # En avertissement seulement : tant que le DNS de msg-beta n'existe pas, il ne peut pas répondre.
+      - name: Vérifier que la bêta répond de l'extérieur
+        if: env.PRET == 'oui'
+        run: |
+          SANTE=$(curl -sf --max-time 10 https://msg-beta.teamop.fr/health) || { echo "::warning::msg-beta.teamop.fr ne répond pas (DNS, certificat ou service)."; exit 0; }
+          printf '%s' "$SANTE" | grep -q '"ok":true' || echo "::warning::msg-beta répond, mais pas ok:true."
+          printf '%s' "$SANTE" | grep -q "\"sha\":\"${SHA_VOULU:0:7}" || echo "::warning::msg-beta ne rend pas le sha déployé."
+          echo "Bêta d'OP MESSAGES en ligne."
+
+  deployer-prod:
+    name: Déployer la production (msg) — approbation de Justin
+    needs: bancs
+    if: github.event_name == 'workflow_dispatch' && inputs.cible == 'prod'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    # ⛔ L'ENVIRONNEMENT QUI PORTE LA PHRASE DE JUSTIN : le job attend l'approbation du relecteur
+    # obligatoire avant de recevoir le moindre secret. ⛔ Et la clé de production est un secret DE CET ENVIRONNEMENT
+    # (`VPS_SSH_KEY_MSG_PROD`), pas du dépôt : sinon quiconque peut lancer un workflow sur une branche lisait aussi la clé
+    # de la production et déployait sans passer par l'approbation (relecture du gardien, point 7). Côté VPS, chaque clé est
+    # d'ailleurs bornée à SON instance (`deployer.sh --seulement=…`) : la clé de la bêta ne déploie pas la production.
+    environment: msg-prod
+    concurrency:
+      group: deploiement-vps
+      cancel-in-progress: false
+    env:
+      CLE_SSH: ${{ secrets.VPS_SSH_KEY_MSG_PROD }}
+      SHA_VOULU: ${{ inputs.sha || github.sha }}
+      RETOUR: ${{ inputs.retour && 'retour' || '' }}
+    steps:
+      - name: Préparer l'accès SSH
+        run: |
+          # Ici l'absence de la clé n'est PAS un « non installé » silencieux : on a demandé la
+          # production, un vert ne doit pas le laisser croire.
+          [ -n "$CLE_SSH" ] || { echo "::error::VPS_SSH_KEY_MSG_PROD est absent : la production ne peut pas être déployée."; exit 1; }
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$CLE_SSH" > ~/.ssh/id_msg
+          chmod 600 ~/.ssh/id_msg
+          cat > ~/.ssh/known_hosts <<'EOF'
+          api.teamop.fr ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOx14gh/gaXmkrB1xVioeWjc2MHduIP9T5WRQZntZ+Sn
+          217.154.6.139 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOx14gh/gaXmkrB1xVioeWjc2MHduIP9T5WRQZntZ+Sn
+          EOF
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Déployer sur le VPS (commande forcée)
+        run: |
+          SHA="${SHA_VOULU:?SHA non transmis}"
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::il faut un SHA complet de 40 hexadécimaux"; exit 1; }
+          SORTIE=$(ssh -i ~/.ssh/id_msg -o BatchMode=yes -o ConnectTimeout=15 root@api.teamop.fr "prod $SHA $RETOUR") \
+            || { echo "$SORTIE"; echo "::error::le déploiement de la production a échoué."; exit 1; }
+          echo "$SORTIE"
+          # Le déployeur sort en 0 quand l'instance n'est pas installée (pour la bêta, c'est voulu) ;
+          # pour la production demandée, ce serait un faux vert.
+          if printf '%s' "$SORTIE" | grep -q 'non installé'; then
+            echo "::error::la production d'OP MESSAGES n'est pas installée sur le VPS : rien n'a été déployé."
+            exit 1
+          fi
+
+      - name: Vérifier que la production répond de l'extérieur
+        run: |
+          SANTE=$(curl -sf --max-time 10 https://msg.teamop.fr/health) || { echo "::error::msg.teamop.fr ne répond pas après le déploiement."; exit 1; }
+          printf '%s' "$SANTE" | grep -q '"ok":true' || { echo "::error::msg répond, mais pas ok:true."; exit 1; }
+          printf '%s' "$SANTE" | grep -q "\"sha\":\"${SHA_VOULU:0:7}" || { echo "::error::msg ne rend pas le sha déployé."; exit 1; }
+          echo "Production d'OP MESSAGES en ligne."

@@ -159,14 +159,22 @@ function monterPortail(app, deps) {
      écrivait elle-même ; après la bascule, cette route les écartait sans un mot, et l'activation
      d'un code sur le portail n'allait nulle part. `promoAlerte` (l'alerte J-2 déjà montrée) reste
      au client : c'est un repère d'affichage, rien de plus. */
+  /* ⛔ `options` (les libellés des options du Pro que « Mon espace » montre, 1er octobre 2026) est un champ du SERVEUR : il vient de
+     `d.optionsServies` (ce qu'`espacePaye` sert), jamais du client. Hors de cette liste, un client l'écrivait dans son dossier
+     (`/api/portail/demande`) et la page lui montrait « Stock » comme servi chaque fois que le serveur ne répondait pas (doute,
+     adresse partagée) — voir `avecFormuleServie`, qui écarte aussi une copie rangée. */
   const CHAMPS_SERVEUR = ['status', 'etat', 'apps', 'plan', 'planStatus', 'planFin', 'docs',
-    'promo', 'promoUsed', 'venuDe', 'cree', 'maj'];
+    'promo', 'promoUsed', 'venuDe', 'cree', 'maj', 'options'];
 
   const dossierDe = (mail) => a(reg.d, mail) || null;
   const dossierVue = (mail) => {
     const x = dossierDe(mail);
     if (!x) return null;
-    return Object.assign({}, x, { email: mail });
+    /* `options` ne se lit JAMAIS dans le dossier rangé (un dossier d'avant la règle, un import, la Tour) : seule `avecFormuleServie`
+       le pose, depuis ce que le serveur sert */
+    const vue = Object.assign({}, x, { email: mail });
+    delete vue.options;
+    return vue;
   };
   /* ⛔ LA FORMULE QUE LE CLIENT PAIE, PAS SEULEMENT CELLE QUE LA TOUR A POSÉE (29 septembre 2026). Le client choisit son
      tarif (Justin : « il choisit le tarif qu'il veut ») et l'application reçoit la formule PAYÉE (`formulePayee`, index.js) :
@@ -187,8 +195,13 @@ function monterPortail(app, deps) {
     if (!v || typeof d.formuleServie !== 'function' || !verifie(mail)) return v;
     let minuteur = null;
     try {
-      const lbl = await Promise.race([Promise.resolve().then(() => d.formuleServie(mail)),
-        new Promise(r => { minuteur = setTimeout(() => r(''), FORMULE_DELAI); })]);
+      /* ⛔ LES OPTIONS DU PRO dans un champ À PART (`v.options`, des libellés — 1er octobre 2026), jamais collées dans la chaîne de la
+         formule que le contrat nomme (`v.plan`). Même lecture, même délai : une panne de Stripe ne fait pas attendre la page. */
+      const lire = async () => ({ lbl: await d.formuleServie(mail),
+        opts: typeof d.optionsServies === 'function' ? await Promise.resolve(d.optionsServies(mail)).catch(() => null) : null });
+      const rep = await Promise.race([lire(), new Promise(r => { minuteur = setTimeout(() => r({ lbl: '', opts: null }), FORMULE_DELAI); })]);
+      const lbl = rep.lbl;
+      if (Array.isArray(rep.opts)) v.options = rep.opts.filter(x => typeof x === 'string').slice(0, 8);
       if (typeof lbl === 'string' && lbl) v.plan = lbl;
       /* un impayé : la formule reste celle du dossier, son état se dit « Suspendu » (la vue est une COPIE : rien n'est écrit) */
       else if (lbl && typeof lbl === 'object' && lbl.statut === 'suspendu') v.planStatus = 'suspendu';

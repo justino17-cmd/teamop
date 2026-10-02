@@ -1,5 +1,6 @@
 server/node_modules/
 server/*.log
+server-msg/node_modules/
 
 # ── Secrets : ne doivent jamais entrer dans l'historique ──
 # Un secret poussé une fois est compromis, même supprimé au commit suivant.
@@ -59,3 +60,12 @@ scratchpad/vues-courriel/
 # elle qu'on versionne. Une copie de bibliothèque dans un dépôt servi tel quel serait du code
 # tiers qu'on ne relit pas, et qu'on finirait par servir sans le savoir.
 scratchpad/leaflet/
+
+# ── OP MESSAGES : son propre dossier de dépendances (jamais commité, lien symbolique compris) ──
+# Sans barre finale : `server-msg/node_modules` peut être un LIEN (les scripts de préparation en posent un
+# le temps des bancs), et un motif « dossier » (barre finale) ne retient pas un lien.
+server-msg/node_modules
+
+# /brag-slim : vidéos et captures générées (peuvent contenir des écrans réels) — jamais commitées
+brag-output/
+brag-output-*/
