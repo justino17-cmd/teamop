@@ -135,10 +135,17 @@ vrai('   il sert le domaine de la bêta et envoie vers le port de la bêta, en l
 const fluxBloc = (ngx.match(/location = \/api\/flux \{[\s\S]*?\n    \}/) || [''])[0];
 vrai('⛔ le flux SSE n\'est PAS retenu en tampon', /proxy_buffering off;/.test(fluxBloc) && /proxy_cache off;/.test(fluxBloc));
 vrai('⛔ et nginx ne le coupe pas à 60 s (3700 s)', /proxy_read_timeout 3700s;/.test(fluxBloc));
-vrai('⛔ X-Forwarded-For est ÉCRASÉ par l\'adresse vue par nginx, jamais complété (req.ip, trust proxy 1)',
-  (ngx.match(/proxy_set_header X-Forwarded-For \$remote_addr;/g) || []).length === 2 && !/proxy_add_x_forwarded_for/.test(ngx));
-vrai('⛔ le corps d\'une requête est limité à 64 Ko et TAMPONNÉ (le service refuse déjà au-delà ; l\'étape 1 n\'a aucune route de pièces) — 110 Mo non tamponnés tenaient un descripteur de Node ouvert pour un client lent',
-  /client_max_body_size 64k;/.test(ngx) && !/client_max_body_size 110m/.test(ngx) && !/proxy_request_buffering off/.test(ngx));
+vrai('⛔ X-Forwarded-For est ÉCRASÉ par l\'adresse vue par nginx, jamais complété (req.ip, trust proxy 1) — dans CHACUN des trois blocs (flux, pièces, le reste)',
+  (ngx.match(/proxy_set_header X-Forwarded-For \$remote_addr;/g) || []).length === 3 && !/proxy_add_x_forwarded_for/.test(ngx));
+/* ⛔ un motif de banc vise du CODE : les commentaires de la configuration citent les mots mêmes qu'on interdit (« proxy_request_buffering off »), on les retire avant de chercher */
+const ngxCode = ngx.replace(/^[ \t]*#.*$/gm, '');
+const piecesBloc = (ngxCode.match(/location = \/api\/pieces \{[\s\S]*?\n    \}/) || [''])[0];
+vrai('⛔ le corps d\'une requête est limité à 64 Ko et TAMPONNÉ pour tout le service — 110 Mo non tamponnés tenaient un descripteur de Node ouvert pour un client lent',
+  /^    client_max_body_size 64k;/m.test(ngxCode) && !/client_max_body_size 110m/.test(ngxCode) && !/proxy_request_buffering\s+off/.test(ngxCode));
+vrai('⛔ le DÉPÔT D\'UNE PIÈCE a SA propre exception (26 Mo, sur la route exacte /api/pieces) et c\'est la SEULE autre limite de corps du fichier — jamais « 26m » pour tout le service',
+  piecesBloc.length > 100 && /client_max_body_size 26m;/.test(piecesBloc) && (ngxCode.match(/client_max_body_size/g) || []).length === 2 && !/26m/.test(ngxCode.replace(piecesBloc, '')));
+vrai('⛔ et cette route est bornée en DÉBIT et en ENVOIS SIMULTANÉS par adresse (le tampon de nginx coûte du disque avant que le service puisse dire 401), sans désactiver le tampon',
+  /limit_req zone=opmsg_beta burst=\d+ nodelay;/.test(piecesBloc) && /limit_conn opmsg_conn_beta \d+;/.test(piecesBloc) && /limit_conn_zone \$binary_remote_addr zone=opmsg_conn_beta:10m;/.test(ngxCode) && !/proxy_request_buffering/.test(piecesBloc));
 vrai('⛔ un plafond de débit par adresse (limit_req) devant le service — hors flux SSE, qui n\'est qu\'une requête longue par onglet',
   /limit_req_zone \$binary_remote_addr zone=opmsg_beta:10m rate=\d+r\/s;/.test(ngx) && /location \/ \{\s*\n\s*limit_req zone=opmsg_beta burst=\d+ nodelay;/.test(ngx) && !/location = \/api\/flux \{[^}]*limit_req/.test(ngx));
 vrai('   HTTP/2 à la forme de nginx 1.24 (`listen … ssl http2`) — Ubuntu 24.04', /listen 443 ssl http2;/.test(ngx) && !/^\s*http2 on;/m.test(ngx));
@@ -308,7 +315,9 @@ vrai('   le seul programme relancé dans systemctl est le proxy (reload) et notr
   const f = b.lire('etc/caddy/opmsg/beta.caddy') || '';
   vrai('   le bloc d\'OP MESSAGES est dans SON fichier', /^msg-beta\.teamop\.fr \{/m.test(f) && new RegExp('reverse_proxy 127\\.0\\.0\\.1:' + b.port).test(f));
   vrai('⛔ SSE non retenu en tampon, et X-Forwarded-For écrasé par l\'adresse vue (jamais complété)', /flush_interval -1/.test(f) && /header_up X-Forwarded-For \{remote_host\}/.test(f));
-  vrai('⛔ Caddy aussi borne le corps à 64 Ko', /request_body \{\s*max_size 64KB\s*\}/.test(f));
+  vrai('⛔ Caddy aussi borne le corps à 64 Ko — pour tout SAUF /api/pieces (deux emplacements qui s\'excluent : posés ensemble, le plus petit gagnerait)',
+    /@pasPieces not path \/api\/pieces\s*\n\s*request_body @pasPieces \{\s*max_size 64KB\s*\}/.test(f));
+  vrai('⛔ et 26 Mo pour le seul dépôt d\'une pièce', /@pieces path \/api\/pieces\s*\n\s*request_body @pieces \{\s*max_size 26MB\s*\}/.test(f) && (f.match(/max_size/g) || []).length === 2);
   vrai('   validé AVANT le rechargement', b.journal().indexOf('caddy validate') >= 0 && b.journal().indexOf('caddy validate') < b.journal().indexOf('reload caddy'));
   vrai('   nginx n\'a pas été touché (ni rechargé ni écrit)', !/reload nginx|nginx -t/.test(b.journal()) && !b.existe('etc/nginx/sites-available/opmsg-beta.conf'));
   b.installer('beta', '', { OPMSG_PROXY: '' });

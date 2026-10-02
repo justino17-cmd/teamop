@@ -366,6 +366,10 @@ if [ "$PROXY" = nginx ]; then
 # 60 de rafale ; le flux SSE (une seule requête longue par onglet) n'y passe pas.
 limit_req_zone \$binary_remote_addr zone=opmsg_$INSTANCE:10m rate=20r/s;
 limit_req_status 429;
+# Le dépôt d'une pièce (26 Mo) est TAMPONNÉ sur le disque de nginx avant que le service puisse dire 401 : on borne donc aussi le nombre d'envois
+# SIMULTANÉS par adresse, en plus du débit.
+limit_conn_zone \$binary_remote_addr zone=opmsg_conn_$INSTANCE:10m;
+limit_conn_status 429;
 server {
     listen 80;
     listen [::]:80;
@@ -387,10 +391,28 @@ $H2_ON
     ssl_certificate     /etc/letsencrypt/live/$DOMAINE/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/$DOMAINE/privkey.pem;
 
-    # ⛔ 64 Ko, corps TAMPONNÉ (le défaut de nginx) : le service refuse déjà au-delà de 64 Ko, et l'étape 1 n'a aucune route de
-    # pièces. Un corps de 110 Mo non tamponné tenait un descripteur de Node ouvert pendant tout l'envoi d'un client lent. L'étape 4
-    # (pièces) fera sa propre exception, sur SA route seulement.
+    # ⛔ 64 Ko, corps TAMPONNÉ (le défaut de nginx) : le service refuse déjà au-delà de 64 Ko tout ce qui est JSON. Un corps de 110 Mo
+    # non tamponné tenait un descripteur de Node ouvert pendant tout l'envoi d'un client lent.
     client_max_body_size 64k;
+
+    # ⛔ L'EXCEPTION DES PIÈCES (étape 4) : SA route seulement, jamais le reste du service. 26 Mo = le plus gros maximum du service (un
+    # fichier : 25 Mo) plus une marge ; au-delà, nginx répond 413 tout seul, avant même de lire le corps. Le corps reste TAMPONNÉ (pas de
+    # « proxy_request_buffering off ») : un client lent ne tient pas un descripteur de Node pendant tout son envoi — et un envoi fractionné
+    # arrive au service avec sa longueur. ⚠️ Si « pieces.fichierMax » est relevé au-delà de 25 Mo dans la configuration, cette ligne doit suivre.
+    location = /api/pieces {
+        limit_req zone=opmsg_$INSTANCE burst=20 nodelay;
+        limit_conn opmsg_conn_$INSTANCE 12;
+        client_max_body_size 26m;
+        client_body_timeout 60s;
+        proxy_pass http://127.0.0.1:$PORT;
+        proxy_http_version 1.1;
+        proxy_set_header Connection \"\";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Forwarded-For \$remote_addr;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
+    }
 
     location = /api/flux {
         proxy_pass http://127.0.0.1:$PORT;
@@ -459,10 +481,17 @@ else
   cat > "$FICHIER_CDY" <<CADDY
 # Posé par server-msg/install-msg.sh — réécrit à chaque installation, ne pas éditer à la main.
 $DOMAINE {
-    # 64 Ko au plus (le service refuse déjà au-delà ; l'étape 4, pièces, fera sa propre exception). Pas de plafond de débit ici :
-    # Caddy n'en a pas sans greffon, c'est celui du service qui protège.
-    request_body {
+    # 64 Ko au plus pour tout (le service refuse déjà au-delà), SAUF le dépôt d'une pièce : 26 Mo, le plus gros maximum du service (un fichier :
+    # 25 Mo) plus une marge — si « pieces.fichierMax » est relevé au-delà, cette ligne doit suivre. Deux emplacements qui s'excluent : deux
+    # « request_body » posés sur la même requête se cumuleraient, et le plus petit gagnerait. Pas de plafond de débit ici : Caddy n'en a pas
+    # sans greffon, c'est celui du service qui protège.
+    @pasPieces not path /api/pieces
+    request_body @pasPieces {
         max_size 64KB
+    }
+    @pieces path /api/pieces
+    request_body @pieces {
+        max_size 26MB
     }
     reverse_proxy 127.0.0.1:$PORT {
         # Le flux SSE ne doit pas être retenu dans un tampon.
