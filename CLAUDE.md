@@ -147,6 +147,19 @@ total) a l'air vert et ne l'est pas. La première version du compteur de la CI f
 `sortie=$(node "$f" 2>&1) || true` : elle jetait le code de sortie. `scripts/bancs-ci.sh` le
 regarde désormais et nomme le coupable.
 
+⛔⛔ **VERT ICI, ROUGE SUR GITHUB : LA LANGUE DE LA MACHINE ET LA VERSION DE NODE NE SONT PAS LES MÊMES.** Pris le 2 octobre
+2026, après `fa32298` : trois suites d'OP MESSAGES passaient ici et tombaient là-bas, sur un serveur juste. ① `grep -i 'SAUTÉ'`
+ne replie « É » sur « é » qu'en UTF-8 : GitHub (C.UTF-8) lisait le LIBELLÉ « ✓ … aucune sautée en silence », la machine de
+travail (POSIX) ne voyait pas « (sauté : … absent) ». Le filet s'écrit donc à la main (`[Ss][Aa][Uu][Tt](É|é)`), sans les lignes
+de résultat et sans `-q` (sous `pipefail`, il ratait un saut en tête d'une longue sortie) — `test-933` le joue dans les deux
+langues. ② Node 22.23 (GitHub, le VPS) réutilisait une connexion que le faux serveur venait de fermer, Node 22.22 non :
+`test-913` « testait un refus » qui n'en était pas un. Une suite qui dépend d'un état réseau PROUVE son scénario (la cause vue
+par le client) au lieu de le supposer. Pour rejouer GitHub ici : la même version de Node dans le brouillon
+(`nodejs.org/dist/v22.23.3/`) et `LC_ALL=C.UTF-8`.
+⛔ Et un déploiement du serveur seul emporte des PAGES (la Tour, la page de paiement) que lisent des suites HORS des listes,
+restées celles de main : cinq sont tombées le même jour. `preparer-deploiement-serveur.sh` joue désormais la suite COMPLÈTE de
+l'arbre assemblé avant le commit (`test-728`).
+
 ⛔⛔ **COMMITER LE CORRECTIF AVANT DE MUTER — SINON `git checkout` EFFACE LES DEUX.** La façon
 d'éprouver un banc est de remettre le défaut puis de restaurer par `git checkout <fichier>`.
 Mais `git checkout` restaure depuis **HEAD** : s'il reste un correctif NON COMMITÉ dans ce
