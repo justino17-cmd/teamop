@@ -938,6 +938,35 @@ const horlogeFixe = (h) => () => h.t;
     } finally { fs.rmSync(bac, { recursive: true, force: true }); }
   } finally { await m.fermer(); }
 
+  /* ══ 13 bis. CHAQUE TABLE DU SCHÉMA EST COMPTÉE PAR LA COPIE, OU DÉCLARÉE TRANSITOIRE ═══════════════════════════════════════════════
+     `TABLES_COMPTEES` (stockage.js) dit quelles tables la copie compte ligne à ligne et dont la sonde de la base vivante vérifie qu'elles ne
+     sont pas vides. Une table ajoutée par une étape suivante (les pièces, les réglages) et oubliée de cette liste ne serait JAMAIS vérifiée :
+     une copie qui la perdrait en entier passerait. Même règle que les champs de `/health` — en ajouter un oblige à trancher, une fois, par écrit. */
+  console.log('\n── 950 · chaque table du schéma est comptée par la copie, ou déclarée transitoire (une table neuve oblige à trancher) ──');
+  {
+    const b = O.creerBase();
+    try {
+      const d = new DatabaseSync(b.chemin, { readOnly: true });
+      const tables = d.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map(r => r.name);
+      d.close();
+      const comptees = STOCK.ouvrir.copie.TABLES_COMPTEES;
+      /* Ce qui ne se compte pas, et pourquoi : une vie courte ou un état technique. Une table qui porte les DONNÉES d'une personne n'a rien à faire ici. */
+      const TRANSITOIRES = {
+        code_tel: 'codes de connexion par SMS (quelques minutes)', jeton: 'jetons à usage unique', meta: 'témoin de clé et version du schéma (contrôlés à part)',
+        recherche_tel: 'compteurs anti-énumération (une fenêtre de temps)', session: 'sessions (recréées à la reconnexion)',
+        sms_bouclier: 'état du bouclier SMS (recalculé)', sms_tentative: 'tentatives de saisie d\'un code (une fenêtre de temps)',
+      };
+      vrai('population : ' + tables.length + ' tables dans le schéma, ' + comptees.length + ' comptées par la copie, ' + Object.keys(TRANSITOIRES).length + ' déclarées transitoires', tables.length >= 15 && comptees.length >= 12);
+      v('⛔ toute table du schéma est comptée par la copie ou déclarée transitoire avec sa raison — une table NEUVE oblige à trancher ici (et à l\'ajouter dans `TABLES_COMPTEES` ET dans `sonde()`)',
+        tables.filter(t => !comptees.includes(t) && !(t in TRANSITOIRES)), []);
+      v('   et chaque table comptée, chaque déclaration, parle d\'une table qui existe (une décision prise sur du vide n\'en est pas une)',
+        [comptees.filter(t => !tables.includes(t)), Object.keys(TRANSITOIRES).filter(t => !tables.includes(t))], [[], []]);
+      v('   aucune table n\'est à la fois comptée et déclarée transitoire', comptees.filter(t => t in TRANSITOIRES), []);
+      v('⛔ la sonde de la base vivante nomme exactement les mêmes tables que la copie (deux listes écrites à la main, une seule vérité)',
+        Object.keys(b.S.sonde().nonVides).sort(), comptees.slice().sort());
+    } finally { b.nettoyer(); }
+  }
+
   /* ══ 14. LE CONTRÔLE DANS UN PROCESSUS ENFANT ═════════════════════════════════════════════════════════════════════════════════ */
   console.log('\n── 950 · le contrôle de la copie se fait dans un PROCESSUS ENFANT : la boucle d\'événements du service n\'est pas figée ──');
   {

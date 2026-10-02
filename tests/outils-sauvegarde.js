@@ -7,7 +7,8 @@
  *     qui signerait de travers, ou dont l'empreinte précalculée ne serait pas celle du fichier envoyé, échoue donc ICI et pas à 3 h
  *     du matin chez l'hébergeur.
  *     Il sait aussi tomber en panne comme un vrai coffre un mauvais jour : refuser un dépôt, rendre un objet corrompu à la
- *     relecture, tronqué, absent, refuser la liste ou l'effacement, couper la connexion.
+ *     relecture, tronqué, absent, refuser la liste ou l'effacement, couper la connexion — et, pour l'épreuve que fait
+ *     `configurer-sauvegarde.js` AVANT d'écrire, refuser la lecture de l'objet d'essai, le corrompre, ou l'oublier dans la liste.
  *     ⚠️ Ce qu'il ne prouve PAS : qu'IONOS accepte. Il prouve que le module signe comme AWS le documente (`test-716` rejoue les
  *     vecteurs publiés par AWS) ; l'épreuve du vrai coffre est un geste de Justin (`configurer-sauvegarde.js` la fait avant d'écrire).
  *   · de quoi bâtir une VRAIE base (`stockage.js`) remplie, des clés, et chercher un canari « en clair » dans une archive.
@@ -66,7 +67,7 @@ async function coffreFaux(opts = {}) {
       if (pannes.has('liste-refusee')) return fin(403, '<Error><Code>AccessDenied</Code></Error>');
       const p = u.searchParams.get('prefix') || '';
       ligne.liste = p;
-      const toutes = [...objets.keys()].filter(k => k.startsWith(p)).sort();
+      const toutes = [...objets.keys()].filter(k => k.startsWith(p) && !(pannes.has('liste-sans-essai') && /essai-configuration/.test(k))).sort();
       const debut = u.searchParams.get('continuation-token') ? parseInt(u.searchParams.get('continuation-token'), 10) : 0;
       const page = toutes.slice(debut, debut + o.pageTaille);
       const tronquee = debut + o.pageTaille < toutes.length;
@@ -96,7 +97,9 @@ async function coffreFaux(opts = {}) {
     if (q.method === 'GET') {
       if (!objets.has(cle)) return fin(404, '<Error><Code>NoSuchKey</Code></Error>');
       let b = objets.get(cle);
-      const estBase = /\/base\//.test(cle), estPiece = /\/pieces\//.test(cle);
+      const estBase = /\/base\//.test(cle), estPiece = /\/pieces\//.test(cle), estEssai = /essai-configuration/.test(cle);   // l'objet d'essai de `configurer-sauvegarde.js`
+      if (pannes.has('lecture-refusee-essai') && estEssai) return fin(403, '<Error><Code>AccessDenied</Code></Error>');
+      if (pannes.has('corrompt-essai') && estEssai) { b = Buffer.from(b); b[Math.floor(b.length / 2)] ^= 0xff; }
       if (pannes.has('absent-relecture') && estBase) return fin(404, '<Error><Code>NoSuchKey</Code></Error>');
       if (pannes.has('lecture-refusee') && (estBase || estPiece)) return fin(403, '<Error><Code>AccessDenied</Code></Error>');
       /* ⛔ UN OCTET RETOURNÉ, PAS UNE TAILLE CHANGÉE : le contrôle de taille est le moins cher et le plus facile à satisfaire ; c'est
