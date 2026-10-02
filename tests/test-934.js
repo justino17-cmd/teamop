@@ -28,7 +28,7 @@ const code = sansCommentairesJs(fs.readFileSync(FICHIER, 'utf8'));
 vrai('une fois les commentaires retirés il reste du code (sinon les motifs ci-dessous passeraient sur du néant)', code.split('\n').filter(l => l.trim()).length > 40);
 v('le module n\'a rien lancé en étant chargé (main ne tourne que lancé en direct)', typeof S.evaluer, 'function');
 
-const SAIN = { ok: true, instance: 'beta', sha: 'a'.repeat(40), sauvegarde: { configuree: true, ageH: 0.5, essaiJours: 12 }, stripeEchecMin: 0, sms: { mode: 'journal', envoyes24h: 3, coutJourEur: 0.2, budgetJourPct: 1, budgetHeurePct: 0, boucliers: 0, ovhEchecs: 0, refus: {} } };
+const SAIN = { ok: true, instance: 'beta', sha: 'a'.repeat(40), sauvegarde: { configuree: true, ageH: 0.5, essaiJours: 12 }, stripeEchecMin: 0, pieces: { n: 4, octets: 123456, illisibles: 0, effacementsRates: 0 }, sms: { mode: 'journal', envoyes24h: 3, coutJourEur: 0.2, budgetJourPct: 1, budgetHeurePct: 0, boucliers: 0, ovhEchecs: 0, refus: {} } };
 
 /* ══ 1. L'ÉVALUATION ═════════════════════════════════════════════════════════════════════════════════ */
 v('un /health sain ne fait rien crier', S.evaluer(SAIN, 'beta'), []);
@@ -47,6 +47,10 @@ vrai('⛔ Stripe illisible depuis 120 minutes crie', S.evaluer(Object.assign({},
 v('   à 90 minutes pile, non (la règle d\'OP GESTION : on crie AU-DELÀ de 90)', S.evaluer(Object.assign({}, SAIN, { stripeEchecMin: 90 }), 'beta'), []);
 vrai('⛔ une ligne chiffrée illisible crie (le service avale l\'erreur de lecture : sans ce champ, personne ne le saurait)', S.evaluer(Object.assign({}, SAIN, { base: { ok: true, schema: 1, illisibles: 2 } }), 'beta').some(p => /illisible/.test(p)));
 v('   zéro ligne illisible : rien', S.evaluer(Object.assign({}, SAIN, { base: { ok: true, schema: 1, illisibles: 0 } }), 'beta'), []);
+vrai('⛔ une pièce illisible crie (le service avale l\'erreur de lecture d\'un fichier : sans ce champ, des photos disparaîtraient sans que personne le sache)', S.evaluer(Object.assign({}, SAIN, { pieces: Object.assign({}, SAIN.pieces, { illisibles: 1 }) }), 'beta').some(p => /illisible/.test(p)));
+v('   aucune pièce illisible : rien', S.evaluer(Object.assign({}, SAIN, { pieces: Object.assign({}, SAIN.pieces, { illisibles: 0 }) }), 'beta'), []);
+vrai('⛔ cinq fichiers de pièces qu\'on n\'a pas pu effacer crient (ils s\'accumulent sur le disque)', S.evaluer(Object.assign({}, SAIN, { pieces: Object.assign({}, SAIN.pieces, { effacementsRates: 5 }) }), 'beta').some(p => /non effacé/.test(p)));
+v('   quatre ne crient pas encore (un échec isolé se répare : le balayeur réessaie)', S.evaluer(Object.assign({}, SAIN, { pieces: Object.assign({}, SAIN.pieces, { effacementsRates: 4 }) }), 'beta'), []);
 vrai('⛔ la relecture des accès bêta qui échoue depuis plus de cinq passages crie', S.evaluer(Object.assign({}, SAIN, { porte: { relecturesEchec: 6 } }), 'beta').some(p => /relecture/.test(p)));
 v('   à cinq passages pile, non', S.evaluer(Object.assign({}, SAIN, { porte: { relecturesEchec: 5 } }), 'beta'), []);
 vrai('   un /health qui n\'est pas un objet crie sans planter', S.evaluer(null, 'beta').length === 1 && S.evaluer('texte', 'beta').length === 1);
