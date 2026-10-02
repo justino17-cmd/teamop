@@ -43,7 +43,8 @@ const nb = (svc, table) => { const d = lireDb(svc); try { return d.prepare('SELE
       const c = T.client(svc.base);
       const h = await c.get('/health');
       v('/health répond 200 {ok:true, instance, sha}', [h.code, h.j.ok, h.j.instance, h.j.sha], [200, true, 'beta', 'banc0000']);
-      v('⛔ /health n\'a QUE des champs agrégés (la liste exacte — en ajouter un oblige à trancher ici)', Object.keys(h.j).sort(), ['base', 'boucle', 'disque', 'flux', 'instance', 'ok', 'porte', 'quotasRefus', 'sha', 'sms', 'uptimeS', 'version']);
+      v('⛔ /health n\'a QUE des champs agrégés (la liste exacte — en ajouter un oblige à trancher ici)', Object.keys(h.j).sort(), ['base', 'boucle', 'disque', 'flux', 'instance', 'ok', 'pieces', 'porte', 'quotasRefus', 'sha', 'sms', 'uptimeS', 'version']);
+      v('⛔ /health publie les PIÈCES en agrégat — combien, combien d\'octets, combien illisibles, combien d\'effacements ratés : des nombres, jamais un identifiant ni un nom', [Object.keys(h.j.pieces).sort(), Object.values(h.j.pieces).every(x => Number.isInteger(x) && x === 0)], [['effacementsRates', 'illisibles', 'n', 'octets'], true]);
       vrai('⛔ aucun identifiant de personne ni de conversation dans /health', !/\b[pcm]_[0-9a-f]{32}\b/.test(h.txt));
       v('⛔ /health PUBLIE le compteur de lignes illisibles (un nombre, jamais lesquelles) : c\'est ce que lit la surveillance', [h.j.base.illisibles, Object.keys(h.j.base).sort()], [0, ['illisibles', 'ok', 'schema']]);
       vrai('la boucle d\'événements est mesurée (p99 en ms)', typeof h.j.boucle.p99Ms === 'number');
@@ -64,7 +65,7 @@ const nb = (svc, table) => { const d = lireDb(svc); try { return d.prepare('SELE
         vrai(p + ' : CSP stricte (script-src \'self\', default-src \'none\', frame-ancestors \'none\', base-uri \'none\'), nosniff, no-referrer, COOP/CORP same-origin',
           /default-src 'none'/.test(csp) && /script-src 'self'/.test(csp) && /frame-ancestors 'none'/.test(csp) && /base-uri 'none'/.test(csp) && !/script-src[^;]*unsafe/.test(csp)
           && r.h.get('x-content-type-options') === 'nosniff' && r.h.get('referrer-policy') === 'no-referrer'
-          && r.h.get('cross-origin-opener-policy') === 'same-origin' && r.h.get('cross-origin-resource-policy') === 'same-origin' && r.h.get('permissions-policy') === 'camera=(), microphone=()');
+          && r.h.get('cross-origin-opener-policy') === 'same-origin' && r.h.get('cross-origin-resource-policy') === 'same-origin' && r.h.get('permissions-policy') === 'camera=(), microphone=(self)');
         const cors = Array.from(r.h.keys()).filter(k => /^access-control-/.test(k));
         v('⛔ ' + p + ' : AUCUN en-tête Access-Control-*', cors, []);
       }

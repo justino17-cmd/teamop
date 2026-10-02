@@ -23,6 +23,7 @@
 
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const T = require('./outils-msg');
+const F_PIECES = require('./outils-pieces');
 T.sauterSiSansDependances();
 const { v, vrai, fin } = T.compteur();
 const { MANIFESTE } = require(path.join(T.SERVICE, 'manifeste.js'));
@@ -30,6 +31,7 @@ const { ouvrir } = require(path.join(T.SERVICE, 'stockage.js'));
 const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
 const sha = (x) => crypto.createHash('sha256').update(x).digest('hex');
 const jeton = () => 'opm_' + crypto.randomBytes(32).toString('base64url');
+const PNG = F_PIECES.png();
 
 /* La TABLE : pour chaque route, la requête VALIDE (jouée par un acteur qui en a le droit) et son code. */
 const T_OK = [200, 201];
@@ -83,6 +85,13 @@ const MATRICE = {
   'moi.appareils.deconnecter': { ok: () => ['POST', '/api/moi/appareils/deconnecter', {}], codes: [200] },
   'contacts.chercher':  { ok: () => ['POST', '/api/contacts/chercher', { numero: '+32470999888' }], codes: [200] },
   'contacts.ajouter':   { ok: (F) => ['POST', '/api/contacts/ajouter', { id: F.A }], codes: [400, 404] },   // sans recherche préalable, ou son propre identifiant : la garde V a passé, le geste dit non
+  /* Les pièces (étape 4). Le dépôt se joue en `avatar` : c'est le seul genre qui n'exige pas d'être MEMBRE d'une conversation, donc le seul que les quatre profils confirmés
+     peuvent tous réussir — l'appartenance (404 pour un non-membre, 403 dans un groupe d'annonces) est jouée par `test-943`. La lecture passe la garde J : une pièce attachée à
+     un message du groupe (Ana et Ben y sont, Cleo non). */
+  'pieces.deposer':     { ok: (F) => ['BIN', { genre: 'avatar', corps: F.png }], codes: [201] },
+  'pieces.lire':        { ok: (F) => ['GET', '/api/pieces/' + F.P], codes: [200] },
+  'moi.avatar':         { ok: () => ['POST', '/api/moi/avatar', { piece: null }], codes: [200] },
+  'moi.stockage':       { ok: () => ['GET', '/api/moi/stockage'], codes: [200] },
 };
 
 /* Ce que chaque garde doit répondre à chaque profil : { code, error } ou 'passe'. */
@@ -93,6 +102,7 @@ const ATTENDU = {
   S: { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: 'passe', nonmembre: 'passe', membre: 'passe', admin: 'passe' },
   V: { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: [403, 'adresse_non_confirmee'], nonmembre: 'passe', membre: 'passe', admin: 'passe' },
   M: { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: [404, 'introuvable'], nonmembre: [404, 'introuvable'], membre: 'passe', admin: 'passe' },
+  J: { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: [404, 'introuvable'], nonmembre: [404, 'introuvable'], membre: 'passe', admin: 'passe' },
   A: { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: [404, 'introuvable'], nonmembre: [404, 'introuvable'], membre: [403, 'interdit'], admin: 'passe' },
 };
 
@@ -103,7 +113,7 @@ const ATTENDU = {
   const lire = T.lireBase;
   const instantane = () => {
     const d = lire(path.join(svc.data, 'msg.db'));
-    try { return ['personne', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'lien', 'notification', 'contact', 'journal'].map(t => d.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(LENGTH(CAST(rowid AS TEXT))),0) AS s FROM ' + t).get().n).join(',') + '|' + d.prepare('SELECT COALESCE(SUM(lu_seq),0) AS a, COALESCE(SUM(role=\'admin\'),0) AS b, COALESCE(SUM(epingle),0) AS c FROM membre').get().a; } finally { d.close(); }
+    try { return ['personne', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'lien', 'notification', 'contact', 'journal', 'piece'].map(t => d.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(LENGTH(CAST(rowid AS TEXT))),0) AS s FROM ' + t).get().n).join(',') + '|' + d.prepare('SELECT COALESCE(SUM(lu_seq),0) AS a, COALESCE(SUM(role=\'admin\'),0) AS b, COALESCE(SUM(epingle),0) AS c FROM membre').get().a; } finally { d.close(); }
   };
   try {
     console.log('Le manifeste et la matrice disent la MÊME chose');
@@ -114,6 +124,7 @@ const ATTENDU = {
       v('les identifiants du manifeste sont uniques, et chaque (méthode, chemin) aussi', [new Set(ids).size === ids.length, new Set(MANIFESTE.map(r => r.m + ' ' + r.p)).size === ids.length], [true, true]);
       v('toutes les gardes du manifeste sont connues de la table des attentes', MANIFESTE.filter(r => !ATTENDU[r.garde]).map(r => r.id), []);
       vrai('population : au moins 30 routes à jouer', MANIFESTE.length >= 30);
+      v('les quatre routes des pièces sont au manifeste, avec leurs gardes (déposer V, lire J, avatar S, stockage S)', ['pieces.deposer', 'pieces.lire', 'moi.avatar', 'moi.stockage'].map(i => (MANIFESTE.find(x => x.id === i) || {}).garde), ['V', 'J', 'S', 'S']);
       const sources = T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, 'app.js'), 'utf8')) + T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, 'routes.js'), 'utf8')) + T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, 'index.js'), 'utf8'));
       v('⛔ aucune route enregistrée EN DEHORS de la boucle de montage du manifeste (app.get/post/put/delete/all/use(\'/api…\' : zéro)', (sources.match(/\bapp\.(get|post|put|patch|delete|all)\(/g) || []).length + (sources.match(/\bapp\.use\(\s*['"`]\/(?!api['"`])/g) || []).length, 0);
       vrai('et le montage lit bien le manifeste (une seule boucle, `app[r.m.toLowerCase()]`)', (sources.match(/app\[r\.m\.toLowerCase\(\)\]\(/g) || []).length === 1);
@@ -153,7 +164,20 @@ const ATTENDU = {
       const mA = S.messageEnvoyer({ conv: G, auteur: A.id, cid: 'cid-fx-ana-0001', texte: 'de Ana' }), mB = S.messageEnvoyer({ conv: G, auteur: B.id, cid: 'cid-fx-ben-0001', texte: 'de Ben' });
       const code = crypto.randomBytes(16).toString('base64url');
       S.lienCreer({ h: sha(code), genre: 'contact', cible: null, par: Z.id, ttlMs: 3600000, max: 50 });
-      const F = { A: A.id, B: B.id, C: C.id, G, code, seqDe: (a) => a === A.id ? mA.seq : mB.seq, cibleDe: (a) => K[a] ? K[a].id : A.id };
+      const F = { A: A.id, B: B.id, C: C.id, G, code, seqDe: (a) => a === A.id ? mA.seq : mB.seq, cibleDe: (a) => K[a] ? K[a].id : A.id, png: PNG };
+      /* la fixture des pièces : une photo déposée PAR LA ROUTE (le fichier est réellement rangé et scellé), attachée à un message du groupe par le module de stockage */
+      if (r.garde === 'J') {
+        const dep = await F_PIECES.deposer(clientDe('admin'), { conv: G, genre: 'photo', corps: PNG });
+        if (dep.code !== 201) throw new Error('fixture de pièce refusée : ' + dep.code);
+        S.messageEnvoyer({ conv: G, auteur: A.id, cid: 'cid-fx-piece-01', type: 'photo', pieces: [{ id: dep.j.id, w: 8, h: 8 }] });
+        F.P = dep.j.id;
+      }
+      /* ⛔ une pièce qu'on n'a pas le droit de lire répond EXACTEMENT comme une pièce qui n'existe pas */
+      if (r.garde === 'J') {
+        const c = clientDe('nonmembre');
+        const a = await c.appel('GET', '/api/pieces/' + F.P), b = await c.appel('GET', '/api/pieces/f_' + '0'.repeat(32));
+        v('⛔ ' + r.id + ' : la réponse faite à qui n\'a PAS LE DROIT de lire une pièce qui existe est identique à celle d\'une pièce INEXISTANTE (même code, même corps)', [a.code, a.txt], [b.code, b.txt]);
+      }
       // 404 et non 403 : un non-membre d'une conversation qui existe n'apprend RIEN de plus qu'avec une qui n'existe pas.
       // ⚠️ AVANT la boucle des profils : la cellule « admin » de `conv.membres.ajouter` fait de Cleo un membre.
       if (r.garde === 'M' || r.garde === 'A') {
@@ -173,6 +197,9 @@ const ATTENDU = {
         if (ok[0] === 'FLUX') {
           const f = await T.flux(c);
           code_ = f.statut; err_ = f.corps && f.corps.error; f.fermer();
+        } else if (ok[0] === 'BIN') {
+          const rep = await F_PIECES.deposer(c, ok[1]);
+          code_ = rep.code; err_ = rep.j && rep.j.error;
         } else {
           const rep = await c.appel(ok[0], ok[1], ok[2]);
           code_ = rep.code; err_ = rep.j && rep.j.error;

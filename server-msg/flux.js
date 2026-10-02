@@ -123,10 +123,34 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
 
   function enLigne(uid) { return parUid.has(uid) || graces.has(uid); }
 
+  /* ⛔ LA PRÉSENCE EST RÉCIPROQUE (comme chez WhatsApp) : qui coupe « Afficher quand je suis en ligne » ne montre sa présence à personne ET ne voit celle de personne.
+     La moitié « je ne montre pas » existait ; la moitié « je ne vois pas » manquait — l'événement partait vers des contacts qui avaient, eux, coupé la leur. */
+  const presenceVisible = (uid) => { const p = stockage.personneParId(uid); return !!p && !(p.prefs && p.prefs.presence === false); };
   function diffuserPresence(uid, enLigneMaintenant) {
-    const p = stockage.personneParId(uid);
-    if (!p || (p.prefs && p.prefs.presence === false)) return;
-    emettre(stockage.contactsActifs(uid), 'presence', { uid, en_ligne: enLigneMaintenant });
+    if (!presenceVisible(uid)) return;
+    emettre(stockage.contactsActifs(uid).filter(presenceVisible), 'presence', { uid, en_ligne: enLigneMaintenant });
+  }
+  /* Le réglage de présence vient de changer : les contacts qui peuvent me voir l'apprennent TOUT DE SUITE (« hors ligne » si je viens de couper, « en ligne » si je reviens
+     et que je suis là) ; mes autres appareils relisent les contacts (leur liste de présences n'est plus la même). */
+  function presenceChangee(uid) {
+    if (presenceVisible(uid)) {
+      if (parUid.has(uid) || graces.has(uid)) diffuserPresence(uid, true);
+    } else {
+      emettre(stockage.contactsActifs(uid), 'presence', { uid, en_ligne: false });
+    }
+    emettre([uid], 'personne', { uid });
+  }
+  /* Deux réglages changent ce que les AUTRES voient de moi : la présence (les contacts l'apprennent tout de suite) et les accusés de lecture (les co-membres relisent les
+     « Lu » : celui de la personne qui les coupe disparaît chez eux). `avant` et `apres` sont les `prefs` de la personne. */
+  function reglagesChanges(uid, avant, apres) {
+    const pres = (p) => !(p && p.presence === false), acc = (p) => !(p && p.accuses === false);
+    if (pres(avant) !== pres(apres)) presenceChangee(uid);
+    if (acc(avant) !== acc(apres)) personneChangee(uid);
+  }
+  /* Mon profil (photo, nom, statut) vient de changer : mes contacts, ceux qui partagent une conversation avec moi, et mes autres appareils. Éphémère, comme la présence :
+     l'identifiant seul voyage, la page relit ce qu'elle a le droit de voir. */
+  function personneChangee(uid) {
+    emettre(stockage.audiencePersonne(uid).concat([uid]), 'personne', { uid });
   }
   function apparue(uid) {
     const g = graces.get(uid);
@@ -162,7 +186,7 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
   }
 
   return {
-    ouvrir, reveiller, emettre, enLigne, fermerSession, fermerPersonne, arreter,
+    ouvrir, reveiller, emettre, enLigne, fermerSession, fermerPersonne, arreter, presenceChangee, personneChangee, reglagesChanges,
     stats: () => ({ ouverts: flux.size, personnes: parUid.size, refus }),
   };
 }

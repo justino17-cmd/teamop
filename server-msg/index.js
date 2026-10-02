@@ -30,8 +30,9 @@ const { creerPorteBeta } = require('./porte-beta');
 const { construireApp } = require('./app');
 const { lireConfigSms, creerGarde } = require('./sms-garde');
 const { APPAREIL_ABS_MS } = require('./telephone');
+const { creerPieces, creerReservations } = require('./pieces');
 
-const VERSION = '1.1.0-telephone';
+const VERSION = '1.2.0-pieces';
 const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays']);   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
 
 function journaliser(evt, champs) {
@@ -50,6 +51,14 @@ function demarrer(env = process.env) {
   const stockage = stockageMod.ouvrir({ chemin: path.join(config.dataDir, 'msg.db'), scelleur, horloge: Date.now });
   const quotas = creerQuotas(Date.now);
   const hub = creerFlux({ stockage, config, horloge: Date.now });
+  /* ⛔ LES PIÈCES : des fichiers scellés par blocs sous `<données>/pieces/<2 caractères>/<id>`, une clé par pièce (dérivée de la clé maître). `piecesEtat` compte ce que /health
+     publie : les pièces dont le fichier n'a pas pu être relu (bloc qui ne s'authentifie plus, fichier absent) — la panne silencieuse type, rendue visible. Un fichier à effacer
+     (message supprimé pour tous, éphémère échu, photo remplacée, conversation disparue) l'est sans attendre et sans jamais faire échouer le geste : s'il résiste, il reste sans
+     ligne, et le balayeur l'efface au passage suivant. */
+  const pieces = creerPieces({ dossier: path.join(config.dataDir, 'pieces'), cle: (g, id) => scelleur.deriver(g, 'piece', 'bloc', id), generation: scelleur.generation, bloc: config.pieces.bloc });
+  const reservations = creerReservations({ max: config.pieces.quotaPersonne, utilise: (u) => stockage.pieceUtilise(u) });
+  const piecesEtat = { illisibles: 0, effacementsRates: 0 };
+  const effacerPieces = (ids) => { for (const id of ids || []) pieces.effacer(id).catch(() => { piecesEtat.effacementsRates++; }); };
   const porte = config.instance === 'beta' ? creerPorteBeta({ config, quotas, stockage, horloge: Date.now }) : null;
   /* Les SMS : la configuration est VALIDÉE ici (un budget négatif, des identifiants à moitié posés, une URL d'OVH étrangère en production
      refusent le démarrage plutôt que de tourner de travers), puis la garde (budgets, emballement, bouclier) et l'envoi par OVH. */
@@ -61,6 +70,7 @@ function demarrer(env = process.env) {
      JAMAIS priver OP GESTION de disque. Relu toutes les 30 s ; une lecture impossible compte
      comme « pas bas » (on ne coupe pas sur une panne de mesure). */
   let disqueBas = false;
+  const libreMo = () => { try { const s = fs.statfsSync(config.dataDir); return Number(s.bavail) * Number(s.bsize) / 1048576; } catch (e) { return Infinity; } };   // une mesure impossible ne coupe personne
   const mesurerDisque = () => {
     try { const s = fs.statfsSync(config.dataDir); disqueBas = (Number(s.bavail) * Number(s.bsize)) / 1048576 < config.disqueMinMo; } catch (e) { disqueBas = false; }
   };
@@ -69,8 +79,9 @@ function demarrer(env = process.env) {
 
   const ctx = {
     config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION, scelleur, sms,
+    pieces, reservations, piecesEtat, effacerPieces,
     maxMembres: stockageMod.MAX_MEMBRES, delaiModifMs: stockageMod.DELAI_MODIF_MS,
-    disque: { bas: () => disqueBas },
+    disque: { bas: () => disqueBas, libreMo },
     /* ⛔ /health est PUBLIQUE et AGRÉGÉE : des nombres et des états, jamais un identifiant, un
        nom ou un compte de messages (un volume est un journal d'activité). */
     sante: () => ({
@@ -83,6 +94,8 @@ function demarrer(env = process.env) {
       disque: { bas: disqueBas },
       quotasRefus: quotas.refus(),
       sms: sms.sante(),   // des nombres : le coût du jour, le pourcentage du budget, les refus par motif — jamais un numéro
+      /* ⛔ AGRÉGÉ : combien de pièces, combien d'octets, combien n'ont pas pu être relues, combien de fichiers ont résisté à l'effacement — jamais un identifiant ni un nom */
+      pieces: Object.assign(stockage.pieceStats(), { illisibles: piecesEtat.illisibles, effacementsRates: piecesEtat.effacementsRates }),
     }),
   };
 
@@ -93,12 +106,28 @@ function demarrer(env = process.env) {
 
   /* ── Les tâches de fond : balayeur d'éphémères, élagage, relecture des accès bêta ───────── */
   const minuteurs = [];
-  let tours = 0;
+  let tours = 0, reconcilie = false;
+  /* ⛔ AUCUN FICHIER SANS LIGNE : un fichier dont la ligne est partie sans que son effacement ait abouti (arrêt du processus entre les deux, suppression de compte en cascade,
+     effacement refusé par le disque) est effacé ici, s'il a plus de dix minutes (un fichier qu'un envoi vient de ranger n'a pas forcément encore sa ligne). Les temporaires d'un
+     envoi interrompu par un arrêt partent après une heure. */
+  async function reconcilierPieces() {
+    if (reconcilie) return;
+    reconcilie = true;
+    try {
+      const seuil = Date.now() - 600000;
+      for await (const f of pieces.lister()) if (f.mtime < seuil && !stockage.pieceExiste(f.id)) await pieces.effacer(f.id);
+      await pieces.nettoyerTmp(3600000);
+    } catch (e) { journaliser('balayage_echec', { nom: e && (e.code || e.name) }); }
+    finally { reconcilie = false; }
+  }
   minuteurs.push(setInterval(() => {
     try {
       const r = stockage.purgerExpires(500);
       for (const c of r.convs) hub.reveiller({ conv: c });
+      effacerPieces(r.pieces);                                            // les pièces d'un éphémère échu partent avec lui
+      effacerPieces(stockage.piecesOrphelinesPurger(500));                // une pièce jamais envoyée (24 h), une photo de profil jamais posée
       if (++tours % 10 === 0) {
+        reconcilierPieces();
         stockage.journalElaguer();
         /* ⛔ L'élagage des tables du téléphone : sans lui (la fonction existait, personne ne l'appelait), les empreintes de numéros de personnes
            NON inscrites (un code demandé puis jamais prouvé), les recherches et les appareils expirés restaient indéfiniment. Chaque table a sa

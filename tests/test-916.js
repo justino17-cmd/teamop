@@ -184,7 +184,7 @@ console.log('\n── 916 · la MIGRATION 2 : `personne` reconstruite sans perdr
   v1.sessionAjouter({ h: 'h'.repeat(64), personne: al.id, appareil: 'x', ttlMs: 86400000 });
   v('une base d\'AVANT est au schéma 1', v1.schema(), 1);
   v1.fermer();
-  const v2 = ouvrir({ chemin, scelleur: creerScelleur(kek), horloge: () => h.t });
+  const v2 = ouvrir({ chemin, scelleur: creerScelleur(kek), horloge: () => h.t, migrations: MIGRATIONS.slice(0, 2) });   // la migration 3 (les pièces) a son propre banc : test-943
   v('⛔ rouverte avec la migration 2 : schéma 2', v2.schema(), 2);
   vrai('⛔ une copie « avant-v2 » a été gardée AVANT de reconstruire la table', fs.existsSync(chemin + '.avant-v2'));
   v('les deux personnes sont intactes (prénom, nom, origine)', [v2.personneParId(al.id), v2.personneParId(bo.id)].map(p => [p.prenom, p.nom, p.origine]), [['Alice', 'A', 'beta'], ['Bob', 'B', 'beta']]);
@@ -202,7 +202,7 @@ console.log('\n── 916 · la MIGRATION 2 : `personne` reconstruite sans perdr
   v('un numéro n\'est trouvé QUE par son empreinte scellée : un identifiant d\'une autre origine ne le retrouve pas', [v2.telPersonneParNumero('beta:alice'), v2.telPersonneParNumero('tel:+32470123457')], [null, null]);
   v2.telAppareilLier({ h: 'a'.repeat(64), personne: tel.id, nom: 'x', ttlMs: 1000 });
   v2.fermer();
-  const v2b = ouvrir({ chemin, scelleur: creerScelleur(kek), horloge: () => h.t });
+  const v2b = ouvrir({ chemin, scelleur: creerScelleur(kek), horloge: () => h.t, migrations: MIGRATIONS.slice(0, 2) });
   v('rouvrir une base DÉJÀ migrée ne rejoue rien et garde le compte par numéro et son appareil', [v2b.schema(), v2b.telPersonneParNumero('tel:+32470123456').id === tel.id, v2b.telAppareilLire('a'.repeat(64)) !== null], [2, true, true]);
   v2b.fermer();
   const stockSrc = T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, 'stockage.js'), 'utf8'));

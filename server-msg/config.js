@@ -22,6 +22,9 @@
  *                                relâchent l'un ou l'autre.
  *   beta          {urlGestion, relectureMs, timeoutMs}   La porte (instance beta seulement).
  *   quotas        {nom:{max,fenetreMs}}   Surcharge des plafonds de départ (bancs).
+ *   pieces        {photoMax, vocalMax, fichierMax, avatarMax, quotaPersonne, depotsHeure, orphelineMs, simultanes, parPersonne, bloc}
+ *                                Les pièces (photos, vocaux, fichiers) : tailles maximales en octets, quota par personne, envois par heure,
+ *                                durée de vie d'une pièce jamais envoyée, envois en même temps. Voir `piecesConfig` pour les valeurs de départ.
  *   disqueMinMo   plancher d'espace libre sous lequel les écritures refusent (503).
  *   pulsationMs, presenceGraceMs, balayageMs, relectureMs   Rythmes (bancs).
  */
@@ -79,6 +82,25 @@ function origines(cfg) {
   return liste && liste.length ? liste : null;
 }
 
+/* ⛔ LES PIÈCES : les valeurs de départ sont celles de SERVEUR.md § 5.6 (photo 12 Mo, vocal 10 Mo, fichier 25 Mo, 2 Go par personne en Perso). Une valeur qui n'a pas
+   de sens (négative, fractionnaire, hors bornes) REFUSE le démarrage plutôt que de tourner de travers : un quota à zéro fermerait toutes les pièces, un plafond à 10 Go
+   tiendrait en mémoire des photos que rien n'arrête. `bloc` est la taille de bloc du scellage (une puissance de deux) : il ne change que les fichiers à venir, chaque fichier
+   porte la sienne dans son en-tête. */
+const Mo = 1048576;
+const PIECES_DEFAUT = { photoMax: 12 * Mo, vocalMax: 10 * Mo, fichierMax: 25 * Mo, avatarMax: 2 * Mo, quotaPersonne: 2048 * Mo, depotsHeure: 60, orphelineMs: 24 * 3600000, simultanes: 16, parPersonne: 4, bloc: 65536 };
+function piecesConfig(c) {
+  const brut = c && typeof c === 'object' && !Array.isArray(c) ? c : {};
+  const o = {};
+  const bornes = { photoMax: [1, 256 * Mo], vocalMax: [1, 256 * Mo], fichierMax: [1, 1024 * Mo], avatarMax: [1, 64 * Mo], quotaPersonne: [1, 1024 * 1024 * Mo], depotsHeure: [1, 100000], orphelineMs: [1000, 30 * 86400000], simultanes: [1, 256], parPersonne: [1, 64], bloc: [256, 1 << 24] };
+  for (const [k, [min, max]] of Object.entries(bornes)) {
+    const v = brut[k] === undefined ? PIECES_DEFAUT[k] : brut[k];
+    if (!Number.isInteger(v) || v < min || v > max) { const e = new Error('config: pieces.' + k + ' doit être un entier entre ' + min + ' et ' + max); e.code = 'CONFIG'; throw e; }
+    o[k] = v;
+  }
+  if (!Number.isInteger(Math.log2(o.bloc))) { const e = new Error('config: pieces.bloc doit être une puissance de deux'); e.code = 'CONFIG'; throw e; }
+  return o;
+}
+
 function charger(env = process.env) {
   const manque = (n) => { const e = new Error('config: ' + n + ' est obligatoire'); e.code = 'CONFIG'; return e; };
   const instance = env.OPMSG_INSTANCE;
@@ -111,6 +133,7 @@ function charger(env = process.env) {
     cookie,
     beta: Object.assign({ urlGestion: 'http://127.0.0.1:8080', relectureMs: 60000, timeoutMs: 5000 }, cfg.beta || {}),
     quotas: cfg.quotas && typeof cfg.quotas === 'object' ? cfg.quotas : {},
+    pieces: piecesConfig(cfg.pieces),
     sms: cfg.sms && typeof cfg.sms === 'object' && !Array.isArray(cfg.sms) ? cfg.sms : {},   // validée par `lireConfigSms` (sms-garde.js)
     testCodes: testCodes,
     disqueMinMo: Number.isFinite(cfg.disqueMinMo) ? cfg.disqueMinMo : 512,
@@ -121,4 +144,4 @@ function charger(env = process.env) {
   };
 }
 
-module.exports = { charger, verifierSeparation, lireCle, INTERDITS };
+module.exports = { charger, verifierSeparation, lireCle, piecesConfig, INTERDITS };

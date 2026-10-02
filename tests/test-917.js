@@ -43,7 +43,7 @@ const NEUTRE = JSON.stringify({ trouve: false });
       neutres.inconnu = (await cherche(A, nInconnu)).txt;
       neutres.moi = (await cherche(A, nA)).txt;
       /* Caché : Chloé se rend introuvable. */
-      v('Chloé règle « qui peut me trouver » sur « personne »', [(await C.post('/api/moi/confidentialite', { trouvable: 'personne' })).j, (await C.get('/api/moi/confidentialite')).j], [{ ok: true, trouvable: 'personne' }, { trouvable: 'personne' }]);
+      v('Chloé règle « qui peut me trouver » sur « personne »', [(await C.post('/api/moi/confidentialite', { trouvable: 'personne' })).j, (await C.get('/api/moi/confidentialite')).j], [{ ok: true, trouvable: 'personne', presence: true, accuses: true }, { trouvable: 'personne', presence: true, accuses: true }]);   // la même route porte aussi les deux interrupteurs réciproques (présence, accusés de lecture) : test-943
       neutres.cache = (await cherche(A, nC)).txt;
       /* Bloqué : Bruno bloque Alice (il doit d'abord la connaître). */
       const D = await TEL.inscrire(svc, TEL.numeroBE(), 'Dora'), nD = D.numero;

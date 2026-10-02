@@ -113,7 +113,9 @@ function deposerBrut(c, { chemin, entetes, corps, sansLongueur = false, morceaux
     const h = Object.assign({ 'Content-Type': 'application/octet-stream', Origin: c.base, 'X-OPM': '1' }, entetes || {});
     const ck = c.enteteCookie(); if (ck) h.Cookie = ck;
     if (corps && !sansLongueur && h['Content-Length'] === undefined) h['Content-Length'] = String(corps.length);
-    const req = http.request({ host: u.hostname, port: u.port, method: 'POST', path: chemin, headers: h }, (res) => {
+    /* `agent: false` : une connexion à soi, fermée après la réponse. Les requêtes de ce helper MENTENT exprès (longueur annoncée plus grande que le corps envoyé) — sur une connexion
+       réutilisée, la requête suivante serait avalée par le reste du corps promis et le banc verrait « socket hang up » un essai sur deux. */
+    const req = http.request({ host: u.hostname, port: u.port, method: 'POST', path: chemin, headers: h, agent: false }, (res) => {
       const parts = []; res.on('data', d => parts.push(d)); res.on('end', () => { const txt = Buffer.concat(parts).toString('utf8'); let j = null; try { j = JSON.parse(txt); } catch (e) { j = null; } resolve({ code: res.statusCode, j, txt, h: res.headers }); });
     });
     req.on('error', reject);

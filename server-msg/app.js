@@ -11,7 +11,8 @@
  * l'origine. Le cookie est `SameSite=Strict` par-dessus.
  * ⛔ `trust proxy 1` ET `req.ip` SEULEMENT. Un en-tête `X-Forwarded-For` lu à la main se falsifie :
  * avec `trust proxy 1`, Express ne retient que l'entrée posée par NOTRE proxy (la dernière).
- * ⛔ CORPS JSON ≤ 64 Ko. Les pièces (étape 4) passeront en flux, pas par ici.
+ * ⛔ CORPS JSON ≤ 64 Ko. Les pièces (étape 4) passent en flux binaire, par `POST /api/pieces` (`routes-pieces.js`) : `express.json` ne lit que
+ * les corps JSON, il laisse donc le flux d'une pièce à la route, qui le lit au fil de l'eau et s'arrête au maximum du genre.
  * ⛔ UN 404 NE DIT PAS POURQUOI : une conversation inexistante et une conversation dont on n'est
  * pas membre se confondent (garde M), un `:id` mal formé aussi.
  * ⛔ RIEN D'INTÉRIEUR DANS UNE ERREUR : le gestionnaire final répond `{error:'erreur_interne'}`
@@ -24,6 +25,8 @@ const { MANIFESTE } = require('./manifeste');
 const { creerHandlers, ID_CONV } = require('./routes');
 const { cleReseau } = require('./quotas');
 const { installerTelephone, appareilToucherDe, SESSION_TEL_MS } = require('./telephone');
+const { installerPieces } = require('./routes-pieces');
+const { ID_PIECE } = require('./pieces');
 
 const NOM_ENTETE = 'x-opm';
 const SHA = (x) => crypto.createHash('sha256').update(x).digest('hex');
@@ -43,8 +46,8 @@ function construireApp(ctx) {
       'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'no-referrer',
-      /* le service ne lance aucun appel ni vocal tant que l'étape 4 (pièces) et l'étape 7 (appels) ne sont pas faites : la page n'a pas à pouvoir demander le micro ni la caméra */
-      'Permissions-Policy': 'camera=(), microphone=()',
+      /* le MICRO est permis à la page elle-même (`self`, le message vocal de l'étape 4) et à personne d'autre ; la CAMÉRA reste fermée jusqu'aux appels (étape 7) */
+      'Permissions-Policy': 'camera=(), microphone=(self)',
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Resource-Policy': 'same-origin',
     });
@@ -70,7 +73,11 @@ function construireApp(ctx) {
     return refus(res, 429, 'quota_atteint', { retry: r.retry });
   });
 
-  app.use(express.json({ limit: '64kb', strict: true }));
+  /* ⛔ le lecteur JSON ne touche JAMAIS au dépôt d'une pièce : son corps est un flux binaire que la route lit elle-même, au fil de l'eau. Sans cette exception, un client qui
+     annonce « application/json » sur ce chemin ferait lire (et rejeter) son corps par un autre lecteur que celui qui juge le type et le poids. Le chemin se compare sans égard à la
+     casse ni à la barre oblique finale, comme le routeur d'Express (`/API/pieces/` y mène aussi). */
+  const lecteurJson = express.json({ limit: '64kb', strict: true });
+  app.use((req, res, next) => (req.method === 'POST' && /^\/api\/pieces\/?$/i.test(req.path)) ? next() : lecteurJson(req, res, next));
 
   /* ── Une écriture : l'origine de l'application ET l'en-tête maison ────────────────────── */
   function origineOk(req) {
@@ -128,12 +135,19 @@ function construireApp(ctx) {
     req.conv = r; next();
   };
   garde.M = garde.S.concat([membre]);
+  /* ⛔ J : une PIÈCE que cette personne a le droit de lire. Pas de pièce, identifiant mal formé, pas de droit : le MÊME 404 (on ne dit pas si une pièce existe à qui n'y a pas droit). */
+  garde.J = garde.S.concat([(req, res, next) => {
+    const p = ID_PIECE.test(String(req.params.id)) ? stockage.pieceVisible(req.moi.id, req.params.id) : null;
+    if (!p) return refus(res, 404, 'introuvable');
+    req.piece = p; next();
+  }]);
   garde.A = garde.M.concat([(req, res, next) => req.conv.moi.role === 'admin' ? next() : refus(res, 403, 'interdit')]);
 
   /* ── Les routes : UNIQUEMENT depuis le manifeste ─────────────────────────────────────── */
   const H = creerHandlers(ctx);
   H['health'] = (req, res) => res.json(ctx.sante());
   installerTelephone(H, ctx);   // le compte PERSO par numéro : ses gestionnaires et la déconnexion qui coupe aussi le jeton d'appareil
+  installerPieces(H, ctx);      // les pièces : déposer, lire, photo de profil, espace utilisé
   /* Les écritures authentifiées ont un plafond propre, par compte (en plus de celui de l'adresse). */
   const limiteEcriture = (req, res, next) => {
     const q = Object.assign({ max: 300, fenetreMs: 60000 }, config.quotas.ecriture || {});

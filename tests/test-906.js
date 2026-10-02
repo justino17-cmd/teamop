@@ -129,7 +129,7 @@ const attrape = async (p) => { try { await p; return null; } catch (e) { return 
     console.log('\nLe recensement : TOUT code que le service peut rendre a sa phrase (lu dans le code du service)');
     {
       const codes = new Set();
-      for (const f of ['app.js', 'routes.js', 'porte-beta.js', 'flux.js', 'index.js']) {
+      for (const f of ['app.js', 'routes.js', 'routes-pieces.js', 'porte-beta.js', 'flux.js', 'index.js']) {
         const s = T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, f), 'utf8'));
         for (const m of s.matchAll(/refus\(res,\s*\d+,\s*'([a-z_]+)'/g)) codes.add(m[1]);
         for (const m of s.matchAll(/error:\s*'([a-z_]+)'/g)) codes.add(m[1]);

@@ -17,6 +17,7 @@
  */
 const crypto = require('crypto');
 const { cleReseau } = require('./quotas');
+const { ID_PIECE } = require('./pieces');
 
 const ID_CONV = /^c_[0-9a-f]{32}$/, ID_PERS = /^p_[0-9a-f]{32}$/, CID = /^[A-Za-z0-9_-]{8,64}$/, CODE = /^[A-Za-z0-9_-]{20,64}$/;
 const EPHEMERES = [0, 86400, 604800, 7776000];
@@ -24,6 +25,8 @@ const MSG_MAX = 8000, SESSION_MS = 30 * 86400000, JOUR = 86400000;
 const EMOJI = /^(?:\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Regional_Indicator}|‍|️|⃣){1,12}$/u;
 const LANGUES = /^[a-z]{2}(-[A-Z]{2})?$/;
 const PREFS_PERSONNE = ['presence', 'apercu_notif', 'accuses'];
+const TYPES_ENVOI = ['texte', 'photo', 'vocal', 'fichier'];
+const PHOTOS_MAX = 10, BARRES_MAX = 64, DUREE_VOCAL_MAX = 600, COTE_MAX = 20000;
 
 const CTRL_NOM = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g;
 const nettoyerNom = (s) => String(s).replace(CTRL_NOM, '').replace(/\s+/g, ' ').trim();
@@ -38,6 +41,8 @@ const entier = (x) => Number.isInteger(x) ? x : null;
 function creerHandlers(ctx) {
   const { stockage, hub, quotas, config, porte, horloge } = ctx;
   const refus = (res, statut, code, extra) => res.status(statut).json(Object.assign({ error: code }, extra || {}));
+  /* Les FICHIERS des pièces dont une ligne vient de partir (`pieces.js`) : effacés après coup, sans attendre, sans jamais faire échouer le geste. */
+  const effacer = (ids) => { if (ids && ids.length && typeof ctx.effacerPieces === 'function') ctx.effacerPieces(ids); };
 
   /* Un plafond : `true` si on peut continuer ; sinon la réponse 429 + `Retry-After` est déjà partie. */
   function plafond(res, nom, cle, def, facteur = 1) {
@@ -64,6 +69,7 @@ function creerHandlers(ctx) {
       case 'conversation_directe': return refus(res, 409, 'conversation_directe');
       case 'lien_invalide': return refus(res, 410, 'lien_invalide');
       case 'lien_propre': return refus(res, 409, 'lien_propre');
+      case 'piece_inconnue': return refus(res, 404, 'piece_inconnue');
       default: throw e;
     }
   }
@@ -82,7 +88,7 @@ function creerHandlers(ctx) {
     const r = stockage.convPourMembre(id, uid); if (!r) return null;
     const membres = stockage.membresDetail(id, uid);
     const conversation = Object.assign({}, r.conv, { membres_n: membres.length });
-    if (r.conv.type === 'direct') { const a = membres.find(m => m.id !== uid); if (a) conversation.autre = { id: a.id, prenom: a.prenom, nom: a.nom }; }
+    if (r.conv.type === 'direct') { const a = membres.find(m => m.id !== uid); if (a) conversation.autre = { id: a.id, prenom: a.prenom, nom: a.nom, avatar: a.avatar }; }
     return { conversation, membres, moi: r.moi };
   }
   const nomAffiche = (p) => (p.prenom + ' ' + p.nom).trim() || 'Quelqu\'un';
@@ -100,7 +106,11 @@ function creerHandlers(ctx) {
   /* ── Service ─────────────────────────────────────────────────────────────────────────── */
   H['config'] = (req, res) => res.json({
     version: ctx.version, instance: config.instance, min_client: config.minClient,
-    limites: { message_max: MSG_MAX, membres_max: ctx.maxMembres, nom_groupe_max: 80, modif_ms: ctx.delaiModifMs, ephemeres: EPHEMERES },
+    limites: {
+      message_max: MSG_MAX, membres_max: ctx.maxMembres, nom_groupe_max: 80, modif_ms: ctx.delaiModifMs, ephemeres: EPHEMERES,
+      /* les maximums des pièces, en octets : la page les lit pour refuser AVANT d'envoyer (« trop lourd, 12 Mo au plus ») au lieu de laisser le service répondre 413 */
+      pieces: { photo_max: config.pieces.photoMax, vocal_max: config.pieces.vocalMax, fichier_max: config.pieces.fichierMax, avatar_max: config.pieces.avatarMax, par_message: PHOTOS_MAX, quota: config.pieces.quotaPersonne },
+    },
   });
 
   H['beta.entrer'] = async (req, res) => {
@@ -140,6 +150,9 @@ function creerHandlers(ctx) {
       c.prefs = p;
     }
     const moi = stockage.personneMaj(req.moi.id, c);
+    /* ⛔ ce que les AUTRES doivent apprendre tout de suite : un nom ou un statut changé (les contacts relisent mon profil), la présence ou les accusés coupés ou rendus */
+    if (c.prenom !== undefined || c.nom !== undefined || c.statut !== undefined) hub.personneChangee(moi.id);
+    if (c.prefs !== undefined) hub.reglagesChanges(moi.id, req.moi.prefs, moi.prefs);
     res.json({ moi });
   };
 
@@ -171,9 +184,11 @@ function creerHandlers(ctx) {
 
   /* ── Contacts ────────────────────────────────────────────────────────────────────────── */
   H['contacts'] = (req, res) => {
+    /* ⛔ LA PRÉSENCE EST RÉCIPROQUE : qui a coupé la sienne ne voit celle de personne (et personne ne voit la sienne : `flux.js`) */
+    const jeVois = !(req.moi.prefs && req.moi.prefs.presence === false);
     const liste = stockage.contactsDe(req.moi.id).map(c => {
       const p = stockage.personneParId(c.id);
-      const visible = c.mutuel && !c.bloque && p && !(p.prefs && p.prefs.presence === false) && !stockage.contactBloque(req.moi.id, c.id);
+      const visible = jeVois && c.mutuel && !c.bloque && p && !(p.prefs && p.prefs.presence === false) && !stockage.contactBloque(req.moi.id, c.id);
       return Object.assign({}, c, { en_ligne: !!(visible && hub.enLigne(c.id)) });
     });
     res.json({ contacts: liste });
@@ -243,7 +258,7 @@ function creerHandlers(ctx) {
     const contre = stockage.contactLigne(id, req.moi.id);
     if (contre && contre.etat === 'bloque') return refus(res, 404, 'introuvable');
     const p = stockage.personneParId(id); if (!p) return refus(res, 404, 'introuvable');
-    res.json({ personne: { id: p.id, prenom: p.prenom, nom: p.nom, statut: p.statut, contact: !!stockage.contactLigne(req.moi.id, id) } });
+    res.json({ personne: { id: p.id, prenom: p.prenom, nom: p.nom, statut: p.statut, avatar: p.avatar, contact: !!stockage.contactLigne(req.moi.id, id) } });
   };
 
   /* ── Conversations ───────────────────────────────────────────────────────────────────── */
@@ -267,14 +282,16 @@ function creerHandlers(ctx) {
     if (b.annonces_seules !== undefined && typeof b.annonces_seules !== 'boolean') return refus(res, 400, 'champ_invalide');
     const eph = b.ephemere_s === undefined ? 0 : b.ephemere_s;
     if (!EPHEMERES.includes(eph)) return refus(res, 400, 'champ_invalide');
-    if (b.avatar_piece !== undefined && b.avatar_piece !== null) return refus(res, 400, 'champ_invalide');   // les pièces arrivent à l'étape 4
+    /* la photo du groupe : une pièce de genre « avatar » déposée par le créateur (`POST /api/pieces?genre=avatar`), jamais posée */
+    let avatar = null;
+    if (b.avatar_piece !== undefined && b.avatar_piece !== null) { if (typeof b.avatar_piece !== 'string' || !ID_PIECE.test(b.avatar_piece)) return refus(res, 400, 'champ_invalide'); avatar = b.avatar_piece; }
     if (!plafond(res, 'groupe', req.moi.id, { max: 20, fenetreMs: 3600000 }, facteurJeune(req.moi))) return;
     /* Seuls des contacts mutuels sont ajoutés d'office ; les autres sont RENDUS (`non_ajoutes`)
        pour que l'écran dise « envoie-leur un lien » — jamais d'ajout de force. */
     const voulus = Array.from(new Set(b.membres)).filter(u => u !== req.moi.id);
     const ajoutes = voulus.filter(u => stockage.contactActif(req.moi.id, u));
     const non_ajoutes = voulus.filter(u => !ajoutes.includes(u));
-    const r = stockage.convCreerGroupe({ createur: req.moi.id, nom, membres: ajoutes, annonces_seules: b.annonces_seules === true, ephemere_s: eph });
+    const r = stockage.convCreerGroupe({ createur: req.moi.id, nom, membres: ajoutes, annonces_seules: b.annonces_seules === true, ephemere_s: eph, avatar_piece: avatar });
     hub.reveiller({ conv: r.id });
     for (const u of ajoutes) notifier(u, 'groupe_ajoute', nom, nomAffiche(req.moi) + ' vous a ajouté au groupe.', r.id);
     res.status(201).json(Object.assign({ non_ajoutes }, detail(req.moi.id, r.id)));
@@ -291,8 +308,14 @@ function creerHandlers(ctx) {
     }
     if (b.annonces_seules !== undefined) { if (c.type !== 'groupe' || typeof b.annonces_seules !== 'boolean') return refus(res, 400, 'champ_invalide'); o.annonces_seules = b.annonces_seules; }
     if (b.ephemere_s !== undefined) { if (!EPHEMERES.includes(b.ephemere_s)) return refus(res, 400, 'champ_invalide'); o.ephemere_s = b.ephemere_s; }
-    if (b.avatar !== undefined) return refus(res, 400, 'champ_invalide');   // étape 4
+    /* la photo du groupe (un administrateur) : `null` la retire, une pièce de genre « avatar » déposée par lui la pose ; un message système le trace */
+    if (b.avatar_piece !== undefined) {
+      if (c.type !== 'groupe' || (b.avatar_piece !== null && !(typeof b.avatar_piece === 'string' && ID_PIECE.test(b.avatar_piece)))) return refus(res, 400, 'champ_invalide');
+      o.avatar_piece = b.avatar_piece;
+    }
+    if (b.avatar !== undefined) return refus(res, 400, 'champ_invalide');   // l'ancien nom du champ : il s'appelle `avatar_piece`
     const r = stockage.convMaj(Object.assign({ conv: c.id, par: req.moi.id }, o));
+    effacer(r.pieces);
     if (r.change) hub.reveiller({ conv: c.id });
     res.json(detail(req.moi.id, c.id));
   };
@@ -349,6 +372,7 @@ function creerHandlers(ctx) {
   H['conv.quitter'] = (req, res) => {
     const c = req.conv.conv;
     const r = stockage.membreQuitter({ conv: c.id, uid: req.moi.id });
+    effacer(r.pieces);   // le dernier membre part : la conversation et ses pièces avec elle
     if (!r.vide) hub.reveiller({ conv: c.id, uids: [req.moi.id] }); else hub.reveiller({ uids: [req.moi.id] });
     res.json({ ok: true });
   };
@@ -394,15 +418,44 @@ function creerHandlers(ctx) {
     res.json(stockage.messagesDe(req.conv.conv.id, req.moi.id, o));
   };
 
+  /* ⛔ LES PIÈCES D'UN MESSAGE se lisent ici, bornées, et jamais crues sur parole : la route ne sait que des identifiants (le stockage vérifie qu'ils sont à l'envoyeur, du bon
+     genre, de la bonne conversation, non attachés), des dimensions (entiers bornés), une durée et des barres de forme d'onde (calculées sur l'appareil : leur nombre et leurs valeurs
+     sont bornés — une onde de dix mille barres ne se range pas). Le NOM et la TAILLE d'un fichier ne viennent pas du corps : ils viennent de la pièce. → { pieces, vocal } ou null. */
+  const idPiece = (x) => typeof x === 'string' && ID_PIECE.test(x);
+  function lirePieces(type, b) {
+    if (type === 'photo') {
+      if (!Array.isArray(b.pieces) || b.pieces.length < 1 || b.pieces.length > PHOTOS_MAX) return null;
+      const pieces = [];
+      for (const p of b.pieces) {
+        if (!p || typeof p !== 'object' || !idPiece(p.id) || !Number.isInteger(p.w) || !Number.isInteger(p.h) || p.w < 1 || p.h < 1 || p.w > COTE_MAX || p.h > COTE_MAX) return null;
+        pieces.push({ id: p.id, w: p.w, h: p.h });
+      }
+      if (new Set(pieces.map(p => p.id)).size !== pieces.length) return null;
+      return { pieces, vocal: null };
+    }
+    if (!idPiece(b.piece)) return null;
+    if (type === 'fichier') return { pieces: [{ id: b.piece }], vocal: null };
+    const dur = b.dur;
+    if (typeof dur !== 'number' || !Number.isFinite(dur) || dur <= 0 || dur > DUREE_VOCAL_MAX) return null;
+    if (!Array.isArray(b.bars) || b.bars.length < 1 || b.bars.length > BARRES_MAX || !b.bars.every(n => Number.isInteger(n) && n >= 0 && n <= 100)) return null;
+    return { pieces: [{ id: b.piece }], vocal: { dur: Math.round(dur * 10) / 10, bars: b.bars.slice() } };
+  }
   H['msg.envoyer'] = (req, res) => {
     const b = corps(req), conv = req.conv.conv;
     if (typeof b.cid !== 'string' || !CID.test(b.cid)) return refus(res, 400, 'champ_invalide');
-    if (b.type !== undefined && b.type !== 'texte') return refus(res, 400, 'champ_invalide');   // pièces, vocaux : étape 4
-    if (typeof b.texte !== 'string') return refus(res, 400, 'champ_invalide');
-    if (b.texte.length > MSG_MAX * 2) return refus(res, 413, 'trop_long');
-    const texte = nettoyerTexte(b.texte);
-    if (INVISIBLE.test(texte)) return refus(res, 400, 'champ_invalide');
-    if (Array.from(texte).length > MSG_MAX) return refus(res, 413, 'trop_long');
+    const type = b.type === undefined ? 'texte' : b.type;
+    if (typeof type !== 'string' || !TYPES_ENVOI.includes(type)) return refus(res, 400, 'champ_invalide');
+    let texte = null, pj = null;
+    if (type === 'texte') {
+      if (typeof b.texte !== 'string') return refus(res, 400, 'champ_invalide');
+      if (b.texte.length > MSG_MAX * 2) return refus(res, 413, 'trop_long');
+      texte = nettoyerTexte(b.texte);
+      if (INVISIBLE.test(texte)) return refus(res, 400, 'champ_invalide');
+      if (Array.from(texte).length > MSG_MAX) return refus(res, 413, 'trop_long');
+    } else {
+      pj = lirePieces(type, b);
+      if (!pj) return refus(res, 400, 'champ_invalide');
+    }
     let repondA = null;
     if (b.reponse_a !== undefined && b.reponse_a !== null) {
       repondA = entier(b.reponse_a);
@@ -413,7 +466,7 @@ function creerHandlers(ctx) {
     if (!stockage.ecritureAutorisee(conv.id, req.moi.id)) return refus(res, 404, 'introuvable');
     if (conv.type === 'groupe' && conv.annonces_seules && req.conv.moi.role !== 'admin') return refus(res, 403, 'annonces_seules');
     if (!plafond(res, 'msg', req.moi.id, { max: 60, fenetreMs: 60000 }, facteurJeune(req.moi))) return;
-    const r = stockage.messageEnvoyer({ conv: conv.id, auteur: req.moi.id, cid: b.cid, type: 'texte', texte, repondA });
+    const r = stockage.messageEnvoyer({ conv: conv.id, auteur: req.moi.id, cid: b.cid, type, texte, repondA, pieces: pj && pj.pieces, vocal: pj && pj.vocal });
     if (r.deja) return res.status(200).json({ deja: true, seq: r.seq, ts: r.ts, id: r.id });
     hub.reveiller({ conv: conv.id });
     if (Array.isArray(b.mentions)) {
@@ -447,6 +500,7 @@ function creerHandlers(ctx) {
     if (pour !== 'moi' && pour !== 'tous') return refus(res, 400, 'champ_invalide');
     const admin = req.conv.conv.type === 'groupe' && req.conv.moi.role === 'admin';
     const r = stockage.messageSupprimer({ conv: req.conv.conv.id, seq: s, uid: req.moi.id, pour, admin });
+    effacer(r.pieces);   // ⛔ « pour tous » efface aussi les pièces du message, fichier compris
     if (r.gid) hub.reveiller(pour === 'moi' ? { uids: [req.moi.id] } : { conv: req.conv.conv.id });
     res.json({ ok: true });
   };
