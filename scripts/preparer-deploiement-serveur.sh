@@ -57,8 +57,12 @@ for f in "${SUITES[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
 # ⚠️ Et `tests/outils-msg.js` + `tests/lib-horloge-msg.js` : l'aide partagée des suites 900 à 910 (le service lancé en processus,
 #    le faux OP GESTION, l'horloge décalable). Oubliés à la fusion des deux chantiers, la porte d'OP MESSAGES tombait sur « module
 #    introuvable » sur un déploiement juste.
+# ⚠️ Et `tests/outils-tel.js` (l'aide des suites 914 à 919 du compte par téléphone : faux OVH, numéros d'essai) et
+#    `scripts/opmsg-public.js` (le générateur de l'interface servie, que `test-941` exécute) : oubliés le 2 octobre 2026, six
+#    suites mouraient ici sur « module introuvable » — la porte l'a dit, sur un déploiement juste.
 OPMSG_FICHIERS=(server-msg .github/workflows/deploiement-messages.yml .github/scripts/surveillance-messages.js
-                scripts/bancs-messages.liste design/opmessages tests/bac-messages.js tests/outils-msg.js tests/lib-horloge-msg.js .gitignore)
+                scripts/bancs-messages.liste design/opmessages tests/bac-messages.js tests/outils-msg.js tests/lib-horloge-msg.js
+                tests/outils-tel.js scripts/opmsg-public.js .gitignore)
 for f in "${OPMSG_FICHIERS[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
 mapfile -t SUITES_MSG < <(grep -vE '^[[:space:]]*(#|$)' scripts/bancs-messages.liste)
 # ⚠️ Même exigence que pour la liste du serveur : une liste vide ou tronquée ferait passer la porte sur rien.
