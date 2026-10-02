@@ -109,6 +109,9 @@ m('K15', 'un profil qui change n\'est plus relu (l\'événement `personne` est i
 m('K16', 'le client n\'écoute plus l\'événement `personne`', F.api, "'presence', 'personne', 'resync'];", "'presence', 'resync'];", ['944']);
 m('K17', 'la photo de profil qu\'on vient de choisir est relue du service', F.src, '      poserCache(piece, creerUrl(blob), blob.size);', '', ['944']);
 
+/* ── LE PROXY (jouée par la sonde d'un VRAI nginx : il faut OPMSG_NGINX ; sans lui, « NON JOUÉE ») ── */
+m('P47', 'le bloc des pièces du proxy est ramené à 1 Mo (une photo réduite à 250 Ko passe, un fichier de 20 Mo non)', 'server-msg/install-msg.sh', '        client_max_body_size 26m;', '        client_max_body_size 1m;', ['proxy']);
+
 /* ── LA PAGE (jouée par la sonde navigateur : lancer avec --sondes) ── */
 const G = { sonde: true };
 m('G01', '« Envoi… » ne se voit plus (le message en cours dit toujours « En attente de connexion… »)', F.page, "(m.envoi ? 'Envoi…' : 'En attente de connexion…')", "'En attente de connexion…'", ['sonde'], G);
@@ -130,14 +133,14 @@ function fabriquerCopie() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mut-pieces-'));
   for (const d of DOSSIERS_COPIE) copier(path.join(RACINE, d), path.join(dir, d));
   fs.mkdirSync(path.join(dir, 'tests'));
-  for (const f of fs.readdirSync(path.join(RACINE, 'tests'))) if (/^(test-9\d\d|outils-[\w-]+|bac-messages|lib-horloge-msg|mode-site|sonde-opmessages-pieces|test-85\d)\.js$/.test(f)) fs.copyFileSync(path.join(RACINE, 'tests', f), path.join(dir, 'tests', f));
+  for (const f of fs.readdirSync(path.join(RACINE, 'tests'))) if (/^(test-9\d\d|outils-[\w-]+|bac-messages|lib-horloge-msg|mode-site|sonde-opmessages-pieces|sonde-proxy-nginx|test-85\d)\.js$/.test(f)) fs.copyFileSync(path.join(RACINE, 'tests', f), path.join(dir, 'tests', f));
   fs.symlinkSync(path.join(RACINE, 'server-msg', 'node_modules'), path.join(dir, 'server-msg', 'node_modules'));
   return dir;
 }
 function lancer(dir, suite) {
   return new Promise((resolve) => {
-    const sonde = suite === 'sonde';
-    const f = sonde ? 'sonde-opmessages-pieces.js' : fs.readdirSync(path.join(dir, 'tests')).find(x => x.startsWith('test-' + suite) && x.endsWith('.js'));
+    const sonde = suite === 'sonde', proxy = suite === 'proxy';
+    const f = sonde ? 'sonde-opmessages-pieces.js' : proxy ? 'sonde-proxy-nginx.js' : fs.readdirSync(path.join(dir, 'tests')).find(x => x.startsWith('test-' + suite) && x.endsWith('.js'));
     const env = Object.assign({}, process.env, sonde ? { NODE_PATH: process.env.NODE_PATH || '/opt/node22/lib/node_modules/playwright/node_modules' } : {});
     const p = spawn(process.execPath, [path.join(dir, 'tests', f)], { cwd: dir, stdio: ['ignore', 'pipe', 'pipe'], env });
     let sortie = ''; p.stdout.on('data', d => { sortie += d; }); p.stderr.on('data', d => { sortie += d; });
@@ -174,6 +177,7 @@ function restaurer(dir, originaux) { for (const [fichier, texte] of originaux) f
 
 async function jouer(mut, dir) {
   const { id, nom, suites } = mut;
+  if (suites.includes('proxy') && !process.env.OPMSG_NGINX) return { id, nom, verdict: 'NON JOUÉE', detail: 'il faut un binaire nginx (OPMSG_NGINX=/chemin/nginx) — voir l\'en-tête de tests/sonde-proxy-nginx.js' };
   const r0 = muter(dir, mut);
   if (r0.erreur) return { id, nom, verdict: 'MAL VISÉE', detail: r0.erreur };
   try {
@@ -226,11 +230,12 @@ async function jouer(mut, dir) {
       const mut = file.shift(); if (!mut) return;
       const r = await jouer(mut, dir);
       resultats.push(r);
-      console.log((r.verdict === 'TOMBE' ? '  ✓ ' : '  ✗ ') + r.id + ' · ' + r.nom + ' → ' + r.verdict + ' · ' + r.detail);
+      console.log((r.verdict === 'TOMBE' ? '  ✓ ' : r.verdict === 'NON JOUÉE' ? '  – ' : '  ✗ ') + r.id + ' · ' + r.nom + ' → ' + r.verdict + ' · ' + r.detail);
     }
   }));
   for (const d of copies) { try { fs.rmSync(d, { recursive: true, force: true }); } catch (e) { /* déjà parti */ } }
-  const tombees = resultats.filter(r => r.verdict === 'TOMBE').length;
-  console.log('\n' + tombees + '/' + resultats.length + ' mutations tombent' + (tombees === resultats.length ? '' : ' — LES AUTRES : ' + resultats.filter(r => r.verdict !== 'TOMBE').map(r => r.id + ' (' + r.verdict + ')').join(', ')));
-  process.exit(tombees === resultats.length ? 0 : 1);
+  const jouees = resultats.filter(r => r.verdict !== 'NON JOUÉE'), nonJouees = resultats.filter(r => r.verdict === 'NON JOUÉE');
+  const tombees = jouees.filter(r => r.verdict === 'TOMBE').length;
+  console.log('\n' + tombees + '/' + jouees.length + ' mutations tombent' + (tombees === jouees.length ? '' : ' — LES AUTRES : ' + jouees.filter(r => r.verdict !== 'TOMBE').map(r => r.id + ' (' + r.verdict + ')').join(', ')) + (nonJouees.length ? ' · ' + nonJouees.length + ' NON JOUÉE(S) : ' + nonJouees.map(r => r.id).join(', ') : ''));
+  process.exit(tombees === jouees.length ? 0 : 1);
 })();
