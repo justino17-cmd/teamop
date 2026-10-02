@@ -29,7 +29,13 @@ jobs:
     runs-on: ubuntu-latest
     # 10 et non 5 : la suite de connexion attend une minute pleine pour laisser retomber le
     # plafond anti-abus par minute — c'est le prix de l'éprouver sur le vrai serveur.
-    timeout-minutes: 10
+    # ⛔ 20 ET NON PLUS 10 (2 octobre 2026) : la suite a grandi jusqu'au minuteur. Run 526 (0df1229) :
+    # toutes les étapes vertes — « Les suites du dépôt passent » en 8 min 35 s (233 suites), la
+    # connexion en 64 s — et le job coupé à 10 min 02 s, pendant le ménage de fin de job : conclusion
+    # « cancelled », sans un seul ✗. Le run 528 (une demande de fusion) a été coupé de la même façon.
+    # Ce plafond est une garde contre un banc qui se fige ; la durée normale du travail ne doit
+    # jamais l'atteindre.
+    timeout-minutes: 20
     steps:
       # ⛔ `fetch-depth: 2` N'EST PAS DU CONFORT. Par défaut, actions/checkout ne ramène QU'UN
       # commit : « verifier-version.js » n'aurait alors aucun point de comparaison et ne
