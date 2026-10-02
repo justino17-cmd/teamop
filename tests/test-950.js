@@ -276,8 +276,11 @@ const horlogeFixe = (h) => () => h.t;
       const avant = b.S.sonde(), e0 = ecritures;
       ecrire();
       const vers = path.join(b.dossier, 'copie.db');
-      const r = await b.S.instantane(vers);
-      stop = true;
+      /* ⛔ UNE COPIE QUI NE FINIT JAMAIS DOIT FAIRE TOMBER LE BANC, PAS LE FAIRE PENDRE : copiée par petits pas sous un écrivain, la copie
+         recommence à chaque écriture et ne se termine pas (mesuré). Sans borne, ce banc ne rendrait jamais la main — et la CI attendrait ses six heures. */
+      let r;
+      try { r = await Promise.race([b.S.instantane(vers), new Promise((res) => { const m = setTimeout(() => res({ methode: 'interminable (plus de 30 s)' }), 30000); m.unref(); })]); }
+      finally { stop = true; }
       const apres = b.S.sonde();
       return { b, r, avant, apres, ecritures: ecritures - e0, vers };
     };
@@ -287,11 +290,13 @@ const horlogeFixe = (h) => () => h.t;
        refait un autre, jusqu'à cinq essais VIVANTS. Chaque essai, vivant ou non, doit rendre une copie saine ; le verdict est agrégé pour que
        le nombre de vérifications ne dépende pas du nombre de tentatives. */
     const essais = [];
-    for (let tentative = 1; tentative <= 40 && essais.filter(e => e.vivant).length < 5; tentative++) {
+    for (let tentative = 1; tentative <= 40 && essais.filter(e => e.vivant).length < 5 && !essais.some(e => e.methode !== 'backup'); tentative++) {   // une copie qui n'a pas la bonne méthode ou ne finit pas : inutile d'en refaire
       const x = await sousCharge({ lignes: 60000 });
       try {
         const k = STOCK.ouvrir.copie.controlerFichier(x.vers);
-        const d = new DatabaseSync(x.vers, { readOnly: true });
+        let d = null;
+        try { d = new DatabaseSync(x.vers, { readOnly: true }); } catch (e) { d = null; }   // une copie interminable n'a pas de fichier : l'essai tombe, le banc ne meurt pas
+        if (!d) { essais.push({ ecritures: x.ecritures, vivant: x.ecritures >= 5, methode: x.r.methode, saine: false, horloge: false, instantane: false }); continue; }
         try {
           const somme = d.prepare('SELECT COALESCE(SUM(dernier_seq), 0) AS n FROM conversation').get().n, lignes = d.prepare('SELECT COUNT(*) AS n FROM message').get().n;
           const trous = d.prepare('SELECT COUNT(*) AS n FROM conversation c WHERE c.dernier_seq <> (SELECT COALESCE(MAX(seq), 0) FROM message WHERE conv = c.id)').get().n;
@@ -892,10 +897,10 @@ const horlogeFixe = (h) => () => h.t;
       vrai('   la date de l\'exercice est ÉCRITE (un nombre, le nom de l\'archive, des comptes — rien de secret) et /health la lit', !!mq && Number.isFinite(mq.okTs) && mq.archive === 'base/' + SAUV.archiveDeCle('beta/', cleC).nom + SAUV.SUFFIXE && mq.cleMaitreVerifiee === true && m.sauv.sante().essaiJours === 0);
       vrai('   l\'exercice ne laisse RIEN derrière lui : le dossier jetable est effacé', fs.readdirSync(os.tmpdir()).filter(f => f.startsWith('opmsg-essai-')).length === 0);
 
-      const okTsAvant = marqueur().okTs;
+      const okTsAvant = (marqueur() || {}).okTs;
       await dormir(5);
       const ancien = await outil(['essai', '--date', new Date(T0).toISOString().slice(0, 19)]);
-      v('⛔ l\'essai sur l\'archive A (PAS la plus récente) rejoue le registre de C : les trois messages purgés repartent — et la date de /health ne bouge pas', [ancien.code, /PAS la plus récente/.test(ancien.sortie), /3 message\(s\) retiré\(s\)/.test(ancien.sortie), marqueur().okTs === okTsAvant], [0, true, true, true]);
+      v('⛔ l\'essai sur l\'archive A (PAS la plus récente) rejoue le registre de C : les trois messages purgés repartent — et la date de /health ne bouge pas', [ancien.code, /PAS la plus récente/.test(ancien.sortie), /3 message\(s\) retiré\(s\)/.test(ancien.sortie), (marqueur() || {}).okTs === okTsAvant], [0, true, true, true]);
       const introuvable = await outil(['essai', '--date', '2020-01-01']);
       v('une date d\'avant la première archive : refus clair', [introuvable.code, /aucune archive à cette date/.test(introuvable.erreur)], [1, true]);
       const malDate = await outil(['essai', '--date', 'hier']);
@@ -904,12 +909,12 @@ const horlogeFixe = (h) => () => h.t;
       /* Les échecs de l'exercice : chacun sort en 1, ne touche pas la date du dernier exercice RÉUSSI, et dit pourquoi. */
       fs.writeFileSync(path.join(m.b.dossier, 'mauvaise-cle.json'), JSON.stringify({ instance: 'beta', sauvegarde: m.coffre.conf({ cle: O.cleHex() }) }));
       const mc = await outil(['essai'], null, 'mauvaise-cle.json');
-      v('⛔ une MAUVAISE clé de sauvegarde : sortie 1, « déchiffrement impossible », la date du dernier exercice réussi intacte, l\'échec noté à côté', [mc.code, /déchiffrement impossible/.test(mc.erreur), marqueur().okTs === okTsAvant, typeof marqueur().echecTs], [1, true, true, 'number']);
+      v('⛔ une MAUVAISE clé de sauvegarde : sortie 1, « déchiffrement impossible », la date du dernier exercice réussi intacte, l\'échec noté à côté', [mc.code, /déchiffrement impossible/.test(mc.erreur), (marqueur() || {}).okTs === okTsAvant, typeof (marqueur() || {}).echecTs], [1, true, true, 'number']);
       const mauvaiseMaitre = path.join(m.b.dossier, 'autre.kek'); fs.writeFileSync(mauvaiseMaitre, O.cleHex());
       const mm = await outil(['essai'], { OPMSG_KEK_FILE: mauvaiseMaitre });
-      v('⛔ une MAUVAISE clé maître sur le serveur : sortie 1 — l\'archive est intacte, mais rien ne serait lisible', [mm.code, /n'ouvre PAS cette base/.test(mm.erreur), marqueur().okTs === okTsAvant], [1, true, true]);
+      v('⛔ une MAUVAISE clé maître sur le serveur : sortie 1 — l\'archive est intacte, mais rien ne serait lisible', [mm.code, /n'ouvre PAS cette base/.test(mm.erreur), (marqueur() || {}).okTs === okTsAvant], [1, true, true]);
       const sansMaitre = await outil(['essai'], { OPMSG_KEK_FILE: path.join(m.b.dossier, 'absente.kek') });
-      v('   un fichier de clé maître ABSENT : l\'exercice passe, et DIT qu\'il ne prouve que l\'intégrité (⚠, et noté dans la date)', [sansMaitre.code, /clé maître NON vérifiée/.test(sansMaitre.sortie), marqueur().cleMaitreVerifiee], [0, true, false]);
+      v('   un fichier de clé maître ABSENT : l\'exercice passe, et DIT qu\'il ne prouve que l\'intégrité (⚠, et noté dans la date)', [sansMaitre.code, /clé maître NON vérifiée/.test(sansMaitre.sortie), (marqueur() || {}).cleMaitreVerifiee], [0, true, false]);
 
       /* Une archive qui n'est pas la bonne : une autre instance, ou rebaptisée. */
       const brutC = m.coffre.objets.get(cleC);

@@ -208,9 +208,10 @@ const sante = async (svc) => { const r = await T.client(svc.base).get('/health')
       coffre.regler('corrompt-relecture', 'refus-depot');   // on fige le coffre pour compter : plus aucun dépôt, et une passe en cours relit encore de travers
       const releve = () => {
         const vus = coffre.vus.slice(n4);
-        const dep = vus.filter(x => x.m === 'PUT' && /^beta\/base\//.test(x.cle)).map(x => x.cle), eff = vus.filter(x => x.m === 'DELETE' && /^beta\/base\//.test(x.cle)).map(x => x.cle);
+        const dep = vus.filter(x => x.m === 'PUT' && x.hashOk === true && /^beta\/base\//.test(x.cle)).map(x => x.cle), eff = vus.filter(x => x.m === 'DELETE' && /^beta\/base\//.test(x.cle)).map(x => x.cle);
         return { dep, eff, orphelines: dep.filter(c => !eff.includes(c)) };
       };
+      // (Un dépôt REFUSÉ par le coffre — il est dans `vus` — n'a rien déposé : seuls comptent ceux dont le coffre a vérifié le corps, `hashOk`.)
       /* Au geste, pas au chronomètre : on attend que chaque archive déposée soit effacée (ou, si l'archive recalée est LAISSÉE au coffre, qu'on le constate au bout de dix secondes). */
       await T.attendre(async () => { const r = releve(); return r.dep.length >= 1 && r.orphelines.length === 0 ? true : null; }, 10000, 50);
       const depots = releve().dep, effaces = releve().eff;
@@ -279,7 +280,7 @@ const sante = async (svc) => { const r = await T.client(svc.base).get('/health')
           vus, ['PUT beta/essai-configuration-XXXX.tmp', 'GET beta/essai-configuration-XXXX.tmp', 'GET LISTE beta/', 'DELETE beta/essai-configuration-XXXX.tmp']);
         vrai('   et l\'objet d\'essai n\'est plus au coffre (la population de départ : une archive ou une pièce n\'a pas été touchée) ; aucune requête n\'était mal signée', coffre.cles('beta/').every(c => !/essai-configuration/.test(c)) && coffre.etat.signaturesFausses === 0 && coffre.vus.slice(n0).every(x => x.sigOk));
         const ecrit = JSON.parse(octets().toString('utf8'));
-        const { sauvegarde: bloc, ...autres } = ecrit;
+        const { sauvegarde: bloc = {}, ...autres } = ecrit;   // absent (le script a refusé d'écrire) : {} — le banc tombe sur la vérification suivante, il ne meurt pas
         v('⛔ TOUTES les autres clés de la configuration sont CONSERVÉES (VAPID, origine, budgets, SMS) ; seule `sauvegarde` s\'ajoute', autres, cfgBase);
         v('   les cinq valeurs du coffre et la clé sont rangées, la région prend son défaut',
           [bloc.endpoint, bloc.bucket, bloc.region, bloc.accessKey === coffre.accessKey, bloc.secretKey === coffre.secretKey, bloc.cle === cle], [coffre.base, coffre.bucket, 'eu-central-4', true, true, true]);
