@@ -279,7 +279,7 @@ const horlogeFixe = (h) => () => h.t;
       /* ⛔ UNE COPIE QUI NE FINIT JAMAIS DOIT FAIRE TOMBER LE BANC, PAS LE FAIRE PENDRE : copiée par petits pas sous un écrivain, la copie
          recommence à chaque écriture et ne se termine pas (mesuré). Sans borne, ce banc ne rendrait jamais la main — et la CI attendrait ses six heures. */
       let r;
-      try { r = await Promise.race([b.S.instantane(vers), new Promise((res) => { const m = setTimeout(() => res({ methode: 'interminable (plus de 30 s)' }), 30000); m.unref(); })]); }
+      try { r = await Promise.race([b.S.instantane(vers).catch((e) => ({ methode: 'échec : ' + String(e && e.message).slice(0, 60) })), new Promise((res) => { const m = setTimeout(() => res({ methode: 'interminable (plus de 30 s)' }), 30000); m.unref(); })]); }
       finally { stop = true; }
       const apres = b.S.sonde();
       return { b, r, avant, apres, ecritures: ecritures - e0, vers };
