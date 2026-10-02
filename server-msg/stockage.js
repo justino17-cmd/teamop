@@ -948,7 +948,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
      rester lisible dans le fichier. */
   function messageSupprimer({ conv, seq, uid, pour, admin }) {
     return tx(() => {
-      const r = Q('SELECT auteur, type, supprime_le FROM message WHERE conv = ? AND seq = ?').get(conv, seq);
+      const r = Q('SELECT id, auteur, type, supprime_le FROM message WHERE conv = ? AND seq = ?').get(conv, seq);
       const m = Q('SELECT depuis_seq FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
       if (!r || !m || seq < m.depuis_seq) throw erreur('introuvable');
       if (pour === 'moi') {
@@ -962,6 +962,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       Q('DELETE FROM reaction WHERE conv = ? AND seq = ?').run(conv, seq);
       /* ⛔ « supprimer pour tous » EFFACE LES PIÈCES (la ligne ici, le fichier par l'appelant) : un message supprimé ne doit pas rester lisible dans le fichier d'une photo */
       const pieces = piecesDuMessageEffacer(conv, seq);
+      /* ⛔ NOTÉ DANS `purge` : une sauvegarde prise AVANT ce geste porte encore le texte ; la restauration rejoue le registre
+         (`rejouerPurge`, genre `message_supprime`) et le reblanchit — sinon un message « supprimé pour tous » reviendrait lisible. */
+      Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(r.id, 'message_supprime', horloge());
       return { gid: journalAjouter('msg_supprime', conv, null, seq), pour: 'tous', pieces };
     });
   }

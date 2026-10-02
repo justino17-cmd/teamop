@@ -233,6 +233,8 @@ console.log('\nLa pierre tombale, le masquage, la modification, les réactions')
   const brut = a.brut();
   const l = brut.prepare('SELECT corps_ch, supprime_le FROM message WHERE conv = ? AND seq = 2').get(g);
   v('⛔ le corps s\'efface TOUT DE SUITE (NULL) et une pierre tombale reste', [l.corps_ch, typeof l.supprime_le], [null, 'number']);
+  const idM = brut.prepare('SELECT id FROM message WHERE conv = ? AND seq = 2').get(g).id;
+  v('⛔ et le geste est NOTÉ dans `purge` (genre message_supprime, l\'identifiant du message) : une restauration d\'une sauvegarde d\'avant le reblanchira au lieu de le rendre lisible', brut.prepare("SELECT COUNT(*) AS n FROM purge WHERE objet = ? AND genre = 'message_supprime'").get(idM).n, 1);
   vrai('le texte n\'est plus nulle part dans le fichier', !octets(a.chemin).includes(Buffer.from('SECRETZXQ')));
   v('les réactions du message supprimé sont parties', a.S.reactionsDe(g, 2).length, 0);
   const m = a.S.messagesDe(g, al.id).messages.find(x => x.seq === 2);
