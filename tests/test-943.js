@@ -14,9 +14,12 @@
      · UN MESSAGE ATTACHE SES PIÈCES OU N'EXISTE PAS : la pièce d'un autre, d'une autre conversation, du mauvais genre, déjà envoyée — aucune n'est attachable (404 `piece_inconnue`), et rien
        n'est à moitié attaché ; un renvoi (même `cid`) ne fait ni deux messages ni deux attachements ;
      · LES PIÈCES PARTENT AVEC CE QUI LES PORTE, FICHIER COMPRIS : « supprimer pour tous », un éphémère échu, une pièce jamais envoyée (24 h), une photo remplacée, une conversation
-       disparue — et l'identifiant est noté dans `purge` ;
+       disparue — et l'identifiant est noté dans `purge`. Le FICHIER se garde sans l'aide de la réconciliation (qui ôte aussi un fichier sans ligne de plus de dix minutes) : ceux du temps
+       sont datés dans le futur pour qu'elle ne les voie pas ;
+     · LE BALAYEUR N'EST PAS UNE GARDE : sur un service dont il ne passe jamais, une pièce échue (éphémère échu, jamais envoyée depuis 24 h) ne se lit plus et ne s'attache plus, et un
+       message marqué supprimé n'ouvre plus sa pièce — l'échéance se juge à la lecture et à l'attachement, pas seulement quand le balayeur passe ;
      · RIEN DE CE QUI EST ENVOYÉ N'EST EN CLAIR SUR LE DISQUE (un canari dans une photo, un vocal, un fichier et son nom : absent de TOUS les fichiers sous OPMSG_DATA) ni dans les journaux ;
-     · LES INTERRUPTEURS SONT RÉCIPROQUES : qui coupe sa présence ne la montre pas ET ne voit celle de personne ; qui coupe ses confirmations de lecture ne montre pas son « Lu » ET ne voit
+     · LES INTERRUPTEURS SONT RÉCIPROQUES : qui coupe sa présence ne la montre pas (même en se déconnectant puis en revenant) ET ne voit celle de personne ; qui coupe ses confirmations de lecture ne montre pas son « Lu » ET ne voit
        celui de personne — dans une conversation à deux comme dans un groupe. */
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto'), net = require('net');
 const T = require('./outils-msg');
@@ -372,15 +375,17 @@ function migration() {
       const Ge = await groupe(A, 'Éphémère', [B], { ephemere_s: 86400 });
       const pe = await photo(A, Ge); await envoyer(A, Ge, { type: 'photo', pieces: [{ id: pe, w: 8, h: 8 }] });
       const pOrph = await photo(A, G), pAvatar = (await deposer(A, { genre: 'avatar', corps: PNG })).j.id;
-      const pEchue = await photo(A, G);
+      /* ⛔ LA RÉCONCILIATION EST UNE SECONDE CHANCE, et elle masquait l'oubli d'effacer : le balayeur ôte aussi, toutes les dix passes, un fichier SANS ligne de plus de dix minutes. Avec l'horloge
+         avancée de 25 h, nos fichiers (écrits à l'instant) ont l'air vieux d'un jour — le fichier d'un éphémère échu partait donc quand même, et un balayeur qui oublie `effacerPieces` restait vert.
+         On date les fichiers dans le FUTUR (+26 h) : ils ont l'air tout neufs (« pas un fichier tout neuf »), et seul l'effacement explicite peut les ôter. */
+      const futur = new Date(Date.now() + 26 * 3600000);
+      for (const id of [pe, pOrph, pAvatar]) fs.utimesSync(fichierDe(id), futur, futur);
       v('population : trois pièces vivantes et lisibles (une attachée à un éphémère, une jamais envoyée, une photo de profil jamais posée)', [(await lire(B, pe)).code, (await lire(A, pOrph)).code, (await lire(A, pAvatar)).code], [200, 200, 200]);
       svc.avancer(25 * 3600000);
       v('⛔ 25 h plus tard : le message éphémère est échu, sa pièce est effacée (ligne et fichier) et plus lisible', [await disparu(pe), (await lire(B, pe)).code], [true, 404]);
       v('⛔ la pièce jamais envoyée a expiré : ligne et fichier partis, 404 même pour son dépositaire', [await disparu(pOrph), (await lire(A, pOrph)).code], [true, 404]);
       v('⛔ la photo de profil jamais posée aussi', [await disparu(pAvatar), (await lire(A, pAvatar)).code], [true, 404]);
       v('tout cela est noté dans `purge` (trois pièces)', [purge(pe), purge(pOrph), purge(pAvatar)], [['piece'], ['piece'], ['piece']]);
-      const mEchue = await envoyer(A, G, { type: 'photo', pieces: [{ id: pEchue, w: 8, h: 8 }] });
-      v('⛔ une pièce déposée il y a 25 h (jamais envoyée) ne s\'attache plus : 404 piece_inconnue — même si le balayeur ne l\'a pas encore ôtée', [mEchue.code, mEchue.j.error], [404, 'piece_inconnue']);
       svc.avancer(-25 * 3600000);
       const pOk = await photo(A, G), mOk = await envoyer(A, G, { type: 'photo', pieces: [{ id: pOk, w: 8, h: 8 }] });
       svc.avancer(48 * 3600000);
@@ -549,7 +554,8 @@ function migration() {
       v('sans session : 401', (await T.client(svc.base).post('/api/moi/confidentialite', { presence: false })).code, 401);
 
       /* --- la présence --- */
-      const fE = await T.flux(E), fF = await T.flux(Fr), fG = await T.flux(Gi);
+      let fE = await T.flux(E);
+      const fF = await T.flux(Fr), fG = await T.flux(Gi);
       for (const f of [fE, fF, fG]) await f.attendre(e => e.event === 'bonjour');
       v('population : Eve voit Fred et Gina en ligne, Fred voit Eve', [(await E.get('/api/contacts')).j.contacts.filter(c => [Fr.moi.id, Gi.moi.id].includes(c.id)).map(c => c.en_ligne), (await Fr.get('/api/contacts')).j.contacts.find(c => c.id === E.moi.id).en_ligne], [[true, true], true]);
       const off = await E.post('/api/moi/confidentialite', { presence: false });
@@ -563,9 +569,23 @@ function migration() {
       const nE2 = fE.evenements.filter(e => e.event === 'presence').length;
       fG.fermer();
       await fF.attendre(e => e.event === 'presence' && e.data.uid === Gi.moi.id && e.data.en_ligne === false, 6000);
-      const fG2 = await T.flux(Gi); await fG2.attendre(e => e.event === 'bonjour');
+      let fG2 = await T.flux(Gi); await fG2.attendre(e => e.event === 'bonjour');
       await fF.attendre(e => e.event === 'presence' && e.data.uid === Gi.moi.id && e.data.en_ligne === true, 6000);
       v('⛔ Gina part puis revient : Fred l\'apprend, EVE (présence coupée) n\'en reçoit AUCUN événement de présence', fE.evenements.filter(e => e.event === 'presence').length, nE2);
+      /* ⛔ L'AUTRE MOITIÉ, « je ne montre pas » : Eve (présence coupée) se DÉCONNECTE puis REVIENT — Fred, qui voit les présences, n'apprend RIEN d'elle. Gina fait le TÉMOIN : ses deux
+         événements arrivent chez Fred APRÈS ceux qu'Eve aurait produits (elle part 700 ms plus tard, la grâce est de 300), donc « aucun événement d'Eve » se lit une fois que tout a eu lieu —
+         et le témoin prouve que le flux de Fred fonctionnait pendant ce temps. */
+      const nFE = fF.evenements.filter(e => e.event === 'presence' && e.data.uid === E.moi.id).length;
+      fE.fermer();
+      await T.dort(700);
+      fE = await T.flux(E); await fE.attendre(e => e.event === 'bonjour');
+      fG2.fermer();
+      await fF.attendre(e => e.event === 'presence' && e.data.uid === Gi.moi.id && e.data.en_ligne === false, 6000);
+      fG2 = await T.flux(Gi); await fG2.attendre(e => e.event === 'bonjour');
+      const nTemoin = fF.evenements.filter(e => e.event === 'presence' && e.data.uid === Gi.moi.id).length;
+      const revenue = await att(() => fF.evenements.filter(e => e.event === 'presence' && e.data.uid === Gi.moi.id && e.data.en_ligne === true).length >= 2, 6000);
+      vrai('population : le témoin (Gina) est parti puis revenu chez Fred, APRÈS la déconnexion et le retour d\'Eve (' + nTemoin + ' événements d\'elle déjà vus)', revenue);
+      v('⛔ Eve (présence coupée) se déconnecte puis revient : Fred n\'apprend RIEN d\'elle — ni « hors ligne » ni « en ligne »', fF.evenements.filter(e => e.event === 'presence' && e.data.uid === E.moi.id).length, nFE);
       /* rallumer */
       const nF = fF.evenements.filter(e => e.event === 'presence' && e.data.uid === E.moi.id && e.data.en_ligne === true).length;
       await E.post('/api/moi/confidentialite', { presence: true });
@@ -708,6 +728,39 @@ function migration() {
     v('⛔ un dépôt ANNONCÉ à 400 Mo qui ferait passer le disque sous son plancher : 503 disque_plein, AVANT d\'avoir lu le corps (ce service ne doit jamais priver OP GESTION de disque)', [x.code, x.j.error], [503, 'disque_plein']);
   } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
   await svc3.arreter();
+
+  /* ═══ 9. LE BALAYEUR N'EST PAS UNE GARDE ══════════════════════════════════════════════════════════════════════════════════════ */
+  console.log('\nLe balayeur n\'est pas une garde : tant qu\'il n\'a pas passé, une pièce échue ne se lit plus et ne s\'attache plus');
+  /* ⛔ Sur les autres services du banc le balayeur passe toutes les 150 ms : une pièce échue y disparaît avant qu'on la relise, et la vérification d'échéance FAITE À LA LECTURE (puis à
+     l'attachement) ne se voyait pas — retirée, tout restait vert. Ici le balayeur ne passe qu'une fois par heure : la ligne de la pièce est encore là, et c'est l'échéance qui refuse.
+     En production la fenêtre est celle de `balayageMs` (une minute) : un message éphémère échu ne doit pas rester lisible par sa photo pendant ce temps. */
+  const svc4 = await T.lancerService({ urlGestion: og.url, horloge: true, config: { balayageMs: 3600000, pieces: { photoMax: 200000, bloc: 4096 }, quotas: { piece: { max: 1000, fenetreMs: 3600000 } } } });
+  try {
+    const A4 = await compte('alice', svc4), B4 = await compte('bruno', svc4);
+    await lienContact(A4, B4);
+    const ligne4 = (id) => { const d = T.lireBase(path.join(svc4.data, 'msg.db')); try { return d.prepare('SELECT 1 FROM piece WHERE id = ?').all(id).length; } finally { d.close(); } };
+    const ge = await groupe(A4, 'Éphémère', [B4], { ephemere_s: 86400 }), gd = await groupe(A4, 'Durable', [B4]);
+    const pe4 = await photo(A4, ge), pe4m = await envoyer(A4, ge, { type: 'photo', pieces: [{ id: pe4, w: 8, h: 8 }] });
+    const po4 = await photo(A4, gd);
+    const pd4 = await photo(A4, gd), pd4m = await envoyer(A4, gd, { type: 'photo', pieces: [{ id: pd4, w: 8, h: 8 }] });
+    v('population : la photo d\'un éphémère (lue par Bruno), une pièce jamais envoyée (lue par son dépositaire), la photo d\'un message durable (lue par Bruno) — toutes lisibles', [pe4m.code, (await lire(B4, pe4)).code, (await lire(A4, po4)).code, (await lire(B4, pd4)).code], [201, 200, 200, 200]);
+    /* « supprimé » : « supprimer pour tous » efface la ligne de la pièce DANS la même transaction, donc cet état n'existe pas par l'API — il existe après une restauration ou une version d'avant.
+       On le fabrique à la main : le droit de lire ne doit pas dépendre de ce que l'effacement a bien eu lieu. */
+    const bd = new (require('node:sqlite').DatabaseSync)(path.join(svc4.data, 'msg.db'));
+    bd.exec('PRAGMA busy_timeout = 5000');
+    const marque = bd.prepare('UPDATE message SET supprime_le = ? WHERE conv = ? AND seq = ?').run(Date.now(), gd, pd4m.j.seq);
+    bd.close();
+    v('⛔ un message marqué « supprimé » dont la ligne de pièce est encore là : la pièce ne se lit plus (ni par Bruno ni par son auteur)', [Number(marque.changes), ligne4(pd4), (await lire(B4, pd4)).code, (await lire(A4, pd4)).code], [1, 1, 404, 404]);
+    svc4.avancer(25 * 3600000);
+    v('⛔ un message éphémère échu que le balayeur n\'a PAS ôté (sa photo est encore en base) : elle ne se lit plus, même par son auteur', [ligne4(pe4), (await lire(B4, pe4)).code, (await lire(A4, pe4)).code], [1, 404, 404]);
+    v('⛔ une pièce déposée il y a 25 h et jamais envoyée, encore en base : elle ne se lit plus, même par son dépositaire', [ligne4(po4), (await lire(A4, po4)).code], [1, 404]);
+    const mEch = await envoyer(A4, gd, { type: 'photo', pieces: [{ id: po4, w: 8, h: 8 }] });
+    v('⛔ …et elle ne s\'attache plus : 404 piece_inconnue (c\'est l\'échéance qui refuse, pas le balayeur), et la ligne est toujours là', [mEch.code, mEch.j.error, ligne4(po4)], [404, 'piece_inconnue', 1]);
+    svc4.avancer(-25 * 3600000);
+    const frais = await photo(A4, gd), mFrais = await envoyer(A4, gd, { type: 'photo', pieces: [{ id: frais, w: 8, h: 8 }] });
+    v('contre-épreuve : une pièce déposée À L\'HEURE s\'attache et se lit (le refus ci-dessus vient bien de l\'échéance)', [mFrais.code, (await lire(B4, frais)).code], [201, 200]);
+  } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
+  await svc4.arreter();
 
   fs.rmSync(bac, { recursive: true, force: true });
   await svc.arreter(); await og.fermer();

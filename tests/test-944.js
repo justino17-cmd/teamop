@@ -7,14 +7,15 @@
    voient pas la faute de l'autre.
 
    Les contrôles marqués ⛔ gardent des propriétés dont la perte ne se verrait PAS :
-     · UNE PIÈCE DÉJÀ DÉPOSÉE N'EST PAS REDÉPOSÉE : la réponse du message se perd, l'envoi repart avec le même `cid` — un seul dépôt, un seul message ;
-     · L'ORDRE D'ENVOI EST L'ORDRE DES MESSAGES : un texte écrit pendant le dépôt lent d'une photo arrive APRÈS elle, jamais avant ;
+     · UNE PIÈCE DÉJÀ DÉPOSÉE N'EST PAS REDÉPOSÉE : le service tombe (503) après le dépôt, le message n'arrive jamais, le renvoi cite la pièce qui est déjà là — un seul dépôt ; et de deux
+       photos dont la seconde échoue, la première ne repart pas. (La « réponse perdue » d'un message ARRIVÉ ne prouve rien là-dessus : le flux le rend, la file n'a plus rien à renvoyer.) ;
+     · L'ORDRE D'ENVOI EST L'ORDRE DES MESSAGES : un texte écrit pendant le dépôt lent d'une photo arrive APRÈS elle, jamais avant — et la file vidée pendant ce dépôt ne le relance pas ;
      · UN REFUS SE DIT, AVEC SA PHRASE, ET RIEN N'EST ENVOYÉ : trop lourd (dit avant d'ouvrir une connexion), 415, 402 (« espace plein », pas « réessaie dans un
        instant »), 429 avec son attente, 413 d'un relais en HTML — et un message en file refusé APRÈS COUP le dit aussi, et libère ses adresses locales ;
      · LA MÉMOIRE DES PIÈCES EST BORNÉE ET RENDUE : jamais plus d'adresses vivantes que la borne, tout est libéré à l'arrêt, un message effacé libère les siennes ;
      · L'IMAGE QU'ON VIENT D'ENVOYER NE SE RELIT PAS : l'adresse fabriquée par la page devient la mémoire de la pièce (aucun GET) ;
      · LES 30 DERNIÈRES PHOTOS SEULES SE LISENT D'AVANCE (une conversation de cent photos ne se télécharge pas d'un coup), les autres au toucher ;
-     · UN FICHIER NE SE GARDE JAMAIS EN MÉMOIRE (aucune adresse fabriquée) ; son nom est assaini ;
+     · UN FICHIER NE SE GARDE JAMAIS EN MÉMOIRE (aucune adresse fabriquée) ; son nom est assaini PAR L'APPAREIL (lu dans la requête qu'il envoie, pas dans ce que le service rend) ;
      · UNE PHOTO DE PROFIL D'UN ÉTRANGER NE SE LIT PAS, UN BLOCAGE LA CACHE, ET UN PROFIL QUI CHANGE PRÉVIENT LES AUTRES (événement `personne`). */
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
 const T = require('./outils-msg');
@@ -32,25 +33,29 @@ const PHOTO_MAX = 307200, VOCAL_MAX = 204800, FICHIER_MAX = 716800, AVATAR_MAX =
 /* Un « appareil » : un navigateur de poche (cookie, Origin) dont on peut COUPER le réseau, RETENIR une requête, PERDRE une réponse, FORCER une réponse, et dont on compte les requêtes ET les adresses blob:. */
 function monter(svc, opts = {}) {
   const nav = T.navigateur(svc.base);
-  const reseau = { coupe: false, requetes: [], retenir: null, forcer: null, perdre: null };
+  const reseau = { coupe: false, requetes: [], urls: [], tirsFile: 0, retenir: null, forcer: null, perdre: null };
   const urls = { creees: new Map(), revoquees: [] };
   const creerUrl = (b) => { const u = 'blob:http://127.0.0.1/' + crypto.randomUUID(); urls.creees.set(u, b); return u; };
   const revoquerUrl = (u) => { urls.revoquees.push(u); };
   const f = async (url, init) => {
     const u = String(url), m = (init && init.method) || 'GET', chemin = u.replace(svc.base, '').split('?')[0], cle = m + ' ' + chemin;
     reseau.requetes.push(cle);
+    reseau.urls.push(m + ' ' + u.replace(svc.base, ''));            // l'adresse ENTIÈRE, requête comprise : ce que l'appareil ENVOIE (le nom d'un fichier y voyage)
     if (reseau.coupe) throw new TypeError('réseau coupé');
     if (reseau.retenir && reseau.retenir.re.test(cle)) { await reseau.retenir.attente; if (reseau.coupe) throw new TypeError('réseau coupé'); }
     if (reseau.forcer && reseau.forcer.re.test(cle)) {
       const x = reseau.forcer;
-      if (x.fois !== undefined && --x.fois < 0) reseau.forcer = null;
+      if (x.saute > 0) x.saute--;                                     // les premières requêtes passent (la seconde photo échoue, pas la première)
+      else if (x.fois !== undefined && --x.fois < 0) reseau.forcer = null;
       else return new Response(x.corps, { status: x.code, headers: x.entetes || { 'Content-Type': 'application/json' } });
     }
     const r = await nav.fetch(url, init);
     if (reseau.perdre && reseau.perdre.test(cle)) { reseau.perdre = null; throw new TypeError('réponse perdue'); }
     return r;
   };
-  const src = creerSourceServeur(Object.assign({ OPMSG, base: svc.base, fetch: f, EventSource: nav.EventSource, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5, creerUrl, revoquerUrl, delaiReessaiPieceMs: 300 }, opts));
+  /* la minuterie de la FILE D'ENVOI (120 ms : `attenteEnvoi`) se compte quand elle tire : « la file a été vidée pendant ce temps » se prouve, elle ne se suppose pas */
+  const planifier = (fn, ms) => setTimeout(() => { if (ms === 120) reseau.tirsFile++; fn(); }, ms);
+  const src = creerSourceServeur(Object.assign({ OPMSG, base: svc.base, fetch: f, EventSource: nav.EventSource, planifier, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5, creerUrl, revoquerUrl, delaiReessaiPieceMs: 300 }, opts));
   const evs = [], morts = [];
   src.ecouter(e => evs.push(e));
   src.surSessionMorte(m => morts.push(m));
@@ -123,7 +128,8 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
     /* ═══ 3. « ENVOI… », L'ORDRE, LES REPRISES ══════════════════════════════════════════════════════════════════════════════════════ */
     console.log('\nUn dépôt lent : « Envoi… » paraît tout de suite, ce qui est écrit après attend son tour, une coupure met en file sans redéposer');
     {
-      const liberer = A.retenir(/^POST \/api\/pieces$/);
+      const liberer = A.retenir(/^POST \/api\/pieces$/), msgs = /^POST \/api\/conversations\/c_[0-9a-f]+\/messages$/;
+      const depotsAvant = A.nb(/^POST \/api\/pieces$/), messagesAvant = A.nb(msgs);
       const loc = creerLocale(A, F.png({ couleur: [200, 200, 10] }));
       const p1 = A.src.envoyer(conv, { photos: [{ blob: loc.blob, url: loc.url, w: 8, h: 8 }] });
       const vu = await att(async () => (await vues(A, conv)).find(m => m.attente && m.photos));
@@ -131,6 +137,11 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
       v('et le compteur de messages qui n\'ont pas quitté l\'appareil le dit (la page prévient avant de fermer)', A.src.enAttente(), 1);
       const p2 = await A.src.envoyer(conv, { texte: 'après la photo' });
       vrai('⛔ un texte écrit PENDANT le dépôt rejoint la file (« en attente »), il ne double pas la photo', p2.attente === true && A.src.enAttente() === 2);
+      /* ⛔ pendant que le dépôt dure, la file est VIDÉE (la minuterie tire, plusieurs fois) et ne relance rien : un seul dépôt, aucun message parti, ni la photo ni le texte.
+         Sans la garde « un dépôt est en cours », la file reprenait la photo en même temps que son premier essai — deux téléversements de la même image. */
+      const tirs0 = A.reseau.tirsFile;
+      vrai('population : la minuterie de la file a tiré au moins deux fois pendant que le dépôt durait (la garde a vraiment été jouée)', await att(() => A.reseau.tirsFile >= tirs0 + 2));
+      v('⛔ …et un SEUL dépôt a été entrepris, aucun message n\'a quitté l\'appareil', [A.nb(/^POST \/api\/pieces$/) - depotsAvant, A.nb(msgs) - messagesAvant], [1, 0]);
       liberer();
       await p1;
       const t = await trouve(B, conv, m => m.texte === 'après la photo');
@@ -148,6 +159,27 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
       vrai('⛔ le renvoi réussit tout seul, la file se vide, et la pièce n\'a été déposée QU\'UNE FOIS', await att(() => A.src.enAttente() === 0) && A.nb(/^POST \/api\/pieces$/) - avant === 1);
       await T.dort(200);
       v('⛔ chez Bruno, ce message-là n\'existe qu\'une fois (même `cid`)', (await vues(B, conv)).filter(m => m.photos && m.photos[0].piece && m.photos.length === 1).length, 3);
+    }
+    {
+      /* ⛔ LE SERVICE TOMBE (503) APRÈS UN DÉPÔT RÉUSSI : le message n'arrive JAMAIS (la réponse est forcée, la requête ne part pas), donc le flux ne le rend pas et c'est bien le RENVOI qui
+         travaille — ce que le cas « réponse perdue » ci-dessus ne prouve pas (là le message est arrivé, le flux le rend, et la file n'a plus rien à renvoyer). Le renvoi cite la pièce
+         DÉJÀ déposée : un seul dépôt de la photo, deux envois du message. */
+      const msgs = /^POST \/api\/conversations\/c_[0-9a-f]+\/messages$/;
+      const dAvant = A.nb(/^POST \/api\/pieces$/), mAvant = A.nb(msgs), uneAvant = (await vues(B, conv)).filter(m => m.photos && m.photos.length === 1).length;
+      A.reseau.forcer = { re: msgs, code: 503, corps: '{}', fois: 1 };
+      const loc = creerLocale(A, F.png({ couleur: [200, 90, 20] }));
+      const r = await A.src.envoyer(conv, { photos: [{ blob: loc.blob, url: loc.url, w: 8, h: 8 }] });
+      vrai('population : le service a refusé le message (503) APRÈS le dépôt — la photo est « en attente » et sa pièce est déjà déposée', r.attente === true && r.envoi === false && A.src.enAttente() === 1 && A.nb(/^POST \/api\/pieces$/) - dAvant === 1);
+      vrai('⛔ le renvoi part tout seul et réussit : la file se vide, DEUX envois du message, UN SEUL dépôt de la photo', await att(() => A.src.enAttente() === 0) && A.nb(/^POST \/api\/pieces$/) - dAvant === 1 && A.nb(msgs) - mAvant === 2);
+      v('⛔ chez Bruno, ce message-là existe UNE fois', await att(async () => (await vues(B, conv)).filter(m => m.photos && m.photos.length === 1).length === uneAvant + 1) && (await vues(B, conv)).filter(m => m.photos && m.photos.length === 1).length, uneAvant + 1);
+      /* DEUX photos, la SECONDE échoue au dépôt (503) : la première est déjà déposée, elle ne repart pas */
+      const d2 = A.nb(/^POST \/api\/pieces$/);
+      A.reseau.forcer = { re: /^POST \/api\/pieces$/, code: 503, corps: '{}', saute: 1, fois: 1 };
+      const x1 = creerLocale(A, F.png({ couleur: [20, 90, 200] })), x2 = creerLocale(A, F.png({ couleur: [90, 20, 200] }));
+      const r2 = await A.src.envoyer(conv, { photos: [{ blob: x1.blob, url: x1.url, w: 8, h: 8 }, { blob: x2.blob, url: x2.url, w: 8, h: 8 }] });
+      vrai('population : la seconde photo a échoué au dépôt, la première était déjà déposée — le message est « en attente »', r2.attente === true && A.src.enAttente() === 1 && A.nb(/^POST \/api\/pieces$/) - d2 === 2);
+      vrai('⛔ le renvoi dépose SEULEMENT la seconde : trois dépôts en tout (première, seconde refusée, seconde reprise), et le message arrive avec les deux photos dans l\'ordre', await att(() => A.src.enAttente() === 0) && A.nb(/^POST \/api\/pieces$/) - d2 === 3 &&
+        !!(await trouve(B, conv, m => m.photos && m.photos.length === 2 && m.t >= r2.t)));
     }
     {
       /* le réseau tombe PENDANT le dépôt : en file, puis repart au retour du réseau */
@@ -179,6 +211,9 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
     {
       const pdf = F.pdf(9000), vivantesAvant = B.vivantes().length, adressesA = A.urls.creees.size, nom = 'Rapport été/2026\u0000.pdf';
       await A.src.envoyer(conv, { fichier: { blob: blobDe(pdf), nom, taille: pdf.length } });
+      /* ⛔ ce que l'APPAREIL envoie : le service refait le même ménage (test-943), donc le nom RENDU ne dit rien de l'appareil — la page en attendant montre ce qu'elle a assaini */
+      const depotsFichier = A.reseau.urls.filter(x => /^POST \/api\/pieces\?/.test(x) && /genre=fichier/.test(x));
+      v('⛔ le nom que l\'appareil ENVOIE est déjà assaini : ni la barre ni le caractère de contrôle ne partent dans la requête', depotsFichier.length && new URLSearchParams(depotsFichier[depotsFichier.length - 1].split('?')[1]).get('nom'), 'Rapport été_2026 .pdf');
       const m = await trouve(B, conv, x => x.fichier);
       v('⛔ Bruno reçoit le fichier : son nom ASSAINI (la barre et le caractère de contrôle ne passent pas), sa taille, la pièce', [m.fichier.nom, m.fichier.taille, /^f_[0-9a-f]{32}$/.test(m.fichier.piece)], ['Rapport été_2026 .pdf', pdf.length, true]);
       v('l\'aperçu dit « Fichier · <nom> »', (await B.src.lister()).find(c => c.id === conv).apercu, 'Fichier · Rapport été_2026 .pdf');
