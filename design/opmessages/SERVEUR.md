@@ -216,11 +216,11 @@ Codes communs : 400 `champ_invalide`, 401 `session_requise`, 402 `formule_requis
 - `POST /api/conversations/:id/messages {cid, type, texte?, piece?, meta?, reponse_a?, mentions?}` (M) → 201 `{seq, ts}`, ou 200 `{deja:true}` au renvoi.
   - 403 `annonces_seules`, 404 `piece_inconnue`, 413 (8 000 caractères), 429 (60 par minute).
 - `/messages/modifier` (auteur, 15 min) ; `/messages/supprimer {pour:'moi'|'tous'}` (auteur ou A) ; `/messages/reagir`.
-- Pièces (étape 4) :
-  - `POST /api/pieces?conv=&nom=&mime=` en flux binaire, taille déclarée obligatoire, arrêt dès le dépassement ;
-  - `GET /api/pieces/:id` (M de la conversation liée, `Range`) ;
+- Pièces (étape 4, ✅ fait — § 4.1) :
+  - `POST /api/pieces?conv=&genre=photo|vocal|fichier&nom=` (ou `?genre=avatar` pour une photo de profil) en flux binaire, `Content-Length` obligatoire (411), maximum du genre jugé avant de lire (413), arrêt dès le dépassement ;
+  - `GET /api/pieces/:id` (garde **J** : le droit de lire le message qui la porte, `Range`) ; `POST /api/moi/avatar {piece|null}` ; `GET /api/moi/stockage` ;
   - type vérifié contre les premiers octets (415) ;
-  - `nosniff`, `Content-Security-Policy: sandbox`, `Content-Disposition: attachment` pour tout sauf JPEG/PNG/WebP/GIF et audio ; jamais de SVG ou HTML en ligne ;
+  - `nosniff`, `Content-Security-Policy: sandbox`, `Content-Disposition: attachment` pour tout sauf JPEG/PNG/WebP/GIF et audio jugés aux octets ; jamais de SVG ou HTML en ligne ;
   - EXIF retiré (client et serveur) ; quota (402).
 
 **Notifications et push** (étape 2)
@@ -511,11 +511,65 @@ Voir les routes ci-dessus. Plafond durable par compte et par jour **compté avan
 - **Justin teste** : un essai de restauration réussi, rapporté chiffres à l'appui. **Porte avant toute personne hors équipe.**
 - **Gestes de Justin** : un bucket S3 distinct avec sa propre paire de clés, saisie masquée dans `configurer-messages.js`.
 
-### Étape 4 : pièces
+### Étape 4 : pièces — ✅ FAIT (2 octobre 2026, `server-msg/pieces.js`, `routes-pieces.js`, migration 3)
 
-- **Contenu** : photos, vocaux (forme d'onde calculée sur l'appareil), fichiers, photo de profil, quotas, sauvegarde des pièces.
-- **Justin teste** : le « + » et le micro d'une conversation, bulles photo, vocal avec forme d'onde.
-- **Gestes** : aucun.
+- **Contenu** : photos, vocaux (forme d'onde calculée sur l'appareil), fichiers, photo de profil (d'une personne et d'un groupe), quotas, interrupteurs de confidentialité RÉCIPROQUES, un vrai écran Réglages.
+- **Justin teste** : le « + » (Photo / Fichier) et le micro d'une conversation, les bulles photo, fichier et vocal avec sa forme d'onde, Réglages > Profil, Confidentialité, Stockage, Appareils.
+- **Gestes** : aucun pour l'application ; **UN pour le proxy, sur le VPS, par Justin** — relancer `install-msg.sh` pour poser l'exception de 26 Mo sur `/api/pieces` (§ 4.4). Le déploiement par la CI ne le fait PAS.
+
+#### 4.1 Ce qui est fait
+
+- **Stockage** — migration 3 : la table `message` est reconstruite (son type accepte `photo` et `fichier`), la table `piece` naît (`proprio`, `conv`, `genre`, `taille`, `mime`, `nom_ch` scellé, `attachee`, `expire`) ; une copie `avant-v3` de la base est gardée AVANT toute modification, la migration est rejouable. Les fichiers vivent dans `<données>/pieces/<2 caractères>/<id>`, **scellés par blocs** (AES-256-GCM, bloc de 64 Kio, la clé de bloc est dérivée de la clé maître ET de l'identifiant de la pièce, l'AAD lie l'identifiant, le numéro du bloc et le drapeau « dernier » : un bloc échangé ou un fichier tronqué à une frontière ne s'authentifie pas), écrits en temporaire puis renommés. `Range` ne déchiffre que les blocs touchés.
+- **Quatre routes** (manifeste, matrice de `test-905`) : `POST /api/pieces` (V, corps binaire, `Content-Length` OBLIGATOIRE : 411 sinon ; le maximum du genre se juge AVANT de lire : 413 `piece_trop_lourde {max}` ; type de la requête = `application/octet-stream` sinon 415 ; espace disque : 503 ; quota par personne : 402 `quota_atteint {portee:'stockage'}` ; envois en même temps : 429 `{portee:'simultane'}` ; plafond par heure : 429 + `Retry-After`), `GET /api/pieces/:id` (garde **J**, `Range`), `POST /api/moi/avatar` (S), `GET /api/moi/stockage` (S).
+- **Le droit de lire une pièce est celui du message qui la porte** (`pieceVisible`) : pas avant l'arrivée de la personne dans le groupe (`depuis_seq`), pas si le message est supprimé « pour tous » ou « pour moi », ni échu, ni si elle a quitté le groupe. Tant qu'une pièce n'est pas attachée à un message, elle est à son dépositaire seul. **Une pièce qu'on n'a pas le droit de lire répond EXACTEMENT comme une pièce qui n'existe pas** (404, même corps : `test-905` le compare).
+- **Le type se juge aux octets, jamais à la parole du client** : JPEG, PNG, WebP, GIF pour une photo ou une photo de profil ; webm, ogg, mp4, mpeg pour un vocal ; n'importe quoi pour un fichier — servi TOUJOURS `application/octet-stream` + `attachment` (un SVG ou un HTML déposé comme fichier ne s'exécute jamais ; un PNG déposé comme fichier reste un fichier). Une pièce servie porte `nosniff`, `Content-Security-Policy: sandbox; default-src 'none'`, `Cache-Control: private, no-store`, jamais de CORS.
+- **Les métadonnées sont retirées côté serveur** (et côté page : le canvas ne les recopie pas) : JPEG (Exif, XMP, IPTC, commentaires, index MPF, tout ce qui suit la fin de l'image), PNG (`eXIf`, `tEXt`, `iTXt`, `zTXt`, `tIME`, après `IEND`), WebP (EXIF et XMP, drapeaux de `VP8X`, taille RIFF recalculée). Une image dont la structure ne se parcourt pas de bout en bout est refusée (415), pas rangée. **Les fichiers ne sont PAS nettoyés** (un PDF garde ses métadonnées : c'est un fichier, pas une photo).
+- **Un message cite ses pièces** (`type: photo|vocal|fichier`) : celles de l'envoyeur, du bon genre, de la bonne conversation, non encore envoyées, non échues — sinon 404 `piece_inconnue` et RIEN n'est à moitié attaché ; un renvoi (même `cid`) ne refait ni message ni attachement. Le nom et la taille d'un fichier sont ceux de la PIÈCE, jamais ceux du corps de la requête.
+- **Les pièces partent avec ce qui les porte, fichier compris** : « supprimer pour tous », un éphémère échu, le dernier membre qui part, la photo d'une personne ou d'un groupe remplacée ou retirée ; une pièce jamais envoyée expire au bout de 24 h ; le balayeur réconcilie « fichier sans ligne » (plus de 10 minutes) et temporaires (plus d'une heure). **Le droit de lire ne dépend pas du passage du balayeur** : un message éphémère échu et une pièce jamais envoyée depuis 24 h ne se lisent plus (et ne s'attachent plus) dès l'échéance, la ligne fût-elle encore en base (`test-943` § 9, sur un service dont le balayeur ne passe jamais).
+- **Photo de profil** : la mienne se pose et se retire (`/api/moi/avatar`), mes contacts la lisent, un étranger non, **une personne qui m'a bloqué ne la reçoit pas**. Photo d'un groupe : `conv.groupe {avatar_piece}` à la création, `conv.maj {avatar_piece}` ensuite (administrateur, message système). Événement éphémère `personne {uid}` : un profil qui change prévient ses contacts, ses co-membres et ses autres appareils, qui relisent.
+- **Confidentialité réciproque, comme WhatsApp** (`POST|GET /api/moi/confidentialite {presence?, accuses?}`, aussi `/api/moi/maj {prefs}`) : qui coupe « Afficher quand je suis en ligne » ne montre pas sa présence ET ne voit celle de personne ; qui coupe ses « Confirmations de lecture » ne montre pas son « Lu » ET ne voit celui de personne — **dans une conversation à deux comme dans un groupe** (décision prise ici, à confirmer). Appliqué par le SERVICE (liste des contacts, diffusion de la présence, `membresDetail`, événements `lu`), pas par la page seule.
+- **/health** : `pieces {n, octets, illisibles, effacementsRates}`, agrégé — jamais un identifiant ni un nom. `illisibles` > 0 et `effacementsRates` ≥ 5 font crier la surveillance ; `n` et `octets` sont nommés « vus et pas surveillés » avec leur raison.
+- **`Permissions-Policy: camera=(), microphone=(self)`** : la page peut demander le micro (le vocal), pas la caméra.
+- **La page** (`apercu/opmessages/index.html`, régénérée dans `server-msg/public/`) : « + » ouvre une feuille Photo / Fichier ; la photo est réduite par un canvas à 1 600 px et environ 250 Ko avant de partir ; « Envoi… » tant que le dépôt court ; la bulle d'un fichier (nom, taille, téléchargement) ; le vocal part pour de vrai ; les pièces sont lues à la demande et gardées EN MÉMOIRE seulement (adresses `blob:` bornées, rendues à la déconnexion) ; les 30 dernières photos et les 6 derniers vocaux d'une conversation sont lus d'avance, les autres au toucher ; un écran Réglages complet (profil et feuille Profil, confidentialité, contacts bloqués, autres appareils, stockage, à propos, se déconnecter). La démo (`source.js`) n'est pas touchée.
+
+#### 4.2 Réglages par défaut (à confirmer par Justin) — `config.pieces`, bornés, un nombre absurde REFUSE le démarrage
+
+| | défaut | où |
+|---|---|---|
+| photo | 12 Mo | `photoMax` |
+| vocal | 10 Mo (10 minutes au plus) | `vocalMax` |
+| fichier | 25 Mo | `fichierMax` |
+| photo de profil | 2 Mo | `avatarMax` |
+| par personne | 2 Go de pièces | `quotaPersonne` |
+| envois par heure | 60 (le tiers pour un compte de moins de 24 h hors bêta) | `depotsHeure`, `quotas.piece` |
+| pièce jamais envoyée | effacée au bout de 24 h | `orphelineMs` |
+| envois en même temps | 16 pour le service, 4 par personne | `simultanes`, `parPersonne` |
+| taille d'un bloc | 64 Kio (puissance de deux) | `bloc` |
+| photos par message | 10 | constante |
+
+Ces valeurs sont aussi **annoncées à la page** (`GET /api/config` → `limites.pieces`) : elle refuse un fichier trop lourd AVANT d'ouvrir une connexion. ⚠️ **Le proxy doit suivre** : nginx laisse passer 26 Mo sur la route EXACTE `/api/pieces` (le plus gros maximum + une marge) et 64 Ko partout ailleurs ; relever `fichierMax` au-delà de 25 Mo demande de relever aussi `client_max_body_size` de ce bloc dans `install-msg.sh`. Le corps reste tamponné par nginx (un client lent ne tient pas un descripteur de Node) ; le tampon coûte du disque avant que le service puisse dire 401, d'où un plafond de débit ET d'envois simultanés par adresse sur cette route.
+
+#### 4.3 Ce qui n'est PAS fait
+
+- **La sauvegarde des pièces.** `<données>/pieces/` n'est pas dans l'instantané : l'étape 3 (sauvegarde hors site) doit l'inclure — ce sont des fichiers scellés, lisibles seulement avec la clé maître, et `piece` est dans la base.
+- **Les limites « Pro »** (100 Mo par fichier, 20 Go par siège) : il n'y a qu'un palier tant que les espaces professionnels (étape 5) n'existent pas.
+- **Les notifications push d'une photo ou d'un vocal** (étape 2, push) : l'aperçu de la liste dit « Photo », « Message vocal · 0:03 », « Fichier · nom ».
+- **La vidéo envoyée en message**, la **capture directe** de l'appareil photo (le sélecteur du système la propose déjà sur un téléphone), un **fichier plus gros que 25 Mo**.
+- **Mesuré au navigateur dans un Chromium de conteneur, pas sur un vrai iPhone** : l'autorisation de démarrer un son qu'on vient de télécharger (iOS peut la refuser : la page dit « Touche encore », le second toucher lit le vocal, déjà en mémoire) ; le nom d'un fichier téléchargé qui porte des accents (ce Chromium rend « download » pour tout nom non ASCII, même sur une page nue).
+- **La configuration nginx/Caddy posée par `install-msg.sh` n'a pas été validée par un vrai `nginx -t` ni `caddy validate`** (ni l'un ni l'autre n'est installé dans l'environnement de travail) : le script les lance lui-même avant de recharger et restaure l'ancien fichier en cas de refus, mais la syntaxe Caddy (`@pasPieces not path /api/pieces` + deux `request_body`) est écrite d'après la documentation.
+
+#### 4.4 Le geste de Justin sur le VPS (le déploiement par la CI NE LE FAIT PAS)
+
+`deployer.sh` (celui que lance la CI) exporte `server-msg/` dans `releases/<sha>`, y installe les dépendances, bascule le lien `current` et redémarre l'unité : il ne touche NI à nginx NI à Caddy, et ne relance pas `install-msg.sh`. Le fichier de proxy d'OP MESSAGES (`/etc/nginx/sites-available/opmsg-<instance>.conf`, ou `/etc/caddy/opmsg/<instance>.caddy`) est écrit par l'installation seule. Tant qu'elle n'est pas rejouée, le proxy garde `client_max_body_size 64k` sur toute la route : un dépôt de photo, de vocal ou de fichier au-delà de 64 Ko reçoit un 413 **du proxy** (en HTML, avant que le service voie le corps), que la page lit comme « trop lourd » avec le maximum du service — c'est exactement le défaut à ne pas laisser en ligne. Le service, lui, est déjà correct : il refuse tout seul ce qui dépasse.
+
+Le geste, en root sur le VPS, après le déploiement de ce commit sur `main` (le script est REJOUABLE : la configuration et la clé ne sont pas retouchées, le fichier de proxy n'est réécrit que s'il a changé, `nginx -t` ou `caddy validate` passe AVANT le rechargement et l'ancien fichier est remis en cas de refus) :
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/justino17-cmd/teamop/main/server-msg/install-msg.sh -o /root/install-msg.sh
+bash /root/install-msg.sh beta
+```
+
+Pour la production, le jour de « publie OP MESSAGES » seulement : `OPMSG_PUBLIE=oui bash /root/install-msg.sh prod`. Si nginx ET Caddy tournent, préciser `OPMSG_PROXY=nginx` (ou `caddy`). Le script n'affiche aucun secret, ne redemande NI la clé maître NI la clé de déploiement sur une instance déjà installée (il ne les demande que si elles manquent), et finit comme toute installation par déployer `main` : l'instance redémarre une fois (les appareils connectés se reconnectent seuls, le flux reprend où il en était).
 
 ### Étape 5 : espaces professionnels et Messages Pro
 
@@ -566,7 +620,7 @@ Voir les routes ci-dessus. Plafond durable par compte et par jour **compté avan
 5. **Âge minimal 15 ans et pas d'annuaire** : *recommandé* pour un service tout public. ✅ Tranché le 1er octobre 2026 pour la recherche : par **numéro exact seulement** (« comme WhatsApp »), plafonnée, jamais de liste ni de recherche par nom (§ 2.5).
 5 bis. **Clés d'accès (passkey, WebAuthn) et appel vocal** (§ 2.2 et 2.4) : deux gains sur le coût des SMS et l'accueil des gens dont le SMS n'arrive pas — *la clé d'accès recommandée*, l'appel vocal seulement si un prix par pays est connu.
 5 ter. **Les budgets SMS par pays** (20 €/jour, 3 €/jour/pays par défaut) : à relever pays par pays selon où les gens s'inscrivent vraiment (§ 2.3).
-6. **Quotas de stockage et tailles de pièces** : *je propose* photo 12 Mo, vocal 10 Mo, fichier 25 Mo en Perso et 100 Mo en Pro, 2 Go par personne en Perso et 20 Go par siège en Pro.
+6. **Quotas de stockage et tailles de pièces** : *je propose* photo 12 Mo, vocal 10 Mo, fichier 25 Mo en Perso et 100 Mo en Pro, 2 Go par personne en Perso et 20 Go par siège en Pro. ⚠️ **Posé le 2 octobre 2026 pour l'étape 4 : les valeurs « Perso » seulement** (photo 12 Mo, vocal 10 Mo, fichier 25 Mo, photo de profil 2 Mo, 2 Go par personne, § 4.2) — à CONFIRMER. Les valeurs Pro attendent l'étape 5.
 7. **Palier « Business Premium 25 € » et « inclus avec le Business Premium d'OP GESTION »** (`tarifs.html`) : avec des comptes séparés, la liaison n'existe pas. *Recommandé* : retirer la phrase, ou un geste « cadeau » explicite plus tard, jamais une lecture continue d'OP GESTION. ✅ **Tranché le 1er octobre 2026 (Justin : « un Pro à 15 euros ; lui à 25 on le supprime ; à 15 euros ils ont toutes les options »)** : Messages Business Premium est retirée de la vente, Messages Pro à 15 € porte tout, la phrase est retirée du site (aperçu), de la page de paiement et du serveur (refus `formule_retiree`) ; « visio illimitée » est écrite « sans limite de durée », avec le nombre de participants en vidéo dit limité.
 8. **Données existantes dans Firebase** : y a-t-il de vraies conversations à conserver ? Aucune migration n'est prévue. *Recommandé* : non, sauf si tu me dis qu'il y en a.
 9. **Réunions à plus de 4 en vidéo** : SFU LiveKit en étape 10, sur mesures. *Recommandé* de ne rien promettre avant.
