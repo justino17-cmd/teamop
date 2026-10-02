@@ -327,7 +327,7 @@ const horlogeFixe = (h) => () => h.t;
     const peuple = o.vide ? null : O.remplir(b, o.n === undefined ? 200 : o.n);
     const cle = O.cleHex(), h = { t: 1790000000000 };
     const instance = o.instance || 'beta';
-    const cfg = SAUV.lireConfigSauvegarde(coffre.conf(Object.assign({ cle, intervalleMs: 60000 }, o.conf)), { instance, kek: b.kek });
+    const cfg = SAUV.lireConfigSauvegarde(coffre.conf(Object.assign({ cle }, instance === 'beta' ? { intervalleMs: 60000 } : {}, o.conf)), { instance, kek: b.kek });
     const evts = [];
     const sortie = [];
     const sauv = SAUV.creerSauvegarde({
@@ -448,13 +448,13 @@ const horlogeFixe = (h) => () => h.t;
       await faux('un instantané qui écrit un fichier de ZÉRO octet (le disque s\'est rempli pendant la copie)', { instantane: async (vers) => { fs.writeFileSync(vers, ''); return { methode: 'backup' }; }, sonde: () => b0.S.sonde() }, ['instantane-illisible']);
       await faux('un instantané qui écrit du TEXTE (une copie qui n\'est pas une base)', { instantane: async (vers) => { fs.writeFileSync(vers, 'ceci n\'est pas une base de données'.repeat(100)); return { methode: 'backup' }; }, sonde: () => b0.S.sonde() }, ['instantane-illisible']);
       /* Une base BIEN FORMÉE mais VIDE (neuve), prise pour la copie : l'horloge de son journal est en retard sur la base vivante. */
-      await faux('⛔ la copie d\'une base NEUVE et vide, bien formée (un mauvais chemin, une base recréée)', { instantane: async (vers) => { const n = O.creerBase(); try { await n.S.instantane(vers); } finally { n.nettoyer(); } return { methode: 'backup' }; }, sonde: () => b0.S.sonde() }, ['copie-horloge']);
+      await faux('la copie d\'une base NEUVE et vide, bien formée (un mauvais chemin, une base recréée)', { instantane: async (vers) => { const n = O.creerBase(); try { await n.S.instantane(vers); } finally { n.nettoyer(); } return { methode: 'backup' }; }, sonde: () => b0.S.sonde() }, ['copie-horloge']);
       /* Une VIEILLE copie de la même base : elle est saine, mais d'avant ce que le service vient d'écrire. */
       const vieille = path.join(b0.dossier, 'vieille.db');
       await b0.S.instantane(vieille);
       const { a: a0, conv: c0 } = { a: b0.S.personneParIdentifiant('beta:alice'), conv: b0.S.convListe(b0.S.personneParIdentifiant('beta:alice').id)[0].id };
       for (let i = 0; i < 5; i++) b0.S.messageEnvoyer({ conv: c0, auteur: a0.id, cid: 'apres-la-vieille-' + i, texte: 'écrit après la vieille copie' });
-      await faux('⛔ la copie d\'une base saine mais DATÉE D\'AVANT l\'instant (un instantané rangé ailleurs, rejoué)', { instantane: async (vers) => { fs.copyFileSync(vieille, vers); return { methode: 'backup' }; }, sonde: () => b0.S.sonde() }, ['copie-horloge']);
+      await faux('la copie d\'une base saine mais DATÉE D\'AVANT l\'instant (un instantané rangé ailleurs, rejoué)', { instantane: async (vers) => { fs.copyFileSync(vieille, vers); return { methode: 'backup' }; }, sonde: () => b0.S.sonde() }, ['copie-horloge']);
       b0.nettoyer();
     }
     const m2 = await monter({ n: 150, disqueLibre: () => 1000 });
@@ -739,6 +739,287 @@ const horlogeFixe = (h) => () => h.t;
       v('   un fichier illisible → null, sans lever', m.sauv.sante().essaiJours, null);
       fs.rmSync(essai);
     } finally { await m.fermer(); }
+  }
+
+  /* ══ 13. LE REJEU DE LA TABLE `purge` ET L'OUTIL DE RESTAURATION ═════════════════════════════════════════════════════════════ */
+  console.log('\n── 950 · le registre des purges est REJOUÉ sur une copie restaurée : un message effacé depuis ne REVIENT pas ──');
+  const m = await monter({ n: 80 });
+  const ids = {};
+  const pieceRel = 'ab/f_piece_purgee';
+  try {
+    const { a, c } = m.peuple;
+    const E = m.b.S.convCreerGroupe({ createur: a.id, nom: 'Éphémère', membres: [c.id], ephemere_s: 600 }).id;
+    const M1 = m.b.S.messageEnvoyer({ conv: E, auteur: a.id, cid: 'e1', texte: 'premier éphémère' });
+    const M2 = m.b.S.messageEnvoyer({ conv: E, auteur: c.id, cid: 'e2', texte: 'second éphémère' });
+    m.b.S.messageReagir({ conv: E, seq: M1.seq, uid: c.id, emoji: '👍' });
+    m.b.h.t += 700000;
+    const M3 = m.b.S.messageEnvoyer({ conv: E, auteur: a.id, cid: 'e3', texte: 'troisième, encore vivant' });
+    Object.assign(ids, { M1: M1.id, M2: M2.id, M3: M3.id, E, seq1: M1.seq });
+    /* Une pièce, pour qu'elle soit au coffre dans l'archive A (et purgée ensuite). */
+    const racinePieces = path.join(m.b.dataDir, 'pieces');
+    fs.mkdirSync(path.join(racinePieces, 'ab'), { recursive: true });
+    fs.writeFileSync(path.join(racinePieces, ...pieceRel.split('/')), crypto.randomBytes(321));
+    fs.writeFileSync(path.join(racinePieces, 'ab', 'f_piece_gardee'), crypto.randomBytes(222));
+
+    m.h.t = Date.UTC(2026, 8, 21, 6, 0, 0);
+    const T0 = m.h.t;
+    const rA = await m.sauv.lancer('banc');                       // L'ARCHIVE A : M1 et M2 ont expiré, mais le balayeur n'est pas encore passé
+    const cleA = rA.cle;
+    const purge = m.b.S.purgerExpires(500);
+    m.h.t += 3600000;
+    const rB = await m.sauv.lancer('banc');                       // L'ARCHIVE B : le registre porte les deux purges
+    const cleB = rB.cle;
+    vrai('la population : deux archives au coffre (A avant la purge, B après), ' + purge.n + ' messages purgés entre les deux (les deux éphémères et le message système de la conversation, éphémère comme elle)', rA.ok && rB.ok && purge.n === 3 && cles(m).length === 2);
+    /* L'archive C : une pièce a été purgée depuis (son fichier est parti d'ici, le registre le dit) — mais le coffre la porte encore (deux passes avant de retirer). */
+    fs.rmSync(path.join(racinePieces, ...pieceRel.split('/')));
+    { const d = new DatabaseSync(m.b.chemin); d.exec('PRAGMA busy_timeout=5000'); d.prepare("INSERT INTO purge(objet, genre, quand) VALUES('f_piece_purgee', 'piece', 5)").run(); d.close(); }
+    m.h.t += 3600000;
+    const rC = await m.sauv.lancer('banc');
+    const cleC = rC.cle;
+    vrai('   puis une archive C (la pièce purgée est au registre, et encore au coffre)', rC.ok && cles(m).length === 3 && m.coffre.objets.has('beta/pieces/' + pieceRel));
+
+    const bac = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-950-purge-'));
+    try {
+      const rouvrir = async (cle, vers) => { const f = path.join(bac, 'a.bin'); fs.writeFileSync(f, m.coffre.objets.get(cle)); await SAUV.ouvrirArchive(f, Buffer.from(m.cle, 'hex'), vers); return vers; };
+      const dA = await rouvrir(cleA, path.join(bac, 'A.db')), dB = await rouvrir(cleB, path.join(bac, 'B.db'));
+      const compte = (chemin, sql, ...p) => { const d = new DatabaseSync(chemin, { readOnly: true }); try { return Number(d.prepare(sql).get(...p).n); } finally { d.close(); } };
+      const existe = (chemin, id) => compte(chemin, 'SELECT COUNT(*) AS n FROM message WHERE id = ?', id);
+      v('⛔ l\'archive A, restaurée telle quelle, FAIT REVENIR les deux messages éphémères (c\'est le défaut que le rejeu corrige)', [existe(dA, ids.M1), existe(dA, ids.M2), existe(dA, ids.M3)], [1, 1, 1]);
+      v('   la réaction du premier avec eux', compte(dA, 'SELECT COUNT(*) AS n FROM reaction WHERE seq = ? AND conv = ?', ids.seq1, ids.E), 1);
+      v('   l\'archive B ne les a pas, et son registre en porte la trace (trois lignes)', [existe(dB, ids.M1), existe(dB, ids.M2), existe(dB, ids.M3), compte(dB, 'SELECT COUNT(*) AS n FROM purge')], [0, 0, 1, 3]);
+      const registre = STOCK.ouvrir.copie.purgeLire(dB);
+      v('purgeLire rend le registre tel quel : {objet, genre, quand}', [registre.length, [...new Set(registre.map(r => r.genre))].join(), registre.some(r => r.objet === ids.M1) && registre.some(r => r.objet === ids.M2) && !registre.some(r => r.objet === ids.M3)], [3, 'message_ephemere', true]);
+
+      const bilan = STOCK.ouvrir.copie.rejouerPurge(dA, registre);
+      v('⛔ le registre de B rejoué sur A : les messages purgés repartent (les deux éphémères et le message système), le troisième reste', [bilan.messagesRetires, existe(dA, ids.M1), existe(dA, ids.M2), existe(dA, ids.M3)], [3, 0, 0, 1]);
+      v('   leurs réactions suivent (la cascade de la base, clés étrangères allumées)', compte(dA, 'SELECT COUNT(*) AS n FROM reaction WHERE conv = ?', ids.E), 0);
+      v('   la copie SE SOUVIENT désormais de ces purges (la sauvegarde suivante les portera)', [bilan.ajoutees, compte(dA, 'SELECT COUNT(*) AS n FROM purge')], [3, 3]);
+      const encore = STOCK.ouvrir.copie.rejouerPurge(dA, registre);
+      v('⛔ rejouer deux fois ne change rien : rien à retirer, rien à recopier (un second passage, la leçon d\'opIdDerive)', [encore.messagesRetires, encore.ajoutees, encore.lues], [0, 0, 3]);
+      vrai('   et la copie reste saine après le rejeu', STOCK.ouvrir.copie.controlerFichier(dA).ok === true);
+
+      /* Les autres genres, joués sur des copies fraîches de A. */
+      const copieDeA = async (nom) => { const p = path.join(bac, nom); fs.copyFileSync(path.join(bac, 'A.db'), p); return p; };
+      await rouvrir(cleA, path.join(bac, 'A0.db'));
+      const frais = async () => { const p = path.join(bac, 'frais-' + Math.random().toString(36).slice(2) + '.db'); fs.copyFileSync(path.join(bac, 'A0.db'), p); return p; };
+      void copieDeA;
+      {
+        const p = await frais();
+        const r = STOCK.ouvrir.copie.rejouerPurge(p, [{ objet: ids.M3, genre: 'message_supprime', quand: 1234 }]);
+        const d = new DatabaseSync(p, { readOnly: true });
+        const l = d.prepare('SELECT corps_ch, meta_ch, supprime_le FROM message WHERE id = ?').get(ids.M3); d.close();
+        v('un message « supprimé pour tous » depuis l\'archive perd son corps et GARDE sa pierre tombale (la ligne reste, le texte non)', [r.messagesBlanchis, l.corps_ch, l.meta_ch, Number(l.supprime_le)], [1, null, null, 1234]);
+        const encore2 = STOCK.ouvrir.copie.rejouerPurge(p, [{ objet: ids.M3, genre: 'message_supprime', quand: 9999 }]);
+        v('   rejoué, il ne change pas la date de suppression déjà posée', [encore2.messagesBlanchis, Number(new DatabaseSync(p, { readOnly: true }).prepare('SELECT supprime_le AS n FROM message WHERE id = ?').get(ids.M3).n)], [0, 1234]);
+      }
+      {
+        const p = await frais();
+        const r = STOCK.ouvrir.copie.rejouerPurge(p, [{ objet: ids.M3, genre: 'genre_que_personne_ne_connait', quand: 1 }, { objet: 'x', genre: '', quand: 1 }]);
+        v('⛔ un genre INCONNU n\'efface RIEN (dans le doute, on efface moins) : compté « ignoré » et recopié', [r.ignorees, r.messagesRetires, existe(p, ids.M3), compte(p, 'SELECT COUNT(*) AS n FROM purge WHERE genre = ?', 'genre_que_personne_ne_connait')], [2, 0, 1, 1]);
+      }
+      {
+        const p = await frais();
+        const r0 = STOCK.ouvrir.copie.rejouerPurge(p, [{ objet: 'f_p1', genre: 'piece', quand: 1 }]);
+        v('une pièce purgée : son identifiant est RENDU (pour retirer le fichier), même quand la table des pièces n\'existe pas encore (étape 4)', [r0.pieces, r0.messagesRetires], [['f_p1'], 0]);
+        const d = new DatabaseSync(p); d.exec('CREATE TABLE piece(id TEXT PRIMARY KEY, taille INTEGER)'); d.exec("INSERT INTO piece VALUES ('f_p2', 1), ('f_p3', 2)"); d.close();
+        const r1 = STOCK.ouvrir.copie.rejouerPurge(p, [{ objet: 'f_p2', genre: 'piece_expiree', quand: 2 }]);
+        v('   et quand la table existe, la ligne en part aussi (les autres restent)', [r1.pieces, compte(p, 'SELECT COUNT(*) AS n FROM piece'), compte(p, 'SELECT COUNT(*) AS n FROM piece WHERE id = ?', 'f_p3')], [['f_p2'], 1, 1]);
+      }
+      {
+        const p = await frais();
+        const avant = fs.readFileSync(p);
+        const e = lance(() => STOCK.ouvrir.copie.rejouerPurge(p, [{ objet: ids.M3, genre: 'message', quand: 1 }, { objet: 'y', genre: 'message', quand: Symbol('boum') }]));
+        v('⛔ tout ou rien : un registre dont une ligne fait lever défait aussi les lignes d\'avant (une seule transaction)', [!!e, existe(p, ids.M3)], [true, 1]);
+        void avant;
+      }
+
+      /* ══ L'OUTIL, jusqu'au bout : essai, liste, restauration ═════════════════════════════════════════════════════════════ */
+      console.log('\n── 950 · outils/restaurer.js : l\'exercice, la liste, la vraie restauration — et rien de secret à l\'écran ──');
+      const outil = async (args, extra, nomConfig) => {
+        const lignes = [];
+        const cfgChemin = path.join(m.b.dossier, nomConfig || 'beta.json');
+        if (!fs.existsSync(cfgChemin)) fs.writeFileSync(cfgChemin, JSON.stringify({ instance: 'beta', sauvegarde: m.coffre.conf({ cle: m.cle }) }));
+        const kekFichier = path.join(m.b.dossier, 'beta.kek');
+        if (!fs.existsSync(kekFichier)) fs.writeFileSync(kekFichier, m.b.kek.toString('hex'));
+        const env = Object.assign({ OPMSG_CONFIG: cfgChemin, OPMSG_DATA: m.b.dataDir, OPMSG_KEK_FILE: kekFichier, OPMSG_SYSTEMCTL: '/chemin/qui/n/existe/pas' }, extra || {});
+        let code = 0, erreur = null;
+        try { code = await RESTAURER.main(args, env, (l) => lignes.push(l)); } catch (e) { code = e.sortie || 99; erreur = e.message; }
+        const r = { code, erreur, sortie: lignes.join('\n') };
+        tout.push(r.sortie + '\n' + (erreur || ''));
+        return r;
+      };
+      const tout = [];
+      const marqueur = () => { try { return JSON.parse(fs.readFileSync(path.join(m.b.dataDir, SAUV.NOM_ESSAI), 'utf8')); } catch (e) { return null; } };
+
+      const l = await outil(['liste']);
+      vrai('liste : les trois archives (la plus récente en tête, marquée) et les pièces, sans autre chose', l.code === 0 && /3 archive\(s\) de base/.test(l.sortie) && /→ base\//.test(l.sortie) && /pièces au coffre : 2 /.test(l.sortie));
+      const ess = await outil(['essai']);
+      v('⛔ l\'essai sur la plus récente : sortie 0, base saine, clé maître vérifiée, pièces relues, registre rejoué', [ess.code, /RESTAURABLE/.test(ess.sortie), /quick_check : ok/.test(ess.sortie), /clé maître : la base restaurée s'ouvre/.test(ess.sortie), /2 au coffre, 2 relue\(s\) sur 2/.test(ess.sortie), /purge rejouée : 4 ligne/.test(ess.sortie)], [0, true, true, true, true, true]);
+      const mq = marqueur();
+      vrai('   la date de l\'exercice est ÉCRITE (un nombre, le nom de l\'archive, des comptes — rien de secret) et /health la lit', !!mq && Number.isFinite(mq.okTs) && mq.archive === 'base/' + SAUV.archiveDeCle('beta/', cleC).nom + SAUV.SUFFIXE && mq.cleMaitreVerifiee === true && m.sauv.sante().essaiJours === 0);
+      vrai('   l\'exercice ne laisse RIEN derrière lui : le dossier jetable est effacé', fs.readdirSync(os.tmpdir()).filter(f => f.startsWith('opmsg-essai-')).length === 0);
+
+      const okTsAvant = marqueur().okTs;
+      await dormir(5);
+      const ancien = await outil(['essai', '--date', new Date(T0).toISOString().slice(0, 19)]);
+      v('⛔ l\'essai sur l\'archive A (PAS la plus récente) rejoue le registre de C : les trois messages purgés repartent — et la date de /health ne bouge pas', [ancien.code, /PAS la plus récente/.test(ancien.sortie), /3 message\(s\) retiré\(s\)/.test(ancien.sortie), marqueur().okTs === okTsAvant], [0, true, true, true]);
+      const introuvable = await outil(['essai', '--date', '2020-01-01']);
+      v('une date d\'avant la première archive : refus clair', [introuvable.code, /aucune archive à cette date/.test(introuvable.erreur)], [1, true]);
+      const malDate = await outil(['essai', '--date', 'hier']);
+      v('une date mal écrite : sortie 2 (usage)', [malDate.code, /AAAA-MM-JJ/.test(malDate.erreur)], [2, true]);
+
+      /* Les échecs de l'exercice : chacun sort en 1, ne touche pas la date du dernier exercice RÉUSSI, et dit pourquoi. */
+      fs.writeFileSync(path.join(m.b.dossier, 'mauvaise-cle.json'), JSON.stringify({ instance: 'beta', sauvegarde: m.coffre.conf({ cle: O.cleHex() }) }));
+      const mc = await outil(['essai'], null, 'mauvaise-cle.json');
+      v('⛔ une MAUVAISE clé de sauvegarde : sortie 1, « déchiffrement impossible », la date du dernier exercice réussi intacte, l\'échec noté à côté', [mc.code, /déchiffrement impossible/.test(mc.erreur), marqueur().okTs === okTsAvant, typeof marqueur().echecTs], [1, true, true, 'number']);
+      const mauvaiseMaitre = path.join(m.b.dossier, 'autre.kek'); fs.writeFileSync(mauvaiseMaitre, O.cleHex());
+      const mm = await outil(['essai'], { OPMSG_KEK_FILE: mauvaiseMaitre });
+      v('⛔ une MAUVAISE clé maître sur le serveur : sortie 1 — l\'archive est intacte, mais rien ne serait lisible', [mm.code, /n'ouvre PAS cette base/.test(mm.erreur), marqueur().okTs === okTsAvant], [1, true, true]);
+      const sansMaitre = await outil(['essai'], { OPMSG_KEK_FILE: path.join(m.b.dossier, 'absente.kek') });
+      v('   un fichier de clé maître ABSENT : l\'exercice passe, et DIT qu\'il ne prouve que l\'intégrité (⚠, et noté dans la date)', [sansMaitre.code, /clé maître NON vérifiée/.test(sansMaitre.sortie), marqueur().cleMaitreVerifiee], [0, true, false]);
+
+      /* Une archive qui n'est pas la bonne : une autre instance, ou rebaptisée. */
+      const brutC = m.coffre.objets.get(cleC);
+      const autreInstance = await monter({ n: 40, instance: 'prod' });
+      try {
+        await autreInstance.sauv.lancer('banc');
+        const clePr = autreInstance.coffre.cles('prod/base/')[0];
+        m.coffre.poser('beta/base/' + SAUV.nomDe(m.h.t + 7200000) + SAUV.SUFFIXE, autreInstance.coffre.objets.get(clePr));
+      } finally { await autreInstance.fermer(); }
+      const mauvaiseInstance = await outil(['essai']);
+      v('⛔ une archive de la PRODUCTION rangée sous le préfixe de la bêta est refusée (« autre instance »)', [mauvaiseInstance.code, /AUTRE instance/.test(mauvaiseInstance.erreur)], [1, true]);
+      for (const k of m.coffre.cles('beta/base/').filter(k => k !== cleA && k !== cleB && k !== cleC)) m.coffre.objets.delete(k);
+      m.coffre.poser('beta/base/' + SAUV.nomDe(m.h.t + 7200000) + SAUV.SUFFIXE, brutC);
+      const rebaptisee = await outil(['essai']);
+      v('⛔ une vieille archive rebaptisée avec une date plus récente est refusée (la date écrite dedans n\'est pas celle du nom)', [rebaptisee.code, /rebaptisée|date écrite/.test(rebaptisee.erreur)], [1, true]);
+      for (const k of m.coffre.cles('beta/base/').filter(k => k !== cleA && k !== cleB && k !== cleC)) m.coffre.objets.delete(k);
+      const vide = await monter({ n: 10 });
+      try {
+        const cfg2 = path.join(vide.b.dossier, 'vide.json'); fs.writeFileSync(cfg2, JSON.stringify({ instance: 'beta', sauvegarde: vide.coffre.conf({ cle: vide.cle }) }));
+        const lignes = []; let code = 0, erreur = '';
+        try { code = await RESTAURER.main(['essai'], { OPMSG_CONFIG: cfg2, OPMSG_DATA: vide.b.dataDir }, (x) => lignes.push(x)); } catch (e) { code = e.sortie; erreur = e.message; }
+        v('un coffre VIDE : sortie 1, et le dit (jamais « tout va bien » sur du néant)', [code, /VIDE/.test(erreur)], [1, true]);
+      } finally { await vide.fermer(); }
+
+      /* La vraie restauration. */
+      const vers = path.join(bac, 'restauree');
+      const r1 = await outil(['restaurer', '--vers', vers]);
+      const vivantC = empreinteTables(path.join(bac, 'B.db'));
+      v('⛔ restaurer dans un dossier neuf : sortie 0, la base posée, saine, et les mêmes messages que la base vivante', [r1.code, fs.existsSync(path.join(vers, 'msg.db')), STOCK.ouvrir.copie.controlerFichier(path.join(vers, 'msg.db')).ok, empreinteTables(path.join(vers, 'msg.db')).message === vivantC.message], [0, true, true, true]);
+      v('⛔ les pièces reviennent octet pour octet — SAUF celle que le registre a emportée depuis l\'archive, qui est encore au coffre mais NE REVIENT PAS', [fs.existsSync(path.join(vers, 'pieces', 'ab', 'f_piece_gardee')) && fs.readFileSync(path.join(vers, 'pieces', 'ab', 'f_piece_gardee')).equals(m.coffre.objets.get('beta/pieces/ab/f_piece_gardee')), fs.existsSync(path.join(vers, 'pieces', 'ab', 'f_piece_purgee')), /1 retirée\(s\) par la purge/.test(r1.sortie)], [true, false, true]);
+      vrai('   aucun dossier de chantier ne reste (`.restauration-…`)', !fs.readdirSync(vers).some(f => f.startsWith('.restauration-')));
+      const avantRefus = crypto.createHash('sha256').update(fs.readFileSync(path.join(vers, 'msg.db'))).digest('hex');
+      const r2 = await outil(['restaurer', '--vers', vers]);
+      v('⛔ une SECONDE restauration au même endroit est REFUSÉE sans le drapeau — la base existante n\'a pas bougé d\'un octet, rien ne traîne', [r2.code, /--ecraser/.test(r2.erreur), crypto.createHash('sha256').update(fs.readFileSync(path.join(vers, 'msg.db'))).digest('hex') === avantRefus, fs.readdirSync(vers).filter(f => f.startsWith('.restauration-')).length], [1, true, true, 0]);
+      const actif = path.join(bac, 'systemctl-actif.sh'); fs.writeFileSync(actif, '#!/bin/sh\nexit 0\n', { mode: 0o755 });
+      const r3 = await outil(['restaurer', '--vers', vers, '--ecraser'], { OPMSG_SYSTEMCTL: actif });
+      v('⛔ même avec --ecraser, tant que le SERVICE TOURNE, c\'est refusé : on n\'écrase pas une base qui vit', [r3.code, /tourne encore/.test(r3.erreur), crypto.createHash('sha256').update(fs.readFileSync(path.join(vers, 'msg.db'))).digest('hex') === avantRefus], [1, true, true]);
+      const arrete = path.join(bac, 'systemctl-arrete.sh'); fs.writeFileSync(arrete, '#!/bin/sh\nexit 3\n', { mode: 0o755 });
+      const r4 = await outil(['restaurer', '--vers', vers, '--ecraser', '--date', new Date(T0).toISOString().slice(0, 19), '--sans-pieces'], { OPMSG_SYSTEMCTL: arrete });
+      const misDeCote = fs.readdirSync(vers).filter(f => /^msg\.db\.avant-restauration-/.test(f));
+      v('⛔ avec --ecraser et le service arrêté : l\'ancienne base est MISE DE CÔTÉ (jamais effacée), la nouvelle prend sa place', [r4.code, misDeCote.length, crypto.createHash('sha256').update(fs.readFileSync(path.join(vers, misDeCote[0]))).digest('hex') === avantRefus, STOCK.ouvrir.copie.controlerFichier(path.join(vers, 'msg.db')).ok], [0, 1, true, true]);
+      v('   et la restauration d\'une archive ANCIENNE rejoue le registre de la plus récente : les messages purgés depuis ne reviennent pas', [existe(path.join(vers, 'msg.db'), ids.M1), existe(path.join(vers, 'msg.db'), ids.M2), existe(path.join(vers, 'msg.db'), ids.M3)], [0, 0, 1]);
+
+      /* Un nom de pièce malveillant dans le coffre : refusé, jamais écrit hors du dossier. */
+      m.coffre.poser('beta/pieces/ab/../../evasion', Buffer.from('pas ici'));
+      m.coffre.poser('beta/pieces/ab/..\\evasion2', Buffer.from('pas ici non plus'));
+      const vers2 = path.join(bac, 'restauree2');
+      const r5 = await outil(['restaurer', '--vers', vers2]);
+      vrai('⛔ un nom de pièce qui remonte (« .. ») ou porte une barre arrière est REFUSÉ et compté — rien n\'est écrit hors du dossier', r5.code === 0 && /2 REFUSÉE/.test(r5.sortie) && !fs.existsSync(path.join(bac, 'evasion')) && !fs.existsSync(path.join(vers2, 'evasion')) && !fs.existsSync(path.join(vers2, 'pieces', 'evasion')));
+
+      const inconnue = await outil(['danser']);
+      v('une commande inconnue : sortie 2 et la liste des commandes', [inconnue.code, /commandes :/.test(inconnue.erreur)], [2, true]);
+
+      /* ⛔ RIEN DE CE QUE L'OUTIL AFFICHE N'EST UN SECRET. */
+      const ecran = tout.join('\n');
+      vrai('la population : ' + tout.length + ' sorties examinées, ' + ecran.length + ' caractères', tout.length >= 15 && ecran.length > 2000);
+      v('⛔ ni la clé de sauvegarde, ni la clé maître, ni les clés du coffre, ni le nom du bucket, ni l\'adresse du coffre ne figurent à l\'écran ni dans un message d\'erreur',
+        [m.cle, m.b.kek.toString('hex'), m.coffre.accessKey, m.coffre.secretKey, m.coffre.bucket, m.coffre.base, '127.0.0.1:' + m.coffre.port].filter(s => ecran.includes(s)), []);
+    } finally { fs.rmSync(bac, { recursive: true, force: true }); }
+  } finally { await m.fermer(); }
+
+  /* ══ 14. LE CONTRÔLE DANS UN PROCESSUS ENFANT ═════════════════════════════════════════════════════════════════════════════════ */
+  console.log('\n── 950 · le contrôle de la copie se fait dans un PROCESSUS ENFANT : la boucle d\'événements du service n\'est pas figée ──');
+  {
+    const b = O.creerBase();
+    try {
+      O.remplir(b, 200);
+      const copie = path.join(b.dossier, 'c.db'); await b.S.instantane(copie);
+      const ici = STOCK.ouvrir.copie.controlerFichier(copie), la = await SAUV.controlerEnProcessus(copie);
+      vrai('population : la copie est saine et porte des lignes (' + ici.total + ')', ici.ok && ici.total > 200);
+      v('⛔ le processus enfant rend EXACTEMENT le verdict de la fonction (même schéma, même horloge, mêmes lignes)', la, ici);
+      v('un fichier absent, un texte et un fichier vide : ok:false avec un motif', [(await SAUV.controlerEnProcessus(path.join(b.dossier, 'absent.db'))).ok, (() => { fs.writeFileSync(path.join(b.dossier, 't.db'), 'x'.repeat(2000)); return null; })(), (await SAUV.controlerEnProcessus(path.join(b.dossier, 't.db'))).ok], [false, null, false]);
+      const gros = path.join(b.dossier, 'gros.db'); fs.copyFileSync(copie, gros);
+      { const d = new DatabaseSync(gros); d.exec('BEGIN'); const ins = d.prepare("INSERT INTO journal(genre, conv, uid, ref, ts) VALUES('bourrage', NULL, NULL, ?, 1)"); for (let i = 0; i < 60000; i++) ins.run('x'.repeat(200) + i); d.exec('COMMIT'); d.close(); }
+      let ticks = 0, tourne = true;
+      const boucle = () => { if (!tourne) return; ticks++; setImmediate(boucle); };
+      boucle();
+      const t0 = Date.now(); const verdict = await SAUV.controlerEnProcessus(gros); const ms = Date.now() - t0;
+      tourne = false;
+      vrai('⛔ pendant le contrôle d\'une base de ' + Math.round(fs.statSync(gros).size / 1048576) + ' Mio (' + ms + ' ms), la boucle d\'événements a continué de tourner (' + ticks + ' tours) — un contrôle fait dans le service l\'aurait figée', verdict.ok && ticks > 100);
+      const delai = await SAUV.controlerEnProcessus(gros, 1);
+      v('un contrôle qui dépasse son délai est abandonné et le DIT (« controle-delai »), il ne reste pas pendu', [delai.ok, delai.motif], [false, 'controle-delai']);
+    } finally { b.nettoyer(); }
+    const m = await monter({ n: 120, controler: SAUV.controlerEnProcessus });
+    try {
+      const r = await m.sauv.lancer('banc');
+      v('une passe COMPLÈTE avec le contrôle par défaut (deux processus enfants : la copie, puis l\'archive relue) réussit', [r.ok, cles(m).length], [true, 1]);
+    } finally { await m.fermer(); }
+  }
+
+  /* ══ 15. AUCUN SECRET DANS LES JOURNAUX ═══════════════════════════════════════════════════════════════════════════════════════ */
+  console.log('\n── 950 · aucun secret dans les journaux : ni clé, ni nom de bucket, ni adresse du coffre — sur des passes réussies ET ratées ──');
+  {
+    const m = await monter({ n: 80 });
+    const volee = [];
+    const ow = process.stdout.write, ew = process.stderr.write;
+    const capte = (c, ...r) => { volee.push(String(c)); const cb = r.find(x => typeof x === 'function'); if (cb) cb(); return true; };
+    try {
+      const racine = path.join(m.b.dataDir, 'pieces'); fs.mkdirSync(path.join(racine, 'ab'), { recursive: true });
+      for (let i = 0; i < 3; i++) fs.writeFileSync(path.join(racine, 'ab', 'f_' + i), crypto.randomBytes(100));
+      process.stdout.write = capte; process.stderr.write = capte;
+      const scenario = [[], ['refus-depot'], ['refus-depot-403'], ['coupure-depot'], ['corrompt-relecture'], ['lecture-refusee'], ['liste-refusee'], ['efface-refuse'], ['refus-depot-pieces'], ['corrompt-pieces']];
+      for (const pannes of scenario) { m.coffre.regler(...pannes); m.h.t += 1000; await m.sauv.lancer('banc'); }
+      m.coffre.normal(); m.h.t += 1000; await m.sauv.lancer('banc');
+      m.coffre.latenceMs = 300; const p = m.sauv.lancer('banc'); await dormir(100); await m.sauv.arreter(); await p;
+    } finally { process.stdout.write = ow; process.stderr.write = ew; }
+    const secrets = [m.cle, m.b.kek.toString('hex'), m.coffre.accessKey, m.coffre.secretKey, m.coffre.bucket, m.coffre.base, '127.0.0.1:' + m.coffre.port];
+    const journal = JSON.stringify(m.evts), ecran = volee.join('');
+    vrai('la population : ' + m.evts.length + ' évènements de journal et ' + ecran.length + ' caractères écrits par le client S3 pendant ' + 11 + ' passes (réussies et ratées)', m.evts.length >= 10 && ecran.length > 100);
+    v('⛔ aucun secret dans le journal du service (clé de sauvegarde, clé maître, clés du coffre, bucket, adresse)', secrets.filter(s => journal.includes(s)), []);
+    v('⛔ ni dans ce que le client S3 écrit sur la sortie d\'erreur (des codes HTTP, rien d\'autre)', secrets.filter(s => ecran.includes(s)), []);
+    v('   le journal du service n\'a que trois champs : l\'état, un motif machine, un nombre — la liste blanche de `journaliser` n\'a rien à retirer',
+      [...new Set(m.evts.flatMap(([, c]) => Object.keys(c)))].sort(), ['etat', 'motif', 'n']);
+    vrai('   chaque motif est un mot machine court (jamais une phrase, un chemin, un nom)', m.evts.every(([, c]) => c.motif === undefined || /^[a-z0-9-]{0,40}$/.test(c.motif)));
+    v('   les évènements ne portent que le nom « sauvegarde »', [...new Set(m.evts.map(([e]) => e))], ['sauvegarde']);
+    await m.coffre.fermer(); m.b.nettoyer();
+  }
+
+  /* ══ 16. LES GARDES DE CODE — le texte est lu SANS ses commentaires ═══════════════════════════════════════════════════════════ */
+  console.log('\n── 950 · les gardes de code : du CODE, jamais une phrase ──');
+  {
+    const S1 = code(path.join(SM, 'sauvegarde.js')), R1 = code(path.join(SM, 'outils', 'restaurer.js')), C1 = code(path.join(SM, 'outils', 'controler.js')), ST = code(path.join(SM, 'stockage.js'));
+    for (const [nom, c] of [['sauvegarde.js', S1], ['restaurer.js', R1], ['controler.js', C1]]) vrai('population : ' + nom + ' garde du code une fois ses commentaires retirés (' + c.split('\n').filter(l => l.trim()).length + ' lignes)', c.split('\n').filter(l => l.trim()).length > 5);
+    v('⛔ aucun `console.` dans le module (il ne parle que par `journaliser`, qui filtre ses champs)', /\bconsole\./.test(S1), false);
+    v('⛔ aucun Math.random : un vecteur d\'initialisation ne se tire pas d\'un générateur prévisible', [S1, R1].filter(c => /Math\.random/.test(c)).length, 0);
+    vrai('le vecteur d\'initialisation vient de `crypto.randomBytes`, tiré à chaque archive', /const iv = crypto\.randomBytes\(TAILLE_IV\)/.test(S1));
+    vrai('AES-256-GCM, et les DEUX premières lignes de l\'archive sont les données associées — à la fabrication ET à l\'ouverture, et l\'étiquette est vérifiée', /createCipheriv\('aes-256-gcm'/.test(S1) && /chiffreur\.setAAD\(entete\)/.test(S1) && /dechiffreur\.setAAD\(h\.entete\)/.test(S1) && /dechiffreur\.setAuthTag\(tag\)/.test(S1));
+    vrai('⛔ l\'archive est chiffrée avec la clé de SAUVEGARDE (`cfg.cle`)', /fabriquer\(\{ source: instantaneDb, sortie: archive, cle: cfg\.cle,/.test(S1));
+    const debutCfg = S1.indexOf('function lireConfigSauvegarde'), finCfg = S1.indexOf('const nomDe');
+    vrai('population : la tranche de la validation de la configuration est trouvée (' + (finCfg - debutCfg) + ' caractères)', debutCfg > 0 && finCfg > debutCfg + 1000);
+    v('⛔ la clé MAÎTRE n\'est lue qu\'à UN endroit : la comparaison qui refuse une clé de sauvegarde égale (jamais pour chiffrer, jamais pour le journal)', [(S1.match(/\bkek\b/g) || []).length, (S1.slice(debutCfg, finCfg).match(/\bkek\b/g) || []).length], [(S1.slice(debutCfg, finCfg).match(/\bkek\b/g) || []).length, (S1.slice(debutCfg, finCfg).match(/\bkek\b/g) || []).length]);
+    vrai('   et cette comparaison est à temps constant', /crypto\.timingSafeEqual\(cle, kek\)/.test(S1));
+    v('⛔ aucun SQL ni accès à la base hors de stockage.js — y compris dans outils/, que test-901 ne parcourt pas', [S1, R1, C1].map(c => /node:sqlite|DatabaseSync|\.prepare\(|\bSELECT\b[^;'"`]{0,60}\bFROM\b|INSERT INTO|DELETE FROM/.test(c)), [false, false, false]);
+    const lignesAffichees = R1.split('\n').filter(l => /\bdire\(|\bechec\(|\bconsole\./.test(l));
+    vrai('population : ' + lignesAffichees.length + ' lignes de l\'outil de restauration qui AFFICHENT quelque chose', lignesAffichees.length >= 30);
+    v('⛔ aucune ne cite la clé de sauvegarde, la clé maître, les clés du coffre, le bucket ou l\'adresse (des noms de variables, oui ; leurs valeurs, jamais)',
+      lignesAffichees.filter(l => /cfg\.cle|cfg\.coffre|\.accessKey|\.secretKey|\.bucket|\.endpoint|kekChemin|\bhex\b/.test(l)), []);
+    vrai('   l\'outil n\'écrit qu\'UN fichier de contrôle (la date de l\'exercice), puis la base et les pièces restaurées — jamais la configuration', (R1.match(/writeFileSync\(/g) || []).length === 1 && /writeFileSync\(tmp, JSON\.stringify\(Object\.assign\(\{\}, actuel, patch/.test(R1));
+    vrai('⛔ la restauration vérifie que le service est ARRÊTÉ avant de mettre une base de côté, et ne supprime jamais l\'ancienne (renommage)', /spawnSync\(ctx\.systemctl/.test(R1) && /fs\.renameSync\(path\.join\(dest, f\), path\.join\(dest, f \+ marque\)\)/.test(R1) && !/unlinkSync\(path\.join\(dest, 'msg\.db'\)\)/.test(R1));
+    vrai('⛔ le chantier de la restauration est DANS le dossier cible (même système de fichiers : la mise en place est un renommage, atomique)', /mkdtempSync\(path\.join\(dest, '\.restauration-'\)\)/.test(R1));
+    vrai('le contrôle enfant ne reçoit AUCUN secret : le script ne lit ni l\'environnement ni la configuration', !/process\.env|OPMSG_|readFileSync/.test(C1));
+    vrai('stockage.js : l\'instantané passe par l\'API de sauvegarde de Node sur une connexion LECTRICE à part, en un pas — et `VACUUM INTO` reste le repli', /new sqlite\.DatabaseSync\(chemin\)/.test(ST) && /sqlite\.backup\(lecteur, vers, \{ rate: PAS_UNIQUE \}\)/.test(ST) && /Q\('VACUUM INTO \?'\)\.run\(vers\)/.test(ST));
+    vrai('   jamais sur la connexion du service (`backup(db, …)` : le pas se jouerait entre un BEGIN et un COMMIT du service, et échouerait en « not an error »)', !/sqlite\.backup\(db,/.test(ST));
   }
 
   /*FIN*/

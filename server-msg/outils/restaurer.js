@@ -69,6 +69,7 @@ function charger(env) {
   return {
     cfg, client, instance, dataDir: env.OPMSG_DATA || null,
     kekChemin: env.OPMSG_KEK_FILE || path.join('/etc/opmsg', instance + '.kek'),
+    systemctl: env.OPMSG_SYSTEMCTL || 'systemctl',   // les bancs y mettent un faux : l'outil ne doit pas dépendre de la machine
     tmpParent: env.OPMSG_ESSAI_DIR || os.tmpdir(),
   };
 }
@@ -299,7 +300,7 @@ async function restaurerVers(ctx, { vers, date, ecraser, sansPieces }, dire) {
   const existantes = ['msg.db', 'msg.db-wal', 'msg.db-shm'].filter(f => fs.existsSync(path.join(dest, f)));
   if (existantes.length && !ecraser) throw echec('une base existe déjà dans ce dossier. Rien n\'a été touché. Pour la remplacer (elle sera MISE DE CÔTÉ, jamais effacée) : ajouter --ecraser, service arrêté.');
   if (existantes.length) {
-    const actif = spawnSync(process.env.OPMSG_SYSTEMCTL || 'systemctl', ['is-active', '--quiet', 'teamop-msg@' + ctx.instance]);
+    const actif = spawnSync(ctx.systemctl, ['is-active', '--quiet', 'teamop-msg@' + ctx.instance]);
     if (actif.status === 0) throw echec('le service tourne encore : l\'arrêter d\'abord (systemctl stop teamop-msg@' + ctx.instance + '). Rien n\'a été touché.');
   }
   fs.mkdirSync(dest, { recursive: true });
