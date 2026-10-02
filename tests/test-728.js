@@ -196,7 +196,9 @@ if (fs.existsSync(dep)) {
     vrai('   ⛔ et il regarde le code de sortie, pas seulement le bandeau', /rc=\$\?/.test(t) && /\$rc/.test(t));
     v('   ⛔ il ne jette PAS le code de sortie de chaque banc', /node "\$f" 2>&1\) \|\| true/.test(t), false);
   }
-  const utilise = fichiers.filter(f => /bancs-ci\.sh/.test(fs.readFileSync(path.join(DIR, f), 'utf8')));
+  /* ⚠️ Dans le CODE du workflow, jamais dans ses commentaires (« un motif de banc vise du code, jamais une phrase ») : le
+     2 octobre 2026, `verification.yml` a NOMMÉ le compteur dans un commentaire (son filet « SAUTÉ » est le même) sans l'appeler. */
+  const utilise = fichiers.filter(f => /bancs-ci\.sh/.test(fs.readFileSync(path.join(DIR, f), 'utf8').replace(/^\s*#.*$/gm, '')));
   /* ⛔ TROIS appelants, et c'est voulu : la CI (toute branche), le déploiement d'OP GESTION (`server/**`) et celui
      d'OP MESSAGES (`server-msg/**`, 1er octobre 2026 — design/opmessages/SERVEUR.md § 3.10). Le troisième lance le
      MÊME compteur avec SA liste (`scripts/bancs-messages.liste`) et son plancher : deux copies d'un compteur divergent
@@ -244,6 +246,11 @@ if (fs.existsSync(dep)) {
         /BANCS_PLANCHER="\$\(sed -n 's\/\^#plancher \/\/p' scripts\/bancs-serveur\.liste\)" bash scripts\/bancs-ci\.sh/.test(t)
         && /run: BANCS_PLANCHER=\$\(sed -n/.test(t));
       vrai('   et il refuse une liste trop courte', /-ge 25/.test(t));
+      /* ⛔ Les listes ne lisent pas tout ce qui part : la Tour et la page de paiement partent avec le serveur et sont LUES par des
+         suites hors des listes, restées celles de main. Le 2 octobre 2026, `fa32298` a mis la CI de main au rouge APRÈS la mise en
+         ligne (cinq suites attendaient la Tour d'avant). La suite COMPLÈTE de l'arbre assemblé se joue donc avant le commit. */
+      vrai('   ⛔ et la SUITE COMPLÈTE de l\'arbre assemblé (« Vérification des pages » la jouera sur main), avant de commiter',
+        /^bash scripts\/bancs-ci\.sh$/m.test(t) && t.search(/^bash scripts\/bancs-ci\.sh$/m) < t.indexOf('commit -q'));
       vrai('   et il exige server/node_modules (sinon les suites sautent, vertes sans rien prouver)', /node_modules manque/.test(t));
     }
   }

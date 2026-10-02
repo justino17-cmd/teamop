@@ -32,9 +32,12 @@ async function fauxOvh(decalageS = 0) {
   const srv = http.createServer((req, res) => {
     let b = ''; req.on('data', d => { b += d; });
     req.on('end', () => {
-      const rep = (code, o) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
+      /* `sansGarder` : chaque réponse ferme sa connexion (« Connection: close »), le client n'en garde aucune ouverte — voir le
+         refus de connexion, plus bas. */
+      const entetes = type => Object.assign({ 'Content-Type': type }, etat.sansGarder ? { Connection: 'close' } : {});
+      const rep = (code, o) => { res.writeHead(code, entetes('application/json')); res.end(JSON.stringify(o)); };
       if (req.url === '/1.0/auth/time' && etat.heure503) { etat.tempsLus++; return rep(503, { message: 'time indisponible' }); }
-      if (req.url === '/1.0/auth/time') { etat.tempsLus++; res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end(String(Math.floor(Date.now() / 1000) + etat.decalageS)); }
+      if (req.url === '/1.0/auth/time') { etat.tempsLus++; res.writeHead(200, entetes('text/plain')); return res.end(String(Math.floor(Date.now() / 1000) + etat.decalageS)); }
       etat.appels.push({ m: req.method, u: req.url });
       if (etat.mode === 'pend') return;   // ne répond jamais
       if (etat.mode === 'coupe') { req.socket.destroy(); return; }   // la requête est ARRIVÉE, la connexion tombe avant toute réponse : on ne sait pas si le SMS est parti
@@ -134,7 +137,25 @@ const cfg = (faux, extra) => ({ ovh: Object.assign({ appKey: APP, appSecret: SEC
     faux.mode = 'normal';
     v('et la voie revient quand le service revient', await essai('normal'), 'ok');
     await faux.fermer();
-    v('⛔ une connexion REFUSÉE (le serveur n\'écoute plus : rien n\'a pu partir) → « non_envoye », PAS « incertain » : le coût et les plafonds sont rendus', await essai('normal'), 'non_envoye');
+  }
+  {
+    /* ⛔ UNE CONNEXION GARDÉE OUVERTE QUE LE SERVEUR A FERMÉE N'EST PAS UNE CONNEXION REFUSÉE. Ce refus se jouait à la fin du bloc
+       précédent, sur le même faux : `fetch` gardait des connexions ouvertes (keep-alive, et celle du délai dépassé, abandonnée sans
+       réponse) et RÉÉCRIVAIT sur une prise que le faux venait de fermer — « other side closed » (UND_ERR_SOCKET), une coupure,
+       donc « incertain », et le module a raison. Vert avec Node 22.22, rouge à chaque passage avec Node 22.23 (GitHub, et le VPS) :
+       2 octobre 2026, les deux contrôles de main tombés sur ce seul ✗. Le refus a donc son faux à lui, qui ferme chaque connexion
+       après sa réponse (« Connection: close »), et le banc PROUVE le scénario au lieu de le supposer : la cause vue par le client
+       est notée, et elle doit être ECONNREFUSED. */
+    const faux = await fauxOvh(); faux.sansGarder = true;
+    const causes = [];
+    const fetchNote = async (u, o) => { try { return await fetch(u, o); } catch (e) { causes.push((e && e.cause && e.cause.code) || (e && e.code) || (e && e.name) || '?'); throw e; } };
+    const o = OVH.creerOvh(Object.assign(cfg(faux), { fetchImpl: fetchNote }));
+    const r1 = await o.envoyer({ numero: '+32470123456', message: 'x' });
+    vrai('   (témoin) le service répond et l\'heure d\'OVH est lue une fois — l\'envoi suivant ira donc droit au POST', r1.ok && faux.tempsLus === 1 && causes.length === 0);
+    await faux.fermer();
+    const r2 = await o.envoyer({ numero: '+32470123456', message: 'x' });
+    v('⛔ une connexion REFUSÉE (le serveur n\'écoute plus : rien n\'a pu partir) → « non_envoye », PAS « incertain » : le coût et les plafonds sont rendus', r2.ok ? 'ok' : r2.genre, 'non_envoye');
+    v('   (le scénario est bien un REFUS : la seule cause vue par le client est ECONNREFUSED, pas une prise morte réutilisée)', causes, ['ECONNREFUSED']);
   }
   console.log('\n── 913 · « incertain » ne couvre QUE ce qui a pu partir : l\'avant-envoi est « non_envoye » (relecture adverse) ──');
   {

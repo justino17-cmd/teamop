@@ -314,10 +314,27 @@ console.log('\n══ 10. LES RÈGLES DES OPTIONS DU PRO NE PORTENT AUCUNE COULE
 {
   const css = fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.css'), 'utf8');
   const i = css.indexOf('/* ── les options du Pro et le tableau comparatif'), j = css.indexOf('/* questions */');
+  /* ⚠️ Ce banc tourne aussi sur `main`, où les options du Pro ne sont pas encore publiées : la feuille n'y a pas leur bloc (2 octobre
+     2026, « Vérification des pages » rouge sur main). Une absence n'est juste que si AUCUNE page suivie n'emploie leurs classes —
+     sinon une carte d'options s'afficherait sans ses règles. Les classes se lisent dans le bloc quand il existe ; sans lui, on cherche
+     celles qui n'appartiennent qu'à lui. */
+  if (i < 0) {
+    const SEULES = ['options-grille', 'options-pro', 'options-calcul', 'tableau-formules', 'table-defile', 'opt-cell', 'o-cta'];
+    const pages = require('child_process').execSync('git ls-files "*.html"', { cwd: RACINE }).toString().trim().split('\n').filter(Boolean);
+    vrai('(population) ' + pages.length + ' pages suivies relues', pages.length >= 50);
+    v('le bloc des options n\'est pas dans cette feuille (les options du Pro ne sont pas publiées ici) : aucune page n\'emploie leurs classes',
+      pages.filter(f => SEULES.some(c => new RegExp('class="[^"]*(?<![-\\w])' + c + '(?![-\\w])').test(lire(f)))), []);
+  } else {
   vrai('le bloc des options est trouvé dans la feuille (' + (j - i) + ' signes)', i > 0 && j > i + 2000);
   const code = css.slice(i, j).replace(/\/\*[\s\S]*?\*\//g, ' ');
   v('aucune couleur hexadécimale, rgb() ni nom de couleur — seulement des jetons (var(--…)) et l\'ombre rgba(0,0,0,…) des cartes', code.match(/#[0-9a-fA-F]{3,8}\b|\brgb\(|\brgba\((?!0,0,0,)|(?<![-\w])(white|black|red|green|blue)(?![-\w])/g) || [], []);
   v('et le bloc ne redéfinit aucun jeton (il les LIT)', code.match(/--[\w-]+\s*:/g) || [], []);
+  /* et la règle « absente ⇒ aucune page ne les emploie » doit savoir VOIR une page qui les emploie : on la joue ici, sur la
+     branche, où les pages d'aperçu les emploient (sinon le cas de main ne prouverait rien — un ensemble vide passe toujours). */
+  const pagesAvec = require('child_process').execSync('git ls-files "*.html"', { cwd: RACINE }).toString().trim().split('\n').filter(Boolean)
+    .filter(f => /class="[^"]*(?<![-\w])(options-grille|tableau-formules)(?![-\w])/.test(lire(f)));
+  vrai('   (témoin de la règle de main) les classes du bloc sont bien reconnues dans les pages qui les emploient (' + pagesAvec.length + ')', pagesAvec.length >= 1, pagesAvec.join(', '));
+  }
 }
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

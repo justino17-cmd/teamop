@@ -294,13 +294,22 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
 
     console.log('\n5. L\'application l\'APPLIQUE (les vraies `forfaitServeurSync` et `metierServeurAppliquer` d\'app.html, v' + ((/APP_VERSION = '(\d+)'/.exec(APP) || [])[1] || '?') + ')');
     /* (le bandeau « Paye ton abonnement » n'existe plus depuis la v767 : ce qui n'est pas payé est suspendu — `accesSuspendu`) */
-    const NOMS5 = ['forfaitServeurSync', 'metierServeurAppliquer', 'metierId', 'metierPack', 'intTypes', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'accesSuspendu', 'suspensionClasse', 'suspensionRappel', 'forfait',
-      'optionsCle', 'optionsLire', 'optionsPoser'];   // v768 : `forfaitServeurSync` range les options servies (tableau, réponse payée)
+    /* v768 : `forfaitServeurSync` range les options servies (tableau, réponse payée) — par `optionsPoser`, qui lit `optionsCle`,
+       `optionsLire` et `OPTIONS_GESTION`. ⚠️ Ce banc tourne AUSSI sur `main`, qui sert la v767 sans options : la Tour part avec chaque
+       déploiement du serveur, et ce banc la lit (partie 6). On prend donc les options quand la VRAIE `forfaitServeurSync` les
+       APPELLE — lu dans son code, jamais déduit d'un numéro de version — et une page qui les appelle sans les définir fait tomber
+       la population (2 octobre 2026 : « Vérification des pages » rouge sur main, le banc y exigeait des fonctions de la v768). */
+    const SYNC5 = fonction(APPN, 'forfaitServeurSync'), AVEC_OPTIONS = /\boptionsPoser\(/.test(SYNC5);
+    const NOMS5 = ['forfaitServeurSync', 'metierServeurAppliquer', 'metierId', 'metierPack', 'intTypes', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'accesSuspendu', 'suspensionClasse', 'suspensionRappel', 'forfait']
+      .concat(AVEC_OPTIONS ? ['optionsCle', 'optionsLire', 'optionsPoser'] : []);
     const FN5 = NOMS5.map(n => fonction(APPN, n));
     const PLANS_SRC = litteral(APPN, 'const PLANS={'), SUSP = (/^let _susp = \{[^\n]*\};$/m.exec(APPN) || [''])[0];
     const INT_TYPES_SRC = (/^const INT_TYPES = \[[^\n]*\];$/m.exec(APPN) || [''])[0];
-    vrai('(population) les fonctions, PLANS, METIERS, INT_TYPES et l\'état de suspension sont trouvés dans le fichier réel',
-      FN5.every(Boolean) && !!PLANS_SRC && !!SUSP && !!INT_TYPES_SRC && /metierServeurAppliquer\(j\)/.test(FN5[0]), NOMS5.filter((n, i) => !FN5[i]).join(', '));
+    const OPTIONS_SRC = AVEC_OPTIONS ? litteral(APPN, 'const OPTIONS_GESTION={') : '';
+    vrai('(population) les fonctions, PLANS, METIERS, INT_TYPES et l\'état de suspension sont trouvés dans le fichier réel'
+      + (AVEC_OPTIONS ? ' — et les options du Pro, que `forfaitServeurSync` range' : ' (cette page ne range pas d\'options : v767 et avant)'),
+      FN5.every(Boolean) && !!PLANS_SRC && !!SUSP && !!INT_TYPES_SRC && /metierServeurAppliquer\(j\)/.test(FN5[0]) && (!AVEC_OPTIONS || !!OPTIONS_SRC),
+      NOMS5.filter((n, i) => !FN5[i]).concat(AVEC_OPTIONS && !OPTIONS_SRC ? ['OPTIONS_GESTION'] : []).join(', '));
     const appareil = (nom, base) => {
       const E = espaces[cle(nom)];
       const LS = new Map([['elan_sync_team', E.t]]);
@@ -309,7 +318,7 @@ console.log('\n── 848 · le métier de chaque entreprise, du portail jusqu\'
       const code = 'let STORE_KEY="elanB_banc848"; let currentUser={id:"u-admin",role:"admin"}; let current="interventions";\n'
         + 'let db=' + JSON.stringify(Object.assign({ forfait: E.formule || 'gratuit', forfaitQty: 1, forfaitSrv: 'teamop' }, base || {})) + '; let _opMsgOuvert=false;\n'
         + 'const METIERS=' + litteral(APPN, 'const METIERS={') + ';\n' + INT_TYPES_SRC + '\nconst BETA_ESSAI=false;\n'
-        + PLANS_SRC.replace(/^/, 'const PLANS=') + ';\nvar _placesSrv=null,_placesSrvF="";\nconst OPTIONS_GESTION=' + litteral(APPN, 'const OPTIONS_GESTION={') + ';\nvar _optsSrv;var _etatLuLe=0;\n' + SUSP + '\n' + FN5.join('\n')
+        + PLANS_SRC.replace(/^/, 'const PLANS=') + ';\nvar _placesSrv=null,_placesSrvF="";\n' + (AVEC_OPTIONS ? 'const OPTIONS_GESTION=' + OPTIONS_SRC + ';\n' : '') + 'var _optsSrv;var _etatLuLe=0;\n' + SUSP + '\n' + FN5.join('\n')
         + '\nreturn { sync: forfaitServeurSync, appliquer: metierServeurAppliquer, metierId, intTypes, db: () => db, suspendu: accesSuspendu };';
       const f = new Function('fetch', 'localStorage', 'PUSH_API', 'toast', 'renderNav', 'go', 'save', 'logEvent', 'todayISO', 'espaceQuitter', 'suiteRefresh', 'views', 'document', 'esc', code);
       const a = f((u, o) => fetch(u, o), { getItem: k => (LS.has(k) ? LS.get(k) : null), setItem: (k, x) => LS.set(k, String(x)), removeItem: k => LS.delete(k) },

@@ -105,8 +105,12 @@ jobs:
             n=$(echo "$sortie" | grep -oE '[0-9]+ ✓' | tail -1 | grep -oE '[0-9]+' || true)
             total=$((total + ${n:-0}))
             # « SAUTÉ » couvre aussi « SAUTÉE » : test-818 écrit le masculin, et le filet ne cherchait que le féminin.
-            if echo "$sortie" | grep -qi 'SAUTÉ'; then
-              echo "::error::$f a SAUTÉ une partie en silence"; rouge=1
+            # ⛔ Le MÊME filet que `scripts/bancs-ci.sh` (2 octobre 2026) : les deux casses écrites à la main (`grep -i` ne replie
+            # « É » que dans une langue UTF-8 — ici oui, sur la machine de travail non), les lignes de RÉSULTAT écartées (un
+            # libellé « ✓ … aucune sautée en silence » faisait tomber test-905 et test-933), et sans `-q`. `test-933` les compare.
+            saut=$(printf '%s\n' "$sortie" | grep -vE '^[[:space:]]*(✓|✗|✔|✘)' | grep -E '[Ss][Aa][Uu][Tt](É|é)' || true)
+            if [ -n "$saut" ]; then
+              echo "::error::$f a SAUTÉ une partie en silence : ${saut%%$'\n'*}"; rouge=1
             fi
           done
           echo ""

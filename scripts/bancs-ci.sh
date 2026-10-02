@@ -48,8 +48,15 @@ for f in "${liste[@]}"; do
   # ⛔ UNE SUITE QUI SE SAUTE ELLE-MÊME SORT EN 0 SANS RIEN DIRE — la règle de `verification.yml`,
   # que ce compteur n'appliquait pas (relevé par `gardien`, 24 septembre 2026).
   # « SAUTÉ » couvre aussi « SAUTÉE » : test-818 écrit le masculin (« … SAUTÉ : ESLint absent »), le filet ne voyait que le féminin.
-  if printf '%s\n' "$sortie" | grep -qi 'SAUTÉ'; then
-    echo "::error::$f a SAUTÉ une partie en silence"
+  # ⛔ ET LE FILET NE DÉPEND NI DE LA LANGUE DE LA MACHINE NI DES LIBELLÉS DES CONTRÔLES (2 octobre 2026). `grep -i` ne replie
+  # « É » sur « é » que dans une langue UTF-8 : sur la machine de travail (POSIX), « (sauté : … absent) » en minuscules passait
+  # inaperçu ; sur GitHub (C.UTF-8), le filet lisait aussi les LIBELLÉS — « ✓ … (aucune sautée en silence) » a fait tomber
+  # test-905 et test-933 sur un déploiement juste. Les deux casses s'écrivent donc à la main, les lignes de RÉSULTAT (✓ ✗ ✔ ✘
+  # en tête) sont écartées — une suite annonce un saut par une ligne à elle, jamais par un contrôle —, et sans `-q` : sous
+  # `pipefail`, un `grep -q` qui s'arrête au premier mot fait mourir `printf` (SIGPIPE) sur une longue sortie, et le saut passe.
+  saut=$(printf '%s\n' "$sortie" | grep -vE '^[[:space:]]*(✓|✗|✔|✘)' | grep -E '[Ss][Aa][Uu][Tt](É|é)' || true)
+  if [ -n "$saut" ]; then
+    echo "::error::$f a SAUTÉ une partie en silence : ${saut%%$'\n'*}"
     echecs=$((echecs+1)); coupables="$coupables $f(sautée)"
   fi
 
