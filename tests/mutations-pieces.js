@@ -133,7 +133,7 @@ function fabriquerCopie() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mut-pieces-'));
   for (const d of DOSSIERS_COPIE) copier(path.join(RACINE, d), path.join(dir, d));
   fs.mkdirSync(path.join(dir, 'tests'));
-  for (const f of fs.readdirSync(path.join(RACINE, 'tests'))) if (/^(test-9\d\d|outils-[\w-]+|bac-messages|lib-horloge-msg|mode-site|sonde-opmessages-pieces|sonde-proxy-nginx|test-85\d)\.js$/.test(f)) fs.copyFileSync(path.join(RACINE, 'tests', f), path.join(dir, 'tests', f));
+  for (const f of fs.readdirSync(path.join(RACINE, 'tests'))) if (/^(test-9\d\d|outils-[\w-]+|bac-messages|lib-horloge-msg|mode-site|sonde-opmessages-pieces|sonde-proxy-nginx|mutations-opmessages|test-85\d)\.js$/.test(f)) fs.copyFileSync(path.join(RACINE, 'tests', f), path.join(dir, 'tests', f));
   fs.symlinkSync(path.join(RACINE, 'server-msg', 'node_modules'), path.join(dir, 'server-msg', 'node_modules'));
   return dir;
 }
@@ -224,6 +224,21 @@ async function jouer(mut, dir) {
   if (!liste.length) { console.log('aucune mutation à jouer'); process.exit(2); }
   /* les mutations jouées par la sonde ne se lancent pas en parallèle : trois navigateurs et trois services se volent le processeur, et la sonde mesure du temps */
   const copies = Array.from({ length: sondes ? 1 : Math.min(NB_COPIES, liste.length) }, fabriquerCopie);
+  /* ⛔ LE TÉMOIN. Une suite qui MEURT dans la copie (un fichier que la copie n'emporte pas, un `require` qui échoue) a l'air de « tomber » à chaque mutation, sans rien prouver : pris le 2 octobre 2026
+     sur G03, que test-857 « faisait tomber » en mourant de `MODULE_NOT_FOUND` sur sa première ligne. Chaque banc visé tourne donc d'abord, UNE fois, sur une copie INTACTE : s'il n'y est pas vert, rien n'est
+     joué et la sortie dit pourquoi. */
+  if (!args.includes('--sans-temoin')) {
+    const visees = Array.from(new Set(liste.flatMap(x => x.suites))).filter(x => x !== 'proxy' || process.env.OPMSG_NGINX);
+    for (const sv of visees) {
+      const r = await lancer(copies[0], sv);
+      if (r.code !== 0 || (r.ko !== null && r.ko > 0) || r.ko === null) {
+        console.log('⛔ le TÉMOIN ' + (sv === 'sonde' ? 'de la sonde' : sv === 'proxy' ? 'de la sonde du proxy' : 'test-' + sv) + ' n\'est pas vert sur une copie INTACTE (code ' + r.code + ') — aucune mutation n\'est jouée.\n' + r.sortie.split('\n').filter(Boolean).slice(-14).join('\n'));
+        for (const d of copies) { try { fs.rmSync(d, { recursive: true, force: true }); } catch (e) { /* déjà parti */ } }
+        process.exit(2);
+      }
+    }
+    console.log('témoins verts sur une copie intacte : ' + visees.map(x => x === 'sonde' ? 'la sonde' : x === 'proxy' ? 'la sonde du proxy' : 'test-' + x).join(', ') + '\n');
+  }
   const file = liste.slice(), resultats = [];
   await Promise.all(copies.map(async (dir) => {
     for (;;) {
