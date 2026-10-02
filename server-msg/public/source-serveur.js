@@ -462,19 +462,20 @@
     }
     async function posterPieces(p, retirer) {
       p.enVol = true;
+      emettre({ type: 'conversation', id: p.conv });             // ⛔ l'état « Envoi… » se pose AVANT l'événement : la page relit tout de suite, elle le voit
       try {
         const l = await limites();
         for (const x of lesPieces(p)) {
           if (x.id) continue;
           const d = await A.deposer(x.blob, { conv: p.conv, genre: p.type, nom: p.type === 'fichier' ? x.nom : undefined, max: maxDe(l, p.type) });
           x.id = d.id;
+          /* ⛔ l'adresse que la page avait fabriquée devient TOUT DE SUITE la mémoire de cette pièce : le message qui la cite revient parfois par le flux AVANT la réponse de l'envoi,
+             et il ne doit pas faire relire une image que l'appareil a déjà */
+          if (x.url && (p.type === 'photo' || p.type === 'vocal')) poserCache(x.id, x.url, x.blob.size);
         }
         const champs = p.type === 'photo' ? { pieces: p.photos.map(x => ({ id: x.id, w: x.w, h: x.h })) } : p.type === 'vocal' ? { piece: p.vocal.id, dur: p.vocal.dur, bars: p.vocal.bars } : { piece: p.fichier.id };
         const r = await A.envoyerPieces(p.conv, p.type, champs, { cid: p.cid });
         if (retirer) retirer();
-        /* l'adresse que la page avait fabriquée devient la mémoire de cette pièce : l'image qui s'affichait ne change pas, rien n'est relu */
-        if (p.type === 'photo') p.photos.forEach(x => { if (x.url) poserCache(x.id, x.url, x.blob.size); });
-        else if (p.type === 'vocal' && p.vocal.url) poserCache(p.vocal.id, p.vocal.url, p.vocal.blob.size);
         apresEnvoi(p.conv, { seq: r.seq, id: r.id, auteur: moiApi.id, ts: r.ts, type: p.type, texte: null, meta: metaDe(p), repond_a: null, supprime: false, modifie: null, reactions: [] });
         return r;
       } finally { p.enVol = false; }
@@ -497,7 +498,7 @@
             if (erreurCoupure(e)) { p.essais++; planifierFile(p.essais); break; }
             /* un refus DÉFINITIF (le groupe est devenu « annonces seules », on n'en est plus membre…) : le message ne partira jamais, on le DIT */
             file.splice(file.indexOf(p), 1);
-            lesPieces(p).forEach(x => { if (x.url) revoquerUrl(x.url); });   // la page ne sait plus que ce message existe : ses adresses locales n'ont plus de propriétaire
+            lesPieces(p).forEach(x => { if (x.id && cachePieces.has(x.id)) liberer(x.id); else if (x.url) revoquerUrl(x.url); });   // la page ne sait plus que ce message existe : ses adresses locales n'ont plus de propriétaire
             emettre({ type: 'conversation', id: p.conv });
             const [sujet, accord] = sujetEnvoi(p);
             emettre({ type: 'avis', texte: sujet + ' n\'a pas pu être ' + accord + ' : ' + (e && e.dit ? (e.phrase ? e.phrase() : e.message) : 'erreur inattendue.') });
@@ -530,12 +531,12 @@
       const attend = file.some(x => x.conv === id);
       file.push(p);
       if (attend) { emettre({ type: 'conversation', id }); planifierFile(0); return vueEnAttente(p); }
-      emettre({ type: 'conversation', id });                      // la bulle « Envoi… » paraît tout de suite
       const retirer = () => { const i = file.indexOf(p); if (i >= 0) file.splice(i, 1); };
       try { await posterPieces(p, retirer); return { id: p.cid, auteur: moiApi.id, t: p.t, lu: null }; }
       catch (e) {
         if (erreurCoupure(e)) { p.essais++; planifierFile(p.essais); emettre({ type: 'conversation', id }); return vueEnAttente(p); }
-        retirer(); emettre({ type: 'conversation', id });
+        retirer(); lesPieces(p).forEach(x => { if (x.id) liberer(x.id); });     // refusé pour de bon : les pièces déjà déposées n'ont plus de message (le balayeur du service les ôtera), leur adresse n'a plus de raison d'être gardée
+        emettre({ type: 'conversation', id });
         throw e;
       } finally { if (file.length) planifierFile(0); }
     }

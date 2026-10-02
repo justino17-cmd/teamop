@@ -10,7 +10,7 @@
    Chaque couple joue TOUT le parcours : connexion et refus de la porte, contacts par lien, conversation (envoi, « Lu », non lus, bannière, frappe, présence), actions
    sur un message (réagir, répondre, copier, modifier, supprimer pour moi / pour tous), groupes (créer, infos, admins, lien, retrait, sortie), réseau coupé puis rendu,
    chaque refus du service (401, 403, 404, 409, 410, 413, 429 avec Retry-After, 503, réseau) DIT à l'écran et effacé par la réussite suivante, ce qui est « bientôt »
-   (photos, vocaux, appels, réunions), l'accès coupé dans la Tour, une autre personne dans le même navigateur, la déconnexion (réussie ET ratée), l'injection de HTML.
+   (appels, réunions — les pièces ont leur sonde : `tests/sonde-opmessages-pieces.js`), l'accès coupé dans la Tour, une autre personne dans le même navigateur, la déconnexion (réussie ET ratée), l'injection de HTML.
 
    ⛔ CHAQUE ZÉRO EST PRÉCÉDÉ DE SA POPULATION (CLAUDE.md : « une assertion sur un ensemble vide passe et ne prouve rien »).
    ⛔ UNE LARGEUR SE MESURE DEUX FOIS (deux trames, une lecture forcée, puis 700 ms plus tard) et CONTRE LA LARGEUR POSÉE du profil.
@@ -653,20 +653,22 @@ async function couple(b, env, cfg) {
     await B.page.evaluate(() => { const t = document.getElementById('saisie'); t.value = ''; t.dispatchEvent(new Event('input', { bubbles: true })); });
   });
 
-  await bloc('10. Ce qui est « bientôt » le dit — et n\'allume ni micro, ni caméra, ni sélecteur de fichier', async () => {
+  await bloc('10. Ce qui est « bientôt » le dit (appels, réunions) — et les pièces, elles, sont là : « + » propose Photo et Fichier, le micro demande le micro', async () => {
     await onglet(A, 'appels');
     await verifier('l\'onglet Appels dit « Bientôt disponible »', A, () => /Bientôt disponible/.test(document.getElementById('vue-appels').textContent), null, 4000, () => texteVu(A, '#vue-appels'));
     await onglet(A, 'reunions');
     await verifier('l\'onglet Réunions dit « Bientôt disponible »', A, () => /Bientôt disponible/.test(document.getElementById('vue-reunions').textContent), null, 4000);
     await ouvrirConvAvec(A, nomB);
     await toucher(A, '#compo-plus');
-    await attendreTexte('« + » (photo) : « Les photos arrivent bientôt »', A, '#mot', 'photos arrivent bientôt', 3000);
+    await verifier('« + » ouvre une petite feuille « Photo / Fichier » (le service sait les pièces), et n\'ouvre AUCUN sélecteur tant qu\'on n\'a pas choisi', A, () => !document.getElementById('menu-fond').hidden && document.querySelectorAll('#menu-msg [data-plus]').length === 2, null, 3000, () => texteVu(A, '#menu-msg'));
+    v('population : la feuille « Joindre » porte ses deux actions, nommées, et aucun sélecteur de fichier ne s\'est ouvert', [await A.page.evaluate(() => Array.from(document.querySelectorAll('#menu-msg [data-plus]')).map(b => b.textContent)), A.fichiers], [['Photo', 'Fichier'], 0]);
+    await A.page.keyboard.press('Escape');
+    await verifier('Échap referme la feuille « Joindre »', A, () => document.getElementById('menu-fond').hidden, null, 3000);
     await toucher(A, '#conv-cam');
     await attendreTexte('la caméra de l\'en-tête : « Les appels arrivent bientôt »', A, '#mot', 'appels arrivent bientôt', 3000);
     await saisir(A, '#saisie', ''); await A.page.evaluate(() => { const m = document.getElementById('compo-micro'); m.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch', button: 0 })); });
-    await attendreTexte('le micro : « Les messages vocaux arrivent bientôt »', A, '#mot', 'vocaux arrivent bientôt', 3000);
+    await verifier('le micro DEMANDE le micro (ce navigateur n\'en a pas : la phrase le dit, aucune erreur dans la console)', A, () => window.__media >= 1 && /micro/i.test(document.getElementById('avis').textContent), null, 4000, () => texteVu(A, '#avis'));
     await dormir(300);
-    v('aucun sélecteur de fichier ouvert, aucune demande de micro ou de caméra (population : trois gestes joués)', [A.fichiers, await A.page.evaluate(() => window.__media)], [0, 0]);
   });
 
   await bloc('11. Les écrans tiennent dans l\'écran (largeur mesurée deux fois, contre la largeur posée)', async () => {
