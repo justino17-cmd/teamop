@@ -11,6 +11,32 @@ connues, et ce qui attend une décision de Justin.
 Tenu à jour à chaque fois qu'un chantier change d'état. Une ligne fausse ici est pire que pas
 de ligne du tout.
 
+# ⚠️ 2 OCTOBRE 2026, SOIR — LA CI DE MAIN ÉTAIT ROUGE APRÈS `fa32298` : RÉPARÉE (SUITES ET CONTRÔLES SEULEMENT)
+
+Après la mise en ligne, « Vérification des pages » (run 525) et « Déploiement d'OP MESSAGES » (run 1, bêta jamais tentée)
+sont tombés. **Rien de servi n'était en cause** : serveur, Tour v2.81 et pages justes, VPS sain. Trois causes, mesurées :
+1. **Des suites de main restées d'avant** : `fa32298` a emporté la Tour v2.81 et la page de paiement neuve (`PAGES_LIEES`), et
+   `test-828`, `829`, `836`, `837`, `848` — hors des deux listes — attendaient encore les anciennes. Les versions de la branche
+   partent sur main ; `test-848` et `test-836` savent désormais tourner sur les deux (main en v767 sans les options du Pro).
+2. **Le filet « SAUTÉ » dépendait de la machine** : `grep -i` ne replie « É » qu'en UTF-8 — GitHub lisait le LIBELLÉ
+   « ✓ … aucune sautée en silence » (`test-905`, `test-933` rouges à tort), la machine de travail ratait « (sauté : … absent) » en
+   minuscules ; et sous `pipefail`, `grep -q` ratait un saut annoncé en tête d'une longue sortie (mesuré : 3 fois sur 3). Même
+   ligne dans `bancs-ci.sh` et `verification.yml`, `test-933` la joue en C et en C.UTF-8.
+3. **`test-913` dépendait de la version de Node** : son « refus de connexion » réutilisait une connexion gardée ouverte vers un
+   faux serveur fermé — rouge 3 fois sur 3 avec Node 22.23.3 (GitHub ; le VPS est en 22.23.1), vert en 22.22.2. Le refus a son
+   faux à lui et le banc exige la cause ECONNREFUSED. Le module (`server-msg/sms-ovh.js`) était juste.
+Et la porte qui a manqué : `preparer-deploiement-serveur.sh` joue désormais la SUITE COMPLÈTE de l'arbre assemblé avant le
+commit (`test-728`). Preuves : 10/10 mutations (`scratchpad/mutations-ci-main.py`), relecture `relecteur` (deux durcissements
+pris : `grep -a`, et `test-836` sans repère de bloc exige une feuille sans règle d'options) ; sur une copie de main + correctifs,
+avec Node 22.23.3 et `LC_ALL=C.UTF-8` : suite complète 233 suites · 14 786, liste OP MESSAGES 26 · 2 417, liste serveur
+53 · 3 729, tout à 0 ✗ (chiffres de la première passe ; la passe finale est notée au commit de main). Branche : `f8d0696`,
+`cf4f689`, `4fa1fe8`.
+⚠️ **Ce que la réparation ne range pas** : la page de paiement EN SERVICE (partie avec `fa32298`) n'a plus que Messages Perso et
+Messages Pro, pendant que la page des tarifs EN SERVICE montre encore « Messages Business Premium — 25 € — Bientôt disponible ».
+Rien n'est vendable (OP MESSAGES n'a aucun bouton d'achat, le serveur refuse `msgpremium` neuf) ; ça s'aligne le jour où Justin
+dit « remplace le site » (`node scripts/site-marine.js --racine --messages`). La note plus bas (« elle n'atteint `main` que sur sa
+phrase ») est donc devenue fausse pour la page de paiement : elle suit le serveur (`PAGES_LIEES`), c'est le site qui attend.
+
 # ✅ 2 OCTOBRE 2026 — « POUSSE » FAIT : SERVEUR, TOUR v2.81 ET OP MESSAGES EN LIGNE (`fa32298`)
 
 **Mise en ligne** : `fa32298` poussé sur `main` (fabriqué par `scripts/preparer-deploiement-serveur.sh` sur `main` = `0bd1fbd`,
