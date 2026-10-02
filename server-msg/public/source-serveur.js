@@ -11,12 +11,20 @@
      deconnexion()         → ferme la session côté service PUIS le flux ; si le service refuse, le flux reste ouvert et l'erreur se dit.
      surSessionMorte(cb)   → cb(motif) quand la session est morte (coupée, expirée) ou que la personne n'est plus la même : la page REPART DE ZÉRO.
      verifierSession()     → relit /api/moi : une autre personne ou plus de session déclenche `surSessionMorte`.
-     capacites             → { service, connexion, photos, vocaux, appels, reunions, actionsMessage, groupeInfos, liens, presence, saisie, historique,
-                               texteMax } : ce que le service SAIT faire. Ce qu'il ne sait pas encore (photos, vocaux, appels, réunions) dit « bientôt ».
-     personne(id)          → { id, nom, prenom, initiales, avatar } d'une personne déjà vue (contact, membre, auteur), sinon null.
+     capacites             → { service, connexion, photos, vocaux, fichiers, avatars, reglages, appels, reunions, actionsMessage, groupeInfos, liens, presence, saisie,
+                               historique, texteMax } : ce que le service SAIT faire. Ce qu'il ne sait pas encore (appels, réunions) dit « bientôt ».
+     personne(id)          → { id, nom, prenom, initiales, avatar, photo } d'une personne déjà vue (contact, membre, auteur), sinon null.
      répondre, modifier, supprimer, réagir, saisie, infos de groupe, liens de contact : voir plus bas.
+   LES PIÈCES (étape 4). `envoyer(id, brouillon)` accepte aussi `{ photos:[{blob,url,w,h}] }`, `{ vocal:{blob,url,dur,bars} }` et `{ fichier:{blob,nom,taille} }` : chaque pièce est
+   DÉPOSÉE (`POST /api/pieces`, corps binaire) puis le message la cite ; un envoi lent est dans la file locale, affiché « Envoi… », et un renvoi ne redépose pas ce qui l'est
+   déjà. Un message rendu porte `photos:[{url,w,h,piece,etat}]`, `vocal:{url,dur,bars,piece}` ou `fichier:{nom,taille,piece}` : `url` est une adresse `blob:` FABRIQUÉE ICI
+   (la pièce est lue par `GET /api/pieces/:id` puis gardée EN MÉMOIRE, jamais sur l'appareil), `null` tant qu'elle n'est pas arrivée (`etat` : 'chargement' | 'indisponible').
+     pieceUrl(piece)       → l'adresse `blob:` d'une image ou d'un son (gardée en mémoire, rendue à la fermeture) ;  pieceBlob(piece) → le Blob d'un fichier (jamais gardé).
+   LES RÉGLAGES (capacité `reglages`) : profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer,
+   deconnecterAutres, stockage, aPropos — voir plus bas. Chacun rend une promesse (sauf `bloques`) et lève une erreur qui se DIT.
    Les événements de `ecouter(cb)` : 'liste', 'conversation' (id), 'contacts', 'presence', 'reseau' (etat), 'arrivee' (un message d'un autre : de quoi
-   afficher une bannière), 'notification', 'retire' (id : la personne n'est plus dans cette conversation), 'avis' (texte : un refus arrivé après coup).
+   afficher une bannière), 'notification', 'retire' (id : la personne n'est plus dans cette conversation), 'avis' (texte : un refus arrivé après coup),
+   'moi' (mon profil a changé : nom, statut ou photo, ici ou sur un autre appareil).
 
    ⛔ TOUT REFUS SE DIT. Chaque appel qui échoue rend une `ErreurApi` d'`api.js` (`code`, `statut`, `retry`, `phrase()` en français, `dit:true`) ; les refus
    LOCAUX de ce module (message vide, trop long, « bientôt ») ont la même forme. Un écran n'a jamais à inventer une phrase pour un refus qu'il ne comprend pas.
@@ -24,8 +32,9 @@
    et repart avec le MÊME `cid` à la reprise : le service ne crée jamais deux messages pour le même `cid`, donc une réponse perdue puis un renvoi ne font qu'un.
    ⛔ RIEN N'EST RANGÉ SUR L'APPAREIL : tout vit en mémoire. Un autre compte, dans le même onglet, ne peut rien y retrouver — et la page repart de zéro
    à la déconnexion (`location.replace`), ce module avec elle.
-   ⛔ Un texte venu d'un tiers (nom, message) est rendu TEL QUEL : l'échapper est le travail de l'écran. Ce module n'invente aucune adresse d'image : `photo` vaut
-   toujours `null` (les photos arrivent à l'étape 4). */
+   ⛔ Un texte venu d'un tiers (nom, message, nom de fichier) est rendu TEL QUEL : l'échapper est le travail de l'écran. Ce module n'invente aucune adresse d'image :
+   les seules adresses qu'il rend sont des `blob:` qu'il fabrique lui-même à partir d'un Blob LU du service (jamais une adresse venue du service).
+   ⛔ RIEN N'EST RANGÉ SUR L'APPAREIL, PIÈCES COMPRISES : les adresses `blob:` vivent en mémoire, bornées (nombre et octets), libérées à la déconnexion et à l'arrêt. */
 (function (racine) {
   'use strict';
   const MIN = 60000;
@@ -66,11 +75,16 @@
     const delaiSaisieMs = o.delaiSaisieMs == null ? 6000 : o.delaiSaisieMs;       // une frappe sans nouvelle depuis ce temps s'éteint toute seule
     const delaiRelireMs = o.delaiRelireMs == null ? 60 : o.delaiRelireMs;          // la liste se relit en un coup après une rafale d'événements
     const attenteEnvoi = typeof o.attenteEnvoi === 'function' ? o.attenteEnvoi : (n) => Math.min(30000, 1500 * Math.pow(2, Math.min(n, 4)));
+    const creerUrl = typeof o.creerUrl === 'function' ? o.creerUrl : (b) => URL.createObjectURL(b);
+    const revoquerUrl = typeof o.revoquerUrl === 'function' ? o.revoquerUrl : (u) => { try { URL.revokeObjectURL(u); } catch (e) { /* déjà libérée */ } };
+    const cacheMax = o.cacheMax > 0 ? o.cacheMax : 150, cacheOctetsMax = o.cacheOctetsMax > 0 ? o.cacheOctetsMax : 96 * 1048576;   // bornes de la mémoire des pièces lues
+    const chargesMax = o.chargesMax > 0 ? o.chargesMax : 3;                                                                         // lectures de pièces en même temps
+    const delaiReessaiPieceMs = o.delaiReessaiPieceMs == null ? 15000 : o.delaiReessaiPieceMs;                                      // une pièce illisible n'est pas redemandée à chaque rendu
 
     let moiApi = null, mort = false, enMarche = false, ecoute = null, suiviMort = null;
     const registre = new Map();            // uid → { id, prenom, nom, statut }
     const enLigne = new Set();
-    let contactsApi = [], convsApi = [], listeFraiche = false;
+    let contactsApi = [], contactsTous = [], convsApi = [], listeFraiche = false;
     const convs = new Map();               // id → { detail, messages[], aPlus, charge }
     const saisies = new Map();             // conv → Map(uid → minuterie)
     const lecture = new Map();             // conv → Map(uid → { seq, ts })
@@ -95,13 +109,122 @@
       if (typeof suiviMort === 'function') suiviMort(motif || 'session_requise');
     }
 
+    /* ── les pièces : lues par le service (GET /api/pieces/:id), gardées EN MÉMOIRE sous forme d'adresses blob:, jamais sur l'appareil ──
+       ⛔ Le service ne sert une pièce qu'à qui a le droit de la lire (sinon 404, le même qu'une pièce inexistante) : une adresse n'est donc jamais devinée, elle est fabriquée ici
+       à partir d'un Blob que le service vient de rendre. La mémoire est BORNÉE (nombre et octets : la moins récemment vue part d'abord) et LIBÉRÉE à l'arrêt et à la déconnexion. */
+    const cachePieces = new Map();       // id de pièce → { url, octets, vu }
+    const lectures = new Map();          // id → Promise<url> : une seule lecture à la fois par pièce
+    const echecs = new Map();            // id → { t, definitif } : une pièce qui n'a pas pu être lue n'est pas redemandée à chaque rendu (15 s), ni du tout si elle n'existe plus (404)
+    const attentePieces = [];            // les pièces à lire, la plus récente d'abord
+    let lecturesEnCours = 0, tickCache = 0, octetsCache = 0, signalPlanifie = false, generation = 0;
+    const PHOTOS_AUTO = 30, VOCAUX_AUTO = 6, PHOTOS_PAR_MESSAGE = 10;   // ce que l'ouverture d'une conversation lit toute seule ; le reste se lit au toucher
+    const LIMITES_DEFAUT = { photo_max: 12582912, vocal_max: 10485760, fichier_max: 26214400, avatar_max: 2097152, par_message: 10, quota: 2147483648 };
+    let limitesPieces = null;
+    /* Les maximums du service (GET /api/config), lus à la première utilisation : la page refuse AVANT d'envoyer un fichier trop lourd, sans lui faire parcourir le réseau pour rien. */
+    async function limites() {
+      if (limitesPieces) return limitesPieces;
+      try { const c = await A.config(); limitesPieces = Object.assign({}, LIMITES_DEFAUT, c && c.limites && c.limites.pieces); }
+      catch (e) { return LIMITES_DEFAUT; }          // pas de mémoire d'un échec : on redemandera la prochaine fois (le service refusera de toute façon ce qui est trop lourd)
+      return limitesPieces;
+    }
+    const maxDe = (l, genre) => genre === 'photo' ? l.photo_max : genre === 'vocal' ? l.vocal_max : genre === 'avatar' ? l.avatar_max : l.fichier_max;
+    /* Prévient l'écran qu'une adresse est arrivée : une seule rafale, quel que soit le nombre de pièces lues d'un coup. */
+    function signalerPieces() {
+      if (signalPlanifie || mort) return;
+      signalPlanifie = true;
+      planifier(() => {
+        signalPlanifie = false;
+        if (mort) return;
+        emettre({ type: 'moi' }); emettre({ type: 'contacts' }); emettre({ type: 'liste' });
+        for (const id of convs.keys()) emettre({ type: 'conversation', id });
+      }, delaiRelireMs);
+    }
+    function poserCache(id, url, octets) {
+      const avant = cachePieces.get(id);
+      if (avant) { octetsCache -= avant.octets; if (avant.url !== url) revoquerUrl(avant.url); }
+      cachePieces.set(id, { url, octets, vu: ++tickCache }); octetsCache += octets;
+      while (cachePieces.size > cacheMax || octetsCache > cacheOctetsMax) {
+        let plus = null;
+        for (const [k, e] of cachePieces) if (k !== id && (!plus || e.vu < plus.e.vu)) plus = { k, e };
+        if (!plus) break;
+        revoquerUrl(plus.e.url); octetsCache -= plus.e.octets; cachePieces.delete(plus.k);
+      }
+    }
+    function oublierPieces() {
+      generation++;
+      for (const e of cachePieces.values()) revoquerUrl(e.url);
+      cachePieces.clear(); lectures.clear(); echecs.clear(); attentePieces.length = 0; octetsCache = 0; lecturesEnCours = 0;
+    }
+    function liberer(id) {
+      const e = cachePieces.get(id);
+      if (e) { revoquerUrl(e.url); octetsCache -= e.octets; cachePieces.delete(id); }
+      echecs.delete(id);
+    }
+    /* un message effacé (pour tous, pour moi, échu) : ses pièces n'ont plus rien à faire en mémoire */
+    function oublierMeta(meta) {
+      if (!meta) return;
+      if (Array.isArray(meta.pieces)) meta.pieces.forEach(p => p && liberer(p.id));
+      if (typeof meta.piece === 'string') liberer(meta.piece);
+    }
+    function lirePieceUrl(id) {
+      const deja = cachePieces.get(id);
+      if (deja) { deja.vu = ++tickCache; return Promise.resolve(deja.url); }
+      if (lectures.has(id)) return lectures.get(id);
+      const gen = generation;
+      lecturesEnCours++;
+      const p = A.lirePiece(id).then(({ blob }) => {
+        if (gen !== generation) throw erreurLocale('introuvable');       // la session a été fermée pendant la lecture : rien n'est gardé
+        const url = creerUrl(blob); poserCache(id, url, blob.size || 0); echecs.delete(id);
+        return url;
+      }, (er) => { if (gen === generation) echecs.set(id, { t: maintenant(), definitif: !!er && er.statut === 404 }); throw er; });
+      lectures.set(id, p);
+      const fin = () => { if (gen !== generation) return; lectures.delete(id); lecturesEnCours--; signalerPieces(); pomperPieces(); };
+      p.then(fin, fin);
+      return p;
+    }
+    function pomperPieces() {
+      while (lecturesEnCours < chargesMax && attentePieces.length && !mort) {
+        const id = attentePieces.shift();
+        if (cachePieces.has(id) || lectures.has(id)) continue;
+        lirePieceUrl(id).catch(() => {});
+      }
+    }
+    function demanderPiece(id) {
+      if (typeof id !== 'string' || cachePieces.has(id) || lectures.has(id) || mort) return;
+      const e = echecs.get(id);
+      if (e && (e.definitif || maintenant() - e.t < delaiReessaiPieceMs)) return;
+      const i = attentePieces.indexOf(id); if (i >= 0) attentePieces.splice(i, 1);
+      attentePieces.unshift(id);                                           // la dernière demandée (la plus récente d'une conversation) part la première
+      pomperPieces();
+    }
+    /* l'adresse d'une pièce déjà lue, ou null (sans rien demander) */
+    function urlSiLue(id) {
+      const e = typeof id === 'string' ? cachePieces.get(id) : null;
+      if (e) { e.vu = ++tickCache; return e.url; }
+      return null;
+    }
+    /* l'adresse d'une pièce, ou null — et sa lecture est demandée en arrière-plan : l'écran est prévenu (événements) quand elle arrive */
+    function photoPiece(id) {
+      const u = urlSiLue(id);
+      if (u || typeof id !== 'string') return u;
+      demanderPiece(id);
+      return null;
+    }
+    const etatPiece = (id) => cachePieces.has(id) ? 'pret' : (lectures.has(id) || attentePieces.includes(id)) ? 'chargement' : echecs.has(id) ? 'indisponible' : 'attente';
+    /* l'adresse d'une image ou d'un son, lue maintenant s'il le faut (le toucher d'une photo ou d'un vocal pas encore arrivés) */
+    const pieceUrl = (id) => typeof id === 'string' ? lirePieceUrl(id) : Promise.reject(erreurLocale('introuvable'));
+    /* un fichier : le Blob, JAMAIS gardé (25 Mo en mémoire pour un clic de téléchargement serait un gaspillage) */
+    const pieceBlob = async (id) => { if (typeof id !== 'string') throw erreurLocale('introuvable'); return (await A.lirePiece(id)).blob; };
+
     /* ── les personnes ── */
     function noter(p) {
       if (!p || typeof p.id !== 'string') return;
       const avant = registre.get(p.id) || {};
-      registre.set(p.id, { id: p.id, prenom: p.prenom !== undefined ? p.prenom : avant.prenom, nom: p.nom !== undefined ? p.nom : avant.nom, statut: p.statut !== undefined ? p.statut : avant.statut });
+      registre.set(p.id, { id: p.id, prenom: p.prenom !== undefined ? p.prenom : avant.prenom, nom: p.nom !== undefined ? p.nom : avant.nom, statut: p.statut !== undefined ? p.statut : avant.statut,
+        avatar: p.avatar !== undefined ? p.avatar : avant.avatar });
     }
-    const vuePersonne = (p) => { const n = nomComplet(p); return { id: p.id, nom: n, prenom: (p.prenom || n).split(' ')[0] || n, initiales: initialesDe(n), avatar: indexAvatar(p.id) }; };
+    /* `avatar` d'une vue = l'indice de couleur du repli (un nombre) ; `photo` = l'adresse blob: de la photo de profil quand elle est arrivée, sinon null */
+    const vuePersonne = (p) => { const n = nomComplet(p); return { id: p.id, nom: n, prenom: (p.prenom || n).split(' ')[0] || n, initiales: initialesDe(n), avatar: indexAvatar(p.id), photo: photoPiece(p.avatar) }; };
     const personne = (id) => { const p = registre.get(id); return p ? vuePersonne(p) : null; };
     const estMoi = (id) => !!moiApi && id === moiApi.id;
     const prenomDe = (id) => estMoi(id) ? 'Vous' : (registre.has(id) ? vuePersonne(registre.get(id)).prenom : 'Quelqu\'un');
@@ -110,6 +233,7 @@
     /* ── les contacts ── */
     const vueContact = (c) => Object.assign(vuePersonne(c), { role: enLigne.has(c.id) ? 'En ligne' : (c.statut || ''), enLigne: enLigne.has(c.id) });
     function installerContacts(liste) {
+      contactsTous = liste.slice();
       contactsApi = liste.filter(c => c.mutuel && !c.bloque);
       enLigne.clear();
       for (const c of liste) { noter(c); if (c.en_ligne) enLigne.add(c.id); }
@@ -136,7 +260,7 @@
       const loc = convs.get(c.id);
       const nonLus = loc && loc.luLocal !== undefined && loc.luLocal >= c.dernier_seq ? 0 : c.non_lus;
       return {
-        id: c.id, type: c.type, nom, court: nom, initiales: direct ? initialesDe(nom) : '#', avatar: indexAvatar(c.id), photo: null, epingle: !!c.epingle,
+        id: c.id, type: c.type, nom, court: nom, initiales: direct ? initialesDe(nom) : '#', avatar: indexAvatar(c.id), photo: direct ? photoPiece(c.autre && c.autre.avatar) : photoPiece(c.avatar), epingle: !!c.epingle,
         membres: [], admins: c.role === 'admin' && moiApi ? [moiApi.id] : [], annoncesSeulement: !!c.annonces_seules, ephemeres: c.ephemere_s || 0,
         nonLu: nonLus > 0, nonLus, apercu, t: c.dernier_ts, enLigne: direct && c.autre ? enLigne.has(c.autre.id) : false,
         autre: direct && c.autre ? c.autre.id : null,
@@ -190,21 +314,54 @@
         case 'admin_promu': return estMoi(u) ? 'Vous êtes maintenant administrateur' : nomDe(u) + ' est maintenant administrateur';
         case 'admin_retire': return estMoi(u) ? 'Vous n\'êtes plus administrateur' : nomDe(u) + ' n\'est plus administrateur';
         case 'renomme': return (estMoi(a) ? 'Vous avez' : nomDe(a) + ' a') + ' renommé le groupe';
+        case 'avatar': return (estMoi(a) ? 'Vous avez' : nomDe(a) + ' a') + ' changé la photo du groupe';
+        case 'avatar_retire': return (estMoi(a) ? 'Vous avez' : nomDe(a) + ' a') + ' retiré la photo du groupe';
         case 'annonces_seules': return m.meta.valeur ? 'Seuls les administrateurs peuvent écrire' : 'Tout le monde peut écrire';
         case 'ephemere': return m.meta.valeur ? 'Les messages disparaissent après ' + duree(m.meta.valeur) : 'Les messages éphémères sont désactivés';
         default: return 'Le groupe a été modifié';
       }
     }
+    /* ce que dit de lui-même un message qui n'est pas du texte : dans une citation, une bannière */
+    function resumeMedia(type, meta) {
+      if (type === 'photo') { const n = meta && Array.isArray(meta.pieces) ? meta.pieces.length : 1; return n > 1 ? n + ' photos' : 'Photo'; }
+      if (type === 'vocal') { const d = meta && meta.dur > 0 ? Math.round(meta.dur) : 0; return 'Message vocal' + (d ? ' · ' + Math.floor(d / 60) + ':' + String(d % 60).padStart(2, '0') : ''); }
+      if (type === 'fichier') return 'Fichier' + (meta && meta.nom ? ' · ' + meta.nom : '');
+      return '';
+    }
     function citation(c, seq) {
       const q = c.messages.find(x => x.seq === seq);
       if (!q) return { seq, auteur: null, nom: 'Message plus ancien', texte: '', introuvable: true };
-      return { seq, id: q.id, auteur: q.auteur, nom: nomDe(q.auteur), texte: q.supprime ? 'Message supprimé' : extrait(q.type === 'systeme' ? texteSysteme(q) : q.texte, 120), supprime: !!q.supprime };
+      return { seq, id: q.id, auteur: q.auteur, nom: nomDe(q.auteur), texte: q.supprime ? 'Message supprimé' : extrait(q.type === 'systeme' ? texteSysteme(q) : (q.texte || resumeMedia(q.type, q.meta)), 120), supprime: !!q.supprime };
     }
-    function vueMessage(conv, c, m) {
+    /* Les pièces d'un message : l'adresse est celle d'une pièce DÉJÀ LUE (sinon null, et `etat` dit où on en est). `auto` : les pièces que l'ouverture lit toute seule — les plus
+       récentes ; les autres attendent le toucher (une conversation de cent photos ne se télécharge pas d'un coup sur un téléphone). */
+    function vuePieces(m, auto) {
+      const meta = m.meta || {}, lue = (id) => auto && auto.has(id) ? photoPiece(id) : urlSiLue(id);
+      if (m.type === 'photo' && Array.isArray(meta.pieces) && meta.pieces.length) return { photos: meta.pieces.map(p => ({ url: lue(p.id), w: p.w | 0, h: p.h | 0, piece: p.id, etat: etatPiece(p.id) })) };
+      if (m.type === 'vocal' && typeof meta.piece === 'string') return { vocal: { url: lue(meta.piece), dur: Math.max(1, Math.round(meta.dur) || 1), bars: Array.isArray(meta.bars) ? meta.bars.slice(0, 64) : [], piece: meta.piece } };
+      if (m.type === 'fichier' && typeof meta.piece === 'string') return { fichier: { nom: String(meta.nom || 'Fichier'), taille: meta.taille | 0, piece: meta.piece } };
+      return { texte: 'Pièce illisible' };
+    }
+    /* quelles pièces l'ouverture d'une conversation lit toute seule : les 30 dernières photos, les 6 derniers vocaux (le plus récent d'abord).
+       ⛔ Jamais plus que la moitié de la mémoire : lire d'avance plus de pièces qu'elle n'en garde ferait relire sans fin celles qu'elle vient d'évincer. */
+    function piecesAuto(messages) {
+      const s = new Set(); let photos = 0, vocaux = 0;
+      const maxPhotos = Math.max(1, Math.min(PHOTOS_AUTO, cacheMax >> 1)), maxVocaux = Math.max(1, Math.min(VOCAUX_AUTO, cacheMax >> 2));
+      for (let i = messages.length - 1; i >= 0; i--) {
+        const m = messages[i]; if (m.supprime || !m.meta) continue;
+        if (m.type === 'photo' && Array.isArray(m.meta.pieces)) { for (const p of m.meta.pieces) if (photos < maxPhotos) { s.add(p.id); photos++; } }
+        else if (m.type === 'vocal' && typeof m.meta.piece === 'string' && vocaux < maxVocaux) { s.add(m.meta.piece); vocaux++; }
+      }
+      return s;
+    }
+    const MEDIAS = ['photo', 'vocal', 'fichier'];
+    function vueMessage(conv, c, m, auto) {
       const base = { id: m.id, seq: m.seq, auteur: m.auteur, t: m.ts, lu: luDe(conv, c, m) };
       if (m.type === 'systeme') return Object.assign(base, { systeme: true, texte: texteSysteme(m) });
-      const v = Object.assign(base, { texte: m.supprime ? '' : (m.illisible ? 'Message illisible' : (m.texte === null || m.texte === undefined ? '…' : m.texte)) });
+      const media = MEDIAS.includes(m.type);
+      const v = Object.assign(base, { texte: m.supprime ? '' : (m.illisible ? 'Message illisible' : (media ? '' : (m.texte === null || m.texte === undefined ? '…' : m.texte))) });
       if (m.supprime) v.supprime = true;
+      else if (media && !m.illisible) Object.assign(v, vuePieces(m, auto));
       if (m.modifie) v.modifie = m.modifie;
       if (m.repond_a) v.reponse = citation(c, m.repond_a);
       if (m.reactions && m.reactions.length) {
@@ -214,7 +371,14 @@
       }
       return v;
     }
-    const vueEnAttente = (p) => ({ id: 'p:' + p.cid, seq: null, auteur: moiApi.id, t: p.t, lu: null, texte: p.texte, attente: true, cid: p.cid });
+    /* un message qui n'a pas encore quitté l'appareil : `envoi` = un essai est en cours (« Envoi… »), sinon il attend la reprise du réseau. Ses pièces sont celles de l'appareil. */
+    function vueEnAttente(p) {
+      const v = { id: 'p:' + p.cid, seq: null, auteur: moiApi.id, t: p.t, lu: null, texte: p.texte || '', attente: true, envoi: !!p.enVol, cid: p.cid };
+      if (p.type === 'photo') v.photos = p.photos.map(x => ({ url: x.url, w: x.w, h: x.h, piece: null }));
+      else if (p.type === 'vocal') v.vocal = { url: p.vocal.url, dur: p.vocal.dur, bars: p.vocal.bars.slice(), piece: null };
+      else if (p.type === 'fichier') v.fichier = { nom: p.fichier.nom, taille: p.fichier.taille, piece: null };
+      return v;
+    }
 
     /* Range un message dans la copie d'une conversation : sans doublon, trié par `seq`. */
     function ranger(c, m) {
@@ -241,11 +405,12 @@
       const resumeConv = (convsApi.find(x => x.id === id));
       const d = c.detail, base = resumeConv ? resume(resumeConv) : { id, type: d.conversation.type, nom: d.conversation.nom || 'Groupe', court: d.conversation.nom || 'Groupe', initiales: '#', avatar: indexAvatar(id), photo: null, epingle: false, nonLu: false, nonLus: 0, apercu: '', t: d.conversation.dernier_ts };
       const autre = d.conversation.type === 'direct' ? d.membres.find(x => !estMoi(x.id)) : null;
-      if (autre) { Object.assign(base, { nom: nomComplet(autre), court: nomComplet(autre), initiales: initialesDe(nomComplet(autre)), enLigne: enLigne.has(autre.id), autre: autre.id }); }
-      else if (d.conversation.type === 'groupe') { base.nom = base.court = d.conversation.nom || 'Groupe'; }
+      if (autre) { Object.assign(base, { nom: nomComplet(autre), court: nomComplet(autre), initiales: initialesDe(nomComplet(autre)), enLigne: enLigne.has(autre.id), autre: autre.id, photo: photoPiece(autre.avatar) }); }
+      else if (d.conversation.type === 'groupe') { base.nom = base.court = d.conversation.nom || 'Groupe'; base.photo = photoPiece(d.conversation.avatar); }
       base.membres = d.membres.map(x => x.id); base.admins = d.membres.filter(x => x.role === 'admin').map(x => x.id);
       base.annoncesSeulement = !!d.conversation.annonces_seules; base.ephemeres = d.conversation.ephemere_s || 0;
-      const vues = c.messages.map(m => vueMessage(id, c, m));
+      const auto = piecesAuto(c.messages);
+      const vues = c.messages.map(m => vueMessage(id, c, m, auto));
       for (const p of file) if (p.conv === id) vues.push(vueEnAttente(p));
       const S = saisies.get(id); let qui = null;
       if (S) for (const u of S.keys()) { if (!estMoi(u)) { qui = u; break; } }
@@ -283,6 +448,38 @@
       apresEnvoi(p.conv, { seq: r.seq, id: r.id, auteur: moiApi.id, ts: r.ts, type: 'texte', texte: p.texte, repond_a: p.reponse || null, supprime: false, modifie: null, reactions: [] });
       return r;
     }
+    /* ── les messages de pièces : photo, vocal, fichier ──
+       Chaque pièce est DÉPOSÉE (POST /api/pieces, corps binaire) puis le message la cite. Le message entre dans la file DÈS L'ENVOI (affiché « Envoi… » tant qu'un essai court) :
+       un dépôt lent ne laisse pas l'écran muet, et ce qui est écrit après lui attend son tour (l'ordre d'envoi est l'ordre des messages). ⛔ Une pièce DÉJÀ déposée n'est pas
+       redéposée à un renvoi (`x.id`) : la réponse perdue d'un envoi réussi ne coûte pas un second téléversement, et le `cid` fait le reste. */
+    const SUJETS = { photo: ['Une photo', 'envoyée'], vocal: ['Un message vocal', 'envoyé'], fichier: ['Un fichier', 'envoyé'] };
+    const sujetEnvoi = (p) => SUJETS[p.type] || ['Un message', 'envoyé'];
+    const lesPieces = (p) => p.type === 'photo' ? p.photos : p.type === 'vocal' ? [p.vocal] : p.type === 'fichier' ? [p.fichier] : [];
+    function metaDe(p) {
+      if (p.type === 'photo') return { pieces: p.photos.map(x => ({ id: x.id, w: x.w, h: x.h, taille: x.blob.size })) };
+      if (p.type === 'vocal') return { piece: p.vocal.id, dur: p.vocal.dur, bars: p.vocal.bars.slice(), taille: p.vocal.blob.size };
+      return { piece: p.fichier.id, nom: p.fichier.nom, taille: p.fichier.blob.size };
+    }
+    async function posterPieces(p, retirer) {
+      p.enVol = true;
+      try {
+        const l = await limites();
+        for (const x of lesPieces(p)) {
+          if (x.id) continue;
+          const d = await A.deposer(x.blob, { conv: p.conv, genre: p.type, nom: p.type === 'fichier' ? x.nom : undefined, max: maxDe(l, p.type) });
+          x.id = d.id;
+        }
+        const champs = p.type === 'photo' ? { pieces: p.photos.map(x => ({ id: x.id, w: x.w, h: x.h })) } : p.type === 'vocal' ? { piece: p.vocal.id, dur: p.vocal.dur, bars: p.vocal.bars } : { piece: p.fichier.id };
+        const r = await A.envoyerPieces(p.conv, p.type, champs, { cid: p.cid });
+        if (retirer) retirer();
+        /* l'adresse que la page avait fabriquée devient la mémoire de cette pièce : l'image qui s'affichait ne change pas, rien n'est relu */
+        if (p.type === 'photo') p.photos.forEach(x => { if (x.url) poserCache(x.id, x.url, x.blob.size); });
+        else if (p.type === 'vocal' && p.vocal.url) poserCache(p.vocal.id, p.vocal.url, p.vocal.blob.size);
+        apresEnvoi(p.conv, { seq: r.seq, id: r.id, auteur: moiApi.id, ts: r.ts, type: p.type, texte: null, meta: metaDe(p), repond_a: null, supprime: false, modifie: null, reactions: [] });
+        return r;
+      } finally { p.enVol = false; }
+    }
+    const livrer = (p, retirer) => (p.type === 'photo' || p.type === 'vocal' || p.type === 'fichier') ? posterPieces(p, retirer) : poster(p, retirer);
     function planifierFile(n) {
       if (minuterieFile || !file.length || mort) return;
       minuterieFile = planifier(() => { minuterieFile = null; viderFile(); }, attenteEnvoi(n || 0));
@@ -293,21 +490,59 @@
       viderEnCours = true;
       try {
         for (const p of file.slice()) {
-          try { await poster(p, () => { const i = file.indexOf(p); if (i >= 0) file.splice(i, 1); }); }
+          if (p.enVol) { planifierFile(0); break; }              // ⛔ un dépôt de pièce est en cours (un autre appel) : ce qui est derrière lui attend son tour
+          try { await livrer(p, () => { const i = file.indexOf(p); if (i >= 0) file.splice(i, 1); }); }
           catch (e) {
             if (mort) return;
             if (erreurCoupure(e)) { p.essais++; planifierFile(p.essais); break; }
             /* un refus DÉFINITIF (le groupe est devenu « annonces seules », on n'en est plus membre…) : le message ne partira jamais, on le DIT */
             file.splice(file.indexOf(p), 1);
+            lesPieces(p).forEach(x => { if (x.url) revoquerUrl(x.url); });   // la page ne sait plus que ce message existe : ses adresses locales n'ont plus de propriétaire
             emettre({ type: 'conversation', id: p.conv });
-            emettre({ type: 'avis', texte: 'Un message n\'a pas pu être envoyé : ' + (e && e.dit ? (e.phrase ? e.phrase() : e.message) : 'erreur inattendue.') });
+            const [sujet, accord] = sujetEnvoi(p);
+            emettre({ type: 'avis', texte: sujet + ' n\'a pas pu être ' + accord + ' : ' + (e && e.dit ? (e.phrase ? e.phrase() : e.message) : 'erreur inattendue.') });
           }
         }
       } finally { viderEnCours = false; }
     }
+    /* Un message de pièces. Les refus qu'on peut juger ICI (rien à envoyer, trop lourd) tombent avant tout dépôt ; un refus du service rejette (la page le DIT et libère ses adresses) ;
+       une coupure met le message dans la file (« En attente de connexion… »), où il repart avec le même `cid`. */
+    async function envoyerMedia(id, type, b) {
+      const p = { cid: OPMSG.nouveauCid(), conv: id, type, texte: '', t: maintenant(), essais: 0, enVol: false, reponse: null };
+      if (type === 'photo') {
+        const liste = (b.photos || []).slice(0, PHOTOS_PAR_MESSAGE).filter(x => x && x.blob && x.blob.size > 0);
+        if (!liste.length) throw erreurLocale('vide');
+        p.photos = liste.map(x => ({ blob: x.blob, url: x.url || null, w: Math.max(1, x.w | 0), h: Math.max(1, x.h | 0), id: null }));
+      } else if (type === 'vocal') {
+        const v = b.vocal;
+        if (!v || !v.blob || !(v.blob.size > 0) || !(v.dur > 0)) throw erreurLocale('vide');
+        const barres = (Array.isArray(v.bars) ? v.bars : []).slice(0, 64).map(n => Math.max(0, Math.min(100, Math.round(+n) || 0)));
+        p.vocal = { blob: v.blob, url: v.url || null, dur: Math.max(1, Math.min(600, Math.round(v.dur))), bars: barres.length ? barres : [8], id: null };
+      } else {
+        const f = b.fichier;
+        if (!f || !f.blob || !(f.blob.size > 0)) throw erreurLocale('vide');
+        const nom = Array.from(String(f.nom || '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/[\/\\]/g, '_').trim()).slice(0, 120).join('') || 'fichier';
+        p.fichier = { blob: f.blob, nom, taille: f.blob.size, id: null };
+      }
+      const l = await limites(), max = maxDe(l, type);
+      for (const x of lesPieces(p)) if (x.blob.size > max) throw new OPMSG.ErreurApi('piece_trop_lourde', 413, 0, { max });
+      if (!moiApi || mort) throw erreurLocale('introuvable');
+      const attend = file.some(x => x.conv === id);
+      file.push(p);
+      if (attend) { emettre({ type: 'conversation', id }); planifierFile(0); return vueEnAttente(p); }
+      emettre({ type: 'conversation', id });                      // la bulle « Envoi… » paraît tout de suite
+      const retirer = () => { const i = file.indexOf(p); if (i >= 0) file.splice(i, 1); };
+      try { await posterPieces(p, retirer); return { id: p.cid, auteur: moiApi.id, t: p.t, lu: null }; }
+      catch (e) {
+        if (erreurCoupure(e)) { p.essais++; planifierFile(p.essais); emettre({ type: 'conversation', id }); return vueEnAttente(p); }
+        retirer(); emettre({ type: 'conversation', id });
+        throw e;
+      } finally { if (file.length) planifierFile(0); }
+    }
     async function envoyer(id, brouillon) {
       brouillon = brouillon || {};
-      if ((brouillon.photos && brouillon.photos.length) || brouillon.vocal) throw erreurLocale('bientot');
+      const media = brouillon.photos && brouillon.photos.length ? 'photo' : brouillon.vocal ? 'vocal' : brouillon.fichier ? 'fichier' : null;
+      if (media) return envoyerMedia(id, media, brouillon);
       const texte = valider(brouillon.texte);
       const c = convs.get(id);
       let reponse = null;
@@ -369,8 +604,9 @@
     async function supprimer(id, mid, pour) {
       const { c, m } = trouver(id, mid);
       await A.supprimer(id, m.seq, pour === 'moi' ? 'moi' : 'tous');
+      oublierMeta(m.meta);
       if (pour === 'moi') c.messages = c.messages.filter(x => x.seq !== m.seq);
-      else ranger(c, { seq: m.seq, supprime: true, texte: null, reactions: [], modifie: null });
+      else ranger(c, { seq: m.seq, supprime: true, texte: null, meta: null, reactions: [], modifie: null });
       emettre({ type: 'conversation', id }); relireListePlusTard();
     }
     async function reagir(id, mid, emoji) {
@@ -381,11 +617,25 @@
     }
 
     /* ── groupes, contacts, liens ── */
+    /* une photo de profil (d'une personne ou d'un groupe) : trop lourde, on le dit AVANT de la déposer ; rend l'identifiant de la pièce déposée */
+    async function deposerAvatar(blob) {
+      const l = await limites();
+      if (blob.size > l.avatar_max) throw new OPMSG.ErreurApi('piece_trop_lourde', 413, 0, { max: l.avatar_max });
+      return (await A.deposer(blob, { genre: 'avatar', max: l.avatar_max })).id;
+    }
     async function creerGroupe(spec) {
       spec = spec || {};
       const membres = (spec.membres || []).filter((x, i, t) => t.indexOf(x) === i);
       if (!membres.length) throw erreurLocale('vide');
-      const r = await A.groupe({ nom: String(spec.nom || '').trim().slice(0, 80) || 'Nouveau groupe', membres, annonces_seules: !!spec.annonces, ephemere_s: spec.ephemeres | 0 });
+      /* la photo du groupe se dépose AVANT (une pièce « avatar » n'a pas de conversation). Si ce dépôt est refusé, le groupe est créé quand même — et le refus est DIT : une photo
+         perdue en silence serait pire qu'un groupe sans photo. */
+      let pieceAvatar = null, refusPhoto = null;
+      if (spec.photoBlob && spec.photoBlob.size > 0) {
+        try { pieceAvatar = await deposerAvatar(spec.photoBlob); }
+        catch (e) { if (e && e.code === 'session_requise') throw e; refusPhoto = e; }
+      }
+      const r = await A.groupe({ nom: String(spec.nom || '').trim().slice(0, 80) || 'Nouveau groupe', membres, annonces_seules: !!spec.annonces, ephemere_s: spec.ephemeres | 0, avatar_piece: pieceAvatar || undefined });
+      if (refusPhoto) emettre({ type: 'avis', texte: 'Le groupe est créé, mais sa photo n\'a pas pu être envoyée : ' + (refusPhoto.dit ? (refusPhoto.phrase ? refusPhoto.phrase() : refusPhoto.message) : 'erreur inattendue.') });
       await relireListe(); emettre({ type: 'liste' });
       const c = convsApi.find(x => x.id === r.conversation.id);
       return c ? resume(c) : { id: r.conversation.id, type: 'groupe', nom: r.conversation.nom || 'Groupe', court: r.conversation.nom || 'Groupe', initiales: '#', avatar: indexAvatar(r.conversation.id), photo: null, epingle: false, membres: [], admins: [], annoncesSeulement: false, ephemeres: 0, nonLu: false, nonLus: 0, apercu: '', t: maintenant(), enLigne: false };
@@ -409,7 +659,7 @@
       const d = c.detail, autre = d.conversation.type === 'direct' ? d.membres.find(x => !estMoi(x.id)) : null;
       const nom = autre ? nomComplet(autre) : (d.conversation.nom || 'Groupe');
       return {
-        id, type: d.conversation.type, nom, initiales: autre ? initialesDe(nom) : '#', avatar: indexAvatar(autre ? autre.id : id), photo: null,
+        id, type: d.conversation.type, nom, initiales: autre ? initialesDe(nom) : '#', avatar: indexAvatar(autre ? autre.id : id), photo: autre ? photoPiece(autre.avatar) : photoPiece(d.conversation.avatar),
         membres: d.membres.map(x => vueMembre(c, x)), moiAdmin: d.moi.role === 'admin', annoncesSeulement: !!d.conversation.annonces_seules, ephemeres: d.conversation.ephemere_s || 0,
         enLigne: autre ? enLigne.has(autre.id) : false,
       };
@@ -425,6 +675,7 @@
       if (champs.annonces !== undefined) o2.annonces_seules = !!champs.annonces;
       if (champs.ephemeres !== undefined) o2.ephemere_s = champs.ephemeres | 0;
       if (champs.nom !== undefined) o2.nom = String(champs.nom);
+      if (champs.photoBlob !== undefined) o2.avatar_piece = champs.photoBlob === null ? null : await deposerAvatar(champs.photoBlob);
       await A.majConversation(id, o2);
       await rafraichirDetail(id); await relireListe();
       emettre({ type: 'conversation', id }); emettre({ type: 'liste' });
@@ -473,7 +724,7 @@
       relireListePlusTard();
       if (!moi && d.type !== 'systeme') {
         const r = convsApi.find(x => x.id === d.conv);
-        emettre({ type: 'arrivee', conv: d.conv, de: nomDe(d.auteur), convNom: r ? resume(r).nom : null, groupe: r ? r.type === 'groupe' : false, texte: d.supprime ? '' : (d.texte === undefined ? '' : extrait(d.texte, 140)) });
+        emettre({ type: 'arrivee', conv: d.conv, de: nomDe(d.auteur), convNom: r ? resume(r).nom : null, groupe: r ? r.type === 'groupe' : false, texte: d.supprime ? '' : (d.texte === undefined || d.texte === null ? resumeMedia(d.type, d.meta) : extrait(d.texte, 140)) });
       }
     }
     const gestionnaires = {
@@ -487,8 +738,9 @@
       message_supprime: (d) => {
         const c = convs.get(d.conv);
         if (c && c.charge) {
+          const m = c.messages.find(x => x.seq === d.seq); if (m) oublierMeta(m.meta);
           if (d.pour === 'moi' || d.pour === 'expire') c.messages = c.messages.filter(x => x.seq !== d.seq);
-          else ranger(c, { seq: d.seq, supprime: true, texte: null, reactions: [], modifie: null });
+          else ranger(c, { seq: d.seq, supprime: true, texte: null, meta: null, reactions: [], modifie: null });
           emettre({ type: 'conversation', id: d.conv });
         }
         relireListePlusTard();
@@ -512,6 +764,12 @@
         if (d.type === 'groupe_ajoute') relireListePlusTard();
       },
       saisie: (d) => { if (!estMoi(d.uid)) poserSaisie(d.conv, d.uid, !!d.actif); },
+      personne: (d) => {
+        if (estMoi(d.uid)) api0.moi().then(m => { moiApi = m; noter(m); emettre({ type: 'moi' }); }, () => {});
+        rafraichirContacts().catch(() => {});
+        for (const [id, c] of convs) if (c.detail && c.detail.membres.some(m => m.id === d.uid)) rafraichirDetail(id).then(() => emettre({ type: 'conversation', id }), () => {});
+        relireListePlusTard();
+      },
       presence: (d) => {
         if (d.en_ligne) enLigne.add(d.uid); else enLigne.delete(d.uid);
         emettre({ type: 'presence', id: d.uid }); emettre({ type: 'contacts' }); emettre({ type: 'liste' });
@@ -535,6 +793,7 @@
     }
     function arreter() {
       enMarche = false;
+      oublierPieces();
       if (ecoute) { try { ecoute.fermer(); } catch (e) { /* déjà fermé */ } ecoute = null; }
       if (minuterieFile) { annuler(minuterieFile); minuterieFile = null; }
       for (const S of saisies.values()) for (const h of S.values()) annuler(h);
@@ -586,12 +845,65 @@
       return true;
     }
 
+    /* ── les réglages du compte (capacité `reglages`) ──
+       ⛔ Chaque geste rend ce que le SERVICE a retenu (jamais ce que la page croit avoir demandé) : un réglage refusé lève l'erreur et la page garde l'état d'avant. */
+    const vueProfil = (m) => Object.assign(vuePersonne(m), { champs: { prenom: m.prenom || '', nom: m.nom || '', statut: m.statut || '' }, origine: m.origine || '' });
+    function adopterMoi(m) { moiApi = m; noter(m); emettre({ type: 'moi' }); relireListePlusTard(); }
+    async function profil() { const m = await A.moi(); moiApi = m; noter(m); return vueProfil(m); }
+    async function majProfil(champs) {
+      champs = champs || {};
+      const c = {};
+      for (const k of ['prenom', 'nom', 'statut']) if (champs[k] !== undefined) c[k] = String(champs[k]);
+      if (!Object.keys(c).length) throw erreurLocale('vide');
+      const m = await A.majMoi(c);
+      adopterMoi(m);
+      return vueProfil(m);
+    }
+    async function poserPhotoProfil(blob) {
+      if (!blob || !(blob.size > 0)) throw erreurLocale('vide');
+      const ancien = moiApi && moiApi.avatar;
+      const piece = await deposerAvatar(blob);
+      const r = await A.poserAvatar(piece);
+      poserCache(piece, creerUrl(blob), blob.size);                          // l'image qu'on vient de choisir est déjà là : rien à relire
+      if (ancien && ancien !== piece) liberer(ancien);
+      adopterMoi(r.moi);
+      return vueProfil(r.moi);
+    }
+    async function retirerPhotoProfil() {
+      const ancien = moiApi && moiApi.avatar;
+      const r = await A.poserAvatar(null);
+      if (ancien) liberer(ancien);
+      adopterMoi(r.moi);
+      return vueProfil(r.moi);
+    }
+    const etatConfidentialite = (r) => ({ presence: r.presence !== false, accuses: r.accuses !== false });
+    async function confidentialite() { return etatConfidentialite(await A.confidentialite()); }
+    async function majConfidentialite(champs) {
+      const c = {};
+      for (const k of ['presence', 'accuses']) if (champs && typeof champs[k] === 'boolean') c[k] = champs[k];
+      if (!Object.keys(c).length) throw erreurLocale('vide');
+      const r = etatConfidentialite(await A.majConfidentialite(c));
+      /* ce que je vois des autres change avec mes réglages (leur présence, leur « Lu ») : tout se relit */
+      rafraichirContacts().catch(() => {});
+      for (const id of convs.keys()) rafraichirDetail(id).then(() => emettre({ type: 'conversation', id }), () => {});
+      relireListePlusTard();
+      return r;
+    }
+    const bloques = () => contactsTous.filter(c => c.bloque).map(c => Object.assign(vuePersonne(c), { bloque: true }));
+    async function bloquer(uid) { await A.bloquer(uid); await rafraichirContacts(); relireListePlusTard(); }
+    async function debloquer(uid) { await A.debloquer(uid); await rafraichirContacts(); relireListePlusTard(); }
+    async function deconnecterAutres() { const r = await A.deconnecterAutres(); return { sessions: r.sessions | 0, appareils: r.appareils | 0 }; }
+    /* ⛔ pas `| 0` : le quota est de 2 Gio (2 147 483 648 octets), un entier signé sur 32 bits le rendrait NÉGATIF */
+    const entierPositif = (x) => Number.isFinite(+x) ? Math.max(0, Math.floor(+x)) : 0;
+    async function stockageUtilise() { const r = await A.stockage(); return { utilise: entierPositif(r.utilise), max: entierPositif(r.max) }; }
+    async function aPropos() { const c = await A.config(); return { version: String(c.version || ''), instance: String(c.instance || ''), limites: Object.assign({}, c.limites && c.limites.pieces) }; }
+
     const rejeter = (code) => () => Promise.reject(erreurLocale(code));
     /* ⛔ combien de messages n'ont PAS encore quitté l'appareil (réseau coupé, service muet) : la page les perd quand elle repart de zéro ou qu'on la ferme — rien n'est rangé sur
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: false, vocaux: false, appels: false, reunions: false, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: false, reunions: false, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       surSessionMorte: (cb) => { suiviMort = cb; },
       moi: () => moiApi ? Object.assign(vuePersonne(moiApi), { id: moiApi.id }) : null,
@@ -601,6 +913,9 @@
       modifier, supprimer, reagir,
       creerGroupe, ouvrirDirecte, conversationPour, infos, majConversation, retirerMembre, nommerAdmin, ajouterMembres, quitter, lienGroupe,
       lienContact, revoquerLiens, lireLien, accepterLien,
+      /* ── les pièces et les réglages ── */
+      pieceUrl, pieceBlob,
+      profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, deconnecterAutres, stockage: stockageUtilise, aPropos,
       /* ── ce que le service ne sait pas encore : les appels (étape 7) — la page dit « bientôt », ces méthodes refusent proprement ── */
       appels: () => Promise.resolve([]),
       demarrerAppel: rejeter('bientot'), appel: () => Promise.resolve(null), terminerAppel: rejeter('bientot'),

@@ -123,7 +123,7 @@ const json = async (base, methode, chemin, corps, entetes) => {
     }
     const ma = await A.entrer('alice', 'pw-alice-1234'), mb = await B.entrer('bruno', 'pw-bruno-1234'), mc = await C.entrer('chloe', 'pw-chloe-1234');
     v('moi() : la personne connectée, avec ses initiales (le nom que la Tour a donné)', [ma.nom, ma.initiales, /^p_[0-9a-f]{32}$/.test(ma.id)], ['Alice Martin', 'AM', true]);
-    v('population : aucune capacité fantôme — le service dit « bientôt » aux photos, vocaux, appels et réunions', [A.src.capacites.photos, A.src.capacites.vocaux, A.src.capacites.appels, A.src.capacites.reunions, A.src.capacites.actionsMessage], [false, false, false, false, true]);
+    v('population : aucune capacité fantôme — le service sait les pièces (photos, vocaux, fichiers, photos de profil) et les réglages (test-944 les joue), et dit « bientôt » aux appels et aux réunions', [A.src.capacites.photos, A.src.capacites.vocaux, A.src.capacites.fichiers, A.src.capacites.avatars, A.src.capacites.reglages, A.src.capacites.appels, A.src.capacites.reunions, A.src.capacites.actionsMessage], [true, true, true, true, true, false, false, true]);
     vrai('⛔ aucun jeton ni identifiant de session dans le module (le cookie est HttpOnly, il ne passe jamais par le JavaScript)', !/opm_[A-Za-z0-9_-]{43}/.test(JSON.stringify(A.src.moi())) && !JSON.stringify(Object.keys(A.src)).includes('jeton'));
 
     /* ══ 2. LES CONTACTS PAR LIEN ═════════════════════════════════════════════════════════════════════════════════════════ */
@@ -324,11 +324,11 @@ const json = async (base, methode, chemin, corps, entetes) => {
       await B.src.precedents(d);
       const o2 = await B.src.ouvrir(d);
       v('et « messages précédents » rend le reste, sans doublon, dans l\'ordre (121 : le message système + 120)', [o2.messages.length, o2.aPlus, o2.messages.filter(m => !m.systeme).map(m => m.texte).join() === Array.from({ length: 120 }, (_, i) => 'msg ' + (i + 1)).join()], [121, false, true]);
-      /* bientôt */
+      /* les pièces sont jouées par test-944 ; ici, ce qu'on ne peut pas envoyer est refusé proprement, et les appels disent « bientôt » */
       const eP = await attrape(A.src.envoyer(conv, { photos: [{ url: 'blob:x', w: 1, h: 1 }] }));
       const eV2 = await attrape(A.src.envoyer(conv, { vocal: { dur: 3 } }));
       const eAp = await attrape(A.src.demarrerAppel({ membres: [mb.id], video: false }));
-      v('⛔ photos, vocaux, appels : « bientôt » (refus propre, avec sa phrase, jamais une erreur technique)', [eP.code, eV2.code, eAp.code, eAp.dit], ['bientot', 'bientot', 'bientot', true]);
+      v('⛔ une photo ou un vocal SANS contenu : refus propre « vide » (rien n\'est déposé) ; les appels : « bientôt » (refus propre, avec sa phrase, jamais une erreur technique)', [eP.code, eV2.code, eAp.code, eAp.dit], ['vide', 'vide', 'bientot', true]);
       v('l\'historique des appels est vide (rien à simuler), l\'appel en cours n\'existe pas', [await A.src.appels(), await A.src.appel('x')], [[], null]);
     }
 
