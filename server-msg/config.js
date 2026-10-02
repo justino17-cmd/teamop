@@ -135,6 +135,7 @@ function charger(env = process.env) {
     quotas: cfg.quotas && typeof cfg.quotas === 'object' ? cfg.quotas : {},
     pieces: piecesConfig(cfg.pieces),
     sms: cfg.sms && typeof cfg.sms === 'object' && !Array.isArray(cfg.sms) ? cfg.sms : {},   // validée par `lireConfigSms` (sms-garde.js)
+    sauvegarde: cfg.sauvegarde === undefined ? null : cfg.sauvegarde,   // validée par `lireConfigSauvegarde` (sauvegarde.js) : absente = module inerte, invalide = démarrage refusé
     testCodes: testCodes,
     disqueMinMo: Number.isFinite(cfg.disqueMinMo) ? cfg.disqueMinMo : 512,
     pulsationMs: Number.isFinite(cfg.pulsationMs) ? cfg.pulsationMs : 20000,

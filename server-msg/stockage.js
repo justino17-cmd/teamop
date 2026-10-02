@@ -1360,11 +1360,73 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     };
   }
   const schema = () => versionActuelle();
-  function instantane(vers) { Q('VACUUM INTO ?').run(vers); }
+
+  /* ══ L'INSTANTANÉ POUR LA SAUVEGARDE HORS SITE — l'API de sauvegarde de SQLite, sur une connexion À PART, en UN pas ══════════════
+     ⛔ ON NE COPIE JAMAIS LE FICHIER VIVANT. En WAL, `msg.db` seul est un ancien état (ce qui vit dans `msg.db-wal` n'y est pas
+     encore) et, copié pendant un point de reprise, il mélange deux états : la copie peut ne pas s'ouvrir, ou s'ouvrir et mentir.
+     L'API de sauvegarde (`backup`) rend une image COHÉRENTE de la base, et Node la joue HORS de la boucle d'événements (un fil du
+     pool) : le service continue de servir, de recevoir des messages, de pousser des flux pendant la copie.
+     ⛔ MAIS PAS SUR LA CONNEXION DU SERVICE, ET PAS PAR PETITS PAS — deux défauts MESURÉS (Node 22.22, base de 1 Mo, un écrivain qui
+     écrit à chaque tour de boucle, comme le service) qui rendent la copie « par pas sur la connexion du service » inutilisable :
+       · le pas se joue sur un autre fil que le service : s'il tombe ENTRE le `BEGIN IMMEDIATE` et le `COMMIT` d'une écriture du
+         service (une transaction tient en plusieurs appels), SQLite rend `SQLITE_BUSY`, que Node transmet comme une erreur nue —
+         « not an error » — et la copie ÉCHOUE : 5 passes sur 20 en transactions explicites, 0 sur 20 en écritures simples. Sous
+         une vraie charge, une passe sur trois aurait été perdue, sans cause lisible ;
+       · avec plusieurs pas, toute écriture d'une AUTRE connexion fait recommencer la copie depuis le début : sur une base qui
+         reçoit des messages, elle ne finirait jamais.
+     Un lecteur à part (WAL : il ne bloque ni n'est bloqué par l'écrivain), un seul pas (`rate` au maximum) : la copie est l'état
+     de la base au DÉBUT du pas, un instantané exact. MESURÉ : 30 passes sur 30, aucune erreur, aucune copie incohérente, face à
+     l'écrivain ci-dessus ; une base de 90 Mo copiée en 250 ms sans que la boucle d'événements perde plus de 6 ms — contre 628 ms de
+     boucle FIGÉE pour `VACUUM INTO` sur la même base.
+     `VACUUM INTO` reste le repli d'une version de Node sans `backup` : cohérent aussi, mais il fige la boucle le temps de la copie
+     — acceptable sur une petite base, pas sur une grosse.
+     ⚠️ Rien n'est compté ici : compter les lignes d'une grosse base fige la boucle autant que la copier. La copie est comptée
+     ensuite, à part (`controlerFichier`, dans un autre processus) ; la base VIVANTE n'est sondée que par `sonde()`, en O(1). */
+  const PAS_UNIQUE = 2147483647;
+  async function instantane(vers) {
+    for (const suffixe of ['', '-wal', '-shm']) { try { fs.unlinkSync(vers + suffixe); } catch (e) { /* absent : c'est le cas normal */ } }
+    const sqlite = moteur || require('node:sqlite');
+    if (typeof sqlite.backup === 'function') {
+      const lecteur = new sqlite.DatabaseSync(chemin);
+      try {
+        lecteur.exec('PRAGMA busy_timeout=5000;');
+        const pages = await sqlite.backup(lecteur, vers, { rate: PAS_UNIQUE });
+        return { methode: 'backup', pages: num(pages) };
+      } finally { try { lecteur.close(); } catch (e) { /* déjà fermée */ } }
+    }
+    Q('VACUUM INTO ?').run(vers);
+    return { methode: 'vacuum', pages: null };
+  }
+  /* La sonde de la base VIVANTE : le schéma, l'horloge du journal (un compteur qui ne fait que monter : `AUTOINCREMENT` survit à
+     l'élagage) et, par table, « y a-t-il au moins une ligne ? ». Chaque réponse est en O(1) — jamais un `COUNT(*)` sur la base
+     vivante. Elle sert à juger une copie : prise entre deux sondes, son horloge de journal doit tomber entre les deux. */
+  function sonde() {
+    const non = (f) => { try { return f().get() !== undefined; } catch (e) { if (/no such table/i.test(String(e && e.message))) return null; throw e; } };
+    return {
+      schema: versionActuelle(),
+      journalMax: journalMax(),
+      nonVides: {
+        personne: non(() => Q('SELECT 1 FROM personne LIMIT 1')),
+        contact: non(() => Q('SELECT 1 FROM contact LIMIT 1')),
+        lien: non(() => Q('SELECT 1 FROM lien LIMIT 1')),
+        conversation: non(() => Q('SELECT 1 FROM conversation LIMIT 1')),
+        membre: non(() => Q('SELECT 1 FROM membre LIMIT 1')),
+        message: non(() => Q('SELECT 1 FROM message LIMIT 1')),
+        reaction: non(() => Q('SELECT 1 FROM reaction LIMIT 1')),
+        msg_masque: non(() => Q('SELECT 1 FROM msg_masque LIMIT 1')),
+        piece: non(() => Q('SELECT 1 FROM piece LIMIT 1')),
+        journal: non(() => Q('SELECT 1 FROM journal LIMIT 1')),
+        notification: non(() => Q('SELECT 1 FROM notification LIMIT 1')),
+        purge: non(() => Q('SELECT 1 FROM purge LIMIT 1')),
+        appareil_tel: non(() => Q('SELECT 1 FROM appareil_tel LIMIT 1')),
+        sms_envoi: non(() => Q('SELECT 1 FROM sms_envoi LIMIT 1')),
+      },
+    };
+  }
   function fermer() { try { db.close(); } catch (e) {} }
 
   return {
-    schema, instantane, fermer, tx, stats, metaLire, nouvelId, illisibles: () => illisibles,
+    schema, instantane, sonde, fermer, tx, stats, metaLire, nouvelId, illisibles: () => illisibles,
     personneCreer, personneParIdentifiant, personneParId, personneIdentifiant, personneMaj,
     sessionAjouter, sessionLire, sessionToucher, sessionSupprimer, sessionsSupprimerPersonne, sessionsSupprimerAutres, sessionsBetaActives,
     contactLier, contactBloque, contactActif, contactsDe, contactsActifs, contactRetirer, contactEtat, contactLigne, peutVoir,
@@ -1382,5 +1444,132 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     telPersonneParNumero, telTrouvableLire, telTrouvableMaj, rechercheNoter, rechercheCompter, rechercheRendre,
   };
 }
+
+/* ══ CE QUI TRAVAILLE SUR UN FICHIER DE COPIE — la sauvegarde hors site et sa restauration ════════════════════════════════
+   ⛔ CES FONCTIONS NE TOUCHENT JAMAIS LA BASE VIVANTE : elles prennent un CHEMIN (l'instantané qu'on vient de faire, l'archive qu'on
+   vient de rouvrir) et ouvrent leur propre connexion. Elles vivent ICI parce que « tout le SQL est dans `stockage.js` » (test-901) :
+   la sauvegarde et la restauration ont besoin d'OUVRIR une base pour dire qu'elle est saine, et leur laisser un accès à
+   `node:sqlite` rouvrirait la porte que ce module existe pour tenir fermée.
+   ⚠️ Aucune ne déchiffre quoi que ce soit et aucune n'a besoin de la clé maître : « ce fichier est-il intact » et « sais-je le lire »
+   sont deux questions, et seule la première est du ressort d'une sauvegarde.
+   Rangées sur `ouvrir.copie` plutôt que dans `module.exports` : le service, lui, n'a pas à les connaître. */
+const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi'];
+
+function ouvrirCopie(chemin, { moteur, ecriture = false } = {}) {
+  const { DatabaseSync } = moteur || require('node:sqlite');
+  return new DatabaseSync(chemin, ecriture ? {} : { readOnly: true });
+}
+
+/* Le nombre de lignes de chaque table comptée. `null` : la table n'existe pas dans CETTE copie (une archive d'un schéma plus ancien
+   n'a pas les tables des migrations suivantes) — ce n'est pas une erreur, et deux copies du même fichier donnent le même `null`. */
+function lignesDe(d) {
+  const n = (f) => { try { return Number(f().get().n); } catch (e) { if (/no such table/i.test(String(e && e.message))) return null; throw e; } };
+  return {
+    personne: n(() => d.prepare('SELECT COUNT(*) AS n FROM personne')),
+    contact: n(() => d.prepare('SELECT COUNT(*) AS n FROM contact')),
+    lien: n(() => d.prepare('SELECT COUNT(*) AS n FROM lien')),
+    conversation: n(() => d.prepare('SELECT COUNT(*) AS n FROM conversation')),
+    membre: n(() => d.prepare('SELECT COUNT(*) AS n FROM membre')),
+    message: n(() => d.prepare('SELECT COUNT(*) AS n FROM message')),
+    reaction: n(() => d.prepare('SELECT COUNT(*) AS n FROM reaction')),
+    msg_masque: n(() => d.prepare('SELECT COUNT(*) AS n FROM msg_masque')),
+    journal: n(() => d.prepare('SELECT COUNT(*) AS n FROM journal')),
+    notification: n(() => d.prepare('SELECT COUNT(*) AS n FROM notification')),
+    purge: n(() => d.prepare('SELECT COUNT(*) AS n FROM purge')),
+    appareil_tel: n(() => d.prepare('SELECT COUNT(*) AS n FROM appareil_tel')),
+    sms_envoi: n(() => d.prepare('SELECT COUNT(*) AS n FROM sms_envoi')),
+  };
+}
+
+/* Ouvre une copie en LECTURE SEULE et dit si elle est saine : `quick_check` parcourt réellement les pages (il voit un « database disk
+   image is malformed » qu'un `SELECT 1` ne verrait pas), puis le schéma, la présence du témoin de clé (jamais sa valeur), l'horloge
+   du journal et le nombre de lignes de chaque table comptée.
+   ⛔ UN FICHIER DE 0 OCTET N'EST PAS UNE BASE SAINE : SQLite ouvre un fichier vide sans broncher (il y voit une base neuve) et
+   `quick_check` répond « ok » — c'est ce que laisse un disque plein pendant la copie. Sous 512 octets, on refuse. */
+function controlerFichier(chemin, opts) {
+  let d = null;
+  try {
+    let taille = 0;
+    try { taille = fs.statSync(chemin).size; } catch (e) { return { ok: false, motif: 'fichier absent' }; }
+    if (taille < 512) return { ok: false, motif: 'fichier vide ou tronqué (' + taille + ' octets)' };
+    d = ouvrirCopie(chemin, opts);
+    const verdicts = d.prepare('PRAGMA quick_check').all().map(r => String(Object.values(r)[0]));
+    if (verdicts.length !== 1 || verdicts[0] !== 'ok') return { ok: false, motif: ('quick_check : ' + verdicts.slice(0, 3).join(' ; ')).slice(0, 160) };
+    const schema = Number(d.prepare('PRAGMA user_version').get().user_version);
+    let temoin = false;
+    try { temoin = d.prepare(`SELECT 1 AS n FROM meta WHERE k = 'kek_temoin'`).get() !== undefined; } catch (e) { temoin = false; }
+    let journalMax = 0;
+    try { const r = d.prepare(`SELECT seq FROM sqlite_sequence WHERE name = 'journal'`).get(); journalMax = r ? Number(r.seq) : 0; } catch (e) { journalMax = 0; }
+    const lignes = lignesDe(d);
+    return { ok: true, taille, schema, temoin, journalMax, lignes, total: Object.values(lignes).reduce((a, x) => a + (x || 0), 0) };
+  } catch (e) {
+    return { ok: false, motif: String(e && e.message).slice(0, 160) };
+  } finally { try { if (d) d.close(); } catch (e) { /* déjà fermée */ } }
+}
+
+/* Le registre des purges d'une copie, tel quel : `{objet, genre, quand}`. Une copie sans cette table (très ancienne) en a un vide. */
+function purgeLire(chemin, opts) {
+  let d = null;
+  try {
+    d = ouvrirCopie(chemin, opts);
+    return d.prepare('SELECT objet, genre, quand FROM purge ORDER BY quand, rowid').all().map(r => ({ objet: String(r.objet), genre: String(r.genre), quand: Number(r.quand) }));
+  } catch (e) {
+    if (/no such table/i.test(String(e && e.message))) return [];
+    throw e;
+  } finally { try { if (d) d.close(); } catch (e) { /* déjà fermée */ } }
+}
+
+/* ⛔ REJOUER LE REGISTRE DES PURGES SUR UNE COPIE RESTAURÉE. Une archive date d'avant ce que le service a effacé depuis : un
+   message éphémère expiré, une pièce retirée. Restaurer l'archive les ferait REVENIR — alors que la politique de confidentialité
+   promet qu'ils sont partis. Le registre (`purge`) du service est ce qui s'en souvient ; la restauration prend celui de l'archive la
+   PLUS RÉCENTE (il contient tout ce que les plus anciennes savaient) et l'applique à la copie qu'elle remet en service.
+   Par genre : un message éphémère ou purgé (`message_ephemere`, `message`) disparaît avec ses réactions ; un message supprimé pour
+   tous (`message_supprime`) perd son corps et garde sa pierre tombale ; une pièce (`piece…`) quitte sa table — et son identifiant
+   est RENDU, pour que l'appelant retire aussi le fichier. Un genre inconnu n'efface RIEN (dans le doute, on efface moins) : il est
+   compté « ignoré » et recopié.
+   Les lignes du registre sont recopiées dans la copie (sans doublon) : la copie se souvient désormais de ce qu'elle vient d'oublier,
+   et la sauvegarde suivante le portera. Une seule transaction : tout ou rien. */
+function rejouerPurge(chemin, registre, opts) {
+  const bilan = { lues: 0, messagesRetires: 0, messagesBlanchis: 0, pieces: [], ignorees: 0, ajoutees: 0 };
+  let d = null;
+  try {
+    d = ouvrirCopie(chemin, Object.assign({}, opts, { ecriture: true }));
+    d.exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');
+    const tablePiece = d.prepare(`SELECT 1 AS n FROM sqlite_master WHERE type = 'table' AND name = 'piece'`).get() !== undefined;
+    const retirer = d.prepare('DELETE FROM message WHERE id = ?');
+    const chercher = d.prepare('SELECT conv, seq, supprime_le FROM message WHERE id = ?');
+    const blanchir = d.prepare('UPDATE message SET corps_ch = NULL, meta_ch = NULL, supprime_le = ?, modifie = NULL WHERE id = ?');
+    const sansReactions = d.prepare('DELETE FROM reaction WHERE conv = ? AND seq = ?');
+    const retirerPiece = tablePiece ? d.prepare('DELETE FROM piece WHERE id = ?') : null;
+    const recopier = d.prepare('INSERT INTO purge(objet, genre, quand) SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM purge WHERE objet = ? AND genre = ?)');
+    d.exec('BEGIN IMMEDIATE');
+    try {
+      for (const r of registre || []) {
+        bilan.lues++;
+        const genre = String(r.genre || '');
+        if (genre === 'message_ephemere' || genre === 'message') {
+          bilan.messagesRetires += Number(retirer.run(r.objet).changes);
+        } else if (genre === 'message_supprime') {
+          const l = chercher.get(r.objet);
+          if (l && (l.supprime_le === null || l.supprime_le === undefined)) {
+            blanchir.run(Number(r.quand) || 0, r.objet);
+            sansReactions.run(l.conv, l.seq);
+            bilan.messagesBlanchis++;
+          }
+        } else if (/^piece/.test(genre)) {
+          if (retirerPiece) retirerPiece.run(r.objet);
+          bilan.pieces.push(String(r.objet));
+        } else {
+          bilan.ignorees++;
+        }
+        bilan.ajoutees += Number(recopier.run(r.objet, genre, Number(r.quand) || 0, r.objet, genre).changes);
+      }
+      d.exec('COMMIT');
+    } catch (e) { try { d.exec('ROLLBACK'); } catch (e2) { /* rien à défaire */ } throw e; }
+    return bilan;
+  } finally { try { if (d) d.close(); } catch (e) { /* déjà fermée */ } }
+}
+
+ouvrir.copie = { controlerFichier, purgeLire, rejouerPurge, TABLES_COMPTEES };
 
 module.exports = { ouvrir, MIGRATIONS, MAX_MEMBRES, DELAI_MODIF_MS, TAILLE_PORTEE, GENRES_SEQ };

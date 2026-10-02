@@ -1,6 +1,7 @@
 # Installer le serveur d'OP MESSAGES — les gestes de Justin, dans l'ordre
 
-Pour `design/opmessages/SERVEUR.md` § 4, étape 1 (« gestes de Justin »). Ce document dit **chaque geste**,
+Pour `design/opmessages/SERVEUR.md` § 4, étape 1 (« gestes de Justin »), puis l'étape 2 (les SMS, section 10 bis) et l'étape 3 (la sauvegarde,
+section 10 ter). Ce document dit **chaque geste**,
 ce que tu **colles** et ce que tu dois **voir**. Si ce n'est pas ce qui s'affiche, **on s'arrête** et tu
 recolles la sortie dans la conversation — on ne continue jamais « en espérant ».
 
@@ -15,6 +16,8 @@ secrets d'OP MESSAGES (la clé maître, la clé SSH de déploiement, la paire VA
 | clé SSH de déploiement **de la bêta** | sur **ton Mac** | le secret GitHub `VPS_SSH_KEY_MSG_BETA` (sa moitié publique sur le VPS) | **jamais** la privée |
 | clé SSH de déploiement **de la production** (plus tard) | sur **ton Mac**, **une autre paire** | le secret de l'**environnement** `msg-prod` : `VPS_SSH_KEY_MSG_PROD` | **jamais** la privée |
 | paire VAPID (notifications) | sur le VPS, par le script | `/etc/opmsg/beta.json` (chmod 600) | jamais — elle n'est même pas affichée |
+| clé de **sauvegarde** (64 hexadécimaux, **différente** de la clé maître) | sur **ton Mac**, dans le presse-papiers | ton gestionnaire de mots de passe, puis `/etc/opmsg/beta.json` (saisie masquée) | **jamais** |
+| clés d'accès du **coffre de sauvegarde** (clé d'accès + clé secrète) | la console IONOS | ton gestionnaire de mots de passe, puis `/etc/opmsg/beta.json` (saisie masquée) | **jamais** |
 
 ⚠️ **Tant que le code d'OP MESSAGES (`server-msg/`) n'est pas sur `main`, rien de ceci n'est possible** : le
 script d'installation copie le déployeur et la pose de clé depuis `main`. On attend donc le « pousse ».
@@ -359,6 +362,167 @@ sous-traitant au sens du RGPD (à ajouter à `sous-traitance.html` et au registr
 
 ---
 
+## 10 ter. La sauvegarde hors site d'OP MESSAGES (IONOS) — pour l'étape 3, avant qu'une personne hors de l'équipe n'entre
+
+Toutes les heures, le service fait une copie de sa base, la **brouille** (chiffrement) avec une clé qui ne vit que chez toi, et l'envoie dans un **coffre**
+(un *bucket* IONOS) qui n'est pas celui d'OP GESTION. Puis il la **relit** aussitôt : une copie qu'on n'a pas relue n'est pas une copie. Les photos et
+les fichiers partent aussi, une seule fois chacun. Les copies de plus de 14 jours disparaissent toutes seules.
+
+Tant que ces gestes ne sont pas faits, **rien ne casse** : `/health` dit `"configuree":false` et la bêta tourne (ses données sont jetables, et le disent).
+Mais **aucune personne extérieure à l'équipe n'entre** avant qu'un **essai de restauration** ait réussi (geste 6).
+
+⛔ **Trois secrets** : la clé d'accès du coffre, sa clé secrète, et la **clé de sauvegarde**. Ils vont **de la console (ou de ton Mac) à ton gestionnaire de
+mots de passe**, puis **au VPS en saisie masquée** (`configurer-sauvegarde.js`). Tu ne les recolles **jamais** dans la conversation. Ce que tu peux
+recoller : tout ce que les scripts et `/health` affichent.
+
+⛔ **Deux clés pour relever cette sauvegarde, pas une.** La **clé de sauvegarde** ouvre l'enveloppe ; la **clé maître** (section 3) ouvre ce qu'il y a
+dedans — les messages, les noms, les numéros. Il faut les deux. Elles sont **différentes** (le service refuse de démarrer si elles sont égales) et rangées
+dans **deux entrées** du gestionnaire.
+
+⚠️ **Ce que je n'ai PAS pu vérifier** : je n'ai pas accès à ton compte IONOS. Les noms d'écrans ci-dessous sont ceux que je connais ; s'ils ont changé,
+**dis-moi ce que tu vois** plutôt que de deviner. Et le coffre sur lequel tout a été éprouvé est un **faux**, sur ma machine : il recalcule les signatures
+comme AWS le documente, il prouve que le code signe juste — pas qu'IONOS accepte. Le **vrai** dépôt est le premier constat du geste 4, et c'est pour ça
+que le script l'éprouve avant d'écrire quoi que ce soit.
+
+### 1. Créer le coffre
+
+Console IONOS → **Object Storage** → créer un **bucket** :
+
+- un **nom à toi**, en minuscules, sans espace ni accent (par exemple `opmsg-sauvegardes`). C'est **ce nom-là** que tu taperas au geste 4 — pas le nom du menu ;
+- la **même région** que celui d'OP GESTION (`eu-central-4`, Francfort) : l'adresse du coffre est alors `https://s3.eu-central-4.ionoscloud.com` ;
+- ⛔ **distinct de ceux d'OP GESTION** : une panne, une fuite ou une erreur de l'un ne doit jamais toucher l'autre ;
+- ⛔ **celui de la BÊTA seulement** : la production aura **son** bucket et **sa** paire de clés (section 11). Une clé de la bêta — où l'on essaie du code — ne doit jamais pouvoir effacer les copies de la production ;
+- ⛔ **sans verrouillage d'objet ni versionnement**, si la console les propose : le service efface lui-même les copies de plus de 14 jours, et un coffre qui
+  refuse d'effacer grossit sans fin (le geste 4 le détecte).
+
+### 2. Créer la paire de clés d'accès — la sienne
+
+Dans la même console : une **nouvelle paire de clés d'accès** (clé d'accès + clé secrète), **distincte** de celle d'OP GESTION — si l'une fuit, l'autre reste saine.
+La console ne montre la clé secrète **qu'une fois** : copie les deux **directement** dans une entrée de ton gestionnaire (« OP MESSAGES — coffre de sauvegarde »).
+
+Les droits dont la sauvegarde a besoin, sur **ce bucket seulement** : **écrire, lire, lister, effacer**. Rien d'autre. Si la console permet de limiter la paire à ce
+bucket, fais-le ; sinon **dis-moi ce que tu vois**. Le geste 4 éprouve ces quatre droits avant d'écrire quoi que ce soit, et dit lequel manque.
+
+### 3. La clé de sauvegarde — elle naît sur TON Mac
+
+Comme la clé maître (section 3), dans le presse-papiers, **sans rien afficher** :
+
+```bash
+openssl rand -hex 32 | pbcopy
+```
+
+**Ce que tu dois voir** : rien. Colle-la immédiatement dans une **nouvelle entrée** du gestionnaire (« OP MESSAGES — clé de sauvegarde bêta » ; **jamais** la même que
+la clé maître). Le champ doit faire 64 caractères. Mêmes précautions qu'à la section 3 : aucune capture d'écran entre la copie et le collage, et
+`pbpaste | tr -d '\n' | wc -c` doit répondre `64`. La production aura **sa propre** clé de sauvegarde, neuve, comme sa clé maître.
+
+### 4. Les poser sur le VPS — saisie masquée
+
+Sur le VPS, en root :
+
+```bash
+OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/configurer-sauvegarde.js
+```
+
+Il demande sept choses, **une par une** :
+
+1. l'**adresse** du coffre (`https://s3.eu-central-4.ionoscloud.com`) ;
+2. le **nom du bucket** ;
+3. la **région** (Entrée = `eu-central-4`) ;
+4. la **clé d'accès** du coffre — *masquée* ;
+5. la **clé secrète** du coffre — *masquée* ;
+6. la **clé de sauvegarde** — *masquée* (colle le presse-papiers du geste 3) ;
+7. **la même, une seconde fois** — *masquée*, mais cette fois **recopiée depuis le gestionnaire**, pas depuis le presse-papiers : c'est ce qui trouve une clé mal
+   copiée **aujourd'hui** plutôt que le jour du sinistre.
+
+Rien ne s'affiche pendant la frappe : c'est normal (même un retour arrière, une flèche ou un collage ne font rien paraître — vérifié sous un vrai terminal).
+
+Avant d'écrire, il **éprouve le coffre** : il dépose un petit objet d'essai sous `beta/`, le relit et compare, le retrouve dans la liste, puis l'efface. Chaque refus dit
+lequel des quatre droits manque (« DÉPÔT REFUSÉ », « RELECTURE IMPOSSIBLE », « LISTE REFUSÉE », « EFFACEMENT REFUSÉ »). Il refuse aussi une clé de sauvegarde égale à la
+clé maître, et deux saisies différentes. Il n'écrit `/etc/opmsg/beta.json` qu'une fois tout validé, en gardant son propriétaire et tous ses autres réglages. S'il existe déjà une
+sauvegarde et que la clé ou le coffre change, il te le dit et te demande de taper « oui » : les copies déjà au coffre restent chiffrées avec l'ANCIENNE clé, à garder jusqu'à ce qu'elles soient sorties de la rétention.
+**Ce qu'il affiche peut se recoller.** Puis :
+
+```bash
+systemctl restart teamop-msg@beta
+```
+
+### 5. Vérifier — la première copie part toute seule, et se relit
+
+Au bout d'une ou deux minutes :
+
+```bash
+curl -s https://msg-beta.teamop.fr/health
+```
+
+**À voir** : `"sauvegarde":{"configuree":true,"ageH":0,"essaiJours":null,"echecs":0}`. `ageH` est un nombre (l'âge, en heures, de la dernière copie **relue**) ; `echecs`
+vaut 0 ; `essaiJours` reste `null` jusqu'au geste 6. **Colle-la.**
+
+Si `ageH` reste `null` après cinq minutes, ou si `echecs` monte, colle `/health` et le résultat de :
+
+```bash
+journalctl -u teamop-msg@beta -n 200 --no-pager | grep '"evt":"sauvegarde"' | tail -5
+```
+
+(le service n'y met ni nom, ni adresse, ni clé : un état, un motif court, une taille en Ko).
+
+### 6. L'essai de restauration — la preuve
+
+Sur le VPS, en root :
+
+```bash
+OPMSG_CONFIG=/etc/opmsg/beta.json OPMSG_DATA=/opt/opmsg/beta/data node /opt/opmsg/beta/current/outils/restaurer.js essai
+```
+
+Il télécharge la dernière copie, la déchiffre, rouvre la base, la contrôle, compte les lignes, rejoue le registre des suppressions, vérifie que la clé maître de ce
+serveur ouvre bien cette base, relit des pièces, puis efface son dossier de travail. **Il ne touche pas aux vraies données.**
+
+**À voir**, tout à la fin : `✅ CETTE SAUVEGARDE EST RESTAURABLE. Exercice enregistré : /health dira « essaiJours: 0 ».` Puis `curl -s https://msg-beta.teamop.fr/health` :
+`"essaiJours":0`. **Colle les deux.** C'est la porte de l'étape 3 : sans cet essai réussi, personne d'extérieur n'entre.
+Une ligne `ExperimentalWarning: SQLite is an experimental feature…` peut s'afficher avant le reste : elle vient de Node, elle est normale.
+
+Pour voir ce que le coffre contient, sans rien restaurer : la même commande avec `liste` à la place de `essai`.
+
+### 7. Relire chaque copie de la clé de sauvegarde
+
+Une fois **par copie** (gestionnaire, papier) :
+
+```bash
+OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/configurer-sauvegarde.js --verifier
+```
+
+Il demande la clé (masquée), la compare à celle que le serveur utilise et ne dit que le verdict : `longueur : 64 (attendu 64)` puis `✓ identique` — ou la position du premier
+caractère faux. Il ne l'affiche jamais. Espaces et majuscules acceptés (pour la copie papier, tu **tapes**).
+
+### 8. Après : ce qui se passe seul, ce qui crie, ce que tu fais chaque mois
+
+- **Toutes les heures**, une copie ; celles de plus de **14 jours** s'effacent seules. Rien à faire.
+- **La surveillance crie** (le contrôle horaire de GitHub) si la dernière copie relue a plus de 2 h, si deux passes de suite échouent, et — **en production seulement** — si
+  aucun essai de restauration n'a réussi depuis 35 jours. La bêta n'est pas alarmée sur l'essai : ses données sont jetables.
+- **Chaque mois** (production) : le geste 6, et tu colles le résultat.
+- ⚠️ **Un message supprimé vit encore dans les copies pendant 14 jours.** Une restauration rejoue le registre des suppressions pour le retirer de la base remise en service,
+  mais les copies elles-mêmes gardent ce qu'elles avaient vu : c'est à écrire dans la politique de confidentialité avant d'ouvrir au public.
+- ⚠️ **Ce que l'essai ne prouve pas** : que les pièces s'ouvrent (il relit leurs octets ; elles sont scellées par la clé maître) ; ni que le coffre acceptera encore dans six
+  mois (des clés peuvent être révoquées : la surveillance crie alors).
+
+### 9. Le jour où le serveur est perdu
+
+Il faut trois choses : la **clé maître**, la **clé de sauvegarde** (toutes deux dans le gestionnaire) et de quoi **parler au coffre** (si tu as perdu la paire de clés d'accès,
+une nouvelle se crée dans la console). Dans cet ordre, sur le **nouveau** serveur — et **sans redémarrer le service avant la dernière étape** : sa première copie, celle d'une base
+vide, deviendrait sinon « la plus récente » :
+
+1. `bash /root/install-msg.sh beta` (section 6) — avec la **clé maître d'origine**, jamais une neuve ;
+2. le geste 4, **sans** redémarrer ensuite (le coffre contient déjà les anciennes copies : c'est normal) ;
+3. `systemctl stop teamop-msg@beta` ;
+4. `OPMSG_CONFIG=/etc/opmsg/beta.json OPMSG_DATA=/opt/opmsg/beta/data node /opt/opmsg/beta/current/outils/restaurer.js restaurer --vers /opt/opmsg/beta/data --ecraser`
+   — la base vide créée par la nouvelle installation est **mise de côté**, jamais effacée ; `--date 2026-10-02T14` choisit une copie plus ancienne si la dernière est mauvaise ;
+5. `chown -R opmsg:opmsg /opt/opmsg/beta/data` ;
+6. `systemctl start teamop-msg@beta`, puis `curl -s https://msg-beta.teamop.fr/health`.
+
+⚠️ Cette procédure est écrite d'après le code et **jouée sur ma machine contre un faux coffre** : elle n'a jamais été jouée sur un VPS neuf. Un essai à blanc sur un VPS jetable
+reste à faire **avant la production**.
+
+---
+
 ## 11. La production — PAS MAINTENANT
 
 L'instance `prod` ne s'installe que sur ta phrase **« publie OP MESSAGES »**, après l'étape 9 de la conception
@@ -381,6 +545,8 @@ L'instance `prod` ne s'installe que sur ta phrase **« publie OP MESSAGES »**, 
    ```
 
 5. Sur GitHub : *Run workflow* → cible `prod` → ton **approbation** dans l'environnement `msg-prod` → les jobs.
+6. **Avant qu'une seule personne n'entre** : la sauvegarde de la production — les gestes de la section 10 ter avec `OPMSG_CONFIG=/etc/opmsg/prod.json` et les chemins `/opt/opmsg/prod/…`,
+   **un bucket à elle, une paire de clés à elle, une clé de sauvegarde neuve** — puis un essai de restauration réussi (geste 6).
 
 ## 12. Si ça tourne mal
 
@@ -396,9 +562,9 @@ L'instance `prod` ne s'installe que sur ta phrase **« publie OP MESSAGES »**, 
 
 ## Ce que cette installation ne fait PAS
 
-- **Pas de sauvegarde hors site** : c'est l'étape 3 (bucket distinct, clés propres, exercice de restauration). Les données
-  de la bêta sont **jetables** et le disent ; **aucune personne extérieure à l'équipe** n'entre avant qu'un essai de
-  restauration ait réussi.
+- **Pas de sauvegarde hors site à l'installation** : elle se pose à part, section 10 ter (bucket distinct, clés propres, exercice de
+  restauration). Les données de la bêta sont **jetables** et le disent ; **aucune personne extérieure à l'équipe** n'entre avant
+  qu'un essai de restauration ait réussi.
 - **Pas de TURN** (appels), pas de Stripe, pas de courriel d'envoi : étapes 7, 5 et 2.
 - **Pas de pare-feu ni de bande passante** : non vérifiés (§ 6 de la conception).
 - **Aucune modification de `app.html`, `sw.js`** ni du bloc d'`api.teamop.fr`. Côté `server/`, deux lignes seulement
@@ -413,7 +579,7 @@ L'instance `prod` ne s'installe que sur ta phrase **« publie OP MESSAGES »**, 
   le VPS qu'en relançant `bash /root/install-msg.sh beta` (rejouable, sans risque).
 - **Un administrateur peut en retirer un autre**, y compris le créateur du groupe (« tous les administrateurs sont égaux ») :
   décision de produit à confirmer.
-- **Pas de sauvegarde de `msg.db`** avant l'étape 3 : ne pas mettre la production en service avant.
+- **La sauvegarde de `msg.db` n'existe qu'une fois la section 10 ter faite** (et un essai de restauration réussi) : ne pas mettre la production en service avant.
 - **Les écritures bloquent la boucle quand le disque est saturé** (`synchronous=FULL`, SQLite sur le fil principal) : mesuré en
   faisant lire tout le disque par quatre processus pendant que cinq écrivains envoient — écriture p50 3 ms → 405 ms, p95 2 s, et
   les lectures suivent. Choix assumé en tête de `stockage.js` (durabilité d'abord, `worker_thread` si la mesure l'exige) ;
