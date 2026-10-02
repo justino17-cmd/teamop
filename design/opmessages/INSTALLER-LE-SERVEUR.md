@@ -437,7 +437,8 @@ Rien ne s'affiche pendant la frappe : c'est normal (même un retour arrière, un
 
 Avant d'écrire, il **éprouve le coffre** : il dépose un petit objet d'essai sous `beta/`, le relit et compare, le retrouve dans la liste, puis l'efface. Chaque refus dit
 lequel des quatre droits manque (« DÉPÔT REFUSÉ », « RELECTURE IMPOSSIBLE », « LISTE REFUSÉE », « EFFACEMENT REFUSÉ »). Il refuse aussi une clé de sauvegarde égale à la
-clé maître, et deux saisies différentes. Il n'écrit `/etc/opmsg/beta.json` qu'une fois tout validé, en gardant son propriétaire et tous ses autres réglages.
+clé maître, et deux saisies différentes. Il n'écrit `/etc/opmsg/beta.json` qu'une fois tout validé, en gardant son propriétaire et tous ses autres réglages. S'il existe déjà une
+sauvegarde et que la clé ou le coffre change, il te le dit et te demande de taper « oui » : les copies déjà au coffre restent chiffrées avec l'ANCIENNE clé, à garder jusqu'à ce qu'elles soient sorties de la rétention.
 **Ce qu'il affiche peut se recoller.** Puis :
 
 ```bash

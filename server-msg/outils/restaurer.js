@@ -28,6 +28,10 @@
  * passe de Justin. Le coffre se donne alors par `OPMSG_SAUV_COFFRE=endpoint,bucket,accessKey,secretKey[,région]` et l'instance par
  * `OPMSG_INSTANCE`. ⚠️ DEUX CLÉS sont nécessaires pour que la base restaurée serve à quelque chose : celle-ci, et la clé MAÎTRE
  * (`/etc/opmsg/<instance>.kek`), qui n'est pas dans l'archive : sans elle, le service refuse de démarrer sur la base restaurée.
+ * ⛔ MAIS TAPER UN SECRET DEVANT UNE COMMANDE (`OPMSG_SAUV_CLE=… node restaurer.js`) LE LAISSE DANS L'HISTORIQUE DU SHELL et dans
+ * l'environnement du processus : ces variables sont un dernier recours pour les bancs et pour un serveur sans rien. Le chemin que le guide
+ * de Justin prescrit pour un sinistre est l'autre : réinstaller, puis `configurer-sauvegarde.js` (saisie masquée) pour reposer le bloc de
+ * configuration SANS redémarrer le service, puis cet outil, qui lit la configuration comme d'habitude.
  */
 'use strict';
 const fs = require('fs'), path = require('path'), os = require('os');
