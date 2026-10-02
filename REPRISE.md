@@ -31,6 +31,12 @@ pris : `grep -a`, et `test-836` sans repère de bloc exige une feuille sans règ
 avec Node 22.23.3 et `LC_ALL=C.UTF-8` : suite complète 233 suites · 14 786, liste OP MESSAGES 26 · 2 417, liste serveur
 53 · 3 729, tout à 0 ✗ (chiffres de la première passe ; la passe finale est notée au commit de main). Branche : `f8d0696`,
 `cf4f689`, `4fa1fe8`.
+✅ **Sur main, vérifié sur GitHub** : `0df1229` (la réparation) — « Vérifications » n° 1452 verte ; « Vérification des pages »
+n° 526 **coupée par son minuteur** : toutes les étapes vertes (les suites en 8 min 35 s), le job arrêté à 10 min 02 s pendant son
+ménage de fin, conclusion « cancelled » — la suite avait grandi jusqu'aux 10 minutes du job (le run 528, une demande de fusion de
+Dependabot, coupé de même). `b8c1477` lui donne 20 minutes (branche `9500c31`) : « Vérification des pages » n° 529 verte en
+9 min 49 s, « Vérifications » n° 1458 verte. ⚠️ Ces 9 min 49 s disent la marge : le prochain chantier qui ajoute des suites
+lentes regarde la durée du run, pas seulement sa couleur.
 ⚠️ **Ce que la réparation ne range pas** : la page de paiement EN SERVICE (partie avec `fa32298`) n'a plus que Messages Perso et
 Messages Pro, pendant que la page des tarifs EN SERVICE montre encore « Messages Business Premium — 25 € — Bientôt disponible ».
 Rien n'est vendable (OP MESSAGES n'a aucun bouton d'achat, le serveur refuse `msgpremium` neuf) ; ça s'aligne le jour où Justin
