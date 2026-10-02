@@ -298,12 +298,12 @@ globalThis.fetch = async function (url, opts) {
     /* ⛔ LE SERVEUR PEUT PARTIR SEUL (`scripts/bancs-serveur.liste`, contre l'app.html de `main`) : la v763 EN SERVICE et la
        v767 de la bêta ne lisent pas la suspension de la même façon. Chacune est jouée contre CE serveur, avec SES attentes — la
        v763 grise les catégories payantes (`forfait()` rend « gratuit ») sans rien écrire ; la v767 suspend l'accès. */
-    const VER_APP = parseInt((/APP_VERSION\s*=\s*'(\d+)'/.exec(APP) || [])[1], 10) || 0, V767 = VER_APP >= 767;
+    const VER_APP = parseInt((/APP_VERSION\s*=\s*'(\d+)'/.exec(APP) || [])[1], 10) || 0, V767 = VER_APP >= 767, V768 = VER_APP >= 768;
     vrai('la version de l\'application se lit (v' + VER_APP + ')', VER_APP >= 763);
     /* (le bandeau « Paye ton abonnement » n'existe plus depuis la v767 : ce qui n'est pas payé est suspendu — `accesSuspendu`) */
-    const NOMS = V767 ? ['forfaitServeurSync', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'accesSuspendu', 'suspensionClasse', 'suspensionRappel', 'forfait', 'optionsCle', 'optionsLire', 'optionsPoser']   // v768 : les options servies se rangent à la lecture de l'état
+    const NOMS = V767 ? ['forfaitServeurSync', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'accesSuspendu', 'suspensionClasse', 'suspensionRappel', 'forfait'].concat(V768 ? ['optionsCle', 'optionsLire', 'optionsPoser'] : [])   // v768 : les options servies se rangent à la lecture de l'état — la v767 (celle que `main` sert, et contre laquelle la porte du déploiement joue ce banc) ne les a pas
       : ['forfaitServeurSync', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'suspensionRappel', 'forfait', 'bandeauFormule'];
-    const FN = NOMS.map(fonction), PLANS_SRC = bloc('const PLANS={'), OPT_SRC = V767 ? bloc('const OPTIONS_GESTION={') : '', SUSP = (/^let _susp = \{[^\n]*\};$/m.exec(APP) || [''])[0];
+    const FN = NOMS.map(fonction), PLANS_SRC = bloc('const PLANS={'), OPT_SRC = V768 ? bloc('const OPTIONS_GESTION={') : '', SUSP = (/^let _susp = \{[^\n]*\};$/m.exec(APP) || [''])[0];
     vrai('(population) les ' + NOMS.length + ' fonctions de la v' + VER_APP + ', PLANS et l\'état de suspension sont trouvés dans le fichier réel',
       FN.every(Boolean) && /const PLANS=\{/.test(PLANS_SRC) && !!SUSP && (V767 ? /suspensionPoser\(nonPaye\?/ : /suspensionPoser\(j\)/).test(FN[0]));
     /* un appareil : son rangement, son compte, sa base — et ce qu'il fait VOIR (toasts, bandeau) ou ÉCRIRE (save) */
