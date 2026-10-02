@@ -205,6 +205,21 @@ silence ; la bannière « hors ligne » n'écoutait pas le navigateur ; à 360 p
 commandes du haut. **Reste** : les photos et vocaux (étape 4, pièces jointes côté service), les appels (étape 7) et les réunions ; la bêta
 `messages-beta.html` n'est pas encore pointée sur cette interface (#305) ; l'installation du service sur le VPS (gestes de Justin, mode d'emploi).
 
+✅ **Relectures du testeur et du gardien traitées, puis fusion (2 octobre 2026, sur la branche).** Tout ce que les deux relectures avaient trouvé de rejouable
+est corrigé ET gardé : un message « en attente » ne se perd plus sans un mot (`enAttente()`, `beforeunload`, l'écran de connexion dit COMBIEN, jamais le
+texte) ; l'envoi dont la réponse s'est perdue ne s'affiche plus en double ; deux messages identiques coup sur coup partent tous deux (la garde ne vise que le
+texte REFUSÉ) ; un flux muet est tenu pour mort au bout de 2,5 pulsations (événement `pouls`, `Last-Event-ID`) ; revenir sur l'onglet marque lu ; un « Lu »
+refusé se dit ; le compteur global du journal ne fuit plus (`gidVisible`) ; l'aperçu d'un groupe nomme son auteur ; la redirection de déconnexion part de
+`location.origin` (`//index.html` ne mène plus à l'hôte « index.html ») ; un lien de contact ne sert qu'UNE fois ; champs de lien à 16 px ; signes comptés
+en points de code. Cinq mutations de contre-épreuve (D2, G4, D4, D5, G6) font toutes tomber la sonde ou `test-911`. ⚠️ **Fusions** : la branche de travail
+(compte Perso par téléphone, accès bêta par application) et celle des formules (Perso 0 €, Pro 15 €) sont dans cet arbre. Le banc du générateur d'interface,
+qui s'appelait `test-912`, est devenu **`test-941`** (912 est le plan de numérotation du compte Perso) ; les accès bêta des bancs d'OP MESSAGES passent
+`apps:['messages']`, la porte les exige. Liste messages 26 suites · 2 403 (plancher 2 400), liste serveur 51 · 3 607, suite complète 241 · 15 802 (code 0),
+sonde de l'aperçu 3 172 ✓, sonde du service 410 ✓ (deux couples jour et nuit). **Attend Justin** : (1) un lien de GROUPE garde 20 usages sur 7 jours
+(une invitation s'envoie à plusieurs ; le gardien recommande 1 par défaut et « plusieurs » sur choix explicite — produit, pas corrigé) ; (2) les mineurs du
+testeur laissés tels quels : message générique au 6ᵉ onglet (« trop d'onglets »), 429 d'OP GESTION traduit en « verrouillé 15 min », le retour système ferme
+menu ET conversation, un arrêt de Tab par message, nom de 60 signes sans espace tronqué sans points, marques bidirectionnelles gardées dans un message.
+
 ---
 
 # ✅ 1er OCTOBRE 2026, NUIT — TOUT EST EN SERVICE : SERVEUR, TOUR v2.78, BÊTA v767 (`4bfd3b4`) PUIS APPLICATION v767 (`acbfbc8`)
