@@ -28,7 +28,7 @@ const code = sansCommentairesJs(fs.readFileSync(FICHIER, 'utf8'));
 vrai('une fois les commentaires retirés il reste du code (sinon les motifs ci-dessous passeraient sur du néant)', code.split('\n').filter(l => l.trim()).length > 40);
 v('le module n\'a rien lancé en étant chargé (main ne tourne que lancé en direct)', typeof S.evaluer, 'function');
 
-const SAIN = { ok: true, instance: 'beta', sha: 'a'.repeat(40), sauvegarde: { configuree: true, ageH: 0.5, essaiJours: 12 }, stripeEchecMin: 0, sms: { mode: 'journal', envoyes24h: 3, coutJourEur: 0.2, budgetJourPct: 1, budgetHeurePct: 0, boucliers: 0, ovhEchecs: 0, refus: {} } };
+const SAIN = { ok: true, instance: 'beta', sha: 'a'.repeat(40), sauvegarde: { configuree: true, ageH: 0.5, essaiJours: 12, echecs: 0 }, stripeEchecMin: 0, sms: { mode: 'journal', envoyes24h: 3, coutJourEur: 0.2, budgetJourPct: 1, budgetHeurePct: 0, boucliers: 0, ovhEchecs: 0, refus: {} } };
 
 /* ══ 1. L'ÉVALUATION ═════════════════════════════════════════════════════════════════════════════════ */
 v('un /health sain ne fait rien crier', S.evaluer(SAIN, 'beta'), []);
@@ -41,8 +41,16 @@ vrai('⛔ un sha absent crie (le déployeur n\'a pas posé OPMSG_SHA)', S.evalue
 vrai('   un sha illisible aussi', S.evaluer(Object.assign({}, SAIN, { sha: 'zzz' }), 'beta').some(p => /sha/.test(p)));
 vrai('   un sha abrégé (7 caractères) est accepté : le déployeur le tolère aussi', S.evaluer(Object.assign({}, SAIN, { sha: 'abc1234' }), 'beta').length === 0);
 vrai('⛔ une sauvegarde non configurée crie', S.evaluer(Object.assign({}, SAIN, { sauvegarde: { configuree: false } }), 'beta').some(p => /sauvegarde/.test(p)));
-vrai('⛔ une sauvegarde de 30 h crie', S.evaluer(Object.assign({}, SAIN, { sauvegarde: { configuree: true, ageH: 30 } }), 'beta').some(p => /30 h/.test(p)));
-v('   une sauvegarde de 26 h ne crie pas encore (le seuil est « plus de 26 h »)', S.evaluer(Object.assign({}, SAIN, { sauvegarde: { configuree: true, ageH: 26 } }), 'beta'), []);
+vrai('⛔ une sauvegarde de 30 h crie', S.evaluer(Object.assign({}, SAIN, { sauvegarde: { configuree: true, ageH: 30, echecs: 0 } }), 'beta').some(p => /30 h/.test(p)));
+v('⛔ le seuil est « plus de 2 h » (une copie par heure est promise) : 2 h pile ne crie pas', S.evaluer(Object.assign({}, SAIN, { sauvegarde: { configuree: true, ageH: 2, echecs: 0 } }), 'beta'), []);
+vrai('   2,5 h crie (une passe entière a manqué)', S.evaluer(Object.assign({}, SAIN, { sauvegarde: { configuree: true, ageH: 2.5, echecs: 0 } }), 'beta').some(p => /3 h|2 h/.test(p)));
+const avecSauv = (o, instance) => S.evaluer(Object.assign({}, SAIN, { instance: instance || 'beta' }, instance === 'prod' ? { sms: Object.assign({}, SAIN.sms, { mode: 'ovh' }) } : {}, { sauvegarde: Object.assign({ configuree: true, ageH: 0.4, essaiJours: 3, echecs: 0 }, o) }), instance || 'beta');
+v('⛔ UNE passe ratée ne crie pas (un coffre qui hoquette), DEUX de suite crient', [avecSauv({ echecs: 1 }), avecSauv({ echecs: 2 }).length, /2 sauvegardes de suite/.test(avecSauv({ echecs: 2 })[0])], [[], 1, true]);
+vrai('⛔ « configurée » et JAMAIS réussie (ageH:null) crie : l\'âge ne voit pas cette panne, et la minuterie peut ne rien tenter', avecSauv({ ageH: null }).some(p => /aucune n'a réussi/.test(p)));
+v('   non configurée : on ne crie QUE « pas configurée » (pas aussi « jamais réussie »)', S.evaluer(Object.assign({}, SAIN, { sauvegarde: { configuree: false, ageH: null, essaiJours: null, echecs: 0 } }), 'beta').length, 1);
+v('⛔ EN PRODUCTION, 35 jours sans exercice de restauration ne crient pas encore, 36 crient', [avecSauv({ essaiJours: 35 }, 'prod'), avecSauv({ essaiJours: 36 }, 'prod').length], [[], 1]);
+vrai('   et « jamais réussi » (null) crie en production : une sauvegarde qu\'on n\'a jamais rouverte est une croyance', avecSauv({ essaiJours: null }, 'prod').some(p => /JAMAIS réussi/.test(p)));
+v('⛔ EN BÊTA l\'exercice n\'est PAS une alarme (null, 40 jours : rien) — la bêta est jetable, et crier chaque mois y apprendrait à ignorer l\'alarme de la production', [avecSauv({ essaiJours: null }, 'beta'), avecSauv({ essaiJours: 400 }, 'beta')], [[], []]);
 vrai('⛔ Stripe illisible depuis 120 minutes crie', S.evaluer(Object.assign({}, SAIN, { stripeEchecMin: 120 }), 'beta').some(p => /Stripe/.test(p)));
 v('   à 90 minutes pile, non (la règle d\'OP GESTION : on crie AU-DELÀ de 90)', S.evaluer(Object.assign({}, SAIN, { stripeEchecMin: 90 }), 'beta'), []);
 vrai('⛔ une ligne chiffrée illisible crie (le service avale l\'erreur de lecture : sans ce champ, personne ne le saurait)', S.evaluer(Object.assign({}, SAIN, { base: { ok: true, schema: 1, illisibles: 2 } }), 'beta').some(p => /illisible/.test(p)));

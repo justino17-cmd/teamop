@@ -30,6 +30,7 @@ const { creerPorteBeta } = require('./porte-beta');
 const { construireApp } = require('./app');
 const { lireConfigSms, creerGarde } = require('./sms-garde');
 const { APPAREIL_ABS_MS } = require('./telephone');
+const { creerSauvegarde, lireConfigSauvegarde } = require('./sauvegarde');
 
 const VERSION = '1.1.0-telephone';
 const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays']);   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
@@ -45,6 +46,9 @@ function journaliser(evt, champs) {
 
 function demarrer(env = process.env) {
   const config = charger(env);   // ⛔ la garde de séparation passe là, avant tout dossier créé
+  /* La sauvegarde hors site : un bloc invalide REFUSE le démarrage (une clé égale à la clé maître, un coffre en http, une rétention de 0) — avant
+     tout dossier créé, comme la configuration des SMS. Sans bloc : `null`, le module est inerte (rien ne part, rien n'est écrit). */
+  const cfgSauvegarde = lireConfigSauvegarde(config.sauvegarde, { instance: config.instance, kek: config.kek });
   fs.mkdirSync(config.dataDir, { recursive: true, mode: 0o700 });
   const scelleur = creerScelleur(config.kek);
   const stockage = stockageMod.ouvrir({ chemin: path.join(config.dataDir, 'msg.db'), scelleur, horloge: Date.now });
@@ -54,6 +58,8 @@ function demarrer(env = process.env) {
   /* Les SMS : la configuration est VALIDÉE ici (un budget négatif, des identifiants à moitié posés, une URL d'OVH étrangère en production
      refusent le démarrage plutôt que de tourner de travers), puis la garde (budgets, emballement, bouclier) et l'envoi par OVH. */
   const sms = creerGarde({ cfg: lireConfigSms(config.sms, config.instance), instance: config.instance, stockage, scelleur, horloge: Date.now, journaliser });
+  /* Les instantanés passent par `stockage.instantane` (une connexion lectrice à part) ; le contrôle des copies, lui, se fait dans un processus enfant. */
+  const sauvegarde = creerSauvegarde({ cfg: cfgSauvegarde, instance: config.instance, dataDir: config.dataDir, base: { instantane: (vers) => stockage.instantane(vers), sonde: () => stockage.sonde() }, horloge: Date.now, journaliser });
   const demarreA = Date.now();
   const boucle = monitorEventLoopDelay({ resolution: 20 }); boucle.enable();
 
@@ -83,6 +89,7 @@ function demarrer(env = process.env) {
       disque: { bas: disqueBas },
       quotasRefus: quotas.refus(),
       sms: sms.sante(),   // des nombres : le coût du jour, le pourcentage du budget, les refus par motif — jamais un numéro
+      sauvegarde: sauvegarde.sante(),   // des nombres et un booléen : jamais un nom de bucket, un chemin, un motif
     }),
   };
 
@@ -119,12 +126,14 @@ function demarrer(env = process.env) {
     }, config.beta.relectureMs));
   }
   for (const m of minuteurs) m.unref();
+  sauvegarde.demarrer();   // inerte sans configuration : aucune minuterie, aucun réseau
 
   async function arreter() {
     for (const m of minuteurs) clearInterval(m);
     clearInterval(minuteurDisque);
     boucle.disable();
     hub.arreter();
+    await sauvegarde.arreter();   // une passe en cours reconnaît l'arrêt (deux secondes au plus) ; ce n'est pas un échec
     await new Promise(r => server.close(() => r()));
     try { server.closeAllConnections(); } catch (e) {}
     stockage.fermer();

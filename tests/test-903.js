@@ -43,7 +43,8 @@ const nb = (svc, table) => { const d = lireDb(svc); try { return d.prepare('SELE
       const c = T.client(svc.base);
       const h = await c.get('/health');
       v('/health répond 200 {ok:true, instance, sha}', [h.code, h.j.ok, h.j.instance, h.j.sha], [200, true, 'beta', 'banc0000']);
-      v('⛔ /health n\'a QUE des champs agrégés (la liste exacte — en ajouter un oblige à trancher ici)', Object.keys(h.j).sort(), ['base', 'boucle', 'disque', 'flux', 'instance', 'ok', 'porte', 'quotasRefus', 'sha', 'sms', 'uptimeS', 'version']);
+      v('⛔ /health n\'a QUE des champs agrégés (la liste exacte — en ajouter un oblige à trancher ici)', Object.keys(h.j).sort(), ['base', 'boucle', 'disque', 'flux', 'instance', 'ok', 'porte', 'quotasRefus', 'sauvegarde', 'sha', 'sms', 'uptimeS', 'version']);
+      v('⛔ la sauvegarde hors site, sans bloc de configuration, se dit INERTE (des nombres et un booléen — jamais un bucket, un chemin, un motif)', h.j.sauvegarde, { configuree: false, ageH: null, essaiJours: null, echecs: 0 });
       vrai('⛔ aucun identifiant de personne ni de conversation dans /health', !/\b[pcm]_[0-9a-f]{32}\b/.test(h.txt));
       v('⛔ /health PUBLIE le compteur de lignes illisibles (un nombre, jamais lesquelles) : c\'est ce que lit la surveillance', [h.j.base.illisibles, Object.keys(h.j.base).sort()], [0, ['illisibles', 'ok', 'schema']]);
       vrai('la boucle d\'événements est mesurée (p99 en ms)', typeof h.j.boucle.p99Ms === 'number');
