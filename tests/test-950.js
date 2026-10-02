@@ -265,11 +265,13 @@ const horlogeFixe = (h) => () => h.t;
       const b = O.creerBase({ moteur });
       const { a, c, conv } = O.remplir(b, 300);
       bourrer(b, lignes);
-      let ecritures = 0, stop = false, i = 0;
-      /* L'écrivain du service : des transactions EXPLICITES (BEGIN IMMEDIATE … COMMIT, en plusieurs appels), une à chaque tour de boucle. */
+      let ecritures = 0, stop = false, i = 0, refusEcrivain = '';
+      /* L'écrivain du service : des transactions EXPLICITES (BEGIN IMMEDIATE … COMMIT, en plusieurs appels), une à chaque tour de boucle.
+         ⛔ Si la copie le BLOQUE (« database is locked »), c'est le service qui ne peut plus écrire pendant la sauvegarde : on le note, on ne meurt pas. */
       const ecrire = () => {
         if (stop) return;
-        b.S.messageEnvoyer({ conv, auteur: i % 2 ? c.id : a.id, cid: 'vivant-' + (i++), texte: 'écrit PENDANT la copie ' + i });
+        try { b.S.messageEnvoyer({ conv, auteur: i % 2 ? c.id : a.id, cid: 'vivant-' + (i++), texte: 'écrit PENDANT la copie ' + i }); }
+        catch (e) { refusEcrivain = String(e && e.message).slice(0, 60); stop = true; return; }
         ecritures++; setImmediate(ecrire);
       };
       b.S.messageEnvoyer({ conv, auteur: a.id, cid: 'dernier-avant', texte: 'le dernier écrit avant la copie' });   // une écriture que seul le journal WAL porte encore
@@ -282,7 +284,7 @@ const horlogeFixe = (h) => () => h.t;
       try { r = await Promise.race([b.S.instantane(vers).catch((e) => ({ methode: 'échec : ' + String(e && e.message).slice(0, 60) })), new Promise((res) => { const m = setTimeout(() => res({ methode: 'interminable (plus de 30 s)' }), 30000); m.unref(); })]); }
       finally { stop = true; }
       const apres = b.S.sonde();
-      return { b, r, avant, apres, ecritures: ecritures - e0, vers };
+      return { b, r, avant, apres, ecritures: ecritures - e0, vers, refusEcrivain };
     };
     /* ⛔ UNE COURSE DE BANC SE JOUE AU GESTE, JAMAIS AU CHRONOMÈTRE. Combien d'écritures tombent PENDANT une copie qui dure quelques dizaines
        de millisecondes dépend de la charge de la machine (mesuré sous deux lots de bancs en parallèle : 1 à 19 écritures au lieu de 40 ou plus).
@@ -290,19 +292,19 @@ const horlogeFixe = (h) => () => h.t;
        refait un autre, jusqu'à cinq essais VIVANTS. Chaque essai, vivant ou non, doit rendre une copie saine ; le verdict est agrégé pour que
        le nombre de vérifications ne dépende pas du nombre de tentatives. */
     const essais = [];
-    for (let tentative = 1; tentative <= 40 && essais.filter(e => e.vivant).length < 5 && !essais.some(e => e.methode !== 'backup'); tentative++) {   // une copie qui n'a pas la bonne méthode ou ne finit pas : inutile d'en refaire
+    for (let tentative = 1; tentative <= 40 && essais.filter(e => e.vivant).length < 5 && !essais.some(e => e.methode !== 'backup' || !e.ecrivain); tentative++) {   // une copie qui n'a pas la bonne méthode, qui ne finit pas, ou qui bloque l'écrivain : inutile d'en refaire
       const x = await sousCharge({ lignes: 60000 });
       try {
         const k = STOCK.ouvrir.copie.controlerFichier(x.vers);
         let d = null;
         try { d = new DatabaseSync(x.vers, { readOnly: true }); } catch (e) { d = null; }   // une copie interminable n'a pas de fichier : l'essai tombe, le banc ne meurt pas
-        if (!d) { essais.push({ ecritures: x.ecritures, vivant: x.ecritures >= 5, methode: x.r.methode, saine: false, horloge: false, instantane: false }); continue; }
+        if (!d) { essais.push({ ecritures: x.ecritures, vivant: x.ecritures >= 5, methode: x.r.methode, ecrivain: x.refusEcrivain === '', saine: false, horloge: false, instantane: false }); continue; }
         try {
           const somme = d.prepare('SELECT COALESCE(SUM(dernier_seq), 0) AS n FROM conversation').get().n, lignes = d.prepare('SELECT COUNT(*) AS n FROM message').get().n;
           const trous = d.prepare('SELECT COUNT(*) AS n FROM conversation c WHERE c.dernier_seq <> (SELECT COALESCE(MAX(seq), 0) FROM message WHERE conv = c.id)').get().n;
           const journal = d.prepare('SELECT COUNT(*) AS n FROM journal').get().n;
           essais.push({
-            ecritures: x.ecritures, vivant: x.ecritures >= 5, methode: x.r.methode,
+            ecritures: x.ecritures, vivant: x.ecritures >= 5, methode: x.r.methode, ecrivain: x.refusEcrivain === '',
             saine: k.ok === true && k.temoin === true && k.schema === 2,
             horloge: k.journalMax >= x.avant.journalMax && k.journalMax <= x.apres.journalMax,
             instantane: Number(somme) === Number(lignes) && Number(lignes) >= 300 && Number(trous) === 0 && Number(journal) === k.journalMax && Number(journal) > 60000,
@@ -313,6 +315,7 @@ const horlogeFixe = (h) => () => h.t;
     const vivants = essais.filter(e => e.vivant);
     vrai('⛔ population : ' + vivants.length + ' essais VIVANTS (au moins 5 écritures du service PENDANT la copie ; ' + vivants.map(e => e.ecritures).join(', ') + ') sur ' + essais.length + ' tentative(s) — sinon « cohérent pendant les écritures » ne prouverait rien', vivants.length === 5);
     v('l\'API de sauvegarde de Node est celle qui sert, et chaque copie a réussi (pas de « not an error » : le pas ne se joue pas sur la connexion du service)', essais.filter(e => e.methode !== 'backup').length, 0);
+    v('⛔ le service continue d\'ÉCRIRE pendant la copie : aucune écriture refusée (« database is locked » voudrait dire que la sauvegarde empêche les gens d\'envoyer leurs messages)', essais.filter(e => !e.ecrivain).length, 0);
     v('chaque copie est saine (quick_check : ok) et c\'est une base d\'OP MESSAGES (témoin de clé)', essais.filter(e => !e.saine).length, 0);
     v('⛔ l\'horloge du journal de chaque copie tombe ENTRE les deux sondes de la base vivante', essais.filter(e => !e.horloge).length, 0);
     v('⛔ chaque copie est un instantané, pas un mélange de deux états : chaque conversation sait combien de messages elle porte, et le journal en a un par événement', essais.filter(e => !e.instantane).length, 0);
