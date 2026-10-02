@@ -54,7 +54,9 @@ for f in "${liste[@]}"; do
   # test-905 et test-933 sur un déploiement juste. Les deux casses s'écrivent donc à la main, les lignes de RÉSULTAT (✓ ✗ ✔ ✘
   # en tête) sont écartées — une suite annonce un saut par une ligne à elle, jamais par un contrôle —, et sans `-q` : sous
   # `pipefail`, un `grep -q` qui s'arrête au premier mot fait mourir `printf` (SIGPIPE) sur une longue sortie, et le saut passe.
-  saut=$(printf '%s\n' "$sortie" | grep -vE '^[[:space:]]*(✓|✗|✔|✘)' | grep -E '[Ss][Aa][Uu][Tt](É|é)' || true)
+  # `-a` : un octet que `grep` ne sait pas lire le fait passer en « fichier binaire » — il tait alors toutes les lignes qui
+  # suivent, saut compris (relecture du 2 octobre 2026 ; un octet nul, lui, n'arrive pas jusqu'ici : `$(…)` le retire).
+  saut=$(printf '%s\n' "$sortie" | grep -avE '^[[:space:]]*(✓|✗|✔|✘)' | grep -aE '[Ss][Aa][Uu][Tt](É|é)' || true)
   if [ -n "$saut" ]; then
     echo "::error::$f a SAUTÉ une partie en silence : ${saut%%$'\n'*}"
     echecs=$((echecs+1)); coupables="$coupables $f(sautée)"

@@ -324,6 +324,10 @@ console.log('\n══ 10. LES RÈGLES DES OPTIONS DU PRO NE PORTENT AUCUNE COULE
     vrai('(population) ' + pages.length + ' pages suivies relues', pages.length >= 50);
     v('le bloc des options n\'est pas dans cette feuille (les options du Pro ne sont pas publiées ici) : aucune page n\'emploie leurs classes',
       pages.filter(f => SEULES.some(c => new RegExp('class="[^"]*(?<![-\\w])' + c + '(?![-\\w])').test(lire(f)))), []);
+    /* …et la feuille n'a AUCUNE règle d'options : un repère de bloc reformulé ne doit pas faire sauter le contrôle des couleurs
+       (relecture du 2 octobre 2026 — sans ça, des classes d'options renommées passaient ce banc sans être relues). */
+    const selOptions = css.replace(/\/\*[\s\S]*?\*\//g, ' ').match(/\.(?:o-[a-z][\w-]*|opts?(?:-[\w-]+)?|options?(?:-[\w-]+)?)(?![\w-])/g) || [];
+    v('   et la feuille ne porte aucune règle d\'options (.o-…, .opt…, .option…)', [...new Set(selOptions)], []);
   } else {
   vrai('le bloc des options est trouvé dans la feuille (' + (j - i) + ' signes)', i > 0 && j > i + 2000);
   const code = css.slice(i, j).replace(/\/\*[\s\S]*?\*\//g, ' ');
