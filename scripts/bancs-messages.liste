@@ -22,7 +22,8 @@
 # 2 octobre 2026, les pièces (test-942 le module, 943 le service en HTTP, 944 l'appareil et le service) : 29 suites, 2 894 vérifications mesurées par `bash scripts/bancs-ci.sh $(liste)` (324 s) — plancher 2890.
 # 2 octobre 2026 (la sauvegarde hors site, étape 3 : test-950 le module, test-951 le vrai service, un faux coffre S3 et les outils de Justin) : 28 suites, 2 913 vérifications mesurées — plancher 2905.
 # (2 928 avant que test-950 agrège ses essais de copie sous charge : quinze contrôles redondants de moins, trois cas de plus — le plancher suit le total MESURÉ.)
-#plancher 2905
+# 2 octobre 2026, les deux réunis (pièces + sauvegarde, la sauvegarde comptant désormais les pièces) : 31 suites, 3 390 vérifications mesurées par la commande de la porte — plancher 3380.
+#plancher 3380
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
