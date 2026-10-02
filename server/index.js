@@ -2154,7 +2154,12 @@ function betaSave() { try { const tmp = BETA_PATH + '.tmp'; fs.writeFileSync(tmp
    système pour les accès comme OP GESTION »). Un accès porte `apps`, sous-ensemble non vide de BETA_APPS. UN ACCÈS D'AVANT, qui
    n'a pas le champ, vaut ['gestion'] : il n'ouvrait que la bêta d'OP GESTION, il ne s'ouvre pas à une application de plus en
    silence. C'est la SEULE lecture du champ (`betaApps`) : la porte, la relecture et la Tour passent par elle, jamais par
-   `c.apps` directement — un accès au champ abîmé ne doit pas devenir un accès à tout. */
+   `c.apps` directement — un accès au champ abîmé ne doit pas devenir un accès à tout.
+   ⛔ UN ACCÈS, UNE APPLICATION (2 octobre 2026 — Justin, capture de la console MESSAGES à l'appui : « je veux pouvoir créer les
+   accès d'OP MESSAGES ici, car je veux que ça soit bien séparé dans la Tour »). Chaque console crée les SIENS, et un même
+   identifiant peut exister dans les deux bêtas, chacun avec son mot de passe : l'unicité, la porte et la relecture se lisent
+   donc par (identifiant, application), jamais par l'identifiant seul. Plus de route pour ajouter une application à un accès :
+   l'autre bêta, c'est un autre accès, ouvert dans l'autre console. */
 const BETA_APPS = ['gestion', 'messages'];
 const betaApps = c => { const l = Array.isArray(c && c.apps) ? BETA_APPS.filter(a => c.apps.includes(a)) : []; return l.length ? l : ['gestion']; };
 /* Valide une liste reçue d'une requête : tableau non vide de noms CONNUS, sans doublon → la liste rangée dans l'ordre de BETA_APPS ; sinon null. */
@@ -2166,12 +2171,13 @@ app.post('/api/monitor/beta', monPatronStrict, (req, res) => {
   const nom = monStr((req.body || {}).nom, 60).trim();
   const pass = monStr((req.body || {}).pass, 200);
   const chantier = monStr((req.body || {}).chantier, 120).trim();
-  // `apps` absent = la Tour d'avant : l'accès ouvre OP GESTION seul. Présent mais faux = 400, jamais une valeur devinée.
+  // `apps` absent = la Tour d'avant : l'accès ouvre OP GESTION seul. Présent : UNE application, celle de la console qui le crée —
+  // deux, ou une fausse, = 400, jamais une valeur devinée.
   const apps = (req.body || {}).apps === undefined ? ['gestion'] : betaAppsValides((req.body || {}).apps);
-  if (!apps) return res.status(400).json({ error: 'applications : une liste non vide parmi ' + BETA_APPS.join(', ') });
+  if (!apps || apps.length !== 1) return res.status(400).json({ error: 'application : une seule parmi ' + BETA_APPS.join(', ') });
   if (!/^[a-z0-9._@-]{3,40}$/.test(login)) return res.status(400).json({ error: 'identifiant : 3 à 40 caractères, lettres, chiffres, . _ @ -' });
   if (pass.length < 8) return res.status(400).json({ error: 'mot de passe de 8 caractères minimum' });
-  if (betaComptes.some(c => c.login === login)) return res.status(409).json({ error: 'cet identifiant existe déjà' });
+  if (betaComptes.some(c => c.login === login && betaApps(c).includes(apps[0]))) return res.status(409).json({ error: 'cet identifiant existe déjà dans cette bêta' });
   if (betaComptes.length >= 50) return res.status(400).json({ error: 'trop d\'accès d\'essai (50 max)' });
   const c = { id: 'b' + crypto.randomBytes(5).toString('hex'), login, nom: nom || login, chantier, apps, hash: monHash(pass), actif: true, ts: Date.now(), creePar: req.tourUser.nom };
   betaComptes.push(c); betaSave();
@@ -2183,17 +2189,6 @@ app.post('/api/monitor/beta/chantier', monPatronStrict, (req, res) => {
   const c = betaComptes.find(x => x.id === (req.body || {}).id);
   if (!c) return res.status(404).json({ error: 'accès introuvable' });
   c.chantier = monStr((req.body || {}).chantier, 120).trim(); betaSave();
-  res.json({ ok: true, compte: betaPublic(c) });
-});
-// Quelles applications l'accès ouvre : réglable sans le supprimer (sinon la seule façon d'ajouter OP MESSAGES à quelqu'un serait de
-// lui refaire un mot de passe). Retirer une application ferme AUSSI les sessions déjà ouvertes dessus : l'autre service relit
-// `/api/beta/etat` avec son `app`, et cet accès-là y répond `false`.
-app.post('/api/monitor/beta/apps', monPatronStrict, (req, res) => {
-  const c = betaComptes.find(x => x.id === (req.body || {}).id);
-  if (!c) return res.status(404).json({ error: 'accès introuvable' });
-  const apps = betaAppsValides((req.body || {}).apps);
-  if (!apps) return res.status(400).json({ error: 'applications : une liste non vide parmi ' + BETA_APPS.join(', ') });
-  c.apps = apps; betaSave();
   res.json({ ok: true, compte: betaPublic(c) });
 });
 app.post('/api/monitor/beta/toggle', monPatronStrict, (req, res) => {
@@ -2218,15 +2213,15 @@ app.post('/api/beta/login', (req, res) => {
   if (!BETA_APPS.includes(appVoulue)) return res.status(400).json({ error: 'application inconnue' });
   const login = monStr((req.body || {}).login, 40).trim().toLowerCase();
   const pass = monStr((req.body || {}).pass, 200);
-  const ident = 'bêta:' + login;
+  // Le verrou et le journal par application : deux accès du même identifiant sont deux comptes (OP GESTION garde son ancien nom).
+  const ident = (appVoulue === 'gestion' ? 'bêta:' : 'bêta-' + appVoulue + ':') + login;
   const lk = monLock.get(ident);
   if (lk && lk.until > Date.now()) { monLog(ident, false, req, 'verrouillé'); return res.status(429).json({ error: 'accès temporairement verrouillé (15 min) après plusieurs échecs' }); }
   const echec = (motif) => { const l = monLock.get(ident) || { fails: 0, until: 0 }; l.fails++; if (l.fails >= 5) { l.until = Date.now() + 15 * 60000; l.fails = 0; } monLock.set(ident, l); monLog(ident, false, req, motif); };
-  const c = betaComptes.find(x => x.login === login);
+  // ⛔ L'accès de CETTE application, et lui seul : un accès de l'autre bêta (même identifiant ou non) reçoit EXACTEMENT la réponse
+  // d'un mauvais mot de passe (même code, même texte, même décompte d'échecs) — la porte ne dit pas ce qui existe ailleurs.
+  const c = betaComptes.find(x => x.login === login && betaApps(x).includes(appVoulue));
   if (!c || !pass || monHash(pass) !== c.hash) { echec('identifiants'); return res.status(403).json({ error: 'identifiant ou mot de passe incorrect' }); }
-  // ⛔ Un accès qui n'ouvre pas CETTE application reçoit EXACTEMENT la réponse d'un mauvais mot de passe (même code, même texte, même
-  // décompte d'échecs) : sinon la porte dirait, à qui connaît un identifiant et un mot de passe, quelles applications il ouvre ailleurs.
-  if (!betaApps(c).includes(appVoulue)) { echec('identifiants'); return res.status(403).json({ error: 'identifiant ou mot de passe incorrect' }); }
   if (!c.actif) { echec('accès désactivé'); return res.status(403).json({ error: 'cet accès d\'essai a été coupé depuis la Tour de contrôle' }); }
   c.derniere = Date.now(); betaSave();
   monLock.delete(ident); monLog(ident, true, req, '');
@@ -2238,7 +2233,7 @@ app.post('/api/beta/login', (req, res) => {
 // Un appareil resté connecté redemande si sa porte est toujours ouverte : « coupé » depuis
 // la Tour doit fermer aussi les sessions déjà ouvertes. Même réponse pour un accès inconnu.
 app.post('/api/beta/etat', (req, res) => {
-  // L'application qui relit (« gestion » par défaut). Un accès à qui on a retiré cette application répond `false`, comme un accès coupé.
+  // L'application qui relit (« gestion » par défaut). Un accès d'une autre application répond `false`, comme un accès coupé.
   const appVoulue = (req.body || {}).app === undefined ? 'gestion' : (req.body || {}).app;
   if (!BETA_APPS.includes(appVoulue)) return res.status(400).json({ error: 'application inconnue' });
   const ouvert = x => !!(x && x.actif && betaApps(x).includes(appVoulue));
@@ -2256,7 +2251,8 @@ app.post('/api/beta/etat', (req, res) => {
   // d'oracle de plus (relevé par `gardien`) ; OP MESSAGES relit par `ids`, qu'on ne devine pas.
   if (appVoulue !== 'gestion') return res.status(400).json({ error: 'forme ids exigée' });
   const login = monStr((req.body || {}).login, 40).trim().toLowerCase();
-  const c = betaComptes.find(x => x.login === login);
+  // L'accès d'OP GESTION de cet identifiant : un accès d'OP MESSAGES du même nom, rangé avant lui, ne doit pas fermer la bêta d'OP GESTION.
+  const c = betaComptes.find(x => x.login === login && betaApps(x).includes(appVoulue));
   res.json({ ouvert: ouvert(c) });
 });
 
@@ -6535,7 +6531,9 @@ app.post('/api/monitor/espaces/apps', monPatronStrict, (req, res) => {
    la bascule, le patron le déclare ici, et l'accueil cesse d'afficher « en travaux ». Sans fichier,
    c'est en travaux : on ne prétend jamais qu'elle marche. */
 const OPMSG_PATH = path.join(DATA_DIR, 'opmessages.json');
-const OPMSG_DEFAUT = { enTravaux: true, depuis: '2026-09-10', note: 'Les collections sont sorties du projet elan-gestion ; bascule vers le projet OP MESSAGES en attente de sa configuration web.', projet: '' };
+// Plus de `note` : elle disait « bascule vers le projet OP MESSAGES » (Firebase), et la Tour l'affichait encore le 2 octobre 2026 alors
+// qu'OP MESSAGES a son propre serveur. Le texte de l'accueil vit dans la Tour ; `projet` est désormais le nom de ce serveur.
+const OPMSG_DEFAUT = { enTravaux: true, depuis: '2026-09-10', projet: '' };
 function opmsgLire() {
   let d = null; try { d = JSON.parse(fs.readFileSync(OPMSG_PATH, 'utf8')); } catch (e) {}
   const e = Object.assign({}, OPMSG_DEFAUT, d && typeof d === 'object' ? d : {});
@@ -6549,18 +6547,18 @@ function opmsgOuvertes() {   // entreprises où OP MESSAGES est ouverte, une foi
 }
 app.get('/api/monitor/messages/etat', monAdmin, (req, res) => {
   const e = opmsgLire();
-  res.json({ ok: true, enTravaux: e.enTravaux, depuis: e.depuis, note: e.note, projet: monStr(e.projet, 80), entreprisesOuvertes: opmsgOuvertes(), par: monStr(e.par, 60), ts: e.ts || 0 });
+  res.json({ ok: true, enTravaux: e.enTravaux, depuis: e.depuis, projet: monStr(e.projet, 80), entreprisesOuvertes: opmsgOuvertes(), par: monStr(e.par, 60), ts: e.ts || 0 });
 });
 app.post('/api/monitor/messages/etat', monPatronStrict, (req, res) => {
   const b = req.body || {};
   const enTravaux = b.enTravaux !== false;
   const projet = monStr(b.projet, 80).trim();
-  // sortir des travaux sans projet, c'est prétendre qu'elle marche sans savoir où
-  if (!enTravaux && !/^[a-z0-9][a-z0-9-]{3,79}$/.test(projet)) return res.status(400).json({ error: 'nom du projet requis (minuscules, chiffres, tirets) pour sortir des travaux' });
+  // sortir des travaux sans serveur, c'est prétendre qu'elle marche sans savoir où (un nom d'hôte : msg.teamop.fr)
+  if (!enTravaux && !/^[a-z0-9][a-z0-9.-]{3,79}$/.test(projet)) return res.status(400).json({ error: 'nom du serveur requis (minuscules, chiffres, points, tirets) pour sortir des travaux' });
   const avant = opmsgLire();
-  const etat = { enTravaux, depuis: avant.depuis, note: avant.note, projet: projet || (enTravaux ? monStr(avant.projet, 80) : ''), par: req.tourUser.nom, ts: Date.now() };
+  const etat = { enTravaux, depuis: avant.depuis, projet: projet || (enTravaux ? monStr(avant.projet, 80) : ''), par: req.tourUser.nom, ts: Date.now() };
   try { fs.writeFileSync(OPMSG_PATH + '.tmp', JSON.stringify(etat)); fs.renameSync(OPMSG_PATH + '.tmp', OPMSG_PATH); } catch (e) { return res.status(500).json({ error: 'Enregistrement impossible — rien n\'a changé.' }); }
-  console.log('Tour :', req.tourUser.nom, enTravaux ? 'remet OP MESSAGES en travaux' : 'déclare OP MESSAGES en service sur le projet ' + projet);
+  console.log('Tour :', req.tourUser.nom, enTravaux ? 'remet OP MESSAGES en travaux' : 'déclare OP MESSAGES en service sur ' + projet);
   res.json({ ok: true, enTravaux, projet: etat.projet, entreprisesOuvertes: opmsgOuvertes() });
 });
 /* ══ RENOMMER UN ESPACE — SANS TOUCHER À SON ADRESSE ════════════════════════════════════════

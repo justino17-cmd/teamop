@@ -140,42 +140,53 @@ const json = async (base, methode, chemin, corps, entetes) => {
       vrai('   et l\'ancienne session de Dora (compte supprimé) a été fermée par la relecture', !!(await T.attendre(async () => (await c1.get('/api/moi')).code === 401, 8000)));
     }
 
-    console.log('\nQuelle application l\'accès ouvre : OP MESSAGES ne s\'ouvre qu\'à qui a « messages », et la relecture suit la Tour');
+    console.log('\nUn accès, une application : OP MESSAGES ne s\'ouvre qu\'à SES accès, et un même identifiant vit dans les deux bêtas');
     {
-      const g = await creer('gaston', 'pw-gaston-reel1', 'Gaston', ['gestion']), m = await creer('mona', 'pw-mona-reel12', 'Mona', ['messages']), d = await creer('duo', 'pw-duo-reel123', 'Duo', ['gestion', 'messages']);
+      /* Justin, 2 octobre 2026 : « je veux que ça soit bien séparé dans la Tour ». Un accès ouvre UNE application ; « duo » existe
+         dans CHAQUE bêta, avec son mot de passe — deux comptes, deux identifiants de compte, que la relecture ne confond pas. */
+      const g = await creer('gaston', 'pw-gaston-reel1', 'Gaston', ['gestion']), m = await creer('mona', 'pw-mona-reel12', 'Mona', ['messages']);
+      const dm = await creer('duo', 'pw-duo-msg-123', 'Duo messages', ['messages']), dg = await creer('duo', 'pw-duo-gest-123', 'Duo gestion', ['gestion']);
       const ancienne = await json(og.base, 'POST', '/api/monitor/beta', { login: 'avant', pass: 'pw-avant-reel1', nom: 'Avant', chantier: 'banc 904' }, H);
-      vrai('population : quatre accès (gestion seul, messages seul, les deux, et un créé SANS le champ comme le fait la Tour d\'avant)', [g, m, d, ancienne].every(x => x.code === 200));
+      vrai('population : cinq accès (gestion seul, messages seul, « duo » dans CHAQUE bêta avec son mot de passe, et un créé SANS le champ comme le fait la Tour d\'avant)', [g, m, dm, dg, ancienne].every(x => x.code === 200) && dm.j.compte.id !== dg.j.compte.id);
       v('   la Tour d\'avant (aucun `apps`) ouvre OP GESTION seul', ancienne.j.compte.apps, ['gestion']);
+      v('   un accès à DEUX applications n\'existe plus : refusé (400)', (await creer('lesdeux', 'pw-lesdeux-reel1', 'Les deux', ['gestion', 'messages'])).code, 400);
       const essaye = (login, pass) => T.client(svc.base, { xff: ip() }).post('/api/beta/entrer', { login, pass });
       const rg = await essaye('gaston', 'pw-gaston-reel1'), mauvais = await essaye('gaston', 'pas-le-bon-mot-de-passe');
       v('⛔ un accès « gestion » seul ne passe PAS la porte d\'OP MESSAGES : la réponse est celle d\'un mauvais mot de passe', [rg.code, rg.j.error], [mauvais.code, mauvais.j.error]);
       v('   (401 identifiants, pas « acces_coupe » ni autre chose qui dirait ce que l\'accès ouvre ailleurs)', [rg.code, rg.j.error], [401, 'identifiants']);
       vrai('⛔ et il ne crée AUCUNE personne chez OP MESSAGES (la porte ne s\'est pas ouverte)', !rg.j.moi && (await essaye('gaston', 'pw-gaston-reel1')).code === 401);
       v('un accès « messages » seul entre', (await essaye('mona', 'pw-mona-reel12')).code, 200);
-      v('un accès qui a les deux entre', (await essaye('duo', 'pw-duo-reel123')).code, 200);
+      v('« duo » entre chez OP MESSAGES avec le mot de passe de SON accès d\'OP MESSAGES', (await essaye('duo', 'pw-duo-msg-123')).code, 200);
+      v('⛔ et pas avec celui de son accès d\'OP GESTION (la réponse d\'un mauvais mot de passe)', [(await essaye('duo', 'pw-duo-gest-123')).j.error], ['identifiants']);
       v('un accès d\'avant (sans `apps`) n\'entre pas : il n\'ouvrait qu\'OP GESTION', (await essaye('avant', 'pw-avant-reel1')).code, 401);
       // Côté OP GESTION lui-même : la bêta d'OP GESTION (la page n'envoie pas `app`) ne change pas.
       v('la page bêta d\'OP GESTION (sans `app`) : « gestion » seul passe, « messages » seul est refusé comme un mauvais mot de passe',
         [(await json(og.base, 'POST', '/api/beta/login', { login: 'gaston', pass: 'pw-gaston-reel1' })).code, (await json(og.base, 'POST', '/api/beta/login', { login: 'mona', pass: 'pw-mona-reel12' })).j.error],
         [200, 'identifiant ou mot de passe incorrect']);
-      const lgApps = await json(og.base, 'POST', '/api/beta/login', { login: 'duo', pass: 'pw-duo-reel123', app: 'messages' });
-      v('⛔ la VRAIE route de connexion DIT ce que l\'accès ouvre (`apps`) : la porte d\'OP MESSAGES l\'exige, un OP GESTION d\'avant ne le dit pas et la laisse fermée', [lgApps.code, lgApps.j.apps], [200, ['gestion', 'messages']]);
-      const etApp = await json(og.base, 'POST', '/api/beta/etat', { ids: [d.j.compte.id, g.j.compte.id], app: 'messages' });
-      v('⛔ la VRAIE route d\'état répond pour l\'application demandée, avec son écho : « gestion » seul → false, les deux → true', [etApp.j.app, etApp.j.ouverts], ['messages', { [d.j.compte.id]: true, [g.j.compte.id]: false }]);
-      v('une application inconnue : 400', (await json(og.base, 'POST', '/api/beta/login', { login: 'duo', pass: 'pw-duo-reel123', app: 'compta' })).code, 400);
-      // La relecture : on retire « messages » à Duo depuis la Tour (la vraie route), sa session OP MESSAGES se coupe ; on le lui rend, il rentre.
-      const cd = await T.connecter(svc, {}, 'duo', 'pw-duo-reel123', ip());
-      const fd = await T.flux(cd);
-      v('population : Duo est connecté', [(await cd.get('/api/moi')).code, fd.statut], [200, 200]);
-      const ret = await json(og.base, 'POST', '/api/monitor/beta/apps', { id: d.j.compte.id, apps: ['gestion'] }, H);
-      v('la Tour retire OP MESSAGES à Duo (la vraie route /apps)', [ret.code, ret.j.compte.apps], [200, ['gestion']]);
+      v('   et « duo » y entre avec le mot de passe de son accès d\'OP GESTION', (await json(og.base, 'POST', '/api/beta/login', { login: 'duo', pass: 'pw-duo-gest-123' })).code, 200);
+      const lgApps = await json(og.base, 'POST', '/api/beta/login', { login: 'duo', pass: 'pw-duo-msg-123', app: 'messages' });
+      v('⛔ la VRAIE route de connexion DIT ce que l\'accès ouvre (`apps`) et QUEL compte (`id`) : la porte d\'OP MESSAGES l\'exige', [lgApps.code, lgApps.j.apps, lgApps.j.id], [200, ['messages'], dm.j.compte.id]);
+      const etApp = await json(og.base, 'POST', '/api/beta/etat', { ids: [dm.j.compte.id, dg.j.compte.id, g.j.compte.id], app: 'messages' });
+      v('⛔ la VRAIE route d\'état répond pour l\'application demandée, avec son écho : le « duo » d\'OP MESSAGES → true, celui d\'OP GESTION et « gestion » seul → false',
+        [etApp.j.app, etApp.j.ouverts], ['messages', { [dm.j.compte.id]: true, [dg.j.compte.id]: false, [g.j.compte.id]: false }]);
+      v('une application inconnue : 400', (await json(og.base, 'POST', '/api/beta/login', { login: 'duo', pass: 'pw-duo-msg-123', app: 'compta' })).code, 400);
+      // La relecture suit le COMPTE, pas le nom. Témoin AU GESTE (jamais au chronomètre) : on coupe EN MÊME TEMPS le « duo »
+      // d'OP GESTION et l'accès de Mona ; quand la session de Mona tombe, la relecture est passée — et celle de Duo doit tenir.
+      const cd = await T.connecter(svc, {}, 'duo', 'pw-duo-msg-123', ip()), fd = await T.flux(cd);
+      const cm = await T.connecter(svc, {}, 'mona', 'pw-mona-reel12', ip()), fm = await T.flux(cm);
+      v('population : Duo et Mona sont connectés à OP MESSAGES', [(await cd.get('/api/moi')).code, fd.statut, (await cm.get('/api/moi')).code, fm.statut], [200, 200, 200, 200]);
+      await json(og.base, 'POST', '/api/monitor/beta/toggle', { id: dg.j.compte.id }, H);
+      await json(og.base, 'POST', '/api/monitor/beta/toggle', { id: m.j.compte.id }, H);
+      vrai('témoin : la relecture est passée (la session de Mona, coupée en même temps, est fermée)', !!(await fm.attendre(e => e.event === 'fin', 8000)) && (await cm.get('/api/moi')).code === 401);
+      v('⛔ couper le « duo » d\'OP GESTION ne ferme PAS la session OP MESSAGES de « duo » : deux comptes, pas un nom', [(await cd.get('/api/moi')).code, fd.evenements.some(e => e.event === 'fin')], [200, false]);
+      await json(og.base, 'POST', '/api/monitor/beta/toggle', { id: dm.j.compte.id }, H);
       const fnd = await fd.attendre(e => e.event === 'fin', 8000);
-      vrai('⛔ sa session et son flux se ferment à la relecture, sans qu\'il fasse rien — il n\'est PAS coupé (« actif »), on lui a seulement retiré l\'application', fnd && fnd.data.motif === 'session' && (await cd.get('/api/moi')).code === 401);
-      v('   et il n\'entre plus par cette porte', (await essaye('duo', 'pw-duo-reel123')).code, 401);
-      v('   mais OP GESTION le laisse entrer chez lui', (await json(og.base, 'POST', '/api/beta/login', { login: 'duo', pass: 'pw-duo-reel123' })).code, 200);
-      await json(og.base, 'POST', '/api/monitor/beta/apps', { id: d.j.compte.id, apps: ['messages', 'gestion'] }, H);
-      v('rendu à Duo, il rentre', (await essaye('duo', 'pw-duo-reel123')).code, 200);
-      fd.fermer();
+      vrai('⛔ couper SON accès d\'OP MESSAGES ferme sa session et son flux, sans qu\'il fasse rien', fnd && fnd.data.motif === 'session' && (await cd.get('/api/moi')).code === 401);
+      await json(og.base, 'POST', '/api/monitor/beta/toggle', { id: dm.j.compte.id }, H);
+      await json(og.base, 'POST', '/api/monitor/beta/toggle', { id: dg.j.compte.id }, H);
+      await json(og.base, 'POST', '/api/monitor/beta/toggle', { id: m.j.compte.id }, H);
+      v('rouvert, il rentre', (await essaye('duo', 'pw-duo-msg-123')).code, 200);
+      fd.fermer(); fm.fermer();
     }
 
     console.log('\nTrente sessions bêta : couper le premier et le dernier ferme les deux (une requête de relecture, pas trente)');

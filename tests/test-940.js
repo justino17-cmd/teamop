@@ -1,13 +1,16 @@
 /* ⛔ CE QUE CE FICHIER GARDE — LA TOUR v2.81 OUVRE DES ACCÈS BÊTA POUR OP MESSAGES, CONTRE LE VRAI SERVEUR D'OP GESTION.
 
    Justin, 1er octobre 2026 : « j'aimerais tester l'application [OP MESSAGES] aussi ; fais un lien bêta dans la Tour, fais le
-   même système pour les accès comme OP GESTION ». Deux moitiés, chacune juste de son côté, et c'est leur COUTURE qu'on garde :
-     · le serveur (`server/index.js`) : un accès porte `apps` (gestion, messages) ; `POST /api/monitor/beta` l'accepte,
-       `POST /api/monitor/beta/apps` le règle, `/api/beta/login` et `/etat` le lisent (`app`) ;
-     · la Tour (`tour.html`) : la console MESSAGES a son « Accès » (liste, fiche, formulaire), ne montre que les accès qui
-       ont « messages », crée avec `apps:['messages']` (plus « gestion » si la case est cochée), règle les deux cases de la fiche.
+   même système pour les accès comme OP GESTION ». Puis le 2 octobre, capture de la console MESSAGES à l'appui : « je veux
+   pouvoir créer les accès d'OP MESSAGES ici, car je veux que ça soit bien séparé dans la Tour ». Deux moitiés, chacune juste
+   de son côté, et c'est leur COUTURE qu'on garde :
+     · le serveur (`server/index.js`) : un accès ouvre UNE application (`apps`, gravé à la création) ; un même identifiant peut
+       exister dans les deux bêtas, chacun avec son mot de passe — l'unicité, la porte (`/api/beta/login`), la relecture
+       (`/etat`) et le verrou se lisent par (identifiant, application) ;
+     · la Tour (`tour.html`) : chaque console a son « Accès » (liste, fiche, formulaire), ne montre que les SIENS et crée avec
+       `apps:[son application]` — plus de case « ouvre aussi », plus de cases croisées dans la fiche.
 
-   ⛔ LES VRAIES FONCTIONS DE LA TOUR (btAjouter, btAppsBasculer, btToggle, btSuppr, chargerEssais, accBlocBeta, accFicheBeta…),
+   ⛔ LES VRAIES FONCTIONS DE LA TOUR (btAjouter, btToggle, btSuppr, chargerEssais, accBlocBeta, accFicheBeta…),
    extraites de `tour.html`, CONTRE LE VRAI `server/index.js` isolé (127.0.0.1, rien ne sort). Un « serveur d'avant » est simulé
    par un relais qui RETIRE `apps` (de la requête et des réponses) : c'est ce que fait un serveur qui ne connaît pas le champ.
    Ce que le banc exige de VOIR à l'écran, pas seulement dans la base : la fiche dit l'adresse de la bêta d'OP MESSAGES, le
@@ -39,7 +42,7 @@ function bloc(motif) {
   return CODE.slice(m.index + 1, f ? f.index : CODE.length);
 }
 const NOMS = ['hAuth', 'srvRepond', 'srvMuet', 'apiGet', 'apiPost', 'msgErreur', 'chargerEssais', 'btChamp', 'btAjouter', 'btToggle', 'btSuppr', 'btChantier',
-  'btAppsDe', 'btAvec', 'btDeLaConsole', 'btAppsBasculer', 'accLigneBeta', 'accBlocBeta', 'accFicheBeta', 'accFormBeta', 'vueEssaisMsg', 'esc', 'jsq', 'ini', 'fmtJour', 'videTour'];
+  'btAppsDe', 'btAvec', 'btDeLaConsole', 'accLigneBeta', 'accBlocBeta', 'accFicheBeta', 'accFormBeta', 'vueEssaisMsg', 'vueAccueilMsg', 'esc', 'jsq', 'ini', 'fmtJour', 'videTour'];
 const VARS = ['BT', 'BT_APPS', 'BETA_MSG_ADRESSE', 'APPS_TOUR', 'INJOIGNABLE'];
 const SRC = NOMS.map(bloc), SRCV = VARS.map(bloc);
 
@@ -80,6 +83,10 @@ console.log('\n── 940 · la Tour v2.81 ouvre les accès bêta d\'OP MESSAGES
   /* ⛔ UN FICHIER D'AVANT : un accès écrit par le serveur d'AVANT `apps` n'a pas le champ. Le banc ne peut pas le fabriquer par la route
      (le serveur neuf grave toujours `apps` à la création) : on l'écrit comme l'ancien serveur l'écrivait, AVANT de démarrer. */
   fs.writeFileSync(path.join(D, 'beta-comptes.json'), JSON.stringify([{ id: 'b0a1b2c3d4e5', login: 'ancien', nom: 'Accès d\'avant', chantier: 'écrit avant apps', hash: sha('pw-ancien-940-a'), actif: true, ts: Date.now() - 86400000, creePar: 'Patron' }]));
+  /* Et l'état d'OP MESSAGES tel que le serveur d'avant l'écrivait : avec sa note qui parle de Firebase (Justin l'a lue dans la Tour
+     le 2 octobre 2026). Le serveur neuf ne la rend plus, et la Tour ne l'affiche plus même si un serveur la lui rendait. */
+  const NOTE_FIREBASE = 'Les collections sont sorties du projet elan-gestion ; bascule vers le projet OP MESSAGES en attente de sa configuration web.';
+  fs.writeFileSync(path.join(D, 'opmessages.json'), JSON.stringify({ enTravaux: true, depuis: '2026-09-10', note: NOTE_FIREBASE, projet: '' }));
   const PORT = await libre();
   let journal = '';
   enfant = spawn(process.execPath, [SERVEUR], { env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, 'config.json'), TEAMOP_DATA: D, PORT: String(PORT) }), stdio: ['ignore', 'pipe', 'pipe'] });
@@ -89,13 +96,17 @@ console.log('\n── 940 · la Tour v2.81 ouvre les accès bêta d\'OP MESSAGES
   for (let i = 0; i < 150 && !vivant; i++) { try { vivant = (await fetch(B + '/health')).ok; } catch (e) {} if (!vivant) await dormir(100); }
   vrai('le vrai serveur démarre', vivant);
   if (!vivant) { console.log(journal.slice(0, 800)); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); }
-  const appel = async (route, corps, jeton) => { const r = await fetch(B + route, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, jeton ? { Authorization: 'Bearer ' + jeton } : {}), body: JSON.stringify(corps) });
+  /* Une adresse par appel sur `/api/beta` : ces routes sont au plafond de 20 par minute et par adresse (ROUTES_SENSIBLES), et le
+     banc en fait davantage — le serveur est derrière nginx (`trust proxy`), il lit l'adresse dans X-Forwarded-For. */
+  let nAdr = 0;
+  const appel = async (route, corps, jeton) => { const r = await fetch(B + route, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, jeton ? { Authorization: 'Bearer ' + jeton } : {}, /^\/api\/beta\//.test(route) ? { 'X-Forwarded-For': '10.94.' + ((++nAdr >> 8) & 255) + '.' + (nAdr & 255) } : {}), body: JSON.stringify(corps) });
     let j = {}; try { j = JSON.parse(await r.text()); } catch (e) {} return { s: r.status, j }; };
   const PATRON = (await appel('/api/monitor/login', { nom: 'Patron', pass: MDP })).j.token;
   vrai('la Tour ouvre une session de patron', PATRON);
   const lire = async (jeton) => (await (await fetch(B + '/api/monitor/beta', { headers: { Authorization: 'Bearer ' + jeton } })).json()).comptes;
   const parLogin = async (l) => (await lire(PATRON)).find(c => c.login === l);
-  const saisir = (T, login, mdp, extra) => T.run('BT.login=' + JSON.stringify(login) + '; BT.nom=' + JSON.stringify('Nom ' + login) + '; BT.pass=' + JSON.stringify(mdp) + '; BT.chantier="banc 940"; BT.aussi=' + (extra ? 'true' : 'false') + ';');
+  const saisir = (T, login, mdp) => T.run('BT.login=' + JSON.stringify(login) + '; BT.nom=' + JSON.stringify('Nom ' + login) + '; BT.pass=' + JSON.stringify(mdp) + '; BT.chantier="banc 940";');
+  const jusqua = async (cond) => { for (let i = 0; i < 60; i++) { if (await cond()) return true; await dormir(50); } return false; };
 
   try {
     console.log('\n1. Créer depuis la console MESSAGES (btAjouter) : « messages » seul');
@@ -121,54 +132,66 @@ console.log('\n── 940 · la Tour v2.81 ouvre les accès bêta d\'OP MESSAGES
     TM.run('chargerEssais()'); await TM.attendre('BT.comptes.length>=2');
     v('la console MESSAGES ne le montre pas', TM.run('btDeLaConsole().map(function(c){ return c.login; })'), ['mona']);
 
-    console.log('\n3. La case « ouvre aussi la bêta d\'OP GESTION » du formulaire MESSAGES');
-    saisir(TM, 'duo', 'pw-duo-940-aaa', true);
+    console.log('\n3. Le MÊME identifiant dans les deux bêtas : deux accès, deux mots de passe, chacun dans sa console');
+    saisir(TM, 'duo', 'pw-duo-msg-940');
     TM.run('btAjouter()');
-    vrai('population : créé', await TM.attendre('BT.comptes.some(function(c){ return c.login==="duo"; })'));
-    v('⛔ apps = les deux quand la case est cochée (rangées dans l\'ordre du serveur)', (await parLogin('duo')).apps, ['gestion', 'messages']);
-    TG.run('chargerEssais()'); await TG.attendre('BT.comptes.some(function(c){ return c.login==="duo"; })');
-    v('il paraît dans les DEUX consoles', [TM.run('btAvec(BT.comptes.filter(function(c){ return c.login==="duo"; })[0],"messages")'), TG.run('btDeLaConsole().some(function(c){ return c.login==="duo"; })')], [true, true]);
-    vrai('   et chaque ligne dit qu\'il ouvre AUSSI l\'autre application', /ouvre aussi OP GESTION/.test(TM.run('accBlocBeta()')) && /ouvre aussi OP MESSAGES/.test(TG.run('accBlocBeta()')));
-    vrai('   la case est remise à zéro après la création', TM.run('BT.aussi') === false);
+    vrai('population : le « duo » d\'OP MESSAGES est créé (il est rangé AVANT celui d\'OP GESTION)', await TM.attendre('BT.comptes.some(function(c){ return c.login==="duo"; })'));
+    saisir(TG, 'duo', 'pw-duo-gest-940');
+    TG.toasts.length = 0; TG.run('btAjouter()');
+    vrai('⛔ le même identifiant s\'ouvre dans la console GESTION : pas de « existe déjà », ce sont deux bêtas', await TG.attendre('BT.comptes.filter(function(c){ return c.login==="duo"; }).length===2'));
+    const duos = (await lire(PATRON)).filter(c => c.login === 'duo');
+    v('   le serveur a deux accès « duo », un par application, deux identifiants de compte', [duos.map(c => c.apps.join('+')).sort(), new Set(duos.map(c => c.id)).size], [['gestion', 'messages'], 2]);
+    const duoM = duos.find(c => c.apps[0] === 'messages') || {}, duoG = duos.find(c => c.apps[0] === 'gestion') || {};
+    TM.run('chargerEssais()'); await TM.attendre('BT.comptes.filter(function(c){ return c.login==="duo"; }).length===2');
+    v('⛔ chaque console ne montre que le sien', [TM.run('btDeLaConsole().filter(function(c){ return c.login==="duo"; }).map(function(c){ return c.id; })'), TG.run('btDeLaConsole().filter(function(c){ return c.login==="duo"; }).map(function(c){ return c.id; })')], [[duoM.id], [duoG.id]]);
+    saisir(TM, 'duo', 'pw-duo-msg-bis-940');
+    TM.toasts.length = 0; TM.run('btAjouter()');
+    vrai('⛔ le même identifiant DEUX FOIS dans la même bêta : refusé, et la Tour le dit', await jusqua(() => TM.toasts.some(t => /existe déjà dans cette bêta/.test(t))));
+    v('   le serveur n\'en a pas créé de troisième', (await lire(PATRON)).filter(c => c.login === 'duo').length, 2);
+    const deux = await appel('/api/monitor/beta', { login: 'deux', pass: 'pw-deux-940-aaa', nom: 'Deux', apps: ['gestion', 'messages'] }, PATRON);
+    v('⛔ un accès à DEUX applications est refusé par le serveur (400) : un accès, une application', [deux.s, !(await lire(PATRON)).some(c => c.login === 'deux')], [400, true]);
+    vrai('⛔ plus de case « ouvre aussi », plus de « ouvre aussi … » sur une ligne, plus de bascule d\'application dans la Tour', !/BT\.aussi|btAppsBasculer|[Oo]uvre aussi/.test(CODE));
+    vrai('   aucune ligne des deux consoles ne parle de l\'autre application', !/OP GESTION/.test(TM.run('accBlocBeta()')) && !/OP MESSAGES/.test(TG.run('accBlocBeta()')));
     const formM = TM.run('accFormBeta()'), formG = TG.run('accFormBeta()');
-    vrai('   le formulaire MESSAGES porte la case, celui de GESTION non (inchangé)', /Ouvre aussi la bêta d’OP GESTION/.test(formM) && !/Ouvre aussi/.test(formG));
-    vrai('   et chacun dit SA bêta : msg-beta.teamop.fr / teamop.fr/beta.html', /msg-beta\.teamop\.fr/.test(formM) && /teamop\.fr\/beta\.html/.test(formG) && !/msg-beta/.test(formG));
+    vrai('   aucun des deux formulaires ne porte de case à cocher', !/type="checkbox"/.test(formM) && !/type="checkbox"/.test(formG));
+    vrai('   et chacun dit SA bêta, et rien que la sienne : msg-beta.teamop.fr / teamop.fr/beta.html', /msg-beta\.teamop\.fr/.test(formM) && /n’ouvre QUE la bêta d’OP MESSAGES/.test(formM) && !/beta\.html/.test(formM) && /teamop\.fr\/beta\.html/.test(formG) && !/msg-beta/.test(formG));
+    vrai('   l\'en-tête de la console MESSAGES dit où vivent les accès d\'OP GESTION', /les accès à la bêta d’OP GESTION se créent dans sa console/.test(TM.run('vueEssaisMsg()')));
 
-    console.log('\n4. La fiche : l\'adresse, « Copier le lien », et ce qui n\'est pas encore installé');
+    console.log('\n4. La fiche : SA bêta, l\'adresse, « Copier le lien », et ce qui n\'est pas encore installé');
     TM.panneaux.length = 0; TM.run('accFicheBeta(' + JSON.stringify(mona.id) + ')');
     const fiche = TM.panneaux[0] || '';
     vrai('la fiche s\'ouvre', fiche.length > 200);
     vrai('⛔ elle dit « Sur msg-beta.teamop.fr : cet identifiant et son mot de passe »', /Sur <b>msg-beta\.teamop\.fr<\/b> : cet identifiant et son mot de passe/.test(fiche));
     vrai('⛔ elle porte le lien https://msg-beta.teamop.fr ET le bouton « Copier le lien » qui copie CE lien', /id="bt-lien-msg"[^>]*>https:\/\/msg-beta\.teamop\.fr<\/span>/.test(fiche) && /tourCopie\('bt-lien-msg',this\)">Copier le lien</.test(fiche));
     vrai('⛔ elle dit, sans affoler, que la bêta d\'OP MESSAGES n\'est pas encore installée (les gestes de Justin) et que l\'accès, lui, est prêt', /n’est pas encore installée/.test(fiche) && /INSTALLER-LE-SERVEUR\.md/.test(fiche) && /L’accès, lui, est prêt/.test(fiche));
-    vrai('   un accès « messages » seul n\'affiche PAS l\'encart de teamop.fr/beta.html', !/teamop\.fr\/beta\.html/.test(fiche));
-    const cases = {}; fiche.replace(/<input type="checkbox"( checked)? onchange="btAppsBasculer\('[^']+','(\w+)'/g, (m, c, a) => { cases[a] = !!c; return m; });
-    v('   deux cases, une par application : OP GESTION décochée, OP MESSAGES cochée', cases, { gestion: false, messages: true });
+    vrai('   elle n\'affiche PAS l\'encart de teamop.fr/beta.html', !/teamop\.fr\/beta\.html/.test(fiche));
+    vrai('⛔ aucune case à cocher : la fiche dit ce que l\'accès ouvre (« la bêta d’OP MESSAGES »), elle ne règle plus d\'autre application', !/type="checkbox"/.test(fiche) && /Ouvre<\/span><span[^>]*>la bêta d’OP MESSAGES/.test(fiche));
     TG.panneaux.length = 0; TG.run('accFicheBeta(' + JSON.stringify((await parLogin('gaston')).id) + ')');
-    vrai('la fiche d\'un accès « gestion » seul garde l\'encart de teamop.fr/beta.html et ne parle pas de msg-beta', /teamop\.fr\/beta\.html/.test(TG.panneaux[0]) && !/msg-beta/.test(TG.panneaux[0]));
-    TM.panneaux.length = 0; TM.run('accFicheBeta(' + JSON.stringify((await parLogin('duo')).id) + ')');
-    vrai('la fiche d\'un accès qui a les DEUX montre les deux adresses, celle de la console ouverte en premier', TM.panneaux[0].indexOf('msg-beta.teamop.fr') < TM.panneaux[0].indexOf('teamop.fr/beta.html') && /teamop\.fr\/beta\.html/.test(TM.panneaux[0]));
+    vrai('la fiche d\'un accès d\'OP GESTION garde l\'encart de teamop.fr/beta.html, ne parle pas de msg-beta, sans case', /teamop\.fr\/beta\.html/.test(TG.panneaux[0]) && !/msg-beta/.test(TG.panneaux[0]) && !/type="checkbox"/.test(TG.panneaux[0]));
+    TM.panneaux.length = 0; TM.run('accFicheBeta(' + JSON.stringify(duoM.id) + ')'); TG.panneaux.length = 0; TG.run('accFicheBeta(' + JSON.stringify(duoG.id) + ')');
+    vrai('les deux « duo » : chacun sa fiche, chacune sa seule adresse', /msg-beta/.test(TM.panneaux[0] || '') && !/beta\.html/.test(TM.panneaux[0] || '') && /beta\.html/.test(TG.panneaux[0] || '') && !/msg-beta/.test(TG.panneaux[0] || ''));
 
-    console.log('\n5. Les cases de la fiche (btAppsBasculer, la vraie route /apps)');
-    TM.run('btAppsBasculer(' + JSON.stringify(mona.id) + ',"messages",false)');
-    await dormir(150);
-    vrai('⛔ décocher la DERNIÈRE application est refusé par la Tour (« au moins une application »)', TM.toasts.some(t => /au moins une application/.test(t)));
-    v('   et le serveur n\'a pas bougé', (await parLogin('mona')).apps, ['messages']);
-    TM.run('btAppsBasculer(' + JSON.stringify(mona.id) + ',"gestion",true)');
-    vrai('cocher OP GESTION : le serveur grave les deux', await (async () => { for (let i = 0; i < 60; i++) { const a = (await parLogin('mona')).apps; if (a.length === 2) return JSON.stringify(a) === JSON.stringify(['gestion', 'messages']); await dormir(50); } return false; })());
-    TG.run('chargerEssais()'); await TG.attendre('BT.comptes.some(function(c){ return c.login==="mona"&&btAvec(c,"gestion"); })');
-    v('   elle paraît alors dans la console GESTION', TG.run('btDeLaConsole().some(function(c){ return c.login==="mona"; })'), true);
-    TM.run('btAppsBasculer(' + JSON.stringify(mona.id) + ',"gestion",false)');
-    vrai('décocher OP GESTION : revient à messages seul', await (async () => { for (let i = 0; i < 60; i++) { const a = (await parLogin('mona')).apps; if (a.length === 1) return a[0] === 'messages'; await dormir(50); } return false; })());
-    vrai('   et la Tour a journalisé le réglage', TM.run('JR.actions.some(function(a){ return /a réglé les applications/.test(a.tx); })'));
-
-    console.log('\n6. Ce que la porte d\'OP GESTION répond, selon les cases (la vraie route de connexion)');
+    console.log('\n5. Deux portes, deux mots de passe, deux verrous (les vraies routes de connexion et de relecture)');
     const login = (l, p, app) => appel('/api/beta/login', app === undefined ? { login: l, pass: p } : { login: l, pass: p, app });
-    v('« messages » seul : messages passe', (await login('mona', 'pw-mona-940-a', 'messages')).s, 200);
-    const refus = await login('mona', 'pw-mona-940-a'), mauvais = await login('mona', 'pas-le-bon');
-    v('⛔ « messages » seul demande « gestion » (beta.html n\'envoie rien) : EXACTEMENT la réponse d\'un mauvais mot de passe', [refus.s, refus.j], [mauvais.s, mauvais.j]);
-    v('« gestion » seul : gestion passe, messages est refusé comme un mauvais mot de passe', [(await login('gaston', 'pw-gaston-940-a')).s, (await login('gaston', 'pw-gaston-940-a', 'messages')).j], [200, mauvais.j]);
-    v('les deux : les deux passent', [(await login('duo', 'pw-duo-940-aaa')).s, (await login('duo', 'pw-duo-940-aaa', 'messages')).s], [200, 200]);
+    const mauvais = await login('mona', 'pas-le-bon');   // la réponse d'un mauvais mot de passe, pour comparer
+    const lm = await login('duo', 'pw-duo-msg-940', 'messages'), lgs = await login('duo', 'pw-duo-gest-940');
+    v('chaque porte ouvre SON accès, avec SON mot de passe', [lm.s, lm.j.id, lm.j.apps, lgs.s, lgs.j.id], [200, duoM.id, ['messages'], 200, duoG.id]);
+    const croiseM = await login('duo', 'pw-duo-gest-940', 'messages'), croiseG = await login('duo', 'pw-duo-msg-940');
+    v('⛔ le mot de passe de l\'AUTRE bêta : exactement la réponse d\'un mauvais mot de passe, des deux côtés', [croiseM.s, croiseM.j, croiseG.s, croiseG.j], [mauvais.s, mauvais.j, mauvais.s, mauvais.j]);
+    v('⛔ la relecture publique de la page bêta d\'OP GESTION ({login}) lit SON accès, pas le « duo » d\'OP MESSAGES rangé avant lui', (await appel('/api/beta/etat', { login: 'duo' })).j, { ouvert: true });
+    TM.run('btToggle(' + JSON.stringify(duoM.id) + ')');
+    vrai('couper le « duo » d\'OP MESSAGES depuis sa console', await jusqua(async () => ((await lire(PATRON)).find(x => x.id === duoM.id) || {}).actif === false));
+    v('   OP MESSAGES lit son accès fermé, sa porte le dit « coupé »', [(await appel('/api/beta/etat', { ids: [duoM.id], app: 'messages' })).j.ouverts[duoM.id], (await login('duo', 'pw-duo-msg-940', 'messages')).s], [false, 403]);
+    v('⛔ et celui d\'OP GESTION reste ouvert : sa porte et ses deux relectures ne bougent pas', [(await login('duo', 'pw-duo-gest-940')).s, (await appel('/api/beta/etat', { login: 'duo' })).j.ouvert, (await appel('/api/beta/etat', { ids: [duoG.id] })).j.ouverts[duoG.id]], [200, true, true]);
+    TM.run('btToggle(' + JSON.stringify(duoM.id) + ')');
+    vrai('rouvrir', await jusqua(async () => ((await lire(PATRON)).find(x => x.id === duoM.id) || {}).actif === true));
+    for (let i = 0; i < 5; i++) await login('duo', 'faux-' + i + '-faux-faux', 'messages');
+    v('⛔ cinq échecs à la porte d\'OP MESSAGES la verrouillent (429)…', (await login('duo', 'pw-duo-msg-940', 'messages')).s, 429);
+    v('   … sans verrouiller l\'accès d\'OP GESTION du même identifiant : deux comptes, deux verrous', (await login('duo', 'pw-duo-gest-940')).s, 200);
+    v('« messages » : la porte d\'OP MESSAGES s\'ouvre', (await login('mona', 'pw-mona-940-a', 'messages')).s, 200);
+    const refus = await login('mona', 'pw-mona-940-a');
+    v('⛔ un accès d\'OP MESSAGES à la page bêta d\'OP GESTION (sans `app`) : EXACTEMENT la réponse d\'un mauvais mot de passe', [refus.s, refus.j], [mauvais.s, mauvais.j]);
+    v('« gestion » : gestion passe, messages est refusé comme un mauvais mot de passe', [(await login('gaston', 'pw-gaston-940-a')).s, (await login('gaston', 'pw-gaston-940-a', 'messages')).j], [200, mauvais.j]);
 
     console.log('\n7. Couper, rouvrir, supprimer : mêmes gestes que pour OP GESTION (btToggle, btSuppr), depuis la console MESSAGES');
     TM.run('btToggle(' + JSON.stringify(mona.id) + ')');
@@ -189,8 +212,8 @@ console.log('\n── 940 · la Tour v2.81 ouvre les accès bêta d\'OP MESSAGES
     v('le serveur le grave « gestion »', [ancien.s, ancien.j.compte.apps], [200, ['gestion']]);
     TM.run('chargerEssais()'); await TM.attendre('BT.comptes.some(function(c){ return c.login==="avant"; })');
     v('la console MESSAGES ne le montre pas', TM.run('btDeLaConsole().some(function(c){ return c.login==="avant"; })'), false);
-    v('une liste d\'applications fausse est refusée : 400 (vide, inconnue, pas une liste)', [(await appel('/api/monitor/beta', { login: 'x1x', pass: 'pw-x1x-940-aa', apps: [] }, PATRON)).s, (await appel('/api/monitor/beta', { login: 'x2x', pass: 'pw-x2x-940-aa', apps: ['compta'] }, PATRON)).s, (await appel('/api/monitor/beta/apps', { id: ancien.j.compte.id, apps: 'messages' }, PATRON)).s], [400, 400, 400]);
-    v('la route /apps d\'un accès inconnu : 404, et sans jeton de patron : refusée', [(await appel('/api/monitor/beta/apps', { id: 'bnexistepas', apps: ['gestion'] }, PATRON)).s, [401, 403].includes((await appel('/api/monitor/beta/apps', { id: ancien.j.compte.id, apps: ['messages'] })).s)], [404, true]);
+    v('une application fausse est refusée : 400 (liste vide, inconnue, pas une liste)', [(await appel('/api/monitor/beta', { login: 'x1x', pass: 'pw-x1x-940-aa', apps: [] }, PATRON)).s, (await appel('/api/monitor/beta', { login: 'x2x', pass: 'pw-x2x-940-aa', apps: ['compta'] }, PATRON)).s, (await appel('/api/monitor/beta', { login: 'x3x', pass: 'pw-x3x-940-aa', apps: 'messages' }, PATRON)).s], [400, 400, 400]);
+    v('⛔ la route qui AJOUTAIT une application à un accès n\'existe plus (404) : l\'autre bêta, c\'est un autre accès', (await appel('/api/monitor/beta/apps', { id: ancien.j.compte.id, apps: ['gestion', 'messages'] }, PATRON)).s, 404);
 
     const anc = await parLogin('ancien');
     v('⛔ un accès ÉCRIT PAR LE SERVEUR D\'AVANT (fichier sans `apps`) est rendu « gestion » seul — rien ne s\'ouvre en silence', anc && anc.apps, ['gestion']);
@@ -217,6 +240,19 @@ console.log('\n── 940 · la Tour v2.81 ouvre les accès bêta d\'OP MESSAGES
     TV.run('btAjouter()');
     vrai('⛔ créer depuis MESSAGES prévient que l\'accès n\'ouvre que la bêta d\'OP GESTION (pas de faux « ouvert »)', await TV.attendre('1', 1) && await (async () => { for (let i = 0; i < 60; i++) { if (TV.toasts.some(t => /ne connaît pas encore OP MESSAGES/.test(t))) return true; await dormir(50); } return false; })());
     v('   et il est bien « gestion » seul côté serveur', (await parLogin('vieux')).apps, ['gestion']);
+
+    console.log('\n10. L\'accueil de la console MESSAGES ne parle plus de Firebase (capture de Justin, 2 octobre 2026)');
+    const et0 = await (await fetch(B + '/api/monitor/messages/etat', { headers: { Authorization: 'Bearer ' + PATRON } })).json();
+    v('⛔ le serveur ne rend plus la note, même écrite dans son fichier par le serveur d\'avant', ['note' in et0, et0.enTravaux], [false, true]);
+    TM.run('var ENT={liste:[]}, MSG={loaded:false}, OPM={loaded:true,err:"",d:' + JSON.stringify({ enTravaux: true, depuis: '2026-09-10', note: NOTE_FIREBASE }) + "}; function incOuverts(){ return []; } function acGroupe(){ return ''; } function ligneAc(){ return ''; } function vueInfo(){ return {section:'Pilotage',lib:'Accueil'}; }");
+    const accueil = TM.run('vueAccueilMsg()');
+    vrai('population : l\'accueil se dessine, « En travaux »', /En travaux/.test(accueil));
+    vrai('⛔ et même si un serveur lui rend la note Firebase, la Tour ne l\'affiche pas : elle dit le serveur d\'OP MESSAGES', !/elan-gestion|projet OP MESSAGES|Firebase\s*\)|configuration web/.test(accueil) && /son propre serveur, séparé d’OP GESTION et de Firebase/.test(accueil));
+    vrai('   et elle envoie vers l\'onglet Accès pour essayer la bêta', /la bêta s’essaie avec les accès de l’onglet <b>Accès<\/b>/.test(accueil));
+    const bascule = await appel('/api/monitor/messages/etat', { enTravaux: false, projet: 'msg.teamop.fr' }, PATRON);
+    v('⛔ « Déclarer la bascule faite » accepte le nom de serveur que la Tour propose en exemple (msg.teamop.fr, avec ses points)', [bascule.s, bascule.j.projet], [200, 'msg.teamop.fr']);
+    v('   un nom fait de rien est toujours refusé (400)', (await appel('/api/monitor/messages/etat', { enTravaux: false, projet: '' }, PATRON)).s, 400);
+    await appel('/api/monitor/messages/etat', { enTravaux: true }, PATRON);
   } catch (e) {
     console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); ko++;
     console.log(journal.slice(-800));

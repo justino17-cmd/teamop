@@ -148,3 +148,9 @@ tests/test-849.js
 # options ramenées au rachat de places ; l'impayé d'option ; le courriel des sept jours ; `server/stripe-options.js`
 # (idempotent, `--essai`, jamais la clé). Le banc ne lit AUCUNE page : il passe contre celles de `main`, comme le serveur seul.
 tests/test-850.js
+# 2 octobre 2026 : le jour annoncé plus haut — le déploiement emporte la Tour v2.81 (`PAGES_LIEES`), `test-854` (les options
+# du Pro dans la Tour) et `test-940` entrent. 940 fait parler les VRAIES fonctions de la Tour au VRAI serveur : un accès bêta,
+# une application, un même identifiant dans les deux bêtas (Justin : « bien séparé dans la Tour »), et l'accueil d'OP MESSAGES
+# qui ne parle plus de Firebase.
+tests/test-854.js
+tests/test-940.js

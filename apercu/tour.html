@@ -5912,8 +5912,8 @@ function vueAccueil(){
    douze messages non lus affichés comme quatre sans un mot, c'est une console qui cache du
    travail. */
 /* ══ LA CONSOLE OP MESSAGES ═══ elle ne montre que ce qui est VRAI aujourd'hui : l'application est en
-   travaux (messages.html affiche « change d'infrastructure », les collections sont sorties du projet
-   elan-gestion), et la seule donnée qui vit est le drapeau « ouvert à OP MESSAGES » par entreprise.
+   travaux (messages.html affiche « change d'infrastructure » ; elle aura son propre serveur, server-msg/),
+   et la seule donnée d'entreprise qui vit est le drapeau « ouvert à OP MESSAGES » par entreprise.
    Une Tour vide et honnête vaut mieux qu'une Tour pleine de zéros qui ressemblent à des mesures. */
 function vueAccueilMsg(){
   var jour=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); jour=jour.charAt(0).toUpperCase()+jour.slice(1);
@@ -5924,7 +5924,8 @@ function vueAccueilMsg(){
   if(!OPM.loaded) etat='<div class="carte"><div class="squel" style="height:14px;width:60%">&nbsp;</div><div class="squel" style="height:12px;width:90%;margin-top:8px">&nbsp;</div></div>';
   else if(OPM.err) etat='<div class="carte"><div class="ttl-carte">État d’OP MESSAGES</div><div style="color:var(--muted);font-size:13px">'+esc(OPM.err)+'</div></div>';
   else if(enTravaux) etat='<div class="carte" style="border-color:var(--app-brd)"><div class="ttl-carte"><span class="past p-ambre">En travaux</span> OP MESSAGES change d’infrastructure'+(d.depuis?' <span class="n">depuis le '+esc(d.depuis)+'</span>':'')+'</div>'+
-      '<div style="font-size:13px;color:var(--text2);line-height:1.6">'+(d.note?esc(d.note):'OP MESSAGES change d’infrastructure : il aura son propre serveur, séparé d’OP GESTION (plus de Firebase).')+'</div>'+
+      /* v2.81 — plus la note du serveur : elle parlait encore de Firebase (« bascule vers le projet OP MESSAGES »), et Justin l'a lue le 2 octobre 2026 */
+      '<div style="font-size:13px;color:var(--text2);line-height:1.6">OP MESSAGES aura son propre serveur, séparé d’OP GESTION et de Firebase. En attendant, l’application publique reste fermée ; la bêta s’essaie avec les accès de l’onglet <b>Accès</b>.</div>'+
       (MYROLE==='patron'?'<div class="sec" style="margin-top:12px">Ce qui attend pour la bascule</div><ul style="margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--text2);line-height:1.7">'+
         /* v2.81 — OP MESSAGES n'a plus de Firebase : il a son propre serveur (server-msg/), séparé d'OP GESTION */
         '<li>installer le serveur d’OP MESSAGES sur le VPS — les gestes sont dans <span class="mono">design/opmessages/INSTALLER-LE-SERVEUR.md</span></li><li>la bêta : <span class="mono">msg-beta.teamop.fr</span>, ses accès s’ouvrent dans l’onglet <b>Accès</b> de cette console</li><li>puis <span class="mono">OPMSG_EN_TRAVAUX=false</span> dans messages.html, et publication</li></ul>'+
@@ -9059,11 +9060,11 @@ function btGen(){
 function btAjouter(){
   var login=(BT.login||'').trim().toLowerCase(), nom=(BT.nom||'').trim(), pass=BT.pass||'', chantier=(BT.chantier||'').trim();
   if(!login||!pass){ toast('Choisis un identifiant et un mot de passe'); return; }
-  /* v2.81 — l'accès dit quelles applications il ouvre : celle de la console où on le crée, plus l'autre si la case est cochée */
-  var apps=(APP==='messages')?(BT.aussi?['messages','gestion']:['messages']):['gestion'];
+  /* v2.81 — un accès ouvre UNE application : celle de la console où on le crée (Justin : « bien séparé dans la Tour ») */
+  var apps=[(APP==='messages')?'messages':'gestion'];
   apiPost('/api/monitor/beta',{login:login,nom:nom,pass:pass,chantier:chantier,apps:apps}).then(function(x){
     if(!x.ok){ toast('⚠️ '+(x.d.error||'refusé')); return; }
-    BT.login=''; BT.nom=''; BT.chantier=''; BT.pass=''; BT.aussi=false;
+    BT.login=''; BT.nom=''; BT.chantier=''; BT.pass='';
     JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a ouvert l’accès bêta « '+login+' »'+(APP==='messages'?' (OP MESSAGES)':'')});
     /* un serveur d'avant ignore `apps` et rend un accès sans le champ : il n'ouvre que OP GESTION — ne pas le laisser croire le contraire */
     if(APP==='messages'&&!(x.d&&x.d.compte&&Array.isArray(x.d.compte.apps))){ toast('⚠️ Accès créé, mais le serveur ne connaît pas encore OP MESSAGES (mise à jour en attente) : il n’ouvre que la bêta d’OP GESTION'); }
@@ -9076,27 +9077,16 @@ function btToggle(id){ apiPost('/api/monitor/beta/toggle',{id:id}).then(function
   chargerEssais(); }); }
 function btSuppr(id,login){ if(!confirm('Supprimer définitivement l’accès bêta « '+login+' » ?')) return;
   apiPost('/api/monitor/beta/delete',{id:id}).then(function(){ toast('Accès supprimé'); chargerEssais(); }); }
-/* ══ v2.81 — QUELLES APPLICATIONS UN ACCÈS OUVRE (Justin, 1er octobre 2026 : « j'aimerais tester OP MESSAGES aussi ; fais un lien
-   bêta dans la Tour, fais le même système pour les accès comme OP GESTION »). Un accès bêta porte `apps` (gestion, messages) :
-   chaque console ne montre que les accès qui ont SON application, la fiche règle les deux cases. UN accès d'avant, sans le
-   champ, vaut OP GESTION seul — la même lecture que le serveur (`betaApps`), jamais un accès à tout par défaut. ═══ */
+/* ══ v2.81 — UN ACCÈS, UNE APPLICATION (Justin, 1er octobre 2026 : « fais un lien bêta dans la Tour [pour OP MESSAGES], fais le même
+   système pour les accès comme OP GESTION » ; puis le 2 octobre, capture de la console MESSAGES à l'appui : « je veux pouvoir créer
+   les accès d'OP MESSAGES ici, car je veux que ça soit bien séparé dans la Tour »). Chaque console crée et montre les SIENS ; un même
+   identifiant peut exister dans les deux bêtas, chacun avec son mot de passe. Un accès porte `apps` (le serveur le grave à la
+   création) ; UN ACCÈS D'AVANT, sans le champ, vaut OP GESTION seul — la même lecture que le serveur (`betaApps`). ═══ */
 var BT_APPS=['gestion','messages'];
 var BETA_MSG_ADRESSE='https://msg-beta.teamop.fr';
 function btAppsDe(c){ var l=Array.isArray(c&&c.apps)?BT_APPS.filter(function(a){ return c.apps.indexOf(a)>=0; }):[]; return l.length?l:['gestion']; }
 function btAvec(c,app){ return btAppsDe(c).indexOf(app)>=0; }
 function btDeLaConsole(){ return (BT.comptes||[]).filter(function(c){ return btAvec(c,APP); }); }
-/* Cocher ou décocher une application d'un accès, sans le supprimer. Au moins une reste cochée : pour tout fermer, on COUPE. */
-function btAppsBasculer(id,app,coche){
-  var c=(BT.comptes||[]).filter(function(x){ return x.id===id; })[0]; if(!c) return;
-  var a=btAppsDe(c).filter(function(x){ return x!==app; }); if(coche) a.push(app);
-  if(!a.length){ toast('Un accès ouvre au moins une application — pour tout fermer, coupe-le'); accFicheBeta(id); return; }
-  apiPost('/api/monitor/beta/apps',{id:id,apps:a}).then(function(x){
-    if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); accFicheBeta(id); return; }
-    c.apps=(x.d&&x.d.compte&&x.d.compte.apps)||a;
-    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a réglé les applications de l’accès bêta « '+c.login+' »'});
-    toast('Applications enregistrées'); chargerEssais(); accFicheBeta(id);
-  }).catch(function(){ toast('Serveur injoignable'); accFicheBeta(id); });
-}
 function pbChamp(k,v){ PB[k]=v; }
 function pbGen(){
   var p=tirageSur('abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!#%',12);
@@ -9218,8 +9208,6 @@ function accAllerForm(id){
 function accLigneBeta(c){
   var off=(c.actif===false);
   var f=[]; f.push('<b class="ac-slug">'+esc(c.login)+'</b>');
-  /* v2.81 — l'autre application que cet accès ouvre, juste après l'identifiant : la ligne se coupe par la fin, et c'est le chantier qui doit céder (mesuré à 390 px) */
-  var autre=(APP==='messages')?'gestion':'messages'; if(btAvec(c,autre)) f.push('<span>ouvre aussi '+esc(APPS_TOUR[autre].nom)+'</span>');
   f.push(c.chantier?'<span class="ac-chantier">'+esc(c.chantier)+'</span>'
                    :'<span class="ac-sans-chantier">chantier non renseigné</span>');
   var f3=[]; if(c.derniere) f3.push('dernière connexion '+esc(fmtJour(c.derniere)));
@@ -9305,23 +9293,17 @@ function accFicheBeta(id){
   var off=(c.actif===false);
   var lg=function(t,v){ return '<div style="display:flex;gap:10px;padding:7px 0;font-size:13px;line-height:1.5"><span style="color:var(--muted);min-width:118px;flex-shrink:0">'+t+'</span><span style="color:var(--text2);min-width:0;word-break:break-word">'+v+'</span></div>'; };
   var F='tourPanneauFermer();';
-  /* v2.81 — une case par application : cocher ou décocher règle l'accès sans le supprimer. Décocher OP MESSAGES ferme aussi les sessions
-     déjà ouvertes sur sa bêta (l'autre service relit l'état à la minute) ; la porte, elle, se ferme à l'instant. */
-  var cases=BT_APPS.map(function(a){ var on=btAvec(c,a);
-    return '<label style="display:flex;align-items:center;gap:10px;min-height:44px;font-size:14px;cursor:pointer"><input type="checkbox"'+(on?' checked':'')+
-      ' onchange="btAppsBasculer(\''+jsq(c.id)+'\',\''+a+'\',this.checked)" style="width:20px;height:20px;flex-shrink:0"> Bêta d’'+esc(APPS_TOUR[a].nom)+'</label>'; }).join('');
-  /* Les encarts : l'adresse de CHAQUE application que l'accès ouvre, celle de la console ouverte d'abord. */
-  var encGestion='<div class="encart" style="margin-top:12px"><div class="encart-tx">Sur <b>teamop.fr/beta.html</b> : champ Entreprise <b>vide</b>, puis cet identifiant et son mot de passe. « Couper » ferme la porte immédiatement, même si le mot de passe est encore connu.</div></div>';
-  var encMessages='<div class="encart" style="margin-top:12px"><div class="encart-tx">Sur <b>msg-beta.teamop.fr</b> : cet identifiant et son mot de passe.'+
+  /* v2.81 — la fiche ne parle que de la bêta de la console ouverte : un accès n'ouvre qu'une application (l'autre bêta a les siens). */
+  var msg=(APP==='messages');
+  var enc=msg?('<div class="encart" style="margin-top:12px"><div class="encart-tx">Sur <b>msg-beta.teamop.fr</b> : cet identifiant et son mot de passe.'+
     '<div style="display:flex;gap:8px;align-items:center;margin:8px 0"><span id="bt-lien-msg" class="mono" style="flex:1;word-break:break-all;font-weight:700;color:var(--link)">'+esc(BETA_MSG_ADRESSE)+'</span><button type="button" class="btn-fant" onclick="tourCopie(\'bt-lien-msg\',this)">Copier le lien</button></div>'+
-    '<span style="color:var(--muted);font-size:12px">La bêta d’OP MESSAGES n’est pas encore installée : tant que les gestes de <span class="mono">design/opmessages/INSTALLER-LE-SERVEUR.md</span> ne sont pas faits, cette adresse ne répond pas. L’accès, lui, est prêt — il s’ouvrira dès l’installation.</span></div></div>';
-  var encHtml=((APP==='messages')?[['messages',encMessages],['gestion',encGestion]]:[['gestion',encGestion],['messages',encMessages]])
-    .filter(function(e){ return btAvec(c,e[0]); }).map(function(e){ return e[1]; }).join('');
+    '<span style="color:var(--muted);font-size:12px">La bêta d’OP MESSAGES n’est pas encore installée : tant que les gestes de <span class="mono">design/opmessages/INSTALLER-LE-SERVEUR.md</span> ne sont pas faits, cette adresse ne répond pas. L’accès, lui, est prêt — il s’ouvrira dès l’installation.</span></div></div>')
+    :'<div class="encart" style="margin-top:12px"><div class="encart-tx">Sur <b>teamop.fr/beta.html</b> : champ Entreprise <b>vide</b>, puis cet identifiant et son mot de passe. « Couper » ferme la porte immédiatement, même si le mot de passe est encore connu.</div></div>';
   tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:4px">'+esc(c.nom||c.login)+'</div>'+
-    '<div style="color:var(--muted);font-size:13px;margin-bottom:18px">Accès aux versions bêta — jamais les données d’une entreprise.</div>'+
+    '<div style="color:var(--muted);font-size:13px;margin-bottom:18px">Accès à la bêta d’'+esc(APPS_TOUR[msg?'messages':'gestion'].nom)+' — et à rien d’autre, jamais les données d’une entreprise.</div>'+
     '<div class="sec">L’ACCÈS</div>'+
     lg('Identifiant','<span class="ac-slug">'+esc(c.login)+'</span>')+
-    lg('Applications',cases)+
+    lg('Ouvre',msg?'la bêta d’OP MESSAGES (<span class="mono">msg-beta.teamop.fr</span>)':'la bêta d’OP GESTION (<span class="mono">teamop.fr/beta.html</span>)')+
     lg('Chantier',c.chantier?esc(c.chantier):'<span class="ac-sans-chantier">non renseigné — écrivez ce que cette personne teste</span>')+
     lg('État',off?'⏸ Coupé — ne passe plus la porte, même avec le bon mot de passe':'Ouvert')+
     lg('Dernière connexion',c.derniere?esc(fmtJour(c.derniere)):'jamais connecté')+
@@ -9331,7 +9313,7 @@ function accFicheBeta(id){
       '<button type="button" class="btn-fant" onclick="'+F+'btChantier(\''+jsq(c.id)+'\',\''+jsq(c.chantier||'')+'\')">📝 '+(c.chantier?'Changer le chantier':'Écrire le chantier')+'</button>'+
       '<button type="button" class="btn-fant" onclick="'+F+'btToggle(\''+jsq(c.id)+'\')">'+(off?'▶️ Rouvrir':'⏸ Couper')+'</button>'+
       '<button type="button" class="btn-fant danger" onclick="'+F+'btSuppr(\''+jsq(c.id)+'\',\''+jsq(c.login)+'\')">🗑 Supprimer</button>'+
-    '</div>'+encHtml);
+    '</div>'+enc);
 }
 /* Le chantier peut changer sans que l'accès change de main : il se réécrit, sinon la seule
    façon de le corriger serait de supprimer l'accès et de le rouvrir. */
@@ -9371,7 +9353,7 @@ function accBlocPub(l){
 /* v2.81 — la console MESSAGES : la bêta d'OP MESSAGES, au même endroit et de la même forme que celle d'OP GESTION (liste, fiche, formulaire).
    Pas de « version publique » ici : OP MESSAGES n'a pas d'espace d'entreprise à ouvrir depuis la Tour. */
 function vueEssaisMsg(){
-  var tete=enTete('Accès','Ce que l’équipe s’ouvre pour essayer OP MESSAGES. Les cases d’une fiche règlent aussi OP GESTION.');
+  var tete=enTete('Accès','Ce que l’équipe s’ouvre pour essayer OP MESSAGES, et rien d’autre : les accès à la bêta d’OP GESTION se créent dans sa console. Un même identifiant peut exister dans les deux, chacun avec son mot de passe.');
   var tous=btDeLaConsole(), coupes=tous.filter(function(c){ return c.actif===false; }).length;
   var gBeta='<div class="reg-g reg-g-fixe"><div class="ac-tete"><div class="reg-tete">'+
     '<span class="reg-nom">Accès à la bêta d’OP MESSAGES</span>'+
@@ -9381,10 +9363,9 @@ function vueEssaisMsg(){
     accBlocBeta()+'</div>';
   return tete+'<div class="deux ac-deux"><div class="col-liste"><div class="reg">'+gBeta+'</div></div><div class="col-detail">'+accFormBeta()+'</div></div>';
 }
-/* Le formulaire d'un accès bêta, commun aux deux consoles : l'encart et la case « ouvre aussi » suivent la console ouverte. */
+/* Le formulaire d'un accès bêta, commun aux deux consoles : il crée l'accès de la console ouverte, et l'encart dit SA bêta. */
 function accFormBeta(){
   var msg=(APP==='messages');
-  var aussi=msg?('<label style="display:flex;align-items:center;gap:10px;min-height:44px;font-size:14px;cursor:pointer"><input type="checkbox"'+(BT.aussi?' checked':'')+' onchange="btChamp(\'aussi\',this.checked)" style="width:20px;height:20px;flex-shrink:0"> Ouvre aussi la bêta d’OP GESTION</label>'):'';
   return '<div class="carte ac-form" id="ac-f-beta"><div class="ttl-carte">Ouvrir un accès bêta'+(msg?' d’OP MESSAGES':'')+'</div>'+
     '<div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">'+
       '<div><div class="lbl">IDENTIFIANT</div><input class="inp mono" value="'+esc(BT.login)+'" oninput="btChamp(\'login\',this.value)" placeholder="ex. controle" autocapitalize="off" spellcheck="false"></div>'+
@@ -9394,12 +9375,12 @@ function accFormBeta(){
         '<div style="font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5">Ce que cette personne teste : l’écran, la fonctionnalité ou la version. C’est ce qui permet de savoir, dans six mois, si l’accès sert encore.</div></div>'+
       '<div><div class="lbl">MOT DE PASSE</div><div style="display:flex;gap:9px">'+
         '<input class="inp mono" id="bt-pass" value="'+esc(BT.pass)+'" oninput="btChamp(\'pass\',this.value)" placeholder="12 caractères">'+
-        '<button type="button" class="btn-fant" onclick="btGen()">Générer</button></div></div>'+aussi+
+        '<button type="button" class="btn-fant" onclick="btGen()">Générer</button></div></div>'+
       '<button type="button" class="btn-plein" onclick="btAjouter()">Ouvrir l’accès</button>'+
     '</div>'+
     '<div class="encart" style="margin-top:16px">'+
       '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)">'+IC.cadenas+'</svg>'+
-      '<div class="encart-tx">'+(msg?'Sur <b>msg-beta.teamop.fr</b> : cet identifiant et ce mot de passe. « Couper » ferme la porte immédiatement, même si le mot de passe est encore connu. Ce sont les mêmes accès que ceux d’OP GESTION : une application se retire sur la fiche, sans supprimer l’accès.'
+      '<div class="encart-tx">'+(msg?'Sur <b>msg-beta.teamop.fr</b> : cet identifiant et ce mot de passe. « Couper » ferme la porte immédiatement, même si le mot de passe est encore connu. Cet accès n’ouvre QUE la bêta d’OP MESSAGES.'
         :'Sur <b>teamop.fr/beta.html</b> : champ Entreprise <b>vide</b>, puis cet identifiant et ce mot de passe. « Couper » ferme la porte immédiatement, même si le mot de passe est encore connu.')+'</div></div>'+
   '</div>';
 }
