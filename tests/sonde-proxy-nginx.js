@@ -36,9 +36,11 @@ const brouillon = fs.mkdtempSync(path.join(os.tmpdir(), 'sonde-nginx-'));
 /* la configuration, telle que l'installeur l'écrit pour la bêta */
 function rendre() {
   const b = bac(); b.proxy('nginx');
-  const r = b.installer('beta', CLE + '\n' + CLE + '\n' + PUB + '\n');
-  if (r.rc !== 0) throw new Error('l\'installation dans le bac a échoué (code ' + r.rc + ')');
-  return b.lire('etc/nginx/sites-available/opmsg-beta.conf') || '';
+  try {
+    const r = b.installer('beta', CLE + '\n' + CLE + '\n' + PUB + '\n');
+    if (r.rc !== 0) throw new Error('l\'installation dans le bac a échoué (code ' + r.rc + ')');
+    return b.lire('etc/nginx/sites-available/opmsg-beta.conf') || '';
+  } finally { b.fin(); }      // le faux « déploiement » du bac a lancé un service factice : on le tue et on efface le bac, sinon il survit à la sonde
 }
 /* les zones (niveau http) puis le bloc 443, rendu en clair sur un port local : sans TLS, sans IPv6, le service sur son vrai port */
 function enClair(conf, portNginx, portService) {
