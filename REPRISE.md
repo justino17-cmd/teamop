@@ -11,6 +11,17 @@ connues, et ce qui attend une décision de Justin.
 Tenu à jour à chaque fois qu'un chantier change d'état. Une ligne fausse ici est pire que pas
 de ligne du tout.
 
+# ⏳ 2 OCTOBRE 2026 — « POUSSE » (JUSTIN) : LE DÉPLOIEMENT EST PRÊT, LA POUSSÉE SUR `main` BLOQUÉE PAR LES PERMISSIONS
+
+Commit de déploiement fabriqué par `scripts/preparer-deploiement-serveur.sh` sur `main` = `0bd1fbd` : serveur (options du Pro
+sans tarif, accès bêta par application, formules d'OP MESSAGES), `server-msg/` et son workflow, Tour v2.81, page de paiement,
+aperçu d'OP MESSAGES. Les deux portes passent SUR CE COMMIT : liste serveur 51 suites · 3 607, liste messages 26 suites · 2 403.
+Trois défauts de la porte elle-même trouvés en route et corrigés sur la branche : `test-845` exigeait les fonctions de la v768
+contre la v767 de `main` ; le script oubliait `tests/outils-tel.js`, `scripts/opmsg-public.js` et `apercu/opmessages`.
+⛔ La poussée sur `main` a été REFUSÉE par le classifieur des permissions de Claude Code (« Production Deploy ») : rien n'est
+parti. Justin décide comment la faire (règle de permission, ou branche à fusionner lui-même). Le commit se refabrique à
+l'identique par le script (il repart du `main` du moment).
+
 # ⏳ 1er OCTOBRE 2026, JOUR — TROIS CHANTIERS OUVERTS PAR JUSTIN
 
 **1. Les options à la carte du Pro** (« les forfaits 15 € 25 € 50 € bien détaillés par option qu'ils ont de base, mais
