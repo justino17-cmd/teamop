@@ -391,6 +391,7 @@ Console IONOS → **Object Storage** → créer un **bucket** :
 - un **nom à toi**, en minuscules, sans espace ni accent (par exemple `opmsg-sauvegardes`). C'est **ce nom-là** que tu taperas au geste 4 — pas le nom du menu ;
 - la **même région** que celui d'OP GESTION (`eu-central-4`, Francfort) : l'adresse du coffre est alors `https://s3.eu-central-4.ionoscloud.com` ;
 - ⛔ **distinct de ceux d'OP GESTION** : une panne, une fuite ou une erreur de l'un ne doit jamais toucher l'autre ;
+- ⛔ **celui de la BÊTA seulement** : la production aura **son** bucket et **sa** paire de clés (section 11). Une clé de la bêta — où l'on essaie du code — ne doit jamais pouvoir effacer les copies de la production ;
 - ⛔ **sans verrouillage d'objet ni versionnement**, si la console les propose : le service efface lui-même les copies de plus de 14 jours, et un coffre qui
   refuse d'effacer grossit sans fin (le geste 4 le détecte).
 
@@ -477,6 +478,7 @@ serveur ouvre bien cette base, relit des pièces, puis efface son dossier de tra
 
 **À voir**, tout à la fin : `✅ CETTE SAUVEGARDE EST RESTAURABLE. Exercice enregistré : /health dira « essaiJours: 0 ».` Puis `curl -s https://msg-beta.teamop.fr/health` :
 `"essaiJours":0`. **Colle les deux.** C'est la porte de l'étape 3 : sans cet essai réussi, personne d'extérieur n'entre.
+Une ligne `ExperimentalWarning: SQLite is an experimental feature…` peut s'afficher avant le reste : elle vient de Node, elle est normale.
 
 Pour voir ce que le coffre contient, sans rien restaurer : la même commande avec `liste` à la place de `essai`.
 
@@ -543,6 +545,8 @@ L'instance `prod` ne s'installe que sur ta phrase **« publie OP MESSAGES »**, 
    ```
 
 5. Sur GitHub : *Run workflow* → cible `prod` → ton **approbation** dans l'environnement `msg-prod` → les jobs.
+6. **Avant qu'une seule personne n'entre** : la sauvegarde de la production — les gestes de la section 10 ter avec `OPMSG_CONFIG=/etc/opmsg/prod.json` et les chemins `/opt/opmsg/prod/…`,
+   **un bucket à elle, une paire de clés à elle, une clé de sauvegarde neuve** — puis un essai de restauration réussi (geste 6).
 
 ## 12. Si ça tourne mal
 
