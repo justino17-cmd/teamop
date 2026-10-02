@@ -34,7 +34,8 @@ const m2 = (id, nom, edits, suites, o) => MUTATIONS.push(Object.assign({ id, nom
 
 /* ── LES DROITS DE LECTURE : une pièce ne se lit que si le message qui la porte se lit ── */
 m('P01', 'une photo reste lisible par qui n\'était pas encore dans le groupe quand elle est arrivée (depuis_seq ignoré)', F.stock, 'if (!m || r.attachee < m.depuis_seq) return null;', 'if (!m) return null;', ['943']);
-m('P02', 'une pièce reste lisible après « supprimer pour tous » (ou quand le message a expiré)', F.stock, 'if (!msg || msg.supprime_le || (msg.expire_ts !== null && msg.expire_ts <= t)) return null;', 'if (!msg) return null;', ['943']);
+m('P02', 'une pièce reste lisible alors que son message est marqué supprimé (la ligne de la pièce traîne encore : droit de lire ≠ effacement)', F.stock, 'if (!msg || msg.supprime_le || (msg.expire_ts !== null && msg.expire_ts <= t)) return null;', 'if (!msg || (msg.expire_ts !== null && msg.expire_ts <= t)) return null;', ['943']);
+m('P44', 'une pièce reste lisible alors que son message éphémère est échu et que le balayeur n\'a pas encore passé', F.stock, 'if (!msg || msg.supprime_le || (msg.expire_ts !== null && msg.expire_ts <= t)) return null;', 'if (!msg || msg.supprime_le) return null;', ['943']);
 m('P03', 'une pièce reste lisible après « supprimer pour moi » (le masque n\'est pas regardé)', F.stock, "    if (Q('SELECT 1 AS x FROM msg_masque WHERE conv = ? AND seq = ? AND uid = ?').get(r.conv, r.attachee, uid)) return null;\n", '', ['943']);
 m('P04', 'une pièce pas encore envoyée est lisible par tous les membres (elle devrait être à son dépositaire seul)', F.stock, 'if (r.attachee === null) return r.proprio === uid && r.expire !== null && r.expire > t ? rang() : null;', 'if (r.attachee === null) return rang();', ['943']);
 m('P05', 'la photo de profil d\'une personne se lit même sans être son contact (ni bloqué, ni étranger regardés)', F.stock, 'return peutVoir(uid, pers.id) && avatarPour(uid, pers.id, id) ? rang() : null;', 'return rang();', ['943']);
@@ -43,7 +44,9 @@ m('P06', 'la garde J laisse passer une pièce qui n\'est pas visible (le refus 4
 m('P07', 'un message cite la pièce D\'UN AUTRE (le propriétaire n\'est plus vérifié)', F.stock, 'AND proprio = ? AND conv = ? AND genre = ?', 'AND ? IS NOT NULL AND conv = ? AND genre = ?', ['943']);
 m('P08', 'un message cite une pièce déposée pour UNE AUTRE conversation', F.stock, 'AND proprio = ? AND conv = ? AND genre = ?', 'AND proprio = ? AND ? IS NOT NULL AND genre = ?', ['943']);
 m('P09', 'une photo est citée comme vocal (le genre n\'est plus vérifié)', F.stock, 'AND proprio = ? AND conv = ? AND genre = ?', 'AND proprio = ? AND conv = ? AND ? IS NOT NULL', ['943']);
-m('P10', 'une pièce déjà envoyée peut être citée de nouveau', F.stock, 'AND attachee IS NULL AND expire IS NOT NULL AND expire > ?', 'AND expire IS NOT NULL AND expire > ?', ['943']);
+/* ⚠️ retirer SEULEMENT `attachee IS NULL` est une mutation ÉQUIVALENTE (mesurée : elle survit) : une pièce attachée n'a plus d'échéance (`expire = NULL` dans la même instruction), et `expire IS NOT NULL` — comme
+   `expire > ?` — la refuse déjà. Trois gardes pour une seule règle : on les retire TOUTES pour voir si le banc joue le cas « déjà envoyée ». */
+m('P10', 'une pièce déjà envoyée peut être citée de nouveau (les trois conditions d\'attachement retirées : rien ne l\'en empêche)', F.stock, 'AND attachee IS NULL AND expire IS NOT NULL AND expire > ?', 'AND ? IS NOT NULL', ['943']);
 m('P11', 'une pièce échue (déposée il y a plus de 24 h) peut encore être citée', F.stock, 'AND attachee IS NULL AND expire IS NOT NULL AND expire > ?', 'AND attachee IS NULL AND ? IS NOT NULL', ['943']);
 /* ── LE DÉPÔT : longueur obligatoire, maximum jugé avant de lire, type de la requête, plafonds ── */
 m('P12', 'le dépôt n\'exige plus de Content-Length (l\'envoi fractionné passe)', F.rp, "if (req.headers['transfer-encoding'] !== undefined || typeof cl !== 'string' || !/^\\d{1,13}$/.test(cl)) return refus(res, 411, 'longueur_requise');", '', ['943']);
@@ -62,7 +65,8 @@ m('P22', 'tout est servi « inline » (plus de pièce jointe pour un fichier)', 
 m('P23', 'le nom d\'une pièce jointe n\'est plus assaini dans l\'en-tête (retour à la ligne, guillemets, barres)', F.pz, /\.replace\(\/\[\\u0000-\\u001f[^\]]*\]\/g, '_'\)/, '', ['942', '943']);
 m('P24', 'le nom d\'un fichier est rangé tel que le client l\'a donné (ni barres, ni contrôles ôtés à l\'entrée)', F.rp, "nom = Array.from(nettoyerNom(q.nom).replace(/[\\/\\\\]/g, '_')).slice(0, NOM_MAX).join('').trim();", 'nom = String(q.nom).slice(0, NOM_MAX);', ['943']);
 m('P25', 'la politique de sécurité « sandbox » de la pièce servie est retirée', F.rp, "      'Content-Security-Policy': \"sandbox; default-src 'none'\",\n", '', ['943']);
-m('P26', 'l\'en-tête nosniff est retiré', F.rp, "      'X-Content-Type-Options': 'nosniff',\n", '', ['943']);
+/* ⚠️ retirer SEUL l'en-tête de la route des pièces est une mutation ÉQUIVALENTE (mesurée : elle survit) : `app.js` pose `nosniff` sur TOUTES les réponses. Les deux posent la même règle ; on retire les deux. */
+m2('P26', 'plus aucun nosniff sur une pièce servie (ni sur la route des pièces, ni dans l\'enveloppe du service : les deux posent le même en-tête)', [[F.rp, "      'X-Content-Type-Options': 'nosniff',\n", ''], [F.app, "      'X-Content-Type-Options': 'nosniff',\n", '']], ['943', '903']);
 m('P27', 'la plage demandée est ignorée (toujours le fichier entier)', F.rp, 'const m = /^bytes=(\\d*)-(\\d*)$/.exec(String(rg).trim());', 'const m = null;', ['943']);
 m('P28', 'le service n\'autorise plus le micro à la page (Permissions-Policy)', F.app, 'camera=(), microphone=(self)', 'camera=(), microphone=()', ['903']);
 /* ── LE SCELLAGE PAR BLOCS ET LES MÉTADONNÉES ── */
@@ -75,6 +79,8 @@ m('P33', '« supprimer pour tous » n\'efface plus le fichier de la pièce', F.r
 m('P34', 'le dernier membre qui part n\'emporte plus les pièces de la conversation', F.routes, '    effacer(r.pieces);   // le dernier membre part : la conversation et ses pièces avec elle\n', '', ['943']);
 m('P35', 'un message éphémère échu laisse son fichier sur le disque', F.index, /      effacerPieces\(r\.pieces\);[^\n]*\n/, '', ['943']);
 m('P36', 'une pièce jamais envoyée (24 h) ou une photo de profil jamais posée n\'est plus ôtée', F.index, /      effacerPieces\(stockage\.piecesOrphelinesPurger\(500\)\);[^\n]*\n/, '', ['943']);
+m('P45', 'la ligne d\'une pièce jamais envoyée (24 h) part, mais son FICHIER reste sur le disque (le balayeur n\'appelle plus l\'effacement)', F.index, 'effacerPieces(stockage.piecesOrphelinesPurger(500));', 'stockage.piecesOrphelinesPurger(500);', ['943']);
+m('P46', 'une pièce jamais envoyée reste lisible par son dépositaire après son échéance de 24 h (tant que le balayeur n\'a pas passé)', F.stock, 'if (r.attachee === null) return r.proprio === uid && r.expire !== null && r.expire > t ? rang() : null;', 'if (r.attachee === null) return r.proprio === uid ? rang() : null;', ['943']);
 m('P37', 'une pièce illisible n\'est plus comptée dans /health', F.rp, "ctx.piecesEtat.illisibles++; ctx.journaliser('piece_illisible', { nom: 'fichier_absent' });", "ctx.journaliser('piece_illisible', { nom: 'fichier_absent' });", ['943']);
 /* ── LA CONFIDENTIALITÉ RÉCIPROQUE ── */
 m('P38', 'celui qui coupe sa présence voit encore celle des autres', F.routes, 'const jeVois = !(req.moi.prefs && req.moi.prefs.presence === false);', 'const jeVois = true;', ['943']);
