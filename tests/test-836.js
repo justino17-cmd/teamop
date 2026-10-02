@@ -288,8 +288,10 @@ console.log('\n══ 9. TOUTES LES PAGES DU DÉPÔT : AUCUN BOUTON DE MODE HORS
     'beta.html': 'OP GESTION bêta : même réglage, générée depuis app.html',
     'messages.html': 'OP MESSAGES (fermée, OPMSG_EN_TRAVAUX) : son propre thème d\'application',
     'messages-beta.html': 'OP MESSAGES bêta : même thème',
+    'server-msg/public/index.html': 'le front d\'OP MESSAGES servi par SON serveur (étape 1) : une application, pas une page du site — il suit l\'appareil (prefers-color-scheme), sans bouton, et déclare color-scheme pour que ses champs suivent aussi',
     'tour.html': 'la Tour : la console du patron, avec son propre jour et nuit — ce n\'est pas le site',
     'apercu/tour.html': 'la Tour en aperçu : même chose',
+    'apercu/opmessages/index.html': 'OP MESSAGES en aperçu (écrans du paquet) : page d\'application, qui n\'a aucune feuille commune (CSP default-src \'none\') et déclare donc son color-scheme elle-même (meta + :root) — jour/nuit par prefers-color-scheme, sans bouton',
     /* (`apercu/site-apple.html`, la maquette de comparaison, est supprimée — Justin, 30 septembre 2026 : « pour le site on
        garde la maquette qu'on a à l'heure actuelle, l'ancienne tu peux les supprimer ») */
   };
@@ -303,6 +305,40 @@ console.log('\n══ 9. TOUTES LES PAGES DU DÉPÔT : AUCUN BOUTON DE MODE HORS
   }
   v('⛔ aucune page du dépôt, hors exceptions nommées, ne porte un bouton, un mode forcé ou une clé de mode', fautes, []);
   v('   et chaque exception sert encore (une exception vide est une décision prise pour du vide)', Object.keys(EXCEPTIONS).filter(f => servies.indexOf(f) < 0), []);
+}
+
+console.log('\n══ 10. LES RÈGLES DES OPTIONS DU PRO NE PORTENT AUCUNE COULEUR EN DUR (le jour et la nuit suivent l\'appareil) ══\n');
+/* Le tableau comparatif et les cartes d'options (1er octobre 2026) vivent dans la feuille du site, que le portail partage : une
+   couleur écrite en dur n'y suivrait pas la nuit. On lit le BLOC de règles (de son titre jusqu'aux « questions »), pas la feuille
+   entière : un banc qui lit tout ne voit pas qui a écrit quoi. */
+{
+  const css = fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.css'), 'utf8');
+  const i = css.indexOf('/* ── les options du Pro et le tableau comparatif'), j = css.indexOf('/* questions */');
+  /* ⚠️ Ce banc tourne aussi sur `main`, où les options du Pro ne sont pas encore publiées : la feuille n'y a pas leur bloc (2 octobre
+     2026, « Vérification des pages » rouge sur main). Une absence n'est juste que si AUCUNE page suivie n'emploie leurs classes —
+     sinon une carte d'options s'afficherait sans ses règles. Les classes se lisent dans le bloc quand il existe ; sans lui, on cherche
+     celles qui n'appartiennent qu'à lui. */
+  if (i < 0) {
+    const SEULES = ['options-grille', 'options-pro', 'options-calcul', 'tableau-formules', 'table-defile', 'opt-cell', 'o-cta'];
+    const pages = require('child_process').execSync('git ls-files "*.html"', { cwd: RACINE }).toString().trim().split('\n').filter(Boolean);
+    vrai('(population) ' + pages.length + ' pages suivies relues', pages.length >= 50);
+    v('le bloc des options n\'est pas dans cette feuille (les options du Pro ne sont pas publiées ici) : aucune page n\'emploie leurs classes',
+      pages.filter(f => SEULES.some(c => new RegExp('class="[^"]*(?<![-\\w])' + c + '(?![-\\w])').test(lire(f)))), []);
+    /* …et la feuille n'a AUCUNE règle d'options : un repère de bloc reformulé ne doit pas faire sauter le contrôle des couleurs
+       (relecture du 2 octobre 2026 — sans ça, des classes d'options renommées passaient ce banc sans être relues). */
+    const selOptions = css.replace(/\/\*[\s\S]*?\*\//g, ' ').match(/\.(?:o-[a-z][\w-]*|opts?(?:-[\w-]+)?|options?(?:-[\w-]+)?)(?![\w-])/g) || [];
+    v('   et la feuille ne porte aucune règle d\'options (.o-…, .opt…, .option…)', [...new Set(selOptions)], []);
+  } else {
+  vrai('le bloc des options est trouvé dans la feuille (' + (j - i) + ' signes)', i > 0 && j > i + 2000);
+  const code = css.slice(i, j).replace(/\/\*[\s\S]*?\*\//g, ' ');
+  v('aucune couleur hexadécimale, rgb() ni nom de couleur — seulement des jetons (var(--…)) et l\'ombre rgba(0,0,0,…) des cartes', code.match(/#[0-9a-fA-F]{3,8}\b|\brgb\(|\brgba\((?!0,0,0,)|(?<![-\w])(white|black|red|green|blue)(?![-\w])/g) || [], []);
+  v('et le bloc ne redéfinit aucun jeton (il les LIT)', code.match(/--[\w-]+\s*:/g) || [], []);
+  /* et la règle « absente ⇒ aucune page ne les emploie » doit savoir VOIR une page qui les emploie : on la joue ici, sur la
+     branche, où les pages d'aperçu les emploient (sinon le cas de main ne prouverait rien — un ensemble vide passe toujours). */
+  const pagesAvec = require('child_process').execSync('git ls-files "*.html"', { cwd: RACINE }).toString().trim().split('\n').filter(Boolean)
+    .filter(f => /class="[^"]*(?<![-\w])(options-grille|tableau-formules)(?![-\w])/.test(lire(f)));
+  vrai('   (témoin de la règle de main) les classes du bloc sont bien reconnues dans les pages qui les emploient (' + pagesAvec.length + ')', pagesAvec.length >= 1, pagesAvec.join(', '));
+  }
 }
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');

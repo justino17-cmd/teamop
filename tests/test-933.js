@@ -146,7 +146,7 @@ vrai('des blocs run: sont lus (population avant verdict)', blocs.length >= 6);
      suite qui échoue. Le compteur est celui du dépôt, copié tel quel dans un dossier à part (jamais les vraies suites :
      elles se relanceraient elles-mêmes). */
   if (ligne) {
-    const jouer = (suites, plancher, extra) => {
+    const jouer = (suites, plancher, extra, langue) => {
       const d = fs.mkdtempSync(path.join(os.tmpdir(), 'opmsg-liste-'));
       fs.mkdirSync(path.join(d, 'scripts')); fs.mkdirSync(path.join(d, 'tests'));
       fs.copyFileSync(path.join(RACINE, 'scripts', 'bancs-ci.sh'), path.join(d, 'scripts', 'bancs-ci.sh'));
@@ -154,8 +154,16 @@ vrai('des blocs run: sont lus (population avant verdict)', blocs.length >= 6);
       fs.writeFileSync(path.join(d, 'tests', 'test-a.js'), bon(3));
       fs.writeFileSync(path.join(d, 'tests', 'test-b.js'), bon(4));
       fs.writeFileSync(path.join(d, 'tests', 'test-rouge.js'), 'console.log("  ✗ cassé"); console.log("\\n1 ✓  1 ✗"); process.exitCode = 1;');
+      /* les annonces de saut telles que les suites du dépôt les écrivent (minuscules : test-741, 761, 831… ; majuscules : 641, 818…),
+         un LIBELLÉ de contrôle qui parle de saut sans en être un (test-905, et ce banc-ci), et une sortie LONGUE dont la première
+         ligne annonce le saut (plus grande que le tuyau entre deux commandes : 64 Ko). */
+      fs.writeFileSync(path.join(d, 'tests', 'test-saute-min.js'), 'console.log("\\n(sauté : server/node_modules absent)\\n0 ✓  0 ✗");');
+      fs.writeFileSync(path.join(d, 'tests', 'test-saute-maj.js'), 'console.log("  ✓ x"); console.log("  … partie exécutée SAUTÉE : server/node_modules absent"); console.log("\\n1 ✓  0 ✗");');
+      fs.writeFileSync(path.join(d, 'tests', 'test-libelle.js'), 'console.log("  ✓ ⛔ 4 cellules jouées = routes × profils (aucune sautée en silence)"); console.log("  ✓ ⛔ un plancher non atteint (des suites ont sauté leur partie) : ROUGE"); console.log("\\n2 ✓  0 ✗");');
+      fs.writeFileSync(path.join(d, 'tests', 'test-octet.js'), 'console.log("  ✓ x"); process.stdout.write(Buffer.from([0xff, 0x62, 0x69, 0x6e, 0x0a])); console.log("(sauté : server/node_modules absent)"); console.log("\\n1 ✓  0 ✗");');
+      fs.writeFileSync(path.join(d, 'tests', 'test-long.js'), 'console.log("  … SAUTÉ : ESLint absent"); for (let i = 0; i < 3000; i++) console.log("  ✓ une vérification assez longue pour remplir le tuyau entre les deux commandes"); console.log("\\n3000 ✓  0 ✗");');
       fs.writeFileSync(path.join(d, 'scripts', 'bancs-messages.liste'), '# en-tête\n' + (plancher !== null ? '#plancher ' + plancher + '\n' : '') + suites.map(s => s + '\n').join('') + (extra || ''));
-      const r = spawnSync('bash', ['-c', ligne], { cwd: d, encoding: 'utf8' });
+      const r = spawnSync('bash', ['-c', ligne], { cwd: d, encoding: 'utf8', env: langue ? Object.assign({}, process.env, { LC_ALL: langue }) : process.env });
       fs.rmSync(d, { recursive: true, force: true });
       return { rc: r.status, sortie: String(r.stdout) + String(r.stderr) };
     };
@@ -171,6 +179,32 @@ vrai('des blocs run: sont lus (population avant verdict)', blocs.length >= 6);
     vrai('⛔ une liste VIDE : rouge (« un ensemble vide passe et ne prouve rien »)', vide.rc !== 0);
     const sansPlancher = jouer(['tests/test-a.js'], null);
     vrai('   sans ligne #plancher le compteur ne contrôle rien : c\'est pourquoi le banc exige la ligne dans la vraie liste (plus bas)', sansPlancher.rc === 0);
+
+    /* ⛔ LE FILET « SAUTÉ », JOUÉ DANS LES DEUX LANGUES (2 octobre 2026). Sur GitHub (C.UTF-8), `grep -i 'SAUTÉ'` lisait le LIBELLÉ
+       « ✓ … aucune sautée en silence » de test-905 — et celui de ce banc-ci — et rougissait deux suites justes, sur un déploiement
+       juste ; sur la machine de travail (POSIX), il ne voyait pas « (sauté : … absent) » en minuscules ; et partout, sous
+       `pipefail`, il RATAIT un saut annoncé en tête d'une longue sortie (`grep -q` s'arrête, `printf` meurt). Le même compteur doit
+       rendre le même verdict sur toutes les machines : chaque cas est joué sous LC_ALL=C ET sous LC_ALL=C.UTF-8. */
+    for (const langue of ['C', 'C.UTF-8']) {
+      const min = jouer(['tests/test-a.js', 'tests/test-saute-min.js'], 3, '', langue);
+      vrai('⛔ [' + langue + '] « (sauté : … absent) » en minuscules : ROUGE, et la ligne est citée', min.rc === 1 && /test-saute-min\.js a SAUTÉ une partie en silence : \(sauté : server\/node_modules absent\)/.test(min.sortie), min.sortie.slice(-300));
+      const maj = jouer(['tests/test-a.js', 'tests/test-saute-maj.js'], 4, '', langue);
+      vrai('⛔ [' + langue + '] « … SAUTÉE : … » en majuscules : ROUGE', maj.rc === 1 && /test-saute-maj\.js a SAUTÉ/.test(maj.sortie), maj.sortie.slice(-300));
+      const lib = jouer(['tests/test-a.js', 'tests/test-libelle.js'], 5, '', langue);
+      vrai('⛔ [' + langue + '] un LIBELLÉ de contrôle qui parle de saut (« ✓ … aucune sautée ») : VERT — ce n\'est pas une annonce', lib.rc === 0 && !/SAUTÉ une partie/.test(lib.sortie), lib.sortie.slice(-300));
+      const oct = jouer(['tests/test-a.js', 'tests/test-octet.js'], 4, '', langue);
+      vrai('⛔ [' + langue + '] un octet illisible AVANT l\'annonce (`grep` passerait en « binaire » et tairait la suite) : ROUGE', oct.rc === 1 && /test-octet\.js a SAUTÉ/.test(oct.sortie), oct.sortie.slice(-300));
+      const lng = jouer(['tests/test-long.js'], 3000, '', langue);
+      vrai('⛔ [' + langue + '] un saut annoncé en tête d\'une sortie de plus de 64 Ko : ROUGE (un `grep -q` sous `pipefail` le ratait)', lng.rc === 1 && /test-long\.js a SAUTÉ/.test(lng.sortie), lng.sortie.slice(-300));
+    }
+  }
+  /* et `verification.yml` (la suite complète de main) porte le MÊME filet, mot pour mot : deux copies d'un compteur divergent toujours. */
+  {
+    const filet = s => (/saut=\$\((printf '%s\\n' "\$sortie" \| grep -avE '\^\[\[:space:\]\]\*\(✓\|✗\|✔\|✘\)' \| grep -aE '\[Ss\]\[Aa\]\[Uu\]\[Tt\]\(É\|é\)' \|\| true)\)/.exec(s) || [])[1] || '';
+    const bc = filet(lire('scripts', 'bancs-ci.sh')), vf = filet(lire('.github', 'workflows', 'verification.yml'));
+    vrai('⛔ le filet de verification.yml est celui de bancs-ci.sh (les deux casses à la main, résultats écartés, -a, sans -q)', !!bc && bc === vf);
+    const sansDieses = s => s.replace(/^\s*#.*$/gm, '');   // bash et YAML : les commentaires commencent par « # »
+    vrai('   et plus aucun « grep -qi \'SAUTÉ\' » dans l\'un ni dans l\'autre', !/grep -qi 'SAUTÉ'/.test(sansDieses(lire('scripts', 'bancs-ci.sh'))) && !/grep -qi 'SAUTÉ'/.test(sansDieses(lire('.github', 'workflows', 'verification.yml'))));
   }
 }
 
@@ -268,7 +302,7 @@ vrai('des blocs run: sont lus (population avant verdict)', blocs.length >= 6);
 {
   const t728 = lire('tests', 'test-728.js');
   vrai('test-728 attend exactement les trois workflows qui lancent le compteur', /\['ci\.yml', 'deploiement-messages\.yml', 'deploiement\.yml'\]/.test(t728));
-  const appelants = fs.readdirSync(WF).filter(f => /\.ya?ml$/.test(f) && /bancs-ci\.sh/.test(fs.readFileSync(path.join(WF, f), 'utf8'))).sort();
+  const appelants = fs.readdirSync(WF).filter(f => /\.ya?ml$/.test(f) && /bancs-ci\.sh/.test(fs.readFileSync(path.join(WF, f), 'utf8').replace(/^\s*#.*$/gm, ''))).sort();   // le CODE, pas les commentaires (test-728)
   v('   et c\'est ce que le dépôt contient', appelants, ['ci.yml', 'deploiement-messages.yml', 'deploiement.yml']);
 }
 

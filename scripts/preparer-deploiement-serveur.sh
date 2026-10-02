@@ -115,6 +115,15 @@ BANCS_PLANCHER="$(sed -n 's/^#plancher //p' scripts/bancs-serveur.liste)" bash s
 # Et la porte d'OP MESSAGES — celle que son workflow lance avant de déployer, avec SON plancher (la liste du serveur n'a
 # pas le même nombre de vérifications : un seul plancher ferait passer l'une ou bloquer l'autre).
 BANCS_PLANCHER="$(sed -n 's/^#plancher //p' scripts/bancs-messages.liste)" bash scripts/bancs-ci.sh "${SUITES_MSG[@]}"
+# ⛔ ET LA SUITE COMPLÈTE DE CET ARBRE, TELLE QUE « Vérification des pages » LA JOUERA SUR MAIN APRÈS LA POUSSÉE. Les deux
+#    listes ne suffisent pas : les pages qui partent avec le serveur (`PAGES_LIEES`, `apercu/opmessages`…) sont LUES par des
+#    suites qui ne sont dans aucune liste, et qui restent celles de main. Le 2 octobre 2026, `fa32298` est parti avec la Tour
+#    v2.81 et la page de paiement neuve : cinq suites de main les attendaient d'avant, et la CI de main est passée au rouge
+#    APRÈS la mise en ligne — le serveur était juste, mais un main rouge ne garde plus rien. On rejoue donc tout, ICI, avant
+#    le commit. ⚠️ Ce que cet arbre ne peut pas voir : la version de Node de GitHub (22.23, celle du VPS) quand la machine de
+#    travail en a une autre — `test-913` tombait LÀ-BAS seulement. Une suite qui dépend du moment ou de la version se joue au
+#    geste (voir son en-tête), jamais au hasard d'une machine.
+bash scripts/bancs-ci.sh
 rm server/node_modules server-msg/node_modules
 
 # 4. Le commit — dans l'arbre à part, JAMAIS poussé par ce script.
