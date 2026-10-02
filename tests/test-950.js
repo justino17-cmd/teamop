@@ -281,24 +281,36 @@ const horlogeFixe = (h) => () => h.t;
       const apres = b.S.sonde();
       return { b, r, avant, apres, ecritures: ecritures - e0, vers };
     };
-    for (let essai = 1; essai <= 5; essai++) {
+    /* ⛔ UNE COURSE DE BANC SE JOUE AU GESTE, JAMAIS AU CHRONOMÈTRE. Combien d'écritures tombent PENDANT une copie qui dure quelques dizaines
+       de millisecondes dépend de la charge de la machine (mesuré sous deux lots de bancs en parallèle : 1 à 19 écritures au lieu de 40 ou plus).
+       Un essai qui n'a vu passer aucune écriture concurrente ne prouve rien — il n'est donc ni un échec ni un succès : il ne COMPTE pas, on en
+       refait un autre, jusqu'à cinq essais VIVANTS. Chaque essai, vivant ou non, doit rendre une copie saine ; le verdict est agrégé pour que
+       le nombre de vérifications ne dépende pas du nombre de tentatives. */
+    const essais = [];
+    for (let tentative = 1; tentative <= 40 && essais.filter(e => e.vivant).length < 5; tentative++) {
       const x = await sousCharge({ lignes: 60000 });
       try {
-        v('essai ' + essai + ' · l\'API de sauvegarde de Node est celle qui sert, et la copie a réussi (pas de « not an error » : le pas ne se joue pas sur la connexion du service)', x.r.methode, 'backup');
-        vrai('essai ' + essai + ' · ⛔ des écritures ont VRAIMENT eu lieu pendant la copie (' + x.ecritures + ') — sinon « cohérent pendant les écritures » ne prouverait rien', x.ecritures >= 20);
         const k = STOCK.ouvrir.copie.controlerFichier(x.vers);
-        vrai('essai ' + essai + ' · la copie est saine (quick_check : ok) et c\'est une base d\'OP MESSAGES (témoin de clé)', k.ok === true && k.temoin === true && k.schema === 2);
-        vrai('essai ' + essai + ' · ⛔ l\'horloge du journal de la copie tombe ENTRE les deux sondes de la base vivante (' + x.avant.journalMax + ' ≤ ' + k.journalMax + ' ≤ ' + x.apres.journalMax + ')', k.journalMax >= x.avant.journalMax && k.journalMax <= x.apres.journalMax);
         const d = new DatabaseSync(x.vers, { readOnly: true });
         try {
           const somme = d.prepare('SELECT COALESCE(SUM(dernier_seq), 0) AS n FROM conversation').get().n, lignes = d.prepare('SELECT COUNT(*) AS n FROM message').get().n;
           const trous = d.prepare('SELECT COUNT(*) AS n FROM conversation c WHERE c.dernier_seq <> (SELECT COALESCE(MAX(seq), 0) FROM message WHERE conv = c.id)').get().n;
           const journal = d.prepare('SELECT COUNT(*) AS n FROM journal').get().n;
-          v('essai ' + essai + ' · ⛔ un instantané, pas un mélange de deux états : chaque conversation sait combien de messages elle porte, et le journal en a un par événement',
-            [Number(somme) === Number(lignes) && Number(lignes) >= 300, Number(trous), Number(journal) === k.journalMax && Number(journal) > 60000], [true, 0, true]);
+          essais.push({
+            ecritures: x.ecritures, vivant: x.ecritures >= 5, methode: x.r.methode,
+            saine: k.ok === true && k.temoin === true && k.schema === 2,
+            horloge: k.journalMax >= x.avant.journalMax && k.journalMax <= x.apres.journalMax,
+            instantane: Number(somme) === Number(lignes) && Number(lignes) >= 300 && Number(trous) === 0 && Number(journal) === k.journalMax && Number(journal) > 60000,
+          });
         } finally { d.close(); }
       } finally { x.b.nettoyer(); }
     }
+    const vivants = essais.filter(e => e.vivant);
+    vrai('⛔ population : ' + vivants.length + ' essais VIVANTS (au moins 5 écritures du service PENDANT la copie ; ' + vivants.map(e => e.ecritures).join(', ') + ') sur ' + essais.length + ' tentative(s) — sinon « cohérent pendant les écritures » ne prouverait rien', vivants.length === 5);
+    v('l\'API de sauvegarde de Node est celle qui sert, et chaque copie a réussi (pas de « not an error » : le pas ne se joue pas sur la connexion du service)', essais.filter(e => e.methode !== 'backup').length, 0);
+    v('chaque copie est saine (quick_check : ok) et c\'est une base d\'OP MESSAGES (témoin de clé)', essais.filter(e => !e.saine).length, 0);
+    v('⛔ l\'horloge du journal de chaque copie tombe ENTRE les deux sondes de la base vivante', essais.filter(e => !e.horloge).length, 0);
+    v('⛔ chaque copie est un instantané, pas un mélange de deux états : chaque conversation sait combien de messages elle porte, et le journal en a un par événement', essais.filter(e => !e.instantane).length, 0);
     const { DatabaseSync: DB } = require('node:sqlite');
     const y = await sousCharge({ moteur: { DatabaseSync: DB }, lignes: 2000 });
     try {
@@ -455,6 +467,10 @@ const horlogeFixe = (h) => () => h.t;
       const { a: a0, conv: c0 } = { a: b0.S.personneParIdentifiant('beta:alice'), conv: b0.S.convListe(b0.S.personneParIdentifiant('beta:alice').id)[0].id };
       for (let i = 0; i < 5; i++) b0.S.messageEnvoyer({ conv: c0, auteur: a0.id, cid: 'apres-la-vieille-' + i, texte: 'écrit après la vieille copie' });
       await faux('la copie d\'une base saine mais DATÉE D\'AVANT l\'instant (un instantané rangé ailleurs, rejoué)', { instantane: async (vers) => { fs.copyFileSync(vieille, vers); return { methode: 'backup' }; }, sonde: () => b0.S.sonde() }, ['copie-horloge']);
+      /* Le piège le plus sournois : une copie qui a TOUT de juste (schéma, horloge du journal, témoin de clé, quick_check) sauf qu'une table
+         pleine a été vidée. Seul le jugement contre la base vivante, sondée juste avant et juste après, la voit. */
+      await faux('la copie de la base VIVANTE dont la table des MESSAGES a été vidée (schéma, horloge et témoin de clé sont bons)',
+        { instantane: async (vers) => { await b0.S.instantane(vers); const d = new DatabaseSync(vers); d.exec('DELETE FROM reaction; DELETE FROM message;'); d.close(); return { methode: 'backup' }; }, sonde: () => b0.S.sonde() }, ['copie-vide-message']);
       b0.nettoyer();
     }
     const m2 = await monter({ n: 150, disqueLibre: () => 1000 });
@@ -468,6 +484,20 @@ const horlogeFixe = (h) => () => h.t;
       const r = await m3.sauv.lancer('banc');
       v('   une mesure de disque IMPOSSIBLE ne coupe pas la sauvegarde (on ne se prive pas d\'une copie sur une panne de mesure)', r.ok, true);
     } finally { await m3.fermer(); }
+
+    /* L'archive relue est comptée contre l'instantané : tout le reste identique, UNE ligne de moins → « comptes-differents », retirée du coffre. */
+    {
+      let appels = 0;
+      const m5 = await monter({ n: 150, controler: async (chemin) => {
+        const v0 = await controlerIci(chemin); appels++;
+        return appels === 2 ? Object.assign({}, v0, { lignes: Object.assign({}, v0.lignes, { message: v0.lignes.message - 1 }), total: v0.total - 1 }) : v0;
+      } });
+      try {
+        const r = await m5.sauv.lancer('banc');
+        v('⛔ l\'archive RELUE a une ligne de moins que l\'instantané (tout le reste identique) → « comptes-differents », retirée du coffre, l\'échec compté',
+          [appels, r.ok, r.motif, cles(m5).length, m5.sauv.sante().echecs], [2, false, 'comptes-differents', 0, 1]);
+      } finally { await m5.fermer(); }
+    }
 
     const m4 = await monter({ n: 150 });
     try {
@@ -577,7 +607,10 @@ const horlogeFixe = (h) => () => h.t;
     try {
       a.coffre.latenceMs = 600;
       const passe = a.sauv.lancer('banc');
-      await dormir(200);
+      /* Au GESTE, pas au chronomètre : on arrête quand le coffre a REÇU le dépôt (la réponse, elle, tarde 600 ms) — « 200 ms » tombait avant
+         le dépôt sur une machine chargée, et le marqueur de dépôt n'existait pas encore. */
+      for (const debutAttente = Date.now(); !a.coffre.vus.some(x => x.m === 'PUT') && Date.now() - debutAttente < 15000;) await dormir(10);
+      vrai('population : le coffre a reçu le dépôt avant l\'arrêt (sans lui, « arrêter pendant l\'envoi » ne prouverait rien)', a.coffre.vus.some(x => x.m === 'PUT'));
       const t0 = Date.now();
       await a.sauv.arreter();
       const r = await passe;
@@ -917,7 +950,7 @@ const horlogeFixe = (h) => () => h.t;
       const arrete = path.join(bac, 'systemctl-arrete.sh'); fs.writeFileSync(arrete, '#!/bin/sh\nexit 3\n', { mode: 0o755 });
       const r4 = await outil(['restaurer', '--vers', vers, '--ecraser', '--date', new Date(T0).toISOString().slice(0, 19), '--sans-pieces'], { OPMSG_SYSTEMCTL: arrete });
       const misDeCote = fs.readdirSync(vers).filter(f => /^msg\.db\.avant-restauration-/.test(f));
-      v('⛔ avec --ecraser et le service arrêté : l\'ancienne base est MISE DE CÔTÉ (jamais effacée), la nouvelle prend sa place', [r4.code, misDeCote.length, crypto.createHash('sha256').update(fs.readFileSync(path.join(vers, misDeCote[0]))).digest('hex') === avantRefus, STOCK.ouvrir.copie.controlerFichier(path.join(vers, 'msg.db')).ok], [0, 1, true, true]);
+      v('⛔ avec --ecraser et le service arrêté : l\'ancienne base est MISE DE CÔTÉ (jamais effacée), la nouvelle prend sa place', [r4.code, misDeCote.length, misDeCote[0] ? crypto.createHash('sha256').update(fs.readFileSync(path.join(vers, misDeCote[0]))).digest('hex') === avantRefus : null, fs.existsSync(path.join(vers, 'msg.db')) && STOCK.ouvrir.copie.controlerFichier(path.join(vers, 'msg.db')).ok], [0, 1, true, true]);
       v('   et la restauration d\'une archive ANCIENNE rejoue le registre de la plus récente : les messages purgés depuis ne reviennent pas', [existe(path.join(vers, 'msg.db'), ids.M1), existe(path.join(vers, 'msg.db'), ids.M2), existe(path.join(vers, 'msg.db'), ids.M3)], [0, 0, 1]);
 
       /* Un nom de pièce malveillant dans le coffre : refusé, jamais écrit hors du dossier. */
@@ -965,6 +998,24 @@ const horlogeFixe = (h) => () => h.t;
       v('⛔ la sonde de la base vivante nomme exactement les mêmes tables que la copie (deux listes écrites à la main, une seule vérité)',
         Object.keys(b.S.sonde().nonVides).sort(), comptees.slice().sort());
     } finally { b.nettoyer(); }
+  }
+
+  /* ══ 13 ter. LE VERDICT DE quick_check DÉCIDE ═══════════════════════════════════════════════════════════════════════════════════════
+     Une page abîmée se lit parfois sans erreur (un index qui ne correspond plus à sa table, une page libre) : seul `quick_check` la voit, et
+     on ne sait pas fabriquer à la main une corruption que les comptes de lignes laisseraient passer. On joue donc le verdict lui-même, par
+     un moteur de poche qui rend ce que SQLite rend — « ok », un diagnostic de page, deux lignes — pour une base d'ailleurs bien formée. */
+  console.log('\n── 950 · le verdict de `quick_check` décide : seul « ok » passe ──');
+  {
+    const bac = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-qc-'));
+    try {
+      const fichier = path.join(bac, 'copie.db'); fs.writeFileSync(fichier, Buffer.alloc(4096, 1));   // assez grand pour passer la garde de taille : c'est le MOTEUR qu'on éprouve
+      const moteur = (verdict) => ({ DatabaseSync: class { prepare(sql) { return { all: () => (/quick_check/.test(sql) ? verdict : []), get: () => ({ user_version: 2, n: 3, seq: 9 }) }; } close() {} } });
+      const sain = STOCK.ouvrir.copie.controlerFichier(fichier, { moteur: moteur([{ quick_check: 'ok' }]) });
+      const abime = STOCK.ouvrir.copie.controlerFichier(fichier, { moteur: moteur([{ quick_check: '*** in database main ***\nPage 7: btreeInitPage() returns error code 11' }]) });
+      const deux = STOCK.ouvrir.copie.controlerFichier(fichier, { moteur: moteur([{ quick_check: 'ok' }, { quick_check: 'ok' }]) });
+      v('⛔ « ok » seul passe (contre-épreuve : le moteur de poche rend bien une copie saine) ; un diagnostic de page abîmée est refusé et nommé ; plus d\'une ligne aussi',
+        [sain.ok, sain.schema, abime.ok, /quick_check/.test(String(abime.motif)), deux.ok], [true, 2, false, true, false]);
+    } finally { fs.rmSync(bac, { recursive: true, force: true }); }
   }
 
   /* ══ 14. LE CONTRÔLE DANS UN PROCESSUS ENFANT ═════════════════════════════════════════════════════════════════════════════════ */

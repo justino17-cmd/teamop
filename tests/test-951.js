@@ -134,7 +134,8 @@ const sante = async (svc) => { const r = await T.client(svc.base).get('/health')
       const apres = await T.attendre(async () => { const h = await sante(svc); return h && h.sauvegarde && h.sauvegarde.essaiJours !== null ? h : null; }, 5000, 50);
       v('⛔ APRÈS l\'essai, /health dit `essaiJours: 0` — la date que la surveillance lit vient bien du fichier que l\'outil écrit', apres && apres.sauvegarde.essaiJours, 0);
       v('   le dossier jetable de l\'essai a été effacé (rien ne traîne dans le dossier temporaire)', fs.readdirSync(bacEssai), []);
-      const marqueur = JSON.parse(fs.readFileSync(path.join(svc.data, 'sauvegarde-essai.json'), 'utf8'));
+      const lireMarqueur = () => { try { return JSON.parse(fs.readFileSync(path.join(svc.data, 'sauvegarde-essai.json'), 'utf8')); } catch (e) { return {}; } };   // absent : {} (le banc ne meurt pas, il tombe)
+      const marqueur = lireMarqueur();
       vrai('   le fichier de la date ne contient que des nombres et des noms d\'archive (aucun secret) : ' + Object.keys(marqueur).sort().join(', '),
         fuites(JSON.stringify(marqueur), SECRETS).length === 0 && Number.isFinite(marqueur.okTs));
 
@@ -142,7 +143,7 @@ const sante = async (svc) => { const r = await T.client(svc.base).get('/health')
       const autre = O.cleHex();
       const mauvaise = await processus([RESTAURER, 'essai'], { env: Object.assign({}, envOutil, { OPMSG_SAUV_CLE: autre, OPMSG_SAUV_COFFRE: [coffre.base, coffre.bucket, coffre.accessKey, coffre.secretKey, coffre.region].join(',') }) });
       v('⛔ avec une MAUVAISE clé de sauvegarde : sortie 1, le message nomme le déchiffrement, et la date du dernier exercice réussi n\'a pas bougé',
-        [mauvaise.code, /déchiffrement impossible/.test(mauvaise.sortie), JSON.parse(fs.readFileSync(path.join(svc.data, 'sauvegarde-essai.json'), 'utf8')).okTs === marqueur.okTs], [1, true, true]);
+        [mauvaise.code, /déchiffrement impossible/.test(mauvaise.sortie), marqueur.okTs !== undefined && lireMarqueur().okTs === marqueur.okTs], [1, true, true]);
       v('   et la mauvaise clé n\'est pas affichée', fuites(mauvaise.sortie, [autre]), []);
 
       /* Une MAUVAISE clé maître : l'archive s'ouvre, mais la base ne s'ouvre pas — l'exercice ne doit pas passer pour réussi. */
@@ -205,9 +206,14 @@ const sante = async (svc) => { const r = await T.client(svc.base).get('/health')
       const h4 = await T.attendre(async () => { const h = await sante(svc); return h && h.sauvegarde && h.sauvegarde.echecs >= 1 ? h : null; }, 25000, 100);
       vrai('⛔ un coffre qui rend l\'archive ABÎMÉE à la relecture : la passe est un échec (`echecs` monte), même si le dépôt avait répondu 200', !!h4);
       coffre.regler('corrompt-relecture', 'refus-depot');   // on fige le coffre pour compter : plus aucun dépôt, et une passe en cours relit encore de travers
-      await T.dort(300);
-      const depots = coffre.vus.slice(n4).filter(x => x.m === 'PUT' && /^beta\/base\//.test(x.cle)).map(x => x.cle);
-      const effaces = coffre.vus.slice(n4).filter(x => x.m === 'DELETE' && /^beta\/base\//.test(x.cle)).map(x => x.cle);
+      const releve = () => {
+        const vus = coffre.vus.slice(n4);
+        const dep = vus.filter(x => x.m === 'PUT' && /^beta\/base\//.test(x.cle)).map(x => x.cle), eff = vus.filter(x => x.m === 'DELETE' && /^beta\/base\//.test(x.cle)).map(x => x.cle);
+        return { dep, eff, orphelines: dep.filter(c => !eff.includes(c)) };
+      };
+      /* Au geste, pas au chronomètre : on attend que chaque archive déposée soit effacée (ou, si l'archive recalée est LAISSÉE au coffre, qu'on le constate au bout de dix secondes). */
+      await T.attendre(async () => { const r = releve(); return r.dep.length >= 1 && r.orphelines.length === 0 ? true : null; }, 10000, 50);
+      const depots = releve().dep, effaces = releve().eff;
       vrai('population : au moins une archive abîmée a été déposée pendant la panne (' + depots.length + ' dépôt(s), ' + effaces.length + ' effacement(s))', depots.length >= 1);
       v('⛔ chaque archive déposée puis NON RELUE a été RETIRÉE du coffre, la même clé (sinon la rétention la compterait comme une copie saine)', depots.filter(c => !effaces.includes(c)), []);
       v('   et le coffre n\'a pas une archive de plus qu\'avant la panne', coffre.cles('beta/base/').length, avantCorrompu);
@@ -424,6 +430,9 @@ const sante = async (svc) => { const r = await T.client(svc.base).get('/health')
     /* ── Le terminal : une faute corrigée, une flèche, un collage, Ctrl-C — RIEN de secret ne doit s'afficher ── */
     console.log('\n── 951 · configurer-sauvegarde.js SOUS UN VRAI TERMINAL (pty) : une faute corrigée, une flèche, un collage, Ctrl-C ──');
     {
+      /* ⛔ LE HARNAIS TAPE QUAND L'INVITE EST À L'ÉCRAN, PAS APRÈS UN DÉLAI : sur une machine chargée, Node met plus d'une seconde à démarrer, et ce
+         qu'on tape avant que le programme passe en mode brut est repris par le PILOTE du terminal — qui l'écrit à l'écran (l'écho du mode
+         ligne), secrets compris. Une personne ne tape pas avant l'invite ; le banc non plus. Il attend aussi que le programme SORTE (au plus vingt secondes). */
       const PTY_PY = `
 import os, pty, sys, time, select, json
 envx, node, script = sys.argv[1:4]
@@ -432,22 +441,33 @@ pid, fd = pty.fork()
 if pid == 0:
     os.execvpe(node, [node, script] + json.loads(sys.argv[5]), env)
 out = b''
+fini = False
 def lire(t):
-    global out
+    global out, fini
     fin = time.time() + t
-    while time.time() < fin:
+    while time.time() < fin and not fini:
         r, _, _ = select.select([fd], [], [], 0.05)
         if r:
             try: d = os.read(fd, 4096)
-            except OSError: return
-            if not d: return
+            except OSError:
+                fini = True; return
+            if not d:
+                fini = True; return
             out += d
+def attendre(texte, t=20):
+    fin = time.time() + t
+    cible = texte.encode('utf8')
+    while cible not in out and time.time() < fin and not fini:
+        lire(0.05)
 def envoyer(s, t=0.25):
     os.write(fd, s); lire(t)
-lire(1.2)
 for etape in json.loads(sys.argv[4]):
+    if etape[2]: attendre(etape[2])
     envoyer(bytes.fromhex(etape[0]), etape[1])
-lire(2.5)
+fin = time.time() + 20
+while not fini and time.time() < fin:
+    lire(0.1)
+lire(0.2)
 try:
     _, statut = os.waitpid(pid, os.WNOHANG)
 except Exception:
@@ -455,7 +475,7 @@ except Exception:
 print(json.dumps({'sortie': out.decode('utf8', 'replace'), 'statut': statut}))
 `;
       const configurerPty = (envx, etapes, args = []) => new Promise((resolve) => {
-        const p = spawn('python3', ['-c', PTY_PY, JSON.stringify(envx), process.execPath, CONFIGURER, JSON.stringify(etapes.map(([txt, t]) => [Buffer.from(txt, 'utf8').toString('hex'), t || 0.25])), JSON.stringify(args)], { stdio: ['ignore', 'pipe', 'pipe'] });
+        const p = spawn('python3', ['-c', PTY_PY, JSON.stringify(envx), process.execPath, CONFIGURER, JSON.stringify(etapes.map(([txt, t, attente]) => [Buffer.from(txt, 'utf8').toString('hex'), t || 0.25, attente || ''])), JSON.stringify(args)], { stdio: ['ignore', 'pipe', 'pipe'] });
         let sortie = '', err = ''; p.stdout.on('data', x => { sortie += x; }); p.stderr.on('data', x => { err += x; });
         p.on('error', () => resolve({ introuvable: true, sortie: '' }));
         p.on('close', () => { try { resolve(JSON.parse(sortie)); } catch (e) { resolve({ illisible: true, sortie: sortie + err }); } });
@@ -469,11 +489,11 @@ print(json.dumps({'sortie': out.decode('utf8', 'replace'), 'statut': statut}))
       const cle = O.cleHex(), secrets = [coffre.accessKey, coffre.secretKey, cle, kekConf];
       try {
         const etapes = [
-          [coffre.base + '\r'], [coffre.bucket + '\r'], ['\r'],                                       // adresse, bucket, région par défaut : visibles
-          [coffre.accessKey + 'X'], ['\x7f'], ['\r', 0.4],                                            // clé d'accès : une lettre en trop, corrigée par RETOUR ARRIÈRE
-          [coffre.secretKey.slice(0, -1)], ['\x1b[D'], ['\x1b[H'], ['\x1b[F'], [coffre.secretKey.slice(-1)], ['\r', 0.4],   // clé secrète : flèche gauche, Début, Fin
-          [cle + '\r', 0.4],                                                                           // clé de sauvegarde : un COLLAGE d'un bloc
-          [cle.slice(0, 30)], ['\x15'], [cle + '\r', 3],                                               // la même : trente caractères, Ctrl-U efface la ligne, puis le collage entier
+          [coffre.base + '\r', 0, 'Adresse du coffre'], [coffre.bucket + '\r', 0, 'Nom du bucket'], ['\r', 0, 'Région'],   // adresse, bucket, région par défaut : visibles
+          [coffre.accessKey + 'X', 0, 'Clé d\'accès du coffre'], ['\x7f'], ['\r', 0.4],                                       // clé d'accès : une lettre en trop, corrigée par RETOUR ARRIÈRE
+          [coffre.secretKey.slice(0, -1), 0, 'Clé secrète du coffre'], ['\x1b[D'], ['\x1b[H'], ['\x1b[F'], [coffre.secretKey.slice(-1)], ['\r', 0.4],   // clé secrète : flèche gauche, Début, Fin
+          [cle + '\r', 0.4, 'Clé de sauvegarde (masquée)'],                                                                   // clé de sauvegarde : un COLLAGE d'un bloc
+          [cle.slice(0, 30), 0, 'La même, RELUE'], ['\x15'], [cle + '\r', 0.4],                                                // la même : trente caractères, Ctrl-U efface la ligne, puis le collage entier
         ];
         const n0 = coffre.vus.length;
         const r = await configurerPty({ OPMSG_CONFIG: chemin, OPMSG_KEK_FILE: kekChemin }, etapes);
@@ -491,12 +511,12 @@ print(json.dumps({'sortie': out.decode('utf8', 'replace'), 'statut': statut}))
         }
         /* Ctrl-C au milieu d'une saisie masquée : rien n'est écrit. */
         fs.writeFileSync(chemin, initial); const avant = fs.readFileSync(chemin);
-        const c = await configurerPty({ OPMSG_CONFIG: chemin, OPMSG_KEK_FILE: kekChemin }, [[coffre.base + '\r'], [coffre.bucket + '\r'], ['\r'], [coffre.accessKey.slice(0, 5)], ['\x03', 0.6]]);
+        const c = await configurerPty({ OPMSG_CONFIG: chemin, OPMSG_KEK_FILE: kekChemin }, [[coffre.base + '\r', 0, 'Adresse du coffre'], [coffre.bucket + '\r', 0, 'Nom du bucket'], ['\r', 0, 'Région'], [coffre.accessKey.slice(0, 5), 0, 'Clé d\'accès du coffre'], ['\x03', 0.6]]);
         vrai('Ctrl-C au milieu d\'une saisie masquée : « Abandon », le fichier est intact, et ce qui était tapé n\'est pas affiché',
           !c.introuvable && /Abandon/.test(c.sortie || '') && fs.readFileSync(chemin).equals(avant) && !(c.sortie || '').includes(coffre.accessKey.slice(0, 5)));
         /* --verifier sous terminal : la copie se tape (une faute corrigée par retour arrière) et rien ne s'affiche. */
         fs.writeFileSync(chemin, JSON.stringify(Object.assign(JSON.parse(initial), { sauvegarde: { endpoint: coffre.base, bucket: coffre.bucket, region: 'eu-central-4', accessKey: coffre.accessKey, secretKey: coffre.secretKey, cle } })), { mode: 0o600 });
-        const vv = await configurerPty({ OPMSG_CONFIG: chemin, OPMSG_KEK_FILE: kekChemin }, [[cle + 'X'], ['\x7f'], ['\r', 1]], ['--verifier']);
+        const vv = await configurerPty({ OPMSG_CONFIG: chemin, OPMSG_KEK_FILE: kekChemin }, [[cle + 'X', 0, 'Colle (ou tape)'], ['\x7f'], ['\r', 0.4]], ['--verifier']);
         v('--verifier SOUS TERMINAL : la copie tapée (une faute corrigée) est dite identique, et elle n\'apparaît pas à l\'écran',
           [!vv.introuvable && /✓ identique/.test(vv.sortie || ''), fuites(vv.sortie || '', secrets)], [true, []]);
       } finally { fs.rmSync(d, { recursive: true, force: true }); }
