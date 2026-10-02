@@ -28,8 +28,11 @@ Faite par Justin, geste par geste, selon `design/opmessages/INSTALLER-LE-SERVEUR
 - **Installation** (`bash /root/install-msg.sh beta`, 20 h 28 UTC) : `/health` vérifié de l'extérieur, `ok:true`,
   `instance:"beta"`, `sha:b8c1477`, `version:"1.1.0-telephone"`, base lisible (schéma 2, 0 illisible), certificat valide,
   SMS en mode `journal` (aucun envoi réel : section 10 bis, plus tard).
-- **Déploiement par GitHub** (section 10) : run manuel n° 2 de « Déploiement d'OP MESSAGES » lancé le 2 octobre à
-  20 h 28 UTC — résultat à noter ici.
+- **Déploiement par GitHub** (section 10) : run manuel n° 2 de « Déploiement d'OP MESSAGES » (2 octobre, 20 h 28 UTC),
+  **vert** : bancs en 3 min 43 s, puis « Déployer la bêta » par la commande forcée (`déjà en service : b8c14775` →
+  `/health : ok=true instance=beta` → `déployé : beta b8c14775`), puis « Bêta d'OP MESSAGES en ligne » sans
+  avertissement. La clé `VPS_SSH_KEY_MSG_BETA` est donc la bonne. Désormais, chaque poussée sur `main` qui touche
+  `server-msg/` déploie la bêta toute seule, après ses bancs.
 
 **Ce qui reste, dans l'ordre** :
 1. Créer les accès bêta dans la console **MESSAGES** de la Tour. ⚠️ La fiche d'accès de la Tour v2.81 dit encore « La bêta
