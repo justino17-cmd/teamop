@@ -65,3 +65,7 @@ scratchpad/leaflet/
 # Sans barre finale : `server-msg/node_modules` peut être un LIEN (les scripts de préparation en posent un
 # le temps des bancs), et un motif « dossier » (barre finale) ne retient pas un lien.
 server-msg/node_modules
+
+# /brag-slim : vidéos et captures générées (peuvent contenir des écrans réels) — jamais commitées
+brag-output/
+brag-output-*/
