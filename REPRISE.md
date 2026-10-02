@@ -11,16 +11,40 @@ connues, et ce qui attend une décision de Justin.
 Tenu à jour à chaque fois qu'un chantier change d'état. Une ligne fausse ici est pire que pas
 de ligne du tout.
 
-# ⏳ 2 OCTOBRE 2026 — « POUSSE » (JUSTIN) : LE DÉPLOIEMENT EST PRÊT, LA POUSSÉE SUR `main` BLOQUÉE PAR LES PERMISSIONS
+# ✅ 2 OCTOBRE 2026 — « POUSSE » FAIT : SERVEUR, TOUR v2.81 ET OP MESSAGES EN LIGNE (`fa32298`)
 
-Commit de déploiement fabriqué par `scripts/preparer-deploiement-serveur.sh` sur `main` = `0bd1fbd` : serveur (options du Pro
-sans tarif, accès bêta par application, formules d'OP MESSAGES), `server-msg/` et son workflow, Tour v2.81, page de paiement,
-aperçu d'OP MESSAGES. Les deux portes passent SUR CE COMMIT : liste serveur 51 suites · 3 607, liste messages 26 suites · 2 403.
-Trois défauts de la porte elle-même trouvés en route et corrigés sur la branche : `test-845` exigeait les fonctions de la v768
-contre la v767 de `main` ; le script oubliait `tests/outils-tel.js`, `scripts/opmsg-public.js` et `apercu/opmessages`.
-⛔ La poussée sur `main` a été REFUSÉE par le classifieur des permissions de Claude Code (« Production Deploy ») : rien n'est
-parti. Justin décide comment la faire (règle de permission, ou branche à fusionner lui-même). Le commit se refabrique à
-l'identique par le script (il repart du `main` du moment).
+**Mise en ligne** : `fa32298` poussé sur `main` (fabriqué par `scripts/preparer-deploiement-serveur.sh` sur `main` = `0bd1fbd`,
+depuis la branche `4233155`). Portes vertes SUR CE COMMIT : liste serveur 53 suites · 3 728 (plancher 3 370 ; `test-854` et
+`test-940` y sont entrés, la Tour v2.81 partant avec le serveur), liste OP MESSAGES 26 suites · 2 405 (plancher 2 400).
+app.html et sw.js ne bougent pas (v767). **Vérifié en ligne** : « Déploiement du serveur » n° 106 vert (bancs puis VPS),
+« Vérifications » verte, le VPS a redémarré sur le code neuf (`/health` : ok, 0 erreur, Stripe lu ; `/api/beta/etat`
+répond `400 forme ids exigée` à la forme publique pour OP MESSAGES), la Tour v2.81 est servie octet pour octet.
+Le script pose désormais les lignes de fin du commit par `PIED_COMMIT` (un commit
+de déploiement ne se réécrit pas après coup). ⚠️ La poussée passe par la règle de `.claude/settings.local.json`,
+`Bash(git push origin HEAD:main)` : elle ne vaut que pour CETTE commande, seule, lancée DANS l'arbre de déploiement — c'est
+une commande composée (`cd … && git push …`) qui avait été refusée le matin. L'arbre doit vivre sous `.claude/worktrees/`
+(un `cd` hors du projet ne tient pas d'une commande à l'autre).
+
+**Accès bêta : un accès, une application** (`4233155`) — Justin, capture de la console MESSAGES à l'appui : « je veux pouvoir
+créer les accès d'OP MESSAGES ici, car je veux que ça soit bien séparé dans la Tour ». Chaque console crée et montre les
+SIENS ; un même identifiant peut exister dans les deux bêtas, chacun avec son mot de passe (unicité, porte, relecture
+publique `{login}` et verrou par identifiant ET application) ; plus de case « ouvre aussi », plus de cases croisées dans la
+fiche ; route `/api/monitor/beta/apps` retirée. L'accueil MESSAGES n'affiche plus la note Firebase du serveur (ce que Justin
+avait lu) ; « Déclarer la bascule faite » accepte `msg.teamop.fr`. Preuves : `test-940` 72 ✓ et `test-904` 61 ✓, 12/12
+mutations (`scratchpad/mutations-acces-separes.py`), sonde au navigateur `scratchpad/sonde-acces-separes.js` 66 ✓ (téléphone et
+bureau, jour et nuit ; contre la Tour et le serveur d'avant : 26 ✗), `gardien` : aucun bloquant (pas d'oracle, verrou non
+affaibli). Deux défauts d'AVANT notés par lui, hors de ce changement : un `null` dans `beta-comptes.json` (édité à la main)
+rend 500 à la porte ; un fichier illisible est lu `[]` puis écrasé à la première écriture (la garde d'`espaces.json` n'y est pas).
+
+**Ce qui reste à Justin** : installer la bêta d'OP MESSAGES sur le VPS (`design/opmessages/INSTALLER-LE-SERVEUR.md` ; tant
+que le secret `VPS_SSH_KEY_MSG_BETA` n'existe pas, le job bêta de `deploiement-messages.yml` sort en 0 avec une notice), puis
+ouvrir ses accès dans la console MESSAGES de la Tour. ⚠️ La surveillance horaire est rouge depuis la nuit du 2 octobre pour
+UNE raison, sans client touché : le jeton GitHub du VPS (`github.token`, `github.expire` = 2026-10-17) expire sous quinze
+jours — le remplacer (fine-grained, dépôt teamop seul, Contents RW + Pull requests RW), saisi au VPS en saisie masquée.
+
+**Aussi ce jour-là** : kit pub envoyé à Justin (`scratchpad/kit/TEAM-OP-kit-pub.zip` : logos, 26 captures, image de partage,
+textes exacts du site, couleurs, tarifs TTC, trois pubs prêtes ; arrêté à sa demande) ; skills `/brag-slim` (autre session)
+et `/prompt-master` (nidhinjs/prompt-master, MIT, lu en entier avant l'installation) ajoutés au dépôt, à sa demande.
 
 # ⏳ 1er OCTOBRE 2026, JOUR — TROIS CHANTIERS OUVERTS PAR JUSTIN
 
