@@ -11,6 +11,34 @@ connues, et ce qui attend une décision de Justin.
 Tenu à jour à chaque fois qu'un chantier change d'état. Une ligne fausse ici est pire que pas
 de ligne du tout.
 
+# ✅ 2 OCTOBRE 2026, SOIR — OP MESSAGES BÊTA INSTALLÉE SUR LE VPS (`msg-beta.teamop.fr`)
+
+Faite par Justin, geste par geste, selon `design/opmessages/INSTALLER-LE-SERVEUR.md`, qui porte désormais ce qui a été vécu
+(sections 2, 3, 4 et 6) :
+- **DNS** : enregistrement A `msg-beta` → `217.154.6.139`, posé **chez OVH**. Le nom teamop.fr est chez OVH (bureau
+  d'enregistrement et zone), le VPS chez IONOS. Résolu chez Google et chez Cloudflare.
+- **Clé maître de la bêta** : née sur le Mac (`openssl rand`), rangée dans l'application « Mots de passe » (site `example.com`,
+  utilisateur `msg-beta`, note « Clé maître OP MESSAGES bêta » ; pas de copie papier pour la bêta, la production aura les
+  deux), posée sur le VPS en saisie masquée, deux fois : « ✅ Clé du séquestre posée ».
+- **Clé de déploiement** : paire neuve faite sur le Mac. La privée vit **seulement** dans le secret GitHub
+  `VPS_SSH_KEY_MSG_BETA` ; la publique est dans `~/opmsg-deploiement-beta.pub` sur le Mac et dans `authorized_keys` du VPS,
+  liée à la commande forcée. ⚠️ Le formulaire de GitHub a refusé cinq fois de CRÉER le secret avec la clé collée
+  (« Failed to add secret », cause non établie). Il a accepté de le créer avec un texte tapé, puis de le METTRE À JOUR avec
+  la clé (« Secret updated »). À refaire ainsi pour `VPS_SSH_KEY_MSG_PROD`.
+- **Installation** (`bash /root/install-msg.sh beta`, 20 h 28 UTC) : `/health` vérifié de l'extérieur, `ok:true`,
+  `instance:"beta"`, `sha:b8c1477`, `version:"1.1.0-telephone"`, base lisible (schéma 2, 0 illisible), certificat valide,
+  SMS en mode `journal` (aucun envoi réel : section 10 bis, plus tard).
+- **Déploiement par GitHub** (section 10) : run manuel n° 2 de « Déploiement d'OP MESSAGES » lancé le 2 octobre à
+  20 h 28 UTC — résultat à noter ici.
+
+**Ce qui reste, dans l'ordre** :
+1. Créer les accès bêta dans la console **MESSAGES** de la Tour. ⚠️ La fiche d'accès de la Tour v2.81 dit encore « La bêta
+   d'OP MESSAGES n'est pas encore installée… » (`tour.html`, gardé par `test-940`) : la phrase est devenue fausse. Elle part
+   avec la prochaine version de la Tour.
+2. Le VPS affiche « *** System restart required *** » (mises à jour du noyau) : un redémarrage coupe aussi OP GESTION. À
+   planifier avec Justin, à une heure calme, jamais à la volée.
+3. Le jeton GitHub du VPS expire le 17 octobre 2026 : à remplacer avant, par un geste masqué.
+
 # ⚠️ 2 OCTOBRE 2026, SOIR — LA CI DE MAIN ÉTAIT ROUGE APRÈS `fa32298` : RÉPARÉE (SUITES ET CONTRÔLES SEULEMENT)
 
 Après la mise en ligne, « Vérification des pages » (run 525) et « Déploiement d'OP MESSAGES » (run 1, bêta jamais tentée)

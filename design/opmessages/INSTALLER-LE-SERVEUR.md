@@ -55,6 +55,13 @@ dig +short msg-beta.teamop.fr
 **Ce que tu dois voir** : `217.154.6.139`. Rien d'autre → pas encore propagé, on attend. Le certificat
 (section 6) ne peut pas s'obtenir avant.
 
+⚠️ **Vécu le 2 octobre 2026 : le nom teamop.fr est chez OVH, pas chez IONOS.** IONOS loue le VPS, OVH gère le nom (le
+registre des .fr le dit : bureau d'enregistrement OVH, serveurs `dns200.anycast.me` et `ns200.anycast.me`). Le geste :
+espace client OVHcloud → *Web Cloud* → *Noms de domaine* → `teamop.fr` → onglet *Zone DNS* → *Ajouter une entrée* → type
+**A**, sous-domaine `msg-beta`, cible `217.154.6.139`, le reste par défaut. L'aperçu doit dire
+`msg-beta.teamop.fr. IN A 217.154.6.139`. On ne touche à **aucune autre ligne** de la zone : le site et les e-mails de
+teamop.fr en dépendent. La réponse est arrivée chez Google et chez Cloudflare en moins de deux minutes.
+
 ## 3. La clé maître — elle naît sur TON Mac, pas sur le VPS
 
 Le service chiffre tout ce qu'il range avec cette clé. **Sans elle, la base est définitivement illisible**
@@ -68,6 +75,15 @@ openssl rand -hex 32 | pbcopy
 entrée** de ton gestionnaire de mots de passe (nom : « OP MESSAGES — clé maître bêta »). Le champ doit
 faire **64 caractères**. Fais une **seconde copie** (papier, comme pour la clé d'OP GESTION).
 ⛔ **Ne la colle pas dans la conversation**, même « pour vérifier ».
+
+⚠️ **Vécu le 2 octobre 2026** :
+- **une capture d'écran copiée remplace le presse-papiers.** Entre la copie et le collage, aucune capture. Pour voir que
+  la copie a bien eu lieu sans rien afficher : `pbpaste | tr -d '\n' | wc -c` doit répondre `64` ;
+- **l'application « Mots de passe » de macOS exige une adresse de site complète** (« Adresse du site web incomplète »
+  bloque l'enregistrement). On y met `example.com`, **jamais une adresse en teamop.fr** : Safari proposerait alors cette
+  clé sur les pages de connexion de teamop.fr. Nom d'utilisateur `msg-beta`, note « Clé maître OP MESSAGES bêta » ; on la
+  retrouve en cherchant « msg-beta ». Pour la bêta, cette copie a suffi (pas de copie papier) ; la production aura les
+  deux, comme OP GESTION.
 
 ## 4. La clé SSH de déploiement — aussi sur ton Mac
 
@@ -93,6 +109,15 @@ rm -P ~/opmsg-deploiement-beta
 Settings → Secrets and variables → Actions → *New repository secret* → nom `VPS_SSH_KEY_MSG_BETA`, valeur =
 `pbcopy < ~/opmsg-deploiement-beta` puis coller dans le champ ; puis `rm -P ~/opmsg-deploiement-beta`.
 Après la suppression, il n'existe plus de copie de la clé privée hors de GitHub.
+
+⚠️ **Vécu le 2 octobre 2026, sans `gh`, dans Safari** : *New repository secret* avec la clé privée collée a répondu
+**« Failed to add secret » cinq fois de suite**. Dans le même temps, un secret d'essai au texte tapé est passé, puis un autre
+avec une clé jetable collée. La cause n'est pas établie : ce n'est pas le nom (vérifié avec un texte tapé), ni le collage.
+**Ce qui a marché** : créer `VPS_SSH_KEY_MSG_BETA` avec un texte tapé (« bonjour »), puis le crayon ✎ → coller la clé →
+*Update secret* → « Secret updated ». La paire avait été refaite d'une traite, pour que la privée ne vive que dans le
+presse-papiers : `ssh-keygen` dans `/tmp`, la `.pub` déplacée en `~/opmsg-deploiement-beta.pub`, la privée copiée par
+`pbcopy` puis effacée aussitôt. Ne pas compter sur `rm -P` pour « écraser » : sur un Mac récent, c'est une suppression
+ordinaire.
 
 ⛔ **Une clé par instance, jamais la même pour la bêta et la production.** Sur le VPS la ligne publique est liée à
 `deployer.sh --seulement=beta` : cette clé ne déploie **que** la bêta, même si on lui demande « prod ». Et celle de la
@@ -126,7 +151,9 @@ du dépôt (jamais `/opt/teamop/repo`), la configuration (avec la paire VAPID, s
 2. `Colle-la une seconde fois, pour être sûr de la copie :` → colle de nouveau. Si les deux diffèrent, il
    s'arrête sans rien écrire.
 3. `Colle la ligne PUBLIQUE de la clé de déploiement…` → colle la ligne `ssh-ed25519 AAAA…` de la section 4
-   (c'est la **publique** : elle s'affiche, ce n'est pas un secret).
+   (c'est la **publique** : elle s'affiche, ce n'est pas un secret). Vécu le 2 octobre 2026 : le presse-papiers tient alors
+   la clé maître, donc la ligne publique se recopie depuis une **deuxième fenêtre** de Terminal ouverte sur le Mac
+   (Cmd + N) : `pbcopy < ~/opmsg-deploiement-beta.pub`, puis Cmd + V dans la fenêtre du serveur.
 
 Puis l'unité systemd durcie, le proxy (un fichier à part pour `msg-beta.teamop.fr`, validé **avant** d'être
 rechargé), le certificat, et le premier déploiement.
