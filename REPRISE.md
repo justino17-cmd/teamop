@@ -34,10 +34,15 @@ Faite par Justin, geste par geste, selon `design/opmessages/INSTALLER-LE-SERVEUR
   avertissement. La clé `VPS_SSH_KEY_MSG_BETA` est donc la bonne. Désormais, chaque poussée sur `main` qui touche
   `server-msg/` déploie la bêta toute seule, après ses bancs.
 
+- **Premier accès** (20 h 43 UTC) : Justin a créé son accès dans la console MESSAGES de la Tour et s'est connecté sur
+  `msg-beta.teamop.fr`. L'écran « Messages » s'ouvre (« Aucune conversation pour l'instant »), et `/health` le compte :
+  `porte.ouvertures:1`, `refusAmont:0`, relecture des accès réussie, `flux.personnes:1`. La porte bêta (OP GESTION
+  `/api/beta/*`) fonctionne de bout en bout.
+
 **Ce qui reste, dans l'ordre** :
-1. Créer les accès bêta dans la console **MESSAGES** de la Tour. ⚠️ La fiche d'accès de la Tour v2.81 dit encore « La bêta
-   d'OP MESSAGES n'est pas encore installée… » (`tour.html`, gardé par `test-940`) : la phrase est devenue fausse. Elle part
-   avec la prochaine version de la Tour.
+1. ⚠️ La fiche d'accès de la Tour v2.81 dit encore « La bêta d'OP MESSAGES n'est pas encore installée… » (`tour.html`,
+   gardé par `test-940`) : la phrase est devenue fausse. Elle part avec la prochaine version de la Tour. Pour essayer
+   vraiment les messages, il faut un **second** accès (une autre personne, ou une fenêtre privée).
 2. Le VPS affiche « *** System restart required *** » (mises à jour du noyau) : un redémarrage coupe aussi OP GESTION. À
    planifier avec Justin, à une heure calme, jamais à la volée.
 3. Le jeton GitHub du VPS expire le 17 octobre 2026 : à remplacer avant, par un geste masqué.
