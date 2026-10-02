@@ -107,7 +107,7 @@ async function lirePiece(c, id, { range, entetes, methode = 'GET' } = {}) {
   return { code: r.status, h: r.headers, buf, txt: buf.length < 4096 ? buf.toString('utf8') : '' , j: (() => { try { return JSON.parse(buf.toString('utf8')); } catch (e) { return null; } })() };
 }
 /* Un dépôt par `http` brut : pour poser des en-têtes que `fetch` refuse ou réécrit (Content-Length absent, Transfer-Encoding: chunked, longueur mensongère). */
-function deposerBrut(c, { chemin, entetes, corps, sansLongueur = false, morceaux } = {}) {
+function deposerBrut(c, { chemin, entetes, corps, sansLongueur = false, morceaux, delaiMs = 8000 } = {}) {
   return new Promise((resolve, reject) => {
     const u = new URL(c.base);
     const h = Object.assign({ 'Content-Type': 'application/octet-stream', Origin: c.base, 'X-OPM': '1' }, entetes || {});
@@ -116,9 +116,12 @@ function deposerBrut(c, { chemin, entetes, corps, sansLongueur = false, morceaux
     /* `agent: false` : une connexion à soi, fermée après la réponse. Les requêtes de ce helper MENTENT exprès (longueur annoncée plus grande que le corps envoyé) — sur une connexion
        réutilisée, la requête suivante serait avalée par le reste du corps promis et le banc verrait « socket hang up » un essai sur deux. */
     const req = http.request({ host: u.hostname, port: u.port, method: 'POST', path: chemin, headers: h, agent: false }, (res) => {
-      const parts = []; res.on('data', d => parts.push(d)); res.on('end', () => { const txt = Buffer.concat(parts).toString('utf8'); let j = null; try { j = JSON.parse(txt); } catch (e) { j = null; } resolve({ code: res.statusCode, j, txt, h: res.headers }); });
+      const parts = []; res.on('data', d => parts.push(d)); res.on('end', () => { clearTimeout(delai); const txt = Buffer.concat(parts).toString('utf8'); let j = null; try { j = JSON.parse(txt); } catch (e) { j = null; } resolve({ code: res.statusCode, j, txt, h: res.headers }); });
     });
-    req.on('error', reject);
+    /* ⛔ UN SERVICE QUI N'A PAS REFUSÉ ATTEND LE RESTE D'UN CORPS ANNONCÉ ÉNORME, et sans délai le banc se figeait : les mutations P13 et P16 « tombaient » en étant tuées par le lanceur au bout de cinq
+       minutes, et la CI aurait attendu le délai du job. Le délai fait de cette attente une RÉPONSE (code 0, erreur « delai »), donc un ✗ qui dit ce qui s'est passé. */
+    const delai = setTimeout(() => { req.destroy(); resolve({ code: 0, j: { error: 'delai' }, txt: 'aucune réponse en ' + delaiMs + ' ms', h: {} }); }, delaiMs);
+    req.on('error', (e) => { clearTimeout(delai); reject(e); });
     if (morceaux) { (async () => { for (const m of morceaux) { req.write(m); await new Promise(r => setTimeout(r, 5)); } req.end(); })(); }
     else if (corps) req.end(corps); else req.end();
   });
