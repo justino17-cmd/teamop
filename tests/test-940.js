@@ -72,7 +72,8 @@ console.log('\n── 940 · la Tour v2.81 ouvre les accès bêta d\'OP MESSAGES
   console.log('\n0. Population : de quoi parler');
   vrai('les ' + NOMS.length + ' fonctions et les ' + VARS.length + ' variables de la Tour sont trouvées', SRC.every(Boolean) && SRCV.every(Boolean));
   if (!(SRC.every(Boolean) && SRCV.every(Boolean))) { console.log('      manquent : ' + [...NOMS.filter((n, i) => !SRC[i]), ...VARS.filter((n, i) => !SRCV[i])].join(', ')); process.exit(1); }
-  vrai('la Tour porte sa version v2.81', /\bvar TOUR_VERSION='v2\.81'/.test(CODE));
+  const vTour = (/\bvar TOUR_VERSION='v(\d+)\.(\d+)'/.exec(CODE) || []).slice(1).map(Number);   // « au moins » : la Tour monte à chaque correction
+  vrai('la Tour porte au moins la v2.81 (accès bêta séparés par console)', vTour.length === 2 && (vTour[0] > 2 || (vTour[0] === 2 && vTour[1] >= 81)));
   vrai('« Accès » est au menu des DEUX consoles', /\['essais','Accès','gestion messages'\]/.test(CODE));
   vrai('⛔ le texte périmé de Firebase pour OP MESSAGES a disparu de la Tour (plus de FB_CONFIG, plus de règles Firestore d\'OP MESSAGES)', !/FB_CONFIG|firestore-opmessages/.test(CODE));
   vrai('le lien de la bêta d\'OP MESSAGES est https://msg-beta.teamop.fr', /var BETA_MSG_ADRESSE='https:\/\/msg-beta\.teamop\.fr'/.test(CODE));
@@ -157,13 +158,18 @@ console.log('\n── 940 · la Tour v2.81 ouvre les accès bêta d\'OP MESSAGES
     vrai('   et chacun dit SA bêta, et rien que la sienne : msg-beta.teamop.fr / teamop.fr/beta.html', /msg-beta\.teamop\.fr/.test(formM) && /n’ouvre QUE la bêta d’OP MESSAGES/.test(formM) && !/beta\.html/.test(formM) && /teamop\.fr\/beta\.html/.test(formG) && !/msg-beta/.test(formG));
     vrai('   l\'en-tête de la console MESSAGES dit où vivent les accès d\'OP GESTION', /les accès à la bêta d’OP GESTION se créent dans sa console/.test(TM.run('vueEssaisMsg()')));
 
-    console.log('\n4. La fiche : SA bêta, l\'adresse, « Copier le lien », et ce qui n\'est pas encore installé');
+    console.log('\n4. La fiche : SA bêta, l\'adresse, « Copier le lien », et ce que « Couper » y fait');
     TM.panneaux.length = 0; TM.run('accFicheBeta(' + JSON.stringify(mona.id) + ')');
     const fiche = TM.panneaux[0] || '';
     vrai('la fiche s\'ouvre', fiche.length > 200);
     vrai('⛔ elle dit « Sur msg-beta.teamop.fr : cet identifiant et son mot de passe »', /Sur <b>msg-beta\.teamop\.fr<\/b> : cet identifiant et son mot de passe/.test(fiche));
     vrai('⛔ elle porte le lien https://msg-beta.teamop.fr ET le bouton « Copier le lien » qui copie CE lien', /id="bt-lien-msg"[^>]*>https:\/\/msg-beta\.teamop\.fr<\/span>/.test(fiche) && /tourCopie\('bt-lien-msg',this\)">Copier le lien</.test(fiche));
-    vrai('⛔ elle dit, sans affoler, que la bêta d\'OP MESSAGES n\'est pas encore installée (les gestes de Justin) et que l\'accès, lui, est prêt', /n’est pas encore installée/.test(fiche) && /INSTALLER-LE-SERVEUR\.md/.test(fiche) && /L’accès, lui, est prêt/.test(fiche));
+    /* v2.82 — la bêta d'OP MESSAGES est installée depuis le 2 octobre 2026 : la fiche disait le contraire. Elle dit maintenant ce que
+       « Couper » fait là-bas, et la promesse « dans la minute » se relit dans la configuration du service, pas dans une phrase. */
+    vrai('⛔ elle ne dit plus que la bêta d\'OP MESSAGES « n’est pas encore installée » (installée le 2 octobre 2026)', !/pas encore installée/.test(fiche));
+    vrai('⛔ elle dit ce que « Couper » fait là-bas : plus de connexion, et les sessions ouvertes se ferment « dans la minute » (pas « immédiatement »)', /« Couper » ferme la porte : plus aucune connexion, et les sessions déjà ouvertes se ferment dans la minute/.test(fiche) && !/immédiatement/.test(fiche));
+    const relectureMs = Number((/relectureMs:\s*(\d+)/.exec(fs.readFileSync(path.join(RACINE, 'server-msg', 'config.js'), 'utf8')) || [])[1]);
+    vrai('   et « dans la minute » est tenu : la porte d\'OP MESSAGES relit les accès toutes les 60 s au plus (relectureMs de server-msg/config.js : ' + relectureMs + ')', relectureMs > 0 && relectureMs <= 60000);
     vrai('   elle n\'affiche PAS l\'encart de teamop.fr/beta.html', !/teamop\.fr\/beta\.html/.test(fiche));
     vrai('⛔ aucune case à cocher : la fiche dit ce que l\'accès ouvre (« la bêta d’OP MESSAGES »), elle ne règle plus d\'autre application', !/type="checkbox"/.test(fiche) && /Ouvre<\/span><span[^>]*>la bêta d’OP MESSAGES/.test(fiche));
     TG.panneaux.length = 0; TG.run('accFicheBeta(' + JSON.stringify((await parLogin('gaston')).id) + ')');
