@@ -309,6 +309,9 @@ const horlogeFixe = (h) => () => h.t;
             horloge: k.journalMax >= x.avant.journalMax && k.journalMax <= x.apres.journalMax,
             instantane: Number(somme) === Number(lignes) && Number(lignes) >= 300 && Number(trous) === 0 && Number(journal) === k.journalMax && Number(journal) > 60000,
           });
+        } catch (e) {
+          /* Une copie abandonnée en route laisse un fichier à moitié écrit, que SQLite refuse de lire (« database is locked ») : l'essai tombe, le banc ne meurt pas. */
+          essais.push({ ecritures: x.ecritures, vivant: x.ecritures >= 5, methode: x.r.methode, ecrivain: x.refusEcrivain === '', saine: false, horloge: false, instantane: false });
         } finally { d.close(); }
       } finally { x.b.nettoyer(); }
     }
