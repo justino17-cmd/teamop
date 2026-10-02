@@ -2942,7 +2942,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.81</div>
+    <div class="lg-pied">console interne · v2.82</div>
   </div>
 </div>
 
@@ -2984,7 +2984,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.81</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.82</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2996,7 +2996,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.81</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.82</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3262,7 +3262,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.81';
+var TOUR_VERSION='v2.82';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -9293,11 +9293,15 @@ function accFicheBeta(id){
   var off=(c.actif===false);
   var lg=function(t,v){ return '<div style="display:flex;gap:10px;padding:7px 0;font-size:13px;line-height:1.5"><span style="color:var(--muted);min-width:118px;flex-shrink:0">'+t+'</span><span style="color:var(--text2);min-width:0;word-break:break-word">'+v+'</span></div>'; };
   var F='tourPanneauFermer();';
-  /* v2.81 — la fiche ne parle que de la bêta de la console ouverte : un accès n'ouvre qu'une application (l'autre bêta a les siens). */
+  /* v2.81 — la fiche ne parle que de la bêta de la console ouverte : un accès n'ouvre qu'une application (l'autre bêta a les siens).
+     v2.82 — la bêta d'OP MESSAGES est installée depuis le 2 octobre 2026 : la fiche ne dit plus le contraire, elle dit ce que
+     « Couper » fait VRAIMENT là-bas (server-msg/porte-beta.js) — la connexion est refusée tout de suite (chaque entrée demande
+     au serveur d'OP GESTION), et les sessions déjà ouvertes se ferment à la relecture suivante, toutes les 60 s
+     (`relectureMs`, server-msg/config.js) : « dans la minute », pas « immédiatement » comme pour la bêta d'OP GESTION. */
   var msg=(APP==='messages');
   var enc=msg?('<div class="encart" style="margin-top:12px"><div class="encart-tx">Sur <b>msg-beta.teamop.fr</b> : cet identifiant et son mot de passe.'+
     '<div style="display:flex;gap:8px;align-items:center;margin:8px 0"><span id="bt-lien-msg" class="mono" style="flex:1;word-break:break-all;font-weight:700;color:var(--link)">'+esc(BETA_MSG_ADRESSE)+'</span><button type="button" class="btn-fant" onclick="tourCopie(\'bt-lien-msg\',this)">Copier le lien</button></div>'+
-    '<span style="color:var(--muted);font-size:12px">La bêta d’OP MESSAGES n’est pas encore installée : tant que les gestes de <span class="mono">design/opmessages/INSTALLER-LE-SERVEUR.md</span> ne sont pas faits, cette adresse ne répond pas. L’accès, lui, est prêt — il s’ouvrira dès l’installation.</span></div></div>')
+    '<span style="color:var(--muted);font-size:12px">« Couper » ferme la porte : plus aucune connexion, et les sessions déjà ouvertes se ferment dans la minute, même si le mot de passe est encore connu.</span></div></div>')
     :'<div class="encart" style="margin-top:12px"><div class="encart-tx">Sur <b>teamop.fr/beta.html</b> : champ Entreprise <b>vide</b>, puis cet identifiant et son mot de passe. « Couper » ferme la porte immédiatement, même si le mot de passe est encore connu.</div></div>';
   tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:4px">'+esc(c.nom||c.login)+'</div>'+
     '<div style="color:var(--muted);font-size:13px;margin-bottom:18px">Accès à la bêta d’'+esc(APPS_TOUR[msg?'messages':'gestion'].nom)+' — et à rien d’autre, jamais les données d’une entreprise.</div>'+
