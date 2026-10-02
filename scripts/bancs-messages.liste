@@ -19,8 +19,9 @@
 # 1er octobre 2026, accès bêta par application (Tour v2.81) : 1 616 vérifications (test-903 et test-904 gardent `app`, `apps` et la porte fermée face à un OP GESTION d'avant).
 # 2 octobre 2026 (compte par téléphone, puis sa relecture adverse : argent, comptes, saisie des clés) : 24 suites (test-912 à 919), 2180 vérifications.
 # Les deux réunis (fusion de la branche de travail dans l'arbre du branchement ; le générateur passe de test-912 à test-941) : 26 suites, 2 403 vérifications mesurées.
-# 2 octobre 2026 (la sauvegarde hors site, étape 3 : test-950 le module, test-951 le vrai service, un faux coffre S3 et les outils de Justin) : 28 suites, 2 928 vérifications mesurées — plancher 2920.
-#plancher 2920
+# 2 octobre 2026 (la sauvegarde hors site, étape 3 : test-950 le module, test-951 le vrai service, un faux coffre S3 et les outils de Justin) : 28 suites, 2 913 vérifications mesurées — plancher 2905.
+# (2 928 avant que test-950 agrège ses essais de copie sous charge : quinze contrôles redondants de moins, trois cas de plus — le plancher suit le total MESURÉ.)
+#plancher 2905
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
