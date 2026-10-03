@@ -133,6 +133,9 @@ m('P60', 'toute extension d\'application GIF est gardée (le XMP aussi)', F.pz, 
 m('P61', 'l\'ancien paramètre d\'adresse `?nom=` est de nouveau accepté (le nom revient dans les journaux d\'accès)', F.rp, "    if (q.nom !== undefined) return refus(res, 400, 'champ_invalide');\n", '', ['943']);
 m('P62', 'l\'en-tête du nom n\'a plus de plafond de longueur', F.rp, "if (typeof brut !== 'string' || !brut || brut.length > 2048)", "if (typeof brut !== 'string' || !brut)", ['943']);
 m('P63', 'un nom long est coupé sans garder son extension (« .pdf » disparaît)', F.pz, "return signes.slice(0, signes.length - ext.length).slice(0, max - ext.length).join('') + ext.join('');", 'return signes.slice(0, max).join(\'\');', ['942', '943']);
+/* ── A1 : UNE COURSE LECTURE / SUPPRESSION N'EST PAS UNE PIÈCE ABÎMÉE ── */
+m('P64', 'une lecture dont le fichier a été emporté avec sa ligne (suppression pendant la lecture) est quand même comptée « illisible »', F.rp, "if (stockage.pieceExiste(p.id)) { ctx.piecesEtat.illisibles++; ctx.journaliser('piece_illisible', { nom: 'fichier_absent' }); }", "{ ctx.piecesEtat.illisibles++; ctx.journaliser('piece_illisible', { nom: 'fichier_absent' }); }", ['943']);
+m('P65', 'un fichier qui disparaît PENDANT la lecture parce que la pièce vient d\'être supprimée est compté « illisible »', F.rp, "if (stockage.pieceExiste(p.id)) { ctx.piecesEtat.illisibles++; ctx.journaliser('piece_illisible', { nom: e && e.code }); }", "{ ctx.piecesEtat.illisibles++; ctx.journaliser('piece_illisible', { nom: e && e.code }); }", ['943']);
 m('K18', 'l\'appareil remet le nom du fichier dans l\'adresse du dépôt', F.api, "rq({ conv: x.conv, genre: x.genre })", "rq({ conv: x.conv, genre: x.genre, nom: x.nom })", ['944']);
 m('K19', 'l\'appareil n\'envoie plus le nom du fichier du tout', F.api, "        if (x.nom !== undefined && x.nom !== null) h['X-OPM-Nom'] = encodeURIComponent(String(x.nom));\n", '', ['944']);
 
