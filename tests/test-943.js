@@ -54,7 +54,9 @@ function migration() {
   v('une base d\'AVANT est au schéma 2', v2.schema(), 2);
   v2.fermer();
 
-  const v3 = mk(MIGRATIONS);
+  /* ⛔ ce banc garde la migration 3 : il la joue AVEC les trois premières seulement. Rouvrir avec TOUTES les migrations du fichier (`MIGRATIONS`) le ferait dépendre de la dernière — la migration 4 (les notifications
+     push et la suppression de compte) a fait rendre « schéma 4 » à un contrôle qui disait « schéma 3 », sans que la migration 3 ait bougé (relevé par la liste complète, pas par ce banc seul). */
+  const v3 = mk(MIGRATIONS.slice(0, 3));
   v('⛔ rouverte avec la migration 3 : schéma 3', v3.schema(), 3);
   vrai('⛔ une copie « avant-v3 » a été gardée AVANT de reconstruire la table', fs.existsSync(chemin + '.avant-v3'));
   v('les messages d\'avant sont intacts (texte, auteur, numéro), pour Alice comme pour Bob', [v3.messagesDe(g.id, al.id).messages.filter(m => m.type === 'texte').map(m => m.texte), v3.messagesDe(g.id, bo.id).messages.filter(m => m.type === 'texte').map(m => m.texte)],
@@ -83,7 +85,7 @@ function migration() {
   v3.fermer();
   /* rejouable : le compteur remis à 2, la migration 3 repasse sur des tables déjà migrées sans rien perdre */
   const brut2 = new (require('node:sqlite').DatabaseSync)(chemin); brut2.exec('PRAGMA user_version = 2'); brut2.close();
-  const v3b = mk(MIGRATIONS);
+  const v3b = mk(MIGRATIONS.slice(0, 3));
   v('⛔ la migration 3 REJOUÉE sur une base déjà migrée ne perd rien : les messages (numéro, type, texte, auteur) sont les mêmes pour Alice et pour Bob, le schéma est 3', [vu(v3b) === avantRejeu, v3b.schema()], [true, 3]);
   v3b.fermer();
 }
