@@ -67,6 +67,28 @@
     confirmation_requise: 'La suppression du compte doit être confirmée.',
     export_quotidien: 'Tu as déjà exporté tes données aujourd\'hui : un export par jour.',
     compte_supprime: 'Ce compte a été supprimé : tu ne peux plus lui écrire.',
+    /* les espaces professionnels, leurs canaux, Messages Pro et l'abonnement. ⛔ Aucune promesse que le service ne tient pas : « fonction Pro » ne dit pas POURQUOI (seul l'administrateur le lit, dans
+       l'état de l'abonnement), et « l'abonnement n'est pas encore ouvert » est la vérité d'un service sans clé de paiement. */
+    formule_requise: 'Cette fonction fait partie de Messages Pro.',
+    trop_d_espaces: 'Limite atteinte : trois espaces dont tu es propriétaire, vingt dont tu es membre.',
+    trop_de_canaux: 'Cet espace a atteint son nombre maximal de canaux (100).',
+    membre_inconnu: 'Cette personne ne fait pas partie de l\'espace.',
+    canal_public: 'Un canal public réunit tous les membres de l\'espace : on y entre et on en sort avec l\'espace.',
+    proprio: 'Le propriétaire ne peut ni quitter son espace ni changer de rôle : transfère d\'abord la propriété à un autre membre.',
+    destinataire_invalide: 'Cette personne ne peut pas recevoir la propriété de l\'espace (compte supprimé ou en cours de suppression).',
+    espace_indisponible: 'Cet espace ne peut pas accueillir de nouveau membre pour l\'instant : demande à son administrateur.',
+    places_epuisees: 'Toutes les places de l\'abonnement sont prises : ajoute des places (Réglages › Abonnement › Gérer) avant d\'inviter quelqu\'un.',
+    abonnement_actif: 'Un abonnement court encore pour cet espace : résilie-le (Réglages › Abonnement › Gérer) avant de supprimer l\'espace.',
+    espace_abonne: 'Tu es le seul membre d\'un espace qui a un abonnement en cours : résilie-le ou confie l\'espace à quelqu\'un, puis supprime ton compte.',
+    abonnement_non_ouvert: 'L\'abonnement n\'est pas encore ouvert.',
+    places_invalides: 'Le nombre de places est incorrect (au moins le nombre de membres, 500 au plus).',
+    offre_inconnue: 'Cette offre n\'existe pas.',
+    adresse_requise: 'Pour payer, il faut une adresse e-mail confirmée sur ton compte.',
+    abonnement_existant: 'Cet espace a déjà un abonnement : change les places ou la carte depuis « Gérer l\'abonnement ».',
+    pas_d_abonnement: 'Cet espace n\'a pas encore d\'abonnement à gérer.',
+    abonnement_pris: 'Cet abonnement est déjà rattaché à un autre espace.',
+    stripe_muet: 'Le service de paiement ne répond pas. Rien n\'est changé : réessaie dans un moment.',
+    paiement_indisponible: 'Le paiement n\'a pas pu être préparé. Réessaie plus tard.',
     erreur_interne: 'Une erreur est survenue de notre côté. Réessaie.',
     serveur: 'Le service ne répond pas correctement. Réessaie dans un instant.',
     reseau: 'Pas de connexion au service. Vérifie ton réseau.',
@@ -87,6 +109,14 @@
       this.name = 'ErreurApi'; this.code = code; this.statut = statut || 0; this.retry = retry || 0;
       /* le maximum d'une pièce (octets), quand le service le dit (413) : l'écran écrit « 12 Mo au plus » */
       this.max = extra && Number.isInteger(extra.max) ? extra.max : 0;
+      /* ce que le service ajoute à un refus d'ABONNEMENT : POURQUOI une fonction Pro refuse (`impaye` | `aucun`, que le seul administrateur reçoit), le lien du portail de facturation
+         (`abonnement_existant`), les places et les membres (`places_epuisees`), le minimum de places (`places_invalides`). Chacun est lu avec son type : un champ qui n'a pas la forme attendue
+         n'existe pas. Le lien du portail n'est gardé que s'il est en https — l'écran l'ouvre, il n'ouvre pas n'importe quoi. */
+      this.raison = extra && (extra.raison === 'impaye' || extra.raison === 'aucun') ? extra.raison : '';
+      this.portail = extra && typeof extra.portail === 'string' && /^https:\/\/[^\s]{4,2000}$/.test(extra.portail) ? extra.portail : '';
+      this.places = extra && Number.isInteger(extra.places) ? extra.places : 0;
+      this.membres = extra && Number.isInteger(extra.membres) ? extra.membres : 0;
+      this.min = extra && Number.isInteger(extra.min) ? extra.min : 0;
       /* ⛔ `dit` : cette erreur a une phrase FRANÇAISE que l'écran peut montrer telle quelle. Une erreur d'ailleurs (une exception de la page
          elle-même) ne porte pas ce drapeau : l'écran n'affiche alors qu'une phrase générique, jamais le message technique. */
       this.dit = true;
@@ -121,7 +151,7 @@
     return liste;
   }
 
-  const EVENEMENTS = ['message', 'message_modifie', 'message_supprime', 'reaction', 'conversation', 'retire', 'lu', 'notification', 'saisie', 'presence', 'personne', 'resync'];
+  const EVENEMENTS = ['message', 'message_modifie', 'message_supprime', 'reaction', 'conversation', 'retire', 'lu', 'notification', 'saisie', 'presence', 'personne', 'espace', 'resync'];
 
   function creer(opts) {
     const o = opts || {};

@@ -71,6 +71,7 @@ function creerHandlers(ctx) {
       case 'lien_invalide': return refus(res, 410, 'lien_invalide');
       case 'lien_propre': return refus(res, 409, 'lien_propre');
       case 'piece_inconnue': return refus(res, 404, 'piece_inconnue');
+      case 'canal_public': return refus(res, 409, 'canal_public');
       default: throw e;
     }
   }
@@ -291,7 +292,7 @@ function creerHandlers(ctx) {
     const u = cibleContact(req, res); if (!u) return;
     /* Pas de contact, ou un blocage dans un sens ou dans l'autre : 404, comme si la personne
        n'existait pas — on ne dit pas à qui nous a bloqué qu'il l'est. */
-    if (!stockage.contactActif(req.moi.id, u)) return refus(res, 404, 'introuvable');
+    if (!stockage.peutEcrire(req.moi.id, u)) return refus(res, 404, 'introuvable');   // un contact mutuel, ou un collègue d'un même espace (« Contacts de l'entreprise ») — jamais quelqu'un qui a bloqué
     const r = stockage.convDirecteObtenir(req.moi.id, u);
     res.status(r.cree ? 201 : 200).json(detail(req.moi.id, r.id));
   };
@@ -312,7 +313,7 @@ function creerHandlers(ctx) {
     /* Seuls des contacts mutuels sont ajoutés d'office ; les autres sont RENDUS (`non_ajoutes`)
        pour que l'écran dise « envoie-leur un lien » — jamais d'ajout de force. */
     const voulus = Array.from(new Set(b.membres)).filter(u => u !== req.moi.id);
-    const ajoutes = voulus.filter(u => stockage.contactActif(req.moi.id, u));
+    const ajoutes = voulus.filter(u => stockage.peutEcrire(req.moi.id, u));
     const non_ajoutes = voulus.filter(u => !ajoutes.includes(u));
     const r = stockage.convCreerGroupe({ createur: req.moi.id, nom, membres: ajoutes, annonces_seules: b.annonces_seules === true, ephemere_s: eph, avatar_piece: avatar });
     hub.reveiller({ conv: r.id });
@@ -348,7 +349,7 @@ function creerHandlers(ctx) {
     const c = req.conv.conv;
     if (c.type !== 'groupe') return refus(res, 409, 'conversation_directe');
     const u = listeUids(corps(req).uids, 50); if (!u) return refus(res, 400, 'champ_invalide');
-    const ok = u.filter(x => stockage.contactActif(req.moi.id, x)), non_ajoutes = u.filter(x => !ok.includes(x));
+    const ok = u.filter(x => stockage.peutEcrire(req.moi.id, x)), non_ajoutes = u.filter(x => !ok.includes(x));
     const r = ok.length ? stockage.membresAjouter({ conv: c.id, par: req.moi.id, uids: ok, max: ctx.maxMembres }) : { ajoutes: [], gid: 0 };
     if (r.gid) hub.reveiller({ conv: c.id });
     for (const x of r.ajoutes) notifier(x, 'groupe_ajoute', c.nom || 'Groupe', nomAffiche(req.moi) + ' vous a ajouté au groupe.', c.id);
@@ -394,7 +395,9 @@ function creerHandlers(ctx) {
 
   H['conv.quitter'] = (req, res) => {
     const c = req.conv.conv;
-    const r = stockage.membreQuitter({ conv: c.id, uid: req.moi.id });
+    /* ⛔ UN CANAL N'EST PAS UN GROUPE : public, il compte tous les membres de l'espace (on en sort avec l'espace, ou on le met en sourdine) ; privé, on le quitte sans que personne soit
+       promu à sa place — le rôle dans un canal est le rôle dans l'espace. */
+    const r = c.type === 'canal' ? stockage.canalQuitter({ conv: c.id, uid: req.moi.id }) : stockage.membreQuitter({ conv: c.id, uid: req.moi.id });
     effacer(r.pieces);   // le dernier membre part : la conversation et ses pièces avec elle
     if (!r.vide) hub.reveiller({ conv: c.id, uids: [req.moi.id] }); else hub.reveiller({ uids: [req.moi.id] });
     res.json({ ok: true });
@@ -525,7 +528,7 @@ function creerHandlers(ctx) {
     const s = seqCorps(req, res); if (s === null) return;
     const pour = corps(req).pour;
     if (pour !== 'moi' && pour !== 'tous') return refus(res, 400, 'champ_invalide');
-    const admin = req.conv.conv.type === 'groupe' && req.conv.moi.role === 'admin';
+    const admin = (req.conv.conv.type === 'groupe' || req.conv.conv.type === 'canal') && req.conv.moi.role === 'admin';   // l'administrateur d'un canal (celui de l'espace) modère comme celui d'un groupe
     const r = stockage.messageSupprimer({ conv: req.conv.conv.id, seq: s, uid: req.moi.id, pour, admin });
     effacer(r.pieces);   // ⛔ « pour tous » efface aussi les pièces du message, fichier compris
     if (r.gid) hub.reveiller(pour === 'moi' ? { uids: [req.moi.id] } : { conv: req.conv.conv.id });

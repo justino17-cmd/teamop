@@ -34,8 +34,10 @@ const { creerPieces, creerReservations } = require('./pieces');
 const { creerSauvegarde, lireConfigSauvegarde } = require('./sauvegarde');
 const { rejouerAuDemarrage } = require('./rejeu');
 const { creerPush } = require('./push');
+const { creerFormule } = require('./formule');
+const { creerFacturation } = require('./facturation');
 
-const VERSION = '1.3.0-push';
+const VERSION = '1.4.0-espaces';
 const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays']);   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
 
 function journaliser(evt, champs) {
@@ -72,6 +74,10 @@ function demarrer(env = process.env) {
      hors ligne et levé un drapeau ; ici le service les rejoue avec ses propres fonctions (un compte effacé ne revient pas). Sans drapeau — tout démarrage ordinaire — rien ne
      s'exécute. Voir `rejeu.js`. */
   rejouerAuDemarrage({ stockage, contexte: { effacerPieces, horloge: Date.now }, journaliser });
+  /* ⛔ LA FORMULE ET LA FACTURATION : `formuleDe` est la seule fonction qui décide de Perso, Pro ou impayé (le drapeau de la bêta y est lu, et là seulement) ; la facturation parle à Stripe
+     (inerte sans clé, et le dit). Les deux se lisent dans `ctx`, jamais ne se reconstruisent ailleurs. */
+  const formule = creerFormule({ stockage, config });
+  const facturation = creerFacturation({ stockage, config, formule, journaliser, horloge: Date.now });
   const porte = config.instance === 'beta' ? creerPorteBeta({ config, quotas, stockage, horloge: Date.now }) : null;
   /* Les SMS : la configuration est VALIDÉE ici (un budget négatif, des identifiants à moitié posés, une URL d'OVH étrangère en production
      refusent le démarrage plutôt que de tourner de travers), puis la garde (budgets, emballement, bouclier) et l'envoi par OVH. */
@@ -94,7 +100,7 @@ function demarrer(env = process.env) {
 
   const ctx = {
     config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION, scelleur, sms,
-    pieces, reservations, piecesEtat, effacerPieces, push,
+    pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation,
     maxMembres: stockageMod.MAX_MEMBRES, delaiModifMs: stockageMod.DELAI_MODIF_MS,
     disque: { bas: () => disqueBas, libreMo },
     /* ⛔ /health est PUBLIQUE et AGRÉGÉE : des nombres et des états, jamais un identifiant, un
@@ -113,6 +119,10 @@ function demarrer(env = process.env) {
       pieces: Object.assign(stockage.pieceStats(), { illisibles: piecesEtat.illisibles, effacementsRates: piecesEtat.effacementsRates }),
       sauvegarde: sauvegarde.sante(),   // des nombres et un booléen : jamais un nom de bucket, un chemin, un motif
       push: push.sante(),   // des NOMBRES (et un état) : abonnements, envois et échecs des 24 dernières heures — jamais un point d'accès, une clé ou une personne
+      /* ⛔ MESSAGES PRO : minutes depuis lesquelles Stripe est illisible (0 : il l'est, ou rien n'en dépend) — la surveillance crie au-delà de 90 ; et le mode, des nombres. Jamais la clé, un
+         identifiant de client ou d'abonnement, un espace. */
+      stripeEchecMin: facturation.echecMin(),
+      facturation: Object.assign({ mode: facturation.mode(), toutOuvert: formule.toutOuvert() }, stockage.facturationStats()),
     }),
   };
 
@@ -178,11 +188,13 @@ function demarrer(env = process.env) {
   }
   for (const m of minuteurs) m.unref();
   sauvegarde.demarrer();   // inerte sans configuration : aucune minuterie, aucun réseau
+  facturation.demarrer();  // inerte sans clé Stripe : sinon une relecture au démarrage, puis toutes les dix minutes pour les espaces abonnés
 
   async function arreter() {
     for (const m of minuteurs) clearInterval(m);
     clearInterval(minuteurDisque);
     push.arreter();
+    facturation.arreter();
     boucle.disable();
     hub.arreter();
     await sauvegarde.arreter();   // une passe en cours reconnaît l'arrêt (deux secondes au plus) ; ce n'est pas un échec

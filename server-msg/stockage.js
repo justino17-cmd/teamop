@@ -275,6 +275,50 @@ const MIGRATIONS = [
     `CREATE INDEX IF NOT EXISTS personne_suppression ON personne(suppression_le) WHERE suppression_le IS NOT NULL`,
     `PRAGMA user_version = 4`,
   ] },
+  /* ── 5 : LES ESPACES PROFESSIONNELS ET MESSAGES PRO (3 octobre 2026) ──────────────────────────────────────────────────
+     Une entreprise = un ESPACE : un nom, un propriétaire, des membres (administrateur ou membre), des canaux, un abonnement. Quatre tables neuves, AUCUNE table
+     existante n'est reconstruite ni modifiée (la migration reste donc REJOUABLE : `IF NOT EXISTS` partout, pas d'`ALTER`) :
+       · `espace` : l'identifiant (`e_…`), le nom SCELLÉ (une entreprise nomme ses clients, ses chantiers), le propriétaire (une personne : jamais supprimée, sa ligne reste
+         vide — voir `compteEffacer`, qui passe la main avant), la date. Le propriétaire n'est pas une clé étrangère en cascade : supprimer une personne n'emporterait pas un espace ;
+       · `espace_membre` : qui est dans quel espace, et son rôle. Une ligne PART quand on quitte ou qu'on est retiré (et l'effacement se note dans `purge`) : l'historique
+         des messages, lui, vit dans les conversations ;
+       · `canal` : ce qui fait d'une conversation de genre `canal` le canal d'UN espace, et s'il est privé. C'est une table à part et pas une colonne de `conversation` :
+         ajouter une colonne n'est pas rejouable, et la colonne `conversation.espace` (écrite à l'étape 1, jamais lue) reste NULLE — une seule source de vérité ;
+       · `abonnement` : le dernier état de l'abonnement Stripe d'un espace, TEL QUE STRIPE L'A DIT (jamais un état déduit du corps d'une requête). Aucun numéro de carte, aucune
+         adresse : l'identifiant du client et de l'abonnement, le statut, les places, l'échéance. `impaye_depuis` date la PREMIÈRE lecture d'un impayé (le sursis de sept jours
+         en part), `relu_le` la dernière lecture réussie. */
+  { v: 5, sql: [
+    `CREATE TABLE IF NOT EXISTS espace(
+       id TEXT PRIMARY KEY,
+       nom_ch BLOB NOT NULL,
+       proprio TEXT NOT NULL REFERENCES personne(id),
+       cree INTEGER NOT NULL)`,
+    `CREATE INDEX IF NOT EXISTS espace_proprio ON espace(proprio)`,
+    `CREATE TABLE IF NOT EXISTS espace_membre(
+       espace TEXT NOT NULL REFERENCES espace(id) ON DELETE CASCADE,
+       uid TEXT NOT NULL REFERENCES personne(id) ON DELETE CASCADE,
+       role TEXT NOT NULL DEFAULT 'membre' CHECK(role IN ('admin','membre')),
+       depuis INTEGER NOT NULL,
+       PRIMARY KEY(espace, uid))`,
+    `CREATE INDEX IF NOT EXISTS espace_membre_uid ON espace_membre(uid)`,
+    `CREATE TABLE IF NOT EXISTS canal(
+       conv TEXT PRIMARY KEY REFERENCES conversation(id) ON DELETE CASCADE,
+       espace TEXT NOT NULL REFERENCES espace(id) ON DELETE CASCADE,
+       prive INTEGER NOT NULL DEFAULT 0,
+       cree_par TEXT, cree INTEGER NOT NULL)`,
+    `CREATE INDEX IF NOT EXISTS canal_espace ON canal(espace)`,
+    `CREATE TABLE IF NOT EXISTS abonnement(
+       espace TEXT PRIMARY KEY REFERENCES espace(id) ON DELETE CASCADE,
+       client TEXT, abonnement TEXT,
+       session TEXT, session_le INTEGER,
+       statut TEXT NOT NULL DEFAULT 'aucun',
+       places INTEGER NOT NULL DEFAULT 0,
+       fin_periode INTEGER, annule INTEGER NOT NULL DEFAULT 0,
+       impaye_depuis INTEGER, relu_le INTEGER,
+       cree INTEGER NOT NULL)`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS abonnement_stripe ON abonnement(abonnement) WHERE abonnement IS NOT NULL`,
+    `PRAGMA user_version = 5`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -487,12 +531,24 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return num(Q('UPDATE contact SET etat = ? WHERE de = ? AND vers = ?').run(etat, a, b).changes);
   }
   function contactLigne(a, b) { return Q('SELECT etat FROM contact WHERE de = ? AND vers = ?').get(a, b) || null; }
-  /* `uid` peut-il voir la fiche de `autre` ? Contact, ou conversation commune encore active. */
+  /* Deux personnes qui partagent un ESPACE (des collègues). Ce n'est pas un contact : c'est ce qui leur permet de se trouver dans « Contacts de l'entreprise » et de s'écrire. */
+  function collegues(a, b) {
+    return !!Q(`SELECT 1 AS x FROM espace_membre x JOIN espace_membre y ON x.espace = y.espace WHERE x.uid = ? AND y.uid = ? LIMIT 1`).get(a, b);
+  }
+  /* `uid` peut-il voir la fiche de `autre` ? Contact, conversation commune encore active, ou espace commun. */
   function peutVoir(uid, autre) {
     if (uid === autre) return true;
     if (contactLigne(uid, autre)) return true;
-    return !!Q(`SELECT 1 AS x FROM membre a JOIN membre b ON a.conv = b.conv
-                WHERE a.uid = ? AND b.uid = ? AND a.quitte_le IS NULL AND b.quitte_le IS NULL LIMIT 1`).get(uid, autre);
+    if (Q(`SELECT 1 AS x FROM membre a JOIN membre b ON a.conv = b.conv
+           WHERE a.uid = ? AND b.uid = ? AND a.quitte_le IS NULL AND b.quitte_le IS NULL LIMIT 1`).get(uid, autre)) return true;
+    return collegues(uid, autre);
+  }
+  /* ⛔ QUI PEUT S'ÉCRIRE, EN UNE FONCTION : des contacts mutuels sans blocage, OU des collègues d'un même espace — sauf si l'un a bloqué l'autre (un blocage est personnel :
+     il tient face à un espace commun). Lue par la conversation directe, l'ajout à un groupe et la règle d'écriture d'une directe ; jamais recopiée. */
+  function peutEcrire(a, b) {
+    if (a === b) return false;
+    if (contactActif(a, b)) return true;
+    return !contactBloque(a, b) && collegues(a, b);
   }
 
   /* ══ LIENS (invitation de contact ou de groupe) ═════════════════════════════════════════ */
@@ -504,15 +560,19 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   /* ⛔ Un lien de groupe MEURT avec le droit de son créateur : si celui qui l'a créé n'est plus administrateur
      (rétrogradé, parti, retiré), son lien ne vaut plus rien. Sinon un droit retiré survivait dans un code déjà
      distribué (relecture du gardien, point 5). */
+  /* ⛔ DE MÊME UN LIEN D'ESPACE : il meurt avec le droit de son créateur — un administrateur d'espace rétrogradé, parti ou retiré n'ouvre plus la porte de l'espace par
+     un code qu'il avait distribué. */
   function lienValide(h) {
     return Q(`SELECT genre, cible, par, restants FROM lien l WHERE h = ? AND revoque = 0 AND exp > ? AND restants > 0
-              AND (genre <> 'groupe' OR EXISTS (SELECT 1 FROM membre m WHERE m.conv = l.cible AND m.uid = l.par AND m.role = 'admin' AND m.quitte_le IS NULL))`).get(h, horloge()) || null;
+              AND (genre <> 'groupe' OR EXISTS (SELECT 1 FROM membre m WHERE m.conv = l.cible AND m.uid = l.par AND m.role = 'admin' AND m.quitte_le IS NULL))
+              AND (genre <> 'espace' OR EXISTS (SELECT 1 FROM espace_membre x WHERE x.espace = l.cible AND x.uid = l.par AND x.role = 'admin'))`).get(h, horloge()) || null;
   }
   /* Révoquer : tous les liens d'un groupe (`cible`), ou tous les liens de contact d'une personne (`par`). */
   function liensRevoquerGroupe(conv) { return num(Q(`UPDATE lien SET revoque = 1 WHERE genre = 'groupe' AND cible = ? AND revoque = 0`).run(conv).changes); }
   function liensRevoquerContact(par) { return num(Q(`UPDATE lien SET revoque = 1 WHERE genre = 'contact' AND par = ? AND revoque = 0`).run(par).changes); }
   function lienApercu(h) {
     const l = lienValide(h); if (!l) return null;
+    if (l.genre === 'espace') return null;   // ⛔ un code d'invitation à un espace n'ouvre QUE `invitations/*` : par la route des contacts et des groupes, il ne dit rien (comme un code expiré)
     const par = personneParId(l.par); if (!par) return null;
     const o = { genre: l.genre, par: { id: par.id, prenom: par.prenom, nom: par.nom } };
     if (l.genre === 'groupe') {
@@ -610,7 +670,14 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const m = Q('SELECT conv, uid, role, depuis_seq, lu_seq, muet_jusqua, epingle, archive FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
     if (!m) return null;
     const c = convBrute(conv); if (!c) return null;
-    return { conv: convRang(c), moi: { role: m.role, depuis_seq: m.depuis_seq, lu_seq: m.lu_seq, muet_jusqua: m.muet_jusqua, epingle: !!m.epingle, archive: !!m.archive } };
+    const rang = convRang(c);
+    /* un CANAL dit à quel espace il appartient et s'il est privé — rien de plus (les autres conversations n'ont ces deux champs nulle part) */
+    if (c.type === 'canal') { const k = canalDe(conv); if (k) { rang.espace = k.espace; rang.prive = k.prive; } }
+    return { conv: rang, moi: { role: m.role, depuis_seq: m.depuis_seq, lu_seq: m.lu_seq, muet_jusqua: m.muet_jusqua, epingle: !!m.epingle, archive: !!m.archive } };
+  }
+  function canalDe(conv) {
+    const k = Q('SELECT espace, prive FROM canal WHERE conv = ?').get(conv);
+    return k ? { espace: k.espace, prive: !!k.prive } : null;
   }
   function membresActifs(conv) { return Q('SELECT uid FROM membre WHERE conv = ? AND quitte_le IS NULL').all(conv).map(r => r.uid); }
   /* ⛔ « ACCUSÉS DE LECTURE : NON » S'APPLIQUE : qui l'a coupé ne montre son `lu_seq` à PERSONNE d'autre (`null`), et
@@ -789,7 +856,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
           faits.push({ k: 'avatar' });
         }
       }
-      if (nom !== undefined && c.type === 'groupe' && nom !== nomDe(c.id, c.nom_ch)) {
+      if (nom !== undefined && (c.type === 'groupe' || c.type === 'canal') && nom !== nomDe(c.id, c.nom_ch)) {
         Q('UPDATE conversation SET nom_ch = ? WHERE id = ?').run(sceller('conversation', 'nom_ch', conv + '|nom', nom), conv);
         faits.push({ k: 'renomme' });
       }
@@ -854,8 +921,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
                 WHERE x.conv = c.id AND x.seq > m.lu_seq AND x.seq >= m.depuis_seq AND x.auteur <> m.uid
                   AND x.type <> 'systeme' AND x.supprime_le IS NULL AND (x.expire_ts IS NULL OR x.expire_ts > ?)
                   AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = m.uid)) AS non_lus,
-             (SELECT COUNT(*) FROM membre y WHERE y.conv = c.id AND y.quitte_le IS NULL) AS membres_n
-      FROM membre m JOIN conversation c ON c.id = m.conv
+             (SELECT COUNT(*) FROM membre y WHERE y.conv = c.id AND y.quitte_le IS NULL) AS membres_n,
+             k.espace AS canal_espace, k.prive AS canal_prive
+      FROM membre m JOIN conversation c ON c.id = m.conv LEFT JOIN canal k ON k.conv = c.id
       WHERE m.uid = ? AND m.quitte_le IS NULL AND (c.type <> 'direct' OR c.dernier_seq > 0 OR c.cree_par = m.uid)
       ORDER BY m.epingle DESC, c.dernier_ts DESC, c.id`).all(horloge(), uid);
     return lignes.map(l => {
@@ -864,6 +932,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         dernier_seq: l.dernier_seq, dernier_ts: l.dernier_ts, role: l.role, lu_seq: l.lu_seq, non_lus: num(l.non_lus),
         membres_n: num(l.membres_n), epingle: !!l.epingle, archive: !!l.archive, muet_jusqua: l.muet_jusqua, apercu: null, autre: null,
       };
+      if (l.type === 'canal' && l.canal_espace) { o.espace = l.canal_espace; o.prive = !!l.canal_prive; }   // un canal dit son espace et s'il est privé ; les autres conversations n'ont pas ces champs
       /* ⛔ Un éphémère ÉCHU n'est plus un aperçu, même si le balayeur n'est pas encore passé (il passe toutes les 60 s). */
       const p = Q(`SELECT seq, auteur, type, corps_ch, meta_ch, supprime_le FROM message x
                    WHERE x.conv = ? AND x.seq >= ? AND (x.expire_ts IS NULL OR x.expire_ts > ?)
@@ -881,7 +950,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         /* ⛔ le NOM de l'auteur d'un aperçu de groupe : sans lui, la liste disait « Quelqu'un : … » pour tout membre qui n'est pas dans mes contacts (le cas
            central d'un groupe par lien) et ne le corrigeait qu'à l'ouverture. Seulement quelqu'un qui est MEMBRE ACTIF de cette conversation — ses noms
            sont déjà dans `membresDetail` de la même conversation, rien de plus n'est dit. */
-        if (l.type === 'groupe' && p.type !== 'systeme' && p.auteur) {
+        if ((l.type === 'groupe' || l.type === 'canal') && p.type !== 'systeme' && p.auteur) {
           const a = Q(`SELECT p.id, p.prenom, p.nom FROM membre m JOIN personne p ON p.id = m.uid WHERE m.conv = ? AND m.uid = ? AND m.quitte_le IS NULL`).get(l.id, p.auteur);
           if (a) o.apercu.par = { id: a.id, prenom: a.prenom, nom: a.nom };
         }
@@ -908,7 +977,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const c = convBrute(conv); if (!c) return false;
     if (c.type !== 'direct') return true;
     const autre = autreDirect(conv, uid);
-    return !!autre && contactActif(uid, autre);
+    return !!autre && peutEcrire(uid, autre);
   }
 
   /* ══ MESSAGES ════════════════════════════════════════════════════════════════════════════ */
@@ -1113,7 +1182,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function audiencePersonne(uid) {
     const ids = Q(`SELECT vers AS id FROM contact WHERE de = ? AND etat = 'ok'
                    UNION
-                   SELECT b.uid AS id FROM membre a JOIN membre b ON a.conv = b.conv WHERE a.uid = ? AND a.quitte_le IS NULL AND b.quitte_le IS NULL AND b.uid <> ?`).all(uid, uid, uid).map(r => r.id);
+                   SELECT b.uid AS id FROM membre a JOIN membre b ON a.conv = b.conv WHERE a.uid = ? AND a.quitte_le IS NULL AND b.quitte_le IS NULL AND b.uid <> ?
+                   UNION
+                   SELECT y.uid AS id FROM espace_membre x JOIN espace_membre y ON x.espace = y.espace WHERE x.uid = ? AND y.uid <> ?`).all(uid, uid, uid, uid, uid).map(r => r.id);
     return ids.filter(x => x !== uid && !contactBloque(uid, x));
   }
 
@@ -1543,8 +1614,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return tx(() => {
       const p = Q('SELECT etat, suppression_le, avatar_piece FROM personne WHERE id = ?').get(uid);
       if (!p || p.etat !== 'actif' || (!rejeu && (p.suppression_le === null || p.suppression_le > horloge()))) return { effacee: false, pieces: [], convs: [], audience: [] };
-      const audience = audiencePersonne(uid);   // AVANT d'effacer les contacts : c'est eux qu'il faut prévenir
+      const audience = audiencePersonne(uid);   // AVANT d'effacer les contacts (et de sortir des espaces) : c'est eux qu'il faut prévenir
       const pieces = [], convs = [];
+      /* ⛔ LES ESPACES D'ABORD : la personne en sort comme on en sort (la propriété passe, ou l'espace est dissous s'il n'a qu'elle), et ses canaux avec — sinon la boucle
+         ci-dessous la ferait quitter un canal comme un groupe (le plus ancien membre y serait promu administrateur, ce qu'un canal n'admet pas : son rôle est celui de l'espace). */
+      const sortis = espaceQuitterTout(uid);
+      pieces.push(...sortis.pieces); convs.push(...sortis.convs);
       /* chaque conversation : un groupe se quitte comme on le quitte (le dernier administrateur passe la main, le dernier membre emporte le groupe), une directe reste à l'autre — qui y garde
          son historique mais ne peut plus y écrire. Les messages, eux, restent. */
       for (const m of Q('SELECT m.conv AS conv, c.type AS type FROM membre m JOIN conversation c ON c.id = m.conv WHERE m.uid = ? AND m.quitte_le IS NULL').all(uid)) {
@@ -1593,6 +1668,338 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function exportConversationsIds(uid) { return Q('SELECT conv FROM membre WHERE uid = ? AND quitte_le IS NULL ORDER BY conv').all(uid).map(r => r.conv); }
   function exportPieces(uid) {
     return Q('SELECT id, genre, taille, cree FROM piece WHERE proprio = ? ORDER BY cree, id LIMIT 20001').all(uid).map(r => ({ id: r.id, genre: r.genre, taille: num(r.taille), cree: num(r.cree) }));   // une de plus que ce que l'export garde : c'est ce qui dit qu'il y en a plus
+  }
+
+  /* ══ ESPACES, INVITATIONS, CANAUX, ABONNEMENT (migration 5) ════════════════════════════════════════════════════════════════
+     Un ESPACE est une entreprise : un propriétaire, des membres (administrateur ou membre), des canaux, un abonnement. Ce bloc ne décide JAMAIS d'une formule ni ne parle à
+     Stripe : il range et il lit (la formule est `formule.js`, Stripe est `facturation.js`). Ce qu'il tient, lui, ce sont les INVARIANTS :
+       · ⛔ UN CANAL EST UNE CONVERSATION (genre `canal`) : mêmes messages, mêmes accusés, mêmes pièces, même flux, même purge — rien n'est réécrit. Ce qui change est qui en est
+         membre : un canal PUBLIC a pour membres TOUS ceux de l'espace (ils y entrent et en sortent avec lui, jamais autrement), un canal PRIVÉ ceux qu'un administrateur y a mis
+         (des membres de l'espace, toujours) ;
+       · son rôle dans un canal est son rôle dans l'espace (administrateur de l'espace ⇔ administrateur du canal), tenu à jour quand le rôle change ;
+       · un membre d'espace qui part ou qu'on retire sort de TOUS les canaux de l'espace dans la même transaction, et l'effacement se note dans `purge` ;
+       · le propriétaire ne part jamais, ne se retire pas, ne se rétrograde pas : il passe d'abord la main (`espaceTransferer`) ;
+       · un canal qui n'a plus aucun membre est supprimé (comme un groupe dont le dernier membre part), pièces comprises. */
+  const ESPACES_PROPRIO_MAX = 3;      // espaces dont on est propriétaire (SERVEUR.md § 3.3)
+  const ESPACES_MEMBRE_MAX = 20;      // espaces dont on est membre, invitations comprises : une personne ne se laisse pas inscrire dans mille espaces
+  const CANAUX_MAX = 100;             // canaux par espace
+  const aadEspace = (id) => id + '|nom';
+  const nomEspace = (r) => r.nom_ch ? ouvrirOuNull('espace', 'nom_ch', aadEspace(r.id), r.nom_ch) : null;
+  function espaceBrut(id) { return Q('SELECT id, nom_ch, proprio, cree FROM espace WHERE id = ?').get(id) || null; }
+  const espaceRang = (r) => ({ id: r.id, nom: nomEspace(r), proprio: r.proprio, cree: num(r.cree) });
+  function espaceMembresN(id) { return num(Q('SELECT COUNT(*) AS n FROM espace_membre WHERE espace = ?').get(id).n); }
+
+  function espaceCreer({ nom, proprio }) {
+    return tx(() => {
+      if (num(Q('SELECT COUNT(*) AS n FROM espace WHERE proprio = ?').get(proprio).n) >= ESPACES_PROPRIO_MAX) throw erreur('trop_d_espaces');
+      if (num(Q('SELECT COUNT(*) AS n FROM espace_membre WHERE uid = ?').get(proprio).n) >= ESPACES_MEMBRE_MAX) throw erreur('trop_d_espaces');
+      const id = nouvelId('e'), t = horloge();
+      Q('INSERT INTO espace(id, nom_ch, proprio, cree) VALUES(?, ?, ?, ?)').run(id, sceller('espace', 'nom_ch', aadEspace(id), nom), proprio, t);
+      Q(`INSERT INTO espace_membre(espace, uid, role, depuis) VALUES(?, ?, 'admin', ?)`).run(id, proprio, t);
+      return { id };
+    });
+  }
+  /* L'espace « pour un membre » : `null` pour inexistant COMME pour « tu n'en es pas membre » (404 dans les deux cas, jamais 403). */
+  function espacePourMembre(id, uid) {
+    const m = Q('SELECT role, depuis FROM espace_membre WHERE espace = ? AND uid = ?').get(id, uid);
+    if (!m) return null;
+    const e = espaceBrut(id); if (!e) return null;
+    return { espace: espaceRang(e), moi: { role: m.role, depuis: num(m.depuis) } };
+  }
+  function espacesDe(uid) {
+    return Q(`SELECT e.id, e.nom_ch, e.proprio, e.cree, m.role, (SELECT COUNT(*) FROM espace_membre x WHERE x.espace = e.id) AS membres_n
+              FROM espace_membre m JOIN espace e ON e.id = m.espace WHERE m.uid = ? ORDER BY m.depuis, e.id`).all(uid)
+      .map(r => Object.assign(espaceRang(r), { role: r.role, membres_n: num(r.membres_n) }));
+  }
+  function espacesIds(uid) { return Q('SELECT espace FROM espace_membre WHERE uid = ?').all(uid).map(r => r.espace); }
+  /* Les membres, vus par `viewer`. Un administrateur (`tous`) lit le registre COMPLET — il gère la liste de son entreprise ; tout autre membre ne voit pas ceux avec qui un
+     blocage existe, dans un sens ou dans l'autre (même règle que la fiche d'une personne). */
+  function espaceMembres(espace, viewer, { tous = false } = {}) {
+    const lignes = Q(`SELECT p.id, p.prenom, p.nom, p.statut, p.avatar_piece, m.role, m.depuis FROM espace_membre m JOIN personne p ON p.id = m.uid
+                      WHERE m.espace = ? AND p.etat = 'actif' ORDER BY p.prenom, p.nom, p.id`).all(espace);
+    return lignes.filter(r => tous || r.id === viewer || !contactBloque(viewer, r.id)).map(r => ({
+      id: r.id, prenom: r.prenom, nom: r.nom, statut: r.statut, avatar: avatarPour(viewer, r.id, r.avatar_piece), role: r.role, depuis: num(r.depuis),
+      moi: r.id === viewer, contact: r.id !== viewer && contactActif(viewer, r.id) }));
+  }
+  function espaceMaj({ id, nom }) {
+    return tx(() => {
+      const e = espaceBrut(id); if (!e) throw erreur('introuvable');
+      Q('UPDATE espace SET nom_ch = ? WHERE id = ?').run(sceller('espace', 'nom_ch', aadEspace(id), nom), id);
+      return { change: nom !== nomEspace(e) };
+    });
+  }
+
+  /* Les canaux d'un espace, tels que `uid` les voit : ceux dont il est membre ACTIF (un canal privé qui ne le compte pas n'existe pas pour lui). */
+  function canauxVisibles(espace, uid) {
+    return Q(`SELECT k.conv AS id, k.prive, c.nom_ch, c.dernier_seq, c.dernier_ts, (SELECT COUNT(*) FROM membre x WHERE x.conv = k.conv AND x.quitte_le IS NULL) AS membres_n
+              FROM canal k JOIN conversation c ON c.id = k.conv
+              WHERE k.espace = ? AND EXISTS (SELECT 1 FROM membre m WHERE m.conv = k.conv AND m.uid = ? AND m.quitte_le IS NULL) ORDER BY k.cree, k.conv`).all(espace, uid)
+      .map(r => ({ id: r.id, nom: nomDe(r.id, r.nom_ch), prive: !!r.prive, membres_n: num(r.membres_n), dernier_seq: num(r.dernier_seq), dernier_ts: num(r.dernier_ts) }));
+  }
+  /* Entre `uid` dans un canal (ou y revient) : il ne lit que ce qui suit son arrivée, comme dans un groupe. → true s'il vient d'y entrer. */
+  function membreJoindre(conv, uid, role, t) {
+    const c = Q('SELECT dernier_seq FROM conversation WHERE id = ?').get(conv);
+    if (!c) throw erreur('introuvable');
+    const ds = num(c.dernier_seq) + 1;
+    const m = Q('SELECT quitte_le FROM membre WHERE conv = ? AND uid = ?').get(conv, uid);
+    if (m && m.quitte_le === null) { Q('UPDATE membre SET role = ? WHERE conv = ? AND uid = ?').run(role, conv, uid); return false; }
+    if (m) Q(`UPDATE membre SET quitte_le = NULL, role = ?, depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0 WHERE conv = ? AND uid = ?`).run(role, ds, ds - 1, t, conv, uid);
+    else Q(`INSERT INTO membre(conv, uid, role, depuis_seq, lu_seq, rejoint) VALUES(?, ?, ?, ?, ?, ?)`).run(conv, uid, role, ds, ds - 1, t);
+    return true;
+  }
+  function canauxPublics(espace) { return Q('SELECT conv FROM canal WHERE espace = ? AND prive = 0 ORDER BY cree, conv').all(espace).map(r => r.conv); }
+  function canauxDe(espace, uid) {
+    return Q('SELECT m.conv AS conv FROM membre m JOIN canal k ON k.conv = m.conv WHERE k.espace = ? AND m.uid = ? AND m.quitte_le IS NULL').all(espace, uid).map(r => r.conv);
+  }
+  /* Retire `uid` de l'espace ET de tous ses canaux. Ne regarde PAS le propriétaire (l'appelant le fait). → { convs, pieces } : les canaux touchés, les pièces des canaux devenus vides. */
+  function retirerDeEspace(espace, uid) {
+    const t = horloge(), convs = canauxDe(espace, uid), pieces = [];
+    for (const c of convs) {
+      Q('UPDATE membre SET quitte_le = ? WHERE conv = ? AND uid = ?').run(t, c, uid);
+      if (num(Q('SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND quitte_le IS NULL').get(c).n) === 0) pieces.push(...convSupprimer(c).pieces);   // le canal n'a plus personne : il part, pièces comprises
+      else journalAjouter('conv_maj', c, null, '');
+      journalAjouter('retire', c, uid, '');   // APRÈS la suppression éventuelle (elle efface le journal de la conversation) : celui qui part l'apprend toujours
+    }
+    Q('DELETE FROM espace_membre WHERE espace = ? AND uid = ?').run(espace, uid);
+    /* ⛔ NOTÉ : une archive d'avant ce geste ramènerait le membre, ses canaux et tout ce qu'ils disent (un salarié parti reprendrait la lecture de l'entreprise) */
+    Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(espace + '|' + uid + '|' + t, 'espace_membre', t);
+    return { convs, pieces };
+  }
+  function espaceMembreRetirer({ espace, uid }) {
+    return tx(() => {
+      const e = espaceBrut(espace); if (!e) throw erreur('introuvable');
+      if (!Q('SELECT 1 AS x FROM espace_membre WHERE espace = ? AND uid = ?').get(espace, uid)) throw erreur('introuvable');
+      if (e.proprio === uid) throw erreur('proprio');
+      return retirerDeEspace(espace, uid);
+    });
+  }
+  function rolerCanaux(espace, uid, role) {
+    const convs = canauxDe(espace, uid);
+    for (const c of convs) { Q('UPDATE membre SET role = ? WHERE conv = ? AND uid = ?').run(role, c, uid); journalAjouter('conv_maj', c, null, ''); }
+    return convs;
+  }
+  function espaceRoleMembre({ espace, uid, admin }) {
+    return tx(() => {
+      const e = espaceBrut(espace); if (!e) throw erreur('introuvable');
+      const m = Q('SELECT role FROM espace_membre WHERE espace = ? AND uid = ?').get(espace, uid);
+      if (!m) throw erreur('introuvable');
+      if (e.proprio === uid) throw erreur('proprio');
+      const futur = admin ? 'admin' : 'membre';
+      if (m.role === futur) return { change: false, convs: [] };
+      Q('UPDATE espace_membre SET role = ? WHERE espace = ? AND uid = ?').run(futur, espace, uid);
+      return { change: true, convs: rolerCanaux(espace, uid, futur) };
+    });
+  }
+  /* Passer la main : le nouveau propriétaire est un membre de l'espace, d'un compte actif dont la suppression n'est pas programmée ; il devient administrateur ; l'ancien reste administrateur. */
+  function espaceTransferer({ espace, de, vers }) {
+    return tx(() => {
+      const e = espaceBrut(espace); if (!e) throw erreur('introuvable');
+      if (e.proprio !== de) throw erreur('interdit');
+      if (vers === de) throw erreur('champ_invalide');
+      if (!Q('SELECT 1 AS x FROM espace_membre WHERE espace = ? AND uid = ?').get(espace, vers)) throw erreur('introuvable');
+      const p = Q('SELECT etat, verifie_le, suppression_le FROM personne WHERE id = ?').get(vers);
+      if (!p || p.etat !== 'actif' || !p.verifie_le || p.suppression_le !== null) throw erreur('destinataire_invalide');
+      if (num(Q('SELECT COUNT(*) AS n FROM espace WHERE proprio = ?').get(vers).n) >= ESPACES_PROPRIO_MAX) throw erreur('trop_d_espaces');
+      Q('UPDATE espace SET proprio = ? WHERE id = ?').run(vers, espace);
+      Q(`UPDATE espace_membre SET role = 'admin' WHERE espace = ? AND uid = ?`).run(espace, vers);
+      return { convs: rolerCanaux(espace, vers, 'admin') };
+    });
+  }
+  /* Dissoudre : les canaux partent comme partent les conversations (pièces et registre compris), les invitations, l'abonnement et la liste des membres avec l'espace. → les personnes à prévenir. */
+  function espaceSupprimer(id) {
+    return tx(() => {
+      const e = espaceBrut(id); if (!e) throw erreur('introuvable');
+      const pieces = [], convs = Q('SELECT conv FROM canal WHERE espace = ?').all(id).map(r => r.conv);
+      const membres = Q('SELECT uid FROM espace_membre WHERE espace = ?').all(id).map(r => r.uid);
+      for (const c of convs) pieces.push(...convSupprimer(c).pieces);
+      Q(`DELETE FROM lien WHERE genre = 'espace' AND cible = ?`).run(id);
+      Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(id, 'espace', horloge());
+      Q('DELETE FROM espace WHERE id = ?').run(id);   // espace_membre, canal et abonnement suivent (ON DELETE CASCADE)
+      return { pieces, convs, membres };
+    });
+  }
+  /* L'effacement d'un compte (`compteEffacer`) : la personne sort de tous ses espaces. Propriétaire avec d'autres membres : la propriété passe au plus ancien administrateur, à
+     défaut au plus ancien membre ; propriétaire seul : l'espace est dissous. Rejouable : sans espace, rien à faire. → { pieces, convs } */
+  function espaceQuitterTout(uid) {
+    const pieces = [], convs = [];
+    for (const r of Q('SELECT espace FROM espace_membre WHERE uid = ?').all(uid)) {
+      const e = espaceBrut(r.espace); if (!e) continue;
+      if (e.proprio === uid) {
+        const suivant = Q(`SELECT uid FROM espace_membre WHERE espace = ? AND uid <> ? ORDER BY (role = 'admin') DESC, depuis, uid LIMIT 1`).get(e.id, uid);
+        if (!suivant) { const d = espaceSupprimer(e.id); pieces.push(...d.pieces); convs.push(...d.convs); continue; }
+        Q('UPDATE espace SET proprio = ? WHERE id = ?').run(suivant.uid, e.id);
+        Q(`UPDATE espace_membre SET role = 'admin' WHERE espace = ? AND uid = ?`).run(e.id, suivant.uid);
+        rolerCanaux(e.id, suivant.uid, 'admin');
+      }
+      const x = retirerDeEspace(e.id, uid);
+      pieces.push(...x.pieces); convs.push(...x.convs);
+    }
+    return { pieces, convs };
+  }
+  /* Les espaces dont `uid` est le propriétaire ET le seul membre, avec un abonnement qui court : supprimer son compte laisserait Stripe prélever pour un espace qui n'existe plus. */
+  function espacesAbonnesSeul(uid) {
+    return Q(`SELECT e.id AS id FROM espace e JOIN abonnement a ON a.espace = e.id
+              WHERE e.proprio = ? AND a.abonnement IS NOT NULL AND a.statut NOT IN ('aucun', 'canceled', 'incomplete_expired')
+                AND (SELECT COUNT(*) FROM espace_membre x WHERE x.espace = e.id) <= 1`).all(uid).map(r => r.id);
+  }
+  function exportEspaces(uid) {
+    return Q('SELECT e.id, e.nom_ch, m.role, m.depuis FROM espace_membre m JOIN espace e ON e.id = m.espace WHERE m.uid = ? ORDER BY m.depuis, e.id').all(uid)
+      .map(r => ({ id: r.id, nom: nomEspace(r), role: r.role, depuis: num(r.depuis) }));
+  }
+
+  /* ── les invitations : un lien (genre `espace`), le code n'existe qu'en clair chez celui qui le distribue, ici seule son empreinte ── */
+  function invitationApercu(h) {
+    const l = lienValide(h); if (!l || l.genre !== 'espace') return null;
+    const e = espaceBrut(l.cible); if (!e) return null;
+    const par = personneParId(l.par); if (!par) return null;
+    return { genre: 'espace', par: { id: par.id, prenom: par.prenom, nom: par.nom }, espace: { nom: nomEspace(e), membres: espaceMembresN(e.id) } };
+  }
+  /* `max` : le nombre de membres au-delà duquel l'espace est complet (les places payées, ou l'infini) — calculé par l'appelant juste avant, sans attente entre les deux. */
+  function invitationAccepter({ h, uid, max }) {
+    return tx(() => {
+      const l = lienValide(h); if (!l || l.genre !== 'espace') throw erreur('lien_invalide');
+      const e = espaceBrut(l.cible); if (!e) throw erreur('lien_invalide');
+      if (Q('SELECT 1 AS x FROM espace_membre WHERE espace = ? AND uid = ?').get(e.id, uid)) return { deja: true, espace: e.id, par: l.par, convs: [] };
+      const n = espaceMembresN(e.id);
+      if (n >= MAX_MEMBRES || n >= max) throw erreur('espace_complet');
+      if (num(Q('SELECT COUNT(*) AS n FROM espace_membre WHERE uid = ?').get(uid).n) >= ESPACES_MEMBRE_MAX) throw erreur('trop_d_espaces');
+      Q('UPDATE lien SET restants = restants - 1 WHERE h = ? AND restants > 0').run(h);
+      const t = horloge();
+      Q(`INSERT INTO espace_membre(espace, uid, role, depuis) VALUES(?, ?, 'membre', ?)`).run(e.id, uid, t);
+      const convs = [];
+      for (const c of canauxPublics(e.id)) { if (membreJoindre(c, uid, 'membre', t)) { journalAjouter('conv_maj', c, null, ''); convs.push(c); } }
+      return { deja: false, espace: e.id, par: l.par, convs };
+    });
+  }
+  /* L'espace qu'ouvre ce code, s'il est valable (non expiré, non révoqué, non épuisé, créé par un administrateur d'aujourd'hui) — ou `null`. */
+  function invitationEspace(h) {
+    const l = lienValide(h);
+    return l && l.genre === 'espace' ? l.cible : null;
+  }
+  function espaceUids(id) { return Q('SELECT uid FROM espace_membre WHERE espace = ?').all(id).map(r => r.uid); }
+  /* Révoque tous les liens d'invitation vivants d'un espace ; chacun se NOTE (une archive d'avant rendrait la porte à qui détient encore le code). → le nombre révoqué */
+  function invitationsRevoquer(espace) {
+    return tx(() => {
+      const t = horloge();
+      Q(`INSERT INTO purge(objet, genre, quand) SELECT h, 'invitation', ? FROM lien WHERE genre = 'espace' AND cible = ? AND revoque = 0`).run(t, espace);
+      return num(Q(`UPDATE lien SET revoque = 1 WHERE genre = 'espace' AND cible = ? AND revoque = 0`).run(espace).changes);
+    });
+  }
+  /* Les invitations qui servent encore (non révoquées, non échues, avec des places) : pour dire « 2 liens actifs » à l'administrateur. */
+  function invitationsVivantes(espace) {
+    return num(Q(`SELECT COUNT(*) AS n FROM lien l WHERE genre = 'espace' AND cible = ? AND revoque = 0 AND exp > ? AND restants > 0
+                  AND EXISTS (SELECT 1 FROM espace_membre x WHERE x.espace = l.cible AND x.uid = l.par AND x.role = 'admin')`).get(espace, horloge()).n);
+  }
+
+  /* ── les canaux ── */
+  function canalCreer({ espace, par, nom, prive, membres }) {
+    return tx(() => {
+      const e = espaceBrut(espace); if (!e) throw erreur('introuvable');
+      const moi = Q('SELECT role FROM espace_membre WHERE espace = ? AND uid = ?').get(espace, par);
+      if (!moi || moi.role !== 'admin') throw erreur('interdit');
+      if (num(Q('SELECT COUNT(*) AS n FROM canal WHERE espace = ?').get(espace).n) >= CANAUX_MAX) throw erreur('trop_de_canaux');
+      const roles = new Map(Q('SELECT uid, role FROM espace_membre WHERE espace = ?').all(espace).map(r => [r.uid, r.role]));
+      const qui = prive ? [par].concat(Array.from(new Set(membres || [])).filter(u => u !== par)) : Array.from(roles.keys());
+      if (qui.length > MAX_MEMBRES) throw erreur('groupe_plein');
+      if (qui.some(u => !roles.has(u))) throw erreur('membre_inconnu');
+      const id = nouvelId('c'), t = horloge();
+      Q(`INSERT INTO conversation(id, type, nom_ch, annonces_seules, ephemere_s, dernier_ts, cree_par, cree) VALUES(?, 'canal', ?, 0, 0, ?, ?, ?)`).run(id, sceller('conversation', 'nom_ch', id + '|nom', nom), t, par, t);
+      Q('INSERT INTO canal(conv, espace, prive, cree_par, cree) VALUES(?, ?, ?, ?, ?)').run(id, espace, prive ? 1 : 0, par, t);
+      for (const u of qui) Q(`INSERT INTO membre(conv, uid, role, depuis_seq, rejoint) VALUES(?, ?, ?, 1, ?)`).run(id, u, roles.get(u), t);
+      const s = messageSysteme(id, par, { k: 'canal_cree' });
+      return { id, gid: s.gid };
+    });
+  }
+  /* Un canal dont `uid` est membre ACTIF ET administrateur, dans CET espace — sinon `null` (404 : il n'existe pas pour lui). */
+  function canalPourAdmin(espace, conv, uid) {
+    const k = canalDe(conv);
+    if (!k || k.espace !== espace) return null;
+    const m = Q('SELECT role FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
+    return m && m.role === 'admin' ? k : null;
+  }
+  function canalMembresAjouter({ conv, par, uids }) {
+    return tx(() => {
+      const k = canalDe(conv); if (!k) throw erreur('introuvable');
+      if (!k.prive) throw erreur('canal_public');
+      const roles = new Map(Q('SELECT uid, role FROM espace_membre WHERE espace = ?').all(k.espace).map(r => [r.uid, r.role]));
+      if (uids.some(u => !roles.has(u))) throw erreur('membre_inconnu');
+      const r = membresAjouter({ conv, par, uids });
+      for (const u of r.ajoutes) Q('UPDATE membre SET role = ? WHERE conv = ? AND uid = ?').run(roles.get(u), conv, u);
+      return r;
+    });
+  }
+  function canalMembreRetirer({ conv, par, uid }) {
+    return tx(() => {
+      const k = canalDe(conv); if (!k) throw erreur('introuvable');
+      if (!k.prive) throw erreur('canal_public');
+      const r = membreRetirer({ conv, par, uid });
+      const t = horloge();
+      Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(conv + '|' + uid + '|' + t, 'canal_membre', t);   // une archive d'avant ramènerait le retiré dans un canal privé
+      return r;
+    });
+  }
+  /* Quitter un canal PRIVÉ (un canal public se quitte avec l'espace) : personne n'est promu à la place — le rôle dans un canal est le rôle dans l'espace. */
+  function canalQuitter({ conv, uid }) {
+    return tx(() => {
+      const k = canalDe(conv); if (!k) throw erreur('introuvable');
+      if (!k.prive) throw erreur('canal_public');
+      if (!Q('SELECT 1 AS x FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid)) throw erreur('introuvable');
+      const t = horloge();
+      Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(conv + '|' + uid + '|' + t, 'canal_membre', t);
+      if (num(Q('SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND uid <> ? AND quitte_le IS NULL').get(conv, uid).n) === 0) {
+        const r = convSupprimer(conv);
+        return { vide: true, gid: journalAjouter('retire', conv, uid, ''), conv, pieces: r.pieces };
+      }
+      Q('UPDATE membre SET quitte_le = ? WHERE conv = ? AND uid = ?').run(t, conv, uid);
+      messageSysteme(conv, uid, { k: 'membre_parti', uid });
+      return { vide: false, gid: journalAjouter('retire', conv, uid, ''), conv, pieces: [] };
+    });
+  }
+
+  /* ── l'abonnement : le dernier état que STRIPE a dit (jamais ce qu'une requête prétend) ── */
+  const orNul = (x) => x === null || x === undefined ? null : num(x);
+  function abonnementLire(espace) {
+    const r = Q('SELECT espace, client, abonnement, session, session_le, statut, places, fin_periode, annule, impaye_depuis, relu_le FROM abonnement WHERE espace = ?').get(espace);
+    if (!r) return null;
+    return { espace: r.espace, client: r.client, abonnement: r.abonnement, session: r.session, session_le: orNul(r.session_le), statut: r.statut, places: num(r.places),
+      fin_periode: orNul(r.fin_periode), annule: !!r.annule, impaye_depuis: orNul(r.impaye_depuis), relu_le: orNul(r.relu_le) };
+  }
+  /* La session de paiement qu'on VIENT d'ouvrir pour cet espace (la dernière) : c'est elle, et elle seule, qui dira plus tard quel abonnement est le sien. */
+  function abonnementSession(espace, session) {
+    const t = horloge();
+    Q('INSERT INTO abonnement(espace, session, session_le, cree) VALUES(?, ?, ?, ?) ON CONFLICT(espace) DO UPDATE SET session = excluded.session, session_le = excluded.session_le').run(espace, session, t, t);
+  }
+  function abonnementSessionOubliee(espace) { Q('UPDATE abonnement SET session = NULL, session_le = NULL WHERE espace = ?').run(espace); }
+  /* Ce que Stripe a dit de l'abonnement de cet espace. `adopter` : l'abonnement vient d'être trouvé par la session (il remplace l'ancien et la session est consommée) ; sinon c'est
+     la relecture de celui qu'on connaît (la session en attente, s'il y en a une, reste). `impaye` date la PREMIÈRE lecture d'un impayé : le sursis de sept jours en part, et
+     une lecture « payé » l'efface. Un abonnement déjà attaché à un AUTRE espace ne s'attache pas (`abonnement_pris`). */
+  function abonnementPoser(espace, { client, abonnement, statut, places, fin_periode, annule, impaye }, { adopter = false } = {}) {
+    return tx(() => {
+      const t = horloge();
+      if (abonnement && Q('SELECT 1 AS x FROM abonnement WHERE abonnement = ? AND espace <> ?').get(abonnement, espace)) throw erreur('abonnement_pris');
+      Q('INSERT INTO abonnement(espace, cree) VALUES(?, ?) ON CONFLICT(espace) DO NOTHING').run(espace, t);
+      const a = Q('SELECT impaye_depuis, abonnement FROM abonnement WHERE espace = ?').get(espace);
+      const meme = a.abonnement === (abonnement || null);
+      const depuis = impaye ? (a.impaye_depuis !== null && meme ? num(a.impaye_depuis) : t) : null;
+      if (adopter) Q('UPDATE abonnement SET client = ?, abonnement = ?, statut = ?, places = ?, fin_periode = ?, annule = ?, impaye_depuis = ?, relu_le = ?, session = NULL, session_le = NULL WHERE espace = ?')
+        .run(client || null, abonnement || null, statut, places, fin_periode === undefined ? null : fin_periode, annule ? 1 : 0, depuis, t, espace);
+      else Q('UPDATE abonnement SET client = ?, abonnement = ?, statut = ?, places = ?, fin_periode = ?, annule = ?, impaye_depuis = ?, relu_le = ? WHERE espace = ?')
+        .run(client || null, abonnement || null, statut, places, fin_periode === undefined ? null : fin_periode, annule ? 1 : 0, depuis, t, espace);
+    });
+  }
+  /* Les espaces à relire chez Stripe : ceux dont l'abonnement court encore (un abonnement résilié est un état final), et ceux dont une session de paiement attend (24 h). */
+  function abonnementsARelire(limite = 200) {
+    return Q(`SELECT espace FROM abonnement
+              WHERE (abonnement IS NOT NULL AND statut NOT IN ('canceled', 'incomplete_expired')) OR (session IS NOT NULL AND session_le > ?)
+              ORDER BY COALESCE(relu_le, 0), espace LIMIT ?`).all(horloge() - 24 * 3600000, Math.max(1, limite | 0)).map(r => r.espace);
+  }
+  function facturationStats() {
+    const n = (s) => num(s.get().n);
+    return {
+      espaces: n(Q('SELECT COUNT(*) AS n FROM espace')),
+      abonnes: n(Q(`SELECT COUNT(*) AS n FROM abonnement WHERE statut IN ('active', 'trialing')`)),
+      impayes: n(Q(`SELECT COUNT(*) AS n FROM abonnement WHERE statut IN ('past_due', 'unpaid')`)),
+    };
   }
 
   /* ══ AGRÉGATS POUR /health — des NOMBRES, jamais un identifiant ══════════════════════════ */
@@ -1668,6 +2075,10 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         appareil_tel: non(() => Q('SELECT 1 FROM appareil_tel LIMIT 1')),
         sms_envoi: non(() => Q('SELECT 1 FROM sms_envoi LIMIT 1')),
         push: non(() => Q('SELECT 1 FROM push LIMIT 1')),
+        espace: non(() => Q('SELECT 1 FROM espace LIMIT 1')),
+        espace_membre: non(() => Q('SELECT 1 FROM espace_membre LIMIT 1')),
+        canal: non(() => Q('SELECT 1 FROM canal LIMIT 1')),
+        abonnement: non(() => Q('SELECT 1 FROM abonnement LIMIT 1')),
       },
     };
   }
@@ -1690,6 +2101,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     sessionAjouter, sessionLire, sessionToucher, sessionSupprimer, sessionsSupprimerPersonne, sessionsSupprimerAutres, sessionsBetaActives,
     contactLier, contactBloque, contactActif, contactsDe, contactsActifs, contactRetirer, contactEtat, contactLigne, peutVoir,
     lienCreer, lienValide, lienApercu, lienAccepter, liensRevoquerGroupe, liensRevoquerContact,
+    collegues, peutEcrire,
+    espaceCreer, espaceBrut, espacePourMembre, espacesDe, espacesIds, espaceMembres, espaceMembresN, espaceMaj, espaceMembreRetirer, espaceRoleMembre, espaceTransferer, espaceSupprimer, espaceQuitterTout, espacesAbonnesSeul, exportEspaces,
+    invitationApercu, invitationAccepter, invitationsRevoquer, invitationsVivantes, invitationEspace, espaceUids,
+    canalDe, canauxVisibles, canalCreer, canalPourAdmin, canalMembresAjouter, canalMembreRetirer, canalQuitter,
+    abonnementLire, abonnementSession, abonnementSessionOubliee, abonnementPoser, abonnementsARelire, facturationStats,
     convDirecteObtenir, convCreerGroupe, convSupprimer, convPourMembre, convListe, convMaj, membresActifs, membresDetail, nbAdmins,
     membresAjouter, membreRetirer, membreQuitter, membreRole, membrePrefs, membreLu, autreDirect, ecritureAutorisee,
     messageEnvoyer, messageExiste, messagesDe, messageModifier, messageSupprimer, messageReagir, reactionsDe, purgerExpires,
@@ -1716,7 +2132,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
    ⚠️ Aucune ne déchiffre quoi que ce soit et aucune n'a besoin de la clé maître : « ce fichier est-il intact » et « sais-je le lire »
    sont deux questions, et seule la première est du ressort d'une sauvegarde.
    Rangées sur `ouvrir.copie` plutôt que dans `module.exports` : le service, lui, n'a pas à les connaître. */
-const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push'];
+const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement'];
 
 function ouvrirCopie(chemin, { moteur, ecriture = false } = {}) {
   const { DatabaseSync } = moteur || require('node:sqlite');
@@ -1747,6 +2163,10 @@ function lignesDe(d) {
     appareil_tel: n(() => d.prepare('SELECT COUNT(*) AS n FROM appareil_tel')),
     sms_envoi: n(() => d.prepare('SELECT COUNT(*) AS n FROM sms_envoi')),
     push: n(() => d.prepare('SELECT COUNT(*) AS n FROM push')),
+    espace: n(() => d.prepare('SELECT COUNT(*) AS n FROM espace')),
+    espace_membre: n(() => d.prepare('SELECT COUNT(*) AS n FROM espace_membre')),
+    canal: n(() => d.prepare('SELECT COUNT(*) AS n FROM canal')),
+    abonnement: n(() => d.prepare('SELECT COUNT(*) AS n FROM abonnement')),
   };
 }
 
@@ -1792,6 +2212,10 @@ const GENRES_PURGE = {
   piece: 'copie',              // une pièce (`piece_expiree`… : tout genre qui COMMENCE par « piece ») : sa ligne part, son identifiant est rendu pour retirer le fichier
   conversation: 'copie',       // une conversation supprimée (le dernier membre est parti) : elle part avec ses membres, messages, réactions et invitations
   appareil: 'copie',           // un jeton d'appareil révoqué (déconnexion, « déconnecter les autres », onzième appareil) — l'empreinte, jamais le jeton
+  espace: 'copie',             // un espace dissous : sa ligne part (membres, canaux et abonnement avec elle), ses invitations et ses canaux aussi
+  espace_membre: 'copie',      // quelqu'un sort d'un espace (il part, il est retiré, son compte s'efface) : `espace|personne|date` — il sort aussi de ses canaux
+  invitation: 'copie',         // un lien d'invitation à un espace révoqué : son empreinte — le code ne rouvre plus rien
+  canal_membre: 'copie',       // quelqu'un sort d'un canal PRIVÉ (retiré, ou il le quitte) : `conversation|personne|date`
   compte: 'service',           // un compte effacé au bout de ses quatorze jours : il touche dix tables et passe par `compteEffacer` — rejoué par le SERVICE (`rejeu.js`)
 };
 
@@ -1818,7 +2242,7 @@ function purgeLire(chemin, opts) {
    Les lignes du registre sont recopiées dans la copie (sans doublon) : la copie se souvient désormais de ce qu'elle vient d'oublier,
    et la sauvegarde suivante le portera. Une seule transaction : tout ou rien. */
 function rejouerPurge(chemin, registre, opts) {
-  const bilan = { lues: 0, messagesRetires: 0, messagesBlanchis: 0, pieces: [], conversationsRetirees: 0, appareilsRetires: 0, auService: 0, ignorees: 0, ajoutees: 0 };
+  const bilan = { lues: 0, messagesRetires: 0, messagesBlanchis: 0, pieces: [], conversationsRetirees: 0, appareilsRetires: 0, espacesRetires: 0, membresEspaceRetires: 0, invitationsRevoquees: 0, membresCanalRetires: 0, auService: 0, ignorees: 0, ajoutees: 0 };
   let d = null;
   try {
     d = ouvrirCopie(chemin, Object.assign({}, opts, { ecriture: true }));
@@ -1835,6 +2259,17 @@ function rejouerPurge(chemin, registre, opts) {
     const tableAppareil = d.prepare(`SELECT 1 AS n FROM sqlite_master WHERE type = 'table' AND name = 'appareil_tel'`).get() !== undefined;
     /* Un appareil (re)lié APRÈS sa révocation (`cree` plus récent) est un autre appareil : seul celui qui existait au moment de la révocation part. */
     const retirerAppareil = tableAppareil ? d.prepare('DELETE FROM appareil_tel WHERE h = ? AND cree <= ?') : null;
+    /* les ESPACES (migration 5) : une archive d'un schéma plus ancien n'a pas ces tables — rien à y retirer, la ligne du registre est quand même recopiée */
+    const a = (nom) => d.prepare(`SELECT 1 AS n FROM sqlite_master WHERE type = 'table' AND name = ?`).get(nom) !== undefined;
+    const tableEspace = a('espace') && a('espace_membre') && a('canal');
+    const retirerCanauxDEspace = tableEspace ? d.prepare('DELETE FROM conversation WHERE id IN (SELECT conv FROM canal WHERE espace = ?)') : null;
+    const retirerLiensEspace = d.prepare(`DELETE FROM lien WHERE genre = 'espace' AND cible = ?`);
+    const retirerEspace = tableEspace ? d.prepare('DELETE FROM espace WHERE id = ?') : null;
+    /* un membre ARRIVÉ APRÈS son retrait (`depuis` plus récent) est un autre arrivé : seul celui qui existait au moment du retrait part */
+    const retirerMembreEspace = tableEspace ? d.prepare('DELETE FROM espace_membre WHERE espace = ? AND uid = ? AND depuis <= ?') : null;
+    const sortirCanaux = tableEspace ? d.prepare('UPDATE membre SET quitte_le = ? WHERE uid = ? AND quitte_le IS NULL AND rejoint <= ? AND conv IN (SELECT conv FROM canal WHERE espace = ?)') : null;
+    const sortirCanal = d.prepare('UPDATE membre SET quitte_le = ? WHERE conv = ? AND uid = ? AND quitte_le IS NULL AND rejoint <= ?');
+    const revoquerLien = d.prepare(`UPDATE lien SET revoque = 1 WHERE h = ? AND genre = 'espace' AND revoque = 0`);
     const recopier = d.prepare('INSERT INTO purge(objet, genre, quand) SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM purge WHERE objet = ? AND genre = ?)');
     d.exec('BEGIN IMMEDIATE');
     try {
@@ -1858,6 +2293,23 @@ function rejouerPurge(chemin, registre, opts) {
           bilan.conversationsRetirees += Number(retirerConv.run(r.objet).changes);
         } else if (genre === 'appareil') {
           if (retirerAppareil) bilan.appareilsRetires += Number(retirerAppareil.run(r.objet, Number(r.quand) || 0).changes);
+        } else if (genre === 'espace') {
+          /* un espace dissous : ses canaux (avec leurs messages), ses invitations, puis l'espace — ses membres et son abonnement partent avec lui (ON DELETE CASCADE) */
+          if (retirerCanauxDEspace) retirerCanauxDEspace.run(r.objet);
+          retirerLiensEspace.run(r.objet);
+          if (retirerEspace) bilan.espacesRetires += Number(retirerEspace.run(r.objet).changes);
+        } else if (genre === 'espace_membre') {
+          const [esp, uid] = String(r.objet).split('|');
+          if (esp && uid && retirerMembreEspace) {
+            const q = Number(r.quand) || 0;
+            bilan.membresEspaceRetires += Number(retirerMembreEspace.run(esp, uid, q).changes);
+            sortirCanaux.run(q, uid, q, esp);
+          }
+        } else if (genre === 'invitation') {
+          bilan.invitationsRevoquees += Number(revoquerLien.run(r.objet).changes);
+        } else if (genre === 'canal_membre') {
+          const [conv, uid] = String(r.objet).split('|');
+          if (conv && uid) bilan.membresCanalRetires += Number(sortirCanal.run(Number(r.quand) || 0, conv, uid, Number(r.quand) || 0).changes);
         } else if (GENRES_PURGE[genre] === 'service') {
           bilan.auService++;   // recopiée seulement : le service la rejoue à son premier démarrage (`rejeu.js`) — ni « ignorée », ni faite ici
         } else {

@@ -55,7 +55,13 @@ const CHAMPS_VUS = {
   'sms.envoyes24h': 'le nombre de SMS est une information ; ce qui compte est l\'ARGENT (sms.coutJourEur et les budgets), qui est surveillé',
   'push.abonnements': 'le nombre d\'appareils abonnés aux notifications est une information de croissance : le service borne lui-même chaque personne (dix appareils) et retire un abonnement après cinq échecs de suite — aucune alarme horaire n\'ajouterait une décision',
   'pieces.n': 'le nombre de pièces est une information de croissance : le service borne lui-même chaque personne (quota de stockage) et refuse d\'écrire sous son plancher de disque (503), aucune alarme horaire n\'ajouterait une décision',
-  'pieces.octets': 'l\'espace pris par les pièces grandit avec l\'usage : il est borné par personne (quota) et par le plancher de disque du service, qui refuse d\'écrire plutôt que de priver OP GESTION — un total n\'a pas de seuil qui ait un sens'
+  'pieces.octets': 'l\'espace pris par les pièces grandit avec l\'usage : il est borné par personne (quota) et par le plancher de disque du service, qui refuse d\'écrire plutôt que de priver OP GESTION — un total n\'a pas de seuil qui ait un sens',
+  /* ⛔ LA FACTURATION (Messages Pro, étape 5). Ce qui est une PANNE de notre côté ou de Stripe est surveillé (`stripeEchecMin`, plus haut) ; le reste est de l'information commerciale. */
+  'facturation.mode': 'le mode de la facturation (inerte sans clé, test, live) est une configuration que l\'installation pose : ce qui compte est que Stripe réponde, et c\'est stripeEchecMin qui le surveille',
+  'facturation.toutOuvert': 'le drapeau de la bêta (tout est ouvert, sans paiement) est un réglage : la production REFUSE de démarrer avec lui (config.js), aucune alarme horaire n\'ajouterait une décision',
+  'facturation.espaces': 'le nombre d\'espaces professionnels est une information de croissance : chaque personne est bornée par le service (trois espaces propriétaires), aucune alarme horaire n\'ajouterait une décision',
+  'facturation.abonnes': 'le nombre d\'espaces dont l\'abonnement est payé est une information commerciale, lue à la main : un seuil n\'aurait pas de sens avant les premières ventes',
+  'facturation.impayes': 'un abonnement en retard est un fait commercial que l\'administrateur de l\'espace voit et règle (sept jours de sursis, rien d\'effacé) : une alarme horaire crierait pour une carte refusée, pas pour une panne de notre côté'
 };
 
 const SEUIL_SAUVEGARDE_H = 2;    // une copie par heure promise (SERVEUR.md § 3.7) : au-delà de 2 h, une passe entière a manqué

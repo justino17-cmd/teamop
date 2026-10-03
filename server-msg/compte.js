@@ -66,7 +66,7 @@ function installerCompte(H, ctx) {
       await ecrire('{"format":"opmessages-export-v1","genere_le":' + J(new Date(t).toISOString()) +
         ',"avertissement":' + J('Ce fichier contient TES données dans OP MESSAGES : ton profil, tes réglages, tes contacts, les conversations dont tu es membre avec les messages que tu peux y lire, et la liste de tes pièces (sans leur contenu). Il ne contient rien des autres au-delà de ce que tu vois déjà. Ton numéro de téléphone n\'y figure pas : le service ne le rend à personne, toi comprise.') +
         ',"profil":' + J({ id: profil.id, prenom: profil.prenom, nom: profil.nom, statut: profil.statut, langue: profil.langue, fuseau: profil.fuseau, compte_cree_le: new Date(profil.cree).toISOString(), origine: profil.origine }) +
-        ',"reglages":' + J(reglages) + ',"contacts":' + J(contacts) + ',"conversations":[');
+        ',"reglages":' + J(reglages) + ',"contacts":' + J(contacts) + ',"espaces":' + J(stockage.exportEspaces(uid).map(e => ({ id: e.id, nom: e.nom, role: e.role, depuis: new Date(e.depuis).toISOString() }))) + ',"conversations":[');
       let premiere = true, tronque = null;
       for (const id of stockage.exportConversationsIds(uid)) {
         if (total > plafondOctets) { tronque = 'conversations'; break; }
@@ -129,6 +129,10 @@ function installerCompte(H, ctx) {
   /* ── LA SUPPRESSION ────────────────────────────────────────────────────────────────────────────────────────────────────── */
   H['compte.supprimer'] = garder((req, res) => {
     if (corps(req).confirmation !== 'SUPPRIMER') return refus(res, 400, 'confirmation_requise');
+    /* ⛔ UN ESPACE ABONNÉ DONT ON EST LE SEUL MEMBRE : l'effacer du compte dissoudrait l'espace, et Stripe continuerait de prélever pour un espace qui n'existe plus. On le DIT (409, avec le
+       remède : résilier l'abonnement, ou passer la main) au lieu de laisser cette surprise à la carte bancaire. C'est la seule exception à « quitter ne se refuse à personne », et elle se
+       lève d'un geste ; un propriétaire qui n'est pas seul passe la main tout seul à l'effacement (`espaceQuitterTout`). */
+    if (stockage.espacesAbonnesSeul(req.moi.id).length) return refus(res, 409, 'espace_abonne');
     const q = Object.assign({ max: 5, fenetreMs: 3600000 }, config.quotas.compte_supprimer || {});
     const e = quotas.essai('compte_supprimer:' + req.moi.id, q.max, q.fenetreMs);
     if (!e.ok) { res.set('Retry-After', String(e.retry)); return refus(res, 429, 'quota_atteint', { retry: e.retry }); }

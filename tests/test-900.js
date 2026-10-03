@@ -73,6 +73,10 @@ console.log('\nAucun chemin d\'OP GESTION, aucun domaine tiers, aucune adresse d
     for (const m of c.matchAll(/https?:\/\/([a-zA-Z0-9.-]+)/g)) {
       if (/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(m[1])) continue;
       if (nom === 'sms-ovh.js' && /^(?:eu|ca)\.api\.ovh\.com$|^api\.us\.ovhcloud\.com$/.test(m[1])) continue;
+      /* ⛔ UNE TROISIÈME EXCEPTION, NOMMÉE : `facturation.js` appelle `api.stripe.com` — Messages Pro se paie par Stripe (SERVEUR.md § 3.8, décision de Justin), par `fetch`, sans
+         bibliothèque. Le nom d'hôte est une CONSTANTE de ce seul fichier, et la porte de test des bancs (`OPMSG_TEST_STRIPE`) est refusée en production. Tout autre fichier, et tout autre
+         hôte dans celui-là, reste interdit. */
+      if (nom === 'facturation.js' && m[1] === 'api.stripe.com') continue;
       interdits.push(nom + ' : adresse ' + m[1]);
     }
     for (const m of c.matchAll(/\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/g)) if (m[1] !== '127.0.0.1') interdits.push(nom + ' : adresse IP ' + m[1]);
@@ -114,7 +118,7 @@ console.log('\nLes listes de bancs sont disjointes');
   const pl = /^#plancher (\d+)\s*$/m.exec(brut);
   vrai('la liste porte une ligne « #plancher N » (un seul plancher)', pl && (brut.match(/^#plancher /gm) || []).length === 1);
   vrai('le plancher est réel, pas symbolique (plus de 500 vérifications)', pl && parseInt(pl[1], 10) > 500);
-  v('les numéros de suites d\'OP MESSAGES sont dans 900-939, 941-944 (le générateur de l\'interface, renuméroté à la fusion avec le compte Perso ; puis les pièces : 942 le module, 943 le service, 944 l\'appareil et le service) ou 950-959 (la sauvegarde hors site, étape 3 : 950 et 951 ; puis les notifications push et le compte : 955 le module, 956 le service, 957 l\'export et la suppression, 958 l\'appareil et le service)', msg.filter(x => !/test-(?:9[0-3]\d|94[1-4]|95\d)\.js$/.test(x)), []);
+  v('les numéros de suites d\'OP MESSAGES sont dans 900-939, 941-944 (le générateur de l\'interface, renuméroté à la fusion avec le compte Perso ; puis les pièces : 942 le module, 943 le service, 944 l\'appareil et le service), 950-959 (la sauvegarde hors site, étape 3 : 950 et 951 ; puis les notifications push et le compte : 955 le module, 956 le service, 957 l\'export et la suppression, 958 l\'appareil et le service) ou 960-969 (les espaces professionnels et Messages Pro, étape 5)', msg.filter(x => !/test-(?:9[0-3]\d|94[1-4]|95\d|96\d)\.js$/.test(x)), []);
 }
 
 console.log('\nUn jeton de session d\'OP MESSAGES n\'est pas lisible par OP GESTION');

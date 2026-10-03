@@ -46,7 +46,11 @@ const lance = (f) => { try { f(); return null; } catch (e) { return e.code || e.
 console.log('Les migrations (PRAGMA user_version) sont numérotées, rejouables, et gardent une copie');
 {
   const a = neuf();
-  v('une base neuve est au schéma 4 (la migration 2 — le téléphone —, la 3 — les pièces — et la 4 — les notifications push et la suppression de compte — s\'appliquent à la création)', a.S.schema(), 4);
+  /* ⛔ LE NUMÉRO DE LA DERNIÈRE MIGRATION SE LIT, il ne s'écrit pas : chaque migration neuve (la 5, les espaces professionnels) obligeait à retoucher ce banc, qui garde la MÉCANIQUE
+     (numérotée, rejouable, avec copie), pas la dernière migration. Chacune a son banc : 916 (2), 943 (3), 957 (4), 960 (5). */
+  const DERNIERE = MIGRATIONS[MIGRATIONS.length - 1].v, SUIVANTE = DERNIERE + 1;
+  vrai('population : au moins cinq migrations, numérotées 1, 2, 3… sans trou', MIGRATIONS.length >= 5 && MIGRATIONS.every((m, i) => m.v === i + 1));
+  v('une base neuve est au schéma de la DERNIÈRE migration (la 2 — le téléphone —, la 3 — les pièces —, la 4 — les notifications push et la suppression de compte — et la 5 — les espaces professionnels — s\'appliquent à la création)', a.S.schema(), DERNIERE);
   const p = pers(a.S, 'alice');
   a.S.fermer();
   const b = ouvrir({ chemin: a.chemin, scelleur: creerScelleur(a.kek), horloge: () => a.h.t });
@@ -59,17 +63,17 @@ console.log('Les migrations (PRAGMA user_version) sont numérotées, rejouables,
   v('⛔ la migration 1 rejouée sur une base déjà migrée ne casse rien (IF NOT EXISTS) et n\'efface rien', rejouee, 'alice');
   if (c) c.fermer();
 
-  const m2 = MIGRATIONS.concat([{ v: 5, sql: ['CREATE TABLE IF NOT EXISTS essai_v5(x INTEGER)', 'PRAGMA user_version = 5'] }]);
+  const m2 = MIGRATIONS.concat([{ v: SUIVANTE, sql: ['CREATE TABLE IF NOT EXISTS essai_suivante(x INTEGER)', 'PRAGMA user_version = ' + SUIVANTE] }]);
   const d = neuf({ migrations: MIGRATIONS });
   pers(d.S, 'avant'); d.S.fermer();
   const e = ouvrir({ chemin: d.chemin, scelleur: creerScelleur(d.kek), horloge: () => d.h.t, migrations: m2 });
-  v('une migration suivante (5) s\'applique une fois (schéma 5)', e.schema(), 5);
-  vrai('⛔ une copie « avant-v5 » a été conservée (VACUUM INTO) avant de migrer une base qui a vécu', fs.existsSync(d.chemin + '.avant-v5'));
-  const copie = new DatabaseSync(d.chemin + '.avant-v5');
-  v('la copie est la base d\'AVANT (schéma 4, sans la table neuve)', [copie.prepare('PRAGMA user_version').get().user_version, copie.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name='essai_v5'").get().n], [4, 0]);
+  v('une migration suivante (' + SUIVANTE + ') s\'applique une fois (schéma ' + SUIVANTE + ')', e.schema(), SUIVANTE);
+  vrai('⛔ une copie « avant-v' + SUIVANTE + ' » a été conservée (VACUUM INTO) avant de migrer une base qui a vécu', fs.existsSync(d.chemin + '.avant-v' + SUIVANTE));
+  const copie = new DatabaseSync(d.chemin + '.avant-v' + SUIVANTE);
+  v('la copie est la base d\'AVANT (schéma ' + DERNIERE + ', sans la table neuve)', [copie.prepare('PRAGMA user_version').get().user_version, copie.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name='essai_suivante'").get().n], [DERNIERE, 0]);
   copie.close(); e.fermer();
   const f2 = neuf({ migrations: m2 });
-  vrai('une base NEUVE n\'a pas de copie à garder (rien n\'a vécu)', !fs.existsSync(f2.chemin + '.avant-v1') && !fs.existsSync(f2.chemin + '.avant-v2') && !fs.existsSync(f2.chemin + '.avant-v3') && !fs.existsSync(f2.chemin + '.avant-v4') && !fs.existsSync(f2.chemin + '.avant-v5'));
+  vrai('une base NEUVE n\'a pas de copie à garder (rien n\'a vécu)', m2.every(m => !fs.existsSync(f2.chemin + '.avant-v' + m.v)));
 }
 
 console.log('\nLe scellage : rien en clair sur le disque, une mauvaise clé est refusée');

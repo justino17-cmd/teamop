@@ -28,6 +28,8 @@ const { installerTelephone, appareilToucherDe, SESSION_TEL_MS } = require('./tel
 const { installerPieces } = require('./routes-pieces');
 const { installerPush } = require('./routes-push');
 const { installerCompte } = require('./compte');
+const { installerEspaces, ID_ESPACE } = require('./routes-espaces');
+const { installerFacturation } = require('./facturation');
 const { ID_PIECE } = require('./pieces');
 
 const NOM_ENTETE = 'x-opm';
@@ -154,6 +156,28 @@ function construireApp(ctx) {
     req.piece = p; next();
   }]);
   garde.A = garde.M.concat([(req, res, next) => req.conv.moi.role === 'admin' ? next() : refus(res, 403, 'interdit')]);
+  /* ⛔ E, EA, EP : un ESPACE. Bâties sur V — « une session prouve un mot de passe, pas une adresse » : tout effet qui agit au nom d'une entreprise exige l'adresse confirmée. L'espace se lit
+     dans le chemin (`:id`) et la base, jamais dans le corps. Un espace dont on n'est pas membre répond 404, la MÊME réponse qu'un espace inexistant (ou mal formé) : un non-membre ne voit
+     RIEN. Un membre qui n'a pas le rôle voit 403 (il connaît déjà l'espace). */
+  const espaceDuMembre = (req, res, next) => {
+    const id = req.params.id;
+    const r = ID_ESPACE.test(id) ? stockage.espacePourMembre(id, req.moi.id) : null;
+    if (!r) return refus(res, 404, 'introuvable');
+    req.espace = r; next();
+  };
+  garde.E = garde.V.concat([espaceDuMembre]);
+  garde.EA = garde.E.concat([(req, res, next) => req.espace.moi.role === 'admin' ? next() : refus(res, 403, 'interdit')]);
+  garde.EP = garde.E.concat([(req, res, next) => req.espace.espace.proprio === req.moi.id ? next() : refus(res, 403, 'interdit')]);
+  /* ⛔ PRO : une fonction payante. `formuleDe` est la SEULE fonction qui décide (`formule.js`) — ce garde la lit, il ne recopie aucune règle. Une route de l'espace (`req.espace`) se juge sur la
+     formule de l'ESPACE, une route de la personne (créer un espace) sur la meilleure formule de la personne. 402 `formule_requise` ; seul l'administrateur de l'espace lit POURQUOI
+     (`raison`: impayé, jamais abonné) ; `abonnement_ouvert` dit si un bouton de paiement mènerait quelque part. Rien n'est retiré : seule la fonction refuse. */
+  garde.PRO = [(req, res, next) => {
+    const v = ctx.formule.formuleDe(req.espace ? { espace: req.espace.espace.id } : { personne: req.moi.id });
+    if (v.formule === 'pro') return next();
+    const extra = { abonnement_ouvert: !!(ctx.facturation && ctx.facturation.ouvert()) };
+    if (req.espace && req.espace.moi.role === 'admin') extra.raison = v.formule;
+    return refus(res, 402, 'formule_requise', extra);
+  }];
 
   /* ── Les routes : UNIQUEMENT depuis le manifeste ─────────────────────────────────────── */
   const H = creerHandlers(ctx);
@@ -162,6 +186,8 @@ function construireApp(ctx) {
   installerPieces(H, ctx);      // les pièces : déposer, lire, photo de profil, espace utilisé
   installerPush(H, ctx);        // les notifications : abonner, désabonner, essai, acquitter
   installerCompte(H, ctx);      // le compte : exporter ses données, supprimer son compte
+  installerEspaces(H, ctx);     // les espaces professionnels : membres, invitations, canaux, « Contacts de l'entreprise »
+  installerFacturation(H, ctx); // Messages Pro : les offres, l'état, le paiement (Stripe), le portail, la relecture
   /* Les écritures authentifiées ont un plafond propre, par compte (en plus de celui de l'adresse). */
   const limiteEcriture = (req, res, next) => {
     const q = Object.assign({ max: 300, fenetreMs: 60000 }, config.quotas.ecriture || {});
@@ -176,6 +202,7 @@ function construireApp(ctx) {
     const g = garde[r.garde];
     if (!g) throw new Error('garde inconnue : ' + r.garde);
     const chaine = g.slice();
+    if (r.pro === true) chaine.push(...garde.PRO);     // ⛔ la route le DÉCLARE (manifeste) ; après sa garde d'appartenance, jamais avant (un non-membre reçoit 404, pas 402)
     if (r.m === 'POST' && r.garde !== 'P' && r.garde !== 'B') chaine.push(limiteEcriture);
     app[r.m.toLowerCase()](r.p, ...chaine, h);
   }
