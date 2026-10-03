@@ -503,7 +503,7 @@ caractère faux. Il ne l'affiche jamais. Espaces et majuscules acceptés (pour l
   jusqu'à ce que tout soit au coffre. Une première mise en service avec beaucoup de pièces peut donc faire crier la surveillance quelques heures — c'est vrai, ce n'est pas une panne.
 - **Si l'horloge du serveur saute** de plus d'un jour par rapport à celle du coffre, la passe se déclare en échec (`horloge-ecart`) et **n'efface rien** ; un âge de copie négatif fait aussi crier la surveillance.
   Recaler l'horloge (`timedatectl`), la sauvegarde repart toute seule à la passe suivante.
-- **La surveillance crie** (le contrôle horaire de GitHub) si la dernière copie relue a plus de 2 h, si deux passes de suite échouent, et — **en production seulement** — si
+- **La surveillance crie** (le contrôle horaire de GitHub) si la dernière copie relue a plus de 2 h (ou est datée de plus d'une heure dans le futur), si deux passes de suite échouent, et — **en production seulement** — si
   aucun essai de restauration n'a réussi depuis 35 jours. La bêta n'est pas alarmée sur l'essai : ses données sont jetables.
 - **Chaque mois** (production) : le geste 6, et tu colles le résultat.
 - ⚠️ **Un message supprimé vit encore dans les copies pendant 14 jours.** Une restauration rejoue le registre des suppressions pour le retirer de la base remise en service,

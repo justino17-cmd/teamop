@@ -12,8 +12,10 @@
  *   OPMSG_CONFIG=… node outils/restaurer.js restaurer --vers <dossier> [--date AAAA-MM-JJ[THH[:MM]]] [--ecraser] [--sans-pieces] [--sans-purge]
  *
  *   essai      restaure la DERNIÈRE archive (ou celle d'une date) dans un dossier JETABLE : télécharge, déchiffre, rouvre la base,
- *              la contrôle (`quick_check`, comptage des lignes de chaque table), REJOUE le registre des purges, vérifie que la clé
- *              maître de ce serveur ouvre la base, relit un échantillon de pièces — puis efface son dossier. Réussi, il écrit la date.
+ *              la contrôle (`quick_check`, comptage des lignes de chaque table), REJOUE le registre des purges (celui de la plus récente
+ *              archive QUI S'OUVRE), vide les sessions, vérifie que la clé maître de ce serveur ouvre la base, relit un échantillon de
+ *              pièces et COMPTE les lignes de pièces qui n'ont pas de fichier au coffre — puis efface son dossier. Réussi, il écrit la
+ *              date (sauf si la clé maître n'a pas pu être vérifiée : il ne prouve alors que l'intégrité, et le dit).
  *   liste      ce que contient le coffre : les archives (date, taille) et le nombre de pièces. Rien d'autre.
  *   restaurer  la VRAIE restauration, dans `--vers`. ⛔ Elle n'écrase JAMAIS une base existante sans `--ecraser`, et même avec elle
  *              elle MET DE CÔTÉ l'ancienne (`msg.db.avant-restauration-…`) au lieu de l'effacer. Elle refuse tant que le service tourne.
