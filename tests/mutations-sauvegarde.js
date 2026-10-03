@@ -102,9 +102,9 @@ const MUTATIONS = [
   ['R03', 'l\'ancienne base est EFFACÉE au lieu d\'être mise de côté', F.rest,
     [["for (const f of existantes) fs.renameSync(path.join(dest, f), path.join(dest, f + marque));", 'for (const f of existantes) fs.rmSync(path.join(dest, f), { force: true });']], ['950', '951']],
   ['R04', 'l\'essai ne rejoue pas le registre des purges', F.rest,
-    [["    const p = ouvrir.copie.rejouerPurge(base, registre);\n    dire('  purge rejouée : ' + p.lues", "    const p = { lues: 0, messagesRetires: 0, messagesBlanchis: 0, pieces: [], ignorees: 0, ajoutees: 0 };\n    dire('  purge rejouée : ' + p.lues"]], ['950']],
+    [["    const p = ouvrir.copie.rejouerPurge(base, reg.registre);\n    dire('  purge rejouée : ' + p.lues", "    const p = { lues: 0, messagesRetires: 0, messagesBlanchis: 0, pieces: [], ignorees: 0, ajoutees: 0 };\n    dire('  purge rejouée : ' + p.lues"]], ['950']],
   ['R05', 'la vraie restauration ne rejoue pas le registre des purges (un message effacé REVIENT)', F.rest,
-    [["    const p = ouvrir.copie.rejouerPurge(base, registre);\n    dire('  purge rejouée : ' + p.messagesRetires", "    const p = { lues: 0, messagesRetires: 0, messagesBlanchis: 0, pieces: [], ignorees: 0, ajoutees: 0 };\n    dire('  purge rejouée : ' + p.messagesRetires"]], ['950']],
+    [["    const p = ouvrir.copie.rejouerPurge(base, reg.registre);\n    dire('  purge rejouée : ' + p.messagesRetires", "    const p = { lues: 0, messagesRetires: 0, messagesBlanchis: 0, pieces: [], ignorees: 0, ajoutees: 0 };\n    dire('  purge rejouée : ' + p.messagesRetires"]], ['950']],
   ['R06', 'l\'essai ne vérifie plus que la clé maître OUVRE la base restaurée', F.rest, [["const cm = verifierCleMaitre(base, ctx.kekChemin);", 'const cm = { verifiee: true, ok: true };']], ['950', '951']],
   ['R07', 'un essai réussi n\'écrit plus sa date (/health ne passera jamais à essaiJours: 0)', F.rest,
     [["ecrireEssai(ctx.dataDir, { okTs: Date.now(), archive: 'base/' + cible.nom + SAUV.SUFFIXE, schema: r.meta.schema, lignes: v.total, cleMaitreVerifiee: !!cm.verifiee, pieces: pieces.pieces.length });", '']], ['950', '951']],
@@ -112,6 +112,11 @@ const MUTATIONS = [
     [["if (!segs.length || segs.some(s => !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(s))) { refusees++; continue; }", '']], ['950']],
   ['R09', 'un essai RATÉ efface la date du dernier essai réussi', F.rest,
     [["ecrireEssai(ctx.dataDir, { echecTs: Date.now(), echecMotif: String(e.message).slice(0, 120) });", "ecrireEssai(ctx.dataDir, { okTs: null, echecTs: Date.now(), echecMotif: String(e.message).slice(0, 120) });"]], ['951', '950']],
+  ['R10', 'la restauration ne remonte plus quand une archive plus récente est abîmée (B2 : le geste du guide § 9 échoue)', F.rest,
+    [["    } catch (e) {\n      const motif = e && e.sortie ? e.message : 'archive illisible';", "    } catch (e) {\n      throw e;\n      const motif = e && e.sortie ? e.message : 'archive illisible';"]], ['950']],
+  ['R11', 'un registre des purges INCONNU est accepté sans `--sans-purge` (les messages supprimés reviennent en silence)', F.rest, [["  if (!sansPurge) {\n", "  if (false) {\n"]], ['950']],
+  ['R12', 'le plafond d\'archives essayées pour lire le registre est retiré (téléchargements sans fin)', F.rest, [["for (const a of plusRecentes.slice(0, ESSAIS_REGISTRE)) {", "for (const a of plusRecentes) {"]], ['950']],
+  ['R13', 'un refus laisse derrière lui le dossier de destination qu\'il avait créé', F.rest, [["    if (creeParNous) { try { fs.rmdirSync(dest); }", "    if (false) { try { fs.rmdirSync(dest); }"]], ['950']],
 
   /* ── configurer-sauvegarde.js et la saisie ── */
   ['C01', 'le coffre n\'est plus ÉPROUVÉ avant d\'écrire la configuration', F.conf, [["  await eprouverCoffre(valide);\n", '']], ['951']],
@@ -165,7 +170,7 @@ function fabriquerCopie() {
   fs.mkdirSync(path.join(dir, 'server'));
   fs.copyFileSync(path.join(RACINE, 'server', 's3.js'), path.join(dir, 'server', 's3.js'));   // `test-950` compare la copie de `lib/s3.js` à celui-là
   fs.mkdirSync(path.join(dir, 'tests'));
-  for (const f of fs.readdirSync(path.join(RACINE, 'tests'))) if (/^(test-9\d\d|outils-msg|outils-tel|outils-sauvegarde|bac-messages|lib-horloge-msg|mode-site)\.js$/.test(f)) fs.copyFileSync(path.join(RACINE, 'tests', f), path.join(dir, 'tests', f));
+  for (const f of fs.readdirSync(path.join(RACINE, 'tests'))) if (/^(test-9\d\d|outils-msg|outils-tel|outils-pieces|outils-sauvegarde|bac-messages|lib-horloge-msg|mode-site)\.js$/.test(f)) fs.copyFileSync(path.join(RACINE, 'tests', f), path.join(dir, 'tests', f));
   fs.symlinkSync(path.join(RACINE, 'server-msg', 'node_modules'), path.join(dir, 'server-msg', 'node_modules'));
   return dir;
 }

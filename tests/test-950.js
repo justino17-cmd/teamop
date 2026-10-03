@@ -990,6 +990,81 @@ const horlogeFixe = (h) => () => h.t;
       const vers2 = path.join(bac, 'restauree2');
       const r5 = await outil(['restaurer', '--vers', vers2]);
       vrai('⛔ un nom de pièce qui remonte (« .. ») ou porte une barre arrière est REFUSÉ et compté — rien n\'est écrit hors du dossier', r5.code === 0 && /2 REFUSÉE/.test(r5.sortie) && !fs.existsSync(path.join(bac, 'evasion')) && !fs.existsSync(path.join(vers2, 'evasion')) && !fs.existsSync(path.join(vers2, 'pieces', 'evasion')));
+      /* Ces deux noms ne sont pas des pièces : le coffre ne les rend pas sous cette clé (le chemin se normalise), et ils feraient échouer l'échantillon de pièces de tout ce qui suit. */
+      m.coffre.objets.delete('beta/pieces/ab/../../evasion'); m.coffre.objets.delete('beta/pieces/ab/..\\evasion2');
+
+      /* ══ B2 — LA PLUS RÉCENTE ARCHIVE EST ABÎMÉE : ON RESTAURE UNE AUTRE (le geste que le guide § 9 annonce) ═══════════════════════
+         Le 3 octobre 2026 (gardien), l'outil rouvrait TOUJOURS la plus récente pour lire son registre des purges et s'arrêtait sur
+         « déchiffrement impossible » avant de poser quoi que ce soit — le jour même où le sinistre était celui-là. On abîme un octet de
+         C (la plus récente) ; A et B s'ouvrent. Le registre vient de la plus récente QUI S'OUVRE, et quand aucune ne s'ouvre, l'outil
+         refuse et nomme la conséquence jusqu'à un `--sans-purge` explicite. */
+      console.log('\n── 950 · la plus récente archive est ABÎMÉE : restaurer une autre marche, le registre vient de la plus récente qui s\'ouvre ──');
+      {
+        const sainC = Buffer.from(m.coffre.objets.get(cleC)), sainB = Buffer.from(m.coffre.objets.get(cleB));
+        const abimer = (b) => { const x = Buffer.from(b); x[Math.floor(x.length / 2)] ^= 0xff; return x; };
+        const nomDeCle = (cle) => SAUV.archiveDeCle('beta/', cle).nom;
+        const quand = (ts) => new Date(ts).toISOString().slice(0, 19);
+        const nomA = nomDeCle(cleA), nomB = nomDeCle(cleB), nomC = nomDeCle(cleC);
+        const aucunChantier = (d) => !fs.existsSync(d) || fs.readdirSync(d).every(f => !f.startsWith('.restauration-'));
+        m.coffre.objets.set(cleC, abimer(sainC));
+        try {
+          const okAvant = (marqueur() || {}).okTs;
+          const d0 = path.join(bac, 'b2-defaut');
+          const surLaPlusRecente = await outil(['restaurer', '--vers', d0, '--sans-pieces']);
+          v('population : la plus récente est bien abîmée (restaurer SANS date échoue, « déchiffrement impossible »), et rien n\'est posé ni laissé derrière', [surLaPlusRecente.code, /déchiffrement impossible/.test(surLaPlusRecente.erreur), fs.existsSync(d0)], [1, true, false]);
+          const essaiC = await outil(['essai']);
+          v('   l\'essai sur la plus récente échoue aussi, et la date du dernier exercice RÉUSSI n\'a pas bougé', [essaiC.code, /déchiffrement impossible/.test(essaiC.erreur), (marqueur() || {}).okTs === okAvant], [1, true, true]);
+
+          /* ── cible A (T0) : C est abîmée, B s'ouvre → le registre est celui de B, et il retire les trois messages purgés ── */
+          const dA = path.join(bac, 'b2-A');
+          const rA2 = await outil(['restaurer', '--vers', dA, '--date', quand(T0), '--sans-pieces']);
+          v('⛔ restaurer l\'archive A quand C est abîmée : sortie 0 (avant : « déchiffrement impossible », rien de restauré)', [rA2.code, fs.existsSync(path.join(dA, 'msg.db')), STOCK.ouvrir.copie.controlerFichier(path.join(dA, 'msg.db')).ok], [0, true, true]);
+          vrai('   la sortie DIT que C ne s\'ouvre pas (son nom et son motif) et d\'où vient le registre (B)',
+            new RegExp('⚠ base/' + nomC + '[^\\n]*ne s\'ouvre pas \\(déchiffrement impossible').test(rA2.sortie) && new RegExp('registre des purges : celui de base/' + nomB).test(rA2.sortie));
+          v('⛔ et le registre de B EST rejoué : les messages purgés depuis A ne reviennent pas (les deux éphémères et le message système), le troisième reste',
+            [existe(path.join(dA, 'msg.db'), ids.M1), existe(path.join(dA, 'msg.db'), ids.M2), existe(path.join(dA, 'msg.db'), ids.M3), /3 message\(s\) retiré\(s\)/.test(rA2.sortie)], [0, 0, 1, true]);
+          vrai('   aucun dossier de chantier ne reste', aucunChantier(dA));
+          const essaiA = await outil(['essai', '--date', quand(T0)]);
+          v('   le même cas à l\'essai : sortie 0, « CETTE ARCHIVE EST RESTAURABLE », la date de /health ne bouge pas', [essaiA.code, /CETTE ARCHIVE EST RESTAURABLE/.test(essaiA.sortie), /ne s'ouvre pas/.test(essaiA.sortie), (marqueur() || {}).okTs === okAvant], [0, true, true, true]);
+
+          /* ── cible B : la seule archive plus récente (C) est abîmée → le registre des purges faites depuis est INCONNU → refus ── */
+          const dB = path.join(bac, 'b2-B');
+          const sansDrapeau = await outil(['restaurer', '--vers', dB, '--date', quand(T0 + 3600000), '--sans-pieces']);
+          v('⛔ restaurer B quand la SEULE archive plus récente est abîmée : REFUSÉ — le registre des purges faites depuis est inconnu, l\'outil nomme la conséquence et le drapeau',
+            [sansDrapeau.code, /REVIENDRAIENT/.test(sansDrapeau.erreur), /--sans-purge/.test(sansDrapeau.erreur), /Rien n'a été touché/.test(sansDrapeau.erreur)], [1, true, true, true]);
+          v('   et ce refus ne laisse RIEN : ni base, ni chantier, ni même le dossier de destination qu\'il avait créé', fs.existsSync(dB), false);
+          const essaiSans = await outil(['essai', '--date', quand(T0 + 3600000)]);
+          v('   l\'essai joue la même règle (une répétition qui passerait là où le vrai geste refuse mentirait)', [essaiSans.code, /--sans-purge/.test(essaiSans.erreur)], [1, true]);
+          const avecDrapeau = await outil(['restaurer', '--vers', dB, '--date', quand(T0 + 3600000), '--sans-pieces', '--sans-purge']);
+          v('⛔ avec `--sans-purge` : restaurée, et la sortie redit ce qui est accepté', [avecDrapeau.code, fs.existsSync(path.join(dB, 'msg.db')), /--sans-purge : seul le registre de CETTE archive est rejoué/.test(avecDrapeau.sortie)], [0, true, true]);
+          const essaiAvec = await outil(['essai', '--date', quand(T0 + 3600000), '--sans-purge']);
+          v('   l\'essai accepte aussi le drapeau, sans toucher la date de /health', [essaiAvec.code, (marqueur() || {}).okTs === okAvant], [0, true]);
+
+          /* ── B ET C abîmées, cible A : sans drapeau refus ; avec, les trois messages purgés REVIENNENT — la conséquence est réelle ── */
+          m.coffre.objets.set(cleB, abimer(sainB));
+          const dA2 = path.join(bac, 'b2-A2');
+          const deuxAbimees = await outil(['restaurer', '--vers', dA2, '--date', quand(T0), '--sans-pieces']);
+          v('⛔ A visée, B et C abîmées : refus (« 2 essayée(s) »), rien de posé', [deuxAbimees.code, /2 essayée\(s\)/.test(deuxAbimees.erreur), /--sans-purge/.test(deuxAbimees.erreur), fs.existsSync(dA2)], [1, true, true, false]);
+          const accepte = await outil(['restaurer', '--vers', dA2, '--date', quand(T0), '--sans-pieces', '--sans-purge']);
+          v('   avec `--sans-purge` : restaurée, et la conséquence annoncée est BIEN réelle — les messages éphémères purgés depuis reviennent (c\'est ce que le refus protégeait)',
+            [accepte.code, existe(path.join(dA2, 'msg.db'), ids.M1), existe(path.join(dA2, 'msg.db'), ids.M2), existe(path.join(dA2, 'msg.db'), ids.M3)], [0, 1, 1, 1]);
+          m.coffre.objets.set(cleB, sainB);
+
+          /* ── le plafond : dix archives illisibles de suite sont un incident, pas une usure — on s'arrête au lieu de télécharger sans fin ── */
+          const bidons = [];
+          for (let k = 1; k <= 12; k++) { const cle = 'beta/base/' + SAUV.nomDe(T0 + (2 + k) * 3600000) + SAUV.SUFFIXE; m.coffre.poser(cle, Buffer.from('pas une archive, juste des octets ' + k)); bidons.push(cle); }
+          const avantVus = m.coffre.vus.length;
+          const dPlafond = path.join(bac, 'b2-plafond');
+          const plafond = await outil(['restaurer', '--vers', dPlafond, '--date', quand(T0), '--sans-pieces']);
+          const lus = m.coffre.vus.slice(avantVus).filter(x => x.m === 'GET' && x.cle);
+          const lusBidons = lus.filter(x => bidons.includes(x.cle)).length;
+          v('⛔ douze archives illisibles plus récentes : l\'outil en essaie DIX, pas une de plus (chacune coûte un téléchargement entier), et il le dit', [lusBidons, plafond.code, /10 essayée\(s\)/.test(plafond.erreur), /4 autre\(s\) non essayée\(s\)/.test(plafond.erreur)], [10, 1, true, true]);
+          v('   et B (saine) n\'a pas été téléchargée pour son registre : on s\'est arrêté avant', lus.filter(x => x.cle === cleB).length, 0);
+          for (const k of bidons) m.coffre.objets.delete(k);
+        } finally { m.coffre.objets.set(cleC, sainC); m.coffre.objets.set(cleB, sainB); }
+        const retour = await outil(['essai']);
+        v('contre-épreuve : C remise saine, l\'essai sur la plus récente repasse (sortie 0) — ce qui a échoué plus haut, c\'était bien l\'octet abîmé', retour.code, 0);
+      }
 
       const inconnue = await outil(['danser']);
       v('une commande inconnue : sortie 2 et la liste des commandes', [inconnue.code, /commandes :/.test(inconnue.erreur)], [2, true]);
