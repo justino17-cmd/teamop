@@ -40,7 +40,10 @@ laissé passer ici : avant toute poussée sur main, `bash scripts/verif-secrets.
 ⚠️ La CI de la BRANCHE était rouge depuis le 1er octobre pour une autre raison : son job lance toute la suite sans ESLint
 (`test-818` « SAUTE », le filet fait tomber le job) ni les dépendances d'OP MESSAGES. Corrigé (`db7cd2d`). Et « Vérification des
 pages » ne lançait pas les suites qui montent le vrai service d'OP MESSAGES (`server-msg/node_modules` absent : elles écrivent
-« banc non exécuté », que le filet « SAUTÉ » ne voit pas) — les dépendances y sont ajoutées avec le correctif de main.
+« banc non exécuté », que le filet « SAUTÉ » ne voit pas) — les dépendances y sont ajoutées. ✅ Poussé sur main (`6deee9d`,
+contrôles 3/3 verts : « Vérifications » n° 1476, « Vérification des pages » n° 533) ; l'étape des suites y passe de 6 min 26 s à
+**12 min 56 s** — c'est la preuve qu'elles tournent, et ⚠️ c'est 13 minutes sur un minuteur de 20 : chaque lot d'OP MESSAGES en
+ajoute, le relever (ou scinder l'étape) AVANT qu'il coupe. La CI de la branche est verte (« Vérifications » n° 1475 sur `6c869a3`, bancs en 11 min).
 ⛔ **Un geste de Justin est nécessaire MAINTENANT que le lot 1 est en service** : le proxy du VPS borne tout corps à 64 Ko, donc
 aucune photo ne passe tant que `install-msg.sh` n'a pas été relancé (`bash /root/install-msg.sh beta`, après l'avoir retéléchargé) (il réécrit le bloc du proxy — **Caddy** sur ce VPS, `via: 1.1 Caddy`, pas nginx — avec l'exception de 26 Mo sur
 `/api/pieces`, sans redemander aucune clé — `SERVEUR.md` § 4.4). ⚠️ Un essai de l'extérieur ne PROUVE pas la borne : Caddy coupe le
