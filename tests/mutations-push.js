@@ -355,7 +355,7 @@ m('K11', 'la surveillance ne crie plus sur trois refus de nos clés (le seuil to
 m('K12', 'la surveillance crie sur des refus de nos clés même quand les livraisons l\'emportent (un ancien abonnement parmi des centaines de livraisons)', F.surv, " && j.push.refuses24h >= j.push.envoyes24h", "", ['934']);
 
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
-const DOSSIERS_COPIE = ['server-msg', 'design/opmessages', '.github/scripts', 'apercu/opmessages', 'icons', 'scripts'];
+const DOSSIERS_COPIE = ['server-msg', 'design/opmessages', '.github/scripts', '.github/workflows', 'apercu/opmessages', 'icons', 'scripts'];   // (`.github/workflows` : test-934 lit quels workflows citent la surveillance)
 function copier(src, dst) {
   fs.mkdirSync(dst, { recursive: true });
   for (const e of fs.readdirSync(src, { withFileTypes: true })) {
