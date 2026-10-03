@@ -11,7 +11,7 @@
 # pas de la porte en silence. Les suites entrent AUSSI dans la suite complète (`tests/test-*.js`) : la liste n'est pas une
 # exclusion, c'est ce que la porte de déploiement exige.
 #
-# Une suite par ligne (900-929 : le service ; 930-939 : installation, déploiement, surveillance ; 941 : le générateur de l'interface servie).
+# Une suite par ligne (900-929 : le service ; 930-939 : installation, déploiement, surveillance ; 941 : le générateur de l'interface servie ; 942-944 : les pièces ; 950-959 : la sauvegarde hors site).
 # ⛔ LE PLANCHER : moins de vérifications que ça, c'est que des suites ont sauté leur partie exécutée (sans
 # `server-msg/node_modules`, celles du service se déclarent vertes). Le relever quand on ajoute une suite, jamais le baisser.
 # 1er octobre 2026 (après la relecture adverse) : 16 suites, 1593 vérifications mesurées par `bash scripts/bancs-ci.sh $(liste)`.
@@ -19,7 +19,14 @@
 # 1er octobre 2026, accès bêta par application (Tour v2.81) : 1 616 vérifications (test-903 et test-904 gardent `app`, `apps` et la porte fermée face à un OP GESTION d'avant).
 # 2 octobre 2026 (compte par téléphone, puis sa relecture adverse : argent, comptes, saisie des clés) : 24 suites (test-912 à 919), 2180 vérifications.
 # Les deux réunis (fusion de la branche de travail dans l'arbre du branchement ; le générateur passe de test-912 à test-941) : 26 suites, 2 403 vérifications mesurées — plancher 2400.
-#plancher 2400
+# 2 octobre 2026, les pièces (test-942 le module, 943 le service en HTTP, 944 l'appareil et le service) : 29 suites, 2 894 vérifications mesurées par `bash scripts/bancs-ci.sh $(liste)` (324 s) — plancher 2890.
+# 2 octobre 2026 (la sauvegarde hors site, étape 3 : test-950 le module, test-951 le vrai service, un faux coffre S3 et les outils de Justin) : 28 suites, 2 913 vérifications mesurées — plancher 2905.
+# (2 928 avant que test-950 agrège ses essais de copie sous charge : quinze contrôles redondants de moins, trois cas de plus — le plancher suit le total MESURÉ.)
+# 2 octobre 2026, les deux réunis (pièces + sauvegarde, la sauvegarde comptant désormais les pièces) : 31 suites, 3 390 vérifications mesurées par la commande de la porte — plancher 3380.
+# 3 octobre 2026, après la relecture adverse de la sauvegarde (B2, A1 à A5, remarques : restauration depuis une archive plus ancienne, arriéré de pièces, horloge, registre des purges et rejeu par le service, mémoire bornée) : 31 suites, 3 506 vérifications mesurées par la commande de la porte (341 s ; 3 499 avant que la restauration demande trois fois l'archive et re-mesure la place) — plancher 3497.
+# 3 octobre 2026, la relecture du gardien puis celle du testeur (pièces : lenteur, journaux du proxy, GIF, « Réessayer », durées, proportions…) : 31 suites, 3 538 vérifications mesurées par la commande de la porte — plancher 3528.
+# 3 octobre 2026, les deux relectures réunies (sauvegarde + pièces) : 31 suites, 3 654 vérifications mesurées par la commande de la porte — plancher 3640.
+#plancher 3640
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
@@ -54,3 +61,12 @@ tests/test-934.js
 #
 # ── Le générateur de l'interface servie (renuméroté 941 à la fusion : 912 est pris par le compte Perso) ──
 tests/test-941.js
+#
+# ── Les pièces (photos, vocaux, fichiers, photo de profil) : le module (942), le vrai service en HTTP (943), l'appareil et le service (944) ──
+tests/test-942.js
+tests/test-943.js
+tests/test-944.js
+#
+# ── La sauvegarde hors site (étape 3, 2 octobre 2026) : le module seul (950), puis le VRAI service, un faux coffre S3 qui recalcule les signatures et les deux outils de Justin (951) ──
+tests/test-950.js
+tests/test-951.js

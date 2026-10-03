@@ -46,7 +46,7 @@ const lance = (f) => { try { f(); return null; } catch (e) { return e.code || e.
 console.log('Les migrations (PRAGMA user_version) sont numérotées, rejouables, et gardent une copie');
 {
   const a = neuf();
-  v('une base neuve est au schéma 2 (la migration 2 — le téléphone — s\'applique à la création)', a.S.schema(), 2);
+  v('une base neuve est au schéma 3 (la migration 2 — le téléphone — et la 3 — les pièces — s\'appliquent à la création)', a.S.schema(), 3);
   const p = pers(a.S, 'alice');
   a.S.fermer();
   const b = ouvrir({ chemin: a.chemin, scelleur: creerScelleur(a.kek), horloge: () => a.h.t });
@@ -59,17 +59,17 @@ console.log('Les migrations (PRAGMA user_version) sont numérotées, rejouables,
   v('⛔ la migration 1 rejouée sur une base déjà migrée ne casse rien (IF NOT EXISTS) et n\'efface rien', rejouee, 'alice');
   if (c) c.fermer();
 
-  const m2 = MIGRATIONS.concat([{ v: 3, sql: ['CREATE TABLE IF NOT EXISTS essai_v3(x INTEGER)', 'PRAGMA user_version = 3'] }]);
+  const m2 = MIGRATIONS.concat([{ v: 4, sql: ['CREATE TABLE IF NOT EXISTS essai_v4(x INTEGER)', 'PRAGMA user_version = 4'] }]);
   const d = neuf({ migrations: MIGRATIONS });
   pers(d.S, 'avant'); d.S.fermer();
   const e = ouvrir({ chemin: d.chemin, scelleur: creerScelleur(d.kek), horloge: () => d.h.t, migrations: m2 });
-  v('une migration suivante (3) s\'applique une fois (schéma 3)', e.schema(), 3);
-  vrai('⛔ une copie « avant-v3 » a été conservée (VACUUM INTO) avant de migrer une base qui a vécu', fs.existsSync(d.chemin + '.avant-v3'));
-  const copie = new DatabaseSync(d.chemin + '.avant-v3');
-  v('la copie est la base d\'AVANT (schéma 2, sans la table neuve)', [copie.prepare('PRAGMA user_version').get().user_version, copie.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name='essai_v3'").get().n], [2, 0]);
+  v('une migration suivante (4) s\'applique une fois (schéma 4)', e.schema(), 4);
+  vrai('⛔ une copie « avant-v4 » a été conservée (VACUUM INTO) avant de migrer une base qui a vécu', fs.existsSync(d.chemin + '.avant-v4'));
+  const copie = new DatabaseSync(d.chemin + '.avant-v4');
+  v('la copie est la base d\'AVANT (schéma 3, sans la table neuve)', [copie.prepare('PRAGMA user_version').get().user_version, copie.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name='essai_v4'").get().n], [3, 0]);
   copie.close(); e.fermer();
   const f2 = neuf({ migrations: m2 });
-  vrai('une base NEUVE n\'a pas de copie à garder (rien n\'a vécu)', !fs.existsSync(f2.chemin + '.avant-v1') && !fs.existsSync(f2.chemin + '.avant-v2') && !fs.existsSync(f2.chemin + '.avant-v3'));
+  vrai('une base NEUVE n\'a pas de copie à garder (rien n\'a vécu)', !fs.existsSync(f2.chemin + '.avant-v1') && !fs.existsSync(f2.chemin + '.avant-v2') && !fs.existsSync(f2.chemin + '.avant-v3') && !fs.existsSync(f2.chemin + '.avant-v4'));
 }
 
 console.log('\nLe scellage : rien en clair sur le disque, une mauvaise clé est refusée');
@@ -233,6 +233,8 @@ console.log('\nLa pierre tombale, le masquage, la modification, les réactions')
   const brut = a.brut();
   const l = brut.prepare('SELECT corps_ch, supprime_le FROM message WHERE conv = ? AND seq = 2').get(g);
   v('⛔ le corps s\'efface TOUT DE SUITE (NULL) et une pierre tombale reste', [l.corps_ch, typeof l.supprime_le], [null, 'number']);
+  const idM = brut.prepare('SELECT id FROM message WHERE conv = ? AND seq = 2').get(g).id;
+  v('⛔ et le geste est NOTÉ dans `purge` (genre message_supprime, l\'identifiant du message) : une restauration d\'une sauvegarde d\'avant le reblanchira au lieu de le rendre lisible', brut.prepare("SELECT COUNT(*) AS n FROM purge WHERE objet = ? AND genre = 'message_supprime'").get(idM).n, 1);
   vrai('le texte n\'est plus nulle part dans le fichier', !octets(a.chemin).includes(Buffer.from('SECRETZXQ')));
   v('les réactions du message supprimé sont parties', a.S.reactionsDe(g, 2).length, 0);
   const m = a.S.messagesDe(g, al.id).messages.find(x => x.seq === 2);

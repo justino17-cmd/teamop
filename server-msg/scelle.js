@@ -71,6 +71,16 @@ function creerScelleur(kek, { generation = 1, anciennes = {} } = {}) {
     hmac(table, champ, valeur) {
       return crypto.createHmac('sha256', cle(generation, table, champ)).update(String(valeur)).digest('hex');
     },
+    /* ⛔ UNE CLÉ PAR PIÈCE (`pieces.js`). Les pièces ne sont pas des champs de ligne : un fichier est scellé par BLOCS, et chaque
+       fichier a SA clé (HKDF de la clé maître, contexte `msg|<table>|<champ>`, sel = l'identifiant de la pièce). Deux conséquences :
+       un bloc recopié d'un fichier dans un autre ne s'ouvre pas même si ses données associées étaient rejouées, et le plafond de
+       collision des vecteurs d'initialisation (2^32 blocs par clé) ne se compte plus que par FICHIER. La clé maître, elle, ne sort
+       toujours pas de ce module. */
+    deriver(gen, table, champ, sel) {
+      const m = maitre(gen);
+      if (!m) throw new Error('generation_inconnue');
+      return Buffer.from(crypto.hkdfSync('sha256', m, Buffer.from(String(sel), 'utf8'), 'msg|' + table + '|' + champ, 32));
+    },
   };
 }
 

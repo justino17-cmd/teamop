@@ -27,10 +27,14 @@ const CHAMPS_SURVEILLES = [
   'instance',              // beta ou prod, et ce doit être celle du domaine interrogé
   'sha',                   // le code qui tourne : 7 à 40 hexadécimaux, sinon le déploiement n'a pas posé OPMSG_SHA
   'sauvegarde.configuree', // une sauvegarde jamais branchée est une croyance, pas une sauvegarde
-  'sauvegarde.ageH',       // la dernière copie réussie ne doit pas dater de plus d'un jour
+  'sauvegarde.ageH',       // une copie par heure est promise : la dernière réussie ne doit pas dater de plus de 2 h (et « configurée sans aucune réussie » crie aussi)
+  'sauvegarde.echecs',     // deux passes ratées de suite : le coffre refuse, la relecture échoue, le disque manque — on le sait AVANT que l'âge ne grimpe
+  'sauvegarde.essaiJours', // EN PRODUCTION seulement : aucun exercice de restauration réussi depuis 35 jours (voir `SEUIL_ESSAI_JOURS`)
   'stripeEchecMin',        // Stripe illisible depuis trop longtemps : la facturation ne se relit plus
   'base.illisibles',       // des lignes chiffrées qui ne s'ouvrent plus (octet retourné, restauration mélangée) : jamais normal
   'porte.relecturesEchec', // la relecture des accès bêta échoue depuis des minutes : un accès coupé dans la Tour garderait sa session
+  'pieces.illisibles',     // un fichier de pièce qui ne s'ouvre plus (bloc abîmé, taille qui ne colle plus à la base) : jamais normal — des photos ou des fichiers perdus
+  'pieces.effacementsRates', // des fichiers de pièces supprimées qui restent sur le disque (droits, disque) : le balayeur réessaie, mais cinq échecs ont une cause
   /* ⛔ LES SMS (compte Perso par numéro) : « le but c'est qu'on gagne de l'argent » — chaque SMS est un coût, et la fraude au
      « SMS pumping » vise justement les destinations chères. Ces cinq champs sont l'alarme d'argent ; la garde vit dans `sms-garde.js`. */
   'sms.mode',              // en production, tout autre mode que « ovh » veut dire : plus aucun code ne part, personne ne peut s'inscrire
@@ -45,11 +49,16 @@ const CHAMPS_SURVEILLES = [
 /* Les champs vus et PAS surveillés, chacun avec sa raison. Une entrée qui parle d'un champ qui n'existe
    plus est une décision prise pour du vide : le banc le contrôle aussi. */
 const CHAMPS_VUS = {
-  'sauvegarde.essaiJours': 'l\'exercice de restauration est mensuel et se décide par un humain (§ 3.7), pas par une alarme horaire',
-  'sms.envoyes24h': 'le nombre de SMS est une information ; ce qui compte est l\'ARGENT (sms.coutJourEur et les budgets), qui est surveillé'
+  'sms.envoyes24h': 'le nombre de SMS est une information ; ce qui compte est l\'ARGENT (sms.coutJourEur et les budgets), qui est surveillé',
+  'pieces.n': 'le nombre de pièces est une information de croissance : le service borne lui-même chaque personne (quota de stockage) et refuse d\'écrire sous son plancher de disque (503), aucune alarme horaire n\'ajouterait une décision',
+  'pieces.octets': 'l\'espace pris par les pièces grandit avec l\'usage : il est borné par personne (quota) et par le plancher de disque du service, qui refuse d\'écrire plutôt que de priver OP GESTION — un total n\'a pas de seuil qui ait un sens'
 };
 
-const SEUIL_SAUVEGARDE_H = 26;   // une copie par heure promise, un jour de grâce pour un week-end de panne légère
+const SEUIL_SAUVEGARDE_H = 2;    // une copie par heure promise (SERVEUR.md § 3.7) : au-delà de 2 h, une passe entière a manqué
+const SEUIL_HORLOGE_H = 1;           // la tolérance d'une horloge qui se recale : au-delà d'une heure dans le futur, ce n'est plus un recalage
+const SEUIL_SAUVEGARDE_ECHECS = 2;   // deux passes ratées de suite : une seule peut être un coffre qui hoquette, deux sont une panne
+const SEUIL_ESSAI_JOURS = 35;    // l'exercice de restauration est MENSUEL : 35 jours = un mois et une semaine de grâce
+const SEUIL_EFFACEMENTS = 5;     // des fichiers de pièces qu'on n'a pas pu effacer : un échec isolé se répare (le balayeur réessaie), cinq ont une cause
 const SEUIL_RELECTURES = 5;      // la relecture passe chaque minute : cinq échecs de suite, c'est cinq minutes sans pouvoir couper un accès
 const SEUIL_STRIPE_MIN = 90;     // la règle d'OP GESTION : la surveillance crie à 90 minutes de Stripe illisible
 const SEUIL_SMS_PCT = 80;        // le budget du jour ou de l'heure consommé à 80 % : on regarde avant la coupure
@@ -78,11 +87,39 @@ function evaluer(j, instanceAttendue) {
   if (j.sauvegarde && typeof j.sauvegarde === 'object') {
     if (j.sauvegarde.configuree === false) p.push('la sauvegarde hors site n\'est pas configurée');
     if (j.sauvegarde.configuree !== false && typeof j.sauvegarde.ageH === 'number' && j.sauvegarde.ageH > SEUIL_SAUVEGARDE_H) {
-      p.push('la dernière sauvegarde date de ' + Math.round(j.sauvegarde.ageH) + ' h');
+      p.push('la dernière sauvegarde date de ' + Math.round(j.sauvegarde.ageH) + ' h (une par heure est promise)');
+    }
+    /* ⛔ UN ÂGE NÉGATIF EST UNE HORLOGE EN DÉSORDRE, pas une sauvegarde toute fraîche. Le service écrêtait l'âge à 0 : après un saut d'horloge vers
+       l'avant, la dernière sauvegarde « datée de dans vingt jours » s'affichait à 0 h, `echecs` restait à 0, et RIEN ne criait pendant que les
+       sauvegardes ne partaient plus (gardien A2, 3 octobre 2026). Au-delà d'une heure de « futur », on crie. */
+    if (typeof j.sauvegarde.ageH === 'number' && j.sauvegarde.ageH < -SEUIL_HORLOGE_H) {
+      p.push('l\'horloge du serveur est en désordre : la dernière sauvegarde est datée de ' + Math.round(-j.sauvegarde.ageH) + ' h dans le FUTUR');
+    }
+    /* ⛔ « CONFIGURÉE » ET JAMAIS RÉUSSIE est la panne que l'âge ne voit pas : `ageH` vaut `null`, ce n'est pas un nombre, et rien d'autre ne crie
+       tant que la minuterie ne tente rien. (Juste après la mise en service, une minute durant, c'est normal : la surveillance tourne à l'heure.) */
+    if (j.sauvegarde.configuree === true && j.sauvegarde.ageH === null) p.push('la sauvegarde est configurée mais aucune n\'a réussi à ce jour');
+    if (typeof j.sauvegarde.echecs === 'number' && j.sauvegarde.echecs >= SEUIL_SAUVEGARDE_ECHECS) {
+      p.push(j.sauvegarde.echecs + ' sauvegardes de suite ont échoué (le coffre refuse, la relecture échoue, ou le disque manque)');
+    }
+    /* ⛔ L'EXERCICE DE RESTAURATION : EN PRODUCTION SEULEMENT. Une sauvegarde qu'on n'a jamais rouverte est une croyance, et la production porte
+       les messages de vraies personnes — « avant toute personne extérieure à l'équipe, un essai de restauration doit avoir réussi » (SERVEUR.md
+       § 3.7). La BÊTA, elle, est jetable et le dit : l'exercice y est un geste de mise en service (INSTALLER-LE-SERVEUR.md), pas une alarme —
+       crier chaque mois sur une machine dont les données ne comptent pas apprendrait à ignorer l'alarme de celle où elles comptent. */
+    if (j.instance === 'prod' && j.sauvegarde.configuree === true) {
+      if (j.sauvegarde.essaiJours === null) p.push('aucun exercice de restauration n\'a JAMAIS réussi sur la production');
+      else if (typeof j.sauvegarde.essaiJours === 'number' && j.sauvegarde.essaiJours > SEUIL_ESSAI_JOURS) p.push('aucun exercice de restauration depuis ' + j.sauvegarde.essaiJours + ' jours (un par mois)');
     }
   }
   if (j.base && typeof j.base === 'object' && typeof j.base.illisibles === 'number' && j.base.illisibles > 0) {
     p.push(j.base.illisibles + ' ligne(s) chiffrée(s) illisible(s) depuis le démarrage — la base est peut-être abîmée');
+  }
+  if (j.pieces && typeof j.pieces === 'object') {
+    if (typeof j.pieces.illisibles === 'number' && j.pieces.illisibles > 0) {
+      p.push(j.pieces.illisibles + ' pièce(s) illisible(s) depuis le démarrage — un fichier abîmé ou perdu : des photos ou des fichiers ne s\'ouvrent plus');
+    }
+    if (typeof j.pieces.effacementsRates === 'number' && j.pieces.effacementsRates >= SEUIL_EFFACEMENTS) {
+      p.push(j.pieces.effacementsRates + ' fichier(s) de pièce non effacé(s) depuis le démarrage — des fichiers restent sur le disque : droits ou disque ?');
+    }
   }
   if (j.porte && typeof j.porte === 'object' && typeof j.porte.relecturesEchec === 'number' && j.porte.relecturesEchec > SEUIL_RELECTURES) {
     p.push('la relecture des accès bêta échoue depuis ' + j.porte.relecturesEchec + ' passages — un accès coupé ne fermerait plus sa session');

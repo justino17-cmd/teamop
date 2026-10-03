@@ -11,6 +11,9 @@
  *   P  public, plafonné par adresse            S  session valide
  *   V  session ET adresse confirmée            M  membre de la conversation
  *   A  administrateur de la conversation       B  instance bêta (404 ailleurs), plafonnée
+ *   J  une pièce (photo, vocal, fichier, photo de profil) que CETTE personne a le droit de lire : session, puis le droit se décide sur la
+ *      pièce elle-même (`stockage.pieceVisible`) — membre de sa conversation ET message visible pour soi, dépositaire d'une pièce pas
+ *      encore envoyée, ou qui peut voir la personne dont c'est la photo. Pas de droit, ou pas de pièce : 404, la MÊME réponse.
  *
  * ⛔ « Une session prouve un mot de passe, pas une adresse » : tout effet qui agit AU NOM d'une
  * adresse (contact, lien, groupe) exige V. Sur la bêta, l'adresse est confirmée par construction ;
@@ -68,6 +71,12 @@ const MANIFESTE = [
   { id: 'moi.appareils.deconnecter', m: 'POST', p: '/api/moi/appareils/deconnecter', garde: 'S' },
   { id: 'contacts.chercher', m: 'POST', p: '/api/contacts/chercher',                 garde: 'V' },
   { id: 'contacts.ajouter',  m: 'POST', p: '/api/contacts/ajouter',                  garde: 'V' },
+  /* Étape 4 : les pièces (`routes-pieces.js`). Un dépôt exige l'adresse confirmée (V) ET, pour une pièce de conversation, d'en être membre
+     (vérifié dans la route : le membre se lit dans l'adresse de la requête, pas dans le chemin) ; une lecture passe la garde J. */
+  { id: 'pieces.deposer',    m: 'POST', p: '/api/pieces',                            garde: 'V' },
+  { id: 'pieces.lire',       m: 'GET',  p: '/api/pieces/:id',                        garde: 'J' },
+  { id: 'moi.avatar',        m: 'POST', p: '/api/moi/avatar',                        garde: 'S' },
+  { id: 'moi.stockage',      m: 'GET',  p: '/api/moi/stockage',                      garde: 'S' },
 ];
 
 module.exports = { MANIFESTE };

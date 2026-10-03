@@ -53,6 +53,14 @@
     conversation_directe: 'Cette action n\'existe pas dans une conversation à deux.',
     disque_plein: 'Le service est momentanément en lecture seule. Réessaie plus tard.',
     trop_de_flux: 'Trop d\'onglets ouverts sur ce compte. Ferme-en un.',
+    /* les pièces (photos, vocaux, fichiers, photo de profil) */
+    longueur_requise: 'L\'envoi n\'a pas dit sa taille : mets la page à jour, puis réessaie.',
+    piece_trop_lourde: 'Ce fichier est trop lourd.',
+    envoi_trop_lent: 'L\'envoi s\'est arrêté en route (connexion trop lente) : vérifie ton réseau, puis réessaie.',
+    type_refuse: 'Ce type de fichier n\'est pas accepté ici : une photo doit être une image (JPEG, PNG, WebP ou GIF), un vocal un son.',
+    piece_inconnue: 'Cette pièce n\'existe plus (elle a expiré ou a été supprimée) : renvoie-la.',
+    plage_invalide: 'La partie demandée du fichier n\'existe pas.',
+    quota_stockage: 'Ton espace de stockage est plein : supprime des messages qui contiennent des photos ou des fichiers, puis réessaie.',
     erreur_interne: 'Une erreur est survenue de notre côté. Réessaie.',
     serveur: 'Le service ne répond pas correctement. Réessaie dans un instant.',
     reseau: 'Pas de connexion au service. Vérifie ton réseau.',
@@ -63,16 +71,29 @@
 
   /* Une attente lisible : « 40 s », « 15 min ». */
   const attenteLisible = (s) => s < 90 ? s + ' s' : Math.ceil(s / 60) + ' min';
+  /* Un nombre d'octets en mots : « 12 Mo », « 850 Ko ». */
+  const tailleLisible = (o) => o >= 1048576 ? (Math.round(o / 104857.6) / 10).toString().replace('.', ',') + ' Mo' : o >= 1024 ? Math.round(o / 1024) + ' Ko' : o + ' o';
   class ErreurApi extends Error {
-    constructor(code, statut, retry) {
-      super(dire(code));
+    constructor(code, statut, retry, extra) {
+      /* ⛔ `quota_atteint` veut dire DEUX choses : 429 « trop de demandes en peu de temps » (réessaie dans un instant) et 402 « ton espace de stockage est plein » (supprime
+         des pièces). Le statut les distingue ; la phrase aussi — dire « réessaie dans un instant » à quelqu'un dont l'espace est plein serait une fausse promesse. */
+      super(code === 'quota_atteint' && statut === 402 ? MESSAGES.quota_stockage : dire(code));
       this.name = 'ErreurApi'; this.code = code; this.statut = statut || 0; this.retry = retry || 0;
+      /* le maximum d'une pièce (octets), quand le service le dit (413) : l'écran écrit « 12 Mo au plus » */
+      this.max = extra && Number.isInteger(extra.max) ? extra.max : 0;
       /* ⛔ `dit` : cette erreur a une phrase FRANÇAISE que l'écran peut montrer telle quelle. Une erreur d'ailleurs (une exception de la page
          elle-même) ne porte pas ce drapeau : l'écran n'affiche alors qu'une phrase générique, jamais le message technique. */
       this.dit = true;
     }
-    /* La phrase, avec l'attente quand le service l'a donnée (`Retry-After`) : « … (réessaie dans 15 min) ». */
-    phrase() { return this.retry > 0 ? this.message.replace(/\.$/, '') + ' (réessaie dans ' + attenteLisible(this.retry) + ').' : this.message; }
+    /* La phrase, avec l'attente quand le service l'a donnée (`Retry-After`) : « Trop de demandes en peu de temps (réessaie dans 20 s). »
+       ⛔ UNE SEULE INVITATION À RÉESSAYER : la phrase du service finit par « Réessaie dans un instant. » ; ajouter « (réessaie dans 20 s) » derrière la disait deux fois, et « dans un instant »
+       contredisait « 20 s » (relecture du testeur). Quand l'attente est connue, elle REMPLACE la clause de la phrase. */
+    phrase() {
+      if (this.code === 'piece_trop_lourde' && this.max > 0) return this.message.replace(/\.$/, '') + ' (' + tailleLisible(this.max) + ' au plus).';
+      if (!(this.retry > 0)) return this.message;
+      const sans = this.message.replace(/\s*R[ée]essaie[^.]*\.$/i, '').replace(/\.$/, '');
+      return sans + ' (réessaie dans ' + attenteLisible(this.retry) + ').';
+    }
   }
 
   /* Un identifiant d'envoi unique : c'est lui qui rend un renvoi inoffensif (le service ne crée
@@ -94,7 +115,7 @@
     return liste;
   }
 
-  const EVENEMENTS = ['message', 'message_modifie', 'message_supprime', 'reaction', 'conversation', 'retire', 'lu', 'notification', 'saisie', 'presence', 'resync'];
+  const EVENEMENTS = ['message', 'message_modifie', 'message_supprime', 'reaction', 'conversation', 'retire', 'lu', 'notification', 'saisie', 'presence', 'personne', 'resync'];
 
   function creer(opts) {
     const o = opts || {};
@@ -103,6 +124,23 @@
     const ES = o.EventSource || (typeof EventSource !== 'undefined' ? EventSource : null);
     if (!f) throw new Error('fetch indisponible');
 
+    /* La réponse d'une route : le JSON d'une réussite, ou une `ErreurApi` qui se dit. `opts.piece` : c'est le dépôt d'une pièce — un relais (nginx) qui refuse le poids avant que le
+       service ne voie le corps répond 413 en HTML, ce qui veut dire « trop lourd » (avec le maximum que la page connaît : `opts.max`), jamais « inconnue ». */
+    async function jsonDe(r, opts) {
+      let txt = '', j = null;
+      try { txt = await r.text(); } catch (e) { txt = ''; }
+      try { j = txt ? JSON.parse(txt) : null; } catch (e) { j = null; }
+      if (!r.ok) {
+        const retry = parseInt(r.headers && r.headers.get ? (r.headers.get('Retry-After') || '') : '', 10) || (j && j.retry) || 0;
+        let code = j && typeof j.error === 'string' && MESSAGES[j.error] ? j.error : (r.status >= 500 ? 'serveur' : 'inconnue');
+        let extra = j;
+        if (opts && opts.piece && r.status === 413 && code === 'inconnue') { code = 'piece_trop_lourde'; extra = opts.max > 0 ? { max: opts.max } : null; }
+        throw new ErreurApi(code, r.status, retry, extra);
+      }
+      /* 2xx mais pas du JSON : un relais qui a répondu à la place du service n'est pas une réussite. */
+      if (j === null || typeof j !== 'object') throw new ErreurApi('reponse_illisible', r.status, 0);
+      return j;
+    }
     async function appel(methode, chemin, corps) {
       const h = { Accept: 'application/json' };
       const init = { method: methode, headers: h, credentials: 'same-origin', cache: 'no-store' };
@@ -110,17 +148,7 @@
       let r;
       try { r = await f(base + chemin, init); }
       catch (e) { throw new ErreurApi('reseau', 0, 0); }
-      let txt = '', j = null;
-      try { txt = await r.text(); } catch (e) { txt = ''; }
-      try { j = txt ? JSON.parse(txt) : null; } catch (e) { j = null; }
-      if (!r.ok) {
-        const retry = parseInt(r.headers && r.headers.get ? (r.headers.get('Retry-After') || '') : '', 10) || (j && j.retry) || 0;
-        const code = j && typeof j.error === 'string' && MESSAGES[j.error] ? j.error : (r.status >= 500 ? 'serveur' : 'inconnue');
-        throw new ErreurApi(code, r.status, retry);
-      }
-      /* 2xx mais pas du JSON : un relais qui a répondu à la place du service n'est pas une réussite. */
-      if (j === null || typeof j !== 'object') throw new ErreurApi('reponse_illisible', r.status, 0);
-      return j;
+      return jsonDe(r);
     }
     const e = encodeURIComponent;
     const rq = (obj) => { const p = Object.entries(obj || {}).filter(([, v]) => v !== undefined && v !== null).map(([k, v]) => e(k) + '=' + e(v)).join('&'); return p ? '?' + p : ''; };
@@ -163,6 +191,13 @@
         const r = await appel('POST', '/api/conversations/' + e(id) + '/messages', { cid, texte, reponse_a: x.reponse_a, mentions: x.mentions });
         return Object.assign({ cid }, r);
       },
+      /* Un message qui cite des pièces DÉJÀ déposées : `type` photo (`pieces:[{id,w,h}]`), vocal (`piece`, `dur`, `bars`) ou fichier (`piece`). Même `cid` que l'envoi d'avant
+         = un renvoi inoffensif (`deja:true`) : la réponse perdue d'un envoi réussi ne crée pas de second message. */
+      envoyerPieces: async (id, type, champs, o2) => {
+        const x = o2 || {}, cid = x.cid || nouveauCid();
+        const r = await appel('POST', '/api/conversations/' + e(id) + '/messages', Object.assign({ cid, type, reponse_a: x.reponse_a }, champs));
+        return Object.assign({ cid }, r);
+      },
       modifier: (id, seq, texte) => appel('POST', '/api/conversations/' + e(id) + '/messages/modifier', { seq, texte }),
       supprimer: (id, seq, pour) => appel('POST', '/api/conversations/' + e(id) + '/messages/supprimer', { seq, pour: pour || 'tous' }),
       reagir: (id, seq, emoji) => appel('POST', '/api/conversations/' + e(id) + '/messages/reagir', { seq, emoji }),
@@ -171,6 +206,36 @@
       notifications: () => appel('GET', '/api/notifications'),
       notificationsLues: (ids) => appel('POST', '/api/notifications/lues', ids ? { ids } : { toutes: true }),
       sync: (depuis) => appel('GET', '/api/sync' + rq({ depuis })),
+
+      /* ── Les pièces (photos, vocaux, fichiers, photo de profil) ──
+         ⛔ Le corps d'un dépôt est BINAIRE (`application/octet-stream`, jamais du JSON ni un formulaire) et sa longueur est connue d'avance : un `Blob` la porte, un flux ne la
+         porterait pas (le service répond 411). Le type n'est pas dit : le service le juge aux octets. `conv` + `genre` (photo|vocal|fichier) + `nom` (fichier) pour une conversation,
+         `genre: 'avatar'` seul pour une photo de profil (d'une personne ou d'un groupe). Rend `{ id, taille, mime }`. */
+      deposer: async (corps, o2) => {
+        const x = o2 || {};
+        const h = { Accept: 'application/json', 'Content-Type': 'application/octet-stream', 'X-OPM': '1' };
+        /* ⛔ le NOM d'un fichier voyage dans un en-tête (encodé en pourcentage), jamais dans l'adresse : une adresse se retrouve dans le journal d'accès d'un proxy */
+        if (x.nom !== undefined && x.nom !== null) h['X-OPM-Nom'] = encodeURIComponent(String(x.nom));
+        let r;
+        try { r = await f(base + '/api/pieces' + rq({ conv: x.conv, genre: x.genre }), { method: 'POST', headers: h, credentials: 'same-origin', cache: 'no-store', body: corps }); }
+        catch (er) { throw new ErreurApi('reseau', 0, 0); }
+        return jsonDe(r, { piece: true, max: x.max });
+      },
+      /* Lit une pièce : `{ blob, type }`. Un refus (404 : elle n'existe plus, ou on n'a pas le droit — le service ne distingue pas) devient une `ErreurApi`. */
+      lirePiece: async (id) => {
+        let r;
+        try { r = await f(base + '/api/pieces/' + e(id), { method: 'GET', credentials: 'same-origin', cache: 'no-store' }); }
+        catch (er) { throw new ErreurApi('reseau', 0, 0); }
+        if (!r.ok) await jsonDe(r);                                   // jette toujours : ErreurApi avec la phrase du refus
+        let blob;
+        try { blob = await r.blob(); } catch (er) { throw new ErreurApi('reseau', 0, 0); }
+        return { blob, type: (r.headers && r.headers.get ? r.headers.get('Content-Type') : '') || '' };
+      },
+      poserAvatar: (piece) => appel('POST', '/api/moi/avatar', { piece: piece === undefined ? null : piece }),
+      stockage: () => appel('GET', '/api/moi/stockage'),
+      confidentialite: () => appel('GET', '/api/moi/confidentialite'),
+      majConfidentialite: (champs) => appel('POST', '/api/moi/confidentialite', champs),
+      deconnecterAutres: () => appel('POST', '/api/moi/appareils/deconnecter'),
 
       /* Le temps réel. `gestionnaires` : une fonction par événement (`message`, `lu`, `saisie`,
          `presence`, `notification`, `conversation`, `retire`, `resync`…) + `ouvert()`, `erreur(e)` et `reseau('perdu'|'ok')`.
@@ -282,7 +347,7 @@
     return api;
   }
 
-  const api = { creer, dire, MESSAGES, ErreurApi, nouveauCid, fusionner, EVENEMENTS };
+  const api = { creer, dire, MESSAGES, ErreurApi, nouveauCid, fusionner, EVENEMENTS, tailleLisible };
   if (typeof module === 'object' && module && module.exports) module.exports = api;
   else racine.OPMSG = api;
 })(typeof window !== 'undefined' ? window : globalThis);

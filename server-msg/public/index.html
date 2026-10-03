@@ -331,6 +331,7 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .moi-nom { font-size: 13px; font-weight: 600; }
 .moi-statut { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sub-meta); }
 .moi-statut i { width: 6px; height: 6px; border-radius: 50%; background: var(--vert); }
+.moi-statut.masque i { background: var(--sub-meta); }
 
 /* ══ 6. LA FEUILLE « NOUVEAU GROUPE » — monte du bas (téléphone), fenêtre centrée de 520 px (bureau) ══════════════════════ */
 .voile {
@@ -521,7 +522,10 @@ html:not([data-vue="messages"]) .conv-ecran { display: none; }
 .photo { position: relative; width: 118px; height: 88px; padding: 0; border-radius: 14px; overflow: hidden; display: grid; place-items: center; background: var(--field); color: var(--sub); }
 .photo .ic { font-size: 22px; stroke-width: 1.8; }
 .photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
-.photos.une .photo { width: 200px; height: 150px; max-width: 100%; }
+/* ⛔ UNE PHOTO SEULE GARDE SES PROPORTIONS (relecture du testeur : toutes les photos sortaient recadrées en 200 × 150). Sa boîte est posée en ligne (`styleUne` : largeur + rapport) ; sans dimensions connues
+   (l'aperçu), la boîte d'avant, en 4/3. `contain` : même dans la boîte plancher d'un panorama extrême, l'image est vue ENTIÈRE, jamais coupée. Les GRILLES (2 photos et plus) restent des vignettes recadrées. */
+.photos.une .photo { width: 200px; height: auto; aspect-ratio: 4 / 3; max-width: 100%; }
+.photos.une .photo img { object-fit: contain; }
 button.photo { transition: transform .12s ease-out; }
 button.photo:active { transform: scale(.97); }
 .vocal { min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 10px 14px; max-width: 78%; text-align: left; }
@@ -773,7 +777,7 @@ html[data-service] .mention-apercu { display: none; }
 /* un message : sa réponse citée, ses réactions, sa marque « modifié », son état « en attente », son bouton d'actions (souris) — l'appui long le remplace au doigt */
 .msg-rang { max-width: 82%; display: flex; align-items: center; gap: 2px; }
 .msg.de-moi .msg-rang { flex-direction: row-reverse; }
-.msg-rang > .bulle, .msg-rang > .photos, .msg-rang > .vocal { max-width: 100%; min-width: 0; }
+.msg-rang > .bulle, .msg-rang > .photos, .msg-rang > .vocal, .msg-rang > .fichier { max-width: 100%; min-width: 0; }
 .msg-plus { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; color: var(--sub); font-size: 18px; }
 @media (hover: hover) { .msg-plus { opacity: 0; } .msg:hover .msg-plus, .msg-plus:focus-visible { opacity: 1; } }
 @media (hover: none) { .msg-plus { display: none; } }
@@ -830,6 +834,38 @@ html[data-service] .mention-apercu { display: none; }
 .contact.avec-actions .contact-actions { margin-left: auto; }
 .badge-admin { margin-left: 6px; font-size: 12px; font-weight: 600; color: var(--accent-txt); }
 
+/* ══ 7 bis. LES PIÈCES ET LES RÉGLAGES DU COMPTE (étape 4) ═══════════════════════════════════════════════════════════════════
+   Un fichier est une bulle comme un vocal (même fond, même encre : `.recue` / `.envoyee`), avec une pastille d'icône, son nom (qui passe à la ligne, jamais coupé) et sa taille.
+   Une photo pas encore arrivée est une case de la même taille que la photo : on ne la voit pas sauter quand l'image prend sa place. */
+.fichier { min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 10px 14px; max-width: 78%; text-align: left; }
+.fichier-icone { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; background: color-mix(in srgb, currentColor 16%, transparent); font-size: 20px; }
+.fichier-texte { min-width: 0; display: flex; flex-direction: column; }
+.fichier-nom { font-size: 16px; line-height: 20px; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.fichier-taille { font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; opacity: .85; }
+.fichier[aria-disabled="true"] { opacity: .7; }
+.photo.chargement { opacity: .65; }
+.photo.indisponible { outline: 1px dashed var(--faint); outline-offset: -3px; grid-auto-flow: row; align-content: center; justify-items: center; gap: 4px; padding: 6px; min-width: 118px; text-align: center; }
+.photo-etat { font-size: 11px; line-height: 14px; color: var(--sub-meta); overflow-wrap: anywhere; }
+/* une pièce que le service refuse POUR L'INSTANT reste là avec sa phrase, un « Réessayer » et un « Annuler » */
+.echec { display: flex; flex-direction: column; gap: 6px; max-width: 78%; padding: 0 4px; }
+.msg.de-moi .echec { align-items: flex-end; text-align: right; }
+.echec-texte { font-size: 13px; line-height: 17px; color: var(--rouge-txt); overflow-wrap: anywhere; }
+.echec-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.msg.de-moi .echec-actions { justify-content: flex-end; }
+button.photo.attente, button.photo.chargement { cursor: pointer; }
+.jauge { height: 8px; margin: 10px 0 8px; border-radius: 999px; background: var(--fill-soft); overflow: hidden; }
+.jauge > i { display: block; height: 100%; min-width: 2px; border-radius: inherit; background: var(--fill); }
+.reg-ligne { margin: 0 0 6px; font-size: 15px; line-height: 20px; color: var(--text); overflow-wrap: anywhere; }
+.reg-ligne:last-child { margin-bottom: 0; }
+.reg-ligne b { font-weight: 600; }
+.profil-photo { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+.profil-photo .avatar { width: 76px; height: 76px; font-size: 26px; }
+.champ-profil { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; font-size: 13px; color: var(--sub-meta); text-transform: uppercase; }
+.champ-profil input { height: 44px; padding: 0 12px; border: var(--line); border-radius: 12px; background: var(--input-bg); font-size: 16px; text-transform: none; color: var(--text); caret-color: var(--accent); outline: none; -webkit-appearance: none; appearance: none; }
+.champ-profil input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.reg-relire { margin-top: 8px; }
+.info-photo-actions { margin: -6px 0 16px; }
+
 /* ══ 8. LES RÉGLAGES DE L'APPAREIL : transparence et mouvement ═════════════════════════════════════════════════════════════
    ⛔ Retirer le flou SANS rendre de matière laisserait un texte posé sur ce qui passe dessous : on remplace la vitre par un
    aplat plein (« un filtre de fond se déclare AVEC sa surface », et l'inverse aussi). */
@@ -846,6 +882,7 @@ html[data-service] .mention-apercu { display: none; }
   /* en couleurs forcées les fonds disparaissent : seuls les CONTOURS restent — une bulle, une photo, un vocal en gardent un, sinon émis et reçu ne se
      distinguent plus que par l'alignement, et l'onde n'a plus de couleur à peindre */
   .bulle, .photo, .vocal, .saisie-ind, .pilule-saisie, .avis-saisie, .tuile, .appel-avis, .g-pilule, .seg { border: 1px solid CanvasText; }
+  .fichier { border: 1px solid CanvasText; }
   .appel-cmd .rond-cmd, .appel-raccrocher { border: 2px solid CanvasText; }
   .seg-bouton[aria-pressed="true"], .g-pilule[aria-checked="true"] { outline: 2px solid Highlight; }
   .onde i, .enreg-onde i { background: CanvasText; }
@@ -869,6 +906,7 @@ html[data-service] .mention-apercu { display: none; }
   <symbol id="i-croix" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
   <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M20 15.5 15.5 11 7 19"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-fichier" viewBox="0 0 24 24"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm7 0v5h5M9 13h6M9 17h6"/></symbol>
   <symbol id="i-haut" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
   <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
   <symbol id="i-corbeille" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol>
@@ -904,7 +942,7 @@ html[data-service] .mention-apercu { display: none; }
     <div class="side-marque"><img src="opmsg-192.png" alt="" width="28" height="28"><b>OP MESSAGES</b></div>
     <nav aria-label="Navigation principale" id="nav-side"></nav>
     <div class="side-fin">
-      <div class="moi"><span class="avatar av0" aria-hidden="true" id="moi-avatar"></span><span class="moi-texte"><span class="moi-nom" id="moi-nom"></span><span class="moi-statut"><i></i>Disponible</span></span></div>
+      <div class="moi"><span class="avatar av0" aria-hidden="true" id="moi-avatar"></span><span class="moi-texte"><span class="moi-nom" id="moi-nom"></span><span class="moi-statut" id="moi-statut"><i></i><span id="moi-statut-texte">Disponible</span></span></span></div>
     </div>
   </aside>
 
@@ -966,6 +1004,7 @@ html[data-service] .mention-apercu { display: none; }
       <div class="compo-ligne" id="compo">
         <button type="button" class="compo-bouton compo-plus presse" id="compo-plus" aria-label="Joindre une photo"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
         <input type="file" id="compo-fichier" class="sr-seul" accept="image/*" multiple tabindex="-1" aria-hidden="true">
+        <input type="file" id="compo-doc" class="sr-seul" tabindex="-1" aria-hidden="true">
         <div class="pilule-saisie">
           <textarea id="saisie" rows="1" maxlength="100000" placeholder="Message" aria-label="Écrire un message" autocomplete="off" autocapitalize="sentences" spellcheck="true"></textarea>
           <button type="button" class="compo-bouton envoyer presse" id="envoyer" aria-label="Envoyer le message" hidden><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-haut"/></svg></span></button>
@@ -1038,6 +1077,8 @@ html[data-service] .mention-apercu { display: none; }
   <div class="feuille-corps info-corps" id="info-corps" hidden></div>
 </section>
 
+<input type="file" id="profil-photo-fichier" class="sr-seul" accept="image/*" tabindex="-1" aria-hidden="true">
+<input type="file" id="groupe-photo-fichier" class="sr-seul" accept="image/*" tabindex="-1" aria-hidden="true">
 <div class="menu-fond" id="menu-fond" hidden><div class="menu-msg" id="menu-msg" role="dialog" aria-modal="true" aria-label="Actions du message"></div></div>
 
 <div class="visionneuse" id="visionneuse" role="dialog" aria-modal="true" aria-label="Photo agrandie" hidden>

@@ -332,6 +332,7 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .moi-nom { font-size: 13px; font-weight: 600; }
 .moi-statut { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sub-meta); }
 .moi-statut i { width: 6px; height: 6px; border-radius: 50%; background: var(--vert); }
+.moi-statut.masque i { background: var(--sub-meta); }
 
 /* ══ 6. LA FEUILLE « NOUVEAU GROUPE » — monte du bas (téléphone), fenêtre centrée de 520 px (bureau) ══════════════════════ */
 .voile {
@@ -522,7 +523,10 @@ html:not([data-vue="messages"]) .conv-ecran { display: none; }
 .photo { position: relative; width: 118px; height: 88px; padding: 0; border-radius: 14px; overflow: hidden; display: grid; place-items: center; background: var(--field); color: var(--sub); }
 .photo .ic { font-size: 22px; stroke-width: 1.8; }
 .photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
-.photos.une .photo { width: 200px; height: 150px; max-width: 100%; }
+/* ⛔ UNE PHOTO SEULE GARDE SES PROPORTIONS (relecture du testeur : toutes les photos sortaient recadrées en 200 × 150). Sa boîte est posée en ligne (`styleUne` : largeur + rapport) ; sans dimensions connues
+   (l'aperçu), la boîte d'avant, en 4/3. `contain` : même dans la boîte plancher d'un panorama extrême, l'image est vue ENTIÈRE, jamais coupée. Les GRILLES (2 photos et plus) restent des vignettes recadrées. */
+.photos.une .photo { width: 200px; height: auto; aspect-ratio: 4 / 3; max-width: 100%; }
+.photos.une .photo img { object-fit: contain; }
 button.photo { transition: transform .12s ease-out; }
 button.photo:active { transform: scale(.97); }
 .vocal { min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 10px 14px; max-width: 78%; text-align: left; }
@@ -774,7 +778,7 @@ html[data-service] .mention-apercu { display: none; }
 /* un message : sa réponse citée, ses réactions, sa marque « modifié », son état « en attente », son bouton d'actions (souris) — l'appui long le remplace au doigt */
 .msg-rang { max-width: 82%; display: flex; align-items: center; gap: 2px; }
 .msg.de-moi .msg-rang { flex-direction: row-reverse; }
-.msg-rang > .bulle, .msg-rang > .photos, .msg-rang > .vocal { max-width: 100%; min-width: 0; }
+.msg-rang > .bulle, .msg-rang > .photos, .msg-rang > .vocal, .msg-rang > .fichier { max-width: 100%; min-width: 0; }
 .msg-plus { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; color: var(--sub); font-size: 18px; }
 @media (hover: hover) { .msg-plus { opacity: 0; } .msg:hover .msg-plus, .msg-plus:focus-visible { opacity: 1; } }
 @media (hover: none) { .msg-plus { display: none; } }
@@ -831,6 +835,38 @@ html[data-service] .mention-apercu { display: none; }
 .contact.avec-actions .contact-actions { margin-left: auto; }
 .badge-admin { margin-left: 6px; font-size: 12px; font-weight: 600; color: var(--accent-txt); }
 
+/* ══ 7 bis. LES PIÈCES ET LES RÉGLAGES DU COMPTE (étape 4) ═══════════════════════════════════════════════════════════════════
+   Un fichier est une bulle comme un vocal (même fond, même encre : `.recue` / `.envoyee`), avec une pastille d'icône, son nom (qui passe à la ligne, jamais coupé) et sa taille.
+   Une photo pas encore arrivée est une case de la même taille que la photo : on ne la voit pas sauter quand l'image prend sa place. */
+.fichier { min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 10px 14px; max-width: 78%; text-align: left; }
+.fichier-icone { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; background: color-mix(in srgb, currentColor 16%, transparent); font-size: 20px; }
+.fichier-texte { min-width: 0; display: flex; flex-direction: column; }
+.fichier-nom { font-size: 16px; line-height: 20px; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.fichier-taille { font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; opacity: .85; }
+.fichier[aria-disabled="true"] { opacity: .7; }
+.photo.chargement { opacity: .65; }
+.photo.indisponible { outline: 1px dashed var(--faint); outline-offset: -3px; grid-auto-flow: row; align-content: center; justify-items: center; gap: 4px; padding: 6px; min-width: 118px; text-align: center; }
+.photo-etat { font-size: 11px; line-height: 14px; color: var(--sub-meta); overflow-wrap: anywhere; }
+/* une pièce que le service refuse POUR L'INSTANT reste là avec sa phrase, un « Réessayer » et un « Annuler » */
+.echec { display: flex; flex-direction: column; gap: 6px; max-width: 78%; padding: 0 4px; }
+.msg.de-moi .echec { align-items: flex-end; text-align: right; }
+.echec-texte { font-size: 13px; line-height: 17px; color: var(--rouge-txt); overflow-wrap: anywhere; }
+.echec-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.msg.de-moi .echec-actions { justify-content: flex-end; }
+button.photo.attente, button.photo.chargement { cursor: pointer; }
+.jauge { height: 8px; margin: 10px 0 8px; border-radius: 999px; background: var(--fill-soft); overflow: hidden; }
+.jauge > i { display: block; height: 100%; min-width: 2px; border-radius: inherit; background: var(--fill); }
+.reg-ligne { margin: 0 0 6px; font-size: 15px; line-height: 20px; color: var(--text); overflow-wrap: anywhere; }
+.reg-ligne:last-child { margin-bottom: 0; }
+.reg-ligne b { font-weight: 600; }
+.profil-photo { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+.profil-photo .avatar { width: 76px; height: 76px; font-size: 26px; }
+.champ-profil { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; font-size: 13px; color: var(--sub-meta); text-transform: uppercase; }
+.champ-profil input { height: 44px; padding: 0 12px; border: var(--line); border-radius: 12px; background: var(--input-bg); font-size: 16px; text-transform: none; color: var(--text); caret-color: var(--accent); outline: none; -webkit-appearance: none; appearance: none; }
+.champ-profil input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.reg-relire { margin-top: 8px; }
+.info-photo-actions { margin: -6px 0 16px; }
+
 /* ══ 8. LES RÉGLAGES DE L'APPAREIL : transparence et mouvement ═════════════════════════════════════════════════════════════
    ⛔ Retirer le flou SANS rendre de matière laisserait un texte posé sur ce qui passe dessous : on remplace la vitre par un
    aplat plein (« un filtre de fond se déclare AVEC sa surface », et l'inverse aussi). */
@@ -847,6 +883,7 @@ html[data-service] .mention-apercu { display: none; }
   /* en couleurs forcées les fonds disparaissent : seuls les CONTOURS restent — une bulle, une photo, un vocal en gardent un, sinon émis et reçu ne se
      distinguent plus que par l'alignement, et l'onde n'a plus de couleur à peindre */
   .bulle, .photo, .vocal, .saisie-ind, .pilule-saisie, .avis-saisie, .tuile, .appel-avis, .g-pilule, .seg { border: 1px solid CanvasText; }
+  .fichier { border: 1px solid CanvasText; }
   .appel-cmd .rond-cmd, .appel-raccrocher { border: 2px solid CanvasText; }
   .seg-bouton[aria-pressed="true"], .g-pilule[aria-checked="true"] { outline: 2px solid Highlight; }
   .onde i, .enreg-onde i { background: CanvasText; }
@@ -870,6 +907,7 @@ html[data-service] .mention-apercu { display: none; }
   <symbol id="i-croix" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
   <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M20 15.5 15.5 11 7 19"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-fichier" viewBox="0 0 24 24"><path d="M7 3h7l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm7 0v5h5M9 13h6M9 17h6"/></symbol>
   <symbol id="i-haut" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
   <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
   <symbol id="i-corbeille" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol>
@@ -905,7 +943,7 @@ html[data-service] .mention-apercu { display: none; }
     <div class="side-marque"><img src="../../icons/opmsg-192.png" alt="" width="28" height="28"><b>OP MESSAGES</b></div>
     <nav aria-label="Navigation principale" id="nav-side"></nav>
     <div class="side-fin">
-      <div class="moi"><span class="avatar av0" aria-hidden="true" id="moi-avatar"></span><span class="moi-texte"><span class="moi-nom" id="moi-nom"></span><span class="moi-statut"><i></i>Disponible</span></span></div>
+      <div class="moi"><span class="avatar av0" aria-hidden="true" id="moi-avatar"></span><span class="moi-texte"><span class="moi-nom" id="moi-nom"></span><span class="moi-statut" id="moi-statut"><i></i><span id="moi-statut-texte">Disponible</span></span></span></div>
     </div>
   </aside>
 
@@ -967,6 +1005,7 @@ html[data-service] .mention-apercu { display: none; }
       <div class="compo-ligne" id="compo">
         <button type="button" class="compo-bouton compo-plus presse" id="compo-plus" aria-label="Joindre une photo"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
         <input type="file" id="compo-fichier" class="sr-seul" accept="image/*" multiple tabindex="-1" aria-hidden="true">
+        <input type="file" id="compo-doc" class="sr-seul" tabindex="-1" aria-hidden="true">
         <div class="pilule-saisie">
           <textarea id="saisie" rows="1" maxlength="100000" placeholder="Message" aria-label="Écrire un message" autocomplete="off" autocapitalize="sentences" spellcheck="true"></textarea>
           <button type="button" class="compo-bouton envoyer presse" id="envoyer" aria-label="Envoyer le message" hidden><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-haut"/></svg></span></button>
@@ -1039,6 +1078,8 @@ html[data-service] .mention-apercu { display: none; }
   <div class="feuille-corps info-corps" id="info-corps" hidden></div>
 </section>
 
+<input type="file" id="profil-photo-fichier" class="sr-seul" accept="image/*" tabindex="-1" aria-hidden="true">
+<input type="file" id="groupe-photo-fichier" class="sr-seul" accept="image/*" tabindex="-1" aria-hidden="true">
 <div class="menu-fond" id="menu-fond" hidden><div class="menu-msg" id="menu-msg" role="dialog" aria-modal="true" aria-label="Actions du message"></div></div>
 
 <div class="visionneuse" id="visionneuse" role="dialog" aria-modal="true" aria-label="Photo agrandie" hidden>
@@ -1067,7 +1108,7 @@ html[data-service] .mention-apercu { display: none; }
   if (!source) { $('contenu').innerHTML = '<p class="vide">Les données n\'ont pas pu être chargées.</p>'; return; }
   /* ⛔ CE QUE LA SOURCE SAIT FAIRE. La source de l'aperçu n'annonce rien : photos, vocaux et appels y sont SIMULÉS, aucun service, aucune action sur un message. Celle du
      service annonce ses capacités (`source.capacites`) : ce qu'elle ne sait pas encore dit « bientôt » au lieu de faire semblant. */
-  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, appels: true, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, texteMax: 4000 }, source.capacites || {});
+  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, texteMax: 4000 }, source.capacites || {});
   /* la personne et ses contacts : posés au démarrage (une source de service ne sait qui est connecté qu'après avoir lu la session), relus quand elle le dit */
   let MOI = null, CONTACTS = [];
   const SUFFIXE_TITRE = CAP.service ? ' — OP MESSAGES' : ' — OP MESSAGES, aperçu';
@@ -1094,8 +1135,9 @@ html[data-service] .mention-apercu { display: none; }
     contexte: null, menu: null, codeLien: null,     // une réponse ou une modification en cours de composition ; le menu d'un message ouvert ; le lien lu dans l'adresse
     appelId: null, appelUI: null, jetonAppel: 0, appelDemarre: false, declencheurAppel: null     // l'appel en cours : son identifiant (celui de la route), l'état local (médias, minuterie), un jeton qui périme les attentes
   };
-  /* `mode` : ce que la feuille est en train d'être — 'chat' (Nouveau groupe), 'appel' (Appel de groupe : audio ou vidéo) ou 'info' (les détails d'un appel de l'historique) */
-  function groupeVierge() { return { ouvert: false, mode: 'chat', cle: null, convId: null, nom: '', photo: null, choisis: [], recherche: '', ephemeres: 0, annonces: false, video: false, info: null }; }
+  /* `mode` : ce que la feuille est en train d'être — 'chat' (Nouveau groupe), 'appel' (Appel de groupe : audio ou vidéo), 'info' (les détails d'un appel de l'historique),
+     'contact' (mes contacts et leurs liens), 'convinfo' (les infos d'une conversation) ou 'profil' (mon profil : photo, nom, statut) */
+  function groupeVierge() { return { ouvert: false, mode: 'chat', cle: null, convId: null, nom: '', photo: null, photoBlob: null, choisis: [], recherche: '', ephemeres: 0, annonces: false, video: false, info: null }; }
 
   /* ═══ 3. OUTILS ═══════════════════════════════════════════════════════════════════════════════════════════════════════════ */
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1134,6 +1176,8 @@ html[data-service] .mention-apercu { display: none; }
     return (j < 7 ? maj1(FMT_JOUR.format(t)) : FMT_DATE.format(t)) + ' ' + h;
   }
   const duree = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+  /* un nombre d'octets en mots : « 850 Ko », « 12,3 Mo », « 2 Go » */
+  const tailleTexte = o => { o = +o || 0; return o >= 1073741824 ? (Math.round(o / 107374182.4) / 10).toString().replace('.', ',') + ' Go' : o >= 1048576 ? (Math.round(o / 104857.6) / 10).toString().replace('.', ',') + ' Mo' : o >= 1024 ? Math.round(o / 1024) + ' Ko' : o + ' o'; };
 
   /* ═══ 4. LA LISTE MESSAGES ════════════════════════════════════════════════════════════════════════════════════════════════ */
   function ligneConv(c, neuve) {
@@ -1241,6 +1285,7 @@ html[data-service] .mention-apercu { display: none; }
       document.querySelectorAll('[data-vue]').forEach(a => { if (a.dataset.vue === r.vue) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
       $('tabs').style.setProperty('--i', ORDRE.indexOf(r.vue));
       document.title = VUES[r.vue].titre + SUFFIXE_TITRE;
+      if (r.vue === 'reglages' && CAP.reglages && prec && typeof chargerReglages === 'function') chargerReglages();
       /* chaque vue garde SA position (comme une barre d'onglets d'iPhone) : la liste défilée, un tour par Appels, et elle est là où on l'a laissée.
          ⛔ avec une conversation ouverte la fenêtre n'est plus la liste (iOS la ramène en haut pour le clavier) : la position de la liste est celle gardée à l'ouverture */
       if (prec) window.scrollTo(0, etat.posVues[r.vue] || 0);
@@ -1309,14 +1354,18 @@ html[data-service] .mention-apercu { display: none; }
     if (m.reponse && !m.supprime) h += citationHtml(m.reponse);
     const debutCorps = h.length;
     if (m.photos) {
-      h += '<span class="photos' + (m.photos.length === 1 ? ' une' : '') + '">' + m.photos.map((p, i) => blob(p.url) ?
-        '<button type="button" class="photo presse" data-photo="' + esc(m.id) + '|' + i + '" aria-label="Agrandir la photo ' + (i + 1) + ' sur ' + m.photos.length + '"><img src="' + esc(p.url) + '" alt="Photo envoyée par ' + esc(moi ? 'vous' : nomAuteur(m.auteur)) + '"></button>' :
-        '<span class="photo" role="img" aria-label="Photo d\'exemple">' + icone('i-image') + '</span>').join('') + '</span>';
+      const une = m.photos.length === 1;
+      h += '<span class="photos' + (une ? ' une' : '') + '">' + m.photos.map((p, i) => blob(p.url) ?
+        '<button type="button" class="photo presse" data-photo="' + esc(m.id) + '|' + i + '"' + (une ? styleUne(p) : '') + ' aria-label="Agrandir la photo ' + (i + 1) + ' sur ' + m.photos.length + '"><img src="' + esc(p.url) + '" alt="Photo envoyée par ' + esc(moi ? 'vous' : nomAuteur(m.auteur)) + '"></button>' :
+        photoAttente(p, i, m.photos.length, une)).join('') + '</span>';
     } else if (m.vocal) {
       h += '<button type="button" class="vocal ' + sens + ' presse" data-lire="' + esc(m.id) + '" aria-label="Lire le message vocal de ' + duree(m.vocal.dur) + '">' +
         '<span class="vocal-disque">' + icone('i-play', 'plein play') + icone('i-pause', 'plein pause') + '</span>' +
         '<span class="onde" aria-hidden="true">' + (m.vocal.bars && m.vocal.bars.length ? m.vocal.bars : [8, 14, 18, 10, 16, 6, 12, 18, 9, 14]).map(n => '<i style="height:' + Math.max(4, Math.min(20, n | 0)) + 'px"></i>').join('') + '</span>' +
         '<span class="vocal-duree">' + duree(m.vocal.dur) + '</span></button>';
+    } else if (m.fichier) {
+      h += '<button type="button" class="fichier ' + sens + ' presse" data-fichier="' + esc(m.id) + '"' + (m.fichier.piece ? '' : ' aria-disabled="true"') + ' aria-label="Télécharger le fichier ' + esc(m.fichier.nom) + ', ' + esc(tailleTexte(m.fichier.taille)) + '">' +
+        '<span class="fichier-icone">' + icone('i-fichier') + '</span><span class="fichier-texte"><span class="fichier-nom" dir="auto">' + esc(m.fichier.nom) + '</span><span class="fichier-taille">' + esc(tailleTexte(m.fichier.taille)) + '</span></span></button>';
     } else if (m.supprime) {
       h += '<span class="bulle supprimee ' + sens + '" dir="auto">Message supprimé</span>';
     } else {
@@ -1324,9 +1373,37 @@ html[data-service] .mention-apercu { display: none; }
     }
     /* version servie : le corps du message et son bouton d'actions vont dans UNE rangée (le bouton se pose à côté de la bulle) ; l'aperçu garde son balisage d'origine, octet pour octet */
     if (CAP.actionsMessage && !m.attente) h = h.slice(0, debutCorps) + '<span class="msg-rang">' + h.slice(debutCorps) + '<button type="button" class="msg-plus presse" data-actions="' + esc(m.id) + '" aria-haspopup="dialog" aria-label="Actions du message">' + icone('i-points') + '</button></span>';
+    if (m.attente && m.echec && typeof source.reessayer === 'function') h += echecHtml(m);
     if (m.reactions && m.reactions.length) h += reactionsHtml(m);
     if (m.modifie && !m.supprime) h += '<span class="mention-modifie">Modifié</span>';
-    return { h: h + '</div>', st: estDernierEnvoye ? (m.attente ? 'En attente de connexion…' : m.lu ? (m.lu === true ? 'Lu' : 'Lu ' + FMT_HEURE.format(m.lu)) : 'Envoyé') : null };
+    /* le statut DIT VRAI : « Envoi… » seulement quand des octets partent vraiment (la source le sait), « En attente de connexion… » quand rien ne part ; une pièce en échec a sa phrase et ses deux boutons, pas de statut */
+    return { h: h + '</div>', st: estDernierEnvoye ? (m.attente ? (m.echec ? null : m.envoi ? 'Envoi…' : 'En attente de connexion…') : m.lu ? (m.lu === true ? 'Lu' : 'Lu ' + FMT_HEURE.format(m.lu)) : 'Envoyé') : null };
+  }
+  /* ⛔ UNE PHOTO SEULE GARDE SES PROPORTIONS (relecture du testeur) : sa boîte tient dans 240 × 320 ; une image minuscule est agrandie du double au plus, mais jamais laissée sous 72 px de côté ; un panorama
+     extrême garde sa largeur — il est vu ENTIER (`contain`), jamais coupé. La largeur et le rapport sont posés en ligne (la boîte d'une photo à peine arrivée est déjà la bonne : rien ne saute). Sans dimensions
+     connues (l'aperçu), c'est la boîte d'avant (200 × 150, en CSS). Les nombres viennent du service (entiers bornés) et sont ramenés à des entiers ici. */
+  const UNE_LARGE = 240, UNE_HAUTE = 320, UNE_PLANCHER = 72, UNE_AGRANDIR = 2;
+  function styleUne(p) {
+    const w = p ? p.w | 0 : 0, h = p ? p.h | 0 : 0;
+    if (!(w > 0 && h > 0)) return '';
+    const k = Math.min(UNE_AGRANDIR, UNE_LARGE / w, UNE_HAUTE / h);
+    const lg = Math.max(UNE_PLANCHER, Math.round(w * k)), ht = Math.max(UNE_PLANCHER, Math.round(h * k));
+    return ' style="width:' + lg + 'px;aspect-ratio:' + lg + ' / ' + ht + '"';
+  }
+  /* une pièce que le service refuse POUR L'INSTANT (trop de demandes, espace plein, lecture seule, envoi trop lent) : elle reste, avec la phrase du service — qui peut être ailleurs que sur l'avis,
+     lequel disparaît seul — et c'est à la personne de dire quand réessayer ou d'y renoncer */
+  function echecHtml(m) {
+    return '<span class="echec"><span class="echec-texte" dir="auto">Pas envoyé : ' + esc(m.echec) + '</span><span class="echec-actions">' +
+      '<button type="button" class="mini presse" data-reessayer="' + esc(m.cid) + '">Réessayer</button><button type="button" class="mini danger presse" data-annuler="' + esc(m.cid) + '">Annuler</button></span></span>';
+  }
+  /* une photo dont l'adresse n'est pas (encore) là : la case garde la taille de la photo. Dans l'aperçu, c'est un exemple ; avec le service, elle se charge toute seule (« chargement »),
+     attend le toucher (« attente » : seules les dernières photos d'une conversation sont lues d'avance) ou dit qu'elle n'est plus disponible. */
+  function photoAttente(p, i, n, une) {
+    const st = une ? styleUne(p) : '';       // la case d'une photo seule a déjà SES proportions : rien ne saute quand l'image arrive
+    if (!p.piece) return '<span class="photo"' + st + ' role="img" aria-label="Photo d\'exemple">' + icone('i-image') + '</span>';
+    /* ⛔ « Photo indisponible » se LIT (relecture du testeur : une icône seule, un libellé pour le seul lecteur d'écran) : le texte est dans la case */
+    if (p.etat === 'indisponible') return '<span class="photo indisponible"' + st + ' role="img" aria-label="Photo indisponible">' + icone('i-image') + '<span class="photo-etat" aria-hidden="true">Photo indisponible</span></span>';
+    return '<button type="button" class="photo ' + (p.etat === 'chargement' ? 'chargement' : 'attente') + ' presse" data-charger="' + esc(p.piece) + '"' + st + ' aria-label="' + (p.etat === 'chargement' ? 'Photo en cours de chargement' : 'Charger la photo ' + (i + 1) + ' sur ' + n) + '">' + icone('i-image') + '</button>';
   }
   /* la réponse citée au-dessus de la bulle, et les réactions dessous : du texte venu d'un tiers, échappé comme tout le reste */
   function citationHtml(r) { return '<span class="citation" dir="auto"><b>' + esc(r.nom || '') + '</b>' + esc(r.texte || '') + '</span>'; }
@@ -1447,7 +1524,7 @@ html[data-service] .mention-apercu { display: none; }
     Promise.resolve().then(() => source.marquerLu(etat.conv)).catch(() => { /* la source le dit si c'est refusé */ });
   });
   function annoncer(m) {
-    const corps = m.texte || (m.photos ? (m.photos.length > 1 ? m.photos.length + ' photos' : 'une photo') : m.vocal ? 'un message vocal de ' + duree(m.vocal.dur) : '');
+    const corps = m.texte || (m.photos ? (m.photos.length > 1 ? m.photos.length + ' photos' : 'une photo') : m.vocal ? 'un message vocal de ' + duree(m.vocal.dur) : m.fichier ? 'le fichier ' + m.fichier.nom : '');
     const r = $('conv-annonce'); r.textContent = '';
     setTimeout(() => { r.textContent = nomAuteur(m.auteur) + ' : ' + corps; }, 60);
   }
@@ -1564,7 +1641,9 @@ html[data-service] .mention-apercu { display: none; }
   $('envoyer').addEventListener('mousedown', e => e.preventDefault());        // la flèche ne vole pas le focus (le clavier reste ouvert)
   $('envoyer').addEventListener('click', () => { armerRetap(); envoyerTexte(); });
 
-  /* ── une photo : réduite par un canvas (le fichier d'origine ne part nulle part), validée par son décodage ── */
+  /* ── une photo : réduite par un canvas (le fichier d'origine ne part nulle part), validée par son décodage ──
+     ⛔ SAUF UN GIF (relecture du testeur : un GIF animé devenait une image fixe, sans que rien ne le dise) : jusqu'au poids maximum d'une photo, il part TEL QUEL — le service en retire les
+     commentaires et les extensions inconnues, et GARDE l'animation. Au-delà, ou démesuré, il part en image fixe et la page le DIT. */
   /* un fichier INCOMPLET (téléchargement interrompu) se décode quand même en partie : on en envoyait la moitié, grise. Là où la fin d'un format est sans ambiguïté
      (PNG : le morceau IEND ; GIF : l'octet 0x3B ; WebP : la taille annoncée), on la vérifie. Pas pour le JPEG : des octets peuvent suivre légitimement son marqueur de fin
      (photos « en mouvement », vignettes) et on refuserait de vraies photos. */
@@ -1576,7 +1655,10 @@ html[data-service] .mention-apercu { display: none; }
     if (egal(tete, [0x52, 0x49, 0x46, 0x46], 0) && egal(tete, [0x57, 0x45, 0x42, 0x50], 8)) return (tete[4] | tete[5] << 8 | tete[6] << 16 | tete[7] << 24) + 8 > f.size;
     return false;
   }
-  async function reduireImage(fichier, cote, qualite) {
+  /* `cible` (octets) : on baisse la qualité par pas, puis la taille, jusqu'à l'atteindre — un plancher (qualité .5, 640 px) évite de rendre une bouillie. Sans cible (l'aperçu), un seul passage. */
+  const estGif = async f => { const t = new Uint8Array(await f.slice(0, 6).arrayBuffer()); return t[0] === 0x47 && t[1] === 0x49 && t[2] === 0x46 && t[3] === 0x38 && (t[4] === 0x37 || t[4] === 0x39) && t[5] === 0x61; };
+  const GIF_PIXELS_MAX = 16e6;      // 4 000 × 4 000 : au-delà, même un petit fichier se décompresse en centaines de Mo chez celui qui le reçoit
+  async function reduireImage(fichier, cote, qualite, cible, gifMax) {
     if (!fichier || fichier.size > 40 * 1048576) throw new Error('trop-lourd');
     if (await fichierTronque(fichier)) throw new Error('illisible');
     let img;
@@ -1592,37 +1674,113 @@ html[data-service] .mention-apercu { display: none; }
     }
     const w0 = img.width || img.naturalWidth, h0 = img.height || img.naturalHeight;
     if (!w0 || !h0 || w0 * h0 > 100e6) throw new Error('illisible');       // une image « vide » ou démesurée (bombe de décompression)
-    const k = Math.min(1, cote / Math.max(w0, h0)), w = Math.max(1, Math.round(w0 * k)), h = Math.max(1, Math.round(h0 * k));
-    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-    const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0, w, h);
-    if (img.close) img.close();
-    /* la preuve qu'il y avait une image : le dessin a posé au moins un point (le fond blanc, lui, se pose APRÈS — un JPEG n'a pas de transparence à garder) */
-    const px = cx.getImageData(0, 0, w, h).data; let dessine = false;
-    for (let i = 3; i < px.length; i += 4 * 29) if (px[i]) { dessine = true; break; }
-    if (!dessine) throw new Error('illisible');
-    cx.globalCompositeOperation = 'destination-over'; cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h);
-    const b = await new Promise(r => cv.toBlob(r, 'image/jpeg', qualite));
-    if (!b) throw new Error('illisible');
-    return { blob: b, w, h };
-  }
-  $('compo-plus').addEventListener('click', () => { if (retap()) return; if (!CAP.photos) { mot('Les photos arrivent bientôt'); return; } $('compo-fichier').click(); });          // la corbeille de la barre d'enregistrement est juste là, au même endroit
-  $('compo-fichier').addEventListener('change', async e => {
-    const fichiers = Array.from(e.target.files || []).slice(0, 10); e.target.value = '';
-    const id = etat.conv; if (!id || !fichiers.length) return;
-    const bonnes = []; let ratees = 0;
-    for (const f of fichiers) {
-      try { const r = await reduireImage(f, 1280, .82); bonnes.push({ blob: r.blob, url: URL.createObjectURL(r.blob), w: r.w, h: r.h }); } catch (er) { ratees++; }
+    let gifTropLourd = false;
+    if (gifMax > 0 && await estGif(fichier)) {
+      if (fichier.size <= gifMax && w0 * h0 <= GIF_PIXELS_MAX) { if (img.close) img.close(); return { blob: fichier, w: w0, h: h0, gif: true, gifTropLourd: false }; }
+      gifTropLourd = true;
     }
-    if (ratees) avis(ratees === 1 ? 'Une image n\'a pas pu être lue — elle n\'a pas été envoyée.' : ratees + ' images n\'ont pas pu être lues — elles n\'ont pas été envoyées.');
+    const k = Math.min(1, cote / Math.max(w0, h0)), w = Math.max(1, Math.round(w0 * k)), h = Math.max(1, Math.round(h0 * k));
+    const peindre = (lg, ht, verifier) => {
+      const cv = document.createElement('canvas'); cv.width = lg; cv.height = ht;
+      const cx = cv.getContext('2d'); cx.drawImage(img, 0, 0, lg, ht);
+      /* la preuve qu'il y avait une image : le dessin a posé au moins un point (le fond blanc, lui, se pose APRÈS — un JPEG n'a pas de transparence à garder) */
+      if (verifier) {
+        const px = cx.getImageData(0, 0, lg, ht).data; let dessine = false;
+        for (let i = 3; i < px.length; i += 4 * 29) if (px[i]) { dessine = true; break; }
+        if (!dessine) throw new Error('illisible');
+      }
+      cx.globalCompositeOperation = 'destination-over'; cx.fillStyle = '#fff'; cx.fillRect(0, 0, lg, ht);
+      return cv;
+    };
+    const enBlob = (cv, q) => new Promise(r => cv.toBlob(r, 'image/jpeg', q));
+    let cv; try { cv = peindre(w, h, true); } catch (er) { if (img.close) img.close(); throw er; }
+    let q = qualite, b = await enBlob(cv, q);
+    if (cible) {
+      for (let tours = 0; b && b.size > cible && tours < 8; tours++) {
+        if (q > .52) q = Math.max(.5, q - .08);
+        else if (Math.max(cv.width, cv.height) > 640) cv = peindre(Math.max(1, Math.round(cv.width * .8)), Math.max(1, Math.round(cv.height * .8)), false);
+        else break;
+        b = await enBlob(cv, q);
+      }
+    }
+    if (img.close) img.close();
+    if (!b) throw new Error('illisible');
+    return { blob: b, w: cv.width, h: cv.height, gif: false, gifTropLourd };
+  }
+  /* ce que le service accepte d'un envoi de photos : combien par message, et le poids d'un GIF gardé tel quel (= le maximum d'une photo). L'aperçu n'a pas de service : dix photos, jamais de GIF animé. */
+  async function limitesPhotos() {
+    let l = null;
+    try { l = typeof source.limitesPieces === 'function' ? await source.limitesPieces() : null; } catch (er) { l = null; }
+    return { parMessage: l && l.par_message > 0 ? l.par_message | 0 : 10, gifMax: l && l.photo_max > 0 ? l.photo_max : 0 };
+  }
+  $('compo-plus').addEventListener('click', () => {          // la corbeille de la barre d'enregistrement est juste là, au même endroit
+    if (retap()) return;
+    if (!CAP.photos) { mot('Les photos arrivent bientôt'); return; }
+    if (CAP.fichiers) { ouvrirMenuPlus(); return; }
+    $('compo-fichier').click();
+  });
+  /* « + » avec des fichiers : une petite feuille Photo / Fichier, le même cadre que le menu d'un message (Échap, le fond et chaque geste la referment) */
+  function ouvrirMenuPlus() {
+    if (etat.menu || !etat.conv) return;
+    etat.menu = { plus: true, declencheur: $('compo-plus'), t: Date.now() };
+    $('menu-msg').setAttribute('aria-label', 'Joindre');
+    $('menu-msg').innerHTML = '<button type="button" class="menu-action" data-plus="photo">Photo</button><button type="button" class="menu-action" data-plus="fichier">Fichier</button>';
+    $('menu-fond').hidden = false;
+    synchroInert();
+    $('menu-msg').querySelector('button').focus({ preventScroll: true });
+  }
+  $('compo-fichier').addEventListener('change', async e => {
+    const choisies = Array.from(e.target.files || []); e.target.value = '';
+    const id = etat.conv; if (!id || !choisies.length) return;
+    const lim = await limitesPhotos();
+    /* ⛔ jamais « les dix premières, le reste en silence » (relecture du testeur : la onzième disparaissait sans un mot) */
+    const fichiers = choisies.slice(0, lim.parMessage), enTrop = choisies.length - fichiers.length;
+    const bonnes = []; let ratees = 0, lourds = 0;
+    for (const f of fichiers) {
+      try { const r = await reduireImage(f, 1600, .82, 250 * 1024, lim.gifMax); if (r.gifTropLourd) lourds++; bonnes.push({ blob: r.blob, url: URL.createObjectURL(r.blob), w: r.w, h: r.h }); } catch (er) { ratees++; }
+    }
+    const dits = [];
+    if (enTrop) dits.push(lim.parMessage + ' photos au plus par envoi : ' + (enTrop === 1 ? 'la ' + (lim.parMessage + 1 === 11 ? 'onzième' : (lim.parMessage + 1) + 'e') + ' n\'a pas été envoyée.' : 'les ' + enTrop + ' dernières n\'ont pas été envoyées.'));
+    if (ratees) dits.push(ratees === 1 ? 'Une image n\'a pas pu être lue — elle n\'a pas été envoyée.' : ratees + ' images n\'ont pas pu être lues — elles n\'ont pas été envoyées.');
+    if (lourds) dits.push(lourds === 1 ? 'Un GIF était trop lourd pour rester animé : il est parti sans mouvement.' : lourds + ' GIF étaient trop lourds pour rester animés : ils sont partis sans mouvement.');
+    if (dits.length) avis(dits.join(' '));
     if (bonnes.length && id === etat.conv && !(await envoi({ photos: bonnes }))) bonnes.forEach(p => URL.revokeObjectURL(p.url));
   });
+  /* un fichier : n'importe quoi, tel quel (le service juge ce que c'est, le sert toujours en pièce jointe, jamais en ligne). Trop lourd, il est refusé par la source AVANT tout envoi. */
+  $('compo-doc').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = '';
+    const id = etat.conv; if (!id || !f) return;
+    if (!(f.size > 0)) { avis('Ce fichier est vide : il n\'a pas été envoyé.'); return; }
+    await envoi({ fichier: { blob: f, nom: f.name || 'fichier', taille: f.size } });
+  });
+  /* télécharger un fichier reçu : lu du service à la demande, jamais gardé (l'adresse est rendue une minute après) */
+  async function telechargerFichier(mid, bouton) {
+    const m = trouverMessage(mid);
+    if (!m || !m.fichier || !m.fichier.piece || bouton.getAttribute('aria-disabled') === 'true') return;
+    bouton.setAttribute('aria-disabled', 'true');
+    try {
+      const b = await source.pieceBlob(m.fichier.piece), u = URL.createObjectURL(b);
+      const a = document.createElement('a'); a.href = u; a.download = m.fichier.nom; a.hidden = true; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(u), 60000);
+      masquerAvis();
+    } catch (er) { avis(phrase(er, 'Le fichier n\'a pas pu être téléchargé.')); }
+    finally { bouton.removeAttribute('aria-disabled'); }
+  }
 
   /* ── la photo agrandie ── */
   $('conv-messages').addEventListener('click', e => {
     const p = e.target.closest('[data-photo]');
     if (p) { etat.declencheurPhoto = p; pousser(Object.assign({}, etat.route, { photo: p.dataset.photo })); return; }
     const v = e.target.closest('[data-lire]');
-    if (v) lireVocal(v.dataset.lire);
+    if (v) { lireVocal(v.dataset.lire); return; }
+    const re = e.target.closest('[data-reessayer]');
+    if (re) { if (typeof source.reessayer === 'function' && source.reessayer(re.dataset.reessayer)) masquerAvis(); return; }
+    const an = e.target.closest('[data-annuler]');
+    if (an) { if (typeof source.abandonner === 'function') source.abandonner(an.dataset.annuler); return; }
+    const c = e.target.closest('[data-charger]');
+    if (c) { source.pieceUrl(c.dataset.charger).then(masquerAvis, er => avis(phrase(er, 'La photo n\'a pas pu être chargée.'))); return; }
+    const f = e.target.closest('[data-fichier]');
+    if (f) telechargerFichier(f.dataset.fichier, f);
   });
   function ouvrirPhotoDom(cle) {
     const [mid, i] = cle.split('|'), m = trouverMessage(mid), p = m && m.photos && m.photos[+i];
@@ -1673,12 +1831,19 @@ html[data-service] .mention-apercu { display: none; }
     if (dejaCe) return;
     const m = trouverMessage(mid); if (!m || !m.vocal) return;
     lect.mid = mid; lect.t0 = Date.now();
-    if (blob(m.vocal.url)) {
-      const a = new Audio(m.vocal.url); lect.audio = a;
+    const jouer = url => {
+      const a = new Audio(url); lect.audio = a;
       a.addEventListener('timeupdate', () => { if (lect.audio === a) progres(m.vocal.dur ? a.currentTime / m.vocal.dur : 0); });
       a.addEventListener('ended', () => { if (lect.audio === a) arreterLecture(); });
       a.addEventListener('error', () => { if (lect.audio === a) { arreterLecture(); avis('Ce message vocal n\'a pas pu être lu.'); } });
-      const p = a.play(); if (p && p.catch) p.catch(() => { if (lect.audio === a) { arreterLecture(); avis('Ce message vocal n\'a pas pu être lu.'); } });
+      /* ⛔ un navigateur peut refuser de démarrer un son qui n'a pas été lancé dans le geste (iOS, quand le vocal vient d'être téléchargé) : il est alors EN MÉMOIRE, un second toucher le lit */
+      const p = a.play(); if (p && p.catch) p.catch(er => { if (lect.audio === a) { arreterLecture(); avis(er && er.name === 'NotAllowedError' ? 'Touche encore le message vocal pour le lire.' : 'Ce message vocal n\'a pas pu être lu.'); } });
+    };
+    if (blob(m.vocal.url)) jouer(m.vocal.url);
+    else if (m.vocal.piece && typeof source.pieceUrl === 'function') {
+      /* un vocal du service qui n'est pas encore arrivé (seuls les derniers sont lus d'avance) : on le lit maintenant, le bouton passe en « lecture » tout de suite */
+      source.pieceUrl(m.vocal.piece).then(url => { if (lect.mid === mid && !lect.audio) { if (blob(url)) jouer(url); else arreterLecture(); } },
+        er => { if (lect.mid === mid) { arreterLecture(); avis(phrase(er, 'Ce message vocal n\'a pas pu être lu.')); } });
     } else {
       lect.minut = setInterval(() => { const x = (Date.now() - lect.t0) / 1000 / m.vocal.dur; if (x >= 1) arreterLecture(); else progres(x); }, 100);
     }
@@ -1689,7 +1854,7 @@ html[data-service] .mention-apercu { display: none; }
      Toucher le micro démarre un enregistrement qui DURE (la flèche l'envoie, la corbeille l'annule) ; le MAINTENIR plus d'une
      demi-seconde l'envoie au relâcher. Le micro refusé, absent ou indisponible se DIT en une phrase — jamais une erreur dans la
      console, jamais un bouton qui ne répond rien. */
-  const enr = { etat: 'repos', conv: null, flux: null, rec: null, morceaux: [], t0: 0, minut: null, niveaux: [], ctx: null, ana: null, annule: false, tenu: false, tenuAuDebut: false, geste: 0 };
+  const enr = { etat: 'repos', conv: null, flux: null, rec: null, morceaux: [], t0: 0, minut: null, niveaux: [], ctx: null, ana: null, annule: false, tenu: false, tenuAuDebut: false, geste: 0, msVu: 0 };
   function afficherEnregistrement(on) {
     $('enreg').hidden = !on;
     const c = etat.convDonnees, ferme = c && c.annoncesSeulement && c.admins.indexOf(MOI.id) < 0;
@@ -1735,9 +1900,10 @@ html[data-service] .mention-apercu { display: none; }
     enr.rec.start(250);
     enr.etat = 'enregistre'; enr.t0 = Date.now(); enr.tenuAuDebut = enr.tenu;
     afficherEnregistrement(true);
-    $('enreg-duree').textContent = '0:00'; $('enreg-onde').innerHTML = '';
+    $('enreg-duree').textContent = '0:00'; $('enreg-onde').innerHTML = ''; enr.msVu = 0;
     enr.minut = setInterval(() => {
       const ms = Date.now() - enr.t0;
+      enr.msVu = ms;                                          // ce que le compteur vient de MONTRER : la bulle dira exactement cela
       $('enreg-duree').textContent = duree(ms / 1000);
       let niv = 0;
       if (enr.ana && buf) { enr.ana.getByteTimeDomainData(buf); for (let i = 0; i < buf.length; i++) niv = Math.max(niv, Math.abs(buf[i] - 128) / 128); }
@@ -1755,7 +1921,7 @@ html[data-service] .mention-apercu { display: none; }
     if (enr.rec && enr.rec.state !== 'inactive') enr.rec.stop(); else finirEnregistrement();
   }
   async function finirEnregistrement() {
-    const cible = enr.conv, ms = Date.now() - enr.t0, morceaux = enr.morceaux, type = enr.rec && enr.rec.mimeType, annule = enr.annule, niveaux = enr.niveaux.slice();
+    const cible = enr.conv, ms = Date.now() - enr.t0, msVu = Math.min(ms, enr.msVu || ms), morceaux = enr.morceaux, type = enr.rec && enr.rec.mimeType, annule = enr.annule, niveaux = enr.niveaux.slice();
     nettoyerFlux(); enr.etat = 'repos'; enr.annule = false;
     afficherEnregistrement(false);
     if (annule) return;
@@ -1764,7 +1930,8 @@ html[data-service] .mention-apercu { display: none; }
     const n = 10, bars = [];
     for (let i = 0; i < n; i++) { const part = niveaux.slice(Math.floor(i * niveaux.length / n), Math.floor((i + 1) * niveaux.length / n)); const v = part.length ? Math.max.apply(null, part) : 0; bars.push(6 + Math.round(Math.min(1, v * 3) * 12)); }
     const url = URL.createObjectURL(b);
-    if (!(await envoi({ vocal: { blob: b, url, dur: ms / 1000, bars } }, cible))) URL.revokeObjectURL(url);
+    /* ⛔ la durée de la bulle est celle que le COMPTEUR montrait quand on a envoyé (relecture du testeur : 1:05 devenait 1:06, 0:01 devenait 0:02) — pas celle, 100 ms plus tard, de l'arrêt du micro */
+    if (!(await envoi({ vocal: { blob: b, url, dur: msVu / 1000, bars } }, cible))) URL.revokeObjectURL(url);
   }
   const micro = $('compo-micro');
   micro.addEventListener('contextmenu', e => e.preventDefault());
@@ -1828,9 +1995,9 @@ html[data-service] .mention-apercu { display: none; }
     $('g-compteur').textContent = G.choisis.length + ' / ' + CONTACTS.length;
     $('g-creer').setAttribute('aria-disabled', G.choisis.length ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
-    const appel = G.mode === 'appel', info = G.mode === 'info', corpsInfo = info || G.mode === 'contact' || G.mode === 'convinfo';
+    const appel = G.mode === 'appel', info = G.mode === 'info', corpsInfo = info || G.mode === 'contact' || G.mode === 'convinfo' || G.mode === 'profil';
     $('feuille').dataset.mode = G.mode;
-    $('feuille-titre').textContent = info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : appel ? 'Appel de groupe' : 'Nouveau groupe';
+    $('feuille-titre').textContent = info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : appel ? 'Appel de groupe' : 'Nouveau groupe';
     $('g-annuler').textContent = corpsInfo ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : 'Créer';
     $('g-creer').style.visibility = corpsInfo ? 'hidden' : '';
@@ -1853,7 +2020,7 @@ html[data-service] .mention-apercu { display: none; }
     if (!declencheur) declencheur = document.activeElement;
     etat.groupe = groupeVierge();
     etat.groupe.cle = cleFeuille(f);
-    etat.groupe.mode = mode === 'appel' || mode === 'info' || (mode === 'contact' && CAP.liens) || (mode === 'convinfo' && CAP.groupeInfos) ? mode : 'chat';
+    etat.groupe.mode = mode === 'appel' || mode === 'info' || (mode === 'contact' && CAP.liens) || (mode === 'convinfo' && CAP.groupeInfos) || (mode === 'profil' && CAP.reglages) ? mode : 'chat';
     if (etat.groupe.mode === 'convinfo') etat.groupe.convId = arg || null;
     if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel') { CONTACTS = typeof source.contacts === 'function' ? source.contacts() : CONTACTS; construireContacts(); }
     if (etat.groupe.mode === 'info') {
@@ -1867,6 +2034,7 @@ html[data-service] .mention-apercu { display: none; }
     if (etat.groupe.mode === 'info') rendreInfo(etat.groupe.info);
     if (etat.groupe.mode === 'contact') rendreFeuilleContact();
     if (etat.groupe.mode === 'convinfo') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; rendreConvInfo(); }
+    if (etat.groupe.mode === 'profil') rendreProfil();
     synchroFeuille();
     $('feuille').inert = false;
     document.documentElement.classList.add('feuille-ouverte');
@@ -1906,13 +2074,13 @@ html[data-service] .mention-apercu { display: none; }
     const prenoms = G.choisis.map(id => prenom(contactDe(id)));
     const nom = G.nom.trim() || 'Nouveau groupe';
     let c = null, refus = null;
-    try { c = await source.creerGroupe({ nom: G.nom, membres: G.choisis, photo: G.photo, annonces: G.annonces, ephemeres: G.ephemeres }); }
+    try { c = await source.creerGroupe({ nom: G.nom, membres: G.choisis, photo: G.photo, photoBlob: G.photoBlob, annonces: G.annonces, ephemeres: G.ephemeres }); }
     catch (e) { c = null; refus = e; }
     etat.creation = false;
     if (!c) { mot(phrase(refus, 'Le groupe n\'a pas pu être créé.')); return; }
     etat.neuves.add(c.id);
     await rafraichirListe();
-    fermerFeuille(true);
+    fermerFeuille(!CAP.avatars);          // l'aperçu GARDE l'adresse de la photo (elle sert d'image à la conversation) ; le service la rend : il lit la photo déposée, pas celle-là
     /* 300 ms plus tard, comme la maquette : la feuille a le temps de partir, la bannière arrive dans une liste déjà visible */
     if (!CAP.service) setTimeout(() => notifier('Vous avez été ajouté au groupe « ' + nom + ' »', 'Aperçu de la notification que reçoivent ' + prenoms.join(', ')), 300);
   }
@@ -1962,11 +2130,11 @@ html[data-service] .mention-apercu { display: none; }
   $('g-photo-fichier').addEventListener('change', async e => {
     const f = e.target.files && e.target.files[0]; if (!f) return;
     let r = null;
-    try { r = await reduireImage(f, 512, .85); } catch (er) { r = null; }
+    try { r = await reduireImage(f, 512, .85, 90 * 1024); } catch (er) { r = null; }
     if (!etat.groupe.ouvert) return;                          // la feuille s'est fermée pendant le décodage
     if (!r) { e.target.value = ''; mot(g().photo ? 'Cette image n\'a pas pu être lue : la photo choisie avant est conservée.' : 'Cette image n\'a pas pu être lue : le groupe garde sa pastille.'); return; }
     if (g().photo) URL.revokeObjectURL(g().photo);
-    g().photo = URL.createObjectURL(r.blob); synchroFeuille();
+    g().photo = URL.createObjectURL(r.blob); g().photoBlob = r.blob; synchroFeuille();
   });
   $('recherche-conv').addEventListener('input', e => { etat.recherche = e.target.value; rendreListe(); });
   $('btn-modifier').addEventListener('click', () => mot('« Modifier » arrive bientôt'));
@@ -2363,23 +2531,147 @@ html[data-service] .mention-apercu { display: none; }
   }
   const erreurInfo = t => { const e = $('info-erreur'); if (e) { e.textContent = t || ''; e.hidden = !t; } };
 
-  /* ── les réglages : le compte, les contacts, la sortie ── */
+  /* ── les réglages du compte : profil, confidentialité, contacts, appareils, stockage, à propos, sortie ──
+     ⛔ Chaque réglage montre ce que le SERVICE a retenu, jamais ce qu'on lui a demandé : un interrupteur ne tourne qu'après la réponse, un refus se dit à côté de lui — et la réussite
+     suivante l'efface. Chaque bloc a son propre état (chargement, refus, contenu) : un bloc en panne ne cache pas les autres. */
+  const reg = { jeton: 0, conf: null, confErreur: '', stock: null, stockErreur: '', propos: null, proposErreur: '', occupe: false };
+  const LIEUX = { beta: 'Bêta', prod: 'Production' };
+  const refusBloc = t => '<p class="info-erreur" role="alert">' + esc(t) + '</p><button type="button" class="mini reg-relire" data-reg-relire="1">Réessayer</button>';
+  function peindreMoi() {
+    const a = $('moi-avatar'), ph = blob(MOI.photo);
+    a.textContent = ph ? '' : MOI.initiales; a.style.backgroundImage = ph ? 'url("' + MOI.photo + '")' : '';
+    $('moi-nom').textContent = MOI.nom;
+    /* ⛔ MA présence : coupée, la barre ne dit plus « Disponible » avec un point vert pendant que personne ne me voit (relecture du testeur). L'aperçu n'a pas ce réglage : `presence` y est absente. */
+    const masquee = MOI.presence === false;
+    $('moi-statut').classList.toggle('masque', masquee);
+    $('moi-statut-texte').textContent = masquee ? 'Présence masquée' : 'Disponible';
+  }
+  function peindreProfilReglage() {
+    const c = $('reg-profil'); if (!c || !MOI) return;
+    c.innerHTML = '<button type="button" class="contact presse" id="reg-profil-bouton">' + avatar(MOI) + '<span class="contact-texte"><span class="contact-nom">' + esc(MOI.nom) + '</span><span class="contact-role">' + esc(MOI.statut || 'Modifier mon profil') + '</span></span>' + CHEVRON + '</button>';
+  }
+  function peindreConf() {
+    const c = $('reg-conf'); if (!c) return;
+    if (!reg.conf) { c.innerHTML = reg.confErreur ? '<div class="carte-pad">' + refusBloc(reg.confErreur) + '</div>' : '<p class="vide">Chargement…</p>'; return; }
+    const sw = (cle, titre, aide) => '<button type="button" class="reglage presse" role="switch" data-reg-cle="' + cle + '" aria-checked="' + (reg.conf[cle] ? 'true' : 'false') + '"' + (reg.occupe ? ' aria-disabled="true"' : '') +
+      '><span class="reglage-texte">' + esc(titre) + '<small>' + esc(aide) + '</small></span><span class="interrupteur" aria-hidden="true"></span></button>';
+    c.innerHTML = sw('presence', 'Afficher quand je suis en ligne', 'Réciproque : si tu le coupes, tu ne vois plus non plus qui est en ligne.') +
+      sw('accuses', 'Confirmations de lecture', 'Réciproque : si tu les coupes, ton « Lu » n\'est montré à personne et tu ne vois pas celui des autres.') +
+      (reg.confErreur ? '<div class="carte-pad"><p class="info-erreur" role="alert">' + esc(reg.confErreur) + '</p></div>' : '');
+  }
+  function peindreStock() {
+    const c = $('reg-stock'); if (!c) return;
+    if (reg.stockErreur && !reg.stock) { c.innerHTML = refusBloc(reg.stockErreur); return; }
+    if (!reg.stock) { c.innerHTML = '<p class="reg-ligne">Chargement…</p>'; return; }
+    const pct = reg.stock.max > 0 ? Math.min(100, Math.max(0, reg.stock.utilise / reg.stock.max * 100)) : 0;
+    c.innerHTML = '<p class="reg-ligne"><b>' + esc(tailleTexte(reg.stock.utilise)) + '</b> utilisés sur ' + esc(tailleTexte(reg.stock.max)) + '</p>' +
+      '<div class="jauge" role="img" aria-label="' + Math.round(pct) + ' % de ton espace utilisé"><i style="width:' + pct.toFixed(1) + '%"></i></div>' +
+      '<p class="info-note">Les photos, vocaux et fichiers que tu envoies comptent ici ; supprimer le message qui les porte rend la place.</p>';
+  }
+  function peindreApropos() {
+    const c = $('reg-apropos'); if (!c) return;
+    if (reg.proposErreur && !reg.propos) { c.innerHTML = refusBloc(reg.proposErreur); return; }
+    if (!reg.propos) { c.innerHTML = '<p class="reg-ligne">Chargement…</p>'; return; }
+    const p = reg.propos, l = p.limites || {};
+    c.innerHTML = '<p class="reg-ligne"><b>Service</b> ' + esc(LIEUX[p.instance] || p.instance || '—') + ', version ' + esc(p.version || '—') + '</p>' +
+      '<p class="reg-ligne"><b>Adresse</b> ' + esc(location.host) + '</p>' +
+      (l.photo_max ? '<p class="reg-ligne"><b>Au plus</b> photo ' + esc(tailleTexte(l.photo_max)) + ' · vocal ' + esc(tailleTexte(l.vocal_max)) + ' · fichier ' + esc(tailleTexte(l.fichier_max)) + '</p>' : '') +
+      '<p class="info-note">Rien n\'est rangé sur cet appareil : les messages, les photos et les fichiers sont relus du service. Les photos sont réduites, et le lieu et l\'appareil qui les ont prises sont retirés avant qu\'elles soient rangées.</p>';
+  }
+  function peindreBloquesN() { const n = $('reg-bloques-n'); if (!n || typeof source.bloques !== 'function') return; const k = source.bloques().length; n.textContent = k ? String(k) : ''; }
+  async function chargerReglages() {
+    const jeton = ++reg.jeton;
+    const [c, s2, a] = await Promise.allSettled([source.confidentialite(), source.stockage(), source.aPropos()]);
+    if (jeton !== reg.jeton || !$('reg-conf')) return;
+    reg.conf = c.status === 'fulfilled' ? c.value : reg.conf; reg.confErreur = c.status === 'rejected' ? phrase(c.reason, 'Les réglages de confidentialité n\'ont pas pu être lus.') : '';
+    reg.stock = s2.status === 'fulfilled' ? s2.value : reg.stock; reg.stockErreur = s2.status === 'rejected' ? phrase(s2.reason, 'L\'espace utilisé n\'a pas pu être lu.') : '';
+    reg.propos = a.status === 'fulfilled' ? a.value : reg.propos; reg.proposErreur = a.status === 'rejected' ? phrase(a.reason, 'Les informations du service n\'ont pas pu être lues.') : '';
+    peindreConf(); peindreStock(); peindreApropos();
+  }
   function rendreReglages() {
+    Object.assign(reg, { conf: null, confErreur: '', stock: null, stockErreur: '', propos: null, proposErreur: '', occupe: false });
     $('vue-reglages').innerHTML = '<div class="entete-vue"></div><h1 class="grand-titre" id="titre-reglages">Réglages</h1>' +
-      '<div class="carte"><div class="contact">' + avatar(MOI) + '<span class="contact-texte"><span class="contact-nom">' + esc(MOI.nom) + '</span><span class="contact-role">Accès d\'essai</span></span></div></div>' +
-      '<div class="rubrique"><span>Contacts</span></div>' +
-      '<div class="carte"><button type="button" class="reglage presse" id="reg-contact">' + icone('i-groupe') + '<span class="reglage-texte">Ajouter un contact<small>Par un lien d\'invitation</small></span>' + CHEVRON + '</button></div>' +
+      '<div class="carte" id="reg-profil"></div>' +
+      '<div class="rubrique"><span>Confidentialité</span></div><div class="carte" id="reg-conf"></div>' +
+      '<div class="rubrique"><span>Contacts</span></div><div class="carte">' +
+        '<button type="button" class="reglage presse" id="reg-contact">' + icone('i-groupe') + '<span class="reglage-texte">Ajouter un contact<small>Par un lien d\'invitation</small></span>' + CHEVRON + '</button>' +
+        '<button type="button" class="reglage presse" id="reg-bloques"><span class="reglage-texte">Contacts bloqués</span><span class="reglage-valeur" id="reg-bloques-n"></span>' + CHEVRON + '</button></div>' +
+      '<div class="rubrique"><span>Appareils</span></div><div class="carte"><button type="button" class="reglage presse" id="reg-autres"><span class="reglage-texte">Déconnecter les autres appareils<small>Ta session reste ouverte ici ; les autres doivent se reconnecter.</small></span></button></div>' +
+      '<div class="rubrique"><span>Stockage</span></div><div class="carte carte-pad" id="reg-stock"></div>' +
+      '<div class="rubrique"><span>À propos</span></div><div class="carte carte-pad" id="reg-apropos"></div>' +
       '<div class="carte"><button type="button" class="reglage presse danger" id="reg-sortir"><span class="reglage-texte">Se déconnecter</span></button></div>' +
       '<p class="info-erreur" id="reg-erreur" role="alert" hidden></p>';
+    peindreProfilReglage(); peindreConf(); peindreStock(); peindreApropos(); peindreBloquesN();
+    chargerReglages();
   }
   $('vue-reglages').addEventListener('click', async e => {
-    const c = e.target.closest('#reg-contact'), q = e.target.closest('#reg-sortir');
-    if (c) { declencheur = c; ouvrirFeuille('contact'); return; }
-    if (!q || q.getAttribute('aria-disabled') === 'true') return;
-    const er = $('reg-erreur'); er.hidden = true; er.textContent = '';     // ⛔ chaque essai écrit SON verdict
-    q.setAttribute('aria-disabled', 'true');
+    const er = $('reg-erreur'), nette = () => { er.hidden = true; er.textContent = ''; }, dit = (x, defaut) => { er.textContent = phrase(x, defaut); er.hidden = false; };
+    const bouton = e.target.closest('button'); if (!bouton) return;
+    if (bouton.id === 'reg-profil-bouton') { declencheur = bouton; ouvrirFeuille('profil'); return; }
+    if (bouton.id === 'reg-contact' || bouton.id === 'reg-bloques') { declencheur = bouton; ouvrirFeuille('contact'); return; }
+    if (bouton.dataset.regRelire) { chargerReglages(); return; }
+    if (bouton.dataset.regCle) {
+      if (reg.occupe || !reg.conf) return;
+      const cle = bouton.dataset.regCle;
+      nette(); reg.occupe = true; reg.confErreur = ''; peindreConf();
+      try { reg.conf = await source.majConfidentialite({ [cle]: !reg.conf[cle] }); }
+      catch (x) { reg.confErreur = phrase(x, 'Ce réglage n\'a pas pu être enregistré.'); }
+      reg.occupe = false; peindreConf();
+      const b = document.querySelector('#reg-conf [data-reg-cle="' + cle + '"]'); if (b) b.focus({ preventScroll: true });
+      return;
+    }
+    if (bouton.id === 'reg-autres') {
+      if (bouton.getAttribute('aria-disabled') === 'true') return;
+      nette();
+      const t = bouton.querySelector('.reglage-texte').firstChild, normal = 'Déconnecter les autres appareils';
+      if (bouton.dataset.pret !== '1') { bouton.dataset.pret = '1'; t.textContent = 'Toucher encore pour déconnecter les autres appareils'; setTimeout(() => { if (bouton.isConnected && bouton.dataset.pret === '1') { bouton.dataset.pret = ''; t.textContent = normal; } }, 4000); return; }
+      bouton.dataset.pret = ''; t.textContent = normal; bouton.setAttribute('aria-disabled', 'true');
+      try { const r = await source.deconnecterAutres(); mot(r.sessions > 1 ? r.sessions + ' autres appareils déconnectés' : r.sessions === 1 ? 'Un autre appareil déconnecté' : 'Aucun autre appareil n\'était connecté'); }
+      catch (x) { dit(x, 'Les autres appareils n\'ont pas pu être déconnectés.'); }
+      finally { bouton.removeAttribute('aria-disabled'); }
+      return;
+    }
+    if (bouton.id !== 'reg-sortir' || bouton.getAttribute('aria-disabled') === 'true') return;
+    nette();                                                                 // ⛔ chaque essai écrit SON verdict
+    bouton.setAttribute('aria-disabled', 'true');
     try { await source.deconnexion(); repartir('deconnecte'); }
-    catch (x) { q.removeAttribute('aria-disabled'); er.textContent = phrase(x, 'La déconnexion n\'a pas pu se faire : tu restes connecté.'); er.hidden = false; }
+    catch (x) { bouton.removeAttribute('aria-disabled'); dit(x, 'La déconnexion n\'a pas pu se faire : tu restes connecté.'); }
+  });
+
+  /* ── Mon profil : la photo, le prénom, le nom, le statut ── */
+  async function rendreProfil() {
+    const corps = $('info-corps');
+    corps.dataset.sig = ''; corps.innerHTML = '<p class="vide">Chargement…</p>';
+    let p = null, panne = null;
+    try { p = await source.profil(); } catch (e) { panne = e; }
+    if (!etat.groupe.ouvert || etat.groupe.mode !== 'profil') return;           // la feuille s'est fermée pendant l'attente
+    if (panne) { corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">' + esc(phrase(panne, 'Ton profil n\'a pas pu être chargé.')) + '</p>'; return; }
+    peindreProfil(p);
+  }
+  function peindreProfil(p) {
+    const ph = blob(p.photo);
+    $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+      '<div class="profil-photo">' + avatar(p) + '<div class="info-actions"><button type="button" class="mini" data-act="profil-photo">' + (ph ? 'Changer la photo' : 'Ajouter une photo') + '</button>' + (ph ? '<button type="button" class="mini danger" data-act="profil-photo-retirer">Retirer</button>' : '') + '</div></div>' +
+      '<label class="champ-profil"><span>Prénom</span><input id="pf-prenom" type="text" maxlength="60" autocomplete="given-name" value="' + esc(p.champs.prenom) + '"></label>' +
+      '<label class="champ-profil"><span>Nom</span><input id="pf-nom" type="text" maxlength="60" autocomplete="family-name" value="' + esc(p.champs.nom) + '"></label>' +
+      '<label class="champ-profil"><span>Statut</span><input id="pf-statut" type="text" maxlength="140" autocomplete="off" placeholder="Ce que tes contacts voient sous ton nom" value="' + esc(p.champs.statut) + '"></label>' +
+      '<div class="info-actions"><button type="button" class="mini" data-act="profil-enregistrer">Enregistrer</button></div>';
+  }
+  /* une photo de profil (la mienne, ou celle d'un groupe que j'administre) : réduite à 512 px et ~90 Ko, VALIDÉE par son décodage ; une image illisible ne change rien et le dit */
+  $('profil-photo-fichier').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = '';
+    if (!f || !etat.groupe.ouvert || etat.groupe.mode !== 'profil') return;
+    erreurInfo('');
+    try { const r = await reduireImage(f, 512, .85, 90 * 1024); peindreProfil(await source.poserPhotoProfil(r.blob)); mot('Photo enregistrée'); }
+    catch (er) { erreurInfo(er && er.dit ? phrase(er) : 'Cette image n\'a pas pu être lue : ta photo n\'a pas changé.'); }
+  });
+  $('groupe-photo-fichier').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = '';
+    if (!f || !etat.groupe.ouvert || etat.groupe.mode !== 'convinfo') return;
+    const id = etat.groupe.convId;
+    erreurInfo('');
+    try { const r = await reduireImage(f, 512, .85, 90 * 1024); await source.majConversation(id, { photoBlob: r.blob }); mot('Photo du groupe changée'); if (etat.groupe.ouvert && etat.groupe.convId === id) rendreConvInfo(); }
+    catch (er) { erreurInfo(er && er.dit ? phrase(er) : 'Cette image n\'a pas pu être lue : la photo du groupe n\'a pas changé.'); }
   });
 
   /* ── Contacts et liens : la feuille « Contacts » ── */
@@ -2391,7 +2683,8 @@ html[data-service] .mention-apercu { display: none; }
         '<div class="info-actions"><button type="button" class="mini" data-act="lien-creer">Créer un lien</button><button type="button" class="mini danger" data-act="lien-revoquer">Révoquer mes liens</button></div></div>' +
       '<div class="rubrique"><span>J\'ai reçu un lien</span></div><div class="carte carte-pad">' +
         '<div class="info-champ"><input id="ct-code" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Coller le lien reçu" aria-label="Lien reçu"><button type="button" class="mini" data-act="lien-lire">Voir</button></div><div id="ct-apercu"></div></div>' +
-      '<div class="rubrique"><span>Mes contacts</span><span id="ct-n"></span></div><div class="carte" id="ct-liste"></div>';
+      '<div class="rubrique"><span>Mes contacts</span><span id="ct-n"></span></div><div class="carte" id="ct-liste"></div>' +
+      (typeof source.bloques === 'function' ? '<div class="rubrique"><span>Contacts bloqués</span><span id="ct-nb"></span></div><div class="carte" id="ct-bloques"></div>' : '');
     rendreListeContacts();
     if (code) { $('ct-code').value = code; lireLienSaisi().catch(e => erreurInfo(phrase(e, 'Ce lien n\'a pas pu être lu.'))); }
   }
@@ -2400,6 +2693,14 @@ html[data-service] .mention-apercu { display: none; }
     $('ct-n').textContent = CONTACTS.length ? String(CONTACTS.length) : '';
     L.innerHTML = CONTACTS.length ? CONTACTS.map(c => '<button type="button" class="contact presse" data-act="ecrire" data-uid="' + esc(c.id) + '">' + avatar(c) + '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span>' +
       (c.role ? '<span class="contact-role">' + esc(c.role) + '</span>' : '') + '</span>' + CHEVRON + '</button>').join('') : '<p class="vide">Aucun contact pour l\'instant.</p>';
+    rendreListeBloques(); peindreBloquesN();
+  }
+  /* ⛔ un contact bloqué ne peut plus écrire ni être vu : ils se débloquent ICI (la liste vient de la source, sans réseau) */
+  function rendreListeBloques() {
+    const L = $('ct-bloques'); if (!L || typeof source.bloques !== 'function') return;
+    const B = source.bloques();
+    $('ct-nb').textContent = B.length ? String(B.length) : '';
+    L.innerHTML = B.length ? B.map(c => '<div class="contact avec-actions">' + avatar(c) + '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span></span><span class="contact-actions"><button type="button" class="mini" data-act="debloquer" data-uid="' + esc(c.id) + '">Débloquer</button></span></div>').join('') : '<p class="vide">Aucun contact bloqué.</p>';
   }
   async function lireLienSaisi() {
     /* ⛔ ce qu'on colle est TOUT ce qu'on a reçu : une adresse suivie d'un point, entre guillemets, au milieu d'une phrase d'un message. Le code se lit derrière « lien= » ;
@@ -2422,13 +2723,14 @@ html[data-service] .mention-apercu { display: none; }
     if (!etat.groupe.ouvert || etat.groupe.convId !== id) return;                // la feuille s'est fermée pendant l'attente
     if (panne) { corps.dataset.sig = ''; corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">' + esc(phrase(panne, 'Les infos n\'ont pas pu être chargées.')) + '</p>'; return; }
     if (!i) { mot('Cette conversation n\'existe plus.'); fermerCouche(); return; }
-    const sig = JSON.stringify([i.nom, i.moiAdmin, i.annoncesSeulement, i.ephemeres, i.enLigne, i.membres.map(m => [m.id, m.nom, m.role, m.enLigne])]) + '|' + CONTACTS.map(c => c.id).join(',');
+    const sig = JSON.stringify([i.nom, !!i.photo, i.moiAdmin, i.annoncesSeulement, i.ephemeres, i.enLigne, i.membres.map(m => [m.id, m.nom, m.role, m.enLigne])]) + '|' + CONTACTS.map(c => c.id).join(',');
     if (corps.dataset.sig === sig && corps.children.length) return;
     corps.dataset.sig = sig;
     const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.act ? actif.dataset.act + '|' + (actif.dataset.uid || '') : null;
     const g = i.type === 'groupe', eph = EPHEMERES.find(e => e[0] === i.ephemeres) || [i.ephemeres, i.ephemeres + ' s'], off = i.moiAdmin ? '' : ' disabled';
     let h = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
       '<div class="info-tete">' + avatar(i) + '<div><h3 class="info-nom">' + esc(i.nom) + '</h3><p class="info-sous">' + (g ? 'Groupe · ' + i.membres.length + (i.membres.length > 1 ? ' membres' : ' membre') : (i.enLigne ? 'En ligne' : 'Conversation à deux')) + '</p></div></div>' +
+      (g && i.moiAdmin && CAP.avatars ? '<div class="info-actions info-photo-actions"><button type="button" class="mini" data-act="groupe-photo">' + (blob(i.photo) ? 'Changer la photo' : 'Ajouter une photo') + '</button>' + (blob(i.photo) ? '<button type="button" class="mini danger" data-act="groupe-photo-retirer">Retirer la photo</button>' : '') + '</div>' : '') +
       '<div class="carte">' + (g ? '<button type="button" class="reglage presse" data-act="annonces" role="switch" aria-checked="' + (i.annoncesSeulement ? 'true' : 'false') + '"' + off + '><span class="reglage-texte">Seuls les admins écrivent<small>Groupe d\'annonces</small></span><span class="interrupteur" aria-hidden="true"></span></button>' : '') +
       '<button type="button" class="reglage presse" data-act="ephemeres"' + off + '><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur">' + esc(eph[1]) + '</span>' + (i.moiAdmin ? CHEVRON : '') + '</button></div>';
     if (g) {
@@ -2442,6 +2744,9 @@ html[data-service] .mention-apercu { display: none; }
           '<button type="button" class="reglage presse" data-act="lien-groupe">' + icone('i-groupe') + '<span class="reglage-texte">Inviter par un lien</span>' + CHEVRON + '</button></div><div id="ci-lien"></div>';
       }
       h += '<div class="carte"><button type="button" class="reglage presse danger" data-act="quitter"><span class="reglage-texte">Quitter le groupe</span></button></div>';
+    } else if (CAP.reglages) {
+      const autre = i.membres.find(m => !m.moi);
+      if (autre) h += '<div class="carte"><button type="button" class="reglage presse danger" data-act="bloquer" data-uid="' + esc(autre.id) + '"><span class="reglage-texte">Bloquer ce contact</span></button></div>';
     }
     corps.innerHTML = h;
     if (cle) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-act]')).find(x => x.dataset.act === a && (x.dataset.uid || '') === u); if (b) b.focus({ preventScroll: true }); }
@@ -2465,6 +2770,21 @@ html[data-service] .mention-apercu { display: none; }
       else if (act === 'retirer') await source.retirerMembre(id, b.dataset.uid);
       else if (act === 'ajouter') await source.ajouterMembres(id, [b.dataset.uid]);
       else if (act === 'lien-groupe') { const r = await source.lienGroupe(id); $('ci-lien').innerHTML = boiteLien('ci-lien-champ', r.code); }
+      else if (act === 'debloquer') { await source.debloquer(b.dataset.uid); rendreListeBloques(); peindreBloquesN(); mot('Contact débloqué'); }
+      else if (act === 'bloquer') {
+        if (b.dataset.pret !== '1') { b.dataset.pret = '1'; b.querySelector('.reglage-texte').textContent = 'Toucher encore pour bloquer ce contact'; setTimeout(() => { if (b.isConnected) { b.dataset.pret = ''; b.querySelector('.reglage-texte').textContent = 'Bloquer ce contact'; } }, 4000); return; }
+        await source.bloquer(b.dataset.uid); mot('Contact bloqué');
+        remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
+      }
+      else if (act === 'profil-photo') $('profil-photo-fichier').click();
+      else if (act === 'profil-photo-retirer') { peindreProfil(await source.retirerPhotoProfil()); mot('Photo retirée'); }
+      else if (act === 'profil-enregistrer') {
+        const prenomSaisi = $('pf-prenom').value.trim();
+        if (!prenomSaisi) { erreurInfo('Le prénom ne peut pas être vide.'); $('pf-prenom').focus(); return; }
+        peindreProfil(await source.majProfil({ prenom: prenomSaisi, nom: $('pf-nom').value.trim(), statut: $('pf-statut').value.trim() })); mot('Profil enregistré');
+      }
+      else if (act === 'groupe-photo') $('groupe-photo-fichier').click();
+      else if (act === 'groupe-photo-retirer') await source.majConversation(id, { photoBlob: null });
       else if (act === 'quitter') {
         if (b.dataset.pret !== '1') { b.dataset.pret = '1'; b.querySelector('.reglage-texte').textContent = 'Toucher encore pour quitter le groupe'; setTimeout(() => { if (b.isConnected) { b.dataset.pret = ''; b.querySelector('.reglage-texte').textContent = 'Quitter le groupe'; } }, 4000); return; }
         await source.quitter(id); mot('Tu as quitté le groupe');
@@ -2476,9 +2796,10 @@ html[data-service] .mention-apercu { display: none; }
   function surContacts() {
     if (typeof source.contacts !== 'function') return;
     CONTACTS = source.contacts();
+    peindreBloquesN(); peindreProfilReglage();
     if (!etat.groupe.ouvert) return;
     if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel') { construireContacts(); synchroFeuille(); }
-    else if (etat.groupe.mode === 'contact') rendreListeContacts();
+    else if (etat.groupe.mode === 'contact') rendreListeContacts();      // la liste des contacts ET celle des bloqués
     else if (etat.groupe.mode === 'convinfo') rendreConvInfo();
   }
 
@@ -2487,7 +2808,7 @@ html[data-service] .mention-apercu { display: none; }
   function fermerMenu() {
     if (!etat.menu) return;
     const d = etat.menu.declencheur; etat.menu = null;
-    $('menu-fond').hidden = true; $('menu-msg').innerHTML = '';
+    $('menu-fond').hidden = true; $('menu-msg').innerHTML = ''; $('menu-msg').setAttribute('aria-label', 'Actions du message');
     synchroInert();
     if (d && d.isConnected && d.focus) d.focus({ preventScroll: true });
   }
@@ -2515,6 +2836,11 @@ html[data-service] .mention-apercu { display: none; }
        TOMBE et seulement lui — passé une demi-seconde, c'est un nouveau geste */
     const m0 = etat.menu;
     if (Date.now() - m0.t < 350 || (m0.appuiLong && !m0.avale && m0.relache && Date.now() - m0.relache < 500)) { m0.avale = true; return; }
+    if (m0.plus) {                                  // « + » : Photo ou Fichier — le choix ouvre le sélecteur de l'appareil (le clic en cours est encore le geste de la personne)
+      const x = e.target.closest('[data-plus]');
+      if (e.target === $('menu-fond') || x) { fermerMenu(); if (x) $(x.dataset.plus === 'photo' ? 'compo-fichier' : 'compo-doc').click(); }
+      return;
+    }
     if (e.target === $('menu-fond')) { fermerMenu(); return; }
     const mid = etat.menu.mid, id = etat.conv, m = trouverMessage(mid);
     const r = e.target.closest('[data-menu-reac]'), a = e.target.closest('[data-menu]');
@@ -2593,13 +2919,14 @@ html[data-service] .mention-apercu { display: none; }
       surveillerSession();
     }
     MOI = source.moi(); CONTACTS = source.contacts();
-    $('moi-avatar').textContent = MOI.initiales; $('moi-nom').textContent = MOI.nom;
+    peindreMoi();
+    if (CAP.fichiers) $('compo-plus').setAttribute('aria-label', 'Joindre une photo ou un fichier');
     const codeLien = CAP.liens ? lienDansAdresse() : null;       // lu AVANT que la route ne réécrive l'adresse
     construireNavigation();
     construireContacts();
     if (!CAP.appels) rendreCoquille('appels');
     rendreCoquille('reunions');
-    if (CAP.service) rendreReglages(); else rendreCoquille('reglages');
+    if (CAP.reglages) rendreReglages(); else rendreCoquille('reglages');
     $('g-photo').hidden = !CAP.photos;
     try { etat.conversations = await source.lister(); } catch (e) { etat.conversations = []; montrerErreurListe(e); }
     if (CAP.appels) { etat.appels = await source.appels('tous'); rendreAppels(); }
@@ -2617,6 +2944,7 @@ html[data-service] .mention-apercu { display: none; }
       if (ev.type === 'appels' && CAP.appels) rafraichirAppels();
       if (ev.type === 'appel' && ev.id === etat.appelId) rafraichirAppel();
       if (ev.type === 'contacts') surContacts();
+      if (ev.type === 'moi') { MOI = source.moi() || MOI; peindreMoi(); peindreProfilReglage(); }          // mon nom, mon statut ou ma photo a changé (ici, ou sur un autre appareil)
       if (ev.type === 'reseau') { fluxPerdu = ev.etat !== 'ok'; $('hors-ligne').hidden = ev.etat === 'ok'; }
       if (ev.type === 'arrivee') surArrivee(ev);
       if (ev.type === 'notification') notifier(ev.titre || 'OP MESSAGES', ev.texte || '');

@@ -10,7 +10,8 @@
  *   POST /api/tel/appareil      {}                             P  se reconnecte avec le seul jeton d'appareil (aucun SMS)
  *   POST /api/contacts/chercher {numero}                       V  retrouve une personne par son numéro (plafonné, latence constante)
  *   POST /api/contacts/ajouter  {id}                           V  l'ajoute, si elle vient d'être trouvée
- *   GET|POST /api/moi/confidentialite  {trouvable}             S  « qui peut me trouver par mon numéro » : tous | personne
+ *   GET|POST /api/moi/confidentialite  {trouvable?, presence?, accuses?}  S  « qui peut me trouver par mon numéro » (tous | personne), « afficher quand je suis en ligne »,
+ *                                                              « confirmations de lecture » — les deux interrupteurs sont RÉCIPROQUES (voir § 4)
  *
  * ⛔ MOINS DE SMS. Un SMS part à l'inscription et sur un NOUVEL appareil, JAMAIS à chaque connexion : la session dure 90 jours GLISSANTS
  * (renouvelée à l'usage), et un appareil déjà vérifié porte un jeton d'appareil (haché en base, 180 jours glissants) qui le reconnecte
@@ -280,15 +281,31 @@ function creerTelephone(ctx) {
     return deconnexionDeBase(req, res);
   };
 
-  /* ══ 4. QUI PEUT ME TROUVER PAR MON NUMÉRO ════════════════════════════════════════════════════ */
-  H_['moi.confidentialite.lire'] = (req, res) => res.json({ trouvable: stockage.telTrouvableLire(req.moi.id) });
+  /* ══ 4. LA CONFIDENTIALITÉ : qui peut me trouver par mon numéro, ma présence, mes confirmations de lecture ═══════════════════
+     ⛔ UNE SEULE ROUTE pour les trois réglages (Réglages > Confidentialité) : `trouvable` (tous | personne) et deux interrupteurs RÉCIPROQUES, comme chez WhatsApp —
+     `presence` (« Afficher quand je suis en ligne » : coupé, personne ne voit la mienne ET je ne vois celle de personne) et `accuses` (« Confirmations de lecture » :
+     coupé, mon « Lu » n'est rendu à personne ET je ne vois celui de personne). Ils sont rangés dans `personne.prefs` et APPLIQUÉS PAR LE SERVICE (`flux.js`, `routes.js`,
+     `stockage.js`) : un réglage que seule la page respecterait ne protégerait personne. Les trois champs sont facultatifs, au moins un est obligatoire. */
+  const etatConfidentialite = (id) => {
+    const p = stockage.personneParId(id), prefs = (p && p.prefs) || {};
+    return { trouvable: stockage.telTrouvableLire(id), presence: prefs.presence !== false, accuses: prefs.accuses !== false };
+  };
+  H_['moi.confidentialite.lire'] = (req, res) => res.json(etatConfidentialite(req.moi.id));
   H_['moi.confidentialite'] = (req, res) => {
-    const v = corps(req).trouvable;
-    if (v !== 'tous' && v !== 'personne') return refus(res, 400, 'champ_invalide');
+    const b = corps(req), c = {};
+    if (b.trouvable !== undefined) { if (b.trouvable !== 'tous' && b.trouvable !== 'personne') return refus(res, 400, 'champ_invalide'); c.trouvable = b.trouvable; }
+    for (const k of ['presence', 'accuses']) if (b[k] !== undefined) { if (typeof b[k] !== 'boolean') return refus(res, 400, 'champ_invalide'); c[k] = b[k]; }
+    if (!Object.keys(c).length) return refus(res, 400, 'champ_invalide');
     const q = essai('moi_confidentialite', req.moi.id, { max: 30, fenetreMs: H });
     if (!q.ok) return trop(res, 'quota_atteint', q.retry);
-    stockage.telTrouvableMaj(req.moi.id, v);
-    res.json({ ok: true, trouvable: v });
+    if (c.trouvable !== undefined) stockage.telTrouvableMaj(req.moi.id, c.trouvable);
+    if (c.presence !== undefined || c.accuses !== undefined) {
+      const avant = req.moi.prefs || {}, prefs = Object.assign({}, avant);
+      for (const k of ['presence', 'accuses']) if (c[k] !== undefined) prefs[k] = c[k];
+      const moi = stockage.personneMaj(req.moi.id, { prefs });
+      hub.reglagesChanges(req.moi.id, avant, moi.prefs);   // les autres l'apprennent tout de suite (présence), ou relisent les « Lu » (accusés)
+    }
+    res.json(Object.assign({ ok: true }, etatConfidentialite(req.moi.id)));
   };
 
   /* ══ 5. RETROUVER UNE PERSONNE PAR SON NUMÉRO — « comme WhatsApp », sans annuaire ═════════════ */
