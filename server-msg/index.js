@@ -36,6 +36,7 @@ const { rejouerAuDemarrage } = require('./rejeu');
 const { creerPush } = require('./push');
 const { creerFormule } = require('./formule');
 const { creerFacturation } = require('./facturation');
+const { creerPlanificateur } = require('./planificateur');
 
 const VERSION = '1.4.0-espaces';
 const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays']);   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
@@ -78,6 +79,8 @@ function demarrer(env = process.env) {
      (inerte sans clé, et le dit). Les deux se lisent dans `ctx`, jamais ne se reconstruisent ailleurs. */
   const formule = creerFormule({ stockage, config });
   const facturation = creerFacturation({ stockage, config, formule, journaliser, horloge: Date.now });
+  /* ⛔ LES RAPPELS DES RÉUNIONS : UNE instance planifie (le bail), un rappel part UNE seule fois (le registre), l'horloge est injectée. Voir `planificateur.js`. */
+  const planificateur = creerPlanificateur({ stockage, hub, config, horloge: Date.now, journaliser, push });
   const porte = config.instance === 'beta' ? creerPorteBeta({ config, quotas, stockage, horloge: Date.now }) : null;
   /* Les SMS : la configuration est VALIDÉE ici (un budget négatif, des identifiants à moitié posés, une URL d'OVH étrangère en production
      refusent le démarrage plutôt que de tourner de travers), puis la garde (budgets, emballement, bouclier) et l'envoi par OVH. */
@@ -123,6 +126,8 @@ function demarrer(env = process.env) {
          identifiant de client ou d'abonnement, un espace — et JAMAIS un chiffre COMMERCIAL (combien d'espaces, d'abonnés, d'impayés) : `/health` est PUBLIC, et ces nombres disent à n'importe qui,
          d'un `curl`, où en sont les ventes (relecture du gardien, 3 octobre 2026). Ils se lisent dans le tableau de bord de Stripe, qui les tient déjà. */
       stripeEchecMin: facturation.echecMin(),
+      /* ⛔ LES RÉUNIONS PROGRAMMÉES : des NOMBRES et un booléen — jamais une réunion, une personne ou un titre. L'âge du dernier tour du planificateur et ses échecs de suite sont surveillés ; un rappel qui ne part plus se voit là. */
+      reunions: planificateur.sante(),
       facturation: { mode: facturation.mode(), toutOuvert: formule.toutOuvert() },
     }),
   };
@@ -195,12 +200,14 @@ function demarrer(env = process.env) {
   for (const m of minuteurs) m.unref();
   sauvegarde.demarrer();   // inerte sans configuration : aucune minuterie, aucun réseau
   facturation.demarrer();  // inerte sans clé Stripe : sinon une relecture au démarrage, puis toutes les dix minutes pour les espaces abonnés
+  planificateur.demarrer(); // un premier tour une seconde après le démarrage (un redémarrage rattrape ce qu'un arrêt a laissé), puis un tour toutes les 10 à 15 secondes
 
   async function arreter() {
     for (const m of minuteurs) clearInterval(m);
     clearInterval(minuteurDisque);
     push.arreter();
     facturation.arreter();
+    planificateur.arreter();   // REND le bail : la prochaine instance n'attend pas son échéance
     boucle.disable();
     hub.arreter();
     await sauvegarde.arreter();   // une passe en cours reconnaît l'arrêt (deux secondes au plus) ; ce n'est pas un échec

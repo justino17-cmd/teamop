@@ -88,6 +88,22 @@ v('instanceDe : msg-beta → beta, msg → prod, un autre domaine → rien',
   Object.assign(SAIN, { push: PUSH_SAIN });
 }
 
+/* ══ 1 ter. LES RÉUNIONS PROGRAMMÉES (/health.reunions : le planificateur de rappels) ═══════════════════════════════════════════════════ */
+{
+  const R_SAIN = { actif: true, ageS: 7, echecs: 0, abandonnes: 0 };
+  const avec = (o) => S.evaluer(Object.assign({}, SAIN, { reunions: Object.assign({}, R_SAIN, o) }), 'beta');
+  v('un planificateur sain ne fait rien crier (un tour il y a sept secondes, aucun échec)', avec({}), []);
+  vrai('⛔ un dernier tour vieux de dix minutes crie : la boucle est morte ou bloquée, plus aucun rappel ne part', avec({ ageS: 600 }).some(p => /planificateur des rappels de réunion ne tourne plus/.test(p) && /600 s/.test(p)));
+  v('⛔ le seuil est « plus de cinq minutes » : 300 s pile ne crie pas, 301 crie', [avec({ ageS: 300 }), avec({ ageS: 301 }).length], [[], 1]);
+  v('   « jamais tourné » (ageS null : la première seconde du service) ne crie pas', avec({ ageS: null }), []);
+  vrai('⛔ trois tours de suite en échec crient (une erreur qui dure : un rappel qui lève à chaque passage ne part jamais)', avec({ echecs: 3 }).some(p => /3 tours de suite/.test(p)));
+  v('   un ou deux échecs ne crient pas (un accroc isolé)', [avec({ echecs: 1 }), avec({ echecs: 2 })], [[], []]);
+  v('   `actif:false` et des rappels abandonnés ne crient JAMAIS (un bail qui expire, un service qui revient après un arrêt : le fonctionnement voulu)', avec({ actif: false, abandonnes: 40 }), []);
+  v('   un /health sans la clé « reunions » (un service d\'avant) ne crie pas', S.evaluer(SAIN, 'beta'), []);
+  vrai('⛔ aucun problème ne contient d\'identifiant : seulement des nombres', avec({ ageS: 900, echecs: 5, titre: 'TITRE-SECRETZXQ', uid: 'p_deadbeef' }).every(p => !/SECRETZXQ|deadbeef/.test(p)));
+  Object.assign(SAIN, { reunions: R_SAIN });
+}
+
 /* ══ 2. CHAQUE CHAMP EST LU PAR LE CODE (ou nommé) — sur le CHEMIN COMPLET, dans le CODE ═══════════════ */
 const lecture = (chemin) => 'j.' + chemin;
 vrai('la liste des champs surveillés est peuplée (population avant verdict)', S.CHAMPS_SURVEILLES.length >= 5);

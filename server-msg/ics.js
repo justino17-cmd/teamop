@@ -19,7 +19,10 @@
 const cal = require('./calendrier');
 
 const CRLF = '\r\n';
-const DOMAINE = 'opmessages.teamop.fr';
+/* La partie droite de l'identifiant (RFC 5545 § 3.8.4.7 : « globalement unique »). ⛔ Ce n'est PAS un domaine du service : aucun nom d'hôte réel n'est écrit en dur dans ce dépôt (`test-900`), et
+   un identifiant qui changerait avec le domaine ferait réimporter chaque réunion en double chez ceux qui l'ont déjà dans leur agenda. `.invalid` est le suffixe que la RFC 2606 réserve aux
+   noms qui ne désignent rien — l'unicité vient de l'identifiant aléatoire de la réunion, pas de ce suffixe. */
+const DOMAINE = 'opmessages.invalid';
 const PRODID = '-//TEAM OP//OP MESSAGES//FR';
 const JOURS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
 const p2 = (n, l) => String(n).padStart(l || 2, '0');

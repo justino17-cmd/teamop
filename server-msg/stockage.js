@@ -2100,10 +2100,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function reunionProchainPoser(id, prochain) { return num(Q('UPDATE reunion SET prochain = ? WHERE id = ?').run(prochain, id).changes); }
   /* Un rappel part UNE seule fois : sa ligne au registre et la notification s'écrivent dans la MÊME transaction, la clé primaire (réunion, occurrence, personne, minutes) fait le reste.
      → la notification créée, ou null si ce rappel était déjà parti. */
-  function rappelEnvoyer({ reunion, occurrence, uid, avant, titre, texte, cible }) {
+  function rappelEnvoyer({ reunion, occurrence, uid, avant, avants, titre, texte, cible }) {
     return tx(() => {
-      const r = Q('INSERT OR IGNORE INTO rappel(reunion, occurrence, uid, avant, ts) VALUES(?, ?, ?, ?, ?)').run(reunion, occurrence, uid, avant, horloge());
-      if (num(r.changes) !== 1) return null;
+      /* `avants` : plusieurs délais échus pour la même personne et la même occurrence (un arrêt les a laissés s'accumuler) — UNE notification les couvre tous, et tous sont notés : le
+         plus court ne repart pas dix secondes après le plus long. Un délai déjà noté ne compte pas : si TOUS le sont, rien ne part. */
+      let neufs = 0;
+      for (const a of (Array.isArray(avants) && avants.length ? avants : [avant])) neufs += num(Q('INSERT OR IGNORE INTO rappel(reunion, occurrence, uid, avant, ts) VALUES(?, ?, ?, ?, ?)').run(reunion, occurrence, uid, a, horloge()).changes);
+      if (neufs < 1) return null;
       return notifCreer({ uid, type: 'reunion_rappel', titre, texte, cible });
     });
   }

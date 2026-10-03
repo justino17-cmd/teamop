@@ -110,6 +110,19 @@ console.log('\nUne réunion sans répétition : une seule occurrence');
   v('compter : 1', C.compter(s, 100), 1);
 }
 
+console.log('\nUne réunion programmée dans cinq mois a sa « prochaine » : la fenêtre de 100 jours part du DÉBUT de la série quand on la regarde de loin');
+{
+  const maintenant = U(2026, 10, 19, 8, 0);
+  const loin = serie(PARIS, '2027-03-25T14:00', 60, 'aucune');       // à 157 jours de maintenant
+  const hebdo = serie(PARIS, '2027-03-29T14:00', 60, 'hebdomadaire', { n: 3 });
+  const mensuelle = serie(PARIS, '2027-05-31T14:00', 60, 'mensuelle');
+  v('population : ces trois séries commencent bien à plus de 100 jours', [loin, hebdo, mensuelle].map(s => (s.debut - maintenant) / 86400000 > 100), [true, true, true]);
+  v('⛔ une réunion simple à plus de 100 jours a une prochaine occurrence (sans elle : ni rappel, ni place dans ce qui vient, ni avertissement à la suppression)', [C.premiereApres(loin, maintenant, true).debut === loin.debut, C.premiereApres(loin, maintenant).debut === loin.debut], [true, true]);
+  v('… une série qui commence dans plus de 100 jours : sa première occurrence', [C.premiereApres(hebdo, maintenant, true).debut === hebdo.debut, C.premiereApres(hebdo, maintenant, true).rang], [true, 0]);
+  v('… une série mensuelle du 31 : sa première, puis (le mois suivant n\'a pas de 31) le 31 juillet, 62 jours plus tard', [C.premiereApres(mensuelle, maintenant, true).debut === mensuelle.debut, iso(C.premiereApres(mensuelle, mensuelle.debut).debut)], [true, '2027-07-31T12:00:00Z']);
+  v('… et passée sa première occurrence, la série n\'a plus que celles qui restent : une réunion simple finie n\'en a aucune', [C.premiereApres(loin, loin.debut), C.premiereApres(hebdo, hebdo.debut + 14 * 86400000 + 1)], [null, null]);
+}
+
 console.log('\n⛔ Le 25 octobre 2026 : une réunion HEBDOMADAIRE ne se décale pas — ni son heure locale, ni son rappel');
 {
   const lundi = serie(PARIS, '2026-10-19T14:00', 60, 'hebdomadaire', { n: 4 });

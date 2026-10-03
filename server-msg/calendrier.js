@@ -185,9 +185,11 @@ function derniereDate(s) {
   return derniere;
 }
 
-/* La première occurrence qui commence APRÈS `t` (ou à `t` quand `inclus`), ou null. Une fenêtre de 100 jours suffit : le plus long trou d'une série est de 62 jours (un 31 mensuel). */
+/* La première occurrence qui commence APRÈS `t` (ou à `t` quand `inclus`), ou null. Une fenêtre de 100 jours suffit : le plus long trou d'une série est de 62 jours (un 31 mensuel).
+   ⛔ MAIS LA FENÊTRE PART DU DÉBUT DE LA SÉRIE quand `t` le précède : une réunion programmée dans cinq mois (un séminaire, un voyage) n'a sa première occurrence qu'à 150 jours — sans ça elle
+   n'aurait AUCUNE « prochaine » (donc ni rappel, ni place dans l'agenda de ce qui vient, ni avertissement des invités quand on la supprime). */
 function premiereApres(s, t, inclus) {
-  const du = inclus ? t : t + 1;
+  const du = Math.max(inclus ? t : t + 1, s.debut);
   const r = occurrences(s, du, du + 100 * JOUR, 1);
   return r.length ? r[0] : null;
 }

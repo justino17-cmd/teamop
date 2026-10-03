@@ -44,6 +44,8 @@
  *                                (`sk_…`) est refusée. `prix` : la LISTE BLANCHE des tarifs vendus (un identifiant `price_…` par rythme, au moins un) — le corps d'une requête ne
  *                                choisit jamais un tarif. `affichage` : les euros par place que la page DIT (le montant réel est celui de Stripe). Sans `cle`, la facturation est
  *                                INERTE et le dit. La clé s'écrit par `configurer-stripe.js` (saisie masquée), jamais à la main.
+ *   reunions      {planificateurMs, bailMs}   Les réunions programmées : le rythme du planificateur de rappels (12 s ; EN PRODUCTION entre 10 et 15 s, les bancs et la bêta peuvent le presser
+ *                                jusqu'à 50 ms) et la durée de son bail (60 s ; au moins deux tours : un arrêt brutal le laisse expirer, il ne bloque personne).
  *   disqueMinMo   plancher d'espace libre sous lequel les écritures refusent (503).
  *   pulsationMs, presenceGraceMs, balayageMs, relectureMs   Rythmes (bancs).
  */
@@ -250,6 +252,25 @@ function facturationConfig(cfg, env, instance) {
   return o;
 }
 
+/* ⛔ LES RÉUNIONS PROGRAMMÉES : le rythme du planificateur de rappels et la durée de son bail. EN PRODUCTION le planificateur passe toutes les 10 à 15 secondes — jamais plus vite (un
+   réglage de banc qui s'y glisserait martèlerait la base) ni plus lentement (un rappel « 5 minutes avant » qui part avec une minute de retard n'en est plus un). La bêta et les bancs peuvent
+   le presser (50 ms) ou l'endormir. Le bail doit durer au moins DEUX tours : un bail qui expire entre deux renouvellements laisserait une autre instance le prendre à chaque fois. */
+function reunionsConfig(cfg, instance) {
+  const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };
+  const brut = cfg.reunions === undefined ? {} : cfg.reunions;
+  if (!brut || typeof brut !== 'object' || Array.isArray(brut)) throw err('reunions doit être un objet');
+  const prod = instance === 'prod';
+  const o = { planificateurMs: 12000, bailMs: 60000 };
+  const bornes = { planificateurMs: prod ? [10000, 15000] : [50, 300000], bailMs: [200, 600000] };
+  for (const [k, [min, max]] of Object.entries(bornes)) {
+    if (brut[k] === undefined) continue;
+    if (!Number.isInteger(brut[k]) || brut[k] < min || brut[k] > max) throw err('reunions.' + k + ' doit être un entier entre ' + min + ' et ' + max + (prod && k === 'planificateurMs' ? ' en production (un rappel part avec dix à quinze secondes de retard au plus)' : ''));
+    o[k] = brut[k];
+  }
+  if (o.bailMs < 2 * o.planificateurMs) throw err('reunions.bailMs doit durer au moins deux tours du planificateur (' + (2 * o.planificateurMs) + ' ms)');
+  return o;
+}
+
 function charger(env = process.env) {
   const manque = (n) => { const e = new Error('config: ' + n + ' est obligatoire'); e.code = 'CONFIG'; return e; };
   const instance = env.OPMSG_INSTANCE;
@@ -287,6 +308,7 @@ function charger(env = process.env) {
     compte: compteConfig(cfg.compte),
     formule: formuleConfig(cfg, instance),
     facturation: facturationConfig(cfg, env, instance),
+    reunions: reunionsConfig(cfg, instance),
     sms: cfg.sms && typeof cfg.sms === 'object' && !Array.isArray(cfg.sms) ? cfg.sms : {},   // validée par `lireConfigSms` (sms-garde.js)
     sauvegarde: cfg.sauvegarde === undefined ? null : cfg.sauvegarde,   // validée par `lireConfigSauvegarde` (sauvegarde.js) : absente = module inerte, invalide = démarrage refusé
     testCodes: testCodes,
@@ -298,4 +320,4 @@ function charger(env = process.env) {
   };
 }
 
-module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, formuleConfig, facturationConfig, RE_CLE_STRIPE, INTERDITS };
+module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, formuleConfig, facturationConfig, reunionsConfig, RE_CLE_STRIPE, INTERDITS };

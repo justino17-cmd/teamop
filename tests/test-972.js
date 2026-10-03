@@ -336,6 +336,15 @@ console.log('\nLes rappels : le registre fait qu\'un rappel ne part qu\'UNE fois
   const hasard = S.rappelsElaguer(DEBUT + JOUR);
   v('le registre ne grossit pas : on élague les occurrences passées (ici : deux lignes de l\'occurrence DEBUT, pas celle d\'une semaine plus tard)', [hasard, compte(brut, 'SELECT COUNT(*) AS n FROM rappel WHERE occurrence >= ?', DEBUT + JOUR)], [3, 1]);
   {
+    const occ = DEBUT + 30 * JOUR, avant = nNotifs(a.ben.id);
+    const plusieurs = S.rappelEnvoyer({ reunion: r.id, occurrence: occ, uid: a.ben.id, avants: [60, 15], titre: 'Point', texte: 'Commence dans 9 minutes.', cible: r.id });
+    const encore = S.rappelEnvoyer({ reunion: r.id, occurrence: occ, uid: a.ben.id, avants: [60, 15], titre: 'Point', texte: 'x', cible: r.id });
+    const un = S.rappelEnvoyer({ reunion: r.id, occurrence: occ, uid: a.ben.id, avant: 15, titre: 'Point', texte: 'x', cible: r.id });
+    const partiel = S.rappelEnvoyer({ reunion: r.id, occurrence: occ, uid: a.ben.id, avants: [15, 5], titre: 'Point', texte: 'Commence dans 4 minutes.', cible: r.id });
+    v('⛔ plusieurs délais échus (un arrêt les a laissés s\'accumuler) font UNE notification et sont TOUS notés ; les renvoyer ne crée rien ; un ensemble dont UN délai est neuf notifie (et le note) — deux notifications en tout, pas quatre',
+      [!!plusieurs, S.rappelDejaEnvoye(r.id, occ, a.ben.id, 60), S.rappelDejaEnvoye(r.id, occ, a.ben.id, 15), encore, un, !!partiel, S.rappelDejaEnvoye(r.id, occ, a.ben.id, 5), nNotifs(a.ben.id) - avant], [true, true, true, null, null, true, true, 2]);
+  }
+  {
     const b = atelier(), T2 = b.S;
     const x = reunion(b, { prochain: DEBUT }), y = reunion(b, { prochain: DEBUT + 5 * JOUR, titre: 'Plus tard' }), z = reunion(b, { prochain: DEBUT + 1000, titre: 'Annulée' }), f = reunion(b, { prochain: null, titre: 'Finie' });
     T2.reunionAnnuler({ id: z.id, par: b.ana.id });

@@ -24,6 +24,7 @@ T.sauterSiSansDependances();
 const { v, vrai, fin } = T.compteur();
 const { ouvrir } = require(path.join(T.SERVICE, 'stockage.js'));
 const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
+const ICS = require(path.join(T.SERVICE, 'ics.js'));
 
 setTimeout(() => { console.log('  ✗ délai global du banc dépassé (240 s)'); process.exit(1); }, 240000).unref();
 
@@ -174,6 +175,8 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
       const usurpe = await mk(a, { hote: eve.id, uid: eve.id, role: 'admin', id: 'r_' + '0'.repeat(32), conv: 'c_' + '0'.repeat(32), annulee: true, version: 99, cree: 5, maj: 5, prochain: 1 });
       v('⛔ l\'hôte, l\'identifiant, la conversation, la version viennent de la SESSION et de la base : un corps qui s\'en attribue d\'autres est ignoré', [usurpe.reunion.hote.id, usurpe.reunion.id === 'r_' + '0'.repeat(32), usurpe.reunion.conv === 'c_' + '0'.repeat(32), usurpe.reunion.annulee, usurpe.reunion.version, usurpe.reunion.cree > 5], [ana.id, false, false, false, 0, true]);
       v('population : Eve, dont le corps se réclamait, n\'a aucune réunion', (await e.get('/api/reunions')).j.reunions.length, 0);
+      const loin = await mk(a, { debut: '2027-03-25T14:00', fin: '2027-03-25T15:00' });
+      v('⛔ une réunion programmée dans cinq mois (157 jours) a sa prochaine occurrence — sans elle, ni rappel ni avertissement à la suppression (population : elle est bien à plus de 100 jours)', [(loin.reunion.debut - ZERO) / JOUR > 100, loin.prochaine && loin.prochaine.debut === loin.reunion.debut], [true, true]);
     }
 
     /* ═══ 3. LES INVITÉS, LES NOTIFICATIONS D'INVITATION ════════════════════════════════════════════════════════════════════════════════════════════ */
@@ -432,7 +435,7 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
       v('la série : 200, en `text/calendar`, jamais mise en cache', [s.code, s.h.get('content-type'), s.h.get('cache-control')], [200, 'text/calendar; charset=utf-8', 'no-store']);
       vrai('… TÉLÉCHARGÉE (attachment), sous un nom ASCII sûr : lettres minuscules, chiffres, tirets, `.ics` — jamais le titre brut', /^attachment; filename="reunion-[a-z0-9-]{1,40}\.ics"$/.test(s.h.get('content-disposition')));
       v('le fichier est un calendrier complet, aux fins de ligne CRLF', [L[0], L[L.length - 2], L[L.length - 1], /\r\n$/.test(s.txt), /[^\r]\n/.test(s.txt)], ['BEGIN:VCALENDAR', 'END:VCALENDAR', '', true, false]);
-      v('l\'identifiant, la règle de répétition (quatre lundis), l\'heure LOCALE de Paris', [L.includes('UID:reunion-' + RS + '@opmessages.teamop.fr'), L.includes('RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=4'), L.includes('DTSTART;TZID=Europe/Paris:20261026T140000')], [true, true, true]);
+      v('l\'identifiant, la règle de répétition (quatre lundis), l\'heure LOCALE de Paris', [L.includes('UID:reunion-' + RS + '@' + ICS.DOMAINE), L.includes('RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=4'), L.includes('DTSTART;TZID=Europe/Paris:20261026T140000')], [true, true, true]);
       v('⛔ le titre est ÉCHAPPÉ (point-virgule, virgule, barre oblique) : une seule ligne SUMMARY, et le titre n\'a pas ouvert de ligne (aucun ATTENDEE, un seul VEVENT)', [L.filter(x => x.startsWith('SUMMARY:')).length, L.filter(x => x.startsWith('ATTENDEE')).length, L.filter(x => x === 'BEGIN:VEVENT').length, L.find(x => x.startsWith('SUMMARY:')) === 'SUMMARY:Revue\\; budget\\, "T3" \\\\ finATTENDEE:intrusBEGIN:VEVENT'], [1, 0, 1, true]);
       v('⛔ MES rappels (Ben : 5 minutes) sont ceux du fichier de Ben ; ceux de l\'hôte (15 minutes et 1 heure) ceux du sien', [L.filter(x => x.startsWith('TRIGGER:')), lignesIcs((await a.get('/api/reunions/' + RS + '/ics?serie=1')).txt).filter(x => x.startsWith('TRIGGER:'))], [['TRIGGER:-PT5M'], ['TRIGGER:-PT15M', 'TRIGGER:-PT1H']]);
       v('⛔ aucune adresse de courriel ni aucun nom de personne dans le fichier (le seul « @ » est celui de l\'identifiant)', [(s.txt.match(/@/g) || []).length, /Ana|Ben|Banc|mailto/.test(s.txt)], [1, false]);

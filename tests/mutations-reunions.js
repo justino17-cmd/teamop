@@ -62,6 +62,8 @@ m('C08', '`derniereDate` ignore la limite par NOMBRE : une série de quatre fois
   "    if (s.n && valides >= s.n) break;\n    if (nJusqua !== null && numeroJour(d) > nJusqua) break;", "    if (nJusqua !== null && numeroJour(d) > nJusqua) break;", ['970']);
 m('C09', 'une date qui n\'existe pas (le 31 avril) est acceptée par la lecture d\'une heure locale', F.cal,
   "p.j > joursDansMois(p.a, p.m) || p.h > 23", "p.h > 23", ['970']);
+m('C10', 'la « prochaine occurrence » ne part plus du début de la série : une réunion à plus de 100 jours n\'a aucune prochaine (ni rappel, ni avertissement à la suppression)', F.cal,
+  "const du = Math.max(inclus ? t : t + 1, s.debut);", "const du = inclus ? t : t + 1;", ['970', '973']);
 
 /* ══ 2. LE FICHIER .ICS — ce que l'agenda de la personne lira (ics.js) ═════════════════════════════════════════════════════════════════════════════════════════ */
 m('I01', 'UNTIL s\'écrit en heure LOCALE alors que DTSTART porte un fuseau (la RFC l\'exige en UTC) : l\'agenda coupe la série au mauvais instant', F.ics,
@@ -148,7 +150,9 @@ m('S03', 'rendre un bail l\'efface même quand il appartient à une autre instan
 m('S04', 'le registre des rappels REMPLACE au lieu d\'ignorer : un rappel se renvoie à chaque passage', F.stock,
   "INSERT OR IGNORE INTO rappel(reunion, occurrence, uid, avant, ts)", "INSERT OR REPLACE INTO rappel(reunion, occurrence, uid, avant, ts)", ['972']);
 m('S05', 'la notification d\'un rappel part même quand il était déjà parti (la ligne du registre n\'est plus consultée)', F.stock,
-  "      if (num(r.changes) !== 1) return null;\n      return notifCreer({ uid, type: 'reunion_rappel'", "      return notifCreer({ uid, type: 'reunion_rappel'", ['972']);
+  "      if (neufs < 1) return null;\n      return notifCreer({ uid, type: 'reunion_rappel'", "      return notifCreer({ uid, type: 'reunion_rappel'", ['972']);
+m('S65', 'plusieurs délais échus pour la même personne : seul le premier est noté au registre, les autres repartent au tour suivant (deux notifications, puis une troisième)', F.stock,
+  "neufs += num(Q('INSERT OR IGNORE INTO rappel(reunion, occurrence, uid, avant, ts) VALUES(?, ?, ?, ?, ?)').run(reunion, occurrence, uid, a, horloge()).changes);", "{ neufs += num(Q('INSERT OR IGNORE INTO rappel(reunion, occurrence, uid, avant, ts) VALUES(?, ?, ?, ?, ?)').run(reunion, occurrence, uid, a, horloge()).changes); break; }", ['972', '974']);
 m('S06', 'un changement d\'horaire ne remet plus les réponses « en attente » : celui qui avait décliné l\'ancienne heure manque la nouvelle', F.stock,
   "      if (horaire) Q(`UPDATE reunion_invite SET statut = 'attente', repondu = NULL WHERE reunion = ? AND uid <> ?`).run(id, r.hote);\n", "", ['972']);
 m('S07', 'un changement d\'horaire remet AUSSI l\'hôte « en attente »', F.stock,
@@ -228,7 +232,7 @@ m('S43', 'les notifications d\'une invitation à une réunion gardent le prénom
 m('S44', 'un rappel est jugé valable après le début de l\'occurrence (la charge push ne se re-juge plus)', F.stock,
   "return !r.annulee && r.statut !== 'decline' && num(occurrence) > horloge();", "return !r.annulee && r.statut !== 'decline';", ['972']);
 m('S45', 'le planificateur rappelle aussi ceux qui ont DÉCLINÉ', F.stock,
-  "WHERE i.reunion = ? AND i.statut <> 'decline' AND p.etat = 'actif' ORDER BY i.cree, i.uid`).all(id)", "WHERE i.reunion = ? AND p.etat = 'actif' ORDER BY i.cree, i.uid`).all(id)", ['972']);
+  "WHERE i.reunion = ? AND i.statut <> 'decline' AND p.etat = 'actif' ORDER BY i.cree, i.uid`).all(id)", "WHERE i.reunion = ? AND p.etat = 'actif' ORDER BY i.cree, i.uid`).all(id)", ['972', '974']);
 m('S46', 'le planificateur lit aussi les réunions ANNULÉES (la garde de la lecture seule, l\'annulation ayant remis `prochain` à NULL)', F.stock,
   "WHERE annulee = 0 AND prochain IS NOT NULL AND prochain <= ?", "WHERE prochain IS NOT NULL AND prochain <= ?", ['972'], EQ('`annulee = 0` double `prochain IS NOT NULL` : l\'annulation remet `prochain` à NULL (S10) — la garde restante tient seule ; le défaut réel retire LES DEUX (S10 + S46)'));
 m2('S10+S46', 'annuler garde sa prochaine occurrence ET le planificateur ne regarde plus `annulee` : une réunion ANNULÉE est rappelée à ses invités', [
@@ -327,8 +331,12 @@ m('R30', 'programmer n\'a plus de plafond (30 par heure et par personne)', F.reu
   "    if (!plafond(res, 'reunion', hote.id, { max: 30, fenetreMs: 3600000 })) return;\n", "", ['973']);
 m('R31', 'le fichier de la personne porte les rappels de l\'HÔTE (les siens sont ignorés)', F.reu,
   "const opts = { maintenant: horloge(), rappels: rr.moi.rappels };", "const opts = { maintenant: horloge(), rappels: rr.reunion.rappels };", ['973']);
-m('R32', 'le fichier .ics peut être mis en cache (une réunion modifiée reste l\'ancienne chez la personne)', F.reu,
-  ", 'Cache-Control': 'no-store' });\n    res.send(texte);", " });\n    res.send(texte);", ['973']);
+m('R32', 'le fichier .ics peut être mis en cache (une réunion modifiée reste l\'ancienne chez la personne) — l\'en-tête de la ROUTE seulement', F.reu,
+  ", 'Cache-Control': 'no-store' });\n    res.send(texte);", " });\n    res.send(texte);", ['973'],
+  EQ('le préfixe `/api` pose déjà `no-store` sur toute réponse (app.js) : la garde restante tient seule ; le défaut réel retire LES DEUX (R32 + la ligne d\'app.js)'));
+m2('R32+A', 'le fichier .ics peut être mis en cache : ni l\'en-tête de la route, ni celui du préfixe `/api`', [
+  [F.reu, ", 'Cache-Control': 'no-store' });\n    res.send(texte);", " });\n    res.send(texte);"],
+  [F.app, "  app.use('/api', (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });\n", ""]], ['973']);
 m('R33', 'une occurrence demandée est ignorée : le fichier est toujours celui de la série', F.reu,
   "      opts.occurrence = parseInt(q.occurrence, 10);\n", "", ['973']);
 m('R34', 'une occurrence qui n\'en est pas une rend un fichier VIDE (200) au lieu de dire `occurrence_inconnue`', F.reu,
@@ -397,6 +405,114 @@ m('S63', 'une sourdine ÉCHUE coupe encore les modifications', F.stock,
   "num(m.muet_jusqua) > horloge()) return false; }", "num(m.muet_jusqua) > 0) return false; }", ['972']);
 m('S64', 'le résultat d\'une modification ne dit plus si le LIEU a changé : la route ne prévient plus d\'un changement de salle', F.stock,
   "return { change: true, horaire, titre: titreChange, lieu: lieuChange, gid:", "return { change: true, horaire, titre: titreChange, lieu: false, gid:", ['972', '973']);
+
+/* ══ 3. LE PLANIFICATEUR — un rappel part une fois, à son heure, à la bonne personne, et rien ne part qui n'a plus de sens (planificateur.js, config.js, index.js, surveillance) ═══════════════════════ */
+m('P01', 'un rappel part dès qu\'on regarde la réunion, sans attendre son échéance', F.plan,
+  "if (echeance < plancher || echeance > t) continue;", "if (echeance < plancher) continue;", ['974']);
+m('P02', 'un rappel part aussi pour une occurrence qui a COMMENCÉ (un rappel pour une réunion en cours)', F.plan,
+  "if (o.debut <= t) { bilan.abandonnes += dus.length; continue; }", "", ['974']);
+m('P03', 'l\'abandon n\'est plus compté (ni dans le bilan, ni dans la santé)', F.plan,
+  "if (o.debut <= t) { bilan.abandonnes += dus.length; continue; }", "if (o.debut <= t) { continue; }", ['974']);
+m('P04', 'l\'abandon n\'est plus journalisé : un rappel abandonné disparaît sans un mot', F.plan,
+  "    if (bilan.abandonnes) journal('rappel_abandonne', { n: bilan.abandonnes });   // abandonné, jamais en silence\n", "", ['974']);
+m('P05', 'l\'arrivée de la personne et son propre réglage ne bornent plus ses rappels (un invité tardif reçoit un « 15 minutes avant » déjà passé)', F.plan,
+  "const plancher = Math.max(plancherReunion, p.cree, p.rappels_le);", "const plancher = plancherReunion;", ['974']);
+m('P06', 'un changement d\'HORAIRE ne borne plus les rappels (celui d\'une échéance antérieure au changement part quand même)', F.plan,
+  "const plancherReunion = Math.max(r.horaire_le, depuis);", "const plancherReunion = depuis;", ['974']);
+m('P07', 'la restauration d\'une base ne borne plus les rappels : ceux d\'avant le sinistre repartent', F.plan,
+  "const plancherReunion = Math.max(r.horaire_le, depuis);", "const plancherReunion = r.horaire_le;", ['974']);
+m('P08', 'le planificateur ne consulte plus le registre avant d\'envoyer (la ligne du registre fait seule le travail)', F.plan,
+  "          if (stockage.rappelDejaEnvoye(r.id, o.debut, p.uid, a)) continue;        // déjà parti\n", "", ['974'],
+  EQ('`rappelEnvoyer` est idempotent (INSERT OR IGNORE, aucune notification si TOUS les délais sont déjà notés) : la garde restante tient seule ; le défaut réel retire LES DEUX (P08 + S05)'));
+m2('P08+S05', 'plus aucun registre : un rappel dû repart à CHAQUE tour', [
+  [F.plan, "          if (stockage.rappelDejaEnvoye(r.id, o.debut, p.uid, a)) continue;        // déjà parti\n", ""],
+  [F.stock, "      if (neufs < 1) return null;\n      return notifCreer({ uid, type: 'reunion_rappel'", "      return notifCreer({ uid, type: 'reunion_rappel'"]], ['974']);
+m('P09', 'les rappels réglés par la personne sont ignorés : tout le monde garde le réglage de la réunion', F.plan,
+  "const avants = p.rappels !== null ? p.rappels : r.defaut;", "const avants = r.defaut;", ['974']);
+m('P10', 'plusieurs délais échus font plusieurs notifications (un seul est noté, les autres repartent au tour suivant)', F.plan,
+  "avants: dus, titre: r.titre", "avants: [dus[0]], titre: r.titre", ['974']);
+m('P11', 'le texte d\'un rappel s\'écrit dans le fuseau de la RÉUNION, pas dans celui de la personne', F.plan,
+  "texteRappel(r, stockage.personneParId(p.uid), o.debut, t)", "texteRappel(r, null, o.debut, t)", ['974']);
+m('P12', '« 1 jour avant » se compte en 24 heures exactes : le rappel de la veille d\'un jour de bascule tombe à la mauvaise heure', F.plan,
+  "const echeance = cal.echeanceRappel(o.debut, a, r.tz);", "const echeance = o.debut - a * 60000;", ['974']);
+m('P13', 'la prochaine occurrence n\'est plus recalculée : une réunion finie reste « à rappeler » et son abandon se recompte à chaque tour', F.plan,
+  "    if (prochain !== r.prochain) stockage.reunionProchainPoser(r.id, prochain);\n", "", ['974']);
+m('P14', 'le planificateur ne regarde plus que les occurrences d\'APRÈS maintenant : celles qui ont commencé pendant un arrêt ne sont ni vues, ni comptées', F.plan,
+  "const du = r.prochain !== null && r.prochain < t ? r.prochain : t;", "const du = t;", ['974']);
+m('P15', 'l\'horizon n\'est plus que d\'une heure : le rappel « 1 jour avant » n\'est jamais regardé', F.plan,
+  "const HORIZON_MS = 27 * HEURE;", "const HORIZON_MS = 1 * HEURE;", ['974']);
+m('P16', 'les réunions qui commencent dans l\'heure ne sont plus toujours regardées : elles passent par la rotation', F.plan,
+  "const URGENT_MS = 65 * 60000;", "const URGENT_MS = 0;", ['974']);
+m('P17', 'la rotation ne tourne pas (le curseur revient toujours au début) : les mêmes trois réunions lointaines occupent la place pour toujours', F.plan,
+  "etat.curseur = (debut + lot) % lointaines.length;", "etat.curseur = 0;", ['974']);
+m('P18', 'le bail n\'est plus pris : toute instance se croit la seule', F.plan,
+  "etat.actif = !!stockage.bailPrendre({ proprietaire: identite, ttlMs: cfg.bailMs });", "etat.actif = true;", ['974']);
+m('P19', 'un arrêt propre ne rend plus le bail : la suivante attend son échéance', F.plan,
+  "    try { stockage.bailRendre(identite); } catch (e) { /* la base est peut-être déjà fermée */ }\n", "", ['974']);
+m('P20', 'une réunion qui lève arrête le tour : les réunions suivantes ne sont pas regardées', F.plan,
+  "try { traiter(id, t, depuis, bilan); } catch (e) { erreur = true; journal('planif_echec', { nom: nomDe(e) }); }", "traiter(id, t, depuis, bilan);", ['974']);
+m('P21', 'les échecs de suite ne retombent jamais à zéro (la surveillance crierait pour toujours après une panne passée)', F.plan,
+  "etat.echecs = erreur ? etat.echecs + 1 : 0;", "etat.echecs = etat.echecs + (erreur ? 1 : 0);", ['974']);
+m('P22', 'une panne est journalisée avec le MESSAGE de l\'erreur (qui peut citer une donnée) au lieu de son nom', F.plan,
+  "try { traiter(id, t, depuis, bilan); } catch (e) { erreur = true; journal('planif_echec', { nom: nomDe(e) }); }", "try { traiter(id, t, depuis, bilan); } catch (e) { erreur = true; journal('planif_echec', { nom: e && e.message }); }", ['974']);
+m('P23', 'le registre des rappels s\'élague jusqu\'à MAINTENANT : les rappels d\'hier, qui protègent encore un envoi, partent', F.plan,
+  "stockage.rappelsElaguer(t - RAPPELS_GARDES_MS);", "stockage.rappelsElaguer(t);", ['974']);
+m('P24', 'les envois de courriel ne sont plus élagués : le registre grossit pour toujours', F.plan,
+  " stockage.courrierElaguer(t - COURRIER_GARDE_MS);", "", ['974']);
+m('P25', 'l\'élagage se fait à CHAQUE tour (toutes les douze secondes) au lieu de chaque heure', F.plan,
+  "if (t - etat.dernierElagage >= ELAGAGE_PERIODE_MS) {", "if (true) {", ['974']);
+m('P26', 'la santé ne dit plus l\'âge du dernier tour : la surveillance ne peut plus voir une boucle morte', F.plan,
+  "    etat.dernierTour = horloge();\n", "", ['974']);
+m('P27', 'la santé ne compte plus les abandons', F.plan,
+  "    etat.abandonnes += bilan.abandonnes; etat.envoyes += bilan.envoyes;\n", "    etat.envoyes += bilan.envoyes;\n", ['974']);
+m('P28', 'le rappel n\'est plus poussé hors de l\'application (seule la notification dans l\'application reste)', F.plan,
+  "        notifieur.pousser({ uid: p.uid, type: 'reunion_rappel', reunion: r.id, titre: r.titre, texte, gid: n.gid, occurrence: o.debut });\n", "", ['974']);
+m('P29', 'le rappel ne réveille plus le flux de la personne : il n\'arrive qu\'au prochain rafraîchissement', F.plan,
+  "        hub.reveiller({ uids: [p.uid] });\n", "", ['974']);
+m('P30', 'le tour lève au lieu de rendre un bilan : une exception dans une minuterie tue le service', F.plan,
+  "    } catch (e) { erreur = true; journal('planif_echec', { nom: nomDe(e) }); }\n    etat.echecs", "    } catch (e) { throw e; }\n    etat.echecs", ['974']);
+m('P31', 'la date de la restauration n\'est plus lue : un rappel d\'avant le sinistre repart', F.plan,
+  "    const n = v === null || v === undefined ? 0 : parseInt(v, 10);", "    const n = 0;", ['974']);
+m('P33', 'le réglage de rappels d\'une personne n\'est plus daté : un réglage fait après l\'échéance déclenche quand même le rappel caduc', F.stock,
+  "rappels_le: x.rappels_le === null || x.rappels_le === undefined ? 0 : num(x.rappels_le)", "rappels_le: 0", ['974']);
+m('P34', 'le changement d\'horaire n\'est plus daté dans le planning : une échéance antérieure au changement est due', F.stock,
+  "defaut: listeEntiers(r.rappels), horaire_le: num(r.horaire_le),", "defaut: listeEntiers(r.rappels), horaire_le: 0,", ['974']);
+m('P35', 'les rappels par défaut de la réunion sont perdus : seuls ceux qu\'une personne a choisis elle-même partent', F.stock,
+  "defaut: listeEntiers(r.rappels), horaire_le:", "defaut: [], horaire_le:", ['974']);
+m('P36', 'le jugement d\'un rappel poussé garde la durée de vie de vingt-quatre heures : un téléphone éteint sonne à midi pour une réunion de dix heures', F.outils,
+  "return type === 'reunion_rappel' ? { ttl: Math.max(0, Math.floor((occurrence - horloge()) / 1000)) } : true;", "return type === 'reunion_rappel' ? { ttl: 86400 } : true;", ['974']);
+m('P37', 'un rappel ne renotifie plus (il remplace silencieusement la notification précédente de la réunion)', F.outils,
+  "renotify: type === 'reunion_rappel',", "renotify: false,", ['974']);
+
+/* la configuration et le branchement */
+m('K01', 'la production accepte un tour de moins de dix secondes (un réglage de banc qui martèle la base)', F.conf,
+  "planificateurMs: prod ? [10000, 15000] : [50, 300000]", "planificateurMs: [50, 300000]", ['974']);
+m('K02', 'la production accepte un tour de plus de quinze secondes (un rappel de 5 minutes avec une minute de retard)', F.conf,
+  "planificateurMs: prod ? [10000, 15000] : [50, 300000]", "planificateurMs: prod ? [10000, 3600000] : [50, 300000]", ['974']);
+m('K03', 'un bail plus court que deux tours est accepté (il expire entre deux renouvellements)', F.conf,
+  "  if (o.bailMs < 2 * o.planificateurMs) throw err(", "  if (false) throw err(", ['974']);
+m('K04', 'la section `reunions` de la configuration n\'est plus lue : le planificateur démarre sans réglage', F.conf,
+  "    reunions: reunionsConfig(cfg, instance),\n", "", ['974', '934']);
+m('N01', 'le planificateur n\'est jamais démarré : plus aucun rappel ne part', F.index,
+  "  planificateur.demarrer(); // un premier tour", "  // planificateur.demarrer(); // un premier tour", ['974']);
+m('N02', 'un arrêt du service ne rend plus le bail du planificateur (la prochaine instance attend son échéance)', F.index,
+  "    planificateur.arreter();   // REND le bail : la prochaine instance n'attend pas son échéance\n", "", ['974']);
+m('N03', '/health ne publie plus l\'état du planificateur : la surveillance ne voit plus une boucle morte', F.index,
+  /\n      reunions: planificateur\.sante\(\),/, "", ['974']);
+m('R70', 'une réunion programmée par la route n\'enregistre pas sa prochaine occurrence : le planificateur ne la verra jamais', F.reu,
+  "    const prochain = prochainDe(v.serie, horloge());\n    const r = stockage.reunionCreer(", "    const prochain = null;\n    const r = stockage.reunionCreer(", ['974']);
+m('R71', 'modifier l\'horaire par la route n\'enregistre pas la nouvelle prochaine occurrence : le rappel de la nouvelle heure ne part jamais', F.reu,
+  "const prochain = v.horaire ? prochainDe(v.serie, horloge()) : undefined;", "const prochain = undefined;", ['974']);
+
+/* la surveillance */
+m('V01', 'la surveillance ne regarde plus l\'âge du dernier tour du planificateur : une boucle morte ne crie pas', F.surv,
+  "if (typeof j.reunions.ageS === 'number' && j.reunions.ageS > SEUIL_PLANIF_S) {", "if (false) {", ['934']);
+m('V02', 'la surveillance ne crie qu\'au-delà de vingt-sept heures sans tour (le seuil de cinq minutes devient absurde)', F.surv,
+  "const SEUIL_PLANIF_S = 300;", "const SEUIL_PLANIF_S = 100000;", ['934']);
+m('V03', 'la surveillance ne regarde plus les échecs de suite du planificateur', F.surv,
+  "if (typeof j.reunions.echecs === 'number' && j.reunions.echecs >= SEUIL_PLANIF_ECHECS) {", "if (false) {", ['934']);
+m('V04', 'le champ `reunions.ageS` n\'est plus déclaré surveillé : le /health vivant le trouve sans décision', F.surv,
+  "  'reunions.ageS',         // le dernier tour du planificateur date de plus de cinq minutes", "  // 'reunions.ageS',         // le dernier tour du planificateur date de plus de cinq minutes", ['934']);
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const DOSSIERS_COPIE = ['server-msg', 'server', 'design/opmessages', '.github', 'apercu/opmessages', 'icons', 'scripts'];   // `.github` ENTIER : test-934 lit les workflows autant que les scripts de surveillance
 function copier(src, dst) {

@@ -39,6 +39,9 @@ const CHAMPS_SURVEILLES = [
   'push.echecs24h',        // les services push refusent nos envois (clés refusées, adresse bloquée) ou ne répondent plus : plus d'échecs que de livraisons, sur un volume qui compte
   'push.envoyes24h',       // le dénominateur de l'alarme ci-dessus : sans lui un seul échec ferait crier
   'push.refuses24h',       // les services push refusent NOS clés VAPID (401, 403) : une paire changée à la main, une clé abîmée — personne ne reçoit plus rien, et aucun abonnement n'est retiré pour autant
+  /* ⛔ LES RÉUNIONS PROGRAMMÉES (étape 6) : le planificateur de rappels passe toutes les 10 à 15 secondes. Un rappel qui ne part plus ne se voit de nulle part ailleurs — personne ne s'en plaint avant d'avoir manqué sa réunion. */
+  'reunions.ageS',         // le dernier tour du planificateur date de plus de cinq minutes : la boucle est morte ou bloquée, plus aucun rappel de réunion ne part
+  'reunions.echecs',       // trois tours de suite en échec : un rappel qui lève à chaque passage ne part jamais, et les autres derrière lui non plus tant que l'erreur dure
   /* ⛔ LES SMS (compte Perso par numéro) : « le but c'est qu'on gagne de l'argent » — chaque SMS est un coût, et la fraude au
      « SMS pumping » vise justement les destinations chères. Ces cinq champs sont l'alarme d'argent ; la garde vit dans `sms-garde.js`. */
   'sms.mode',              // en production, tout autre mode que « ovh » veut dire : plus aucun code ne part, personne ne peut s'inscrire
@@ -57,6 +60,9 @@ const CHAMPS_VUS = {
   'push.abonnements': 'le nombre d\'appareils abonnés aux notifications est une information de croissance : le service borne lui-même chaque personne (dix appareils) et retire un abonnement après cinq refus du service de suite, étalés sur une heure — aucune alarme horaire n\'ajouterait une décision',
   'pieces.n': 'le nombre de pièces est une information de croissance : le service borne lui-même chaque personne (quota de stockage) et refuse d\'écrire sous son plancher de disque (503), aucune alarme horaire n\'ajouterait une décision',
   'pieces.octets': 'l\'espace pris par les pièces grandit avec l\'usage : il est borné par personne (quota) et par le plancher de disque du service, qui refuse d\'écrire plutôt que de priver OP GESTION — un total n\'a pas de seuil qui ait un sens',
+  /* ⛔ LES RÉUNIONS PROGRAMMÉES (étape 6). Ce qui est une PANNE du planificateur est surveillé (`reunions.ageS`, `reunions.echecs`, plus haut) ; le reste est un état normal. */
+  'reunions.actif': 'faux est normal pendant la seconde qui suit un démarrage et le temps qu\'un bail laissé par un arrêt brutal expire (une minute au plus) ; ce qui dit que le planificateur est MORT, c\'est l\'âge de son dernier tour (reunions.ageS), surveillé',
+  'reunions.abandonnes': 'des rappels abandonnés depuis le démarrage parce que l\'occurrence avait déjà commencé quand le service est revenu : c\'est le fonctionnement voulu (un rappel pour une réunion en cours n\'a pas de sens) et chaque abandon est journalisé avec son nombre — aucune alarme horaire n\'ajouterait une décision',
   /* ⛔ LA FACTURATION (Messages Pro, étape 5). Ce qui est une PANNE de notre côté ou de Stripe est surveillé (`stripeEchecMin`, plus haut) ; le reste est de l'information commerciale. */
   'facturation.mode': 'le mode de la facturation (inerte sans clé, test, live) est une configuration que l\'installation pose : ce qui compte est que Stripe réponde, et c\'est stripeEchecMin qui le surveille',
   'facturation.toutOuvert': 'le drapeau de la bêta (tout est ouvert, sans paiement) est un réglage : la production REFUSE de démarrer avec lui (config.js), aucune alarme horaire n\'ajouterait une décision'
@@ -74,6 +80,8 @@ const SEUIL_SMS_PCT = 80;        // le budget du jour ou de l'heure consommé à
 const SEUIL_SMS_EUR = 12;        // le coût réel d'une journée au-delà duquel on crie (le budget par défaut est de 20 €) ; OPMSG_SMS_SEUIL_EUR le change
 const SEUIL_SMS_ECHECS = 3;      // trois envois de suite refusés ou perdus par OVH
 const SEUIL_PUSH_REFUS = 3;      // trois refus 401/403 en 24 h ET autant de refus que de livraisons : c'est NOTRE clé que le service push refuse (une paire changée à la main), pas un abonnement isolé qui date d'une autre paire
+const SEUIL_PLANIF_S = 300;      // un tour passe toutes les 10 à 15 secondes : cinq minutes sans tour, c'est une boucle morte ou bloquée, pas un hoquet
+const SEUIL_PLANIF_ECHECS = 3;   // trois tours de suite en échec (une demi-minute) : une erreur qui dure, pas un accroc isolé
 const SEUIL_PUSH_ECHECS = 20;    // vingt échecs d'envoi push en 24 h ET plus d'échecs que de livraisons : un appareil qui disparaît (404, 410) n'est pas un échec, c'est le fonctionnement normal
 
 /* beta ou prod, d'après le domaine interrogé — pour comparer à ce que le service dit de lui-même. */
@@ -146,6 +154,15 @@ function evaluer(j, instanceAttendue) {
   }
   if (typeof j.stripeEchecMin === 'number' && j.stripeEchecMin > SEUIL_STRIPE_MIN) {
     p.push('Stripe illisible depuis ' + Math.round(j.stripeEchecMin) + ' min');
+  }
+  /* les réunions programmées : le planificateur de rappels. Un /health d'avant (sans la clé) ne crie pas ; « jamais tourné » (ageS null) non plus : c'est la première seconde du service. */
+  if (j.reunions && typeof j.reunions === 'object') {
+    if (typeof j.reunions.ageS === 'number' && j.reunions.ageS > SEUIL_PLANIF_S) {
+      p.push('le planificateur des rappels de réunion ne tourne plus : son dernier tour date de ' + Math.round(j.reunions.ageS) + ' s (il en passe un toutes les 10 à 15 s) — plus aucun rappel ne part');
+    }
+    if (typeof j.reunions.echecs === 'number' && j.reunions.echecs >= SEUIL_PLANIF_ECHECS) {
+      p.push(Math.round(j.reunions.echecs) + ' tours de suite du planificateur des rappels de réunion ont échoué — un rappel qui lève à chaque passage ne part jamais');
+    }
   }
   if (j.sms && typeof j.sms === 'object') {
     const seuilEur = Number.isFinite(parseFloat(process.env.OPMSG_SMS_SEUIL_EUR)) ? parseFloat(process.env.OPMSG_SMS_SEUIL_EUR) : SEUIL_SMS_EUR;
