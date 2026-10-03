@@ -146,6 +146,17 @@ m('P70', 'le motif de la sandbox distingue la casse (/API/PIECES/… échappe à
 /* ── REMARQUE 3 : LE PLANCHER DE DISQUE SOUSTRAIT LES DÉPÔTS EN COURS ── */
 m('P71', 'le plancher de disque ne regarde que le dépôt qui arrive (seize dépôts qui tiennent chacun vident le disque ensemble)', F.rp, 'if (ctx.disque.libreMo() - (octetsAnnonces + taille) / Mo < config.disqueMinMo)', 'if (ctx.disque.libreMo() - taille / Mo < config.disqueMinMo)', ['943']);
 m('P72', 'un dépôt fini ou abandonné ne rend pas ses octets annoncés (le plancher se bouche petit à petit, jusqu\'au redémarrage)', F.rp, 'sorti = true; enCours--; octetsAnnonces -= taille;', 'sorti = true; enCours--;', ['943']);
+/* ── A4 : UN ENVOI QUI N'AVANCE PAS NE TIENT PAS UNE PLACE ── */
+m('P73', 'la route ne passe plus le débit minimal à `deposer` (un envoi lent tient sa place jusqu\'au délai de Node)', F.rp, 'attendu: taille, debitMin: pc.depotDebitMin, graceMs: pc.depotGraceMs });', 'attendu: taille });', ['943']);
+m('P74', 'la grâce n\'est plus un crédit : le débit est exigé depuis le premier octet, un envoi lent mais honnête est coupé', F.pz, 'recus < (ecoule - graceMs) * debitMin / 1000', 'recus < ecoule * debitMin / 1000', ['942', '943']);
+m('P75', 'la garde ne compte aucun octet reçu : un envoi qui avance est coupé comme un envoi arrêté', F.pz, 'compter(n) { recus += n; }', 'compter(n) { }', ['942', '943']);
+m('P76', '`deposer` n\'arrête plus la minuterie de la garde à la sortie (refusé tôt, réussi) : une minuterie par envoi survit, pour toujours', F.pz, 'try { return await deposerLu({ id, genre, flux, max, attendu, garde }); } finally { if (garde) garde.arreter(); }', 'try { return await deposerLu({ id, genre, flux, max, attendu, garde }); } finally { }', ['942']);
+m('P77', 'un envoi coupé répond 500 au lieu de 408 « delai_depasse » (le client ne peut pas dire « envoi trop lent »)', F.rp, "refus(res, 408, 'delai_depasse');", "refus(res, 500, 'delai_depasse');", ['943']);
+m('P78', 'un envoi coupé (ou refusé) ne rend pas sa réservation de quota', F.rp, '} finally { place.liberer(); sortir(); }', '} finally { sortir(); }', ['943']);
+m('P79', 'un envoi coupé (ou refusé) ne rend pas sa place « par personne » et « en même temps »', F.rp, '} finally { place.liberer(); sortir(); }', '} finally { place.liberer(); }', ['943']);
+/* ── A2 : UN LECTEUR LENT NE TIENT PAS UN FICHIER OUVERT ── */
+m('P80', 'le service attend sans fin un lecteur dont la connexion reste pleine (le fichier ouvert et la connexion restent pris)', F.rp, "const attente = setTimeout(() => { fini(); couper('attente'); }, pc.lectureAttenteMs);", 'const attente = setTimeout(() => {}, pc.lectureAttenteMs);', ['943']);
+m('P81', 'une lecture n\'a pas de durée maximale : un lecteur qui lit un filet tient son fichier pour toujours', F.rp, "const butoir = setTimeout(() => couper('duree'), pc.lectureMaxMs);", 'const butoir = setTimeout(() => {}, pc.lectureMaxMs);', ['943']);
 m('K18', 'l\'appareil remet le nom du fichier dans l\'adresse du dépôt', F.api, "rq({ conv: x.conv, genre: x.genre })", "rq({ conv: x.conv, genre: x.genre, nom: x.nom })", ['944']);
 m('K19', 'l\'appareil n\'envoie plus le nom du fichier du tout', F.api, "        if (x.nom !== undefined && x.nom !== null) h['X-OPM-Nom'] = encodeURIComponent(String(x.nom));\n", '', ['944']);
 
