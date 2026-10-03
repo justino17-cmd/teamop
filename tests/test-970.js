@@ -274,4 +274,98 @@ console.log('\nUne série quotidienne SANS FIN ne s\'arrête pas en silence');
   v('et par une date limite, la plus proche des deux limites gagne', C.derniereDate(serie(PARIS, '2026-10-01T09:00', 30, 'quotidienne', { n: 50, jusqua: '2026-10-10' })), { a: 2026, m: 10, j: 10 });
 }
 
+console.log('\n⛔ Une série commencée en 2000 n\'est PAS reparcourue depuis son premier jour : le saut direct rend ce que rend le parcours complet — et le DIT en périodes parcourues');
+{
+  /* Le parcours COMPLET d'avant (depuis le rang 0), réécrit ici avec les seules fonctions publiques du module : c'est lui, et non le saut, qui dit ce que la fenêtre doit contenir. */
+  function parcoursComplet(s, du, au, max) {
+    const sortie = [], duree = s.fin - s.debut, anc = C.champsLocaux(s.debut, s.tz), limite = C.limiteDe(s);
+    const nMin = C.numeroJour(C.champsLocaux(du - C.JOUR, s.tz)), nMax = C.numeroJour(C.champsLocaux(au + C.JOUR, s.tz));
+    const nJusqua = s.jusqua ? C.numeroJour(C.lireDate(s.jusqua)) : null;
+    let valides = 0;
+    for (let k = 0; k < C.PERIODES_MAX; k++) {
+      let d;
+      if (s.rep === 'quotidienne') d = C.ajouterJours(anc, k);
+      else if (s.rep === 'hebdomadaire') d = C.ajouterJours(anc, 7 * k);
+      else { const idx = anc.a * 12 + anc.m - 1 + k, a = Math.floor(idx / 12), m = idx % 12 + 1; d = anc.j <= C.joursDansMois(a, m) ? { a, m, j: anc.j } : null; }
+      if (!d) continue;
+      if (s.n && valides >= s.n) break;
+      const nj = C.numeroJour(d);
+      if (nJusqua !== null && nj > nJusqua + 1) break;
+      if (nj > nMax) break;
+      const rang = valides; valides++;
+      if (nj < nMin) continue;
+      const t = k === 0 ? s.debut : C.instantLocal({ a: d.a, m: d.m, j: d.j, h: anc.h, mi: anc.mi }, s.tz);
+      if (limite !== null && t > limite) break;
+      if (t >= du && t < au) { sortie.push({ debut: t, fin: t + duree, rang }); if (sortie.length >= (max || 500)) break; }
+    }
+    return sortie;
+  }
+  const DEBUTS = [['2000-01-03T09:00', 'lundi'], ['2000-01-31T09:00', 'un 31'], ['2000-02-29T09:00', 'un 29 février (bissextile)'], ['2000-03-30T02:30', 'un 30, à l\'heure du trou de mars'], ['2003-10-26T02:30', 'l\'heure vécue deux fois d\'octobre']];
+  const FENETRES = [[U(2026, 10, 19), U(2026, 11, 2), 'la bascule d\'octobre 2026'], [U(2026, 3, 23), U(2026, 4, 6), 'le trou de mars 2026'], [U(2028, 2, 20), U(2028, 3, 10), 'février 2028 (bissextile)'], [U(2099, 6, 1), U(2099, 6, 15), '2099'],
+    [U(2000, 1, 1), U(2000, 2, 1), 'le premier mois'], [U(2026, 10, 1), U(2027, 1, 1), 'oct-déc 2026']];
+  const lancees = [], ecarts = []; let comparaisons = 0, pire = 0;
+  for (const tz of [PARIS, 'America/New_York', 'Australia/Sydney', 'Africa/Casablanca'])
+    for (const rep of ['quotidienne', 'hebdomadaire', 'mensuelle'])
+      for (const [local] of DEBUTS)
+        for (const extra of [{}, { n: 2000 }, { n: 5 }, { jusqua: '2027-03-31' }, { n: 300, jusqua: '2040-12-31' }]) {
+          const s0 = serie(tz, local, 60, rep, extra), N = C.normaliserSerie(s0), s = Object.assign({}, s0, N);
+          lancees.push(s);
+          for (const [du, au] of FENETRES) {
+            for (const max of [1, 200]) {
+              C.stats.periodes = 0;
+              const obtenu = C.occurrences(s, du, au, max);
+              pire = Math.max(pire, C.stats.periodes);
+              comparaisons++;
+              if (JSON.stringify(obtenu) !== JSON.stringify(parcoursComplet(s, du, au, max))) ecarts.push(tz + ' ' + rep + ' ' + local + ' ' + JSON.stringify(extra) + ' ' + iso(du) + ' max ' + max);
+            }
+            const p1 = C.premiereApres(s, du, true), tout = parcoursComplet(s, Math.max(du, s.debut), Math.max(du, s.debut) + 100 * C.JOUR, 1);
+            comparaisons++;
+            if (JSON.stringify(p1) !== JSON.stringify(tout.length ? tout[0] : null)) ecarts.push('premiereApres ' + tz + ' ' + rep + ' ' + local + ' ' + JSON.stringify(extra));
+          }
+        }
+  vrai('population : ' + lancees.length + ' séries (4 fuseaux × 3 répétitions × 5 départs × 5 bornes), ' + comparaisons + ' comparaisons, des fenêtres de 2000 à 2099', lancees.length === 300 && comparaisons === 300 * FENETRES.length * 3 && lancees.some(x => x.rep === 'mensuelle' && C.champsLocaux(x.debut, x.tz).j === 31));
+  v('⛔ le saut direct rend EXACTEMENT ce que rend le parcours complet depuis le rang 0 — les instants ET les rangs —, à travers les deux changements d\'heure, les 29, 30 et 31 qui sautent les mois courts, `n` et `jusqua`', ecarts.slice(0, 5), []);
+  C.stats.periodes = 0;
+  const jamais = serie(PARIS, '2000-01-03T09:00', 60, 'quotidienne');
+  const lundis = C.occurrences(jamais, U(2026, 10, 19), U(2026, 10, 26), 200);
+  v('⛔ une série quotidienne « Jamais » commencée en 2000, pour la semaine du 19 octobre 2026 : 7 occurrences, sans parcourir ses neuf mille jours — moins de 30 périodes (le parcours complet en fait 9 800)', [lundis.length, C.stats.periodes < 30, C.stats.periodes > 0, lundis[0].rang], [7, true, true, C.numeroJour({ a: 2026, m: 10, j: 19 }) - C.numeroJour({ a: 2000, m: 1, j: 3 })]);   // son rang : les 9 786 jours écoulés depuis le premier lundi, comptés sans les parcourir
+  C.stats.periodes = 0;
+  C.premiereApres(jamais, U(2099, 6, 1), true);
+  v('et jusqu\'en 2099 (36 000 jours plus loin) : toujours moins de 30 périodes', C.stats.periodes < 30, true);
+  C.stats.periodes = 0;
+  const trente_et_un = serie(PARIS, '2000-01-31T09:00', 60, 'mensuelle');
+  const o31 = C.occurrences(trente_et_un, U(2026, 10, 1), U(2027, 1, 1), 20);
+  v('⛔ le 31 mensuel depuis 2000 : octobre et décembre 2026 (ni novembre ni février, qui n\'ont pas de 31) — et le rang compte les mois SAUTÉS en route (parcours complet : 187 et 188), en moins de 60 périodes (parcours complet : 313)',
+    [o31.map(o => C.formaterLocal(o.debut, PARIS)), o31.map(o => o.rang), C.stats.periodes < 60], [['2026-10-31T09:00', '2026-12-31T09:00'], [187, 188], true]);
+  C.stats.periodes = 0;
+  const a_court = C.occurrences(serie(PARIS, '2000-01-03T09:00', 60, 'quotidienne', { n: 10 }), U(2026, 10, 19), U(2026, 10, 26), 200);
+  v('une série quotidienne de 10 fois commencée en 2000 n\'a rien en 2026, et le dit sans la parcourir', [a_court.length, C.stats.periodes < 30], [0, true]);
+  v('le pire cas des 1 800 calculs ci-dessus : moins de 120 périodes parcourues (le parcours complet : jusqu\'à 36 000)', pire < 120, true);
+}
+
+console.log('\nLa fin d\'une série : posée une fois, qui écarte EN SQL les séries terminées (colonne `fin_serie`) — elle MAJORE, jamais ne coupe une série qui court');
+{
+  const un = (rep, extra, local) => serie(PARIS, local || '2026-10-19T14:00', 60, rep, extra);
+  v('une réunion sans répétition finit avec elle ; une série « Jamais » ne finit jamais (null)', [C.finDeSerie(un('aucune')), C.finDeSerie(un('hebdomadaire'))], [un('aucune').fin, null]);
+  const hebdo3 = un('hebdomadaire', { n: 3 }), derniere = C.occurrences(hebdo3, C.T_MIN, C.T_MAX, 10).pop();
+  v('trois lundis : la fin tombe un jour après la fin de la DERNIÈRE occurrence (la marge) ; jamais avant', [C.finDeSerie(hebdo3) - derniere.fin, derniere.rang], [C.JOUR, 2]);
+  const jusqua = un('quotidienne', { jusqua: '2026-10-25' }), dJ = C.occurrences(jusqua, C.T_MIN, C.T_MAX, 50).pop();
+  v('« jusqu\'au 25 octobre » (le jour de la bascule) : la fin est celle de la dernière occurrence du 25, plus la marge', [C.formaterLocal(dJ.debut, PARIS), C.finDeSerie(jusqua) - dJ.fin], ['2026-10-25T14:00', C.JOUR]);
+  const les_deux = un('quotidienne', { n: 50, jusqua: '2026-10-22' });
+  v('les deux limites : la plus proche gagne', C.formaterLocal(C.finDeSerie(les_deux) - C.JOUR - 3600000, PARIS), '2026-10-22T14:00');
+  /* la propriété qui compte : aucune occurrence ne commence après la fin, et aucune ne finit après elle — sur des séries de toutes sortes */
+  let series = 0; const fautes = [];
+  for (const tz of [PARIS, 'America/New_York', 'Australia/Sydney'])
+    for (const rep of ['quotidienne', 'hebdomadaire', 'mensuelle'])
+      for (const local of ['2026-01-31T09:00', '2026-03-29T02:30', '2026-10-25T02:30', '2000-02-29T23:30'])
+        for (const extra of [{ n: 2 }, { n: 40 }, { jusqua: '2026-12-31' }, { n: 7, jusqua: '2027-01-15' }, { jusqua: '2030-06-30' }]) {
+          const s0 = serie(tz, local, 90, rep, extra), s = Object.assign({}, s0, C.normaliserSerie(s0)), f = C.finDeSerie(s);
+          series++;
+          const toutes = C.occurrences(s, C.T_MIN, C.T_MAX, 5000);
+          if (f === null || !toutes.length || toutes.some(o => o.fin > f) || C.occurrences(s, f, C.T_MAX, 5).length) fautes.push(tz + ' ' + rep + ' ' + local + ' ' + JSON.stringify(extra));
+        }
+  vrai('population : ' + series + ' séries bornées', series === 180);
+  v('⛔ pour chacune : toutes ses occurrences finissent AVANT la fin posée, et après elle il n\'y en a plus aucune (écarter une série qui court serait pire que d\'en garder une qui vient de finir)', fautes.slice(0, 5), []);
+}
+
 fin();

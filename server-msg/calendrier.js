@@ -29,6 +29,9 @@ const RAPPELS_PERMIS = [5, 15, 60, 1440];
    (jamais un fuseau) : atteindre 2090 depuis 2026 est de l'ordre de la milliseconde. */
 const T_MIN = Date.UTC(2000, 0, 1), T_MAX = Date.UTC(2100, 0, 1);
 const PERIODES_MAX = 40000;
+/* ⛔ Le nombre de PÉRIODES qu'une boucle a parcourues depuis la dernière remise à zéro : c'est ce que les bancs lisent pour prouver qu'une série commencée en 2000 n'est pas reparcourue depuis son
+   premier jour à chaque calcul (`test-970`) — un décompte, jamais un chronomètre. Rien d'autre ne le lit. */
+const stats = { periodes: 0 };
 
 const pad = (n, l = 2) => String(n).padStart(l, '0');
 
@@ -133,6 +136,31 @@ function dateDuRang(s, anc, k) {
   return k === 0 ? { a: anc.a, m: anc.m, j: anc.j } : null;
 }
 
+/* Combien de rangs de 0 à `K` (exclu) tombent sur un mois qui a un jour `j` : tous si `j` ≤ 28, sinon 7 par année pour le 31, 11 pour le 30, 11 ou 12 pour le 29 (février). Un calcul par ANNÉE
+   entière, jamais par mois sur un siècle. */
+function rangsExistants(j, idx0, K) {
+  if (j <= 28) return K;
+  let n = 0, idx = idx0, reste = K;
+  const existe = () => joursDansMois(Math.floor(idx / 12), (idx % 12) + 1) >= j;
+  while (reste > 0 && idx % 12 !== 0) { stats.periodes++; if (existe()) n++; idx++; reste--; }
+  while (reste >= 12) { stats.periodes++; n += j === 31 ? 7 : j === 30 ? 11 : (joursDansMois(Math.floor(idx / 12), 2) >= 29 ? 12 : 11); idx += 12; reste -= 12; }
+  while (reste > 0) { stats.periodes++; if (existe()) n++; idx++; reste--; }
+  return n;
+}
+/* ⛔ LE SAUT À LA FENÊTRE. Une série « Jamais » commencée en 2000 n'a pas à être reparcourue depuis son premier jour à chaque calcul (9 700 périodes en 2026, 36 500 en 2099) : les rangs d'AVANT la
+   fenêtre ne valent qu'un nombre — combien d'occurrences existent avant elle, car `rang` et « N fois » les comptent. Quotidienne et hebdomadaire : une division ; mensuelle : le mois de la
+   fenêtre, et un calcul par année pour les mois qui n'ont pas le 29, le 30 ou le 31. Le résultat est celui du parcours complet (`test-970` le compare, sur des séries anciennes, y compris à travers
+   les changements d'heure et les mois courts). → { k (le premier rang à examiner), valides (les occurrences qui existent avant lui) } */
+function departDe(s, anc, nMin, dMin) {
+  if (s.rep === 'quotidienne') { const k = Math.max(0, nMin - numeroJour(anc)); return { k, valides: k }; }
+  if (s.rep === 'hebdomadaire') { const k = Math.max(0, Math.ceil((nMin - numeroJour(anc)) / 7)); return { k, valides: k }; }
+  if (s.rep === 'mensuelle') {
+    const idx0 = anc.a * 12 + (anc.m - 1), k = Math.max(0, dMin.a * 12 + (dMin.m - 1) - idx0 - 1);   // un mois AVANT celui de la fenêtre : le jour demandé y tombe avant elle
+    return { k, valides: rangsExistants(anc.j, idx0, k) };
+  }
+  return { k: 0, valides: 0 };
+}
+
 /* La limite de la série, en instant : le dernier moment du dernier jour permis (heure locale 23:59:59) ; null s'il n'y en a pas. */
 function limiteDe(s) {
   if (!s.jusqua) return null;
@@ -149,8 +177,10 @@ function occurrences(s, du, au, max) {
   const dMin = champsLocaux(du - JOUR, s.tz), dMax = champsLocaux(au + JOUR, s.tz);
   const nMin = numeroJour(dMin), nMax = numeroJour(dMax);
   const nJusqua = s.jusqua ? numeroJour(lireDate(s.jusqua)) : null;
-  let valides = 0;
-  for (let k = 0; k < PERIODES_MAX; k++) {
+  const depart = departDe(s, anc, nMin, dMin);
+  let valides = depart.valides;
+  for (let k = depart.k; k < PERIODES_MAX; k++) {
+    stats.periodes++;
     const d = dateDuRang(s, anc, k);
     if (s.rep === 'aucune' && k > 0) break;
     if (!d) continue;                                              // un jour qui n'existe pas : ni compté, ni décalé
@@ -176,6 +206,7 @@ function derniereDate(s) {
   const nJusqua = s.jusqua ? numeroJour(lireDate(s.jusqua)) : null;
   let derniere = null, valides = 0;
   for (let k = 0; k < PERIODES_MAX; k++) {
+    stats.periodes++;
     const d = dateDuRang(s, anc, k);
     if (!d) continue;
     if (s.n && valides >= s.n) break;
@@ -183,6 +214,17 @@ function derniereDate(s) {
     derniere = d; valides++;
   }
   return derniere;
+}
+
+/* ⛔ LA FIN D'UNE SÉRIE, en instant : le moment à partir duquel plus AUCUNE occurrence ne court — ou null si elle n'en a pas (« Jamais »). Posée une fois, à la création et à chaque modification
+   (colonne `fin_serie`), pour que l'agenda écarte EN SQL les séries terminées : un invité ne voit pas son agenda masqué par six cents séries d'il y a vingt-six ans. Une réunion sans répétition
+   finit avec elle. Le calcul MAJORE (un jour de marge au-delà de la dernière occurrence) : écarter à tort une série qui court encore serait pire que d'en garder une qui vient de finir. */
+function finDeSerie(s) {
+  if (s.rep === 'aucune') return s.fin;
+  const d = derniereDate(s);
+  if (!d) return null;
+  const anc = ancreDe(s);
+  return instantLocal({ a: d.a, m: d.m, j: d.j, h: anc.h, mi: anc.mi }, s.tz) + (s.fin - s.debut) + JOUR;
 }
 
 /* La première occurrence qui commence APRÈS `t` (ou à `t` quand `inclus`), ou null. Une fenêtre de 100 jours suffit : le plus long trou d'une série est de 62 jours (un 31 mensuel).
@@ -204,6 +246,7 @@ function compter(s, max) {
   const lim = max || 1000;
   const anc = ancreDe(s), limite = limiteDe(s);
   for (let k = 0; k < PERIODES_MAX && n < lim; k++) {
+    stats.periodes++;
     if (s.rep === 'aucune' && k > 0) break;
     const d = dateDuRang(s, anc, k);
     if (!d) continue;
@@ -236,5 +279,5 @@ module.exports = {
   MIN, JOUR, REPETITIONS, RAPPELS_PERMIS, T_MIN, T_MAX, PERIODES_MAX,
   tzValide, decalage, champsLocaux, instantLocal, lireLocal, lireDate, formaterDate, formaterLocal, dire,
   joursDansMois, ajouterJours, numeroJour, jourSemaine,
-  occurrences, premiereApres, occurrenceA, compter, limiteDe, derniereDate, normaliserSerie, echeanceRappel,
+  occurrences, premiereApres, occurrenceA, compter, limiteDe, derniereDate, finDeSerie, normaliserSerie, echeanceRappel, stats,
 };
