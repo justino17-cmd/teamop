@@ -753,6 +753,7 @@ Trois constats, pour Justin :
 6. **Trois espaces au plus par propriétaire, vingt par personne, cent canaux par espace.**
 7. **`customer_email`** : l'adresse de paiement vient de la SESSION de la personne quand elle en a une confirmée ; les comptes par téléphone et de la bêta n'en ont pas — en mode test, Checkout la demande lui-même ; en production (clé live), pas d'adresse confirmée = pas de paiement.
 8. **Les liens d'invitation ont un plafond d'utilisations égal aux places qui restent** ; l'acceptation les recompte (d'autres liens ont pu les prendre entre-temps).
+9. **« Les invités rejoignent sans siège » (§ 3.8) est lu pour les RÉUNIONS** (l'invité sans compte ni installation d'`OFFRE-PRO.md`, étape 6), pas pour un espace : **un membre d'un espace occupe une place de l'abonnement de l'espace** (les places bornent les liens, et une baisse ne descend jamais sous le nombre de membres). Ce que « ne coûte pas de siège » devient ici : la personne qui rejoint ne paie RIEN et n'a besoin d'AUCUNE formule — c'est l'espace qui doit pouvoir l'accueillir. Un statut « invité d'un espace, sans place » n'existe pas ; il demanderait un troisième rôle et une règle de plus dans chaque garde.
 
 #### 5.4 Ce qui n'est PAS fait, et les limites
 
@@ -819,6 +820,7 @@ Trois constats, pour Justin :
 16. **Les prix `msgpro` côté OP GESTION** : lesquels sont les bons, lequel est le mensuel, et le produit s'appelle-t-il « OP MESSAGES Pro » ? C'est du nom de ce produit (ou de la liste d'OP GESTION) que dépend la couture (étape 5, 5.2, constat 1). *Si le produit ne peut pas porter ce nom* : faire ajouter les deux tarifs à `STRIPE_PRIX_MESSAGES` (un changement dans `server/`, sur la branche de travail d'OP GESTION).
 17. **Le plafond de mille abonnements du compte Stripe** (partagé, dix pages de cent côté OP GESTION) : à relever dans OP GESTION avant d'approcher les mille, ou à tenir à l'œil (`facturation.abonnes` de `/health` en compte une partie).
 18. **L'historique d'un canal public pour qui arrive**, le **canal privé orphelin** et l'**administrateur qui ne lit pas un canal privé** (étape 5, 5.3, points 3 à 5) : trois choix de produit faits sans lui.
+19. **Un membre d'espace occupe-t-il une place payée ?** (étape 5, 5.3, point 9) Lu ainsi : oui, tout membre compte dans les places, et seul un invité de RÉUNION (étape 6) est « sans siège ». *Si Justin voulait des membres d'espace sans place* (des clients, des sous-traitants dans un canal) : un troisième rôle `invité`, hors des places, qui lit un canal et n'écrit nulle part ailleurs — à dessiner avant la première vente, parce qu'il change le compte des places.
 
 ## 6. Non vérifié
 
