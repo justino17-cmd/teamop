@@ -401,19 +401,19 @@ function paireVapid() {
       await T.attendre(async () => (await sante()).flux.ouverts === 0, 8000, 20);
     }
 
-    console.log('\nLes pannes du service push : 410 retire tout de suite ; 500, redirection, silence, 403 ne retirent JAMAIS ; un refus 400 ne retire qu\'après deux de suite ET une durée');
+    console.log('\nLes pannes du service push : 404 et 410 retirent tout de suite ; 500, redirection, silence, 403 ne retirent JAMAIS ; un refus 400 ne retire qu\'après deux de suite ET une durée');
     {
-      const cG = dev('cleo-gone'), c5 = dev('cleo-500'), cR = dev('cleo-redir'), cS = dev('cleo-silence'), c4 = dev('cleo-400'), cF = dev('cleo-403');
-      const STATUTS = { [cG.chemin]: 410, [c5.chemin]: 500, [cR.chemin]: { redirige: fps.base + '/leak' }, [cS.chemin]: 'silence', [c4.chemin]: 400, [cF.chemin]: 403 };
+      const cG = dev('cleo-gone'), c404 = dev('cleo-404'), c5 = dev('cleo-500'), cR = dev('cleo-redir'), cS = dev('cleo-silence'), c4 = dev('cleo-400'), cF = dev('cleo-403');
+      const STATUTS = { [cG.chemin]: 410, [c404.chemin]: 404, [c5.chemin]: 500, [cR.chemin]: { redirige: fps.base + '/leak' }, [cS.chemin]: 'silence', [c4.chemin]: 400, [cF.chemin]: 403 };
       fps.statut = (e) => STATUTS[e.chemin] || 201;
-      for (const d of [cG, c5, cR, c4, cF]) await abonner(C, d);
-      v('population : Cléo a six appareils (le sien sain et cinq qui échouent chacun à sa façon)', abosDe(C.moi.id), 6);
+      for (const d of [cG, c404, c5, cR, c4, cF]) await abonner(C, d);
+      v('population : Cléo a sept appareils (le sien sain et six qui échouent chacun à sa façon)', abosDe(C.moi.id), 7);
       /* les lignes de Cléo, de la plus récente à la plus ancienne : cF (403), c4 (400), cR, c5 — le nombre de refus comptés de chacune */
       const refusDe = (rang) => sql('SELECT echecs FROM push WHERE uid = ? ORDER BY id DESC LIMIT 1 OFFSET ?', C.moi.id, rang).echecs;
       const avantOk = (await sante()).push;
       const r1 = await C.post('/api/push/essai', {});
-      v('l\'essai dit combien ont REÇU : un seul sur six', [r1.j.appareils, r1.j.envoyes], [6, 1]);
-      v('⛔ 410 Gone : l\'abonnement est retiré tout de suite (cinq restent)', abosDe(C.moi.id), 5);
+      v('l\'essai dit combien ont REÇU : un seul sur sept', [r1.j.appareils, r1.j.envoyes], [7, 1]);
+      v('⛔ 404 (le service push ne connaît pas cet appareil) et 410 Gone (il n\'existe plus) : les deux abonnements sont retirés tout de suite (cinq restent)', abosDe(C.moi.id), 5);
       const r2 = await C.post('/api/push/essai', {});
       v('deuxième essai, aussitôt : le 400 est compté DEUX fois (le seuil) mais pas encore retiré — une série serrée n\'est pas un abonnement mort ; le 403, le 500 et la redirection ne sont pas comptés du tout',
         [r2.j.appareils, r2.j.envoyes, abosDe(C.moi.id), refusDe(1), [refusDe(0), refusDe(2), refusDe(3)]], [5, 1, 5, 2, [0, 0, 0]]);
@@ -421,8 +421,8 @@ function paireVapid() {
       await T.dort(1700);                                                  // la série du 400 dure maintenant plus que `etalementMs` (1,5 s)
       const r3 = await C.post('/api/push/essai', {});
       v('⛔ troisième essai, plus d\'une seconde et demie après le premier refus : le 400 (DEUX refus de suite sur plus que l\'étalement) est retiré — et SEUL lui (le muet, lui, a attendu son délai)', [r3.j.appareils, abosDe(C.moi.id)], [6, 5]);
-      v('⛔ 500 (panne), redirection, silence (délai) et 403 (nos clés refusées) sont toujours là — ils ne retirent jamais ; le 400 et le 410 sont partis (retirer chacun rend 0)',
-        await Promise.all([c5, cR, cS, cF, c4, cG].map(async d => (await C.post('/api/push/desabonner', { endpoint: d.sub.endpoint })).j.retire)), [1, 1, 1, 1, 0, 0]);
+      v('⛔ 500 (panne), redirection, silence (délai) et 403 (nos clés refusées) sont toujours là — ils ne retirent jamais ; le 400, le 410 et le 404 sont partis (retirer chacun rend 0)',
+        await Promise.all([c5, cR, cS, cF, c4, cG, c404].map(async d => (await C.post('/api/push/desabonner', { endpoint: d.sub.endpoint })).j.retire)), [1, 1, 1, 1, 0, 0, 0]);
       v('⛔ la redirection n\'a JAMAIS été suivie : le faux service n\'a vu aucune requête vers /leak', fps.envois.filter(e => e.chemin === '/leak').length, 0);
       vrai('population : la redirection a bien été répondue (le point d\'accès a été appelé avant)', fps.envois.filter(e => e.chemin === cR.chemin).length >= 3);
       const h = await sante();
