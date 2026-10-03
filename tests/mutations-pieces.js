@@ -53,7 +53,7 @@ m('P12', 'le dépôt n\'exige plus de Content-Length (l\'envoi fractionné passe
 m('P13', 'le maximum n\'est plus jugé AVANT de lire (un corps de 100 Mo annoncé est lu)', F.rp, "if (taille > max) return refus(res, 413, 'piece_trop_lourde', { max });", '', ['943']);
 m('P14', 'le type de la REQUÊTE n\'est plus exigé (octet-stream)', F.rp, "if (!/^application\\/octet-stream\\s*(;|$)/i.test(String(req.headers['content-type'] || ''))) return refus(res, 415, 'type_refuse');", '', ['943']);
 m('P15', 'le lecteur JSON redevient le lecteur du dépôt d\'une pièce', F.app, "(req.method === 'POST' && /^\\/api\\/pieces\\/?$/i.test(req.path)) ? next() : lecteurJson(req, res, next)", 'lecteurJson(req, res, next)', ['943']);
-m('P16', 'le plancher d\'espace disque n\'arrête plus un dépôt', F.rp, "if (ctx.disque.libreMo() - taille / Mo < config.disqueMinMo) return refus(res, 503, 'disque_plein');", '', ['943']);
+m('P16', 'le plancher d\'espace disque n\'arrête plus un dépôt', F.rp, "if (ctx.disque.libreMo() - (octetsAnnonces + taille) / Mo < config.disqueMinMo) return refus(res, 503, 'disque_plein');", '', ['943']);
 m('P17', 'le plafond d\'envois par heure n\'est plus tenu', F.rp, /(const p = quotas\.essai\('piece:' \+ uid[^\n]*\n\s*)if \(!p\.ok\) \{[^\n]*\}/, '$1', ['943']);
 m('P18', 'plus de limite aux envois en même temps', F.rp, 'if (enCours >= pc.simultanes || (parPers.get(uid) || 0) >= pc.parPersonne) return null;', '', ['943']);
 m('P19', 'le quota par personne ne compte plus (la réservation accepte tout)', F.pz, 'if (deja + reserve + octetsDemandes > max) return { ok: false, utilise: deja, max };', '', ['942', '943']);
@@ -143,6 +143,9 @@ m('P68', 'le dépositaire ne lit plus sa photo de profil avant de l\'avoir posé
 /* ── REMARQUE 1 : LA SANDBOX COUVRE TOUT LE PRÉFIXE /api/pieces, REFUS COMPRIS ── */
 m('P69', 'les refus de /api/pieces* répondent avec la politique de la page (la sandbox ne couvre plus que la pièce servie)', F.app, "'Content-Security-Policy': /^\\/api\\/pieces/i.test(req.path) ? CSP_PIECE : CSP_PAGE,", "'Content-Security-Policy': CSP_PAGE,", ['943']);
 m('P70', 'le motif de la sandbox distingue la casse (/API/PIECES/… échappe à la sandbox alors que le routeur répond)', F.app, "'Content-Security-Policy': /^\\/api\\/pieces/i.test(req.path) ? CSP_PIECE : CSP_PAGE,", "'Content-Security-Policy': /^\\/api\\/pieces/.test(req.path) ? CSP_PIECE : CSP_PAGE,", ['943']);
+/* ── REMARQUE 3 : LE PLANCHER DE DISQUE SOUSTRAIT LES DÉPÔTS EN COURS ── */
+m('P71', 'le plancher de disque ne regarde que le dépôt qui arrive (seize dépôts qui tiennent chacun vident le disque ensemble)', F.rp, 'if (ctx.disque.libreMo() - (octetsAnnonces + taille) / Mo < config.disqueMinMo)', 'if (ctx.disque.libreMo() - taille / Mo < config.disqueMinMo)', ['943']);
+m('P72', 'un dépôt fini ou abandonné ne rend pas ses octets annoncés (le plancher se bouche petit à petit, jusqu\'au redémarrage)', F.rp, 'sorti = true; enCours--; octetsAnnonces -= taille;', 'sorti = true; enCours--;', ['943']);
 m('K18', 'l\'appareil remet le nom du fichier dans l\'adresse du dépôt', F.api, "rq({ conv: x.conv, genre: x.genre })", "rq({ conv: x.conv, genre: x.genre, nom: x.nom })", ['944']);
 m('K19', 'l\'appareil n\'envoie plus le nom du fichier du tout', F.api, "        if (x.nom !== undefined && x.nom !== null) h['X-OPM-Nom'] = encodeURIComponent(String(x.nom));\n", '', ['944']);
 
