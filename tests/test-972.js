@@ -356,6 +356,36 @@ console.log('\nLes rappels : le registre fait qu\'un rappel ne part qu\'UNE fois
     void f;
     T2.fermer();
   }
+  {
+    /* ⛔ LE LOT D'UNE RÉUNION : tous ses rappels dans UNE transaction (un COMMIT, un fsync), tout ou rien — `test-974` joue le tour qui s'en sert */
+    const b = atelier(), T2 = b.S, brut2 = b.brut();
+    const x = reunion(b, { invites: [b.ben.id, b.dan.id] });
+    const item = (uid, avant) => ({ reunion: x.id, occurrence: DEBUT, uid, avants: [avant], titre: 'Point', texte: 'Dans 15 minutes.', cible: x.id });
+    const nn = (uid) => compte(brut2, `SELECT COUNT(*) AS n FROM notification WHERE uid = ? AND type = 'reunion_rappel'`, uid);
+    const lot = T2.rappelsEnvoyer([item(b.ben.id, 15), item(b.dan.id, 15), item(b.ben.id, 15), item(b.ana.id, 15)]);
+    v('⛔ un lot rend, dans son ordre, la notification de chacun — ou null pour un rappel déjà parti (ici Ben deux fois dans le MÊME lot : une seule notification)', [lot.map(r => r === null ? null : typeof r.id), nn(b.ben.id), nn(b.dan.id), nn(b.ana.id)], [['string', 'string', null, 'string'], 1, 1, 1]);
+    v('le registre d\'une réunion se lit en UNE requête : l\'ensemble « occurrence|personne|minutes » (population : trois lignes ; une réunion inconnue n\'en a aucune)', [Array.from(T2.rappelsEnvoyesDe(x.id)).sort(), T2.rappelsEnvoyesDe('r_inconnue').size], [[DEBUT + '|' + b.ana.id + '|15', DEBUT + '|' + b.ben.id + '|15', DEBUT + '|' + b.dan.id + '|15'].sort(), 0]);
+    const avant = [compte(brut2, 'SELECT COUNT(*) AS n FROM rappel'), nn(b.ben.id)];
+    let faute = null; try { T2.rappelsEnvoyer([item(b.ben.id, 60), item('p_inexistante', 60)]); } catch (e) { faute = String(e.code || e.message).slice(0, 40); }
+    v('⛔ TOUT OU RIEN : un lot dont le dernier rappel échoue (une personne qui n\'existe pas) défait aussi le premier — ni ligne au registre, ni notification', [faute !== null, compte(brut2, 'SELECT COUNT(*) AS n FROM rappel') - avant[0], nn(b.ben.id) - avant[1]], [true, 0, 0]);
+    brut2.close();
+    T2.fermer();
+  }
+  {
+    /* ⛔ LA LISTE PAR TRANCHES : la clé de reprise (prochain, id) est EXCLUE, la borne basse aussi, la haute est incluse ; les annulées et les finies n'y sont pas */
+    const b = atelier(), T2 = b.S;
+    const prochains = [DEBUT, DEBUT, DEBUT + MIN, DEBUT + 2 * MIN, DEBUT + 3 * MIN];
+    const rs = prochains.map(p => reunion(b, { prochain: p }));
+    T2.reunionAnnuler({ id: rs[4].id, par: b.ana.id });
+    const attendu = rs.slice(0, 4).map((r, i) => ({ id: r.id, prochain: prochains[i] })).sort((p, q) => p.prochain - q.prochain || (p.id < q.id ? -1 : 1));
+    const tout = T2.reunionsARappelerDe({ avant: DEBUT + 10 * MIN, limite: 100 });
+    v('population : quatre réunions à voir, une annulée ; dans l\'ordre (prochain, id) — deux ont le MÊME prochain, l\'identifiant les départage', [tout, attendu.length], [attendu, 4]);
+    v('⛔ `limite` coupe la tranche, et la CLÉ de reprise repart juste après : la première tranche de 2 puis la suite, sans trou ni doublon — y compris entre deux réunions de même `prochain`',
+      [T2.reunionsARappelerDe({ avant: DEBUT + 10 * MIN, limite: 2 }), T2.reunionsARappelerDe({ avant: DEBUT + 10 * MIN, apres: attendu[1], limite: 100 }), T2.reunionsARappelerDe({ avant: DEBUT + 10 * MIN, apres: attendu[0], limite: 1 }), T2.reunionsARappelerDe({ avant: DEBUT + 10 * MIN, apres: attendu[3], limite: 5 })],
+      [attendu.slice(0, 2), attendu.slice(2), [attendu[1]], []]);
+    v('la borne basse (`depuis`) est exclue, la haute (`avant`) incluse — l\'urgente et la lointaine ne se mélangent pas', [T2.reunionsARappelerDe({ avant: DEBUT + 10 * MIN, depuis: DEBUT, limite: 100 }).map(r => r.prochain), T2.reunionsARappelerDe({ avant: DEBUT + MIN, limite: 100 }).map(r => r.prochain)], [[DEBUT + MIN, DEBUT + 2 * MIN], [DEBUT, DEBUT, DEBUT + MIN]]);
+    T2.fermer();
+  }
   S.fermer();
 }
 

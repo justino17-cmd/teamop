@@ -44,8 +44,10 @@
  *                                (`sk_…`) est refusée. `prix` : la LISTE BLANCHE des tarifs vendus (un identifiant `price_…` par rythme, au moins un) — le corps d'une requête ne
  *                                choisit jamais un tarif. `affichage` : les euros par place que la page DIT (le montant réel est celui de Stripe). Sans `cle`, la facturation est
  *                                INERTE et le dit. La clé s'écrit par `configurer-stripe.js` (saisie masquée), jamais à la main.
- *   reunions      {planificateurMs, bailMs}   Les réunions programmées : le rythme du planificateur de rappels (12 s ; EN PRODUCTION entre 10 et 15 s, les bancs et la bêta peuvent le presser
- *                                jusqu'à 50 ms) et la durée de son bail (60 s ; au moins deux tours : un arrêt brutal le laisse expirer, il ne bloque personne).
+ *   reunions      {planificateurMs, bailMs, rappelsParTour, tourMaxMs, urgentesMax}   Les réunions programmées : le rythme du planificateur de rappels (12 s ; EN PRODUCTION entre 10 et 15 s, les bancs
+ *                                et la bêta peuvent le presser jusqu'à 50 ms) et la durée de son bail (60 s ; au moins deux tours : un arrêt brutal le laisse expirer, il ne bloque personne). Le BUDGET d'un tour :
+ *                                `rappelsParTour` (2000 rappels envoyés, à une réunion près), `tourMaxMs` (1000 ms de temps réel : passé ce délai le tour s'arrête après la réunion en cours) et
+ *                                `urgentesMax` (2000 réunions urgentes regardées) — ce qui reste attend le tour suivant, qui vient vite : un tour ne gèle jamais le service.
  *   courriel      {hote, port, securite, utilisateur, mot_de_passe, de, nom, timeoutMs}   L'envoi des invitations aux réunions par courriel (un fichier .ics joint). SANS `hote`, INERTE et le dit.
  *                                `securite` : starttls (défaut, port 587), ssl (465) ou aucune (relais local seulement en production). `de` : l'adresse d'expédition. Le mot de passe s'écrit par
  *                                `configurer-courriel.js` (saisie masquée), jamais à la main ni affiché.
@@ -257,14 +259,16 @@ function facturationConfig(cfg, env, instance) {
 
 /* ⛔ LES RÉUNIONS PROGRAMMÉES : le rythme du planificateur de rappels et la durée de son bail. EN PRODUCTION le planificateur passe toutes les 10 à 15 secondes — jamais plus vite (un
    réglage de banc qui s'y glisserait martèlerait la base) ni plus lentement (un rappel « 5 minutes avant » qui part avec une minute de retard n'en est plus un). La bêta et les bancs peuvent
-   le presser (50 ms) ou l'endormir. Le bail doit durer au moins DEUX tours : un bail qui expire entre deux renouvellements laisserait une autre instance le prendre à chaque fois. */
+   le presser (50 ms) ou l'endormir. Le bail doit durer au moins DEUX tours : un bail qui expire entre deux renouvellements laisserait une autre instance le prendre à chaque fois.
+   ⛔ Le BUDGET d'un tour (`rappelsParTour`, `tourMaxMs`, `urgentesMax`) borne ce qu'UN tour fait avant de rendre la main : le planificateur est synchrone, un tour de trente secondes est un service
+   qui ne répond plus pendant trente secondes. Au-delà de cinq secondes de temps réel le réglage serait lui-même le gel qu'il est censé empêcher : refusé. */
 function reunionsConfig(cfg, instance) {
   const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };
   const brut = cfg.reunions === undefined ? {} : cfg.reunions;
   if (!brut || typeof brut !== 'object' || Array.isArray(brut)) throw err('reunions doit être un objet');
   const prod = instance === 'prod';
-  const o = { planificateurMs: 12000, bailMs: 60000 };
-  const bornes = { planificateurMs: prod ? [10000, 15000] : [50, 300000], bailMs: [200, 600000] };
+  const o = { planificateurMs: 12000, bailMs: 60000, rappelsParTour: 2000, tourMaxMs: 1000, urgentesMax: 2000 };
+  const bornes = { planificateurMs: prod ? [10000, 15000] : [50, 300000], bailMs: [200, 600000], rappelsParTour: [1, 100000], tourMaxMs: [10, 5000], urgentesMax: [1, 100000] };
   for (const [k, [min, max]] of Object.entries(bornes)) {
     if (brut[k] === undefined) continue;
     if (!Number.isInteger(brut[k]) || brut[k] < min || brut[k] > max) throw err('reunions.' + k + ' doit être un entier entre ' + min + ' et ' + max + (prod && k === 'planificateurMs' ? ' en production (un rappel part avec dix à quinze secondes de retard au plus)' : ''));

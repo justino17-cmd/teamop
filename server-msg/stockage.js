@@ -2087,6 +2087,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function reunionsARappeler(avant, limite = 200) {
     return Q('SELECT id FROM reunion WHERE annulee = 0 AND prochain IS NOT NULL AND prochain <= ? ORDER BY prochain, id LIMIT ?').all(avant, Math.max(1, limite | 0)).map(r => r.id);
   }
+  /* ⛔ La même liste, PAR TRANCHES : celles qui commencent dans ]depuis, avant], dans l'ordre (prochain, id), à partir de la clé `apres` ({ prochain, id }, exclue) — la CLÉ de reprise d'un tour que son budget a coupé.
+     Une clé et non un rang : entre deux tours des réunions sortent de la liste (leur prochaine occurrence a changé) et un rang glisserait, faisant sauter celles qui étaient juste derrière. → [{ id, prochain }] */
+  function reunionsARappelerDe({ avant, depuis = -1, apres = null, limite = 200 }) {
+    const a = apres || { prochain: -1, id: '' };
+    return Q(`SELECT id, prochain FROM reunion WHERE annulee = 0 AND prochain IS NOT NULL AND prochain <= ? AND prochain > ? AND (prochain > ? OR (prochain = ? AND id > ?)) ORDER BY prochain, id LIMIT ?`)
+      .all(avant, depuis, a.prochain, a.prochain, a.id, Math.max(1, limite | 0)).map(r => ({ id: r.id, prochain: num(r.prochain) }));
+  }
   /* Une réunion et ses participants qui n'ont pas décliné (et dont le compte est vivant), pour juger les rappels. */
   function reunionPlanif(id) {
     const r = reunionBrute(id); if (!r) return null;
@@ -2110,7 +2117,17 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       return notifCreer({ uid, type: 'reunion_rappel', titre, texte, cible });
     });
   }
+  /* ⛔ TOUS LES RAPPELS D'UNE RÉUNION, DANS UNE SEULE TRANSACTION : un COMMIT (donc un fsync, la base est en `synchronous=FULL`) par RÉUNION et non par rappel. Trois cents réunions de cent personnes,
+     c'était trente mille COMMIT dans un seul tour de planificateur — trente-quatre secondes pendant lesquelles le service ne répondait plus. Le tout ou rien tient pour la réunion : un échec
+     défait ses rappels ET leurs lignes au registre, le tour suivant les reprend. → un tableau, dans l'ordre du lot : la notification créée, ou null si ce rappel était déjà parti. */
+  function rappelsEnvoyer(lot) { return tx(() => lot.map(x => rappelEnvoyer(x))); }
   const rappelDejaEnvoye = (reunion, occurrence, uid, avant) => !!Q('SELECT 1 AS x FROM rappel WHERE reunion = ? AND occurrence = ? AND uid = ? AND avant = ?').get(reunion, occurrence, uid, avant);
+  /* Le registre d'UNE réunion en une lecture (au lieu de quatre par personne et par occurrence) : l'ensemble des clés « occurrence|personne|minutes ». */
+  function rappelsEnvoyesDe(reunion) {
+    const s = new Set();
+    for (const r of Q('SELECT occurrence, uid, avant FROM rappel WHERE reunion = ?').all(reunion)) s.add(num(r.occurrence) + '|' + r.uid + '|' + num(r.avant));
+    return s;
+  }
   /* Le registre ne grossit pas : un rappel d'une occurrence passée depuis plus de `avant` n'a plus rien à empêcher. */
   function rappelsElaguer(avant) { return num(Q('DELETE FROM rappel WHERE occurrence < ?').run(avant).changes); }
   /* La charge qui part en push pour un rappel ou une notification de réunion est re-jugée à l'instant de partir : la réunion existe, la personne y est, elle n'est pas annulée, et — pour un rappel — l'occurrence n'a pas commencé. */
@@ -2660,7 +2677,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     pushDestinatairesMessage, pushMessageEncore, autreSupprime,
     suppressionProgrammer, suppressionAnnuler, suppressionLe, comptesEchus, compteEffacer, exportProfil, exportConversationsIds, exportPieces,
     reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionRepondre, reunionRappelsPoser,   // les réunions programmées
-    bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelDejaEnvoye, rappelsElaguer, reunionEncore,                             // …et le planificateur
+    bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
     courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions,                                                                                                                  // …et le courriel d'invitation
   };
 }
