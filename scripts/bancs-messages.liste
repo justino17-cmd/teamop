@@ -90,3 +90,6 @@ tests/test-962.js
 tests/test-963.js
 tests/test-964.js
 tests/test-965.js
+#
+# ── Les réunions programmées (étape 6, 3 octobre 2026) : le calendrier (970) ──
+tests/test-970.js
