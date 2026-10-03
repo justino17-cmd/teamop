@@ -561,7 +561,13 @@
             emettre({ type: 'avis', texte: sujet + ' n\'a pas pu être ' + accord + ' : ' + (e && e.dit ? (e.phrase ? e.phrase() : e.message) : 'erreur inattendue.') });
           }
         }
-      } finally { viderEnCours = false; }
+      } finally {
+        viderEnCours = false;
+        /* ⛔ UN « RÉESSAYER » TOUCHÉ PENDANT UN PASSAGE NE RESTE PAS SANS LENDEMAIN : le passage en cours avait déjà dépassé la pièce (il l'avait sautée, en échec) et `viderFile` rendait la main (« déjà en
+           cours ») — le passage finissait sans plus rien programmer, et la pièce restait « en attente » pour toujours. Une pièce qui attend sans que rien ne soit prévu pour elle redonne rendez-vous ici.
+           (Sans effet quand un rendez-vous existe déjà : `planifierFile` ne double jamais la minuterie.) */
+        if (!mort && file.some(x => !x.echec && !x.enVol)) planifierFile(0);
+      }
     }
     /* Un message de pièces. Les refus qu'on peut juger ICI (rien à envoyer, trop lourd) tombent avant tout dépôt ; un refus du service rejette (la page le DIT et libère ses adresses) ;
        une coupure met le message dans la file (« En attente de connexion… »), où il repart avec le même `cid`. */

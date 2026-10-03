@@ -411,6 +411,25 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
       } finally { Z.src.arreter(); try { Z.reseau.coupe = false; await Z.src.deconnexion(); } catch (e) { /* déjà partie */ } }      // sa session ne doit pas survivre : « déconnecter les autres appareils » en compte une
     }
 
+    {
+      /* ⛔ « Réessayer » touché PENDANT un passage de la file : le passage avait déjà dépassé la pièce (en échec, sautée) et `viderFile` rendait la main (« déjà en cours ») — la pièce restait « en attente » pour toujours */
+      const gR = (await A.src.creerGroupe({ nom: 'Réessayer en plein passage', membres: [mb.id] })).id;
+      await att(async () => !!(await B.src.lister()).find(c => c.id === gR)); await vues(A, gR);
+      A.reseau.forcer = { re: /^POST \/api\/pieces$/, code: 429, corps: JSON.stringify({ error: 'quota_atteint', retry: 5 }), entetes: { 'Content-Type': 'application/json', 'Retry-After': '5' }, fois: 1 };
+      const l1 = creerLocale(A, F.png({ couleur: [11, 22, 200] })), l2 = creerLocale(A, F.png({ couleur: [200, 22, 11] }));
+      const r1 = await A.src.envoyer(gR, { photos: [{ blob: l1.blob, url: l1.url, w: 8, h: 8 }] });                 // 429 : en échec
+      A.reseau.coupe = true;
+      const r2 = await A.src.envoyer(gR, { photos: [{ blob: l2.blob, url: l2.url, w: 8, h: 8 }] });                 // réseau coupé : elle attend la connexion
+      vrai('population : la première photo est en échec, la seconde attend la connexion (deux pièces dans la file)', !!r1.echec && r2.attente === true && !r2.echec && A.src.enAttente() === 2);
+      const liberer = A.retenir(/^POST \/api\/pieces$/);
+      const n0 = A.nb(/^POST \/api\/pieces$/);
+      A.reseau.coupe = false;
+      vrai('population : la seconde photo est EN VOL, retenue (un passage de la file est en cours, et il a déjà dépassé la première)', !!(await att(() => A.nb(/^POST \/api\/pieces$/) > n0, 5000)));
+      vrai('« Réessayer » touché PENDANT ce passage', A.src.reessayer(r1.cid) === true);
+      liberer();
+      vrai('⛔ la première photo part QUAND MÊME (le passage en cours ne la reverra pas : la source redonne rendez-vous à sa fin) — la file est vide et Bruno reçoit les deux', !!(await att(() => A.src.enAttente() === 0, 10000)) && !!(await att(async () => (await vues(B, gR)).filter(m => m.photos).length === 2, 5000)));
+    }
+
     /* ═══ 6. LA MÉMOIRE DES PIÈCES ═══════════════════════════════════════════════════════════════════════════════════════════════ */
     console.log('\nLa mémoire : 30 photos lues d\'avance, le reste au toucher ; bornée ; libérée par un message effacé et par l\'arrêt');
     {
