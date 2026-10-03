@@ -54,8 +54,8 @@ const horlogeFixe = (h) => () => h.t;
     v('   même empreinte', crypto.createHash('sha256').update(fs.readFileSync(a)).digest('hex') === crypto.createHash('sha256').update(fs.readFileSync(b)).digest('hex'), true);
     const m = require(b);
     v('   et il exporte bien ce que le module de sauvegarde utilise (client, signer, uriEncode, sha256hex)', ['client', 'signer', 'uriEncode', 'sha256hex'].map(k => typeof m[k]), ['function', 'function', 'function', 'function']);
-    const src = code(path.join(SM, 'sauvegarde.js'));
-    vrai('   le module de sauvegarde le charge depuis ./lib/s3 (pas depuis server/)', /require\('\.\/lib\/s3'\)/.test(src) && !/\.\.\/server|server\//.test(src));
+    const src = code(path.join(SM, 'sauvegarde.js')), srcCoffre = code(path.join(SM, 'coffre.js'));
+    vrai('   le transport du coffre (`coffre.js`) charge le client depuis ./lib/s3, le module de sauvegarde passe par `./coffre` — rien ne vient de server/', /require\('\.\/lib\/s3'\)/.test(srcCoffre) && /require\('\.\/coffre'\)/.test(src) && !/\.\.\/server|server\//.test(src + srcCoffre));
   }
 
   /* ══ 2. LA CONFIGURATION ═══════════════════════════════════════════════════════════════════════════════════════════════════ */
@@ -1225,6 +1225,103 @@ const horlogeFixe = (h) => () => h.t;
     vrai('   chaque motif est un mot machine court (jamais une phrase, un chemin, un nom)', m.evts.every(([, c]) => c.motif === undefined || /^[a-z0-9-]{0,40}$/.test(c.motif)));
     v('   les évènements ne portent que le nom « sauvegarde »', [...new Set(m.evts.map(([e]) => e))], ['sauvegarde']);
     await m.coffre.fermer(); m.b.nettoyer();
+  }
+
+  /* ══ 15 bis. LA MÉMOIRE D'UNE GROSSE ARCHIVE EST BORNÉE — l'envoi et la lecture gardent la contre-pression ═══════════════════════════════
+     Le 3 octobre 2026 (gardien A4) : une base de 300 Mo faisait monter le service à 328 Mo de mémoire anonyme pendant l'envoi, 700 Mo à 827, contre
+     `MemoryMax=1G`. Cause établie en isolant le client dans un processus à part, devant un serveur qui ne garde rien : `fetch` tient le corps
+     entier avant de l'envoyer (ni `Readable.toWeb`, ni un générateur, ni un `ReadableStream` tiré à la main n'y changent rien). `coffre.js` envoie
+     par `node:http` et `pipeline`. Le banc mesure la mémoire ANONYME d'un processus client (`/proc/self/status`, `RssAnon`) — celle du coffre de
+     banc, qui garde tout pour recalculer l'empreinte, est dans l'autre processus. */
+  console.log('\n── 950 · une grosse archive ne tient JAMAIS en mémoire : l\'envoi et la lecture gardent la contre-pression ──');
+  {
+    const COFFRE_MOD = path.join(SM, 'coffre.js');
+    const bac = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-950-memoire-'));
+    const coffre = await O.coffreFaux();
+    try {
+      const MO = 160;
+      const fichier = path.join(bac, 'grosse.bin');
+      { const b = crypto.randomBytes(1 << 20); const fd = fs.openSync(fichier, 'w'); for (let i = 0; i < MO; i++) fs.writeSync(fd, b); fs.closeSync(fd); }
+      const h = await SAUV.empreinteFichier(fichier);
+      if (!fs.existsSync('/proc/self/status')) console.log('  (sauté : /proc absent — la mémoire d\'un processus n\'est pas mesurable ici)');
+      else {
+        const script = `
+          const fs = require('fs');
+          const C = require(process.env.COFFRE_MOD);
+          const anon = () => { const m = /RssAnon:\\s+(\\d+)/.exec(fs.readFileSync('/proc/self/status', 'utf8')); return m ? Math.round(parseInt(m[1], 10) / 1024) : -1; };
+          const base = anon(); let pic = base;
+          const t = setInterval(() => { pic = Math.max(pic, anon()); }, 10);
+          (async () => {
+            const c = C.client(JSON.parse(process.env.CONF));
+            const p = await c.poserCleFlux('beta/base/grosse.msgbak', process.env.FICHIER, +process.env.OCTETS, process.env.EMPREINTE);
+            const picPut = pic - base;
+            const l = await c.lireCleVers('beta/base/grosse.msgbak', process.env.FICHIER + '.relu');
+            clearInterval(t);
+            console.log(JSON.stringify({ p: p.ok, l: l.ok, octets: l.octets, empreinte: l.empreinte, base, picPut, picTotal: pic - base }));
+          })();`;
+        const sortie = await new Promise((resolve) => {
+          const p = require('child_process').spawn(process.execPath, ['-e', script], { env: Object.assign({}, process.env, { COFFRE_MOD, CONF: JSON.stringify(coffre.conf()), FICHIER: fichier, OCTETS: String(h.octets), EMPREINTE: h.hex }), stdio: ['ignore', 'pipe', 'pipe'] });
+          let o = ''; p.stdout.on('data', d => { o += d; }); p.stderr.on('data', d => { o += d; });
+          const t = setTimeout(() => { try { p.kill('SIGKILL'); } catch (e) { /* déjà parti */ } }, 120000);
+          p.on('close', () => { clearTimeout(t); resolve(o); });
+        });
+        let m = null; try { m = JSON.parse(sortie.trim().split('\n').pop()); } catch (e) { m = null; }
+        vrai('population : le processus client a tourné jusqu\'au bout — ' + MO + ' Mo envoyés puis relus, empreinte identique (' + (m ? 'départ ' + m.base + ' Mo, pic à l\'envoi +' + m.picPut + ' Mo, pic total +' + m.picTotal + ' Mo' : 'sortie illisible : ' + sortie.slice(0, 120)) + ')',
+          !!m && m.p === true && m.l === true && m.octets === h.octets && m.empreinte === h.hex && m.base > 0);
+        v('⛔ l\'ENVOI de ' + MO + ' Mo ne fait pas monter le client de plus de la MOITIÉ du fichier (avant : ≈ ' + MO + ' Mo, tout le fichier — `fetch` tient le corps entier)', !!m && m.picPut < MO / 2, true);
+        v('⛔ ni l\'envoi puis la LECTURE de la même archive (le pic de tout le cycle)', !!m && m.picTotal < MO / 2, true);
+      }
+      fs.rmSync(fichier + '.relu', { force: true });
+    } finally { await coffre.fermer(); fs.rmSync(bac, { recursive: true, force: true }); }
+  }
+
+  /* ══ 15 ter. LE TRANSPORT DU COFFRE : les statuts, la coupure, et le coffre MUET ═════════════════════════════════════════════════════════════
+     Un coffre qui n'avance plus depuis trois minutes est en panne, pas lent : le client d'origine attendait jusqu'à UNE HEURE (envoi) ou une heure
+     (lecture), la sauvegarde en cours, sans rien dire. `coffre.js` coupe sur le silence de la ligne, pas sur la durée totale. */
+  console.log('\n── 950 · le transport du coffre : statuts rendus comme le client d\'origine, coffre muet coupé au silence ──');
+  {
+    const COFFRE = require(path.join(SM, 'coffre.js'));
+    const bac = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-950-transport-'));
+    const coffre = await O.coffreFaux();
+    const originel = require(path.join(SM, 'lib', 's3.js')).client(coffre.conf());
+    const mien = COFFRE.client(coffre.conf());
+    try {
+      const f = path.join(bac, 'petite.bin'); const contenu = crypto.randomBytes(5000); fs.writeFileSync(f, contenu);
+      const h = crypto.createHash('sha256').update(contenu).digest('hex');
+      const enSilence = (f2) => { const e = console.error; console.error = () => {}; return f2().finally(() => { console.error = e; }); };   // les deux clients écrivent « objet non posé : HTTP 500 » : c'est le comportement, pas le sujet
+      const p0 = await mien.poserCleFlux('beta/base/a.msgbak', f, contenu.length, h);
+      v('un dépôt réussi rend { ok:true, octets } comme le client d\'origine, et le coffre l\'a reçu SIGNÉ JUSTE et dont l\'empreinte est la bonne', [p0, coffre.objets.get('beta/base/a.msgbak').equals(contenu), coffre.etat.signaturesFausses, coffre.etat.empreintesFausses], [{ ok: true, octets: 5000 }, true, 0, 0]);
+      const g = await mien.lireCleVers('beta/base/a.msgbak', path.join(bac, 'relu.bin'));
+      v('   et se relit : { ok:true, octets, empreinte } — la même que celle du client d\'origine', [g.ok, g.octets, g.empreinte === h, (await originel.lireCleVers('beta/base/a.msgbak', path.join(bac, 'relu2.bin'))).empreinte === g.empreinte, fs.readFileSync(path.join(bac, 'relu.bin')).equals(contenu)], [true, 5000, true, true, true]);
+      const a404 = await mien.lireCleVers('beta/base/absente.msgbak', path.join(bac, 'x.bin'));
+      v('une clé absente : { ok:false, absente:true }, et aucun fichier partiel ne reste', [a404, fs.existsSync(path.join(bac, 'x.bin'))], [{ ok: false, absente: true }, false]);
+      coffre.regler('refus-depot');
+      const r500 = await enSilence(() => mien.poserCleFlux('beta/base/b.msgbak', f, contenu.length, h));
+      coffre.regler('lecture-refusee');
+      const r403 = await enSilence(() => mien.lireCleVers('beta/base/a.msgbak', path.join(bac, 'y.bin')));
+      coffre.normal();
+      v('un dépôt refusé (500) → { ok:false, statut:500 } ; une lecture refusée (403) → { ok:false, statut:403 }, sans fichier partiel', [r500, r403, fs.existsSync(path.join(bac, 'y.bin'))], [{ ok: false, statut: 500 }, { ok: false, statut: 403 }, false]);
+      coffre.regler('coupure-depot');
+      const coupe = await enSilence(() => mien.poserCleFlux('beta/base/c.msgbak', f, contenu.length, h));
+      coffre.normal();
+      v('⛔ une connexion COUPÉE en plein dépôt → { ok:false, statut:0 } (la passe en tire « depot-0 » et retire ce que le coffre aurait gardé)', coupe, { ok: false, statut: 0 });
+      const mauvaiseTaille = await enSilence(() => mien.poserCleFlux('beta/base/d.msgbak', f, contenu.length, h.replace(/.$/, h.endsWith('0') ? '1' : '0')));
+      v('une empreinte fausse : le coffre la refuse (400), le client rend le statut', [mauvaiseTaille.ok, mauvaiseTaille.statut], [false, 400]);
+      const absent = await enSilence(() => mien.poserCleFlux('beta/base/e.msgbak', path.join(bac, 'nexiste-pas.bin'), 10, h));
+      v('un fichier local absent → { ok:false, statut:0 }, sans lever', absent, { ok: false, statut: 0 });
+
+      /* Le coffre MUET : il accepte la ligne et ne répond jamais. Avec un silence toléré de 300 ms, le client rend la main aussitôt. */
+      const bref = COFFRE.client(coffre.conf(), { muetMs: 300 });
+      coffre.regler('muet');
+      const t0 = Date.now();
+      const borne = (p, ms) => Promise.race([p, new Promise(r => setTimeout(() => r({ borne: true }), ms))]);   // un client qui ne coupe pas le silence ne doit pas figer le banc : il tombe
+      const [mutDepot, mutLecture] = await enSilence(() => Promise.all([borne(bref.poserCleFlux('beta/base/f.msgbak', f, contenu.length, h), 10000), borne(bref.lireCleVers('beta/base/a.msgbak', path.join(bac, 'z.bin')), 10000)]));
+      const ecoule = Date.now() - t0;
+      coffre.normal();
+      v('⛔ un coffre MUET (la ligne reste ouverte, rien ne répond) : dépôt et lecture rendent { ok:false, statut:0 } au silence toléré, pas au bout d\'une heure', [mutDepot, mutLecture, ecoule < 5000, fs.existsSync(path.join(bac, 'z.bin'))], [{ ok: false, statut: 0 }, { ok: false, statut: 0 }, true, false]);
+      v('   et la valeur par défaut du silence toléré est de trois minutes (assez pour qu\'un coffre qui vérifie 300 Mo réponde, trop peu pour une heure)', COFFRE.MUET_MS, 180000);
+      void originel;
+    } finally { await coffre.fermer(); fs.rmSync(bac, { recursive: true, force: true }); }
   }
 
   /* ══ 16. LES GARDES DE CODE — le texte est lu SANS ses commentaires ═══════════════════════════════════════════════════════════ */

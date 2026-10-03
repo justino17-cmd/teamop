@@ -42,7 +42,7 @@
 const fs = require('fs'), path = require('path'), os = require('os'), crypto = require('crypto');
 const { demander, fermer, AU_CLAVIER } = require('./saisie');
 const SAUV = require('./sauvegarde');
-const s3mod = require('./lib/s3');
+const COFFRE = require('./coffre');
 
 const CONFIG_PATH = process.env.OPMSG_CONFIG;
 const ARGS = process.argv.slice(2);
@@ -89,7 +89,7 @@ async function verifier({ instance, avant, kek }) {
 
 /* ══ l'épreuve du coffre : dépôt, relecture, liste, effacement — sous le VRAI préfixe, avant d'écrire quoi que ce soit ═════════════ */
 async function eprouverCoffre(valide) {
-  const client = s3mod.client(valide.coffre);
+  const client = COFFRE.client(valide.coffre);
   if (!client) echec('le coffre est incomplet (adresse, bucket, clé d\'accès et clé secrète sont tous nécessaires).');
   const cle = valide.prefixe + 'essai-configuration-' + crypto.randomBytes(6).toString('hex') + '.tmp';
   const dossier = fs.mkdtempSync(path.join(os.tmpdir(), 'opmsg-config-'));

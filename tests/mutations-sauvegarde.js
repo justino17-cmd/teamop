@@ -25,7 +25,7 @@ const RACINE = path.join(__dirname, '..');
 const NB_COPIES = 2, DELAI_MS = 300000;
 const F = {
   sauv: 'server-msg/sauvegarde.js', stock: 'server-msg/stockage.js', rest: 'server-msg/outils/restaurer.js', conf: 'server-msg/configurer-sauvegarde.js',
-  saisie: 'server-msg/saisie.js', index: 'server-msg/index.js', cfg: 'server-msg/config.js', s3: 'server-msg/lib/s3.js', surv: '.github/scripts/surveillance-messages.js',
+  saisie: 'server-msg/saisie.js', index: 'server-msg/index.js', cfg: 'server-msg/config.js', s3: 'server-msg/lib/s3.js', coffre: 'server-msg/coffre.js', surv: '.github/scripts/surveillance-messages.js',
 };
 /* [id, nom, fichier, [[ancien, nouveau], …], suites visées (dans l'ordre : on s'arrête à la première qui tombe)] */
 const MUTATIONS = [
@@ -84,6 +84,11 @@ const MUTATIONS = [
   ['S24', 'le préfixe de l\'AUTRE instance est accepté (la bêta écrirait — et effacerait — chez la production)', F.sauv,
     [["if (prefixe === autre + '/' || prefixe.startsWith(autre + '/')) throw refuse(", 'if (false) throw refuse(']], ['950', '951']],
   ['S25', 'une clé « 0000… » est acceptée comme clé de sauvegarde', F.sauv, [["if (new Set(String(c.cle).toLowerCase()).size < 8) throw refuse(", 'if (false) throw refuse(']], ['950', '951']],
+  ['S30', 'l\'ENVOI repasse par le `fetch` du client d\'origine : l\'archive entière tient en mémoire (A4 — 300 Mo d\'archive, 328 Mo de service)', F.coffre,
+    [["    poserCleFlux: (cle, chemin, octets, empreinteHex, tempsMax) => poserFichier(conf, cle, chemin, octets, empreinteHex, tempsMax, muetMs),\n", "    poserCleFlux: base.poserCleFlux,\n"]], ['950']],
+  ['S31', 'la LECTURE ne coupe plus un coffre muet (jusqu\'à une heure d\'attente, la sauvegarde en cours)', F.coffre,
+    [["      req.setTimeout(muetMs, () => echec({ ok: false, statut: 0 }, 'le coffre ne répond plus'));\n", '']], ['950']],
+  ['S32', 'l\'ENVOI ne coupe plus un coffre muet', F.coffre, [["      req.setTimeout(muetMs, () => echec(0, 'le coffre ne répond plus'));\n", '']], ['950']],
   ['S27', 'le client S3 n\'est plus la copie exacte de celui d\'OP GESTION', F.s3, [["const region = conf.region || 'eu-central-4';", "const region = conf.region || 'eu-central-5';"]], ['950']],
 
   /* ── Le stockage : l'instantané et le rejeu des purges ── */

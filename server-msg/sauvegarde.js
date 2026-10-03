@@ -3,7 +3,9 @@
  * Étape 3 de `design/opmessages/SERVEUR.md`. Imité de `server/sauvegarde.js` (OP GESTION), JAMAIS importé : les deux services se
  * séparent (décision de Justin, 22 septembre et 1er octobre 2026), et ce qui a coûté cher à l'un sert de leçon à l'autre sans
  * partager une ligne à l'exécution. Le client S3 est la COPIE de celui d'OP GESTION (`lib/s3.js`, identique octet pour octet :
- * `tests/test-950.js` l'exige) ; le reste est écrit pour une base SQLite plutôt que pour un dossier de fichiers.
+ * `tests/test-950.js` l'exige) — sauf l'envoi et la lecture d'un FICHIER, qui passent par `coffre.js` : le `fetch` du client d'origine tient le
+ * corps entier en mémoire (300 Mo d'archive, 328 Mo de service), ce que `MemoryMax=1G` ne pardonne pas. Le reste est écrit pour une base SQLite
+ * plutôt que pour un dossier de fichiers.
  *
  * ⛔ CE QUE CE MODULE FAIT, TOUTES LES HEURES :
  *   1. un INSTANTANÉ cohérent de `msg.db` (`stockage.instantane` : l'API de sauvegarde de SQLite, par petits pas — le service
@@ -41,7 +43,7 @@ const fs = require('fs'), path = require('path'), crypto = require('crypto'), zl
 const { pipeline } = require('stream/promises');
 const { Transform } = require('stream');
 const { spawn } = require('child_process');
-const s3mod = require('./lib/s3');
+const COFFRE = require('./coffre');
 
 /* Le format est écrit en toutes lettres en tête d'archive : celui qui la lira un jour sera peut-être quelqu'un d'autre, sur une
    machine neuve, sans ce dépôt sous les yeux. Disposition :
@@ -344,7 +346,7 @@ function creerSauvegarde(deps) {
   const { cfg, instance, dataDir, base } = deps;
   const horloge = deps.horloge || Date.now;
   const journaliser = deps.journaliser || (() => {});
-  const client = cfg ? (deps.client || s3mod.client(cfg.coffre)) : null;
+  const client = cfg ? (deps.client || COFFRE.client(cfg.coffre)) : null;
   const actif = !!(cfg && client);
   const controler = deps.controler || controlerEnProcessus;
   const cheminBase = deps.cheminBase || path.join(dataDir, 'msg.db');

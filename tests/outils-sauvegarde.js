@@ -62,6 +62,7 @@ async function coffreFaux(opts = {}) {
     ligne.sigOk = signatureJuste(q);
     if (!ligne.sigOk) { etat.signaturesFausses++; q.resume(); return fin(403, '<Error><Code>SignatureDoesNotMatch</Code></Error>'); }
     if (cle === null) { q.resume(); return fin(404, '<Error><Code>NoSuchBucket</Code></Error>'); }
+    if (pannes.has('muet')) { q.resume(); return; }   // accepte la connexion, lit ce qu'on lui envoie, ne répond JAMAIS : un coffre en panne qui garde la ligne ouverte
 
     if (q.method === 'GET' && !cle) {                     // ListObjectsV2
       if (pannes.has('liste-refusee')) return fin(403, '<Error><Code>AccessDenied</Code></Error>');

@@ -39,7 +39,7 @@ const { spawnSync } = require('child_process');
 const SAUV = require('../sauvegarde');
 const { ouvrir } = require('../stockage');
 const { creerScelleur } = require('../scelle');
-const s3mod = require('../lib/s3');
+const COFFRE = require('../coffre');
 
 const mio = (o) => (o / 1048576).toFixed(1) + ' Mio';
 const ageTexte = (ts) => { const h = (Date.now() - ts) / 3600000; return h < 48 ? 'il y a ' + h.toFixed(1) + ' h' : 'il y a ' + Math.round(h / 24) + ' j'; };
@@ -68,7 +68,7 @@ function charger(env) {
   let cfg;
   try { cfg = SAUV.lireConfigSauvegarde(b, { instance, kek: null }); }
   catch (e) { throw echec(String(e.message).replace(/^config: /, '')); }
-  const client = s3mod.client(cfg.coffre);
+  const client = COFFRE.client(cfg.coffre);
   if (!client) throw echec('le coffre est incomplet (adresse, nom, clé d\'accès et clé secrète sont tous nécessaires).');
   return {
     cfg, client, instance, dataDir: env.OPMSG_DATA || null,
