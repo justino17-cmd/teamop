@@ -135,8 +135,8 @@ vrai('   il sert le domaine de la bêta et envoie vers le port de la bêta, en l
 const fluxBloc = (ngx.match(/location = \/api\/flux \{[\s\S]*?\n    \}/) || [''])[0];
 vrai('⛔ le flux SSE n\'est PAS retenu en tampon', /proxy_buffering off;/.test(fluxBloc) && /proxy_cache off;/.test(fluxBloc));
 vrai('⛔ et nginx ne le coupe pas à 60 s (3700 s)', /proxy_read_timeout 3700s;/.test(fluxBloc));
-vrai('⛔ X-Forwarded-For est ÉCRASÉ par l\'adresse vue par nginx, jamais complété (req.ip, trust proxy 1) — dans CHACUN des trois blocs (flux, pièces, le reste)',
-  (ngx.match(/proxy_set_header X-Forwarded-For \$remote_addr;/g) || []).length === 3 && !/proxy_add_x_forwarded_for/.test(ngx));
+vrai('⛔ X-Forwarded-For est ÉCRASÉ par l\'adresse vue par nginx, jamais complété (req.ip, trust proxy 1) — dans CHACUN des quatre blocs qui parlent au service (dépôt, lecture, flux, le reste)',
+  (ngx.match(/proxy_set_header X-Forwarded-For \$remote_addr;/g) || []).length === 4 && (ngx.match(/^\s*proxy_pass /gm) || []).length === 4 && !/proxy_add_x_forwarded_for/.test(ngx));
 /* ⛔ un motif de banc vise du CODE : les commentaires de la configuration citent les mots mêmes qu'on interdit (« proxy_request_buffering off »), on les retire avant de chercher */
 const ngxCode = ngx.replace(/^[ \t]*#.*$/gm, '');
 const piecesBloc = (ngxCode.match(/location = \/api\/pieces \{[\s\S]*?\n    \}/) || [''])[0];
@@ -144,10 +144,30 @@ vrai('⛔ le corps d\'une requête est limité à 64 Ko et TAMPONNÉ pour tout l
   /^    client_max_body_size 64k;/m.test(ngxCode) && !/client_max_body_size 110m/.test(ngxCode) && !/proxy_request_buffering\s+off/.test(ngxCode));
 vrai('⛔ le DÉPÔT D\'UNE PIÈCE a SA propre exception (26 Mo, sur la route exacte /api/pieces) et c\'est la SEULE autre limite de corps du fichier — jamais « 26m » pour tout le service',
   piecesBloc.length > 100 && /client_max_body_size 26m;/.test(piecesBloc) && (ngxCode.match(/client_max_body_size/g) || []).length === 2 && !/26m/.test(ngxCode.replace(piecesBloc, '')));
-vrai('⛔ et cette route est bornée en DÉBIT et en ENVOIS SIMULTANÉS par adresse (le tampon de nginx coûte du disque avant que le service puisse dire 401), sans désactiver le tampon',
-  /limit_req zone=opmsg_beta burst=\d+ nodelay;/.test(piecesBloc) && /limit_conn opmsg_conn_beta \d+;/.test(piecesBloc) && /limit_conn_zone \$binary_remote_addr zone=opmsg_conn_beta:10m;/.test(ngxCode) && !/proxy_request_buffering/.test(piecesBloc));
-vrai('⛔ un plafond de débit par adresse (limit_req) devant le service — hors flux SSE, qui n\'est qu\'une requête longue par onglet',
-  /limit_req_zone \$binary_remote_addr zone=opmsg_beta:10m rate=\d+r\/s;/.test(ngx) && /location \/ \{\s*\n\s*limit_req zone=opmsg_beta burst=\d+ nodelay;/.test(ngx) && !/location = \/api\/flux \{[^}]*limit_req/.test(ngx));
+vrai('⛔ et cette route est bornée en DÉBIT et en ENVOIS SIMULTANÉS, par réseau ET pour tout le monde (le tampon de nginx coûte du disque, celui d\'OP GESTION aussi, avant que le service puisse dire 401), sans désactiver le tampon',
+  /limit_req zone=opmsg_beta burst=\d+ nodelay;/.test(piecesBloc) && /limit_conn opmsg_conn_beta \d+;/.test(piecesBloc) && /limit_conn opmsg_depots_beta \d+;/.test(piecesBloc)
+  && /limit_conn_zone \$opmsg_reseau_beta zone=opmsg_conn_beta:10m;/.test(ngxCode) && /limit_conn_zone \$server_name zone=opmsg_depots_beta:1m;/.test(ngxCode) && !/proxy_request_buffering/.test(piecesBloc));
+vrai('⛔ un plafond de débit par RÉSEAU (limit_req) devant le service — hors flux SSE, qui n\'est qu\'une requête longue par onglet',
+  /limit_req_zone \$opmsg_reseau_beta zone=opmsg_beta:10m rate=\d+r\/s;/.test(ngx) && /location \/ \{\s*\n\s*limit_req zone=opmsg_beta burst=\d+ nodelay;/.test(ngx) && !/location = \/api\/flux \{[^}]*limit_req/.test(ngx));
+/* ⛔ relecture du gardien, A3 : la clé d'un plafond est le RÉSEAU (l'IPv4 entière, le /64 d'une IPv6), jamais l'adresse — et la table qui la calcule est dans le fichier */
+const zonesCles = [...ngxCode.matchAll(/^limit_(?:req|conn)_zone (\S+) zone=/gm)].map(m => m[1]);
+vrai('population : le fichier porte ses cinq zones (un débit, quatre plafonds de connexions)', zonesCles.length === 5);
+vrai('⛔ AUCUNE zone n\'est clée sur l\'adresse binaire (une personne a 2^64 adresses dans son /64) : toutes le sont sur le réseau, ou sur le nom du serveur pour un plafond GLOBAL',
+  zonesCles.every(k => k === '$opmsg_reseau_beta' || k === '$server_name') && !/\$binary_remote_addr/.test(ngxCode));
+vrai('⛔ la table `map` qui calcule le réseau couvre les quatre groupes explicites, « :: » après trois et après deux groupes, et garde l\'adresse entière pour le reste (IPv4 comprise)',
+  /map \$remote_addr \$opmsg_reseau_beta \{\s*\n\s*default \$remote_addr;/.test(ngxCode) && (ngxCode.match(/^\s*"~\*\^\(/gm) || []).length === 3);
+/* ⛔ relecture du gardien, B2 : AUCUN journal d'accès dans nos deux blocs — le format par défaut écrit l'adresse de chaque visiteur et la ligne de requête entière */
+const blocsServeur = ngxCode.split(/^server \{/m).slice(1);
+vrai('population : le fichier porte deux blocs « server » (le port 80 et le 443)', blocsServeur.length === 2);
+vrai('⛔ …et CHACUN coupe le journal d\'accès (access_log off) et range les refus de débit sous le niveau du journal d\'erreurs — l\'adresse et la requête n\'y entrent pas',
+  blocsServeur.every(s => /^\s*access_log off;/m.test(s) && /^\s*limit_req_log_level warn;/m.test(s) && /^\s*limit_conn_log_level warn;/m.test(s)) && !/access_log\s+(?!off)/.test(ngxCode));
+/* ⛔ relecture du gardien, A2 : la lecture d'une pièce n'est pas tamponnée sur le disque de nginx, et ses plafonds de connexions ne sont pas ceux du dépôt */
+const lectureBloc = (ngxCode.match(/location \^~ \/api\/pieces\/ \{[\s\S]*?\n    \}/) || [''])[0];
+vrai('⛔ la LECTURE d\'une pièce (préfixe /api/pieces/, jamais le dépôt) n\'est pas tamponnée (proxy_buffering off) et ne peut pas écrire de fichier temporaire (proxy_max_temp_file_size 0)',
+  lectureBloc.length > 100 && /proxy_buffering off;/.test(lectureBloc) && /proxy_max_temp_file_size 0;/.test(lectureBloc) && !/proxy_cache /.test(lectureBloc));
+vrai('⛔ …elle a ses plafonds de connexions (par réseau et en tout) sur des zones DIFFÉRENTES de celles du dépôt — deux emplacements sur une même zone additionneraient leurs compteurs',
+  /limit_conn opmsg_lec_conn_beta \d+;/.test(lectureBloc) && /limit_conn opmsg_lectures_beta \d+;/.test(lectureBloc) && !/limit_conn opmsg_(conn|depots)_beta/.test(lectureBloc)
+  && !/limit_conn opmsg_(lec_conn|lectures)_beta/.test(piecesBloc) && /limit_req zone=opmsg_beta burst=\d+ nodelay;/.test(lectureBloc));
 vrai('   HTTP/2 à la forme de nginx 1.24 (`listen … ssl http2`) — Ubuntu 24.04', /listen 443 ssl http2;/.test(ngx) && !/^\s*http2 on;/m.test(ngx));
 vrai('   le port 80 redirige vers https et laisse passer Let\'s Encrypt', /acme-challenge/.test(ngx) && /return 301 https:\/\/msg-beta\.teamop\.fr\$request_uri;/.test(ngx));
 vrai('   les en-têtes de sécurité sont ceux du SERVICE (pas de doublon posé par nginx)', !/add_header/.test(ngx));
