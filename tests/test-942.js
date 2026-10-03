@@ -346,6 +346,19 @@ const jeton = (b, canari) => b.includes(Buffer.from(canari, 'latin1'));
     vrai('un nom de 300 signes est coupé à 120 signes (par points de code : un émoji n\'est pas coupé en deux)', Array.from(decodeURIComponent(P.dispositionDe(false, '😀'.repeat(300)).split("UTF-8''")[1])).length === 120 && !/%ED%A0/.test(P.dispositionDe(false, '😀'.repeat(300))));
   }
 
+  /* ═══ 9. COUPER UN NOM EN GARDANT SON EXTENSION (le testeur : « .pdf » disparaissait au-delà de 120 signes) ═════════════════════════════════════════ */
+  console.log('\nUn nom trop long est coupé dans son radical, jamais dans son extension');
+  {
+    const long = 'rapport-'.repeat(40) + 'final.pdf';
+    const c = P.couperNom(long, 120);
+    v('⛔ 329 signes coupés à 120 : le nom finit toujours par « .pdf » et pèse exactement 120 signes', [Array.from(long).length > 300, c.endsWith('.pdf'), Array.from(c).length, c.startsWith('rapport-rapport-')], [true, true, 120, true]);
+    v('un nom qui tient (120 signes ou moins) n\'est pas touché', [P.couperNom('a.pdf', 120), P.couperNom('x'.repeat(120), 120).length], ['a.pdf', 120]);
+    v('sans extension reconnaissable, on coupe simplement', [Array.from(P.couperNom('x'.repeat(300), 120)).length, P.couperNom('x'.repeat(300), 120).includes('.')], [120, false]);
+    v('⛔ une « extension » démesurée (plus de 16 signes sans espace) n\'est pas gardée : le radical n\'est pas écrasé par elle', [Array.from(P.couperNom('a'.repeat(50) + '.' + 'b'.repeat(200), 120)).length, P.couperNom('a'.repeat(50) + '.' + 'b'.repeat(200), 120).startsWith('a'.repeat(50) + '.b')], [120, true]);
+    v('⛔ l\'extension se garde par POINTS DE CODE : un émoji dans le radical n\'est pas coupé en deux (aucune moitié de paire de substitution)', (() => { const x = P.couperNom('😀'.repeat(200) + '.png', 120); return [x.endsWith('.png'), Array.from(x).length, /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/.test(x)]; })(), [true, 120, false]);
+    v('une extension à plusieurs points : seule la dernière compte', [P.couperNom('x'.repeat(200) + '.tar.gz', 120).endsWith('.tar.gz'), P.couperNom('x'.repeat(200) + '.tar.gz', 120).endsWith('x.gz')], [false, true]);
+  }
+
   fs.rmSync(bac, { recursive: true, force: true });
   fin();
 })().catch((e) => { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; try { fs.rmSync(bac, { recursive: true, force: true }); } catch (x) {} fin(); });

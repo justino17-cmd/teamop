@@ -143,9 +143,8 @@ async function deposer(c, { conv, genre, nom, corps, entetes, query } = {}) {
   const q = new URLSearchParams();
   if (conv) q.set('conv', conv);
   if (genre) q.set('genre', genre);
-  if (nom !== undefined) q.set('nom', nom);
   for (const [k, val] of Object.entries(query || {})) q.set(k, val);
-  const h = Object.assign({ 'Content-Type': 'application/octet-stream', Origin: c.base, 'X-OPM': '1' }, entetes || {});
+  const h = Object.assign({ 'Content-Type': 'application/octet-stream', Origin: c.base, 'X-OPM': '1' }, nom !== undefined ? { 'X-OPM-Nom': encodeURIComponent(nom) } : {}, entetes || {});
   const ck = c.enteteCookie(); if (ck) h.Cookie = ck;
   const r = await fetch(c.base + '/api/pieces?' + q.toString(), { method: 'POST', headers: h, body: corps });
   let j = null, txt = ''; try { txt = await r.text(); j = txt ? JSON.parse(txt) : null; } catch (e) { j = null; }

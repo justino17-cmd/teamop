@@ -209,8 +209,10 @@
       deposer: async (corps, o2) => {
         const x = o2 || {};
         const h = { Accept: 'application/json', 'Content-Type': 'application/octet-stream', 'X-OPM': '1' };
+        /* ⛔ le NOM d'un fichier voyage dans un en-tête (encodé en pourcentage), jamais dans l'adresse : une adresse se retrouve dans le journal d'accès d'un proxy */
+        if (x.nom !== undefined && x.nom !== null) h['X-OPM-Nom'] = encodeURIComponent(String(x.nom));
         let r;
-        try { r = await f(base + '/api/pieces' + rq({ conv: x.conv, genre: x.genre, nom: x.nom }), { method: 'POST', headers: h, credentials: 'same-origin', cache: 'no-store', body: corps }); }
+        try { r = await f(base + '/api/pieces' + rq({ conv: x.conv, genre: x.genre }), { method: 'POST', headers: h, credentials: 'same-origin', cache: 'no-store', body: corps }); }
         catch (er) { throw new ErreurApi('reseau', 0, 0); }
         return jsonDe(r, { piece: true, max: x.max });
       },

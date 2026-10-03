@@ -18,6 +18,7 @@
        sont datés dans le futur pour qu'elle ne les voie pas ;
      · UNE IMAGE « BOURRÉE » DE MILLIONS DE SEGMENTS VIDES (11,6 Mo, quatre dépôts en parallèle d'un seul compte) est REFUSÉE sans que le processus du service gagne plus de 300 Mo ni que /health gèle,
        et la réserve de mémoire d'images pleine répond 429 « dans un instant » puis se rend (relecture du gardien, B1) ;
+     · LE NOM D'UN FICHIER NE VOYAGE PAS DANS L'ADRESSE (le journal d'accès d'un proxy l'écrirait) : en-tête `X-OPM-Nom` encodé, ancien paramètre refusé, nom long coupé SANS perdre son extension ;
      · LE BALAYEUR N'EST PAS UNE GARDE : sur un service dont il ne passe jamais, une pièce échue (éphémère échu, jamais envoyée depuis 24 h) ne se lit plus et ne s'attache plus, et un
        message marqué supprimé n'ouvre plus sa pièce — l'échéance se juge à la lecture et à l'attachement, pas seulement quand le balayeur passe ;
      · RIEN DE CE QUI EST ENVOYÉ N'EST EN CLAIR SUR LE DISQUE (un canari dans une photo, un vocal, un fichier et son nom : absent de TOUS les fichiers sous OPMSG_DATA) ni dans les journaux ;
@@ -261,6 +262,15 @@ function migration() {
       v('un fichier sans nom : 400', r.code, 400);
       r = await deposer(A, { conv: G, genre: 'fichier', nom: ' \u0000​ ', corps: F.pdf() });
       v('un nom fait de caractères de contrôle : 400', r.code, 400);
+      /* ⛔ LE NOM NE VOYAGE PLUS DANS L'ADRESSE (relecture du gardien, B2) : l'adresse entière est écrite par le journal d'accès d'un proxy */
+      r = await deposer(A, { conv: G, genre: 'fichier', nom: 'ok.pdf', query: { nom: 'ancien.pdf' }, corps: F.pdf() });
+      v('⛔ l\'ancien paramètre `?nom=` est REFUSÉ (400 champ_invalide), même quand le bon en-tête est là — un client d\'avant le saurait, au lieu de le voir ignoré', [r.code, r.j.error], [400, 'champ_invalide']);
+      r = await deposer(A, { conv: G, genre: 'photo', query: { nom: 'x' }, corps: PNG });
+      v('…pour TOUS les genres : une photo qui porte `?nom=` est refusée aussi', r.code, 400);
+      r = await deposer(A, { conv: G, genre: 'fichier', entetes: { 'X-OPM-Nom': '%E0%A4%A' }, corps: F.pdf() });
+      v('un en-tête de nom mal encodé (pourcentage tronqué) : 400', r.code, 400);
+      r = await deposer(A, { conv: G, genre: 'fichier', entetes: { 'X-OPM-Nom': 'a'.repeat(2049) }, corps: F.pdf() });
+      v('un en-tête de nom de plus de 2 048 signes : 400', r.code, 400);
       const inconnue = 'c_' + '0'.repeat(32);
       const rD = await deposer(D, { conv: G, genre: 'photo', corps: PNG }), rI = await deposer(D, { conv: inconnue, genre: 'photo', corps: PNG }), rM = await deposer(D, { conv: 'pas-un-id', genre: 'photo', corps: PNG });
       v('⛔ un NON-MEMBRE qui dépose : 404 introuvable, EXACTEMENT comme pour une conversation qui n\'existe pas ou un identifiant mal formé', [rD.code, rD.txt, rI.code, rI.txt, rM.code, rM.txt], [404, '{"error":"introuvable"}', 404, '{"error":"introuvable"}', 404, '{"error":"introuvable"}']);
@@ -273,9 +283,9 @@ function migration() {
 
       const t0 = Date.now();
       for (const [genre, max] of [['photo', 200000], ['vocal', 300000], ['fichier', 600000], ['avatar', 100000]]) {
-        const sans = genre === 'avatar' ? { genre } : { conv: G, genre, nom: 'x.bin' };
+        const sans = genre === 'avatar' ? { genre } : { conv: G, genre };
         const q = '/api/pieces?' + new URLSearchParams(sans).toString();
-        const x = await F.deposerBrut(A, { chemin: q, entetes: { 'Content-Length': String(max + 1) }, morceaux: [Buffer.alloc(100, 1)] });
+        const x = await F.deposerBrut(A, { chemin: q, entetes: Object.assign({ 'Content-Length': String(max + 1) }, genre === 'fichier' ? { 'X-OPM-Nom': 'x.bin' } : {}), morceaux: [Buffer.alloc(100, 1)] });
         v('⛔ ' + genre + ' annoncé à ' + (max + 1) + ' octets (maximum ' + max + ') : 413 piece_trop_lourde AVEC le maximum — la réponse part sans attendre le corps', [x.code, x.j.error, x.j.max], [413, 'piece_trop_lourde', max]);
       }
       const enorme = await F.deposerBrut(A, { chemin: chemin(), entetes: { 'Content-Length': '104857600' }, morceaux: [PNG] });
@@ -296,6 +306,12 @@ function migration() {
       v('⛔ un client qui coupe au milieu d\'un envoi (3 000 octets sur 20 000) : AUCUNE ligne, aucun fichier, aucun temporaire', [comptePieces() - n0, piecesSurDisque().length - f0, fs.existsSync(path.join(svc.data, 'pieces', 'tmp')) ? fs.readdirSync(path.join(svc.data, 'pieces', 'tmp')).length : 0], [0, 0, 0]);
       r = await deposer(A, { conv: G, genre: 'vocal', corps: F.webm(500) });
       v('contre-épreuve : le service dépose encore après tous ces refus', r.code, 201);
+      const accents = await deposer(A, { conv: G, genre: 'fichier', nom: 'Rapport été 🙂 (final).pdf', corps: F.pdf(300) });
+      const nomLu = async (id) => { const l = await lire(A, id); return decodeURIComponent(String(l.h.get('content-disposition')).split("UTF-8''")[1]); };
+      v('⛔ un nom accentué, avec un émoji et des parenthèses, traverse l\'en-tête et revient intact au téléchargement', [accents.code, await nomLu(accents.j.id)], [201, 'Rapport été 🙂 (final).pdf']);
+      const longue = await deposer(A, { conv: G, genre: 'fichier', nom: 'rapport-'.repeat(40) + 'final.pdf', corps: F.pdf(300) });
+      const nomLong = await nomLu(longue.j.id);
+      v('⛔ un nom de 329 signes est coupé à 120 en GARDANT « .pdf » (le fichier téléchargé reste un pdf)', [longue.code, Array.from(nomLong).length, nomLong.endsWith('final.pdf') || nomLong.endsWith('.pdf')], [201, 120, true]);
     }
 
     /* ═══ 5. LES DROITS D'ENVOI : ce qu'un message peut citer ═════════════════════════════════════════════════════════════════════ */
@@ -726,7 +742,7 @@ function migration() {
     v('population : sous le plancher (' + Math.max(1, Math.floor(libreMo) - 200) + ' Mo) avec ' + Math.floor(libreMo) + ' Mo libres, un petit dépôt passe', avant.code, 201);
     await lienContact(Fr, await compte('gina', svc3));
     const gr = (await Fr.post('/api/conversations/groupe', { nom: 'Disque', membres: [] })).j.conversation.id;
-    const x = await F.deposerBrut(Fr, { chemin: '/api/pieces?' + new URLSearchParams({ conv: gr, genre: 'fichier', nom: 'enorme.bin' }), entetes: { 'Content-Length': String(400 * 1048576) }, morceaux: [Buffer.alloc(100, 1)] });
+    const x = await F.deposerBrut(Fr, { chemin: '/api/pieces?' + new URLSearchParams({ conv: gr, genre: 'fichier' }), entetes: { 'Content-Length': String(400 * 1048576), 'X-OPM-Nom': 'enorme.bin' }, morceaux: [Buffer.alloc(100, 1)] });
     v('⛔ un dépôt ANNONCÉ à 400 Mo qui ferait passer le disque sous son plancher : 503 disque_plein, AVANT d\'avoir lu le corps (ce service ne doit jamais priver OP GESTION de disque)', [x.code, x.j.error], [503, 'disque_plein']);
   } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
   await svc3.arreter();

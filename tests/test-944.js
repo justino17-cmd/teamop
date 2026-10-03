@@ -33,14 +33,15 @@ const PHOTO_MAX = 307200, VOCAL_MAX = 204800, FICHIER_MAX = 716800, AVATAR_MAX =
 /* Un « appareil » : un navigateur de poche (cookie, Origin) dont on peut COUPER le réseau, RETENIR une requête, PERDRE une réponse, FORCER une réponse, et dont on compte les requêtes ET les adresses blob:. */
 function monter(svc, opts = {}) {
   const nav = T.navigateur(svc.base);
-  const reseau = { coupe: false, requetes: [], urls: [], tirsFile: 0, retenir: null, forcer: null, perdre: null };
+  const reseau = { coupe: false, requetes: [], urls: [], depots: [], tirsFile: 0, retenir: null, forcer: null, perdre: null };
   const urls = { creees: new Map(), revoquees: [] };
   const creerUrl = (b) => { const u = 'blob:http://127.0.0.1/' + crypto.randomUUID(); urls.creees.set(u, b); return u; };
   const revoquerUrl = (u) => { urls.revoquees.push(u); };
   const f = async (url, init) => {
     const u = String(url), m = (init && init.method) || 'GET', chemin = u.replace(svc.base, '').split('?')[0], cle = m + ' ' + chemin;
     reseau.requetes.push(cle);
-    reseau.urls.push(m + ' ' + u.replace(svc.base, ''));            // l'adresse ENTIÈRE, requête comprise : ce que l'appareil ENVOIE (le nom d'un fichier y voyage)
+    reseau.urls.push(m + ' ' + u.replace(svc.base, ''));            // l'adresse ENTIÈRE, requête comprise : ce que l'appareil ENVOIE
+    if (m === 'POST' && chemin === '/api/pieces') reseau.depots.push({ url: u.replace(svc.base, ''), entetes: Object.assign({}, (init && init.headers) || {}) });
     if (reseau.coupe) throw new TypeError('réseau coupé');
     if (reseau.retenir && reseau.retenir.re.test(cle)) { await reseau.retenir.attente; if (reseau.coupe) throw new TypeError('réseau coupé'); }
     if (reseau.forcer && reseau.forcer.re.test(cle)) {
@@ -212,8 +213,9 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
       const pdf = F.pdf(9000), vivantesAvant = B.vivantes().length, adressesA = A.urls.creees.size, nom = 'Rapport été/2026\u0000.pdf';
       await A.src.envoyer(conv, { fichier: { blob: blobDe(pdf), nom, taille: pdf.length } });
       /* ⛔ ce que l'APPAREIL envoie : le service refait le même ménage (test-943), donc le nom RENDU ne dit rien de l'appareil — la page en attendant montre ce qu'elle a assaini */
-      const depotsFichier = A.reseau.urls.filter(x => /^POST \/api\/pieces\?/.test(x) && /genre=fichier/.test(x));
-      v('⛔ le nom que l\'appareil ENVOIE est déjà assaini : ni la barre ni le caractère de contrôle ne partent dans la requête', depotsFichier.length && new URLSearchParams(depotsFichier[depotsFichier.length - 1].split('?')[1]).get('nom'), 'Rapport été_2026 .pdf');
+      const dernier = A.reseau.depots.filter(d => /genre=fichier/.test(d.url)).pop();
+      v('⛔ le nom que l\'appareil ENVOIE est déjà assaini (ni la barre ni le caractère de contrôle) ET il voyage dans un EN-TÊTE encodé — jamais dans l\'adresse, que le journal d\'accès d\'un proxy écrirait (relecture du gardien, B2)',
+        [dernier && decodeURIComponent(dernier.entetes['X-OPM-Nom']), dernier && /nom=|Rapport/i.test(dernier.url)], ['Rapport été_2026 .pdf', false]);
       const m = await trouve(B, conv, x => x.fichier);
       v('⛔ Bruno reçoit le fichier : son nom ASSAINI (la barre et le caractère de contrôle ne passent pas), sa taille, la pièce', [m.fichier.nom, m.fichier.taille, /^f_[0-9a-f]{32}$/.test(m.fichier.piece)], ['Rapport été_2026 .pdf', pdf.length, true]);
       v('l\'aperçu dit « Fichier · <nom> »', (await B.src.lister()).find(c => c.id === conv).apercu, 'Fichier · Rapport été_2026 .pdf');

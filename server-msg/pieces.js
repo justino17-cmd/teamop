@@ -75,6 +75,17 @@ function detecter(genre, tete) {
 /* Ce qui peut s'afficher « en ligne » : une image ou un son jugés aux octets, jamais le genre « fichier ». */
 const enLigne = (genre, mime) => genre !== 'fichier' && (MIME_IMAGES.includes(mime) || MIME_AUDIO.includes(mime));
 
+/* Un nom de fichier coupé à `max` signes (points de code) EN GARDANT SON EXTENSION : « rapport-très-long….pdf » reste un pdf. L'extension est bornée elle aussi (un point et 16 signes sans espace au plus) ;
+   sans extension reconnaissable, ou si elle ne laisse pas de place au radical, on coupe simplement. */
+function couperNom(nom, max = 120) {
+  const signes = Array.from(String(nom));
+  if (signes.length <= max) return signes.join('');
+  const m = /\.[^.\s\/\\]{1,16}$/u.exec(signes.join(''));
+  const ext = m ? Array.from(m[0]) : [];
+  if (!ext.length || ext.length >= max) return signes.slice(0, max).join('');
+  return signes.slice(0, signes.length - ext.length).slice(0, max - ext.length).join('') + ext.join('');
+}
+
 /* L'en-tête `Content-Disposition` d'une pièce servie. « inline » pour ce qui s'affiche ; sinon « attachment » avec un nom ASCII de repli
    et le nom réel en `filename*=UTF-8''…` (RFC 5987). ⛔ Le nom vient du client : on retire les caractères de contrôle, les séparateurs
    de chemin et les guillemets — un retour à la ligne dans un en-tête serait une injection d'en-tête. */
@@ -464,6 +475,6 @@ function creerPieces({ dossier, cle, generation = 1, bloc = BLOC_DEFAUT, memoire
 }
 
 module.exports = {
-  creerPieces, creerReservations, detecter, enLigne, dispositionDe, retirerMetadonnees, nettoyerJpeg, nettoyerPng, nettoyerWebp, nettoyerGif, mimeImage, mimeAudio,
+  creerPieces, creerReservations, detecter, enLigne, dispositionDe, couperNom, retirerMetadonnees, nettoyerJpeg, nettoyerPng, nettoyerWebp, nettoyerGif, mimeImage, mimeAudio,
   ID_PIECE, GENRES, MIME_IMAGES, MIME_AUDIO, BLOC_DEFAUT, ENTETE, IV, ETIQUETTE,
 };

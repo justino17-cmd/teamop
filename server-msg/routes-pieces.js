@@ -1,6 +1,6 @@
 /* ══ LES ROUTES DES PIÈCES — DÉPOSER, LIRE, PHOTO DE PROFIL, ESPACE UTILISÉ (étape 4) ════════════════════════════════════════
  *
- *   POST /api/pieces?conv=<id>&genre=photo|vocal|fichier&nom=<nom>   V  corps BINAIRE (application/octet-stream), Content-Length OBLIGATOIRE
+ *   POST /api/pieces?conv=<id>&genre=photo|vocal|fichier             V  corps BINAIRE (application/octet-stream), Content-Length OBLIGATOIRE ; le NOM d'un fichier : en-tête `X-OPM-Nom` (encodé)
  *   POST /api/pieces?genre=avatar                                    V  une photo de profil (d'une personne ou d'un groupe) : pas de conversation
  *   GET  /api/pieces/:id                                             J  lit une pièce (Range) — 404 si on n'y a pas droit, jamais 403
  *   POST /api/moi/avatar  {piece|null}                               S  pose ou retire MA photo de profil
@@ -20,10 +20,12 @@
  * ⛔ UNE PIÈCE SE SERT EN SÛRETÉ : `nosniff`, `Content-Security-Policy: sandbox; default-src 'none'` (même ouverte directement, une pièce
  * n'exécute rien), `Cache-Control: private, no-store`, « inline » SEULEMENT pour une image ou un son jugés aux octets — tout le reste, y
  * compris tout « fichier », en `application/octet-stream` + `attachment`. Jamais de SVG ni de HTML servi en ligne.
- * ⛔ AUCUN NOM DE FICHIER, AUCUN IDENTIFIANT COMPLET DE PIÈCE DANS UN JOURNAL (SERVEUR.md § 3.6) : seuls des compteurs vont à /health.
+ * ⛔ AUCUN NOM DE FICHIER, AUCUN IDENTIFIANT COMPLET DE PIÈCE DANS UN JOURNAL (SERVEUR.md § 3.6) : seuls des compteurs vont à /health. Et RIEN de tout cela dans une ADRESSE : le journal d'accès du proxy
+ * écrit la ligne de requête entière — le nom d'un fichier voyageait dans `?nom=` (relecture du gardien, B2). Il est maintenant dans l'en-tête `X-OPM-Nom` (encodé en pourcentage), et l'ancien paramètre
+ * est REFUSÉ (400) : un client d'avant qui l'enverrait encore le saurait au lieu de le voir silencieusement ignoré. Le bloc nginx de l'instance n'écrit plus de journal d'accès (`install-msg.sh`).
  */
 'use strict';
-const { ID_PIECE, enLigne, dispositionDe } = require('./pieces');
+const { ID_PIECE, enLigne, dispositionDe, couperNom } = require('./pieces');
 const { ID_CONV, nettoyerNom } = require('./routes');
 
 const Mo = 1048576, JOUR = 86400000;
@@ -80,10 +82,14 @@ function installerPieces(H, ctx) {
       if (!stockage.ecritureAutorisee(conv, uid)) return refus(res, 404, 'introuvable');
       if (r.conv.type === 'groupe' && r.conv.annonces_seules && r.moi.role !== 'admin') return refus(res, 403, 'annonces_seules');
     }
+    /* ⛔ le nom d'un fichier vient d'un EN-TÊTE, jamais de l'adresse (B2) : `?nom=` est refusé quel que soit le genre */
+    if (q.nom !== undefined) return refus(res, 400, 'champ_invalide');
     let nom = null;
     if (genre === 'fichier') {
-      if (typeof q.nom !== 'string') return refus(res, 400, 'champ_invalide');
-      nom = Array.from(nettoyerNom(q.nom).replace(/[\/\\]/g, '_')).slice(0, NOM_MAX).join('').trim();
+      const brut = req.headers['x-opm-nom'];
+      if (typeof brut !== 'string' || !brut || brut.length > 2048) return refus(res, 400, 'champ_invalide');
+      let lu; try { lu = decodeURIComponent(brut); } catch (e) { return refus(res, 400, 'champ_invalide'); }
+      nom = couperNom(nettoyerNom(lu).replace(/[\/\\]/g, '_'), NOM_MAX).trim();
       if (!nom) return refus(res, 400, 'champ_invalide');
     }
     if (!/^application\/octet-stream\s*(;|$)/i.test(String(req.headers['content-type'] || ''))) return refus(res, 415, 'type_refuse');
