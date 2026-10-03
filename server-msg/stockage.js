@@ -1789,7 +1789,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return Q('SELECT id, genre, taille, cree FROM piece WHERE proprio = ? ORDER BY cree, id LIMIT 20001').all(uid).map(r => ({ id: r.id, genre: r.genre, taille: num(r.taille), cree: num(r.cree) }));   // une de plus que ce que l'export garde : c'est ce qui dit qu'il y en a plus
   }
 
-  /* ══ ESPACES, INVITATIONS, CANAUX, ABONNEMENT (migration 5) ════════════════════════════════════════════════════════════════
+  /* ══ ESPACES, INVITATIONS, CANAUX, ABONNEMENT (migration 6) ════════════════════════════════════════════════════════════════
      Un ESPACE est une entreprise : un propriétaire, des membres (administrateur ou membre), des canaux, un abonnement. Ce bloc ne décide JAMAIS d'une formule ni ne parle à
      Stripe : il range et il lit (la formule est `formule.js`, Stripe est `facturation.js`). Ce qu'il tient, lui, ce sont les INVARIANTS :
        · ⛔ UN CANAL EST UNE CONVERSATION (genre `canal`) : mêmes messages, mêmes accusés, mêmes pièces, même flux, même purge — rien n'est réécrit. Ce qui change est qui en est
@@ -2388,7 +2388,7 @@ function rejouerPurge(chemin, registre, opts) {
     const tableAppareil = d.prepare(`SELECT 1 AS n FROM sqlite_master WHERE type = 'table' AND name = 'appareil_tel'`).get() !== undefined;
     /* Un appareil (re)lié APRÈS sa révocation (`cree` plus récent) est un autre appareil : seul celui qui existait au moment de la révocation part. */
     const retirerAppareil = tableAppareil ? d.prepare('DELETE FROM appareil_tel WHERE h = ? AND cree <= ?') : null;
-    /* les ESPACES (migration 5) : une archive d'un schéma plus ancien n'a pas ces tables — rien à y retirer, la ligne du registre est quand même recopiée */
+    /* les ESPACES (migration 6) : une archive d'un schéma plus ancien n'a pas ces tables — rien à y retirer, la ligne du registre est quand même recopiée */
     const a = (nom) => d.prepare(`SELECT 1 AS n FROM sqlite_master WHERE type = 'table' AND name = ?`).get(nom) !== undefined;
     const tableEspace = a('espace') && a('espace_membre') && a('canal');
     const retirerCanauxDEspace = tableEspace ? d.prepare('DELETE FROM conversation WHERE id IN (SELECT conv FROM canal WHERE espace = ?)') : null;

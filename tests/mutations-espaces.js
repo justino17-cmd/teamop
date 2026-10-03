@@ -34,7 +34,7 @@ const F = {
   conf: 'server-msg/config.js', compte: 'server-msg/compte.js', index: 'server-msg/index.js', cfgstripe: 'server-msg/configurer-stripe.js', surv: '.github/scripts/surveillance-messages.js',
   src: 'server-msg/public/source-serveur.js', api: 'server-msg/public/api.js', page: 'apercu/opmessages/index.html', og: 'server/index.js',
 };
-const BANCS = ['900', '905', '934', '941', '950', '960', '961', '962', '963', '964', '965', 'sonde'];
+const BANCS = ['900', '901', '903', '905', '934', '941', '950', '957', '960', '961', '962', '963', '964', '965', 'sonde'];
 const SONDE_FICHIER = 'sonde-opmessages-espaces.js';
 const MUTATIONS = [];
 /* m(id, nom, fichier, ancien, nouveau, suites) — `ancien` : une chaîne, ou une expression régulière (une seule occurrence, `$1` permis dans `nouveau`) */
@@ -438,6 +438,15 @@ m('P19', 'la source de la page ne transmet plus le dépassement que le service a
   'placesDepassees: a.places_depassees === true,', 'placesDepassees: false,', ['964', 'sonde'], SONDE);
 m('P20', 'la source de la page ne dit plus combien de liens ont été révoqués en retirant quelqu\'un', F.src,
   'liensRevoques: r && Number.isInteger(r.liens_revoques) ? r.liens_revoques : 0', 'liensRevoques: 0', ['964', 'sonde'], SONDE);
+
+/* ══ 16. LA FUSION AVEC LE LOT 3 (7f52581, EN SERVICE sur la bêta) — les coutures que ni l'un ni l'autre ne pouvait voir seul ═════════════════════════════════════════
+   Chaque côté avait ses bancs, chacun était juste, et ils ne se parlaient pas : la migration (deux « 5 »), l'effacement d'un compte rejoué après une restauration (la sortie des espaces),
+   les notifications d'espace qui nomment une personne (l'auteur). Un banc qui monte une moitié ne voit pas ce qu'elle fait à l'autre. */
+m2('X01', 'ma migration prend le numéro 5 et celle du lot 3 (`notification.auteur`, EN SERVICE) disparaît : une base au schéma 5 ne recevrait jamais les espaces', [
+  [F.stock, "  { v: 6, sql: [\n    `CREATE TABLE IF NOT EXISTS espace(", "  { v: 5, sql: [\n    `CREATE TABLE IF NOT EXISTS espace("],
+  [F.stock, '    `PRAGMA user_version = 6`,', '    `PRAGMA user_version = 5`,'],
+  [F.stock, /  \{ v: 5, sql: \[\n    `ALTER TABLE notification ADD COLUMN auteur TEXT`,\n    `CREATE INDEX IF NOT EXISTS notification_auteur[^\n]*\n    `PRAGMA user_version = 5`,\n  \] \},\n/, ''],
+], ['960', '901']);
 
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const DOSSIERS_COPIE = ['server-msg', 'server', 'design/opmessages', '.github', 'apercu/opmessages', 'icons', 'scripts'];   // `.github` ENTIER : test-934 lit les workflows autant que les scripts de surveillance

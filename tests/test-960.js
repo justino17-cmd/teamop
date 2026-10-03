@@ -1,10 +1,10 @@
 /* ⛔ CE QUE CE FICHIER GARDE — LES ESPACES PROFESSIONNELS, LEURS CANAUX, LES INVITATIONS ET LA FORMULE, MODULES SEULS (famille 2 de SERVEUR.md § 3.11, étape 5).
 
-   `server-msg/stockage.js` (la migration 5) et `server-msg/formule.js` montés avec le VRAI stockage — un fichier de base, une clé et une horloge injectés. Pas de HTTP ici :
+   `server-msg/stockage.js` (la migration 6) et `server-msg/formule.js` montés avec le VRAI stockage — un fichier de base, une clé et une horloge injectés. Pas de HTTP ici :
    `test-905` joue les gardes, `test-961` les routes, `test-962` Stripe. Celui-ci dit que ce qui est RANGÉ et DÉCIDÉ est juste :
 
-     · la migration 5 est numérotée, rejouable, garde une copie, et ses quatre tables entrent dans les TROIS listes écrites à la main (le 3 octobre, en oublier une a fait échouer
-       chaque sauvegarde) ;
+     · la migration 6 est numérotée (la 5 est celle du lot 3, EN SERVICE : elle n'a pas bougé), rejouable, garde une copie, et ses quatre tables entrent dans les TROIS listes écrites à la main
+       (le 3 octobre, en oublier une a fait échouer chaque sauvegarde) ; une base DÉJÀ au schéma 5 la reçoit sans rien perdre ;
      · un espace : un propriétaire, des membres, un nom scellé au repos ; trois espaces au plus par propriétaire ; un non-membre reçoit « rien », la même chose qu'un espace inexistant ;
      · les INVITATIONS : un lien meurt expiré, révoqué, épuisé — et avec le droit de son créateur ; rejoindre ne consomme rien deux fois ; un code d'espace n'ouvre que les invitations ;
      · les RÔLES et les départs : le propriétaire ne part ni ne se rétrograde (il passe la main) ; qui sort d'un espace sort de TOUS ses canaux, dans la même transaction, et c'est noté ;
@@ -68,11 +68,17 @@ function atelier(opts = {}) {
 const roleCanal = (S, c, u) => { const m = S.convPourMembre(c, u); return m ? m.moi.role : null; };
 const ABO = (o) => Object.assign({ client: 'cus_banc960', abonnement: 'sub_banc960', statut: 'active', places: 5, fin_periode: null, annule: false, impaye: false }, o || {});
 
-console.log('La migration 5 : numérotée, rejouable, avec sa copie, et ses quatre tables dans les TROIS listes');
+console.log('La migration 6 : numérotée, rejouable, avec sa copie, et ses quatre tables dans les TROIS listes');
 {
   const DERNIERE = MIGRATIONS[MIGRATIONS.length - 1].v;
   const celle = MIGRATIONS.filter(m => m.sql.some(s => /CREATE TABLE IF NOT EXISTS espace\(/.test(s)));
-  v('population : UNE migration crée les espaces, et elle porte le numéro qui suit toutes les précédentes (jamais un numéro supposé)', [celle.length, celle[0] && celle[0].v, MIGRATIONS.filter(m => m.v < (celle[0] || {}).v).length], [1, 5, 4]);
+  v('population : UNE migration crée les espaces, et elle porte le numéro qui suit toutes les précédentes (jamais un numéro supposé)', [celle.length, celle[0] && celle[0].v, MIGRATIONS.filter(m => m.v < (celle[0] || {}).v).length], [1, 6, 5]);
+  /* ⛔ LA 5 EST CELLE DU LOT 3 ET ELLE EST EN SERVICE (`notification.auteur`, sur la bêta depuis le 3 octobre) : une base au schéma 5 existe déjà, et c'est le NUMÉRO qui dit ce qu'elle porte.
+     Les tables des espaces ne peuvent donc pas se ranger SOUS ce numéro (une base au schéma 5 les croirait faites et ne les recevrait jamais — le lanceur saute tout ce qui est ≤ au schéma) :
+     elles sont la 6, et la 5 n'a pas bougé. */
+  const cinq = MIGRATIONS.filter(m => m.v === 5);
+  vrai('⛔ UNE seule migration porte le numéro 5, et c\'est celle des notifications (`auteur`) — pas celle des espaces', cinq.length === 1 && cinq[0].sql.some(s => /^\s*ALTER TABLE notification ADD COLUMN auteur/.test(s)) && !cinq[0].sql.some(s => /espace/.test(s)));
+  vrai('les numéros se suivent sans trou ni doublon (1 à ' + DERNIERE + ')', MIGRATIONS.map(m => m.v).join() === Array.from({ length: DERNIERE }, (_, i) => i + 1).join());
   vrai('elle crée les quatre tables et l\'index unique de l\'abonnement', ['espace(', 'espace_membre(', 'canal(', 'abonnement(', 'abonnement_stripe'].every(m => celle[0].sql.some(s => s.includes(m))));
   const a = neuf();
   v('une base neuve est au schéma de la dernière migration', a.S.schema(), DERNIERE);
@@ -81,7 +87,35 @@ console.log('La migration 5 : numérotée, rejouable, avec sa copie, et ses quat
   vrai('les quatre tables existent', ['espace', 'espace_membre', 'canal', 'abonnement'].every(t => tables.includes(t)));
   brut.close();
 
-  /* une base VIVANTE au schéma 4 (avant les espaces) reçoit la migration 5 : ses données restent, et une copie « avant-v5 » est gardée */
+  /* ⛔ LA BASE QUI EST EN SERVICE : au schéma 5 (le lot 3 corrigé, sur la bêta). Elle reçoit la migration 6 et RIEN de ce qu'elle porte ne bouge — le contact, l'abonnement push, la notification AVEC
+     son auteur (la colonne de la 5), la clé de lecture — et une copie « avant-v6 » (le schéma 5, sans espace) est gardée avant de la toucher. C'est le déploiement qui aura lieu. */
+  const vive = MIGRATIONS.filter(m => m.v <= 5);
+  const g = neuf({ migrations: vive });
+  const gAna = pers(g.S, 'Ana'), gBen = pers(g.S, 'Ben');
+  g.S.contactLier(gAna.id, gBen.id);
+  const gNotif = g.S.notifCreer({ uid: gBen.id, type: 'groupe', titre: 'Équipe dépôt', texte: 'Ana vous a ajouté au groupe.', cible: 'c_x', auteur: gAna.id });
+  g.S.pushPoser({ uid: gBen.id, endpoint: 'https://push.exemple.test/ben-1', p256dh: 'AAAA', auth: 'BBBB' });
+  const pop5 = [g.S.schema(), g.S.contactsDe(gAna.id).length, g.S.pushCompter(), g.S.notifListe(gBen.id).length];
+  g.S.fermer();
+  const br5 = g.brut();
+  const auteur5 = br5.prepare('SELECT auteur FROM notification WHERE id = ?').get(gNotif.id).auteur;
+  const sansEspace5 = compte(br5, `SELECT COUNT(*) AS n FROM sqlite_master WHERE name = 'espace'`);
+  br5.close();
+  v('population : une base du schéma 5, sans espace, avec un contact, un appareil push et une notification qui nomme Ana', [pop5, auteur5 === gAna.id, sansEspace5], [[5, 1, 1, 1], true, 0]);
+  const g6 = ouvrir({ chemin: g.chemin, scelleur: creerScelleur(g.kek), horloge: () => g.h.t });
+  v('⛔ rouverte avec la migration 6 : schéma 6, le contact, l\'appareil push et la notification (lisible) sont intacts', [g6.schema(), g6.contactsDe(gAna.id).length, g6.pushCompter(), g6.notifListe(gBen.id).map(n => n.texte)], [DERNIERE, 1, 1, ['Ana vous a ajouté au groupe.']]);
+  const br6 = g.brut();
+  v('⛔ … et la colonne `auteur` de la 5 a gardé sa valeur : la migration 6 n\'écrase pas la 5', br6.prepare('SELECT auteur FROM notification WHERE id = ?').get(gNotif.id).auteur, gAna.id);
+  br6.close();
+  vrai('⛔ une copie « avant-v6 » est gardée avant de migrer une base qui a vécu — et PAS de « avant-v5 » (la 5 était déjà faite : on ne copie que ce qu\'on migre)', fs.existsSync(g.chemin + '.avant-v6') && !fs.existsSync(g.chemin + '.avant-v5'));
+  const cop6 = new DatabaseSync(g.chemin + '.avant-v6');
+  v('la copie est la base d\'AVANT : schéma 5, la colonne `auteur` déjà là, sans la table des espaces', [cop6.prepare('PRAGMA user_version').get().user_version, cop6.prepare('PRAGMA table_info(notification)').all().some(c => c.name === 'auteur'), compte(cop6, `SELECT COUNT(*) AS n FROM sqlite_master WHERE name = 'espace'`)], [5, true, 0]);
+  cop6.close();
+  const e6 = g6.espaceCreer({ nom: 'Après la 6', proprio: gAna.id }).id;
+  v('… et un espace se crée sur cette base migrée (les tables sont là, la propriétaire en est membre)', [g6.espacePourMembre(e6, gAna.id).espace.nom, g6.espacePourMembre(e6, gAna.id).moi.role], ['Après la 6', 'admin']);
+  g6.fermer();
+
+  /* une base au schéma 4 (un service resté deux migrations en arrière : avant les notifications d'auteur ET avant les espaces) reçoit la 5 PUIS la 6 : ses données restent, et chacune garde SA copie */
   const anciennes = MIGRATIONS.filter(m => m.v <= 4);
   const b = neuf({ migrations: anciennes });
   const ana = pers(b.S, 'Ana'), ben = pers(b.S, 'Ben');
@@ -89,20 +123,26 @@ console.log('La migration 5 : numérotée, rejouable, avec sa copie, et ses quat
   v('population : une base du schéma 4, sans espace, avec des données', [b.S.schema(), b.S.contactsDe(ana.id).length], [4, 1]);
   b.S.fermer();
   const c = ouvrir({ chemin: b.chemin, scelleur: creerScelleur(b.kek), horloge: () => b.h.t });
-  v('rouverte avec la migration 5 : schéma 5, données intactes', [c.schema(), c.contactsDe(ana.id).length], [DERNIERE, 1]);
-  vrai('⛔ une copie « avant-v5 » est gardée avant de migrer une base qui a vécu', fs.existsSync(b.chemin + '.avant-v5'));
-  const copie = new DatabaseSync(b.chemin + '.avant-v5');
-  v('la copie est la base d\'AVANT : schéma 4, sans la table des espaces', [copie.prepare('PRAGMA user_version').get().user_version, compte(copie, `SELECT COUNT(*) AS n FROM sqlite_master WHERE name = 'espace'`)], [4, 0]);
-  copie.close();
+  v('rouverte avec les migrations 5 et 6 : schéma ' + DERNIERE + ', données intactes', [c.schema(), c.contactsDe(ana.id).length], [DERNIERE, 1]);
+  vrai('⛔ une copie « avant-v5 » ET une « avant-v6 » sont gardées : chaque migration copie la base telle qu\'elle était juste avant elle', fs.existsSync(b.chemin + '.avant-v5') && fs.existsSync(b.chemin + '.avant-v6'));
+  const copie = new DatabaseSync(b.chemin + '.avant-v5'), copie6 = new DatabaseSync(b.chemin + '.avant-v6');
+  v('la copie « avant-v5 » est le schéma 4 (sans `auteur`, sans espace) ; la « avant-v6 » est le schéma 5 (avec `auteur`, sans espace)',
+    [[copie.prepare('PRAGMA user_version').get().user_version, copie.prepare('PRAGMA table_info(notification)').all().some(x => x.name === 'auteur'), compte(copie, `SELECT COUNT(*) AS n FROM sqlite_master WHERE name = 'espace'`)],
+     [copie6.prepare('PRAGMA user_version').get().user_version, copie6.prepare('PRAGMA table_info(notification)').all().some(x => x.name === 'auteur'), compte(copie6, `SELECT COUNT(*) AS n FROM sqlite_master WHERE name = 'espace'`)]],
+    [[4, false, 0], [5, true, 0]]);
+  copie.close(); copie6.close();
 
-  /* rejouable : le compteur remis à 4 sur une base qui porte DÉJÀ des espaces — la migration repasse sur des tables existantes sans rien effacer */
+  /* rejouable : le compteur remis en arrière sur une base qui porte DÉJÀ des espaces — la migration repasse sur des tables existantes sans rien effacer. À 5 : la 6 seule. À 4 : la 5 repasse AUSSI (sa colonne
+     existe déjà : « duplicate column name » est la seule erreur que le lanceur tolère) puis la 6. */
   const e0 = c.espaceCreer({ nom: 'Rejouée', proprio: ana.id }).id;
   c.fermer();
-  const r = b.brut(); r.exec('PRAGMA user_version = 4'); r.close();
-  let rejoue = null, d;
-  try { d = ouvrir({ chemin: b.chemin, scelleur: creerScelleur(b.kek), horloge: () => b.h.t }); rejoue = [d.schema(), d.espacePourMembre(e0, ana.id).espace.nom]; } catch (e) { rejoue = 'ERREUR ' + e.message; }
-  v('⛔ la migration 5 rejouée sur une base qui porte déjà des espaces ne casse rien et n\'efface rien', rejoue, [DERNIERE, 'Rejouée']);
-  if (d) d.fermer();
+  for (const retour of [5, 4]) {
+    const r = b.brut(); r.exec('PRAGMA user_version = ' + retour); r.close();
+    let rejoue = null, d;
+    try { d = ouvrir({ chemin: b.chemin, scelleur: creerScelleur(b.kek), horloge: () => b.h.t }); rejoue = [d.schema(), d.espacePourMembre(e0, ana.id).espace.nom, d.contactsDe(ana.id).length]; } catch (e) { rejoue = 'ERREUR ' + e.message; }
+    v('⛔ la migration 6 rejouée (compteur remis à ' + retour + ') sur une base qui porte déjà des espaces ne casse rien et n\'efface rien', rejoue, [DERNIERE, 'Rejouée', 1]);
+    if (d) d.fermer();
+  }
 
   /* l'index unique : un abonnement Stripe ne s'attache qu'à UN espace, même par SQL direct */
   const w = atelier();
@@ -617,11 +657,11 @@ console.log('\nLa formule : UNE fonction décide, le sursis se compte entre deux
     const cd = new DatabaseSync(apresCanal);
     v('⛔ Ben, retiré du canal privé puis REMIS, y est toujours après le rejeu', compte(cd, 'SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL', p.priv, p.ben.id), 1);
     cd.close();
-    /* une archive d'AVANT la migration 5 (aucune table d'espace) : le rejeu ne casse pas, il recopie les lignes */
-    const ancienne = neuf({ migrations: MIGRATIONS.filter(m => m.v <= 4) });
+    /* une archive d'AVANT la migration 6 (le schéma 5 : aucune table d'espace) : le rejeu ne casse pas, il recopie les lignes */
+    const ancienne = neuf({ migrations: MIGRATIONS.filter(m => m.v <= 5) });
     pers(ancienne.S, 'Vieux'); ancienne.S.fermer();
     const bilanAncien = ouvrir.copie.rejouerPurge(ancienne.chemin, registre);
-    v('⛔ une archive d\'avant les espaces (schéma 4, aucune table d\'espace) se rejoue sans erreur : il n\'y a rien à y retirer, les lignes sont recopiées', [bilanAncien.espacesRetires, bilanAncien.membresEspaceRetires, bilanAncien.invitationsRevoquees, bilanAncien.membresCanalRetires, bilanAncien.ajoutees > 0], [0, 0, 0, 0, true]);
+    v('⛔ une archive d\'avant les espaces (schéma 5, aucune table d\'espace) se rejoue sans erreur : il n\'y a rien à y retirer, les lignes sont recopiées', [bilanAncien.espacesRetires, bilanAncien.membresEspaceRetires, bilanAncien.invitationsRevoquees, bilanAncien.membresCanalRetires, bilanAncien.ajoutees > 0], [0, 0, 0, 0, true]);
   } catch (e) {
     console.log('  ✗ le banc est mort : ' + (e && e.stack || e));
     process.exitCode = 1;
