@@ -8,7 +8,9 @@
      · RIEN D'UN AUTRE : une conversation dont elle n'est pas membre (le canari d'une conversation entre deux autres), un message d'AVANT son arrivée dans un groupe, un message supprimé « pour moi »,
        le texte d'un message supprimé « pour tous » (la pierre tombale reste, sans texte), le numéro de téléphone de QUI QUE CE SOIT (le sien compris : le service ne le rend à personne),
        son jeton de session ;
-     · UN PAR JOUR (429 `export_quotidien`), le créneau revient avec la journée ; un export abandonné en route RENDRE son créneau ;
+     · UN PAR JOUR (429 `export_quotidien`), le créneau revient avec la journée ; UN À LA FOIS PAR COMPTE ; le créneau n'est rendu que si la faute est LA NÔTRE (une erreur du service) — JAMAIS quand le client
+       est parti ou ne lisait plus (I3 : six exports démarrés puis abandonnés coûtaient six fois le travail pour un seul « par jour ») ; un lecteur qui ne lit plus est COUPÉ au bout de `exportAttenteMs`, un export
+       qui dure trop se termine PROPREMENT (`tronque_cause: "duree"`) ;
      · AU FIL DE L'EAU et PLAFONNÉ : le fichier d'une grosse conversation est un JSON valide, écrit par morceaux (pas de longueur annoncée), et se termine proprement avec `tronque` quand le plafond est atteint.
    LA SUPPRESSION — en deux temps :
      · LE PREMIER, À L'INSTANT : la confirmation est un MOT (400 sans lui) ; toutes les sessions (l'appareil d'où l'on demande ET les autres), les jetons d'appareil, les abonnements push, les liens d'invitation
@@ -43,7 +45,7 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
   const og = await T.fauxOpGestion({
     eve: { pass: 'pw-eve-123456', nom: 'Eve Beta', actif: true },
     xan: { pass: 'pw-xan-123456', nom: 'Xan Lourd', actif: true }, yan: { pass: 'pw-yan-123456', nom: 'Yan Lourd', actif: true }, zan: { pass: 'pw-zan-123456', nom: 'Zan Lourd', actif: true },
-    wen: { pass: 'pw-wen-123456', nom: 'Wen Lourd', actif: true }, vin: { pass: 'pw-vin-123456', nom: 'Vin Lourd', actif: true },
+    wen: { pass: 'pw-wen-123456', nom: 'Wen Lourd', actif: true }, vin: { pass: 'pw-vin-123456', nom: 'Vin Lourd', actif: true }, uan: { pass: 'pw-uan-123456', nom: 'Uan Lourd', actif: true },
   });
   const fps = await P.fauxServicePush();
   const svc = await TEL.lancerTel({ urlGestion: og.url, sms: LARGE, config: { balayageMs: 150, push: { ackMs: 1500, contact: 'mailto:exploitation@exemple.invalid' }, compte: { exportOctetsMax: 60000 } }, env: { OPMSG_TEST_PUSH: fps.hote } });
@@ -369,7 +371,7 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
     }
 
     /* ═══ 5. LES GROSSES DONNÉES : AU FIL DE L'EAU, PLAFONNÉ, UN EXPORT ABANDONNÉ RENDS SON CRÉNEAU ═══════════════════════════════════ */
-    console.log('\nUne grosse conversation : l\'export s\'écrit par morceaux, le plafond le tronque proprement, un export abandonné rend son créneau');
+    console.log('\nUne grosse conversation : l\'export s\'écrit par morceaux, le plafond le tronque proprement, un export abandonné NE rend PAS son créneau, un lecteur qui ne lit plus est coupé');
     {
       const dossier = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-957-lourd-')); dossiersLourds.push(dossier);
       const cle = crypto.randomBytes(32).toString('hex');
@@ -397,7 +399,8 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
       console.log('      (export complet : ' + complet.txt.length + ' octets en ' + duree + ' ms)');
       vrai('population : l\'export complet dure assez (' + duree + ' ms ≥ 150) pour qu\'un abandon tombe AU MILIEU', duree >= 150);
 
-      /* un export abandonné en route rend son créneau */
+      /* ⛔ un export abandonné en route NE rend PAS son créneau (I3, `gardien3-expconc.js`) : le client est parti, le service a fait le travail. Avant : six exports démarrés puis abandonnés = six fois le travail
+         pour un seul « par jour ». Seule une faute DU SERVICE rend le créneau (vu au niveau du module, § 6). */
       const raw = await new Promise((resolve, reject) => {
         const u = new URL(s2.base);
         const h = { Origin: s2.base, 'X-OPM': '1', 'Content-Type': 'application/json', 'Content-Length': '2', Cookie: Y.enteteCookie() };
@@ -415,9 +418,9 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
         req.end('{}');
         setTimeout(() => reject(new Error('aucun octet reçu')), 8000).unref();
       });
-      v('pendant qu\'un export court, un second du même jour est refusé (le créneau est PRIS)', [raw.premier, raw.parallele.code, raw.parallele.j.error], [200, 429, 'export_quotidien']);
-      const rendu = await T.attendre(async () => (await Y.post('/api/compte/export', {})).code === 200, 8000, 50);
-      v('⛔ le client a abandonné en route : le créneau est RENDU, un nouvel export marche tout de suite (avant : 429 pendant 24 h pour un fichier jamais reçu)', !!rendu, true);
+      v('⛔ pendant qu\'un export court, un second de la MÊME personne est refusé tout de suite (un export à la fois par compte : 429 quota_atteint, à réessayer dans 30 s)', [raw.premier, raw.parallele.code, raw.parallele.j.error, raw.parallele.h.get('retry-after')], [200, 429, 'quota_atteint', '30']);
+      const consomme = await T.attendre(async () => { const r = await Y.post('/api/compte/export', {}); return !!r.j && r.j.error === 'export_quotidien'; }, 8000, 50);
+      v('⛔ le client a abandonné en route : le service le voit, le compte est libéré (plus de « quota_atteint ») et le créneau du jour est PRIS — 429 export_quotidien, pas un nouvel export', !!consomme, true);
 
       /* deux exports EN COURS au plus pour le service : un troisième est refusé tout de suite (429 quota_atteint), même d'une personne dont le quota du jour est intact.
          Deux lecteurs LENTS (la réponse n'est pas lue : le service attend le client, l'export reste en cours) tiennent les deux places. */
@@ -429,7 +432,12 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
         req.end('{}');
         setTimeout(() => reject(new Error('export lent : aucune réponse')), 8000).unref();
       });
-      const L1 = await lent(Z), L2 = await lent(V);
+      const L1 = await lent(Z);
+      const deuxZ = await Z.post('/api/compte/export', {});
+      const U = await T.connecter(s2, og, 'uan', 'pw-uan-123456');
+      const temoinU = await U.post('/api/compte/export', {});
+      v('⛔ un export à la fois PAR COMPTE : Zan en a un en cours (lecteur lent), son second est refusé tout de suite (429 quota_atteint, 30 s) — alors que le service a encore une place libre (Uan, qui exporte en même temps : 200)', [L1.res.statusCode, deuxZ.code, deuxZ.j && deuxZ.j.error, deuxZ.h.get('retry-after'), temoinU.code, temoinU.j && temoinU.j.format], [200, 429, 'quota_atteint', '30', 200, 'opmessages-export-v1']);
+      const L2 = await lent(V);
       const troisieme = await W0.post('/api/compte/export', {});
       v('⛔ deux exports sont EN COURS (deux lecteurs lents) : un troisième, d\'une personne dont le quota du jour est intact, est refusé 429 quota_atteint avec un délai', [L1.res.statusCode, L2.res.statusCode, troisieme.code, troisieme.j && troisieme.j.error, troisieme.h.get('retry-after')], [200, 200, 429, 'quota_atteint', '30']);
       L1.req.destroy(); L1.res.destroy(); L2.req.destroy(); L2.res.destroy();
@@ -457,6 +465,200 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
       v('population : Wen est membre de trois groupes lourds (300 messages chacun, de quoi dépasser le plafond dès le premier)', [(await W.get('/api/conversations')).j.conversations.length, gs.every(g => /^c_[0-9a-f]{32}$/.test(g))], [3, true]);
       const liste = await W.post('/api/compte/export', {});
       v('⛔ le plafond coupe aussi la LISTE des conversations : UNE seule est écrite (tronquée), le fichier reste valide et dit `tronque: "conversations"`', [liste.code, liste.j && liste.j.conversations.length, liste.j && liste.j.conversations[0] && liste.j.conversations[0].messages_tronques, liste.j && liste.j.tronque], [200, 1, true, 'conversations']);
+      v('(et il dit POURQUOI : la taille)', [plafonne.j.tronque_cause, liste.j.tronque_cause], ['taille', 'taille']);
+
+      /* ⛔ I3, de bout en bout : un lecteur qui ne lit plus est COUPÉ (`exportAttenteMs`, lu dans la configuration), une durée trop longue se termine proprement (`exportMaxMs`, par défaut 15 minutes — l'horloge
+         du service avance de 16 pendant que le client lit). Un service redémarré sur la même base, avec une attente de 2,5 s. */
+      await s2.arreter(false);
+      s2 = await T.lancerService({ dossier, cle, urlGestion: og.url, horloge: true, config: { compte: { exportAttenteMs: 2500 } } }); lourds.push(s2);
+      const Z3 = await T.connecter(s2, og, 'zan', 'pw-zan-123456'), Y3 = await T.connecter(s2, og, 'yan', 'pw-yan-123456'), U3 = await T.connecter(s2, og, 'uan', 'pw-uan-123456');
+      const t0c = Date.now();
+      const LZ = await lent(Z3);
+      vrai('population : le lecteur lent a bien reçu ses en-têtes (200) — son export est en cours, il ne lit plus', LZ.res.statusCode === 200);
+      const coupe = await T.attendre(() => /"evt":"export_coupe"/.test(s2.sortie.texte()), 12000, 50);
+      const dureeCoupe = Date.now() - t0c;
+      vrai('⛔ le service COUPE le lecteur qui ne lit plus, et le journal le dit (« export_coupe », sans nom ni adresse) — après le délai réglé (' + dureeCoupe + ' ms pour 2 500), pas avant', !!coupe && dureeCoupe >= 2300 && dureeCoupe < 12000);
+      v('⛔ le journal ne dit RIEN de qui (ni identifiant, ni adresse) : un événement et un motif', /"evt":"export_coupe","motif":"attente"\}/.test(s2.sortie.texte().replace(/"t":"[^"]*",/, '')), true);
+      const apresCoupe = await Z3.post('/api/compte/export', {});
+      const temoinCoupe = await U3.post('/api/compte/export', {});
+      v('⛔ la place ET le compte sont libérés (Zan n\'est plus « quota_atteint »), mais le créneau du jour est PRIS (429 export_quotidien) ; une autre personne exporte (200)', [apresCoupe.code, apresCoupe.j && apresCoupe.j.error, temoinCoupe.code], [429, 'export_quotidien', 200]);
+      LZ.req.destroy(); LZ.res.destroy();
+
+      /* la durée : le lecteur lit, mais l'horloge du service a avancé de 16 minutes pendant qu'il lisait → le fichier se termine PROPREMENT */
+      const lire = (L) => new Promise((resolve) => { const parts = []; L.res.on('data', (d) => parts.push(d)); L.res.on('end', () => resolve(Buffer.concat(parts).toString('utf8'))); L.res.on('error', () => resolve(null)); L.res.resume(); });
+      const LD = await lent(Y3);
+      s2.avancer(16 * 60000);
+      const corpsD = await lire(LD);
+      let jd = null; try { jd = JSON.parse(corpsD); } catch (e) { /* illisible */ }
+      v('⛔ un export qui dure plus que sa durée maximale (l\'horloge du service a avancé de 16 minutes) se termine PROPREMENT : JSON valide, `tronque` posé, `tronque_cause: "duree"`', [!!jd, !!jd && jd.tronque !== null, jd && jd.tronque_cause], [true, true, 'duree']);
+      const gD = jd && jd.conversations.find(c => c.id === GL);
+      vrai('   et il s\'arrête en route (la grosse conversation n\'est pas complète : ' + (gD ? gD.messages.length : '?') + ' sur ' + (N + 1) + ')', !!gD && gD.messages.length < N + 1);
+    }
+
+    /* ═══ 6. L'EXPORT, LE MODULE SEUL (I3) : ce qui rend le créneau du jour, ce qui ne le rend JAMAIS ═══════════════════════════════════════════════════
+       `compte.js` monté avec un magasin FACTICE (des conversations de forme connue), de VRAIS quotas, une horloge à la main et une réponse factice qui sait refuser d'être lue : de quoi jouer, sans réseau ni
+       chronomètre, ce que le vrai service ne laisse pas déclencher à volonté — une erreur du service en plein fichier, un client qui part, une connexion qui ne se vide plus, la durée. */
+    console.log('\nL\'export, le module seul : le créneau du jour n\'est rendu que si la faute est la NÔTRE ; un lecteur qui ne lit plus est coupé ; la durée et la taille disent POURQUOI le fichier s\'arrête');
+    {
+      const { installerCompte } = require(path.join(T.SERVICE, 'compte.js'));
+      const { creerQuotas } = require(path.join(T.SERVICE, 'quotas.js'));
+      const { compteConfig } = require(path.join(T.SERVICE, 'config.js'));
+      const { EventEmitter } = require('events');
+
+      /* la configuration : des défauts, des bornes — un nombre absurde REFUSE le démarrage */
+      const lancee = (f) => { try { f(); return null; } catch (e) { return e.code || e.message; } };
+      v('les défauts : 64 Mo, un lecteur qui ne lit plus est coupé après 30 s, un export dure 15 minutes au plus', compteConfig({}), { exportOctetsMax: 64 * 1048576, exportAttenteMs: 30000, exportMaxMs: 900000 });
+      v('⛔ `exportAttenteMs` (100 ms à une heure) et `exportMaxMs` (1 s à un jour) hors bornes, fractionnaires ou écrits en texte : le démarrage est REFUSÉ',
+        [lancee(() => compteConfig({ exportAttenteMs: 99 })), lancee(() => compteConfig({ exportAttenteMs: 3600001 })), lancee(() => compteConfig({ exportAttenteMs: 1.5 })), lancee(() => compteConfig({ exportAttenteMs: '30000' })),
+          lancee(() => compteConfig({ exportMaxMs: 999 })), lancee(() => compteConfig({ exportMaxMs: 86400001 })), lancee(() => compteConfig({ exportMaxMs: '900000' }))], Array(7).fill('CONFIG'));
+      v('   et les bornes elles-mêmes passent', [compteConfig({ exportAttenteMs: 100 }).exportAttenteMs, compteConfig({ exportAttenteMs: 3600000 }).exportAttenteMs, compteConfig({ exportMaxMs: 1000 }).exportMaxMs, compteConfig({ exportMaxMs: 86400000 }).exportMaxMs], [100, 3600000, 1000, 86400000]);
+
+      class Reponse extends EventEmitter {
+        constructor(comp) {
+          super(); this.comp = comp || {};
+          this.destroyed = false; this.writableEnded = false; this.headersSent = false;
+          this.statut = 200; this.entetes = {}; this.morceaux = []; this.refus = null; this.ecritures = 0;
+        }
+        status(c) { this.statut = c; return this; }
+        set(a, b) { if (a && typeof a === 'object') Object.assign(this.entetes, a); else this.entetes[a] = b; return this; }
+        json(o) { this.refus = o; this.headersSent = true; this.writableEnded = true; this.emit('close'); return this; }
+        write(t) {
+          this.headersSent = true; this.ecritures++; this.morceaux.push(String(t));
+          if (this.comp.partApres && this.ecritures >= this.comp.partApres) { this.destroyed = true; this.emit('close'); return true; }   // le client s'en va
+          if (this.comp.plein) return false;                                                                                           // la connexion est pleine et ne se vide JAMAIS
+          if (this.comp.drainApresMs) { setTimeout(() => this.emit('drain'), this.comp.drainApresMs); return false; }                     // pleine, mais le client finit par lire
+          return true;
+        }
+        end() { this.writableEnded = true; this.emit('close'); }
+        destroy() { this.destroyed = true; this.emit('close'); }
+        texte() { return this.morceaux.join(''); }
+        json_() { try { return JSON.parse(this.texte()); } catch (e) { return null; } }
+      }
+      /* un monde : des conversations de `n` messages, un magasin qui peut tomber en panne à la demande (`o.profilLeve`, `o.convLeve(id)`), une horloge à la main (`h.t`) */
+      function monde(o) {
+        const h = { t: 1790000000000 };
+        const journal = [];
+        const quotas = creerQuotas(() => h.t);
+        const conv = o.conv || [{ id: 'c1', n: 3 }, { id: 'c2', n: 3 }];
+        const stockage = {
+          exportProfil: (uid) => { if (o.profilLeve) throw new Error('panne simulée'); return { id: uid, prenom: 'Alice', nom: 'Banc', statut: '', langue: 'fr', fuseau: 'UTC', cree: h.t - 86400000, origine: 'beta', prefs: {}, trouvable: false }; },
+          contactsDe: () => [],
+          exportConversationsIds: () => conv.map(c => c.id),
+          convPourMembre: (id) => { if (o.convLeve && o.convLeve(id)) throw new Error('panne simulée'); return { conv: { id, type: 'groupe', nom: 'Groupe ' + id, annonces_seules: false, ephemere_s: 0 }, moi: { role: 'membre', muet_jusqua: 0, epingle: false, archive: false } }; },
+          membresDetail: () => [{ id: 'p_alice', prenom: 'Alice', nom: 'Banc', role: 'membre' }],
+          messagesDe: (id, uid, { apresSeq, limite }) => {
+            if (o.surPage) o.surPage(id, apresSeq, h);
+            const c = conv.find(x => x.id === id), messages = [];
+            for (let q = apresSeq + 1; q <= c.n && messages.length < limite; q++) messages.push({ seq: q, id: 'm_' + id + '_' + q, ts: h.t, auteur: 'p_alice', type: 'texte', texte: 'message ' + q + ' ' + 'x'.repeat(o.taille || 20), modifie: null, supprime: false, repond_a: null, reactions: [], meta: null });
+            return { messages, supprimes: [] };
+          },
+          exportPieces: () => [], notifListe: () => [],
+        };
+        const config = { compte: Object.assign({ exportOctetsMax: 64 * 1048576, exportAttenteMs: 300, exportMaxMs: 900000 }, o.compte || {}), quotas: { export: o.quota || { max: 1, fenetreMs: 86400000 } }, cookie: { nom: 'x', secure: false } };
+        const H = {};
+        installerCompte(H, { config, stockage, quotas, hub: {}, horloge: () => h.t, journaliser: (e, c) => journal.push([e, c]) });
+        return { H, h, journal, quotas, o };
+      }
+      /* un export de `uid` ; rend quand le gestionnaire a fini (réponse close, ou erreur passée à `next`) — ou `bloque` si rien ne finit en 6 s (un export qui ne s'arrête jamais ne fige pas le banc) */
+      async function lancer(m, uid, comp) {
+        const res = new Reponse(comp);
+        let erreur = null, bloque = false;
+        const t0 = Date.now();
+        await new Promise((ok) => {
+          const garde = setTimeout(() => { bloque = true; res.destroy(); ok(); }, 6000);
+          const fini = () => { clearTimeout(garde); ok(); };
+          res.on('close', fini);
+          m.H['compte.export']({ moi: { id: uid } }, res, (e) => { erreur = e || null; fini(); });
+        });
+        await new Promise(r => setImmediate(r)); await new Promise(r => setImmediate(r));
+        return { res, erreur, bloque, ms: Date.now() - t0 };
+      }
+      const code = (r) => r.res.refus ? r.res.statut + ' ' + r.res.refus.error : (r.erreur ? 'erreur' : String(r.res.statut));
+
+      /* a. un export ordinaire : complet, valide, sans cause d'arrêt — et il PREND le créneau */
+      {
+        const m = monde({});
+        const a = await lancer(m, 'p_a');
+        const ja = a.res.json_();
+        v('population : un export ordinaire est complet et valide (deux conversations, trois messages chacune), sans `tronque_cause`', [code(a), !!ja && ja.conversations.length, !!ja && ja.conversations.every(c => c.messages.length === 3), ja && ja.tronque, ja && 'tronque_cause' in ja], ['200', 2, true, null, false]);
+        v('et il PREND le créneau du jour : le second est refusé 429 export_quotidien', code(await lancer(m, 'p_a')), '429 export_quotidien');
+      }
+      /* b. une erreur du SERVICE avant le premier octet : le créneau est rendu */
+      {
+        const m = monde({ profilLeve: true });
+        const a = await lancer(m, 'p_a');
+        m.o.profilLeve = false;
+        v('⛔ une erreur du service AVANT le premier octet : l\'erreur est remontée (aucun octet n\'est parti) et le créneau est RENDU — l\'export suivant passe', [!!a.erreur, a.res.ecritures, code(await lancer(m, 'p_a'))], [true, 0, '200']);
+      }
+      /* c. une erreur du SERVICE en plein fichier : le fichier est coupé net, le créneau est rendu */
+      {
+        const m = monde({ convLeve: (id) => id === 'c2' });
+        const a = await lancer(m, 'p_a');
+        m.o.convLeve = null;
+        v('⛔ une erreur du service EN PLEIN FICHIER : la réponse est coupée (jamais un fichier faux présenté comme complet) et le créneau est RENDU — l\'export suivant passe', [a.res.destroyed, a.res.ecritures > 0, a.res.json_() === null, code(await lancer(m, 'p_a'))], [true, true, true, '200']);
+      }
+      /* d. le client PART en route : le créneau n'est PAS rendu, et ce n'est pas une « coupure » du service (rien à journaliser) */
+      {
+        const m = monde({});
+        const a = await lancer(m, 'p_a', { partApres: 2 });
+        v('⛔ le client PART en plein fichier : rien n\'est rendu — l\'export suivant du même jour est refusé 429 export_quotidien (le travail a été fait) ; le compte n\'est plus bloqué', [a.res.destroyed, a.res.ecritures >= 2, code(await lancer(m, 'p_a'))], [true, true, '429 export_quotidien']);
+        v('   et le service ne se prétend pas à l\'origine de la coupure (aucune ligne « export_coupe »)', m.journal.filter(([e]) => e === 'export_coupe').length, 0);
+      }
+      /* e. un lecteur qui ne lit plus : COUPÉ après `exportAttenteMs`, sans rendre le créneau, en le disant */
+      {
+        const m = monde({ compte: { exportAttenteMs: 300 } });
+        const a = await lancer(m, 'p_a', { plein: true });
+        vrai('population : la connexion pleine ne se vide jamais (le banc ne la débloque pas) — et pourtant l\'export FINIT (' + a.ms + ' ms), il ne reste pas pendu', !a.bloque);
+        vrai('⛔ le lecteur est COUPÉ après le délai réglé (300 ms), pas avant : ' + a.ms + ' ms', a.ms >= 250 && a.ms < 3000);
+        v('   la réponse est détruite, et le service DIT qu\'il a coupé (« export_coupe », motif « attente », rien d\'autre : ni compte ni adresse)', [a.res.destroyed, m.journal.filter(([e]) => e === 'export_coupe').map(([e, c]) => JSON.stringify(c))], [true, ['{"motif":"attente"}']]);
+        v('⛔ ...et le créneau n\'est PAS rendu (un lecteur qui ne lisait plus a consommé le travail du service) ; le compte est libéré', code(await lancer(m, 'p_a')), '429 export_quotidien');
+      }
+      /* f. un lecteur LENT mais qui lit n'est pas coupé : l'attente se mesure par morceau, pas sur toute la durée */
+      {
+        const m = monde({ compte: { exportAttenteMs: 250 }, conv: [{ id: 'c1', n: 3 }, { id: 'c2', n: 3 }] });
+        const a = await lancer(m, 'p_a', { drainApresMs: 100 });
+        const ja = a.res.json_();
+        vrai('population : l\'export dure plus que le délai d\'attente (' + a.ms + ' ms pour 250) — chaque morceau, lui, part en 100 ms', a.ms > 300);
+        v('⛔ un lecteur lent mais qui LIT n\'est pas coupé : le fichier est complet et valide, aucune coupure journalisée', [code(a), !!ja && ja.conversations.length, m.journal.filter(([e]) => e === 'export_coupe').length], ['200', 2, 0]);
+      }
+      /* g. UN EXPORT À LA FOIS PAR COMPTE, deux au plus pour le service — et un refus ne consomme rien */
+      {
+        const m = monde({ compte: { exportAttenteMs: 400 }, quota: { max: 2, fenetreMs: 86400000 } });
+        const p1 = lancer(m, 'p_a', { plein: true });                  // Alice : un export qui ne se vide pas (il tient une place pendant 400 ms)
+        await new Promise(r => setTimeout(r, 40));
+        const a2 = await lancer(m, 'p_a');                             // Alice, pendant ce temps
+        const b1 = lancer(m, 'p_b', { plein: true });                  // Bob : la seconde place
+        await new Promise(r => setTimeout(r, 40));
+        const c1 = await lancer(m, 'p_c');                             // Cléo : le service est plein
+        v('⛔ un export à la fois PAR COMPTE : Alice, pendant son export, est refusée tout de suite (429 quota_atteint, 30 s) ; Bob (une place libre) exporte ; Cléo, le service plein, est refusée aussi (429 quota_atteint, 30 s)',
+          [code(a2), a2.res.entetes['Retry-After'], code(c1), c1.res.entetes['Retry-After']], ['429 quota_atteint', '30', '429 quota_atteint', '30']);
+        await p1; await b1;
+        const a3 = await lancer(m, 'p_a');
+        v('⛔ le refus « un à la fois » ne consomme RIEN : après la coupure de son premier export (consommé, non rendu), Alice a encore un créneau de ses deux — l\'export passe (200), le suivant est refusé 429 export_quotidien', [code(a3), code(await lancer(m, 'p_a'))], ['200', '429 export_quotidien']);
+      }
+      /* h. la durée et la taille disent POURQUOI le fichier s'arrête */
+      {
+        const entre = monde({ compte: { exportMaxMs: 60000 }, surPage: (id, apres, h) => { if (id === 'c1') h.t += 2 * 60000; } });
+        const e = await lancer(entre, 'p_a');
+        const je = e.res.json_();
+        v('⛔ plus que la durée réglée (une minute ; l\'horloge a avancé de deux pendant la première conversation) : le fichier se termine PROPREMENT entre deux conversations — JSON valide, UNE conversation, `tronque: "conversations"`, `tronque_cause: "duree"`', [code(e), !!je && je.conversations.length, je && je.tronque, je && je.tronque_cause], ['200', 1, 'conversations', 'duree']);
+        const dedans = monde({ conv: [{ id: 'c1', n: 250 }], compte: { exportMaxMs: 60000 }, surPage: (id, apres, h) => { if (id === 'c1' && apres === 100) h.t += 2 * 60000; } });
+        const d = await lancer(dedans, 'p_a');
+        const jd = d.res.json_();
+        const c1d = jd && jd.conversations.find(c => c.id === 'c1');
+        v('⛔ ...ou EN PLEIN MILIEU d\'une conversation (la seule du fichier) : deux pages de cent messages, `messages_tronques`, `tronque: "messages"`, `tronque_cause: "duree"`', [code(d), c1d && c1d.messages.length, c1d && c1d.messages_tronques, jd && jd.tronque, jd && jd.tronque_cause], ['200', 200, true, 'messages', 'duree']);
+        const gros = monde({ conv: [{ id: 'c1', n: 250 }], taille: 50, compte: { exportOctetsMax: 4096 } });
+        const g = await lancer(gros, 'p_a');
+        const jg = g.res.json_();
+        v('la taille dit « taille » : après la première page, `tronque: "messages"`, `tronque_cause: "taille"`', [code(g), jg && jg.tronque, jg && jg.tronque_cause], ['200', 'messages', 'taille']);
+        const gros2 = monde({ conv: [{ id: 'c1', n: 3 }, { id: 'c2', n: 3 }], taille: 3000, compte: { exportOctetsMax: 4096 } });
+        const g2 = await lancer(gros2, 'p_a');
+        const jg2 = g2.res.json_();
+        v('   et entre deux conversations : `tronque: "conversations"`, `tronque_cause: "taille"`, une seule conversation écrite', [code(g2), jg2 && jg2.tronque, jg2 && jg2.tronque_cause, jg2 && jg2.conversations.length], ['200', 'conversations', 'taille', 1]);
+        const jeu = monde({ conv: [{ id: 'c1', n: 3 }, { id: 'c2', n: 3 }] });
+        const ok = await lancer(jeu, 'p_a');
+        v('contre-épreuve : sans limite atteinte, ni `tronque` ni `tronque_cause`', [ok.res.json_().tronque, 'tronque_cause' in ok.res.json_()], [null, false]);
+      }
     }
   } catch (e) {
     console.log('  ✗ le banc est mort : ' + (e && e.stack || e));

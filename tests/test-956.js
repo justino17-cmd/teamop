@@ -377,6 +377,25 @@ function paireVapid() {
       await suivant(A2);
       await T.dort(400);
       v('   et une seule pour tout le lot', rienDeNouveau(A1), true);
+      /* (d) la sourdine posée PENDANT l'attente est respectée de bout en bout (sentinelle : le message de Cléo, écrit après) */
+      await ecrit(B, conv.ab, 'CANARI-AVANT-SOURDINE');
+      v('Alice met la conversation en sourdine dans la fenêtre → 200', (await A.post('/api/conversations/' + conv.ab + '/prefs', { muet_jusqua: Date.now() + 3600000 })).code, 200);
+      await ecrit(C, conv.ac, 'sentinelle, après la sourdine');
+      const sd = await suivant(A1, 8000);
+      vrai('population : la sentinelle est arrivée', !!sd && sd.c.url === '/#messages/' + conv.ac);
+      await suivant(A2);
+      await T.dort(400);
+      v('⛔ ...et RIEN pour le message de Bob, écrit avant la sourdine : la notification est re-jugée au moment de partir', rienDeNouveau(A1), true);
+      await A.post('/api/conversations/' + conv.ab + '/prefs', { muet_jusqua: 0 });
+      /* (e) quitter le groupe PENDANT l'attente : rien ne part pour un groupe qu'on a quitté */
+      await ecrit(B, conv.g, 'CANARI-AVANT-DEPART');
+      v('Alice quitte le groupe dans la fenêtre → 200', (await A.post('/api/conversations/' + conv.g + '/quitter', {})).code, 200);
+      await ecrit(C, conv.ac, 'sentinelle, après le départ');
+      const sq = await suivant(A1, 8000);
+      vrai('population : la sentinelle est arrivée', !!sq && sq.c.url === '/#messages/' + conv.ac);
+      await suivant(A2);
+      await T.dort(400);
+      v('⛔ ...et RIEN pour le message du groupe quitté', rienDeNouveau(A1), true);
       await A.post('/api/moi/maj', { prefs: { apercu_notif: false } });
       fl.fermer();
       await T.attendre(async () => (await sante()).flux.ouverts === 0, 8000, 20);

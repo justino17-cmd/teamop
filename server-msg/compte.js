@@ -12,7 +12,10 @@
  * elle comprise (invariant du compte par numéro) ; le dire dans le fichier évite de laisser croire qu'il a été oublié.
  * ⛔ JAMAIS TOUTE LA BASE EN MÉMOIRE : le fichier s'écrit AU FIL DE L'EAU, une conversation à la fois, une page de cent messages à la fois, en rendant la main à la boucle entre deux
  * pages (les autres requêtes n'attendent pas un export). Un PLAFOND de taille borne le fichier ; au-delà, il se termine proprement (JSON valide) avec `tronque` qui dit où.
- * ⛔ UN PAR JOUR, ET DEUX À LA FOIS POUR LE SERVICE : un export est le geste le plus coûteux d'une personne. Un export qui échoue avant d'avoir été envoyé rend son créneau.
+ * ⛔ UN PAR JOUR, UN À LA FOIS PAR COMPTE, DEUX À LA FOIS POUR LE SERVICE : un export est le geste le plus coûteux d'une personne. Le créneau du jour n'est rendu que si la faute est LA NÔTRE
+ * (une erreur du service) — jamais quand le client est parti ou ne lisait plus : sinon six exports démarrés puis abandonnés coûtaient six fois le travail pour un seul « par jour »
+ * (relevé par le gardien, 3 octobre 2026). Un lecteur qui ne lit plus est COUPÉ au bout de `exportAttenteMs` (30 s) — avant, deux lecteurs lents tenaient les deux places du service sans
+ * limite —, et un export qui dure plus de `exportMaxMs` (15 min) se termine proprement (`tronque_cause: "duree"`).
  *
  * ⛔ SUPPRIMER SON COMPTE SE FAIT EN DEUX TEMPS (`stockage.js`, bloc « COMPTE »). Ici, le premier : à l'instant, TOUTES les sessions, tous les jetons d'appareil, tous les
  * abonnements push et les liens d'invitation de la personne sont coupés, ses flux fermés, et l'échéance est posée à J+14. Se reconnecter avant l'échéance l'ANNULE (la porte bêta et
@@ -23,7 +26,7 @@
 'use strict';
 
 const SUPPRESSION_DELAI_MS = 14 * 86400000;
-const EXPORT_PAGE = 100, EXPORT_SIMULTANES = 2, EXPORT_OCTETS_MAX = 64 * 1048576, EXPORT_PIECES_MAX = 20000;
+const EXPORT_PAGE = 100, EXPORT_SIMULTANES = 2, EXPORT_OCTETS_MAX = 64 * 1048576, EXPORT_PIECES_MAX = 20000, EXPORT_ATTENTE_MS = 30000, EXPORT_DUREE_MAX_MS = 900000;
 
 function installerCompte(H, ctx) {
   const { config, stockage, quotas, hub, horloge } = ctx;
@@ -34,25 +37,42 @@ function installerCompte(H, ctx) {
     catch (e) { next(e); }
   };
   const plafondOctets = config.compte && Number.isInteger(config.compte.exportOctetsMax) ? config.compte.exportOctetsMax : EXPORT_OCTETS_MAX;
+  const attenteMs = config.compte && Number.isInteger(config.compte.exportAttenteMs) ? config.compte.exportAttenteMs : EXPORT_ATTENTE_MS;
+  const dureeMaxMs = config.compte && Number.isInteger(config.compte.exportMaxMs) ? config.compte.exportMaxMs : EXPORT_DUREE_MAX_MS;
   const nomComplet = (p) => ((p && p.prenom || '') + ' ' + (p && p.nom || '')).trim();
   const J = (x) => JSON.stringify(x);
   const cookieVide = (nom) => nom + '=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0' + (config.cookie.secure ? '; Secure' : '');
   let exportsEnCours = 0;
+  const comptesEnExport = new Set();   // un export à la fois PAR COMPTE : deux flux lents d'une même personne ne tiennent pas les deux places du service
 
   /* ── L'EXPORT ──────────────────────────────────────────────────────────────────────────────────────────────────────────── */
   H['compte.export'] = garder(async (req, res) => {
     const uid = req.moi.id;
+    if (comptesEnExport.has(uid)) { res.set('Retry-After', '30'); return refus(res, 429, 'quota_atteint', { retry: 30 }); }
     if (exportsEnCours >= EXPORT_SIMULTANES) { res.set('Retry-After', '30'); return refus(res, 429, 'quota_atteint', { retry: 30 }); }
     const cle = 'export:' + uid, q = Object.assign({ max: 1, fenetreMs: 86400000 }, config.quotas.export || {});
     const essai = quotas.essai(cle, q.max, q.fenetreMs);
     if (!essai.ok) { res.set('Retry-After', String(essai.retry)); return refus(res, 429, 'export_quotidien', { retry: essai.retry }); }
-    exportsEnCours++;
+    exportsEnCours++; comptesEnExport.add(uid);
     let total = 0;
+    const debut = horloge();
+    /* écrire un morceau : si la connexion est pleine, on attend qu'elle se vide — AU PLUS `attenteMs`. Un client qui ne lit plus est coupé (`client_lent`), il ne tient pas la place. */
     const ecrire = async (texte) => {
       if (res.destroyed || res.writableEnded) throw Object.assign(new Error('client_parti'), { code: 'client_parti' });
       total += Buffer.byteLength(texte);
-      if (!res.write(texte)) await new Promise((ok) => { const f = () => { res.off('drain', f); res.off('close', f); ok(); }; res.on('drain', f); res.on('close', f); });
+      if (!res.write(texte)) {
+        await new Promise((ok, ko) => {
+          let fini = false;
+          const fin = (e) => { if (fini) return; fini = true; clearTimeout(minuterie); res.off('drain', surDrain); res.off('close', surClose); if (e) ko(e); else ok(); };
+          const surDrain = () => fin(), surClose = () => fin();
+          const minuterie = setTimeout(() => fin(Object.assign(new Error('client_lent'), { code: 'client_lent' })), attenteMs);
+          res.on('drain', surDrain); res.on('close', surClose);
+        });
+      }
     };
+    /* le fichier se termine proprement (JSON valide, `tronque` dit où) quand il dépasse sa taille OU sa durée : → la cause, ou null */
+    let cause = null;
+    const limite = () => { if (total > plafondOctets) return 'taille'; if (horloge() - debut > dureeMaxMs) return 'duree'; return null; };
     const rendreLaMain = () => new Promise((ok) => setImmediate(ok));
     try {
       const profil = stockage.exportProfil(uid);
@@ -69,7 +89,7 @@ function installerCompte(H, ctx) {
         ',"reglages":' + J(reglages) + ',"contacts":' + J(contacts) + ',"conversations":[');
       let premiere = true, tronque = null;
       for (const id of stockage.exportConversationsIds(uid)) {
-        if (total > plafondOctets) { tronque = 'conversations'; break; }
+        { const l = limite(); if (l) { tronque = 'conversations'; cause = l; break; } }
         const r = stockage.convPourMembre(id, uid);
         if (!r) continue;   // quittée entre-temps
         const membres = stockage.membresDetail(id, uid);
@@ -105,7 +125,7 @@ function installerCompte(H, ctx) {
           }
           await ecrire(morceau);
           if (page.messages.length < EXPORT_PAGE) break;
-          if (total > plafondOctets) { coupe = true; break; }
+          { const l = limite(); if (l) { coupe = true; cause = l; break; } }
           await rendreLaMain();
         }
         await ecrire(']' + (coupe ? ',"messages_tronques":true' : '') + '}');
@@ -117,13 +137,16 @@ function installerCompte(H, ctx) {
       await ecrire('],"pieces":' + J(pieces.slice(0, EXPORT_PIECES_MAX).map(p => ({ id: p.id, genre: p.genre, taille: p.taille, date: new Date(p.cree).toISOString() }))) +
         (piecesTronquees ? ',"pieces_tronquees":true' : '') +
         ',"notifications":' + J(stockage.notifListe(uid, 200).map(n => ({ type: n.type, titre: n.titre, texte: n.texte, date: new Date(n.ts).toISOString(), lue: n.lue }))) +
-        ',"tronque":' + J(tronque) + '}');
+        ',"tronque":' + J(tronque) + (cause ? ',"tronque_cause":' + J(cause) : '') + '}');
       res.end();
     } catch (e) {
-      quotas.rembourser(cle);   // un export qui n'a pas pu se faire ne consomme pas le créneau du jour
+      /* ⛔ le créneau du jour n'est rendu que si la faute est LA NÔTRE : un client qui est parti ou qui ne lisait plus a consommé le travail du service (relevé par le gardien, 3 octobre 2026) */
+      const duClient = e && (e.code === 'client_parti' || e.code === 'client_lent');
+      if (!duClient) quotas.rembourser(cle);
+      else if (e.code === 'client_lent' && ctx.journaliser) ctx.journaliser('export_coupe', { motif: 'attente' });
       if (res.headersSent) { try { res.destroy(); } catch (x) { /* déjà fermée */ } return; }
       throw e;
-    } finally { exportsEnCours--; }
+    } finally { exportsEnCours--; comptesEnExport.delete(uid); }
   });
 
   /* ── LA SUPPRESSION ────────────────────────────────────────────────────────────────────────────────────────────────────── */

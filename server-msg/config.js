@@ -28,7 +28,8 @@
  *                                durée de vie d'une pièce jamais envoyée, envois en même temps, mémoire que les images en cours de nettoyage se partagent,
  *                                débit minimal d'un envoi (octets par seconde) après sa grâce (ms), attente maximale d'un lecteur qui ne lit plus (ms) et durée maximale d'une lecture (ms).
  *                                Voir `piecesConfig` pour les valeurs de départ.
- *   compte        {exportOctetsMax}   Le plafond de taille de l'export des données d'une personne (64 Mo par défaut ; au-delà, le fichier se termine proprement et dit où il s'est arrêté).
+ *   compte        {exportOctetsMax, exportAttenteMs, exportMaxMs}   Le plafond de taille de l'export des données d'une personne (64 Mo par défaut ; au-delà, le fichier se termine proprement et dit où il s'est arrêté),
+ *                                l'attente maximale d'un lecteur qui ne lit plus (30 s : la réponse est alors COUPÉE) et la durée maximale d'un export (15 min : le fichier se termine proprement, `tronque_cause: "duree"`).
  *   push          {contact, ackMs, echecsMax, etalementMs, simultanes, fileMax, timeoutMs, ttlS, ttlApercuS}   Les notifications push. `contact` : le sujet VAPID (`mailto:` ou une adresse
  *                                https) ; absent, c'est le `contactEmail` de l'installation, à défaut l'origine https du service. Les autres : délai d'acquittement (5 s), refus du service de suite avant le retrait d'un
  *                                abonnement (5) et durée minimale de la série (1 h : cinq refus en cinq minutes sont une panne), envois en même temps (16), file d'attente (2 000), délai d'un envoi (8 s), durée de vie d'un message poussé (24 h) et, quand l'APERÇU part, d'un message dont le texte voyage (1 h : il
@@ -168,12 +169,18 @@ function pushConfig(cfg, env, instance) {
   return o;
 }
 
-/* ⛔ LE COMPTE : le plafond de taille de l'export (un nombre absurde refuse le démarrage, comme les pièces). */
+/* ⛔ LE COMPTE : le plafond de taille de l'export, l'attente d'un lecteur qui ne lit plus et la durée maximale (un nombre absurde refuse le démarrage, comme les pièces). */
 function compteConfig(c) {
   const brut = c && typeof c === 'object' && !Array.isArray(c) ? c : {};
-  const v = brut.exportOctetsMax === undefined ? 64 * Mo : brut.exportOctetsMax;
-  if (!Number.isInteger(v) || v < 1024 || v > 512 * Mo) { const e = new Error('config: compte.exportOctetsMax doit être un entier entre 1024 et ' + 512 * Mo); e.code = 'CONFIG'; throw e; }
-  return { exportOctetsMax: v };
+  const defauts = { exportOctetsMax: 64 * Mo, exportAttenteMs: 30000, exportMaxMs: 900000 };
+  const bornes = { exportOctetsMax: [1024, 512 * Mo], exportAttenteMs: [100, 3600000], exportMaxMs: [1000, 86400000] };
+  const o = {};
+  for (const [k, [min, max]] of Object.entries(bornes)) {
+    const v = brut[k] === undefined ? defauts[k] : brut[k];
+    if (!Number.isInteger(v) || v < min || v > max) { const e = new Error('config: compte.' + k + ' doit être un entier entre ' + min + ' et ' + max); e.code = 'CONFIG'; throw e; }
+    o[k] = v;
+  }
+  return o;
 }
 
 function charger(env = process.env) {

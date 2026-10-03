@@ -185,9 +185,9 @@ m('D25', 'la page de messages ne dit plus quels auteurs sont des comptes supprim
 
 /* ══ 7. EXPORTER SES DONNÉES — ce que la personne voit, rien de plus ; un par jour ; un fichier qui s'écrit au fil de l'eau, plafonné ═════════════════════════ */
 m('X01', 'l\'export n\'a plus de quota : un export à chaque requête, le geste le plus coûteux d\'une personne', F.compte, "if (!essai.ok) { res.set('Retry-After', String(essai.retry)); return refus(res, 429, 'export_quotidien', { retry: essai.retry }); }", '', ['957']);
-m('X02', 'un export abandonné en route ne rend pas son créneau (24 h d\'attente pour un fichier jamais reçu)', F.compte, 'quotas.rembourser(cle);', '', ['957']);
-m('X03', 'le plafond de taille ne coupe plus une conversation en cours d\'écriture', F.compte, 'if (total > plafondOctets) { coupe = true; break; }', '', ['957']);
-m('X04', 'le plafond de taille ne coupe plus la liste des conversations', F.compte, "if (total > plafondOctets) { tronque = 'conversations'; break; }", '', ['957']);
+m('X02', 'une erreur du SERVICE (avant le premier octet, ou en plein fichier) ne rend plus le créneau du jour (24 h d\'attente pour un fichier que nous n\'avons pas su écrire)', F.compte, 'if (!duClient) quotas.rembourser(cle);', 'if (!duClient) { /* rien */ }', ['957']);
+m('X03', 'aucune limite (taille ni durée) ne coupe plus une conversation en cours d\'écriture', F.compte, '{ const l = limite(); if (l) { coupe = true; cause = l; break; } }', '{ }', ['957']);
+m('X04', 'aucune limite (taille ni durée) ne coupe plus la liste des conversations', F.compte, "{ const l = limite(); if (l) { tronque = 'conversations'; cause = l; break; } }", '{ }', ['957']);
 m('X05', 'l\'export contient les messages d\'AVANT l\'arrivée de la personne dans le groupe', F.stock,
   'WHERE x.conv = ? AND x.seq >= ? AND x.seq > ? AND (x.expire_ts IS NULL OR x.expire_ts > ?)', 'WHERE x.conv = ? AND ? IS NOT NULL AND x.seq > ? AND (x.expire_ts IS NULL OR x.expire_ts > ?)', ['957']);
 m('X06', 'l\'export contient les messages que la personne a supprimés « pour moi »', F.stock,
@@ -204,6 +204,33 @@ m('X11', 'l\'export liste aussi les conversations quittées (la liste des identi
 
 m('X13', 'l\'export est refusé sous le plancher d\'espace disque (un disque plein retient la personne qui veut emporter ses données, alors que rien n\'est écrit)', F.app,
   String.raw`compte\/(deconnexion|supprimer|export)|flux\/ack`, String.raw`compte\/(deconnexion|supprimer)|flux\/ack`, ['957']);
+
+/* ── I3 (3 octobre 2026) : le créneau n'est rendu que si la faute est la NÔTRE ; un lecteur qui ne lit plus est coupé ; la durée dit POURQUOI ; un export à la fois par compte ── */
+m('X14', 'un export abandonné par le client rend son créneau (le comportement d\'avant : six exports démarrés puis abandonnés = six fois le travail pour un seul « par jour »)', F.compte,
+  "const duClient = e && (e.code === 'client_parti' || e.code === 'client_lent');", "const duClient = false;", ['957']);
+m('X15', 'un lecteur COUPÉ pour sa lenteur rend son créneau (seul le départ du client ne le rend pas)', F.compte,
+  "const duClient = e && (e.code === 'client_parti' || e.code === 'client_lent');", "const duClient = e && (e.code === 'client_parti');", ['957']);
+m('X16', 'un lecteur qui ne lit plus n\'est JAMAIS coupé (l\'attente d\'un `drain` n\'a pas de fin : deux lecteurs lents tiennent les deux places du service pour toujours)', F.compte,
+  "const minuterie = setTimeout(() => fin(Object.assign(new Error('client_lent'), { code: 'client_lent' })), attenteMs);", "const minuterie = setTimeout(() => {}, attenteMs);", ['957']);
+m('X17', 'le service coupe un lecteur sans le DIRE (plus de ligne « export_coupe » dans le journal)', F.compte,
+  "      else if (e.code === 'client_lent' && ctx.journaliser) ctx.journaliser('export_coupe', { motif: 'attente' });\n", '', ['957']);
+m('X18', 'plus de limite de DURÉE : un lecteur qui lit juste assez vite pour ne jamais s\'arrêter tient son export (et sa place) aussi longtemps qu\'il veut', F.compte,
+  "if (horloge() - debut > dureeMaxMs) return 'duree'; ", '', ['957']);
+m('X19', 'le fichier tronqué ne dit plus POURQUOI (`tronque_cause` n\'est plus écrit)', F.compte, `(cause ? ',"tronque_cause":' + J(cause) : '')`, `''`, ['957']);
+m('X20', 'plus de verrou par compte : une même personne tient les deux places du service avec deux lecteurs lents', F.compte,
+  "    if (comptesEnExport.has(uid)) { res.set('Retry-After', '30'); return refus(res, 429, 'quota_atteint', { retry: 30 }); }\n", '', ['957']);
+m('X21', 'le verrou par compte n\'est jamais levé (le premier export d\'une personne la bloque jusqu\'au redémarrage)', F.compte,
+  "} finally { exportsEnCours--; comptesEnExport.delete(uid); }", "} finally { exportsEnCours--; }", ['957']);
+m2('X22', 'le refus « un export à la fois » CONSOMME le créneau du jour (le verrou est jugé après le quota)',
+  [[F.compte, "    if (comptesEnExport.has(uid)) { res.set('Retry-After', '30'); return refus(res, 429, 'quota_atteint', { retry: 30 }); }\n", ''],
+    [F.compte, "const essai = quotas.essai(cle, q.max, q.fenetreMs);", "const essai = quotas.essai(cle, q.max, q.fenetreMs);\n    if (comptesEnExport.has(uid)) { res.set('Retry-After', '30'); return refus(res, 429, 'quota_atteint', { retry: 30 }); }"]], ['957']);
+m('X23', 'la borne basse de l\'attente d\'un lecteur n\'existe plus (`exportAttenteMs: 99` démarre)', F.conf, "exportAttenteMs: [100, 3600000]", "exportAttenteMs: [0, 3600000]", ['957']);
+m('X24', 'l\'attente par défaut d\'un lecteur qui ne lit plus est de 3 secondes, pas 30', F.conf, "exportAttenteMs: 30000, exportMaxMs: 900000 };", "exportAttenteMs: 3000, exportMaxMs: 900000 };", ['957']);
+m('X25', 'le service ignore `compte.exportAttenteMs` de la configuration (toujours 30 s)', F.compte,
+  "const attenteMs = config.compte && Number.isInteger(config.compte.exportAttenteMs) ? config.compte.exportAttenteMs : EXPORT_ATTENTE_MS;", "const attenteMs = EXPORT_ATTENTE_MS;", ['957']);
+m('X27', 'le plafond de TAILLE a disparu de la fonction qui décide d\'arrêter le fichier (la durée seule le borne : 64 Mo ne sont plus une limite)', F.compte, "if (total > plafondOctets) return 'taille'; ", '', ['957']);
+m('X26', 'le service ignore `compte.exportMaxMs` de la configuration (toujours 15 minutes)', F.compte,
+  "const dureeMaxMs = config.compte && Number.isInteger(config.compte.exportMaxMs) ? config.compte.exportMaxMs : EXPORT_DUREE_MAX_MS;", "const dureeMaxMs = EXPORT_DUREE_MAX_MS;", ['957']);
 
 /* ══ 8. LE CLIENT — le module de données de la page et son client d'API ═══════════════════════════════════════════════════════════════════════════════════ */
 m('C01', 'une page CACHÉE acquitte ce qu\'elle ne montre pas (la notification serait étouffée alors que personne n\'a rien vu)', F.src, 'if (!visible) return;', '', ['958']);
