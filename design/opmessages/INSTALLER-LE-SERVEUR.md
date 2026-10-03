@@ -593,8 +593,8 @@ OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/configurer-stripe
 ```
 
 Il demande la clé (**masquée** : rien ne s'affiche pendant la frappe), puis les deux tarifs. Il **éprouve avant d'écrire** : des lectures seulement (la clé répond-elle et lit-elle les abonnements ?
-chaque tarif existe-t-il dans CE mode, est-il actif, au bon rythme, à l'unité ? le montant annoncé à l'écran est-il celui de Stripe ?) — il ne crée rien et ne facture rien. Une clé de production collée
-sur la bêta est refusée. Il n'écrit le fichier qu'une fois tout validé (temporaire en 0600, relu par le même code que le démarrage du service, puis renommé). **Ce qu'il affiche peut se recoller** (le mode,
+chaque tarif existe-t-il dans CE mode, est-il actif, au bon rythme, à l'unité ? le montant annoncé à l'écran est-il celui de Stripe ? le nom de son produit contient-il « messages » ?) — il ne crée rien et ne facture rien. Une clé de production collée
+sur la bêta est refusée, et un tarif dont le produit ne s'appelle pas « … messages … » aussi (§ 2 : sans ce nom, OP GESTION lirait l'abonnement comme un paiement à lui) ; seul un montant qui n'est pas celui de l'écran ne fait qu'avertir. Il n'écrit le fichier qu'une fois tout validé (temporaire en 0600, relu par le même code que le démarrage du service, puis renommé). **Ce qu'il affiche peut se recoller** (le mode,
 un nom de produit, un montant). Puis :
 
 ```bash
@@ -609,7 +609,7 @@ Pour relire la configuration posée, sans rien changer : `OPMSG_CONFIG=/etc/opms
 curl -s https://msg-beta.teamop.fr/health
 ```
 
-**À voir** : `"stripeEchecMin":0` et `"facturation":{"mode":"test", …}` (et non `inerte`). Le service ne publie ni la clé, ni un tarif, ni un identifiant d'espace : des nombres et un mode.
+**À voir** : `"stripeEchecMin":0` et `"facturation":{"mode":"test", …}` (et non `inerte`). Le service ne publie ni la clé, ni un tarif, ni un identifiant d'espace, ni aucun chiffre commercial (`/health` est public) : le mode, le drapeau de la bêta et les minutes de panne de Stripe.
 
 ### 5. Activer le portail de facturation — un geste dans Stripe
 

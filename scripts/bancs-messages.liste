@@ -30,7 +30,8 @@
 # 3 octobre 2026, les notifications push, l'export et la suppression de compte (test-955 à 958, et le banc de la migration 3 rendu indépendant de la dernière migration) : 33 suites, 3335 vérifications mesurées par `bash scripts/bancs-ci.sh $(liste)` — plancher 3330.
 # 3 octobre 2026, le lot 3 réuni aux deux autres (et un compte effacé qui ne revient pas d'une restauration, test-950) : 35 suites, 4 179 vérifications mesurées par la commande de la porte — plancher 4165.
 # 3 octobre 2026, l'étape 5 (les espaces professionnels et Messages Pro : test-960 à 965, dont la couture avec le vrai OP GESTION) : 41 suites, 4 989 vérifications mesurées par la commande de la porte — plancher 4975.
-#plancher 4975
+# 3 octobre 2026, la relecture du gardien de l'étape 5 (I1 à I3, R2 à R12, la dette des groupes : le paiement réglé qui finit reconnu, la hiérarchie des canaux, le registre des purges des groupes, /health sans chiffre commercial, les places dépassées) : 41 suites, 5 067 vérifications mesurées par la commande de la porte — plancher 5053.
+#plancher 5053
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
