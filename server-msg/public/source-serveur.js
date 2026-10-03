@@ -20,6 +20,12 @@
    déjà. Un message rendu porte `photos:[{url,w,h,piece,etat}]`, `vocal:{url,dur,bars,piece}` ou `fichier:{nom,taille,piece}` : `url` est une adresse `blob:` FABRIQUÉE ICI
    (la pièce est lue par `GET /api/pieces/:id` puis gardée EN MÉMOIRE, jamais sur l'appareil), `null` tant qu'elle n'est pas arrivée (`etat` : 'chargement' | 'indisponible').
      pieceUrl(piece)       → l'adresse `blob:` d'une image ou d'un son (gardée en mémoire, rendue à la fermeture) ;  pieceBlob(piece) → le Blob d'un fichier (jamais gardé).
+     ⛔ UNE PIÈCE QUE LE SERVICE REFUSE POUR L'INSTANT (429, 402 espace plein, 503 lecture seule, 408 envoi trop lent) RESTE dans le fil : son message en file porte `attente:true` et
+     `echec:'<la phrase du service>'` (sans `envoi`), l'avis le dit aussi, et elle ne repart JAMAIS toute seule : `reessayer(cid)` → vrai si elle repart (même `cid`, pièces déjà déposées gardées),
+     `abandonner(cid)` → vrai si elle quitte la file (son adresse locale est rendue). Un refus définitif (trop lourd, type refusé, plus le droit) la jette, avec son avis. Un message en file SANS
+     `echec` attend le réseau : `envoi:true` seulement quand une requête part vraiment (« Envoi… »), une panne se dit UNE fois (événement 'avis'), les essais s'espacent (3 s, 6 s, 12 s, 24 s).
+     `limitesPieces()` → { photo_max, vocal_max, fichier_max, avatar_max, par_message, quota } (octets, et le nombre de photos par message) ; plus de dix photos (le `par_message` du service, que `test-944` compare) : refus local 'trop-de-photos'.
+     `moi()` porte `presence` (faux : MA présence est masquée — la barre de la page ne dit plus « Disponible »). Un nom de fichier long garde son extension (`couperNom`, 120 signes).
    LES RÉGLAGES (capacité `reglages`) : profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer,
    deconnecterAutres, stockage, aPropos — voir plus bas. Chacun rend une promesse (sauf `bloques`) et lève une erreur qui se DIT.
    Les événements de `ecouter(cb)` : 'liste', 'conversation' (id), 'contacts', 'presence', 'reseau' (etat), 'arrivee' (un message d'un autre : de quoi

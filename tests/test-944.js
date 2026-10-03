@@ -320,6 +320,7 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
       const locs = Array.from({ length: 11 }, (_, i) => creerLocale(A, F.png({ couleur: [i * 20, 50, 50] }))), dAvant = A.nb(/^POST \/api\/pieces$/);
       const e11 = await attrape(A.src.envoyer(gT, { photos: locs.map(l => ({ blob: l.blob, url: l.url, w: 8, h: 8 })) }));
       v('⛔ onze photos dans UN message : refusé et DIT (« 10 photos au plus par message »), au lieu de n\'en envoyer que dix en silence — et rien n\'a quitté l\'appareil', [e11 && e11.code, e11 && /10 photos au plus/.test(e11.phrase()), A.nb(/^POST \/api\/pieces$/) - dAvant, A.src.enAttente()], ['trop-de-photos', true, 0, 0]);
+      v('le nombre de photos par message que le SERVICE annonce (`par_message`) est celui que la source refuse de dépasser : dix — le jour où l\'un change, ce banc tombe', (await A.src.limitesPieces()).par_message, 10);
       const r10 = await A.src.envoyer(gT, { photos: locs.slice(0, 10).map(l => ({ blob: l.blob, url: l.url, w: 8, h: 8 })) });
       vrai('contre-épreuve : DIX photos passent (dix dépôts, un message)', !r10.attente && A.nb(/^POST \/api\/pieces$/) - dAvant === 10 && !!(await trouve(B, gT, m => m.photos && m.photos.length === 10)));
 
