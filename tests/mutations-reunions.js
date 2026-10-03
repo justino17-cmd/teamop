@@ -4,7 +4,8 @@
    un `UNTIL` en heure locale, un titre qui ouvre une ligne du fichier .ics ; une réunion qui se lit sans y être invité, un invité qui modifie, un changement d'horaire qui laisse
    « décliné » celui qui ne peut plus venir ; un rappel qui part deux fois, un bail qui ne s'éteint jamais, un rappel du passé renvoyé après une restauration ; un effacement qui
    revient d'une archive d'avant, un rejeu qui écrit une ligne de plus au registre ; un courriel qui part sans son plafond, une pièce jointe qui n'est pas la bonne, un secret affiché ;
-   une route sans sa garde, un code d'erreur que l'écran ne sait pas dire — dans une COPIE de l'arbre (jamais dans l'arbre lui-même : le `git checkout` d'après-mutation de CLAUDE.md
+   une route sans sa garde, un code d'erreur que l'écran ne sait pas dire ; et, côté page, une adresse de fichier qui passe par l'enveloppe asynchrone, un fuseau qu'on ne dit pas au service, une adresse tapée perdue au redessin, un bouton
+   qui reste grisé, une date que la fiche garde après un changement d'horaire, un lieu « javascript: » devenu lien, une heure lue dans le fuseau de la réunion au lieu de celui de l'appareil, un refus d'ICI qui n'en est plus un — dans une COPIE de l'arbre (jamais dans l'arbre lui-même : le `git checkout` d'après-mutation de CLAUDE.md
    efface aussi les correctifs non commités), joue les bancs visés, et exige qu'AU MOINS UN tombe (code de sortie non nul ou un « ✗ »).
 
    ⛔ UNE MUTATION DONT LE MOTIF NE TROUVE RIEN EST MAL VISÉE, et le lanceur le DIT au lieu de conclure : il vérifie que le motif se trouve EXACTEMENT UNE fois
@@ -667,6 +668,95 @@ m('E115', 'la sécurité laissée vide vaut « aucune » (le défaut ne chiffre 
 m('E116', 'une option inconnue est ignorée (l\'outil se lance et écrit)', F.cfgmail, "  for (const a of ARGS) if (a !== '--verifier') echec('option inconnue (« --verifier » est la seule).');\n", "", ['975']);
 m('E117', 'un identifiant sans mot de passe n\'est plus refusé par l\'outil lui-même', F.cfgmail, "  if (utilisateur && !motDePasse) echec('Un identifiant sans mot de passe ne ferait rien.');\n", "", ['975']);
 m('E118', 'l\'outil n\'exige plus l\'hôte ni l\'adresse d\'expédition', F.cfgmail, "  if (!hote || !de) echec('Une valeur manque (l\\'hôte et l\\'adresse d\\'expédition sont obligatoires).');\n", "", ['975']);
+
+/* ── 5. L'INTERFACE (le module de données de la page, puis la page elle-même) — le module est joué par test-976, la page par la SONDE navigateur ─────────────────────────────────── */
+
+/* le module de données : ce que la page appelle */
+m('U01', 'l\'adresse du fichier .ics passe par l\'enveloppe asynchrone de l\'API : la page met « [object Promise] » dans un lien', F.src,
+  "const adresseIcs = (id, o2) => api0.adresseIcs(id, o2 || {});", "const adresseIcs = (id, o2) => A.adresseIcs(id, o2 || {});", ['976']);
+m('U02', 'le fuseau de l\'appareil n\'est plus dit à l\'entrée : on invite quelqu\'un qui n\'a pas ouvert l\'onglet, et sa notification dit l\'heure de PARIS', F.src,
+  /\n      direFuseau\(\);[^\n]*dès l'entrée[^\n]*\n/, "\n", ['976']);
+m('U03', 'une panne de lecture de la configuration devient « pas encore ouvert » (faux) au lieu de « on ne sait pas » (null)', F.src,
+  "typeof c.courriel.ouvert === 'boolean' ? c.courriel.ouvert : null; } catch (e) { return null; } }", "typeof c.courriel.ouvert === 'boolean' ? c.courriel.ouvert : null; } catch (e) { return false; } }", ['976']);
+m('U04', 'le module dit « ouvert » sans avoir lu la réponse du service', F.src,
+  "typeof c.courriel.ouvert === 'boolean' ? c.courriel.ouvert : null; } catch", "typeof c.courriel.ouvert === 'boolean' ? true : null; } catch", ['976']);
+m('U05', 'une réunion introuvable redit « la conversation » (le refus générique) : la page ne sait plus de quoi elle parle', F.src,
+  "if (e && e.code === 'introuvable') throw erreurLocale('reunion_introuvable'); throw e;", "throw e;", ['976']);
+m('U06', 'l\'adresse que le service worker demande d\'ouvrir n\'est plus ancrée au début : une adresse d\'un AUTRE site qui finit par /#reunions/<id> ouvre une fiche', F.src,
+  "const MOTIF_OUVRIR_REUNION = /^\\/#reunions\\/(r_[0-9a-f]{32})$/;", "const MOTIF_OUVRIR_REUNION = /\\/#reunions\\/(r_[0-9a-f]{32})$/;", ['976']);
+m('U07', 'l\'adresse que le service worker demande d\'ouvrir n\'est plus ancrée à la fin : « …/<id>/x » ouvre la fiche', F.src,
+  "const MOTIF_OUVRIR_REUNION = /^\\/#reunions\\/(r_[0-9a-f]{32})$/;", "const MOTIF_OUVRIR_REUNION = /^\\/#reunions\\/(r_[0-9a-f]{32})/;", ['976']);
+m('U08', 'la phrase système d\'un changement d\'horaire redevient « modifié la réunion » : la personne ne sait pas que SA réponse est repartie à zéro', F.src,
+  "(m.meta.horaire ? ' changé l\\'horaire de la réunion' : ' modifié la réunion')", "(' modifié la réunion')", ['976']);
+m('U09', 'la phrase système d\'une annulation dit autre chose que « annulé la réunion »', F.src,
+  "' annulé la réunion';", "' quitté la réunion';", ['976']);
+m('U10', 'la liste ne dit plus de quelle réunion une conversation est la conversation : le titre ne peut plus mener à la fiche', F.src,
+  "reunion: c.type === 'reunion' && typeof c.reunion === 'string' ? c.reunion : null,\n      };", "reunion: null,\n      };", ['976']);
+m('U11', 'l\'aperçu d\'une conversation de réunion dont le dernier message est une phrase système dit « Activité du groupe »', F.src,
+  "(canal ? 'Activité du canal' : c.type === 'reunion' ? 'Activité de la réunion' : 'Activité du groupe')", "(canal ? 'Activité du canal' : 'Activité du groupe')", ['976']);
+m('U12', 'l\'événement `reunion` du flux n\'est plus relayé à la page : l\'hôte ne sait pas qu\'on a répondu avant de recharger', F.src,
+  "reunion: (d) => { emettre({ type: 'reunions', id: d && typeof d.id === 'string' ? d.id : null, supprime: !!(d && d.supprime) }); relireListePlusTard(); },", "reunion: (d) => { relireListePlusTard(); },", ['976']);
+m('U13', 'la liste blanche des champs d\'une réunion laisse passer l\'hôte (la page pourrait dire « l\'organisateur est X »)', F.src,
+  "const CHAMPS_REUNION = ['titre',", "const CHAMPS_REUNION = ['hote', 'titre',", ['976']);
+m('U14', 'supprimer ne transmet plus le choix « Prévenir les invités » : tout le monde est prévenu, quoi qu\'on ait éteint', F.src,
+  "A.supprimerReunion(id, { notifier: !(o2 && o2.notifier === false) })", "A.supprimerReunion(id, { notifier: true })", ['976', 'sonde'], SONDE);
+
+/* la page : le formulaire, la fiche, l'agenda */
+m('U20', 'une réunion supprimée ou une personne retirée redit « Cette réunion a été supprimée » : faux pour la personne qu\'on a seulement retirée', F.page,
+  "mot(PHRASE_REUNION_PERDUE); fermerCouche(); } else rendreFiche();", "mot('Cette réunion a été supprimée.'); fermerCouche(); } else rendreFiche();", ['sonde'], SONDE);
+m('U21', 'l\'adresse tapée ne survit au redessin que si le champ a le focus : toucher « Cette date » la perd', F.page,
+  "const ch = $('rc-adresse'), champ = ch && corps.contains(ch) ? { v: ch.value, focus: actif === ch, a: ch.selectionStart } : null;",
+  "const champ = actif && corps.contains(actif) && actif.id === 'rc-adresse' ? { v: actif.value, focus: true, a: actif.selectionStart } : null;", ['sonde'], SONDE);
+m('U22', 'un envoi réussi laisse son bouton grisé : le deuxième courriel ne peut plus partir', F.page,
+  "          b.removeAttribute('aria-disabled');\n          mot('Invitation envoyée par courriel');", "          mot('Invitation envoyée par courriel');", ['sonde'], SONDE);
+m('U23', 'la date choisie dans l\'agenda n\'est plus revérifiée : après un changement d\'horaire la fiche parle d\'un jour qui n\'existe plus', F.page,
+  "if (F.occurrence && d.repetition !== 'aucune' && F.occVersion !== d.version) {", "if (false) {", ['sonde'], SONDE);
+m('U24', 'le titre de la conversation d\'une réunion ouvre les infos d\'un groupe, pas la réunion', F.page,
+  "if (CAP.reunions && rc) { declencheur = $('conv-titre');", "if (false && rc) { declencheur = $('conv-titre');", ['sonde'], SONDE);
+m('U25', 'l\'événement `reunions` ne redessine plus la fiche ouverte : l\'hôte ne voit la réponse de Bruno qu\'en la fermant', F.page,
+  "mot(PHRASE_REUNION_PERDUE); fermerCouche(); } else rendreFiche();", "mot(PHRASE_REUNION_PERDUE); fermerCouche(); }", ['sonde'], SONDE);
+m('U26', 'l\'organisateur se voit proposer de répondre à sa propre réunion', F.page,
+  "if (!hote && !d.annulee) s += '<div class=\"rubrique\"><span>Ta réponse</span>", "if (!d.annulee) s += '<div class=\"rubrique\"><span>Ta réponse</span>", ['sonde'], SONDE);
+m('U27', 'un invité voit les gestes de l\'organisateur (modifier, annuler, supprimer, courriel)', F.page,
+  "    if (hote) {\n      s += '<div class=\"rubrique\"><span>Organisateur</span></div>';", "    if (true) {\n      s += '<div class=\"rubrique\"><span>Organisateur</span></div>';", ['sonde'], SONDE);
+m('U28', 'un lieu qui commence par « javascript: » devient un lien', F.page,
+  "const estUrl = t => /^https?:\\/\\/[^\\s<>\"'`]{1,280}$/i.test(String(t || ''));", "const estUrl = t => /^[a-z]+:[^\\s<>\"'`]{1,280}$/i.test(String(t || ''));", ['sonde'], SONDE);
+m('U29', 'le lien du lieu perd « noreferrer » : l\'adresse de la fiche (avec l\'identifiant de la réunion) part chez le site du lieu', F.page,
+  "target=\"_blank\" rel=\"noopener noreferrer\">' + esc(d.lieu)", "target=\"_blank\" rel=\"noopener\">' + esc(d.lieu)", ['sonde'], SONDE);
+m('U30', 'l\'agenda écrit l\'heure du fuseau de la RÉUNION et non celle de l\'appareil : Bruno, à New York, lit 14:00', F.page,
+  "'<span class=\"reunion-heure\">' + esc(FMT_HEURE.format(o.debut)) + '<small>' + esc(FMT_HEURE.format(o.fin)) + '</small></span>'", "'<span class=\"reunion-heure\">' + esc(heureDans(o.debut, r.tz)) + '<small>' + esc(heureDans(o.fin, r.tz)) + '</small></span>'", ['sonde'], SONDE);
+m('U31', '« Notifier les invités » éteint est envoyé comme allumé', F.page,
+  "else if (act === 'form-notifier') { reu.form.notifier = !reu.form.notifier;", "else if (act === 'form-notifier') { reu.form.notifier = true;", ['sonde'], SONDE);
+m('U32', 'modifier envoie le titre même quand il n\'a pas changé (et réécrit donc ce qu\'un autre venait de changer)', F.page,
+  "if (c.titre !== I.titre) ch.titre = c.titre;", "ch.titre = c.titre;", ['sonde'], SONDE);
+m('U33', 'la portée du courriel est inversée : « Cette date » envoie toute la série', F.page,
+  "{ occurrence: F.courriel.serie ? undefined : occurrenceCourante() }", "{ occurrence: F.courriel.serie ? occurrenceCourante() : undefined }", ['sonde'], SONDE);
+m('U34', 'annuler n\'attend plus la confirmation : le premier toucher annule', F.page,
+  "else if (act === 'annuler-demander') { F.confirme = 'annuler'; await relire(); }", "else if (act === 'annuler-demander') { b.setAttribute('aria-disabled', 'true'); await source.annulerReunion(id); F.confirme = null; await relire(); }", ['sonde'], SONDE);
+m('U35', 'un identifiant d\'adresse n\'est plus vérifié : « #reunions/r_zz » ouvre une feuille et part au service', F.page,
+  "const ID_REUNION = /^r_[0-9a-f]{32}$/;", "const ID_REUNION = /^r_/;", ['sonde'], SONDE);
+
+/* ── 6. L'INTERFACE, SUITE — les refus d'ICI, le jour du mois, les collègues d'un espace — joués par la SONDE navigateur ────────────────────────────────────────────────────── */
+m('U36', '« tous les mois » un 31 : la page ne dit plus que les mois sans 31 sont sautés', F.page,
+  "saute = rep === 'mensuelle' && jour >= 29;", "saute = false;", ['sonde'], SONDE);
+m('U37', 'la remarque des mois sautés commence au 30 : un 29 n\'est plus signalé (février)', F.page,
+  "saute = rep === 'mensuelle' && jour >= 29;", "saute = rep === 'mensuelle' && jour >= 30;", ['sonde'], SONDE);
+m('U38', 'la remarque des mois sautés commence au 28 : un 28 est signalé à tort', F.page,
+  "saute = rep === 'mensuelle' && jour >= 29;", "saute = rep === 'mensuelle' && jour >= 28;", ['sonde'], SONDE);
+m('U39', 'le formulaire de programmation ne relit plus les collègues : un espace créé depuis le dernier formulaire n\'y paraît pas', F.page,
+  /\n    if \(!id\) reu\.colleagues = null;[^\n]*\n/, "\n", ['sonde'], SONDE);
+m('U40', 'la fiche ne relit plus les collègues à l\'ouverture : quelqu\'un qui a quitté l\'espace reste proposé à l\'invitation', F.page,
+  "function ouvrirFicheEtat(id) { reu.colleagues = null; reu.fiche = {", "function ouvrirFicheEtat(id) { reu.fiche = {", ['sonde'], SONDE);
+m('U41', '« Peut-être » s\'écrit « En attente » chez l\'organisateur : il ne sait pas les distinguer', F.page,
+  "peutetre: 'Peut-être' };", "peutetre: 'En attente' };", ['sonde'], SONDE);
+m('U42', 'changer le début ne déplace plus la fin : une fin avant le début reste dans le formulaire', F.page,
+  "if (b && f && f <= b) { const dureeMs", "if (false) { const dureeMs", ['sonde'], SONDE);
+m('U43', 'le titre vide n\'est plus refusé ICI : la demande part au service', F.page,
+  "if (!titre) { erreurInfo('Donne un titre à la réunion.'); $('rf-titre').focus(); return null; }", "", ['sonde'], SONDE);
+m('U44', 'une fin avant le début n\'est plus refusée ICI : la demande part au service', F.page,
+  "if (fin <= debut) { erreurInfo('La fin de la réunion doit tomber après son début.'); $('rf-fin').focus(); return null; }", "", ['sonde'], SONDE);
+m('U45', 'un nombre de réunions de 1 n\'est plus refusé ICI : la demande part au service', F.page,
+  "if (!Number.isInteger(n) || n < 2 || n > 1000) {", "if (!Number.isInteger(n) || n < 1 || n > 1000) {", ['sonde'], SONDE);
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const DOSSIERS_COPIE = ['server-msg', 'server', 'design/opmessages', '.github', 'apercu/opmessages', 'icons', 'scripts'];   // `.github` ENTIER : test-934 lit les workflows autant que les scripts de surveillance
 function copier(src, dst) {

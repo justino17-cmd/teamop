@@ -273,6 +273,17 @@ const jourParis = (t) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Pa
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       v('le fuseau de l\'appareil a été dit au service UNE fois (et lui seul : rien d\'autre ne part dans ce corps)', [posts.length, posts.map(p => JSON.parse(p.corps))], [1, [{ tz }]]);
     }
+
+    /* ═══ 12. LA LISTE BLANCHE DES CHAMPS ══════════════════════════════════════════════════════════════════════════ */
+    console.log('\nCe que la page peut dire d\'une réunion : une liste blanche (rien d\'autre ne part)');
+    {
+      const avant = A.reseau.requetes.length;
+      const j = jourParis(Date.now() + 40 * JOUR);
+      await A.src.programmer({ titre: 'Champs en trop', debut: j + 'T14:00', fin: j + 'T15:00', tz: 'Europe/Paris', hote: bob.id, id: 'r_' + 'c'.repeat(32), conv: 'c_' + 'c'.repeat(32), version: 9, annulee: true, participants: [bob.id] });
+      const posts = A.reseau.requetes.slice(avant).filter(r => r.m === 'POST' && r.chemin === '/api/reunions');
+      vrai('population : la page a envoyé UNE demande de programmation', posts.length === 1);
+      v('⛔ elle ne porte que les champs que la page a le droit de dire : ni hôte, ni identifiant, ni conversation, ni version, ni état, ni participants', posts.length ? Object.keys(JSON.parse(posts[0].corps)).sort() : null, ['debut', 'fin', 'titre', 'tz']);
+    }
   } finally {
     for (const s of sources) { try { s.arreter(); } catch (e) { /* déjà arrêté */ } }
     await svcA.arreter(); await svcB.arreter(); await svcC.arreter(); await og.fermer();

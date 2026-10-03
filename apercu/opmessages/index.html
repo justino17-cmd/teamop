@@ -3798,7 +3798,7 @@ a.mini .ic { font-size: 16px; }
     if (champ && champ.focus && $('rc-adresse')) { $('rc-adresse').focus({ preventScroll: true }); try { $('rc-adresse').setSelectionRange(champ.a, champ.a); } catch (e) { /* un champ sans curseur */ } }
     else if (cle) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-reu]')).find(x => x.dataset.reu === a && (x.dataset.uid || x.dataset.min || x.dataset.statut || x.dataset.portee || '') === u); if (b) b.focus({ preventScroll: true }); }
   }
-  function ouvrirFicheEtat(id) { reu.fiche = { id, donnees: null, jeton: 0, confirme: null, courriel: null, prevenir: true, occurrence: reu.occurrences[id] || null, occVersion: null, erreur: null }; }
+  function ouvrirFicheEtat(id) { reu.colleagues = null; reu.fiche = { id, donnees: null, jeton: 0, confirme: null, courriel: null, prevenir: true, occurrence: reu.occurrences[id] || null, occVersion: null, erreur: null }; }
   /* retour à la fiche après un formulaire : l'entrée de la fiche est RENDUE quand c'est elle qui est dessous, sinon on la REMPLACE */
   function versFiche(id) {
     const h = entree(), cible = 'reunion:' + id;
@@ -3893,10 +3893,15 @@ a.mini .ic { font-size: 16px; }
     $('rf-fin-rep').hidden = rep === 'aucune';
     $('rf-jusqua-c').hidden = rep === 'aucune' || type !== 'date';
     $('rf-n-c').hidden = rep === 'aucune' || type !== 'nombre';
+    /* « tous les mois » un 29, un 30 ou un 31 : les mois qui n'ont pas ce jour sont SAUTÉS (le service ne décale pas la réunion au 28) — on le dit AVANT, pas après */
+    const jour = Number(($('rf-debut').value || '').slice(8, 10)) || 0, saute = rep === 'mensuelle' && jour >= 29;
+    $('rf-rep-note').hidden = !saute;
+    $('rf-rep-note').textContent = saute ? 'Les mois qui n\'ont pas de ' + jour + ' sont sautés : il n\'y a pas de réunion ce mois-là.' : '';
   }
   /* le formulaire d'une réunion neuve (id nul) ou d'une réunion de l'hôte (modifier) */
   async function rendreFormReunion(id) {
     const corps = $('info-corps');
+    if (!id) reu.colleagues = null;                     // un espace créé ou rejoint depuis le dernier formulaire : ses membres sont relus à chaque ouverture
     let d = null;
     if (id) {
       try { d = await source.reunion(id); } catch (e) { corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">' + esc(phrase(e, 'La réunion n\'a pas pu être chargée.')) + '</p>'; return; }
@@ -3916,7 +3921,7 @@ a.mini .ic { font-size: 16px; }
       '<div class="champ"><label for="rf-debut">' + (d && d.repetition !== 'aucune' ? 'Début de la première réunion' : 'Début') + '</label><input id="rf-debut" type="datetime-local" step="60" value="' + esc(initial.debut) + '"></div>' +
       '<div class="champ"><label for="rf-fin">Fin</label><input id="rf-fin" type="datetime-local" step="60" value="' + esc(initial.fin) + '"></div>' +
       '<div class="champ"><label for="rf-tz">Fuseau horaire</label><select id="rf-tz">' + optionsDe(listeFuseaux(tz).map(x => [x, x]), tz) + '</select><p class="info-note">Les heures ci-dessus sont celles de ce fuseau.</p></div>' +
-      '<div class="champ"><label for="rf-rep">Répétition</label><select id="rf-rep">' + optionsDe(REPETITIONS, initial.repetition) + '</select></div>' +
+      '<div class="champ"><label for="rf-rep">Répétition</label><select id="rf-rep">' + optionsDe(REPETITIONS, initial.repetition) + '</select><p class="info-note" id="rf-rep-note" hidden></p></div>' +
       '<div id="rf-fin-rep"><div class="champ"><label for="rf-fin-type">Fin de la répétition</label><select id="rf-fin-type">' + optionsDe([['jamais', 'Jamais'], ['date', 'À une date'], ['nombre', 'Après un nombre de fois']], typeFin) + '</select></div>' +
         '<div class="champ" id="rf-jusqua-c"><label for="rf-jusqua">Dernier jour</label><input id="rf-jusqua" type="date" value="' + esc(initial.jusqua || '') + '"></div>' +
         '<div class="champ" id="rf-n-c"><label for="rf-n">Nombre de réunions</label><input id="rf-n" type="number" min="2" max="1000" inputmode="numeric" value="' + esc(initial.n || 10) + '"></div></div>' +
@@ -3934,6 +3939,7 @@ a.mini .ic { font-size: 16px; }
       const a = reu.form.debutPrec, b = $('rf-debut').value, f = $('rf-fin').value;
       if (b && f && f <= b) { const dureeMs = Date.parse(f + ':00Z') - Date.parse(a + ':00Z'); $('rf-fin').value = new Date(Date.parse(b + ':00Z') + (dureeMs > 0 ? dureeMs : 3600000)).toISOString().slice(0, 16); }
       if (b) reu.form.debutPrec = b;
+      synchroFormRepetition();
     });
     if (!id) {
       $('rf-recherche').addEventListener('input', () => { reu.form.recherche = $('rf-recherche').value; $('rf-invites').innerHTML = htmlInvitesForm(reu.form); });
