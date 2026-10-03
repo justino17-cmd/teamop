@@ -92,6 +92,12 @@ function installerCompte(H, ctx) {
               reactions: (m.reactions || []).map(x => ({ emoji: x.emoji, par: x.uid === uid ? 'moi' : (noms.get(x.uid) || null) })),
             };
             if (metaPieces) o.pieces = metaPieces;
+            /* un message d'ACTIVITÉ du groupe (« Bob a ajouté Dan », « Alice a renommé le groupe ») n'a pas de texte : sans son évènement, l'export le montrerait comme un message vide */
+            if (m.type === 'systeme' && m.meta && typeof m.meta.k === 'string') {
+              o.evenement = { type: m.meta.k };
+              if (typeof m.meta.uid === 'string') { o.evenement.cible_id = m.meta.uid; o.evenement.cible = m.meta.uid === uid ? 'moi' : (noms.get(m.meta.uid) || null); }
+              if (m.meta.valeur !== undefined) o.evenement.valeur = m.meta.valeur;
+            }
             if (m.illisible) o.illisible = true;
             morceau += (premierMessage ? '' : ',') + J(o);
             premierMessage = false;
