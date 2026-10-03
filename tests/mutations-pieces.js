@@ -65,7 +65,12 @@ m2('P21', 'un fichier est servi selon sa signature : un PNG déposé comme fichi
 m('P22', 'tout est servi « inline » (plus de pièce jointe pour un fichier)', F.pz, "if (inline) return 'inline';", "return 'inline';", ['942', '943']);
 m('P23', 'le nom d\'une pièce jointe n\'est plus assaini dans l\'en-tête (retour à la ligne, guillemets, barres)', F.pz, /\.replace\(\/\[\\u0000-\\u001f[^\]]*\]\/g, '_'\)/, '', ['942', '943']);
 m('P24', 'le nom d\'un fichier est rangé tel que le client l\'a donné (ni barres, ni contrôles ôtés à l\'entrée)', F.rp, "nom = couperNom(nettoyerNom(lu).replace(/[\\/\\\\]/g, '_'), NOM_MAX).trim();", 'nom = String(lu).slice(0, NOM_MAX);', ['943']);
-m('P25', 'la politique de sécurité « sandbox » de la pièce servie est retirée', F.rp, "      'Content-Security-Policy': \"sandbox; default-src 'none'\",\n", '', ['943']);
+/* ⚠️ DEPUIS LA REMARQUE 1 DU GARDIEN (3 octobre 2026), `app.js` pose la sandbox sur TOUT le préfixe /api/pieces* : retirer la seule ligne de la route ne change plus rien (mesuré : P25 survivait — une
+   mutation NEUTRALISÉE par une autre garde, pas un banc aveugle). On retire donc les DEUX, la route et le préfixe : la pièce servie porte alors la politique de la page, et test-943 doit le voir. */
+m2('P25', 'la politique de sécurité « sandbox » de la pièce servie est retirée (la ligne de la route ET celle du préfixe, qui la double depuis la remarque 1)', [
+  [F.rp, "      'Content-Security-Policy': \"sandbox; default-src 'none'\",\n", ''],
+  [F.app, "'Content-Security-Policy': /^\\/api\\/pieces/i.test(req.path) ? CSP_PIECE : CSP_PAGE,", "'Content-Security-Policy': CSP_PAGE,"],
+], ['943']);
 /* ⚠️ retirer SEUL l'en-tête de la route des pièces est une mutation ÉQUIVALENTE (mesurée : elle survit) : `app.js` pose `nosniff` sur TOUTES les réponses. Les deux posent la même règle ; on retire les deux. */
 m2('P26', 'plus aucun nosniff sur une pièce servie (ni sur la route des pièces, ni dans l\'enveloppe du service : les deux posent le même en-tête)', [[F.rp, "      'X-Content-Type-Options': 'nosniff',\n", ''], [F.app, "      'X-Content-Type-Options': 'nosniff',\n", '']], ['943', '903']);
 m('P27', 'la plage demandée est ignorée (toujours le fichier entier)', F.rp, 'const m = /^bytes=(\\d*)-(\\d*)$/.exec(String(rg).trim());', 'const m = null;', ['943']);
