@@ -275,6 +275,15 @@ const MIGRATIONS = [
     `CREATE INDEX IF NOT EXISTS personne_suppression ON personne(suppression_le) WHERE suppression_le IS NOT NULL`,
     `PRAGMA user_version = 4`,
   ] },
+  /* ── 5 : DE QUI PARLE UNE NOTIFICATION (3 octobre 2026) ──────────────────────────────────────────────────────────────────────────────────
+     « Alice vous a ajouté au groupe. » porte le PRÉNOM d'Alice, scellé dans le texte de CELUI QUI REÇOIT. Le jour où Alice efface son compte, ce prénom restait chez les autres — dans leur liste
+     de notifications et dans leur export de données (relevé par le gardien, 3 octobre 2026). `auteur` dit QUI est nommé, pour que l'effacement réécrive ces notifications (« Un compte
+     supprimé ») ; NULL pour celles d'avant (aucun moyen de savoir de qui elles parlent). Aucune table reconstruite ; pas de clé étrangère (la ligne `personne` d'un compte effacé reste, vide). */
+  { v: 5, sql: [
+    `ALTER TABLE notification ADD COLUMN auteur TEXT`,
+    `CREATE INDEX IF NOT EXISTS notification_auteur ON notification(auteur) WHERE auteur IS NOT NULL`,
+    `PRAGMA user_version = 5`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -316,7 +325,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (m.sansFk === true) X('PRAGMA foreign_keys=OFF');
     X('BEGIN IMMEDIATE');
     try {
-      for (const s of m.sql) X(s);
+      for (const s of m.sql) {
+        /* ⛔ REJOUABLE : SQLite n'a pas de `ADD COLUMN IF NOT EXISTS`. Une migration rejouée sur une base qui a déjà sa colonne (le compteur remis à zéro à la main, une restauration) ne doit pas échouer
+           sur « duplicate column name » — et SEULEMENT sur celle-là : toute autre erreur, y compris d'un `ALTER` sur une table absente, arrête la migration. */
+        try { X(s); }
+        catch (e) { if (!(/^\s*ALTER TABLE \w+ ADD COLUMN /i.test(s) && /duplicate column name/i.test(String(e && e.message)))) throw e; }
+      }
       if (m.sansFk === true && Q('PRAGMA foreign_key_check').all().length > 0) throw erreur('migration_orphelins');
       X('COMMIT');
     } catch (e) { try { X('ROLLBACK'); } catch (e2) {} if (m.sansFk === true) X('PRAGMA foreign_keys=ON'); throw e; }
@@ -439,9 +453,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       return hs;
     });
   }
-  function sessionsBetaActives() {
+  /* ⛔ LES COMPTES BÊTA À RELIRE chez OP GESTION (`porte-beta.js` → `relire`) : ceux qui ont une session vivante, ET ceux qui ont un abonnement push — même sans session.
+     Une session expire (30 jours sans usage), un abonnement non : ne relire que les sessions laissait un accès COUPÉ dans la Tour (la personne n'est plus de l'équipe) recevoir
+     encore, sur son téléphone, « Nouveau message » — jusqu'à la fin des temps (relevé par le gardien, 3 octobre 2026). */
+  function betaARelire() {
     const t = horloge();
-    return Q(`SELECT DISTINCT p.id FROM personne p JOIN session s ON s.personne = p.id WHERE p.origine = 'beta' AND s.exp > ?`).all(t)
+    return Q(`SELECT p.id FROM personne p WHERE p.origine = 'beta'
+              AND (EXISTS (SELECT 1 FROM session s WHERE s.personne = p.id AND s.exp > ?) OR EXISTS (SELECT 1 FROM push x WHERE x.uid = p.id)) ORDER BY p.id`).all(t)
       .map(r => ({ id: r.id, bid: String(personneIdentifiant(r.id) || '').replace(/^beta:/, '') }));   // `bid` : l'identifiant du compte chez OP GESTION
   }
 
@@ -1118,11 +1136,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
 
   /* ══ NOTIFICATIONS DANS L'APPLICATION ════════════════════════════════════════════════════ */
-  function notifCreer({ uid, type, titre, texte, cible }) {
+  /* `auteur` : la personne que le texte NOMME (celle qui a ajouté, mentionné) — l'effacement de son compte réécrit alors la notification (`notifsAnonymiser`). */
+  function notifCreer({ uid, type, titre, texte, cible, auteur }) {
     return tx(() => {
       const id = nouvelId('n'), t = horloge();
-      Q('INSERT INTO notification(id, uid, type, titre_ch, texte_ch, cible, ts) VALUES(?, ?, ?, ?, ?, ?, ?)')
-        .run(id, uid, type, sceller('notification', 'titre_ch', id + '|titre', titre || ''), sceller('notification', 'texte_ch', id + '|texte', texte || ''), cible || null, t);
+      Q('INSERT INTO notification(id, uid, type, titre_ch, texte_ch, cible, ts, auteur) VALUES(?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(id, uid, type, sceller('notification', 'titre_ch', id + '|titre', titre || ''), sceller('notification', 'texte_ch', id + '|texte', texte || ''), cible || null, t, auteur || null);
       /* Deux cents au plus par personne : le reste est de l'historique qu'on ne relit pas. */
       Q('DELETE FROM notification WHERE uid = ? AND id NOT IN (SELECT id FROM notification WHERE uid = ? ORDER BY ts DESC, id DESC LIMIT 200)').run(uid, uid);
       return { id, gid: journalAjouter('notif', null, uid, id) };
@@ -1442,17 +1461,30 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function pushRetirer(uid, endpoint) { return num(Q('DELETE FROM push WHERE endpoint_h = ? AND uid = ?').run(hPush(endpoint), uid).changes); }
   function pushRetirerId(id) { return num(Q('DELETE FROM push WHERE id = ?').run(id).changes); }
   function pushOk(id) { Q('UPDATE push SET echecs = 0, derniere_ok = ? WHERE id = ?').run(horloge(), id); }
-  /* Un échec de plus ; au `max`-ième de SUITE l'abonnement part (le service push ne répond plus, ou refuse nos clés). → { retire } */
-  function pushEchec(id, max) {
+  /* Un REFUS de plus du service push à CET abonnement (une réponse 4xx qui ne dit ni « disparu » ni « tes clés sont refusées » : voir `push.js`). → { echecs } : le nombre de refus de suite, remis à zéro par une livraison
+     (`pushOk`). Le RETRAIT n'est pas ici : il se juge dans `push.js`, qui sait l'heure du premier refus de la série — cinq refus en cinq minutes ne retirent personne (relevé par le gardien, 3 octobre 2026). */
+  function pushEchec(id) {
     return tx(() => {
-      const r = Q('SELECT echecs FROM push WHERE id = ?').get(id);
-      if (!r) return { retire: false };
-      if (r.echecs + 1 >= max) { Q('DELETE FROM push WHERE id = ?').run(id); return { retire: true }; }
       Q('UPDATE push SET echecs = echecs + 1 WHERE id = ?').run(id);
-      return { retire: false };
+      const r = Q('SELECT echecs FROM push WHERE id = ?').get(id);
+      return { echecs: r ? num(r.echecs) : 0 };
     });
   }
   function pushSupprimerPersonne(uid) { return num(Q('DELETE FROM push WHERE uid = ?').run(uid).changes); }
+  /* ⛔ UNE PERSONNE EST JOIGNABLE tant qu'elle peut revenir dans l'application sans rien prouver de neuf : une session vivante, ou un jeton d'appareil valable (échéance glissante ET
+     plafond absolu, comme `telAppareilLire`). Sans l'un ni l'autre, elle n'est plus connectée nulle part : l'aperçu d'un message n'a rien à faire sur son écran verrouillé. Une session
+     expire (30 jours sans usage), un abonnement push non — c'est ce qui laissait un téléphone recevoir encore les messages d'un compte dont plus rien ne tenait l'accès
+     (relevé par le gardien, 3 octobre 2026). `absMs` : le plafond absolu d'un jeton d'appareil (`telephone.js`). */
+  function pushJoignable(uid, absMs) {
+    const t = horloge();
+    if (Q('SELECT 1 AS x FROM session WHERE personne = ? AND exp > ? LIMIT 1').get(uid, t)) return true;
+    return !!Q('SELECT 1 AS x FROM appareil_tel WHERE personne = ? AND exp > ? AND cree + ? > ? LIMIT 1').get(uid, t, absMs, t);
+  }
+  /* Le balayeur retire les abonnements des personnes qui ne sont plus joignables (la page redit son abonnement à la prochaine connexion : rien n'est perdu pour qui revient). */
+  function pushNonJoignablesPurger(absMs) {
+    const t = horloge();
+    return num(Q(`DELETE FROM push WHERE uid NOT IN (SELECT personne FROM session WHERE exp > ?) AND uid NOT IN (SELECT personne FROM appareil_tel WHERE exp > ? AND cree + ? > ?)`).run(t, t, absMs, t).changes);
+  }
   /* « Déconnecter les autres appareils » : tous les abonnements de la personne SAUF celui d'où elle le demande (son point d'accès, s'il le donne). Sans point d'accès, ou avec un point
      d'accès qu'elle n'a pas inscrit : tous — l'appareil se réabonne en une seconde, un téléphone perdu qui continue de recevoir les notifications ne se rattrape pas. */
   function pushRetirerAutres(uid, garder) {
@@ -1485,13 +1517,18 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return Q(`SELECT DISTINCT m.uid AS uid FROM membre m JOIN push p ON p.uid = m.uid
               WHERE m.conv = ? AND m.quitte_le IS NULL AND m.uid <> ? AND m.muet_jusqua <= ? AND m.depuis_seq <= ? ORDER BY m.uid`).all(conv, auteur, horloge(), seq).map(r => r.uid);
   }
-  /* ⛔ LA NOTIFICATION SE RE-JUGE AU MOMENT DE PARTIR (elle attend jusqu'à 5 s qu'une page l'acquitte) : la personne a pu mettre la conversation en sourdine, la quitter, ou l'auteur a pu
-     supprimer le message « pour tous » — rien de tout cela ne doit partir quand même. */
+  /* ⛔ LA NOTIFICATION SE RE-JUGE AU MOMENT DE PARTIR (elle attend jusqu'à 5 s qu'une page l'acquitte) : la personne a pu mettre la conversation en sourdine, la quitter, bloquer l'autre d'une
+     conversation directe, ou l'auteur a pu supprimer le message « pour tous » — rien de tout cela ne doit partir quand même. Et le message a pu être MODIFIÉ : on rend son état ACTUEL, pas
+     celui du moment de l'envoi (un aperçu qui part avec l'ancien texte montre sur un écran verrouillé ce que l'auteur a corrigé — relevé par le gardien, 3 octobre 2026).
+     → null (ne part pas) ou { type, texte (null si illisible), expire_ts (null si le message n'est pas éphémère) }. */
   function pushMessageEncore({ uid, conv, seq }) {
     const m = Q('SELECT depuis_seq, muet_jusqua FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
-    if (!m || m.muet_jusqua > horloge() || seq < m.depuis_seq) return false;
-    const x = Q('SELECT supprime_le, expire_ts FROM message x WHERE x.conv = ? AND x.seq = ? AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)').get(conv, seq, uid);
-    return !!x && !x.supprime_le && (x.expire_ts === null || x.expire_ts > horloge());
+    if (!m || m.muet_jusqua > horloge() || seq < m.depuis_seq) return null;
+    if (!ecritureAutorisee(conv, uid)) return null;   // une directe bloquée (ou sans contact mutuel) ne reçoit plus rien : la même règle que l'envoi
+    const x = Q('SELECT auteur, type, corps_ch, supprime_le, expire_ts FROM message x WHERE x.conv = ? AND x.seq = ? AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)').get(conv, seq, uid);
+    if (!x || x.supprime_le || (x.expire_ts !== null && x.expire_ts <= horloge())) return null;
+    const texte = x.corps_ch ? ouvrirOuNull('message', 'corps_ch', aadMsg(conv, seq, x.auteur), x.corps_ch) : null;
+    return { type: x.type, texte, expire_ts: x.expire_ts === null ? null : num(x.expire_ts) };
   }
   /* L'autre d'une conversation directe est-il un compte supprimé ? (pour dire « ce compte a été supprimé » à qui lui écrit, au lieu d'un « introuvable » muet) */
   function autreSupprime(conv, uid) {
@@ -1509,10 +1546,27 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
      et que les autres voient encore dans leurs conversations (le message resterait, sa pièce serait un trou). Les messages d'une personne qui s'en va restent chez les autres, avec l'auteur
      « Compte supprimé » (comme chez WhatsApp) : l'identifiant, lui, doit continuer de désigner quelqu'un. Il ne désigne plus personne : plus de numéro (`email_h` NULL — le numéro peut donc
      s'inscrire à NEUF, et ne retrouve jamais cette ligne), plus de nom, plus rien qui permette de se connecter. */
-  function suppressionProgrammer(uid, echeance) {
+  /* ⛔ LA DEMANDE ET L'ANNULATION SE NOTENT DANS LE REGISTRE (genres « suppression_demandee » et « suppression_annulee », rejoués par le SERVICE, `rejeu.js`), dans la MÊME transaction.
+     Rejoué par le gardien le 3 octobre 2026 : une restauration pendant le sursis ramenait une copie d'AVANT la demande — l'échéance n'y était plus, le compte n'était JAMAIS effacé
+     alors que la personne croyait l'avoir demandé ; et une copie d'AVANT l'annulation ramenait l'échéance d'une personne revenue entre-temps — qui serait effacée à la minute où le
+     balayeur passe. `objet` = « identifiant|échéance|marque » (la demande) et « identifiant|marque » (l'annulation) : la marque (4 octets au hasard) rend chaque ligne UNIQUE, car la
+     restauration recopie le registre sans doublon sur (objet, genre) et deux demandes de même échéance, à la même milliseconde, ne doivent pas n'en faire qu'une.
+     `{ rejeu: true }` : le REJEU de la ligne après une restauration — il pose (ou lève) l'échéance et ne refait que les coupures qu'une copie ne peut pas déjà porter ; il n'écrit PAS la
+     ligne (elle est déjà dans le registre recopié) et une personne absente ou déjà effacée n'est pas une erreur. `depuis` : l'instant de la demande d'origine (les liens créés après
+     lui sont ceux d'une personne revenue, on n'y touche pas). */
+  function suppressionProgrammer(uid, echeance, { rejeu = false, depuis = 0 } = {}) {
     return tx(() => {
-      if (!num(Q("UPDATE personne SET suppression_le = ? WHERE id = ? AND etat = 'actif'").run(echeance, uid).changes)) throw erreur('introuvable');
+      if (!num(Q("UPDATE personne SET suppression_le = ? WHERE id = ? AND etat = 'actif'").run(echeance, uid).changes)) {
+        if (rejeu) return { sessions: 0, appareils: 0, push: 0, echeance, posee: false };
+        throw erreur('introuvable');
+      }
       const sessions = num(Q('DELETE FROM session WHERE personne = ?').run(uid).changes);
+      if (rejeu) {
+        /* ni les appareils (la révocation de chacun est SA ligne du registre, rejouée hors ligne avec la règle « créé avant la révocation »), ni les abonnements push (la restauration
+           vide la table) : les supprimer ici emporterait ceux d'une personne REVENUE depuis, dans une copie qui les porte. Les liens, eux, se datent. */
+        Q('UPDATE lien SET revoque = 1 WHERE par = ? AND revoque = 0 AND cree <= ?').run(uid, depuis);
+        return { sessions, appareils: 0, push: 0, echeance, posee: true };
+      }
       /* ⛔ UN APPAREIL COUPÉ ICI EST NOTÉ, comme toute révocation (« déconnecter les autres », onzième appareil) : sans la ligne, une restauration d'une copie d'avant la
          demande lui rendrait l'accès sans SMS (le registre des purges, `rejouerPurge`, genre `appareil`). */
       Q(`INSERT INTO purge(objet, genre, quand) SELECT h, 'appareil', ? FROM appareil_tel WHERE personne = ?`).run(horloge(), uid);
@@ -1520,11 +1574,16 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const push = num(Q('DELETE FROM push WHERE uid = ?').run(uid).changes);
       Q('DELETE FROM jeton WHERE personne = ?').run(uid);
       Q('UPDATE lien SET revoque = 1 WHERE par = ? AND revoque = 0').run(uid);   // un lien d'invitation d'une personne qui s'en va ne ramène plus personne vers elle
+      Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(uid + '|' + echeance + '|' + alea(4), 'suppression_demandee', horloge());
       return { sessions, appareils, push, echeance };
     });
   }
-  function suppressionAnnuler(uid) {
-    return num(Q("UPDATE personne SET suppression_le = NULL WHERE id = ? AND etat = 'actif' AND suppression_le IS NOT NULL").run(uid).changes) > 0;
+  function suppressionAnnuler(uid, { rejeu = false } = {}) {
+    return tx(() => {
+      const annulee = num(Q("UPDATE personne SET suppression_le = NULL WHERE id = ? AND etat = 'actif' AND suppression_le IS NOT NULL").run(uid).changes) > 0;
+      if (annulee && !rejeu) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(uid + '|' + alea(4), 'suppression_annulee', horloge());
+      return annulee;
+    });
   }
   function suppressionLe(uid) {
     const r = Q('SELECT suppression_le FROM personne WHERE id = ?').get(uid);
@@ -1533,6 +1592,22 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   /* Les comptes dont l'échéance est passée (par paquets : un effacement est une transaction, pas mille). */
   function comptesEchus(limite = 10) {
     return Q(`SELECT id FROM personne WHERE etat = 'actif' AND suppression_le IS NOT NULL AND suppression_le <= ? ORDER BY suppression_le, id LIMIT ?`).all(horloge(), Math.max(1, limite | 0)).map(r => r.id);
+  }
+  /* ⛔ LES NOTIFICATIONS DES AUTRES QUI NOMMENT LA PERSONNE s'écrivent « Un compte supprimé » quand son compte s'efface : « Alice vous a ajouté au groupe. » restait, avec son prénom, dans la liste et
+     l'export de ceux qu'elle avait ajoutés (relevé par le gardien, 3 octobre 2026). On réécrit plutôt que de composer à l'affichage : le prénom n'est plus NULLE PART dans la base, pas seulement caché.
+     `nom` : le nom d'affichage de la personne (une mention dans une conversation directe prend le nom de son auteur pour TITRE). Les notifications d'avant la migration 5 n'ont pas d'auteur connu :
+     elles ne se retrouvent pas. → le nombre de notifications réécrites. */
+  function notifsAnonymiser(uid, nom) {
+    let n = 0;
+    for (const r of Q('SELECT id, type, titre_ch FROM notification WHERE auteur = ?').all(uid)) {
+      const texte = r.type === 'contact_ajoute' ? 'Un compte supprimé était dans vos contacts.' : r.type === 'mention' ? 'Un compte supprimé vous a mentionné.' : 'Un compte supprimé vous a ajouté au groupe.';
+      let titre = ouvrirOuNull('notification', 'titre_ch', r.id + '|titre', r.titre_ch);
+      if (titre === null) titre = '';
+      else if (r.type === 'mention' && nom && titre === nom) titre = 'Un compte supprimé';
+      Q('UPDATE notification SET titre_ch = ?, texte_ch = ?, auteur = NULL WHERE id = ?').run(sceller('notification', 'titre_ch', r.id + '|titre', titre), sceller('notification', 'texte_ch', r.id + '|texte', texte), r.id);
+      n++;
+    }
+    return n;
   }
   /* L'effacement. TOUT dans une transaction, rejouable (une personne déjà effacée, ou dont la suppression a été annulée entre-temps, ne perd rien).
      → { effacee, pieces: [identifiants dont l'appelant efface les FICHIERS], convs: [conversations à rafraîchir], audience: [ceux à qui dire que ce profil a changé] } */
@@ -1544,6 +1619,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const p = Q('SELECT etat, suppression_le, avatar_piece FROM personne WHERE id = ?').get(uid);
       if (!p || p.etat !== 'actif' || (!rejeu && (p.suppression_le === null || p.suppression_le > horloge()))) return { effacee: false, pieces: [], convs: [], audience: [] };
       const audience = audiencePersonne(uid);   // AVANT d'effacer les contacts : c'est eux qu'il faut prévenir
+      const pn = Q('SELECT prenom, nom FROM personne WHERE id = ?').get(uid);
+      notifsAnonymiser(uid, ((pn.prenom || '') + ' ' + (pn.nom || '')).trim());   // AVANT de vider le nom : c'est lui qu'il faut retrouver dans les titres
       const pieces = [], convs = [];
       /* chaque conversation : un groupe se quitte comme on le quitte (le dernier administrateur passe la main, le dernier membre emporte le groupe), une directe reste à l'autre — qui y garde
          son historique mais ne peut plus y écrire. Les messages, eux, restent. */
@@ -1687,7 +1764,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   return {
     schema, instantane, sonde, fermer, tx, stats, metaLire, nouvelId, illisibles: () => illisibles,
     personneCreer, personneParIdentifiant, personneParId, personneIdentifiant, personneMaj,
-    sessionAjouter, sessionLire, sessionToucher, sessionSupprimer, sessionsSupprimerPersonne, sessionsSupprimerAutres, sessionsBetaActives,
+    sessionAjouter, sessionLire, sessionToucher, sessionSupprimer, sessionsSupprimerPersonne, sessionsSupprimerAutres, betaARelire,
     contactLier, contactBloque, contactActif, contactsDe, contactsActifs, contactRetirer, contactEtat, contactLigne, peutVoir,
     lienCreer, lienValide, lienApercu, lienAccepter, liensRevoquerGroupe, liensRevoquerContact,
     convDirecteObtenir, convCreerGroupe, convSupprimer, convPourMembre, convListe, convMaj, membresActifs, membresDetail, nbAdmins,
@@ -1702,7 +1779,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     smsTentativesNoter, smsTentativesCompter, smsTentativePremiere, smsTentativesRendre,
     smsReserver, smsRegler, smsSommes, smsPremier, smsPaysSur, smsElaguer, smsBouclierPoser, smsBouclierDe, smsBoucliers,
     telPersonneParNumero, telTrouvableLire, telTrouvableMaj, rechercheNoter, rechercheCompter, rechercheRendre,
-    pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushRetirerAutres, pushVapidLire, pushVapidPoser,
+    pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushJoignable, pushNonJoignablesPurger, pushRetirerAutres, pushVapidLire, pushVapidPoser,
     pushDestinatairesMessage, pushMessageEncore, autreSupprime,
     suppressionProgrammer, suppressionAnnuler, suppressionLe, comptesEchus, compteEffacer, exportProfil, exportConversationsIds, exportPieces,
   };
@@ -1793,6 +1870,8 @@ const GENRES_PURGE = {
   conversation: 'copie',       // une conversation supprimée (le dernier membre est parti) : elle part avec ses membres, messages, réactions et invitations
   appareil: 'copie',           // un jeton d'appareil révoqué (déconnexion, « déconnecter les autres », onzième appareil) — l'empreinte, jamais le jeton
   compte: 'service',           // un compte effacé au bout de ses quatorze jours : il touche dix tables et passe par `compteEffacer` — rejoué par le SERVICE (`rejeu.js`)
+  suppression_demandee: 'service',   // la DEMANDE de suppression (l'échéance posée) : une copie d'avant ne doit pas la perdre — rejouée par le SERVICE, dans l'ordre du registre
+  suppression_annulee: 'service',    // l'ANNULATION (la personne est revenue) : une copie d'avant ne doit pas ramener l'échéance — idem
 };
 
 /* Le registre des purges d'une copie, tel quel : `{objet, genre, quand}`. Une copie sans cette table (très ancienne) en a un vide. */
@@ -1888,10 +1967,14 @@ function pieceIds(chemin, opts) {
      · LES SESSIONS SONT VIDÉES. Une session est un cookie : celles de l'archive sont celles d'AVANT — dont des sessions révoquées depuis (rejoué par le gardien le
        3 octobre 2026 : l'ancien cookie d'une déconnexion répondait de nouveau 200). Aucun registre ne note une session fermée ; vider la table est la seule réponse sûre, et
        le prix est une reconnexion (les jetons d'appareil, eux, restent : ils évitent le SMS, et leurs révocations sont dans le registre) ;
+     · LES ABONNEMENTS PUSH SONT VIDÉS, pour la même raison, en pire : un abonnement retiré (notifications désactivées, déconnexion, accès coupé, suppression de compte, refus 404/410
+       du service push) n'est dans AUCUN registre, et une copie d'avant le ressuscite — la personne reçoit de nouveau des notifications sur un appareil qu'elle avait coupé, et
+       l'aperçu d'un message sur l'écran verrouillé d'un téléphone qu'elle croyait déconnecté (rejoué par le gardien le 3 octobre 2026). Le prix est dit dans `SERVEUR.md` :
+       chaque appareil se réabonne à la prochaine ouverture de l'application (la page redit son abonnement au démarrage) ; tant qu'elle n'est pas rouverte, aucune notification ;
      · LE DRAPEAU `rejeu_service` EST LEVÉ : le service, à son premier démarrage sur cette base, rejoue les genres de purge qui sont à lui (`rejeu.js`) puis le baisse.
-   Rend { sessions } : le nombre de sessions retirées. Une seule transaction. */
+   Rend { sessions, push } : le nombre de sessions et d'abonnements retirés. Une seule transaction. */
 function apresRestauration(chemin, opts) {
-  const bilan = { sessions: 0 };
+  const bilan = { sessions: 0, push: 0 };
   let d = null;
   try {
     d = ouvrirCopie(chemin, Object.assign({}, opts, { ecriture: true }));
@@ -1899,6 +1982,8 @@ function apresRestauration(chemin, opts) {
     d.exec('BEGIN IMMEDIATE');
     try {
       try { bilan.sessions = Number(d.prepare('DELETE FROM session').run().changes); }
+      catch (e) { if (!/no such table/i.test(String(e && e.message))) throw e; }
+      try { bilan.push = Number(d.prepare('DELETE FROM push').run().changes); }
       catch (e) { if (!/no such table/i.test(String(e && e.message))) throw e; }
       d.prepare('INSERT INTO meta(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').run('rejeu_service', String(Date.now()));
       d.exec('COMMIT');

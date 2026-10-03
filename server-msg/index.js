@@ -163,6 +163,9 @@ function demarrer(env = process.env) {
            au bout d'une heure, les plafonds au bout de deux jours. */
         const t = Date.now(), e = sms.cfg.emballement;
         stockage.smsElaguer({ journalAvant: t - Math.max(e.historiqueMs, 7 * 86400000) - 86400000, codesAvant: t - 3600000, recherchesAvant: t - 2 * 86400000, tentativesAvant: t - 2 * 86400000, appareilsAbsMs: APPAREIL_ABS_MS });
+        /* ⛔ les abonnements push d'une personne que plus rien ne connecte (ni session, ni jeton d'appareil) : elle ne reçoit déjà rien (`push.js` → `non_joignable`), ils ne restent pas pour autant */
+        const retires = stockage.pushNonJoignablesPurger(APPAREIL_ABS_MS);
+        if (retires) journaliser('push_elagage', { n: retires });
       }
     } catch (e) { journaliser('balayage_echec', { nom: e && (e.code || e.name) }); }
   }, config.balayageMs));
