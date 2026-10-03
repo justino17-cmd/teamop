@@ -301,8 +301,10 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     /* a. aucun flux : tout de suite, sans minuterie */
     m.ouverts[bo.id] = 0;
     const e1 = ecrire(g.id);
-    const r1 = await tout(notifier(g.id, e1));
-    v('⛔ aucun flux ouvert : la notification part TOUT DE SUITE, sans attendre (aucune minuterie posée)', [m.envois.length, m.minuteurs.length, r1[0].envoyes], [1, 0, 1]);
+    /* ⛔ une notification qui attendrait une minuterie FACTICE que personne ne déclenche ne se résoudrait jamais : la boucle se viderait et le banc sortirait « proprement » en 0, sans total (pris par
+       la mutation A05 de `mutations-push.js`). On l'attend donc au plus un instant, et le contrôle dit ce qu'il a vu. */
+    const r1 = await Promise.race([tout(notifier(g.id, e1)), new Promise((ok) => { const t = setTimeout(() => ok(null), 1500); t.unref(); })]);
+    v('⛔ aucun flux ouvert : la notification part TOUT DE SUITE, sans attendre (aucune minuterie posée)', [m.envois.length, m.minuteurs.length, r1 && r1[0].envoyes], [1, 0, 1]);
 
     /* b. un flux ouvert + la page acquitte */
     m.envois.length = 0; m.ouverts[bo.id] = 1;
@@ -337,6 +339,20 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     await m.declencher(); await tout(ps5);
     v('un acquittement qui couvre l\'événement (même identifiant) l\'arrête, et un petit acquittement ENSUITE ne le fait pas redescendre (monotone)', m.envois.length, 0);
     v('⛔ seul un entier positif acquitte (NaN, négatif, décimal, texte : refusés)', [Number.NaN, -1, 1.5, '7', null, undefined, Infinity].map(x => m.push.acquitter(bo.id, x)), [false, false, false, false, false, false, false]);
+
+    /* e bis. une notification SANS identifiant d'événement ne peut être acquittée par PERSONNE : elle part à l'échéance, quelque haut que la page ait acquitté (une autre personne : les acquittements de Bruno
+       servent encore plus bas) */
+    {
+      const cl = m.pers('Chloé'); m.abonne(cl.id);
+      m.envois.length = 0; m.minuteurs.length = 0; m.ouverts[cl.id] = 1;
+      m.push.acquitter(cl.id, 999999999);
+      const psSans = m.push.pousser(cl.id, { type: 'message', tag: 'sans-gid-' + alea(), titre: 'OP MESSAGES', corps: 'Nouveau message', url: '/' });   // aucun { gid } en second argument
+      v('population : elle ATTEND (un flux ouvert, une minuterie posée, rien de parti)', [m.envois.length, m.minuteurs.length], [0, 1]);
+      await m.declencher(); const rSans = await psSans;
+      v('⛔ sans identifiant d\'événement, aucun acquittement ne la couvre : elle part à l\'échéance', [m.envois.length, rSans.envoyes], [1, 1]);
+      m.ouverts[cl.id] = 0;
+      m.envois.length = 0;
+    }
 
     /* f. plusieurs événements d'une même conversation pendant l'attente : UNE notification, la dernière */
     m.envois.length = 0; m.minuteurs.length = 0; m.ouverts[bo.id] = 1;

@@ -27,8 +27,8 @@ const { v, vrai, fin } = T.compteur();
 
 setTimeout(() => { console.log('  ✗ délai global du banc dépassé (180 s)'); process.exit(1); }, 180000).unref();
 
-const MDP = { alice: 'pw-alice-1234', bob: 'pw-bob-123456', cleo: 'pw-cleo-12345', dan: 'pw-dan-123456' };
-const NOMS = { alice: 'Alice Martin', bob: 'Bob Durand', cleo: 'Cleo Petit', dan: 'Dan Roux' };
+const MDP = { alice: 'pw-alice-1234', bob: 'pw-bob-123456', cleo: 'pw-cleo-12345', dan: 'pw-dan-123456', eve: 'pw-eve-1234567' };
+const NOMS = { alice: 'Alice Martin', bob: 'Bob Durand', cleo: 'Cleo Petit', dan: 'Dan Roux', eve: 'Eve Blanc' };
 const ACK_MS = 1500;     // le délai d'acquittement du banc : l'acquittement part en quelques millisecondes (mesuré plus bas), la marge est de deux ordres de grandeur
 const TEXTE_SECRET = 'Bonjour secret-9QX';
 const TEXTE_LONG = 'Zq'.repeat(75);   // 150 caractères
@@ -150,6 +150,17 @@ function paireVapid() {
       v('désabonner sans point d\'accès → 400', (await C.post('/api/push/desabonner', {})).code, 400);
       await abonner(C, C1);
       v('/health.push compte les abonnements (nombre seulement)', (await sante()).push.abonnements, abosTous());
+    }
+
+    console.log('\nL\'inscription d\'un appareil est plafonnée : soixante par heure et par personne');
+    {
+      const E = await connecte('eve');
+      const E1 = dev('eve-1');
+      const codes = [];
+      for (let i = 0; i < 61; i++) codes.push((await abonner(E, E1)).code);
+      v('⛔ soixante inscriptions passent, la soixante et unième est refusée 429 (une page qui boucle ne remplit pas la base)', [codes.slice(0, 60).every(c => c === 200), codes[60]], [true, 429]);
+      v('et la base n\'a toujours qu\'UN appareil pour elle (le même point d\'accès, redit soixante fois)', abosDe(E.moi.id), 1);
+      await E.post('/api/push/desabonner', { endpoint: E1.sub.endpoint });
     }
 
     console.log('\nLa notification d\'essai : ce qui part, déchiffré et signé');

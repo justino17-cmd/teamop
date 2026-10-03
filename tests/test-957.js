@@ -43,6 +43,7 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
   const og = await T.fauxOpGestion({
     eve: { pass: 'pw-eve-123456', nom: 'Eve Beta', actif: true },
     xan: { pass: 'pw-xan-123456', nom: 'Xan Lourd', actif: true }, yan: { pass: 'pw-yan-123456', nom: 'Yan Lourd', actif: true }, zan: { pass: 'pw-zan-123456', nom: 'Zan Lourd', actif: true },
+    wen: { pass: 'pw-wen-123456', nom: 'Wen Lourd', actif: true }, vin: { pass: 'pw-vin-123456', nom: 'Vin Lourd', actif: true },
   });
   const fps = await P.fauxServicePush();
   const svc = await TEL.lancerTel({ urlGestion: og.url, sms: LARGE, config: { balayageMs: 150, push: { ackMs: 1500, contact: 'mailto:exploitation@exemple.invalid' }, compte: { exportOctetsMax: 60000 } }, env: { OPMSG_TEST_PUSH: fps.hote } });
@@ -186,6 +187,12 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
     vrai('⛔ le flux ouvert d\'Alice est fermé par le service', await fl.attendreFerme(4000));
     v('⛔ plus aucune session, plus aucun jeton d\'appareil, plus aucun jeton de sécurité, plus aucun abonnement push', ['session WHERE personne', 'appareil_tel WHERE personne', 'jeton WHERE personne', 'push WHERE uid'].map(t => sql('SELECT COUNT(*) AS n FROM ' + t + ' = ?', A.moi.id).n), [0, 0, 0, 0]);
     v('⛔ son lien d\'invitation ne marche plus (410)', (await B.post('/api/liens/lire', { code: lienA })).code, 410);
+    {
+      /* la recherche de Dan (plus haut) date d'AVANT la demande : l'ajout se revérifie au moment d'ajouter, et un compte qui va disparaître n'entre plus dans un carnet d'adresses */
+      const dejaDansLeCarnet = (await D.get('/api/contacts')).j.contacts.some(c => c.id === A.moi.id);
+      const tardif = await D.post('/api/contacts/ajouter', { id: A.moi.id });
+      v('⛔ Dan ajoute Alice depuis sa recherche d\'AVANT la demande de suppression : refusé 404 introuvable, et rien n\'est ajouté', [dejaDansLeCarnet, tardif.code, tardif.j && tardif.j.error, (await D.get('/api/contacts')).j.contacts.some(c => c.id === A.moi.id)], [false, 404, 'introuvable', false]);
+    }
     v('⛔ Dan ne la trouve plus par son numéro (un compte qui va disparaître n\'est trouvé par personne)', (await (async () => { avancer(61000); return D.post('/api/contacts/chercher', { numero: nA }); })()).j.trouve, false);
     vrai('pendant les quatorze jours, rien ne change pour les autres : Bob la voit toujours dans ses contacts et la conversation existe', (await B.get('/api/contacts')).j.contacts.some(c => c.id === A.moi.id) && (await B.get('/api/conversations/' + AB)).code === 200);
 
@@ -345,11 +352,12 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
       const dossier = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-957-lourd-')); dossiersLourds.push(dossier);
       const cle = crypto.randomBytes(32).toString('hex');
       let s2 = await T.lancerService({ dossier, cle, urlGestion: og.url }); lourds.push(s2);
-      const X = await T.connecter(s2, og, 'xan', 'pw-xan-123456'), Y = await T.connecter(s2, og, 'yan', 'pw-yan-123456'), Z = await T.connecter(s2, og, 'zan', 'pw-zan-123456');
-      await relier(X, Y); await relier(X, Z);
-      const GL = (await X.post('/api/conversations/groupe', { nom: 'Lourd', membres: [Y.moi.id, Z.moi.id] })).j.conversation.id;
+      const X = await T.connecter(s2, og, 'xan', 'pw-xan-123456'), Y = await T.connecter(s2, og, 'yan', 'pw-yan-123456'), Z = await T.connecter(s2, og, 'zan', 'pw-zan-123456'), V = await T.connecter(s2, og, 'vin', 'pw-vin-123456');
+      await relier(X, Y); await relier(X, Z); await relier(X, V);
+      const GL = (await X.post('/api/conversations/groupe', { nom: 'Lourd', membres: [Y.moi.id, Z.moi.id, V.moi.id] })).j.conversation.id;
+      const W0 = await T.connecter(s2, og, 'wen', 'pw-wen-123456');
       const S2 = ouvrir({ chemin: path.join(s2.data, 'msg.db'), scelleur: creerScelleur(Buffer.from(cle, 'hex')) });
-      const N = 8000, ids = [X.moi.id, Y.moi.id, Z.moi.id];
+      const N = 12000, ids = [X.moi.id, Y.moi.id, Z.moi.id];
       const t0 = Date.now();
       S2.tx(() => { for (let i = 1; i <= N; i++) S2.messageEnvoyer({ conv: GL, auteur: ids[i % 3], cid: 'cid-lourd-' + String(i).padStart(6, '0'), type: 'texte', texte: 'Message de charge numéro ' + i + ' ' + 'x'.repeat(90), repondA: null, pieces: null, vocal: null }); });
       console.log('      (' + N + ' messages écrits directement en base en ' + (Date.now() - t0) + ' ms)');
@@ -389,6 +397,23 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
       const rendu = await T.attendre(async () => (await Y.post('/api/compte/export', {})).code === 200, 8000, 50);
       v('⛔ le client a abandonné en route : le créneau est RENDU, un nouvel export marche tout de suite (avant : 429 pendant 24 h pour un fichier jamais reçu)', !!rendu, true);
 
+      /* deux exports EN COURS au plus pour le service : un troisième est refusé tout de suite (429 quota_atteint), même d'une personne dont le quota du jour est intact.
+         Deux lecteurs LENTS (la réponse n'est pas lue : le service attend le client, l'export reste en cours) tiennent les deux places. */
+      const lent = (client) => new Promise((resolve, reject) => {
+        const u = new URL(s2.base);
+        const h = { Origin: s2.base, 'X-OPM': '1', 'Content-Type': 'application/json', 'Content-Length': '2', Cookie: client.enteteCookie() };
+        const req = http.request({ host: u.hostname, port: u.port, method: 'POST', path: '/api/compte/export', headers: h, agent: false }, (res) => { res.pause(); resolve({ req, res }); });
+        req.on('error', () => {});
+        req.end('{}');
+        setTimeout(() => reject(new Error('export lent : aucune réponse')), 8000).unref();
+      });
+      const L1 = await lent(Z), L2 = await lent(V);
+      const troisieme = await W0.post('/api/compte/export', {});
+      v('⛔ deux exports sont EN COURS (deux lecteurs lents) : un troisième, d\'une personne dont le quota du jour est intact, est refusé 429 quota_atteint avec un délai', [L1.res.statusCode, L2.res.statusCode, troisieme.code, troisieme.j && troisieme.j.error, troisieme.h.get('retry-after')], [200, 200, 429, 'quota_atteint', '30']);
+      L1.req.destroy(); L1.res.destroy(); L2.req.destroy(); L2.res.destroy();
+      const libre = await T.attendre(async () => (await W0.post('/api/compte/export', {})).code === 200, 8000, 50);
+      v('les deux places se libèrent quand les clients partent : le même export passe ensuite', !!libre, true);
+
       /* le plafond */
       await s2.arreter(false);
       s2 = await T.lancerService({ dossier, cle, urlGestion: og.url, config: { compte: { exportOctetsMax: 50000 } } }); lourds.push(s2);
@@ -398,6 +423,18 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
       v('⛔ plafond de 50 000 octets : le fichier reste un JSON VALIDE et DIT qu\'il est tronqué (`tronque` et `messages_tronques`)', [plafonne.code, plafonne.j && plafonne.j.tronque, pl && pl.messages_tronques], [200, 'messages', true]);
       vrai('⛔ il s\'arrête près du plafond (' + plafonne.txt.length + ' octets, pas les ' + complet.txt.length + ' du fichier entier)', plafonne.txt.length > 50000 && plafonne.txt.length < 50000 + 80000);
       v('les messages gardés sont les PREMIERS, sans trou', [pl.messages.length > 0 && pl.messages.length < N, pl.messages.every((m, i) => m.seq === i + 1)], [true, true]);
+
+      /* le plafond coupe aussi la LISTE des conversations : trois groupes lourds, le premier atteint le plafond, les deux autres ne sont pas écrits (et le fichier le dit) */
+      const W = await T.connecter(s2, og, 'wen', 'pw-wen-123456');
+      await relier(W, Z2);
+      const gs = [];
+      for (const nom of ['Lourd A', 'Lourd B', 'Lourd C']) gs.push((await W.post('/api/conversations/groupe', { nom, membres: [Z2.moi.id] })).j.conversation.id);
+      const S3 = ouvrir({ chemin: path.join(s2.data, 'msg.db'), scelleur: creerScelleur(Buffer.from(cle, 'hex')) });
+      S3.tx(() => { for (const g of gs) for (let i = 1; i <= 300; i++) S3.messageEnvoyer({ conv: g, auteur: i % 2 ? W.moi.id : Z2.moi.id, cid: 'cid-' + g.slice(-6) + '-' + String(i).padStart(4, '0'), type: 'texte', texte: 'Charge ' + i + ' ' + 'y'.repeat(90), repondA: null, pieces: null, vocal: null }); });
+      S3.fermer();
+      v('population : Wen est membre de trois groupes lourds (300 messages chacun, de quoi dépasser le plafond dès le premier)', [(await W.get('/api/conversations')).j.conversations.length, gs.every(g => /^c_[0-9a-f]{32}$/.test(g))], [3, true]);
+      const liste = await W.post('/api/compte/export', {});
+      v('⛔ le plafond coupe aussi la LISTE des conversations : UNE seule est écrite (tronquée), le fichier reste valide et dit `tronque: "conversations"`', [liste.code, liste.j && liste.j.conversations.length, liste.j && liste.j.conversations[0] && liste.j.conversations[0].messages_tronques, liste.j && liste.j.tronque], [200, 1, true, 'conversations']);
     }
   } catch (e) {
     console.log('  ✗ le banc est mort : ' + (e && e.stack || e));

@@ -35,7 +35,13 @@ function refuse(titre, f, fn, motif) {
 }
 
 console.log('Ce qui est commité est ce que le générateur produit');
-const g = GEN.generer({});
+/* ⛔ si le générateur REFUSE les sources commitées (un service worker qui écoute `fetch`, un manifeste qui a changé de forme…), le banc le DIT par un ✗ qui cite le refus, au lieu de mourir sur une exception
+   sans total (pris par les mutations W04 et W05 de `mutations-push.js`) */
+let g;
+try { g = GEN.generer({}); } catch (e) {
+  vrai('⛔ le générateur ACCEPTE les sources commitées (il les refuse : « ' + String(e && e.message || e).slice(0, 220) + ' »)', false);
+  fin();   // (sort en 1 : un ✗ est compté)
+}
 v('population : le générateur produit six fichiers (la page, son script, quatre icônes) — le service worker et le manifeste sont des SOURCES lues, pas des sorties', Object.keys(g.fichiers).sort(), ['index.html', 'opmsg-192.png', 'opmsg-512.png', 'opmsg-apple-touch.png', 'opmsg-favicon-32.png', 'opmsg-ui.js']);
 v('⛔ server-msg/public/ est À JOUR (octet pour octet) : personne n\'a retouché la page servie à la main, l\'aperçu n\'a pas changé sans régénération', GEN.ecarts(g), []);
 vrai('population : l\'ensemble servi lit plus de 30 méthodes de la source et appelle plus de 15 routes /api/ (' + g.rapport.methodes + ', ' + g.rapport.routes + ')', g.rapport.methodes >= 30 && g.rapport.routes >= 15);
