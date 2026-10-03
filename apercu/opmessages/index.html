@@ -845,7 +845,7 @@ html[data-service] .mention-apercu { display: none; }
 .fichier-taille { font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; opacity: .85; }
 .fichier[aria-disabled="true"] { opacity: .7; }
 .photo.chargement { opacity: .65; }
-.photo.indisponible { outline: 1px dashed var(--faint); outline-offset: -3px; grid-auto-flow: row; align-content: center; justify-items: center; gap: 4px; padding: 6px; text-align: center; }
+.photo.indisponible { outline: 1px dashed var(--faint); outline-offset: -3px; grid-auto-flow: row; align-content: center; justify-items: center; gap: 4px; padding: 6px; min-width: 118px; text-align: center; }
 .photo-etat { font-size: 11px; line-height: 14px; color: var(--sub-meta); overflow-wrap: anywhere; }
 /* une pièce que le service refuse POUR L'INSTANT reste là avec sa phrase, un « Réessayer » et un « Annuler » */
 .echec { display: flex; flex-direction: column; gap: 6px; max-width: 78%; padding: 0 4px; }
@@ -1379,8 +1379,8 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     /* le statut DIT VRAI : « Envoi… » seulement quand des octets partent vraiment (la source le sait), « En attente de connexion… » quand rien ne part ; une pièce en échec a sa phrase et ses deux boutons, pas de statut */
     return { h: h + '</div>', st: estDernierEnvoye ? (m.attente ? (m.echec ? null : m.envoi ? 'Envoi…' : 'En attente de connexion…') : m.lu ? (m.lu === true ? 'Lu' : 'Lu ' + FMT_HEURE.format(m.lu)) : 'Envoyé') : null };
   }
-  /* ⛔ UNE PHOTO SEULE GARDE SES PROPORTIONS (relecture du testeur) : sa boîte tient dans 240 × 320, une image minuscule n'est pas agrandie au-delà du double ni sous 72 px, et un panorama extrême garde
-     sa largeur — il est vu ENTIER (`contain`), jamais coupé. La largeur et le rapport sont posés en ligne (la boîte d'une photo à peine arrivée est déjà la bonne : rien ne saute). Sans dimensions
+  /* ⛔ UNE PHOTO SEULE GARDE SES PROPORTIONS (relecture du testeur) : sa boîte tient dans 240 × 320 ; une image minuscule est agrandie du double au plus, mais jamais laissée sous 72 px de côté ; un panorama
+     extrême garde sa largeur — il est vu ENTIER (`contain`), jamais coupé. La largeur et le rapport sont posés en ligne (la boîte d'une photo à peine arrivée est déjà la bonne : rien ne saute). Sans dimensions
      connues (l'aperçu), c'est la boîte d'avant (200 × 150, en CSS). Les nombres viennent du service (entiers bornés) et sont ramenés à des entiers ici. */
   const UNE_LARGE = 240, UNE_HAUTE = 320, UNE_PLANCHER = 72, UNE_AGRANDIR = 2;
   function styleUne(p) {
@@ -1854,7 +1854,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
      Toucher le micro démarre un enregistrement qui DURE (la flèche l'envoie, la corbeille l'annule) ; le MAINTENIR plus d'une
      demi-seconde l'envoie au relâcher. Le micro refusé, absent ou indisponible se DIT en une phrase — jamais une erreur dans la
      console, jamais un bouton qui ne répond rien. */
-  const enr = { etat: 'repos', conv: null, flux: null, rec: null, morceaux: [], t0: 0, minut: null, niveaux: [], ctx: null, ana: null, annule: false, tenu: false, tenuAuDebut: false, geste: 0 };
+  const enr = { etat: 'repos', conv: null, flux: null, rec: null, morceaux: [], t0: 0, minut: null, niveaux: [], ctx: null, ana: null, annule: false, tenu: false, tenuAuDebut: false, geste: 0, msVu: 0 };
   function afficherEnregistrement(on) {
     $('enreg').hidden = !on;
     const c = etat.convDonnees, ferme = c && c.annoncesSeulement && c.admins.indexOf(MOI.id) < 0;
@@ -1900,9 +1900,10 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     enr.rec.start(250);
     enr.etat = 'enregistre'; enr.t0 = Date.now(); enr.tenuAuDebut = enr.tenu;
     afficherEnregistrement(true);
-    $('enreg-duree').textContent = '0:00'; $('enreg-onde').innerHTML = '';
+    $('enreg-duree').textContent = '0:00'; $('enreg-onde').innerHTML = ''; enr.msVu = 0;
     enr.minut = setInterval(() => {
       const ms = Date.now() - enr.t0;
+      enr.msVu = ms;                                          // ce que le compteur vient de MONTRER : la bulle dira exactement cela
       $('enreg-duree').textContent = duree(ms / 1000);
       let niv = 0;
       if (enr.ana && buf) { enr.ana.getByteTimeDomainData(buf); for (let i = 0; i < buf.length; i++) niv = Math.max(niv, Math.abs(buf[i] - 128) / 128); }
@@ -1920,7 +1921,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     if (enr.rec && enr.rec.state !== 'inactive') enr.rec.stop(); else finirEnregistrement();
   }
   async function finirEnregistrement() {
-    const cible = enr.conv, ms = Date.now() - enr.t0, morceaux = enr.morceaux, type = enr.rec && enr.rec.mimeType, annule = enr.annule, niveaux = enr.niveaux.slice();
+    const cible = enr.conv, ms = Date.now() - enr.t0, msVu = Math.min(ms, enr.msVu || ms), morceaux = enr.morceaux, type = enr.rec && enr.rec.mimeType, annule = enr.annule, niveaux = enr.niveaux.slice();
     nettoyerFlux(); enr.etat = 'repos'; enr.annule = false;
     afficherEnregistrement(false);
     if (annule) return;
@@ -1929,7 +1930,8 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     const n = 10, bars = [];
     for (let i = 0; i < n; i++) { const part = niveaux.slice(Math.floor(i * niveaux.length / n), Math.floor((i + 1) * niveaux.length / n)); const v = part.length ? Math.max.apply(null, part) : 0; bars.push(6 + Math.round(Math.min(1, v * 3) * 12)); }
     const url = URL.createObjectURL(b);
-    if (!(await envoi({ vocal: { blob: b, url, dur: ms / 1000, bars } }, cible))) URL.revokeObjectURL(url);
+    /* ⛔ la durée de la bulle est celle que le COMPTEUR montrait quand on a envoyé (relecture du testeur : 1:05 devenait 1:06, 0:01 devenait 0:02) — pas celle, 100 ms plus tard, de l'arrêt du micro */
+    if (!(await envoi({ vocal: { blob: b, url, dur: msVu / 1000, bars } }, cible))) URL.revokeObjectURL(url);
   }
   const micro = $('compo-micro');
   micro.addEventListener('contextmenu', e => e.preventDefault());

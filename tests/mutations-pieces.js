@@ -200,10 +200,25 @@ m('K19', 'l\'appareil n\'envoie plus le nom du fichier du tout', F.api, "       
 
 /* ── LA PAGE (jouée par la sonde navigateur : lancer avec --sondes) ── */
 const G = { sonde: true };
-m('G01', '« Envoi… » ne se voit plus (le message en cours dit toujours « En attente de connexion… »)', F.page, "(m.envoi ? 'Envoi…' : 'En attente de connexion…')", "'En attente de connexion…'", ['sonde'], G);
+m('G01', '« Envoi… » ne se voit plus (le message en cours dit toujours « En attente de connexion… »)', F.page, "m.echec ? null : m.envoi ? 'Envoi…' : 'En attente de connexion…'", "m.echec ? null : 'En attente de connexion…'", ['sonde'], G);
 m('G02', 'le fichier téléchargé perd son nom', F.page, 'a.download = m.fichier.nom;', "a.download = 'fichier';", ['sonde'], G);
-m('G03', 'une photo n\'est plus ramenée à 250 Ko', F.page, 'reduireImage(f, 1600, .82, 250 * 1024)', 'reduireImage(f, 1600, .82)', ['857', 'sonde'], G);
+m('G03', 'une photo n\'est plus ramenée à 250 Ko', F.page, 'reduireImage(f, 1600, .82, 250 * 1024, lim.gifMax)', 'reduireImage(f, 1600, .82, undefined, lim.gifMax)', ['857', 'sonde'], G);
 m('G04', 'le refus d\'un réglage reste affiché après la réussite suivante', F.page, 'nette(); reg.occupe = true; reg.confErreur = \'\'; peindreConf();', 'nette(); reg.occupe = true; peindreConf();', ['sonde'], G);
+/* ── LA RELECTURE DU TESTEUR, CÔTÉ PAGE (jouée par la sonde : onze photos, GIF, proportions, photo indisponible, pièce refusée, présence, durée du vocal) ── */
+m('G05', 'la onzième photo disparaît de nouveau sans un mot (l\'avis des photos écartées n\'est plus posé)', F.page, "    if (dits.length) avis(dits.join(' '));\n", '', ['sonde'], G);
+m('G06', 'un GIF est de nouveau ramené à une image fixe (le passage tel quel est coupé)', F.page, '    if (gifMax > 0 && await estGif(fichier)) {', '    if (false) {', ['sonde'], G);
+m('G07', 'un GIF trop lourd devient une image fixe sans le dire', F.page, "      gifTropLourd = true;\n", "      gifTropLourd = false;\n", ['sonde'], G);
+m('G08', 'une photo seule perd ses proportions (plus de boîte posée : le 200 × 150 recadré revient)', F.page, "    if (!(w > 0 && h > 0)) return '';\n", "    return '';\n", ['sonde'], G);
+m('G09', 'une photo seule est de nouveau RECADRÉE dans sa boîte (cover : un panorama est coupé)', F.page, '.photos.une .photo img { object-fit: contain; }', '.photos.une .photo img { object-fit: cover; }', ['sonde'], G);
+m('G10', 'la boîte d\'une photo seule n\'a plus de plancher (une image minuscule devient un point, un panorama une ficelle)', F.page, 'const lg = Math.max(UNE_PLANCHER, Math.round(w * k)), ht = Math.max(UNE_PLANCHER, Math.round(h * k));', 'const lg = Math.round(w * k), ht = Math.round(h * k);', ['sonde'], G);
+m('G11', 'une photo indisponible redevient une icône sans un mot', F.page, "icone('i-image') + '<span class=\"photo-etat\" aria-hidden=\"true\">Photo indisponible</span></span>';", "icone('i-image') + '</span>';", ['sonde'], G);
+m('G12', 'la case d\'une photo indisponible perd sa largeur minimale (le texte se casse au milieu d\'un mot dans une case de 72 px)', F.page, 'padding: 6px; min-width: 118px; text-align: center; }', 'padding: 6px; text-align: center; }', ['sonde'], G);
+m('G13', '« Réessayer » ne fait plus rien', F.page, "if (re) { if (typeof source.reessayer === 'function' && source.reessayer(re.dataset.reessayer)) masquerAvis(); return; }", 'if (re) { return; }', ['sonde'], G);
+m('G14', '« Annuler » ne fait plus rien', F.page, "if (an) { if (typeof source.abandonner === 'function') source.abandonner(an.dataset.annuler); return; }", 'if (an) { return; }', ['sonde'], G);
+m('G15', 'une pièce en échec ne montre plus sa phrase ni ses deux boutons (la bulle seule, sans rien)', F.page, "    if (m.attente && m.echec && typeof source.reessayer === 'function') h += echecHtml(m);\n", '', ['sonde'], G);
+m('G16', 'une pièce en échec porte de nouveau un statut « En attente de connexion… » par-dessus sa phrase', F.page, "(m.attente ? (m.echec ? null : m.envoi ? 'Envoi…' : 'En attente de connexion…')", "(m.attente ? (m.envoi ? 'Envoi…' : 'En attente de connexion…')", ['sonde'], G);
+m('G17', 'la barre latérale dit « Disponible » même quand MA présence est coupée', F.page, "$('moi-statut-texte').textContent = masquee ? 'Présence masquée' : 'Disponible';", "$('moi-statut-texte').textContent = 'Disponible';", ['sonde'], G);
+m('G18', 'la durée de la bulle d\'un vocal est arrondie vers le haut (le compteur montrait 0:01, la bulle dit 0:02)', F.page, 'url, dur: msVu / 1000, bars', 'url, dur: Math.ceil(msVu / 1000), bars', ['sonde'], G);
 
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const DOSSIERS_COPIE = ['server-msg', 'design/opmessages', '.github/scripts', 'apercu/opmessages', 'icons', 'scripts'];
