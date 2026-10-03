@@ -34,6 +34,9 @@ function extraire(nom) {
 console.log('\n── 860 · une décision d\'achat lit une liste Stripe lancée APRÈS elle ──');
 const FN = ['stripeListe', 'espaceStripe', 'espaceStripeAchat'].map(extraire);
 const CACHE = (/^const espStripeCache = .*$/m.exec(SRC) || [''])[0];
+/* (le code d'AVANT ce correctif lisait une marge d'horloge : on la lui donne si elle existe, pour que la contre-épreuve sur l'ancien
+   fichier tombe sur ses CONTRÔLES — un second Stock vendu —, pas sur une variable absente) */
+const JEU = (/^const STRIPE_ACHAT_JEU_MS = .*$/m.exec(SRC) || [''])[0];
 vrai('(population) les trois fonctions et la déclaration du cache sont trouvées dans le fichier réel',
   /^async function stripeListe\(/.test(FN[0]) && /^async function espaceStripe\(/.test(FN[1]) && /^async function espaceStripeAchat\(/.test(FN[2]) && /espStripeCache = \{/.test(CACHE));
 
@@ -48,7 +51,7 @@ function monter() {
   });
   const espaceStripeDans = (e, liste) => { const a = liste.filter(x => x.ent === e.slug).map(x => x.id); return a.length ? { abos: a } : null; };
   const lib = new Function('config', 'stripeAbosBruts', 'espaceStripeDans', 'STRIPE_CACHE_MS', 'console',
-    CACHE + '\n' + FN.join('\n') + '\nreturn { espStripeCache, stripeListe, espaceStripe, espaceStripeAchat };')(
+    CACHE + '\n' + JEU + '\n' + FN.join('\n') + '\nreturn { espStripeCache, stripeListe, espaceStripe, espaceStripeAchat };')(
     { stripe: { secretKey: 'sk_de_banc_860' } }, stripeAbosBruts, espaceStripeDans, 300000,
     { error: (...a) => journal.push(a.join(' ')), log: () => {} });
   return { lib, STRIPE, lectures, journal };
@@ -64,7 +67,7 @@ const C8A = { slug: 'c8a' };
     STRIPE.abos = [{ id: 'sub_pro', ent: 'c8a' }];
     const p0 = lib.stripeListe(1); await laisser(); lectures[0].relacher(); await p0;   // une lecture complète, d'avant le paiement
     STRIPE.abos.push({ id: 'sub_stock', ent: 'c8a' });                                 // le client vient de payer le Stock
-    const pr = lib.espaceStripeAchat(C8A);
+    const pr = lib.espaceStripeAchat(C8A); pr.catch(() => {});
     await laisser();
     v('⛔⛔ A · une liste rangée à l\'instant mais LANCÉE avant la demande ne décide pas : la décision relance Stripe (une lecture de plus)', lectures.length, 2);
     if (lectures[1]) lectures[1].relacher();
@@ -82,7 +85,7 @@ const C8A = { slug: 'c8a' };
     vrai('(population) B · une lecture de fond est en cours, lancée avant le paiement', lectures.length === 1 && !lectures[0].fini);
     STRIPE.abos.push({ id: 'sub_stock', ent: 'c8a' });       // le client paie pendant qu'elle tourne
     let rendue = null;
-    const pr = lib.espaceStripeAchat(C8A).then(r => { rendue = r; return r; });
+    const pr = lib.espaceStripeAchat(C8A).then(r => { rendue = r; return r; }); pr.catch(() => {});
     await laisser();
     v('⛔⛔ B · la décision ne PARTAGE pas la lecture d\'avant : elle attend (une seule lecture à la fois) sans rien décider',
       [lectures.length, rendue], [1, null]);
@@ -99,7 +102,7 @@ const C8A = { slug: 'c8a' };
     STRIPE.abos = [{ id: 'sub_pro', ent: 'c8a' }];
     const p0 = lib.stripeListe(1); await laisser(); lectures[0].relacher(); await p0;
     STRIPE.abos.push({ id: 'sub_stock', ent: 'c8a' });
-    const pr = lib.espaceStripeAchat(C8A);
+    const pr = lib.espaceStripeAchat(C8A); pr.catch(() => {});
     await laisser();
     vrai('(population) C · la décision a bien lancé sa relecture', lectures.length === 2);
     if (lectures[1]) lectures[1].rater();
@@ -107,7 +110,7 @@ const C8A = { slug: 'c8a' };
     v('⛔⛔ C · Stripe rate la relecture : la liste d\'avant (rangée il y a un instant) n\'est PAS fraîche — la route refuse (502) au lieu de vendre deux fois',
       r.fraiche, false);
     vrai('   et la panne se dit au journal (la dernière liste connue sert aux autres)', journal.some(l => /la dernière liste connue sert/.test(l)));
-    const pr2 = lib.espaceStripeAchat(C8A);
+    const pr2 = lib.espaceStripeAchat(C8A); pr2.catch(() => {});
     await laisser();
     v('   la minute qui suit un échec, une nouvelle décision ne relance pas Stripe (pas de rafale) et n\'est pas fraîche non plus',
       [lectures.length, (await pr2).fraiche], [2, false]);
@@ -125,7 +128,7 @@ const C8A = { slug: 'c8a' };
     STRIPE.abos.push({ id: 'sub_stock', ent: 'c8a' });
     const c = await lib.espaceStripe(C8A);
     v('   un lecteur ordinaire garde le cache tant qu\'il est jeune (rien de plus chez Stripe, la liste d\'avant)', [lectures.length, c.abos], [1, ['sub_pro']]);
-    const d1 = lib.espaceStripeAchat(C8A), d2 = lib.espaceStripeAchat(C8A);   // deux décisions d'achat simultanées
+    const d1 = lib.espaceStripeAchat(C8A), d2 = lib.espaceStripeAchat(C8A); d1.catch(() => {}); d2.catch(() => {});   // deux décisions d'achat simultanées
     await laisser();
     v('   deux décisions d\'achat simultanées : UNE lecture lancée pour la première…', lectures.length, 2);
     lectures[1].relacher(); await laisser();
