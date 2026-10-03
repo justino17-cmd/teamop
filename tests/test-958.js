@@ -72,7 +72,7 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (180 s)');
   /* ── un « appareil » : un navigateur de poche (cookie, Origin) dont on note les requêtes, qu'on peut faire refuser ou RETARDER, et dont le flux dit les identifiants d'événement ── */
   function monter(opts) {
     const nav = T.navigateur(svc.base);
-    const reseau = { requetes: [], forcer: null, retarder: null, gids: [] };
+    const reseau = { requetes: [], forcer: null, retarder: null, gids: [], dernier: null };
     const f = async (url, init) => {
       const u = String(url), m = (init && init.method) || 'GET', chemin = u.replace(svc.base, '').split('?')[0];
       reseau.requetes.push({ m, chemin, corps: init && init.body });
@@ -82,7 +82,7 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (180 s)');
       return r;
     };
     class ES extends nav.EventSource {
-      _emettre(t, ev) { if (t === 'message' && ev && ev.lastEventId) reseau.gids.push(parseInt(ev.lastEventId, 10)); return super._emettre(t, ev); }
+      _emettre(t, ev) { if (t === 'message' && ev && ev.lastEventId) { reseau.gids.push(parseInt(ev.lastEventId, 10)); reseau.dernier = { es: this, ev }; } return super._emettre(t, ev); }
     }
     const src = creerSourceServeur(Object.assign({ OPMSG, base: svc.base, fetch: f, EventSource: ES, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5, delaiAckMs: 60 }, opts));
     const evs = [], morts = [];
@@ -283,6 +283,15 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (180 s)');
       await att(() => { const r = M.requetes(/POST \/api\/flux\/ack/); return r.length && JSON.parse(r[r.length - 1].corps).gid === dernier; });
       const envoyes = M.requetes(/POST \/api\/flux\/ack/).map(r => JSON.parse(r.corps).gid);
       v('⛔ une rafale de huit messages = UNE requête d\'acquittement, avec le plus grand identifiant d\'événement', [envoyes.length, envoyes[envoyes.length - 1] === dernier], [1, true]);
+      /* le MÊME évènement rejoué (une reconnexion qui rejoue ce que la page a déjà montré) : son identifiant est déjà acquitté, la page ne le redit pas. Preuve par sentinelle : un message NEUF suit, et son
+         acquittement est le seul qui part depuis le rejeu — celui d'un rejeu, s'il partait, serait parti AVANT (même minuterie, plus tôt). */
+      vrai('population : le dernier évènement de la rafale est gardé pour être rejoué', !!(M.reseau.dernier && M.reseau.dernier.ev.lastEventId));
+      M.reseau.requetes.length = 0;
+      M.reseau.dernier.es._emettre('message', M.reseau.dernier.ev);
+      await ecrire(Bob, AB, 'sentinelle du rejeu');
+      await att(() => M.requetes(/POST \/api\/flux\/ack/).length >= 1);
+      const apresRejeu = M.requetes(/POST \/api\/flux\/ack/).map(r => JSON.parse(r.corps).gid);
+      v('⛔ un évènement rejoué, déjà acquitté, n\'est PAS acquitté de nouveau : le seul acquittement depuis le rejeu est celui du message neuf (identifiant plus grand)', [apresRejeu.length, apresRejeu[0] > dernier], [1, true]);
       /* page cachée : Cléo écrit, la page n'acquitte pas, la notification arrive après le délai */
       fm.visible = false;
       M.reseau.requetes.length = 0;
