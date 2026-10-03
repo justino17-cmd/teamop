@@ -34,7 +34,8 @@
 # 3 octobre 2026, les corrections du lot 3 après les relectures adverses (gardien et testeur : restauration, abonnements push, panne du service push, export, restes d'un compte effacé, notification relue en partant) : 35 suites, 4 351 vérifications mesurées par la commande de la porte — plancher 4337.
 # 3 octobre 2026, le lot 4 (étape 5) et les corrections du lot 3 RÉUNIS (fusion de 7f52581 : la migration 6 à côté de la 5, le rejeu d'un compte effacé qui sort aussi des espaces, un espace payant jamais dissous par l'effacement, la notification d'espace qui nomme quelqu'un, l'export qui porte les espaces) : 41 suites, 5 290 vérifications mesurées par la commande de la porte sur l'arbre fusionné — plancher 5276 (le total moins 14, jamais une addition).
 # 3 octobre 2026, le lot 5 (étape 6, les réunions programmées : test-970 à 976 — le calendrier, le fichier .ics, le stockage, les routes, le planificateur, le courriel contre un faux relais, la page et le service) : 48 suites, 6 124 vérifications mesurées par la commande de la porte sur l'arbre du lot — plancher 6110 (le total moins 14, jamais une addition).
-#plancher 6110
+# 3 octobre 2026, la relecture adverse du lot 5 (le gardien : un tour du planificateur à budget, le calendrier qui saute à la fenêtre, l'agenda d'un invité et « Quitter la réunion », l'hôte bloqué, Gmail, la réparation du démarrage) puis la fusion de la branche de travail (88fd2c4) : 48 suites, 6 230 vérifications mesurées par la commande de la porte sur l'arbre FUSIONNÉ (488 s) — plancher 6216 (le total moins 14, jamais une addition).
+#plancher 6216
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
