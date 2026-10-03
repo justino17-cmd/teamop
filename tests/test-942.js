@@ -169,13 +169,13 @@ const jeton = (b, canari) => b.includes(Buffer.from(canari, 'latin1'));
     v('⛔ Range : onze plages (premier octet, dernier, frontières de bloc, plusieurs blocs, tout) rendent EXACTEMENT les bons octets', [plages.length, faux], [11, []]);
     v('une plage hors du fichier ou à l\'envers est refusée (plage_invalide), jamais lue', [await attrape(lireTout(pc, id, 0, 5632)), await attrape(lireTout(pc, id, 10, 5)), await attrape(lireTout(pc, id, -1, 5))], ['plage_invalide', 'plage_invalide', 'plage_invalide']);
 
-    const secret = 'ZXCANARIQSONPRIVE-' + crypto.randomBytes(4).toString('hex');
-    const clair = Buffer.concat([Buffer.from([0x1A, 0x45, 0xDF, 0xA3]), Buffer.from(secret.repeat(40)), crypto.randomBytes(2000)]);
+    const canari = 'ZXCANARIQSONPRIVE-' + crypto.randomBytes(4).toString('hex');
+    const clair = Buffer.concat([Buffer.from([0x1A, 0x45, 0xDF, 0xA3]), Buffer.from(canari.repeat(40)), crypto.randomBytes(2000)]);
     const id2 = nouvelId();
     await pc.deposer({ id: id2, genre: 'vocal', flux: F.fluxDe(clair), max: 100000, attendu: clair.length });
     const disque = fs.readFileSync(pc.chemin(id2));
-    vrai('population : le canari est répété dans le clair envoyé, et le fichier rangé a bien des octets à examiner (' + disque.length + ')', jeton(clair, secret) && disque.length > clair.length);
-    v('⛔ le canari n\'apparaît PAS dans le fichier rangé (scellé, pas seulement renommé)', jeton(disque, secret) || jeton(disque, 'ZXCANARIQ'), false);
+    vrai('population : le canari est répété dans le clair envoyé, et le fichier rangé a bien des octets à examiner (' + disque.length + ')', jeton(clair, canari) && disque.length > clair.length);
+    v('⛔ le canari n\'apparaît PAS dans le fichier rangé (scellé, pas seulement renommé)', jeton(disque, canari) || jeton(disque, 'ZXCANARIQ'), false);
     v('le fichier est rangé sous pieces/<2 caractères>/<id> (les deux caractères viennent de l\'identifiant), pas dans un dossier à plat', path.relative(pc.dossier, pc.chemin(id2)), id2.slice(2, 4) + path.sep + id2);
     vrai('l\'en-tête annonce « OPMP », la version 1, la génération 1 et le bloc (log2 = 10)', disque.subarray(0, 4).toString() === 'OPMP' && disque[4] === 1 && disque[5] === 1 && disque[6] === 10);
     const stat = fs.statSync(pc.chemin(id2));

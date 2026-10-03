@@ -19,7 +19,11 @@ const RACINE = path.join(__dirname, '..');
 const SERVICE = path.join(RACINE, 'server-msg');
 const { signer } = require(path.join(SERVICE, 'lib', 's3.js'));
 
-const BUCKET = 'coffre-du-banc', ACCESS = 'AKIABANCSAUVEGARDE1234', SECRET = 'secret-du-banc-sauvegarde-9f8e7d6c5b4a', REGION = 'eu-central-4';
+/* ⚠️ FICTIVES, ET LA CLÉ D'ACCÈS NE RESSEMBLE PAS À UNE CLÉ AWS : `scripts/verif-secrets.sh --suivis` (la CI) refuse tout
+   « AKIA » suivi de seize majuscules, même dans un banc — c'est ce qui a fait tomber « Vérifications » le 3 octobre 2026.
+   Et ses huit premiers et huit derniers caractères ne se lisent dans aucun texte du service : `test-951` les cherche dans le
+   journal (« …sauvegarde » finissait par « uvegarde », présent dans tous les messages — 28 faux ✗). */
+const BUCKET = 'coffre-du-banc', ACCESS = 'ZQXW-banc-acces-WXQZ', SECRET = 'secret-du-banc-sauvegarde-9f8e7d6c5b4a', REGION = 'eu-central-4';
 const cleHex = () => crypto.randomBytes(32).toString('hex');
 const portLibre = () => new Promise((res, rej) => { const s = require('net').createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); s.on('error', rej); });
 
