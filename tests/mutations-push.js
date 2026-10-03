@@ -501,7 +501,9 @@ async function jouer(mut, dir) {
     for (const sv of visees) {
       const r = await lancer(copies[0], sv);
       if (r.code !== 0 || r.ko === null || r.ko > 0) {
-        console.log('⛔ le TÉMOIN de ' + nomBanc(sv) + ' n\'est pas vert sur une copie INTACTE (code ' + r.code + ') — aucune mutation n\'est jouée.\n' + r.sortie.split('\n').filter(Boolean).slice(-14).join('\n'));
+        /* ⛔ un témoin qui tombe DIT quel contrôle est tombé (pris le 3 octobre 2026 : « 148 ✓ 1 ✗ » une fois sur une dizaine, et les quatorze dernières lignes ne nommaient pas le coupable) */
+        console.log('⛔ le TÉMOIN de ' + nomBanc(sv) + ' n\'est pas vert sur une copie INTACTE (code ' + r.code + ') — aucune mutation n\'est jouée.\n'
+          + r.sortie.split('\n').map((l, i, t) => (/^\s+✗/.test(l) ? t.slice(i, i + 3).join('\n') : null)).filter(Boolean).slice(0, 6).join('\n') + '\n…\n' + r.sortie.split('\n').filter(Boolean).slice(-6).join('\n'));
         nettoyer(); process.exit(2);
       }
     }
