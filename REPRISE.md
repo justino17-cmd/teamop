@@ -42,8 +42,9 @@ laissé passer ici : avant toute poussée sur main, `bash scripts/verif-secrets.
 pages » ne lançait pas les suites qui montent le vrai service d'OP MESSAGES (`server-msg/node_modules` absent : elles écrivent
 « banc non exécuté », que le filet « SAUTÉ » ne voit pas) — les dépendances y sont ajoutées avec le correctif de main.
 ⛔ **Un geste de Justin est nécessaire MAINTENANT que le lot 1 est en service** : le proxy du VPS borne tout corps à 64 Ko, donc
-aucune photo ne passe tant que `install-msg.sh` n'a pas été relancé (`bash /root/install-msg.sh beta`, après l'avoir retéléchargé) (il réécrit le bloc nginx avec l'exception de 26 Mo sur `/api/pieces`, sans
-redemander aucune clé — `SERVEUR.md` § 4.4). Le déploiement par GitHub ne touche jamais au proxy.
+aucune photo ne passe tant que `install-msg.sh` n'a pas été relancé (`bash /root/install-msg.sh beta`, après l'avoir retéléchargé) (il réécrit le bloc du proxy — **Caddy** sur ce VPS, `via: 1.1 Caddy`, pas nginx — avec l'exception de 26 Mo sur
+`/api/pieces`, sans redemander aucune clé — `SERVEUR.md` § 4.4). ⚠️ Un essai de l'extérieur ne PROUVE pas la borne : Caddy coupe le
+corps à la lecture (pas sur l'en-tête), et le service refuse avant de lire tout appel sans son en-tête ni sa session. Le déploiement par GitHub ne touche jamais au proxy.
 ⚠️ Décision prise par l'agent, à confirmer par Justin : présence et accusés de lecture RÉCIPROQUES, aussi dans les groupes (comme
 WhatsApp). Réglages par défaut des pièces à confirmer : photo 12 Mo, vocal 10 Mo, fichier 25 Mo, 2 Go par personne.
 Corrigé à la fusion : un message « supprimé pour tous » est désormais noté dans `purge` (sinon une restauration l'aurait rendu
