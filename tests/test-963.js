@@ -6,7 +6,8 @@
         qu'une clé de TEST, une clé sans tarif ou un tarif mal formé refuse le démarrage, la porte de test de Stripe est fermée en production, le drapeau de la bêta aussi ;
         ⛔ aucun message de refus ne CITE la valeur refusée (un secret qu'on a mal recopié ne doit pas se retrouver dans un journal) ;
      2. L'OUTIL, en entrée redirigée contre un faux Stripe : il ÉPROUVE la clé et chaque tarif (existe-t-il dans ce mode, actif, récurrent, au bon rythme, à l'unité ?) AVANT d'écrire ; au moindre refus
-        le fichier reste intact, octet pour octet ; il avertit d'un montant qui n'est pas celui de l'écran et d'un produit que l'autre application ne rangerait pas en « OP MESSAGES » ;
+        le fichier reste intact, octet pour octet ; il avertit d'un montant qui n'est pas celui de l'écran, et REFUSE d'écrire un tarif dont le produit ne contient pas « messages »
+        (l'autre application ne le rangerait pas en « OP MESSAGES » : relecture du gardien, 3 octobre 2026) ;
         il n'écrit que des LECTURES chez Stripe (aucun GET ne crée rien, aucun POST) ; le fichier est écrit 0600 puis renommé ; ce qu'il a écrit, le service le lit et démarre dessus ;
      3. ⛔ AUCUNE FUITE : la clé n'apparaît ni à l'écran, ni dans une erreur, ni même quand Stripe la répète dans son message ; sous un VRAI TERMINAL (pty), une faute corrigée, une flèche, un
         collage, Ctrl-U et Ctrl-C ne la réaffichent pas ;
@@ -190,10 +191,16 @@ const lance = (f) => { try { f(); return null; } catch (e) { return e.message; }
       poser();
       const avert = await outil([CLE, 'price_BancVingtAaZz06', ''], { env: envF2 });
       v('⚠ un montant que Stripe facturera (20 €) et que l\'écran n\'annoncera pas (15 €) : la pose réussit, l\'avertissement le DIT', [avert.code, /LE MONTANT ANNONCÉ À L'ÉCRAN \(15 €\) N'EST PAS CELUI DE STRIPE \(20 €\)/.test(avert.sortie)], [0, true]);
+      /* ⛔ le produit : REFUSÉ (avant : un avertissement, et la pose réussissait — le compte est commun avec OP GESTION, dont c'est ce nom qui range la ligne hors de ses paiements) */
       fake2.poserTarif('price_BancGestionAaZz07', { product: { id: 'prod_x', object: 'product', name: 'OP GESTION Premium' } });
+      const gest = await refuse2('un produit dont le nom ne contient pas « messages » : OP GESTION, qui lit tous les abonnements du compte, ne le rangerait pas en « OP MESSAGES » — l\'outil REFUSE d\'écrire', [CLE, 'price_BancGestionAaZz07', ''], /NE CONTIENT PAS « messages » : refusé/, { env: envF2 });
+      v('… il dit lequel des tarifs, quel produit, comment le réparer, et que rien n\'a été modifié', [/LE PRODUIT DU TARIF MENSUEL \(« OP GESTION Premium »\)/.test(gest.sortie), /Renomme le produit chez Stripe \(« OP MESSAGES Pro »\)/.test(gest.sortie), /Rien n'a été modifié/.test(gest.sortie)], [true, true, true]);
+      fake2.poserTarif('price_BancGestionAnAaZz10', { product: { id: 'prod_z', object: 'product', name: 'OP GESTION Premium' }, unit_amount: 15000, recurring: { interval: 'year', interval_count: 1 } });
+      await refuse2('… le tarif ANNUEL aussi (le mensuel, lui, est bon) : refusé — rien n\'est écrit à moitié', [CLE, PRIX.mensuel, 'price_BancGestionAnAaZz10'], /LE PRODUIT DU TARIF ANNUEL \(« OP GESTION Premium »\) NE CONTIENT PAS « messages » : refusé/, { env: envF2 });
+      fake2.poserTarif('price_BancNomMinAaZz11', { product: { id: 'prod_y', object: 'product', name: 'abonnement messages (équipe)' } });
       poser();
-      const gest = await outil([CLE, 'price_BancGestionAaZz07', ''], { env: envF2 });
-      v('⚠ ⛔ un produit dont le nom ne contient pas « messages » : OP GESTION, qui lit tous les abonnements du compte, ne le rangerait pas en « OP MESSAGES » — l\'avertissement le DIT, avec le remède', [gest.code, /NE CONTIENT PAS « messages »/.test(gest.sortie), /STRIPE_PRIX_MESSAGES/.test(gest.sortie)], [0, true, true]);
+      const minu = await outil([CLE, 'price_BancNomMinAaZz11', ''], { env: envF2 });
+      v('… contre-épreuve : un nom qui contient « messages » en minuscules, au milieu d\'autres mots, passe (la comparaison ne tient ni à la casse ni à la place)', [minu.code, /refusé/.test(minu.sortie), JSON.parse(fs.readFileSync(chemin, 'utf8')).facturation.prix], [0, false, { mensuel: 'price_BancNomMinAaZz11' }]);
       fake2.poserTarif('price_BancDollarAaZz08', { currency: 'usd' });
       poser();
       const usd = await outil([CLE, 'price_BancDollarAaZz08', ''], { env: envF2 });
@@ -235,6 +242,9 @@ const lance = (f) => { try { f(); return null; } catch (e) { return e.message; }
       poser();
       const verifS = await outil([], { args: ['--verifier'], env: envF2 });
       v('--verifier sans aucune clé posée : sortie 1, il le dit (rien à vérifier)', [verifS.code, /aucune clé Stripe n'est configurée/.test(verifS.sortie)], [1, true]);
+      poser(JSON.stringify(Object.assign(JSON.parse(initial()), { facturation: { cle: CLE, prix: { mensuel: 'price_BancGestionAaZz07' } } }), null, 2));
+      const verifN = await outil([], { args: ['--verifier'], env: envF2 });
+      v('⛔ --verifier relit aussi le NOM du produit : renommé depuis la pose (« OP GESTION Premium »), c\'est la sortie 1 et il le dit — sans rien écrire', [verifN.code, /NE CONTIENT PAS « messages » : refusé/.test(verifN.sortie), fuites(verifN.sortie)], [1, true, []]);
     }
 
     /* ═══ 3. SOUS UN VRAI TERMINAL ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════ */

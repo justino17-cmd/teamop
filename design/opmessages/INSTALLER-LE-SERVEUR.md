@@ -577,7 +577,10 @@ copie-la **directement** dans ton gestionnaire de mots de passe (colle-la nulle 
 Dans Stripe (mode test) : **un produit nommé « OP MESSAGES Pro »**, avec **deux prix récurrents facturés à l'unité** (la quantité est le nombre de places) : 15,00 € par mois, 150,00 € par an. Les identifiants
 `price_…` ne sont pas des secrets : tu peux les coller dans la conversation.
 
-⚠️ **Le nom du produit doit contenir « messages »** : c'est ce qui fait ranger l'abonnement chez OP MESSAGES par OP GESTION (§ 8). L'outil du geste 3 **avertit** quand ce n'est pas le cas.
+⛔ **Le nom du produit doit contenir « messages »** : c'est ce qui fait ranger l'abonnement chez OP MESSAGES par OP GESTION (§ 8). L'outil du geste 3 **REFUSE D'ÉCRIRE** quand ce n'est pas le cas (il
+n'avertissait que : un avertissement se lit une fois, entre deux lignes vertes — relecture du gardien, 3 octobre 2026) : il dit quel tarif, quel produit, et qu'il faut le renommer chez Stripe (« OP MESSAGES Pro »),
+puis le relancer. Il ne peut pas lire la liste d'OP GESTION (`STRIPE_PRIX_MESSAGES`) : même un tarif qui y figure doit venir d'un produit nommé comme il faut. *Seul cas qui reste un avertissement* : le nom
+n'a pas pu être LU (la clé n'a pas le droit « Products — lecture », qui n'est utile qu'à ce contrôle) — vérifie-le alors à la main.
 ⚠️ **Le dépôt connaît déjà deux prix `msgpro` côté OP GESTION** (`price_1TwV6E…` et `price_1TwgdtF…`) : dis-moi si ce sont les bons, et lequel est le mensuel (le sens exact des deux prix n'a jamais été
 vérifié, § 6 de la conception). L'outil relit chaque tarif (rythme, montant, mode) et le dira.
 
@@ -625,8 +628,9 @@ sept jours (comptés entre deux lectures réussies, jamais sur l'horloge seule :
 ### 7. Ce qui se passe seul, ce qui crie
 
 - **Relecture** toutes les dix minutes des espaces abonnés (et de ceux dont une session de paiement attend, 24 h) ; Stripe qui ne répond pas arrête la passe après trois échecs de suite, et le dernier état connu sert.
-- **`/health`** : `stripeEchecMin` (minutes depuis lesquelles Stripe est illisible, 0 si tout va bien) — la surveillance horaire crie **au-delà de 90 minutes** ; `facturation.espaces`, `abonnes`, `impayes` sont des
-  nombres d'information (nommés « vus et pas surveillés » avec leur raison).
+- **`/health`** (PUBLIC) : `stripeEchecMin` (minutes depuis lesquelles Stripe est illisible, 0 si tout va bien) — la surveillance horaire crie **au-delà de 90 minutes** —, le mode de la facturation et le drapeau
+  de la bêta. **Ni le nombre d'espaces, ni celui d'abonnés, ni celui d'impayés** : ce sont des chiffres commerciaux, et n'importe qui peut lire `/health` d'un `curl` (relecture du gardien, 3 octobre 2026). Ils se lisent dans le
+  tableau de bord de Stripe, qui les tient déjà.
 - **Supprimer son compte** est refusé tant qu'on est seul dans un espace dont l'abonnement court (409 `espace_abonne`), et **dissoudre un espace** aussi (409 `abonnement_actif`) : Stripe continuerait de prélever
   pour un espace qui n'existe plus. On résilie d'abord (portail), la relecture le voit.
 
@@ -640,7 +644,7 @@ les deux directions, et un abonnement de Messages Pro n'ajoute jamais une place 
 - **Messages Pro n'écrit jamais la métadonnée `espace`** (celle qu'OP GESTION lit pour rattacher un abonnement à une entreprise) : la sienne s'appelle `opmsg_espace`. Un banc le garde.
 - ⚠️ **LIMITE CONNUE, mesurée** : un tarif que ni la liste d'OP GESTION ni le nom du produit ne désignent est lu **comme un paiement d'OP GESTION**. Une entreprise qui ne paie rien d'OP GESTION, mais dont le
   dirigeant achète Messages Pro avec la même adresse, est alors **servie** (jamais coupée — OP GESTION ne coupe jamais une entreprise qui a l'air de payer) tant que l'abonnement court. La parade est le nom
-  du produit (§ 2) ; l'outil du geste 3 avertit. `test-965` épingle la limite avec la consigne de ce qu'il faudra retirer le jour où OP GESTION changera.
+  du produit (§ 2) ; l'outil du geste 3 refuse d'écrire sans lui. `test-965` épingle la limite avec la consigne de ce qu'il faudra retirer le jour où OP GESTION changera.
 - ⚠️ **Le plafond de mille abonnements est PARTAGÉ** : au-delà, OP GESTION ne peut plus lire la liste en entier et répond « vérification impossible » à **tout le monde** (aucune entreprise n'est coupée —
   une panne de ce côté ne suspend personne —, mais plus aucune n'est vérifiée). Les abonnements de Messages Pro comptent dans ce plafond. À relever dans OP GESTION avant d'approcher les mille.
 

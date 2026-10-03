@@ -18,11 +18,14 @@
  * abonnements ; chaque tarif est relu (`GET /v1/prices/<id>`) — existe-t-il dans CE mode (test ou production) ? est-il actif, récurrent, au
  * bon rythme (mensuel : `month`, annuel : `year`), facturé à l'unité (les places sont une QUANTITÉ) ? Le montant que Stripe facturera est
  * comparé à celui que l'écran annoncera. Il ne crée RIEN chez Stripe, n'envoie rien, ne facture rien.
- * ⚠️ UN TARIF QUE LE COMPTE PARTAGE AVEC OP GESTION : OP GESTION lit TOUS les abonnements du compte et range une ligne « OP MESSAGES » si son tarif
- * est dans sa liste (`STRIPE_PRIX_MESSAGES`) ou si le nom de son produit contient « messages ». Le script AVERTIT quand le produit n'a pas ce
- * nom (design/opmessages/INSTALLER-LE-SERVEUR.md, § Stripe) : sans ça, un abonnement de Messages Pro est lu par OP GESTION comme un paiement
+ * ⛔ UN TARIF QUE LE COMPTE PARTAGE AVEC OP GESTION : OP GESTION lit TOUS les abonnements du compte et range une ligne « OP MESSAGES » si son tarif
+ * est dans sa liste (`STRIPE_PRIX_MESSAGES`) ou si le nom de son produit contient « messages ». Le script REFUSE D'ÉCRIRE quand le produit n'a pas
+ * ce nom (relecture du gardien, 3 octobre 2026 : il se contentait d'avertir, et un avertissement se lit une fois, entre deux lignes vertes)
+ * — design/opmessages/INSTALLER-LE-SERVEUR.md, § Stripe : sans ça, un abonnement de Messages Pro est lu par OP GESTION comme un paiement
  * à lui — une entreprise qui ne paie rien d'OP GESTION, mais dont le dirigeant achète Messages Pro avec la même adresse, est SERVIE (jamais
- * coupée : une entreprise qui paie garde sa réponse). `tests/test-965.js` joue les deux services l'un contre l'autre et le mesure.
+ * coupée : une entreprise qui paie garde sa réponse). Le script ne peut pas lire la liste d'OP GESTION : c'est le NOM du produit qu'il exige.
+ * Un nom qu'il ne PEUT pas lire (la clé n'a pas le droit « Products — lecture ») reste un avertissement : on ne juge pas ce qu'on ne voit pas,
+ * et la clé minimale, sans ce droit, est un choix légitime une fois les tarifs vérifiés. `tests/test-965.js` joue les deux services l'un contre l'autre et le mesure.
  * ⛔ Le fichier n'est réécrit qu'une fois tout validé : temporaire (0600 dès sa création), propriétaire de l'ancien conservé, relu et revalidé
  * par le MÊME code que le démarrage du service, toutes les AUTRES clés vérifiées intactes, puis renommé — jamais à moitié (l'accolade
  * manquante du 17 septembre). Les montants affichés, le rythme de relecture et le délai d'attente ont des valeurs par défaut et ne sont pas
@@ -85,7 +88,8 @@ async function eprouver({ hote, cle, mode, prix, affichage }) {
     console.log('✓ tarif ' + rythme + ' : ' + (euros === null ? 'montant variable' : euros.toFixed(2).replace('.', ',') + ' ' + String(t.currency || '').toUpperCase()) + ' par place' + (rythme === 'annuel' ? ' et par an' : ' et par mois') + (nomProduit ? ' — produit « ' + nomProduit + ' »' : ''));
     if (String(t.currency || '').toLowerCase() !== 'eur') avertissements.push('le tarif ' + rythme + ' n\'est pas en euros (' + String(t.currency || '?').toUpperCase() + ') : l\'écran annonce des euros.');
     if (euros !== null && Math.abs(euros - affichage[rythme]) > 0.001) avertissements.push('LE MONTANT ANNONCÉ À L\'ÉCRAN (' + affichage[rythme] + ' €) N\'EST PAS CELUI DE STRIPE (' + euros + ' €) : régler `facturation.affichage.' + rythme + '` dans le fichier de configuration, ou changer de tarif.');
-    if (nomProduit !== null && !/messages/i.test(nomProduit)) avertissements.push('LE PRODUIT DU TARIF ' + rythme.toUpperCase() + ' (« ' + nomProduit + ' ») NE CONTIENT PAS « messages » : OP GESTION, qui lit tous les abonnements de ce compte, ne le rangerait en « OP MESSAGES » que si l\'identifiant de ce tarif est dans sa liste (`STRIPE_PRIX_MESSAGES`, dans le serveur d\'OP GESTION). Renomme le produit chez Stripe (« OP MESSAGES Pro ») ou fais ajouter ce tarif à la liste — sinon OP GESTION le lirait comme un paiement à lui : une entreprise qui ne paie rien d\'OP GESTION, mais dont le dirigeant achète Messages Pro avec la même adresse e-mail, serait SERVIE tant que cet abonnement court (mesuré : tests/test-965.js, « limite connue »).');
+    /* ⛔ REFUSÉ, pas signalé : le compte Stripe est COMMUN avec OP GESTION, dont c'est ce nom qui range la ligne hors de ses paiements. Le nom du produit est cité (ce n'est pas un secret) : c'est lui qu'il faut renommer. */
+    if (nomProduit !== null && !/messages/i.test(nomProduit)) echec('⛔ LE PRODUIT DU TARIF ' + rythme.toUpperCase() + ' (« ' + nomProduit + ' ») NE CONTIENT PAS « messages » : refusé. Le compte Stripe est COMMUN avec OP GESTION, qui lit tous ses abonnements et ne range une ligne en « OP MESSAGES » (hors de ses paiements à lui) que par le NOM de son produit — ou par l\'identifiant de son tarif dans sa propre liste, que ce script ne peut pas lire. Sans cela, un abonnement de Messages Pro serait lu par OP GESTION comme un paiement à lui : une entreprise qui ne paie rien d\'OP GESTION, mais dont le dirigeant achète Messages Pro avec la même adresse e-mail, serait SERVIE tant qu\'il court (mesuré : tests/test-965.js). Renomme le produit chez Stripe (« OP MESSAGES Pro »), puis relance ce script.');
     if (nomProduit === null) avertissements.push('le nom du produit du tarif ' + rythme + ' n\'a pas pu être lu (droit « Products — lecture » absent) : vérifie à la main qu\'il contient « messages » (voir INSTALLER-LE-SERVEUR.md, § Stripe).');
   }
   for (const a of avertissements) console.log('⚠ ' + a);

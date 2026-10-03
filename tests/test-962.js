@@ -440,7 +440,7 @@ const AUTRE_PRIX = 'price_ToutAutreProduitQq77';
         fake.mode = 'normal';
         vrai('… Stripe revenu, la passe rattrape tout seule (le retard est rangé, plus muet)', await suit(e => e.abonnement && e.abonnement.statut === 'past_due' && e.stripe_muet === false));
         const h3 = (await T.client(svc3.base).get('/health')).j;
-        v('/health : Stripe n\'est plus muet, un espace en retard est compté', [h3.stripeEchecMin, h3.facturation.impayes, h3.facturation.abonnes], [0, 1, 0]);
+        v('/health : Stripe n\'est plus muet — et l\'espace en retard n\'y est PAS compté (le retard est lu juste au-dessus : un nombre publié ne serait pas zéro ; /health est public, ces chiffres se lisent dans Stripe)', [h3.stripeEchecMin, Object.keys(h3.facturation).sort()], [0, ['mode', 'toutOuvert']]);
       } finally { try { S3.fermer(); } catch (x) { /* déjà fermé */ } await svc3.arreter(); }
     }
     /* ═══ 7 bis. /health DIT DEPUIS COMBIEN DE MINUTES STRIPE EST ILLISIBLE — c'est ce que lit la surveillance ═════════════════════════════════════════════ */
@@ -481,7 +481,7 @@ const AUTRE_PRIX = 'price_ToutAutreProduitQq77';
       v('les identifiants de CLIENT et d\'ABONNEMENT de Stripe (`cus_`, `sub_`) ne sortent pas non plus (la page n\'en a pas besoin : elle ne parle qu\'à NOTRE service)', [/\bcus_\w{4,}/.test(tout), /\bsub_\w{4,}/.test(tout)], [false, false]);
       v('le journal ne dit que l\'événement : un motif court (`abonnement_non_reconnu`, `session_incoherente`, `stripe_echec`), jamais un corps de Stripe ni un espace', [/"evt":"stripe_echec"/.test(journal), /abonnement_non_reconnu/.test(journal), /"e_[0-9a-f]{32}"|opmsg:e_|Entreprise/.test(journal)], [true, true, false]);
       const dirs = h => h.facturation;
-      v('/health : le mode et des nombres — aucun espace, aucun tarif', [dirs(health.j).mode, Object.keys(dirs(health.j)).sort(), typeof health.j.stripeEchecMin], ['test', ['abonnes', 'espaces', 'impayes', 'mode', 'toutOuvert'], 'number']);
+      v('/health : le mode et le drapeau de la bêta, rien d\'autre — aucun espace, aucun tarif, aucun chiffre commercial', [dirs(health.j).mode, Object.keys(dirs(health.j)).sort(), typeof health.j.stripeEchecMin], ['test', ['mode', 'toutOuvert'], 'number']);
     }
 
     /* ═══ 9. LE MODULE, AVEC UN `fetch` ET UNE HORLOGE INJECTÉS ═══════════════════════════════════════════════════════════════════════════════════ */

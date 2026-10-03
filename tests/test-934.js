@@ -28,7 +28,7 @@ const code = sansCommentairesJs(fs.readFileSync(FICHIER, 'utf8'));
 vrai('une fois les commentaires retirés il reste du code (sinon les motifs ci-dessous passeraient sur du néant)', code.split('\n').filter(l => l.trim()).length > 40);
 v('le module n\'a rien lancé en étant chargé (main ne tourne que lancé en direct)', typeof S.evaluer, 'function');
 
-const SAIN = { ok: true, instance: 'beta', sha: 'a'.repeat(40), sauvegarde: { configuree: true, ageH: 0.5, essaiJours: 12, echecs: 0 }, stripeEchecMin: 0, facturation: { mode: 'test', toutOuvert: false, espaces: 3, abonnes: 1, impayes: 0 }, pieces: { n: 4, octets: 123456, illisibles: 0, effacementsRates: 0 }, sms: { mode: 'journal', envoyes24h: 3, coutJourEur: 0.2, budgetJourPct: 1, budgetHeurePct: 0, boucliers: 0, ovhEchecs: 0, refus: {} } };
+const SAIN = { ok: true, instance: 'beta', sha: 'a'.repeat(40), sauvegarde: { configuree: true, ageH: 0.5, essaiJours: 12, echecs: 0 }, stripeEchecMin: 0, facturation: { mode: 'test', toutOuvert: false }, pieces: { n: 4, octets: 123456, illisibles: 0, effacementsRates: 0 }, sms: { mode: 'journal', envoyes24h: 3, coutJourEur: 0.2, budgetJourPct: 1, budgetHeurePct: 0, boucliers: 0, ovhEchecs: 0, refus: {} } };
 
 /* ══ 1. L'ÉVALUATION ═════════════════════════════════════════════════════════════════════════════════ */
 v('un /health sain ne fait rien crier', S.evaluer(SAIN, 'beta'), []);
@@ -140,7 +140,8 @@ const T = require('./outils-msg');
       const sans = S.nonClasses(h);
       for (const c of sans) vus.add(c);
       v('⛔ le /health ' + instance + ' VIVANT n\'a aucun champ NEUF sans décision — un champ neuf oblige à trancher, une fois, par écrit (l\'exemple écrit à la main ne le voyait pas)', sans.filter(c => !DETTE.includes(c)), []);
-      vrai('   la facturation y est, et elle est classée : `stripeEchecMin` est surveillé, le mode, le drapeau de la bêta et les nombres d\'espaces sont nommés', !!h.facturation && S.chemins(h.facturation).length === 5 && S.nonClasses({ stripeEchecMin: 0, facturation: h.facturation }).length === 0);
+      vrai('   la facturation y est, et elle est classée : `stripeEchecMin` est surveillé, le mode et le drapeau de la bêta sont nommés', !!h.facturation && S.nonClasses({ stripeEchecMin: 0, facturation: h.facturation }).length === 0);
+      v('⛔ … et RIEN d\'autre : ni espaces, ni abonnés, ni impayés (/health est public : ces chiffres commerciaux se lisent dans Stripe)', S.chemins(h.facturation).sort(), ['mode', 'toutOuvert']);
     } finally { if (svc) await svc.arreter(); }
   }
   v('⛔ chaque champ de la dette existe encore et n\'est toujours pas classé (un champ classé sort de la liste : elle ne parle jamais du vide)', DETTE.filter(c => !vus.has(c)), []);

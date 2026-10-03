@@ -250,8 +250,8 @@ m('B29', 'un échec de Stripe est journalisé AVEC la clé (le champ passé à `
   EQ('`journaliser` ne retient que les champs d\'une LISTE BLANCHE (`CHAMPS_JOURNAL`) : un champ `cle` est jeté avant d\'être écrit — le défaut réel ajoute `cle` à la liste ET le passe (B29b)'));
 m2('B29b', 'un échec de Stripe est journalisé AVEC la clé (le champ passé ET admis par la liste blanche du journal)',
   [[F.fact, "journaliser('stripe_echec', { motif }); };", "journaliser('stripe_echec', { motif, cle: cfg.cle }); };"], [F.index, "'etat', 'n', 'motif', 'route', 'pays']);", "'etat', 'n', 'motif', 'route', 'pays', 'cle']);"]], ['962']);
-m('B30', '/health porte la clé Stripe', F.index, 'facturation: Object.assign({ mode: facturation.mode(), toutOuvert: formule.toutOuvert() }, stockage.facturationStats()),',
-  'facturation: Object.assign({ mode: facturation.mode(), toutOuvert: formule.toutOuvert(), cle: config.facturation.cle }, stockage.facturationStats()),', ['962', '934']);
+m('B30', '/health porte la clé Stripe', F.index, 'facturation: { mode: facturation.mode(), toutOuvert: formule.toutOuvert() },',
+  'facturation: { mode: facturation.mode(), toutOuvert: formule.toutOuvert(), cle: config.facturation.cle },', ['962', '934']);
 m('B31', '/health ne publie plus les minutes d\'illisibilité de Stripe', F.index, 'stripeEchecMin: facturation.echecMin(),', 'stripeEchecMin: 0,', ['962']);
 m('B32', 'la surveillance ne crie plus quand Stripe est illisible', F.surv, "if (typeof j.stripeEchecMin === 'number' && j.stripeEchecMin > SEUIL_STRIPE_MIN) {", 'if (false) {', ['934']);
 m('B33', 'la surveillance crie à 90 minutes pile (elle ne crie qu\'AU-DELÀ)', F.surv, 'j.stripeEchecMin > SEUIL_STRIPE_MIN', 'j.stripeEchecMin >= SEUIL_STRIPE_MIN', ['934']);
@@ -273,8 +273,8 @@ m('K08', 'un tarif mensuel qui se renouvelle chaque année est accepté', F.cfgs
 m('K09', 'un tarif archivé chez Stripe est accepté', F.cfgstripe, "    if (t.active === false) echec(", "    if (false) echec(", ['963']);
 m('K10', 'un tarif d\'un AUTRE mode que la clé (production contre test) est accepté', F.cfgstripe, "    if (t.livemode !== undefined && (t.livemode ? 'live' : 'test') !== mode) echec(", "    if (false) echec(", ['963']);
 m('K11', 'l\'outil AFFICHE la clé (« ✓ la clé … répond »)', F.cfgstripe, "console.log('✓ la clé répond, en mode ' + mode + ' et lit les abonnements.');", "console.log('✓ la clé ' + cle + ' répond, en mode ' + mode + ' et lit les abonnements.');", ['963']);
-m('K12', 'l\'outil n\'avertit plus qu\'un produit sans « messages » dans son nom est lu par OP GESTION comme un paiement à lui', F.cfgstripe,
-  "    if (nomProduit !== null && !/messages/i.test(nomProduit)) avertissements.push(", "    if (false) avertissements.push(", ['963']);
+m('K12', 'l\'outil ne refuse plus d\'écrire un tarif dont le produit n\'a pas « messages » dans son nom (OP GESTION le lirait comme un paiement à lui)', F.cfgstripe,
+  "    if (nomProduit !== null && !/messages/i.test(nomProduit)) echec(", "    if (false) echec(", ['963']);
 m('K13', 'remplacer une facturation existante ne demande plus « oui »', F.cfgstripe, "    if (rep !== 'oui') echec('Pas de « oui » : abandon.');\n", '', ['963']);
 m('K14', 'un fichier d\'une instance et un environnement d\'une autre ne se contredisent plus (la clé de production peut aller dans le fichier de la bêta)', F.cfgstripe,
   "  if (config.instance && process.env.OPMSG_INSTANCE && config.instance !== process.env.OPMSG_INSTANCE) echec(", "  if (false) echec(", ['963']);
@@ -378,6 +378,19 @@ m('H25', 'un 404 compte comme une lecture réussie (une clé qui ne voit rien é
   "else if (code !== 'introuvable') noterSucces();", 'else noterSucces();', ['962']);
 m('H26', 'une absence non confirmée ne se dit pas (Stripe n\'est pas compté illisible : l\'alarme ne monte jamais)', F.fact,
   "noterEchec('abonnement_introuvable'); journaliser", "journaliser", ['962']);
+
+/* ── R2 : un produit sans « messages » est REFUSÉ, pas signalé ── */
+m('H27', 'l\'outil de pose ne fait plus que SIGNALER un produit sans « messages » (la pose réussit : l\'ancien comportement, qu\'on lit une fois entre deux lignes vertes)', F.cfgstripe,
+  "    if (nomProduit !== null && !/messages/i.test(nomProduit)) echec(", "    if (nomProduit !== null && !/messages/i.test(nomProduit)) avertissements.push(", ['963']);
+m('H28', 'la comparaison du nom du produit tient à la casse (« OP MESSAGES Pro » serait refusé : le nom du produit réel est écrit en capitales)', F.cfgstripe,
+  "!/messages/i.test(nomProduit)) echec(", "!/messages/.test(nomProduit)) echec(", ['963']);
+m('H29', 'un nom de produit ILLISIBLE (la clé n\'a pas le droit « Products — lecture ») est refusé aussi (la clé minimale ne peut plus servir)', F.cfgstripe,
+  "    if (nomProduit === null) avertissements.push(", "    if (nomProduit === null) echec(", ['963']);
+/* ── R9 : /health est public, aucun chiffre commercial ── */
+m('H30', '/health publie de nouveau un chiffre commercial (le nombre d\'espaces) : n\'importe qui lit où en sont les ventes', F.index,
+  'facturation: { mode: facturation.mode(), toutOuvert: formule.toutOuvert() },', 'facturation: { mode: facturation.mode(), toutOuvert: formule.toutOuvert(), espaces: 1 },', ['934', '961', '962']);
+m('H31', 'la surveillance garde une décision « vu et pas surveillé » pour un nombre d\'abonnés que /health ne publie plus (une décision prise pour du vide)', F.surv,
+  "  'facturation.mode':", "  'facturation.abonnes': 'le nombre d\\'espaces dont l\\'abonnement est payé est une information commerciale, lue à la main : un seuil n\\'aurait pas de sens avant les premières ventes',\n  'facturation.mode':", ['934']);
 
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const DOSSIERS_COPIE = ['server-msg', 'server', 'design/opmessages', '.github', 'apercu/opmessages', 'icons', 'scripts'];   // `.github` ENTIER : test-934 lit les workflows autant que les scripts de surveillance

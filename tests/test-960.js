@@ -469,8 +469,8 @@ console.log('\nL\'abonnement rangé : ce que Stripe a dit, le sursis daté de la
   /* à relire : ceux qui vivent, jamais un résilié ; le moins récemment lu d'abord */
   const x = atelier(); x.S.abonnementPoser(x.e, ABO({ abonnement: 'sub_x', statut: 'canceled' }), { adopter: true });
   v('⛔ un abonnement résilié ou expiré est un état FINAL : il n\'est plus relu (sinon la passe relirait des milliers d\'espaces morts)', [x.S.abonnementsARelire().includes(x.e), (() => { x.S.abonnementPoser(x.e, ABO({ abonnement: 'sub_x', statut: 'incomplete_expired' })); return x.S.abonnementsARelire().includes(x.e); })(), (() => { x.S.abonnementPoser(x.e, ABO({ abonnement: 'sub_x', statut: 'incomplete' })); return x.S.abonnementsARelire().includes(x.e); })()], [false, false, true]);
-  const st = S.facturationStats();
-  v('les agrégats de /health : espaces, abonnés (payés seulement), impayés — des nombres', [Object.keys(st).sort(), Object.values(st).every(Number.isInteger), st.espaces, st.abonnes, st.impayes], [['abonnes', 'espaces', 'impayes'], true, 1, 0, 1]);
+  /* ⛔ /health est PUBLIC : le nombre d'espaces, d'abonnés et d'impayés n'y est plus (relecture du gardien, 3 octobre 2026) — le stockage n'offre plus de quoi les compter pour lui (test-903, 961, 962 le lisent sur le /health vivant) */
+  vrai('⛔ le stockage n\'offre plus de compteur commercial pour /health (espaces, abonnés, impayés : ils se lisent dans le tableau de bord de Stripe)', typeof S.facturationStats === 'undefined');
   vrai('l\'état rangé ne contient jamais de clé : ni `cle`, ni `secret` dans les colonnes de la table', (() => { const d = w.brut(); const cols = d.prepare('PRAGMA table_info(abonnement)').all().map(c => c.name); d.close(); return !cols.some(c => /cle|secret|token|jeton/i.test(c)); })());
 }
 

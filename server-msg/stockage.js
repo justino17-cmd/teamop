@@ -2034,14 +2034,6 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
               WHERE (abonnement IS NOT NULL AND statut NOT IN ('canceled', 'incomplete_expired')) OR session IS NOT NULL
               ORDER BY COALESCE(relu_le, 0), espace LIMIT ?`).all(Math.max(1, limite | 0)).map(r => r.espace);
   }
-  function facturationStats() {
-    const n = (s) => num(s.get().n);
-    return {
-      espaces: n(Q('SELECT COUNT(*) AS n FROM espace')),
-      abonnes: n(Q(`SELECT COUNT(*) AS n FROM abonnement WHERE statut IN ('active', 'trialing')`)),
-      impayes: n(Q(`SELECT COUNT(*) AS n FROM abonnement WHERE statut IN ('past_due', 'unpaid')`)),
-    };
-  }
 
   /* ══ AGRÉGATS POUR /health — des NOMBRES, jamais un identifiant ══════════════════════════ */
   function stats() {
@@ -2146,7 +2138,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     espaceCreer, espaceBrut, espacePourMembre, espacesDe, espacesIds, espaceMembres, espaceMembresN, espaceMaj, espaceMembreRetirer, espaceRoleMembre, espaceTransferer, espaceSupprimer, espaceQuitterTout, espacesAbonnesSeul, exportEspaces,
     invitationApercu, invitationAccepter, invitationsRevoquer, invitationsVivantes, invitationEspace, espaceUids,
     canalDe, canauxVisibles, canalCreer, canalPourAdmin, canalMembresAjouter, canalMembreRetirer, canalQuitter,
-    abonnementLire, abonnementSession, abonnementSessionOubliee, abonnementPoser, abonnementsARelire, facturationStats,
+    abonnementLire, abonnementSession, abonnementSessionOubliee, abonnementPoser, abonnementsARelire,
     convDirecteObtenir, convCreerGroupe, convSupprimer, convPourMembre, convListe, convMaj, membresActifs, membresDetail, nbAdmins,
     membresAjouter, membreRetirer, membreQuitter, membreRole, membrePrefs, membreLu, autreDirect, ecritureAutorisee,
     messageEnvoyer, messageExiste, messagesDe, messageModifier, messageSupprimer, messageReagir, reactionsDe, purgerExpires,

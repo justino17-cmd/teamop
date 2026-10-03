@@ -119,10 +119,11 @@ function demarrer(env = process.env) {
       pieces: Object.assign(stockage.pieceStats(), { illisibles: piecesEtat.illisibles, effacementsRates: piecesEtat.effacementsRates }),
       sauvegarde: sauvegarde.sante(),   // des nombres et un booléen : jamais un nom de bucket, un chemin, un motif
       push: push.sante(),   // des NOMBRES (et un état) : abonnements, envois et échecs des 24 dernières heures — jamais un point d'accès, une clé ou une personne
-      /* ⛔ MESSAGES PRO : minutes depuis lesquelles Stripe est illisible (0 : il l'est, ou rien n'en dépend) — la surveillance crie au-delà de 90 ; et le mode, des nombres. Jamais la clé, un
-         identifiant de client ou d'abonnement, un espace. */
+      /* ⛔ MESSAGES PRO : minutes depuis lesquelles Stripe est illisible (0 : il l'est, ou rien n'en dépend) — la surveillance crie au-delà de 90 ; le mode et le drapeau de la bêta. Jamais la clé, un
+         identifiant de client ou d'abonnement, un espace — et JAMAIS un chiffre COMMERCIAL (combien d'espaces, d'abonnés, d'impayés) : `/health` est PUBLIC, et ces nombres disent à n'importe qui,
+         d'un `curl`, où en sont les ventes (relecture du gardien, 3 octobre 2026). Ils se lisent dans le tableau de bord de Stripe, qui les tient déjà. */
       stripeEchecMin: facturation.echecMin(),
-      facturation: Object.assign({ mode: facturation.mode(), toutOuvert: formule.toutOuvert() }, stockage.facturationStats()),
+      facturation: { mode: facturation.mode(), toutOuvert: formule.toutOuvert() },
     }),
   };
 
