@@ -133,6 +133,7 @@ m('T19', 'un texte écrit pendant qu\'une pièce attend la personne reste derri�
 m('T20', 'la bulle d\'une pièce en échec ne porte pas sa phrase (rien n\'explique pourquoi elle n\'est pas partie)', F.src, "      if (p.echec) v.echec = p.echec.phrase;\n", '', ['944']);
 m('T21', 'l\'avis qui dit l\'échec d\'une pièce (la personne peut être sur une autre rubrique) n\'est plus émis', F.src, /      const \[sujet, accord\] = sujetEnvoi\(p\);\n      emettre\(\{ type: 'avis', texte: sujet \+ ' n\\'a pas pu être ' \+ accord \+ ' : ' \+ p\.echec\.phrase \}\);\n/, '', ['944']);
 m('T22', 'le 408 d\'un envoi trop lent n\'a plus sa phrase (retombe sur « erreur inconnue »)', F.api, /    envoi_trop_lent: [^\n]*\n/, '', ['944']);
+m('T23', 'l\'événement `personne` de MOI-MÊME ne relit plus mon profil (réglée sur un autre appareil, la présence masquée n\'est jamais dite à celui-ci)', F.src, "if (estMoi(d.uid)) api0.moi().then(m => { moiApi = m; noter(m); emettre({ type: 'moi' }); }, () => {});\n", '', ['944']);
 
 /* ── LE PROXY (jouée par la sonde d'un VRAI nginx : il faut OPMSG_NGINX ; sans lui, « NON JOUÉE ») ── */
 m('P47', 'le bloc des pièces du proxy est ramené à 1 Mo (une photo réduite à 250 Ko passe, un fichier de 20 Mo non)', 'server-msg/install-msg.sh', '        client_max_body_size 26m;', '        client_max_body_size 1m;', ['proxy']);

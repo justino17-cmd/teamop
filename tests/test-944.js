@@ -550,6 +550,13 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
       v('à propos : la version du service, l\'instance, et les maximums des pièces', [/^\d+\.\d+\.\d+/.test(ap.version), ap.instance, ap.limites.photo_max, ap.limites.fichier_max], [true, 'beta', PHOTO_MAX, FICHIER_MAX]);
 
       const A2 = monter(svc); await A2.entrer('alice', 'pw-alice-1234');
+      /* ⛔ réglé sur UN appareil, dit sur L'AUTRE : le service prévient les autres appareils de la personne, la source relit son profil, la barre de l'autre page ne reste pas sur « Disponible » */
+      v('population : l\'autre appareil d\'Alice dit sa présence montrée au départ', A2.src.moi().presence, true);
+      const evMoi2 = A2.evs.filter(e => e.type === 'moi').length;
+      await A.src.majConfidentialite({ presence: false });
+      vrai('⛔ …la présence masquée sur ce téléphone est dite à l\'AUTRE appareil de la personne (son `moi()` redit « masquée » et sa page est prévenue)', !!(await att(() => A2.src.moi().presence === false && A2.evs.filter(e => e.type === 'moi').length > evMoi2)));
+      await A.src.majConfidentialite({ presence: true });
+      vrai('…et rallumée, de même', !!(await att(() => A2.src.moi().presence === true)));
       const r = await A.src.deconnecterAutres();
       v('⛔ « Déconnecter les autres appareils » : le service dit combien (une session), l\'appareil d\'où on le demande reste connecté', [r.sessions, (await attrape(A.src.profil())) === null], [1, true]);
       vrai('l\'autre appareil est mort : sa session est coupée et il le sait', !!(await att(async () => { await A2.src.verifierSession(); return A2.morts.length > 0; })));
