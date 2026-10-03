@@ -5,7 +5,7 @@
    « décliné » celui qui ne peut plus venir ; un rappel qui part deux fois, un bail qui ne s'éteint jamais, un rappel du passé renvoyé après une restauration ; un effacement qui
    revient d'une archive d'avant, un rejeu qui écrit une ligne de plus au registre ; un courriel qui part sans son plafond, une pièce jointe qui n'est pas la bonne, un secret affiché ;
    une route sans sa garde, un code d'erreur que l'écran ne sait pas dire ; et, côté page, une adresse de fichier qui passe par l'enveloppe asynchrone, un fuseau qu'on ne dit pas au service, une adresse tapée perdue au redessin, un bouton
-   qui reste grisé, une date que la fiche garde après un changement d'horaire, un lieu « javascript: » devenu lien, une heure lue dans le fuseau de la réunion au lieu de celui de l'appareil, un refus d'ICI qui n'en est plus un — dans une COPIE de l'arbre (jamais dans l'arbre lui-même : le `git checkout` d'après-mutation de CLAUDE.md
+   qui reste grisé, une date que la fiche garde après un changement d'horaire, un lieu « javascript: » devenu lien, une heure lue dans le fuseau de la réunion au lieu de celui de l'appareil, un refus d'ICI qui n'en est plus un, un retour d'historique rejoué pendant qu'il est en vol (la fiche ouverte au doigt quitte l'application), une disparition apprise de quatre côtés qui ferme la fiche quatre fois — dans une COPIE de l'arbre (jamais dans l'arbre lui-même : le `git checkout` d'après-mutation de CLAUDE.md
    efface aussi les correctifs non commités), joue les bancs visés, et exige qu'AU MOINS UN tombe (code de sortie non nul ou un « ✗ »).
 
    ⛔ UNE MUTATION DONT LE MOTIF NE TROUVE RIEN EST MAL VISÉE, et le lanceur le DIT au lieu de conclure : il vérifie que le motif se trouve EXACTEMENT UNE fois
@@ -674,7 +674,7 @@ m('U14', 'supprimer ne transmet plus le choix « Prévenir les invités » : tou
 
 /* la page : le formulaire, la fiche, l'agenda */
 m('U20', 'une réunion supprimée ou une personne retirée redit « Cette réunion a été supprimée » : faux pour la personne qu\'on a seulement retirée', F.page,
-  "mot(PHRASE_REUNION_PERDUE); fermerCouche(); } else rendreFiche();", "mot('Cette réunion a été supprimée.'); fermerCouche(); } else rendreFiche();", ['sonde'], SONDE);
+  "    mot(F.sortie || PHRASE_REUNION_PERDUE);\n", "    mot(F.sortie || 'Cette réunion a été supprimée.');\n", ['sonde'], SONDE);
 m('U21', 'l\'adresse tapée ne survit au redessin que si le champ a le focus : toucher « Cette date » la perd', F.page,
   "const ch = $('rc-adresse'), champ = ch && corps.contains(ch) ? { v: ch.value, focus: actif === ch, a: ch.selectionStart } : null;",
   "const champ = actif && corps.contains(actif) && actif.id === 'rc-adresse' ? { v: actif.value, focus: true, a: actif.selectionStart } : null;", ['sonde'], SONDE);
@@ -685,7 +685,7 @@ m('U23', 'la date choisie dans l\'agenda n\'est plus revérifiée : après un ch
 m('U24', 'le titre de la conversation d\'une réunion ouvre les infos d\'un groupe, pas la réunion', F.page,
   "if (CAP.reunions && rc) { declencheur = $('conv-titre');", "if (false && rc) { declencheur = $('conv-titre');", ['sonde'], SONDE);
 m('U25', 'l\'événement `reunions` ne redessine plus la fiche ouverte : l\'hôte ne voit la réponse de Bruno qu\'en la fermant', F.page,
-  "mot(PHRASE_REUNION_PERDUE); fermerCouche(); } else rendreFiche();", "mot(PHRASE_REUNION_PERDUE); fermerCouche(); }", ['sonde'], SONDE);
+  "reunionDisparue(reu.fiche); else rendreFiche();", "reunionDisparue(reu.fiche);", ['sonde'], SONDE);
 m('U26', 'l\'organisateur se voit proposer de répondre à sa propre réunion', F.page,
   "if (!hote && !d.annulee) s += '<div class=\"rubrique\"><span>Ta réponse</span>", "if (!d.annulee) s += '<div class=\"rubrique\"><span>Ta réponse</span>", ['sonde'], SONDE);
 m('U27', 'un invité voit les gestes de l\'organisateur (modifier, annuler, supprimer, courriel)', F.page,
@@ -879,9 +879,9 @@ m("X64", "la réparation ne cherche plus les hôtes effacés (seulement les invi
 m("X65", "la réparation ne cherche plus les invités effacés (seulement les hôtes)", F.stock,
   "SELECT i.uid AS uid FROM reunion_invite i JOIN personne p ON p.id = i.uid WHERE p.etat = 'supprime'", "SELECT i.uid AS uid FROM reunion_invite i JOIN personne p ON p.id = i.uid WHERE p.etat = 'supprime' AND 0", ["972"]);
 m("X70", "« Quitter la réunion » confirmé ne quitte rien : la fiche se ferme, le service garde l'invitation", F.page,
-  "await source.quitterReunion(id); mot('Tu as quitté la réunion'); fermerCouche(); return; }", "mot('Tu as quitté la réunion'); fermerCouche(); return; }", ["sonde"], SONDE);
+  "F.sortie = 'Tu as quitté la réunion'; await source.quitterReunion(id); reunionDisparue(F); return; }", "F.sortie = 'Tu as quitté la réunion'; reunionDisparue(F); return; }", ["sonde"], SONDE);
 m("X71", "toucher « Quitter la réunion » quitte tout de suite, sans demander confirmation", F.page,
-  "else if (act === 'quitter-demander') { F.confirme = 'quitter'; await relire(); }", "else if (act === 'quitter-demander') { b.setAttribute('aria-disabled', 'true'); await source.quitterReunion(id); mot('Tu as quitté la réunion'); fermerCouche(); return; }", ["sonde"], SONDE);
+  "else if (act === 'quitter-demander') { F.confirme = 'quitter'; await relire(); }", "else if (act === 'quitter-demander') { b.setAttribute('aria-disabled', 'true'); F.sortie = 'Tu as quitté la réunion'; await source.quitterReunion(id); reunionDisparue(F); return; }", ["sonde"], SONDE);
 m("X72", "l'organisateur voit « Quitter la réunion » dans sa propre fiche", F.page,
   "if (!hote) s += '<div class=\"rubrique\"><span>Invité</span></div>'", "if (true) s += '<div class=\"rubrique\"><span>Invité</span></div>'", ["sonde"], SONDE);
 m("X73", "le module de données ne dit pas à la page que la réunion a disparu pour celui qui la quitte", F.src,
@@ -892,6 +892,29 @@ m("X75", "la phrase du plafond de modifications manque : l'écran dit une erreur
   "    trop_de_modifications: 'Cette réunion vient", "    trop_de_modifications_x: 'Cette réunion vient", ["976"]);
 m("X76", "la phrase « l'organisateur ne quitte pas » manque", F.api,
   "    hote_non_quittable: 'L\\'organisateur", "    hote_non_quittable_x: 'L\\'organisateur", ["976"]);
+
+/* ── 8. LA FICHE OUVERTE AU DOIGT SE FERME UNE FOIS (3 octobre 2026, l'essai au navigateur du testeur) : un retour d'historique n'est jamais rejoué tant qu'il est en vol, et une disparition que la page
+      apprend de plusieurs côtés (le geste, la source, le flux, la relecture) ferme la fiche UN SEUL coup, avec la phrase du geste. Toutes sont jouées par la partie D de la sonde (`SEULES=D` la joue seule). ── */
+m("Y01", "rendreEntree ne note plus le retour en vol : un second « fermer » (deux touchers, un événement du flux) rejoue history.back() — la fiche ouverte au doigt quitte l'application", F.page,
+  "    if (retourEnVol) return;\n", "", ["sonde"], SONDE);
+m("Y02", "le retour joué (popstate) ne lève plus la marque : seul le filet de 1,5 s la lève — la fiche rouverte aussitôt ne se referme plus au premier toucher", F.page,
+  "window.addEventListener('popstate', () => { retourEnVol = false; clearTimeout(filetRetour); });", "window.addEventListener('popstate', () => {});", ["sonde"], SONDE);
+m("Y03", "le filet de 1,5 s est retiré : un retour que le navigateur ne rend jamais fige la fermeture de toute couche pour de bon", F.page,
+  "    clearTimeout(filetRetour); filetRetour = setTimeout(() => { retourEnVol = false; }, 1500);\n", "", ["sonde"], SONDE);
+m("Y04", "la marque de la fiche (`fermee`) n'est plus posée : chaque nouvelle de la disparition redit sa phrase (trois toasts pour une suppression) — le retour, lui, n'est rendu qu'une fois (Y01 le garde)", F.page,
+  "    if (!F || F.fermee) return;\n", "    if (!F) return;\n", ["sonde"], SONDE);
+m("Y05", "« Supprimer » confirmé n'annonce plus sa phrase AVANT l'attente : l'événement du flux arrive le premier et l'organisateur lit « n'existe plus » à celui qui vient de supprimer", F.page,
+  "F.sortie = 'Réunion supprimée'; await source.supprimerReunion(", "await source.supprimerReunion(", ["sonde"], SONDE);
+m("Y06", "« Quitter la réunion » confirmé n'annonce plus sa phrase AVANT l'attente : celui qui part lit « n'existe plus, ou tu n'y es plus invité »", F.page,
+  "F.sortie = 'Tu as quitté la réunion'; await source.quitterReunion(id); reunionDisparue(F); return; }", "await source.quitterReunion(id); reunionDisparue(F); return; }", ["sonde"], SONDE);
+m("Y07", "un geste refusé garde sa phrase annoncée : la réunion supprimée plus tard AILLEURS se ferme sur « Réunion supprimée » au lieu de « n'existe plus »", F.page,
+  "catch (er) { if (F) F.sortie = null; b.removeAttribute('aria-disabled');", "catch (er) { b.removeAttribute('aria-disabled');", ["sonde"], SONDE);
+m("Y08", "la relecture d'une fiche qui se ferme n'est plus évitée (`rendreFiche` ne regarde plus `fermee`)", F.page,
+  "    if (F.fermee) return;  ", "    if (false) return;  ", ["sonde"],
+  Object.assign({}, SONDE, EQ('la relecture retrouve « introuvable » et appelle `reunionDisparue`, que SA marque (`fermee`, Y04) rend sans effet : la garde de `rendreFiche` n\'économise qu\'une lecture, aucun comportement n\'en change')));
+m("Y09", "`reunionDisparue` ferme la couche d'en dessous quand la feuille n'est plus la fiche (fermée à la main pendant l'attente du geste)", F.page,
+  "    if (ouvertePour(F.id) && reu.fiche === F) fermerCouche();\n", "    fermerCouche();\n", ["sonde"],
+  Object.assign({}, SONDE, EQ('NON JOUÉE par la sonde, qui ouvre la fiche depuis l\'agenda : il n\'y a aucune couche dessous, `fermerCouche()` n\'y fait rien. La garde protège la conversation d\'une réunion ouverte DERRIÈRE la fiche ; la réunion disparue emporte sa conversation (le service la retire), donc le cas n\'a pas d\'effet visible — dit, pas prouvé')));
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const DOSSIERS_COPIE = ['server-msg', 'server', 'design/opmessages', '.github', 'apercu/opmessages', 'icons', 'scripts'];   // `.github` ENTIER : test-934 lit les workflows autant que les scripts de surveillance
 function copier(src, dst) {

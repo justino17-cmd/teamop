@@ -11,6 +11,11 @@
    « Notifier » éteint ne prévient personne) ; les rappels qui arrivent à l'heure, une seule fois, quand le service avance de trois heures ; annuler (avec demande de confirmation) puis supprimer ;
    l'absence d'erreur dans la console et de débordement d'écran.
 
+   PARTIE D — la fiche ouverte AU DOIGT (depuis l'agenda : deux entrées d'historique) et ce qui la ferme : la suppression par l'organisateur, la sortie de l'invité, la nouvelle qui n'arrive que par le flux, deux touchers sur « Annuler »,
+   un retour jamais rendu, un geste refusé ; puis la feuille d'un espace supprimé ou quitté. Chaque `history.back()` est compté (et ralenti, pour que la course se joue à chaque fois) : UN seul, et la page ARRIVE sur l'agenda, dans la même page.
+   Sans cette partie, rien dans cette sonde n'ouvre une fiche autrement que par son adresse : une seule entrée d'historique, la fermeture REMPLACE la route, et le retour de trop ne pouvait pas se voir.
+   `SEULES=D node tests/sonde-opmessages-reunions.js` la joue seule (un service, un navigateur, six pages l'une après l'autre) ; sans `SEULES`, tout se joue, comme la porte et le compteur l'attendent.
+
    ⛔ CE QU'ELLE NE PEUT PAS JOUER, ET DIT : un vrai relais SMTP et une vraie boîte de réception (le relais est un faux, local : le geste de Justin est de le configurer, en saisie masquée, par
    `node server-msg/configurer-courriel.js`) ; l'ouverture du fichier .ics dans une vraie application d'agenda (`test-971` le relit par un lecteur indépendant) ; la notification poussée quand la page est
    FERMÉE (`sonde-opmessages-push.js`) — ici la même notification arrive par le flux, et l'adresse `/#reunions/<identifiant>` que la notification ouvrirait est jouée par `goto` ; un vrai téléphone dans un
@@ -58,6 +63,15 @@ async function ouvrir(b, base, pf, o) {
       new MutationObserver(() => { const t = aide.textContent.trim(); if (t) window.__bannieres.push(titre.textContent.trim() + ' | ' + t); }).observe(aide, { childList: true, characterData: true, subtree: true });
     };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', poser); else poser();
+    /* chaque événement `reunion` que le flux livre à la page est noté (sa donnée brute) : « la nouvelle est ARRIVÉE » se lit, elle ne se devine pas à une durée (partie D) */
+    window.__sse = [];
+    const FluxOrigine = window.EventSource;
+    if (FluxOrigine) {
+      const Flux = function (url, opt) { const es = new FluxOrigine(url, opt); es.addEventListener('reunion', ev => { window.__sse.push(String(ev.data)); }); return es; };
+      Flux.prototype = FluxOrigine.prototype;
+      for (const k of ['CONNECTING', 'OPEN', 'CLOSED']) Flux[k] = FluxOrigine[k];
+      window.EventSource = Flux;
+    }
   });
   const page = await ctx.newPage();
   page.setDefaultTimeout(15000);
@@ -157,6 +171,73 @@ async function fermerFeuille(S) {
   if (ouverte) { await toucher(S, '#g-annuler'); await S.page.waitForFunction(() => !document.documentElement.classList.contains('feuille-ouverte'), null, { timeout: 5000 }).catch(() => {}); }
 }
 const mot = (S) => lire(S, '#mot');
+
+/* ═══ L'HISTORIQUE, COMPTÉ ET RALENTI (partie D) ═══════════════════════════════════════════════════════════════════════════════════════════════
+   ⛔ `history.back()` est ASYNCHRONE : `popstate` — donc la route et l'entrée courante — n'arrive qu'après. Tant qu'un retour est en vol, la page voit encore l'ancienne couche. Le navigateur de banc le joue en
+   quelques millisecondes ; un téléphone chargé, en plusieurs centaines. On ne parie donc pas sur la course : on la RALENTIT. Chaque `history.back()` que la page demande est NOTÉ (l'entrée qu'il quitte, la route, la
+   pile d'appel) puis JOUÉ avec `delai` ms de retard ; le texte de chaque toast (`#mot`) est noté à son écriture ; chaque `popstate` aussi. Rien de la page n'est modifié : c'est `history.back` de CETTE fenêtre.
+   ⛔ Les notes partent AUSSI côté banc (`exposeFunction`) : une page qui a quitté l'application — le défaut qu'on cherche — emporte ses variables avec elle, et le banc doit pouvoir DIRE combien de retours elle a demandés. */
+async function espionnerHistorique(S, delai) {
+  S.histo = { retours: [], popstates: [], mots: [] };
+  await S.page.exposeFunction('__noterRetour', (x) => { S.histo.retours.push(JSON.parse(x)); });
+  await S.page.exposeFunction('__noterPopstate', (n) => { S.histo.popstates.push(n); });
+  await S.page.exposeFunction('__noterMot', (t) => { S.histo.mots.push(t); });
+  await S.page.evaluate((d) => {
+    if (window.__histo) return;
+    const H = window.__histo = { marque: 'm' + Math.random().toString(36).slice(2), retours: 0, popstates: 0, enVol: 0, perdre: 0, perdus: 0 };
+    const orig = history.back.bind(history);
+    history.back = function () {
+      const st = history.state;
+      H.retours++;
+      window.__noterRetour(JSON.stringify({ de: st && st.opmsg ? st.n : null, route: st && st.r ? st.r.vue + (st.r.feuille ? '/' + String(st.r.feuille).replace(/:.*/, '') : '') : '?',
+        pile: String(new Error().stack).split('\n').slice(2, 10).map(x => x.trim().replace(/^at /, '').replace(/https?:\/\/[^/]+\//, '')).join(' < ') }));
+      if (H.perdre > 0) { H.perdre--; H.perdus++; return; }           // un navigateur qui ne rend JAMAIS ce retour : ni popstate, ni changement d'entrée
+      H.enVol++;
+      setTimeout(() => { H.enVol--; orig(); }, d);
+    };
+    window.addEventListener('popstate', () => { H.popstates++; window.__noterPopstate(history.state && history.state.opmsg ? history.state.n : null); });
+    /* chaque `mot(...)` de la page, UNE entrée : on intercepte l'écriture de `textContent` sur l'élément (un MutationObserver regrouperait deux écritures d'une même tâche) */
+    const el = document.getElementById('mot'), desc = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent');
+    Object.defineProperty(el, 'textContent', { configurable: true, get() { return desc.get.call(this); }, set(x) { const t = String(x).trim(); if (t) window.__noterMot(t); desc.set.call(this, x); } });
+  }, delai);
+}
+/* ce que l'historique a vu, et ce que la page est devenue (`page` est nul si la fenêtre n'est plus la nôtre : elle a QUITTÉ l'application, le dernier retour a rendu l'entrée d'avant le chargement) */
+async function lireHistorique(S) {
+  await S.page.evaluate(() => 0).catch(() => {});           // les notes en route arrivent AVANT cette réponse (même canal, dans l'ordre)
+  const page = await S.page.evaluate(() => {
+    const H = window.__histo; if (!H) return null;
+    return { marque: H.marque, vue: document.documentElement.dataset.vue || null, feuille: document.documentElement.classList.contains('feuille-ouverte'), n: history.state && history.state.opmsg ? history.state.n : null, hash: location.hash, enVol: H.enVol };
+  }).catch(() => null);
+  return { page, retours: S.histo.retours.length, de: S.histo.retours.map(x => x.de), pile: S.histo.retours.map(x => x.pile), popstates: S.histo.popstates.slice(), mots: S.histo.mots.slice() };
+}
+/* la page a REPOSÉ : la nouvelle de la disparition est arrivée par le flux (l'événement adressé du service est passé par la page), plus aucun retour n'est en vol, chaque retour demandé a joué son popstate, et deux trames ont passé */
+async function reposer(S, id, mini) {
+  const ok = await attendre(S, (a) => {
+    const H = window.__histo; if (!H) return false;
+    /* `null` : pas d'événement à guetter (un geste, ou un flux qu'on ne note pas) — on attend alors qu'AU MOINS `mini` retours aient été demandés (un par défaut) : sans eux, « rien n'est en vol » serait vrai avant même que la page ait fait quoi que ce soit */
+    const arrive = a.id === null ? H.retours >= a.mini : window.__sse.some(d => { try { const j = JSON.parse(d); return j.id === a.id && j.supprime === true; } catch (e) { return false; } });
+    return arrive && H.enVol === 0 && H.popstates >= H.retours - H.perdus;
+  }, { id, mini: mini || 1 }, 12000);
+  if (ok) await S.page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))).catch(() => {});
+  return ok;
+}
+/* combien d'événements « supprimée » le FLUX a livrés à cette page pour cette réunion (la donnée brute notée par l'espion de `EventSource`) */
+const sseSupprime = (S, id) => S.page.evaluate((i) => window.__sse.filter(d => { try { const j = JSON.parse(d); return j.id === i && j.supprime === true; } catch (e) { return false; } }).length, id).catch(() => null);
+/* l'agenda se place sur le jour qui porte une réunion (le point de l'onglet du jour), en tournant les semaines au besoin ; puis la ligne de CE titre est touchée — la fiche s'ouvre AU DOIGT, par le chemin de tout le monde */
+async function ouvrirFicheAuDoigt(S, titre) {
+  await onglet(S, 'reunions');
+  for (let i = 0; i < 4; i++) {
+    await attendre(S, () => document.getElementById('liste-reunions').getAttribute('aria-busy') === 'false', null, 8000);
+    const n = await S.page.evaluate(() => document.querySelectorAll('#sem-jours .jour.avec').length);
+    if (n) { await toucher(S, '#sem-jours .jour.avec'); break; }
+    await toucher(S, '#sem-suiv');
+  }
+  const ligne = S.page.locator('#liste-reunions .reunion-ligne', { hasText: titre }).first();
+  await ligne.waitFor({ state: 'visible', timeout: 8000 }).catch(() => {});
+  await ligne.scrollIntoViewIfNeeded().catch(() => {});
+  S.gestes++;
+  await ligne.tap();
+}
 
 /* ═══ LES DATES ET LES CONSTANTES DU BANC ══════════════════════════════════════════════════════════════════════════════════════════════════════
    Les secrets du banc sont fictifs et portent des lettres hors de [0-9a-f] : jamais le hasard d'une empreinte. L'oracle des dates (`Intl`) ne partage rien avec le service. */
@@ -722,30 +803,202 @@ async function parcoursC(b, ctx) {
   return { tous: [A] };
 }
 
+/* ═══ D. UNE FICHE OUVERTE AU DOIGT SE FERME UNE FOIS : UN SEUL `history.back()`, ET LA PAGE ARRIVE SUR L'AGENDA ═══════════════════════════════════════════
+   (l'essai au navigateur du testeur, 3 octobre 2026 : la fiche ouverte DEPUIS L'AGENDA — deux entrées d'historique — puis supprimée par l'organisateur ou quittée par l'invité rejouait `history.back()` jusqu'à
+   trois fois, et le dernier faisait QUITTER l'application, 3 fois sur 5.) Tout le reste de cette sonde ouvre la fiche par son ADRESSE (`goto('/#reunions/…')`) : la page n'a alors qu'une entrée, la fermeture
+   REMPLACE la route au lieu de rendre une entrée, et le défaut ne pouvait pas se voir. Ici la fiche est ouverte comme tout le monde la ouvre : on touche la ligne de l'agenda.
+   Les retours d'historique sont RALENTIS (400 ms) pour que la course se joue à chaque fois, pas une fois sur deux : un téléphone chargé met ce temps-là à rendre `popstate`. */
+const HISTORIQUE_LENT = 400;
+const TITRES_D = ['Supprimer WQXZ-HIST', 'Quitter WQXZ-HIST', 'Rafale WQXZ-HIST', 'Annuler WQXZ-HIST', 'Refus WQXZ-HIST'];
+async function parcoursD(b, ctx) {
+  const { svc, og } = ctx;
+  const sql = (req, ...args) => { const d = T.lireBase(path.join(svc.data, 'msg.db')); try { return d.prepare(req).get(...args); } finally { d.close(); } };
+  const nb = (req, ...args) => Number(sql(req, ...args).n);
+  const P = await personnes(svc, og, ['alice', 'dora']);
+  await contacts(P.alice, P.dora);
+  const jour = ymd(Date.now() + 2 * JOUR), t0 = instantParis(jour, 10, 0);
+  console.log('── Une fiche ouverte AU DOIGT (deux entrées d\'historique) : la réunion disparaît, la fiche se ferme UNE fois ──');
+  vrai('population : l\'oracle trouve l\'instant des réunions du banc (10:00 à Paris, dans deux jours)', Number.isFinite(t0));
+  const creer = async (titre, decalage) => {
+    const t = t0 + decalage * MIN, r = await P.alice.post('/api/reunions', { titre, lieu: 'Salle WQXZ-H', debut: localDans(t, PARIS), fin: localDans(t + H, PARIS), tz: PARIS, rappels: [15], invites: [P.dora.moi.id], notifier: false });
+    if (r.code !== 201) throw new Error('réunion du banc refusée : ' + r.code + ' ' + JSON.stringify(r.j));
+    return r.j.reunion.id;
+  };
+  const R = [];
+  for (let i = 0; i < TITRES_D.length; i++) R.push(await creer(TITRES_D[i], i * 15));
+  vrai('population : cinq réunions, Dora invitée à chacune (Alice, l\'organisatrice, aussi)', nb('SELECT COUNT(*) AS n FROM reunion') === 5 && nb('SELECT COUNT(*) AS n FROM reunion_invite') === 10);
+
+  const ouvrirSession = async (login, nom) => {
+    const S = await ouvrir(b, svc.base, PROFILS.iphone); S.nom = nom;
+    await connecter(S, login); await espionnerHistorique(S, HISTORIQUE_LENT);
+    return S;
+  };
+  /* la fiche s'ouvre au doigt ; renvoie l'état de l'historique AVANT le geste, et la population (deux entrées à rendre) */
+  const ouvrirAuDoigt = async (S, titre, qui) => {
+    await ouvrirFicheAuDoigt(S, titre);
+    await verifier(qui + ' ouvre « ' + titre + ' » AU DOIGT, depuis son agenda : la fiche s\'ouvre', S, (t) => document.getElementById('feuille-titre').textContent === 'Réunion' && !!document.querySelector('#info-corps .info-nom') && document.querySelector('#info-corps .info-nom').textContent === t, titre, 10000, () => etatPage(S));
+    const e = await lireHistorique(S);
+    v('population : la fiche est sur la SECONDE entrée d\'historique (l\'agenda, puis la fiche) et aucun retour n\'a encore été demandé — il y a deux entrées à rendre, et le retour de trop quitte l\'écran où l\'on était', e.page && [e.page.n, e.page.vue, e.retours, e.page.hash], [2, 'reunions', 0, '#reunions']);
+    return e;
+  };
+  /* ce que la fermeture a fait : UN retour (celui de la fiche, qui quitte l'entrée 2), et la page arrive sur l'AGENDA (entrée 1) — la même page, la feuille fermée. Une page qui a QUITTÉ l'application se lit « quittée ». */
+  const verifierFermeture = (qui, e0, e1, mots, arrivee) => {
+    arrivee = arrivee || { vue: 'reunions', lieu: 'l\'agenda' };
+    v('⛔ ' + qui + ' : la feuille ne rend QU\'UNE entrée d\'historique — un seul `history.back()`, celui de la feuille (il quitte l\'entrée 2) ; une disparition que la page apprend de plusieurs côtés ne le répète pas', { retours: e1.retours, de: e1.de, pile: e1.pile }, { retours: 1, de: [2], pile: e1.pile });
+    v('⛔ … et la page ARRIVE sur ' + arrivee.lieu + ' (l\'entrée 1, pas #messages), dans la MÊME page (elle n\'a pas quitté l\'application), la feuille fermée', e1.page ? { meme: e1.page.marque === e0.page.marque, vue: e1.page.vue, feuille: e1.page.feuille, n: e1.page.n, hash: e1.page.hash, popstates: e1.popstates } : { page: 'quittée', popstates: e1.popstates }, { meme: true, vue: arrivee.vue, feuille: false, n: 1, hash: '#' + arrivee.vue, popstates: [1] });
+    /* `mots` absent : le toast n'est pas l'objet (la feuille d'un espace dit encore « n'existe plus » à celle qui vient de le quitter : dit à Justin, pas traité ici) */
+    if (mots) v('… et le toast dit ' + JSON.stringify(mots) + ' (population : ce que `mot()` a écrit, une entrée par appel)', e1.mots, mots);
+  };
+
+  /* ── a. l'organisateur supprime : la réponse du geste, l'événement de la source ET l'événement adressé du service disent tous « supprimée » ── */
+  const A = await ouvrirSession('alice', 'Alice (fiche au doigt)');
+  let e0 = await ouvrirAuDoigt(A, TITRES_D[0], 'Alice');
+  await toucher(A, '[data-reu="supprimer-demander"]');
+  await toucher(A, '[data-reu="supprimer-confirmer"]');
+  vrai('… la page d\'Alice a reposé (la nouvelle est arrivée par le flux, aucun retour n\'est en vol, chaque retour demandé a joué son popstate)', await reposer(A, R[0]));
+  vrai('population : la réunion est supprimée au service (le geste a eu lieu)', nb('SELECT COUNT(*) AS n FROM reunion WHERE id = ?', R[0]) === 0);
+  v('(la cause) le FLUX n\'a livré QU\'UN événement « supprimée » à l\'organisateur : le service en adresse un par participant, l\'organisateur compris (ses autres appareils en ont besoin). La page l\'apprend une SECONDE fois par l\'émission locale de sa source (`reunionChangee`, aussitôt son appel réussi) — le double vient de la page qui entend deux fois, pas d\'un second envoi du service', await sseSupprime(A, R[0]), 1);
+  verifierFermeture('l\'organisateur qui SUPPRIME', e0, await lireHistorique(A), ['Réunion supprimée']);
+
+  /* ── b. l'invité quitte : même disparition, vue de celui qui part ── */
+  const D = await ouvrirSession('dora', 'Dora (fiche au doigt)');
+  e0 = await ouvrirAuDoigt(D, TITRES_D[1], 'Dora');
+  await toucher(D, '[data-reu="quitter-demander"]');
+  await toucher(D, '[data-reu="quitter-confirmer"]');
+  vrai('… la page de Dora a reposé', await reposer(D, R[1]));
+  vrai('population : Dora a quitté (la réunion existe encore, son invitation non)', nb('SELECT COUNT(*) AS n FROM reunion WHERE id = ?', R[1]) === 1 && nb('SELECT COUNT(*) AS n FROM reunion_invite WHERE reunion = ? AND uid = ?', R[1], P.dora.moi.id) === 0);
+  v('(la cause) le FLUX n\'a livré qu\'UN événement « supprimée » à celui qui part (l\'événement adressé ; celui de la conversation ne lui arrive plus, il en est sorti)', await sseSupprime(D, R[1]), 1);
+  verifierFermeture('l\'invité qui QUITTE', e0, await lireHistorique(D), ['Tu as quitté la réunion']);
+
+  /* ── c. le flux seul : la fiche d'une invitée est ouverte, l'organisatrice modifie ET supprime d'un trait (deux événements qui arrivent coup sur coup : l'un relit la fiche, qui n'est déjà plus là) ── */
+  const D2 = await ouvrirSession('dora', 'Dora (flux seul)');
+  e0 = await ouvrirAuDoigt(D2, TITRES_D[2], 'Dora');
+  const rafale = await Promise.all([P.alice.post('/api/reunions/' + R[2] + '/modifier', { lieu: 'Salle WQXZ-RAFALE', notifier: false }), P.alice.post('/api/reunions/' + R[2] + '/supprimer', { notifier: false })]);
+  vrai('population : la suppression est partie (la modification, elle, passe ou trouve la réunion déjà partie — peu importe)', rafale[1].code === 200 && nb('SELECT COUNT(*) AS n FROM reunion WHERE id = ?', R[2]) === 0);
+  vrai('… la page de Dora a reposé', await reposer(D2, R[2]));
+  verifierFermeture('l\'invitée dont l\'organisatrice supprime la réunion (le flux seul, aucun geste)', e0, await lireHistorique(D2), ['Cette réunion n\'existe plus, ou tu n\'y es plus invité.']);
+
+  /* ── d. le geste seul : deux touchers sur « Annuler » tombent pendant le même retour en vol (une page lente, un doigt qui insiste) ── */
+  const A2 = await ouvrirSession('alice', 'Alice (deux touchers)');
+  e0 = await ouvrirAuDoigt(A2, TITRES_D[3], 'Alice');
+  const annuler = async (S, n) => { const c = await S.page.locator('#g-annuler').boundingBox(); S.gestes += n; for (let i = 0; i < n; i++) await S.page.touchscreen.tap(c.x + c.width / 2, c.y + c.height / 2); };
+  const rouvrir = async (S, titre) => {
+    S.gestes++; await S.page.locator('#liste-reunions .reunion-ligne', { hasText: titre }).first().tap();
+    return verifier('la fiche « ' + titre + ' » se rouvre au doigt', S, (t) => document.getElementById('feuille-titre').textContent === 'Réunion' && !!document.querySelector('#info-corps .info-nom') && document.querySelector('#info-corps .info-nom').textContent === t, titre, 8000, () => etatPage(S));
+  };
+  await annuler(A2, 2);
+  const tRetour = Date.now();
+  vrai('… la page d\'Alice a reposé', await reposer(A2, null));
+  verifierFermeture('deux touchers sur « Annuler » (la fiche d\'une réunion qui existe toujours)', e0, await lireHistorique(A2), []);
+  vrai('population : la réunion existe toujours (on a fermé la fiche, rien d\'autre)', nb('SELECT COUNT(*) AS n FROM reunion WHERE id = ?', R[3]) === 1);
+
+  /* ── d2. c'est le retour JOUÉ (`popstate`) qui lève la marque, pas le filet : la même fiche rouverte aussitôt se referme au premier toucher ── */
+  await rouvrir(A2, TITRES_D[3]);
+  const delai2 = Date.now() - tRetour;
+  vrai('population : cette fermeture-ci tombe moins de 1,4 s après le retour précédent — le filet de 1,5 s n\'a PAS pu lever la marque (' + delai2 + ' ms)', delai2 < 1400);
+  await annuler(A2, 1);
+  vrai('… la page d\'Alice a reposé (le second retour est joué)', await reposer(A2, null, 2));
+  const e2 = await lireHistorique(A2);
+  v('⛔ rouverte aussitôt, la fiche se referme au PREMIER toucher : un second retour — le premier, joué, a levé la marque (`popstate`)', { retours: e2.retours, de: e2.de, page: e2.page && [e2.page.vue, e2.page.feuille, e2.page.n], popstates: e2.popstates }, { retours: 2, de: [2, 2], page: ['reunions', false, 1], popstates: [1, 1] });
+
+  /* ── d3. LE FILET : un retour que le navigateur ne rend JAMAIS (aucun popstate) ne fige pas la fermeture pour toujours ── */
+  await rouvrir(A2, TITRES_D[3]);
+  await A2.page.evaluate(() => { window.__histo.perdre = 1; });
+  await annuler(A2, 1);
+  await attendre(A2, () => window.__histo.retours >= 3, null, 6000);
+  await annuler(A2, 1);
+  const e3 = await lireHistorique(A2);
+  v('⛔ un retour que le navigateur n\'a pas rendu : la fiche reste ouverte, et un second toucher pendant ce temps ne demande RIEN de plus (un retour par entrée)', { retours: e3.retours - 2, feuille: e3.page && e3.page.feuille }, { retours: 1, feuille: true });
+  await dormir(1700);                    // le filet est une DURÉE (1,5 s) : c'est la seule attente de la sonde qui n'attend pas un geste
+  await annuler(A2, 1);
+  vrai('… la page d\'Alice a reposé', await reposer(A2, null, 4));
+  const e4 = await lireHistorique(A2);
+  v('⛔ … et passé 1,5 s (le filet), le toucher suivant FERME : la marque d\'un retour jamais rendu n\'a pas figé la fermeture pour toujours', { retours: e4.retours - 2, page: e4.page && [e4.page.vue, e4.page.feuille, e4.page.n] }, { retours: 2, page: ['reunions', false, 1] });
+
+  /* ── g. un geste REFUSÉ n'annonce rien : la suppression échoue (le service est en panne), la fiche reste ouverte et le dit ; la phrase que le geste avait annoncée tombe avec son échec — quand la réunion disparaît plus tard, ailleurs,
+     la fiche dit « n'existe plus », pas « Réunion supprimée » ── */
+  await rouvrir(A2, TITRES_D[4]);
+  await A2.page.route('**/api/reunions/*/supprimer', (r) => r.fulfill({ status: 503, contentType: 'application/json', body: '{}' }));
+  await toucher(A2, '[data-reu="supprimer-demander"]');
+  await toucher(A2, '[data-reu="supprimer-confirmer"]');
+  await verifier('le service refuse (503) : la fiche reste OUVERTE et le dit, et le bouton est rendu', A2, () => document.documentElement.classList.contains('feuille-ouverte') && document.getElementById('info-erreur').textContent.trim().length > 0 && !document.querySelector('[data-reu="supprimer-confirmer"][aria-disabled="true"]'), null, 8000, () => etatPage(A2));
+  await A2.page.unroute('**/api/reunions/*/supprimer');
+  const eg0 = await lireHistorique(A2);
+  v('population : le geste refusé n\'a rien fait — la réunion existe, aucun retour de plus, aucun toast', [nb('SELECT COUNT(*) AS n FROM reunion WHERE id = ?', R[4]), eg0.retours, eg0.mots], [1, 4, []]);
+  const ailleurs = await P.alice.post('/api/reunions/' + R[4] + '/supprimer', { notifier: false });
+  vrai('… puis la réunion est supprimée AILLEURS (un autre appareil d\'Alice)', ailleurs.code === 200 && nb('SELECT COUNT(*) AS n FROM reunion WHERE id = ?', R[4]) === 0);
+  vrai('… la page d\'Alice a reposé', await reposer(A2, R[4], 5));
+  const eg1 = await lireHistorique(A2);
+  v('⛔ la fiche se ferme UNE fois (un retour de plus), avec « n\'existe plus » : la phrase du geste refusé (« Réunion supprimée ») est tombée avec son échec', { retours: eg1.retours - 4, mots: eg1.mots, page: eg1.page && [eg1.page.vue, eg1.page.feuille, eg1.page.n] }, { retours: 1, mots: ['Cette réunion n\'existe plus, ou tu n\'y es plus invité.'], page: ['reunions', false, 1] });
+
+  /* ── e. UNE AUTRE COUCHE, LA MÊME FERMETURE : la feuille d'un ESPACE, ouverte au doigt (Réglages › Entreprise), quand son propriétaire le supprime (le flux seul), puis (f) quand la membre le quitte (le geste ET le flux).
+     Six endroits de la page ferment une couche sur une nouvelle du flux ou sur une relecture qui ne trouve plus rien (un appel fini, les infos d'une conversation disparue, un espace disparu, une réunion disparue,
+     un formulaire qu'on n'a plus le droit d'ouvrir) : tous passent par `fermerCouche()`, donc par le MÊME retour d'historique — le défaut n'est pas celui d'une fiche de réunion, c'est celui de la fermeture. ── */
+  const esp = await P.alice.post('/api/espaces', { nom: 'Atelier WQXZ-HIST' });
+  const lien = esp.code === 201 ? await P.alice.post('/api/espaces/' + esp.j.espace.id + '/invitations', {}) : null;
+  const acc = lien && lien.j && lien.j.code ? await P.dora.post('/api/invitations/accepter', { code: lien.j.code }) : null;
+  vrai('population : Alice a un espace et Dora en est membre', esp.code === 201 && !!acc && acc.code === 200 && nb('SELECT COUNT(*) AS n FROM espace_membre') === 2);
+  const D3 = await ouvrirSession('dora', 'Dora (espace)');
+  await onglet(D3, 'reglages');
+  await toucher(D3, '[data-esp-ouvrir]');
+  await verifier('Dora ouvre la feuille de l\'espace (Réglages › Entreprise) AU DOIGT', D3, () => document.documentElement.classList.contains('feuille-ouverte') && document.getElementById('feuille-titre').textContent === 'Espace' && !!document.querySelector('#info-corps .info-nom'), null, 10000, () => etatPage(D3));
+  const ee = await lireHistorique(D3);
+  v('population : la feuille de l\'espace est aussi sur la SECONDE entrée (Réglages, puis la feuille) et aucun retour n\'a encore été demandé', ee.page && [ee.page.n, ee.page.vue, ee.retours, ee.page.hash], [2, 'reglages', 0, '#reglages']);
+  const dissous = await P.alice.post('/api/espaces/' + esp.j.espace.id + '/supprimer', { confirmation: 'SUPPRIMER' });
+  vrai('population : l\'espace est supprimé par son propriétaire', dissous.code === 200 && nb('SELECT COUNT(*) AS n FROM espace') === 0);
+  vrai('… la page de Dora a reposé (la feuille a demandé son retour, plus aucun n\'est en vol)', await reposer(D3, null));
+  verifierFermeture('l\'espace supprimé pendant que sa feuille est ouverte (le flux seul)', ee, await lireHistorique(D3), null, { vue: 'reglages', lieu: 'Réglages' });
+
+  /* ── f. le même espace, mais c'est la MEMBRE qui le quitte (deux touchers : le premier arme, le second quitte) : le geste ET le flux disent la même chose, comme pour la réunion ── */
+  const esp2 = await P.alice.post('/api/espaces', { nom: 'Atelier WQXZ-HIST-2' });
+  const lien2 = esp2.code === 201 ? await P.alice.post('/api/espaces/' + esp2.j.espace.id + '/invitations', {}) : null;
+  const acc2 = lien2 && lien2.j && lien2.j.code ? await P.dora.post('/api/invitations/accepter', { code: lien2.j.code }) : null;
+  vrai('population : un second espace, Dora en est membre (non propriétaire : « Quitter l\'espace » lui est offert)', esp2.code === 201 && !!acc2 && acc2.code === 200 && nb('SELECT COUNT(*) AS n FROM espace_membre WHERE uid = ?', P.dora.moi.id) === 1);
+  const D4 = await ouvrirSession('dora', 'Dora (quitte l\'espace)');
+  await onglet(D4, 'reglages');
+  await toucher(D4, '[data-esp-ouvrir]');
+  await verifier('Dora ouvre la feuille du second espace AU DOIGT, avec « Quitter l\'espace »', D4, () => document.documentElement.classList.contains('feuille-ouverte') && document.getElementById('feuille-titre').textContent === 'Espace' && !!document.querySelector('[data-act="esp-quitter"]'), null, 10000, () => etatPage(D4));
+  const e5 = await lireHistorique(D4);
+  v('population : la feuille est sur la SECONDE entrée, aucun retour demandé', e5.page && [e5.page.n, e5.page.vue, e5.retours], [2, 'reglages', 0]);
+  await toucher(D4, '[data-act="esp-quitter"]');
+  await verifier('le premier toucher arme (« Toucher encore pour quitter l\'espace »)', D4, () => /Toucher encore pour quitter l'espace/.test(document.getElementById('info-corps').textContent), null, 4000, () => texteCorps(D4));
+  await toucher(D4, '[data-act="esp-quitter"]');
+  vrai('… la page de Dora a reposé', await reposer(D4, null));
+  vrai('population : Dora a quitté l\'espace (il lui reste zéro espace, il en reste un au service)', nb('SELECT COUNT(*) AS n FROM espace_membre WHERE uid = ?', P.dora.moi.id) === 0 && nb('SELECT COUNT(*) AS n FROM espace') === 1);
+  verifierFermeture('la membre qui QUITTE l\'espace (le geste ET le flux)', e5, await lireHistorique(D4), null, { vue: 'reglages', lieu: 'Réglages' });
+  return { tous: [A, D, D2, A2, D3, D4] };
+}
+
 (async () => {
   const og = await T.fauxOpGestion(Object.fromEntries(Object.keys(MOTS).map(l => [l, { pass: MOTS[l], nom: NOMS[l], actif: true }])));
   const relais = await fauxRelais({ auth: { utilisateur: UTIL, mdp: MDP_RELAIS } });
   const relaisCfg = { hote: '127.0.0.1', port: relais.port, securite: 'aucune', utilisateur: UTIL, mot_de_passe: MDP_RELAIS, de: EXPEDITEUR, timeoutMs: 3000 };
-  const svcA = await T.lancerService({ urlGestion: og.url, horloge: true, config: Object.assign({}, CONFIG_BASE, { reunions: { planificateurMs: 200, bailMs: 2000 }, courriel: relaisCfg }) });
-  const svcB = await T.lancerService({ urlGestion: og.url, config: Object.assign({}, CONFIG_BASE) });
-  const svcC = await T.lancerService({ urlGestion: og.url, config: Object.assign({}, CONFIG_BASE, { formule: { toutOuvert: false } }) });
+  /* SEULES=D joue la seule partie D (un service, deux navigateurs) : le tour de mise au point d'une fiche ouverte au doigt ; sans elle, tout se joue, comme la porte et le compteur l'attendent */
+  const SEULES = (process.env.SEULES || '').split(',').filter(Boolean), veut = (x) => !SEULES.length || SEULES.includes(x);
+  const svcA = veut('A') ? await T.lancerService({ urlGestion: og.url, horloge: true, config: Object.assign({}, CONFIG_BASE, { reunions: { planificateurMs: 200, bailMs: 2000 }, courriel: relaisCfg }) }) : null;
+  const svcB = veut('B') ? await T.lancerService({ urlGestion: og.url, config: Object.assign({}, CONFIG_BASE) }) : null;
+  const svcC = veut('C') ? await T.lancerService({ urlGestion: og.url, config: Object.assign({}, CONFIG_BASE, { formule: { toutOuvert: false } }) }) : null;
+  const svcD = veut('D') ? await T.lancerService({ urlGestion: og.url, config: Object.assign({}, CONFIG_BASE) }) : null;
+  const services = [['bêta avec relais', svcA], ['bêta sans relais', svcB], ['production', svcC], ['bêta, fiche ouverte au doigt', svcD]].filter(x => x[1]);
+  const arreterServices = async () => { for (const x of services) { try { await x[1].arreter(); } catch (e) { /* déjà arrêté */ } } };
   let b = null;
   try { b = await pw.chromium.launch({ executablePath: CHROME, headless: true, args: ARGS }); }
-  catch (e) { console.error('Sonde non lançable : le navigateur ne démarre pas (' + e.message.split('\n')[0] + ')'); await svcA.arreter(); await svcB.arreter(); await svcC.arreter(); await relais.fermer(); await og.fermer(); process.exit(2); }
+  catch (e) { console.error('Sonde non lançable : le navigateur ne démarre pas (' + e.message.split('\n')[0] + ')'); await arreterServices(); await relais.fermer(); await og.fermer(); process.exit(2); }
   const tous = [];
   try {
-    const e1 = await parcoursA(b, { svc: svcA, og, relais });
-    tous.push(...e1.tous);
-    await parcoursA2(Object.assign({ svc: svcA, relais }, e1));
-    const rb = await parcoursB(b, { svc: svcB, og });
-    tous.push(...rb.tous);
-    const rc = await parcoursC(b, { svc: svcC, og });
-    tous.push(...rc.tous);
+    if (veut('A')) {
+      const e1 = await parcoursA(b, { svc: svcA, og, relais });
+      tous.push(...e1.tous);
+      await parcoursA2(Object.assign({ svc: svcA, relais }, e1));
+    }
+    if (veut('B')) { const rb = await parcoursB(b, { svc: svcB, og }); tous.push(...rb.tous); }
+    if (veut('C')) { const rc = await parcoursC(b, { svc: svcC, og }); tous.push(...rc.tous); }
+    if (veut('D')) { const rd = await parcoursD(b, { svc: svcD, og }); tous.push(...rd.tous); }
     console.log('\n── La fin : rien d\'anormal ──');
-    /* un refus du service est LOGUÉ par le navigateur : on les NOMME. Sont attendus, exprès : la visite sans session (401), la formule de production (402 sur « Programmer »), l'heure qui n'existe pas le jour du changement d'heure (400 sur « Programmer »), une réunion qu'on ne voit pas ou qui n'existe plus (404 sur la lecture),
+    /* un refus du service est LOGUÉ par le navigateur : on les NOMME. Sont attendus, exprès : la visite sans session (401), la formule de production (402 sur « Programmer »), l'heure qui n'existe pas le jour du changement d'heure (400 sur « Programmer »), une réunion qu'on ne voit pas ou qui n'existe plus (404 sur la lecture), un espace supprimé ou quitté pendant que sa feuille est ouverte (404 sur la lecture et sur ses contacts), une suppression que le banc fait refuser exprès (503),
        une adresse fausse (400 sur le courriel), le plafond par adresse (429 sur le courriel), le service qui n'a pas de relais (503 sur le courriel), la lecture de la configuration que le banc fait échouer exprès (500) et l'indicateur de saisie (429, plafonné à un appel par 2 s). Tout autre refus est un défaut. */
     const SAISIE_429 = /^429 POST \/api\/conversations\/c_[0-9a-f]{32}\/saisie$/;
-    const ATTENDUS = [/^401 /, /^500 GET \/api\/config$/, /^402 POST \/api\/reunions$/, /^400 POST \/api\/reunions$/, /^404 GET \/api\/reunions\/r_[0-9a-f]{32}$/, /^400 POST \/api\/reunions\/r_[0-9a-f]{32}\/courriel$/, /^429 POST \/api\/reunions\/r_[0-9a-f]{32}\/courriel$/, /^503 POST \/api\/reunions\/r_[0-9a-f]{32}\/courriel$/, SAISIE_429];
+    const ATTENDUS = [/^401 /, /^500 GET \/api\/config$/, /^402 POST \/api\/reunions$/, /^400 POST \/api\/reunions$/, /^404 GET \/api\/reunions\/r_[0-9a-f]{32}$/, /^404 GET \/api\/espaces\/e_[0-9a-f]{32}(\/contacts)?$/, /^503 POST \/api\/reunions\/r_[0-9a-f]{32}\/supprimer$/, /^400 POST \/api\/reunions\/r_[0-9a-f]{32}\/courriel$/, /^429 POST \/api\/reunions\/r_[0-9a-f]{32}\/courriel$/, /^503 POST \/api\/reunions\/r_[0-9a-f]{32}\/courriel$/, SAISIE_429];
     for (const S of tous) {
       vrai(S.nom + ' : (population) ' + S.gestes + ' gestes portés, ' + (S.ecrans || 0) + ' écrans mesurés en largeur', S.gestes > 2);
       v(S.nom + ' : 0 erreur JavaScript, aucune erreur de console autre qu\'un refus du service', [S.erreurs, S.console.filter(t => !/Failed to load resource/.test(t))], [[], []]);
@@ -755,12 +1008,12 @@ async function parcoursC(b, ctx) {
     }
   } catch (e) { console.log('  ✗ la sonde est morte : ' + (e && e.stack || e)); process.exitCode = 1; }
   finally {
-    for (const [nom, svc] of [['bêta avec relais', svcA], ['bêta sans relais', svcB], ['production', svcC]]) {
+    for (const [nom, svc] of services) {
       const sortie = svc.sortie.texte();
       v('le service (' + nom + ') n\'a écrit AUCUNE erreur ni exception pendant tout le parcours (population : ' + sortie.split('\n').filter(Boolean).length + ' lignes de journal)', /Error|TypeError|unhandled|Exception/.test(sortie), false);
     }
     try { await b.close(); } catch (e) { /* rien */ }
-    await svcA.arreter(); await svcB.arreter(); await svcC.arreter(); await relais.fermer(); await og.fermer();
+    await arreterServices(); await relais.fermer(); await og.fermer();
   }
   fin();
 })();
