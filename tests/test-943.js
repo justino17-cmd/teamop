@@ -818,15 +818,41 @@ async function gestionnaireLecture() {
 
   /* le plancher de disque : la taille ANNONCÉE ne doit pas faire passer sous le seuil */
   const libreMo = (() => { const s = fs.statfsSync(os.tmpdir()); return Number(s.bavail) * Number(s.bsize) / 1048576; })();
-  const svc3 = await T.lancerService({ urlGestion: og.url, config: { disqueMinMo: Math.max(1, Math.floor(libreMo) - 200), pieces: { fichierMax: 500 * 1048576 } } });
+  const marge3 = 300;   // 300 Mo entre l'espace libre et le plancher : un envoi annoncé à 200 Mo y tient seul, deux non (remarque 3 du gardien) — et 100 Mo de jeu des deux côtés si le disque bouge pendant le banc
+  const svc3 = await T.lancerService({ urlGestion: og.url, config: { disqueMinMo: Math.max(1, Math.floor(libreMo) - marge3), pieces: { fichierMax: 500 * 1048576 } } });
   try {
     const Fr = await compte('fred', svc3);
     const avant = await deposer(Fr, { genre: 'avatar', corps: PNG });
-    v('population : sous le plancher (' + Math.max(1, Math.floor(libreMo) - 200) + ' Mo) avec ' + Math.floor(libreMo) + ' Mo libres, un petit dépôt passe', avant.code, 201);
+    v('population : sous le plancher (' + Math.max(1, Math.floor(libreMo) - marge3) + ' Mo) avec ' + Math.floor(libreMo) + ' Mo libres, un petit dépôt passe', avant.code, 201);
     await lienContact(Fr, await compte('gina', svc3));
     const gr = (await Fr.post('/api/conversations/groupe', { nom: 'Disque', membres: [] })).j.conversation.id;
     const x = await F.deposerBrut(Fr, { chemin: '/api/pieces?' + new URLSearchParams({ conv: gr, genre: 'fichier' }), entetes: { 'Content-Length': String(400 * 1048576), 'X-OPM-Nom': 'enorme.bin' }, morceaux: [Buffer.alloc(100, 1)] });
     v('⛔ un dépôt ANNONCÉ à 400 Mo qui ferait passer le disque sous son plancher : 503 disque_plein, AVANT d\'avoir lu le corps (ce service ne doit jamais priver OP GESTION de disque)', [x.code, x.j.error], [503, 'disque_plein']);
+    /* ⛔ remarque 3 du gardien : le plancher soustrait les dépôts EN COURS. Un dépôt annoncé à 200 Mo tient seul sous la marge de 300 Mo ; un second de 200 Mo, non — l'espace libre ne baisse qu'à mesure
+       que les octets arrivent, et avant le correctif seize dépôts « qui tenaient chacun » vidaient le disque ensemble. */
+    const entetesLent = (nom, taille) => ({ 'Content-Length': String(taille), 'X-OPM-Nom': nom }), cheminLent = '/api/pieces?' + new URLSearchParams({ conv: gr, genre: 'fichier' });
+    const lent3 = (taille) => new Promise((ok) => {
+      const s = net.connect(svc3.port, '127.0.0.1', () => {
+        s.write('POST ' + cheminLent + ' HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: ' + svc3.base + '\r\nX-OPM: 1\r\nX-OPM-Nom: lent.bin\r\nCookie: ' + Fr.enteteCookie() + '\r\nContent-Type: application/octet-stream\r\nContent-Length: ' + taille + '\r\nConnection: close\r\n\r\n');
+        s.write(Buffer.alloc(100, 1));
+      });
+      let rep = ''; s.on('data', d => { rep += d; });
+      s.on('close', () => ok({ rep, s })); s.on('error', () => ok({ rep, s }));
+      lent3.sockets.push(s);
+    });
+    lent3.sockets = [];
+    const ENV = 200 * 1048576;
+    const premier = lent3(ENV);
+    await T.dort(400);
+    const seul = await F.deposerBrut(Fr, { chemin: cheminLent, entetes: entetesLent('second.bin', ENV), morceaux: [Buffer.alloc(100, 1)], delaiMs: 2500 });
+    v('⛔ un premier dépôt de 200 Mo est EN COURS (tient seul sous la marge) : un second de 200 Mo est refusé tout de suite, 503 disque_plein — ensemble ils passeraient sous le plancher', [seul.code, seul.j && seul.j.error], [503, 'disque_plein']);
+    const petit = await deposer(Fr, { conv: gr, genre: 'fichier', nom: 'petit.bin', corps: Buffer.alloc(1000, 2) });
+    v('…alors qu\'un petit dépôt, lui, passe encore (c\'est de la place qui manque, pas un refus général)', petit.code, 201);
+    for (const s of lent3.sockets) s.destroy();
+    await premier;
+    await T.dort(400);
+    const apres = await F.deposerBrut(Fr, { chemin: cheminLent, entetes: entetesLent('troisieme.bin', ENV), morceaux: [Buffer.alloc(100, 1)], delaiMs: 1500 });
+    v('⛔ le premier dépôt coupé REND sa place : un dépôt de 200 Mo est de nouveau accepté (il attend son corps — pas de 503)', [apres.code, apres.j && apres.j.error], [0, 'delai']);
   } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
   await svc3.arreter();
 

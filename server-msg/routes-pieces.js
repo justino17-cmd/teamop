@@ -55,13 +55,14 @@ function installerPieces(H, ctx) {
   }
 
   /* ── les envois en cours : au plus `simultanes` pour le service et `parPersonne` pour une personne ── */
-  let enCours = 0;
+  /* `octetsAnnonces` : la somme des tailles ANNONCÉES des envois acceptés et pas encore finis — ce que le disque va recevoir et que `libreMo()` ne montre pas encore (relecture du gardien, remarque 3) */
+  let enCours = 0, octetsAnnonces = 0;
   const parPers = new Map();
-  function entrerDepot(uid) {
+  function entrerDepot(uid, taille) {
     if (enCours >= pc.simultanes || (parPers.get(uid) || 0) >= pc.parPersonne) return null;
-    enCours++; parPers.set(uid, (parPers.get(uid) || 0) + 1);
+    enCours++; octetsAnnonces += taille; parPers.set(uid, (parPers.get(uid) || 0) + 1);
     let sorti = false;
-    return () => { if (sorti) return; sorti = true; enCours--; const n = (parPers.get(uid) || 1) - 1; if (n > 0) parPers.set(uid, n); else parPers.delete(uid); };
+    return () => { if (sorti) return; sorti = true; enCours--; octetsAnnonces -= taille; const n = (parPers.get(uid) || 1) - 1; if (n > 0) parPers.set(uid, n); else parPers.delete(uid); };
   }
 
   /* ══ DÉPOSER ═══════════════════════════════════════════════════════════════════════════════════════════════════════════ */
@@ -108,10 +109,13 @@ function installerPieces(H, ctx) {
     const max = maxDe[genre];
     if (taille > max) return refus(res, 413, 'piece_trop_lourde', { max });
 
-    /* le plancher d'espace libre : ce service ne doit JAMAIS priver OP GESTION de disque — l'envoi annoncé ne doit pas le faire passer sous le seuil */
-    if (ctx.disque.libreMo() - taille / Mo < config.disqueMinMo) return refus(res, 503, 'disque_plein');
+    /* le plancher d'espace libre : ce service ne doit JAMAIS priver OP GESTION de disque — l'envoi annoncé ne doit pas le faire passer sous le seuil.
+       ⛔ …et les envois DÉJÀ ACCEPTÉS non plus (remarque 3 du gardien) : chacun, jugé seul contre l'espace libre d'à présent, tient sous le plancher ; seize de 25 Mo ensemble, non — l'espace
+       libre ne baisse qu'à mesure que les octets arrivent. On soustrait donc la taille annoncée de tous les envois en cours. Compter l'annonce entière double-compte ce qui est déjà écrit :
+       on se trompe du côté prudent, pour au plus `simultanes` × le maximum (400 Mo). */
+    if (ctx.disque.libreMo() - (octetsAnnonces + taille) / Mo < config.disqueMinMo) return refus(res, 503, 'disque_plein');
 
-    const sortir = entrerDepot(uid);
+    const sortir = entrerDepot(uid, taille);
     if (!sortir) { res.set('Retry-After', '5'); return refus(res, 429, 'quota_atteint', { retry: 5, portee: 'simultane' }); }
     const place = reservations.essayer(uid, taille);
     if (!place.ok) { sortir(); return refus(res, 402, 'quota_atteint', { portee: 'stockage', utilise: place.utilise, max: place.max }); }
@@ -213,7 +217,7 @@ function installerPieces(H, ctx) {
   /* ══ L'ESPACE UTILISÉ ═══════════════════════════════════════════════════════════════════════════════════════════════════ */
   H['moi.stockage'] = garder((req, res) => res.json({ utilise: stockage.pieceUtilise(req.moi.id), max: pc.quotaPersonne }));
 
-  return { enCours: () => enCours };
+  return { enCours: () => enCours, octetsAnnonces: () => octetsAnnonces };
 }
 
 module.exports = { installerPieces, GENRES_CONV, NOM_MAX };
