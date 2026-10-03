@@ -102,6 +102,42 @@ const MATRICE = {
   'flux.ack':           { ok: () => ['POST', '/api/flux/ack', { gid: 0 }], codes: [200] },
   'compte.export':      { ok: () => ['POST', '/api/compte/export', {}], codes: [200] },
   'compte.supprimer':   { ok: () => ['POST', '/api/compte/supprimer', { confirmation: 'SUPPRIMER' }], codes: [200] },
+  /* Les ESPACES PROFESSIONNELS et Messages Pro (étape 5). Le service de ce banc a le drapeau de la bêta ÉTEINT (`formule.toutOuvert: false`) : la formule décide pour de vrai. Le
+     fixture de chaque route est un espace PAYÉ (Ana propriétaire, Ben membre, Dan membre, Cleo dehors) avec un canal public et un canal privé ; les routes `pro` ont leur cellule
+     « impayé hors sursis » en plus (402, et seul l'administrateur y lit la raison). `attendu` remplace la case de la garde pour un profil : Cleo n'est dans aucun espace payé, créer
+     un espace lui est refusé (402) alors que la garde V la laisse passer. Le propriétaire qui « quitte » reçoit 409 `proprio` : la garde a passé, le geste dit non (test-961 le joue). */
+  'espaces.liste':      { ok: () => ['GET', '/api/espaces'], codes: [200] },
+  'espaces.creer':      { pro: 'personne', ok: () => ['POST', '/api/espaces', { nom: 'Nouvelle entreprise' }], codes: [201], attendu: { nonmembre: [402, 'formule_requise'] } },
+  'espaces.lire':       { ok: (F) => ['GET', '/api/espaces/' + F.E], codes: [200] },
+  'espaces.maj':        { ok: (F) => ['POST', '/api/espaces/' + F.E + '/maj', { nom: 'Renommé' }], codes: [200] },
+  /* le destinataire est Dan : Ben, lui, a joué `compte.supprimer` plus haut (sa suppression est PROGRAMMÉE : `destinataire_invalide`, on ne passe pas une entreprise à qui s'en va) */
+  'espaces.transferer': { ok: (F) => ['POST', '/api/espaces/' + F.E + '/transferer', { uid: F.D }], codes: [200] },
+  /* dissoudre un espace dont l'abonnement COURT est refusé (409 `abonnement_actif`, joué par `test-961`) : pour la cellule du propriétaire, Stripe a dit « résilié » */
+  'espaces.supprimer':  { prep: (F, S) => S.abonnementPoser(F.E, { client: 'cus_banc905', abonnement: 'sub_b905_fin_' + F.E.slice(2, 10), statut: 'canceled', places: 50, fin_periode: null, annule: true, impaye: false }, { adopter: true }),
+                          ok: (F) => ['POST', '/api/espaces/' + F.E + '/supprimer', { confirmation: 'SUPPRIMER' }], codes: [200] },
+  'espaces.quitter':    { ok: (F) => ['POST', '/api/espaces/' + F.E + '/quitter', {}], codes: [200, 409] },
+  'espaces.contacts':   { ok: (F) => ['GET', '/api/espaces/' + F.E + '/contacts'], codes: [200] },
+  'espaces.membres.role': { ok: (F) => ['POST', '/api/espaces/' + F.E + '/membres/role', { uid: F.B, admin: true }], codes: [200] },
+  'espaces.membres.retirer': { ok: (F) => ['POST', '/api/espaces/' + F.E + '/membres/retirer', { uid: F.D }], codes: [200] },
+  'espaces.invitations.creer': { pro: 'espace', ok: (F) => ['POST', '/api/espaces/' + F.E + '/invitations', { max: 3, jours: 2 }], codes: [201] },
+  'espaces.invitations.revoquer': { ok: (F) => ['POST', '/api/espaces/' + F.E + '/invitations/revoquer', {}], codes: [200] },
+  'invitations.lire':   { ok: (F) => ['POST', '/api/invitations/lire', { code: F.codeE }], codes: [200] },
+  'invitations.accepter': { ok: (F) => ['POST', '/api/invitations/accepter', { code: F.codeE }], codes: [200] },
+  'canaux.creer':       { pro: 'espace', ok: (F) => ['POST', '/api/espaces/' + F.E + '/canaux', { nom: 'nouveau canal' }], codes: [201] },
+  'canaux.maj':         { ok: (F) => ['POST', '/api/espaces/' + F.E + '/canaux/' + F.CP + '/maj', { nom: 'renommé' }], codes: [200] },
+  'canaux.supprimer':   { ok: (F) => ['POST', '/api/espaces/' + F.E + '/canaux/' + F.CP + '/supprimer', { confirmation: 'SUPPRIMER' }], codes: [200] },
+  'canaux.membres.ajouter': { ok: (F) => ['POST', '/api/espaces/' + F.E + '/canaux/' + F.CV + '/membres/ajouter', { uids: [F.D] }], codes: [200] },
+  /* ⛔ LA HIÉRARCHIE DES ADMINISTRATEURS vaut dans les canaux privés (`hier`, cellules jouées APRÈS les six profils) : Ben et Dan deviennent administrateurs de l'espace et du privé ; Ben, qui n'est
+     pas propriétaire, ne retire NI le propriétaire NI un autre administrateur (403, et le refus n'écrit rien) — Ana, elle, retire Dan (200). Relevé par le gardien le 3 octobre 2026 : un simple
+     administrateur retirait le propriétaire d'un canal privé, qui n'y rentrait plus. */
+  'canaux.membres.retirer': { ok: (F) => ['POST', '/api/espaces/' + F.E + '/canaux/' + F.CV + '/membres/retirer', { uid: F.B }], codes: [200],
+                              hier: { prep: (F, S) => { S.espaceRoleMembre({ espace: F.E, uid: F.B, admin: true }); S.espaceRoleMembre({ espace: F.E, uid: F.D, admin: true }); S.canalMembresAjouter({ conv: F.CV, par: F.A, uids: [F.B, F.D] }); },
+                                      refus: (F) => [['retire le PROPRIÉTAIRE', { uid: F.A }, [403, 'interdit']], ['retire un AUTRE administrateur', { uid: F.D }, [403, 'interdit']]], permis: (F) => ({ uid: F.D }) } },
+  'facturation.offres': { ok: () => ['GET', '/api/facturation/offres'], codes: [200] },
+  'facturation.etat':   { ok: (F) => ['GET', '/api/espaces/' + F.E + '/facturation/etat'], codes: [200] },
+  'facturation.paiement': { ok: (F) => ['POST', '/api/espaces/' + F.E + '/facturation/paiement', { places: 3 }], codes: [503] },   // sans clé Stripe : la garde a passé, la facturation est INERTE et le dit
+  'facturation.portail': { ok: (F) => ['POST', '/api/espaces/' + F.E + '/facturation/portail', {}], codes: [503] },
+  'facturation.relire': { ok: (F) => ['POST', '/api/espaces/' + F.E + '/facturation/relire', {}], codes: [503] },
 };
 
 /* Ce que chaque garde doit répondre à chaque profil : { code, error } ou 'passe'. */
@@ -114,16 +150,20 @@ const ATTENDU = {
   M: { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: [404, 'introuvable'], nonmembre: [404, 'introuvable'], membre: 'passe', admin: 'passe' },
   J: { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: [404, 'introuvable'], nonmembre: [404, 'introuvable'], membre: 'passe', admin: 'passe' },
   A: { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: [404, 'introuvable'], nonmembre: [404, 'introuvable'], membre: [403, 'interdit'], admin: 'passe' },
+  /* un ESPACE : bâti sur V (le non confirmé reçoit 403 avant tout), puis l'appartenance — un non-membre reçoit 404, identique à un espace inexistant */
+  E:  { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: [403, 'adresse_non_confirmee'], nonmembre: [404, 'introuvable'], membre: 'passe', admin: 'passe' },
+  EA: { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: [403, 'adresse_non_confirmee'], nonmembre: [404, 'introuvable'], membre: [403, 'interdit'], admin: 'passe' },
+  EP: { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: [403, 'adresse_non_confirmee'], nonmembre: [404, 'introuvable'], membre: [403, 'interdit'], admin: 'passe' },
 };
 
 (async () => {
   const og = await T.fauxOpGestion({ alice: { pass: 'pw-alice-1234', nom: 'Alice', actif: true } });
-  const svc = await T.lancerService({ urlGestion: og.url });
+  const svc = await T.lancerService({ urlGestion: og.url, config: { formule: { toutOuvert: false } } });   // ⛔ le drapeau de la bêta ÉTEINT : la formule décide pour de vrai (les routes `pro` refusent qui n'est pas abonné)
   const S = ouvrir({ chemin: path.join(svc.data, 'msg.db'), scelleur: creerScelleur(Buffer.from(svc.cle, 'hex')) });
   const lire = T.lireBase;
   const instantane = () => {
     const d = lire(path.join(svc.data, 'msg.db'));
-    try { return ['personne', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'lien', 'notification', 'contact', 'journal', 'piece', 'push'].map(t => d.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(LENGTH(CAST(rowid AS TEXT))),0) AS s FROM ' + t).get().n).join(',') + '|' + d.prepare('SELECT COALESCE(SUM(lu_seq),0) AS a, COALESCE(SUM(role=\'admin\'),0) AS b, COALESCE(SUM(epingle),0) AS c FROM membre').get().a; } finally { d.close(); }
+    try { return ['personne', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'lien', 'notification', 'contact', 'journal', 'piece', 'push', 'espace', 'espace_membre', 'canal', 'abonnement'].map(t => d.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(LENGTH(CAST(rowid AS TEXT))),0) AS s FROM ' + t).get().n).join(',') + '|' + d.prepare('SELECT COALESCE(SUM(lu_seq),0) AS a, COALESCE(SUM(role=\'admin\'),0) AS b, COALESCE(SUM(epingle),0) AS c FROM membre').get().a; } finally { d.close(); }
   };
   try {
     console.log('Le manifeste et la matrice disent la MÊME chose');
@@ -148,7 +188,9 @@ const ATTENDU = {
 
     // ── Les personnes (fixtures écrites par le module de stockage) ─────────────────────────
     const nouvellePers = (nom, confirme) => S.personneCreer({ identifiant: 'beta:' + nom + crypto.randomBytes(3).toString('hex'), prenom: nom, nom: 'Matrice', origine: confirme ? 'beta' : 'compte', verifie: confirme });
-    const A = nouvellePers('Ana', true), B = nouvellePers('Ben', true), C = nouvellePers('Cleo', true), N = nouvellePers('Nina', false), Z = nouvellePers('Zed', true);
+    const A = nouvellePers('Ana', true), B = nouvellePers('Ben', true), C = nouvellePers('Cleo', true), N = nouvellePers('Nina', false), Z = nouvellePers('Zed', true), D = nouvellePers('Dan', true);
+    const raw = () => new (require('node:sqlite').DatabaseSync)(path.join(svc.data, 'msg.db'));   // une connexion qui ÉCRIT dans la base du service (WAL) : pour reculer des dates que le module date de « maintenant »
+    let abo = 0;
     for (const p of [B, C]) S.contactLier(A.id, p.id);
     let K = {};
     vrai('population : une personne NON CONFIRMÉE existe (la porte bêta n\'en fabrique jamais)', N.verifie === false && A.verifie === true);
@@ -161,7 +203,7 @@ const ATTENDU = {
       else if (acteurs[profil]) c.poserCookie(session(acteurs[profil]));
       return c;
     };
-    let cellules = 0, refusSansEffet = 0, refusAvecEffet = [];
+    let cellules = 0, refusSansEffet = 0, refusAvecEffet = [], espacesVerifies = 0, cellulesPro = 0, cellulesHier = 0;
 
     console.log('\nCHAQUE route contre CHAQUE profil');
     for (const r of MANIFESTE) {
@@ -175,7 +217,15 @@ const ATTENDU = {
       const mA = S.messageEnvoyer({ conv: G, auteur: A.id, cid: 'cid-fx-ana-0001', texte: 'de Ana' }), mB = S.messageEnvoyer({ conv: G, auteur: B.id, cid: 'cid-fx-ben-0001', texte: 'de Ben' });
       const code = crypto.randomBytes(16).toString('base64url');
       S.lienCreer({ h: sha(code), genre: 'contact', cible: null, par: Z.id, ttlMs: 3600000, max: 50 });
-      const F = { A: A.id, B: B.id, C: C.id, G, code, seqDe: (a) => a === A.id ? mA.seq : mB.seq, cibleDe: (a) => K[a] ? K[a].id : A.id, png: PNG };
+      /* l'ESPACE de cette route : payé (Stripe a dit « active », 50 places), Ana propriétaire, Ben et Dan membres (par de vraies invitations), un canal public (Ana, Ben, Dan) et un canal
+         privé (Ana, Ben), un code d'invitation d'Ana. Ana en possède trois au plus : les fixtures des routes d'avant partent. */
+      for (const e of S.espacesDe(A.id)) S.espaceSupprimer(e.id);
+      const E = S.espaceCreer({ nom: 'Entreprise ' + r.id, proprio: A.id }).id;
+      const inv = (par) => { const c = crypto.randomBytes(16).toString('base64url'); S.lienCreer({ h: sha(c), genre: 'espace', cible: E, par, ttlMs: 3600000, max: 50 }); return c; };
+      for (const u of [B, D]) S.invitationAccepter({ h: sha(inv(A.id)), uid: u.id, max: Infinity });
+      const CP = S.canalCreer({ espace: E, par: A.id, nom: 'général', prive: false }).id, CV = S.canalCreer({ espace: E, par: A.id, nom: 'direction', prive: true, membres: [B.id] }).id;
+      abo++; S.abonnementPoser(E, { client: 'cus_banc905', abonnement: 'sub_b905_' + abo, statut: 'active', places: 50, fin_periode: Date.now() + 86400000 * 20, annule: false, impaye: false }, { adopter: true });
+      const F = { A: A.id, B: B.id, C: C.id, D: D.id, G, E, CP, CV, codeE: inv(A.id), code, seqDe: (a) => a === A.id ? mA.seq : mB.seq, cibleDe: (a) => K[a] ? K[a].id : A.id, png: PNG };
       /* la fixture des pièces : une photo déposée PAR LA ROUTE (le fichier est réellement rangé et scellé), attachée à un message du groupe par le module de stockage */
       if (r.garde === 'J') {
         const dep = await F_PIECES.deposer(clientDe('admin'), { conv: G, genre: 'photo', corps: PNG });
@@ -197,9 +247,17 @@ const ATTENDU = {
         const a = await c.appel(reel[0], reel[1], reel[2]), b = await c.appel(faux[0], faux[1], faux[2]);
         v('⛔ ' + r.id + ' : la réponse faite à un NON-MEMBRE d\'une conversation qui existe est identique à celle d\'une conversation INEXISTANTE (même code, même corps)', [a.code, a.txt], [b.code, b.txt]);
       }
+      /* ⛔ UN NON-MEMBRE NE VOIT RIEN D'UN ESPACE : la réponse faite à qui n'en est pas membre est identique, octet pour octet, à celle d'un espace qui n'existe pas */
+      if (['E', 'EA', 'EP'].includes(r.garde)) {
+        const c = clientDe('nonmembre');
+        const reel = M.ok(F, C.id), faux = M.ok(Object.assign({}, F, { E: 'e_' + '0'.repeat(32) }), C.id);
+        const a = await c.appel(reel[0], reel[1], reel[2]), b = await c.appel(faux[0], faux[1], faux[2]);
+        v('⛔ ' + r.id + ' : la réponse faite à un NON-MEMBRE d\'un espace qui existe est identique à celle d\'un espace INEXISTANT (même code, même corps)', [a.code, a.txt], [b.code, b.txt]);
+        espacesVerifies++;
+      }
       for (const profil of PROFILS) {
         const acteur = acteurs[profil];
-        const attendu = ATTENDU[r.garde][profil];
+        const attendu = (M.attendu && M.attendu[profil]) || ATTENDU[r.garde][profil];
         const c = clientDe(profil);
         const ok = M.ok(F, acteur && acteur.id);
         if (M.prep && attendu === 'passe' && acteur) M.prep(F, S, acteur.id);
@@ -217,15 +275,49 @@ const ATTENDU = {
         }
         cellules++;
         if (attendu === 'passe') {
-          vrai(r.id + ' [' + r.garde + '] × ' + profil + ' → passe la garde et réussit (' + M.codes.join('/') + ')', M.codes.includes(code_));
+          /* un échec dit CE QUI a répondu (code et erreur) : « faux » seul ne dit pas si la garde a refusé ou si le geste a dit non */
+          v(r.id + ' [' + r.garde + '] × ' + profil + ' → passe la garde et réussit (' + M.codes.join('/') + ')', M.codes.includes(code_) ? 'oui' : [code_, err_], 'oui');
         } else {
           v(r.id + ' [' + r.garde + '] × ' + profil + ' → ' + attendu[0] + ' ' + attendu[1], [code_, err_], attendu);
           const apres = instantane();
           if (apres === avant) refusSansEffet++; else refusAvecEffet.push(r.id + '×' + profil);
         }
       }
+      /* ⛔ LES ROUTES PRO ont deux cellules de plus : l'abonnement en retard DEPUIS TROIS JOURS (dans le sursis : tout passe encore), puis depuis HUIT (hors sursis : 402 `formule_requise`,
+         l'administrateur y lit pourquoi, un membre non, et RIEN n'est écrit par le refus). Les dates se reculent dans la base : le module date l'impayé de « maintenant ». */
+      if (M.pro) {
+        const retard = (jours) => { const d = raw(); try { d.prepare(`UPDATE abonnement SET statut = 'past_due', impaye_depuis = ?, relu_le = ? WHERE espace = ?`).run(Date.now() - jours * 86400000, Date.now(), E); } finally { d.close(); } };
+        const jouer = async (profil) => { const c = clientDe(profil), ok = M.ok(F, acteurs[profil].id); const rep = await c.appel(ok[0], ok[1], ok[2]); return { code: rep.code, err: rep.j && rep.j.error, raison: rep.j && rep.j.raison }; };
+        retard(3);
+        const sursis = await jouer('admin');
+        vrai(r.id + ' [pro] × administrateur, impayé depuis 3 jours (dans le sursis) → passe encore (' + M.codes.join('/') + ')', M.codes.includes(sursis.code));
+        retard(8);
+        const avantPro = instantane();
+        const adm = await jouer('admin'), mem = await jouer('membre');
+        v('⛔ ' + r.id + ' [pro] × administrateur, impayé depuis 8 jours (hors sursis) → 402 formule_requise, et il lit POURQUOI', [adm.code, adm.err, adm.raison !== undefined ? adm.raison : null], r.garde === 'V' ? [402, 'formule_requise', null] : [402, 'formule_requise', 'impaye']);
+        v('⛔ ' + r.id + ' [pro] × membre, impayé depuis 8 jours → ' + (r.garde === 'V' ? '402 sans raison' : '403 (il n\'est pas administrateur : la garde passe avant la formule)'), [mem.code, mem.err, mem.raison === undefined ? 'sans raison' : mem.raison], r.garde === 'V' ? [402, 'formule_requise', 'sans raison'] : [403, 'interdit', 'sans raison']);
+        v('⛔ ' + r.id + ' [pro] : les deux refus n\'ont rien écrit', instantane(), avantPro);
+        cellulesPro += 3;
+      }
+      /* ⛔ LA HIÉRARCHIE : un administrateur qui n'est pas propriétaire ne touche ni au propriétaire ni à un autre administrateur ; le propriétaire, si */
+      if (M.hier) {
+        M.hier.prep(F, S);
+        const ben = clientDe('membre'), ana = clientDe('admin'), ok1 = M.ok(F, B.id);
+        for (const [quoi, corps, attendu] of M.hier.refus(F)) {
+          const avantH = instantane();
+          const rep = await ben.appel(ok1[0], ok1[1], corps);
+          v('⛔ ' + r.id + ' [hiérarchie] × administrateur qui n\'est PAS propriétaire, ' + quoi + ' → ' + attendu[0] + ' ' + attendu[1] + ', et le refus n\'écrit rien', [rep.code, rep.j && rep.j.error, instantane() === avantH], attendu.concat([true]));
+          cellulesHier++;
+        }
+        const permis = await ana.appel(ok1[0], ok1[1], M.hier.permis(F));
+        v('⛔ ' + r.id + ' [hiérarchie] × le PROPRIÉTAIRE retire un administrateur → 200 (contre-épreuve : la règle protège les administrateurs, elle ne ferme pas la route)', permis.code, 200);
+        cellulesHier++;
+      }
     }
     v('⛔ ' + cellules + ' cellules jouées = routes × profils (aucune sautée en silence)', cellules, MANIFESTE.length * PROFILS.length);
+    vrai('population : la hiérarchie des administrateurs a joué ses cellules (' + cellulesHier + ' : deux refus et un geste permis)', cellulesHier === 3);
+    vrai('population : les routes Pro ont chacune leurs trois cellules de formule (' + cellulesPro + ')', cellulesPro >= 9 && cellulesPro % 3 === 0 && cellulesPro / 3 === Object.values(MATRICE).filter(m => m.pro).length);
+    vrai('population : le 404 « espace inexistant » a été comparé pour toutes les routes d\'espace (' + espacesVerifies + ')', espacesVerifies >= 18);
     vrai('population : des refus ont bien été relevés avant/après (' + refusSansEffet + ')', refusSansEffet >= 60);
     v('⛔ AUCUN refus n\'a écrit quoi que ce soit (instantané de la base identique avant/après)', refusAvecEffet, []);
 
@@ -256,6 +348,9 @@ const ATTENDU = {
 
     console.log('\nUn blocage coupe l\'écriture dans la directe (404, comme si elle n\'existait pas) mais pas la lecture de l\'historique');
     {
+      /* Ana et Ben ne sont plus COLLÈGUES (les espaces des fixtures de la matrice partent) : seul le contact les lie, comme avant le lot des espaces. Que des collègues, eux, s'écrivent sans être
+         contacts est jouée par `test-960`/`test-961`. */
+      for (const e of S.espacesDe(A.id)) S.espaceSupprimer(e.id);
       const D = S.convDirecteObtenir(A.id, B.id).id;
       S.messageEnvoyer({ conv: D, auteur: A.id, cid: 'cid-bloc-0001', texte: 'avant le blocage' });
       const cA = clientDe('admin'), cB = clientDe('membre');

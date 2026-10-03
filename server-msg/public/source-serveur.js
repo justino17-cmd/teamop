@@ -31,7 +31,12 @@
    LES NOTIFICATIONS, L'EXPORT, LA SUPPRESSION (capacités `notifications` et `compte`) : notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees,
    supprimerCompte. Le navigateur (Notification, PushManager, service worker) n'est JAMAIS touché ici directement : il passe par un adaptateur (`options.navigateur`), que le banc
    remplace. La page ACQUITTE ce qu'elle a montré (`POST /api/flux/ack`, seulement visible) pour que le service n'envoie pas une notification qui doublerait l'écran.
-   Les événements de `ecouter(cb)` : 'liste', 'conversation' (id), 'contacts', 'presence', 'reseau' (etat), 'arrivee' (un message d'un autre : de quoi
+   LES ESPACES PROFESSIONNELS ET MESSAGES PRO (capacité `espaces`, étape 5) : espaces, espace, espaceCreer, espaceRenommer, espaceTransferer, espaceQuitter, espaceDissoudre, espaceContacts (« Contacts de
+   l'entreprise » : les membres de MON espace, jamais un annuaire), membreRole, membreRetirer, invitationCreer, invitationsRevoquer, invitationLire, invitationAccepter, canalCreer, canalRenommer,
+   canalSupprimer, canalAjouterMembres, canalRetirerMembre ; Messages Pro : abonnementOffres, abonnement (l'état, sans réseau), abonnementPayer et abonnementPortail (rendent l'adresse de Stripe,
+   en https seulement), abonnementRelire (« J'ai réglé — vérifier » : relu chez Stripe). Une conversation de type 'canal' porte `espace` et `prive`. Un refus de fonction Pro garde sa forme
+   (`ErreurApi.raison` : « impaye » ou « perso », que le seul administrateur reçoit).
+   Les événements de `ecouter(cb)` : 'liste', 'conversation' (id), 'contacts', 'espaces' (id : un espace a changé), 'presence', 'reseau' (etat), 'arrivee' (un message d'un autre : de quoi
    afficher une bannière), 'notification', 'retire' (id : la personne n'est plus dans cette conversation), 'avis' (texte : un refus arrivé après coup),
    'moi' (mon profil a changé : nom, statut ou photo, ici ou sur un autre appareil),
    'ouvrir' (conv : une notification touchée demande d'ouvrir cette conversation).
@@ -318,13 +323,14 @@
       if (supprime) supprimesIds.add(c.autre.id);
       else if (direct && c.autre) noter(c.autre);
       if (c.apercu && c.apercu.par) noter(c.apercu.par);   // ⛔ l'auteur du dernier message d'un GROUPE : son nom vient avec l'aperçu (sinon « Quelqu'un » tant que la conversation n'est pas ouverte)
-      const nom = direct ? (supprime ? NOM_SUPPRIME : nomComplet(c.autre)) : (c.nom || 'Groupe');
+      const canal = c.type === 'canal';
+      const nom = direct ? (supprime ? NOM_SUPPRIME : nomComplet(c.autre)) : (c.nom || (canal ? 'Canal' : 'Groupe'));
       let apercu = '';
       if (c.apercu) {
         const a = c.apercu;
-        let corps = a.supprime ? 'Message supprimé' : a.illisible ? 'Message illisible' : a.type === 'systeme' ? 'Activité du groupe' : (a.texte || '');
+        let corps = a.supprime ? 'Message supprimé' : a.illisible ? 'Message illisible' : a.type === 'systeme' ? (canal ? 'Activité du canal' : 'Activité du groupe') : (a.texte || '');
         corps = corps.replace(/\s+/g, ' ').slice(0, 160);
-        const prefixe = a.type === 'systeme' ? '' : estMoi(a.auteur) ? 'Vous : ' : (c.type === 'groupe' ? prenomDe(a.auteur) + ' : ' : '');
+        const prefixe = a.type === 'systeme' ? '' : estMoi(a.auteur) ? 'Vous : ' : (!direct ? prenomDe(a.auteur) + ' : ' : '');
         apercu = prefixe + corps;
       }
       const loc = convs.get(c.id);
@@ -334,12 +340,18 @@
         membres: [], admins: c.role === 'admin' && moiApi ? [moiApi.id] : [], annoncesSeulement: !!c.annonces_seules, ephemeres: c.ephemere_s || 0,
         nonLu: nonLus > 0, nonLus, apercu, t: c.dernier_ts, enLigne: direct && c.autre ? enLigne.has(c.autre.id) : false,
         autre: direct && c.autre ? c.autre.id : null,
+        /* un CANAL dit l'espace auquel il appartient et s'il est privé (la liste s'en sert pour le nommer « # canal ») ; les autres conversations n'ont ni l'un ni l'autre */
+        espace: canal && typeof c.espace === 'string' ? c.espace : null, prive: canal && c.prive === true,
       };
     }
     async function relireListe() {
       const liste = await A.conversations();
+      /* ⛔ UNE CONVERSATION OUVERTE QUI DISPARAÎT DE LA LISTE (un canal supprimé par son administrateur, un espace dissous) : la page qui l'affiche doit s'en retirer. Seules celles que ce module
+         tient en mémoire (ouvertes ou lues) sont dites — une conversation que la personne vient de quitter elle-même a déjà été oubliée (`quitter`) : pas de second avis. */
+      const parties = convsApi.filter(c => !liste.some(x => x.id === c.id) && convs.has(c.id)).map(c => c.id);
       convsApi = liste; listeFraiche = true;
       for (const c of liste) if (c.autre) noter(c.autre);
+      for (const id of parties) { convs.delete(id); emettre({ type: 'retire', id }); }
     }
     /* Plusieurs événements d'affilée ne font qu'UNE relecture de la liste. */
     function relireListePlusTard() {
@@ -373,24 +385,28 @@
       for (const x of autres) { const e = L && L.get(x.id); if (e && e.seq >= m.seq && e.ts > ts) ts = e.ts; else { ts = 0; break; } }
       return ts || true;
     }
-    function texteSysteme(m) {
+    /* `canal` : la conversation est un CANAL d'espace — les phrases disent « le canal » là où un groupe dit « le groupe » (le reste est commun : mêmes messages système) */
+    function texteSysteme(m, canal) {
       const k = m.meta && m.meta.k, u = m.meta && m.meta.uid, a = m.auteur;
+      const LE = canal ? 'le canal' : 'le groupe', DU = canal ? 'du canal' : 'du groupe';
       switch (k) {
         case 'groupe_cree': return estMoi(a) ? 'Vous avez créé le groupe' : nomDe(a) + ' a créé le groupe';
+        case 'canal_cree': return estMoi(a) ? 'Vous avez créé le canal' : nomDe(a) + ' a créé le canal';
         case 'membre_ajoute': return estMoi(a) ? 'Vous avez ajouté ' + nomDe(u) : nomDe(a) + ' a ajouté ' + (estMoi(u) ? 'vous' : nomDe(u));
-        case 'rejoint': return estMoi(u) ? 'Vous avez rejoint le groupe' : nomDe(u) + ' a rejoint le groupe';
-        case 'membre_retire': return estMoi(a) ? 'Vous avez retiré ' + nomDe(u) : estMoi(u) ? nomDe(a) + ' vous a retiré du groupe' : nomDe(a) + ' a retiré ' + nomDe(u);
-        case 'membre_parti': return estMoi(u) ? 'Vous avez quitté le groupe' : nomDe(u) + ' a quitté le groupe';
+        case 'rejoint': return estMoi(u) ? 'Vous avez rejoint ' + LE : nomDe(u) + ' a rejoint ' + LE;
+        case 'membre_retire': return estMoi(a) ? 'Vous avez retiré ' + nomDe(u) : estMoi(u) ? nomDe(a) + ' vous a retiré ' + DU : nomDe(a) + ' a retiré ' + nomDe(u);
+        case 'membre_parti': return estMoi(u) ? 'Vous avez quitté ' + LE : nomDe(u) + ' a quitté ' + LE;
         case 'admin_promu': return estMoi(u) ? 'Vous êtes maintenant administrateur' : nomDe(u) + ' est maintenant administrateur';
         case 'admin_retire': return estMoi(u) ? 'Vous n\'êtes plus administrateur' : nomDe(u) + ' n\'est plus administrateur';
-        case 'renomme': return (estMoi(a) ? 'Vous avez' : nomDe(a) + ' a') + ' renommé le groupe';
-        case 'avatar': return (estMoi(a) ? 'Vous avez' : nomDe(a) + ' a') + ' changé la photo du groupe';
-        case 'avatar_retire': return (estMoi(a) ? 'Vous avez' : nomDe(a) + ' a') + ' retiré la photo du groupe';
+        case 'renomme': return (estMoi(a) ? 'Vous avez' : nomDe(a) + ' a') + ' renommé ' + LE;
+        case 'avatar': return (estMoi(a) ? 'Vous avez' : nomDe(a) + ' a') + ' changé la photo ' + DU;
+        case 'avatar_retire': return (estMoi(a) ? 'Vous avez' : nomDe(a) + ' a') + ' retiré la photo ' + DU;
         case 'annonces_seules': return m.meta.valeur ? 'Seuls les administrateurs peuvent écrire' : 'Tout le monde peut écrire';
         case 'ephemere': return m.meta.valeur ? 'Les messages disparaissent après ' + duree(m.meta.valeur) : 'Les messages éphémères sont désactivés';
-        default: return 'Le groupe a été modifié';
+        default: return canal ? 'Le canal a été modifié' : 'Le groupe a été modifié';
       }
     }
+    const estCanalConv = (c) => !!(c && c.detail && c.detail.conversation && c.detail.conversation.type === 'canal');
     /* ce que dit de lui-même un message qui n'est pas du texte : dans une citation, une bannière */
     function resumeMedia(type, meta) {
       if (type === 'photo') { const n = meta && Array.isArray(meta.pieces) ? meta.pieces.length : 1; return n > 1 ? n + ' photos' : 'Photo'; }
@@ -401,7 +417,7 @@
     function citation(c, seq) {
       const q = c.messages.find(x => x.seq === seq);
       if (!q) return { seq, auteur: null, nom: 'Message plus ancien', texte: '', introuvable: true };
-      return { seq, id: q.id, auteur: q.auteur, nom: nomDe(q.auteur), texte: q.supprime ? 'Message supprimé' : extrait(q.type === 'systeme' ? texteSysteme(q) : (q.texte || resumeMedia(q.type, q.meta)), 120), supprime: !!q.supprime };
+      return { seq, id: q.id, auteur: q.auteur, nom: nomDe(q.auteur), texte: q.supprime ? 'Message supprimé' : extrait(q.type === 'systeme' ? texteSysteme(q, estCanalConv(c)) : (q.texte || resumeMedia(q.type, q.meta)), 120), supprime: !!q.supprime };
     }
     /* Les pièces d'un message : l'adresse est celle d'une pièce DÉJÀ LUE (sinon null, et `etat` dit où on en est). `auto` : les pièces que l'ouverture lit toute seule — les plus
        récentes ; les autres attendent le toucher (une conversation de cent photos ne se télécharge pas d'un coup sur un téléphone). */
@@ -427,7 +443,7 @@
     const MEDIAS = ['photo', 'vocal', 'fichier'];
     function vueMessage(conv, c, m, auto) {
       const base = { id: m.id, seq: m.seq, auteur: m.auteur, t: m.ts, lu: luDe(conv, c, m) };
-      if (m.type === 'systeme') return Object.assign(base, { systeme: true, texte: texteSysteme(m) });
+      if (m.type === 'systeme') return Object.assign(base, { systeme: true, texte: texteSysteme(m, estCanalConv(c)) });
       const media = MEDIAS.includes(m.type);
       const v = Object.assign(base, { texte: m.supprime ? '' : (m.illisible ? 'Message illisible' : (media ? '' : (m.texte === null || m.texte === undefined ? '…' : m.texte))) });
       if (m.supprime) v.supprime = true;
@@ -480,10 +496,12 @@
         catch (e) { if (e && e.code === 'introuvable') { convs.delete(id); return null; } throw e; }
       }
       const resumeConv = (convsApi.find(x => x.id === id));
-      const d = c.detail, base = resumeConv ? resume(resumeConv) : { id, type: d.conversation.type, nom: d.conversation.nom || 'Groupe', court: d.conversation.nom || 'Groupe', initiales: '#', avatar: indexAvatar(id), photo: null, epingle: false, nonLu: false, nonLus: 0, apercu: '', t: d.conversation.dernier_ts };
+      const d = c.detail, canalD = d.conversation.type === 'canal';
+      const base = resumeConv ? resume(resumeConv) : { id, type: d.conversation.type, nom: d.conversation.nom || (canalD ? 'Canal' : 'Groupe'), court: d.conversation.nom || (canalD ? 'Canal' : 'Groupe'), initiales: '#', avatar: indexAvatar(id), photo: null, epingle: false, nonLu: false, nonLus: 0, apercu: '', t: d.conversation.dernier_ts,
+        espace: canalD && typeof d.conversation.espace === 'string' ? d.conversation.espace : null, prive: canalD && d.conversation.prive === true };
       const autre = d.conversation.type === 'direct' ? d.membres.find(x => !estMoi(x.id)) : null;
       if (autre) { Object.assign(base, { nom: nomComplet(autre), court: nomComplet(autre), initiales: initialesDe(nomComplet(autre)), enLigne: enLigne.has(autre.id), autre: autre.id, photo: photoPiece(autre.avatar) }); }
-      else if (d.conversation.type === 'groupe') { base.nom = base.court = d.conversation.nom || 'Groupe'; base.photo = photoPiece(d.conversation.avatar); }
+      else if (d.conversation.type === 'groupe' || canalD) { base.nom = base.court = d.conversation.nom || (canalD ? 'Canal' : 'Groupe'); base.photo = photoPiece(d.conversation.avatar); }
       if (d.conversation.type === 'direct' && !autre) { base.supprime = true; base.nom = base.court = NOM_SUPPRIME; base.initiales = '?'; base.photo = null; }   // l'autre n'est plus membre : son compte est supprimé
       base.membres = d.membres.map(x => x.id); base.admins = d.membres.filter(x => x.role === 'admin').map(x => x.id);
       base.annoncesSeulement = !!d.conversation.annonces_seules; base.ephemeres = d.conversation.ephemere_s || 0;
@@ -785,12 +803,15 @@
       let c = convs.get(id);
       if (!c || !c.detail) { try { const d = await A.conversation(id); for (const m of d.membres) noter(m); c = convs.get(id) || { messages: [], aPlus: false, charge: false }; c.detail = d; convs.set(id, c); } catch (e) { if (e && e.code === 'introuvable') return null; throw e; } }
       const d = c.detail, direct = d.conversation.type === 'direct', autre = direct ? d.membres.find(x => !estMoi(x.id)) : null;
-      const nom = autre ? nomComplet(autre) : (direct ? NOM_SUPPRIME : (d.conversation.nom || 'Groupe'));
+      const canal = d.conversation.type === 'canal';
+      const nom = autre ? nomComplet(autre) : (direct ? NOM_SUPPRIME : (d.conversation.nom || (canal ? 'Canal' : 'Groupe')));
       return {
         id, type: d.conversation.type, nom, initiales: autre ? initialesDe(nom) : (direct ? '?' : '#'), avatar: indexAvatar(autre ? autre.id : id), photo: autre ? photoPiece(autre.avatar) : (direct ? null : photoPiece(d.conversation.avatar)), supprime: direct && !autre,
         sourdine: d.moi && d.moi.muet_jusqua > maintenant() ? d.moi.muet_jusqua : 0,
         membres: d.membres.map(x => vueMembre(c, x)), moiAdmin: d.moi.role === 'admin', annoncesSeulement: !!d.conversation.annonces_seules, ephemeres: d.conversation.ephemere_s || 0,
         enLigne: autre ? enLigne.has(autre.id) : false,
+        /* un canal dit son espace (l'identifiant que les gestes de l'administrateur réclament) et s'il est privé */
+        espace: canal && typeof d.conversation.espace === 'string' ? d.conversation.espace : null, prive: canal && d.conversation.prive === true,
       };
     }
     async function rafraichirDetail(id) {
@@ -906,9 +927,11 @@
         emettre({ type: 'presence', id: d.uid }); emettre({ type: 'contacts' }); emettre({ type: 'liste' });
         for (const [id, c] of convs) if (c.detail && c.detail.membres.some(m => m.id === d.uid)) emettre({ type: 'conversation', id });
       },
+      /* quelque chose a changé dans un espace (un membre arrivé ou parti, un rôle, un nom, un canal, l'abonnement) : un événement éphémère — la page relit ce qu'elle a le droit de voir */
+      espace: (d) => { emettre({ type: 'espaces', id: d && typeof d.espace === 'string' ? d.espace : null }); relireListePlusTard(); },
       resync: () => {
         marquerTout();
-        Promise.all([relireListe(), rafraichirContacts()]).then(() => { emettre({ type: 'liste' }); for (const id of convs.keys()) emettre({ type: 'conversation', id }); }, () => {});
+        Promise.all([relireListe(), rafraichirContacts()]).then(() => { emettre({ type: 'liste' }); emettre({ type: 'espaces', id: null }); for (const id of convs.keys()) emettre({ type: 'conversation', id }); }, () => {});
       },
       reseau: (etat) => {
         emettre({ type: 'reseau', etat });
@@ -1162,12 +1185,102 @@
       return { suppression_le: r.suppression_le };
     }
 
+    /* ═══ LES ESPACES PROFESSIONNELS, LEURS CANAUX ET MESSAGES PRO (capacité `espaces`) ══════════════════════════════════════════════════════════════
+       ⛔ UN ESPACE EST UNE ENTREPRISE : ses membres se voient entre eux (« Contacts de l'entreprise ») et nulle part ailleurs — aucune recherche par nom, aucun annuaire. Le service décide de tout (rôle,
+       formule, places) : ce module rend ce que le service a dit, jamais ce que la page croit avoir demandé. Un refus garde sa forme (`ErreurApi` : `raison` « impaye » ou « perso » pour
+       l'administrateur, `portail`, `places`) ; la page DIT le refus, elle n'en invente pas la cause.
+       ⛔ Une adresse de paiement (Stripe) n'est rendue que si elle est en https : la page l'ouvre, elle n'ouvre pas n'importe quoi. */
+    const FORMULES = ['pro', 'perso', 'impaye'];
+    const formuleDe = (f) => FORMULES.includes(f) ? f : 'perso';
+    const ADRESSE_HTTPS = /^https:\/\/[^\s"'<>]{4,2000}$/;
+    const vueEspaceListe = (x) => ({ id: x.id, nom: x.nom, role: x.role, proprio: !!x.proprio, moiAdmin: x.role === 'admin', membres: x.membres_n | 0 });
+    const vueCanal = (k) => ({ id: k.id, nom: k.nom, prive: !!k.prive, membres: k.membres_n | 0 });
+    function vueEspace(d) {
+      const a = d.admin;
+      return { id: d.espace.id, nom: d.espace.nom, proprio: !!d.espace.proprio, role: d.moi.role, moiAdmin: d.moi.role === 'admin', membres: d.membres_n | 0, canaux: (d.canaux || []).map(vueCanal), fonctionsPro: d.fonctions_pro === true,
+        admin: a ? { formule: formuleDe(a.formule), motif: String(a.motif || ''), sursisJusqua: Number.isInteger(a.sursis_jusqua) ? a.sursis_jusqua : null, places: Number.isInteger(a.places) ? a.places : null, placesDepassees: a.places_depassees === true, invitations: a.invitations | 0 } : null };
+    }
+    const espacesChanges = (id) => emettre({ type: 'espaces', id: id || null });
+    async function espaces() {
+      const r = await A.espaces();
+      return { espaces: (r.espaces || []).map(vueEspaceListe), formule: formuleDe(r.formule), abonnementOuvert: r.abonnement_ouvert === true };
+    }
+    async function espace(id) { return vueEspace(await A.espace(id)); }
+    async function espaceCreer(nom) { const d = await A.creerEspace(String(nom || '').trim()); espacesChanges(d.espace.id); return vueEspace(d); }
+    async function espaceRenommer(id, nom) { const d = await A.majEspace(id, String(nom || '').trim()); espacesChanges(id); return vueEspace(d); }
+    async function espaceTransferer(id, uid) { const d = await A.transfererEspace(id, uid); espacesChanges(id); return vueEspace(d); }
+    async function espaceQuitter(id) { await A.quitterEspace(id); await relireListe(); emettre({ type: 'liste' }); espacesChanges(id); }
+    async function espaceDissoudre(id) { await A.supprimerEspace(id); await relireListe(); emettre({ type: 'liste' }); espacesChanges(id); }
+    /* « Contacts de l'entreprise » : les membres de l'espace, avec leur rôle ; `contact` = déjà dans mes contacts, `moi` = c'est moi */
+    async function espaceContacts(id) {
+      const r = await A.contactsEspace(id);
+      for (const p of r.contacts) noter(p);
+      return { espace: { id: r.espace.id, nom: r.espace.nom }, contacts: r.contacts.map(p => Object.assign(vuePersonne(p), { role: p.role === 'admin' ? 'admin' : 'membre', proprio: p.proprio === true, moi: !!p.moi, contact: !!p.contact, statut: p.statut || '', enLigne: enLigne.has(p.id) })) };
+    }
+    async function membreRole(id, uid, admin) { await A.roleMembreEspace(id, uid, !!admin); espacesChanges(id); }
+    /* retirer quelqu'un révoque les liens d'invitation de l'espace (il en connaissait les codes) : la page le dit, l'administrateur en recrée un */
+    async function membreRetirer(id, uid) { const r = await A.retirerMembreEspace(id, uid); espacesChanges(id); return { liensRevoques: r && Number.isInteger(r.liens_revoques) ? r.liens_revoques : 0 }; }
+    async function invitationCreer(id, o2) {
+      const r = await A.creerInvitation(id, o2 || {});
+      espacesChanges(id);
+      return { code: r.code, expireLe: r.expire_le, max: r.max | 0 };
+    }
+    async function invitationsRevoquer(id) { const r = await A.revoquerInvitations(id); espacesChanges(id); return r.n | 0; }
+    /* l'aperçu d'un lien d'invitation : qui invite et dans quel espace — il n'accepte rien */
+    async function invitationLire(code) {
+      const a = await A.lireInvitation(code);
+      noter(a.par);
+      return { de: nomComplet(a.par), espace: { nom: a.espace.nom, membres: a.espace.membres | 0 } };
+    }
+    async function invitationAccepter(code) {
+      const r = await A.accepterInvitation(code);
+      await relireListe(); emettre({ type: 'liste' }); espacesChanges(r.espace.id);
+      return { deja: !!r.deja, espace: { id: r.espace.id, nom: r.espace.nom } };
+    }
+    /* un canal : public (tous les membres de l'espace) ou privé (ceux qu'on y met). `canaux` : la liste que le service rend, telle que MOI je la vois. */
+    async function canalCreer(id, spec) {
+      spec = spec || {};
+      const prive = spec.prive === true;
+      const r = await A.creerCanal(id, { nom: String(spec.nom || '').trim(), prive, membres: prive ? (spec.membres || []).filter((x, i, t) => typeof x === 'string' && t.indexOf(x) === i) : undefined });
+      await relireListe(); emettre({ type: 'liste' }); espacesChanges(id);
+      return { id: r.canal.id, nom: r.canal.nom, prive: !!r.canal.prive, canaux: (r.canaux || []).map(vueCanal) };
+    }
+    async function canalRenommer(id, cid, nom) {
+      const r = await A.majCanal(id, cid, String(nom || '').trim());
+      await rafraichirDetail(cid).catch(() => {}); await relireListe();
+      emettre({ type: 'conversation', id: cid }); emettre({ type: 'liste' }); espacesChanges(id);
+      return (r.canaux || []).map(vueCanal);
+    }
+    async function canalSupprimer(id, cid) {
+      const r = await A.supprimerCanal(id, cid);
+      convs.delete(cid); await relireListe(); emettre({ type: 'retire', id: cid }); emettre({ type: 'liste' }); espacesChanges(id);
+      return (r.canaux || []).map(vueCanal);
+    }
+    async function canalAjouterMembres(id, cid, uids) { const r = await A.ajouterMembresCanal(id, cid, uids); await rafraichirDetail(cid); emettre({ type: 'conversation', id: cid }); return Array.isArray(r.ajoutes) ? r.ajoutes.length : 0; }
+    async function canalRetirerMembre(id, cid, uid) { await A.retirerMembreCanal(id, cid, uid); await rafraichirDetail(cid); emettre({ type: 'conversation', id: cid }); }
+    /* ── Messages Pro : l'état d'un espace est lu SANS réseau côté service ; payer et gérer rendent l'adresse de Stripe où la page va ; « J'ai réglé — vérifier » relit chez Stripe ── */
+    async function abonnementOffres() {
+      const r = await A.offresAbonnement();
+      return { ouvert: r.ouvert === true, mode: r.mode === 'live' ? 'live' : 'test', places: { min: (r.places && r.places.min) | 0, max: (r.places && r.places.max) | 0 }, defaut: String(r.defaut || ''),
+        offres: (r.offres || []).map(o => ({ id: String(o.id), libelle: String(o.libelle || ''), par: o.par === 'an' ? 'an' : 'mois', eurosParPlace: Number(o.euros_par_place) || 0 })) };
+    }
+    const vueAbonnement = (r) => ({
+      ouvert: r.ouvert === true, mode: r.mode === 'live' ? 'live' : 'test', toutOuvert: r.tout_ouvert === true,
+      abonnement: r.abonnement ? { statut: String(r.abonnement.statut || ''), places: r.abonnement.places | 0, finPeriode: Number(r.abonnement.fin_periode) || 0, annule: r.abonnement.annule === true, reluLe: Number(r.abonnement.relu_le) || 0 } : null,
+      formule: formuleDe(r.formule), motif: String(r.motif || ''), sursisJusqua: Number.isInteger(r.sursis_jusqua) ? r.sursis_jusqua : null,
+      places: Number.isInteger(r.places) ? r.places : null, membres: r.membres | 0, placesDepassees: r.places_depassees === true, paiementEnAttente: r.paiement_en_attente === true, stripeMuet: r.stripe_muet === true });
+    const adresseDePaiement = (r) => { if (!r || typeof r.url !== 'string' || !ADRESSE_HTTPS.test(r.url)) throw new OPMSG.ErreurApi('reponse_illisible', 200, 0); return { url: r.url, reprise: r.reprise === true }; };
+    async function abonnement(id) { return vueAbonnement(await A.etatAbonnement(id)); }
+    async function abonnementPayer(id, spec) { return adresseDePaiement(await A.payerAbonnement(id, { places: spec && spec.places, cycle: spec && spec.cycle })); }
+    async function abonnementPortail(id) { return adresseDePaiement(await A.portailAbonnement(id)); }
+    async function abonnementRelire(id) { const r = vueAbonnement(await A.relireAbonnement(id)); espacesChanges(id); return r; }
+
     const rejeter = (code) => () => Promise.reject(erreurLocale(code));
     /* ⛔ combien de messages n'ont PAS encore quitté l'appareil (réseau coupé, service muet) : la page les perd quand elle repart de zéro ou qu'on la ferme — rien n'est rangé sur
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: false, reunions: false, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: false, reunions: false, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       surSessionMorte: (cb) => { suiviMort = cb; },
       /* `presence` : MA présence est-elle montrée ? Coupée, la barre de la page ne doit pas dire « Disponible » avec un point vert (relecture du testeur) : les autres ne me voient plus en ligne. */
@@ -1183,6 +1296,11 @@
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, deconnecterAutres, stockage: stockageUtilise, aPropos,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees, supprimerCompte,
+      /* ── les espaces professionnels, leurs canaux, Messages Pro (capacité `espaces`) ── */
+      espaces, espace, espaceCreer, espaceRenommer, espaceTransferer, espaceQuitter, espaceDissoudre, espaceContacts, membreRole, membreRetirer,
+      invitationCreer, invitationsRevoquer, invitationLire, invitationAccepter,
+      canalCreer, canalRenommer, canalSupprimer, canalAjouterMembres, canalRetirerMembre,
+      abonnementOffres, abonnement, abonnementPayer, abonnementPortail, abonnementRelire,
       /* ── ce que le service ne sait pas encore : les appels (étape 7) — la page dit « bientôt », ces méthodes refusent proprement ── */
       appels: () => Promise.resolve([]),
       demarrerAppel: rejeter('bientot'), appel: () => Promise.resolve(null), terminerAppel: rejeter('bientot'),

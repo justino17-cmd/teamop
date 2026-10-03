@@ -1,7 +1,7 @@
 # Installer le serveur d'OP MESSAGES — les gestes de Justin, dans l'ordre
 
 Pour `design/opmessages/SERVEUR.md` § 4, étape 1 (« gestes de Justin »), puis l'étape 2 (les SMS, section 10 bis) et l'étape 3 (la sauvegarde,
-section 10 ter), puis les notifications (section 10 quater). Ce document dit **chaque geste**,
+section 10 ter), puis les notifications (section 10 quater) et Messages Pro (l'étape 5 : Stripe, section 10 quinquies). Ce document dit **chaque geste**,
 ce que tu **colles** et ce que tu dois **voir**. Si ce n'est pas ce qui s'affiche, **on s'arrête** et tu
 recolles la sortie dans la conversation — on ne continue jamais « en espérant ».
 
@@ -18,6 +18,7 @@ secrets d'OP MESSAGES (la clé maître, la clé SSH de déploiement, la paire VA
 | paire VAPID (notifications) | sur le VPS, par le script | `/etc/opmsg/beta.json` (chmod 600) | jamais — elle n'est même pas affichée |
 | clé de **sauvegarde** (64 hexadécimaux, **différente** de la clé maître) | sur **ton Mac**, dans le presse-papiers | ton gestionnaire de mots de passe, puis `/etc/opmsg/beta.json` (saisie masquée) | **jamais** |
 | clés d'accès du **coffre de sauvegarde** (clé d'accès + clé secrète) | la console IONOS | ton gestionnaire de mots de passe, puis `/etc/opmsg/beta.json` (saisie masquée) | **jamais** |
+| clé Stripe **restreinte** d'OP MESSAGES (`rk_test_…`, puis `rk_live_…`) | le tableau de bord Stripe | ton gestionnaire de mots de passe, puis `/etc/opmsg/beta.json` (saisie masquée) | **jamais** (les identifiants de tarif `price_…`, eux, ne sont pas des secrets) |
 
 ⚠️ **Tant que le code d'OP MESSAGES (`server-msg/`) n'est pas sur `main`, rien de ceci n'est possible** : le
 script d'installation copie le déployeur et la pose de clé depuis `main`. On attend donc le « pousse ».
@@ -531,6 +532,9 @@ vide, deviendrait sinon « la plus récente » :
    **Tout le monde doit se reconnecter** : la restauration vide les sessions exprès (une session fermée avant le sinistre ne doit pas revenir d'une copie d'avant sa fermeture) ; les appareils
    déjà liés par SMS restent connectés. Au premier démarrage, le journal porte une ligne `"evt":"rejeu"` (le service rejoue les suppressions qui sont à lui, puis baisse le drapeau) ;
    `journalctl -u teamop-msg@beta | grep '"evt":"rejeu"'` doit dire `"etat":"ok"`. Une ligne `echec` veut dire qu'un effacement n'a pas pu être rejoué : il le sera au démarrage suivant, mais regarde pourquoi.
+   **Messages Pro — deux choses à regarder à la main après une restauration** : ① le journal ne doit porter AUCUNE ligne `"etat":"attention"` avec `"motif":"espace-payant-sans-membre"` (un espace payant que la copie réduisait à une personne dont le compte
+   avait été effacé : le rejeu ne le dissout pas, il ne parle pas à Stripe ; son abonnement continue — à régler dans le tableau de bord de Stripe) ; ② les abonnements créés depuis l'heure de la copie restaurée : le service ne les connaît pas (il relit ceux qu'il connaît, il n'en
+   cherche pas chez Stripe) — les repérer dans le tableau de bord de Stripe **avant** d'inviter quiconque à payer de nouveau.
 
 ⚠️ Cette procédure est écrite d'après le code et **jouée sur ma machine contre un faux coffre** : elle n'a jamais été jouée sur un VPS neuf. Un essai à blanc sur un VPS jetable
 reste à faire **avant la production**.
@@ -545,6 +549,118 @@ n'ouvre aucun port de plus : il appelle seulement, en HTTPS sortant, les service
 des notifications : dans l'onglet de Safari, l'interrupteur reste grisé et la page te le dit). Ensuite Réglages > Notifications, touche « Notifications sur cet appareil », accepte la demande, puis « Envoyer une notification d'essai ».
 Si rien n'arrive : colle la ligne `push` de `/health` (des nombres, rien de secret) — `"actif":false` veut dire que les clés sont illisibles, des `echecs24h` qui montent veulent dire que le service de
 notification refuse nos envois — et dis-moi ce que l'iPhone affiche.
+
+## 10 quinquies. Messages Pro (Stripe, MODE TEST d'abord) — pour l'étape 5, avant la première vente
+
+Messages Pro se paie par Stripe : **15 € par place et par mois** (ou 150 € par place et par an), une place par membre de l'espace, un abonnement par entreprise. Le service appelle `api.stripe.com` par
+`fetch` (comme OP GESTION — aucune bibliothèque), **sans webhook** : le verdict est toujours **relu chez Stripe** (au retour du paiement, quand l'administrateur touche « J'ai réglé — vérifier », et toutes
+les dix minutes pour les espaces abonnés). Tant qu'aucune clé n'est posée, tout est **inerte et le dit** (« l'abonnement n'est pas encore ouvert »). La bêta n'accepte qu'une clé de **test** : aucun vrai
+prélèvement, jamais.
+
+⛔ **Le compte Stripe est COMMUN avec OP GESTION**, qui lit TOUS les abonnements du compte. Deux conséquences, mesurées par `tests/test-965.js` (qui lance le vrai OP GESTION contre un faux Stripe) :
+une **clé restreinte propre à OP MESSAGES** (jamais celle d'OP GESTION), et un **produit dont le nom contient « messages »** (§ 2) — sans quoi OP GESTION lit l'abonnement comme un paiement à lui (§ 8).
+
+### 1. La clé restreinte — dans le tableau de bord Stripe, en mode TEST
+
+Développeurs → Clés API → *Créer une clé restreinte*. Nom : « OP MESSAGES (service) ». Droits, **et rien d'autre** :
+
+| ressource | droit | pour quoi faire |
+|---|---|---|
+| Checkout Sessions | écriture | ouvrir la page de paiement, la relire au retour |
+| Customers | écriture | le client que Checkout crée |
+| Customer portal | écriture | « Gérer l'abonnement » |
+| Subscriptions | lecture | relire le verdict |
+| Prices, Products | lecture | seulement pour l'outil du geste 3 : il vérifie les tarifs AVANT d'écrire |
+
+Une clé secrète complète (`sk_…`) est **refusée** par le service comme par l'outil : elle donnerait au service tout le compte, celui d'OP GESTION compris. Stripe n'affiche la clé qu'**une fois** :
+copie-la **directement** dans ton gestionnaire de mots de passe (colle-la nulle part ailleurs).
+
+### 2. Les deux tarifs — un produit « OP MESSAGES Pro »
+
+Dans Stripe (mode test) : **un produit nommé « OP MESSAGES Pro »**, avec **deux prix récurrents facturés à l'unité** (la quantité est le nombre de places) : 15,00 € par mois, 150,00 € par an. Les identifiants
+`price_…` ne sont pas des secrets : tu peux les coller dans la conversation.
+
+⛔ **Le nom du produit doit contenir « messages »** : c'est ce qui fait ranger l'abonnement chez OP MESSAGES par OP GESTION (§ 8). L'outil du geste 3 **REFUSE D'ÉCRIRE** quand ce n'est pas le cas (il
+n'avertissait que : un avertissement se lit une fois, entre deux lignes vertes — relecture du gardien, 3 octobre 2026) : il dit quel tarif, quel produit, et qu'il faut le renommer chez Stripe (« OP MESSAGES Pro »),
+puis le relancer. Il ne peut pas lire la liste d'OP GESTION (`STRIPE_PRIX_MESSAGES`) : même un tarif qui y figure doit venir d'un produit nommé comme il faut. *Seul cas qui reste un avertissement* : le nom
+n'a pas pu être LU (la clé n'a pas le droit « Products — lecture », qui n'est utile qu'à ce contrôle) — vérifie-le alors à la main.
+⚠️ **Le dépôt connaît déjà deux prix `msgpro` côté OP GESTION** (`price_1TwV6E…` et `price_1TwgdtF…`) : dis-moi si ce sont les bons, et lequel est le mensuel (le sens exact des deux prix n'a jamais été
+vérifié, § 6 de la conception). L'outil relit chaque tarif (rythme, montant, mode) et le dira.
+
+### 3. Les poser sur le VPS — saisie masquée
+
+Sur le VPS, en root :
+
+```bash
+OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/configurer-stripe.js
+```
+
+Il demande la clé (**masquée** : rien ne s'affiche pendant la frappe), puis les deux tarifs. Il **éprouve avant d'écrire** : des lectures seulement (la clé répond-elle et lit-elle les abonnements ?
+chaque tarif existe-t-il dans CE mode, est-il actif, au bon rythme, à l'unité ? le montant annoncé à l'écran est-il celui de Stripe ? le nom de son produit contient-il « messages » ?) — il ne crée rien et ne facture rien. Une clé de production collée
+sur la bêta est refusée, et un tarif dont le produit ne s'appelle pas « … messages … » aussi (§ 2 : sans ce nom, OP GESTION lirait l'abonnement comme un paiement à lui) ; seul un montant qui n'est pas celui de l'écran ne fait qu'avertir. Il n'écrit le fichier qu'une fois tout validé (temporaire en 0600, relu par le même code que le démarrage du service, puis renommé). **Ce qu'il affiche peut se recoller** (le mode,
+un nom de produit, un montant). Puis :
+
+```bash
+systemctl restart teamop-msg@beta
+```
+
+Pour relire la configuration posée, sans rien changer : `OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/configurer-stripe.js --verifier`.
+
+### 4. Vérifier
+
+```bash
+curl -s https://msg-beta.teamop.fr/health
+```
+
+**À voir** : `"stripeEchecMin":0` et `"facturation":{"mode":"test", …}` (et non `inerte`). Le service ne publie ni la clé, ni un tarif, ni un identifiant d'espace, ni aucun chiffre commercial (`/health` est public) : le mode, le drapeau de la bêta et les minutes de panne de Stripe.
+
+### 5. Activer le portail de facturation — un geste dans Stripe
+
+Paramètres → Facturation → *Portail client* → l'activer (mode test), en autorisant le changement de quantité, la mise à jour de la carte et la résiliation. **Sans lui**, « Gérer l'abonnement » répond
+« le paiement n'a pas pu être préparé » : le service n'y peut rien, c'est un réglage de ton compte.
+
+### 6. L'essai, avec une carte de test
+
+Sur la bêta tout est ouvert (Pro sans paiement), mais le chemin du paiement se joue quand même : Réglages → *Entreprise* → créer un espace, puis Réglages → *Abonnement* → choisir le rythme et les places
+(au moins le nombre de membres) → *Payer avec Stripe*. Sur la page de Stripe, la carte de test de la documentation de Stripe (4242 4242 4242 4242, une date future, un code quelconque). De retour sur la page :
+« Merci ! Abonnement confirmé par Stripe : l'espace est en Messages Pro », puis « Actif · N places ». *Gérer l'abonnement* ouvre le portail (changer les places, la carte, résilier) ; au retour du portail, la
+page relit chez Stripe et montre les nouvelles places. Un paiement fait sur un autre appareil apparaît au clic sur « J'ai réglé — vérifier » (une fois toutes les dix secondes au plus).
+**Un impayé ne se joue pas à la main** (il faudrait faire avancer le temps chez Stripe) : `tests/test-962.js`, `test-965.js` et la sonde le jouent contre un faux Stripe — un paiement en retard garde Pro
+sept jours (comptés entre deux lectures réussies, jamais sur l'horloge seule : une panne de Stripe ne suspend personne), puis seules les fonctions Pro refusent, l'administrateur seul lit pourquoi, rien n'est effacé.
+
+### 7. Ce qui se passe seul, ce qui crie
+
+- **Relecture** toutes les dix minutes des espaces abonnés **et de ceux dont une session de paiement n'est pas résolue — quel que soit son âge** (une session payée pendant une panne finit reconnue ; seul ce que Stripe en DIT, « expirée »
+  ou « inconnue », l'efface) ; Stripe qui ne répond pas arrête la passe après trois échecs de suite, et le dernier état connu sert. **Un 404 de Stripe sur un abonnement ne le dit « résilié » qu'une fois l'absence confirmée** (le client
+  existe chez Stripe et sa liste d'abonnements ne le contient pas) : une clé qui n'est pas celle du bon compte répond 404 à tout, et c'est `stripeEchecMin` qui monte, pas un espace qui se résilie.
+- **`/health`** (PUBLIC) : `stripeEchecMin` (minutes depuis lesquelles Stripe est illisible, 0 si tout va bien) — la surveillance horaire crie **au-delà de 90 minutes** —, le mode de la facturation et le drapeau
+  de la bêta. **Ni le nombre d'espaces, ni celui d'abonnés, ni celui d'impayés** : ce sont des chiffres commerciaux, et n'importe qui peut lire `/health` d'un `curl` (relecture du gardien, 3 octobre 2026). Ils se lisent dans le
+  tableau de bord de Stripe, qui les tient déjà.
+- **Supprimer son compte** est refusé tant qu'on est seul dans un espace dont l'abonnement court (409 `espace_abonne`), et **dissoudre un espace** aussi (409 `abonnement_actif`) : Stripe continuerait de prélever
+  pour un espace qui n'existe plus. On résilie d'abord (portail), la relecture le voit. **Un paiement commencé et pas encore reconnu** bloque aussi (409 `paiement_en_cours`) : le service relit d'abord la session, et ne
+  laisse faire qu'une fois Stripe dit qu'elle est expirée ou inconnue.
+- **Retirer quelqu'un d'un espace** révoque tous les liens d'invitation de l'espace (le retiré en connaît les codes) : un administrateur en recrée un. **Quitter** de soi-même n'en révoque aucun.
+- **Des places baissées sous le nombre de membres** (par le portail de Stripe) ne retirent personne : les liens d'invitation s'arrêtent, tout le monde garde son accès, et l'administrateur lit « N membres pour P places ».
+
+### 8. La couture avec OP GESTION — à lire avant la première vente
+
+OP GESTION lit **toute** la liste des abonnements du compte (`status=all`, cent par page, dix pages au plus) et range chaque ligne : une ligne est « OP MESSAGES » si son tarif est dans sa liste
+(`STRIPE_PRIX_MESSAGES`, dans le serveur d'OP GESTION) **ou** si le nom de son produit contient « messages ». `tests/test-965.js` joue le vrai OP GESTION contre un faux Stripe qui porte un abonnement de
+Messages Pro — payé, d'essai, en retard, impayé, incomplet, en pause, résilié — à la même adresse qu'une entreprise OP GESTION (cinq sortes d'entreprises, onze états) : **son verdict ne change pas**, dans
+les deux directions, et un abonnement de Messages Pro n'ajoute jamais une place à OP GESTION. Trois choses à savoir :
+
+- **Messages Pro n'écrit jamais la métadonnée `espace`** (celle qu'OP GESTION lit pour rattacher un abonnement à une entreprise) : la sienne s'appelle `opmsg_espace`. Un banc le garde.
+- ⚠️ **LIMITE CONNUE, mesurée** : un tarif que ni la liste d'OP GESTION ni le nom du produit ne désignent est lu **comme un paiement d'OP GESTION**. Une entreprise qui ne paie rien d'OP GESTION, mais dont le
+  dirigeant achète Messages Pro avec la même adresse, est alors **servie** (jamais coupée — OP GESTION ne coupe jamais une entreprise qui a l'air de payer) tant que l'abonnement court. La parade est le nom
+  du produit (§ 2) ; l'outil du geste 3 refuse d'écrire sans lui. `test-965` épingle la limite avec la consigne de ce qu'il faudra retirer le jour où OP GESTION changera.
+- ⚠️ **Le plafond de mille abonnements est PARTAGÉ** : au-delà, OP GESTION ne peut plus lire la liste en entier et répond « vérification impossible » à **tout le monde** (aucune entreprise n'est coupée —
+  une panne de ce côté ne suspend personne —, mais plus aucune n'est vérifiée). Les abonnements de Messages Pro comptent dans ce plafond. À relever dans OP GESTION avant d'approcher les mille.
+
+### 9. En production (plus tard, sur la phrase « publie OP MESSAGES »)
+
+Une clé `rk_live_…` restreinte et deux tarifs de production, posés par le même outil sur `/etc/opmsg/prod.json`. En production, **payer exige une adresse confirmée** (409 `adresse_requise` sinon : une facture
+n'est pas envoyée à personne), et **créer un espace est une fonction Pro** : le **premier espace** d'une entreprise ne peut donc pas naître d'une création libre. L'entrée prévue est le lien créé par TEAM OP (« Ce qui reste à trancher » de la
+conception, question 15) — ce geste n'existe pas encore, et c'est ce qui sépare la bêta de la production pour cet écran.
 
 ---
 
@@ -590,7 +706,7 @@ L'instance `prod` ne s'installe que sur ta phrase **« publie OP MESSAGES »**, 
 - **Pas de sauvegarde hors site à l'installation** : elle se pose à part, section 10 ter (bucket distinct, clés propres, exercice de
   restauration). Les données de la bêta sont **jetables** et le disent ; **aucune personne extérieure à l'équipe** n'entre avant
   qu'un essai de restauration ait réussi.
-- **Pas de TURN** (appels), pas de Stripe, pas de courriel d'envoi : étapes 7, 5 et 2.
+- **Pas de TURN** (appels), pas de courriel d'envoi : étapes 7 et 2. **Stripe** (Messages Pro) se pose à part, section 10 quinquies, en mode test d'abord ; sans clé, la facturation est inerte et le dit.
 - **Pas de pare-feu ni de bande passante** : non vérifiés (§ 6 de la conception).
 - **Aucune modification de `app.html`, `sw.js`** ni du bloc d'`api.teamop.fr`. Côté `server/`, deux lignes seulement
   (l'identifiant de compte dans `/api/beta/login`, la liste `ids` dans `/api/beta/etat`) — voir l'ordre du « pousse » plus haut.

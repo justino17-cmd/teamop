@@ -32,6 +32,9 @@ const GENRES_SERVICE = {
   compte: (stockage, e, contexte) => {
     const r = stockage.compteEffacer(String(e.objet), { rejeu: true });
     if (r && r.effacee && r.pieces && r.pieces.length && typeof contexte.effacerPieces === 'function') contexte.effacerPieces(r.pieces);
+    /* ⛔ Un espace PAYANT que la copie réduisait à la personne effacée n'est pas dissous (le rejeu ne parle pas à Stripe) : il reste sans membre, et le journal le DIT — à régler à la main, sur le
+       tableau de bord de Stripe. Un nombre seulement : jamais l'identifiant d'un espace. */
+    if (r && r.espacesOrphelins && r.espacesOrphelins.length && typeof contexte.signaler === 'function') contexte.signaler('espace-payant-sans-membre', r.espacesOrphelins.length);
   },
   /* La DEMANDE de suppression (« identifiant|échéance|marque ») : l'échéance d'ORIGINE est reposée — la copie peut dater d'avant la demande, et le compte ne serait jamais effacé alors
      que la personne croit l'avoir demandé. On ne recalcule rien (« quatorze jours à partir de maintenant » ferait glisser l'échéance à chaque restauration). Une ligne illisible LÈVE :
@@ -60,10 +63,11 @@ function rejouerAuDemarrage({ stockage, contexte = {}, genres = GENRES_SERVICE, 
   bilan.fait = true;
   let entrees = [];
   try { entrees = stockage.purgeLignes(); } catch (e) { bilan.echecs++; journaliser('rejeu', { etat: 'echec', motif: 'registre-illisible' }); return bilan; }
+  const ctx = Object.assign({}, contexte, { signaler: (motif, n) => journaliser('rejeu', { etat: 'attention', motif, n }) });   // ce qu'une fonction de genre ne peut pas trancher seule, elle le dit ici
   for (const e of entrees) {
     if (!Object.prototype.hasOwnProperty.call(genres, e.genre) || typeof genres[e.genre] !== 'function') continue;
     try {
-      const r = genres[e.genre](stockage, e, contexte);
+      const r = genres[e.genre](stockage, e, ctx);
       if (r && typeof r.then === 'function') throw new Error('rejeu-asynchrone');   // le démarrage est synchrone : une promesse perdue serait un effacement qu'on croirait fait
       bilan.rejouees++;
     } catch (x) {

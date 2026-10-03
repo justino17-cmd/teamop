@@ -587,7 +587,7 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
             for (let q = apresSeq + 1; q <= c.n && messages.length < limite; q++) messages.push({ seq: q, id: 'm_' + id + '_' + q, ts: h.t, auteur: 'p_alice', type: 'texte', texte: 'message ' + q + ' ' + 'x'.repeat(o.taille || 20), modifie: null, supprime: false, repond_a: null, reactions: [], meta: null });
             return { messages, supprimes: [] };
           },
-          exportPieces: () => [], notifListe: () => [],
+          exportPieces: () => [], notifListe: () => [], exportEspaces: () => [],   // la section « espaces » de l'export (lot 4) : un magasin simulé porte les dépendances du module qu'il monte
         };
         const config = { compte: Object.assign({ exportOctetsMax: 64 * 1048576, exportAttenteMs: 300, exportMaxMs: 900000 }, o.compte || {}), quotas: { export: o.quota || { max: 1, fenetreMs: 86400000 } }, cookie: { nom: 'x', secure: false } };
         const H = {};

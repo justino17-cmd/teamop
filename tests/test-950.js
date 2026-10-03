@@ -1589,6 +1589,146 @@ const horlogeFixe = (h) => () => h.t;
     }
   }
 
+  /* ══ 13 quinquies bis. UN COMPTE EFFACÉ, MEMBRE ET PROPRIÉTAIRE D'UN ESPACE, NE REPREND NI SA PLACE NI SA PROPRIÉTÉ D'UNE RESTAURATION ══════════════════════════════════════════
+     Couture du lot 3 (le rejeu des comptes effacés, `rejeu.js`) avec le lot 4 (les espaces) : chacun avait ses bancs, chacun était juste, et ils ne se parlaient pas.
+     Une restauration rejoue D'ABORD, hors ligne, les lignes `espace_membre` du registre : elles sortent la personne de la LISTE des membres de la copie. La PROPRIÉTÉ, elle, n'est écrite nulle
+     part : elle reste sur la ligne de l'espace. Puis le service rejoue l'effacement du compte avec la vraie fonction — qui cherchait la personne dans la liste des membres, où elle n'était plus,
+     et laissait à l'espace un propriétaire effacé que personne ne pouvait remplacer (la propriété ne passe que depuis le propriétaire).
+     Trois choses se jouent ici. A : la chaîne complète (copie, rejeu hors ligne, démarrage du service), deux copies d'avant. B : le rejeu SEUL, sans le rejeu hors ligne — il n'écrit AUCUNE ligne
+     au registre (une ligne de plus serait rejouée à la restauration suivante comme un fait, contre des gens qui, dans le service vivant, y étaient encore). C : l'espace PAYANT que la copie
+     réduit à la personne effacée — le rejeu ne parle pas à Stripe, il ne le dissout donc pas, et il le DIT au journal. */
+  console.log('\n── 950 · un compte effacé, MEMBRE ET PROPRIÉTAIRE d\'un espace, ne reprend NI sa place NI sa propriété d\'une restauration ──');
+  {
+    const REJEU = require(path.join(SM, 'rejeu.js'));
+    const { creerScelleur } = require(path.join(SM, 'scelle.js'));
+    const JOUR_E = 86400000;
+    const ligne = (chemin, sql, ...pp) => { const dd = new DatabaseSync(chemin, { readOnly: true }); try { return dd.prepare(sql).get(...pp); } finally { dd.close(); } };
+    const nb = (chemin, sql, ...pp) => Number(ligne(chemin, sql, ...pp).n);
+    const genres = (chemin) => { const r = {}; for (const x of STOCK.ouvrir.copie.purgeLire(chemin)) r[x.genre] = (r[x.genre] || 0) + 1; return r; };
+    const dits = (chemin) => { const g = genres(chemin); return [g.espace_membre || 0, g.espace || 0, g.conversation || 0]; };   // les trois genres que la sortie d'un espace pourrait écrire
+    /* Le monde : Alice est PROPRIÉTAIRE de E (Carole membre, Dan administrateur ; un canal public, un privé Alice-Carole, un privé à elle seule) et de E3 (seule dedans), simple membre de E2 (à Dan) */
+    function monde(b) {
+      const { a, c, conv } = O.remplir(b, 4), d = b.pers('dan');
+      let k = 0;
+      const entrer = (e, par, uid) => { const h = 'inv-bis-' + (++k); b.S.lienCreer({ h, genre: 'espace', cible: e, par, ttlMs: 30 * JOUR_E, max: 5 }); return b.S.invitationAccepter({ h, uid, max: Infinity }); };
+      b.h.t += 1000; const E = b.S.espaceCreer({ nom: 'Entreprise du banc', proprio: a.id }).id;
+      b.h.t += 1000; entrer(E, a.id, c.id);
+      b.h.t += 1000; entrer(E, a.id, d.id); b.S.espaceRoleMembre({ espace: E, uid: d.id, admin: true });
+      b.h.t += 1000; const pub = b.S.canalCreer({ espace: E, par: a.id, nom: 'général', prive: false, membres: [] }).id;
+      b.h.t += 1000; const prive = b.S.canalCreer({ espace: E, par: a.id, nom: 'direction', prive: true, membres: [c.id] }).id;
+      b.h.t += 1000; const solo = b.S.canalCreer({ espace: E, par: a.id, nom: 'notes', prive: true, membres: [] }).id;
+      b.h.t += 1000; const E2 = b.S.espaceCreer({ nom: 'Boîte de Dan', proprio: d.id }).id; entrer(E2, d.id, a.id);
+      b.h.t += 1000; const E3 = b.S.espaceCreer({ nom: 'Seule', proprio: a.id }).id;
+      return { a, c, d, conv, E, E2, E3, pub, prive, solo };
+    }
+    /* [espaces dont Alice est propriétaire, espaces dont elle est membre, membres de E, canaux de E, membres actifs du canal privé, du canal public] */
+    const pop = (chemin, w) => [
+      nb(chemin, 'SELECT COUNT(*) AS n FROM espace WHERE proprio = ?', w.a.id),
+      nb(chemin, 'SELECT COUNT(*) AS n FROM espace_membre WHERE uid = ?', w.a.id),
+      nb(chemin, 'SELECT COUNT(*) AS n FROM espace_membre WHERE espace = ?', w.E),
+      nb(chemin, 'SELECT COUNT(*) AS n FROM canal WHERE espace = ?', w.E),
+      nb(chemin, 'SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND quitte_le IS NULL', w.prive),
+      nb(chemin, 'SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND quitte_le IS NULL', w.pub),
+    ];
+    const POP = [2, 3, 3, 3, 2, 3];
+    const photo = (chemin) => JSON.stringify([
+      ligne(chemin, `SELECT group_concat(id || ':' || proprio, ',') AS n FROM (SELECT id, proprio FROM espace ORDER BY id)`).n,
+      ligne(chemin, `SELECT group_concat(espace || ':' || uid || ':' || role, ',') AS n FROM (SELECT espace, uid, role FROM espace_membre ORDER BY espace, uid)`).n,
+      ligne(chemin, `SELECT group_concat(conv || ':' || uid || ':' || role || ':' || IFNULL(quitte_le, ''), ',') AS n FROM (SELECT conv, uid, role, quitte_le FROM membre ORDER BY conv, uid)`).n,
+      dits(chemin)]);
+
+    /* A. la chaîne complète : la copie, le rejeu hors ligne, puis le démarrage du service */
+    for (const quand of ['pendant le sursis', 'avant la demande']) {
+      const b = O.creerBase();
+      try {
+        const w = monde(b), { a, c, d, conv, E, E2, E3, pub, prive, solo } = w;
+        v('population (' + quand + ') : Alice possède DEUX espaces et est membre de TROIS ; E a trois membres et trois canaux (général à tous, direction à Alice et Carole, notes à Alice seule) — Dan en est administrateur, Carole simple membre : le successeur attendu est Dan, pas Carole (plus ancienne)',
+          [pop(b.chemin, w), ligne(b.chemin, 'SELECT role FROM espace_membre WHERE espace = ? AND uid = ?', E, d.id).role, ligne(b.chemin, 'SELECT role FROM espace_membre WHERE espace = ? AND uid = ?', E, c.id).role], [POP, 'admin', 'membre']);
+        const avant = path.join(b.dossier, 'avant-bis.db');
+        if (quand === 'avant la demande') { b.h.t += 1000; await b.S.instantane(avant); }
+        b.h.t += 1000;
+        b.S.suppressionProgrammer(a.id, b.h.t + 14 * JOUR_E);
+        if (quand === 'pendant le sursis') { b.h.t += 1000; await b.S.instantane(avant); }
+        b.h.t += 15 * JOUR_E;
+        const e0 = b.S.compteEffacer(a.id);
+        v('population (' + quand + ') : dans le service VIVANT, la propriété d\'E est passée à Dan, E3 est dissous, le canal « notes » est parti avec elle, Alice n\'est plus membre de rien ni propriétaire de rien',
+          [e0.effacee, ligne(b.chemin, 'SELECT proprio FROM espace WHERE id = ?', E).proprio === d.id, nb(b.chemin, 'SELECT COUNT(*) AS n FROM espace WHERE id = ?', E3), nb(b.chemin, 'SELECT COUNT(*) AS n FROM conversation WHERE id = ?', solo), nb(b.chemin, 'SELECT COUNT(*) AS n FROM espace_membre WHERE uid = ?', a.id), nb(b.chemin, 'SELECT COUNT(*) AS n FROM espace WHERE proprio = ?', a.id)], [true, true, 0, 0, 0, 0]);
+        v('population (' + quand + ') : l\'effacement d\'origine a NOTÉ ses sorties (« espace_membre » pour E et E2, « espace » pour E3, « conversation » pour le canal « notes ») : le rejeu du service n\'a pas à les écrire', dits(b.chemin), [2, 1, 1]);
+        const registre = STOCK.ouvrir.copie.purgeLire(b.chemin);
+        const sur = path.join(b.dossier, 'restauree-bis.db'); fs.copyFileSync(avant, sur);
+        v('population (' + quand + ') : dans la copie d\'avant, rien de l\'effacement n\'est là — Alice possède deux espaces, en est membre de trois, E a ses trois canaux', pop(sur, w), POP);
+        const r = STOCK.ouvrir.copie.rejouerPurge(sur, registre);
+        STOCK.ouvrir.copie.apresRestauration(sur);
+        v('⛔ (' + quand + ') ce que le rejeu HORS LIGNE laisse : Alice n\'est plus dans AUCUNE liste de membres, E3 et le canal « notes » sont partis — mais E a toujours Alice pour PROPRIÉTAIRE (la propriété n\'est pas au registre). C\'est le trou que le service doit fermer',
+          [nb(sur, 'SELECT COUNT(*) AS n FROM espace_membre WHERE uid = ?', a.id), nb(sur, 'SELECT COUNT(*) AS n FROM espace WHERE id = ?', E3), nb(sur, 'SELECT COUNT(*) AS n FROM conversation WHERE id = ?', solo), ligne(sur, 'SELECT proprio FROM espace WHERE id = ?', E).proprio === a.id, r.membresEspaceRetires, r.espacesRetires],
+          [0, 0, 0, true, 2, 1]);
+        const avantService = dits(sur);
+        const S2 = STOCK.ouvrir({ chemin: sur, scelleur: creerScelleur(b.kek), horloge: () => b.h.t });
+        try {
+          const bilan = REJEU.rejouerAuDemarrage({ stockage: S2, contexte: { effacerPieces: () => {}, horloge: () => b.h.t }, journaliser: () => {} });
+          v('⛔ (' + quand + ') au premier démarrage, le service REFAIT l\'effacement : la propriété d\'E passe à Dan — l\'administrateur, pas Carole la plus ancienne —, aucun espace n\'a plus Alice pour propriétaire, elle n\'est membre de rien',
+            [bilan.fait, bilan.echecs, ligne(sur, 'SELECT proprio FROM espace WHERE id = ?', E).proprio === d.id, ligne(sur, 'SELECT role FROM espace_membre WHERE espace = ? AND uid = ?', E, d.id).role, nb(sur, 'SELECT COUNT(*) AS n FROM espace WHERE proprio = ?', a.id), nb(sur, 'SELECT COUNT(*) AS n FROM espace_membre WHERE uid = ?', a.id)],
+            [true, 0, true, 'admin', 0, 0]);
+          v('   E garde Carole et Dan, son canal privé garde Carole, son canal public Carole et Dan ; E2 reste à Dan, sans Alice',
+            [nb(sur, 'SELECT COUNT(*) AS n FROM espace_membre WHERE espace = ?', E), nb(sur, 'SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND quitte_le IS NULL', prive), nb(sur, 'SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND quitte_le IS NULL', pub), ligne(sur, 'SELECT proprio FROM espace WHERE id = ?', E2).proprio === d.id, nb(sur, 'SELECT COUNT(*) AS n FROM espace_membre WHERE espace = ?', E2)],
+            [2, 1, 2, true, 1]);
+          v('⛔ (' + quand + ') le rejeu du compte n\'a écrit AUCUNE ligne au registre pour les espaces : mêmes nombres de « espace_membre », « espace » et « conversation » qu\'avant le démarrage — celles de l\'effacement d\'origine y sont déjà',
+            [dits(sur), avantService], [avantService, [2, 1, 1]]);
+          v('   le groupe d\'Alice et de Carole : le rejeu hors ligne (« groupe_membre ») a déjà sorti Alice et promu Carole, le rejeu du compte n\'y touche plus — UN seul administrateur, Alice partie, une seule ligne « groupe_membre »',
+            [nb(sur, `SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND role = 'admin' AND quitte_le IS NULL`, conv), ligne(sur, 'SELECT role FROM membre WHERE conv = ? AND uid = ?', conv, c.id).role, nb(sur, 'SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NOT NULL', conv, a.id), genres(sur).groupe_membre || 0], [1, 'admin', 1, 1]);
+          const p1 = photo(sur);
+          const second = REJEU.rejouerAuDemarrage({ stockage: S2, contexte: { effacerPieces: () => {}, horloge: () => b.h.t }, journaliser: () => {} });
+          const encore = S2.espaceQuitterTout(a.id, { rejeu: true });
+          v('   un second démarrage ne refait rien, et la sortie des espaces rejouée DEUX fois (en direct, en mode rejeu) ne change ni une table ni le registre : le rejeu est idempotent',
+            [second.fait, encore, photo(sur) === p1], [false, { pieces: [], convs: [], orphelins: [] }, true]);
+        } finally { S2.fermer(); }
+      } finally { b.nettoyer(); }
+    }
+
+    /* B. le rejeu SEUL : la copie n'a pas été rejouée hors ligne, Alice y est encore membre ET propriétaire. Il passe la propriété, dissout l'espace qu'elle faisait seule — et n'écrit RIEN */
+    {
+      const b = O.creerBase(), b2 = O.creerBase();
+      try {
+        const w = monde(b), { a, d, E, E2, E3, solo, prive } = w, w2 = monde(b2);
+        v('population : Alice possède deux espaces, est membre de trois, E a ses trois canaux ; le registre ne dit encore rien des espaces', [pop(b.chemin, w), dits(b.chemin)], [POP, [0, 0, 0]]);
+        const r = b.S.compteEffacer(a.id, { rejeu: true });
+        v('⛔ le rejeu du compte sur une copie où Alice est encore membre ET propriétaire : la propriété d\'E passe à Dan (l\'administrateur), E3 (où elle était seule) est dissous, le canal « notes » part, elle sort d\'E2 et du canal « direction » — et le registre n\'a reçu AUCUNE ligne',
+          [r.effacee, ligne(b.chemin, 'SELECT proprio FROM espace WHERE id = ?', E).proprio === d.id, nb(b.chemin, 'SELECT COUNT(*) AS n FROM espace WHERE id = ?', E3), nb(b.chemin, 'SELECT COUNT(*) AS n FROM conversation WHERE id = ?', solo), nb(b.chemin, 'SELECT COUNT(*) AS n FROM espace_membre WHERE uid = ?', a.id), nb(b.chemin, 'SELECT COUNT(*) AS n FROM espace WHERE proprio = ?', a.id), nb(b.chemin, 'SELECT COUNT(*) AS n FROM espace_membre WHERE espace = ?', E2), nb(b.chemin, 'SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND quitte_le IS NULL', prive), dits(b.chemin)],
+          [true, true, 0, 0, 0, 0, 1, 1, [0, 0, 0]]);
+        /* la contre-épreuve du « zéro » : la même sortie jouée EN DIRECT (sans le mode rejeu) écrit bien ses trois sortes de lignes */
+        const direct = b2.S.espaceQuitterTout(w2.a.id);
+        v('   (contre-épreuve : la même sortie jouée EN DIRECT écrit ses lignes — « espace_membre » pour E et E2, « espace » pour E3, « conversation » pour « notes » : le zéro ci-dessus compte une population qui existe)', [direct.orphelins, dits(b2.chemin)], [[], [2, 1, 1]]);
+        v('   et le rejeu d\'une personne qui n\'est plus nulle part ne fait rien (la fonction qui trouve la personne dans la liste des membres OU parmi les propriétaires n\'invente pas un espace)', [b.S.espaceQuitterTout(a.id, { rejeu: true }), dits(b.chemin)], [{ pieces: [], convs: [], orphelins: [] }, [0, 0, 0]]);
+      } finally { b.nettoyer(); b2.nettoyer(); }
+    }
+
+    /* C. l'espace PAYANT que la copie réduit à la personne effacée : jamais dissous par le rejeu (il ne parle pas à Stripe), et le journal le DIT */
+    {
+      const b = O.creerBase();
+      try {
+        const { a } = O.remplir(b, 2);
+        const Ep = b.S.espaceCreer({ nom: 'Payante et seule', proprio: a.id }).id, Eg = b.S.espaceCreer({ nom: 'Gratuite et seule', proprio: a.id }).id, Es = b.S.espaceCreer({ nom: 'Paiement commencé', proprio: a.id }).id;
+        b.S.abonnementPoser(Ep, { client: 'cus_banc950', abonnement: 'sub_banc950', statut: 'active', places: 3, fin_periode: null, annule: false, impaye: false }, { adopter: true });
+        b.S.abonnementSession(Es, 'cs_banc950');
+        v('population : trois espaces dont Alice est la SEULE membre — l\'un avec un abonnement qui court, l\'un avec un paiement commencé, l\'un sans rien', [b.S.espacesAbonnesSeul(a.id).sort(), b.S.espacesDe(a.id).length], [[Ep, Es].sort(), 3]);
+        const copie = path.join(b.dossier, 'copie-payante.db'); await b.S.instantane(copie);
+        const brut = new DatabaseSync(copie); brut.prepare(`INSERT INTO purge(objet, genre, quand) VALUES(?, 'compte', ?)`).run(a.id, b.h.t); brut.close();   // le registre dit que le compte a été effacé : ce que la copie ne sait pas
+        STOCK.ouvrir.copie.apresRestauration(copie);
+        const S2 = STOCK.ouvrir({ chemin: copie, scelleur: creerScelleur(b.kek), horloge: () => b.h.t });
+        try {
+          const journal = [];
+          const bilan = REJEU.rejouerAuDemarrage({ stockage: S2, contexte: { effacerPieces: () => {}, horloge: () => b.h.t }, journaliser: (evt, champs) => journal.push([evt, champs]) });
+          v('⛔ le rejeu NE DISSOUT PAS un espace dont un abonnement court ou dont un paiement attend (il ne parle pas à Stripe : dissoudre perdrait le seul lien avec ce qui continue de prélever) — Alice en sort, ils restent SANS membre ; celui qui ne paie rien est dissous',
+            [bilan.fait, bilan.echecs, [Ep, Es].map(e => S2.espaceBrut(e) !== null), S2.espaceBrut(Eg), nb(copie, 'SELECT COUNT(*) AS n FROM espace_membre WHERE uid = ?', a.id), [Ep, Es].map(e => nb(copie, 'SELECT COUNT(*) AS n FROM espace_membre WHERE espace = ?', e))],
+            [true, 0, [true, true], null, 0, [0, 0]]);
+          v('   l\'abonnement et la session de paiement sont intacts (ce que Stripe relira), et le rejeu n\'a écrit aucune ligne « espace »', [(S2.abonnementLire(Ep) || {}).abonnement, (S2.abonnementLire(Es) || {}).session, genres(copie).espace || 0], ['sub_banc950', 'cs_banc950', 0]);
+          v('⛔ et le journal le DIT — un nombre, jamais un espace : « attention », « espace-payant-sans-membre », 2 (à régler à la main sur le tableau de bord de Stripe)', journal.filter(([, ch]) => ch && ch.etat === 'attention'), [['rejeu', { etat: 'attention', motif: 'espace-payant-sans-membre', n: 2 }]]);
+          v('   le bilan final reste « ok » (une attention n\'est pas un échec : le drapeau du rejeu retombe)', [journal[journal.length - 1], S2.rejeuAFaire()], [['rejeu', { etat: 'ok', n: 1 }], false]);
+        } finally { S2.fermer(); }
+      } finally { b.nettoyer(); }
+    }
+  }
+
   /* ══ 13 sexies. LA DEMANDE DE SUPPRESSION ET SON ANNULATION SURVIVENT À UNE RESTAURATION — ET LES ABONNEMENTS PUSH NE REVIENNENT PAS ═══════════════════════════
      Relevé par le gardien le 3 octobre 2026, sur la version fusionnée du lot 3 (`gardien3-restore.js`). Deux pertes, une de chaque sens :
        · une copie d'AVANT la demande ne porte aucune échéance : le compte n'était JAMAIS effacé alors que la personne l'avait demandé (on lui avait dit « dans quatorze jours ») ;
@@ -1815,6 +1955,75 @@ const horlogeFixe = (h) => () => h.t;
         v('   une copie qui n\'a pas la table `push` (une archive d\'avant la migration 4) : aucune erreur, les sessions sont quand même vidées', [err3, bilan3 && bilan3.push, bilan3 && bilan3.sessions], [null, 0, 1]);
       } finally { b.nettoyer(); }
     }
+  }
+
+  /* ══ 13 septies. SORTIR D'UN GROUPE, OU EN RÉVOQUER LE LIEN, NE SE DÉFAIT PAS D'UNE RESTAURATION ═══════════════════════════════════════════════
+     La dette que le lot 4 avait signalée lui-même, reprise à la relecture du gardien (3 octobre 2026) : `membreRetirer` et `membreQuitter` n'écrivaient rien dans `purge`
+     — seuls les retraits d'un espace et d'un canal privé se notaient. Une archive d'AVANT remettait donc dans un groupe la personne qu'on en avait retirée, ou qui l'avait
+     quittée, avec ses messages d'aujourd'hui ; et rendait aux liens de ce groupe, révoqués au même instant, leur porte. Trois pièces qui se tiennent, comme pour les autres
+     genres : ce qui s'écrit (genre « groupe_membre », et « invitation » pour le lien), ce qui se déclare (`GENRES_PURGE`), ce qui se rejoue (`rejouerPurge`). Le rejeu ne retire
+     que celui qui était là AVANT la sortie, et si c'était le dernier administrateur il fait ce que le service avait fait en direct : le plus ancien membre le devient. */
+  console.log('\n── 950 · quitter un groupe, en être retiré, en révoquer le lien : une restauration ne ramène ni la personne ni le code ──');
+  {
+    const lire = (chemin, sql, ...pp) => { const dd = new DatabaseSync(chemin, { readOnly: true }); try { return Number(dd.prepare(sql).get(...pp).n); } finally { dd.close(); } };
+    const b = O.creerBase();
+    try {
+      const a = b.pers('alice'), c = b.pers('carole'), d = b.pers('denis'), e = b.pers('elise'), f = b.pers('farid');
+      const g = b.S.convCreerGroupe({ createur: a.id, nom: 'Équipe du banc', membres: [c.id, d.id, e.id, f.id] }).id;
+      const g2 = b.S.convCreerGroupe({ createur: a.id, nom: 'Dernière administratrice', membres: [e.id, f.id] }).id;
+      const code = crypto.createHash('sha256').update('le lien du groupe, banc 950 sexies').digest('hex');
+      b.S.lienCreer({ h: code, genre: 'groupe', cible: g, par: a.id, ttlMs: 7 * 86400000, max: 10 });
+      b.S.messageEnvoyer({ conv: g, auteur: c.id, cid: 'sexies-1', texte: 'un message de carole, écrit avant' });
+      b.h.t += 1000;
+      const avant = path.join(b.dossier, 'avant-groupe.db'); await b.S.instantane(avant);        // l'archive D'AVANT : tout le monde est là, le lien est vivant
+      b.h.t += 1000;
+      b.S.membreRetirer({ conv: g, par: a.id, uid: c.id });                                        // carole est retirée par l'administratrice (ce qui révoque aussi les liens du groupe)
+      b.h.t += 1000;
+      b.S.membreQuitter({ conv: g, uid: d.id });                                                   // denis part de lui-même
+      b.h.t += 1000;
+      const promu = b.S.membreQuitter({ conv: g2, uid: a.id }).promu;                              // alice, seule administratrice du second groupe, le quitte : le plus ancien membre prend la relève
+      const registre = () => STOCK.ouvrir.copie.purgeLire(b.chemin);
+      const sorties = registre().filter(x => x.genre === 'groupe_membre').map(x => x.objet.split('|').slice(0, 2).join('|')).sort();
+      v('⛔ retirer quelqu\'un d\'un groupe, quitter un groupe : les trois sorties SE NOTENT (genre « groupe_membre », `conversation|personne|date`) — avant, rien n\'entrait dans le registre',
+        [sorties, registre().filter(x => x.genre === 'groupe_membre').every(x => x.objet.split('|').length === 3 && Number(x.objet.split('|')[2]) === x.quand)], [[g + '|' + c.id, g + '|' + d.id, g2 + '|' + a.id].sort(), true]);
+      v('⛔ révoquer les liens d\'un groupe SE NOTE (genre « invitation », l\'empreinte du code) — et une seule fois, pas une ligne par sortie', registre().filter(x => x.genre === 'invitation').map(x => x.objet), [code]);
+      v('   la sortie d\'un groupe n\'écrit pas un genre de canal (une seule note par sortie, au genre qui dit de quoi elle parle)', registre().filter(x => x.genre === 'canal_membre').length, 0);
+      v('   population : le service avait bien promu quelqu\'un à la place de la dernière administratrice (Elise, la plus ancienne des deux membres)', promu, e.id);
+
+      /* LA COPIE D'AVANT reçoit le registre d'APRÈS */
+      const sur = path.join(b.dossier, 'restauree-groupe.db'); fs.copyFileSync(avant, sur);
+      const actifs = (chemin, conv, ...uids) => lire(chemin, 'SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND quitte_le IS NULL AND uid IN (' + uids.map(() => '?').join(',') + ')', conv, ...uids);
+      const admins = (chemin, conv) => lire(chemin, "SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND role = 'admin' AND quitte_le IS NULL", conv);
+      v('population : la copie d\'avant porte les cinq membres du premier groupe, le lien vivant, le message de carole, et alice seule administratrice du second',
+        [actifs(sur, g, a.id, c.id, d.id, e.id, f.id), lire(sur, 'SELECT COUNT(*) AS n FROM lien WHERE h = ? AND revoque = 0', code), lire(sur, 'SELECT COUNT(*) AS n FROM message WHERE conv = ? AND auteur = ?', g, c.id), admins(sur, g2), actifs(sur, g2, a.id)], [5, 1, 1, 1, 1]);
+      const r = STOCK.ouvrir.copie.rejouerPurge(sur, registre());
+      v('⛔ le registre rejoué : carole (retirée) et denis (parti) ne sont plus dans le groupe — avant, ils y revenaient —, le lien est révoqué, les trois autres n\'ont pas bougé, rien n\'est « ignoré »',
+        [r.membresGroupeRetires, actifs(sur, g, c.id, d.id), actifs(sur, g, a.id, e.id, f.id), lire(sur, 'SELECT COUNT(*) AS n FROM lien WHERE h = ? AND revoque = 0', code), r.invitationsRevoquees, r.ignorees], [3, 0, 3, 0, 1, 0]);
+      v('   ses messages RESTENT (retirer quelqu\'un d\'un groupe n\'efface rien de ce qu\'il a écrit)', lire(sur, 'SELECT COUNT(*) AS n FROM message WHERE conv = ? AND auteur = ?', g, c.id), 1);
+      v('⛔ la dernière administratrice du second groupe est sortie de la copie, et la relève est faite comme le service l\'avait faite : une seule administratrice, Elise — le groupe reste gérable',
+        [actifs(sur, g2, a.id), admins(sur, g2), lire(sur, "SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND uid = ? AND role = 'admin' AND quitte_le IS NULL", g2, e.id), r.groupesRepris], [0, 1, 1, 1]);
+      v('   le premier groupe, lui, garde son administratrice et n\'est pas « repris » (une sortie ordinaire ne promeut personne)', [admins(sur, g), lire(sur, "SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND uid = ? AND role = 'admin'", g, a.id)], [1, 1]);
+      const encore = STOCK.ouvrir.copie.rejouerPurge(sur, registre());
+      v('   rejouer deux fois ne change rien (idempotent : ni sortie, ni promotion, ni ligne recopiée)', [encore.membresGroupeRetires, encore.groupesRepris, encore.invitationsRevoquees, encore.ajoutees], [0, 0, 0, 0]);
+      vrai('   la copie reste saine', STOCK.ouvrir.copie.controlerFichier(sur).ok === true);
+
+      /* ⛔ ce qui est arrivé APRÈS la sortie n'est pas défait : une personne REMISE dans le groupe est une autre arrivée */
+      b.h.t += 60000;
+      b.S.membresAjouter({ conv: g, par: a.id, uids: [c.id] });
+      b.h.t += 1000;
+      const apres = path.join(b.dossier, 'apres-retour.db'); await b.S.instantane(apres);
+      const r2 = STOCK.ouvrir.copie.rejouerPurge(apres, registre());
+      v('⛔ carole, retirée puis REMISE dans le groupe avant l\'archive, y est toujours après le rejeu (son retour est postérieur à sa sortie) ; denis, qui n\'est pas revenu, n\'y est pas',
+        [actifs(apres, g, c.id), actifs(apres, g, d.id), r2.membresGroupeRetires], [1, 0, 0]);
+
+      /* une copie qui ne porte aucun de ces groupes (une autre base, ou une archive d'avant leur création) se rejoue sans erreur */
+      const ancienne = O.creerBase({ dossier: undefined });
+      try {
+        const x = ancienne.pers('vieux'); void x; ancienne.S.fermer();
+        const rA = STOCK.ouvrir.copie.rejouerPurge(ancienne.chemin, registre());
+        v('   une copie qui n\'a aucun de ces groupes se rejoue sans erreur : rien à retirer, rien d\'ignoré, les lignes sont recopiées', [rA.membresGroupeRetires, rA.groupesRepris, rA.ignorees, rA.ajoutees > 0], [0, 0, 0, true]);
+      } finally { ancienne.nettoyer(); }
+    } finally { b.nettoyer(); }
   }
 
   /* ══ 14. LE CONTRÔLE DANS UN PROCESSUS ENFANT ═════════════════════════════════════════════════════════════════════════════════ */
