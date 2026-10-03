@@ -47,7 +47,11 @@ function paireVapid() {
   const fps = await P.fauxServicePush();
   const PAIRE = paireVapid(), PAIRE2 = paireVapid();
   const cle = crypto.randomBytes(32).toString('hex');
-  const PUSH_CFG = { ackMs: ACK_MS, echecsMax: 2, timeoutMs: 700, contact: 'mailto:exploitation@exemple.invalid' };
+  /* ⛔ `timeoutMs` est la marge de l'appareil SAIN autant que le délai de l'appareil muet. À 700 ms, ce banc est tombé UNE fois sur la liste complète (3 octobre 2026) : au deuxième essai l'appareil sain « n'avait
+     pas reçu » et sept échecs étaient comptés au lieu de six — un envoi réussi compté comme un échec. Cause probable, NON reproduite (quatre passages verts sous une charge épinglée sur le processeur du banc) : une
+     boucle d'évènements du service arrêtée plus de 700 ms (un `fsync` de SQLite sur un disque partagé, un processeur pris par d'autres chantiers) laisse la minuterie partir avant la réponse déjà arrivée. Trois secondes
+     laissent la marge, et l'appareil muet ne coûte que ce délai par essai. La production attend 8 secondes. */
+  const PUSH_CFG = { ackMs: ACK_MS, echecsMax: 2, timeoutMs: 3000, contact: 'mailto:exploitation@exemple.invalid' };
   const demarrer = (extra) => T.lancerService(Object.assign({ dossier, cle, urlGestion: og.url, env: { OPMSG_TEST_PUSH: fps.hote } }, extra || {}));
   let svc = null;
   const flux = [];

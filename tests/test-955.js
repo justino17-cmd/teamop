@@ -549,7 +549,8 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     const cible = await P.fauxServicePush();
     const url = (id) => new URL(sp.endpoint(id));
     const corps = Buffer.from('corps-chiffre-factice');
-    const R = (extra) => PUSH.transportHttp(Object.assign({ url: url('a'), method: 'POST', headers: { TTL: 60, 'Content-Length': corps.length, Authorization: 'vapid t=x, k=y' }, body: corps, timeoutMs: 1500 }, extra || {}));
+    /* cinq secondes : la marge des chemins qui RÉUSSISSENT (une machine chargée a déjà fait tomber un banc voisin à 700 ms) ; seul le délai de r3 est court, exprès */
+    const R = (extra) => PUSH.transportHttp(Object.assign({ url: url('a'), method: 'POST', headers: { TTL: 60, 'Content-Length': corps.length, Authorization: 'vapid t=x, k=y' }, body: corps, timeoutMs: 5000 }, extra || {}));
     const r1 = await R();
     v('un POST réussi rend le statut ; le service push a reçu le corps, la méthode et les en-têtes', [r1.statut, sp.envois.length, sp.envois[0].methode, sp.envois[0].corps.equals(corps), sp.envois[0].entetes.authorization], [201, 1, 'POST', true, 'vapid t=x, k=y']);
     sp.statut = { redirige: cible.endpoint('piege'), code: 302 };
@@ -568,7 +569,7 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     let connexions = 0;
     const ecoute = require('net').createServer(() => { connexions++; });
     const portEcoute = await new Promise(ok => ecoute.listen(0, '127.0.0.1', () => ok(ecoute.address().port)));
-    const r5 = await PUSH.transportHttp({ url: new URL('https://localhost:' + portEcoute + '/x'), method: 'POST', headers: {}, body: corps, timeoutMs: 1500 });
+    const r5 = await PUSH.transportHttp({ url: new URL('https://localhost:' + portEcoute + '/x'), method: 'POST', headers: {}, body: corps, timeoutMs: 5000 });
     await new Promise(r => setTimeout(r, 100));
     v('⛔ un nom qui se résout en adresse PRIVÉE (ici « localhost » → 127.0.0.1) est refusé AVANT toute connexion : aucune connexion reçue', [r5.statut, r5.erreur, connexions], [0, 'adresse_privee', 0]);
     ecoute.close();
