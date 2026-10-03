@@ -1037,8 +1037,10 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const rang = () => ({ id: r.id, proprio: r.proprio, conv: r.conv, genre: r.genre, taille: r.taille, mime: r.mime, attachee: r.attachee,
       nom: r.nom_ch ? ouvrirOuNull('piece', 'nom_ch', r.id + '|nom', r.nom_ch) : null });
     if (r.genre === 'avatar') {
-      if (r.proprio === uid) return rang();
-      if (r.expire !== null) return null;
+      /* pas encore posée (`expire` encore daté) : son dépositaire seul, et seulement tant qu'elle n'est pas échue — comme toute pièce qu'aucun message ne porte.
+         ⛔ Une fois POSÉE, le dépositaire n'a plus de droit propre (relecture du gardien, remarque 7) : la sienne se lit par `personne.avatar_piece` (il se voit toujours),
+         celle d'un groupe par l'appartenance au groupe — un administrateur qui a posé la photo puis quitté le groupe (ou en a été retiré) ne la lit plus. */
+      if (r.expire !== null) return r.proprio === uid && r.expire > t ? rang() : null;
       const pers = Q('SELECT id FROM personne WHERE avatar_piece = ?').get(id);
       if (pers) return peutVoir(uid, pers.id) && avatarPour(uid, pers.id, id) ? rang() : null;
       if (r.conv && Q('SELECT 1 AS x FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(r.conv, uid)) return rang();

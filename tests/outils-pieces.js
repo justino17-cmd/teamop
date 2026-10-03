@@ -31,9 +31,18 @@ function png({ w = 8, h = 8, couleur = [200, 40, 40], avant = [], apres = Buffer
 
 /* ── JPEG : une structure vraie (pas forcément décodable) ── */
 const seg = (marqueur, data) => { const l = Buffer.alloc(4); l[0] = 0xFF; l[1] = marqueur; l.writeUInt16BE(data.length + 2, 2); return Buffer.concat([l, data]); };
-function jpeg({ exif, xmp, iptc, com, icc, mpf, adobe = true, apres = Buffer.alloc(0), donnees } = {}) {
+function jpeg({ exif, xmp, iptc, com, icc, mpf, adobe = true, apres = Buffer.alloc(0), donnees, miniature, jfxx, fpxr, jumbf, ducky } = {}) {
   const entropie = donnees || Buffer.concat([Buffer.from([0x12, 0x34, 0xFF, 0x00, 0x56]), Buffer.from([0xFF, 0xD0]), Buffer.from([0x78, 0xFF, 0x00, 0x9A, 0xBC])]);   // un octet bourré (FF00) et un redémarrage (RST0) : dans les données
-  const parts = [Buffer.from([0xFF, 0xD8]), seg(0xE0, Buffer.concat([Buffer.from('JFIF\0', 'latin1'), Buffer.from([1, 1, 0, 0, 1, 0, 1, 0, 0])]))];
+  /* `miniature` : la miniature que le segment JFIF peut porter lui-même (4 x 4 pixels : 48 octets, le texte y est calé) ; `jfxx` : l'extension JFXX (APP0), une seconde image JPEG intégrée ;
+     `fpxr` : l'extension FlashPix (APP2) ; `jumbf` : un segment APP11 (JUMBF, C2PA) ; `ducky` : un APP14 qui n'est PAS Adobe */
+  const jfif = miniature
+    ? Buffer.concat([Buffer.from('JFIF\0', 'latin1'), Buffer.from([1, 1, 0, 0, 1, 0, 1, 4, 4]), Buffer.from(String(miniature).padEnd(48, '.'), 'latin1')])
+    : Buffer.concat([Buffer.from('JFIF\0', 'latin1'), Buffer.from([1, 1, 0, 0, 1, 0, 1, 0, 0])]);
+  const parts = [Buffer.from([0xFF, 0xD8]), seg(0xE0, jfif)];
+  if (jfxx) parts.push(seg(0xE0, Buffer.concat([Buffer.from('JFXX\0', 'latin1'), Buffer.from([0x10]), Buffer.from(jfxx, 'latin1')])));
+  if (fpxr) parts.push(seg(0xE2, Buffer.concat([Buffer.from('FPXR\0', 'latin1'), Buffer.from(fpxr, 'latin1')])));
+  if (jumbf) parts.push(seg(0xEB, Buffer.concat([Buffer.from('JUMBF\0', 'latin1'), Buffer.from(jumbf, 'latin1')])));
+  if (ducky) parts.push(seg(0xEE, Buffer.concat([Buffer.from('Ducky\0', 'latin1'), Buffer.from(ducky, 'latin1')])));
   if (exif) parts.push(seg(0xE1, Buffer.concat([Buffer.from('Exif\0\0', 'latin1'), Buffer.from(exif, 'latin1')])));
   if (xmp) parts.push(seg(0xE1, Buffer.concat([Buffer.from('http://ns.adobe.com/xap/1.0/\0', 'latin1'), Buffer.from(xmp, 'latin1')])));
   if (iptc) parts.push(seg(0xED, Buffer.concat([Buffer.from('Photoshop 3.0\0', 'latin1'), Buffer.from(iptc, 'latin1')])));
@@ -62,7 +71,22 @@ function webp({ exif, xmp, vp8x = true } = {}) {
   tete.write('RIFF', 0, 'latin1'); tete.writeUInt32LE(4 + corps.length, 4); tete.write('WEBP', 8, 'latin1');
   return Buffer.concat([tete, corps]);
 }
-const gif = (corps = 'factice') => Buffer.concat([Buffer.from('GIF89a', 'latin1'), Buffer.from([1, 0, 1, 0, 0, 0, 0]), Buffer.from(corps, 'latin1'), Buffer.from([0x3B])]);
+/* Un VRAI GIF 1 x 1 (table globale de deux couleurs), animé si on le veut : `images` images, chacune avec son contrôle graphique ; `netscape` : l'extension de boucle ; `commentaire`, `xmp` (une extension
+   d'application « XMP DataXMP ») et `texte` (un texte simple) : ce que le service doit retirer ; `apres` : des octets APRÈS le terminateur. */
+function gif({ commentaire, xmp, texte, netscape = false, controle = true, images = 1, apres = Buffer.alloc(0) } = {}) {
+  const sous = (data) => { const o = []; for (let i = 0; i < data.length; i += 255) { const part = data.subarray(i, i + 255); o.push(Buffer.from([part.length]), part); } o.push(Buffer.from([0])); return Buffer.concat(o); };
+  const parts = [Buffer.from('GIF89a', 'latin1'), Buffer.from([1, 0, 1, 0, 0x80, 0, 0]), Buffer.from([0, 0, 0, 255, 255, 255])];
+  if (netscape) parts.push(Buffer.from([0x21, 0xFF, 11]), Buffer.from('NETSCAPE2.0', 'latin1'), sous(Buffer.from([1, 0, 0])));
+  if (xmp) parts.push(Buffer.from([0x21, 0xFF, 11]), Buffer.from('XMP DataXMP', 'latin1'), sous(Buffer.from(xmp, 'latin1')));
+  if (commentaire) parts.push(Buffer.from([0x21, 0xFE]), sous(Buffer.from(commentaire, 'latin1')));
+  if (texte) parts.push(Buffer.from([0x21, 0x01, 12, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0]), sous(Buffer.from(texte, 'latin1')));
+  for (let k = 0; k < images; k++) {
+    if (controle) parts.push(Buffer.from([0x21, 0xF9, 4, 0x04, 10, 0, 0, 0]));
+    parts.push(Buffer.from([0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0]), Buffer.from([2]), sous(Buffer.from([0x44, 0x01])));
+  }
+  parts.push(Buffer.from([0x3B]), apres);
+  return Buffer.concat(parts);
+}
 
 /* ── sons et fichiers ── */
 const alea = (n) => crypto.randomBytes(n);
@@ -83,15 +107,44 @@ function fluxSansFin(morceau = 4096, debut = Buffer.alloc(0)) {
 }
 /* un flux fini, en morceaux de `n` octets */
 function fluxDe(buf, n = 7000) { return { async *[Symbol.asyncIterator]() { for (let i = 0; i < buf.length; i += n) yield buf.subarray(i, Math.min(buf.length, i + n)); } }; }
+/* un flux fini qui s'ARRÊTE après `avant` octets tant que `porte` (une promesse) n'est pas tenue : un dépôt « en cours » dont le banc décide quand il finit */
+function fluxRetenu(buf, avant, porte, n = 7000) {
+  return { async *[Symbol.asyncIterator]() {
+    yield buf.subarray(0, avant);
+    await porte;
+    for (let i = avant; i < buf.length; i += n) yield buf.subarray(i, Math.min(buf.length, i + n));
+  } };
+}
+
+/* ── les images « BOURRÉES » de morceaux vides (relecture du gardien, B1) : n segments JPEG APP0 vides (`FF E0 00 02`), n morceaux PNG `abCd` de longueur nulle, n blocs WebP `JUNK` vides.
+      À 2,9 M de segments un JPEG pèse 11 Mo : l'attaque qui portait le service de 90 à 1 200 Mo. `marqueur` : l'octet du segment JPEG (0xE0 : APP0 ; 0xE3 : APP3, retiré à coup sûr). ── */
+function jpegBourre(n, marqueur = 0xE0) {
+  const base = jpeg(), i = base.indexOf(Buffer.from([0xFF, 0xDB])), mid = Buffer.alloc(4 * n), seg = Buffer.from([0xFF, marqueur, 0x00, 0x02]);
+  for (let k = 0; k < n; k++) seg.copy(mid, 4 * k);
+  return Buffer.concat([base.subarray(0, i), mid, base.subarray(i)]);
+}
+function pngBourre(n) {
+  const base = png(), i = base.indexOf(Buffer.from('IDAT', 'latin1')) - 4, mid = Buffer.alloc(12 * n), ch = Buffer.alloc(12);
+  ch.write('abCd', 4, 'latin1');
+  for (let k = 0; k < n; k++) ch.copy(mid, 12 * k);
+  return Buffer.concat([base.subarray(0, i), mid, base.subarray(i)]);
+}
+function webpBourre(n) {
+  const w = webp(), mid = Buffer.alloc(8 * n), ch = Buffer.alloc(8);
+  ch.write('JUNK', 0, 'latin1');
+  for (let k = 0; k < n; k++) ch.copy(mid, 8 * k);
+  const corps = Buffer.concat([w.subarray(12), mid]), tete = Buffer.alloc(12);
+  tete.write('RIFF', 0, 'latin1'); tete.writeUInt32LE(4 + corps.length, 4); tete.write('WEBP', 8, 'latin1');
+  return Buffer.concat([tete, corps]);
+}
 
 /* ── le geste HTTP d'un dépôt : corps binaire, Content-Length (posé par fetch pour un Buffer), X-OPM, Origin, cookie du client ── */
 async function deposer(c, { conv, genre, nom, corps, entetes, query } = {}) {
   const q = new URLSearchParams();
   if (conv) q.set('conv', conv);
   if (genre) q.set('genre', genre);
-  if (nom !== undefined) q.set('nom', nom);
   for (const [k, val] of Object.entries(query || {})) q.set(k, val);
-  const h = Object.assign({ 'Content-Type': 'application/octet-stream', Origin: c.base, 'X-OPM': '1' }, entetes || {});
+  const h = Object.assign({ 'Content-Type': 'application/octet-stream', Origin: c.base, 'X-OPM': '1' }, nom !== undefined ? { 'X-OPM-Nom': encodeURIComponent(nom) } : {}, entetes || {});
   const ck = c.enteteCookie(); if (ck) h.Cookie = ck;
   const r = await fetch(c.base + '/api/pieces?' + q.toString(), { method: 'POST', headers: h, body: corps });
   let j = null, txt = ''; try { txt = await r.text(); j = txt ? JSON.parse(txt) : null; } catch (e) { j = null; }
@@ -127,4 +180,4 @@ function deposerBrut(c, { chemin, entetes, corps, sansLongueur = false, morceaux
   });
 }
 
-module.exports = { crc32, png, jpeg, JPEG_ENTROPIE, webp, gif, webm, ogg, mp4, mp3, mp3Trame, pdf, svg, html, alea, fluxSansFin, fluxDe, deposer, lirePiece, deposerBrut, morceauPng };
+module.exports = { crc32, png, jpeg, JPEG_ENTROPIE, webp, gif, webm, ogg, mp4, mp3, mp3Trame, pdf, svg, html, alea, fluxSansFin, fluxDe, fluxRetenu, jpegBourre, pngBourre, webpBourre, deposer, lirePiece, deposerBrut, morceauPng };

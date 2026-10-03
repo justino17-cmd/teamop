@@ -16,6 +16,9 @@
      · LES PIÈCES PARTENT AVEC CE QUI LES PORTE, FICHIER COMPRIS : « supprimer pour tous », un éphémère échu, une pièce jamais envoyée (24 h), une photo remplacée, une conversation
        disparue — et l'identifiant est noté dans `purge`. Le FICHIER se garde sans l'aide de la réconciliation (qui ôte aussi un fichier sans ligne de plus de dix minutes) : ceux du temps
        sont datés dans le futur pour qu'elle ne les voie pas ;
+     · UNE IMAGE « BOURRÉE » DE MILLIONS DE SEGMENTS VIDES (11,6 Mo, quatre dépôts en parallèle d'un seul compte) est REFUSÉE sans que le processus du service gagne plus de 300 Mo ni que /health gèle,
+       et la réserve de mémoire d'images pleine répond 429 « dans un instant » puis se rend (relecture du gardien, B1) ;
+     · LE NOM D'UN FICHIER NE VOYAGE PAS DANS L'ADRESSE (le journal d'accès d'un proxy l'écrirait) : en-tête `X-OPM-Nom` encodé, ancien paramètre refusé, nom long coupé SANS perdre son extension ;
      · LE BALAYEUR N'EST PAS UNE GARDE : sur un service dont il ne passe jamais, une pièce échue (éphémère échu, jamais envoyée depuis 24 h) ne se lit plus et ne s'attache plus, et un
        message marqué supprimé n'ouvre plus sa pièce — l'échéance se juge à la lecture et à l'attachement, pas seulement quand le balayeur passe ;
      · RIEN DE CE QUI EST ENVOYÉ N'EST EN CLAIR SUR LE DISQUE (un canari dans une photo, un vocal, un fichier et son nom : absent de TOUS les fichiers sous OPMSG_DATA) ni dans les journaux ;
@@ -88,8 +91,48 @@ function migration() {
   v3b.fermer();
 }
 
+/* ══ 0 bis. LE GESTIONNAIRE DE LECTURE, DÉPENDANCES INJECTÉES (relecture du gardien, A1) ══════════════════════════════════════════════════════════
+   Une course lecture / suppression ne se joue pas à coup sûr sur un vrai service : la fenêtre entre la garde et l'ouverture du fichier dure une centaine de microsecondes. On monte donc le VRAI
+   gestionnaire `pieces.lire` avec un stockage et un disque de papier, et on le met dans chacune des deux situations — la ligne existe encore, la ligne a disparu — pour chaque façon d'échouer. */
+async function gestionnaireLecture() {
+  console.log('Le gestionnaire de lecture, dépendances injectées : une pièce effacée pendant qu\'on la lit n\'est pas une pièce « illisible »');
+  const { installerPieces } = require(path.join(T.SERVICE, 'routes-pieces.js'));
+  const H = {}, etat = { illisibles: 0 }, journal = [];
+  const decor = { existe: true, taille: null, erreurLecture: null };
+  installerPieces(H, {
+    config: { pieces: piecesConfig({}), quotas: {} }, stockage: { pieceExiste: () => decor.existe }, quotas: {}, hub: {}, horloge: Date.now, reservations: {}, disque: { libreMo: () => 1e9 },
+    pieces: { taille: async () => decor.taille, lire: async function* () { if (decor.erreurLecture) throw decor.erreurLecture; yield Buffer.from('x'); } },
+    piecesEtat: etat, journaliser: (nom) => journal.push(nom),
+  });
+  const piece = { id: 'f_' + 'a'.repeat(32), taille: 1, mime: 'application/octet-stream', genre: 'fichier', nom: 'x.bin' };
+  const jouer = () => new Promise((ok) => {
+    const rep = { code: null, corps: null, detruite: false };
+    const fin = () => ok(rep);
+    const res = { destroyed: false, writableEnded: false, headersSent: false,
+      status(c) { rep.code = c; return this; }, set() { return this; }, json(o) { rep.corps = o; fin(); return this; }, write() { return true; }, end() { this.writableEnded = true; rep.code = rep.code || 200; fin(); },
+      destroy() { this.destroyed = true; rep.detruite = true; fin(); }, on() {}, off() {} };
+    H['pieces.lire']({ piece, headers: {}, method: 'GET' }, res, () => {});
+  });
+  const cas = async (existe, taille, erreurLecture) => { Object.assign(decor, { existe, taille, erreurLecture }); const avant = etat.illisibles; const rep = await jouer(); return { rep, compte: etat.illisibles - avant }; };
+  let c = await cas(true, null, null);
+  v('population : le fichier manque ET sa ligne existe encore (une vraie perte) : 404, comptée « illisible », et journalisée', [c.rep.code, c.compte, journal.length], [404, 1, 1]);
+  c = await cas(false, null, null);
+  v('⛔ le fichier manque et sa LIGNE AUSSI a disparu (supprimée entre la garde et l\'ouverture) : 404, et RIEN n\'est compté — personne n\'a rien perdu', [c.rep.code, c.compte], [404, 0]);
+  c = await cas(true, 999, null);
+  v('la taille du fichier ne colle pas à celle de la ligne, la ligne existe : comptée', [c.rep.code, c.compte], [404, 1]);
+  c = await cas(false, 999, null);
+  v('⛔ …et la ligne a disparu entre-temps : non comptée', [c.rep.code, c.compte], [404, 0]);
+  c = await cas(true, 1, Object.assign(new Error('x'), { code: 'piece_corrompue' }));
+  v('un bloc qui ne s\'authentifie pas en cours de lecture, la ligne existe : la connexion est coupée et la pièce comptée', [c.rep.detruite, c.compte], [true, 1]);
+  c = await cas(false, 1, Object.assign(new Error('x'), { code: 'introuvable' }));
+  v('⛔ le fichier disparaît PENDANT la lecture parce que la pièce vient d\'être supprimée : connexion coupée, mais non comptée', [c.rep.detruite, c.compte], [true, 0]);
+  c = await cas(true, 1, null);
+  v('contre-épreuve : une lecture saine rend 200 et ne compte rien', [c.rep.code, c.compte], [200, 0]);
+}
+
 (async () => {
   migration();
+  await gestionnaireLecture();
   const og = await T.fauxOpGestion(COMPTES());
   const svc = await T.lancerService({ urlGestion: og.url, horloge: true, config: {
     balayageMs: 150, presenceGraceMs: 300, pulsationMs: 400,
@@ -131,6 +174,23 @@ function migration() {
         ['image/png', 'inline', 'nosniff', "sandbox; default-src 'none'", 'private, no-store', 'bytes', String(PNG.length)]);
       vrai('   et aucun en-tête Access-Control-* (pas de CORS)', ![...l.h.keys()].some(k => /^access-control-/.test(k)));
       v('⛔ tant qu\'elle n\'est pas envoyée, un MEMBRE de la conversation ne la lit pas (404) — elle est à son dépositaire seul', [(await lire(B, idPhoto)).code, (await lire(C, idPhoto)).code, (await lire(D, idPhoto)).code], [404, 404, 404]);
+      /* ⛔ remarque 1 du gardien : TOUTES les réponses de /api/pieces* portent la CSP « sandbox », les refus compris (avant : la politique de la PAGE, `script-src 'self'`, sur chaque erreur) */
+      {
+        const SANDBOX = "sandbox; default-src 'none'", essais = [];
+        const noter = (nom, code, h) => essais.push({ nom, code, csp: h.get('content-security-policy') });
+        let r = await lire(D, idPhoto); noter('étranger', r.code, r.h);
+        r = await lire(A, 'f_' + '0'.repeat(32)); noter('identifiant inconnu', r.code, r.h);
+        r = await lire(A, 'pas-un-identifiant'); noter('identifiant mal formé', r.code, r.h);
+        let x = await fetch(svc.base + '/api/pieces/' + idPhoto); noter('sans session', x.status, x.headers);
+        x = await fetch(svc.base + '/API/PIECES/' + idPhoto); noter('sans session, casse différente (le routeur ne la distingue pas)', x.status, x.headers);
+        r = await deposer(A, { genre: 'photo', corps: PNG }); noter('dépôt sans conversation', r.code, r.h);
+        x = await fetch(svc.base + '/api/pieces?conv=' + G + '&genre=photo', { method: 'POST', headers: { Cookie: A.enteteCookie(), 'Content-Type': 'application/octet-stream' }, body: PNG }); noter('dépôt sans l\'en-tête X-OPM', x.status, x.headers);
+        x = await fetch(svc.base + '/api/pieces/' + idPhoto, { method: 'DELETE', headers: { Cookie: A.enteteCookie(), Origin: svc.base, 'X-OPM': '1' } }); noter('méthode non prévue', x.status, x.headers);
+        vrai('population : huit refus de natures différentes (' + [...new Set(essais.map(e => e.code))].sort().join(', ') + ')', essais.length === 8 && essais.every(e => e.code >= 400) && new Set(essais.map(e => e.code)).size >= 3);
+        v('⛔ …et TOUS portent « sandbox; default-src \'none\' » (ceux qui ne le portent pas, nommés)', essais.filter(e => e.csp !== SANDBOX).map(e => e.nom + ' (' + e.code + ') : ' + e.csp), []);
+        const page = await fetch(svc.base + '/'), moi = await fetch(svc.base + '/api/moi', { headers: { Cookie: A.enteteCookie() } });
+        v('contre-épreuve : la page elle-même et le reste de l\'API gardent la politique de la page (script-src \'self\', sans sandbox) — la sandbox ne couvre que /api/pieces*', [page.status, moi.status, [page, moi].map(q => /script-src 'self'/.test(q.headers.get('content-security-policy')) && !/sandbox/.test(q.headers.get('content-security-policy')))], [200, 200, [true, true]]);
+      }
       const ligne = requete('SELECT proprio, conv, genre, taille, mime, attachee, expire, nom_ch FROM piece WHERE id = ?', idPhoto)[0];
       v('la ligne : à Alice, pour ce groupe, genre photo, non attachée, avec une échéance à 24 h', [ligne.proprio === A.moi.id, ligne.conv === G, ligne.genre, ligne.attachee, ligne.expire - Date.now() > 23 * 3600000 && ligne.expire - Date.now() <= 24 * 3600000 + 5000], [true, true, 'photo', null, true]);
       vrai('le fichier est rangé sous pieces/<2 caractères>/<id>, SCELLÉ (l\'en-tête annonce « OPMP », le PNG n\'y est pas en clair)', (() => { const f = fs.readFileSync(fichierDe(idPhoto)); return f.subarray(0, 4).toString() === 'OPMP' && !f.includes(Buffer.from('IHDR')); })());
@@ -259,6 +319,15 @@ function migration() {
       v('un fichier sans nom : 400', r.code, 400);
       r = await deposer(A, { conv: G, genre: 'fichier', nom: ' \u0000​ ', corps: F.pdf() });
       v('un nom fait de caractères de contrôle : 400', r.code, 400);
+      /* ⛔ LE NOM NE VOYAGE PLUS DANS L'ADRESSE (relecture du gardien, B2) : l'adresse entière est écrite par le journal d'accès d'un proxy */
+      r = await deposer(A, { conv: G, genre: 'fichier', nom: 'ok.pdf', query: { nom: 'ancien.pdf' }, corps: F.pdf() });
+      v('⛔ l\'ancien paramètre `?nom=` est REFUSÉ (400 champ_invalide), même quand le bon en-tête est là — un client d\'avant le saurait, au lieu de le voir ignoré', [r.code, r.j.error], [400, 'champ_invalide']);
+      r = await deposer(A, { conv: G, genre: 'photo', query: { nom: 'x' }, corps: PNG });
+      v('…pour TOUS les genres : une photo qui porte `?nom=` est refusée aussi', r.code, 400);
+      r = await deposer(A, { conv: G, genre: 'fichier', entetes: { 'X-OPM-Nom': '%E0%A4%A' }, corps: F.pdf() });
+      v('un en-tête de nom mal encodé (pourcentage tronqué) : 400', r.code, 400);
+      r = await deposer(A, { conv: G, genre: 'fichier', entetes: { 'X-OPM-Nom': 'a'.repeat(2049) }, corps: F.pdf() });
+      v('un en-tête de nom de plus de 2 048 signes : 400', r.code, 400);
       const inconnue = 'c_' + '0'.repeat(32);
       const rD = await deposer(D, { conv: G, genre: 'photo', corps: PNG }), rI = await deposer(D, { conv: inconnue, genre: 'photo', corps: PNG }), rM = await deposer(D, { conv: 'pas-un-id', genre: 'photo', corps: PNG });
       v('⛔ un NON-MEMBRE qui dépose : 404 introuvable, EXACTEMENT comme pour une conversation qui n\'existe pas ou un identifiant mal formé', [rD.code, rD.txt, rI.code, rI.txt, rM.code, rM.txt], [404, '{"error":"introuvable"}', 404, '{"error":"introuvable"}', 404, '{"error":"introuvable"}']);
@@ -271,9 +340,9 @@ function migration() {
 
       const t0 = Date.now();
       for (const [genre, max] of [['photo', 200000], ['vocal', 300000], ['fichier', 600000], ['avatar', 100000]]) {
-        const sans = genre === 'avatar' ? { genre } : { conv: G, genre, nom: 'x.bin' };
+        const sans = genre === 'avatar' ? { genre } : { conv: G, genre };
         const q = '/api/pieces?' + new URLSearchParams(sans).toString();
-        const x = await F.deposerBrut(A, { chemin: q, entetes: { 'Content-Length': String(max + 1) }, morceaux: [Buffer.alloc(100, 1)] });
+        const x = await F.deposerBrut(A, { chemin: q, entetes: Object.assign({ 'Content-Length': String(max + 1) }, genre === 'fichier' ? { 'X-OPM-Nom': 'x.bin' } : {}), morceaux: [Buffer.alloc(100, 1)] });
         v('⛔ ' + genre + ' annoncé à ' + (max + 1) + ' octets (maximum ' + max + ') : 413 piece_trop_lourde AVEC le maximum — la réponse part sans attendre le corps', [x.code, x.j.error, x.j.max], [413, 'piece_trop_lourde', max]);
       }
       const enorme = await F.deposerBrut(A, { chemin: chemin(), entetes: { 'Content-Length': '104857600' }, morceaux: [PNG] });
@@ -294,6 +363,12 @@ function migration() {
       v('⛔ un client qui coupe au milieu d\'un envoi (3 000 octets sur 20 000) : AUCUNE ligne, aucun fichier, aucun temporaire', [comptePieces() - n0, piecesSurDisque().length - f0, fs.existsSync(path.join(svc.data, 'pieces', 'tmp')) ? fs.readdirSync(path.join(svc.data, 'pieces', 'tmp')).length : 0], [0, 0, 0]);
       r = await deposer(A, { conv: G, genre: 'vocal', corps: F.webm(500) });
       v('contre-épreuve : le service dépose encore après tous ces refus', r.code, 201);
+      const accents = await deposer(A, { conv: G, genre: 'fichier', nom: 'Rapport été 🙂 (final).pdf', corps: F.pdf(300) });
+      const nomLu = async (id) => { const l = await lire(A, id); return decodeURIComponent(String(l.h.get('content-disposition')).split("UTF-8''")[1]); };
+      v('⛔ un nom accentué, avec un émoji et des parenthèses, traverse l\'en-tête et revient intact au téléchargement', [accents.code, await nomLu(accents.j.id)], [201, 'Rapport été 🙂 (final).pdf']);
+      const longue = await deposer(A, { conv: G, genre: 'fichier', nom: 'rapport-'.repeat(40) + 'final.pdf', corps: F.pdf(300) });
+      const nomLong = await nomLu(longue.j.id);
+      v('⛔ un nom de 329 signes est coupé à 120 en GARDANT « .pdf » (le fichier téléchargé reste un pdf)', [longue.code, Array.from(nomLong).length, nomLong.endsWith('final.pdf') || nomLong.endsWith('.pdf')], [201, 120, true]);
     }
 
     /* ═══ 5. LES DROITS D'ENVOI : ce qu'un message peut citer ═════════════════════════════════════════════════════════════════════ */
@@ -362,6 +437,21 @@ function migration() {
       v('⛔ son identifiant est noté dans `purge` (comme un éphémère), pour qu\'une restauration rejoue l\'effacement', purge(p1), ['piece']);
       v('une pièce d\'un AUTRE message du même groupe n\'est pas touchée', [(await lire(A, p2)).code, fs.existsSync(fichierDe(p2))], [200, true]);
       v('supprimer deux fois pour tous ne casse rien (idempotent)', (await A.post('/api/conversations/' + Gl + '/messages/supprimer', { seq: m1.j.seq, pour: 'tous' })).code, 200);
+      /* ⛔ A1 au service : 25 suppressions « pour tous » pendant que huit lectures de la même photo courent — aucune pièce n'est comptée « illisible » (avant le correctif : des centaines, l'alarme restait allumée) */
+      const illisibles = async () => (await (await fetch(svc.base + '/health')).json()).pieces.illisibles;
+      const ill0 = await illisibles(), Gc = await groupe(A, 'Course', [B]);       // un groupe à part : Bruno a été retiré de celui-ci plus haut
+      let lus = 0, perdus = 0, coupees = 0;
+      /* une lecture que la suppression rattrape EN COURS DE ROUTE voit sa connexion coupée net (le service ne rend jamais d'octets faux) : `fetch` jette, c'est une lecture perdue comme les autres */
+      const lireCourse = (c, id) => lire(c, id).catch(() => ({ code: 0 }));
+      for (let k = 0; k < 25; k++) {
+        const pk = await photo(A, Gc), mk = await envoyer(A, Gc, { type: 'photo', pieces: [{ id: pk, w: 8, h: 8 }] });
+        const avant = Array.from({ length: 4 }, () => lireCourse(B, pk));        // quatre lectures déjà parties…
+        await new Promise((ok) => setImmediate(ok));
+        const rs = await Promise.all([A.post('/api/conversations/' + Gc + '/messages/supprimer', { seq: mk.j.seq, pour: 'tous' }), ...Array.from({ length: 4 }, () => lireCourse(B, pk)), ...avant]);   // …la suppression et quatre autres dans leur sillage
+        for (const r of rs.slice(1)) { if (r.code === 200) lus++; else if (r.code === 0) coupees++; else perdus++; }
+      }
+      vrai('population : les 200 lectures se sont réparties entre « lue », « 404 » et « connexion coupée » (' + lus + ' lues, ' + perdus + ' refusées, ' + coupees + ' coupées) — les suppressions et les lectures se sont bien croisées', lus + perdus + coupees === 200 && lus > 0 && perdus + coupees > 0);
+      v('⛔ …et aucune pièce n\'a été comptée « illisible » par ces courses', (await illisibles()) - ill0, 0);
       /* un administrateur supprime le message d'un autre */
       const Gm = await groupe(A, 'Modération', [B]);
       const pb = await photo(B, Gm); const mb = await envoyer(B, Gm, { type: 'photo', pieces: [{ id: pb, w: 8, h: 8 }] });
@@ -466,6 +556,17 @@ function migration() {
       const cre = await E.post('/api/conversations/groupe', { nom: 'Né avec sa photo', membres: [Fr.moi.id], avatar_piece: dep3.j.id });
       v('créer un groupe AVEC sa photo (avatar_piece) : 201 et l\'avatar est posé, sans message « avatar » en plus', [cre.code, cre.j.conversation.avatar, (await E.get('/api/conversations/' + cre.j.conversation.id + '/messages')).j.messages.filter(m => m.type === 'systeme').map(m => m.meta.k)], [201, dep3.j.id, ['groupe_cree']]);
       v('⛔ créer un groupe avec la photo d\'un autre : 404, et AUCUN groupe n\'est créé', await (async () => { const n = (await E.get('/api/conversations')).j.conversations.length; const x = await E.post('/api/conversations/groupe', { nom: 'Volé', membres: [Fr.moi.id], avatar_piece: (await deposer(Fr, { genre: 'avatar', corps: PNG })).j.id }); return [x.code, (await E.get('/api/conversations')).j.conversations.length - n]; })(), [404, 0]);
+      /* ⛔ remarque 7 du gardien : celui qui a posé la photo du groupe puis le quitte (ou en est retiré) ne la lit plus — un droit de « dépositaire » ne survit pas à l'appartenance */
+      const Gx = await groupe(E, 'Photo d\'un ancien', [Fr]);
+      const depX = await deposer(E, { genre: 'avatar', corps: PNG });
+      await E.post('/api/conversations/' + Gx + '/maj', { avatar_piece: depX.j.id });
+      v('population : la photo du groupe se lit de celui qui l\'a posée (200), d\'un membre (200), pas d\'un étranger (404)', [(await lire(E, depX.j.id)).code, (await lire(Fr, depX.j.id)).code, (await lire(Gi, depX.j.id)).code], [200, 200, 404]);
+      v('Eve quitte le groupe (Fred, seul membre restant, devient administrateur)', (await E.post('/api/conversations/' + Gx + '/quitter', {})).code, 200);
+      v('⛔ celle qui a posé la photo et a QUITTÉ le groupe ne la lit plus (404) ; le membre qui reste, si (200)', [(await lire(E, depX.j.id)).code, (await lire(Fr, depX.j.id)).code], [404, 200]);
+      v('…et le groupe ne lui rend plus rien non plus : elle ne le voit plus dans sa liste', (await E.get('/api/conversations')).j.conversations.some(c => c.id === Gx), false);
+      v('revenue dans le groupe, elle relit la photo (c\'est bien l\'appartenance qui décide, pas un état figé)', [(await Fr.post('/api/conversations/' + Gx + '/membres/ajouter', { uids: [E.moi.id] })).code, (await lire(E, depX.j.id)).code], [200, 200]);
+      v('⛔ retirée par l\'administrateur, elle ne la lit plus', [(await Fr.post('/api/conversations/' + Gx + '/membres/retirer', { uid: E.moi.id })).code, (await lire(E, depX.j.id)).code], [200, 404]);
+      v('contre-épreuve : sa PROPRE photo de profil, elle la lit toujours (le droit de la personne sur elle-même ne tient pas au groupe)', await (async () => { const d = await deposer(E, { genre: 'avatar', corps: PNG }); await E.post('/api/moi/avatar', { piece: d.j.id }); return (await lire(E, d.j.id)).code; })(), 200);
       /* tout le monde part : la conversation disparaît, sa photo avec */
       const Gs = await groupe(E, 'Éphémère de groupe', [Gi]);
       const dep4 = await deposer(E, { genre: 'avatar', corps: PNG }), ph = await photo(E, Gs);
@@ -558,11 +659,17 @@ function migration() {
       const fF = await T.flux(Fr), fG = await T.flux(Gi);
       for (const f of [fE, fF, fG]) await f.attendre(e => e.event === 'bonjour');
       v('population : Eve voit Fred et Gina en ligne, Fred voit Eve', [(await E.get('/api/contacts')).j.contacts.filter(c => [Fr.moi.id, Gi.moi.id].includes(c.id)).map(c => c.en_ligne), (await Fr.get('/api/contacts')).j.contacts.find(c => c.id === E.moi.id).en_ligne], [[true, true], true]);
+      const nPersF0 = fF.evenements.filter(e => e.event === 'personne' && e.data.uid === E.moi.id).length, nPersE0 = fE.evenements.filter(e => e.event === 'personne' && e.data.uid === E.moi.id).length;
       const off = await E.post('/api/moi/confidentialite', { presence: false });
       v('Eve coupe « Afficher quand je suis en ligne » : 200, l\'état complet est rendu', [off.code, off.j], [200, { ok: true, trouvable: 'tous', presence: false, accuses: true }]);
       v('⛔ elle ne voit plus la présence de PERSONNE (Fred et Gina sont en ligne, la liste dit « hors ligne »)', (await E.get('/api/contacts')).j.contacts.map(c => c.en_ligne), [false, false]);
       const hors = await fF.attendre(e => e.event === 'presence' && e.data.uid === E.moi.id && e.data.en_ligne === false);
       vrai('⛔ Fred est PRÉVENU tout de suite que la présence d\'Eve s\'éteint (« hors ligne »)', !!hors);
+      /* ⛔ Relecture du testeur : la barre de SA page disait « Disponible » (point vert) alors que sa présence était coupée — l'appareil ne savait pas que le réglage avait changé ailleurs. Le service prévient
+         donc SES autres appareils (`personne` d'elle-même : ils relisent le profil et le réglage) ; ses contacts, eux, n'ont besoin que de la présence. */
+      vrai('⛔ …ses AUTRES APPAREILS sont prévenus par un événement `personne` d\'elle-même (la barre de leur page relit « Présence masquée »)', await att(() => fE.evenements.filter(e => e.event === 'personne' && e.data.uid === E.moi.id).length > nPersE0, 4000));
+      await T.dort(150);
+      v('…et ses contacts n\'en reçoivent AUCUN (ils apprennent une présence, pas un changement de profil)', fF.evenements.filter(e => e.event === 'personne' && e.data.uid === E.moi.id).length, nPersF0);
       v('⛔ Fred ne voit plus Eve en ligne dans sa liste', (await Fr.get('/api/contacts')).j.contacts.find(c => c.id === E.moi.id).en_ligne, false);
       v('…mais voit toujours Gina (la réciprocité ne touche que celle qui a coupé)', (await Fr.get('/api/contacts')).j.contacts.find(c => c.id === Gi.moi.id).en_ligne, true);
       /* un contact se connecte / se déconnecte : Eve, présence coupée, ne reçoit RIEN */
@@ -588,7 +695,9 @@ function migration() {
       v('⛔ Eve (présence coupée) se déconnecte puis revient : Fred n\'apprend RIEN d\'elle — ni « hors ligne » ni « en ligne »', fF.evenements.filter(e => e.event === 'presence' && e.data.uid === E.moi.id).length, nFE);
       /* rallumer */
       const nF = fF.evenements.filter(e => e.event === 'presence' && e.data.uid === E.moi.id && e.data.en_ligne === true).length;
+      const nPersE1 = fE.evenements.filter(e => e.event === 'personne' && e.data.uid === E.moi.id).length;
       await E.post('/api/moi/confidentialite', { presence: true });
+      vrai('⛔ Eve rallume : ses autres appareils le savent aussi (nouvel événement `personne` d\'elle-même)', await att(() => fE.evenements.filter(e => e.event === 'personne' && e.data.uid === E.moi.id).length > nPersE1, 4000));
       vrai('⛔ Eve rallume : Fred l\'apprend tout de suite (« en ligne », Eve est là)', await att(() => fF.evenements.filter(e => e.event === 'presence' && e.data.uid === E.moi.id && e.data.en_ligne === true).length > nF, 6000));
       v('et Eve revoit Fred et Gina en ligne', (await E.get('/api/contacts')).j.contacts.map(c => c.en_ligne), [true, true]);
       /* par POST /api/moi/maj aussi (l'ancienne porte) */
@@ -655,6 +764,7 @@ function migration() {
       const refus = (c) => { try { piecesConfig(c); return null; } catch (e) { return e.code; } };
       v('⛔ une configuration absurde REFUSE le démarrage : maximum négatif, quota nul, fractionnaire, bloc qui n\'est pas une puissance de deux, texte', [refus({ photoMax: -1 }), refus({ quotaPersonne: 0 }), refus({ depotsHeure: 1.5 }), refus({ bloc: 5000 }), refus({ vocalMax: '10' }), refus({ simultanes: 0 })], Array(6).fill('CONFIG'));
       v('et une configuration juste (ou absente) donne les valeurs de départ de SERVEUR.md § 5.6 : 12 Mo, 10 Mo, 25 Mo, 2 Go, 60 envois par heure, 24 h, blocs de 64 Kio', (() => { const c = piecesConfig(undefined); return [c.photoMax, c.vocalMax, c.fichierMax, c.quotaPersonne, c.depotsHeure, c.orphelineMs, c.bloc]; })(), [12582912, 10485760, 26214400, 2147483648, 60, 86400000, 65536]);
+      v('⛔ les réglages de LENTEUR (A2, A4) ont des valeurs de départ — 64 Ko/s après 30 s pour un envoi, 30 s d\'attente et 10 minutes au plus pour une lecture — et des bornes : un débit nul, une grâce nulle, un plafond de durée d\'une milliseconde refusent le démarrage', [(() => { const c = piecesConfig(undefined); return [c.depotDebitMin, c.depotGraceMs, c.lectureAttenteMs, c.lectureMaxMs]; })(), refus({ depotDebitMin: 0 }), refus({ depotGraceMs: 0 }), refus({ lectureAttenteMs: 1 }), refus({ lectureMaxMs: 10 }), refus({ depotDebitMin: 100000.5 })], [[65536, 30000, 30000, 600000], 'CONFIG', 'CONFIG', 'CONFIG', 'CONFIG', 'CONFIG']);
     }
   } catch (e) {
     console.log('  ✗ le banc est mort : ' + (e && e.stack || e));
@@ -717,15 +827,42 @@ function migration() {
 
   /* le plancher de disque : la taille ANNONCÉE ne doit pas faire passer sous le seuil */
   const libreMo = (() => { const s = fs.statfsSync(os.tmpdir()); return Number(s.bavail) * Number(s.bsize) / 1048576; })();
-  const svc3 = await T.lancerService({ urlGestion: og.url, config: { disqueMinMo: Math.max(1, Math.floor(libreMo) - 200), pieces: { fichierMax: 500 * 1048576 } } });
+  /* 750 Mo entre l'espace libre et le plancher : un envoi annoncé à 500 Mo y tient seul, deux non (remarque 3 du gardien), un à 900 Mo non plus — et 250 Mo de jeu de chaque côté. Le disque d'une machine
+     de travail bouge de plus de 100 Mo sans prévenir (copies de mutations, autres bancs) : une première marge de 300 Mo avec des envois de 200 Mo a fait tomber ce contrôle une fois sur deux. */
+  const marge3 = 750, ENV = 500 * 1048576, ENORME = 900 * 1048576;
+  const svc3 = await T.lancerService({ urlGestion: og.url, config: { disqueMinMo: Math.max(1, Math.floor(libreMo) - marge3), pieces: { fichierMax: 1000 * 1048576 } } });
   try {
     const Fr = await compte('fred', svc3);
     const avant = await deposer(Fr, { genre: 'avatar', corps: PNG });
-    v('population : sous le plancher (' + Math.max(1, Math.floor(libreMo) - 200) + ' Mo) avec ' + Math.floor(libreMo) + ' Mo libres, un petit dépôt passe', avant.code, 201);
+    v('population : sous le plancher (' + Math.max(1, Math.floor(libreMo) - marge3) + ' Mo) avec ' + Math.floor(libreMo) + ' Mo libres, un petit dépôt passe', avant.code, 201);
     await lienContact(Fr, await compte('gina', svc3));
     const gr = (await Fr.post('/api/conversations/groupe', { nom: 'Disque', membres: [] })).j.conversation.id;
-    const x = await F.deposerBrut(Fr, { chemin: '/api/pieces?' + new URLSearchParams({ conv: gr, genre: 'fichier', nom: 'enorme.bin' }), entetes: { 'Content-Length': String(400 * 1048576) }, morceaux: [Buffer.alloc(100, 1)] });
-    v('⛔ un dépôt ANNONCÉ à 400 Mo qui ferait passer le disque sous son plancher : 503 disque_plein, AVANT d\'avoir lu le corps (ce service ne doit jamais priver OP GESTION de disque)', [x.code, x.j.error], [503, 'disque_plein']);
+    const x = await F.deposerBrut(Fr, { chemin: '/api/pieces?' + new URLSearchParams({ conv: gr, genre: 'fichier' }), entetes: { 'Content-Length': String(ENORME), 'X-OPM-Nom': 'enorme.bin' }, morceaux: [Buffer.alloc(100, 1)] });
+    v('⛔ un dépôt ANNONCÉ à 900 Mo qui ferait passer le disque sous son plancher : 503 disque_plein, AVANT d\'avoir lu le corps (ce service ne doit jamais priver OP GESTION de disque)', [x.code, x.j.error], [503, 'disque_plein']);
+    /* ⛔ remarque 3 du gardien : le plancher soustrait les dépôts EN COURS. Un dépôt annoncé à 500 Mo tient seul sous la marge de 750 Mo ; un second de 500 Mo, non — l'espace libre ne baisse qu'à mesure
+       que les octets arrivent, et avant le correctif seize dépôts « qui tenaient chacun » vidaient le disque ensemble. */
+    const entetesLent = (nom, taille) => ({ 'Content-Length': String(taille), 'X-OPM-Nom': nom }), cheminLent = '/api/pieces?' + new URLSearchParams({ conv: gr, genre: 'fichier' });
+    const lent3 = (taille) => new Promise((ok) => {
+      const s = net.connect(svc3.port, '127.0.0.1', () => {
+        s.write('POST ' + cheminLent + ' HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: ' + svc3.base + '\r\nX-OPM: 1\r\nX-OPM-Nom: lent.bin\r\nCookie: ' + Fr.enteteCookie() + '\r\nContent-Type: application/octet-stream\r\nContent-Length: ' + taille + '\r\nConnection: close\r\n\r\n');
+        s.write(Buffer.alloc(100, 1));
+      });
+      let rep = ''; s.on('data', d => { rep += d; });
+      s.on('close', () => ok({ rep, s })); s.on('error', () => ok({ rep, s }));
+      lent3.sockets.push(s);
+    });
+    lent3.sockets = [];
+    const premier = lent3(ENV);
+    await T.dort(400);
+    const seul = await F.deposerBrut(Fr, { chemin: cheminLent, entetes: entetesLent('second.bin', ENV), morceaux: [Buffer.alloc(100, 1)], delaiMs: 2500 });
+    v('⛔ un premier dépôt de 500 Mo est EN COURS (tient seul sous la marge) : un second de 500 Mo est refusé tout de suite, 503 disque_plein — ensemble ils passeraient sous le plancher', [seul.code, seul.j && seul.j.error], [503, 'disque_plein']);
+    const petit = await deposer(Fr, { conv: gr, genre: 'fichier', nom: 'petit.bin', corps: Buffer.alloc(1000, 2) });
+    v('…alors qu\'un petit dépôt, lui, passe encore (c\'est de la place qui manque, pas un refus général)', petit.code, 201);
+    for (const s of lent3.sockets) s.destroy();
+    await premier;
+    await T.dort(400);
+    const apres = await F.deposerBrut(Fr, { chemin: cheminLent, entetes: entetesLent('troisieme.bin', ENV), morceaux: [Buffer.alloc(100, 1)], delaiMs: 1500 });
+    v('⛔ le premier dépôt coupé REND sa place : un dépôt de 500 Mo est de nouveau accepté (il attend son corps — pas de 503)', [apres.code, apres.j && apres.j.error], [0, 'delai']);
   } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
   await svc3.arreter();
 
@@ -742,8 +879,9 @@ function migration() {
     const ge = await groupe(A4, 'Éphémère', [B4], { ephemere_s: 86400 }), gd = await groupe(A4, 'Durable', [B4]);
     const pe4 = await photo(A4, ge), pe4m = await envoyer(A4, ge, { type: 'photo', pieces: [{ id: pe4, w: 8, h: 8 }] });
     const po4 = await photo(A4, gd);
+    const av4 = (await deposer(A4, { genre: 'avatar', corps: PNG })).j.id;                 // une photo de profil déposée, jamais posée
     const pd4 = await photo(A4, gd), pd4m = await envoyer(A4, gd, { type: 'photo', pieces: [{ id: pd4, w: 8, h: 8 }] });
-    v('population : la photo d\'un éphémère (lue par Bruno), une pièce jamais envoyée (lue par son dépositaire), la photo d\'un message durable (lue par Bruno) — toutes lisibles', [pe4m.code, (await lire(B4, pe4)).code, (await lire(A4, po4)).code, (await lire(B4, pd4)).code], [201, 200, 200, 200]);
+    v('population : la photo d\'un éphémère (lue par Bruno), une pièce jamais envoyée (lue par son dépositaire), la photo d\'un message durable (lue par Bruno), une photo de profil déposée et pas posée (lue par son dépositaire seul) — toutes lisibles', [pe4m.code, (await lire(B4, pe4)).code, (await lire(A4, po4)).code, (await lire(B4, pd4)).code, (await lire(A4, av4)).code, (await lire(B4, av4)).code], [201, 200, 200, 200, 200, 404]);
     /* « supprimé » : « supprimer pour tous » efface la ligne de la pièce DANS la même transaction, donc cet état n'existe pas par l'API — il existe après une restauration ou une version d'avant.
        On le fabrique à la main : le droit de lire ne doit pas dépendre de ce que l'effacement a bien eu lieu. */
     const bd = new (require('node:sqlite').DatabaseSync)(path.join(svc4.data, 'msg.db'));
@@ -754,6 +892,7 @@ function migration() {
     svc4.avancer(25 * 3600000);
     v('⛔ un message éphémère échu que le balayeur n\'a PAS ôté (sa photo est encore en base) : elle ne se lit plus, même par son auteur', [ligne4(pe4), (await lire(B4, pe4)).code, (await lire(A4, pe4)).code], [1, 404, 404]);
     v('⛔ une pièce déposée il y a 25 h et jamais envoyée, encore en base : elle ne se lit plus, même par son dépositaire', [ligne4(po4), (await lire(A4, po4)).code], [1, 404]);
+    v('⛔ une photo de profil déposée il y a 25 h et jamais posée, encore en base : elle ne se lit plus, même par son dépositaire', [ligne4(av4), (await lire(A4, av4)).code], [1, 404]);
     const mEch = await envoyer(A4, gd, { type: 'photo', pieces: [{ id: po4, w: 8, h: 8 }] });
     v('⛔ …et elle ne s\'attache plus : 404 piece_inconnue (c\'est l\'échéance qui refuse, pas le balayeur), et la ligne est toujours là', [mEch.code, mEch.j.error, ligne4(po4)], [404, 'piece_inconnue', 1]);
     svc4.avancer(-25 * 3600000);
@@ -761,6 +900,165 @@ function migration() {
     v('contre-épreuve : une pièce déposée À L\'HEURE s\'attache et se lit (le refus ci-dessus vient bien de l\'échéance)', [mFrais.code, (await lire(B4, frais)).code], [201, 200]);
   } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
   await svc4.arreter();
+
+  /* ═══ 10. UNE IMAGE « BOURRÉE » DE MORCEAUX VIDES : REFUSÉE, ET LE SERVICE NE BOUGE PAS (relecture du gardien, B1) ═══════════════════════════════════ */
+  console.log('\nUne image « bourrée » (11,6 Mo, 2,9 millions de segments vides), quatre dépôts en même temps d\'un seul compte : refusés, le service ne bouge pas (B1)');
+  /* ⛔ Réglages PAR DÉFAUT du service (photo 12 Mo, 96 Mo de mémoire d'images) : c'est là que l'attaque jouait. Avant le correctif : les quatre dépôts ACCEPTÉS (201) et rangés, le processus de 92 à
+     1 215 Mo (l'unité plafonne à 1 Go), `/health` gelé 3,7 s. On mesure le processus du service lui-même (/proc), pas le banc. */
+  const svc5 = await T.lancerService({ urlGestion: og.url, horloge: true, config: { pieces: { memoireImages: 108 * 1048576 }, quotas: { piece: { max: 1000, fenetreMs: 3600000 } } } });   // 108 Mo : quatre dépôts de 12 Mo (24 Mo chacun) y tiennent, il reste 12 Mo
+  try {
+    const A5 = await compte('alice', svc5), B5 = await compte('bruno', svc5), C5 = await compte('carla', svc5);
+    await lienContact(A5, B5); await lienContact(A5, C5); await lienContact(B5, C5);
+    const g5 = await groupe(A5, 'Images', [B5, C5]);
+    const rssDe = (pid) => { try { return Math.round(parseInt(fs.readFileSync('/proc/' + pid + '/status', 'utf8').match(/VmRSS:\s+(\d+)/)[1], 10) / 1024); } catch (e) { return -1; } };
+    const lignes5 = () => { const d = T.lireBase(path.join(svc5.data, 'msg.db')); try { return d.prepare('SELECT COUNT(*) AS n FROM piece').get().n; } finally { d.close(); } };
+    const pid = svc5.enfant.pid, bourre = F.jpegBourre(2900000), depart = rssDe(pid);
+    vrai('population : le JPEG bourré pèse plus de 11 Mo, le service tourne (' + depart + ' Mo) et ne porte aucune pièce', bourre.length > 11 * 1048576 && depart > 0 && lignes5() === 0);
+    let pic = depart; const lat = [];
+    const releve = setInterval(() => { pic = Math.max(pic, rssDe(pid)); }, 25);
+    const sonde = setInterval(async () => { const t = Date.now(); try { await fetch(svc5.base + '/health'); lat.push(Date.now() - t); } catch (e) { /* ne répond pas : pas de mesure */ } }, 50);
+    const rs = await Promise.all([1, 2, 3, 4].map(() => deposer(A5, { conv: g5, genre: 'photo', corps: bourre })));
+    clearInterval(releve); clearInterval(sonde);
+    v('⛔ quatre dépôts en parallèle d\'un seul compte : les quatre sont REFUSÉS (415 type_refuse), aucun n\'est rangé', [rs.map(r => r.code), rs.map(r => r.j && r.j.error), lignes5()], [[415, 415, 415, 415], Array(4).fill('type_refuse'), 0]);
+    vrai('⛔ le service ne bouge pas : le processus gagne moins de 300 Mo (avant : +1 120 Mo, tué par l\'unité) — départ ' + depart + ' Mo, pic ' + pic + ' Mo', pic - depart < 300);
+    vrai('⛔ …et la boucle n\'est pas gelée : /health répond en moins de 1,5 s pendant les dépôts (avant : 3,7 s) — ' + lat.length + ' mesures, la plus lente ' + Math.max(0, ...lat) + ' ms', lat.length >= 1 && Math.max(...lat) < 1500);
+
+    /* 10 bis : la réserve de mémoire d'images est presque PLEINE (quatre dépôts de 12 Mo annoncés = 4 x 24 Mo = 96 Mo sur 108) : une photo de 7 Mo (14 Mo à réserver) reçoit un 429 « dans un instant »
+       alors qu'une petite image passe encore, et la grosse passe quand la réserve se libère */
+    const tete = F.jpeg().subarray(0, 40);                                               // la signature JPEG suffit : le type est jugé sur les premiers octets, la réserve se prend ensuite
+    const tenir = (c) => {
+      const sk = net.connect(svc5.port, '127.0.0.1', () => {
+        sk.write('POST /api/pieces?conv=' + g5 + '&genre=photo HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: ' + svc5.base + '\r\nX-OPM: 1\r\nCookie: ' + c.enteteCookie() + '\r\nContent-Type: application/octet-stream\r\nContent-Length: ' + (12 * 1048576) + '\r\nConnection: close\r\n\r\n');
+        sk.write(tete);
+      });
+      sk.on('error', () => {});
+      sk.reponse = ''; sk.on('data', (d) => { sk.reponse += d; });
+      return sk;
+    };
+    const tenus = [tenir(A5), tenir(A5), tenir(B5), tenir(B5)];
+    await T.dort(500);          // les quatre dépôts retenus ont lu leur début et réservé AVANT que le suivant n'arrive : s'il passait devant, il tiendrait la mémoire que le quatrième réclame (vérifié plus bas)
+    const grosse = F.jpeg({ donnees: Buffer.alloc(7 * 1048576, 0x12) }), petite = F.jpeg();
+    vrai('population : la grosse photo pèse 7 Mo (14 Mo à réserver, il en reste 12), la petite quelques centaines d\'octets', grosse.length > 7 * 1048576 && grosse.length < 7.1 * 1048576 && petite.length < 1000);
+    const envoi = (corps) => deposer(C5, { conv: g5, genre: 'photo', corps });
+    let refus = null;
+    for (let k = 0; k < 60 && !(refus && refus.code === 429); k++) { refus = await envoi(grosse); if (refus.code !== 429) await T.dort(100); }
+    v('⛔ la réserve est presque pleine : la photo de 7 Mo est refusée TOUT DE SUITE, 429 « dans un instant » (portee simultane, Retry-After 2)', [refus.code, refus.j.error, refus.j.portee, refus.h.get('retry-after'), refus.j.retry], [429, 'quota_atteint', 'simultane', '2', 2]);
+    v('…alors qu\'une petite image passe encore (c\'est de la MÉMOIRE qui manque, pas un refus général)', (await envoi(petite)).code, 201);
+    vrai('population : les quatre dépôts retenus tiennent toujours — aucun n\'a reçu de réponse (sinon la réserve n\'était pas pleine pour la bonne raison)', tenus.every((sk) => sk.reponse === ''));
+    for (const sk of tenus) sk.destroy();
+    vrai('⛔ les dépôts abandonnés RENDENT la réserve : la photo de 7 Mo passe (201) dès qu\'ils sont coupés', await att(async () => (await envoi(grosse)).code === 201, 10000));
+  } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
+  await svc5.arreter();
+
+  /* ═══ 11. UN ENVOI LENT NE TIENT PAS UNE PLACE (relecture du gardien, A4) ═════════════════════════════════════════════════════ */
+  console.log('\nUn envoi qui n\'avance pas rend sa place : 408 « envoi_trop_lent », la place et la réservation de quota rendues, la réponse lue même si le client continue d\'envoyer (A4)');
+  /* ⛔ Sans tampon devant le service (Caddy, accès direct), un envoi qui annonce 25 Mo et en envoie un octet par seconde tenait une des places — et une des « par personne » — 300 s. Ici : 64 Ko/s
+     après 30 s en production, 100 Ko/s après 0,8 s pour le banc. */
+  const svc6 = await T.lancerService({ urlGestion: og.url, horloge: true, config: { pieces: { depotGraceMs: 800, depotDebitMin: 100000, parPersonne: 2, simultanes: 4, quotaPersonne: 400000, fichierMax: 300000, bloc: 4096 }, quotas: { piece: { max: 1000, fenetreMs: 3600000 } } } });
+  try {
+    const A6 = await compte('alice', svc6), B6 = await compte('bruno', svc6);
+    await lienContact(A6, B6);
+    const g6 = await groupe(A6, 'Lents', [B6]);
+    const lignes6 = () => { const d = T.lireBase(path.join(svc6.data, 'msg.db')); try { return d.prepare('SELECT COUNT(*) AS n FROM piece').get().n; } finally { d.close(); } };
+    /* un client brut : les en-têtes, `premiers` octets, puis (en option) un octet par `goutte` ms pendant `duree` ms — et il lit la réponse quand elle vient */
+    const brut6 = (c, { taille, premiers = 100, goutte = 0, duree = 0, nom = 'lent.bin' }) => new Promise((ok) => {
+      const t0 = Date.now(); let rep = '', fermee = false, t408 = null;
+      const s = net.connect(svc6.port, '127.0.0.1', () => {
+        s.write('POST /api/pieces?' + new URLSearchParams({ conv: g6, genre: 'fichier' }) + ' HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: ' + svc6.base + '\r\nX-OPM: 1\r\nX-OPM-Nom: ' + nom + '\r\nCookie: ' + c.enteteCookie() + '\r\nContent-Type: application/octet-stream\r\nContent-Length: ' + taille + '\r\n\r\n');
+        s.write(Buffer.alloc(premiers, 3));
+        if (goutte) { const i = setInterval(() => { if (fermee || Date.now() - t0 > duree) return clearInterval(i); try { s.write(Buffer.alloc(1, 4)); } catch (e) { clearInterval(i); } }, goutte); }
+      });
+      s.on('data', (d) => { rep += d; if (t408 === null && /HTTP\/1\.1 \d{3}/.test(rep)) t408 = Date.now() - t0; });
+      const fin = () => { if (fermee) return; fermee = true; ok({ rep, ms: Date.now() - t0, reponduEn: t408 }); };
+      s.on('close', fin); s.on('error', fin);
+      setTimeout(() => { try { s.destroy(); } catch (e) { /* déjà fermée */ } fin(); }, 12000).unref();
+    });
+    const code6 = (r) => (/^HTTP\/1\.1 (\d{3})/.exec(r.rep) || [])[1];
+    const l1 = await brut6(A6, { taille: 300000, goutte: 100, duree: 2500 });
+    v('⛔ un envoi qui annonce 300 000 octets et en envoie UN par dixième de seconde : 408 envoi_trop_lent, lu par le client qui CONTINUE d\'envoyer (la réponse n\'est pas effacée par une coupure de la connexion)', [code6(l1), /"error":"envoi_trop_lent"/.test(l1.rep), /connection: close/i.test(l1.rep)], ['408', true, true]);
+    vrai('   …entre la grâce (0,8 s) et quelques secondes de plus — pas le délai de Node (' + l1.reponduEn + ' ms avant la réponse, ' + l1.ms + ' ms avant la fermeture)', l1.reponduEn >= 700 && l1.reponduEn < 4000 && l1.ms < 9000);
+    /* la place ET la réservation sont rendues : « par personne » vaut 2 et le quota 400 000 pour des envois annoncés de 300 000 */
+    const suite = [];
+    for (let k = 0; k < 3; k++) suite.push(code6(await brut6(A6, { taille: 300000 })));
+    v('⛔ trois envois lents de suite du même compte (2 places « par personne », quota de 400 000 pour 300 000 annoncés) : trois 408 — ni 429 « simultane » ni 402 « stockage », donc la place et la réservation ont été RENDUES', suite, ['408', '408', '408']);
+    const [pa, pb] = await Promise.all([brut6(A6, { taille: 150000 }), brut6(A6, { taille: 150000 })]);
+    v('…deux en même temps (le maximum « par personne » ; 150 000 annoncés chacun, car le quota réserve les tailles ANNONCÉES) : deux 408', [code6(pa), code6(pb)], ['408', '408']);
+    v('   la personne n\'a rien d\'utilisé : ses envois coupés n\'ont rien rangé', [(await A6.get('/api/moi/stockage')).j.utilise, lignes6()], [0, 0]);
+    /* un envoi qui part vite puis s'arrête : le crédit de la grâce s'use, puis il est coupé */
+    const l4 = await brut6(A6, { taille: 300000, premiers: 30000 });
+    v('⛔ 30 000 octets d\'un coup puis plus rien : coupé aussi, un peu plus tard qu\'un envoi qui n\'a rien donné (le crédit de la grâce)', [code6(l4), l4.reponduEn >= 800 && l4.reponduEn < 4500], ['408', true]);
+    /* contre-épreuve : un envoi honnête mais lent (6 morceaux de 50 000 octets espacés de 100 ms, ~500 Ko/s) passe */
+    const idHonnete = await new Promise((ok) => {
+      const corps = crypto.randomBytes(300000); let rep = '';
+      const s = net.connect(svc6.port, '127.0.0.1', async () => {
+        s.write('POST /api/pieces?' + new URLSearchParams({ conv: g6, genre: 'fichier' }) + ' HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: ' + svc6.base + '\r\nX-OPM: 1\r\nX-OPM-Nom: honnete.bin\r\nCookie: ' + A6.enteteCookie() + '\r\nContent-Type: application/octet-stream\r\nContent-Length: 300000\r\nConnection: close\r\n\r\n');
+        for (let i = 0; i < 300000; i += 50000) { await T.dort(100); s.write(corps.subarray(i, i + 50000)); }
+      });
+      s.on('data', (d) => { rep += d; }); s.on('close', () => ok(rep)); s.on('error', () => ok(rep));
+    });
+    v('⛔ contre-épreuve : un envoi lent mais au-dessus du débit minimal (6 morceaux de 50 000 octets espacés de 100 ms) passe : 201', /^HTTP\/1\.1 201/.test(idHonnete), true);
+  } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
+  await svc6.arreter();
+
+  /* ═══ 12. UN LECTEUR LENT NE TIENT PAS UN FICHIER OUVERT (relecture du gardien, A2) ═══════════════════════════════════════════ */
+  console.log('\nUn lecteur qui ne lit plus, ou qui lit un filet, est coupé : le fichier ouvert et la connexion sont rendus (A2)');
+  /* ⛔ Chaque lecture garde DEUX descripteurs (la connexion et le fichier). On les compte dans /proc, sur le processus du service lui-même. Avant : un client qui cessait de lire les gardait pour toujours.
+     DEUX services, un butoir chacun : l'autre est réglé à une heure. Un lecteur « lent » qui lit par à-coups voit son `drain` arriver par salves (la fenêtre TCP ne se rouvre pas octet par octet) :
+     les deux butoirs dans un même service s'éclipsaient l'un l'autre, et retirer l'un ne faisait tomber que ce que l'autre laissait voir. */
+  const nbFd = (pid) => { try { return fs.readdirSync('/proc/' + pid + '/fd').length; } catch (e) { return -1; } };
+  /* LES FICHIERS DE PIÈCES OUVERTS : exactement la ressource que garde un lecteur lent. Le total des descripteurs bouge d'un ou deux au gré des connexions persistantes que le banc ferme de son côté
+     (mesuré : « 28 → 29 » un jour, « 28 → 30 » le suivant) ; un fichier de pièce ouvert, lui, est ouvert par une lecture ou par rien. */
+  const fichiersPieces = (pid) => { try { return fs.readdirSync('/proc/' + pid + '/fd').filter((fd) => { try { return /\/pieces\/[0-9a-f]{2}\/f_[0-9a-f]{32}$/.test(fs.readlinkSync('/proc/' + pid + '/fd/' + fd)); } catch (e) { return false; } }).length; } catch (e) { return -1; } };
+  const grosCorps = crypto.randomBytes(48 * 1048576), sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
+  const monter12 = async (cfgPieces) => {
+    const sv = await T.lancerService({ urlGestion: og.url, horloge: true, config: { pieces: Object.assign({ fichierMax: 48 * 1048576 }, cfgPieces), quotas: { piece: { max: 1000, fenetreMs: 3600000 } } } });
+    const A = await compte('alice', sv), B = await compte('bruno', sv);
+    await lienContact(A, B);
+    const g = await groupe(A, 'Gros', [B]);
+    const dep = await deposer(A, { conv: g, genre: 'fichier', nom: 'gros.bin', corps: grosCorps });
+    const m = await envoyer(A, g, { type: 'fichier', piece: dep.j.id });
+    const get = 'GET /api/pieces/' + dep.j.id + ' HTTP/1.1\r\nHost: 127.0.0.1\r\nCookie: ' + B.enteteCookie() + '\r\nConnection: close\r\n\r\n';
+    return { sv, A, B, id: dep.j.id, deposOk: dep.code === 201 && m.code === 201, get, pid: sv.enfant.pid };
+  };
+  const entier12 = async (X) => { const e = await lire(X.B, X.id); return [e.code, e.buf.length, sha(e.buf) === sha(grosCorps)]; };
+
+  /* a. l'ATTENTE : des lecteurs qui ne lisent rien */
+  const X7 = await monter12({ lectureAttenteMs: 1500, lectureMaxMs: 3600000 });
+  try {
+    vrai('population : le fichier de 48 Mo est déposé et envoyé, et le processus du service a des descripteurs à compter (' + nbFd(X7.pid) + ')', X7.deposOk && nbFd(X7.pid) > 5);
+    const base7 = nbFd(X7.pid);
+    const geles = [0, 1, 2].map(() => { const s = net.connect(X7.sv.port, '127.0.0.1', () => s.write(X7.get)); s.on('error', () => {}); return s; });
+    await T.dort(300);
+    const pendant = nbFd(X7.pid), fichiers7 = fichiersPieces(X7.pid);
+    vrai('population : trois lecteurs gelés tiennent chacun un FICHIER ouvert (' + fichiers7 + ') et une connexion (' + base7 + ' descripteurs avant, ' + pendant + ' pendant)', fichiers7 === 3 && pendant - base7 >= 4);
+    let apres = pendant, restent = fichiers7; const t0 = Date.now();
+    while (Date.now() - t0 < 8000 && (apres > base7 + 1 || restent > 0)) { await T.dort(100); apres = nbFd(X7.pid); restent = fichiersPieces(X7.pid); }
+    v('⛔ au bout de l\'attente permise (1,5 s) le service les COUPE et rend les fichiers ouverts et les connexions (' + (Date.now() - t0) + ' ms)', [restent, apres <= base7 + 1], [0, true]);
+    vrai('   …et le journal le dit : « piece_lecture_coupee » pour cause d\'attente (sans identifiant ni nom)', /"evt":"piece_lecture_coupee","motif":"attente"/.test(X7.sv.sortie.texte()) && !/piece_lecture_coupee[^\n]*f_[0-9a-f]{32}/.test(X7.sv.sortie.texte()));
+    for (const s of geles) s.destroy();
+    v('⛔ contre-épreuve : un lecteur ordinaire reçoit les 48 Mo, octet pour octet (l\'attente ne touche que ceux qui ne lisent plus)', await entier12(X7), [200, 48 * 1048576, true]);
+  } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
+  await X7.sv.arreter();
+
+  /* b. la DURÉE : un lecteur qui lit un filet, jamais arrêté assez longtemps pour être gelé */
+  const X8 = await monter12({ lectureAttenteMs: 3600000, lectureMaxMs: 5000 });
+  try {
+    const base8 = nbFd(X8.pid);
+    let recu = 0;
+    const filet = net.connect(X8.sv.port, '127.0.0.1', () => filet.write(X8.get));
+    filet.on('error', () => {});
+    filet.on('data', (d) => { recu += d.length; filet.pause(); setTimeout(() => filet.resume(), 200); });
+    await T.dort(2500);
+    const enCours = nbFd(X8.pid), recuA = recu, fichiers8 = fichiersPieces(X8.pid);
+    vrai('population : à mi-chemin le lecteur-filet lit encore (' + Math.round(recuA / 1024) + ' Ko reçus) et le service tient son fichier ouvert (' + fichiers8 + ') et sa connexion (' + base8 + ' → ' + enCours + ' descripteurs)', recuA > 0 && fichiers8 === 1);
+    await T.dort(4500);
+    const apres8 = nbFd(X8.pid);
+    v('⛔ passé le plafond de durée d\'une lecture (5 s), le service coupe même celui qui lit « juste assez vite » : fichier et connexion rendus, fichier loin d\'être arrivé (' + Math.round(recu / 1048576) + ' Mo sur 48)', [fichiersPieces(X8.pid), apres8 <= base8 + 1, recu < 48 * 1048576], [0, true, true]);
+    vrai('   …et le journal le dit : cause « duree »', /"evt":"piece_lecture_coupee","motif":"duree"/.test(X8.sv.sortie.texte()));
+    filet.destroy();
+    v('⛔ contre-épreuve : un lecteur ordinaire reçoit les 48 Mo, octet pour octet, bien avant le plafond', await entier12(X8), [200, 48 * 1048576, true]);
+  } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
+  await X8.sv.arreter();
 
   fs.rmSync(bac, { recursive: true, force: true });
   await svc.arreter(); await og.fermer();

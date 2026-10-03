@@ -16,8 +16,14 @@
 const fs = require('fs'), path = require('path'), crypto = require('crypto'), zlib = require('zlib');
 const T = require('./outils-msg');
 const F = require('./outils-pieces');
-const { v, vrai, fin } = T.compteur();
+const C = T.compteur(), { v, vrai, fin } = C;
 T.sauterSiSansDependances();
+/* ⛔ POUR LES MUTATIONS DE LA PAGE (tests/mutations-pieces.js --sondes) : rejouer les sept sections entières pour chaque mutation coûte plus d'une heure sur une machine partagée.
+   SONDE_SECTIONS=6b,3 ne joue que ces sections (1 à 6, 6b = « 6 bis », 7 est toujours jouée mais ne compte que ce qui a eu lieu) ; SONDE_ARRET=1 s'arrête au PREMIER échec (le reste ne prouverait rien
+   de plus : la mutation est tombée) en refermant proprement les navigateurs et le service. Sans ces variables, la sonde joue tout, comme avant. */
+const SECTIONS = (process.env.SONDE_SECTIONS || '').split(',').map(x => x.trim()).filter(Boolean);
+const voulu = (id) => !SECTIONS.length || SECTIONS.includes(id);
+const arretSiRate = () => { if (process.env.SONDE_ARRET === '1' && C.ko > 0) throw new Error('arrêt au premier échec (SONDE_ARRET=1)'); };
 
 let pw; try { pw = require('playwright-core'); } catch (e) {
   for (const c of ['/opt/node22/lib/node_modules/playwright/node_modules/playwright-core', 'playwright']) { try { pw = require(c); break; } catch (_) { /* suivant */ } }
@@ -69,12 +75,14 @@ const lire = (S, sel) => S.page.evaluate(s => { const e = document.querySelector
 const nombre = (S, sel) => S.page.evaluate(s => document.querySelectorAll(s).length, sel);
 async function attendre(S, fn, arg, ms) { try { await S.page.waitForFunction(fn, arg, { timeout: ms || 12000, polling: 50 }); return true; } catch (e) { return false; } }
 async function verifier(titre, S, fn, arg, ms, vu) {
+  arretSiRate();
   const ok = await attendre(S, fn, arg, ms);
   if (ok) vrai(titre, true);
   else { const reste = vu ? await vu().catch(() => '?') : ''; v(titre, 'non vu à temps' + (reste ? ' ; vu : ' + reste : ''), 'vu'); }
   return ok;
 }
 async function toucher(S, sel) {
+  arretSiRate();
   const loc = S.page.locator(sel).filter({ visible: true }).first();
   await loc.scrollIntoViewIfNeeded().catch(() => {});
   S.gestes++;
@@ -130,6 +138,20 @@ const couleurImage = (S, sel) => S.page.evaluate(async s => {
   return { nw: im.naturalWidth, nh: im.naturalHeight, rgb: Array.from(x.getImageData(Math.floor(c.width / 2), Math.floor(c.height / 2), 1, 1).data).slice(0, 3), src: im.src.slice(0, 5) };
 }, sel);
 
+/* le nombre d'images d'un GIF, en le PARCOURANT (jamais en cherchant un octet : « 0x2C » se trouve dans n'importe quelles données) */
+function imagesGif(b) {
+  if (b.length < 14 || b.subarray(0, 3).toString('latin1') !== 'GIF') return -1;
+  let i = 13 + ((b[10] & 0x80) ? 3 * (1 << ((b[10] & 7) + 1)) : 0), n = 0;
+  const sous = () => { while (i < b.length && b[i]) i += b[i] + 1; i++; };
+  while (i < b.length) {
+    if (b[i] === 0x3B) return n;
+    if (b[i] === 0x21) { i += 2; sous(); }
+    else if (b[i] === 0x2C) { n++; const lct = (b[i + 9] & 0x80) ? 3 * (1 << ((b[i + 9] & 7) + 1)) : 0; i += 10 + lct + 1; sous(); }
+    else return -1;
+  }
+  return -1;
+}
+
 async function parcours(b, ctx) {
   const { svc } = ctx;
   const A = await ouvrir(b, svc.base, PROFILS.iphone), B = await ouvrir(b, svc.base, PROFILS.bureau), C = await ouvrir(b, svc.base, PROFILS.bureau);
@@ -154,6 +176,7 @@ async function parcours(b, ctx) {
     const stock = (S) => S.page.evaluate(async () => (await (await fetch('/api/moi/stockage')).json()).utilise);
 
     /* ═══ 1. UNE PHOTO ═════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+    s1: { if (!voulu('1')) break s1;
     console.log('\n── Une photo : choisie, réduite, « Envoi… », vue chez l\'autre sans recharger, dessinée ──');
     await toucher(A, '#compo-plus');
     await verifier('« + » propose « Photo » et « Fichier » (une petite feuille, rien d\'ouvert encore)', A, () => document.querySelectorAll('#menu-msg [data-plus]').length === 2 && !document.getElementById('menu-fond').hidden, null, 4000, () => lire(A, '#menu-msg'));
@@ -183,7 +206,9 @@ async function parcours(b, ctx) {
     vrai('⛔ elle a été RÉDUITE avant de partir : ' + (apres - avant) + ' octets rangés (≤ 250 Ko = 256 000), jamais ses 11 Mo ; et elle tient en ≤ 1 600 px (' + (gros && gros.nw) + ' × ' + (gros && gros.nh) + ', le rapport 3:2 gardé)',
       apres - avant > 20000 && apres - avant <= 256000 && !!gros && gros.nw <= 1600 && gros.nw >= 640 && Math.abs(gros.nw / gros.nh - 1.5) < .01);
 
+    }
     /* ═══ 2. UN FICHIER ════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+    s2: { if (!voulu('2')) break s2;
     console.log('\n── Un fichier : son nom et sa taille, téléchargé octet pour octet, trop lourd refusé AVANT tout envoi ──');
     const pdf = F.pdf(9000);
     await choisirDansPlus(A, 'fichier', { name: 'Rapport 2026.pdf', mimeType: 'application/pdf', buffer: pdf });
@@ -201,9 +226,13 @@ async function parcours(b, ctx) {
     await verifier('⛔ un fichier plus lourd que le maximum du service est refusé sur place, avec la phrase et le maximum', A, () => /trop lourd/.test(document.getElementById('avis').textContent) && /700 Ko au plus/.test(document.getElementById('avis').textContent), null, 8000, () => lire(A, '#avis'));
     v('…sans ouvrir la moindre connexion de dépôt, et sans bulle de plus (population : le refus a eu lieu)', [A.envois.length - envoisAvant, await nombre(A, '#conv-messages .msg.de-moi .fichier')], [0, 2]);
 
+    }
     /* ═══ 3. UN VOCAL ═════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+    s3: { if (!voulu('3')) break s3;
     console.log('\n── Un vocal : enregistré (micro simulé), envoyé, lu chez l\'autre ──');
     const vocauxAvant = await nombre(B, '#conv-messages .vocal');
+    /* le compteur de la barre d'enregistrement, relevé à chaque changement : ce que la personne VOIT au moment d'envoyer */
+    await A.page.evaluate(() => { window.__cpt = ''; new MutationObserver(() => { window.__cpt = document.getElementById('enreg-duree').textContent; }).observe(document.getElementById('enreg-duree'), { childList: true, characterData: true, subtree: true }); });
     await toucher(A, '#compo-micro');
     await verifier('le micro DÉMARRE l\'enregistrement (la barre d\'enregistrement paraît, la durée court)', A, () => !document.getElementById('enreg').hidden, null, 8000, () => lire(A, '#avis'));
     await capture(A, '3-enregistrement');
@@ -211,13 +240,21 @@ async function parcours(b, ctx) {
     await toucher(A, '#enreg-envoyer');
     await verifier('⛔ le vocal part pour de vrai : la bulle paraît chez Bruno, avec sa durée (≥ 1 s)', B, n => document.querySelectorAll('#conv-messages .vocal').length > n && /\d+:\d\d/.test(document.querySelector('#conv-messages .vocal:last-of-type .vocal-duree, #conv-messages .msg:last-of-type .vocal-duree').textContent), vocauxAvant, 20000, () => lire(B, '#conv-messages'));
     await verifier('et chez Alice aussi (sa propre bulle vocale)', A, () => document.querySelectorAll('#conv-messages .msg.de-moi .vocal').length >= 1, null, 8000);
+    {
+      const compteur = await A.page.evaluate(() => window.__cpt);
+      const dureeDe = (S, sens) => S.page.evaluate(s => { const l = [...document.querySelectorAll('#conv-messages .msg.' + s + ' .vocal-duree')]; return l.length ? l[l.length - 1].textContent : null; }, sens);
+      vrai('population : le compteur a tourné (« ' + compteur + ' » à l\'envoi) — l\'enregistrement a duré plus d\'une seconde', /^0:0[1-9]$|^0:[1-5]\d$/.test(compteur));
+      v('⛔ la durée de la bulle est EXACTEMENT celle que le compteur montrait à l\'envoi — ni arrondie vers le haut (1:05 devenait 1:06, 0:01 devenait 0:02), ni celle, un instant plus tard, de l\'arrêt du micro — chez Alice comme chez Bruno', [await dureeDe(A, 'de-moi'), await dureeDe(B, 'de-autre')], [compteur, compteur]);
+    }
     const lecturesAvant = await B.page.evaluate(() => window.__plays.length);
     await toucher(B, '#conv-messages .msg.de-autre .vocal');
     await verifier('⛔ Bruno LIT le vocal : un élément audio démarre sur une adresse blob:, le bouton passe en « lecture »', B, n => window.__plays.length > n && window.__plays[window.__plays.length - 1] === 'blob:' && !!document.querySelector('#conv-messages .vocal[data-lecture]'), lecturesAvant, 12000, () => B.page.evaluate(() => JSON.stringify({ plays: window.__plays, lecture: !!document.querySelector('.vocal[data-lecture]'), avis: (document.getElementById('avis') || {}).textContent })));
     await verifier('…et la lecture se termine toute seule (le bouton reprend sa forme de repos)', B, () => !document.querySelector('#conv-messages .vocal[data-lecture]'), null, 15000);
     await largeur(B, 'conversation avec vocal et fichier');
 
+    }
     /* ═══ 4. LA PHOTO DE PROFIL ══════════════════════════════════════════════════════════════════════════════════════════════ */
+    s4: { if (!voulu('4')) break s4;
     console.log('\n── La photo de profil : posée par Alice, vue de Bruno en direct, retirée ──');
     await onglet(A, 'reglages');
     await verifier('Réglages : le profil, la confidentialité, les contacts, les appareils, le stockage, l\'à propos, la sortie', A, () => ['reg-profil', 'reg-conf', 'reg-contact', 'reg-autres', 'reg-stock', 'reg-apropos', 'reg-sortir'].every(i => !!document.getElementById(i)) && !!document.querySelector('#reg-conf [data-reg-cle="presence"]'), null, 12000, () => lire(A, '#vue-reglages'));
@@ -240,7 +277,9 @@ async function parcours(b, ctx) {
     await toucher(A, '#g-annuler');
     await verifier('la feuille se referme', A, () => !document.documentElement.classList.contains('feuille-ouverte'), null, 6000);
 
+    }
     /* ═══ 5. LES RÉGLAGES ═══════════════════════════════════════════════════════════════════════════════════════════════════════ */
+    s5: { if (!voulu('5')) break s5;
     console.log('\n── Les réglages : interrupteurs réciproques, refus dit puis effacé, stockage, autres appareils ──');
     await verifier('population : Alice est en ligne pour Bruno (le point vert de la liste)', B, nom => { const l = [...document.querySelectorAll('#liste-conv .conv')].find(x => x.querySelector('.conv-nom').textContent === nom); return !!l && !!l.querySelector('.avatar.en-ligne'); }, NOMS.alice, 12000);
     await A.page.route('**/api/moi/confidentialite', async (route) => {
@@ -267,7 +306,9 @@ async function parcours(b, ctx) {
     await verifier('⛔ l\'autre appareil d\'Alice REPART à l\'écran de connexion (sa session est coupée)', C, () => !document.getElementById('connexion').hidden, null, 12000, () => lire(C, 'body'));
     vrai('population : le nom d\'Alice est toujours dans sa barre', (await lire(A, '#moi-nom')) === NOMS.alice);
 
+    }
     /* ═══ 6. LA PHOTO D'UN GROUPE ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+    s6: { if (!voulu('6')) break s6;
     console.log('\n── La photo d\'un groupe : à la création ──');
     await onglet(A, 'messages');
     await toucher(A, '#btn-groupe');
@@ -281,15 +322,135 @@ async function parcours(b, ctx) {
     await verifier('…et chez Bruno (membre), sans recharger', B, () => { const l = [...document.querySelectorAll('#liste-conv .conv')].find(x => x.querySelector('.conv-nom').textContent.includes('Équipe photo')); return !!l && !!l.querySelector('.avatar[style*="background-image"]'); }, null, 20000, () => B.page.evaluate(() => document.getElementById('liste-conv').innerHTML.slice(0, 400)));
     await capture(B, '6-groupe');
 
+    }
+    /* ═══ 6 bis. LA RELECTURE DU TESTEUR (3 octobre 2026) ═════════════════════════════════════════════════════════════════════ */
+    s6b: { if (!voulu('6b')) break s6b;
+    console.log('\n── La relecture du testeur : onze photos dites, un GIF qui reste animé, des photos qui gardent leurs proportions, une photo indisponible lisible, une pièce refusée qui reste (Réessayer / Annuler), un statut qui dit vrai ──');
+    if (!SECTIONS.length) { await ouvrirConvAvec(A, NOMS.bruno); await ouvrirConvAvec(B, NOMS.alice); }      // (une section jouée seule : les deux pages n'ont pas quitté la conversation, et une conversation sans message n'est pas dans la liste)
+    const photosMsg = (S, sens) => S.page.evaluate(s => [...document.querySelectorAll('#conv-messages .msg.' + s + ' .photos')].map(e => e.querySelectorAll('.photo').length), sens);
+    /* les octets de la photo-message la plus récente (k = 0) ou de la k-ième avant elle, lus du SERVICE par la page de Bruno (même origine : le navigateur ne lit pas un blob:) */
+    const octetsPiece = async (S, conv, k) => Buffer.from(await S.page.evaluate(async ([c, k2]) => {
+      const j = await (await fetch('/api/conversations/' + c + '/messages?limite=80')).json(), l = j.messages.filter(x => x.type === 'photo'), m = l[l.length - 1 - k2];
+      return Array.from(new Uint8Array(await (await fetch('/api/pieces/' + m.meta.pieces[0].id)).arrayBuffer()));
+    }, [conv, k || 0]));
+
+    /* ── 1. onze photos choisies : la onzième se DIT ── */
+    const onze = Array.from({ length: 11 }, (_, i) => ({ name: 'p' + (i + 1) + '.png', mimeType: 'image/png', buffer: F.png({ couleur: [15 * i + 20, 70, 170 - 10 * i] }) }));
+    const envoisAvant11 = A.envois.length, msgPhotosB0 = (await photosMsg(B, 'de-autre')).length;
+    await choisirDansPlus(A, 'photo', onze);
+    await verifier('⛔ onze photos choisies : la page DIT que la onzième n\'a pas été envoyée (relecture du testeur : elle disparaissait sans un mot)', A, () => /10 photos au plus par envoi : la onzième n'a pas été envoyée/.test(document.getElementById('avis').textContent), null, 20000, () => lire(A, '#avis'));
+    await capture(A, '6b-onze-photos');
+    await verifier('…et les DIX premières arrivent chez Bruno, en UN message de dix photos', B, n => { const l = [...document.querySelectorAll('#conv-messages .msg.de-autre .photos')]; return l.length === n + 1 && l[l.length - 1].querySelectorAll('.photo').length === 10; }, msgPhotosB0, 40000, () => lire(B, '#conv-messages'));
+    v('population : DIX dépôts, pas onze (la onzième n\'a quitté l\'appareil à aucun moment)', A.envois.length - envoisAvant11, 10);
+
+    /* ── 2. un GIF reste un GIF ── */
+    const gifAnime = F.gif({ images: 2, netscape: true, commentaire: 'canari-gif-9f3a-secret' });
+    const msgPhotosB1 = (await photosMsg(B, 'de-autre')).length;
+    await choisirDansPlus(A, 'photo', { name: 'anime.gif', mimeType: 'image/gif', buffer: gifAnime });
+    await verifier('un GIF animé de 2 images part : la bulle paraît chez Bruno', B, n => document.querySelectorAll('#conv-messages .msg.de-autre .photos').length > n, msgPhotosB1, 25000, () => lire(B, '#conv-messages'));
+    const octGif = await octetsPiece(B, acc[2], 0);
+    v('⛔ il reste ANIMÉ (relecture du testeur : il devenait une image fixe, sans que rien ne le dise) : « GIF89a », les DEUX images, la boucle, et le commentaire retiré par le service', [octGif.subarray(0, 6).toString('latin1'), imagesGif(octGif), octGif.includes(Buffer.from('NETSCAPE2.0')), octGif.includes(Buffer.from('canari-gif-9f3a'))], ['GIF89a', 2, true, false]);
+    const gifLourd = F.gif({ commentaire: 'x'.repeat(PHOTO_MAX + 20000) });
+    await choisirDansPlus(A, 'photo', { name: 'lourd.gif', mimeType: 'image/gif', buffer: gifLourd });
+    await verifier('⛔ un GIF plus lourd que le maximum d\'une photo (' + Math.round(PHOTO_MAX / 1024) + ' Ko) : la page DIT qu\'il part sans mouvement', A, () => /Un GIF était trop lourd pour rester animé : il est parti sans mouvement/.test(document.getElementById('avis').textContent), null, 20000, () => lire(A, '#avis'));
+    await verifier('…et il arrive chez Bruno', B, n => document.querySelectorAll('#conv-messages .msg.de-autre .photos').length > n, msgPhotosB1 + 1, 25000);
+    const octLourd = await octetsPiece(B, acc[2], 0);
+    v('…en image fixe : un JPEG (FF D8 FF), pas un GIF', [octLourd[0], octLourd[1], octLourd[2]], [0xFF, 0xD8, 0xFF]);
+
+    /* ── 3. une photo seule garde ses proportions ── */
+    const msgPhotosB2 = (await photosMsg(B, 'de-autre')).length;
+    const FORMES = [['haute', 400, 800], ['large', 800, 400], ['panorama', 1600, 160], ['minuscule', 20, 20]];
+    for (const [nom, w, h] of FORMES) await choisirDansPlus(A, 'photo', { name: nom + '.png', mimeType: 'image/png', buffer: F.png({ w, h, couleur: [90, 140, 210] }) });
+    await verifier('quatre photos de formes différentes (haute, large, panorama, minuscule) arrivent chez Bruno', B, n => document.querySelectorAll('#conv-messages .msg.de-autre .photos').length >= n + 4, msgPhotosB2, 40000, () => lire(B, '#conv-messages'));
+    for (const [S, sens] of [[B, 'de-autre'], [A, 'de-moi']]) await verifier('…et les quatre cases sont des IMAGES dessinées (largeur naturelle connue), pas des cases en attente — chez ' + S.nom, S, s => { const l = [...document.querySelectorAll('#conv-messages .msg.' + s + ' .photos.une .photo')].slice(-4); return l.length === 4 && l.every(c => { const i = c.querySelector('img'); return !!i && i.complete && i.naturalWidth > 0; }); }, sens, 20000, () => lire(S, '#conv-messages'));
+    const mesures = (S, sens) => S.page.evaluate(s => [...document.querySelectorAll('#conv-messages .msg.' + s + ' .photos.une .photo')].slice(-4).map(bt => { const r = bt.getBoundingClientRect(), im = bt.querySelector('img'); return { w: Math.round(r.width), h: Math.round(r.height), nw: im ? im.naturalWidth : 0, nh: im ? im.naturalHeight : 0, ajuste: im ? getComputedStyle(im).objectFit : null }; }), sens);
+    for (const [S, sens] of [[B, 'de-autre'], [A, 'de-moi']]) {
+      const m = await mesures(S, sens);
+      vrai(S.nom + ' : (population) quatre photos seules mesurées, avec leurs dimensions naturelles (' + JSON.stringify(m.map(x => x.nw + '×' + x.nh)) + ')', m.length === 4 && m.every(x => x.nw > 0 && x.nh > 0));
+      const [haute, large, pano, mini] = m;
+      v(S.nom + ' : ⛔ la photo HAUTE (400 × 800) garde son rapport 1:2 — pas un 200 × 150 recadré —, dans une boîte d\'au plus 240 × 320', [Math.abs(haute.w / haute.h - haute.nw / haute.nh) < .02, haute.w <= 241, haute.h <= 321, haute.h > haute.w], [true, true, true, true]);
+      v(S.nom + ' : ⛔ la photo LARGE (800 × 400) garde son rapport 2:1', [Math.abs(large.w / large.h - large.nw / large.nh) < .02, large.w <= 241, large.h <= 321, large.w > large.h], [true, true, true, true]);
+      v(S.nom + ' : ⛔ le PANORAMA (1 600 × 160) est vu ENTIER (contain), dans une boîte qui ne dépasse pas 240 de large ni ne tombe sous 72 de haut', [pano.ajuste, pano.w <= 241, pano.h >= 72, pano.w > pano.h], ['contain', true, true, true]);
+      v(S.nom + ' : ⛔ une image minuscule (20 × 20) n\'est pas un point : au moins 72 px de côté', [mini.w >= 72, mini.h >= 72], [true, true]);
+    }
+    await capture(B, '6b-proportions'); await capture(A, '6b-proportions');
+    await largeur(A, 'conversation avec des photos de toutes formes'); await largeur(B, 'conversation avec des photos de toutes formes');
+
+    /* ── 4. une photo indisponible se LIT (la pièce n'existe plus chez le service : 404) ── */
+    await B.page.route('**/api/pieces/f_*', route => route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ error: 'introuvable' }) }));
+    await choisirDansPlus(A, 'photo', { name: 'disparue.png', mimeType: 'image/png', buffer: F.png({ couleur: [200, 120, 20] }) });
+    await verifier('⛔ une photo que le service ne rend plus (404) : la case dit « Photo indisponible » EN TOUTES LETTRES, pas par une seule icône', B, () => { const c = [...document.querySelectorAll('#conv-messages .msg.de-autre .photo.indisponible')].pop(); const t = c && c.querySelector('.photo-etat'); return !!t && t.textContent === 'Photo indisponible' && t.getClientRects().length > 0 && c.getAttribute('aria-label') === 'Photo indisponible'; }, null, 25000, () => B.page.evaluate(() => document.querySelector('#conv-messages').innerHTML.slice(-400)));
+    const caseIndispo = await B.page.evaluate(() => { const c = [...document.querySelectorAll('#conv-messages .msg.de-autre .photo.indisponible')].pop(), t = c.querySelector('.photo-etat'), rc = c.getBoundingClientRect(), rt = t.getBoundingClientRect(); return { dedans: rt.left >= rc.left - 1 && rt.right <= rc.right + 1 && rt.top >= rc.top - 1 && rt.bottom <= rc.bottom + 1, coupe: t.scrollWidth > t.clientWidth + 1, w: Math.round(rc.width), lignes: Math.round(rt.height / parseFloat(getComputedStyle(t).lineHeight)) }; });
+    v('…et le texte tient DANS la case, sur deux lignes au plus, sans être coupé ni cassé au milieu d\'un mot ; la case est au moins aussi large qu\'une vignette de grille (118 px) — même pour une image de 8 × 8 points, dont la boîte n\'est que de 72 (case de ' + caseIndispo.w + ' px, ' + caseIndispo.lignes + ' ligne(s))', [caseIndispo.dedans, caseIndispo.coupe, caseIndispo.lignes <= 2, caseIndispo.w >= 118], [true, false, true, true]);
+    await capture(B, '6b-indisponible');
+    await B.page.unroute('**/api/pieces/f_*');
+
+    /* ── 5. une pièce que le service refuse POUR L'INSTANT reste, avec « Réessayer » et « Annuler » ── */
+    const msgPhotosA0 = (await photosMsg(A, 'de-moi')).length, msgPhotosB3 = (await photosMsg(B, 'de-autre')).length, envoisRefus0 = A.envois.length;
+    await A.page.route('**/api/pieces?*', route => route.fulfill({ status: 429, contentType: 'application/json', headers: { 'Retry-After': '20' }, body: JSON.stringify({ error: 'quota_atteint', retry: 20 }) }));
+    await choisirDansPlus(A, 'photo', { name: 'refusee.png', mimeType: 'image/png', buffer: F.png({ couleur: [160, 60, 200] }) });
+    await verifier('⛔ le service refuse (429) : la photo RESTE dans le fil, avec « Pas envoyé : Trop de demandes en peu de temps (réessaie dans 20 s). » — UNE seule invitation à réessayer, avec l\'attente exacte', A, () => { const t = [...document.querySelectorAll('#conv-messages .msg.de-moi .echec-texte')].pop(); return !!t && t.textContent === 'Pas envoyé : Trop de demandes en peu de temps (réessaie dans 20 s).'; }, null, 20000, () => lire(A, '#conv-messages'));
+    await capture(A, '6b-refus-429');
+    const echec = await A.page.evaluate(() => { const m = [...document.querySelectorAll('#conv-messages .msg.de-moi')].pop(), bt = [...m.querySelectorAll('.echec button')]; return { photos: m.querySelectorAll('.photo').length, boutons: bt.map(x => x.textContent), hauteurs: bt.map(x => Math.round(x.getBoundingClientRect().height)), statut: !!m.querySelector('.statut'), avis: document.getElementById('avis').textContent }; });
+    v('…avec ses deux boutons, assez grands pour un doigt (≥ 44 px), l\'image toujours là, et AUCUN statut « Envoi… » / « En attente de connexion… » par-dessus', [echec.photos, echec.boutons, echec.hauteurs.every(h => h >= 44), echec.statut], [1, ['Réessayer', 'Annuler'], true, false]);
+    vrai('…et l\'avis le dit aussi (la personne peut être ailleurs) : « Une photo n\'a pas pu être envoyée : Trop de demandes… »', /^Une photo n'a pas pu être envoyée : Trop de demandes en peu de temps/.test(echec.avis));
+    await dormir(1500);
+    v('⛔ elle ne repart PAS toute seule : un seul dépôt tenté en 1,5 s de plus, et Bruno ne voit rien de neuf', [A.envois.length - envoisRefus0, (await photosMsg(B, 'de-autre')).length], [1, msgPhotosB3]);
+    await A.page.unroute('**/api/pieces?*');
+    await toucher(A, '#conv-messages .msg.de-moi .echec [data-reessayer]');
+    await verifier('⛔ « Réessayer » : la photo part (même bulle), Bruno la voit UNE fois, et plus rien ne reste en échec', B, n => document.querySelectorAll('#conv-messages .msg.de-autre .photos').length === n + 1, msgPhotosB3, 25000, () => lire(B, '#conv-messages'));
+    await verifier('…chez Alice : la bulle a trouvé son statut (« Envoyé » ou « Lu »), l\'échec a disparu, UNE bulle de plus', A, n => !document.querySelector('#conv-messages .echec') && document.querySelectorAll('#conv-messages .msg.de-moi .photos').length === n + 1 && /^(Envoyé|Lu)/.test([...document.querySelectorAll('#conv-messages .statut')].pop().textContent), msgPhotosA0, 25000, () => lire(A, '#conv-messages'));
+    await A.page.route('**/api/pieces?*', route => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'disque_plein' }) }));
+    const envoisRefus1 = A.envois.length;
+    await choisirDansPlus(A, 'photo', { name: 'annulee.png', mimeType: 'image/png', buffer: F.png({ couleur: [20, 160, 160] }) });
+    await verifier('⛔ le service est en lecture seule (503) : la photo reste aussi, avec SA phrase', A, () => { const t = [...document.querySelectorAll('#conv-messages .msg.de-moi .echec-texte')].pop(); return !!t && /^Pas envoyé : Le service est momentanément en lecture seule/.test(t.textContent); }, null, 20000, () => lire(A, '#conv-messages'));
+    await toucher(A, '#conv-messages .msg.de-moi .echec [data-annuler]');
+    await verifier('⛔ « Annuler » : la bulle disparaît pour de bon, et rien n\'est parti', A, n => !document.querySelector('#conv-messages .echec') && document.querySelectorAll('#conv-messages .msg.de-moi .photos').length === n + 1, msgPhotosA0, 8000, () => lire(A, '#conv-messages'));
+    await dormir(1200);
+    v('…aucun dépôt de plus après l\'annulation, et Bruno n\'a rien de plus', [A.envois.length - envoisRefus1, (await photosMsg(B, 'de-autre')).length], [1, msgPhotosB3 + 1]);
+    await A.page.unroute('**/api/pieces?*');
+
+    /* ── 6. hors ligne : le statut dit vrai, la panne se dit UNE fois, les essais s'espacent, et rien n'arrive en double au retour ── */
+    await A.page.evaluate(() => { window.__avisVus = []; new MutationObserver(() => { const t = document.getElementById('avis').textContent; if (t) window.__avisVus.push(t); }).observe(document.getElementById('avis'), { childList: true, characterData: true, subtree: true }); });
+    const msgPhotosA1 = (await photosMsg(A, 'de-moi')).length, msgPhotosB4 = (await photosMsg(B, 'de-autre')).length;
+    await A.ctx.setOffline(true);
+    await choisirDansPlus(A, 'photo', { name: 'hors-ligne.png', mimeType: 'image/png', buffer: F.png({ couleur: [10, 160, 90] }) });
+    await verifier('⛔ réseau coupé : la panne se DIT (un avis), au lieu d\'un petit statut que personne ne lit', A, () => window.__avisVus.some(t => /^Pas de connexion : ta photo partira dès que le réseau reviendra/.test(t)), null, 12000, () => lire(A, '#avis'));
+    await verifier('…et le message attend (« En attente de connexion… »)', A, () => [...document.querySelectorAll('#conv-messages .statut')].some(e => e.textContent === 'En attente de connexion…'), null, 8000, () => lire(A, '#conv-messages'));
+    await dormir(1000);
+    const envoisHL0 = A.envois.length;
+    const echant = await A.page.evaluate(() => new Promise(ok => { const vus = []; const t0 = Date.now(); const id = setInterval(() => { vus.push([...document.querySelectorAll('#conv-messages .statut')].map(e => e.textContent).join('|')); if (Date.now() - t0 > 5500) { clearInterval(id); ok(vus); } }, 100); }));
+    v('⛔ pendant cinq secondes hors ligne, le statut dit TOUJOURS « En attente de connexion… » — jamais « Envoi… » alors que rien ne part (' + echant.length + ' relevés)', [echant.length > 40, Array.from(new Set(echant))], [true, ['En attente de connexion…']]);
+    vrai('⛔ les essais s\'ESPACENT : entre une et deux requêtes de dépôt en cinq secondes (le testeur en comptait 21 en 12 s) — ' + (A.envois.length - envoisHL0) + ' relevée(s)', A.envois.length - envoisHL0 >= 1 && A.envois.length - envoisHL0 <= 2);
+    await A.ctx.setOffline(false);
+    await verifier('⛔ le réseau revient : la photo part, UNE fois chez Bruno', B, n => document.querySelectorAll('#conv-messages .msg.de-autre .photos').length === n + 1, msgPhotosB4, 40000, () => lire(B, '#conv-messages'));
+    await verifier('…et chez Alice : plus d\'attente, UNE bulle de plus, « Envoyé » ou « Lu »', A, n => document.querySelectorAll('#conv-messages .msg.de-moi .photos').length === n + 1 && /^(Envoyé|Lu)/.test([...document.querySelectorAll('#conv-messages .statut')].pop().textContent), msgPhotosA1, 25000, () => lire(A, '#conv-messages'));
+    await dormir(1500);
+    v('⛔ aucun doublon au retour (chez Bruno, chez Alice), et UN seul avis « Pas de connexion » pendant toute la coupure', [(await photosMsg(B, 'de-autre')).length, (await photosMsg(A, 'de-moi')).length, (await A.page.evaluate(() => window.__avisVus.filter(t => /^Pas de connexion/.test(t)).length))], [msgPhotosB4 + 1, msgPhotosA1 + 1, 1]);
+
+    /* ── 7. MA présence : la barre latérale ne dit plus « Disponible » quand elle est coupée ── */
+    await onglet(B, 'reglages');
+    await verifier('population : la barre latérale de Bruno dit « Disponible », point vert', B, () => document.getElementById('moi-statut-texte').textContent === 'Disponible' && !document.getElementById('moi-statut').classList.contains('masque'), null, 5000, () => lire(B, '#moi-statut'));
+    const vert = await B.page.evaluate(() => getComputedStyle(document.querySelector('#moi-statut i')).backgroundColor);
+    await toucher(B, '[data-reg-cle="presence"]');
+    await verifier('⛔ Bruno masque sa présence : SA barre ne dit plus « Disponible » avec un point vert — « Présence masquée »', B, () => document.getElementById('moi-statut-texte').textContent === 'Présence masquée' && document.getElementById('moi-statut').classList.contains('masque'), null, 8000, () => lire(B, '#moi-statut'));
+    const gris = await B.page.evaluate(() => getComputedStyle(document.querySelector('#moi-statut i')).backgroundColor);
+    vrai('…le point n\'est plus vert (' + vert + ' → ' + gris + '), et la barre est bien VISIBLE à l\'écran (bureau)', gris !== vert && await B.page.evaluate(() => document.getElementById('moi-statut').getClientRects().length > 0));
+    await capture(B, '6b-presence-masquee');
+    await toucher(B, '[data-reg-cle="presence"]');
+    await verifier('il rallume : « Disponible » revient, le point reverdit', B, () => document.getElementById('moi-statut-texte').textContent === 'Disponible' && !document.getElementById('moi-statut').classList.contains('masque'), null, 8000, () => lire(B, '#moi-statut'));
+
+    }
     /* ═══ 7. LA FIN : RIEN D'ANORMAL ═════════════════════════════════════════════════════════════════════════════════════════════ */
     console.log('\n── La fin : aucune erreur, aucun débordement, rien d\'extérieur ──');
     /* un refus du service est LOGUÉ par le navigateur (« Failed to load resource … status of 4xx ») : on les compte et on les NOMME — Alice : la visite sans session (401) et le refus
        que la sonde a fait faire (429) ; Bruno : la visite sans session. Toute autre erreur de console est un défaut. */
-    const refus = S => S.console.filter(t => /Failed to load resource/.test(t)).map(t => (/status of (\d{3})/.exec(t) || [])[1]);
-    for (const [S, attendus] of [[A, ['401', '429']], [B, ['401']]]) {
-      vrai(S.nom + ' : (population) ' + S.gestes + ' gestes portés, ' + S.ecrans + ' écrans mesurés en largeur', S.gestes > 3 && S.ecrans >= 2);
+    const refus = S => S.console.filter(t => /Failed to load resource/.test(t)).map(t => (/status of (\d{3})/.exec(t) || [])[1] || 'reseau');
+    if (voulu('6b')) vrai('Alice : (population) la coupure voulue a bien été vue du navigateur (' + refus(A).filter(x => x === 'reseau').length + ' requête(s) tombée(s) hors ligne)', refus(A).filter(x => x === 'reseau').length >= 1);
+    for (const [S, attendus] of [[A, ['401', '429', '429', '503']], [B, ['401', '404']]]) {
+      if (!SECTIONS.length) vrai(S.nom + ' : (population) ' + S.gestes + ' gestes portés, ' + S.ecrans + ' écrans mesurés en largeur', S.gestes > 3 && S.ecrans >= 2);
       v(S.nom + ' : 0 erreur JavaScript, aucune erreur de console autre qu\'un refus attendu', [S.erreurs, S.console.filter(t => !/Failed to load resource/.test(t))], [[], []]);
-      v(S.nom + ' : les refus réseau relevés sont exactement ceux qu\'on attendait', refus(S).sort(), attendus);
+      if (!SECTIONS.length) v(S.nom + ' : les refus réseau relevés (hors la coupure voulue) sont exactement ceux qu\'on attendait', refus(S).filter(x => x !== 'reseau').sort(), attendus.slice().sort());
       v(S.nom + ' : aucun écran ne déborde de ses ' + S.pf.w + ' px', S.debordements || [], []);
     }
   } finally { for (const S of tous) { try { await S.ctx.close(); } catch (e) { /* déjà fermé */ } } }

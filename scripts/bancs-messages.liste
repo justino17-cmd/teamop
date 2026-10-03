@@ -24,7 +24,9 @@
 # (2 928 avant que test-950 agrège ses essais de copie sous charge : quinze contrôles redondants de moins, trois cas de plus — le plancher suit le total MESURÉ.)
 # 2 octobre 2026, les deux réunis (pièces + sauvegarde, la sauvegarde comptant désormais les pièces) : 31 suites, 3 390 vérifications mesurées par la commande de la porte — plancher 3380.
 # 3 octobre 2026, après la relecture adverse de la sauvegarde (B2, A1 à A5, remarques : restauration depuis une archive plus ancienne, arriéré de pièces, horloge, registre des purges et rejeu par le service, mémoire bornée) : 31 suites, 3 506 vérifications mesurées par la commande de la porte (341 s ; 3 499 avant que la restauration demande trois fois l'archive et re-mesure la place) — plancher 3497.
-#plancher 3497
+# 3 octobre 2026, la relecture du gardien puis celle du testeur (pièces : lenteur, journaux du proxy, GIF, « Réessayer », durées, proportions…) : 31 suites, 3 538 vérifications mesurées par la commande de la porte — plancher 3528.
+# 3 octobre 2026, les deux relectures réunies (sauvegarde + pièces) : 31 suites, 3 654 vérifications mesurées par la commande de la porte — plancher 3640.
+#plancher 3640
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js

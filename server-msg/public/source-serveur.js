@@ -20,6 +20,12 @@
    déjà. Un message rendu porte `photos:[{url,w,h,piece,etat}]`, `vocal:{url,dur,bars,piece}` ou `fichier:{nom,taille,piece}` : `url` est une adresse `blob:` FABRIQUÉE ICI
    (la pièce est lue par `GET /api/pieces/:id` puis gardée EN MÉMOIRE, jamais sur l'appareil), `null` tant qu'elle n'est pas arrivée (`etat` : 'chargement' | 'indisponible').
      pieceUrl(piece)       → l'adresse `blob:` d'une image ou d'un son (gardée en mémoire, rendue à la fermeture) ;  pieceBlob(piece) → le Blob d'un fichier (jamais gardé).
+     ⛔ UNE PIÈCE QUE LE SERVICE REFUSE POUR L'INSTANT (429, 402 espace plein, 503 lecture seule, 408 envoi trop lent) RESTE dans le fil : son message en file porte `attente:true` et
+     `echec:'<la phrase du service>'` (sans `envoi`), l'avis le dit aussi, et elle ne repart JAMAIS toute seule : `reessayer(cid)` → vrai si elle repart (même `cid`, pièces déjà déposées gardées),
+     `abandonner(cid)` → vrai si elle quitte la file (son adresse locale est rendue). Un refus définitif (trop lourd, type refusé, plus le droit) la jette, avec son avis. Un message en file SANS
+     `echec` attend le réseau : `envoi:true` seulement quand une requête part vraiment (« Envoi… »), une panne se dit UNE fois (événement 'avis'), les essais s'espacent (3 s, 6 s, 12 s, 24 s).
+     `limitesPieces()` → { photo_max, vocal_max, fichier_max, avatar_max, par_message, quota } (octets, et le nombre de photos par message) ; plus de dix photos (le `par_message` du service, que `test-944` compare) : refus local 'trop-de-photos'.
+     `moi()` porte `presence` (faux : MA présence est masquée — la barre de la page ne dit plus « Disponible »). Un nom de fichier long garde son extension (`couperNom`, 120 signes).
    LES RÉGLAGES (capacité `reglages`) : profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer,
    deconnecterAutres, stockage, aPropos — voir plus bas. Chacun rend une promesse (sauf `bloques`) et lève une erreur qui se DIT.
    Les événements de `ecouter(cb)` : 'liste', 'conversation' (id), 'contacts', 'presence', 'reseau' (etat), 'arrivee' (un message d'un autre : de quoi
@@ -43,6 +49,7 @@
   const PHRASES_LOCALES = {
     vide: 'Le message est vide.',
     'trop-long': 'Ce message est trop long (8 000 signes au plus).',
+    'trop-de-photos': '10 photos au plus par message : les autres n\'ont pas été envoyées.',
     bientot: 'Cette fonction arrive bientôt.',
     introuvable: 'Introuvable (la conversation a peut-être été supprimée ou tu n\'y es plus).',
     invalide: 'La demande est incorrecte.',
@@ -62,6 +69,17 @@
   const indexAvatar = (id) => { let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) % 6007; return h % 6; };
   const nomComplet = (p) => p ? ((p.prenom || '') + ' ' + (p.nom || '')).trim() || 'Quelqu\'un' : 'Quelqu\'un';
   const extrait = (t, n) => { const a = Array.from(String(t || '').replace(/\s+/g, ' ').trim()); return a.length > n ? a.slice(0, n).join('') + '…' : a.join(''); };
+  /* Un nom de fichier coupé à `max` signes (points de code) EN GARDANT SON EXTENSION : « rapport-très-long….pdf » reste un pdf — sans elle le fichier téléchargé n'a plus de type (relecture du
+     testeur). L'extension est bornée elle aussi (un point et 16 signes sans espace au plus) ; sans extension reconnaissable, ou si elle ne laisse pas de place au radical, on coupe simplement.
+     ⛔ LA MÊME RÈGLE QUE LE SERVICE (`couperNom` de pieces.js) : `test-944` compare les deux sur une batterie de noms. */
+  function couperNom(nom, max) {
+    const signes = Array.from(String(nom));
+    if (signes.length <= max) return signes.join('');
+    const m = /\.[^.\s\/\\]{1,16}$/u.exec(signes.join(''));
+    const ext = m ? Array.from(m[0]) : [];
+    if (!ext.length || ext.length >= max) return signes.slice(0, max).join('');
+    return signes.slice(0, signes.length - ext.length).slice(0, max - ext.length).join('') + ext.join('');
+  }
   const duree = (s) => s % 86400 === 0 ? (s / 86400) + (s === 86400 ? ' jour' : ' jours') : s + ' s';
 
   function creerSourceServeur(options) {
@@ -372,8 +390,14 @@
       return v;
     }
     /* un message qui n'a pas encore quitté l'appareil : `envoi` = un essai est en cours (« Envoi… »), sinon il attend la reprise du réseau. Ses pièces sont celles de l'appareil. */
+    /* ⛔ « Envoi… » DIT VRAI (relecture du testeur). Une tentative de RENVOI qui échoue sur-le-champ (réseau coupé : la requête tombe en quelques millisecondes) ne doit pas faire passer le message
+       de « En attente de connexion… » à « Envoi… » : rien ne part. Le premier essai se montre tout de suite ; un renvoi seulement quand il dure (`DELAI_ENVOI_VU_MS`), et la source
+       redit l'état à ce moment-là. `echec` : un refus qui peut réussir plus tard (429, 402, 503, 408) — la pièce RESTE, avec sa phrase, un « Réessayer » et un « Annuler ». */
+    const DELAI_ENVOI_VU_MS = 400;
     function vueEnAttente(p) {
-      const v = { id: 'p:' + p.cid, seq: null, auteur: moiApi.id, t: p.t, lu: null, texte: p.texte || '', attente: true, envoi: !!p.enVol, cid: p.cid };
+      const envoi = !!p.enVol && !p.echec && (p.essais === 0 || maintenant() - p.debutEssai >= DELAI_ENVOI_VU_MS);
+      const v = { id: 'p:' + p.cid, seq: null, auteur: moiApi.id, t: p.t, lu: null, texte: p.texte || '', attente: true, envoi, cid: p.cid };
+      if (p.echec) v.echec = p.echec.phrase;
       if (p.type === 'photo') v.photos = p.photos.map(x => ({ url: x.url, w: x.w, h: x.h, piece: null }));
       else if (p.type === 'vocal') v.vocal = { url: p.vocal.url, dur: p.vocal.dur, bars: p.vocal.bars.slice(), piece: null };
       else if (p.type === 'fichier') v.fichier = { nom: p.fichier.nom, taille: p.fichier.taille, piece: null };
@@ -427,6 +451,10 @@
 
     /* ── l'envoi, et sa file ── */
     const erreurCoupure = (e) => !!e && (e.code === 'reseau' || e.code === 'serveur' || e.code === 'reponse_illisible');
+    /* ⛔ UN REFUS QUI PEUT RÉUSSIR PLUS TARD GARDE LA PIÈCE (relecture du testeur) : trop de demandes (429), espace plein (402 : on supprime des messages puis on réessaie), service en lecture seule
+       (503), envoi trop lent (408). La jeter obligeait à rechoisir la photo. Un refus DÉFINITIF (trop lourd, type refusé, plus le droit d'écrire) la jette, comme avant. */
+    const retentable = (e) => !!e && (e.statut === 429 || e.statut === 402 || e.statut === 503 || e.statut === 408);
+    const phraseDe = (e) => e && e.dit ? (e.phrase ? e.phrase() : e.message) : 'erreur inattendue.';
     function valider(texte) {
       if (typeof texte !== 'string' || !texte.trim()) throw erreurLocale('vide');
       const t = texte.replace(/\r\n?/g, '\n').trim();
@@ -461,8 +489,9 @@
       return { piece: p.fichier.id, nom: p.fichier.nom, taille: p.fichier.blob.size };
     }
     async function posterPieces(p, retirer) {
-      p.enVol = true;
+      p.enVol = true; p.debutEssai = maintenant();
       emettre({ type: 'conversation', id: p.conv });             // ⛔ l'état « Envoi… » se pose AVANT l'événement : la page relit tout de suite, elle le voit
+      if (p.essais > 0) planifier(() => { if (p.enVol && !mort) emettre({ type: 'conversation', id: p.conv }); }, DELAI_ENVOI_VU_MS + 50);   // un renvoi qui DURE devient « Envoi… »
       try {
         const l = await limites();
         for (const x of lesPieces(p)) {
@@ -480,9 +509,41 @@
         return r;
       } finally { p.enVol = false; }
     }
+    /* ⛔ UNE PANNE SE DIT, UNE FOIS PAR ENVOI (relecture du testeur : « En attente de connexion… » était le seul signe, et aucun avis, même sur un 502). Pas de répétition à chaque renvoi : le message
+       finit par partir tout seul, la personne n'a rien à faire. Les textes ont leur statut ; ce sont les PIÈCES, longues à envoyer, que la personne laisse en route. */
+    const QUI_PARTIRA = (p) => p.type === 'photo' ? (p.photos.length > 1 ? ['tes photos', 'partiront'] : ['ta photo', 'partira']) : p.type === 'vocal' ? ['ton message vocal', 'partira'] : ['ton fichier', 'partira'];
+    function direPanne(p, e) {
+      if (!p.type || p.dit) return;
+      p.dit = true;
+      const [qui, verbe] = QUI_PARTIRA(p);
+      emettre({ type: 'avis', texte: e && e.code === 'reseau' ? 'Pas de connexion : ' + qui + ' ' + verbe + ' dès que le réseau reviendra.' : 'Le service ne répond pas pour l\'instant : ' + qui + ' ' + verbe + ' dès qu\'il répondra.' });
+    }
+    function mettreEnEchec(p, e) {
+      p.echec = { phrase: phraseDe(e), code: e && e.code, statut: e && e.statut };
+      emettre({ type: 'conversation', id: p.conv });
+      const [sujet, accord] = sujetEnvoi(p);
+      emettre({ type: 'avis', texte: sujet + ' n\'a pas pu être ' + accord + ' : ' + p.echec.phrase });
+    }
+    /* « Réessayer » : le même envoi (même `cid`, mêmes pièces déjà déposées) repart tout de suite ; « Annuler » le retire pour de bon et rend ses adresses. */
+    function reessayer(cid) {
+      const p = file.find(x => x.cid === cid && x.echec);
+      if (!p || mort) return false;
+      p.echec = null; p.essais = 0; p.dit = false;
+      emettre({ type: 'conversation', id: p.conv });
+      viderFile();
+      return true;
+    }
+    function abandonner(cid) {
+      const i = file.findIndex(x => x.cid === cid && !x.enVol);
+      if (i < 0) return false;
+      const p = file[i]; file.splice(i, 1);
+      lesPieces(p).forEach(x => { if (x.id && cachePieces.has(x.id)) liberer(x.id); else if (x.url) revoquerUrl(x.url); });
+      emettre({ type: 'conversation', id: p.conv });
+      return true;
+    }
     const livrer = (p, retirer) => (p.type === 'photo' || p.type === 'vocal' || p.type === 'fichier') ? posterPieces(p, retirer) : poster(p, retirer);
     function planifierFile(n) {
-      if (minuterieFile || !file.length || mort) return;
+      if (minuterieFile || !file.some(x => !x.echec) || mort) return;
       minuterieFile = planifier(() => { minuterieFile = null; viderFile(); }, attenteEnvoi(n || 0));
     }
     let viderEnCours = false;
@@ -491,11 +552,13 @@
       viderEnCours = true;
       try {
         for (const p of file.slice()) {
+          if (p.echec) continue;                                  // ⛔ un refus qui attend la PERSONNE (« Réessayer ») ne bloque pas ce qui est derrière lui
           if (p.enVol) { planifierFile(0); break; }              // ⛔ un dépôt de pièce est en cours (un autre appel) : ce qui est derrière lui attend son tour
           try { await livrer(p, () => { const i = file.indexOf(p); if (i >= 0) file.splice(i, 1); }); }
           catch (e) {
             if (mort) return;
-            if (erreurCoupure(e)) { p.essais++; planifierFile(p.essais); break; }
+            if (erreurCoupure(e)) { p.essais++; direPanne(p, e); planifierFile(p.essais); emettre({ type: 'conversation', id: p.conv }); break; }   // ⛔ l'écran est redit : le renvoi a fini d'échouer, « Envoi… » doit s'éteindre
+            if (p.type && retentable(e)) { mettreEnEchec(p, e); continue; }
             /* un refus DÉFINITIF (le groupe est devenu « annonces seules », on n'en est plus membre…) : le message ne partira jamais, on le DIT */
             file.splice(file.indexOf(p), 1);
             lesPieces(p).forEach(x => { if (x.id && cachePieces.has(x.id)) liberer(x.id); else if (x.url) revoquerUrl(x.url); });   // la page ne sait plus que ce message existe : ses adresses locales n'ont plus de propriétaire
@@ -504,37 +567,46 @@
             emettre({ type: 'avis', texte: sujet + ' n\'a pas pu être ' + accord + ' : ' + (e && e.dit ? (e.phrase ? e.phrase() : e.message) : 'erreur inattendue.') });
           }
         }
-      } finally { viderEnCours = false; }
+      } finally {
+        viderEnCours = false;
+        /* ⛔ UN « RÉESSAYER » TOUCHÉ PENDANT UN PASSAGE NE RESTE PAS SANS LENDEMAIN : le passage en cours avait déjà dépassé la pièce (il l'avait sautée, en échec) et `viderFile` rendait la main (« déjà en
+           cours ») — le passage finissait sans plus rien programmer, et la pièce restait « en attente » pour toujours. Une pièce qui attend sans que rien ne soit prévu pour elle redonne rendez-vous ici.
+           (Sans effet quand un rendez-vous existe déjà : `planifierFile` ne double jamais la minuterie.) */
+        if (!mort && file.some(x => !x.echec && !x.enVol)) planifierFile(0);
+      }
     }
     /* Un message de pièces. Les refus qu'on peut juger ICI (rien à envoyer, trop lourd) tombent avant tout dépôt ; un refus du service rejette (la page le DIT et libère ses adresses) ;
        une coupure met le message dans la file (« En attente de connexion… »), où il repart avec le même `cid`. */
     async function envoyerMedia(id, type, b) {
       const p = { cid: OPMSG.nouveauCid(), conv: id, type, texte: '', t: maintenant(), essais: 0, enVol: false, reponse: null };
       if (type === 'photo') {
-        const liste = (b.photos || []).slice(0, PHOTOS_PAR_MESSAGE).filter(x => x && x.blob && x.blob.size > 0);
+        const liste = (b.photos || []).filter(x => x && x.blob && x.blob.size > 0);
         if (!liste.length) throw erreurLocale('vide');
+        if (liste.length > PHOTOS_PAR_MESSAGE) throw erreurLocale('trop-de-photos');      // ⛔ jamais « les dix premières, le reste en silence »
         p.photos = liste.map(x => ({ blob: x.blob, url: x.url || null, w: Math.max(1, x.w | 0), h: Math.max(1, x.h | 0), id: null }));
       } else if (type === 'vocal') {
         const v = b.vocal;
         if (!v || !v.blob || !(v.blob.size > 0) || !(v.dur > 0)) throw erreurLocale('vide');
         const barres = (Array.isArray(v.bars) ? v.bars : []).slice(0, 64).map(n => Math.max(0, Math.min(100, Math.round(+n) || 0)));
-        p.vocal = { blob: v.blob, url: v.url || null, dur: Math.max(1, Math.min(600, Math.round(v.dur))), bars: barres.length ? barres : [8], id: null };
+        /* ⛔ `floor`, pas `round` : le compteur de l'enregistrement montre 1:05 à 65,9 s, et « arrondi » la bulle disait 1:06 (0:01 devenait 0:02) — relecture du testeur */
+        p.vocal = { blob: v.blob, url: v.url || null, dur: Math.max(1, Math.min(600, Math.floor(v.dur))), bars: barres.length ? barres : [8], id: null };
       } else {
         const f = b.fichier;
         if (!f || !f.blob || !(f.blob.size > 0)) throw erreurLocale('vide');
-        const nom = Array.from(String(f.nom || '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/[\/\\]/g, '_').trim()).slice(0, 120).join('') || 'fichier';
+        const nom = couperNom(String(f.nom || '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/[\/\\]/g, '_').trim(), 120) || 'fichier';
         p.fichier = { blob: f.blob, nom, taille: f.blob.size, id: null };
       }
       const l = await limites(), max = maxDe(l, type);
       for (const x of lesPieces(p)) if (x.blob.size > max) throw new OPMSG.ErreurApi('piece_trop_lourde', 413, 0, { max });
       if (!moiApi || mort) throw erreurLocale('introuvable');
-      const attend = file.some(x => x.conv === id);
+      const attend = file.some(x => x.conv === id && !x.echec);
       file.push(p);
       if (attend) { emettre({ type: 'conversation', id }); planifierFile(0); return vueEnAttente(p); }
       const retirer = () => { const i = file.indexOf(p); if (i >= 0) file.splice(i, 1); };
       try { await posterPieces(p, retirer); return { id: p.cid, auteur: moiApi.id, t: p.t, lu: null }; }
       catch (e) {
-        if (erreurCoupure(e)) { p.essais++; planifierFile(p.essais); emettre({ type: 'conversation', id }); return vueEnAttente(p); }
+        if (erreurCoupure(e)) { p.essais++; direPanne(p, e); planifierFile(p.essais); emettre({ type: 'conversation', id }); return vueEnAttente(p); }
+        if (retentable(e)) { mettreEnEchec(p, e); return vueEnAttente(p); }
         retirer(); lesPieces(p).forEach(x => { if (x.id) liberer(x.id); });     // refusé pour de bon : les pièces déjà déposées n'ont plus de message (le balayeur du service les ôtera), leur adresse n'a plus de raison d'être gardée
         emettre({ type: 'conversation', id });
         throw e;
@@ -550,7 +622,7 @@
       if (brouillon.reponse) { const q = c && c.messages.find(x => x.id === brouillon.reponse); if (q) reponse = q.seq; }
       const p = { cid: OPMSG.nouveauCid(), conv: id, texte, reponse, t: maintenant(), essais: 0 };
       /* Tant qu'une file attend pour cette conversation, le suivant la REJOINT : l'ordre d'envoi est l'ordre des messages. */
-      if (file.some(x => x.conv === id)) { file.push(p); emettre({ type: 'conversation', id }); planifierFile(0); return vueEnAttente(p); }
+      if (file.some(x => x.conv === id && !x.echec)) { file.push(p); emettre({ type: 'conversation', id }); planifierFile(0); return vueEnAttente(p); }
       try { await poster(p); return { id: p.cid, auteur: moiApi.id, t: p.t, texte, lu: null }; }
       catch (e) {
         if (!erreurCoupure(e)) throw e;
@@ -884,6 +956,7 @@
       for (const k of ['presence', 'accuses']) if (champs && typeof champs[k] === 'boolean') c[k] = champs[k];
       if (!Object.keys(c).length) throw erreurLocale('vide');
       const r = etatConfidentialite(await A.majConfidentialite(c));
+      if (moiApi) { moiApi.prefs = Object.assign({}, moiApi.prefs, { presence: r.presence, accuses: r.accuses }); emettre({ type: 'moi' }); }      // la barre de la page redit MA présence
       /* ce que je vois des autres change avec mes réglages (leur présence, leur « Lu ») : tout se relit */
       rafraichirContacts().catch(() => {});
       for (const id of convs.keys()) rafraichirDetail(id).then(() => emettre({ type: 'conversation', id }), () => {});
@@ -907,7 +980,8 @@
       capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: false, reunions: false, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       surSessionMorte: (cb) => { suiviMort = cb; },
-      moi: () => moiApi ? Object.assign(vuePersonne(moiApi), { id: moiApi.id }) : null,
+      /* `presence` : MA présence est-elle montrée ? Coupée, la barre de la page ne doit pas dire « Disponible » avec un point vert (relecture du testeur) : les autres ne me voient plus en ligne. */
+      moi: () => moiApi ? Object.assign(vuePersonne(moiApi), { id: moiApi.id, presence: !(moiApi.prefs && moiApi.prefs.presence === false) }) : null,
       contacts: () => contactsApi.map(vueContact).sort((x, y) => x.nom.localeCompare(y.nom, 'fr')),
       personne, rafraichirContacts,
       lister, ouvrir, precedents, envoyer, marquerLu, saisie,
@@ -915,7 +989,7 @@
       creerGroupe, ouvrirDirecte, conversationPour, infos, majConversation, retirerMembre, nommerAdmin, ajouterMembres, quitter, lienGroupe,
       lienContact, revoquerLiens, lireLien, accepterLien,
       /* ── les pièces et les réglages ── */
-      pieceUrl, pieceBlob,
+      pieceUrl, pieceBlob, reessayer, abandonner, limitesPieces: limites,
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, deconnecterAutres, stockage: stockageUtilise, aPropos,
       /* ── ce que le service ne sait pas encore : les appels (étape 7) — la page dit « bientôt », ces méthodes refusent proprement ── */
       appels: () => Promise.resolve([]),
@@ -928,6 +1002,6 @@
     return source;
   }
 
-  if (typeof module !== 'undefined' && module.exports) module.exports = { creerSourceServeur, erreurLocale, initialesDe };
+  if (typeof module !== 'undefined' && module.exports) module.exports = { creerSourceServeur, erreurLocale, initialesDe, couperNom };
   else { racine.OPMSG_creerSourceServeur = creerSourceServeur; racine.OPMSG_SOURCE = creerSourceServeur(); }
 })(typeof window !== 'undefined' ? window : globalThis);

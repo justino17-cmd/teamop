@@ -11,6 +11,7 @@
        frontière de bloc, un en-tête qui ment — tous refusés (`piece_corrompue`), jamais rendus tels quels ;
      · `Range` NE DÉCHIFFRE QUE LES BLOCS TOUCHÉS (un bloc abîmé plus loin ne gêne pas la lecture d'une plage qui ne le touche pas) ;
      · UN ENVOI QUI DÉPASSE S'ARRÊTE AU FIL DE L'EAU (on compte les octets pris au flux : il est infini) ;
+     · UNE IMAGE « BOURRÉE » DE MILLIONS DE MORCEAUX VIDES EST REFUSÉE (plafond de segments), SANS MÉMOIRE NI BOUCLE, et les images en cours de nettoyage se partagent un plafond GLOBAL de mémoire ;
      · UN ENVOI INTERROMPU NE LAISSE RIEN sous le nom de la pièce ;
      · DEUX ENVOIS EN MÊME TEMPS NE DÉPASSENT PAS LE QUOTA ENSEMBLE. */
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
@@ -52,11 +53,16 @@ const jeton = (b, canari) => b.includes(Buffer.from(canari, 'latin1'));
   /* ═══ 2. LES MÉTADONNÉES RETIRÉES ══════════════════════════════════════════════════════════════════════════════════════════ */
   console.log('\nLes métadonnées sont retirées côté serveur aussi (JPEG, PNG, WebP) — avec la preuve qu\'elles étaient là');
   {
-    const CAN = { exif: 'ZXCANARIQGPS48.8566N', xmp: 'ZXCANARIQXMPAUTEUR', iptc: 'ZXCANARIQIPTCLEGENDE', com: 'ZXCANARIQCOMMENTAIRE', mpf: 'ZXCANARIQMPFAPERCU', apres: 'ZXCANARIQSECONDEIMAGE' };
-    const entree = F.jpeg({ exif: CAN.exif, xmp: CAN.xmp, iptc: CAN.iptc, com: CAN.com, mpf: CAN.mpf, icc: 'PROFILICC', apres: Buffer.concat([Buffer.from([0xFF, 0xD8]), Buffer.from(CAN.apres), Buffer.from([0xFF, 0xD9])]) });
-    vrai('population : les six canaris (GPS, XMP, IPTC, commentaire, index MPF, seconde image) SONT dans le JPEG envoyé', Object.values(CAN).every(c => jeton(entree, c)));
+    const CAN = { exif: 'ZXCANARIQGPS48.8566N', xmp: 'ZXCANARIQXMPAUTEUR', iptc: 'ZXCANARIQIPTCLEGENDE', com: 'ZXCANARIQCOMMENTAIRE', mpf: 'ZXCANARIQMPFAPERCU', apres: 'ZXCANARIQSECONDEIMAGE',
+      /* la LISTE BLANCHE (relecture du gardien) : ce qu'une liste de ce qu'on retire laissait passer */
+      jfxx: 'ZXCANARIQJFXXMINIATURE', miniature: 'ZXCANARIQJFIFMINIATURE', fpxr: 'ZXCANARIQFLASHPIX', jumbf: 'ZXCANARIQJUMBFC2PA', ducky: 'ZXCANARIQAPP14AUTRE' };
+    const entree = F.jpeg({ exif: CAN.exif, xmp: CAN.xmp, iptc: CAN.iptc, com: CAN.com, mpf: CAN.mpf, icc: 'PROFILICC', jfxx: CAN.jfxx, miniature: CAN.miniature, fpxr: CAN.fpxr, jumbf: CAN.jumbf, ducky: CAN.ducky, apres: Buffer.concat([Buffer.from([0xFF, 0xD8]), Buffer.from(CAN.apres), Buffer.from([0xFF, 0xD9])]) });
+    vrai('population : les onze canaris (GPS, XMP, IPTC, commentaire, index MPF, seconde image, miniature JFXX, miniature du segment JFIF, FlashPix, JUMBF, APP14 étranger) SONT dans le JPEG envoyé', Object.values(CAN).every(c => jeton(entree, c)));
     const sortie = P.retirerMetadonnees('image/jpeg', entree);
-    v('⛔ JPEG : AUCUN des six canaris n\'est dans ce qui est rangé', Object.entries(CAN).filter(([, c]) => jeton(sortie, c)).map(([k]) => k), []);
+    v('⛔ JPEG : AUCUN des onze canaris n\'est dans ce qui est rangé — les miniatures (JFXX et celle du segment JFIF) qui peuvent montrer l\'image d\'avant une retouche partent avec le reste', Object.entries(CAN).filter(([, c]) => jeton(sortie, c)).map(([k]) => k), []);
+    const iJ = sortie.indexOf(Buffer.from('JFIF\0', 'latin1'));
+    vrai('⛔ JPEG : le segment JFIF reste, RÉÉCRIT sans miniature (16 octets, miniature 0 x 0) — les densités sont celles d\'origine', iJ > 2 && sortie.readUInt16BE(iJ - 2) === 16 && sortie[iJ + 12] === 0 && sortie[iJ + 13] === 0 && sortie.subarray(iJ + 5, iJ + 12).equals(Buffer.from([1, 1, 0, 0, 1, 0, 1])));
+    vrai('⛔ JPEG : seuls restent APP0 JFIF, APP2 ICC_PROFILE et APP14 Adobe — aucun JFXX, aucun FPXR, aucun APP14 étranger, aucun APP1 ni APP11', (() => { const noms = []; let i = 2; while (i < sortie.length && sortie[i] === 0xFF) { const m = sortie[i + 1]; if (m === 0xDA || m === 0xD9) break; noms.push(m.toString(16)); i += 2 + sortie.readUInt16BE(i + 2); } return noms.filter(x => /^e/.test(x)).join(','); })() === 'e0,e2,ee');
     vrai('⛔ JPEG : ce qui compte reste — JFIF, profil de couleur, Adobe (sans lui un CMYK s\'inverse), et les DONNÉES de l\'image (octet bourré FF00 et redémarrage compris) à l\'identique',
       jeton(sortie, 'JFIF') && jeton(sortie, 'ICC_PROFILE') && jeton(sortie, 'Adobe') && sortie.includes(F.JPEG_ENTROPIE));
     vrai('JPEG : commence par SOI, finit par EOI (rien ne suit la fin de l\'image), et est plus court', sortie[0] === 0xFF && sortie[1] === 0xD8 && sortie[sortie.length - 2] === 0xFF && sortie[sortie.length - 1] === 0xD9 && sortie.length < entree.length);
@@ -83,8 +89,61 @@ const jeton = (b, canari) => b.includes(Buffer.from(canari, 'latin1'));
     vrai('⛔ WebP : les drapeaux EXIF et XMP de VP8X sont BAISSÉS (sinon un lecteur chercherait ce qu\'on a retiré), le drapeau d\'alpha reste', (wOut[20] & 0x0C) === 0 && (wOut[20] & 0x10) === 0x10);
     vrai('⛔ WebP : la taille du conteneur RIFF est recalculée (taille annoncée + 8 = longueur du fichier) et le bourrage du bloc impair est là', wOut.readUInt32LE(4) + 8 === wOut.length && jeton(wOut, 'image-webp-factice-impair'));
     v('⛔ un WebP dont un bloc dépasse le conteneur est refusé', await attrape(Promise.resolve().then(() => { const b = Buffer.from(wIn); b.writeUInt32LE(0x00FFFFFF, 16); return P.retirerMetadonnees('image/webp', b); })), 'type_refuse');
-    const g = F.gif('ZXCANARIQGIF');
-    vrai('GIF : gardé tel quel (le client n\'en produit jamais — voir l\'en-tête du module)', P.retirerMetadonnees('image/gif', g).equals(g));
+    /* GIF : commentaires, textes et extensions d'application autres que celles d'une animation partent ; l'animation reste */
+    const CG = { com: 'ZXCANARIQGIFCOMMENTAIRE', xmp: 'ZXCANARIQGIFXMP', texte: 'ZXCANARIQGIFTEXTE', apres: 'ZXCANARIQGIFAPRES' };
+    const gIn = F.gif({ commentaire: CG.com, xmp: CG.xmp, texte: CG.texte, netscape: true, images: 2, apres: Buffer.from(CG.apres, 'latin1') });
+    vrai('population : les quatre canaris GIF (commentaire, XMP d\'application, texte simple, octets après le terminateur) SONT dans le fichier envoyé', Object.values(CG).every(c => jeton(gIn, c)));
+    const gOut = P.retirerMetadonnees('image/gif', gIn);
+    v('⛔ GIF : aucun des quatre canaris n\'est dans ce qui est rangé', Object.entries(CG).filter(([, c]) => jeton(gOut, c)).map(([k]) => k), []);
+    const compte = (b, motif) => { let n = 0, i = b.indexOf(motif); while (i >= 0) { n++; i = b.indexOf(motif, i + 1); } return n; };
+    vrai('⛔ GIF : l\'animation RESTE — NETSCAPE2.0 (les boucles), le contrôle graphique de chacune des deux images, les deux images, et le fichier finit par son terminateur',
+      jeton(gOut, 'NETSCAPE2.0') && compte(gOut, Buffer.from([0x21, 0xF9, 4])) === 2 && compte(gOut, Buffer.from([0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0, 2, 2, 0x44, 0x01, 0])) === 2 && gOut[gOut.length - 1] === 0x3B);
+    v('un GIF sans rien à retirer ressort identique, octet pour octet', [P.retirerMetadonnees('image/gif', F.gif()).equals(F.gif()), P.retirerMetadonnees('image/gif', F.gif({ netscape: true, images: 3 })).equals(F.gif({ netscape: true, images: 3 }))], [true, true]);
+    v('⛔ un GIF tronqué (sans terminateur), à bloc inconnu, ou dont un sous-bloc dépasse le fichier : refusé', [
+      await attrape(Promise.resolve().then(() => P.retirerMetadonnees('image/gif', F.gif().subarray(0, F.gif().length - 1)))),
+      await attrape(Promise.resolve().then(() => P.retirerMetadonnees('image/gif', Buffer.concat([F.gif().subarray(0, 19), Buffer.from([0x5A]), F.gif().subarray(19)])))),
+      await attrape(Promise.resolve().then(() => P.retirerMetadonnees('image/gif', Buffer.concat([F.gif().subarray(0, 19), Buffer.from([0x21, 0xFE, 200, 1, 2, 3])])))),
+    ], ['type_refuse', 'type_refuse', 'type_refuse']);
+  }
+
+  /* ═══ 2 bis. UNE IMAGE BOURRÉE DE MORCEAUX VIDES NE COÛTE NI MÉMOIRE NI BOUCLE (relecture du gardien, B1) ═════════════════════════════════════════ */
+  console.log('\nUne image « bourrée » de millions de morceaux vides est refusée tout de suite — sans mémoire, sans boucle bloquée (B1)');
+  {
+    const MO = 1048576;
+    const mesure = async (entree, mime) => {
+      if (global.gc) global.gc();
+      const avant = process.memoryUsage().rss, t0 = process.hrtime.bigint();
+      const code = await attrape(Promise.resolve().then(() => P.retirerMetadonnees(mime, entree)));
+      return { code, ms: Number((process.hrtime.bigint() - t0) / 1000000n), mo: Math.round((process.memoryUsage().rss - avant) / MO) };
+    };
+    const jb = F.jpegBourre(2900000), pb = F.pngBourre(1000000), wb = F.webpBourre(1500000);
+    vrai('population : les trois images bourrées pèsent plus de 10 Mo chacune — le défaut ÉTAIT dans ce qu\'on envoie', [jb, pb, wb].every(b => b.length > 10 * MO));
+    const rj = await mesure(jb, 'image/jpeg'), rp = await mesure(pb, 'image/png'), rw = await mesure(wb, 'image/webp');
+    v('⛔ un JPEG de 2,9 M de segments vides, un PNG d\'1 M de morceaux, un WebP d\'1,5 M de blocs : tous REFUSÉS (415), aucun n\'est rangé', [rj.code, rp.code, rw.code], ['type_refuse', 'type_refuse', 'type_refuse']);
+    vrai('⛔ …sans boucle ni mémoire : chacun en moins d\'une demi-seconde et pour moins de 100 Mo de plus (avant le correctif : 1,8 s et +350 Mo pour le JPEG, 1 s et +90 Mo pour le WebP)', [rj, rp, rw].every(r => r.ms < 500 && r.mo < 100));
+    /* le plafond est sur le NOMBRE de morceaux, pas sur la taille : 3 000 segments vides ne pèsent que 12 Ko */
+    v('⛔ le plafond porte sur le NOMBRE de segments, pas sur les octets : 3 000 segments JPEG vides (12 Ko) sont refusés', [F.jpegBourre(3000, 0xE3).length < 20000, await attrape(Promise.resolve().then(() => P.retirerMetadonnees('image/jpeg', F.jpegBourre(3000, 0xE3))))], [true, 'type_refuse']);
+    /* contre-épreuves : ce qu'une vraie image atteint passe, et ressort NETTOYÉ comme avant */
+    const mille = F.jpegBourre(1000, 0xE3);
+    vrai('contre-épreuve : 1 000 segments APP3 (vingt fois ce que porte une photo) passent, et sortent retirés — il reste l\'image d\'origine, octet pour octet', P.retirerMetadonnees('image/jpeg', mille).equals(F.jpeg()) && mille.length > F.jpeg().length);
+    const cinqP = F.pngBourre(5000), cinqW = F.webpBourre(5000);
+    vrai('contre-épreuve : un PNG de 5 000 morceaux et un WebP de 5 000 blocs (bien plus que les vrais) passent, intacts (rien n\'y était à retirer)', P.retirerMetadonnees('image/png', cinqP).equals(cinqP) && P.retirerMetadonnees('image/webp', cinqW).equals(cinqW));
+
+    /* ── le plafond GLOBAL de mémoire d'images : on RÉSERVE 2 × la taille annoncée (le corps et sa version nettoyée) avant de lire ── */
+    const pcM = neuf({ memoireImages: 1 * MO });
+    const gros = F.png({ avant: [['abCd', Buffer.alloc(400000, 1)]] });                 // 400 Ko : 800 Ko réservés sur 1 Mio
+    vrai('population : l\'image d\'essai pèse 400 Ko, donc 800 Ko réservés — un seul dépôt tient dans 1 Mio', gros.length > 400000 && gros.length < 410000);
+    let ouvrir; const porte = new Promise((ok) => { ouvrir = ok; });
+    const premier = pcM.deposer({ id: nouvelId(), genre: 'photo', flux: F.fluxRetenu(gros, 100, porte), max: 5 * MO, attendu: gros.length });   // lit 100 octets, réserve, puis ATTEND
+    const second = () => attrape(pcM.deposer({ id: nouvelId(), genre: 'photo', flux: F.fluxDe(gros), max: 5 * MO, attendu: gros.length }));
+    let refus = null;
+    for (let k = 0; k < 100 && refus !== 'occupe'; k++) { refus = await second(); if (refus !== 'occupe') await new Promise((ok) => setTimeout(ok, 20)); }
+    v('⛔ pendant qu\'un premier dépôt tient 800 Ko sur 1 Mio, un second est refusé TOUT DE SUITE (occupe) — et pas rangé', refus, 'occupe');
+    ouvrir();
+    v('…le premier se termine normalement', (await premier).taille, gros.length);
+    v('⛔ la réserve est RENDUE : le même dépôt passe maintenant', await second(), null);
+    v('⛔ la réserve est rendue aussi quand un dépôt ÉCHOUE (flux coupé avant la longueur annoncée), et le suivant passe', [await attrape(pcM.deposer({ id: nouvelId(), genre: 'photo', flux: F.fluxDe(gros.subarray(0, 5000)), max: 5 * MO, attendu: gros.length })), await second()], ['incomplet', null]);
+    v('⛔ un son et un fichier ne comptent PAS dans ce plafond (ils passent en flux, un bloc à la fois) : un fichier de 3 Mio passe sur 1 Mio de réserve', await attrape(pcM.deposer({ id: nouvelId(), genre: 'fichier', flux: F.fluxDe(F.alea(3 * MO)), max: 5 * MO, attendu: 3 * MO })), null);
   }
 
   /* ═══ 3. LE SCELLAGE PAR BLOCS ═════════════════════════════════════════════════════════════════════════════════════════════ */
@@ -233,6 +292,62 @@ const jeton = (b, canari) => b.includes(Buffer.from(canari, 'latin1'));
     v('un bloc plein exactement (1 024 octets, puis 2 048) : l\'écriture ne perd pas le drapeau « dernier »', await (async () => { const o = []; for (const t of [1024, 2048]) { const id = nouvelId(), d = crypto.randomBytes(t); await pc.deposer({ id, genre: 'fichier', flux: F.fluxDe(d, 512), max: 1 << 20 }); o.push((await lireTout(pc, id)).equals(d)); } return o; })(), [true, true]);
   }
 
+  /* ═══ 5 bis. UN ENVOI QUI N'AVANCE PAS NE TIENT PAS UNE PLACE (relecture du gardien, A4) ═══════════════════════════════════════ */
+  console.log('\nUn envoi qui n\'avance pas est coupé : un débit minimal après une grâce, jugé par une MINUTERIE (un envoi arrêté ne reçoit plus de morceau pour s\'en apercevoir)');
+  {
+    /* la formule, à horloge fausse : après `graceMs`, il faut avoir reçu `(écoulé − grâce) × débit` octets */
+    let t = 0; const maintenant = () => t;
+    const garde = (o) => { t = 0; return P.gardeDebit(Object.assign({ debitMin: 1000, graceMs: 1000, maintenant, pas: 5 }, o || {})); };
+    const verdict = (g, ms) => Promise.race([g.vigile.then(() => 'tenue', (e) => e.code), new Promise((ok) => setTimeout(() => ok('en_vie'), ms))]);
+    let g = garde(); t = 900;
+    v('⛔ pendant la grâce rien n\'est exigé : un envoi qui n\'a encore RIEN reçu n\'est pas coupé', await verdict(g, 60), 'en_vie'); g.arreter();
+    g = garde(); t = 1500;
+    v('⛔ la grâce passée, un envoi qui n\'a rien reçu est coupé (trop_lent) — par la minuterie, sans qu\'aucun morceau n\'arrive', await verdict(g, 300), 'trop_lent');
+    g = garde(); t = 1500; g.compter(500);
+    v('…le crédit exact (500 octets exigés, 500 reçus) ne coupe pas ; un octet exigé de plus, si', [await verdict(g, 60), (t = 1501, await verdict(g, 300))], ['en_vie', 'trop_lent']);
+    g = garde(); t = 0; let tenu = true;
+    for (let k = 1; k <= 50; k++) { t = k * 100; g.compter(200); if (await verdict(g, 8) !== 'en_vie') { tenu = false; break; } }
+    vrai('⛔ contre-épreuve : un envoi à bon débit (2 000 octets par seconde pour 1 000 exigés) n\'est JAMAIS coupé, cinq secondes durant (la grâce ne s\'use pas)', tenu && t === 5000); g.arreter();
+    g = garde(); g.arreter(); t = 9000;
+    v('une garde arrêtée ne coupe plus personne (le corps est lu en entier : le nettoyage et l\'écriture ne comptent pas dans le temps de l\'envoi)', await verdict(g, 80), 'en_vie');
+
+    /* la garde dans `deposer` : une vraie minuterie, de vrais flux */
+    const pc = neuf({ bloc: 1024 });
+    const sansRien = async () => { const o = []; for await (const f of pc.lister()) o.push(f.id); const tmp = fs.existsSync(path.join(pc.dossier, 'tmp')) ? fs.readdirSync(path.join(pc.dossier, 'tmp')) : []; return [o, tmp]; };
+    const jamais = new Promise(() => {});
+    const bin = crypto.randomBytes(300000);
+    const t0 = Date.now();
+    const e1 = await attrape(pc.deposer({ id: nouvelId(), genre: 'fichier', flux: F.fluxRetenu(bin, 100, jamais), max: 1 << 20, attendu: bin.length, debitMin: 100000, graceMs: 300 }));
+    const dur1 = Date.now() - t0;
+    vrai('⛔ un envoi qui s\'ARRÊTE après 100 octets est coupé (trop_lent) entre la grâce et une seconde de plus — il n\'attend pas le délai de Node (' + dur1 + ' ms)', e1 === 'trop_lent' && dur1 >= 250 && dur1 < 2500);
+    v('…et il ne reste ni fichier ni temporaire', await sansRien(), [[], []]);
+    /* une réserve de mémoire d'images JUSTE assez large pour une photo en cours (2 × le maximum) : si la coupure ne la rendait pas, la photo suivante serait refusée (`occupe`) */
+    const pm = neuf({ bloc: 1024, memoireImages: 2 * (1 << 20) });
+    const e2 = await attrape(pm.deposer({ id: nouvelId(), genre: 'photo', flux: F.fluxRetenu(F.jpeg({ exif: 'ZXCANARIQLENT' }), 60, jamais), max: 1 << 20, debitMin: 100000, graceMs: 300 }));
+    v('⛔ pareil pour une photo (tenue en mémoire) : coupée, et la réserve de mémoire est rendue (une autre photo passe ensuite)', [e2, await attrape(pm.deposer({ id: nouvelId(), genre: 'photo', flux: F.fluxDe(F.png()), max: 1 << 20, attendu: F.png().length, debitMin: 100000, graceMs: 300 }))], ['trop_lent', null]);
+    /* un envoi honnête mais lent : 300 000 octets en 6 morceaux espacés de 100 ms, soit ~500 Ko/s pour 100 Ko/s exigés */
+    const lent = { async *[Symbol.asyncIterator]() { for (let i = 0; i < bin.length; i += 50000) { await new Promise((ok) => setTimeout(ok, 100)); yield bin.subarray(i, i + 50000); } } };
+    const idl = nouvelId();
+    const rl = await attrape(pc.deposer({ id: idl, genre: 'fichier', flux: lent, max: 1 << 20, attendu: bin.length, debitMin: 100000, graceMs: 300 }));
+    v('⛔ contre-épreuve : un envoi lent mais au-dessus du débit minimal (6 morceaux espacés de 100 ms) passe, intact', [rl, (await lireTout(pc, idl)).equals(bin)], [null, true]);
+    /* une grâce n'est pas un débit : un premier morceau tardif (200 ms) puis un bon débit passe — la grâce couvre le démarrage */
+    const demarrage = { async *[Symbol.asyncIterator]() { await new Promise((ok) => setTimeout(ok, 200)); yield bin.subarray(0, 150000); yield bin.subarray(150000); } };
+    v('⛔ un démarrage tardif (200 ms avant le premier octet) est couvert par la grâce de 300 ms', await attrape(pc.deposer({ id: nouvelId(), genre: 'fichier', flux: demarrage, max: 1 << 20, attendu: bin.length, debitMin: 100000, graceMs: 300 })), null);
+    /* sans réglage (le module seul), aucune garde : un envoi qui s'arrête un moment puis finit passe */
+    const pause = { async *[Symbol.asyncIterator]() { yield bin.subarray(0, 1000); await new Promise((ok) => setTimeout(ok, 900)); yield bin.subarray(1000); } };
+    v('sans `debitMin` (le module seul) il n\'y a aucune garde : un envoi qui s\'arrête 900 ms puis finit passe', await attrape(pc.deposer({ id: nouvelId(), genre: 'fichier', flux: pause, max: 1 << 20, attendu: bin.length })), null);
+    /* aucune minuterie ne survit à un envoi : réussi, refusé tôt ou coupé — sinon chaque envoi en laisserait une, pour toujours */
+    let appels = 0; const compteur = () => { appels++; return Date.now(); };
+    const survie = async (nom, promesse, attendu) => { const r = await attrape(promesse); const avant = appels; await T.dort(700); return [nom, r, appels - avant]; };
+    const ok1 = await survie('réussi', pc.deposer({ id: nouvelId(), genre: 'fichier', flux: F.fluxDe(bin.subarray(0, 5000)), max: 1 << 20, attendu: 5000, debitMin: 1000, graceMs: 100000, maintenant: compteur }));
+    const refuse1 = await survie('refusé tôt', pc.deposer({ id: nouvelId(), genre: 'photo', flux: F.fluxDe(F.svg()), max: 1 << 20, debitMin: 1000, graceMs: 100000, maintenant: compteur }));
+    appels = 0;
+    const coupe1 = await survie('coupé', pc.deposer({ id: nouvelId(), genre: 'fichier', flux: F.fluxRetenu(bin, 100, jamais), max: 1 << 20, attendu: bin.length, debitMin: 100000, graceMs: 300, maintenant: compteur }));
+    vrai('population : la minuterie a bien tourné pendant l\'envoi coupé (' + appels + ' lectures de l\'horloge, dont ' + coupe1[2] + ' après)', appels - coupe1[2] > 0);
+    v('⛔ aucune minuterie ne survit à un envoi : réussi, refusé tôt ou coupé, l\'horloge n\'est plus lue 700 ms après', [ok1[1], ok1[2], refuse1[1], refuse1[2], coupe1[1], coupe1[2]], [null, 0, 'type_refuse', 0, 'trop_lent', 0]);
+    v('…et toujours rien sur le disque (hors la pièce réussie, le lent et le démarrage tardif)', (await sansRien())[1], []);
+  }
+
   /* ═══ 6. LE DISQUE : LISTER, EFFACER, NETTOYER ════════════════════════════════════════════════════════════════════════════ */
   console.log('\nLe disque : lister, effacer, nettoyer les temporaires (le balayeur n\'a que cela à sa disposition)');
   {
@@ -285,6 +400,23 @@ const jeton = (b, canari) => b.includes(Buffer.from(canari, 'latin1'));
     vrai('⛔ un nom piégé (guillemets, retours à la ligne, barres obliques) ne casse pas l\'en-tête : aucun CR/LF, exactement deux guillemets (ceux du nom), aucune barre, et le texte « Set-Cookie » reste DANS le nom entre guillemets (il n\'ouvre pas un en-tête)', !/[\r\n]/.test(piege) && (piege.match(/"/g) || []).length === 2 && !/[\\/]/.test(piege.replace(/UTF-8''.*/, '')) && /^attachment; filename="[^"]*Set-Cookie[^"]*"; filename\*=/.test(piege));
     vrai('un nom vide ou fait de contrôles devient « fichier »', /filename="fichier"/.test(P.dispositionDe(false, '')) && /filename="fichier"/.test(P.dispositionDe(false, null)) && /filename="_+"|filename="fichier"/.test(P.dispositionDe(false, '\u0000\u0001')));
     vrai('un nom de 300 signes est coupé à 120 signes (par points de code : un émoji n\'est pas coupé en deux)', Array.from(decodeURIComponent(P.dispositionDe(false, '😀'.repeat(300)).split("UTF-8''")[1])).length === 120 && !/%ED%A0/.test(P.dispositionDe(false, '😀'.repeat(300))));
+  }
+
+  /* ═══ 9. COUPER UN NOM EN GARDANT SON EXTENSION (le testeur : « .pdf » disparaissait au-delà de 120 signes) ═════════════════════════════════════════ */
+  console.log('\nUn nom trop long est coupé dans son radical, jamais dans son extension');
+  {
+    const long = 'rapport-'.repeat(40) + 'final.pdf';
+    const c = P.couperNom(long, 120);
+    v('⛔ 329 signes coupés à 120 : le nom finit toujours par « .pdf » et pèse exactement 120 signes', [Array.from(long).length > 300, c.endsWith('.pdf'), Array.from(c).length, c.startsWith('rapport-rapport-')], [true, true, 120, true]);
+    v('un nom qui tient (120 signes ou moins) n\'est pas touché', [P.couperNom('a.pdf', 120), P.couperNom('x'.repeat(120), 120).length], ['a.pdf', 120]);
+    v('sans extension reconnaissable, on coupe simplement', [Array.from(P.couperNom('x'.repeat(300), 120)).length, P.couperNom('x'.repeat(300), 120).includes('.')], [120, false]);
+    v('⛔ une « extension » démesurée (plus de 16 signes sans espace) n\'est pas gardée : le radical n\'est pas écrasé par elle', [Array.from(P.couperNom('a'.repeat(50) + '.' + 'b'.repeat(200), 120)).length, P.couperNom('a'.repeat(50) + '.' + 'b'.repeat(200), 120).startsWith('a'.repeat(50) + '.b')], [120, true]);
+    v('⛔ l\'extension se garde par POINTS DE CODE : un émoji dans le radical n\'est pas coupé en deux (aucune moitié de paire de substitution)', (() => { const x = P.couperNom('😀'.repeat(200) + '.png', 120); return [x.endsWith('.png'), Array.from(x).length, /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/.test(x)]; })(), [true, 120, false]);
+    v('une extension à plusieurs points : seule la dernière compte', [P.couperNom('x'.repeat(200) + '.tar.gz', 120).endsWith('.tar.gz'), P.couperNom('x'.repeat(200) + '.tar.gz', 120).endsWith('x.gz')], [false, true]);
+    /* Le geste complet : ce que le navigateur reçoit au téléchargement (c'est CET en-tête qui donne son type au fichier enregistré). */
+    const tete = P.dispositionDe(false, long);
+    const repli = (/filename="([^"]*)"/.exec(tete) || [])[1] || '', reel = decodeURIComponent((/filename\*=UTF-8''(.*)$/.exec(tete) || [])[1] || '');
+    v('⛔ l\'en-tête de téléchargement d\'un nom de 329 signes garde « .pdf » dans le nom de repli ET dans le nom réel (filename*), 120 signes chacun', [repli.endsWith('.pdf'), reel.endsWith('.pdf'), Array.from(reel).length, repli.length], [true, true, 120, 120]);
   }
 
   fs.rmSync(bac, { recursive: true, force: true });

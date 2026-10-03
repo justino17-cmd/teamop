@@ -60,7 +60,7 @@ function demarrer(env = process.env) {
      publie : les pièces dont le fichier n'a pas pu être relu (bloc qui ne s'authentifie plus, fichier absent) — la panne silencieuse type, rendue visible. Un fichier à effacer
      (message supprimé pour tous, éphémère échu, photo remplacée, conversation disparue) l'est sans attendre et sans jamais faire échouer le geste : s'il résiste, il reste sans
      ligne, et le balayeur l'efface au passage suivant. */
-  const pieces = creerPieces({ dossier: path.join(config.dataDir, 'pieces'), cle: (g, id) => scelleur.deriver(g, 'piece', 'bloc', id), generation: scelleur.generation, bloc: config.pieces.bloc });
+  const pieces = creerPieces({ dossier: path.join(config.dataDir, 'pieces'), cle: (g, id) => scelleur.deriver(g, 'piece', 'bloc', id), generation: scelleur.generation, bloc: config.pieces.bloc, memoireImages: config.pieces.memoireImages });
   const reservations = creerReservations({ max: config.pieces.quotaPersonne, utilise: (u) => stockage.pieceUtilise(u) });
   const piecesEtat = { illisibles: 0, effacementsRates: 0 };
   const effacerPieces = (ids) => { for (const id of ids || []) pieces.effacer(id).catch(() => { piecesEtat.effacementsRates++; }); };

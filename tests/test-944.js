@@ -33,14 +33,15 @@ const PHOTO_MAX = 307200, VOCAL_MAX = 204800, FICHIER_MAX = 716800, AVATAR_MAX =
 /* Un « appareil » : un navigateur de poche (cookie, Origin) dont on peut COUPER le réseau, RETENIR une requête, PERDRE une réponse, FORCER une réponse, et dont on compte les requêtes ET les adresses blob:. */
 function monter(svc, opts = {}) {
   const nav = T.navigateur(svc.base);
-  const reseau = { coupe: false, requetes: [], urls: [], tirsFile: 0, retenir: null, forcer: null, perdre: null };
+  const reseau = { coupe: false, requetes: [], urls: [], depots: [], tirsFile: 0, retenir: null, forcer: null, perdre: null, garderFile: false, fileGardee: null };
   const urls = { creees: new Map(), revoquees: [] };
   const creerUrl = (b) => { const u = 'blob:http://127.0.0.1/' + crypto.randomUUID(); urls.creees.set(u, b); return u; };
   const revoquerUrl = (u) => { urls.revoquees.push(u); };
   const f = async (url, init) => {
     const u = String(url), m = (init && init.method) || 'GET', chemin = u.replace(svc.base, '').split('?')[0], cle = m + ' ' + chemin;
     reseau.requetes.push(cle);
-    reseau.urls.push(m + ' ' + u.replace(svc.base, ''));            // l'adresse ENTIÈRE, requête comprise : ce que l'appareil ENVOIE (le nom d'un fichier y voyage)
+    reseau.urls.push(m + ' ' + u.replace(svc.base, ''));            // l'adresse ENTIÈRE, requête comprise : ce que l'appareil ENVOIE
+    if (m === 'POST' && chemin === '/api/pieces') reseau.depots.push({ url: u.replace(svc.base, ''), entetes: Object.assign({}, (init && init.headers) || {}) });
     if (reseau.coupe) throw new TypeError('réseau coupé');
     if (reseau.retenir && reseau.retenir.re.test(cle)) { await reseau.retenir.attente; if (reseau.coupe) throw new TypeError('réseau coupé'); }
     if (reseau.forcer && reseau.forcer.re.test(cle)) {
@@ -54,14 +55,22 @@ function monter(svc, opts = {}) {
     return r;
   };
   /* la minuterie de la FILE D'ENVOI (120 ms : `attenteEnvoi`) se compte quand elle tire : « la file a été vidée pendant ce temps » se prouve, elle ne se suppose pas */
-  const planifier = (fn, ms) => setTimeout(() => { if (ms === 120) reseau.tirsFile++; fn(); }, ms);
+  const planifier = (fn, ms) => {
+    if (ms === 120 && reseau.garderFile) { reseau.fileGardee = fn; return 1; }            // un rendez-vous de la file RETENU : le banc le tire quand il le décide (deux événements ne se confondent plus)
+    return setTimeout(() => { if (ms === 120) reseau.tirsFile++; fn(); }, ms);
+  };
   const src = creerSourceServeur(Object.assign({ OPMSG, base: svc.base, fetch: f, EventSource: nav.EventSource, planifier, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5, creerUrl, revoquerUrl, delaiReessaiPieceMs: 300 }, opts));
-  const evs = [], morts = [];
-  src.ecouter(e => evs.push(e));
+  const evs = [], morts = [], vuesPage = [];
+  let suivi = null;
+  /* ce que la PAGE verrait : à chaque événement `conversation` de la conversation suivie, elle relit le fil (`ouvrir` bâtit sa vue sur-le-champ, avant son premier `await`) — la DERNIÈRE relecture est ce
+     qui reste à l'écran. C'est ce qui voit un état collé (« Envoi… » qu'aucun événement n'a éteint) : relire le fil À LA DEMANDE, comme font les autres contrôles, montre le vrai état, pas celui de la page. */
+  src.ecouter(e => { evs.push(e); if (suivi && e.type === 'conversation' && e.id === suivi) vuesPage.push(src.ouvrir(e.id).then(c => c && c.messages, () => null)); });
   src.surSessionMorte(m => morts.push(m));
   const nb = (re) => reseau.requetes.filter(r => re.test(r)).length;
   return {
     src, evs, morts, reseau, nav, urls, nb,
+    suivre(conv) { suivi = conv; vuesPage.length = 0; },
+    async ecran() { const d = vuesPage[vuesPage.length - 1]; return d ? await d : null; },
     async entrer(login, pass) { await src.connexion(login, pass); const d = await src.demarrer(); if (!d.connecte) throw new Error('démarrage refusé : ' + JSON.stringify(d)); return src.moi(); },
     attendreEv: (pred, ms) => att(() => evs.find(pred) || null, ms),
     retenir(re) { let liberer; const attente = new Promise(ok => { liberer = ok; }); reseau.retenir = { re, attente }; return () => { reseau.retenir = null; liberer(); }; },
@@ -212,8 +221,9 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
       const pdf = F.pdf(9000), vivantesAvant = B.vivantes().length, adressesA = A.urls.creees.size, nom = 'Rapport été/2026\u0000.pdf';
       await A.src.envoyer(conv, { fichier: { blob: blobDe(pdf), nom, taille: pdf.length } });
       /* ⛔ ce que l'APPAREIL envoie : le service refait le même ménage (test-943), donc le nom RENDU ne dit rien de l'appareil — la page en attendant montre ce qu'elle a assaini */
-      const depotsFichier = A.reseau.urls.filter(x => /^POST \/api\/pieces\?/.test(x) && /genre=fichier/.test(x));
-      v('⛔ le nom que l\'appareil ENVOIE est déjà assaini : ni la barre ni le caractère de contrôle ne partent dans la requête', depotsFichier.length && new URLSearchParams(depotsFichier[depotsFichier.length - 1].split('?')[1]).get('nom'), 'Rapport été_2026 .pdf');
+      const dernier = A.reseau.depots.filter(d => /genre=fichier/.test(d.url)).pop();
+      v('⛔ le nom que l\'appareil ENVOIE est déjà assaini (ni la barre ni le caractère de contrôle) ET il voyage dans un EN-TÊTE encodé — jamais dans l\'adresse, que le journal d\'accès d\'un proxy écrirait (relecture du gardien, B2)',
+        [dernier && decodeURIComponent(dernier.entetes['X-OPM-Nom']), dernier && /nom=|Rapport/i.test(dernier.url)], ['Rapport été_2026 .pdf', false]);
       const m = await trouve(B, conv, x => x.fichier);
       v('⛔ Bruno reçoit le fichier : son nom ASSAINI (la barre et le caractère de contrôle ne passent pas), sa taille, la pièce', [m.fichier.nom, m.fichier.taille, /^f_[0-9a-f]{32}$/.test(m.fichier.piece)], ['Rapport été_2026 .pdf', pdf.length, true]);
       v('l\'aperçu dit « Fichier · <nom> »', (await B.src.lister()).find(c => c.id === conv).apercu, 'Fichier · Rapport été_2026 .pdf');
@@ -243,14 +253,49 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
       const e6 = await attrape(A.src.envoyer(conv, { photos: [{ blob: blobDe(PNG), url: 'blob:z', w: 8, h: 8 }] }));
       A.reseau.forcer = null;
       v('⛔ un relais qui répond 413 en HTML : « trop lourd » avec le maximum de la photo (300 Ko), jamais « erreur inconnue »', [e6.code, e6.max, /300 Ko au plus/.test(e6.phrase())], ['piece_trop_lourde', PHOTO_MAX, true]);
-      /* 429 avec son attente, 402 : le service les dit autrement */
+      /* ⛔ 429 avec son attente, 402 : des refus qui PEUVENT RÉUSSIR PLUS TARD gardent la pièce (relecture du testeur : la bulle disparaissait, il fallait rechoisir la photo). Le service les dit
+         toujours autrement, avec SA phrase — une seule invitation à réessayer — et la personne dispose d'un « Réessayer » (la source) et d'un « Annuler ». */
+      const compteReessai = (t) => (t.match(/r[ée]essaie/gi) || []).length;
       A.reseau.forcer = { re: /^POST \/api\/pieces$/, code: 429, corps: JSON.stringify({ error: 'quota_atteint', retry: 40 }), entetes: { 'Content-Type': 'application/json', 'Retry-After': '40' } };
-      const e7 = await attrape(A.src.envoyer(conv, { photos: [{ blob: blobDe(PNG), url: 'blob:w', w: 8, h: 8 }] }));
-      A.reseau.forcer = { re: /^POST \/api\/pieces$/, code: 402, corps: JSON.stringify({ error: 'quota_atteint', portee: 'stockage', utilise: 1, max: 2 }), entetes: { 'Content-Type': 'application/json' } };
-      const e8 = await attrape(A.src.envoyer(conv, { photos: [{ blob: blobDe(PNG), url: 'blob:q', w: 8, h: 8 }] }));
+      const loc7 = creerLocale(A, PNG), d7 = A.nb(/^POST \/api\/pieces$/);
+      A.suivre(conv);
+      const r7 = await A.src.envoyer(conv, { photos: [{ blob: loc7.blob, url: loc7.url, w: 8, h: 8 }] });
       A.reseau.forcer = null;
-      v('⛔ 429 : « réessaie dans 40 s » ; 402 : l\'espace est plein (« supprime des messages »), PAS « réessaie dans un instant » — deux refus, deux phrases', [/réessaie dans 40 s/.test(e7.phrase()), e8.phrase() === OPMSG.MESSAGES.quota_stockage, /instant/.test(e8.phrase())], [true, true, false]);
-      v('et ni l\'un ni l\'autre n\'a laissé de message en file', A.src.enAttente(), 0);
+      const av7 = await A.attendreEv(e => e.type === 'avis' && /réessaie dans 40 s/.test(e.texte));
+      v('⛔ 429 : la photo RESTE (le message est rendu « en attente », avec sa phrase d\'échec), et la phrase ne dit « réessaie » qu\'UNE fois — avec l\'attente exacte, pas « dans un instant (… 40 s) »',
+        [r7.attente === true, r7.echec, compteReessai(r7.echec || ''), /instant/.test(r7.echec || '')], [true, 'Trop de demandes en peu de temps (réessaie dans 40 s).', 1, false]);
+      const ecran7 = ((await A.ecran()) || []).find(m => m.cid === r7.cid);
+      vrai('⛔ ce que la PAGE a sous les yeux après l\'échec (sa dernière relecture du fil) est la bulle en échec AVEC sa phrase — pas un « Envoi… » collé : la source redit l\'écran quand elle met la pièce en échec', !!ecran7 && ecran7.attente === true && ecran7.envoi === false && ecran7.echec === 'Trop de demandes en peu de temps (réessaie dans 40 s).');
+      vrai('⛔ …l\'avis le dit aussi (la personne peut être ailleurs), et l\'adresse locale de la photo est GARDÉE (la bulle l\'affiche)', !!av7 && /^Une photo n'a pas pu être envoyée : Trop de demandes/.test(av7.texte) && !A.urls.revoquees.includes(loc7.url) && A.src.enAttente() === 1);
+      await T.dort(600);
+      v('⛔ elle ne repart PAS toute seule (c\'est à la personne de dire quand) : aucun dépôt de plus en 600 ms, et le fil la montre avec son échec', [A.nb(/^POST \/api\/pieces$/) - d7, ((await vues(A, conv)).find(m => m.cid === r7.cid) || {}).echec], [1, 'Trop de demandes en peu de temps (réessaie dans 40 s).']);
+      const texteApres = await A.src.envoyer(conv, { texte: 'pendant que la photo attend' });
+      vrai('⛔ un texte écrit PENDANT qu\'une photo attend la personne n\'est pas bloqué derrière elle : il part tout de suite', !texteApres.attente && !!(await trouve(B, conv, m => m.texte === 'pendant que la photo attend')));
+      /* ⛔ …et elle ne repart pas non plus quand la file passe pour UNE AUTRE pièce (le réseau coupe, une seconde photo attend, le réseau revient) : seule la personne dit « Réessayer » */
+      const loc8 = creerLocale(A, PNG), nPhotosB = (await vues(B, conv)).filter(m => m.photos).length;
+      A.reseau.coupe = true;
+      const r8 = await A.src.envoyer(conv, { photos: [{ blob: loc8.blob, url: loc8.url, w: 8, h: 8 }] });
+      A.reseau.coupe = false;
+      vrai('population : la seconde photo attend derrière une coupure, la première est en échec (deux pièces dans la file)', r8.attente === true && A.src.enAttente() === 2);
+      vrai('⛔ le réseau revient, la file passe : la SECONDE photo part (Bruno la voit) ; la première, en échec, reste là avec sa phrase — elle n\'est pas repartie toute seule', await att(async () => (await vues(B, conv)).filter(m => m.photos).length === nPhotosB + 1) && await att(() => A.src.enAttente() === 1)
+        && ((await vues(A, conv)).find(m => m.cid === r7.cid) || {}).echec === 'Trop de demandes en peu de temps (réessaie dans 40 s).');
+      await T.dort(300);
+      v('…et trois cents millisecondes plus tard, toujours une seule photo de plus chez Bruno, et la première attend toujours la personne', [(await vues(B, conv)).filter(m => m.photos).length, A.src.enAttente()], [nPhotosB + 1, 1]);
+      A.reseau.forcer = { re: /^POST \/api\/pieces$/, code: 402, corps: JSON.stringify({ error: 'quota_atteint', portee: 'stockage', utilise: 1, max: 2 }), entetes: { 'Content-Type': 'application/json' } };
+      vrai('« Réessayer » : le service refuse encore (402, l\'espace est plein) — la pièce reste, avec la phrase de l\'ESPACE (« supprime des messages »), PAS « réessaie dans un instant »', A.src.reessayer(r7.cid) === true
+        && await att(async () => ((await vues(A, conv)).find(m => m.cid === r7.cid) || {}).echec === OPMSG.MESSAGES.quota_stockage) && !/instant/.test(OPMSG.MESSAGES.quota_stockage));
+      A.reseau.forcer = null;
+      const nPhotosB2 = (await vues(B, conv)).filter(m => m.photos).length;
+      vrai('⛔ « Réessayer » quand le service accepte : la photo part (même cid, même pièce), la file est vide, et Bruno la voit UNE fois (une photo de plus, pas deux)', A.src.reessayer(r7.cid) === true && await att(() => A.src.enAttente() === 0)
+        && await att(async () => (await vues(B, conv)).filter(m => m.photos).length === nPhotosB2 + 1));
+      v('un « Réessayer » sur ce qui n\'est pas en échec ne fait rien', [A.src.reessayer(r7.cid), A.src.reessayer('nexistepas')], [false, false]);
+      A.reseau.forcer = { re: /^POST \/api\/pieces$/, code: 503, corps: JSON.stringify({ error: 'disque_plein' }), entetes: { 'Content-Type': 'application/json' } };
+      const loc9 = creerLocale(A, PNG);
+      const r9 = await A.src.envoyer(conv, { photos: [{ blob: loc9.blob, url: loc9.url, w: 8, h: 8 }] });
+      A.reseau.forcer = null;
+      vrai('503 (service en lecture seule) : la pièce reste aussi', r9.attente === true && r9.echec === OPMSG.MESSAGES.disque_plein);
+      vrai('⛔ « Annuler » : la pièce quitte la file pour de bon, son adresse locale est RENDUE, et le fil n\'en parle plus', A.src.abandonner(r9.cid) === true && A.src.enAttente() === 0 && A.urls.revoquees.includes(loc9.url) && !(await vues(A, conv)).some(m => m.cid === r9.cid));
+      v('un « Annuler » sur ce qui n\'existe plus ne fait rien', A.src.abandonner(r9.cid), false);
     }
     {
       /* un message en FILE refusé après coup : le refus se dit (événement `avis`) et ses adresses locales sont libérées */
@@ -260,10 +305,130 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
       vrai('population : réseau coupé, la photo est « en attente »', r.attente === true && A.src.enAttente() === 1);
       A.reseau.forcer = { re: /^POST \/api\/pieces$/, code: 415, corps: JSON.stringify({ error: 'type_refuse' }), entetes: { 'Content-Type': 'application/json' } };
       A.reseau.coupe = false;
-      const avis = await A.attendreEv(e => e.type === 'avis' && /photo/i.test(e.texte));
+      const avis = await A.attendreEv(e => e.type === 'avis' && /^Une photo n'a pas pu être envoyée : Ce type/.test(e.texte));
       A.reseau.forcer = null;
       vrai('⛔ le service refuse la reprise : l\'avis dit « Une photo n\'a pas pu être envoyée » avec SA phrase', !!avis && /^Une photo n'a pas pu être envoyée : Ce type de fichier/.test(avis.texte));
       vrai('⛔ la file est vide et l\'adresse locale de cette photo est LIBÉRÉE (la page n\'a plus de message à qui la rattacher)', A.src.enAttente() === 0 && A.urls.revoquees.includes(loc.url));
+    }
+
+    /* ═══ 5 bis. LA RELECTURE DU TESTEUR (3 octobre 2026) ════════════════════════════════════════════════════════════════════════ */
+    console.log('\nLa relecture du testeur : onze photos dites, un nom long qui garde son extension, une durée qui ne grossit pas, une panne qui se dit — et un statut qui dit vrai');
+    {
+      const gT = (await A.src.creerGroupe({ nom: 'Relecture', membres: [mb.id] })).id;
+      await att(async () => !!(await B.src.lister()).find(c => c.id === gT));
+      /* 1. onze photos dans un message */
+      const locs = Array.from({ length: 11 }, (_, i) => creerLocale(A, F.png({ couleur: [i * 20, 50, 50] }))), dAvant = A.nb(/^POST \/api\/pieces$/);
+      const e11 = await attrape(A.src.envoyer(gT, { photos: locs.map(l => ({ blob: l.blob, url: l.url, w: 8, h: 8 })) }));
+      v('⛔ onze photos dans UN message : refusé et DIT (« 10 photos au plus par message »), au lieu de n\'en envoyer que dix en silence — et rien n\'a quitté l\'appareil', [e11 && e11.code, e11 && /10 photos au plus/.test(e11.phrase()), A.nb(/^POST \/api\/pieces$/) - dAvant, A.src.enAttente()], ['trop-de-photos', true, 0, 0]);
+      v('le nombre de photos par message que le SERVICE annonce (`par_message`) est celui que la source refuse de dépasser : dix — le jour où l\'un change, ce banc tombe', (await A.src.limitesPieces()).par_message, 10);
+      const r10 = await A.src.envoyer(gT, { photos: locs.slice(0, 10).map(l => ({ blob: l.blob, url: l.url, w: 8, h: 8 })) });
+      vrai('contre-épreuve : DIX photos passent (dix dépôts, un message)', !r10.attente && A.nb(/^POST \/api\/pieces$/) - dAvant === 10 && !!(await trouve(B, gT, m => m.photos && m.photos.length === 10)));
+
+      /* 2. un nom long garde son extension — la même règle que le service */
+      const long = 'x'.repeat(200) + '.pdf', pdfL = F.pdf(3000);
+      await A.src.envoyer(gT, { fichier: { blob: blobDe(pdfL), nom: long } });
+      const depL = A.reseau.depots.filter(d => /genre=fichier/.test(d.url)).pop(), nomL = decodeURIComponent(depL.entetes['X-OPM-Nom']);
+      const mL = await trouve(B, gT, x => x.fichier && x.fichier.taille === pdfL.length);
+      v('⛔ un nom de 204 signes (200 « x » + « .pdf ») : l\'appareil le coupe à 120 EN GARDANT « .pdf » — le fichier téléchargé garde son type —, et le service range le même', [Array.from(nomL).length, /x\.pdf$/.test(nomL), mL && mL.fichier.nom === nomL], [120, true, true]);
+      const { couperNom: couperClient } = require(path.join(T.SERVICE, 'public', 'source-serveur.js')), { couperNom: couperService } = require(path.join(T.SERVICE, 'pieces.js'));
+      const noms = ['a'.repeat(300), 'a'.repeat(300) + '.pdf', 'a'.repeat(300) + '.tar.gz', 'é'.repeat(130) + '.docx', '😀'.repeat(130) + '.png', 'x'.repeat(130) + '.' + 'y'.repeat(17), 'court.txt', '', '.' + 'x'.repeat(200), 'a'.repeat(110) + '.abcdefghijklmnop', 'rapport très long avec des espaces '.repeat(6) + '.xlsx'];
+      v('⛔ la règle de l\'appareil et celle du service coupent EXACTEMENT pareil (onze noms : sans extension, double extension, accents, émojis, extension trop longue, un nom qui n\'est qu\'une extension)', noms.map(n => couperClient(n, 120) === couperService(n, 120)), noms.map(() => true));
+      vrai('population : la batterie contient des noms qui ont VRAIMENT été coupés, dont plusieurs qui gardent leur extension', noms.filter(n => couperClient(n, 120) !== n).length >= 8 && noms.filter(n => couperClient(n, 120) !== n && /\.(pdf|gz|docx|png|xlsx)$/.test(couperClient(n, 120))).length >= 4);
+
+      /* 3. une durée de vocal ne grossit pas : 65,9 s s'affiche 1:05, comme le compteur de l'enregistrement */
+      const durees = [[65.9, 65], [1.6, 1], [0.4, 1], [3.4, 3], [65, 65]], vus = [];
+      for (const [dur] of durees) {
+        const avant = (await vues(B, gT)).filter(m => m.vocal).length;
+        await A.src.envoyer(gT, { vocal: { blob: blobDe(F.webm(2000), 'audio/webm'), url: null, dur, bars: [6, 9, 14] } });
+        const k = await att(async () => { const l = (await vues(B, gT)).filter(m => m.vocal); return l.length > avant ? l[l.length - 1] : null; });
+        vus.push(k && k.vocal.dur);
+      }
+      v('⛔ la durée d\'un vocal est TRONQUÉE à la seconde (le compteur de l\'enregistrement montre 1:05 à 65,9 s ; « arrondi », la bulle disait 1:06 et 0:01 devenait 0:02) — au moins une seconde', vus, durees.map(d => d[1]));
+
+      /* 4. une SEULE invitation à réessayer */
+      const e429 = new OPMSG.ErreurApi('quota_atteint', 429, 20);
+      v('⛔ la phrase d\'un 429 avec attente : « Trop de demandes en peu de temps (réessaie dans 20 s). » — elle ne dit pas « réessaie » deux fois, ni « dans un instant » à côté de « 20 s »', [e429.phrase(), (e429.phrase().match(/r[ée]essaie/gi) || []).length], ['Trop de demandes en peu de temps (réessaie dans 20 s).', 1]);
+      v('…sans attente, la phrase du service reste telle quelle', new OPMSG.ErreurApi('quota_atteint', 429, 0).phrase(), 'Trop de demandes en peu de temps. Réessaie dans un instant.');
+      v('…et le 408 d\'un envoi trop lent a SA phrase (pas celle de la modification qui expire)', [new OPMSG.ErreurApi('envoi_trop_lent', 408, 0).phrase() === OPMSG.MESSAGES.envoi_trop_lent, /connexion trop lente/.test(OPMSG.MESSAGES.envoi_trop_lent)], [true, true]);
+    }
+    {
+      /* 5. une panne se dit UNE fois, les tentatives s'espacent, et le statut dit vrai */
+      const gT2 = (await A.src.creerGroupe({ nom: 'Panne', membres: [mb.id] })).id;
+      await att(async () => !!(await B.src.lister()).find(c => c.id === gT2));
+      await vues(A, gT2);                                                  // la conversation est CHARGÉE avant que le réseau tombe (un appareil coupé ne peut pas l'ouvrir)
+      const loc = creerLocale(A, PNG), avisAvant = A.evs.filter(e => e.type === 'avis').length, evIdx = A.evs.length;      // ce qui précède (d'autres coupures, d'autres avis) ne compte pas ici
+      A.reseau.coupe = true;
+      const r = await A.src.envoyer(gT2, { photos: [{ blob: loc.blob, url: loc.url, w: 8, h: 8 }] });
+      const avis1 = await att(() => A.evs.slice(evIdx).find(e => e.type === 'avis' && /^Pas de connexion/.test(e.texte)));
+      vrai('⛔ le réseau est coupé : la photo est « en attente », et la panne SE DIT (« Pas de connexion : ta photo partira dès que le réseau reviendra. ») — le seul signe n\'est plus un petit statut', r.attente === true && !!avis1 && avis1.texte === 'Pas de connexion : ta photo partira dès que le réseau reviendra.');
+      const t0 = A.nb(/^POST \/api\/pieces$/);
+      vrai('population : plusieurs tentatives de renvoi ont eu lieu pendant la coupure (' + (A.nb(/^POST \/api\/pieces$/) - t0) + ' en plus de la première)', await att(() => A.nb(/^POST \/api\/pieces$/) - t0 >= 3));
+      await T.dort(300);
+      const vuA = (await vues(A, gT2)).find(m => m.attente);
+      vrai('⛔ après plusieurs renvois ratés, le message dit toujours « en attente de connexion » (`envoi` faux) : une tentative qui échoue sur-le-champ ne passe pas pour un envoi — « Envoi… » ne reste jamais collé', !!vuA && vuA.envoi === false && !vuA.echec);
+      v('⛔ UNE panne, UN avis : un seul malgré les renvois', A.evs.slice(evIdx).filter(e => e.type === 'avis' && /^Pas de connexion/.test(e.texte)).length, 1);
+      /* un renvoi qui DURE devient « Envoi… » (ce que la personne doit voir quand les octets partent vraiment) */
+      A.suivre(gT2); A.reseau.garderFile = true;                                    // dès maintenant, ce que la page relit est noté ; et le PROCHAIN rendez-vous de la file sera tiré à la main
+      const liberer = A.retenir(/^POST \/api\/pieces$/);                          // d'abord la retenue (les essais ratés continuent de tomber sur « réseau coupé »)…
+      A.reseau.coupe = false;
+      const n1 = A.nb(/^POST \/api\/pieces$/);                                    // …puis le réseau revient : le PROCHAIN essai est celui qui est retenu
+      await att(() => A.nb(/^POST \/api\/pieces$/) > n1, 3000);
+      const v1 = (await vues(A, gT2)).find(m => m.attente), nEv = A.evs.length;
+      await T.dort(700);
+      const v2 = (await vues(A, gT2)).find(m => m.attente), evTard = A.evs.slice(nEv).filter(e => e.type === 'conversation' && e.id === gT2).length;
+      vrai('⛔ un renvoi qui part vraiment (la requête est en route, retenue ici) : juste après, « en attente » ; au bout de 400 ms, « Envoi… » — et la source REDIT l\'état à ce moment-là (un événement), sans quoi la page ne le verrait pas', !!v1 && v1.envoi === false && !!v2 && v2.envoi === true && evTard > 0);
+      /* ⛔ …et quand CE renvoi-là échoue (le réseau retombe pendant que les octets partent), la source REDIT l'écran : sans cela « Envoi… » resterait affiché jusqu'au prochain essai — 3 s, 6 s… 24 s plus tard */
+      A.reseau.coupe = true; liberer();
+      vrai('population : l\'essai a fini d\'échouer, le prochain rendez-vous de la file est posé (et retenu)', await att(() => A.reseau.fileGardee !== null, 3000));
+      const ecran = ((await A.ecran()) || []).find(m => m.attente);
+      vrai('⛔ …sa dernière relecture dit « en attente » (`envoi` faux) : la page ne reste pas sur « Envoi… » pendant les secondes qui suivent un essai raté', !!ecran && ecran.envoi === false && !ecran.echec);
+      A.reseau.garderFile = false; A.reseau.coupe = false;
+      { const tir = A.reseau.fileGardee; A.reseau.fileGardee = null; tir(); }
+      vrai('le réseau est revenu : la photo part, UNE fois chez Bruno, et la file est vide', await att(() => A.src.enAttente() === 0) && (await vues(B, gT2)).filter(m => m.photos).length === 1);
+      v('…sans un avis de plus (la panne est finie, rien à dire)', A.evs.filter(e => e.type === 'avis').length - avisAvant, 1);
+      /* le service qui ne répond pas (502) se dit aussi */
+      const gT3 = (await A.src.creerGroupe({ nom: 'Service muet', membres: [mb.id] })).id;
+      await att(async () => !!(await B.src.lister()).find(c => c.id === gT3)); await vues(A, gT3);
+      A.reseau.forcer = { re: /^POST \/api\/pieces$/, code: 502, corps: '<html>502 Bad Gateway</html>', entetes: { 'Content-Type': 'text/html' }, fois: 3 };
+      const loc2 = creerLocale(A, PNG);
+      const r2 = await A.src.envoyer(gT3, { photos: [{ blob: loc2.blob, url: loc2.url, w: 8, h: 8 }] });
+      const avis2 = await att(() => A.evs.find(e => e.type === 'avis' && /^Le service ne répond pas/.test(e.texte)));
+      vrai('⛔ le relais répond 502 : la photo est « en attente », et l\'avis dit que le SERVICE ne répond pas (ce n\'est pas la connexion de la personne)', r2.attente === true && !!avis2 && avis2.texte === 'Le service ne répond pas pour l\'instant : ta photo partira dès qu\'il répondra.');
+      vrai('et elle part quand il revient', await att(() => A.src.enAttente() === 0) && (await vues(B, gT3)).filter(m => m.photos).length === 1);
+    }
+    {
+      /* les tentatives S'ESPACENT : 3 s, 6 s, 12 s, 24 s, puis plafond (la valeur par défaut, pas celle des bancs) */
+      const delais = []; let reveil = null;
+      const Z = monter(svc, { attenteEnvoi: undefined, planifier: (fn, ms) => { if (ms >= 2000) { delais.push(ms); reveil = fn; return 1; } return setTimeout(fn, ms); } });
+      try {
+        await Z.entrer('alice', 'pw-alice-1234');
+        const gZ = (await Z.src.creerGroupe({ nom: 'Espacement', membres: [mb.id] })).id;
+        await vues(Z, gZ);
+        Z.reseau.coupe = true;
+        const loc = creerLocale(Z, PNG);
+        await Z.src.envoyer(gZ, { photos: [{ blob: loc.blob, url: loc.url, w: 8, h: 8 }] });
+        for (let k = 0; k < 6; k++) { await att(() => reveil !== null && delais.length > k, 3000); const f = reveil; reveil = null; if (!f) break; f(); await att(() => delais.length > k + 1, 3000); }
+        v('⛔ les renvois s\'ESPACENT (3 s, 6 s, 12 s, 24 s, puis le plafond) : une photo qui n\'a pas de réseau ne martèle pas le service — la valeur par défaut, pas celle des bancs', delais.slice(0, 6), [3000, 6000, 12000, 24000, 24000, 24000]);
+      } finally { Z.src.arreter(); try { Z.reseau.coupe = false; await Z.src.deconnexion(); } catch (e) { /* déjà partie */ } }      // sa session ne doit pas survivre : « déconnecter les autres appareils » en compte une
+    }
+
+    {
+      /* ⛔ « Réessayer » touché PENDANT un passage de la file : le passage avait déjà dépassé la pièce (en échec, sautée) et `viderFile` rendait la main (« déjà en cours ») — la pièce restait « en attente » pour toujours */
+      const gR = (await A.src.creerGroupe({ nom: 'Réessayer en plein passage', membres: [mb.id] })).id;
+      await att(async () => !!(await B.src.lister()).find(c => c.id === gR)); await vues(A, gR);
+      A.reseau.forcer = { re: /^POST \/api\/pieces$/, code: 429, corps: JSON.stringify({ error: 'quota_atteint', retry: 5 }), entetes: { 'Content-Type': 'application/json', 'Retry-After': '5' }, fois: 1 };
+      const l1 = creerLocale(A, F.png({ couleur: [11, 22, 200] })), l2 = creerLocale(A, F.png({ couleur: [200, 22, 11] }));
+      const r1 = await A.src.envoyer(gR, { photos: [{ blob: l1.blob, url: l1.url, w: 8, h: 8 }] });                 // 429 : en échec
+      A.reseau.coupe = true;
+      const r2 = await A.src.envoyer(gR, { photos: [{ blob: l2.blob, url: l2.url, w: 8, h: 8 }] });                 // réseau coupé : elle attend la connexion
+      vrai('population : la première photo est en échec, la seconde attend la connexion (deux pièces dans la file)', !!r1.echec && r2.attente === true && !r2.echec && A.src.enAttente() === 2);
+      const liberer = A.retenir(/^POST \/api\/pieces$/);
+      const n0 = A.nb(/^POST \/api\/pieces$/);
+      A.reseau.coupe = false;
+      vrai('population : la seconde photo est EN VOL, retenue (un passage de la file est en cours, et il a déjà dépassé la première)', !!(await att(() => A.nb(/^POST \/api\/pieces$/) > n0, 5000)));
+      vrai('« Réessayer » touché PENDANT ce passage', A.src.reessayer(r1.cid) === true);
+      liberer();
+      vrai('⛔ la première photo part QUAND MÊME (le passage en cours ne la reverra pas : la source redonne rendez-vous à sa fin) — la file est vide et Bruno reçoit les deux', !!(await att(() => A.src.enAttente() === 0, 10000)) && !!(await att(async () => (await vues(B, gR)).filter(m => m.photos).length === 2, 5000)));
     }
 
     /* ═══ 6. LA MÉMOIRE DES PIÈCES ═══════════════════════════════════════════════════════════════════════════════════════════════ */
@@ -381,12 +546,16 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
       v('rien à enregistrer : refus propre', e3 && e3.code, 'vide');
 
       v('la confidentialité commence ouverte (comme WhatsApp)', await A.src.confidentialite(), { presence: true, accuses: true });
+      v('⛔ `moi()` dit MA présence (la barre de la page : « Disponible » ou « Présence masquée ») — montrée au départ', A.src.moi().presence, true);
+      const evMoi0 = A.evs.filter(e => e.type === 'moi').length;
       const c1 = await A.src.majConfidentialite({ presence: false });
       v('⛔ Alice coupe sa présence : le service répond ce qu\'il a retenu', c1, { presence: false, accuses: true });
+      vrai('⛔ …`moi()` redit « masquée » ET l\'événement `moi` prévient la page (sans lui la barre latérale continuait de dire « Disponible » avec son point vert, pendant que personne ne la voyait)', A.src.moi().presence === false && A.evs.filter(e => e.type === 'moi').length > evMoi0);
       v('et le service l\'a bien gardé (relecture)', await A.src.confidentialite(), { presence: false, accuses: true });
       vrai('⛔ RÉCIPROQUE : Bruno ne la voit plus en ligne, et Alice ne voit plus Bruno en ligne', await att(async () => { await B.src.rafraichirContacts(); await A.src.rafraichirContacts(); return !B.src.contacts().find(c => c.nom === 'Alicia Martin').enLigne && !A.src.contacts().find(c => c.nom === 'Bruno Petit').enLigne; }));
       const c2 = await A.src.majConfidentialite({ presence: true, accuses: false });
       v('elle rallume la présence et coupe les confirmations de lecture : les deux réglages sont rendus', c2, { presence: true, accuses: false });
+      v('et `moi()` redit « montrée »', A.src.moi().presence, true);
       const e4 = await attrape(A.src.majConfidentialite({ presence: 'oui' }));
       v('un réglage qui n\'est pas un booléen est refusé sur place (rien n\'est envoyé), et un réglage vide aussi', [e4 && e4.code, (await attrape(A.src.majConfidentialite({}))).code], ['vide', 'vide']);
       await A.src.majConfidentialite({ accuses: true });
@@ -401,6 +570,13 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
       v('à propos : la version du service, l\'instance, et les maximums des pièces', [/^\d+\.\d+\.\d+/.test(ap.version), ap.instance, ap.limites.photo_max, ap.limites.fichier_max], [true, 'beta', PHOTO_MAX, FICHIER_MAX]);
 
       const A2 = monter(svc); await A2.entrer('alice', 'pw-alice-1234');
+      /* ⛔ réglé sur UN appareil, dit sur L'AUTRE : le service prévient les autres appareils de la personne, la source relit son profil, la barre de l'autre page ne reste pas sur « Disponible » */
+      v('population : l\'autre appareil d\'Alice dit sa présence montrée au départ', A2.src.moi().presence, true);
+      const evMoi2 = A2.evs.filter(e => e.type === 'moi').length;
+      await A.src.majConfidentialite({ presence: false });
+      vrai('⛔ …la présence masquée sur ce téléphone est dite à l\'AUTRE appareil de la personne (son `moi()` redit « masquée » et sa page est prévenue)', !!(await att(() => A2.src.moi().presence === false && A2.evs.filter(e => e.type === 'moi').length > evMoi2)));
+      await A.src.majConfidentialite({ presence: true });
+      vrai('…et rallumée, de même', !!(await att(() => A2.src.moi().presence === true)));
       const r = await A.src.deconnecterAutres();
       v('⛔ « Déconnecter les autres appareils » : le service dit combien (une session), l\'appareil d\'où on le demande reste connecté', [r.sessions, (await attrape(A.src.profil())) === null], [1, true]);
       vrai('l\'autre appareil est mort : sa session est coupée et il le sait', !!(await att(async () => { await A2.src.verifierSession(); return A2.morts.length > 0; })));

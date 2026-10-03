@@ -257,9 +257,10 @@
     if (m.reponse && !m.supprime) h += citationHtml(m.reponse);
     const debutCorps = h.length;
     if (m.photos) {
-      h += '<span class="photos' + (m.photos.length === 1 ? ' une' : '') + '">' + m.photos.map((p, i) => blob(p.url) ?
-        '<button type="button" class="photo presse" data-photo="' + esc(m.id) + '|' + i + '" aria-label="Agrandir la photo ' + (i + 1) + ' sur ' + m.photos.length + '"><img src="' + esc(p.url) + '" alt="Photo envoyée par ' + esc(moi ? 'vous' : nomAuteur(m.auteur)) + '"></button>' :
-        photoAttente(p, i, m.photos.length)).join('') + '</span>';
+      const une = m.photos.length === 1;
+      h += '<span class="photos' + (une ? ' une' : '') + '">' + m.photos.map((p, i) => blob(p.url) ?
+        '<button type="button" class="photo presse" data-photo="' + esc(m.id) + '|' + i + '"' + (une ? styleUne(p) : '') + ' aria-label="Agrandir la photo ' + (i + 1) + ' sur ' + m.photos.length + '"><img src="' + esc(p.url) + '" alt="Photo envoyée par ' + esc(moi ? 'vous' : nomAuteur(m.auteur)) + '"></button>' :
+        photoAttente(p, i, m.photos.length, une)).join('') + '</span>';
     } else if (m.vocal) {
       h += '<button type="button" class="vocal ' + sens + ' presse" data-lire="' + esc(m.id) + '" aria-label="Lire le message vocal de ' + duree(m.vocal.dur) + '">' +
         '<span class="vocal-disque">' + icone('i-play', 'plein play') + icone('i-pause', 'plein pause') + '</span>' +
@@ -275,16 +276,37 @@
     }
     /* version servie : le corps du message et son bouton d'actions vont dans UNE rangée (le bouton se pose à côté de la bulle) ; l'aperçu garde son balisage d'origine, octet pour octet */
     if (CAP.actionsMessage && !m.attente) h = h.slice(0, debutCorps) + '<span class="msg-rang">' + h.slice(debutCorps) + '<button type="button" class="msg-plus presse" data-actions="' + esc(m.id) + '" aria-haspopup="dialog" aria-label="Actions du message">' + icone('i-points') + '</button></span>';
+    if (m.attente && m.echec && typeof source.reessayer === 'function') h += echecHtml(m);
     if (m.reactions && m.reactions.length) h += reactionsHtml(m);
     if (m.modifie && !m.supprime) h += '<span class="mention-modifie">Modifié</span>';
-    return { h: h + '</div>', st: estDernierEnvoye ? (m.attente ? (m.envoi ? 'Envoi…' : 'En attente de connexion…') : m.lu ? (m.lu === true ? 'Lu' : 'Lu ' + FMT_HEURE.format(m.lu)) : 'Envoyé') : null };
+    /* le statut DIT VRAI : « Envoi… » seulement quand des octets partent vraiment (la source le sait), « En attente de connexion… » quand rien ne part ; une pièce en échec a sa phrase et ses deux boutons, pas de statut */
+    return { h: h + '</div>', st: estDernierEnvoye ? (m.attente ? (m.echec ? null : m.envoi ? 'Envoi…' : 'En attente de connexion…') : m.lu ? (m.lu === true ? 'Lu' : 'Lu ' + FMT_HEURE.format(m.lu)) : 'Envoyé') : null };
+  }
+  /* ⛔ UNE PHOTO SEULE GARDE SES PROPORTIONS (relecture du testeur) : sa boîte tient dans 240 × 320 ; une image minuscule est agrandie du double au plus, mais jamais laissée sous 72 px de côté ; un panorama
+     extrême garde sa largeur — il est vu ENTIER (`contain`), jamais coupé. La largeur et le rapport sont posés en ligne (la boîte d'une photo à peine arrivée est déjà la bonne : rien ne saute). Sans dimensions
+     connues (l'aperçu), c'est la boîte d'avant (200 × 150, en CSS). Les nombres viennent du service (entiers bornés) et sont ramenés à des entiers ici. */
+  const UNE_LARGE = 240, UNE_HAUTE = 320, UNE_PLANCHER = 72, UNE_AGRANDIR = 2;
+  function styleUne(p) {
+    const w = p ? p.w | 0 : 0, h = p ? p.h | 0 : 0;
+    if (!(w > 0 && h > 0)) return '';
+    const k = Math.min(UNE_AGRANDIR, UNE_LARGE / w, UNE_HAUTE / h);
+    const lg = Math.max(UNE_PLANCHER, Math.round(w * k)), ht = Math.max(UNE_PLANCHER, Math.round(h * k));
+    return ' style="width:' + lg + 'px;aspect-ratio:' + lg + ' / ' + ht + '"';
+  }
+  /* une pièce que le service refuse POUR L'INSTANT (trop de demandes, espace plein, lecture seule, envoi trop lent) : elle reste, avec la phrase du service — qui peut être ailleurs que sur l'avis,
+     lequel disparaît seul — et c'est à la personne de dire quand réessayer ou d'y renoncer */
+  function echecHtml(m) {
+    return '<span class="echec"><span class="echec-texte" dir="auto">Pas envoyé : ' + esc(m.echec) + '</span><span class="echec-actions">' +
+      '<button type="button" class="mini presse" data-reessayer="' + esc(m.cid) + '">Réessayer</button><button type="button" class="mini danger presse" data-annuler="' + esc(m.cid) + '">Annuler</button></span></span>';
   }
   /* une photo dont l'adresse n'est pas (encore) là : la case garde la taille de la photo. Dans l'aperçu, c'est un exemple ; avec le service, elle se charge toute seule (« chargement »),
      attend le toucher (« attente » : seules les dernières photos d'une conversation sont lues d'avance) ou dit qu'elle n'est plus disponible. */
-  function photoAttente(p, i, n) {
-    if (!p.piece) return '<span class="photo" role="img" aria-label="Photo d\'exemple">' + icone('i-image') + '</span>';
-    if (p.etat === 'indisponible') return '<span class="photo indisponible" role="img" aria-label="Photo indisponible">' + icone('i-image') + '</span>';
-    return '<button type="button" class="photo ' + (p.etat === 'chargement' ? 'chargement' : 'attente') + ' presse" data-charger="' + esc(p.piece) + '" aria-label="' + (p.etat === 'chargement' ? 'Photo en cours de chargement' : 'Charger la photo ' + (i + 1) + ' sur ' + n) + '">' + icone('i-image') + '</button>';
+  function photoAttente(p, i, n, une) {
+    const st = une ? styleUne(p) : '';       // la case d'une photo seule a déjà SES proportions : rien ne saute quand l'image arrive
+    if (!p.piece) return '<span class="photo"' + st + ' role="img" aria-label="Photo d\'exemple">' + icone('i-image') + '</span>';
+    /* ⛔ « Photo indisponible » se LIT (relecture du testeur : une icône seule, un libellé pour le seul lecteur d'écran) : le texte est dans la case */
+    if (p.etat === 'indisponible') return '<span class="photo indisponible"' + st + ' role="img" aria-label="Photo indisponible">' + icone('i-image') + '<span class="photo-etat" aria-hidden="true">Photo indisponible</span></span>';
+    return '<button type="button" class="photo ' + (p.etat === 'chargement' ? 'chargement' : 'attente') + ' presse" data-charger="' + esc(p.piece) + '"' + st + ' aria-label="' + (p.etat === 'chargement' ? 'Photo en cours de chargement' : 'Charger la photo ' + (i + 1) + ' sur ' + n) + '">' + icone('i-image') + '</button>';
   }
   /* la réponse citée au-dessus de la bulle, et les réactions dessous : du texte venu d'un tiers, échappé comme tout le reste */
   function citationHtml(r) { return '<span class="citation" dir="auto"><b>' + esc(r.nom || '') + '</b>' + esc(r.texte || '') + '</span>'; }
@@ -522,7 +544,9 @@
   $('envoyer').addEventListener('mousedown', e => e.preventDefault());        // la flèche ne vole pas le focus (le clavier reste ouvert)
   $('envoyer').addEventListener('click', () => { armerRetap(); envoyerTexte(); });
 
-  /* ── une photo : réduite par un canvas (le fichier d'origine ne part nulle part), validée par son décodage ── */
+  /* ── une photo : réduite par un canvas (le fichier d'origine ne part nulle part), validée par son décodage ──
+     ⛔ SAUF UN GIF (relecture du testeur : un GIF animé devenait une image fixe, sans que rien ne le dise) : jusqu'au poids maximum d'une photo, il part TEL QUEL — le service en retire les
+     commentaires et les extensions inconnues, et GARDE l'animation. Au-delà, ou démesuré, il part en image fixe et la page le DIT. */
   /* un fichier INCOMPLET (téléchargement interrompu) se décode quand même en partie : on en envoyait la moitié, grise. Là où la fin d'un format est sans ambiguïté
      (PNG : le morceau IEND ; GIF : l'octet 0x3B ; WebP : la taille annoncée), on la vérifie. Pas pour le JPEG : des octets peuvent suivre légitimement son marqueur de fin
      (photos « en mouvement », vignettes) et on refuserait de vraies photos. */
@@ -535,7 +559,9 @@
     return false;
   }
   /* `cible` (octets) : on baisse la qualité par pas, puis la taille, jusqu'à l'atteindre — un plancher (qualité .5, 640 px) évite de rendre une bouillie. Sans cible (l'aperçu), un seul passage. */
-  async function reduireImage(fichier, cote, qualite, cible) {
+  const estGif = async f => { const t = new Uint8Array(await f.slice(0, 6).arrayBuffer()); return t[0] === 0x47 && t[1] === 0x49 && t[2] === 0x46 && t[3] === 0x38 && (t[4] === 0x37 || t[4] === 0x39) && t[5] === 0x61; };
+  const GIF_PIXELS_MAX = 16e6;      // 4 000 × 4 000 : au-delà, même un petit fichier se décompresse en centaines de Mo chez celui qui le reçoit
+  async function reduireImage(fichier, cote, qualite, cible, gifMax) {
     if (!fichier || fichier.size > 40 * 1048576) throw new Error('trop-lourd');
     if (await fichierTronque(fichier)) throw new Error('illisible');
     let img;
@@ -551,6 +577,11 @@
     }
     const w0 = img.width || img.naturalWidth, h0 = img.height || img.naturalHeight;
     if (!w0 || !h0 || w0 * h0 > 100e6) throw new Error('illisible');       // une image « vide » ou démesurée (bombe de décompression)
+    let gifTropLourd = false;
+    if (gifMax > 0 && await estGif(fichier)) {
+      if (fichier.size <= gifMax && w0 * h0 <= GIF_PIXELS_MAX) { if (img.close) img.close(); return { blob: fichier, w: w0, h: h0, gif: true, gifTropLourd: false }; }
+      gifTropLourd = true;
+    }
     const k = Math.min(1, cote / Math.max(w0, h0)), w = Math.max(1, Math.round(w0 * k)), h = Math.max(1, Math.round(h0 * k));
     const peindre = (lg, ht, verifier) => {
       const cv = document.createElement('canvas'); cv.width = lg; cv.height = ht;
@@ -577,7 +608,13 @@
     }
     if (img.close) img.close();
     if (!b) throw new Error('illisible');
-    return { blob: b, w: cv.width, h: cv.height };
+    return { blob: b, w: cv.width, h: cv.height, gif: false, gifTropLourd };
+  }
+  /* ce que le service accepte d'un envoi de photos : combien par message, et le poids d'un GIF gardé tel quel (= le maximum d'une photo). L'aperçu n'a pas de service : dix photos, jamais de GIF animé. */
+  async function limitesPhotos() {
+    let l = null;
+    try { l = typeof source.limitesPieces === 'function' ? await source.limitesPieces() : null; } catch (er) { l = null; }
+    return { parMessage: l && l.par_message > 0 ? l.par_message | 0 : 10, gifMax: l && l.photo_max > 0 ? l.photo_max : 0 };
   }
   $('compo-plus').addEventListener('click', () => {          // la corbeille de la barre d'enregistrement est juste là, au même endroit
     if (retap()) return;
@@ -596,13 +633,20 @@
     $('menu-msg').querySelector('button').focus({ preventScroll: true });
   }
   $('compo-fichier').addEventListener('change', async e => {
-    const fichiers = Array.from(e.target.files || []).slice(0, 10); e.target.value = '';
-    const id = etat.conv; if (!id || !fichiers.length) return;
-    const bonnes = []; let ratees = 0;
+    const choisies = Array.from(e.target.files || []); e.target.value = '';
+    const id = etat.conv; if (!id || !choisies.length) return;
+    const lim = await limitesPhotos();
+    /* ⛔ jamais « les dix premières, le reste en silence » (relecture du testeur : la onzième disparaissait sans un mot) */
+    const fichiers = choisies.slice(0, lim.parMessage), enTrop = choisies.length - fichiers.length;
+    const bonnes = []; let ratees = 0, lourds = 0;
     for (const f of fichiers) {
-      try { const r = await reduireImage(f, 1600, .82, 250 * 1024); bonnes.push({ blob: r.blob, url: URL.createObjectURL(r.blob), w: r.w, h: r.h }); } catch (er) { ratees++; }
+      try { const r = await reduireImage(f, 1600, .82, 250 * 1024, lim.gifMax); if (r.gifTropLourd) lourds++; bonnes.push({ blob: r.blob, url: URL.createObjectURL(r.blob), w: r.w, h: r.h }); } catch (er) { ratees++; }
     }
-    if (ratees) avis(ratees === 1 ? 'Une image n\'a pas pu être lue — elle n\'a pas été envoyée.' : ratees + ' images n\'ont pas pu être lues — elles n\'ont pas été envoyées.');
+    const dits = [];
+    if (enTrop) dits.push(lim.parMessage + ' photos au plus par envoi : ' + (enTrop === 1 ? 'la ' + (lim.parMessage + 1 === 11 ? 'onzième' : (lim.parMessage + 1) + 'e') + ' n\'a pas été envoyée.' : 'les ' + enTrop + ' dernières n\'ont pas été envoyées.'));
+    if (ratees) dits.push(ratees === 1 ? 'Une image n\'a pas pu être lue — elle n\'a pas été envoyée.' : ratees + ' images n\'ont pas pu être lues — elles n\'ont pas été envoyées.');
+    if (lourds) dits.push(lourds === 1 ? 'Un GIF était trop lourd pour rester animé : il est parti sans mouvement.' : lourds + ' GIF étaient trop lourds pour rester animés : ils sont partis sans mouvement.');
+    if (dits.length) avis(dits.join(' '));
     if (bonnes.length && id === etat.conv && !(await envoi({ photos: bonnes }))) bonnes.forEach(p => URL.revokeObjectURL(p.url));
   });
   /* un fichier : n'importe quoi, tel quel (le service juge ce que c'est, le sert toujours en pièce jointe, jamais en ligne). Trop lourd, il est refusé par la source AVANT tout envoi. */
@@ -632,6 +676,10 @@
     if (p) { etat.declencheurPhoto = p; pousser(Object.assign({}, etat.route, { photo: p.dataset.photo })); return; }
     const v = e.target.closest('[data-lire]');
     if (v) { lireVocal(v.dataset.lire); return; }
+    const re = e.target.closest('[data-reessayer]');
+    if (re) { if (typeof source.reessayer === 'function' && source.reessayer(re.dataset.reessayer)) masquerAvis(); return; }
+    const an = e.target.closest('[data-annuler]');
+    if (an) { if (typeof source.abandonner === 'function') source.abandonner(an.dataset.annuler); return; }
     const c = e.target.closest('[data-charger]');
     if (c) { source.pieceUrl(c.dataset.charger).then(masquerAvis, er => avis(phrase(er, 'La photo n\'a pas pu être chargée.'))); return; }
     const f = e.target.closest('[data-fichier]');
@@ -709,7 +757,7 @@
      Toucher le micro démarre un enregistrement qui DURE (la flèche l'envoie, la corbeille l'annule) ; le MAINTENIR plus d'une
      demi-seconde l'envoie au relâcher. Le micro refusé, absent ou indisponible se DIT en une phrase — jamais une erreur dans la
      console, jamais un bouton qui ne répond rien. */
-  const enr = { etat: 'repos', conv: null, flux: null, rec: null, morceaux: [], t0: 0, minut: null, niveaux: [], ctx: null, ana: null, annule: false, tenu: false, tenuAuDebut: false, geste: 0 };
+  const enr = { etat: 'repos', conv: null, flux: null, rec: null, morceaux: [], t0: 0, minut: null, niveaux: [], ctx: null, ana: null, annule: false, tenu: false, tenuAuDebut: false, geste: 0, msVu: 0 };
   function afficherEnregistrement(on) {
     $('enreg').hidden = !on;
     const c = etat.convDonnees, ferme = c && c.annoncesSeulement && c.admins.indexOf(MOI.id) < 0;
@@ -755,9 +803,10 @@
     enr.rec.start(250);
     enr.etat = 'enregistre'; enr.t0 = Date.now(); enr.tenuAuDebut = enr.tenu;
     afficherEnregistrement(true);
-    $('enreg-duree').textContent = '0:00'; $('enreg-onde').innerHTML = '';
+    $('enreg-duree').textContent = '0:00'; $('enreg-onde').innerHTML = ''; enr.msVu = 0;
     enr.minut = setInterval(() => {
       const ms = Date.now() - enr.t0;
+      enr.msVu = ms;                                          // ce que le compteur vient de MONTRER : la bulle dira exactement cela
       $('enreg-duree').textContent = duree(ms / 1000);
       let niv = 0;
       if (enr.ana && buf) { enr.ana.getByteTimeDomainData(buf); for (let i = 0; i < buf.length; i++) niv = Math.max(niv, Math.abs(buf[i] - 128) / 128); }
@@ -775,7 +824,7 @@
     if (enr.rec && enr.rec.state !== 'inactive') enr.rec.stop(); else finirEnregistrement();
   }
   async function finirEnregistrement() {
-    const cible = enr.conv, ms = Date.now() - enr.t0, morceaux = enr.morceaux, type = enr.rec && enr.rec.mimeType, annule = enr.annule, niveaux = enr.niveaux.slice();
+    const cible = enr.conv, ms = Date.now() - enr.t0, msVu = Math.min(ms, enr.msVu || ms), morceaux = enr.morceaux, type = enr.rec && enr.rec.mimeType, annule = enr.annule, niveaux = enr.niveaux.slice();
     nettoyerFlux(); enr.etat = 'repos'; enr.annule = false;
     afficherEnregistrement(false);
     if (annule) return;
@@ -784,7 +833,8 @@
     const n = 10, bars = [];
     for (let i = 0; i < n; i++) { const part = niveaux.slice(Math.floor(i * niveaux.length / n), Math.floor((i + 1) * niveaux.length / n)); const v = part.length ? Math.max.apply(null, part) : 0; bars.push(6 + Math.round(Math.min(1, v * 3) * 12)); }
     const url = URL.createObjectURL(b);
-    if (!(await envoi({ vocal: { blob: b, url, dur: ms / 1000, bars } }, cible))) URL.revokeObjectURL(url);
+    /* ⛔ la durée de la bulle est celle que le COMPTEUR montrait quand on a envoyé (relecture du testeur : 1:05 devenait 1:06, 0:01 devenait 0:02) — pas celle, 100 ms plus tard, de l'arrêt du micro */
+    if (!(await envoi({ vocal: { blob: b, url, dur: msVu / 1000, bars } }, cible))) URL.revokeObjectURL(url);
   }
   const micro = $('compo-micro');
   micro.addEventListener('contextmenu', e => e.preventDefault());
@@ -1394,6 +1444,10 @@
     const a = $('moi-avatar'), ph = blob(MOI.photo);
     a.textContent = ph ? '' : MOI.initiales; a.style.backgroundImage = ph ? 'url("' + MOI.photo + '")' : '';
     $('moi-nom').textContent = MOI.nom;
+    /* ⛔ MA présence : coupée, la barre ne dit plus « Disponible » avec un point vert pendant que personne ne me voit (relecture du testeur). L'aperçu n'a pas ce réglage : `presence` y est absente. */
+    const masquee = MOI.presence === false;
+    $('moi-statut').classList.toggle('masque', masquee);
+    $('moi-statut-texte').textContent = masquee ? 'Présence masquée' : 'Disponible';
   }
   function peindreProfilReglage() {
     const c = $('reg-profil'); if (!c || !MOI) return;

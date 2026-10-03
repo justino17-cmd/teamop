@@ -56,6 +56,7 @@
     /* les pièces (photos, vocaux, fichiers, photo de profil) */
     longueur_requise: 'L\'envoi n\'a pas dit sa taille : mets la page à jour, puis réessaie.',
     piece_trop_lourde: 'Ce fichier est trop lourd.',
+    envoi_trop_lent: 'L\'envoi s\'est arrêté en route (connexion trop lente) : vérifie ton réseau, puis réessaie.',
     type_refuse: 'Ce type de fichier n\'est pas accepté ici : une photo doit être une image (JPEG, PNG, WebP ou GIF), un vocal un son.',
     piece_inconnue: 'Cette pièce n\'existe plus (elle a expiré ou a été supprimée) : renvoie-la.',
     plage_invalide: 'La partie demandée du fichier n\'existe pas.',
@@ -84,10 +85,14 @@
          elle-même) ne porte pas ce drapeau : l'écran n'affiche alors qu'une phrase générique, jamais le message technique. */
       this.dit = true;
     }
-    /* La phrase, avec l'attente quand le service l'a donnée (`Retry-After`) : « … (réessaie dans 15 min) ». */
+    /* La phrase, avec l'attente quand le service l'a donnée (`Retry-After`) : « Trop de demandes en peu de temps (réessaie dans 20 s). »
+       ⛔ UNE SEULE INVITATION À RÉESSAYER : la phrase du service finit par « Réessaie dans un instant. » ; ajouter « (réessaie dans 20 s) » derrière la disait deux fois, et « dans un instant »
+       contredisait « 20 s » (relecture du testeur). Quand l'attente est connue, elle REMPLACE la clause de la phrase. */
     phrase() {
       if (this.code === 'piece_trop_lourde' && this.max > 0) return this.message.replace(/\.$/, '') + ' (' + tailleLisible(this.max) + ' au plus).';
-      return this.retry > 0 ? this.message.replace(/\.$/, '') + ' (réessaie dans ' + attenteLisible(this.retry) + ').' : this.message;
+      if (!(this.retry > 0)) return this.message;
+      const sans = this.message.replace(/\s*R[ée]essaie[^.]*\.$/i, '').replace(/\.$/, '');
+      return sans + ' (réessaie dans ' + attenteLisible(this.retry) + ').';
     }
   }
 
@@ -209,8 +214,10 @@
       deposer: async (corps, o2) => {
         const x = o2 || {};
         const h = { Accept: 'application/json', 'Content-Type': 'application/octet-stream', 'X-OPM': '1' };
+        /* ⛔ le NOM d'un fichier voyage dans un en-tête (encodé en pourcentage), jamais dans l'adresse : une adresse se retrouve dans le journal d'accès d'un proxy */
+        if (x.nom !== undefined && x.nom !== null) h['X-OPM-Nom'] = encodeURIComponent(String(x.nom));
         let r;
-        try { r = await f(base + '/api/pieces' + rq({ conv: x.conv, genre: x.genre, nom: x.nom }), { method: 'POST', headers: h, credentials: 'same-origin', cache: 'no-store', body: corps }); }
+        try { r = await f(base + '/api/pieces' + rq({ conv: x.conv, genre: x.genre }), { method: 'POST', headers: h, credentials: 'same-origin', cache: 'no-store', body: corps }); }
         catch (er) { throw new ErreurApi('reseau', 0, 0); }
         return jsonDe(r, { piece: true, max: x.max });
       },

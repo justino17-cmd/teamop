@@ -361,19 +361,39 @@ if [ "$PROXY" = nginx ]; then
 
   BLOC_HTTP="# Posé par server-msg/install-msg.sh — réécrit à chaque installation, ne pas éditer à la main.
 # Ce fichier est LE SEUL qu'OP MESSAGES pose dans nginx : le bloc de l'API d'OP GESTION n'est pas touché.
-# ⛔ Un plafond de débit par adresse AVANT le service (relecture du gardien, point 8) : le service a ses propres plafonds, mais
-# des envois lents et nombreux atteignaient Node directement (8 192 descripteurs). 20 requêtes par seconde et par adresse,
+# ⛔ LA CLÉ DES PLAFONDS EST LE RÉSEAU, PAS L'ADRESSE (relecture du gardien, A3). Le service compte par réseau — l'adresse IPv4 entière, les 64 premiers bits d'une adresse IPv6
+# (cleReseau) — parce qu'une personne dispose de 2^64 adresses dans SON /64 : une zone par \$binary_remote_addr laissait chaque adresse du /64 repartir à zéro.
+# Cette table recopie la règle sur la forme TEXTUELLE que nginx donne (compressée) : quatre groupes explicites, ou « :: » après trois ou deux groupes ; le reste (IPv4,
+# boucle locale, formes rares) garde l'adresse entière. Un banc la rejoue avec un VRAI nginx (tests/sonde-proxy-nginx.js).
+map \$remote_addr \$opmsg_reseau_$INSTANCE {
+    default \$remote_addr;
+    \"~*^([0-9a-f]{1,4}:[0-9a-f]{1,4}:[0-9a-f]{1,4}:[0-9a-f]{1,4}):\" \$1;
+    \"~*^([0-9a-f]{1,4}:[0-9a-f]{1,4}:[0-9a-f]{1,4})::\" \"\$1:0\";
+    \"~*^([0-9a-f]{1,4}:[0-9a-f]{1,4})::\" \"\$1:0:0\";
+}
+# ⛔ Un plafond de débit par réseau AVANT le service (relecture du gardien, point 8) : le service a ses propres plafonds, mais
+# des envois lents et nombreux atteignaient Node directement (8 192 descripteurs). 20 requêtes par seconde et par réseau,
 # 60 de rafale ; le flux SSE (une seule requête longue par onglet) n'y passe pas.
-limit_req_zone \$binary_remote_addr zone=opmsg_$INSTANCE:10m rate=20r/s;
+limit_req_zone \$opmsg_reseau_$INSTANCE zone=opmsg_$INSTANCE:10m rate=20r/s;
 limit_req_status 429;
-# Le dépôt d'une pièce (26 Mo) est TAMPONNÉ sur le disque de nginx avant que le service puisse dire 401 : on borne donc aussi le nombre d'envois
-# SIMULTANÉS par adresse, en plus du débit.
-limit_conn_zone \$binary_remote_addr zone=opmsg_conn_$INSTANCE:10m;
+# Les connexions SIMULTANÉES, une zone par usage (deux emplacements sur la même zone additionneraient leurs compteurs : douze lectures en cours refuseraient un dépôt).
+#   · le dépôt d'une pièce (26 Mo) est TAMPONNÉ sur le disque de nginx avant que le service puisse dire 401 : par réseau, ET pour tout le monde (A3 — le disque est celui d'OP GESTION aussi) ;
+#   · la lecture d'une pièce, SANS tampon (A2) : chaque lecteur lent tient une connexion du service et un fichier ouvert tant qu'il est là.
+limit_conn_zone \$opmsg_reseau_$INSTANCE zone=opmsg_conn_$INSTANCE:10m;
+limit_conn_zone \$server_name zone=opmsg_depots_$INSTANCE:1m;
+limit_conn_zone \$opmsg_reseau_$INSTANCE zone=opmsg_lec_conn_$INSTANCE:10m;
+limit_conn_zone \$server_name zone=opmsg_lectures_$INSTANCE:1m;
 limit_conn_status 429;
 server {
     listen 80;
     listen [::]:80;
     server_name $DOMAINE;
+    # ⛔ AUCUN JOURNAL D'ACCÈS (relecture du gardien, B2 — SERVEUR.md § 3.6 : « jamais d'adresse, de nom, de texte, de nom de fichier »). Le format par défaut écrit l'adresse de
+    # chaque visiteur et la ligne de requête entière : identifiants de conversations et de pièces dans les adresses. Posé DANS nos blocs : celui d'OP GESTION n'est pas touché.
+    # Les refus de débit se consignent d'ordinaire au niveau « error » avec l'adresse et la requête ; au niveau « warn » le journal d'erreurs (qui s'arrête à « error ») ne les écrit plus.
+    access_log off;
+    limit_req_log_level warn;
+    limit_conn_log_level warn;
     # Let's Encrypt doit pouvoir poser sa preuve, même quand tout le reste redirige.
     location /.well-known/acme-challenge/ { root $ACME_REEL; }
     location / { return 301 https://$DOMAINE\$request_uri; }
@@ -390,6 +410,10 @@ $H2_ON
     server_name $DOMAINE;
     ssl_certificate     /etc/letsencrypt/live/$DOMAINE/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/$DOMAINE/privkey.pem;
+    # ⛔ Aucun journal d'accès, et les refus de débit hors du journal d'erreurs (B2) — voir le bloc du port 80.
+    access_log off;
+    limit_req_log_level warn;
+    limit_conn_log_level warn;
 
     # ⛔ 64 Ko, corps TAMPONNÉ (le défaut de nginx) : le service refuse déjà au-delà de 64 Ko tout ce qui est JSON. Un corps de 110 Mo
     # non tamponné tenait un descripteur de Node ouvert pendant tout l'envoi d'un client lent.
@@ -399,9 +423,12 @@ $H2_ON
     # fichier : 25 Mo) plus une marge ; au-delà, nginx répond 413 tout seul, avant même de lire le corps. Le corps reste TAMPONNÉ (pas de
     # « proxy_request_buffering off ») : un client lent ne tient pas un descripteur de Node pendant tout son envoi — et un envoi fractionné
     # arrive au service avec sa longueur. ⚠️ Si « pieces.fichierMax » est relevé au-delà de 25 Mo dans la configuration, cette ligne doit suivre.
+    # ⛔ DEUX PLAFONDS DE CONNEXIONS (A3) : 12 par réseau, et 24 pour tout le monde — 24 × 26 Mo = 624 Mo au plus sur le disque de nginx, qui est aussi celui d'OP GESTION.
+    # ⚠️ Un envoi qui trottine (un octet toutes les 59 s) tient une de ces 24 places : c'est la limite connue de ce plafond — SERVEUR.md § 4.4. Si « pieces.simultanes » est relevé, la suivre.
     location = /api/pieces {
         limit_req zone=opmsg_$INSTANCE burst=20 nodelay;
         limit_conn opmsg_conn_$INSTANCE 12;
+        limit_conn opmsg_depots_$INSTANCE 24;
         client_max_body_size 26m;
         client_body_timeout 60s;
         proxy_pass http://127.0.0.1:$PORT;
@@ -412,6 +439,26 @@ $H2_ON
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_read_timeout 120s;
         proxy_send_timeout 120s;
+    }
+
+    # ⛔ LA LECTURE D'UNE PIÈCE, SANS TAMPON (A2) : par défaut nginx recopie la réponse du service dans un fichier temporaire (jusqu'à 1 Go !) dès que le client lit moins vite que le service
+    # n'écrit — vingt-cinq Mo par lecteur lent, sur le disque d'OP GESTION. Sans tampon, c'est le service qui attend (et qui coupe, pieces.lectureAttenteMs et lectureMaxMs) ;
+    # proxy_max_temp_file_size 0 ferme la porte même si quelqu'un rallume le tampon. Plafonds de connexions SÉPARÉS de ceux du dépôt : 64 par réseau (une galerie de photos ouvre
+    # plusieurs dizaines de requêtes d'un coup en HTTP/2) et 256 en tout.
+    location ^~ /api/pieces/ {
+        limit_req zone=opmsg_$INSTANCE burst=60 nodelay;
+        limit_conn opmsg_lec_conn_$INSTANCE 64;
+        limit_conn opmsg_lectures_$INSTANCE 256;
+        proxy_pass http://127.0.0.1:$PORT;
+        proxy_http_version 1.1;
+        proxy_set_header Connection \"\";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Forwarded-For \$remote_addr;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_buffering off;
+        proxy_max_temp_file_size 0;
+        proxy_read_timeout 120s;
+        send_timeout 60s;
     }
 
     location = /api/flux {
