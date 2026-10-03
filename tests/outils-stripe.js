@@ -7,6 +7,7 @@
  *     GET  /v1/checkout/sessions/:id      la session : open | complete (avec `subscription`) | expired
  *     GET  /v1/subscriptions/:id          un abonnement (statut, lignes, quantité, métadonnées, échéance) ; 404 s'il n'existe pas
  *     POST /v1/billing_portal/sessions    le portail de facturation (`customer` exigé)
+ *     GET  /v1/prices/:id                 un tarif (avec son produit si `expand[]=product`) — lu par `configurer-stripe.js`
  *     GET  /v1/subscriptions?status=all   la LISTE (ce que lit OP GESTION : `status=all`, `limit=100`, `starting_after`) — pour le banc de la couture, test-965
  *
  * ⛔ IL NE JUGE RIEN À LA PLACE DU SERVICE, mais il RECONSTRUIT ce que Stripe ferait : quand un banc « paie » une session (`payer`), l'abonnement qui naît porte exactement les
@@ -33,6 +34,8 @@ async function fauxStripe(opts = {}) {
     echo: false,                // l'erreur répète l'en-tête d'autorisation reçu
     portailConfigure: true,     // faux : Stripe répond 400 « no configuration » comme un compte dont le portail n'est pas réglé
     pannesRestantes: 0,         // les N prochains appels répondent 500, puis tout revient
+    tarifs: new Map(),          // id → objet « price » (lu par `configurer-stripe.js`)
+    sansDroits: new Set(),      // 'abonnements' | 'tarifs' | 'produits' : le droit manque à la clé → 403
     n: 0,
   };
   const json = (res, code, corps) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(corps)); };
@@ -72,7 +75,16 @@ async function fauxStripe(opts = {}) {
           if (!sb) return json(res, 404, { error: { message: 'No such subscription' } });
           return json(res, 200, sb);
         }
+        if (req.method === 'GET' && (m = /^\/v1\/prices\/([^/]+)$/.exec(p))) {
+          if (E.sansDroits.has('tarifs')) return json(res, 403, { error: { message: 'The provided key does not have the required permissions for this endpoint (rak_price_read)' } });
+          const t = E.tarifs.get(decodeURIComponent(m[1]));
+          if (!t) return json(res, 404, { error: { message: 'No such price' } });
+          const etendre = u.searchParams.getAll('expand[]').includes('product');
+          if (etendre && E.sansDroits.has('produits')) return json(res, 403, { error: { message: 'The provided key does not have the required permissions for this endpoint (rak_product_read)' } });
+          return json(res, 200, Object.assign({}, t, { product: etendre ? t.product : (t.product && t.product.id) }));
+        }
         if (req.method === 'GET' && p === '/v1/subscriptions') {
+          if (E.sansDroits.has('abonnements')) return json(res, 403, { error: { message: 'The provided key does not have the required permissions for this endpoint (rak_subscription_read)' } });
           /* la liste telle qu'OP GESTION la lit : `status=all`, `limit`, `starting_after` — par pages de 100 au plus, `has_more` tant qu'il en reste */
           const tous = Array.from(E.abonnements.values());
           const lim = Math.min(100, Math.max(1, parseInt(u.searchParams.get('limit') || '10', 10) || 10)), apres = u.searchParams.get('starting_after');
@@ -119,6 +131,8 @@ async function fauxStripe(opts = {}) {
   E.oublier = (subId) => { E.abonnements.delete(subId); };
   /* un abonnement d'un AUTRE produit ou d'un autre compte, rangé tel quel dans la liste (pour la couture) */
   E.poser = (sb) => { E.abonnements.set(sb.id, sb); if (sb.customer && typeof sb.customer === 'object') { E.clients.set(sb.customer.id, sb.customer); sb.customer = sb.customer.id; } return sb; };
+  /* un tarif tel que Stripe le rend (par défaut : 15 € par mois, par place, en euros, en mode test, produit « OP MESSAGES Pro ») */
+  E.poserTarif = (id, plus) => { const t = Object.assign({ id, object: 'price', active: true, currency: 'eur', unit_amount: 1500, type: 'recurring', recurring: { interval: 'month', interval_count: 1 }, billing_scheme: 'per_unit', livemode: false, product: { id: 'prod_banc' + alea(3), object: 'product', name: 'OP MESSAGES Pro' } }, plus || {}); E.tarifs.set(id, t); return t; };
   E.sessionsOuvertes = () => Array.from(E.sessions.values()).filter(s => s.status === 'open');
   E.derniereSession = () => Array.from(E.sessions.values()).pop() || null;
   E.compter = (m, motif) => E.appels.filter(a => a.m === m && motif.test(a.chemin)).length;

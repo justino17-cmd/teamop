@@ -299,4 +299,4 @@ function installerFacturation(H, ctx) {
   });
 }
 
-module.exports = { creerFacturation, installerFacturation, PLACES_MIN, PLACES_MAX, ID_ESPACE, STATUTS_PAYES };
+module.exports = { creerFacturation, installerFacturation, HOTE_STRIPE, PLACES_MIN, PLACES_MAX, ID_ESPACE, STATUTS_PAYES };
