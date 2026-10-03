@@ -1721,7 +1721,7 @@ const horlogeFixe = (h) => () => h.t;
           v('⛔ le rejeu NE DISSOUT PAS un espace dont un abonnement court ou dont un paiement attend (il ne parle pas à Stripe : dissoudre perdrait le seul lien avec ce qui continue de prélever) — Alice en sort, ils restent SANS membre ; celui qui ne paie rien est dissous',
             [bilan.fait, bilan.echecs, [Ep, Es].map(e => S2.espaceBrut(e) !== null), S2.espaceBrut(Eg), nb(copie, 'SELECT COUNT(*) AS n FROM espace_membre WHERE uid = ?', a.id), [Ep, Es].map(e => nb(copie, 'SELECT COUNT(*) AS n FROM espace_membre WHERE espace = ?', e))],
             [true, 0, [true, true], null, 0, [0, 0]]);
-          v('   l\'abonnement et la session de paiement sont intacts (ce que Stripe relira), et le rejeu n\'a écrit aucune ligne « espace »', [S2.abonnementLire(Ep).abonnement, S2.abonnementLire(Es).session, genres(copie).espace || 0], ['sub_banc950', 'cs_banc950', 0]);
+          v('   l\'abonnement et la session de paiement sont intacts (ce que Stripe relira), et le rejeu n\'a écrit aucune ligne « espace »', [(S2.abonnementLire(Ep) || {}).abonnement, (S2.abonnementLire(Es) || {}).session, genres(copie).espace || 0], ['sub_banc950', 'cs_banc950', 0]);
           v('⛔ et le journal le DIT — un nombre, jamais un espace : « attention », « espace-payant-sans-membre », 2 (à régler à la main sur le tableau de bord de Stripe)', journal.filter(([, ch]) => ch && ch.etat === 'attention'), [['rejeu', { etat: 'attention', motif: 'espace-payant-sans-membre', n: 2 }]]);
           v('   le bilan final reste « ok » (une attention n\'est pas un échec : le drapeau du rejeu retombe)', [journal[journal.length - 1], S2.rejeuAFaire()], [['rejeu', { etat: 'ok', n: 1 }], false]);
         } finally { S2.fermer(); }

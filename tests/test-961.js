@@ -431,7 +431,7 @@ async function monter(config, instance) {
         X.S.suppressionProgrammer(zoe.id, Date.now() - 1000);        // l'échéance est passée : le balayeur l'efface à son prochain passage
         const fait = await T.attendre(async () => /"evt":"compte_efface"/.test(X.svc.sortie.texte()), 8000, 50);
         vrai('population : le balayeur a effacé le compte (la ligne « compte_efface » est au journal)', fait);
-        v('⛔ l\'espace n\'est PAS dissous : il reste, sans membre, avec son abonnement intact — et Zoe n\'en est plus', [X.S.espaceBrut(Ex) !== null, X.S.espaceMembresN(Ex), X.S.abonnementLire(Ex).abonnement === abo, X.S.espacesDe(zoe.id).length], [true, 0, true, 0]);
+        v('⛔ l\'espace n\'est PAS dissous : il reste, sans membre, avec son abonnement intact — et Zoe n\'en est plus', [X.S.espaceBrut(Ex) !== null, X.S.espaceMembresN(Ex), (X.S.abonnementLire(Ex) || {}).abonnement === abo, X.S.espacesDe(zoe.id).length], [true, 0, true, 0]);
         const lignes = X.svc.sortie.texte().split('\n').filter(l => /"evt":"espace_payant_sans_membre"/.test(l));
         v('⛔ le journal le DIT : une ligne, un nombre (1), jamais un espace ni une personne', [lignes.length, lignes.length ? JSON.parse(lignes[0]).n : null, lignes.some(l => l.includes(Ex) || l.includes(zoe.id))], [1, 1, false]);
       } finally { await X.fermer(); }

@@ -486,7 +486,7 @@ console.log('\nUn compte effacé sort de ses espaces : la propriété passe, ou 
   v('population : Ana est seule dans un espace payé (elle l\'était avec deux autres quand elle a demandé son effacement) — la suppression par la route serait refusée à présent', [pay.S.espaceMembresN(pay.e), pay.S.espacesAbonnesSeul(pay.ana.id)], [1, [pay.e]]);
   const orph = efface(pay, pay.ana);
   v('⛔ l\'effacement NE DISSOUT PAS l\'espace payé : Ana en sort, l\'espace reste sans membre avec son abonnement intact, et il est RENDU (`espacesOrphelins`) pour que le service le dise',
-    [orph.effacee, pay.S.espaceBrut(pay.e) !== null, pay.S.espaceMembresN(pay.e), pay.S.abonnementLire(pay.e).abonnement, orph.espacesOrphelins], [true, true, 0, 'sub_orphelin', [pay.e]]);
+    [orph.effacee, pay.S.espaceBrut(pay.e) !== null, pay.S.espaceMembresN(pay.e), (pay.S.abonnementLire(pay.e) || {}).abonnement, orph.espacesOrphelins], [true, true, 0, 'sub_orphelin', [pay.e]]);
   v('… la sortie se NOTE (c\'est un fait : trois lignes « espace_membre », celles des deux autres et la sienne), et rien n\'est noté « espace » (l\'espace n\'est pas dissous)',
     [pay.S.purgeLignes().filter(x => x.genre === 'espace_membre').length, pay.S.purgeLignes().filter(x => x.genre === 'espace').length], [3, 0]);
   const gratuit = atelier();
