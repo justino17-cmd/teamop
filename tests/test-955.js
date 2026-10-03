@@ -73,7 +73,12 @@ function monter(opts = {}) {
   const declencher = async () => { const a = minuteurs.splice(0).filter(m => !m.annule); for (const m of a) m.f(); await new Promise(r => setImmediate(r)); await new Promise(r => setTimeout(r, 20)); };
   const journal = [];
   const push = PUSH.creerPush({ stockage: S, hub, config, horloge: () => h.t, journaliser: (e, c) => journal.push([e, c]), transport, planifier, annuler });
-  const pers = (nom) => S.personneCreer({ identifiant: 'beta:' + nom + alea(), prenom: nom, nom: 'Banc', origine: 'beta', verifie: true });
+  /* ⛔ une personne du banc a une SESSION VIVANTE de trente jours, comme toute personne qui a des abonnements : le service n'envoie plus rien à qui plus rien ne connecte (`pushJoignable`) */
+  const pers = (nom, o) => {
+    const p = S.personneCreer({ identifiant: 'beta:' + nom + alea(), prenom: nom, nom: 'Banc', origine: (o && o.origine) || 'beta', verifie: true });
+    if (!(o && o.sansSession)) S.sessionAjouter({ h: 'sess-' + p.id, personne: p.id, appareil: 'banc', ttlMs: 30 * 86400000 });
+    return p;
+  };
   /* abonne un appareil de banc (vraies clés) à `uid` ; l'adresse est celle d'un hôte de la liste blanche, ou de la porte de test */
   const abonne = (uid, endpoint) => {
     const app = P.appareil(endpoint || ('https://fcm.googleapis.com/fcm/send/' + alea() + alea()));
@@ -212,15 +217,38 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     const paire2 = paireVapid();
     const c2 = ouvrir({ chemin: c.chemin, scelleur: creerScelleur(c.kek), horloge: () => c.h.t });
     const cfgC = { origines: [], push: pushConfig(paire2, {}, 'beta') };
-    const pc2 = PUSH.creerPush({ stockage: c2, hub: { fluxOuverts: () => 0 }, config: cfgC, horloge: () => c.h.t, transport: async () => ({ statut: 201 }) });
+    const journalC = [];
+    const pc2 = PUSH.creerPush({ stockage: c2, hub: { fluxOuverts: () => 0 }, config: cfgC, horloge: () => c.h.t, journaliser: (e, champs) => journalC.push([e, champs]), transport: async () => ({ statut: 201 }) });
     vrai('⛔ une paire DIFFÉRENTE dans la configuration, plus tard, ne remplace pas celle de la base (les abonnements en dépendent)', pc2.cle() === paire.vapidPublicKey && pc2.origineVapid() === 'base');
+    /* ...mais elle se DIT (R9, `gardien3-vapid.js`) : sinon l'installation croit avoir changé de paire alors que rien n'a bougé. Deux EMPREINTES courtes de clés PUBLIQUES, jamais une clé. */
+    const empreinteVapid = (k) => crypto.createHash('sha256').update(k).digest('hex').slice(0, 8);
+    const differe = journalC.filter(([e, champs]) => e === 'push_vapid' && champs.etat === 'differe');
+    v('⛔ ...et le journal le DIT : une ligne « différe », l\'empreinte courte de la clé publique de la base ET celle de l\'installation', [differe.length, differe[0] && differe[0][1].nom, differe[0] && differe[0][1].motif], [1, 'base ' + empreinteVapid(paire.vapidPublicKey), 'installation ' + empreinteVapid(paire2.vapidPublicKey)]);
+    const texteJournalC = JSON.stringify(journalC);
+    v('⛔ ...sans jamais écrire une clé : ni les deux publiques, ni les deux privées', [paire.vapidPublicKey, paire2.vapidPublicKey, paire.vapidPrivateKey, paire2.vapidPrivateKey].map(k => texteJournalC.includes(k)), [false, false, false, false]);
+    vrai('   et le démarrage continue sur la paire de la base (la ligne « base » suit)', journalC.some(([e, champs]) => e === 'push_vapid' && champs.etat === 'base'));
     c2.fermer();
+    /* contre-épreuve : la MÊME paire dans la configuration que dans la base, ou aucune — rien de différent à dire (sans elle, un journal qui crie à chaque démarrage passerait aussi) */
+    for (const [qui, cfgx] of [['la même paire', paire], ['aucune paire', {}]]) {
+      const cx = ouvrir({ chemin: c.chemin, scelleur: creerScelleur(c.kek), horloge: () => c.h.t });
+      const jx = [];
+      PUSH.creerPush({ stockage: cx, hub: { fluxOuverts: () => 0 }, config: { origines: [], push: pushConfig(cfgx, {}, 'beta') }, horloge: () => c.h.t, journaliser: (e, champs) => jx.push([e, champs]), transport: async () => ({ statut: 201 }) });
+      v('contre-épreuve : ' + qui + ' dans la configuration → aucune ligne « différe » (la ligne « base » seule)', [jx.some(([e, champs]) => champs.etat === 'differe'), jx.some(([e, champs]) => e === 'push_vapid' && champs.etat === 'base')], [false, true]);
+      cx.fermer();
+    }
 
     /* la configuration refuse ce qui n'est pas une paire */
     const paire3 = paireVapid();
     v('⛔ une clé privée qui n\'est pas celle de la publique REFUSE le démarrage', lance(() => pushConfig({ vapidPublicKey: paire.vapidPublicKey, vapidPrivateKey: paire3.vapidPrivateKey }, {}, 'beta')), 'CONFIG');
     v('l\'une sans l\'autre aussi', [lance(() => pushConfig({ vapidPublicKey: paire.vapidPublicKey }, {}, 'beta')), lance(() => pushConfig({ vapidPrivateKey: paire.vapidPrivateKey }, {}, 'beta'))], ['CONFIG', 'CONFIG']);
     v('une clé de la mauvaise longueur aussi', lance(() => pushConfig({ vapidPublicKey: 'AAAA', vapidPrivateKey: 'AAAA' }, {}, 'beta')), 'CONFIG');
+    /* les réglages BORNÉS (I2 : l'étalement ; R2 : la durée de vie d'un message qui porte son aperçu) : un nombre absurde REFUSE le démarrage, les bornes elles-mêmes passent */
+    const pcfg = (o) => pushConfig({ push: o }, {}, 'beta');
+    v('les défauts : étalement d\'une heure, aperçu une heure, durée de vie un jour', [pcfg({}).etalementMs, pcfg({}).ttlApercuS, pcfg({}).ttlS], [3600000, 3600, 86400]);
+    v('⛔ `etalementMs` (0 à 7 jours) et `ttlApercuS` (60 s à 4 semaines) hors bornes, fractionnaires ou écrits en texte : le démarrage est REFUSÉ',
+      [lance(() => pcfg({ etalementMs: -1 })), lance(() => pcfg({ etalementMs: 7 * 86400000 + 1 })), lance(() => pcfg({ etalementMs: 1.5 })), lance(() => pcfg({ etalementMs: '3600000' })),
+        lance(() => pcfg({ ttlApercuS: 59 })), lance(() => pcfg({ ttlApercuS: 4 * 7 * 86400 + 1 })), lance(() => pcfg({ ttlApercuS: '3600' }))], Array(7).fill('CONFIG'));
+    v('   et les bornes elles-mêmes passent', [pcfg({ etalementMs: 0 }).etalementMs, pcfg({ etalementMs: 7 * 86400000 }).etalementMs, pcfg({ ttlApercuS: 60 }).ttlApercuS, pcfg({ ttlApercuS: 4 * 7 * 86400 }).ttlApercuS], [0, 7 * 86400000, 60, 4 * 7 * 86400]);
     /* le sujet VAPID : `push.contact`, à défaut le courriel que l'installation écrit déjà (`contactEmail`), à défaut l'origine https du service */
     v('⛔ le courriel de contact de l\'installation (`contactEmail`) devient le sujet VAPID, sauf si `push.contact` est posé ; sans l\'un ni l\'autre, rien (l\'origine https prend le relais)',
       [pushConfig({ contactEmail: 'contact@exemple.invalid' }, {}, 'beta').contact, pushConfig({ contactEmail: 'contact@exemple.invalid', push: { contact: 'mailto:autre@exemple.invalid' } }, {}, 'beta').contact, pushConfig({}, {}, 'beta').contact],
@@ -276,9 +304,10 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     const ap = JSON.parse(P.dechiffrer(appBo, m.envois[0].corps));
     v('avec « Aperçu du message » activé : le nom (et le groupe), et les 100 premiers caractères du texte', [ap.titre, ap.corps.startsWith('CANARIQTEXTE '), Array.from(ap.corps).length <= 100, ap.corps.endsWith('…')], ['Alice Banc · Chantier des Tilleuls', true, true, true]);
     vrai('   et la longue fin du texte n\'y est pas', !ap.corps.includes('FINLONGUE'));
+    v('⛔ ...et le texte voyage : la durée de vie chez le service push tombe à UNE HEURE (sans aperçu : un jour, vu plus haut) — il n\'attend pas vingt-quatre heures sur la machine d\'un tiers', String(m.envois[0].entetes.TTL), '3600');
     m.S.personneMaj(bo.id, { prefs: { apercu_notif: false } });
     m.envois.length = 0; await envoyer();
-    v('⛔ désactivé de nouveau : minimal de nouveau (le réglage est lu à CHAQUE envoi)', JSON.parse(P.dechiffrer(appBo, m.envois[0].corps)).corps, 'Nouveau message');
+    v('⛔ désactivé de nouveau : minimal de nouveau (le réglage est lu à CHAQUE envoi), et la durée de vie revient à un jour', [JSON.parse(P.dechiffrer(appBo, m.envois[0].corps)).corps, String(m.envois[0].entetes.TTL)], ['Nouveau message', '86400']);
     m.S.personneMaj(bo.id, { prefs: { apercu_notif: 'oui' } });
     m.envois.length = 0; await envoyer();
     v('⛔ seul `true` active l\'aperçu (une chaîne, un nombre, un objet : minimal)', JSON.parse(P.dechiffrer(appBo, m.envois[0].corps)).corps, 'Nouveau message');
@@ -287,7 +316,9 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     m.S.personneMaj(bo.id, { prefs: { apercu_notif: true } });
     for (const [type, mot] of [['photo', 'Photo'], ['vocal', 'Message vocal'], ['fichier', 'Fichier']]) {
       m.envois.length = 0;
-      await Promise.all(m.push.message({ conv: g.id, seq: env.seq, gid: env.gid, auteur: al.id, nomAuteur: 'Alice Banc', nomConv: 'G', groupe: false, type, texte: null }));
+      /* ⛔ le jugement de l'instant de partir RELIT le message dans la base (son état d'aujourd'hui) : la pièce est un vrai message de ce type, pas un texte qu'on déclare « photo » */
+      const ep = m.S.messageEnvoyer({ conv: g.id, auteur: al.id, cid: 'cid-piece-' + type + alea(), type, texte: null });
+      await Promise.all(m.push.message({ conv: g.id, seq: ep.seq, gid: ep.gid, auteur: al.id, nomAuteur: 'Alice Banc', nomConv: 'G', groupe: false, type, texte: null }));
       v('aperçu d\'une pièce (' + type + ') : « ' + mot + ' »', JSON.parse(P.dechiffrer(appBo, m.envois[0].corps)).corps, mot);
     }
     m.S.personneMaj(bo.id, { prefs: {} });
@@ -301,6 +332,56 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     m.envois.length = 0; await envoyer();
     v('un destinataire avec DEUX appareils : les deux reçoivent', m.envois.map(e => e.url).sort(), [appBo.sub.endpoint, appBo2.sub.endpoint].sort());
     m.S.fermer();
+  }
+
+  /* ══ 4 bis. LA DURÉE DE VIE chez le service push (R2) ═══════════════════════════════════════════════════════════════════════════════════
+     Un jour au plus. Avec l'APERÇU — le texte voyage —, une heure au plus : un téléphone éteint ne fait pas attendre le texte d'un message vingt-quatre heures sur la machine d'un tiers. Et un message
+     ÉPHÉMÈRE ne survit jamais, là-bas, à ce qui lui reste à vivre À L'INSTANT DE PARTIR (pas à celui de l'envoi : une notification qui a attendu cinq secondes en a cinq de moins). */
+  console.log('\nLa durée de vie d\'une notification : un jour, une heure avec l\'aperçu, jamais plus que ce qui reste à vivre à un message éphémère');
+  {
+    const m = monter();
+    const al = m.pers('Alice'), bo = m.pers('Bruno');
+    m.S.contactLier(al.id, bo.id);
+    m.abonne(bo.id);
+    const groupe = (s) => m.S.convCreerGroupe({ createur: al.id, nom: 'Éph ' + s, membres: [bo.id], annonces_seules: false, ephemere_s: s });
+    const g0 = groupe(0), g30 = groupe(1800), g2h = groupe(7200);
+    let c = 0;
+    /* envoie un message dans `conv` et rend la durée de vie qui est PARTIE vers le service push (null : rien n'est parti) ; `avant(e)` tourne entre l'envoi et le départ (un flux ouvert fait attendre) */
+    const ttl = async (conv, avant) => {
+      m.envois.length = 0; m.minuteurs.length = 0;
+      m.ouverts[bo.id] = avant ? 1 : 0;
+      const e = m.S.messageEnvoyer({ conv, auteur: al.id, cid: 'cid-ttl-' + (++c) + alea(), texte: 'durée de vie ' + c });
+      const ps = m.push.message({ conv, seq: e.seq, gid: e.gid, auteur: al.id, nomAuteur: 'Alice', nomConv: 'G', groupe: true, type: 'texte', texte: 'durée de vie ' + c });
+      if (avant) { avant(e); await m.declencher(); }
+      await Promise.all(ps);
+      return m.envois.length === 1 ? String(m.envois[0].entetes.TTL) : 'envois:' + m.envois.length;
+    };
+    v('population : sans aperçu, un message ordinaire part avec un jour', await ttl(g0.id), '86400');
+    v('⛔ sans aperçu, un message éphémère de 30 minutes ne dépasse pas 30 minutes (et un de deux heures, deux heures)', [await ttl(g30.id), await ttl(g2h.id)], ['1800', '7200']);
+    m.S.personneMaj(bo.id, { prefs: { apercu_notif: true } });
+    v('⛔ avec l\'aperçu : une heure — et JAMAIS plus que le reste à vivre d\'un éphémère (30 minutes : 1 800 ; deux heures : une heure, le plus court des deux)', [await ttl(g0.id), await ttl(g30.id), await ttl(g2h.id)], ['3600', '1800', '3600']);
+    v('⛔ ce qui reste se compte à l\'instant de PARTIR : le message a attendu dix minutes un acquittement qui n\'est pas venu → 1 200 s, pas 1 800', await ttl(g30.id, () => { m.h.t += 600000; }), '1200');
+    v('   à moins d\'une seconde de son extinction : zéro (« livre maintenant ou oublie »)', await ttl(g30.id, (e) => { m.h.t = e.ts + 1800000 - 400; }), '0');
+    v('   et un message échu pendant l\'attente ne part pas du tout (population : il partait juste avant)', await ttl(g30.id, (e) => { m.h.t = e.ts + 1800000 + 1; }), 'envois:0');
+    m.S.fermer();
+    /* le réglage `ttlApercuS` est lu, et jamais au-delà de `ttlS` */
+    for (const [push, attendu, nom] of [[{ ttlApercuS: 600 }, ['600', '86400'], 'ttlApercuS = 600'], [{ ttlS: 300 }, ['300', '300'], 'ttlS = 300 (plus court que l\'aperçu : la durée de vie générale l\'emporte)']]) {
+      const m2 = monter({ push });
+      const a2 = m2.pers('Alice'), b2 = m2.pers('Bruno');
+      m2.S.contactLier(a2.id, b2.id);
+      m2.abonne(b2.id);
+      const gg = m2.S.convCreerGroupe({ createur: a2.id, nom: 'G', membres: [b2.id], annonces_seules: false, ephemere_s: 0 });
+      const sorties = [];
+      for (const apercu of [true, false]) {
+        m2.S.personneMaj(b2.id, { prefs: { apercu_notif: apercu } });
+        m2.envois.length = 0;
+        const e = m2.S.messageEnvoyer({ conv: gg.id, auteur: a2.id, cid: 'cid-ttl2-' + alea(), texte: 'x' });
+        await Promise.all(m2.push.message({ conv: gg.id, seq: e.seq, gid: e.gid, auteur: a2.id, nomAuteur: 'Alice', nomConv: 'G', groupe: true, type: 'texte', texte: 'x' }));
+        sorties.push(m2.envois.length === 1 ? String(m2.envois[0].entetes.TTL) : 'envois:' + m2.envois.length);
+      }
+      v('⛔ réglage ' + nom + ' : avec aperçu, puis sans', sorties, attendu);
+      m2.S.fermer();
+    }
   }
 
   /* ══ 5. L'ACQUITTEMENT : une notification ne double pas une page qui est sous les yeux ══════════════════════════════════════════ */
@@ -440,11 +521,72 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     m.h.t += 2 * 86400000;
     await m.declencher(); await tout(psm);
     v('⛔ un message éphémère ÉCHU pendant l\'attente ne part pas', m.envois.length, 0);
+
+    /* i. ⛔ R1 (`gardien3-fenetre.js`, cas f) : un message CORRIGÉ pendant l'attente part avec sa version d'AUJOURD'HUI. L'aperçu d'hier montrerait, sur un écran verrouillé, ce que l'auteur vient de corriger. */
+    m.S.personneMaj(bo.id, { prefs: { apercu_notif: true } });
+    const lire = (i) => JSON.parse(P.dechiffrer(app, m.envois[i].corps));
+    m.envois.length = 0; m.minuteurs.length = 0; m.ouverts[bo.id] = 1;
+    const eo0 = ecrire(g.id, 'CANARIQAVANT rendez-vous à 14 h');
+    const pso0 = notifier(g.id, eo0, 'CANARIQAVANT rendez-vous à 14 h');
+    await m.declencher(); await tout(pso0);
+    v('population : sans correction, l\'aperçu porte le texte écrit (le banc voit bien ce qui part)', [m.envois.length, m.envois.length && lire(0).corps], [1, 'CANARIQAVANT rendez-vous à 14 h']);
+    m.envois.length = 0; m.minuteurs.length = 0;
+    const eo1 = ecrire(g.id, 'CANARIQAVANT rendez-vous à 14 h');
+    const pso1 = notifier(g.id, eo1, 'CANARIQAVANT rendez-vous à 14 h');
+    m.S.messageModifier({ conv: g.id, seq: eo1.seq, auteur: al.id, texte: 'CANARIQAPRES rendez-vous à 15 h' });
+    await m.declencher(); await tout(pso1);
+    v('⛔ corrigé PENDANT l\'attente : UNE notification, avec la version d\'aujourd\'hui — et l\'ancienne n\'est nulle part dans ce qui part', [m.envois.length, m.envois.length && lire(0).corps, m.envois.length && P.dechiffrer(app, m.envois[0].corps).includes('CANARIQAVANT')], [1, 'CANARIQAPRES rendez-vous à 15 h', false]);
+
+    /* j. ⛔ R1 (cas e) : l'autre est BLOQUÉ pendant l'attente — une conversation directe ne notifie plus (la même règle que l'envoi : un contact mutuel et aucun blocage) */
+    const dir = m.S.convDirecteObtenir(al.id, bo.id);
+    const ecrireD = (texte) => m.S.messageEnvoyer({ conv: dir.id, auteur: al.id, cid: 'cid-dir-' + (++c) + alea(), texte });
+    const notifierD = (e, texte) => m.push.message({ conv: dir.id, seq: e.seq, gid: e.gid, auteur: al.id, nomAuteur: 'Alice', nomConv: null, groupe: false, type: 'texte', texte });
+    m.envois.length = 0; m.minuteurs.length = 0; m.ouverts[bo.id] = 1;
+    const ed0 = ecrireD('direct, sans blocage');
+    const psd0 = notifierD(ed0, 'direct, sans blocage');
+    await m.declencher(); await tout(psd0);
+    v('population : dans une conversation directe, sans blocage, la notification part', [m.envois.length, m.envois.length && lire(0).corps], [1, 'direct, sans blocage']);
+    m.envois.length = 0; m.minuteurs.length = 0;
+    const ed1 = ecrireD('envoyé juste avant le blocage');
+    const psd1 = notifierD(ed1, 'envoyé juste avant le blocage');
+    m.S.contactEtat(bo.id, al.id, 'bloque');
+    await m.declencher(); const rd1 = await tout(psd1);
+    v('⛔ Bruno bloque Alice PENDANT l\'attente : rien ne part, et la raison est « plus valable »', [m.envois.length, rd1[0].raison], [0, 'plus_valable']);
+    m.S.contactEtat(bo.id, al.id, 'ok');
+    m.envois.length = 0; m.minuteurs.length = 0;
+    const ed2 = ecrireD('après le déblocage');
+    const psd2 = notifierD(ed2, 'après le déblocage');
+    await m.declencher(); await tout(psd2);
+    v('   contre-épreuve : le blocage levé, la notification repart', [m.envois.length, m.envois.length && lire(0).corps], [1, 'après le déblocage']);
+
+    /* k. ⛔ R10 (`gardien3-fenetre.js`, cas a) : plusieurs messages attendent ensemble ; le DERNIER est supprimé « pour tous » — les précédents, encore valables, notifient quand même
+       (la charge retenue était celle du seul dernier message : sa suppression étouffait tout le lot) */
+    const TEXTES = ['lot un', 'lot deux', 'lot trois'];
+    const lot = async (supprimes) => {
+      m.envois.length = 0; m.minuteurs.length = 0; m.ouverts[bo.id] = 1;
+      const es = TEXTES.map(t => ecrire(g.id, t));
+      const ps = es.map((e, i) => notifier(g.id, e, TEXTES[i]));
+      for (const i of supprimes) m.S.messageSupprimer({ conv: g.id, seq: es[i].seq, uid: al.id, pour: 'tous', admin: false });
+      const minuteurs = m.minuteurs.length;
+      await m.declencher(); const rs = await tout(ps.flat());
+      return { minuteurs, n: m.envois.length, corps: m.envois.length ? lire(0).corps : null, raison: rs[0].raison };
+    };
+    const l0 = await lot([]);
+    v('population : trois messages d\'une conversation pendant l\'attente, aucun supprimé → UNE minuterie, UNE notification, celle du dernier', [l0.minuteurs, l0.n, l0.corps], [1, 1, 'lot trois']);
+    const l1 = await lot([2]);
+    v('⛔ le DERNIER supprimé « pour tous » pendant l\'attente : la notification part quand même, pour le plus récent message encore valable', [l1.n, l1.corps], [1, 'lot deux']);
+    const l2 = await lot([1, 2]);
+    v('⛔ les deux derniers supprimés : le premier notifie', [l2.n, l2.corps], [1, 'lot un']);
+    const l3 = await lot([1]);
+    v('   celui du MILIEU supprimé : le dernier, valable, part', [l3.n, l3.corps], [1, 'lot trois']);
+    const l4 = await lot([0, 1, 2]);
+    v('⛔ TOUS supprimés : rien ne part, et la raison est « plus valable »', [l4.n, l4.raison], [0, 'plus_valable']);
+    m.S.personneMaj(bo.id, { prefs: {} });
     m.S.fermer();
   }
 
   /* ══ 6. LES STATUTS DU SERVICE PUSH ═════════════════════════════════════════════════════════════════════════════════════════ */
-  console.log('\nLes réponses du service push : 404 et 410 retirent l\'abonnement, les autres échecs se comptent, cinq de suite le retirent');
+  console.log('\nLes réponses du service push : 404 et 410 retirent l\'abonnement ; un refus 4xx se compte (cinq de suite sur plus d\'une heure le retirent) ; 401/403, une panne, le réseau : jamais');
   {
     const m = monter();
     const al = m.pers('Alice'), bo = m.pers('Bruno');
@@ -468,28 +610,80 @@ const attente = () => new Promise(r => setTimeout(r, 25));
       v('   ...et ce n\'est PAS compté comme un échec de /health (un appareil qui disparaît est le fonctionnement normal : la surveillance ne doit pas crier)', m.push.sante().echecs24h, echecsAvant);
       m.abonne(bo.id);
     }
+    /* ⛔ relevé par le gardien le 3 octobre 2026 : cinq 503 de suite (une PANNE du service push), puis une coupure réseau de NOTRE côté, retiraient TOUS les abonnements — que seule l'ouverture de l'application
+       sur chaque appareil rend. Trois classes : un refus du service à CET abonnement (4xx) se compte et ne retire qu'après cinq de suite ET une heure ; 401/403 (nos clés) ne retirent jamais ; tout le reste
+       (5xx, 429, redirection, réseau, délai) ne compte pas du tout. */
     m.S.pushSupprimerPersonne(bo.id);
-    m.abonne(bo.id); m.reponse.statut = 500;
-    for (let i = 1; i <= 4; i++) await un();
-    v('500 quatre fois de suite : l\'abonnement est encore là, 4 échecs comptés', [nb(), echecs()], [1, 4]);
-    m.reponse.statut = 201; await un();
-    v('⛔ un succès remet le compte à zéro', [nb(), echecs()], [1, 0]);
-    m.reponse.statut = 500;
-    for (let i = 1; i <= 4; i++) await un();
-    v('   (quatre échecs de plus ne suffisent pas : il en faut CINQ DE SUITE)', [nb(), echecs()], [1, 4]);
-    await un();
-    v('⛔ le cinquième échec de suite retire l\'abonnement', nb(), 0);
     m.abonne(bo.id);
-    for (const [nom, st] of [['429 (trop de demandes)', 429], ['403 (nos clés refusées)', 403], ['302 (une redirection n\'est pas suivie : un échec)', 302], ['413', 413], ['503', 503]]) {
-      m.reponse.statut = 201; await un();   // un succès remet le compte à zéro : chaque statut se juge seul
-      m.reponse.statut = st; await un();
-      v(nom + ' : compté comme un échec, l\'abonnement reste', [nb(), echecs()], [1, 1]);
-    }
-    m.S.pushSupprimerPersonne(bo.id); m.abonne(bo.id);
+    const sante0 = m.push.sante();
+    m.reponse.statut = 503;
+    for (let i = 1; i <= 8; i++) { m.h.t += 25 * 60000; await un(); }
+    v('⛔ une PANNE du service push (huit 503 de suite, étalés sur plus de trois heures) ne retire PAS l\'abonnement et n\'entre pas dans la série de refus', [nb(), echecs()], [1, 0]);
+    v('   mais /health les compte tous (huit échecs) : la surveillance doit voir une panne', m.push.sante().echecs24h - sante0.echecs24h, 8);
     m.reponse.statut = 201; m.reponse.leve = true;
-    const rl = await un();
-    v('⛔ un transport qui LÈVE ne fait pas tomber le module : l\'échec est compté, la promesse se résout', [nb(), echecs(), rl[0].envoyes], [1, 1, 0]);
+    for (let i = 1; i <= 6; i++) { m.h.t += 25 * 60000; await un(); }
+    v('⛔ une panne de NOTRE côté (le transport lève, six fois de suite sur plus de deux heures) ne retire pas non plus', [nb(), echecs()], [1, 0]);
     m.reponse.leve = false;
+    for (const [nom, st] of [['429 (« réessaie plus tard »)', 429], ['302 (une redirection n\'est pas suivie)', 302], ['500', 500], ['503', 503]]) {
+      m.reponse.statut = 201; await un();
+      m.reponse.statut = st;
+      for (let i = 1; i <= 7; i++) { m.h.t += 10 * 60000; await un(); }
+      v(nom + ' : sept fois de suite sur plus d\'une heure — jamais compté comme un refus de l\'abonnement, il reste', [nb(), echecs()], [1, 0]);
+    }
+    /* 401 et 403 : NOS clés sont refusées — la faute n'est pas à l'abonnement */
+    const avantRefus = m.push.sante();
+    for (const st of [401, 403]) {
+      m.reponse.statut = 201; await un();
+      m.reponse.statut = st;
+      for (let i = 1; i <= 7; i++) { m.h.t += 10 * 60000; await un(); }
+      v('⛔ ' + st + ' (le service push refuse NOS clés VAPID) : sept fois sur plus d\'une heure — l\'abonnement n\'est JAMAIS retiré pour cela', [nb(), echecs()], [1, 0]);
+    }
+    v('   et c\'est compté À PART pour la surveillance (14 refus), en plus des échecs de /health', [m.push.sante().refuses24h - avantRefus.refuses24h, m.push.sante().echecs24h - avantRefus.echecs24h], [14, 14]);
+    /* le vrai refus : 400 */
+    m.reponse.statut = 201; await un();
+    m.reponse.statut = 400;
+    for (let i = 1; i <= 5; i++) await un();
+    v('⛔ cinq refus 400 de suite, le MÊME instant : comptés (5), l\'abonnement reste — une série serrée est une panne, pas un abonnement mort', [nb(), echecs()], [1, 5]);
+    m.h.t += 30 * 60000; await un();
+    v('   une demi-heure plus tard, un sixième : il reste (il faut une HEURE depuis le premier refus de la série)', [nb(), echecs()], [1, 6]);
+    m.h.t += 31 * 60000; await un();
+    v('⛔ plus d\'une heure après le premier refus et plus de cinq de suite : l\'abonnement est retiré', nb(), 0);
+    /* une livraison remet la série à zéro — le compte ET l'heure du premier refus */
+    m.abonne(bo.id);
+    m.reponse.statut = 400;
+    for (let i = 1; i <= 4; i++) await un();
+    m.reponse.statut = 201; await un();
+    v('⛔ une livraison remet le compte à zéro', [nb(), echecs()], [1, 0]);
+    m.h.t += 2 * 3600000;
+    m.reponse.statut = 400;
+    for (let i = 1; i <= 5; i++) { await un(); m.h.t += 12 * 60000; }
+    v('⛔ ... et l\'HEURE aussi : cinq refus espacés de 12 minutes depuis la livraison ne suffisent pas, la série a recommencé à zéro (sinon l\'ancien premier refus, vieux de deux heures, retirerait tout de suite)', [nb(), echecs()], [1, 5]);
+    await un();
+    v('   le sixième, plus d\'une heure après le premier refus de la NOUVELLE série : retiré', nb(), 0);
+    /* deux refus espacés de DEUX heures : la durée seule ne retire pas, il en faut cinq de suite */
+    m.abonne(bo.id);
+    m.reponse.statut = 400;
+    await un(); m.h.t += 2 * 3600000; await un();
+    v('⛔ deux refus espacés de DEUX HEURES ne retirent pas : il en faut CINQ de suite, la durée seule ne suffit pas', [nb(), echecs()], [1, 2]);
+    /* la page redit son abonnement à chaque ouverture : le compte du magasin repart à zéro, et l'heure du premier refus avec lui */
+    m.S.pushSupprimerPersonne(bo.id);
+    {
+      const app = m.abonne(bo.id);
+      m.reponse.statut = 400;
+      for (let i = 1; i <= 4; i++) await un();                  // quatre refus : le premier date de maintenant
+      m.h.t += 2 * 3600000;
+      m.push.abonner(bo.id, app.sub);                           // la page redit son abonnement (même point d'accès) : le compte repart à zéro
+      for (let i = 1; i <= 5; i++) await un();                  // cinq refus de la NOUVELLE série, le même instant
+      v('⛔ la page qui redit son abonnement (chaque ouverture) remet la série à zéro : le premier refus d\'après ouvre une série NEUVE, ce n\'est pas le cinquième d\'une série vieille de deux heures', [nb(), echecs()], [1, 5]);
+    }
+    /* des clés qui ne chiffrent RIEN : l'échec est celui de cet appareil — un refus de plus, et rien ne part */
+    m.S.pushSupprimerPersonne(bo.id);
+    m.S.pushPoser({ uid: bo.id, endpoint: 'https://fcm.googleapis.com/fcm/send/cles-fausses' + alea(), p256dh: 'AAAA', auth: 'BBBB' });
+    m.envois.length = 0; m.reponse.statut = 201;
+    await un();
+    v('un abonnement dont les clés ne chiffrent RIEN : l\'échec est le sien, compté comme un refus — et aucun octet n\'est parti', [nb(), echecs(), m.envois.length], [1, 1, 0]);
+    m.S.pushSupprimerPersonne(bo.id);
+    m.reponse.statut = 201;
 
     /* la liste blanche est RE-VÉRIFIÉE à l'envoi : une ligne ancienne, ou une liste resserrée depuis */
     m.S.pushSupprimerPersonne(bo.id);
@@ -593,6 +787,8 @@ const attente = () => new Promise(r => setTimeout(r, 25));
       '0.0.0.0': 'cette machine', '10.1.2.3': '10/8', '127.0.0.1': 'la boucle locale', '127.255.255.254': 'le bout de 127/8', '100.64.0.1': 'CGNAT (début)', '100.127.255.255': 'CGNAT (fin)',
       '169.254.169.254': 'lien local (métadonnées d\'hébergeur)', '172.16.0.1': '172.16/12 (début)', '172.31.255.255': '172.16/12 (FIN)', '192.168.0.1': '192.168/16', '192.0.0.1': '192.0.0/24',
       '198.18.0.1': 'bancs de mesure (début)', '198.19.255.255': 'bancs de mesure (fin)', '192.88.99.1': 'relais 6to4', '224.0.0.1': 'multidiffusion (début)', '255.255.255.255': 'diffusion',
+      '192.0.2.0': 'TEST-NET-1 (début)', '192.0.2.255': 'TEST-NET-1 (fin)', '198.51.100.0': 'TEST-NET-2 (début)', '198.51.100.255': 'TEST-NET-2 (fin)', '203.0.113.0': 'TEST-NET-3 (début)', '203.0.113.255': 'TEST-NET-3 (fin)',
+      '::ffff:192.0.2.1': 'TEST-NET-1 « mappée » en IPv6', '64:ff9b::cb00:7101': 'NAT64 qui porte 203.0.113.1',
       '::': 'IPv6 non spécifiée', '::1': 'IPv6 boucle locale', 'fc00::1': 'IPv6 locale unique (fc00)', 'fd12:3456::1': 'IPv6 locale unique (fd00)', 'fe80::1': 'IPv6 lien local', 'febf::1': 'IPv6 lien local (fin de plage)',
       'fec0::1': 'IPv6 locale au site', 'ff02::1': 'IPv6 multidiffusion', '::ffff:127.0.0.1': 'IPv4 de la boucle locale « mappée »', '::ffff:10.0.0.1': 'IPv4 privée « mappée »', '::ffff:7f00:1': 'la même, écrite en hexadécimal',
       '64:ff9b::7f00:1': 'NAT64 qui porte 127.0.0.1', '2002:7f00:1::1': '6to4 qui porte 127.0.0.1', '2001:0:4136:e378:8000:63bf:3fff:fdd2': 'Teredo', '2001:db8::1': 'IPv6 de documentation',
@@ -602,9 +798,10 @@ const attente = () => new Promise(r => setTimeout(r, 25));
       '142.250.74.138': 'Google (FCM)', '17.253.144.10': 'Apple', '34.107.243.93': 'Mozilla', '8.8.8.8': 'une adresse publique ordinaire', '100.63.255.255': 'juste sous le CGNAT', '100.128.0.1': 'juste au-dessus du CGNAT',
       '172.15.255.255': 'juste sous 172.16/12', '172.32.0.1': 'juste au-dessus de 172.16/12', '169.253.1.1': 'juste sous le lien local', '192.167.255.255': 'juste sous 192.168/16', '192.169.0.1': 'juste au-dessus de 192.168/16',
       '198.17.255.255': 'juste sous 198.18/15', '198.20.0.1': 'juste au-dessus de 198.18/15', '223.255.255.255': 'juste sous la multidiffusion', '2a00:1450:4007:80d::200e': 'Google, IPv6', '2607:f8b0:4004:c08::5f': 'Google, IPv6 (2)',
+      '192.0.1.255': 'juste sous TEST-NET-1', '192.0.3.0': 'juste au-dessus de TEST-NET-1', '198.51.99.255': 'juste sous TEST-NET-2', '198.51.101.0': 'juste au-dessus de TEST-NET-2', '203.0.112.255': 'juste sous TEST-NET-3', '203.0.114.0': 'juste au-dessus de TEST-NET-3',
       '::ffff:8.8.8.8': 'IPv4 publique « mappée »', '2001:4860:4860::8888': 'IPv6 publique', '64:ff9b::808:808': 'NAT64 qui porte 8.8.8.8', '2002:808:808::1': '6to4 qui porte 8.8.8.8',
     };
-    vrai('population : ' + Object.keys(privees).length + ' adresses privées et ' + Object.keys(publiques).length + ' publiques à juger', Object.keys(privees).length >= 30 && Object.keys(publiques).length >= 18);
+    vrai('population : ' + Object.keys(privees).length + ' adresses privées et ' + Object.keys(publiques).length + ' publiques à juger', Object.keys(privees).length >= 43 && Object.keys(publiques).length >= 26);
     v('⛔ les adresses publiques des services push PASSENT (une borne mal écrite qui les refuserait ferait taire tous les envois, sans un message)', Object.keys(publiques).filter(a => PUSH.adressePrivee(a)).map(a => a + ' (' + publiques[a] + ')'), []);
     v('⛔ chaque adresse privée, locale ou réservée est REFUSÉE — aux bornes comprises', Object.keys(privees).filter(a => !PUSH.adressePrivee(a)).map(a => a + ' (' + privees[a] + ')'), []);
     v('contre-épreuve : la fonction distingue (elle ne dit pas « privée » à tout, ni « publique » à tout)', [PUSH.adressePrivee('172.31.255.255'), PUSH.adressePrivee('172.32.0.1')], [true, false]);
@@ -628,6 +825,60 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     m.S.fermer();
   }
 
+  /* ══ 9 bis. UNE PERSONNE QUE PLUS RIEN NE CONNECTE NE REÇOIT RIEN ═══════════════════════════════════════════════════════════════
+     Relevé par le gardien le 3 octobre 2026 (`gardien3-session.js`) : une session expire (trente jours sans usage), un abonnement push non. Une personne dont la session avait expiré — ou
+     dont l'accès bêta avait été coupé dans la Tour PENDANT que sa session était expirée, donc jamais relue — recevait encore, sur son téléphone, tous les messages. Le service n'envoie plus qu'à
+     une personne JOIGNABLE : une session vivante, ou un jeton d'appareil valable (échéance glissante ET plafond absolu). Le balayeur retire les abonnements des autres ; la relecture des accès
+     bêta couvre aussi les comptes qui ont un abonnement, sans session. */
+  console.log('\nUne personne que plus rien ne connecte (ni session vivante, ni jeton d\'appareil valable) ne reçoit rien — et ses abonnements ne lui survivent pas');
+  {
+    const JOUR = 86400000;
+    const ABS = require(path.join(T.SERVICE, 'telephone.js')).APPAREIL_ABS_MS;
+    const m = monter();
+    const al = m.pers('Alice'), bo = m.pers('Bruno'), ca = m.pers('Carole'), da = m.pers('David'), ni = m.pers('Nina');
+    const compte = m.pers('Tel', { origine: 'compte', sansSession: true });
+    for (const u of [al, bo, ca, da, compte]) m.abonne(u.id);
+    m.S.telAppareilLier({ h: 'tel-bruno', personne: bo.id, nom: 'tél', ttlMs: 200 * JOUR });     // valable 200 jours
+    m.S.telAppareilLier({ h: 'tel-carole', personne: ca.id, nom: 'tél', ttlMs: 10 * JOUR });     // échu au bout de 10 jours
+    m.S.telAppareilLier({ h: 'tel-david', personne: da.id, nom: 'tél', ttlMs: 400 * JOUR });     // glissant jusqu'à 400 jours, mais le plafond ABSOLU est de 365
+    m.S.telAppareilLier({ h: 'tel-compte', personne: compte.id, nom: 'tél', ttlMs: 200 * JOUR });
+    const essais = async (liste) => { const r = []; for (const u of liste) { const x = await m.push.essai(u.id); r.push([x.envoyes, x.raison || null]); } return r; };
+    v('population : tant que la session de trente jours vit, chacun reçoit (l\'essai, qui passe par la même porte d\'envoi que tout)', await essais([al, bo, ca, da]), [[1, null], [1, null], [1, null], [1, null]]);
+    v('population : et la personne qui n\'a QUE son jeton d\'appareil (compte par téléphone, sans session) reçoit aussi', await essais([compte]), [[1, null]]);
+
+    /* quarante jours plus tard : les sessions de trente jours sont échues */
+    m.h.t += 40 * JOUR;
+    v('⛔ sessions échues : Alice (rien d\'autre) ne reçoit RIEN et le dit (« non_joignable »), Bruno (jeton valable) reçoit, Carole (jeton échu) non, David (jeton valable, plafond absolu pas atteint) reçoit',
+      await essais([al, bo, ca, da]), [[0, 'non_joignable'], [1, null], [0, 'non_joignable'], [1, null]]);
+    m.envois.length = 0;
+    /* Fanny n'a QUE sa session (vivante : elle vient d'arriver), un abonnement, aucun jeton d'appareil : ni l'envoi ni le balayeur ne doivent la toucher */
+    const fa = m.pers('Fanny'); m.abonne(fa.id);
+    const abosAvant = m.S.pushCompter();
+    /* la relecture des accès bêta couvre les comptes qui ont un abonnement, sans session — et ceux qui ont une session sans abonnement ; pas les comptes qui n'ont ni l'un ni l'autre */
+    const ev = m.pers('Eva');   // créée maintenant : session vivante, aucun abonnement
+    const releves = m.S.betaARelire().map(x => x.id).sort();
+    v('⛔ la relecture des accès bêta voit ceux qui ont un abonnement (Alice, Bruno, Carole, David — même sans session) et celles qui ont une session vivante (Eva, Fanny) ; PAS Nina (ni session vivante ni abonnement), ni un compte qui n\'est pas bêta',
+      releves, [al.id, bo.id, ca.id, da.id, ev.id, fa.id].sort());
+    vrai('population : Nina existe, sa session est échue et elle n\'a aucun abonnement — c\'est bien le cas que la liste doit écarter', !!m.S.personneParId(ni.id) && !releves.includes(ni.id) && m.S.pushCompterDe(ni.id) === 0);
+    /* le balayeur */
+    const retires = m.S.pushNonJoignablesPurger(ABS);
+    v('⛔ le balayeur retire les abonnements d\'Alice et de Carole (rien ne les connecte) et GARDE ceux de Bruno et de David (jeton valable), du compte par téléphone (jeton valable) et de Fanny (session vivante, aucun jeton)',
+      [retires, m.S.pushCompterDe(al.id), m.S.pushCompterDe(ca.id), m.S.pushCompterDe(bo.id), m.S.pushCompterDe(da.id), m.S.pushCompterDe(compte.id), m.S.pushCompterDe(fa.id), abosAvant - retires], [2, 0, 0, 1, 1, 1, 1, 4]);
+    v('   rejoué, il ne retire plus rien (idempotent)', m.S.pushNonJoignablesPurger(ABS), 0);
+
+    /* le plafond absolu d'un jeton d'appareil : David a 400 jours glissants, mais plus de 365 depuis la dernière preuve par SMS */
+    m.h.t += 335 * JOUR;
+    const exp = m.brut().prepare('SELECT exp, cree FROM appareil_tel WHERE h = ?').get('tel-david');
+    vrai('population : au jour 375 le jeton de David n\'a PAS échu (400 jours glissants) mais son plafond absolu de 365 jours est passé', exp.exp > m.h.t && exp.cree + ABS <= m.h.t);
+    v('⛔ le jeton de David ne le rend plus joignable (le plafond absolu compte, comme à la reconnexion automatique) ; ni celui de Bruno (échu depuis longtemps) ; le compte par téléphone non plus',
+      await essais([da, bo, compte]), [[0, 'non_joignable'], [0, 'non_joignable'], [0, 'non_joignable']]);
+    /* contre-épreuve : un jeton posé tard est valable à la même date */
+    m.S.telAppareilLier({ h: 'tel-frais', personne: ev.id, nom: 'tél', ttlMs: 400 * JOUR });
+    m.abonne(ev.id);
+    v('   contre-épreuve : Eva (session échue depuis longtemps, mais un jeton d\'appareil posé AUJOURD\'HUI) reçoit à la même date', await essais([ev]), [[1, null]]);
+    m.S.fermer();
+  }
+
   /* ══ 10. LA NOTIFICATION D'ESSAI ET /health ══════════════════════════════════════════════════════════════════════════════════ */
   console.log('\nLa notification d\'essai part tout de suite à tous les appareils de la personne ; /health ne publie que des nombres');
   {
@@ -648,7 +899,7 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     v('/health : actif, abonnements, envoyés et échecs des 24 dernières heures — des nombres', [sante.actif, sante.abonnements, sante.envoyes24h, sante.echecs24h], [true, 2, 3, 1]);
     const texte = JSON.stringify(sante);
     vrai('⛔ rien d\'un point d\'accès, d\'une clé, d\'un identifiant dans /health', !texte.includes('fcm.googleapis') && !texte.includes(a1.sub.keys.p256dh) && !texte.includes(a1.sub.keys.auth) && !texte.includes(al.id) && !/https?:/.test(texte));
-    v('les clés de /health sont exactement celles que la surveillance connaît', Object.keys(sante).sort(), ['abonnements', 'actif', 'echecs24h', 'envoyes24h']);
+    v('les clés de /health sont exactement celles que la surveillance connaît', Object.keys(sante).sort(), ['abonnements', 'actif', 'echecs24h', 'envoyes24h', 'refuses24h']);
     m.h.t += 25 * 3600000;
     v('au bout de 24 heures les compteurs repartent de zéro (fenêtre glissante)', [m.push.sante().envoyes24h, m.push.sante().echecs24h], [0, 0]);
     const journaux = JSON.stringify(m.journal);

@@ -22,6 +22,7 @@
              node tests/mutations-push.js --verifier                           (ne joue rien : chaque motif se trouve UNE fois dans l'arbre, chaque banc existe)
              node tests/mutations-push.js --liste                              (le catalogue)
              --copies=N (défaut 2)   --garder ID (fabrique UNE copie mutée, l'imprime et s'arrête)   --sans-temoin   --details=FICHIER (tous les ✗ de chaque mutation qui tombe)
+             --seul=956 (ne joue QUE ce banc : le lanceur s'arrête sinon au premier banc qui tombe, et un second qui aurait dû voir la mutation ne se découvre jamais aveugle)
    Deux copies en parallèle, un délai par banc. */
 'use strict';
 const fs = require('fs'), os = require('os'), path = require('path'), { spawn, spawnSync } = require('child_process');
@@ -32,9 +33,9 @@ const F = {
   push: 'server-msg/push.js', rpush: 'server-msg/routes-push.js', compte: 'server-msg/compte.js', stock: 'server-msg/stockage.js', routes: 'server-msg/routes.js',
   tel: 'server-msg/telephone.js', index: 'server-msg/index.js', conf: 'server-msg/config.js', app: 'server-msg/app.js', man: 'server-msg/manifeste.js',
   src: 'server-msg/public/source-serveur.js', api: 'server-msg/public/api.js', sw: 'server-msg/public/sw.js', man_pwa: 'server-msg/public/manifest.webmanifest',
-  gen: 'scripts/opmsg-public.js', page: 'apercu/opmessages/index.html',
+  gen: 'scripts/opmsg-public.js', page: 'apercu/opmessages/index.html', rejeu: 'server-msg/rejeu.js', rest: 'server-msg/outils/restaurer.js', surv: '.github/scripts/surveillance-messages.js',
 };
-const BANCS = ['905', '941', '955', '956', '957', '958', 'sonde'];
+const BANCS = ['901', '905', '934', '941', '950', '951', '955', '956', '957', '958', 'sonde'];
 const MUTATIONS = [];
 /* m(id, nom, fichier, ancien, nouveau, suites) — `ancien` : une chaîne, ou une expression régulière (une seule occurrence, `$1` permis dans `nouveau`) */
 const m = (id, nom, fichier, ancien, nouveau, suites, o) => MUTATIONS.push(Object.assign({ id, nom, edits: [[fichier, ancien, nouveau]], suites }, o || {}));
@@ -69,21 +70,24 @@ m('L17', 'une clé VAPID privée qui n\'est pas celle de la publique est accept�
 m('L18', 'le courriel de contact que l\'installation écrit (`contactEmail`) n\'est plus lu : les services push n\'ont plus que l\'origine https pour joindre quelqu\'un', F.conf,
   "o.contact = ce && SUJET_MAILTO.test('mailto:' + ce) && !/@localhost$/i.test(ce) ? 'mailto:' + ce : null;", 'o.contact = null;', ['955']);
 
+m('L19', 'l\'unité systemd que le script d\'installation écrit pose la porte de banc OPMSG_TEST_PUSH (l\'instance bêta l\'accepte : l\'envoi s\'ouvrirait vers une adresse locale)', 'server-msg/install-msg.sh',
+  "Environment=NODE_ENV=production\n", "Environment=NODE_ENV=production\nEnvironment=OPMSG_TEST_PUSH=127.0.0.1:9\n", ['956']);
+
 /* ══ 2. QUI REÇOIT QUOI, ET QUAND — la charge minimale, l'aperçu seulement voulu, jamais l'auteur, jamais une conversation coupée ═══════════════════════════ */
 m('R01', 'l\'aperçu part sans que la personne l\'ait activé (le nom et le texte sur l\'écran verrouillé)', F.push, 'const apercu = !!(moi && moi.prefs && moi.prefs.apercu_notif === true) && charge.detail;', 'const apercu = charge.detail;', ['955', '956']);
 m('R02', 'l\'aperçu est activé PAR DÉFAUT (un réglage jamais touché compte comme « oui »)', F.push, 'moi.prefs.apercu_notif === true) && charge.detail;', 'moi.prefs.apercu_notif !== false) && charge.detail;', ['955', '956']);
 m('R03', 'la charge de base d\'un message porte son texte (la notification minimale n\'est plus « Nouveau message »)', F.push, "renotify: true, titre: 'OP MESSAGES', corps: 'Nouveau message',", "renotify: true, titre: 'OP MESSAGES', corps: resume,", ['955', '956']);
 m('R04', 'l\'auteur d\'un message reçoit la notification de son propre message', F.stock, 'm.quitte_le IS NULL AND m.uid <> ? AND m.muet_jusqua <= ?', 'm.quitte_le IS NULL AND ? IS NOT NULL AND m.muet_jusqua <= ?', ['956']);
 m2('R05', 'une conversation en sourdine notifie quand même (ni le tri des destinataires, ni le jugement au moment de partir ne regardent la sourdine)',
-  [[F.stock, 'AND m.muet_jusqua <= ? AND m.depuis_seq <= ? ORDER BY m.uid', 'AND ? IS NOT NULL AND m.depuis_seq <= ? ORDER BY m.uid'], [F.stock, 'if (!m || m.muet_jusqua > horloge() || seq < m.depuis_seq) return false;', 'if (!m || seq < m.depuis_seq) return false;']], ['956']);
-m('R06', 'une sourdine posée PENDANT l\'attente de l\'acquittement n\'est pas re-jugée au moment de partir', F.stock, 'if (!m || m.muet_jusqua > horloge() || seq < m.depuis_seq) return false;', 'if (!m || seq < m.depuis_seq) return false;', ['955', '956']);
+  [[F.stock, 'AND m.muet_jusqua <= ? AND m.depuis_seq <= ? ORDER BY m.uid', 'AND ? IS NOT NULL AND m.depuis_seq <= ? ORDER BY m.uid'], [F.stock, 'if (!m || m.muet_jusqua > horloge() || seq < m.depuis_seq) return null;', 'if (!m || seq < m.depuis_seq) return null;']], ['956']);
+m('R06', 'une sourdine posée PENDANT l\'attente de l\'acquittement n\'est pas re-jugée au moment de partir', F.stock, 'if (!m || m.muet_jusqua > horloge() || seq < m.depuis_seq) return null;', 'if (!m || seq < m.depuis_seq) return null;', ['955', '956']);
 m2('R07', 'un membre qui a QUITTÉ la conversation reçoit encore ses messages (ni le tri des destinataires, ni le jugement au moment de partir ne regardent s\'il est parti)',
   [[F.stock, 'WHERE m.conv = ? AND m.quitte_le IS NULL AND m.uid <> ?', 'WHERE m.conv = ? AND m.uid <> ?'],
     [F.stock, "const m = Q('SELECT depuis_seq, muet_jusqua FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);", "const m = Q('SELECT depuis_seq, muet_jusqua FROM membre WHERE conv = ? AND uid = ?').get(conv, uid);"]], ['955', '956']);
 m('R08', 'plus aucun jugement au moment de partir (sourdine, conversation quittée, message supprimé « pour tous » pendant l\'attente)', F.push,
-  "if (typeof charge.valide === 'function') { let v = false; try { v = !!charge.valide(); } catch (e) { v = false; } if (!v) return { envoyes: 0, appareils: 0, raison: 'plus_valable' }; }", '', ['955', '956']);
+  "if (!v) return { envoyes: 0, appareils: 0, raison: 'plus_valable' };", '', ['955', '956']);
 m('R09', 'un message supprimé « pour tous » PENDANT l\'attente part quand même (le texte supprimé arriverait sur l\'écran verrouillé)', F.stock,
-  'return !!x && !x.supprime_le && (x.expire_ts === null || x.expire_ts > horloge());', 'return !!x && (x.expire_ts === null || x.expire_ts > horloge());', ['955', '956']);
+  'if (!x || x.supprime_le || (x.expire_ts !== null && x.expire_ts <= horloge())) return null;', 'if (!x || (x.expire_ts !== null && x.expire_ts <= horloge())) return null;', ['955', '956']);
 m('R10', 'sourdine filtrée par le tri des destinataires SEUL (le jugement au moment de partir la regarde aussi)', F.stock, 'AND m.muet_jusqua <= ? AND m.depuis_seq <= ? ORDER BY m.uid', 'AND ? IS NOT NULL AND m.depuis_seq <= ? ORDER BY m.uid', ['956'],
   EQ('le jugement au moment de partir (`pushMessageEncore`) refuse déjà une conversation en sourdine'));
 m('R11', 'membre parti filtré par le tri des destinataires SEUL (le jugement au moment de partir le regarde aussi)', F.stock, 'WHERE m.conv = ? AND m.quitte_le IS NULL AND m.uid <> ?', 'WHERE m.conv = ? AND m.uid <> ?', ['956'],
@@ -111,7 +115,7 @@ m('A05', 'sans flux ouvert la notification attend quand même l\'acquittement (c
 m('A06', 'un flux ouvert ne retient plus rien : la notification part toujours tout de suite (doublon avec la page visible)', F.push,
   'if (charge.immediat === true || ouverts === 0) return partir(uid, charge)', 'if (true) return partir(uid, charge)', ['955', '956']);
 m('A07', 'plusieurs messages d\'une conversation pendant l\'attente font plusieurs notifications (la mémoire d\'attente est perdue)', F.push,
-  'if (deja) { deja.gid = Math.max(deja.gid, gid); deja.charge = charge; return deja.promesse; }', '', ['955']);
+  'if (deja) { deja.gid = Math.max(deja.gid, gid); deja.charges.push(charge); return deja.promesse; }', '', ['955']);
 m('A08', 'une notification sans identifiant d\'événement est tenue pour déjà acquittée (elle ne partira jamais)', F.push, 'const gid = Number.isInteger(o.gid) ? o.gid : Infinity;', 'const gid = Number.isInteger(o.gid) ? o.gid : 0;', ['955']);
 
 /* ══ 4. LA PAIRE VAPID — propre à l'instance, privée SCELLÉE, jamais changée (un abonnement est lié à la clé publique qui l'a créé) ═════════════════════════ */
@@ -123,12 +127,12 @@ m2('V02', 'la première paire VAPID ne gagne plus : une paire neuve est fabriqu�
 
 /* ══ 5. LES ABONNEMENTS — un appareil, une personne ; ce qui part avec l'accès ; ce que le service push dit ═══════════════════════════════════════════════════ */
 m('S01', 'on peut retirer l\'abonnement D\'UNE AUTRE personne (le propriétaire n\'est plus vérifié)', F.stock, "'DELETE FROM push WHERE endpoint_h = ? AND uid = ?'", "'DELETE FROM push WHERE endpoint_h = ? AND ? IS NOT NULL'", ['956']);
-m('S02', 'un 404 du service push ne retire plus l\'abonnement (seul le 410 le fait)', F.push, 'if (r.statut === 404 || r.statut === 410) {', 'if (r.statut === 410) {', ['955', '956']);
-m('S03', 'un 410 du service push ne retire plus l\'abonnement (l\'appareil disparu est réessayé indéfiniment)', F.push, 'if (r.statut === 404 || r.statut === 410) {', 'if (r.statut === 404) {', ['955', '956']);
-m('S04', 'les échecs ne se comptent jamais : un service push qui ne répond plus garde l\'abonnement pour toujours', F.push,
-  "    compter('echecs');\n    return { ok: false, retire: stockage.pushEchec(abo.id, pc.echecsMax).retire };", "    compter('echecs');\n    return { ok: false, retire: false };", ['955']);
+m('S02', 'un 404 du service push ne retire plus l\'abonnement (seul le 410 le fait)', F.push, 'if (s === 404 || s === 410) {', 'if (s === 410) {', ['955', '956']);
+m('S03', 'un 410 du service push ne retire plus l\'abonnement (l\'appareil disparu est réessayé indéfiniment)', F.push, 'if (s === 404 || s === 410) {', 'if (s === 404) {', ['955', '956']);
+m('S04', 'les refus du service ne se comptent jamais : un service push qui refuse toujours le même abonnement le garde pour toujours', F.push,
+  "if (s >= 400 && s < 500 && s !== 429) return refus(abo);", "if (s >= 400 && s < 500 && s !== 429) return { ok: false, retire: false };", ['955', '956']);
 m('S05', 'un envoi réussi ne remet pas le compteur d\'échecs à zéro (cinq échecs ESPACÉS retirent un appareil qui marche)', F.push, "stockage.pushOk(abo.id); compter('envoyes');", "compter('envoyes');", ['955']);
-m('S06', 'un seul échec retire l\'abonnement (le seuil de cinq de suite est perdu)', F.stock, 'if (r.echecs + 1 >= max) {', 'if (true) {', ['955', '956']);
+m('S06', 'le nombre de refus de suite ne compte plus (seule la durée retire : deux refus espacés de deux heures suffisent)', F.push, 'n >= pc.echecsMax && ', '', ['955', '956']);
 m('S07', 'le plafond de dix appareils par personne n\'est plus tenu', F.stock,
   "const retires = num(Q('DELETE FROM push WHERE uid = ? AND id NOT IN (SELECT id FROM push WHERE uid = ? ORDER BY cree DESC, id DESC LIMIT ?)').run(uid, uid, max).changes);", 'const retires = 0;', ['955', '956']);
 m('S08', 'un appareil ne suit plus son dernier utilisateur : un point d\'accès déjà inscrit pour quelqu\'un d\'autre lui reste (les notifications de l\'ancien propriétaire arrivent sur le téléphone du nouveau)',
@@ -169,7 +173,7 @@ m('D14', 'un compte dont la suppression est programmée reste TROUVABLE par num�
 m('D15', 'un compte dont la suppression est programmée peut être AJOUTÉ comme contact depuis une recherche faite avant', F.tel, 'stockage.contactBloque(uid, id) || stockage.suppressionLe(id) !== null) {', 'stockage.contactBloque(uid, id)) {', ['957']);
 m('D16', 'la confirmation (le mot SUPPRIMER) devient facultative : une requête isolée supprime un compte', F.compte, "if (corps(req).confirmation !== 'SUPPRIMER') return refus(res, 400, 'confirmation_requise');", '', ['957']);
 m('D17', 'la suppression ne ferme pas les flux ouverts : la personne continue de recevoir ses messages pendant le sursis', F.compte, 'hub.fermerPersonne(req.moi.id);', '', ['957']);
-m('D18', 'un disque plein retient la suppression du compte (le plancher d\'espace disque refuse aussi ce geste)', F.app, String.raw`compte\/(deconnexion|supprimer)|flux\/ack`, String.raw`compte\/(deconnexion)|flux\/ack`, ['957']);
+m('D18', 'un disque plein retient la suppression du compte (le plancher d\'espace disque refuse aussi ce geste)', F.app, String.raw`compte\/(deconnexion|supprimer|export)|flux\/ack`, String.raw`compte\/(deconnexion|export)|flux\/ack`, ['957']);
 m('D19', 'la route de suppression devient publique (plus de garde de session)', F.man, /(id: 'compte\.supprimer',\s+m: 'POST', p: '\/api\/compte\/supprimer',\s+garde: ')S(')/, '$1P$2', ['905', '957']);
 m('D20', 'l\'effacement n\'écrit pas la ligne de purge (une sauvegarde restaurée ressusciterait le compte effacé)', F.stock, "Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(uid, 'compte', horloge());", '', ['957']);
 /* ⛔ D21, D22, D23 : la RAISON d'équivalence que j'avais écrite était fausse — le banc joue chaque couche À PART (il remet le jeton en base à la main, puis demande à chaque route), et il compte les jetons restants. Mesuré : elles tombent. */
@@ -184,9 +188,9 @@ m('D25', 'la page de messages ne dit plus quels auteurs sont des comptes supprim
 
 /* ══ 7. EXPORTER SES DONNÉES — ce que la personne voit, rien de plus ; un par jour ; un fichier qui s'écrit au fil de l'eau, plafonné ═════════════════════════ */
 m('X01', 'l\'export n\'a plus de quota : un export à chaque requête, le geste le plus coûteux d\'une personne', F.compte, "if (!essai.ok) { res.set('Retry-After', String(essai.retry)); return refus(res, 429, 'export_quotidien', { retry: essai.retry }); }", '', ['957']);
-m('X02', 'un export abandonné en route ne rend pas son créneau (24 h d\'attente pour un fichier jamais reçu)', F.compte, 'quotas.rembourser(cle);', '', ['957']);
-m('X03', 'le plafond de taille ne coupe plus une conversation en cours d\'écriture', F.compte, 'if (total > plafondOctets) { coupe = true; break; }', '', ['957']);
-m('X04', 'le plafond de taille ne coupe plus la liste des conversations', F.compte, "if (total > plafondOctets) { tronque = 'conversations'; break; }", '', ['957']);
+m('X02', 'une erreur du SERVICE (avant le premier octet, ou en plein fichier) ne rend plus le créneau du jour (24 h d\'attente pour un fichier que nous n\'avons pas su écrire)', F.compte, 'if (!duClient) quotas.rembourser(cle);', 'if (!duClient) { /* rien */ }', ['957']);
+m('X03', 'aucune limite (taille ni durée) ne coupe plus une conversation en cours d\'écriture', F.compte, '{ const l = limite(); if (l) { coupe = true; cause = l; break; } }', '{ }', ['957']);
+m('X04', 'aucune limite (taille ni durée) ne coupe plus la liste des conversations', F.compte, "{ const l = limite(); if (l) { tronque = 'conversations'; cause = l; break; } }", '{ }', ['957']);
 m('X05', 'l\'export contient les messages d\'AVANT l\'arrivée de la personne dans le groupe', F.stock,
   'WHERE x.conv = ? AND x.seq >= ? AND x.seq > ? AND (x.expire_ts IS NULL OR x.expire_ts > ?)', 'WHERE x.conv = ? AND ? IS NOT NULL AND x.seq > ? AND (x.expire_ts IS NULL OR x.expire_ts > ?)', ['957']);
 m('X06', 'l\'export contient les messages que la personne a supprimés « pour moi »', F.stock,
@@ -200,6 +204,36 @@ m('X12', 'l\'export est mis en cache : la route ne pose plus `no-store` elle-mê
   EQ('`app.js` pose `Cache-Control: no-store` sur TOUTE réponse de /api : l\'en-tête de la route est une redondance (comme `nosniff` des pièces)'));
 m('X11', 'l\'export liste aussi les conversations quittées (la liste des identifiants ne filtre plus)', F.stock, 'SELECT conv FROM membre WHERE uid = ? AND quitte_le IS NULL ORDER BY conv', 'SELECT conv FROM membre WHERE uid = ? ORDER BY conv', ['957'],
   EQ('`convPourMembre` ne rend rien pour une conversation quittée : l\'export la saute'));
+
+m('X13', 'l\'export est refusé sous le plancher d\'espace disque (un disque plein retient la personne qui veut emporter ses données, alors que rien n\'est écrit)', F.app,
+  String.raw`compte\/(deconnexion|supprimer|export)|flux\/ack`, String.raw`compte\/(deconnexion|supprimer)|flux\/ack`, ['957']);
+
+/* ── I3 (3 octobre 2026) : le créneau n'est rendu que si la faute est la NÔTRE ; un lecteur qui ne lit plus est coupé ; la durée dit POURQUOI ; un export à la fois par compte ── */
+m('X14', 'un export abandonné par le client rend son créneau (le comportement d\'avant : six exports démarrés puis abandonnés = six fois le travail pour un seul « par jour »)', F.compte,
+  "const duClient = e && (e.code === 'client_parti' || e.code === 'client_lent');", "const duClient = false;", ['957']);
+m('X15', 'un lecteur COUPÉ pour sa lenteur rend son créneau (seul le départ du client ne le rend pas)', F.compte,
+  "const duClient = e && (e.code === 'client_parti' || e.code === 'client_lent');", "const duClient = e && (e.code === 'client_parti');", ['957']);
+m('X16', 'un lecteur qui ne lit plus n\'est JAMAIS coupé (l\'attente d\'un `drain` n\'a pas de fin : deux lecteurs lents tiennent les deux places du service pour toujours)', F.compte,
+  "const minuterie = setTimeout(() => fin(Object.assign(new Error('client_lent'), { code: 'client_lent' })), attenteMs);", "const minuterie = setTimeout(() => {}, attenteMs);", ['957']);
+m('X17', 'le service coupe un lecteur sans le DIRE (plus de ligne « export_coupe » dans le journal)', F.compte,
+  "      else if (e.code === 'client_lent' && ctx.journaliser) ctx.journaliser('export_coupe', { motif: 'attente' });\n", '', ['957']);
+m('X18', 'plus de limite de DURÉE : un lecteur qui lit juste assez vite pour ne jamais s\'arrêter tient son export (et sa place) aussi longtemps qu\'il veut', F.compte,
+  "if (horloge() - debut > dureeMaxMs) return 'duree'; ", '', ['957']);
+m('X19', 'le fichier tronqué ne dit plus POURQUOI (`tronque_cause` n\'est plus écrit)', F.compte, `(cause ? ',"tronque_cause":' + J(cause) : '')`, `''`, ['957']);
+m('X20', 'plus de verrou par compte : une même personne tient les deux places du service avec deux lecteurs lents', F.compte,
+  "    if (comptesEnExport.has(uid)) { res.set('Retry-After', '30'); return refus(res, 429, 'quota_atteint', { retry: 30 }); }\n", '', ['957']);
+m('X21', 'le verrou par compte n\'est jamais levé (le premier export d\'une personne la bloque jusqu\'au redémarrage)', F.compte,
+  "} finally { exportsEnCours--; comptesEnExport.delete(uid); }", "} finally { exportsEnCours--; }", ['957']);
+m2('X22', 'le refus « un export à la fois » CONSOMME le créneau du jour (le verrou est jugé après le quota)',
+  [[F.compte, "    if (comptesEnExport.has(uid)) { res.set('Retry-After', '30'); return refus(res, 429, 'quota_atteint', { retry: 30 }); }\n", ''],
+    [F.compte, "const essai = quotas.essai(cle, q.max, q.fenetreMs);", "const essai = quotas.essai(cle, q.max, q.fenetreMs);\n    if (comptesEnExport.has(uid)) { res.set('Retry-After', '30'); return refus(res, 429, 'quota_atteint', { retry: 30 }); }"]], ['957']);
+m('X23', 'la borne basse de l\'attente d\'un lecteur n\'existe plus (`exportAttenteMs: 99` démarre)', F.conf, "exportAttenteMs: [100, 3600000]", "exportAttenteMs: [0, 3600000]", ['957']);
+m('X24', 'l\'attente par défaut d\'un lecteur qui ne lit plus est de 3 secondes, pas 30', F.conf, "exportAttenteMs: 30000, exportMaxMs: 900000 };", "exportAttenteMs: 3000, exportMaxMs: 900000 };", ['957']);
+m('X25', 'le service ignore `compte.exportAttenteMs` de la configuration (toujours 30 s)', F.compte,
+  "const attenteMs = config.compte && Number.isInteger(config.compte.exportAttenteMs) ? config.compte.exportAttenteMs : EXPORT_ATTENTE_MS;", "const attenteMs = EXPORT_ATTENTE_MS;", ['957']);
+m('X27', 'le plafond de TAILLE a disparu de la fonction qui décide d\'arrêter le fichier (la durée seule le borne : 64 Mo ne sont plus une limite)', F.compte, "if (total > plafondOctets) return 'taille'; ", '', ['957']);
+m('X26', 'le service ignore `compte.exportMaxMs` de la configuration (toujours 15 minutes)', F.compte,
+  "const dureeMaxMs = config.compte && Number.isInteger(config.compte.exportMaxMs) ? config.compte.exportMaxMs : EXPORT_DUREE_MAX_MS;", "const dureeMaxMs = EXPORT_DUREE_MAX_MS;", ['957']);
 
 /* ══ 8. LE CLIENT — le module de données de la page et son client d'API ═══════════════════════════════════════════════════════════════════════════════════ */
 m('C01', 'une page CACHÉE acquitte ce qu\'elle ne montre pas (la notification serait étouffée alors que personne n\'a rien vu)', F.src, 'if (!visible) return;', '', ['958']);
@@ -219,8 +253,9 @@ m2('C11', 'une rafale d\'événements fait autant d\'acquittements (ni la minute
   [[F.src, 'if (ackMinuterie) return;', ''], [F.src, 'if (mort || g <= ackEnvoye) return;', 'if (mort) return;']], ['958']);
 m2('C12', 'un acquittement déjà envoyé est renvoyé (ni la garde à l\'entrée, ni la garde au départ de la minuterie)',
   [[F.src, 'if (!Number.isInteger(gid) || gid <= ackEnvoye || mort) return;', 'if (!Number.isInteger(gid) || mort) return;'], [F.src, 'if (mort || g <= ackEnvoye) return;', 'if (mort) return;']], ['958']);
-m('C18', 'la minuterie de groupement des acquittements est perdue (la garde au départ de la minuterie rattrape)', F.src, 'if (ackMinuterie) return;', '', ['958'],
-  EQ('chaque minuterie qui se déclenche voit `g <= ackEnvoye` et ne fait rien : une seule requête part quand même'));
+/* C18 était « équivalente » (la garde `g <= ackEnvoye` du départ de la minuterie rattrapait) — vrai seulement si la réponse revient avant la minuterie suivante : tombée une fois sur six sur une machine chargée.
+   Le banc retient maintenant la réponse de l'acquittement (la requête reste en vol, `ackEnvoye` n'est pas posé) : huit minuteries envoient plusieurs requêtes, de façon CERTAINE. */
+m('C18', 'la minuterie de groupement des acquittements est perdue (huit événements, huit minuteries : chacune part pendant que la première requête vole)', F.src, 'if (ackMinuterie) return;', '', ['958']);
 m('C19', 'un acquittement déjà envoyé est ré-armé à l\'entrée (la garde au départ de la minuterie rattrape)', F.src, 'if (!Number.isInteger(gid) || gid <= ackEnvoye || mort) return;', 'if (!Number.isInteger(gid) || mort) return;', ['958'],
   EQ('la minuterie voit `g <= ackEnvoye` et ne fait rien : aucune requête ne part'));
 m('C13', 'la demande de suppression n\'envoie plus le mot de confirmation (le service la refuse toujours)', F.api, "supprimerCompte: () => appel('POST', '/api/compte/supprimer', { confirmation: 'SUPPRIMER' }),", "supprimerCompte: () => appel('POST', '/api/compte/supprimer', {}),", ['958']);
@@ -260,8 +295,161 @@ m('G05', 'la reconnexion qui annule la suppression ne le dit plus (« Bon retour
 m('G06', 'l\'écran de connexion qui suit une suppression ne dit plus la date d\'effacement', F.page, "etat.dateSuppression = m === 'suppression' ? d : 0;", 'etat.dateSuppression = 0;', ['sonde'], SONDE);
 m('G07', 'toucher un interrupteur de notification « impossible ici » (iPhone hors écran d\'accueil, navigateur sans push, autorisation refusée) fait quelque chose', F.page, "if (quoi === 'sw' && !reg.notif.possible) return;", '', ['sonde'], SONDE);
 
+/* ══ 11. LES CORRECTIONS DU LOT 3 APRÈS LES RELECTURES ADVERSES — la restauration (B1, B1 bis) ═══════════════════════════════════════════════════════════════
+   Jouées par `test-950` § 13 sexies (le magasin, le rejeu, des copies de base) et `test-951` § 4 ter (le vrai service, la vraie restauration). */
+const PUSH_VIDE = "      try { bilan.push = Number(d.prepare('DELETE FROM push').run().changes); }\n      catch (e) { if (!/no such table/i.test(String(e && e.message))) throw e; }\n";
+const LIEN_DEMANDE = "Q('UPDATE lien SET revoque = 1 WHERE par = ? AND revoque = 0 AND cree <= ?').run(uid, depuis);";
+const ORDRE_REGISTRE = "Q('SELECT objet, genre, quand FROM purge ORDER BY quand, rowid')";
+const REJEU_DEMANDE = 'stockage.suppressionProgrammer(uid, t, { rejeu: true, depuis: e.quand });';
+m('B01', 'la restauration ne vide plus la table des abonnements push (un abonnement désactivé, un appareil déconnecté revient)', F.stock, PUSH_VIDE, '', ['950', '951']);
+m('B02', 'le vidage des abonnements ne tolère plus l\'absence de la table (une archive d\'avant la migration 4 fait lever la restauration)', F.stock, PUSH_VIDE, "      bilan.push = Number(d.prepare('DELETE FROM push').run().changes);\n", ['950']);
+m('B03', 'les abonnements vidés ne sont plus comptés (la restauration dit « 0 » alors qu\'elle en retire)', F.stock, "bilan.push = Number(d.prepare('DELETE FROM push').run().changes);", "d.prepare('DELETE FROM push').run();", ['950', '951']);
+m('B04', 'la DEMANDE de suppression n\'écrit plus sa ligne dans le registre (une copie d\'avant la demande : le compte n\'est jamais effacé)', F.stock,
+  "Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(uid + '|' + echeance + '|' + alea(4), 'suppression_demandee', horloge());", '', ['950', '951']);
+m('B05', 'l\'ANNULATION n\'écrit plus sa ligne dans le registre (une copie d\'avant le retour de la personne : le balayeur l\'efface)', F.stock,
+  "if (annulee && !rejeu) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(uid + '|' + alea(4), 'suppression_annulee', horloge());", '', ['950', '951']);
+m('B06', 'la demande rejouée ne pose plus l\'échéance (la fonction du service ne fait rien)', F.rejeu, REJEU_DEMANDE, '', ['950', '951']);
+m('B07', 'l\'annulation rejouée ne lève plus l\'échéance (la personne revenue est effacée à la première minute)', F.rejeu, 'stockage.suppressionAnnuler(uid, { rejeu: true });', '', ['950', '951']);
+m('B08', 'la demande rejouée RECALCULE l\'échéance (quatorze jours à partir de maintenant) au lieu de reposer l\'échéance d\'origine', F.rejeu,
+  REJEU_DEMANDE, 'stockage.suppressionProgrammer(uid, Date.now() + 14 * 86400000, { rejeu: true, depuis: e.quand });', ['950']);
+m('B09', 'le rejeu se fait du plus RÉCENT au plus ancien (demande puis annulation s\'appliquent à l\'envers : la personne revenue reste à effacer)', F.stock,
+  ORDRE_REGISTRE, "Q('SELECT objet, genre, quand FROM purge ORDER BY quand DESC, rowid DESC')", ['950']);
+m('B10', 'à égalité d\'instant, le rejeu prend le rang d\'écriture à l\'envers (demande et annulation de la même milliseconde se croisent)', F.stock,
+  ORDRE_REGISTRE, "Q('SELECT objet, genre, quand FROM purge ORDER BY quand, rowid DESC')", ['950']);
+m('B11', 'la ligne de la demande n\'a plus de marque (deux demandes de même échéance et de même instant n\'en font qu\'une à la restauration)', F.stock,
+  "uid + '|' + echeance + '|' + alea(4)", "uid + '|' + echeance + '|'", ['950']);
+m('B12', 'la ligne de l\'annulation n\'a plus de marque (deux annulations de la même personne n\'en font qu\'une à la restauration)', F.stock,
+  "uid + '|' + alea(4), 'suppression_annulee'", "uid + '|', 'suppression_annulee'", ['950']);
+m('B13', 'le rejeu de la demande supprime aussi les appareils de la personne (il emporte ceux qu\'elle a liés depuis son retour)', F.stock,
+  LIEN_DEMANDE, LIEN_DEMANDE + "\n        Q('DELETE FROM appareil_tel WHERE personne = ?').run(uid);", ['950']);
+m('B14', 'le rejeu de la demande révoque aussi les liens créés APRÈS elle (ceux d\'une personne revenue)', F.stock,
+  LIEN_DEMANDE, "Q('UPDATE lien SET revoque = 1 WHERE par = ? AND revoque = 0').run(uid);", ['950']);
+m('B15', 'le rejeu de la demande ne révoque plus les liens créés AVANT elle (un lien d\'une personne qui s\'en va revient)', F.stock, LIEN_DEMANDE, '', ['950']);
+m('B16', 'le rejeu d\'une demande pour une personne absente de la copie ou déjà effacée LÈVE (le drapeau ne retombe plus jamais)', F.stock,
+  "if (rejeu) return { sessions: 0, appareils: 0, push: 0, echeance, posee: false };", '', ['950']);
+m('B17', 'une demande à la ligne illisible est ignorée en silence (une obligation d\'effacement non tenue, sans un mot au journal)', F.rejeu,
+  "if (!uid || !echeance || !Number.isSafeInteger(t) || t <= 0) throw new Error('entree-illisible');", '', ['950']);
+m('B18', 'une échéance décimale ou hors de portée est acceptée par le rejeu de la demande', F.rejeu, ' || !Number.isSafeInteger(t)', '', ['950']);
+m('B19', 'une échéance nulle ou négative est acceptée par le rejeu de la demande', F.rejeu, ' || t <= 0', '', ['950']);
+m('B20', 'une annulation sans identifiant n\'est plus refusée par le rejeu', F.rejeu, "if (!uid) throw new Error('entree-illisible');", '', ['950']);
+m('B21', 'le rejeu de la demande n\'est plus un « rejeu » (il écrit une seconde ligne dans le registre et lève pour une personne absente)', F.rejeu,
+  REJEU_DEMANDE, 'stockage.suppressionProgrammer(uid, t, { depuis: e.quand });', ['950']);
+m('B22', 'le rejeu de l\'annulation écrit une seconde ligne dans le registre (chaque démarrage sur une base restaurée en ajouterait une)', F.rejeu,
+  'stockage.suppressionAnnuler(uid, { rejeu: true });', 'stockage.suppressionAnnuler(uid);', ['950']);
+m('B23', 'la demande de suppression est déclarée « copie » (le rejeu hors ligne ne sait pas la refaire : elle est « ignorée »)', F.stock, "suppression_demandee: 'service',", "suppression_demandee: 'copie',", ['950']);
+m('B24', 'l\'annulation est déclarée « copie » (idem)', F.stock, "suppression_annulee: 'service',", "suppression_annulee: 'copie',", ['950']);
+m('B25', 'la restauration réelle ne dit plus combien d\'abonnements de notification elle a retirés', F.rest,
+  "(chacun se reconnecte ; les appareils liés restent). Le service rejouera au démarrage les genres de purge qui sont à lui.');\n    dire('  abonnements de notification retirés : ' + (ap.push || 0)",
+  "(chacun se reconnecte ; les appareils liés restent). Le service rejouera au démarrage les genres de purge qui sont à lui.');\n    dire('  abonnements de notification retirés : ' + 0", ['951']);
+
+/* ══ 12. UNE PERSONNE QUE PLUS RIEN NE CONNECTE (I1) — `test-955` § 9 bis (le module, le magasin) et `test-956` (le vrai service, deux services à horloge décalable) ═════════════════════════════ */
+const PURGE_JOIGNABLE = "return num(Q(`DELETE FROM push WHERE uid NOT IN (SELECT personne FROM session WHERE exp > ?) AND uid NOT IN (SELECT personne FROM appareil_tel WHERE exp > ? AND cree + ? > ?)`).run(t, t, absMs, t).changes);";
+const SQL_JETON = "'SELECT 1 AS x FROM appareil_tel WHERE personne = ? AND exp > ? AND cree + ? > ? LIMIT 1'";
+m('J01', 'l\'envoi ne juge plus si la personne est joignable (une session échue, un jeton échu : le téléphone reçoit toujours)', F.push,
+  "    if (!stockage.pushJoignable(uid, appareilAbsMs)) return { envoyes: 0, appareils: 0, raison: 'non_joignable' };\n", '', ['955', '956']);
+m('J02', 'une session ÉCHUE compte comme une session vivante (l\'échéance de la session n\'est plus regardée)', F.stock,
+  "'SELECT 1 AS x FROM session WHERE personne = ? AND exp > ? LIMIT 1'", "'SELECT 1 AS x FROM session WHERE personne = ? AND ? > 0 LIMIT 1'", ['955']);
+m('J03', 'un jeton d\'appareil ne rend plus joignable (une personne qui n\'a que lui, comme tout compte par téléphone, ne reçoit plus rien)', F.stock,
+  "return !!Q(" + SQL_JETON + ").get(uid, t, absMs, t);", 'return false;', ['955']);
+m('J04', 'le plafond ABSOLU d\'un jeton d\'appareil n\'est plus regardé (un jeton qui glisse encore mais date de plus d\'un an rend joignable)', F.stock,
+  "AND exp > ? AND cree + ? > ? LIMIT 1').get(uid, t, absMs, t)", "AND exp > ? LIMIT 1').get(uid, t)", ['955']);
+m('J05', 'l\'échéance glissante d\'un jeton d\'appareil n\'est plus regardée (un jeton échu rend joignable tant que le plafond absolu n\'est pas passé)', F.stock,
+  "WHERE personne = ? AND exp > ? AND cree + ? > ? LIMIT 1", "WHERE personne = ? AND ? > 0 AND cree + ? > ? LIMIT 1", ['955']);
+m('J06', 'le balayeur retire aussi les abonnements des personnes qui n\'ont qu\'un jeton d\'appareil (tout compte par téléphone perd ses notifications)', F.stock,
+  PURGE_JOIGNABLE, "return num(Q(`DELETE FROM push WHERE uid NOT IN (SELECT personne FROM session WHERE exp > ?)`).run(t).changes);", ['955']);
+m('J07', 'le balayeur retire aussi les abonnements des personnes qui n\'ont qu\'une session vivante', F.stock,
+  PURGE_JOIGNABLE, "return num(Q(`DELETE FROM push WHERE uid NOT IN (SELECT personne FROM appareil_tel WHERE exp > ? AND cree + ? > ?)`).run(t, absMs, t).changes);", ['955']);
+m('J08', 'la relecture des accès bêta ne couvre plus les comptes qui n\'ont qu\'un abonnement (un accès coupé pendant l\'expiration de la session garde son abonnement)', F.stock,
+  " OR EXISTS (SELECT 1 FROM push x WHERE x.uid = p.id)", '', ['955', '956']);
+m('J09', 'la relecture des accès bêta relit aussi les comptes dont la session est ÉCHUE (et qui n\'ont rien d\'autre)', F.stock,
+  "s.personne = p.id AND s.exp > ?)", "s.personne = p.id AND ? > 0)", ['955']);
+m('J10', 'la relecture des accès bêta ne regarde plus les sessions vivantes (seulement les abonnements)', F.stock,
+  "AND (EXISTS (SELECT 1 FROM session s WHERE s.personne = p.id AND s.exp > ?) OR", "AND (? < 0 OR", ['955']);
+m('J11', 'la relecture des accès bêta relit aussi les comptes qui ne sont pas bêta (OP GESTION ne les connaît pas : ils seraient « coupés »)', F.stock,
+  "WHERE p.origine = 'beta'", "WHERE 1 = 1", ['955']);
+m('J12', 'le balayeur du service n\'appelle plus le retrait des abonnements d\'une personne injoignable (la fonction existe, personne ne la lance)', F.index,
+  "        const retires = stockage.pushNonJoignablesPurger(APPAREIL_ABS_MS);\n        if (retires) journaliser('push_elagage', { n: retires });\n", '', ['956']);
+
+/* ══ 13. CE QUI RETIRE UN ABONNEMENT, ET CE QUI NE LE RETIRE JAMAIS (I2) — `test-955` (le module : les statuts, la durée, la série), `test-956` (le vrai service), `test-934` (la surveillance) ═════════════ */
+const REFUS_4XX = "if (s >= 400 && s < 500 && s !== 429) return refus(abo);";
+m('K01', 'une réponse 5xx compte comme un refus de l\'abonnement (une panne du service push le retire au bout de cinq)', F.push, REFUS_4XX, "if (s >= 400 && s < 600 && s !== 429) return refus(abo);", ['955']);
+m('K02', 'un 429 (« réessaie plus tard ») compte comme un refus de l\'abonnement', F.push, REFUS_4XX, "if (s >= 400 && s < 500) return refus(abo);", ['955']);
+m('K03', 'une panne de notre réseau (statut 0 : le transport lève, le délai passe) compte comme un refus de l\'abonnement', F.push, REFUS_4XX, "if ((s >= 400 && s < 500 && s !== 429) || s === 0) return refus(abo);", ['955', '956']);
+m('K04', 'un 401/403 (nos clés refusées) n\'est plus traité à part : il compte comme n\'importe quel 4xx et finit par retirer l\'abonnement', F.push,
+  "    if (s === 401 || s === 403) { compter('refuses'); return { ok: false, retire: false }; }\n", '', ['955', '956']);
+m('K05', 'un refus de nos clés (401/403) n\'est plus compté pour la surveillance (`refuses24h` reste à zéro)', F.push, "compter('refuses'); return", "return", ['955', '956']);
+m('K06', 'la durée de la série ne compte plus (cinq refus le même instant retirent l\'abonnement)', F.push, ' && t - serie.premier >= pc.etalementMs', '', ['955', '956']);
+/* K07 retire DEUX gardes : la série effacée à la livraison ET le « n <= 1 » (un compte revenu à un = une série neuve). Elles disent la même chose, et chacune ôtée SEULE ne change rien (mesuré le 3 octobre
+   2026 : la première seule SURVIT, la seconde couvre) ; le banc doit tomber quand les deux manquent. */
+m2('K07', 'une livraison ne remet pas à zéro l\'heure du premier refus (ni la série effacée à la livraison, ni le compte revenu à un qui la double) : cinq refus espacés de 12 minutes retirent à cause d\'une série d\'avant la livraison',
+  [[F.push, "series.delete(abo.id); stockage.pushOk(abo.id); compter('envoyes');", "stockage.pushOk(abo.id); compter('envoyes');"], [F.push, "if (!serie || n <= 1) {", "if (!serie) {"]], ['955']);
+m('K08', 'un abonnement qui se redit (la page, à chaque ouverture) ne remet pas l\'heure du premier refus à zéro : le premier refus d\'après passe pour le cinquième d\'une série vieille', F.push,
+  "if (!serie || n <= 1) {", "if (!serie) {", ['955']);
+m('K09', 'des clés qui ne chiffrent rien ne comptent plus comme un refus de cet appareil (elles échouent pour toujours, sans jamais le retirer)', F.push,
+  "compter('echecs'); return refus(abo); }   // les clés de CET appareil ne chiffrent rien : le refus est le sien", "compter('echecs'); return { ok: false, retire: false }; }", ['955']);
+m('K10', 'l\'étalement par défaut est de zéro (la durée ne retient plus rien en production : le banc le règle, pas le défaut)', F.conf, "echecsMax: 5, etalementMs: 3600000,", "echecsMax: 5, etalementMs: 0,", ['955']);
+m('K11', 'la surveillance ne crie plus sur trois refus de nos clés (le seuil tombe à zéro : deux refus isolés crient)', F.surv, "j.push.refuses24h >= SEUIL_PUSH_REFUS &&", "j.push.refuses24h >= 0 &&", ['934']);
+m('K12', 'la surveillance crie sur des refus de nos clés même quand les livraisons l\'emportent (un ancien abonnement parmi des centaines de livraisons)', F.surv, " && j.push.refuses24h >= j.push.envoyes24h", "", ['934']);
+
+/* ══ 14. CE QUE LA NOTIFICATION RELIT EN PARTANT (R1, R2, R10), LA PAIRE DE LA CONFIGURATION QUI DIFFÈRE (R9), LES ADRESSES DE DOCUMENTATION — `test-955` (le module), `test-956` (le vrai service) ═════════════ */
+m('N01', 'le jugement de l\'instant de partir ne rend plus le texte d\'AUJOURD\'HUI : un message corrigé pendant l\'attente part avec la version de l\'envoi', F.push,
+  "const o = { detail: { titre: titreApercu, corps: courant } };", "const o = { detail: { titre: titreApercu, corps: resume } };", ['955', '956']);
+m('N02', 'un blocage posé PENDANT l\'attente n\'est plus vu (une conversation directe notifie encore celui qui vient de bloquer l\'autre)', F.stock,
+  "    if (!ecritureAutorisee(conv, uid)) return null;   // une directe bloquée (ou sans contact mutuel) ne reçoit plus rien : la même règle que l'envoi\n", '', ['955', '956']);
+m('N03', 'un message éphémère ÉCHU pendant l\'attente part quand même (le jugement ne regarde plus son extinction)', F.stock,
+  'if (!x || x.supprime_le || (x.expire_ts !== null && x.expire_ts <= horloge())) return null;', 'if (!x || x.supprime_le) return null;', ['955']);
+m('N04', 'l\'aperçu garde la durée de vie d\'un jour (le texte d\'un message attend vingt-quatre heures chez le service push)', F.push,
+  "if (t.apercu) ttl = Math.min(ttl, pc.ttlApercuS);", '', ['955', '956']);
+m('N05', 'un message éphémère n\'a plus de durée de vie propre : il survit chez le service push à ce qui lui reste à vivre', F.push,
+  "if (x.expire_ts !== null) o.ttl = Math.floor((x.expire_ts - horloge()) / 1000);", '', ['955']);
+m('N06', 'la durée de vie courte de l\'aperçu s\'applique aussi à la notification MINIMALE (le drapeau est toujours vrai)', F.push, "apercu: !!apercu };", "apercu: true };", ['955', '956']);
+m('N07', 'la durée de vie de l\'aperçu vaut un jour par défaut (le réglage existe, la production ne le lit pas)', F.conf, "ttlS: 86400, ttlApercuS: 3600 };", "ttlS: 86400, ttlApercuS: 86400 };", ['955']);
+m('N08', 'la durée de vie de l\'aperçu n\'a plus de borne basse (59 secondes, ou zéro, démarrent)', F.conf, "ttlApercuS: [60, 4 * 7 * 86400] };", "ttlApercuS: [0, 4 * 7 * 86400] };", ['955']);
+m('N09', 'plusieurs messages en attente : seule la charge du DERNIER est gardée (sa suppression « pour tous » étouffe tout le lot)', F.push,
+  "deja.charges.push(charge);", "deja.charges = [charge];", ['955']);
+m('N10', 'le lot se juge du plus ANCIEN au plus récent (la notification décrit le premier message, pas le dernier)', F.push,
+  "for (let i = charges.length - 1; i >= 0; i--) {", "for (let i = 0; i < charges.length; i++) {", ['955']);
+m('N11', 'le lot s\'arrête à la première charge « plus valable » (un dernier message supprimé étouffe les précédents)', F.push,
+  "if (r.raison !== 'plus_valable') return r;", "return r;", ['955']);
+m('N12', 'une paire de la configuration qui diffère de celle de la base ne se DIT plus dans le journal', F.push,
+  "if (paire && pc.vapid && pc.vapid.publique !== paire.publique) {", "if (false) {", ['955', '956']);
+m('N13', 'la différence de paire se dit même quand la configuration porte la MÊME paire que la base (un journal qui crie à chaque démarrage)', F.push,
+  "if (paire && pc.vapid && pc.vapid.publique !== paire.publique) {", "if (paire && pc.vapid) {", ['955']);
+m('N14', 'le journal porte la clé PRIVÉE de la configuration au lieu de l\'empreinte de la publique', F.push,
+  "motif: 'installation ' + empreinte(pc.vapid.publique)", "motif: 'installation ' + pc.vapid.privee", ['955', '956']);
+m('N15', 'TEST-NET-1 (192.0.2.0/24) n\'est plus refusé comme adresse de service push', F.push, "(a === 192 && b === 0 && c === 2)", "(false)", ['955']);
+m('N16', 'TEST-NET-2 (198.51.100.0/24) n\'est plus refusé comme adresse de service push', F.push, "(a === 198 && b === 51 && c === 100)", "(false)", ['955']);
+m('N17', 'TEST-NET-3 (203.0.113.0/24) n\'est plus refusé comme adresse de service push', F.push, "(a === 203 && b === 0 && c === 113)", "(false)", ['955']);
+m('N18', 'la borne de TEST-NET-2 est mal écrite : 198.51.101.x (public) devient « privée » (c >= 100 au lieu de c === 100)', F.push, "(a === 198 && b === 51 && c === 100)", "(a === 198 && b === 51 && c >= 100)", ['955']);
+
+/* ══ 15. CE QUE LES AUTRES GARDENT D'UN COMPTE EFFACÉ (I4) — `test-957` (le vrai service : Dan efface son compte, Bob et Cléo relisent leurs notifications et l'export), `test-950` (le rejeu après une restauration), `test-901` (la migration) ═════════════ */
+m('Z01', 'l\'effacement d\'un compte ne réécrit plus les notifications des autres : « Dan Banc vous a ajouté au groupe » reste dans leur liste ET dans leur export', F.stock,
+  "notifsAnonymiser(uid, ((pn.prenom || '') + ' ' + (pn.nom || '')).trim());", '', ['950', '957']);
+m('Z02', 'la réécriture garde la colonne `auteur` (une notification déjà réécrite désigne encore la personne effacée)', F.stock,
+  "UPDATE notification SET titre_ch = ?, texte_ch = ?, auteur = NULL WHERE id = ?", "UPDATE notification SET titre_ch = ?, texte_ch = ? WHERE id = ?", ['950', '957']);
+m('Z03', 'le TITRE d\'une mention en conversation directe garde le nom de la personne effacée (il n\'est que son nom)', F.stock,
+  "else if (r.type === 'mention' && nom && titre === nom) titre = 'Un compte supprimé';", '', ['957']);
+m('Z04', 'une notification enregistrée n\'écrit plus QUI elle nomme (la colonne `auteur` reste vide : plus rien à retrouver)', F.stock,
+  "cible || null, t, auteur || null);", "cible || null, t, null);", ['950', '957']);
+m('Z05', 'la route de création d\'une notification ne transmet plus l\'auteur au magasin', F.routes,
+  "stockage.notifCreer({ uid, type, titre, texte, cible, auteur });", "stockage.notifCreer({ uid, type, titre, texte, cible });", ['957']);
+m('Z06', 'le contact ajouté par un LIEN ne dit plus qui il nomme', F.routes,
+  "nomAffiche(req.moi) + ' est maintenant dans vos contacts.', req.moi.id, req.moi.id);", "nomAffiche(req.moi) + ' est maintenant dans vos contacts.', req.moi.id);", ['957']);
+m('Z07', 'l\'ajout à un groupe CRÉÉ ne dit plus qui il nomme', F.routes,
+  "notifier(u, 'groupe_ajoute', nom, nomAffiche(req.moi) + ' vous a ajouté au groupe.', r.id, req.moi.id);", "notifier(u, 'groupe_ajoute', nom, nomAffiche(req.moi) + ' vous a ajouté au groupe.', r.id);", ['957']);
+m('Z08', 'l\'ajout à un groupe EXISTANT ne dit plus qui il nomme', F.routes,
+  "notifier(x, 'groupe_ajoute', c.nom || 'Groupe', nomAffiche(req.moi) + ' vous a ajouté au groupe.', c.id, req.moi.id);", "notifier(x, 'groupe_ajoute', c.nom || 'Groupe', nomAffiche(req.moi) + ' vous a ajouté au groupe.', c.id);", ['957']);
+m('Z09', 'une mention ne dit plus qui elle nomme', F.routes,
+  "nomAffiche(req.moi) + ' vous a mentionné.', conv.id, req.moi.id);", "nomAffiche(req.moi) + ' vous a mentionné.', conv.id);", ['957']);
+m('Z10', 'le contact ajouté par NUMÉRO ne dit plus qui il nomme', F.tel,
+  "texte: texteN, cible: uid, auteur: uid });", "texte: texteN, cible: uid });", ['957']);
+m('Z11', 'une migration rejouée échoue sur « duplicate column name » (le lanceur ne tolère plus l\'`ADD COLUMN` d\'une base qui a déjà sa colonne)', F.stock,
+  "catch (e) { if (!(/^\\s*ALTER TABLE \\w+ ADD COLUMN /i.test(s) && /duplicate column name/i.test(String(e && e.message)))) throw e; }", "catch (e) { throw e; }", ['901']);
+m('Z12', 'le lanceur de migrations ignore TOUTE erreur d\'un `ALTER` (une table absente passe, la migration est dite faite)', F.stock,
+  "catch (e) { if (!(/^\\s*ALTER TABLE \\w+ ADD COLUMN /i.test(s) && /duplicate column name/i.test(String(e && e.message)))) throw e; }", "catch (e) { if (!/^\\s*ALTER TABLE /i.test(s)) throw e; }", ['901']);
+
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
-const DOSSIERS_COPIE = ['server-msg', 'design/opmessages', '.github/scripts', 'apercu/opmessages', 'icons', 'scripts'];
+const DOSSIERS_COPIE = ['server-msg', 'design/opmessages', '.github/scripts', '.github/workflows', 'apercu/opmessages', 'icons', 'scripts'];   // (`.github/workflows` : test-934 lit quels workflows citent la surveillance)
 function copier(src, dst) {
   fs.mkdirSync(dst, { recursive: true });
   for (const e of fs.readdirSync(src, { withFileTypes: true })) {
@@ -275,6 +463,9 @@ function fabriquerCopie() {
   for (const d of DOSSIERS_COPIE) copier(path.join(RACINE, d), path.join(dir, d));
   fs.mkdirSync(path.join(dir, 'tests'));
   for (const f of fs.readdirSync(path.join(RACINE, 'tests'))) if (/^(test-9\d\d|outils-[\w-]+|bac-messages|lib-horloge-msg|mode-site|sonde-opmessages-push|test-85\d)\.js$/.test(f)) fs.copyFileSync(path.join(RACINE, 'tests', f), path.join(dir, 'tests', f));
+  /* `test-950` compare la copie de `lib/s3.js` à celui d'OP GESTION : sans lui, la copie le fait tomber à CHAQUE mutation (le témoin le voit) */
+  fs.mkdirSync(path.join(dir, 'server'));
+  fs.copyFileSync(path.join(RACINE, 'server', 's3.js'), path.join(dir, 'server', 's3.js'));
   fs.symlinkSync(path.join(RACINE, 'server-msg', 'node_modules'), path.join(dir, 'server-msg', 'node_modules'));
   return dir;
 }
@@ -408,7 +599,11 @@ async function jouer(mut, dir) {
     console.log(dir); process.exit(0);
   }
   const sondes = args.includes('--sondes');
-  const liste = ids.length ? MUTATIONS.filter(x => ids.includes(x.id)) : MUTATIONS.filter(x => !!x.sonde === sondes);
+  let liste = ids.length ? MUTATIONS.filter(x => ids.includes(x.id)) : MUTATIONS.filter(x => !!x.sonde === sondes);
+  /* `--seul=955` : ne joue QUE ce banc (les mutations qui ne le visent pas sont laissées). Le lanceur s'arrête sinon au premier banc qui tombe, et un deuxième banc qui AURAIT dû voir la mutation
+     ne se découvre jamais aveugle — c'est ainsi qu'on sait si les contrôles d'un banc de service (`test-956`) ont des dents, ou si le banc du module (`test-955`) les couvrait tous seul. */
+  const seul = (args.find(x => x.startsWith('--seul=')) || '').slice(7) || null;
+  if (seul) liste = liste.filter(x => x.suites.includes(seul)).map(x => Object.assign({}, x, { suites: [seul] }));
   if (!liste.length) { console.log('aucune mutation à jouer'); process.exit(2); }
   const avecSonde = liste.some(x => x.suites.includes('sonde'));
   /* les mutations jouées par la sonde ne se lancent pas en parallèle : deux navigateurs et deux services se volent le processeur, et la sonde mesure du temps */
@@ -423,7 +618,9 @@ async function jouer(mut, dir) {
     for (const sv of visees) {
       const r = await lancer(copies[0], sv);
       if (r.code !== 0 || r.ko === null || r.ko > 0) {
-        console.log('⛔ le TÉMOIN de ' + nomBanc(sv) + ' n\'est pas vert sur une copie INTACTE (code ' + r.code + ') — aucune mutation n\'est jouée.\n' + r.sortie.split('\n').filter(Boolean).slice(-14).join('\n'));
+        /* ⛔ un témoin qui tombe DIT quel contrôle est tombé (pris le 3 octobre 2026 : « 148 ✓ 1 ✗ » une fois sur une dizaine, et les quatorze dernières lignes ne nommaient pas le coupable) */
+        console.log('⛔ le TÉMOIN de ' + nomBanc(sv) + ' n\'est pas vert sur une copie INTACTE (code ' + r.code + ') — aucune mutation n\'est jouée.\n'
+          + r.sortie.split('\n').map((l, i, t) => (/^\s+✗/.test(l) ? t.slice(i, i + 3).join('\n') : null)).filter(Boolean).slice(0, 6).join('\n') + '\n…\n' + r.sortie.split('\n').filter(Boolean).slice(-6).join('\n'));
         nettoyer(); process.exit(2);
       }
     }

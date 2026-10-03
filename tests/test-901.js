@@ -46,11 +46,11 @@ const lance = (f) => { try { f(); return null; } catch (e) { return e.code || e.
 console.log('Les migrations (PRAGMA user_version) sont numérotées, rejouables, et gardent une copie');
 {
   const a = neuf();
-  /* ⛔ LE NUMÉRO DE LA DERNIÈRE MIGRATION SE LIT, il ne s'écrit pas : chaque migration neuve (la 5, les espaces professionnels) obligeait à retoucher ce banc, qui garde la MÉCANIQUE
-     (numérotée, rejouable, avec copie), pas la dernière migration. Chacune a son banc : 916 (2), 943 (3), 957 (4), 960 (5). */
+  /* ⛔ LE NUMÉRO DE LA DERNIÈRE MIGRATION SE LIT, il ne s'écrit pas : chaque migration neuve (la 5, de qui parle une notification ; la 6, les espaces professionnels) obligeait à retoucher ce banc, qui garde la
+     MÉCANIQUE (numérotée, rejouable, avec copie), pas la dernière migration. Chacune a son banc : 916 (2), 943 (3), 957 (4), 955 et 957 (5), 960 (6). */
   const DERNIERE = MIGRATIONS[MIGRATIONS.length - 1].v, SUIVANTE = DERNIERE + 1;
-  vrai('population : au moins cinq migrations, numérotées 1, 2, 3… sans trou', MIGRATIONS.length >= 5 && MIGRATIONS.every((m, i) => m.v === i + 1));
-  v('une base neuve est au schéma de la DERNIÈRE migration (la 2 — le téléphone —, la 3 — les pièces —, la 4 — les notifications push et la suppression de compte — et la 5 — les espaces professionnels — s\'appliquent à la création)', a.S.schema(), DERNIERE);
+  vrai('population : au moins six migrations, numérotées 1, 2, 3… sans trou', MIGRATIONS.length >= 6 && MIGRATIONS.every((m, i) => m.v === i + 1));
+  v('une base neuve est au schéma de la DERNIÈRE migration (la 2 — le téléphone —, la 3 — les pièces —, la 4 — les notifications push et la suppression de compte — la 5 — de qui parle une notification — et la 6 — les espaces professionnels — s\'appliquent à la création)', a.S.schema(), DERNIERE);
   const p = pers(a.S, 'alice');
   a.S.fermer();
   const b = ouvrir({ chemin: a.chemin, scelleur: creerScelleur(a.kek), horloge: () => a.h.t });
@@ -72,6 +72,19 @@ console.log('Les migrations (PRAGMA user_version) sont numérotées, rejouables,
   const copie = new DatabaseSync(d.chemin + '.avant-v' + SUIVANTE);
   v('la copie est la base d\'AVANT (schéma ' + DERNIERE + ', sans la table neuve)', [copie.prepare('PRAGMA user_version').get().user_version, copie.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name='essai_suivante'").get().n], [DERNIERE, 0]);
   copie.close(); e.fermer();
+  /* ⛔ I4 : la migration 5 AJOUTE une colonne (`ALTER TABLE … ADD COLUMN`, que SQLite ne sait pas rendre rejouable). Le lanceur tolère « duplicate column name » — vu plus haut, la migration 1 rejouée rejoue aussi la 5 —
+     et SEULEMENT celle-là : un `ALTER` sur une table absente arrête la migration, et la base reste ce qu'elle était. */
+  {
+    const mauvaise = MIGRATIONS.concat([{ v: SUIVANTE, sql: ['ALTER TABLE table_absente ADD COLUMN x TEXT', 'PRAGMA user_version = ' + SUIVANTE] }]);
+    const g = neuf({ migrations: MIGRATIONS });
+    pers(g.S, 'avant'); g.S.fermer();
+    let erreurAlter = null; try { ouvrir({ chemin: g.chemin, scelleur: creerScelleur(g.kek), horloge: () => g.h.t, migrations: mauvaise }); } catch (e) { erreurAlter = String(e && e.message); }
+    const apres = new DatabaseSync(g.chemin);
+    const reste = [apres.prepare('PRAGMA user_version').get().user_version, apres.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE name = 'table_absente'").get().n];
+    apres.close();
+    vrai('⛔ un `ALTER … ADD COLUMN` qui échoue pour une AUTRE raison (table absente) ARRÊTE la migration : l\'ouverture échoue et dit pourquoi', typeof erreurAlter === 'string' && /table_absente|no such table/i.test(erreurAlter));
+    v('   ...et la base reste au schéma de la dernière migration (' + DERNIERE + '), sans rien à moitié fait', reste, [DERNIERE, 0]);
+  }
   const f2 = neuf({ migrations: m2 });
   vrai('une base NEUVE n\'a pas de copie à garder (rien n\'a vécu)', m2.every(m => !fs.existsSync(f2.chemin + '.avant-v' + m.v)));
 }

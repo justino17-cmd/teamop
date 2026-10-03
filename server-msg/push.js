@@ -23,14 +23,21 @@
  * après 5 s. Plusieurs événements d'une même conversation pendant l'attente n'en font QU'UNE. Elle est RE-JUGÉE à l'instant de partir (`valide`) : sourdine posée entre-temps,
  * conversation quittée, message supprimé « pour tous » — rien de cela ne part.
  *
- * ⛔ UN 404 OU UN 410 DU SERVICE PUSH RETIRE L'ABONNEMENT (l'appareil l'a révoqué) ; tout autre échec est COMPTÉ, et l'abonnement part au `echecsMax`-ième de suite. Aucun point
- * d'accès, aucune clé, aucun texte de message, aucun nom ne va dans un journal ni dans /health : seuls des nombres.
+ * ⛔ UN 404 OU UN 410 DU SERVICE PUSH RETIRE L'ABONNEMENT (l'appareil l'a révoqué). Rien d'autre ne retire un abonnement TROP VITE : relevé par le gardien le 3 octobre 2026, cinq 503 de suite (une
+ * panne du service push) puis une coupure réseau de NOTRE côté retiraient TOUS les abonnements, que seule l'ouverture de l'application sur chaque appareil rend. Trois classes :
+ *   · un REFUS du service à CET abonnement (une réponse 4xx, hors 401, 403, 404, 410, 429) est compté ; l'abonnement part quand ces refus sont `echecsMax` de suite ET que le premier a
+ *     plus de `etalementMs` (une heure) — une série serrée est une panne, pas un abonnement mort ;
+ *   · 401 et 403 : le service push refuse NOS clés VAPID. La faute n'est pas à l'abonnement : jamais de retrait, un compteur à part (`refuses24h`) et la surveillance crie ;
+ *   · tout le reste — panne réseau de notre côté, délai, adresse refusée, file pleine, erreur interne, 5xx, 429 (« réessaie plus tard »), redirection — ne dit RIEN de l'abonnement : il n'est pas
+ *     compté, il ne retire personne (il reste dans `echecs24h` de /health, que la surveillance lit).
+ * Aucun point d'accès, aucune clé, aucun texte de message, aucun nom ne va dans un journal ni dans /health : seuls des nombres.
  *
  * Aucune dépendance au-delà de `web-push` (la même version qu'OP GESTION) : le transport HTTP est fait main, pour tenir la redirection, le délai et l'adresse IP.
  */
 'use strict';
 const crypto = require('crypto'), https = require('https'), http = require('http'), dns = require('dns');
 const webpush = require('web-push');
+const { APPAREIL_ABS_MS } = require('./telephone');   // le plafond absolu d'un jeton d'appareil : une personne qui n'a que lui reste JOIGNABLE
 
 /* ── La liste blanche ───────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
 const HOTES_EXACTS = ['fcm.googleapis.com'];
@@ -89,7 +96,8 @@ function validerAbonnement(sub, testHote) {
 
 /* ── L'adresse IP à laquelle un nom se résout : jamais une adresse privée, locale ou réservée (défense en profondeur derrière la liste blanche) ─────────────── */
 const privee4 = (a, b, c) => a === 0 || a === 10 || a === 127 || a >= 224 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31)
-  || (a === 192 && b === 168) || (a === 192 && b === 0 && c === 0) || (a === 198 && (b === 18 || b === 19)) || (a === 192 && b === 88 && c === 99);
+  || (a === 192 && b === 168) || (a === 192 && b === 0 && c === 0) || (a === 198 && (b === 18 || b === 19)) || (a === 192 && b === 88 && c === 99)
+  || (a === 192 && b === 0 && c === 2) || (a === 198 && b === 51 && c === 100) || (a === 203 && b === 0 && c === 113);   // TEST-NET-1, -2, -3 : les adresses de documentation (RFC 5737)
 /* Les 16 octets d'une adresse IPv6 écrite en texte (« :: » développé, IPv4 finale lue) ; null si elle est illisible — une adresse illisible est REFUSÉE. */
 function octetsV6(texte) {
   let t = String(texte).toLowerCase().replace(/%.*$/, '');
@@ -172,7 +180,7 @@ const URGENCES = ['very-low', 'low', 'normal', 'high'];
 const H = 3600000;
 
 /* ── Le module ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
-function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = () => {}, transport, planifier, annuler }) {
+function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = () => {}, transport, planifier, annuler, appareilAbsMs = APPAREIL_ABS_MS }) {
   const pc = config.push;
   const envoyerHttp = transport || ((r) => transportHttp(Object.assign({ timeoutMs: pc.timeoutMs }, r)));
   const plan = planifier || ((f, ms) => { const t = setTimeout(f, ms); if (t.unref) t.unref(); return t; });
@@ -183,6 +191,12 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
   try {
     let paire = stockage.pushVapidLire();
     origineVapid = 'base';
+    /* ⛔ une paire dans la configuration qui DIFFÈRE de celle de la base ne la remplace pas (un abonnement est lié à la clé publique qui l'a créé : en changer ferait refuser tous les envois) — et
+       on le DIT, sinon l'installation croit avoir changé de paire. Deux EMPREINTES courtes de clés PUBLIQUES, jamais une clé. */
+    if (paire && pc.vapid && pc.vapid.publique !== paire.publique) {
+      const empreinte = (x) => crypto.createHash('sha256').update(String(x)).digest('hex').slice(0, 8);
+      journaliser('push_vapid', { etat: 'differe', nom: 'base ' + empreinte(paire.publique), motif: 'installation ' + empreinte(pc.vapid.publique) });
+    }
     if (!paire) {
       if (pc.vapid) { paire = stockage.pushVapidPoser(pc.vapid); origineVapid = 'installation'; }
       else { const k = webpush.generateVAPIDKeys(); paire = stockage.pushVapidPoser({ publique: k.publicKey, privee: k.privateKey }); origineVapid = 'neuve'; }
@@ -202,7 +216,7 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
   const seaux = new Map();
   function compter(cle, n = 1) {
     const h = Math.floor(horloge() / H);
-    const s = seaux.get(h) || { envoyes: 0, echecs: 0, abandons: 0, retires: 0 };
+    const s = seaux.get(h) || { envoyes: 0, echecs: 0, abandons: 0, retires: 0, refuses: 0 };
     s[cle] += n; seaux.set(h, s);
     for (const k of seaux.keys()) if (k < h - 24) seaux.delete(k);
   }
@@ -226,6 +240,18 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
     });
   }
 
+  /* La série de REFUS d'un abonnement, en mémoire : l'heure du premier. Perdue au redémarrage (la série recommence : on retire moins, jamais plus). */
+  const series = new Map();
+  function refus(abo) {
+    const t = horloge();
+    const n = stockage.pushEchec(abo.id).echecs;
+    let serie = series.get(abo.id);
+    if (!serie || n <= 1) { serie = { premier: t }; series.set(abo.id, serie); }
+    if (series.size > 50000) series.clear();
+    if (n >= pc.echecsMax && t - serie.premier >= pc.etalementMs) { series.delete(abo.id); stockage.pushRetirerId(abo.id); compter('retires'); return { ok: false, retire: true }; }
+    return { ok: false, retire: false };
+  }
+
   /* Envoie UNE charge à UN abonnement. → { ok, retire } */
   async function envoyerUn(abo, payload, o) {
     /* ⛔ la liste blanche est RE-VÉRIFIÉE ici, pas seulement à l'inscription : une ligne ancienne, ou une liste resserrée depuis, ne doit pas faire appeler une adresse refusée */
@@ -235,37 +261,67 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
     try {
       d = webpush.generateRequestDetails({ endpoint: a.url.href, keys: { p256dh: abo.p256dh, auth: abo.auth } }, payload,
         { vapidDetails: { subject: sujet, publicKey: vapid.publique, privateKey: vapid.privee }, TTL: o.ttl, urgency: o.urgence, contentEncoding: 'aes128gcm' });
-    } catch (e) { compter('echecs'); return { ok: false, retire: stockage.pushEchec(abo.id, pc.echecsMax).retire }; }
+    } catch (e) { compter('echecs'); return refus(abo); }   // les clés de CET appareil ne chiffrent rien : le refus est le sien
     let r;
     try { r = await envoyerHttp({ url: a.url, method: d.method, headers: d.headers, body: d.body }); } catch (e) { r = { statut: 0, erreur: 'interne' }; }   // un transport qui lève est un échec de plus, pas une exception qui sort
-    if (r && r.statut >= 200 && r.statut < 300) { stockage.pushOk(abo.id); compter('envoyes'); return { ok: true, retire: false }; }
+    const s = r && Number.isInteger(r.statut) ? r.statut : 0;
+    if (s >= 200 && s < 300) { series.delete(abo.id); stockage.pushOk(abo.id); compter('envoyes'); return { ok: true, retire: false }; }
     /* 404 et 410 : le service push dit que l'appareil n'existe plus — l'abonnement part tout de suite */
     /* (ce n'est pas un ÉCHEC pour la surveillance : un appareil qui disparaît est le fonctionnement normal — on le compte à part) */
-    if (r.statut === 404 || r.statut === 410) { stockage.pushRetirerId(abo.id); compter('retires'); return { ok: false, retire: true }; }
+    if (s === 404 || s === 410) { series.delete(abo.id); stockage.pushRetirerId(abo.id); compter('retires'); return { ok: false, retire: true }; }
     compter('echecs');
-    return { ok: false, retire: stockage.pushEchec(abo.id, pc.echecsMax).retire };
+    /* 401, 403 : c'est NOTRE clé que le service push refuse — ni l'abonnement ni l'appareil n'y sont pour rien. Compté à part, jamais un retrait. */
+    if (s === 401 || s === 403) { compter('refuses'); return { ok: false, retire: false }; }
+    /* seul un refus 4xx du service à CET abonnement compte pour son retrait (429 : « réessaie plus tard »). Réseau, délai, 5xx, redirection : rien n'est dit de l'abonnement. */
+    if (s >= 400 && s < 500 && s !== 429) return refus(abo);
+    return { ok: false, retire: false };
   }
 
   /* Compose le texte qui part, d'après le réglage de CELUI QUI REÇOIT (lu à l'instant de partir) : minimal, ou avec l'aperçu s'il l'a activé. */
   function textesPour(moi, charge) {
     const apercu = !!(moi && moi.prefs && moi.prefs.apercu_notif === true) && charge.detail;
     const t = apercu ? charge.detail : charge;
-    return { titre: extrait(t.titre, 80) || 'OP MESSAGES', corps: extrait(t.corps, 200) };
+    return { titre: extrait(t.titre, 80) || 'OP MESSAGES', corps: extrait(t.corps, 200), apercu: !!apercu };
   }
 
   /* Envoie maintenant à TOUS les appareils de la personne. → { envoyes, appareils } */
-  async function partir(uid, charge) {
+  async function partir(uid, charge0) {
     if (!actif) return { envoyes: 0, appareils: 0, raison: 'inactif' };
-    if (typeof charge.valide === 'function') { let v = false; try { v = !!charge.valide(); } catch (e) { v = false; } if (!v) return { envoyes: 0, appareils: 0, raison: 'plus_valable' }; }
+    /* ⛔ le jugement rend l'état ACTUEL (`{ detail, ttl }`) : un message corrigé pendant l'attente part avec sa nouvelle version, et un message éphémère ne survit pas chez le service push à ce
+       qui lui reste à vivre */
+    let charge = charge0;
+    if (typeof charge0.valide === 'function') {
+      let v = false; try { v = charge0.valide(); } catch (e) { v = false; }
+      if (!v) return { envoyes: 0, appareils: 0, raison: 'plus_valable' };
+      if (typeof v === 'object') charge = Object.assign({}, charge0, v);
+    }
     const moi = stockage.personneParId(uid);
     if (!moi || moi.etat !== 'actif') return { envoyes: 0, appareils: 0, raison: 'compte' };
+    /* ⛔ une personne que plus rien ne connecte (ni session vivante, ni jeton d'appareil valable) ne reçoit RIEN : un abonnement survit à la session qui l'a posé */
+    if (!stockage.pushJoignable(uid, appareilAbsMs)) return { envoyes: 0, appareils: 0, raison: 'non_joignable' };
     const abos = stockage.pushListe(uid);
     if (!abos.length) return { envoyes: 0, appareils: 0, raison: 'aucun_appareil' };
     const t = textesPour(moi, charge);
     const payload = JSON.stringify({ type: charge.type, titre: t.titre, corps: t.corps, tag: charge.tag || charge.type, url: charge.url || '/', renotify: charge.renotify === true });
-    const o = { ttl: Number.isInteger(charge.ttl) && charge.ttl >= 0 ? Math.min(charge.ttl, pc.ttlS) : pc.ttlS, urgence: URGENCES.includes(charge.urgence) ? charge.urgence : 'normal' };
+    /* ⛔ la durée de vie chez le service push : au plus `ttlS` (24 h), au plus ce qui reste à vivre à un message éphémère, et — quand l'APERÇU part — au plus `ttlApercuS` (1 h) : le texte d'un message
+       ne doit pas attendre un jour entier sur la machine d'un tiers parce que le téléphone était éteint */
+    let ttl = Number.isInteger(charge.ttl) && charge.ttl >= 0 ? Math.min(charge.ttl, pc.ttlS) : pc.ttlS;
+    if (t.apercu) ttl = Math.min(ttl, pc.ttlApercuS);
+    const o = { ttl, urgence: URGENCES.includes(charge.urgence) ? charge.urgence : 'normal' };
     const r = await Promise.all(abos.map(a => soumettre(() => envoyerUn(a, payload, o)).then(x => (x && typeof x.ok === 'boolean') ? x : { ok: false, retire: false })));
     return { envoyes: r.filter(x => x.ok).length, appareils: abos.length };
+  }
+
+  /* ⛔ plusieurs charges ont attendu ensemble (une par message de la conversation) : la plus RÉCENTE encore valable part. Celle du dernier message seule ne suffisait pas — s'il était supprimé « pour tous »
+     pendant l'attente, les messages d'avant, toujours valables, ne notifiaient plus personne (relevé par le gardien, 3 octobre 2026). */
+  async function partirParmi(uid, charges) {
+    let dernier = { envoyes: 0, appareils: 0, raison: 'plus_valable' };
+    for (let i = charges.length - 1; i >= 0; i--) {
+      const r = await partir(uid, charges[i]);
+      if (r.raison !== 'plus_valable') return r;
+      dernier = r;
+    }
+    return dernier;
   }
 
   /* ── l'acquittement ── */
@@ -280,7 +336,7 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
   }
   const acquitte = (uid, gid) => { const e = acquittes.get(uid); return !!e && e.gid >= gid; };
 
-  /* Les notifications qui ATTENDENT l'acquittement : une par (personne, étiquette) — plusieurs événements d'une conversation pendant l'attente n'en font qu'une, la dernière. */
+  /* Les notifications qui ATTENDENT l'acquittement : une par (personne, étiquette) — plusieurs événements d'une conversation pendant l'attente n'en font qu'une : celle du plus RÉCENT message encore valable (toutes les charges attendues sont gardées, `partirParmi`). */
   const attentes = new Map();
 
   /* ⛔ L'ENVOI D'UNE NOTIFICATION. `opts.gid` : l'identifiant de l'événement (journal) que la page acquittera. Ne rejette JAMAIS (un rejet non rattrapé ferait tomber le processus). */
@@ -296,13 +352,13 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
       const gid = Number.isInteger(o.gid) ? o.gid : Infinity;   // sans identifiant, rien ne pourra l'acquitter : elle partira après le délai
       const cle = uid + '|' + (charge.tag || charge.type || '');
       const deja = attentes.get(cle);
-      if (deja) { deja.gid = Math.max(deja.gid, gid); deja.charge = charge; return deja.promesse; }
-      const a = { gid, charge };
+      if (deja) { deja.gid = Math.max(deja.gid, gid); deja.charges.push(charge); return deja.promesse; }   // (la liste vit au plus `ackMs` : elle ne grossit que de ce qu'une conversation écrit pendant ce délai)
+      const a = { gid, charges: [charge] };
       a.promesse = new Promise((ok) => {
         a.minuteur = plan(() => {
           attentes.delete(cle);
           if (acquitte(uid, a.gid)) { ok({ envoyes: 0, raison: 'acquittee' }); return; }
-          partir(uid, a.charge).then(ok, () => ok({ envoyes: 0, raison: 'erreur' }));
+          partirParmi(uid, a.charges).then(ok, () => ok({ envoyes: 0, raison: 'erreur' }));
         }, pc.ackMs);
       });
       attentes.set(cle, a);
@@ -331,10 +387,19 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
     try { dest = stockage.pushDestinatairesMessage({ conv, seq, auteur }); } catch (e) { return []; }
     const resume = type === 'photo' ? 'Photo' : type === 'vocal' ? 'Message vocal' : type === 'fichier' ? 'Fichier' : extrait(texte, 100);
     const de = extrait(nomAuteur, 60) || 'Quelqu\'un';
+    const titreApercu = groupe ? de + ' · ' + extrait(nomConv, 40) : de;
     return dest.map(uid => pousser(uid, {
       type: 'message', tag: conv, url: '/#messages/' + conv, renotify: true, titre: 'OP MESSAGES', corps: 'Nouveau message',
-      detail: { titre: groupe ? de + ' · ' + extrait(nomConv, 40) : de, corps: resume },
-      valide: () => stockage.pushMessageEncore({ uid, conv, seq }),
+      detail: { titre: titreApercu, corps: resume },
+      /* le jugement de l'instant de partir : null → rien ne part ; sinon le texte ACTUEL du message (corrigé pendant l'attente) et ce qui lui reste à vivre s'il est éphémère */
+      valide: () => {
+        const x = stockage.pushMessageEncore({ uid, conv, seq });
+        if (!x) return false;
+        const courant = x.type === 'photo' ? 'Photo' : x.type === 'vocal' ? 'Message vocal' : x.type === 'fichier' ? 'Fichier' : (x.texte === null ? resume : extrait(x.texte, 100));
+        const o = { detail: { titre: titreApercu, corps: courant } };
+        if (x.expire_ts !== null) o.ttl = Math.floor((x.expire_ts - horloge()) / 1000);   // (0 si moins d'une seconde : « livre maintenant ou oublie », ce que veut un message qui s'éteint)
+        return o;
+      },
     }, { gid }));
   }
 
@@ -347,7 +412,7 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
     enAttente: () => attentes.size,
     arreter() { for (const a of attentes.values()) annule(a.minuteur); attentes.clear(); },
     /* /health : des NOMBRES (+ un état) — jamais un point d'accès, une clé, une personne */
-    sante: () => ({ actif, abonnements: actif ? stockage.pushCompter() : 0, envoyes24h: somme('envoyes'), echecs24h: somme('echecs') + somme('abandons') }),
+    sante: () => ({ actif, abonnements: actif ? stockage.pushCompter() : 0, envoyes24h: somme('envoyes'), echecs24h: somme('echecs') + somme('abandons'), refuses24h: somme('refuses') }),
   };
 }
 

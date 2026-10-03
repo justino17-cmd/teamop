@@ -114,7 +114,7 @@ function creerPorteBeta({ config, quotas, stockage, fetchImpl = fetch, horloge =
   async function relire() {
     const coupes = [];
     let echec = false;
-    const actives = stockage.sessionsBetaActives().filter(p => REGEX_ID.test(p.bid));
+    const actives = stockage.betaARelire().filter(p => REGEX_ID.test(p.bid));
     for (let i = 0; i < actives.length; i += PAQUET_ETAT) {
       const paquet = actives.slice(i, i + PAQUET_ETAT);
       try {

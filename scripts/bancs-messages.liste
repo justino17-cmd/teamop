@@ -31,6 +31,8 @@
 # 3 octobre 2026, le lot 3 réuni aux deux autres (et un compte effacé qui ne revient pas d'une restauration, test-950) : 35 suites, 4 179 vérifications mesurées par la commande de la porte — plancher 4165.
 # 3 octobre 2026, l'étape 5 (les espaces professionnels et Messages Pro : test-960 à 965, dont la couture avec le vrai OP GESTION) : 41 suites, 4 989 vérifications mesurées par la commande de la porte — plancher 4975.
 # 3 octobre 2026, la relecture du gardien de l'étape 5 (I1 à I3, R2 à R12, la dette des groupes : le paiement réglé qui finit reconnu, la hiérarchie des canaux, le registre des purges des groupes, /health sans chiffre commercial, les places dépassées) : 41 suites, 5 067 vérifications mesurées par la commande de la porte — plancher 5053.
+# 3 octobre 2026, les corrections du lot 3 après les relectures adverses (gardien et testeur : restauration, abonnements push, panne du service push, export, restes d'un compte effacé, notification relue en partant) : 35 suites, 4 351 vérifications mesurées par la commande de la porte — plancher 4337.
+# (FUSION de la branche de travail, 7f52581 : le plancher ci-dessous est celui de l'étape 5 ; il se REMESURE par la commande de la porte sur l'arbre fusionné — total moins une petite marge, jamais une addition.)
 #plancher 5053
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
