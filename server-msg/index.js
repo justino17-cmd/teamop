@@ -158,7 +158,8 @@ function demarrer(env = process.env) {
     let enCours = false;
     minuteurs.push(setInterval(async () => {
       if (enCours) return; enCours = true;
-      try { for (const id of await porte.relire()) hub.fermerPersonne(id); }
+      /* ⛔ un accès coupé dans la Tour perd ses SESSIONS (la porte) et ses ABONNEMENTS PUSH (ici) : sans ça, une personne dont l'accès est fermé recevrait encore, sur son téléphone, « Nouveau message » */
+      try { for (const id of await porte.relire()) { stockage.pushSupprimerPersonne(id); hub.fermerPersonne(id); } }
       catch (e) { journaliser('relecture_echec', { nom: e && (e.code || e.name) }); }
       finally { enCours = false; }
     }, config.beta.relectureMs));

@@ -1427,6 +1427,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     });
   }
   function pushSupprimerPersonne(uid) { return num(Q('DELETE FROM push WHERE uid = ?').run(uid).changes); }
+  /* « Déconnecter les autres appareils » : tous les abonnements de la personne SAUF celui d'où elle le demande (son point d'accès, s'il le donne). Sans point d'accès, ou avec un point
+     d'accès qu'elle n'a pas inscrit : tous — l'appareil se réabonne en une seconde, un téléphone perdu qui continue de recevoir les notifications ne se rattrape pas. */
+  function pushRetirerAutres(uid, garder) {
+    if (typeof garder === 'string' && garder.length > 0 && garder.length <= 2048) return num(Q('DELETE FROM push WHERE uid = ? AND endpoint_h <> ?').run(uid, hPush(garder)).changes);
+    return pushSupprimerPersonne(uid);
+  }
 
   /* ⛔ LA PAIRE VAPID DE L'INSTANCE : la clé publique en clair (`meta.vapid_pub`, la page la lit), la PRIVÉE scellée (`meta.vapid_priv_ch`). Un abonnement est lié à la clé publique avec
      laquelle il a été créé : changer de paire plus tard ferait refuser tous les envois. La première paire posée GAGNE, donc, et reste. */
@@ -1588,7 +1594,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     smsTentativesNoter, smsTentativesCompter, smsTentativePremiere, smsTentativesRendre,
     smsReserver, smsRegler, smsSommes, smsPremier, smsPaysSur, smsElaguer, smsBouclierPoser, smsBouclierDe, smsBoucliers,
     telPersonneParNumero, telTrouvableLire, telTrouvableMaj, rechercheNoter, rechercheCompter, rechercheRendre,
-    pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushVapidLire, pushVapidPoser,
+    pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushRetirerAutres, pushVapidLire, pushVapidPoser,
     pushDestinatairesMessage, pushMessageEncore, autreSupprime,
     suppressionProgrammer, suppressionAnnuler, suppressionLe, comptesEchus, compteEffacer, exportProfil, exportConversationsIds, exportPieces,
   };

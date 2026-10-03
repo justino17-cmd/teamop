@@ -266,7 +266,9 @@ function creerTelephone(ctx) {
   };
 
   /* « Déconnecter les autres appareils » : toutes les sessions et tous les jetons d'appareil de la personne SAUF ceux de l'appareil d'où l'on
-     le demande. Le geste de qui a perdu un téléphone, ou vu « Nouvel appareil connecté » sans l'avoir fait. */
+     le demande. Le geste de qui a perdu un téléphone, ou vu « Nouvel appareil connecté » sans l'avoir fait.
+     ⛔ LES NOTIFICATIONS DES AUTRES APPAREILS AUSSI : un téléphone perdu dont la session est coupée mais l'abonnement push gardé continuerait de recevoir « Nouveau message » (et le texte, si
+     l'aperçu est activé). La page donne le point d'accès de CET appareil (`endpoint`, facultatif) : le sien reste, tous les autres partent. */
   H_['moi.appareils.deconnecter'] = (req, res) => {
     const q = essai('deco_autres', req.moi.id, { max: 10, fenetreMs: H });
     if (!q.ok) return trop(res, 'quota_atteint', q.retry);
@@ -274,7 +276,9 @@ function creerTelephone(ctx) {
     for (const h of hs) hub.fermerSession(h);
     const v = lireCookie(req, nomAppareil);
     const appareils = stockage.telAppareilsSupprimerAutres(req.moi.id, v && APPAREIL_RE.test(v) ? sha(v) : '');
-    res.json({ ok: true, sessions: hs.length, appareils });
+    const b = corps(req);
+    const notifications = stockage.pushRetirerAutres(req.moi.id, typeof b.endpoint === 'string' ? b.endpoint : null);
+    res.json({ ok: true, sessions: hs.length, appareils, notifications });
   };
 
   /* La déconnexion couvre aussi le jeton d'appareil : sinon « se déconnecter » se déferait toute seule au prochain lancement. */
