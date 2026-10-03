@@ -16,6 +16,8 @@
      · LES PIÈCES PARTENT AVEC CE QUI LES PORTE, FICHIER COMPRIS : « supprimer pour tous », un éphémère échu, une pièce jamais envoyée (24 h), une photo remplacée, une conversation
        disparue — et l'identifiant est noté dans `purge`. Le FICHIER se garde sans l'aide de la réconciliation (qui ôte aussi un fichier sans ligne de plus de dix minutes) : ceux du temps
        sont datés dans le futur pour qu'elle ne les voie pas ;
+     · UNE IMAGE « BOURRÉE » DE MILLIONS DE SEGMENTS VIDES (11,6 Mo, quatre dépôts en parallèle d'un seul compte) est REFUSÉE sans que le processus du service gagne plus de 300 Mo ni que /health gèle,
+       et la réserve de mémoire d'images pleine répond 429 « dans un instant » puis se rend (relecture du gardien, B1) ;
      · LE BALAYEUR N'EST PAS UNE GARDE : sur un service dont il ne passe jamais, une pièce échue (éphémère échu, jamais envoyée depuis 24 h) ne se lit plus et ne s'attache plus, et un
        message marqué supprimé n'ouvre plus sa pièce — l'échéance se juge à la lecture et à l'attachement, pas seulement quand le balayeur passe ;
      · RIEN DE CE QUI EST ENVOYÉ N'EST EN CLAIR SUR LE DISQUE (un canari dans une photo, un vocal, un fichier et son nom : absent de TOUS les fichiers sous OPMSG_DATA) ni dans les journaux ;
@@ -761,6 +763,55 @@ function migration() {
     v('contre-épreuve : une pièce déposée À L\'HEURE s\'attache et se lit (le refus ci-dessus vient bien de l\'échéance)', [mFrais.code, (await lire(B4, frais)).code], [201, 200]);
   } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
   await svc4.arreter();
+
+  /* ═══ 10. UNE IMAGE « BOURRÉE » DE MORCEAUX VIDES : REFUSÉE, ET LE SERVICE NE BOUGE PAS (relecture du gardien, B1) ═══════════════════════════════════ */
+  console.log('\nUne image « bourrée » (11,6 Mo, 2,9 millions de segments vides), quatre dépôts en même temps d\'un seul compte : refusés, le service ne bouge pas (B1)');
+  /* ⛔ Réglages PAR DÉFAUT du service (photo 12 Mo, 96 Mo de mémoire d'images) : c'est là que l'attaque jouait. Avant le correctif : les quatre dépôts ACCEPTÉS (201) et rangés, le processus de 92 à
+     1 215 Mo (l'unité plafonne à 1 Go), `/health` gelé 3,7 s. On mesure le processus du service lui-même (/proc), pas le banc. */
+  const svc5 = await T.lancerService({ urlGestion: og.url, horloge: true, config: { pieces: { memoireImages: 108 * 1048576 }, quotas: { piece: { max: 1000, fenetreMs: 3600000 } } } });   // 108 Mo : quatre dépôts de 12 Mo (24 Mo chacun) y tiennent, il reste 12 Mo
+  try {
+    const A5 = await compte('alice', svc5), B5 = await compte('bruno', svc5), C5 = await compte('carla', svc5);
+    await lienContact(A5, B5); await lienContact(A5, C5); await lienContact(B5, C5);
+    const g5 = await groupe(A5, 'Images', [B5, C5]);
+    const rssDe = (pid) => { try { return Math.round(parseInt(fs.readFileSync('/proc/' + pid + '/status', 'utf8').match(/VmRSS:\s+(\d+)/)[1], 10) / 1024); } catch (e) { return -1; } };
+    const lignes5 = () => { const d = T.lireBase(path.join(svc5.data, 'msg.db')); try { return d.prepare('SELECT COUNT(*) AS n FROM piece').get().n; } finally { d.close(); } };
+    const pid = svc5.enfant.pid, bourre = F.jpegBourre(2900000), depart = rssDe(pid);
+    vrai('population : le JPEG bourré pèse plus de 11 Mo, le service tourne (' + depart + ' Mo) et ne porte aucune pièce', bourre.length > 11 * 1048576 && depart > 0 && lignes5() === 0);
+    let pic = depart; const lat = [];
+    const releve = setInterval(() => { pic = Math.max(pic, rssDe(pid)); }, 25);
+    const sonde = setInterval(async () => { const t = Date.now(); try { await fetch(svc5.base + '/health'); lat.push(Date.now() - t); } catch (e) { /* ne répond pas : pas de mesure */ } }, 50);
+    const rs = await Promise.all([1, 2, 3, 4].map(() => deposer(A5, { conv: g5, genre: 'photo', corps: bourre })));
+    clearInterval(releve); clearInterval(sonde);
+    v('⛔ quatre dépôts en parallèle d\'un seul compte : les quatre sont REFUSÉS (415 type_refuse), aucun n\'est rangé', [rs.map(r => r.code), rs.map(r => r.j && r.j.error), lignes5()], [[415, 415, 415, 415], Array(4).fill('type_refuse'), 0]);
+    vrai('⛔ le service ne bouge pas : le processus gagne moins de 300 Mo (avant : +1 120 Mo, tué par l\'unité) — départ ' + depart + ' Mo, pic ' + pic + ' Mo', pic - depart < 300);
+    vrai('⛔ …et la boucle n\'est pas gelée : /health répond en moins de 1,5 s pendant les dépôts (avant : 3,7 s) — ' + lat.length + ' mesures, la plus lente ' + Math.max(0, ...lat) + ' ms', lat.length >= 1 && Math.max(...lat) < 1500);
+
+    /* 10 bis : la réserve de mémoire d'images est presque PLEINE (quatre dépôts de 12 Mo annoncés = 4 x 24 Mo = 96 Mo sur 108) : une photo de 7 Mo (14 Mo à réserver) reçoit un 429 « dans un instant »
+       alors qu'une petite image passe encore, et la grosse passe quand la réserve se libère */
+    const tete = F.jpeg().subarray(0, 40);                                               // la signature JPEG suffit : le type est jugé sur les premiers octets, la réserve se prend ensuite
+    const tenir = (c) => {
+      const sk = net.connect(svc5.port, '127.0.0.1', () => {
+        sk.write('POST /api/pieces?conv=' + g5 + '&genre=photo HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: ' + svc5.base + '\r\nX-OPM: 1\r\nCookie: ' + c.enteteCookie() + '\r\nContent-Type: application/octet-stream\r\nContent-Length: ' + (12 * 1048576) + '\r\nConnection: close\r\n\r\n');
+        sk.write(tete);
+      });
+      sk.on('error', () => {});
+      sk.reponse = ''; sk.on('data', (d) => { sk.reponse += d; });
+      return sk;
+    };
+    const tenus = [tenir(A5), tenir(A5), tenir(B5), tenir(B5)];
+    await T.dort(500);          // les quatre dépôts retenus ont lu leur début et réservé AVANT que le suivant n'arrive : s'il passait devant, il tiendrait la mémoire que le quatrième réclame (vérifié plus bas)
+    const grosse = F.jpeg({ donnees: Buffer.alloc(7 * 1048576, 0x12) }), petite = F.jpeg();
+    vrai('population : la grosse photo pèse 7 Mo (14 Mo à réserver, il en reste 12), la petite quelques centaines d\'octets', grosse.length > 7 * 1048576 && grosse.length < 7.1 * 1048576 && petite.length < 1000);
+    const envoi = (corps) => deposer(C5, { conv: g5, genre: 'photo', corps });
+    let refus = null;
+    for (let k = 0; k < 60 && !(refus && refus.code === 429); k++) { refus = await envoi(grosse); if (refus.code !== 429) await T.dort(100); }
+    v('⛔ la réserve est presque pleine : la photo de 7 Mo est refusée TOUT DE SUITE, 429 « dans un instant » (portee simultane, Retry-After 2)', [refus.code, refus.j.error, refus.j.portee, refus.h.get('retry-after'), refus.j.retry], [429, 'quota_atteint', 'simultane', '2', 2]);
+    v('…alors qu\'une petite image passe encore (c\'est de la MÉMOIRE qui manque, pas un refus général)', (await envoi(petite)).code, 201);
+    vrai('population : les quatre dépôts retenus tiennent toujours — aucun n\'a reçu de réponse (sinon la réserve n\'était pas pleine pour la bonne raison)', tenus.every((sk) => sk.reponse === ''));
+    for (const sk of tenus) sk.destroy();
+    vrai('⛔ les dépôts abandonnés RENDENT la réserve : la photo de 7 Mo passe (201) dès qu\'ils sont coupés', await att(async () => (await envoi(grosse)).code === 201, 10000));
+  } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
+  await svc5.arreter();
 
   fs.rmSync(bac, { recursive: true, force: true });
   await svc.arreter(); await og.fermer();

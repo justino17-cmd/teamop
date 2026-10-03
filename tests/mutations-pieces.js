@@ -72,7 +72,7 @@ m('P28', 'le service n\'autorise plus le micro à la page (Permissions-Policy)',
 /* ── LE SCELLAGE PAR BLOCS ET LES MÉTADONNÉES ── */
 m('P29', 'la clé de bloc ne lie plus le numéro du bloc ni le drapeau « dernier » (blocs échangeables, fichier tronqué à une frontière)', F.pz, "const aad = (id, i, dernier) => Buffer.from(id + '|' + i + '|' + (dernier ? 'd' : 'n'), 'utf8');", 'const aad = (id) => Buffer.from(id, \'utf8\');', ['942']);
 m('P30', 'l\'EXIF (GPS, appareil) d\'un JPEG est gardé', F.pz, "if (mime === 'image/jpeg') return nettoyerJpeg(b);", "if (mime === 'image/jpeg') return b;", ['942', '943']);
-m('P31', 'un PNG garde ses textes et son EXIF', F.pz, 'if (!CHUNKS_PNG_RETIRES.has(type)) sortie.push(b.subarray(i, i + 12 + long));', 'sortie.push(b.subarray(i, i + 12 + long));', ['942']);
+m('P31', 'un PNG garde ses textes et son EXIF', F.pz, 'if (!CHUNKS_PNG_RETIRES.has(type)) o += b.copy(sortie, o, i, i + 12 + long);', 'o += b.copy(sortie, o, i, i + 12 + long);', ['942']);
 m('P32', 'un WebP garde son EXIF et son XMP', F.pz, "if (type !== 'EXIF' && type !== 'XMP ') {", 'if (true) {', ['942']);
 /* ── LES PIÈCES PARTENT AVEC CE QUI LES PORTE ── */
 m('P33', '« supprimer pour tous » n\'efface plus le fichier de la pièce', F.routes, '    effacer(r.pieces);   // ⛔ « pour tous » efface aussi les pièces du message, fichier compris\n', '', ['943']);
@@ -111,6 +111,14 @@ m('K17', 'la photo de profil qu\'on vient de choisir est relue du service', F.sr
 
 /* ── LE PROXY (jouée par la sonde d'un VRAI nginx : il faut OPMSG_NGINX ; sans lui, « NON JOUÉE ») ── */
 m('P47', 'le bloc des pièces du proxy est ramené à 1 Mo (une photo réduite à 250 Ko passe, un fichier de 20 Mo non)', 'server-msg/install-msg.sh', '        client_max_body_size 26m;', '        client_max_body_size 1m;', ['proxy']);
+
+/* ── B1 : UNE IMAGE BOURRÉE DE MORCEAUX VIDES (relecture du gardien) ── */
+m('P48', 'le plafond de segments JPEG est retiré (2,9 M de segments vides passent)', F.pz, "    if (++segments > SEGMENTS_JPEG_MAX) throw erreur('type_refuse');\n", '', ['942', '943']);
+m('P49', 'le plafond de morceaux PNG est retiré (1 M de morceaux vides passent)', F.pz, "    if (++morceaux > MORCEAUX_MAX) throw erreur('type_refuse');\n", '', ['942']);
+m('P50', 'le plafond de blocs WebP est retiré (1,5 M de blocs vides passent)', F.pz, "    if (++blocs > MORCEAUX_MAX) throw erreur('type_refuse');\n", '', ['942']);
+m('P51', 'le plafond GLOBAL de mémoire d\'images est retiré (toute image se réserve, quelle que soit la réserve)', F.pz, '    if (memoire + n > memoireImages) return null;\n', '', ['942', '943']);
+m('P52', 'la réserve de mémoire pleine n\'est plus dite « dans un instant » (429) : le dépôt échoue en 500', F.rp, /        if \(c === 'occupe'\) \{[^\n]*\n/, '', ['943']);
+m('P53', 'la réserve de mémoire n\'est jamais RENDUE après un dépôt (elle se vide de proche en proche)', F.pz, '      } finally { rendre(); }', '      } finally { /* oublié */ }', ['942', '943']);
 
 /* ── LA PAGE (jouée par la sonde navigateur : lancer avec --sondes) ── */
 const G = { sonde: true };
@@ -161,11 +169,15 @@ function appliquer(src, a, b) {
   const t = src.replace(a, () => b);
   return t === src ? { erreur: 'le texte n\'a pas changé' } : { texte: t };
 }
+/* ⛔ LES ORIGINAUX SONT FIGÉS AU DÉPART. `muter` relisait le fichier de l'ARBRE à chaque mutation : modifier un fichier du service pendant qu'un lot tournait en arrière-plan faisait jouer les
+   dernières mutations sur un texte différent de celui des copies. Les copies sont faites au départ ; les originaux aussi. */
+const FIGES = new Map();
+function figer(liste) { for (const mut of liste) for (const [fichier] of mut.edits) if (!FIGES.has(fichier)) FIGES.set(fichier, fs.readFileSync(path.join(RACINE, fichier), 'utf8')); }
 function muter(racine, mut) {
   const originaux = new Map();
   for (const [fichier, a, b] of mut.edits) {
     const chemin = path.join(racine, fichier);
-    const base = originaux.has(fichier) ? fs.readFileSync(chemin, 'utf8') : fs.readFileSync(path.join(RACINE, fichier), 'utf8');
+    const base = originaux.has(fichier) ? fs.readFileSync(chemin, 'utf8') : (FIGES.has(fichier) ? FIGES.get(fichier) : fs.readFileSync(path.join(RACINE, fichier), 'utf8'));
     if (!originaux.has(fichier)) originaux.set(fichier, base);
     const r = appliquer(base, a, b);
     if (r.erreur) return { erreur: r.erreur + ' (' + fichier + ')' };
@@ -223,6 +235,7 @@ async function jouer(mut, dir) {
   const liste = ids.length ? MUTATIONS.filter(x => ids.includes(x.id)) : MUTATIONS.filter(x => !!x.sonde === sondes);
   if (!liste.length) { console.log('aucune mutation à jouer'); process.exit(2); }
   /* les mutations jouées par la sonde ne se lancent pas en parallèle : trois navigateurs et trois services se volent le processeur, et la sonde mesure du temps */
+  figer(liste);
   const copies = Array.from({ length: sondes ? 1 : Math.min(NB_COPIES, liste.length) }, fabriquerCopie);
   /* ⛔ LE TÉMOIN. Une suite qui MEURT dans la copie (un fichier que la copie n'emporte pas, un `require` qui échoue) a l'air de « tomber » à chaque mutation, sans rien prouver : pris le 2 octobre 2026
      sur G03, que test-857 « faisait tomber » en mourant de `MODULE_NOT_FOUND` sur sa première ligne. Chaque banc visé tourne donc d'abord, UNE fois, sur une copie INTACTE : s'il n'y est pas vert, rien n'est
