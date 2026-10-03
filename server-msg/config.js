@@ -35,8 +35,8 @@
  *                                abonnement (5) et durée minimale de la série (1 h : cinq refus en cinq minutes sont une panne), envois en même temps (16), file d'attente (2 000), délai d'un envoi (8 s), durée de vie d'un message poussé (24 h) et, quand l'APERÇU part, d'un message dont le texte voyage (1 h : il
  *                                n'attend pas un jour entier sur la machine d'un tiers parce qu'un téléphone était éteint ; un message éphémère ne survit jamais à ce qui lui reste à vivre).
  *   vapidPublicKey, vapidPrivateKey   La paire VAPID que l'installation écrit (`install-msg.sh`) : le service l'ADOPTE à son premier démarrage (elle est alors rangée dans la
- *                                base, privée scellée, et la base fait foi ensuite). Absente, le service en fabrique une. L'une sans l'autre, ou deux clés qui ne
- *                                vont pas ensemble, REFUSENT le démarrage.
+ *                                base, privée scellée, et la base fait foi ensuite : une paire DIFFÉRENTE posée plus tard ne la remplace pas, et le journal le dit à chaque démarrage).
+ *                                Absente, le service en fabrique une. L'une sans l'autre, ou deux clés qui ne vont pas ensemble, REFUSENT le démarrage.
  *   disqueMinMo   plancher d'espace libre sous lequel les écritures refusent (503).
  *   pulsationMs, presenceGraceMs, balayageMs, relectureMs   Rythmes (bancs).
  */

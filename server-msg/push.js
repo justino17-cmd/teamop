@@ -336,7 +336,7 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
   }
   const acquitte = (uid, gid) => { const e = acquittes.get(uid); return !!e && e.gid >= gid; };
 
-  /* Les notifications qui ATTENDENT l'acquittement : une par (personne, étiquette) — plusieurs événements d'une conversation pendant l'attente n'en font qu'une, la dernière. */
+  /* Les notifications qui ATTENDENT l'acquittement : une par (personne, étiquette) — plusieurs événements d'une conversation pendant l'attente n'en font qu'une : celle du plus RÉCENT message encore valable (toutes les charges attendues sont gardées, `partirParmi`). */
   const attentes = new Map();
 
   /* ⛔ L'ENVOI D'UNE NOTIFICATION. `opts.gid` : l'identifiant de l'événement (journal) que la page acquittera. Ne rejette JAMAIS (un rejet non rattrapé ferait tomber le processus). */
