@@ -22,7 +22,7 @@ et déployés sur la bêta (`msg-beta.teamop.fr`) par une poussée de `server-ms
 |---|---|---|
 | 1 | pièces (photos, vocaux, fichiers), photo de profil et de groupe, vrais Réglages (profil, confidentialité réciproque, appareils, stockage) | ✅ **EN SERVICE sur la bêta** (`4368968`, déploiement n° 3 vert, `/health` `1.2.0-pieces`, schéma 3) — relu par `gardien` et `testeur`, corrigé (31 commits), 153/153 mutations ; ⛔ les photos attendent le geste du proxy (ci-dessous) |
 | 2 | sauvegarde hors site chiffrée (étape 3), `restaurer.js essai`, `configurer-sauvegarde.js` | ✅ **EN SERVICE sur la bêta** (`4368968`) — relue, corrigée (13 commits), 119/119 mutations ; inerte (`sauvegarde.configuree:false`) tant que Justin n'a pas créé le bucket (guide § 10 ter) |
-| 3 | notifications push (VAPID propre), « Exporter mes données », « Supprimer mon compte » (J+14) | ✅ fusionné (`59bb167`, `65ff44f`) — 132/132 mutations du lot ; à la fusion : le rejeu du compte effacé après une restauration (genre « compte », `rejeu.js`, 5/5 mutations), la révocation des appareils notée à la DEMANDE, la table `push` dans les trois listes. 🔧 Relectures faites : **1 bloquant** (une restauration ressuscite les abonnements push révoqués), **4 importants** (push après expiration de session ; panne du service push = désabonnement de tous ; quotas d'export contournables ; prénom d'un compte effacé dans les notifications des autres), demande de suppression absente du registre, une sonde d'interface qui tombe depuis le lot (13 bis) — en correction (même agent), PAS encore sur la bêta |
+| 3 | notifications push (VAPID propre), « Exporter mes données », « Supprimer mon compte » (J+14) | ✅ **EN SERVICE sur la bêta** (`15b1709` sur main, 3 octobre 2026 vers 11 h 40 UTC — `/health` : sha `15b1709d`, `1.3.0-push`, base schéma 5 sans fichier illisible, `push.actif:true` — la paire VAPID est née d'elle-même au premier démarrage, aucun geste —, `/sw.js` et `/manifest.webmanifest` servis). Relu par `gardien` et `testeur` sur la version fusionnée : 1 bloquant (une restauration ressuscitait les abonnements push), 4 importants (push sans session vivante, panne du service push = tout le monde désabonné, export contournable, prénom d'un compte effacé chez les autres), la demande de suppression hors du registre, une sonde qui tombait — tout corrigé (`7f52581`), 228/234 mutations (6 équivalentes). Paquet de la bêta : suite complète 245 · 17 182 code 0, porte d'OP MESSAGES 35 · 4 351 (plancher 4337) sur l'arbre déployé. 📱 Essai par Justin : guide § 10 quater (ajouter à l'écran d'accueil, puis Réglages › Notifications) |
 | 4 | réunions programmées (étape 6) | à faire |
 | 5 | appels à deux, audio et vidéo (étape 7) — le relais TURN demande l'ouverture des ports par Justin | à faire |
 | 6 | appels de groupe et salle de réunion en maille (étape 8) | à faire |
@@ -30,7 +30,7 @@ et déployés sur la bêta (`msg-beta.teamop.fr`) par une poussée de `server-ms
 
 Liste des bancs d'OP MESSAGES après les lots 1 et 2 corrigés : **31 suites, 3 654 vérifications** (plancher 3640) ; suite complète
 de l'arbre déployé 241 · 16 485, code 0.
-Après la fusion du lot 3 : **35 suites, 4 179 vérifications** (plancher 4165).
+Après la fusion du lot 3 : **35 suites, 4 179 vérifications** (plancher 4165) ; après ses corrections : **35 suites, 4 351 vérifications** (plancher 4337) — c'est la porte du déploiement en service depuis `15b1709`.
 ⛔ **« Vérifications » de main est tombée sur `4368968`, pour une fausse alerte** : `scripts/verif-secrets.sh --suivis` (la CI)
 a pris la clé d'accès FICTIVE du coffre de banc (« AKIA » + seize majuscules, `tests/outils-sauvegarde.js`) et un canari rangé
 dans une variable `secret` (`test-942`) pour de vrais secrets. Aucune valeur réelle. Corrigé (`1672200`) : la clé du banc ne
@@ -43,8 +43,7 @@ laissé passer ici : avant toute poussée sur main, `bash scripts/verif-secrets.
 pages » ne lançait pas les suites qui montent le vrai service d'OP MESSAGES (`server-msg/node_modules` absent : elles écrivent
 « banc non exécuté », que le filet « SAUTÉ » ne voit pas) — les dépendances y sont ajoutées. ✅ Poussé sur main (`6deee9d`,
 contrôles 3/3 verts : « Vérifications » n° 1476, « Vérification des pages » n° 533) ; l'étape des suites y passe de 6 min 26 s à
-**12 min 56 s** — c'est la preuve qu'elles tournent, et ⚠️ c'est 13 minutes sur un minuteur de 20 : chaque lot d'OP MESSAGES en
-ajoute, le relever (ou scinder l'étape) AVANT qu'il coupe. La CI de la branche est verte (« Vérifications » n° 1475 sur `6c869a3`, bancs en 11 min).
+**12 min 56 s** — c'est la preuve qu'elles tournent. ✅ Le minuteur est passé de 20 à **30 minutes** (« Vérification des pages » sur main avec `15b1709`, « Vérifications » de la branche avec `63729e7`) : sur la branche, l'étape des bancs en était à 13 min 37 s (run 1482) ; chaque lot en ajoute encore — regarder la durée à chaque lot, et scinder l'étape avant d'approcher 30. La CI de la branche est verte (« Vérifications » n° 1475 sur `6c869a3`, bancs en 11 min).
 ⛔ **Un geste de Justin est nécessaire MAINTENANT que le lot 1 est en service** : le proxy du VPS borne tout corps à 64 Ko, donc
 aucune photo ne passe tant que `install-msg.sh` n'a pas été relancé (`bash /root/install-msg.sh beta`, après l'avoir retéléchargé) (il réécrit le bloc du proxy — **Caddy** sur ce VPS, `via: 1.1 Caddy`, pas nginx — avec l'exception de 26 Mo sur
 `/api/pieces`, sans redemander aucune clé — `SERVEUR.md` § 4.4). ⚠️ Un essai de l'extérieur ne PROUVE pas la borne : Caddy coupe le
