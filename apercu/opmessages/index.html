@@ -2972,7 +2972,11 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
      plus ; et une fonction refusée ne retire RIEN — ni les messages, ni les canaux, ni les membres, et la page le dit. L'espace se lit dans la ROUTE de la feuille (`espace:<id>`, validée), jamais
      dans un champ de la page ; les confirmations graves se font en DEUX touches, dites sur le bouton ; les adresses de paiement viennent de la source (https seulement). */
   const ID_ESPACE = /^e_[0-9a-f]{32}$/;
-  const esp = { liste: null, formule: 'perso', ouvert: false, erreur: '', jeton: 0, forme: { prive: false, choisis: [] }, abo: null };
+  const esp = { liste: null, formule: 'perso', ouvert: false, erreur: '', jeton: 0, forme: { prive: false, choisis: [] }, abo: null, lien: null };
+  /* le lien qu'on vient de créer fait partie de ce que la feuille MONTRE : créer un lien change le nombre d'invitations de l'espace, le service le dit à la page, et le redessin qui suit ne doit pas l'effacer
+     (relevé au navigateur : le lien paraissait puis disparaissait avant qu'on puisse le copier) */
+  const htmlLienInvitation = X => X ? '<div class="lien-boite"><input id="esp-lien-champ" type="text" readonly value="' + esc(location.origin + '/#invitation=' + X.code) + '" aria-label="Ton lien d\'invitation"><button type="button" class="mini" data-act="copier" data-champ="esp-lien-champ">Copier</button></div>' +
+    '<p class="info-note">Valable jusqu\'au ' + esc(dateLongue(X.expireLe)) + ', pour ' + X.max + (X.max > 1 ? ' personnes' : ' personne') + ' au plus.</p>' : '';
   const aboEtat = { cycle: null, places: 0 };           // le formulaire de paiement (le propriétaire seul) : il survit à un redessin de la feuille
   const initialesEspace = nom => { const m = String(nom).trim().split(/\s+/).filter(Boolean); return m.length ? (Array.from(m[0])[0] + (m[1] ? Array.from(m[1])[0] : '')).toUpperCase() : '?'; };
   const avatarEspace = x => ({ avatar: Array.from(String(x.id)).reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 6007, 0) % 6, initiales: initialesEspace(x.nom), photo: null });
@@ -3082,9 +3086,10 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
       if (panne.code === 'introuvable') { mot('Cet espace n\'existe plus, ou tu n\'en fais plus partie.'); fermerCouche(); chargerEspaces(); rafraichirListe(); return; }
       corps.dataset.sig = ''; corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">' + esc(phrase(panne, 'Cet espace n\'a pas pu être chargé.')) + '</p>'; return;
     }
-    if (!corps.children.length) esp.forme = { prive: false, choisis: [] };                  // une feuille neuve repart d'un formulaire vierge
+    if (!corps.children.length) { esp.forme = { prive: false, choisis: [] }; esp.lien = null; }   // une feuille neuve repart d'un formulaire vierge, sans le lien de la feuille d'avant
+    const lien = esp.lien && esp.lien.espace === id ? esp.lien : null;
     /* rien ne se redessine tant que ce que la source dit n'a pas changé (sinon un événement lointain ferait perdre le focus) ; ce que la personne a TAPÉ et le champ actif survivent au redessin */
-    const sig = JSON.stringify([d, c.contacts.map(p => [p.id, p.nom, p.role, p.proprio, p.enLigne, p.statut, !!p.photo]), esp.forme]);
+    const sig = JSON.stringify([d, c.contacts.map(p => [p.id, p.nom, p.role, p.proprio, p.enLigne, p.statut, !!p.photo]), esp.forme, lien]);
     if (corps.dataset.sig === sig && corps.children.length) return;
     const champs = {}; corps.querySelectorAll('input[id]').forEach(x => { champs[x.id] = x.value; });
     const actif = document.activeElement, cle = actif && corps.contains(actif) ? (actif.id ? '#' + actif.id : actif.dataset.act ? actif.dataset.act + '|' + (actif.dataset.uid || actif.dataset.id || '') : null) : null;
@@ -3107,7 +3112,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     h += '<div class="rubrique"><span>Contacts de l\'entreprise</span><span>' + c.contacts.length + '</span></div><div class="carte carte-pad"><p class="info-note">Les membres de cet espace, et personne d\'autre : il n\'y a pas d\'annuaire public.</p>' +
       '<div class="info-champ"><input id="esp-filtre" type="search" autocomplete="off" placeholder="Filtrer la liste" aria-label="Filtrer les contacts de l\'entreprise"></div></div>' +
       '<div class="carte" id="esp-contacts">' + c.contacts.map(p => ligneMembreEspace(p, d)).join('') + '</div><p class="vide" id="esp-aucun" hidden>Aucun contact ne correspond.</p>';
-    if (admin) h += '<div class="rubrique"><span>Inviter des collègues</span></div><div class="carte carte-pad"><p class="info-note">Un lien d\'invitation : en l\'ouvrant, un collègue rejoint l\'espace et ses canaux publics. Il vaut 7 jours, dans la limite des places de l\'abonnement.</p><div id="esp-lien"></div>' +
+    if (admin) h += '<div class="rubrique"><span>Inviter des collègues</span></div><div class="carte carte-pad"><p class="info-note">Un lien d\'invitation : en l\'ouvrant, un collègue rejoint l\'espace et ses canaux publics. Il vaut 7 jours, dans la limite des places de l\'abonnement.</p><div id="esp-lien">' + htmlLienInvitation(lien) + '</div>' +
       '<div class="info-actions"><button type="button" class="mini" data-act="esp-lien-creer">Créer un lien</button><button type="button" class="mini danger" data-act="esp-lien-revoquer">Révoquer les liens' + (a && a.invitations ? ' (' + a.invitations + ' actif' + (a.invitations > 1 ? 's' : '') + ')' : '') + '</button></div></div>';
     if (d.proprio) h += '<div class="rubrique"><span>Nom de l\'espace</span></div><div class="carte carte-pad"><div class="info-champ"><input id="esp-nom" type="text" maxlength="80" autocomplete="off" value="' + esc(d.nom) + '" aria-label="Nom de l\'espace"><button type="button" class="mini" data-act="esp-renommer">Enregistrer</button></div></div>';
     h += '<div class="carte">' + (d.proprio ? '<button type="button" class="reglage presse danger" data-act="esp-dissoudre"><span class="reglage-texte">Supprimer l\'espace<small>Les canaux et leurs messages sont effacés pour tous. Résilie d\'abord l\'abonnement.</small></span></button>'
@@ -3225,11 +3230,12 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
       if (act === 'esp-transferer') { if (!armer(b, 'Toucher encore pour passer la propriété')) return; await source.espaceTransferer(id, b.dataset.uid); mot('Tu n\'es plus propriétaire : la propriété est passée'); chargerEspaces(); await relire(); return; }
       if (act === 'esp-lien-creer') {
         const r = await source.invitationCreer(id);
-        $('esp-lien').innerHTML = '<div class="lien-boite"><input id="esp-lien-champ" type="text" readonly value="' + esc(location.origin + '/#invitation=' + r.code) + '" aria-label="Ton lien d\'invitation"><button type="button" class="mini" data-act="copier" data-champ="esp-lien-champ">Copier</button></div>' +
-          '<p class="info-note">Valable jusqu\'au ' + esc(dateLongue(r.expireLe)) + ', pour ' + r.max + (r.max > 1 ? ' personnes' : ' personne') + ' au plus.</p>';
+        esp.lien = { espace: id, code: r.code, expireLe: r.expireLe, max: r.max };
+        if (etat.groupe.ouvert && etat.groupe.mode === 'espace' && etat.groupe.espaceId === id && $('esp-lien')) $('esp-lien').innerHTML = htmlLienInvitation(esp.lien);
+        relire();
         return;
       }
-      if (act === 'esp-lien-revoquer') { const n = await source.invitationsRevoquer(id); $('esp-lien').innerHTML = ''; mot(n ? n + (n > 1 ? ' liens révoqués' : ' lien révoqué') : 'Aucun lien à révoquer'); await relire(); return; }
+      if (act === 'esp-lien-revoquer') { const n = await source.invitationsRevoquer(id); esp.lien = null; $('esp-lien').innerHTML = ''; mot(n ? n + (n > 1 ? ' liens révoqués' : ' lien révoqué') : 'Aucun lien à révoquer'); await relire(); return; }
       if (act === 'esp-quitter') { if (!armer(b, 'Toucher encore pour quitter l\'espace')) return; await source.espaceQuitter(id); mot('Tu as quitté l\'espace'); chargerEspaces(); fermerFeuille(false); return; }
       if (act === 'esp-dissoudre') { if (!armer(b, 'Toucher encore pour supprimer l\'espace')) return; await source.espaceDissoudre(id); mot('Espace supprimé'); chargerEspaces(); fermerFeuille(false); return; }
       if (act === 'can-ouvrir') { ouvrirConvId(b.dataset.id); return; }
@@ -3300,7 +3306,16 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   window.addEventListener('hashchange', () => {
     const c = CAP.espaces && etat.route ? invitationDansAdresse() : null;
     if (!c) return;
-    window.addEventListener('popstate', () => { etat.codeInvitation = c; declencheur = null; ouvrirFeuille('entreprise'); }, { once: true });
+    /* Le changement de fragment a d'abord FERMÉ la feuille (popstate sans état) ; le retour en arrière la ROUVRE si elle l'était, et son rendu prend le code tout de suite (`etat.codeInvitation`, posé AVANT le retour).
+       Le code est donc consommé — rien à faire. Sinon (aucune feuille « Entreprise » rouverte) on ouvre la feuille ; et si elle est ouverte et déjà dessinée, le code reste là : on le pose dans son champ.
+       (Relevé au navigateur : le poser APRÈS le retour, quand le rendu de la feuille rouverte avait déjà commencé, le perdait — l'aperçu ne venait jamais.) */
+    etat.codeInvitation = c;
+    window.addEventListener('popstate', () => {
+      if (etat.codeInvitation !== c) return;
+      declencheur = null;
+      if (etat.groupe.ouvert && etat.groupe.mode === 'entreprise' && $('en-code')) { etat.codeInvitation = null; $('en-code').value = c; erreurInfo(''); lireInvitationSaisie().catch(e => erreurInfo(phraseEspace(e, 'Ce lien n\'a pas pu être lu.'))); return; }
+      ouvrirFeuille('entreprise');
+    }, { once: true });
     history.back();
   });
   /* le retour de Stripe : `?abo=retour|annule|portail&e=<espace>` — lu AVANT que l'adresse ne soit nettoyée, jamais cru (la feuille relit chez Stripe) */
