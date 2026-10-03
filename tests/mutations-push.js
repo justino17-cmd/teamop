@@ -170,7 +170,7 @@ m('D14', 'un compte dont la suppression est programmée reste TROUVABLE par num�
 m('D15', 'un compte dont la suppression est programmée peut être AJOUTÉ comme contact depuis une recherche faite avant', F.tel, 'stockage.contactBloque(uid, id) || stockage.suppressionLe(id) !== null) {', 'stockage.contactBloque(uid, id)) {', ['957']);
 m('D16', 'la confirmation (le mot SUPPRIMER) devient facultative : une requête isolée supprime un compte', F.compte, "if (corps(req).confirmation !== 'SUPPRIMER') return refus(res, 400, 'confirmation_requise');", '', ['957']);
 m('D17', 'la suppression ne ferme pas les flux ouverts : la personne continue de recevoir ses messages pendant le sursis', F.compte, 'hub.fermerPersonne(req.moi.id);', '', ['957']);
-m('D18', 'un disque plein retient la suppression du compte (le plancher d\'espace disque refuse aussi ce geste)', F.app, String.raw`compte\/(deconnexion|supprimer)|flux\/ack`, String.raw`compte\/(deconnexion)|flux\/ack`, ['957']);
+m('D18', 'un disque plein retient la suppression du compte (le plancher d\'espace disque refuse aussi ce geste)', F.app, String.raw`compte\/(deconnexion|supprimer|export)|flux\/ack`, String.raw`compte\/(deconnexion|export)|flux\/ack`, ['957']);
 m('D19', 'la route de suppression devient publique (plus de garde de session)', F.man, /(id: 'compte\.supprimer',\s+m: 'POST', p: '\/api\/compte\/supprimer',\s+garde: ')S(')/, '$1P$2', ['905', '957']);
 m('D20', 'l\'effacement n\'écrit pas la ligne de purge (une sauvegarde restaurée ressusciterait le compte effacé)', F.stock, "Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(uid, 'compte', horloge());", '', ['957']);
 /* ⛔ D21, D22, D23 : la RAISON d'équivalence que j'avais écrite était fausse — le banc joue chaque couche À PART (il remet le jeton en base à la main, puis demande à chaque route), et il compte les jetons restants. Mesuré : elles tombent. */
@@ -201,6 +201,9 @@ m('X12', 'l\'export est mis en cache : la route ne pose plus `no-store` elle-mê
   EQ('`app.js` pose `Cache-Control: no-store` sur TOUTE réponse de /api : l\'en-tête de la route est une redondance (comme `nosniff` des pièces)'));
 m('X11', 'l\'export liste aussi les conversations quittées (la liste des identifiants ne filtre plus)', F.stock, 'SELECT conv FROM membre WHERE uid = ? AND quitte_le IS NULL ORDER BY conv', 'SELECT conv FROM membre WHERE uid = ? ORDER BY conv', ['957'],
   EQ('`convPourMembre` ne rend rien pour une conversation quittée : l\'export la saute'));
+
+m('X13', 'l\'export est refusé sous le plancher d\'espace disque (un disque plein retient la personne qui veut emporter ses données, alors que rien n\'est écrit)', F.app,
+  String.raw`compte\/(deconnexion|supprimer|export)|flux\/ack`, String.raw`compte\/(deconnexion|supprimer)|flux\/ack`, ['957']);
 
 /* ══ 8. LE CLIENT — le module de données de la page et son client d'API ═══════════════════════════════════════════════════════════════════════════════════ */
 m('C01', 'une page CACHÉE acquitte ce qu\'elle ne montre pas (la notification serait étouffée alors que personne n\'a rien vu)', F.src, 'if (!visible) return;', '', ['958']);

@@ -108,8 +108,9 @@ function construireApp(ctx) {
 
   /* ── Plancher d'espace disque : les écritures refusent, la lecture continue ───────────── */
   app.use((req, res, next) => {
-    /* ⛔ trois gestes passent sous le plancher : se déconnecter, supprimer son compte (il LIBÈRE de la place, et c'est un droit) et acquitter un événement (rien n'est écrit : la mémoire seulement) */
-    if (req.method !== 'GET' && req.method !== 'HEAD' && ctx.disque.bas() && !/^\/api\/(compte\/(deconnexion|supprimer)|flux\/ack)\/?$/i.test(req.path)) return refus(res, 503, 'disque_plein');
+    /* ⛔ quatre gestes passent sous le plancher : se déconnecter, supprimer son compte (il LIBÈRE de la place, et c'est un droit), exporter ses données (un droit aussi, et rien n'est écrit sur le disque :
+       le fichier part au fil de l'eau, le quota « un par jour » vit en mémoire — relevé par le gardien, 3 octobre 2026) et acquitter un événement (rien n'est écrit : la mémoire seulement) */
+    if (req.method !== 'GET' && req.method !== 'HEAD' && ctx.disque.bas() && !/^\/api\/(compte\/(deconnexion|supprimer|export)|flux\/ack)\/?$/i.test(req.path)) return refus(res, 503, 'disque_plein');
     next();
   });
 
