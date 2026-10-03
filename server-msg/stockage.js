@@ -439,9 +439,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       return hs;
     });
   }
-  function sessionsBetaActives() {
+  /* ⛔ LES COMPTES BÊTA À RELIRE chez OP GESTION (`porte-beta.js` → `relire`) : ceux qui ont une session vivante, ET ceux qui ont un abonnement push — même sans session.
+     Une session expire (30 jours sans usage), un abonnement non : ne relire que les sessions laissait un accès COUPÉ dans la Tour (la personne n'est plus de l'équipe) recevoir
+     encore, sur son téléphone, « Nouveau message » — jusqu'à la fin des temps (relevé par le gardien, 3 octobre 2026). */
+  function betaARelire() {
     const t = horloge();
-    return Q(`SELECT DISTINCT p.id FROM personne p JOIN session s ON s.personne = p.id WHERE p.origine = 'beta' AND s.exp > ?`).all(t)
+    return Q(`SELECT p.id FROM personne p WHERE p.origine = 'beta' AND p.etat = 'actif'
+              AND (EXISTS (SELECT 1 FROM session s WHERE s.personne = p.id AND s.exp > ?) OR EXISTS (SELECT 1 FROM push x WHERE x.uid = p.id)) ORDER BY p.id`).all(t)
       .map(r => ({ id: r.id, bid: String(personneIdentifiant(r.id) || '').replace(/^beta:/, '') }));   // `bid` : l'identifiant du compte chez OP GESTION
   }
 
@@ -1453,6 +1457,20 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     });
   }
   function pushSupprimerPersonne(uid) { return num(Q('DELETE FROM push WHERE uid = ?').run(uid).changes); }
+  /* ⛔ UNE PERSONNE EST JOIGNABLE tant qu'elle peut revenir dans l'application sans rien prouver de neuf : une session vivante, ou un jeton d'appareil valable (échéance glissante ET
+     plafond absolu, comme `telAppareilLire`). Sans l'un ni l'autre, elle n'est plus connectée nulle part : l'aperçu d'un message n'a rien à faire sur son écran verrouillé. Une session
+     expire (30 jours sans usage), un abonnement push non — c'est ce qui laissait un téléphone recevoir encore les messages d'un compte dont plus rien ne tenait l'accès
+     (relevé par le gardien, 3 octobre 2026). `absMs` : le plafond absolu d'un jeton d'appareil (`telephone.js`). */
+  function pushJoignable(uid, absMs) {
+    const t = horloge();
+    if (Q('SELECT 1 AS x FROM session WHERE personne = ? AND exp > ? LIMIT 1').get(uid, t)) return true;
+    return !!Q('SELECT 1 AS x FROM appareil_tel WHERE personne = ? AND exp > ? AND cree + ? > ? LIMIT 1').get(uid, t, absMs, t);
+  }
+  /* Le balayeur retire les abonnements des personnes qui ne sont plus joignables (la page redit son abonnement à la prochaine connexion : rien n'est perdu pour qui revient). */
+  function pushNonJoignablesPurger(absMs) {
+    const t = horloge();
+    return num(Q(`DELETE FROM push WHERE uid NOT IN (SELECT personne FROM session WHERE exp > ?) AND uid NOT IN (SELECT personne FROM appareil_tel WHERE exp > ? AND cree + ? > ?)`).run(t, t, absMs, t).changes);
+  }
   /* « Déconnecter les autres appareils » : tous les abonnements de la personne SAUF celui d'où elle le demande (son point d'accès, s'il le donne). Sans point d'accès, ou avec un point
      d'accès qu'elle n'a pas inscrit : tous — l'appareil se réabonne en une seconde, un téléphone perdu qui continue de recevoir les notifications ne se rattrape pas. */
   function pushRetirerAutres(uid, garder) {
@@ -1709,7 +1727,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   return {
     schema, instantane, sonde, fermer, tx, stats, metaLire, nouvelId, illisibles: () => illisibles,
     personneCreer, personneParIdentifiant, personneParId, personneIdentifiant, personneMaj,
-    sessionAjouter, sessionLire, sessionToucher, sessionSupprimer, sessionsSupprimerPersonne, sessionsSupprimerAutres, sessionsBetaActives,
+    sessionAjouter, sessionLire, sessionToucher, sessionSupprimer, sessionsSupprimerPersonne, sessionsSupprimerAutres, betaARelire,
     contactLier, contactBloque, contactActif, contactsDe, contactsActifs, contactRetirer, contactEtat, contactLigne, peutVoir,
     lienCreer, lienValide, lienApercu, lienAccepter, liensRevoquerGroupe, liensRevoquerContact,
     convDirecteObtenir, convCreerGroupe, convSupprimer, convPourMembre, convListe, convMaj, membresActifs, membresDetail, nbAdmins,
@@ -1724,7 +1742,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     smsTentativesNoter, smsTentativesCompter, smsTentativePremiere, smsTentativesRendre,
     smsReserver, smsRegler, smsSommes, smsPremier, smsPaysSur, smsElaguer, smsBouclierPoser, smsBouclierDe, smsBoucliers,
     telPersonneParNumero, telTrouvableLire, telTrouvableMaj, rechercheNoter, rechercheCompter, rechercheRendre,
-    pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushRetirerAutres, pushVapidLire, pushVapidPoser,
+    pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushJoignable, pushNonJoignablesPurger, pushRetirerAutres, pushVapidLire, pushVapidPoser,
     pushDestinatairesMessage, pushMessageEncore, autreSupprime,
     suppressionProgrammer, suppressionAnnuler, suppressionLe, comptesEchus, compteEffacer, exportProfil, exportConversationsIds, exportPieces,
   };

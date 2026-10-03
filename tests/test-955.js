@@ -73,7 +73,12 @@ function monter(opts = {}) {
   const declencher = async () => { const a = minuteurs.splice(0).filter(m => !m.annule); for (const m of a) m.f(); await new Promise(r => setImmediate(r)); await new Promise(r => setTimeout(r, 20)); };
   const journal = [];
   const push = PUSH.creerPush({ stockage: S, hub, config, horloge: () => h.t, journaliser: (e, c) => journal.push([e, c]), transport, planifier, annuler });
-  const pers = (nom) => S.personneCreer({ identifiant: 'beta:' + nom + alea(), prenom: nom, nom: 'Banc', origine: 'beta', verifie: true });
+  /* ⛔ une personne du banc a une SESSION VIVANTE de trente jours, comme toute personne qui a des abonnements : le service n'envoie plus rien à qui plus rien ne connecte (`pushJoignable`) */
+  const pers = (nom, o) => {
+    const p = S.personneCreer({ identifiant: 'beta:' + nom + alea(), prenom: nom, nom: 'Banc', origine: (o && o.origine) || 'beta', verifie: true });
+    if (!(o && o.sansSession)) S.sessionAjouter({ h: 'sess-' + p.id, personne: p.id, appareil: 'banc', ttlMs: 30 * 86400000 });
+    return p;
+  };
   /* abonne un appareil de banc (vraies clés) à `uid` ; l'adresse est celle d'un hôte de la liste blanche, ou de la porte de test */
   const abonne = (uid, endpoint) => {
     const app = P.appareil(endpoint || ('https://fcm.googleapis.com/fcm/send/' + alea() + alea()));
@@ -625,6 +630,58 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     while (portes.length) { portes.shift()(); await attente(); }
     const [ra, rb] = await Promise.all([pa, pb]);
     v('⛔ jamais plus de deux envois en même temps, et la file se vide : douze envois sur vingt, les huit autres abandonnés', [max, ra.appareils + rb.appareils, ra.envoyes + rb.envoyes], [2, 20, 12]);
+    m.S.fermer();
+  }
+
+  /* ══ 9 bis. UNE PERSONNE QUE PLUS RIEN NE CONNECTE NE REÇOIT RIEN ═══════════════════════════════════════════════════════════════
+     Relevé par le gardien le 3 octobre 2026 (`gardien3-session.js`) : une session expire (trente jours sans usage), un abonnement push non. Une personne dont la session avait expiré — ou
+     dont l'accès bêta avait été coupé dans la Tour PENDANT que sa session était expirée, donc jamais relue — recevait encore, sur son téléphone, tous les messages. Le service n'envoie plus qu'à
+     une personne JOIGNABLE : une session vivante, ou un jeton d'appareil valable (échéance glissante ET plafond absolu). Le balayeur retire les abonnements des autres ; la relecture des accès
+     bêta couvre aussi les comptes qui ont un abonnement, sans session. */
+  console.log('\nUne personne que plus rien ne connecte (ni session vivante, ni jeton d\'appareil valable) ne reçoit rien — et ses abonnements ne lui survivent pas');
+  {
+    const JOUR = 86400000;
+    const ABS = require(path.join(T.SERVICE, 'telephone.js')).APPAREIL_ABS_MS;
+    const m = monter();
+    const al = m.pers('Alice'), bo = m.pers('Bruno'), ca = m.pers('Carole'), da = m.pers('David'), ni = m.pers('Nina');
+    const compte = m.pers('Tel', { origine: 'compte', sansSession: true });
+    for (const u of [al, bo, ca, da, compte]) m.abonne(u.id);
+    m.S.telAppareilLier({ h: 'tel-bruno', personne: bo.id, nom: 'tél', ttlMs: 200 * JOUR });     // valable 200 jours
+    m.S.telAppareilLier({ h: 'tel-carole', personne: ca.id, nom: 'tél', ttlMs: 10 * JOUR });     // échu au bout de 10 jours
+    m.S.telAppareilLier({ h: 'tel-david', personne: da.id, nom: 'tél', ttlMs: 400 * JOUR });     // glissant jusqu'à 400 jours, mais le plafond ABSOLU est de 365
+    m.S.telAppareilLier({ h: 'tel-compte', personne: compte.id, nom: 'tél', ttlMs: 200 * JOUR });
+    const essais = async (liste) => { const r = []; for (const u of liste) { const x = await m.push.essai(u.id); r.push([x.envoyes, x.raison || null]); } return r; };
+    v('population : tant que la session de trente jours vit, chacun reçoit (l\'essai, qui passe par la même porte d\'envoi que tout)', await essais([al, bo, ca, da]), [[1, null], [1, null], [1, null], [1, null]]);
+    v('population : et la personne qui n\'a QUE son jeton d\'appareil (compte par téléphone, sans session) reçoit aussi', await essais([compte]), [[1, null]]);
+
+    /* quarante jours plus tard : les sessions de trente jours sont échues */
+    m.h.t += 40 * JOUR;
+    v('⛔ sessions échues : Alice (rien d\'autre) ne reçoit RIEN et le dit (« non_joignable »), Bruno (jeton valable) reçoit, Carole (jeton échu) non, David (jeton valable, plafond absolu pas atteint) reçoit',
+      await essais([al, bo, ca, da]), [[0, 'non_joignable'], [1, null], [0, 'non_joignable'], [1, null]]);
+    m.envois.length = 0;
+    const abosAvant = m.S.pushCompter();
+    /* la relecture des accès bêta couvre les comptes qui ont un abonnement, sans session — et ceux qui ont une session sans abonnement ; pas les comptes qui n'ont ni l'un ni l'autre */
+    const ev = m.pers('Eva');   // créée maintenant : session vivante, aucun abonnement
+    const releves = m.S.betaARelire().map(x => x.id).sort();
+    v('⛔ la relecture des accès bêta voit ceux qui ont un abonnement (Alice, Bruno, Carole, David — même sans session) et celle qui a une session vivante (Eva) ; PAS Nina (ni session ni abonnement), ni un compte qui n\'est pas bêta',
+      releves, [al.id, bo.id, ca.id, da.id, ev.id].sort());
+    vrai('population : Nina existe, sa session est échue et elle n\'a aucun abonnement — c\'est bien le cas que la liste doit écarter', !!m.S.personneParId(ni.id) && !releves.includes(ni.id) && m.S.pushCompterDe(ni.id) === 0);
+    /* le balayeur */
+    const retires = m.S.pushNonJoignablesPurger(ABS);
+    v('⛔ le balayeur retire les abonnements d\'Alice et de Carole (rien ne les connecte) et GARDE ceux de Bruno et de David (jeton valable) et du compte par téléphone (jeton valable)',
+      [retires, m.S.pushCompterDe(al.id), m.S.pushCompterDe(ca.id), m.S.pushCompterDe(bo.id), m.S.pushCompterDe(da.id), m.S.pushCompterDe(compte.id), abosAvant - retires], [2, 0, 0, 1, 1, 1, 3]);
+    v('   rejoué, il ne retire plus rien (idempotent)', m.S.pushNonJoignablesPurger(ABS), 0);
+
+    /* le plafond absolu d'un jeton d'appareil : David a 400 jours glissants, mais plus de 365 depuis la dernière preuve par SMS */
+    m.h.t += 335 * JOUR;
+    const exp = m.brut().prepare('SELECT exp, cree FROM appareil_tel WHERE h = ?').get('tel-david');
+    vrai('population : au jour 375 le jeton de David n\'a PAS échu (400 jours glissants) mais son plafond absolu de 365 jours est passé', exp.exp > m.h.t && exp.cree + ABS <= m.h.t);
+    v('⛔ le jeton de David ne le rend plus joignable (le plafond absolu compte, comme à la reconnexion automatique) ; ni celui de Bruno (échu depuis longtemps) ; le compte par téléphone non plus',
+      await essais([da, bo, compte]), [[0, 'non_joignable'], [0, 'non_joignable'], [0, 'non_joignable']]);
+    /* contre-épreuve : un jeton posé tard est valable à la même date */
+    m.S.telAppareilLier({ h: 'tel-frais', personne: ev.id, nom: 'tél', ttlMs: 400 * JOUR });
+    m.abonne(ev.id);
+    v('   contre-épreuve : Eva (session échue depuis longtemps, mais un jeton d\'appareil posé AUJOURD\'HUI) reçoit à la même date', await essais([ev]), [[1, null]]);
     m.S.fermer();
   }
 

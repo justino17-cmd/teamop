@@ -31,6 +31,7 @@
 'use strict';
 const crypto = require('crypto'), https = require('https'), http = require('http'), dns = require('dns');
 const webpush = require('web-push');
+const { APPAREIL_ABS_MS } = require('./telephone');   // le plafond absolu d'un jeton d'appareil : une personne qui n'a que lui reste JOIGNABLE
 
 /* ── La liste blanche ───────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
 const HOTES_EXACTS = ['fcm.googleapis.com'];
@@ -172,7 +173,7 @@ const URGENCES = ['very-low', 'low', 'normal', 'high'];
 const H = 3600000;
 
 /* ── Le module ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
-function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = () => {}, transport, planifier, annuler }) {
+function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = () => {}, transport, planifier, annuler, appareilAbsMs = APPAREIL_ABS_MS }) {
   const pc = config.push;
   const envoyerHttp = transport || ((r) => transportHttp(Object.assign({ timeoutMs: pc.timeoutMs }, r)));
   const plan = planifier || ((f, ms) => { const t = setTimeout(f, ms); if (t.unref) t.unref(); return t; });
@@ -259,6 +260,8 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
     if (typeof charge.valide === 'function') { let v = false; try { v = !!charge.valide(); } catch (e) { v = false; } if (!v) return { envoyes: 0, appareils: 0, raison: 'plus_valable' }; }
     const moi = stockage.personneParId(uid);
     if (!moi || moi.etat !== 'actif') return { envoyes: 0, appareils: 0, raison: 'compte' };
+    /* ⛔ une personne que plus rien ne connecte (ni session vivante, ni jeton d'appareil valable) ne reçoit RIEN : un abonnement survit à la session qui l'a posé */
+    if (!stockage.pushJoignable(uid, appareilAbsMs)) return { envoyes: 0, appareils: 0, raison: 'non_joignable' };
     const abos = stockage.pushListe(uid);
     if (!abos.length) return { envoyes: 0, appareils: 0, raison: 'aucun_appareil' };
     const t = textesPour(moi, charge);

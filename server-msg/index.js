@@ -59,7 +59,7 @@ function demarrer(env = process.env) {
   const hub = creerFlux({ stockage, config, horloge: Date.now });
   /* ⛔ LES NOTIFICATIONS PUSH : la paire VAPID de l'instance (fabriquée ou adoptée ici, la privée scellée), la liste blanche des services push, la file d'envoi. Une paire illisible désactive
      le push SANS arrêter le service (`/health` dit `push.actif:false`, la surveillance crie). */
-  const push = creerPush({ stockage, hub, config, horloge: Date.now, journaliser });
+  const push = creerPush({ stockage, hub, config, horloge: Date.now, journaliser, appareilAbsMs: APPAREIL_ABS_MS });
   /* ⛔ LES PIÈCES : des fichiers scellés par blocs sous `<données>/pieces/<2 caractères>/<id>`, une clé par pièce (dérivée de la clé maître). `piecesEtat` compte ce que /health
      publie : les pièces dont le fichier n'a pas pu être relu (bloc qui ne s'authentifie plus, fichier absent) — la panne silencieuse type, rendue visible. Un fichier à effacer
      (message supprimé pour tous, éphémère échu, photo remplacée, conversation disparue) l'est sans attendre et sans jamais faire échouer le geste : s'il résiste, il reste sans
@@ -163,6 +163,9 @@ function demarrer(env = process.env) {
            au bout d'une heure, les plafonds au bout de deux jours. */
         const t = Date.now(), e = sms.cfg.emballement;
         stockage.smsElaguer({ journalAvant: t - Math.max(e.historiqueMs, 7 * 86400000) - 86400000, codesAvant: t - 3600000, recherchesAvant: t - 2 * 86400000, tentativesAvant: t - 2 * 86400000, appareilsAbsMs: APPAREIL_ABS_MS });
+        /* ⛔ les abonnements push d'une personne que plus rien ne connecte (ni session, ni jeton d'appareil) : elle ne reçoit déjà rien (`push.js` → `non_joignable`), ils ne restent pas pour autant */
+        const retires = stockage.pushNonJoignablesPurger(APPAREIL_ABS_MS);
+        if (retires) journaliser('push_elagage', { n: retires });
       }
     } catch (e) { journaliser('balayage_echec', { nom: e && (e.code || e.name) }); }
   }, config.balayageMs));

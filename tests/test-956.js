@@ -379,6 +379,74 @@ function paireVapid() {
       og.comptes.bob.actif = true;
     }
 
+    console.log('\nUne session EXPIRÉE ne laisse pas un téléphone recevoir — et un accès coupé PENDANT l\'expiration retire quand même l\'abonnement (gardien, 3 octobre 2026)');
+    {
+      /* Un service à part (sa base, son horloge décalable) : Eve s'abonne puis ne revient plus, Cléo (la sentinelle) revient, Dan écrit. 31 jours passent : toutes les sessions sont échues. */
+      const JOUR = 86400000;
+      const d3 = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-956d-'));
+      const s3 = await T.lancerService({ dossier: d3, urlGestion: og.url, env: { OPMSG_TEST_PUSH: fps.hote }, horloge: true, config: { push: PUSH_CFG, beta: { relectureMs: 400 } } });
+      const sql3 = (req, ...args) => { const d = T.lireBase(path.join(s3.data, 'msg.db')); try { return d.prepare(req).get(...args); } finally { d.close(); } };
+      const abos3 = (uid) => sql3('SELECT COUNT(*) AS n FROM push WHERE uid = ?', uid).n;
+      try {
+        const co = (nom) => T.connecter(s3, og, nom, MDP[nom]);
+        const E = await co('eve'), K = await co('cleo'), W = await co('dan');
+        const dE = dev('eve-expiree'), dK = dev('cleo-sentinelle');
+        await E.post('/api/push/abonner', { sub: dE.sub }); await K.post('/api/push/abonner', { sub: dK.sub });
+        for (const x of [E, K]) { const l = await W.post('/api/contacts/lien', {}); const r = await x.post('/api/liens/accepter', { code: l.j.code }); if (r.code !== 200) throw new Error('lien refusé (' + r.code + ')'); }
+        const g = (await W.post('/api/conversations/groupe', { nom: 'Banc expiration', membres: [E.moi.id, K.moi.id] })).j.conversation.id;
+        let i = 0;
+        const ecrire = async (cl) => { const r = await cl.post('/api/conversations/' + g + '/messages', { texte: 'expiration ' + (++i), cid: 'cid-exp-' + i + '-abcdefgh' }); if (r.code !== 201) throw new Error('message refusé (' + r.code + ')'); };
+        await ecrire(W);
+        /* ce qui est arrivé jusque-là est VU : l'ajout au groupe a aussi notifié (un envoi de plus que le message) — le banc attend la notification du MESSAGE, puis prend la base */
+        const recuMessage = (d) => recus(d).some(e => charge(d, e).type === 'message');
+        const arrive = (d) => T.attendre(() => recus(d).length > d.lus, 8000, 20);
+        const avant = await T.attendre(() => recuMessage(dE) && recuMessage(dK), 8000, 20);
+        dE.lus = recus(dE).length; dK.lus = recus(dK).length;
+        v('population : tant que leurs sessions vivent, Eve ET Cléo reçoivent le message de Dan', !!avant, true);
+
+        s3.avancer(31 * JOUR);        // les sessions de trente jours sont échues, chez tout le monde
+        const vieux = await E.get('/api/moi');
+        v('population : le vieux cookie d\'Eve ne passe plus (session échue) alors que son abonnement est toujours là', [vieux.code, abos3(E.moi.id)], [401, 1]);
+        await co('cleo'); const W2 = await co('dan');      // Cléo et Dan reviennent ; Eve non
+        await ecrire(W2);
+        const sentinelle = await arrive(dK);
+        vrai('population : la sentinelle (Cléo, reconnectée) reçoit le message — le service push fonctionne, la route aussi', !!sentinelle);
+        v('⛔ Eve, dont la session est échue et que rien d\'autre ne connecte, ne reçoit RIEN (avant : elle recevait tout, sur un téléphone peut-être revendu)', rienDeNouveau(dE), true);
+        v('   son abonnement est encore en base (le balayeur n\'a pas passé : c\'est le jugement à l\'envoi qui l\'a protégée)', abos3(E.moi.id), 1);
+
+        /* l'accès d'Eve est COUPÉ dans la Tour pendant que sa session est échue : la relecture doit quand même le voir (avant : seules les sessions vivantes étaient relues) */
+        og.comptes.eve.actif = false;
+        const retire = await T.attendre(() => abos3(E.moi.id) === 0, 8000, 50);
+        v('⛔ accès bêta COUPÉ pendant l\'expiration : la relecture retire l\'abonnement d\'Eve (elle a un abonnement, pas de session) ; celui de Cléo reste', [!!retire, abos3(E.moi.id), abos3(K.moi.id)], [true, 0, 1]);
+        og.comptes.eve.actif = true;
+
+        /* elle revient : sa page redit son abonnement, tout repart */
+        const E2 = await co('eve');
+        await E2.post('/api/push/abonner', { sub: dE.sub });
+        await ecrire(W2);
+        const revenue = await arrive(dE);
+        v('   Eve revient (accès rouvert), sa page redit son abonnement : elle reçoit de nouveau — rien n\'est perdu pour qui revient', [!!revenue, abos3(E2.moi.id)], [true, 1]);
+      } finally { og.comptes.eve.actif = true; await s3.arreter(); try { fs.rmSync(d3, { recursive: true, force: true }); } catch (e) { /* tant pis */ } }
+    }
+
+    console.log('\nLe balayeur retire les abonnements d\'une personne que plus rien ne connecte (le câblage d\'index.js : la fonction du magasin seule ne suffit pas)');
+    {
+      const JOUR = 86400000;
+      const d4 = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-956e-'));
+      const s4 = await T.lancerService({ dossier: d4, urlGestion: og.url, env: { OPMSG_TEST_PUSH: fps.hote }, horloge: true, config: { push: PUSH_CFG, balayageMs: 120 } });
+      const abos4 = (uid) => { const d = T.lireBase(path.join(s4.data, 'msg.db')); try { return d.prepare('SELECT COUNT(*) AS n FROM push WHERE uid = ?').get(uid).n; } finally { d.close(); } };
+      try {
+        const E = await T.connecter(s4, og, 'eve', MDP.eve), K = await T.connecter(s4, og, 'cleo', MDP.cleo);
+        await E.post('/api/push/abonner', { sub: dev('eve-balayee').sub }); await K.post('/api/push/abonner', { sub: dev('cleo-balayee').sub });
+        v('population : Eve et Cléo ont chacune un abonnement et une session vivante', [abos4(E.moi.id), abos4(K.moi.id)], [1, 1]);
+        s4.avancer(31 * JOUR);                                   // les sessions de trente jours sont échues
+        await T.connecter(s4, og, 'cleo', MDP.cleo);             // Cléo revient ; Eve non
+        const retire = await T.attendre(() => abos4(E.moi.id) === 0, 10000, 50);
+        v('⛔ le balayeur du SERVICE retire l\'abonnement d\'Eve (plus rien ne la connecte) et GARDE celui de Cléo (reconnectée)', [!!retire, abos4(K.moi.id)], [true, 1]);
+        vrai('le journal le dit : une ligne « push_elagage » avec le nombre retiré, sans personne ni point d\'accès', /"evt":"push_elagage"[^\n]*"n":1/.test(s4.sortie.texte()) && !s4.sortie.texte().includes('eve-balayee'));
+      } finally { await s4.arreter(); try { fs.rmSync(d4, { recursive: true, force: true }); } catch (e) { /* tant pis */ } }
+    }
+
     console.log('\nSe déconnecter emporte l\'abonnement de CET appareil — et seulement un abonnement de la personne qui se déconnecte');
     {
       const C3 = await connecte('cleo');
