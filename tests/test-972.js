@@ -666,18 +666,20 @@ function suiteEffacement() {
     const a = atelier(), S = a.S, brut = a.brut();
     const r1 = reunion(a);                                                     // Ana héberge ; Ben, Cleo, Dan invités
     const r2 = reunion(a, { titre: 'Sans successeur', invites: [] });          // Ana seule : personne ne peut reprendre
-    const r3 = reunion(a, { titre: 'Chez Dan', hote: a.dan.id, invites: [a.ana.id, a.ben.id] });   // Ana n'est qu'invitée
+    const r3 = reunion(a, { titre: 'Chez Dan', hote: a.dan.id, invites: [a.eli.id, a.ben.id] });   // Eli n'est qu'invitée
     const conv1 = S.reunionPourMembre(r1.id, a.ana.id).reunion.conv, conv2 = S.reunionPourMembre(r2.id, a.ana.id).reunion.conv;
     v('une base saine n\'a rien à réparer, et la réparation n\'écrit RIEN (un démarrage ordinaire ne touche pas aux données)', (() => { const reg = registre(a.chemin).length, ver = S.reunionPourMembre(r1.id, a.ana.id).reunion.version; const x = S.reunionsReparer(); return [x.personnes, x.pieces, x.convs, registre(a.chemin).length - reg, S.reunionPourMembre(r1.id, a.ana.id).reunion.version - ver]; })(), [0, [], [], 0, 0]);
-    /* ce que ferait un code d'AVANT : le profil vidé et marqué supprimé, la personne sortie de ses conversations — et les LIGNES DES RÉUNIONS intactes (il ne les connaît pas) */
-    brut.prepare(`UPDATE personne SET etat = 'supprime', prenom = '', nom = '' WHERE id = ?`).run(a.ana.id);
-    brut.prepare('UPDATE membre SET quitte_le = ? WHERE uid = ?').run(a.h.t, a.ana.id);
-    v('population : Ana est effacée, mais elle héberge deux réunions et elle est invitée à une troisième — trois traces', [compte(brut, `SELECT COUNT(*) AS n FROM reunion WHERE hote = ?`, a.ana.id), compte(brut, 'SELECT COUNT(*) AS n FROM reunion_invite WHERE uid = ?', a.ana.id)], [2, 3]);
+    /* ce que ferait un code d'AVANT : les profils vidés et marqués supprimés, les personnes sorties de leurs conversations — et les LIGNES DES RÉUNIONS intactes (il ne les connaît pas).
+       Ana n'a plus AUCUNE ligne d'invitation (le cas d'une copie dont le registre a été rejoué hors ligne) : seul `reunion.hote` la désigne ; Eli n'héberge rien : seule son invitation reste. */
+    for (const p of [a.ana, a.eli]) brut.prepare(`UPDATE personne SET etat = 'supprime', prenom = '', nom = '' WHERE id = ?`).run(p.id);
+    brut.prepare('UPDATE membre SET quitte_le = ? WHERE uid IN (?, ?)').run(a.h.t, a.ana.id, a.eli.id);
+    brut.prepare('DELETE FROM reunion_invite WHERE uid = ?').run(a.ana.id);
+    v('population : Ana est effacée, héberge deux réunions et n\'est plus invitée à aucune ; Eli est effacée, n\'héberge rien et reste invitée à une — deux sortes de traces', [compte(brut, `SELECT COUNT(*) AS n FROM reunion WHERE hote = ?`, a.ana.id), compte(brut, 'SELECT COUNT(*) AS n FROM reunion_invite WHERE uid = ?', a.ana.id), compte(brut, `SELECT COUNT(*) AS n FROM reunion WHERE hote = ?`, a.eli.id), compte(brut, 'SELECT COUNT(*) AS n FROM reunion_invite WHERE uid = ?', a.eli.id)], [2, 0, 0, 1]);
     a.h.t += 1000;
     const x = S.reunionsReparer();
-    v('⛔ la réparation refait l\'effacement de ses réunions : la première passe au plus ancien invité (Ben), la seconde — sans successeur — part avec sa conversation, Ana n\'est plus invitée à la troisième',
-      [x.personnes, S.reunionPourMembre(r1.id, a.ben.id).reunion.hote.id === a.ben.id, S.convPourMembre(conv1, a.ben.id).moi.role, S.reunionPourMembre(r2.id, a.ana.id), compte(brut, 'SELECT COUNT(*) AS n FROM conversation WHERE id = ?', conv2), statuts(S, r3.id, a.dan.id), compte(brut, 'SELECT COUNT(*) AS n FROM reunion_invite WHERE uid = ?', a.ana.id)],
-      [1, true, 'admin', null, 0, ['Dan:accepte', 'Ben:attente'], 0]);
+    v('⛔ la réparation refait l\'effacement de leurs réunions : la première passe au plus ancien invité (Ben), la seconde — sans successeur — part avec sa conversation, Eli n\'est plus invitée à la troisième (les DEUX sortes de traces sont trouvées)',
+      [x.personnes, S.reunionPourMembre(r1.id, a.ben.id).reunion.hote.id === a.ben.id, S.convPourMembre(conv1, a.ben.id).moi.role, compte(brut, 'SELECT COUNT(*) AS n FROM reunion WHERE id = ?', r2.id), compte(brut, 'SELECT COUNT(*) AS n FROM conversation WHERE id = ?', conv2), statuts(S, r3.id, a.dan.id), compte(brut, 'SELECT COUNT(*) AS n FROM reunion_invite WHERE uid = ?', a.eli.id), compte(brut, `SELECT COUNT(*) AS n FROM reunion WHERE hote IN (SELECT id FROM personne WHERE etat = 'supprime')`)],
+      [2, true, 'admin', 0, 0, ['Dan:accepte', 'Ben:attente'], 0, 0]);
     const reg = registre(a.chemin).length;
     const y = S.reunionsReparer();
     v('⛔ REJOUABLE : une seconde réparation ne trouve rien et n\'écrit rien', [y.personnes, registre(a.chemin).length - reg], [0, 0]);

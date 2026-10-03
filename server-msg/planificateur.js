@@ -84,7 +84,7 @@ function creerPlanificateur({ stockage, hub, config, horloge, journaliser, push,
     const plancherReunion = Math.max(r.horaire_le, depuis);
     const partis = stockage.rappelsEnvoyesDe(r.id);                                 // le registre de la réunion, lu UNE fois
     const gens = new Map();
-    const lot = [];
+    const aEnvoyer = [];
     for (const o of occurrences) {
       for (const p of r.participants) {
         const avants = p.rappels !== null ? p.rappels : r.defaut;
@@ -100,16 +100,16 @@ function creerPlanificateur({ stockage, hub, config, horloge, journaliser, push,
         if (!dus.length) continue;
         if (o.debut <= t) { bilan.abandonnes += dus.length; continue; }            // l'occurrence a COMMENCÉ : un rappel n'a plus de sens
         if (!gens.has(p.uid)) gens.set(p.uid, stockage.personneParId(p.uid));
-        lot.push({ reunion: r.id, occurrence: o.debut, uid: p.uid, avants: dus, titre: r.titre, texte: texteRappel(r, gens.get(p.uid), o.debut, t), cible: r.id });
+        aEnvoyer.push({ reunion: r.id, occurrence: o.debut, uid: p.uid, avants: dus, titre: r.titre, texte: texteRappel(r, gens.get(p.uid), o.debut, t), cible: r.id });
       }
     }
-    if (lot.length) {
-      const faits = stockage.rappelsEnvoyer(lot);
+    if (aEnvoyer.length) {
+      const faits = stockage.rappelsEnvoyer(aEnvoyer);
       const prevenus = new Set();
       faits.forEach((n, i) => {
         if (!n) return;                                                             // une autre instance, ou un tour d'avant, l'a déjà envoyé
-        bilan.envoyes++; prevenus.add(lot[i].uid);
-        notifieur.pousser({ uid: lot[i].uid, type: 'reunion_rappel', reunion: r.id, titre: r.titre, texte: lot[i].texte, gid: n.gid, occurrence: lot[i].occurrence });
+        bilan.envoyes++; prevenus.add(aEnvoyer[i].uid);
+        notifieur.pousser({ uid: aEnvoyer[i].uid, type: 'reunion_rappel', reunion: r.id, titre: r.titre, texte: aEnvoyer[i].texte, gid: n.gid, occurrence: aEnvoyer[i].occurrence });
       });
       if (prevenus.size) hub.reveiller({ uids: Array.from(prevenus) });
     }

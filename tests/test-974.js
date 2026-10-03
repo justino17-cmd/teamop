@@ -370,8 +370,8 @@ const lance = (f) => { try { f(); return null; } catch (e) { return e.code || e.
     class Moteur extends DatabaseSync { exec(sql) { if (/^\s*COMMIT\b/i.test(String(sql))) commits.n++; return super.exec(sql); } }
     const REUNIONS = 60, INVITES = 20, PAR = INVITES + 1;
     /* soixante réunions de vingt et une personnes (l'hôte compris), un rappel « 1 heure avant » dû à chacune, aucune commencée */
-    const monter = () => {
-      const a = atelier({ t0: D0 - 3 * HEURE, moteur: { DatabaseSync: Moteur } });
+    const monter = (reunions) => {
+      const a = atelier({ t0: D0 - 3 * HEURE, moteur: { DatabaseSync: Moteur }, reunions });
       const gens = []; for (let i = 0; i < INVITES; i++) gens.push(pers(a.S, 'Inv' + i).id);
       const ids = [];
       for (let i = 0; i < REUNIONS; i++) { const d = D0 + i * MIN; ids.push(reunion(a, { titre: 'Budget ' + i, debut: d, fin: d + HEURE, prochain: d, rappels: [60], invites: gens }).id); }
@@ -387,22 +387,31 @@ const lance = (f) => { try { f(); return null; } catch (e) { return e.code || e.
       commits.n = 0; const b1 = P.tour(); const c1 = commits.n;
       v('⛔ le premier tour s\'ARRÊTE à son budget (100 rappels) À UNE RÉUNION PRÈS : cinq réunions, 105 rappels — et dit qu\'il a été coupé', [b1.reunions, b1.envoyes, b1.coupe], [5, 105, true]);
       v('⛔ UNE transaction par RÉUNION : cinq réunions et le bail font 6 COMMIT, pas 106 — un par rappel, c\'étaient trente-quatre secondes de service gelé sur trois cents réunions de cent personnes', c1, 6);
-      const parTour = [b1.envoyes], coupes = [b1.coupe];
-      for (let i = 0; i < 40; i++) { const b = P.tour(); parTour.push(b.envoyes); coupes.push(b.coupe); if (!b.envoyes && !b.coupe) break; }
+      const parTour = [b1.envoyes], coupes = [b1.coupe], examinees = [b1.reunions];
+      for (let i = 0; i < 40; i++) { const b = P.tour(); parTour.push(b.envoyes); coupes.push(b.coupe); examinees.push(b.reunions); if (!b.envoyes && !b.coupe) break; }
       v('⛔ les tours suivants reprennent LÀ OÙ L\'AUTRE S\'EST ARRÊTÉ : douze tours de 105 rappels, tous coupés sauf le dernier (qui a fini la liste), puis un tour qui regarde tout et n\'a plus rien à envoyer', [parTour, coupes], [Array(12).fill(105).concat([0]), Array(11).fill(true).concat([false, false])]);
+      v('⛔ … et par la CLÉ de reprise : chaque tour ne regarde que cinq réunions NEUVES (jamais celles que le tour d\'avant a finies — sans la clé, le deuxième en regarderait dix, le troisième quinze) ; seul le dernier repart du début et les voit toutes (60)', examinees, Array(12).fill(5).concat([60]));
+      v('⛔ le retard se DIT, une fois au début (le nombre de rappels déjà partis) et une fois à la fin — jamais une réunion, jamais un nom', [a.journal.filter(x => x.evt === 'planif_retard').map(x => x.champs), JSON.stringify(a.journal).includes('Budget')], [[{ etat: 'debut', n: 105 }, { etat: 'fin' }], false]);
       v('⛔ RIEN NE SE PERD ET RIEN NE DOUBLE : les 1 260 rappels sont partis, une fois chacun — le registre de chaque réunion porte ses 21 personnes, chaque invité a soixante notifications, l\'hôte aussi', [vide(a, ids).every(x => x === PAR), parTour.reduce((x, y) => x + y, 0), rappels(a, gens[0]).length, rappels(a, gens[INVITES - 1]).length, rappels(a, a.ana.id).length, new Set(rappels(a, gens[0]).map(x => x.cible)).size], [true, 1260, 60, 60, 60, 60]);
       v('⛔ aucun tour ne dépasse le budget de plus d\'UNE réunion (le budget + vingt)', Math.max(...parTour) <= 100 + (PAR - 1), true);
       a.S.fermer();
     }
     {
-      const { a, ids } = monter();
+      const { a, ids } = monter({ tourMaxMs: 500 });                        // le plafond de temps est LU dans la configuration du service (`reunions.tourMaxMs`, ici 500 : pas la valeur par défaut)
       let c = -1; const chrono = () => (++c) * 400;                       // une montre qui avance de 400 ms à chaque lecture : le plafond de temps se joue sans dormir
-      const P = a.planif({ rappelsParTour: 100000, tourMaxMs: 1000, chrono });
+      const P = a.planif({ rappelsParTour: 100000, chrono });
       const b = P.tour();
-      v('⛔ le PLAFOND DE TEMPS coupe le tour (1 000 ms, la montre avance de 400 ms par lecture) après TROIS réunions — le budget en rappels (100 000) était loin', [b.reunions, b.envoyes, b.coupe], [3, 63, true]);
+      v('⛔ le PLAFOND DE TEMPS coupe le tour (500 ms lus dans la configuration, la montre avance de 400 ms par lecture) après DEUX réunions — le budget en rappels (100 000) était loin ; avec la valeur par défaut (1 000 ms) il en aurait regardé trois', [b.reunions, b.envoyes, b.coupe], [2, 42, true]);
       let total = b.envoyes; for (let i = 0; i < 60; i++) { c = -1; const x = P.tour(); total += x.envoyes; if (!x.coupe) break; }
       v('… et le reste suit, sans doublon : 1 260 rappels en tout, le registre complet', [total, vide(a, ids).every(x => x === PAR)], [1260, true]);
       a.S.fermer();
+    }
+    {
+      /* le budget se lit dans la CONFIGURATION du service, sans paramètre : `reunions.rappelsParTour` coupe à 42 rappels (deux réunions), `reunions.urgentesMax` regarde trois urgentes à la fois */
+      const A1 = monter({ rappelsParTour: 40 }), A2 = monter({ urgentesMax: 3 });
+      const b1 = A1.a.planif().tour(), b2 = A2.a.planif().tour();
+      v('⛔ `reunions.rappelsParTour: 40` (la configuration, aucun paramètre) : le tour envoie 42 rappels et s\'arrête après deux réunions ; `reunions.urgentesMax: 3` : le tour regarde trois urgentes et en envoie 63', [[b1.reunions, b1.envoyes, b1.coupe], [b2.reunions, b2.envoyes, b2.coupe]], [[2, 42, true], [3, 63, true]]);
+      A1.a.S.fermer(); A2.a.S.fermer();
     }
     {
       const { a, ids } = monter();

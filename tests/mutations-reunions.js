@@ -224,8 +224,6 @@ m('S39', 'le plafond d\'un hôte passe à trois cent un', F.stock,
   "const REUNIONS_HOTE_MAX = 300;", "const REUNIONS_HOTE_MAX = 301;", ['972']);
 m('S40', 'le plafond du courriel par destinataire se compte sur la fenêtre du COMPTE (24 h) : un destinataire en reçoit plus de deux par semaine', F.stock,
   "FROM courrier_envoi WHERE dest_h = ? AND ts >= ?').get(destH, depuis.destinataire).n", "FROM courrier_envoi WHERE dest_h = ? AND ts >= ?').get(destH, depuis.compte).n", ['972']);
-m('S41', 'la liste de l\'agenda perd les séries commencées avant la fenêtre', F.stock,
-  "AND (r.rep <> 'aucune' OR r.fin > ?) ORDER BY r.debut, r.id LIMIT 600", "AND (r.fin > ?) ORDER BY r.debut, r.id LIMIT 600", ['972']);
 m('S42', 'la liste des conversations ne dit plus de quelle réunion est une conversation de réunion', F.stock,
   "      if (l.type === 'reunion' && l.reunion_id) o.reunion = l.reunion_id;", "", ['972']);
 m('S43', 'les notifications d\'une invitation à une réunion gardent le prénom de l\'hôte effacé', F.stock,
@@ -234,11 +232,6 @@ m('S44', 'un rappel est jugé valable après le début de l\'occurrence (la char
   "return !r.annulee && r.statut !== 'decline' && num(occurrence) > horloge();", "return !r.annulee && r.statut !== 'decline';", ['972']);
 m('S45', 'le planificateur rappelle aussi ceux qui ont DÉCLINÉ', F.stock,
   "WHERE i.reunion = ? AND i.statut <> 'decline' AND p.etat = 'actif' ORDER BY i.cree, i.uid`).all(id)", "WHERE i.reunion = ? AND p.etat = 'actif' ORDER BY i.cree, i.uid`).all(id)", ['972', '974']);
-m('S46', 'le planificateur lit aussi les réunions ANNULÉES (la garde de la lecture seule, l\'annulation ayant remis `prochain` à NULL)', F.stock,
-  "WHERE annulee = 0 AND prochain IS NOT NULL AND prochain <= ?", "WHERE prochain IS NOT NULL AND prochain <= ?", ['972'], EQ('`annulee = 0` double `prochain IS NOT NULL` : l\'annulation remet `prochain` à NULL (S10) — la garde restante tient seule ; le défaut réel retire LES DEUX (S10 + S46)'));
-m2('S10+S46', 'annuler garde sa prochaine occurrence ET le planificateur ne regarde plus `annulee` : une réunion ANNULÉE est rappelée à ses invités', [
-  [F.stock, "UPDATE reunion SET annulee = 1, prochain = NULL, version = version + 1, maj = ? WHERE id = ?", "UPDATE reunion SET annulee = 1, version = version + 1, maj = ? WHERE id = ?"],
-  [F.stock, "WHERE annulee = 0 AND prochain IS NOT NULL AND prochain <= ?", "WHERE prochain IS NOT NULL AND prochain <= ?"]], ['972']);
 m('S47', 'l\'export des données ne distingue plus l\'hôte de l\'invité', F.stock,
   "role: x.hote === uid ? 'hote' : 'invite'", "role: 'invite'", ['972']);
 m('S48', 'le registre des rappels ne s\'élague jamais (il grossit pour toujours)', F.stock,
@@ -382,8 +375,6 @@ m('R54', 'toutes les notifications d\'une réunion portent la même étiquette (
   "tag: 'reunion:' + reunion,", "tag: 'reunion',", ['973']);
 m('R55', 'la charge MINIMALE du push dit le texte entier : l\'invité qui n\'a pas activé l\'aperçu lit le titre, l\'hôte et l\'heure', F.outils,
   "corps: PUSH_CORPS[type] || 'Réunion',", "corps: texte,", ['973']);
-m('R56', 'la notification ne dit plus QUI elle nomme (`auteur`) : l\'effacement de l\'hôte laisse son nom dans la notification', F.outils,
-  "stockage.notifCreer({ uid, type, titre, texte, cible: reunion, auteur })", "stockage.notifCreer({ uid, type, titre, texte, cible: reunion })", ['973']);
 m('R57', 'l\'annulation ne part plus en push : seule la notification dans l\'application reste', F.outils,
   "      if (!ctx.push) return;\n", "      if (!ctx.push || type === 'reunion_annulee') return;\n", ['973']);
 
@@ -422,18 +413,10 @@ m('P06', 'un changement d\'HORAIRE ne borne plus les rappels (celui d\'une éch�
   "const plancherReunion = Math.max(r.horaire_le, depuis);", "const plancherReunion = depuis;", ['974']);
 m('P07', 'la restauration d\'une base ne borne plus les rappels : ceux d\'avant le sinistre repartent', F.plan,
   "const plancherReunion = Math.max(r.horaire_le, depuis);", "const plancherReunion = r.horaire_le;", ['974']);
-m('P08', 'le planificateur ne consulte plus le registre avant d\'envoyer (la ligne du registre fait seule le travail)', F.plan,
-  "          if (stockage.rappelDejaEnvoye(r.id, o.debut, p.uid, a)) continue;        // déjà parti\n", "", ['974'],
-  EQ('`rappelEnvoyer` est idempotent (INSERT OR IGNORE, aucune notification si TOUS les délais sont déjà notés) : la garde restante tient seule ; le défaut réel retire LES DEUX (P08 + S05)'));
-m2('P08+S05', 'plus aucun registre : un rappel dû repart à CHAQUE tour', [
-  [F.plan, "          if (stockage.rappelDejaEnvoye(r.id, o.debut, p.uid, a)) continue;        // déjà parti\n", ""],
-  [F.stock, "      if (neufs < 1) return null;\n      return notifCreer({ uid, type: 'reunion_rappel'", "      return notifCreer({ uid, type: 'reunion_rappel'"]], ['974']);
 m('P09', 'les rappels réglés par la personne sont ignorés : tout le monde garde le réglage de la réunion', F.plan,
   "const avants = p.rappels !== null ? p.rappels : r.defaut;", "const avants = r.defaut;", ['974']);
 m('P10', 'plusieurs délais échus font plusieurs notifications (un seul est noté, les autres repartent au tour suivant)', F.plan,
   "avants: dus, titre: r.titre", "avants: [dus[0]], titre: r.titre", ['974']);
-m('P11', 'le texte d\'un rappel s\'écrit dans le fuseau de la RÉUNION, pas dans celui de la personne', F.plan,
-  "texteRappel(r, stockage.personneParId(p.uid), o.debut, t)", "texteRappel(r, null, o.debut, t)", ['974']);
 m('P12', '« 1 jour avant » se compte en 24 heures exactes : le rappel de la veille d\'un jour de bascule tombe à la mauvaise heure', F.plan,
   "const echeance = cal.echeanceRappel(o.debut, a, r.tz);", "const echeance = o.debut - a * 60000;", ['974']);
 m('P13', 'la prochaine occurrence n\'est plus recalculée : une réunion finie reste « à rappeler » et son abandon se recompte à chaque tour', F.plan,
@@ -444,18 +427,12 @@ m('P15', 'l\'horizon n\'est plus que d\'une heure : le rappel « 1 jour avant »
   "const HORIZON_MS = 27 * HEURE;", "const HORIZON_MS = 1 * HEURE;", ['974']);
 m('P16', 'les réunions qui commencent dans l\'heure ne sont plus toujours regardées : elles passent par la rotation', F.plan,
   "const URGENT_MS = 65 * 60000;", "const URGENT_MS = 0;", ['974']);
-m('P17', 'la rotation ne tourne pas (le curseur revient toujours au début) : les mêmes trois réunions lointaines occupent la place pour toujours', F.plan,
-  "etat.curseur = (debut + lot) % lointaines.length;", "etat.curseur = 0;", ['974']);
 m('P18', 'le bail n\'est plus pris : toute instance se croit la seule', F.plan,
   "etat.actif = !!stockage.bailPrendre({ proprietaire: identite, ttlMs: cfg.bailMs });", "etat.actif = true;", ['974']);
 m('P19', 'un arrêt propre ne rend plus le bail : la suivante attend son échéance', F.plan,
   "    try { stockage.bailRendre(identite); } catch (e) { /* la base est peut-être déjà fermée */ }\n", "", ['974']);
-m('P20', 'une réunion qui lève arrête le tour : les réunions suivantes ne sont pas regardées', F.plan,
-  "try { traiter(id, t, depuis, bilan); } catch (e) { erreur = true; journal('planif_echec', { nom: nomDe(e) }); }", "traiter(id, t, depuis, bilan);", ['974']);
 m('P21', 'les échecs de suite ne retombent jamais à zéro (la surveillance crierait pour toujours après une panne passée)', F.plan,
   "etat.echecs = erreur ? etat.echecs + 1 : 0;", "etat.echecs = etat.echecs + (erreur ? 1 : 0);", ['974']);
-m('P22', 'une panne est journalisée avec le MESSAGE de l\'erreur (qui peut citer une donnée) au lieu de son nom', F.plan,
-  "try { traiter(id, t, depuis, bilan); } catch (e) { erreur = true; journal('planif_echec', { nom: nomDe(e) }); }", "try { traiter(id, t, depuis, bilan); } catch (e) { erreur = true; journal('planif_echec', { nom: e && e.message }); }", ['974']);
 m('P23', 'le registre des rappels s\'élague jusqu\'à MAINTENANT : les rappels d\'hier, qui protègent encore un envoi, partent', F.plan,
   "stockage.rappelsElaguer(t - RAPPELS_GARDES_MS);", "stockage.rappelsElaguer(t);", ['974']);
 m('P24', 'les envois de courriel ne sont plus élagués : le registre grossit pour toujours', F.plan,
@@ -466,10 +443,6 @@ m('P26', 'la santé ne dit plus l\'âge du dernier tour : la surveillance ne peu
   "    etat.dernierTour = horloge();\n", "", ['974']);
 m('P27', 'la santé ne compte plus les abandons', F.plan,
   "    etat.abandonnes += bilan.abandonnes; etat.envoyes += bilan.envoyes;\n", "    etat.envoyes += bilan.envoyes;\n", ['974']);
-m('P28', 'le rappel n\'est plus poussé hors de l\'application (seule la notification dans l\'application reste)', F.plan,
-  "        notifieur.pousser({ uid: p.uid, type: 'reunion_rappel', reunion: r.id, titre: r.titre, texte, gid: n.gid, occurrence: o.debut });\n", "", ['974']);
-m('P29', 'le rappel ne réveille plus le flux de la personne : il n\'arrive qu\'au prochain rafraîchissement', F.plan,
-  "        hub.reveiller({ uids: [p.uid] });\n", "", ['974']);
 m('P30', 'le tour lève au lieu de rendre un bilan : une exception dans une minuterie tue le service', F.plan,
   "    } catch (e) { erreur = true; journal('planif_echec', { nom: nomDe(e) }); }\n    etat.echecs", "    } catch (e) { throw e; }\n    etat.echecs", ['974']);
 m('P31', 'la date de la restauration n\'est plus lue : un rappel d\'avant le sinistre repart', F.plan,
@@ -529,10 +502,8 @@ m('E06', 'ce qui n\'est pas du texte n\'est plus écarté AVANT `trim()` (un nom
 m('E07', 'les blancs de bord de l\'adresse ne sont plus retirés', F.mail, "const a = brut.trim();", "const a = brut;", ['975']);
 
 /* la boîte comptée */
-m('E08', 'la partie locale n\'est plus passée en minuscules : « Nom@x.fr » et « nom@x.fr » sont deux boîtes', F.mail, "return (sans || local).toLowerCase() + '@'", "return (sans || local) + '@'", ['975']);
 m('E09', 'le domaine n\'est plus passé en minuscules', F.mail, "a.slice(i + 1).toLowerCase();", "a.slice(i + 1);", ['975']);
 m('E10', 'l\'« +étiquette » n\'est plus retirée : « nom+a@x.fr » et « nom@x.fr » sont deux boîtes', F.mail, "sans = local.replace(/\\+.*$/, '');", "sans = local;", ['975']);
-m('E11', 'une partie locale faite de la seule étiquette s\'efface : toutes les adresses « +x@d.fr » tombent dans la même boîte', F.mail, "return (sans || local).toLowerCase()", "return (sans).toLowerCase()", ['975']);
 
 /* les plafonds */
 m('E12', 'dix courriels par 24 heures deviennent onze', F.mail, "const COMPTE_MAX = 10,", "const COMPTE_MAX = 11,", ['975']);
@@ -757,6 +728,170 @@ m('U44', 'une fin avant le début n\'est plus refusée ICI : la demande part au 
   "if (fin <= debut) { erreurInfo('La fin de la réunion doit tomber après son début.'); $('rf-fin').focus(); return null; }", "", ['sonde'], SONDE);
 m('U45', 'un nombre de réunions de 1 n\'est plus refusé ICI : la demande part au service', F.page,
   "if (!Number.isInteger(n) || n < 2 || n > 1000) {", "if (!Number.isInteger(n) || n < 1 || n > 1000) {", ['sonde'], SONDE);
+
+/* ── 7. LA RELECTURE DU GARDIEN (3 octobre 2026) : le saut du calendrier, le budget d'un tour, l'agenda d'un invité et sa sortie, l'hôte bloqué, Gmail, la réparation — et les entrées d'avant dont le motif a changé ── */
+m("X01", "le calendrier ne saute plus à la fenêtre : une série quotidienne commencée en 2000 est reparcourue depuis son premier jour (9 800 périodes) — les résultats sont les mêmes, seul le décompte le voit", F.cal,
+  "if (s.rep === 'quotidienne') { const k = Math.max(0, nMin - numeroJour(anc)); return { k, valides: k }; }", "if (s.rep === 'quotidienne') { return { k: 0, valides: 0 }; }", ["970"]);
+m("X02", "après le saut quotidien, le RANG des occurrences est faux (les rangs sautés ne sont plus comptés) : « après N fois » s'arrête trop tard", F.cal,
+  "{ const k = Math.max(0, nMin - numeroJour(anc)); return { k, valides: k }; }", "{ const k = Math.max(0, nMin - numeroJour(anc)); return { k, valides: 0 }; }", ["970"]);
+m("X03", "le saut hebdomadaire démarre une semaine trop tard : une occurrence du bord de la fenêtre disparaît", F.cal,
+  "Math.ceil((nMin - numeroJour(anc)) / 7)", "Math.ceil((nMin - numeroJour(anc)) / 7) + 1", ["970"]);
+m("X04", "le saut mensuel démarre un mois trop tard : les occurrences du mois de la fenêtre disparaissent", F.cal,
+  "(dMin.m - 1) - idx0 - 1);", "(dMin.m - 1) - idx0 + 1);", ["970"]);
+m("X05", "le décompte des mois qui ont un 31 se trompe d'un (7 par année devient 8) : le rang d'un « tous les mois le 31 » dérive", F.cal,
+  "n += j === 31 ? 7 : j === 30 ? 11 :", "n += j === 31 ? 8 : j === 30 ? 11 :", ["970"]);
+m("X06", "la fin d'une série n'a plus sa journée de marge : une série qui finit ce soir peut être écartée de l'agenda avant sa dernière occurrence", F.cal,
+  "+ (s.fin - s.debut) + JOUR;", "+ (s.fin - s.debut);", ["970"]);
+m("X07", "une réunion simple n'a plus de fin de série (NULL) : elle reste « sans fin » dans l'agenda de ses invités", F.cal,
+  "if (s.rep === 'aucune') return s.fin;", "if (s.rep === 'aucune') return null;", ["970", "973"]);
+m("X10", "le budget en rappels n'arrête plus le tour : un tour envoie tout, comme avant (34 secondes de service gelé sur trois cents grosses réunions)", F.plan,
+  "(bilan.envoyes >= budget || montre() - debut >= tempsMax)", "(montre() - debut >= tempsMax)", ["974"]);
+m("X11", "le plafond de TEMPS n'arrête plus le tour : seul le nombre de rappels le borne", F.plan,
+  "(bilan.envoyes >= budget || montre() - debut >= tempsMax)", "(bilan.envoyes >= budget)", ["974"]);
+m("X12", "un tour peut ne regarder AUCUNE réunion (le temps est déjà écoulé au premier regard) : le planificateur tourne à vide pour toujours", F.plan,
+  "const plein = () => bilan.reunions > 0 && (", "const plein = () => (", ["974"]);
+m("X13", "un tour coupé ne retient pas où il s'est arrêté : le suivant repasse sur les réunions déjà finies avant d'avancer", F.plan,
+  "if (plein()) { etat.curseurs[nom] = derniere; return 'plein'; }", "if (plein()) { return 'plein'; }", ["974"]);
+m("P17", "la rotation ne tourne pas (la clé de reprise est toujours effacée) : les mêmes réunions occupent la place pour toujours", F.plan,
+  "etat.curseurs[nom] = bout ? null : derniere;", "etat.curseurs[nom] = null;", ["974"]);
+m("X14", "chaque rappel redevient sa propre transaction (un COMMIT, un fsync par rappel) : trente mille COMMIT dans un tour", F.stock,
+  "function rappelsEnvoyer(lot) { return tx(() => lot.map(x => rappelEnvoyer(x))); }", "function rappelsEnvoyer(lot) { return lot.map(x => rappelEnvoyer(x)); }", ["972", "974"]);
+m("X15", "les réunions urgentes ne sont plus plafonnées par tour : 100 000 réunions regardées d'un trait", F.plan,
+  "max: urgentesPlafond }", "max: 100000 }", ["974"]);
+m("X16", "le tour qui suit un tour coupé attend douze secondes comme les autres : un arriéré se rattrape en minutes", F.plan,
+  "planifier(b.coupe ? Math.min(SUITE_MS, cfg.planificateurMs) : cfg.planificateurMs)", "planifier(cfg.planificateurMs)", ["974"]);
+m("X17", "le retard ne se dit plus au début (aucune ligne de journal quand le planificateur est en retard)", F.plan,
+  "journal('planif_retard', { etat: 'debut', n: bilan.envoyes });", "", ["974"]);
+m("X18", "la fin du retard ne se dit plus", F.plan,
+  "etat.enRetard = false; journal('planif_retard', { etat: 'fin' });", "etat.enRetard = false;", ["974"]);
+m("X19", "le registre d'une réunion perd les personnes : tous les délais semblent à envoyer à chaque tour", F.stock,
+  "s.add(num(r.occurrence) + '|' + r.uid + '|' + num(r.avant));", "s.add(num(r.occurrence) + '|' + num(r.avant));", ["972"]);
+m("X20", "la clé de reprise est inclusive : la dernière réunion regardée est regardée de nouveau au tour suivant", F.stock,
+  "AND (prochain > ? OR (prochain = ? AND id > ?))", "AND (prochain > ? OR (prochain = ? AND id >= ?))", ["972"]);
+m("X21", "la borne basse des lointaines est inclusive : une réunion à l'instant exact de la frontière est regardée dans les deux listes", F.stock,
+  "AND prochain <= ? AND prochain > ? AND (prochain > ?", "AND prochain <= ? AND prochain >= ? AND (prochain > ?", ["972"]);
+m("X22", "la liste par tranches lit aussi les réunions ANNULÉES (l'annulation ayant remis `prochain` à NULL)", F.stock,
+  "SELECT id, prochain FROM reunion WHERE annulee = 0 AND prochain IS NOT NULL", "SELECT id, prochain FROM reunion WHERE prochain IS NOT NULL", ["974"], EQ('`annulee = 0` double `prochain IS NOT NULL` : l\'annulation remet `prochain` à NULL — la garde restante tient seule ; le défaut réel retire LES DEUX (X22b)'));
+m2("X22b", "annuler garde sa prochaine occurrence ET le planificateur ne regarde plus `annulee` : une réunion ANNULÉE est rappelée à ses invités", [
+  [F.stock, "UPDATE reunion SET annulee = 1, prochain = NULL, version = version + 1, maj = ? WHERE id = ?", "UPDATE reunion SET annulee = 1, version = version + 1, maj = ? WHERE id = ?"],
+  [F.stock, "SELECT id, prochain FROM reunion WHERE annulee = 0 AND prochain IS NOT NULL", "SELECT id, prochain FROM reunion WHERE prochain IS NOT NULL"]], ["974"]);
+m("X23", "le nombre de rappels par tour accepte zéro", F.conf,
+  "rappelsParTour: [1, 100000]", "rappelsParTour: [0, 100000]", ["974"]);
+m("X24", "le temps d'un tour peut aller jusqu'à dix minutes (le réglage serait lui-même le gel qu'il empêche)", F.conf,
+  "tourMaxMs: [10, 5000]", "tourMaxMs: [10, 600000]", ["974"]);
+m("X25", "le nombre d'urgentes accepte cent millions", F.conf,
+  "urgentesMax: [1, 100000]", "urgentesMax: [1, 100000000]", ["974"]);
+m("X26", "les valeurs de départ du budget changent (2 000 rappels deviennent 20)", F.conf,
+  "rappelsParTour: 2000, tourMaxMs: 1000, urgentesMax: 2000 };", "rappelsParTour: 20, tourMaxMs: 1000, urgentesMax: 2000 };", ["974"]);
+m("X27", "le budget de la configuration n'est plus lu : seul un paramètre de banc le règle", F.plan,
+  "entier(rappelsParTour !== undefined ? rappelsParTour : cfg.rappelsParTour, RAPPELS_PAR_TOUR)", "entier(rappelsParTour, RAPPELS_PAR_TOUR)", ["974"]);
+m("X27b", "le plafond de temps de la configuration n'est plus lu : seul un paramètre de banc le règle", F.plan,
+  "entier(tourMaxMs !== undefined ? tourMaxMs : cfg.tourMaxMs, TOUR_MAX_MS)", "entier(tourMaxMs, TOUR_MAX_MS)", ["974"]);
+m("X27c", "le plafond des urgentes de la configuration n'est plus lu : seul un paramètre de banc le règle", F.plan,
+  "entier(urgentesMax !== undefined ? urgentesMax : cfg.urgentesMax, URGENTES_PAR_TOUR)", "entier(urgentesMax, URGENTES_PAR_TOUR)", ["974"]);
+m("S41", "la liste de l'agenda perd les séries commencées avant la fenêtre", F.stock,
+  "AND (r.rep <> 'aucune' OR r.fin > ?) AND (r.fin_serie IS NULL", "AND (r.fin > ?) AND (r.fin_serie IS NULL", ["972"]);
+m("S46", "le planificateur lit aussi les réunions ANNULÉES (la garde de la lecture seule, l'annulation ayant remis `prochain` à NULL)", F.stock,
+  "SELECT id FROM reunion WHERE annulee = 0 AND prochain IS NOT NULL", "SELECT id FROM reunion WHERE prochain IS NOT NULL", ["972"], EQ('`annulee = 0` double `prochain IS NOT NULL` : l\'annulation remet `prochain` à NULL (S10) — la garde restante tient seule ; le défaut réel retire LES DEUX (S10 + S46)'));
+m2("S10+S46", "annuler garde sa prochaine occurrence ET le planificateur ne regarde plus `annulee` : une réunion ANNULÉE est rappelée à ses invités", [
+  [F.stock, "UPDATE reunion SET annulee = 1, prochain = NULL, version = version + 1, maj = ? WHERE id = ?", "UPDATE reunion SET annulee = 1, version = version + 1, maj = ? WHERE id = ?"],
+  [F.stock, "SELECT id FROM reunion WHERE annulee = 0 AND prochain IS NOT NULL", "SELECT id FROM reunion WHERE prochain IS NOT NULL"]], ["972"]);
+m("R56", "la notification ne dit plus QUI elle nomme (`auteur`) : l'effacement de l'hôte laisse son nom dans la notification", F.outils,
+  "stockage.notifCreer({ uid, type, titre, texte, cible: reunion, auteur, remplacer: type === 'reunion_modifiee' })", "stockage.notifCreer({ uid, type, titre, texte, cible: reunion, remplacer: type === 'reunion_modifiee' })", ["973"]);
+m("P08", "le planificateur ne consulte plus le registre avant d'envoyer (la ligne du registre fait seule le travail)", F.plan,
+  "          if (partis.has(o.debut + '|' + p.uid + '|' + a)) continue;               // déjà parti\n", "", ["974"], EQ('`rappelEnvoyer` est idempotent (INSERT OR IGNORE, aucune notification si TOUS les délais sont déjà notés) : la garde restante tient seule ; le défaut réel retire LES DEUX (P08 + S05)'));
+m2("P08+S05", "plus aucun registre : un rappel dû repart à CHAQUE tour", [
+  [F.plan, "          if (partis.has(o.debut + '|' + p.uid + '|' + a)) continue;               // déjà parti\n", ""],
+  [F.stock, "      if (neufs < 1) return null;\n      return notifCreer({ uid, type: 'reunion_rappel'", "      return notifCreer({ uid, type: 'reunion_rappel'"]], ["974"]);
+m("P11", "le texte d'un rappel s'écrit dans le fuseau de la RÉUNION, pas dans celui de la personne", F.plan,
+  "texteRappel(r, gens.get(p.uid), o.debut, t)", "texteRappel(r, null, o.debut, t)", ["974"]);
+m("P20", "une réunion qui lève arrête le tour : les réunions suivantes ne sont pas regardées", F.plan,
+  "try { traiter(x.id, t, restauree, bilan); } catch (e) { erreur = true; journal('planif_echec', { nom: nomDe(e) }); }", "traiter(x.id, t, restauree, bilan);", ["974"]);
+m("P22", "une panne est journalisée avec le MESSAGE de l'erreur (qui peut citer une donnée) au lieu de son nom", F.plan,
+  "try { traiter(x.id, t, restauree, bilan); } catch (e) { erreur = true; journal('planif_echec', { nom: nomDe(e) }); }", "try { traiter(x.id, t, restauree, bilan); } catch (e) { erreur = true; journal('planif_echec', { nom: e && e.message }); }", ["974"]);
+m("P28", "le rappel n'est plus poussé hors de l'application (seule la notification dans l'application reste)", F.plan,
+  "        notifieur.pousser({ uid: aEnvoyer[i].uid, type: 'reunion_rappel', reunion: r.id, titre: r.titre, texte: aEnvoyer[i].texte, gid: n.gid, occurrence: aEnvoyer[i].occurrence });\n", "", ["974"]);
+m("P29", "le rappel ne réveille plus le flux de la personne : il n'arrive qu'au prochain rafraîchissement", F.plan,
+  "      if (prevenus.size) hub.reveiller({ uids: Array.from(prevenus) });\n", "", ["974"]);
+m("E08", "la partie locale n'est plus passée en minuscules : « Nom@x.fr » et « nom@x.fr » sont deux boîtes", F.mail,
+  "let l = (sans || local).toLowerCase(), d =", "let l = (sans || local), d =", ["975"]);
+m("E11", "une partie locale faite de la seule étiquette s'efface : toutes les adresses « +x@d.fr » tombent dans la même boîte", F.mail,
+  "let l = (sans || local).toLowerCase()", "let l = (sans).toLowerCase()", ["975"]);
+m2("X30", "les séries TERMINÉES ne sont plus écartées en SQL (`fin_serie`) : elles reviennent remplir l'agenda d'un invité", [
+  [F.stock, " AND (r.fin_serie IS NULL OR r.fin_serie > ?)", ""],
+  [F.stock, ".all(uid, au, du, du)", ".all(uid, au, du)"]], ["972"]);
+m("X31", "l'agenda se classe de nouveau par le DÉBUT de la série : 600 séries anciennes vivantes masquent l'invitation d'aujourd'hui", F.stock,
+  "ORDER BY (r.prochain IS NULL), r.prochain, r.debut, r.id LIMIT 600", "ORDER BY r.debut, r.id LIMIT 600", ["972"]);
+m("X32", "une série qui finit EXACTEMENT au début de la fenêtre y touche encore (borne inclusive)", F.stock,
+  "OR r.fin_serie > ?)", "OR r.fin_serie >= ?)", ["972"]);
+m("X33", "la création ne pose pas `fin_serie` : toute réunion naît « sans fin »", F.stock,
+  "jusqua || null, finSerie === undefined ? null : finSerie, JSON.stringify(rappels)", "jusqua || null, null, JSON.stringify(rappels)", ["972"]);
+m("X34", "un changement d'horaire ne réécrit pas `fin_serie` : une série raccourcie reste ouverte, une série prolongée est écartée trop tôt", F.stock,
+  "horaire ? (finSerie === undefined ? null : finSerie) : (r.fin_serie", "(r.fin_serie", ["972"]);
+m("X35", "« Quitter la réunion » ne se note pas au registre des effacements : une archive d'avant remet la personne dans la réunion", F.stock,
+  "      Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(id + '|' + uid + '|' + t, 'reunion_invite', t);\n      if (Q('SELECT 1 AS x FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(r.conv, uid)) membreQuitter", "      if (Q('SELECT 1 AS x FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(r.conv, uid)) membreQuitter", ["972"]);
+m("X36", "« Quitter la réunion » laisse la personne dans la conversation de la réunion : elle lit encore tout", F.stock,
+  "      if (Q('SELECT 1 AS x FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(r.conv, uid)) membreQuitter({ conv: r.conv, uid });   // note `groupe_membre`, écrit « a quitté la réunion »\n", "", ["972"]);
+m("X37", "l'hôte peut « quitter » sa propre réunion : elle reste sans hôte", F.stock,
+  "      if (uid === r.hote) throw erreur('hote_non_quittable');\n", "", ["972", "905"]);
+m("X38", "« Quitter la réunion » laisse l'invitation : la personne la voit toujours dans son agenda", F.stock,
+  "      if (uid === r.hote) throw erreur('hote_non_quittable');\n      const t = horloge();\n      Q('DELETE FROM reunion_invite WHERE reunion = ? AND uid = ?').run(id, uid);\n", "      if (uid === r.hote) throw erreur('hote_non_quittable');\n      const t = horloge();\n", ["972"]);
+m("X39", "celui qui quitte n'est pas prévenu par un événement adressé : son agenda garde la réunion jusqu'au prochain rafraîchissement", F.stock,
+  "      journalAjouter('reunion', null, uid, id);\n      return { gid: journalAjouter('reunion', r.conv, null, id), conv: r.conv, hote: r.hote };", "      return { gid: journalAjouter('reunion', r.conv, null, id), conv: r.conv, hote: r.hote };", ["972"]);
+m("X40", "la route ne pose pas la fin de série à la création", F.reu,
+  ", prochain, finSerie: cal.finDeSerie(v.serie) });", ", prochain });", ["973"]);
+m("X41", "la route ne réécrit pas la fin de série quand l'horaire change", F.reu,
+  "{ prochain, finSerie: cal.finDeSerie(v.serie) } : {}", "{ prochain } : {}", ["973"]);
+m("X42", "le refus « l'hôte ne quitte pas » n'a pas son code HTTP : il devient une erreur 500", F.reu,
+  "hote_non_quittable: [409, 'hote_non_quittable'], ", "", ["973", "905"]);
+m("X43", "la route « quitter » est gardée comme une route d'hôte (H) : l'invité ne peut plus partir", F.man,
+  "{ id: 'reunions.quitter',  m: 'POST', p: '/api/reunions/:id/quitter',              garde: 'R' }", "{ id: 'reunions.quitter',  m: 'POST', p: '/api/reunions/:id/quitter',              garde: 'H' }", ["905"]);
+m("X44", "la route « quitter » ne réveille plus personne : l'organisateur ne voit partir l'invité qu'au prochain rafraîchissement", F.reu,
+  "    hub.reveiller({ conv: r.conv, uids: [req.moi.id] });\n    res.json({ ok: true });", "    res.json({ ok: true });", ["sonde"], SONDE);
+m("X50", "une notification d'un auteur bloqué part quand même (invitation, modification, annulation)", F.outils,
+  "      if (auteur && stockage.contactBloque(auteur, uid)) return null;\n", "", ["973"]);
+m("X51", "une modification ne remplace plus la précédente non lue : deux cents modifications font deux cents notifications", F.outils,
+  "remplacer: type === 'reunion_modifiee' })", "remplacer: false })", ["973"]);
+m("X52", "le remplacement efface aussi les notifications déjà LUES (l'historique de la personne)", F.stock,
+  "AND cible = ? AND lue = 0').run(uid, type, cible);", "AND cible = ?').run(uid, type, cible);", ["972"]);
+m("X53", "le remplacement ne regarde plus de QUELLE réunion il s'agit : la modification d'une réunion efface celle d'une autre", F.stock,
+  "WHERE uid = ? AND type = ? AND cible = ? AND lue = 0').run(uid, type, cible);", "WHERE uid = ? AND type = ? AND lue = 0').run(uid, type);", ["972"]);
+m("X54", "le remplacement n'a jamais lieu", F.stock,
+  "if (remplacer === true && cible) Q('DELETE FROM notification", "if (false && cible) Q('DELETE FROM notification", ["972", "973"]);
+m("X55", "les modifications d'une réunion ne sont plus plafonnées", F.reu,
+  "    if (!plafond(res, 'reunion_modif', id, { max: 20, fenetreMs: 3600000 }, 'trop_de_modifications')) return;\n", "", ["973", "976"]);
+m("X56", "le plafond des modifications est compté par HÔTE : modifier une réunion en bloque toutes les autres", F.reu,
+  "plafond(res, 'reunion_modif', id, {", "plafond(res, 'reunion_modif', hote.id, {", ["973"]);
+m("X57", "le refus du plafond dit « trop de demandes » au lieu de « trop de modifications » : l'écran ne sait plus dire pourquoi", F.reu,
+  "refus(res, 429, code || 'quota_atteint', { retry: r.retry });", "refus(res, 429, 'quota_atteint', { retry: r.retry });", ["973", "976"]);
+m("X58", "vingt modifications par heure deviennent vingt et une", F.reu,
+  "{ max: 20, fenetreMs: 3600000 }, 'trop_de_modifications'", "{ max: 21, fenetreMs: 3600000 }, 'trop_de_modifications'", ["973", "976"]);
+m("X60", "les points de la partie locale d'une adresse Gmail comptent : « j.dupont » et « jdupont » sont deux boîtes pour le plafond de deux par semaine", F.mail,
+  "l = l.replace(/\\./g, '') || l;", "l = l;", ["975"]);
+m("X61", "googlemail.com n'est pas ramené à gmail.com : la même boîte écrite autrement échappe au plafond", F.mail,
+  "if (d === 'gmail.com' || d === 'googlemail.com')", "if (d === 'gmail.com')", ["975"]);
+m("X62", "le domaine de Gmail est reconnu par sa fin (« notgmail.com » perd ses points)", F.mail,
+  "if (d === 'gmail.com' || d === 'googlemail.com')", "if (/gmail\\.com$/.test(d) || d === 'googlemail.com')", ["975"]);
+m("X63", "le démarrage ne répare plus rien : une réunion dont l'hôte a été effacé par un code d'avant reste sans hôte", F.index,
+  "const reparees = stockage.reunionsReparer();", "const reparees = { personnes: 0, pieces: [] };", ["973"]);
+m("X64", "la réparation ne cherche plus les hôtes effacés (seulement les invités)", F.stock,
+  "SELECT r.hote AS uid FROM reunion r JOIN personne p ON p.id = r.hote WHERE p.etat = 'supprime')", "SELECT r.hote AS uid FROM reunion r JOIN personne p ON p.id = r.hote WHERE p.etat = 'supprime' AND 0)", ["972", "973"]);
+m("X65", "la réparation ne cherche plus les invités effacés (seulement les hôtes)", F.stock,
+  "SELECT i.uid AS uid FROM reunion_invite i JOIN personne p ON p.id = i.uid WHERE p.etat = 'supprime'", "SELECT i.uid AS uid FROM reunion_invite i JOIN personne p ON p.id = i.uid WHERE p.etat = 'supprime' AND 0", ["972"]);
+m("X70", "« Quitter la réunion » confirmé ne quitte rien : la fiche se ferme, le service garde l'invitation", F.page,
+  "await source.quitterReunion(id); mot('Tu as quitté la réunion'); fermerCouche(); return; }", "mot('Tu as quitté la réunion'); fermerCouche(); return; }", ["sonde"], SONDE);
+m("X71", "toucher « Quitter la réunion » quitte tout de suite, sans demander confirmation", F.page,
+  "else if (act === 'quitter-demander') { F.confirme = 'quitter'; await relire(); }", "else if (act === 'quitter-demander') { b.setAttribute('aria-disabled', 'true'); await source.quitterReunion(id); mot('Tu as quitté la réunion'); fermerCouche(); return; }", ["sonde"], SONDE);
+m("X72", "l'organisateur voit « Quitter la réunion » dans sa propre fiche", F.page,
+  "if (!hote) s += '<div class=\"rubrique\"><span>Invité</span></div>'", "if (true) s += '<div class=\"rubrique\"><span>Invité</span></div>'", ["sonde"], SONDE);
+m("X73", "le module de données ne dit pas à la page que la réunion a disparu pour celui qui la quitte", F.src,
+  "await pourReunion(A.quitterReunion(id)); reunionChangee(id, true); }", "await pourReunion(A.quitterReunion(id)); }", ["976"], EQ('le service dit la MÊME chose par un événement adressé au quitteur (SSE) : la page l\'apprend par lui ; l\'émission locale n\'est que la ceinture quand le flux est lent ou coupé — la garde restante tient seule'));
+m("X74", "le client du service appelle la route des retraits (« retirer ») au lieu de « quitter »", F.api,
+  "quitterReunion: (id) => appel('POST', '/api/reunions/' + e(id) + '/quitter')", "quitterReunion: (id) => appel('POST', '/api/reunions/' + e(id) + '/retirer')", ["976"]);
+m("X75", "la phrase du plafond de modifications manque : l'écran dit une erreur générique", F.api,
+  "    trop_de_modifications: 'Cette réunion vient", "    trop_de_modifications_x: 'Cette réunion vient", ["976"]);
+m("X76", "la phrase « l'organisateur ne quitte pas » manque", F.api,
+  "    hote_non_quittable: 'L\\'organisateur", "    hote_non_quittable_x: 'L\\'organisateur", ["976"]);
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const DOSSIERS_COPIE = ['server-msg', 'server', 'design/opmessages', '.github', 'apercu/opmessages', 'icons', 'scripts'];   // `.github` ENTIER : test-934 lit les workflows autant que les scripts de surveillance
 function copier(src, dst) {
