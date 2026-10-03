@@ -366,6 +366,20 @@ const horlogeFixe = (h) => () => h.t;
   };
   const cles = (m) => m.coffre.cles(m.cfg.prefixe + 'base/');
   {
+    /* ⛔ Régression de la fusion des pièces et de la sauvegarde (gardien, 3 octobre 2026) : la sonde exigeait des lignes `piece`, la copie
+       n'en comptait pas — dès la PREMIÈRE pièce, chaque passe tombait en « copie-vide-piece » et plus rien ne partait au coffre. Aucun banc
+       ne sauvegardait une base qui porte une pièce. */
+    const m = await monter({ n: 60 });
+    try {
+      const { a, conv } = m.peuple;
+      m.b.S.pieceCreer({ id: 'f_' + 'ab'.repeat(16), proprio: a.id, conv, genre: 'fichier', taille: 3, mime: 'application/octet-stream', nom: 'banc.txt', ttlMs: 86400000 });
+      vrai('population : la base vivante porte une pièce (la sonde le voit)', m.b.S.sonde().nonVides.piece === true);
+      const r = await m.sauv.lancer('banc');
+      v('⛔ une base qui porte une PIÈCE se sauvegarde : la passe réussit, l\'archive est au coffre', [r.ok, r.motif, cles(m).length], [true, '', 1]);
+      v('   la santé : âge zéro, aucun échec', m.sauv.sante(), { configuree: true, ageH: 0, essaiJours: null, echecs: 0 });
+    } finally { await m.fermer(); }
+  }
+  {
     const m = await monter({ n: 250 });
     try {
       v('avant toute passe : actif, rien au coffre, rien de sain à annoncer', [m.sauv.actif, cles(m).length, m.sauv.sante()], [true, 0, { configuree: true, ageH: null, essaiJours: null, echecs: 0 }]);
@@ -1014,6 +1028,13 @@ const horlogeFixe = (h) => () => h.t;
       v('   aucune table n\'est à la fois comptée et déclarée transitoire', comptees.filter(t => t in TRANSITOIRES), []);
       v('⛔ la sonde de la base vivante nomme exactement les mêmes tables que la copie (deux listes écrites à la main, une seule vérité)',
         Object.keys(b.S.sonde().nonVides).sort(), comptees.slice().sort());
+      /* La TROISIÈME liste : ce que la copie compte ligne à ligne (`lignesDe`, lue par `controlerFichier`). Son oubli de `piece` faisait
+         tomber chaque passe dès la première pièce (gardien, 3 octobre 2026) pendant que les deux autres étaient d'accord. */
+      const versCompte = path.join(b.dossier, 'compte.db');
+      await b.S.instantane(versCompte);
+      const kc = STOCK.ouvrir.copie.controlerFichier(versCompte);
+      v('⛔ et le comptage de la COPIE nomme exactement les mêmes tables (trois listes écrites à la main, une seule vérité)',
+        [kc.ok, Object.keys(kc.lignes || {}).sort()], [true, comptees.slice().sort()]);
     } finally { b.nettoyer(); }
   }
 

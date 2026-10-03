@@ -1465,6 +1465,10 @@ function ouvrirCopie(chemin, { moteur, ecriture = false } = {}) {
 
 /* Le nombre de lignes de chaque table comptée. `null` : la table n'existe pas dans CETTE copie (une archive d'un schéma plus ancien
    n'a pas les tables des migrations suivantes) — ce n'est pas une erreur, et deux copies du même fichier donnent le même `null`. */
+/* ⛔ TROIS LISTES DOIVENT DIRE LES MÊMES TABLES : `TABLES_COMPTEES`, la sonde de la base vivante (`sonde().nonVides`) et ce comptage-ci. Chacune
+   s'écrit à la main (chaque requête reste un littéral : test-901). Le 3 octobre 2026, `piece` est entrée dans les deux premières et pas dans
+   celle-ci : la sonde exigeait des pièces, la copie n'en comptait aucune, et DÈS LA PREMIÈRE PIÈCE chaque passe tombait en
+   « copie-vide-piece » — plus aucune sauvegarde ne partait (gardien). test-950 § 13 bis compare désormais les trois. */
 function lignesDe(d) {
   const n = (f) => { try { return Number(f().get().n); } catch (e) { if (/no such table/i.test(String(e && e.message))) return null; throw e; } };
   return {
@@ -1476,6 +1480,7 @@ function lignesDe(d) {
     message: n(() => d.prepare('SELECT COUNT(*) AS n FROM message')),
     reaction: n(() => d.prepare('SELECT COUNT(*) AS n FROM reaction')),
     msg_masque: n(() => d.prepare('SELECT COUNT(*) AS n FROM msg_masque')),
+    piece: n(() => d.prepare('SELECT COUNT(*) AS n FROM piece')),
     journal: n(() => d.prepare('SELECT COUNT(*) AS n FROM journal')),
     notification: n(() => d.prepare('SELECT COUNT(*) AS n FROM notification')),
     purge: n(() => d.prepare('SELECT COUNT(*) AS n FROM purge')),
