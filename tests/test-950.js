@@ -1274,6 +1274,67 @@ const horlogeFixe = (h) => () => h.t;
         v('   et la mesure elle-même : exiger un pétaoctet est refusé, avec les deux nombres en Mio', [!!eu, /pas assez de place pour ce test/.test(String(eu && eu.message)), /Mio/.test(String(eu && eu.message))], [true, true, true]);
       }
 
+      /* ══ remarque 1, côté restauration : le pic est TROIS fois l'archive, et il se re-mesure avant de télécharger la suivante ═══════════════
+         Pour lire le registre des purges d'une archive plus récente, la base restaurée reste sur le disque pendant que la suivante arrive : base + archive
+         + sa base déchiffrée. Le premier contrôle (« 2,5 fois ») était plus bas que ce pic ; et il ne pouvait de toute façon pas connaître la taille
+         DÉCHIFFRÉE (une base très compressible). Le second, posé avant chaque téléchargement de plus, se fait avec les nombres qu'on a alors. */
+      {
+        const vraiStatfs = fs.statfsSync;
+        const octetsC = m.coffre.objets.get(cleC).length;               // la plus récente : la PREMIÈRE dont le registre est lu quand on vise A
+        const lecturesDeC = () => m.coffre.vus.filter(x => x.m === 'GET' && x.cle === cleC).length;
+        const disque = { mode: 'reel', libre: 0, delta: 0 };
+        const dossierDeTravail = /(opmsg-essai-|\.restauration-)/;
+        fs.statfsSync = (chemin, opts) => {
+          const c = String(chemin);
+          if (disque.mode === 'fixe' && c.includes('limite-pic-banc')) return { bavail: disque.libre, bsize: 1 };
+          const aUneBase = dossierDeTravail.test(c) && fs.existsSync(path.join(c, 'msg.db'));
+          if (disque.mode === 'apres-base' && aUneBase) return { bavail: 1, bsize: 4096 };
+          /* la limite exacte : l'archive suivante + SA base déchiffrée (de la taille de celle qu'on vient de descendre) + 64 Mio, à l'octet près */
+          if (disque.mode === 'limite-registre' && aUneBase) return { bavail: octetsC + fs.statSync(path.join(c, 'msg.db')).size + 64 * 1048576 + disque.delta, bsize: 1 };
+          return vraiStatfs(chemin, opts);
+        };
+        try {
+          /* (a) la limite exacte du premier contrôle, sur la plus récente (pas de registre à lire : il n'y a pas de second contrôle) */
+          const besoin = 3 * octetsC + 64 * 1048576;
+          const dLim = path.join(bac, 'limite-pic-banc'); fs.mkdirSync(dLim);
+          disque.mode = 'fixe'; disque.libre = besoin - 1;
+          const sous = await outil(['essai'], { OPMSG_ESSAI_DIR: dLim });
+          disque.libre = besoin;
+          const juste = await outil(['essai'], { OPMSG_ESSAI_DIR: dLim });
+          disque.mode = 'reel';
+          v('⛔ le premier contrôle demande TROIS fois l\'archive plus 64 Mio : un octet de moins est refusé, le compte juste passe (avant : 2,5 fois — plus bas que le pic)',
+            [octetsC > 0, sous.code, /pas assez de place pour cet exercice/.test(sous.erreur), juste.code, /RESTAURABLE/.test(juste.sortie)], [true, 1, true, 0, true]);
+          vrai('   et il dit le nombre qu\'il exige (en Mio) et le dossier', new RegExp('il faut environ ' + (besoin / 1048576).toFixed(1).replace('.', '\\.') + ' Mio').test(sous.erreur) && sous.erreur.includes(dLim));
+
+          /* (b) le second contrôle : la cible n'est pas la plus récente, la base est descendue, et il ne reste rien pour la suivante */
+          const quandT0 = new Date(T0).toISOString().slice(0, 19);
+          const l0 = lecturesDeC();
+          const temoin = await outil(['essai', '--date', quandT0]);
+          const l1 = lecturesDeC();
+          v('population : sans manque de place, l\'essai de l\'archive A TÉLÉCHARGE la plus récente pour lire son registre (sinon les refus ci-dessous ne prouveraient rien)', [temoin.code, l1 - l0], [0, 1]);
+          disque.mode = 'apres-base';
+          const echecAvant = (marqueur() || {}).echecTs;
+          const reg = await outil(['essai', '--date', quandT0]);
+          const l2 = lecturesDeC();
+          v('⛔ l\'essai de A, la base descendue et plus de place pour l\'archive suivante : refusé AVANT de la télécharger (aucune lecture de plus au coffre), avec « pas assez de place », la variable à déplacer — et PAS « aucune archive ne s\'ouvre »',
+            [reg.code, /pas assez de place pour lire le registre des purges de base\//.test(reg.erreur), /OPMSG_ESSAI_DIR/.test(reg.erreur), /aucune des archives plus récentes/.test(reg.erreur), /--sans-purge/.test(reg.erreur), l2 - l1], [1, true, true, false, false, 0]);
+          vrai('   le dossier jetable est effacé, et un essai sur une archive qui n\'est pas la plus récente ne note pas d\'échec', fs.readdirSync(os.tmpdir()).filter(f => f.startsWith('opmsg-essai-')).length === 0 && (marqueur() || {}).echecTs === echecAvant);
+          const dRegR = path.join(bac, 'registre-pic-banc');
+          const regR = await outil(['restaurer', '--vers', dRegR, '--date', quandT0, '--sans-pieces']);
+          v('   la restauration de A de même : refusée avant de télécharger la suivante, elle nomme --vers, et ne pose RIEN (ni dossier de destination, ni chantier)',
+            [regR.code, /pas assez de place pour lire le registre des purges de base\//.test(regR.erreur), /--vers/.test(regR.erreur), /OPMSG_ESSAI_DIR/.test(regR.erreur), fs.existsSync(dRegR), lecturesDeC() - l2], [1, true, true, false, false, 0]);
+
+          /* le compte exact du second contrôle : l'archive suivante PLUS sa base déchiffrée, plus 64 Mio */
+          disque.mode = 'limite-registre'; disque.delta = -1;
+          const sousReg = await outil(['essai', '--date', quandT0]);
+          disque.delta = 0;
+          const justeReg = await outil(['essai', '--date', quandT0]);
+          disque.mode = 'reel';
+          v('⛔ le second contrôle demande l\'archive suivante PLUS sa base déchiffrée (plus 64 Mio) : un octet de moins est refusé, le compte juste passe',
+            [sousReg.code, /pas assez de place pour lire le registre/.test(sousReg.erreur), justeReg.code, /RESTAURABLE/.test(justeReg.sortie)], [1, true, 0, true]);
+        } finally { fs.statfsSync = vraiStatfs; }
+      }
+
       const inconnue = await outil(['danser']);
       v('une commande inconnue : sortie 2 et la liste des commandes', [inconnue.code, /commandes :/.test(inconnue.erreur)], [2, true]);
 

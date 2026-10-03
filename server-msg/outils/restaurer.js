@@ -133,8 +133,15 @@ async function recuperer(ctx, archive, vers) {
 }
 
 /* ⛔ LA PLACE AVANT LE TÉLÉCHARGEMENT. Sans elle, un dossier temporaire trop petit (un /tmp en mémoire de 2 Go devant une base de 3 Go) fait mourir
-   l'exercice sur « échec inattendu (ENOSPC) », sans dire quel dossier ni comment s'en sortir. Le pic est d'environ deux fois la base (l'archive et
-   sa base déchiffrée, ou la base et sa copie pour la clé maître) : on demande 2,5 fois plus 64 Mio, et on nomme la variable qui déplace le travail. */
+   l'exercice sur « échec inattendu (ENOSPC) », sans dire quel dossier ni comment s'en sortir.
+   Le pic n'est PAS deux fois la base : pour lire le registre des purges d'une archive plus récente, la base restaurée reste sur le disque pendant
+   que la suivante arrive — la base (D) + l'archive qu'on télécharge (A) + sa base déchiffrée (D'), soit environ TROIS fois l'archive tant que le
+   contenu est surtout scellé (les messages le sont : l'archive compresse à peine). `PIC_ARCHIVES` le dit, et `registreDePurge` re-mesure avec les
+   VRAIS nombres avant chaque téléchargement de plus (une base très compressible passerait le premier contrôle et pas le second). On nomme la
+   variable qui déplace le travail. */
+const PIC_ARCHIVES = 3;
+const AIDE_ESSAI = 'Pointer OPMSG_ESSAI_DIR vers un dossier d\'un disque plus grand (par exemple un dossier sous /opt/opmsg), puis relancer.';
+const AIDE_RESTAURATION = 'Choisir un dossier d\'un disque plus grand pour --vers.';
 function verifierPlace(dossier, octets, ce, aide) {
   let libre = null;
   try { const st = fs.statfsSync(dossier); libre = Number(st.bavail) * Number(st.bsize); } catch (e) { return; }   // une mesure impossible ne bloque pas
@@ -160,13 +167,17 @@ const relDePiece = (id) => String(id).slice(2, 4) + '/' + id;
    récentes illisibles de suite ne sont pas une usure du coffre, c'est un incident — mieux vaut s'arrêter et demander que télécharger des
    gigaoctets. */
 const ESSAIS_REGISTRE = 10;
-async function registreDePurge(ctx, archives, cible, baseCible, dossier, { sansPurge }, dire) {
+async function registreDePurge(ctx, archives, cible, baseCible, dossier, { sansPurge, aide }, dire) {
   const rang = archives.findIndex(a => a.cle === cible.cle);
   const plusRecentes = rang > 0 ? archives.slice(0, rang) : [];
   if (!plusRecentes.length) return { registre: ouvrir.copie.purgeLire(baseCible), source: cible, saute: [], complet: true };
   const saute = [];
   const autre = path.join(dossier, 'recente.db');
+  const tailleBase = fs.statSync(baseCible).size;   // la base de la suivante est de la même taille, à peu de chose près : les VRAIS nombres, maintenant qu'on les a
   for (const a of plusRecentes.slice(0, ESSAIS_REGISTRE)) {
+    /* Hors du `try` : un manque de place n'est pas une archive abîmée. Dedans, il serait « sauté » comme les autres, chaque tour le répéterait, et l'on
+       conclurait « aucune ne s'ouvre — recommence avec --sans-purge » à propos d'un disque trop petit. */
+    verifierPlace(dossier, a.octets + tailleBase, 'lire le registre des purges de base/' + a.nom + SAUV.SUFFIXE, aide || AIDE_ESSAI);
     try {
       await recuperer(ctx, a, autre);
       return { registre: ouvrir.copie.purgeLire(autre), source: a, saute, complet: saute.length === 0 };
@@ -323,7 +334,7 @@ async function essai(ctx, { date, echantillon = 20, sansPurge }, dire) {
   dire('→ essai de restauration sur base/' + cible.nom + SAUV.SUFFIXE + ' (' + mio(cible.octets) + ', ' + ageTexte(cible.ts) + ')' + (laDerniere ? '' : ' — PAS la plus récente'));
   if (nomDuFutur(cible)) dire('  ⚠' + noteDuFutur(cible).trim().slice(1) + ' — vérifier avec `liste` que c\'est bien celle qu\'on veut.');
 
-  verifierPlace(ctx.tmpParent, cible.octets * 2.5, 'cet exercice', 'Pointer OPMSG_ESSAI_DIR vers un dossier d\'un disque plus grand (par exemple un dossier sous /opt/opmsg), puis relancer.');
+  verifierPlace(ctx.tmpParent, cible.octets * PIC_ARCHIVES, 'cet exercice', AIDE_ESSAI);
   const dossier = fs.mkdtempSync(path.join(ctx.tmpParent, 'opmsg-essai-'));
   try {
     const base = path.join(dossier, 'msg.db');
@@ -336,7 +347,7 @@ async function essai(ctx, { date, echantillon = 20, sansPurge }, dire) {
     dire('  base saine (quick_check : ok) — ' + v.total + ' ligne(s) : ' + Object.entries(v.lignes).filter(([, n]) => n).map(([t, n]) => t + ' ' + n).join(', ') + '.');
 
     /* Le registre des purges de la plus récente archive QUI S'OUVRE (il sait tout ce que les plus anciennes ignorent), appliqué à la copie. */
-    const reg = await registreDePurge(ctx, arch.archives, cible, base, dossier, { sansPurge }, dire);
+    const reg = await registreDePurge(ctx, arch.archives, cible, base, dossier, { sansPurge, aide: AIDE_ESSAI }, dire);
     direRegistre(reg, dire);
     const p = ouvrir.copie.rejouerPurge(base, reg.registre);
     dire('  purge rejouée : ' + p.lues + ' ligne(s) lue(s), ' + p.messagesRetires + ' message(s) retiré(s), ' + p.messagesBlanchis + ' effacé(s) pour tous, ' + p.conversationsRetirees + ' conversation(s), ' + p.appareilsRetires + ' appareil(s), ' + p.pieces.length + ' pièce(s), ' + p.ignorees + ' ignorée(s).');
@@ -410,11 +421,11 @@ async function restaurerVers(ctx, { vers, date, ecraser, sansPieces, sansPurge }
   try {
     dire('→ restauration de base/' + cible.nom + SAUV.SUFFIXE + ' (' + mio(cible.octets) + ', ' + ageTexte(cible.ts) + ')');
     if (nomDuFutur(cible)) dire('  ⚠' + noteDuFutur(cible).trim().slice(1) + ' — vérifier avec `liste` que c\'est bien celle qu\'on veut.');
-    verifierPlace(dest, cible.octets * 2.5, 'cette restauration', 'Choisir un dossier d\'un disque plus grand pour --vers.');
+    verifierPlace(dest, cible.octets * PIC_ARCHIVES, 'cette restauration', AIDE_RESTAURATION);
     const base = path.join(chantier, 'msg.db');
     const r = await recuperer(ctx, cible, base);
     dire('  téléchargée et déchiffrée (' + mio(r.base) + ', schéma ' + r.meta.schema + ').');
-    const reg = await registreDePurge(ctx, arch.archives, cible, base, chantier, { sansPurge }, dire);
+    const reg = await registreDePurge(ctx, arch.archives, cible, base, chantier, { sansPurge, aide: AIDE_RESTAURATION }, dire);
     direRegistre(reg, dire);
     const p = ouvrir.copie.rejouerPurge(base, reg.registre);
     dire('  purge rejouée : ' + p.messagesRetires + ' message(s) retiré(s), ' + p.messagesBlanchis + ' effacé(s) pour tous, ' + p.conversationsRetirees + ' conversation(s), ' + p.appareilsRetires + ' appareil(s), ' + p.pieces.length + ' pièce(s).');
