@@ -314,6 +314,31 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
       v('(Cléo et Bob non plus)', [etatDe(B.moi.id).etat, etatDe(C.moi.id).etat], ['actif', 'actif']);
     }
 
+    /* ═══ 4 bis. UN DISQUE PLEIN NE RETIENT PAS LA PERSONNE QUI S'EN VA ═══════════════════════════════════════════════════════════════
+       Le plancher d'espace disque refuse toute écriture (503) — sauf trois : se déconnecter, supprimer son compte, acquitter. Un service dont le disque est plein est précisément celui qu'on veut pouvoir QUITTER,
+       et la page visible qui acquitte ne doit pas recevoir un refus de plus. La même base redémarre avec un plancher impossible à tenir (`disqueMinMo` énorme) : les sessions ouvertes avant survivent au redémarrage. */
+    console.log('\nUn disque plein : les écritures sont refusées (503) — mais PAS la déconnexion, la suppression du compte, ni l\'acquittement');
+    {
+      const dossier = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-957-disque-')); dossiersLourds.push(dossier);
+      const cle = crypto.randomBytes(32).toString('hex');
+      const avant = await T.lancerService({ dossier, cle, urlGestion: og.url }); lourds.push(avant);
+      const ce = await T.connecter(avant, og, 'eve', 'pw-eve-123456'), cx = await T.connecter(avant, og, 'xan', 'pw-xan-123456');
+      const sessions = { eve: ce.cookie(), xan: cx.cookie() };
+      await avant.arreter(false);
+      const plein = await T.lancerService({ dossier, cle, urlGestion: og.url, config: { disqueMinMo: 1e12 } }); lourds.push(plein);
+      const E = T.client(plein.base), X2 = T.client(plein.base);
+      E.poserCookie(sessions.eve); X2.poserCookie(sessions.xan);
+      v('population : les deux sessions ouvertes AVANT le redémarrage sont valides sur le service redémarré, dont le disque est « bas »', [(await E.get('/api/moi')).code, (await X2.get('/api/moi')).code, (await E.get('/health')).j.disque.bas], [200, 200, true]);
+      const temoin = await E.post('/api/moi/maj', { statut: 'Disque plein' });
+      v('⛔ témoin : une écriture ordinaire est REFUSÉE 503 disque_plein (le plancher tient vraiment, sans quoi les trois exceptions ne prouveraient rien)', [temoin.code, temoin.j && temoin.j.error], [503, 'disque_plein']);
+      v('⛔ l\'acquittement d\'une page visible passe malgré le disque plein', (await E.post('/api/flux/ack', { gid: 0 })).code, 200);
+      v('⛔ se déconnecter passe malgré le disque plein, et la session est bien morte ensuite', [(await X2.post('/api/compte/deconnexion', {})).code, (await X2.get('/api/moi')).code], [200, 401]);
+      const sup = await E.post('/api/compte/supprimer', { confirmation: 'SUPPRIMER' });
+      v('⛔ supprimer son compte passe malgré le disque plein : l\'échéance est posée, et la session est coupée', [sup.code, Number.isFinite(sup.j && sup.j.suppression_le), (await E.get('/api/moi')).code], [200, true, 401]);
+      const dsup = T.lireBase(path.join(plein.data, 'msg.db')); let ech; try { ech = dsup.prepare('SELECT suppression_le AS s FROM personne WHERE suppression_le IS NOT NULL').get(); } finally { dsup.close(); }
+      v('l\'échéance est bien dans la base (la suppression n\'est pas qu\'une réponse)', typeof (ech && ech.s), 'number');
+    }
+
     /* ═══ 5. LES GROSSES DONNÉES : AU FIL DE L'EAU, PLAFONNÉ, UN EXPORT ABANDONNÉ RENDS SON CRÉNEAU ═══════════════════════════════════ */
     console.log('\nUne grosse conversation : l\'export s\'écrit par morceaux, le plafond le tronque proprement, un export abandonné rend son créneau');
     {

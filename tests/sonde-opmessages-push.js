@@ -195,6 +195,38 @@ async function parcours(b, ctx) {
         const debut = Date.now(); for (;;) { const ns = await self.registration.getNotifications(); if (ns.length) { const r = ns.map(n => [n.title, n.body]); for (const n of ns) n.close(); return r; } if (Date.now() - debut > 4000) return []; await new Promise(r => setTimeout(r, 25)); }
       })), [['OP MESSAGES', 'Nouveau message']]);
 
+    /* ⛔ le sw.js ne croit pas la charge sur parole : l'adresse d'ailleurs, relative au schéma, d'un autre schéma ou d'un autre type devient « / » ; seule une adresse de CE site garde son chemin */
+    const CONV_X = 'c_0123456789abcdef0123456789abcdef';
+    v('⛔ le vrai sw.js n\'ouvrira JAMAIS une adresse d\'ailleurs : « https://evil.example/ », « // », « javascript: », un autre site portant le chemin d\'une conversation, un nombre, rien → « / » (seule l\'adresse de CE site garde son chemin)',
+      await A.ctx.serviceWorkers()[0].evaluate(async (conv) => {
+        const lire = async (charge) => {
+          self.dispatchEvent(new PushEvent('push', { data: JSON.stringify(charge) }));
+          const debut = Date.now();
+          for (;;) { const ns = await self.registration.getNotifications({ tag: 'adr' }); if (ns.length) { const u = ns[0].data.url; for (const n of ns) n.close(); return u; } if (Date.now() - debut > 4000) return null; await new Promise(r => setTimeout(r, 25)); }
+        };
+        const sortie = [];
+        for (const url of ['https://evil.example/x', '//evil.example/x', 'javascript:alert(1)', 'https://evil.example/#messages/' + conv, '/#messages/' + conv, undefined, 42]) sortie.push(await lire({ titre: 'T', corps: 'C', tag: 'adr', url }));
+        return sortie;
+      }, CONV_X), ['/', '/', '/', '/', '/#messages/' + CONV_X, '/', '/']);
+    v('deux notifications de la même conversation (même étiquette) n\'en font qu\'UNE à l\'écran — la seconde remplace la première',
+      await A.ctx.serviceWorkers()[0].evaluate(async () => {
+        for (let i = 0; i < 2; i++) self.dispatchEvent(new PushEvent('push', { data: JSON.stringify({ titre: 'PILE' + i, corps: 'c', tag: 'pile' }) }));
+        const debut = Date.now(); let ns = [];
+        for (;;) { ns = (await self.registration.getNotifications()).filter(n => /^PILE/.test(n.title)); if (ns.some(n => n.title === 'PILE1') || Date.now() - debut > 4000) break; await new Promise(r => setTimeout(r, 25)); }
+        const titres = ns.map(n => n.title);
+        for (const n of await self.registration.getNotifications()) n.close();
+        return titres;
+      }), ['PILE1']);
+    /* toucher une notification dont l'adresse serait d'ailleurs : le service worker prévient la page avec « / » (jamais l'adresse d'ailleurs) */
+    await A.page.evaluate(() => { window.__msgsSw = []; navigator.serviceWorker.addEventListener('message', (e) => window.__msgsSw.push(e.data)); });
+    await A.ctx.serviceWorkers()[0].evaluate(async () => {
+      await self.registration.showNotification('Piège', { tag: 'piege', data: { url: 'https://evil.example/x' } });
+      const n = (await self.registration.getNotifications({ tag: 'piege' }))[0];
+      self.dispatchEvent(new NotificationEvent('notificationclick', { notification: n, action: '' }));
+    });
+    vrai('population : le service worker a prévenu la page du toucher', !!(await attendre(A, () => window.__msgsSw.length > 0, null, 8000)));
+    v('⛔ toucher une notification dont l\'adresse est d\'ailleurs : la page reçoit « / », jamais l\'adresse d\'ailleurs', (await A.page.evaluate(() => window.__msgsSw)).map(m => [m.type, m.url]), [['ouvrir', '/']]);
+
     await toucher(A, '#reg-notif-apercu');
     await verifier('l\'aperçu : l\'interrupteur tourne (le service a retenu le réglage) et la phrase change', A, () => { const e = document.getElementById('reg-notif-apercu'); return !!e && e.getAttribute('aria-checked') === 'true' && /montre le nom et le début/.test(e.textContent); }, null, 10000, () => reg(A));
     v('le service l\'a retenu', JSON.parse(sql('SELECT prefs FROM personne WHERE id = ?', (await A.page.evaluate(async () => (await (await fetch('/api/moi')).json()).moi.id))).prefs).apercu_notif, true);

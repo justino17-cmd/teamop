@@ -545,6 +545,32 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     await sp.fermer(); await cible.fermer();
   }
 
+  /* ══ 8 bis. L'ADRESSE IP DERRIÈRE UN NOM : la table des plages refusées, ET celle des adresses publiques qui doivent PASSER ═════════════════════
+     Un seul test de transport (« localhost ») ne dit pas que la table tient ses BORNES : 172.31.255.255 est privée, 172.32.0.1 ne l'est pas ; et une borne mal écrite qui refuse 142.250.x ferait taire
+     TOUS les envois vers Google sans un message d'erreur. D'où les deux listes : chacune est précédée de la population de l'autre. */
+  console.log('\nL\'adresse IP à laquelle un nom se résout : les plages privées sont refusées à leurs BORNES, les adresses publiques des services push passent');
+  {
+    const privees = {
+      '0.0.0.0': 'cette machine', '10.1.2.3': '10/8', '127.0.0.1': 'la boucle locale', '127.255.255.254': 'le bout de 127/8', '100.64.0.1': 'CGNAT (début)', '100.127.255.255': 'CGNAT (fin)',
+      '169.254.169.254': 'lien local (métadonnées d\'hébergeur)', '172.16.0.1': '172.16/12 (début)', '172.31.255.255': '172.16/12 (FIN)', '192.168.0.1': '192.168/16', '192.0.0.1': '192.0.0/24',
+      '198.18.0.1': 'bancs de mesure (début)', '198.19.255.255': 'bancs de mesure (fin)', '192.88.99.1': 'relais 6to4', '224.0.0.1': 'multidiffusion (début)', '255.255.255.255': 'diffusion',
+      '::': 'IPv6 non spécifiée', '::1': 'IPv6 boucle locale', 'fc00::1': 'IPv6 locale unique (fc00)', 'fd12:3456::1': 'IPv6 locale unique (fd00)', 'fe80::1': 'IPv6 lien local', 'febf::1': 'IPv6 lien local (fin de plage)',
+      'fec0::1': 'IPv6 locale au site', 'ff02::1': 'IPv6 multidiffusion', '::ffff:127.0.0.1': 'IPv4 de la boucle locale « mappée »', '::ffff:10.0.0.1': 'IPv4 privée « mappée »', '::ffff:7f00:1': 'la même, écrite en hexadécimal',
+      '64:ff9b::7f00:1': 'NAT64 qui porte 127.0.0.1', '2002:7f00:1::1': '6to4 qui porte 127.0.0.1', '2001:0:4136:e378:8000:63bf:3fff:fdd2': 'Teredo', '2001:db8::1': 'IPv6 de documentation',
+      'pas-une-adresse:': 'une adresse illisible (refusée)', '1.2.3': 'une IPv4 à trois groupes (refusée)', '256.1.1.1': 'une IPv4 hors plage (refusée)', 'fe80::1%eth0': 'IPv6 lien local avec zone',
+    };
+    const publiques = {
+      '142.250.74.138': 'Google (FCM)', '17.253.144.10': 'Apple', '34.107.243.93': 'Mozilla', '8.8.8.8': 'une adresse publique ordinaire', '100.63.255.255': 'juste sous le CGNAT', '100.128.0.1': 'juste au-dessus du CGNAT',
+      '172.15.255.255': 'juste sous 172.16/12', '172.32.0.1': 'juste au-dessus de 172.16/12', '169.253.1.1': 'juste sous le lien local', '192.167.255.255': 'juste sous 192.168/16', '192.169.0.1': 'juste au-dessus de 192.168/16',
+      '198.17.255.255': 'juste sous 198.18/15', '198.20.0.1': 'juste au-dessus de 198.18/15', '223.255.255.255': 'juste sous la multidiffusion', '2a00:1450:4007:80d::200e': 'Google, IPv6', '2607:f8b0:4004:c08::5f': 'Google, IPv6 (2)',
+      '::ffff:8.8.8.8': 'IPv4 publique « mappée »', '2001:4860:4860::8888': 'IPv6 publique', '64:ff9b::808:808': 'NAT64 qui porte 8.8.8.8', '2002:808:808::1': '6to4 qui porte 8.8.8.8',
+    };
+    vrai('population : ' + Object.keys(privees).length + ' adresses privées et ' + Object.keys(publiques).length + ' publiques à juger', Object.keys(privees).length >= 30 && Object.keys(publiques).length >= 18);
+    v('⛔ les adresses publiques des services push PASSENT (une borne mal écrite qui les refuserait ferait taire tous les envois, sans un message)', Object.keys(publiques).filter(a => PUSH.adressePrivee(a)).map(a => a + ' (' + publiques[a] + ')'), []);
+    v('⛔ chaque adresse privée, locale ou réservée est REFUSÉE — aux bornes comprises', Object.keys(privees).filter(a => !PUSH.adressePrivee(a)).map(a => a + ' (' + privees[a] + ')'), []);
+    v('contre-épreuve : la fonction distingue (elle ne dit pas « privée » à tout, ni « publique » à tout)', [PUSH.adressePrivee('172.31.255.255'), PUSH.adressePrivee('172.32.0.1')], [true, false]);
+  }
+
   /* ══ 9. LA FILE : des envois en nombre borné ════════════════════════════════════════════════════════════════════════════════ */
   console.log('\nLa file : deux envois à la fois, une file bornée — au-delà on abandonne (et on le compte), la mémoire ne se remplit pas');
   {
