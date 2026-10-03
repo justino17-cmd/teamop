@@ -2129,7 +2129,10 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       destinataire: num(Q('SELECT COUNT(*) AS n FROM courrier_envoi WHERE dest_h = ? AND ts >= ?').get(destH, depuis.destinataire).n),
     };
   }
-  function courrierNoter({ uid, destH }) { Q('INSERT INTO courrier_envoi(uid, dest_h, ts) VALUES(?, ?, ?)').run(uid, destH, horloge()); }
+  /* Un envoi se RÉSERVE avant de partir (le plafond se vérifie et se prend dans le même souffle : deux demandes simultanées ne passent pas à deux quand il n'en reste qu'une) → l'identifiant de la
+     ligne, que `courrierRetirer` rend si le courriel n'est finalement pas parti (un relais qui refuse ne consomme pas le plafond de la personne). */
+  function courrierNoter({ uid, destH }) { return num(Q('INSERT INTO courrier_envoi(uid, dest_h, ts) VALUES(?, ?, ?)').run(uid, destH, horloge()).lastInsertRowid); }
+  function courrierRetirer(id) { return num(Q('DELETE FROM courrier_envoi WHERE id = ?').run(id).changes) > 0; }
   function courrierElaguer(avant) { return num(Q('DELETE FROM courrier_envoi WHERE ts < ?').run(avant).changes); }
   /* Les réunions d'une personne, pour l'export de ses données (le titre et le lieu s'ouvrent : ce sont les siennes). */
   function exportReunions(uid) {
@@ -2658,7 +2661,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     suppressionProgrammer, suppressionAnnuler, suppressionLe, comptesEchus, compteEffacer, exportProfil, exportConversationsIds, exportPieces,
     reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionRepondre, reunionRappelsPoser,   // les réunions programmées
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelDejaEnvoye, rappelsElaguer, reunionEncore,                             // …et le planificateur
-    courrierCompter, courrierNoter, courrierElaguer, exportReunions,                                                                                                                  // …et le courriel d'invitation
+    courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions,                                                                                                                  // …et le courriel d'invitation
   };
 }
 

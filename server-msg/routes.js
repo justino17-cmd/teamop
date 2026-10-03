@@ -129,6 +129,8 @@ function creerHandlers(ctx) {
     },
     /* la clé publique VAPID de CETTE instance (la page s'abonne avec elle) ; `null` quand le push est désactivé (paire illisible) — la page dit alors « indisponible » */
     push: { vapid: ctx.push ? ctx.push.cle() : null },
+    /* l'envoi des invitations par courriel est-il ouvert ? (un relais SMTP configuré) — un booléen, jamais l'hôte, l'identifiant ou l'adresse d'expédition : la page dit « pas encore ouvert » */
+    courriel: { ouvert: !!(ctx.courriel && ctx.courriel.ouvert()) },
   });
 
   H['beta.entrer'] = async (req, res) => {

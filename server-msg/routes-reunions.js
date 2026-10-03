@@ -11,6 +11,7 @@
  *   POST /api/reunions/:id/reponse   {statut}   R   accepte · decline · peutetre — l'hôte n'a pas à répondre
  *   POST /api/reunions/:id/rappels   {rappels}  R   MES rappels (5, 15, 60, 1440 minutes avant) ; `null` rend la main au réglage de la réunion
  *   GET  /api/reunions/:id/ics?serie=1|occurrence=<début>  R   le fichier pour l'agenda de la personne (une occurrence, ou toute la série)
+ *   POST /api/reunions/:id/courriel {destinataire,occurrence?}  H   l'invitation par COURRIEL à quelqu'un qui n'a pas OP MESSAGES (le .ics en pièce jointe) — inerte sans relais SMTP, 503 qui le dit
  *
  * Une fonction par ligne du manifeste (`manifeste.js`), branchée par `routes.js`. Le SQL est dans `stockage.js`, l'heure dans `calendrier.js`, le fichier dans `ics.js`, les notifications dans
  * `reunions-outils.js`, les rappels dans `planificateur.js`.
@@ -28,6 +29,7 @@ const cal = require('./calendrier');
 const ics = require('./ics');
 const { nettoyerNom, ID_PERS } = require('./routes');
 const { serieDe, nomAffiche, texteInvitation, texteModification, texteAnnulation, creerNotifieur } = require('./reunions-outils');
+const { adresseValide } = require('./courriel');
 
 const JOUR = 86400000;
 const TITRE_MAX = 120, LIEU_MAX = 300, INVITES_MAX = 100, UIDS_PAR_APPEL = 50, RAPPELS_MAX = 4;
@@ -42,7 +44,10 @@ function installerReunions(H, ctx) {
   const corps = (req) => (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? req.body : {};
   /* Les codes de refus du stockage, traduits : tous des chaînes courtes que la page sait dire (`public/api.js`, `MESSAGES`). Un code inconnu est une vraie panne : il part à `next`. */
   const CODES = { introuvable: [404, 'introuvable'], interdit: [403, 'interdit'], reunion_annulee: [409, 'reunion_annulee'], trop_d_invites: [409, 'trop_d_invites'], trop_de_reunions: [409, 'trop_de_reunions'],
-    hote_non_retirable: [409, 'hote_non_retirable'], hote_reponse: [409, 'hote_reponse'], groupe_plein: [409, 'trop_d_invites'] };
+    hote_non_retirable: [409, 'hote_non_retirable'], hote_reponse: [409, 'hote_reponse'], groupe_plein: [409, 'trop_d_invites'],
+    /* le courriel (`courriel.js`) : un plafond atteint est un 429 qui dit LEQUEL, un relais qui refuse un 502 — jamais le texte de sa réponse. (Un relais absent et une adresse fausse sont dits par la
+       route elle-même, AVANT de toucher au plafond par minute : ils n'arrivent jamais ici.) */
+    courriel_quota_compte: [429, 'courriel_quota_compte'], courriel_quota_destinataire: [429, 'courriel_quota_destinataire'], courriel_echec: [502, 'courriel_echec'], occurrence_inconnue: [404, 'occurrence_inconnue'] };
   const garder = (f) => (req, res, next) => {
     const traduire = (e) => { const c = e && CODES[e.code]; if (c) return refus(res, c[0], c[1]); return next(e); };
     try { const r = f(req, res, next); if (r && typeof r.catch === 'function') r.catch(traduire); }
@@ -291,6 +296,24 @@ function installerReunions(H, ctx) {
     if (texte === null) return refus(res, 404, 'occurrence_inconnue');
     res.set({ 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': 'attachment; filename="' + ics.nom(r) + '"', 'Cache-Control': 'no-store' });
     res.send(texte);
+  });
+
+  /* ── le courriel ── */
+  /* L'hôte écrit l'adresse de quelqu'un qui n'a pas OP MESSAGES ; le service envoie UN message au gabarit fixe, le .ics en pièce jointe (`courriel.js`). Dans cet ordre : le relais est-il ouvert
+     (sinon 503, avant de rien lire), la demande est-elle bien formée, le plafond par minute, la réunion vit-elle encore (une annulée ou finie ne s'envoie pas), puis les plafonds durables
+     (dix par jour et par compte, deux par destinataire et par semaine) dans `courriel.envoyer`. L'adresse n'est NI rangée, NI journalisée, NI rendue. */
+  H['reunions.courriel'] = garder(async (req, res) => {
+    const courriel = ctx.courriel, hote = req.moi, b = corps(req);
+    if (!courriel || !courriel.ouvert()) return refus(res, 503, 'courriel_non_ouvert');
+    if (typeof b.destinataire !== 'string' || !adresseValide(b.destinataire)) return refus(res, 400, 'courriel_invalide');
+    let occurrence;
+    if (b.occurrence !== undefined && b.occurrence !== null) { if (!Number.isInteger(b.occurrence) || b.occurrence < 0) return refus(res, 400, 'champ_invalide'); occurrence = b.occurrence; }
+    if (!plafond(res, 'courriel', hote.id, { max: 5, fenetreMs: 60000 })) return;
+    const reunion = stockage.reunionPourMembre(req.reunion.id, hote.id).reunion;
+    if (reunion.annulee) return refus(res, 409, 'reunion_annulee');
+    if (occurrence === undefined && prochainDe(serieDe(reunion), horloge()) === null) return refus(res, 409, 'reunion_passee');
+    await courriel.envoyer({ uid: hote.id, hote, destinataire: b.destinataire, reunion, occurrence });
+    res.json({ ok: true });
   });
 }
 

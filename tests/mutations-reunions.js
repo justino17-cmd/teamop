@@ -513,6 +513,160 @@ m('V03', 'la surveillance ne regarde plus les échecs de suite du planificateur'
   "if (typeof j.reunions.echecs === 'number' && j.reunions.echecs >= SEUIL_PLANIF_ECHECS) {", "if (false) {", ['934']);
 m('V04', 'le champ `reunions.ageS` n\'est plus déclaré surveillé : le /health vivant le trouve sans décision', F.surv,
   "  'reunions.ageS',         // le dernier tour du planificateur date de plus de cinq minutes", "  // 'reunions.ageS',         // le dernier tour du planificateur date de plus de cinq minutes", ['934']);
+/* ── 4. LE COURRIEL D'INVITATION (courriel.js, la route, la configuration, l'outil) — joué par test-975 (et test-905 pour les gardes) ─────────────────────────────────────────────── */
+
+/* l'adresse */
+m('E01', 'une adresse de moins de six signes (« a@b.c ») est acceptée', F.mail, "a.length < 6 || ", "", ['975']);
+m('E02', 'une adresse de plus de 254 signes dont toutes les parties sont permises est acceptée', F.mail, "a.length > 254 || ", "", ['975']);
+m('E03', 'la garde explicite des signes dangereux (blancs, sauts de ligne, < > ( ) , ; : \\ ") est retirée', F.mail, "/[\\s\\u0000-\\u001f\\u007f<>(),;:\\\\\"]/.test(a) || ", "", ['975'],
+  EQ('`RE_ADRESSE_MEL` refuse déjà les mêmes signes (sa classe de caractères ne les contient pas) : les deux gardes se neutralisent ; la paire E03+E04 prouve que ce sont de vraies gardes'));
+m('E04', 'la forme `nom@domaine.tld` n\'est plus vérifiée (`RE_ADRESSE_MEL`) : « @exemple.fr », « a@@exemple.fr » passent', F.mail, "!RE_ADRESSE_MEL.test(a) || ", "", ['975']);
+m2('E03+E04', 'ni la garde des signes dangereux ni la forme : un saut de ligne dans l\'adresse (« …\\r\\nBcc: x@… ») ouvrirait un en-tête', [
+  [F.mail, "/[\\s\\u0000-\\u001f\\u007f<>(),;:\\\\\"]/.test(a) || ", ""], [F.mail, "!RE_ADRESSE_MEL.test(a) || ", ""]], ['975']);
+m('E05', 'le dernier segment peut être numérique (« nom@127.0.0.1 » est une boîte)', F.mail, " || !/\\.[A-Za-z][A-Za-z0-9-]*$/.test(a)", "", ['975']);
+m('E06', 'ce qui n\'est pas du texte n\'est plus écarté AVANT `trim()` (un nombre lève)', F.mail, "  if (typeof brut !== 'string') return null;\n", "", ['975']);
+m('E07', 'les blancs de bord de l\'adresse ne sont plus retirés', F.mail, "const a = brut.trim();", "const a = brut;", ['975']);
+
+/* la boîte comptée */
+m('E08', 'la partie locale n\'est plus passée en minuscules : « Nom@x.fr » et « nom@x.fr » sont deux boîtes', F.mail, "return (sans || local).toLowerCase() + '@'", "return (sans || local) + '@'", ['975']);
+m('E09', 'le domaine n\'est plus passé en minuscules', F.mail, "a.slice(i + 1).toLowerCase();", "a.slice(i + 1);", ['975']);
+m('E10', 'l\'« +étiquette » n\'est plus retirée : « nom+a@x.fr » et « nom@x.fr » sont deux boîtes', F.mail, "sans = local.replace(/\\+.*$/, '');", "sans = local;", ['975']);
+m('E11', 'une partie locale faite de la seule étiquette s\'efface : toutes les adresses « +x@d.fr » tombent dans la même boîte', F.mail, "return (sans || local).toLowerCase()", "return (sans).toLowerCase()", ['975']);
+
+/* les plafonds */
+m('E12', 'dix courriels par 24 heures deviennent onze', F.mail, "const COMPTE_MAX = 10,", "const COMPTE_MAX = 11,", ['975']);
+m('E13', 'deux courriels par boîte et par semaine deviennent trois', F.mail, "const DEST_MAX = 2,", "const DEST_MAX = 3,", ['975']);
+m('E14', 'la fenêtre du compte passe de 24 heures à 48', F.mail, "COMPTE_FENETRE_MS = JOUR;", "COMPTE_FENETRE_MS = 2 * JOUR;", ['975']);
+m('E15', 'la fenêtre d\'une boîte passe de sept à six jours', F.mail, "DEST_FENETRE_MS = 7 * JOUR;", "DEST_FENETRE_MS = 6 * JOUR;", ['975']);
+m('E16', 'le plafond du compte n\'est atteint qu\'au-delà (`>` au lieu de `>=`)', F.mail, "if (n.compte >= COMPTE_MAX)", "if (n.compte > COMPTE_MAX)", ['975']);
+m('E17', 'le plafond d\'une boîte n\'est atteint qu\'au-delà', F.mail, "if (n.destinataire >= DEST_MAX)", "if (n.destinataire > DEST_MAX)", ['975']);
+m2('E18', 'la boîte est jugée avant le compte : un compte plein qui écrit à une boîte pleine reçoit le mauvais motif', [
+  [F.mail, "    if (n.compte >= COMPTE_MAX) throw erreur('courriel_quota_compte');\n    if (n.destinataire >= DEST_MAX) throw erreur('courriel_quota_destinataire');\n",
+    "    if (n.destinataire >= DEST_MAX) throw erreur('courriel_quota_destinataire');\n    if (n.compte >= COMPTE_MAX) throw erreur('courriel_quota_compte');\n"]], ['975']);
+m('E19', 'la fenêtre du compte est décalée d\'une milliseconde : à l\'instant PILE où le plus ancien aurait 24 heures, il ne compte plus', F.mail, "compte: t - COMPTE_FENETRE_MS,", "compte: t - COMPTE_FENETRE_MS + 1,", ['975']);
+m('E20', 'la fenêtre d\'une boîte est décalée d\'une milliseconde', F.mail, "destinataire: t - DEST_FENETRE_MS }", "destinataire: t - DEST_FENETRE_MS + 1 }", ['975']);
+m2('E21', 'la place est prise APRÈS l\'envoi (deux demandes simultanées pour la dernière place passent toutes les deux)', [
+  [F.mail, "    const reserve = stockage.courrierNoter({ uid, destH });         // RÉSERVÉ avant de partir : le plafond se prend dans le même souffle qu'il se vérifie\n", "    let reserve = null;\n"],
+  [F.mail, "    journal('courriel', { etat: 'envoye' });\n    return { ok: true };", "    reserve = stockage.courrierNoter({ uid, destH });\n    journal('courriel', { etat: 'envoye' });\n    return { ok: true };"]], ['975']);
+m('E22', 'un relais qui refuse ne rend plus la place : la panne du relais consomme les plafonds', F.mail, "      stockage.courrierRetirer(reserve);                            // le relais a refusé : la place est rendue\n", "", ['975']);
+m('E23', 'la boîte est comptée sur l\'adresse telle qu\'écrite (la normalisation n\'est plus appliquée)', F.mail, "scelleur.hmac('courrier', 'destinataire', normalisee(adresse))", "scelleur.hmac('courrier', 'destinataire', adresse)", ['975']);
+m('E24', 'l\'adresse normalisée est rangée EN CLAIR à la place de son empreinte', F.mail, "const destH = scelleur.hmac('courrier', 'destinataire', normalisee(adresse));", "const destH = normalisee(adresse);", ['975']);
+
+/* le journal et les erreurs */
+m('E25', 'le journal d\'un échec porte le MESSAGE du relais (qui peut citer un compte) au lieu du nom du refus', F.mail, "nom: (e && (e.code || e.name)) || 'Erreur'", "nom: (e && e.message) || 'Erreur'", ['975']);
+m('E26', 'un échec du relais remonte tel quel (son code, son texte) au lieu de « courriel_echec »', F.mail, "      throw erreur('courriel_echec');", "      throw e;", ['975']);
+m('E27', 'le journal d\'un envoi réussi porte l\'adresse du destinataire', F.mail, "journal('courriel', { etat: 'envoye' });", "journal('courriel', { etat: 'envoye', adresse });", ['975']);
+
+/* le message */
+m('E28', 'le nom affiché de l\'expéditeur ne suit plus le réglage', F.mail, "from: { name: cfg.nom, address: cfg.de }", "from: { name: 'OP MESSAGES', address: cfg.de }", ['975']);
+m('E29', 'l\'adresse d\'expédition est l\'identifiant du compte', F.mail, "from: { name: cfg.nom, address: cfg.de }", "from: { name: cfg.nom, address: cfg.utilisateur || cfg.de }", ['975']);
+m('E30', 'l\'objet est le titre de la réunion (écrit par l\'hôte) au lieu de l\'objet fixe', F.mail, "subject: SUJET,", "subject: reunion.titre,", ['975']);
+m('E31', 'le corps part en HTML au lieu du texte simple', F.mail, "text: corpsDuMessage(", "html: corpsDuMessage(", ['975']);
+m('E32', 'la pièce jointe n\'est plus déclarée comme un calendrier', F.mail, "contentType: 'text/calendar; charset=utf-8; method=PUBLISH'", "contentType: 'application/octet-stream'", ['975']);
+m('E33', 'le type de la pièce jointe perd son paramètre `method=PUBLISH` (que le fichier déclare en METHOD:PUBLISH)', F.mail, "contentType: 'text/calendar; charset=utf-8; method=PUBLISH'", "contentType: 'text/calendar; charset=utf-8'", ['975']);
+m('E34', 'le nom du fichier joint est le titre brut de la réunion', F.mail, "filename: ics.nom({ titre: reunion.titre })", "filename: reunion.titre + '.ics'", ['975']);
+m('E35', 'les en-têtes qui découragent les réponses automatiques sont retirés', F.mail, "        headers: { 'X-Auto-Response-Suppress': 'All', 'Auto-Submitted': 'auto-generated' },\n", "", ['975']);
+m('E36', 'le message part aussi en copie au destinataire (Cc)', F.mail, "to: adresse, subject: SUJET,", "to: adresse, cc: adresse, subject: SUJET,", ['975']);
+m('E37', 'un fichier d\'UNE occurrence dit quand même que la série se répète', F.mail, "corpsDuMessage(hote, reunion, quand, occurrence === undefined || occurrence === null)", "corpsDuMessage(hote, reunion, quand, true)", ['975']);
+m('E38', 'le texte d\'une série dit sa PREMIÈRE occurrence au lieu de la prochaine', F.mail, "(cal.premiereApres({ debut: reunion.debut, fin: reunion.fin, tz: reunion.tz, rep: reunion.repetition, n: reunion.n, jusqua: reunion.jusqua }, t, true) || { debut: reunion.debut }).debut", "reunion.debut", ['975']);
+m('E39', 'le texte ne dit plus le fuseau de la réunion', F.mail, " + ' (heure de ' + r.tz + ')'", "", ['975']);
+m('E40', 'l\'heure du texte est dite en UTC au lieu du fuseau de la réunion', F.mail, "cal.dire(t, fuseauDe(null, r.tz))", "cal.dire(t, 'UTC')", ['975']);
+m('E41', 'le texte ne dit plus qu\'on peut ignorer le message', F.mail, "Si vous ne connaissez pas cette personne, ignorez-le : rien n\\'est inscrit à votre nom.", "", ['975']);
+m('E42', 'l\'occurrence inconnue n\'est plus refusée : un courriel part avec un fichier vide', F.mail, "    if (fichier === null) throw erreur('occurrence_inconnue');\n", "", ['975']);
+m('E43', 'un service sans relais n\'est plus inerte : l\'envoi tente quand même', F.mail, "const ouvert = () => cfg.mode === 'smtp';", "const ouvert = () => true;", ['975']);
+m('E44', 'l\'envoi ne vérifie plus que le relais est ouvert (l\'adresse est jugée d\'abord)', F.mail, "  async function envoyer({ uid, hote, destinataire, reunion, occurrence }) {\n    if (!ouvert()) throw erreur('courriel_non_ouvert');\n", "  async function envoyer({ uid, hote, destinataire, reunion, occurrence }) {\n", ['975']);
+m('E45', '`verifier` ne se connecte plus au relais : il répond « vérifié » sans essayer', F.mail, "    await transporter().verify();\n", "", ['975']);
+
+/* le canal */
+m('E46', 'TLS implicite (« ssl ») n\'est plus demandé à la connexion', F.mail, "secure: cfg.securite === 'ssl'", "secure: false", ['975']);
+m('E47', 'STARTTLS n\'est plus EXIGÉ : un relais qui ne l\'offre pas reçoit l\'identifiant et le mot de passe en clair', F.mail, "requireTLS: cfg.securite === 'starttls'", "requireTLS: false", ['975']);
+m('E48', '« aucune » n\'interdit plus STARTTLS : le relais qui l\'offre est chiffré malgré le choix de l\'exploitant', F.mail, "ignoreTLS: cfg.securite === 'aucune'", "ignoreTLS: false", ['975']);
+m('E49', 'un relais sans identifiant reçoit quand même une tentative d\'authentification', F.mail, "auth: cfg.utilisateur !== null ? { user: cfg.utilisateur, pass: cfg.motDePasse } : undefined,", "auth: { user: cfg.utilisateur, pass: cfg.motDePasse },", ['975']);
+m('E50', 'le mot de passe et l\'identifiant sont permutés', F.mail, "{ user: cfg.utilisateur, pass: cfg.motDePasse }", "{ user: cfg.motDePasse, pass: cfg.utilisateur }", ['975']);
+m('E51', 'le relais joint est toujours 127.0.0.2, pas celui qu\'on a configuré', F.mail, "host: cfg.hote, port: cfg.port,", "host: '127.0.0.2', port: cfg.port,", ['975']);
+m('E52', 'le port configuré n\'est plus lu', F.mail, "host: cfg.hote, port: cfg.port,", "host: cfg.hote, port: 25,", ['975']);
+m('E53', 'un relais muet est attendu trente secondes (le délai de salutation ne suit plus le réglage)', F.mail, "greetingTimeout: cfg.timeoutMs,", "greetingTimeout: 30000,", ['975'],
+  EQ('nodemailer pose le délai de PRISE (`socket.setTimeout`) dès la connexion, avant la salutation : un relais muet échoue au même instant par ce délai-là (E54 est joué par le relais qui gèle APRÈS la salutation)'));
+m('E54', 'un relais qui gèle en pleine conversation est attendu dix minutes (le délai de prise ne suit plus le réglage)', F.mail, "socketTimeout: cfg.timeoutMs,", "socketTimeout: 600000,", ['975']);
+m('E55', 'le délai de connexion ne suit plus le réglage', F.mail, "connectionTimeout: cfg.timeoutMs,", "connectionTimeout: 120000,", ['975'],
+  EQ('la connexion TCP à 127.0.0.1 est immédiate ; un délai de connexion ne se joue pas sans un routeur qui avale les paquets — le délai de salutation (E53) et de prise (E54) sont joués'));
+m('E56', 'le transport peut lire un fichier du disque comme pièce jointe', F.mail, "disableFileAccess: true,", "disableFileAccess: false,", ['975'],
+  EQ('aucun chemin n\'atteint une pièce jointe : le contenu est une chaîne que ce service fabrique ; la garde est une défense en profondeur'));
+m('E57', 'le transport peut lire une adresse web comme pièce jointe', F.mail, "disableUrlAccess: true,", "disableUrlAccess: false,", ['975'],
+  EQ('idem E56 : aucune adresse web n\'atteint une pièce jointe ; défense en profondeur'));
+m('E58', 'la version minimale de TLS n\'est plus posée', F.mail, ", tls: { minVersion: 'TLSv1.2' }", "", ['975'],
+  EQ('le défaut de Node 22 est déjà TLS 1.2 : la ligne protège d\'un défaut futur ou d\'une option de processus (`--tls-min-v1.0`), ce que le banc ne rejoue pas'));
+m('E59', 'l\'arrêt ne ferme plus le transport', F.mail, "if (transport && typeof transport.close === 'function') transport.close();", "", ['975'],
+  EQ('un transport sans pool ferme chaque connexion après son envoi : `close()` n\'a rien à fermer'));
+
+/* la route */
+m('E60', 'la route ne dit plus que le courriel n\'est pas ouvert avant de juger l\'adresse', F.reu, "    if (!courriel || !courriel.ouvert()) return refus(res, 503, 'courriel_non_ouvert');\n", "", ['975']);
+m('E61', 'la route laisse le module juger l\'adresse : une adresse fausse consomme le plafond par minute', F.reu, "typeof b.destinataire !== 'string' || !adresseValide(b.destinataire)", "typeof b.destinataire !== 'string'", ['975']);
+m('E62', 'une occurrence négative n\'est plus refusée par la route (le module répond 404 au lieu de 400)', F.reu, "if (!Number.isInteger(b.occurrence) || b.occurrence < 0) return refus(res, 400, 'champ_invalide');", "if (!Number.isInteger(b.occurrence)) return refus(res, 400, 'champ_invalide');", ['975']);
+m('E63', 'le plafond par minute des courriels est retiré', F.reu, "    if (!plafond(res, 'courriel', hote.id, { max: 5, fenetreMs: 60000 })) return;\n", "", ['975']);
+m('E64', 'le plafond par minute passe de cinq à six', F.reu, "plafond(res, 'courriel', hote.id, { max: 5, fenetreMs: 60000 })", "plafond(res, 'courriel', hote.id, { max: 6, fenetreMs: 60000 })", ['975']);
+m('E65', 'le plafond par minute ne se remplit jamais (fenêtre d\'une milliseconde)', F.reu, "plafond(res, 'courriel', hote.id, { max: 5, fenetreMs: 60000 })", "plafond(res, 'courriel', hote.id, { max: 5, fenetreMs: 1 })", ['975']);
+m('E66', 'le plafond par minute est commun à tous les hôtes (une clé unique)', F.reu, "plafond(res, 'courriel', hote.id, { max: 5, fenetreMs: 60000 })", "plafond(res, 'courriel', 'tous', { max: 5, fenetreMs: 60000 })", ['975']);
+m('E67', 'une réunion annulée s\'envoie encore', F.reu, "    if (reunion.annulee) return refus(res, 409, 'reunion_annulee');\n    if (occurrence === undefined && prochainDe", "    if (occurrence === undefined && prochainDe", ['975']);
+m('E68', 'une réunion finie s\'envoie encore', F.reu, "    if (occurrence === undefined && prochainDe(serieDe(reunion), horloge()) === null) return refus(res, 409, 'reunion_passee');\n", "", ['975']);
+m('E69', 'la route rend aussi l\'adresse du destinataire', F.reu, "    await courriel.envoyer({ uid: hote.id, hote, destinataire: b.destinataire, reunion, occurrence });\n    res.json({ ok: true });", "    await courriel.envoyer({ uid: hote.id, hote, destinataire: b.destinataire, reunion, occurrence });\n    res.json({ ok: true, destinataire: b.destinataire });", ['975']);
+m('E70', 'un relais absent répond 500 au lieu de 503', F.reu, "if (!courriel || !courriel.ouvert()) return refus(res, 503, 'courriel_non_ouvert');", "if (!courriel || !courriel.ouvert()) return refus(res, 500, 'courriel_non_ouvert');", ['975']);
+m('E71', 'une adresse fausse répond 422 au lieu de 400', F.reu, "|| !adresseValide(b.destinataire)) return refus(res, 400, 'courriel_invalide');", "|| !adresseValide(b.destinataire)) return refus(res, 422, 'courriel_invalide');", ['975']);
+m('E72', 'le plafond du compte répond 403 au lieu de 429', F.reu, "courriel_quota_compte: [429, 'courriel_quota_compte']", "courriel_quota_compte: [403, 'courriel_quota_compte']", ['975']);
+m('E73', 'le plafond d\'une boîte répond 403 au lieu de 429', F.reu, "courriel_quota_destinataire: [429, 'courriel_quota_destinataire']", "courriel_quota_destinataire: [403, 'courriel_quota_destinataire']", ['975']);
+m('E74', 'un relais qui refuse répond 500 au lieu de 502', F.reu, "courriel_echec: [502, 'courriel_echec']", "courriel_echec: [500, 'courriel_echec']", ['975']);
+m('E75', 'une occurrence inconnue répond 400 au lieu de 404', F.reu, "occurrence_inconnue: [404, 'occurrence_inconnue']", "occurrence_inconnue: [400, 'occurrence_inconnue']", ['975']);
+
+/* le manifeste, /api/config, le montage */
+m('E76', 'un simple invité peut envoyer l\'invitation (garde R au lieu de H)', F.man, "{ id: 'reunions.courriel', m: 'POST', p: '/api/reunions/:id/courriel',            garde: 'H' }", "{ id: 'reunions.courriel', m: 'POST', p: '/api/reunions/:id/courriel',            garde: 'R' }", ['975', '905']);
+m('E77', 'l\'envoi par courriel devient une fonction Pro', F.man, "{ id: 'reunions.courriel', m: 'POST', p: '/api/reunions/:id/courriel',            garde: 'H' }", "{ id: 'reunions.courriel', m: 'POST', p: '/api/reunions/:id/courriel',            garde: 'H', pro: true }", ['905']);
+m('E78', '/api/config dit toujours que le courriel n\'est pas ouvert', F.routes, "courriel: { ouvert: !!(ctx.courriel && ctx.courriel.ouvert()) },", "courriel: { ouvert: false },", ['975']);
+m('E79', '/api/config dit toujours que le courriel est ouvert', F.routes, "courriel: { ouvert: !!(ctx.courriel && ctx.courriel.ouvert()) },", "courriel: { ouvert: true },", ['975']);
+m('E80', '/api/config publie aussi l\'adresse d\'expédition', F.routes, "courriel: { ouvert: !!(ctx.courriel && ctx.courriel.ouvert()) },", "courriel: { ouvert: !!(ctx.courriel && ctx.courriel.ouvert()), de: ctx.config.courriel.de },", ['975']);
+m('E81', 'le courriel n\'est plus donné aux routes (`ctx.courriel` absent)', F.index, "push, formule, facturation, courriel,", "push, formule, facturation,", ['975']);
+m('E82', 'l\'arrêt du service ne ferme plus le courriel', F.index, "    courriel.arreter();        // ferme la connexion au relais, s'il y en a une\n", "", ['975'],
+  EQ('idem E59 : aucune connexion ne reste ouverte entre deux envois'));
+
+/* la configuration */
+m('E83', 'un hôte vide n\'est plus pris pour « pas de relais » (le service refuse de démarrer)', F.conf, "brut.hote === null || brut.hote === '') {", "brut.hote === null) {", ['975']);
+m('E84', 'un réglage de relais sans hôte ne refuse plus le démarrage (le bloc à moitié posé passe pour inerte)', F.conf, "    for (const k of ['port', 'securite', 'utilisateur', 'mot_de_passe', 'de']) if (brut[k] !== undefined && brut[k] !== null && brut[k] !== '') throw err('courriel.' + k + ' sans courriel.hote : un bloc à moitié posé refuse le démarrage');\n", "", ['975']);
+m('E85', 'l\'hôte n\'est plus contrôlé (une espace, un saut de ligne, une adresse web)', F.conf, "typeof brut.hote !== 'string' || !RE_HOTE.test(brut.hote)", "typeof brut.hote !== 'string'", ['975']);
+m('E86', 'la sécurité par défaut est « ssl » au lieu de « starttls »', F.conf, "brut.securite === undefined ? 'starttls' : brut.securite", "brut.securite === undefined ? 'ssl' : brut.securite", ['975']);
+m('E87', 'une sécurité inconnue est acceptée', F.conf, "if (!SECURITES.includes(securite)) throw", "if (false) throw", ['975']);
+m('E88', '« aucune » est acceptée en production vers n\'importe quel hôte', F.conf, "if (securite === 'aucune' && instance === 'prod' && !local) throw", "if (false) throw", ['975']);
+m('E89', '« aucune » est refusée même vers un relais local (127.0.0.1, localhost)', F.conf, "const local = o.hote === '127.0.0.1' || o.hote === 'localhost';", "const local = false;", ['975']);
+m('E90', 'les ports par défaut sont permutés (ssl 587, starttls 465)', F.conf, "(securite === 'ssl' ? 465 : securite === 'starttls' ? 587 : 25)", "(securite === 'ssl' ? 587 : securite === 'starttls' ? 465 : 25)", ['975']);
+m('E91', 'les bornes du port sont élargies d\'un cran de chaque côté (0 et 65536 passent)', F.conf, "port < 1 || port > 65535", "port < 0 || port > 65536", ['975']);
+m('E92', 'un identifiant sans mot de passe (ou l\'inverse) est accepté', F.conf, "  if ((o.utilisateur === null) !== (o.motDePasse === null)) throw err('courriel.utilisateur et courriel.mot_de_passe vont ensemble (l\\'un sans l\\'autre ne ferait rien)');\n", "", ['975']);
+m('E93', 'un texte sur deux lignes est accepté (identifiant, mot de passe, nom)', F.conf, " || /[\\u0000-\\u001f\\u007f]/.test(v)", "", ['975']);
+m('E94', 'la longueur maximale d\'un texte est ignorée', F.conf, "typeof v !== 'string' || v.length > max ||", "typeof v !== 'string' ||", ['975']);
+m('E95', 'l\'adresse d\'expédition n\'est plus exigée ni validée', F.conf, "  if (de === null || !RE_ADRESSE_MEL.test(de)) throw err('courriel.de doit être l\\'adresse d\\'expédition (nom@domaine) : sans elle, le courriel n\\'a pas d\\'expéditeur');\n", "", ['975']);
+m('E96', 'un délai de moins d\'une seconde est accepté', F.conf, "brut.timeoutMs < 1000", "brut.timeoutMs < 0", ['975']);
+m('E97', 'un délai de plus de soixante secondes est accepté', F.conf, "brut.timeoutMs > 60000", "brut.timeoutMs > 6000000", ['975']);
+m('E98', 'le mot de passe devient énumérable : un `JSON.stringify(config)` l\'emporte', F.conf, "{ value: o.motDePasse, enumerable: false, writable: false, configurable: false }", "{ value: o.motDePasse, enumerable: true, writable: false, configurable: false }", ['975']);
+m('E99', 'le nom affiché par défaut n\'est plus « OP MESSAGES »', F.conf, "de: null, nom: 'OP MESSAGES', timeoutMs: 15000 }", "de: null, nom: 'MESSAGES', timeoutMs: 15000 }", ['975']);
+m('E100', 'un bloc qui est une liste est accepté (pris pour un bloc vide)', F.conf, "if (!brut || typeof brut !== 'object' || Array.isArray(brut)) throw err('courriel doit être un objet');", "if (!brut || typeof brut !== 'object') throw err('courriel doit être un objet');", ['975']);
+m('E101', 'le service ne lit plus la section `courriel` de la configuration', F.conf, "    courriel: courrielConfig(cfg, instance),\n", "", ['975']);
+
+/* l'outil */
+m('E102', 'l\'outil valide avec les règles de la BÊTA : « aucune » vers un relais distant passe', F.cfgmail, "  try { valide = courrielConfig({ courriel: brut }, 'prod'); } catch (e) { echec(sansPrefixe(e)); }", "  try { valide = courrielConfig({ courriel: brut }, 'beta'); } catch (e) { echec(sansPrefixe(e)); }", ['975']);
+m('E103', 'l\'outil n\'éprouve plus le relais avant d\'écrire (un mot de passe faux est écrit)', F.cfgmail, "  if (pourquoi) echec('essai du relais : ' + pourquoi);\n", "", ['975']);
+m('E104', '`--verifier` ne sort plus en erreur quand le relais refuse', F.cfgmail, "    if (pourquoi) echec('essai du relais : ' + pourquoi, false);\n", "", ['975']);
+m('E105', '`--verifier` ne dit plus qu\'aucun relais n\'est configuré', F.cfgmail, "    if (valide.mode !== 'smtp') echec('rien à vérifier : aucun relais n\\'est configuré, l\\'envoi par courriel est INERTE (la page le dit). Pour le poser, relancer ce script sans « --verifier ».', false);\n", "", ['975']);
+m('E106', 'le mot de passe saisi est réécrit à l\'écran (la saisie n\'est plus masquée)', F.cfgmail, "await demander('Mot de passe d\\'APPLICATION (masqué)         : ', true)", "await demander('Mot de passe d\\'APPLICATION (masqué)         : ', false)", ['975']);
+m('E107', 'l\'identifiant saisi est réécrit à l\'écran', F.cfgmail, "await demander('Identifiant du compte (masqué, vide = aucun) : ', true)", "await demander('Identifiant du compte (masqué, vide = aucun) : ', false)", ['975']);
+m('E108', 'l\'outil imprime le texte de la réponse du relais (qui peut citer un compte)', F.cfgmail, "function diagnostic(e) {\n", "function diagnostic(e) {\n  if (e && e.message) return String(e.message);\n", ['975']);
+m('E109', 'un identifiant refusé n\'est plus dit « identifiant ou mot de passe refusé »', F.cfgmail, "if (c === 'EAUTH') return", "if (c === 'EAUTHX') return", ['975']);
+m('E110', 'un relais qui refuse la connexion n\'est plus dit tel', F.cfgmail, "if (/ECONNREFUSED|EHOSTUNREACH|ENETUNREACH/.test(m)) return", "if (false) return", ['975']);
+m2('E111', 'le fichier de configuration est écrit lisible par tous (0644)', [
+  [F.cfgmail, "{ mode: 0o600, flag: 'wx' }", "{ mode: 0o644, flag: 'wx' }"], [F.cfgmail, "fs.chmodSync(tmp, 0o600);", "fs.chmodSync(tmp, 0o644);"], [F.cfgmail, "fs.chmodSync(CONFIG_PATH, 0o600);", "fs.chmodSync(CONFIG_PATH, 0o644);"]], ['975']);
+m('E112', 'le délai de connexion déjà posé est perdu à chaque nouvelle pose', F.cfgmail, "  if (avant.timeoutMs !== undefined) brut.timeoutMs = avant.timeoutMs;\n", "", ['975']);
+m('E113', 'les autres clés du fichier de configuration sont perdues', F.cfgmail, "const apres = Object.assign({}, config, { courriel: brut });", "const apres = { courriel: brut };", ['975']);
+m('E114', 'un port qui n\'est pas un nombre n\'est plus refusé AVANT la validation', F.cfgmail, "if (!/^\\d{1,5}$/.test(port)) echec('Le port est un nombre entre 1 et 65535.'); ", "", ['975']);
+m('E115', 'la sécurité laissée vide vaut « aucune » (le défaut ne chiffre plus)', F.cfgmail, "|| 'starttls';", "|| 'aucune';", ['975']);
+m('E116', 'une option inconnue est ignorée (l\'outil se lance et écrit)', F.cfgmail, "  for (const a of ARGS) if (a !== '--verifier') echec('option inconnue (« --verifier » est la seule).');\n", "", ['975']);
+m('E117', 'un identifiant sans mot de passe n\'est plus refusé par l\'outil lui-même', F.cfgmail, "  if (utilisateur && !motDePasse) echec('Un identifiant sans mot de passe ne ferait rien.');\n", "", ['975']);
+m('E118', 'l\'outil n\'exige plus l\'hôte ni l\'adresse d\'expédition', F.cfgmail, "  if (!hote || !de) echec('Une valeur manque (l\\'hôte et l\\'adresse d\\'expédition sont obligatoires).');\n", "", ['975']);
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const DOSSIERS_COPIE = ['server-msg', 'server', 'design/opmessages', '.github', 'apercu/opmessages', 'icons', 'scripts'];   // `.github` ENTIER : test-934 lit les workflows autant que les scripts de surveillance
 function copier(src, dst) {

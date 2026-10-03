@@ -91,9 +91,10 @@ tests/test-963.js
 tests/test-964.js
 tests/test-965.js
 #
-# ── Les réunions programmées (étape 6, 3 octobre 2026) : le calendrier (970), le fichier .ics lu par un agenda indépendant (971), le stockage (972), les routes en HTTP (973), le planificateur de rappels (974) ──
+# ── Les réunions programmées (étape 6, 3 octobre 2026) : le calendrier (970), le fichier .ics lu par un agenda indépendant (971), le stockage (972), les routes en HTTP (973), le planificateur de rappels (974), le courriel d'invitation contre un faux relais SMTP et l'outil de configuration (975) ──
 tests/test-970.js
 tests/test-971.js
 tests/test-972.js
 tests/test-973.js
 tests/test-974.js
+tests/test-975.js

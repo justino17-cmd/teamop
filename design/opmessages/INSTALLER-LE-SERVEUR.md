@@ -1,7 +1,7 @@
 # Installer le serveur d'OP MESSAGES — les gestes de Justin, dans l'ordre
 
 Pour `design/opmessages/SERVEUR.md` § 4, étape 1 (« gestes de Justin »), puis l'étape 2 (les SMS, section 10 bis) et l'étape 3 (la sauvegarde,
-section 10 ter), puis les notifications (section 10 quater) et Messages Pro (l'étape 5 : Stripe, section 10 quinquies). Ce document dit **chaque geste**,
+section 10 ter), puis les notifications (section 10 quater), Messages Pro (l'étape 5 : Stripe, section 10 quinquies) et les réunions programmées (l'étape 6 : le courriel d'invitation, section 10 sexies). Ce document dit **chaque geste**,
 ce que tu **colles** et ce que tu dois **voir**. Si ce n'est pas ce qui s'affiche, **on s'arrête** et tu
 recolles la sortie dans la conversation — on ne continue jamais « en espérant ».
 
@@ -19,6 +19,7 @@ secrets d'OP MESSAGES (la clé maître, la clé SSH de déploiement, la paire VA
 | clé de **sauvegarde** (64 hexadécimaux, **différente** de la clé maître) | sur **ton Mac**, dans le presse-papiers | ton gestionnaire de mots de passe, puis `/etc/opmsg/beta.json` (saisie masquée) | **jamais** |
 | clés d'accès du **coffre de sauvegarde** (clé d'accès + clé secrète) | la console IONOS | ton gestionnaire de mots de passe, puis `/etc/opmsg/beta.json` (saisie masquée) | **jamais** |
 | clé Stripe **restreinte** d'OP MESSAGES (`rk_test_…`, puis `rk_live_…`) | le tableau de bord Stripe | ton gestionnaire de mots de passe, puis `/etc/opmsg/beta.json` (saisie masquée) | **jamais** (les identifiants de tarif `price_…`, eux, ne sont pas des secrets) |
+| identifiant et **mot de passe d'application** du relais SMTP (courriel d'invitation) | la console de ton fournisseur de messagerie | ton gestionnaire de mots de passe, puis `/etc/opmsg/beta.json` (saisie masquée) | **jamais** (l'hôte, le port et l'adresse d'expédition, eux, ne sont pas des secrets) |
 
 ⚠️ **Tant que le code d'OP MESSAGES (`server-msg/`) n'est pas sur `main`, rien de ceci n'est possible** : le
 script d'installation copie le déployeur et la pose de clé depuis `main`. On attend donc le « pousse ».
@@ -662,6 +663,83 @@ Une clé `rk_live_…` restreinte et deux tarifs de production, posés par le m�
 n'est pas envoyée à personne), et **créer un espace est une fonction Pro** : le **premier espace** d'une entreprise ne peut donc pas naître d'une création libre. L'entrée prévue est le lien créé par TEAM OP (« Ce qui reste à trancher » de la
 conception, question 15) — ce geste n'existe pas encore, et c'est ce qui sépare la bêta de la production pour cet écran.
 
+## 10 sexies. Le courriel d'OP MESSAGES (les invitations aux réunions) — pour l'étape 6, avant d'ouvrir « Envoyer par courriel »
+
+Une réunion programmée peut être envoyée **par courriel** à quelqu'un qui n'a pas OP MESSAGES : le message porte un fichier `.ics` que son agenda sait lire. Tant que ces gestes ne sont pas faits, **rien ne casse et
+rien ne part** : le service est **inerte et le dit** — la page affiche « l'envoi par courriel n'est pas encore ouvert » (la route répond 503 `courriel_non_ouvert`, et `/api/config` dit `"courriel":{"ouvert":false}`).
+Il n'y a **aucune urgence** : le reste des réunions (l'agenda, les invités dans l'application, les rappels, le fichier `.ics` à télécharger) marche sans.
+
+⛔ **Le mot de passe du compte de messagerie est un secret** : il va **de la console de ton fournisseur à ton gestionnaire de mots de passe**, puis **au VPS en saisie masquée** (`configurer-courriel.js`). Tu ne le
+recolles **jamais** dans la conversation, et le service ne l'écrit nulle part où tu pourrais le recoller par mégarde (ni `/health`, ni `/api/config`, ni les journaux, ni une réponse d'erreur). Ce que tu peux recoller :
+l'hôte, le port, le mode de sécurité, l'adresse d'expédition, et tout ce que le script affiche.
+
+### Ce que ce courriel est — et n'est pas
+
+- **Un message au gabarit FIXE.** L'objet est toujours « Invitation à une réunion — OP MESSAGES », le corps est du **texte simple** (aucune image, aucun lien) : le nom de l'hôte, le titre, l'heure dans le fuseau de la réunion,
+  le lieu, une phrase qui dit d'où vient le message et qu'on peut l'ignorer. Ce que l'hôte écrit (le titre, le lieu) y entre **comme du texte**, une seule fois. Un service qui laisserait écrire l'objet et le corps serait un
+  relais de courriers non sollicités.
+- **Sans réponse possible** (aucune adresse de l'hôte n'est connue ni donnée) et **sans rien inscrire** au nom du destinataire.
+- **Plafonné, durablement** (un redémarrage ne remet rien à zéro) : **10 courriels par compte et par 24 heures**, **2 par destinataire et par 7 jours** (la *boîte*, pas l'écriture : « Nom+1@… » et « nom@… » sont la même),
+  et 5 par minute par personne. Un relais qui refuse **ne consomme pas** la place.
+- **L'adresse du destinataire n'est écrite NULLE PART** : ni dans la base (seule une empreinte sert à compter les plafonds), ni dans un journal, ni dans `/health`. Le journal du service ne dit que `{"evt":"courriel","etat":"envoye"}`
+  ou `{"evt":"courriel","etat":"echec","nom":"EAUTH"}` — l'état, et le **nom** du refus, jamais une adresse ni le texte du relais.
+
+### 1. Choisir l'expéditeur
+
+Une **boîte dédiée**, sur ton domaine (par exemple `invitations@…`), chez le fournisseur qui héberge déjà tes courriels. Pour un compte de messagerie ordinaire, le relais veut un **mot de passe d'application** (créé dans la
+console du fournisseur, révocable) — **jamais** le mot de passe principal de la boîte.
+
+⚠️ **Ce que je n'ai PAS pu vérifier** : je n'ai pas ton fournisseur. Trois choses sont à constater chez lui, pas ici : (1) son **hôte et son port** SMTP (587 avec `starttls`, ou 465 avec `ssl`) ; (2) les réglages **SPF, DKIM et
+DMARC** du domaine expéditeur — sans eux, les invitations arrivent en indésirables, et c'est un réglage de DNS que le service ne peut pas faire à ta place ; (3) son **plafond d'envois par jour**, qu'il faut relire (nos plafonds
+sont bien plus bas, mais un compte partagé avec d'autres usages peut déjà être entamé). Et l'envoi **réel** — un courriel qui arrive vraiment dans une boîte — n'a jamais été constaté : c'est la vérification du geste 3.
+
+### 2. Les poser sur le VPS — saisie masquée
+
+Sur le VPS, en root :
+
+```bash
+OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/configurer-courriel.js
+```
+
+Il demande l'hôte, la sécurité (`starttls` par défaut, `ssl`, ou `aucune` — **seulement vers un relais local**), le port, l'**identifiant** et le **mot de passe d'application** (**masqués** : rien ne s'affiche pendant la
+frappe), l'adresse d'expédition et le nom affiché. Il **éprouve le relais avant d'écrire** : une connexion, la sécurité demandée, l'authentification — **et rien d'autre, aucun courriel ne part**. Un identifiant faux, un mauvais port,
+un mode de sécurité qui ne correspond pas (« ssl » sur le port 587) se savent tout de suite, avec une phrase lisible (jamais le texte de la réponse du relais, qui peut citer un compte). Il n'écrit le fichier qu'une fois tout
+validé (temporaire en 0600, propriétaire conservé, relu par le **même code** que le démarrage du service, les autres clés vérifiées intactes, puis renommé). **Ce qu'il affiche peut se recoller.** Puis :
+
+```bash
+systemctl restart teamop-msg@beta
+```
+
+Pour relire la configuration posée et réessayer le relais, sans rien changer et sans envoyer de courriel : `OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/configurer-courriel.js --verifier`.
+
+⛔ **La production n'accepte pas l'envoi en clair** : `aucune` est refusée hors d'un relais local, quelle que soit l'instance (le script applique la règle de la production). Un certificat que la machine ne connaît pas est
+refusé — aucun réglage ne désactive la vérification.
+
+### 3. Vérifier — une vraie invitation à ta propre adresse
+
+```bash
+curl -s https://msg-beta.teamop.fr/api/config
+```
+
+**À voir** : `"courriel":{"ouvert":true}` (et rien d'autre du relais : ni l'hôte, ni l'identifiant). Puis, dans l'application : programme une réunion, ouvre-la, **« Envoyer par courriel »**, ta **propre** adresse. **À voir** :
+le courriel dans la minute, l'objet « Invitation à une réunion — OP MESSAGES », le texte simple, la pièce jointe `.ics` ; ouvre-la : elle s'ajoute à ton agenda **à la bonne heure, dans ton fuseau**.
+
+**Si rien n'arrive** : la page dit une phrase par cause (« le courriel n'a pas pu partir… », « cette adresse n'est pas valable », le plafond atteint). Dans le journal du service
+(`journalctl -u teamop-msg@beta | grep '"evt":"courriel"'`), la ligne d'échec porte le **nom** du refus : `EAUTH` (identifiant ou mot de passe refusé), `ESOCKET`/`ECONNECTION` (relais injoignable ou mauvais port),
+`ETIMEDOUT` (il ne répond pas), `ETLS` (le chiffrement demandé n'a pas pu s'établir), `EENVELOPE` (le relais refuse CE destinataire), `EMESSAGE` (il refuse le message). Colle cette ligne — elle ne contient ni adresse ni secret.
+
+### 4. Ce qui se passe seul, ce qui ne crie pas
+
+- **Rien ne tourne en fond** pour le courriel : il part quand l'hôte le demande, et seulement alors.
+- **`/health` ne dit rien du courriel**, volontairement : un relais en panne se voit à la réponse de la page (« le courriel n'a pas pu partir »), pas à une alarme muette — et une invitation qui ne part pas ne prive personne
+  de rien (l'invité reçoit déjà la réunion dans l'application, ou télécharge le fichier lui-même).
+- **La configuration est lue au démarrage** : changer de relais (ou de mot de passe, après sa révocation) = relancer le script, puis redémarrer le service.
+
+### 5. Ce que le fournisseur de messagerie reçoit (pour les textes légaux)
+
+Il transporte chaque invitation : il reçoit **l'adresse du destinataire, le prénom et le nom de l'hôte, le titre, le lieu et l'heure de la réunion**, et le fichier `.ics`. C'est un **sous-traitant** à nommer dans les mentions
+et la politique de confidentialité (comme OVHcloud pour les SMS). OP MESSAGES, lui, ne **garde** aucune adresse de destinataire : une empreinte pour compter les plafonds, rien de plus.
+
 ---
 
 ## 11. La production — PAS MAINTENANT
@@ -706,7 +784,7 @@ L'instance `prod` ne s'installe que sur ta phrase **« publie OP MESSAGES »**, 
 - **Pas de sauvegarde hors site à l'installation** : elle se pose à part, section 10 ter (bucket distinct, clés propres, exercice de
   restauration). Les données de la bêta sont **jetables** et le disent ; **aucune personne extérieure à l'équipe** n'entre avant
   qu'un essai de restauration ait réussi.
-- **Pas de TURN** (appels), pas de courriel d'envoi : étapes 7 et 2. **Stripe** (Messages Pro) se pose à part, section 10 quinquies, en mode test d'abord ; sans clé, la facturation est inerte et le dit.
+- **Pas de TURN** (appels) : étape 7. **Stripe** (Messages Pro) se pose à part, section 10 quinquies, en mode test d'abord ; sans clé, la facturation est inerte et le dit. Le **courriel** (les invitations aux réunions) se pose à part, section 10 sexies ; sans relais, il est inerte et le dit.
 - **Pas de pare-feu ni de bande passante** : non vérifiés (§ 6 de la conception).
 - **Aucune modification de `app.html`, `sw.js`** ni du bloc d'`api.teamop.fr`. Côté `server/`, deux lignes seulement
   (l'identifiant de compte dans `/api/beta/login`, la liste `ids` dans `/api/beta/etat`) — voir l'ordre du « pousse » plus haut.

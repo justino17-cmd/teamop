@@ -108,6 +108,13 @@
     hote_reponse: 'Tu organises cette réunion : tu n\'as pas à y répondre.',
     reunion_quitter: 'On ne quitte pas la conversation d\'une réunion : refuse l\'invitation (tu ne seras plus rappelé), ou demande à l\'organisateur de te retirer.',
     occurrence_inconnue: 'Cette date ne fait pas partie de la réunion.',
+    /* l'invitation par courriel : chaque refus a sa phrase, et aucune ne promet ce que le service ne tient pas (« l'envoi par courriel n'est pas encore ouvert » est la vérité d'un service sans relais) */
+    courriel_non_ouvert: 'L\'envoi par courriel n\'est pas encore ouvert.',
+    courriel_invalide: 'Cette adresse courriel n\'est pas valable.',
+    courriel_quota_compte: 'Tu as déjà envoyé dix invitations par courriel ces dernières 24 heures : réessaie plus tard.',
+    courriel_quota_destinataire: 'Cette adresse a déjà reçu deux invitations de ta part cette semaine : réessaie dans quelques jours.',
+    courriel_echec: 'Le courriel n\'a pas pu partir. Il n\'est pas compté dans tes envois : réessaie dans un moment.',
+    reunion_passee: 'Cette réunion est terminée : il n\'y a plus rien à envoyer.',
     erreur_interne: 'Une erreur est survenue de notre côté. Réessaie.',
     serveur: 'Le service ne répond pas correctement. Réessaie dans un instant.',
     reseau: 'Pas de connexion au service. Vérifie ton réseau.',
@@ -364,6 +371,8 @@
       retirerInviteReunion: (id, uid) => appel('POST', '/api/reunions/' + e(id) + '/retirer', { uid }),
       repondreReunion: (id, statut) => appel('POST', '/api/reunions/' + e(id) + '/reponse', { statut }),
       rappelsReunion: (id, rappels) => appel('POST', '/api/reunions/' + e(id) + '/rappels', { rappels }),
+      /* l'invitation par courriel à quelqu'un qui n'a pas OP MESSAGES (le fichier .ics en pièce jointe) : l'adresse n'est ni rangée ni rendue par le service */
+      courrielReunion: (id, destinataire, o2) => appel('POST', '/api/reunions/' + e(id) + '/courriel', Object.assign({ destinataire }, o2 || {})),
       /* l'adresse du fichier .ics (la page le télécharge par un lien : le cookie de session suit) — une occurrence (son début, en millisecondes), ou toute la série */
       adresseIcs: (id, o2) => base + '/api/reunions/' + e(id) + '/ics' + rq(o2 && o2.occurrence ? { occurrence: o2.occurrence } : { serie: 1 }),
 

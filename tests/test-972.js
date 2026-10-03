@@ -571,6 +571,13 @@ function suiteEffacement() {
     a.h.t += 6 * JOUR;
     v('on élague ce qui est plus vieux que la semaine : le registre ne grossit pas (huit jours après les envois, les quatre lignes partent)', [re2.courrierElaguer(a.h.t - 7 * JOUR), a.brut().prepare('SELECT COUNT(*) AS n FROM courrier_envoi').get().n], [4, 0]);
     vrai('⛔ aucune adresse n\'est rangée : la table ne porte qu\'une empreinte', (() => { const cols = a.brut().prepare('PRAGMA table_info(courrier_envoi)').all().map(c => c.name); return cols.join() === 'id,uid,dest_h,ts'; })());
+    {
+      /* un envoi se RÉSERVE (il compte tout de suite) et se RETIRE s'il n'est finalement pas parti */
+      const t = a.h.t, res = re2.courrierNoter({ uid: ana.id, destH: H2 }), res2 = re2.courrierNoter({ uid: ana.id, destH: H2 });
+      const compte = () => re2.courrierCompter({ uid: ana.id, destH: H2, depuis: depuis(t) });
+      v('⛔ réserver un envoi rend son identifiant, et il COMPTE tout de suite (deux réservations de suite : le plafond de deux par destinataire est atteint avant que le premier courriel soit parti)', [Number.isInteger(res), res !== res2, compte()], [true, true, { compte: 2, destinataire: 2 }]);
+      v('… le retirer (le relais a refusé) rend la place ; retirer deux fois ne fait rien de plus ; un identifiant inconnu non plus', [re2.courrierRetirer(res), compte(), re2.courrierRetirer(res), re2.courrierRetirer(999999), compte()], [true, { compte: 1, destinataire: 1 }, false, false, { compte: 1, destinataire: 1 }]);
+    }
     re2.fermer();
   }
 

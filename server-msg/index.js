@@ -37,6 +37,7 @@ const { creerPush } = require('./push');
 const { creerFormule } = require('./formule');
 const { creerFacturation } = require('./facturation');
 const { creerPlanificateur } = require('./planificateur');
+const { creerCourriel } = require('./courriel');
 
 const VERSION = '1.4.0-espaces';
 const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays']);   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
@@ -81,6 +82,8 @@ function demarrer(env = process.env) {
   const facturation = creerFacturation({ stockage, config, formule, journaliser, horloge: Date.now });
   /* ⛔ LES RAPPELS DES RÉUNIONS : UNE instance planifie (le bail), un rappel part UNE seule fois (le registre), l'horloge est injectée. Voir `planificateur.js`. */
   const planificateur = creerPlanificateur({ stockage, hub, config, horloge: Date.now, journaliser, push });
+  /* ⛔ LE COURRIEL D'INVITATION : inerte sans relais SMTP (`config.courriel`), et le DIT. Le mot de passe du relais reste dans `config` ; `/api/config` ne publie que `courriel.ouvert`. */
+  const courriel = creerCourriel({ config, stockage, scelleur, horloge: Date.now, journaliser });
   const porte = config.instance === 'beta' ? creerPorteBeta({ config, quotas, stockage, horloge: Date.now }) : null;
   /* Les SMS : la configuration est VALIDÉE ici (un budget négatif, des identifiants à moitié posés, une URL d'OVH étrangère en production
      refusent le démarrage plutôt que de tourner de travers), puis la garde (budgets, emballement, bouclier) et l'envoi par OVH. */
@@ -103,7 +106,7 @@ function demarrer(env = process.env) {
 
   const ctx = {
     config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION, scelleur, sms,
-    pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation,
+    pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation, courriel,
     maxMembres: stockageMod.MAX_MEMBRES, delaiModifMs: stockageMod.DELAI_MODIF_MS,
     disque: { bas: () => disqueBas, libreMo },
     /* ⛔ /health est PUBLIQUE et AGRÉGÉE : des nombres et des états, jamais un identifiant, un
@@ -208,6 +211,7 @@ function demarrer(env = process.env) {
     push.arreter();
     facturation.arreter();
     planificateur.arreter();   // REND le bail : la prochaine instance n'attend pas son échéance
+    courriel.arreter();        // ferme la connexion au relais, s'il y en a une
     boucle.disable();
     hub.arreter();
     await sauvegarde.arreter();   // une passe en cours reconnaît l'arrêt (deux secondes au plus) ; ce n'est pas un échec

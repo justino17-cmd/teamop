@@ -132,6 +132,9 @@ const MANIFESTE = [
   { id: 'reunions.reponse',  m: 'POST', p: '/api/reunions/:id/reponse',              garde: 'R' },
   { id: 'reunions.rappels',  m: 'POST', p: '/api/reunions/:id/rappels',              garde: 'R' },
   { id: 'reunions.ics',      m: 'GET',  p: '/api/reunions/:id/ics',                  garde: 'R' },
+  /* L'invitation par COURRIEL (`courriel.js`) : l'hôte seul, à l'adresse qu'il saisit — inerte (503) tant qu'aucun relais n'est configuré. Pas `pro` : la fonction Pro est de PROGRAMMER ; ce qui est
+     programmé reste à son hôte, comme la modification et l'annulation. */
+  { id: 'reunions.courriel', m: 'POST', p: '/api/reunions/:id/courriel',            garde: 'H' },
 ];
 
 module.exports = { MANIFESTE };
