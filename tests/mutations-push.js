@@ -211,6 +211,12 @@ m('C15', 'la sourdine de « 8 heures » dure une heure', F.src, "'8h': 8 * 36000
 m('C16', 'la sourdine « toujours » dépasse les dix ans que le service accepte (elle serait refusée)', F.src, 'tj: 9 * 365 * 86400000', 'tj: 11 * 365 * 86400000', ['958']);
 m('C17', 'la phrase de l\'iPhone ne dit plus de rouvrir l\'application depuis son icône (l\'écran d\'accueil ne suffit pas : il faut la lancer depuis là)', F.src, ', puis rouvre-le depuis son icône.', '.', ['958']);
 
+/* ── L'ADAPTATEUR RÉEL DU NAVIGATEUR (`navigateurReel`) : test-958 le remplace par un faux navigateur, seule la sonde l'exerce dans un VRAI navigateur ── */
+m('C20', 'un iPhone hors écran d\'accueil n\'est plus reconnu : l\'interrupteur grisé ne dit plus d\'ajouter la page à l\'écran d\'accueil', F.src, "return { ok: false, raison: iOS() && !autonome() ? 'ios' : 'navigateur' };", "return { ok: false, raison: 'navigateur' };", ['sonde'], SONDE);
+m('C21', 'une page CACHÉE se dit visible (l\'adaptateur du navigateur ne lit plus la visibilité) : elle acquitte ce qu\'elle ne montre pas', F.src, "visible: () => !doc || doc.visibilityState === 'visible',", 'visible: () => true,', ['sonde'], SONDE);
+m('C22', 'le service worker est demandé à une adresse qui n\'existe pas (l\'enregistrement échoue, aucune notification ne peut s\'activer)', F.src, "await nav.serviceWorker.register('/sw.js', { scope: '/' });", "await nav.serviceWorker.register('/sw2.js', { scope: '/' });", ['sonde'], SONDE);
+m('C23', 'l\'abonnement du navigateur n\'est plus « visible seulement » (Chrome le refuse : un push silencieux)', F.src, 'userVisibleOnly: true', 'userVisibleOnly: false', ['sonde'], SONDE);
+
 /* ══ 9. LE SERVICE WORKER, LE MANIFESTE, LA POLITIQUE DE LA PAGE, LE GÉNÉRATEUR ═══════════════════════════════════════════════════════════════════════════ */
 m('W01', 'le générateur ne refuse plus un sw.js qui s\'interpose entre la page et le réseau (fetch, cache, importScripts…)', F.gen,
   String.raw`if (/addEventListener\(\s*['"]fetch['"]|\bonfetch\b|\bcaches\b|\bimportScripts\b|\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b/.test(codeSw)) jette(`, 'if (false) jette(', ['941']);
@@ -259,7 +265,9 @@ function lancer(dir, suite) {
   return new Promise((resolve) => {
     const sonde = suite === 'sonde';
     const f = sonde ? 'sonde-opmessages-push.js' : fs.readdirSync(path.join(dir, 'tests')).find(x => x.startsWith('test-' + suite) && x.endsWith('.js'));
-    const env = Object.assign({}, process.env, sonde ? { NODE_PATH: process.env.NODE_PATH || '/opt/node22/lib/node_modules/playwright/node_modules' } : {});
+    /* ⛔ la sonde lance un VRAI Chromium, dont le dossier de profil porte une prise Unix (`SingletonSocket`, 107 octets de chemin au plus) : sous un TMPDIR long (le brouillon d'une session distante),
+       « le navigateur ne démarre pas » — pris en lançant ce fichier avec TMPDIR=<brouillon>. La sonde garde donc un TMPDIR COURT (`TMPDIR_SONDE`, par défaut /tmp), les copies, elles, restent où on les met. */
+    const env = Object.assign({}, process.env, sonde ? { NODE_PATH: process.env.NODE_PATH || '/opt/node22/lib/node_modules/playwright/node_modules', TMPDIR: process.env.TMPDIR_SONDE || '/tmp' } : {});
     const p = spawn(process.execPath, [path.join(dir, 'tests', f)], { cwd: dir, stdio: ['ignore', 'pipe', 'pipe'], env });
     let sortie = ''; p.stdout.on('data', d => { sortie += d; }); p.stderr.on('data', d => { sortie += d; });
     const minuteur = setTimeout(() => { try { p.kill('SIGKILL'); } catch (e) { /* déjà mort */ } }, DELAI_MS);

@@ -184,7 +184,7 @@ async function parcours(b, ctx) {
     const livrer = (S, charge) => S.ctx.serviceWorkers()[0].evaluate(async (data) => {
       self.dispatchEvent(new PushEvent('push', { data }));
       const debut = Date.now();
-      for (;;) { const ns = await self.registration.getNotifications(); if (ns.length) return ns.map(n => ({ title: n.title, body: n.body, tag: n.tag, data: n.data, icon: new URL(n.icon).pathname })); if (Date.now() - debut > 4000) return []; await new Promise(r => setTimeout(r, 25)); }
+      for (;;) { const ns = await self.registration.getNotifications(); if (ns.length) return ns.map(n => ({ title: n.title, body: n.body, tag: n.tag, data: n.data, icon: new URL(n.icon).pathname })); if (Date.now() - debut > 10000) return []; await new Promise(r => setTimeout(r, 25)); }
     }, JSON.stringify(charge));
     const montre = await livrer(A, chargeEssai);
     v('⛔ le vrai sw.js MONTRE la notification, avec le titre, le texte, l\'icône du dépôt et l\'adresse à ouvrir', montre.map(n => [n.title, n.body, n.icon, n.data.url]), [['OP MESSAGES', 'Les notifications fonctionnent sur cet appareil.', '/opmsg-192.png', '/']]);
@@ -192,7 +192,7 @@ async function parcours(b, ctx) {
     v('la charge n\'est pas sa propre sentinelle : une charge ILLISIBLE montre quand même « Nouveau message » (Safari retire l\'abonnement d\'un push silencieux)',
       (await A.ctx.serviceWorkers()[0].evaluate(async () => {
         self.dispatchEvent(new PushEvent('push', { data: 'pas du json {{{' }));
-        const debut = Date.now(); for (;;) { const ns = await self.registration.getNotifications(); if (ns.length) { const r = ns.map(n => [n.title, n.body]); for (const n of ns) n.close(); return r; } if (Date.now() - debut > 4000) return []; await new Promise(r => setTimeout(r, 25)); }
+        const debut = Date.now(); for (;;) { const ns = await self.registration.getNotifications(); if (ns.length) { const r = ns.map(n => [n.title, n.body]); for (const n of ns) n.close(); return r; } if (Date.now() - debut > 10000) return []; await new Promise(r => setTimeout(r, 25)); }
       })), [['OP MESSAGES', 'Nouveau message']]);
 
     /* ⛔ le sw.js ne croit pas la charge sur parole : l'adresse d'ailleurs, relative au schéma, d'un autre schéma ou d'un autre type devient « / » ; seule une adresse de CE site garde son chemin */
@@ -202,17 +202,19 @@ async function parcours(b, ctx) {
         const lire = async (charge) => {
           self.dispatchEvent(new PushEvent('push', { data: JSON.stringify(charge) }));
           const debut = Date.now();
-          for (;;) { const ns = await self.registration.getNotifications({ tag: 'adr' }); if (ns.length) { const u = ns[0].data.url; for (const n of ns) n.close(); return u; } if (Date.now() - debut > 4000) return null; await new Promise(r => setTimeout(r, 25)); }
+          for (;;) { const ns = await self.registration.getNotifications({ tag: charge.tag }); if (ns.length) { const u = ns[0].data.url; for (const n of ns) n.close(); return u; } if (Date.now() - debut > 8000) return null; await new Promise(r => setTimeout(r, 25)); }
         };
         const sortie = [];
-        for (const url of ['https://evil.example/x', '//evil.example/x', 'javascript:alert(1)', 'https://evil.example/#messages/' + conv, '/#messages/' + conv, undefined, 42]) sortie.push(await lire({ titre: 'T', corps: 'C', tag: 'adr', url }));
+        /* ⛔ UNE ÉTIQUETTE PAR ESSAI : fermer une notification est asynchrone, et la suivante, de même étiquette, aurait relu l'ancienne (pris sous charge : la mesure rendait l'adresse du tour d'avant) */
+        let i = 0;
+        for (const url of ['https://evil.example/x', '//evil.example/x', 'javascript:alert(1)', 'https://evil.example/#messages/' + conv, '/#messages/' + conv, undefined, 42]) sortie.push(await lire({ titre: 'T', corps: 'C', tag: 'adr' + (++i), url }));
         return sortie;
       }, CONV_X), ['/', '/', '/', '/', '/#messages/' + CONV_X, '/', '/']);
     v('deux notifications de la même conversation (même étiquette) n\'en font qu\'UNE à l\'écran — la seconde remplace la première',
       await A.ctx.serviceWorkers()[0].evaluate(async () => {
         for (let i = 0; i < 2; i++) self.dispatchEvent(new PushEvent('push', { data: JSON.stringify({ titre: 'PILE' + i, corps: 'c', tag: 'pile' }) }));
         const debut = Date.now(); let ns = [];
-        for (;;) { ns = (await self.registration.getNotifications()).filter(n => /^PILE/.test(n.title)); if (ns.some(n => n.title === 'PILE1') || Date.now() - debut > 4000) break; await new Promise(r => setTimeout(r, 25)); }
+        for (;;) { ns = (await self.registration.getNotifications()).filter(n => /^PILE/.test(n.title)); if (ns.some(n => n.title === 'PILE1') || Date.now() - debut > 10000) break; await new Promise(r => setTimeout(r, 25)); }
         const titres = ns.map(n => n.title);
         for (const n of await self.registration.getNotifications()) n.close();
         return titres;
@@ -279,9 +281,11 @@ async function parcours(b, ctx) {
         await connecter(X, 'dora'); await onglet(X, 'reglages');
         await verifier(titre + ' : l\'interrupteur est grisé, et la phrase dit pourquoi et comment en sortir', X, ([a, c]) => { const e = document.getElementById('reg-notif-sw'); const t = e ? e.textContent : ''; return !!e && e.getAttribute('aria-disabled') === 'true' && new RegExp(a).test(t) && new RegExp(c).test(t); }, [motifs[0].source, motifs[1].source], 10000, () => reg(X));
         await capture(X, '6-' + (titre.startsWith('iPhone') ? 'ios' : 'navigateur'));
+        const avantToucher = await lire(X, '#reg-notif');
         await toucherGrise(X, '#reg-notif-sw');
         await dormir(250);
         v('⛔ le toucher ne fait RIEN : aucun service worker, aucun abonnement au service, aucune requête d\'abonnement', [X.ctx.serviceWorkers().length, sql('SELECT COUNT(*) AS n FROM push').n, X.requetes.filter(r => /push\/abonner/.test(r)).length], [0, 0, 0]);
+        v('⛔ …et rien ne change À L\'ÉCRAN : pas de seconde phrase d\'erreur à côté de celle qui explique déjà (l\'état dit pourquoi, le toucher n\'ajoute rien)', await lire(X, '#reg-notif'), avantToucher);
         v('(l\'aperçu reste réglable : il vaut pour tous les appareils de la personne)', await X.page.evaluate(() => !!document.getElementById('reg-notif-apercu')), true);
         await largeur(X, titre);
       }
@@ -292,8 +296,10 @@ async function parcours(b, ctx) {
       const perm = await R.page.evaluate(() => Notification.permission);
       if (perm === 'denied') {
         await verifier('l\'autorisation est refusée par le navigateur : l\'état dit comment la rouvrir (le cadenas, les réglages du site)', R, () => { const e = document.getElementById('reg-notif-sw'); return !!e && e.getAttribute('aria-disabled') === 'true' && /refusé les notifications/.test(e.textContent) && /cadenas/.test(e.textContent); }, null, 10000, () => reg(R));
+        const avantRefusee = await lire(R, '#reg-notif');
         await toucherGrise(R, '#reg-notif-sw'); await dormir(250);
         v('⛔ …et le toucher ne redemande rien et n\'enregistre rien', [R.ctx.serviceWorkers().length, R.requetes.filter(r => /push\/abonner/.test(r)).length], [0, 0]);
+        v('⛔ …et rien ne change à l\'écran (pas de seconde phrase d\'erreur)', await lire(R, '#reg-notif'), avantRefusee);
         await capture(R, '6-refusee');
       } else console.log('  — la permission « bloquée » n\'a pas pu être posée dans ce navigateur (Notification.permission = ' + perm + ') : l\'état « refusée » est joué par test-958');
       await largeur(R, 'autorisation refusée');
