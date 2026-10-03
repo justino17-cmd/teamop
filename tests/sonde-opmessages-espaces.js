@@ -7,10 +7,12 @@
    une page de banc) et le retour est joué par la même adresse que Stripe appellerait (`/?abo=retour&e=…`) APRÈS que le faux Stripe a « payé » la session que le service avait demandée. Un vrai paiement
    par une vraie carte n'est vérifiable que par Justin (clé restreinte de test, puis de production).
 
-   Ce qu'elle joue : Réglages › Entreprise et Abonnement ; créer un espace ; un lien d'invitation (créé, ouvert dans une page neuve ET dans un onglet déjà ouvert) ; « Contacts de l'entreprise » (le champ
-   FILTRE ; « Écrire » à un collègue qui n'est pas un contact) ; un canal public et un canal privé, vus des deux côtés ; le retrait d'un canal privé en direct ; les rôles (nommer, retirer en deux touches,
-   passer la propriété) ; un non-membre qui ne voit RIEN ; Messages Pro : l'état, le formulaire de paiement, l'adresse de Stripe, le retour de Stripe qui relit tout seul, « J'ai réglé — vérifier »,
-   le portail, l'impayé qui dit pourquoi à l'administrateur seul et ne retire rien ; l'absence d'erreur dans la console et de débordement d'écran.
+   Ce qu'elle joue : Réglages › Entreprise et Abonnement ; créer un espace ; un lien d'invitation (créé et qui RESTE affiché après le redessin que sa création provoque ; ouvert dans une page neuve, dans un
+   onglet déjà ouvert, et PENDANT QUE la feuille « Entreprise » est déjà ouverte) ; « Contacts de l'entreprise » (le champ FILTRE ; « Écrire » à un collègue qui n'est pas un contact) ; un canal public et un
+   canal privé, vus des deux côtés ; le retrait d'un canal privé en direct ; les rôles (nommer, retirer en deux touches, passer la propriété, quitter) ; un non-membre qui ne voit RIEN ; l'aperçu d'un lien
+   qui n'accepte rien ; le propriétaire qui renomme son espace, révoque ses liens (le lien révoqué dit « n'est plus valable », sans aperçu), supprime un canal et l'espace en deux touches (chez les autres, en
+   direct) ; Messages Pro : l'état, le formulaire de paiement, l'adresse de Stripe, le retour de Stripe qui relit tout seul, « J'ai réglé — vérifier », le portail, l'impayé qui dit pourquoi à
+   l'administrateur seul et ne retire rien, la suppression de l'espace refusée tant qu'un abonnement court ; l'absence d'erreur dans la console et de débordement d'écran.
 
    ⛔ CHAQUE ZÉRO EST PRÉCÉDÉ DE SA POPULATION. ⛔ ON ATTEND AU GESTE (waitForFunction), JAMAIS AU CHRONOMÈTRE. ⛔ UNE MESURE QUI ÉCHOUE DIT CE QU'ELLE A LU À LA PLACE.
    Lancer :   NODE_PATH=/opt/node22/lib/node_modules/playwright/node_modules node tests/sonde-opmessages-espaces.js
@@ -184,6 +186,10 @@ async function parcoursA(b, ctx) {
   await toucher(A, '[data-act="esp-lien-creer"]');
   await verifier('« Créer un lien » : le lien paraît (une adresse #invitation=…, en lecture seule) avec son échéance', A, () => { const i = document.getElementById('esp-lien-champ'); return !!i && i.readOnly && /\/#invitation=[A-Za-z0-9_-]{22}$/.test(i.value) && /Valable jusqu'au/.test(document.getElementById('esp-lien').textContent); }, null, 8000, () => lire(A, '#esp-lien'));
   const lien = await A.page.evaluate(() => document.getElementById('esp-lien-champ').value);
+  /* ⛔ CRÉER UN LIEN CHANGE LE NOMBRE D'INVITATIONS DE L'ESPACE : le service le dit à la page, qui redessine la feuille. Le lien doit SURVIVRE à ce redessin (la première version de la page le perdait) :
+     on attend que le compteur de la commande « Révoquer » dise « 1 actif » — la preuve que le redessin a eu lieu — PUIS on regarde si le lien est encore là. */
+  await verifier('population : la feuille s\'est redessinée avec le nouveau lien (« Révoquer les liens (1 actif) »)', A, () => /\(1 actif\)/.test(document.querySelector('[data-act="esp-lien-revoquer"]').textContent), null, 8000, () => texteCorps(A));
+  v('⛔ … et le lien est TOUJOURS affiché, le même, après ce redessin', await A.page.evaluate(() => { const i = document.getElementById('esp-lien-champ'); return i ? i.value : null; }), lien);
   await toucher(A, '[data-act="copier"]');
   await verifier('« Copier » le dit', A, () => /Lien copié|Copie impossible/.test(document.getElementById('mot').textContent), null, 4000, () => mot(A));
   /* une page NEUVE : on quitte l'application d'abord, sinon l'adresse ne diffère que par son fragment et c'est le cas de Dora, plus bas (la session reste, par le témoin) */
@@ -329,6 +335,54 @@ async function parcoursA(b, ctx) {
   await toucher(A, '[data-act="esp-quitter"]');
   await verifier('la seconde touche quitte : la feuille se ferme, l\'espace n\'est plus dans Réglages d\'Alice', A, () => !document.documentElement.classList.contains('feuille-ouverte') && !/Atelier Banc/.test(document.getElementById('reg-esp').textContent), null, 12000, () => lire(A, '#reg-esp'));
 
+  console.log('\n── Le propriétaire gère son espace : renommer, révoquer un lien (que personne ne peut plus ouvrir), supprimer un canal, supprimer l\'espace ──');
+  await onglet(B, 'reglages'); await toucher(B, '[data-esp-ouvrir]');
+  await verifier('Bruno, devenu propriétaire, ouvre l\'espace : le nom est modifiable et « Supprimer l\'espace » existe (réservés au propriétaire)', B, () => document.getElementById('feuille-titre').textContent === 'Espace' && !!document.getElementById('esp-nom') && !!document.querySelector('[data-act="esp-dissoudre"]') && /Propriétaire/.test(document.querySelector('#info-corps .info-sous').textContent), null, 12000, () => texteCorps(B));
+  await saisir(B, '#esp-nom', 'Atelier Banc SARL'); await toucher(B, '[data-act="esp-renommer"]');
+  await verifier('renommer l\'espace : le nom change dans la feuille ET dans Réglages', B, () => /Atelier Banc SARL/.test(document.querySelector('#info-corps .info-nom').textContent) && /Atelier Banc SARL/.test(document.getElementById('reg-esp').textContent), null, 10000, () => texteCorps(B));
+  await toucher(B, '[data-act="esp-lien-creer"]');
+  await verifier('population : un lien est créé', B, () => !!document.getElementById('esp-lien-champ') && /invitation=/.test(document.getElementById('esp-lien-champ').value), null, 8000, () => lire(B, '#esp-lien'));
+  const lienRevoque = await B.page.evaluate(() => document.getElementById('esp-lien-champ').value);
+  await toucher(B, '[data-act="esp-lien-revoquer"]');
+  await verifier('« Révoquer les liens » le dit, et le lien affiché disparaît de la feuille', B, () => /révoqué/.test(document.getElementById('mot').textContent) && !document.getElementById('esp-lien-champ'), null, 8000, () => mot(B));
+  await Z.page.evaluate((h) => { location.hash = h; }, new URL(lienRevoque).hash);
+  await verifier('⛔ Chloé ouvre le lien révoqué : la feuille « Entreprise » s\'ouvre sur « Ce lien n\'est plus valable » — sans aperçu', Z, () => document.getElementById('feuille-titre').textContent === 'Entreprise' && /Ce lien n'est plus valable/.test(document.getElementById('info-erreur').textContent) && document.getElementById('en-apercu').textContent === '', null, 12000, () => texteCorps(Z));
+  v('… et elle n\'est entrée nulle part (population : Bruno seul dans l\'espace)', sql('SELECT COUNT(*) AS n FROM espace_membre').n, 1);
+  await capture(Z, 'z1-lien-revoque');
+  await toucher(B, '[data-act="esp-lien-creer"]');
+  await verifier('un lien NEUF se crée', B, () => !!document.getElementById('esp-lien-champ') && /invitation=/.test(document.getElementById('esp-lien-champ').value), null, 8000, () => lire(B, '#esp-lien'));
+  const lienNeuf = await B.page.evaluate(() => document.getElementById('esp-lien-champ').value);
+  await Z.page.evaluate((h) => { location.hash = h; }, new URL(lienNeuf).hash);
+  await verifier('contre-épreuve : Chloé ouvre le lien NEUF — l\'aperçu paraît', Z, () => /Atelier Banc SARL/.test(document.getElementById('en-apercu').textContent), null, 12000, () => texteCorps(Z));
+  await toucher(Z, '[data-act="esp-rejoindre"]');
+  await verifier('Chloé rejoint : la feuille de l\'espace, deux contacts, et le canal public existant dans sa liste de canaux', Z, () => document.getElementById('feuille-titre').textContent === 'Espace' && document.querySelectorAll('#esp-contacts .contact').length === 2 && /annonces générales/.test(document.getElementById('info-corps').textContent), null, 12000, () => texteCorps(Z));
+  await fermerFeuille(Z); await fermerFeuille(B);
+  await verifier('Chloé a le canal dans sa liste de conversations', Z, () => Array.from(document.querySelectorAll('#liste-conv .conv-nom')).some(e => /# annonces générales/.test(e.textContent)), null, 12000, () => lire(Z, '#liste-conv'));
+  /* supprimer un canal : deux touches, et le canal disparaît chez tout le monde en direct */
+  await retourListe(B); await onglet(B, 'messages');
+  await B.page.locator('#liste-conv .conv', { hasText: '# annonces générales' }).first().click(); B.gestes++;
+  await verifier('Bruno ouvre le canal', B, () => document.documentElement.dataset.conv === '1' && /# annonces générales/.test(document.getElementById('conv-titre').textContent), null, 12000);
+  await toucher(B, '#conv-titre');
+  await verifier('les infos du canal pour son propriétaire : « Supprimer le canal » existe', B, () => document.getElementById('feuille-titre').textContent === 'Infos' && !!document.querySelector('[data-act="can-supprimer"]'), null, 12000, () => texteCorps(B));
+  await toucher(B, '[data-act="can-supprimer"]');
+  await verifier('⛔ supprimer un canal demande deux touches (la première le dit)', B, () => /Toucher encore pour supprimer le canal/.test(document.getElementById('info-corps').textContent), null, 4000);
+  v('… et le canal existe toujours (population : une conversation de genre canal)', sql(`SELECT COUNT(*) AS n FROM conversation WHERE type = 'canal'`).n >= 1, true);
+  await toucher(B, '[data-act="can-supprimer"]');
+  await verifier('⛔ la seconde touche supprime : Bruno est ramené à sa liste, qui ne porte plus le canal', B, () => document.documentElement.dataset.conv !== '1' && !document.documentElement.classList.contains('feuille-ouverte') && !Array.from(document.querySelectorAll('#liste-conv .conv-nom')).some(e => /# annonces générales/.test(e.textContent)), null, 12000, () => lire(B, '#liste-conv'));
+  await verifier('⛔ Chloé l\'apprend EN DIRECT : le canal n\'est plus dans sa liste', Z, () => !Array.from(document.querySelectorAll('#liste-conv .conv-nom')).some(e => /# annonces générales/.test(e.textContent)), null, 12000, () => lire(Z, '#liste-conv'));
+  v('… dans la base, plus aucun canal public ne porte ce nom : zéro canal restant (population : la conversation « direction » avait déjà disparu avec ses membres)', sql(`SELECT COUNT(*) AS n FROM canal`).n, 0);
+  /* supprimer l'espace : deux touches ; il disparaît de Réglages, chez Bruno et en direct chez Chloé */
+  await onglet(B, 'reglages'); await toucher(B, '[data-esp-ouvrir]');
+  await verifier('la feuille de l\'espace', B, feuilleOuverte, 'Espace', 8000, () => titreFeuille(B));
+  await toucher(B, '[data-act="esp-dissoudre"]');
+  await verifier('⛔ supprimer l\'espace demande deux touches (la première le dit)', B, () => /Toucher encore pour supprimer l'espace/.test(document.getElementById('info-corps').textContent), null, 4000);
+  v('… et l\'espace existe toujours (population : un espace en base)', sql('SELECT COUNT(*) AS n FROM espace').n, 1);
+  await toucher(B, '[data-act="esp-dissoudre"]');
+  await verifier('la seconde touche supprime : la feuille se ferme et Réglages ne liste plus l\'espace', B, () => !document.documentElement.classList.contains('feuille-ouverte') && !/Atelier Banc/.test(document.getElementById('reg-esp').textContent), null, 12000, () => lire(B, '#reg-esp'));
+  v('… la base ne porte plus aucun espace, aucun membre, aucun canal', [sql('SELECT COUNT(*) AS n FROM espace').n, sql('SELECT COUNT(*) AS n FROM espace_membre').n, sql('SELECT COUNT(*) AS n FROM canal').n], [0, 0, 0]);
+  await verifier('⛔ Chloé l\'apprend en direct : Réglages › Entreprise ne liste plus l\'espace', Z, () => !/Atelier Banc/.test(document.getElementById('reg-esp').textContent), null, 12000, () => lire(Z, '#reg-esp'));
+  await capture(B, 'b4-espace-supprime');
+
   console.log('\n── La fin de la bêta : rien d\'anormal ──');
   return { tous, sql };
 }
@@ -422,6 +476,12 @@ async function parcoursB(b, ctx) {
   await verifier('⛔ créer un canal est REFUSÉ : « Cette fonction fait partie de Messages Pro. » + POURQUOI (l\'abonnement est en retard) + « Rien n\'est perdu »', A, () => /Cette fonction fait partie de Messages Pro/.test(document.getElementById('info-erreur').textContent) && /L'abonnement de l'espace est en retard/.test(document.getElementById('info-erreur').textContent) && /Rien n'est perdu/.test(document.getElementById('info-erreur').textContent), null, 10000, () => lire(A, '#info-erreur'));
   v('⛔ et RIEN n\'a été retiré : le canal « general », les deux membres', [(await lignes(A, '#info-corps .contact[data-act="can-ouvrir"]')).length, sql('SELECT COUNT(*) AS n FROM espace_membre WHERE espace = ?', EB).n], [1, 2]);
   await capture(A, 'p5-refus-pro');
+  /* ⛔ supprimer l'espace tant qu'un abonnement court (même en retard) est REFUSÉ, et la page dit quoi faire : Stripe continuerait de prélever pour un espace qui n'existe plus */
+  await toucher(A, '[data-act="esp-dissoudre"]');
+  await verifier('supprimer l\'espace demande deux touches (la première le dit)', A, () => /Toucher encore pour supprimer l'espace/.test(document.getElementById('info-corps').textContent), null, 4000);
+  await toucher(A, '[data-act="esp-dissoudre"]');
+  await verifier('⛔ supprimer l\'espace avec un abonnement qui court encore (en retard) : REFUSÉ, avec la marche à suivre (résilier d\'abord)', A, () => /Un abonnement court encore pour cet espace/.test(document.getElementById('info-erreur').textContent) && /Réglages › Abonnement › Gérer/.test(document.getElementById('info-erreur').textContent), null, 10000, () => lire(A, '#info-erreur'));
+  v('… et l\'espace est toujours là, avec ses deux membres et son canal (population)', [sql('SELECT COUNT(*) AS n FROM espace').n, sql('SELECT COUNT(*) AS n FROM espace_membre WHERE espace = ?', EB).n, sql('SELECT COUNT(*) AS n FROM canal WHERE espace = ?', EB).n], [1, 2, 1]);
   /* ce que voit un MEMBRE : « fonctions Pro indisponibles », JAMAIS pourquoi */
   await onglet(B, 'reglages'); await toucher(B, '[data-esp-ouvrir]');
   await verifier('⛔ Bruno (simple membre) lit seulement « les fonctions Pro ne sont pas disponibles pour l\'instant » + « Rien n\'est perdu »', B, () => document.getElementById('feuille-titre').textContent === 'Espace' && /Les fonctions Pro de l'espace .* ne sont pas disponibles pour l'instant\. Rien n'est perdu/.test(document.getElementById('info-corps').textContent), null, 12000, () => texteCorps(B));

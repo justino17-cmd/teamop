@@ -178,6 +178,15 @@ m('R54', 'un espace peut avoir plus de cent canaux', F.stock, "      if (num(Q('
 m('R55', 'on se retire soi-même d\'un canal privé par la route des membres', F.resp,
   /if \(u === req\.moi\.id\) return refus\(res, 400, 'champ_invalide'\);(\s+\/\/ on quitte un canal)/, '$1', ['961']);
 
+/* ── ce que les autres APPRENNENT en direct, ce que seul l'administrateur lit, les plafonds par personne ── */
+m('R56', 'retirer un membre ne prévient plus personne en direct (ni lui, ni les autres : les écrans ne se relisent qu\'à la prochaine ouverture)', F.resp, '    prevenir(stockage.espaceUids(id).concat([u]), id);\n', '', ['964']);
+m('R57', 'quelqu\'un qui rejoint l\'espace ne prévient plus les autres en direct', F.resp, '      prevenir(stockage.espaceUids(cible), cible);\n', '', ['964']);
+m('R58', 'quelqu\'un qui rejoint l\'espace ne prévient plus celui qui a créé le lien (la notification dans l\'application)', F.resp, /      notifier\(r\.par, [^\n]*\n/, '', ['961']);
+m('R59', 'créer un canal n\'est plus plafonné par heure', F.resp, "    if (!plafond(res, 'canal', req.moi.id, { max: 30, fenetreMs: 3600000 })) return;\n", '', ['961']);
+m('R60', 'créer un lien d\'invitation n\'est plus plafonné par heure', F.resp, "    if (!plafond(res, 'lien', req.moi.id, { max: 20, fenetreMs: 3600000 })) return;\n", '', ['961']);
+m('R61', 'l\'administrateur ne lit plus la liste COMPLÈTE de son entreprise (il ne voit plus les membres avec qui un blocage existe)', F.resp, "{ tous: req.espace.moi.role === 'admin' }", '{ tous: false }', ['961']);
+m('R62', 'un simple membre reçoit le bloc « administrateur » de l\'espace (la formule, le motif, les places, les invitations)', F.resp, '    if (admin) {\n      const places = formule.placesDe(id);', '    if (true) {\n      const places = formule.placesDe(id);', ['961', '905']);
+
 /* ── supprimer son compte, quitter tout ── */
 m('E01', 'supprimer son compte est permis quand on est seul dans un espace dont l\'abonnement court (Stripe prélèverait pour un espace dissous)', F.compte,
   "if (stockage.espacesAbonnesSeul(req.moi.id).length) return refus(res, 409, 'espace_abonne');", '', ['961']);
@@ -246,6 +255,7 @@ m('B30', '/health porte la clé Stripe', F.index, 'facturation: Object.assign({ 
 m('B31', '/health ne publie plus les minutes d\'illisibilité de Stripe', F.index, 'stripeEchecMin: facturation.echecMin(),', 'stripeEchecMin: 0,', ['962']);
 m('B32', 'la surveillance ne crie plus quand Stripe est illisible', F.surv, "if (typeof j.stripeEchecMin === 'number' && j.stripeEchecMin > SEUIL_STRIPE_MIN) {", 'if (false) {', ['934']);
 m('B33', 'la surveillance crie à 90 minutes pile (elle ne crie qu\'AU-DELÀ)', F.surv, 'j.stripeEchecMin > SEUIL_STRIPE_MIN', 'j.stripeEchecMin >= SEUIL_STRIPE_MIN', ['934']);
+m('B34', 'un espace qui a EXACTEMENT autant de membres que de places est dit « en dépassement » (la frontière est une inégalité large)', F.fact, 'places_depassees: Number.isFinite(places) && vivant && n > places,', 'places_depassees: Number.isFinite(places) && vivant && n >= places,', ['962']);
 
 /* ══ 6. LA CONFIGURATION ET L'OUTIL DE POSE DE LA CLÉ (config.js, configurer-stripe.js) ═══════════════════════════════════════════════════════════════════ */
 m('K01', 'la production accepte le drapeau de la bêta (tout y serait Pro, sans paiement)', F.conf,
@@ -270,6 +280,9 @@ m('K14', 'un fichier d\'une instance et un environnement d\'une autre ne se cont
   "  if (config.instance && process.env.OPMSG_INSTANCE && config.instance !== process.env.OPMSG_INSTANCE) echec(", "  if (false) echec(", ['963']);
 m('K15', 'le montant annoncé à l\'écran n\'est plus comparé à celui de Stripe', F.cfgstripe, "    if (euros !== null && Math.abs(euros - affichage[rythme]) > 0.001) avertissements.push(", "    if (false) avertissements.push(", ['963']);
 m('K16', 'le fichier temporaire est créé avec le mode par défaut (le `chmod` qui suit le corrige : la clé est lisible un instant)', F.cfgstripe, "{ mode: 0o600, flag: 'wx' }", "{ flag: 'wx' }", ['963']);
+m('K17', 'l\'outil accepte une option qu\'il ne connaît pas (« --verifier » est la seule)', F.cfgstripe, "  for (const a of ARGS) if (a !== '--verifier') echec('option inconnue (« --verifier » est la seule).');\n", '', ['963']);
+m('K18', 'un identifiant de tarif qui n\'a pas la forme d\'un tarif de Stripe (price_…) est accepté dans la configuration', F.conf,
+  "      if (typeof v !== 'string' || !RE_PRIX_STRIPE.test(v)) throw err('facturation.prix.' + k + ' doit être un identifiant de tarif Stripe (price_…)');\n", '', ['960', '963']);
 
 /* ══ 7. LA COUTURE AVEC OP GESTION — dans la COPIE du serveur d'OP GESTION, jamais dans l'arbre (test-965 lance le vrai `server/index.js`) ═══════════════ */
 m('O01', 'OP GESTION ne classe plus AUCUNE ligne « OP MESSAGES » : un abonnement de Messages Pro est lu comme un paiement d\'OP GESTION', F.og,
@@ -303,7 +316,10 @@ m('P08', 'le retour de Stripe croit l\'adresse au lieu de relire chez Stripe : �
   "else if (retour) await relireAbonnement(id, retour.motif === 'retour');", "else if (retour) esp.abo.note = 'Merci ! Abonnement confirmé par Stripe : l\\'espace est en Messages Pro.';", ['sonde'], SONDE);
 m('P09', 'un simple membre lit POURQUOI les fonctions Pro sont indisponibles (abonnement en retard)', F.page,
   "ne sont pas disponibles pour l\\'instant. Rien n\\'est perdu", "ne sont pas disponibles : l\\'abonnement de l\\'espace est en retard. Rien n\\'est perdu", ['sonde'], SONDE);
-m('P10', 'l\'écran propose de retirer ou de rétrograder le propriétaire', F.page, 'const agit = d.moiAdmin && !p.moi && !p.proprio && (p.role', 'const agit = d.moiAdmin && !p.moi && (p.role', ['sonde'], SONDE);
+m('P10', 'l\'écran propose de retirer ou de rétrograder le propriétaire (la clause « pas le propriétaire » seule est retirée)', F.page, 'const agit = d.moiAdmin && !p.moi && !p.proprio && (p.role', 'const agit = d.moiAdmin && !p.moi && (p.role', ['sonde'],
+  Object.assign({}, SONDE, EQ('il n\'y a qu\'un propriétaire, et il est administrateur : pour un administrateur qui n\'est pas propriétaire, sa ligne est déjà écartée par `(p.role !== \'admin\' || d.proprio)` ; pour le propriétaire, sa propre ligne l\'est par `!p.moi` — le défaut réel retire les deux règles (P10b)')));
+m('P10b', 'l\'écran propose à tout administrateur de retirer ou de rétrograder n\'importe qui, un autre administrateur et le propriétaire compris', F.page,
+  'const agit = d.moiAdmin && !p.moi && !p.proprio && (p.role !== \'admin\' || d.proprio), act = [];', 'const agit = d.moiAdmin && !p.moi, act = [];', ['sonde'], SONDE);
 m('P11', 'l\'écran propose de passer la propriété à un administrateur qui n\'est pas propriétaire', F.page, "if (d.proprio && !p.moi) act.push(", 'if (!p.moi) act.push(', ['sonde'], SONDE);
 m('P12', 'l\'aperçu d\'un lien ACCEPTE l\'invitation (voir qui invite fait entrer dans l\'espace)', F.page,
   'const a = await source.invitationLire(m[1]);\n', 'const a = await source.invitationLire(m[1]); await source.invitationAccepter(m[1]);\n', ['sonde'], SONDE);
