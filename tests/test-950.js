@@ -1524,6 +1524,66 @@ const horlogeFixe = (h) => () => h.t;
     }
   }
 
+  /* ══ 13 quinquies. UN COMPTE EFFACÉ NE REVIENT PAS D'UNE RESTAURATION ════════════════════════════════════════════════════════════
+     Le genre « compte » est le premier que rejoue le SERVICE (`rejeu.js`) : l'effacement touche dix tables et passe par `compteEffacer`. Deux copies d'avant :
+     l'une prise PENDANT le sursis (l'échéance y est posée), l'autre AVANT la demande (rien n'y annonce l'effacement — le registre seul le sait). Dans les deux,
+     après `rejouerPurge` (la ligne est recopiée et comptée « pour le service », ni faite hors ligne ni « ignorée »), `apresRestauration` (le drapeau) et le
+     premier démarrage (`rejouerAuDemarrage`), la personne est effacée et le drapeau retombe ; un second démarrage ne refait rien.
+     Et la DEMANDE, qui coupe les appareils à l'instant, note cette révocation (genre « appareil ») comme toutes les autres : sans la ligne, une copie d'avant la
+     demande rendait l'accès sans SMS (relevé à la fusion du 3 octobre 2026). */
+  console.log('\n── 950 · un compte effacé ne revient pas d\'une restauration — même d\'une copie prise AVANT la demande ──');
+  {
+    const REJEU = require(path.join(SM, 'rejeu.js'));
+    const { creerScelleur } = require(path.join(SM, 'scelle.js'));
+    const ligne = (chemin, sql, ...pp) => { const dd = new DatabaseSync(chemin, { readOnly: true }); try { return dd.prepare(sql).get(...pp); } finally { dd.close(); } };
+    for (const quand of ['pendant le sursis', 'avant la demande']) {
+      const b = O.creerBase();
+      try {
+        const { a, c, conv } = O.remplir(b, 6);
+        b.h.t += 1000; b.S.telAppareilLier({ h: 'tel-de-alice', personne: a.id, nom: 'téléphone', ttlMs: 100 * 86400000 });
+        const avant = path.join(b.dossier, 'avant.db');
+        if (quand === 'avant la demande') { b.h.t += 1000; await b.S.instantane(avant); }
+        b.h.t += 1000;
+        b.S.suppressionProgrammer(a.id, b.h.t + 14 * 86400000);
+        if (quand === 'pendant le sursis') {
+          v('⛔ la DEMANDE coupe l\'appareil et le NOTE (genre « appareil ») : une copie d\'avant ne lui rendra pas l\'accès',
+            STOCK.ouvrir.copie.purgeLire(b.chemin).filter(e => e.genre === 'appareil').map(e => e.objet), ['tel-de-alice']);
+          b.h.t += 1000; await b.S.instantane(avant);
+        }
+        b.h.t += 15 * 86400000;
+        const e = b.S.compteEffacer(a.id);
+        const registre = STOCK.ouvrir.copie.purgeLire(b.chemin);
+        vrai('population (' + quand + ') : l\'effacement a eu lieu dans la base vivante et s\'est noté une fois (genre « compte »)',
+          e.effacee === true && registre.filter(x => x.genre === 'compte').map(x => x.objet).join() === a.id);
+        const sur = path.join(b.dossier, 'restauree.db'); fs.copyFileSync(avant, sur);
+        const p0 = ligne(sur, 'SELECT etat, prenom, suppression_le FROM personne WHERE id = ?', a.id);
+        const msg0 = Number(ligne(sur, "SELECT COUNT(*) AS n FROM message WHERE auteur = ? AND type <> 'systeme'", a.id).n);
+        vrai('population (' + quand + ') : dans la copie d\'avant, la personne est là, avec son nom, ses messages, son appareil' + (quand === 'avant la demande' ? ', et SANS échéance' : ', échéance posée'),
+          p0 && p0.etat === 'actif' && p0.prenom === 'alice' && msg0 >= 3 && (quand === 'avant la demande' ? p0.suppression_le === null : p0.suppression_le !== null)
+          && Number(ligne(sur, 'SELECT COUNT(*) AS n FROM appareil_tel WHERE personne = ?', a.id).n) === (quand === 'avant la demande' ? 1 : 0));
+        const r = STOCK.ouvrir.copie.rejouerPurge(sur, registre);
+        v('⛔ (' + quand + ') la ligne « compte » est recopiée et comptée pour le SERVICE — ni faite hors ligne, ni « ignorée »', [r.auService, r.ignorees], [1, 0]);
+        STOCK.ouvrir.copie.apresRestauration(sur);
+        const S2 = STOCK.ouvrir({ chemin: sur, scelleur: creerScelleur(b.kek), horloge: () => b.h.t });
+        try {
+          const retires = [];
+          const bilan = REJEU.rejouerAuDemarrage({ stockage: S2, contexte: { effacerPieces: (ids) => retires.push(...ids), horloge: () => b.h.t }, journaliser: () => {} });
+          const p1 = ligne(sur, 'SELECT etat, prenom, nom FROM personne WHERE id = ?', a.id);
+          const membreA = ligne(sur, 'SELECT quitte_le FROM membre WHERE conv = ? AND uid = ?', conv, a.id);
+          v('⛔ (' + quand + ') au premier démarrage, le service REFAIT l\'effacement : plus de nom, état « supprime », plus d\'appareil, sa place dans le groupe est quittée — et le drapeau retombe',
+            [bilan.fait, bilan.rejouees, bilan.echecs, p1.etat, p1.prenom, p1.nom, Number(ligne(sur, 'SELECT COUNT(*) AS n FROM appareil_tel WHERE personne = ?', a.id).n), !!(membreA && membreA.quitte_le), S2.rejeuAFaire()],
+            [true, 1, 0, 'supprime', '', '', 0, true, false]);
+          v('   ses messages RESTENT chez les autres (signés « Compte supprimé » ; le départ du groupe ajoute seulement son avis « a quitté »), et l\'autre personne n\'a rien perdu',
+            [Number(ligne(sur, "SELECT COUNT(*) AS n FROM message WHERE auteur = ? AND type <> 'systeme'", a.id).n), ligne(sur, 'SELECT etat, prenom FROM personne WHERE id = ?', c.id)], [msg0, { etat: 'actif', prenom: 'carole' }]);
+          const second = REJEU.rejouerAuDemarrage({ stockage: S2, contexte: { effacerPieces: () => {}, horloge: () => b.h.t }, journaliser: () => {} });
+          v('   un second démarrage ne refait rien (le drapeau est baissé), et la fonction rejouée deux fois n\'efface rien de plus (idempotente)',
+            [second.fait, S2.compteEffacer(a.id, { rejeu: true }).effacee], [false, false]);
+          v('   le rejeu n\'a pas écrit une seconde ligne « compte » dans le registre de la copie', S2.purgeLignes().filter(x => x.genre === 'compte').length, 1);
+        } finally { S2.fermer(); }
+      } finally { b.nettoyer(); }
+    }
+  }
+
   /* ══ 14. LE CONTRÔLE DANS UN PROCESSUS ENFANT ═════════════════════════════════════════════════════════════════════════════════ */
   console.log('\n── 950 · le contrôle de la copie se fait dans un PROCESSUS ENFANT : la boucle d\'événements du service n\'est pas figée ──');
   {

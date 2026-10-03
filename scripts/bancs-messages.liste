@@ -27,7 +27,8 @@
 # 3 octobre 2026, la relecture du gardien puis celle du testeur (pièces : lenteur, journaux du proxy, GIF, « Réessayer », durées, proportions…) : 31 suites, 3 538 vérifications mesurées par la commande de la porte — plancher 3528.
 # 3 octobre 2026, les deux relectures réunies (sauvegarde + pièces) : 31 suites, 3 654 vérifications mesurées par la commande de la porte — plancher 3640.
 # 3 octobre 2026, les notifications push, l'export et la suppression de compte (test-955 à 958, et le banc de la migration 3 rendu indépendant de la dernière migration) : 33 suites, 3335 vérifications mesurées par `bash scripts/bancs-ci.sh $(liste)` — plancher 3330.
-#plancher 3640
+# 3 octobre 2026, le lot 3 réuni aux deux autres (et un compte effacé qui ne revient pas d'une restauration, test-950) : 35 suites, 4 179 vérifications mesurées par la commande de la porte — plancher 4165.
+#plancher 4165
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
