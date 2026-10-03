@@ -33,7 +33,7 @@ const PHOTO_MAX = 307200, VOCAL_MAX = 204800, FICHIER_MAX = 716800, AVATAR_MAX =
 /* Un « appareil » : un navigateur de poche (cookie, Origin) dont on peut COUPER le réseau, RETENIR une requête, PERDRE une réponse, FORCER une réponse, et dont on compte les requêtes ET les adresses blob:. */
 function monter(svc, opts = {}) {
   const nav = T.navigateur(svc.base);
-  const reseau = { coupe: false, requetes: [], urls: [], depots: [], tirsFile: 0, retenir: null, forcer: null, perdre: null };
+  const reseau = { coupe: false, requetes: [], urls: [], depots: [], tirsFile: 0, retenir: null, forcer: null, perdre: null, garderFile: false, fileGardee: null };
   const urls = { creees: new Map(), revoquees: [] };
   const creerUrl = (b) => { const u = 'blob:http://127.0.0.1/' + crypto.randomUUID(); urls.creees.set(u, b); return u; };
   const revoquerUrl = (u) => { urls.revoquees.push(u); };
@@ -55,14 +55,22 @@ function monter(svc, opts = {}) {
     return r;
   };
   /* la minuterie de la FILE D'ENVOI (120 ms : `attenteEnvoi`) se compte quand elle tire : « la file a été vidée pendant ce temps » se prouve, elle ne se suppose pas */
-  const planifier = (fn, ms) => setTimeout(() => { if (ms === 120) reseau.tirsFile++; fn(); }, ms);
+  const planifier = (fn, ms) => {
+    if (ms === 120 && reseau.garderFile) { reseau.fileGardee = fn; return 1; }            // un rendez-vous de la file RETENU : le banc le tire quand il le décide (deux événements ne se confondent plus)
+    return setTimeout(() => { if (ms === 120) reseau.tirsFile++; fn(); }, ms);
+  };
   const src = creerSourceServeur(Object.assign({ OPMSG, base: svc.base, fetch: f, EventSource: nav.EventSource, planifier, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5, creerUrl, revoquerUrl, delaiReessaiPieceMs: 300 }, opts));
-  const evs = [], morts = [];
-  src.ecouter(e => evs.push(e));
+  const evs = [], morts = [], vuesPage = [];
+  let suivi = null;
+  /* ce que la PAGE verrait : à chaque événement `conversation` de la conversation suivie, elle relit le fil (`ouvrir` bâtit sa vue sur-le-champ, avant son premier `await`) — la DERNIÈRE relecture est ce
+     qui reste à l'écran. C'est ce qui voit un état collé (« Envoi… » qu'aucun événement n'a éteint) : relire le fil À LA DEMANDE, comme font les autres contrôles, montre le vrai état, pas celui de la page. */
+  src.ecouter(e => { evs.push(e); if (suivi && e.type === 'conversation' && e.id === suivi) vuesPage.push(src.ouvrir(e.id).then(c => c && c.messages, () => null)); });
   src.surSessionMorte(m => morts.push(m));
   const nb = (re) => reseau.requetes.filter(r => re.test(r)).length;
   return {
     src, evs, morts, reseau, nav, urls, nb,
+    suivre(conv) { suivi = conv; vuesPage.length = 0; },
+    async ecran() { const d = vuesPage[vuesPage.length - 1]; return d ? await d : null; },
     async entrer(login, pass) { await src.connexion(login, pass); const d = await src.demarrer(); if (!d.connecte) throw new Error('démarrage refusé : ' + JSON.stringify(d)); return src.moi(); },
     attendreEv: (pred, ms) => att(() => evs.find(pred) || null, ms),
     retenir(re) { let liberer; const attente = new Promise(ok => { liberer = ok; }); reseau.retenir = { re, attente }; return () => { reseau.retenir = null; liberer(); }; },
@@ -250,22 +258,36 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
       const compteReessai = (t) => (t.match(/r[ée]essaie/gi) || []).length;
       A.reseau.forcer = { re: /^POST \/api\/pieces$/, code: 429, corps: JSON.stringify({ error: 'quota_atteint', retry: 40 }), entetes: { 'Content-Type': 'application/json', 'Retry-After': '40' } };
       const loc7 = creerLocale(A, PNG), d7 = A.nb(/^POST \/api\/pieces$/);
+      A.suivre(conv);
       const r7 = await A.src.envoyer(conv, { photos: [{ blob: loc7.blob, url: loc7.url, w: 8, h: 8 }] });
       A.reseau.forcer = null;
       const av7 = await A.attendreEv(e => e.type === 'avis' && /réessaie dans 40 s/.test(e.texte));
       v('⛔ 429 : la photo RESTE (le message est rendu « en attente », avec sa phrase d\'échec), et la phrase ne dit « réessaie » qu\'UNE fois — avec l\'attente exacte, pas « dans un instant (… 40 s) »',
         [r7.attente === true, r7.echec, compteReessai(r7.echec || ''), /instant/.test(r7.echec || '')], [true, 'Trop de demandes en peu de temps (réessaie dans 40 s).', 1, false]);
+      const ecran7 = ((await A.ecran()) || []).find(m => m.cid === r7.cid);
+      vrai('⛔ ce que la PAGE a sous les yeux après l\'échec (sa dernière relecture du fil) est la bulle en échec AVEC sa phrase — pas un « Envoi… » collé : la source redit l\'écran quand elle met la pièce en échec', !!ecran7 && ecran7.attente === true && ecran7.envoi === false && ecran7.echec === 'Trop de demandes en peu de temps (réessaie dans 40 s).');
       vrai('⛔ …l\'avis le dit aussi (la personne peut être ailleurs), et l\'adresse locale de la photo est GARDÉE (la bulle l\'affiche)', !!av7 && /^Une photo n'a pas pu être envoyée : Trop de demandes/.test(av7.texte) && !A.urls.revoquees.includes(loc7.url) && A.src.enAttente() === 1);
       await T.dort(600);
       v('⛔ elle ne repart PAS toute seule (c\'est à la personne de dire quand) : aucun dépôt de plus en 600 ms, et le fil la montre avec son échec', [A.nb(/^POST \/api\/pieces$/) - d7, ((await vues(A, conv)).find(m => m.cid === r7.cid) || {}).echec], [1, 'Trop de demandes en peu de temps (réessaie dans 40 s).']);
       const texteApres = await A.src.envoyer(conv, { texte: 'pendant que la photo attend' });
       vrai('⛔ un texte écrit PENDANT qu\'une photo attend la personne n\'est pas bloqué derrière elle : il part tout de suite', !texteApres.attente && !!(await trouve(B, conv, m => m.texte === 'pendant que la photo attend')));
+      /* ⛔ …et elle ne repart pas non plus quand la file passe pour UNE AUTRE pièce (le réseau coupe, une seconde photo attend, le réseau revient) : seule la personne dit « Réessayer » */
+      const loc8 = creerLocale(A, PNG), nPhotosB = (await vues(B, conv)).filter(m => m.photos).length;
+      A.reseau.coupe = true;
+      const r8 = await A.src.envoyer(conv, { photos: [{ blob: loc8.blob, url: loc8.url, w: 8, h: 8 }] });
+      A.reseau.coupe = false;
+      vrai('population : la seconde photo attend derrière une coupure, la première est en échec (deux pièces dans la file)', r8.attente === true && A.src.enAttente() === 2);
+      vrai('⛔ le réseau revient, la file passe : la SECONDE photo part (Bruno la voit) ; la première, en échec, reste là avec sa phrase — elle n\'est pas repartie toute seule', await att(async () => (await vues(B, conv)).filter(m => m.photos).length === nPhotosB + 1) && await att(() => A.src.enAttente() === 1)
+        && ((await vues(A, conv)).find(m => m.cid === r7.cid) || {}).echec === 'Trop de demandes en peu de temps (réessaie dans 40 s).');
+      await T.dort(300);
+      v('…et trois cents millisecondes plus tard, toujours une seule photo de plus chez Bruno, et la première attend toujours la personne', [(await vues(B, conv)).filter(m => m.photos).length, A.src.enAttente()], [nPhotosB + 1, 1]);
       A.reseau.forcer = { re: /^POST \/api\/pieces$/, code: 402, corps: JSON.stringify({ error: 'quota_atteint', portee: 'stockage', utilise: 1, max: 2 }), entetes: { 'Content-Type': 'application/json' } };
       vrai('« Réessayer » : le service refuse encore (402, l\'espace est plein) — la pièce reste, avec la phrase de l\'ESPACE (« supprime des messages »), PAS « réessaie dans un instant »', A.src.reessayer(r7.cid) === true
         && await att(async () => ((await vues(A, conv)).find(m => m.cid === r7.cid) || {}).echec === OPMSG.MESSAGES.quota_stockage) && !/instant/.test(OPMSG.MESSAGES.quota_stockage));
       A.reseau.forcer = null;
-      vrai('⛔ « Réessayer » quand le service accepte : la photo part (même cid, même pièce), la file est vide, et Bruno la voit UNE fois', A.src.reessayer(r7.cid) === true && await att(() => A.src.enAttente() === 0)
-        && !!(await trouve(B, conv, m => m.photos && m.t >= r7.t && m.id !== r7.id && !m.attente)));
+      const nPhotosB2 = (await vues(B, conv)).filter(m => m.photos).length;
+      vrai('⛔ « Réessayer » quand le service accepte : la photo part (même cid, même pièce), la file est vide, et Bruno la voit UNE fois (une photo de plus, pas deux)', A.src.reessayer(r7.cid) === true && await att(() => A.src.enAttente() === 0)
+        && await att(async () => (await vues(B, conv)).filter(m => m.photos).length === nPhotosB2 + 1));
       v('un « Réessayer » sur ce qui n\'est pas en échec ne fait rien', [A.src.reessayer(r7.cid), A.src.reessayer('nexistepas')], [false, false]);
       A.reseau.forcer = { re: /^POST \/api\/pieces$/, code: 503, corps: JSON.stringify({ error: 'disque_plein' }), entetes: { 'Content-Type': 'application/json' } };
       const loc9 = creerLocale(A, PNG);
@@ -345,6 +367,7 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
       vrai('⛔ après plusieurs renvois ratés, le message dit toujours « en attente de connexion » (`envoi` faux) : une tentative qui échoue sur-le-champ ne passe pas pour un envoi — « Envoi… » ne reste jamais collé', !!vuA && vuA.envoi === false && !vuA.echec);
       v('⛔ UNE panne, UN avis : un seul malgré les renvois', A.evs.slice(evIdx).filter(e => e.type === 'avis' && /^Pas de connexion/.test(e.texte)).length, 1);
       /* un renvoi qui DURE devient « Envoi… » (ce que la personne doit voir quand les octets partent vraiment) */
+      A.suivre(gT2); A.reseau.garderFile = true;                                    // dès maintenant, ce que la page relit est noté ; et le PROCHAIN rendez-vous de la file sera tiré à la main
       const liberer = A.retenir(/^POST \/api\/pieces$/);                          // d'abord la retenue (les essais ratés continuent de tomber sur « réseau coupé »)…
       A.reseau.coupe = false;
       const n1 = A.nb(/^POST \/api\/pieces$/);                                    // …puis le réseau revient : le PROCHAIN essai est celui qui est retenu
@@ -353,7 +376,13 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
       await T.dort(700);
       const v2 = (await vues(A, gT2)).find(m => m.attente), evTard = A.evs.slice(nEv).filter(e => e.type === 'conversation' && e.id === gT2).length;
       vrai('⛔ un renvoi qui part vraiment (la requête est en route, retenue ici) : juste après, « en attente » ; au bout de 400 ms, « Envoi… » — et la source REDIT l\'état à ce moment-là (un événement), sans quoi la page ne le verrait pas', !!v1 && v1.envoi === false && !!v2 && v2.envoi === true && evTard > 0);
-      liberer();
+      /* ⛔ …et quand CE renvoi-là échoue (le réseau retombe pendant que les octets partent), la source REDIT l'écran : sans cela « Envoi… » resterait affiché jusqu'au prochain essai — 3 s, 6 s… 24 s plus tard */
+      A.reseau.coupe = true; liberer();
+      vrai('population : l\'essai a fini d\'échouer, le prochain rendez-vous de la file est posé (et retenu)', await att(() => A.reseau.fileGardee !== null, 3000));
+      const ecran = ((await A.ecran()) || []).find(m => m.attente);
+      vrai('⛔ …sa dernière relecture dit « en attente » (`envoi` faux) : la page ne reste pas sur « Envoi… » pendant les secondes qui suivent un essai raté', !!ecran && ecran.envoi === false && !ecran.echec);
+      A.reseau.garderFile = false; A.reseau.coupe = false;
+      { const tir = A.reseau.fileGardee; A.reseau.fileGardee = null; tir(); }
       vrai('le réseau est revenu : la photo part, UNE fois chez Bruno, et la file est vide', await att(() => A.src.enAttente() === 0) && (await vues(B, gT2)).filter(m => m.photos).length === 1);
       v('…sans un avis de plus (la panne est finie, rien à dire)', A.evs.filter(e => e.type === 'avis').length - avisAvant, 1);
       /* le service qui ne répond pas (502) se dit aussi */
@@ -377,7 +406,7 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
         Z.reseau.coupe = true;
         const loc = creerLocale(Z, PNG);
         await Z.src.envoyer(gZ, { photos: [{ blob: loc.blob, url: loc.url, w: 8, h: 8 }] });
-        for (let k = 0; k < 6; k++) { await att(() => reveil !== null && delais.length > k); const f = reveil; reveil = null; f(); await att(() => delais.length > k + 1, 3000); }
+        for (let k = 0; k < 6; k++) { await att(() => reveil !== null && delais.length > k, 3000); const f = reveil; reveil = null; if (!f) break; f(); await att(() => delais.length > k + 1, 3000); }
         v('⛔ les renvois s\'ESPACENT (3 s, 6 s, 12 s, 24 s, puis le plafond) : une photo qui n\'a pas de réseau ne martèle pas le service — la valeur par défaut, pas celle des bancs', delais.slice(0, 6), [3000, 6000, 12000, 24000, 24000, 24000]);
       } finally { Z.src.arreter(); try { Z.reseau.coupe = false; await Z.src.deconnexion(); } catch (e) { /* déjà partie */ } }      // sa session ne doit pas survivre : « déconnecter les autres appareils » en compte une
     }
