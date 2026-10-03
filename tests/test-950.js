@@ -668,6 +668,12 @@ const horlogeFixe = (h) => () => h.t;
       const r = await f.sauv.lancer('banc');
       v('   elle part, et l\'âge redevient 0', [r.ok, f.sauv.sante().ageH], [true, 0]);
     } finally { await f.fermer(); }
+    /* Et un ÉCHEC daté du futur : le délai de reprise se comptait depuis cette date — négatif, donc jamais écoulé. */
+    const echecFutur = { ts: FUT, ms: 5, ok: false, baseOk: false, motif: 'depot-500', raison: 'banc' };
+    const g = await monter({ n: 60, etatInitial: { v: 1, derniere: echecFutur, dernierSucces: null, baseTs: null, echecs: 1, histo: [echecFutur], depot: null, pieces: { absentes: {} } } });
+    try {
+      v('⛔ un échec daté de dans vingt jours ne retient pas la reprise : une sauvegarde est due tout de suite', g.sauv.due(), true);
+    } finally { await g.fermer(); }
   }
 
   /* ══ 9. LE RYTHME, LA MINUTERIE, L'ARRÊT, L'ÉTAT ════════════════════════════════════════════════════════════════════════════ */
