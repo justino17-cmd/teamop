@@ -8,6 +8,7 @@
  *     GET  /v1/subscriptions/:id          un abonnement (statut, lignes, quantité, métadonnées, échéance) ; 404 s'il n'existe pas
  *     POST /v1/billing_portal/sessions    le portail de facturation (`customer` exigé)
  *     GET  /v1/prices/:id                 un tarif (avec son produit si `expand[]=product`) — lu par `configurer-stripe.js`
+ *     GET  /v1/customers/:id              un client (404 s'il n'existe pas ; `deleted:true` s'il a été supprimé) — lu par le service pour CONFIRMER l'absence d'un abonnement (voir `absenceConfirmee`)
  *     GET  /v1/subscriptions?status=all   la LISTE (ce que lit OP GESTION : `status=all`, `limit=100`, `starting_after`, du plus récent au plus ancien, le client et le produit des lignes
  *                                         développés seulement s'ils sont demandés par `expand[]`) — pour le banc de la couture, test-965 ; `listes` garde ce que chaque page a montré
  *
@@ -86,6 +87,11 @@ async function fauxStripe(opts = {}) {
           if (!sb) return json(res, 404, { error: { message: 'No such subscription' } });
           return json(res, 200, sb);
         }
+        if (req.method === 'GET' && (m = /^\/v1\/customers\/([^/]+)$/.exec(p))) {
+          const c = E.clients.get(decodeURIComponent(m[1]));
+          if (!c) return json(res, 404, { error: { message: 'No such customer' } });
+          return json(res, 200, c.deleted ? { id: c.id, object: 'customer', deleted: true } : c);
+        }
         if (req.method === 'GET' && (m = /^\/v1\/prices\/([^/]+)$/.exec(p))) {
           if (E.sansDroits.has('tarifs')) return json(res, 403, { error: { message: 'The provided key does not have the required permissions for this endpoint (rak_price_read)' } });
           const t = E.tarifs.get(decodeURIComponent(m[1]));
@@ -101,7 +107,10 @@ async function fauxStripe(opts = {}) {
              `expand[]=data.items.data.price.product`) — sinon un identifiant, comme chez Stripe. */
           const etendre = u.searchParams.getAll('expand[]');
           const avecClient = etendre.includes('data.customer'), avecProduit = etendre.includes('data.items.data.price.product');
-          const tous = Array.from(E.abonnements.values()).map((sb, i) => [sb, i]).sort((a, b) => ((b[0].created || 0) - (a[0].created || 0)) || (b[1] - a[1])).map(x => x[0]);
+          /* `customer=` : les abonnements d'UN client — et, comme Stripe, 404 si ce client n'existe pas dans CE compte (la clé d'un autre compte ne voit aucun de nos clients) */
+          const duClient = u.searchParams.get('customer');
+          if (duClient && !E.clients.has(duClient)) return json(res, 404, { error: { message: 'No such customer: ' + duClient } });
+          const tous = Array.from(E.abonnements.values()).filter(sb => !duClient || sb.customer === duClient).map((sb, i) => [sb, i]).sort((a, b) => ((b[0].created || 0) - (a[0].created || 0)) || (b[1] - a[1])).map(x => x[0]);
           const lim = Math.min(100, Math.max(1, parseInt(u.searchParams.get('limit') || '10', 10) || 10)), apres = u.searchParams.get('starting_after');
           const debut = apres ? Math.max(0, tous.findIndex(x => x.id === apres) + 1) : 0;
           const page = tous.slice(debut, debut + lim);
@@ -155,6 +164,9 @@ async function fauxStripe(opts = {}) {
   E.ajouterLigne = (subId, prix, quantite = 1) => { const sb = E.abonnements.get(subId); sb.items.data.push({ id: 'si_' + alea(4), quantity: quantite, price: { id: prix, object: 'price' } }); return sb; };
   E.expirer = (sessionId) => { E.sessions.get(sessionId).status = 'expired'; };
   E.oublier = (subId) => { E.abonnements.delete(subId); };
+  /* le client d'un abonnement disparaît (clé d'un autre compte, données de test effacées) ; `supprimerClient` : il existe encore, marqué supprimé */
+  E.oublierClient = (cid) => { E.clients.delete(cid); };
+  E.supprimerClient = (cid) => { const c = E.clients.get(cid); if (c) c.deleted = true; };
   /* un abonnement d'un AUTRE produit ou d'un autre compte, rangé tel quel dans la liste (pour la couture) */
   E.poser = (sb) => { E.abonnements.set(sb.id, sb); if (sb.customer && typeof sb.customer === 'object') { E.clients.set(sb.customer.id, sb.customer); sb.customer = sb.customer.id; } return sb; };
   /* un tarif tel que Stripe le rend (par défaut : 15 € par mois, par place, en euros, en mode test, produit « OP MESSAGES Pro ») */

@@ -433,6 +433,10 @@ console.log('\nUn compte effacé sort de ses espaces : la propriété passe, ou 
   v('⛔ le propriétaire SEUL d\'un espace dont l\'abonnement court est signalé (le service refuse alors la suppression : 409 `espace_abonne`)', g.S.espacesAbonnesSeul(seul.id), [eg]);
   g.S.abonnementPoser(eg, ABO({ abonnement: 'sub_seule', statut: 'canceled' }));
   v('… résilié, plus de refus', g.S.espacesAbonnesSeul(seul.id), []);
+  g.S.abonnementSession(eg, 'cs_banc960_seule');
+  v('⛔ un PAIEMENT COMMENCÉ (une session rangée, non résolue) compte comme un abonnement qui court : payé chez Stripe sans que le service le sache, l\'effacement du compte laisserait un abonnement sans espace', g.S.espacesAbonnesSeul(seul.id), [eg]);
+  g.S.abonnementSessionOubliee(eg, 'cs_banc960_seule');
+  v('… la session oubliée (Stripe l\'a dite expirée), plus de refus', g.S.espacesAbonnesSeul(seul.id), []);
   v('l\'export d\'une personne liste SES espaces (nom, rôle) — pas les membres des autres', f.S.exportEspaces(f.cleo.id).map(x => [x.nom, x.role, Object.keys(x).sort().join()]), [['Entreprise ELAN', 'membre', 'depuis,id,nom,role']]);
 }
 
@@ -443,7 +447,9 @@ console.log('\nL\'abonnement rangé : ce que Stripe a dit, le sursis daté de la
   S.abonnementSession(e, 'cs_banc960_a');
   let a = S.abonnementLire(e);
   v('une session de paiement ouverte est rangée avec l\'heure ; l\'abonnement est « aucun »', [a.session, a.session_le, a.statut, a.abonnement], ['cs_banc960_a', w.h.t, 'aucun', null]);
-  v('une session en attente fait relire l\'espace — 24 heures seulement', [S.abonnementsARelire().includes(e), (w.h.t += 25 * 3600000, S.abonnementsARelire().includes(e))], [true, false]);
+  v('⛔ une session en attente fait relire l\'espace TANT QU\'ELLE N\'EST PAS RÉSOLUE, quel que soit son âge (une session payée à la 23e heure pendant une panne doit être reconnue : avant, la passe ne la relisait plus après 24 heures)', [S.abonnementsARelire().includes(e), (w.h.t += 25 * 3600000, S.abonnementsARelire().includes(e))], [true, true]);
+  v('⛔ on n\'oublie QUE la session qu\'on a relue : l\'oubli d\'une AUTRE session (une neuve vient d\'être rangée entre-temps) ne touche pas celle qui est là ; l\'oubli de la bonne la retire — et l\'espace n\'est plus à relire',
+    [(S.abonnementSessionOubliee(e, 'cs_autre_banc960'), S.abonnementLire(e).session), (S.abonnementSessionOubliee(e, 'cs_banc960_a'), S.abonnementLire(e).session), S.abonnementsARelire().includes(e)], ['cs_banc960_a', null, false]);
   S.abonnementPoser(e, ABO({ statut: 'active', places: 5 }), { adopter: true });
   a = S.abonnementLire(e);
   v('⛔ adopter l\'abonnement que la session désigne : la session est consommée, le verdict est rangé', [a.abonnement, a.statut, a.places, a.session, a.session_le, a.relu_le, a.impaye_depuis], ['sub_banc960', 'active', 5, null, null, w.h.t, null]);

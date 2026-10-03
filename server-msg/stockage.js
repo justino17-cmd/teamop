@@ -1867,10 +1867,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     }
     return { pieces, convs };
   }
-  /* Les espaces dont `uid` est le propriétaire ET le seul membre, avec un abonnement qui court : supprimer son compte laisserait Stripe prélever pour un espace qui n'existe plus. */
+  /* Les espaces dont `uid` est le propriétaire ET le seul membre, avec un abonnement qui court — OU un paiement commencé dont personne n'a relu l'issue (`session` rangée) : supprimer son
+     compte laisserait Stripe prélever pour un espace qui n'existe plus (relecture du gardien : payé, puis dissous avant que le service le sache). */
   function espacesAbonnesSeul(uid) {
     return Q(`SELECT e.id AS id FROM espace e JOIN abonnement a ON a.espace = e.id
-              WHERE e.proprio = ? AND a.abonnement IS NOT NULL AND a.statut NOT IN ('aucun', 'canceled', 'incomplete_expired')
+              WHERE e.proprio = ? AND ((a.abonnement IS NOT NULL AND a.statut NOT IN ('aucun', 'canceled', 'incomplete_expired')) OR a.session IS NOT NULL)
                 AND (SELECT COUNT(*) FROM espace_membre x WHERE x.espace = e.id) <= 1`).all(uid).map(r => r.id);
   }
   function exportEspaces(uid) {
@@ -2007,7 +2008,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const t = horloge();
     Q('INSERT INTO abonnement(espace, session, session_le, cree) VALUES(?, ?, ?, ?) ON CONFLICT(espace) DO UPDATE SET session = excluded.session, session_le = excluded.session_le').run(espace, session, t, t);
   }
-  function abonnementSessionOubliee(espace) { Q('UPDATE abonnement SET session = NULL, session_le = NULL WHERE espace = ?').run(espace); }
+  /* On n'oublie QUE la session qu'on vient de relire (`session`) : si un paiement a rangé une session neuve entre-temps, elle reste. */
+  function abonnementSessionOubliee(espace, session) { Q('UPDATE abonnement SET session = NULL, session_le = NULL WHERE espace = ? AND session = ?').run(espace, session); }
   /* Ce que Stripe a dit de l'abonnement de cet espace. `adopter` : l'abonnement vient d'être trouvé par la session (il remplace l'ancien et la session est consommée) ; sinon c'est
      la relecture de celui qu'on connaît (la session en attente, s'il y en a une, reste). `impaye` date la PREMIÈRE lecture d'un impayé : le sursis de sept jours en part, et
      une lecture « payé » l'efface. Un abonnement déjà attaché à un AUTRE espace ne s'attache pas (`abonnement_pris`). */
@@ -2025,11 +2027,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         .run(client || null, abonnement || null, statut, places, fin_periode === undefined ? null : fin_periode, annule ? 1 : 0, depuis, t, espace);
     });
   }
-  /* Les espaces à relire chez Stripe : ceux dont l'abonnement court encore (un abonnement résilié est un état final), et ceux dont une session de paiement attend (24 h). */
+  /* Les espaces à relire chez Stripe : ceux dont l'abonnement court encore (un abonnement résilié est un état final), et ceux dont une session de paiement n'est pas RÉSOLUE — sans borne
+     d'âge : une session de plus de 24 h est relue jusqu'à ce que Stripe dise « expirée » (ou ne la connaisse plus) ; une session payée à la 23e heure, pendant une panne, doit être reconnue. */
   function abonnementsARelire(limite = 200) {
     return Q(`SELECT espace FROM abonnement
-              WHERE (abonnement IS NOT NULL AND statut NOT IN ('canceled', 'incomplete_expired')) OR (session IS NOT NULL AND session_le > ?)
-              ORDER BY COALESCE(relu_le, 0), espace LIMIT ?`).all(horloge() - 24 * 3600000, Math.max(1, limite | 0)).map(r => r.espace);
+              WHERE (abonnement IS NOT NULL AND statut NOT IN ('canceled', 'incomplete_expired')) OR session IS NOT NULL
+              ORDER BY COALESCE(relu_le, 0), espace LIMIT ?`).all(Math.max(1, limite | 0)).map(r => r.espace);
   }
   function facturationStats() {
     const n = (s) => num(s.get().n);

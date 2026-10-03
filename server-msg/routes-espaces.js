@@ -47,7 +47,8 @@ function installerEspaces(H, ctx) {
   /* Les codes de refus du stockage, traduits : tous des chaînes courtes que la page sait dire (`public/api.js`, `MESSAGES`). Un code inconnu est une vraie panne : il part à `next`. */
   const CODES = { introuvable: [404, 'introuvable'], interdit: [403, 'interdit'], proprio: [409, 'proprio'], trop_d_espaces: [409, 'trop_d_espaces'], lien_invalide: [410, 'lien_invalide'],
     canal_public: [409, 'canal_public'], membre_inconnu: [400, 'membre_inconnu'], trop_de_canaux: [409, 'trop_de_canaux'], groupe_plein: [409, 'groupe_plein'],
-    destinataire_invalide: [409, 'destinataire_invalide'], champ_invalide: [400, 'champ_invalide'], espace_complet: [409, 'espace_indisponible'] };
+    destinataire_invalide: [409, 'destinataire_invalide'], champ_invalide: [400, 'champ_invalide'], espace_complet: [409, 'espace_indisponible'],
+    abonnement_actif: [409, 'abonnement_actif'], paiement_en_cours: [409, 'paiement_en_cours'] };
   const garder = (f) => (req, res, next) => {
     const traduire = (e) => { const c = e && CODES[e.code]; if (c) return refus(res, c[0], c[1]); return next(e); };
     try { const r = f(req, res, next); if (r && typeof r.catch === 'function') r.catch(traduire); }
@@ -129,12 +130,13 @@ function installerEspaces(H, ctx) {
     res.json(detail(req));
   });
 
-  H['espaces.supprimer'] = garder((req, res) => {
+  H['espaces.supprimer'] = garder(async (req, res) => {
     if (corps(req).confirmation !== CONFIRMATION) return refus(res, 400, 'confirmation_requise');
-    const id = req.espace.espace.id, a = stockage.abonnementLire(id);
-    /* ⛔ UN ABONNEMENT QUI COURT NE SE LAISSE PAS SANS ESPACE : dissoudre l'espace laisserait Stripe prélever pour rien. On le résilie d'abord (portail) ; la relecture le voit. */
-    if (a && a.abonnement && !['canceled', 'incomplete_expired', 'aucun'].includes(a.statut)) return refus(res, 409, 'abonnement_actif');
-    const r = stockage.espaceSupprimer(id);
+    const id = req.espace.espace.id;
+    /* ⛔ UN ABONNEMENT QUI COURT NE SE LAISSE PAS SANS ESPACE : dissoudre l'espace laisserait Stripe prélever pour rien. On le résilie d'abord (portail) ; la relecture le voit. Et un paiement
+       COMMENCÉ dont on n'a pas relu l'issue est relu d'abord : payé, c'est un abonnement qui court (409 `abonnement_actif`) ; encore ouvert ou illisible, on ne sait pas (409 `paiement_en_cours`).
+       Le contrôle et la dissolution se font sous le MÊME verrou de l'espace (`facturation.dissoudre`) : un « payer » simultané ne peut pas s'y glisser. */
+    const r = await ctx.facturation.dissoudre(id, () => stockage.espaceSupprimer(id));
     effacer(r.pieces);
     for (const u of r.membres) hub.reveiller({ uids: [u] });
     prevenir(r.membres, id);

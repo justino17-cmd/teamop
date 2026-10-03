@@ -80,6 +80,7 @@
     places_epuisees: 'Toutes les places de l\'abonnement sont prises : ajoute des places (Réglages › Abonnement › Gérer) avant d\'inviter quelqu\'un.',
     abonnement_actif: 'Un abonnement court encore pour cet espace : résilie-le (Réglages › Abonnement › Gérer) avant de supprimer l\'espace.',
     espace_abonne: 'Tu es le seul membre d\'un espace qui a un abonnement en cours : résilie-le ou confie l\'espace à quelqu\'un, puis supprime ton compte.',
+    paiement_en_cours: 'Un paiement a été commencé pour cet espace et on n\'en connaît pas l\'issue : touche « J\'ai réglé — vérifier » (Réglages › Abonnement), ou réessaie dans un moment (une page de paiement non réglée expire au bout de 24 heures).',
     abonnement_non_ouvert: 'L\'abonnement n\'est pas encore ouvert.',
     places_invalides: 'Le nombre de places est incorrect (au moins le nombre de membres, 500 au plus).',
     offre_inconnue: 'Cette offre n\'existe pas.',

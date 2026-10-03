@@ -112,10 +112,14 @@ const AUTRE_PRIX = 'price_ToutAutreProduitQq77';
       const E5 = S.espaceCreer({ nom: 'Annuelle', proprio: ana.id }).id;
       const ra = await payer(a, E5, { places: 2, cycle: 'annuel' });
       v('le rythme « annuel » est choisi par son nom : le tarif annuel de la configuration part', [ra.code, form(fake.appels.slice().reverse().find(x => x.m === 'POST' && x.chemin === '/v1/checkout/sessions'))['line_items[0][price]']], [201, PRIX.annuel]);
+      /* ⛔ le rythme se cherche parmi les tarifs de la CONFIGURATION seulement (relecture du gardien : « constructor » ou « __proto__ » trouvaient une propriété héritée et partaient chez Stripe) */
+      const pP = fake.appels.length, proto = [];
+      for (const cycle of ['constructor', '__proto__', 'toString', 'hasOwnProperty', 'valueOf', '', 'MENSUEL', null, 42, ['mensuel']]) proto.push((await payer(a, E5, { places: 2, cycle })).j.error);
+      v('⛔ un rythme qui n\'est pas « mensuel » ou « annuel » est refusé (400 `offre_inconnue`) — y compris les noms que tout objet hérite (`constructor`, `__proto__`, `toString`) — et AUCUNE session ne part chez Stripe', [proto, fake.appels.slice(pP).filter(x => x.m === 'POST').length], [Array(10).fill('offre_inconnue'), 0]);     // (les lectures de la passe de fond ne comptent pas : seul un POST aurait porté un tarif)
       /* une autre origine : refusée avant d'arriver */
       const p2 = fake.appels.length;
       const ori = await payer(a, E5, { places: 2 }, { origin: 'https://pirate.example' });
-      v('⛔ une page d\'un AUTRE site ne déclenche aucun paiement : 403 avant même la route, Stripe n\'est pas appelé', [ori.code, fake.appels.length - p2], [403, 0]);
+      v('⛔ une page d\'un AUTRE site ne déclenche aucun paiement : 403 avant même la route, Stripe n\'est pas appelé', [ori.code, fake.appels.slice(p2).filter(x => x.m === 'POST').length], [403, 0]);     // (POST seulement : la première passe de fond, cinq secondes après le démarrage, lit déjà les sessions rangées)
     }
 
     /* ═══ 3. LE RETOUR : le verdict est relu chez Stripe, l'abonnement est celui que la SESSION désigne ═══════════════════════════════════════════════ */
@@ -261,7 +265,7 @@ const AUTRE_PRIX = 'price_ToutAutreProduitQq77';
       const por = (cli, id, extra) => cli.post('/api/espaces/' + id + '/facturation/portail', {}, extra);
       const Ev = S.espaceCreer({ nom: 'Vierge', proprio: eli.id }).id;
       const p0 = fake.appels.length;
-      v('⛔ sans paiement il n\'y a pas de client chez Stripe : 409 `pas_d_abonnement`, et Stripe n\'est pas appelé', [(await por(el, Ev)).j.error, fake.appels.length - p0], ['pas_d_abonnement', 0]);
+      v('⛔ sans paiement il n\'y a pas de client chez Stripe : 409 `pas_d_abonnement`, et Stripe n\'est pas appelé', [(await por(el, Ev)).j.error, fake.appels.slice(p0).filter(x => x.m === 'POST').length], ['pas_d_abonnement', 0]);
       const r = await por(a, E0);
       const ap = fake.dernier('POST', /billing_portal/);
       const F = form(ap);
@@ -279,6 +283,100 @@ const AUTRE_PRIX = 'price_ToutAutreProduitQq77';
       const ru = await payer(ad, Eu, { places: 1 }), pu = await por(a, E0);
       fake.urlMauvaise = null;
       v('⛔ une adresse de paiement ou de portail qui n\'est pas http(s) (« javascript: ») n\'est JAMAIS rendue à la page : 502 `stripe_muet`, et la session mal adressée n\'est pas rangée', [ru.code, ru.j.error, /javascript/.test(ru.txt), S.abonnementLire(Eu), pu.code, pu.j.error, /javascript/.test(pu.txt)], [502, 'stripe_muet', false, null, 502, 'stripe_muet', false]);
+    }
+
+    /* ═══ 5 bis. UNE SESSION SE RELIT TOUJOURS ; PAYER, RELIRE, DISSOUDRE SE FONT UN PAR UN ; ON NE DISSOUT PAS ENTRE UN PAIEMENT ET SA RELECTURE ════════════════════ */
+    console.log('\nUne session de paiement se relit toujours, quel que soit son âge ; payer se fait un à la fois ; on ne dissout pas un espace entre un paiement et sa relecture');
+    {
+      /* relecture du gardien, 3 octobre 2026 : trois chemins par lesquels un paiement RÉGLÉ chez Stripe n'était jamais reconnu — et le client payait deux fois. Le service a l'horloge avancée à la main (`avancer`). */
+      const svc5 = await T.lancerService({ horloge: true, config: { formule: { toutOuvert: false }, facturation: { cle: CLE, prix: PRIX, affichage: { mensuel: 15, annuel: 150 }, relectureMs: 3600000, timeoutMs: 3000 }, quotas: { relire: { max: 1000, fenetreMs: 1000 }, paiement: { max: 1000, fenetreMs: 3600000 } } }, env: { OPMSG_TEST_STRIPE: fake.hote } });
+      const S5 = ouvrir({ chemin: path.join(svc5.data, 'msg.db'), scelleur: creerScelleur(Buffer.from(svc5.cle, 'hex')) });
+      try {
+        const H = 3600000, chemin = (e, f) => '/api/espaces/' + e + '/' + f;
+        /* un propriétaire neuf, son client et son espace : chaque scénario a le sien (trois espaces au plus par propriétaire) */
+        const monde = (nom) => {
+          const p = S5.personneCreer({ identifiant: 'beta:' + nom + (++k) + crypto.randomBytes(2).toString('hex'), prenom: nom, nom: 'Banc', origine: 'beta', verifie: true });
+          const c = T.client(svc5.base), j = jeton(); S5.sessionAjouter({ h: sha(j), personne: p.id, appareil: null, ttlMs: 20 * 86400000 }); c.poserCookie(j);
+          const e = S5.espaceCreer({ nom: 'Espace ' + nom, proprio: p.id }).id;
+          return { p, c, e, payer: (places = 1) => c.post(chemin(e, 'facturation/paiement'), { places }), relire: () => c.post(chemin(e, 'facturation/relire'), {}), etat: async () => (await c.get(chemin(e, 'facturation/etat'))).j,
+            supprimer: () => c.post(chemin(e, 'supprimer'), { confirmation: 'SUPPRIMER' }), session: () => Array.from(fake.sessions.values()).filter(x => x.client_reference_id === 'opmsg:' + e).pop() };
+        };
+
+        /* ── (a) une session de plus de 24 h est RELUE avant d'être oubliée ── */
+        const A = monde('Vingtcinq');
+        await A.payer();
+        const sA = A.session(); fake.payer(sA.id);                 // payée à la 23e heure, pendant que personne ne lisait Stripe…
+        svc5.avancer(25 * H);                                      // … et lue pour la première fois à la 25e
+        const lA = await A.relire();
+        v('⛔ une session de plus de 24 h est RELUE avant d\'être oubliée : payée, elle devient l\'abonnement (avant, elle était oubliée SANS lecture : le paiement n\'était jamais reconnu, et le client payait une seconde fois)',
+          [lA.code, lA.j.formule, lA.j.abonnement && lA.j.abonnement.statut, lA.j.paiement_en_attente, S5.abonnementLire(A.e).session], [200, 'pro', 'active', false, null]);
+        const B = monde('Payeetoubliee');
+        await B.payer();
+        const sB = B.session(); fake.payer(sB.id);
+        svc5.avancer(25 * H);
+        const nB = fake.sessions.size, pB = await B.payer();
+        v('⛔ payer de nouveau quand la session de plus de 24 h a été PAYÉE : 409 `abonnement_existant` (elle est relue et adoptée), aucune session neuve — un second abonnement serait prélevé en double',
+          [pB.code, pB.j.error, fake.sessions.size - nB, S5.abonnementLire(B.e).abonnement !== null], [409, 'abonnement_existant', 0, true]);
+        const C = monde('Expiree');
+        await C.payer();
+        const sC = C.session(); fake.expirer(sC.id);
+        svc5.avancer(25 * H);
+        const nC = fake.sessions.size, pC = await C.payer();
+        v('une session de plus de 24 h que Stripe dit EXPIRÉE : on en ouvre une neuve (201), qui remplace l\'ancienne', [pC.code, fake.sessions.size - nC, S5.abonnementLire(C.e).session === C.session().id, C.session().id !== sC.id], [201, 1, true, true]);
+        const D = monde('Muette');
+        await D.payer();
+        const sD = D.session(); svc5.avancer(25 * H); fake.mode = 'muet';
+        const rD = await D.relire(), eD = await D.etat();
+        v('⛔ Stripe muet pendant plus de 24 h : la session RESTE rangée et le dit (« paiement en attente » : on ne sait pas si elle a été payée) — rien n\'est oublié sur une lecture ratée', [rD.code, eD.paiement_en_attente, S5.abonnementLire(D.e).session === sD.id], [502, true, true]);
+        fake.mode = 'normal'; fake.expirer(sD.id);
+        const rD2 = await D.relire();
+        v('… Stripe revenu dit « expirée » : alors seulement elle est oubliée', [rD2.code, rD2.j.paiement_en_attente, S5.abonnementLire(D.e).session], [200, false, null]);
+
+        /* ── (b) payer se fait un à la fois, par espace ── */
+        const E = monde('Simultanes');
+        fake.retardMs = 60;
+        const nS = fake.sessions.size, nP = fake.compter('POST', /^\/v1\/checkout\/sessions$/);
+        const trois = await Promise.all([1, 2, 3].map(() => E.payer(2)));
+        fake.retardMs = 0;
+        v('⛔ trois « payer » SIMULTANÉS ne font qu\'UNE session chez Stripe et rendent la même adresse (avant : trois sessions ouvertes pour une seule retenue — en payer une autre créait un abonnement vivant que personne ne reconnaîtrait)',
+          [trois.map(x => x.code), new Set(trois.map(x => x.j.url)).size, fake.sessions.size - nS, fake.compter('POST', /^\/v1\/checkout\/sessions$/) - nP], [[201, 201, 201], 1, 1, 1]);
+        fake.payer(E.session().id);
+        const rE = await E.relire();
+        v('… la session retenue est bien celle qui se paie : reconnue, l\'espace est Pro avec ses deux places', [rE.code, rE.j.formule, rE.j.abonnement && rE.j.abonnement.places], [200, 'pro', 2]);
+
+        /* ── (c) on ne dissout pas un espace entre un paiement et sa relecture ── */
+        const F = monde('Dissous');
+        await F.payer();
+        fake.payer(F.session().id);                                 // payé chez Stripe, le service ne l'a pas lu (pas de webhook : jusqu'à dix minutes)
+        const dF = await F.supprimer();
+        v('⛔ dissoudre juste après un paiement que le service n\'a pas encore lu : le paiement est RELU d\'abord — c\'est un abonnement qui court (409 `abonnement_actif`), l\'espace existe toujours et il est Pro',
+          [dF.code, dF.j.error, S5.espaceBrut(F.e) !== null, S5.abonnementLire(F.e).statut], [409, 'abonnement_actif', true, 'active']);
+        const G = monde('Ouverte');
+        await G.payer();
+        const dG = await G.supprimer();
+        v('⛔ une session encore OUVERTE (jamais payée) : on ne dissout pas — elle serait payable derrière un espace qui n\'existe plus (409 `paiement_en_cours`), rien n\'est supprimé, la session reste rangée',
+          [dG.code, dG.j.error, S5.espaceBrut(G.e) !== null, S5.abonnementLire(G.e).session === G.session().id], [409, 'paiement_en_cours', true, true]);
+        fake.expirer(G.session().id);
+        const dG2 = await G.supprimer();
+        v('… expirée, elle ne bloque plus : l\'espace est dissous (200)', [dG2.code, S5.espaceBrut(G.e)], [200, null]);
+        const Hh = monde('Muet');
+        await Hh.payer(); fake.mode = 'muet';
+        const dH = await Hh.supprimer();
+        fake.mode = 'normal';
+        v('⛔ Stripe muet : on ne sait pas si la session a été payée — pas de dissolution (409 `paiement_en_cours`)', [dH.code, dH.j.error, S5.espaceBrut(Hh.e) !== null], [409, 'paiement_en_cours', true]);
+
+        /* supprimer son COMPTE quand on est seul dans l'espace */
+        const I = monde('Compte');
+        await I.payer();
+        const cI = await I.c.post('/api/compte/supprimer', { confirmation: 'SUPPRIMER' });
+        v('⛔ supprimer son compte quand on est seul dans un espace dont un paiement est commencé : 409 `paiement_en_cours` — rien n\'est programmé', [cI.code, cI.j.error, S5.suppressionLe(I.p.id)], [409, 'paiement_en_cours', null]);
+        fake.payer(I.session().id);
+        const cI2 = await I.c.post('/api/compte/supprimer', { confirmation: 'SUPPRIMER' });
+        v('… le paiement est RELU d\'abord : réglé, c\'est un abonnement qui court — 409 `espace_abonne` (résilier, ou confier l\'espace)', [cI2.code, cI2.j.error, S5.abonnementLire(I.e).statut], [409, 'espace_abonne', 'active']);
+        fake.statut(S5.abonnementLire(I.e).abonnement, 'canceled');
+        const cI3 = await I.c.post('/api/compte/supprimer', { confirmation: 'SUPPRIMER' });
+        v('… résilié chez Stripe (le service ne le sait pas encore) : la relecture le voit, la suppression est programmée (200)', [cI3.code, S5.suppressionLe(I.p.id) !== null], [200, true]);
+      } finally { fake.mode = 'normal'; fake.retardMs = 0; try { S5.fermer(); } catch (x) { /* déjà fermé */ } await svc5.arreter(); }
     }
 
     /* ═══ 6. LES PLAFONDS DU PAIEMENT, DU PORTAIL ET DE LA RELECTURE ══════════════════════════════════════════════════════════════════════════════ */
@@ -419,9 +517,38 @@ const AUTRE_PRIX = 'price_ToutAutreProduitQq77';
         const vu = [];
         for (const [r, code, panne] of cas) { file.push(r); let e2 = null; try { await F1.relire(e1); } catch (x) { e2 = x.code; } h.t += 60000; vu.push([e2, F1.echecMin() > 0 || e2 === null ? (panne ? 'muet' : 'pas muet') : 'pas muet']); if (!panne) { file.push(rep(200, sbDe(e1))); await F1.relire(e1); } else { file.push(rep(200, sbDe(e1))); await F1.relire(e1); } }
         v('⛔ chaque réponse a son code : 5xx → `stripe_panne`, 401 et 403 → `cle_refusee`, 429 → `trop_de_demandes`, pas du JSON → `reponse_illisible`, un autre 4xx → `refus` (une RÉPONSE : notre demande est fausse, ce n\'est pas une panne)', vu.map(x => x[0]), cas.map(x => x[1]));
-        file.push(rep(404, { error: {} }));
-        await F1.relire(e1);
-        v('⛔ un 404 sur l\'abonnement : Stripe ne le connaît plus — résilié (une RÉPONSE, pas une panne)', [Sm.abonnementLire(e1).statut, F1.echecMin()], ['canceled', 0]);
+        /* ⛔ UN 404 SUR UN ABONNEMENT NE LE DIT PAS « RÉSILIÉ » À LUI SEUL (relecture du gardien : la clé d'un AUTRE compte répond 404 à tout, et « résilié » est définitif). L'absence est confirmée quand
+           Stripe CONNAÎT le client de l'abonnement et que la liste de ses abonnements ne le contient pas ; sinon le dernier état reste, et la panne se voit (`stripeEchecMin`). */
+        const client = (e) => Sm.abonnementLire(e).client, R404 = { error: {} }, listeVide = { object: 'list', data: [], has_more: false };
+        const perdu = async (e, reponses) => {
+          const avantAppels = appels.length; file.push(...reponses); let err2 = null;
+          try { await F1.relire(e); } catch (x) { err2 = x.code; }
+          return { statut: Sm.abonnementLire(e).statut, appels: appels.slice(avantAppels).map(x => x.init.method + ' ' + x.url.replace('https://api.stripe.com', '').replace(/(sub|cus)_\w+/, '$1_x').replace(/\?.*$/, '?…')), err: err2 };
+        };
+        const ok404 = await perdu(e1, [rep(404, R404), rep(200, { id: client(e1), object: 'customer' }), rep(200, listeVide)]);
+        v('⛔ un 404 sur l\'abonnement dont Stripe CONNAÎT le client et dont la liste ne le contient pas : absence CONFIRMÉE — résilié (une RÉPONSE, pas une panne : le compteur reste à zéro)', [ok404.statut, F1.echecMin(), ok404.appels], ['canceled', 0, ['GET /v1/subscriptions/sub_x', 'GET /v1/customers/cus_x', 'GET /v1/subscriptions?…']]);
+        const e405 = abonne(41), e406 = abonne(42), e407 = abonne(43), e408 = abonne(44), e409 = abonne(45);
+        const autreCompte = await perdu(e405, [rep(404, R404), rep(404, R404)]);
+        v('⛔ la clé d\'un AUTRE compte (l\'abonnement ET le client répondent 404) : PAS résilié — le dernier état reste (« active »), deux appels seulement', [autreCompte.statut, autreCompte.appels.length, Sm.abonnementLire(e405).places], ['active', 2, 2]);
+        h.t += 125 * 60000;
+        v('… la panne de configuration se VOIT : au bout de deux heures `stripeEchecMin` dit 125 (la surveillance crie au-delà de 90) — un 404 n\'efface pas l\'alarme', F1.echecMin(), 125);
+        const e410 = abonne(46), encore = await perdu(e410, [rep(404, R404), rep(404, R404)]);
+        v('⛔ un SECOND espace dont l\'absence n\'est pas confirmée, lu pendant la panne, ne remet PAS le compteur à zéro (un 404 n\'est pas une lecture réussie : sinon chaque passe éteindrait l\'alarme qu\'elle vient d\'allumer)', [encore.statut, F1.echecMin()], ['active', 125]);
+        file.push(rep(200, sbDe(e405)));
+        await F1.relire(e405);
+        v('… et une lecture réussie la remet à zéro', [F1.echecMin(), Sm.abonnementLire(e405).statut], [0, 'active']);
+        const dedans = await perdu(e406, [rep(404, R404), rep(200, { id: client(e406), object: 'customer' }), rep(200, { object: 'list', data: [{ id: Sm.abonnementLire(e406).abonnement }], has_more: false })]);
+        const pages = await perdu(e407, [rep(404, R404), rep(200, { id: client(e407), object: 'customer' }), rep(200, { object: 'list', data: [], has_more: true })]);
+        const muet = await perdu(e408, [rep(404, R404), rep(500, {})]);
+        const supprime = await perdu(e409, [rep(404, R404), rep(200, { id: client(e409), object: 'customer', deleted: true })]);
+        v('⛔ la liste du client CONTIENT l\'abonnement (Stripe se contredit), ou a plus de cent abonnements (on ne peut pas conclure), ou Stripe ne répond pas à la confirmation : PAS résilié', [dedans.statut, pages.statut, muet.statut], ['active', 'active', 'active']);
+        v('un client SUPPRIMÉ chez Stripe ne facture plus rien : l\'absence est confirmée sans lire la liste — résilié', [supprime.statut, supprime.appels.length], ['canceled', 2]);
+        const sansClient = Sm.espaceCreer({ nom: 'Sans client', proprio: pers('SC').id }).id;
+        Sm.abonnementPoser(sansClient, { client: null, abonnement: 'sub_modsansclient', statut: 'active', places: 1, fin_periode: null, annule: false, impaye: false }, { adopter: true });
+        const sc = await perdu(sansClient, [rep(404, R404)]);
+        v('un abonnement dont le service ne connaît pas le client ne peut pas être confirmé absent : PAS résilié (rien à demander à Stripe)', [sc.statut, sc.appels.length], ['active', 1]);
+        /* (on les résilie à la main : la passe qui suit compte ses cinq espaces, pas ceux de ces cas) */
+        for (const e of [e405, e406, e407, e408, e410, sansClient]) Sm.abonnementPoser(e, { client: null, abonnement: Sm.abonnementLire(e).abonnement, statut: 'canceled', places: 0, fin_periode: null, annule: false, impaye: false });
         /* la passe */
         const lot = Array.from({ length: 5 }, (_, i) => abonne(10 + i));
         appels = []; file = [];

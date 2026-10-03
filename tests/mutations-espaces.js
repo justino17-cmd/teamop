@@ -90,10 +90,10 @@ m('G12', 'un identifiant d\'espace mal formé n\'est plus écarté avant la base
 
 /* ══ 3. LES ROUTES DES ESPACES — rôles, invitations, plafonds (routes-espaces.js) ═══════════════════════════════════════════════════════════════════════ */
 m('R01', 'créer un espace n\'est plus plafonné par heure', F.resp, "if (!plafond(res, 'espace_creer', req.moi.id, { max: 10, fenetreMs: 3600000 })) return;", '', ['961']);
-m('R02', 'dissoudre un espace est permis tant qu\'un abonnement court (Stripe continuerait de prélever pour un espace qui n\'existe plus)', F.resp,
-  "if (a && a.abonnement && !['canceled', 'incomplete_expired', 'aucun'].includes(a.statut)) return refus(res, 409, 'abonnement_actif');", '', ['961']);
+m('R02', 'dissoudre un espace est permis tant qu\'un abonnement court (Stripe continuerait de prélever pour un espace qui n\'existe plus)', F.fact,
+  "      if (a && a.abonnement && !STATUTS_FINAUX.includes(a.statut) && a.statut !== 'aucun') throw erreur('abonnement_actif');\n", '', ['961']);
 m('R03', 'dissoudre un espace n\'exige plus le mot SUPPRIMER', F.resp,
-  "H['espaces.supprimer'] = garder((req, res) => {\n    if (corps(req).confirmation !== CONFIRMATION) return refus(res, 400, 'confirmation_requise');\n", "H['espaces.supprimer'] = garder((req, res) => {\n", ['961']);
+  "H['espaces.supprimer'] = garder(async (req, res) => {\n    if (corps(req).confirmation !== CONFIRMATION) return refus(res, 400, 'confirmation_requise');\n", "H['espaces.supprimer'] = garder(async (req, res) => {\n", ['961']);
 m('R04', 'supprimer un canal n\'exige plus le mot SUPPRIMER', F.resp,
   "H['canaux.supprimer'] = garder((req, res) => {\n    if (corps(req).confirmation !== CONFIRMATION) return refus(res, 400, 'confirmation_requise');\n", "H['canaux.supprimer'] = garder((req, res) => {\n", ['961']);
 m('R05', 'un administrateur qui n\'est pas le propriétaire rétrograde un autre administrateur', F.resp,
@@ -189,7 +189,7 @@ m('R62', 'un simple membre reçoit le bloc « administrateur » de l\'espace (la
 
 /* ── supprimer son compte, quitter tout ── */
 m('E01', 'supprimer son compte est permis quand on est seul dans un espace dont l\'abonnement court (Stripe prélèverait pour un espace dissous)', F.compte,
-  "if (stockage.espacesAbonnesSeul(req.moi.id).length) return refus(res, 409, 'espace_abonne');", '', ['961']);
+  /    if \(seuls\.length\) \{\n      const court[^\n]*\n      return refus\(res, 409, court \? 'espace_abonne' : 'paiement_en_cours'\);\n    \}\n/, '', ['961']);
 m('E02', 'un compte effacé ne sort pas de ses espaces (la propriété ne passe pas, les canaux le gardent)', F.stock, 'const sortis = espaceQuitterTout(uid);', 'const sortis = { pieces: [], convs: [] };', ['960', '961']);
 m('E03', 'un propriétaire qui s\'efface ne passe pas la main : l\'espace reste à un compte effacé', F.stock, "        Q('UPDATE espace SET proprio = ? WHERE id = ?').run(suivant.uid, e.id);\n", '', ['960']);
 m('E04', '« seul dans un espace abonné » ne reconnaît jamais personne (la borne de membres est à zéro)', F.stock, 'AND (SELECT COUNT(*) FROM espace_membre x WHERE x.espace = e.id) <= 1`', 'AND (SELECT COUNT(*) FROM espace_membre x WHERE x.espace = e.id) <= 0`', ['961']);
@@ -210,13 +210,13 @@ m('T02', 'la copie ne compte plus la table `abonnement` (`lignesDe`)', F.stock, 
 m('T03', 'la sonde de la base vivante ne regarde plus la table `abonnement` (`sonde().nonVides`)', F.stock, "        abonnement: non(() => Q('SELECT 1 FROM abonnement LIMIT 1')),\n", '', ['960', '950']);
 
 /* ══ 5. MESSAGES PRO — LA FACTURATION STRIPE (facturation.js, jouée contre un faux Stripe) ═════════════════════════════════════════════════════════════ */
-m('B01', 'un rythme que la liste blanche ne connaît pas est accepté (le corps choisit le tarif)', F.fact, "    if (typeof rythme !== 'string' || !cfg.prix[rythme]) throw erreur('offre_inconnue');\n", '', ['962']);
+m('B01', 'un rythme que la liste blanche ne connaît pas est accepté (le corps choisit le tarif)', F.fact, /    if \(typeof rythme !== 'string' \|\| !Object\.hasOwn\(cfg\.prix, rythme\)\) throw erreur\('offre_inconnue'\);[^\n]*\n/, '', ['962']);
 m('B02', 'on paie moins de places que de membres', F.fact, 'places < min || places > PLACES_MAX', 'places < 1 || places > PLACES_MAX', ['962']);
 m('B03', 'on paie plus de 500 places', F.fact, 'places < min || places > PLACES_MAX', 'places < min', ['962']);
 m('B04', 'un nombre de places qui n\'est pas entier (1,5) est transmis à Stripe', F.fact, 'if (!Number.isInteger(places) || places < min', 'if (places < min', ['962']);
 m('B05', 'la production paie sans adresse confirmée (la facture ne va à personne)', F.fact, "    if (!adresse && cfg.mode === 'live') throw erreur('adresse_requise');\n", '', ['962']);
 m('B06', 'un second abonnement s\'ouvre pour un espace qui en a déjà un (deux prélèvements)', F.fact,
-  "    if (existe(a)) {\n      try { await relire(espace); } catch (e) { /* Stripe muet", "    if (false) {\n      try { await relire(espace); } catch (e) { /* Stripe muet", ['962']);
+  "      if (existe(a)) {\n        try { await relireImpl(espace); } catch (e) { /* Stripe muet", "      if (false) {\n        try { await relireImpl(espace); } catch (e) { /* Stripe muet", ['962']);
 m('B07', 'un abonnement en attente de paiement ou en pause n\'empêche plus d\'en ouvrir un second', F.fact,
   'const existe = (x) => !!(x && x.abonnement && !STATUTS_FINAUX.includes(x.statut));', 'const existe = (x) => !!(x && x.abonnement && STATUTS_PAYES.includes(x.statut));', ['962']);
 m('B08', 'une session de paiement encore ouverte n\'est plus réutilisée : un clic de plus ouvre une nouvelle session', F.fact,
@@ -337,6 +337,47 @@ m('H07', 'un administrateur qui n\'est pas propriétaire retire un AUTRE adminis
   "      if (cible && cible.role === 'admin' && (!e || e.proprio !== par)) throw erreur('interdit');\n", '', ['960', '961', '905']);
 m('H08', 'le propriétaire lui-même ne retire plus un administrateur d\'un canal privé (la règle protège les administrateurs au point de fermer la route)', F.stock,
   "if (cible && cible.role === 'admin' && (!e || e.proprio !== par)) throw erreur('interdit');", "if (cible && cible.role === 'admin') throw erreur('interdit');", ['960', '961', '905']);
+
+/* ── I2 : un paiement réglé chez Stripe finit TOUJOURS reconnu ── */
+m('H09', 'une session de plus de 24 h est oubliée AVANT d\'être lue (l\'âge est comparé d\'abord : un paiement réglé pendant une panne n\'est jamais reconnu)', F.fact,
+  '      if (!ID_SESSION.test(sid0)) oublier();', '      if (!ID_SESSION.test(sid0) || (a.session_le !== null && horloge() - a.session_le > 24 * 3600000)) oublier();', ['962']);
+m('H10', '« paiement en attente » s\'éteint au bout de 24 h, session non résolue ou pas', F.fact,
+  'paiement_en_attente: !!(a && a.session),', 'paiement_en_attente: !!(a && a.session && a.session_le !== null && horloge() - a.session_le <= 24 * 3600000),', ['962']);
+m('H11', 'payer de nouveau ne relit pas une session de plus de 24 h (elle est remplacée sans être lue : si elle était payée, un second abonnement naît)', F.fact,
+  '      if (a && a.session) {\n        if (ID_SESSION.test(a.session)) {', '      if (a && a.session && a.session_le !== null && horloge() - a.session_le <= 24 * 3600000) {\n        if (ID_SESSION.test(a.session)) {', ['962']);
+m('H12', 'les opérations d\'un même espace ne se font plus l\'une après l\'autre (trois « payer » simultanés ouvrent trois sessions)', F.fact,
+  '    const p = avant.then(f);', '    const p = Promise.resolve().then(f);', ['962']);
+m('H13', 'dissoudre ne relit pas la session rangée avant de décider (un paiement réglé et non relu laisse dissoudre — ou donne le mauvais refus)', F.fact,
+  '      if (a && a.session && actif()) {', '      if (false && a && a.session && actif()) {', ['962']);
+m('H14', 'dissoudre ignore une session non résolue (elle serait payable derrière un espace dissous)', F.fact,
+  "      if (a && a.session) throw erreur('paiement_en_cours');\n", '', ['961', '962']);
+m('H15', 'la route de dissolution n\'appelle plus la facturation (plus aucun contrôle de paiement, plus de verrou)', F.resp,
+  'const r = await ctx.facturation.dissoudre(id, () => stockage.espaceSupprimer(id));', 'const r = stockage.espaceSupprimer(id);', ['961', '962']);
+m('H16', '« seul dans un espace abonné » ne compte plus les paiements commencés (une session rangée)', F.stock,
+  " OR a.session IS NOT NULL)", ")", ['960', '961']);
+m('H17', 'supprimer son compte ne relit pas le paiement commencé avant de refuser', F.compte,
+  /    if \(seuls\.length && ctx\.facturation && ctx\.facturation\.ouvert\(\)\) \{\n[\s\S]*?\n    \}\n    if \(seuls\.length\) \{/, '    if (seuls.length) {', ['962']);
+m('H18', 'supprimer son compte dit toujours « abonnement en cours » (jamais « paiement en cours »)', F.compte,
+  "court ? 'espace_abonne' : 'paiement_en_cours'", "'espace_abonne'", ['961', '962']);
+m2('H19', 'la passe des dix minutes ne relit plus une session de plus de 24 h (elle n\'est jamais résolue)', [
+  [F.stock, "OR session IS NOT NULL\n              ORDER BY", "OR (session IS NOT NULL AND session_le > ?)\n              ORDER BY"],
+  [F.stock, ".all(Math.max(1, limite | 0)).map(r => r.espace);", ".all(horloge() - 24 * 3600000, Math.max(1, limite | 0)).map(r => r.espace);"]], ['960']);
+m('H20', 'oublier une session efface celle qui est rangée maintenant, pas seulement celle qu\'on vient de relire', F.stock,
+  "UPDATE abonnement SET session = NULL, session_le = NULL WHERE espace = ? AND session = ?').run(espace, session)", "UPDATE abonnement SET session = NULL, session_le = NULL WHERE espace = ?').run(espace)", ['960']);
+/* ── R5 : le rythme n'est jamais un nom hérité ── */
+m('H21', 'le rythme du paiement se cherche dans le prototype (« constructor », « __proto__ » partent chez Stripe)', F.fact,
+  '!Object.hasOwn(cfg.prix, rythme)', '!cfg.prix[rythme]', ['962']);
+/* ── R6 : un 404 ne résilie qu'une fois l'absence confirmée ── */
+m('H22', 'un 404 sur un abonnement le dit « résilié » sans confirmation (la clé d\'un autre compte résilie tout, pour toujours)', F.fact,
+  'if (await absenceConfirmee(a)) stockage.abonnementPoser(', 'if (true) stockage.abonnementPoser(', ['962']);
+m('H23', 'l\'absence est « confirmée » sans lire la liste des abonnements du client (Stripe peut se contredire, ou avoir plus de cent abonnements)', F.fact,
+  "    return !!l && Array.isArray(l.data) && l.has_more !== true && !l.data.some(x => x && x.id === a.abonnement);", "    return !!l;", ['962']);
+m('H24', 'un client SUPPRIMÉ chez Stripe ne confirme plus l\'absence', F.fact,
+  '    if (c.deleted === true) return true;\n', '', ['962']);
+m('H25', 'un 404 compte comme une lecture réussie (une clé qui ne voit rien éteint l\'alarme au lieu de l\'allumer)', F.fact,
+  "else if (code !== 'introuvable') noterSucces();", 'else noterSucces();', ['962']);
+m('H26', 'une absence non confirmée ne se dit pas (Stripe n\'est pas compté illisible : l\'alarme ne monte jamais)', F.fact,
+  "noterEchec('abonnement_introuvable'); journaliser", "journaliser", ['962']);
 
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const DOSSIERS_COPIE = ['server-msg', 'server', 'design/opmessages', '.github', 'apercu/opmessages', 'icons', 'scripts'];   // `.github` ENTIER : test-934 lit les workflows autant que les scripts de surveillance

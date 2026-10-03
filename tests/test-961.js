@@ -183,6 +183,11 @@ async function monter(config, instance) {
       const r2 = await du.post('/api/compte/supprimer', { confirmation: 'SUPPRIMER' });
       v('… Duo, propriétaire d\'un espace où il n\'est pas seul, supprime son compte (200) : la propriété passera à l\'autre à l\'effacement', [r2.code, S.suppressionLe(duo.id) !== null], [200, true]);
       S.abonnementPoser(ES, { client: 'cus_banc961', abonnement: 'sub_b961_' + ES.slice(2, 14), statut: 'canceled', places: 0, fin_periode: null, annule: false, impaye: false });
+      /* ⛔ UN PAIEMENT COMMENCÉ COMPTE AUSSI (relecture du gardien : payé chez Stripe, compte effacé avant que le service le sache) : une session rangée dont on ne peut pas relire l'issue (ici, aucune clé) bloque */
+      S.abonnementSession(ES, 'cs_banc961SOLO');
+      const r2b = await so.post('/api/compte/supprimer', { confirmation: 'SUPPRIMER' });
+      v('⛔ Solo, abonnement résilié MAIS un paiement commencé dont l\'issue est inconnue : 409 `paiement_en_cours` — rien n\'est programmé', [r2b.code, r2b.j.error, S.suppressionLe(solo.id)], [409, 'paiement_en_cours', null]);
+      S.abonnementSessionOubliee(ES, 'cs_banc961SOLO');
       const r3 = await so.post('/api/compte/supprimer', { confirmation: 'SUPPRIMER' });
       v('… l\'abonnement résilié, le même geste de Solo passe (200)', [r3.code, S.suppressionLe(solo.id) !== null], [200, true]);
     }
@@ -226,6 +231,11 @@ async function monter(config, instance) {
       S.messageEnvoyer({ conv: canalE3, auteur: ben.id, cid: 'cid-e3-000001', texte: 'à dissoudre' });
       v('⛔ dissoudre : la confirmation est exigée (400) ; un membre simple ne le peut pas (403) ; un abonnement qui COURT l\'interdit (409 `abonnement_actif`) — Stripe prélèverait pour rien', [(await sup(b, {})).j.error, (await sup(b, { confirmation: 'supprimer' })).j.error, (await sup(c, { confirmation: 'SUPPRIMER' })).code, (await sup(b, { confirmation: 'SUPPRIMER' })).j.error, S.espaceBrut(E3) !== null], ['confirmation_requise', 'confirmation_requise', 403, 'abonnement_actif', true]);
       S.abonnementPoser(E3, { client: 'cus_banc961', abonnement: 'sub_b961_' + E3.slice(2, 14), statut: 'canceled', places: 5, fin_periode: null, annule: true, impaye: false });
+      /* ⛔ un paiement COMMENCÉ dont on ne peut pas relire l'issue (ici : aucune clé Stripe) bloque la dissolution — il serait payable derrière un espace qui n'existe plus */
+      S.abonnementSession(E3, 'cs_banc961E3x');
+      const bloque = await sup(b, { confirmation: 'SUPPRIMER' });
+      v('⛔ dissoudre avec un paiement commencé dont l\'issue est inconnue : 409 `paiement_en_cours`, l\'espace existe toujours et sa session reste rangée', [bloque.code, bloque.j.error, S.espaceBrut(E3) !== null, (S.abonnementLire(E3) || {}).session], [409, 'paiement_en_cours', true, 'cs_banc961E3x']);
+      S.abonnementSessionOubliee(E3, 'cs_banc961E3x');
       const code3 = crypto.randomBytes(16).toString('base64url'); S.lienCreer({ h: sha(code3), genre: 'espace', cible: E3, par: ben.id, ttlMs: JOUR, max: 5 });
       const sd = await sup(b, { confirmation: 'SUPPRIMER' });
       v('⛔ résilié, le propriétaire dissout : 200 ; plus rien pour personne (404), ni canal, ni conversation, ni message, ni invitation vivante', [sd.code, sd.j.ok, (await b.get('/api/espaces/' + E3)).code, (await c.get('/api/conversations/' + canalE3)).code, (await c.get('/api/conversations')).j.conversations.filter(x => x.espace === E3).length, S.espaceBrut(E3), (await f.post('/api/invitations/lire', { code: code3 })).j.error], [200, true, 404, 404, 0, null, 'lien_invalide']);

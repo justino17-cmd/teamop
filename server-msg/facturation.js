@@ -18,6 +18,9 @@
  *   `stripeEchecMin`), rien n'est décidé sur une lecture ratée. Le sursis d'un impayé (sept jours) se compte entre deux LECTURES, pas sur l'horloge (`formule.js`).
  * ⛔ UN SEUL ABONNEMENT VIVANT PAR ESPACE : en payer un second serait un second prélèvement. S'il y en a un, `paiement` répond `abonnement_existant` AVEC le lien du portail ;
  *   une session de paiement encore ouverte est RÉUTILISÉE (même lien), pas doublée.
+ * ⛔ UNE OPÉRATION À LA FOIS PAR ESPACE, ET UNE SESSION SE RELIT TOUJOURS (relecture du gardien, 3 octobre 2026) : payer, relire et dissoudre un espace s'exécutent l'un après l'autre (`exclusif`) ;
+ *   une session de paiement rangée ne s'oublie que sur ce que Stripe en DIT (expirée, inconnue), jamais sur son âge ; un 404 sur un abonnement ne le dit « résilié » qu'une fois l'absence
+ *   CONFIRMÉE (`absenceConfirmee`) ; un espace ne se dissout pas entre un paiement et sa relecture (`dissoudre`). Un paiement RÉGLÉ chez Stripe doit toujours finir reconnu.
  * ⛔ LA CLÉ est une clé RESTREINTE propre à OP MESSAGES (jamais celle d'OP GESTION), lue de la configuration, jamais journalisée ni publiée ; `/health` ne dit que le mode.
  * ⛔ LES ABONNEMENTS DE CE COMPTE STRIPE SONT PARTAGÉS avec OP GESTION, qui lit TOUTE la liste : un abonnement de Messages Pro ne porte donc JAMAIS la métadonnée `espace` (celle
  *   qu'OP GESTION lit pour rattacher un abonnement à une entreprise) — la nôtre s'appelle `opmsg_espace` — et son tarif doit être l'un de ceux qu'OP GESTION classe « OP MESSAGES »
@@ -29,7 +32,6 @@ const { STATUTS_PAYES, STATUTS_IMPAYES, STATUTS_VIVANTS } = require('./formule')
 
 const HOTE_STRIPE = 'https://api.stripe.com';
 const PLACES_MIN = 1, PLACES_MAX = 500;
-const SESSION_VIE_MS = 24 * 3600000;          // une session Checkout vit 24 h chez Stripe
 const STATUTS_FINAUX = ['canceled', 'incomplete_expired'];
 const ID_SESSION = /^cs_[A-Za-z0-9_]{6,200}$/, ID_ABO = /^sub_[A-Za-z0-9_]{4,200}$/, ID_CLIENT = /^cus_[A-Za-z0-9_]{4,200}$/;
 const ID_ESPACE = /^e_[0-9a-f]{32}$/;
@@ -41,6 +43,20 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
   const defaut = cfg.prix.mensuel ? 'mensuel' : 'annuel';
   let echecDepuis = null, derniereLecture = null, passeEnCours = false, minuteur = null, premier = null, arrete = false;
   const enCours = new Map();                     // espace → la relecture en cours (deux relectures de suite se partagent la même)
+  const verrous = new Map();                     // espace → la fin de la dernière opération mise en file pour lui (voir `exclusif`)
+
+  /* ⛔ UNE OPÉRATION À LA FOIS PAR ESPACE (relecture du gardien, 3 octobre 2026). Payer, relire, dissoudre lisent l'état de l'espace, appellent Stripe (un `await`), puis écrivent : deux
+     qui s'entrecroisent se marchent dessus. Trois « payer » simultanés ouvraient trois sessions chez Stripe pour une seule retenue en base — régler l'une des deux autres créait un
+     abonnement VIVANT que personne ne reconnaîtrait jamais, et le client payait deux fois. Les opérations d'un même espace se font donc l'une après l'autre (les espaces entre eux restent
+     indépendants) ; une qui échoue ne retient pas la suivante. */
+  function exclusif(espace, f) {
+    const avant = verrous.get(espace) || Promise.resolve();
+    const p = avant.then(f);                     // `avant` ne rejette jamais (voir `fin`) : f démarre quand la précédente a fini, réussie ou non
+    const fin = p.then(() => {}, () => {});
+    verrous.set(espace, fin);
+    fin.then(() => { if (verrous.get(espace) === fin) verrous.delete(espace); });
+    return p;
+  }
 
   /* ── le client Stripe : un appel, un verdict. Rend le JSON, ou lève { code } : `reseau`, `stripe_panne` (5xx), `cle_refusee` (401, 403), `trop_de_demandes` (429),
         `reponse_illisible`, `introuvable` (404 : Stripe ne connaît pas l'objet), `refus` (les autres 4xx : NOTRE demande est fausse). Seuls les cinq premiers disent « Stripe illisible ». ── */
@@ -59,7 +75,9 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
     let j = null; try { j = await r.json(); } catch (e) { j = null; }
     if (!r.ok) {
       const code = r.status === 404 ? 'introuvable' : r.status === 401 || r.status === 403 ? 'cle_refusee' : r.status === 429 ? 'trop_de_demandes' : r.status >= 500 ? 'stripe_panne' : 'refus';
-      if (PANNES.includes(code)) noterEchec(code); else noterSucces();     // un 404 ou un refus est une RÉPONSE de Stripe : il se lit, donc il n'est pas muet
+      /* un refus est une RÉPONSE de Stripe : il se lit, donc il n'est pas muet. Un 404, lui, n'est NI une lecture réussie NI une panne : avec la clé d'un autre compte (ou d'un autre mode)
+         TOUT est 404 — le compter comme un succès éteindrait l'alarme (`stripeEchecMin`) que « une clé qui ne voit rien » doit allumer (voir `absenceConfirmee`). */
+      if (PANNES.includes(code)) noterEchec(code); else if (code !== 'introuvable') noterSucces();
       throw erreur(code, { statut: r.status });
     }
     if (!j || typeof j !== 'object') { noterEchec('reponse_illisible'); throw erreur('reponse_illisible'); }
@@ -86,23 +104,40 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
       annule: sb.cancel_at_period_end === true, impaye: STATUTS_IMPAYES.includes(sb.status) };
   }
 
+  /* ⛔ UN 404 SUR UN ABONNEMENT NE LE DIT PAS « RÉSILIÉ » À LUI SEUL (relecture du gardien, 3 octobre 2026). Une clé d'un AUTRE compte — ou d'un autre mode — ne connaît aucun de nos
+     objets : tout y répond 404, et « résilié » étant définitif, le premier passage aurait résilié tous les espaces payants, pour toujours. L'absence est CONFIRMÉE quand Stripe, interrogé
+     sur le CLIENT de l'abonnement, le connaît (donc c'est bien notre compte qui répond) et que la liste de ses abonnements ne contient pas celui-là ; un client supprimé ne facture plus
+     rien. Faute de confirmation (client inconnu, Stripe muet, plus de cent abonnements), on garde le dernier état connu et on le DIT : Stripe est compté illisible (`stripeEchecMin`
+     monte tant que rien d'autre ne se lit — une clé qui ne voit rien est une panne de configuration, pas une résiliation ; un 404 n'est pas compté comme une lecture réussie). */
+  async function absenceConfirmee(a) {
+    if (!a.client || !ID_CLIENT.test(a.client)) return false;
+    let c; try { c = await stripe('GET', '/v1/customers/' + a.client); } catch (e) { return false; }
+    if (!c || c.id !== a.client) return false;
+    if (c.deleted === true) return true;
+    let l; try { l = await stripe('GET', '/v1/subscriptions', [['customer', a.client], ['status', 'all'], ['limit', '100']]); } catch (e) { return false; }
+    return !!l && Array.isArray(l.data) && l.has_more !== true && !l.data.some(x => x && x.id === a.abonnement);
+  }
+
   /* ── relire un espace ──
-     1. une session de paiement ouverte par NOUS attend-elle ? Terminée, elle désigne l'abonnement (après avoir vérifié qu'elle cite bien CET espace) ; expirée, on l'oublie ;
-     2. l'abonnement connu : son statut, ses places, son échéance. Stripe qui ne connaît plus l'abonnement (404) = résilié. */
+     1. une session de paiement ouverte par NOUS attend-elle ? Terminée, elle désigne l'abonnement (après avoir vérifié qu'elle cite bien CET espace) ; expirée, ou inconnue de Stripe, on l'oublie ;
+        ⛔ ELLE SE RELIT TOUJOURS, quel que soit son âge (relecture du gardien : une session de plus de 24 h était oubliée SANS être lue — payée à la 23e heure pendant que Stripe était injoignable,
+        elle ne serait jamais reconnue et le client paierait une seconde fois) : seul ce que Stripe en DIT l'efface, et un oubli ne vise que CETTE session (jamais celle qu'un paiement vient de ranger) ;
+     2. l'abonnement connu : son statut, ses places, son échéance. Stripe qui ne connaît plus l'abonnement (404) = résilié — une fois l'absence CONFIRMÉE (`absenceConfirmee`). */
   async function relireImpl(espace) {
     let a = stockage.abonnementLire(espace), adopte = false;
     if (a && a.session) {
-      if (!ID_SESSION.test(a.session) || (a.session_le !== null && horloge() - a.session_le > SESSION_VIE_MS)) stockage.abonnementSessionOubliee(espace);
+      const sid0 = a.session, oublier = () => stockage.abonnementSessionOubliee(espace, sid0);
+      if (!ID_SESSION.test(sid0)) oublier();
       else {
-        let cs; try { cs = await stripe('GET', '/v1/checkout/sessions/' + a.session); } catch (e) { if (e.code === 'introuvable') { stockage.abonnementSessionOubliee(espace); cs = null; } else throw e; }
-        if (cs && cs.status === 'expired') stockage.abonnementSessionOubliee(espace);
+        let cs; try { cs = await stripe('GET', '/v1/checkout/sessions/' + sid0); } catch (e) { if (e.code === 'introuvable') { oublier(); cs = null; } else throw e; }
+        if (cs && cs.status === 'expired') oublier();
         else if (cs && cs.status === 'complete') {
           const sid = id(cs.subscription);
-          if (cs.mode !== 'subscription' || cs.client_reference_id !== 'opmsg:' + espace || !ID_ABO.test(sid)) { stockage.abonnementSessionOubliee(espace); journaliser('facturation', { motif: 'session_incoherente' }); }
+          if (cs.mode !== 'subscription' || cs.client_reference_id !== 'opmsg:' + espace || !ID_ABO.test(sid)) { oublier(); journaliser('facturation', { motif: 'session_incoherente' }); }
           else {
             let sb; try { sb = await stripe('GET', '/v1/subscriptions/' + sid); } catch (e) { if (e.code === 'introuvable') sb = null; else throw e; }
             const l = lireAbonnement(sb, espace);
-            if (!l) { stockage.abonnementSessionOubliee(espace); journaliser('facturation', { motif: 'abonnement_non_reconnu' }); }
+            if (!l) { oublier(); journaliser('facturation', { motif: 'abonnement_non_reconnu' }); }
             else { stockage.abonnementPoser(espace, l, { adopter: true }); adopte = true; journaliser('facturation', { etat: 'adopte' }); }
           }
         }
@@ -112,8 +147,10 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
     if (a && a.abonnement && !adopte && !STATUTS_FINAUX.includes(a.statut)) {
       if (!ID_ABO.test(a.abonnement)) return;
       let sb; try { sb = await stripe('GET', '/v1/subscriptions/' + a.abonnement); } catch (e) { if (e.code === 'introuvable') sb = null; else throw e; }
-      if (sb === null) stockage.abonnementPoser(espace, { client: a.client, abonnement: a.abonnement, statut: 'canceled', places: 0, fin_periode: a.fin_periode, annule: false, impaye: false });
-      else {
+      if (sb === null) {
+        if (await absenceConfirmee(a)) stockage.abonnementPoser(espace, { client: a.client, abonnement: a.abonnement, statut: 'canceled', places: 0, fin_periode: a.fin_periode, annule: false, impaye: false });
+        else { noterEchec('abonnement_introuvable'); journaliser('facturation', { motif: 'abonnement_introuvable' }); }       // absence non confirmée : le dernier état connu reste, et la surveillance le voit venir
+      } else {
         const l = lireAbonnement(sb, espace);
         /* un abonnement qui n'est plus reconnu comme le nôtre (tarif retiré de la liste blanche, métadonnée modifiée) ne donne plus rien — mais on ne le dit pas « résilié » : on garde le dernier état */
         if (l) stockage.abonnementPoser(espace, l);
@@ -124,7 +161,7 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
   function relire(espace) {
     if (!actif()) return Promise.reject(erreur('abonnement_non_ouvert'));
     if (enCours.has(espace)) return enCours.get(espace);
-    const p = relireImpl(espace).then(() => etat(espace)).finally(() => { enCours.delete(espace); });
+    const p = exclusif(espace, () => relireImpl(espace)).then(() => etat(espace)).finally(() => { enCours.delete(espace); });
     enCours.set(espace, p);
     return p;
   }
@@ -159,7 +196,7 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
       abonnement: a && a.abonnement ? { statut: a.statut, places: a.places, fin_periode: a.fin_periode, annule: a.annule, relu_le: a.relu_le } : null,
       formule: v.formule, motif: v.motif, sursis_jusqua: v.sursis_jusqua || null,
       places: Number.isFinite(places) ? places : null, membres: n, places_depassees: Number.isFinite(places) && vivant && n > places,
-      paiement_en_attente: !!(a && a.session && a.session_le !== null && horloge() - a.session_le <= SESSION_VIE_MS),
+      paiement_en_attente: !!(a && a.session),     // une session NON RÉSOLUE (Stripe n'a pas dit qu'elle a expiré ou abouti) : quel que soit son âge, on ne sait pas si elle a été payée
       stripe_muet: echecDepuis !== null,
     };
   }
@@ -183,56 +220,81 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
   }
 
   /* Une session de paiement pour CET espace. `adresse` : l'adresse confirmée de la personne de la session (ou null). `origine` : l'origine de la page qui demande, déjà vérifiée par
-     `app.js` (une écriture n'arrive jamais ici d'une autre origine). */
+     `app.js` (une écriture n'arrive jamais ici d'une autre origine).
+     ⛔ SOUS LE VERROU DE L'ESPACE (`exclusif`) : tout ce qui suit lit, appelle Stripe, puis écrit — deux « payer » en même temps ouvriraient deux sessions pour une seule retenue.
+     ⛔ UNE SESSION ENCORE RANGÉE SE RELIT AVANT D'EN OUVRIR UNE AUTRE, quel que soit son âge : ouverte, on la réutilise ; terminée, elle devient l'abonnement (et on n'en ouvre pas un second) ;
+     expirée ou inconnue, on en ouvre une neuve. Une session qu'on remplacerait sans l'avoir relue pourrait avoir été payée — un abonnement vivant que personne ne reconnaîtrait. */
   async function paiement({ espace, places, cycle, origine, adresse }) {
     if (!actif()) throw erreur('abonnement_non_ouvert');
     const rythme = cycle === undefined ? defaut : cycle;
-    if (typeof rythme !== 'string' || !cfg.prix[rythme]) throw erreur('offre_inconnue');
-    const membres = stockage.espaceMembresN(espace), min = Math.max(PLACES_MIN, membres);
-    if (!Number.isInteger(places) || places < min || places > PLACES_MAX) throw erreur('places_invalides', { min, max: PLACES_MAX });
-    /* ⛔ en production (clé de production), pas d'adresse confirmée = pas de paiement : une facture n'est pas envoyée à personne. En mode test, Checkout la demande lui-même. */
-    if (!adresse && cfg.mode === 'live') throw erreur('adresse_requise');
-    let a = stockage.abonnementLire(espace);
-    /* un seul abonnement vivant : on vérifie chez Stripe qu'il vit encore (Stripe muet : le dernier état connu décide). « Vivant » est plus large que « payé » : un abonnement en attente de
-       paiement (`incomplete`) ou en pause existe encore chez Stripe, en ouvrir un second serait le prélever deux fois le jour où l'autre repart. */
-    const existe = (x) => !!(x && x.abonnement && !STATUTS_FINAUX.includes(x.statut));
-    if (existe(a)) {
-      try { await relire(espace); } catch (e) { /* Stripe muet : on se fie à ce qu'on sait */ }
-      a = stockage.abonnementLire(espace);
-      if (existe(a)) {
+    if (typeof rythme !== 'string' || !Object.hasOwn(cfg.prix, rythme)) throw erreur('offre_inconnue');     // ⛔ `Object.hasOwn` : « constructor » ou « __proto__ » ne sont pas des tarifs (ils partaient chez Stripe)
+    return exclusif(espace, async () => {
+      const membres = stockage.espaceMembresN(espace), min = Math.max(PLACES_MIN, membres);
+      if (!Number.isInteger(places) || places < min || places > PLACES_MAX) throw erreur('places_invalides', { min, max: PLACES_MAX });
+      /* ⛔ en production (clé de production), pas d'adresse confirmée = pas de paiement : une facture n'est pas envoyée à personne. En mode test, Checkout la demande lui-même. */
+      if (!adresse && cfg.mode === 'live') throw erreur('adresse_requise');
+      let a = stockage.abonnementLire(espace);
+      /* un seul abonnement vivant : on vérifie chez Stripe qu'il vit encore (Stripe muet : le dernier état connu décide). « Vivant » est plus large que « payé » : un abonnement en attente de
+         paiement (`incomplete`) ou en pause existe encore chez Stripe, en ouvrir un second serait le prélever deux fois le jour où l'autre repart. */
+      const existe = (x) => !!(x && x.abonnement && !STATUTS_FINAUX.includes(x.statut));
+      const dejaAbonne = async () => {
         let lien = null; try { lien = (await portail({ espace, origine })).url; } catch (e) { lien = null; }
         throw erreur('abonnement_existant', { portail: lien });
+      };
+      if (existe(a)) {
+        try { await relireImpl(espace); } catch (e) { /* Stripe muet : on se fie à ce qu'on sait */ }
+        a = stockage.abonnementLire(espace);
+        if (existe(a)) await dejaAbonne();
       }
-    }
-    /* une session encore ouverte est réutilisée : un clic de plus ne fait pas un second abonnement */
-    if (a && a.session && ID_SESSION.test(a.session) && a.session_le !== null && horloge() - a.session_le <= SESSION_VIE_MS) {
-      let cs = null; try { cs = await stripe('GET', '/v1/checkout/sessions/' + a.session); } catch (e) { if (e.code !== 'introuvable') throw e; }
-      if (cs && cs.status === 'open' && url(cs.url) && cs.client_reference_id === 'opmsg:' + espace) return { url: cs.url, reprise: true };
-      if (cs && cs.status === 'complete') {
-        await relire(espace); a = stockage.abonnementLire(espace);
-        if (existe(a)) { let lien = null; try { lien = (await portail({ espace, origine })).url; } catch (e) { lien = null; } throw erreur('abonnement_existant', { portail: lien }); }
+      if (a && a.session) {
+        if (ID_SESSION.test(a.session)) {
+          let cs = null; try { cs = await stripe('GET', '/v1/checkout/sessions/' + a.session); } catch (e) { if (e.code !== 'introuvable') throw e; }
+          if (cs && cs.status === 'open' && url(cs.url) && cs.client_reference_id === 'opmsg:' + espace) return { url: cs.url, reprise: true };
+          if (cs && cs.status === 'complete') {
+            await relireImpl(espace); a = stockage.abonnementLire(espace);
+            if (existe(a)) await dejaAbonne();
+          } else if (cs && cs.status !== 'expired' && cs.status !== 'open') throw erreur('reponse_illisible');   // un état que Stripe ne connaît pas : on ne remplace pas une session dont on ne sait rien
+        }
+        /* expirée, inconnue de Stripe, ou à une autre référence : plus rien à payer dessus — on en ouvre une neuve (qui la remplace) */
       }
-    }
-    const paires = [
-      ['mode', 'subscription'],
-      ['line_items[0][price]', cfg.prix[rythme]], ['line_items[0][quantity]', String(places)],
-      ['client_reference_id', 'opmsg:' + espace],
-      ['metadata[produit]', 'opmsg'], ['metadata[opmsg_espace]', espace],
-      ['subscription_data[metadata][produit]', 'opmsg'], ['subscription_data[metadata][opmsg_espace]', espace],
-      ['success_url', origine + '/?abo=retour&e=' + espace + '#reglages'], ['cancel_url', origine + '/?abo=annule&e=' + espace + '#reglages'],
-      ['locale', 'fr'],
-    ];
-    if (adresse) paires.push(['customer_email', adresse]);
-    const cs = await stripe('POST', '/v1/checkout/sessions', paires);
-    const u = url(cs.url);
-    if (!ID_SESSION.test(String(cs.id)) || !u) throw erreur('reponse_illisible');
-    stockage.abonnementSession(espace, cs.id);
-    return { url: u };
+      const paires = [
+        ['mode', 'subscription'],
+        ['line_items[0][price]', cfg.prix[rythme]], ['line_items[0][quantity]', String(places)],
+        ['client_reference_id', 'opmsg:' + espace],
+        ['metadata[produit]', 'opmsg'], ['metadata[opmsg_espace]', espace],
+        ['subscription_data[metadata][produit]', 'opmsg'], ['subscription_data[metadata][opmsg_espace]', espace],
+        ['success_url', origine + '/?abo=retour&e=' + espace + '#reglages'], ['cancel_url', origine + '/?abo=annule&e=' + espace + '#reglages'],
+        ['locale', 'fr'],
+      ];
+      if (adresse) paires.push(['customer_email', adresse]);
+      const cs = await stripe('POST', '/v1/checkout/sessions', paires);
+      const u = url(cs.url);
+      if (!ID_SESSION.test(String(cs.id)) || !u) throw erreur('reponse_illisible');
+      stockage.abonnementSession(espace, cs.id);
+      return { url: u };
+    });
+  }
+
+  /* ⛔ DISSOUDRE UN ESPACE (ou effacer le compte de son seul membre) NE SE FAIT PAS ENTRE UN PAIEMENT ET SA RELECTURE (relecture du gardien, 3 octobre 2026 : payé chez Stripe, dissous dans les
+     dix minutes avant que le service le sache — l'abonnement continuait de courir pour un espace qui n'existe plus, sans que personne puisse le résilier). Sous le verrou de l'espace :
+     une session rangée est relue d'abord (payée, elle devient l'abonnement : on refuse comme pour tout abonnement qui court) ; encore ouverte, ou illisible, on ne sait pas — on refuse
+     (`paiement_en_cours`) plutôt que de laisser une session payable derrière un espace dissous. `faire()` s'exécute DANS le verrou, juste après le contrôle. */
+  async function dissoudre(espace, faire) {
+    return exclusif(espace, async () => {
+      let a = stockage.abonnementLire(espace);
+      if (a && a.session && actif()) {
+        try { await relireImpl(espace); } catch (e) { /* Stripe muet : on ne sait pas */ }
+        a = stockage.abonnementLire(espace);
+      }
+      if (a && a.abonnement && !STATUTS_FINAUX.includes(a.statut) && a.statut !== 'aucun') throw erreur('abonnement_actif');
+      if (a && a.session) throw erreur('paiement_en_cours');
+      return faire();
+    });
   }
 
   /* minutes depuis lesquelles Stripe est illisible (0 : il l'est, ou rien n'en dépend) — c'est `stripeEchecMin` de /health, que la surveillance lit */
   const echecMin = () => echecDepuis === null ? 0 : Math.max(0, Math.floor((horloge() - echecDepuis) / 60000));
-  return { ouvert: actif, mode: () => cfg.mode, offres, etat, paiement, portail, relire, relireTous, demarrer, arreter, echecMin, derniereLecture: () => derniereLecture, lireAbonnement };
+  return { ouvert: actif, mode: () => cfg.mode, offres, etat, paiement, portail, relire, relireTous, dissoudre, demarrer, arreter, echecMin, derniereLecture: () => derniereLecture, lireAbonnement };
 }
 
 /* ══ LES ROUTES — `/api/facturation/offres` et `/api/espaces/:id/facturation/*` ═══════════════════════════════════════════════════════════════════
@@ -254,6 +316,7 @@ function installerFacturation(H, ctx) {
         case 'adresse_requise': return refus(res, 409, 'adresse_requise');
         case 'abonnement_existant': return refus(res, 409, 'abonnement_existant', { portail: e.portail || null });
         case 'pas_d_abonnement': return refus(res, 409, 'pas_d_abonnement');
+        case 'paiement_en_cours': return refus(res, 409, 'paiement_en_cours');
         case 'abonnement_pris': return refus(res, 409, 'abonnement_pris');
         case 'reseau': case 'stripe_panne': case 'cle_refusee': case 'trop_de_demandes': case 'reponse_illisible': return refus(res, 502, 'stripe_muet');
         case 'refus': case 'introuvable': return refus(res, 502, 'paiement_indisponible');
