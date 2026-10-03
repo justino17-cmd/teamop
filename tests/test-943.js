@@ -659,11 +659,17 @@ async function gestionnaireLecture() {
       const fF = await T.flux(Fr), fG = await T.flux(Gi);
       for (const f of [fE, fF, fG]) await f.attendre(e => e.event === 'bonjour');
       v('population : Eve voit Fred et Gina en ligne, Fred voit Eve', [(await E.get('/api/contacts')).j.contacts.filter(c => [Fr.moi.id, Gi.moi.id].includes(c.id)).map(c => c.en_ligne), (await Fr.get('/api/contacts')).j.contacts.find(c => c.id === E.moi.id).en_ligne], [[true, true], true]);
+      const nPersF0 = fF.evenements.filter(e => e.event === 'personne' && e.data.uid === E.moi.id).length, nPersE0 = fE.evenements.filter(e => e.event === 'personne' && e.data.uid === E.moi.id).length;
       const off = await E.post('/api/moi/confidentialite', { presence: false });
       v('Eve coupe « Afficher quand je suis en ligne » : 200, l\'état complet est rendu', [off.code, off.j], [200, { ok: true, trouvable: 'tous', presence: false, accuses: true }]);
       v('⛔ elle ne voit plus la présence de PERSONNE (Fred et Gina sont en ligne, la liste dit « hors ligne »)', (await E.get('/api/contacts')).j.contacts.map(c => c.en_ligne), [false, false]);
       const hors = await fF.attendre(e => e.event === 'presence' && e.data.uid === E.moi.id && e.data.en_ligne === false);
       vrai('⛔ Fred est PRÉVENU tout de suite que la présence d\'Eve s\'éteint (« hors ligne »)', !!hors);
+      /* ⛔ Relecture du testeur : la barre de SA page disait « Disponible » (point vert) alors que sa présence était coupée — l'appareil ne savait pas que le réglage avait changé ailleurs. Le service prévient
+         donc SES autres appareils (`personne` d'elle-même : ils relisent le profil et le réglage) ; ses contacts, eux, n'ont besoin que de la présence. */
+      vrai('⛔ …ses AUTRES APPAREILS sont prévenus par un événement `personne` d\'elle-même (la barre de leur page relit « Présence masquée »)', await att(() => fE.evenements.filter(e => e.event === 'personne' && e.data.uid === E.moi.id).length > nPersE0, 4000));
+      await T.dort(150);
+      v('…et ses contacts n\'en reçoivent AUCUN (ils apprennent une présence, pas un changement de profil)', fF.evenements.filter(e => e.event === 'personne' && e.data.uid === E.moi.id).length, nPersF0);
       v('⛔ Fred ne voit plus Eve en ligne dans sa liste', (await Fr.get('/api/contacts')).j.contacts.find(c => c.id === E.moi.id).en_ligne, false);
       v('…mais voit toujours Gina (la réciprocité ne touche que celle qui a coupé)', (await Fr.get('/api/contacts')).j.contacts.find(c => c.id === Gi.moi.id).en_ligne, true);
       /* un contact se connecte / se déconnecte : Eve, présence coupée, ne reçoit RIEN */
@@ -689,7 +695,9 @@ async function gestionnaireLecture() {
       v('⛔ Eve (présence coupée) se déconnecte puis revient : Fred n\'apprend RIEN d\'elle — ni « hors ligne » ni « en ligne »', fF.evenements.filter(e => e.event === 'presence' && e.data.uid === E.moi.id).length, nFE);
       /* rallumer */
       const nF = fF.evenements.filter(e => e.event === 'presence' && e.data.uid === E.moi.id && e.data.en_ligne === true).length;
+      const nPersE1 = fE.evenements.filter(e => e.event === 'personne' && e.data.uid === E.moi.id).length;
       await E.post('/api/moi/confidentialite', { presence: true });
+      vrai('⛔ Eve rallume : ses autres appareils le savent aussi (nouvel événement `personne` d\'elle-même)', await att(() => fE.evenements.filter(e => e.event === 'personne' && e.data.uid === E.moi.id).length > nPersE1, 4000));
       vrai('⛔ Eve rallume : Fred l\'apprend tout de suite (« en ligne », Eve est là)', await att(() => fF.evenements.filter(e => e.event === 'presence' && e.data.uid === E.moi.id && e.data.en_ligne === true).length > nF, 6000));
       v('et Eve revoit Fred et Gina en ligne', (await E.get('/api/contacts')).j.contacts.map(c => c.en_ligne), [true, true]);
       /* par POST /api/moi/maj aussi (l'ancienne porte) */
@@ -943,7 +951,7 @@ async function gestionnaireLecture() {
   await svc5.arreter();
 
   /* ═══ 11. UN ENVOI LENT NE TIENT PAS UNE PLACE (relecture du gardien, A4) ═════════════════════════════════════════════════════ */
-  console.log('\nUn envoi qui n\'avance pas rend sa place : 408 « delai_depasse », la place et la réservation de quota rendues, la réponse lue même si le client continue d\'envoyer (A4)');
+  console.log('\nUn envoi qui n\'avance pas rend sa place : 408 « envoi_trop_lent », la place et la réservation de quota rendues, la réponse lue même si le client continue d\'envoyer (A4)');
   /* ⛔ Sans tampon devant le service (Caddy, accès direct), un envoi qui annonce 25 Mo et en envoie un octet par seconde tenait une des places — et une des « par personne » — 300 s. Ici : 64 Ko/s
      après 30 s en production, 100 Ko/s après 0,8 s pour le banc. */
   const svc6 = await T.lancerService({ urlGestion: og.url, horloge: true, config: { pieces: { depotGraceMs: 800, depotDebitMin: 100000, parPersonne: 2, simultanes: 4, quotaPersonne: 400000, fichierMax: 300000, bloc: 4096 }, quotas: { piece: { max: 1000, fenetreMs: 3600000 } } } });
@@ -967,7 +975,7 @@ async function gestionnaireLecture() {
     });
     const code6 = (r) => (/^HTTP\/1\.1 (\d{3})/.exec(r.rep) || [])[1];
     const l1 = await brut6(A6, { taille: 300000, goutte: 100, duree: 2500 });
-    v('⛔ un envoi qui annonce 300 000 octets et en envoie UN par dixième de seconde : 408 delai_depasse, lu par le client qui CONTINUE d\'envoyer (la réponse n\'est pas effacée par une coupure de la connexion)', [code6(l1), /"error":"delai_depasse"/.test(l1.rep), /connection: close/i.test(l1.rep)], ['408', true, true]);
+    v('⛔ un envoi qui annonce 300 000 octets et en envoie UN par dixième de seconde : 408 envoi_trop_lent, lu par le client qui CONTINUE d\'envoyer (la réponse n\'est pas effacée par une coupure de la connexion)', [code6(l1), /"error":"envoi_trop_lent"/.test(l1.rep), /connection: close/i.test(l1.rep)], ['408', true, true]);
     vrai('   …entre la grâce (0,8 s) et quelques secondes de plus — pas le délai de Node (' + l1.reponduEn + ' ms avant la réponse, ' + l1.ms + ' ms avant la fermeture)', l1.reponduEn >= 700 && l1.reponduEn < 4000 && l1.ms < 9000);
     /* la place ET la réservation sont rendues : « par personne » vaut 2 et le quota 400 000 pour des envois annoncés de 300 000 */
     const suite = [];

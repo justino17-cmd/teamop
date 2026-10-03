@@ -92,7 +92,7 @@ function couperNom(nom, max = 120) {
 function dispositionDe(inline, nom) {
   if (inline) return 'inline';
   const mots = Array.from(String(nom == null ? '' : nom).replace(/[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁦-⁩﻿\/\\"]/g, '_').replace(/\s+/g, ' ').trim());
-  const propre = mots.slice(0, 120).join('') || 'fichier';
+  const propre = couperNom(mots.join(''), 120) || 'fichier';          // ⛔ coupé SANS perdre l'extension : « …copie de copie.pdf » reste un pdf (relecture du testeur)
   const ascii = propre.replace(/[^\x20-\x7e]/g, '_').replace(/[%;,]/g, '_');
   const utf8 = encodeURIComponent(propre).replace(/['()*]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase());
   return 'attachment; filename="' + ascii + '"; filename*=UTF-8\'\'' + utf8;

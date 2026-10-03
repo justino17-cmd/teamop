@@ -134,7 +134,7 @@ function installerPieces(H, ctx) {
              d'un RST qui efface la réponse est celui d'un envoi RAPIDE, que cette garde ne coupe jamais. */
           res.set('Connection', 'close');
           ctx.journaliser('piece_depot_lent', {});
-          return refus(res, 408, 'delai_depasse');
+          return refus(res, 408, 'envoi_trop_lent');
         }
         if (c === 'type_refuse') return refus(res, 415, 'type_refuse');
         if (c === 'occupe') { res.set('Retry-After', '2'); return refus(res, 429, 'quota_atteint', { retry: 2, portee: 'simultane' }); }   // trop d'images en cours de nettoyage : dans un instant

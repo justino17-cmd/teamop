@@ -413,6 +413,10 @@ const jeton = (b, canari) => b.includes(Buffer.from(canari, 'latin1'));
     v('⛔ une « extension » démesurée (plus de 16 signes sans espace) n\'est pas gardée : le radical n\'est pas écrasé par elle', [Array.from(P.couperNom('a'.repeat(50) + '.' + 'b'.repeat(200), 120)).length, P.couperNom('a'.repeat(50) + '.' + 'b'.repeat(200), 120).startsWith('a'.repeat(50) + '.b')], [120, true]);
     v('⛔ l\'extension se garde par POINTS DE CODE : un émoji dans le radical n\'est pas coupé en deux (aucune moitié de paire de substitution)', (() => { const x = P.couperNom('😀'.repeat(200) + '.png', 120); return [x.endsWith('.png'), Array.from(x).length, /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/.test(x)]; })(), [true, 120, false]);
     v('une extension à plusieurs points : seule la dernière compte', [P.couperNom('x'.repeat(200) + '.tar.gz', 120).endsWith('.tar.gz'), P.couperNom('x'.repeat(200) + '.tar.gz', 120).endsWith('x.gz')], [false, true]);
+    /* Le geste complet : ce que le navigateur reçoit au téléchargement (c'est CET en-tête qui donne son type au fichier enregistré). */
+    const tete = P.dispositionDe(false, long);
+    const repli = (/filename="([^"]*)"/.exec(tete) || [])[1] || '', reel = decodeURIComponent((/filename\*=UTF-8''(.*)$/.exec(tete) || [])[1] || '');
+    v('⛔ l\'en-tête de téléchargement d\'un nom de 329 signes garde « .pdf » dans le nom de repli ET dans le nom réel (filename*), 120 signes chacun', [repli.endsWith('.pdf'), reel.endsWith('.pdf'), Array.from(reel).length, repli.length], [true, true, 120, 120]);
   }
 
   fs.rmSync(bac, { recursive: true, force: true });

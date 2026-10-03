@@ -104,7 +104,7 @@ m('K09', 'un espace de stockage plein (402) redit « réessaie dans un instant �
 m('K10', 'un fichier trop lourd n\'est plus jugé avant d\'ouvrir une connexion', F.src, "      for (const x of lesPieces(p)) if (x.blob.size > max) throw new OPMSG.ErreurApi('piece_trop_lourde', 413, 0, { max });\n", '', ['944']);
 m('K11', 'l\'image qu\'on vient d\'envoyer est relue du service (son adresse n\'est plus adoptée)', F.src, "          if (x.url && (p.type === 'photo' || p.type === 'vocal')) poserCache(x.id, x.url, x.blob.size);\n", '', ['944']);
 m('K12', 'l\'espace utilisé repasse par `| 0` (le quota de 2 Gio devient NÉGATIF) — le défaut que test-944 a trouvé', F.src, '{ utilise: entierPositif(r.utilise), max: entierPositif(r.max) }', '{ utilise: r.utilise | 0, max: r.max | 0 }', ['944']);
-m('K13', 'le nom d\'un fichier n\'est plus assaini côté appareil (la barre passe)', F.src, ".replace(/[\\/\\\\]/g, '_').trim()).slice(0, 120)", '.trim()).slice(0, 120)', ['944']);
+m('K13', 'le nom d\'un fichier n\'est plus assaini côté appareil (la barre passe)', F.src, ".replace(/[\\/\\\\]/g, '_').trim(), 120) || 'fichier'", ".trim(), 120) || 'fichier'", ['944']);
 m('K14', 'un message refusé après coup ne libère pas les adresses de ses pièces', F.src, '            lesPieces(p).forEach(x => { if (x.id && cachePieces.has(x.id)) liberer(x.id); else if (x.url) revoquerUrl(x.url); });', '', ['944']);
 m('K15', 'un profil qui change n\'est plus relu (l\'événement `personne` est ignoré)', F.src, '      personne: (d) => {\n', '      personne: (d) => {\n        return;\n', ['944']);
 m('K16', 'le client n\'écoute plus l\'événement `personne`', F.api, "'presence', 'personne', 'resync'];", "'presence', 'resync'];", ['944']);
@@ -164,7 +164,7 @@ m('P73', 'la route ne passe plus le débit minimal à `deposer` (un envoi lent t
 m('P74', 'la grâce n\'est plus un crédit : le débit est exigé depuis le premier octet, un envoi lent mais honnête est coupé', F.pz, 'recus < (ecoule - graceMs) * debitMin / 1000', 'recus < ecoule * debitMin / 1000', ['942', '943']);
 m('P75', 'la garde ne compte aucun octet reçu : un envoi qui avance est coupé comme un envoi arrêté', F.pz, 'compter(n) { recus += n; }', 'compter(n) { }', ['942', '943']);
 m('P76', '`deposer` n\'arrête plus la minuterie de la garde à la sortie (refusé tôt, réussi) : une minuterie par envoi survit, pour toujours', F.pz, 'try { return await deposerLu({ id, genre, flux, max, attendu, garde }); } finally { if (garde) garde.arreter(); }', 'try { return await deposerLu({ id, genre, flux, max, attendu, garde }); } finally { }', ['942']);
-m('P77', 'un envoi coupé répond 500 au lieu de 408 « delai_depasse » (le client ne peut pas dire « envoi trop lent »)', F.rp, "refus(res, 408, 'delai_depasse');", "refus(res, 500, 'delai_depasse');", ['943']);
+m('P77', 'un envoi coupé répond 500 au lieu de 408 « envoi_trop_lent » (le client ne peut pas dire « envoi trop lent »)', F.rp, "refus(res, 408, 'envoi_trop_lent');", "refus(res, 500, 'envoi_trop_lent');", ['943']);
 m('P78', 'un envoi coupé (ou refusé) ne rend pas sa réservation de quota', F.rp, '} finally { place.liberer(); sortir(); }', '} finally { sortir(); }', ['943']);
 m('P79', 'un envoi coupé (ou refusé) ne rend pas sa place « par personne » et « en même temps »', F.rp, '} finally { place.liberer(); sortir(); }', '} finally { place.liberer(); }', ['943']);
 /* ── A2 : UN LECTEUR LENT NE TIENT PAS UN FICHIER OUVERT ── */
