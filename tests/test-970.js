@@ -250,4 +250,15 @@ console.log('\nLes rappels permis');
     [(U(2026, 10, 25, 23, 30) - C.echeanceRappel(U(2026, 10, 25, 23, 30), 1440, PARIS)) / 3600000, C.formaterLocal(C.echeanceRappel(U(2026, 10, 25, 23, 30), 1440, PARIS), PARIS)], [25, '2026-10-25T00:30']);
 }
 
+console.log('\nUne série quotidienne SANS FIN ne s\'arrête pas en silence');
+{
+  const s = serie(PARIS, '2026-01-01T09:00', 30, 'quotidienne');
+  const lointaines = C.occurrences(s, U(2099, 6, 1), U(2099, 6, 8));
+  v('⛔ une série quotidienne commencée le 1er janvier 2026 a encore une occurrence chaque jour de juin 2099 (27 000 jours plus loin : une boucle plafonnée à quatorze ans les perdrait)', [lointaines.length, lointaines.map(o => C.formaterLocal(o.debut, PARIS))],
+    [7, ['2099-06-01T09:00', '2099-06-02T09:00', '2099-06-03T09:00', '2099-06-04T09:00', '2099-06-05T09:00', '2099-06-06T09:00', '2099-06-07T09:00']]);
+  const d = C.derniereDate(serie(PARIS, '2026-01-31T09:00', 30, 'mensuelle', { n: 4 }));
+  v('la dernière date d\'une série bornée (le 31 mensuel quatre fois : janvier, mars, mai, juillet) ; sans fin : null ; une réunion seule : sa date', [d, C.derniereDate(s), C.derniereDate(serie(PARIS, '2026-03-05T09:00', 30, 'aucune'))], [{ a: 2026, m: 7, j: 31 }, null, { a: 2026, m: 3, j: 5 }]);
+  v('et par une date limite, la plus proche des deux limites gagne', C.derniereDate(serie(PARIS, '2026-10-01T09:00', 30, 'quotidienne', { n: 50, jusqua: '2026-10-10' })), { a: 2026, m: 10, j: 10 });
+}
+
 fin();

@@ -24,9 +24,11 @@ const REPETITIONS = ['aucune', 'quotidienne', 'hebdomadaire', 'mensuelle'];
 /* Les rappels qu'une réunion propose (en minutes avant le début) : 5 min · 15 min · 1 h · 1 jour. */
 const RAPPELS_PERMIS = [5, 15, 60, 1440];
 /* Des garde-fous, pas des règles métier : une réunion ne se place pas avant 2000 ni après 2100 (les calculs de fuseau n'ont pas de sens au-delà), et une boucle
-   d'occurrences ne court jamais plus de ce nombre de périodes, quoi qu'on lui donne (une série sans fin, un jour qui n'existe jamais). */
+   d'occurrences ne court jamais plus de ce nombre de périodes, quoi qu'on lui donne (une série sans fin, un jour qui n'existe jamais). 40 000 jours couvrent une série
+   QUOTIDIENNE de 2000 à 2100 (36 500) : une série sans fin ne s'arrête donc pas en silence au bout de quatorze ans. Une période avant la fenêtre ne coûte qu'un calcul de date
+   (jamais un fuseau) : atteindre 2090 depuis 2026 est de l'ordre de la milliseconde. */
 const T_MIN = Date.UTC(2000, 0, 1), T_MAX = Date.UTC(2100, 0, 1);
-const PERIODES_MAX = 5000;
+const PERIODES_MAX = 40000;
 
 const pad = (n, l = 2) => String(n).padStart(l, '0');
 
@@ -165,6 +167,24 @@ function occurrences(s, du, au, max) {
   return sortie;
 }
 
+/* La date locale de la DERNIÈRE occurrence d'une série bornée (par `n`, par `jusqua` ou par les deux) — un calcul de dates civiles, sans fuseau — ; null si la série n'a pas de fin. Sert à
+   savoir jusqu'à quelle année un fichier .ics doit décrire le fuseau. */
+function derniereDate(s) {
+  const anc = ancreDe(s);
+  if (s.rep === 'aucune') return { a: anc.a, m: anc.m, j: anc.j };
+  if (!s.n && !s.jusqua) return null;
+  const nJusqua = s.jusqua ? numeroJour(lireDate(s.jusqua)) : null;
+  let derniere = null, valides = 0;
+  for (let k = 0; k < PERIODES_MAX; k++) {
+    const d = dateDuRang(s, anc, k);
+    if (!d) continue;
+    if (s.n && valides >= s.n) break;
+    if (nJusqua !== null && numeroJour(d) > nJusqua) break;
+    derniere = d; valides++;
+  }
+  return derniere;
+}
+
 /* La première occurrence qui commence APRÈS `t` (ou à `t` quand `inclus`), ou null. Une fenêtre de 100 jours suffit : le plus long trou d'une série est de 62 jours (un 31 mensuel). */
 function premiereApres(s, t, inclus) {
   const du = inclus ? t : t + 1;
@@ -214,5 +234,5 @@ module.exports = {
   MIN, JOUR, REPETITIONS, RAPPELS_PERMIS, T_MIN, T_MAX, PERIODES_MAX,
   tzValide, decalage, champsLocaux, instantLocal, lireLocal, lireDate, formaterDate, formaterLocal, dire,
   joursDansMois, ajouterJours, numeroJour, jourSemaine,
-  occurrences, premiereApres, occurrenceA, compter, limiteDe, normaliserSerie, echeanceRappel,
+  occurrences, premiereApres, occurrenceA, compter, limiteDe, derniereDate, normaliserSerie, echeanceRappel,
 };
