@@ -827,6 +827,13 @@ html[data-service] .mention-apercu { display: none; }
 .mini.danger { color: var(--rouge-txt); }
 @media (pointer: coarse) { .mini { min-height: 44px; } }
 .reglage.danger .reglage-texte { color: var(--rouge-txt); }
+.reglage[aria-disabled="true"] { opacity: .6; }
+.mini[aria-disabled="true"] { opacity: .45; cursor: default; }
+/* la feuille « Supprimer mon compte » : une liste de ce qui part, et une case à cocher AVANT le bouton */
+.info-liste { margin: 0 0 6px; padding-left: 20px; font-size: 14px; line-height: 19px; }
+.info-liste li { margin-bottom: 3px; }
+.case-conf { display: flex; gap: 12px; align-items: flex-start; margin: 4px 0 14px; padding: 12px 14px; border-radius: 12px; background: var(--card); font-size: 15px; line-height: 20px; color: var(--text); }
+.case-conf input { flex: none; width: 24px; height: 24px; margin: -1px 0 0; accent-color: var(--accent); }
 .contact .mini { margin-left: 6px; }
 .contact-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 /* un membre qu'on peut gérer : le nom garde au moins 150 px, et les boutons passent SOUS lui quand la ligne est trop étroite (Android 360 : « Moreau » passait sous « Nommer admin ») */

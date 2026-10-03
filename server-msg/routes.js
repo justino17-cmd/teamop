@@ -18,6 +18,7 @@
 const crypto = require('crypto');
 const { cleReseau } = require('./quotas');
 const { ID_PIECE } = require('./pieces');
+const { SUPPRESSION_DELAI_MS } = require('./compte');
 
 const ID_CONV = /^c_[0-9a-f]{32}$/, ID_PERS = /^p_[0-9a-f]{32}$/, CID = /^[A-Za-z0-9_-]{8,64}$/, CODE = /^[A-Za-z0-9_-]{20,64}$/;
 const EPHEMERES = [0, 86400, 604800, 7776000];
@@ -120,6 +121,8 @@ function creerHandlers(ctx) {
     version: ctx.version, instance: config.instance, min_client: config.minClient,
     limites: {
       message_max: MSG_MAX, membres_max: ctx.maxMembres, nom_groupe_max: 80, modif_ms: ctx.delaiModifMs, ephemeres: EPHEMERES,
+      /* le délai entre la demande de suppression d'un compte et son effacement : la page le DIT avant de demander la confirmation (elle ne le recopie pas) */
+      suppression_jours: Math.round(SUPPRESSION_DELAI_MS / JOUR),
       /* les maximums des pièces, en octets : la page les lit pour refuser AVANT d'envoyer (« trop lourd, 12 Mo au plus ») au lieu de laisser le service répondre 413 */
       pieces: { photo_max: config.pieces.photoMax, vocal_max: config.pieces.vocalMax, fichier_max: config.pieces.fichierMax, avatar_max: config.pieces.avatarMax, par_message: PHOTOS_MAX, quota: config.pieces.quotaPersonne },
     },
@@ -139,6 +142,10 @@ function creerHandlers(ctx) {
   };
 
   H['compte.deconnexion'] = (req, res) => {
+    /* ⛔ SE DÉCONNECTER RETIRE AUSSI LA NOTIFICATION DE CET APPAREIL. La page donne son point d'accès (`endpoint`, facultatif) : l'abonnement part dans la même requête que la session. Sans
+       cela, un navigateur déconnecté recevrait encore « Nouveau message » — et on ne peut plus rien demander une fois la session morte. Seul un point d'accès de CETTE personne se retire. */
+    const e = corps(req).endpoint;
+    if (ctx.push && typeof e === 'string' && e.length > 0 && e.length <= 2048) { try { ctx.push.desabonner(req.moi.id, e); } catch (x) { /* la déconnexion ne dépend pas d'une notification */ } }
     stockage.sessionSupprimer(req.sessionH);
     hub.fermerSession(req.sessionH);
     res.append('Set-Cookie', cookieTexte('', 0));

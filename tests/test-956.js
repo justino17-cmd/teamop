@@ -364,6 +364,23 @@ function paireVapid() {
       og.comptes.bob.actif = true;
     }
 
+    console.log('\nSe déconnecter emporte l\'abonnement de CET appareil — et seulement un abonnement de la personne qui se déconnecte');
+    {
+      const C3 = await connecte('cleo');
+      const cl1 = dev('cleo-logout-1'), cl2 = dev('cleo-logout-2');
+      await abonner(C3, cl1); await abonner(C3, cl2);
+      const avantC = abosDe(C.moi.id), avantA = abosDe(A.moi.id);
+      vrai('population : Cléo a ses deux appareils de plus, Alice en a un', avantC >= 2 && avantA === 1);
+      const D2 = await connecte('dan');
+      const autre = await D2.post('/api/compte/deconnexion', { endpoint: A1.sub.endpoint });
+      v('⛔ Dan se déconnecte en donnant le point d\'accès d\'ALICE : sa session finit, l\'appareil d\'Alice reste', [autre.code, (await D2.get('/api/moi')).code, abosDe(A.moi.id)], [200, 401, avantA]);
+      const sans = await C3.post('/api/compte/deconnexion', { endpoint: cl1.sub.endpoint });
+      v('⛔ Cléo se déconnecte en donnant son point d\'accès : la session ET cet abonnement partent, l\'autre appareil de Cléo reste', [sans.code, (await C3.get('/api/moi')).code, abosDe(C.moi.id), (await C.post('/api/push/desabonner', { endpoint: cl2.sub.endpoint })).j.retire], [200, 401, avantC - 1, 1]);
+      const C4 = await connecte('cleo');
+      const nu = await C4.post('/api/compte/deconnexion', {});
+      v('(sans point d\'accès, la déconnexion marche comme avant : la session seule)', [nu.code, (await C4.get('/api/moi')).code], [200, 401]);
+    }
+
     console.log('\nLa vie privée : le point d\'accès et les clés ne se lisent nulle part');
     {
       const ep = A1.sub.endpoint, jeton = 'alice-1';
@@ -376,6 +393,7 @@ function paireVapid() {
       v('/health.push : exactement quatre champs (actif, abonnements, envoyes24h, echecs24h)', Object.keys((await sante()).push).sort(), ['abonnements', 'actif', 'echecs24h', 'envoyes24h']);
       const cfg = await T.client(base()).get('/api/config');
       v('/api/config ne publie que la clé PUBLIQUE', JSON.stringify(cfg.j).includes(PAIRE.priv), false);
+      v('/api/config dit le délai de suppression d\'un compte (la page le LIT, elle ne le recopie pas)', cfg.j.limites.suppression_jours, 14);
     }
 
     console.log('\nLes fichiers servis : le service worker, le manifeste, la politique de la page');

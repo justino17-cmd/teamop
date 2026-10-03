@@ -22,9 +22,13 @@
      pieceUrl(piece)       → l'adresse `blob:` d'une image ou d'un son (gardée en mémoire, rendue à la fermeture) ;  pieceBlob(piece) → le Blob d'un fichier (jamais gardé).
    LES RÉGLAGES (capacité `reglages`) : profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer,
    deconnecterAutres, stockage, aPropos — voir plus bas. Chacun rend une promesse (sauf `bloques`) et lève une erreur qui se DIT.
+   LES NOTIFICATIONS, L'EXPORT, LA SUPPRESSION (capacités `notifications` et `compte`) : notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees,
+   supprimerCompte. Le navigateur (Notification, PushManager, service worker) n'est JAMAIS touché ici directement : il passe par un adaptateur (`options.navigateur`), que le banc
+   remplace. La page ACQUITTE ce qu'elle a montré (`POST /api/flux/ack`, seulement visible) pour que le service n'envoie pas une notification qui doublerait l'écran.
    Les événements de `ecouter(cb)` : 'liste', 'conversation' (id), 'contacts', 'presence', 'reseau' (etat), 'arrivee' (un message d'un autre : de quoi
    afficher une bannière), 'notification', 'retire' (id : la personne n'est plus dans cette conversation), 'avis' (texte : un refus arrivé après coup),
-   'moi' (mon profil a changé : nom, statut ou photo, ici ou sur un autre appareil).
+   'moi' (mon profil a changé : nom, statut ou photo, ici ou sur un autre appareil),
+   'ouvrir' (conv : une notification touchée demande d'ouvrir cette conversation).
 
    ⛔ TOUT REFUS SE DIT. Chaque appel qui échoue rend une `ErreurApi` d'`api.js` (`code`, `statut`, `retry`, `phrase()` en français, `dit:true`) ; les refus
    LOCAUX de ce module (message vide, trop long, « bientôt ») ont la même forme. Un écran n'a jamais à inventer une phrase pour un refus qu'il ne comprend pas.
@@ -46,7 +50,18 @@
     bientot: 'Cette fonction arrive bientôt.',
     introuvable: 'Introuvable (la conversation a peut-être été supprimée ou tu n\'y es plus).',
     invalide: 'La demande est incorrecte.',
+    /* les notifications : chaque état où l'interrupteur ne peut pas tourner DIT pourquoi, et comment en sortir */
+    notif_ios: 'Sur iPhone et iPad, les notifications ne marchent que depuis l\'écran d\'accueil : ajoute OP MESSAGES à l\'écran d\'accueil (Partager, puis « Sur l\'écran d\'accueil »), puis rouvre-le depuis son icône.',
+    notif_navigateur: 'Ce navigateur ne sait pas recevoir de notifications. Essaie avec une version récente de Chrome, Firefox, Edge ou Safari.',
+    notif_service: 'Les notifications ne sont pas disponibles pour le moment sur ce service.',
+    notif_refusee: 'Ce navigateur a refusé les notifications pour OP MESSAGES. Pour les autoriser, ouvre les réglages du site dans le navigateur (le cadenas à côté de l\'adresse), autorise les notifications, puis reviens ici.',
+    notif_sans_reponse: 'Tu n\'as pas répondu à la demande d\'autorisation : les notifications restent désactivées.',
+    notif_abonnement: 'Ce navigateur n\'a pas pu s\'abonner au service de notification. Réessaie dans un moment.',
   };
+  /* Le nom d'un compte supprimé : une espace INSÉCABLE, pour que « le prénom » (ce que la page garde avant la première espace) soit « Compte supprimé » tout entier. */
+  const NOM_SUPPRIME = 'Compte\u00A0supprimé';
+  const SOURDINES = { '8h': 8 * 3600000, '1s': 7 * 86400000, tj: 9 * 365 * 86400000, off: 0 };   // « toujours » = neuf ans (le service refuse plus de dix)
+  const MOTIF_OUVRIR = /^\/#messages\/(c_[0-9a-f]{32})$/;
   function erreurLocale(code) {
     const e = new Error(PHRASES_LOCALES[code] || PHRASES_LOCALES.invalide);
     e.name = 'ErreurLocale'; e.code = code; e.statut = 0; e.retry = 0; e.dit = true; e.phrase = () => e.message;
@@ -64,16 +79,47 @@
   const extrait = (t, n) => { const a = Array.from(String(t || '').replace(/\s+/g, ' ').trim()); return a.length > n ? a.slice(0, n).join('') + '…' : a.join(''); };
   const duree = (s) => s % 86400 === 0 ? (s / 86400) + (s === 86400 ? ' jour' : ' jours') : s + ' s';
 
+  /* ── Le navigateur, derrière un adaptateur (injectable : le banc le remplace). Rien ici ne s'exécute avant qu'on le demande. ── */
+  const cleBinaire = (b64) => { const t = atob(String(b64).replace(/-/g, '+').replace(/_/g, '/')); const u = new Uint8Array(t.length); for (let i = 0; i < t.length; i++) u[i] = t.charCodeAt(i); return u; };
+  const base64Url = (buf) => { const u = new Uint8Array(buf); let t = ''; for (const o of u) t += String.fromCharCode(o); return btoa(t).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+  function navigateurReel(w) {
+    const nav = w.navigator, doc = w.document;
+    const iOS = () => /iPad|iPhone|iPod/.test(nav.userAgent || '') || (nav.platform === 'MacIntel' && nav.maxTouchPoints > 1);
+    const autonome = () => { try { return nav.standalone === true || !!(w.matchMedia && w.matchMedia('(display-mode: standalone)').matches); } catch (e) { return false; } };
+    return {
+      /* → { ok } ou { ok:false, raison:'ios'|'navigateur' } : sur iPhone, une page dans Safari n'a ni PushManager ni Notification tant qu'elle n'est pas « ajoutée à l'écran d'accueil » */
+      priseEnCharge() {
+        if (nav.serviceWorker && w.PushManager && w.Notification && w.isSecureContext !== false) return { ok: true, raison: null };
+        return { ok: false, raison: iOS() && !autonome() ? 'ios' : 'navigateur' };
+      },
+      permission: () => (w.Notification && w.Notification.permission) || 'default',
+      demander() { return new Promise((ok, ko) => { try { const p = w.Notification.requestPermission(ok); if (p && typeof p.then === 'function') p.then(ok, ko); } catch (e) { ko(e); } }); },
+      /* l'enregistrement du service worker (la portée est celle de l'origine) ; rend l'enregistrement PRÊT */
+      async enregistrer() { await nav.serviceWorker.register('/sw.js', { scope: '/' }); return nav.serviceWorker.ready; },
+      /* l'abonnement actuel de ce navigateur, SANS rien enregistrer : null s'il n'y en a pas */
+      async abonnementActuel() { const reg = await nav.serviceWorker.getRegistration('/'); return reg ? reg.pushManager.getSubscription() : null; },
+      async souscrire(reg, cle) { return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: cleBinaire(cle) }); },
+      /* la clé publique avec laquelle un abonnement a été fait (base64 URL), ou null si le navigateur ne la dit pas */
+      cleDe(sub) { try { const k = sub && sub.options && sub.options.applicationServerKey; return k ? base64Url(k) : null; } catch (e) { return null; } },
+      visible: () => !doc || doc.visibilityState === 'visible',
+      /* ce que dit le service worker (« ouvre cette conversation » au toucher d'une notification) */
+      surMessage(cb) { if (nav.serviceWorker && nav.serviceWorker.addEventListener) { nav.serviceWorker.addEventListener('message', (ev) => cb(ev && ev.data)); if (nav.serviceWorker.startMessages) nav.serviceWorker.startMessages(); } },
+    };
+  }
+
   function creerSourceServeur(options) {
     const o = options || {};
     const OPMSG = o.OPMSG || racine.OPMSG;
     if (!OPMSG || typeof OPMSG.creer !== 'function') throw new Error('api.js doit être chargé avant source-serveur.js');
     const api0 = o.api || OPMSG.creer({ base: o.base || '', fetch: o.fetch, EventSource: o.EventSource, attente: o.attente });
     const maintenant = o.maintenant || (() => Date.now());
+    const nav = o.navigateur || navigateurReel(racine);                                    // le navigateur, derrière son adaptateur
     const planifier = o.planifier || ((f, ms) => setTimeout(f, ms));
     const annuler = o.annuler || ((h) => clearTimeout(h));
     const delaiSaisieMs = o.delaiSaisieMs == null ? 6000 : o.delaiSaisieMs;       // une frappe sans nouvelle depuis ce temps s'éteint toute seule
     const delaiRelireMs = o.delaiRelireMs == null ? 60 : o.delaiRelireMs;          // la liste se relit en un coup après une rafale d'événements
+    const delaiAckMs = o.delaiAckMs == null ? 250 : o.delaiAckMs;                  // un acquittement attend ce temps pour grouper une rafale (le service attend 5 s avant d'envoyer une notification)
+
     const attenteEnvoi = typeof o.attenteEnvoi === 'function' ? o.attenteEnvoi : (n) => Math.min(30000, 1500 * Math.pow(2, Math.min(n, 4)));
     const creerUrl = typeof o.creerUrl === 'function' ? o.creerUrl : (b) => URL.createObjectURL(b);
     const revoquerUrl = typeof o.revoquerUrl === 'function' ? o.revoquerUrl : (u) => { try { URL.revokeObjectURL(u); } catch (e) { /* déjà libérée */ } };
@@ -82,6 +128,8 @@
     const delaiReessaiPieceMs = o.delaiReessaiPieceMs == null ? 15000 : o.delaiReessaiPieceMs;                                      // une pièce illisible n'est pas redemandée à chaque rendu
 
     let moiApi = null, mort = false, enMarche = false, ecoute = null, suiviMort = null;
+    const supprimesIds = new Set();        // les identifiants de comptes SUPPRIMÉS que le service a signalés (liste, pages de messages) : leur nom est « Compte supprimé »
+    let suppressionEnCours = false;        // la demande de suppression est partie : le service va fermer notre flux, ce n'est pas une session « morte » à signaler
     const registre = new Map();            // uid → { id, prenom, nom, statut }
     const enLigne = new Set();
     let contactsApi = [], contactsTous = [], convsApi = [], listeFraiche = false;
@@ -104,7 +152,7 @@
     }
     A.appel = api0.appel;
     function sessionMorte(motif) {
-      if (mort) return;
+      if (mort || suppressionEnCours) return;
       mort = true; arreter();
       if (typeof suiviMort === 'function') suiviMort(motif || 'session_requise');
     }
@@ -224,11 +272,13 @@
         avatar: p.avatar !== undefined ? p.avatar : avant.avatar });
     }
     /* `avatar` d'une vue = l'indice de couleur du repli (un nombre) ; `photo` = l'adresse blob: de la photo de profil quand elle est arrivée, sinon null */
-    const vuePersonne = (p) => { const n = nomComplet(p); return { id: p.id, nom: n, prenom: (p.prenom || n).split(' ')[0] || n, initiales: initialesDe(n), avatar: indexAvatar(p.id), photo: photoPiece(p.avatar) }; };
-    const personne = (id) => { const p = registre.get(id); return p ? vuePersonne(p) : null; };
+    const vueSupprimee = (id) => ({ id, nom: NOM_SUPPRIME, prenom: NOM_SUPPRIME, initiales: '?', avatar: indexAvatar(id), photo: null, supprime: true });
+    const noterSupprimes = (liste) => { if (Array.isArray(liste)) for (const id of liste) if (typeof id === 'string') supprimesIds.add(id); };
+    const vuePersonne = (p) => { if (supprimesIds.has(p.id)) return vueSupprimee(p.id); const n = nomComplet(p); return { id: p.id, nom: n, prenom: (p.prenom || n).split(' ')[0] || n, initiales: initialesDe(n), avatar: indexAvatar(p.id), photo: photoPiece(p.avatar) }; };
+    const personne = (id) => { if (supprimesIds.has(id)) return vueSupprimee(id); const p = registre.get(id); return p ? vuePersonne(p) : null; };
     const estMoi = (id) => !!moiApi && id === moiApi.id;
-    const prenomDe = (id) => estMoi(id) ? 'Vous' : (registre.has(id) ? vuePersonne(registre.get(id)).prenom : 'Quelqu\'un');
-    const nomDe = (id) => estMoi(id) ? 'Vous' : (registre.has(id) ? vuePersonne(registre.get(id)).nom : 'Quelqu\'un');
+    const prenomDe = (id) => estMoi(id) ? 'Vous' : supprimesIds.has(id) ? NOM_SUPPRIME : (registre.has(id) ? vuePersonne(registre.get(id)).prenom : 'Quelqu\'un');
+    const nomDe = (id) => estMoi(id) ? 'Vous' : supprimesIds.has(id) ? NOM_SUPPRIME : (registre.has(id) ? vuePersonne(registre.get(id)).nom : 'Quelqu\'un');
 
     /* ── les contacts ── */
     const vueContact = (c) => Object.assign(vuePersonne(c), { role: enLigne.has(c.id) ? 'En ligne' : (c.statut || ''), enLigne: enLigne.has(c.id) });
@@ -246,9 +296,11 @@
     /* ── la liste ── */
     function resume(c) {
       const direct = c.type === 'direct';
-      if (direct && c.autre) noter(c.autre);
+      const supprime = direct && !!c.autre && c.autre.supprime === true;     // l'autre a supprimé son compte : la conversation reste lisible, on n'y écrit plus
+      if (supprime) supprimesIds.add(c.autre.id);
+      else if (direct && c.autre) noter(c.autre);
       if (c.apercu && c.apercu.par) noter(c.apercu.par);   // ⛔ l'auteur du dernier message d'un GROUPE : son nom vient avec l'aperçu (sinon « Quelqu'un » tant que la conversation n'est pas ouverte)
-      const nom = direct ? nomComplet(c.autre) : (c.nom || 'Groupe');
+      const nom = direct ? (supprime ? NOM_SUPPRIME : nomComplet(c.autre)) : (c.nom || 'Groupe');
       let apercu = '';
       if (c.apercu) {
         const a = c.apercu;
@@ -260,7 +312,7 @@
       const loc = convs.get(c.id);
       const nonLus = loc && loc.luLocal !== undefined && loc.luLocal >= c.dernier_seq ? 0 : c.non_lus;
       return {
-        id: c.id, type: c.type, nom, court: nom, initiales: direct ? initialesDe(nom) : '#', avatar: indexAvatar(c.id), photo: direct ? photoPiece(c.autre && c.autre.avatar) : photoPiece(c.avatar), epingle: !!c.epingle,
+        id: c.id, type: c.type, nom, court: nom, initiales: supprime ? '?' : direct ? initialesDe(nom) : '#', avatar: indexAvatar(c.id), photo: supprime ? null : direct ? photoPiece(c.autre && c.autre.avatar) : photoPiece(c.avatar), epingle: !!c.epingle, supprime,
         membres: [], admins: c.role === 'admin' && moiApi ? [moiApi.id] : [], annoncesSeulement: !!c.annonces_seules, ephemeres: c.ephemere_s || 0,
         nonLu: nonLus > 0, nonLus, apercu, t: c.dernier_ts, enLigne: direct && c.autre ? enLigne.has(c.autre.id) : false,
         autre: direct && c.autre ? c.autre.id : null,
@@ -392,6 +444,7 @@
       const c = convs.get(id) || { messages: [], aPlus: false, charge: false, detail: null };
       c.detail = d;
       const r = await A.messages(id, { limite: 100 });
+      noterSupprimes(r.supprimes);
       c.messages = r.messages.slice(); c.aPlus = !!r.a_plus; c.charge = true;
       convs.set(id, c);
       return c;
@@ -407,6 +460,7 @@
       const autre = d.conversation.type === 'direct' ? d.membres.find(x => !estMoi(x.id)) : null;
       if (autre) { Object.assign(base, { nom: nomComplet(autre), court: nomComplet(autre), initiales: initialesDe(nomComplet(autre)), enLigne: enLigne.has(autre.id), autre: autre.id, photo: photoPiece(autre.avatar) }); }
       else if (d.conversation.type === 'groupe') { base.nom = base.court = d.conversation.nom || 'Groupe'; base.photo = photoPiece(d.conversation.avatar); }
+      if (d.conversation.type === 'direct' && !autre) { base.supprime = true; base.nom = base.court = NOM_SUPPRIME; base.initiales = '?'; base.photo = null; }   // l'autre n'est plus membre : son compte est supprimé
       base.membres = d.membres.map(x => x.id); base.admins = d.membres.filter(x => x.role === 'admin').map(x => x.id);
       base.annoncesSeulement = !!d.conversation.annonces_seules; base.ephemeres = d.conversation.ephemere_s || 0;
       const auto = piecesAuto(c.messages);
@@ -419,6 +473,7 @@
     async function precedents(id) {
       const c = convs.get(id); if (!c || !c.charge || !c.aPlus || !c.messages.length) return false;
       const r = await A.messages(id, { avant_seq: c.messages[0].seq, limite: 100 });
+      noterSupprimes(r.supprimes);
       for (const m of r.messages) ranger(c, m);
       c.aPlus = !!r.a_plus;
       emettre({ type: 'conversation', id });
@@ -657,10 +712,11 @@
     async function infos(id) {
       let c = convs.get(id);
       if (!c || !c.detail) { try { const d = await A.conversation(id); for (const m of d.membres) noter(m); c = convs.get(id) || { messages: [], aPlus: false, charge: false }; c.detail = d; convs.set(id, c); } catch (e) { if (e && e.code === 'introuvable') return null; throw e; } }
-      const d = c.detail, autre = d.conversation.type === 'direct' ? d.membres.find(x => !estMoi(x.id)) : null;
-      const nom = autre ? nomComplet(autre) : (d.conversation.nom || 'Groupe');
+      const d = c.detail, direct = d.conversation.type === 'direct', autre = direct ? d.membres.find(x => !estMoi(x.id)) : null;
+      const nom = autre ? nomComplet(autre) : (direct ? NOM_SUPPRIME : (d.conversation.nom || 'Groupe'));
       return {
-        id, type: d.conversation.type, nom, initiales: autre ? initialesDe(nom) : '#', avatar: indexAvatar(autre ? autre.id : id), photo: autre ? photoPiece(autre.avatar) : photoPiece(d.conversation.avatar),
+        id, type: d.conversation.type, nom, initiales: autre ? initialesDe(nom) : (direct ? '?' : '#'), avatar: indexAvatar(autre ? autre.id : id), photo: autre ? photoPiece(autre.avatar) : (direct ? null : photoPiece(d.conversation.avatar)), supprime: direct && !autre,
+        sourdine: d.moi && d.moi.muet_jusqua > maintenant() ? d.moi.muet_jusqua : 0,
         membres: d.membres.map(x => vueMembre(c, x)), moiAdmin: d.moi.role === 'admin', annoncesSeulement: !!d.conversation.annonces_seules, ephemeres: d.conversation.ephemere_s || 0,
         enLigne: autre ? enLigne.has(autre.id) : false,
       };
@@ -709,13 +765,14 @@
 
     /* ── le temps réel ── */
     function marquerTout() { for (const c of convs.values()) c.charge = false; listeFraiche = false; }
-    function surMessage(d) {
+    function surMessage(d, gid) {
+      acquitter(gid);
       if (!convsApi.some(x => x.id === d.conv)) relireListePlusTard();   // une conversation neuve (quelqu'un nous a écrit, ou ajoutés)
       const c = convs.get(d.conv);
       const moi = estMoi(d.auteur);
       if (d.cid) { const i = file.findIndex(p => p.cid === d.cid); if (i >= 0) file.splice(i, 1); }   // notre propre envoi, revenu par le flux : la file n'a plus rien à renvoyer
       if (c && c.charge) {
-        if (d.relis) A.messages(d.conv, { apres_seq: d.seq - 1, limite: 1 }).then(r => { r.messages.forEach(m => ranger(c, m)); emettre({ type: 'conversation', id: d.conv }); }, () => {});
+        if (d.relis) A.messages(d.conv, { apres_seq: d.seq - 1, limite: 1 }).then(r => { noterSupprimes(r.supprimes); r.messages.forEach(m => ranger(c, m)); emettre({ type: 'conversation', id: d.conv }); }, () => {});
         else ranger(c, { seq: d.seq, id: d.id, auteur: d.auteur, ts: d.ts, type: d.type, repond_a: d.repond_a || null, texte: d.texte === undefined ? null : d.texte, meta: d.meta || null, supprime: !!d.supprime, illisible: !!d.illisible, reactions: [], modifie: null });
         if (c.detail && d.type === 'systeme') rafraichirDetail(d.conv).then(() => emettre({ type: 'conversation', id: d.conv }), () => {});
       }
@@ -759,7 +816,8 @@
         const c = convs.get(d.conv);
         if (c && c.detail) { const x = c.detail.membres.find(m => m.id === d.uid); if (x && (x.lu_seq === null || x.lu_seq === undefined || d.seq > x.lu_seq)) x.lu_seq = d.seq; emettre({ type: 'conversation', id: d.conv }); }
       },
-      notification: (d) => {
+      notification: (d, gid) => {
+        acquitter(gid);
         emettre({ type: 'notification', titre: d.titre, texte: d.texte, nature: d.type, cible: d.cible });
         if (d.type === 'contact_ajoute') rafraichirContacts().catch(() => {});
         if (d.type === 'groupe_ajoute') relireListePlusTard();
@@ -834,6 +892,8 @@
       }
       enMarche = true;
       demarrerFlux();
+      ecouterServiceWorker();
+      reabonner();                                       // en arrière-plan : un abonnement que ce navigateur porte déjà est redit au service (jamais bloquant, jamais une erreur)
       return { connecte: true };
     }
     async function connexion(login, pass) {
@@ -841,8 +901,10 @@
       return m;
     }
     async function deconnexion() {
-      await api0.deconnexion();   // ⛔ d'abord le service : s'il refuse, le flux reste ouvert et l'écran n'a pas menti
+      const sub = await abonnementLocal();                 // le point d'accès push de CE navigateur, s'il y en a un (jamais une erreur)
+      await api0.deconnexion(sub && sub.endpoint);        // ⛔ d'abord le service : s'il refuse, le flux reste ouvert et l'écran n'a pas menti. L'abonnement part avec la session, dans la même requête.
       mort = true; arreter();
+      if (sub) { try { await sub.unsubscribe(); } catch (e) { /* le service l'a déjà retiré : un navigateur qui garde un abonnement mort ne reçoit rien */ } }
       return true;
     }
 
@@ -893,18 +955,146 @@
     const bloques = () => contactsTous.filter(c => c.bloque).map(c => Object.assign(vuePersonne(c), { bloque: true }));
     async function bloquer(uid) { await A.bloquer(uid); await rafraichirContacts(); relireListePlusTard(); }
     async function debloquer(uid) { await A.debloquer(uid); await rafraichirContacts(); relireListePlusTard(); }
-    async function deconnecterAutres() { const r = await A.deconnecterAutres(); return { sessions: r.sessions | 0, appareils: r.appareils | 0 }; }
+    async function deconnecterAutres() {
+      const sub = await abonnementLocal();                 // le nôtre reste ; les abonnements push des AUTRES appareils partent avec leurs sessions
+      const r = await A.deconnecterAutres(sub && sub.endpoint);
+      return { sessions: r.sessions | 0, appareils: r.appareils | 0, notifications: r.notifications | 0 };
+    }
     /* ⛔ pas `| 0` : le quota est de 2 Gio (2 147 483 648 octets), un entier signé sur 32 bits le rendrait NÉGATIF */
     const entierPositif = (x) => Number.isFinite(+x) ? Math.max(0, Math.floor(+x)) : 0;
     async function stockageUtilise() { const r = await A.stockage(); return { utilise: entierPositif(r.utilise), max: entierPositif(r.max) }; }
-    async function aPropos() { const c = await A.config(); return { version: String(c.version || ''), instance: String(c.instance || ''), limites: Object.assign({}, c.limites && c.limites.pieces) }; }
+    async function aPropos() {
+      const c = await A.config();
+      const jours = c.limites && c.limites.suppression_jours;
+      return { version: String(c.version || ''), instance: String(c.instance || ''), limites: Object.assign({}, c.limites && c.limites.pieces), suppressionJours: Number.isInteger(jours) && jours > 0 ? jours : null };
+    }
+
+    /* ═══ LES NOTIFICATIONS (capacité `notifications`) ═══════════════════════════════════════════════════════════════════════════════════════════
+       ⛔ L'état affiché est celui du NAVIGATEUR et du SERVICE, jamais ce qu'on vient de demander : chaque geste rend l'état relu. Chaque refus a sa phrase (pourquoi, et comment en sortir).
+       ⛔ Un abonnement n'est jamais créé sans que la personne l'ait demandé : au démarrage, on ne fait que REDIRE au service un abonnement que ce navigateur porte déjà. */
+    let cleVapid;                                          // undefined : pas encore lue ; null : le service n'en publie pas (le push y est désactivé)
+    async function clePush() {
+      if (cleVapid !== undefined) return cleVapid;
+      const c = await A.config();
+      cleVapid = c && c.push && typeof c.push.vapid === 'string' && c.push.vapid ? c.push.vapid : null;
+      return cleVapid;
+    }
+    const apercuNotif = () => !!(moiApi && moiApi.prefs && moiApi.prefs.apercu_notif === true);
+    /* l'abonnement de ce navigateur, ou null : jamais une erreur (une déconnexion ne dépend pas d'une notification) */
+    async function abonnementLocal() {
+      try { if (!nav.priseEnCharge().ok || nav.permission() !== 'granted') return null; return await nav.abonnementActuel(); }
+      catch (e) { return null; }
+    }
+    const jsonAbonnement = (sub) => { const j = typeof sub.toJSON === 'function' ? sub.toJSON() : sub; return { endpoint: j.endpoint, keys: { p256dh: j.keys && j.keys.p256dh, auth: j.keys && j.keys.auth } }; };
+    async function notifEtat() {
+      const sortie = { possible: false, raison: null, permission: 'default', active: false, apercu: apercuNotif(), phrase: '' };
+      const pc = nav.priseEnCharge();
+      if (!pc.ok) return Object.assign(sortie, { raison: pc.raison, phrase: PHRASES_LOCALES['notif_' + pc.raison] });
+      if (!(await clePush())) return Object.assign(sortie, { raison: 'service', phrase: PHRASES_LOCALES.notif_service });
+      const permission = nav.permission();
+      if (permission === 'denied') return Object.assign(sortie, { raison: 'refusee', permission, phrase: PHRASES_LOCALES.notif_refusee });
+      let active = false;
+      if (permission === 'granted') { try { active = !!(await nav.abonnementActuel()); } catch (e) { active = false; } }
+      return Object.assign(sortie, { possible: true, permission, active });
+    }
+    async function notifActiver() {
+      const e0 = await notifEtat();
+      if (!e0.possible) throw erreurLocale('notif_' + (e0.raison === 'refusee' ? 'refusee' : e0.raison || 'navigateur'));
+      const cle = await clePush();
+      if (e0.permission !== 'granted') {
+        let rep; try { rep = await nav.demander(); } catch (e) { rep = 'default'; }
+        if (rep === 'denied') throw erreurLocale('notif_refusee');
+        if (rep !== 'granted') throw erreurLocale('notif_sans_reponse');
+      }
+      let sub;
+      try {
+        const reg = await nav.enregistrer();
+        sub = await reg.pushManager.getSubscription();
+        const cleAvant = sub ? nav.cleDe(sub) : null;
+        if (sub && cleAvant && cleAvant !== cle) { try { await sub.unsubscribe(); } catch (e) { /* tant pis : le subscribe qui suit dira ce qu'il en est */ } sub = null; }   // un abonnement fait avec une autre clé du service ne servirait plus
+        if (!sub) sub = await nav.souscrire(reg, cle);
+      } catch (e) { throw erreurLocale('notif_abonnement'); }
+      try { await A.pushAbonner(jsonAbonnement(sub)); }
+      catch (e) { try { await sub.unsubscribe(); } catch (x) { /* rien */ } throw e; }      // ⛔ pas d'abonnement du navigateur que le service ne connaît pas : l'interrupteur mentirait
+      return notifEtat();
+    }
+    async function notifDesactiver() {
+      const sub = await nav.abonnementActuel().catch(() => null);
+      if (sub) {
+        await A.pushDesabonner(sub.endpoint);               // le service d'abord : s'il refuse, rien n'a changé et l'erreur se dit
+        try { await sub.unsubscribe(); } catch (e) { /* le service ne lui écrira plus */ }
+      }
+      return notifEtat();
+    }
+    async function notifApercu(actif) {
+      const m = await A.majMoi({ prefs: { apercu_notif: !!actif } });
+      moiApi = m; noter(m);
+      return notifEtat();
+    }
+    async function notifEssai() { const r = await A.pushEssai(); return { appareils: r.appareils | 0, envoyes: r.envoyes | 0 }; }
+    /* un abonnement que ce navigateur porte déjà est redit au service (idempotent) : il a pu le perdre (accès rouvert, appareil retiré), et un appareil prêté suit son dernier utilisateur */
+    async function reabonner() {
+      try {
+        if (!nav.priseEnCharge().ok || nav.permission() !== 'granted') return false;
+        const sub = await nav.abonnementActuel();
+        if (!sub) return false;
+        await A.pushAbonner(jsonAbonnement(sub));
+        return true;
+      } catch (e) { return false; }
+    }
+    let swEcoute = false;
+    function ecouterServiceWorker() {
+      if (swEcoute) return;
+      swEcoute = true;
+      try {
+        nav.surMessage((d) => {
+          const m = d && d.type === 'ouvrir' && typeof d.url === 'string' ? MOTIF_OUVRIR.exec(d.url) : null;
+          if (m && !mort) emettre({ type: 'ouvrir', conv: m[1] });          // seule une adresse de CETTE forme ouvre quelque chose : jamais une adresse venue d'ailleurs
+        });
+      } catch (e) { /* un navigateur sans service worker n'a pas de notification à toucher */ }
+    }
+    /* ── l'acquittement : « j'ai REÇU et MONTRÉ les événements jusqu'à gid ». Seule une page VISIBLE acquitte (une page cachée ne montre rien : la notification doit partir). Une rafale
+       d'événements ne fait qu'UNE requête, avec le plus grand identifiant. ── */
+    let ackVu = 0, ackEnvoye = 0, ackMinuterie = null;
+    function acquitter(gid) {
+      if (!Number.isInteger(gid) || gid <= ackEnvoye || mort) return;
+      let visible = true; try { visible = nav.visible(); } catch (e) { visible = true; }
+      if (!visible) return;
+      ackVu = Math.max(ackVu, gid);
+      if (ackMinuterie) return;
+      ackMinuterie = planifier(async () => {
+        ackMinuterie = null;
+        const g = ackVu;
+        if (mort || g <= ackEnvoye) return;
+        try { await A.acquitter(g); ackEnvoye = g; } catch (e) { /* un acquittement perdu ne coûte qu'une notification de trop */ }
+      }, delaiAckMs);
+    }
+
+    /* ═══ SOURDINE, EXPORT, SUPPRESSION (capacité `compte`) ═══════════════════════════════════════════════════════════════════════════════════════ */
+    async function sourdine(id, duree) {
+      if (!Object.prototype.hasOwnProperty.call(SOURDINES, duree)) throw erreurLocale('invalide');
+      await A.prefs(id, { muet_jusqua: duree === 'off' ? 0 : maintenant() + SOURDINES[duree] });
+      await rafraichirDetail(id); await relireListe();
+      emettre({ type: 'conversation', id }); emettre({ type: 'liste' });
+    }
+    async function exporterDonnees() { const r = await A.exporterDonnees(); return { blob: r.blob, nom: r.nom }; }
+    async function supprimerCompte() {
+      suppressionEnCours = true;
+      let r;
+      try { r = await A.supprimerCompte(); }
+      catch (e) { suppressionEnCours = false; throw e; }
+      mort = true; arreter();
+      const sub = await nav.abonnementActuel().catch(() => null);          // le service a retiré les abonnements ; ce navigateur n'a plus de raison de garder le sien
+      if (sub) { try { await sub.unsubscribe(); } catch (e) { /* rien */ } }
+      return { suppression_le: r.suppression_le };
+    }
 
     const rejeter = (code) => () => Promise.reject(erreurLocale(code));
     /* ⛔ combien de messages n'ont PAS encore quitté l'appareil (réseau coupé, service muet) : la page les perd quand elle repart de zéro ou qu'on la ferme — rien n'est rangé sur
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: false, reunions: false, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: false, reunions: false, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       surSessionMorte: (cb) => { suiviMort = cb; },
       moi: () => moiApi ? Object.assign(vuePersonne(moiApi), { id: moiApi.id }) : null,
@@ -917,6 +1107,8 @@
       /* ── les pièces et les réglages ── */
       pieceUrl, pieceBlob,
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, deconnecterAutres, stockage: stockageUtilise, aPropos,
+      /* ── les notifications, la sourdine, l'export, la suppression ── */
+      notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees, supprimerCompte,
       /* ── ce que le service ne sait pas encore : les appels (étape 7) — la page dit « bientôt », ces méthodes refusent proprement ── */
       appels: () => Promise.resolve([]),
       demarrerAppel: rejeter('bientot'), appel: () => Promise.resolve(null), terminerAppel: rejeter('bientot'),

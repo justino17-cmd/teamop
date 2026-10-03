@@ -163,7 +163,8 @@
         /* se reconnecter avant l'échéance ANNULE la suppression du compte : le service le dit, la personne doit l'apprendre (`suppression_annulee` accompagne la personne rendue) */
         return r.suppression_annulee === true ? Object.assign({}, r.moi, { suppression_annulee: true }) : r.moi;
       },
-      deconnexion: () => appel('POST', '/api/compte/deconnexion'),
+      /* `endpoint` : le point d'accès push de CET appareil (facultatif) — il part avec la session, dans la même requête */
+      deconnexion: (endpoint) => appel('POST', '/api/compte/deconnexion', typeof endpoint === 'string' && endpoint ? { endpoint } : undefined),
       moi: async () => (await appel('GET', '/api/moi')).moi,
       majMoi: async (champs) => (await appel('POST', '/api/moi/maj', champs)).moi,
       contacts: async () => (await appel('GET', '/api/contacts')).contacts,
@@ -238,7 +239,8 @@
       stockage: () => appel('GET', '/api/moi/stockage'),
       confidentialite: () => appel('GET', '/api/moi/confidentialite'),
       majConfidentialite: (champs) => appel('POST', '/api/moi/confidentialite', champs),
-      deconnecterAutres: () => appel('POST', '/api/moi/appareils/deconnecter'),
+      /* `endpoint` : le point d'accès push de CET appareil (facultatif) — il reste, ceux des autres appareils partent avec leurs sessions */
+      deconnecterAutres: (endpoint) => appel('POST', '/api/moi/appareils/deconnecter', typeof endpoint === 'string' && endpoint ? { endpoint } : undefined),
 
       /* ── Les notifications push, l'acquittement, l'export des données, la suppression du compte ── */
       pushAbonner: (sub) => appel('POST', '/api/push/abonner', { sub }),
