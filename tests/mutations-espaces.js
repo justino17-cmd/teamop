@@ -22,7 +22,7 @@
              node tests/mutations-espaces.js F01 R05                            (seulement celles-là)
              node tests/mutations-espaces.js --verifier                         (ne joue rien : chaque motif se trouve UNE fois dans l'arbre, chaque banc existe)
              node tests/mutations-espaces.js --liste                            (le catalogue)
-             --copies=N (défaut 2)   --garder ID (fabrique UNE copie mutée, l'imprime et s'arrête)   --sans-temoin   --details=FICHIER (tous les ✗ de chaque mutation qui tombe)
+             --copies=N (défaut 2)   --garder ID (fabrique UNE copie mutée, l'imprime et s'arrête)   --sans-temoin   --temoins (ne joue que les témoins)   --details=FICHIER (tous les ✗ de chaque mutation qui tombe)
    Deux copies en parallèle, un délai par banc ; les sondes une à la fois (deux navigateurs et deux services se volent le processeur, et la sonde mesure du temps). */
 'use strict';
 const fs = require('fs'), os = require('os'), path = require('path'), { spawn, spawnSync } = require('child_process');
@@ -134,8 +134,7 @@ m('R25', 'sortir d\'un espace laisse le membre dans ses canaux', F.stock,
   "      if (num(Q('SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND quitte_le IS NULL').get(c).n) === 0)", ['960', '961']);
 m('R26', 'sortir d\'un espace n\'écrit pas « retire » au journal de ses canaux : celui qui part ne l\'apprend pas', F.stock, "      journalAjouter('retire', c, uid, '');   // APRÈS", '      // APRÈS', ['960', '964']);
 m('R27', 'dissoudre un espace ne s\'écrit pas dans `purge`', F.stock, "      Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(id, 'espace', horloge());", '', ['960']);
-m('R28', 'dissoudre un espace laisse ses liens d\'invitation', F.stock, "      Q(`DELETE FROM lien WHERE genre = 'espace' AND cible = ?`).run(id);\n", '', ['960'],
-  EQ('`invitationApercu` et `invitationAccepter` revérifient que l\'espace existe : un lien orphelin ne mène nulle part (la ligne reste, inoffensive)'));
+m('R28', 'dissoudre un espace laisse ses liens d\'invitation', F.stock, "      Q(`DELETE FROM lien WHERE genre = 'espace' AND cible = ?`).run(id);\n", '', ['960']);
 m('R29', 'dissoudre un espace laisse ses canaux (les conversations restent)', F.stock, '      for (const c of convs) pieces.push(...convSupprimer(c).pieces);\n      Q(`DELETE FROM lien', '      Q(`DELETE FROM lien', ['960', '961']);
 m('R30', 'passer la propriété à un compte non confirmé ou en cours de suppression', F.stock,
   "      if (!p || p.etat !== 'actif' || !p.verifie_le || p.suppression_le !== null) throw erreur('destinataire_invalide');\n", '', ['960']);
@@ -164,7 +163,8 @@ m('R44', 'révoquer les liens ne s\'écrit pas dans `purge` : une archive d\'ava
 m('R45', 'révoquer les liens ne révoque rien (le compte rendu dit zéro)', F.stock,
   "return num(Q(`UPDATE lien SET revoque = 1 WHERE genre = 'espace' AND cible = ? AND revoque = 0`).run(espace).changes);", 'return 0;', ['960', '961']);
 m('R46', 'un membre voit ceux avec qui un blocage existe, dans « Contacts de l\'entreprise »', F.stock, 'tous || r.id === viewer || !contactBloque(viewer, r.id)', 'true', ['960', '961']);
-m('R47', '« Contacts de l\'entreprise » liste les comptes supprimés', F.stock, "WHERE m.espace = ? AND p.etat = 'actif' ORDER BY p.prenom", 'WHERE m.espace = ? ORDER BY p.prenom', ['960']);
+m('R47', '« Contacts de l\'entreprise » liste les comptes supprimés', F.stock, "WHERE m.espace = ? AND p.etat = 'actif' ORDER BY p.prenom", 'WHERE m.espace = ? ORDER BY p.prenom', ['960'],
+  EQ('l\'effacement d\'un compte le retire de TOUS ses espaces dans la même transaction (E02) : aucune ligne `espace_membre` ne désigne un compte effacé, le filtre `etat` est une ceinture'));
 m('R48', 'la liste de MES espaces liste ceux de tout le monde', F.stock, 'e.id = m.espace WHERE m.uid = ? ORDER BY m.depuis, e.id`).all(uid)', 'e.id = m.espace WHERE ? IS NOT NULL ORDER BY m.depuis, e.id`).all(uid)', ['960', '961']);
 m('R49', 'un NON-membre lit l\'espace (nom, membres, canaux) : il reçoit ce qu\'il reçoit un membre', F.stock,
   "    if (!m) return null;\n    const e = espaceBrut(id); if (!e) return null;\n    return { espace: espaceRang(e), moi: { role: m.role, depuis: num(m.depuis) } };",
@@ -173,8 +173,7 @@ m('R50', 'la liste des canaux d\'un espace montre les canaux privés dont on n\'
   'WHERE k.espace = ? AND EXISTS (SELECT 1 FROM membre m WHERE m.conv = k.conv AND m.uid = ? AND m.quitte_le IS NULL) ORDER BY k.cree, k.conv`).all(espace, uid)', 'WHERE k.espace = ? AND ? IS NOT NULL ORDER BY k.cree, k.conv`).all(espace, uid)', ['960', '961']);
 m('R51', 'un canal privé accepte des membres qui ne sont pas de l\'espace', F.stock, "      if (qui.some(u => !roles.has(u))) throw erreur('membre_inconnu');\n", '', ['960', '961']);
 m('R52', 'un canal public n\'a pour membres que son créateur (et non tous ceux de l\'espace)', F.stock, ': Array.from(roles.keys());', ': [par];', ['960', '961']);
-m('R53', 'un simple membre crée un canal (le stockage ne vérifie plus le rôle)', F.stock, "      if (!moi || moi.role !== 'admin') throw erreur('interdit');\n", '', ['960', '961'],
-  EQ('la garde EA de la route a déjà refusé un simple membre avant le stockage'));
+m('R53', 'un simple membre crée un canal (le stockage ne vérifie plus le rôle ; la garde EA de la route, elle, tient — test-960 joue le stockage SEUL)', F.stock, "      if (!moi || moi.role !== 'admin') throw erreur('interdit');\n", '', ['960', '961']);
 m('R54', 'un espace peut avoir plus de cent canaux', F.stock, "      if (num(Q('SELECT COUNT(*) AS n FROM canal WHERE espace = ?').get(espace).n) >= CANAUX_MAX) throw erreur('trop_de_canaux');\n", '', ['960', '961']);
 m('R55', 'on se retire soi-même d\'un canal privé par la route des membres', F.resp,
   /if \(u === req\.moi\.id\) return refus\(res, 400, 'champ_invalide'\);(\s+\/\/ on quitte un canal)/, '$1', ['961']);
@@ -193,7 +192,8 @@ m('U02', 'la restauration ne fait pas sortir le membre retiré de ses canaux', F
 m('U03', 'la restauration ne révoque pas un lien d\'invitation révoqué depuis l\'archive', F.stock, '          bilan.invitationsRevoquees += Number(revoquerLien.run(r.objet).changes);', '', ['960']);
 m('U04', 'la restauration ramène un membre retiré d\'un canal privé', F.stock,
   "          if (conv && uid) bilan.membresCanalRetires += Number(sortirCanal.run(Number(r.quand) || 0, conv, uid, Number(r.quand) || 0).changes);", '', ['960']);
-m('U05', 'la restauration ramène les canaux d\'un espace dissous', F.stock, '          if (retirerCanauxDEspace) retirerCanauxDEspace.run(r.objet);\n', '', ['960']);
+m('U05', 'la restauration ne retire pas les canaux d\'un espace dissous (le genre `espace`)', F.stock, '          if (retirerCanauxDEspace) retirerCanauxDEspace.run(r.objet);\n', '', ['960'],
+  EQ('`espaceSupprimer` efface chaque canal par `convSupprimer`, qui note CHACUN comme une conversation effacée : le rejeu du genre `conversation` retire déjà ses messages (le défaut réel retirerait les deux)'));
 m('U06', 'le genre `invitation` n\'est plus déclaré dans le registre des genres de purge (un effacement que personne ne rejoue)', F.stock,
   /  invitation: 'copie',[^\n]*\n/, '', ['950', '960']);
 m('T01', 'la table `abonnement` sort de la liste des tables comptées (`TABLES_COMPTEES`)', F.stock, ", 'canal', 'abonnement'];", ", 'canal'];", ['960', '950']);
@@ -223,8 +223,7 @@ m('B14', 'un abonnement qui n\'est pas marqué « opmsg » est lu comme le nôtr
 m('B15', 'un abonnement dont AUCUNE ligne n\'est de notre liste blanche de tarifs est lu comme le nôtre', F.fact, '    if (!nos.length) return null;\n', '', ['962']);
 m('B16', 'les places sont la somme de TOUTES les lignes de l\'abonnement, pas seulement des nôtres', F.fact, 'const places = nos.reduce(', 'const places = lignes.reduce(', ['962']);
 m('B17', 'une session « complete » qui n\'est pas en mode abonnement est adoptée', F.fact, "if (cs.mode !== 'subscription' || cs.client_reference_id !== 'opmsg:' + espace || !ID_ABO.test(sid))", "if (cs.client_reference_id !== 'opmsg:' + espace || !ID_ABO.test(sid))", ['962']);
-m('B18', 'une session qui cite un AUTRE espace est adoptée (la référence de la session n\'est plus comparée)', F.fact, "if (cs.mode !== 'subscription' || cs.client_reference_id !== 'opmsg:' + espace || !ID_ABO.test(sid))", "if (cs.mode !== 'subscription' || !ID_ABO.test(sid))", ['962'],
-  EQ('`lireAbonnement` revérifie la métadonnée `opmsg_espace` de l\'abonnement lui-même : un abonnement d\'un autre espace n\'est pas adopté (B13 est le défaut réel, avec les deux retirées)'));
+m('B18', 'une session qui cite un AUTRE espace est adoptée (la référence de la session n\'est plus comparée)', F.fact, "if (cs.mode !== 'subscription' || cs.client_reference_id !== 'opmsg:' + espace || !ID_ABO.test(sid))", "if (cs.mode !== 'subscription' || !ID_ABO.test(sid))", ['962']);
 m('B19', 'une panne de Stripe (réseau, 5xx, clé refusée) est lue comme une RÉSILIATION : l\'espace perd Pro', F.fact,
   "let sb; try { sb = await stripe('GET', '/v1/subscriptions/' + a.abonnement); } catch (e) { if (e.code === 'introuvable') sb = null; else throw e; }",
   "let sb; try { sb = await stripe('GET', '/v1/subscriptions/' + a.abonnement); } catch (e) { sb = null; }", ['962']);
@@ -238,7 +237,10 @@ m('B26', 'l\'état ne dit plus que Stripe est muet', F.fact, 'stripe_muet: echec
 m('B27', '« les minutes d\'illisibilité de Stripe » valent toujours zéro (`/health.stripeEchecMin` ne bouge jamais)', F.fact,
   'const echecMin = () => echecDepuis === null ? 0 : Math.max(0, Math.floor((horloge() - echecDepuis) / 60000));', 'const echecMin = () => 0;', ['962']);
 m('B28', 'sans clé, l\'abonnement se dit ouvert', F.fact, "if (!actif()) return { ouvert: false, motif: 'abonnement_pas_ouvert',", "if (!actif()) return { ouvert: true, motif: 'abonnement_pas_ouvert',", ['962', '964']);
-m('B29', 'le journal d\'un échec de Stripe porte la clé', F.fact, "journaliser('stripe_echec', { motif }); };", "journaliser('stripe_echec', { motif, cle: cfg.cle }); };", ['962']);
+m('B29', 'un échec de Stripe est journalisé AVEC la clé (le champ passé à `journaliser`)', F.fact, "journaliser('stripe_echec', { motif }); };", "journaliser('stripe_echec', { motif, cle: cfg.cle }); };", ['962'],
+  EQ('`journaliser` ne retient que les champs d\'une LISTE BLANCHE (`CHAMPS_JOURNAL`) : un champ `cle` est jeté avant d\'être écrit — le défaut réel ajoute `cle` à la liste ET le passe (B29b)'));
+m2('B29b', 'un échec de Stripe est journalisé AVEC la clé (le champ passé ET admis par la liste blanche du journal)',
+  [[F.fact, "journaliser('stripe_echec', { motif }); };", "journaliser('stripe_echec', { motif, cle: cfg.cle }); };"], [F.index, "'etat', 'n', 'motif', 'route', 'pays']);", "'etat', 'n', 'motif', 'route', 'pays', 'cle']);"]], ['962']);
 m('B30', '/health porte la clé Stripe', F.index, 'facturation: Object.assign({ mode: facturation.mode(), toutOuvert: formule.toutOuvert() }, stockage.facturationStats()),',
   'facturation: Object.assign({ mode: facturation.mode(), toutOuvert: formule.toutOuvert(), cle: config.facturation.cle }, stockage.facturationStats()),', ['962', '934']);
 m('B31', '/health ne publie plus les minutes d\'illisibilité de Stripe', F.index, 'stripeEchecMin: facturation.echecMin(),', 'stripeEchecMin: 0,', ['962']);
@@ -267,8 +269,7 @@ m('K13', 'remplacer une facturation existante ne demande plus « oui »', F.cfgs
 m('K14', 'un fichier d\'une instance et un environnement d\'une autre ne se contredisent plus (la clé de production peut aller dans le fichier de la bêta)', F.cfgstripe,
   "  if (config.instance && process.env.OPMSG_INSTANCE && config.instance !== process.env.OPMSG_INSTANCE) echec(", "  if (false) echec(", ['963']);
 m('K15', 'le montant annoncé à l\'écran n\'est plus comparé à celui de Stripe', F.cfgstripe, "    if (euros !== null && Math.abs(euros - affichage[rythme]) > 0.001) avertissements.push(", "    if (false) avertissements.push(", ['963']);
-m('K16', 'le fichier temporaire est créé avec le mode par défaut (le `chmod` qui suit le corrige : la clé est lisible un instant)', F.cfgstripe, "{ mode: 0o600, flag: 'wx' }", "{ flag: 'wx' }", ['963'],
-  EQ('le `chmod 600` qui suit l\'écriture ramène le mode, et la fenêtre (quelques microsecondes) ne s\'observe pas depuis un banc : la garde `mode` est une ceinture, la bretelle est le chmod'));
+m('K16', 'le fichier temporaire est créé avec le mode par défaut (le `chmod` qui suit le corrige : la clé est lisible un instant)', F.cfgstripe, "{ mode: 0o600, flag: 'wx' }", "{ flag: 'wx' }", ['963']);
 
 /* ══ 7. LA COUTURE AVEC OP GESTION — dans la COPIE du serveur d'OP GESTION, jamais dans l'arbre (test-965 lance le vrai `server/index.js`) ═══════════════ */
 m('O01', 'OP GESTION ne classe plus AUCUNE ligne « OP MESSAGES » : un abonnement de Messages Pro est lu comme un paiement d\'OP GESTION', F.og,
@@ -310,7 +311,7 @@ m('P13', 'le champ « Filtrer la liste » cherche chez le service (un annuaire p
   "function appliquerFiltreEspace() {\n    try { const q0 = (($('esp-filtre') || {}).value || '').trim(); if (q0) fetch('/api/recherche?q=' + encodeURIComponent(q0)).catch(() => {}); } catch (e) { /* rien */ }\n", ['sonde'], SONDE);
 
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
-const DOSSIERS_COPIE = ['server-msg', 'server', 'design/opmessages', '.github/scripts', 'apercu/opmessages', 'icons', 'scripts'];
+const DOSSIERS_COPIE = ['server-msg', 'server', 'design/opmessages', '.github', 'apercu/opmessages', 'icons', 'scripts'];   // `.github` ENTIER : test-934 lit les workflows autant que les scripts de surveillance
 function copier(src, dst) {
   fs.mkdirSync(dst, { recursive: true });
   for (const e of fs.readdirSync(src, { withFileTypes: true })) {
@@ -477,6 +478,7 @@ async function jouer(mut, dir) {
     }
     console.log('témoins verts sur une copie intacte : ' + visees.map(nomBanc).join(', ') + '\n');
   }
+  if (args.includes('--temoins')) { nettoyer(); process.exit(0); }       // seulement les témoins : de quoi savoir, avant d'attendre une heure, que chaque banc visé tourne dans une copie
   const file = liste.slice(), resultats = [];
   await Promise.all(copies.map(async (dir) => {
     for (;;) {

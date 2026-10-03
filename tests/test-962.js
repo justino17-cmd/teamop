@@ -92,6 +92,7 @@ const AUTRE_PRIX = 'price_ToutAutreProduitQq77';
       v('population : le service a appelé Stripe UNE fois pour créer la session', [r.code, ap.length], [201, 1]);
       const F = form(ap[0]);
       v('⛔ ce qui part chez Stripe : le TARIF de la configuration, l\'ESPACE du chemin, le mode « subscription », la quantité demandée — rien du corps forgé', [F['line_items[0][price]'], F['line_items[0][quantity]'], F.client_reference_id, F.mode, F['metadata[opmsg_espace]'], F['metadata[produit]'], F['subscription_data[metadata][opmsg_espace]'], F['subscription_data[metadata][produit]']], [PRIX.mensuel, '3', 'opmsg:' + E0, 'subscription', E0, 'opmsg', E0, 'opmsg']);
+      v('⛔ JAMAIS la métadonnée `espace` (celle qu\'OP GESTION lit pour rattacher un abonnement à une entreprise), ni sur la session ni sur l\'abonnement : la nôtre s\'appelle `opmsg_espace` (population : la demande porte ses métadonnées)', [Object.keys(F).filter(k => /metadata/.test(k)).length, Object.keys(F).filter(k => /\[espace\]$/.test(k))], [4, []]);
       v('⛔ pas d\'adresse (un accès bêta n\'en a pas de confirmée), pas d\'essai, pas de coupon, pas de montant : le corps n\'a rien ajouté', [F.customer_email === undefined, ap[0].paires.map(x => x[0]).filter(x => /trial|coupon|promotion|amount|currency|discount/i.test(x)), ap[0].corps.includes('pirate') || ap[0].corps.includes(AUTRE_PRIX) || ap[0].corps.includes(E1)], [true, [], false]);
       v('⛔ les adresses de retour sont celles de LA PAGE (l\'origine de la requête, vérifiée par le service), jamais celles du corps', [F.success_url, F.cancel_url, F.locale], [svc.base + '/?abo=retour&e=' + E0 + '#reglages', svc.base + '/?abo=annule&e=' + E0 + '#reglages', 'fr']);
       v('la clé part en `Authorization: Bearer`, le corps en formulaire — et la clé n\'est PAS dans le corps', [ap[0].auth, /x-www-form-urlencoded/.test(ap[0].type), ap[0].corps.includes(CLE)], ['Bearer ' + CLE, true, false]);
@@ -152,6 +153,10 @@ const AUTRE_PRIX = 'price_ToutAutreProduitQq77';
       s7b.client_reference_id = 'opmsg:' + E0;      // la session cite un autre espace que celui pour lequel elle a été ouverte
       v('⛔ une session qui cite un AUTRE espace (`client_reference_id`) n\'est pas adoptée non plus', [(await adopte(bo, E7)).formule, S.abonnementLire(E7).abonnement], ['perso', null]);
       await payer(bo, E7, { places: 1 });
+      const s7m = sessionDe(E7); fake.payer(s7m.id, { statut: 'active' });
+      s7m.mode = 'payment';                          // une session qui n'est pas un ABONNEMENT (un paiement ponctuel) : elle ne désigne rien qu'on puisse relire
+      v('⛔ une session qui n\'est pas en mode « subscription » n\'est pas adoptée non plus', [(await adopte(bo, E7)).formule, S.abonnementLire(E7).abonnement], ['perso', null]);
+      await payer(bo, E7, { places: 1 });
       const s7c = sessionDe(E7), sb7c = fake.payer(s7c.id, { statut: 'active' });
       sb7c.items.data[0].price.id = AUTRE_PRIX;
       v('⛔ un abonnement dont AUCUNE ligne n\'est un de NOS tarifs (un autre produit du compte) n\'est pas adopté', [(await adopte(bo, E7)).formule, S.abonnementLire(E7).abonnement], ['perso', null]);
@@ -166,6 +171,9 @@ const AUTRE_PRIX = 'price_ToutAutreProduitQq77';
       const tab = [];
       for (const st of ['trialing', 'active', 'incomplete', 'paused']) { const r = await dit(st); tab.push([st, r.formule, r.places]); }
       v('⛔ payé = `active` ou `trialing`, RIEN d\'autre : `incomplete` et `paused` ne donnent ni formule Pro ni place', tab, [['trialing', 'pro', 2], ['active', 'pro', 2], ['incomplete', 'perso', 0], ['paused', 'perso', 0]]);
+      const second = [], p4 = fake.sessions.size;
+      for (const st of ['incomplete', 'paused']) { fake.statut(sbE7, st); await adopte(bo, E7); const rp = await payer(bo, E7, { places: 2 }); second.push([st, rp.code, rp.j.error]); }
+      v('⛔ un abonnement EN ATTENTE de paiement (`incomplete`) ou EN PAUSE existe encore chez Stripe : en ouvrir un second le ferait prélever deux fois le jour où l\'autre repart — 409 `abonnement_existant`, aucune session neuve', [second, fake.sessions.size - p4], [[['incomplete', 409, 'abonnement_existant'], ['paused', 409, 'abonnement_existant']], 0]);
       const fin2 = [];
       for (const st of ['incomplete_expired', 'canceled']) { fake.statut(sbE7, 'active'); await adopte(bo, E7); const r = await dit(st); fin2.push([st, r.formule, r.places]); }
       v('… ni `incomplete_expired` ni `canceled`', fin2, [['incomplete_expired', 'perso', 0], ['canceled', 'perso', 0]]);
@@ -262,6 +270,12 @@ const AUTRE_PRIX = 'price_ToutAutreProduitQq77';
       fake.portailConfigure = true; fake.mode = 'muet';
       v('Stripe muet : 502 `stripe_muet`', (await por(a, E0)).j.error, 'stripe_muet');
       fake.mode = 'normal';
+      /* ⛔ une adresse que Stripe « rendrait » et qui n'est pas http(s) (`javascript:`) ne fait jamais suivre la page : refus, et la session mal adressée n'est pas rangée */
+      const adr = pers('Adr'), ad = cl(adr), Eu = S.espaceCreer({ nom: 'Adresse', proprio: adr.id }).id;
+      fake.urlMauvaise = 'javascript:alert(1)';
+      const ru = await payer(ad, Eu, { places: 1 }), pu = await por(a, E0);
+      fake.urlMauvaise = null;
+      v('⛔ une adresse de paiement ou de portail qui n\'est pas http(s) (« javascript: ») n\'est JAMAIS rendue à la page : 502 `stripe_muet`, et la session mal adressée n\'est pas rangée', [ru.code, ru.j.error, /javascript/.test(ru.txt), S.abonnementLire(Eu), pu.code, pu.j.error, /javascript/.test(pu.txt)], [502, 'stripe_muet', false, null, 502, 'stripe_muet', false]);
     }
 
     /* ═══ 6. LES PLAFONDS DU PAIEMENT, DU PORTAIL ET DE LA RELECTURE ══════════════════════════════════════════════════════════════════════════════ */
@@ -327,6 +341,28 @@ const AUTRE_PRIX = 'price_ToutAutreProduitQq77';
         const h3 = (await T.client(svc3.base).get('/health')).j;
         v('/health : Stripe n\'est plus muet, un espace en retard est compté', [h3.stripeEchecMin, h3.facturation.impayes, h3.facturation.abonnes], [0, 1, 0]);
       } finally { try { S3.fermer(); } catch (x) { /* déjà fermé */ } await svc3.arreter(); }
+    }
+    /* ═══ 7 bis. /health DIT DEPUIS COMBIEN DE MINUTES STRIPE EST ILLISIBLE — c'est ce que lit la surveillance ═════════════════════════════════════════════ */
+    console.log('\n/health.stripeEchecMin : depuis combien de minutes Stripe est illisible (l\'horloge du service avancée de deux heures)');
+    {
+      const svc4 = await T.lancerService({ horloge: true, config: { formule: { toutOuvert: false }, facturation: { cle: CLE, prix: PRIX, relectureMs: 3600000, timeoutMs: 2000 }, quotas: { relire: { max: 100, fenetreMs: 1000 } } }, env: { OPMSG_TEST_STRIPE: fake.hote } });
+      const S4 = ouvrir({ chemin: path.join(svc4.data, 'msg.db'), scelleur: creerScelleur(Buffer.from(svc4.cle, 'hex')) });
+      try {
+        const o = S4.personneCreer({ identifiant: 'beta:Muet' + crypto.randomBytes(2).toString('hex'), prenom: 'Muet', nom: 'Banc', origine: 'beta', verifie: true });
+        const j = jeton(); S4.sessionAjouter({ h: sha(j), personne: o.id, appareil: null, ttlMs: 86400000 });
+        const cp = T.client(svc4.base); cp.poserCookie(j);
+        const Ep = S4.espaceCreer({ nom: 'Muet', proprio: o.id }).id;
+        await cp.post('/api/espaces/' + Ep + '/facturation/paiement', { places: 1 });      // une session de paiement attend : il y a quelque chose à relire
+        const sante = async () => (await T.client(svc4.base).get('/health')).j;
+        v('population : Stripe répond, rien n\'est illisible', (await sante()).stripeEchecMin, 0);
+        fake.mode = 'muet';
+        v('Stripe muet : la relecture échoue (502)', (await cp.post('/api/espaces/' + Ep + '/facturation/relire', {})).code, 502);
+        v('… à l\'instant même, zéro minute', (await sante()).stripeEchecMin, 0);
+        svc4.avancer(125 * 60000);
+        v('⛔ deux heures plus tard, sans lecture réussie : /health dit 125 minutes — c\'est ce que lit la surveillance (elle crie au-delà de 90)', (await sante()).stripeEchecMin, 125);
+        fake.mode = 'normal';
+        v('Stripe revenu, une lecture réussie : de nouveau zéro', [(await cp.post('/api/espaces/' + Ep + '/facturation/relire', {})).code, (await sante()).stripeEchecMin], [200, 0]);
+      } finally { fake.mode = 'normal'; try { S4.fermer(); } catch (x) { /* déjà fermé */ } await svc4.arreter(); }
     }
     /* ═══ 8. LA CLÉ N'EST NULLE PART ══════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
     console.log('\nLa clé Stripe n\'est nulle part : ni dans une réponse, ni dans /health, ni dans le journal, ni sur le disque, ni dans la page servie');

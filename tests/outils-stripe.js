@@ -35,6 +35,7 @@ async function fauxStripe(opts = {}) {
     echo: false,                // l'erreur répète l'en-tête d'autorisation reçu
     portailConfigure: true,     // faux : Stripe répond 400 « no configuration » comme un compte dont le portail n'est pas réglé
     pannesRestantes: 0,         // les N prochains appels répondent 500, puis tout revient
+    urlMauvaise: null,          // une adresse que Stripe « rendrait » pour la page de paiement et le portail (`javascript:…`) : le service ne la fait jamais suivre à la page
     tarifs: new Map(),          // id → objet « price » (lu par `configurer-stripe.js`)
     sansDroits: new Set(),      // 'abonnements' | 'tarifs' | 'produits' : le droit manque à la clé → 403
     listes: [],                 // chaque PAGE de `GET /v1/subscriptions` servie : { auth, requete, statuts: { identifiant: statut } }
@@ -71,7 +72,7 @@ async function fauxStripe(opts = {}) {
           if (o.prix.length && !o.prix.includes(get('line_items[0][price]'))) return json(res, 400, { error: { message: 'No such price: ' + get('line_items[0][price]') } });
           const id = 'cs_banc' + (++E.n) + alea(6);
           const s = { id, object: 'checkout.session', status: 'open', mode: 'subscription', client_reference_id: get('client_reference_id') || null, paires, subscription: null,
-            url: 'https://' + o.hote + '/c/pay/' + id, customer_email: get('customer_email') || null, customer: null };
+            url: E.urlMauvaise || 'https://' + o.hote + '/c/pay/' + id, customer_email: get('customer_email') || null, customer: null };
           E.sessions.set(id, s);
           return json(res, 200, { id, object: 'checkout.session', url: s.url, status: 'open', mode: s.mode, client_reference_id: s.client_reference_id });
         }
@@ -118,7 +119,7 @@ async function fauxStripe(opts = {}) {
           const get = (k) => (paires.find(x => x[0] === k) || [])[1];
           if (!E.portailConfigure) return json(res, 400, { error: { message: 'No configuration provided and your live mode default configuration has not been created.' } });
           if (!/^cus_\w{4,}$/.test(get('customer') || '') || !get('return_url')) return json(res, 400, { error: { message: 'Missing required param' } });
-          return json(res, 200, { id: 'bps_banc' + (++E.n), object: 'billing_portal.session', url: 'https://billing.stripe.test/p/session/' + alea(6), customer: get('customer') });
+          return json(res, 200, { id: 'bps_banc' + (++E.n), object: 'billing_portal.session', url: E.urlMauvaise || 'https://billing.stripe.test/p/session/' + alea(6), customer: get('customer') });
         }
         return json(res, 404, { error: { message: 'Unrecognized request URL' } });
       };

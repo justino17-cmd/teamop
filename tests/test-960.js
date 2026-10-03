@@ -28,6 +28,7 @@ const { v, vrai, fin } = T.compteur();
 const { ouvrir, MIGRATIONS } = require(path.join(T.SERVICE, 'stockage.js'));
 const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
 const { creerFormule, SURSIS_MS } = require(path.join(T.SERVICE, 'formule.js'));
+const { formuleConfig } = require(path.join(T.SERVICE, 'config.js'));
 const { DatabaseSync } = require('node:sqlite');
 
 const JOUR = 86400000;
@@ -157,6 +158,7 @@ console.log('\nUn espace : propriétaire, membres, nom scellé, trois au plus �
   for (const p of proprios) for (let k = 0; k < 3; k++) { const x = S.espaceCreer({ nom: 'E' + p.prenom + k, proprio: p.id }).id; if (lance(() => rejoindre(S, x, p.id, z.id)) === null) reussies++; }
   v('population : Zed a rejoint vingt espaces (' + reussies + ')', S.espacesDe(z.id).length, 20);
   v('⛔ le vingt-et-unième est refusé (`trop_d_espaces`) : on ne s\'inscrit pas dans mille espaces', lance(() => rejoindre(S, d, ben.id, z.id)), 'trop_d_espaces');
+  v('⛔ ni en CRÉER un : vingt appartenances, c\'est vingt (`trop_d_espaces`), et rien n\'est créé', [lance(() => S.espaceCreer({ nom: 'Un de plus', proprio: z.id })), S.espacesDe(z.id).length], ['trop_d_espaces', 20]);
 }
 
 console.log('\nLes invitations : un lien expire, se révoque, s\'épuise — et meurt avec le droit de son créateur');
@@ -228,9 +230,12 @@ console.log('\nLes rôles et les départs : le propriétaire passe la main ; qui
 
   /* retirer Ben : il sort de l'espace ET de ses deux canaux, et c'est NOTÉ (avec l'heure : un membre revenu APRÈS ne sera pas effacé par un rejeu) */
   const avant = S.purgeLignes().filter(x => x.genre === 'espace_membre').length;
+  const dernierBen = S.evenementsPour(w.ben.id, 0).dernier;
   w.h.t += 5000;
   const r = S.espaceMembreRetirer({ espace: w.e, uid: w.ben.id });
   v('⛔ retirer Ben : il sort de l\'espace ET de ses deux canaux, public et privé', [S.espacePourMembre(w.e, w.ben.id), S.convPourMembre(w.pub, w.ben.id), S.convPourMembre(w.priv, w.ben.id), r.convs.slice().sort()], [null, null, null, [w.pub, w.priv].slice().sort()]);
+  const evBen = S.evenementsPour(w.ben.id, dernierBen).evenements;
+  v('⛔ il APPREND qu\'il est parti de chacun de ses deux canaux (un événement `retire` par canal : c\'est ce qui fait fermer l\'écran ouvert sur eux) et ne reçoit rien d\'autre', [evBen.filter(e => e.event === 'retire').map(e => e.data.conv).sort(), evBen.filter(e => e.event !== 'retire').length], [[w.pub, w.priv].slice().sort(), 0]);
   const lignes = S.purgeLignes().filter(x => x.genre === 'espace_membre');
   v('⛔ c\'est NOTÉ dans le registre des purges : une ligne `espace|personne|date`', [lignes.length - avant, lignes[lignes.length - 1].objet, lignes[lignes.length - 1].quand], [1, w.e + '|' + w.ben.id + '|' + w.h.t, w.h.t]);
   vrai('… les autres membres, eux, restent dans les canaux', S.convPourMembre(w.pub, w.cleo.id) !== null && S.convPourMembre(w.priv, w.ana.id) !== null);
@@ -478,6 +483,11 @@ console.log('\nLa formule : UNE fonction décide, le sursis se compte entre deux
   v('⛔ sur la bêta (`toutOuvert`) : Pro pour tout le monde, espace ou personne, abonné ou non — et les places ne se comptent pas (`Infinity`) sans abonnement', [tout(B.formuleDe({ espace: e })), tout(B.formuleDe({ personne: w.dan.id })), B.placesDe(w.e), B.toutOuvert()], ['pro/beta', 'pro/beta', Infinity, true]);
   v('… et l\'état de l\'abonnement reste celui que Stripe a dit (la bêta ne le falsifie pas)', S.abonnementLire(e).statut, 'canceled');
   v('le drapeau est faux par défaut : une configuration sans `formule` n\'ouvre rien', [creerFormule({ stockage: S, config: {} }).toutOuvert(), creerFormule({ stockage: S, config: { formule: {} } }).toutOuvert(), creerFormule({ stockage: S, config: { formule: { toutOuvert: 'oui' } } }).toutOuvert()], [false, false, false]);
+  /* ⛔ LA CONFIGURATION : la production REFUSE de démarrer avec le drapeau de la bêta — une configuration copiée de l'une à l'autre ne doit pas offrir Messages Pro à tout le monde */
+  const cfgF = (bloc, instance) => formuleConfig(bloc === undefined ? {} : { formule: bloc }, instance);
+  v('⛔ la PRODUCTION refuse de démarrer avec `toutOuvert: true` ; la bêta l\'ouvre par défaut, sait le fermer ; la production le ferme par défaut ; une valeur qui n\'est pas vrai ou faux, ou un bloc qui n\'est pas un objet, est refusée',
+    [lance(() => cfgF({ toutOuvert: true }, 'prod')), cfgF(undefined, 'beta').toutOuvert, cfgF({ toutOuvert: false }, 'beta').toutOuvert, cfgF(undefined, 'prod').toutOuvert, cfgF({ toutOuvert: false }, 'prod').toutOuvert, lance(() => cfgF({ toutOuvert: 'oui' }, 'beta')), lance(() => cfgF([], 'beta'))],
+    ['CONFIG', true, false, false, false, 'CONFIG', 'CONFIG']);
   /* ⛔ le drapeau n'est lu qu'à UN endroit */
   const lireSrc = (f) => T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, f), 'utf8'));
   const fichiers = fs.readdirSync(T.SERVICE).filter(f => /\.js$/.test(f));

@@ -105,7 +105,9 @@ async function monter(config, instance) {
       const L = crypto.randomBytes(16).toString('base64url'); S.lienCreer({ h: sha(L), genre: 'espace', cible: E, par: ana.id, ttlMs: JOUR, max: 9 });
       const complet = await f.post('/api/invitations/accepter', { code: L });
       v('⛔ un lien encore valable mais l\'espace est COMPLET : 409 `espace_indisponible` — la même phrase neutre que pour « abonnement en retard »', [complet.code, complet.j.error, Object.keys(complet.j)], [409, 'espace_indisponible', ['error']]);
+      payer(E, { places: 10 });          // des places LIBRES (dix payées, cinq membres) : seule la FORMULE de l'espace peut encore refuser — sans elles, « complet » masquerait « en retard »
       retard(E, 9);
+      vrai('population : l\'espace a des places libres et son abonnement est en retard hors sursis (neuf jours)', S.abonnementLire(E).places - S.espaceMembresN(E) === 5 && S.abonnementLire(E).statut === 'past_due');
       const enretard = await f.post('/api/invitations/accepter', { code: L });
       v('⛔ l\'abonnement en retard hors sursis : exactement la MÊME réponse (celui qui arrive ne sait pas pourquoi, il demande à l\'administrateur)', [enretard.code, enretard.txt], [complet.code, complet.txt]);
       payer(E);
@@ -148,6 +150,35 @@ async function monter(config, instance) {
       const db = await c.post('/api/contacts/debloquer', { uid: ben.id });
       v('Cleo débloque Ben : 200, l\'écriture reprend, et la ligne de blocage a DISPARU (elle ne reste pas comme un contact à moitié)', [db.code, (await b.post('/api/conversations/' + dm.j.conversation.id + '/messages', { cid: 'cid-col-000003', texte: 'de nouveau' })).code, (await c.get('/api/contacts')).j.contacts.length], [200, 201, 0]);
       v('débloquer quand rien n\'est bloqué : 404', (await c.post('/api/contacts/debloquer', { uid: ben.id })).code, 404);
+    }
+    /* ═══ 3 bis. LA FORMULE D'UN ESPACE EST CELLE DE L'ESPACE, pas celle de la personne qui l'administre ═══════════════════════════════════════════════════════ */
+    console.log('\nLa formule d\'un espace est la sienne : un administrateur qui a Pro AILLEURS ne crée pas de canal ni de lien dans un espace non payé');
+    {
+      const hal = pers('Hal'), hc = cl(hal);
+      entrer(E2, zed.id, hal.id);                                                  // une place dans une entreprise payée : sa formule de PERSONNE est Pro…
+      const EN = S.espaceCreer({ nom: 'NONPAYEZXQJ', proprio: hal.id }).id;       // … et il administre un espace que personne n'a payé
+      const lh = await hc.get('/api/espaces');
+      v('population : Hal est Pro comme PERSONNE (une place payée dans l\'autre entreprise) et administre un espace sans abonnement (Perso)', [lh.j.formule, lh.j.espaces.length, (await hc.get('/api/espaces/' + EN)).j.admin.formule], ['pro', 2, 'perso']);
+      const rc = await hc.post('/api/espaces/' + EN + '/canaux', { nom: 'general' }), ri = await hc.post('/api/espaces/' + EN + '/invitations', {});
+      v('⛔ créer un canal, inviter : 402 `formule_requise` — c\'est la formule de l\'ESPACE qui décide, pas celle de la personne (sa place payée ailleurs n\'ouvre pas cet espace-ci)', [rc.code, rc.j.error, rc.j.raison, ri.code, ri.j.error, ri.j.raison], [402, 'formule_requise', 'perso', 402, 'formule_requise', 'perso']);
+      v('… rien n\'a été créé (population : l\'espace n\'a ni canal ni lien)', [(await hc.get('/api/espaces/' + EN)).j.canaux.length, (await hc.get('/api/espaces/' + EN)).j.admin.invitations], [0, 0]);
+      payer(EN);
+      v('contre-épreuve : l\'abonnement posé sur CET espace, le même geste passe (201)', (await hc.post('/api/espaces/' + EN + '/canaux', { nom: 'general' })).code, 201);
+    }
+    /* ═══ 3 ter. SUPPRIMER SON COMPTE quand on est SEUL dans un espace dont l'abonnement court ════════════════════════════════════════════════════════════ */
+    console.log('\nSupprimer son compte : refusé tant qu\'on est SEUL dans un espace dont l\'abonnement court (Stripe prélèverait pour un espace qui n\'existe plus)');
+    {
+      const solo = pers('Solo'), so = cl(solo), duo = pers('Duo'), du = cl(duo), reste = pers('Reste');
+      const ES = S.espaceCreer({ nom: 'SEULZXQ', proprio: solo.id }).id; payer(ES);
+      const ED = S.espaceCreer({ nom: 'DEUXZXQ', proprio: duo.id }).id; payer(ED); entrer(ED, duo.id, reste.id);
+      v('population : Solo est seul dans un espace dont l\'abonnement court ; Duo est propriétaire d\'un espace payé où il n\'est pas seul', [S.espaceMembresN(ES), S.abonnementLire(ES).statut, S.espaceMembresN(ED), S.abonnementLire(ED).statut], [1, 'active', 2, 'active']);
+      const r1 = await so.post('/api/compte/supprimer', { confirmation: 'SUPPRIMER' });
+      v('⛔ Solo : 409 `espace_abonne` (résilier d\'abord, ou passer la main) — et rien n\'est programmé', [r1.code, r1.j.error, S.suppressionLe(solo.id)], [409, 'espace_abonne', null]);
+      const r2 = await du.post('/api/compte/supprimer', { confirmation: 'SUPPRIMER' });
+      v('… Duo, propriétaire d\'un espace où il n\'est pas seul, supprime son compte (200) : la propriété passera à l\'autre à l\'effacement', [r2.code, S.suppressionLe(duo.id) !== null], [200, true]);
+      S.abonnementPoser(ES, { client: 'cus_banc961', abonnement: 'sub_b961_' + ES.slice(2, 14), statut: 'canceled', places: 0, fin_periode: null, annule: false, impaye: false });
+      const r3 = await so.post('/api/compte/supprimer', { confirmation: 'SUPPRIMER' });
+      v('… l\'abonnement résilié, le même geste de Solo passe (200)', [r3.code, S.suppressionLe(solo.id) !== null], [200, true]);
     }
     /* ═══ 4. LES RÔLES, LES DÉPARTS, LA PROPRIÉTÉ ═════════════════════════════════════════════════════════════════════════════════════════════════════ */
     console.log('\nLes rôles : seul le propriétaire rétrograde ou retire un administrateur, passe la main, dissout ; il ne part pas');
@@ -250,6 +281,12 @@ async function monter(config, instance) {
       v('⛔ supprimer un canal : la confirmation est exigée (400) ; un membre simple non (403) ; l\'administrateur oui (200), et le canal disparaît pour tous (404), messages compris', [(await supc(a, idPub, {})).j.error, (await supc(c, idPub, { confirmation: 'SUPPRIMER' })).code, (await supc(a, idPub, { confirmation: 'SUPPRIMER' })).code, (await c.get('/api/conversations/' + idPub)).code, (await a.get('/api/conversations/' + idPub + '/messages')).code, S.purgeLignes().some(x => x.genre === 'conversation' && x.objet === idPub)], ['confirmation_requise', 403, 200, 404, 404, true]);
       /* un canal cherché par le chemin d'un AUTRE espace, ou mal formé : introuvable */
       v('un canal cherché dans l\'espace d\'un autre, ou par un identifiant mal formé : 404 (pas 400, pas 500)', [(await z.post('/api/espaces/' + E2 + '/canaux/' + idRh + '/maj', { nom: 'x' })).code, (await a.post('/api/espaces/' + E + '/canaux/x/maj', { nom: 'x' })).code, (await a.post('/api/espaces/' + E + '/canaux/c_' + '0'.repeat(32) + '/supprimer', { confirmation: 'SUPPRIMER' })).code], [404, 404, 404]);
+      /* ⛔ LE CHEMIN DIT L'ESPACE, LE CANAL DOIT EN ÊTRE : une personne administrateur de DEUX entreprises (donc membre administrateur du canal de l'autre) ne touche pas au canal de l'une par le chemin de l'autre */
+      const cAutre = S.canalCreer({ espace: E2, par: zed.id, nom: 'autre-canal', prive: false }).id;
+      entrer(E2, zed.id, ana.id); S.espaceRoleMembre({ espace: E2, uid: ana.id, admin: true });
+      const mele = [await a.post('/api/espaces/' + E + '/canaux/' + cAutre + '/maj', { nom: 'pirate' }), await a.post('/api/espaces/' + E + '/canaux/' + cAutre + '/supprimer', { confirmation: 'SUPPRIMER' })];
+      v('population : Ana est administrateur des DEUX entreprises, donc membre administrateur du canal de l\'autre', [S.espacePourMembre(E2, ana.id).moi.role, roleCanalDe(S, cAutre, ana.id)], ['admin', 'admin']);
+      v('⛔ elle ne renomme ni ne supprime le canal de l\'autre entreprise par le chemin de la sienne : 404 `introuvable` — le canal existe toujours et garde son nom', [mele.map(x => [x.code, x.j.error]), S.convPourMembre(cAutre, zed.id).conv.nom], [[[404, 'introuvable'], [404, 'introuvable']], 'autre-canal']);
     }
     /* ═══ 6. SANS CLÉ STRIPE : INERTE, ET LE DIT ══════════════════════════════════════════════════════════════════════════════════════════════════════ */
     console.log('\nSans clé Stripe : l\'abonnement est inerte, et il le dit (jamais un bouton qui ne mène nulle part)');
@@ -284,6 +321,13 @@ async function monter(config, instance) {
         const devine = [];
         for (let i = 0; i < 6; i++) devine.push((await pm.post('/api/invitations/lire', { code: inconnu })).code);
         v('⛔ deviner des codes d\'invitation est limité PAR RÉSEAU (4 par minute ici) : 410, 410, 410, 410, puis 429', devine, [410, 410, 410, 410, 429, 429]);
+        v('⛔ REJOINDRE est limité par le MÊME budget de réseau (l\'aperçu l\'a épuisé) : 429 — on ne devine pas non plus un code en essayant de l\'accepter', (await pm.post('/api/invitations/accepter', { code: inconnu })).code, 429);
+        const P2 = await monter({ formule: { toutOuvert: false }, quotas: { lien_ip: { max: 4, fenetreMs: 60000 } } });
+        try {
+          const devin = P2.cl(P2.pers('Devin')), essais = [];
+          for (let i = 0; i < 6; i++) essais.push((await devin.post('/api/invitations/accepter', { code: inconnu })).code);
+          v('… et il se compte aussi tout seul, sans l\'aperçu : quatre essais d\'acceptation (410) puis 429', essais, [410, 410, 410, 410, 429, 429]);
+        } finally { await P2.fermer(); }
         v('les refus de plafond n\'ont rien créé : trois espaces dans la liste de Membre (le sien et deux nés), deux canaux, trois liens (celui de la fixture et les deux nés)', [P.S.espacesDe(mem.id).length, P.S.canauxVisibles(EP, own.id).length, P.S.invitationsVivantes(EP)], [3, 2, 3]);
       } finally { await P.fermer(); }
     }
@@ -314,7 +358,7 @@ async function monter(config, instance) {
     {
       const h = await T.client(svc.base).get('/health');
       const journal = svc.sortie.texte();
-      vrai('population : le service a travaillé (le nom de l\'espace est bien rangé chez lui, scellé ; deux espaces vivent) et son journal existe (il dit son démarrage)', S.espacePourMembre(E, ana.id).espace.nom === NOM_E && h.j.facturation.espaces === 2 && journal.includes('"evt":"demarre"'));
+      vrai('population : le service a travaillé (le nom de l\'espace est bien rangé chez lui, scellé ; cinq espaces vivent) et son journal existe (il dit son démarrage)', S.espacePourMembre(E, ana.id).espace.nom === NOM_E && h.j.facturation.espaces === 5 && journal.includes('"evt":"demarre"'));
       v('⛔ /health : des nombres agrégés — aucun identifiant d\'espace, de personne ou de conversation, aucun nom', [/\b[pcemf]_[0-9a-f]{32}\b/.test(h.txt), /ZXCANARIQ|ENTREPRISE|AUTREENTREPRISE/.test(h.txt)], [false, false]);
       v('⛔ le journal du service ne contient ni nom d\'espace, ni code d\'invitation, ni texte de message, ni nom de personne', [journal.includes(NOM_E), journal.includes('AUTREENTREPRISEZXQ'), journal.includes(code1), journal.includes('Bonjour toute'), journal.includes('confidentiel RH'), /Ana Banc|Ben Banc/.test(journal)], [false, false, false, false, false, false]);
       const mal = svc.sortie.texte().split('\n').filter(l => /"evt":"(erreur|erreur_interne)"/.test(l));
