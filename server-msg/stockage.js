@@ -1502,13 +1502,18 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return Q(`SELECT DISTINCT m.uid AS uid FROM membre m JOIN push p ON p.uid = m.uid
               WHERE m.conv = ? AND m.quitte_le IS NULL AND m.uid <> ? AND m.muet_jusqua <= ? AND m.depuis_seq <= ? ORDER BY m.uid`).all(conv, auteur, horloge(), seq).map(r => r.uid);
   }
-  /* ⛔ LA NOTIFICATION SE RE-JUGE AU MOMENT DE PARTIR (elle attend jusqu'à 5 s qu'une page l'acquitte) : la personne a pu mettre la conversation en sourdine, la quitter, ou l'auteur a pu
-     supprimer le message « pour tous » — rien de tout cela ne doit partir quand même. */
+  /* ⛔ LA NOTIFICATION SE RE-JUGE AU MOMENT DE PARTIR (elle attend jusqu'à 5 s qu'une page l'acquitte) : la personne a pu mettre la conversation en sourdine, la quitter, bloquer l'autre d'une
+     conversation directe, ou l'auteur a pu supprimer le message « pour tous » — rien de tout cela ne doit partir quand même. Et le message a pu être MODIFIÉ : on rend son état ACTUEL, pas
+     celui du moment de l'envoi (un aperçu qui part avec l'ancien texte montre sur un écran verrouillé ce que l'auteur a corrigé — relevé par le gardien, 3 octobre 2026).
+     → null (ne part pas) ou { type, texte (null si illisible), expire_ts (null si le message n'est pas éphémère) }. */
   function pushMessageEncore({ uid, conv, seq }) {
     const m = Q('SELECT depuis_seq, muet_jusqua FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
-    if (!m || m.muet_jusqua > horloge() || seq < m.depuis_seq) return false;
-    const x = Q('SELECT supprime_le, expire_ts FROM message x WHERE x.conv = ? AND x.seq = ? AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)').get(conv, seq, uid);
-    return !!x && !x.supprime_le && (x.expire_ts === null || x.expire_ts > horloge());
+    if (!m || m.muet_jusqua > horloge() || seq < m.depuis_seq) return null;
+    if (!ecritureAutorisee(conv, uid)) return null;   // une directe bloquée (ou sans contact mutuel) ne reçoit plus rien : la même règle que l'envoi
+    const x = Q('SELECT auteur, type, corps_ch, supprime_le, expire_ts FROM message x WHERE x.conv = ? AND x.seq = ? AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)').get(conv, seq, uid);
+    if (!x || x.supprime_le || (x.expire_ts !== null && x.expire_ts <= horloge())) return null;
+    const texte = x.corps_ch ? ouvrirOuNull('message', 'corps_ch', aadMsg(conv, seq, x.auteur), x.corps_ch) : null;
+    return { type: x.type, texte, expire_ts: x.expire_ts === null ? null : num(x.expire_ts) };
   }
   /* L'autre d'une conversation directe est-il un compte supprimé ? (pour dire « ce compte a été supprimé » à qui lui écrit, au lieu d'un « introuvable » muet) */
   function autreSupprime(conv, uid) {

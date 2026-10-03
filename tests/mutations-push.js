@@ -22,6 +22,7 @@
              node tests/mutations-push.js --verifier                           (ne joue rien : chaque motif se trouve UNE fois dans l'arbre, chaque banc existe)
              node tests/mutations-push.js --liste                              (le catalogue)
              --copies=N (défaut 2)   --garder ID (fabrique UNE copie mutée, l'imprime et s'arrête)   --sans-temoin   --details=FICHIER (tous les ✗ de chaque mutation qui tombe)
+             --seul=956 (ne joue QUE ce banc : le lanceur s'arrête sinon au premier banc qui tombe, et un second qui aurait dû voir la mutation ne se découvre jamais aveugle)
    Deux copies en parallèle, un délai par banc. */
 'use strict';
 const fs = require('fs'), os = require('os'), path = require('path'), { spawn, spawnSync } = require('child_process');
@@ -75,15 +76,15 @@ m('R02', 'l\'aperçu est activé PAR DÉFAUT (un réglage jamais touché compte 
 m('R03', 'la charge de base d\'un message porte son texte (la notification minimale n\'est plus « Nouveau message »)', F.push, "renotify: true, titre: 'OP MESSAGES', corps: 'Nouveau message',", "renotify: true, titre: 'OP MESSAGES', corps: resume,", ['955', '956']);
 m('R04', 'l\'auteur d\'un message reçoit la notification de son propre message', F.stock, 'm.quitte_le IS NULL AND m.uid <> ? AND m.muet_jusqua <= ?', 'm.quitte_le IS NULL AND ? IS NOT NULL AND m.muet_jusqua <= ?', ['956']);
 m2('R05', 'une conversation en sourdine notifie quand même (ni le tri des destinataires, ni le jugement au moment de partir ne regardent la sourdine)',
-  [[F.stock, 'AND m.muet_jusqua <= ? AND m.depuis_seq <= ? ORDER BY m.uid', 'AND ? IS NOT NULL AND m.depuis_seq <= ? ORDER BY m.uid'], [F.stock, 'if (!m || m.muet_jusqua > horloge() || seq < m.depuis_seq) return false;', 'if (!m || seq < m.depuis_seq) return false;']], ['956']);
-m('R06', 'une sourdine posée PENDANT l\'attente de l\'acquittement n\'est pas re-jugée au moment de partir', F.stock, 'if (!m || m.muet_jusqua > horloge() || seq < m.depuis_seq) return false;', 'if (!m || seq < m.depuis_seq) return false;', ['955', '956']);
+  [[F.stock, 'AND m.muet_jusqua <= ? AND m.depuis_seq <= ? ORDER BY m.uid', 'AND ? IS NOT NULL AND m.depuis_seq <= ? ORDER BY m.uid'], [F.stock, 'if (!m || m.muet_jusqua > horloge() || seq < m.depuis_seq) return null;', 'if (!m || seq < m.depuis_seq) return null;']], ['956']);
+m('R06', 'une sourdine posée PENDANT l\'attente de l\'acquittement n\'est pas re-jugée au moment de partir', F.stock, 'if (!m || m.muet_jusqua > horloge() || seq < m.depuis_seq) return null;', 'if (!m || seq < m.depuis_seq) return null;', ['955', '956']);
 m2('R07', 'un membre qui a QUITTÉ la conversation reçoit encore ses messages (ni le tri des destinataires, ni le jugement au moment de partir ne regardent s\'il est parti)',
   [[F.stock, 'WHERE m.conv = ? AND m.quitte_le IS NULL AND m.uid <> ?', 'WHERE m.conv = ? AND m.uid <> ?'],
     [F.stock, "const m = Q('SELECT depuis_seq, muet_jusqua FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);", "const m = Q('SELECT depuis_seq, muet_jusqua FROM membre WHERE conv = ? AND uid = ?').get(conv, uid);"]], ['955', '956']);
 m('R08', 'plus aucun jugement au moment de partir (sourdine, conversation quittée, message supprimé « pour tous » pendant l\'attente)', F.push,
-  "if (typeof charge.valide === 'function') { let v = false; try { v = !!charge.valide(); } catch (e) { v = false; } if (!v) return { envoyes: 0, appareils: 0, raison: 'plus_valable' }; }", '', ['955', '956']);
+  "if (!v) return { envoyes: 0, appareils: 0, raison: 'plus_valable' };", '', ['955', '956']);
 m('R09', 'un message supprimé « pour tous » PENDANT l\'attente part quand même (le texte supprimé arriverait sur l\'écran verrouillé)', F.stock,
-  'return !!x && !x.supprime_le && (x.expire_ts === null || x.expire_ts > horloge());', 'return !!x && (x.expire_ts === null || x.expire_ts > horloge());', ['955', '956']);
+  'if (!x || x.supprime_le || (x.expire_ts !== null && x.expire_ts <= horloge())) return null;', 'if (!x || (x.expire_ts !== null && x.expire_ts <= horloge())) return null;', ['955', '956']);
 m('R10', 'sourdine filtrée par le tri des destinataires SEUL (le jugement au moment de partir la regarde aussi)', F.stock, 'AND m.muet_jusqua <= ? AND m.depuis_seq <= ? ORDER BY m.uid', 'AND ? IS NOT NULL AND m.depuis_seq <= ? ORDER BY m.uid', ['956'],
   EQ('le jugement au moment de partir (`pushMessageEncore`) refuse déjà une conversation en sourdine'));
 m('R11', 'membre parti filtré par le tri des destinataires SEUL (le jugement au moment de partir le regarde aussi)', F.stock, 'WHERE m.conv = ? AND m.quitte_le IS NULL AND m.uid <> ?', 'WHERE m.conv = ? AND m.uid <> ?', ['956'],
@@ -111,7 +112,7 @@ m('A05', 'sans flux ouvert la notification attend quand même l\'acquittement (c
 m('A06', 'un flux ouvert ne retient plus rien : la notification part toujours tout de suite (doublon avec la page visible)', F.push,
   'if (charge.immediat === true || ouverts === 0) return partir(uid, charge)', 'if (true) return partir(uid, charge)', ['955', '956']);
 m('A07', 'plusieurs messages d\'une conversation pendant l\'attente font plusieurs notifications (la mémoire d\'attente est perdue)', F.push,
-  'if (deja) { deja.gid = Math.max(deja.gid, gid); deja.charge = charge; return deja.promesse; }', '', ['955']);
+  'if (deja) { deja.gid = Math.max(deja.gid, gid); deja.charges.push(charge); return deja.promesse; }', '', ['955']);
 m('A08', 'une notification sans identifiant d\'événement est tenue pour déjà acquittée (elle ne partira jamais)', F.push, 'const gid = Number.isInteger(o.gid) ? o.gid : Infinity;', 'const gid = Number.isInteger(o.gid) ? o.gid : 0;', ['955']);
 
 /* ══ 4. LA PAIRE VAPID — propre à l'instance, privée SCELLÉE, jamais changée (un abonnement est lié à la clé publique qui l'a créé) ═════════════════════════ */
@@ -356,6 +357,37 @@ m('K10', 'l\'étalement par défaut est de zéro (la durée ne retient plus rien
 m('K11', 'la surveillance ne crie plus sur trois refus de nos clés (le seuil tombe à zéro : deux refus isolés crient)', F.surv, "j.push.refuses24h >= SEUIL_PUSH_REFUS &&", "j.push.refuses24h >= 0 &&", ['934']);
 m('K12', 'la surveillance crie sur des refus de nos clés même quand les livraisons l\'emportent (un ancien abonnement parmi des centaines de livraisons)', F.surv, " && j.push.refuses24h >= j.push.envoyes24h", "", ['934']);
 
+/* ══ 14. CE QUE LA NOTIFICATION RELIT EN PARTANT (R1, R2, R10), LA PAIRE DE LA CONFIGURATION QUI DIFFÈRE (R9), LES ADRESSES DE DOCUMENTATION — `test-955` (le module), `test-956` (le vrai service) ═════════════ */
+m('N01', 'le jugement de l\'instant de partir ne rend plus le texte d\'AUJOURD\'HUI : un message corrigé pendant l\'attente part avec la version de l\'envoi', F.push,
+  "const o = { detail: { titre: titreApercu, corps: courant } };", "const o = { detail: { titre: titreApercu, corps: resume } };", ['955', '956']);
+m('N02', 'un blocage posé PENDANT l\'attente n\'est plus vu (une conversation directe notifie encore celui qui vient de bloquer l\'autre)', F.stock,
+  "    if (!ecritureAutorisee(conv, uid)) return null;   // une directe bloquée (ou sans contact mutuel) ne reçoit plus rien : la même règle que l'envoi\n", '', ['955', '956']);
+m('N03', 'un message éphémère ÉCHU pendant l\'attente part quand même (le jugement ne regarde plus son extinction)', F.stock,
+  'if (!x || x.supprime_le || (x.expire_ts !== null && x.expire_ts <= horloge())) return null;', 'if (!x || x.supprime_le) return null;', ['955']);
+m('N04', 'l\'aperçu garde la durée de vie d\'un jour (le texte d\'un message attend vingt-quatre heures chez le service push)', F.push,
+  "if (t.apercu) ttl = Math.min(ttl, pc.ttlApercuS);", '', ['955', '956']);
+m('N05', 'un message éphémère n\'a plus de durée de vie propre : il survit chez le service push à ce qui lui reste à vivre', F.push,
+  "if (x.expire_ts !== null) o.ttl = Math.floor((x.expire_ts - horloge()) / 1000);", '', ['955']);
+m('N06', 'la durée de vie courte de l\'aperçu s\'applique aussi à la notification MINIMALE (le drapeau est toujours vrai)', F.push, "apercu: !!apercu };", "apercu: true };", ['955', '956']);
+m('N07', 'la durée de vie de l\'aperçu vaut un jour par défaut (le réglage existe, la production ne le lit pas)', F.conf, "ttlS: 86400, ttlApercuS: 3600 };", "ttlS: 86400, ttlApercuS: 86400 };", ['955']);
+m('N08', 'la durée de vie de l\'aperçu n\'a plus de borne basse (59 secondes, ou zéro, démarrent)', F.conf, "ttlApercuS: [60, 4 * 7 * 86400] };", "ttlApercuS: [0, 4 * 7 * 86400] };", ['955']);
+m('N09', 'plusieurs messages en attente : seule la charge du DERNIER est gardée (sa suppression « pour tous » étouffe tout le lot)', F.push,
+  "deja.charges.push(charge);", "deja.charges = [charge];", ['955']);
+m('N10', 'le lot se juge du plus ANCIEN au plus récent (la notification décrit le premier message, pas le dernier)', F.push,
+  "for (let i = charges.length - 1; i >= 0; i--) {", "for (let i = 0; i < charges.length; i++) {", ['955']);
+m('N11', 'le lot s\'arrête à la première charge « plus valable » (un dernier message supprimé étouffe les précédents)', F.push,
+  "if (r.raison !== 'plus_valable') return r;", "return r;", ['955']);
+m('N12', 'une paire de la configuration qui diffère de celle de la base ne se DIT plus dans le journal', F.push,
+  "if (paire && pc.vapid && pc.vapid.publique !== paire.publique) {", "if (false) {", ['955', '956']);
+m('N13', 'la différence de paire se dit même quand la configuration porte la MÊME paire que la base (un journal qui crie à chaque démarrage)', F.push,
+  "if (paire && pc.vapid && pc.vapid.publique !== paire.publique) {", "if (paire && pc.vapid) {", ['955']);
+m('N14', 'le journal porte la clé PRIVÉE de la configuration au lieu de l\'empreinte de la publique', F.push,
+  "motif: 'installation ' + empreinte(pc.vapid.publique)", "motif: 'installation ' + pc.vapid.privee", ['955', '956']);
+m('N15', 'TEST-NET-1 (192.0.2.0/24) n\'est plus refusé comme adresse de service push', F.push, "(a === 192 && b === 0 && c === 2)", "(false)", ['955']);
+m('N16', 'TEST-NET-2 (198.51.100.0/24) n\'est plus refusé comme adresse de service push', F.push, "(a === 198 && b === 51 && c === 100)", "(false)", ['955']);
+m('N17', 'TEST-NET-3 (203.0.113.0/24) n\'est plus refusé comme adresse de service push', F.push, "(a === 203 && b === 0 && c === 113)", "(false)", ['955']);
+m('N18', 'la borne de TEST-NET-2 est mal écrite : 198.51.101.x (public) devient « privée » (c >= 100 au lieu de c === 100)', F.push, "(a === 198 && b === 51 && c === 100)", "(a === 198 && b === 51 && c >= 100)", ['955']);
+
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const DOSSIERS_COPIE = ['server-msg', 'design/opmessages', '.github/scripts', '.github/workflows', 'apercu/opmessages', 'icons', 'scripts'];   // (`.github/workflows` : test-934 lit quels workflows citent la surveillance)
 function copier(src, dst) {
@@ -507,7 +539,11 @@ async function jouer(mut, dir) {
     console.log(dir); process.exit(0);
   }
   const sondes = args.includes('--sondes');
-  const liste = ids.length ? MUTATIONS.filter(x => ids.includes(x.id)) : MUTATIONS.filter(x => !!x.sonde === sondes);
+  let liste = ids.length ? MUTATIONS.filter(x => ids.includes(x.id)) : MUTATIONS.filter(x => !!x.sonde === sondes);
+  /* `--seul=955` : ne joue QUE ce banc (les mutations qui ne le visent pas sont laissées). Le lanceur s'arrête sinon au premier banc qui tombe, et un deuxième banc qui AURAIT dû voir la mutation
+     ne se découvre jamais aveugle — c'est ainsi qu'on sait si les contrôles d'un banc de service (`test-956`) ont des dents, ou si le banc du module (`test-955`) les couvrait tous seul. */
+  const seul = (args.find(x => x.startsWith('--seul=')) || '').slice(7) || null;
+  if (seul) liste = liste.filter(x => x.suites.includes(seul)).map(x => Object.assign({}, x, { suites: [seul] }));
   if (!liste.length) { console.log('aucune mutation à jouer'); process.exit(2); }
   const avecSonde = liste.some(x => x.suites.includes('sonde'));
   /* les mutations jouées par la sonde ne se lancent pas en parallèle : deux navigateurs et deux services se volent le processeur, et la sonde mesure du temps */

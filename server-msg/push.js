@@ -96,7 +96,8 @@ function validerAbonnement(sub, testHote) {
 
 /* ── L'adresse IP à laquelle un nom se résout : jamais une adresse privée, locale ou réservée (défense en profondeur derrière la liste blanche) ─────────────── */
 const privee4 = (a, b, c) => a === 0 || a === 10 || a === 127 || a >= 224 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31)
-  || (a === 192 && b === 168) || (a === 192 && b === 0 && c === 0) || (a === 198 && (b === 18 || b === 19)) || (a === 192 && b === 88 && c === 99);
+  || (a === 192 && b === 168) || (a === 192 && b === 0 && c === 0) || (a === 198 && (b === 18 || b === 19)) || (a === 192 && b === 88 && c === 99)
+  || (a === 192 && b === 0 && c === 2) || (a === 198 && b === 51 && c === 100) || (a === 203 && b === 0 && c === 113);   // TEST-NET-1, -2, -3 : les adresses de documentation (RFC 5737)
 /* Les 16 octets d'une adresse IPv6 écrite en texte (« :: » développé, IPv4 finale lue) ; null si elle est illisible — une adresse illisible est REFUSÉE. */
 function octetsV6(texte) {
   let t = String(texte).toLowerCase().replace(/%.*$/, '');
@@ -190,6 +191,12 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
   try {
     let paire = stockage.pushVapidLire();
     origineVapid = 'base';
+    /* ⛔ une paire dans la configuration qui DIFFÈRE de celle de la base ne la remplace pas (un abonnement est lié à la clé publique qui l'a créé : en changer ferait refuser tous les envois) — et
+       on le DIT, sinon l'installation croit avoir changé de paire. Deux EMPREINTES courtes de clés PUBLIQUES, jamais une clé. */
+    if (paire && pc.vapid && pc.vapid.publique !== paire.publique) {
+      const empreinte = (x) => crypto.createHash('sha256').update(String(x)).digest('hex').slice(0, 8);
+      journaliser('push_vapid', { etat: 'differe', nom: 'base ' + empreinte(paire.publique), motif: 'installation ' + empreinte(pc.vapid.publique) });
+    }
     if (!paire) {
       if (pc.vapid) { paire = stockage.pushVapidPoser(pc.vapid); origineVapid = 'installation'; }
       else { const k = webpush.generateVAPIDKeys(); paire = stockage.pushVapidPoser({ publique: k.publicKey, privee: k.privateKey }); origineVapid = 'neuve'; }
@@ -274,13 +281,20 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
   function textesPour(moi, charge) {
     const apercu = !!(moi && moi.prefs && moi.prefs.apercu_notif === true) && charge.detail;
     const t = apercu ? charge.detail : charge;
-    return { titre: extrait(t.titre, 80) || 'OP MESSAGES', corps: extrait(t.corps, 200) };
+    return { titre: extrait(t.titre, 80) || 'OP MESSAGES', corps: extrait(t.corps, 200), apercu: !!apercu };
   }
 
   /* Envoie maintenant à TOUS les appareils de la personne. → { envoyes, appareils } */
-  async function partir(uid, charge) {
+  async function partir(uid, charge0) {
     if (!actif) return { envoyes: 0, appareils: 0, raison: 'inactif' };
-    if (typeof charge.valide === 'function') { let v = false; try { v = !!charge.valide(); } catch (e) { v = false; } if (!v) return { envoyes: 0, appareils: 0, raison: 'plus_valable' }; }
+    /* ⛔ le jugement rend l'état ACTUEL (`{ detail, ttl }`) : un message corrigé pendant l'attente part avec sa nouvelle version, et un message éphémère ne survit pas chez le service push à ce
+       qui lui reste à vivre */
+    let charge = charge0;
+    if (typeof charge0.valide === 'function') {
+      let v = false; try { v = charge0.valide(); } catch (e) { v = false; }
+      if (!v) return { envoyes: 0, appareils: 0, raison: 'plus_valable' };
+      if (typeof v === 'object') charge = Object.assign({}, charge0, v);
+    }
     const moi = stockage.personneParId(uid);
     if (!moi || moi.etat !== 'actif') return { envoyes: 0, appareils: 0, raison: 'compte' };
     /* ⛔ une personne que plus rien ne connecte (ni session vivante, ni jeton d'appareil valable) ne reçoit RIEN : un abonnement survit à la session qui l'a posé */
@@ -289,9 +303,25 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
     if (!abos.length) return { envoyes: 0, appareils: 0, raison: 'aucun_appareil' };
     const t = textesPour(moi, charge);
     const payload = JSON.stringify({ type: charge.type, titre: t.titre, corps: t.corps, tag: charge.tag || charge.type, url: charge.url || '/', renotify: charge.renotify === true });
-    const o = { ttl: Number.isInteger(charge.ttl) && charge.ttl >= 0 ? Math.min(charge.ttl, pc.ttlS) : pc.ttlS, urgence: URGENCES.includes(charge.urgence) ? charge.urgence : 'normal' };
+    /* ⛔ la durée de vie chez le service push : au plus `ttlS` (24 h), au plus ce qui reste à vivre à un message éphémère, et — quand l'APERÇU part — au plus `ttlApercuS` (1 h) : le texte d'un message
+       ne doit pas attendre un jour entier sur la machine d'un tiers parce que le téléphone était éteint */
+    let ttl = Number.isInteger(charge.ttl) && charge.ttl >= 0 ? Math.min(charge.ttl, pc.ttlS) : pc.ttlS;
+    if (t.apercu) ttl = Math.min(ttl, pc.ttlApercuS);
+    const o = { ttl, urgence: URGENCES.includes(charge.urgence) ? charge.urgence : 'normal' };
     const r = await Promise.all(abos.map(a => soumettre(() => envoyerUn(a, payload, o)).then(x => (x && typeof x.ok === 'boolean') ? x : { ok: false, retire: false })));
     return { envoyes: r.filter(x => x.ok).length, appareils: abos.length };
+  }
+
+  /* ⛔ plusieurs charges ont attendu ensemble (une par message de la conversation) : la plus RÉCENTE encore valable part. Celle du dernier message seule ne suffisait pas — s'il était supprimé « pour tous »
+     pendant l'attente, les messages d'avant, toujours valables, ne notifiaient plus personne (relevé par le gardien, 3 octobre 2026). */
+  async function partirParmi(uid, charges) {
+    let dernier = { envoyes: 0, appareils: 0, raison: 'plus_valable' };
+    for (let i = charges.length - 1; i >= 0; i--) {
+      const r = await partir(uid, charges[i]);
+      if (r.raison !== 'plus_valable') return r;
+      dernier = r;
+    }
+    return dernier;
   }
 
   /* ── l'acquittement ── */
@@ -322,13 +352,13 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
       const gid = Number.isInteger(o.gid) ? o.gid : Infinity;   // sans identifiant, rien ne pourra l'acquitter : elle partira après le délai
       const cle = uid + '|' + (charge.tag || charge.type || '');
       const deja = attentes.get(cle);
-      if (deja) { deja.gid = Math.max(deja.gid, gid); deja.charge = charge; return deja.promesse; }
-      const a = { gid, charge };
+      if (deja) { deja.gid = Math.max(deja.gid, gid); deja.charges.push(charge); return deja.promesse; }   // (la liste vit au plus `ackMs` : elle ne grossit que de ce qu'une conversation écrit pendant ce délai)
+      const a = { gid, charges: [charge] };
       a.promesse = new Promise((ok) => {
         a.minuteur = plan(() => {
           attentes.delete(cle);
           if (acquitte(uid, a.gid)) { ok({ envoyes: 0, raison: 'acquittee' }); return; }
-          partir(uid, a.charge).then(ok, () => ok({ envoyes: 0, raison: 'erreur' }));
+          partirParmi(uid, a.charges).then(ok, () => ok({ envoyes: 0, raison: 'erreur' }));
         }, pc.ackMs);
       });
       attentes.set(cle, a);
@@ -357,10 +387,19 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
     try { dest = stockage.pushDestinatairesMessage({ conv, seq, auteur }); } catch (e) { return []; }
     const resume = type === 'photo' ? 'Photo' : type === 'vocal' ? 'Message vocal' : type === 'fichier' ? 'Fichier' : extrait(texte, 100);
     const de = extrait(nomAuteur, 60) || 'Quelqu\'un';
+    const titreApercu = groupe ? de + ' · ' + extrait(nomConv, 40) : de;
     return dest.map(uid => pousser(uid, {
       type: 'message', tag: conv, url: '/#messages/' + conv, renotify: true, titre: 'OP MESSAGES', corps: 'Nouveau message',
-      detail: { titre: groupe ? de + ' · ' + extrait(nomConv, 40) : de, corps: resume },
-      valide: () => stockage.pushMessageEncore({ uid, conv, seq }),
+      detail: { titre: titreApercu, corps: resume },
+      /* le jugement de l'instant de partir : null → rien ne part ; sinon le texte ACTUEL du message (corrigé pendant l'attente) et ce qui lui reste à vivre s'il est éphémère */
+      valide: () => {
+        const x = stockage.pushMessageEncore({ uid, conv, seq });
+        if (!x) return false;
+        const courant = x.type === 'photo' ? 'Photo' : x.type === 'vocal' ? 'Message vocal' : x.type === 'fichier' ? 'Fichier' : (x.texte === null ? resume : extrait(x.texte, 100));
+        const o = { detail: { titre: titreApercu, corps: courant } };
+        if (x.expire_ts !== null) o.ttl = Math.floor((x.expire_ts - horloge()) / 1000);   // (0 si moins d'une seconde : « livre maintenant ou oublie », ce que veut un message qui s'éteint)
+        return o;
+      },
     }, { gid }));
   }
 

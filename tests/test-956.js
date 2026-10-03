@@ -227,6 +227,7 @@ function paireVapid() {
       vrai('population : la notification avec aperçu arrive', !!q);
       v('⛔ aperçu : le nom de l\'auteur en titre', q.c.titre, 'Bob Durand');
       v('⛔ aperçu : le message tronqué à CENT caractères (99 + « … »)', [Array.from(q.c.corps).length, q.c.corps.endsWith('…'), q.c.corps.startsWith('ZqZq')], [100, true, true]);
+      v('⛔ aperçu : le texte voyage, donc une HEURE de vie chez le service push (le minimal garde un jour, vu plus haut)', q.e.entetes.ttl, '3600');
       await suivant(A2);
       await A.post('/api/moi/maj', { prefs: { apercu_notif: false } });
       await B.post('/api/conversations/' + conv.ab + '/messages', { cid: 'cid-956-aaaa0003', texte: TEXTE_SECRET });
@@ -334,6 +335,51 @@ function paireVapid() {
       v('Cléo (aperçu non activé) reçoit la charge minimale', [gmc.c.corps, JSON.stringify(gmc.c).includes('Réunion')], ['Nouveau message', false]);
       await A.post('/api/moi/maj', { prefs: { apercu_notif: false } });
       flC.fermer();
+    }
+
+    console.log('\nCe que la notification RELIT en partant : le texte d\'AUJOURD\'HUI, un blocage posé entre-temps, un lot dont le dernier est supprimé (gardien, 3 octobre 2026)');
+    {
+      /* Alice a un flux ouvert qui n'acquitte rien : chaque notification attend sa fenêtre (ACK_MS) puis se re-juge au moment de partir */
+      await A.post('/api/moi/maj', { prefs: { apercu_notif: true } });
+      const fl = await T.flux(A); flux.push(fl);
+      vrai('population : le flux d\'Alice est ouvert', !!(await fl.attendre(e => e.event === 'bonjour')));
+      const ecrit = async (cl, c, texte) => {
+        const r = await cl.post('/api/conversations/' + c + '/messages', { cid: 'cid-956-' + crypto.randomBytes(6).toString('hex'), texte });
+        if (r.code !== 201) throw new Error('message refusé : ' + r.code);
+        return r.j.seq;
+      };
+      /* (a) corrigé pendant l'attente : la notification porte le texte d'AUJOURD'HUI */
+      const sA = await ecrit(B, conv.ab, 'CANARI-AVANT-CORRECTION');
+      const mo = await B.post('/api/conversations/' + conv.ab + '/messages/modifier', { seq: sA, texte: 'CANARI-APRES-CORRECTION' });
+      v('Bob corrige son message dans la fenêtre → 200', mo.code, 200);
+      const nA = await suivant(A1, 8000);
+      vrai('population : la notification arrive (après la fenêtre)', !!nA);
+      v('⛔ elle porte la version d\'AUJOURD\'HUI, pas celle de l\'envoi — et l\'ancienne n\'est nulle part dans la charge', [nA.c.corps, JSON.stringify(nA.c).includes('AVANT-CORRECTION')], ['CANARI-APRES-CORRECTION', false]);
+      await suivant(A2);
+      /* (b) bloqué pendant l'attente. SENTINELLE : le message de Cléo, écrit APRÈS le blocage, attend la même fenêtre (sa minuterie est posée après celle de Bob) — il arrive, celui de Bob serait arrivé avant */
+      await ecrit(B, conv.ab, 'CANARI-ENVOYE-AVANT-BLOCAGE');
+      v('Alice bloque Bob dans la fenêtre → 200', (await A.post('/api/contacts/bloquer', { uid: B.moi.id })).code, 200);
+      await ecrit(C, conv.ac, 'sentinelle, après le blocage');
+      const sent = await suivant(A1, 8000);
+      vrai('population : la sentinelle (le message de Cléo, écrit après) est arrivée', !!sent && sent.c.url === '/#messages/' + conv.ac);
+      await suivant(A2);
+      await T.dort(400);
+      v('⛔ ...et RIEN pour le message de Bob, écrit avant le blocage : seule la sentinelle est arrivée', rienDeNouveau(A1), true);
+      v('Alice débloque Bob', (await A.post('/api/contacts/debloquer', { uid: B.moi.id })).code, 200);
+      /* (c) un lot : le DERNIER message est supprimé « pour tous » dans la fenêtre — le précédent, encore valable, notifie */
+      await ecrit(B, conv.ab, 'CANARI-LOT-UN');
+      await ecrit(B, conv.ab, 'CANARI-LOT-DEUX');
+      const sT = await ecrit(B, conv.ab, 'CANARI-LOT-TROIS');
+      v('Bob supprime « pour tous » le dernier message du lot, dans la fenêtre → 200', (await B.post('/api/conversations/' + conv.ab + '/messages/supprimer', { seq: sT, pour: 'tous' })).code, 200);
+      const nC = await suivant(A1, 8000);
+      vrai('population : une notification arrive', !!nC);
+      v('⛔ elle décrit le plus récent message encore valable (le deuxième) : la suppression du dernier n\'étouffe pas le lot, et son texte ne part pas', [nC.c.corps, JSON.stringify(nC.c).includes('LOT-TROIS')], ['CANARI-LOT-DEUX', false]);
+      await suivant(A2);
+      await T.dort(400);
+      v('   et une seule pour tout le lot', rienDeNouveau(A1), true);
+      await A.post('/api/moi/maj', { prefs: { apercu_notif: false } });
+      fl.fermer();
+      await T.attendre(async () => (await sante()).flux.ouverts === 0, 8000, 20);
     }
 
     console.log('\nLes pannes du service push : 410 retire tout de suite ; 500, redirection, silence, 403 ne retirent JAMAIS ; un refus 400 ne retire qu\'après deux de suite ET une durée');
@@ -513,11 +559,17 @@ function paireVapid() {
       svc = await demarrer({ config: { push: PUSH_CFG, beta: { relectureMs: 3600000 } } });
       const apres = [abosTous(), (await T.client(base()).get('/api/config')).j.push.vapid];
       v('⛔ après redémarrage SANS paire dans la configuration : la clé publique est la MÊME, les abonnements sont tous là', apres, avant);
+      vrai('population : le journal de ce démarrage est lu (la ligne « push_vapid » y est) — et il ne dit rien de différent quand la configuration n\'a pas de paire', /"evt":"push_vapid"/.test(svc.sortie.texte()) && !/"etat":"differe"/.test(svc.sortie.texte()));
       await svc.arreter();
       /* une AUTRE paire dans la configuration : la première posée gagne (changer de clé ferait refuser tous les envois) */
       svc = await demarrer({ config: { push: PUSH_CFG, beta: { relectureMs: 3600000 }, vapidPublicKey: PAIRE2.pub, vapidPrivateKey: PAIRE2.priv } });
       v('⛔ une autre paire dans la configuration ne remplace PAS celle de la base', (await T.client(base()).get('/api/config')).j.push.vapid, PAIRE.pub);
       vrai('population : l\'autre paire existe bien (elle est différente)', PAIRE2.pub !== PAIRE.pub);
+      /* R9 : ...et le service le DIT (l'installation croit sinon avoir changé de paire) — l'empreinte courte des deux clés PUBLIQUES, jamais une clé */
+      const jDiff = svc.sortie.texte();
+      const empreinte = (k) => crypto.createHash('sha256').update(k).digest('hex').slice(0, 8);
+      v('⛔ le journal de ce démarrage DIT que la paire de l\'installation diffère de celle de la base, avec l\'empreinte courte des deux clés publiques', [/"evt":"push_vapid","etat":"differe"/.test(jDiff), jDiff.includes('base ' + empreinte(PAIRE.pub)), jDiff.includes('installation ' + empreinte(PAIRE2.pub))], [true, true, true]);
+      v('⛔ ...sans jamais écrire une clé : ni les deux publiques, ni les deux privées', [PAIRE.pub, PAIRE2.pub, PAIRE.priv, PAIRE2.priv].map(k => jDiff.includes(k)), [false, false, false, false]);
       await svc.arreter();
       /* une installation neuve, sans paire : le service en fabrique une, et la garde */
       const d2 = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-956b-'));
