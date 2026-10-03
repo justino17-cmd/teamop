@@ -22,9 +22,10 @@
  *                                relâchent l'un ou l'autre.
  *   beta          {urlGestion, relectureMs, timeoutMs}   La porte (instance beta seulement).
  *   quotas        {nom:{max,fenetreMs}}   Surcharge des plafonds de départ (bancs).
- *   pieces        {photoMax, vocalMax, fichierMax, avatarMax, quotaPersonne, depotsHeure, orphelineMs, simultanes, parPersonne, bloc}
+ *   pieces        {photoMax, vocalMax, fichierMax, avatarMax, quotaPersonne, depotsHeure, orphelineMs, simultanes, parPersonne, bloc, memoireImages}
  *                                Les pièces (photos, vocaux, fichiers) : tailles maximales en octets, quota par personne, envois par heure,
- *                                durée de vie d'une pièce jamais envoyée, envois en même temps. Voir `piecesConfig` pour les valeurs de départ.
+ *                                durée de vie d'une pièce jamais envoyée, envois en même temps, mémoire que les images en cours de nettoyage se partagent.
+ *                                Voir `piecesConfig` pour les valeurs de départ.
  *   disqueMinMo   plancher d'espace libre sous lequel les écritures refusent (503).
  *   pulsationMs, presenceGraceMs, balayageMs, relectureMs   Rythmes (bancs).
  */
@@ -87,17 +88,19 @@ function origines(cfg) {
    tiendrait en mémoire des photos que rien n'arrête. `bloc` est la taille de bloc du scellage (une puissance de deux) : il ne change que les fichiers à venir, chaque fichier
    porte la sienne dans son en-tête. */
 const Mo = 1048576;
-const PIECES_DEFAUT = { photoMax: 12 * Mo, vocalMax: 10 * Mo, fichierMax: 25 * Mo, avatarMax: 2 * Mo, quotaPersonne: 2048 * Mo, depotsHeure: 60, orphelineMs: 24 * 3600000, simultanes: 16, parPersonne: 4, bloc: 65536 };
+const PIECES_DEFAUT = { photoMax: 12 * Mo, vocalMax: 10 * Mo, fichierMax: 25 * Mo, avatarMax: 2 * Mo, quotaPersonne: 2048 * Mo, depotsHeure: 60, orphelineMs: 24 * 3600000, simultanes: 16, parPersonne: 4, bloc: 65536, memoireImages: 96 * Mo };
 function piecesConfig(c) {
   const brut = c && typeof c === 'object' && !Array.isArray(c) ? c : {};
   const o = {};
-  const bornes = { photoMax: [1, 256 * Mo], vocalMax: [1, 256 * Mo], fichierMax: [1, 1024 * Mo], avatarMax: [1, 64 * Mo], quotaPersonne: [1, 1024 * 1024 * Mo], depotsHeure: [1, 100000], orphelineMs: [1000, 30 * 86400000], simultanes: [1, 256], parPersonne: [1, 64], bloc: [256, 1 << 24] };
+  const bornes = { photoMax: [1, 256 * Mo], vocalMax: [1, 256 * Mo], fichierMax: [1, 1024 * Mo], avatarMax: [1, 64 * Mo], quotaPersonne: [1, 1024 * 1024 * Mo], depotsHeure: [1, 100000], orphelineMs: [1000, 30 * 86400000], simultanes: [1, 256], parPersonne: [1, 64], bloc: [256, 1 << 24], memoireImages: [16 * Mo, 8192 * Mo] };
   for (const [k, [min, max]] of Object.entries(bornes)) {
     const v = brut[k] === undefined ? PIECES_DEFAUT[k] : brut[k];
     if (!Number.isInteger(v) || v < min || v > max) { const e = new Error('config: pieces.' + k + ' doit être un entier entre ' + min + ' et ' + max); e.code = 'CONFIG'; throw e; }
     o[k] = v;
   }
   if (!Number.isInteger(Math.log2(o.bloc))) { const e = new Error('config: pieces.bloc doit être une puissance de deux'); e.code = 'CONFIG'; throw e; }
+  /* ⛔ la mémoire d'images doit couvrir une image du plus gros maximum, deux fois (son corps et sa version nettoyée) : sinon toute grosse photo serait refusée pour toujours */
+  if (o.memoireImages < 2 * Math.max(o.photoMax, o.avatarMax)) { const e = new Error('config: pieces.memoireImages doit couvrir deux fois la plus grosse image (photoMax ou avatarMax)'); e.code = 'CONFIG'; throw e; }
   return o;
 }
 

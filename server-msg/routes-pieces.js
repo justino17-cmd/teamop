@@ -118,6 +118,7 @@ function installerPieces(H, ctx) {
         const c = e && e.code;
         if (c === 'trop_gros') return refus(res, 413, 'piece_trop_lourde', { max });
         if (c === 'type_refuse') return refus(res, 415, 'type_refuse');
+        if (c === 'occupe') { res.set('Retry-After', '2'); return refus(res, 429, 'quota_atteint', { retry: 2, portee: 'simultane' }); }   // trop d'images en cours de nettoyage : dans un instant
         if (c === 'vide' || c === 'incomplet') return refus(res, 400, 'champ_invalide');
         if (req.aborted || req.destroyed || res.destroyed) return;        // le client s'en est allé : rien n'a été écrit (pieces.deposer a abandonné), personne à qui répondre
         throw e;

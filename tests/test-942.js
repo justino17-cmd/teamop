@@ -11,6 +11,7 @@
        frontière de bloc, un en-tête qui ment — tous refusés (`piece_corrompue`), jamais rendus tels quels ;
      · `Range` NE DÉCHIFFRE QUE LES BLOCS TOUCHÉS (un bloc abîmé plus loin ne gêne pas la lecture d'une plage qui ne le touche pas) ;
      · UN ENVOI QUI DÉPASSE S'ARRÊTE AU FIL DE L'EAU (on compte les octets pris au flux : il est infini) ;
+     · UNE IMAGE « BOURRÉE » DE MILLIONS DE MORCEAUX VIDES EST REFUSÉE (plafond de segments), SANS MÉMOIRE NI BOUCLE, et les images en cours de nettoyage se partagent un plafond GLOBAL de mémoire ;
      · UN ENVOI INTERROMPU NE LAISSE RIEN sous le nom de la pièce ;
      · DEUX ENVOIS EN MÊME TEMPS NE DÉPASSENT PAS LE QUOTA ENSEMBLE. */
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
@@ -85,6 +86,46 @@ const jeton = (b, canari) => b.includes(Buffer.from(canari, 'latin1'));
     v('⛔ un WebP dont un bloc dépasse le conteneur est refusé', await attrape(Promise.resolve().then(() => { const b = Buffer.from(wIn); b.writeUInt32LE(0x00FFFFFF, 16); return P.retirerMetadonnees('image/webp', b); })), 'type_refuse');
     const g = F.gif('ZXCANARIQGIF');
     vrai('GIF : gardé tel quel (le client n\'en produit jamais — voir l\'en-tête du module)', P.retirerMetadonnees('image/gif', g).equals(g));
+  }
+
+  /* ═══ 2 bis. UNE IMAGE BOURRÉE DE MORCEAUX VIDES NE COÛTE NI MÉMOIRE NI BOUCLE (relecture du gardien, B1) ═════════════════════════════════════════ */
+  console.log('\nUne image « bourrée » de millions de morceaux vides est refusée tout de suite — sans mémoire, sans boucle bloquée (B1)');
+  {
+    const MO = 1048576;
+    const mesure = async (entree, mime) => {
+      if (global.gc) global.gc();
+      const avant = process.memoryUsage().rss, t0 = process.hrtime.bigint();
+      const code = await attrape(Promise.resolve().then(() => P.retirerMetadonnees(mime, entree)));
+      return { code, ms: Number((process.hrtime.bigint() - t0) / 1000000n), mo: Math.round((process.memoryUsage().rss - avant) / MO) };
+    };
+    const jb = F.jpegBourre(2900000), pb = F.pngBourre(1000000), wb = F.webpBourre(1500000);
+    vrai('population : les trois images bourrées pèsent plus de 10 Mo chacune — le défaut ÉTAIT dans ce qu\'on envoie', [jb, pb, wb].every(b => b.length > 10 * MO));
+    const rj = await mesure(jb, 'image/jpeg'), rp = await mesure(pb, 'image/png'), rw = await mesure(wb, 'image/webp');
+    v('⛔ un JPEG de 2,9 M de segments vides, un PNG d\'1 M de morceaux, un WebP d\'1,5 M de blocs : tous REFUSÉS (415), aucun n\'est rangé', [rj.code, rp.code, rw.code], ['type_refuse', 'type_refuse', 'type_refuse']);
+    vrai('⛔ …sans boucle ni mémoire : chacun en moins d\'une demi-seconde et pour moins de 100 Mo de plus (avant le correctif : 1,8 s et +350 Mo pour le JPEG, 1 s et +90 Mo pour le WebP)', [rj, rp, rw].every(r => r.ms < 500 && r.mo < 100));
+    /* le plafond est sur le NOMBRE de morceaux, pas sur la taille : 3 000 segments vides ne pèsent que 12 Ko */
+    v('⛔ le plafond porte sur le NOMBRE de segments, pas sur les octets : 3 000 segments JPEG vides (12 Ko) sont refusés', [F.jpegBourre(3000, 0xE3).length < 20000, await attrape(Promise.resolve().then(() => P.retirerMetadonnees('image/jpeg', F.jpegBourre(3000, 0xE3))))], [true, 'type_refuse']);
+    /* contre-épreuves : ce qu'une vraie image atteint passe, et ressort NETTOYÉ comme avant */
+    const mille = F.jpegBourre(1000, 0xE3);
+    vrai('contre-épreuve : 1 000 segments APP3 (vingt fois ce que porte une photo) passent, et sortent retirés — il reste l\'image d\'origine, octet pour octet', P.retirerMetadonnees('image/jpeg', mille).equals(F.jpeg()) && mille.length > F.jpeg().length);
+    const cinqP = F.pngBourre(5000), cinqW = F.webpBourre(5000);
+    vrai('contre-épreuve : un PNG de 5 000 morceaux et un WebP de 5 000 blocs (bien plus que les vrais) passent, intacts (rien n\'y était à retirer)', P.retirerMetadonnees('image/png', cinqP).equals(cinqP) && P.retirerMetadonnees('image/webp', cinqW).equals(cinqW));
+
+    /* ── le plafond GLOBAL de mémoire d'images : on RÉSERVE 2 × la taille annoncée (le corps et sa version nettoyée) avant de lire ── */
+    const pcM = neuf({ memoireImages: 1 * MO });
+    const gros = F.png({ avant: [['abCd', Buffer.alloc(400000, 1)]] });                 // 400 Ko : 800 Ko réservés sur 1 Mio
+    vrai('population : l\'image d\'essai pèse 400 Ko, donc 800 Ko réservés — un seul dépôt tient dans 1 Mio', gros.length > 400000 && gros.length < 410000);
+    let ouvrir; const porte = new Promise((ok) => { ouvrir = ok; });
+    const premier = pcM.deposer({ id: nouvelId(), genre: 'photo', flux: F.fluxRetenu(gros, 100, porte), max: 5 * MO, attendu: gros.length });   // lit 100 octets, réserve, puis ATTEND
+    const second = () => attrape(pcM.deposer({ id: nouvelId(), genre: 'photo', flux: F.fluxDe(gros), max: 5 * MO, attendu: gros.length }));
+    let refus = null;
+    for (let k = 0; k < 100 && refus !== 'occupe'; k++) { refus = await second(); if (refus !== 'occupe') await new Promise((ok) => setTimeout(ok, 20)); }
+    v('⛔ pendant qu\'un premier dépôt tient 800 Ko sur 1 Mio, un second est refusé TOUT DE SUITE (occupe) — et pas rangé', refus, 'occupe');
+    ouvrir();
+    v('…le premier se termine normalement', (await premier).taille, gros.length);
+    v('⛔ la réserve est RENDUE : le même dépôt passe maintenant', await second(), null);
+    v('⛔ la réserve est rendue aussi quand un dépôt ÉCHOUE (flux coupé avant la longueur annoncée), et le suivant passe', [await attrape(pcM.deposer({ id: nouvelId(), genre: 'photo', flux: F.fluxDe(gros.subarray(0, 5000)), max: 5 * MO, attendu: gros.length })), await second()], ['incomplet', null]);
+    v('⛔ un son et un fichier ne comptent PAS dans ce plafond (ils passent en flux, un bloc à la fois) : un fichier de 3 Mio passe sur 1 Mio de réserve', await attrape(pcM.deposer({ id: nouvelId(), genre: 'fichier', flux: F.fluxDe(F.alea(3 * MO)), max: 5 * MO, attendu: 3 * MO })), null);
   }
 
   /* ═══ 3. LE SCELLAGE PAR BLOCS ═════════════════════════════════════════════════════════════════════════════════════════════ */

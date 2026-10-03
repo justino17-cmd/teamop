@@ -87,26 +87,33 @@ function dispositionDe(inline, nom) {
 }
 
 /* ══ 2. LES MÉTADONNÉES RETIRÉES ══════════════════════════════════════════════════════════════════════════════════════ */
+/* ⛔ UNE IMAGE QU'ON NETTOIE NE COÛTE QUE SA TAILLE, ET UN NOMBRE DE MORCEAUX QU'AUCUNE VRAIE PHOTO N'ATTEINT. Les nettoyeurs d'origine rangeaient une `subarray` (ou un `Buffer`) PAR
+   segment dans un tableau, puis les recollaient : un JPEG de 11 Mo fait de 2,9 millions de segments vides (`FF E0 00 02`) coûtait ~350 Mo et 1,8 s de boucle bloquée — quatre dépôts
+   en parallèle d'un seul compte portaient le processus de 90 à 1 200 Mo (l'unité plafonne à 1 Go) et gelaient `/health` pendant 3,6 s (relecture du gardien, B1). Désormais : UN tampon de
+   sortie alloué d'avance (la sortie n'est jamais plus grande que l'entrée : on ne fait que garder ou jeter) dans lequel on COPIE, et un plafond de morceaux de premier niveau — au-delà,
+   la structure ment et l'image est refusée (415). Une photo réelle porte une quarantaine de segments JPEG ; un PNG ou un WebP de 12 Mo, quelques milliers de morceaux au pire. */
+const SEGMENTS_JPEG_MAX = 2048, MORCEAUX_MAX = 65536;
 /* JPEG : on parcourt les segments de bout en bout. Gardés : JFIF (APP0), profil de couleur (APP2 « ICC_PROFILE »), Adobe (APP14 : sans
    lui un CMYK s'affiche à l'envers), tables et image. Retirés : APP1 (Exif, XMP), APP3 à APP13, APP15, commentaires, et l'index MPF
    (APP2 « MPF » : il désigne des images annexes qu'on ne garde pas). Tout ce qui suit la fin de l'image (EOI) est jeté. */
 function nettoyerJpeg(b) {
   if (b.length < 4 || b[0] !== 0xFF || b[1] !== 0xD8) throw erreur('type_refuse');
-  const sortie = [Buffer.from([0xFF, 0xD8])];
-  let i = 2;
+  const sortie = Buffer.allocUnsafe(b.length);
+  let o = 0, i = 2, segments = 0;
+  sortie[o++] = 0xFF; sortie[o++] = 0xD8;
   for (;;) {
     if (i >= b.length || b[i] !== 0xFF) throw erreur('type_refuse');        // entre deux segments on est toujours sur un marqueur
     while (i < b.length && b[i] === 0xFF) i++;                              // octets de remplissage
     if (i >= b.length) throw erreur('type_refuse');
     const m = b[i++];
-    if (m === 0xD9) { sortie.push(Buffer.from([0xFF, 0xD9])); break; }
-    if (m === 0x01 || (m >= 0xD0 && m <= 0xD7)) { sortie.push(Buffer.from([0xFF, m])); continue; }
+    if (++segments > SEGMENTS_JPEG_MAX) throw erreur('type_refuse');
+    if (m === 0xD9) { sortie[o++] = 0xFF; sortie[o++] = 0xD9; break; }
+    if (m === 0x01 || (m >= 0xD0 && m <= 0xD7)) { sortie[o++] = 0xFF; sortie[o++] = m; continue; }
     if (i + 2 > b.length) throw erreur('type_refuse');
     const long = b.readUInt16BE(i);
     if (long < 2 || i + long > b.length) throw erreur('type_refuse');
-    const segment = b.subarray(i - 2, i + long);                            // « FF m » + longueur + données
     if (m === 0xDA) {                                                       // SOS : l'en-tête du balayage, puis les données entropiques
-      sortie.push(segment);
+      o += b.copy(sortie, o, i - 2, i + long);                              // « FF m » + longueur + données
       let j = i + long;
       while (j < b.length) {
         if (b[j] === 0xFF) {
@@ -118,56 +125,57 @@ function nettoyerJpeg(b) {
         j++;
       }
       if (j >= b.length) throw erreur('type_refuse');                         // aucune fin d'image : tronqué
-      sortie.push(b.subarray(i + long, j));
+      o += b.copy(sortie, o, i + long, j);
       i = j; continue;
     }
     const retire = m === 0xE1 || (m >= 0xE3 && m <= 0xED) || m === 0xEF || m === 0xFE
       || (m === 0xE2 && b.toString('latin1', i + 2, i + 6) === 'MPF\0');
-    if (!retire) sortie.push(segment);
+    if (!retire) o += b.copy(sortie, o, i - 2, i + long);
     i += long;
   }
-  return Buffer.concat(sortie);
+  return sortie.subarray(0, o);
 }
 /* PNG : retire eXIf, tEXt, iTXt, zTXt et tIME ; jette tout ce qui suit IEND ; refuse un fichier dont la structure ne se parcourt pas. */
 const CHUNKS_PNG_RETIRES = new Set(['eXIf', 'tEXt', 'iTXt', 'zTXt', 'tIME']);
 function nettoyerPng(b) {
   if (b.length < 8 + 12 || !octets(b, 0, 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)) throw erreur('type_refuse');
-  const sortie = [b.subarray(0, 8)];
-  let i = 8, premier = true, fini = false;
+  const sortie = Buffer.allocUnsafe(b.length);
+  let o = b.copy(sortie, 0, 0, 8), i = 8, premier = true, fini = false, morceaux = 0;
   while (i + 12 <= b.length) {
+    if (++morceaux > MORCEAUX_MAX) throw erreur('type_refuse');
     const long = b.readUInt32BE(i), type = b.toString('latin1', i + 4, i + 8);
     if (long > 0x7FFFFFFF || i + 12 + long > b.length) throw erreur('type_refuse');
     if (premier && type !== 'IHDR') throw erreur('type_refuse');
     premier = false;
-    if (!CHUNKS_PNG_RETIRES.has(type)) sortie.push(b.subarray(i, i + 12 + long));
+    if (!CHUNKS_PNG_RETIRES.has(type)) o += b.copy(sortie, o, i, i + 12 + long);
     i += 12 + long;
     if (type === 'IEND') { fini = true; break; }
   }
   if (!fini) throw erreur('type_refuse');
-  return Buffer.concat(sortie);
+  return sortie.subarray(0, o);
 }
 /* WebP : retire les blocs EXIF et XMP, baisse leurs drapeaux dans VP8X, recalcule la taille du conteneur RIFF. */
 function nettoyerWebp(b) {
   if (b.length < 12 || b.toString('latin1', 0, 4) !== 'RIFF' || b.toString('latin1', 8, 12) !== 'WEBP') throw erreur('type_refuse');
   const reste = b.readUInt32LE(4), fin = reste + 8;
   if (reste < 4 || fin > b.length) throw erreur('type_refuse');
-  const blocs = [];
-  let i = 12;
+  const sortie = Buffer.allocUnsafe(fin + 2);                               // + le bourrage d'un dernier bloc impair qui n'en aurait pas
+  let o = 12, i = 12, blocs = 0;
   while (i + 8 <= fin) {
+    if (++blocs > MORCEAUX_MAX) throw erreur('type_refuse');
     const type = b.toString('latin1', i, i + 4), long = b.readUInt32LE(i + 4);
     if (i + 8 + long > fin) throw erreur('type_refuse');
     const pad = long & 1, total = 8 + long + pad;
     if (type !== 'EXIF' && type !== 'XMP ') {
-      const bloc = Buffer.alloc(8 + long + pad);                            // le bourrage manquant en fin de fichier est rétabli
-      b.copy(bloc, 0, i, i + 8 + long);
-      if (type === 'VP8X' && long >= 1) bloc[8] &= ~(0x08 | 0x04) & 0xFF;
-      blocs.push(bloc);
+      const debut = o;
+      o += b.copy(sortie, o, i, i + 8 + long);
+      if (pad) sortie[o++] = 0;                                             // le bourrage manquant en fin de fichier est rétabli
+      if (type === 'VP8X' && long >= 1) sortie[debut + 8] &= ~(0x08 | 0x04) & 0xFF;
     }
     i += total;
   }
-  const corps = Buffer.concat(blocs), tete = Buffer.alloc(12);
-  tete.write('RIFF', 0, 'latin1'); tete.writeUInt32LE(4 + corps.length, 4); tete.write('WEBP', 8, 'latin1');
-  return Buffer.concat([tete, corps]);
+  sortie.write('RIFF', 0, 'latin1'); sortie.writeUInt32LE(o - 8, 4); sortie.write('WEBP', 8, 'latin1');
+  return sortie.subarray(0, o);
 }
 function retirerMetadonnees(mime, b) {
   if (mime === 'image/jpeg') return nettoyerJpeg(b);
@@ -206,13 +214,24 @@ async function ecrireTout(fh, buf, pos) {
   while (fait < buf.length) { const r = await fh.write(buf, fait, buf.length - fait, pos + fait); fait += r.bytesWritten; }
 }
 
-function creerPieces({ dossier, cle, generation = 1, bloc = BLOC_DEFAUT }) {
+function creerPieces({ dossier, cle, generation = 1, bloc = BLOC_DEFAUT, memoireImages = 96 * 1048576 }) {
   if (!dossier) throw new Error('dossier_requis');
   if (!Number.isInteger(generation) || generation < 1 || generation > 255) throw new Error('generation_invalide');
   if (!Number.isInteger(Math.log2(bloc)) || bloc < 256 || bloc > (1 << 24)) throw new Error('bloc_invalide');
   const log2Bloc = Math.log2(bloc);
   const cheminDe = (id) => { if (!ID_PIECE.test(String(id))) throw erreur('id_invalide'); return path.join(dossier, id.slice(2, 4), id); };
   const aad = (id, i, dernier) => Buffer.from(id + '|' + i + '|' + (dernier ? 'd' : 'n'), 'utf8');
+
+  /* ⛔ UN PLAFOND GLOBAL DE MÉMOIRE D'IMAGES. Une image est tenue en mémoire le temps d'en retirer les métadonnées : son corps ET sa version nettoyée, soit deux fois sa taille. Seize dépôts de
+     12 Mo en même temps pèseraient 380 Mo — sans compter ce que le tas garde en attendant le ramasse-miettes. On RÉSERVE donc `2 × la taille annoncée` avant de lire le corps ; si la réserve
+     ne couvre pas, le dépôt est refusé tout de suite (`occupe`, 429 « réessaie dans un instant »), au lieu de faire monter le processus jusqu'au plafond de l'unité (relecture du gardien, B1). */
+  let memoire = 0;
+  const reserverMemoire = (n) => {
+    if (memoire + n > memoireImages) return null;
+    memoire += n;
+    let rendu = false;
+    return () => { if (rendu) return; rendu = true; memoire -= n; };
+  };
 
   /* Une écriture en cours : on ajoute des morceaux, on `finir()` (sync, renommage) ou on `abandonner()` (rien ne reste). */
   async function ouvrirEcriture(id) {
@@ -276,14 +295,32 @@ function creerPieces({ dossier, cle, generation = 1, bloc = BLOC_DEFAUT }) {
     if (!t) throw erreur('type_refuse');
     let total = tete.length;
     if (t.famille === 'image') {
-      /* une image est tenue en mémoire (12 Mo au plus) le temps d'en retirer les métadonnées */
-      const parts = [tete];
-      while (!termine) { const m = await suivant(); if (!m) break; total += m.length; if (total > max) throw erreur('trop_gros'); parts.push(m); }
-      if (attendu !== undefined && total !== attendu) throw erreur('incomplet');
-      const propre = retirerMetadonnees(t.mime, Buffer.concat(parts));
-      const w = await ouvrirEcriture(id);
-      try { await w.ajouter(propre); const r = await w.finir(); return { taille: r.taille, mime: t.mime }; }
-      catch (e) { await w.abandonner(); throw e; }
+      /* une image est tenue en mémoire (12 Mo au plus) le temps d'en retirer les métadonnées : UN tampon de la taille annoncée (pas un tableau de morceaux recollé), sous le plafond global */
+      const connue = attendu !== undefined && attendu >= tete.length && attendu <= max;
+      const rendre = reserverMemoire(2 * (connue ? attendu : max));
+      if (!rendre) throw erreur('occupe');
+      try {
+        let corps;
+        if (connue) {
+          corps = Buffer.allocUnsafe(attendu);
+          tete.copy(corps, 0);
+          while (!termine) {
+            const m = await suivant(); if (!m) break;
+            if (total + m.length > attendu) throw erreur(total + m.length > max ? 'trop_gros' : 'incomplet');
+            m.copy(corps, total); total += m.length;
+          }
+          if (total !== attendu) throw erreur('incomplet');
+        } else {                                                              // longueur inconnue (le module seul, sans la route) : on accumule, sous le même plafond
+          const parts = [tete];
+          while (!termine) { const m = await suivant(); if (!m) break; total += m.length; if (total > max) throw erreur('trop_gros'); parts.push(m); }
+          if (attendu !== undefined && total !== attendu) throw erreur('incomplet');
+          corps = Buffer.concat(parts);
+        }
+        const propre = retirerMetadonnees(t.mime, corps);
+        const w = await ouvrirEcriture(id);
+        try { await w.ajouter(propre); const r = await w.finir(); return { taille: r.taille, mime: t.mime }; }
+        catch (e) { await w.abandonner(); throw e; }
+      } finally { rendre(); }
     }
     /* un son ou un fichier passe en flux : jamais plus d'un bloc en mémoire */
     const w = await ouvrirEcriture(id);

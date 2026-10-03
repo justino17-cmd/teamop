@@ -83,6 +83,36 @@ function fluxSansFin(morceau = 4096, debut = Buffer.alloc(0)) {
 }
 /* un flux fini, en morceaux de `n` octets */
 function fluxDe(buf, n = 7000) { return { async *[Symbol.asyncIterator]() { for (let i = 0; i < buf.length; i += n) yield buf.subarray(i, Math.min(buf.length, i + n)); } }; }
+/* un flux fini qui s'ARRÊTE après `avant` octets tant que `porte` (une promesse) n'est pas tenue : un dépôt « en cours » dont le banc décide quand il finit */
+function fluxRetenu(buf, avant, porte, n = 7000) {
+  return { async *[Symbol.asyncIterator]() {
+    yield buf.subarray(0, avant);
+    await porte;
+    for (let i = avant; i < buf.length; i += n) yield buf.subarray(i, Math.min(buf.length, i + n));
+  } };
+}
+
+/* ── les images « BOURRÉES » de morceaux vides (relecture du gardien, B1) : n segments JPEG APP0 vides (`FF E0 00 02`), n morceaux PNG `abCd` de longueur nulle, n blocs WebP `JUNK` vides.
+      À 2,9 M de segments un JPEG pèse 11 Mo : l'attaque qui portait le service de 90 à 1 200 Mo. `marqueur` : l'octet du segment JPEG (0xE0 : APP0 ; 0xE3 : APP3, retiré à coup sûr). ── */
+function jpegBourre(n, marqueur = 0xE0) {
+  const base = jpeg(), i = base.indexOf(Buffer.from([0xFF, 0xDB])), mid = Buffer.alloc(4 * n), seg = Buffer.from([0xFF, marqueur, 0x00, 0x02]);
+  for (let k = 0; k < n; k++) seg.copy(mid, 4 * k);
+  return Buffer.concat([base.subarray(0, i), mid, base.subarray(i)]);
+}
+function pngBourre(n) {
+  const base = png(), i = base.indexOf(Buffer.from('IDAT', 'latin1')) - 4, mid = Buffer.alloc(12 * n), ch = Buffer.alloc(12);
+  ch.write('abCd', 4, 'latin1');
+  for (let k = 0; k < n; k++) ch.copy(mid, 12 * k);
+  return Buffer.concat([base.subarray(0, i), mid, base.subarray(i)]);
+}
+function webpBourre(n) {
+  const w = webp(), mid = Buffer.alloc(8 * n), ch = Buffer.alloc(8);
+  ch.write('JUNK', 0, 'latin1');
+  for (let k = 0; k < n; k++) ch.copy(mid, 8 * k);
+  const corps = Buffer.concat([w.subarray(12), mid]), tete = Buffer.alloc(12);
+  tete.write('RIFF', 0, 'latin1'); tete.writeUInt32LE(4 + corps.length, 4); tete.write('WEBP', 8, 'latin1');
+  return Buffer.concat([tete, corps]);
+}
 
 /* ── le geste HTTP d'un dépôt : corps binaire, Content-Length (posé par fetch pour un Buffer), X-OPM, Origin, cookie du client ── */
 async function deposer(c, { conv, genre, nom, corps, entetes, query } = {}) {
@@ -127,4 +157,4 @@ function deposerBrut(c, { chemin, entetes, corps, sansLongueur = false, morceaux
   });
 }
 
-module.exports = { crc32, png, jpeg, JPEG_ENTROPIE, webp, gif, webm, ogg, mp4, mp3, mp3Trame, pdf, svg, html, alea, fluxSansFin, fluxDe, deposer, lirePiece, deposerBrut, morceauPng };
+module.exports = { crc32, png, jpeg, JPEG_ENTROPIE, webp, gif, webm, ogg, mp4, mp3, mp3Trame, pdf, svg, html, alea, fluxSansFin, fluxDe, fluxRetenu, jpegBourre, pngBourre, webpBourre, deposer, lirePiece, deposerBrut, morceauPng };
