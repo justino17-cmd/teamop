@@ -25,7 +25,7 @@ const RACINE = path.join(__dirname, '..');
 const NB_COPIES = 2, DELAI_MS = 300000;
 const F = {
   sauv: 'server-msg/sauvegarde.js', stock: 'server-msg/stockage.js', rest: 'server-msg/outils/restaurer.js', conf: 'server-msg/configurer-sauvegarde.js',
-  saisie: 'server-msg/saisie.js', index: 'server-msg/index.js', cfg: 'server-msg/config.js', s3: 'server-msg/lib/s3.js', coffre: 'server-msg/coffre.js', surv: '.github/scripts/surveillance-messages.js',
+  saisie: 'server-msg/saisie.js', index: 'server-msg/index.js', cfg: 'server-msg/config.js', s3: 'server-msg/lib/s3.js', coffre: 'server-msg/coffre.js', rejeu: 'server-msg/rejeu.js', surv: '.github/scripts/surveillance-messages.js',
 };
 /* [id, nom, fichier, [[ancien, nouveau], …], suites visées (dans l'ordre : on s'arrête à la première qui tombe)] */
 const MUTATIONS = [
@@ -169,6 +169,45 @@ const MUTATIONS = [
     [["    const sansFichier = idsPieces.filter(id => !auCoffre.has(relDePiece(id))).length;", "    const sansFichier = 0;"]], ['950']],
   ['R20', 'la restauration ne compte plus les lignes de pièces sans fichier (A1)', F.rest,
     [["      pieces.sansFichier = idsPieces.filter(id => !fs.existsSync(path.join(dest, 'pieces', ...relDePiece(id).split('/')))).length;", "      pieces.sansFichier = 0;"]], ['950']],
+
+  /* ── Gardien, 3 octobre 2026 (A3) : une restauration ne ressuscite rien ── */
+  ['K08', 'supprimer une conversation ne se NOTE plus : une restauration la ramène avec tous ses messages', F.stock,
+    [["      if (num(Q('DELETE FROM conversation WHERE id = ?').run(id).changes) > 0) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(id, 'conversation', horloge());   // les membres, messages, réactions, pièces suivent (ON DELETE CASCADE)", "      Q('DELETE FROM conversation WHERE id = ?').run(id);"]], ['950', '951']],
+  ['K09', 'le rejeu hors ligne ne connaît plus le genre « conversation »', F.stock, [["        } else if (genre === 'conversation') {", "        } else if (genre === 'conversation_x') {"]], ['950']],
+  ['K10', 'le rejeu hors ligne ne connaît plus le genre « appareil »', F.stock, [["        } else if (genre === 'appareil') {", "        } else if (genre === 'appareil_x') {"]], ['950']],
+  ['K11', 'déconnecter UN appareil ne se note plus (il revient d\'une archive plus ancienne)', F.stock,
+    [["      Q(`INSERT INTO purge(objet, genre, quand) SELECT h, 'appareil', ? FROM appareil_tel WHERE h = ?`).run(horloge(), h);\n", '']], ['950']],
+  ['K12', '« déconnecter les autres appareils » ne se note plus', F.stock,
+    [["      Q(`INSERT INTO purge(objet, genre, quand) SELECT h, 'appareil', ? FROM appareil_tel WHERE personne = ? AND h <> ?`).run(horloge(), id, garderH || '');\n", '']], ['950']],
+  ['K13', 'déconnecter TOUS les appareils d\'une personne ne se note plus', F.stock,
+    [["      Q(`INSERT INTO purge(objet, genre, quand) SELECT h, 'appareil', ? FROM appareil_tel WHERE personne = ?`).run(horloge(), id);\n", '']], ['950']],
+  ['K14', 'l\'appareil chassé par le onzième ne se note plus', F.stock,
+    [["      Q(`INSERT INTO purge(objet, genre, quand) SELECT h, 'appareil', ? FROM appareil_tel WHERE personne = ? AND h NOT IN (SELECT h FROM appareil_tel WHERE personne = ? ORDER BY vu DESC, cree DESC LIMIT ?)`).run(t, personne, personne, APPAREILS_MAX);\n", '']], ['950']],
+  ['K15', 'la restauration ne vide plus les sessions : l\'ancien cookie d\'une déconnexion répond de nouveau 200', F.stock,
+    [["      try { bilan.sessions = Number(d.prepare('DELETE FROM session').run().changes); }", "      try { bilan.sessions = 0; }"]], ['950', '951']],
+  ['K16', 'la restauration ne lève plus le drapeau du rejeu par le service', F.stock,
+    [["      d.prepare('INSERT INTO meta(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').run('rejeu_service', String(Date.now()));\n", '']], ['950', '951']],
+  ['K17', 'le rejeu retire aussi un appareil RELIÉ après sa révocation (le jeton du même nom, mais un autre appareil)', F.stock,
+    [["d.prepare('DELETE FROM appareil_tel WHERE h = ? AND cree <= ?')", "d.prepare('DELETE FROM appareil_tel WHERE h = ? AND cree <= ? + 999999999999')"]], ['950']],
+  ['K18', 'un genre écrit dans `purge` n\'est plus déclaré (la garde de code doit le voir : un genre neuf oblige à trancher)', F.stock,
+    [["  appareil: 'copie',           // un jeton d'appareil révoqué (déconnexion, « déconnecter les autres », onzième appareil) — l'empreinte, jamais le jeton\n", '']], ['950']],
+  ['K19', 'le magasin ne voit plus le drapeau du rejeu : le service redémarre sur la base restaurée sans rien rejouer', F.stock,
+    [["const rejeuAFaire = () => metaLire('rejeu_service') !== null;", "const rejeuAFaire = () => false;"]], ['950', '951']],
+  ['K20', 'le drapeau du rejeu ne se baisse jamais : chaque démarrage rejouerait tout', F.stock,
+    [["const rejeuTermine = () => { Q('DELETE FROM meta WHERE k = ?').run('rejeu_service'); };", "const rejeuTermine = () => {};"]], ['950', '951']],
+  ['R21', 'la vraie restauration ne vide plus les sessions', F.rest,
+    [["    const ap = ouvrir.copie.apresRestauration(base);\n    dire('  sessions retirées : ' + ap.sessions + ' (chacun se reconnecte", "    const ap = { sessions: 0 };\n    dire('  sessions retirées : ' + ap.sessions + ' (chacun se reconnecte"]], ['950', '951']],
+  ['R22', 'l\'essai ne joue plus le vidage des sessions sur sa copie', F.rest,
+    [["    const ap = ouvrir.copie.apresRestauration(base);\n    dire('  sessions retirées : ' + ap.sessions + ' (une session", "    const ap = { sessions: 0 };\n    dire('  sessions retirées : ' + ap.sessions + ' (une session"]], ['950']],
+  ['R23', 'le service rejoue le registre à CHAQUE démarrage, drapeau ou non', F.rejeu, [["  if (!aFaire) return bilan;\n", '']], ['950']],
+  ['R24', 'un rejeu qui échoue baisse quand même le drapeau (l\'effacement raté ne sera jamais retenté)', F.rejeu,
+    [["  if (bilan.echecs === 0) { try { stockage.rejeuTermine();", "  if (true) { try { stockage.rejeuTermine();"]], ['950']],
+  ['R25', 'un nom de genre hérité du prototype (« constructor ») est appelé comme une fonction du rejeu', F.rejeu,
+    [["if (!Object.prototype.hasOwnProperty.call(genres, e.genre) || typeof genres[e.genre] !== 'function') continue;", "if (typeof genres[e.genre] !== 'function') continue;"]], ['950']],
+  ['R26', 'une fonction de rejeu asynchrone est acceptée (une promesse perdue : un effacement qu\'on croit fait)', F.rejeu,
+    [["      if (r && typeof r.then === 'function') throw new Error('rejeu-asynchrone');   // le démarrage est synchrone : une promesse perdue serait un effacement qu'on croirait fait\n", '']], ['950']],
+  ['W07', 'le service ne rejoue plus rien au démarrage sur une base restaurée (le câblage d\'index.js)', F.index,
+    [["  rejouerAuDemarrage({ stockage, contexte: { effacerPieces, horloge: Date.now }, journaliser });\n", '']], ['951']],
 
   /* ── configurer-sauvegarde.js et la saisie ── */
   ['C01', 'le coffre n\'est plus ÉPROUVÉ avant d\'écrire la configuration', F.conf, [["  await eprouverCoffre(valide);\n", '']], ['951']],

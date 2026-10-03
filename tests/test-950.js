@@ -1065,6 +1065,7 @@ const horlogeFixe = (h) => () => h.t;
       const mq = marqueur();
       vrai('   la date de l\'exercice est ÉCRITE (un nombre, le nom de l\'archive, des comptes — rien de secret) et /health la lit', !!mq && Number.isFinite(mq.okTs) && mq.archive === 'base/' + SAUV.archiveDeCle('beta/', cleC).nom + SAUV.SUFFIXE && mq.cleMaitreVerifiee === true && m.sauv.sante().essaiJours === 0);
       vrai('   l\'exercice ne laisse RIEN derrière lui : le dossier jetable est effacé', fs.readdirSync(os.tmpdir()).filter(f => f.startsWith('opmsg-essai-')).length === 0);
+      vrai('   et l\'essai joue aussi le vidage des sessions sur sa copie jetable (les deux de l\'archive : « sessions retirées : 2 »)', /sessions retirées : 2 /.test(ess.sortie));
       v('⛔ l\'essai COMPARE les lignes de pièces de la base aux fichiers du coffre : 2 lignes (la purgée est partie avec le registre), dont UNE sans fichier — dit, et noté — alors qu\'avant il ne les comparait jamais',
         [/lignes de pièces dans la base : 2 — ⚠ 1 SANS fichier au coffre/.test(ess.sortie), /mais 1 pièce\(s\) de la base n'ont PAS de fichier au coffre/.test(ess.sortie), mq.piecesSansFichier], [true, true, 1]);
 
