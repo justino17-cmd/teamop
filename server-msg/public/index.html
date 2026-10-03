@@ -900,6 +900,53 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   .onde i, .enreg-onde i { background: CanvasText; }
   .badge, .point { forced-color-adjust: none; background: Highlight; color: HighlightText; }
 }
+/* ══ 14. LES RÉUNIONS (étape 6) — la semaine, la liste du jour, la fiche, le formulaire ═══════════════════════════════════════════
+   Les mêmes jetons que le reste (aucune couleur d'ici) : la semaine est une rangée de sept jours, la liste du jour une carte de lignes, la fiche et le formulaire la même feuille que les
+   infos d'un groupe. Un champ de saisie fait 16 px au moins (Safari zoomerait sinon) et chaque cible 44 px au toucher. */
+.sem-nav { display: flex; align-items: center; gap: 4px; margin: 0 0 8px; }
+.sem-fleche { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; color: var(--accent-txt); }
+.sem-fleche .chev { width: 9px; height: 15px; stroke: currentColor; stroke-width: 2.4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.sem-fleche.prec .chev { transform: scaleX(-1); }
+.sem-titre { flex: 1; min-width: 0; min-height: 44px; padding: 0 6px; text-align: center; font-size: 17px; font-weight: 600; letter-spacing: -.02em; color: var(--text); overflow-wrap: anywhere; }
+.sem-jours { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: 0 0 16px; }
+.jour { min-width: 0; min-height: 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 6px 0 4px; border-radius: 14px; color: var(--text); font-size: 12px; }
+.jour b { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 24px; }
+.jour .jour-point { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0; }
+.jour.avec .jour-point { opacity: .85; }
+.jour[aria-current="date"] b { color: var(--accent-txt); }
+.jour[aria-pressed="true"] { background: var(--fill); color: var(--on-fill); }
+.jour[aria-pressed="true"][aria-current="date"] b { color: inherit; }
+.jour:focus-visible, .sem-fleche:focus-visible, .sem-titre:focus-visible { outline-offset: 0; }
+.reunion-ligne { width: 100%; display: flex; align-items: stretch; gap: 12px; min-height: 64px; padding: 10px 14px; color: var(--text); text-align: left; transition: background-color .15s; }
+.reunion-ligne:active { transform: scale(.985); }
+.carte-liste .reunion-ligne:focus-visible { outline-offset: -3px; }
+.reunion-heure { flex: none; width: 48px; display: flex; flex-direction: column; font-size: 15px; line-height: 20px; font-variant-numeric: tabular-nums; }
+.reunion-heure small { font-size: 13px; color: var(--sub-meta); }
+.reunion-corps { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; padding-left: 10px; border-left: 3px solid var(--fill); }
+.reunion-titre { font-size: 17px; letter-spacing: -.02em; line-height: 22px; overflow-wrap: anywhere; }
+.reunion-sous { font-size: 14px; line-height: 19px; color: var(--sub-meta); overflow-wrap: anywhere; }
+.reunion-etat { flex: none; align-self: center; font-size: 13px; color: var(--sub-meta); }
+.reunion-etat.attention { color: var(--accent-txt); font-weight: 600; }
+.reunion-ligne.annulee .reunion-titre { text-decoration: line-through; color: var(--sub-meta); }
+.reunion-ligne.annulee .reunion-corps { border-left-color: var(--faint); }
+/* la fiche et le formulaire */
+.lien-lieu { color: var(--accent-txt); text-decoration: underline; overflow-wrap: anywhere; }
+a.mini { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+a.mini .ic { font-size: 16px; }
+.champ { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.champ > label { padding: 0 4px; font-size: 13px; color: var(--sub-meta); text-transform: uppercase; }
+.champ input, .champ select { width: 100%; min-width: 0; height: 44px; padding: 0 12px; border: var(--line); border-radius: 12px; background: var(--input-bg); color: var(--text); font: inherit; font-size: 16px; caret-color: var(--accent); }
+.champ input:focus, .champ select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.champ input::placeholder { color: var(--placeholder); opacity: 1; }
+.champ .info-note { margin: 0; padding: 0 4px; }
+.carte-pad .champ { margin-bottom: 10px; }
+.reglage[role="checkbox"][aria-checked="true"] .rond { background: var(--fill); border-color: var(--fill); }
+.reglage[role="checkbox"][aria-checked="true"] .rond .ic { opacity: 1; }
+/* la coche d'une case DANS une ligne de réglage : celle de la ligne (12 px, encre de coche), pas l'icône de 22 px des lignes d'une feuille */
+.info-corps .reglage .rond .ic { font-size: inherit; color: inherit; }
+.reglage[disabled] { opacity: .5; cursor: default; }
+.info-tete .avatar .ic { font-size: 30px; }
+.g-choix .g-pilule { font-size: 15px; }
 </style>
 </head>
 <body>
@@ -932,6 +979,11 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   <symbol id="i-sortant" viewBox="0 0 24 24"><path d="M19 5 5 19M15 19H5V9"/></symbol>
   <symbol id="i-points" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01" stroke-width="3.4"/></symbol>
   <symbol id="i-raccrocher" viewBox="0 0 24 24"><path d="M3 12a15 15 0 0 1 18 0l-2 3-4-1.5v-2a9 9 0 0 0-6 0v2L5 15l-2-3Z"/></symbol>
+  <symbol id="i-agenda" viewBox="0 0 24 24"><path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 17.5v-11ZM5 9.5h14M8.5 2.8v3M15.5 2.8v3"/></symbol>
+  <symbol id="i-lieu" viewBox="0 0 24 24"><path d="M12 21s6-5.2 6-10a6 6 0 0 0-12 0c0 4.8 6 10 6 10Zm0-7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/></symbol>
+  <symbol id="i-repeter" viewBox="0 0 24 24"><path d="M4.5 11V9.5A3.5 3.5 0 0 1 8 6h10m0 0-2.5-2.5M18 6l-2.5 2.5M19.5 13v1.5A3.5 3.5 0 0 1 16 18H6m0 0 2.5-2.5M6 18l2.5 2.5"/></symbol>
+  <symbol id="i-telecharger" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19.5h14"/></symbol>
+  <symbol id="i-courriel" viewBox="0 0 24 24"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Zm0 .5 8 6 8-6"/></symbol>
 </svg>
 
 <!-- ⛔ L'ÉCRAN DE CONNEXION n'existe que dans la version servie par le service (la source de l'aperçu ne demande aucune connexion) : masqué ici, il n'est jamais affiché. -->

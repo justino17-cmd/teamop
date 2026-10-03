@@ -36,10 +36,16 @@
    canalSupprimer, canalAjouterMembres, canalRetirerMembre ; Messages Pro : abonnementOffres, abonnement (l'état, sans réseau), abonnementPayer et abonnementPortail (rendent l'adresse de Stripe,
    en https seulement), abonnementRelire (« J'ai réglé — vérifier » : relu chez Stripe). Une conversation de type 'canal' porte `espace` et `prive`. Un refus de fonction Pro garde sa forme
    (`ErreurApi.raison` : « impaye » ou « perso », que le seul administrateur reçoit).
-   Les événements de `ecouter(cb)` : 'liste', 'conversation' (id), 'contacts', 'espaces' (id : un espace a changé), 'presence', 'reseau' (etat), 'arrivee' (un message d'un autre : de quoi
+   LES RÉUNIONS PROGRAMMÉES (capacité `reunions`, étape 6) : reunions(du, au) (l'agenda d'une fenêtre : chaque réunion avec ses occurrences), reunion(id) (la fiche : horaire, répétition, invités et
+   leur réponse, MES rappels), programmer, modifierReunion, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, repondreReunion, rappelsReunion ; adresseIcs(id, {occurrence}) (l'adresse
+   du fichier .ics, que la page télécharge par un lien : le cookie de session suit) ; courrielOuvert() (vrai/faux, ou null si on n'a pas pu savoir) et courrielReunion(id, adresse, {occurrence}).
+   Les heures se disent en millisecondes UTC (rendues) ou en heure LOCALE « 2026-10-26T14:00 » + un fuseau (envoyées) : le service fait autorité sur le fuseau. Les personnes d'une réunion sont des
+   IDENTIFIANTS (la page les habille avec `personne(id)`, au moment de peindre : une photo arrivée après coup apparaît). Le fuseau de CET appareil est dit au service UNE fois par séance (quand la page
+   ouvre l'agenda, programme, répond ou règle ses rappels) : les notifications de la personne se composent dans son fuseau.
+   Les événements de `ecouter(cb)` : 'liste', 'reunions' (id, supprime : une réunion a changé, ici ou ailleurs), 'conversation' (id), 'contacts', 'espaces' (id : un espace a changé), 'presence', 'reseau' (etat), 'arrivee' (un message d'un autre : de quoi
    afficher une bannière), 'notification', 'retire' (id : la personne n'est plus dans cette conversation), 'avis' (texte : un refus arrivé après coup),
    'moi' (mon profil a changé : nom, statut ou photo, ici ou sur un autre appareil),
-   'ouvrir' (conv : une notification touchée demande d'ouvrir cette conversation).
+   'ouvrir' (conv, ou reunion : une notification touchée demande d'ouvrir cette conversation, ou la fiche de cette réunion).
 
    ⛔ TOUT REFUS SE DIT. Chaque appel qui échoue rend une `ErreurApi` d'`api.js` (`code`, `statut`, `retry`, `phrase()` en français, `dit:true`) ; les refus
    LOCAUX de ce module (message vide, trop long, « bientôt ») ont la même forme. Un écran n'a jamais à inventer une phrase pour un refus qu'il ne comprend pas.
@@ -61,6 +67,7 @@
     'trop-de-photos': '10 photos au plus par message : les autres n\'ont pas été envoyées.',
     bientot: 'Cette fonction arrive bientôt.',
     introuvable: 'Introuvable (la conversation a peut-être été supprimée ou tu n\'y es plus).',
+    reunion_introuvable: 'Cette réunion n\'existe plus, ou tu n\'y es plus invité.',
     invalide: 'La demande est incorrecte.',
     /* les notifications : chaque état où l'interrupteur ne peut pas tourner DIT pourquoi, et comment en sortir */
     notif_ios: 'Sur iPhone et iPad, les notifications ne marchent que depuis l\'écran d\'accueil : ajoute OP MESSAGES à l\'écran d\'accueil (Partager, puis « Sur l\'écran d\'accueil »), puis rouvre-le depuis son icône.',
@@ -74,6 +81,7 @@
   const NOM_SUPPRIME = 'Compte\u00A0supprimé';
   const SOURDINES = { '8h': 8 * 3600000, '1s': 7 * 86400000, tj: 9 * 365 * 86400000, off: 0 };   // « toujours » = neuf ans (le service refuse plus de dix)
   const MOTIF_OUVRIR = /^\/#messages\/(c_[0-9a-f]{32})$/;
+  const MOTIF_OUVRIR_REUNION = /^\/#reunions\/(r_[0-9a-f]{32})$/;
   function erreurLocale(code) {
     const e = new Error(PHRASES_LOCALES[code] || PHRASES_LOCALES.invalide);
     e.name = 'ErreurLocale'; e.code = code; e.statut = 0; e.retry = 0; e.dit = true; e.phrase = () => e.message;
@@ -328,7 +336,7 @@
       let apercu = '';
       if (c.apercu) {
         const a = c.apercu;
-        let corps = a.supprime ? 'Message supprimé' : a.illisible ? 'Message illisible' : a.type === 'systeme' ? (canal ? 'Activité du canal' : 'Activité du groupe') : (a.texte || '');
+        let corps = a.supprime ? 'Message supprimé' : a.illisible ? 'Message illisible' : a.type === 'systeme' ? (canal ? 'Activité du canal' : c.type === 'reunion' ? 'Activité de la réunion' : 'Activité du groupe') : (a.texte || '');
         corps = corps.replace(/\s+/g, ' ').slice(0, 160);
         const prefixe = a.type === 'systeme' ? '' : estMoi(a.auteur) ? 'Vous : ' : (!direct ? prenomDe(a.auteur) + ' : ' : '');
         apercu = prefixe + corps;
@@ -342,6 +350,8 @@
         autre: direct && c.autre ? c.autre.id : null,
         /* un CANAL dit l'espace auquel il appartient et s'il est privé (la liste s'en sert pour le nommer « # canal ») ; les autres conversations n'ont ni l'un ni l'autre */
         espace: canal && typeof c.espace === 'string' ? c.espace : null, prive: canal && c.prive === true,
+        /* la conversation d'une RÉUNION dit laquelle (la page ouvre sa fiche au toucher du titre) */
+        reunion: c.type === 'reunion' && typeof c.reunion === 'string' ? c.reunion : null,
       };
     }
     async function relireListe() {
@@ -385,11 +395,16 @@
       for (const x of autres) { const e = L && L.get(x.id); if (e && e.seq >= m.seq && e.ts > ts) ts = e.ts; else { ts = 0; break; } }
       return ts || true;
     }
-    /* `canal` : la conversation est un CANAL d'espace — les phrases disent « le canal » là où un groupe dit « le groupe » (le reste est commun : mêmes messages système) */
-    function texteSysteme(m, canal) {
+    /* `genre` : 'canal' (un CANAL d'espace) ou 'reunion' (la conversation d'une réunion) — les phrases disent « le canal », « la réunion » là où un groupe dit « le groupe » (le reste est commun :
+       mêmes messages système) */
+    function texteSysteme(m, genre) {
       const k = m.meta && m.meta.k, u = m.meta && m.meta.uid, a = m.auteur;
-      const LE = canal ? 'le canal' : 'le groupe', DU = canal ? 'du canal' : 'du groupe';
+      const canal = genre === 'canal', reunion = genre === 'reunion';
+      const LE = canal ? 'le canal' : reunion ? 'la réunion' : 'le groupe', DU = canal ? 'du canal' : reunion ? 'de la réunion' : 'du groupe';
       switch (k) {
+        case 'reunion_creee': return estMoi(a) ? 'Vous avez programmé la réunion' : nomDe(a) + ' a programmé la réunion';
+        case 'reunion_modifiee': return (estMoi(a) ? 'Vous avez' : nomDe(a) + ' a') + (m.meta.horaire ? ' changé l\'horaire de la réunion' : ' modifié la réunion');
+        case 'reunion_annulee': return (estMoi(a) ? 'Vous avez' : nomDe(a) + ' a') + ' annulé la réunion';
         case 'groupe_cree': return estMoi(a) ? 'Vous avez créé le groupe' : nomDe(a) + ' a créé le groupe';
         case 'canal_cree': return estMoi(a) ? 'Vous avez créé le canal' : nomDe(a) + ' a créé le canal';
         case 'membre_ajoute': return estMoi(a) ? 'Vous avez ajouté ' + nomDe(u) : nomDe(a) + ' a ajouté ' + (estMoi(u) ? 'vous' : nomDe(u));
@@ -403,10 +418,11 @@
         case 'avatar_retire': return (estMoi(a) ? 'Vous avez' : nomDe(a) + ' a') + ' retiré la photo ' + DU;
         case 'annonces_seules': return m.meta.valeur ? 'Seuls les administrateurs peuvent écrire' : 'Tout le monde peut écrire';
         case 'ephemere': return m.meta.valeur ? 'Les messages disparaissent après ' + duree(m.meta.valeur) : 'Les messages éphémères sont désactivés';
-        default: return canal ? 'Le canal a été modifié' : 'Le groupe a été modifié';
+        default: return canal ? 'Le canal a été modifié' : reunion ? 'La réunion a été modifiée' : 'Le groupe a été modifié';
       }
     }
-    const estCanalConv = (c) => !!(c && c.detail && c.detail.conversation && c.detail.conversation.type === 'canal');
+    /* le genre d'une conversation pour les phrases système : 'canal', 'reunion', ou '' (un groupe) */
+    const genreSysteme = (c) => { const t = c && c.detail && c.detail.conversation && c.detail.conversation.type; return t === 'canal' || t === 'reunion' ? t : ''; };
     /* ce que dit de lui-même un message qui n'est pas du texte : dans une citation, une bannière */
     function resumeMedia(type, meta) {
       if (type === 'photo') { const n = meta && Array.isArray(meta.pieces) ? meta.pieces.length : 1; return n > 1 ? n + ' photos' : 'Photo'; }
@@ -417,7 +433,7 @@
     function citation(c, seq) {
       const q = c.messages.find(x => x.seq === seq);
       if (!q) return { seq, auteur: null, nom: 'Message plus ancien', texte: '', introuvable: true };
-      return { seq, id: q.id, auteur: q.auteur, nom: nomDe(q.auteur), texte: q.supprime ? 'Message supprimé' : extrait(q.type === 'systeme' ? texteSysteme(q, estCanalConv(c)) : (q.texte || resumeMedia(q.type, q.meta)), 120), supprime: !!q.supprime };
+      return { seq, id: q.id, auteur: q.auteur, nom: nomDe(q.auteur), texte: q.supprime ? 'Message supprimé' : extrait(q.type === 'systeme' ? texteSysteme(q, genreSysteme(c)) : (q.texte || resumeMedia(q.type, q.meta)), 120), supprime: !!q.supprime };
     }
     /* Les pièces d'un message : l'adresse est celle d'une pièce DÉJÀ LUE (sinon null, et `etat` dit où on en est). `auto` : les pièces que l'ouverture lit toute seule — les plus
        récentes ; les autres attendent le toucher (une conversation de cent photos ne se télécharge pas d'un coup sur un téléphone). */
@@ -443,7 +459,7 @@
     const MEDIAS = ['photo', 'vocal', 'fichier'];
     function vueMessage(conv, c, m, auto) {
       const base = { id: m.id, seq: m.seq, auteur: m.auteur, t: m.ts, lu: luDe(conv, c, m) };
-      if (m.type === 'systeme') return Object.assign(base, { systeme: true, texte: texteSysteme(m, estCanalConv(c)) });
+      if (m.type === 'systeme') return Object.assign(base, { systeme: true, texte: texteSysteme(m, genreSysteme(c)) });
       const media = MEDIAS.includes(m.type);
       const v = Object.assign(base, { texte: m.supprime ? '' : (m.illisible ? 'Message illisible' : (media ? '' : (m.texte === null || m.texte === undefined ? '…' : m.texte))) });
       if (m.supprime) v.supprime = true;
@@ -498,10 +514,12 @@
       const resumeConv = (convsApi.find(x => x.id === id));
       const d = c.detail, canalD = d.conversation.type === 'canal';
       const base = resumeConv ? resume(resumeConv) : { id, type: d.conversation.type, nom: d.conversation.nom || (canalD ? 'Canal' : 'Groupe'), court: d.conversation.nom || (canalD ? 'Canal' : 'Groupe'), initiales: '#', avatar: indexAvatar(id), photo: null, epingle: false, nonLu: false, nonLus: 0, apercu: '', t: d.conversation.dernier_ts,
-        espace: canalD && typeof d.conversation.espace === 'string' ? d.conversation.espace : null, prive: canalD && d.conversation.prive === true };
+        espace: canalD && typeof d.conversation.espace === 'string' ? d.conversation.espace : null, prive: canalD && d.conversation.prive === true,
+        reunion: d.conversation.type === 'reunion' && typeof d.conversation.reunion === 'string' ? d.conversation.reunion : null };
       const autre = d.conversation.type === 'direct' ? d.membres.find(x => !estMoi(x.id)) : null;
       if (autre) { Object.assign(base, { nom: nomComplet(autre), court: nomComplet(autre), initiales: initialesDe(nomComplet(autre)), enLigne: enLigne.has(autre.id), autre: autre.id, photo: photoPiece(autre.avatar) }); }
       else if (d.conversation.type === 'groupe' || canalD) { base.nom = base.court = d.conversation.nom || (canalD ? 'Canal' : 'Groupe'); base.photo = photoPiece(d.conversation.avatar); }
+      else if (d.conversation.type === 'reunion') { base.nom = base.court = d.conversation.nom || 'Réunion'; base.photo = null; }
       if (d.conversation.type === 'direct' && !autre) { base.supprime = true; base.nom = base.court = NOM_SUPPRIME; base.initiales = '?'; base.photo = null; }   // l'autre n'est plus membre : son compte est supprimé
       base.membres = d.membres.map(x => x.id); base.admins = d.membres.filter(x => x.role === 'admin').map(x => x.id);
       base.annoncesSeulement = !!d.conversation.annonces_seules; base.ephemeres = d.conversation.ephemere_s || 0;
@@ -927,6 +945,9 @@
         emettre({ type: 'presence', id: d.uid }); emettre({ type: 'contacts' }); emettre({ type: 'liste' });
         for (const [id, c] of convs) if (c.detail && c.detail.membres.some(m => m.id === d.uid)) emettre({ type: 'conversation', id });
       },
+      /* une réunion a changé (programmée, modifiée, annulée, supprimée, un invité arrivé ou parti, une réponse, un rappel réglé) : la page relit l'agenda et la fiche ouverte ; la conversation de la
+         réunion suit son propre chemin (liste, messages) */
+      reunion: (d) => { emettre({ type: 'reunions', id: d && typeof d.id === 'string' ? d.id : null, supprime: !!(d && d.supprime) }); relireListePlusTard(); },
       /* quelque chose a changé dans un espace (un membre arrivé ou parti, un rôle, un nom, un canal, l'abonnement) : un événement éphémère — la page relit ce qu'elle a le droit de voir */
       espace: (d) => { emettre({ type: 'espaces', id: d && typeof d.espace === 'string' ? d.espace : null }); relireListePlusTard(); },
       resync: () => {
@@ -989,6 +1010,7 @@
       demarrerFlux();
       ecouterServiceWorker();
       reabonner();                                       // en arrière-plan : un abonnement que ce navigateur porte déjà est redit au service (jamais bloquant, jamais une erreur)
+      direFuseau();                                      // dès l'entrée, pas au premier geste d'agenda : on invite quelqu'un qui n'a PAS encore ouvert l'onglet, et sa notification doit dire l'heure de SON fuseau
       return { connecte: true };
     }
     async function connexion(login, pass) {
@@ -1146,6 +1168,8 @@
         nav.surMessage((d) => {
           const m = d && d.type === 'ouvrir' && typeof d.url === 'string' ? MOTIF_OUVRIR.exec(d.url) : null;
           if (m && !mort) emettre({ type: 'ouvrir', conv: m[1] });          // seule une adresse de CETTE forme ouvre quelque chose : jamais une adresse venue d'ailleurs
+          const r = d && d.type === 'ouvrir' && typeof d.url === 'string' ? MOTIF_OUVRIR_REUNION.exec(d.url) : null;
+          if (r && !mort) emettre({ type: 'ouvrir', reunion: r[1] });
         });
       } catch (e) { /* un navigateur sans service worker n'a pas de notification à toucher */ }
     }
@@ -1275,12 +1299,81 @@
     async function abonnementPortail(id) { return adresseDePaiement(await A.portailAbonnement(id)); }
     async function abonnementRelire(id) { const r = vueAbonnement(await A.relireAbonnement(id)); espacesChanges(id); return r; }
 
+    /* ═══ LES RÉUNIONS PROGRAMMÉES (capacité `reunions`, étape 6) ═══════════════════════════════════════════════════════════════════════════════════════
+       Le service rend les heures en millisecondes UTC ; la page les habille dans le fuseau de l'appareil. ⛔ Une réunion ne porte que des IDENTIFIANTS de personnes : la page les habille au moment de
+       peindre (`personne(id)`), donc une photo arrivée après coup apparaît sans relire l'agenda. ⛔ La réunion, l'hôte et le rôle viennent du service, jamais d'un champ de la page. */
+    const STATUTS_INVITE = ['attente', 'accepte', 'decline', 'peutetre'];
+    const statutInvite = (s) => STATUTS_INVITE.indexOf(s) >= 0 ? s : 'attente';
+    const listeRappels = (l) => Array.isArray(l) ? l.filter(Number.isInteger) : [];
+    const vueMoiReunion = (m) => ({ hote: !!(m && m.hote), statut: statutInvite(m && m.statut), rappels: listeRappels(m && m.rappels), rappelsPerso: !!(m && m.rappels_perso) });
+    function vueReunion(r) {
+      if (r.hote) noter(r.hote);
+      return { id: r.id, conv: r.conv, titre: String(r.titre || ''), lieu: String(r.lieu || ''), debut: r.debut, fin: r.fin, tz: String(r.tz || ''), repetition: String(r.repetition || 'aucune'),
+        n: Number.isInteger(r.n) ? r.n : null, jusqua: typeof r.jusqua === 'string' ? r.jusqua : null, annulee: r.annulee === true, version: r.version | 0, rappels: listeRappels(r.rappels),
+        hote: r.hote && typeof r.hote.id === 'string' ? r.hote.id : null, illisible: r.illisible === true };
+    }
+    /* le fuseau de CET appareil est dit au service une fois par séance : les notifications de la personne se composent dans SON fuseau (sans lui, dans celui de la réunion) */
+    let fuseauDit = false;
+    function direFuseau() {
+      if (fuseauDit || !moiApi) return;
+      fuseauDit = true;
+      let tz = null; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { tz = null; }
+      if (typeof tz === 'string' && tz && moiApi.tz !== tz) A.majMoi({ tz }).then((m) => { if (m && m.id === moiApi.id) moiApi = Object.assign({}, moiApi, { tz: m.tz }); }, () => { /* un fuseau qui n'est pas parti repart à la séance suivante */ });
+    }
+    /* une réunion qu'on ne trouve pas se dit « cette réunion », pas « la conversation » (le service répond la même chose pour une réunion inexistante et pour une réunion dont on n'est pas invité) */
+    const pourReunion = async (promesse) => { try { return await promesse; } catch (e) { if (e && e.code === 'introuvable') throw erreurLocale('reunion_introuvable'); throw e; } };
+    async function reunions(du, au) {
+      direFuseau();
+      const r = await A.reunions(du, au);
+      return (r.reunions || []).map((x) => {
+        for (const p of x.participants || []) noter(p);
+        return Object.assign(vueReunion(x), { moi: vueMoiReunion(x.moi), participantsN: x.participants_n | 0, participants: (x.participants || []).map((p) => p.id), occurrences: (x.occurrences || []).map((o) => ({ debut: o.debut, fin: o.fin })) });
+      });
+    }
+    async function reunion(id) {
+      direFuseau();
+      const d = await pourReunion(A.reunion(id));
+      for (const p of d.invites || []) noter(p);
+      return Object.assign(vueReunion(d.reunion), {
+        moi: vueMoiReunion(d.moi), invites: (d.invites || []).map((p) => ({ id: p.id, statut: statutInvite(p.statut), hote: !!p.hote })), prochaine: d.prochaine ? { debut: d.prochaine.debut, fin: d.prochaine.fin } : null });
+    }
+    /* ce que la page peut dire d'une réunion : rien d'autre ne part (ni hôte, ni identifiant, ni version) */
+    const CHAMPS_REUNION = ['titre', 'lieu', 'debut', 'fin', 'tz', 'repetition', 'jusqua', 'n', 'invites', 'rappels', 'notifier'];
+    const corpsReunion = (champs) => { const c = {}; for (const k of CHAMPS_REUNION) if (champs && champs[k] !== undefined) c[k] = champs[k]; return c; };
+    const reunionChangee = (id, supprime) => { emettre({ type: 'reunions', id: id || null, supprime: !!supprime }); relireListePlusTard(); };
+    async function programmer(champs) {
+      direFuseau();
+      const d = await A.programmer(corpsReunion(champs));
+      for (const p of d.invites || []) noter(p);
+      reunionChangee(d.reunion.id);
+      return { id: d.reunion.id, conv: d.reunion.conv, nonInvites: Array.isArray(d.non_invites) ? d.non_invites.length : 0 };
+    }
+    async function modifierReunion(id, champs) { await pourReunion(A.modifierReunion(id, corpsReunion(champs))); reunionChangee(id); }
+    async function annulerReunion(id) { await pourReunion(A.annulerReunion(id)); reunionChangee(id); }
+    async function supprimerReunion(id, o2) { await pourReunion(A.supprimerReunion(id, { notifier: !(o2 && o2.notifier === false) })); reunionChangee(id, true); }
+    async function inviterReunion(id, uids, o2) {
+      const r = await pourReunion(A.inviterReunion(id, uids, { notifier: !(o2 && o2.notifier === false) }));
+      reunionChangee(id);
+      return { ajoutes: Array.isArray(r.ajoutes) ? r.ajoutes.length : 0, nonAjoutes: Array.isArray(r.non_ajoutes) ? r.non_ajoutes.length : 0 };
+    }
+    async function retirerInviteReunion(id, uid) { await pourReunion(A.retirerInviteReunion(id, uid)); reunionChangee(id); }
+    async function repondreReunion(id, statut) { direFuseau(); await pourReunion(A.repondreReunion(id, statut)); reunionChangee(id); }
+    async function rappelsReunion(id, rappels) { direFuseau(); await pourReunion(A.rappelsReunion(id, rappels)); reunionChangee(id); }
+    /* le fichier .ics : une adresse de CE service (jamais une adresse venue du service), que la page ouvre par un lien — SANS réseau, donc pas par `A`, dont chaque méthode est enveloppée en asynchrone */
+    const adresseIcs = (id, o2) => api0.adresseIcs(id, o2 || {});
+    /* l'envoi par courriel est-il ouvert ? vrai/faux, ou null quand on n'a pas pu le savoir (on ne dit « pas encore ouvert » que quand le service l'a DIT) */
+    async function courrielOuvert() { try { const c = await A.config(); return c && c.courriel && typeof c.courriel.ouvert === 'boolean' ? c.courriel.ouvert : null; } catch (e) { return null; } }
+    async function courrielReunion(id, adresse, o2) {
+      const x = { }; if (o2 && Number.isInteger(o2.occurrence)) x.occurrence = o2.occurrence;
+      await pourReunion(A.courrielReunion(id, String(adresse || '').trim(), x));
+    }
+
     const rejeter = (code) => () => Promise.reject(erreurLocale(code));
     /* ⛔ combien de messages n'ont PAS encore quitté l'appareil (réseau coupé, service muet) : la page les perd quand elle repart de zéro ou qu'on la ferme — rien n'est rangé sur
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: false, reunions: false, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: false, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       surSessionMorte: (cb) => { suiviMort = cb; },
       /* `presence` : MA présence est-elle montrée ? Coupée, la barre de la page ne doit pas dire « Disponible » avec un point vert (relecture du testeur) : les autres ne me voient plus en ligne. */
@@ -1301,6 +1394,8 @@
       invitationCreer, invitationsRevoquer, invitationLire, invitationAccepter,
       canalCreer, canalRenommer, canalSupprimer, canalAjouterMembres, canalRetirerMembre,
       abonnementOffres, abonnement, abonnementPayer, abonnementPortail, abonnementRelire,
+      /* ── les réunions programmées (capacité `reunions`) ── */
+      reunions, reunion, programmer, modifierReunion, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, repondreReunion, rappelsReunion, adresseIcs, courrielOuvert, courrielReunion,
       /* ── ce que le service ne sait pas encore : les appels (étape 7) — la page dit « bientôt », ces méthodes refusent proprement ── */
       appels: () => Promise.resolve([]),
       demarrerAppel: rejeter('bientot'), appel: () => Promise.resolve(null), terminerAppel: rejeter('bientot'),

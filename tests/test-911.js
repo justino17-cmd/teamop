@@ -123,7 +123,7 @@ const json = async (base, methode, chemin, corps, entetes) => {
     }
     const ma = await A.entrer('alice', 'pw-alice-1234'), mb = await B.entrer('bruno', 'pw-bruno-1234'), mc = await C.entrer('chloe', 'pw-chloe-1234');
     v('moi() : la personne connectée, avec ses initiales (le nom que la Tour a donné)', [ma.nom, ma.initiales, /^p_[0-9a-f]{32}$/.test(ma.id)], ['Alice Martin', 'AM', true]);
-    v('population : aucune capacité fantôme — le service sait les pièces (photos, vocaux, fichiers, photos de profil) et les réglages (test-944 les joue), et dit « bientôt » aux appels et aux réunions', [A.src.capacites.photos, A.src.capacites.vocaux, A.src.capacites.fichiers, A.src.capacites.avatars, A.src.capacites.reglages, A.src.capacites.appels, A.src.capacites.reunions, A.src.capacites.actionsMessage], [true, true, true, true, true, false, false, true]);
+    v('population : aucune capacité fantôme — le service sait les pièces (photos, vocaux, fichiers, photos de profil) et les réglages (test-944 les joue), les réunions programmées (test-976 les joue), et dit « bientôt » aux appels (l\'étape 7)', [A.src.capacites.photos, A.src.capacites.vocaux, A.src.capacites.fichiers, A.src.capacites.avatars, A.src.capacites.reglages, A.src.capacites.appels, A.src.capacites.reunions, A.src.capacites.actionsMessage], [true, true, true, true, true, false, true, true]);
     vrai('⛔ aucun jeton ni identifiant de session dans le module (le cookie est HttpOnly, il ne passe jamais par le JavaScript)', !/opm_[A-Za-z0-9_-]{43}/.test(JSON.stringify(A.src.moi())) && !JSON.stringify(Object.keys(A.src)).includes('jeton'));
 
     /* ══ 2. LES CONTACTS PAR LIEN ═════════════════════════════════════════════════════════════════════════════════════════ */
