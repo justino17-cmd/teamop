@@ -142,7 +142,13 @@ function installerPieces(H, ctx) {
     const p = req.piece, total = p.taille;
     /* le fichier doit être là ET annoncer la taille que la base annonce — sinon la ligne ment (fichier perdu, remplacé) : on le dit à /health, on ne sert rien */
     const reel = await pieces.taille(p.id);
-    if (reel === null || reel !== total) { ctx.piecesEtat.illisibles++; ctx.journaliser('piece_illisible', { nom: 'fichier_absent' }); return refus(res, 404, 'introuvable'); }
+    if (reel === null || reel !== total) {
+      /* ⛔ UNE COURSE LECTURE / SUPPRESSION N'EST PAS UNE PIÈCE ABÎMÉE (relecture du gardien, A1). La garde J a laissé passer la lecture, puis « supprimer pour tous » (ou un éphémère échu) a effacé la
+         ligne ET le fichier avant qu'on l'ouvre : le fichier manque, mais sa ligne aussi — personne n'a perdu quoi que ce soit. Seule une ligne qui EXISTE ENCORE avec un fichier qui manque est une perte :
+         sans cette relecture, 40 courses faisaient compter 300 pièces « illisibles » et l'alarme de la surveillance restait allumée pour toujours. */
+      if (stockage.pieceExiste(p.id)) { ctx.piecesEtat.illisibles++; ctx.journaliser('piece_illisible', { nom: 'fichier_absent' }); }
+      return refus(res, 404, 'introuvable');
+    }
 
     let debut = 0, fin = total - 1, partiel = false;
     const rg = req.headers.range;
@@ -182,8 +188,9 @@ function installerPieces(H, ctx) {
       }
       res.end();
     } catch (e) {
-      /* un bloc qui ne s'authentifie pas : les en-têtes sont partis, on coupe net (le client reçoit un fichier incomplet, jamais des octets faux) et on le COMPTE */
-      ctx.piecesEtat.illisibles++; ctx.journaliser('piece_illisible', { nom: e && e.code });
+      /* un bloc qui ne s'authentifie pas : les en-têtes sont partis, on coupe net (le client reçoit un fichier incomplet, jamais des octets faux) et on le COMPTE — sauf si la pièce a été effacée
+         pendant qu'on la lisait (même course que ci-dessus : sa ligne n'existe plus) */
+      if (stockage.pieceExiste(p.id)) { ctx.piecesEtat.illisibles++; ctx.journaliser('piece_illisible', { nom: e && e.code }); }
       try { res.destroy(); } catch (x) { /* déjà fermée */ }
     }
   });

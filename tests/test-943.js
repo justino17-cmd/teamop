@@ -91,8 +91,48 @@ function migration() {
   v3b.fermer();
 }
 
+/* ══ 0 bis. LE GESTIONNAIRE DE LECTURE, DÉPENDANCES INJECTÉES (relecture du gardien, A1) ══════════════════════════════════════════════════════════
+   Une course lecture / suppression ne se joue pas à coup sûr sur un vrai service : la fenêtre entre la garde et l'ouverture du fichier dure une centaine de microsecondes. On monte donc le VRAI
+   gestionnaire `pieces.lire` avec un stockage et un disque de papier, et on le met dans chacune des deux situations — la ligne existe encore, la ligne a disparu — pour chaque façon d'échouer. */
+async function gestionnaireLecture() {
+  console.log('Le gestionnaire de lecture, dépendances injectées : une pièce effacée pendant qu\'on la lit n\'est pas une pièce « illisible »');
+  const { installerPieces } = require(path.join(T.SERVICE, 'routes-pieces.js'));
+  const H = {}, etat = { illisibles: 0 }, journal = [];
+  const decor = { existe: true, taille: null, erreurLecture: null };
+  installerPieces(H, {
+    config: { pieces: piecesConfig({}), quotas: {} }, stockage: { pieceExiste: () => decor.existe }, quotas: {}, hub: {}, horloge: Date.now, reservations: {}, disque: { libreMo: () => 1e9 },
+    pieces: { taille: async () => decor.taille, lire: async function* () { if (decor.erreurLecture) throw decor.erreurLecture; yield Buffer.from('x'); } },
+    piecesEtat: etat, journaliser: (nom) => journal.push(nom),
+  });
+  const piece = { id: 'f_' + 'a'.repeat(32), taille: 1, mime: 'application/octet-stream', genre: 'fichier', nom: 'x.bin' };
+  const jouer = () => new Promise((ok) => {
+    const rep = { code: null, corps: null, detruite: false };
+    const fin = () => ok(rep);
+    const res = { destroyed: false, writableEnded: false, headersSent: false,
+      status(c) { rep.code = c; return this; }, set() { return this; }, json(o) { rep.corps = o; fin(); return this; }, write() { return true; }, end() { this.writableEnded = true; rep.code = rep.code || 200; fin(); },
+      destroy() { this.destroyed = true; rep.detruite = true; fin(); }, on() {}, off() {} };
+    H['pieces.lire']({ piece, headers: {}, method: 'GET' }, res, () => {});
+  });
+  const cas = async (existe, taille, erreurLecture) => { Object.assign(decor, { existe, taille, erreurLecture }); const avant = etat.illisibles; const rep = await jouer(); return { rep, compte: etat.illisibles - avant }; };
+  let c = await cas(true, null, null);
+  v('population : le fichier manque ET sa ligne existe encore (une vraie perte) : 404, comptée « illisible », et journalisée', [c.rep.code, c.compte, journal.length], [404, 1, 1]);
+  c = await cas(false, null, null);
+  v('⛔ le fichier manque et sa LIGNE AUSSI a disparu (supprimée entre la garde et l\'ouverture) : 404, et RIEN n\'est compté — personne n\'a rien perdu', [c.rep.code, c.compte], [404, 0]);
+  c = await cas(true, 999, null);
+  v('la taille du fichier ne colle pas à celle de la ligne, la ligne existe : comptée', [c.rep.code, c.compte], [404, 1]);
+  c = await cas(false, 999, null);
+  v('⛔ …et la ligne a disparu entre-temps : non comptée', [c.rep.code, c.compte], [404, 0]);
+  c = await cas(true, 1, Object.assign(new Error('x'), { code: 'piece_corrompue' }));
+  v('un bloc qui ne s\'authentifie pas en cours de lecture, la ligne existe : la connexion est coupée et la pièce comptée', [c.rep.detruite, c.compte], [true, 1]);
+  c = await cas(false, 1, Object.assign(new Error('x'), { code: 'introuvable' }));
+  v('⛔ le fichier disparaît PENDANT la lecture parce que la pièce vient d\'être supprimée : connexion coupée, mais non comptée', [c.rep.detruite, c.compte], [true, 0]);
+  c = await cas(true, 1, null);
+  v('contre-épreuve : une lecture saine rend 200 et ne compte rien', [c.rep.code, c.compte], [200, 0]);
+}
+
 (async () => {
   migration();
+  await gestionnaireLecture();
   const og = await T.fauxOpGestion(COMPTES());
   const svc = await T.lancerService({ urlGestion: og.url, horloge: true, config: {
     balayageMs: 150, presenceGraceMs: 300, pulsationMs: 400,
@@ -380,6 +420,21 @@ function migration() {
       v('⛔ son identifiant est noté dans `purge` (comme un éphémère), pour qu\'une restauration rejoue l\'effacement', purge(p1), ['piece']);
       v('une pièce d\'un AUTRE message du même groupe n\'est pas touchée', [(await lire(A, p2)).code, fs.existsSync(fichierDe(p2))], [200, true]);
       v('supprimer deux fois pour tous ne casse rien (idempotent)', (await A.post('/api/conversations/' + Gl + '/messages/supprimer', { seq: m1.j.seq, pour: 'tous' })).code, 200);
+      /* ⛔ A1 au service : 25 suppressions « pour tous » pendant que huit lectures de la même photo courent — aucune pièce n'est comptée « illisible » (avant le correctif : des centaines, l'alarme restait allumée) */
+      const illisibles = async () => (await (await fetch(svc.base + '/health')).json()).pieces.illisibles;
+      const ill0 = await illisibles(), Gc = await groupe(A, 'Course', [B]);       // un groupe à part : Bruno a été retiré de celui-ci plus haut
+      let lus = 0, perdus = 0, coupees = 0;
+      /* une lecture que la suppression rattrape EN COURS DE ROUTE voit sa connexion coupée net (le service ne rend jamais d'octets faux) : `fetch` jette, c'est une lecture perdue comme les autres */
+      const lireCourse = (c, id) => lire(c, id).catch(() => ({ code: 0 }));
+      for (let k = 0; k < 25; k++) {
+        const pk = await photo(A, Gc), mk = await envoyer(A, Gc, { type: 'photo', pieces: [{ id: pk, w: 8, h: 8 }] });
+        const avant = Array.from({ length: 4 }, () => lireCourse(B, pk));        // quatre lectures déjà parties…
+        await new Promise((ok) => setImmediate(ok));
+        const rs = await Promise.all([A.post('/api/conversations/' + Gc + '/messages/supprimer', { seq: mk.j.seq, pour: 'tous' }), ...Array.from({ length: 4 }, () => lireCourse(B, pk)), ...avant]);   // …la suppression et quatre autres dans leur sillage
+        for (const r of rs.slice(1)) { if (r.code === 200) lus++; else if (r.code === 0) coupees++; else perdus++; }
+      }
+      vrai('population : les 200 lectures se sont réparties entre « lue », « 404 » et « connexion coupée » (' + lus + ' lues, ' + perdus + ' refusées, ' + coupees + ' coupées) — les suppressions et les lectures se sont bien croisées', lus + perdus + coupees === 200 && lus > 0 && perdus + coupees > 0);
+      v('⛔ …et aucune pièce n\'a été comptée « illisible » par ces courses', (await illisibles()) - ill0, 0);
       /* un administrateur supprime le message d'un autre */
       const Gm = await groupe(A, 'Modération', [B]);
       const pb = await photo(B, Gm); const mb = await envoyer(B, Gm, { type: 'photo', pieces: [{ id: pb, w: 8, h: 8 }] });
