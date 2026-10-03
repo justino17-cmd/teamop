@@ -253,8 +253,9 @@ m2('C11', 'une rafale d\'événements fait autant d\'acquittements (ni la minute
   [[F.src, 'if (ackMinuterie) return;', ''], [F.src, 'if (mort || g <= ackEnvoye) return;', 'if (mort) return;']], ['958']);
 m2('C12', 'un acquittement déjà envoyé est renvoyé (ni la garde à l\'entrée, ni la garde au départ de la minuterie)',
   [[F.src, 'if (!Number.isInteger(gid) || gid <= ackEnvoye || mort) return;', 'if (!Number.isInteger(gid) || mort) return;'], [F.src, 'if (mort || g <= ackEnvoye) return;', 'if (mort) return;']], ['958']);
-m('C18', 'la minuterie de groupement des acquittements est perdue (la garde au départ de la minuterie rattrape)', F.src, 'if (ackMinuterie) return;', '', ['958'],
-  EQ('chaque minuterie qui se déclenche voit `g <= ackEnvoye` et ne fait rien : une seule requête part quand même'));
+/* C18 était « équivalente » (la garde `g <= ackEnvoye` du départ de la minuterie rattrapait) — vrai seulement si la réponse revient avant la minuterie suivante : tombée une fois sur six sur une machine chargée.
+   Le banc retient maintenant la réponse de l'acquittement (la requête reste en vol, `ackEnvoye` n'est pas posé) : huit minuteries envoient plusieurs requêtes, de façon CERTAINE. */
+m('C18', 'la minuterie de groupement des acquittements est perdue (huit événements, huit minuteries : chacune part pendant que la première requête vole)', F.src, 'if (ackMinuterie) return;', '', ['958']);
 m('C19', 'un acquittement déjà envoyé est ré-armé à l\'entrée (la garde au départ de la minuterie rattrape)', F.src, 'if (!Number.isInteger(gid) || gid <= ackEnvoye || mort) return;', 'if (!Number.isInteger(gid) || mort) return;', ['958'],
   EQ('la minuterie voit `g <= ackEnvoye` et ne fait rien : aucune requête ne part'));
 m('C13', 'la demande de suppression n\'envoie plus le mot de confirmation (le service la refuse toujours)', F.api, "supprimerCompte: () => appel('POST', '/api/compte/supprimer', { confirmation: 'SUPPRIMER' }),", "supprimerCompte: () => appel('POST', '/api/compte/supprimer', {}),", ['958']);

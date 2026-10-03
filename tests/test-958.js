@@ -276,13 +276,19 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (180 s)');
       await att(() => M.evs.some(e => e.type === 'liste'));
       fm.visible = true;
       M.reseau.requetes.length = 0;
+      /* ⛔ LA RÉPONSE DE L'ACQUITTEMENT EST RETENUE (450 ms) : la requête reste « en vol » — `ackEnvoye` n'est posé qu'à son retour. C'est ce qui sépare UNE minuterie de groupement de huit : avec huit minuteries,
+         chacune qui se déclenche pendant que la première requête vole voit `g > ackEnvoye` (rien n'est encore « envoyé ») et part à son tour — plusieurs requêtes. Sans cette rétention, la garde du départ rattrapait
+         la mutation C18 une fois sur deux sur une machine chargée (vu une fois sur six, 3 octobre 2026) : elle n'était « équivalente » que si la réponse revenait avant la minuterie suivante. */
+      M.reseau.retarder = /POST \/api\/flux\/ack/;
       for (let i = 0; i < 8; i++) await ecrire(Bob, AB, 'rafale ' + i);
       const dernier = await att(() => M.reseau.gids.length >= 8 && M.reseau.gids[M.reseau.gids.length - 1]);
       const acks = await att(() => M.requetes(/POST \/api\/flux\/ack/).length >= 1 && M.requetes(/POST \/api\/flux\/ack/));
       vrai('population : la page a reçu les huit messages de la rafale', !!dernier && M.reseau.gids.length >= 8);
       await att(() => { const r = M.requetes(/POST \/api\/flux\/ack/); return r.length && JSON.parse(r[r.length - 1].corps).gid === dernier; });
       const envoyes = M.requetes(/POST \/api\/flux\/ack/).map(r => JSON.parse(r.corps).gid);
-      v('⛔ une rafale de huit messages = UNE requête d\'acquittement, avec le plus grand identifiant d\'événement', [envoyes.length, envoyes[envoyes.length - 1] === dernier], [1, true]);
+      v('⛔ une rafale de huit messages = UNE requête d\'acquittement, avec le plus grand identifiant d\'événement — même quand la réponse est retenue (la requête est en vol)', [envoyes.length, envoyes[envoyes.length - 1] === dernier], [1, true]);
+      await T.dort(700);                  // la réponse retenue arrive : l'identifiant est « envoyé » — c'est la suite du banc (le rejeu) qui compte dessus
+      M.reseau.retarder = null;
       /* le MÊME évènement rejoué (une reconnexion qui rejoue ce que la page a déjà montré) : son identifiant est déjà acquitté, la page ne le redit pas. On laisse passer plus de quatre fois la minuterie
          de groupement (60 ms) : un acquittement du rejeu, s'il devait partir, serait parti. Puis un message NEUF sert de sentinelle — sans elle, « aucun acquittement » pourrait être celui d'une page morte ;
          et il ne doit pas suivre le rejeu de trop près, sinon les deux se grouperaient en UNE requête et la mutation passerait inaperçue (vu sur C12). */
