@@ -51,7 +51,7 @@ function paireVapid() {
      pas reçu » et sept échecs étaient comptés au lieu de six — un envoi réussi compté comme un échec. Cause probable, NON reproduite (quatre passages verts sous une charge épinglée sur le processeur du banc) : une
      boucle d'évènements du service arrêtée plus de 700 ms (un `fsync` de SQLite sur un disque partagé, un processeur pris par d'autres chantiers) laisse la minuterie partir avant la réponse déjà arrivée. Trois secondes
      laissent la marge, et l'appareil muet ne coûte que ce délai par essai. La production attend 8 secondes. */
-  const PUSH_CFG = { ackMs: ACK_MS, echecsMax: 2, timeoutMs: 3000, contact: 'mailto:exploitation@exemple.invalid' };
+  const PUSH_CFG = { ackMs: ACK_MS, echecsMax: 2, etalementMs: 1500, timeoutMs: 3000, contact: 'mailto:exploitation@exemple.invalid' };
   const demarrer = (extra) => T.lancerService(Object.assign({ dossier, cle, urlGestion: og.url, env: { OPMSG_TEST_PUSH: fps.hote } }, extra || {}));
   let svc = null;
   const flux = [];
@@ -91,7 +91,7 @@ function paireVapid() {
       const pub = Buffer.from(cfg.j.push.vapid, 'base64url');
       v('c\'est un point P-256 non compressé (65 octets, préfixe 4)', [pub.length, pub[0]], [65, 4]);
       const h = await sante();
-      v('/health.push au départ : actif, aucun abonnement, rien envoyé, aucun échec', h.push, { actif: true, abonnements: 0, envoyes24h: 0, echecs24h: 0 });
+      v('/health.push au départ : actif, aucun abonnement, rien envoyé, aucun échec, aucun refus de nos clés', h.push, { actif: true, abonnements: 0, envoyes24h: 0, echecs24h: 0, refuses24h: 0 });
       vrai('population : le balayage de la base voit la clé PUBLIQUE (elle est en clair dans la base) — il sait donc regarder', dansBase(PAIRE.pub));
       v('⛔ la clé VAPID PRIVÉE n\'est NULLE PART en clair dans la base (ni en base64url, ni en octets bruts, ni en hexadécimal)', [dansBase(PAIRE.priv), dansBase(PAIRE.privOctets), dansBase(PAIRE.privOctets.toString('hex'))], [false, false, false]);
       vrai('population : le journal du service est lu (le démarrage y est)', /demarre/.test(svc.sortie.texte()));
@@ -336,24 +336,33 @@ function paireVapid() {
       flC.fermer();
     }
 
-    console.log('\nLes pannes du service push : 410, 500, redirection, silence');
+    console.log('\nLes pannes du service push : 410 retire tout de suite ; 500, redirection, silence, 403 ne retirent JAMAIS ; un refus 400 ne retire qu\'après deux de suite ET une durée');
     {
-      const cG = dev('cleo-gone'), c5 = dev('cleo-500'), cR = dev('cleo-redir'), cS = dev('cleo-silence');
-      const STATUTS = { [cG.chemin]: 410, [c5.chemin]: 500, [cR.chemin]: { redirige: fps.base + '/leak' }, [cS.chemin]: 'silence' };
+      const cG = dev('cleo-gone'), c5 = dev('cleo-500'), cR = dev('cleo-redir'), cS = dev('cleo-silence'), c4 = dev('cleo-400'), cF = dev('cleo-403');
+      const STATUTS = { [cG.chemin]: 410, [c5.chemin]: 500, [cR.chemin]: { redirige: fps.base + '/leak' }, [cS.chemin]: 'silence', [c4.chemin]: 400, [cF.chemin]: 403 };
       fps.statut = (e) => STATUTS[e.chemin] || 201;
-      for (const d of [cG, c5, cR, cS]) await abonner(C, d);
-      v('population : Cléo a cinq appareils (le sien sain et quatre qui échouent)', abosDe(C.moi.id), 5);
+      for (const d of [cG, c5, cR, c4, cF]) await abonner(C, d);
+      v('population : Cléo a six appareils (le sien sain et cinq qui échouent chacun à sa façon)', abosDe(C.moi.id), 6);
+      /* les lignes de Cléo, de la plus récente à la plus ancienne : cF (403), c4 (400), cR, c5 — le nombre de refus comptés de chacune */
+      const refusDe = (rang) => sql('SELECT echecs FROM push WHERE uid = ? ORDER BY id DESC LIMIT 1 OFFSET ?', C.moi.id, rang).echecs;
       const avantOk = (await sante()).push;
       const r1 = await C.post('/api/push/essai', {});
-      v('l\'essai dit combien ont REÇU : un seul sur cinq', [r1.j.appareils, r1.j.envoyes], [5, 1]);
-      v('⛔ 410 Gone : l\'abonnement est retiré tout de suite', [abosDe(C.moi.id), (await C.post('/api/push/desabonner', { endpoint: cG.sub.endpoint })).j.retire], [4, 0]);
-      v('500, redirection, silence : gardés après UN échec (le seuil est de deux)', abosDe(C.moi.id), 4);
+      v('l\'essai dit combien ont REÇU : un seul sur six', [r1.j.appareils, r1.j.envoyes], [6, 1]);
+      v('⛔ 410 Gone : l\'abonnement est retiré tout de suite (cinq restent)', abosDe(C.moi.id), 5);
       const r2 = await C.post('/api/push/essai', {});
-      v('deuxième essai : les trois qui échouent encore sont retirés (échecs répétés)', [r2.j.appareils, r2.j.envoyes, abosDe(C.moi.id)], [4, 1, 1]);
+      v('deuxième essai, aussitôt : le 400 est compté DEUX fois (le seuil) mais pas encore retiré — une série serrée n\'est pas un abonnement mort ; le 403, le 500 et la redirection ne sont pas comptés du tout',
+        [r2.j.appareils, r2.j.envoyes, abosDe(C.moi.id), refusDe(1), [refusDe(0), refusDe(2), refusDe(3)]], [5, 1, 5, 2, [0, 0, 0]]);
+      await abonner(C, cS);                                                // un appareil MUET : le service push ne répond jamais (le délai est de trois secondes)
+      await T.dort(1700);                                                  // la série du 400 dure maintenant plus que `etalementMs` (1,5 s)
+      const r3 = await C.post('/api/push/essai', {});
+      v('⛔ troisième essai, plus d\'une seconde et demie après le premier refus : le 400 (DEUX refus de suite sur plus que l\'étalement) est retiré — et SEUL lui (le muet, lui, a attendu son délai)', [r3.j.appareils, abosDe(C.moi.id)], [6, 5]);
+      v('⛔ 500 (panne), redirection, silence (délai) et 403 (nos clés refusées) sont toujours là — ils ne retirent jamais ; le 400 et le 410 sont partis (retirer chacun rend 0)',
+        await Promise.all([c5, cR, cS, cF, c4, cG].map(async d => (await C.post('/api/push/desabonner', { endpoint: d.sub.endpoint })).j.retire)), [1, 1, 1, 1, 0, 0]);
       v('⛔ la redirection n\'a JAMAIS été suivie : le faux service n\'a vu aucune requête vers /leak', fps.envois.filter(e => e.chemin === '/leak').length, 0);
-      vrai('population : la redirection a bien été répondue (le point d\'accès a été appelé avant)', fps.envois.filter(e => e.chemin === cR.chemin).length >= 2);
+      vrai('population : la redirection a bien été répondue (le point d\'accès a été appelé avant)', fps.envois.filter(e => e.chemin === cR.chemin).length >= 3);
       const h = await sante();
-      v('/health.push.echecs24h compte les échecs (3 appareils × 2 essais) ; un 410 n\'est PAS un échec (un appareil qui disparaît est normal)', h.push.echecs24h - avantOk.echecs24h, 6);
+      v('/health.push.echecs24h compte tous les échecs : quatre appareils qui échouent aux deux premiers essais, cinq au troisième (le muet) ; un 410 n\'est PAS un échec (un appareil qui disparaît est normal)', h.push.echecs24h - avantOk.echecs24h, 13);
+      v('⛔ /health.push.refuses24h compte à part les refus de NOS clés (le 403, trois essais) : la surveillance crie dessus', h.push.refuses24h - avantOk.refuses24h, 3);
       fps.statut = 201;
     }
 
@@ -473,7 +482,7 @@ function paireVapid() {
       const j = svc.sortie.texte();
       v('⛔ le journal du service ne porte ni point d\'accès, ni clé, ni texte de message, ni nom', [j.includes('/push/'), j.includes(A1.sub.keys.p256dh), j.includes(A1.sub.keys.auth), j.includes('secret-9QX'), j.includes('Alice'), j.includes('Durand'), j.includes(PAIRE.priv)], [false, false, false, false, false, false, false]);
       v('⛔ /health ne porte aucun point d\'accès (des nombres seulement)', JSON.stringify(await sante()).includes('/push/'), false);
-      v('/health.push : exactement quatre champs (actif, abonnements, envoyes24h, echecs24h)', Object.keys((await sante()).push).sort(), ['abonnements', 'actif', 'echecs24h', 'envoyes24h']);
+      v('/health.push : exactement cinq champs (actif, abonnements, envoyes24h, echecs24h, refuses24h)', Object.keys((await sante()).push).sort(), ['abonnements', 'actif', 'echecs24h', 'envoyes24h', 'refuses24h']);
       const cfg = await T.client(base()).get('/api/config');
       v('/api/config ne publie que la clé PUBLIQUE', JSON.stringify(cfg.j).includes(PAIRE.priv), false);
       v('/api/config dit le délai de suppression d\'un compte (la page le LIT, elle ne le recopie pas)', cfg.j.limites.suppression_jours, 14);

@@ -1446,14 +1446,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function pushRetirer(uid, endpoint) { return num(Q('DELETE FROM push WHERE endpoint_h = ? AND uid = ?').run(hPush(endpoint), uid).changes); }
   function pushRetirerId(id) { return num(Q('DELETE FROM push WHERE id = ?').run(id).changes); }
   function pushOk(id) { Q('UPDATE push SET echecs = 0, derniere_ok = ? WHERE id = ?').run(horloge(), id); }
-  /* Un échec de plus ; au `max`-ième de SUITE l'abonnement part (le service push ne répond plus, ou refuse nos clés). → { retire } */
-  function pushEchec(id, max) {
+  /* Un REFUS de plus du service push à CET abonnement (une réponse 4xx qui ne dit ni « disparu » ni « tes clés sont refusées » : voir `push.js`). → { echecs } : le nombre de refus de suite, remis à zéro par une livraison
+     (`pushOk`). Le RETRAIT n'est pas ici : il se juge dans `push.js`, qui sait l'heure du premier refus de la série — cinq refus en cinq minutes ne retirent personne (relevé par le gardien, 3 octobre 2026). */
+  function pushEchec(id) {
     return tx(() => {
-      const r = Q('SELECT echecs FROM push WHERE id = ?').get(id);
-      if (!r) return { retire: false };
-      if (r.echecs + 1 >= max) { Q('DELETE FROM push WHERE id = ?').run(id); return { retire: true }; }
       Q('UPDATE push SET echecs = echecs + 1 WHERE id = ?').run(id);
-      return { retire: false };
+      const r = Q('SELECT echecs FROM push WHERE id = ?').get(id);
+      return { echecs: r ? num(r.echecs) : 0 };
     });
   }
   function pushSupprimerPersonne(uid) { return num(Q('DELETE FROM push WHERE uid = ?').run(uid).changes); }

@@ -449,7 +449,7 @@ const attente = () => new Promise(r => setTimeout(r, 25));
   }
 
   /* ══ 6. LES STATUTS DU SERVICE PUSH ═════════════════════════════════════════════════════════════════════════════════════════ */
-  console.log('\nLes réponses du service push : 404 et 410 retirent l\'abonnement, les autres échecs se comptent, cinq de suite le retirent');
+  console.log('\nLes réponses du service push : 404 et 410 retirent l\'abonnement ; un refus 4xx se compte (cinq de suite sur plus d\'une heure le retirent) ; 401/403, une panne, le réseau : jamais');
   {
     const m = monter();
     const al = m.pers('Alice'), bo = m.pers('Bruno');
@@ -473,28 +473,57 @@ const attente = () => new Promise(r => setTimeout(r, 25));
       v('   ...et ce n\'est PAS compté comme un échec de /health (un appareil qui disparaît est le fonctionnement normal : la surveillance ne doit pas crier)', m.push.sante().echecs24h, echecsAvant);
       m.abonne(bo.id);
     }
+    /* ⛔ relevé par le gardien le 3 octobre 2026 : cinq 503 de suite (une PANNE du service push), puis une coupure réseau de NOTRE côté, retiraient TOUS les abonnements — que seule l'ouverture de l'application
+       sur chaque appareil rend. Trois classes : un refus du service à CET abonnement (4xx) se compte et ne retire qu'après cinq de suite ET une heure ; 401/403 (nos clés) ne retirent jamais ; tout le reste
+       (5xx, 429, redirection, réseau, délai) ne compte pas du tout. */
     m.S.pushSupprimerPersonne(bo.id);
-    m.abonne(bo.id); m.reponse.statut = 500;
-    for (let i = 1; i <= 4; i++) await un();
-    v('500 quatre fois de suite : l\'abonnement est encore là, 4 échecs comptés', [nb(), echecs()], [1, 4]);
-    m.reponse.statut = 201; await un();
-    v('⛔ un succès remet le compte à zéro', [nb(), echecs()], [1, 0]);
-    m.reponse.statut = 500;
-    for (let i = 1; i <= 4; i++) await un();
-    v('   (quatre échecs de plus ne suffisent pas : il en faut CINQ DE SUITE)', [nb(), echecs()], [1, 4]);
-    await un();
-    v('⛔ le cinquième échec de suite retire l\'abonnement', nb(), 0);
     m.abonne(bo.id);
-    for (const [nom, st] of [['429 (trop de demandes)', 429], ['403 (nos clés refusées)', 403], ['302 (une redirection n\'est pas suivie : un échec)', 302], ['413', 413], ['503', 503]]) {
-      m.reponse.statut = 201; await un();   // un succès remet le compte à zéro : chaque statut se juge seul
-      m.reponse.statut = st; await un();
-      v(nom + ' : compté comme un échec, l\'abonnement reste', [nb(), echecs()], [1, 1]);
-    }
-    m.S.pushSupprimerPersonne(bo.id); m.abonne(bo.id);
+    const sante0 = m.push.sante();
+    m.reponse.statut = 503;
+    for (let i = 1; i <= 8; i++) { m.h.t += 25 * 60000; await un(); }
+    v('⛔ une PANNE du service push (huit 503 de suite, étalés sur plus de trois heures) ne retire PAS l\'abonnement et n\'entre pas dans la série de refus', [nb(), echecs()], [1, 0]);
+    v('   mais /health les compte tous (huit échecs) : la surveillance doit voir une panne', m.push.sante().echecs24h - sante0.echecs24h, 8);
     m.reponse.statut = 201; m.reponse.leve = true;
-    const rl = await un();
-    v('⛔ un transport qui LÈVE ne fait pas tomber le module : l\'échec est compté, la promesse se résout', [nb(), echecs(), rl[0].envoyes], [1, 1, 0]);
+    for (let i = 1; i <= 6; i++) { m.h.t += 25 * 60000; await un(); }
+    v('⛔ une panne de NOTRE côté (le transport lève, six fois de suite sur plus de deux heures) ne retire pas non plus', [nb(), echecs()], [1, 0]);
     m.reponse.leve = false;
+    for (const [nom, st] of [['429 (« réessaie plus tard »)', 429], ['302 (une redirection n\'est pas suivie)', 302], ['500', 500], ['503', 503]]) {
+      m.reponse.statut = 201; await un();
+      m.reponse.statut = st;
+      for (let i = 1; i <= 7; i++) { m.h.t += 10 * 60000; await un(); }
+      v(nom + ' : sept fois de suite sur plus d\'une heure — jamais compté comme un refus de l\'abonnement, il reste', [nb(), echecs()], [1, 0]);
+    }
+    /* 401 et 403 : NOS clés sont refusées — la faute n'est pas à l'abonnement */
+    const avantRefus = m.push.sante();
+    for (const st of [401, 403]) {
+      m.reponse.statut = 201; await un();
+      m.reponse.statut = st;
+      for (let i = 1; i <= 7; i++) { m.h.t += 10 * 60000; await un(); }
+      v('⛔ ' + st + ' (le service push refuse NOS clés VAPID) : sept fois sur plus d\'une heure — l\'abonnement n\'est JAMAIS retiré pour cela', [nb(), echecs()], [1, 0]);
+    }
+    v('   et c\'est compté À PART pour la surveillance (14 refus), en plus des échecs de /health', [m.push.sante().refuses24h - avantRefus.refuses24h, m.push.sante().echecs24h - avantRefus.echecs24h], [14, 14]);
+    /* le vrai refus : 400 */
+    m.reponse.statut = 201; await un();
+    m.reponse.statut = 400;
+    for (let i = 1; i <= 5; i++) await un();
+    v('⛔ cinq refus 400 de suite, le MÊME instant : comptés (5), l\'abonnement reste — une série serrée est une panne, pas un abonnement mort', [nb(), echecs()], [1, 5]);
+    m.h.t += 30 * 60000; await un();
+    v('   une demi-heure plus tard, un sixième : il reste (il faut une HEURE depuis le premier refus de la série)', [nb(), echecs()], [1, 6]);
+    m.h.t += 31 * 60000; await un();
+    v('⛔ plus d\'une heure après le premier refus et plus de cinq de suite : l\'abonnement est retiré', nb(), 0);
+    /* une livraison remet la série à zéro — le compte ET l'heure du premier refus */
+    m.abonne(bo.id);
+    m.reponse.statut = 400;
+    for (let i = 1; i <= 4; i++) await un();
+    m.reponse.statut = 201; await un();
+    v('⛔ une livraison remet le compte à zéro', [nb(), echecs()], [1, 0]);
+    m.h.t += 2 * 3600000;
+    m.reponse.statut = 400;
+    for (let i = 1; i <= 5; i++) { await un(); m.h.t += 12 * 60000; }
+    v('⛔ ... et l\'HEURE aussi : cinq refus espacés de 12 minutes depuis la livraison ne suffisent pas, la série a recommencé à zéro (sinon l\'ancien premier refus, vieux de deux heures, retirerait tout de suite)', [nb(), echecs()], [1, 5]);
+    await un();
+    v('   le sixième, plus d\'une heure après le premier refus de la NOUVELLE série : retiré', nb(), 0);
+    m.reponse.statut = 201;
 
     /* la liste blanche est RE-VÉRIFIÉE à l'envoi : une ligne ancienne, ou une liste resserrée depuis */
     m.S.pushSupprimerPersonne(bo.id);
@@ -707,7 +736,7 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     v('/health : actif, abonnements, envoyés et échecs des 24 dernières heures — des nombres', [sante.actif, sante.abonnements, sante.envoyes24h, sante.echecs24h], [true, 2, 3, 1]);
     const texte = JSON.stringify(sante);
     vrai('⛔ rien d\'un point d\'accès, d\'une clé, d\'un identifiant dans /health', !texte.includes('fcm.googleapis') && !texte.includes(a1.sub.keys.p256dh) && !texte.includes(a1.sub.keys.auth) && !texte.includes(al.id) && !/https?:/.test(texte));
-    v('les clés de /health sont exactement celles que la surveillance connaît', Object.keys(sante).sort(), ['abonnements', 'actif', 'echecs24h', 'envoyes24h']);
+    v('les clés de /health sont exactement celles que la surveillance connaît', Object.keys(sante).sort(), ['abonnements', 'actif', 'echecs24h', 'envoyes24h', 'refuses24h']);
     m.h.t += 25 * 3600000;
     v('au bout de 24 heures les compteurs repartent de zéro (fenêtre glissante)', [m.push.sante().envoyes24h, m.push.sante().echecs24h], [0, 0]);
     const journaux = JSON.stringify(m.journal);

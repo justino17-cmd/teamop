@@ -23,8 +23,14 @@
  * après 5 s. Plusieurs événements d'une même conversation pendant l'attente n'en font QU'UNE. Elle est RE-JUGÉE à l'instant de partir (`valide`) : sourdine posée entre-temps,
  * conversation quittée, message supprimé « pour tous » — rien de cela ne part.
  *
- * ⛔ UN 404 OU UN 410 DU SERVICE PUSH RETIRE L'ABONNEMENT (l'appareil l'a révoqué) ; tout autre échec est COMPTÉ, et l'abonnement part au `echecsMax`-ième de suite. Aucun point
- * d'accès, aucune clé, aucun texte de message, aucun nom ne va dans un journal ni dans /health : seuls des nombres.
+ * ⛔ UN 404 OU UN 410 DU SERVICE PUSH RETIRE L'ABONNEMENT (l'appareil l'a révoqué). Rien d'autre ne retire un abonnement TROP VITE : relevé par le gardien le 3 octobre 2026, cinq 503 de suite (une
+ * panne du service push) puis une coupure réseau de NOTRE côté retiraient TOUS les abonnements, que seule l'ouverture de l'application sur chaque appareil rend. Trois classes :
+ *   · un REFUS du service à CET abonnement (une réponse 4xx, hors 401, 403, 404, 410, 429) est compté ; l'abonnement part quand ces refus sont `echecsMax` de suite ET que le premier a
+ *     plus de `etalementMs` (une heure) — une série serrée est une panne, pas un abonnement mort ;
+ *   · 401 et 403 : le service push refuse NOS clés VAPID. La faute n'est pas à l'abonnement : jamais de retrait, un compteur à part (`refuses24h`) et la surveillance crie ;
+ *   · tout le reste — panne réseau de notre côté, délai, adresse refusée, file pleine, erreur interne, 5xx, 429 (« réessaie plus tard »), redirection — ne dit RIEN de l'abonnement : il n'est pas
+ *     compté, il ne retire personne (il reste dans `echecs24h` de /health, que la surveillance lit).
+ * Aucun point d'accès, aucune clé, aucun texte de message, aucun nom ne va dans un journal ni dans /health : seuls des nombres.
  *
  * Aucune dépendance au-delà de `web-push` (la même version qu'OP GESTION) : le transport HTTP est fait main, pour tenir la redirection, le délai et l'adresse IP.
  */
@@ -203,7 +209,7 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
   const seaux = new Map();
   function compter(cle, n = 1) {
     const h = Math.floor(horloge() / H);
-    const s = seaux.get(h) || { envoyes: 0, echecs: 0, abandons: 0, retires: 0 };
+    const s = seaux.get(h) || { envoyes: 0, echecs: 0, abandons: 0, retires: 0, refuses: 0 };
     s[cle] += n; seaux.set(h, s);
     for (const k of seaux.keys()) if (k < h - 24) seaux.delete(k);
   }
@@ -227,6 +233,18 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
     });
   }
 
+  /* La série de REFUS d'un abonnement, en mémoire : l'heure du premier. Perdue au redémarrage (la série recommence : on retire moins, jamais plus). */
+  const series = new Map();
+  function refus(abo) {
+    const t = horloge();
+    const n = stockage.pushEchec(abo.id).echecs;
+    let serie = series.get(abo.id);
+    if (!serie || n <= 1) { serie = { premier: t }; series.set(abo.id, serie); }
+    if (series.size > 50000) series.clear();
+    if (n >= pc.echecsMax && t - serie.premier >= pc.etalementMs) { series.delete(abo.id); stockage.pushRetirerId(abo.id); compter('retires'); return { ok: false, retire: true }; }
+    return { ok: false, retire: false };
+  }
+
   /* Envoie UNE charge à UN abonnement. → { ok, retire } */
   async function envoyerUn(abo, payload, o) {
     /* ⛔ la liste blanche est RE-VÉRIFIÉE ici, pas seulement à l'inscription : une ligne ancienne, ou une liste resserrée depuis, ne doit pas faire appeler une adresse refusée */
@@ -236,15 +254,20 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
     try {
       d = webpush.generateRequestDetails({ endpoint: a.url.href, keys: { p256dh: abo.p256dh, auth: abo.auth } }, payload,
         { vapidDetails: { subject: sujet, publicKey: vapid.publique, privateKey: vapid.privee }, TTL: o.ttl, urgency: o.urgence, contentEncoding: 'aes128gcm' });
-    } catch (e) { compter('echecs'); return { ok: false, retire: stockage.pushEchec(abo.id, pc.echecsMax).retire }; }
+    } catch (e) { compter('echecs'); return refus(abo); }   // les clés de CET appareil ne chiffrent rien : le refus est le sien
     let r;
     try { r = await envoyerHttp({ url: a.url, method: d.method, headers: d.headers, body: d.body }); } catch (e) { r = { statut: 0, erreur: 'interne' }; }   // un transport qui lève est un échec de plus, pas une exception qui sort
-    if (r && r.statut >= 200 && r.statut < 300) { stockage.pushOk(abo.id); compter('envoyes'); return { ok: true, retire: false }; }
+    const s = r && Number.isInteger(r.statut) ? r.statut : 0;
+    if (s >= 200 && s < 300) { series.delete(abo.id); stockage.pushOk(abo.id); compter('envoyes'); return { ok: true, retire: false }; }
     /* 404 et 410 : le service push dit que l'appareil n'existe plus — l'abonnement part tout de suite */
     /* (ce n'est pas un ÉCHEC pour la surveillance : un appareil qui disparaît est le fonctionnement normal — on le compte à part) */
-    if (r.statut === 404 || r.statut === 410) { stockage.pushRetirerId(abo.id); compter('retires'); return { ok: false, retire: true }; }
+    if (s === 404 || s === 410) { series.delete(abo.id); stockage.pushRetirerId(abo.id); compter('retires'); return { ok: false, retire: true }; }
     compter('echecs');
-    return { ok: false, retire: stockage.pushEchec(abo.id, pc.echecsMax).retire };
+    /* 401, 403 : c'est NOTRE clé que le service push refuse — ni l'abonnement ni l'appareil n'y sont pour rien. Compté à part, jamais un retrait. */
+    if (s === 401 || s === 403) { compter('refuses'); return { ok: false, retire: false }; }
+    /* seul un refus 4xx du service à CET abonnement compte pour son retrait (429 : « réessaie plus tard »). Réseau, délai, 5xx, redirection : rien n'est dit de l'abonnement. */
+    if (s >= 400 && s < 500 && s !== 429) return refus(abo);
+    return { ok: false, retire: false };
   }
 
   /* Compose le texte qui part, d'après le réglage de CELUI QUI REÇOIT (lu à l'instant de partir) : minimal, ou avec l'aperçu s'il l'a activé. */
@@ -350,7 +373,7 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
     enAttente: () => attentes.size,
     arreter() { for (const a of attentes.values()) annule(a.minuteur); attentes.clear(); },
     /* /health : des NOMBRES (+ un état) — jamais un point d'accès, une clé, une personne */
-    sante: () => ({ actif, abonnements: actif ? stockage.pushCompter() : 0, envoyes24h: somme('envoyes'), echecs24h: somme('echecs') + somme('abandons') }),
+    sante: () => ({ actif, abonnements: actif ? stockage.pushCompter() : 0, envoyes24h: somme('envoyes'), echecs24h: somme('echecs') + somme('abandons'), refuses24h: somme('refuses') }),
   };
 }
 
