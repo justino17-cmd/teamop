@@ -1,0 +1,20 @@
+{
+  "name": "OP MESSAGES",
+  "short_name": "OP MESSAGES",
+  "description": "La messagerie de TEAM OP : messages, appels et réunions.",
+  "lang": "fr",
+  "dir": "ltr",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0e1a3f",
+  "theme_color": "#1a2e6b",
+  "categories": ["business", "productivity", "social"],
+  "icons": [
+    { "src": "opmsg-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "opmsg-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "opmsg-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

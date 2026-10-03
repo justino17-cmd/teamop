@@ -9,7 +9,9 @@
  *      refusé et la page resterait blanche (relecture du gardien, remarque 6) — on adapte le générateur, pas la politique ;
  *   3. la politique de la page (`<meta http-equiv="Content-Security-Policy">`) : celle de l'aperçu interdit tout `fetch` (`default-src 'none'`,
  *      aucun `connect-src`) ; celle du service autorise `connect-src 'self'` et rien d'autre de plus, et ses images/médias ne sortent pas de la page.
- * Plus des retouches de forme : le logo et l'icône se lisent à côté de la page, le titre ne dit plus « aperçu ».
+ * Plus des retouches de forme : le logo et l'icône se lisent à côté de la page, le titre ne dit plus « aperçu », et la page déclare son MANIFESTE (`manifest.webmanifest`) et son
+ * icône d'écran d'accueil — sur iPhone, une page n'a droit aux notifications que « ajoutée à l'écran d'accueil ».
+ * Le service worker (`sw.js`) et le manifeste vivent à côté de `api.js` : ce sont des SOURCES que le générateur ne réécrit pas, mais qu'il REFUSE si elles mentent (voir 5e).
  *
  * ⛔ IL REFUSE UNE SORTIE QUI MENTIRAIT. C'est la panne type de ce dépôt (une garde décrite n'est pas une garde) : une sortie qui garderait la source
  * de DÉMONSTRATION (`simulerRecu`, les conversations d'exemple) servirait de fausses conversations à de vraies personnes ; une sortie qui n'appelle
@@ -36,8 +38,13 @@ const OBLIGATOIRES = ['moi', 'contacts', 'lister', 'ouvrir', 'envoyer', 'marquer
   'demarrer', 'connexion', 'deconnexion', 'surSessionMorte', 'verifierSession', 'personne'];
 /* ce qui n'existe que dans l'aperçu : jamais dans une page servie à de vraies personnes */
 const MARQUES_DEMO = ['simulerRecu', 'creerSourceApercu', 'OPMSG_creerSourceApercu', 'Camille Roux', 'Mathis Lambert', 'Inès Garnier', 'Hugo Perrin', 'Lina Fabre', 'Noé Carpentier', 'Équipe dépôt', 'Chantier Les Tilleuls'];
-const CSP_SERVICE = "default-src 'none'; img-src 'self' blob:; media-src 'self' blob:; style-src 'unsafe-inline'; script-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'";
-const ICONES = ['opmsg-192.png', 'opmsg-favicon-32.png'];
+/* `worker-src` et `manifest-src` sont DITS : le manifeste ne retombe que sur `default-src 'none'` (le navigateur refuserait de le lire, sans erreur visible), et le service worker
+   retomberait sur `script-src` — une règle qu'on n'écrit pas est une règle qu'un resserrement futur retire sans le vouloir. Tous deux `'self'`. */
+const CSP_SERVICE = "default-src 'none'; img-src 'self' blob:; media-src 'self' blob:; style-src 'unsafe-inline'; script-src 'self'; worker-src 'self'; manifest-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'";
+const ICONES = ['opmsg-192.png', 'opmsg-512.png', 'opmsg-apple-touch.png', 'opmsg-favicon-32.png'];
+/* ce que la page déclare pour être installable (et recevoir des notifications sur iPhone) : posé juste après son icône d'onglet */
+const LIGNE_ICONE = '<link rel="icon" href="opmsg-favicon-32.png" type="image/png" sizes="32x32">';
+const LIGNES_PWA = '\n<link rel="manifest" href="manifest.webmanifest">\n<link rel="apple-touch-icon" href="opmsg-apple-touch.png">\n<meta name="mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-title" content="OP MESSAGES">';
 
 const lire = (racine, ...p) => { const f = path.join(racine, ...p); try { return fs.readFileSync(f); } catch (e) { return jette('fichier introuvable : ' + path.relative(racine, f)); } };
 const texte = (racine, ...p) => lire(racine, ...p).toString('utf8');
@@ -53,7 +60,7 @@ function generer(o) {
   const racine = path.resolve(o.racine || path.join(__dirname, '..'));
   const pub = path.join('server-msg', 'public');
   let html = texte(racine, 'apercu', 'opmessages', 'index.html');
-  const api = texte(racine, pub, 'api.js'), source = texte(racine, pub, 'source-serveur.js');
+  const api = texte(racine, pub, 'api.js'), source = texte(racine, pub, 'source-serveur.js'), sw = texte(racine, pub, 'sw.js'), manifeste = texte(racine, pub, 'manifest.webmanifest');
 
   /* ── 1. la pièce de données ── */
   html = remplacerUnique(html, '<script src="source.js"></script>', '<script src="api.js"></script>\n<script src="source-serveur.js"></script>', 'la pièce de données (source.js → api.js + source-serveur.js)');
@@ -74,6 +81,7 @@ function generer(o) {
   /* ── 4. les retouches de forme ── */
   html = html.split('../../icons/opmsg-').join('opmsg-');
   html = remplacerUnique(html, '<title>OP MESSAGES — aperçu</title>', '<title>OP MESSAGES</title>', 'le titre');
+  html = remplacerUnique(html, LIGNE_ICONE, LIGNE_ICONE + LIGNES_PWA, 'les liens du manifeste et de l\'icône d\'écran d\'accueil');
   html = remplacerUnique(html, 'Cet aperçu d\'OP MESSAGES a besoin de JavaScript.', 'OP MESSAGES a besoin de JavaScript.', 'la phrase « sans JavaScript »');
 
   /* ── 5. les refus ── */
@@ -116,6 +124,20 @@ function generer(o) {
   if (!html.includes(CSP_SERVICE)) jette('la politique de la page n\'est pas celle du service');
   if (html.includes('connect-src') && !/connect-src 'self'/.test(html)) jette('connect-src doit être \'self\'');
 
+  /* 5e. le service worker ne sert QUE les notifications, le manifeste dit la vérité */
+  const codeSw = sansCommentairesJs(sw);
+  if (!/addEventListener\(\s*['"]push['"]/.test(codeSw) || !/addEventListener\(\s*['"]notificationclick['"]/.test(codeSw) || !/\bshowNotification\(/.test(codeSw)) jette('sw.js ne reçoit plus de push, ou n\'affiche plus la notification, ou n\'ouvre plus la conversation au toucher');
+  if (/addEventListener\(\s*['"]fetch['"]|\bonfetch\b|\bcaches\b|\bimportScripts\b|\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b/.test(codeSw)) jette('sw.js s\'interpose entre la page et le réseau (fetch, cache, importScripts…) : il ne doit servir QUE les notifications — jamais une page périmée');
+  if (/https?:|(?:^|[^:\w])\/\/[a-z0-9-]+\.[a-z]{2,}/im.test(codeSw)) jette('sw.js référence une adresse d\'un autre domaine');
+  let man = null;
+  try { man = JSON.parse(manifeste); } catch (e) { jette('manifest.webmanifest n\'est pas du JSON'); }
+  if (!man || man.name !== 'OP MESSAGES' || man.display !== 'standalone' || man.start_url !== '/' || man.scope !== '/') jette('le manifeste a changé de forme : il doit nommer « OP MESSAGES », s\'afficher en « standalone », démarrer et avoir pour portée « / »');
+  if (!Array.isArray(man.icons) || !man.icons.length || man.icons.some(i => !i || typeof i.src !== 'string' || !ICONES.includes(i.src))) jette('le manifeste cite une icône que le générateur ne sert pas (ou d\'un autre domaine)');
+  if (!man.icons.some(i => i.sizes === '192x192') || !man.icons.some(i => i.sizes === '512x512')) jette('le manifeste doit offrir une icône de 192 et de 512 pixels (condition pour qu\'une page soit installable)');
+  if (/https?:|\/\/[a-z]/i.test(manifeste)) jette('le manifeste référence une adresse d\'un autre domaine');
+  if (!/^#[0-9a-f]{6}$/i.test(String(man.theme_color)) || !/^#[0-9a-f]{6}$/i.test(String(man.background_color))) jette('le manifeste doit porter ses deux couleurs (theme_color, background_color) en hexadécimal');
+  if ((html.match(/<link rel="manifest" href="manifest\.webmanifest">/g) || []).length !== 1) jette('la page doit déclarer UNE fois son manifeste');
+
   const fichiers = { 'index.html': Buffer.from(html, 'utf8'), 'opmsg-ui.js': Buffer.from(ui, 'utf8') };
   for (const i of ICONES) fichiers[i] = lire(racine, 'icons', i);
   return { fichiers, rapport: { methodes: appelees.length, routes: routes.size, octets: Object.values(fichiers).reduce((a, b) => a + b.length, 0) }, racine, dossier: path.join(racine, pub) };
@@ -135,7 +157,7 @@ function ecarts(g) {
   return diff;
 }
 
-module.exports = { generer, ecrire, ecarts, ErreurGenerateur, OBLIGATOIRES, MARQUES_DEMO, CSP_SERVICE };
+module.exports = { generer, ecrire, ecarts, ErreurGenerateur, OBLIGATOIRES, MARQUES_DEMO, CSP_SERVICE, ICONES, LIGNE_ICONE, LIGNES_PWA };
 
 if (require.main === module) {
   try {

@@ -7,12 +7,17 @@
 <!-- ⛔ FICHIER GÉNÉRÉ par scripts/opmsg-public.js depuis apercu/opmessages/index.html — NE PAS LE MODIFIER À LA MAIN (tests/test-941.js compare).
      La politique ci-dessous est celle du SERVICE : seul `connect-src 'self'` rouvre le réseau (vers le service lui-même, jamais un autre domaine), les scripts viennent tous de
      cette origine (le script en ligne de l'aperçu est extrait dans opmsg-ui.js), les images et les médias ne sortent pas de la page. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' blob:; media-src 'self' blob:; style-src 'unsafe-inline'; script-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' blob:; media-src 'self' blob:; style-src 'unsafe-inline'; script-src 'self'; worker-src 'self'; manifest-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#eef3fb" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2e6b" media="(prefers-color-scheme: dark)">
 <title>OP MESSAGES</title>
 <link rel="icon" href="opmsg-favicon-32.png" type="image/png" sizes="32x32">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="opmsg-apple-touch.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="OP MESSAGES">
 <style>
 /* ══ 1. LES JETONS — LE DOCUMENT `design/opmessages/THEME-OPMESSAGES.md` EST LA SOURCE ══════════════════════════════════
    Les valeurs du tableau « Couleurs » du document sont recopiées ici telles quelles ; celles que le document ne cite pas
