@@ -16,8 +16,14 @@
 const fs = require('fs'), path = require('path'), crypto = require('crypto'), zlib = require('zlib');
 const T = require('./outils-msg');
 const F = require('./outils-pieces');
-const { v, vrai, fin } = T.compteur();
+const C = T.compteur(), { v, vrai, fin } = C;
 T.sauterSiSansDependances();
+/* ⛔ POUR LES MUTATIONS DE LA PAGE (tests/mutations-pieces.js --sondes) : rejouer les sept sections entières pour chaque mutation coûte plus d'une heure sur une machine partagée.
+   SONDE_SECTIONS=6b,3 ne joue que ces sections (1 à 6, 6b = « 6 bis », 7 est toujours jouée mais ne compte que ce qui a eu lieu) ; SONDE_ARRET=1 s'arrête au PREMIER échec (le reste ne prouverait rien
+   de plus : la mutation est tombée) en refermant proprement les navigateurs et le service. Sans ces variables, la sonde joue tout, comme avant. */
+const SECTIONS = (process.env.SONDE_SECTIONS || '').split(',').map(x => x.trim()).filter(Boolean);
+const voulu = (id) => !SECTIONS.length || SECTIONS.includes(id);
+const arretSiRate = () => { if (process.env.SONDE_ARRET === '1' && C.ko > 0) throw new Error('arrêt au premier échec (SONDE_ARRET=1)'); };
 
 let pw; try { pw = require('playwright-core'); } catch (e) {
   for (const c of ['/opt/node22/lib/node_modules/playwright/node_modules/playwright-core', 'playwright']) { try { pw = require(c); break; } catch (_) { /* suivant */ } }
@@ -69,12 +75,14 @@ const lire = (S, sel) => S.page.evaluate(s => { const e = document.querySelector
 const nombre = (S, sel) => S.page.evaluate(s => document.querySelectorAll(s).length, sel);
 async function attendre(S, fn, arg, ms) { try { await S.page.waitForFunction(fn, arg, { timeout: ms || 12000, polling: 50 }); return true; } catch (e) { return false; } }
 async function verifier(titre, S, fn, arg, ms, vu) {
+  arretSiRate();
   const ok = await attendre(S, fn, arg, ms);
   if (ok) vrai(titre, true);
   else { const reste = vu ? await vu().catch(() => '?') : ''; v(titre, 'non vu à temps' + (reste ? ' ; vu : ' + reste : ''), 'vu'); }
   return ok;
 }
 async function toucher(S, sel) {
+  arretSiRate();
   const loc = S.page.locator(sel).filter({ visible: true }).first();
   await loc.scrollIntoViewIfNeeded().catch(() => {});
   S.gestes++;
@@ -168,6 +176,7 @@ async function parcours(b, ctx) {
     const stock = (S) => S.page.evaluate(async () => (await (await fetch('/api/moi/stockage')).json()).utilise);
 
     /* ═══ 1. UNE PHOTO ═════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+    s1: { if (!voulu('1')) break s1;
     console.log('\n── Une photo : choisie, réduite, « Envoi… », vue chez l\'autre sans recharger, dessinée ──');
     await toucher(A, '#compo-plus');
     await verifier('« + » propose « Photo » et « Fichier » (une petite feuille, rien d\'ouvert encore)', A, () => document.querySelectorAll('#menu-msg [data-plus]').length === 2 && !document.getElementById('menu-fond').hidden, null, 4000, () => lire(A, '#menu-msg'));
@@ -197,7 +206,9 @@ async function parcours(b, ctx) {
     vrai('⛔ elle a été RÉDUITE avant de partir : ' + (apres - avant) + ' octets rangés (≤ 250 Ko = 256 000), jamais ses 11 Mo ; et elle tient en ≤ 1 600 px (' + (gros && gros.nw) + ' × ' + (gros && gros.nh) + ', le rapport 3:2 gardé)',
       apres - avant > 20000 && apres - avant <= 256000 && !!gros && gros.nw <= 1600 && gros.nw >= 640 && Math.abs(gros.nw / gros.nh - 1.5) < .01);
 
+    }
     /* ═══ 2. UN FICHIER ════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+    s2: { if (!voulu('2')) break s2;
     console.log('\n── Un fichier : son nom et sa taille, téléchargé octet pour octet, trop lourd refusé AVANT tout envoi ──');
     const pdf = F.pdf(9000);
     await choisirDansPlus(A, 'fichier', { name: 'Rapport 2026.pdf', mimeType: 'application/pdf', buffer: pdf });
@@ -215,7 +226,9 @@ async function parcours(b, ctx) {
     await verifier('⛔ un fichier plus lourd que le maximum du service est refusé sur place, avec la phrase et le maximum', A, () => /trop lourd/.test(document.getElementById('avis').textContent) && /700 Ko au plus/.test(document.getElementById('avis').textContent), null, 8000, () => lire(A, '#avis'));
     v('…sans ouvrir la moindre connexion de dépôt, et sans bulle de plus (population : le refus a eu lieu)', [A.envois.length - envoisAvant, await nombre(A, '#conv-messages .msg.de-moi .fichier')], [0, 2]);
 
+    }
     /* ═══ 3. UN VOCAL ═════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+    s3: { if (!voulu('3')) break s3;
     console.log('\n── Un vocal : enregistré (micro simulé), envoyé, lu chez l\'autre ──');
     const vocauxAvant = await nombre(B, '#conv-messages .vocal');
     /* le compteur de la barre d'enregistrement, relevé à chaque changement : ce que la personne VOIT au moment d'envoyer */
@@ -239,7 +252,9 @@ async function parcours(b, ctx) {
     await verifier('…et la lecture se termine toute seule (le bouton reprend sa forme de repos)', B, () => !document.querySelector('#conv-messages .vocal[data-lecture]'), null, 15000);
     await largeur(B, 'conversation avec vocal et fichier');
 
+    }
     /* ═══ 4. LA PHOTO DE PROFIL ══════════════════════════════════════════════════════════════════════════════════════════════ */
+    s4: { if (!voulu('4')) break s4;
     console.log('\n── La photo de profil : posée par Alice, vue de Bruno en direct, retirée ──');
     await onglet(A, 'reglages');
     await verifier('Réglages : le profil, la confidentialité, les contacts, les appareils, le stockage, l\'à propos, la sortie', A, () => ['reg-profil', 'reg-conf', 'reg-contact', 'reg-autres', 'reg-stock', 'reg-apropos', 'reg-sortir'].every(i => !!document.getElementById(i)) && !!document.querySelector('#reg-conf [data-reg-cle="presence"]'), null, 12000, () => lire(A, '#vue-reglages'));
@@ -262,7 +277,9 @@ async function parcours(b, ctx) {
     await toucher(A, '#g-annuler');
     await verifier('la feuille se referme', A, () => !document.documentElement.classList.contains('feuille-ouverte'), null, 6000);
 
+    }
     /* ═══ 5. LES RÉGLAGES ═══════════════════════════════════════════════════════════════════════════════════════════════════════ */
+    s5: { if (!voulu('5')) break s5;
     console.log('\n── Les réglages : interrupteurs réciproques, refus dit puis effacé, stockage, autres appareils ──');
     await verifier('population : Alice est en ligne pour Bruno (le point vert de la liste)', B, nom => { const l = [...document.querySelectorAll('#liste-conv .conv')].find(x => x.querySelector('.conv-nom').textContent === nom); return !!l && !!l.querySelector('.avatar.en-ligne'); }, NOMS.alice, 12000);
     await A.page.route('**/api/moi/confidentialite', async (route) => {
@@ -289,7 +306,9 @@ async function parcours(b, ctx) {
     await verifier('⛔ l\'autre appareil d\'Alice REPART à l\'écran de connexion (sa session est coupée)', C, () => !document.getElementById('connexion').hidden, null, 12000, () => lire(C, 'body'));
     vrai('population : le nom d\'Alice est toujours dans sa barre', (await lire(A, '#moi-nom')) === NOMS.alice);
 
+    }
     /* ═══ 6. LA PHOTO D'UN GROUPE ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+    s6: { if (!voulu('6')) break s6;
     console.log('\n── La photo d\'un groupe : à la création ──');
     await onglet(A, 'messages');
     await toucher(A, '#btn-groupe');
@@ -303,9 +322,11 @@ async function parcours(b, ctx) {
     await verifier('…et chez Bruno (membre), sans recharger', B, () => { const l = [...document.querySelectorAll('#liste-conv .conv')].find(x => x.querySelector('.conv-nom').textContent.includes('Équipe photo')); return !!l && !!l.querySelector('.avatar[style*="background-image"]'); }, null, 20000, () => B.page.evaluate(() => document.getElementById('liste-conv').innerHTML.slice(0, 400)));
     await capture(B, '6-groupe');
 
+    }
     /* ═══ 6 bis. LA RELECTURE DU TESTEUR (3 octobre 2026) ═════════════════════════════════════════════════════════════════════ */
+    s6b: { if (!voulu('6b')) break s6b;
     console.log('\n── La relecture du testeur : onze photos dites, un GIF qui reste animé, des photos qui gardent leurs proportions, une photo indisponible lisible, une pièce refusée qui reste (Réessayer / Annuler), un statut qui dit vrai ──');
-    await ouvrirConvAvec(A, NOMS.bruno); await ouvrirConvAvec(B, NOMS.alice);
+    if (!SECTIONS.length) { await ouvrirConvAvec(A, NOMS.bruno); await ouvrirConvAvec(B, NOMS.alice); }      // (une section jouée seule : les deux pages n'ont pas quitté la conversation, et une conversation sans message n'est pas dans la liste)
     const photosMsg = (S, sens) => S.page.evaluate(s => [...document.querySelectorAll('#conv-messages .msg.' + s + ' .photos')].map(e => e.querySelectorAll('.photo').length), sens);
     /* les octets de la photo-message la plus récente (k = 0) ou de la k-ième avant elle, lus du SERVICE par la page de Bruno (même origine : le navigateur ne lit pas un blob:) */
     const octetsPiece = async (S, conv, k) => Buffer.from(await S.page.evaluate(async ([c, k2]) => {
@@ -419,16 +440,17 @@ async function parcours(b, ctx) {
     await toucher(B, '[data-reg-cle="presence"]');
     await verifier('il rallume : « Disponible » revient, le point reverdit', B, () => document.getElementById('moi-statut-texte').textContent === 'Disponible' && !document.getElementById('moi-statut').classList.contains('masque'), null, 8000, () => lire(B, '#moi-statut'));
 
+    }
     /* ═══ 7. LA FIN : RIEN D'ANORMAL ═════════════════════════════════════════════════════════════════════════════════════════════ */
     console.log('\n── La fin : aucune erreur, aucun débordement, rien d\'extérieur ──');
     /* un refus du service est LOGUÉ par le navigateur (« Failed to load resource … status of 4xx ») : on les compte et on les NOMME — Alice : la visite sans session (401) et le refus
        que la sonde a fait faire (429) ; Bruno : la visite sans session. Toute autre erreur de console est un défaut. */
     const refus = S => S.console.filter(t => /Failed to load resource/.test(t)).map(t => (/status of (\d{3})/.exec(t) || [])[1] || 'reseau');
-    vrai('Alice : (population) la coupure voulue a bien été vue du navigateur (' + refus(A).filter(x => x === 'reseau').length + ' requête(s) tombée(s) hors ligne)', refus(A).filter(x => x === 'reseau').length >= 1);
+    if (voulu('6b')) vrai('Alice : (population) la coupure voulue a bien été vue du navigateur (' + refus(A).filter(x => x === 'reseau').length + ' requête(s) tombée(s) hors ligne)', refus(A).filter(x => x === 'reseau').length >= 1);
     for (const [S, attendus] of [[A, ['401', '429', '429', '503']], [B, ['401', '404']]]) {
-      vrai(S.nom + ' : (population) ' + S.gestes + ' gestes portés, ' + S.ecrans + ' écrans mesurés en largeur', S.gestes > 3 && S.ecrans >= 2);
+      if (!SECTIONS.length) vrai(S.nom + ' : (population) ' + S.gestes + ' gestes portés, ' + S.ecrans + ' écrans mesurés en largeur', S.gestes > 3 && S.ecrans >= 2);
       v(S.nom + ' : 0 erreur JavaScript, aucune erreur de console autre qu\'un refus attendu', [S.erreurs, S.console.filter(t => !/Failed to load resource/.test(t))], [[], []]);
-      v(S.nom + ' : les refus réseau relevés (hors la coupure voulue) sont exactement ceux qu\'on attendait', refus(S).filter(x => x !== 'reseau').sort(), attendus.slice().sort());
+      if (!SECTIONS.length) v(S.nom + ' : les refus réseau relevés (hors la coupure voulue) sont exactement ceux qu\'on attendait', refus(S).filter(x => x !== 'reseau').sort(), attendus.slice().sort());
       v(S.nom + ' : aucun écran ne déborde de ses ' + S.pf.w + ' px', S.debordements || [], []);
     }
   } finally { for (const S of tous) { try { await S.ctx.close(); } catch (e) { /* déjà fermé */ } } }
