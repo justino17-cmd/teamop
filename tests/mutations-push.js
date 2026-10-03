@@ -344,8 +344,10 @@ m('K04', 'un 401/403 (nos clés refusées) n\'est plus traité à part : il comp
   "    if (s === 401 || s === 403) { compter('refuses'); return { ok: false, retire: false }; }\n", '', ['955', '956']);
 m('K05', 'un refus de nos clés (401/403) n\'est plus compté pour la surveillance (`refuses24h` reste à zéro)', F.push, "compter('refuses'); return", "return", ['955', '956']);
 m('K06', 'la durée de la série ne compte plus (cinq refus le même instant retirent l\'abonnement)', F.push, ' && t - serie.premier >= pc.etalementMs', '', ['955', '956']);
-m('K07', 'une livraison ne remet pas à zéro l\'heure du premier refus (cinq refus espacés de 12 minutes retirent à cause d\'une série d\'avant la livraison)', F.push,
-  "series.delete(abo.id); stockage.pushOk(abo.id); compter('envoyes');", "stockage.pushOk(abo.id); compter('envoyes');", ['955']);
+/* K07 retire DEUX gardes : la série effacée à la livraison ET le « n <= 1 » (un compte revenu à un = une série neuve). Elles disent la même chose, et chacune ôtée SEULE ne change rien (mesuré le 3 octobre
+   2026 : la première seule SURVIT, la seconde couvre) ; le banc doit tomber quand les deux manquent. */
+m2('K07', 'une livraison ne remet pas à zéro l\'heure du premier refus (ni la série effacée à la livraison, ni le compte revenu à un qui la double) : cinq refus espacés de 12 minutes retirent à cause d\'une série d\'avant la livraison',
+  [[F.push, "series.delete(abo.id); stockage.pushOk(abo.id); compter('envoyes');", "stockage.pushOk(abo.id); compter('envoyes');"], [F.push, "if (!serie || n <= 1) {", "if (!serie) {"]], ['955']);
 m('K08', 'un abonnement qui se redit (la page, à chaque ouverture) ne remet pas l\'heure du premier refus à zéro : le premier refus d\'après passe pour le cinquième d\'une série vieille', F.push,
   "if (!serie || n <= 1) {", "if (!serie) {", ['955']);
 m('K09', 'des clés qui ne chiffrent rien ne comptent plus comme un refus de cet appareil (elles échouent pour toujours, sans jamais le retirer)', F.push,
