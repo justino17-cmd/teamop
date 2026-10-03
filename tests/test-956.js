@@ -625,6 +625,17 @@ function paireVapid() {
       await refuse('un contact VAPID « localhost » (le service push d\'Apple le refuse)', { env: { OPMSG_TEST_PUSH: fps.hote }, config: { push: Object.assign({}, PUSH_CFG, { contact: 'https://localhost:8443' }) } }, /ne peut pas être « localhost »/);
       await refuse('un contact VAPID qui n\'est ni un courriel ni une origine https', { env: { OPMSG_TEST_PUSH: fps.hote }, config: { push: Object.assign({}, PUSH_CFG, { contact: 'pas une adresse' }) } }, /adresse de courriel ou une origine https/);
       await refuse('un délai d\'acquittement absurde (0)', { env: { OPMSG_TEST_PUSH: fps.hote }, config: { push: Object.assign({}, PUSH_CFG, { ackMs: 0 }) } }, /push\.ackMs/);
+      /* ⛔ R8 : la porte de banc n'est refusée qu'en PRODUCTION — l'instance `beta` l'ACCEPTE (c'est ainsi que les bancs la posent). Une unité systemd de bêta qui la porterait ouvrirait donc l'envoi vers une adresse
+         locale. L'unité est écrite par `install-msg.sh` (un modèle `%i` pour les deux instances, son fichier d'environnement `/etc/opmsg/%i.env` est à la main), le déploiement par `deployer.sh` et le workflow : aucun
+         ne doit la nommer. Une phrase de SERVEUR.md n'est pas une garde. */
+      {
+        const fichiersMsg = ['install-msg.sh', 'deployer.sh'].map(f => path.join(T.SERVICE, f));
+        const dossierYml = path.join(T.RACINE, '.github', 'workflows');
+        for (const f of fs.readdirSync(dossierYml).filter(x => /messages/.test(x))) fichiersMsg.push(path.join(dossierYml, f));
+        const textes = fichiersMsg.map(f => fs.readFileSync(f, 'utf8'));
+        vrai('population : les fichiers d\'installation et de déploiement sont lus (le script d\'installation écrit bien l\'unité systemd : « [Service] » et « EnvironmentFile » y sont)', textes.length >= 3 && /\[Service\]/.test(textes[0]) && /EnvironmentFile=/.test(textes[0]) && textes.every(t => t.length > 500));
+        v('⛔ aucun fichier d\'installation ni de déploiement ne pose la porte de banc OPMSG_TEST_PUSH (l\'instance bêta l\'ACCEPTE : elle ouvrirait l\'envoi vers une adresse locale)', fichiersMsg.filter((f, i) => textes[i].includes('OPMSG_TEST_PUSH')).map(f => path.basename(f)), []);
+      }
     }
   } catch (e) {
     console.log('  ✗ le banc est mort : ' + (e && e.stack || e));

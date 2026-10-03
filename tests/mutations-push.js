@@ -70,6 +70,9 @@ m('L17', 'une clé VAPID privée qui n\'est pas celle de la publique est accept�
 m('L18', 'le courriel de contact que l\'installation écrit (`contactEmail`) n\'est plus lu : les services push n\'ont plus que l\'origine https pour joindre quelqu\'un', F.conf,
   "o.contact = ce && SUJET_MAILTO.test('mailto:' + ce) && !/@localhost$/i.test(ce) ? 'mailto:' + ce : null;", 'o.contact = null;', ['955']);
 
+m('L19', 'l\'unité systemd que le script d\'installation écrit pose la porte de banc OPMSG_TEST_PUSH (l\'instance bêta l\'accepte : l\'envoi s\'ouvrirait vers une adresse locale)', 'server-msg/install-msg.sh',
+  "Environment=NODE_ENV=production\n", "Environment=NODE_ENV=production\nEnvironment=OPMSG_TEST_PUSH=127.0.0.1:9\n", ['956']);
+
 /* ══ 2. QUI REÇOIT QUOI, ET QUAND — la charge minimale, l'aperçu seulement voulu, jamais l'auteur, jamais une conversation coupée ═══════════════════════════ */
 m('R01', 'l\'aperçu part sans que la personne l\'ait activé (le nom et le texte sur l\'écran verrouillé)', F.push, 'const apercu = !!(moi && moi.prefs && moi.prefs.apercu_notif === true) && charge.detail;', 'const apercu = charge.detail;', ['955', '956']);
 m('R02', 'l\'aperçu est activé PAR DÉFAUT (un réglage jamais touché compte comme « oui »)', F.push, 'moi.prefs.apercu_notif === true) && charge.detail;', 'moi.prefs.apercu_notif !== false) && charge.detail;', ['955', '956']);
