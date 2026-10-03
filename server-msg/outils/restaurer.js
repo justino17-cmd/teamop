@@ -353,6 +353,7 @@ async function essai(ctx, { date, echantillon = 20, sansPurge }, dire) {
     dire('  purge rejouée : ' + p.lues + ' ligne(s) lue(s), ' + p.messagesRetires + ' message(s) retiré(s), ' + p.messagesBlanchis + ' effacé(s) pour tous, ' + p.conversationsRetirees + ' conversation(s), ' + p.appareilsRetires + ' appareil(s), ' + p.pieces.length + ' pièce(s), ' + (p.auService || 0) + ' rejouée(s) par le service au démarrage, ' + p.ignorees + ' ignorée(s).');
     const ap = ouvrir.copie.apresRestauration(base);
     dire('  sessions retirées : ' + ap.sessions + ' (une session révoquée depuis l\'archive ne doit pas revenir : chacun se reconnecte ; les appareils liés, eux, restent). Le service rejouera au démarrage les genres de purge qui sont à lui.');
+    dire('  abonnements de notification retirés : ' + (ap.push || 0) + ' (un abonnement retiré depuis l\'archive ne doit pas revenir : chaque appareil se réabonne à la prochaine ouverture de l\'application).');
 
     const cm = verifierCleMaitre(base, ctx.kekChemin);
     if (!cm.verifiee) dire('  ⚠ clé maître NON vérifiée (' + cm.motif + ') : cet exercice prouve l\'intégrité de la sauvegarde, pas qu\'elle s\'ouvre avec la clé de ce serveur.');
@@ -431,6 +432,7 @@ async function restaurerVers(ctx, { vers, date, ecraser, sansPieces, sansPurge }
     dire('  purge rejouée : ' + p.messagesRetires + ' message(s) retiré(s), ' + p.messagesBlanchis + ' effacé(s) pour tous, ' + p.conversationsRetirees + ' conversation(s), ' + p.appareilsRetires + ' appareil(s), ' + p.pieces.length + ' pièce(s).');
     const ap = ouvrir.copie.apresRestauration(base);
     dire('  sessions retirées : ' + ap.sessions + ' (chacun se reconnecte ; les appareils liés restent). Le service rejouera au démarrage les genres de purge qui sont à lui.');
+    dire('  abonnements de notification retirés : ' + (ap.push || 0) + ' (un abonnement retiré depuis l\'archive ne doit pas revenir : chaque appareil se réabonne à la prochaine ouverture de l\'application).');
     const v = ouvrir.copie.controlerFichier(base);
     if (!v.ok) throw echec('la base restaurée est ILLISIBLE : ' + v.motif + ' — rien n\'est remis en place.');
     dire('  base saine (quick_check : ok), ' + v.total + ' ligne(s).');

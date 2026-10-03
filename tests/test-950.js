@@ -1562,7 +1562,7 @@ const horlogeFixe = (h) => () => h.t;
           p0 && p0.etat === 'actif' && p0.prenom === 'alice' && msg0 >= 3 && (quand === 'avant la demande' ? p0.suppression_le === null : p0.suppression_le !== null)
           && Number(ligne(sur, 'SELECT COUNT(*) AS n FROM appareil_tel WHERE personne = ?', a.id).n) === (quand === 'avant la demande' ? 1 : 0));
         const r = STOCK.ouvrir.copie.rejouerPurge(sur, registre);
-        v('⛔ (' + quand + ') la ligne « compte » est recopiée et comptée pour le SERVICE — ni faite hors ligne, ni « ignorée »', [r.auService, r.ignorees], [1, 0]);
+        v('⛔ (' + quand + ') les lignes « suppression_demandee » et « compte » sont recopiées et comptées pour le SERVICE — ni faites hors ligne, ni « ignorées »', [r.auService, r.ignorees], [2, 0]);
         STOCK.ouvrir.copie.apresRestauration(sur);
         const S2 = STOCK.ouvrir({ chemin: sur, scelleur: creerScelleur(b.kek), horloge: () => b.h.t });
         try {
@@ -1570,9 +1570,9 @@ const horlogeFixe = (h) => () => h.t;
           const bilan = REJEU.rejouerAuDemarrage({ stockage: S2, contexte: { effacerPieces: (ids) => retires.push(...ids), horloge: () => b.h.t }, journaliser: () => {} });
           const p1 = ligne(sur, 'SELECT etat, prenom, nom FROM personne WHERE id = ?', a.id);
           const membreA = ligne(sur, 'SELECT quitte_le FROM membre WHERE conv = ? AND uid = ?', conv, a.id);
-          v('⛔ (' + quand + ') au premier démarrage, le service REFAIT l\'effacement : plus de nom, état « supprime », plus d\'appareil, sa place dans le groupe est quittée — et le drapeau retombe',
+          v('⛔ (' + quand + ') au premier démarrage, le service REFAIT la demande puis l\'effacement (deux lignes, dans l\'ordre) : plus de nom, état « supprime », plus d\'appareil, sa place dans le groupe est quittée — et le drapeau retombe',
             [bilan.fait, bilan.rejouees, bilan.echecs, p1.etat, p1.prenom, p1.nom, Number(ligne(sur, 'SELECT COUNT(*) AS n FROM appareil_tel WHERE personne = ?', a.id).n), !!(membreA && membreA.quitte_le), S2.rejeuAFaire()],
-            [true, 1, 0, 'supprime', '', '', 0, true, false]);
+            [true, 2, 0, 'supprime', '', '', 0, true, false]);
           v('   ses messages RESTENT chez les autres (signés « Compte supprimé » ; le départ du groupe ajoute seulement son avis « a quitté »), et l\'autre personne n\'a rien perdu',
             [Number(ligne(sur, "SELECT COUNT(*) AS n FROM message WHERE auteur = ? AND type <> 'systeme'", a.id).n), ligne(sur, 'SELECT etat, prenom FROM personne WHERE id = ?', c.id)], [msg0, { etat: 'actif', prenom: 'carole' }]);
           const second = REJEU.rejouerAuDemarrage({ stockage: S2, contexte: { effacerPieces: () => {}, horloge: () => b.h.t }, journaliser: () => {} });
@@ -1580,6 +1580,229 @@ const horlogeFixe = (h) => () => h.t;
             [second.fait, S2.compteEffacer(a.id, { rejeu: true }).effacee], [false, false]);
           v('   le rejeu n\'a pas écrit une seconde ligne « compte » dans le registre de la copie', S2.purgeLignes().filter(x => x.genre === 'compte').length, 1);
         } finally { S2.fermer(); }
+      } finally { b.nettoyer(); }
+    }
+  }
+
+  /* ══ 13 sexies. LA DEMANDE DE SUPPRESSION ET SON ANNULATION SURVIVENT À UNE RESTAURATION — ET LES ABONNEMENTS PUSH NE REVIENNENT PAS ═══════════════════════════
+     Relevé par le gardien le 3 octobre 2026, sur la version fusionnée du lot 3 (`gardien3-restore.js`). Deux pertes, une de chaque sens :
+       · une copie d'AVANT la demande ne porte aucune échéance : le compte n'était JAMAIS effacé alors que la personne l'avait demandé (on lui avait dit « dans quatorze jours ») ;
+       · une copie d'AVANT l'annulation porte encore l'échéance d'une personne REVENUE entre-temps : le balayeur l'effaçait à sa première minute.
+     Les deux événements sont donc notés dans le registre (genres « suppression_demandee » et « suppression_annulee », déclarés « service »), rejoués au premier démarrage DANS
+     L'ORDRE du registre, avec l'échéance d'ORIGINE (jamais « quatorze jours à partir de maintenant ») ; le rejeu n'écrit rien de plus, et il ne défait pas ce que la personne a
+     refait depuis (un appareil, un lien). Et ⛔ une restauration vide la table des abonnements push comme celle des sessions : un abonnement retiré (notifications désactivées,
+     déconnexion, accès coupé, refus du service push) n'est dans AUCUN registre, et la copie d'avant le ressuscitait — l'aperçu d'un message sur l'écran verrouillé d'un
+     téléphone qu'on croyait déconnecté. */
+  console.log('\n── 950 · la DEMANDE de suppression et son ANNULATION se rejouent après une restauration — dans l\'ordre, avec l\'échéance d\'origine ──');
+  {
+    const REJEU = require(path.join(SM, 'rejeu.js'));
+    const { creerScelleur } = require(path.join(SM, 'scelle.js'));
+    const JOUR = 86400000;
+    const ligne = (chemin, sql, ...pp) => { const dd = new DatabaseSync(chemin, { readOnly: true }); try { return dd.prepare(sql).get(...pp); } finally { dd.close(); } };
+    const supp = (e) => /^suppression_/.test(e.genre);
+    let numero = 0;
+    /* La restauration de bout en bout, hors processus : la copie, le registre de l'archive la plus récente, le rejeu hors ligne, le vidage, puis le premier démarrage du service. */
+    const restaurer = (b, copie, registre) => {
+      const sur = path.join(b.dossier, 'rest-' + (++numero) + '.db'); fs.copyFileSync(copie, sur);
+      const r = STOCK.ouvrir.copie.rejouerPurge(sur, registre);
+      const ap = STOCK.ouvrir.copie.apresRestauration(sur);
+      const S2 = STOCK.ouvrir({ chemin: sur, scelleur: creerScelleur(b.kek), horloge: () => b.h.t });
+      const journal = [];
+      const bilan = REJEU.rejouerAuDemarrage({ stockage: S2, contexte: { effacerPieces: () => {}, horloge: () => b.h.t }, journaliser: (e, c) => journal.push(e + ':' + c.etat + ':' + (c.motif || '')) });
+      return { sur, r, ap, S2, bilan, journal };
+    };
+    v('⛔ les deux genres sont déclarés « service » (la DEMANDE et l\'ANNULATION se rejouent avec les fonctions du service, pas en SQL hors ligne)',
+      [STOCK.ouvrir.copie.GENRES_PURGE.suppression_demandee, STOCK.ouvrir.copie.GENRES_PURGE.suppression_annulee], ['service', 'service']);
+
+    /* ── A. une copie d'AVANT la demande : l'échéance d'origine revient ── */
+    {
+      const b = O.creerBase();
+      try {
+        const { a } = O.remplir(b, 4);
+        b.h.t += 1000; b.S.lienCreer({ h: 'lien-avant-la-demande', genre: 'contact', par: a.id, ttlMs: 30 * JOUR, max: 5 });
+        b.h.t += 1000; const avant = path.join(b.dossier, 'avant.db'); await b.S.instantane(avant);
+        b.h.t += 1000; const tDemande = b.h.t, ech = tDemande + 14 * JOUR;
+        b.S.suppressionProgrammer(a.id, ech);
+        const reg = STOCK.ouvrir.copie.purgeLire(b.chemin);
+        const dem = reg.filter(e => e.genre === 'suppression_demandee');
+        v('⛔ la DEMANDE se note, dans la transaction de la demande : une ligne « suppression_demandee » qui porte l\'identifiant, l\'échéance D\'ORIGINE, et l\'instant de la demande',
+          [dem.length, dem.length === 1 && dem[0].objet.startsWith(a.id + '|' + ech + '|'), dem.length === 1 && dem[0].quand], [1, true, tDemande]);
+        const p0 = ligne(avant, 'SELECT etat, suppression_le FROM personne WHERE id = ?', a.id);
+        vrai('population : la copie d\'AVANT la demande porte une personne active, SANS échéance, et son lien d\'invitation encore valable — c\'est la perte à réparer',
+          p0.etat === 'actif' && p0.suppression_le === null && ligne(avant, 'SELECT revoque FROM lien WHERE h = ?', 'lien-avant-la-demande').revoque === 0);
+        const R = restaurer(b, avant, reg);
+        try {
+          const p1 = ligne(R.sur, 'SELECT etat, suppression_le FROM personne WHERE id = ?', a.id);
+          v('⛔ au premier démarrage sur la copie d\'AVANT, le service REPOSE l\'échéance D\'ORIGINE (la personne qui a demandé son effacement l\'aura) : la ligne est comptée pour le service, rejouée, sans échec',
+            [R.r.auService, R.r.ignorees, R.bilan.fait, R.bilan.rejouees, R.bilan.echecs, p1.etat, p1.suppression_le], [1, 0, true, 1, 0, 'actif', ech]);
+          v('   le lien d\'invitation créé AVANT la demande est révoqué comme il l\'avait été (une personne qui s\'en va ne ramène plus personne vers elle)', ligne(R.sur, 'SELECT revoque FROM lien WHERE h = ?', 'lien-avant-la-demande').revoque, 1);
+          v('   le rejeu n\'écrit aucune ligne de plus dans le registre (elle y est déjà), et le drapeau est baissé', [STOCK.ouvrir.copie.purgeLire(R.sur).filter(supp).length, R.S2.rejeuAFaire()], [1, false]);
+          b.h.t = ech - 1000; const tot = R.S2.comptesEchus(10);
+          b.h.t = ech + 1000; const tard = R.S2.comptesEchus(10);
+          v('⛔ le balayeur n\'efface PAS la personne avant son échéance, et l\'efface après (la liste des échus n\'est pas vide pour de bon : le zéro d\'avant l\'échéance veut dire quelque chose)', [tot, tard], [[], [a.id]]);
+          v('   et l\'effacement a bien lieu sur la copie restaurée', [R.S2.compteEffacer(a.id).effacee, ligne(R.sur, 'SELECT etat FROM personne WHERE id = ?', a.id).etat], [true, 'supprime']);
+        } finally { R.S2.fermer(); }
+      } finally { b.nettoyer(); }
+    }
+
+    /* ── B et C. demande, annulation, nouvelle demande : l'ordre du registre décide ── */
+    {
+      const b = O.creerBase();
+      try {
+        const { a, c } = O.remplir(b, 4);
+        b.h.t += 1000; const avant = path.join(b.dossier, 'avant.db'); await b.S.instantane(avant);
+        b.h.t += 1000; const ech1 = b.h.t + 14 * JOUR; b.S.suppressionProgrammer(a.id, ech1);
+        b.h.t += 1000; const pendant = path.join(b.dossier, 'pendant.db'); await b.S.instantane(pendant);
+        b.h.t += 1000;
+        const annulations = [b.S.suppressionAnnuler(a.id), b.S.suppressionAnnuler(a.id), b.S.suppressionAnnuler(c.id)];
+        v('l\'ANNULATION (la personne se reconnecte) lève l\'échéance ; annuler de nouveau, ou pour qui n\'a rien demandé, ne fait rien', annulations, [true, false, false]);
+        const reg = STOCK.ouvrir.copie.purgeLire(b.chemin);
+        const lignes = reg.filter(supp);
+        v('⛔ l\'ANNULATION se note aussi (une seule ligne, après la demande, au nom de la personne) ; annuler pour rien n\'en écrit pas',
+          [lignes.map(e => e.genre), lignes.map(e => e.objet.split('|')[0]), lignes[1] && lignes[1].objet.split('|').length], [['suppression_demandee', 'suppression_annulee'], [a.id, a.id], 2]);
+        const t0 = b.h.t;
+        for (const [nom, copie, attendu] of [['pendant le sursis', pendant, ech1], ['avant la demande', avant, null]]) {
+          vrai('population (' + nom + ') : la copie porte ' + (attendu === null ? 'une personne SANS échéance' : 'l\'échéance de la demande, que la personne a annulée depuis'), ligne(copie, 'SELECT suppression_le FROM personne WHERE id = ?', a.id).suppression_le === attendu);
+          const R = restaurer(b, copie, reg);
+          try {
+            const p1 = ligne(R.sur, 'SELECT etat, suppression_le FROM personne WHERE id = ?', a.id);
+            b.h.t = ech1 + 30 * JOUR;
+            v('⛔ (' + nom + ') demande PUIS annulation, rejouées dans cet ordre : aucune échéance — la personne REVENUE n\'est pas effacée, même un mois après l\'ancienne échéance',
+              [R.bilan.rejouees, R.bilan.echecs, p1.etat, p1.suppression_le, R.S2.comptesEchus(10)], [2, 0, 'actif', null, []]);
+          } finally { R.S2.fermer(); b.h.t = t0; }
+        }
+        /* la contre-épreuve du « zéro » : sans la ligne d'annulation, la même restauration laisse la personne revenue À EFFACER — c'est ce que la ligne empêche */
+        {
+          const R = restaurer(b, pendant, reg.filter(e => e.genre !== 'suppression_annulee'));
+          try { b.h.t = ech1 + 30 * JOUR; v('   contre-épreuve : SANS la ligne d\'annulation, la restauration de la copie « pendant le sursis » donne la personne revenue à effacer au premier passage du balayeur', R.S2.comptesEchus(10), [a.id]); }
+          finally { R.S2.fermer(); b.h.t = t0; }
+        }
+        /* nouvelle demande après l'annulation : la dernière gagne */
+        b.h.t += 1000; const ech2 = b.h.t + 14 * JOUR; b.S.suppressionProgrammer(a.id, ech2);
+        const reg3 = STOCK.ouvrir.copie.purgeLire(b.chemin);
+        v('population : trois lignes dans l\'ordre (demande, annulation, demande), deux échéances différentes', [reg3.filter(supp).map(e => e.genre), ech1 !== ech2], [['suppression_demandee', 'suppression_annulee', 'suppression_demandee'], true]);
+        for (const [nom, copie] of [['pendant le sursis', pendant], ['avant la demande', avant]]) {
+          const R = restaurer(b, copie, reg3);
+          try {
+            v('⛔ (' + nom + ') demande, annulation, NOUVELLE demande : la dernière gagne — l\'échéance de la seconde (pas la première, pas aucune)',
+              [R.bilan.rejouees, R.bilan.echecs, ligne(R.sur, 'SELECT suppression_le FROM personne WHERE id = ?', a.id).suppression_le], [3, 0, ech2]);
+          } finally { R.S2.fermer(); }
+        }
+      } finally { b.nettoyer(); }
+    }
+
+    /* ── D. à la MÊME milliseconde : même instant, même échéance — seul le rang d'écriture et la marque de chaque ligne les distinguent ── */
+    {
+      const b = O.creerBase();
+      try {
+        const { a } = O.remplir(b, 2);
+        b.h.t += 1000; const avant = path.join(b.dossier, 'avant.db'); await b.S.instantane(avant);
+        b.h.t += 1000; const ech = b.h.t + 14 * JOUR;
+        b.S.suppressionProgrammer(a.id, ech); b.S.suppressionAnnuler(a.id); b.S.suppressionProgrammer(a.id, ech);
+        const reg = STOCK.ouvrir.copie.purgeLire(b.chemin);
+        const l = reg.filter(supp);
+        v('population : trois lignes, dans l\'ordre d\'écriture, au MÊME instant, avec la MÊME échéance — seule la marque de chaque ligne distingue les deux demandes',
+          [l.map(e => e.genre), new Set(l.map(e => e.quand)).size, new Set(l.filter(e => e.genre === 'suppression_demandee').map(e => e.objet)).size], [['suppression_demandee', 'suppression_annulee', 'suppression_demandee'], 1, 2]);
+        const R = restaurer(b, avant, reg);
+        try {
+          v('⛔ rejouées dans l\'ordre d\'écriture même à égalité d\'instant, et sans que deux demandes identiques n\'en fassent qu\'une (la restauration recopie sans doublon sur objet + genre) : la seconde demande gagne',
+            [R.bilan.rejouees, R.bilan.echecs, ligne(R.sur, 'SELECT suppression_le FROM personne WHERE id = ?', a.id).suppression_le], [3, 0, ech]);
+        } finally { R.S2.fermer(); }
+      } finally { b.nettoyer(); }
+    }
+
+    /* ── E. le rejeu ne défait pas ce que la personne a refait depuis : un appareil lié et un lien créé APRÈS son retour survivent ── */
+    {
+      const b = O.creerBase();
+      try {
+        const { a } = O.remplir(b, 2);
+        b.h.t += 1000; b.S.telAppareilLier({ h: 'tel-avant', personne: a.id, nom: 'téléphone', ttlMs: 100 * JOUR });
+        b.h.t += 1000; b.S.suppressionProgrammer(a.id, b.h.t + 14 * JOUR);       // coupe 'tel-avant' et le note
+        b.h.t += 1000; b.S.suppressionAnnuler(a.id);                              // la personne revient
+        b.h.t += 1000; b.S.telAppareilLier({ h: 'tel-apres', personne: a.id, nom: 'nouveau téléphone', ttlMs: 100 * JOUR });
+        b.S.lienCreer({ h: 'lien-apres-le-retour', genre: 'contact', par: a.id, ttlMs: 30 * JOUR, max: 5 });
+        b.h.t += 1000; const apres = path.join(b.dossier, 'apres.db'); await b.S.instantane(apres);
+        const reg = STOCK.ouvrir.copie.purgeLire(b.chemin);
+        vrai('population : la copie d\'APRÈS le retour porte le nouvel appareil et le nouveau lien (valable), le registre dit que l\'ancien appareil a été coupé, la demande et l\'annulation y sont',
+          ligne(apres, 'SELECT COUNT(*) AS n FROM appareil_tel WHERE h = ?', 'tel-apres').n === 1 && ligne(apres, 'SELECT revoque FROM lien WHERE h = ?', 'lien-apres-le-retour').revoque === 0
+          && reg.some(e => e.genre === 'appareil' && e.objet === 'tel-avant') && reg.filter(supp).length === 2);
+        const R = restaurer(b, apres, reg);
+        try {
+          v('⛔ rejouer la demande NE DÉFAIT PAS ce que la personne a refait depuis son retour : le nouvel appareil et le nouveau lien survivent, et aucune échéance ne reste',
+            [ligne(R.sur, 'SELECT COUNT(*) AS n FROM appareil_tel WHERE h = ?', 'tel-apres').n, ligne(R.sur, 'SELECT revoque FROM lien WHERE h = ?', 'lien-apres-le-retour').revoque, ligne(R.sur, 'SELECT suppression_le FROM personne WHERE id = ?', a.id).suppression_le, R.bilan.rejouees],
+            [1, 0, null, 2]);
+        } finally { R.S2.fermer(); }
+      } finally { b.nettoyer(); }
+    }
+
+    /* ── F. la robustesse des deux fonctions : une personne absente ou déjà effacée n'est pas une erreur ; une ligne illisible LÈVE ── */
+    {
+      const b = O.creerBase();
+      try {
+        const { a, c } = O.remplir(b, 2);
+        const G = REJEU.GENRES_SERVICE;
+        const ech = b.h.t + 14 * JOUR;
+        const jouer = (genre, objet) => lance(() => G[genre](b.S, { objet, genre, quand: b.h.t }, {}));
+        v('une personne ABSENTE de la copie : ni erreur, ni effet (la demande, puis l\'annulation)', [jouer('suppression_demandee', 'p_absente|' + ech + '|ab'), jouer('suppression_annulee', 'p_absente|ab')], [null, null]);
+        b.S.suppressionProgrammer(c.id, ech); b.h.t = ech + 1000; b.S.compteEffacer(c.id);
+        const eff0 = ligne(b.chemin, 'SELECT etat, suppression_le FROM personne WHERE id = ?', c.id);
+        vrai('population : Carole est effacée (état « supprime », plus d\'échéance)', eff0.etat === 'supprime' && eff0.suppression_le === null);
+        v('une personne DÉJÀ EFFACÉE : la demande rejouée ne la ressuscite pas, ne lui repose pas d\'échéance, et ne lève rien',
+          [jouer('suppression_demandee', c.id + '|' + ech + '|ab'), jouer('suppression_annulee', c.id + '|ab'), ligne(b.chemin, 'SELECT etat, suppression_le FROM personne WHERE id = ?', c.id)], [null, null, { etat: 'supprime', suppression_le: null }]);
+        /* idempotence, et indépendance entre personnes */
+        const e2 = b.h.t + 14 * JOUR;
+        const seq = [jouer('suppression_demandee', a.id + '|' + e2 + '|ab'), jouer('suppression_demandee', a.id + '|' + e2 + '|ab')];
+        v('rejouée DEUX fois, la même demande donne le même état (idempotente) et n\'écrit aucune ligne', [seq, ligne(b.chemin, 'SELECT suppression_le FROM personne WHERE id = ?', a.id).suppression_le, STOCK.ouvrir.copie.purgeLire(b.chemin).filter(e => e.genre === 'suppression_demandee').length], [[null, null], e2, 1]);
+        v('   l\'annulation d\'une AUTRE personne ne touche pas à cette échéance', [jouer('suppression_annulee', c.id + '|ab'), ligne(b.chemin, 'SELECT suppression_le FROM personne WHERE id = ?', a.id).suppression_le], [null, e2]);
+        v('   la bonne l\'ôte, deux fois sans histoire, sans écrire de ligne', [jouer('suppression_annulee', a.id + '|ab'), jouer('suppression_annulee', a.id + '|ab'), ligne(b.chemin, 'SELECT suppression_le FROM personne WHERE id = ?', a.id).suppression_le, STOCK.ouvrir.copie.purgeLire(b.chemin).filter(e => e.genre === 'suppression_annulee').length],
+          [null, null, null, 0]);
+        /* une ligne illisible lève : une demande d'effacement ignorée en silence est une obligation légale non tenue */
+        const illisibles = ['', 'p_x', 'p_x|', 'p_x|abc|zz', 'p_x|0|zz', 'p_x|-5|zz', '|123|zz', 'p_x|1.5|zz', 'p_x|' + (2 ** 60) + '|zz'];
+        v('⛔ une demande à la ligne ILLISIBLE (' + illisibles.length + ' formes : vide, sans échéance, échéance non numérique, nulle, négative, décimale, hors de portée, sans identifiant) LÈVE — jamais ignorée en silence',
+          illisibles.map(o => { const e = jouer('suppression_demandee', o); return e && e.message; }), illisibles.map(() => 'entree-illisible'));
+        v('   une annulation sans identifiant lève de même', (jouer('suppression_annulee', '') || {}).message, 'entree-illisible');
+        /* et par le vrai démarrage : l'échec est compté, dit au journal, et le drapeau RESTE levé */
+        b.h.t += 1000; const copie = path.join(b.dossier, 'garbage.db'); await b.S.instantane(copie);
+        const R = restaurer(b, copie, [{ objet: 'p_x|abc|zz', genre: 'suppression_demandee', quand: 5 }]);
+        try {
+          v('⛔ au démarrage, une ligne illisible : l\'échec est compté et dit au journal (avec le genre, jamais l\'objet), les autres lignes sont rejouées, le drapeau RESTE levé (le démarrage suivant recommence)',
+            [R.bilan.fait, R.bilan.rejouees, R.bilan.echecs, R.S2.rejeuAFaire(), R.journal.filter(x => /echec/.test(x))], [true, 2, 1, true, ['rejeu:echec:suppression_demandee', 'rejeu:echec:']]);
+        } finally { R.S2.fermer(); }
+      } finally { b.nettoyer(); }
+    }
+
+    /* ── G. ⛔ B1 : la restauration vide aussi les ABONNEMENTS PUSH ── */
+    console.log('\n── 950 · une restauration vide les ABONNEMENTS PUSH comme les sessions : un abonnement retiré ne revient pas ──');
+    {
+      const b = O.creerBase();
+      try {
+        const { a, c } = O.remplir(b, 2);
+        const sub = (n) => ({ endpoint: 'https://fcm.googleapis.com/fcm/send/ancien-' + n, p256dh: 'B' + 'x'.repeat(86), auth: 'a'.repeat(22) });
+        b.S.pushPoser(Object.assign({ uid: a.id }, sub(1))); b.S.pushPoser(Object.assign({ uid: a.id }, sub(2))); b.S.pushPoser(Object.assign({ uid: c.id }, sub(3)));
+        b.S.sessionAjouter({ h: 'sess-a', personne: a.id, appareil: 'x', ttlMs: 30 * JOUR });
+        b.h.t += 1000; const avant = path.join(b.dossier, 'avant.db'); await b.S.instantane(avant);
+        /* Alice désactive ses notifications sur un appareil, Carole se déconnecte : aucun registre ne note un abonnement retiré */
+        b.h.t += 1000; b.S.pushRetirer(a.id, sub(1).endpoint); b.S.pushSupprimerPersonne(c.id);
+        const nVivante = Number(ligne(b.chemin, 'SELECT COUNT(*) AS n FROM push').n), nCopie = Number(ligne(avant, 'SELECT COUNT(*) AS n FROM push').n);
+        vrai('population : la base vivante ne porte plus que 1 abonnement, la copie d\'avant en porte 3 — dont deux retirés depuis, que personne ne note', nVivante === 1 && nCopie === 3);
+        const sur = path.join(b.dossier, 'push-restauree.db'); fs.copyFileSync(avant, sur);
+        STOCK.ouvrir.copie.rejouerPurge(sur, STOCK.ouvrir.copie.purgeLire(b.chemin));
+        vrai('population : le rejeu du registre n\'a rien retiré à la table (aucune ligne de purge ne vise un abonnement) — il en reste 3', Number(ligne(sur, 'SELECT COUNT(*) AS n FROM push').n) === 3);
+        const ap = STOCK.ouvrir.copie.apresRestauration(sur);
+        v('⛔ après la restauration, AUCUN abonnement push ne reste (avant : les trois revenaient, dont ceux qu\'Alice avait désactivé et de la personne déconnectée), et la restauration dit combien elle en a retiré',
+          [ap.push, ap.sessions, Number(ligne(sur, 'SELECT COUNT(*) AS n FROM push').n)], [3, 1, 0]);
+        const encore = STOCK.ouvrir.copie.apresRestauration(sur);
+        v('   rejouer cette étape ne casse rien (0 abonnement et 0 session la seconde fois)', [encore.push, encore.sessions], [0, 0]);
+        const S2 = STOCK.ouvrir({ chemin: sur, scelleur: creerScelleur(b.kek), horloge: () => b.h.t });
+        try {
+          v('   le service ouvert sur la copie ne trouve aucun appareil à notifier, et chaque appareil peut se RÉABONNER (c\'est le prix : une ouverture de l\'application)',
+            [S2.pushListe(a.id).length, S2.pushListe(c.id).length, S2.pushPoser(Object.assign({ uid: a.id }, sub(1))).neuf, S2.pushListe(a.id).length], [0, 0, true, 1]);
+        } finally { S2.fermer(); }
+        /* une copie d'AVANT la migration des abonnements (pas de table `push`) : ni erreur, ni abonnement compté */
+        const v3 = path.join(b.dossier, 'v3.db'); fs.copyFileSync(avant, v3);
+        { const d3 = new DatabaseSync(v3); d3.exec('DROP TABLE push'); d3.close(); }
+        let bilan3 = null, err3 = null; try { bilan3 = STOCK.ouvrir.copie.apresRestauration(v3); } catch (e) { err3 = e && e.message; }
+        v('   une copie qui n\'a pas la table `push` (une archive d\'avant la migration 4) : aucune erreur, les sessions sont quand même vidées', [err3, bilan3 && bilan3.push, bilan3 && bilan3.sessions], [null, 0, 1]);
       } finally { b.nettoyer(); }
     }
   }

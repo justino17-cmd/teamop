@@ -23,7 +23,8 @@
  */
 'use strict';
 
-/* genre → (stockage, entree, contexte) => void. VIDE tant qu'aucun genre n'a besoin du service : le mécanisme est en place, le premier usage l'attend. */
+/* genre → (stockage, entree, contexte) => void. L'ORDRE de rejeu est celui du registre (`purgeLignes` : par instant, puis par rang d'écriture) — il compte : une demande, son annulation,
+   une nouvelle demande se rejouent dans cet ordre, et la dernière gagne. */
 const GENRES_SERVICE = {
   /* Un compte effacé (`compteEffacer`, au bout de ses quatorze jours) : l'identité, les contacts, les appareils, les abonnements push, la photo et les pièces jamais envoyées. La copie
      restaurée peut dater d'avant l'échéance, ou d'avant la demande : on refait l'effacement sans regarder l'échéance (`rejeu: true`). Les FICHIERS des pièces retirées partent par
@@ -31,6 +32,21 @@ const GENRES_SERVICE = {
   compte: (stockage, e, contexte) => {
     const r = stockage.compteEffacer(String(e.objet), { rejeu: true });
     if (r && r.effacee && r.pieces && r.pieces.length && typeof contexte.effacerPieces === 'function') contexte.effacerPieces(r.pieces);
+  },
+  /* La DEMANDE de suppression (« identifiant|échéance|marque ») : l'échéance d'ORIGINE est reposée — la copie peut dater d'avant la demande, et le compte ne serait jamais effacé alors
+     que la personne croit l'avoir demandé. On ne recalcule rien (« quatorze jours à partir de maintenant » ferait glisser l'échéance à chaque restauration). Une ligne illisible LÈVE :
+     une demande d'effacement ignorée en silence est une obligation légale non tenue, le drapeau reste levé et le journal le dit. */
+  suppression_demandee: (stockage, e) => {
+    const [uid, echeance] = String(e.objet).split('|');
+    const t = Number(echeance);
+    if (!uid || !echeance || !Number.isSafeInteger(t) || t <= 0) throw new Error('entree-illisible');
+    stockage.suppressionProgrammer(uid, t, { rejeu: true, depuis: e.quand });
+  },
+  /* L'ANNULATION (« identifiant|marque ») : la personne est revenue, l'échéance qu'une copie d'avant porte encore est levée. Sans elle, le balayeur effacerait quelqu'un qui est revenu. */
+  suppression_annulee: (stockage, e) => {
+    const [uid] = String(e.objet).split('|');
+    if (!uid) throw new Error('entree-illisible');
+    stockage.suppressionAnnuler(uid, { rejeu: true });
   },
 };
 

@@ -344,27 +344,41 @@ la copie qu'elle remet en service. Trois pièces se tiennent, et `tests/test-950
 | ce qui se **déclare** | `GENRES_PURGE` (`stockage.js`) : `'copie'` ou `'service'` | qui rejoue ce genre |
 | ce qui se **rejoue** | `rejouerPurge` (hors ligne, SQL pur, sans clé maître) pour `'copie'` ; `rejeu.js` → `GENRES_SERVICE` (au premier démarrage du service sur la base restaurée) pour `'service'` | l'effacement refait |
 
-Les genres d'aujourd'hui, tous `'copie'` : `message_ephemere`, `message_supprime`, `piece` (et tout genre qui commence par « piece »), `conversation` (le dernier membre est parti), `appareil` (le jeton
-d'appareil révoqué : déconnexion, « déconnecter les autres », toute une personne, le onzième appareil qui chasse le plus ancien — l'empreinte du jeton, jamais le jeton ; le rejeu ne retire qu'un
-appareil qui existait à l'instant de la révocation). `message` est rejoué mais plus écrit (compatibilité). **Les sessions n'ont pas de genre** : aucun registre ne note une session fermée, donc
-la restauration les **vide toutes** (`apresRestauration`) — le prix est une reconnexion de tout le monde ; les jetons d'appareil, eux, restent (ils évitent le SMS).
+Les genres d'aujourd'hui. **`'copie'`** (rejoués hors ligne) : `message_ephemere`, `message_supprime`, `piece` (et tout genre qui commence par « piece »), `conversation` (le dernier membre est parti), `appareil` (le jeton
+d'appareil révoqué : déconnexion, « déconnecter les autres », toute une personne, la demande de suppression, le onzième appareil qui chasse le plus ancien — l'empreinte du jeton, jamais le jeton ; le rejeu ne retire qu'un
+appareil qui existait à l'instant de la révocation). `message` est rejoué mais plus écrit (compatibilité). **`'service'`** (rejoués par `rejeu.js` au premier démarrage) : `compte` (l'effacement au bout des quatorze jours),
+`suppression_demandee` et `suppression_annulee` (plus bas).
 
-**Brancher un genre neuf — quatre gestes, et le banc refuse de passer tant qu'il en manque un** (le compte qu'on efface au bout de quatorze jours en est le premier cas : `compteEffacer`
-écrit déjà `purge(uid, 'compte', …)` dans le lot des notifications et du compte) :
+**Les sessions n'ont pas de genre, ni les abonnements push** : aucun registre ne note une session fermée ni un abonnement retiré (notifications désactivées, déconnexion, accès coupé, refus 404/410 du service push), donc la
+restauration **vide les deux tables** (`apresRestauration`, dans la même transaction) et l'outil le dit (« sessions retirées : N », « abonnements de notification retirés : N »). ⛔ Le prix, à dire aux gens : une reconnexion de
+tout le monde (les jetons d'appareil, eux, restent : ils évitent le SMS) — et, pour les notifications, **aucun geste de plus** : la page redit à chaque connexion l'abonnement que son navigateur porte déjà (`reabonner()`),
+elles reviennent donc à la première reconnexion. Tant qu'un appareil n'a pas rouvert l'application et s'est reconnecté, il n'en reçoit aucune. Ne pas « corriger » en gardant la table : un abonnement retiré qui revient, c'est l'aperçu
+d'un message sur l'écran verrouillé d'un téléphone qu'on croyait déconnecté (relevé par le gardien, 3 octobre 2026 ; `tests/test-950.js` § 13 sexies, `tests/test-951.js` § 4 ter).
+
+**La demande de suppression et son annulation se notent** : `suppression_demandee` (`objet` = `identifiant|échéance|marque`) et `suppression_annulee` (`identifiant|marque`), dans la transaction de la demande ou de l'annulation
+(se reconnecter pendant le sursis l'annule), et se rejouent **dans l'ordre du registre** — par instant, puis par rang d'écriture, car deux événements de la même milliseconde sont possibles. La demande repose l'échéance
+**d'origine** (jamais « quatorze jours à partir de maintenant » : l'échéance glisserait à chaque restauration) et révoque les liens d'invitation créés avant elle ; l'annulation la lève. Sans ces deux lignes : une copie d'**avant** la demande
+n'a aucune échéance — le compte ne serait **jamais** effacé alors que la personne l'a demandé —, et une copie d'**avant** l'annulation porte encore l'échéance d'une personne revenue — le balayeur l'effacerait à sa première minute.
+La marque (4 octets au hasard) rend chaque ligne unique : la restauration recopie le registre sans doublon sur (objet, genre), et deux demandes de même échéance n'en feraient qu'une. Le rejeu ne défait pas ce que la personne a refait depuis
+(un appareil lié, un lien créé après son retour) ; une personne absente de la copie ou déjà effacée n'est pas une erreur ; une ligne **illisible lève** (le drapeau reste levé, le journal dit `rejeu` / `echec` / le genre) — une demande d'effacement
+ignorée en silence serait une obligation légale non tenue.
+
+**Brancher un genre neuf — quatre gestes, et le banc refuse de passer tant qu'il en manque un** (le compte qu'on efface au bout de quatorze jours, puis la demande et l'annulation de suppression,
+en sont les trois premiers cas : `compte` est le patron à copier) :
 1. **écrire** la ligne dans `purge` dans la même transaction que l'effacement ;
 2. **déclarer** le genre dans `GENRES_PURGE` : `'copie'` si l'effacement tient en quelques `DELETE` sur le fichier de la copie (ajouter une branche à `rejouerPurge`), **`'service'`** s'il touche plusieurs
    tables, applique des règles (qui devient administrateur, ce qui reste d'une conversation directe) ou passe par des fonctions du service — c'est le cas d'un compte ;
 3. pour `'service'` : écrire dans `rejeu.js` → `GENRES_SERVICE` la fonction `(stockage, entree, contexte) => void` (`entree` = `{objet, genre, quand}`, `contexte` = `{effacerPieces(ids), horloge}`
    fournis par `index.js`). Elle est **idempotente** (rejouée à chaque démarrage tant qu'une entrée échoue, et sur une base où l'objet n'existe peut-être plus : ne rien trouver n'est pas une erreur), **synchrone**
    (le magasin l'est ; une promesse est refusée), n'efface que ce que la ligne désigne, et **lève si elle échoue** (le drapeau reste levé, le démarrage suivant recommence, le journal dit `rejeu` / `echec` / le genre).
-   ⚠️ Pour un compte : la fonction du service ne peut pas être `compteEffacer` telle quelle (elle exige que l'échéance soit passée et que la personne soit « actif » avec une suppression programmée — ce que
-   la ligne restaurée n'a plus) ; il faut une variante qui efface **sans** ces préconditions, puisque le registre dit déjà que c'est fait ;
+   ⚠️ Le patron, pour un compte : la fonction du service est la fonction ordinaire avec une option (`compteEffacer(uid, { rejeu: true })`, `suppressionProgrammer(…, { rejeu: true })`, `suppressionAnnuler(…, { rejeu: true })`) — elle ne regarde pas
+   les préconditions que la copie restaurée n'a plus (échéance passée, suppression programmée), n'écrit **pas** une seconde ligne (elle est déjà dans le registre recopié) et ne refait que ce qu'une copie ne peut pas déjà porter ;
 4. **écrire le banc** : une base qui porte l'objet, une archive prise avant l'effacement, le registre après, la restauration, le démarrage — l'objet ne revient pas. `tests/test-951.js` § « une restauration ne ressuscite rien »
    donne le modèle (vrai service, vraie restauration d'une archive plus ancienne avec `--date`, vrai redémarrage) ; `tests/test-950.js` § 13 quater, le rejeu sur des copies et le magasin de poche du rejeu par le service.
 
 Comment ça se passe : l'outil de restauration rejoue les genres `'copie'`, **recopie** dans la base restaurée les lignes qu'il ne sait pas rejouer et lève `meta.rejeu_service` ; au premier démarrage, `index.js` appelle
-`rejeu.js`, qui rejoue les genres `'service'` avec les vraies fonctions puis baisse le drapeau. Sans drapeau — tout démarrage ordinaire — rien ne s'exécute. `GENRES_SERVICE` est **vide** aujourd'hui : le mécanisme est
-en place et éprouvé (le service voit le drapeau, le baisse, ne rejoue rien au démarrage suivant), le premier usage l'attend.
+`rejeu.js`, qui rejoue les genres `'service'` avec les vraies fonctions puis baisse le drapeau. Sans drapeau — tout démarrage ordinaire — rien ne s'exécute. Trois genres sont au service aujourd'hui (`compte`, `suppression_demandee`, `suppression_annulee`) et le mécanisme est éprouvé de bout en bout
+(`tests/test-951.js` § 4 ter : le vrai service, la vraie restauration d'une archive plus ancienne, un vrai redémarrage — le service voit le drapeau, rejoue, le baisse, ne rejoue rien au démarrage suivant).
 ⚠️ **Ce qu'aucun registre ne rejoue** : ce qui s'est passé **après** la dernière archive. Une suppression faite depuis l'heure de la dernière copie n'est dans aucun registre — c'est la fenêtre des messages écrits depuis (jusqu'à une heure) ;
 elle est perdue avec eux, ou ramenée avec eux.
 
@@ -608,7 +622,7 @@ La clé publique VAPID est dans `GET /api/config` (`push.vapid`) — pas de rout
     et nomme la conséquence jusqu'à un `--sans-purge` explicite ; au plus dix archives essayées) ;
   · **A1** : un arriéré de pièces n'est plus un succès ; les pièces partent avant leur base ; `essai` et `restaurer` comptent les lignes `piece` sans fichier et le disent ;
   · **A2** : un saut d'horloge n'élague plus, ne bloque plus, et se voit (âge négatif, `horloge-ecart`) ; la surveillance crie sur un âge négatif ;
-  · **A3** : une restauration ne ressuscite ni les sessions fermées (vidées), ni les conversations supprimées, ni les appareils déconnectés (§ 3.7.1) ;
+  · **A3** : une restauration ne ressuscite ni les sessions fermées (vidées), ni les abonnements push retirés (vidés), ni les conversations supprimées, ni les appareils déconnectés, ni un compte effacé ; elle ne perd ni une demande de suppression ni son annulation (§ 3.7.1) ;
   · **A4** : la mémoire d'une grosse archive est bornée (`coffre.js`, § 3.7) — **cause établie : `fetch` tient le corps entier d'un envoi en flux** ; ⚠️ **à reporter dans `server/s3.js`** le jour où OP GESTION sauvegardera des archives plus lourdes que
     sa mémoire (cette tâche ne touche pas à `server/`) ;
   · **A5** : le miroir ne prend que la forme exacte d'une pièce (plus de dépôts en cours au coffre) ;

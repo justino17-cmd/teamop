@@ -1509,10 +1509,27 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
      et que les autres voient encore dans leurs conversations (le message resterait, sa pièce serait un trou). Les messages d'une personne qui s'en va restent chez les autres, avec l'auteur
      « Compte supprimé » (comme chez WhatsApp) : l'identifiant, lui, doit continuer de désigner quelqu'un. Il ne désigne plus personne : plus de numéro (`email_h` NULL — le numéro peut donc
      s'inscrire à NEUF, et ne retrouve jamais cette ligne), plus de nom, plus rien qui permette de se connecter. */
-  function suppressionProgrammer(uid, echeance) {
+  /* ⛔ LA DEMANDE ET L'ANNULATION SE NOTENT DANS LE REGISTRE (genres « suppression_demandee » et « suppression_annulee », rejoués par le SERVICE, `rejeu.js`), dans la MÊME transaction.
+     Rejoué par le gardien le 3 octobre 2026 : une restauration pendant le sursis ramenait une copie d'AVANT la demande — l'échéance n'y était plus, le compte n'était JAMAIS effacé
+     alors que la personne croyait l'avoir demandé ; et une copie d'AVANT l'annulation ramenait l'échéance d'une personne revenue entre-temps — qui serait effacée à la minute où le
+     balayeur passe. `objet` = « identifiant|échéance|marque » (la demande) et « identifiant|marque » (l'annulation) : la marque (4 octets au hasard) rend chaque ligne UNIQUE, car la
+     restauration recopie le registre sans doublon sur (objet, genre) et deux demandes de même échéance, à la même milliseconde, ne doivent pas n'en faire qu'une.
+     `{ rejeu: true }` : le REJEU de la ligne après une restauration — il pose (ou lève) l'échéance et ne refait que les coupures qu'une copie ne peut pas déjà porter ; il n'écrit PAS la
+     ligne (elle est déjà dans le registre recopié) et une personne absente ou déjà effacée n'est pas une erreur. `depuis` : l'instant de la demande d'origine (les liens créés après
+     lui sont ceux d'une personne revenue, on n'y touche pas). */
+  function suppressionProgrammer(uid, echeance, { rejeu = false, depuis = 0 } = {}) {
     return tx(() => {
-      if (!num(Q("UPDATE personne SET suppression_le = ? WHERE id = ? AND etat = 'actif'").run(echeance, uid).changes)) throw erreur('introuvable');
+      if (!num(Q("UPDATE personne SET suppression_le = ? WHERE id = ? AND etat = 'actif'").run(echeance, uid).changes)) {
+        if (rejeu) return { sessions: 0, appareils: 0, push: 0, echeance, posee: false };
+        throw erreur('introuvable');
+      }
       const sessions = num(Q('DELETE FROM session WHERE personne = ?').run(uid).changes);
+      if (rejeu) {
+        /* ni les appareils (la révocation de chacun est SA ligne du registre, rejouée hors ligne avec la règle « créé avant la révocation »), ni les abonnements push (la restauration
+           vide la table) : les supprimer ici emporterait ceux d'une personne REVENUE depuis, dans une copie qui les porte. Les liens, eux, se datent. */
+        Q('UPDATE lien SET revoque = 1 WHERE par = ? AND revoque = 0 AND cree <= ?').run(uid, depuis);
+        return { sessions, appareils: 0, push: 0, echeance, posee: true };
+      }
       /* ⛔ UN APPAREIL COUPÉ ICI EST NOTÉ, comme toute révocation (« déconnecter les autres », onzième appareil) : sans la ligne, une restauration d'une copie d'avant la
          demande lui rendrait l'accès sans SMS (le registre des purges, `rejouerPurge`, genre `appareil`). */
       Q(`INSERT INTO purge(objet, genre, quand) SELECT h, 'appareil', ? FROM appareil_tel WHERE personne = ?`).run(horloge(), uid);
@@ -1520,11 +1537,16 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const push = num(Q('DELETE FROM push WHERE uid = ?').run(uid).changes);
       Q('DELETE FROM jeton WHERE personne = ?').run(uid);
       Q('UPDATE lien SET revoque = 1 WHERE par = ? AND revoque = 0').run(uid);   // un lien d'invitation d'une personne qui s'en va ne ramène plus personne vers elle
+      Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(uid + '|' + echeance + '|' + alea(4), 'suppression_demandee', horloge());
       return { sessions, appareils, push, echeance };
     });
   }
-  function suppressionAnnuler(uid) {
-    return num(Q("UPDATE personne SET suppression_le = NULL WHERE id = ? AND etat = 'actif' AND suppression_le IS NOT NULL").run(uid).changes) > 0;
+  function suppressionAnnuler(uid, { rejeu = false } = {}) {
+    return tx(() => {
+      const annulee = num(Q("UPDATE personne SET suppression_le = NULL WHERE id = ? AND etat = 'actif' AND suppression_le IS NOT NULL").run(uid).changes) > 0;
+      if (annulee && !rejeu) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(uid + '|' + alea(4), 'suppression_annulee', horloge());
+      return annulee;
+    });
   }
   function suppressionLe(uid) {
     const r = Q('SELECT suppression_le FROM personne WHERE id = ?').get(uid);
@@ -1793,6 +1815,8 @@ const GENRES_PURGE = {
   conversation: 'copie',       // une conversation supprimée (le dernier membre est parti) : elle part avec ses membres, messages, réactions et invitations
   appareil: 'copie',           // un jeton d'appareil révoqué (déconnexion, « déconnecter les autres », onzième appareil) — l'empreinte, jamais le jeton
   compte: 'service',           // un compte effacé au bout de ses quatorze jours : il touche dix tables et passe par `compteEffacer` — rejoué par le SERVICE (`rejeu.js`)
+  suppression_demandee: 'service',   // la DEMANDE de suppression (l'échéance posée) : une copie d'avant ne doit pas la perdre — rejouée par le SERVICE, dans l'ordre du registre
+  suppression_annulee: 'service',    // l'ANNULATION (la personne est revenue) : une copie d'avant ne doit pas ramener l'échéance — idem
 };
 
 /* Le registre des purges d'une copie, tel quel : `{objet, genre, quand}`. Une copie sans cette table (très ancienne) en a un vide. */
@@ -1888,10 +1912,14 @@ function pieceIds(chemin, opts) {
      · LES SESSIONS SONT VIDÉES. Une session est un cookie : celles de l'archive sont celles d'AVANT — dont des sessions révoquées depuis (rejoué par le gardien le
        3 octobre 2026 : l'ancien cookie d'une déconnexion répondait de nouveau 200). Aucun registre ne note une session fermée ; vider la table est la seule réponse sûre, et
        le prix est une reconnexion (les jetons d'appareil, eux, restent : ils évitent le SMS, et leurs révocations sont dans le registre) ;
+     · LES ABONNEMENTS PUSH SONT VIDÉS, pour la même raison, en pire : un abonnement retiré (notifications désactivées, déconnexion, accès coupé, suppression de compte, refus 404/410
+       du service push) n'est dans AUCUN registre, et une copie d'avant le ressuscite — la personne reçoit de nouveau des notifications sur un appareil qu'elle avait coupé, et
+       l'aperçu d'un message sur l'écran verrouillé d'un téléphone qu'elle croyait déconnecté (rejoué par le gardien le 3 octobre 2026). Le prix est dit dans `SERVEUR.md` :
+       chaque appareil se réabonne à la prochaine ouverture de l'application (la page redit son abonnement au démarrage) ; tant qu'elle n'est pas rouverte, aucune notification ;
      · LE DRAPEAU `rejeu_service` EST LEVÉ : le service, à son premier démarrage sur cette base, rejoue les genres de purge qui sont à lui (`rejeu.js`) puis le baisse.
-   Rend { sessions } : le nombre de sessions retirées. Une seule transaction. */
+   Rend { sessions, push } : le nombre de sessions et d'abonnements retirés. Une seule transaction. */
 function apresRestauration(chemin, opts) {
-  const bilan = { sessions: 0 };
+  const bilan = { sessions: 0, push: 0 };
   let d = null;
   try {
     d = ouvrirCopie(chemin, Object.assign({}, opts, { ecriture: true }));
@@ -1899,6 +1927,8 @@ function apresRestauration(chemin, opts) {
     d.exec('BEGIN IMMEDIATE');
     try {
       try { bilan.sessions = Number(d.prepare('DELETE FROM session').run().changes); }
+      catch (e) { if (!/no such table/i.test(String(e && e.message))) throw e; }
+      try { bilan.push = Number(d.prepare('DELETE FROM push').run().changes); }
       catch (e) { if (!/no such table/i.test(String(e && e.message))) throw e; }
       d.prepare('INSERT INTO meta(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').run('rejeu_service', String(Date.now()));
       d.exec('COMMIT');
