@@ -20,17 +20,29 @@ et déployés sur la bêta (`msg-beta.teamop.fr`) par une poussée de `server-ms
 
 | lot | contenu | état |
 |---|---|---|
-| 1 | pièces (photos, vocaux, fichiers), photo de profil et de groupe, vrais Réglages (profil, confidentialité réciproque, appareils, stockage) | ✅ sur la branche (9cbc00b) — 68/68 mutations ; en relecture |
-| 2 | sauvegarde hors site chiffrée (étape 3), `restaurer.js essai`, `configurer-sauvegarde.js` | ✅ sur la branche (fusion 58aa408) — 65/65 mutations ; inerte tant que Justin n'a pas créé le bucket (guide § 10 ter) |
-| 3 | notifications push (VAPID propre), « Exporter mes données », « Supprimer mon compte » (J+14) | 🚧 en construction |
+| 1 | pièces (photos, vocaux, fichiers), photo de profil et de groupe, vrais Réglages (profil, confidentialité réciproque, appareils, stockage) | ✅ **EN SERVICE sur la bêta** (`4368968`, déploiement n° 3 vert, `/health` `1.2.0-pieces`, schéma 3) — relu par `gardien` et `testeur`, corrigé (31 commits), 153/153 mutations ; ⛔ les photos attendent le geste du proxy (ci-dessous) |
+| 2 | sauvegarde hors site chiffrée (étape 3), `restaurer.js essai`, `configurer-sauvegarde.js` | ✅ **EN SERVICE sur la bêta** (`4368968`) — relue, corrigée (13 commits), 119/119 mutations ; inerte (`sauvegarde.configuree:false`) tant que Justin n'a pas créé le bucket (guide § 10 ter) |
+| 3 | notifications push (VAPID propre), « Exporter mes données », « Supprimer mon compte » (J+14) | 🚧 en construction (agent, arbre isolé) — à fusionner : sa migration v4 après la v3 des pièces, le genre de purge « compte » à déclarer dans `GENRES_PURGE` et `GENRES_SERVICE` |
 | 4 | réunions programmées (étape 6) | à faire |
 | 5 | appels à deux, audio et vidéo (étape 7) — le relais TURN demande l'ouverture des ports par Justin | à faire |
 | 6 | appels de groupe et salle de réunion en maille (étape 8) | à faire |
 | 7 | espaces Pro, canaux, annuaire, abonnement en mode test (étape 5) | à faire |
 
-Liste des bancs d'OP MESSAGES après les lots 1 et 2 : **31 suites, 3 390 vérifications** (plancher 3380).
-⛔ **Un geste de Justin sera nécessaire au déploiement du lot 1** : le proxy du VPS borne tout corps à 64 Ko, donc aucune photo ne
-passe tant que `install-msg.sh` n'a pas été relancé (il réécrit le bloc nginx avec l'exception de 26 Mo sur `/api/pieces`, sans
+Liste des bancs d'OP MESSAGES après les lots 1 et 2 corrigés : **31 suites, 3 654 vérifications** (plancher 3640) ; suite complète
+de l'arbre déployé 241 · 16 485, code 0.
+⛔ **« Vérifications » de main est tombée sur `4368968`, pour une fausse alerte** : `scripts/verif-secrets.sh --suivis` (la CI)
+a pris la clé d'accès FICTIVE du coffre de banc (« AKIA » + seize majuscules, `tests/outils-sauvegarde.js`) et un canari rangé
+dans une variable `secret` (`test-942`) pour de vrais secrets. Aucune valeur réelle. Corrigé (`1672200`) : la clé du banc ne
+ressemble plus à une clé AWS, et ses huit premiers et derniers caractères ne se lisent dans aucun texte du service (`test-951`
+les cherche dans le journal — un premier remplacement finissait par « uvegarde » : 28 faux ✗) ; la mutation « le journal reçoit
+la clé d'accès » mord toujours (175 ✓ 1 ✗). ⚠️ **Le script SANS argument ne lit que ce qui est indexé** — c'est ce qui l'a
+laissé passer ici : avant toute poussée sur main, `bash scripts/verif-secrets.sh --suivis`, comme la CI.
+⚠️ La CI de la BRANCHE était rouge depuis le 1er octobre pour une autre raison : son job lance toute la suite sans ESLint
+(`test-818` « SAUTE », le filet fait tomber le job) ni les dépendances d'OP MESSAGES. Corrigé (`db7cd2d`). Et « Vérification des
+pages » ne lançait pas les suites qui montent le vrai service d'OP MESSAGES (`server-msg/node_modules` absent : elles écrivent
+« banc non exécuté », que le filet « SAUTÉ » ne voit pas) — les dépendances y sont ajoutées avec le correctif de main.
+⛔ **Un geste de Justin est nécessaire MAINTENANT que le lot 1 est en service** : le proxy du VPS borne tout corps à 64 Ko, donc
+aucune photo ne passe tant que `install-msg.sh` n'a pas été relancé (`bash /root/install-msg.sh beta`, après l'avoir retéléchargé) (il réécrit le bloc nginx avec l'exception de 26 Mo sur `/api/pieces`, sans
 redemander aucune clé — `SERVEUR.md` § 4.4). Le déploiement par GitHub ne touche jamais au proxy.
 ⚠️ Décision prise par l'agent, à confirmer par Justin : présence et accusés de lecture RÉCIPROQUES, aussi dans les groupes (comme
 WhatsApp). Réglages par défaut des pièces à confirmer : photo 12 Mo, vocal 10 Mo, fichier 25 Mo, 2 Go par personne.
