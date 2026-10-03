@@ -1198,7 +1198,7 @@
     function vueEspace(d) {
       const a = d.admin;
       return { id: d.espace.id, nom: d.espace.nom, proprio: !!d.espace.proprio, role: d.moi.role, moiAdmin: d.moi.role === 'admin', membres: d.membres_n | 0, canaux: (d.canaux || []).map(vueCanal), fonctionsPro: d.fonctions_pro === true,
-        admin: a ? { formule: formuleDe(a.formule), motif: String(a.motif || ''), sursisJusqua: Number.isInteger(a.sursis_jusqua) ? a.sursis_jusqua : null, places: Number.isInteger(a.places) ? a.places : null, invitations: a.invitations | 0 } : null };
+        admin: a ? { formule: formuleDe(a.formule), motif: String(a.motif || ''), sursisJusqua: Number.isInteger(a.sursis_jusqua) ? a.sursis_jusqua : null, places: Number.isInteger(a.places) ? a.places : null, placesDepassees: a.places_depassees === true, invitations: a.invitations | 0 } : null };
     }
     const espacesChanges = (id) => emettre({ type: 'espaces', id: id || null });
     async function espaces() {

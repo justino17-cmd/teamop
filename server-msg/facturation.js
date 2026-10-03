@@ -28,7 +28,7 @@
  * Sans clé configurée, tout est INERTE et le dit (`offres().ouvert === false`, 503 `abonnement_non_ouvert`).
  */
 'use strict';
-const { STATUTS_PAYES, STATUTS_IMPAYES, STATUTS_VIVANTS } = require('./formule');
+const { STATUTS_PAYES, STATUTS_IMPAYES } = require('./formule');
 
 const HOTE_STRIPE = 'https://api.stripe.com';
 const PLACES_MIN = 1, PLACES_MAX = 500;
@@ -190,12 +190,11 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
   /* ── ce que l'écran montre : l'état LOCAL (dernier dit par Stripe), sans réseau ── */
   function etat(espace) {
     const a = stockage.abonnementLire(espace), v = formule.formuleDe({ espace }), places = formule.placesDe(espace), n = stockage.espaceMembresN(espace);
-    const vivant = !!(a && a.abonnement && STATUTS_VIVANTS.includes(a.statut));
     return {
       ouvert: actif(), mode: cfg.mode, tout_ouvert: formule.toutOuvert(),
       abonnement: a && a.abonnement ? { statut: a.statut, places: a.places, fin_periode: a.fin_periode, annule: a.annule, relu_le: a.relu_le } : null,
       formule: v.formule, motif: v.motif, sursis_jusqua: v.sursis_jusqua || null,
-      places: Number.isFinite(places) ? places : null, membres: n, places_depassees: Number.isFinite(places) && vivant && n > places,
+      places: Number.isFinite(places) ? places : null, membres: n, places_depassees: formule.placesDepassees(espace, n),   // la définition est celle de `formule.js` : la fiche de l'espace dit la même chose
       paiement_en_attente: !!(a && a.session),     // une session NON RÉSOLUE (Stripe n'a pas dit qu'elle a expiré ou abouti) : quel que soit son âge, on ne sait pas si elle a été payée
       stripe_muet: echecDepuis !== null,
     };

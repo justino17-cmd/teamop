@@ -103,6 +103,15 @@ async function monter(config, instance) {
       v('Eve prend la dernière place', (await e.post('/api/invitations/accepter', { code: l3.j.code })).code, 200);
       const plein = await a.post('/api/espaces/' + E + '/invitations', {});
       v('⛔ au-delà des places payées, plus de lien : 402 `places_epuisees`, avec les nombres que l\'administrateur doit lire', [plein.code, plein.j.error, plein.j.places, plein.j.membres], [402, 'places_epuisees', 5, 5]);
+      /* ⛔ R12 : des places BAISSÉES sous le nombre de membres (le portail de Stripe ne connaît pas nos membres) ne retirent PERSONNE — et l'administrateur le LIT sur la fiche de son espace */
+      payer(E, { places: 3 });
+      const bas = (await a.get('/api/espaces/' + E)).j, basMembre = (await c.get('/api/espaces/' + E)).j, basEtat = (await a.get('/api/espaces/' + E + '/facturation/etat')).j, basLien = await a.post('/api/espaces/' + E + '/invitations', {});
+      v('⛔ cinq membres pour TROIS places : personne n\'est retiré (cinq lignes actives), l\'administrateur LIT le dépassement sur la fiche de son espace — `places_depassees`, avec les deux nombres — comme dans l\'état de l\'abonnement ; et plus aucun lien (402)',
+        [S.espaceMembresN(E), bas.membres_n, bas.admin.places, bas.admin.places_depassees, basEtat.places_depassees, basLien.code, basLien.j.error], [5, 5, 3, true, true, 402, 'places_epuisees']);
+      v('… un simple membre, lui, ne reçoit pas ce bloc (ni les places, ni le dépassement) et garde ses fonctions', [basMembre.admin, basMembre.fonctions_pro, basMembre.membres_n], [undefined, true, 5]);
+      payer(E, { places: 5 });
+      const juste5 = (await a.get('/api/espaces/' + E)).j.admin;
+      v('… autant de places que de membres : plus de dépassement (la frontière est stricte — c\'est « complet », pas « dépassé »)', [juste5.places, juste5.places_depassees], [5, false]);
       /* un lien créé AVANT que l'espace ne soit plein ne fait pas entrer au-delà (l'acceptation recompte) */
       const L = crypto.randomBytes(16).toString('base64url'); S.lienCreer({ h: sha(L), genre: 'espace', cible: E, par: ana.id, ttlMs: JOUR, max: 9 });
       const complet = await f.post('/api/invitations/accepter', { code: L });

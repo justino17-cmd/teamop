@@ -523,6 +523,20 @@ console.log('\nLa formule : UNE fonction décide, le sursis se compte entre deux
   S.abonnementPoser(e, ABO({ statut: 'canceled' }));
   v('⛔ sur la bêta (`toutOuvert`) : Pro pour tout le monde, espace ou personne, abonné ou non — et les places ne se comptent pas (`Infinity`) sans abonnement', [tout(B.formuleDe({ espace: e })), tout(B.formuleDe({ personne: w.dan.id })), B.placesDe(w.e), B.toutOuvert()], ['pro/beta', 'pro/beta', Infinity, true]);
   v('… et l\'état de l\'abonnement reste celui que Stripe a dit (la bêta ne le falsifie pas)', S.abonnementLire(e).statut, 'canceled');
+  /* ⛔ DES PLACES BAISSÉES SOUS LE NOMBRE DE MEMBRES : UNE définition (relecture du gardien, R12) — un abonnement qui VIT dont les places sont inférieures aux membres ; la frontière est stricte */
+  {
+    const pd = atelier(), Pd = creerFormule({ stockage: pd.S, config: { formule: { toutOuvert: false } } });
+    const table = [];
+    for (const [st, places, membres] of [['active', 5, 6], ['active', 5, 5], ['active', 5, 4], ['trialing', 2, 3], ['past_due', 2, 3], ['unpaid', 2, 3], ['canceled', 2, 3], ['incomplete', 2, 3], ['paused', 2, 3], ['incomplete_expired', 2, 3], ['active', 0, 3]]) {
+      pd.S.abonnementPoser(pd.e, ABO({ statut: st, places, impaye: st === 'past_due' || st === 'unpaid' }));
+      table.push(st + ':' + places + ':' + membres + ' → ' + Pd.placesDepassees(pd.e, membres));
+    }
+    v('⛔ `placesDepassees` : vrai pour un abonnement PAYÉ ou EN RETARD (il garde ses places) dont les places sont inférieures aux membres ; faux à égalité (c\'est « complet »), faux au-dessus, et faux dès que l\'abonnement ne vit plus (résilié, en attente, en pause, expiré) ou n\'a aucune place',
+      table, ['active:5:6 → true', 'active:5:5 → false', 'active:5:4 → false', 'trialing:2:3 → true', 'past_due:2:3 → true', 'unpaid:2:3 → true', 'canceled:2:3 → false', 'incomplete:2:3 → false', 'paused:2:3 → false', 'incomplete_expired:2:3 → false', 'active:0:3 → false']);
+    const sans = atelier(), Fs = creerFormule({ stockage: sans.S, config: { formule: { toutOuvert: false } } }), Bs = creerFormule({ stockage: sans.S, config: { formule: { toutOuvert: true } } });
+    v('jamais abonné : pas de place payée à dépasser (même avec cent membres) — et sur la bêta, qui ne compte pas les places, non plus', [Fs.placesDepassees(sans.e, 100), Bs.placesDepassees(sans.e, 100)], [false, false]);
+    v('la fonction ne reçoit que des identifiants et un nombre : aucune requête ne peut lui faire dire « dépassé »', [Pd.placesDepassees.length, typeof Pd.placesDepassees(pd.e, 'beaucoup')], [2, 'boolean']);
+  }
   v('le drapeau est faux par défaut : une configuration sans `formule` n\'ouvre rien', [creerFormule({ stockage: S, config: {} }).toutOuvert(), creerFormule({ stockage: S, config: { formule: {} } }).toutOuvert(), creerFormule({ stockage: S, config: { formule: { toutOuvert: 'oui' } } }).toutOuvert()], [false, false, false]);
   /* ⛔ LA CONFIGURATION : la production REFUSE de démarrer avec le drapeau de la bêta — une configuration copiée de l'une à l'autre ne doit pas offrir Messages Pro à tout le monde */
   const cfgF = (bloc, instance) => formuleConfig(bloc === undefined ? {} : { formule: bloc }, instance);

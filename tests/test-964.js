@@ -205,8 +205,9 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (240 s)');
       const inv = await C.src.invitationCreer(E);
       await D.src.invitationAccepter(inv.code);
       D.vider();
-      await C.src.membreRetirer(E, cleo.id);
+      const retraitCleo = await C.src.membreRetirer(E, cleo.id);
       vrai('⛔ Bob retire Cléo : elle n\'a plus l\'espace (sa liste d\'espaces est vide) et l\'apprend en direct', !!(await D.attendreEv(x => x.type === 'espaces')) && (await D.src.espaces()).espaces.length === 0);
+      v('⛔ retirer quelqu\'un RÉVOQUE les liens d\'invitation de l\'espace : la source dit combien (au moins celui par lequel Cléo était entrée), et l\'ancien code ne rouvre plus rien à Cléo (avant : elle rentrait avec)', [retraitCleo.liensRevoques >= 1, codeDe(await attrape(D.src.invitationAccepter(inv.code))), (await D.src.espaces()).espaces.length], [true, 'lien_invalide', 0]);
       await A.src.espaceQuitter(E);
       v('Alice quitte l\'espace (elle n\'est plus propriétaire) : elle n\'a plus aucun espace', (await A.src.espaces()).espaces, []);
       const e4 = await attrape(C.src.espaceDissoudre('e_' + '1'.repeat(32)));
@@ -275,6 +276,15 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (240 s)');
       fake.statut(sb.id, 'active');
       const r3 = await AB.src.abonnementRelire(EB);
       v('réglé : tout revient d\'un coup', [r3.formule, r3.sursisJusqua], ['pro', null]);
+
+      /* ⛔ R12 : le portail de Stripe baisse les places SOUS le nombre de membres — personne n'est retiré ; la page reçoit du service (elle ne le recalcule pas) le dépassement et les deux nombres */
+      fake.quantite(sb.id, 1);
+      const rBas = await AB.src.abonnementRelire(EB), eBas = await AB.src.espace(EB), eBasMembre = await BB.src.espace(EB);
+      v('⛔ une place pour deux membres : l\'état ET la fiche de l\'espace disent `placesDepassees` (les deux nombres : 1 place, 2 membres) ; personne n\'est retiré ; le simple membre ne reçoit pas le bloc',
+        [rBas.placesDepassees, rBas.places, rBas.membres, eBas.admin.placesDepassees, eBas.admin.places, eBas.membres, eBasMembre.admin, (await AB.src.espace(EB)).membres], [true, 1, 2, true, 1, 2, null, 2]);
+      fake.quantite(sb.id, 2);
+      const rJuste = await AB.src.abonnementRelire(EB);
+      v('… deux places pour deux membres : plus de dépassement, ni dans l\'état ni sur la fiche', [rJuste.placesDepassees, (await AB.src.espace(EB)).admin.placesDepassees], [false, false]);
 
       /* une adresse de paiement qui n'est pas en https n'est JAMAIS rendue à la page */
       const MAL = monter(svcB, { reecrire: { re: /POST \/api\/espaces\/[^/]+\/facturation\/(paiement|portail)$/, corps: { url: 'javascript:alert(1)' } } });

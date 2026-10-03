@@ -82,7 +82,8 @@ function installerEspaces(H, ctx) {
     };
     if (admin) {
       const places = formule.placesDe(id);
-      o.admin = { formule: v.formule, motif: v.motif, sursis_jusqua: v.sursis_jusqua || null, places: Number.isFinite(places) ? places : null, invitations: stockage.invitationsVivantes(id) };
+      /* `places_depassees` : plus de membres que de places payées (le portail de Stripe a baissé la quantité). Personne n'est retiré ; l'administrateur le LIT ici, avec les deux nombres (`membres_n`, `places`). */
+      o.admin = { formule: v.formule, motif: v.motif, sursis_jusqua: v.sursis_jusqua || null, places: Number.isFinite(places) ? places : null, places_depassees: formule.placesDepassees(id, o.membres_n), invitations: stockage.invitationsVivantes(id) };
     }
     return o;
   }

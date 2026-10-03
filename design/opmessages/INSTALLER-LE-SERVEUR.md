@@ -627,12 +627,17 @@ sept jours (comptés entre deux lectures réussies, jamais sur l'horloge seule :
 
 ### 7. Ce qui se passe seul, ce qui crie
 
-- **Relecture** toutes les dix minutes des espaces abonnés (et de ceux dont une session de paiement attend, 24 h) ; Stripe qui ne répond pas arrête la passe après trois échecs de suite, et le dernier état connu sert.
+- **Relecture** toutes les dix minutes des espaces abonnés **et de ceux dont une session de paiement n'est pas résolue — quel que soit son âge** (une session payée pendant une panne finit reconnue ; seul ce que Stripe en DIT, « expirée »
+  ou « inconnue », l'efface) ; Stripe qui ne répond pas arrête la passe après trois échecs de suite, et le dernier état connu sert. **Un 404 de Stripe sur un abonnement ne le dit « résilié » qu'une fois l'absence confirmée** (le client
+  existe chez Stripe et sa liste d'abonnements ne le contient pas) : une clé qui n'est pas celle du bon compte répond 404 à tout, et c'est `stripeEchecMin` qui monte, pas un espace qui se résilie.
 - **`/health`** (PUBLIC) : `stripeEchecMin` (minutes depuis lesquelles Stripe est illisible, 0 si tout va bien) — la surveillance horaire crie **au-delà de 90 minutes** —, le mode de la facturation et le drapeau
   de la bêta. **Ni le nombre d'espaces, ni celui d'abonnés, ni celui d'impayés** : ce sont des chiffres commerciaux, et n'importe qui peut lire `/health` d'un `curl` (relecture du gardien, 3 octobre 2026). Ils se lisent dans le
   tableau de bord de Stripe, qui les tient déjà.
 - **Supprimer son compte** est refusé tant qu'on est seul dans un espace dont l'abonnement court (409 `espace_abonne`), et **dissoudre un espace** aussi (409 `abonnement_actif`) : Stripe continuerait de prélever
-  pour un espace qui n'existe plus. On résilie d'abord (portail), la relecture le voit.
+  pour un espace qui n'existe plus. On résilie d'abord (portail), la relecture le voit. **Un paiement commencé et pas encore reconnu** bloque aussi (409 `paiement_en_cours`) : le service relit d'abord la session, et ne
+  laisse faire qu'une fois Stripe dit qu'elle est expirée ou inconnue.
+- **Retirer quelqu'un d'un espace** révoque tous les liens d'invitation de l'espace (le retiré en connaît les codes) : un administrateur en recrée un. **Quitter** de soi-même n'en révoque aucun.
+- **Des places baissées sous le nombre de membres** (par le portail de Stripe) ne retirent personne : les liens d'invitation s'arrêtent, tout le monde garde son accès, et l'administrateur lit « N membres pour P places ».
 
 ### 8. La couture avec OP GESTION — à lire avant la première vente
 

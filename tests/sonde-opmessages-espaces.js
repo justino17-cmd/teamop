@@ -313,13 +313,50 @@ async function parcoursA(b, ctx) {
   await verifier('Bruno administrateur : le formulaire de canal et les invitations sont là, pas le nom de l\'espace ni « Supprimer » (réservés au propriétaire)', B, () => document.getElementById('feuille-titre').textContent === 'Espace' && !!document.getElementById('cn-nom') && !!document.querySelector('[data-act="esp-lien-creer"]') && !document.getElementById('esp-nom') && !document.querySelector('[data-act="esp-dissoudre"]') && !!document.querySelector('[data-act="esp-quitter"]'), null, 12000, () => texteCorps(B));
   v('⛔ Bruno (administrateur, pas propriétaire) ne voit AUCUN bouton pour retirer ou rétrograder Alice (la propriétaire)', await B.page.evaluate(() => { const l = Array.from(document.querySelectorAll('#esp-contacts .contact')).find(e => /Alice/.test(e.textContent)); return l ? Array.from(l.querySelectorAll('button')).map(x => x.textContent) : null; }), ['Écrire']);
   await fermerFeuille(B);
+
+  console.log('\n── La hiérarchie de l\'espace vaut dans ses canaux privés : l\'écran ne propose « Retirer » que pour ce qui peut marcher ──');
+  /* ⛔ Bruno est administrateur mais pas propriétaire. Alice (propriétaire) le remet dans « direction » (où est Dora) : chacun lit alors les mêmes membres, et ne peut pas retirer les mêmes. */
+  await fermerFeuille(A); await onglet(A, 'messages');
+  await A.page.locator('#liste-conv .conv', { hasText: '# direction' }).first().tap(); A.gestes++;
+  await verifier('Alice ouvre le canal privé « direction »', A, () => document.documentElement.dataset.conv === '1' && /# direction/.test(document.getElementById('conv-titre').textContent), null, 12000, () => lire(A, '#conv-titre'));
+  await toucher(A, '#conv-titre');
+  await verifier('les infos du canal : Bruno (administrateur de l\'espace) peut y être ajouté', A, () => !!document.querySelector('[data-act="can-ajouter-membre"]'), null, 12000, () => texteCorps(A));
+  await A.page.locator('[data-act="can-ajouter-membre"]').first().tap(); A.gestes++;
+  const retirables = (S) => S.page.evaluate(() => Array.from(document.querySelectorAll('#info-corps .contact')).filter(e => e.querySelector('[data-act="can-retirer-membre"]')).map(e => /Bruno/.test(e.textContent) ? 'Bruno' : /Dora/.test(e.textContent) ? 'Dora' : /Alice/.test(e.textContent) ? 'Alice' : '?').sort());
+  await verifier('population : Bruno est dans le canal (badge « Admin »), Dora aussi', A, () => Array.from(document.querySelectorAll('#info-corps .contact')).some(e => /Bruno/.test(e.textContent) && /Admin/.test(e.textContent)) && Array.from(document.querySelectorAll('#info-corps .contact')).some(e => /Dora/.test(e.textContent)), null, 12000, () => texteCorps(A));
+  v('⛔ Alice est PROPRIÉTAIRE : elle peut retirer un administrateur — « Retirer » est sur la ligne de Bruno ET sur celle de Dora, et sur aucune autre', await retirables(A), ['Bruno', 'Dora']);
+  await onglet(B, 'messages');
+  await verifier('le canal « direction » paraît dans la liste de Bruno', B, () => Array.from(document.querySelectorAll('#liste-conv .conv-nom')).some(e => /# direction/.test(e.textContent)), null, 12000, () => lire(B, '#liste-conv'));
+  await B.page.locator('#liste-conv .conv', { hasText: '# direction' }).first().click(); B.gestes++;
+  await verifier('Bruno ouvre le canal privé', B, () => document.documentElement.dataset.conv === '1' && /# direction/.test(document.getElementById('conv-titre').textContent), null, 12000, () => lire(B, '#conv-titre'));
+  await toucher(B, '#conv-titre');
+  await verifier('les infos du canal pour Bruno : trois membres (Alice, Dora, lui-même)', B, () => document.getElementById('feuille-titre').textContent === 'Infos' && /Dora/.test(document.getElementById('info-corps').textContent) && /Alice/.test(document.getElementById('info-corps').textContent) && /Vous/.test(document.getElementById('info-corps').textContent), null, 12000, () => texteCorps(B));
+  v('⛔ Bruno est administrateur mais PAS propriétaire : « Retirer » n\'est proposé que sur la ligne de Dora — jamais sur celle d\'Alice, la propriétaire (le service refuserait, et le canal ne se rouvre qu\'à ses membres)', await retirables(B), ['Dora']);
+  await capture(B, 'b3-infos-canal-membre');
+  v('population : le canal privé a trois membres avant le retrait (Alice, Dora, Bruno)', sql('SELECT COUNT(*) AS n FROM membre WHERE conv = (SELECT conv FROM canal WHERE prive = 1) AND quitte_le IS NULL').n, 3);
+  /* le geste permis : la propriétaire retire l'administrateur du canal — il en sort, en direct */
+  await A.page.locator('#info-corps .contact', { hasText: 'Bruno' }).locator('[data-act="can-retirer-membre"]').tap(); A.gestes++;
+  await verifier('⛔ Alice retire Bruno (administrateur) du canal : permis — il en sort EN DIRECT, sa conversation se ferme', B, () => document.documentElement.dataset.conv !== '1' && /Tu n'es plus dans cette conversation/.test(document.getElementById('mot').textContent), null, 12000, () => etatPage(B));
+  v('… dans la base, le canal privé n\'a plus que ses deux autres membres (Alice et Dora : trois avant le retrait)', sql('SELECT COUNT(*) AS n FROM membre WHERE conv = (SELECT conv FROM canal WHERE prive = 1) AND quitte_le IS NULL').n, 2);
+  await fermerFeuille(B); await retourListe(B); await fermerFeuille(A); await retourListe(A);
+  await onglet(A, 'reglages'); await toucher(A, '[data-esp-ouvrir]');
+  await verifier('la feuille de l\'espace, de nouveau', A, feuilleOuverte, 'Espace', 8000, () => titreFeuille(A));
+  await verifier('population : trois contacts', A, () => document.querySelectorAll('#esp-contacts .contact').length === 3, null, 8000);
+
+  console.log('\n── Retirer quelqu\'un de l\'espace RÉVOQUE ses liens d\'invitation (il en connaissait le code) : l\'écran le dit et n\'affiche plus un lien mort ──');
+  await toucher(A, '[data-act="esp-lien-creer"]');
+  await verifier('population : Alice crée un lien pour cette séquence — il est affiché', A, () => !!document.getElementById('esp-lien-champ') && /invitation=/.test(document.getElementById('esp-lien-champ').value), null, 8000, () => lire(A, '#esp-lien'));
+  const liensVivants = () => sql("SELECT COUNT(*) AS n FROM lien WHERE genre = 'espace' AND revoque = 0").n;
+  const vivantsAvant = liensVivants();
+  vrai('population : au moins un lien d\'invitation vit dans la base avant le retrait (le sien, et celui par lequel Bruno et Dora sont entrés)', vivantsAvant >= 1);
   /* retirer Dora : deux touches */
   const ligneDora = A.page.locator('#esp-contacts .contact', { hasText: 'Dora Leroy' });
   await ligneDora.locator('[data-act="esp-retirer"]').tap(); A.gestes++;
   await verifier('⛔ une première touche ne retire personne : le bouton DIT « Toucher encore pour retirer »', A, () => Array.from(document.querySelectorAll('#esp-contacts .contact')).some(e => /Dora/.test(e.textContent) && /Toucher encore pour retirer/.test(e.textContent)), null, 4000, () => texteCorps(A));
   v('… et Dora est toujours membre (population : trois membres)', sql('SELECT COUNT(*) AS n FROM espace_membre').n, 3);
   await ligneDora.locator('[data-act="esp-retirer"]').tap(); A.gestes++;
-  await verifier('la seconde touche retire Dora : deux contacts', A, () => document.querySelectorAll('#esp-contacts .contact').length === 2 && /Membre retiré/.test(document.getElementById('mot').textContent), null, 10000, () => texteCorps(A));
+  await verifier('⛔ la seconde touche retire Dora : deux contacts, et la page DIT que les liens d\'invitation sont révoqués (Dora en connaissait le code)', A, () => document.querySelectorAll('#esp-contacts .contact').length === 2 && /Membre retiré · liens d'invitation révoqués/.test(document.getElementById('mot').textContent), null, 10000, () => texteCorps(A));
+  v('⛔ … et c\'est vrai : plus aucun lien d\'invitation ne vit dans la base, et la feuille n\'affiche plus le lien d\'avant (un lien mort qu\'on afficherait toujours serait un faux espoir)', [liensVivants(), await A.page.evaluate(() => !!document.getElementById('esp-lien-champ'))], [0, false]);
   await verifier('⛔ Dora l\'apprend EN DIRECT : Réglages › Entreprise ne liste plus l\'espace', D, () => !/Atelier Banc/.test(document.getElementById('reg-esp').textContent), null, 12000, () => lire(D, '#reg-esp'));
   await capture(A, 'a6-roles');
   /* ⛔ un non-membre ne voit rien : Chloé n'a aucun espace */
@@ -451,10 +488,27 @@ async function parcoursB(b, ctx) {
   fake.quantite(sb.id, 4);
   await A.page.goto(A.base + '/?abo=portail&e=' + EB + '#reglages');
   await verifier('⛔ de retour du portail (4 places maintenant chez Stripe) : la feuille relit et montre 4 places', A, () => document.getElementById('feuille-titre').textContent === 'Abonnement' && /Actif · 4 places/.test(document.getElementById('info-corps').textContent), null, 15000, () => texteCorps(A));
+  v('… et rien ne parle de dépassement : quatre places pour deux membres (population : le faux Stripe a été relu)', await A.page.evaluate(() => [!!document.getElementById('ab-depasse'), /Actif · 4 places/.test(document.getElementById('info-corps').textContent)]), [false, true]);
+
+  console.log('\n── Des places baissées SOUS le nombre de membres : personne n\'est retiré, l\'administrateur lit « 2 membres pour 1 place » ──');
+  fake.quantite(sb.id, 1);
+  await A.page.goto(A.base + '/?abo=portail&e=' + EB + '#reglages');
+  await verifier('⛔ de retour du portail (UNE place chez Stripe pour deux membres) : la feuille Abonnement dit « 2 membres pour 1 place », que personne n\'est retiré, et que seul le propriétaire — Alice — ajoute des places (« Gérer l\'abonnement »)', A,
+    () => document.getElementById('feuille-titre').textContent === 'Abonnement' && /Actif · 1 place(?!s)/.test(document.getElementById('info-corps').textContent) && /2 membres pour 1 place/.test((document.getElementById('ab-depasse') || { textContent: '' }).textContent) && /Personne n'est retiré/.test(document.getElementById('ab-depasse').textContent) && /Gérer l'abonnement/.test(document.getElementById('ab-depasse').textContent), null, 15000, () => texteCorps(A));
+  await capture(A, 'p6-places-depassees');
+  await largeur(A, 'feuille Abonnement (places dépassées)');
+  await toucher(A, '[data-act="abo-espace"]');
+  await verifier('⛔ … et la fiche de l\'espace le dit aussi, là où l\'administrateur travaille : « 2 membres pour 1 place », et le remède', A,
+    () => document.getElementById('feuille-titre').textContent === 'Espace' && /2 membres pour 1 place/.test((document.getElementById('esp-depasse') || { textContent: '' }).textContent) && /Ajoute des places/.test(document.getElementById('esp-depasse').textContent), null, 12000, () => texteCorps(A));
+  v('… sans retirer personne : les deux membres sont toujours dans l\'espace (population)', sql('SELECT COUNT(*) AS n FROM espace_membre WHERE espace = ?', EB).n, 2);
+  fake.quantite(sb.id, 4);
+  await A.page.goto(A.base + '/?abo=portail&e=' + EB + '#reglages');
+  await verifier('… remonté à 4 places chez Stripe : l\'avertissement disparaît de la feuille Abonnement', A, () => document.getElementById('feuille-titre').textContent === 'Abonnement' && /Actif · 4 places/.test(document.getElementById('info-corps').textContent) && !document.getElementById('ab-depasse'), null, 15000, () => texteCorps(A));
 
   console.log('\n── Les fonctions Pro : marchent payées, refusent en disant pourquoi à l\'administrateur seul ──');
   await toucher(A, '[data-act="abo-espace"]');
   await verifier('la feuille de l\'espace : Messages Pro disponible', A, () => document.getElementById('feuille-titre').textContent === 'Espace' && /Les fonctions Pro de l'espace sont disponibles/.test(document.getElementById('info-corps').textContent), null, 12000, () => texteCorps(A));
+  v('… et plus de dépassement sur la fiche de l\'espace (quatre places pour deux membres)', await A.page.evaluate(() => !!document.getElementById('esp-depasse')), false);
   await saisir(A, '#cn-nom', 'general');
   await toucher(A, '[data-act="can-creer"]');
   await verifier('créer un canal MARCHE (l\'espace est payé)', A, () => document.documentElement.dataset.conv === '1' && /# general/.test(document.getElementById('conv-titre').textContent), null, 12000, () => lire(A, '#conv-titre'));

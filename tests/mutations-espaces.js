@@ -255,7 +255,7 @@ m('B30', '/health porte la clé Stripe', F.index, 'facturation: { mode: facturat
 m('B31', '/health ne publie plus les minutes d\'illisibilité de Stripe', F.index, 'stripeEchecMin: facturation.echecMin(),', 'stripeEchecMin: 0,', ['962']);
 m('B32', 'la surveillance ne crie plus quand Stripe est illisible', F.surv, "if (typeof j.stripeEchecMin === 'number' && j.stripeEchecMin > SEUIL_STRIPE_MIN) {", 'if (false) {', ['934']);
 m('B33', 'la surveillance crie à 90 minutes pile (elle ne crie qu\'AU-DELÀ)', F.surv, 'j.stripeEchecMin > SEUIL_STRIPE_MIN', 'j.stripeEchecMin >= SEUIL_STRIPE_MIN', ['934']);
-m('B34', 'un espace qui a EXACTEMENT autant de membres que de places est dit « en dépassement » (la frontière est une inégalité large)', F.fact, 'places_depassees: Number.isFinite(places) && vivant && n > places,', 'places_depassees: Number.isFinite(places) && vivant && n >= places,', ['962']);
+m('B34', 'un espace qui a EXACTEMENT autant de membres que de places est dit « en dépassement » (la frontière est une inégalité large)', F.formule, 'membres > a.places);', 'membres >= a.places);', ['960', '962']);
 
 /* ══ 6. LA CONFIGURATION ET L'OUTIL DE POSE DE LA CLÉ (config.js, configurer-stripe.js) ═══════════════════════════════════════════════════════════════════ */
 m('K01', 'la production accepte le drapeau de la bêta (tout y serait Pro, sans paiement)', F.conf,
@@ -413,6 +413,31 @@ m('H40', 'révoquer les liens d\'un groupe ne se note plus (une archive d\'avant
   "      for (const l of Q(`SELECT h FROM lien WHERE genre = 'groupe' AND cible = ? AND revoque = 0`).all(conv)) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(l.h, 'invitation', t);\n", '', ['950']);
 m('H41', 'le rejeu ne révoque que les liens d\'un ESPACE (un lien de groupe révoqué revit)', F.stock,
   "genre IN ('espace', 'groupe') AND revoque = 0", "genre = 'espace' AND revoque = 0", ['950']);
+
+/* ── R12 : des places baissées sous le nombre de membres ne retirent personne, et l'administrateur le lit ── */
+m('H42', 'le dépassement se dit aussi pour un abonnement qui ne vit plus (résilié, en attente, en pause) : « 3 membres pour 2 places » sur un espace qui ne paie rien', F.formule,
+  'return !!(a && STATUTS_VIVANTS.includes(a.statut) && a.places > 0 && membres > a.places);', 'return !!(a && a.places > 0 && membres > a.places);', ['960']);
+m('H43', 'la fiche de l\'espace ne porte plus le dépassement (l\'administrateur ne le lit que dans l\'abonnement)', F.resp,
+  'places_depassees: formule.placesDepassees(id, o.membres_n), ', '', ['961', '962', '964']);
+m('H44', 'l\'état de l\'abonnement ne reprend plus la définition commune du dépassement', F.fact,
+  'places_depassees: formule.placesDepassees(espace, n),', 'places_depassees: false,', ['962', '964']);
+m('H45', 'la fiche de l\'espace compte le dépassement sur un nombre de membres qui n\'est pas le sien (zéro)', F.resp,
+  'places_depassees: formule.placesDepassees(id, o.membres_n)', 'places_depassees: formule.placesDepassees(id, 0)', ['961', '962', '964']);
+/* ── les gestes de la page que la relecture du gardien a changés (I1, I3, R12) : la sonde les joue dans un navigateur ── */
+m('P14', 'la page n\'annonce plus que les liens d\'invitation sont révoqués quand on retire quelqu\'un (elle dit seulement « Membre retiré »)', F.page,
+  'mot(r && r.liensRevoques ? ', 'mot(false ? ', ['sonde'], SONDE);
+m('P15', 'la page garde affiché le lien d\'invitation qu\'on vient de révoquer en retirant quelqu\'un (un lien mort qu\'on afficherait toujours)', F.page,
+  "esp.lien = null; await relire(); return; }\n      if (act === 'esp-transferer')", "await relire(); return; }\n      if (act === 'esp-transferer')", ['sonde'], SONDE);
+m('P16', 'l\'écran propose « Retirer » sur la ligne du propriétaire ou d\'un administrateur d\'un canal privé à un administrateur qui n\'est pas propriétaire (le service refuserait)', F.page,
+  "const retirable = m => modifiable && i.prive && !m.moi && (m.role !== 'admin' || moiProprio);", 'const retirable = m => modifiable && i.prive && !m.moi;', ['sonde'], SONDE);
+m('P17', 'la fiche de l\'espace ne dit plus « N membres pour P places » à l\'administrateur (seule la feuille Abonnement le dirait)', F.page,
+  'if (admin && a && a.placesDepassees) h +=', 'if (false && admin && a && a.placesDepassees) h +=', ['sonde'], SONDE);
+m('P18', 'la feuille Abonnement dit « plus de membres que de places » sans les deux nombres (l\'administrateur ne sait pas de combien il manque)', F.page,
+  'esc(membresPourPlaces(ab.membres, ab.places))', "'Il y a plus de membres que de places'", ['sonde'], SONDE);
+m('P19', 'la source de la page ne transmet plus le dépassement que le service a décidé', F.src,
+  'placesDepassees: a.places_depassees === true,', 'placesDepassees: false,', ['964', 'sonde'], SONDE);
+m('P20', 'la source de la page ne dit plus combien de liens ont été révoqués en retirant quelqu\'un', F.src,
+  'liensRevoques: r && Number.isInteger(r.liens_revoques) ? r.liens_revoques : 0', 'liensRevoques: 0', ['964', 'sonde'], SONDE);
 
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const DOSSIERS_COPIE = ['server-msg', 'server', 'design/opmessages', '.github', 'apercu/opmessages', 'icons', 'scripts'];   // `.github` ENTIER : test-934 lit les workflows autant que les scripts de surveillance

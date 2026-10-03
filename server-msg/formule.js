@@ -72,7 +72,18 @@ function creerFormule({ stockage, config }) {
     return toutOuvert ? Infinity : 0;
   }
 
-  return { formuleDe, placesDe, toutOuvert: () => toutOuvert };
+  /* ⛔ DES PLACES BAISSÉES SOUS LE NOMBRE DE MEMBRES NE RETIRENT PERSONNE (relecture du gardien, 3 octobre 2026) : le portail de Stripe change la quantité sans rien savoir de nos membres, et la
+     conception avait écrit le contraire (« une baisse ne descend jamais sous le nombre de membres »). Le service ne retire donc personne — retirer quelqu'un sans que personne l'ait demandé serait
+     pire — ; les liens d'invitation s'arrêtent (plus de place), tous les membres gardent leur accès, et l'ADMINISTRATEUR est prévenu, chiffres à l'appui (« 5 membres pour 3 places »).
+     Cette fonction dit si c'est le cas : un abonnement qui VIT (payé ou en retard) dont les places sont inférieures au nombre de membres. Une seule définition, lue par l'état de l'abonnement
+     ET par la fiche de l'espace — deux écrans qui calculeraient chacun le leur finiraient par se contredire. La frontière est STRICTE : autant de places que de membres, ce n'est pas un dépassement
+     (c'est « complet »). Sans abonnement vivant (jamais abonné, résilié, la bêta qui ne compte pas) il n'y a pas de place payée à dépasser. */
+  function placesDepassees(id, membres) {
+    const a = stockage.abonnementLire(id);
+    return !!(a && STATUTS_VIVANTS.includes(a.statut) && a.places > 0 && membres > a.places);
+  }
+
+  return { formuleDe, placesDe, placesDepassees, toutOuvert: () => toutOuvert };
 }
 
 module.exports = { creerFormule, SURSIS_MS, STATUTS_PAYES, STATUTS_IMPAYES, STATUTS_VIVANTS };

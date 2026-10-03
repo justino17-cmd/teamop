@@ -2984,6 +2984,8 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   const initialesEspace = nom => { const m = String(nom).trim().split(/\s+/).filter(Boolean); return m.length ? (Array.from(m[0])[0] + (m[1] ? Array.from(m[1])[0] : '')).toUpperCase() : '?'; };
   const avatarEspace = x => ({ avatar: Array.from(String(x.id)).reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 6007, 0) % 6, initiales: initialesEspace(x.nom), photo: null });
   const nMembres = n => n + (n > 1 ? ' membres' : ' membre');
+  /* « 5 membres pour 3 places » : les DEUX nombres que le service a comptés, jamais un seul (l'administrateur doit savoir de combien il manque) */
+  const membresPourPlaces = (n, p) => nMembres(n) + ' pour ' + p + (p > 1 ? ' places' : ' place');
   const roleEspace = x => x.proprio ? 'Propriétaire' : (x.moiAdmin || x.role === 'admin') ? 'Administrateur' : 'Membre';
   const FORMULE_LBL = { pro: 'Messages Pro', perso: 'Messages Perso', impaye: 'Messages Pro — paiement en retard' };
   const STATUT_ABO = { active: 'Actif', trialing: 'Période d\'essai', past_due: 'Paiement en retard', unpaid: 'Impayé', canceled: 'Résilié', incomplete: 'Paiement non terminé', incomplete_expired: 'Paiement expiré', paused: 'En pause' };
@@ -3103,6 +3105,8 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     if (admin) h += '<div class="carte"><button type="button" class="reglage presse" data-act="abo-ouvrir"><span class="reglage-texte">Messages Pro<small>' +
       esc(a && a.formule === 'pro' ? 'Les fonctions Pro de l\'espace sont disponibles' : a && a.formule === 'impaye' ? 'Paiement en retard : les fonctions Pro sont suspendues' : 'Pas d\'abonnement : les fonctions Pro sont indisponibles') + '</small></span>' + CHEVRON + '</button></div>';
     else if (!d.fonctionsPro) h += '<p class="info-note">Les fonctions Pro de l\'espace (créer des canaux, inviter des collègues) ne sont pas disponibles pour l\'instant. Rien n\'est perdu : tes messages, les canaux et les membres restent.</p>';
+    /* ⛔ DES PLACES BAISSÉES SOUS LE NOMBRE DE MEMBRES (le portail de Stripe ne connaît pas nos membres) ne retirent PERSONNE : l'administrateur le lit ICI, chiffres à l'appui, là où il travaille — et non seulement dans l'abonnement */
+    if (admin && a && a.placesDepassees) h += '<p class="info-note" role="status" id="esp-depasse"><b>' + esc(membresPourPlaces(d.membres, a.places)) + '.</b> Personne n\'est retiré et chacun garde son accès, mais plus aucun lien d\'invitation ne marche tant que les places ne suffisent pas.' + (d.proprio ? ' Ajoute des places dans « Messages Pro ».' : ' Seul le propriétaire peut ajouter des places.') + '</p>';
     h += '<div class="rubrique"><span>Canaux</span><span>' + (d.canaux.length || '') + '</span></div><div class="carte">' + (d.canaux.length ? d.canaux.map(k => '<button type="button" class="contact presse" data-act="can-ouvrir" data-id="' + esc(k.id) + '">' +
       avatar({ avatar: 0, initiales: '#' }) + '<span class="contact-texte"><span class="contact-nom"># ' + esc(k.nom) + '</span><span class="contact-role">' + esc((k.prive ? 'Privé' : 'Public') + ' · ' + nMembres(k.membres)) + '</span></span>' + CHEVRON + '</button>').join('') : '<p class="vide">Aucun canal pour l\'instant.</p>') + '</div>';
     if (admin) h += '<div class="rubrique"><span>Nouveau canal</span></div><div class="carte carte-pad">' +
@@ -3179,7 +3183,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
       (ab.sursisJusqua ? '<p class="info-note">Paiement en retard : les fonctions Pro restent disponibles jusqu\'au ' + esc(dateCourte(ab.sursisJusqua)) + '. Règle l\'abonnement pour les garder.</p>' : '') +
       (ab.formule === 'impaye' ? '<p class="info-erreur" role="alert">Les fonctions Pro (créer un canal, inviter un collègue) sont suspendues tant que le paiement n\'est pas réglé. Rien n\'est perdu : les messages, les canaux et les membres restent.</p>' : '') +
       (ab.abonnement && ab.abonnement.annule ? '<p class="info-note">Résilié à la fin de la période : l\'espace repasse en Perso après cette date.</p>' : '') +
-      (ab.placesDepassees ? '<p class="info-note">Il y a plus de membres que de places : personne n\'est retiré, mais on ne peut plus inviter. Ajoute des places pour inviter de nouveau.</p>' : '') +
+      (ab.placesDepassees ? '<p class="info-note" role="status" id="ab-depasse"><b>' + esc(membresPourPlaces(ab.membres, ab.places)) + '.</b> Personne n\'est retiré et chacun garde son accès, mais on ne peut plus inviter. ' + (d.proprio ? 'Ajoute des places (« Gérer l\'abonnement ») pour inviter de nouveau.' : 'Seul le propriétaire peut ajouter des places.') + '</p>' : '') +
       (ab.paiementEnAttente ? '<p class="info-note">Un paiement a été commencé chez Stripe. Si tu l\'as réglé, touche « J\'ai réglé — vérifier ».</p>' : '') +
       (ab.stripeMuet ? '<p class="info-note">Le service de paiement ne répond pas : l\'état affiché est le dernier connu.</p>' : '') +
       (!ab.ouvert ? '<p class="info-note">L\'abonnement n\'est pas encore ouvert sur ce service : aucun paiement n\'est possible.</p>' : ab.toutOuvert ? '<p class="info-note">Pendant la bêta, les fonctions Pro sont ouvertes à tous les espaces.</p>' : ab.mode === 'test' ? '<p class="info-note">Mode test : aucun vrai prélèvement.</p>' : '') + '</div>';
