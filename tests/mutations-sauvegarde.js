@@ -206,6 +206,8 @@ const MUTATIONS = [
     [["if (!Object.prototype.hasOwnProperty.call(genres, e.genre) || typeof genres[e.genre] !== 'function') continue;", "if (typeof genres[e.genre] !== 'function') continue;"]], ['950']],
   ['R26', 'une fonction de rejeu asynchrone est acceptée (une promesse perdue : un effacement qu\'on croit fait)', F.rejeu,
     [["      if (r && typeof r.then === 'function') throw new Error('rejeu-asynchrone');   // le démarrage est synchrone : une promesse perdue serait un effacement qu'on croirait fait\n", '']], ['950']],
+  ['R27', '`liste` ne marque plus une archive dont le nom est daté du FUTUR (après un saut d\'horloge, la « plus récente » n\'est plus la plus fraîche)', F.rest,
+    [["+ ageTexte(a.ts) + (nomDuFutur(a) ? noteDuFutur(a) : '')));", "+ ageTexte(a.ts)));"]], ['950']],
   ['W07', 'le service ne rejoue plus rien au démarrage sur une base restaurée (le câblage d\'index.js)', F.index,
     [["  rejouerAuDemarrage({ stockage, contexte: { effacerPieces, horloge: Date.now }, journaliser });\n", '']], ['951']],
 

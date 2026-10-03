@@ -474,7 +474,10 @@ OPMSG_CONFIG=/etc/opmsg/beta.json OPMSG_DATA=/opt/opmsg/beta/data node /opt/opms
 ```
 
 Il télécharge la dernière copie, la déchiffre, rouvre la base, la contrôle, compte les lignes, rejoue le registre des suppressions, vérifie que la clé maître de ce
-serveur ouvre bien cette base, relit des pièces, puis efface son dossier de travail. **Il ne touche pas aux vraies données.**
+serveur ouvre bien cette base, relit des pièces, **compare les lignes de pièces de la base aux fichiers du coffre** (une ligne `⚠ N SANS fichier au coffre` veut dire que des photos ne
+s'ouvriraient pas après une restauration : l'exercice le dit, l'enregistre, et ne le cache pas), puis efface son dossier de travail. **Il ne touche pas aux vraies données.**
+⚠️ Si le fichier de la clé maître n'est pas lisible là où il tourne (`OPMSG_KEK_FILE`), l'exercice prouve que la copie est **intacte** mais pas qu'elle servirait : il le dit
+(`la clé maître n'a pas pu être vérifiée`) et **n'enregistre PAS** de date — `/health` ne passera pas à `essaiJours: 0` sur un exercice incomplet. Refaire l'exercice sur le serveur.
 
 **À voir**, tout à la fin : `✅ CETTE SAUVEGARDE EST RESTAURABLE. Exercice enregistré : /health dira « essaiJours: 0 ».` Puis `curl -s https://msg-beta.teamop.fr/health` :
 `"essaiJours":0`. **Colle les deux.** C'est la porte de l'étape 3 : sans cet essai réussi, personne d'extérieur n'entre.
@@ -495,7 +498,11 @@ caractère faux. Il ne l'affiche jamais. Espaces et majuscules acceptés (pour l
 
 ### 8. Après : ce qui se passe seul, ce qui crie, ce que tu fais chaque mois
 
-- **Toutes les heures**, une copie ; celles de plus de **14 jours** s'effacent seules. Rien à faire.
+- **Toutes les heures**, une copie ; celles de plus de **14 jours** s'effacent seules. Rien à faire. Les pièces (photos, vocaux, fichiers) partent **avant** la base, et une passe qui en laisse à
+  envoyer (plus de 5 000 d'un coup, ou plus de huit minutes) se déclare **en échec** (motif `pieces-arriere-N` au journal du service) : la base est partie, mais la sauvegarde est incomplète, et elle le dit
+  jusqu'à ce que tout soit au coffre. Une première mise en service avec beaucoup de pièces peut donc faire crier la surveillance quelques heures — c'est vrai, ce n'est pas une panne.
+- **Si l'horloge du serveur saute** de plus d'un jour par rapport à celle du coffre, la passe se déclare en échec (`horloge-ecart`) et **n'efface rien** ; un âge de copie négatif fait aussi crier la surveillance.
+  Recaler l'horloge (`timedatectl`), la sauvegarde repart toute seule à la passe suivante.
 - **La surveillance crie** (le contrôle horaire de GitHub) si la dernière copie relue a plus de 2 h, si deux passes de suite échouent, et — **en production seulement** — si
   aucun essai de restauration n'a réussi depuis 35 jours. La bêta n'est pas alarmée sur l'essai : ses données sont jetables.
 - **Chaque mois** (production) : le geste 6, et tu colles le résultat.
@@ -514,9 +521,16 @@ vide, deviendrait sinon « la plus récente » :
 2. le geste 4, **sans** redémarrer ensuite (le coffre contient déjà les anciennes copies : c'est normal) ;
 3. `systemctl stop teamop-msg@beta` ;
 4. `OPMSG_CONFIG=/etc/opmsg/beta.json OPMSG_DATA=/opt/opmsg/beta/data node /opt/opmsg/beta/current/outils/restaurer.js restaurer --vers /opt/opmsg/beta/data --ecraser`
-   — la base vide créée par la nouvelle installation est **mise de côté**, jamais effacée ; `--date 2026-10-02T14` choisit une copie plus ancienne si la dernière est mauvaise ;
+   — la base vide créée par la nouvelle installation est **mise de côté**, jamais effacée ; `--date 2026-10-02T14` choisit une copie plus ancienne si la dernière est mauvaise.
+   Pour ne pas faire revenir ce qui a été supprimé depuis, l'outil rejoue le registre des suppressions de la **plus récente copie qui s'ouvre** : il saute les copies abîmées et le dit
+   (`⚠ base/… ne s'ouvre pas`). **Si AUCUNE copie plus récente que celle que tu as choisie ne s'ouvre**, il **refuse** — les messages supprimés pour tous ou échus depuis reviendraient — et
+   attend que tu ajoutes `--sans-purge` : c'est le prix d'une restauration à une date ancienne, à accepter en connaissance de cause. Ajoute `--sans-pieces` pour restaurer la base seule
+   et remettre les pièces plus tard ; s'il écrit `⚠ N SANS fichier`, N photos ne s'ouvriront pas (les conversations, elles, restent lisibles) ;
 5. `chown -R opmsg:opmsg /opt/opmsg/beta/data` ;
 6. `systemctl start teamop-msg@beta`, puis `curl -s https://msg-beta.teamop.fr/health`.
+   **Tout le monde doit se reconnecter** : la restauration vide les sessions exprès (une session fermée avant le sinistre ne doit pas revenir d'une copie d'avant sa fermeture) ; les appareils
+   déjà liés par SMS restent connectés. Au premier démarrage, le journal porte une ligne `"evt":"rejeu"` (le service rejoue les suppressions qui sont à lui, puis baisse le drapeau) ;
+   `journalctl -u teamop-msg@beta | grep '"evt":"rejeu"'` doit dire `"etat":"ok"`. Une ligne `echec` veut dire qu'un effacement n'a pas pu être rejoué : il le sera au démarrage suivant, mais regarde pourquoi.
 
 ⚠️ Cette procédure est écrite d'après le code et **jouée sur ma machine contre un faux coffre** : elle n'a jamais été jouée sur un VPS neuf. Un essai à blanc sur un VPS jetable
 reste à faire **avant la production**.

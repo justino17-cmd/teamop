@@ -43,7 +43,11 @@ const COFFRE = require('../coffre');
 
 const SCHEMA_CODE = Math.max(...MIGRATIONS.map(m => m.v));   // le schéma de la base que CE code sait ouvrir
 const mio = (o) => (o / 1048576).toFixed(1) + ' Mio';
-const ageTexte = (ts) => { const h = (Date.now() - ts) / 3600000; return h < 48 ? 'il y a ' + h.toFixed(1) + ' h' : 'il y a ' + Math.round(h / 24) + ' j'; };
+const ageTexte = (ts) => { const h = (Date.now() - ts) / 3600000; return h < -1 ? 'datée du futur' : h < 48 ? 'il y a ' + h.toFixed(1) + ' h' : 'il y a ' + Math.round(h / 24) + ' j'; };
+/* ⛔ UN NOM DATÉ DU FUTUR est celui d'une archive posée pendant que l'horloge de la machine avançait : le coffre, lui, l'a datée de ce qu'il a vu (`LastModified`). Le nom ordonne les
+   archives pour la rétention et pour « la plus récente » : après un saut d'horloge, la plus récente PAR LE NOM n'est plus la plus fraîche. On le DIT, avec la vraie date. */
+const nomDuFutur = (a) => { const m = Date.parse(a && a.modifie); return Number.isFinite(m) && a.ts - m > 86400000; };
+const noteDuFutur = (a) => '   ⚠ nom daté du futur : l\'horloge de la machine avançait lors de cette passe (le coffre la date du ' + new Date(Date.parse(a.modifie)).toISOString().slice(0, 10) + ')';
 const echec = (message, code = 1) => Object.assign(new Error(message), { sortie: code });
 
 /* ══ LE CONTEXTE : la configuration, le coffre, la clé ═════════════════════════════════════════════════════════════════════════ */
@@ -301,7 +305,7 @@ async function liste(ctx, dire) {
   if (!arch.archives.length) dire('Le coffre est VIDE — aucune sauvegarde de base n\'a jamais été déposée.');
   else {
     dire(arch.archives.length + ' archive(s) de base — la plus récente en tête :');
-    arch.archives.forEach((a, i) => dire('  ' + (i === 0 ? '→' : ' ') + ' base/' + a.nom + SAUV.SUFFIXE + '   ' + mio(a.octets) + '   ' + ageTexte(a.ts)));
+    arch.archives.forEach((a, i) => dire('  ' + (i === 0 ? '→' : ' ') + ' base/' + a.nom + SAUV.SUFFIXE + '   ' + mio(a.octets) + '   ' + ageTexte(a.ts) + (nomDuFutur(a) ? noteDuFutur(a) : '')));
   }
   dire('pièces au coffre : ' + (pieces.ok ? pieces.vraies.length + ' (' + mio(pieces.vraies.reduce((a, p) => a + p.octets, 0)) + ')' + (pieces.etrangeres ? ', plus ' + pieces.etrangeres + ' objet(s) qui n\'ont pas la forme d\'une pièce (non restaurés)' : '') : 'liste impossible (HTTP ' + pieces.statut + ')'));
   return arch.archives;
@@ -315,6 +319,7 @@ async function essai(ctx, { date, echantillon = 20, sansPurge }, dire) {
   if (!cible) throw echec('aucune archive à cette date ou avant.');
   const laDerniere = cible.cle === arch.archives[0].cle;
   dire('→ essai de restauration sur base/' + cible.nom + SAUV.SUFFIXE + ' (' + mio(cible.octets) + ', ' + ageTexte(cible.ts) + ')' + (laDerniere ? '' : ' — PAS la plus récente'));
+  if (nomDuFutur(cible)) dire('  ⚠' + noteDuFutur(cible).trim().slice(1) + ' — vérifier avec `liste` que c\'est bien celle qu\'on veut.');
 
   verifierPlace(ctx.tmpParent, cible.octets * 2.5, 'cet exercice', 'Pointer OPMSG_ESSAI_DIR vers un dossier d\'un disque plus grand (par exemple un dossier sous /opt/opmsg), puis relancer.');
   const dossier = fs.mkdtempSync(path.join(ctx.tmpParent, 'opmsg-essai-'));
@@ -402,6 +407,7 @@ async function restaurerVers(ctx, { vers, date, ecraser, sansPieces, sansPurge }
   const chantier = fs.mkdtempSync(path.join(dest, '.restauration-'));
   try {
     dire('→ restauration de base/' + cible.nom + SAUV.SUFFIXE + ' (' + mio(cible.octets) + ', ' + ageTexte(cible.ts) + ')');
+    if (nomDuFutur(cible)) dire('  ⚠' + noteDuFutur(cible).trim().slice(1) + ' — vérifier avec `liste` que c\'est bien celle qu\'on veut.');
     verifierPlace(dest, cible.octets * 2.5, 'cette restauration', 'Choisir un dossier d\'un disque plus grand pour --vers.');
     const base = path.join(chantier, 'msg.db');
     const r = await recuperer(ctx, cible, base);

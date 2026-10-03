@@ -699,6 +699,7 @@ print(json.dumps({'sortie': out.decode('utf8', 'replace'), 'statut': statut}))
       vrai('⛔ la phrase de réussite que le guide cite est celle de l\'outil de restauration', sect.includes('CETTE SAUVEGARDE EST RESTAURABLE') && code(RESTAURER).includes('CETTE SAUVEGARDE EST RESTAURABLE'));
       const restau = code(RESTAURER);
       vrai('⛔ les options que le guide fait taper existent dans le code (--verifier ; --ecraser, --date, --vers)', /--verifier/.test(sect) && /--verifier/.test(conf) && ['--ecraser', '--date', '--vers'].every(o => sect.includes(o) && restau.includes("'" + o + "'")));
+      vrai('⛔ les options `--sans-purge` et `--sans-pieces` que le guide fait taper (geste 9) existent dans l\'outil de restauration', sect.includes('--sans-purge') && sect.includes('--sans-pieces') && restau.includes("'--sans-purge'") && restau.includes("'--sans-pieces'"));
       const questions = conf.slice(conf.indexOf("await demander('Adresse du coffre"), conf.indexOf('if (!endpoint ||'));
       v('⛔ le guide annonce « sept choses » et le script en demande sept (hors la confirmation « oui »)', [/Il demande sept choses/.test(sect), (questions.match(/await demander\(/g) || []).length], [true, 7]);
       const modele = /`("sauvegarde":\{[^`]*\})`/.exec(sect);
