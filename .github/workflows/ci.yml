@@ -51,7 +51,10 @@ jobs:
   tests:
     name: Syntaxe et bancs d'essai
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # ⛔ 30 ET NON PLUS 20 (3 octobre 2026) : sur la branche, ce job lance TOUTE la suite, services d'OP MESSAGES
+    # compris — l'étape des bancs en est à 13 min 37 s (run 1482) et chaque lot en ajoute. Relevé avant qu'il coupe
+    # un job vert (« cancelled » sans un seul ✗, comme le run 526 de « Vérification des pages »).
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
