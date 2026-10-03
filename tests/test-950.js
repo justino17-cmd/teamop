@@ -1691,22 +1691,27 @@ const horlogeFixe = (h) => () => h.t;
       } finally { b.nettoyer(); }
     }
 
-    /* ── D. à la MÊME milliseconde : même instant, même échéance — seul le rang d'écriture et la marque de chaque ligne les distinguent ── */
+    /* ── D. à la MÊME milliseconde : même instant, même échéance — seuls le rang d'écriture et la marque de chaque ligne les distinguent.
+          Trois personnes, trois formes, parce qu'une seule ne voit pas tout : « demande, annulation, demande » est PALINDROMIQUE (l'ordre inversé donne le même état — il ne sert qu'à voir
+          deux demandes identiques n'en faire qu'une) ; « demande, annulation » seule voit l'ordre ; « demande, annulation, demande, annulation » voit deux annulations n'en faire qu'une. ── */
     {
       const b = O.creerBase();
       try {
-        const { a } = O.remplir(b, 2);
+        const { a, c } = O.remplir(b, 2); const bob = b.pers('bob');
         b.h.t += 1000; const avant = path.join(b.dossier, 'avant.db'); await b.S.instantane(avant);
         b.h.t += 1000; const ech = b.h.t + 14 * JOUR;
-        b.S.suppressionProgrammer(a.id, ech); b.S.suppressionAnnuler(a.id); b.S.suppressionProgrammer(a.id, ech);
+        const formes = [[a, 'dad'], [bob, 'dada'], [c, 'da']];
+        for (const [x, suite] of formes) for (const k of suite) { if (k === 'd') b.S.suppressionProgrammer(x.id, ech); else b.S.suppressionAnnuler(x.id); }
         const reg = STOCK.ouvrir.copie.purgeLire(b.chemin);
         const l = reg.filter(supp);
-        v('population : trois lignes, dans l\'ordre d\'écriture, au MÊME instant, avec la MÊME échéance — seule la marque de chaque ligne distingue les deux demandes',
-          [l.map(e => e.genre), new Set(l.map(e => e.quand)).size, new Set(l.filter(e => e.genre === 'suppression_demandee').map(e => e.objet)).size], [['suppression_demandee', 'suppression_annulee', 'suppression_demandee'], 1, 2]);
+        const forme = (x) => l.filter(e => e.objet.startsWith(x.id + '|')).map(e => e.genre === 'suppression_demandee' ? 'd' : 'a').join('');
+        v('population : neuf lignes, dans l\'ordre d\'écriture, toutes au MÊME instant, toutes avec la MÊME échéance — seule la marque de chaque ligne distingue deux demandes (ou deux annulations) de la même personne',
+          [formes.map(([x]) => forme(x)), new Set(l.map(e => e.quand)).size, new Set(l.filter(e => e.genre === 'suppression_demandee').map(e => e.objet)).size, new Set(l.filter(e => e.genre === 'suppression_annulee').map(e => e.objet)).size], [['dad', 'dada', 'da'], 1, 5, 4]);
         const R = restaurer(b, avant, reg);
         try {
-          v('⛔ rejouées dans l\'ordre d\'écriture même à égalité d\'instant, et sans que deux demandes identiques n\'en fassent qu\'une (la restauration recopie sans doublon sur objet + genre) : la seconde demande gagne',
-            [R.bilan.rejouees, R.bilan.echecs, ligne(R.sur, 'SELECT suppression_le FROM personne WHERE id = ?', a.id).suppression_le], [3, 0, ech]);
+          const fin = (x) => ligne(R.sur, 'SELECT suppression_le AS t FROM personne WHERE id = ?', x.id).t;
+          v('⛔ rejouées dans l\'ordre d\'écriture même à égalité d\'instant, sans que deux demandes (ou deux annulations) identiques n\'en fassent une (la restauration recopie sans doublon sur objet + genre) : demande-annulation-demande → l\'échéance ; demande-annulation-demande-annulation → aucune ; demande-annulation → aucune',
+            [R.bilan.rejouees, R.bilan.echecs, fin(a), fin(bob), fin(c)], [9, 0, ech, null, null]);
         } finally { R.S2.fermer(); }
       } finally { b.nettoyer(); }
     }

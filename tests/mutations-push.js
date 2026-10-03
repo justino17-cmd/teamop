@@ -32,9 +32,9 @@ const F = {
   push: 'server-msg/push.js', rpush: 'server-msg/routes-push.js', compte: 'server-msg/compte.js', stock: 'server-msg/stockage.js', routes: 'server-msg/routes.js',
   tel: 'server-msg/telephone.js', index: 'server-msg/index.js', conf: 'server-msg/config.js', app: 'server-msg/app.js', man: 'server-msg/manifeste.js',
   src: 'server-msg/public/source-serveur.js', api: 'server-msg/public/api.js', sw: 'server-msg/public/sw.js', man_pwa: 'server-msg/public/manifest.webmanifest',
-  gen: 'scripts/opmsg-public.js', page: 'apercu/opmessages/index.html',
+  gen: 'scripts/opmsg-public.js', page: 'apercu/opmessages/index.html', rejeu: 'server-msg/rejeu.js', rest: 'server-msg/outils/restaurer.js',
 };
-const BANCS = ['905', '941', '955', '956', '957', '958', 'sonde'];
+const BANCS = ['905', '941', '950', '951', '955', '956', '957', '958', 'sonde'];
 const MUTATIONS = [];
 /* m(id, nom, fichier, ancien, nouveau, suites) — `ancien` : une chaîne, ou une expression régulière (une seule occurrence, `$1` permis dans `nouveau`) */
 const m = (id, nom, fichier, ancien, nouveau, suites, o) => MUTATIONS.push(Object.assign({ id, nom, edits: [[fichier, ancien, nouveau]], suites }, o || {}));
@@ -260,6 +260,53 @@ m('G05', 'la reconnexion qui annule la suppression ne le dit plus (« Bon retour
 m('G06', 'l\'écran de connexion qui suit une suppression ne dit plus la date d\'effacement', F.page, "etat.dateSuppression = m === 'suppression' ? d : 0;", 'etat.dateSuppression = 0;', ['sonde'], SONDE);
 m('G07', 'toucher un interrupteur de notification « impossible ici » (iPhone hors écran d\'accueil, navigateur sans push, autorisation refusée) fait quelque chose', F.page, "if (quoi === 'sw' && !reg.notif.possible) return;", '', ['sonde'], SONDE);
 
+/* ══ 11. LES CORRECTIONS DU LOT 3 APRÈS LES RELECTURES ADVERSES — la restauration (B1, B1 bis) ═══════════════════════════════════════════════════════════════
+   Jouées par `test-950` § 13 sexies (le magasin, le rejeu, des copies de base) et `test-951` § 4 ter (le vrai service, la vraie restauration). */
+const PUSH_VIDE = "      try { bilan.push = Number(d.prepare('DELETE FROM push').run().changes); }\n      catch (e) { if (!/no such table/i.test(String(e && e.message))) throw e; }\n";
+const LIEN_DEMANDE = "Q('UPDATE lien SET revoque = 1 WHERE par = ? AND revoque = 0 AND cree <= ?').run(uid, depuis);";
+const ORDRE_REGISTRE = "Q('SELECT objet, genre, quand FROM purge ORDER BY quand, rowid')";
+const REJEU_DEMANDE = 'stockage.suppressionProgrammer(uid, t, { rejeu: true, depuis: e.quand });';
+m('B01', 'la restauration ne vide plus la table des abonnements push (un abonnement désactivé, un appareil déconnecté revient)', F.stock, PUSH_VIDE, '', ['950', '951']);
+m('B02', 'le vidage des abonnements ne tolère plus l\'absence de la table (une archive d\'avant la migration 4 fait lever la restauration)', F.stock, PUSH_VIDE, "      bilan.push = Number(d.prepare('DELETE FROM push').run().changes);\n", ['950']);
+m('B03', 'les abonnements vidés ne sont plus comptés (la restauration dit « 0 » alors qu\'elle en retire)', F.stock, "bilan.push = Number(d.prepare('DELETE FROM push').run().changes);", "d.prepare('DELETE FROM push').run();", ['950', '951']);
+m('B04', 'la DEMANDE de suppression n\'écrit plus sa ligne dans le registre (une copie d\'avant la demande : le compte n\'est jamais effacé)', F.stock,
+  "Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(uid + '|' + echeance + '|' + alea(4), 'suppression_demandee', horloge());", '', ['950', '951']);
+m('B05', 'l\'ANNULATION n\'écrit plus sa ligne dans le registre (une copie d\'avant le retour de la personne : le balayeur l\'efface)', F.stock,
+  "if (annulee && !rejeu) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(uid + '|' + alea(4), 'suppression_annulee', horloge());", '', ['950', '951']);
+m('B06', 'la demande rejouée ne pose plus l\'échéance (la fonction du service ne fait rien)', F.rejeu, REJEU_DEMANDE, '', ['950', '951']);
+m('B07', 'l\'annulation rejouée ne lève plus l\'échéance (la personne revenue est effacée à la première minute)', F.rejeu, 'stockage.suppressionAnnuler(uid, { rejeu: true });', '', ['950', '951']);
+m('B08', 'la demande rejouée RECALCULE l\'échéance (quatorze jours à partir de maintenant) au lieu de reposer l\'échéance d\'origine', F.rejeu,
+  REJEU_DEMANDE, 'stockage.suppressionProgrammer(uid, Date.now() + 14 * 86400000, { rejeu: true, depuis: e.quand });', ['950']);
+m('B09', 'le rejeu se fait du plus RÉCENT au plus ancien (demande puis annulation s\'appliquent à l\'envers : la personne revenue reste à effacer)', F.stock,
+  ORDRE_REGISTRE, "Q('SELECT objet, genre, quand FROM purge ORDER BY quand DESC, rowid DESC')", ['950']);
+m('B10', 'à égalité d\'instant, le rejeu prend le rang d\'écriture à l\'envers (demande et annulation de la même milliseconde se croisent)', F.stock,
+  ORDRE_REGISTRE, "Q('SELECT objet, genre, quand FROM purge ORDER BY quand, rowid DESC')", ['950']);
+m('B11', 'la ligne de la demande n\'a plus de marque (deux demandes de même échéance et de même instant n\'en font qu\'une à la restauration)', F.stock,
+  "uid + '|' + echeance + '|' + alea(4)", "uid + '|' + echeance + '|'", ['950']);
+m('B12', 'la ligne de l\'annulation n\'a plus de marque (deux annulations de la même personne n\'en font qu\'une à la restauration)', F.stock,
+  "uid + '|' + alea(4), 'suppression_annulee'", "uid + '|', 'suppression_annulee'", ['950']);
+m('B13', 'le rejeu de la demande supprime aussi les appareils de la personne (il emporte ceux qu\'elle a liés depuis son retour)', F.stock,
+  LIEN_DEMANDE, LIEN_DEMANDE + "\n        Q('DELETE FROM appareil_tel WHERE personne = ?').run(uid);", ['950']);
+m('B14', 'le rejeu de la demande révoque aussi les liens créés APRÈS elle (ceux d\'une personne revenue)', F.stock,
+  LIEN_DEMANDE, "Q('UPDATE lien SET revoque = 1 WHERE par = ? AND revoque = 0').run(uid);", ['950']);
+m('B15', 'le rejeu de la demande ne révoque plus les liens créés AVANT elle (un lien d\'une personne qui s\'en va revient)', F.stock, LIEN_DEMANDE, '', ['950']);
+m('B16', 'le rejeu d\'une demande pour une personne absente de la copie ou déjà effacée LÈVE (le drapeau ne retombe plus jamais)', F.stock,
+  "if (rejeu) return { sessions: 0, appareils: 0, push: 0, echeance, posee: false };", '', ['950']);
+m('B17', 'une demande à la ligne illisible est ignorée en silence (une obligation d\'effacement non tenue, sans un mot au journal)', F.rejeu,
+  "if (!uid || !echeance || !Number.isSafeInteger(t) || t <= 0) throw new Error('entree-illisible');", '', ['950']);
+m('B18', 'une échéance décimale ou hors de portée est acceptée par le rejeu de la demande', F.rejeu, ' || !Number.isSafeInteger(t)', '', ['950']);
+m('B19', 'une échéance nulle ou négative est acceptée par le rejeu de la demande', F.rejeu, ' || t <= 0', '', ['950']);
+m('B20', 'une annulation sans identifiant n\'est plus refusée par le rejeu', F.rejeu, "if (!uid) throw new Error('entree-illisible');", '', ['950']);
+m('B21', 'le rejeu de la demande n\'est plus un « rejeu » (il écrit une seconde ligne dans le registre et lève pour une personne absente)', F.rejeu,
+  REJEU_DEMANDE, 'stockage.suppressionProgrammer(uid, t, { depuis: e.quand });', ['950']);
+m('B22', 'le rejeu de l\'annulation écrit une seconde ligne dans le registre (chaque démarrage sur une base restaurée en ajouterait une)', F.rejeu,
+  'stockage.suppressionAnnuler(uid, { rejeu: true });', 'stockage.suppressionAnnuler(uid);', ['950']);
+m('B23', 'la demande de suppression est déclarée « copie » (le rejeu hors ligne ne sait pas la refaire : elle est « ignorée »)', F.stock, "suppression_demandee: 'service',", "suppression_demandee: 'copie',", ['950']);
+m('B24', 'l\'annulation est déclarée « copie » (idem)', F.stock, "suppression_annulee: 'service',", "suppression_annulee: 'copie',", ['950']);
+m('B25', 'la restauration réelle ne dit plus combien d\'abonnements de notification elle a retirés', F.rest,
+  "(chacun se reconnecte ; les appareils liés restent). Le service rejouera au démarrage les genres de purge qui sont à lui.');\n    dire('  abonnements de notification retirés : ' + (ap.push || 0)",
+  "(chacun se reconnecte ; les appareils liés restent). Le service rejouera au démarrage les genres de purge qui sont à lui.');\n    dire('  abonnements de notification retirés : ' + 0", ['951']);
+
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const DOSSIERS_COPIE = ['server-msg', 'design/opmessages', '.github/scripts', 'apercu/opmessages', 'icons', 'scripts'];
 function copier(src, dst) {
@@ -275,6 +322,9 @@ function fabriquerCopie() {
   for (const d of DOSSIERS_COPIE) copier(path.join(RACINE, d), path.join(dir, d));
   fs.mkdirSync(path.join(dir, 'tests'));
   for (const f of fs.readdirSync(path.join(RACINE, 'tests'))) if (/^(test-9\d\d|outils-[\w-]+|bac-messages|lib-horloge-msg|mode-site|sonde-opmessages-push|test-85\d)\.js$/.test(f)) fs.copyFileSync(path.join(RACINE, 'tests', f), path.join(dir, 'tests', f));
+  /* `test-950` compare la copie de `lib/s3.js` à celui d'OP GESTION : sans lui, la copie le fait tomber à CHAQUE mutation (le témoin le voit) */
+  fs.mkdirSync(path.join(dir, 'server'));
+  fs.copyFileSync(path.join(RACINE, 'server', 's3.js'), path.join(dir, 'server', 's3.js'));
   fs.symlinkSync(path.join(RACINE, 'server-msg', 'node_modules'), path.join(dir, 'server-msg', 'node_modules'));
   return dir;
 }
