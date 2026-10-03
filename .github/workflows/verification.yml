@@ -70,6 +70,14 @@ jobs:
         run: npm install --no-audit --no-fund
         working-directory: server
 
+      # ⛔ ET CELLES D'OP MESSAGES : sans `server-msg/node_modules`, les suites qui montent le VRAI service écrivent « banc non
+      # exécuté » et rendent « 0 ✓ 0 ✗ », code 0 — ce que le filet « SAUTÉ » ci-dessous ne voit pas. Mesuré le 3 octobre 2026 :
+      # `test-901` passait ainsi sur chaque poussée de main. Son propre déploiement les joue (deploiement-messages.yml), mais
+      # seulement quand `server-msg/` bouge : une poussée qui ne touche que les bancs ou l'interface n'en jouait aucune.
+      - name: Dépendances d'OP MESSAGES
+        if: always()
+        run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix server-msg
+
       # ⛔ APRÈS LES DÉPENDANCES, ET CE N'EST PAS UN DÉTAIL D'ORDRE. Six suites LANCENT le vrai
       # serveur et sautent d'elles-mêmes leur partie exécutée si server/node_modules manque.
       # Mesuré le 15 septembre 2026 : le total tombe alors de 1 923 à 1 758, sortie 0, sans un
