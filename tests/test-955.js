@@ -447,10 +447,12 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     const un = async () => { const e = m.S.messageEnvoyer({ conv: g.id, auteur: al.id, cid: 'cid-st-' + (++c) + alea(), texte: 'x' }); return Promise.all(m.push.message({ conv: g.id, seq: e.seq, gid: e.gid, auteur: al.id, nomAuteur: 'A', nomConv: 'G', groupe: true, type: 'texte', texte: 'x' })); };
     const nb = () => m.S.pushCompterDe(bo.id);
     const ligne = () => m.brut().prepare('SELECT echecs, derniere_ok FROM push').all();
+    /* le nombre d'échecs de LA ligne, ou ce qui manque : un abonnement retiré trop tôt doit se lire « ligne retirée », pas mourir sur un `undefined.echecs` (mutation S06 : « le banc a levé : TypeError ») */
+    const echecs = () => { const l = ligne()[0]; return l ? l.echecs : 'ligne retirée'; };
     m.ouverts[bo.id] = 0;
 
     m.reponse.statut = 201; await un();
-    v('201 : livré — l\'échec est à zéro, la dernière livraison est datée', [nb(), ligne()[0].echecs, ligne()[0].derniere_ok === m.h.t], [1, 0, true]);
+    v('201 : livré — l\'échec est à zéro, la dernière livraison est datée', [nb(), echecs(), (ligne()[0] || {}).derniere_ok === m.h.t], [1, 0, true]);
     for (const code of [410, 404]) {
       m.abonne(bo.id); m.reponse.statut = code;
       const avant = nb(), echecsAvant = m.push.sante().echecs24h; await un();
@@ -461,24 +463,24 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     m.S.pushSupprimerPersonne(bo.id);
     m.abonne(bo.id); m.reponse.statut = 500;
     for (let i = 1; i <= 4; i++) await un();
-    v('500 quatre fois de suite : l\'abonnement est encore là, 4 échecs comptés', [nb(), ligne()[0].echecs], [1, 4]);
+    v('500 quatre fois de suite : l\'abonnement est encore là, 4 échecs comptés', [nb(), echecs()], [1, 4]);
     m.reponse.statut = 201; await un();
-    v('⛔ un succès remet le compte à zéro', [nb(), ligne()[0].echecs], [1, 0]);
+    v('⛔ un succès remet le compte à zéro', [nb(), echecs()], [1, 0]);
     m.reponse.statut = 500;
     for (let i = 1; i <= 4; i++) await un();
-    v('   (quatre échecs de plus ne suffisent pas : il en faut CINQ DE SUITE)', [nb(), ligne()[0].echecs], [1, 4]);
+    v('   (quatre échecs de plus ne suffisent pas : il en faut CINQ DE SUITE)', [nb(), echecs()], [1, 4]);
     await un();
     v('⛔ le cinquième échec de suite retire l\'abonnement', nb(), 0);
     m.abonne(bo.id);
     for (const [nom, st] of [['429 (trop de demandes)', 429], ['403 (nos clés refusées)', 403], ['302 (une redirection n\'est pas suivie : un échec)', 302], ['413', 413], ['503', 503]]) {
       m.reponse.statut = 201; await un();   // un succès remet le compte à zéro : chaque statut se juge seul
       m.reponse.statut = st; await un();
-      v(nom + ' : compté comme un échec, l\'abonnement reste', [nb(), ligne()[0].echecs], [1, 1]);
+      v(nom + ' : compté comme un échec, l\'abonnement reste', [nb(), echecs()], [1, 1]);
     }
     m.S.pushSupprimerPersonne(bo.id); m.abonne(bo.id);
     m.reponse.statut = 201; m.reponse.leve = true;
     const rl = await un();
-    v('⛔ un transport qui LÈVE ne fait pas tomber le module : l\'échec est compté, la promesse se résout', [nb(), ligne()[0].echecs, rl[0].envoyes], [1, 1, 0]);
+    v('⛔ un transport qui LÈVE ne fait pas tomber le module : l\'échec est compté, la promesse se résout', [nb(), echecs(), rl[0].envoyes], [1, 1, 0]);
     m.reponse.leve = false;
 
     /* la liste blanche est RE-VÉRIFIÉE à l'envoi : une ligne ancienne, ou une liste resserrée depuis */
