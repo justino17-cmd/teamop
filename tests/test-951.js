@@ -313,9 +313,11 @@ const sante = async (svc) => { const r = await T.client(svc.base).get('/health')
         const vieuxCookie = al.cookie();
         v('population : la session d\'Alice est valide, et elle voit ses deux conversations', [(await al.get('/api/moi')).code, ((await al.get('/api/conversations')).j.conversations || []).map(x => x.id).sort()], [200, [solo, garde].sort()]);
 
-        /* L'archive CIBLE : la première, prise avec la session et la conversation encore là ; on attend la suivante pour que les gestes tombent clairement après. */
-        await T.attendre(() => (coffre.cles(prefixe).length >= 2 ? true : null), 30000, 100);
-        const cibleCle = coffre.cles(prefixe)[0];
+        /* L'archive CIBLE : la seconde posée APRÈS la mise en place (la première peut avoir été commencée avant — son instantané ne porterait pas encore la session), puis une
+           de plus pour que les gestes tombent clairement après la cible. Au geste, jamais au chronomètre : sur une machine chargée, la mise en place peut passer la seconde. */
+        const nMiseEnPlace = coffre.cles(prefixe).length;
+        await T.attendre(() => (coffre.cles(prefixe).length >= nMiseEnPlace + 3 ? true : null), 40000, 100);
+        const cibleCle = coffre.cles(prefixe)[nMiseEnPlace + 1];
         const cibleIso = cibleCle.slice(prefixe.length, -'.msgbak'.length).replace(/^(\d{4}-\d{2}-\d{2}T\d{2})-(\d{2})-(\d{2})-(\d{3})Z$/, '$1:$2:$3.$4Z').slice(0, 19);
 
         /* Les gestes d'APRÈS : se déconnecter, se reconnecter, quitter la conversation (le dernier membre part : elle est supprimée). */

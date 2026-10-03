@@ -1552,13 +1552,18 @@ const horlogeFixe = (h) => () => h.t;
             clearInterval(t);
             console.log(JSON.stringify({ p: p.ok, l: l.ok, octets: l.octets, empreinte: l.empreinte, base, picPut, picTotal: pic - base }));
           })();`;
-        const sortie = await new Promise((resolve) => {
-          const p = require('child_process').spawn(process.execPath, ['-e', script], { env: Object.assign({}, process.env, { COFFRE_MOD, CONF: JSON.stringify(coffre.conf()), FICHIER: fichier, OCTETS: String(h.octets), EMPREINTE: h.hex }), stdio: ['ignore', 'pipe', 'pipe'] });
+        const mesurer = (mod) => new Promise((resolve) => {
+          const p = require('child_process').spawn(process.execPath, ['-e', script], { env: Object.assign({}, process.env, { COFFRE_MOD: mod, CONF: JSON.stringify(coffre.conf()), FICHIER: fichier, OCTETS: String(h.octets), EMPREINTE: h.hex }), stdio: ['ignore', 'pipe', 'pipe'] });
           let o = ''; p.stdout.on('data', d => { o += d; }); p.stderr.on('data', d => { o += d; });
           const t = setTimeout(() => { try { p.kill('SIGKILL'); } catch (e) { /* déjà parti */ } }, 120000);
-          p.on('close', () => { clearTimeout(t); resolve(o); });
+          p.on('close', () => { clearTimeout(t); let m0 = null; try { m0 = JSON.parse(o.trim().split('\n').pop()); } catch (e) { m0 = null; } resolve({ m: m0, brut: o }); });
         });
-        let m = null; try { m = JSON.parse(sortie.trim().split('\n').pop()); } catch (e) { m = null; }
+        /* LE TÉMOIN, pour voir l'AVANT : le client d'origine (`lib/s3.js`, par `fetch`) devant le même serveur, le même fichier. Montré, pas exigé — un Node futur qui corrigerait `fetch`
+           ne doit pas faire tomber la CI ; c'est la mutation S30 qui prouve que le banc voit le défaut. */
+        const avantLeCorrectif = await mesurer(path.join(SM, 'lib', 's3.js'));
+        if (avantLeCorrectif.m) console.log('  ℹ avant (client d\'origine, `fetch`) : pic +' + avantLeCorrectif.m.picPut + ' Mo à l\'envoi, +' + avantLeCorrectif.m.picTotal + ' Mo sur le cycle, pour ' + MO + ' Mo de fichier');
+        const apres = await mesurer(COFFRE_MOD);
+        const m = apres.m, sortie = apres.brut;
         vrai('population : le processus client a tourné jusqu\'au bout — ' + MO + ' Mo envoyés puis relus, empreinte identique (' + (m ? 'départ ' + m.base + ' Mo, pic à l\'envoi +' + m.picPut + ' Mo, pic total +' + m.picTotal + ' Mo' : 'sortie illisible : ' + sortie.slice(0, 120)) + ')',
           !!m && m.p === true && m.l === true && m.octets === h.octets && m.empreinte === h.hex && m.base > 0);
         v('⛔ l\'ENVOI de ' + MO + ' Mo ne fait pas monter le client de plus de la MOITIÉ du fichier (avant : ≈ ' + MO + ' Mo, tout le fichier — `fetch` tient le corps entier)', !!m && m.picPut < MO / 2, true);
