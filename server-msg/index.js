@@ -59,7 +59,7 @@ function demarrer(env = process.env) {
   const hub = creerFlux({ stockage, config, horloge: Date.now });
   /* ⛔ LES NOTIFICATIONS PUSH : la paire VAPID de l'instance (fabriquée ou adoptée ici, la privée scellée), la liste blanche des services push, la file d'envoi. Une paire illisible désactive
      le push SANS arrêter le service (`/health` dit `push.actif:false`, la surveillance crie). */
-  const push = creerPush({ stockage, hub, config, horloge: Date.now, journaliser, appareilAbsMs: APPAREIL_ABS_MS });
+  const push = creerPush({ stockage, hub, config, horloge: Date.now, journaliser });
   /* ⛔ LES PIÈCES : des fichiers scellés par blocs sous `<données>/pieces/<2 caractères>/<id>`, une clé par pièce (dérivée de la clé maître). `piecesEtat` compte ce que /health
      publie : les pièces dont le fichier n'a pas pu être relu (bloc qui ne s'authentifie plus, fichier absent) — la panne silencieuse type, rendue visible. Un fichier à effacer
      (message supprimé pour tous, éphémère échu, photo remplacée, conversation disparue) l'est sans attendre et sans jamais faire échouer le geste : s'il résiste, il reste sans

@@ -659,17 +659,19 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     v('⛔ sessions échues : Alice (rien d\'autre) ne reçoit RIEN et le dit (« non_joignable »), Bruno (jeton valable) reçoit, Carole (jeton échu) non, David (jeton valable, plafond absolu pas atteint) reçoit',
       await essais([al, bo, ca, da]), [[0, 'non_joignable'], [1, null], [0, 'non_joignable'], [1, null]]);
     m.envois.length = 0;
+    /* Fanny n'a QUE sa session (vivante : elle vient d'arriver), un abonnement, aucun jeton d'appareil : ni l'envoi ni le balayeur ne doivent la toucher */
+    const fa = m.pers('Fanny'); m.abonne(fa.id);
     const abosAvant = m.S.pushCompter();
     /* la relecture des accès bêta couvre les comptes qui ont un abonnement, sans session — et ceux qui ont une session sans abonnement ; pas les comptes qui n'ont ni l'un ni l'autre */
     const ev = m.pers('Eva');   // créée maintenant : session vivante, aucun abonnement
     const releves = m.S.betaARelire().map(x => x.id).sort();
-    v('⛔ la relecture des accès bêta voit ceux qui ont un abonnement (Alice, Bruno, Carole, David — même sans session) et celle qui a une session vivante (Eva) ; PAS Nina (ni session ni abonnement), ni un compte qui n\'est pas bêta',
-      releves, [al.id, bo.id, ca.id, da.id, ev.id].sort());
+    v('⛔ la relecture des accès bêta voit ceux qui ont un abonnement (Alice, Bruno, Carole, David — même sans session) et celles qui ont une session vivante (Eva, Fanny) ; PAS Nina (ni session vivante ni abonnement), ni un compte qui n\'est pas bêta',
+      releves, [al.id, bo.id, ca.id, da.id, ev.id, fa.id].sort());
     vrai('population : Nina existe, sa session est échue et elle n\'a aucun abonnement — c\'est bien le cas que la liste doit écarter', !!m.S.personneParId(ni.id) && !releves.includes(ni.id) && m.S.pushCompterDe(ni.id) === 0);
     /* le balayeur */
     const retires = m.S.pushNonJoignablesPurger(ABS);
-    v('⛔ le balayeur retire les abonnements d\'Alice et de Carole (rien ne les connecte) et GARDE ceux de Bruno et de David (jeton valable) et du compte par téléphone (jeton valable)',
-      [retires, m.S.pushCompterDe(al.id), m.S.pushCompterDe(ca.id), m.S.pushCompterDe(bo.id), m.S.pushCompterDe(da.id), m.S.pushCompterDe(compte.id), abosAvant - retires], [2, 0, 0, 1, 1, 1, 3]);
+    v('⛔ le balayeur retire les abonnements d\'Alice et de Carole (rien ne les connecte) et GARDE ceux de Bruno et de David (jeton valable), du compte par téléphone (jeton valable) et de Fanny (session vivante, aucun jeton)',
+      [retires, m.S.pushCompterDe(al.id), m.S.pushCompterDe(ca.id), m.S.pushCompterDe(bo.id), m.S.pushCompterDe(da.id), m.S.pushCompterDe(compte.id), m.S.pushCompterDe(fa.id), abosAvant - retires], [2, 0, 0, 1, 1, 1, 1, 4]);
     v('   rejoué, il ne retire plus rien (idempotent)', m.S.pushNonJoignablesPurger(ABS), 0);
 
     /* le plafond absolu d'un jeton d'appareil : David a 400 jours glissants, mais plus de 365 depuis la dernière preuve par SMS */

@@ -444,7 +444,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
      encore, sur son téléphone, « Nouveau message » — jusqu'à la fin des temps (relevé par le gardien, 3 octobre 2026). */
   function betaARelire() {
     const t = horloge();
-    return Q(`SELECT p.id FROM personne p WHERE p.origine = 'beta' AND p.etat = 'actif'
+    return Q(`SELECT p.id FROM personne p WHERE p.origine = 'beta'
               AND (EXISTS (SELECT 1 FROM session s WHERE s.personne = p.id AND s.exp > ?) OR EXISTS (SELECT 1 FROM push x WHERE x.uid = p.id)) ORDER BY p.id`).all(t)
       .map(r => ({ id: r.id, bid: String(personneIdentifiant(r.id) || '').replace(/^beta:/, '') }));   // `bid` : l'identifiant du compte chez OP GESTION
   }

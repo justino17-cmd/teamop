@@ -307,6 +307,34 @@ m('B25', 'la restauration réelle ne dit plus combien d\'abonnements de notifica
   "(chacun se reconnecte ; les appareils liés restent). Le service rejouera au démarrage les genres de purge qui sont à lui.');\n    dire('  abonnements de notification retirés : ' + (ap.push || 0)",
   "(chacun se reconnecte ; les appareils liés restent). Le service rejouera au démarrage les genres de purge qui sont à lui.');\n    dire('  abonnements de notification retirés : ' + 0", ['951']);
 
+/* ══ 12. UNE PERSONNE QUE PLUS RIEN NE CONNECTE (I1) — `test-955` § 9 bis (le module, le magasin) et `test-956` (le vrai service, deux services à horloge décalable) ═════════════════════════════ */
+const PURGE_JOIGNABLE = "return num(Q(`DELETE FROM push WHERE uid NOT IN (SELECT personne FROM session WHERE exp > ?) AND uid NOT IN (SELECT personne FROM appareil_tel WHERE exp > ? AND cree + ? > ?)`).run(t, t, absMs, t).changes);";
+const SQL_JETON = "'SELECT 1 AS x FROM appareil_tel WHERE personne = ? AND exp > ? AND cree + ? > ? LIMIT 1'";
+m('J01', 'l\'envoi ne juge plus si la personne est joignable (une session échue, un jeton échu : le téléphone reçoit toujours)', F.push,
+  "    if (!stockage.pushJoignable(uid, appareilAbsMs)) return { envoyes: 0, appareils: 0, raison: 'non_joignable' };\n", '', ['955', '956']);
+m('J02', 'une session ÉCHUE compte comme une session vivante (l\'échéance de la session n\'est plus regardée)', F.stock,
+  "'SELECT 1 AS x FROM session WHERE personne = ? AND exp > ? LIMIT 1'", "'SELECT 1 AS x FROM session WHERE personne = ? AND ? > 0 LIMIT 1'", ['955']);
+m('J03', 'un jeton d\'appareil ne rend plus joignable (une personne qui n\'a que lui, comme tout compte par téléphone, ne reçoit plus rien)', F.stock,
+  "return !!Q(" + SQL_JETON + ").get(uid, t, absMs, t);", 'return false;', ['955']);
+m('J04', 'le plafond ABSOLU d\'un jeton d\'appareil n\'est plus regardé (un jeton qui glisse encore mais date de plus d\'un an rend joignable)', F.stock,
+  "AND exp > ? AND cree + ? > ? LIMIT 1').get(uid, t, absMs, t)", "AND exp > ? LIMIT 1').get(uid, t)", ['955']);
+m('J05', 'l\'échéance glissante d\'un jeton d\'appareil n\'est plus regardée (un jeton échu rend joignable tant que le plafond absolu n\'est pas passé)', F.stock,
+  "WHERE personne = ? AND exp > ? AND cree + ? > ? LIMIT 1", "WHERE personne = ? AND ? > 0 AND cree + ? > ? LIMIT 1", ['955']);
+m('J06', 'le balayeur retire aussi les abonnements des personnes qui n\'ont qu\'un jeton d\'appareil (tout compte par téléphone perd ses notifications)', F.stock,
+  PURGE_JOIGNABLE, "return num(Q(`DELETE FROM push WHERE uid NOT IN (SELECT personne FROM session WHERE exp > ?)`).run(t).changes);", ['955']);
+m('J07', 'le balayeur retire aussi les abonnements des personnes qui n\'ont qu\'une session vivante', F.stock,
+  PURGE_JOIGNABLE, "return num(Q(`DELETE FROM push WHERE uid NOT IN (SELECT personne FROM appareil_tel WHERE exp > ? AND cree + ? > ?)`).run(t, absMs, t).changes);", ['955']);
+m('J08', 'la relecture des accès bêta ne couvre plus les comptes qui n\'ont qu\'un abonnement (un accès coupé pendant l\'expiration de la session garde son abonnement)', F.stock,
+  " OR EXISTS (SELECT 1 FROM push x WHERE x.uid = p.id)", '', ['955', '956']);
+m('J09', 'la relecture des accès bêta relit aussi les comptes dont la session est ÉCHUE (et qui n\'ont rien d\'autre)', F.stock,
+  "s.personne = p.id AND s.exp > ?)", "s.personne = p.id AND ? > 0)", ['955']);
+m('J10', 'la relecture des accès bêta ne regarde plus les sessions vivantes (seulement les abonnements)', F.stock,
+  "AND (EXISTS (SELECT 1 FROM session s WHERE s.personne = p.id AND s.exp > ?) OR", "AND (? < 0 OR", ['955']);
+m('J11', 'la relecture des accès bêta relit aussi les comptes qui ne sont pas bêta (OP GESTION ne les connaît pas : ils seraient « coupés »)', F.stock,
+  "WHERE p.origine = 'beta'", "WHERE 1 = 1", ['955']);
+m('J12', 'le balayeur du service n\'appelle plus le retrait des abonnements d\'une personne injoignable (la fonction existe, personne ne la lance)', F.index,
+  "        const retires = stockage.pushNonJoignablesPurger(APPAREIL_ABS_MS);\n        if (retires) journaliser('push_elagage', { n: retires });\n", '', ['956']);
+
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const DOSSIERS_COPIE = ['server-msg', 'design/opmessages', '.github/scripts', 'apercu/opmessages', 'icons', 'scripts'];
 function copier(src, dst) {
