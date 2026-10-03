@@ -38,6 +38,15 @@ const bac = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-955-'));
 let n = 0;
 const lance = (f) => { try { f(); return null; } catch (e) { return e.code || e.message; } };
 const alea = () => crypto.randomBytes(5).toString('hex');
+/* ⛔ UNE PAIRE VAPID DE BANC A TOUJOURS UNE CLÉ PRIVÉE DE 32 OCTETS. `ECDH.getPrivateKey()` rend un tampon SANS ses octets nuls de tête : une fois sur 256 la clé fait 31 octets et la configuration la refuse
+   (« la paire VAPID n'a pas la bonne forme ») — le banc mourait alors, au hasard (vu à la passe finale des mutations, sur R02, 3 octobre 2026). `web-push` complète ses clés ; le banc, lui, retire jusqu'à en avoir une bonne. */
+function paireVapid() {
+  for (;;) {
+    const e = crypto.createECDH('prime256v1'); e.generateKeys();
+    const priv = e.getPrivateKey();
+    if (priv.length === 32) return { vapidPublicKey: e.getPublicKey().toString('base64url'), vapidPrivateKey: priv.toString('base64url') };
+  }
+}
 const octets = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '-wal', '-shm']) { try { b = Buffer.concat([b, fs.readFileSync(chemin + s)]); } catch (e) { /* absent */ } } return b; };
 
 /* Un monde jetable : stockage réel, hub factice (qui dit combien de flux sont ouverts), transport factice (qui note ce qu'on lui envoie), minuteries à la main. */
@@ -196,21 +205,20 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     b.fermer();
 
     /* adoptée depuis l'installation (`install-msg.sh` écrit une paire dans la configuration) */
-    const k = crypto.createECDH('prime256v1'); k.generateKeys();
-    const paire = { vapidPublicKey: k.getPublicKey().toString('base64url'), vapidPrivateKey: k.getPrivateKey().toString('base64url') };
+    const paire = paireVapid();
     const c = monter({ cfg: paire });
     vrai('la paire de l\'installation est ADOPTÉE à la première fois (origine « installation »), puis rangée comme les autres', c.push.cle() === paire.vapidPublicKey && c.push.origineVapid() === 'installation' && c.S.pushVapidLire().privee === paire.vapidPrivateKey);
     c.S.fermer();
-    const k2 = crypto.createECDH('prime256v1'); k2.generateKeys();
+    const paire2 = paireVapid();
     const c2 = ouvrir({ chemin: c.chemin, scelleur: creerScelleur(c.kek), horloge: () => c.h.t });
-    const cfgC = { origines: [], push: pushConfig({ vapidPublicKey: k2.getPublicKey().toString('base64url'), vapidPrivateKey: k2.getPrivateKey().toString('base64url') }, {}, 'beta') };
+    const cfgC = { origines: [], push: pushConfig(paire2, {}, 'beta') };
     const pc2 = PUSH.creerPush({ stockage: c2, hub: { fluxOuverts: () => 0 }, config: cfgC, horloge: () => c.h.t, transport: async () => ({ statut: 201 }) });
     vrai('⛔ une paire DIFFÉRENTE dans la configuration, plus tard, ne remplace pas celle de la base (les abonnements en dépendent)', pc2.cle() === paire.vapidPublicKey && pc2.origineVapid() === 'base');
     c2.fermer();
 
     /* la configuration refuse ce qui n'est pas une paire */
-    const k3 = crypto.createECDH('prime256v1'); k3.generateKeys();
-    v('⛔ une clé privée qui n\'est pas celle de la publique REFUSE le démarrage', lance(() => pushConfig({ vapidPublicKey: paire.vapidPublicKey, vapidPrivateKey: k3.getPrivateKey().toString('base64url') }, {}, 'beta')), 'CONFIG');
+    const paire3 = paireVapid();
+    v('⛔ une clé privée qui n\'est pas celle de la publique REFUSE le démarrage', lance(() => pushConfig({ vapidPublicKey: paire.vapidPublicKey, vapidPrivateKey: paire3.vapidPrivateKey }, {}, 'beta')), 'CONFIG');
     v('l\'une sans l\'autre aussi', [lance(() => pushConfig({ vapidPublicKey: paire.vapidPublicKey }, {}, 'beta')), lance(() => pushConfig({ vapidPrivateKey: paire.vapidPrivateKey }, {}, 'beta'))], ['CONFIG', 'CONFIG']);
     v('une clé de la mauvaise longueur aussi', lance(() => pushConfig({ vapidPublicKey: 'AAAA', vapidPrivateKey: 'AAAA' }, {}, 'beta')), 'CONFIG');
     /* le sujet VAPID : `push.contact`, à défaut le courriel que l'installation écrit déjà (`contactEmail`), à défaut l'origine https du service */
