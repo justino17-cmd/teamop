@@ -394,6 +394,9 @@ function creerHandlers(ctx) {
 
   H['conv.quitter'] = (req, res) => {
     const c = req.conv.conv;
+    /* ⛔ ON NE QUITTE PAS LA CONVERSATION D'UNE RÉUNION : on y est parce qu'on est invité — décliner l'invitation est le geste (la réponse « décline » ne retire pas du fil, mais plus aucun rappel ne part), et l'hôte
+       l'annule ou la supprime. La quitter laisserait une invitation sans conversation. */
+    if (c.type === 'reunion') return refus(res, 409, 'reunion_quitter');
     /* ⛔ UN CANAL N'EST PAS UN GROUPE : public, il compte tous les membres de l'espace (on en sort avec l'espace, ou on le met en sourdine) ; privé, on le quitte sans que personne soit
        promu à sa place — le rôle dans un canal est le rôle dans l'espace. */
     const r = c.type === 'canal' ? stockage.canalQuitter({ conv: c.id, uid: req.moi.id }) : stockage.membreQuitter({ conv: c.id, uid: req.moi.id });

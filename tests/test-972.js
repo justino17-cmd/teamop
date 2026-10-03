@@ -175,8 +175,8 @@ console.log('\nModifier : le titre renomme la conversation, l\'HORAIRE remet les
   const m1 = S.reunionModifier({ id: r.id, par: a.ana.id, titre: 'Nouveau titre', lieu: 'Salle 2', rappels: [5, 60] });
   const vue1 = S.reunionPourMembre(r.id, a.ben.id);
   v('⛔ changer le TITRE et le LIEU : la version monte, la conversation prend le nouveau titre, les réponses RESTENT (l\'horaire n\'a pas bougé)',
-    [m1.change, m1.horaire, m1.titre, vue1.reunion.version, vue1.reunion.titre, vue1.reunion.lieu, vue1.reunion.rappels, S.convPourMembre(conv, a.cleo.id).conv.nom, statuts(S, r.id, a.ana.id)],
-    [true, false, true, 1, 'Nouveau titre', 'Salle 2', [5, 60], 'Nouveau titre', ['Ana:accepte', 'Ben:accepte', 'Cleo:decline', 'Dan:peutetre']]);
+    [m1.change, m1.horaire, m1.titre, m1.lieu, vue1.reunion.version, vue1.reunion.titre, vue1.reunion.lieu, vue1.reunion.rappels, S.convPourMembre(conv, a.cleo.id).conv.nom, statuts(S, r.id, a.ana.id)],
+    [true, false, true, true, 1, 'Nouveau titre', 'Salle 2', [5, 60], 'Nouveau titre', ['Ana:accepte', 'Ben:accepte', 'Cleo:decline', 'Dan:peutetre']]);
   v('   un événement part vers les participants (la page relit)', reunionEvents(S, a.ben.id).length - v0, 1);
   const horaireAvant = S.reunionPlanif(r.id).horaire_le;
   a.h.t += 5000;
@@ -191,6 +191,21 @@ console.log('\nModifier : le titre renomme la conversation, l\'HORAIRE remet les
   v('⛔ un invité ne modifie pas (`interdit`), personne ne modifie ce qui n\'existe pas (`introuvable`)', [lance(() => S.reunionModifier({ id: r.id, par: a.ben.id, titre: 'Piraté' })), lance(() => S.reunionModifier({ id: 'r_inconnue', par: a.ana.id, titre: 'x' })), S.reunionPourMembre(r.id, a.ana.id).reunion.titre], ['interdit', 'introuvable', 'Encore un titre']);
   const messagesSys = S.messagesDe(conv, a.ana.id, { limite: 50 }).messages.filter(m => m.type === 'systeme').map(m => m.meta.k + (m.meta.horaire === true ? '+horaire' : ''));
   v('le fil de la réunion dit ce qui s\'est passé : création, deux modifications de contenu, une d\'horaire', messagesSys.filter(k => k !== 'rejoint'), ['reunion_creee', 'reunion_modifiee', 'reunion_modifiee+horaire', 'reunion_modifiee']);
+  S.fermer();
+}
+
+console.log('\nModifier dit CE QUI a changé : la route ne prévient que de ce qui se voit (le titre, le lieu, l\'horaire — pas un rappel)');
+{
+  const a = atelier(), S = a.S;
+  const r = reunion(a);
+  a.h.t += 1000;
+  const mLieu = S.reunionModifier({ id: r.id, par: a.ana.id, lieu: 'Salle 3' });
+  a.h.t += 1000;
+  const mRappel = S.reunionModifier({ id: r.id, par: a.ana.id, rappels: [5] });
+  a.h.t += 1000;
+  const mTitre = S.reunionModifier({ id: r.id, par: a.ana.id, titre: 'Un autre titre' });
+  v('un lieu seul : changé, c\'est le LIEU ; un rappel seul : changé, mais ni titre, ni lieu, ni horaire ; un titre seul : le TITRE', [[mLieu.change, mLieu.titre, mLieu.lieu, mLieu.horaire], [mRappel.change, mRappel.titre, mRappel.lieu, mRappel.horaire], [mTitre.change, mTitre.titre, mTitre.lieu, mTitre.horaire]],
+    [[true, false, true, false], [true, false, false, false], [true, true, false, false]]);
   S.fermer();
 }
 
@@ -563,6 +578,37 @@ function suiteEffacement() {
     S.reunionAnnuler({ id: r.id, par: a.ana.id });
     v('⛔ une réunion annulée non plus ; mais l\'existence seule reste vraie (pour dire « annulée »)', [S.reunionEncore({ id: r.id, uid: a.ben.id, occurrence: DEBUT }), S.reunionEncore({ id: r.id, uid: a.ben.id })], [false, true]);
     v('⛔ ni un étranger, ni une réunion inconnue', [S.reunionEncore({ id: r.id, uid: a.eli.id }), S.reunionEncore({ id: 'r_x', uid: a.ben.id })], [false, false]);
+    S.fermer();
+  }
+
+  console.log('\nLa SOURDINE de la conversation coupe une MODIFICATION — jamais un rappel, jamais une annulation');
+  {
+    const a = atelier(), S = a.S;
+    const r = reunion(a, { invites: [a.ben.id, a.cleo.id] });
+    const conv = S.reunionPourMembre(r.id, a.ana.id).reunion.conv;
+    S.membrePrefs({ conv, uid: a.ben.id, muet_jusqua: a.h.t + JOUR });
+    v('population : Ben (en sourdine) et Cleo (sans) sont invités ; sans la sourdine demandée, la charge reste valable pour les deux (annulation, rappel)', [S.reunionEncore({ id: r.id, uid: a.ben.id }), S.reunionEncore({ id: r.id, uid: a.cleo.id })], [true, true]);
+    v('⛔ une MODIFICATION (`sourdine: true`) n\'est plus valable pour Ben, qui l\'a coupée ; elle l\'est pour Cleo', [S.reunionEncore({ id: r.id, uid: a.ben.id, sourdine: true }), S.reunionEncore({ id: r.id, uid: a.cleo.id, sourdine: true })], [false, true]);
+    v('⛔ un RAPPEL (une occurrence, aucune sourdine demandée) reste valable pour Ben : la sourdine ne coupe jamais un rappel qu\'il a lui-même choisi', S.reunionEncore({ id: r.id, uid: a.ben.id, occurrence: DEBUT }), true);
+    a.h.t += JOUR + 1000;
+    v('la sourdine échue ne coupe plus rien', S.reunionEncore({ id: r.id, uid: a.ben.id, sourdine: true }), true);
+    S.membreRetirer({ conv, par: a.ana.id, uid: a.cleo.id });
+    v('quelqu\'un qui n\'est plus membre de la conversation ne reçoit pas la modification (population : tout à l\'heure, avant son départ, elle lui était valable)', [S.reunionEncore({ id: r.id, uid: a.cleo.id, sourdine: true }), S.reunionEncore({ id: r.id, uid: a.ben.id, sourdine: true })], [false, true]);
+    S.fermer();
+  }
+
+  console.log('\nLe laissez-passer des gardes R et H : la réunion, ma place, et rien de plus');
+  {
+    const a = atelier(), S = a.S;
+    const r = reunion(a, { invites: [a.ben.id] });
+    const conv = S.reunionPourMembre(r.id, a.ana.id).reunion.conv;
+    v('l\'hôte et l\'invité : l\'identifiant, la conversation, qui je suis (hôte ou non), si elle est annulée, ma réponse — pas la liste des invités', [S.reunionAcces(r.id, a.ana.id), S.reunionAcces(r.id, a.ben.id)],
+      [{ id: r.id, conv, hote: true, annulee: false, statut: 'accepte' }, { id: r.id, conv, hote: false, annulee: false, statut: 'attente' }]);
+    v('⛔ un étranger et une réunion inconnue répondent la MÊME chose (`null`) : la garde en fait un 404 identique', [S.reunionAcces(r.id, a.eli.id), S.reunionAcces('r_' + '0'.repeat(32), a.ben.id)], [null, null]);
+    S.reunionAnnuler({ id: r.id, par: a.ana.id });
+    v('annulée : le laissez-passer le dit (la garde la laisse lire)', S.reunionAcces(r.id, a.ben.id).annulee, true);
+    S.reunionRetirer({ id: r.id, par: a.ana.id, uid: a.ben.id });
+    v('⛔ retiré : plus de laissez-passer (null), alors que la réunion existe toujours (population : l\'hôte passe)', [S.reunionAcces(r.id, a.ben.id), S.reunionAcces(r.id, a.ana.id) !== null], [null, true]);
     S.fermer();
   }
   fin();

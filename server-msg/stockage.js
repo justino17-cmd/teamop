@@ -1927,6 +1927,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     });
   }
   const reunionParticipants = (id) => Q('SELECT uid FROM reunion_invite WHERE reunion = ? ORDER BY cree, uid').all(id).map(r => r.uid);
+  /* Le LAISSEZ-PASSER léger des gardes R et H (`app.js`) : { id, conv, hote (cette personne l'est-elle ?), annulee, statut } — `null` pour inexistante COMME pour « tu n'es pas invité ». Pas la liste
+     des invités : chaque route lit ce dont elle a besoin. */
+  function reunionAcces(id, uid) {
+    const r = Q('SELECT u.id AS id, u.conv AS conv, u.hote AS hote, u.annulee AS annulee, i.statut AS statut FROM reunion u JOIN reunion_invite i ON i.reunion = u.id AND i.uid = ? WHERE u.id = ?').get(uid, id);
+    return r ? { id: r.id, conv: r.conv, hote: r.hote === uid, annulee: !!r.annulee, statut: r.statut } : null;
+  }
 
   /* Créer : la conversation, ses membres, la réunion, les lignes d'invitation, le message d'ouverture — TOUT dans une transaction. `prochain` : le début de la première occurrence non commencée
      (calculé par l'appelant avec `calendrier.js`), ou null. Les invités sont déjà jugés par l'appelant (`peutEcrire`). */
@@ -1949,7 +1955,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     });
   }
   /* Modifier : seuls les champs PASSÉS changent. Un changement d'HORAIRE (début, fin, fuseau, répétition, fin de répétition) date `horaire_le`, remet la réponse des invités « en attente » et
-     pose le nouveau `prochain` (calculé par l'appelant). → { change, horaire, titre, gid } */
+     pose le nouveau `prochain` (calculé par l'appelant). → { change, horaire, titre, lieu, gid } */
   function reunionModifier({ id, par, titre, lieu, debut, fin, tz, rep, n, jusqua, rappels, prochain }) {
     return tx(() => {
       const r = reunionBrute(id); if (!r) throw erreur('introuvable');
@@ -1966,7 +1972,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const horaire = nouveau.debut !== num(r.debut) || nouveau.fin !== num(r.fin) || nouveau.tz !== r.tz || nouveau.rep !== r.rep || nouveau.n !== (r.n === null ? null : num(r.n)) || nouveau.jusqua !== (r.jusqua || null);
       const titreChange = nouveau.titre !== ancienTitre, lieuChange = nouveau.lieu !== ancienLieu;
       const rappelsChange = nouveau.rappels !== r.rappels;
-      if (!horaire && !titreChange && !lieuChange && !rappelsChange) return { change: false, horaire: false, titre: false, gid: 0 };
+      if (!horaire && !titreChange && !lieuChange && !rappelsChange) return { change: false, horaire: false, titre: false, lieu: false, gid: 0 };
       Q('UPDATE reunion SET titre_ch = ?, lieu_ch = ?, debut = ?, fin = ?, tz = ?, rep = ?, n = ?, jusqua = ?, rappels = ?, version = version + 1, maj = ?, horaire_le = ?, prochain = ? WHERE id = ?')
         .run(titreChange ? sceller('reunion', 'titre_ch', aadReunion(id, 'titre'), nouveau.titre) : r.titre_ch,
           lieuChange ? (nouveau.lieu ? sceller('reunion', 'lieu_ch', aadReunion(id, 'lieu'), nouveau.lieu) : null) : r.lieu_ch,
@@ -1975,7 +1981,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (titreChange) Q('UPDATE conversation SET nom_ch = ? WHERE id = ?').run(sceller('conversation', 'nom_ch', r.conv + '|nom', nouveau.titre), r.conv);
       if (horaire) Q(`UPDATE reunion_invite SET statut = 'attente', repondu = NULL WHERE reunion = ? AND uid <> ?`).run(id, r.hote);
       if (horaire || titreChange || lieuChange) messageSysteme(r.conv, par, { k: 'reunion_modifiee', horaire });
-      return { change: true, horaire, titre: titreChange, gid: journalAjouter('reunion', r.conv, null, id) };
+      return { change: true, horaire, titre: titreChange, lieu: lieuChange, gid: journalAjouter('reunion', r.conv, null, id) };
     });
   }
   /* Annuler : la réunion reste (les invités la voient « annulée », son chat aussi), plus aucun rappel ne part. Se note (`reunion_annulee`) : une archive d'avant la rendrait active. */
@@ -2105,9 +2111,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   /* Le registre ne grossit pas : un rappel d'une occurrence passée depuis plus de `avant` n'a plus rien à empêcher. */
   function rappelsElaguer(avant) { return num(Q('DELETE FROM rappel WHERE occurrence < ?').run(avant).changes); }
   /* La charge qui part en push pour un rappel ou une notification de réunion est re-jugée à l'instant de partir : la réunion existe, la personne y est, elle n'est pas annulée, et — pour un rappel — l'occurrence n'a pas commencé. */
-  function reunionEncore({ id, uid, occurrence }) {
-    const r = Q(`SELECT r.annulee AS annulee, i.statut AS statut FROM reunion r JOIN reunion_invite i ON i.reunion = r.id AND i.uid = ? WHERE r.id = ?`).get(uid, id);
+  function reunionEncore({ id, uid, occurrence, sourdine }) {
+    const r = Q(`SELECT r.annulee AS annulee, r.conv AS conv, i.statut AS statut FROM reunion r JOIN reunion_invite i ON i.reunion = r.id AND i.uid = ? WHERE r.id = ?`).get(uid, id);
     if (!r) return false;
+    /* ⛔ LA SOURDINE de la conversation de la réunion coupe les notifications de ses MODIFICATIONS (`sourdine: true`) — jamais un rappel, jamais une annulation (l'appelant ne la demande pas) */
+    if (sourdine === true) { const m = Q('SELECT muet_jusqua FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(r.conv, uid); if (!m || num(m.muet_jusqua) > horloge()) return false; }
     if (occurrence !== undefined && occurrence !== null) return !r.annulee && r.statut !== 'decline' && num(occurrence) > horloge();
     return true;
   }
@@ -2645,7 +2653,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushJoignable, pushNonJoignablesPurger, pushRetirerAutres, pushVapidLire, pushVapidPoser,
     pushDestinatairesMessage, pushMessageEncore, autreSupprime,
     suppressionProgrammer, suppressionAnnuler, suppressionLe, comptesEchus, compteEffacer, exportProfil, exportConversationsIds, exportPieces,
-    reunionPourMembre, reunionsDe, reunionParticipants, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionRepondre, reunionRappelsPoser,   // les réunions programmées
+    reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionRepondre, reunionRappelsPoser,   // les réunions programmées
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelDejaEnvoye, rappelsElaguer, reunionEncore,                             // …et le planificateur
     courrierCompter, courrierNoter, courrierElaguer, exportReunions,                                                                                                                  // …et le courriel d'invitation
   };
