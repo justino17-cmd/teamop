@@ -1328,16 +1328,28 @@ a.mini .ic { font-size: 16px; }
     history.replaceState({ opmsg: 1, n: h ? h.n : 0, r, p: h ? h.p : null }, '', urlDe(r));
     appliquer(r);
   }
+  /* ⛔ UN RETOUR, UNE FOIS. `history.back()` est ASYNCHRONE : la route (`etat.route`) et l'entrée (`history.state`) ne changent qu'à `popstate`, un peu plus tard. Tant que ce retour est en vol, tout second appel de
+     `fermerCouche()` — un second toucher sur « Annuler », ou, pire, une page qui apprend deux fois la MÊME nouvelle (la réponse du geste et l'événement du flux : « cette réunion n'existe plus ») — revoit la même
+     couche ouverte, donc rend UNE ENTRÉE DE PLUS : une fiche ouverte au doigt (deux entrées) sortait de l'application au troisième retour (testeur : 3 essais sur 5). On note le retour demandé et on ne le répète pas ;
+     `popstate` le lève, et un filet d'une seconde et demie aussi, si le navigateur n'a jamais joué ce retour (une page qui ne se ferme plus serait pire que la panne). Tout retour d'historique de la page passe ici. */
+  let retourEnVol = false, filetRetour = 0;
+  function rendreEntree() {
+    if (retourEnVol) return;
+    retourEnVol = true;
+    clearTimeout(filetRetour); filetRetour = setTimeout(() => { retourEnVol = false; }, 1500);
+    history.back();
+  }
   /* fermer la couche du dessus : on rend l'entrée qu'on avait posée — ou, arrivé par un lien direct (aucune entrée à rendre), on
      remplace par la route d'en dessous */
   function fermerCouche() {
     const parent = parentDe(etat.route); if (!parent) return;
     const h = entree();
-    if (h && h.n > 0 && h.p && memeRoute(h.p, parent)) history.back(); else remplacer(parent);
+    if (h && h.n > 0 && h.p && memeRoute(h.p, parent)) rendreEntree(); else remplacer(parent);
   }
   /* la position de la liste est rendue PAR LA PAGE (etat.scrollListe, au retour), pas par la restauration native de l'historique : celle-ci diffère d'un
      navigateur à l'autre (Safari iOS ne la rend pas toujours sur un retour système) et masquait, ici, le retrait de notre propre mémoire (sonde, S04) */
   try { history.scrollRestoration = 'manual'; } catch (e) { /* un navigateur sans l'option garde la sienne */ }
+  window.addEventListener('popstate', () => { retourEnVol = false; clearTimeout(filetRetour); });         // le retour demandé a eu lieu : le suivant peut se demander (AVANT l'écouteur qui applique la route)
   window.addEventListener('popstate', e => appliquer(e.state && e.state.opmsg ? e.state.r : routeDepuisHash()));
 
   /* appliquer(route) : l'écran DIT la route, rien d'autre. Elle ne pousse jamais d'historique — elle est jouée aussi par popstate. */
@@ -2339,7 +2351,7 @@ a.mini .ic { font-size: 16px; }
     if (!id) { try { const c = await source.conversationPour(membres); id = c && c.id; } catch (e) { id = null; refus = e; } }
     if (!id) { mot(phrase(refus, 'La conversation n\'a pas pu être ouverte.')); return; }
     const cible = { vue: 'messages', conv: id, feuille: false, photo: null, appel: null }, h = entree();
-    if (h && h.n > 0 && h.p && memeRoute(h.p, cible)) history.back(); else remplacer(cible);
+    if (h && h.n > 0 && h.p && memeRoute(h.p, cible)) rendreEntree(); else remplacer(cible);
   }
   function rappeler(a, type, depuisFeuille, declencheurEl) { return lancerAppel({ membres: a.membres.slice(), video: type === 'video', conv: a.conv }, declencheurEl || document.activeElement, !!depuisFeuille); }
   /* lancer = demander à la source, PUIS pousser la route (l'écran suit dans afficherAppel, jouée aussi par le retour système). Depuis une feuille, l'entrée de la feuille est remplacée. */
@@ -3671,8 +3683,19 @@ a.mini .ic { font-size: 16px; }
     if (etat.route && etat.route.vue === 'reunions') chargerReunions(); else reu.charge = false;
     const G = etat.groupe;
     if (G.ouvert && G.mode === 'reunion' && (!ev.id || ev.id === G.reunionId)) {
-      if (ev.supprime && ev.id === G.reunionId) { mot(PHRASE_REUNION_PERDUE); fermerCouche(); } else rendreFiche();
+      if (ev.supprime && ev.id === G.reunionId) reunionDisparue(reu.fiche); else rendreFiche();
     }
+  }
+  /* ⛔ UNE RÉUNION QUI DISPARAÎT FERME SA FICHE UNE FOIS, ET UN SEUL ACTEUR LE FAIT. La même nouvelle arrive de plusieurs côtés : la réponse du geste qu'on vient de faire (« Supprimer » confirmé), l'événement que la
+     source émet aussitôt (`reunionChangee`), celui que le service adresse à CHAQUE participant — l'organisateur et celui qui part compris : ses autres appareils en ont besoin —, et la relecture de la fiche qui ne
+     trouve plus la réunion. Chacun fermait la fiche : trois fermetures pour une disparition (testeur). La marque est sur la FICHE (une fiche neuve, une marque neuve) ; la phrase est celle du GESTE quand c'est la
+     personne qui l'a fait (`F.sortie`, posée AVANT l'attente : l'événement local arrive pendant elle) — « Réunion supprimée », jamais « n'existe plus » à celui qui vient de la supprimer. Si la feuille n'est plus
+     celle-là (fermée pendant l'attente), la phrase se dit quand même et RIEN d'autre ne se ferme : `fermerCouche()` ferait partir la couche qui est dessous. */
+  function reunionDisparue(F) {
+    if (!F || F.fermee) return;
+    F.fermee = true;
+    mot(F.sortie || PHRASE_REUNION_PERDUE);
+    if (ouvertePour(F.id) && reu.fiche === F) fermerCouche();
   }
   const ouvrirReunionId = id => { if (CAP.reunions && ID_REUNION.test(id)) remplacer({ vue: 'reunions', conv: null, feuille: 'reunion:' + id, photo: null, appel: null }); };
 
@@ -3771,12 +3794,14 @@ a.mini .ic { font-size: 16px; }
     const G = etat.groupe; if (!G.ouvert || G.mode !== 'reunion') return;
     const id = G.reunionId, corps = $('info-corps');
     if (!reu.fiche || reu.fiche.id !== id) ouvrirFicheEtat(id);
-    const F = reu.fiche, n = ++F.jeton;
+    const F = reu.fiche;
+    if (F.fermee) return;                                                       // la fiche se ferme : la relire ne ferait que retrouver « introuvable » et la fermer une seconde fois
+    const n = ++F.jeton;
     let d = null, panne = null;
     try { d = await source.reunion(id); } catch (e) { panne = e; }
     if (!ouvertePour(id) || reu.fiche !== F || n !== F.jeton) return;           // la feuille a changé pendant l'attente
     if (panne) {
-      if (panne.code === 'reunion_introuvable') { mot(PHRASE_REUNION_PERDUE); fermerCouche(); return; }
+      if (panne.code === 'reunion_introuvable') { reunionDisparue(F); return; }
       corps.dataset.sig = ''; corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">' + esc(phrase(panne, 'La réunion n\'a pas pu être chargée.')) + '</p>'; return;
     }
     F.donnees = d;
@@ -3801,11 +3826,11 @@ a.mini .ic { font-size: 16px; }
     if (champ && champ.focus && $('rc-adresse')) { $('rc-adresse').focus({ preventScroll: true }); try { $('rc-adresse').setSelectionRange(champ.a, champ.a); } catch (e) { /* un champ sans curseur */ } }
     else if (cle) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-reu]')).find(x => x.dataset.reu === a && (x.dataset.uid || x.dataset.min || x.dataset.statut || x.dataset.portee || '') === u); if (b) b.focus({ preventScroll: true }); }
   }
-  function ouvrirFicheEtat(id) { reu.colleagues = null; reu.fiche = { id, donnees: null, jeton: 0, confirme: null, courriel: null, prevenir: true, occurrence: reu.occurrences[id] || null, occVersion: null, erreur: null }; }
+  function ouvrirFicheEtat(id) { reu.colleagues = null; reu.fiche = { id, donnees: null, jeton: 0, confirme: null, courriel: null, prevenir: true, occurrence: reu.occurrences[id] || null, occVersion: null, erreur: null, fermee: false, sortie: null }; }
   /* retour à la fiche après un formulaire : l'entrée de la fiche est RENDUE quand c'est elle qui est dessous, sinon on la REMPLACE */
   function versFiche(id) {
     const h = entree(), cible = 'reunion:' + id;
-    if (h && h.n > 0 && h.p && h.p.feuille && cleFeuille(h.p.feuille) === cible) history.back(); else remplacer(Object.assign({}, etat.route, { feuille: cible }));
+    if (h && h.n > 0 && h.p && h.p.feuille && cleFeuille(h.p.feuille) === cible) rendreEntree(); else remplacer(Object.assign({}, etat.route, { feuille: cible }));
   }
   $('info-corps').addEventListener('click', async e => {
     const b = e.target.closest('[data-reu]'); if (!b || b.disabled || b.getAttribute('aria-disabled') === 'true') return;
@@ -3846,13 +3871,13 @@ a.mini .ic { font-size: 16px; }
           mot('Invitation envoyée par courriel');
         }
         else if (act === 'quitter-demander') { F.confirme = 'quitter'; await relire(); }
-        else if (act === 'quitter-confirmer') { b.setAttribute('aria-disabled', 'true'); await source.quitterReunion(id); mot('Tu as quitté la réunion'); fermerCouche(); return; }
+        else if (act === 'quitter-confirmer') { b.setAttribute('aria-disabled', 'true'); F.sortie = 'Tu as quitté la réunion'; await source.quitterReunion(id); reunionDisparue(F); return; }
         else if (act === 'annuler-demander') { F.confirme = 'annuler'; await relire(); }
         else if (act === 'supprimer-demander') { F.confirme = 'supprimer'; await relire(); }
         else if (act === 'confirmation-retour') { F.confirme = null; await relire(); }
         else if (act === 'prevenir') { F.prevenir = !F.prevenir; await relire(); }
         else if (act === 'annuler-confirmer') { b.setAttribute('aria-disabled', 'true'); await source.annulerReunion(id); F.confirme = null; mot('Réunion annulée : les invités sont prévenus'); await relire(); }
-        else if (act === 'supprimer-confirmer') { b.setAttribute('aria-disabled', 'true'); await source.supprimerReunion(id, { notifier: F.prevenir }); mot('Réunion supprimée'); fermerCouche(); return; }
+        else if (act === 'supprimer-confirmer') { b.setAttribute('aria-disabled', 'true'); F.sortie = 'Réunion supprimée'; await source.supprimerReunion(id, { notifier: F.prevenir }); reunionDisparue(F); return; }
       }
       /* ── le formulaire ── */
       else if (G.mode === 'reunion-new' || G.mode === 'reunion-edit') {
@@ -3861,7 +3886,7 @@ a.mini .ic { font-size: 16px; }
         else if (act === 'form-invite') { basculerInviteForm(b.dataset.uid); }
         else if (act === 'form-notifier') { reu.form.notifier = !reu.form.notifier; b.setAttribute('aria-checked', reu.form.notifier ? 'true' : 'false'); }
       }
-    } catch (er) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(er, 'Cette action n\'a pas pu se faire.')); }
+    } catch (er) { if (F) F.sortie = null; b.removeAttribute('aria-disabled'); erreurInfo(phrase(er, 'Cette action n\'a pas pu se faire.')); }          // le geste a échoué : la phrase qu'il avait annoncée tombe avec lui
   });
 
   /* ── « Programmer » et « Modifier » : le formulaire (les feuilles « reunion-new » et « reunion-edit:<id> ») ── */
