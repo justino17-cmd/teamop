@@ -213,6 +213,12 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     v('⛔ une clé privée qui n\'est pas celle de la publique REFUSE le démarrage', lance(() => pushConfig({ vapidPublicKey: paire.vapidPublicKey, vapidPrivateKey: k3.getPrivateKey().toString('base64url') }, {}, 'beta')), 'CONFIG');
     v('l\'une sans l\'autre aussi', [lance(() => pushConfig({ vapidPublicKey: paire.vapidPublicKey }, {}, 'beta')), lance(() => pushConfig({ vapidPrivateKey: paire.vapidPrivateKey }, {}, 'beta'))], ['CONFIG', 'CONFIG']);
     v('une clé de la mauvaise longueur aussi', lance(() => pushConfig({ vapidPublicKey: 'AAAA', vapidPrivateKey: 'AAAA' }, {}, 'beta')), 'CONFIG');
+    /* le sujet VAPID : `push.contact`, à défaut le courriel que l'installation écrit déjà (`contactEmail`), à défaut l'origine https du service */
+    v('⛔ le courriel de contact de l\'installation (`contactEmail`) devient le sujet VAPID, sauf si `push.contact` est posé ; sans l\'un ni l\'autre, rien (l\'origine https prend le relais)',
+      [pushConfig({ contactEmail: 'contact@exemple.invalid' }, {}, 'beta').contact, pushConfig({ contactEmail: 'contact@exemple.invalid', push: { contact: 'mailto:autre@exemple.invalid' } }, {}, 'beta').contact, pushConfig({}, {}, 'beta').contact],
+      ['mailto:contact@exemple.invalid', 'mailto:autre@exemple.invalid', null]);
+    v('un courriel de contact illisible, vide, « localhost » ou qui n\'est pas du texte est LAISSÉ DE CÔTÉ : le démarrage n\'est pas refusé, le sujet retombe sur l\'origine https',
+      ['pas un courriel', '', 'moi@localhost', 42, null].map(c => pushConfig({ contactEmail: c }, {}, 'beta').contact), [null, null, null, null, null]);
 
     /* une ligne abîmée : le push se DÉSACTIVE (et le dit), le reste du service vit */
     const d = monter();

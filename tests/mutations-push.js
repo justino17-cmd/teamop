@@ -66,6 +66,9 @@ m('L16', 'la porte de banc accepte n\'importe quel hôte (plus seulement 127.0.0
 m('L17', 'une clé VAPID privée qui n\'est pas celle de la publique est acceptée au démarrage (tous les envois seraient refusés, sans une ligne d\'erreur)', F.conf,
   String.raw`if (!derivee || !derivee.equals(bp)) throw err('la clé VAPID privée n\'est pas celle de la publique');`, '', ['956']);
 
+m('L18', 'le courriel de contact que l\'installation écrit (`contactEmail`) n\'est plus lu : les services push n\'ont plus que l\'origine https pour joindre quelqu\'un', F.conf,
+  "o.contact = ce && SUJET_MAILTO.test('mailto:' + ce) && !/@localhost$/i.test(ce) ? 'mailto:' + ce : null;", 'o.contact = null;', ['955']);
+
 /* ══ 2. QUI REÇOIT QUOI, ET QUAND — la charge minimale, l'aperçu seulement voulu, jamais l'auteur, jamais une conversation coupée ═══════════════════════════ */
 m('R01', 'l\'aperçu part sans que la personne l\'ait activé (le nom et le texte sur l\'écran verrouillé)', F.push, 'const apercu = !!(moi && moi.prefs && moi.prefs.apercu_notif === true) && charge.detail;', 'const apercu = charge.detail;', ['955', '956']);
 m('R02', 'l\'aperçu est activé PAR DÉFAUT (un réglage jamais touché compte comme « oui »)', F.push, 'moi.prefs.apercu_notif === true) && charge.detail;', 'moi.prefs.apercu_notif !== false) && charge.detail;', ['955', '956']);

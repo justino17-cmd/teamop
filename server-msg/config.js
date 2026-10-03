@@ -27,7 +27,7 @@
  *                                durée de vie d'une pièce jamais envoyée, envois en même temps. Voir `piecesConfig` pour les valeurs de départ.
  *   compte        {exportOctetsMax}   Le plafond de taille de l'export des données d'une personne (64 Mo par défaut ; au-delà, le fichier se termine proprement et dit où il s'est arrêté).
  *   push          {contact, ackMs, echecsMax, simultanes, fileMax, timeoutMs, ttlS}   Les notifications push. `contact` : le sujet VAPID (`mailto:` ou une adresse
- *                                https) ; absent, c'est l'origine https du service. Les autres : délai d'acquittement (5 s), échecs de suite avant le retrait d'un
+ *                                https) ; absent, c'est le `contactEmail` de l'installation, à défaut l'origine https du service. Les autres : délai d'acquittement (5 s), échecs de suite avant le retrait d'un
  *                                abonnement (5), envois en même temps (16), file d'attente (2 000), délai d'un envoi (8 s), durée de vie d'un message poussé (24 h).
  *   vapidPublicKey, vapidPrivateKey   La paire VAPID que l'installation écrit (`install-msg.sh`) : le service l'ADOPTE à son premier démarrage (elle est alors rangée dans la
  *                                base, privée scellée, et la base fait foi ensuite). Absente, le service en fabrique une. L'une sans l'autre, ou deux clés qui ne
@@ -129,7 +129,12 @@ function pushConfig(cfg, env, instance) {
     if (!SUJET_MAILTO.test(sujet) && !SUJET_HTTPS.test(sujet)) throw err('push.contact doit être une adresse de courriel ou une origine https');
     if (/@localhost$|\/\/localhost(:|$)/i.test(sujet)) throw err('push.contact ne peut pas être « localhost » (le service push d\'Apple le refuse)');
     o.contact = sujet;
-  } else o.contact = null;
+  } else {
+    /* `push.contact` absent : le courriel que l'installation écrit déjà (`contactEmail`, comme celui d'OP GESTION) fait le sujet — les services push savent ainsi qui joindre. Illisible, ou « localhost » (Apple le
+       refuse) : on le laisse de côté sans refuser le démarrage, l'origine https du service prend le relais (`push.js`). */
+    const ce = typeof cfg.contactEmail === 'string' ? cfg.contactEmail.trim() : '';
+    o.contact = ce && SUJET_MAILTO.test('mailto:' + ce) && !/@localhost$/i.test(ce) ? 'mailto:' + ce : null;
+  }
   /* la paire VAPID de l'installation : les deux ou aucune, bien formées, et faites l'une pour l'autre */
   const pub = cfg.vapidPublicKey, priv = cfg.vapidPrivateKey;
   if ((pub === undefined) !== (priv === undefined)) throw err('vapidPublicKey et vapidPrivateKey vont ensemble (une seule des deux est posée)');
