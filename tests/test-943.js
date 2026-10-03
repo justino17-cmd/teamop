@@ -539,6 +539,17 @@ async function gestionnaireLecture() {
       const cre = await E.post('/api/conversations/groupe', { nom: 'Né avec sa photo', membres: [Fr.moi.id], avatar_piece: dep3.j.id });
       v('créer un groupe AVEC sa photo (avatar_piece) : 201 et l\'avatar est posé, sans message « avatar » en plus', [cre.code, cre.j.conversation.avatar, (await E.get('/api/conversations/' + cre.j.conversation.id + '/messages')).j.messages.filter(m => m.type === 'systeme').map(m => m.meta.k)], [201, dep3.j.id, ['groupe_cree']]);
       v('⛔ créer un groupe avec la photo d\'un autre : 404, et AUCUN groupe n\'est créé', await (async () => { const n = (await E.get('/api/conversations')).j.conversations.length; const x = await E.post('/api/conversations/groupe', { nom: 'Volé', membres: [Fr.moi.id], avatar_piece: (await deposer(Fr, { genre: 'avatar', corps: PNG })).j.id }); return [x.code, (await E.get('/api/conversations')).j.conversations.length - n]; })(), [404, 0]);
+      /* ⛔ remarque 7 du gardien : celui qui a posé la photo du groupe puis le quitte (ou en est retiré) ne la lit plus — un droit de « dépositaire » ne survit pas à l'appartenance */
+      const Gx = await groupe(E, 'Photo d\'un ancien', [Fr]);
+      const depX = await deposer(E, { genre: 'avatar', corps: PNG });
+      await E.post('/api/conversations/' + Gx + '/maj', { avatar_piece: depX.j.id });
+      v('population : la photo du groupe se lit de celui qui l\'a posée (200), d\'un membre (200), pas d\'un étranger (404)', [(await lire(E, depX.j.id)).code, (await lire(Fr, depX.j.id)).code, (await lire(Gi, depX.j.id)).code], [200, 200, 404]);
+      v('Eve quitte le groupe (Fred, seul membre restant, devient administrateur)', (await E.post('/api/conversations/' + Gx + '/quitter', {})).code, 200);
+      v('⛔ celle qui a posé la photo et a QUITTÉ le groupe ne la lit plus (404) ; le membre qui reste, si (200)', [(await lire(E, depX.j.id)).code, (await lire(Fr, depX.j.id)).code], [404, 200]);
+      v('…et le groupe ne lui rend plus rien non plus : elle ne le voit plus dans sa liste', (await E.get('/api/conversations')).j.conversations.some(c => c.id === Gx), false);
+      v('revenue dans le groupe, elle relit la photo (c\'est bien l\'appartenance qui décide, pas un état figé)', [(await Fr.post('/api/conversations/' + Gx + '/membres/ajouter', { uids: [E.moi.id] })).code, (await lire(E, depX.j.id)).code], [200, 200]);
+      v('⛔ retirée par l\'administrateur, elle ne la lit plus', [(await Fr.post('/api/conversations/' + Gx + '/membres/retirer', { uid: E.moi.id })).code, (await lire(E, depX.j.id)).code], [200, 404]);
+      v('contre-épreuve : sa PROPRE photo de profil, elle la lit toujours (le droit de la personne sur elle-même ne tient pas au groupe)', await (async () => { const d = await deposer(E, { genre: 'avatar', corps: PNG }); await E.post('/api/moi/avatar', { piece: d.j.id }); return (await lire(E, d.j.id)).code; })(), 200);
       /* tout le monde part : la conversation disparaît, sa photo avec */
       const Gs = await groupe(E, 'Éphémère de groupe', [Gi]);
       const dep4 = await deposer(E, { genre: 'avatar', corps: PNG }), ph = await photo(E, Gs);
@@ -815,8 +826,9 @@ async function gestionnaireLecture() {
     const ge = await groupe(A4, 'Éphémère', [B4], { ephemere_s: 86400 }), gd = await groupe(A4, 'Durable', [B4]);
     const pe4 = await photo(A4, ge), pe4m = await envoyer(A4, ge, { type: 'photo', pieces: [{ id: pe4, w: 8, h: 8 }] });
     const po4 = await photo(A4, gd);
+    const av4 = (await deposer(A4, { genre: 'avatar', corps: PNG })).j.id;                 // une photo de profil déposée, jamais posée
     const pd4 = await photo(A4, gd), pd4m = await envoyer(A4, gd, { type: 'photo', pieces: [{ id: pd4, w: 8, h: 8 }] });
-    v('population : la photo d\'un éphémère (lue par Bruno), une pièce jamais envoyée (lue par son dépositaire), la photo d\'un message durable (lue par Bruno) — toutes lisibles', [pe4m.code, (await lire(B4, pe4)).code, (await lire(A4, po4)).code, (await lire(B4, pd4)).code], [201, 200, 200, 200]);
+    v('population : la photo d\'un éphémère (lue par Bruno), une pièce jamais envoyée (lue par son dépositaire), la photo d\'un message durable (lue par Bruno), une photo de profil déposée et pas posée (lue par son dépositaire seul) — toutes lisibles', [pe4m.code, (await lire(B4, pe4)).code, (await lire(A4, po4)).code, (await lire(B4, pd4)).code, (await lire(A4, av4)).code, (await lire(B4, av4)).code], [201, 200, 200, 200, 200, 404]);
     /* « supprimé » : « supprimer pour tous » efface la ligne de la pièce DANS la même transaction, donc cet état n'existe pas par l'API — il existe après une restauration ou une version d'avant.
        On le fabrique à la main : le droit de lire ne doit pas dépendre de ce que l'effacement a bien eu lieu. */
     const bd = new (require('node:sqlite').DatabaseSync)(path.join(svc4.data, 'msg.db'));
@@ -827,6 +839,7 @@ async function gestionnaireLecture() {
     svc4.avancer(25 * 3600000);
     v('⛔ un message éphémère échu que le balayeur n\'a PAS ôté (sa photo est encore en base) : elle ne se lit plus, même par son auteur', [ligne4(pe4), (await lire(B4, pe4)).code, (await lire(A4, pe4)).code], [1, 404, 404]);
     v('⛔ une pièce déposée il y a 25 h et jamais envoyée, encore en base : elle ne se lit plus, même par son dépositaire', [ligne4(po4), (await lire(A4, po4)).code], [1, 404]);
+    v('⛔ une photo de profil déposée il y a 25 h et jamais posée, encore en base : elle ne se lit plus, même par son dépositaire', [ligne4(av4), (await lire(A4, av4)).code], [1, 404]);
     const mEch = await envoyer(A4, gd, { type: 'photo', pieces: [{ id: po4, w: 8, h: 8 }] });
     v('⛔ …et elle ne s\'attache plus : 404 piece_inconnue (c\'est l\'échéance qui refuse, pas le balayeur), et la ligne est toujours là', [mEch.code, mEch.j.error, ligne4(po4)], [404, 'piece_inconnue', 1]);
     svc4.avancer(-25 * 3600000);
