@@ -86,6 +86,17 @@ m('R10', 'sourdine filtrée par le tri des destinataires SEUL (le jugement au mo
 m('R11', 'membre parti filtré par le tri des destinataires SEUL (le jugement au moment de partir le regarde aussi)', F.stock, 'WHERE m.conv = ? AND m.quitte_le IS NULL AND m.uid <> ?', 'WHERE m.conv = ? AND m.uid <> ?', ['956'],
   EQ('le jugement au moment de partir (`pushMessageEncore`) ne trouve plus la ligne d\'un membre parti'));
 
+/* ── CE QUI POUSSE : un message, un ajout à un groupe, un nouveau contact, un nouvel appareil — et la charge MINIMALE de chacun ── */
+m('R12', 'un message n\'envoie plus aucune notification', F.routes,
+  "if (ctx.push) ctx.push.message({ conv: conv.id, seq: r.seq, gid: r.gid, auteur: req.moi.id, nomAuteur: nomAffiche(req.moi), nomConv: conv.nom, groupe: conv.type !== 'direct', type, texte });", '', ['956']);
+m('R13', 'un ajout à un groupe n\'envoie plus de notification', F.routes, 'if (c) ctx.push.pousser(uid, c, { gid: n.gid });', '', ['956']);
+m('R14', 'un nouveau contact n\'envoie plus de notification', F.tel,
+  "if (ctx.push) ctx.push.pousser(id, { type: 'contact', tag: 'contact', url: '/', titre: 'OP MESSAGES', corps: 'Nouveau contact', detail: { titre: 'Nouveau contact', corps: texteN } }, { gid: n.gid });", '', ['956']);
+m('R15', '« Nouvel appareil connecté » ne prévient plus les AUTRES appareils (la sécurité ne passe plus par le push)', F.tel,
+  "if (ctx.push) ctx.push.pousser(p.id, { type: 'appareil', tag: 'appareil', url: '/', renotify: true, titre: 'Nouvel appareil connecté', corps: 'Si ce n\\'est pas vous, déconnectez les autres appareils.' }, { gid: n.gid });", '', ['956', '957']);
+m('R16', 'la charge d\'un nouveau contact porte son nom (sans que l\'aperçu soit activé)', F.tel, "corps: 'Nouveau contact', detail:", 'corps: texteN, detail:', ['956']);
+m('R17', 'la charge d\'un ajout à un groupe porte le nom du groupe et de celui qui l\'a ajouté (sans que l\'aperçu soit activé)', F.routes, "titre: 'OP MESSAGES', corps: 'Vous avez été ajouté à un groupe', detail:", "titre: 'OP MESSAGES', corps: texte, detail:", ['956']);
+
 /* ══ 3. L'ACQUITTEMENT — une notification ne double pas une page sous les yeux, et ne la remplace jamais quand la page est cachée ═══════════════════════════ */
 m('A01', 'n\'importe quel acquittement couvre n\'importe quel événement (un vieil accusé étouffe la notification d\'un message récent)', F.push, 'return !!e && e.gid >= gid; };', 'return !!e; };', ['955', '956']);
 m('A02', 'un acquittement plus ANCIEN remplace un plus récent (la page recule)', F.push, 'acquittes.set(uid, { gid: e ? Math.max(e.gid, gid) : gid, t: horloge() });', 'acquittes.set(uid, { gid, t: horloge() });', ['955']);
@@ -163,6 +174,9 @@ m('D22', 'la route des appareils reconnaît un compte dont la suppression est pr
   "if (!p || p.etat !== 'actif' || stockage.suppressionLe(p.id) !== null) return refus(res, 401, 'appareil_inconnu');", "if (!p || p.etat !== 'actif') return refus(res, 401, 'appareil_inconnu');", ['957']);
 m('D23', 'la reconnexion automatique reconnaît un compte dont la suppression est programmée (le jeton est coupé, la route des appareils refuse)', F.tel,
   "if (ap && p && p.id === ap.personne && p.etat === 'actif' && p.suppression_le === null) {", "if (ap && p && p.id === ap.personne && p.etat === 'actif') {", ['957']);
+
+m('D24', 'la liste des conversations ne marque plus l\'autre d\'une conversation directe comme « compte supprimé » (le nom vide s\'afficherait tel quel)', F.stock, "if (a.etat === 'supprime') o.autre.supprime = true;", '', ['957', '958']);
+m('D25', 'la page de messages ne dit plus quels auteurs sont des comptes supprimés (la page ne peut pas le deviner : elle ne connaît que les membres actifs)', F.stock, "if (e && e.etat === 'supprime') supprimes.push(id);", '', ['957', '958']);
 
 /* ══ 7. EXPORTER SES DONNÉES — ce que la personne voit, rien de plus ; un par jour ; un fichier qui s'écrit au fil de l'eau, plafonné ═════════════════════════ */
 m('X01', 'l\'export n\'a plus de quota : un export à chaque requête, le geste le plus coûteux d\'une personne', F.compte, "if (!essai.ok) { res.set('Retry-After', String(essai.retry)); return refus(res, 429, 'export_quotidien', { retry: essai.retry }); }", '', ['957']);

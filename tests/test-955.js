@@ -302,8 +302,9 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     m.ouverts[bo.id] = 0;
     const e1 = ecrire(g.id);
     /* ⛔ une notification qui attendrait une minuterie FACTICE que personne ne déclenche ne se résoudrait jamais : la boucle se viderait et le banc sortirait « proprement » en 0, sans total (pris par
-       la mutation A05 de `mutations-push.js`). On l'attend donc au plus un instant, et le contrôle dit ce qu'il a vu. */
-    const r1 = await Promise.race([tout(notifier(g.id, e1)), new Promise((ok) => { const t = setTimeout(() => ok(null), 1500); t.unref(); })]);
+       la mutation A05 de `mutations-push.js`). On l'attend donc au plus un instant, et le contrôle dit ce qu'il a vu. ⚠️ La minuterie NE se détache PAS (`unref`) : c'est elle qui tient la boucle ouverte
+       pendant l'attente — détachée, le processus sortait quand même, en silence (mesuré). `fin()` quitte tout de suite, elle ne retarde donc jamais un banc vert. */
+    const r1 = await Promise.race([tout(notifier(g.id, e1)), new Promise((ok) => { setTimeout(() => ok(null), 1500); })]);
     v('⛔ aucun flux ouvert : la notification part TOUT DE SUITE, sans attendre (aucune minuterie posée)', [m.envois.length, m.minuteurs.length, r1 && r1[0].envoyes], [1, 0, 1]);
 
     /* b. un flux ouvert + la page acquitte */
