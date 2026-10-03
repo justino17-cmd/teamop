@@ -31,9 +31,18 @@ function png({ w = 8, h = 8, couleur = [200, 40, 40], avant = [], apres = Buffer
 
 /* ── JPEG : une structure vraie (pas forcément décodable) ── */
 const seg = (marqueur, data) => { const l = Buffer.alloc(4); l[0] = 0xFF; l[1] = marqueur; l.writeUInt16BE(data.length + 2, 2); return Buffer.concat([l, data]); };
-function jpeg({ exif, xmp, iptc, com, icc, mpf, adobe = true, apres = Buffer.alloc(0), donnees } = {}) {
+function jpeg({ exif, xmp, iptc, com, icc, mpf, adobe = true, apres = Buffer.alloc(0), donnees, miniature, jfxx, fpxr, jumbf, ducky } = {}) {
   const entropie = donnees || Buffer.concat([Buffer.from([0x12, 0x34, 0xFF, 0x00, 0x56]), Buffer.from([0xFF, 0xD0]), Buffer.from([0x78, 0xFF, 0x00, 0x9A, 0xBC])]);   // un octet bourré (FF00) et un redémarrage (RST0) : dans les données
-  const parts = [Buffer.from([0xFF, 0xD8]), seg(0xE0, Buffer.concat([Buffer.from('JFIF\0', 'latin1'), Buffer.from([1, 1, 0, 0, 1, 0, 1, 0, 0])]))];
+  /* `miniature` : la miniature que le segment JFIF peut porter lui-même (4 x 4 pixels : 48 octets, le texte y est calé) ; `jfxx` : l'extension JFXX (APP0), une seconde image JPEG intégrée ;
+     `fpxr` : l'extension FlashPix (APP2) ; `jumbf` : un segment APP11 (JUMBF, C2PA) ; `ducky` : un APP14 qui n'est PAS Adobe */
+  const jfif = miniature
+    ? Buffer.concat([Buffer.from('JFIF\0', 'latin1'), Buffer.from([1, 1, 0, 0, 1, 0, 1, 4, 4]), Buffer.from(String(miniature).padEnd(48, '.'), 'latin1')])
+    : Buffer.concat([Buffer.from('JFIF\0', 'latin1'), Buffer.from([1, 1, 0, 0, 1, 0, 1, 0, 0])]);
+  const parts = [Buffer.from([0xFF, 0xD8]), seg(0xE0, jfif)];
+  if (jfxx) parts.push(seg(0xE0, Buffer.concat([Buffer.from('JFXX\0', 'latin1'), Buffer.from([0x10]), Buffer.from(jfxx, 'latin1')])));
+  if (fpxr) parts.push(seg(0xE2, Buffer.concat([Buffer.from('FPXR\0', 'latin1'), Buffer.from(fpxr, 'latin1')])));
+  if (jumbf) parts.push(seg(0xEB, Buffer.concat([Buffer.from('JUMBF\0', 'latin1'), Buffer.from(jumbf, 'latin1')])));
+  if (ducky) parts.push(seg(0xEE, Buffer.concat([Buffer.from('Ducky\0', 'latin1'), Buffer.from(ducky, 'latin1')])));
   if (exif) parts.push(seg(0xE1, Buffer.concat([Buffer.from('Exif\0\0', 'latin1'), Buffer.from(exif, 'latin1')])));
   if (xmp) parts.push(seg(0xE1, Buffer.concat([Buffer.from('http://ns.adobe.com/xap/1.0/\0', 'latin1'), Buffer.from(xmp, 'latin1')])));
   if (iptc) parts.push(seg(0xED, Buffer.concat([Buffer.from('Photoshop 3.0\0', 'latin1'), Buffer.from(iptc, 'latin1')])));
@@ -62,7 +71,22 @@ function webp({ exif, xmp, vp8x = true } = {}) {
   tete.write('RIFF', 0, 'latin1'); tete.writeUInt32LE(4 + corps.length, 4); tete.write('WEBP', 8, 'latin1');
   return Buffer.concat([tete, corps]);
 }
-const gif = (corps = 'factice') => Buffer.concat([Buffer.from('GIF89a', 'latin1'), Buffer.from([1, 0, 1, 0, 0, 0, 0]), Buffer.from(corps, 'latin1'), Buffer.from([0x3B])]);
+/* Un VRAI GIF 1 x 1 (table globale de deux couleurs), animé si on le veut : `images` images, chacune avec son contrôle graphique ; `netscape` : l'extension de boucle ; `commentaire`, `xmp` (une extension
+   d'application « XMP DataXMP ») et `texte` (un texte simple) : ce que le service doit retirer ; `apres` : des octets APRÈS le terminateur. */
+function gif({ commentaire, xmp, texte, netscape = false, controle = true, images = 1, apres = Buffer.alloc(0) } = {}) {
+  const sous = (data) => { const o = []; for (let i = 0; i < data.length; i += 255) { const part = data.subarray(i, i + 255); o.push(Buffer.from([part.length]), part); } o.push(Buffer.from([0])); return Buffer.concat(o); };
+  const parts = [Buffer.from('GIF89a', 'latin1'), Buffer.from([1, 0, 1, 0, 0x80, 0, 0]), Buffer.from([0, 0, 0, 255, 255, 255])];
+  if (netscape) parts.push(Buffer.from([0x21, 0xFF, 11]), Buffer.from('NETSCAPE2.0', 'latin1'), sous(Buffer.from([1, 0, 0])));
+  if (xmp) parts.push(Buffer.from([0x21, 0xFF, 11]), Buffer.from('XMP DataXMP', 'latin1'), sous(Buffer.from(xmp, 'latin1')));
+  if (commentaire) parts.push(Buffer.from([0x21, 0xFE]), sous(Buffer.from(commentaire, 'latin1')));
+  if (texte) parts.push(Buffer.from([0x21, 0x01, 12, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0]), sous(Buffer.from(texte, 'latin1')));
+  for (let k = 0; k < images; k++) {
+    if (controle) parts.push(Buffer.from([0x21, 0xF9, 4, 0x04, 10, 0, 0, 0]));
+    parts.push(Buffer.from([0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0]), Buffer.from([2]), sous(Buffer.from([0x44, 0x01])));
+  }
+  parts.push(Buffer.from([0x3B]), apres);
+  return Buffer.concat(parts);
+}
 
 /* ── sons et fichiers ── */
 const alea = (n) => crypto.randomBytes(n);

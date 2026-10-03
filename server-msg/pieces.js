@@ -11,10 +11,11 @@
  * servi « en ligne » (affiché par le navigateur) ne vient que des genres photo, vocal et avatar, jugés aux octets.
  *
  * ⛔ LES MÉTADONNÉES SONT RETIRÉES ICI AUSSI (le client ré-encode par un canvas, ce qui retire tout — mais le service ne croit pas
- * un client). JPEG : segments APP1 (Exif, XMP), APP13 (IPTC), commentaires, applications vendeur, et tout ce qui suit la fin de
- * l'image (un aperçu intégré, une seconde image Apple/Samsung, qui portent leur propre EXIF) ; PNG : eXIf, tEXt, iTXt, zTXt, tIME ;
- * WebP : EXIF et XMP. Un fichier de ces formats qu'on ne sait pas lire de bout en bout est REFUSÉ plutôt que gardé tel quel : on
- * ne garantit pas le retrait de ce qu'on n'a pas su parcourir. (GIF : gardé tel quel — le client n'en produit jamais.)
+ * un client). JPEG : une LISTE BLANCHE (tout ce qui n'est pas la structure, JFIF sans miniature, le profil ICC ou Adobe part : Exif, XMP,
+ * IPTC, commentaires, miniatures JFXX, applications des fabricants) et tout ce qui suit la fin de l'image (un aperçu intégré, une seconde
+ * image Apple/Samsung, qui portent leur propre EXIF) ; PNG : eXIf, tEXt, iTXt, zTXt, tIME ; WebP : EXIF et XMP ; GIF : commentaires,
+ * textes et extensions d'application autres que celles d'une animation. Un fichier de ces formats qu'on ne sait pas lire de bout en bout
+ * est REFUSÉ plutôt que gardé tel quel : on ne garantit pas le retrait de ce qu'on n'a pas su parcourir.
  *
  * ⛔ LE SCELLAGE EST PAR BLOCS. Un fichier est coupé en blocs de 64 Kio ; chaque bloc est chiffré en AES-256-GCM avec SON vecteur
  * d'initialisation et SON étiquette, et ses DONNÉES ASSOCIÉES sont `<id de la pièce>|<numéro de bloc>|<d|n>` (`d` : dernier bloc).
@@ -92,10 +93,18 @@ function dispositionDe(inline, nom) {
    en parallèle d'un seul compte portaient le processus de 90 à 1 200 Mo (l'unité plafonne à 1 Go) et gelaient `/health` pendant 3,6 s (relecture du gardien, B1). Désormais : UN tampon de
    sortie alloué d'avance (la sortie n'est jamais plus grande que l'entrée : on ne fait que garder ou jeter) dans lequel on COPIE, et un plafond de morceaux de premier niveau — au-delà,
    la structure ment et l'image est refusée (415). Une photo réelle porte une quarantaine de segments JPEG ; un PNG ou un WebP de 12 Mo, quelques milliers de morceaux au pire. */
-const SEGMENTS_JPEG_MAX = 2048, MORCEAUX_MAX = 65536;
-/* JPEG : on parcourt les segments de bout en bout. Gardés : JFIF (APP0), profil de couleur (APP2 « ICC_PROFILE »), Adobe (APP14 : sans
-   lui un CMYK s'affiche à l'envers), tables et image. Retirés : APP1 (Exif, XMP), APP3 à APP13, APP15, commentaires, et l'index MPF
-   (APP2 « MPF » : il désigne des images annexes qu'on ne garde pas). Tout ce qui suit la fin de l'image (EOI) est jeté. */
+const MORCEAUX_MAX = 65536;
+/* ⛔ JPEG : UNE LISTE BLANCHE, pas une liste noire (relecture du gardien). Une liste de ce qu'on RETIRE laisse passer tout ce qu'on n'a pas pensé à nommer : les miniatures « JFXX » (un second
+   JPEG intégré, qui peut montrer l'image d'AVANT une retouche), l'extension FlashPix (APP2 « FPXR »), les applications des fabricants, les tables d'un éditeur. On parcourt les segments de bout en bout
+   et on ne GARDE que ce qui sert à décoder l'image :
+     · la structure : SOFn (les modes de codage), DHT, DAC, DQT, DNL, DRI, EXP, SOS et les données entropiques, les marqueurs de redémarrage ;
+     · APP0 « JFIF » SEULEMENT (les densités), réécrit SANS la miniature qu'il peut porter (16 octets, miniature 0 × 0) ; tout autre APP0 (JFXX…) part ;
+     · APP2 « ICC_PROFILE » SEULEMENT (le profil de couleur : sans lui les couleurs changent) ; l'index MPF, FPXR, tout autre APP2 part ;
+     · APP14 « Adobe » SEULEMENT, GARDÉ : il change le décodage des couleurs (sans lui un CMYK ou un YCCK s'affiche à l'envers) ;
+   tout le reste part : APP1 (Exif, XMP), APP3 à APP13 (IPTC, Photoshop, JUMBF/C2PA…), APP15, commentaires, JPG et JPGn. Tout ce qui suit la fin de l'image (EOI) est jeté. */
+const SOF_JPEG = new Set([0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF]);
+const STRUCTURE_JPEG = new Set([0xC4, 0xCC, 0xDB, 0xDC, 0xDD, 0xDF]);                                  // DHT, DAC, DQT, DNL, DRI, EXP
+const SEGMENTS_JPEG_MAX = 2048;
 function nettoyerJpeg(b) {
   if (b.length < 4 || b[0] !== 0xFF || b[1] !== 0xD8) throw erreur('type_refuse');
   const sortie = Buffer.allocUnsafe(b.length);
@@ -109,6 +118,7 @@ function nettoyerJpeg(b) {
     if (++segments > SEGMENTS_JPEG_MAX) throw erreur('type_refuse');
     if (m === 0xD9) { sortie[o++] = 0xFF; sortie[o++] = 0xD9; break; }
     if (m === 0x01 || (m >= 0xD0 && m <= 0xD7)) { sortie[o++] = 0xFF; sortie[o++] = m; continue; }
+    if (m === 0xD8 || m === 0x00) throw erreur('type_refuse');              // un second SOI, un octet bourré hors des données : la structure ment
     if (i + 2 > b.length) throw erreur('type_refuse');
     const long = b.readUInt16BE(i);
     if (long < 2 || i + long > b.length) throw erreur('type_refuse');
@@ -128,9 +138,13 @@ function nettoyerJpeg(b) {
       o += b.copy(sortie, o, i + long, j);
       i = j; continue;
     }
-    const retire = m === 0xE1 || (m >= 0xE3 && m <= 0xED) || m === 0xEF || m === 0xFE
-      || (m === 0xE2 && b.toString('latin1', i + 2, i + 6) === 'MPF\0');
-    if (!retire) o += b.copy(sortie, o, i - 2, i + long);
+    if (SOF_JPEG.has(m) || STRUCTURE_JPEG.has(m)) o += b.copy(sortie, o, i - 2, i + long);
+    else if (m === 0xE0 && long >= 16 && b.toString('latin1', i + 2, i + 7) === 'JFIF\0') {
+      sortie[o++] = 0xFF; sortie[o++] = 0xE0; sortie[o++] = 0x00; sortie[o++] = 0x10;
+      o += b.copy(sortie, o, i + 2, i + 14);                                // « JFIF\0 », version, unités, densités
+      sortie[o++] = 0; sortie[o++] = 0;                                     // miniature 0 × 0 : celle que le segment portait part
+    } else if (m === 0xE2 && long >= 14 && b.toString('latin1', i + 2, i + 14) === 'ICC_PROFILE\0') o += b.copy(sortie, o, i - 2, i + long);
+    else if (m === 0xEE && long >= 7 && b.toString('latin1', i + 2, i + 7) === 'Adobe') o += b.copy(sortie, o, i - 2, i + long);
     i += long;
   }
   return sortie.subarray(0, o);
@@ -177,10 +191,52 @@ function nettoyerWebp(b) {
   sortie.write('RIFF', 0, 'latin1'); sortie.writeUInt32LE(o - 8, 4); sortie.write('WEBP', 8, 'latin1');
   return sortie.subarray(0, o);
 }
+/* GIF : on parcourt les blocs de bout en bout. Gardés : l'en-tête et ses tables de couleurs, chaque image, l'extension de contrôle graphique (durée, transparence, effacement) et les deux extensions
+   d'application dont une animation a besoin (NETSCAPE2.0 : le nombre de boucles ; ANIMEXTS1.0). Retirés : les COMMENTAIRES, les textes simples, et toute autre extension d'application
+   (« XMP DataXMP » porte des métadonnées XMP entières). Ce qui suit le terminateur est jeté ; un GIF dont la structure ne se parcourt pas est refusé. */
+function nettoyerGif(b) {
+  if (b.length < 14 || b.toString('latin1', 0, 3) !== 'GIF' || !/^8[79]a$/.test(b.toString('latin1', 3, 6))) throw erreur('type_refuse');
+  const sortie = Buffer.allocUnsafe(b.length);
+  let o = 0, i = 0;
+  const copierJusqua = (fin) => { o += b.copy(sortie, o, i, fin); i = fin; };
+  const table = (emballage) => (emballage & 0x80) ? 3 * (2 ** ((emballage & 7) + 1)) : 0;
+  const sousBlocs = (j) => {                                                // saute des sous-blocs jusqu'à leur terminateur ; rend l'offset d'après
+    for (;;) {
+      if (j >= b.length) throw erreur('type_refuse');
+      const n = b[j];
+      j += 1 + n;
+      if (j > b.length) throw erreur('type_refuse');
+      if (n === 0) return j;
+    }
+  };
+  const finEnTete = 13 + table(b[10]);
+  if (finEnTete > b.length) throw erreur('type_refuse');
+  copierJusqua(finEnTete);
+  let blocs = 0;
+  for (;;) {
+    if (i >= b.length || ++blocs > MORCEAUX_MAX) throw erreur('type_refuse');   // pas de terminateur : tronqué
+    const intro = b[i];
+    if (intro === 0x3B) { sortie[o++] = 0x3B; break; }
+    if (intro === 0x2C) {                                                   // une image : descripteur (10 octets), table locale, taille de code, sous-blocs
+      if (i + 10 > b.length) throw erreur('type_refuse');
+      const apresTable = i + 10 + table(b[i + 9]) + 1;
+      if (apresTable > b.length) throw erreur('type_refuse');
+      copierJusqua(sousBlocs(apresTable));
+      continue;
+    }
+    if (intro !== 0x21 || i + 2 > b.length) throw erreur('type_refuse');
+    const etiquette = b[i + 1], fin = sousBlocs(i + 2);
+    let garder = etiquette === 0xF9;                                        // contrôle graphique
+    if (etiquette === 0xFF && b[i + 2] === 11) { const id = b.toString('latin1', i + 3, i + 14); garder = id === 'NETSCAPE2.0' || id === 'ANIMEXTS1.0'; }
+    if (garder) copierJusqua(fin); else i = fin;
+  }
+  return sortie.subarray(0, o);
+}
 function retirerMetadonnees(mime, b) {
   if (mime === 'image/jpeg') return nettoyerJpeg(b);
   if (mime === 'image/png') return nettoyerPng(b);
   if (mime === 'image/webp') return nettoyerWebp(b);
+  if (mime === 'image/gif') return nettoyerGif(b);
   return b;
 }
 
@@ -408,6 +464,6 @@ function creerPieces({ dossier, cle, generation = 1, bloc = BLOC_DEFAUT, memoire
 }
 
 module.exports = {
-  creerPieces, creerReservations, detecter, enLigne, dispositionDe, retirerMetadonnees, nettoyerJpeg, nettoyerPng, nettoyerWebp, mimeImage, mimeAudio,
+  creerPieces, creerReservations, detecter, enLigne, dispositionDe, retirerMetadonnees, nettoyerJpeg, nettoyerPng, nettoyerWebp, nettoyerGif, mimeImage, mimeAudio,
   ID_PIECE, GENRES, MIME_IMAGES, MIME_AUDIO, BLOC_DEFAUT, ENTETE, IV, ETIQUETTE,
 };

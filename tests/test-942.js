@@ -53,11 +53,16 @@ const jeton = (b, canari) => b.includes(Buffer.from(canari, 'latin1'));
   /* ═══ 2. LES MÉTADONNÉES RETIRÉES ══════════════════════════════════════════════════════════════════════════════════════════ */
   console.log('\nLes métadonnées sont retirées côté serveur aussi (JPEG, PNG, WebP) — avec la preuve qu\'elles étaient là');
   {
-    const CAN = { exif: 'ZXCANARIQGPS48.8566N', xmp: 'ZXCANARIQXMPAUTEUR', iptc: 'ZXCANARIQIPTCLEGENDE', com: 'ZXCANARIQCOMMENTAIRE', mpf: 'ZXCANARIQMPFAPERCU', apres: 'ZXCANARIQSECONDEIMAGE' };
-    const entree = F.jpeg({ exif: CAN.exif, xmp: CAN.xmp, iptc: CAN.iptc, com: CAN.com, mpf: CAN.mpf, icc: 'PROFILICC', apres: Buffer.concat([Buffer.from([0xFF, 0xD8]), Buffer.from(CAN.apres), Buffer.from([0xFF, 0xD9])]) });
-    vrai('population : les six canaris (GPS, XMP, IPTC, commentaire, index MPF, seconde image) SONT dans le JPEG envoyé', Object.values(CAN).every(c => jeton(entree, c)));
+    const CAN = { exif: 'ZXCANARIQGPS48.8566N', xmp: 'ZXCANARIQXMPAUTEUR', iptc: 'ZXCANARIQIPTCLEGENDE', com: 'ZXCANARIQCOMMENTAIRE', mpf: 'ZXCANARIQMPFAPERCU', apres: 'ZXCANARIQSECONDEIMAGE',
+      /* la LISTE BLANCHE (relecture du gardien) : ce qu'une liste de ce qu'on retire laissait passer */
+      jfxx: 'ZXCANARIQJFXXMINIATURE', miniature: 'ZXCANARIQJFIFMINIATURE', fpxr: 'ZXCANARIQFLASHPIX', jumbf: 'ZXCANARIQJUMBFC2PA', ducky: 'ZXCANARIQAPP14AUTRE' };
+    const entree = F.jpeg({ exif: CAN.exif, xmp: CAN.xmp, iptc: CAN.iptc, com: CAN.com, mpf: CAN.mpf, icc: 'PROFILICC', jfxx: CAN.jfxx, miniature: CAN.miniature, fpxr: CAN.fpxr, jumbf: CAN.jumbf, ducky: CAN.ducky, apres: Buffer.concat([Buffer.from([0xFF, 0xD8]), Buffer.from(CAN.apres), Buffer.from([0xFF, 0xD9])]) });
+    vrai('population : les onze canaris (GPS, XMP, IPTC, commentaire, index MPF, seconde image, miniature JFXX, miniature du segment JFIF, FlashPix, JUMBF, APP14 étranger) SONT dans le JPEG envoyé', Object.values(CAN).every(c => jeton(entree, c)));
     const sortie = P.retirerMetadonnees('image/jpeg', entree);
-    v('⛔ JPEG : AUCUN des six canaris n\'est dans ce qui est rangé', Object.entries(CAN).filter(([, c]) => jeton(sortie, c)).map(([k]) => k), []);
+    v('⛔ JPEG : AUCUN des onze canaris n\'est dans ce qui est rangé — les miniatures (JFXX et celle du segment JFIF) qui peuvent montrer l\'image d\'avant une retouche partent avec le reste', Object.entries(CAN).filter(([, c]) => jeton(sortie, c)).map(([k]) => k), []);
+    const iJ = sortie.indexOf(Buffer.from('JFIF\0', 'latin1'));
+    vrai('⛔ JPEG : le segment JFIF reste, RÉÉCRIT sans miniature (16 octets, miniature 0 x 0) — les densités sont celles d\'origine', iJ > 2 && sortie.readUInt16BE(iJ - 2) === 16 && sortie[iJ + 12] === 0 && sortie[iJ + 13] === 0 && sortie.subarray(iJ + 5, iJ + 12).equals(Buffer.from([1, 1, 0, 0, 1, 0, 1])));
+    vrai('⛔ JPEG : seuls restent APP0 JFIF, APP2 ICC_PROFILE et APP14 Adobe — aucun JFXX, aucun FPXR, aucun APP14 étranger, aucun APP1 ni APP11', (() => { const noms = []; let i = 2; while (i < sortie.length && sortie[i] === 0xFF) { const m = sortie[i + 1]; if (m === 0xDA || m === 0xD9) break; noms.push(m.toString(16)); i += 2 + sortie.readUInt16BE(i + 2); } return noms.filter(x => /^e/.test(x)).join(','); })() === 'e0,e2,ee');
     vrai('⛔ JPEG : ce qui compte reste — JFIF, profil de couleur, Adobe (sans lui un CMYK s\'inverse), et les DONNÉES de l\'image (octet bourré FF00 et redémarrage compris) à l\'identique',
       jeton(sortie, 'JFIF') && jeton(sortie, 'ICC_PROFILE') && jeton(sortie, 'Adobe') && sortie.includes(F.JPEG_ENTROPIE));
     vrai('JPEG : commence par SOI, finit par EOI (rien ne suit la fin de l\'image), et est plus court', sortie[0] === 0xFF && sortie[1] === 0xD8 && sortie[sortie.length - 2] === 0xFF && sortie[sortie.length - 1] === 0xD9 && sortie.length < entree.length);
@@ -84,8 +89,21 @@ const jeton = (b, canari) => b.includes(Buffer.from(canari, 'latin1'));
     vrai('⛔ WebP : les drapeaux EXIF et XMP de VP8X sont BAISSÉS (sinon un lecteur chercherait ce qu\'on a retiré), le drapeau d\'alpha reste', (wOut[20] & 0x0C) === 0 && (wOut[20] & 0x10) === 0x10);
     vrai('⛔ WebP : la taille du conteneur RIFF est recalculée (taille annoncée + 8 = longueur du fichier) et le bourrage du bloc impair est là', wOut.readUInt32LE(4) + 8 === wOut.length && jeton(wOut, 'image-webp-factice-impair'));
     v('⛔ un WebP dont un bloc dépasse le conteneur est refusé', await attrape(Promise.resolve().then(() => { const b = Buffer.from(wIn); b.writeUInt32LE(0x00FFFFFF, 16); return P.retirerMetadonnees('image/webp', b); })), 'type_refuse');
-    const g = F.gif('ZXCANARIQGIF');
-    vrai('GIF : gardé tel quel (le client n\'en produit jamais — voir l\'en-tête du module)', P.retirerMetadonnees('image/gif', g).equals(g));
+    /* GIF : commentaires, textes et extensions d'application autres que celles d'une animation partent ; l'animation reste */
+    const CG = { com: 'ZXCANARIQGIFCOMMENTAIRE', xmp: 'ZXCANARIQGIFXMP', texte: 'ZXCANARIQGIFTEXTE', apres: 'ZXCANARIQGIFAPRES' };
+    const gIn = F.gif({ commentaire: CG.com, xmp: CG.xmp, texte: CG.texte, netscape: true, images: 2, apres: Buffer.from(CG.apres, 'latin1') });
+    vrai('population : les quatre canaris GIF (commentaire, XMP d\'application, texte simple, octets après le terminateur) SONT dans le fichier envoyé', Object.values(CG).every(c => jeton(gIn, c)));
+    const gOut = P.retirerMetadonnees('image/gif', gIn);
+    v('⛔ GIF : aucun des quatre canaris n\'est dans ce qui est rangé', Object.entries(CG).filter(([, c]) => jeton(gOut, c)).map(([k]) => k), []);
+    const compte = (b, motif) => { let n = 0, i = b.indexOf(motif); while (i >= 0) { n++; i = b.indexOf(motif, i + 1); } return n; };
+    vrai('⛔ GIF : l\'animation RESTE — NETSCAPE2.0 (les boucles), le contrôle graphique de chacune des deux images, les deux images, et le fichier finit par son terminateur',
+      jeton(gOut, 'NETSCAPE2.0') && compte(gOut, Buffer.from([0x21, 0xF9, 4])) === 2 && compte(gOut, Buffer.from([0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0, 2, 2, 0x44, 0x01, 0])) === 2 && gOut[gOut.length - 1] === 0x3B);
+    v('un GIF sans rien à retirer ressort identique, octet pour octet', [P.retirerMetadonnees('image/gif', F.gif()).equals(F.gif()), P.retirerMetadonnees('image/gif', F.gif({ netscape: true, images: 3 })).equals(F.gif({ netscape: true, images: 3 }))], [true, true]);
+    v('⛔ un GIF tronqué (sans terminateur), à bloc inconnu, ou dont un sous-bloc dépasse le fichier : refusé', [
+      await attrape(Promise.resolve().then(() => P.retirerMetadonnees('image/gif', F.gif().subarray(0, F.gif().length - 1)))),
+      await attrape(Promise.resolve().then(() => P.retirerMetadonnees('image/gif', Buffer.concat([F.gif().subarray(0, 19), Buffer.from([0x5A]), F.gif().subarray(19)])))),
+      await attrape(Promise.resolve().then(() => P.retirerMetadonnees('image/gif', Buffer.concat([F.gif().subarray(0, 19), Buffer.from([0x21, 0xFE, 200, 1, 2, 3])])))),
+    ], ['type_refuse', 'type_refuse', 'type_refuse']);
   }
 
   /* ═══ 2 bis. UNE IMAGE BOURRÉE DE MORCEAUX VIDES NE COÛTE NI MÉMOIRE NI BOUCLE (relecture du gardien, B1) ═════════════════════════════════════════ */

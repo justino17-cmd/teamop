@@ -120,6 +120,15 @@ m('P51', 'le plafond GLOBAL de mémoire d\'images est retiré (toute image se r�
 m('P52', 'la réserve de mémoire pleine n\'est plus dite « dans un instant » (429) : le dépôt échoue en 500', F.rp, /        if \(c === 'occupe'\) \{[^\n]*\n/, '', ['943']);
 m('P53', 'la réserve de mémoire n\'est jamais RENDUE après un dépôt (elle se vide de proche en proche)', F.pz, '      } finally { rendre(); }', '      } finally { /* oublié */ }', ['942', '943']);
 
+/* ── LA LISTE BLANCHE DES SEGMENTS JPEG, LE GIF NETTOYÉ (remarque 2 du gardien) ── */
+m('P54', 'tout segment APP0 est gardé tel quel (la miniature JFXX et celle du segment JFIF restent)', F.pz, "else if (m === 0xE0 && long >= 16 && b.toString('latin1', i + 2, i + 7) === 'JFIF\\0') {", "else if (m === 0xE0) { o += b.copy(sortie, o, i - 2, i + long); } else if (m === 0xE0 && long >= 16) {", ['942']);
+m('P55', 'tout segment APP2 est gardé (FlashPix et index MPF restent, plus seulement le profil ICC)', F.pz, " && long >= 14 && b.toString('latin1', i + 2, i + 14) === 'ICC_PROFILE\\0')", ')', ['942']);
+m('P56', 'le segment JFIF est gardé tel quel : sa miniature intégrée reste', F.pz, "else if (m === 0xE0 && long >= 16 && b.toString('latin1', i + 2, i + 7) === 'JFIF\\0') {", "else if (m === 0xE0 && long >= 16 && b.toString('latin1', i + 2, i + 7) === 'JFIF\\0') { o += b.copy(sortie, o, i - 2, i + long); } else if (false) {", ['942']);
+m('P57', 'un GIF n\'est plus nettoyé (commentaires et XMP restent)', F.pz, "  if (mime === 'image/gif') return nettoyerGif(b);\n", '', ['942']);
+m('P58', 'le segment Adobe (APP14) est retiré avec le reste : un CMYK s\'afficherait à l\'envers', F.pz, " else if (m === 0xEE && long >= 7 && ", " else if (m === 0xEE && false && ", ['942']);
+m('P59', 'les commentaires GIF sont gardés', F.pz, 'let garder = etiquette === 0xF9;', 'let garder = etiquette === 0xF9 || etiquette === 0xFE;', ['942']);
+m('P60', 'toute extension d\'application GIF est gardée (le XMP aussi)', F.pz, "garder = id === 'NETSCAPE2.0' || id === 'ANIMEXTS1.0';", 'garder = true;', ['942']);
+
 /* ── LA PAGE (jouée par la sonde navigateur : lancer avec --sondes) ── */
 const G = { sonde: true };
 m('G01', '« Envoi… » ne se voit plus (le message en cours dit toujours « En attente de connexion… »)', F.page, "(m.envoi ? 'Envoi…' : 'En attente de connexion…')", "'En attente de connexion…'", ['sonde'], G);
