@@ -21,7 +21,7 @@
              node tests/mutations-push.js L01 R05                              (seulement celles-là)
              node tests/mutations-push.js --verifier                           (ne joue rien : chaque motif se trouve UNE fois dans l'arbre, chaque banc existe)
              node tests/mutations-push.js --liste                              (le catalogue)
-             --copies=N (défaut 2)   --garder ID (fabrique UNE copie mutée, l'imprime et s'arrête)   --sans-temoin
+             --copies=N (défaut 2)   --garder ID (fabrique UNE copie mutée, l'imprime et s'arrête)   --sans-temoin   --details=FICHIER (tous les ✗ de chaque mutation qui tombe)
    Deux copies en parallèle, un délai par banc. */
 'use strict';
 const fs = require('fs'), os = require('os'), path = require('path'), { spawn, spawnSync } = require('child_process');
@@ -73,10 +73,10 @@ m('R03', 'la charge de base d\'un message porte son texte (la notification minim
 m('R04', 'l\'auteur d\'un message reçoit la notification de son propre message', F.stock, 'm.quitte_le IS NULL AND m.uid <> ? AND m.muet_jusqua <= ?', 'm.quitte_le IS NULL AND ? IS NOT NULL AND m.muet_jusqua <= ?', ['956']);
 m2('R05', 'une conversation en sourdine notifie quand même (ni le tri des destinataires, ni le jugement au moment de partir ne regardent la sourdine)',
   [[F.stock, 'AND m.muet_jusqua <= ? AND m.depuis_seq <= ? ORDER BY m.uid', 'AND ? IS NOT NULL AND m.depuis_seq <= ? ORDER BY m.uid'], [F.stock, 'if (!m || m.muet_jusqua > horloge() || seq < m.depuis_seq) return false;', 'if (!m || seq < m.depuis_seq) return false;']], ['956']);
-m('R06', 'une sourdine posée PENDANT l\'attente de l\'acquittement n\'est pas re-jugée au moment de partir', F.stock, 'if (!m || m.muet_jusqua > horloge() || seq < m.depuis_seq) return false;', 'if (!m || seq < m.depuis_seq) return false;', ['956']);
+m('R06', 'une sourdine posée PENDANT l\'attente de l\'acquittement n\'est pas re-jugée au moment de partir', F.stock, 'if (!m || m.muet_jusqua > horloge() || seq < m.depuis_seq) return false;', 'if (!m || seq < m.depuis_seq) return false;', ['955', '956']);
 m2('R07', 'un membre qui a QUITTÉ la conversation reçoit encore ses messages (ni le tri des destinataires, ni le jugement au moment de partir ne regardent s\'il est parti)',
   [[F.stock, 'WHERE m.conv = ? AND m.quitte_le IS NULL AND m.uid <> ?', 'WHERE m.conv = ? AND m.uid <> ?'],
-    [F.stock, "const m = Q('SELECT depuis_seq, muet_jusqua FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);", "const m = Q('SELECT depuis_seq, muet_jusqua FROM membre WHERE conv = ? AND uid = ?').get(conv, uid);"]], ['956']);
+    [F.stock, "const m = Q('SELECT depuis_seq, muet_jusqua FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);", "const m = Q('SELECT depuis_seq, muet_jusqua FROM membre WHERE conv = ? AND uid = ?').get(conv, uid);"]], ['955', '956']);
 m('R08', 'plus aucun jugement au moment de partir (sourdine, conversation quittée, message supprimé « pour tous » pendant l\'attente)', F.push,
   "if (typeof charge.valide === 'function') { let v = false; try { v = !!charge.valide(); } catch (e) { v = false; } if (!v) return { envoyes: 0, appareils: 0, raison: 'plus_valable' }; }", '', ['955', '956']);
 m('R09', 'un message supprimé « pour tous » PENDANT l\'attente part quand même (le texte supprimé arriverait sur l\'écran verrouillé)', F.stock,
@@ -145,7 +145,8 @@ m('D07', 'l\'effacement ne libère pas le numéro (le numéro reste attaché à 
 m('D08', 'l\'effacement laisse le prénom et le nom', F.stock, "prenom = '', nom = '', avatar_piece = NULL, statut = '',", "avatar_piece = NULL, statut = '',", ['957']);
 m('D09', 'l\'effacement emporte AUSSI les messages que la personne a envoyés, chez les autres (leur historique serait troué)', F.stock,
   "Q('DELETE FROM notification WHERE uid = ?').run(uid);", "Q('DELETE FROM notification WHERE uid = ?').run(uid);\n      Q('UPDATE message SET supprime_le = ?, corps_ch = NULL, meta_ch = NULL WHERE auteur = ?').run(horloge(), uid);", ['957']);
-m('D10', 'les photos déposées mais jamais envoyées restent après l\'effacement', F.stock, "for (const r of Q('SELECT id FROM piece WHERE proprio = ? AND expire IS NOT NULL').all(uid)) pieces.push(...pieceEffacerLigne(r.id));", '', ['957']);
+m('D10', 'les photos déposées mais jamais envoyées restent après l\'effacement', F.stock, "for (const r of Q('SELECT id FROM piece WHERE proprio = ? AND expire IS NOT NULL').all(uid)) pieces.push(...pieceEffacerLigne(r.id));", '', ['957'],
+  EQ('une pièce jamais envoyée expire au bout de 24 h et le balayeur des orphelines l\'emporte : à J+14 il n\'en reste aucune (la ligne du code est une ceinture, pas une bretelle)'));
 m('D11', 'la photo de profil reste après l\'effacement', F.stock, 'if (p.avatar_piece) pieces.push(...pieceEffacerLigne(p.avatar_piece));', '', ['957']);
 m('D12', 'le balayeur efface les lignes mais laisse les FICHIERS (photos, vocaux) d\'un compte effacé sur le disque', F.index, 'effacerPieces(e.pieces);', '', ['957']);
 m('D13', 'on peut écrire à un compte supprimé (le message part dans le vide, sans que l\'expéditeur le sache)', F.routes, "if (conv.type === 'direct' && stockage.autreSupprime(conv.id, req.moi.id)) return refus(res, 410, 'compte_supprime');", '', ['957', '958']);
@@ -156,14 +157,12 @@ m('D17', 'la suppression ne ferme pas les flux ouverts : la personne continue de
 m('D18', 'un disque plein retient la suppression du compte (le plancher d\'espace disque refuse aussi ce geste)', F.app, String.raw`compte\/(deconnexion|supprimer)|flux\/ack`, String.raw`compte\/(deconnexion)|flux\/ack`, ['957']);
 m('D19', 'la route de suppression devient publique (plus de garde de session)', F.man, /(id: 'compte\.supprimer',\s+m: 'POST', p: '\/api\/compte\/supprimer',\s+garde: ')S(')/, '$1P$2', ['905', '957']);
 m('D20', 'l\'effacement n\'écrit pas la ligne de purge (une sauvegarde restaurée ressusciterait le compte effacé)', F.stock, "Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(uid, 'compte', horloge());", '', ['957']);
-m('D21', 'jeton d\'appareil gardé APRÈS la demande de suppression (les deux refus qui suivent restent)', F.stock, "const appareils = num(Q('DELETE FROM appareil_tel WHERE personne = ?').run(uid).changes);", 'const appareils = 0;', ['957'],
-  EQ('la reconnexion automatique et la route des appareils refusent déjà un compte dont la suppression est programmée'));
+/* ⛔ D21, D22, D23 : la RAISON d'équivalence que j'avais écrite était fausse — le banc joue chaque couche À PART (il remet le jeton en base à la main, puis demande à chaque route), et il compte les jetons restants. Mesuré : elles tombent. */
+m('D21', 'le jeton d\'appareil reste en base APRÈS la demande de suppression (les deux refus qui suivent tiennent seuls)', F.stock, "const appareils = num(Q('DELETE FROM appareil_tel WHERE personne = ?').run(uid).changes);", 'const appareils = 0;', ['957']);
 m('D22', 'la route des appareils reconnaît un compte dont la suppression est programmée (le jeton est coupé, la reconnexion automatique refuse)', F.tel,
-  "if (!p || p.etat !== 'actif' || stockage.suppressionLe(p.id) !== null) return refus(res, 401, 'appareil_inconnu');", "if (!p || p.etat !== 'actif') return refus(res, 401, 'appareil_inconnu');", ['957'],
-  EQ('le jeton d\'appareil est déjà coupé par la demande de suppression'));
+  "if (!p || p.etat !== 'actif' || stockage.suppressionLe(p.id) !== null) return refus(res, 401, 'appareil_inconnu');", "if (!p || p.etat !== 'actif') return refus(res, 401, 'appareil_inconnu');", ['957']);
 m('D23', 'la reconnexion automatique reconnaît un compte dont la suppression est programmée (le jeton est coupé, la route des appareils refuse)', F.tel,
-  "if (ap && p && p.id === ap.personne && p.etat === 'actif' && p.suppression_le === null) {", "if (ap && p && p.id === ap.personne && p.etat === 'actif') {", ['957'],
-  EQ('le jeton d\'appareil est déjà coupé par la demande de suppression'));
+  "if (ap && p && p.id === ap.personne && p.etat === 'actif' && p.suppression_le === null) {", "if (ap && p && p.id === ap.personne && p.etat === 'actif') {", ['957']);
 
 /* ══ 7. EXPORTER SES DONNÉES — ce que la personne voit, rien de plus ; un par jour ; un fichier qui s'écrit au fil de l'eau, plafonné ═════════════════════════ */
 m('X01', 'l\'export n\'a plus de quota : un export à chaque requête, le geste le plus coûteux d\'une personne', F.compte, "if (!essai.ok) { res.set('Retry-After', String(essai.retry)); return refus(res, 429, 'export_quotidien', { retry: essai.retry }); }", '', ['957']);
@@ -177,7 +176,10 @@ m('X06', 'l\'export contient les messages que la personne a supprimés « pour m
 m('X07', 'l\'export n\'est plus un téléchargement (`attachment`) : le navigateur l\'affiche dans l\'onglet', F.compte, String.raw`'Content-Disposition': 'attachment; filename="opmessages-export-' + jour + '.json"'`, "'Content-Disposition': 'inline'", ['957']);
 m('X08', 'l\'export ne dit plus « Compte supprimé » pour l\'auteur d\'un compte effacé', F.compte, "(supprimes.has(m.auteur) ? 'Compte supprimé' : null)", 'null', ['957']);
 m('X09', 'l\'export n\'est plus limité à deux en même temps pour le service', F.compte, "if (exportsEnCours >= EXPORT_SIMULTANES) { res.set('Retry-After', '30'); return refus(res, 429, 'quota_atteint', { retry: 30 }); }", '', ['957']);
-m('X10', 'l\'export est mis en cache (plus de `Cache-Control: no-store` sur le fichier de TOUTES les données d\'une personne)', F.compte, ", 'Cache-Control': 'no-store' });", ' });', ['957']);
+m2('X10', 'l\'export est mis en cache (plus de `Cache-Control: no-store` sur le fichier de TOUTES les données d\'une personne : ni sur la route, ni dans l\'enveloppe du service)',
+  [[F.compte, ", 'Cache-Control': 'no-store' });", ' });'], [F.app, "app.use('/api', (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });", '']], ['957']);
+m('X12', 'l\'export est mis en cache : la route ne pose plus `no-store` elle-même (l\'enveloppe du service le pose déjà sur tout /api)', F.compte, ", 'Cache-Control': 'no-store' });", ' });', ['957'],
+  EQ('`app.js` pose `Cache-Control: no-store` sur TOUTE réponse de /api : l\'en-tête de la route est une redondance (comme `nosniff` des pièces)'));
 m('X11', 'l\'export liste aussi les conversations quittées (la liste des identifiants ne filtre plus)', F.stock, 'SELECT conv FROM membre WHERE uid = ? AND quitte_le IS NULL ORDER BY conv', 'SELECT conv FROM membre WHERE uid = ? ORDER BY conv', ['957'],
   EQ('`convPourMembre` ne rend rien pour une conversation quittée : l\'export la saute'));
 
@@ -193,8 +195,16 @@ m('C07', 'se déconnecter ne donne pas le point d\'accès de l\'appareil (l\'abo
 m('C08', '« Déconnecter les autres appareils » ne donne pas le point d\'accès de CET appareil (il perd lui aussi ses notifications)', F.src, 'const r = await A.deconnecterAutres(sub && sub.endpoint);', 'const r = await A.deconnecterAutres();', ['958']);
 m('C09', 'au démarrage, l\'abonnement que ce navigateur porte déjà n\'est plus redit au service', F.src, /\n      reabonner\(\);[^\n]*/, '', ['958']);
 m('C10', 'la page n\'écoute plus le service worker (toucher une notification n\'ouvre plus rien)', F.src, /      ecouterServiceWorker\(\);\n/, '', ['958']);
-m('C11', 'une rafale d\'événements fait autant d\'acquittements (la minuterie de groupement est perdue)', F.src, 'if (ackMinuterie) return;', '', ['958']);
-m('C12', 'un acquittement déjà envoyé est renvoyé (la garde « plus grand que le dernier » est perdue)', F.src, 'if (!Number.isInteger(gid) || gid <= ackEnvoye || mort) return;', 'if (!Number.isInteger(gid) || mort) return;', ['958']);
+/* ⛔ L'acquittement est protégé TROIS fois contre le doublon : à l'entrée (`gid <= ackEnvoye`), par la minuterie de groupement (`ackMinuterie`), et au départ de la minuterie (`g <= ackEnvoye`). Retirer une seule garde ne change rien de visible
+   (C18, C19 : équivalentes, elles doivent survivre) ; le défaut réel en retire DEUX. */
+m2('C11', 'une rafale d\'événements fait autant d\'acquittements (ni la minuterie de groupement, ni la garde au départ de la minuterie)',
+  [[F.src, 'if (ackMinuterie) return;', ''], [F.src, 'if (mort || g <= ackEnvoye) return;', 'if (mort) return;']], ['958']);
+m2('C12', 'un acquittement déjà envoyé est renvoyé (ni la garde à l\'entrée, ni la garde au départ de la minuterie)',
+  [[F.src, 'if (!Number.isInteger(gid) || gid <= ackEnvoye || mort) return;', 'if (!Number.isInteger(gid) || mort) return;'], [F.src, 'if (mort || g <= ackEnvoye) return;', 'if (mort) return;']], ['958']);
+m('C18', 'la minuterie de groupement des acquittements est perdue (la garde au départ de la minuterie rattrape)', F.src, 'if (ackMinuterie) return;', '', ['958'],
+  EQ('chaque minuterie qui se déclenche voit `g <= ackEnvoye` et ne fait rien : une seule requête part quand même'));
+m('C19', 'un acquittement déjà envoyé est ré-armé à l\'entrée (la garde au départ de la minuterie rattrape)', F.src, 'if (!Number.isInteger(gid) || gid <= ackEnvoye || mort) return;', 'if (!Number.isInteger(gid) || mort) return;', ['958'],
+  EQ('la minuterie voit `g <= ackEnvoye` et ne fait rien : aucune requête ne part'));
 m('C13', 'la demande de suppression n\'envoie plus le mot de confirmation (le service la refuse toujours)', F.api, "supprimerCompte: () => appel('POST', '/api/compte/supprimer', { confirmation: 'SUPPRIMER' }),", "supprimerCompte: () => appel('POST', '/api/compte/supprimer', {}),", ['958']);
 m('C14', 'le client ne transmet plus l\'identifiant de l\'événement à la page (elle n\'a plus rien à acquitter)', F.api, "if (typeof g[nom] === 'function') g[nom](d, ev.lastEventId ? parseInt(ev.lastEventId, 10) : null);", "if (typeof g[nom] === 'function') g[nom](d);", ['958']);
 m('C15', 'la sourdine de « 8 heures » dure une heure', F.src, "'8h': 8 * 3600000", "'8h': 3600000", ['958']);
@@ -301,9 +311,12 @@ async function jouer(mut, dir) {
     const verts = [];
     for (const s of suites) {
       const r = await lancer(dir, s);
-      if (r.code !== 0 || (r.ko !== null && r.ko > 0)) {
+      /* ⛔ UN BANC QUI SE TAIT N'EST PAS UN BANC VERT : une promesse qui ne se résout jamais vide la boucle d'évènements et le processus sort en 0, SANS total (pris sur A05 : test-955 attendait
+         une minuterie factice que la mutation avait rendue nécessaire — il sortait « proprement » au milieu d'une section). Pas de « N ✓ M ✗ » imprimé = le banc est MORT, il TOMBE. */
+      if (r.code !== 0 || r.ko === null || r.ko > 0) {
         const ligne = (r.sortie.split('\n').find(l => l.includes('✗')) || r.sortie.split('\n').filter(Boolean).slice(-1)[0] || '').trim().slice(0, 170);
-        return { id, nom, verdict: 'TOMBE', detail: nomBanc(s) + ' (' + (r.ko === null ? 'MORT, code ' + r.code : r.ko + ' ✗') + ') — ' + ligne, mut };
+        const lignes = r.sortie.split('\n').filter(l => l.includes('✗')).map(l => l.trim()).slice(0, 14);
+        return { id, nom, verdict: 'TOMBE', detail: nomBanc(s) + ' (' + (r.ko === null ? 'MORT, code ' + r.code + ', aucun total imprimé' : r.ko + ' ✗') + ') — ' + ligne, lignes: r.ko === null ? r.sortie.split('\n').filter(Boolean).slice(-6) : lignes, mut };
       }
       verts.push(s);
     }
@@ -319,6 +332,7 @@ async function jouer(mut, dir) {
   const ids = args.filter(x => !x.startsWith('--'));
   const copiesDemandees = (args.find(x => x.startsWith('--copies=')) || '').slice(9);
   const NB_COPIES = /^\d+$/.test(copiesDemandees) ? Math.max(1, parseInt(copiesDemandees, 10)) : 2;
+  const fichierDetails = (args.find(x => x.startsWith('--details=')) || '').slice(10) || null;   // le détail des ✗ de chaque mutation qui tombe : de quoi vérifier qu'elle tombe POUR LA BONNE RAISON
   if (args.includes('--liste')) {
     for (const x of MUTATIONS) console.log(x.id + (x.sonde ? ' [sonde]' : '') + (x.equivalente ? ' [≡]' : '') + ' · ' + x.suites.map(nomBanc).join('+') + ' · ' + x.nom);
     console.log('\n' + MUTATIONS.length + ' mutations (' + MUTATIONS.filter(x => x.equivalente).length + ' équivalentes, ' + MUTATIONS.filter(x => x.sonde).length + ' par la sonde)');
@@ -395,6 +409,7 @@ async function jouer(mut, dir) {
       const mut = file.shift(); if (!mut) return;
       const r = await jouer(mut, dir);
       resultats.push(r);
+      if (fichierDetails) { try { fs.appendFileSync(fichierDetails, r.id + ' · ' + r.verdict + ' · ' + r.detail + '\n' + (r.lignes || []).map(l => '      ' + l.slice(0, 230)).join('\n') + (r.lignes && r.lignes.length ? '\n' : '')); } catch (e) { /* le journal détaillé est facultatif */ } }
       const signe = r.verdict === 'MAL VISÉE' ? '  ✗ ' : mut.equivalente ? (r.verdict === 'SURVIT' ? '  ≡ ' : '  ✗ ') : (r.verdict === 'TOMBE' ? '  ✓ ' : '  ✗ ');
       console.log(signe + r.id + ' · ' + r.nom + ' → ' + (mut.equivalente && r.verdict === 'SURVIT' ? 'SURVIT comme prévu (' + mut.equivalente + ')' : mut.equivalente && r.verdict === 'TOMBE' ? 'TOMBE ALORS QU\'ELLE DEVRAIT SURVIVRE (la raison donnée est fausse : « ' + mut.equivalente + ' ») · ' + r.detail : r.verdict + ' · ' + r.detail));
     }
