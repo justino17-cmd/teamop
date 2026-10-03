@@ -590,8 +590,16 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
               AND (genre <> 'groupe' OR EXISTS (SELECT 1 FROM membre m WHERE m.conv = l.cible AND m.uid = l.par AND m.role = 'admin' AND m.quitte_le IS NULL))
               AND (genre <> 'espace' OR EXISTS (SELECT 1 FROM espace_membre x WHERE x.espace = l.cible AND x.uid = l.par AND x.role = 'admin'))`).get(h, horloge()) || null;
   }
-  /* Révoquer : tous les liens d'un groupe (`cible`), ou tous les liens de contact d'une personne (`par`). */
-  function liensRevoquerGroupe(conv) { return num(Q(`UPDATE lien SET revoque = 1 WHERE genre = 'groupe' AND cible = ? AND revoque = 0`).run(conv).changes); }
+  /* Révoquer : tous les liens d'un groupe (`cible`), ou tous les liens de contact d'une personne (`par`).
+     ⛔ Les liens d'un GROUPE se révoquent en se NOTANT (genre `invitation`, comme ceux d'un espace) : une archive d'avant la révocation rendrait sinon le code — et la porte — à la personne
+     qu'on vient de retirer, qui le connaît (relecture du gardien, 3 octobre 2026 ; le retrait lui-même se note aussi, `groupe_membre`). */
+  function liensRevoquerGroupe(conv) {
+    return tx(() => {
+      const t = horloge();
+      for (const l of Q(`SELECT h FROM lien WHERE genre = 'groupe' AND cible = ? AND revoque = 0`).all(conv)) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(l.h, 'invitation', t);
+      return num(Q(`UPDATE lien SET revoque = 1 WHERE genre = 'groupe' AND cible = ? AND revoque = 0`).run(conv).changes);
+    });
+  }
   function liensRevoquerContact(par) { return num(Q(`UPDATE lien SET revoque = 1 WHERE genre = 'contact' AND par = ? AND revoque = 0`).run(par).changes); }
   function lienApercu(h) {
     const l = lienValide(h); if (!l) return null;
@@ -814,12 +822,21 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     });
   }
 
-  function membreRetirer({ conv, par, uid }) {
+  /* ⛔ SORTIR D'UN GROUPE (retiré par un administrateur, ou parti de soi-même) SE NOTE DANS LE REGISTRE DES PURGES — `conversation|personne|date`, genre `groupe_membre` (`canal_membre` pour un
+     canal privé : même geste, autre genre, pour que le registre dise de quoi il parle). Relecture du gardien, 3 octobre 2026 : seul le retrait d'un espace ou d'un canal se notait, si bien qu'une
+     restauration d'une archive d'avant remettait dans un groupe la personne qu'on en avait retirée (ou qui l'avait quitté) — et lui rendait ses messages, ceux d'aujourd'hui compris. La date
+     est celle de la sortie : le rejeu ne retire que celui qui était là AVANT (une personne ajoutée de nouveau depuis, `rejoint` plus récent, est une autre arrivée). */
+  function sortieNoter(conv, uid, t, canal) {
+    Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(conv + '|' + uid + '|' + t, canal ? 'canal_membre' : 'groupe_membre', t);
+  }
+  function membreRetirer({ conv, par, uid, canal = false }) {
     return tx(() => {
       const m = Q('SELECT role FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
       if (!m) throw erreur('introuvable');
-      Q('UPDATE membre SET quitte_le = ? WHERE conv = ? AND uid = ?').run(horloge(), conv, uid);
-      /* ⛔ Le retiré CONNAÎT les codes d'invitation du groupe : on les révoque tous (un administrateur en recrée un). */
+      const t = horloge();
+      Q('UPDATE membre SET quitte_le = ? WHERE conv = ? AND uid = ?').run(t, conv, uid);
+      sortieNoter(conv, uid, t, canal);
+      /* ⛔ Le retiré CONNAÎT les codes d'invitation du groupe : on les révoque tous (un administrateur en recrée un) — et chacun se note (`liensRevoquerGroupe`). */
       liensRevoquerGroupe(conv);
       messageSysteme(conv, par, { k: 'membre_retire', uid });
       const gid = journalAjouter('retire', conv, uid, '');
@@ -842,7 +859,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         Q(`UPDATE membre SET role = 'admin' WHERE conv = ? AND uid = ?`).run(conv, s.uid);
         promu = s.uid;
       }
-      Q('UPDATE membre SET quitte_le = ? WHERE conv = ? AND uid = ?').run(horloge(), conv, uid);
+      const t = horloge();
+      Q('UPDATE membre SET quitte_le = ? WHERE conv = ? AND uid = ?').run(t, conv, uid);
+      sortieNoter(conv, uid, t, false);
       if (promu) messageSysteme(conv, promu, { k: 'admin_promu', uid: promu });
       messageSysteme(conv, uid, { k: 'membre_parti', uid });
       const gid = journalAjouter('retire', conv, uid, '');
@@ -1971,10 +1990,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const e = espaceBrut(k.espace), cible = Q('SELECT role FROM espace_membre WHERE espace = ? AND uid = ?').get(k.espace, uid);
       if (e && e.proprio === uid) throw erreur('interdit');
       if (cible && cible.role === 'admin' && (!e || e.proprio !== par)) throw erreur('interdit');
-      const r = membreRetirer({ conv, par, uid });
-      const t = horloge();
-      Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(conv + '|' + uid + '|' + t, 'canal_membre', t);   // une archive d'avant ramènerait le retiré dans un canal privé
-      return r;
+      return membreRetirer({ conv, par, uid, canal: true });   // le retrait se note (`canal_membre`) : une archive d'avant ramènerait sinon le retiré dans un canal privé
     });
   }
   /* Quitter un canal PRIVÉ (un canal public se quitte avec l'espace) : personne n'est promu à la place — le rôle dans un canal est le rôle dans l'espace. */
@@ -2247,8 +2263,9 @@ const GENRES_PURGE = {
   appareil: 'copie',           // un jeton d'appareil révoqué (déconnexion, « déconnecter les autres », onzième appareil) — l'empreinte, jamais le jeton
   espace: 'copie',             // un espace dissous : sa ligne part (membres, canaux et abonnement avec elle), ses invitations et ses canaux aussi
   espace_membre: 'copie',      // quelqu'un sort d'un espace (il part, il est retiré, son compte s'efface) : `espace|personne|date` — il sort aussi de ses canaux
-  invitation: 'copie',         // un lien d'invitation à un espace révoqué : son empreinte — le code ne rouvre plus rien
+  invitation: 'copie',         // un lien d'invitation (à un espace ou à un groupe) révoqué : son empreinte — le code ne rouvre plus rien
   canal_membre: 'copie',       // quelqu'un sort d'un canal PRIVÉ (retiré, ou il le quitte) : `conversation|personne|date`
+  groupe_membre: 'copie',      // quelqu'un sort d'un GROUPE (retiré par un administrateur, ou il le quitte) : `conversation|personne|date` — et si c'était le dernier administrateur, la copie promeut comme le service l'avait fait
   compte: 'service',           // un compte effacé au bout de ses quatorze jours : il touche dix tables et passe par `compteEffacer` — rejoué par le SERVICE (`rejeu.js`)
 };
 
@@ -2275,7 +2292,7 @@ function purgeLire(chemin, opts) {
    Les lignes du registre sont recopiées dans la copie (sans doublon) : la copie se souvient désormais de ce qu'elle vient d'oublier,
    et la sauvegarde suivante le portera. Une seule transaction : tout ou rien. */
 function rejouerPurge(chemin, registre, opts) {
-  const bilan = { lues: 0, messagesRetires: 0, messagesBlanchis: 0, pieces: [], conversationsRetirees: 0, appareilsRetires: 0, espacesRetires: 0, membresEspaceRetires: 0, invitationsRevoquees: 0, membresCanalRetires: 0, auService: 0, ignorees: 0, ajoutees: 0 };
+  const bilan = { lues: 0, messagesRetires: 0, messagesBlanchis: 0, pieces: [], conversationsRetirees: 0, appareilsRetires: 0, espacesRetires: 0, membresEspaceRetires: 0, invitationsRevoquees: 0, membresCanalRetires: 0, membresGroupeRetires: 0, groupesRepris: 0, auService: 0, ignorees: 0, ajoutees: 0 };
   let d = null;
   try {
     d = ouvrirCopie(chemin, Object.assign({}, opts, { ecriture: true }));
@@ -2302,7 +2319,11 @@ function rejouerPurge(chemin, registre, opts) {
     const retirerMembreEspace = tableEspace ? d.prepare('DELETE FROM espace_membre WHERE espace = ? AND uid = ? AND depuis <= ?') : null;
     const sortirCanaux = tableEspace ? d.prepare('UPDATE membre SET quitte_le = ? WHERE uid = ? AND quitte_le IS NULL AND rejoint <= ? AND conv IN (SELECT conv FROM canal WHERE espace = ?)') : null;
     const sortirCanal = d.prepare('UPDATE membre SET quitte_le = ? WHERE conv = ? AND uid = ? AND quitte_le IS NULL AND rejoint <= ?');
-    const revoquerLien = d.prepare(`UPDATE lien SET revoque = 1 WHERE h = ? AND genre = 'espace' AND revoque = 0`);
+    const revoquerLien = d.prepare(`UPDATE lien SET revoque = 1 WHERE h = ? AND genre IN ('espace', 'groupe') AND revoque = 0`);
+    /* un GROUPE dont le dernier administrateur vient d'être sorti par le rejeu : le plus ancien membre le devient, comme `membreQuitter` le fait en direct (sinon la copie aurait un groupe que personne ne peut plus gérer) */
+    const promouvoirGroupe = d.prepare(`UPDATE membre SET role = 'admin' WHERE rowid = (SELECT rowid FROM membre WHERE conv = ? AND quitte_le IS NULL ORDER BY rejoint, rowid LIMIT 1)
+                                        AND NOT EXISTS (SELECT 1 FROM membre WHERE conv = ? AND role = 'admin' AND quitte_le IS NULL)
+                                        AND (SELECT type FROM conversation WHERE id = ?) = 'groupe'`);
     const recopier = d.prepare('INSERT INTO purge(objet, genre, quand) SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM purge WHERE objet = ? AND genre = ?)');
     d.exec('BEGIN IMMEDIATE');
     try {
@@ -2343,6 +2364,13 @@ function rejouerPurge(chemin, registre, opts) {
         } else if (genre === 'canal_membre') {
           const [conv, uid] = String(r.objet).split('|');
           if (conv && uid) bilan.membresCanalRetires += Number(sortirCanal.run(Number(r.quand) || 0, conv, uid, Number(r.quand) || 0).changes);
+        } else if (genre === 'groupe_membre') {
+          const [conv, uid] = String(r.objet).split('|');
+          if (conv && uid) {
+            const sortis = Number(sortirCanal.run(Number(r.quand) || 0, conv, uid, Number(r.quand) || 0).changes);
+            bilan.membresGroupeRetires += sortis;
+            if (sortis > 0) bilan.groupesRepris += Number(promouvoirGroupe.run(conv, conv, conv).changes);
+          }
         } else if (GENRES_PURGE[genre] === 'service') {
           bilan.auService++;   // recopiée seulement : le service la rejoue à son premier démarrage (`rejeu.js`) — ni « ignorée », ni faite ici
         } else {

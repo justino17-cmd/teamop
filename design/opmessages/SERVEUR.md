@@ -344,9 +344,11 @@ la copie qu'elle remet en service. Trois pièces se tiennent, et `tests/test-950
 | ce qui se **déclare** | `GENRES_PURGE` (`stockage.js`) : `'copie'` ou `'service'` | qui rejoue ce genre |
 | ce qui se **rejoue** | `rejouerPurge` (hors ligne, SQL pur, sans clé maître) pour `'copie'` ; `rejeu.js` → `GENRES_SERVICE` (au premier démarrage du service sur la base restaurée) pour `'service'` | l'effacement refait |
 
-Les genres d'aujourd'hui, tous `'copie'` : `message_ephemere`, `message_supprime`, `piece` (et tout genre qui commence par « piece »), `conversation` (le dernier membre est parti), `appareil` (le jeton
+Les genres d'aujourd'hui, tous `'copie'` sauf `compte` (`'service'`) : `message_ephemere`, `message_supprime`, `piece` (et tout genre qui commence par « piece »), `conversation` (le dernier membre est parti), `appareil` (le jeton
 d'appareil révoqué : déconnexion, « déconnecter les autres », toute une personne, le onzième appareil qui chasse le plus ancien — l'empreinte du jeton, jamais le jeton ; le rejeu ne retire qu'un
-appareil qui existait à l'instant de la révocation). `message` est rejoué mais plus écrit (compatibilité). **Les sessions n'ont pas de genre** : aucun registre ne note une session fermée, donc
+appareil qui existait à l'instant de la révocation), et, depuis l'étape 5, `espace` (dissous), `espace_membre` (sorti de l'espace, et de ses canaux), `invitation` (l'empreinte d'un lien révoqué, **d'un espace ou d'un groupe**),
+`canal_membre` (sorti d'un canal privé) et `groupe_membre` (**retiré d'un groupe, ou parti de lui-même** : `conversation|personne|date` ; le rejeu ne retire que celui qui était là AVANT la sortie, et si c'était la dernière
+administratrice il promeut le plus ancien membre comme le service l'avait fait). `message` est rejoué mais plus écrit (compatibilité). **Les sessions n'ont pas de genre** : aucun registre ne note une session fermée, donc
 la restauration les **vide toutes** (`apresRestauration`) — le prix est une reconnexion de tout le monde ; les jetons d'appareil, eux, restent (ils évitent le SMS).
 
 **Brancher un genre neuf — quatre gestes, et le banc refuse de passer tant qu'il en manque un** (le compte qu'on efface au bout de quatorze jours en est le premier cas : `compteEffacer`
@@ -761,7 +763,7 @@ Trois constats, pour Justin :
 - **Un vrai paiement par une vraie carte** : jamais joué ici (Stripe est sur Internet, ce conteneur n'en a pas). La sonde intercepte la navigation vers Stripe et joue le retour APRÈS que le faux Stripe a « payé » la session que le service avait demandée. Seul Justin, avec une clé de test, puis de production, le constate.
 - **Les limites de pièces Pro** (100 Mo par fichier, 20 Go par siège) : un seul palier existe encore (§ 4.3, question 6).
 - **Réunions programmées, appels de groupe** : leur droit Pro se lira dans `formuleDe`, au même endroit (étapes 6 à 8).
-- **Retirer quelqu'un d'un GROUPE** (`membreRetirer`, d'avant ce lot) **ne s'écrit pas dans `purge`** : une archive d'avant le retrait ramènerait le retiré dans le groupe. Les retraits d'un espace et d'un canal privé, eux, sont notés (genres `espace_membre` et `canal_membre`). Signalé pour mémoire, non corrigé ici.
+- ✅ **Retirer quelqu'un d'un GROUPE, ou le quitter** (`membreRetirer`, `membreQuitter`, d'avant ce lot) ne s'écrivait pas dans `purge` : une archive d'avant la sortie ramenait la personne dans le groupe. **Corrigé à la relecture du gardien** (3 octobre 2026) : genre `groupe_membre`, déclaré, rejoué hors ligne, avec son banc (`test-950` § 13 sexies) ; la révocation des liens d'un groupe se note aussi (genre `invitation`, comme pour un espace) — une archive d'avant rendait sinon son code au retiré.
 - **Un canal supprimé par son administrateur disparaît pour tous ses membres** (conversation, messages et pièces), sans corbeille : le mot SUPPRIMER est exigé.
 
 ### Étape 6 : agenda et réunions programmées

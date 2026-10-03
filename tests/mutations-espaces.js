@@ -122,9 +122,9 @@ m('R17', 'un canal public prend la liste de membres qu\'on lui envoie (au lieu d
 m('R18', 'ajouter à un canal : le canal d\'un AUTRE espace est atteint (on ne vérifie plus qu\'il est de CET espace)', F.stock, 'if (!k || k.espace !== espace) return null;', 'if (!k) return null;', ['961']);
 m('R19', 'l\'administrateur de l\'espace gère un canal privé dont il n\'est pas membre', F.stock, "return m && m.role === 'admin' ? k : null;", 'return k;', ['960', '961']);
 m('R20', 'on ajoute des membres à un canal PUBLIC (ses membres sont ceux de l\'espace)', F.stock, "      if (!k.prive) throw erreur('canal_public');\n      const roles = new Map(", '      const roles = new Map(', ['960', '961']);
-m('R21', 'on retire un membre d\'un canal PUBLIC', F.stock, /      if \(!k\.prive\) throw erreur\('canal_public'\);\n(      \/\* ⛔ LA HIÉRARCHIE[\s\S]*?\n      const r = membreRetirer\()/, '$1', ['960', '961']);
+m('R21', 'on retire un membre d\'un canal PUBLIC', F.stock, /      if \(!k\.prive\) throw erreur\('canal_public'\);\n(      \/\* ⛔ LA HIÉRARCHIE[\s\S]*?\n      return membreRetirer\()/, '$1', ['960', '961']);
 m('R22', 'retirer quelqu\'un d\'un canal privé ne s\'écrit pas dans `purge` : une archive d\'avant le ramènerait', F.stock,
-  "Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(conv + '|' + uid + '|' + t, 'canal_membre', t);   // une archive", "// une archive", ['960']);
+  "  function sortieNoter(conv, uid, t, canal) {\n", "  function sortieNoter(conv, uid, t, canal) {\n    if (canal) return;\n", ['960']);
 m('R23', 'quitter un canal privé ne s\'écrit pas dans `purge`', F.stock,
   "      Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(conv + '|' + uid + '|' + t, 'canal_membre', t);\n      if (num(", '      if (num(', ['960']);
 m('R24', 'sortir d\'un espace ne s\'écrit pas dans `purge` : une archive d\'avant ramènerait le salarié parti, ses canaux et ce qu\'ils disent', F.stock,
@@ -391,6 +391,28 @@ m('H30', '/health publie de nouveau un chiffre commercial (le nombre d\'espaces)
   'facturation: { mode: facturation.mode(), toutOuvert: formule.toutOuvert() },', 'facturation: { mode: facturation.mode(), toutOuvert: formule.toutOuvert(), espaces: 1 },', ['934', '961', '962']);
 m('H31', 'la surveillance garde une décision « vu et pas surveillé » pour un nombre d\'abonnés que /health ne publie plus (une décision prise pour du vide)', F.surv,
   "  'facturation.mode':", "  'facturation.abonnes': 'le nombre d\\'espaces dont l\\'abonnement est payé est une information commerciale, lue à la main : un seuil n\\'aurait pas de sens avant les premières ventes',\n  'facturation.mode':", ['934']);
+
+/* ── dette : sortir d'un GROUPE, ou en révoquer le lien, se note dans le registre et se rejoue ── */
+m('H32', 'retirer quelqu\'un d\'un groupe (ou d\'un canal privé) n\'écrit plus dans le registre des purges : une archive d\'avant le remet dans le groupe', F.stock,
+  '      sortieNoter(conv, uid, t, canal);\n', '', ['950', '960']);
+m('H33', 'quitter un groupe n\'écrit plus dans le registre des purges', F.stock,
+  '      sortieNoter(conv, uid, t, false);\n', '', ['950']);
+m('H34', 'la sortie d\'un groupe se note au genre d\'un canal (le registre ne dit plus de quoi il parle)', F.stock,
+  "canal ? 'canal_membre' : 'groupe_membre'", "'canal_membre'", ['950']);
+m('H35', 'la sortie d\'un canal privé se note comme celle d\'un groupe (le retrait ne passe plus son genre)', F.stock,
+  'return membreRetirer({ conv, par, uid, canal: true });', 'return membreRetirer({ conv, par, uid });', ['960', '961']);
+m('H36', 'le rejeu hors ligne ne reconnaît pas le genre `groupe_membre` (il serait compté « ignoré » et ne ferait rien)', F.stock,
+  "} else if (genre === 'groupe_membre') {", "} else if (genre === 'groupe_membre_') {", ['950']);
+m('H37', 'le rejeu retire aussi celui qui est REVENU dans le groupe depuis sa sortie (la date d\'arrivée n\'est plus comparée)', F.stock,
+  "const sortis = Number(sortirCanal.run(Number(r.quand) || 0, conv, uid, Number(r.quand) || 0).changes);", "const sortis = Number(sortirCanal.run(Number(r.quand) || 0, conv, uid, Number.MAX_SAFE_INTEGER).changes);", ['950']);
+m('H38', 'le rejeu ne promeut plus personne quand il sort la dernière administratrice (la copie a un groupe que personne ne peut plus gérer)', F.stock,
+  'if (sortis > 0) bilan.groupesRepris +=', 'if (false) bilan.groupesRepris +=', ['950']);
+m('H39', 'le rejeu promeut même quand il reste un administrateur (une sortie ordinaire fait un second administrateur)', F.stock,
+  "AND NOT EXISTS (SELECT 1 FROM membre WHERE conv = ? AND role = 'admin' AND quitte_le IS NULL)", 'AND ? IS NOT NULL', ['950']);
+m('H40', 'révoquer les liens d\'un groupe ne se note plus (une archive d\'avant rend le code, et la porte, à qui l\'on vient de retirer)', F.stock,
+  "      for (const l of Q(`SELECT h FROM lien WHERE genre = 'groupe' AND cible = ? AND revoque = 0`).all(conv)) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(l.h, 'invitation', t);\n", '', ['950']);
+m('H41', 'le rejeu ne révoque que les liens d\'un ESPACE (un lien de groupe révoqué revit)', F.stock,
+  "genre IN ('espace', 'groupe') AND revoque = 0", "genre = 'espace' AND revoque = 0", ['950']);
 
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const DOSSIERS_COPIE = ['server-msg', 'server', 'design/opmessages', '.github', 'apercu/opmessages', 'icons', 'scripts'];   // `.github` ENTIER : test-934 lit les workflows autant que les scripts de surveillance

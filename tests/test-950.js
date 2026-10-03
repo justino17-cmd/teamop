@@ -1584,6 +1584,75 @@ const horlogeFixe = (h) => () => h.t;
     }
   }
 
+  /* ══ 13 sexies. SORTIR D'UN GROUPE, OU EN RÉVOQUER LE LIEN, NE SE DÉFAIT PAS D'UNE RESTAURATION ═══════════════════════════════════════════════
+     La dette que le lot 4 avait signalée lui-même, reprise à la relecture du gardien (3 octobre 2026) : `membreRetirer` et `membreQuitter` n'écrivaient rien dans `purge`
+     — seuls les retraits d'un espace et d'un canal privé se notaient. Une archive d'AVANT remettait donc dans un groupe la personne qu'on en avait retirée, ou qui l'avait
+     quittée, avec ses messages d'aujourd'hui ; et rendait aux liens de ce groupe, révoqués au même instant, leur porte. Trois pièces qui se tiennent, comme pour les autres
+     genres : ce qui s'écrit (genre « groupe_membre », et « invitation » pour le lien), ce qui se déclare (`GENRES_PURGE`), ce qui se rejoue (`rejouerPurge`). Le rejeu ne retire
+     que celui qui était là AVANT la sortie, et si c'était le dernier administrateur il fait ce que le service avait fait en direct : le plus ancien membre le devient. */
+  console.log('\n── 950 · quitter un groupe, en être retiré, en révoquer le lien : une restauration ne ramène ni la personne ni le code ──');
+  {
+    const lire = (chemin, sql, ...pp) => { const dd = new DatabaseSync(chemin, { readOnly: true }); try { return Number(dd.prepare(sql).get(...pp).n); } finally { dd.close(); } };
+    const b = O.creerBase();
+    try {
+      const a = b.pers('alice'), c = b.pers('carole'), d = b.pers('denis'), e = b.pers('elise'), f = b.pers('farid');
+      const g = b.S.convCreerGroupe({ createur: a.id, nom: 'Équipe du banc', membres: [c.id, d.id, e.id, f.id] }).id;
+      const g2 = b.S.convCreerGroupe({ createur: a.id, nom: 'Dernière administratrice', membres: [e.id, f.id] }).id;
+      const code = crypto.createHash('sha256').update('le lien du groupe, banc 950 sexies').digest('hex');
+      b.S.lienCreer({ h: code, genre: 'groupe', cible: g, par: a.id, ttlMs: 7 * 86400000, max: 10 });
+      b.S.messageEnvoyer({ conv: g, auteur: c.id, cid: 'sexies-1', texte: 'un message de carole, écrit avant' });
+      b.h.t += 1000;
+      const avant = path.join(b.dossier, 'avant-groupe.db'); await b.S.instantane(avant);        // l'archive D'AVANT : tout le monde est là, le lien est vivant
+      b.h.t += 1000;
+      b.S.membreRetirer({ conv: g, par: a.id, uid: c.id });                                        // carole est retirée par l'administratrice (ce qui révoque aussi les liens du groupe)
+      b.h.t += 1000;
+      b.S.membreQuitter({ conv: g, uid: d.id });                                                   // denis part de lui-même
+      b.h.t += 1000;
+      const promu = b.S.membreQuitter({ conv: g2, uid: a.id }).promu;                              // alice, seule administratrice du second groupe, le quitte : le plus ancien membre prend la relève
+      const registre = () => STOCK.ouvrir.copie.purgeLire(b.chemin);
+      const sorties = registre().filter(x => x.genre === 'groupe_membre').map(x => x.objet.split('|').slice(0, 2).join('|')).sort();
+      v('⛔ retirer quelqu\'un d\'un groupe, quitter un groupe : les trois sorties SE NOTENT (genre « groupe_membre », `conversation|personne|date`) — avant, rien n\'entrait dans le registre',
+        [sorties, registre().filter(x => x.genre === 'groupe_membre').every(x => x.objet.split('|').length === 3 && Number(x.objet.split('|')[2]) === x.quand)], [[g + '|' + c.id, g + '|' + d.id, g2 + '|' + a.id].sort(), true]);
+      v('⛔ révoquer les liens d\'un groupe SE NOTE (genre « invitation », l\'empreinte du code) — et une seule fois, pas une ligne par sortie', registre().filter(x => x.genre === 'invitation').map(x => x.objet), [code]);
+      v('   la sortie d\'un groupe n\'écrit pas un genre de canal (une seule note par sortie, au genre qui dit de quoi elle parle)', registre().filter(x => x.genre === 'canal_membre').length, 0);
+      v('   population : le service avait bien promu quelqu\'un à la place de la dernière administratrice (Elise, la plus ancienne des deux membres)', promu, e.id);
+
+      /* LA COPIE D'AVANT reçoit le registre d'APRÈS */
+      const sur = path.join(b.dossier, 'restauree-groupe.db'); fs.copyFileSync(avant, sur);
+      const actifs = (chemin, conv, ...uids) => lire(chemin, 'SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND quitte_le IS NULL AND uid IN (' + uids.map(() => '?').join(',') + ')', conv, ...uids);
+      const admins = (chemin, conv) => lire(chemin, "SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND role = 'admin' AND quitte_le IS NULL", conv);
+      v('population : la copie d\'avant porte les cinq membres du premier groupe, le lien vivant, le message de carole, et alice seule administratrice du second',
+        [actifs(sur, g, a.id, c.id, d.id, e.id, f.id), lire(sur, 'SELECT COUNT(*) AS n FROM lien WHERE h = ? AND revoque = 0', code), lire(sur, 'SELECT COUNT(*) AS n FROM message WHERE conv = ? AND auteur = ?', g, c.id), admins(sur, g2), actifs(sur, g2, a.id)], [5, 1, 1, 1, 1]);
+      const r = STOCK.ouvrir.copie.rejouerPurge(sur, registre());
+      v('⛔ le registre rejoué : carole (retirée) et denis (parti) ne sont plus dans le groupe — avant, ils y revenaient —, le lien est révoqué, les trois autres n\'ont pas bougé, rien n\'est « ignoré »',
+        [r.membresGroupeRetires, actifs(sur, g, c.id, d.id), actifs(sur, g, a.id, e.id, f.id), lire(sur, 'SELECT COUNT(*) AS n FROM lien WHERE h = ? AND revoque = 0', code), r.invitationsRevoquees, r.ignorees], [3, 0, 3, 0, 1, 0]);
+      v('   ses messages RESTENT (retirer quelqu\'un d\'un groupe n\'efface rien de ce qu\'il a écrit)', lire(sur, 'SELECT COUNT(*) AS n FROM message WHERE conv = ? AND auteur = ?', g, c.id), 1);
+      v('⛔ la dernière administratrice du second groupe est sortie de la copie, et la relève est faite comme le service l\'avait faite : une seule administratrice, Elise — le groupe reste gérable',
+        [actifs(sur, g2, a.id), admins(sur, g2), lire(sur, "SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND uid = ? AND role = 'admin' AND quitte_le IS NULL", g2, e.id), r.groupesRepris], [0, 1, 1, 1]);
+      v('   le premier groupe, lui, garde son administratrice et n\'est pas « repris » (une sortie ordinaire ne promeut personne)', [admins(sur, g), lire(sur, "SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND uid = ? AND role = 'admin'", g, a.id)], [1, 1]);
+      const encore = STOCK.ouvrir.copie.rejouerPurge(sur, registre());
+      v('   rejouer deux fois ne change rien (idempotent : ni sortie, ni promotion, ni ligne recopiée)', [encore.membresGroupeRetires, encore.groupesRepris, encore.invitationsRevoquees, encore.ajoutees], [0, 0, 0, 0]);
+      vrai('   la copie reste saine', STOCK.ouvrir.copie.controlerFichier(sur).ok === true);
+
+      /* ⛔ ce qui est arrivé APRÈS la sortie n'est pas défait : une personne REMISE dans le groupe est une autre arrivée */
+      b.h.t += 60000;
+      b.S.membresAjouter({ conv: g, par: a.id, uids: [c.id] });
+      b.h.t += 1000;
+      const apres = path.join(b.dossier, 'apres-retour.db'); await b.S.instantane(apres);
+      const r2 = STOCK.ouvrir.copie.rejouerPurge(apres, registre());
+      v('⛔ carole, retirée puis REMISE dans le groupe avant l\'archive, y est toujours après le rejeu (son retour est postérieur à sa sortie) ; denis, qui n\'est pas revenu, n\'y est pas',
+        [actifs(apres, g, c.id), actifs(apres, g, d.id), r2.membresGroupeRetires], [1, 0, 0]);
+
+      /* une copie qui ne porte aucun de ces groupes (une autre base, ou une archive d'avant leur création) se rejoue sans erreur */
+      const ancienne = O.creerBase({ dossier: undefined });
+      try {
+        const x = ancienne.pers('vieux'); void x; ancienne.S.fermer();
+        const rA = STOCK.ouvrir.copie.rejouerPurge(ancienne.chemin, registre());
+        v('   une copie qui n\'a aucun de ces groupes se rejoue sans erreur : rien à retirer, rien d\'ignoré, les lignes sont recopiées', [rA.membresGroupeRetires, rA.groupesRepris, rA.ignorees, rA.ajoutees > 0], [0, 0, 0, true]);
+      } finally { ancienne.nettoyer(); }
+    } finally { b.nettoyer(); }
+  }
+
   /* ══ 14. LE CONTRÔLE DANS UN PROCESSUS ENFANT ═════════════════════════════════════════════════════════════════════════════════ */
   console.log('\n── 950 · le contrôle de la copie se fait dans un PROCESSUS ENFANT : la boucle d\'événements du service n\'est pas figée ──');
   {

@@ -345,6 +345,7 @@ console.log('\nLes canaux : une conversation de genre `canal` ; public = tous le
   S.canalMembresAjouter({ conv: w.priv, par: w.ana.id, uids: [w.cleo.id] });
   v('⛔ quitter un canal privé ne promeut personne (le rôle d\'un canal est celui de l\'espace), est noté, et un canal public ne se quitte pas', [S.canalQuitter({ conv: w.priv, uid: w.cleo.id }).vide, roleCanal(S, w.priv, w.ben.id), S.purgeLignes().filter(x => x.genre === 'canal_membre').length - avantCm, lance(() => S.canalQuitter({ conv: w.pub, uid: w.ben.id }))], [false, 'membre', 2, 'canal_public']);
   v('quitter un canal où l\'on n\'est pas : `introuvable`', lance(() => S.canalQuitter({ conv: w.priv, uid: w.cleo.id })), 'introuvable');
+  v('… et ces sorties de canal n\'écrivent PAS aussi un `groupe_membre` (un canal n\'est pas un groupe : une seule note par sortie, au genre qui dit de quoi elle parle) — alors que deux sorties de canal sont notées', [S.purgeLignes().filter(x => x.genre === 'groupe_membre').length, S.purgeLignes().filter(x => x.genre === 'canal_membre').length - avantCm], [0, 2]);
   S.canalQuitter({ conv: w.priv, uid: w.ben.id });
   const dernier = S.canalQuitter({ conv: w.priv, uid: w.ana.id });
   v('⛔ le DERNIER membre qui quitte un canal privé l\'emporte (et le dit)', [dernier.vide, S.canalDe(w.priv), S.purgeLignes().some(x => x.genre === 'conversation' && x.objet === w.priv)], [true, null, true]);
