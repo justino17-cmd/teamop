@@ -24,6 +24,7 @@ const fs = require('fs'), os = require('os'), path = require('path'), { spawn } 
 const RACINE = path.join(__dirname, '..');
 const NB_COPIES = 3, DELAI_MS = 300000;
 const F = {
+  inst: 'server-msg/install-msg.sh',
   rp: 'server-msg/routes-pieces.js', app: 'server-msg/app.js', stock: 'server-msg/stockage.js', pz: 'server-msg/pieces.js', flux: 'server-msg/flux.js', routes: 'server-msg/routes.js',
   index: 'server-msg/index.js', src: 'server-msg/public/source-serveur.js', api: 'server-msg/public/api.js', page: 'apercu/opmessages/index.html',
 };
@@ -111,6 +112,18 @@ m('K17', 'la photo de profil qu\'on vient de choisir est relue du service', F.sr
 
 /* ── LE PROXY (jouée par la sonde d'un VRAI nginx : il faut OPMSG_NGINX ; sans lui, « NON JOUÉE ») ── */
 m('P47', 'le bloc des pièces du proxy est ramené à 1 Mo (une photo réduite à 250 Ko passe, un fichier de 20 Mo non)', 'server-msg/install-msg.sh', '        client_max_body_size 26m;', '        client_max_body_size 1m;', ['proxy']);
+/* ── B2, A3, A2 : CE QUE LE PROXY ÉCRIT, COMPTE ET TAMPONNE. Chaque mutation est jouée par la sonde du VRAI nginx d'abord (le comportement), puis par test-931 (le texte) ; sans nginx, test-931 seul. ── */
+m('P82', 'le bloc 443 écrit de nouveau un journal d\'accès (l\'adresse, la requête entière : conversations, pièces, noms de fichiers)', F.inst, "voir le bloc du port 80.\n    access_log off;\n", "voir le bloc du port 80.\n", ['proxy', '931']);
+m('P83', 'les refus de débit reviennent au niveau « error » du journal d\'erreurs (adresse et requête de chaque refusé)', F.inst, "    access_log off;\n    limit_req_log_level warn;\n    limit_conn_log_level warn;\n\n    # ⛔ 64 Ko", "    access_log off;\n    limit_conn_log_level warn;\n\n    # ⛔ 64 Ko", ['proxy', '931']);
+m('P84', 'le plafond de débit compte de nouveau par adresse (un client à 2^64 adresses dans son /64 repart à zéro à chaque adresse)', F.inst, 'limit_req_zone \\$opmsg_reseau_$INSTANCE zone=opmsg_$INSTANCE:10m rate=20r/s;', 'limit_req_zone \\$binary_remote_addr zone=opmsg_$INSTANCE:10m rate=20r/s;', ['proxy', '931']);
+m('P85', 'la table du réseau ne reconnaît plus les adresses IPv6 complètes (quatre groupes explicites) : chaque adresse a sa clé', F.inst, '    \\"~*^([0-9a-f]{1,4}:[0-9a-f]{1,4}:[0-9a-f]{1,4}:[0-9a-f]{1,4}):\\" \\$1;\n', '', ['proxy', '931']);
+m('P86', 'la table du réseau ne reconnaît plus « :: » après deux groupes (2001:db8::5 garde son adresse entière)', F.inst, '    \\"~*^([0-9a-f]{1,4}:[0-9a-f]{1,4})::\\" \\"\\$1:0:0\\";\n', '', ['proxy', '931']);
+m('P87', 'le dépôt n\'a plus de plafond GLOBAL de connexions (vingt-quatre réseaux remplissent le disque de nginx, qui est aussi celui d\'OP GESTION)', F.inst, '        limit_conn opmsg_depots_$INSTANCE 24;\n', '', ['proxy', '931']);
+m('P88', 'le dépôt compte ses connexions par adresse au lieu du réseau (treize adresses d\'un /64 passent au lieu de douze)', F.inst, 'limit_conn_zone \\$opmsg_reseau_$INSTANCE zone=opmsg_conn_$INSTANCE:10m;', 'limit_conn_zone \\$binary_remote_addr zone=opmsg_conn_$INSTANCE:10m;', ['proxy', '931']);
+m('P89', 'la lecture d\'une pièce est de nouveau tamponnée sur le disque de nginx (le tampon ET la limite de fichier temporaire retirés)', F.inst, '        proxy_buffering off;\n        proxy_max_temp_file_size 0;\n', '', ['proxy', '931']);
+m('P90', 'le bloc de la lecture d\'une pièce disparaît (la route générale, tamponnée, la sert)', F.inst, /    location \^~ \/api\/pieces\/ \{[^}]*\}\n\n/, '', ['proxy', '931']);
+m('P91', 'la limite de fichier temporaire de la lecture est retirée (ceinture et bretelles : le tampon éteint suffit à la sonde, le texte exige les deux)', F.inst, '        proxy_max_temp_file_size 0;\n', '', ['931']);
+m('P92', 'la lecture compte ses connexions sur la zone du DÉPÔT (douze lectures en cours refuseraient un dépôt)', F.inst, '        limit_conn opmsg_lec_conn_$INSTANCE 64;\n', '        limit_conn opmsg_conn_$INSTANCE 64;\n', ['931']);
 
 /* ── B1 : UNE IMAGE BOURRÉE DE MORCEAUX VIDES (relecture du gardien) ── */
 m('P48', 'le plafond de segments JPEG est retiré (2,9 M de segments vides passent)', F.pz, "    if (++segments > SEGMENTS_JPEG_MAX) throw erreur('type_refuse');\n", '', ['942', '943']);
@@ -228,8 +241,10 @@ function muter(racine, mut) {
 function restaurer(dir, originaux) { for (const [fichier, texte] of originaux) fs.writeFileSync(path.join(dir, fichier), texte); }
 
 async function jouer(mut, dir) {
-  const { id, nom, suites } = mut;
-  if (suites.includes('proxy') && !process.env.OPMSG_NGINX) return { id, nom, verdict: 'NON JOUÉE', detail: 'il faut un binaire nginx (OPMSG_NGINX=/chemin/nginx) — voir l\'en-tête de tests/sonde-proxy-nginx.js' };
+  const { id, nom } = mut;
+  /* sans binaire nginx la sonde du proxy ne se joue pas : une mutation qui n'a QU'ELLE est « non jouée » ; une qui a aussi une suite de texte (test-931) se joue sur celle-là, et le dit */
+  const sansNginx = !process.env.OPMSG_NGINX, suites = mut.suites.filter(x => x !== 'proxy' || !sansNginx), sondeLaissee = sansNginx && mut.suites.includes('proxy');
+  if (!suites.length) return { id, nom, verdict: 'NON JOUÉE', detail: 'il faut un binaire nginx (OPMSG_NGINX=/chemin/nginx) — voir l\'en-tête de tests/sonde-proxy-nginx.js' };
   const r0 = muter(dir, mut);
   if (r0.erreur) return { id, nom, verdict: 'MAL VISÉE', detail: r0.erreur };
   try {
@@ -240,11 +255,11 @@ async function jouer(mut, dir) {
       const r = await lancer(dir, s);
       if (r.code !== 0 || (r.ko !== null && r.ko > 0)) {
         const ligne = (r.sortie.split('\n').find(l => l.includes('✗')) || r.sortie.split('\n').filter(Boolean).slice(-1)[0] || '').trim().slice(0, 150);
-        return { id, nom, verdict: 'TOMBE', detail: (s === 'sonde' ? 'la sonde' : 'test-' + s) + ' (' + (r.ko === null ? 'mort, code ' + r.code : r.ko + ' ✗') + ') — ' + ligne };
+        return { id, nom, verdict: 'TOMBE', detail: (s === 'sonde' ? 'la sonde' : s === 'proxy' ? 'la sonde du proxy' : 'test-' + s) + ' (' + (r.ko === null ? 'mort, code ' + r.code : r.ko + ' ✗') + ') — ' + ligne };
       }
       verts.push(s);
     }
-    return { id, nom, verdict: 'SURVIT', detail: 'vert : ' + verts.join(', ') };
+    return { id, nom, verdict: 'SURVIT', detail: 'vert : ' + verts.join(', ') + (sondeLaissee ? ' (la sonde du proxy n\'a pas été jouée : pas de nginx)' : '') };
   } finally {
     restaurer(dir, r0.originaux);
     if (mut.edits.some(e => e[0] === F.page)) await new Promise((ok) => { const p = spawn(process.execPath, [path.join(dir, 'scripts', 'opmsg-public.js')], { cwd: dir, stdio: 'ignore' }); p.on('close', ok); });
