@@ -26,7 +26,7 @@ et déployés sur la bêta (`msg-beta.teamop.fr`) par une poussée de `server-ms
 | 4 | réunions programmées (étape 6) | à faire |
 | 5 | appels à deux, audio et vidéo (étape 7) — le relais TURN demande l'ouverture des ports par Justin | à faire |
 | 6 | appels de groupe et salle de réunion en maille (étape 8) | à faire |
-| 7 | espaces Pro, canaux, annuaire, abonnement en mode test (étape 5) | 🚧 en construction (agent, arbre isolé, base `65ff44f`) — avancé avant les réunions, qui en dépendent |
+| 7 | espaces Pro, canaux, annuaire, abonnement en mode test (étape 5) | ✅ construit (arbre de l'agent, `c384f4e`, 13 commits, base `65ff44f`) — 41 suites · 4 989 vérifications, 157/157 + 13/13 mutations, sonde à 4 personnes 151 ✓ ; relu par `gardien` : **aucun bloquant**, 3 importants (un membre retiré revient avec l'ancien lien ; un paiement réglé peut rester non reconnu — session de plus de 24 h, paiements simultanés, espace dissous avant la relecture ; un administrateur exclut le propriétaire d'un canal privé) — 🔧 en correction (même agent), pas encore fusionné. Inerte sans clé Stripe (gestes de Justin : `INSTALLER-LE-SERVEUR.md` § 10 quinquies) ; décisions 15 à 19 et suivantes dans `SERVEUR.md` § 5 (premier espace en production, prix `msgpro`, plafond de 1000 abonnements partagé avec OP GESTION, canaux, sièges) |
 
 Liste des bancs d'OP MESSAGES après les lots 1 et 2 corrigés : **31 suites, 3 654 vérifications** (plancher 3640) ; suite complète
 de l'arbre déployé 241 · 16 485, code 0.
