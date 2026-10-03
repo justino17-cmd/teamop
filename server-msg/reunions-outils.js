@@ -61,10 +61,14 @@ function creerNotifieur(ctx) {
         detail: { titre, corps: texte }, valide }, { gid });
     } catch (e) { /* un push raté ne défait rien */ }
   }
-  /* Une notification dans l'application, puis son push. `auteur` : la personne que le texte NOMME (l'hôte) — l'effacement de son compte réécrit alors la notification. → la notification, ou null */
+  /* Une notification dans l'application, puis son push. `auteur` : la personne que le texte NOMME (l'hôte) — l'effacement de son compte réécrit alors la notification. → la notification, ou null
+     ⛔ RIEN D'UN AUTEUR QUE LE DESTINATAIRE A BLOQUÉ (ou qui l'a bloqué) : la même définition que la messagerie (`contactBloque`, dans les deux sens) — un blocage est personnel, et celui qui harcèle ne
+     doit pas continuer par la réunion. Bloquer ne retire PERSONNE de la réunion (la réunion reste dans l'agenda, son flux se met à jour) : « Quitter » est la sortie. Un rappel n'a pas d'auteur, il
+     ne passe pas par ici. ⛔ UNE SEULE `reunion_modifiee` non lue par personne et par réunion : la nouvelle remplace l'ancienne (deux cents modifications ne font pas deux cents notifications). */
   function notifier({ uid, type, reunion, titre, texte, auteur }) {
     try {
-      const n = stockage.notifCreer({ uid, type, titre, texte, cible: reunion, auteur });
+      if (auteur && stockage.contactBloque(auteur, uid)) return null;
+      const n = stockage.notifCreer({ uid, type, titre, texte, cible: reunion, auteur, remplacer: type === 'reunion_modifiee' });
       hub.reveiller({ uids: [uid] });
       pousser({ uid, type, reunion, titre, texte, gid: n.gid });
       return n;

@@ -332,7 +332,8 @@ const MIGRATIONS = [
      Cinq tables neuves, AUCUNE table existante modifiée (la migration reste REJOUABLE : `IF NOT EXISTS` partout, pas d'`ALTER`) :
        · `reunion` : une réunion = UNE ligne, série comprise (la première occurrence, la répétition, sa fin). Le titre et le lieu sont SCELLÉS (une entreprise nomme ses clients et ses chantiers).
          `conv` est sa conversation (genre `reunion` : la MÊME mécanique que les groupes — flux, accusés, pièces, purge —, pas une seconde messagerie) ; `ON DELETE CASCADE` : la réunion part
-         avec sa conversation. `hote` n'est pas une cascade : un hôte dont le compte s'efface passe la main (`reunionsQuitterTout`) ou emporte la réunion. `horaire_le` date la dernière
+         avec sa conversation. `hote` n'est pas une cascade : un hôte dont le compte s'efface passe la main (`reunionsQuitterTout`) ou emporte la réunion. `fin_serie` est le moment où plus AUCUNE occurrence ne court (NULL : une série « Jamais ») — posée à la création et à chaque changement d'horaire par `calendrier.finDeSerie` : l'agenda
+         d'une personne écarte EN SQL les séries terminées, sans quoi six cents séries d'il y a vingt-six ans en occuperaient toutes les places ; `horaire_le` date la dernière
          modification de l'HORAIRE (un rappel dont l'échéance précède ce moment n'a jamais été dû pour cet horaire). `prochain` est le début de la prochaine occurrence non commencée — l'index
          du planificateur : il ne regarde que les réunions qui commencent dans la journée qui vient, jamais toutes les séries à chaque passage ;
        · `reunion_invite` : qui est invité, et sa réponse (en attente, accepte, décline, peut-être). L'HÔTE y a sa ligne (toujours « accepte ») : ses rappels et la liste « mes réunions » se
@@ -351,6 +352,7 @@ const MIGRATIONS = [
        tz TEXT NOT NULL,
        rep TEXT NOT NULL DEFAULT 'aucune' CHECK(rep IN ('aucune','quotidienne','hebdomadaire','mensuelle')),
        n INTEGER, jusqua TEXT,
+       fin_serie INTEGER,
        rappels TEXT NOT NULL DEFAULT '[]',
        annulee INTEGER NOT NULL DEFAULT 0,
        version INTEGER NOT NULL DEFAULT 0,
@@ -1314,8 +1316,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
 
   /* ══ NOTIFICATIONS DANS L'APPLICATION ════════════════════════════════════════════════════ */
   /* `auteur` : la personne que le texte NOMME (celle qui a ajouté, mentionné) — l'effacement de son compte réécrit alors la notification (`notifsAnonymiser`). */
-  function notifCreer({ uid, type, titre, texte, cible, auteur }) {
+  /* `remplacer` : la nouvelle notification prend la place de celle du même type et de la même cible que la personne n'a PAS encore lue — une réunion modifiée deux cents fois laisse UNE notification
+     (la dernière), pas deux cents (relecture du gardien, important n° 4). Une notification déjà lue reste : c'est de l'historique. */
+  function notifCreer({ uid, type, titre, texte, cible, auteur, remplacer }) {
     return tx(() => {
+      if (remplacer === true && cible) Q('DELETE FROM notification WHERE uid = ? AND type = ? AND cible = ? AND lue = 0').run(uid, type, cible);
       const id = nouvelId('n'), t = horloge();
       Q('INSERT INTO notification(id, uid, type, titre_ch, texte_ch, cible, ts, auteur) VALUES(?, ?, ?, ?, ?, ?, ?, ?)')
         .run(id, uid, type, sceller('notification', 'titre_ch', id + '|titre', titre || ''), sceller('notification', 'texte_ch', id + '|texte', texte || ''), cible || null, t, auteur || null);
@@ -1881,7 +1886,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const aadReunion = (id, champ) => id + '|' + champ;
   const listeEntiers = (texte) => { try { const a = JSON.parse(texte); return Array.isArray(a) ? a.filter(Number.isInteger) : []; } catch (e) { return []; } };
   function reunionBrute(id) {
-    return Q('SELECT id, conv, hote, titre_ch, lieu_ch, debut, fin, tz, rep, n, jusqua, rappels, annulee, version, horaire_le, prochain, cree, maj FROM reunion WHERE id = ?').get(id) || null;
+    return Q('SELECT id, conv, hote, titre_ch, lieu_ch, debut, fin, tz, rep, n, jusqua, fin_serie, rappels, annulee, version, horaire_le, prochain, cree, maj FROM reunion WHERE id = ?').get(id) || null;
   }
   const reunionTitre = (r) => ouvrirOuNull('reunion', 'titre_ch', aadReunion(r.id, 'titre'), r.titre_ch);
   const reunionLieu = (r) => r.lieu_ch ? ouvrirOuNull('reunion', 'lieu_ch', aadReunion(r.id, 'lieu'), r.lieu_ch) : '';
@@ -1912,10 +1917,14 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   /* Les réunions d'une personne qui PEUVENT toucher la fenêtre [du, au) — une présélection : une série commencée avant la fenêtre est gardée, ses occurrences se calculent à l'appelant
      (`calendrier.js`). Une version courte de chaque (pas la liste des invités) : l'agenda en montre beaucoup. */
   function reunionsDe(uid, du, au) {
+    /* ⛔ L'AGENDA D'UN INVITÉ NE SE LAISSE PAS MASQUER. Les 600 places se donnaient dans l'ordre du DÉBUT de la série : six cents séries d'il y a vingt-six ans, terminées, prenaient toutes les places et
+       l'invitation d'aujourd'hui n'apparaissait nulle part — sans autre moyen d'en sortir. Deux règles : une série TERMINÉE avant la fenêtre est écartée ici, par `fin_serie` (NULL : une série « Jamais »,
+       toujours gardée) ; et l'ordre garde ce qui vient d'abord (`prochain`, la prochaine occurrence non commencée), ce qui n'a plus de prochaine occurrence passe après. */
     return Q(`SELECT r.id, r.conv, r.hote, r.titre_ch, r.lieu_ch, r.debut, r.fin, r.tz, r.rep, r.n, r.jusqua, r.rappels, r.annulee, r.version, r.cree, r.maj, i.statut AS mon_statut, i.rappels AS mes_rappels,
                      (SELECT COUNT(*) FROM reunion_invite x WHERE x.reunion = r.id) AS participants_n
               FROM reunion_invite i JOIN reunion r ON r.id = i.reunion
-              WHERE i.uid = ? AND r.debut < ? AND (r.rep <> 'aucune' OR r.fin > ?) ORDER BY r.debut, r.id LIMIT 600`).all(uid, au, du).map(r => {
+              WHERE i.uid = ? AND r.debut < ? AND (r.rep <> 'aucune' OR r.fin > ?) AND (r.fin_serie IS NULL OR r.fin_serie > ?)
+              ORDER BY (r.prochain IS NULL), r.prochain, r.debut, r.id LIMIT 600`).all(uid, au, du, du).map(r => {
       const rang = reunionRang(r);
       rang.hote = personneCourte(uid, r.hote);
       rang.participants_n = num(r.participants_n);
@@ -1936,7 +1945,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
 
   /* Créer : la conversation, ses membres, la réunion, les lignes d'invitation, le message d'ouverture — TOUT dans une transaction. `prochain` : le début de la première occurrence non commencée
      (calculé par l'appelant avec `calendrier.js`), ou null. Les invités sont déjà jugés par l'appelant (`peutEcrire`). */
-  function reunionCreer({ hote, titre, lieu, debut, fin, tz, rep, n, jusqua, rappels, invites, prochain }) {
+  function reunionCreer({ hote, titre, lieu, debut, fin, tz, rep, n, jusqua, rappels, invites, prochain, finSerie }) {
     return tx(() => {
       if (num(Q('SELECT COUNT(*) AS n FROM reunion WHERE hote = ? AND annulee = 0 AND prochain IS NOT NULL').get(hote).n) >= REUNIONS_HOTE_MAX) throw erreur('trop_de_reunions');
       const uids = Array.from(new Set(invites)).filter(u => u !== hote);
@@ -1945,9 +1954,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       Q(`INSERT INTO conversation(id, type, nom_ch, dernier_ts, cree_par, cree) VALUES(?, 'reunion', ?, ?, ?, ?)`).run(conv, sceller('conversation', 'nom_ch', conv + '|nom', titre), t, hote, t);
       Q(`INSERT INTO membre(conv, uid, role, depuis_seq, rejoint) VALUES(?, ?, 'admin', 1, ?)`).run(conv, hote, t);
       for (const u of uids) Q(`INSERT INTO membre(conv, uid, role, depuis_seq, rejoint) VALUES(?, ?, 'membre', 1, ?)`).run(conv, u, t);
-      Q('INSERT INTO reunion(id, conv, hote, titre_ch, lieu_ch, debut, fin, tz, rep, n, jusqua, rappels, annulee, version, horaire_le, prochain, cree, maj) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?)')
+      Q('INSERT INTO reunion(id, conv, hote, titre_ch, lieu_ch, debut, fin, tz, rep, n, jusqua, fin_serie, rappels, annulee, version, horaire_le, prochain, cree, maj) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?)')
         .run(id, conv, hote, sceller('reunion', 'titre_ch', aadReunion(id, 'titre'), titre), lieu ? sceller('reunion', 'lieu_ch', aadReunion(id, 'lieu'), lieu) : null,
-          debut, fin, tz, rep, n || null, jusqua || null, JSON.stringify(rappels), t, prochain === undefined ? null : prochain, t, t);
+          debut, fin, tz, rep, n || null, jusqua || null, finSerie === undefined ? null : finSerie, JSON.stringify(rappels), t, prochain === undefined ? null : prochain, t, t);
       Q(`INSERT INTO reunion_invite(reunion, uid, statut, cree, repondu) VALUES(?, ?, 'accepte', ?, ?)`).run(id, hote, t, t);
       for (const u of uids) Q(`INSERT INTO reunion_invite(reunion, uid, statut, invite_par, cree) VALUES(?, ?, 'attente', ?, ?)`).run(id, u, hote, t);
       messageSysteme(conv, hote, { k: 'reunion_creee' });
@@ -1956,7 +1965,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   /* Modifier : seuls les champs PASSÉS changent. Un changement d'HORAIRE (début, fin, fuseau, répétition, fin de répétition) date `horaire_le`, remet la réponse des invités « en attente » et
      pose le nouveau `prochain` (calculé par l'appelant). → { change, horaire, titre, lieu, gid } */
-  function reunionModifier({ id, par, titre, lieu, debut, fin, tz, rep, n, jusqua, rappels, prochain }) {
+  function reunionModifier({ id, par, titre, lieu, debut, fin, tz, rep, n, jusqua, rappels, prochain, finSerie }) {
     return tx(() => {
       const r = reunionBrute(id); if (!r) throw erreur('introuvable');
       if (r.hote !== par) throw erreur('interdit');
@@ -1973,10 +1982,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const titreChange = nouveau.titre !== ancienTitre, lieuChange = nouveau.lieu !== ancienLieu;
       const rappelsChange = nouveau.rappels !== r.rappels;
       if (!horaire && !titreChange && !lieuChange && !rappelsChange) return { change: false, horaire: false, titre: false, lieu: false, gid: 0 };
-      Q('UPDATE reunion SET titre_ch = ?, lieu_ch = ?, debut = ?, fin = ?, tz = ?, rep = ?, n = ?, jusqua = ?, rappels = ?, version = version + 1, maj = ?, horaire_le = ?, prochain = ? WHERE id = ?')
+      Q('UPDATE reunion SET titre_ch = ?, lieu_ch = ?, debut = ?, fin = ?, tz = ?, rep = ?, n = ?, jusqua = ?, fin_serie = ?, rappels = ?, version = version + 1, maj = ?, horaire_le = ?, prochain = ? WHERE id = ?')
         .run(titreChange ? sceller('reunion', 'titre_ch', aadReunion(id, 'titre'), nouveau.titre) : r.titre_ch,
           lieuChange ? (nouveau.lieu ? sceller('reunion', 'lieu_ch', aadReunion(id, 'lieu'), nouveau.lieu) : null) : r.lieu_ch,
-          nouveau.debut, nouveau.fin, nouveau.tz, nouveau.rep, nouveau.n, nouveau.jusqua, nouveau.rappels, t, horaire ? t : num(r.horaire_le),
+          nouveau.debut, nouveau.fin, nouveau.tz, nouveau.rep, nouveau.n, nouveau.jusqua, horaire ? (finSerie === undefined ? null : finSerie) : (r.fin_serie === null || r.fin_serie === undefined ? null : num(r.fin_serie)),
+          nouveau.rappels, t, horaire ? t : num(r.horaire_le),
           horaire ? (prochain === undefined ? null : prochain) : (r.prochain === null ? null : num(r.prochain)), id);
       if (titreChange) Q('UPDATE conversation SET nom_ch = ? WHERE id = ?').run(sceller('conversation', 'nom_ch', r.conv + '|nom', nouveau.titre), r.conv);
       if (horaire) Q(`UPDATE reunion_invite SET statut = 'attente', repondu = NULL WHERE reunion = ? AND uid <> ?`).run(id, r.hote);
@@ -2046,6 +2056,25 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       Q('UPDATE reunion SET version = version + 1, maj = ? WHERE id = ?').run(t, id);
       journalAjouter('reunion', null, uid, id);
       return { gid: journalAjouter('reunion', r.conv, null, id) };
+    });
+  }
+  /* ⛔ QUITTER UNE RÉUNION, c'est la sortie de l'INVITÉ — la seule : bloquer quelqu'un n'en retire personne, et une invitation qu'on n'a pas voulue ne devait pas rester dans un agenda sans issue
+     (relecture du gardien, important n° 3). Même geste que le retrait par l'hôte, du côté de celui qui part : la ligne d'invitation part (noté, `reunion_invite`), la personne sort de la conversation de
+     la réunion comme d'un groupe (noté, `groupe_membre` ; l'hôte et les autres lisent « a quitté la réunion »), ses rappels partent, son agenda est prévenu par un événement ADRESSÉ. L'hôte ne quitte pas
+     (il annule ou supprime) ; qui n'est pas invité reçoit `introuvable`, comme pour une réunion qui n'existe pas. L'hôte peut réinviter. → { gid, conv, hote } */
+  function reunionQuitter({ id, uid }) {
+    return tx(() => {
+      const r = reunionBrute(id); if (!r) throw erreur('introuvable');
+      if (!Q('SELECT 1 AS x FROM reunion_invite WHERE reunion = ? AND uid = ?').get(id, uid)) throw erreur('introuvable');
+      if (uid === r.hote) throw erreur('hote_non_quittable');
+      const t = horloge();
+      Q('DELETE FROM reunion_invite WHERE reunion = ? AND uid = ?').run(id, uid);
+      Q('DELETE FROM rappel WHERE reunion = ? AND uid = ?').run(id, uid);
+      Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(id + '|' + uid + '|' + t, 'reunion_invite', t);
+      if (Q('SELECT 1 AS x FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(r.conv, uid)) membreQuitter({ conv: r.conv, uid });   // note `groupe_membre`, écrit « a quitté la réunion »
+      Q('UPDATE reunion SET version = version + 1, maj = ? WHERE id = ?').run(t, id);
+      journalAjouter('reunion', null, uid, id);
+      return { gid: journalAjouter('reunion', r.conv, null, id), conv: r.conv, hote: r.hote };
     });
   }
   /* La réponse d'un invité. L'hôte n'a pas à répondre (il est « accepte » d'office). → { change, gid } */
@@ -2188,6 +2217,21 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     Q('DELETE FROM rappel WHERE uid = ?').run(uid);
     Q('DELETE FROM courrier_envoi WHERE uid = ?').run(uid);
     return { pieces, convs };
+  }
+  /* ⛔ LA RÉPARATION AU DÉMARRAGE : ce qu'un retour en arrière a pu laisser. Le code d'avant les réunions ouvre sans mot dire une base au schéma 7 (la migration ne refuse pas un schéma plus récent) et
+     efface un compte SANS connaître les réunions : l'invitation de la personne effacée reste, et une réunion dont elle était l'hôte garde un hôte qui n'est plus personne — sans successeur, sans
+     main qui l'annule. Le démarrage du code neuf refait donc, pour chaque compte effacé qui laisse une trace dans les réunions, l'effacement de ses réunions (`reunionsQuitterTout` : l'hôte passe au
+     plus ancien invité, ou la réunion part avec sa conversation ; l'invité sort). Rejouable : sans trace, rien à faire — un démarrage ordinaire n'écrit RIEN. → { personnes, pieces, convs } */
+  function reunionsReparer() {
+    return tx(() => {
+      const ids = Q(`SELECT DISTINCT u.uid AS uid FROM (
+                       SELECT i.uid AS uid FROM reunion_invite i JOIN personne p ON p.id = i.uid WHERE p.etat = 'supprime'
+                       UNION
+                       SELECT r.hote AS uid FROM reunion r JOIN personne p ON p.id = r.hote WHERE p.etat = 'supprime') u ORDER BY u.uid`).all().map(x => x.uid);
+      const pieces = [], convs = [];
+      for (const uid of ids) { const x = reunionsQuitterTout(uid); pieces.push(...x.pieces); convs.push(...x.convs); }
+      return { personnes: ids.length, pieces, convs };
+    });
   }
 
   /* ══ ESPACES, INVITATIONS, CANAUX, ABONNEMENT (migration 6) ════════════════════════════════════════════════════════════════
@@ -2676,7 +2720,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushJoignable, pushNonJoignablesPurger, pushRetirerAutres, pushVapidLire, pushVapidPoser,
     pushDestinatairesMessage, pushMessageEncore, autreSupprime,
     suppressionProgrammer, suppressionAnnuler, suppressionLe, comptesEchus, compteEffacer, exportProfil, exportConversationsIds, exportPieces,
-    reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionRepondre, reunionRappelsPoser,   // les réunions programmées
+    reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionQuitter, reunionRepondre, reunionRappelsPoser, reunionsReparer,   // les réunions programmées
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
     courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions,                                                                                                                  // …et le courriel d'invitation
   };

@@ -3,11 +3,12 @@
  *   GET  /api/reunions?du=&au=                  S   mes réunions qui touchent la fenêtre (62 jours au plus), avec leurs occurrences : de quoi dessiner la semaine
  *   POST /api/reunions   {titre,lieu?,debut,fin,tz?,repetition?,jusqua?,n?,invites?,rappels?,notifier?}   V PRO  programmer — la fonction Pro (la bêta ouvre tout)
  *   GET  /api/reunions/:id                      R   la fiche : l'horaire, la répétition, les invités et leur réponse, MES rappels, la prochaine occurrence
- *   POST /api/reunions/:id/modifier  {…champs…, notifier?}   H   seuls les champs passés changent ; un changement d'HORAIRE remet les réponses « en attente »
+ *   POST /api/reunions/:id/modifier  {…champs…, notifier?}   H   seuls les champs passés changent ; un changement d'HORAIRE remet les réponses « en attente » ; vingt modifications par réunion et par heure
  *   POST /api/reunions/:id/annuler              H   la réunion reste (annulée), plus aucun rappel ; prévient les invités — toujours
  *   POST /api/reunions/:id/supprimer {notifier?} H   la réunion part avec sa conversation ; prévient d'abord les invités d'une réunion à venir
  *   POST /api/reunions/:id/inviter   {uids,notifier?}  H   des contacts ou des membres de MON espace seulement (comme un groupe) ; les autres sont rendus (`non_ajoutes`)
  *   POST /api/reunions/:id/retirer   {uid}      H   l'hôte ne se retire pas
+ *   POST /api/reunions/:id/quitter              R   la sortie de l'INVITÉ : plus d'invitation, plus de conversation de la réunion, plus de rappel ; l'hôte ne quitte pas (il annule ou supprime) et peut réinviter
  *   POST /api/reunions/:id/reponse   {statut}   R   accepte · decline · peutetre — l'hôte n'a pas à répondre
  *   POST /api/reunions/:id/rappels   {rappels}  R   MES rappels (5, 15, 60, 1440 minutes avant) ; `null` rend la main au réglage de la réunion
  *   GET  /api/reunions/:id/ics?serie=1|occurrence=<début>  R   le fichier pour l'agenda de la personne (une occurrence, ou toute la série)
@@ -44,7 +45,7 @@ function installerReunions(H, ctx) {
   const corps = (req) => (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? req.body : {};
   /* Les codes de refus du stockage, traduits : tous des chaînes courtes que la page sait dire (`public/api.js`, `MESSAGES`). Un code inconnu est une vraie panne : il part à `next`. */
   const CODES = { introuvable: [404, 'introuvable'], interdit: [403, 'interdit'], reunion_annulee: [409, 'reunion_annulee'], trop_d_invites: [409, 'trop_d_invites'], trop_de_reunions: [409, 'trop_de_reunions'],
-    hote_non_retirable: [409, 'hote_non_retirable'], hote_reponse: [409, 'hote_reponse'], groupe_plein: [409, 'trop_d_invites'],
+    hote_non_retirable: [409, 'hote_non_retirable'], hote_non_quittable: [409, 'hote_non_quittable'], hote_reponse: [409, 'hote_reponse'], groupe_plein: [409, 'trop_d_invites'],
     /* le courriel (`courriel.js`) : un plafond atteint est un 429 qui dit LEQUEL, un relais qui refuse un 502 — jamais le texte de sa réponse. (Un relais absent et une adresse fausse sont dits par la
        route elle-même, AVANT de toucher au plafond par minute : ils n'arrivent jamais ici.) */
     courriel_quota_compte: [429, 'courriel_quota_compte'], courriel_quota_destinataire: [429, 'courriel_quota_destinataire'], courriel_echec: [502, 'courriel_echec'], occurrence_inconnue: [404, 'occurrence_inconnue'] };
@@ -53,12 +54,12 @@ function installerReunions(H, ctx) {
     try { const r = f(req, res, next); if (r && typeof r.catch === 'function') r.catch(traduire); }
     catch (e) { traduire(e); }
   };
-  function plafond(res, nom, cle, def) {
+  function plafond(res, nom, cle, def, code) {
     const q = Object.assign({}, def, config.quotas[nom] || {});
     const r = quotas.essai(nom + ':' + cle, q.max, q.fenetreMs);
     if (r.ok) return true;
     res.set('Retry-After', String(r.retry));
-    refus(res, 429, 'quota_atteint', { retry: r.retry });
+    refus(res, 429, code || 'quota_atteint', { retry: r.retry });
     return false;
   }
   const effacer = (ids) => { if (ids && ids.length && typeof ctx.effacerPieces === 'function') ctx.effacerPieces(ids); };
@@ -177,7 +178,7 @@ function installerReunions(H, ctx) {
     if (!plafond(res, 'reunion', hote.id, { max: 30, fenetreMs: 3600000 })) return;
     const ok = voulus.filter(u => stockage.peutEcrire(hote.id, u)), non_invites = voulus.filter(u => !ok.includes(u));
     const prochain = prochainDe(v.serie, horloge());
-    const r = stockage.reunionCreer({ hote: hote.id, titre: v.titre, lieu: v.lieu, debut: v.serie.debut, fin: v.serie.fin, tz: v.serie.tz, rep: v.serie.rep, n: v.serie.n, jusqua: v.serie.jusqua, rappels: v.rappels, invites: ok, prochain });
+    const r = stockage.reunionCreer({ hote: hote.id, titre: v.titre, lieu: v.lieu, debut: v.serie.debut, fin: v.serie.fin, tz: v.serie.tz, rep: v.serie.rep, n: v.serie.n, jusqua: v.serie.jusqua, rappels: v.rappels, invites: ok, prochain, finSerie: cal.finDeSerie(v.serie) });
     hub.reveiller({ conv: r.conv });
     if (notifierVoulu(b)) {
       const quand = prochain !== null ? prochain : v.serie.debut, desc = { titre: v.titre, tz: v.serie.tz, repetition: v.serie.rep };
@@ -195,8 +196,11 @@ function installerReunions(H, ctx) {
     const courant = stockage.reunionPourMembre(id, hote.id).reunion;
     const v = valider(b, courant, courant.tz);
     if (v.erreur) return refus(res, 400, v.erreur);
+    /* ⛔ VINGT MODIFICATIONS PAR RÉUNION ET PAR HEURE : chaque modification écrit, date, remet les réponses en attente, ajoute une ligne à la conversation et prévient les invités — sans plafond, un hôte
+       (ou un script) en faisait deux cents d'un trait. Le refus est DIT (`trop_de_modifications`, avec le délai) ; la clé est la réunion, pas l'hôte (elle passe à un successeur). */
+    if (!plafond(res, 'reunion_modif', id, { max: 20, fenetreMs: 3600000 }, 'trop_de_modifications')) return;
     const prochain = v.horaire ? prochainDe(v.serie, horloge()) : undefined;
-    const r = stockage.reunionModifier(Object.assign({ id, par: hote.id }, v.champs, v.horaire ? { prochain } : {}));
+    const r = stockage.reunionModifier(Object.assign({ id, par: hote.id }, v.champs, v.horaire ? { prochain, finSerie: cal.finDeSerie(v.serie) } : {}));
     if (r.gid) hub.reveiller({ conv: courant.conv });
     /* on prévient quand quelque chose que les invités VOIENT a changé : l'horaire, le titre, le lieu — pas un simple réglage de rappel */
     if (r.change && (r.horaire || r.titre || r.lieu) && notifierVoulu(b)) {
@@ -262,6 +266,14 @@ function installerReunions(H, ctx) {
     stockage.reunionRetirer({ id, par: req.moi.id, uid: u });
     hub.reveiller({ conv: req.reunion.conv, uids: [u] });
     res.json(vue(req.moi.id, id));
+  });
+
+  /* ── quitter : la sortie de l'invité ── */
+  H['reunions.quitter'] = garder((req, res) => {
+    const id = req.reunion.id;
+    const r = stockage.reunionQuitter({ id, uid: req.moi.id });
+    hub.reveiller({ conv: r.conv, uids: [req.moi.id] });
+    res.json({ ok: true });
   });
 
   /* ── ma réponse, mes rappels ── */

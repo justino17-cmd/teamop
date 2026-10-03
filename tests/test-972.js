@@ -140,6 +140,44 @@ console.log('\nUne réunion : une conversation de genre `reunion`, un hôte, des
   S.fermer();
 }
 
+console.log('\nL\'agenda d\'un invité ne se laisse pas MASQUER : les séries terminées sont écartées en SQL, et l\'ordre garde ce qui vient d\'abord');
+{
+  /* La relecture du gardien (important n° 3) : 620 séries d'il y a vingt-six ans, TERMINÉES, occupaient les 600 places de l'agenda d'un invité (classées par le début de la série) — l'invitation
+     d'aujourd'hui n'apparaissait nulle part, et il n'y avait aucun moyen d'en sortir. Deux règles : `fin_serie` écarte les séries finies, et l'ordre est celui de la prochaine occurrence. */
+  const a = atelier(), S = a.S;
+  const HEURE = 3600000, ancien = DEBUT - 9000 * JOUR, brut = a.brut();
+  const cree = (hote, titre, extra) => { a.h.t += 10; return S.reunionCreer(Object.assign({ hote: hote.id, titre, lieu: '', debut: ancien, fin: ancien + HEURE, tz: 'Europe/Paris', rep: 'hebdomadaire', n: null, jusqua: null, rappels: [15], invites: [a.ben.id], prochain: null, finSerie: null }, extra || {})); };
+  for (let i = 0; i < 620; i++) cree(a.ana, 'Ancienne ' + i, { debut: ancien + i * 60000, fin: ancien + i * 60000 + HEURE, n: 5, finSerie: ancien + 100 * JOUR });
+  const urgente = cree(a.ana, 'Urgente', { rep: 'aucune', debut: DEBUT, fin: DEBUT + HEURE, prochain: DEBUT, finSerie: DEBUT + HEURE });
+  const jamais = cree(a.ana, 'Jamais', { prochain: DEBUT + 2 * JOUR, finSerie: null });
+  v('population : 620 séries terminées il y a plus de vingt ans, plus deux réunions vivantes, toutes avec Ben invité — 622 lignes d\'invitation', [compte(brut, 'SELECT COUNT(*) AS n FROM reunion_invite WHERE uid = ?', a.ben.id), compte(brut, `SELECT COUNT(*) AS n FROM reunion WHERE fin_serie < ?`, DEBUT)], [622, 620]);
+  const liste = S.reunionsDe(a.ben.id, DEBUT - JOUR, DEBUT + 7 * JOUR);
+  v('⛔ les séries TERMINÉES ne sortent pas de la base (`fin_serie`) : l\'agenda de Ben porte les DEUX réunions vivantes, dans l\'ordre de leur prochaine occurrence — pas 600 lignes mortes', liste.map(x => x.titre), ['Urgente', 'Jamais']);
+  v('⛔ une série « Jamais » (`fin_serie` NULL) est TOUJOURS gardée, quel que soit son début ; la borne est stricte : une série qui finit EXACTEMENT au début de la fenêtre n\'y touche plus, une qui finit une milliseconde après si',
+    (() => { const x = cree(a.ana, 'Finit pile', { finSerie: DEBUT - JOUR }), y = cree(a.ana, 'Finit après', { finSerie: DEBUT - JOUR + 1 }); return [S.reunionsDe(a.ben.id, DEBUT - JOUR, DEBUT + 7 * JOUR).map(r => r.titre).filter(t => /^Finit/.test(t)), x.id !== y.id]; })(), [['Finit après'], true]);
+  void urgente; void jamais;
+  brut.close();
+  S.fermer();
+}
+{
+  /* l'ORDRE : 652 séries vivantes (quatre hôtes, 163 chacun : un hôte en tient 300 au plus) plus UNE réunion unique qui commence bientôt mais dont le début est POSTÉRIEUR à celui de toutes les séries */
+  const a = atelier(), S = a.S;
+  const HEURE = 3600000, ancien = DEBUT - 5000 * JOUR;
+  const hotes = [a.ana, a.cleo, a.dan, a.eli];
+  let k = 0;
+  for (let i = 0; i < 652; i++) {
+    a.h.t += 10;
+    S.reunionCreer({ hote: hotes[i % 4].id, titre: 'Vivante ' + String(i).padStart(3, '0'), lieu: '', debut: ancien + i * 60000, fin: ancien + i * 60000 + HEURE, tz: 'Europe/Paris', rep: 'hebdomadaire', n: null, jusqua: null, rappels: [15], invites: [a.ben.id], prochain: DEBUT + (i + 1) * HEURE, finSerie: null });
+    k++;
+  }
+  a.h.t += 10;
+  S.reunionCreer({ hote: a.ana.id, titre: 'Urgente', lieu: '', debut: DEBUT, fin: DEBUT + HEURE, tz: 'Europe/Paris', rep: 'aucune', n: null, jusqua: null, rappels: [15], invites: [a.ben.id], prochain: DEBUT, finSerie: DEBUT + HEURE });
+  const liste = S.reunionsDe(a.ben.id, DEBUT - JOUR, DEBUT + 7 * JOUR);
+  v('population : 652 séries vivantes et une réunion unique, 653 invitations — plus que les 600 places', [k + 1, compte(a.brut(), 'SELECT COUNT(*) AS n FROM reunion_invite WHERE uid = ?', a.ben.id)], [653, 653]);
+  v('⛔ l\'ordre garde ce qui VIENT d\'abord : l\'agenda est plein (600) et l\'« Urgente » en est la première ligne — classée par le début de la série, elle venait après 652 séries commencées il y a quatorze ans et n\'apparaissait pas', [liste.length, liste[0].titre, liste[1].titre, liste[599].titre], [600, 'Urgente', 'Vivante 000', 'Vivante 598']);
+  S.fermer();
+}
+
 console.log('\nLes plafonds : cent invités, trois cents réunions à venir par hôte');
 {
   const a = atelier(), S = a.S;
@@ -191,6 +229,17 @@ console.log('\nModifier : le titre renomme la conversation, l\'HORAIRE remet les
   v('⛔ un invité ne modifie pas (`interdit`), personne ne modifie ce qui n\'existe pas (`introuvable`)', [lance(() => S.reunionModifier({ id: r.id, par: a.ben.id, titre: 'Piraté' })), lance(() => S.reunionModifier({ id: 'r_inconnue', par: a.ana.id, titre: 'x' })), S.reunionPourMembre(r.id, a.ana.id).reunion.titre], ['interdit', 'introuvable', 'Encore un titre']);
   const messagesSys = S.messagesDe(conv, a.ana.id, { limite: 50 }).messages.filter(m => m.type === 'systeme').map(m => m.meta.k + (m.meta.horaire === true ? '+horaire' : ''));
   v('le fil de la réunion dit ce qui s\'est passé : création, deux modifications de contenu, une d\'horaire', messagesSys.filter(k => k !== 'rejoint'), ['reunion_creee', 'reunion_modifiee', 'reunion_modifiee+horaire', 'reunion_modifiee']);
+  {
+    const brut = a.brut(), fs = () => brut.prepare('SELECT fin_serie AS n FROM reunion WHERE id = ?').get(r.id).n;
+    const avant = fs();
+    a.h.t += 1000; S.reunionModifier({ id: r.id, par: a.ana.id, lieu: 'Salle 9' });
+    const apresLieu = fs();
+    a.h.t += 1000; S.reunionModifier({ id: r.id, par: a.ana.id, debut: DEBUT + 5 * JOUR, fin: DEBUT + 5 * JOUR + 3600000, prochain: DEBUT + 5 * JOUR, finSerie: DEBUT + 5 * JOUR + 3600000 });
+    const apresHoraire = fs();
+    a.h.t += 1000; S.reunionModifier({ id: r.id, par: a.ana.id, debut: DEBUT + 6 * JOUR, fin: DEBUT + 6 * JOUR + 3600000, prochain: DEBUT + 6 * JOUR });
+    v('⛔ `fin_serie` : NULL quand l\'appelant n\'en dit rien (on garde plutôt qu\'on n\'écarte), inchangée par un changement de LIEU, réécrite par un changement d\'HORAIRE avec la valeur que l\'appelant a calculée (et NULL s\'il n\'en donne pas)', [avant, apresLieu, apresHoraire, fs()], [null, null, DEBUT + 5 * JOUR + 3600000, null]);
+    brut.close();
+  }
   S.fermer();
 }
 
@@ -274,6 +323,7 @@ console.log('\nInviter, retirer, répondre, régler ses rappels');
   S.reunionInviter({ id: r.id, par: a.ana.id, uids: [a.cleo.id] });
   v('⛔ réinviter une personne retirée marche (elle redevient membre, en attente, avec une invitation NEUVE)', [statuts(S, r.id, a.ana.id), S.convPourMembre(conv, a.cleo.id) !== null], [['Ana:accepte', 'Ben:attente', 'Cleo:attente'], true]);
 
+
   /* répondre */
   const rep = (uid, statut) => S.reunionRepondre({ id: r.id, uid, statut });
   a.h.t += 1000; const ev1 = reunionEvents(S, a.ana.id).length;
@@ -291,6 +341,56 @@ console.log('\nInviter, retirer, répondre, régler ses rappels');
   v('   null rend la main à la réunion', [S.reunionPourMembre(r.id, a.ben.id).moi.rappels, S.reunionPourMembre(r.id, a.ben.id).moi.rappels_perso], [[15], false]);
   v('un non-invité ne règle rien', lance(() => S.reunionRappelsPoser({ id: r.id, uid: a.eli.id, rappels: [5] })), 'introuvable');
   void rr;
+  S.fermer();
+}
+
+console.log('\nQuitter une réunion : la sortie de l\'INVITÉ (l\'hôte ne quitte pas, il annule ou supprime)');
+{
+  const a = atelier(), S = a.S;
+  const r = reunion(a, { invites: [a.ben.id, a.cleo.id] });
+  const conv = S.reunionPourMembre(r.id, a.ana.id).reunion.conv;
+    a.h.t += 1000;
+    S.rappelEnvoyer({ reunion: r.id, occurrence: DEBUT, uid: a.ben.id, avant: 15, titre: 'x', texte: 'y', cible: r.id });
+    const ver0 = S.reunionPourMembre(r.id, a.ana.id).reunion.version, reg0 = registre(a.chemin).length;
+    const refus = [lance(() => S.reunionQuitter({ id: r.id, uid: a.ana.id })), lance(() => S.reunionQuitter({ id: r.id, uid: a.eli.id })), lance(() => S.reunionQuitter({ id: 'r_' + '0'.repeat(32), uid: a.ben.id }))];
+    v('⛔ l\'hôte ne quitte pas (il annule ou supprime) ; qui n\'est pas invité, comme une réunion qui n\'existe pas : `introuvable`, la même réponse — et ces refus n\'écrivent RIEN (ni version, ni registre)',
+      [refus, S.reunionPourMembre(r.id, a.ana.id).reunion.version - ver0, registre(a.chemin).length - reg0], [['hote_non_quittable', 'introuvable', 'introuvable'], 0, 0]);
+    v('population : Ben est invité, membre de la conversation, et a un rappel au registre', [statuts(S, r.id, a.ana.id), S.convPourMembre(conv, a.ben.id) !== null, S.rappelsEnvoyesDe(r.id).size], [['Ana:accepte', 'Ben:attente', 'Cleo:attente'], true, 1]);
+    a.h.t += 1000;
+    const q = S.reunionQuitter({ id: r.id, uid: a.ben.id });
+    v('⛔ quitter : Ben n\'a plus ni la réunion ni sa conversation ; l\'hôte et les autres la voient SANS lui (la version monte d\'un cran) ; ses rappels partent du registre',
+      [S.reunionPourMembre(r.id, a.ben.id), S.convPourMembre(conv, a.ben.id), statuts(S, r.id, a.ana.id), q.conv === conv && q.hote === a.ana.id, S.reunionPourMembre(r.id, a.ana.id).reunion.version - ver0, S.rappelsEnvoyesDe(r.id).size],
+      [null, null, ['Ana:accepte', 'Cleo:attente'], true, 1, 0]);
+    const nouveaux = registre(a.chemin).slice(reg0);
+    v('⛔ son départ se NOTE deux fois, chacun par son genre : `reunion_invite` (réunion|personne|date) et `groupe_membre` (conversation|personne|date) — le registre d\'une archive d\'avant le remettrait dehors',
+      [nouveaux.filter(e => e.genre === 'reunion_invite').map(e => e.objet.split('|').slice(0, 2).join('|')), nouveaux.filter(e => e.genre === 'groupe_membre').map(e => e.objet.split('|').slice(0, 2).join('|')), nouveaux.filter(e => e.genre === 'conversation').length],
+      [[r.id + '|' + a.ben.id], [conv + '|' + a.ben.id], 0]);
+    v('l\'hôte le LIT dans la conversation : un message système « membre_parti », de Ben', S.messagesDe(conv, a.ana.id, { limite: 50 }).messages.filter(m => m.type === 'systeme' && m.meta && m.meta.k === 'membre_parti').map(m => m.auteur), [a.ben.id]);
+    v('⛔ Ben reçoit un événement ADRESSÉ « elle n\'existe plus pour toi » (son agenda la retire) et rien de plus de cette réunion ; quitter une seconde fois : `introuvable`', [reunionEvents(S, a.ben.id).map(x => x.data), lance(() => S.reunionQuitter({ id: r.id, uid: a.ben.id }))], [[{ id: r.id, supprime: true }], 'introuvable']);
+    a.h.t += 1000;
+    const re = S.reunionInviter({ id: r.id, par: a.ana.id, uids: [a.ben.id] });
+    v('⛔ l\'hôte peut le RÉINVITER : il redevient membre, en attente, avec une invitation neuve (« Quitter » n\'est pas un blocage)', [re.ajoutes, statuts(S, r.id, a.ana.id), S.convPourMembre(conv, a.ben.id) !== null], [[a.ben.id], ['Ana:accepte', 'Cleo:attente', 'Ben:attente'], true]);
+    const an = reunion(a, { titre: 'Annulée', invites: [a.cleo.id] });
+    S.reunionAnnuler({ id: an.id, par: a.ana.id });
+    a.h.t += 1000;
+    v('quitter une réunion ANNULÉE marche (c\'est la façon de la sortir de son agenda)', [lance(() => S.reunionQuitter({ id: an.id, uid: a.cleo.id })), S.reunionPourMembre(an.id, a.cleo.id)], [null, null]);
+  S.fermer();
+}
+
+console.log('\nUne notification qui en REMPLACE une non lue : deux cents modifications ne font pas deux cents notifications');
+{
+  const a = atelier(), S = a.S;
+  const note = (texte, extra) => S.notifCreer(Object.assign({ uid: a.ben.id, type: 'reunion_modifiee', titre: 'Point', texte, cible: 'r_x', auteur: a.ana.id, remplacer: true }, extra || {}));
+  const modif = (uid, cible) => S.notifListe(uid || a.ben.id, 200).filter(x => x.type === 'reunion_modifiee' && x.cible === (cible || 'r_x'));
+  for (let i = 0; i < 200; i++) { a.h.t += 10; note('Modification ' + i); }
+  v('⛔ DEUX CENTS modifications d\'une réunion laissent UNE notification non lue à la personne : la dernière', [modif().length, modif()[0].texte], [1, 'Modification 199']);
+  S.notifLues(a.ben.id, null);
+  a.h.t += 10; note('Après lecture');
+  v('⛔ une notification déjà LUE reste (c\'est de l\'historique) : la nouvelle s\'ajoute, et c\'est elle seule que la suivante remplacera', [modif().map(x => x.texte + ':' + x.lue), (() => { a.h.t += 10; note('Encore'); return modif().map(x => x.texte + ':' + x.lue); })()], [['Après lecture:false', 'Modification 199:true'], ['Encore:false', 'Modification 199:true']]);
+  a.h.t += 10; note('Autre réunion', { cible: 'r_y' }); a.h.t += 10; note('Pour Cleo', { uid: a.cleo.id }); a.h.t += 10; note('Un rappel', { type: 'reunion_rappel' });
+  v('⛔ la remplaçante ne touche NI une autre réunion, NI une autre personne, NI un autre type', [modif(a.ben.id, 'r_y').length, modif(a.cleo.id).length, modif(a.ben.id).length, S.notifListe(a.ben.id, 200).filter(x => x.type === 'reunion_rappel').length], [1, 1, 2, 1]);
+  a.h.t += 10; note('Sans option 1', { remplacer: undefined }); a.h.t += 10; note('Sans option 2', { remplacer: undefined });
+  v('sans `remplacer` (le comportement d\'avant, celui des rappels et des groupes), les notifications S\'ACCUMULENT : rien ne change pour qui ne le demande pas', modif().filter(x => /^Sans option/.test(x.texte)).length, 2);
   S.fermer();
 }
 
@@ -402,16 +502,18 @@ async function effacementsRejoues() {
     const avant = path.join(bac, 'avant-' + (++n) + '.db');
     await S.instantane(avant);                                                               // l'archive d'AVANT les effacements
     a.h.t += 5000; S.reunionRetirer({ id: r.id, par: a.ana.id, uid: a.cleo.id });           // Cleo retirée de la première
+    a.h.t += 5000; S.reunionQuitter({ id: r.id, uid: a.dan.id });                           // Dan est parti de lui-même
     a.h.t += 5000; S.reunionAnnuler({ id: r2.id, par: a.ana.id });                          // la seconde annulée
     const ap = registre(a.chemin);
     const copie = copier(avant, 'restauree');
     vrai('population : la copie d\'avant porte Cleo invitée à la première, la seconde active (non annulée), et deux conversations de réunion',
       lire(copie, 'SELECT COUNT(*) AS n FROM reunion_invite WHERE reunion = ? AND uid = ?', r.id, a.cleo.id) === 1 && lire(copie, 'SELECT annulee AS n FROM reunion WHERE id = ?', r2.id) === 0 && lire(copie, `SELECT COUNT(*) AS n FROM conversation WHERE type = 'reunion'`) === 2);
     const b1 = STOCK.ouvrir.copie.rejouerPurge(copie, ap);
-    v('⛔ le registre rejoué : Cleo n\'est plus invitée (et plus membre de la conversation, par `groupe_membre`), la seconde réunion est ANNULÉE et sans prochaine occurrence, rien n\'est « ignoré »',
-      [b1.invitesRetires, lire(copie, 'SELECT COUNT(*) AS n FROM reunion_invite WHERE reunion = ? AND uid = ?', r.id, a.cleo.id), lire(copie, 'SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL', conv, a.cleo.id), b1.reunionsAnnulees, lire(copie, 'SELECT annulee AS n FROM reunion WHERE id = ?', r2.id), lire(copie, 'SELECT COUNT(*) AS n FROM reunion WHERE id = ? AND prochain IS NULL', r2.id), b1.ignorees],
-      [1, 0, 0, 1, 1, 1, 0]);
-    v('   les autres invités de la première sont intacts (l\'hôte, Ben, Dan)', lire(copie, 'SELECT COUNT(*) AS n FROM reunion_invite WHERE reunion = ?', r.id), 3);
+    v('⛔ le registre rejoué : Cleo (retirée par l\'hôte) et Dan (parti de lui-même) ne sont plus invités ni membres de la conversation (`reunion_invite` et `groupe_membre`), la seconde réunion est ANNULÉE et sans prochaine occurrence, rien n\'est « ignoré »',
+      [b1.invitesRetires, lire(copie, 'SELECT COUNT(*) AS n FROM reunion_invite WHERE reunion = ? AND uid = ?', r.id, a.cleo.id), lire(copie, 'SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL', conv, a.cleo.id), b1.reunionsAnnulees, lire(copie, 'SELECT annulee AS n FROM reunion WHERE id = ?', r2.id), lire(copie, 'SELECT COUNT(*) AS n FROM reunion WHERE id = ? AND prochain IS NULL', r2.id), b1.ignorees,
+        lire(copie, 'SELECT COUNT(*) AS n FROM reunion_invite WHERE reunion = ? AND uid = ?', r.id, a.dan.id), lire(copie, 'SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL', conv, a.dan.id)],
+      [2, 0, 0, 1, 1, 1, 0, 0, 0]);
+    v('   les autres invités de la première sont intacts (l\'hôte et Ben)', lire(copie, 'SELECT COUNT(*) AS n FROM reunion_invite WHERE reunion = ?', r.id), 2);
     const b2 = STOCK.ouvrir.copie.rejouerPurge(copie, ap);
     v('⛔ rejouer deux fois ne change rien (idempotent)', [b2.invitesRetires, b2.reunionsAnnulees, b2.ajoutees], [0, 0, 0]);
     /* une invitation PLUS RÉCENTE que le retrait est une autre invitation */
@@ -556,6 +658,30 @@ function suiteEffacement() {
     const vue = S.reunionPourMembre(r.id, a.ben.id);
     v('⛔ l\'hôte DÉJÀ sorti de la copie par le rejeu hors ligne (ni invitation, ni appartenance) est quand même remplacé au rejeu du service : la réunion n\'est pas laissée à un compte effacé',
       [rj.effacee, vue && vue.reunion.hote.id === a.ben.id, S.convPourMembre(conv, a.ben.id).moi.role], [true, true, 'admin']);
+    S.fermer();
+  }
+
+  console.log('\nLa réparation du démarrage : ce qu\'un code d\'AVANT les réunions a laissé après avoir effacé un compte');
+  {
+    const a = atelier(), S = a.S, brut = a.brut();
+    const r1 = reunion(a);                                                     // Ana héberge ; Ben, Cleo, Dan invités
+    const r2 = reunion(a, { titre: 'Sans successeur', invites: [] });          // Ana seule : personne ne peut reprendre
+    const r3 = reunion(a, { titre: 'Chez Dan', hote: a.dan.id, invites: [a.ana.id, a.ben.id] });   // Ana n'est qu'invitée
+    const conv1 = S.reunionPourMembre(r1.id, a.ana.id).reunion.conv, conv2 = S.reunionPourMembre(r2.id, a.ana.id).reunion.conv;
+    v('une base saine n\'a rien à réparer, et la réparation n\'écrit RIEN (un démarrage ordinaire ne touche pas aux données)', (() => { const reg = registre(a.chemin).length, ver = S.reunionPourMembre(r1.id, a.ana.id).reunion.version; const x = S.reunionsReparer(); return [x.personnes, x.pieces, x.convs, registre(a.chemin).length - reg, S.reunionPourMembre(r1.id, a.ana.id).reunion.version - ver]; })(), [0, [], [], 0, 0]);
+    /* ce que ferait un code d'AVANT : le profil vidé et marqué supprimé, la personne sortie de ses conversations — et les LIGNES DES RÉUNIONS intactes (il ne les connaît pas) */
+    brut.prepare(`UPDATE personne SET etat = 'supprime', prenom = '', nom = '' WHERE id = ?`).run(a.ana.id);
+    brut.prepare('UPDATE membre SET quitte_le = ? WHERE uid = ?').run(a.h.t, a.ana.id);
+    v('population : Ana est effacée, mais elle héberge deux réunions et elle est invitée à une troisième — trois traces', [compte(brut, `SELECT COUNT(*) AS n FROM reunion WHERE hote = ?`, a.ana.id), compte(brut, 'SELECT COUNT(*) AS n FROM reunion_invite WHERE uid = ?', a.ana.id)], [2, 3]);
+    a.h.t += 1000;
+    const x = S.reunionsReparer();
+    v('⛔ la réparation refait l\'effacement de ses réunions : la première passe au plus ancien invité (Ben), la seconde — sans successeur — part avec sa conversation, Ana n\'est plus invitée à la troisième',
+      [x.personnes, S.reunionPourMembre(r1.id, a.ben.id).reunion.hote.id === a.ben.id, S.convPourMembre(conv1, a.ben.id).moi.role, S.reunionPourMembre(r2.id, a.ana.id), compte(brut, 'SELECT COUNT(*) AS n FROM conversation WHERE id = ?', conv2), statuts(S, r3.id, a.dan.id), compte(brut, 'SELECT COUNT(*) AS n FROM reunion_invite WHERE uid = ?', a.ana.id)],
+      [1, true, 'admin', null, 0, ['Dan:accepte', 'Ben:attente'], 0]);
+    const reg = registre(a.chemin).length;
+    const y = S.reunionsReparer();
+    v('⛔ REJOUABLE : une seconde réparation ne trouve rien et n\'écrit rien', [y.personnes, registre(a.chemin).length - reg], [0, 0]);
+    brut.close();
     S.fermer();
   }
 

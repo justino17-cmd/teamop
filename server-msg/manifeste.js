@@ -129,6 +129,7 @@ const MANIFESTE = [
   { id: 'reunions.supprimer', m: 'POST', p: '/api/reunions/:id/supprimer',           garde: 'H' },
   { id: 'reunions.inviter',  m: 'POST', p: '/api/reunions/:id/inviter',              garde: 'H' },
   { id: 'reunions.retirer',  m: 'POST', p: '/api/reunions/:id/retirer',              garde: 'H' },
+  { id: 'reunions.quitter',  m: 'POST', p: '/api/reunions/:id/quitter',              garde: 'R' },
   { id: 'reunions.reponse',  m: 'POST', p: '/api/reunions/:id/reponse',              garde: 'R' },
   { id: 'reunions.rappels',  m: 'POST', p: '/api/reunions/:id/rappels',              garde: 'R' },
   { id: 'reunions.ics',      m: 'GET',  p: '/api/reunions/:id/ics',                  garde: 'R' },

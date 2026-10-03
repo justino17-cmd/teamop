@@ -76,6 +76,12 @@ function demarrer(env = process.env) {
      hors ligne et levé un drapeau ; ici le service les rejoue avec ses propres fonctions (un compte effacé ne revient pas). Sans drapeau — tout démarrage ordinaire — rien ne
      s'exécute. Voir `rejeu.js`. */
   rejouerAuDemarrage({ stockage, contexte: { effacerPieces, horloge: Date.now }, journaliser });
+  /* ⛔ LES RÉUNIONS D'UN COMPTE EFFACÉ PAR UN CODE D'AVANT : un retour en arrière a pu effacer un compte sans connaître les réunions (une invitation orpheline, une réunion sans hôte). On les répare ICI,
+     avant de servir — rejouable, et SANS rien écrire quand il n'y a rien à réparer. Une panne de la réparation ne ferme pas le service : elle se dit (le nom de l'erreur, jamais son message). */
+  try {
+    const reparees = stockage.reunionsReparer();
+    if (reparees.personnes) { effacerPieces(reparees.pieces); journaliser('reunions_reparees', { n: reparees.personnes }); }
+  } catch (e) { journaliser('reunions_reparation_echec', { nom: e && (e.code || e.name) }); }
   /* ⛔ LA FORMULE ET LA FACTURATION : `formuleDe` est la seule fonction qui décide de Perso, Pro ou impayé (le drapeau de la bêta y est lu, et là seulement) ; la facturation parle à Stripe
      (inerte sans clé, et le dit). Les deux se lisent dans `ctx`, jamais ne se reconstruisent ailleurs. */
   const formule = creerFormule({ stockage, config });

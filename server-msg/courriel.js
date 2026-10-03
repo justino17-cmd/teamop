@@ -38,10 +38,14 @@ function adresseValide(brut) {
   return a;
 }
 /* L'adresse comptée pour le plafond : en minuscules et sans « +étiquette » (`nom+1@x.fr`, `nom+2@x.fr`, `NOM@x.fr` sont une seule boîte). Une partie locale qui n'est QUE l'étiquette (`+x@d.fr`)
-   est gardée telle quelle : sinon toutes ces adresses-là tomberaient dans la même boîte `@d.fr`. */
+   est gardée telle quelle : sinon toutes ces adresses-là tomberaient dans la même boîte `@d.fr`.
+   ⛔ GMAIL IGNORE LES POINTS de la partie locale et sert `googlemail.com` comme `gmail.com` : `j.dupont@gmail.com`, `jdupont@gmail.com` et `j.dupont@googlemail.com` sont UNE boîte — sans quoi
+   « deux courriels par semaine et par destinataire » se contournait en variant les points (relecture du gardien, remarque 1). Ailleurs un point compte : `a.b@x.fr` et `ab@x.fr` sont deux boîtes. */
 const normalisee = (a) => {
   const i = a.lastIndexOf('@'), local = a.slice(0, i), sans = local.replace(/\+.*$/, '');
-  return (sans || local).toLowerCase() + '@' + a.slice(i + 1).toLowerCase();
+  let l = (sans || local).toLowerCase(), d = a.slice(i + 1).toLowerCase();
+  if (d === 'gmail.com' || d === 'googlemail.com') { d = 'gmail.com'; l = l.replace(/\./g, '') || l; }
+  return l + '@' + d;
 };
 
 /* Le corps : du texte simple. `hote` : celui qui invite ; `r` : la réunion (titre, lieu, fuseau, répétition) ; `t` : l'occurrence dont on parle (la prochaine, ou celle qu'on a choisie) ; `serie` :

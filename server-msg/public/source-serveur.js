@@ -37,7 +37,7 @@
    en https seulement), abonnementRelire (« J'ai réglé — vérifier » : relu chez Stripe). Une conversation de type 'canal' porte `espace` et `prive`. Un refus de fonction Pro garde sa forme
    (`ErreurApi.raison` : « impaye » ou « perso », que le seul administrateur reçoit).
    LES RÉUNIONS PROGRAMMÉES (capacité `reunions`, étape 6) : reunions(du, au) (l'agenda d'une fenêtre : chaque réunion avec ses occurrences), reunion(id) (la fiche : horaire, répétition, invités et
-   leur réponse, MES rappels), programmer, modifierReunion, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, repondreReunion, rappelsReunion ; adresseIcs(id, {occurrence}) (l'adresse
+   leur réponse, MES rappels), programmer, modifierReunion, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion ; adresseIcs(id, {occurrence}) (l'adresse
    du fichier .ics, que la page télécharge par un lien : le cookie de session suit) ; courrielOuvert() (vrai/faux, ou null si on n'a pas pu savoir) et courrielReunion(id, adresse, {occurrence}).
    Les heures se disent en millisecondes UTC (rendues) ou en heure LOCALE « 2026-10-26T14:00 » + un fuseau (envoyées) : le service fait autorité sur le fuseau. Les personnes d'une réunion sont des
    IDENTIFIANTS (la page les habille avec `personne(id)`, au moment de peindre : une photo arrivée après coup apparaît). Le fuseau de CET appareil est dit au service UNE fois par séance (quand la page
@@ -1357,6 +1357,8 @@
       return { ajoutes: Array.isArray(r.ajoutes) ? r.ajoutes.length : 0, nonAjoutes: Array.isArray(r.non_ajoutes) ? r.non_ajoutes.length : 0 };
     }
     async function retirerInviteReunion(id, uid) { await pourReunion(A.retirerInviteReunion(id, uid)); reunionChangee(id); }
+    /* la sortie de l'INVITÉ : la réunion disparaît de son agenda et de ses conversations (comme si elle était supprimée, POUR LUI) */
+    async function quitterReunion(id) { await pourReunion(A.quitterReunion(id)); reunionChangee(id, true); }
     async function repondreReunion(id, statut) { direFuseau(); await pourReunion(A.repondreReunion(id, statut)); reunionChangee(id); }
     async function rappelsReunion(id, rappels) { direFuseau(); await pourReunion(A.rappelsReunion(id, rappels)); reunionChangee(id); }
     /* le fichier .ics : une adresse de CE service (jamais une adresse venue du service), que la page ouvre par un lien — SANS réseau, donc pas par `A`, dont chaque méthode est enveloppée en asynchrone */
@@ -1395,7 +1397,7 @@
       canalCreer, canalRenommer, canalSupprimer, canalAjouterMembres, canalRetirerMembre,
       abonnementOffres, abonnement, abonnementPayer, abonnementPortail, abonnementRelire,
       /* ── les réunions programmées (capacité `reunions`) ── */
-      reunions, reunion, programmer, modifierReunion, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, repondreReunion, rappelsReunion, adresseIcs, courrielOuvert, courrielReunion,
+      reunions, reunion, programmer, modifierReunion, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion, adresseIcs, courrielOuvert, courrielReunion,
       /* ── ce que le service ne sait pas encore : les appels (étape 7) — la page dit « bientôt », ces méthodes refusent proprement ── */
       appels: () => Promise.resolve([]),
       demarrerAppel: rejeter('bientot'), appel: () => Promise.resolve(null), terminerAppel: rejeter('bientot'),

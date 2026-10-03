@@ -105,8 +105,10 @@
     trop_de_reunions: 'Tu as atteint le nombre maximal de réunions à venir (300) : supprime-en une.',
     reunion_annulee: 'Cette réunion est annulée : elle ne se modifie plus.',
     hote_non_retirable: 'L\'organisateur ne se retire pas de sa réunion : annule-la ou supprime-la.',
+    hote_non_quittable: 'L\'organisateur ne quitte pas sa réunion : annule-la ou supprime-la.',
+    trop_de_modifications: 'Cette réunion vient d\'être modifiée vingt fois en une heure. Réessaie dans quelques minutes.',
     hote_reponse: 'Tu organises cette réunion : tu n\'as pas à y répondre.',
-    reunion_quitter: 'On ne quitte pas la conversation d\'une réunion : refuse l\'invitation (tu ne seras plus rappelé), ou demande à l\'organisateur de te retirer.',
+    reunion_quitter: 'On ne quitte pas la conversation d\'une réunion toute seule : ouvre la réunion et choisis « Quitter la réunion ».',
     occurrence_inconnue: 'Cette date ne fait pas partie de la réunion.',
     /* l'invitation par courriel : chaque refus a sa phrase, et aucune ne promet ce que le service ne tient pas (« l'envoi par courriel n'est pas encore ouvert » est la vérité d'un service sans relais) */
     courriel_non_ouvert: 'L\'envoi par courriel n\'est pas encore ouvert.',
@@ -369,6 +371,7 @@
       supprimerReunion: (id, o2) => appel('POST', '/api/reunions/' + e(id) + '/supprimer', o2 || {}),
       inviterReunion: (id, uids, o2) => appel('POST', '/api/reunions/' + e(id) + '/inviter', Object.assign({ uids }, o2 || {})),
       retirerInviteReunion: (id, uid) => appel('POST', '/api/reunions/' + e(id) + '/retirer', { uid }),
+      quitterReunion: (id) => appel('POST', '/api/reunions/' + e(id) + '/quitter'),
       repondreReunion: (id, statut) => appel('POST', '/api/reunions/' + e(id) + '/reponse', { statut }),
       rappelsReunion: (id, rappels) => appel('POST', '/api/reunions/' + e(id) + '/rappels', { rappels }),
       /* l'invitation par courriel à quelqu'un qui n'a pas OP MESSAGES (le fichier .ics en pièce jointe) : l'adresse n'est ni rangée ni rendue par le service */

@@ -407,7 +407,7 @@ async function parcoursA(b, ctx) {
   await verifier('Bruno écrit dans la conversation comme dans un groupe', B, () => Array.from(document.querySelectorAll('#conv-messages .msg, #conv-messages .bulle')).some(e => /Je serai là WQXZ/.test(e.textContent)), null, 8000, () => lire(B, '#conv-messages'));
   await toucher(B, '#conv-titre');
   await verifier('⛔ toucher le titre de la conversation ouvre la RÉUNION (pas les infos d\'un groupe)', B, (t) => document.getElementById('feuille-titre').textContent === 'Réunion' && document.querySelector('#info-corps .info-nom') && document.querySelector('#info-corps .info-nom').textContent === t, TITRE, 8000, () => etatPage(B));
-  v('… et la fiche ne propose PAS de quitter la conversation (population : la fiche a des gestes ; on se désinvite par la réponse « Refuser »)', await B.page.evaluate(() => [document.querySelectorAll('#info-corps [data-reu]').length > 5, /Quitter/.test(document.getElementById('info-corps').textContent)]), [true, false]);
+  v('… et la fiche ne propose PAS de quitter la CONVERSATION seule (population : la fiche a des gestes) — la sortie de l\'invité est « Quitter la RÉUNION », qui emporte les deux', await B.page.evaluate(() => [document.querySelectorAll('#info-corps [data-reu]').length > 5, /Quitter la conversation|Quitter le groupe/.test(document.getElementById('info-corps').textContent), !!document.querySelector('#info-corps [data-reu="quitter-demander"]')]), [true, false, true]);
   await fermerFeuille(B);
 
   console.log('\n── Chloé n\'est pas invitée : l\'adresse de la réunion ne lui montre RIEN ──');
@@ -431,6 +431,28 @@ async function parcoursA(b, ctx) {
   await toucher(A, '[data-reu="retirer"][data-uid="' + P.dora.moi.id + '"]');
   await verifier('Alice retire Dora : deux participants de nouveau (et Dora est de nouveau proposée à l\'invitation)', A, () => Array.from(document.querySelectorAll('#info-corps .contact.avec-actions')).filter(e => !e.querySelector('[data-reu="inviter"]')).length === 2 && !!document.querySelector('[data-reu="inviter"]'), null, 10000, () => texteCorps(A));
   await verifier('⛔ la fiche de Dora SE FERME toute seule : « Cette réunion n\'existe plus, ou tu n\'y es plus invité. »', D, () => /Cette réunion n'existe plus/.test(document.getElementById('mot').textContent) && !document.documentElement.classList.contains('feuille-ouverte'), null, 12000, () => etatPage(D));
+
+  console.log('\n── Quitter la réunion : la sortie de l\'invité, confirmée — l\'organisatrice la voit EN DIRECT ──');
+  const convR = sql('SELECT conv AS n FROM reunion WHERE id = ?', R).n;
+  await toucher(A, '[data-reu="inviter"]');
+  await verifier('Alice réinvite Dora : trois participants', A, () => Array.from(document.querySelectorAll('#info-corps .contact.avec-actions')).filter(e => !e.querySelector('[data-reu="inviter"]')).length === 3 && !document.querySelector('[data-reu="inviter"]'), null, 10000, () => texteCorps(A));
+  await D.page.goto(svc.base + '/#reunions/' + R);
+  await verifier('Dora rouvre la réunion : sa fiche porte « Quitter la réunion » (la rubrique « Invité »)', D, () => document.getElementById('feuille-titre').textContent === 'Réunion' && !!document.querySelector('[data-reu="quitter-demander"]') && !document.querySelector('[data-reu="annuler-demander"]'), null, 12000, () => etatPage(D));
+  v('⛔ la fiche d\'Alice, l\'organisatrice, n\'offre PAS « Quitter la réunion » : elle annule ou supprime', await A.page.evaluate(() => [!!document.querySelector('[data-reu="quitter-demander"]'), !!document.querySelector('[data-reu="annuler-demander"]')]), [false, true]);
+  vrai('… la cible tactile du bouton fait 44 px au moins', (await D.page.evaluate(() => document.querySelector('[data-reu="quitter-demander"]').getBoundingClientRect().height)) >= 44);
+  await toucher(D, '[data-reu="quitter-demander"]');
+  await verifier('« Quitter la réunion » demande confirmation et dit ce qui arrive (l\'organisateur peut réinviter)', D, () => /Quitter cette réunion \?/.test(document.getElementById('info-corps').textContent) && /peut te réinviter/.test(document.getElementById('info-corps').textContent) && !!document.querySelector('[data-reu="quitter-confirmer"]') && !!document.querySelector('[data-reu="confirmation-retour"]'), null, 6000, () => texteCorps(D));
+  await toucher(D, '[data-reu="confirmation-retour"]');
+  await verifier('« Rester » : la demande disparaît, le geste est revenu', D, () => !document.querySelector('[data-reu="quitter-confirmer"]') && !!document.querySelector('[data-reu="quitter-demander"]'), null, 6000, () => texteCorps(D));
+  vrai('… et RIEN n\'a changé au service (population : Dora est invitée, membre de la conversation)', nb('SELECT COUNT(*) AS n FROM reunion_invite WHERE reunion = ? AND uid = ?', R, P.dora.moi.id) === 1 && nb('SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL', convR, P.dora.moi.id) === 1);
+  const registreAvant = nb(`SELECT COUNT(*) AS n FROM purge WHERE genre IN ('reunion_invite', 'groupe_membre') AND objet LIKE ?`, '%|' + P.dora.moi.id + '|%');
+  await toucher(D, '[data-reu="quitter-demander"]');
+  await toucher(D, '[data-reu="quitter-confirmer"]');
+  await verifier('⛔ Dora quitte : sa feuille se ferme et la page dit « Tu as quitté la réunion » (pas « n\'existe plus »)', D, () => /Tu as quitté la réunion/.test(document.getElementById('mot').textContent) && !document.documentElement.classList.contains('feuille-ouverte'), null, 12000, () => etatPage(D));
+  v('⛔ le service tient la sortie : plus d\'invitation, plus membre de la conversation, DEUX lignes de plus au registre des effacements (la réunion et le groupe) — et la réunion existe toujours', [nb('SELECT COUNT(*) AS n FROM reunion_invite WHERE reunion = ? AND uid = ?', R, P.dora.moi.id), nb('SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL', convR, P.dora.moi.id), nb(`SELECT COUNT(*) AS n FROM purge WHERE genre IN ('reunion_invite', 'groupe_membre') AND objet LIKE ?`, '%|' + P.dora.moi.id + '|%') - registreAvant, nb('SELECT COUNT(*) AS n FROM reunion WHERE id = ?', R)], [0, 0, 2, 1]);
+  await verifier('⛔ la fiche d\'Alice, restée ouverte, ne liste plus Dora (deux participants, Dora de nouveau proposée à l\'invitation) — EN DIRECT, sans toucher', A, () => Array.from(document.querySelectorAll('#info-corps .contact.avec-actions')).filter(e => !e.querySelector('[data-reu="inviter"]')).length === 2 && !!document.querySelector('[data-reu="inviter"]'), null, 12000, () => texteCorps(A));
+  await onglet(D, 'reunions');
+  await verifier('… et l\'agenda de Dora n\'a plus la réunion', D, (t) => !Array.from(document.querySelectorAll('#liste-reunions .reunion-titre, #liste-reunions .reunion-ligne')).some(e => e.textContent.includes(t)), TITRE, 12000, () => lire(D, '#vue-reunions'));
 
   return { tous, sql, nb, P, A, B, D, Z, R, DST, OCC };
 }

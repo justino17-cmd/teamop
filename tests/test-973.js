@@ -400,6 +400,64 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
       v('la conversation le dit (un message d\'activité)', sys, ['reunion_creee', 'reunion_annulee']);
     }
 
+    /* ═══ 10 bis. BLOQUER, QUITTER ════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+    console.log('\nBloquer ne retire personne d\'une réunion et coupe les notifications de celui qu\'on a bloqué ; « Quitter » est la sortie de l\'invité');
+    {
+      const RB = (await mk(a, { invites: [ben.id, cleo.id, hal.id], notifier: false })).reunion.id;
+      /* Ben bloque Ana (l'invité bloque l'hôte) ; Ana bloque Hal (l'hôte bloque l'invité) ; Cleo ne bloque personne */
+      const bl1 = await b.post('/api/contacts/bloquer', { uid: ana.id }), bl2 = await a.post('/api/contacts/bloquer', { uid: hal.id });
+      v('population : Ben a bloqué Ana, Ana a bloqué Hal (200 chacun), et tous trois sont invités à la réunion', [bl1.code, bl2.code, statuts((await fiche(a, RB)).j)], [200, 200, 'Ana:accepte Ben:attente Cleo:attente Hal:attente']);
+      const m = await a.post('/api/reunions/' + RB + '/modifier', { lieu: 'Après le blocage' });
+      v('⛔ l\'hôte modifie : 200, la réunion change pour tous, mais la notification ne part qu\'à CLEO — Ben a bloqué l\'hôte, l\'hôte a bloqué Hal : la règle de la messagerie (`contactBloque`), dans les deux sens',
+        [m.code, (await nots(b, RB)).length, (await nots(h, RB)).length, (await nots(c, RB)).map(n => n.type)], [200, 0, 0, ['reunion_modifiee']]);
+      v('⛔ … et BLOQUER NE RETIRE PERSONNE : tous sont encore invités, la fiche de Ben se lit et porte la nouvelle valeur, l\'agenda de Hal la porte',
+        [statuts((await fiche(a, RB)).j), (await fiche(b, RB)).j.reunion.lieu, (await h.get('/api/reunions')).j.reunions.some(x => x.id === RB)], ['Ana:accepte Ben:attente Cleo:attente Hal:attente', 'Après le blocage', true]);
+      await a.post('/api/reunions/' + RB + '/annuler', {});
+      v('⛔ l\'annulation suit la même règle : elle prévient Cleo (qui a aussi sa modification), ni Ben ni Hal — ils lisent « annulée » dans leur agenda', [(await nots(c, RB)).map(n => n.type).sort(), (await nots(b, RB)).length, (await nots(h, RB)).length, (await b.get('/api/reunions')).j.reunions.find(x => x.id === RB).annulee], [['reunion_annulee', 'reunion_modifiee'], 0, 0, true]);
+
+      /* on lève les deux blocages : la suite du banc compte sur Ben et Hal comme invités ordinaires d'Ana */
+      const debl = [await b.post('/api/contacts/debloquer', { uid: ana.id }), await a.post('/api/contacts/debloquer', { uid: hal.id })];
+      v('population : les deux blocages sont levés (200 chacun) — Ana peut de nouveau inviter Ben et Hal', [debl[0].code, debl[1].code], [200, 200]);
+
+      /* quitter : c'est Cleo et Dan qui jouent */
+      const RQ = (await mk(a, { invites: [cleo.id, dan.id], notifier: false })).reunion.id;
+      const convQ = (await fiche(a, RQ)).j.reunion.conv;
+      const refus = [await a.post('/api/reunions/' + RQ + '/quitter', {}), await e.post('/api/reunions/' + RQ + '/quitter', {}), await T.client(svc.base).post('/api/reunions/' + RQ + '/quitter', {})];
+      v('⛔ l\'hôte ne quitte pas (409 `hote_non_quittable`, la réunion reste intacte) ; une étrangère reçoit le 404 d\'une réunion inexistante ; sans session : 401',
+        [refus.map(x => x.code), refus[0].j.error, refus[1].j.error, statuts((await fiche(a, RQ)).j)], [[409, 404, 401], 'hote_non_quittable', 'introuvable', 'Ana:accepte Cleo:attente Dan:attente']);
+      v('… et la réponse faite à la non-invitée est celle d\'une réunion inexistante', [refus[1].code, refus[1].j.error], [(await e.post('/api/reunions/r_' + '0'.repeat(32) + '/quitter', {})).code, 'introuvable']);
+      const sortie = await c.post('/api/reunions/' + RQ + '/quitter', {});
+      v('⛔ Cleo quitte : 200 ; la réunion n\'est plus dans son agenda, sa fiche répond 404 (la réponse d\'une réunion inexistante), sa conversation aussi',
+        [sortie.code, (await fiche(c, RQ)).code, (await c.get('/api/reunions')).j.reunions.some(x => x.id === RQ), (await c.get('/api/conversations/' + convQ + '/messages')).code], [200, 404, false, 404]);
+      const sys = (await a.get('/api/conversations/' + convQ + '/messages')).j.messages.filter(x => x.type === 'systeme').map(x => x.meta.k);
+      v('… l\'hôte et Dan voient la liste SANS elle ; la conversation le dit (« a quitté la réunion ») — l\'hôte le VOIT', [statuts((await fiche(a, RQ)).j), statuts((await fiche(d, RQ)).j), sys], ['Ana:accepte Dan:attente', 'Ana:accepte Dan:attente', ['reunion_creee', 'membre_parti']]);
+      await a.post('/api/reunions/' + RQ + '/modifier', { lieu: 'Sans Cleo' });
+      v('… elle ne reçoit plus rien de cette réunion (la modification part à Dan seul) ; quitter une seconde fois : 404', [(await nots(c, RQ)).length, (await nots(d, RQ)).map(n => n.type), (await c.post('/api/reunions/' + RQ + '/quitter', {})).code], [0, ['reunion_modifiee'], 404]);
+      const re = await a.post('/api/reunions/' + RQ + '/inviter', { uids: [cleo.id] });
+      v('⛔ « Quitter » n\'est pas un blocage : l\'hôte peut réinviter Cleo, qui retrouve la réunion (en attente) et sa conversation', [re.code, re.j.ajoutes, (await fiche(c, RQ)).code, statuts((await fiche(c, RQ)).j), (await c.get('/api/conversations/' + convQ + '/messages')).code], [200, [cleo.id], 200, 'Ana:accepte Cleo:attente Dan:attente', 200]);
+      const aAnnulee = await c.post('/api/reunions/' + RB + '/quitter', {});
+      v('quitter une réunion ANNULÉE marche (c\'est la façon de la sortir de son agenda)', [aAnnulee.code, (await c.get('/api/reunions')).j.reunions.some(x => x.id === RB)], [200, false]);
+    }
+
+    /* ═══ 10 ter. LA FIN DE SÉRIE, ÉCRITE PAR LES ROUTES ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+    console.log('\nLa fin d\'une série est posée par les routes (création et changement d\'horaire) : de quoi écarter en SQL les séries terminées');
+    {
+      const fs = (id) => { const x = sql('SELECT fin_serie AS n FROM reunion WHERE id = ?', id).n; return x === null ? null : Number(x); };
+      const seule = (await mk(a, {})).reunion.id;
+      const quatre = (await mk(a, { repetition: 'hebdomadaire', n: 4 })).reunion.id;               // les lundis 26 octobre, 2, 9 et 16 novembre à 14:00 de Paris
+      const jamais = (await mk(a, { repetition: 'hebdomadaire' })).reunion.id;
+      const jusquau = (await mk(a, { repetition: 'quotidienne', jusqua: '2026-11-03' })).reunion.id;
+      v('⛔ à la création : une réunion simple finit avec elle ; quatre lundis finissent après le dernier (le 16 novembre, 14:00 UTC à l\'heure d\'hiver, plus un jour de marge) ; « jusqu\'au 3 novembre » après le dernier jour ; « Jamais » n\'a pas de fin (NULL : toujours gardée)',
+        [fs(seule), fs(quatre), fs(jusquau), fs(jamais)], [L26 + HEURE, Date.UTC(2026, 10, 16, 14, 0) + JOUR, Date.UTC(2026, 10, 3, 14, 0) + JOUR, null]);
+      await a.post('/api/reunions/' + quatre + '/modifier', { lieu: 'Un autre lieu' });
+      const apresLieu = fs(quatre);
+      await a.post('/api/reunions/' + quatre + '/modifier', { n: 2 });
+      v('⛔ un changement de LIEU ne touche pas la fin ; un changement de RÉPÉTITION la recalcule (deux lundis : le 2 novembre)', [apresLieu, fs(quatre)], [Date.UTC(2026, 10, 16, 14, 0) + JOUR, Date.UTC(2026, 10, 2, 14, 0) + JOUR]);
+      await a.post('/api/reunions/' + jamais + '/modifier', { n: 3 });
+      await a.post('/api/reunions/' + seule + '/modifier', { debut: '2026-10-27T10:00', fin: '2026-10-27T11:00' });
+      v('… une série « Jamais » qui reçoit un nombre de répétitions en a une ; une réunion simple déplacée finit à sa nouvelle fin', [fs(jamais), fs(seule)], [Date.UTC(2026, 10, 9, 14, 0) + JOUR, Date.UTC(2026, 9, 27, 10, 0)]);
+    }
+
     /* ═══ 11. SUPPRIMER ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
     console.log('\nSupprimer : la réunion part avec sa conversation ; une réunion À VENIR prévient ses invités');
     {
@@ -629,11 +687,68 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
     const premiere = Q.sql(`SELECT id FROM reunion WHERE hote = ? ORDER BY cree LIMIT 1`, gil.id).id;
     await gi.post('/api/reunions/' + premiere + '/annuler', {});
     v('annuler une réunion libère une place : la suivante passe', (await gi.post('/api/reunions', corps({ titre: 'La 301e, après une annulation' }))).code, 201);
+    /* VINGT modifications par réunion et par heure : l'hôte est Hug (Gil a atteint ses trois cents), l'invité Gil */
+    Q.S.contactLier(hug.id, gil.id);
+    const RM = (await hu.post('/api/reunions', corps({ titre: 'Modifiée', invites: [gil.id] }))).j.reunion.id;
+    const notifsGil = async () => (await gi.get('/api/notifications')).j.notifications.filter(n => n.type === 'reunion_modifiee' && n.cible === RM);
+    let dernierOk = null;
+    for (let i = 0; i < 20; i++) { dernierOk = await hu.post('/api/reunions/' + RM + '/modifier', { lieu: 'Salle ' + i }); if (dernierOk.code !== 200) throw new Error('la modification ' + i + ' a été refusée : ' + dernierOk.code + ' ' + JSON.stringify(dernierOk.j)); }
+    const version20 = dernierOk.j.reunion.version;
+    v('population : vingt modifications d\'une réunion en une heure passent (200) — la dernière porte le lieu « Salle 19 »', [dernierOk.code, dernierOk.j.reunion.lieu, version20], [200, 'Salle 19', 20]);
+    v('⛔ UNE SEULE notification non lue pour Gil malgré les vingt modifications : la dernière remplace les autres', [(await notifsGil()).length, (await notifsGil()).every(n => !n.lue)], [1, true]);
+    const vingtEt1 = await hu.post('/api/reunions/' + RM + '/modifier', { lieu: 'Salle 20' });
+    v('⛔ la vingt et unième : 429 `trop_de_modifications` (le code que la page sait dire), avec le délai à attendre (en-tête et corps)', [vingtEt1.code, vingtEt1.j.error, Number(vingtEt1.h.get('retry-after')) > 0 && Number(vingtEt1.h.get('retry-after')) <= 3600, vingtEt1.j.retry === Number(vingtEt1.h.get('retry-after'))], [429, 'trop_de_modifications', true, true]);
+    const apresRefus = (await hu.get('/api/reunions/' + RM)).j;
+    v('… et le refus n\'a RIEN écrit : même version, même lieu, même notification, une conversation qui compte vingt modifications et pas vingt et une',
+      [apresRefus.reunion.version, apresRefus.reunion.lieu, (await notifsGil()).length, (await hu.get('/api/conversations/' + apresRefus.reunion.conv + '/messages')).j.messages.filter(x => x.type === 'systeme' && x.meta.k === 'reunion_modifiee').length], [version20, 'Salle 19', 1, 20]);
+    v('… le plafond est PAR RÉUNION : une autre réunion du même hôte se modifie encore (200),', [(await hu.post('/api/reunions/' + RS + '/modifier', { lieu: 'Ailleurs' })).code], [200]);
+    avancer(61 * MIN);
+    v('une heure plus tard la réunion se modifie de nouveau (200)', (await hu.post('/api/reunions/' + RM + '/modifier', { lieu: 'Salle 21' })).code, 200);
   } catch (err) {
     console.log('  ✗ le second service a levé : ' + (err && err.stack || err)); process.exitCode = 1;
   } finally {
     await Q.fermer();
     await fps.fermer();
+  }
+
+  /* ═══ 20. LA RÉPARATION AU DÉMARRAGE ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+  console.log('\nLa réparation au démarrage : un compte effacé par un code d\'AVANT laisse des réunions sans hôte — le service neuf les répare avant de servir, une seule fois');
+  {
+    const dossier = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-973-rep-'));
+    const cle = crypto.randomBytes(32).toString('hex');
+    const port = await T.portLibre();
+    const lire = (sql, ...p) => { const d = T.lireBase(path.join(dossier, 'data', 'msg.db')); try { return d.prepare(sql).get(...p); } finally { d.close(); } };
+    let z = null;
+    try {
+      z = await T.lancerService({ dossier, cle, port });
+      await z.arreter(false);                                    // la base existe, au dernier schéma ; le service est arrêté
+      const chemin = path.join(dossier, 'data', 'msg.db');
+      const W = ouvrir({ chemin, scelleur: creerScelleur(Buffer.from(cle, 'hex')) });
+      const mkp = (nom) => W.personneCreer({ identifiant: 'beta:' + nom + crypto.randomBytes(3).toString('hex'), prenom: nom, nom: 'Banc', origine: 'beta', verifie: true });
+      const [pa, pb, pc] = [mkp('Ana'), mkp('Ben'), mkp('Cleo')];
+      const debut = Date.now() + 3 * JOUR;
+      const mkr = (hote, titre, invites) => W.reunionCreer({ hote: hote.id, titre, lieu: '', debut, fin: debut + HEURE, tz: 'Europe/Paris', rep: 'aucune', n: null, jusqua: null, rappels: [15], invites, prochain: debut, finSerie: debut + HEURE });
+      const r1 = mkr(pa, 'Avec successeur', [pb.id, pc.id]), r2 = mkr(pa, 'Sans successeur', []), r3 = mkr(pb, 'Chez Ben', [pa.id]);
+      W.fermer();
+      /* ce que ferait un code d'AVANT les réunions qui efface le compte d'Ana : le profil vidé et marqué supprimé — les lignes des réunions ne sont pas touchées (il ne les connaît pas) */
+      const d = T.ouvrirBaseEcriture ? T.ouvrirBaseEcriture(chemin) : new (require('node:sqlite').DatabaseSync)(chemin);
+      d.prepare(`UPDATE personne SET etat = 'supprime', prenom = '', nom = '' WHERE id = ?`).run(pa.id);
+      d.prepare('UPDATE membre SET quitte_le = ? WHERE uid = ?').run(Date.now(), pa.id);
+      d.close();
+      v('population : Ana est effacée mais héberge deux réunions et est invitée à une troisième — trois traces dans les réunions', [Number(lire('SELECT COUNT(*) AS n FROM reunion WHERE hote = ?', pa.id).n), Number(lire('SELECT COUNT(*) AS n FROM reunion_invite WHERE uid = ?', pa.id).n)], [2, 3]);
+      z = await T.lancerService({ dossier, cle, port });
+      const sortie1 = z.sortie.texte();
+      const ligne = sortie1.split('\n').filter(l => l.includes('"evt":"reunions_reparees"'));
+      v('⛔ le service neuf répare AU DÉMARRAGE, avant de servir : la première réunion est à Ben (le plus ancien invité), la seconde — sans successeur — est partie avec sa conversation, Ana n\'est plus invitée à la troisième',
+        [lire('SELECT hote AS n FROM reunion WHERE id = ?', r1.id).n === pb.id, Number(lire('SELECT COUNT(*) AS n FROM reunion WHERE id = ?', r2.id).n), Number(lire('SELECT COUNT(*) AS n FROM conversation WHERE id = ?', r2.conv).n), Number(lire('SELECT COUNT(*) AS n FROM reunion_invite WHERE uid = ?', pa.id).n), Number(lire('SELECT COUNT(*) AS n FROM reunion WHERE id = ?', r3.id).n)], [true, 0, 0, 0, 1]);
+      v('… et le journal le DIT : une ligne, un nombre (une personne), ni identifiant ni nom', [ligne.length, ligne.length === 1 && JSON.parse(ligne[0]).n, ligne.join('').includes(pa.id), ligne.join('').includes('Ana')], [1, 1, false, false]);
+      await z.arreter(false);
+      z = await T.lancerService({ dossier, cle, port });
+      v('⛔ un démarrage ordinaire n\'a rien à réparer et le DIT PAS : aucune seconde ligne, et la réunion réparée est toujours à Ben', [z.sortie.texte().includes('reunions_reparees'), lire('SELECT hote AS n FROM reunion WHERE id = ?', r1.id).n === pb.id], [false, true]);
+    } finally {
+      if (z) await z.arreter(false);
+      try { fs.rmSync(dossier, { recursive: true, force: true }); } catch (e) { /* déjà parti */ }
+    }
   }
   fin();
 })().catch((err) => { console.log('  ✗ le banc a levé : ' + (err && err.stack || err)); process.exitCode = 1; fin(); });

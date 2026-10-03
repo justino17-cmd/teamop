@@ -149,6 +149,8 @@ const MATRICE = {
   'reunions.supprimer': { ok: (F) => ['POST', '/api/reunions/' + F.R + '/supprimer', {}], codes: [200] },
   'reunions.inviter':   { ok: (F) => ['POST', '/api/reunions/' + F.R + '/inviter', { uids: [F.C] }], codes: [200] },
   'reunions.retirer':   { ok: (F) => ['POST', '/api/reunions/' + F.R + '/retirer', { uid: F.B }], codes: [200] },
+  'reunions.quitter':   { ok: (F) => ['POST', '/api/reunions/' + F.R + '/quitter', {}], codes: [200, 409],
+                          exactes: { membre: [200, null], admin: [409, 'hote_non_quittable'] } },   // l'invité (Ben) sort : 200 ; l'hôte (Ana) ne quitte pas : 409 `hote_non_quittable` — la garde a passé, le geste dit non
   'reunions.reponse':   { ok: (F) => ['POST', '/api/reunions/' + F.R + '/reponse', { statut: 'accepte' }], codes: [200, 409] },
   'reunions.rappels':   { ok: (F) => ['POST', '/api/reunions/' + F.R + '/rappels', { rappels: [5] }], codes: [200] },
   'reunions.ics':       { ok: (F) => ['GET', '/api/reunions/' + F.R + '/ics'], codes: [200] },
@@ -193,7 +195,7 @@ const ATTENDU = {
       v('les identifiants du manifeste sont uniques, et chaque (méthode, chemin) aussi', [new Set(ids).size === ids.length, new Set(MANIFESTE.map(r => r.m + ' ' + r.p)).size === ids.length], [true, true]);
       v('toutes les gardes du manifeste sont connues de la table des attentes', MANIFESTE.filter(r => !ATTENDU[r.garde]).map(r => r.id), []);
       vrai('population : au moins 30 routes à jouer', MANIFESTE.length >= 30);
-      v('les douze routes des réunions sont au manifeste, avec leurs gardes (liste S, programmer V + Pro, fiche R, six gestes d\'hôte H, réponse R, rappels R, fichier R, courriel H)', ['reunions.liste', 'reunions.creer', 'reunions.lire', 'reunions.modifier', 'reunions.annuler', 'reunions.supprimer', 'reunions.inviter', 'reunions.retirer', 'reunions.reponse', 'reunions.rappels', 'reunions.ics', 'reunions.courriel'].map(i => { const x = MANIFESTE.find(y => y.id === i) || {}; return x.garde + (x.pro ? '+pro' : ''); }), ['S', 'V+pro', 'R', 'H', 'H', 'H', 'H', 'H', 'R', 'R', 'R', 'H']);
+      v('les treize routes des réunions sont au manifeste, avec leurs gardes (liste S, programmer V + Pro, fiche R, six gestes d\'hôte H, quitter R, réponse R, rappels R, fichier R, courriel H)', ['reunions.liste', 'reunions.creer', 'reunions.lire', 'reunions.modifier', 'reunions.annuler', 'reunions.supprimer', 'reunions.inviter', 'reunions.retirer', 'reunions.quitter', 'reunions.reponse', 'reunions.rappels', 'reunions.ics', 'reunions.courriel'].map(i => { const x = MANIFESTE.find(y => y.id === i) || {}; return x.garde + (x.pro ? '+pro' : ''); }), ['S', 'V+pro', 'R', 'H', 'H', 'H', 'H', 'H', 'R', 'R', 'R', 'R', 'H']);
       v('les quatre routes des pièces sont au manifeste, avec leurs gardes (déposer V, lire J, avatar S, stockage S)', ['pieces.deposer', 'pieces.lire', 'moi.avatar', 'moi.stockage'].map(i => (MANIFESTE.find(x => x.id === i) || {}).garde), ['V', 'J', 'S', 'S']);
       v('les six routes des notifications et du compte sont au manifeste, TOUTES en garde S (l\'identité vient de la session, jamais du corps)', ['push.abonner', 'push.desabonner', 'push.essai', 'flux.ack', 'compte.export', 'compte.supprimer'].map(i => (MANIFESTE.find(x => x.id === i) || {}).garde), ['S', 'S', 'S', 'S', 'S', 'S']);
       const sources = T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, 'app.js'), 'utf8')) + T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, 'routes.js'), 'utf8')) + T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, 'index.js'), 'utf8'));
@@ -308,6 +310,8 @@ const ATTENDU = {
           code_ = rep.code; err_ = rep.j && rep.j.error;
         }
         cellules++;
+        /* ⛔ une route dont deux profils qui PASSENT la garde n'ont pas la même issue (l'invité sort, l'hôte est refusé) dit laquelle, pour chacun : `codes` seul laisserait passer l'inverse */
+        if (M.exactes && M.exactes[profil]) v(r.id + ' [' + r.garde + '] × ' + profil + ' → EXACTEMENT ' + M.exactes[profil][0] + (M.exactes[profil][1] ? ' ' + M.exactes[profil][1] : ''), [code_, err_ || null], M.exactes[profil]);
         if (attendu === 'passe') {
           /* un échec dit CE QUI a répondu (code et erreur) : « faux » seul ne dit pas si la garde a refusé ou si le geste a dit non */
           v(r.id + ' [' + r.garde + '] × ' + profil + ' → passe la garde et réussit (' + M.codes.join('/') + ')', M.codes.includes(code_) ? 'oui' : [code_, err_], 'oui');

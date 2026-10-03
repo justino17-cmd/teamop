@@ -24,7 +24,7 @@ const { creerSourceServeur } = require(path.join(T.SERVICE, 'public', 'source-se
 const att = (cond, ms = 8000) => T.attendre(cond, ms, 10);
 const attrape = async (p) => { try { await p; return null; } catch (e) { return e; } };
 const JOUR = 86400000;
-const METHODES = ['reunions', 'reunion', 'programmer', 'modifierReunion', 'annulerReunion', 'supprimerReunion', 'inviterReunion', 'retirerInviteReunion', 'repondreReunion', 'rappelsReunion', 'adresseIcs', 'courrielOuvert', 'courrielReunion'];
+const METHODES = ['reunions', 'reunion', 'programmer', 'modifierReunion', 'annulerReunion', 'supprimerReunion', 'inviterReunion', 'retirerInviteReunion', 'quitterReunion', 'repondreReunion', 'rappelsReunion', 'adresseIcs', 'courrielOuvert', 'courrielReunion'];
 const TITRE = 'Point TITRE-WQXZ-CANARI';
 
 setTimeout(() => { console.log('  ✗ délai global du banc dépassé (240 s)'); process.exit(1); }, 240000).unref();
@@ -197,7 +197,31 @@ const jourParis = (t) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Pa
       const oa = await A.src.ouvrir(CONV);
       v('on y écrit comme dans un groupe : Alice lit le message de Bob', oa.messages.filter(m => !m.systeme).map(m => m.texte), ['Je serai là']);
       const e1 = await attrape(B.src.quitter(CONV));
-      v('⛔ on ne QUITTE pas la conversation d\'une réunion : refusé et dit (se désinviter se fait par la réponse « refuser »)', [codeDe(e1)], ['reunion_quitter']);
+      v('⛔ on ne QUITTE pas la conversation d\'une réunion toute seule : refusé et dit — et la phrase montre la vraie sortie (« Quitter la réunion », dans sa fiche)', [codeDe(e1), phrase(e1)], ['reunion_quitter', 'On ne quitte pas la conversation d\'une réunion toute seule : ouvre la réunion et choisis « Quitter la réunion ».']);
+    }
+
+    /* ═══ 6 bis. QUITTER LA RÉUNION ════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+    console.log('\nQuitter la réunion : la sortie de l\'invité, dite par le module de la page');
+    {
+      await A.src.inviterReunion(R, [dan.id], { notifier: true });
+      vrai('population : Dan est de nouveau invité, la réunion est dans son agenda', (await D.src.reunions(OCC[0] - JOUR, OCC[2] + JOUR)).some(x => x.id === R));
+      D.vider();
+      await D.src.quitterReunion(R);
+      v('⛔ Dan quitte : sa réunion disparaît de son agenda, sa fiche ne se lit plus (la phrase nomme la réunion)', [(await D.src.reunions(OCC[0] - JOUR, OCC[2] + JOUR)), codeDe(await attrape(D.src.reunion(R)))], [[], 'reunion_introuvable']);
+      vrai('… et sa page l\'apprend par l\'événement `reunions` de la réunion (« supprimée », POUR LUI : la fiche ouverte se ferme)', !!(await D.attendreEv(e => e.type === 'reunions' && e.id === R && e.supprime === true)));
+      const fiche = await A.src.reunion(R);
+      const phrases = (await A.src.ouvrir(CONV)).messages.filter(m => m.systeme).map(m => m.texte);
+      v('⛔ l\'organisateur le VOIT partir : la fiche ne le liste plus et la conversation dit qui est parti', [fiche.invites.some(i => i.id === dan.id), phrases[phrases.length - 1]], [false, 'Dan Banc a quitté la réunion']);
+      const e1 = await attrape(D.src.quitterReunion(R)), e2 = await attrape(A.src.quitterReunion(R));
+      v('quitter une réunion dont on n\'est plus : refusé comme une réunion inexistante ; l\'organisateur ne quitte pas sa réunion : refusé et dit', [codeDe(e1), codeDe(e2), phrase(e2)], ['reunion_introuvable', 'hote_non_quittable', 'L\'organisateur ne quitte pas sa réunion : annule-la ou supprime-la.']);
+    }
+
+    console.log('\nUne réunion modifiée trop souvent : le refus se dit à l\'écran');
+    {
+      const rm = await A.src.programmer({ titre: 'Modifiée souvent', debut: j0 + 'T14:00', fin: j0 + 'T15:00', tz: 'Europe/Paris' });
+      for (let i = 0; i < 20; i++) await A.src.modifierReunion(rm.id, { lieu: 'Salle ' + i });
+      const e = await attrape(A.src.modifierReunion(rm.id, { lieu: 'Salle 20' }));
+      v('⛔ la vingt et unième modification en une heure : refusée, et la phrase de l\'écran dit pourquoi — avec l\'attente que le service a donnée, une seule invitation à réessayer', [codeDe(e), e && e.statut, /^Cette réunion vient d'être modifiée vingt fois en une heure \(réessaie dans (59|60) min\)\.$/.test(phrase(e))], ['trop_de_modifications', 429, true]);
     }
 
     /* ═══ 7. LE FICHIER .ICS ══════════════════════════════════════════════════════════════════════════════════════ */

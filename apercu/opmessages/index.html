@@ -3736,6 +3736,8 @@ a.mini .ic { font-size: 16px; }
       (serie ? '<a class="mini" href="' + esc(ics(o.debut)) + '" download>' + icone('i-telecharger') + ' Cette date (.ics)</a><a class="mini" href="' + esc(ics(null)) + '" download>' + icone('i-telecharger') + ' Toute la série (.ics)</a>'
         : '<a class="mini" href="' + esc(ics(null)) + '" download>' + icone('i-telecharger') + ' Ajouter à mon agenda (.ics)</a>') + '</div></div>';
     s += '<div class="carte"><button type="button" class="reglage presse" data-reu="conversation">' + icone('i-chat') + '<span class="reglage-texte">Ouvrir la conversation de la réunion</span>' + CHEVRON + '</button></div>';
+    /* la sortie de l'INVITÉ : une invitation qu'on ne veut pas ne reste pas dans l'agenda sans issue (l'organisateur, lui, annule ou supprime) */
+    if (!hote) s += '<div class="rubrique"><span>Invité</span></div>' + (F.confirme === 'quitter' ? htmlConfirmation(d) : '<div class="carte"><button type="button" class="reglage presse danger" data-reu="quitter-demander"><span class="reglage-texte">Quitter la réunion<small>Elle disparaît de ton agenda et tu sors de sa conversation</small></span></button></div>');
     /* les gestes de l'hôte */
     if (hote) {
       s += '<div class="rubrique"><span>Organisateur</span></div>';
@@ -3759,6 +3761,7 @@ a.mini .ic { font-size: 16px; }
   }
   function htmlConfirmation(d) {
     const F = reu.fiche, aVenir = !d.annulee;
+    if (F.confirme === 'quitter') return '<div class="carte carte-pad"><p class="info-note">Quitter cette réunion ? Elle disparaît de ton agenda, tu sors de sa conversation et tes rappels s\'arrêtent. L\'organisateur voit que tu es parti, et peut te réinviter.</p><div class="info-actions"><button type="button" class="mini danger" data-reu="quitter-confirmer">Quitter la réunion</button><button type="button" class="mini" data-reu="confirmation-retour">Rester</button></div></div>';
     if (F.confirme === 'annuler') return '<div class="carte carte-pad"><p class="info-note">Annuler cette réunion ? Elle reste dans l\'agenda, marquée « Annulée », plus aucun rappel ne part, et les invités en sont prévenus.</p><div class="info-actions"><button type="button" class="mini danger" data-reu="annuler-confirmer">Annuler la réunion</button><button type="button" class="mini" data-reu="confirmation-retour">Garder la réunion</button></div></div>';
     return '<div class="carte carte-pad"><p class="info-note">Supprimer cette réunion ? Elle disparaît de l\'agenda de tous, avec sa conversation et ses messages. Cela ne se défait pas.</p>' +
       (aVenir ? '<button type="button" class="reglage presse" role="switch" aria-checked="' + (F.prevenir ? 'true' : 'false') + '" data-reu="prevenir"><span class="reglage-texte">Prévenir les invités<small>Une notification leur dit que la réunion n\'existe plus</small></span><span class="interrupteur" aria-hidden="true"></span></button>' : '') +
@@ -3842,6 +3845,8 @@ a.mini .ic { font-size: 16px; }
           b.removeAttribute('aria-disabled');
           mot('Invitation envoyée par courriel');
         }
+        else if (act === 'quitter-demander') { F.confirme = 'quitter'; await relire(); }
+        else if (act === 'quitter-confirmer') { b.setAttribute('aria-disabled', 'true'); await source.quitterReunion(id); mot('Tu as quitté la réunion'); fermerCouche(); return; }
         else if (act === 'annuler-demander') { F.confirme = 'annuler'; await relire(); }
         else if (act === 'supprimer-demander') { F.confirme = 'supprimer'; await relire(); }
         else if (act === 'confirmation-retour') { F.confirme = null; await relire(); }

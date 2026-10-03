@@ -106,6 +106,11 @@ function essayerRelais(cfg, env) {
     const meme = ['Wqxz.Canari+a@Exemple.Invalid', 'wqxz.canari@exemple.invalid', 'WQXZ.CANARI+zz@EXEMPLE.invalid'].map(COURRIEL.normalisee);
     v('⛔ une boîte, trois écritures : les majuscules et l\'« +étiquette » ne font pas une autre boîte (population : trois)', [meme[0], meme[1], meme[2]], ['wqxz.canari@exemple.invalid', 'wqxz.canari@exemple.invalid', 'wqxz.canari@exemple.invalid']);
     v('… et une étiquette SEULE n\'efface pas la partie locale (sinon toutes les adresses de ce genre tomberaient dans la même boîte)', [COURRIEL.normalisee('+x@D.fr'), COURRIEL.normalisee('+y@D.fr')], ['+x@d.fr', '+y@d.fr']);
+    const gmail = ['J.Dupont@Gmail.com', 'jdupont@gmail.com', 'j.dupont+travail@googlemail.com', 'JDU.PONT@GOOGLEMAIL.COM', 'j.d.u.p.o.n.t@gmail.com'].map(COURRIEL.normalisee);
+    v('⛔ GMAIL ignore les points de la partie locale et sert googlemail.com comme gmail.com : une boîte, cinq écritures (population : cinq) — sans quoi « deux par semaine » se contournait en variant les points', gmail, Array(5).fill('jdupont@gmail.com'));
+    v('… ailleurs qu\'à Gmail un point COMPTE : `a.b@exemple.fr` et `ab@exemple.fr` sont deux boîtes (le même nom chez un autre fournisseur n\'est pas la même boîte), et `a.b@gmail.com.fr` n\'est pas Gmail',
+      [COURRIEL.normalisee('a.b@exemple.fr'), COURRIEL.normalisee('ab@exemple.fr'), COURRIEL.normalisee('a.b@gmail.com.fr'), COURRIEL.normalisee('a.b@notgmail.com')], ['a.b@exemple.fr', 'ab@exemple.fr', 'a.b@gmail.com.fr', 'a.b@notgmail.com']);
+    v('… et une partie locale faite de points seuls n\'est pas vidée', COURRIEL.normalisee('...@gmail.com'), '...@gmail.com');
   }
 
   /* ═══ 2. LE GABARIT ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
@@ -232,6 +237,13 @@ function essayerRelais(cfg, env) {
     const ben = c.S.personneCreer({ identifiant: 'beta:Ben-c', prenom: 'Ben', nom: 'Banc', origine: 'beta', verifie: true });
     v('⛔ le plafond d\'une BOÎTE est commun à tous les hôtes (trois hôtes ne pourraient pas inonder une même personne) : Ben, à zéro envoi, écrit UNE fois à la boîte qui a déjà reçu un courriel d\'Ana, pas deux ; le plafond du COMPTE est propre à chacun',
       [await envC(ADR(101), ben.id), await envC(ADR(101), ben.id), c.S.courrierCompter({ uid: ben.id, destH: c.destH(ADR(101)), depuis: { compte: 0, destinataire: 0 } })], ['ok', 'courriel_quota_destinataire', { compte: 1, destinataire: 2 }]);
+
+    /* GMAIL : le plafond d'une boîte se compte sur la boîte, pas sur l'écriture de ses points */
+    const gm = atelier(ZERO, CONFIG.courrielConfig({ courriel: RELAIS_CFG(relais) }, 'prod'));
+    const envG = (destinataire) => gm.c.envoyer({ uid: gm.ana.id, hote: HOTE, destinataire, reunion: REUNION }).then(() => 'ok', (x) => x.code);
+    v('⛔ GMAIL : la même boîte écrite avec d\'autres points, une étiquette, puis en googlemail.com : les deux premiers envois passent, le TROISIÈME est refusé « courriel_quota_destinataire » (population : deux passent, deux lignes)',
+      [await envG('Wqxz.Gm.Un@gmail.com'), await envG('wqxzgmun+rdv@googlemail.com'), await envG('w.q.x.z.g.m.u.n@GMAIL.com'), gm.rangs()], ['ok', 'ok', 'courriel_quota_destinataire', 2]);
+    v('… une AUTRE boîte Gmail (un autre nom) n\'est pas touchée', [await envG('wqxz.gm.deux@gmail.com'), gm.rangs()], ['ok', 3]);
 
     /* un envoi EN VOL compte déjà : deux demandes simultanées pour la dernière place d'une boîte */
     const d = atelier(ZERO, CONFIG.courrielConfig({ courriel: RELAIS_CFG(relais) }, 'prod'));
