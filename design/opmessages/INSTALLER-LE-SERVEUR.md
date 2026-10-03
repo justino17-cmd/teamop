@@ -359,6 +359,19 @@ sous-traitant au sens du RGPD (à ajouter à `sous-traitance.html` et au registr
 
 ---
 
+## 10 ter. Les notifications d'OP MESSAGES — rien à poser sur le VPS, un seul geste sur ton iPhone
+
+Les notifications n'ont **aucun secret à te faire poser** : leur paire de clés (VAPID, la « signature » du service) naît avec la configuration (`install-msg.sh`), puis le service la range **scellée**
+dans sa base au premier démarrage ; elle n'est jamais affichée. Un déploiement ne touche ni nginx ni Caddy (`/sw.js` et `/manifest.webmanifest` passent par la règle générale), et le service
+n'ouvre aucun port de plus : il appelle seulement, en HTTPS sortant, les services de notification de Google, Mozilla et Apple — comme il appelle OVHcloud pour les SMS.
+
+**Pour les essayer sur ton iPhone** : ouvre la bêta dans Safari, touche Partager, puis « Sur l'écran d'accueil », et **lance OP MESSAGES depuis son icône** (sur iPhone, c'est la seule façon d'avoir
+des notifications : dans l'onglet de Safari, l'interrupteur reste grisé et la page te le dit). Ensuite Réglages > Notifications, touche « Notifications sur cet appareil », accepte la demande, puis « Envoyer une notification d'essai ».
+Si rien n'arrive : colle la ligne `push` de `/health` (des nombres, rien de secret) — `"actif":false` veut dire que les clés sont illisibles, des `echecs24h` qui montent veulent dire que le service de
+notification refuse nos envois — et dis-moi ce que l'iPhone affiche.
+
+---
+
 ## 11. La production — PAS MAINTENANT
 
 L'instance `prod` ne s'installe que sur ta phrase **« publie OP MESSAGES »**, après l'étape 9 de la conception
