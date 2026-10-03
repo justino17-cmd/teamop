@@ -301,6 +301,37 @@
       /* programme la suppression du compte à 14 jours et coupe tout : rend `{ ok, suppression_le }` (la date, en millisecondes) */
       supprimerCompte: () => appel('POST', '/api/compte/supprimer', { confirmation: 'SUPPRIMER' }),
 
+      /* ── Les espaces professionnels, leurs membres, leurs invitations, leurs canaux (étape 5) ──
+         ⛔ L'espace se dit dans l'ADRESSE, jamais dans le corps : le service le relit de la base et de la session. Les confirmations de suppression (`SUPPRIMER`) sont posées ICI, une seule fois :
+         l'écran qui les demande à la personne ne connaît pas le mot que le service attend. */
+      espaces: () => appel('GET', '/api/espaces'),
+      creerEspace: (nom) => appel('POST', '/api/espaces', { nom }),
+      espace: (id) => appel('GET', '/api/espaces/' + e(id)),
+      majEspace: (id, nom) => appel('POST', '/api/espaces/' + e(id) + '/maj', { nom }),
+      transfererEspace: (id, uid) => appel('POST', '/api/espaces/' + e(id) + '/transferer', { uid }),
+      supprimerEspace: (id) => appel('POST', '/api/espaces/' + e(id) + '/supprimer', { confirmation: 'SUPPRIMER' }),
+      quitterEspace: (id) => appel('POST', '/api/espaces/' + e(id) + '/quitter'),
+      /* « Contacts de l'entreprise » : les membres de MON espace et personne d'autre */
+      contactsEspace: (id) => appel('GET', '/api/espaces/' + e(id) + '/contacts'),
+      roleMembreEspace: (id, uid, admin) => appel('POST', '/api/espaces/' + e(id) + '/membres/role', { uid, admin: !!admin }),
+      retirerMembreEspace: (id, uid) => appel('POST', '/api/espaces/' + e(id) + '/membres/retirer', { uid }),
+      /* un lien d'invitation : `{ max, jours }` au plus ; le code n'existe en clair que dans la réponse */
+      creerInvitation: (id, o2) => appel('POST', '/api/espaces/' + e(id) + '/invitations', o2 || {}),
+      revoquerInvitations: (id) => appel('POST', '/api/espaces/' + e(id) + '/invitations/revoquer'),
+      lireInvitation: async (code) => (await appel('POST', '/api/invitations/lire', { code })).apercu,
+      accepterInvitation: (code) => appel('POST', '/api/invitations/accepter', { code }),
+      creerCanal: (id, champs) => appel('POST', '/api/espaces/' + e(id) + '/canaux', champs),
+      majCanal: (id, cid, nom) => appel('POST', '/api/espaces/' + e(id) + '/canaux/' + e(cid) + '/maj', { nom }),
+      supprimerCanal: (id, cid) => appel('POST', '/api/espaces/' + e(id) + '/canaux/' + e(cid) + '/supprimer', { confirmation: 'SUPPRIMER' }),
+      ajouterMembresCanal: (id, cid, uids) => appel('POST', '/api/espaces/' + e(id) + '/canaux/' + e(cid) + '/membres/ajouter', { uids }),
+      retirerMembreCanal: (id, cid, uid) => appel('POST', '/api/espaces/' + e(id) + '/canaux/' + e(cid) + '/membres/retirer', { uid }),
+      /* Messages Pro : les offres (publiques), l'état d'un espace (sans réseau), le paiement et le portail (le propriétaire seul), la relecture chez Stripe */
+      offresAbonnement: () => appel('GET', '/api/facturation/offres'),
+      etatAbonnement: (id) => appel('GET', '/api/espaces/' + e(id) + '/facturation/etat'),
+      payerAbonnement: (id, champs) => appel('POST', '/api/espaces/' + e(id) + '/facturation/paiement', champs),
+      portailAbonnement: (id) => appel('POST', '/api/espaces/' + e(id) + '/facturation/portail'),
+      relireAbonnement: (id) => appel('POST', '/api/espaces/' + e(id) + '/facturation/relire'),
+
       /* Le temps réel. `gestionnaires` : une fonction par événement (`message`, `lu`, `saisie`,
          `presence`, `notification`, `conversation`, `retire`, `resync`…) + `ouvert()`, `erreur(e)` et `reseau('perdu'|'ok')`.
          Rend `{ fermer, dernierId }`. Le navigateur reconnecte tout seul en renvoyant

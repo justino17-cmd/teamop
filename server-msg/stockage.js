@@ -1740,9 +1740,10 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function espaceMembres(espace, viewer, { tous = false } = {}) {
     const lignes = Q(`SELECT p.id, p.prenom, p.nom, p.statut, p.avatar_piece, m.role, m.depuis FROM espace_membre m JOIN personne p ON p.id = m.uid
                       WHERE m.espace = ? AND p.etat = 'actif' ORDER BY p.prenom, p.nom, p.id`).all(espace);
+    const pr = Q('SELECT proprio FROM espace WHERE id = ?').get(espace);      // le propriétaire se montre : l'écran ne propose ni de le retirer ni de le rétrograder (le service le refuserait)
     return lignes.filter(r => tous || r.id === viewer || !contactBloque(viewer, r.id)).map(r => ({
       id: r.id, prenom: r.prenom, nom: r.nom, statut: r.statut, avatar: avatarPour(viewer, r.id, r.avatar_piece), role: r.role, depuis: num(r.depuis),
-      moi: r.id === viewer, contact: r.id !== viewer && contactActif(viewer, r.id) }));
+      proprio: !!pr && r.id === pr.proprio, moi: r.id === viewer, contact: r.id !== viewer && contactActif(viewer, r.id) }));
   }
   function espaceMaj({ id, nom }) {
     return tx(() => {

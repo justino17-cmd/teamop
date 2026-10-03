@@ -352,8 +352,8 @@ console.log('\n« Contacts de l\'entreprise » et les collègues : MON espace se
   /* ⛔ l'annuaire : les membres de CET espace */
   const lis = (viewer, tous) => S.espaceMembres(w.e, viewer, { tous }).map(m => m.prenom).sort();
   v('« Contacts de l\'entreprise » : les membres de MON espace — et personne d\'un autre (ni Dan, ni Eve)', [lis(w.cleo.id, false), lis(w.ana.id, true)], [['Ana', 'Ben', 'Cleo'], ['Ana', 'Ben', 'Cleo']]);
-  v('chaque ligne dit son rôle, si c\'est moi, et si je l\'ai en contact', S.espaceMembres(w.e, w.ana.id, { tous: true }).map(m => [m.prenom, m.role, m.moi, m.contact]), [['Ana', 'admin', true, false], ['Ben', 'membre', false, false], ['Cleo', 'membre', false, false]]);
-  v('la ligne ne porte ni adresse, ni numéro, ni identifiant de connexion', Object.keys(S.espaceMembres(w.e, w.ana.id, { tous: true })[0]).sort(), ['avatar', 'contact', 'depuis', 'id', 'moi', 'nom', 'prenom', 'role', 'statut']);
+  v('chaque ligne dit son rôle, si c\'est moi, si je l\'ai en contact, et qui est le propriétaire (l\'écran ne propose ni de le retirer ni de le rétrograder)', S.espaceMembres(w.e, w.ana.id, { tous: true }).map(m => [m.prenom, m.role, m.moi, m.contact, m.proprio]), [['Ana', 'admin', true, false, true], ['Ben', 'membre', false, false, false], ['Cleo', 'membre', false, false, false]]);
+  v('la ligne ne porte ni adresse, ni numéro, ni identifiant de connexion', Object.keys(S.espaceMembres(w.e, w.ana.id, { tous: true })[0]).sort(), ['avatar', 'contact', 'depuis', 'id', 'moi', 'nom', 'prenom', 'proprio', 'role', 'statut']);
   S.contactBloquer(w.cleo.id, w.ben.id);
   v('⛔ un membre ne voit pas celui avec qui un blocage existe (dans un sens ou l\'autre) ; l\'administrateur lit le registre COMPLET de son entreprise', [lis(w.cleo.id, false), lis(w.ben.id, false), lis(w.ana.id, true), lis(w.ana.id, false)], [['Ana', 'Cleo'], ['Ana', 'Ben'], ['Ana', 'Ben', 'Cleo'], ['Ana', 'Ben', 'Cleo']]);
   S.contactDebloquer(w.cleo.id, w.ben.id);

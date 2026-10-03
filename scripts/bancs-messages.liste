@@ -79,9 +79,10 @@ tests/test-956.js
 tests/test-957.js
 tests/test-958.js
 #
-# ── Les espaces professionnels et Messages Pro (étape 5, 3 octobre 2026) : le stockage et la formule (960), les routes en HTTP (961), la facturation contre un faux Stripe (962), l'outil de configuration de la clé et des tarifs (963), la COUTURE avec le vrai OP GESTION (965) ──
+# ── Les espaces professionnels et Messages Pro (étape 5, 3 octobre 2026) : le stockage et la formule (960), les routes en HTTP (961), la facturation contre un faux Stripe (962), l'outil de configuration de la clé et des tarifs (963), la page et le service (964), la COUTURE avec le vrai OP GESTION (965) ──
 tests/test-960.js
 tests/test-961.js
 tests/test-962.js
 tests/test-963.js
+tests/test-964.js
 tests/test-965.js
