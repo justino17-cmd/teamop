@@ -168,7 +168,18 @@ console.log('\n── 940 · la Tour v2.81 ouvre les accès bêta d\'OP MESSAGES
        « Couper » fait là-bas, et la promesse « dans la minute » se relit dans la configuration du service, pas dans une phrase. */
     vrai('⛔ elle ne dit plus que la bêta d\'OP MESSAGES « n’est pas encore installée » (installée le 2 octobre 2026)', !/pas encore installée/.test(fiche));
     vrai('⛔ elle dit ce que « Couper » fait là-bas : plus de connexion, et les sessions ouvertes se ferment « dans la minute » (pas « immédiatement »)', /« Couper » ferme la porte : plus aucune connexion, et les sessions déjà ouvertes se ferment dans la minute/.test(fiche) && !/immédiatement/.test(fiche));
-    const relectureMs = Number((/relectureMs:\s*(\d+)/.exec(fs.readFileSync(path.join(RACINE, 'server-msg', 'config.js'), 'utf8')) || [])[1]);
+    /* ⛔ LU PAR LE VRAI CHARGEUR, PAS DANS LE TEXTE (3 octobre 2026) : le premier `relectureMs:` du fichier était celui de la porte ;
+       depuis le lot 4 d'OP MESSAGES, c'est celui de la facturation (dix minutes), et ce contrôle accusait la porte d'un délai qu'elle
+       n'a pas. Une configuration MINIMALE (sans réglage de la porte) passe par `charger` : la valeur que le service prend vraiment. */
+    let relectureMs = NaN;
+    try {
+      const bac = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-940-')), cred = path.join(bac, 'cred');
+      fs.mkdirSync(cred); fs.writeFileSync(path.join(cred, 'kek'), crypto.randomBytes(32).toString('hex') + '\n');
+      fs.writeFileSync(path.join(bac, 'config.json'), JSON.stringify({ origines: ['https://exemple.invalide'] }));
+      const { charger } = require(path.join(RACINE, 'server-msg', 'config.js'));
+      relectureMs = charger({ OPMSG_INSTANCE: 'beta', OPMSG_CONFIG: path.join(bac, 'config.json'), OPMSG_DATA: path.join(bac, 'data'), CREDENTIALS_DIRECTORY: cred }).beta.relectureMs;
+      fs.rmSync(bac, { recursive: true, force: true });
+    } catch (e) { console.log('      (le chargeur de server-msg/config.js a jeté : ' + (e && e.message) + ')'); }
     vrai('   et « dans la minute » est tenu : la porte d\'OP MESSAGES relit les accès toutes les 60 s au plus (relectureMs de server-msg/config.js : ' + relectureMs + ')', relectureMs > 0 && relectureMs <= 60000);
     vrai('   elle n\'affiche PAS l\'encart de teamop.fr/beta.html', !/teamop\.fr\/beta\.html/.test(fiche));
     vrai('⛔ aucune case à cocher : la fiche dit ce que l\'accès ouvre (« la bêta d’OP MESSAGES »), elle ne règle plus d\'autre application', !/type="checkbox"/.test(fiche) && /Ouvre<\/span><span[^>]*>la bêta d’OP MESSAGES/.test(fiche));

@@ -780,8 +780,9 @@ app.post('/api/stripe/checkout', async (req, res) => {
          recliqué dans la minute — l'ajout repartait en 200 (un SECOND `stock × 3`, prélevé en double) ; « Pro + 2 places » acheté
          dans la fenêtre ne ramenait pas le Stock déjà payé, et l'équipe entière le perdait (5 places, Stock × 3). Chaque décision
          de ce bloc (`servies`, `payees`, `utiliser_ajout`, `option_deja`) repose sur CETTE lecture. Elle n'est fraîche que si elle
-         date de quelques secondes : une panne de Stripe, ou une lecture ratée qu'on ne retente pas avant une minute, laisse une
-         liste ancienne — et alors on REFUSE (502 `stripe_indisponible`, rien n'a été payé) au lieu de décider sur du périmé. Ça ne
+         est LANCÉE après l'arrivée de la demande (3 octobre 2026, `espaceStripeAchat`) : une panne de Stripe, ou une lecture ratée
+         qu'on ne retente pas avant une minute, laisse une liste ancienne — et alors on REFUSE (502 `stripe_indisponible`, rien n'a
+         été payé) au lieu de décider sur du périmé. Ça ne
          refuse que ce qui touche aux options (une option demandée, ou des options en vente que l'achat d'un Pro doit suivre) :
          avant la mise en vente, l'achat d'un Pro seul se passe de la liste comme avant. */
       const { s: s0, fraiche: listeFraiche } = await espaceStripeAchat(eV);
@@ -2601,7 +2602,10 @@ app.post('/api/monitor/espaces/abonnement', monPatronStrict, (req, res) => {
   res.json({ ok: true, slug, formule: f, quantite: q, statut: e.aboStatut || 'auto', fin, options: optionsDeTour(e.options) });
 });
 // payé ? — le réglage manuel du patron d'abord ; sinon trois portes : formule gratuite, code promo actif, abonnement Stripe actif
-const espStripeCache = { ts: 0, data: null, enCours: null, echecTs: 0, echecDepuis: 0 };
+/* `ts` : la FIN de la lecture qui a produit `data`. Les lectures sont NUMÉROTÉES à leur départ (`lancees`) : `n` est le numéro de
+   celle qui a produit `data`, `enCoursN` celui de la lecture en cours — une décision d'achat ne croit qu'une lecture lancée APRÈS
+   son arrivée (`espaceStripeAchat`), et un numéro, contrairement à une heure, ne confond pas deux lectures de la même milliseconde. */
+const espStripeCache = { ts: 0, data: null, n: 0, lancees: 0, enCours: null, enCoursN: 0, echecTs: 0, echecDepuis: 0 };
 /* ⛔ DEPUIS COMBIEN DE MINUTES STRIPE NE SE LIT PLUS (seconde relecture de `gardien`, 30 septembre 2026) — `0` quand la
    dernière lecture a réussi (ou qu'il n'y en a jamais eu d'échec). Depuis que le doute ne coupe plus personne
    (`payeInconnu`), une clé révoquée ou fausse ne se voit plus chez les clients : personne n'est suspendu, mais une
@@ -2612,18 +2616,21 @@ function stripeEchecMin() { return espStripeCache.echecDepuis ? Math.floor((Date
    Stripe, la dernière liste connue sert (on ne coupe pas une entreprise qui paie), mais un paiement fait depuis n'y est pas
    — le rappel J-7 ne décide rien dessus (`abonnementGestion`). La variable : pour les bancs seulement. */
 const STRIPE_CACHE_MS = Math.max(1, parseInt(process.env.TEAMOP_STRIPE_CACHE_MS, 10) || 5 * 60000);
-/* ⛔ une décision d'ACHAT (ajout d'option, rachat de places) ne se prend que sur une liste d'abonnements lue POUR ELLE : `espaceStripeAchat`
-   demande une relecture à chaque appel (l'âge toléré est d'une milliseconde) et dit si elle a abouti. Une relecture qui ratait (panne de
-   Stripe, lecture qu'on ne retente pas avant une minute) laisse la liste d'avant — jamais « assez récente » pour savoir si le client vient
-   de payer : on refuse, on ne devine pas. `STRIPE_ACHAT_JEU_MS` n'absorbe que le décalage d'horloge entre l'instant de la demande et la
-   date que la lecture a posée au retour. */
-const STRIPE_ACHAT_JEU_MS = 1000;
-/* ce que Stripe sert à une entreprise, LU À L'INSTANT pour une décision d'achat — et si cette lecture a abouti (`fraiche`) ou si
-   c'est une liste ancienne qui répond à sa place */
+/* ⛔⛔ une décision d'ACHAT (ajout d'option, rachat de places) ne se prend que sur une liste d'abonnements lue POUR ELLE : une lecture
+   LANCÉE APRÈS l'arrivée de la demande (`stripeListe(…, apres)`), et rien d'autre. Ni une liste rangée il y a une milliseconde, ni une
+   lecture DÉJÀ EN COURS quand la demande arrive : l'une comme l'autre a pu partir AVANT le paiement que le client vient de faire.
+   Pris le 3 octobre 2026 : `test-850` tombait sur GitHub (un second Stock × 3 accepté, prélevé en double) — mesuré ici, la liste
+   avait 2 ms au moment de décider, et « relire si elle a plus d'une milliseconde » ne relisait pas sur une machine plus rapide ; et
+   une lecture en cours, partagée, rendait de même la liste d'avant le paiement — Stripe lent la fait durer des dizaines de secondes.
+   Les lectures sont NUMÉROTÉES, pas datées : deux lectures de la même milliseconde ne se confondent pas. Une relecture qui rate
+   (panne de Stripe, lecture qu'on ne retente pas avant une minute) laisse la liste d'avant : jamais « fraîche » — on refuse (502),
+   on ne devine pas. `tests/test-860.js` joue les trois cas au geste. */
+/* ce que Stripe sert à une entreprise, LU POUR une décision d'achat — et si cette lecture a abouti (`fraiche`) ou si c'est une liste
+   ancienne qui répond à sa place */
 async function espaceStripeAchat(e) {
-  const t0 = Date.now();
-  let s = null; try { s = await espaceStripe(e, 1); } catch (err) { s = null; }
-  return { s, fraiche: !!espStripeCache.data && espStripeCache.ts >= t0 - STRIPE_ACHAT_JEU_MS };
+  const avant = espStripeCache.lancees;   // les lectures lancées avant cette demande : aucune ne décide
+  let s = null; try { s = await espaceStripe(e, 1, avant); } catch (err) { s = null; }
+  return { s, fraiche: !!espStripeCache.data && espStripeCache.n > avant };
 }
 /* ⛔ UN IMPAYÉ SE RELIT À LA MINUTE (Justin, 29 septembre 2026 : l'accès revient dès que c'est réglé). La liste Stripe se
    garde cinq minutes : un client qui vient de régler sa facture resterait grisé jusque-là. Tant qu'une entreprise n'a que de
@@ -3138,7 +3145,7 @@ setInterval(stripeRelirePanne, 5 * 60000).unref();
 /* La liste des abonnements Stripe (tous statuts), relue quand elle a plus de `ageMax` ms (au plus `STRIPE_CACHE_MS`) —
    `null` sans clé Stripe ; jette seulement quand elle n'a JAMAIS pu être lue. Partagée par le verdict « payé »
    (`espaceStripe`), la page de paiement (`factureImpayeARegler`) et le rappel J-7. */
-async function stripeListe(ageMax) {
+async function stripeListe(ageMax, apres) {
   const sk = config.stripe && config.stripe.secretKey;
   if (!sk) return null;
   const age = ageMax > 0 ? Math.min(ageMax, STRIPE_CACHE_MS) : STRIPE_CACHE_MS;
@@ -3149,17 +3156,25 @@ async function stripeListe(ageMax) {
      s'il n'y en a jamais eu : comme avant, où chaque appel échouait à son tour).
      ⛔ Y COMPRIS POUR L'APPEL QUI ATTENDAIT LA LECTURE RATÉE : il rendait « non payé » à une entreprise qui paie, alors
      qu'une liste connue était là — on ne coupe pas une entreprise qui paie le temps d'une panne de Stripe. */
-  if (Date.now() - espStripeCache.ts > age || !espStripeCache.data) {
+  /* ⛔⛔ `apres` (une décision d'achat, `espaceStripeAchat`) : la liste doit venir d'une lecture LANCÉE après la n-ième — l'âge ne
+     suffit pas. Une lecture en cours lancée avant ne se partage pas : on l'attend (une seule lecture à la fois, toujours), puis on
+     relit. Au plus deux tours : celle d'avant, puis la sienne (ou celle qu'un autre a lancée entre-temps, donc après). */
+  const parAchat = Number.isInteger(apres);
+  const aRelire = () => !espStripeCache.data || (parAchat ? !(espStripeCache.n > apres) : Date.now() - espStripeCache.ts > age);
+  for (let tour = 0; tour < 3 && aRelire(); tour++) {
+    const anterieure = parAchat && !!espStripeCache.enCours && !(espStripeCache.enCoursN > apres);
     if (!espStripeCache.enCours && Date.now() - espStripeCache.echecTs > 60000) {
+      const n = ++espStripeCache.lancees;
+      espStripeCache.enCoursN = n;
       espStripeCache.enCours = stripeAbosBruts(sk)
-        .then(d => { espStripeCache.data = d; espStripeCache.ts = Date.now(); espStripeCache.echecTs = 0; espStripeCache.echecDepuis = 0; },
+        .then(d => { espStripeCache.data = d; espStripeCache.ts = Date.now(); espStripeCache.n = n; espStripeCache.echecTs = 0; espStripeCache.echecDepuis = 0; },
           err => { espStripeCache.echecTs = Date.now(); espStripeCache.echecDepuis = espStripeCache.echecDepuis || Date.now(); throw err; })
         .finally(() => { espStripeCache.enCours = null; });
     }
-    if (espStripeCache.enCours) {
-      try { await espStripeCache.enCours; }
-      catch (err) { if (!espStripeCache.data) throw err; console.error('espacePaye stripe (la dernière liste connue sert) :', err.message); }
-    }
+    if (!espStripeCache.enCours) break;   // un échec de moins d'une minute : pas de nouvelle lecture, la dernière liste connue répond
+    try { await espStripeCache.enCours; }
+    catch (err) { if (!espStripeCache.data) throw err; console.error('espacePaye stripe (la dernière liste connue sert) :', err.message); }
+    if (!anterieure) break;
   }
   return espStripeCache.data || [];
 }
@@ -3172,12 +3187,12 @@ async function stripeListe(ageMax) {
    de paiement, pas d'accès au service payant »). Un abonnement dont le prélèvement a échoué comptait comme payé pendant
    toutes les nouvelles tentatives de Stripe ; il est désormais un IMPAYÉ (`impayesGestion`), comme `unpaid`, et
    l'application grise les catégories payantes jusqu'au règlement (`/api/espaces/etat`). */
-async function espaceStripe(e, ageMax) {
+async function espaceStripe(e, ageMax, apres) {
   /* ⚠️ PLUS `&& e.email`. Le rattachement par RÉFÉRENCE n'a besoin d'aucune adresse : exiger
      un e-mail ici aurait laissé sans paiement reconnu, justement, les espaces créés sans
      adresse — ceux de la Tour. Le repli par e-mail se garde tout seul plus bas. */
   try {
-    const liste = await stripeListe(ageMax);
+    const liste = await stripeListe(ageMax, apres);
     if (liste) return espaceStripeDans(e, liste);
   } catch (err) { console.error('espacePaye stripe:', err.message); }
   return null;
