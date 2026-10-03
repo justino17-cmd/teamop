@@ -46,6 +46,7 @@ function processus(args, { env, entree, delaiMs = 90000 } = {}) {
 }
 /* Ce qui, d'un secret, ne doit apparaître nulle part : lui, ses huit premiers et ses huit derniers caractères. */
 const fuites = (texte, secrets) => secrets.filter(s => texte.includes(s) || texte.includes(s.slice(0, 8)) || texte.includes(s.slice(-8)));
+const dormir = (ms) => new Promise(r => setTimeout(r, ms));
 const sante = async (svc) => { const r = await T.client(svc.base).get('/health'); return r.j; };
 
 (async () => {
@@ -227,6 +228,69 @@ const sante = async (svc) => { const r = await T.client(svc.base).get('/health')
       coffre.normal();
       const h5 = await T.attendre(async () => { const h = await sante(svc); return h && h.sauvegarde && h.sauvegarde.echecs === 0 ? h : null; }, 25000, 100);
       vrai('   retour à la normale : `echecs` à 0', !!h5);
+    }
+
+    /* ══ 4 bis. TROIS PANNES QUE LE GARDIEN A REJOUÉES (3 octobre 2026), par le VRAI service ═══════════════════════════════════════════════
+       Un banc de module ne voit pas la couture (CLAUDE.md) : ici c'est `index.js` qui câble le plancher de disque, la configuration qui porte le
+       plafond de pièces, et l'horloge du processus qui saute. Chaque service a son préfixe : le coffre est partagé avec le reste du banc. */
+    console.log('\n── 951 · le VRAI service : un arriéré de pièces n\'est pas un succès, un plancher de disque retient la passe, un saut d\'horloge ne vide pas le coffre ──');
+    {
+      const evenements = (sv) => sv.sortie.texte().split('\n').filter(l => /"evt":"sauvegarde"/.test(l)).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean);
+      const base2 = (n) => { const b = O.creerBase({ kek }); O.remplir(b, n); return b; };
+
+      /* A. L'ARRIÉRÉ : trois pièces, un plafond d'UNE pièce par passe. */
+      {
+        const b = base2(20);
+        const racine = path.join(b.dataDir, 'pieces');
+        for (let i = 0; i < 3; i++) { const id = 'f_' + crypto.randomBytes(16).toString('hex'); fs.mkdirSync(path.join(racine, id.slice(2, 4)), { recursive: true }); fs.writeFileSync(path.join(racine, id.slice(2, 4), id), crypto.randomBytes(300 + i)); }
+        b.S.fermer();
+        const sv = await T.lancerService({ dossier: b.dossier, cle: kekHex, config: { sauvegarde: coffre.conf({ cle: cleSauv, intervalleMs: 1000, piecesParPasse: 1, prefixe: 'beta/arriere/' }) } });
+        try {
+          await T.attendre(() => evenements(sv).some(e => e.etat === 'ok') || null, 30000, 100);
+          const evs = evenements(sv);
+          v('⛔ un plafond d\'UNE pièce par passe pour TROIS pièces : les deux premières passes se disent en échec (« pieces-arriere-2 », « pieces-arriere-1 »), la troisième — la dernière pièce partie — est la première RÉUSSIE',
+            [evs.filter(e => e.etat === 'echec').slice(0, 2).map(e => e.motif), evs.findIndex(e => e.etat === 'ok')], [['pieces-arriere-2', 'pieces-arriere-1'], 2]);
+          const h = await sante(sv);
+          v('   les trois pièces sont au coffre à la fin, et /health est revenu au vert (échecs 0, un âge)', [coffre.cles('beta/arriere/pieces/').length, h.sauvegarde.echecs, typeof h.sauvegarde.ageH], [3, 0, 'number']);
+          const deposes = coffre.vus.filter(x => x.m === 'PUT' && x.cle && x.cle.startsWith('beta/arriere/')).map(x => (/\/pieces\//.test(x.cle) ? 'piece' : 'base'));
+          v('⛔ et dans la PREMIÈRE passe la pièce part AVANT l\'archive de base (la base posée sans ses pièces se restaurerait en photos qui ne s\'ouvrent pas)', deposes.slice(0, 2), ['piece', 'base']);
+        } finally { await sv.arreter(); b.nettoyer(); }
+      }
+
+      /* B. LE PLANCHER DE DISQUE du service : sous lui il refuse d'écrire — la sauvegarde ne le franchit pas à elle seule. */
+      {
+        const b = base2(10); b.S.fermer();
+        const sv = await T.lancerService({ dossier: b.dossier, cle: kekHex, config: { disqueMinMo: 999999999, sauvegarde: coffre.conf({ cle: cleSauv, intervalleMs: 1000, prefixe: 'beta/plancher/' }) } });
+        try {
+          const vu = await T.attendre(() => evenements(sv).find(e => e.motif === 'disque-insuffisant') || null, 20000, 100);
+          const h = await sante(sv);
+          v('⛔ un plancher d\'espace libre qu\'aucun disque ne tient : la passe n\'est pas tentée (« disque-insuffisant » au journal), rien ne part au coffre, /health compte l\'échec — le plancher d\'`index.js` arrive bien jusqu\'au module',
+            [!!vu, coffre.cles('beta/plancher/').length, h.sauvegarde.echecs >= 1, h.sauvegarde.ageH], [true, 0, true, null]);
+        } finally { await sv.arreter(); b.nettoyer(); }
+      }
+
+      /* C. LE SAUT D'HORLOGE : +20 jours pour le processus, pas pour le coffre. */
+      {
+        const J = 86400000;
+        const b = base2(10); b.S.fermer();
+        const sv = await T.lancerService({ dossier: b.dossier, cle: kekHex, horloge: true, config: { sauvegarde: coffre.conf({ cle: cleSauv, intervalleMs: 1000, prefixe: 'beta/horloge/' }) } });
+        try {
+          const prefixe = 'beta/horloge/base/';
+          await T.attendre(() => coffre.cles(prefixe).length >= 5 ? true : null, 40000, 100);
+          const avant = coffre.cles(prefixe).length;
+          vrai('population : au moins cinq archives avant le saut (' + avant + ') — de quoi voir une rétention les élaguer à tort', avant >= 5);
+          sv.avancer(20 * J);
+          const ecart = await T.attendre(() => (evenements(sv).filter(e => e.motif === 'horloge-ecart').length >= 2 ? true : null), 30000, 100);   // deux passes de suite : la seconde ne doit rien élaguer non plus
+          const h = await sante(sv);
+          v('⛔ +20 jours pour le processus : la passe se dit en échec (« horloge-ecart »), RIEN n\'est élagué (le coffre ne compte jamais moins d\'archives), /health compte l\'échec et montre l\'âge',
+            [!!ecart, coffre.cles(prefixe).length >= avant, h.sauvegarde.echecs >= 1, h.sauvegarde.ageH > 400], [true, true, true, true]);
+          const oksAvantRetour = evenements(sv).filter(e => e.etat === 'ok').length;
+          sv.avancer(-20 * J);
+          const revenu = await T.attendre(async () => { const hh = await sante(sv); return evenements(sv).filter(e => e.etat === 'ok').length > oksAvantRetour && hh.sauvegarde.echecs === 0 ? hh : null; }, 20000, 100);
+          v('⛔ l\'horloge revenue à l\'heure, une sauvegarde repart TOUT DE SUITE (avant : la dernière « datée » de dans vingt jours, plus aucune passe pendant vingt jours) : échecs à 0 et un âge de moins d\'une heure',
+            [!!revenu, !!revenu && revenu.sauvegarde.ageH < 1], [true, true]);
+        } finally { await sv.arreter(); b.nettoyer(); }
+      }
     }
 
     await svc.arreter(false);

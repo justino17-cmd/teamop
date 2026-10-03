@@ -1578,6 +1578,19 @@ function rejouerPurge(chemin, registre, opts) {
   } finally { try { if (d) d.close(); } catch (e) { /* déjà fermée */ } }
 }
 
-ouvrir.copie = { controlerFichier, purgeLire, rejouerPurge, TABLES_COMPTEES };
+/* Les identifiants des pièces que la base d'une copie RÉCLAME (une ligne par pièce). La restauration les compare aux fichiers qu'elle a remis :
+   une ligne sans fichier est une photo qui ne s'ouvrira pas. Une copie sans cette table (une archive d'avant les pièces) n'en réclame aucune. */
+function pieceIds(chemin, opts) {
+  let d = null;
+  try {
+    d = ouvrirCopie(chemin, opts);
+    return d.prepare('SELECT id FROM piece ORDER BY id').all().map(r => String(r.id));
+  } catch (e) {
+    if (/no such table/i.test(String(e && e.message))) return [];
+    throw e;
+  } finally { try { if (d) d.close(); } catch (e) { /* déjà fermée */ } }
+}
+
+ouvrir.copie = { controlerFichier, purgeLire, rejouerPurge, pieceIds, TABLES_COMPTEES };
 
 module.exports = { ouvrir, MIGRATIONS, MAX_MEMBRES, DELAI_MODIF_MS, TAILLE_PORTEE, GENRES_SEQ };

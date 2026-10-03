@@ -55,6 +55,7 @@ const CHAMPS_VUS = {
 };
 
 const SEUIL_SAUVEGARDE_H = 2;    // une copie par heure promise (SERVEUR.md § 3.7) : au-delà de 2 h, une passe entière a manqué
+const SEUIL_HORLOGE_H = 1;           // la tolérance d'une horloge qui se recale : au-delà d'une heure dans le futur, ce n'est plus un recalage
 const SEUIL_SAUVEGARDE_ECHECS = 2;   // deux passes ratées de suite : une seule peut être un coffre qui hoquette, deux sont une panne
 const SEUIL_ESSAI_JOURS = 35;    // l'exercice de restauration est MENSUEL : 35 jours = un mois et une semaine de grâce
 const SEUIL_EFFACEMENTS = 5;     // des fichiers de pièces qu'on n'a pas pu effacer : un échec isolé se répare (le balayeur réessaie), cinq ont une cause
@@ -87,6 +88,12 @@ function evaluer(j, instanceAttendue) {
     if (j.sauvegarde.configuree === false) p.push('la sauvegarde hors site n\'est pas configurée');
     if (j.sauvegarde.configuree !== false && typeof j.sauvegarde.ageH === 'number' && j.sauvegarde.ageH > SEUIL_SAUVEGARDE_H) {
       p.push('la dernière sauvegarde date de ' + Math.round(j.sauvegarde.ageH) + ' h (une par heure est promise)');
+    }
+    /* ⛔ UN ÂGE NÉGATIF EST UNE HORLOGE EN DÉSORDRE, pas une sauvegarde toute fraîche. Le service écrêtait l'âge à 0 : après un saut d'horloge vers
+       l'avant, la dernière sauvegarde « datée de dans vingt jours » s'affichait à 0 h, `echecs` restait à 0, et RIEN ne criait pendant que les
+       sauvegardes ne partaient plus (gardien A2, 3 octobre 2026). Au-delà d'une heure de « futur », on crie. */
+    if (typeof j.sauvegarde.ageH === 'number' && j.sauvegarde.ageH < -SEUIL_HORLOGE_H) {
+      p.push('l\'horloge du serveur est en désordre : la dernière sauvegarde est datée de ' + Math.round(-j.sauvegarde.ageH) + ' h dans le FUTUR');
     }
     /* ⛔ « CONFIGURÉE » ET JAMAIS RÉUSSIE est la panne que l'âge ne voit pas : `ageH` vaut `null`, ce n'est pas un nombre, et rien d'autre ne crie
        tant que la minuterie ne tente rien. (Juste après la mise en service, une minute durant, c'est normal : la surveillance tourne à l'heure.) */

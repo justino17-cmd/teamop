@@ -37,10 +37,11 @@
 const fs = require('fs'), path = require('path'), os = require('os');
 const { spawnSync } = require('child_process');
 const SAUV = require('../sauvegarde');
-const { ouvrir } = require('../stockage');
+const { ouvrir, MIGRATIONS } = require('../stockage');
 const { creerScelleur } = require('../scelle');
 const COFFRE = require('../coffre');
 
+const SCHEMA_CODE = Math.max(...MIGRATIONS.map(m => m.v));   // le schéma de la base que CE code sait ouvrir
 const mio = (o) => (o / 1048576).toFixed(1) + ' Mio';
 const ageTexte = (ts) => { const h = (Date.now() - ts) / 3600000; return h < 48 ? 'il y a ' + h.toFixed(1) + ' h' : 'il y a ' + Math.round(h / 24) + ' j'; };
 const echec = (message, code = 1) => Object.assign(new Error(message), { sortie: code });
@@ -102,9 +103,9 @@ async function recuperer(ctx, archive, vers) {
   const r = await ctx.client.lireCleVers(archive.cle, brut);
   if (!r.ok) throw echec('téléchargement impossible : ' + (r.absente ? 'objet absent' : 'HTTP ' + r.statut));
   if (Number.isFinite(archive.octets) && r.octets !== archive.octets) { fs.rmSync(brut, { force: true }); throw echec('l\'archive téléchargée n\'a pas la taille annoncée par le coffre (' + r.octets + ' au lieu de ' + archive.octets + ' octets).'); }
+  let o;
   try {
-    const o = await SAUV.ouvrirArchive(brut, ctx.cfg.cle, vers, { instance: ctx.instance, date: SAUV.isoDeNom(archive.nom) });
-    return { octets: r.octets, meta: o.meta, base: o.octets };
+    o = await SAUV.ouvrirArchive(brut, ctx.cfg.cle, vers, { instance: ctx.instance, date: SAUV.isoDeNom(archive.nom) });
   } catch (e) {
     const dit = {
       'dechiffrement-impossible': 'déchiffrement impossible — la clé de sauvegarde est fausse, ou l\'archive est abîmée ou modifiée',
@@ -115,7 +116,27 @@ async function recuperer(ctx, archive, vers) {
     }[e && e.code] || 'archive illisible';
     throw echec(dit);
   } finally { fs.rmSync(brut, { force: true }); }
+  /* ⛔ UNE BASE D'UN SCHÉMA PLUS RÉCENT QUE CE CODE N'EST PAS À OUVRIR. L'archive vient d'une version du service qui a migré la base plus loin que ce
+     code ne sait aller (un déploiement en arrière, une réinstallation d'une vieille version après un sinistre) : l'ouvrir avec lui, c'est lire des
+     tables qu'il ne connaît pas et en réécrire d'autres comme si de rien n'était. Dit avec les deux numéros — ce sont des nombres, pas des secrets. */
+  if (Number.isFinite(o.meta.schema) && o.meta.schema > SCHEMA_CODE) {
+    fs.rmSync(vers, { force: true });
+    throw echec('cette archive vient d\'une version PLUS RÉCENTE du service (schéma ' + o.meta.schema + ', ce code ne connaît que le ' + SCHEMA_CODE + ') : déployer d\'abord la version qui l\'a écrite, puis restaurer.');
+  }
+  return { octets: r.octets, meta: o.meta, base: o.octets };
 }
+
+/* ⛔ LA PLACE AVANT LE TÉLÉCHARGEMENT. Sans elle, un dossier temporaire trop petit (un /tmp en mémoire de 2 Go devant une base de 3 Go) fait mourir
+   l'exercice sur « échec inattendu (ENOSPC) », sans dire quel dossier ni comment s'en sortir. Le pic est d'environ deux fois la base (l'archive et
+   sa base déchiffrée, ou la base et sa copie pour la clé maître) : on demande 2,5 fois plus 64 Mio, et on nomme la variable qui déplace le travail. */
+function verifierPlace(dossier, octets, ce, aide) {
+  let libre = null;
+  try { const st = fs.statfsSync(dossier); libre = Number(st.bavail) * Number(st.bsize); } catch (e) { return; }   // une mesure impossible ne bloque pas
+  const besoin = Math.ceil(octets) + 64 * 1048576;
+  if (libre < besoin) throw echec('pas assez de place pour ' + ce + ' : il faut environ ' + mio(besoin) + ', le dossier ' + dossier + ' n\'en offre que ' + mio(libre) + '. ' + aide);
+}
+/* Le chemin où le service range la pièce `id` (les deux premiers hexadécimaux de l'identifiant nomment le dossier : `pieces.js` → `cheminDe`). */
+const relDePiece = (id) => String(id).slice(2, 4) + '/' + id;
 
 /* ══ LE REGISTRE DES PURGES : CELUI DE LA PLUS RÉCENTE ARCHIVE QUI S'OUVRE ══════════════════════════════════════════════════
    Une archive date d'avant ce que le service a effacé depuis. Le registre `purge` de la plus récente (il sait tout ce que les anciennes
@@ -295,6 +316,7 @@ async function essai(ctx, { date, echantillon = 20, sansPurge }, dire) {
   const laDerniere = cible.cle === arch.archives[0].cle;
   dire('→ essai de restauration sur base/' + cible.nom + SAUV.SUFFIXE + ' (' + mio(cible.octets) + ', ' + ageTexte(cible.ts) + ')' + (laDerniere ? '' : ' — PAS la plus récente'));
 
+  verifierPlace(ctx.tmpParent, cible.octets * 2.5, 'cet exercice', 'Pointer OPMSG_ESSAI_DIR vers un dossier d\'un disque plus grand (par exemple un dossier sous /opt/opmsg), puis relancer.');
   const dossier = fs.mkdtempSync(path.join(ctx.tmpParent, 'opmsg-essai-'));
   try {
     const base = path.join(dossier, 'msg.db');
@@ -327,14 +349,29 @@ async function essai(ctx, { date, echantillon = 20, sansPurge }, dire) {
       if (sondage.manquantes) throw echec('des pièces du coffre ne sont pas revenues intactes.');
     }
     if (pieces.etrangeres) dire('  ⚠ ' + pieces.etrangeres + ' objet(s) sous pieces/ n\'ont pas la forme d\'une pièce : ils ne sont ni échantillonnés ni restaurés.');
+    /* ⛔ LES LIGNES DE PIÈCES CONTRE LES FICHIERS DU COFFRE. L'échantillon ci-dessus prouve que des pièces du coffre reviennent intactes ; il ne dit
+       rien des pièces que la BASE réclame et que le coffre n'a pas (un arriéré, un échec isolé, une pièce créée entre l'instantané et l'envoi) : la
+       conversation s'ouvre, la photo non (gardien A1). On compare ici les identifiants — après le rejeu des purges, qui a retiré les lignes des
+       pièces supprimées depuis — et on DIT le nombre. */
+    const idsPieces = ouvrir.copie.pieceIds(base);
+    const auCoffre = new Set(pieces.vraies.map(x => x.rel));
+    const sansFichier = idsPieces.filter(id => !auCoffre.has(relDePiece(id))).length;
+    if (idsPieces.length) dire('  lignes de pièces dans la base : ' + idsPieces.length + (sansFichier ? ' — ⚠ ' + sansFichier + ' SANS fichier au coffre : leurs photos, vocaux ou fichiers ne s\'ouvriraient pas (la conversation, elle, reste lisible).' : ' — toutes ont leur fichier au coffre.'));
 
+    const bilanPieces = sansFichier ? ' — mais ' + sansFichier + ' pièce(s) de la base n\'ont PAS de fichier au coffre (voir plus haut)' : '';
     if (laDerniere) {
-      if (ctx.dataDir) {
-        ecrireEssai(ctx.dataDir, { okTs: Date.now(), archive: 'base/' + cible.nom + SAUV.SUFFIXE, schema: r.meta.schema, lignes: v.total, cleMaitreVerifiee: !!cm.verifiee, pieces: pieces.vraies.length });
-        dire('\n✅ CETTE SAUVEGARDE EST RESTAURABLE. Exercice enregistré : /health dira « essaiJours: 0 ».');
-      } else dire('\n✅ CETTE SAUVEGARDE EST RESTAURABLE. (OPMSG_DATA n\'est pas posé : la date de l\'exercice n\'est PAS enregistrée.)');
-    } else dire('\n✅ CETTE ARCHIVE EST RESTAURABLE. (Ce n\'était pas la plus récente : la date de l\'exercice publiée par /health n\'est pas modifiée.)');
-    return { ok: true, archive: cible.nom, laDerniere, lignes: v.total, purge: p, cleMaitre: cm, pieces: sondage };
+      /* ⛔ UN EXERCICE QUI N'A PAS PU OUVRIR LA BASE AVEC LA CLÉ MAÎTRE PROUVE L'INTÉGRITÉ, PAS LA RESTAURATION. Sans le fichier de clé, l'archive
+         est intacte et rien ne dit qu'elle servirait : l'enregistrer ferait passer `/health` à « essaiJours: 0 » et éteindrait la seule alarme qui
+         réclame un VRAI exercice. Il est dit, noté à côté, et ne remet PAS la date à zéro. */
+      if (ctx.dataDir && !cm.verifiee) {
+        ecrireEssai(ctx.dataDir, { partielTs: Date.now(), partielMotif: 'cle-maitre-non-verifiee' });
+        dire('\n✅ CETTE ARCHIVE EST INTACTE' + bilanPieces + ' — mais la clé maître n\'a pas pu être vérifiée : l\'exercice n\'est PAS enregistré, /health ne bouge pas. Refaire l\'exercice sur le serveur, où le fichier de clé existe.');
+      } else if (ctx.dataDir) {
+        ecrireEssai(ctx.dataDir, { okTs: Date.now(), archive: 'base/' + cible.nom + SAUV.SUFFIXE, schema: r.meta.schema, lignes: v.total, cleMaitreVerifiee: true, pieces: pieces.vraies.length, piecesSansFichier: sansFichier });
+        dire('\n✅ CETTE SAUVEGARDE EST RESTAURABLE' + bilanPieces + '. Exercice enregistré : /health dira « essaiJours: 0 ».');
+      } else dire('\n✅ CETTE SAUVEGARDE EST RESTAURABLE' + bilanPieces + '. (OPMSG_DATA n\'est pas posé : la date de l\'exercice n\'est PAS enregistrée.)');
+    } else dire('\n✅ CETTE ARCHIVE EST RESTAURABLE' + bilanPieces + '. (Ce n\'était pas la plus récente : la date de l\'exercice publiée par /health n\'est pas modifiée.)');
+    return { ok: true, archive: cible.nom, laDerniere, lignes: v.total, purge: p, cleMaitre: cm, pieces: sondage, piecesLignes: idsPieces.length, piecesSansFichier: sansFichier, registre: { source: reg.source.nom, saute: reg.saute.length, complet: reg.complet } };
   } catch (e) {
     if (ctx.dataDir && laDerniere) { try { ecrireEssai(ctx.dataDir, { echecTs: Date.now(), echecMotif: String(e.message).slice(0, 120) }); } catch (x) { /* l'échec de l'exercice reste le sujet */ } }
     throw e;
@@ -363,6 +400,7 @@ async function restaurerVers(ctx, { vers, date, ecraser, sansPieces, sansPurge }
   const chantier = fs.mkdtempSync(path.join(dest, '.restauration-'));
   try {
     dire('→ restauration de base/' + cible.nom + SAUV.SUFFIXE + ' (' + mio(cible.octets) + ', ' + ageTexte(cible.ts) + ')');
+    verifierPlace(dest, cible.octets * 2.5, 'cette restauration', 'Choisir un dossier d\'un disque plus grand pour --vers.');
     const base = path.join(chantier, 'msg.db');
     const r = await recuperer(ctx, cible, base);
     dire('  téléchargée et déchiffrée (' + mio(r.base) + ', schéma ' + r.meta.schema + ').');
@@ -378,9 +416,16 @@ async function restaurerVers(ctx, { vers, date, ecraser, sansPieces, sansPurge }
     if (!sansPieces) {
       const lp = await listerPieces(ctx);
       if (!lp.ok) throw echec('liste des pièces impossible : HTTP ' + lp.statut);
+      verifierPlace(dest, lp.vraies.reduce((a, x) => a + x.octets, 0), 'les pièces', 'Choisir un dossier d\'un disque plus grand pour --vers, ou restaurer sans elles (--sans-pieces) pour les remettre plus tard.');
       pieces = await restaurerPieces(ctx, lp.pieces, path.join(dest, 'pieces'));
       const retirees = retirerFichiersPieces(path.join(dest, 'pieces'), p.pieces);
-      dire('  pièces : ' + pieces.remises + ' remise(s), ' + pieces.dejaLa + ' déjà là, ' + retirees + ' retirée(s) par la purge' + (pieces.refusees ? ', ' + pieces.refusees + ' REFUSÉE(S) (nom suspect)' : '') + '.');
+      dire('  pièces : ' + pieces.remises + ' remise(s), ' + pieces.dejaLa + ' déjà là, ' + retirees + ' retirée(s) par la purge' + (pieces.refusees ? ', ' + pieces.refusees + ' REFUSÉE(S) (nom suspect ou hors forme)' : '') + '.');
+      /* ⛔ LES LIGNES DE PIÈCES CONTRE LES FICHIERS QUI SONT REVENUS (gardien A1) : une base qui réclame des fichiers que le coffre n'avait pas
+         (un arriéré d'envoi) se restaure sans erreur et ouvre des conversations dont les photos ne s'ouvrent pas. On compte, on dit. */
+      const idsPieces = ouvrir.copie.pieceIds(base);
+      pieces.lignes = idsPieces.length;
+      pieces.sansFichier = idsPieces.filter(id => !fs.existsSync(path.join(dest, 'pieces', ...relDePiece(id).split('/')))).length;
+      if (idsPieces.length) dire('  lignes de pièces dans la base : ' + idsPieces.length + (pieces.sansFichier ? ' — ⚠ ' + pieces.sansFichier + ' SANS fichier : leurs photos, vocaux ou fichiers ne s\'ouvriront pas (la conversation, elle, reste lisible).' : ' — toutes ont leur fichier.'));
     } else dire('  pièces : non restaurées (--sans-pieces).');
 
     /* La mise en place : l'ancienne base est mise de côté, la nouvelle prend sa place (même système de fichiers : un renommage). */
@@ -429,8 +474,8 @@ async function main(argv, env, dire = (l) => console.log(l)) {
 
 if (require.main === module) {
   main(process.argv.slice(2), process.env).then((code) => process.exit(code), (e) => {
-    console.error('\n⛔ ' + (e && e.sortie ? e.message : 'échec inattendu (' + (e && (e.code || e.name) || 'erreur') + ')'));
+    console.error('\n⛔ ' + (e && e.sortie ? e.message : e && e.code === 'ENOSPC' ? 'le disque est plein : libérer de la place, ou choisir un autre dossier (OPMSG_ESSAI_DIR pour l\'essai, --vers pour la restauration).' : 'échec inattendu (' + (e && (e.code || e.name) || 'erreur') + ')'));
     process.exit(e && e.sortie ? e.sortie : 1);
   });
 }
-module.exports = { main, charger, choisir, borneDeDate, essai, restaurerVers, liste, verifierCleMaitre, ecrireEssai, echantillonner, retirerFichiersPieces };
+module.exports = { main, charger, choisir, borneDeDate, essai, restaurerVers, liste, verifierCleMaitre, ecrireEssai, echantillonner, retirerFichiersPieces, verifierPlace, registreDePurge, SCHEMA_CODE };

@@ -357,13 +357,17 @@ const horlogeFixe = (h) => () => h.t;
     const peuple = o.vide ? null : O.remplir(b, o.n === undefined ? 200 : o.n);
     const cle = O.cleHex(), h = { t: 1790000000000 };
     const instance = o.instance || 'beta';
+    /* Le coffre a SON horloge (`LastModified`) : par défaut celle du banc, ou celle qu'on donne au module (un banc en temps réel). `o.decalage.ms`
+       décale la seule horloge de la MACHINE — c'est ce qu'un saut d'horloge fait, et ce que le coffre, lui, ne subit pas. */
+    coffre.horloge = o.horlogeCoffre || o.horloge || (() => h.t);
+    if (o.etatInitial) fs.writeFileSync(path.join(b.dataDir, SAUV.NOM_ETAT), JSON.stringify(o.etatInitial));
     const cfg = SAUV.lireConfigSauvegarde(coffre.conf(Object.assign({ cle }, instance === 'beta' ? { intervalleMs: 60000 } : {}, o.conf)), { instance, kek: b.kek });
     const evts = [];
     const sortie = [];
     const sauv = SAUV.creerSauvegarde({
       cfg, instance, dataDir: b.dataDir,
       base: o.base || { instantane: (vers, opts) => b.S.instantane(vers, opts), sonde: () => b.S.sonde() },
-      controler: o.controler || controlerIci, horloge: o.horloge || (() => h.t), disqueLibre: o.disqueLibre,
+      controler: o.controler || controlerIci, horloge: o.horloge || (() => h.t + (o.decalage ? o.decalage.ms : 0)), disqueLibre: o.disqueLibre, disqueMinOctets: o.disqueMinOctets, client: typeof o.client === 'function' ? o.client(coffre) : o.client,
       journaliser: (e, c) => evts.push([e, c]),
     });
     return { coffre, b, h, cfg, cle, sauv, evts, peuple, instance, sortie, fermer: async () => { await sauv.arreter(); await coffre.fermer(); b.nettoyer(); } };
@@ -517,6 +521,48 @@ const horlogeFixe = (h) => () => h.t;
       v('   une mesure de disque IMPOSSIBLE ne coupe pas la sauvegarde (on ne se prive pas d\'une copie sur une panne de mesure)', r.ok, true);
     } finally { await m3.fermer(); }
 
+    /* ⛔ LE PLANCHER D'ESPACE DU SERVICE COMPTE AUSSI (gardien, remarque 1) : sous lui, le SERVICE refuse d'écrire (503). La passe ne se lance pas si
+       elle le franchirait à elle seule — le précontrôle ne regardait que « 2,5 fois la base + 64 Mio », jamais ce plancher. */
+    {
+      let libreMs = Infinity;
+      const mp = await monter({ n: 150, disqueLibre: () => libreMs, disqueMinOctets: 10 * 1048576 });
+      try {
+        const poids = ['', '-wal'].reduce((a, sfx) => { try { return a + fs.statSync(mp.b.chemin + sfx).size; } catch (e) { return a; } }, 0);
+        const besoin = poids * 2.5 + 64 * 1048576;
+        libreMs = besoin + 1048576;                  // assez pour la passe, PAS pour la passe plus le plancher de dix Mio du service
+        const refus = await mp.sauv.lancer('banc');
+        v('⛔ assez de place pour la passe mais pas pour la passe PLUS le plancher d\'espace du service (10 Mio) : refusée, rien ne part (population : la base pèse ' + Math.round(poids / 1024) + ' Kio)',
+          [refus.ok, refus.motif, mp.coffre.vus.length, poids > 100000], [false, 'disque-insuffisant', 0, true]);
+        libreMs = besoin + 11 * 1048576;
+        mp.h.t += 1000;
+        const passe = await mp.sauv.lancer('banc');
+        v('   et avec ce qu\'il faut pour les deux, la même passe réussit (contre-épreuve : ce n\'est pas la taille de la base qui refusait)', [passe.ok, cles(mp).length], [true, 1]);
+      } finally { await mp.fermer(); }
+    }
+    /* ⛔ LE PIC DE DISQUE D'UNE PASSE EST DE DEUX FOIS LA BASE, pas trois : on retire chaque fichier dès qu'il ne sert plus (l'instantané une fois
+       l'archive faite, l'archive une fois au coffre, la relue une fois rouverte). Mesuré par ce qui est SUR LE DISQUE à chaque étape. */
+    {
+      let mt; const trace = [];
+      const ls = () => fs.readdirSync(path.join(mt.b.dataDir, SAUV.NOM_TMP)).sort();
+      const COFFREMOD = require(path.join(SM, 'coffre.js'));
+      mt = await monter({
+        n: 150,
+        client: (cf) => {
+          const c = COFFREMOD.client(cf.conf());
+          return Object.assign({}, c, {
+            poserCleFlux: async (cle, chemin, o, e, t) => { if (/\/base\//.test(cle)) trace.push(['avant-depot', ls()]); return c.poserCleFlux(cle, chemin, o, e, t); },
+            lireCleVers: async (cle, sortie, t) => { const r = await c.lireCleVers(cle, sortie, t); if (/\/base\//.test(cle)) trace.push(['apres-relecture', ls()]); return r; },
+          });
+        },
+        controler: async (chemin) => { trace.push(['controle ' + path.basename(chemin), ls()]); return controlerIci(chemin); },
+      });
+      try {
+        const r = await mt.sauv.lancer('banc');
+        v('⛔ ce qui est sur le disque à chaque étape : l\'instantané SEUL au premier contrôle, l\'archive SEULE au dépôt, la relue SEULE après la relecture, sa base SEULE au second contrôle',
+          [r.ok, trace.map(x => x[0] + ' → ' + x[1].join('+'))], [true, ['controle instantane.db → instantane.db', 'avant-depot → archive.bin', 'apres-relecture → relue.bin', 'controle relue.db → relue.db']]);
+      } finally { await mt.fermer(); }
+    }
+
     /* L'archive relue est comptée contre l'instantané : tout le reste identique, UNE ligne de moins → « comptes-differents », retirée du coffre. */
     {
       let appels = 0;
@@ -583,6 +629,45 @@ const horlogeFixe = (h) => () => h.t;
       const r2 = await o.sauv.lancer('banc');
       vrai('⛔ sans le droit d\'EFFACER, idem : la passe dit ce qu\'elle n\'a pas pu faire (« ' + r2.motif + ' »)', r2.ok === false && r2.baseOk === true && /^elagage-efface-/.test(r2.motif));
     } finally { await o.fermer(); }
+  }
+
+  /* ══ 8 bis. L'HORLOGE DE LA MACHINE N'EST PAS CELLE DU COFFRE ══════════════════════════════════════════════════════════════════
+     Rejoué par le gardien le 3 octobre 2026 : un saut d'horloge de +20 jours élaguait l'historique (3 archives sur 5), bloquait les sauvegardes
+     pendant vingt jours (la dernière « datée » de dans vingt jours) et `ageH` restait à 0 (écrêté) pendant que `echecs` restait à 0 aussi — rien ne
+     criait. Le coffre, lui, a sa propre horloge (`LastModified`) : c'est elle qu'on croit. */
+  console.log('\n── 950 · un saut d\'horloge vers l\'avant n\'efface pas l\'historique, ne bloque pas les sauvegardes, et se VOIT ──');
+  {
+    const J = 86400000;
+    const dec = { ms: 0 };
+    const m = await monter({ n: 60, decalage: dec });
+    try {
+      m.h.t = Date.UTC(2026, 9, 20, 12, 0, 0);
+      let toutesOk = true;
+      for (let i = 0; i < 5; i++) { m.h.t += 3600000; const r = await m.sauv.lancer('banc'); toutesOk = toutesOk && r.ok; }
+      v('population : cinq archives, une par heure, la machine et le coffre d\'accord — aucune élaguée, aucun échec', [toutesOk, cles(m).length, m.sauv.sante().echecs], [true, 5, 0]);
+      dec.ms = 20 * J;                                    // la machine croit être vingt jours plus tard ; le coffre non
+      m.h.t += 3600000;
+      const r = await m.sauv.lancer('banc');
+      v('⛔ UN SAUT D\'HORLOGE de +20 jours : la passe se dit en échec (« horloge-ecart », 20 jours), la base est partie quand même, et RIEN n\'est élagué (avant : trois archives sur six effacées d\'un coup)',
+        [r.ok, r.baseOk, r.motif, r.ecartHorlogeJ, r.elaguees, cles(m).length], [false, true, 'horloge-ecart', 20, undefined, 6]);
+      v('   /health le dit : un échec compté', m.sauv.sante().echecs, 1);
+      dec.ms = 0;                                         // l'horloge se recale
+      m.h.t += 3600000;
+      v('⛔ l\'horloge revenue à l\'heure, une sauvegarde est DUE tout de suite (avant : la dernière « datée » de dans vingt jours, `due` faux pendant vingt jours — plus aucune sauvegarde)', m.sauv.due(), true);
+      const apres = await m.sauv.lancer('banc');
+      v('   elle part, réussit, et remet les échecs à zéro ; la rétention, voyant une archive « du futur », ne touche à rien', [apres.ok, m.sauv.sante().echecs, m.sauv.sante().ageH, cles(m).length], [true, 0, 0, 7]);
+    } finally { await m.fermer(); }
+
+    /* Un état laissé par une horloge en avance : la dernière réussite est « dans le futur ». L'âge est NÉGATIF — il ne s'écrête plus à 0. */
+    const FUT = 1790000000000 + 20 * J;
+    const ligneFuture = { ts: FUT, ms: 5, ok: true, baseOk: true, motif: '', raison: 'banc' };
+    const f = await monter({ n: 60, etatInitial: { v: 1, derniere: ligneFuture, dernierSucces: ligneFuture, baseTs: FUT, echecs: 0, histo: [ligneFuture], depot: null, pieces: { absentes: {} } } });
+    try {
+      v('⛔ la dernière réussite est datée de dans vingt jours : l\'âge est NÉGATIF (-480 h), pas écrêté à 0 qui ferait croire à une sauvegarde toute fraîche', f.sauv.sante().ageH, -480);
+      v('   et une sauvegarde est due tout de suite', f.sauv.due(), true);
+      const r = await f.sauv.lancer('banc');
+      v('   elle part, et l\'âge redevient 0', [r.ok, f.sauv.sante().ageH], [true, 0]);
+    } finally { await f.fermer(); }
   }
 
   /* ══ 9. LE RYTHME, LA MINUTERIE, L'ARRÊT, L'ÉTAT ════════════════════════════════════════════════════════════════════════════ */
@@ -701,7 +786,11 @@ const horlogeFixe = (h) => () => h.t;
       const lp = await SAUV.parcourirPieces(racine, vuLocal);
       v('parcourirPieces : à plat, trié, avec des « / », rien que des pièces (la vide comprise) — ni le caché, ni le `.tmp`, ni le lien (qu\'il ne suit pas), ni le trop profond, ni le mal rangé, ni le dépôt en cours', [lp.length, lp.every(x => !x.rel.includes('\\')), lp.map(x => x.rel).sort().join() === lp.map(x => x.rel).join(), lp.every(x => SAUV.pieceRelOk(x.rel))], [13, true, true, true]);
       v('   et ce qu\'il laisse se COMPTE (six : le caché, le `.tmp`, le lien, « aa/bb », le mal rangé, le dossier `tmp`) — une absence se compte, elle ne se suppose pas', vuLocal.ignorees, 6);
+      const n0 = m.coffre.vus.length;
       const r1 = await passe();
+      const ordre = m.coffre.vus.slice(n0).filter(x => x.m === 'PUT').map(x => /\/pieces\//.test(x.cle) ? 'piece' : /\/base\//.test(x.cle) ? 'base' : '?');
+      v('⛔ les pièces partent AVANT l\'archive de base (population : ' + ordre.filter(x => x === 'piece').length + ' dépôts de pièces, ' + ordre.filter(x => x === 'base').length + ' de base) — une archive posée sans ses pièces se restaure en photos qui ne s\'ouvrent pas',
+        [ordre.indexOf('base') === ordre.length - 1, ordre.filter(x => x === 'piece').length, ordre.filter(x => x === 'base').length, ordre.includes('?')], [true, N, 1, false]);
       v('⛔ la première passe envoie les ' + N + ' pièces (et seulement elles : la pièce vide est comptée à part)', [r1.ok, r1.pieces.envoyees, r1.pieces.dejaLa, r1.pieces.vides], [true, N, 0, 1]);
       v('   chacune est au coffre, OCTET POUR OCTET, sous <préfixe>pieces/<chemin relatif>', Object.keys(pieces).every(rel => m.coffre.objets.has(pre + rel) && m.coffre.objets.get(pre + rel).equals(pieces[rel])), true);
       v('   rien d\'autre : ni le fichier caché, ni le `.tmp`, ni le lien, ni la pièce vide, ni le fichier trop profond, ni le mal rangé', m.coffre.cles(pre).length, N);
@@ -727,6 +816,18 @@ const horlogeFixe = (h) => () => h.t;
       v('⛔ une pièce disparue d\'ici n\'est PAS retirée du coffre à la première passe (une panne de disque, un montage raté, ressemblent à ça)', [r5.pieces.retirees, m.coffre.objets.has(pre + victime)], [0, true]);
       const r6 = await passe();
       v('   elle l\'est à la SECONDE, et les autres ne bougent pas', [r6.pieces.retirees, m.coffre.objets.has(pre + victime), m.coffre.cles(pre).length, m.coffre.compter('DELETE', pre)], [1, false, N, 1]);
+      /* ⛔ LE MIROIR N'EFFACE QU'APRÈS LA BASE RELUE. Une pièce supprimée depuis la dernière archive saine est encore réclamée par elle : la retirer du coffre
+         alors que la nouvelle archive n'est pas posée la rendrait irrécupérable pour la seule copie qui la porte. La base refusée → rien n'est effacé. */
+      const victime2 = Object.keys(pieces)[3];
+      efface(victime2);
+      const rv1 = await passe();                                   // première absence : observée
+      m.coffre.regler('refus-depot-base');
+      const rv2 = await passe();                                   // seconde absence : due — mais la base n'est pas partie
+      m.coffre.normal();
+      v('⛔ la pièce absente DEUX fois reste au coffre tant que l\'archive de base de cette passe n\'est pas posée (le dépôt de base est refusé)', [rv2.ok, rv2.baseOk, m.coffre.objets.has(pre + victime2)], [false, false, true]);
+      const rv3 = await passe();
+      v('   la passe suivante, la base posée, la retire (une pièce supprimée finit par quitter le coffre)', [rv3.ok, rv3.pieces.retirees, m.coffre.objets.has(pre + victime2)], [true, 1, false]);
+      void rv1;
       const revenante = Object.keys(pieces)[4], contenu = pieces[revenante];
       efface(revenante); await passe(); ecrire(revenante, contenu); await passe(); efface(revenante); const r7 = await passe();
       v('⛔ une pièce qui REVIENT entre deux passes remet le compte à zéro (« absente deux fois de suite », pas « absente deux fois »)', [r7.pieces.retirees, m.coffre.objets.has(pre + revenante)], [0, true]);
@@ -797,9 +898,11 @@ const horlogeFixe = (h) => () => h.t;
     try {
       const racine = path.join(w.b.dataDir, 'pieces'); fs.mkdirSync(path.join(racine, 'ab'), { recursive: true });
       for (let i = 0; i < 12; i++) fs.writeFileSync(path.join(racine, 'ab', idPiece('ab', 'w' + i)), crypto.randomBytes(100));
-      const suite = [];
-      for (let i = 0; i < 4; i++) { w.h.t += 1000; const r = await w.sauv.lancer('banc'); suite.push([r.ok, r.pieces.envoyees, r.pieces.restantes]); }
-      v('⛔ un budget de cinq pièces par passe : 5, 5, 2, 0 — les restantes se comptent, aucune n\'est un échec', suite, [[true, 5, 7], [true, 5, 2], [true, 2, 0], [true, 0, 0]]);
+      const suite = [], sante = [];
+      for (let i = 0; i < 4; i++) { w.h.t += 1000; const r = await w.sauv.lancer('banc'); suite.push([r.ok, r.pieces.envoyees, r.pieces.restantes, r.motif, r.baseOk]); sante.push([w.sauv.sante().echecs, w.sauv.sante().ageH]); }
+      v('⛔ un budget de cinq pièces par passe : 5, 5, 2, 0 — les restantes se comptent, et TANT QU\'IL EN RESTE la passe n\'est PAS réussie (« pieces-arriere-N »), même si la base, elle, est partie', suite,
+        [[false, 5, 7, 'pieces-arriere-7', true], [false, 5, 2, 'pieces-arriere-2', true], [true, 2, 0, '', true], [true, 0, 0, '', true]]);
+      v('⛔ et /health ne dit pas « tout va bien » pendant l\'arriéré : les échecs montent (1, 2), l\'âge reste inconnu tant qu\'aucune passe n\'a été COMPLÈTE, puis tout retombe à zéro', sante, [[1, null], [2, null], [0, 0], [0, 0]]);
     } finally { await w.fermer(); }
   }
 
@@ -850,6 +953,9 @@ const horlogeFixe = (h) => () => h.t;
     fs.mkdirSync(path.join(racinePieces, 'ab'), { recursive: true });
     fs.writeFileSync(path.join(racinePieces, ...pieceRel.split('/')), crypto.randomBytes(321));
     fs.writeFileSync(path.join(racinePieces, ...relPiece('ab', 'gardee').split('/')), crypto.randomBytes(222));
+    /* Les LIGNES que la base réclame : la gardée (fichier au coffre), la purgée (le registre l'emportera), et une FANTÔME dont le fichier n'a jamais
+       existé nulle part — ce que laisse un arriéré d'envoi, un échec isolé, une pièce supprimée entre l'instantané et l'envoi. */
+    for (const tag of ['purgee', 'gardee', 'fantome']) m.b.S.pieceCreer({ id: idPiece('ab', tag), proprio: a.id, conv: m.peuple.conv, genre: 'fichier', taille: 10, mime: 'application/octet-stream', ttlMs: 30 * 86400000 });
 
     m.h.t = Date.UTC(2026, 8, 21, 6, 0, 0);
     const T0 = m.h.t;
@@ -914,7 +1020,7 @@ const horlogeFixe = (h) => () => h.t;
         const r0 = STOCK.ouvrir.copie.rejouerPurge(p, [{ objet: 'f_p1', genre: 'piece', quand: 1 }]);
         v('une pièce purgée : son identifiant est RENDU (pour retirer le fichier), même quand la table des pièces n\'existe pas (une archive d\'avant l\'étape 4)', [r0.pieces, r0.messagesRetires], [['f_p1'], 0]);
         const p2 = await frais();
-        const d = new DatabaseSync(p2); d.exec("INSERT INTO piece(id, proprio, conv, genre, taille, mime, cree) VALUES ('f_p2', (SELECT id FROM personne ORDER BY id LIMIT 1), NULL, 'avatar', 1, 'image/png', 1), ('f_p3', (SELECT id FROM personne ORDER BY id LIMIT 1), NULL, 'avatar', 2, 'image/png', 2)"); d.close();
+        const d = new DatabaseSync(p2); d.exec('DELETE FROM piece'); d.exec("INSERT INTO piece(id, proprio, conv, genre, taille, mime, cree) VALUES ('f_p2', (SELECT id FROM personne ORDER BY id LIMIT 1), NULL, 'avatar', 1, 'image/png', 1), ('f_p3', (SELECT id FROM personne ORDER BY id LIMIT 1), NULL, 'avatar', 2, 'image/png', 2)"); d.close();
         const r1 = STOCK.ouvrir.copie.rejouerPurge(p2, [{ objet: 'f_p2', genre: 'piece_expiree', quand: 2 }]);
         v('   et quand la table existe (la base d\'aujourd\'hui), la ligne en part aussi (les autres restent)', [r1.pieces, compte(p2, 'SELECT COUNT(*) AS n FROM piece'), compte(p2, 'SELECT COUNT(*) AS n FROM piece WHERE id = ?', 'f_p3')], [['f_p2'], 1, 1]);
       }
@@ -951,6 +1057,8 @@ const horlogeFixe = (h) => () => h.t;
       const mq = marqueur();
       vrai('   la date de l\'exercice est ÉCRITE (un nombre, le nom de l\'archive, des comptes — rien de secret) et /health la lit', !!mq && Number.isFinite(mq.okTs) && mq.archive === 'base/' + SAUV.archiveDeCle('beta/', cleC).nom + SAUV.SUFFIXE && mq.cleMaitreVerifiee === true && m.sauv.sante().essaiJours === 0);
       vrai('   l\'exercice ne laisse RIEN derrière lui : le dossier jetable est effacé', fs.readdirSync(os.tmpdir()).filter(f => f.startsWith('opmsg-essai-')).length === 0);
+      v('⛔ l\'essai COMPARE les lignes de pièces de la base aux fichiers du coffre : 2 lignes (la purgée est partie avec le registre), dont UNE sans fichier — dit, et noté — alors qu\'avant il ne les comparait jamais',
+        [/lignes de pièces dans la base : 2 — ⚠ 1 SANS fichier au coffre/.test(ess.sortie), /mais 1 pièce\(s\) de la base n'ont PAS de fichier au coffre/.test(ess.sortie), mq.piecesSansFichier], [true, true, 1]);
 
       const okTsAvant = (marqueur() || {}).okTs;
       await dormir(5);
@@ -968,8 +1076,14 @@ const horlogeFixe = (h) => () => h.t;
       const mauvaiseMaitre = path.join(m.b.dossier, 'autre.kek'); fs.writeFileSync(mauvaiseMaitre, O.cleHex());
       const mm = await outil(['essai'], { OPMSG_KEK_FILE: mauvaiseMaitre });
       v('⛔ une MAUVAISE clé maître sur le serveur : sortie 1 — l\'archive est intacte, mais rien ne serait lisible', [mm.code, /n'ouvre PAS cette base/.test(mm.erreur), (marqueur() || {}).okTs === okTsAvant], [1, true, true]);
+      /* ⛔ Un exercice qui n'a pas pu ouvrir la base avec la clé maître prouve l'INTÉGRITÉ, pas la restauration : il ne remet pas la date à zéro (sinon
+         /health passe à « essaiJours: 0 » et éteint la seule alarme qui réclame un vrai exercice). On vieillit la date, on joue, on relit. */
+      RESTAURER.ecrireEssai(m.b.dataDir, { okTs: Date.now() - 40 * 86400000 });
+      const vieilleDate = (marqueur() || {}).okTs;
       const sansMaitre = await outil(['essai'], { OPMSG_KEK_FILE: path.join(m.b.dossier, 'absente.kek') });
-      v('   un fichier de clé maître ABSENT : l\'exercice passe, et DIT qu\'il ne prouve que l\'intégrité (⚠, et noté dans la date)', [sansMaitre.code, /clé maître NON vérifiée/.test(sansMaitre.sortie), (marqueur() || {}).cleMaitreVerifiee], [0, true, false]);
+      v('⛔ un fichier de clé maître ABSENT : l\'exercice DIT qu\'il ne prouve que l\'intégrité, et N\'ENREGISTRE PAS de nouvelle date (la date de 40 jours reste, le partiel est noté à côté)',
+        [sansMaitre.code, /clé maître NON vérifiée/.test(sansMaitre.sortie), /n'est PAS enregistré, \/health ne bouge pas/.test(sansMaitre.sortie), (marqueur() || {}).okTs === vieilleDate, typeof (marqueur() || {}).partielTs], [0, true, true, true, 'number']);
+      RESTAURER.ecrireEssai(m.b.dataDir, { okTs: okTsAvant });
 
       /* Une archive qui n'est pas la bonne : une autre instance, ou rebaptisée. */
       const brutC = m.coffre.objets.get(cleC);
@@ -1001,6 +1115,8 @@ const horlogeFixe = (h) => () => h.t;
       v('⛔ restaurer dans un dossier neuf : sortie 0, la base posée, saine, et les mêmes messages que la base vivante', [r1.code, fs.existsSync(path.join(vers, 'msg.db')), STOCK.ouvrir.copie.controlerFichier(path.join(vers, 'msg.db')).ok, empreinteTables(path.join(vers, 'msg.db')).message === vivantC.message], [0, true, true, true]);
       v('⛔ les pièces reviennent octet pour octet — SAUF celle que le registre a emportée depuis l\'archive, qui est encore au coffre mais NE REVIENT PAS', [fs.existsSync(path.join(vers, 'pieces', ...relPiece('ab', 'gardee').split('/'))) && fs.readFileSync(path.join(vers, 'pieces', ...relPiece('ab', 'gardee').split('/'))).equals(m.coffre.objets.get('beta/pieces/' + relPiece('ab', 'gardee'))), fs.existsSync(path.join(vers, 'pieces', ...pieceRel.split('/'))), /1 retirée\(s\) par la purge/.test(r1.sortie)], [true, false, true]);
       vrai('   aucun dossier de chantier ne reste (`.restauration-…`)', !fs.readdirSync(vers).some(f => f.startsWith('.restauration-')));
+      vrai('⛔ la restauration COMPTE les lignes de pièces sans fichier et le DIT (2 lignes, une sans fichier) — une base qui réclame des fichiers que le coffre n\'a pas ouvre des photos qui ne s\'ouvrent pas',
+        /lignes de pièces dans la base : 2 — ⚠ 1 SANS fichier/.test(r1.sortie));
       const avantRefus = crypto.createHash('sha256').update(fs.readFileSync(path.join(vers, 'msg.db'))).digest('hex');
       const r2 = await outil(['restaurer', '--vers', vers]);
       v('⛔ une SECONDE restauration au même endroit est REFUSÉE sans le drapeau — la base existante n\'a pas bougé d\'un octet, rien ne traîne', [r2.code, /--ecraser/.test(r2.erreur), crypto.createHash('sha256').update(fs.readFileSync(path.join(vers, 'msg.db'))).digest('hex') === avantRefus, fs.readdirSync(vers).filter(f => f.startsWith('.restauration-')).length], [1, true, true, 0]);
@@ -1103,6 +1219,41 @@ const horlogeFixe = (h) => () => h.t;
         } finally { m.coffre.objets.set(cleC, sainC); m.coffre.objets.set(cleB, sainB); }
         const retour = await outil(['essai']);
         v('contre-épreuve : C remise saine, l\'essai sur la plus récente repasse (sortie 0) — ce qui a échoué plus haut, c\'était bien l\'octet abîmé', retour.code, 0);
+      }
+
+      /* ══ remarque 5 : une archive d'un schéma PLUS RÉCENT que ce code n'est pas ouverte ══════════════════════════════════════════════
+         L'archive vient d'une version du service qui a migré la base plus loin que ce code ne sait aller. L'ouvrir de force, c'est lire des tables
+         qu'il ne connaît pas. Elle compte comme illisible : à l'essai elle échoue, et pour lire un registre on remonte à la précédente. */
+      {
+        const ts = m.h.t + 5 * 3600000, cleN = 'beta/base/' + SAUV.nomDe(ts) + SAUV.SUFFIXE, sortieN = path.join(bac, 'schema-futur.bin');
+        await SAUV.fabriquer({ source: path.join(bac, 'A.db'), sortie: sortieN, cle: Buffer.from(m.cle, 'hex'), meta: { instance: 'beta', date: new Date(ts).toISOString(), schema: SCHEMA + 1 } });
+        m.coffre.poser(cleN, fs.readFileSync(sortieN));
+        const essN = await outil(['essai']);
+        v('⛔ une archive de schéma ' + (SCHEMA + 1) + ' (ce code connaît le ' + SCHEMA + ') n\'est PAS ouverte : l\'essai échoue en disant les deux numéros',
+          [essN.code, new RegExp('version PLUS RÉCENTE du service \\(schéma ' + (SCHEMA + 1) + ', ce code ne connaît que le ' + SCHEMA + '\\)').test(essN.erreur)], [1, true]);
+        const dN = path.join(bac, 'b2-schema');
+        const rN = await outil(['restaurer', '--vers', dN, '--date', new Date(T0).toISOString().slice(0, 19), '--sans-pieces']);
+        v('   restaurer A quand la plus récente est de schéma futur : réussie, la sautée est dite avec son motif, et le registre vient de C',
+          [rN.code, /ne s'ouvre pas \(cette archive vient d'une version PLUS RÉCENTE/.test(rN.sortie), /registre des purges : celui de base\//.test(rN.sortie)], [0, true, true]);
+        m.coffre.objets.delete(cleN);
+      }
+
+      /* ══ remarque 9 : un dossier temporaire trop petit se DIT, avant de télécharger ══════════════════════════════════════════════════
+         Sans cela, un /tmp de 2 Go devant une base de 3 Go faisait mourir l'exercice sur « échec inattendu (ENOSPC) », sans dire quel dossier. */
+      {
+        const petitDossier = path.join(bac, 'petit-disque-banc'); fs.mkdirSync(petitDossier);
+        const vraiStatfs = fs.statfsSync;
+        fs.statfsSync = (chemin, opts) => (String(chemin).includes('petit-disque-banc') ? { bavail: 1, bsize: 4096 } : vraiStatfs(chemin, opts));
+        try {
+          const trop = await outil(['essai'], { OPMSG_ESSAI_DIR: petitDossier });
+          v('⛔ un dossier temporaire de 4 Kio : l\'essai refuse AVANT de télécharger, dit « pas assez de place », nomme la variable qui déplace le travail, et ne crée rien',
+            [trop.code, /pas assez de place pour cet exercice/.test(trop.erreur), /OPMSG_ESSAI_DIR/.test(trop.erreur), fs.readdirSync(petitDossier)], [1, true, true, []]);
+          const dPetit = path.join(petitDossier, 'dest');
+          const tropR = await outil(['restaurer', '--vers', dPetit]);
+          v('   la restauration vers un disque trop petit : refusée de même, rien de posé (pas même le dossier de destination)', [tropR.code, /pas assez de place pour cette restauration/.test(tropR.erreur), fs.existsSync(dPetit)], [1, true, false]);
+        } finally { fs.statfsSync = vraiStatfs; }
+        const eu = lance(() => RESTAURER.verifierPlace(os.tmpdir(), 1e18, 'ce test', 'Aide.'));
+        v('   et la mesure elle-même : exiger un pétaoctet est refusé, avec les deux nombres en Mio', [!!eu, /pas assez de place pour ce test/.test(String(eu && eu.message)), /Mio/.test(String(eu && eu.message))], [true, true, true]);
       }
 
       const inconnue = await outil(['danser']);

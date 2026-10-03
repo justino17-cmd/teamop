@@ -84,11 +84,12 @@ async function coffreFaux(opts = {}) {
           if (pannes.has('refus-depot-403')) return fin(403, '<Error><Code>AccessDenied</Code></Error>');
           if (pannes.has('coupure-depot')) { q.socket.destroy(); return; }
           if (pannes.has('refus-depot-pieces') && /\/pieces\//.test(cle)) return fin(500, 'refus du banc');
+          if (pannes.has('refus-depot-base') && /\/base\//.test(cle)) return fin(500, 'refus du banc');   // les pièces passent, l'archive de base non
           const corps = Buffer.concat(bouts);
           const dit = String(q.headers['x-amz-content-sha256'] || '');
           ligne.hashOk = crypto.createHash('sha256').update(corps).digest('hex') === dit;
           if (!ligne.hashOk) { etat.empreintesFausses++; return fin(400, '<Error><Code>XAmzContentSHA256Mismatch</Code></Error>'); }
-          objets.set(cle, corps); modifies.set(cle, new Date().toISOString());
+          objets.set(cle, corps); modifies.set(cle, new Date(coffre.horloge ? coffre.horloge() : Date.now()).toISOString());
           fin(200);
         };
         if (coffre.latenceMs > 0) setTimeout(repondre, coffre.latenceMs); else repondre();
@@ -122,10 +123,11 @@ async function coffreFaux(opts = {}) {
   const coffre = {
     base, port, objets, vus, etat, bucket: o.bucket, accessKey: o.accessKey, secretKey: o.secretKey, region: o.region,
     latenceMs: 0,                     // un coffre lent à répondre à un dépôt (pour arrêter le service pendant une passe)
+    horloge: null,                    // l'horloge DU COFFRE (`LastModified`) : par défaut la vraie ; un banc qui simule le temps la fait suivre la sienne, ou la laisse seule quand c'est l'horloge de la machine qui saute
     regler: (...modes) => { pannes.clear(); for (const m of modes) pannes.add(m); },
     normal: () => pannes.clear(),
     /* Pose un objet directement (un reste d'une passe interrompue, une archive d'un autre âge, une pièce qu'on n'a jamais envoyée). */
-    poser: (cle, buf, modifie) => { objets.set(cle, Buffer.from(buf)); modifies.set(cle, modifie || new Date().toISOString()); },
+    poser: (cle, buf, modifie) => { objets.set(cle, Buffer.from(buf)); modifies.set(cle, modifie || new Date(coffre.horloge ? coffre.horloge() : Date.now()).toISOString()); },
     cles: (prefixe) => [...objets.keys()].filter(k => !prefixe || k.startsWith(prefixe)).sort(),
     compter: (m, prefixeCle) => vus.filter(x => x.m === m && (!prefixeCle || (x.cle || '').startsWith(prefixeCle))).length,
     /* Les LISTES demandées sous un préfixe (ListObjectsV2 n'a pas de clé : le préfixe est un paramètre). */

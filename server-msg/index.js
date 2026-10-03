@@ -68,7 +68,7 @@ function demarrer(env = process.env) {
      refusent le démarrage plutôt que de tourner de travers), puis la garde (budgets, emballement, bouclier) et l'envoi par OVH. */
   const sms = creerGarde({ cfg: lireConfigSms(config.sms, config.instance), instance: config.instance, stockage, scelleur, horloge: Date.now, journaliser });
   /* Les instantanés passent par `stockage.instantane` (une connexion lectrice à part) ; le contrôle des copies, lui, se fait dans un processus enfant. */
-  const sauvegarde = creerSauvegarde({ cfg: cfgSauvegarde, instance: config.instance, dataDir: config.dataDir, base: { instantane: (vers) => stockage.instantane(vers), sonde: () => stockage.sonde() }, horloge: Date.now, journaliser });
+  const sauvegarde = creerSauvegarde({ cfg: cfgSauvegarde, instance: config.instance, dataDir: config.dataDir, base: { instantane: (vers) => stockage.instantane(vers), sonde: () => stockage.sonde() }, horloge: Date.now, journaliser, disqueMinOctets: config.disqueMinMo * 1048576 });
   const demarreA = Date.now();
   const boucle = monitorEventLoopDelay({ resolution: 20 }); boucle.enable();
 

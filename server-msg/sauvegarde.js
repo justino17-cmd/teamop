@@ -62,6 +62,8 @@ const NOM_ETAT = 'sauvegarde-etat.json', NOM_ESSAI = 'sauvegarde-essai.json', NO
 /* GCM n'est sûr que jusqu'à ~64 Gio par message : au-delà, la sauvegarde REFUSE (et le dit) plutôt que de chiffrer de travers. */
 const MAX_OCTETS_GCM = 32 * 1024 * 1024 * 1024;
 const GARDER_AU_MOINS = 3;
+/* Au-delà d'un jour d'écart entre l'horloge de cette machine et celle du coffre, rien ne s'élague : on ne sait plus quel jour on est. */
+const ECART_HORLOGE_MAX_MS = 86400000;
 
 const erreur = (code) => Object.assign(new Error(code), { code });
 const dormir = (ms) => new Promise(r => setTimeout(r, ms));
@@ -137,7 +139,7 @@ function lireConfigSauvegarde(c, { instance, kek } = {}) {
     cle, prefixe, retentionJours, intervalleMs,
     retryMs: Math.min(600000, intervalleMs),
     delaiInitialMs: Math.min(30000, intervalleMs),
-    piecesParPasse: entier(c, 'piecesParPasse', 500, 1, 100000),
+    piecesParPasse: entier(c, 'piecesParPasse', 5000, 1, 100000),
     budgetPiecesMs: entier(c, 'budgetPiecesMs', 480000, 1000, 3600000),
   });
 }
@@ -341,7 +343,8 @@ async function parcourirPieces(racine, bilan) {
      controler  async (chemin) → { ok, schema, temoin, journalMax, lignes, … } — par défaut, un processus enfant ;
      client     le client S3 (`lib/s3.js`) ; par défaut celui que la configuration décrit ;
      horloge    `Date.now` ; journaliser    le journal du service (liste blanche de champs) ;
-     disqueLibre  () → octets libres sur le disque des données. */
+     disqueLibre  () → octets libres sur le disque des données ;
+     disqueMinOctets  le plancher sous lequel le SERVICE refuse d'écrire (503) : la sauvegarde ne doit jamais l'enfoncer à elle seule. */
 function creerSauvegarde(deps) {
   const { cfg, instance, dataDir, base } = deps;
   const horloge = deps.horloge || Date.now;
@@ -351,6 +354,7 @@ function creerSauvegarde(deps) {
   const controler = deps.controler || controlerEnProcessus;
   const cheminBase = deps.cheminBase || path.join(dataDir, 'msg.db');
   const disqueLibre = deps.disqueLibre || (() => { const s = fs.statfsSync(dataDir); return Number(s.bavail) * Number(s.bsize); });
+  const disqueMinOctets = Number.isFinite(deps.disqueMinOctets) && deps.disqueMinOctets > 0 ? deps.disqueMinOctets : 0;
   const ETAT_PATH = path.join(dataDir, NOM_ETAT), ESSAI_PATH = path.join(dataDir, NOM_ESSAI);
   const TMP_DIR = path.join(dataDir, NOM_TMP);
 
@@ -403,6 +407,9 @@ function creerSauvegarde(deps) {
     const cleObjet = cleBase(cfg.prefixe, t0);
     const archive = path.join(TMP_DIR, 'archive.bin'), relue = path.join(TMP_DIR, 'relue.bin'), relueDb = path.join(TMP_DIR, 'relue.db'), instantaneDb = path.join(TMP_DIR, 'instantane.db');
     let baseOk = false;
+    /* Un fichier de base ne vient jamais seul : ouverte en lecture seule par le contrôle, elle laisse `-wal` et `-shm` à côté (le mode WAL est écrit
+       dans l'en-tête de la copie). Ils partent avec elle — sinon « le pic de disque » se mesure fichier par fichier et ne dit pas la vérité. */
+    const retirerBase = (f) => { for (const sfx of ['', '-wal', '-shm']) { try { fs.rmSync(f + sfx, { force: true }); } catch (e) { /* rien */ } } };
 
     /* Une passe NOTÉE : la ligne va dans l'état, le journal ne reçoit que des nombres et un motif machine. */
     const noter = (ok, motif, extra) => {
@@ -441,13 +448,15 @@ function creerSauvegarde(deps) {
         if (retire) { etat.depot = null; ecrireEtat(); }
       }
 
-      /* ⛔ LA PLACE AVANT LE TRAVAIL : la copie, l'archive, la relue et sa base peuvent peser ensemble plus de deux fois la base. Un
-         disque qui se remplit ferait refuser les écritures (503) à tout le monde — ce service ne doit JAMAIS priver les gens de leurs
-         messages pour se sauvegarder. */
+      /* ⛔ LA PLACE AVANT LE TRAVAIL. Le pic d'une passe est de DEUX fois la base : l'instantané (retiré dès que l'archive est faite), puis
+         l'archive (retirée dès qu'elle est au coffre), puis la relue ET sa base déchiffrée (la relue est retirée dès qu'elle est rouverte) — les
+         messages sont scellés par la clé maître, donc incompressibles : l'archive pèse autant que la base. Mesuré le 3 octobre 2026 : avant
+         ces retraits, le pic était de TROIS fois (archive + relue + relue.db). Et le plancher d'espace libre du SERVICE compte aussi : sous lui
+         il refuse les écritures (503) — une sauvegarde qui le franchit à elle seule prive les gens de leurs messages pour se sauvegarder. */
       let poids = 0;
       for (const s of ['', '-wal']) { try { poids += fs.statSync(cheminBase + s).size; } catch (e) { /* absent */ } }
       let libre = Infinity; try { libre = disqueLibre(); } catch (e) { libre = Infinity; }   // une mesure impossible ne coupe pas la sauvegarde
-      if (libre < poids * 2.5 + 64 * 1048576) return noter(false, 'disque-insuffisant');
+      if (libre < poids * 2.5 + 64 * 1048576 + disqueMinOctets) return noter(false, 'disque-insuffisant');
 
       /* ── 1. L'instantané, sondé avant et après ── */
       const avant = base.sonde();
@@ -466,7 +475,17 @@ function creerSauvegarde(deps) {
       try {
         faite = await fabriquer({ source: instantaneDb, sortie: archive, cle: cfg.cle, meta: { instance, date: new Date(t0).toISOString(), schema: copie.schema } });
       } catch (e) { return noter(false, e && e.code === 'trop-volumineuse' ? 'trop-volumineuse' : 'archive-echec'); }
-      try { fs.rmSync(instantaneDb, { force: true }); } catch (e) { /* libère la place avant l'envoi */ }
+      retirerBase(instantaneDb);   // libère la place avant l'envoi — avec le journal et la mémoire partagée que le contrôle en lecture seule laisse à côté
+      if (arret) return noter(false, 'arret');
+
+      /* ── 2 bis. LES PIÈCES D'ABORD. ⛔ Les pièces d'une archive partent AVANT elle : une archive posée au coffre alors que ses pièces n'y sont pas
+         encore (une passe interrompue, un arriéré, un échec isolé) se restaure en lignes SANS fichier — des photos qui ne s'ouvrent plus, sans
+         que rien l'ait dit (gardien A1, 3 octobre 2026). L'instantané est déjà pris : toute ligne qu'il porte a son fichier sur le disque, qui part
+         maintenant. Seule exception, l'arriéré (un plafond par passe, un échec) : la base part quand même — un arriéré de photos ne doit pas
+         priver de sa sauvegarde la messagerie entière — mais la passe n'est PAS « réussie » (`pieces-arriere-N`). Le miroir, lui, n'EFFACE
+         qu'après la base relue (plus bas) : retirer du coffre une pièce supprimée depuis la dernière archive saine la rendrait irrécupérable. ── */
+      let pieces = null;
+      try { pieces = await sauverPieces(t0); } catch (e) { pieces = { bilan: { ok: false, motif: 'pieces-exception' }, elaguer: async () => {} }; }
       if (arret) return noter(false, 'arret');
 
       /* ── 3. Le dépôt. Le marqueur est écrit AVANT : une passe tuée entre le dépôt et la relecture laisse un objet que personne
@@ -481,6 +500,8 @@ function creerSauvegarde(deps) {
         return noter(false, 'depot-' + (dep.statut || 'erreur'), { octets: faite.octets });
       }
 
+      try { fs.rmSync(archive, { force: true }); } catch (e) { /* libère la place avant la relecture : le pic de disque est de deux fois la base, pas trois */ }
+
       /* Arrêté pendant l'envoi : l'objet est au coffre sans avoir été relu, et le marqueur de dépôt (déjà écrit) dit à la passe
          suivante de le retirer. On ne se lance pas dans une relecture que le service n'aura pas le temps de finir. */
       if (arret) return noter(false, 'arret');
@@ -492,6 +513,7 @@ function creerSauvegarde(deps) {
       if (relu.empreinte !== faite.empreinte) return recaler('empreinte-differente', { octets: faite.octets });
       try { await ouvrirArchive(relue, cfg.cle, relueDb, { instance, date: new Date(t0).toISOString() }); }
       catch (e) { return recaler('archive-illisible', { octets: faite.octets }); }
+      try { fs.rmSync(relue, { force: true }); } catch (e) { /* la base déchiffrée suffit au contrôle */ }
       const reouverte = await controler(relueDb);
       if (!reouverte || !reouverte.ok) return recaler('relue-illisible', { octets: faite.octets });
       if (JSON.stringify(reouverte.lignes) !== JSON.stringify(copie.lignes) || reouverte.schema !== copie.schema || reouverte.journalMax !== copie.journalMax || reouverte.temoin !== copie.temoin) {
@@ -500,24 +522,39 @@ function creerSauvegarde(deps) {
       /* L'archive de base est BONNE et au coffre : le marqueur a fait son travail, et le rythme se règle désormais sur elle. */
       etat.depot = null;
       baseOk = true;
-      for (const f of [archive, relue, relueDb]) { try { fs.rmSync(f, { force: true }); } catch (e) { /* rien */ } }
+      retirerBase(relueDb);
 
       const extra = { octets: faite.octets, lignes: copie.total, schema: copie.schema, methode };
 
-      /* ── 5. Les pièces, puis 6. la rétention. Un échec ici NE retire PAS l'archive de base (elle est relue, elle est bonne) mais la
-         passe n'est pas « réussie » : `ageH` ne repart pas à zéro, `echecs` monte — la sauvegarde est INCOMPLÈTE, et ça se dit. ── */
+      /* ── 4. Le miroir des pièces retire ce qui a disparu, puis 5. la rétention. Un échec ici NE retire PAS l'archive de base (elle est
+         relue, elle est bonne) mais la passe n'est pas « réussie » : `ageH` ne repart pas à zéro, `echecs` monte — la sauvegarde est
+         INCOMPLÈTE, et ça se dit. ── */
       let motifPartiel = '';
-      const p = await sauverPieces(t0);
+      if (pieces) { try { await pieces.elaguer(); } catch (e) { /* le miroir se réessaie à la passe suivante : rien n'a été perdu */ } }
+      const p = pieces && pieces.bilan;
       if (p) extra.pieces = { envoyees: p.envoyees, dejaLa: p.dejaLa, retirees: p.retirees, restantes: p.restantes, vides: p.vides, ignorees: p.ignorees };
       if (p && !p.ok) motifPartiel = p.motif;
 
       const liste = await client.lister(cfg.prefixe + DOSSIER_BASE);
       if (liste && liste.ok) {
-        const vieilles = aElaguer(liste.objets, { prefixe: cfg.prefixe, maintenant: t0, jours: cfg.retentionJours });
-        let n = 0;
-        for (const c of vieilles) { const r = await client.effacerCle(c); if (r.ok) n++; }
-        extra.elaguees = n;
-        if (n < vieilles.length && !motifPartiel) motifPartiel = 'elagage-efface-' + (vieilles.length - n);
+        /* ⛔ L'HORLOGE DE CETTE MACHINE N'EST PAS CELLE DU COFFRE, et c'est le coffre qu'on croit. La rétention juge l'âge des archives par la date
+           de leur NOM, qui vient de l'horloge d'ici : un saut vers l'avant (rejoué par le gardien, +20 jours) fait paraître vieille toute
+           l'histoire, élague jusqu'aux trois dernières, et laisse la machine croire pendant vingt jours que sa dernière sauvegarde est « dans
+           le futur ». L'archive qu'on vient de poser porte la date du COFFRE (`LastModified`) : si elle s'écarte de plus d'un jour de la nôtre,
+           on n'élague RIEN et la passe le dit (`horloge-ecart`). Sans verdict (l'archive absente de la liste), on n'élague pas non plus. */
+        const moi = (liste.objets || []).find(o => o && o.cle === cleObjet);
+        const dateCoffre = moi ? Date.parse(moi.modifie) : NaN;
+        const ecart = Number.isFinite(dateCoffre) ? Math.abs(horloge() - dateCoffre) : null;
+        if (ecart !== null && ecart > ECART_HORLOGE_MAX_MS) {
+          extra.ecartHorlogeJ = Math.round(ecart / 86400000);
+          if (!motifPartiel) motifPartiel = 'horloge-ecart';
+        } else if (ecart !== null) {
+          const vieilles = aElaguer(liste.objets, { prefixe: cfg.prefixe, maintenant: t0, jours: cfg.retentionJours });
+          let n = 0;
+          for (const c of vieilles) { const r = await client.effacerCle(c); if (r.ok) n++; }
+          extra.elaguees = n;
+          if (n < vieilles.length && !motifPartiel) motifPartiel = 'elagage-efface-' + (vieilles.length - n);
+        }
       } else if (!motifPartiel) motifPartiel = 'elagage-liste-' + ((liste && liste.statut) || 'erreur');
 
       return noter(!motifPartiel, motifPartiel, extra);
@@ -542,13 +579,13 @@ function creerSauvegarde(deps) {
          disparu s'arrête là, et la passe l'ANNONCE (`pieces-suppression-massive`) au lieu de le taire. */
   async function sauverPieces(t0) {
     const racine = path.join(dataDir, 'pieces');
-    let locales;
     const vu = { ignorees: 0 };
+    let locales;
     try { locales = await parcourirPieces(racine, vu); }
-    catch (e) { if (e && e.code === 'ENOENT') return null; return { ok: false, motif: 'pieces-lecture' }; }
+    catch (e) { if (e && e.code === 'ENOENT') return null; return { bilan: { ok: false, motif: 'pieces-lecture' }, elaguer: async () => {} }; }
     const prefixePieces = cfg.prefixe + DOSSIER_PIECES;
     const dist = await client.lister(prefixePieces);
-    if (!dist || !dist.ok) return { ok: false, motif: 'pieces-liste-' + ((dist && dist.statut) || 'erreur') };
+    if (!dist || !dist.ok) return { bilan: { ok: false, motif: 'pieces-liste-' + ((dist && dist.statut) || 'erreur') }, elaguer: async () => {} };
     const auCoffre = new Map();
     for (const o of dist.objets || []) if (typeof o.cle === 'string' && o.cle.startsWith(prefixePieces)) auCoffre.set(o.cle.slice(prefixePieces.length), o.octets);
 
@@ -577,9 +614,14 @@ function creerSauvegarde(deps) {
     }
     try { fs.rmSync(copieTmp, { force: true }); } catch (e) { /* rien */ }
     bilan.restantes = Math.max(0, aEnvoyer.length - bilan.envoyees - ratees);
+    /* ⛔ UN ARRIÉRÉ N'EST PAS UN SUCCÈS. Le plafond par passe (`piecesParPasse`, `budgetPiecesMs`) laisse des pièces à envoyer : la base part quand même,
+       mais une sauvegarde dont des photos ne sont pas au coffre est INCOMPLÈTE, et `ageH` ne doit pas repartir à zéro comme si tout y était
+       (gardien A1 : « passe 1 { envoyees: 1, restantes: 2 } ⇒ ok, ageH 0, echecs 0 », puis une restauration à 2 lignes sans fichier). */
     if (ratees) { bilan.ok = false; bilan.motif = 'pieces-envoi-' + ratees; }
+    else if (bilan.restantes > 0) { bilan.ok = false; bilan.motif = 'pieces-arriere-' + bilan.restantes; }
 
-    /* La copie miroir : ce qui est au coffre et plus ici, vu à deux passes de suite. */
+    /* La copie miroir : ce qui est au coffre et plus ici, vu à deux passes de suite. Ici on OBSERVE ; on n'efface qu'une fois la base de cette
+       passe relue (`elaguer`, appelée par `lancer` plus tard). */
     const locauxRel = new Set(locales.map(l => l.rel));
     const vusAvant = etat.pieces.absentes || {};
     const absentes = {};
@@ -587,12 +629,18 @@ function creerSauvegarde(deps) {
     const candidates = Object.keys(absentes).filter(rel => vusAvant[rel] !== undefined);
     /* « Vide » veut dire sans AUCUNE pièce lisible : un fichier de zéro octet (une pièce tronquée) ne fait pas un dossier plein. */
     const dossierVide = !locales.some(l => l.taille > 0) && auCoffre.size > 0;
+    let effacer = false;
     if (dossierVide) {
       etat.pieces.absentes = {};   // un dossier vide n'est pas une suite de suppressions : on n'en retient rien
     } else if (candidates.length > Math.max(200, Math.floor(auCoffre.size / 2))) {
       etat.pieces.absentes = absentes;
       if (bilan.ok) { bilan.ok = false; bilan.motif = 'pieces-suppression-massive'; }
     } else {
+      etat.pieces.absentes = absentes;
+      effacer = true;
+    }
+    async function elaguer() {
+      if (!effacer) return;
       for (const rel of candidates) {
         if (arret) break;
         const r = await client.effacerCle(prefixePieces + rel);
@@ -600,7 +648,7 @@ function creerSauvegarde(deps) {
       }
       etat.pieces.absentes = Object.keys(absentes).length > 5000 ? {} : absentes;
     }
-    return bilan;
+    return { bilan, elaguer };
   }
 
   /* ══ LA SANTÉ, POUR /health — des NOMBRES et un booléen, jamais un nom de bucket, un chemin, un motif ═════════════════════
@@ -621,7 +669,7 @@ function creerSauvegarde(deps) {
     const t = horloge(), s = etat.dernierSucces, essai = lireEssai();
     return {
       configuree: true,
-      ageH: s ? Math.max(0, Math.round((t - s.ts) / 360000) / 10) : null,
+      ageH: s ? Math.round((t - s.ts) / 360000) / 10 : null,   // ⛔ jamais écrêté à 0 : un âge NÉGATIF (dernière passe « dans le futur ») est une horloge en désordre, et la surveillance le lit
       essaiJours: essai ? Math.max(0, Math.floor((t - essai.okTs) / 86400000)) : null,
       echecs: etat.echecs || 0,
     };
@@ -634,8 +682,12 @@ function creerSauvegarde(deps) {
      ni taper sur l'hébergeur. */
   function due(maintenant) {
     const d = etat.derniere;
-    if (d && !d.baseOk && maintenant - d.ts < cfg.retryMs) return false;
-    return etat.baseTs === null || etat.baseTs === undefined || maintenant - etat.baseTs >= cfg.intervalleMs;
+    /* ⛔ UNE DATE DU FUTUR N'EST PAS UNE DATE : après un saut d'horloge vers l'avant, la dernière archive est « datée » de dans vingt jours, et
+       `maintenant - baseTs` reste négatif tout ce temps — plus aucune sauvegarde ne partait, sans un mot (gardien A2, rejoué : 0 sauvegarde). Une
+       passe dont la date dépasse l'heure d'une heure n'a pas de poids : la prochaine est due tout de suite, et ne se fie à rien de ce qui précède. */
+    const futur = (ts) => Number.isFinite(ts) && ts > maintenant + 3600000;
+    if (d && !d.baseOk && !futur(d.ts) && maintenant - d.ts < cfg.retryMs) return false;
+    return etat.baseTs === null || etat.baseTs === undefined || futur(etat.baseTs) || maintenant - etat.baseTs >= cfg.intervalleMs;
   }
   function tic() {
     if (!actif || enCours || arret) return;
