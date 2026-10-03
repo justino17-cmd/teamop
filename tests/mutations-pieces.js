@@ -63,7 +63,7 @@ m2('P21', 'un fichier est servi selon sa signature : un PNG déposé comme fichi
   [F.pz, "const enLigne = (genre, mime) => genre !== 'fichier' && (", 'const enLigne = (genre, mime) => ('] ], ['942', '943']);
 m('P22', 'tout est servi « inline » (plus de pièce jointe pour un fichier)', F.pz, "if (inline) return 'inline';", "return 'inline';", ['942', '943']);
 m('P23', 'le nom d\'une pièce jointe n\'est plus assaini dans l\'en-tête (retour à la ligne, guillemets, barres)', F.pz, /\.replace\(\/\[\\u0000-\\u001f[^\]]*\]\/g, '_'\)/, '', ['942', '943']);
-m('P24', 'le nom d\'un fichier est rangé tel que le client l\'a donné (ni barres, ni contrôles ôtés à l\'entrée)', F.rp, "nom = Array.from(nettoyerNom(q.nom).replace(/[\\/\\\\]/g, '_')).slice(0, NOM_MAX).join('').trim();", 'nom = String(q.nom).slice(0, NOM_MAX);', ['943']);
+m('P24', 'le nom d\'un fichier est rangé tel que le client l\'a donné (ni barres, ni contrôles ôtés à l\'entrée)', F.rp, "nom = couperNom(nettoyerNom(lu).replace(/[\\/\\\\]/g, '_'), NOM_MAX).trim();", 'nom = String(lu).slice(0, NOM_MAX);', ['943']);
 m('P25', 'la politique de sécurité « sandbox » de la pièce servie est retirée', F.rp, "      'Content-Security-Policy': \"sandbox; default-src 'none'\",\n", '', ['943']);
 /* ⚠️ retirer SEUL l'en-tête de la route des pièces est une mutation ÉQUIVALENTE (mesurée : elle survit) : `app.js` pose `nosniff` sur TOUTES les réponses. Les deux posent la même règle ; on retire les deux. */
 m2('P26', 'plus aucun nosniff sur une pièce servie (ni sur la route des pièces, ni dans l\'enveloppe du service : les deux posent le même en-tête)', [[F.rp, "      'X-Content-Type-Options': 'nosniff',\n", ''], [F.app, "      'X-Content-Type-Options': 'nosniff',\n", '']], ['943', '903']);
@@ -128,6 +128,13 @@ m('P57', 'un GIF n\'est plus nettoyé (commentaires et XMP restent)', F.pz, "  i
 m('P58', 'le segment Adobe (APP14) est retiré avec le reste : un CMYK s\'afficherait à l\'envers', F.pz, " else if (m === 0xEE && long >= 7 && ", " else if (m === 0xEE && false && ", ['942']);
 m('P59', 'les commentaires GIF sont gardés', F.pz, 'let garder = etiquette === 0xF9;', 'let garder = etiquette === 0xF9 || etiquette === 0xFE;', ['942']);
 m('P60', 'toute extension d\'application GIF est gardée (le XMP aussi)', F.pz, "garder = id === 'NETSCAPE2.0' || id === 'ANIMEXTS1.0';", 'garder = true;', ['942']);
+
+/* ── B2 : LE NOM D'UN FICHIER NE VOYAGE PLUS DANS L'ADRESSE ── */
+m('P61', 'l\'ancien paramètre d\'adresse `?nom=` est de nouveau accepté (le nom revient dans les journaux d\'accès)', F.rp, "    if (q.nom !== undefined) return refus(res, 400, 'champ_invalide');\n", '', ['943']);
+m('P62', 'l\'en-tête du nom n\'a plus de plafond de longueur', F.rp, "if (typeof brut !== 'string' || !brut || brut.length > 2048)", "if (typeof brut !== 'string' || !brut)", ['943']);
+m('P63', 'un nom long est coupé sans garder son extension (« .pdf » disparaît)', F.pz, "return signes.slice(0, signes.length - ext.length).slice(0, max - ext.length).join('') + ext.join('');", 'return signes.slice(0, max).join(\'\');', ['942', '943']);
+m('K18', 'l\'appareil remet le nom du fichier dans l\'adresse du dépôt', F.api, "rq({ conv: x.conv, genre: x.genre })", "rq({ conv: x.conv, genre: x.genre, nom: x.nom })", ['944']);
+m('K19', 'l\'appareil n\'envoie plus le nom du fichier du tout', F.api, "        if (x.nom !== undefined && x.nom !== null) h['X-OPM-Nom'] = encodeURIComponent(String(x.nom));\n", '', ['944']);
 
 /* ── LA PAGE (jouée par la sonde navigateur : lancer avec --sondes) ── */
 const G = { sonde: true };
