@@ -31,7 +31,7 @@ const RACINE = path.join(__dirname, '..');
 const DELAI_MS = 300000;
 const F = {
   formule: 'server-msg/formule.js', fact: 'server-msg/facturation.js', resp: 'server-msg/routes-espaces.js', stock: 'server-msg/stockage.js', app: 'server-msg/app.js', man: 'server-msg/manifeste.js',
-  conf: 'server-msg/config.js', compte: 'server-msg/compte.js', index: 'server-msg/index.js', cfgstripe: 'server-msg/configurer-stripe.js', surv: '.github/scripts/surveillance-messages.js',
+  rejeu: 'server-msg/rejeu.js', conf: 'server-msg/config.js', compte: 'server-msg/compte.js', index: 'server-msg/index.js', cfgstripe: 'server-msg/configurer-stripe.js', surv: '.github/scripts/surveillance-messages.js',
   src: 'server-msg/public/source-serveur.js', api: 'server-msg/public/api.js', page: 'apercu/opmessages/index.html', og: 'server/index.js',
 };
 const BANCS = ['900', '901', '903', '905', '934', '941', '950', '957', '960', '961', '962', '963', '964', '965', 'sonde'];
@@ -128,14 +128,14 @@ m('R22', 'retirer quelqu\'un d\'un canal privé ne s\'écrit pas dans `purge` : 
 m('R23', 'quitter un canal privé ne s\'écrit pas dans `purge`', F.stock,
   "      Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(conv + '|' + uid + '|' + t, 'canal_membre', t);\n      if (num(", '      if (num(', ['960']);
 m('R24', 'sortir d\'un espace ne s\'écrit pas dans `purge` : une archive d\'avant ramènerait le salarié parti, ses canaux et ce qu\'ils disent', F.stock,
-  "    Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(espace + '|' + uid + '|' + t, 'espace_membre', t);", '', ['960']);
+  "    if (noter) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(espace + '|' + uid + '|' + t, 'espace_membre', t);", '', ['960']);
 m('R25', 'sortir d\'un espace laisse le membre dans ses canaux', F.stock,
   "      Q('UPDATE membre SET quitte_le = ? WHERE conv = ? AND uid = ?').run(t, c, uid);\n      if (num(Q('SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND quitte_le IS NULL').get(c).n) === 0)",
   "      if (num(Q('SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND quitte_le IS NULL').get(c).n) === 0)", ['960', '961']);
 m('R26', 'sortir d\'un espace n\'écrit pas « retire » au journal de ses canaux : celui qui part ne l\'apprend pas', F.stock, "      journalAjouter('retire', c, uid, '');   // APRÈS", '      // APRÈS', ['960', '964']);
-m('R27', 'dissoudre un espace ne s\'écrit pas dans `purge`', F.stock, "      Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(id, 'espace', horloge());", '', ['960']);
+m('R27', 'dissoudre un espace ne s\'écrit pas dans `purge`', F.stock, "      if (noter) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(id, 'espace', horloge());", '', ['960']);
 m('R28', 'dissoudre un espace laisse ses liens d\'invitation', F.stock, "      Q(`DELETE FROM lien WHERE genre = 'espace' AND cible = ?`).run(id);\n", '', ['960']);
-m('R29', 'dissoudre un espace laisse ses canaux (les conversations restent)', F.stock, '      for (const c of convs) pieces.push(...convSupprimer(c).pieces);\n      Q(`DELETE FROM lien', '      Q(`DELETE FROM lien', ['960', '961']);
+m('R29', 'dissoudre un espace laisse ses canaux (les conversations restent)', F.stock, '      for (const c of convs) pieces.push(...convSupprimer(c, { noter }).pieces);\n      Q(`DELETE FROM lien', '      Q(`DELETE FROM lien', ['960', '961']);
 m('R30', 'passer la propriété à un compte non confirmé ou en cours de suppression', F.stock,
   "      if (!p || p.etat !== 'actif' || !p.verifie_le || p.suppression_le !== null) throw erreur('destinataire_invalide');\n", '', ['960']);
 m('R31', 'passer la propriété à qui possède déjà trois espaces', F.stock,
@@ -190,7 +190,7 @@ m('R62', 'un simple membre reçoit le bloc « administrateur » de l\'espace (la
 /* ── supprimer son compte, quitter tout ── */
 m('E01', 'supprimer son compte est permis quand on est seul dans un espace dont l\'abonnement court (Stripe prélèverait pour un espace dissous)', F.compte,
   /    if \(seuls\.length\) \{\n      const court[^\n]*\n      return refus\(res, 409, court \? 'espace_abonne' : 'paiement_en_cours'\);\n    \}\n/, '', ['961']);
-m('E02', 'un compte effacé ne sort pas de ses espaces (la propriété ne passe pas, les canaux le gardent)', F.stock, 'const sortis = espaceQuitterTout(uid);', 'const sortis = { pieces: [], convs: [] };', ['960', '961']);
+m('E02', 'un compte effacé ne sort pas de ses espaces (la propriété ne passe pas, les canaux le gardent)', F.stock, 'const sortis = espaceQuitterTout(uid, { rejeu });', 'const sortis = { pieces: [], convs: [], orphelins: [] };', ['960', '961']);
 m('E03', 'un propriétaire qui s\'efface ne passe pas la main : l\'espace reste à un compte effacé', F.stock, "        Q('UPDATE espace SET proprio = ? WHERE id = ?').run(suivant.uid, e.id);\n", '', ['960']);
 m('E04', '« seul dans un espace abonné » ne reconnaît jamais personne (la borne de membres est à zéro)', F.stock, 'AND (SELECT COUNT(*) FROM espace_membre x WHERE x.espace = e.id) <= 1`', 'AND (SELECT COUNT(*) FROM espace_membre x WHERE x.espace = e.id) <= 0`', ['961']);
 
@@ -447,6 +447,39 @@ m2('X01', 'ma migration prend le numéro 5 et celle du lot 3 (`notification.aute
   [F.stock, '    `PRAGMA user_version = 6`,', '    `PRAGMA user_version = 5`,'],
   [F.stock, /  \{ v: 5, sql: \[\n    `ALTER TABLE notification ADD COLUMN auteur TEXT`,\n    `CREATE INDEX IF NOT EXISTS notification_auteur[^\n]*\n    `PRAGMA user_version = 5`,\n  \] \},\n/, ''],
 ], ['960', '901']);
+/* ── l'effacement d'un compte REJOUÉ après une restauration (rejeu.js → compteEffacer({ rejeu: true }) → espaceQuitterTout) ── */
+m('X02', 'le rejeu d\'un compte ne fait PAS sortir la personne de ses espaces (la copie lui garde sa place et sa propriété)', F.stock,
+  'const sortis = espaceQuitterTout(uid, { rejeu });', 'const sortis = rejeu ? { pieces: [], convs: [], orphelins: [] } : espaceQuitterTout(uid, { rejeu });', ['950', '960']);
+m('X03', 'la sortie des espaces ne cherche la personne que dans la LISTE des membres (la propriété d\'un espace dont elle n\'est plus listée lui reste : un propriétaire effacé que plus personne ne remplace)', F.stock,
+  'SELECT espace AS id FROM espace_membre WHERE uid = ? UNION SELECT id FROM espace WHERE proprio = ? ORDER BY 1`).all(uid, uid)', 'SELECT espace AS id FROM espace_membre WHERE uid = ? ORDER BY 1`).all(uid)', ['950', '960']);
+m('X04', 'le rejeu écrit une ligne « espace_membre » à la date du rejeu (une seconde ligne pour une sortie déjà au registre, rejouée à la restauration suivante comme un fait)', F.stock,
+  'const x = retirerDeEspace(e.id, uid, { noter: !rejeu });', 'const x = retirerDeEspace(e.id, uid, { noter: true });', ['950', '960']);
+m('X05', 'le rejeu note la dissolution d\'un espace que la copie réduit à la personne effacée (« espace » : à la restauration suivante, l\'espace serait dissous chez des gens qui y sont encore)', F.stock,
+  'const d = espaceSupprimer(e.id, { noter: !rejeu }); pieces.push(...d.pieces); convs.push(...d.convs); continue;', 'const d = espaceSupprimer(e.id, { noter: true }); pieces.push(...d.pieces); convs.push(...d.convs); continue;', ['950']);
+m('X06', 'le rejeu note la suppression d\'un canal vidé (« conversation » : la conversation serait retirée d\'une copie où elle a d\'autres membres)', F.stock,
+  'pieces.push(...convSupprimer(c, { noter }).pieces);   // le canal n\'a plus personne', 'pieces.push(...convSupprimer(c).pieces);   // le canal n\'a plus personne', ['950']);
+m('X07', 'le rejeu DISSOUT un espace payant que la copie réduit à la personne effacée (il ne parle pas à Stripe : l\'abonnement continuerait de prélever, sans plus aucun lien)', F.stock,
+  'if (rejeu && abonnementCourt(e.id)) {', 'if (false && rejeu && abonnementCourt(e.id)) {', ['950']);
+m('X08', 'un paiement COMMENCÉ (une session rangée) n\'arrête plus le rejeu de dissoudre : seul l\'abonnement qui court compte', F.stock,
+  "AND ((abonnement IS NOT NULL AND statut NOT IN ('aucun', 'canceled', 'incomplete_expired')) OR session IS NOT NULL)`).get(espace) !== undefined;", "AND (abonnement IS NOT NULL AND statut NOT IN ('aucun', 'canceled', 'incomplete_expired'))`).get(espace) !== undefined;", ['950']);
+m('X09', 'le rejeu du compte ne DIT pas qu\'il a laissé un espace payant sans membre (le journal se tait)', F.rejeu,
+  "contexte.signaler('espace-payant-sans-membre', r.espacesOrphelins.length);", '{}', ['950']);
+m('X10', 'le démarrage ne donne pas aux fonctions de genre de quoi parler au journal (`signaler`)', F.rejeu,
+  'const r = genres[e.genre](stockage, e, ctx);', 'const r = genres[e.genre](stockage, e, contexte);', ['950']);
+/* ── les notifications d'espace qui NOMMENT quelqu'un (« Ben a rejoint l'espace ») et l'effacement du compte de Ben ── */
+m('X11', 'la notification « a rejoint l\'espace » ne dit pas QUI elle nomme (`auteur`) : l\'effacement de cette personne ne la réécrit pas, le prénom reste chez l\'administrateur', F.resp,
+  "' a rejoint l\\'espace.', cible, req.moi.id);", "' a rejoint l\\'espace.', cible);", ['961']);
+m('X12', 'l\'effacement d\'un compte réécrit une notification d\'ESPACE comme une notification de groupe (« vous a ajouté au groupe »)', F.stock,
+  "r.type === 'espace' ? 'Un compte supprimé a rejoint l\\'espace.' : ", '', ['960']);
+/* ── les TROIS listes de tables de la sauvegarde, réunies : `push` (lot 3) ET mes quatre tables ── */
+m('X13', 'la table `push` (lot 3) sort de la liste des tables comptées (`TABLES_COMPTEES`)', F.stock, "'sms_envoi', 'push', 'espace', 'espace_membre'", "'sms_envoi', 'espace', 'espace_membre'", ['950', '960']);
+m('X14', 'la copie ne compte plus la table `push` (`lignesDe`)', F.stock, "    push: n(() => d.prepare('SELECT COUNT(*) AS n FROM push')),\n", '', ['950', '960']);
+m('X15', 'la sonde de la base vivante ne regarde plus la table `push` (`sonde().nonVides`)', F.stock, "        push: non(() => Q('SELECT 1 FROM push LIMIT 1')),\n", '', ['950', '960']);
+m('X16', 'la table `espace` sort de la liste des tables comptées (`TABLES_COMPTEES`)', F.stock, "'push', 'espace', 'espace_membre', 'canal', 'abonnement'];", "'push', 'espace_membre', 'canal', 'abonnement'];", ['950', '960']);
+m('X17', 'la copie ne compte plus la table `espace_membre` (`lignesDe`)', F.stock, "    espace_membre: n(() => d.prepare('SELECT COUNT(*) AS n FROM espace_membre')),\n", '', ['950', '960']);
+m('X18', 'la sonde de la base vivante ne regarde plus la table `canal` (`sonde().nonVides`)', F.stock, "        canal: non(() => Q('SELECT 1 FROM canal LIMIT 1')),\n", '', ['950', '960']);
+/* ── l'export de ses données : la section « espaces » du lot 4 DANS l'export borné du lot 3 ── */
+m('X19', 'l\'export de ses données ne liste plus ses espaces', F.compte, ',"espaces":\' + J(stockage.exportEspaces(uid).map(e => ({ id: e.id, nom: e.nom, role: e.role, depuis: new Date(e.depuis).toISOString() }))) + \'', '', ['961']);
 
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const DOSSIERS_COPIE = ['server-msg', 'server', 'design/opmessages', '.github', 'apercu/opmessages', 'icons', 'scripts'];   // `.github` ENTIER : test-934 lit les workflows autant que les scripts de surveillance

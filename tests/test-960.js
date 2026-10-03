@@ -479,6 +479,24 @@ console.log('\nUn compte effacé sort de ses espaces : la propriété passe, ou 
   g.S.abonnementSessionOubliee(eg, 'cs_banc960_seule');
   v('… la session oubliée (Stripe l\'a dite expirée), plus de refus', g.S.espacesAbonnesSeul(seul.id), []);
   v('l\'export d\'une personne liste SES espaces (nom, rôle) — pas les membres des autres', f.S.exportEspaces(f.cleo.id).map(x => [x.nom, x.role, Object.keys(x).sort().join()]), [['Entreprise ELAN', 'membre', 'depuis,id,nom,role']]);
+  /* ⛔ MEMBRE OU PROPRIÉTAIRE (couture avec le rejeu des comptes du lot 3, `test-950` § 13 quinquies bis) : une restauration sort la propriétaire de la LISTE des membres (les lignes `espace_membre` du
+     registre), pas de la PROPRIÉTÉ — le rejeu de son effacement doit donc la chercher aussi parmi les propriétaires */
+  const fant = atelier();
+  const sqlf = fant.brut(); sqlf.prepare('DELETE FROM espace_membre WHERE espace = ? AND uid = ?').run(fant.e, fant.ana.id); sqlf.close();
+  v('population : Ana n\'est plus dans la liste des membres de SON espace, dont elle reste propriétaire (l\'état que laisse un rejeu hors ligne), et le registre est vide', [fant.S.espacePourMembre(fant.e, fant.ana.id), fant.S.espaceBrut(fant.e).proprio === fant.ana.id, fant.S.espaceMembresN(fant.e), fant.S.purgeLignes().filter(x => x.genre === 'espace_membre').length], [null, true, 2, 0]);
+  const rj = fant.S.compteEffacer(fant.ana.id, { rejeu: true });
+  v('⛔ le rejeu de son effacement lui retire la PROPRIÉTÉ aussi : elle passe à Ben (le plus ancien membre, qui devient administrateur), aucun espace n\'est laissé sans le dire — et le rejeu n\'écrit aucune ligne « espace_membre »',
+    [rj.effacee, fant.S.espaceBrut(fant.e).proprio === fant.ben.id, fant.S.espacePourMembre(fant.e, fant.ben.id).moi.role, rj.espacesOrphelins, fant.S.purgeLignes().filter(x => x.genre === 'espace_membre').length], [true, true, 'admin', [], 0]);
+  /* ⛔ la notification « Cleo a rejoint l'espace » nomme Cleo chez l'administrateur : l'effacement de Cleo la réécrit (couture avec le lot 3 : `auteur`, `notifsAnonymiser`) */
+  const nt = atelier();
+  nt.S.notifCreer({ uid: nt.ana.id, type: 'espace', titre: 'Entreprise ELAN', texte: 'Cleo Test a rejoint l\'espace.', cible: nt.e, auteur: nt.cleo.id });
+  nt.S.notifCreer({ uid: nt.ana.id, type: 'espace', titre: 'Entreprise ELAN', texte: 'Tu es maintenant propriétaire de l\'espace.', cible: nt.e });
+  nt.S.notifCreer({ uid: nt.ana.id, type: 'groupe_ajoute', titre: 'Un groupe', texte: 'Cleo Test vous a ajouté au groupe.', cible: 'c_x', auteur: nt.cleo.id });
+  const textesNt = () => nt.S.notifListe(nt.ana.id).map(x => x.texte).sort();
+  v('population : trois notifications chez Ana, dont deux nomment Cleo (une d\'espace, une de groupe) et une ne nomme personne', textesNt(), ['Cleo Test a rejoint l\'espace.', 'Cleo Test vous a ajouté au groupe.', 'Tu es maintenant propriétaire de l\'espace.']);
+  efface(nt, nt.cleo);
+  v('⛔ l\'effacement de Cleo réécrit les DEUX qui la nommaient — celle d\'espace dit « a rejoint l\'espace » (et non « vous a ajouté au groupe »), celle de groupe garde sa phrase — et laisse l\'autre intacte ; le titre (le nom de l\'espace) ne bouge pas',
+    [textesNt(), nt.S.notifListe(nt.ana.id).map(x => x.titre).sort()], [['Tu es maintenant propriétaire de l\'espace.', 'Un compte supprimé a rejoint l\'espace.', 'Un compte supprimé vous a ajouté au groupe.'], ['Entreprise ELAN', 'Entreprise ELAN', 'Un groupe']]);
 }
 
 console.log('\nL\'abonnement rangé : ce que Stripe a dit, le sursis daté de la première lecture, les sessions de paiement');

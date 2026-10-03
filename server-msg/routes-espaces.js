@@ -64,8 +64,10 @@ function installerEspaces(H, ctx) {
   }
   const effacer = (ids) => { if (ids && ids.length && typeof ctx.effacerPieces === 'function') ctx.effacerPieces(ids); };
   /* Une notification DANS l'application (pas de push : « un nouveau membre » n'est pas un message) — ratée, elle ne défait pas le geste. */
-  function notifier(uid, titre, texte, cible) {
-    try { stockage.notifCreer({ uid, type: 'espace', titre, texte, cible }); hub.reveiller({ uids: [uid] }); } catch (e) { /* une notification ratée ne défait pas le geste */ }
+  /* `auteur` : la personne que le texte NOMME (« Ben a rejoint l'espace ») — le jour où son compte s'efface, `notifsAnonymiser` réécrit la notification de ceux qui l'avaient reçue (sans lui, le prénom
+     restait dans la liste et dans l'export de l'administrateur : relevé à la fusion avec le lot 3, 3 octobre 2026). Une notification qui ne nomme personne (« Tu es maintenant propriétaire ») n'en a pas. */
+  function notifier(uid, titre, texte, cible, auteur) {
+    try { stockage.notifCreer({ uid, type: 'espace', titre, texte, cible, auteur }); hub.reveiller({ uids: [uid] }); } catch (e) { /* une notification ratée ne défait pas le geste */ }
   }
   const nomAffiche = (p) => (p && ((p.prenom + ' ' + p.nom).trim())) || 'Quelqu\'un';
   /* Les membres d'un espace apprennent que quelque chose a changé (membre arrivé, parti, rôle, nom, canal) : un événement éphémère, la page relit ce qu'elle a le droit de voir. */
@@ -238,7 +240,7 @@ function installerEspaces(H, ctx) {
     const e = stockage.espacePourMembre(cible, req.moi.id);
     if (!r.deja) {
       for (const cv of r.convs) hub.reveiller({ conv: cv });
-      notifier(r.par, e.espace.nom || 'Espace', nomAffiche(req.moi) + ' a rejoint l\'espace.', cible);
+      notifier(r.par, e.espace.nom || 'Espace', nomAffiche(req.moi) + ' a rejoint l\'espace.', cible, req.moi.id);
       prevenir(stockage.espaceUids(cible), cible);
     }
     res.json({ deja: r.deja, espace: { id: cible, nom: e.espace.nom } });

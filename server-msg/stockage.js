@@ -803,8 +803,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
 
   /* → { pieces } : les identifiants des pièces dont la LIGNE part avec la conversation (cascade) — l'appelant en efface les fichiers. Sans ce relevé, la cascade
-     laisserait sur le disque des fichiers que plus aucune ligne ne réclame (le balayeur les rattraperait, plus tard). */
-  function convSupprimer(id) {
+     laisserait sur le disque des fichiers que plus aucune ligne ne réclame (le balayeur les rattraperait, plus tard).
+     `noter: false` : le REJEU d'un effacement de compte après une restauration (`espaceQuitterTout`). La conversation qu'il retire est un artefact de la COPIE (un canal que le compte effacé
+     faisait seul dans la copie, alors que le service vivant en avait d'autres) : l'écrire au registre le ferait retirer, à la restauration suivante, d'une copie où il a d'autres membres.
+     Les pièces, elles, se notent toujours — leurs fichiers partent vraiment. */
+  function convSupprimer(id, { noter = true } = {}) {
     return tx(() => {
       const pieces = Q('SELECT id FROM piece WHERE conv = ?').all(id).map(r => r.id);
       for (const p of pieces) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(p, 'piece', horloge());
@@ -812,7 +815,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       Q('DELETE FROM journal WHERE conv = ?').run(id);
       /* ⛔ LA CONVERSATION ELLE-MÊME SE NOTE (gardien A3, 3 octobre 2026) : seules ses pièces l'étaient, si bien qu'une restauration d'une archive plus ancienne
          que cette suppression ramenait la conversation et tous ses messages. Genre `conversation`, rejoué hors ligne par `rejouerPurge`. */
-      if (num(Q('DELETE FROM conversation WHERE id = ?').run(id).changes) > 0) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(id, 'conversation', horloge());   // les membres, messages, réactions, pièces suivent (ON DELETE CASCADE)
+      if (num(Q('DELETE FROM conversation WHERE id = ?').run(id).changes) > 0 && noter) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(id, 'conversation', horloge());   // les membres, messages, réactions, pièces suivent (ON DELETE CASCADE)
       return { pieces };
     });
   }
@@ -1713,7 +1716,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function notifsAnonymiser(uid, nom) {
     let n = 0;
     for (const r of Q('SELECT id, type, titre_ch FROM notification WHERE auteur = ?').all(uid)) {
-      const texte = r.type === 'contact_ajoute' ? 'Un compte supprimé était dans vos contacts.' : r.type === 'mention' ? 'Un compte supprimé vous a mentionné.' : 'Un compte supprimé vous a ajouté au groupe.';
+      const texte = r.type === 'contact_ajoute' ? 'Un compte supprimé était dans vos contacts.' : r.type === 'mention' ? 'Un compte supprimé vous a mentionné.' : r.type === 'espace' ? 'Un compte supprimé a rejoint l\'espace.' : 'Un compte supprimé vous a ajouté au groupe.';
       let titre = ouvrirOuNull('notification', 'titre_ch', r.id + '|titre', r.titre_ch);
       if (titre === null) titre = '';
       else if (r.type === 'mention' && nom && titre === nom) titre = 'Un compte supprimé';
@@ -1723,7 +1726,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return n;
   }
   /* L'effacement. TOUT dans une transaction, rejouable (une personne déjà effacée, ou dont la suppression a été annulée entre-temps, ne perd rien).
-     → { effacee, pieces: [identifiants dont l'appelant efface les FICHIERS], convs: [conversations à rafraîchir], audience: [ceux à qui dire que ce profil a changé] } */
+     → { effacee, pieces: [identifiants dont l'appelant efface les FICHIERS], convs: [conversations à rafraîchir], audience: [ceux à qui dire que ce profil a changé],
+         espacesOrphelins: [espaces payants que le REJEU a laissés sans membre — voir `espaceQuitterTout`] } */
   /* ⛔ `{ rejeu: true }` : le REJEU d'un effacement après une restauration (`rejeu.js`, genre `compte`). La copie remise en service peut dater d'avant l'échéance — voire d'avant la
      demande (l'échéance n'y est pas encore posée) : le registre dit que l'effacement A EU LIEU, il se refait donc sans regarder l'échéance, et sans réécrire sa ligne (elle est déjà
      dans le registre recopié). Une personne déjà effacée ne perd rien de plus. */
@@ -1737,7 +1741,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const pieces = [], convs = [];
       /* ⛔ LES ESPACES D'ABORD : la personne en sort comme on en sort (la propriété passe, ou l'espace est dissous s'il n'a qu'elle), et ses canaux avec — sinon la boucle
          ci-dessous la ferait quitter un canal comme un groupe (le plus ancien membre y serait promu administrateur, ce qu'un canal n'admet pas : son rôle est celui de l'espace). */
-      const sortis = espaceQuitterTout(uid);
+      const sortis = espaceQuitterTout(uid, { rejeu });
       pieces.push(...sortis.pieces); convs.push(...sortis.convs);
       /* chaque conversation : un groupe se quitte comme on le quitte (le dernier administrateur passe la main, le dernier membre emporte le groupe), une directe reste à l'autre — qui y garde
          son historique mais ne peut plus y écrire. Les messages, eux, restent. */
@@ -1773,7 +1777,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
            langue = 'fr', tz = 'Europe/Paris', prefs = '{}', etat = 'supprime', suppression_le = NULL, age_ok = NULL, cgu_v = NULL, essais = 0, bloque_jusqua = NULL, trouvable = 'personne'
          WHERE id = ?`).run(uid);
       if (!rejeu) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(uid, 'compte', horloge());
-      return { effacee: true, pieces, convs, audience };
+      return { effacee: true, pieces, convs, audience, espacesOrphelins: sortis.orphelins };
     });
   }
 
@@ -1871,18 +1875,19 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function canauxDe(espace, uid) {
     return Q('SELECT m.conv AS conv FROM membre m JOIN canal k ON k.conv = m.conv WHERE k.espace = ? AND m.uid = ? AND m.quitte_le IS NULL').all(espace, uid).map(r => r.conv);
   }
-  /* Retire `uid` de l'espace ET de tous ses canaux. Ne regarde PAS le propriétaire (l'appelant le fait). → { convs, pieces } : les canaux touchés, les pièces des canaux devenus vides. */
-  function retirerDeEspace(espace, uid) {
+  /* Retire `uid` de l'espace ET de tous ses canaux. Ne regarde PAS le propriétaire (l'appelant le fait). → { convs, pieces } : les canaux touchés, les pièces des canaux devenus vides.
+     `noter: false` : le REJEU d'un effacement de compte (voir `espaceQuitterTout`) — la ligne `espace_membre` de l'effacement d'origine est DÉJÀ dans le registre recopié par la restauration. */
+  function retirerDeEspace(espace, uid, { noter = true } = {}) {
     const t = horloge(), convs = canauxDe(espace, uid), pieces = [];
     for (const c of convs) {
       Q('UPDATE membre SET quitte_le = ? WHERE conv = ? AND uid = ?').run(t, c, uid);
-      if (num(Q('SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND quitte_le IS NULL').get(c).n) === 0) pieces.push(...convSupprimer(c).pieces);   // le canal n'a plus personne : il part, pièces comprises
+      if (num(Q('SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND quitte_le IS NULL').get(c).n) === 0) pieces.push(...convSupprimer(c, { noter }).pieces);   // le canal n'a plus personne : il part, pièces comprises
       else journalAjouter('conv_maj', c, null, '');
       journalAjouter('retire', c, uid, '');   // APRÈS la suppression éventuelle (elle efface le journal de la conversation) : celui qui part l'apprend toujours
     }
     Q('DELETE FROM espace_membre WHERE espace = ? AND uid = ?').run(espace, uid);
     /* ⛔ NOTÉ : une archive d'avant ce geste ramènerait le membre, ses canaux et tout ce qu'ils disent (un salarié parti reprendrait la lecture de l'entreprise) */
-    Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(espace + '|' + uid + '|' + t, 'espace_membre', t);
+    if (noter) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(espace + '|' + uid + '|' + t, 'espace_membre', t);
     return { convs, pieces };
   }
   /* `revoquerLiens` : l'administrateur RETIRE quelqu'un (par opposition à quelqu'un qui part de lui-même).
@@ -1932,36 +1937,55 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       return { convs: rolerCanaux(espace, vers, 'admin') };
     });
   }
-  /* Dissoudre : les canaux partent comme partent les conversations (pièces et registre compris), les invitations, l'abonnement et la liste des membres avec l'espace. → les personnes à prévenir. */
-  function espaceSupprimer(id) {
+  /* Dissoudre : les canaux partent comme partent les conversations (pièces et registre compris), les invitations, l'abonnement et la liste des membres avec l'espace. → les personnes à prévenir.
+     `noter: false` : seulement le rejeu d'un effacement de compte (`espaceQuitterTout`) — l'espace que la COPIE réduit à la personne effacée n'est pas un espace que le service vivant a dissous. */
+  function espaceSupprimer(id, { noter = true } = {}) {
     return tx(() => {
       const e = espaceBrut(id); if (!e) throw erreur('introuvable');
       const pieces = [], convs = Q('SELECT conv FROM canal WHERE espace = ?').all(id).map(r => r.conv);
       const membres = Q('SELECT uid FROM espace_membre WHERE espace = ?').all(id).map(r => r.uid);
-      for (const c of convs) pieces.push(...convSupprimer(c).pieces);
+      for (const c of convs) pieces.push(...convSupprimer(c, { noter }).pieces);
       Q(`DELETE FROM lien WHERE genre = 'espace' AND cible = ?`).run(id);
-      Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(id, 'espace', horloge());
+      if (noter) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(id, 'espace', horloge());
       Q('DELETE FROM espace WHERE id = ?').run(id);   // espace_membre, canal et abonnement suivent (ON DELETE CASCADE)
       return { pieces, convs, membres };
     });
   }
   /* L'effacement d'un compte (`compteEffacer`) : la personne sort de tous ses espaces. Propriétaire avec d'autres membres : la propriété passe au plus ancien administrateur, à
-     défaut au plus ancien membre ; propriétaire seul : l'espace est dissous. Rejouable : sans espace, rien à faire. → { pieces, convs } */
-  function espaceQuitterTout(uid) {
-    const pieces = [], convs = [];
-    for (const r of Q('SELECT espace FROM espace_membre WHERE uid = ?').all(uid)) {
-      const e = espaceBrut(r.espace); if (!e) continue;
+     défaut au plus ancien membre ; propriétaire seul : l'espace est dissous. Rejouable : sans espace, rien à faire. → { pieces, convs, orphelins }
+
+     ⛔ MEMBRE **OU** PROPRIÉTAIRE (couture avec le rejeu des comptes du lot 3, 3 octobre 2026). Une restauration rejoue D'ABORD, hors ligne, les lignes `espace_membre` du registre : elles
+     retirent la personne de la liste des membres d'une copie plus ancienne — mais la PROPRIÉTÉ ne s'écrit pas au registre, elle reste sur la ligne de l'espace. Quand le service rejoue ensuite
+     l'effacement du compte (`rejeu.js`), il ne trouvait plus la personne dans AUCUN espace : l'espace gardait pour propriétaire un compte effacé, que personne ne pouvait plus gérer (la
+     propriété ne se passe que depuis le propriétaire). On cherche donc aussi les espaces dont elle est propriétaire sans y être listée.
+     ⛔ `rejeu: true` N'ÉCRIT RIEN AU REGISTRE : celui de la copie dit DÉJÀ ce qu'a fait l'effacement d'origine (la restauration l'a recopié) ; une ligne de plus — `espace_membre` à la date du
+     rejeu, `espace` pour un espace que la copie réduit à la personne effacée — serait rejouée à la restauration SUIVANTE comme un fait, contre des gens qui, dans le service vivant, y étaient
+     encore. ⛔ Et un espace que la copie réduit à elle mais dont un abonnement COURT (ou un paiement attend sa relecture) n'est PAS dissous par le rejeu : le rejeu ne parle pas à Stripe, et
+     dissoudre perdrait le seul lien avec un abonnement qui continuerait de prélever. Dans le doute, on efface moins : la personne en sort, l'espace reste sans membre, et il est RENDU dans
+     `orphelins` pour que le service le dise au journal (à régler à la main, sur le tableau de bord de Stripe). */
+  function espaceQuitterTout(uid, { rejeu = false } = {}) {
+    const pieces = [], convs = [], orphelins = [];
+    const ids = Q(`SELECT espace AS id FROM espace_membre WHERE uid = ? UNION SELECT id FROM espace WHERE proprio = ? ORDER BY 1`).all(uid, uid).map(r => r.id);
+    for (const id of ids) {
+      const e = espaceBrut(id); if (!e) continue;
       if (e.proprio === uid) {
         const suivant = Q(`SELECT uid FROM espace_membre WHERE espace = ? AND uid <> ? ORDER BY (role = 'admin') DESC, depuis, uid LIMIT 1`).get(e.id, uid);
-        if (!suivant) { const d = espaceSupprimer(e.id); pieces.push(...d.pieces); convs.push(...d.convs); continue; }
+        if (!suivant) {
+          if (rejeu && abonnementCourt(e.id)) { const x = retirerDeEspace(e.id, uid, { noter: false }); pieces.push(...x.pieces); convs.push(...x.convs); orphelins.push(e.id); continue; }
+          const d = espaceSupprimer(e.id, { noter: !rejeu }); pieces.push(...d.pieces); convs.push(...d.convs); continue;
+        }
         Q('UPDATE espace SET proprio = ? WHERE id = ?').run(suivant.uid, e.id);
         Q(`UPDATE espace_membre SET role = 'admin' WHERE espace = ? AND uid = ?`).run(e.id, suivant.uid);
         rolerCanaux(e.id, suivant.uid, 'admin');
       }
-      const x = retirerDeEspace(e.id, uid);
+      const x = retirerDeEspace(e.id, uid, { noter: !rejeu });
       pieces.push(...x.pieces); convs.push(...x.convs);
     }
-    return { pieces, convs };
+    return { pieces, convs, orphelins };
+  }
+  /* Un abonnement qui COURT, ou un paiement commencé dont personne n'a relu l'issue (`session` rangée) — la MÊME définition que `espacesAbonnesSeul`, qui la lit pour refuser une suppression. */
+  function abonnementCourt(espace) {
+    return Q(`SELECT 1 AS x FROM abonnement WHERE espace = ? AND ((abonnement IS NOT NULL AND statut NOT IN ('aucun', 'canceled', 'incomplete_expired')) OR session IS NOT NULL)`).get(espace) !== undefined;
   }
   /* Les espaces dont `uid` est le propriétaire ET le seul membre, avec un abonnement qui court — OU un paiement commencé dont personne n'a relu l'issue (`session` rangée) : supprimer son
      compte laisserait Stripe prélever pour un espace qui n'existe plus (relecture du gardien : payé, puis dissous avant que le service le sache). */
