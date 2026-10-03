@@ -100,9 +100,9 @@ function creerHandlers(ctx) {
     if (type === 'contact_ajoute') return { type: 'contact', tag: 'contact', url: '/', titre: 'OP MESSAGES', corps: 'Nouveau contact', detail: { titre: 'Nouveau contact', corps: texte } };
     return null;
   }
-  function notifier(uid, type, titre, texte, cible) {
+  function notifier(uid, type, titre, texte, cible, auteur) {
     try {
-      const n = stockage.notifCreer({ uid, type, titre, texte, cible });
+      const n = stockage.notifCreer({ uid, type, titre, texte, cible, auteur });
       hub.reveiller({ uids: [uid] });
       const c = ctx.push ? chargePush(type, titre, texte, cible) : null;
       if (c) ctx.push.pousser(uid, c, { gid: n.gid });
@@ -242,7 +242,7 @@ function creerHandlers(ctx) {
     const r = stockage.lienAccepter({ h: sha(c), uid: req.moi.id });
     if (r.genre === 'contact') {
       const p = stockage.personneParId(r.par);
-      if (!r.deja) notifier(r.par, 'contact_ajoute', 'Nouveau contact', nomAffiche(req.moi) + ' est maintenant dans vos contacts.', req.moi.id);
+      if (!r.deja) notifier(r.par, 'contact_ajoute', 'Nouveau contact', nomAffiche(req.moi) + ' est maintenant dans vos contacts.', req.moi.id, req.moi.id);
       return res.json({ genre: 'contact', deja: r.deja, contact: { id: p.id, prenom: p.prenom, nom: p.nom } });
     }
     if (r.gid) hub.reveiller({ conv: r.conv });
@@ -316,7 +316,7 @@ function creerHandlers(ctx) {
     const non_ajoutes = voulus.filter(u => !ajoutes.includes(u));
     const r = stockage.convCreerGroupe({ createur: req.moi.id, nom, membres: ajoutes, annonces_seules: b.annonces_seules === true, ephemere_s: eph, avatar_piece: avatar });
     hub.reveiller({ conv: r.id });
-    for (const u of ajoutes) notifier(u, 'groupe_ajoute', nom, nomAffiche(req.moi) + ' vous a ajouté au groupe.', r.id);
+    for (const u of ajoutes) notifier(u, 'groupe_ajoute', nom, nomAffiche(req.moi) + ' vous a ajouté au groupe.', r.id, req.moi.id);
     res.status(201).json(Object.assign({ non_ajoutes }, detail(req.moi.id, r.id)));
   };
 
@@ -351,7 +351,7 @@ function creerHandlers(ctx) {
     const ok = u.filter(x => stockage.contactActif(req.moi.id, x)), non_ajoutes = u.filter(x => !ok.includes(x));
     const r = ok.length ? stockage.membresAjouter({ conv: c.id, par: req.moi.id, uids: ok, max: ctx.maxMembres }) : { ajoutes: [], gid: 0 };
     if (r.gid) hub.reveiller({ conv: c.id });
-    for (const x of r.ajoutes) notifier(x, 'groupe_ajoute', c.nom || 'Groupe', nomAffiche(req.moi) + ' vous a ajouté au groupe.', c.id);
+    for (const x of r.ajoutes) notifier(x, 'groupe_ajoute', c.nom || 'Groupe', nomAffiche(req.moi) + ' vous a ajouté au groupe.', c.id, req.moi.id);
     res.json({ ajoutes: r.ajoutes, non_ajoutes });
   };
 
@@ -499,7 +499,7 @@ function creerHandlers(ctx) {
     if (Array.isArray(b.mentions)) {
       const membres = new Set(stockage.membresActifs(conv.id));
       for (const u of Array.from(new Set(b.mentions.slice(0, 20)))) {
-        if (typeof u === 'string' && ID_PERS.test(u) && u !== req.moi.id && membres.has(u)) notifier(u, 'mention', conv.nom || nomAffiche(req.moi), nomAffiche(req.moi) + ' vous a mentionné.', conv.id);
+        if (typeof u === 'string' && ID_PERS.test(u) && u !== req.moi.id && membres.has(u)) notifier(u, 'mention', conv.nom || nomAffiche(req.moi), nomAffiche(req.moi) + ' vous a mentionné.', conv.id, req.moi.id);
       }
     }
     res.status(201).json({ seq: r.seq, ts: r.ts, id: r.id });

@@ -277,6 +277,17 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
     vrai('population : avant la suppression, Dan a des sessions, un appareil, un abonnement, des notifications — et trois pièces sur le disque (envoyée, jamais envoyée, photo de profil)',
       [0, 1, 3, 4].every(i => traces(danId)[i] > 0) && [photoD, orphelineD, avatarD].every(id => fs.existsSync(fichierPiece(id))));
     v('population : Dan est administrateur de K et seul membre de L', [(await D.get('/api/conversations/' + K)).j.moi.role, (await D.get('/api/conversations/' + L)).j.conversation.membres_n], ['admin', 1]);
+    /* ⛔ I4 (`gardien3-restes.js`) : les notifications des AUTRES qui NOMMENT Dan — « Dan vous a ajouté au groupe » (Bob), « Dan est maintenant dans vos contacts » (Bob, Cléo — l'une par un lien, l'autre par
+       numéro), « Dan vous a mentionné » dont le TITRE est son nom (conversation directe) — doivent cesser de le nommer le jour où son compte s'efface. Avant : son prénom restait dans la liste ET dans l'export. */
+    await D.post('/api/conversations/' + BD + '/messages', { cid: nouveauCid(), texte: 'hé Bob, tu as vu ?', mentions: [B.moi.id] });
+    /* un groupe créé SANS personne, puis un membre ajouté APRÈS : c'est l'autre porte (« ajouter à un groupe existant ») qui prévient Cléo */
+    const K2 = (await D.post('/api/conversations/groupe', { nom: 'Second groupe', membres: [] })).j.conversation.id;
+    v('population : Dan ajoute Cléo à un groupe qui existe déjà', (await D.post('/api/conversations/' + K2 + '/membres/ajouter', { uids: [C.moi.id] })).code, 200);
+    const notifs = async (c) => (await c.get('/api/notifications')).j.notifications;
+    const nommant = (liste, mot) => liste.filter(n => (n.titre + ' ' + n.texte).includes(mot));
+    const nb0 = await notifs(B), nc0 = await notifs(C);
+    v('population : avant l\'effacement, les notifications de Bob nomment Dan Banc trois fois (ajouté en contact, ajouté à un groupe, mentionné — le titre de la mention est SON nom), celles de Cléo deux (ajoutée par numéro, ajoutée à un groupe existant) ; Bob en garde une qui nomme Cléo',
+      [nommant(nb0, 'Dan Banc').map(n => n.type).sort(), nb0.filter(n => n.type === 'mention').map(n => n.titre), nommant(nc0, 'Dan Banc').map(n => n.type).sort(), nommant(nb0, 'Cleo Banc').length], [['contact_ajoute', 'groupe_ajoute', 'mention'], ['Dan Banc'], ['contact_ajoute', 'groupe_ajoute'], 1]);
     /* ⛔ DEUX GARDES POUR « LES FICHIERS D'UN COMPTE EFFACÉ NE RESTENT PAS » : l'effacement les retire AUSSITÔT (`effacerPieces(e.pieces)`), et la réconciliation périodique (toutes les dix passes du balayeur) emporte
        tout fichier sans ligne qui a plus de dix minutes — or l'horloge de ce banc saute de quatorze jours, donc dès la passe suivante TOUT fichier lui paraît vieux. Mutation D12 (l'effacement immédiat retiré) :
        elle a survécu une fois sur deux, quand la réconciliation passait dans la même passe que l'effacement et emportait les fichiers avant qu'on les regarde. Pour que ce banc garde l'effacement IMMÉDIAT, les trois
@@ -328,6 +339,13 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
       const eb = (await B.post('/api/compte/export', {})).j;
       const mH = eb.conversations.find(c => c.id === H).messages.find(m => m.texte === 'DAN-DANS-H');
       v('l\'export de Bob nomme l\'auteur d\'un groupe « Compte supprimé »', mH && mH.de, 'Compte supprimé');
+      const nb1 = await notifs(B), nc1 = await notifs(C);
+      v('⛔ I4 — aucune notification de Bob ni de Cléo ne nomme plus Dan Banc, et l\'EXPORT de Bob (ses notifications) non plus', [nommant(nb1, 'Dan Banc').length, nommant(nc1, 'Dan Banc').length, JSON.stringify(eb.notifications).includes('Dan Banc'), JSON.stringify(eb).includes('Dan Banc')], [0, 0, false, false]);
+      const dits = (liste) => liste.filter(n => /Un compte supprimé/.test(n.titre + ' ' + n.texte)).map(n => [n.type, n.titre, n.texte]).sort();
+      v('⛔ ...elles disent « un compte supprimé », AU MÊME ENDROIT (chez Bob : le contact, le groupe — dont le nom est celui du groupe —, la mention dont le TITRE n\'était que son nom ; chez Cléo : le contact par numéro, et le groupe auquel il l\'avait ajoutée après coup)',
+        [dits(nb1), dits(nc1)], [[['contact_ajoute', 'Nouveau contact', 'Un compte supprimé était dans vos contacts.'], ['groupe_ajoute', 'Groupe de Dan', 'Un compte supprimé vous a ajouté au groupe.'], ['mention', 'Un compte supprimé', 'Un compte supprimé vous a mentionné.']],
+          [['contact_ajoute', 'Nouveau contact', 'Un compte supprimé était dans vos contacts.'], ['groupe_ajoute', 'Second groupe', 'Un compte supprimé vous a ajouté au groupe.']]]);
+      v('   celles qui nomment quelqu\'un d\'autre ne bougent pas (Cléo, chez Bob), les notifications gardent leur nombre, et plus aucune ligne ne désigne Dan comme auteur', [nommant(nb1, 'Cleo Banc').length, nb1.length === nb0.length, nc1.length === nc0.length, sql('SELECT COUNT(*) AS n FROM notification WHERE auteur = ?', danId).n], [1, true, true, 0]);
       v('Dan n\'est plus membre de H (quitté)', (await B.get('/api/conversations/' + H)).j.membres.some(m => m.id === danId), false);
       v('Dan est introuvable (404) pour qui consulte son profil', (await B.get('/api/personnes/' + danId)).code, 404);
     }
@@ -468,8 +486,22 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
       v('(et il dit POURQUOI : la taille)', [plafonne.j.tronque_cause, liste.j.tronque_cause], ['taille', 'taille']);
 
       /* ⛔ I3, de bout en bout : un lecteur qui ne lit plus est COUPÉ (`exportAttenteMs`, lu dans la configuration), une durée trop longue se termine proprement (`exportMaxMs`, par défaut 15 minutes — l'horloge
-         du service avance de 16 pendant que le client lit). Un service redémarré sur la même base, avec une attente de 2,5 s. */
+         du service avance de 16 pendant que le client lit). Un service redémarré sur la même base, avec une attente de 2,5 s.
+         ⛔ UN LECTEUR QUI NE LIT PLUS SUPPOSE UN FICHIER PLUS GROS QUE LES TAMPONS DU NOYAU : un export de 2,6 Mo tient TOUT ENTIER dans la file d'envoi (jusqu'à 4 Mo) et le tampon du client — le service n'attend alors
+         jamais, il n'y a rien à couper, et le banc tombait une fois sur trois (3 octobre 2026). Un groupe PESANT (12 000 messages de 4 000 caractères, ~50 Mo au total avec la grosse conversation) dépasse
+         tout tampon que ce noyau accorde (4 Mo en émission, 32 Mo en réception au plus). */
+      const Y2 = await T.connecter(s2, og, 'yan', 'pw-yan-123456');
+      await relier(W, Y2);
+      const GP = (await W.post('/api/conversations/groupe', { nom: 'Pesante', membres: [Z2.moi.id, Y2.moi.id] })).j.conversation.id;
       await s2.arreter(false);
+      {
+        const S4 = ouvrir({ chemin: path.join(s2.data, 'msg.db'), scelleur: creerScelleur(Buffer.from(cle, 'hex')) });
+        const gros = 'y'.repeat(4000);
+        S4.tx(() => { for (let i = 1; i <= 12000; i++) S4.messageEnvoyer({ conv: GP, auteur: i % 2 ? W.moi.id : Z2.moi.id, cid: 'cid-pes-' + String(i).padStart(6, '0'), type: 'texte', texte: 'Pesant ' + i + ' ' + gros, repondA: null, pieces: null, vocal: null }); });
+        S4.fermer();
+      }
+      const dPes = T.lireBase(path.join(s2.data, 'msg.db')); let nPes = 0; try { nPes = dPes.prepare('SELECT dernier_seq AS n FROM conversation WHERE id = ?').get(GP).n; } finally { dPes.close(); }
+      vrai('population : le groupe PESANT porte ' + nPes + ' messages de 4 000 caractères (de quoi dépasser les tampons du noyau, ~48 Mo)', nPes >= 12000);
       s2 = await T.lancerService({ dossier, cle, urlGestion: og.url, horloge: true, config: { compte: { exportAttenteMs: 2500 } } }); lourds.push(s2);
       const Z3 = await T.connecter(s2, og, 'zan', 'pw-zan-123456'), Y3 = await T.connecter(s2, og, 'yan', 'pw-yan-123456'), U3 = await T.connecter(s2, og, 'uan', 'pw-uan-123456');
       const t0c = Date.now();
@@ -492,7 +524,10 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
       let jd = null; try { jd = JSON.parse(corpsD); } catch (e) { /* illisible */ }
       v('⛔ un export qui dure plus que sa durée maximale (l\'horloge du service a avancé de 16 minutes) se termine PROPREMENT : JSON valide, `tronque` posé, `tronque_cause: "duree"`', [!!jd, !!jd && jd.tronque !== null, jd && jd.tronque_cause], [true, true, 'duree']);
       const gD = jd && jd.conversations.find(c => c.id === GL);
-      vrai('   et il s\'arrête en route (la grosse conversation n\'est pas complète : ' + (gD ? gD.messages.length : '?') + ' sur ' + (N + 1) + ')', !!gD && gD.messages.length < N + 1);
+      /* ⛔ « pas complète » SANS exiger qu'elle soit entamée : le processus du service peut être suspendu par le système entre l'envoi des en-têtes et sa première lecture de l'horloge (deux copies de mutation en
+         parallèle, une machine partagée) — l'horloge a alors déjà avancé et le fichier se termine avant la première conversation. Vu trois fois sur dix-neuf mutations, 3 octobre 2026. Une grosse conversation ABSENTE
+         ou coupée, mais jamais entière. */
+      vrai('   et il s\'arrête en route (la grosse conversation n\'est pas complète : ' + (gD ? gD.messages.length + ' messages' : 'pas encore commencée') + ' sur ' + (N + 1) + ')', !!jd && (!gD || gD.messages.length < N + 1));
     }
 
     /* ═══ 6. L'EXPORT, LE MODULE SEUL (I3) : ce qui rend le créneau du jour, ce qui ne le rend JAMAIS ═══════════════════════════════════════════════════

@@ -1540,6 +1540,8 @@ const horlogeFixe = (h) => () => h.t;
       const b = O.creerBase();
       try {
         const { a, c, conv } = O.remplir(b, 6);
+        /* I4 : une notification d'une AUTRE personne qui nomme Alice (« alice vous a ajouté au groupe ») — elle existe dans les deux copies d'avant */
+        b.S.notifCreer({ uid: c.id, type: 'groupe_ajoute', titre: 'Un groupe', texte: 'alice vous a ajouté au groupe.', cible: conv, auteur: a.id });
         b.h.t += 1000; b.S.telAppareilLier({ h: 'tel-de-alice', personne: a.id, nom: 'téléphone', ttlMs: 100 * 86400000 });
         const avant = path.join(b.dossier, 'avant.db');
         if (quand === 'avant la demande') { b.h.t += 1000; await b.S.instantane(avant); }
@@ -1552,6 +1554,8 @@ const horlogeFixe = (h) => () => h.t;
         }
         b.h.t += 15 * 86400000;
         const e = b.S.compteEffacer(a.id);
+        v('⛔ I4 (' + quand + ') : l\'effacement réécrit la notification d\'une AUTRE personne qui nommait Alice — plus de prénom, la même place, et plus d\'auteur', [b.S.notifListe(c.id).map(n => [n.titre, n.texte]), Number(ligne(b.chemin, 'SELECT COUNT(*) AS n FROM notification WHERE auteur = ?', a.id).n)],
+          [[['Un groupe', 'Un compte supprimé vous a ajouté au groupe.']], 0]);
         const registre = STOCK.ouvrir.copie.purgeLire(b.chemin);
         vrai('population (' + quand + ') : l\'effacement a eu lieu dans la base vivante et s\'est noté une fois (genre « compte »)',
           e.effacee === true && registre.filter(x => x.genre === 'compte').map(x => x.objet).join() === a.id);
@@ -1573,6 +1577,7 @@ const horlogeFixe = (h) => () => h.t;
           v('⛔ (' + quand + ') au premier démarrage, le service REFAIT la demande puis l\'effacement (deux lignes, dans l\'ordre) : plus de nom, état « supprime », plus d\'appareil, sa place dans le groupe est quittée — et le drapeau retombe',
             [bilan.fait, bilan.rejouees, bilan.echecs, p1.etat, p1.prenom, p1.nom, Number(ligne(sur, 'SELECT COUNT(*) AS n FROM appareil_tel WHERE personne = ?', a.id).n), !!(membreA && membreA.quitte_le), S2.rejeuAFaire()],
             [true, 2, 0, 'supprime', '', '', 0, true, false]);
+          v('⛔ I4 (' + quand + ') : le rejeu de l\'effacement réécrit AUSSI la notification que la copie d\'avant portait pour l\'autre personne (« alice vous a ajouté au groupe » devient « Un compte supprimé vous a ajouté au groupe. »)', S2.notifListe(c.id).map(n => n.texte), ['Un compte supprimé vous a ajouté au groupe.']);
           v('   ses messages RESTENT chez les autres (signés « Compte supprimé » ; le départ du groupe ajoute seulement son avis « a quitté »), et l\'autre personne n\'a rien perdu',
             [Number(ligne(sur, "SELECT COUNT(*) AS n FROM message WHERE auteur = ? AND type <> 'systeme'", a.id).n), ligne(sur, 'SELECT etat, prenom FROM personne WHERE id = ?', c.id)], [msg0, { etat: 'actif', prenom: 'carole' }]);
           const second = REJEU.rejouerAuDemarrage({ stockage: S2, contexte: { effacerPieces: () => {}, horloge: () => b.h.t }, journaliser: () => {} });

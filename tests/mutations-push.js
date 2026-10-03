@@ -35,7 +35,7 @@ const F = {
   src: 'server-msg/public/source-serveur.js', api: 'server-msg/public/api.js', sw: 'server-msg/public/sw.js', man_pwa: 'server-msg/public/manifest.webmanifest',
   gen: 'scripts/opmsg-public.js', page: 'apercu/opmessages/index.html', rejeu: 'server-msg/rejeu.js', rest: 'server-msg/outils/restaurer.js', surv: '.github/scripts/surveillance-messages.js',
 };
-const BANCS = ['905', '934', '941', '950', '951', '955', '956', '957', '958', 'sonde'];
+const BANCS = ['901', '905', '934', '941', '950', '951', '955', '956', '957', '958', 'sonde'];
 const MUTATIONS = [];
 /* m(id, nom, fichier, ancien, nouveau, suites) — `ancien` : une chaîne, ou une expression régulière (une seule occurrence, `$1` permis dans `nouveau`) */
 const m = (id, nom, fichier, ancien, nouveau, suites, o) => MUTATIONS.push(Object.assign({ id, nom, edits: [[fichier, ancien, nouveau]], suites }, o || {}));
@@ -417,6 +417,32 @@ m('N15', 'TEST-NET-1 (192.0.2.0/24) n\'est plus refusé comme adresse de service
 m('N16', 'TEST-NET-2 (198.51.100.0/24) n\'est plus refusé comme adresse de service push', F.push, "(a === 198 && b === 51 && c === 100)", "(false)", ['955']);
 m('N17', 'TEST-NET-3 (203.0.113.0/24) n\'est plus refusé comme adresse de service push', F.push, "(a === 203 && b === 0 && c === 113)", "(false)", ['955']);
 m('N18', 'la borne de TEST-NET-2 est mal écrite : 198.51.101.x (public) devient « privée » (c >= 100 au lieu de c === 100)', F.push, "(a === 198 && b === 51 && c === 100)", "(a === 198 && b === 51 && c >= 100)", ['955']);
+
+/* ══ 15. CE QUE LES AUTRES GARDENT D'UN COMPTE EFFACÉ (I4) — `test-957` (le vrai service : Dan efface son compte, Bob et Cléo relisent leurs notifications et l'export), `test-950` (le rejeu après une restauration), `test-901` (la migration) ═════════════ */
+m('Z01', 'l\'effacement d\'un compte ne réécrit plus les notifications des autres : « Dan Banc vous a ajouté au groupe » reste dans leur liste ET dans leur export', F.stock,
+  "notifsAnonymiser(uid, ((pn.prenom || '') + ' ' + (pn.nom || '')).trim());", '', ['950', '957']);
+m('Z02', 'la réécriture garde la colonne `auteur` (une notification déjà réécrite désigne encore la personne effacée)', F.stock,
+  "UPDATE notification SET titre_ch = ?, texte_ch = ?, auteur = NULL WHERE id = ?", "UPDATE notification SET titre_ch = ?, texte_ch = ? WHERE id = ?", ['950', '957']);
+m('Z03', 'le TITRE d\'une mention en conversation directe garde le nom de la personne effacée (il n\'est que son nom)', F.stock,
+  "else if (r.type === 'mention' && nom && titre === nom) titre = 'Un compte supprimé';", '', ['957']);
+m('Z04', 'une notification enregistrée n\'écrit plus QUI elle nomme (la colonne `auteur` reste vide : plus rien à retrouver)', F.stock,
+  "cible || null, t, auteur || null);", "cible || null, t, null);", ['950', '957']);
+m('Z05', 'la route de création d\'une notification ne transmet plus l\'auteur au magasin', F.routes,
+  "stockage.notifCreer({ uid, type, titre, texte, cible, auteur });", "stockage.notifCreer({ uid, type, titre, texte, cible });", ['957']);
+m('Z06', 'le contact ajouté par un LIEN ne dit plus qui il nomme', F.routes,
+  "nomAffiche(req.moi) + ' est maintenant dans vos contacts.', req.moi.id, req.moi.id);", "nomAffiche(req.moi) + ' est maintenant dans vos contacts.', req.moi.id);", ['957']);
+m('Z07', 'l\'ajout à un groupe CRÉÉ ne dit plus qui il nomme', F.routes,
+  "notifier(u, 'groupe_ajoute', nom, nomAffiche(req.moi) + ' vous a ajouté au groupe.', r.id, req.moi.id);", "notifier(u, 'groupe_ajoute', nom, nomAffiche(req.moi) + ' vous a ajouté au groupe.', r.id);", ['957']);
+m('Z08', 'l\'ajout à un groupe EXISTANT ne dit plus qui il nomme', F.routes,
+  "notifier(x, 'groupe_ajoute', c.nom || 'Groupe', nomAffiche(req.moi) + ' vous a ajouté au groupe.', c.id, req.moi.id);", "notifier(x, 'groupe_ajoute', c.nom || 'Groupe', nomAffiche(req.moi) + ' vous a ajouté au groupe.', c.id);", ['957']);
+m('Z09', 'une mention ne dit plus qui elle nomme', F.routes,
+  "nomAffiche(req.moi) + ' vous a mentionné.', conv.id, req.moi.id);", "nomAffiche(req.moi) + ' vous a mentionné.', conv.id);", ['957']);
+m('Z10', 'le contact ajouté par NUMÉRO ne dit plus qui il nomme', F.tel,
+  "texte: texteN, cible: uid, auteur: uid });", "texte: texteN, cible: uid });", ['957']);
+m('Z11', 'une migration rejouée échoue sur « duplicate column name » (le lanceur ne tolère plus l\'`ADD COLUMN` d\'une base qui a déjà sa colonne)', F.stock,
+  "catch (e) { if (!(/^\\s*ALTER TABLE \\w+ ADD COLUMN /i.test(s) && /duplicate column name/i.test(String(e && e.message)))) throw e; }", "catch (e) { throw e; }", ['901']);
+m('Z12', 'le lanceur de migrations ignore TOUTE erreur d\'un `ALTER` (une table absente passe, la migration est dite faite)', F.stock,
+  "catch (e) { if (!(/^\\s*ALTER TABLE \\w+ ADD COLUMN /i.test(s) && /duplicate column name/i.test(String(e && e.message)))) throw e; }", "catch (e) { if (!/^\\s*ALTER TABLE /i.test(s)) throw e; }", ['901']);
 
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const DOSSIERS_COPIE = ['server-msg', 'design/opmessages', '.github/scripts', '.github/workflows', 'apercu/opmessages', 'icons', 'scripts'];   // (`.github/workflows` : test-934 lit quels workflows citent la surveillance)

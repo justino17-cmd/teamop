@@ -275,6 +275,15 @@ const MIGRATIONS = [
     `CREATE INDEX IF NOT EXISTS personne_suppression ON personne(suppression_le) WHERE suppression_le IS NOT NULL`,
     `PRAGMA user_version = 4`,
   ] },
+  /* ── 5 : DE QUI PARLE UNE NOTIFICATION (3 octobre 2026) ──────────────────────────────────────────────────────────────────────────────────
+     « Alice vous a ajouté au groupe. » porte le PRÉNOM d'Alice, scellé dans le texte de CELUI QUI REÇOIT. Le jour où Alice efface son compte, ce prénom restait chez les autres — dans leur liste
+     de notifications et dans leur export de données (relevé par le gardien, 3 octobre 2026). `auteur` dit QUI est nommé, pour que l'effacement réécrive ces notifications (« Un compte
+     supprimé ») ; NULL pour celles d'avant (aucun moyen de savoir de qui elles parlent). Aucune table reconstruite ; pas de clé étrangère (la ligne `personne` d'un compte effacé reste, vide). */
+  { v: 5, sql: [
+    `ALTER TABLE notification ADD COLUMN auteur TEXT`,
+    `CREATE INDEX IF NOT EXISTS notification_auteur ON notification(auteur) WHERE auteur IS NOT NULL`,
+    `PRAGMA user_version = 5`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -316,7 +325,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (m.sansFk === true) X('PRAGMA foreign_keys=OFF');
     X('BEGIN IMMEDIATE');
     try {
-      for (const s of m.sql) X(s);
+      for (const s of m.sql) {
+        /* ⛔ REJOUABLE : SQLite n'a pas de `ADD COLUMN IF NOT EXISTS`. Une migration rejouée sur une base qui a déjà sa colonne (le compteur remis à zéro à la main, une restauration) ne doit pas échouer
+           sur « duplicate column name » — et SEULEMENT sur celle-là : toute autre erreur, y compris d'un `ALTER` sur une table absente, arrête la migration. */
+        try { X(s); }
+        catch (e) { if (!(/^\s*ALTER TABLE \w+ ADD COLUMN /i.test(s) && /duplicate column name/i.test(String(e && e.message)))) throw e; }
+      }
       if (m.sansFk === true && Q('PRAGMA foreign_key_check').all().length > 0) throw erreur('migration_orphelins');
       X('COMMIT');
     } catch (e) { try { X('ROLLBACK'); } catch (e2) {} if (m.sansFk === true) X('PRAGMA foreign_keys=ON'); throw e; }
@@ -1122,11 +1136,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
 
   /* ══ NOTIFICATIONS DANS L'APPLICATION ════════════════════════════════════════════════════ */
-  function notifCreer({ uid, type, titre, texte, cible }) {
+  /* `auteur` : la personne que le texte NOMME (celle qui a ajouté, mentionné) — l'effacement de son compte réécrit alors la notification (`notifsAnonymiser`). */
+  function notifCreer({ uid, type, titre, texte, cible, auteur }) {
     return tx(() => {
       const id = nouvelId('n'), t = horloge();
-      Q('INSERT INTO notification(id, uid, type, titre_ch, texte_ch, cible, ts) VALUES(?, ?, ?, ?, ?, ?, ?)')
-        .run(id, uid, type, sceller('notification', 'titre_ch', id + '|titre', titre || ''), sceller('notification', 'texte_ch', id + '|texte', texte || ''), cible || null, t);
+      Q('INSERT INTO notification(id, uid, type, titre_ch, texte_ch, cible, ts, auteur) VALUES(?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(id, uid, type, sceller('notification', 'titre_ch', id + '|titre', titre || ''), sceller('notification', 'texte_ch', id + '|texte', texte || ''), cible || null, t, auteur || null);
       /* Deux cents au plus par personne : le reste est de l'historique qu'on ne relit pas. */
       Q('DELETE FROM notification WHERE uid = ? AND id NOT IN (SELECT id FROM notification WHERE uid = ? ORDER BY ts DESC, id DESC LIMIT 200)').run(uid, uid);
       return { id, gid: journalAjouter('notif', null, uid, id) };
@@ -1578,6 +1593,22 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function comptesEchus(limite = 10) {
     return Q(`SELECT id FROM personne WHERE etat = 'actif' AND suppression_le IS NOT NULL AND suppression_le <= ? ORDER BY suppression_le, id LIMIT ?`).all(horloge(), Math.max(1, limite | 0)).map(r => r.id);
   }
+  /* ⛔ LES NOTIFICATIONS DES AUTRES QUI NOMMENT LA PERSONNE s'écrivent « Un compte supprimé » quand son compte s'efface : « Alice vous a ajouté au groupe. » restait, avec son prénom, dans la liste et
+     l'export de ceux qu'elle avait ajoutés (relevé par le gardien, 3 octobre 2026). On réécrit plutôt que de composer à l'affichage : le prénom n'est plus NULLE PART dans la base, pas seulement caché.
+     `nom` : le nom d'affichage de la personne (une mention dans une conversation directe prend le nom de son auteur pour TITRE). Les notifications d'avant la migration 5 n'ont pas d'auteur connu :
+     elles ne se retrouvent pas. → le nombre de notifications réécrites. */
+  function notifsAnonymiser(uid, nom) {
+    let n = 0;
+    for (const r of Q('SELECT id, type, titre_ch FROM notification WHERE auteur = ?').all(uid)) {
+      const texte = r.type === 'contact_ajoute' ? 'Un compte supprimé était dans vos contacts.' : r.type === 'mention' ? 'Un compte supprimé vous a mentionné.' : 'Un compte supprimé vous a ajouté au groupe.';
+      let titre = ouvrirOuNull('notification', 'titre_ch', r.id + '|titre', r.titre_ch);
+      if (titre === null) titre = '';
+      else if (r.type === 'mention' && nom && titre === nom) titre = 'Un compte supprimé';
+      Q('UPDATE notification SET titre_ch = ?, texte_ch = ?, auteur = NULL WHERE id = ?').run(sceller('notification', 'titre_ch', r.id + '|titre', titre), sceller('notification', 'texte_ch', r.id + '|texte', texte), r.id);
+      n++;
+    }
+    return n;
+  }
   /* L'effacement. TOUT dans une transaction, rejouable (une personne déjà effacée, ou dont la suppression a été annulée entre-temps, ne perd rien).
      → { effacee, pieces: [identifiants dont l'appelant efface les FICHIERS], convs: [conversations à rafraîchir], audience: [ceux à qui dire que ce profil a changé] } */
   /* ⛔ `{ rejeu: true }` : le REJEU d'un effacement après une restauration (`rejeu.js`, genre `compte`). La copie remise en service peut dater d'avant l'échéance — voire d'avant la
@@ -1588,6 +1619,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const p = Q('SELECT etat, suppression_le, avatar_piece FROM personne WHERE id = ?').get(uid);
       if (!p || p.etat !== 'actif' || (!rejeu && (p.suppression_le === null || p.suppression_le > horloge()))) return { effacee: false, pieces: [], convs: [], audience: [] };
       const audience = audiencePersonne(uid);   // AVANT d'effacer les contacts : c'est eux qu'il faut prévenir
+      const pn = Q('SELECT prenom, nom FROM personne WHERE id = ?').get(uid);
+      notifsAnonymiser(uid, ((pn.prenom || '') + ' ' + (pn.nom || '')).trim());   // AVANT de vider le nom : c'est lui qu'il faut retrouver dans les titres
       const pieces = [], convs = [];
       /* chaque conversation : un groupe se quitte comme on le quitte (le dernier administrateur passe la main, le dernier membre emporte le groupe), une directe reste à l'autre — qui y garde
          son historique mais ne peut plus y écrire. Les messages, eux, restent. */

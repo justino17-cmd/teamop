@@ -374,7 +374,7 @@ function creerTelephone(ctx) {
       stockage.contactLier(uid, id);
       try {
         const texteN = ((req.moi.prenom + ' ' + req.moi.nom).trim() || 'Quelqu\'un') + ' est maintenant dans vos contacts.';
-        const n = stockage.notifCreer({ uid: id, type: 'contact_ajoute', titre: 'Nouveau contact', texte: texteN, cible: uid });
+        const n = stockage.notifCreer({ uid: id, type: 'contact_ajoute', titre: 'Nouveau contact', texte: texteN, cible: uid, auteur: uid });
         hub.reveiller({ uids: [id] });
         if (ctx.push) ctx.push.pousser(id, { type: 'contact', tag: 'contact', url: '/', titre: 'OP MESSAGES', corps: 'Nouveau contact', detail: { titre: 'Nouveau contact', corps: texteN } }, { gid: n.gid });
       } catch (e) { /* une notification ratée ne défait pas le geste */ }
