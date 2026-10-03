@@ -33,6 +33,10 @@ const SCHEMA = Math.max(...STOCK.MIGRATIONS.map(m => m.v));
 const RESTAURER = require(path.join(SM, 'outils', 'restaurer.js'));
 const dormir = (ms) => new Promise(r => setTimeout(r, ms));
 const lance = (f) => { try { f(); return null; } catch (e) { return e; } };
+/* Un identifiant de pièce de la FORME du service (`f_` + 32 hexadécimaux dont les deux premiers nomment le dossier) et son chemin relatif : le miroir
+   de la sauvegarde ne prend plus que cela (gardien A5, 3 octobre 2026 — les dépôts en cours partaient au coffre). */
+const idPiece = (dir, tag) => 'f_' + dir + crypto.createHash('sha256').update(String(tag)).digest('hex').slice(0, 30);
+const relPiece = (dir, tag) => dir + '/' + idPiece(dir, tag);
 const lanceAsync = async (f) => { try { await f(); return null; } catch (e) { return e; } };
 const code = (f) => O.sansCommentaires(fs.readFileSync(f, 'utf8'));
 /* Le contrôle des copies, EN PROCESSUS ici (rapide) : le processus enfant est éprouvé à part, plus bas. */
@@ -685,24 +689,30 @@ const horlogeFixe = (h) => () => h.t;
 
       /* Douze pièces scellées (du hasard), sur trois dossiers, une plus profonde ; et des fichiers qui ne sont PAS des pièces. */
       const pieces = {};
-      for (let i = 0; i < 12; i++) { const rel = ['ab', 'cd', 'ef'][i % 3] + '/f_' + crypto.randomBytes(8).toString('hex'); pieces[rel] = crypto.randomBytes(500 + i * 37); ecrire(rel, pieces[rel]); }
-      pieces['aa/bb/f_' + crypto.randomBytes(4).toString('hex')] = crypto.randomBytes(300); ecrire(Object.keys(pieces).pop(), pieces[Object.keys(pieces).pop()]);
-      ecrire('ab/f_vide', Buffer.alloc(0)); ecrire('ab/.cache', Buffer.from('x')); ecrire('cd/f_en_cours.tmp', Buffer.from('x'));
-      fs.symlinkSync('/etc/hostname', path.join(racine, 'ef', 'f_lien'));
+      for (let i = 0; i < 12; i++) { const rel = relPiece(['ab', 'cd', 'ef'][i % 3], 'p' + i); pieces[rel] = crypto.randomBytes(500 + i * 37); ecrire(rel, pieces[rel]); }
+      ecrire(relPiece('ab', 'vide'), Buffer.alloc(0)); ecrire('ab/.cache', Buffer.from('x')); ecrire('cd/f_en_cours.tmp', Buffer.from('x'));
+      const profonde = 'aa/bb/' + idPiece('aa', 'profonde'); ecrire(profonde, crypto.randomBytes(300));
+      const enCours = 'tmp/' + crypto.randomBytes(12).toString('hex'); ecrire(enCours, crypto.randomBytes(400));   // ⛔ un dépôt EN COURS du service : ce n'est pas une pièce
+      const lienRel = relPiece('ef', 'lien'); fs.symlinkSync('/etc/hostname', path.join(racine, ...lienRel.split('/')));
+      const malRange = 'cd/' + idPiece('ab', 'malrange'); ecrire(malRange, crypto.randomBytes(250));   // un nom de pièce, mais pas dans SON dossier : le service ne la trouverait jamais
       const N = Object.keys(pieces).length;
-      vrai('la population : ' + N + ' pièces, plus une pièce vide, un fichier caché, un `.tmp` en cours d\'écriture et un lien symbolique', N === 13);
-      const lp = await SAUV.parcourirPieces(racine);
-      v('parcourirPieces : à plat, trié, avec des « / », sans le caché, le `.tmp` ni le lien (qu\'il ne suit pas)', [lp.length, lp.every(x => !x.rel.includes('\\')), lp.map(x => x.rel).sort().join() === lp.map(x => x.rel).join(), lp.some(x => /lien|cache|tmp/.test(x.rel))], [14, true, true, false]);
+      vrai('la population : ' + N + ' pièces, plus une pièce vide, un fichier caché, un `.tmp`, un lien symbolique, un fichier trop profond, un nom de pièce rangé dans le MAUVAIS dossier et un DÉPÔT EN COURS (`tmp/…`) — tous présents sur le disque', N === 12 && [enCours, profonde, malRange, 'ab/.cache', 'cd/f_en_cours.tmp'].every(r => fs.existsSync(path.join(racine, ...r.split('/')))) && fs.lstatSync(path.join(racine, ...lienRel.split('/'))).isSymbolicLink());
+      const vuLocal = {};
+      const lp = await SAUV.parcourirPieces(racine, vuLocal);
+      v('parcourirPieces : à plat, trié, avec des « / », rien que des pièces (la vide comprise) — ni le caché, ni le `.tmp`, ni le lien (qu\'il ne suit pas), ni le trop profond, ni le mal rangé, ni le dépôt en cours', [lp.length, lp.every(x => !x.rel.includes('\\')), lp.map(x => x.rel).sort().join() === lp.map(x => x.rel).join(), lp.every(x => SAUV.pieceRelOk(x.rel))], [13, true, true, true]);
+      v('   et ce qu\'il laisse se COMPTE (six : le caché, le `.tmp`, le lien, « aa/bb », le mal rangé, le dossier `tmp`) — une absence se compte, elle ne se suppose pas', vuLocal.ignorees, 6);
       const r1 = await passe();
       v('⛔ la première passe envoie les ' + N + ' pièces (et seulement elles : la pièce vide est comptée à part)', [r1.ok, r1.pieces.envoyees, r1.pieces.dejaLa, r1.pieces.vides], [true, N, 0, 1]);
       v('   chacune est au coffre, OCTET POUR OCTET, sous <préfixe>pieces/<chemin relatif>', Object.keys(pieces).every(rel => m.coffre.objets.has(pre + rel) && m.coffre.objets.get(pre + rel).equals(pieces[rel])), true);
-      v('   rien d\'autre : ni le fichier caché, ni le `.tmp`, ni le lien, ni la pièce vide', m.coffre.cles(pre).length, N);
+      v('   rien d\'autre : ni le fichier caché, ni le `.tmp`, ni le lien, ni la pièce vide, ni le fichier trop profond, ni le mal rangé', m.coffre.cles(pre).length, N);
+      v('⛔ ET AUCUN DÉPÔT EN COURS (`tmp/…`) : il est sur le disque du service, il n\'est PAS au coffre (il y restait, puis REVENAIT à la restauration)', [fs.existsSync(path.join(racine, ...enCours.split('/'))), m.coffre.cles(pre).filter(c => /\/tmp\//.test(c))], [true, []]);
+      v('   et la passe dit ce qu\'elle a laissé (six entrées ignorées)', r1.pieces.ignorees, 6);
       v('   chaque pièce est RELUE après son dépôt (autant de lectures que de dépôts)', [m.coffre.compter('PUT', pre), m.coffre.compter('GET', pre)], [N, N]);
 
       const r2 = await passe();
       v('⛔ un SECOND passage n\'envoie RIEN : elles sont immuables, ce qui est au coffre ne repart pas (ni dépôt, ni relecture)', [r2.ok, r2.pieces.envoyees, r2.pieces.dejaLa, m.coffre.compter('PUT', pre), m.coffre.compter('GET', pre)], [true, 0, N, N, N]);
 
-      const neuve = 'ab/f_' + crypto.randomBytes(8).toString('hex'); ecrire(neuve, crypto.randomBytes(777));
+      const neuve = relPiece('ab', 'neuve'); ecrire(neuve, crypto.randomBytes(777));
       const r3 = await passe();
       v('une pièce nouvelle : UN dépôt de plus, pas treize', [r3.pieces.envoyees, m.coffre.compter('PUT', pre)], [1, N + 1]);
       const [premiere] = Object.keys(pieces);
@@ -731,12 +741,31 @@ const horlogeFixe = (h) => () => h.t;
       v('   et le dossier ABSENT : rien non plus', m.coffre.cles(pre).length, avant);
     } finally { await m.fermer(); }
 
+    /* ⛔ LA FORME QUE LE MIROIR ATTEND EST CELLE QUE `pieces.js` ÉCRIT VRAIMENT — les deux sont écrites à la main, chacune juste, et si l'une change l'autre
+       cesse de voir les pièces (un miroir qui ne voit plus rien envoie ZÉRO pièce, sans une erreur). On joue donc le VRAI module des pièces : des dépôts
+       terminés, et un dépôt EN COURS laissé ouvert dans `tmp/`. */
+    {
+      const PIECES = require(path.join(SM, 'pieces.js'));
+      const d = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-950-forme-'));
+      try {
+        const P = PIECES.creerPieces({ dossier: d, cle: () => Buffer.alloc(32, 7) });
+        const finis = [];
+        for (let i = 0; i < 4; i++) { const id = 'f_' + crypto.randomBytes(16).toString('hex'); const w = await P.ouvrirEcriture(id); await w.ajouter(crypto.randomBytes(700 + i)); await w.finir(); finis.push(id); }
+        const ouvert = await P.ouvrirEcriture('f_' + crypto.randomBytes(16).toString('hex')); await ouvert.ajouter(crypto.randomBytes(500));
+        const dansTmp = fs.existsSync(path.join(d, 'tmp')) ? fs.readdirSync(path.join(d, 'tmp')).length : 0;
+        const vus = await SAUV.parcourirPieces(d);
+        v('⛔ le miroir voit EXACTEMENT les pièces que le vrai module des pièces a terminées — et pas le dépôt en cours qu\'il laisse dans `tmp/` (population : ' + dansTmp + ' fichier en cours)',
+          [dansTmp, vus.map(x => x.rel.split('/')[1]).sort(), vus.every(x => x.rel === path.relative(d, P.chemin(x.rel.split('/')[1])).split(path.sep).join('/'))], [1, finis.slice().sort(), true]);
+        await ouvert.abandonner();
+      } finally { fs.rmSync(d, { recursive: true, force: true }); }
+    }
+
     /* La garde de proportion : un défaut de logique qui ferait croire que TOUT a disparu s'arrête là, et le DIT. */
     for (const [vieilles, attendu, nom] of [[150, true, '150 pièces en trop (sous le plancher de 200) : retirées à la seconde passe'], [1000, false, '1 000 pièces en trop sur 1 100 : REFUSÉ (« pieces-suppression-massive »), le coffre reste intact']]) {
       const g = await monter({ n: 60 });
       try {
         const racine = path.join(g.b.dataDir, 'pieces'); fs.mkdirSync(path.join(racine, 'ab'), { recursive: true });
-        for (let i = 0; i < 100; i++) fs.writeFileSync(path.join(racine, 'ab', 'f_' + i), crypto.randomBytes(64));
+        for (let i = 0; i < 100; i++) fs.writeFileSync(path.join(racine, 'ab', idPiece('ab', 'g' + i)), crypto.randomBytes(64));
         for (let i = 0; i < vieilles; i++) g.coffre.poser('beta/pieces/zz/vieille_' + i, Buffer.from('v' + i));
         g.h.t += 1000; const p1 = await g.sauv.lancer('banc');
         g.h.t += 1000; const p2 = await g.sauv.lancer('banc');
@@ -750,7 +779,7 @@ const horlogeFixe = (h) => () => h.t;
     const q = await monter({ n: 60 });
     try {
       const racine = path.join(q.b.dataDir, 'pieces'); fs.mkdirSync(path.join(racine, 'ab'), { recursive: true });
-      for (let i = 0; i < 4; i++) fs.writeFileSync(path.join(racine, 'ab', 'f_' + i), crypto.randomBytes(200));
+      for (let i = 0; i < 4; i++) fs.writeFileSync(path.join(racine, 'ab', idPiece('ab', 'q' + i)), crypto.randomBytes(200));
       q.coffre.regler('refus-depot-pieces');
       const r = await q.sauv.lancer('banc');
       v('⛔ des pièces qui ne partent pas : la passe est en ÉCHEC (« pieces-envoi-4 »), mais l\'archive de la BASE, relue, reste au coffre', [r.ok, r.baseOk, r.motif, cles(q).length, q.coffre.cles('beta/pieces/').length], [false, true, 'pieces-envoi-4', 1, 0]);
@@ -767,7 +796,7 @@ const horlogeFixe = (h) => () => h.t;
     const w = await monter({ n: 60, conf: { piecesParPasse: 5 } });
     try {
       const racine = path.join(w.b.dataDir, 'pieces'); fs.mkdirSync(path.join(racine, 'ab'), { recursive: true });
-      for (let i = 0; i < 12; i++) fs.writeFileSync(path.join(racine, 'ab', 'f_' + i), crypto.randomBytes(100));
+      for (let i = 0; i < 12; i++) fs.writeFileSync(path.join(racine, 'ab', idPiece('ab', 'w' + i)), crypto.randomBytes(100));
       const suite = [];
       for (let i = 0; i < 4; i++) { w.h.t += 1000; const r = await w.sauv.lancer('banc'); suite.push([r.ok, r.pieces.envoyees, r.pieces.restantes]); }
       v('⛔ un budget de cinq pièces par passe : 5, 5, 2, 0 — les restantes se comptent, aucune n\'est un échec', suite, [[true, 5, 7], [true, 5, 2], [true, 2, 0], [true, 0, 0]]);
@@ -806,7 +835,7 @@ const horlogeFixe = (h) => () => h.t;
   console.log('\n── 950 · le registre des purges est REJOUÉ sur une copie restaurée : un message effacé depuis ne REVIENT pas ──');
   const m = await monter({ n: 80 });
   const ids = {};
-  const pieceRel = 'ab/f_piece_purgee';
+  const pieceRel = relPiece('ab', 'purgee');
   try {
     const { a, c } = m.peuple;
     const E = m.b.S.convCreerGroupe({ createur: a.id, nom: 'Éphémère', membres: [c.id], ephemere_s: 600 }).id;
@@ -820,7 +849,7 @@ const horlogeFixe = (h) => () => h.t;
     const racinePieces = path.join(m.b.dataDir, 'pieces');
     fs.mkdirSync(path.join(racinePieces, 'ab'), { recursive: true });
     fs.writeFileSync(path.join(racinePieces, ...pieceRel.split('/')), crypto.randomBytes(321));
-    fs.writeFileSync(path.join(racinePieces, 'ab', 'f_piece_gardee'), crypto.randomBytes(222));
+    fs.writeFileSync(path.join(racinePieces, ...relPiece('ab', 'gardee').split('/')), crypto.randomBytes(222));
 
     m.h.t = Date.UTC(2026, 8, 21, 6, 0, 0);
     const T0 = m.h.t;
@@ -833,7 +862,7 @@ const horlogeFixe = (h) => () => h.t;
     vrai('la population : deux archives au coffre (A avant la purge, B après), ' + purge.n + ' messages purgés entre les deux (les deux éphémères et le message système de la conversation, éphémère comme elle)', rA.ok && rB.ok && purge.n === 3 && cles(m).length === 2);
     /* L'archive C : une pièce a été purgée depuis (son fichier est parti d'ici, le registre le dit) — mais le coffre la porte encore (deux passes avant de retirer). */
     fs.rmSync(path.join(racinePieces, ...pieceRel.split('/')));
-    { const d = new DatabaseSync(m.b.chemin); d.exec('PRAGMA busy_timeout=5000'); d.prepare("INSERT INTO purge(objet, genre, quand) VALUES('f_piece_purgee', 'piece', 5)").run(); d.close(); }
+    { const d = new DatabaseSync(m.b.chemin); d.exec('PRAGMA busy_timeout=5000'); d.prepare("INSERT INTO purge(objet, genre, quand) VALUES(?, 'piece', 5)").run(idPiece('ab', 'purgee')); d.close(); }
     m.h.t += 3600000;
     const rC = await m.sauv.lancer('banc');
     const cleC = rC.cle;
@@ -970,7 +999,7 @@ const horlogeFixe = (h) => () => h.t;
       const r1 = await outil(['restaurer', '--vers', vers]);
       const vivantC = empreinteTables(path.join(bac, 'B.db'));
       v('⛔ restaurer dans un dossier neuf : sortie 0, la base posée, saine, et les mêmes messages que la base vivante', [r1.code, fs.existsSync(path.join(vers, 'msg.db')), STOCK.ouvrir.copie.controlerFichier(path.join(vers, 'msg.db')).ok, empreinteTables(path.join(vers, 'msg.db')).message === vivantC.message], [0, true, true, true]);
-      v('⛔ les pièces reviennent octet pour octet — SAUF celle que le registre a emportée depuis l\'archive, qui est encore au coffre mais NE REVIENT PAS', [fs.existsSync(path.join(vers, 'pieces', 'ab', 'f_piece_gardee')) && fs.readFileSync(path.join(vers, 'pieces', 'ab', 'f_piece_gardee')).equals(m.coffre.objets.get('beta/pieces/ab/f_piece_gardee')), fs.existsSync(path.join(vers, 'pieces', 'ab', 'f_piece_purgee')), /1 retirée\(s\) par la purge/.test(r1.sortie)], [true, false, true]);
+      v('⛔ les pièces reviennent octet pour octet — SAUF celle que le registre a emportée depuis l\'archive, qui est encore au coffre mais NE REVIENT PAS', [fs.existsSync(path.join(vers, 'pieces', ...relPiece('ab', 'gardee').split('/'))) && fs.readFileSync(path.join(vers, 'pieces', ...relPiece('ab', 'gardee').split('/'))).equals(m.coffre.objets.get('beta/pieces/' + relPiece('ab', 'gardee'))), fs.existsSync(path.join(vers, 'pieces', ...pieceRel.split('/'))), /1 retirée\(s\) par la purge/.test(r1.sortie)], [true, false, true]);
       vrai('   aucun dossier de chantier ne reste (`.restauration-…`)', !fs.readdirSync(vers).some(f => f.startsWith('.restauration-')));
       const avantRefus = crypto.createHash('sha256').update(fs.readFileSync(path.join(vers, 'msg.db'))).digest('hex');
       const r2 = await outil(['restaurer', '--vers', vers]);
@@ -987,11 +1016,21 @@ const horlogeFixe = (h) => () => h.t;
       /* Un nom de pièce malveillant dans le coffre : refusé, jamais écrit hors du dossier. */
       m.coffre.poser('beta/pieces/ab/../../evasion', Buffer.from('pas ici'));
       m.coffre.poser('beta/pieces/ab/..\\evasion2', Buffer.from('pas ici non plus'));
+      const enCoursCoffre = 'beta/pieces/tmp/' + crypto.randomBytes(12).toString('hex'); m.coffre.poser(enCoursCoffre, Buffer.from('un dépôt en cours, resté au coffre'));
+      const malRangeCoffre = 'beta/pieces/cd/' + idPiece('ab', 'malrange'); m.coffre.poser(malRangeCoffre, Buffer.from('mauvais dossier'));
+      const listeEtrangere = await outil(['liste']);
+      vrai('⛔ `liste` ne compte PAS ces objets comme des pièces, et dit qu\'ils n\'ont pas la forme d\'une pièce (4 objets étrangers, 2 vraies pièces)', /pièces au coffre : 2 /.test(listeEtrangere.sortie) && /plus 4 objet\(s\) qui n'ont pas la forme d'une pièce/.test(listeEtrangere.sortie));
       const vers2 = path.join(bac, 'restauree2');
+      const umaskAvant = process.umask(0o022);   // un umask ordinaire : ce sont les droits que l'OUTIL pose qui font 0700 / 0600, pas ceux de la machine du banc
       const r5 = await outil(['restaurer', '--vers', vers2]);
-      vrai('⛔ un nom de pièce qui remonte (« .. ») ou porte une barre arrière est REFUSÉ et compté — rien n\'est écrit hors du dossier', r5.code === 0 && /2 REFUSÉE/.test(r5.sortie) && !fs.existsSync(path.join(bac, 'evasion')) && !fs.existsSync(path.join(vers2, 'evasion')) && !fs.existsSync(path.join(vers2, 'pieces', 'evasion')));
+      process.umask(umaskAvant);
+      vrai('⛔ un nom de pièce qui remonte (« .. »), porte une barre arrière, ou est un DÉPÔT EN COURS (`tmp/…`) ou un nom rangé dans le mauvais dossier est REFUSÉ et compté — rien n\'est écrit hors du dossier, rien d\'autre qu\'une pièce ne revient', r5.code === 0 && /4 REFUSÉE/.test(r5.sortie) && !fs.existsSync(path.join(vers2, 'pieces', 'cd')) && !fs.existsSync(path.join(bac, 'evasion')) && !fs.existsSync(path.join(vers2, 'evasion')) && !fs.existsSync(path.join(vers2, 'pieces', 'evasion')) && !fs.existsSync(path.join(vers2, 'pieces', 'tmp')));
+      v('   et les droits des pièces remises sont posés par l\'outil : dossiers en 0700, fichiers en 0600 (pas ceux de l\'umask)', (() => {
+        const modes = new Set(); const parcourir = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const c = path.join(d, e.name); modes.add((e.isDirectory() ? 'd' : 'f') + (fs.statSync(c).mode & 0o777).toString(8)); if (e.isDirectory()) parcourir(c); } };
+        parcourir(path.join(vers2, 'pieces')); return [...modes].sort();
+      })(), ['d700', 'f600']);
       /* Ces deux noms ne sont pas des pièces : le coffre ne les rend pas sous cette clé (le chemin se normalise), et ils feraient échouer l'échantillon de pièces de tout ce qui suit. */
-      m.coffre.objets.delete('beta/pieces/ab/../../evasion'); m.coffre.objets.delete('beta/pieces/ab/..\\evasion2');
+      m.coffre.objets.delete('beta/pieces/ab/../../evasion'); m.coffre.objets.delete('beta/pieces/ab/..\\evasion2'); m.coffre.objets.delete(enCoursCoffre); m.coffre.objets.delete(malRangeCoffre);
 
       /* ══ B2 — LA PLUS RÉCENTE ARCHIVE EST ABÎMÉE : ON RESTAURE UNE AUTRE (le geste que le guide § 9 annonce) ═══════════════════════
          Le 3 octobre 2026 (gardien), l'outil rouvrait TOUJOURS la plus récente pour lire son registre des purges et s'arrêtait sur

@@ -194,7 +194,10 @@ async function listerPieces(ctx) {
   if (!r.ok) return { ok: false, statut: r.statut };
   const pieces = [];
   for (const o of r.objets || []) if (typeof o.cle === 'string' && o.cle.startsWith(pre)) pieces.push({ cle: o.cle, rel: o.cle.slice(pre.length), octets: o.octets });
-  return { ok: true, pieces };
+  /* Ce que le coffre porte sous `pieces/` sans avoir la forme d'une pièce (un dépôt en cours d'avant le filtre, un objet étranger) n'est ni compté
+     comme une pièce ni restauré : il est DIT, pour qu'on sache pourquoi les nombres du coffre et ceux de l'hébergeur diffèrent. */
+  const vraies = pieces.filter(p => SAUV.pieceRelOk(p.rel));
+  return { ok: true, pieces, vraies, etrangeres: pieces.length - vraies.length };
 }
 /* Un échantillon réparti sur toute la liste : des pièces anciennes et récentes, pas les vingt premières. */
 function echantillonner(liste, n) {
@@ -215,18 +218,25 @@ async function releverPieces(ctx, pieces, dossier) {
   fs.rmSync(tmp, { force: true });
   return { relues, manquantes };
 }
-/* Remet TOUTES les pièces dans `racine`, sans jamais en écraser une de même taille ni sortir du dossier (un nom qui contiendrait « .. »
-   ou une barre arrière est refusé : le coffre est une entrée de confiance limitée). */
+/* Remet TOUTES les pièces dans `racine`, sans jamais en écraser une de même taille ni sortir du dossier : seul un nom qui a EXACTEMENT la forme
+   d'une pièce (`<2 hexa>/f_<32 hexa>`, `SAUV.pieceRelOk`) est remis — un dépôt en cours (`tmp/…`), un nom qui contiendrait « .. » ou une barre
+   arrière, tout ce qui n'est pas une pièce est refusé et compté : le coffre est une entrée de confiance limitée.
+   ⛔ Les droits sont posés ICI, comme ceux de `msg.db` : dossiers en 0700, fichiers en 0600, au propriétaire du dossier des données (l'outil
+   tourne en root, le service non). Sans cela, un `umask` ordinaire ferait des pièces de clients des fichiers lisibles de tous. */
 async function restaurerPieces(ctx, pieces, racine) {
   let remises = 0, dejaLa = 0, refusees = 0;
+  let proprio = null; try { const st = fs.statSync(path.dirname(racine)); proprio = { uid: st.uid, gid: st.gid }; } catch (e) { /* hors root, le propriétaire est déjà le bon */ }
+  const donner = (chemin, mode) => { try { fs.chmodSync(chemin, mode); } catch (e) { /* rien */ } if (proprio) { try { fs.chownSync(chemin, proprio.uid, proprio.gid); } catch (e) { /* hors root */ } } };
+  const dossiersPoses = new Set();
   for (const p of pieces) {
-    const segs = p.rel.split('/');
-    if (!segs.length || segs.some(s => !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(s))) { refusees++; continue; }
-    const dest = path.join(racine, ...segs);
+    if (!SAUV.pieceRelOk(p.rel)) { refusees++; continue; }
+    const dest = path.join(racine, ...p.rel.split('/'));
     try { if (fs.statSync(dest).size === p.octets) { dejaLa++; continue; } } catch (e) { /* absente */ }
-    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.mkdirSync(path.dirname(dest), { recursive: true, mode: 0o700 });
+    for (const d of [racine, path.dirname(dest)]) if (!dossiersPoses.has(d)) { donner(d, 0o700); dossiersPoses.add(d); }
     const r = await ctx.client.lireCleVers(p.cle, dest + '.partiel');
     if (!r.ok || r.octets !== p.octets) { fs.rmSync(dest + '.partiel', { force: true }); throw echec('une pièce n\'est pas revenue intacte du coffre (HTTP ' + (r.statut || 'absente') + ').'); }
+    donner(dest + '.partiel', 0o600);
     fs.renameSync(dest + '.partiel', dest);
     remises++;
   }
@@ -272,7 +282,7 @@ async function liste(ctx, dire) {
     dire(arch.archives.length + ' archive(s) de base — la plus récente en tête :');
     arch.archives.forEach((a, i) => dire('  ' + (i === 0 ? '→' : ' ') + ' base/' + a.nom + SAUV.SUFFIXE + '   ' + mio(a.octets) + '   ' + ageTexte(a.ts)));
   }
-  dire('pièces au coffre : ' + (pieces.ok ? pieces.pieces.length + ' (' + mio(pieces.pieces.reduce((a, p) => a + p.octets, 0)) + ')' : 'liste impossible (HTTP ' + pieces.statut + ')'));
+  dire('pièces au coffre : ' + (pieces.ok ? pieces.vraies.length + ' (' + mio(pieces.vraies.reduce((a, p) => a + p.octets, 0)) + ')' + (pieces.etrangeres ? ', plus ' + pieces.etrangeres + ' objet(s) qui n\'ont pas la forme d\'une pièce (non restaurés)' : '') : 'liste impossible (HTTP ' + pieces.statut + ')'));
   return arch.archives;
 }
 
@@ -310,16 +320,17 @@ async function essai(ctx, { date, echantillon = 20, sansPurge }, dire) {
     const pieces = await listerPieces(ctx);
     let sondage = null;
     if (!pieces.ok) throw echec('liste des pièces impossible : HTTP ' + pieces.statut);
-    if (!pieces.pieces.length) dire('  pièces : aucune au coffre (normal tant que les pièces ne sont pas en service).');
+    if (!pieces.vraies.length) dire('  pièces : aucune au coffre (normal tant que les pièces ne sont pas en service).');
     else {
-      sondage = await releverPieces(ctx, echantillonner(pieces.pieces, echantillon), dossier);
-      dire('  pièces : ' + pieces.pieces.length + ' au coffre, ' + sondage.relues + ' relue(s) sur ' + (sondage.relues + sondage.manquantes) + ' en échantillon' + (sondage.manquantes ? ', ' + sondage.manquantes + ' MANQUANTE(S) ou abîmée(s)' : '') + '.');
+      sondage = await releverPieces(ctx, echantillonner(pieces.vraies, echantillon), dossier);
+      dire('  pièces : ' + pieces.vraies.length + ' au coffre, ' + sondage.relues + ' relue(s) sur ' + (sondage.relues + sondage.manquantes) + ' en échantillon' + (sondage.manquantes ? ', ' + sondage.manquantes + ' MANQUANTE(S) ou abîmée(s)' : '') + '.');
       if (sondage.manquantes) throw echec('des pièces du coffre ne sont pas revenues intactes.');
     }
+    if (pieces.etrangeres) dire('  ⚠ ' + pieces.etrangeres + ' objet(s) sous pieces/ n\'ont pas la forme d\'une pièce : ils ne sont ni échantillonnés ni restaurés.');
 
     if (laDerniere) {
       if (ctx.dataDir) {
-        ecrireEssai(ctx.dataDir, { okTs: Date.now(), archive: 'base/' + cible.nom + SAUV.SUFFIXE, schema: r.meta.schema, lignes: v.total, cleMaitreVerifiee: !!cm.verifiee, pieces: pieces.pieces.length });
+        ecrireEssai(ctx.dataDir, { okTs: Date.now(), archive: 'base/' + cible.nom + SAUV.SUFFIXE, schema: r.meta.schema, lignes: v.total, cleMaitreVerifiee: !!cm.verifiee, pieces: pieces.vraies.length });
         dire('\n✅ CETTE SAUVEGARDE EST RESTAURABLE. Exercice enregistré : /health dira « essaiJours: 0 ».');
       } else dire('\n✅ CETTE SAUVEGARDE EST RESTAURABLE. (OPMSG_DATA n\'est pas posé : la date de l\'exercice n\'est PAS enregistrée.)');
     } else dire('\n✅ CETTE ARCHIVE EST RESTAURABLE. (Ce n\'était pas la plus récente : la date de l\'exercice publiée par /health n\'est pas modifiée.)');

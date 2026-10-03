@@ -304,21 +304,30 @@ async function listerArchives(client, prefixe) {
   return { ok: true, archives };
 }
 
+/* ⛔ CE QUI EST UNE PIÈCE, ET RIEN D'AUTRE. Le service range chaque pièce à `pieces/<2 hexa>/f_<32 hexa>` (les deux premiers hexadécimaux de
+   l'identifiant, `pieces.js` → `cheminDe`) ; ses dépôts EN COURS vivent à côté, dans `pieces/tmp/<hasard>`. Le miroir n'envoyait « tout fichier
+   qui n'est pas caché » : les dépôts en cours partaient au coffre, y restaient, et REVENAIENT à la restauration (gardien, 3 octobre 2026). Il
+   ne prend plus que ce qui a exactement la forme d'une pièce — et la restauration non plus ne remet rien d'autre : le coffre est une entrée
+   de confiance limitée. `test-950` relie cette forme à celle que `pieces.js` écrit vraiment (si l'une change, l'autre le dit). */
+const PIECE_REL = /^[0-9a-f]{2}\/f_[0-9a-f]{32}$/;
+const pieceRelOk = (rel) => typeof rel === 'string' && PIECE_REL.test(rel) && rel.slice(5, 7) === rel.slice(0, 2);
+
 /* Les pièces d'un dossier local, à plat : { rel, chemin, taille }, `rel` avec des « / ». Une erreur de lecture NE SE TAIT PAS :
-   une liste partielle ferait croire que des pièces n'existent plus — et la copie miroir les effacerait du coffre. */
-async function parcourirPieces(racine) {
+   une liste partielle ferait croire que des pièces n'existent plus — et la copie miroir les effacerait du coffre. `bilan.ignorees`
+   compte ce qui a été vu et laissé (un dépôt en cours, un fichier étranger, un lien symbolique) : une absence se compte. */
+async function parcourirPieces(racine, bilan) {
   const sortie = [];
-  async function descendre(dossier, rel, profondeur) {
-    if (profondeur > 4) return;
-    for (const e of await fs.promises.readdir(dossier, { withFileTypes: true })) {
-      if (e.name.startsWith('.') || /\.(tmp|part|partiel)$/.test(e.name)) continue;   // une pièce en cours d'écriture n'est pas une pièce
-      const r = rel ? rel + '/' + e.name : e.name;
-      if (e.isDirectory()) await descendre(path.join(dossier, e.name), r, profondeur + 1);
-      else if (e.isFile()) sortie.push({ rel: r, chemin: path.join(dossier, e.name), taille: (await fs.promises.stat(path.join(dossier, e.name))).size });
+  let ignorees = 0;
+  for (const d of await fs.promises.readdir(racine, { withFileTypes: true })) {
+    if (!d.isDirectory() || !/^[0-9a-f]{2}$/.test(d.name)) { ignorees++; continue; }
+    for (const e of await fs.promises.readdir(path.join(racine, d.name), { withFileTypes: true })) {
+      const rel = d.name + '/' + e.name;
+      if (!e.isFile() || !pieceRelOk(rel)) { ignorees++; continue; }
+      sortie.push({ rel, chemin: path.join(racine, d.name, e.name), taille: (await fs.promises.stat(path.join(racine, d.name, e.name))).size });
     }
   }
-  await descendre(racine, '', 0);
   sortie.sort((a, b) => (a.rel < b.rel ? -1 : a.rel > b.rel ? 1 : 0));
+  if (bilan && typeof bilan === 'object') bilan.ignorees = ignorees;
   return sortie;
 }
 
@@ -497,7 +506,7 @@ function creerSauvegarde(deps) {
          passe n'est pas « réussie » : `ageH` ne repart pas à zéro, `echecs` monte — la sauvegarde est INCOMPLÈTE, et ça se dit. ── */
       let motifPartiel = '';
       const p = await sauverPieces(t0);
-      if (p) extra.pieces = { envoyees: p.envoyees, dejaLa: p.dejaLa, retirees: p.retirees, restantes: p.restantes, vides: p.vides };
+      if (p) extra.pieces = { envoyees: p.envoyees, dejaLa: p.dejaLa, retirees: p.retirees, restantes: p.restantes, vides: p.vides, ignorees: p.ignorees };
       if (p && !p.ok) motifPartiel = p.motif;
 
       const liste = await client.lister(cfg.prefixe + DOSSIER_BASE);
@@ -532,7 +541,8 @@ function creerSauvegarde(deps) {
   async function sauverPieces(t0) {
     const racine = path.join(dataDir, 'pieces');
     let locales;
-    try { locales = await parcourirPieces(racine); }
+    const vu = { ignorees: 0 };
+    try { locales = await parcourirPieces(racine, vu); }
     catch (e) { if (e && e.code === 'ENOENT') return null; return { ok: false, motif: 'pieces-lecture' }; }
     const prefixePieces = cfg.prefixe + DOSSIER_PIECES;
     const dist = await client.lister(prefixePieces);
@@ -540,7 +550,7 @@ function creerSauvegarde(deps) {
     const auCoffre = new Map();
     for (const o of dist.objets || []) if (typeof o.cle === 'string' && o.cle.startsWith(prefixePieces)) auCoffre.set(o.cle.slice(prefixePieces.length), o.octets);
 
-    const bilan = { ok: true, motif: '', envoyees: 0, dejaLa: 0, retirees: 0, restantes: 0, vides: 0 };
+    const bilan = { ok: true, motif: '', envoyees: 0, dejaLa: 0, retirees: 0, restantes: 0, vides: 0, ignorees: vu.ignorees };
     const aEnvoyer = [];
     for (const l of locales) {
       if (l.taille === 0) { bilan.vides++; continue; }
@@ -650,6 +660,6 @@ function creerSauvegarde(deps) {
 
 module.exports = {
   creerSauvegarde, lireConfigSauvegarde, cleDepuis, aElaguer, fabriquer, ouvrirArchive, lireEntete, enteteDe,
-  nomDe, isoDeNom, dateDeNom, cleBase, archiveDeCle, listerArchives, parcourirPieces, empreinteFichier, controlerEnProcessus,
+  nomDe, isoDeNom, dateDeNom, cleBase, archiveDeCle, listerArchives, parcourirPieces, pieceRelOk, PIECE_REL, empreinteFichier, controlerEnProcessus,
   MAGIQUE, SUFFIXE, DOSSIER_BASE, DOSSIER_PIECES, NOM_ETAT, NOM_ESSAI, NOM_TMP, TAILLE_IV, TAILLE_TAG, GARDER_AU_MOINS, MAX_OCTETS_GCM,
 };

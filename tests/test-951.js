@@ -70,10 +70,15 @@ const sante = async (svc) => { const r = await T.client(svc.base).get('/health')
     }
     base.S.fermer();
     /* Une pièce, posée là où le service range les siennes : le premier passage doit l'envoyer. */
-    const idPiece = crypto.randomBytes(32).toString('hex');
-    fs.mkdirSync(path.join(base.dataDir, 'pieces', idPiece.slice(0, 2)), { recursive: true });
+    const idPiece = 'f_' + crypto.randomBytes(16).toString('hex');   // la FORME d'une pièce du service : `f_` + 32 hexa, rangée sous les deux premiers
+    const dirPiece = idPiece.slice(2, 4);
+    fs.mkdirSync(path.join(base.dataDir, 'pieces', dirPiece), { recursive: true });
+    /* Et un dépôt EN COURS, tel que le service en laisse dans `pieces/tmp/` : il n'a rien à faire au coffre. */
+    fs.mkdirSync(path.join(base.dataDir, 'pieces', 'tmp'), { recursive: true });
+    const enCoursNom = crypto.randomBytes(12).toString('hex');
+    fs.writeFileSync(path.join(base.dataDir, 'pieces', 'tmp', enCoursNom), crypto.randomBytes(900));
     const contenuPiece = crypto.randomBytes(1500);
-    fs.writeFileSync(path.join(base.dataDir, 'pieces', idPiece.slice(0, 2), idPiece), contenuPiece);
+    fs.writeFileSync(path.join(base.dataDir, 'pieces', dirPiece, idPiece), contenuPiece);
     vrai('population : la base porte le canari EN CLAIR (sinon « absent de l\'archive » ne prouverait rien), ' + avantService.personne + ' personnes, ' + avantService.message + ' messages',
       fs.readFileSync(base.chemin).includes(Buffer.from(CANARI)) && avantService.personne >= 3 && avantService.message >= 30);
     void rempli;
@@ -95,7 +100,8 @@ const sante = async (svc) => { const r = await T.client(svc.base).get('/health')
     vrai('⛔ l\'archive de la base est AU COFFRE, sous le préfixe de l\'instance (« beta/base/…msgbak ») : ' + archives.length + ' archive(s)',
       archives.length >= 1 && archives.every(c => /^beta\/base\/\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.msgbak$/.test(c)));
     v('⛔ la pièce est au coffre aussi, sous « beta/pieces/ », de la bonne taille, et son contenu est identique',
-      [coffre.cles('beta/pieces/'), (coffre.objets.get('beta/pieces/' + idPiece.slice(0, 2) + '/' + idPiece) || Buffer.alloc(0)).equals(contenuPiece)], [['beta/pieces/' + idPiece.slice(0, 2) + '/' + idPiece], true]);
+      [coffre.cles('beta/pieces/'), (coffre.objets.get('beta/pieces/' + dirPiece + '/' + idPiece) || Buffer.alloc(0)).equals(contenuPiece)], [['beta/pieces/' + dirPiece + '/' + idPiece], true]);
+    v('⛔ le dépôt EN COURS du service (`pieces/tmp/…`) est sur son disque (population) et n\'est PAS parti au coffre', [fs.existsSync(path.join(base.dataDir, 'pieces', 'tmp', enCoursNom)), coffre.cles('beta/pieces/').filter(c => c.includes(enCoursNom))], [true, []]);
     v('⛔ chaque requête reçue par le coffre était SIGNÉE JUSTE, et chaque corps portait l\'empreinte qu\'il annonçait (le coffre recalcule les deux)',
       [coffre.vus.length >= 4, coffre.vus.every(x => x.sigOk), coffre.etat.signaturesFausses, coffre.etat.empreintesFausses], [true, true, 0, 0]);
     const archive = coffre.objets.get(archives[archives.length - 1]) || Buffer.alloc(0);
@@ -158,13 +164,13 @@ const sante = async (svc) => { const r = await T.client(svc.base).get('/health')
       const dest = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-restauration-'));
       const r = await processus([RESTAURER, 'restaurer', '--vers', dest], { env: envOutil });
       v('`restaurer --vers <dossier neuf>` : sortie 0, la base et la pièce sont là, la base est en 0600',
-        [r.code, fs.existsSync(path.join(dest, 'msg.db')), fs.existsSync(path.join(dest, 'pieces', idPiece.slice(0, 2), idPiece)), (fs.statSync(path.join(dest, 'msg.db')).mode & 0o777).toString(8)], [0, true, true, '600']);
+        [r.code, fs.existsSync(path.join(dest, 'msg.db')), fs.existsSync(path.join(dest, 'pieces', dirPiece, idPiece)), (fs.statSync(path.join(dest, 'msg.db')).mode & 0o777).toString(8)], [0, true, true, '600']);
       const lecteur = T.lireBase(path.join(dest, 'msg.db'));
       const restaure = {}; for (const t of Object.keys(avantService)) restaure[t] = compte(lecteur, t);
       const canari = lecteur.prepare('SELECT COUNT(*) AS n FROM personne WHERE prenom = ?').get(CANARI).n;
       lecteur.close();
       v('⛔ la base restaurée a les MÊMES lignes que celle du service (personnes, conversations, messages, membres) et la personne-canari y est', [restaure, canari], [avantService, 1]);
-      vrai('   et la pièce restaurée est identique à l\'originale', fs.readFileSync(path.join(dest, 'pieces', idPiece.slice(0, 2), idPiece)).equals(contenuPiece));
+      vrai('   et la pièce restaurée est identique à l\'originale', fs.readFileSync(path.join(dest, 'pieces', dirPiece, idPiece)).equals(contenuPiece));
       v('⛔ rien de secret dans la sortie de la restauration', fuites(r.sortie, SECRETS), []);
       const empreinte = crypto.createHash('sha256').update(fs.readFileSync(path.join(dest, 'msg.db'))).digest('hex');
       const encore = await processus([RESTAURER, 'restaurer', '--vers', dest], { env: envOutil });

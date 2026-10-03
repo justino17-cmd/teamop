@@ -66,6 +66,10 @@ const MUTATIONS = [
     [["const candidates = Object.keys(absentes).filter(rel => vusAvant[rel] !== undefined);", 'const candidates = Object.keys(absentes);']], ['950']],
   ['S16', 'un dossier de pièces VIDE vide le coffre (un montage raté ressemble à ça)', F.sauv, [["const dossierVide = !locales.some(l => l.taille > 0) && auCoffre.size > 0;", 'const dossierVide = false;']], ['950']],
   ['S17', 'la garde de « suppression massive » des pièces est retirée', F.sauv, [["} else if (candidates.length > Math.max(200, Math.floor(auCoffre.size / 2))) {", '} else if (false) {']], ['950']],
+  ['S28', 'le miroir envoie TOUT fichier non caché, dépôts EN COURS (`tmp/…`) compris — ils restaient au coffre puis REVENAIENT à la restauration (A5)', F.sauv, [
+    ["    if (!d.isDirectory() || !/^[0-9a-f]{2}$/.test(d.name)) { ignorees++; continue; }", "    if (!d.isDirectory()) { ignorees++; continue; }"],
+    ["const pieceRelOk = (rel) => typeof rel === 'string' && PIECE_REL.test(rel) && rel.slice(5, 7) === rel.slice(0, 2);", "const pieceRelOk = (rel) => typeof rel === 'string';"]], ['950', '951']],
+  ['S29', 'un nom de pièce rangé dans le MAUVAIS dossier est pris pour une pièce (le service ne la trouverait jamais)', F.sauv, [["PIECE_REL.test(rel) && rel.slice(5, 7) === rel.slice(0, 2);", "PIECE_REL.test(rel);"]], ['950']],
 
   /* ── /health et journaux ── */
   ['S11', '/health ment : l\'âge de la dernière copie vaut toujours 0', F.sauv, [["ageH: s ? Math.max(0, Math.round((t - s.ts) / 360000) / 10) : null,", 'ageH: 0,']], ['950', '951']],
@@ -107,9 +111,11 @@ const MUTATIONS = [
     [["    const p = ouvrir.copie.rejouerPurge(base, reg.registre);\n    dire('  purge rejouée : ' + p.messagesRetires", "    const p = { lues: 0, messagesRetires: 0, messagesBlanchis: 0, pieces: [], ignorees: 0, ajoutees: 0 };\n    dire('  purge rejouée : ' + p.messagesRetires"]], ['950']],
   ['R06', 'l\'essai ne vérifie plus que la clé maître OUVRE la base restaurée', F.rest, [["const cm = verifierCleMaitre(base, ctx.kekChemin);", 'const cm = { verifiee: true, ok: true };']], ['950', '951']],
   ['R07', 'un essai réussi n\'écrit plus sa date (/health ne passera jamais à essaiJours: 0)', F.rest,
-    [["ecrireEssai(ctx.dataDir, { okTs: Date.now(), archive: 'base/' + cible.nom + SAUV.SUFFIXE, schema: r.meta.schema, lignes: v.total, cleMaitreVerifiee: !!cm.verifiee, pieces: pieces.pieces.length });", '']], ['950', '951']],
-  ['R08', 'un nom de pièce suspect (sortie du dossier) est restauré', F.rest,
-    [["if (!segs.length || segs.some(s => !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(s))) { refusees++; continue; }", '']], ['950']],
+    [["ecrireEssai(ctx.dataDir, { okTs: Date.now(), archive: 'base/' + cible.nom + SAUV.SUFFIXE, schema: r.meta.schema, lignes: v.total, cleMaitreVerifiee: !!cm.verifiee, pieces: pieces.vraies.length });", '']], ['950', '951']],
+  ['R08', 'un nom de pièce suspect (sortie du dossier, dépôt en cours) est restauré', F.rest,
+    [["if (!SAUV.pieceRelOk(p.rel)) { refusees++; continue; }", '']], ['950']],
+  ['R14', 'la restauration ne pose plus les droits des pièces (0700 / 0600) : l\'umask de l\'outil en décide', F.rest,
+    [["    donner(dest + '.partiel', 0o600);\n", ''], ["    fs.mkdirSync(path.dirname(dest), { recursive: true, mode: 0o700 });\n    for (const d of [racine, path.dirname(dest)]) if (!dossiersPoses.has(d)) { donner(d, 0o700); dossiersPoses.add(d); }\n", "    fs.mkdirSync(path.dirname(dest), { recursive: true });\n"]], ['950']],
   ['R09', 'un essai RATÉ efface la date du dernier essai réussi', F.rest,
     [["ecrireEssai(ctx.dataDir, { echecTs: Date.now(), echecMotif: String(e.message).slice(0, 120) });", "ecrireEssai(ctx.dataDir, { okTs: null, echecTs: Date.now(), echecMotif: String(e.message).slice(0, 120) });"]], ['951', '950']],
   ['R10', 'la restauration ne remonte plus quand une archive plus récente est abîmée (B2 : le geste du guide § 9 échoue)', F.rest,
