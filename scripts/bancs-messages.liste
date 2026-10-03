@@ -20,7 +20,7 @@
 # 2 octobre 2026 (compte par téléphone, puis sa relecture adverse : argent, comptes, saisie des clés) : 24 suites (test-912 à 919), 2180 vérifications.
 # Les deux réunis (fusion de la branche de travail dans l'arbre du branchement ; le générateur passe de test-912 à test-941) : 26 suites, 2 403 vérifications mesurées — plancher 2400.
 # 2 octobre 2026, les pièces (test-942 le module, 943 le service en HTTP, 944 l'appareil et le service) : 29 suites, 2 894 vérifications mesurées par `bash scripts/bancs-ci.sh $(liste)` (324 s) — plancher 2890.
-# 3 octobre 2026, les notifications push, l'export et la suppression de compte (test-955 à 958, et le banc de la migration 3 rendu indépendant de la dernière migration) : 33 suites, 3330 vérifications mesurées par `bash scripts/bancs-ci.sh $(liste)` — plancher 3330.
+# 3 octobre 2026, les notifications push, l'export et la suppression de compte (test-955 à 958, et le banc de la migration 3 rendu indépendant de la dernière migration) : 33 suites, 3334 vérifications mesurées par `bash scripts/bancs-ci.sh $(liste)` — plancher 3330.
 #plancher 3330
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
