@@ -8,7 +8,8 @@
  *     GET  /v1/subscriptions/:id          un abonnement (statut, lignes, quantité, métadonnées, échéance) ; 404 s'il n'existe pas
  *     POST /v1/billing_portal/sessions    le portail de facturation (`customer` exigé)
  *     GET  /v1/prices/:id                 un tarif (avec son produit si `expand[]=product`) — lu par `configurer-stripe.js`
- *     GET  /v1/subscriptions?status=all   la LISTE (ce que lit OP GESTION : `status=all`, `limit=100`, `starting_after`) — pour le banc de la couture, test-965
+ *     GET  /v1/subscriptions?status=all   la LISTE (ce que lit OP GESTION : `status=all`, `limit=100`, `starting_after`, du plus récent au plus ancien, le client et le produit des lignes
+ *                                         développés seulement s'ils sont demandés par `expand[]`) — pour le banc de la couture, test-965 ; `listes` garde ce que chaque page a montré
  *
  * ⛔ IL NE JUGE RIEN À LA PLACE DU SERVICE, mais il RECONSTRUIT ce que Stripe ferait : quand un banc « paie » une session (`payer`), l'abonnement qui naît porte exactement les
  * métadonnées (`subscription_data[metadata][…]`), le tarif et la quantité (`line_items[0][…]`) et l'adresse (`customer_email`) que le service a ENVOYÉS — pas ce que le banc voudrait y
@@ -36,9 +37,18 @@ async function fauxStripe(opts = {}) {
     pannesRestantes: 0,         // les N prochains appels répondent 500, puis tout revient
     tarifs: new Map(),          // id → objet « price » (lu par `configurer-stripe.js`)
     sansDroits: new Set(),      // 'abonnements' | 'tarifs' | 'produits' : le droit manque à la clé → 403
+    listes: [],                 // chaque PAGE de `GET /v1/subscriptions` servie : { auth, requete, statuts: { identifiant: statut } }
     n: 0,
   };
   const json = (res, code, corps) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(corps)); };
+  /* le produit d'un tarif, tel que `expand[]=data.items.data.price.product` le rend : l'objet du tarif posé (`poserTarif`), sinon celui que la ligne porte, sinon un produit
+     SANS NOM — qui ne parle donc ni d'OP GESTION ni d'OP MESSAGES : une ligne dont le tarif est inconnu ne se reconnaît alors que par son identifiant */
+  const produitDe = (price) => {
+    const t = E.tarifs.get(price.id);
+    if (t && t.product && typeof t.product === 'object') return t.product;
+    if (price.product && typeof price.product === 'object') return price.product;
+    return { id: String(price.product || 'prod_banc'), object: 'product', name: 'Produit du banc' };
+  };
   const srv = http.createServer((req, res) => {
     const morceaux = []; req.on('data', d => morceaux.push(d));
     req.on('end', () => {
@@ -85,12 +95,24 @@ async function fauxStripe(opts = {}) {
         }
         if (req.method === 'GET' && p === '/v1/subscriptions') {
           if (E.sansDroits.has('abonnements')) return json(res, 403, { error: { message: 'The provided key does not have the required permissions for this endpoint (rak_subscription_read)' } });
-          /* la liste telle qu'OP GESTION la lit : `status=all`, `limit`, `starting_after` — par pages de 100 au plus, `has_more` tant qu'il en reste */
-          const tous = Array.from(E.abonnements.values());
+          /* la liste telle qu'OP GESTION la lit : `status=all`, `limit`, `starting_after` — par pages de 100 au plus, `has_more` tant qu'il en reste. Comme Stripe : du plus RÉCENT au plus ancien (à
+             `created` égal, le dernier rangé d'abord) ; le client et le produit des lignes ne sont développés que s'ils sont DEMANDÉS (`expand[]=data.customer`,
+             `expand[]=data.items.data.price.product`) — sinon un identifiant, comme chez Stripe. */
+          const etendre = u.searchParams.getAll('expand[]');
+          const avecClient = etendre.includes('data.customer'), avecProduit = etendre.includes('data.items.data.price.product');
+          const tous = Array.from(E.abonnements.values()).map((sb, i) => [sb, i]).sort((a, b) => ((b[0].created || 0) - (a[0].created || 0)) || (b[1] - a[1])).map(x => x[0]);
           const lim = Math.min(100, Math.max(1, parseInt(u.searchParams.get('limit') || '10', 10) || 10)), apres = u.searchParams.get('starting_after');
           const debut = apres ? Math.max(0, tous.findIndex(x => x.id === apres) + 1) : 0;
           const page = tous.slice(debut, debut + lim);
-          return json(res, 200, { object: 'list', data: page.map(sb => Object.assign({}, sb, { customer: E.clients.get(sb.customer) || sb.customer })), has_more: debut + lim < tous.length });
+          /* ce que CETTE page de la liste a montré au lecteur (identifiant → statut) : un banc prouve ainsi que la décision qu'il juge a été prise sur une liste qui CONTENAIT l'abonnement */
+          E.listes.push({ auth: req.headers.authorization || '', requete: u.search, statuts: Object.fromEntries(page.map(sb => [sb.id, sb.status])) });
+          const rendre = (sb) => {
+            const c = Object.assign({}, sb);
+            if (avecClient) c.customer = E.clients.get(sb.customer) || sb.customer;
+            if (avecProduit) c.items = Object.assign({}, sb.items, { data: ((sb.items && sb.items.data) || []).map(it => Object.assign({}, it, { price: Object.assign({}, it.price, { product: produitDe(it.price || {}) }) })) });
+            return c;
+          };
+          return json(res, 200, { object: 'list', data: page.map(rendre), has_more: debut + lim < tous.length });
         }
         if (req.method === 'POST' && p === '/v1/billing_portal/sessions') {
           const get = (k) => (paires.find(x => x[0] === k) || [])[1];
@@ -117,9 +139,12 @@ async function fauxStripe(opts = {}) {
     const meta = {}; for (const [k, v] of s.paires) { const m = /^subscription_data\[metadata\]\[(.+)\]$/.exec(k); if (m) meta[m[1]] = v; }
     const q = quantite === null ? parseInt(pairesDe(s, 'line_items[0][quantity]'), 10) : quantite;
     E.clients.set(cid, { id: cid, object: 'customer', email: s.customer_email });
+    /* le tarif de la ligne est CELUI QUE LE SERVICE A DEMANDÉ ; son produit, celui du tarif posé (`poserTarif`) quand il y en a un, sinon un produit du banc (un identifiant, comme chez Stripe) */
+    const prixId = pairesDe(s, 'line_items[0][price]'), tarif = E.tarifs.get(prixId);
+    const produitId = tarif && tarif.product ? (typeof tarif.product === 'object' ? tarif.product.id : tarif.product) : 'prod_banc';
     const sb = { id: sid, object: 'subscription', status: statut, created: Math.floor(Date.now() / 1000), metadata: meta, customer: cid, cancel_at_period_end: false,
       current_period_end: Math.floor(Date.now() / 1000) + jours * 86400,
-      items: { object: 'list', data: [{ id: 'si_' + alea(4), quantity: q, price: { id: pairesDe(s, 'line_items[0][price]'), object: 'price', product: 'prod_banc' } }] } };
+      items: { object: 'list', data: [{ id: 'si_' + alea(4), quantity: q, price: { id: prixId, object: 'price', product: produitId } }] } };
     E.abonnements.set(sid, sb);
     s.status = 'complete'; s.subscription = sid; s.customer = cid;
     return sb;
