@@ -122,7 +122,7 @@ m('R17', 'un canal public prend la liste de membres qu\'on lui envoie (au lieu d
 m('R18', 'ajouter à un canal : le canal d\'un AUTRE espace est atteint (on ne vérifie plus qu\'il est de CET espace)', F.stock, 'if (!k || k.espace !== espace) return null;', 'if (!k) return null;', ['961']);
 m('R19', 'l\'administrateur de l\'espace gère un canal privé dont il n\'est pas membre', F.stock, "return m && m.role === 'admin' ? k : null;", 'return k;', ['960', '961']);
 m('R20', 'on ajoute des membres à un canal PUBLIC (ses membres sont ceux de l\'espace)', F.stock, "      if (!k.prive) throw erreur('canal_public');\n      const roles = new Map(", '      const roles = new Map(', ['960', '961']);
-m('R21', 'on retire un membre d\'un canal PUBLIC', F.stock, "      if (!k.prive) throw erreur('canal_public');\n      const r = membreRetirer(", '      const r = membreRetirer(', ['960', '961']);
+m('R21', 'on retire un membre d\'un canal PUBLIC', F.stock, /      if \(!k\.prive\) throw erreur\('canal_public'\);\n(      \/\* ⛔ LA HIÉRARCHIE[\s\S]*?\n      const r = membreRetirer\()/, '$1', ['960', '961']);
 m('R22', 'retirer quelqu\'un d\'un canal privé ne s\'écrit pas dans `purge` : une archive d\'avant le ramènerait', F.stock,
   "Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(conv + '|' + uid + '|' + t, 'canal_membre', t);   // une archive", "// une archive", ['960']);
 m('R23', 'quitter un canal privé ne s\'écrit pas dans `purge`', F.stock,
@@ -307,7 +307,7 @@ m('P01', 'le lien d\'invitation qu\'on vient de créer est effacé par le redess
   "<div id=\"esp-lien\">' + htmlLienInvitation(lien) + '</div>'", "<div id=\"esp-lien\"></div>'", ['sonde'], SONDE);
 m('P02', 'un lien ouvert PENDANT QUE la feuille « Entreprise » est déjà ouverte est posé après le retour (le rendu de la feuille rouverte a déjà commencé : le lien est perdu)', F.page,
   "    etat.codeInvitation = c;\n    window.addEventListener('popstate', () => {\n      if (etat.codeInvitation !== c) return;\n", "    window.addEventListener('popstate', () => {\n      etat.codeInvitation = c;\n", ['sonde'], SONDE);
-m('P03', 'retirer un membre se fait en UNE touche', F.page, "if (act === 'esp-retirer') { if (!armer(b, 'Toucher encore pour retirer')) return; await", "if (act === 'esp-retirer') { await", ['sonde'], SONDE);
+m('P03', 'retirer un membre se fait en UNE touche', F.page, "if (act === 'esp-retirer') { if (!armer(b, 'Toucher encore pour retirer')) return; const r = await", "if (act === 'esp-retirer') { const r = await", ['sonde'], SONDE);
 m('P04', 'passer la propriété se fait en UNE touche', F.page, "if (act === 'esp-transferer') { if (!armer(b, 'Toucher encore pour passer la propriété')) return; await", "if (act === 'esp-transferer') { await", ['sonde'], SONDE);
 m('P05', 'quitter l\'espace se fait en UNE touche', F.page, "if (act === 'esp-quitter') { if (!armer(b, 'Toucher encore pour quitter l\\'espace')) return; await", "if (act === 'esp-quitter') { await", ['sonde'], SONDE);
 m('P06', 'le total du paiement ne suit plus la frappe', F.page, "aboEtat.places = parseInt(e.target.value, 10) || 0; majTotalAbo(); }", "aboEtat.places = parseInt(e.target.value, 10) || 0; }", ['sonde'], SONDE);
@@ -325,6 +325,18 @@ m('P12', 'l\'aperçu d\'un lien ACCEPTE l\'invitation (voir qui invite fait entr
   'const a = await source.invitationLire(m[1]);\n', 'const a = await source.invitationLire(m[1]); await source.invitationAccepter(m[1]);\n', ['sonde'], SONDE);
 m('P13', 'le champ « Filtrer la liste » cherche chez le service (un annuaire public par la fenêtre)', F.page, 'function appliquerFiltreEspace() {\n',
   "function appliquerFiltreEspace() {\n    try { const q0 = (($('esp-filtre') || {}).value || '').trim(); if (q0) fetch('/api/recherche?q=' + encodeURIComponent(q0)).catch(() => {}); } catch (e) { /* rien */ }\n", ['sonde'], SONDE);
+
+/* ══ 10. LES CORRECTIONS DE LA RELECTURE DU GARDIEN (3 octobre 2026) — chacune a son banc, et chaque défaut remis doit le faire tomber ═══════════════════════ */
+m('H01', 'retirer quelqu\'un ne révoque plus les liens de l\'espace (le retiré ré-accepte l\'ancien lien et retrouve l\'espace)', F.stock, '      r.liens = revoquerLiens ? invitationsRevoquer(espace) : 0;', '      r.liens = 0;', ['960', '961']);
+m('H02', 'la route « retirer » ne demande plus la révocation des liens (le stockage sait la faire, personne ne la lui demande)', F.resp, 'stockage.espaceMembreRetirer({ espace: id, uid: u, revoquerLiens: true })', 'stockage.espaceMembreRetirer({ espace: id, uid: u })', ['961']);
+m('H03', 'QUITTER révoque aussi les liens de l\'espace (un départ volontaire chasse tout le monde de la porte)', F.resp, 'const r = stockage.espaceMembreRetirer({ espace: id, uid });', 'const r = stockage.espaceMembreRetirer({ espace: id, uid, revoquerLiens: true });', ['961']);
+m('H04', 'tout départ du stockage révoque les liens par défaut (le paramètre `revoquerLiens` vaut vrai)', F.stock, 'function espaceMembreRetirer({ espace, uid, revoquerLiens = false })', 'function espaceMembreRetirer({ espace, uid, revoquerLiens = true })', ['960', '961']);
+m('H05', 'la réponse du retrait ne dit plus combien de liens ont été révoqués (la page ne peut plus prévenir l\'administrateur)', F.resp, 'res.json({ ok: true, liens_revoques: r.liens });', 'res.json({ ok: true });', ['961']);
+m('H06', 'le propriétaire peut être retiré d\'un canal privé (même par lui-même : il y a `canalQuitter` pour cela)', F.stock, "      if (e && e.proprio === uid) throw erreur('interdit');\n", '', ['960']);
+m('H07', 'un administrateur qui n\'est pas propriétaire retire un AUTRE administrateur d\'un canal privé (la hiérarchie de l\'espace ne vaut plus dans ses canaux)', F.stock,
+  "      if (cible && cible.role === 'admin' && (!e || e.proprio !== par)) throw erreur('interdit');\n", '', ['960', '961', '905']);
+m('H08', 'le propriétaire lui-même ne retire plus un administrateur d\'un canal privé (la règle protège les administrateurs au point de fermer la route)', F.stock,
+  "if (cible && cible.role === 'admin' && (!e || e.proprio !== par)) throw erreur('interdit');", "if (cible && cible.role === 'admin') throw erreur('interdit');", ['960', '961', '905']);
 
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const DOSSIERS_COPIE = ['server-msg', 'server', 'design/opmessages', '.github', 'apercu/opmessages', 'icons', 'scripts'];   // `.github` ENTIER : test-934 lit les workflows autant que les scripts de surveillance

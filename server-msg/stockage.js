@@ -1789,12 +1789,19 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(espace + '|' + uid + '|' + t, 'espace_membre', t);
     return { convs, pieces };
   }
-  function espaceMembreRetirer({ espace, uid }) {
+  /* `revoquerLiens` : l'administrateur RETIRE quelqu'un (par opposition à quelqu'un qui part de lui-même).
+     ⛔ LE RETIRÉ CONNAÎT LES CODES D'INVITATION DE L'ESPACE (relecture du gardien, 3 octobre 2026 : retiré, il ré-acceptait l'ancien lien — « deja: false » — et retrouvait l'espace ET ses
+     canaux publics). Comme pour un groupe (`membreRetirer` → `liensRevoquerGroupe`), on les révoque TOUS dans la même transaction, chacun noté dans le registre (`invitationsRevoquer` :
+     une archive d'avant ne rendrait pas la porte). Le choix plus fin — refuser le seul lien au seul retiré — protégerait la personne mais pas la porte : un ancien collègue qui connaît
+     un code peut le passer à qui il veut, et il y a un coût à lever (un administrateur recrée un lien). Quitter de soi-même ne révoque rien : personne n'est chassé. */
+  function espaceMembreRetirer({ espace, uid, revoquerLiens = false }) {
     return tx(() => {
       const e = espaceBrut(espace); if (!e) throw erreur('introuvable');
       if (!Q('SELECT 1 AS x FROM espace_membre WHERE espace = ? AND uid = ?').get(espace, uid)) throw erreur('introuvable');
       if (e.proprio === uid) throw erreur('proprio');
-      return retirerDeEspace(espace, uid);
+      const r = retirerDeEspace(espace, uid);
+      r.liens = revoquerLiens ? invitationsRevoquer(espace) : 0;
+      return r;
     });
   }
   function rolerCanaux(espace, uid, role) {
@@ -1956,6 +1963,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return tx(() => {
       const k = canalDe(conv); if (!k) throw erreur('introuvable');
       if (!k.prive) throw erreur('canal_public');
+      /* ⛔ LA HIÉRARCHIE DE L'ESPACE VAUT DANS SES CANAUX (relecture du gardien, 3 octobre 2026 : un simple administrateur retirait le propriétaire — ou un autre administrateur — d'un
+         canal privé, et celui-ci n'y rentrait plus : on n'ouvre un privé qu'en en étant membre). Le rôle d'un canal est celui de l'espace, donc : seul le PROPRIÉTAIRE retire un administrateur,
+         et PERSONNE ne retire le propriétaire (qui, lui, quitte un privé par « quitter »). La règle est ici, dans la fonction qui écrit, et pas seulement dans la route : un second chemin
+         jusqu'à elle ne la contournerait pas. */
+      const e = espaceBrut(k.espace), cible = Q('SELECT role FROM espace_membre WHERE espace = ? AND uid = ?').get(k.espace, uid);
+      if (e && e.proprio === uid) throw erreur('interdit');
+      if (cible && cible.role === 'admin' && (!e || e.proprio !== par)) throw erreur('interdit');
       const r = membreRetirer({ conv, par, uid });
       const t = horloge();
       Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(conv + '|' + uid + '|' + t, 'canal_membre', t);   // une archive d'avant ramènerait le retiré dans un canal privé

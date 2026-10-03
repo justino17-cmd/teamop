@@ -1218,7 +1218,8 @@
       return { espace: { id: r.espace.id, nom: r.espace.nom }, contacts: r.contacts.map(p => Object.assign(vuePersonne(p), { role: p.role === 'admin' ? 'admin' : 'membre', proprio: p.proprio === true, moi: !!p.moi, contact: !!p.contact, statut: p.statut || '', enLigne: enLigne.has(p.id) })) };
     }
     async function membreRole(id, uid, admin) { await A.roleMembreEspace(id, uid, !!admin); espacesChanges(id); }
-    async function membreRetirer(id, uid) { await A.retirerMembreEspace(id, uid); espacesChanges(id); }
+    /* retirer quelqu'un révoque les liens d'invitation de l'espace (il en connaissait les codes) : la page le dit, l'administrateur en recrée un */
+    async function membreRetirer(id, uid) { const r = await A.retirerMembreEspace(id, uid); espacesChanges(id); return { liensRevoques: r && Number.isInteger(r.liens_revoques) ? r.liens_revoques : 0 }; }
     async function invitationCreer(id, o2) {
       const r = await A.creerInvitation(id, o2 || {});
       espacesChanges(id);

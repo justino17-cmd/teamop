@@ -231,6 +231,40 @@ async function monter(config, instance) {
       v('⛔ résilié, le propriétaire dissout : 200 ; plus rien pour personne (404), ni canal, ni conversation, ni message, ni invitation vivante', [sd.code, sd.j.ok, (await b.get('/api/espaces/' + E3)).code, (await c.get('/api/conversations/' + canalE3)).code, (await c.get('/api/conversations')).j.conversations.filter(x => x.espace === E3).length, S.espaceBrut(E3), (await f.post('/api/invitations/lire', { code: code3 })).j.error], [200, true, 404, 404, 0, null, 'lien_invalide']);
       v('… et c\'est NOTÉ (l\'espace et son canal), pour qu\'une archive d\'avant ne les ramène pas', [S.purgeLignes().some(x => x.genre === 'espace' && x.objet === E3), S.purgeLignes().some(x => x.genre === 'conversation' && x.objet === canalE3)], [true, true]);
     }
+    /* ═══ 4 bis. UN RETIRÉ NE REVIENT PAS PAR L'ANCIEN LIEN ; LA HIÉRARCHIE DES ADMINISTRATEURS VAUT DANS LES CANAUX PRIVÉS ═══════════════════════════════════ */
+    console.log('\nRetirer quelqu\'un révoque les liens de l\'espace (il en connaît les codes) ; la hiérarchie des administrateurs vaut aussi dans les canaux privés');
+    {
+      const E4 = S.espaceCreer({ nom: 'DEPARTSZXQ', proprio: ana.id }).id; payer(E4, { places: 8 });
+      const xav = pers('Xavier'), xa = cl(xav), yve = pers('Yves'), ya = cl(yve), gil = pers('Gil'), gi = cl(gil);
+      entrer(E4, ana.id, ben.id); entrer(E4, ana.id, cleo.id); entrer(E4, ana.id, dan.id);
+      S.espaceRoleMembre({ espace: E4, uid: ben.id, admin: true }); S.espaceRoleMembre({ espace: E4, uid: cleo.id, admin: true });
+      const pub4 = S.canalCreer({ espace: E4, par: ana.id, nom: 'general4', prive: false }).id;
+      S.invitationsRevoquer(E4);                                                    // (la fixture a laissé les liens par lesquels Ben, Cleo et Dan sont entrés : page blanche)
+      const lk = (await a.post('/api/espaces/' + E4 + '/invitations', { max: 5, jours: 7 })).j;
+      const jx = await xa.post('/api/invitations/accepter', { code: lk.code });
+      v('population : Xavier entre par le lien (200) et lit le canal public ; il reste UN lien vivant', [jx.code, (await xa.get('/api/conversations/' + pub4)).code, S.invitationsVivantes(E4)], [200, 200, 1]);
+      const rm = await a.post('/api/espaces/' + E4 + '/membres/retirer', { uid: xav.id });
+      v('⛔ Ana RETIRE Xavier : 200, et la réponse dit combien de liens ont été révoqués (le retiré en connaissait le code)', [rm.code, rm.j.ok, rm.j.liens_revoques], [200, true, 1]);
+      const back = await xa.post('/api/invitations/accepter', { code: lk.code });
+      v('⛔ Xavier ré-accepte l\'ANCIEN lien : 410 `lien_invalide` — il ne revient pas, ne voit ni l\'espace ni son canal public (404, la réponse d\'un espace inexistant)', [back.code, back.j.error, (await xa.get('/api/espaces/' + E4)).code, (await xa.get('/api/conversations/' + pub4)).code, S.espacePourMembre(E4, xav.id), S.espacesDe(xav.id).length], [410, 'lien_invalide', 404, 404, null, 0]);
+      const autre = await ya.post('/api/invitations/accepter', { code: lk.code });
+      v('… et personne d\'autre n\'entre par ce code : il est révoqué pour TOUS (un administrateur en recrée un)', [autre.code, autre.j.error, S.invitationsVivantes(E4), S.espacePourMembre(E4, yve.id)], [410, 'lien_invalide', 0, null]);
+      v('la révocation est NOTÉE dans le registre (une archive d\'avant rendrait la porte au retiré) : l\'empreinte du lien, genre `invitation`', S.purgeLignes().some(x => x.genre === 'invitation' && x.objet === sha(lk.code)), true);
+      const neuf = (await a.post('/api/espaces/' + E4 + '/invitations', {})).j;
+      v('contre-épreuve : un lien NEUF ouvre la porte — à Yves, et au retiré lui-même (un administrateur l\'invite de nouveau : c\'est son geste, pas un retour par la porte restée ouverte)', [(await ya.post('/api/invitations/accepter', { code: neuf.code })).code, (await xa.post('/api/invitations/accepter', { code: neuf.code })).code, S.espacePourMembre(E4, xav.id) !== null], [200, 200, true]);
+      /* ⛔ QUITTER de soi-même ne révoque rien : personne n'est chassé */
+      const lk3 = (await a.post('/api/espaces/' + E4 + '/invitations', { max: 3 })).j, vivants = S.invitationsVivantes(E4);
+      const quitte = await ya.post('/api/espaces/' + E4 + '/quitter', {});
+      v('⛔ Yves QUITTE de lui-même : 200, aucun lien n\'est révoqué (les liens vivants sont les mêmes) et un autre entre encore par l\'un d\'eux', [quitte.code, S.invitationsVivantes(E4), (await gi.post('/api/invitations/accepter', { code: lk3.code })).code], [200, vivants, 200]);
+
+      /* la hiérarchie des administrateurs, dans un canal PRIVÉ : le rôle d'un canal est celui de l'espace */
+      const priv4 = S.canalCreer({ espace: E4, par: ana.id, nom: 'direction4', prive: true, membres: [ben.id, cleo.id, dan.id] }).id;
+      const rt = (cli, uid) => cli.post('/api/espaces/' + E4 + '/canaux/' + priv4 + '/membres/retirer', { uid });
+      v('population : le privé réunit le propriétaire (Ana), deux administrateurs (Ben, Cleo) et un membre simple (Dan)', [[ana, ben, cleo, dan].map(p => roleCanalDe(S, priv4, p.id)), S.membresActifs(priv4).length], [['admin', 'admin', 'admin', 'membre'], 4]);
+      const rA = await rt(b, ana.id), rC = await rt(b, cleo.id);
+      v('⛔ Ben (administrateur, pas propriétaire) ne retire NI le propriétaire NI un autre administrateur d\'un canal privé : 403 `interdit` — personne n\'en sort, Ana lit toujours le canal', [rA.code, rA.j.error, rC.code, rC.j.error, S.membresActifs(priv4).length, (await a.get('/api/conversations/' + priv4)).code], [403, 'interdit', 403, 'interdit', 4, 200]);
+      v('… il retire un membre SIMPLE (200) ; le propriétaire retire un administrateur (200)', [(await rt(b, dan.id)).code, (await rt(a, cleo.id)).code, S.membresActifs(priv4).slice().sort()], [200, 200, [ana.id, ben.id].sort()]);
+    }
     /* ═══ 5. LES CANAUX ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
     console.log('\nLes canaux : des conversations — mêmes messages, accusés, pièces et flux ; un privé n\'est lu que par ses membres');
     {
@@ -364,7 +398,8 @@ async function monter(config, instance) {
     {
       const h = await T.client(svc.base).get('/health');
       const journal = svc.sortie.texte();
-      vrai('population : le service a travaillé (le nom de l\'espace est bien rangé chez lui, scellé ; cinq espaces vivent) et son journal existe (il dit son démarrage)', S.espacePourMembre(E, ana.id).espace.nom === NOM_E && h.j.facturation.espaces === 5 && journal.includes('"evt":"demarre"'));
+      const nEspaces = (() => { const d = M.raw(); try { return Number(d.prepare('SELECT COUNT(*) AS n FROM espace').get().n); } finally { d.close(); } })();
+      vrai('population : le service a travaillé (le nom de l\'espace est bien rangé chez lui, scellé ; six espaces vivent) et son journal existe (il dit son démarrage)', S.espacePourMembre(E, ana.id).espace.nom === NOM_E && nEspaces === 6 && journal.includes('"evt":"demarre"'));
       v('⛔ /health : des nombres agrégés — aucun identifiant d\'espace, de personne ou de conversation, aucun nom', [/\b[pcemf]_[0-9a-f]{32}\b/.test(h.txt), /ZXCANARIQ|ENTREPRISE|AUTREENTREPRISE/.test(h.txt)], [false, false]);
       v('⛔ le journal du service ne contient ni nom d\'espace, ni code d\'invitation, ni texte de message, ni nom de personne', [journal.includes(NOM_E), journal.includes('AUTREENTREPRISEZXQ'), journal.includes(code1), journal.includes('Bonjour toute'), journal.includes('confidentiel RH'), /Ana Banc|Ben Banc/.test(journal)], [false, false, false, false, false, false]);
       const mal = svc.sortie.texte().split('\n').filter(l => /"evt":"(erreur|erreur_interne)"/.test(l));

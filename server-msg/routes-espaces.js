@@ -9,7 +9,7 @@
  *   POST /api/espaces/:id/quitter                       E   le propriétaire ne part pas (409 `proprio`) : il passe la main d'abord
  *   GET  /api/espaces/:id/contacts                      E   « Contacts de l'entreprise » : les membres de MON espace, et personne d'autre
  *   POST /api/espaces/:id/membres/role      {uid,admin} EA  seul le propriétaire rétrograde un administrateur ; le propriétaire ne change pas (409 `proprio`)
- *   POST /api/espaces/:id/membres/retirer       {uid}   EA  seul le propriétaire retire un administrateur ; jamais le propriétaire
+ *   POST /api/espaces/:id/membres/retirer       {uid}   EA  seul le propriétaire retire un administrateur ; jamais le propriétaire ; les liens d'invitation de l'espace sont RÉVOQUÉS (le retiré en connaît les codes)
  *   POST /api/espaces/:id/invitations      {max,jours}  EA PRO  un lien : un code long, expirant, borné en utilisations, révocable ; 402 `places_epuisees`
  *   POST /api/espaces/:id/invitations/revoquer          EA
  *   POST /api/invitations/lire                  {code}  S   aperçu — n'accepte rien, ne dit que l'espace et celui qui invite
@@ -17,7 +17,7 @@
  *   POST /api/espaces/:id/canaux     {nom,prive,membres} EA PRO  créer un canal (public : tous les membres de l'espace ; privé : ceux qu'on y met)
  *   POST /api/espaces/:id/canaux/:cid/maj      {nom}    EA  renommer — l'administrateur doit être MEMBRE du canal
  *   POST /api/espaces/:id/canaux/:cid/supprimer {confirmation}  EA
- *   POST /api/espaces/:id/canaux/:cid/membres/ajouter {uids} / .../retirer {uid}  EA  (canaux PRIVÉS ; ceux d'un canal public sont ceux de l'espace)
+ *   POST /api/espaces/:id/canaux/:cid/membres/ajouter {uids} / .../retirer {uid}  EA  (canaux PRIVÉS ; ceux d'un canal public sont ceux de l'espace) ; retirer suit la hiérarchie de l'espace : seul le propriétaire retire un administrateur, personne ne retire le propriétaire
  *
  * Comme `routes-push.js` et `compte.js`, ce fichier branche ses gestionnaires dans le tableau de `routes.js` (`installerEspaces`) : une fonction par ligne du manifeste. Le SQL est
  * dans `stockage.js` ; la formule est `formule.js` (le garde `PRO` d'`app.js` la lit AVANT d'arriver ici).
@@ -181,12 +181,13 @@ function installerEspaces(H, ctx) {
     const id = req.espace.espace.id;
     if (u === req.moi.id) return refus(res, 400, 'champ_invalide');            // on se retire par « quitter »
     if (estAdmin(id, u) && req.espace.espace.proprio !== req.moi.id) return refus(res, 403, 'interdit');   // seul le propriétaire retire un administrateur
-    const r = stockage.espaceMembreRetirer({ espace: id, uid: u });
+    /* ⛔ RETIRER QUELQU'UN RÉVOQUE LES LIENS D'INVITATION DE L'ESPACE (il en connaît les codes ; `liens_revoques` le dit à l'administrateur, qui en recrée un). Quitter, lui, n'en révoque aucun. */
+    const r = stockage.espaceMembreRetirer({ espace: id, uid: u, revoquerLiens: true });
     effacer(r.pieces);
     hub.reveiller({ uids: [u] });
     for (const c of r.convs) hub.reveiller({ conv: c });
     prevenir(stockage.espaceUids(id).concat([u]), id);
-    res.json({ ok: true });
+    res.json({ ok: true, liens_revoques: r.liens });
   });
 
   /* ── les invitations ── */

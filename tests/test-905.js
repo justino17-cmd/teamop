@@ -127,7 +127,12 @@ const MATRICE = {
   'canaux.maj':         { ok: (F) => ['POST', '/api/espaces/' + F.E + '/canaux/' + F.CP + '/maj', { nom: 'renommé' }], codes: [200] },
   'canaux.supprimer':   { ok: (F) => ['POST', '/api/espaces/' + F.E + '/canaux/' + F.CP + '/supprimer', { confirmation: 'SUPPRIMER' }], codes: [200] },
   'canaux.membres.ajouter': { ok: (F) => ['POST', '/api/espaces/' + F.E + '/canaux/' + F.CV + '/membres/ajouter', { uids: [F.D] }], codes: [200] },
-  'canaux.membres.retirer': { ok: (F) => ['POST', '/api/espaces/' + F.E + '/canaux/' + F.CV + '/membres/retirer', { uid: F.B }], codes: [200] },
+  /* ⛔ LA HIÉRARCHIE DES ADMINISTRATEURS vaut dans les canaux privés (`hier`, cellules jouées APRÈS les six profils) : Ben et Dan deviennent administrateurs de l'espace et du privé ; Ben, qui n'est
+     pas propriétaire, ne retire NI le propriétaire NI un autre administrateur (403, et le refus n'écrit rien) — Ana, elle, retire Dan (200). Relevé par le gardien le 3 octobre 2026 : un simple
+     administrateur retirait le propriétaire d'un canal privé, qui n'y rentrait plus. */
+  'canaux.membres.retirer': { ok: (F) => ['POST', '/api/espaces/' + F.E + '/canaux/' + F.CV + '/membres/retirer', { uid: F.B }], codes: [200],
+                              hier: { prep: (F, S) => { S.espaceRoleMembre({ espace: F.E, uid: F.B, admin: true }); S.espaceRoleMembre({ espace: F.E, uid: F.D, admin: true }); S.canalMembresAjouter({ conv: F.CV, par: F.A, uids: [F.B, F.D] }); },
+                                      refus: (F) => [['retire le PROPRIÉTAIRE', { uid: F.A }, [403, 'interdit']], ['retire un AUTRE administrateur', { uid: F.D }, [403, 'interdit']]], permis: (F) => ({ uid: F.D }) } },
   'facturation.offres': { ok: () => ['GET', '/api/facturation/offres'], codes: [200] },
   'facturation.etat':   { ok: (F) => ['GET', '/api/espaces/' + F.E + '/facturation/etat'], codes: [200] },
   'facturation.paiement': { ok: (F) => ['POST', '/api/espaces/' + F.E + '/facturation/paiement', { places: 3 }], codes: [503] },   // sans clé Stripe : la garde a passé, la facturation est INERTE et le dit
@@ -198,7 +203,7 @@ const ATTENDU = {
       else if (acteurs[profil]) c.poserCookie(session(acteurs[profil]));
       return c;
     };
-    let cellules = 0, refusSansEffet = 0, refusAvecEffet = [], espacesVerifies = 0, cellulesPro = 0;
+    let cellules = 0, refusSansEffet = 0, refusAvecEffet = [], espacesVerifies = 0, cellulesPro = 0, cellulesHier = 0;
 
     console.log('\nCHAQUE route contre CHAQUE profil');
     for (const r of MANIFESTE) {
@@ -294,8 +299,23 @@ const ATTENDU = {
         v('⛔ ' + r.id + ' [pro] : les deux refus n\'ont rien écrit', instantane(), avantPro);
         cellulesPro += 3;
       }
+      /* ⛔ LA HIÉRARCHIE : un administrateur qui n'est pas propriétaire ne touche ni au propriétaire ni à un autre administrateur ; le propriétaire, si */
+      if (M.hier) {
+        M.hier.prep(F, S);
+        const ben = clientDe('membre'), ana = clientDe('admin'), ok1 = M.ok(F, B.id);
+        for (const [quoi, corps, attendu] of M.hier.refus(F)) {
+          const avantH = instantane();
+          const rep = await ben.appel(ok1[0], ok1[1], corps);
+          v('⛔ ' + r.id + ' [hiérarchie] × administrateur qui n\'est PAS propriétaire, ' + quoi + ' → ' + attendu[0] + ' ' + attendu[1] + ', et le refus n\'écrit rien', [rep.code, rep.j && rep.j.error, instantane() === avantH], attendu.concat([true]));
+          cellulesHier++;
+        }
+        const permis = await ana.appel(ok1[0], ok1[1], M.hier.permis(F));
+        v('⛔ ' + r.id + ' [hiérarchie] × le PROPRIÉTAIRE retire un administrateur → 200 (contre-épreuve : la règle protège les administrateurs, elle ne ferme pas la route)', permis.code, 200);
+        cellulesHier++;
+      }
     }
     v('⛔ ' + cellules + ' cellules jouées = routes × profils (aucune sautée en silence)', cellules, MANIFESTE.length * PROFILS.length);
+    vrai('population : la hiérarchie des administrateurs a joué ses cellules (' + cellulesHier + ' : deux refus et un geste permis)', cellulesHier === 3);
     vrai('population : les routes Pro ont chacune leurs trois cellules de formule (' + cellulesPro + ')', cellulesPro >= 9 && cellulesPro % 3 === 0 && cellulesPro / 3 === Object.values(MATRICE).filter(m => m.pro).length);
     vrai('population : le 404 « espace inexistant » a été comparé pour toutes les routes d\'espace (' + espacesVerifies + ')', espacesVerifies >= 18);
     vrai('population : des refus ont bien été relevés avant/après (' + refusSansEffet + ')', refusSansEffet >= 60);

@@ -212,6 +212,24 @@ console.log('\nLes invitations : un lien expire, se révoque, s\'épuise — et 
   const restantsG = () => g.brut().prepare('SELECT restants FROM lien WHERE h = ?').get(c.h).restants;
   v('⛔ un espace COMPLET refuse (`espace_complet`) sans consommer le lien', [lance(() => g.S.invitationAccepter({ h: c.h, uid: g.dan.id, max: 3 })), restantsG(), g.S.espacesDe(g.dan.id).length], ['espace_complet', 9, 0]);
   v('… avec une place de plus, le même lien ouvre', [lance(() => g.S.invitationAccepter({ h: c.h, uid: g.dan.id, max: 4 })), g.S.espacesDe(g.dan.id).length, restantsG()], [null, 1, 8]);
+  /* ⛔ RETIRER QUELQU'UN RÉVOQUE LES LIENS DE L'ESPACE, QUITTER NON (relecture du gardien, 3 octobre 2026 : un retiré ré-acceptait l'ancien lien et retrouvait l'espace et ses canaux publics) */
+  {
+    const r = atelier(), R = r.S;
+    R.invitationsRevoquer(r.e);                       // (la fixture a laissé les liens par lesquels Ben et Cleo sont entrés : on repart d'une page blanche)
+    const l1 = invitation(R, r.e, r.ana.id, { max: 9 }), l2 = invitation(R, r.e, r.ana.id);
+    R.invitationAccepter({ h: l1.h, uid: r.dan.id, max: Infinity });
+    const notes0 = R.purgeLignes().filter(x => x.genre === 'invitation').length;
+    v('population : deux liens vivants, Dan est entré par le premier, et le registre porte les seules révocations de la fixture', [R.invitationsVivantes(r.e), R.espacePourMembre(r.e, r.dan.id) !== null, notes0 >= 1 && R.purgeLignes().every(x => x.genre !== 'invitation' || ![l1.h, l2.h].includes(x.objet))], [2, true, true]);
+    const part = R.espaceMembreRetirer({ espace: r.e, uid: r.cleo.id });
+    v('⛔ QUITTER de soi-même ne révoque rien (personne n\'est chassé) : les deux liens vivent, rien n\'est noté', [part.liens, R.invitationsVivantes(r.e), R.purgeLignes().filter(x => x.genre === 'invitation').length - notes0], [0, 2, 0]);
+    const sorti = R.espaceMembreRetirer({ espace: r.e, uid: r.dan.id, revoquerLiens: true });
+    const notes = R.purgeLignes().filter(x => x.genre === 'invitation').slice(notes0).map(x => x.objet).sort();
+    v('⛔ RETIRER Dan révoque TOUS les liens de l\'espace (il en connaît les codes), chacun noté dans le registre par son empreinte — dans la même transaction que le retrait', [sorti.liens, R.invitationsVivantes(r.e), notes, R.espacePourMembre(r.e, r.dan.id)], [2, 0, [l1.h, l2.h].sort(), null]);
+    const zoe = pers(R, 'Zoe');
+    v('⛔ le retiré ne revient pas par son ancien lien (`lien_invalide`), ni personne par l\'autre : un administrateur en recrée un', [lance(() => R.invitationAccepter({ h: l1.h, uid: r.dan.id, max: Infinity })), lance(() => R.invitationAccepter({ h: l2.h, uid: zoe.id, max: Infinity })), R.espacesDe(r.dan.id).length, R.espacesDe(zoe.id).length], ['lien_invalide', 'lien_invalide', 0, 0]);
+    const l3 = invitation(R, r.e, r.ana.id);
+    v('contre-épreuve : un lien NEUF, créé après, ouvre la porte (à Dan aussi : c\'est une invitation de l\'administrateur, pas un retour par la porte restée ouverte)', [lance(() => R.invitationAccepter({ h: l3.h, uid: r.dan.id, max: Infinity })), R.espacePourMembre(r.e, r.dan.id) !== null], [null, true]);
+  }
   /* ⛔ UN CODE D'ESPACE N'OUVRE QUE LES INVITATIONS : ni contact, ni groupe */
   const h = atelier(), z = invitation(h.S, h.e, h.ana.id);
   v('⛔ par la route des contacts et des groupes, un code d\'espace ne dit rien (`lienApercu` null) et n\'accepte rien (`lien_invalide`)', [h.S.lienApercu(z.h), lance(() => h.S.lienAccepter({ h: z.h, uid: h.dan.id })), h.S.contactsDe(h.dan.id).length, h.S.espacesDe(h.dan.id).length], [null, 'lien_invalide', 0, 0]);
@@ -330,6 +348,22 @@ console.log('\nLes canaux : une conversation de genre `canal` ; public = tous le
   S.canalQuitter({ conv: w.priv, uid: w.ben.id });
   const dernier = S.canalQuitter({ conv: w.priv, uid: w.ana.id });
   v('⛔ le DERNIER membre qui quitte un canal privé l\'emporte (et le dit)', [dernier.vide, S.canalDe(w.priv), S.purgeLignes().some(x => x.genre === 'conversation' && x.objet === w.priv)], [true, null, true]);
+  /* ⛔ LA HIÉRARCHIE DE L'ESPACE VAUT DANS SES CANAUX (relecture du gardien, 3 octobre 2026 : un simple administrateur retirait le propriétaire d'un canal privé, qui n'y rentrait plus) */
+  {
+    const k = atelier(), K = k.S;
+    K.espaceRoleMembre({ espace: k.e, uid: k.ben.id, admin: true });
+    K.espaceRoleMembre({ espace: k.e, uid: k.cleo.id, admin: true });
+    rejoindre(K, k.e, k.ana.id, k.dan.id);
+    K.canalMembresAjouter({ conv: k.priv, par: k.ana.id, uids: [k.cleo.id, k.dan.id] });
+    const membres = () => K.membresActifs(k.priv).slice().sort();
+    v('population : le canal privé réunit le propriétaire (Ana), deux administrateurs (Ben, Cleo) et un membre simple (Dan) — leurs rôles dans le canal sont ceux de l\'espace',
+      [membres(), [k.ana, k.ben, k.cleo, k.dan].map(p => roleCanal(K, k.priv, p.id))], [[k.ana.id, k.ben.id, k.cleo.id, k.dan.id].sort(), ['admin', 'admin', 'admin', 'membre']]);
+    v('⛔ Ben, administrateur sans être propriétaire, ne retire NI le propriétaire NI un autre administrateur du canal privé (`interdit`) — personne n\'en sort',
+      [lance(() => K.canalMembreRetirer({ conv: k.priv, par: k.ben.id, uid: k.ana.id })), lance(() => K.canalMembreRetirer({ conv: k.priv, par: k.ben.id, uid: k.cleo.id })), membres().length], ['interdit', 'interdit', 4]);
+    v('… et le propriétaire n\'est retiré par PERSONNE par cette fonction, pas même par lui (il quitte un privé par `canalQuitter`)', [lance(() => K.canalMembreRetirer({ conv: k.priv, par: k.ana.id, uid: k.ana.id })), roleCanal(K, k.priv, k.ana.id)], ['interdit', 'admin']);
+    v('un administrateur retire un membre SIMPLE (la hiérarchie ne protège que les administrateurs), et le propriétaire retire un administrateur',
+      [lance(() => K.canalMembreRetirer({ conv: k.priv, par: k.ben.id, uid: k.dan.id })), lance(() => K.canalMembreRetirer({ conv: k.priv, par: k.ana.id, uid: k.cleo.id })), membres()], [null, null, [k.ana.id, k.ben.id].sort()]);
+  }
   /* cent canaux au plus */
   const g = atelier(), G = g.S;
   let k = 2;

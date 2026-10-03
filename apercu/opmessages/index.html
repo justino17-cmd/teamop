@@ -2887,9 +2887,12 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
       /* un canal : son rôle est celui de l'ESPACE (l'administrateur de l'espace modère, les membres lisent et écrivent). Public : tous les membres de l'espace, on y entre et on en sort avec lui ;
          privé : ceux qu'un administrateur y a mis. Les gestes de l'administrateur passent par les routes de l'espace (`espace` vient du canal lui-même, jamais de la page). */
       const modifiable = CAP.espaces && i.moiAdmin && !!i.espace;
+      /* ⛔ la hiérarchie de l'espace vaut dans ses canaux (le service la fait respecter) : seul le PROPRIÉTAIRE retire un administrateur, et personne ne retire le propriétaire — l'écran ne propose que ce qui peut marcher */
+      const moiProprio = !!(esp.liste || []).find(x => x.id === i.espace && x.proprio);
+      const retirable = m => modifiable && i.prive && !m.moi && (m.role !== 'admin' || moiProprio);
       h += '<div class="rubrique"><span>Membres</span><span>' + i.membres.length + '</span></div><div class="carte">' + i.membres.map(m =>
-        '<div class="contact' + (modifiable && i.prive && !m.moi ? ' avec-actions' : '') + '">' + avatar(m) + '<span class="contact-texte"><span class="contact-nom">' + esc(m.moi ? 'Vous' : m.nom) + (m.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (m.enLigne && !m.moi ? '<span class="contact-role">En ligne</span>' : '') + '</span>' +
-        (modifiable && i.prive && !m.moi ? '<span class="contact-actions"><button type="button" class="mini danger" data-act="can-retirer-membre" data-uid="' + esc(m.id) + '">Retirer</button></span>' : '') + '</div>').join('') + '</div>';
+        '<div class="contact' + (retirable(m) ? ' avec-actions' : '') + '">' + avatar(m) + '<span class="contact-texte"><span class="contact-nom">' + esc(m.moi ? 'Vous' : m.nom) + (m.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (m.enLigne && !m.moi ? '<span class="contact-role">En ligne</span>' : '') + '</span>' +
+        (retirable(m) ? '<span class="contact-actions"><button type="button" class="mini danger" data-act="can-retirer-membre" data-uid="' + esc(m.id) + '">Retirer</button></span>' : '') + '</div>').join('') + '</div>';
       if (!i.prive) h += '<p class="info-note">Un canal public réunit tous les membres de l\'espace : on y entre et on en sort avec l\'espace.</p>';
       if (modifiable && i.prive) {
         const ajoutables = (collegues || []).filter(c => !c.moi && !i.membres.some(m => m.id === c.id));
@@ -3226,7 +3229,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
       }
       if (act === 'esp-renommer') { await source.espaceRenommer(id, $('esp-nom').value); mot('Nom enregistré'); chargerEspaces(); await relire(); return; }
       if (act === 'esp-role') { await source.membreRole(id, b.dataset.uid, b.dataset.admin === '1'); await relire(); return; }
-      if (act === 'esp-retirer') { if (!armer(b, 'Toucher encore pour retirer')) return; await source.membreRetirer(id, b.dataset.uid); mot('Membre retiré de l\'espace'); await relire(); return; }
+      if (act === 'esp-retirer') { if (!armer(b, 'Toucher encore pour retirer')) return; const r = await source.membreRetirer(id, b.dataset.uid); mot(r && r.liensRevoques ? 'Membre retiré · liens d\'invitation révoqués' : 'Membre retiré de l\'espace'); esp.lien = null; await relire(); return; }
       if (act === 'esp-transferer') { if (!armer(b, 'Toucher encore pour passer la propriété')) return; await source.espaceTransferer(id, b.dataset.uid); mot('Tu n\'es plus propriétaire : la propriété est passée'); chargerEspaces(); await relire(); return; }
       if (act === 'esp-lien-creer') {
         const r = await source.invitationCreer(id);
