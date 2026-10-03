@@ -131,7 +131,12 @@ console.log('\n── 916 · le DÉFI : signé, lié au numéro et au pays, dél
   v('un défi : un jeton, les bits, le délai', [typeof d.jeton, d.bits, d.attente_s], ['string', 8, 2]);
   v('⛔ avant le délai (2 s) : refusé', g.defiVerifier({ jeton: d.jeton, nonce, pays: 'BE', num_h: numH }), false);
   a.h.t += 2001;
-  v('⛔ un nonce qui ne donne pas les zéros : refusé', g.defiVerifier({ jeton: d.jeton, nonce: 'zzzzzz-pas-bon', pays: 'BE', num_h: numH }), false);
+  /* ⛔ UN MAUVAIS NONCE SE PROUVE MAUVAIS (3 octobre 2026). `zzzzzz-pas-bon`, FIXE, contre un défi tiré au hasard, donnait les 8 zéros
+     une fois sur 256 : accepté, il consommait le défi, et « le bon : accepté une fois » tombait derrière lui — 2 ✗ sur « Vérification
+     des pages » de main (17a4b92), vert partout ailleurs. On le cherche donc MAUVAIS pour CE défi, et on le prouve avant de s'en servir. */
+  const mauvais = (() => { for (let i = 0; i < 1e4; i++) { const x = 'pas-bon-' + i; if (crypto.createHash('sha256').update(d.jeton + ':' + x).digest()[0] !== 0) return x; } return null; })();
+  vrai('(population) le mauvais nonce ne donne VRAIMENT pas les 8 zéros pour ce défi (premier octet de son empreinte non nul)', !!mauvais && crypto.createHash('sha256').update(d.jeton + ':' + mauvais).digest()[0] !== 0);
+  v('⛔ un nonce qui ne donne pas les zéros : refusé', g.defiVerifier({ jeton: d.jeton, nonce: mauvais || 'pas-bon', pays: 'BE', num_h: numH }), false);
   v('⛔ le même défi pour un AUTRE numéro : refusé (le jeton est signé AVEC l\'empreinte du numéro)', g.defiVerifier({ jeton: d.jeton, nonce, pays: 'BE', num_h: 'b'.repeat(64) }), false);
   v('⛔ le même défi pour un AUTRE pays : refusé', g.defiVerifier({ jeton: d.jeton, nonce, pays: 'FR', num_h: numH }), false);
   const trafique = d.jeton.replace(/\.8\./, '.1.');
