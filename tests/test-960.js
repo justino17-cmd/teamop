@@ -478,6 +478,21 @@ console.log('\nUn compte effacé sort de ses espaces : la propriété passe, ou 
   v('⛔ un PAIEMENT COMMENCÉ (une session rangée, non résolue) compte comme un abonnement qui court : payé chez Stripe sans que le service le sache, l\'effacement du compte laisserait un abonnement sans espace', g.S.espacesAbonnesSeul(seul.id), [eg]);
   g.S.abonnementSessionOubliee(eg, 'cs_banc960_seule');
   v('… la session oubliée (Stripe l\'a dite expirée), plus de refus', g.S.espacesAbonnesSeul(seul.id), []);
+  /* ⛔ UN ESPACE PAYÉ N'EST JAMAIS DISSOUS PAR L'EFFACEMENT, même quand elle y est seule : la demande avait été permise (ils étaient trois), puis les deux autres sont partis pendant les quatorze jours.
+     Dissoudre perdrait le seul lien avec un abonnement qui continuerait de prélever */
+  const pay = atelier();
+  pay.S.abonnementPoser(pay.e, ABO({ abonnement: 'sub_orphelin' }), { adopter: true });
+  pay.S.espaceMembreRetirer({ espace: pay.e, uid: pay.ben.id }); pay.S.espaceMembreRetirer({ espace: pay.e, uid: pay.cleo.id });
+  v('population : Ana est seule dans un espace payé (elle l\'était avec deux autres quand elle a demandé son effacement) — la suppression par la route serait refusée à présent', [pay.S.espaceMembresN(pay.e), pay.S.espacesAbonnesSeul(pay.ana.id)], [1, [pay.e]]);
+  const orph = efface(pay, pay.ana);
+  v('⛔ l\'effacement NE DISSOUT PAS l\'espace payé : Ana en sort, l\'espace reste sans membre avec son abonnement intact, et il est RENDU (`espacesOrphelins`) pour que le service le dise',
+    [orph.effacee, pay.S.espaceBrut(pay.e) !== null, pay.S.espaceMembresN(pay.e), pay.S.abonnementLire(pay.e).abonnement, orph.espacesOrphelins], [true, true, 0, 'sub_orphelin', [pay.e]]);
+  v('… la sortie se NOTE (c\'est un fait : trois lignes « espace_membre », celles des deux autres et la sienne), et rien n\'est noté « espace » (l\'espace n\'est pas dissous)',
+    [pay.S.purgeLignes().filter(x => x.genre === 'espace_membre').length, pay.S.purgeLignes().filter(x => x.genre === 'espace').length], [3, 0]);
+  const gratuit = atelier();
+  gratuit.S.espaceMembreRetirer({ espace: gratuit.e, uid: gratuit.ben.id }); gratuit.S.espaceMembreRetirer({ espace: gratuit.e, uid: gratuit.cleo.id });
+  const sansRien = efface(gratuit, gratuit.ana);
+  v('contre-épreuve : le même espace SANS abonnement est dissous (et noté) — la garde ne retient que ce qui prélève', [sansRien.espacesOrphelins, gratuit.S.espaceBrut(gratuit.e), gratuit.S.purgeLignes().filter(x => x.genre === 'espace').length], [[], null, 1]);
   v('l\'export d\'une personne liste SES espaces (nom, rôle) — pas les membres des autres', f.S.exportEspaces(f.cleo.id).map(x => [x.nom, x.role, Object.keys(x).sort().join()]), [['Entreprise ELAN', 'membre', 'depuis,id,nom,role']]);
   /* ⛔ MEMBRE OU PROPRIÉTAIRE (couture avec le rejeu des comptes du lot 3, `test-950` § 13 quinquies bis) : une restauration sort la propriétaire de la LISTE des membres (les lignes `espace_membre` du
      registre), pas de la PROPRIÉTÉ — le rejeu de son effacement doit donc la chercher aussi parmi les propriétaires */

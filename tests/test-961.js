@@ -416,6 +416,27 @@ async function monter(config, instance) {
       } finally { await B.fermer(); }
     }
 
+    /* ═══ 8 bis. LE BALAYEUR EFFACE UN COMPTE SEUL DANS UN ESPACE PAYÉ : l'espace reste, et le journal le dit ═══════════════════════════════════════════════ */
+    console.log('\nLe balayeur efface un compte seul dans un espace payé : l\'espace reste (Stripe prélèverait sans plus aucun lien), et le journal le dit');
+    {
+      const X = await monter({ formule: { toutOuvert: false }, balayageMs: 150 });
+      try {
+        const zoe = X.pers('Zoe'), ami = X.pers('Ami');
+        const Ex = X.S.espaceCreer({ nom: 'Boîte payée', proprio: zoe.id }).id;
+        X.payer(Ex);
+        X.entrer(Ex, zoe.id, ami.id);
+        X.S.espaceMembreRetirer({ espace: Ex, uid: ami.id });       // l'ami part pendant le sursis : Zoe est seule
+        const abo = X.S.abonnementLire(Ex).abonnement;
+        v('population : Zoe est seule dans un espace dont l\'abonnement court', [X.S.espaceMembresN(Ex), X.S.espacesAbonnesSeul(zoe.id), typeof abo], [1, [Ex], 'string']);
+        X.S.suppressionProgrammer(zoe.id, Date.now() - 1000);        // l'échéance est passée : le balayeur l'efface à son prochain passage
+        const fait = await T.attendre(async () => /"evt":"compte_efface"/.test(X.svc.sortie.texte()), 8000, 50);
+        vrai('population : le balayeur a effacé le compte (la ligne « compte_efface » est au journal)', fait);
+        v('⛔ l\'espace n\'est PAS dissous : il reste, sans membre, avec son abonnement intact — et Zoe n\'en est plus', [X.S.espaceBrut(Ex) !== null, X.S.espaceMembresN(Ex), X.S.abonnementLire(Ex).abonnement === abo, X.S.espacesDe(zoe.id).length], [true, 0, true, 0]);
+        const lignes = X.svc.sortie.texte().split('\n').filter(l => /"evt":"espace_payant_sans_membre"/.test(l));
+        v('⛔ le journal le DIT : une ligne, un nombre (1), jamais un espace ni une personne', [lignes.length, lignes.length ? JSON.parse(lignes[0]).n : null, lignes.some(l => l.includes(Ex) || l.includes(zoe.id))], [1, 1, false]);
+      } finally { await X.fermer(); }
+    }
+
     /* ═══ 9. CE QUE LE SERVICE NE DIT NI NE GARDE ═════════════════════════════════════════════════════════════════════════════════════════════════════ */
     console.log('\nRien d\'identifiant dans /health ni dans les journaux : ni nom d\'espace, ni code d\'invitation, ni texte');
     {

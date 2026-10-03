@@ -1727,7 +1727,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   /* L'effacement. TOUT dans une transaction, rejouable (une personne déjà effacée, ou dont la suppression a été annulée entre-temps, ne perd rien).
      → { effacee, pieces: [identifiants dont l'appelant efface les FICHIERS], convs: [conversations à rafraîchir], audience: [ceux à qui dire que ce profil a changé],
-         espacesOrphelins: [espaces payants que le REJEU a laissés sans membre — voir `espaceQuitterTout`] } */
+         espacesOrphelins: [espaces PAYANTS que l'effacement a laissés sans membre, sans les dissoudre — voir `espaceQuitterTout`] } */
   /* ⛔ `{ rejeu: true }` : le REJEU d'un effacement après une restauration (`rejeu.js`, genre `compte`). La copie remise en service peut dater d'avant l'échéance — voire d'avant la
      demande (l'échéance n'y est pas encore posée) : le registre dit que l'effacement A EU LIEU, il se refait donc sans regarder l'échéance, et sans réécrire sa ligne (elle est déjà
      dans le registre recopié). Une personne déjà effacée ne perd rien de plus. */
@@ -1960,9 +1960,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
      propriété ne se passe que depuis le propriétaire). On cherche donc aussi les espaces dont elle est propriétaire sans y être listée.
      ⛔ `rejeu: true` N'ÉCRIT RIEN AU REGISTRE : celui de la copie dit DÉJÀ ce qu'a fait l'effacement d'origine (la restauration l'a recopié) ; une ligne de plus — `espace_membre` à la date du
      rejeu, `espace` pour un espace que la copie réduit à la personne effacée — serait rejouée à la restauration SUIVANTE comme un fait, contre des gens qui, dans le service vivant, y étaient
-     encore. ⛔ Et un espace que la copie réduit à elle mais dont un abonnement COURT (ou un paiement attend sa relecture) n'est PAS dissous par le rejeu : le rejeu ne parle pas à Stripe, et
-     dissoudre perdrait le seul lien avec un abonnement qui continuerait de prélever. Dans le doute, on efface moins : la personne en sort, l'espace reste sans membre, et il est RENDU dans
-     `orphelins` pour que le service le dise au journal (à régler à la main, sur le tableau de bord de Stripe). */
+     encore.
+     ⛔ UN ESPACE DONT UN ABONNEMENT COURT (ou dont un paiement attend sa relecture) N'EST JAMAIS DISSOUS ICI, en direct comme au rejeu : dissoudre perdrait le seul lien avec un abonnement qui
+     continuerait de prélever. La route de suppression de compte refuse (409) tant que la personne y est seule — mais l'effacement a lieu quatorze jours plus tard, et un autre membre a pu partir
+     entre-temps ; et le rejeu, lui, ne parle pas à Stripe (la copie peut réduire l'espace à elle alors que le service vivant avait d'autres membres). Dans le doute, on efface moins : la personne
+     en sort (la sortie se note en direct, c'est un fait), l'espace reste sans membre, et il est RENDU dans `orphelins` pour que l'appelant le dise au journal — à régler à la main, sur le
+     tableau de bord de Stripe. */
   function espaceQuitterTout(uid, { rejeu = false } = {}) {
     const pieces = [], convs = [], orphelins = [];
     const ids = Q(`SELECT espace AS id FROM espace_membre WHERE uid = ? UNION SELECT id FROM espace WHERE proprio = ? ORDER BY 1`).all(uid, uid).map(r => r.id);
@@ -1971,7 +1974,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (e.proprio === uid) {
         const suivant = Q(`SELECT uid FROM espace_membre WHERE espace = ? AND uid <> ? ORDER BY (role = 'admin') DESC, depuis, uid LIMIT 1`).get(e.id, uid);
         if (!suivant) {
-          if (rejeu && abonnementCourt(e.id)) { const x = retirerDeEspace(e.id, uid, { noter: false }); pieces.push(...x.pieces); convs.push(...x.convs); orphelins.push(e.id); continue; }
+          if (abonnementCourt(e.id)) { const x = retirerDeEspace(e.id, uid, { noter: !rejeu }); pieces.push(...x.pieces); convs.push(...x.convs); orphelins.push(e.id); continue; }
           const d = espaceSupprimer(e.id, { noter: !rejeu }); pieces.push(...d.pieces); convs.push(...d.convs); continue;
         }
         Q('UPDATE espace SET proprio = ? WHERE id = ?').run(suivant.uid, e.id);

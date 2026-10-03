@@ -164,6 +164,8 @@ function demarrer(env = process.env) {
         for (const c of e.convs) hub.reveiller({ conv: c });
         if (e.audience.length) hub.emettre(e.audience, 'personne', { uid: id });
         journaliser('compte_efface', { n: e.pieces.length });
+        /* ⛔ un espace PAYANT que cet effacement a laissé sans membre (un autre membre est parti pendant les quatorze jours) n'est pas dissous — Stripe continuerait de prélever sans plus aucun lien : il se règle à la main, et le journal le DIT (un nombre, jamais un espace) */
+        if (e.espacesOrphelins && e.espacesOrphelins.length) journaliser('espace_payant_sans_membre', { n: e.espacesOrphelins.length });
       }
       if (++tours % 10 === 0) {
         reconcilierPieces();

@@ -453,13 +453,19 @@ m('X02', 'le rejeu d\'un compte ne fait PAS sortir la personne de ses espaces (l
 m('X03', 'la sortie des espaces ne cherche la personne que dans la LISTE des membres (la propriété d\'un espace dont elle n\'est plus listée lui reste : un propriétaire effacé que plus personne ne remplace)', F.stock,
   'SELECT espace AS id FROM espace_membre WHERE uid = ? UNION SELECT id FROM espace WHERE proprio = ? ORDER BY 1`).all(uid, uid)', 'SELECT espace AS id FROM espace_membre WHERE uid = ? ORDER BY 1`).all(uid)', ['950', '960']);
 m('X04', 'le rejeu écrit une ligne « espace_membre » à la date du rejeu (une seconde ligne pour une sortie déjà au registre, rejouée à la restauration suivante comme un fait)', F.stock,
-  'const x = retirerDeEspace(e.id, uid, { noter: !rejeu });', 'const x = retirerDeEspace(e.id, uid, { noter: true });', ['950', '960']);
+  'const x = retirerDeEspace(e.id, uid, { noter: !rejeu });\n      pieces.push', 'const x = retirerDeEspace(e.id, uid, { noter: true });\n      pieces.push', ['950', '960']);
 m('X05', 'le rejeu note la dissolution d\'un espace que la copie réduit à la personne effacée (« espace » : à la restauration suivante, l\'espace serait dissous chez des gens qui y sont encore)', F.stock,
   'const d = espaceSupprimer(e.id, { noter: !rejeu }); pieces.push(...d.pieces); convs.push(...d.convs); continue;', 'const d = espaceSupprimer(e.id, { noter: true }); pieces.push(...d.pieces); convs.push(...d.convs); continue;', ['950']);
 m('X06', 'le rejeu note la suppression d\'un canal vidé (« conversation » : la conversation serait retirée d\'une copie où elle a d\'autres membres)', F.stock,
   'pieces.push(...convSupprimer(c, { noter }).pieces);   // le canal n\'a plus personne', 'pieces.push(...convSupprimer(c).pieces);   // le canal n\'a plus personne', ['950']);
-m('X07', 'le rejeu DISSOUT un espace payant que la copie réduit à la personne effacée (il ne parle pas à Stripe : l\'abonnement continuerait de prélever, sans plus aucun lien)', F.stock,
-  'if (rejeu && abonnementCourt(e.id)) {', 'if (false && rejeu && abonnementCourt(e.id)) {', ['950']);
+m('X07', 'l\'effacement DISSOUT un espace payant dont la personne était seule, en direct comme au rejeu (l\'abonnement continuerait de prélever, sans plus aucun lien)', F.stock,
+  'if (abonnementCourt(e.id)) {', 'if (false && abonnementCourt(e.id)) {', ['950', '960', '961']);
+m('X20', 'la garde de l\'espace payant ne vaut que pour le REJEU : l\'effacement en direct (le balayeur, quatorze jours après) dissout encore l\'espace dont l\'abonnement court', F.stock,
+  'if (abonnementCourt(e.id)) {', 'if (rejeu && abonnementCourt(e.id)) {', ['960', '961']);
+m('X22', 'l\'effacement en direct d\'un compte seul dans un espace payé ne NOTE plus sa sortie (« espace_membre » : une archive d\'avant le ramènerait dans l\'espace)', F.stock,
+  'if (abonnementCourt(e.id)) { const x = retirerDeEspace(e.id, uid, { noter: !rejeu });', 'if (abonnementCourt(e.id)) { const x = retirerDeEspace(e.id, uid, { noter: false });', ['960']);
+m('X21', 'le balayeur ne DIT pas l\'espace payant que l\'effacement a laissé sans membre (le journal se tait)', F.index,
+  "if (e.espacesOrphelins && e.espacesOrphelins.length) journaliser('espace_payant_sans_membre', { n: e.espacesOrphelins.length });", '', ['961']);
 m('X08', 'un paiement COMMENCÉ (une session rangée) n\'arrête plus le rejeu de dissoudre : seul l\'abonnement qui court compte', F.stock,
   "AND ((abonnement IS NOT NULL AND statut NOT IN ('aucun', 'canceled', 'incomplete_expired')) OR session IS NOT NULL)`).get(espace) !== undefined;", "AND (abonnement IS NOT NULL AND statut NOT IN ('aucun', 'canceled', 'incomplete_expired'))`).get(espace) !== undefined;", ['950']);
 m('X09', 'le rejeu du compte ne DIT pas qu\'il a laissé un espace payant sans membre (le journal se tait)', F.rejeu,
