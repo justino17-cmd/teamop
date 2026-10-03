@@ -77,6 +77,14 @@ const MANIFESTE = [
   { id: 'pieces.lire',       m: 'GET',  p: '/api/pieces/:id',                        garde: 'J' },
   { id: 'moi.avatar',        m: 'POST', p: '/api/moi/avatar',                        garde: 'S' },
   { id: 'moi.stockage',      m: 'GET',  p: '/api/moi/stockage',                      garde: 'S' },
+  /* Étape 2 (suite) : les notifications push (`routes-push.js`) et le compte (`compte.js`). Toutes S : l'identité vient de la SESSION, jamais du corps. L'acquittement d'un événement
+     (`flux.ack`) est ce qui empêche une notification de doubler une page visible ; le réglage « Aperçu du message » n'a pas de route (c'est `prefs.apercu_notif` de `moi.maj`). */
+  { id: 'push.abonner',      m: 'POST', p: '/api/push/abonner',                      garde: 'S' },
+  { id: 'push.desabonner',   m: 'POST', p: '/api/push/desabonner',                   garde: 'S' },
+  { id: 'push.essai',        m: 'POST', p: '/api/push/essai',                        garde: 'S' },
+  { id: 'flux.ack',          m: 'POST', p: '/api/flux/ack',                          garde: 'S' },
+  { id: 'compte.export',     m: 'POST', p: '/api/compte/export',                     garde: 'S' },
+  { id: 'compte.supprimer',  m: 'POST', p: '/api/compte/supprimer',                  garde: 'S' },
 ];
 
 module.exports = { MANIFESTE };

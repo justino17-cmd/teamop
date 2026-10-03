@@ -35,6 +35,9 @@ const CHAMPS_SURVEILLES = [
   'porte.relecturesEchec', // la relecture des accès bêta échoue depuis des minutes : un accès coupé dans la Tour garderait sa session
   'pieces.illisibles',     // un fichier de pièce qui ne s'ouvre plus (bloc abîmé, taille qui ne colle plus à la base) : jamais normal — des photos ou des fichiers perdus
   'pieces.effacementsRates', // des fichiers de pièces supprimées qui restent sur le disque (droits, disque) : le balayeur réessaie, mais cinq échecs ont une cause
+  'push.actif',            // faux : la paire de clés VAPID est illisible, le push est coupé — personne ne reçoit plus rien hors de l'application
+  'push.echecs24h',        // les services push refusent nos envois (clés refusées, adresse bloquée) ou ne répondent plus : plus d'échecs que de livraisons, sur un volume qui compte
+  'push.envoyes24h',       // le dénominateur de l'alarme ci-dessus : sans lui un seul échec ferait crier
   /* ⛔ LES SMS (compte Perso par numéro) : « le but c'est qu'on gagne de l'argent » — chaque SMS est un coût, et la fraude au
      « SMS pumping » vise justement les destinations chères. Ces cinq champs sont l'alarme d'argent ; la garde vit dans `sms-garde.js`. */
   'sms.mode',              // en production, tout autre mode que « ovh » veut dire : plus aucun code ne part, personne ne peut s'inscrire
@@ -50,6 +53,7 @@ const CHAMPS_SURVEILLES = [
    plus est une décision prise pour du vide : le banc le contrôle aussi. */
 const CHAMPS_VUS = {
   'sms.envoyes24h': 'le nombre de SMS est une information ; ce qui compte est l\'ARGENT (sms.coutJourEur et les budgets), qui est surveillé',
+  'push.abonnements': 'le nombre d\'appareils abonnés aux notifications est une information de croissance : le service borne lui-même chaque personne (dix appareils) et retire un abonnement après cinq échecs de suite — aucune alarme horaire n\'ajouterait une décision',
   'pieces.n': 'le nombre de pièces est une information de croissance : le service borne lui-même chaque personne (quota de stockage) et refuse d\'écrire sous son plancher de disque (503), aucune alarme horaire n\'ajouterait une décision',
   'pieces.octets': 'l\'espace pris par les pièces grandit avec l\'usage : il est borné par personne (quota) et par le plancher de disque du service, qui refuse d\'écrire plutôt que de priver OP GESTION — un total n\'a pas de seuil qui ait un sens'
 };
@@ -64,6 +68,7 @@ const SEUIL_STRIPE_MIN = 90;     // la règle d'OP GESTION : la surveillance cri
 const SEUIL_SMS_PCT = 80;        // le budget du jour ou de l'heure consommé à 80 % : on regarde avant la coupure
 const SEUIL_SMS_EUR = 12;        // le coût réel d'une journée au-delà duquel on crie (le budget par défaut est de 20 €) ; OPMSG_SMS_SEUIL_EUR le change
 const SEUIL_SMS_ECHECS = 3;      // trois envois de suite refusés ou perdus par OVH
+const SEUIL_PUSH_ECHECS = 20;    // vingt échecs d'envoi push en 24 h ET plus d'échecs que de livraisons : un appareil qui disparaît (404, 410) n'est pas un échec, c'est le fonctionnement normal
 
 /* beta ou prod, d'après le domaine interrogé — pour comparer à ce que le service dit de lui-même. */
 function instanceDe(url) {
@@ -119,6 +124,12 @@ function evaluer(j, instanceAttendue) {
     }
     if (typeof j.pieces.effacementsRates === 'number' && j.pieces.effacementsRates >= SEUIL_EFFACEMENTS) {
       p.push(j.pieces.effacementsRates + ' fichier(s) de pièce non effacé(s) depuis le démarrage — des fichiers restent sur le disque : droits ou disque ?');
+    }
+  }
+  if (j.push && typeof j.push === 'object') {
+    if (j.push.actif === false) p.push('les notifications push sont désactivées (la paire de clés VAPID est illisible) — personne ne reçoit plus rien hors de l\'application');
+    if (typeof j.push.echecs24h === 'number' && typeof j.push.envoyes24h === 'number' && j.push.echecs24h >= SEUIL_PUSH_ECHECS && j.push.echecs24h > j.push.envoyes24h) {
+      p.push('push : ' + j.push.echecs24h + ' échecs d\'envoi contre ' + j.push.envoyes24h + ' livraisons en 24 h — les services push refusent nos envois ou ne répondent plus');
     }
   }
   if (j.porte && typeof j.porte === 'object' && typeof j.porte.relecturesEchec === 'number' && j.porte.relecturesEchec > SEUIL_RELECTURES) {

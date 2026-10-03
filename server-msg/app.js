@@ -26,6 +26,8 @@ const { creerHandlers, ID_CONV } = require('./routes');
 const { cleReseau } = require('./quotas');
 const { installerTelephone, appareilToucherDe, SESSION_TEL_MS } = require('./telephone');
 const { installerPieces } = require('./routes-pieces');
+const { installerPush } = require('./routes-push');
+const { installerCompte } = require('./compte');
 const { ID_PIECE } = require('./pieces');
 
 const NOM_ENTETE = 'x-opm';
@@ -44,7 +46,11 @@ function construireApp(ctx) {
   /* ⛔ TOUT CE QUI SORT DE `/api/pieces*` PORTE LA `sandbox`, erreurs et refus compris (relecture du gardien, remarque 1). La pièce qu'on sert (`routes-pieces.js`) la posait déjà ; mais un
      refus de la garde, du plafond ou du routeur répondait avec la politique de la PAGE (`script-src 'self'`) : le préfixe entier est un endroit où l'on ne veut jamais qu'une réponse, ouverte
      à la main dans un onglet, exécute quoi que ce soit. Le routeur d'Express ne distingue pas la casse (`/API/PIECES/…` répond) : le motif non plus. */
-  const CSP_PAGE = "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
+  /* ⛔ `worker-src` et `manifest-src` sont DITS, pas devinés. Les notifications ont besoin de deux choses que `default-src 'none'` refuserait en silence : le SERVICE WORKER (`/sw.js`, qui reçoit
+     le push quand la page est fermée) — `worker-src` retombe sur `child-src`, puis sur `script-src 'self'`, donc il passerait, mais une règle qu'on n'écrit pas est une règle qu'un
+     resserrement futur de `script-src` retirera sans le vouloir ; et le MANIFESTE (`/manifest.webmanifest`, sans lequel un iPhone n'accorde pas les notifications à une page « ajoutée à l'écran
+     d'accueil ») — `manifest-src` ne retombe QUE sur `default-src 'none'` : sans cette ligne le navigateur refuse de le lire, sans une erreur visible. Les deux sont `'self'` : jamais un autre domaine. */
+  const CSP_PAGE = "default-src 'none'; script-src 'self'; worker-src 'self'; manifest-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
   const CSP_PIECE = "sandbox; default-src 'none'";
   app.use((req, res, next) => {
     res.set({
@@ -102,7 +108,8 @@ function construireApp(ctx) {
 
   /* ── Plancher d'espace disque : les écritures refusent, la lecture continue ───────────── */
   app.use((req, res, next) => {
-    if (req.method !== 'GET' && req.method !== 'HEAD' && ctx.disque.bas() && req.path !== '/api/compte/deconnexion') return refus(res, 503, 'disque_plein');
+    /* ⛔ trois gestes passent sous le plancher : se déconnecter, supprimer son compte (il LIBÈRE de la place, et c'est un droit) et acquitter un événement (rien n'est écrit : la mémoire seulement) */
+    if (req.method !== 'GET' && req.method !== 'HEAD' && ctx.disque.bas() && !/^\/api\/(compte\/(deconnexion|supprimer)|flux\/ack)\/?$/i.test(req.path)) return refus(res, 503, 'disque_plein');
     next();
   });
 
@@ -153,6 +160,8 @@ function construireApp(ctx) {
   H['health'] = (req, res) => res.json(ctx.sante());
   installerTelephone(H, ctx);   // le compte PERSO par numéro : ses gestionnaires et la déconnexion qui coupe aussi le jeton d'appareil
   installerPieces(H, ctx);      // les pièces : déposer, lire, photo de profil, espace utilisé
+  installerPush(H, ctx);        // les notifications : abonner, désabonner, essai, acquitter
+  installerCompte(H, ctx);      // le compte : exporter ses données, supprimer son compte
   /* Les écritures authentifiées ont un plafond propre, par compte (en plus de celui de l'adresse). */
   const limiteEcriture = (req, res, next) => {
     const q = Object.assign({ max: 300, fenetreMs: 60000 }, config.quotas.ecriture || {});

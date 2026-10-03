@@ -24,7 +24,15 @@
 'use strict';
 
 /* genre → (stockage, entree, contexte) => void. VIDE tant qu'aucun genre n'a besoin du service : le mécanisme est en place, le premier usage l'attend. */
-const GENRES_SERVICE = {};
+const GENRES_SERVICE = {
+  /* Un compte effacé (`compteEffacer`, au bout de ses quatorze jours) : l'identité, les contacts, les appareils, les abonnements push, la photo et les pièces jamais envoyées. La copie
+     restaurée peut dater d'avant l'échéance, ou d'avant la demande : on refait l'effacement sans regarder l'échéance (`rejeu: true`). Les FICHIERS des pièces retirées partent par
+     `effacerPieces`. Déjà effacé (ou jamais présent dans cette copie) : rien à faire. */
+  compte: (stockage, e, contexte) => {
+    const r = stockage.compteEffacer(String(e.objet), { rejeu: true });
+    if (r && r.effacee && r.pieces && r.pieces.length && typeof contexte.effacerPieces === 'function') contexte.effacerPieces(r.pieces);
+  },
+};
 
 /* Rejoue, au démarrage, le registre de la base restaurée — seulement quand l'outil de restauration a levé le drapeau. Rend le bilan { fait, rejouees, echecs } ; ne lève
    jamais (un rejeu raté ne doit pas empêcher le service de servir ce qu'il peut) : l'échec se DIT au journal et laisse le drapeau levé pour le démarrage suivant. */

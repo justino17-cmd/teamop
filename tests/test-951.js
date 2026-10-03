@@ -691,7 +691,7 @@ print(json.dumps({'sortie': out.decode('utf8', 'replace'), 'statut': statut}))
 
       /* ── Le MODE D'EMPLOI de Justin dit ce que le code fait : un guide qui cite un écran qui n'existe plus est pire que pas de guide ── */
       const guide = fs.readFileSync(path.join(O.RACINE, 'design', 'opmessages', 'INSTALLER-LE-SERVEUR.md'), 'utf8');
-      const iDeb = guide.indexOf('## 10 ter.'), iFin = guide.indexOf('## 11.');
+      const iDeb = guide.indexOf('## 10 ter.'), iFin = guide.indexOf('\n## ', iDeb + 1);   // jusqu'au titre suivant (« 10 quater », les notifications, est venu s'intercaler)
       const sect = iDeb > 0 && iFin > iDeb ? guide.slice(iDeb, iFin) : '';
       vrai('population : la section « 10 ter » du guide est trouvée (' + sect.length + ' caractères)', sect.length > 4000);
       const scripts = [...sect.matchAll(/node \/opt\/opmsg\/beta\/current\/(\S+)/g)].map(m => m[1]);

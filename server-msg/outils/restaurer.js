@@ -350,7 +350,7 @@ async function essai(ctx, { date, echantillon = 20, sansPurge }, dire) {
     const reg = await registreDePurge(ctx, arch.archives, cible, base, dossier, { sansPurge, aide: AIDE_ESSAI }, dire);
     direRegistre(reg, dire);
     const p = ouvrir.copie.rejouerPurge(base, reg.registre);
-    dire('  purge rejouée : ' + p.lues + ' ligne(s) lue(s), ' + p.messagesRetires + ' message(s) retiré(s), ' + p.messagesBlanchis + ' effacé(s) pour tous, ' + p.conversationsRetirees + ' conversation(s), ' + p.appareilsRetires + ' appareil(s), ' + p.pieces.length + ' pièce(s), ' + p.ignorees + ' ignorée(s).');
+    dire('  purge rejouée : ' + p.lues + ' ligne(s) lue(s), ' + p.messagesRetires + ' message(s) retiré(s), ' + p.messagesBlanchis + ' effacé(s) pour tous, ' + p.conversationsRetirees + ' conversation(s), ' + p.appareilsRetires + ' appareil(s), ' + p.pieces.length + ' pièce(s), ' + (p.auService || 0) + ' rejouée(s) par le service au démarrage, ' + p.ignorees + ' ignorée(s).');
     const ap = ouvrir.copie.apresRestauration(base);
     dire('  sessions retirées : ' + ap.sessions + ' (une session révoquée depuis l\'archive ne doit pas revenir : chacun se reconnecte ; les appareils liés, eux, restent). Le service rejouera au démarrage les genres de purge qui sont à lui.');
 

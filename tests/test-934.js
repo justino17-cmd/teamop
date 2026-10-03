@@ -70,6 +70,20 @@ vrai('⛔ aucun problème ne contient d\'identifiant, d\'adresse ni de corps : s
 v('instanceDe : msg-beta → beta, msg → prod, un autre domaine → rien',
   [S.instanceDe('https://msg-beta.teamop.fr/health'), S.instanceDe('https://msg.teamop.fr/health'), S.instanceDe('https://exemple.fr/health')], ['beta', 'prod', null]);
 
+/* ══ 1 bis. LES NOTIFICATIONS PUSH (/health.push) ═══════════════════════════════════════════════════════════════════════════════════ */
+{
+  const PUSH_SAIN = { actif: true, abonnements: 3, envoyes24h: 120, echecs24h: 4 };
+  v('un /health avec des notifications push saines ne fait rien crier', S.evaluer(Object.assign({}, SAIN, { push: PUSH_SAIN }), 'beta'), []);
+  vrai('⛔ un push désactivé (paire VAPID illisible) crie', S.evaluer(Object.assign({}, SAIN, { push: Object.assign({}, PUSH_SAIN, { actif: false }) }), 'beta').some(p => /notifications push sont désactivées/.test(p)));
+  vrai('⛔ vingt échecs d\'envoi pour moins de livraisons crient', S.evaluer(Object.assign({}, SAIN, { push: { actif: true, abonnements: 3, envoyes24h: 5, echecs24h: 40 } }), 'beta').some(p => /40 échecs d'envoi contre 5 livraisons/.test(p)));
+  v('   mais pas sous le seuil de volume (trois échecs sur un seul envoi : un hasard)', S.evaluer(Object.assign({}, SAIN, { push: { actif: true, abonnements: 1, envoyes24h: 1, echecs24h: 3 } }), 'beta'), []);
+  v('   ni quand les livraisons l\'emportent (40 échecs, 500 livraisons)', S.evaluer(Object.assign({}, SAIN, { push: { actif: true, abonnements: 9, envoyes24h: 500, echecs24h: 40 } }), 'beta'), []);
+  v('   et un /health sans la clé « push » (un service d\'avant) ne crie pas', S.evaluer(SAIN, 'beta'), []);
+  vrai('⛔ aucun problème ne contient de point d\'accès ni de clé : seulement des nombres', S.evaluer(Object.assign({}, SAIN, { push: { actif: false, abonnements: 3, envoyes24h: 1, echecs24h: 99, endpoint: 'https://fcm.googleapis.com/x', cle: 'SECRETZXQ' } }), 'beta').every(p => !/fcm|SECRETZXQ/.test(p)));
+  /* le /health sain d'exemple porte désormais le champ « push » : chaque feuille doit être surveillée ou nommée (la boucle de la section 2 le contrôle) */
+  Object.assign(SAIN, { push: PUSH_SAIN });
+}
+
 /* ══ 2. CHAQUE CHAMP EST LU PAR LE CODE (ou nommé) — sur le CHEMIN COMPLET, dans le CODE ═══════════════ */
 const lecture = (chemin) => 'j.' + chemin;
 vrai('la liste des champs surveillés est peuplée (population avant verdict)', S.CHAMPS_SURVEILLES.length >= 5);
