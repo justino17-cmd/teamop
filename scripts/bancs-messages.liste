@@ -23,7 +23,8 @@
 # 2 octobre 2026 (la sauvegarde hors site, étape 3 : test-950 le module, test-951 le vrai service, un faux coffre S3 et les outils de Justin) : 28 suites, 2 913 vérifications mesurées — plancher 2905.
 # (2 928 avant que test-950 agrège ses essais de copie sous charge : quinze contrôles redondants de moins, trois cas de plus — le plancher suit le total MESURÉ.)
 # 2 octobre 2026, les deux réunis (pièces + sauvegarde, la sauvegarde comptant désormais les pièces) : 31 suites, 3 390 vérifications mesurées par la commande de la porte — plancher 3380.
-#plancher 3380
+# 3 octobre 2026, après la relecture adverse de la sauvegarde (B2, A1 à A5, remarques : restauration depuis une archive plus ancienne, arriéré de pièces, horloge, registre des purges et rejeu par le service, mémoire bornée) : 31 suites, 3 499 vérifications mesurées par la commande de la porte (310 s) — plancher 3490.
+#plancher 3490
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
