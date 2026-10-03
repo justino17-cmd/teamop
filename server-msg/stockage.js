@@ -530,6 +530,29 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function contactEtat(a, b, etat) {
     return num(Q('UPDATE contact SET etat = ? WHERE de = ? AND vers = ?').run(etat, a, b).changes);
   }
+  /* ⛔ BLOQUER, y compris quelqu'un qu'on n'a pas en contact. Des collègues d'un espace s'écrivent sans consentement (« Contacts de l'entreprise », `peutEcrire`) : sans un moyen de
+     les bloquer, celui qui harcèle un collègue ne s'arrêterait jamais — `contactEtat` ne sait que changer une ligne qui existe. La ligne de blocage est donc CRÉÉE quand elle manque, pour
+     qui on voit déjà seulement (`peutVoir` : un contact, une conversation ou un espace en commun) : on ne bloque pas un inconnu, et la réponse reste « introuvable ». */
+  function contactBloquer(a, b) {
+    return tx(() => {
+      if (a === b) return 0;
+      if (num(Q('UPDATE contact SET etat = ? WHERE de = ? AND vers = ?').run('bloque', a, b).changes)) return 1;
+      if (!peutVoir(a, b)) return 0;
+      Q('INSERT OR IGNORE INTO contact(de, vers, etat, depuis) VALUES(?, ?, ?, ?)').run(a, b, 'bloque', horloge());
+      return 1;
+    });
+  }
+  /* Débloquer : l'autre a encore sa ligne → la relation redevient mutuelle ; il ne l'a plus (retirée entre-temps) ou n'en a jamais eu (un collègue qu'on n'avait pas en contact) → la ligne de
+     blocage disparaît avec le blocage, elle ne reste pas comme un « contact à moitié ». → faux si rien n'était bloqué. */
+  function contactDebloquer(a, b) {
+    return tx(() => {
+      const l = Q('SELECT etat FROM contact WHERE de = ? AND vers = ?').get(a, b);
+      if (!l || l.etat !== 'bloque') return false;
+      if (Q('SELECT 1 AS x FROM contact WHERE de = ? AND vers = ?').get(b, a)) Q('UPDATE contact SET etat = ? WHERE de = ? AND vers = ?').run('ok', a, b);
+      else Q('DELETE FROM contact WHERE de = ? AND vers = ?').run(a, b);
+      return true;
+    });
+  }
   function contactLigne(a, b) { return Q('SELECT etat FROM contact WHERE de = ? AND vers = ?').get(a, b) || null; }
   /* Deux personnes qui partagent un ESPACE (des collègues). Ce n'est pas un contact : c'est ce qui leur permet de se trouver dans « Contacts de l'entreprise » et de s'écrire. */
   function collegues(a, b) {
@@ -2099,7 +2122,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     schema, instantane, sonde, fermer, tx, stats, metaLire, nouvelId, illisibles: () => illisibles,
     personneCreer, personneParIdentifiant, personneParId, personneIdentifiant, personneMaj,
     sessionAjouter, sessionLire, sessionToucher, sessionSupprimer, sessionsSupprimerPersonne, sessionsSupprimerAutres, sessionsBetaActives,
-    contactLier, contactBloque, contactActif, contactsDe, contactsActifs, contactRetirer, contactEtat, contactLigne, peutVoir,
+    contactLier, contactBloque, contactActif, contactsDe, contactsActifs, contactRetirer, contactEtat, contactBloquer, contactDebloquer, contactLigne, peutVoir,
     lienCreer, lienValide, lienApercu, lienAccepter, liensRevoquerGroupe, liensRevoquerContact,
     collegues, peutEcrire,
     espaceCreer, espaceBrut, espacePourMembre, espacesDe, espacesIds, espaceMembres, espaceMembresN, espaceMaj, espaceMembreRetirer, espaceRoleMembre, espaceTransferer, espaceSupprimer, espaceQuitterTout, espacesAbonnesSeul, exportEspaces,

@@ -109,10 +109,10 @@
       this.name = 'ErreurApi'; this.code = code; this.statut = statut || 0; this.retry = retry || 0;
       /* le maximum d'une pièce (octets), quand le service le dit (413) : l'écran écrit « 12 Mo au plus » */
       this.max = extra && Number.isInteger(extra.max) ? extra.max : 0;
-      /* ce que le service ajoute à un refus d'ABONNEMENT : POURQUOI une fonction Pro refuse (`impaye` | `aucun`, que le seul administrateur reçoit), le lien du portail de facturation
-         (`abonnement_existant`), les places et les membres (`places_epuisees`), le minimum de places (`places_invalides`). Chacun est lu avec son type : un champ qui n'a pas la forme attendue
-         n'existe pas. Le lien du portail n'est gardé que s'il est en https — l'écran l'ouvre, il n'ouvre pas n'importe quoi. */
-      this.raison = extra && (extra.raison === 'impaye' || extra.raison === 'aucun') ? extra.raison : '';
+      /* ce que le service ajoute à un refus d'ABONNEMENT : POURQUOI une fonction Pro refuse (`impaye` : le paiement est en retard ; `perso` : l'espace n'a pas d'abonnement — que le seul
+         administrateur reçoit), le lien du portail de facturation (`abonnement_existant`), les places et les membres (`places_epuisees`), le minimum de places (`places_invalides`). Chacun est lu
+         avec son type : un champ qui n'a pas la forme attendue n'existe pas. Le lien du portail n'est gardé que s'il est en https — l'écran l'ouvre, il n'ouvre pas n'importe quoi. */
+      this.raison = extra && (extra.raison === 'impaye' || extra.raison === 'perso') ? extra.raison : '';
       this.portail = extra && typeof extra.portail === 'string' && /^https:\/\/[^\s]{4,2000}$/.test(extra.portail) ? extra.portail : '';
       this.places = extra && Number.isInteger(extra.places) ? extra.places : 0;
       this.membres = extra && Number.isInteger(extra.membres) ? extra.membres : 0;

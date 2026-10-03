@@ -264,14 +264,13 @@ function creerHandlers(ctx) {
   };
   H['contacts.bloquer'] = (req, res) => {
     const u = cibleContact(req, res); if (!u) return;
-    if (!stockage.contactEtat(req.moi.id, u, 'bloque')) return refus(res, 404, 'introuvable');
+    /* un contact, ou quelqu'un qu'on voit sans l'avoir en contact (un collègue d'un espace, un membre d'un groupe) : la ligne de blocage est créée si elle manque — un inconnu reste « introuvable » */
+    if (!stockage.contactBloquer(req.moi.id, u)) return refus(res, 404, 'introuvable');
     res.json({ ok: true });
   };
   H['contacts.debloquer'] = (req, res) => {
     const u = cibleContact(req, res); if (!u) return;
-    const l = stockage.contactLigne(req.moi.id, u);
-    if (!l || l.etat !== 'bloque') return refus(res, 404, 'introuvable');
-    stockage.contactEtat(req.moi.id, u, 'ok');
+    if (!stockage.contactDebloquer(req.moi.id, u)) return refus(res, 404, 'introuvable');
     res.json({ ok: true });
   };
 
