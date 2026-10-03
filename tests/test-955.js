@@ -523,6 +523,29 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     v('⛔ ... et l\'HEURE aussi : cinq refus espacés de 12 minutes depuis la livraison ne suffisent pas, la série a recommencé à zéro (sinon l\'ancien premier refus, vieux de deux heures, retirerait tout de suite)', [nb(), echecs()], [1, 5]);
     await un();
     v('   le sixième, plus d\'une heure après le premier refus de la NOUVELLE série : retiré', nb(), 0);
+    /* deux refus espacés de DEUX heures : la durée seule ne retire pas, il en faut cinq de suite */
+    m.abonne(bo.id);
+    m.reponse.statut = 400;
+    await un(); m.h.t += 2 * 3600000; await un();
+    v('⛔ deux refus espacés de DEUX HEURES ne retirent pas : il en faut CINQ de suite, la durée seule ne suffit pas', [nb(), echecs()], [1, 2]);
+    /* la page redit son abonnement à chaque ouverture : le compte du magasin repart à zéro, et l'heure du premier refus avec lui */
+    m.S.pushSupprimerPersonne(bo.id);
+    {
+      const app = m.abonne(bo.id);
+      m.reponse.statut = 400;
+      for (let i = 1; i <= 4; i++) await un();                  // quatre refus : le premier date de maintenant
+      m.h.t += 2 * 3600000;
+      m.push.abonner(bo.id, app.sub);                           // la page redit son abonnement (même point d'accès) : le compte repart à zéro
+      for (let i = 1; i <= 5; i++) await un();                  // cinq refus de la NOUVELLE série, le même instant
+      v('⛔ la page qui redit son abonnement (chaque ouverture) remet la série à zéro : le premier refus d\'après ouvre une série NEUVE, ce n\'est pas le cinquième d\'une série vieille de deux heures', [nb(), echecs()], [1, 5]);
+    }
+    /* des clés qui ne chiffrent RIEN : l'échec est celui de cet appareil — un refus de plus, et rien ne part */
+    m.S.pushSupprimerPersonne(bo.id);
+    m.S.pushPoser({ uid: bo.id, endpoint: 'https://fcm.googleapis.com/fcm/send/cles-fausses' + alea(), p256dh: 'AAAA', auth: 'BBBB' });
+    m.envois.length = 0; m.reponse.statut = 201;
+    await un();
+    v('un abonnement dont les clés ne chiffrent RIEN : l\'échec est le sien, compté comme un refus — et aucun octet n\'est parti', [nb(), echecs(), m.envois.length], [1, 1, 0]);
+    m.S.pushSupprimerPersonne(bo.id);
     m.reponse.statut = 201;
 
     /* la liste blanche est RE-VÉRIFIÉE à l'envoi : une ligne ancienne, ou une liste resserrée depuis */

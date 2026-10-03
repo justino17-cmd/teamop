@@ -32,9 +32,9 @@ const F = {
   push: 'server-msg/push.js', rpush: 'server-msg/routes-push.js', compte: 'server-msg/compte.js', stock: 'server-msg/stockage.js', routes: 'server-msg/routes.js',
   tel: 'server-msg/telephone.js', index: 'server-msg/index.js', conf: 'server-msg/config.js', app: 'server-msg/app.js', man: 'server-msg/manifeste.js',
   src: 'server-msg/public/source-serveur.js', api: 'server-msg/public/api.js', sw: 'server-msg/public/sw.js', man_pwa: 'server-msg/public/manifest.webmanifest',
-  gen: 'scripts/opmsg-public.js', page: 'apercu/opmessages/index.html', rejeu: 'server-msg/rejeu.js', rest: 'server-msg/outils/restaurer.js',
+  gen: 'scripts/opmsg-public.js', page: 'apercu/opmessages/index.html', rejeu: 'server-msg/rejeu.js', rest: 'server-msg/outils/restaurer.js', surv: '.github/scripts/surveillance-messages.js',
 };
-const BANCS = ['905', '941', '950', '951', '955', '956', '957', '958', 'sonde'];
+const BANCS = ['905', '934', '941', '950', '951', '955', '956', '957', '958', 'sonde'];
 const MUTATIONS = [];
 /* m(id, nom, fichier, ancien, nouveau, suites) — `ancien` : une chaîne, ou une expression régulière (une seule occurrence, `$1` permis dans `nouveau`) */
 const m = (id, nom, fichier, ancien, nouveau, suites, o) => MUTATIONS.push(Object.assign({ id, nom, edits: [[fichier, ancien, nouveau]], suites }, o || {}));
@@ -123,12 +123,12 @@ m2('V02', 'la première paire VAPID ne gagne plus : une paire neuve est fabriqu�
 
 /* ══ 5. LES ABONNEMENTS — un appareil, une personne ; ce qui part avec l'accès ; ce que le service push dit ═══════════════════════════════════════════════════ */
 m('S01', 'on peut retirer l\'abonnement D\'UNE AUTRE personne (le propriétaire n\'est plus vérifié)', F.stock, "'DELETE FROM push WHERE endpoint_h = ? AND uid = ?'", "'DELETE FROM push WHERE endpoint_h = ? AND ? IS NOT NULL'", ['956']);
-m('S02', 'un 404 du service push ne retire plus l\'abonnement (seul le 410 le fait)', F.push, 'if (r.statut === 404 || r.statut === 410) {', 'if (r.statut === 410) {', ['955', '956']);
-m('S03', 'un 410 du service push ne retire plus l\'abonnement (l\'appareil disparu est réessayé indéfiniment)', F.push, 'if (r.statut === 404 || r.statut === 410) {', 'if (r.statut === 404) {', ['955', '956']);
-m('S04', 'les échecs ne se comptent jamais : un service push qui ne répond plus garde l\'abonnement pour toujours', F.push,
-  "    compter('echecs');\n    return { ok: false, retire: stockage.pushEchec(abo.id, pc.echecsMax).retire };", "    compter('echecs');\n    return { ok: false, retire: false };", ['955']);
+m('S02', 'un 404 du service push ne retire plus l\'abonnement (seul le 410 le fait)', F.push, 'if (s === 404 || s === 410) {', 'if (s === 410) {', ['955', '956']);
+m('S03', 'un 410 du service push ne retire plus l\'abonnement (l\'appareil disparu est réessayé indéfiniment)', F.push, 'if (s === 404 || s === 410) {', 'if (s === 404) {', ['955', '956']);
+m('S04', 'les refus du service ne se comptent jamais : un service push qui refuse toujours le même abonnement le garde pour toujours', F.push,
+  "if (s >= 400 && s < 500 && s !== 429) return refus(abo);", "if (s >= 400 && s < 500 && s !== 429) return { ok: false, retire: false };", ['955', '956']);
 m('S05', 'un envoi réussi ne remet pas le compteur d\'échecs à zéro (cinq échecs ESPACÉS retirent un appareil qui marche)', F.push, "stockage.pushOk(abo.id); compter('envoyes');", "compter('envoyes');", ['955']);
-m('S06', 'un seul échec retire l\'abonnement (le seuil de cinq de suite est perdu)', F.stock, 'if (r.echecs + 1 >= max) {', 'if (true) {', ['955', '956']);
+m('S06', 'le nombre de refus de suite ne compte plus (seule la durée retire : deux refus espacés de deux heures suffisent)', F.push, 'n >= pc.echecsMax && ', '', ['955', '956']);
 m('S07', 'le plafond de dix appareils par personne n\'est plus tenu', F.stock,
   "const retires = num(Q('DELETE FROM push WHERE uid = ? AND id NOT IN (SELECT id FROM push WHERE uid = ? ORDER BY cree DESC, id DESC LIMIT ?)').run(uid, uid, max).changes);", 'const retires = 0;', ['955', '956']);
 m('S08', 'un appareil ne suit plus son dernier utilisateur : un point d\'accès déjà inscrit pour quelqu\'un d\'autre lui reste (les notifications de l\'ancien propriétaire arrivent sur le téléphone du nouveau)',
@@ -334,6 +334,25 @@ m('J11', 'la relecture des accès bêta relit aussi les comptes qui ne sont pas 
   "WHERE p.origine = 'beta'", "WHERE 1 = 1", ['955']);
 m('J12', 'le balayeur du service n\'appelle plus le retrait des abonnements d\'une personne injoignable (la fonction existe, personne ne la lance)', F.index,
   "        const retires = stockage.pushNonJoignablesPurger(APPAREIL_ABS_MS);\n        if (retires) journaliser('push_elagage', { n: retires });\n", '', ['956']);
+
+/* ══ 13. CE QUI RETIRE UN ABONNEMENT, ET CE QUI NE LE RETIRE JAMAIS (I2) — `test-955` (le module : les statuts, la durée, la série), `test-956` (le vrai service), `test-934` (la surveillance) ═════════════ */
+const REFUS_4XX = "if (s >= 400 && s < 500 && s !== 429) return refus(abo);";
+m('K01', 'une réponse 5xx compte comme un refus de l\'abonnement (une panne du service push le retire au bout de cinq)', F.push, REFUS_4XX, "if (s >= 400 && s < 600 && s !== 429) return refus(abo);", ['955']);
+m('K02', 'un 429 (« réessaie plus tard ») compte comme un refus de l\'abonnement', F.push, REFUS_4XX, "if (s >= 400 && s < 500) return refus(abo);", ['955']);
+m('K03', 'une panne de notre réseau (statut 0 : le transport lève, le délai passe) compte comme un refus de l\'abonnement', F.push, REFUS_4XX, "if ((s >= 400 && s < 500 && s !== 429) || s === 0) return refus(abo);", ['955', '956']);
+m('K04', 'un 401/403 (nos clés refusées) n\'est plus traité à part : il compte comme n\'importe quel 4xx et finit par retirer l\'abonnement', F.push,
+  "    if (s === 401 || s === 403) { compter('refuses'); return { ok: false, retire: false }; }\n", '', ['955', '956']);
+m('K05', 'un refus de nos clés (401/403) n\'est plus compté pour la surveillance (`refuses24h` reste à zéro)', F.push, "compter('refuses'); return", "return", ['955', '956']);
+m('K06', 'la durée de la série ne compte plus (cinq refus le même instant retirent l\'abonnement)', F.push, ' && t - serie.premier >= pc.etalementMs', '', ['955', '956']);
+m('K07', 'une livraison ne remet pas à zéro l\'heure du premier refus (cinq refus espacés de 12 minutes retirent à cause d\'une série d\'avant la livraison)', F.push,
+  "series.delete(abo.id); stockage.pushOk(abo.id); compter('envoyes');", "stockage.pushOk(abo.id); compter('envoyes');", ['955']);
+m('K08', 'un abonnement qui se redit (la page, à chaque ouverture) ne remet pas l\'heure du premier refus à zéro : le premier refus d\'après passe pour le cinquième d\'une série vieille', F.push,
+  "if (!serie || n <= 1) {", "if (!serie) {", ['955']);
+m('K09', 'des clés qui ne chiffrent rien ne comptent plus comme un refus de cet appareil (elles échouent pour toujours, sans jamais le retirer)', F.push,
+  "compter('echecs'); return refus(abo); }   // les clés de CET appareil ne chiffrent rien : le refus est le sien", "compter('echecs'); return { ok: false, retire: false }; }", ['955']);
+m('K10', 'l\'étalement par défaut est de zéro (la durée ne retient plus rien en production : le banc le règle, pas le défaut)', F.conf, "echecsMax: 5, etalementMs: 3600000,", "echecsMax: 5, etalementMs: 0,", ['955']);
+m('K11', 'la surveillance ne crie plus sur trois refus de nos clés (le seuil tombe à zéro : deux refus isolés crient)', F.surv, "j.push.refuses24h >= SEUIL_PUSH_REFUS &&", "j.push.refuses24h >= 0 &&", ['934']);
+m('K12', 'la surveillance crie sur des refus de nos clés même quand les livraisons l\'emportent (un ancien abonnement parmi des centaines de livraisons)', F.surv, " && j.push.refuses24h >= j.push.envoyes24h", "", ['934']);
 
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const DOSSIERS_COPIE = ['server-msg', 'design/opmessages', '.github/scripts', 'apercu/opmessages', 'icons', 'scripts'];
