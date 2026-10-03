@@ -92,8 +92,20 @@ function creerHandlers(ctx) {
     return { conversation, membres, moi: r.moi };
   }
   const nomAffiche = (p) => (p.prenom + ' ' + p.nom).trim() || 'Quelqu\'un';
+  /* ⛔ Ce qui part en notification PUSH, parmi les notifications de l'application : un ajout à un groupe et un nouveau contact. Une mention n'en fait pas : le message qui la porte part déjà. La
+     charge est MINIMALE (« Vous avez été ajouté à un groupe ») ; le nom du groupe et de celui qui l'a ajouté ne partent que pour qui a activé l'aperçu (`push.js`). */
+  function chargePush(type, titre, texte, cible) {
+    if (type === 'groupe_ajoute') return { type: 'groupe', tag: 'groupe:' + cible, url: ID_CONV.test(String(cible)) ? '/#messages/' + cible : '/', titre: 'OP MESSAGES', corps: 'Vous avez été ajouté à un groupe', detail: { titre, corps: texte } };
+    if (type === 'contact_ajoute') return { type: 'contact', tag: 'contact', url: '/', titre: 'OP MESSAGES', corps: 'Nouveau contact', detail: { titre: 'Nouveau contact', corps: texte } };
+    return null;
+  }
   function notifier(uid, type, titre, texte, cible) {
-    try { stockage.notifCreer({ uid, type, titre, texte, cible }); hub.reveiller({ uids: [uid] }); } catch (e) { /* une notification ratée ne défait pas le geste */ }
+    try {
+      const n = stockage.notifCreer({ uid, type, titre, texte, cible });
+      hub.reveiller({ uids: [uid] });
+      const c = ctx.push ? chargePush(type, titre, texte, cible) : null;
+      if (c) ctx.push.pousser(uid, c, { gid: n.gid });
+    } catch (e) { /* une notification ratée ne défait pas le geste */ }
   }
   const codeLien = () => crypto.randomBytes(16).toString('base64url');
   const bornes = (b, defMax, defJours, maxMax) => {
@@ -111,6 +123,8 @@ function creerHandlers(ctx) {
       /* les maximums des pièces, en octets : la page les lit pour refuser AVANT d'envoyer (« trop lourd, 12 Mo au plus ») au lieu de laisser le service répondre 413 */
       pieces: { photo_max: config.pieces.photoMax, vocal_max: config.pieces.vocalMax, fichier_max: config.pieces.fichierMax, avatar_max: config.pieces.avatarMax, par_message: PHOTOS_MAX, quota: config.pieces.quotaPersonne },
     },
+    /* la clé publique VAPID de CETTE instance (la page s'abonne avec elle) ; `null` quand le push est désactivé (paire illisible) — la page dit alors « indisponible » */
+    push: { vapid: ctx.push ? ctx.push.cle() : null },
   });
 
   H['beta.entrer'] = async (req, res) => {
@@ -118,8 +132,10 @@ function creerHandlers(ctx) {
     const r = await porte.entrer({ login: b.login, pass: b.pass, ip: req.ip });
     if (r.retry) res.set('Retry-After', String(r.retry));
     if (r.statut !== 200) return res.status(r.statut).json(r.corps);
+    /* ⛔ SE RECONNECTER AVANT L'ÉCHÉANCE ANNULE LA SUPPRESSION du compte (décidée par la personne, J+14) : la connexion qui réussit le DIT (`suppression_annulee`), la page l'écrit */
+    const annulee = stockage.suppressionAnnuler(r.personne.id);
     ouvrirSession(res, r.personne.id, b.appareil);
-    res.json({ ok: true, moi: r.personne });
+    res.json(annulee ? { ok: true, moi: r.personne, suppression_annulee: true } : { ok: true, moi: r.personne });
   };
 
   H['compte.deconnexion'] = (req, res) => {
@@ -462,6 +478,8 @@ function creerHandlers(ctx) {
       if (repondA === null || repondA < 1) return refus(res, 400, 'champ_invalide');
       if (repondA < req.conv.moi.depuis_seq || !stockage.messageExiste(conv.id, repondA)) return refus(res, 404, 'message_inconnu');
     }
+    /* Écrire à un compte SUPPRIMÉ : on le DIT (410), au lieu d'un « introuvable » qui ferait croire à une panne — la page montrait déjà « Compte supprimé » */
+    if (conv.type === 'direct' && stockage.autreSupprime(conv.id, req.moi.id)) return refus(res, 410, 'compte_supprime');
     /* Une directe n'accepte plus d'écriture sans contact mutuel ni dans un blocage. */
     if (!stockage.ecritureAutorisee(conv.id, req.moi.id)) return refus(res, 404, 'introuvable');
     if (conv.type === 'groupe' && conv.annonces_seules && req.conv.moi.role !== 'admin') return refus(res, 403, 'annonces_seules');
@@ -469,6 +487,8 @@ function creerHandlers(ctx) {
     const r = stockage.messageEnvoyer({ conv: conv.id, auteur: req.moi.id, cid: b.cid, type, texte, repondA, pieces: pj && pj.pieces, vocal: pj && pj.vocal });
     if (r.deja) return res.status(200).json({ deja: true, seq: r.seq, ts: r.ts, id: r.id });
     hub.reveiller({ conv: conv.id });
+    /* ⛔ LA NOTIFICATION PUSH suit le message : aux membres qui ont un appareil abonné, sans l'auteur, sans les conversations en sourdine ; elle attend l'acquittement d'une page ouverte (`push.js`) */
+    try { if (ctx.push) ctx.push.message({ conv: conv.id, seq: r.seq, gid: r.gid, auteur: req.moi.id, nomAuteur: nomAffiche(req.moi), nomConv: conv.nom, groupe: conv.type !== 'direct', type, texte }); } catch (e) { /* une notification ratée ne défait pas l'envoi */ }
     if (Array.isArray(b.mentions)) {
       const membres = new Set(stockage.membresActifs(conv.id));
       for (const u of Array.from(new Set(b.mentions.slice(0, 20)))) {

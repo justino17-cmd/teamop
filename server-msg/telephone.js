@@ -124,7 +124,8 @@ function creerTelephone(ctx) {
     if (vu && APPAREIL_RE.test(vu)) {
       const ap = stockage.telAppareilLire(sha(vu), APPAREIL_ABS_MS);
       const p = ap ? stockage.telPersonneParNumero('tel:' + a.e164) : null;
-      if (ap && p && p.id === ap.personne && p.etat === 'actif') {
+      /* ⛔ un compte dont la suppression est PROGRAMMÉE ne se reconnecte jamais « sur le seul appareil » : il faut un code, c'est lui qui prouve la ligne — et qui annule la suppression */
+      if (ap && p && p.id === ap.personne && p.etat === 'actif' && p.suppression_le === null) {
         const q = essai('tel_appareil_reco', reseauSms(req.ip), { max: 120, fenetreMs: H });
         if (!q.ok) return trop(res, 'reseau_plafond', q.retry);
         stockage.telAppareilToucher(sha(vu), APPAREIL_MS);
@@ -229,6 +230,8 @@ function creerTelephone(ctx) {
     } else if (p.etat !== 'actif') { stockage.telCodeSupprimer(num_h); return refus(res, 401, 'code_invalide'); }
     stockage.telCodeSupprimer(num_h);   // usage unique
     if (!p) { p = stockage.personneCreer({ identifiant, prenom, nom, origine: 'telephone', verifie: true }); nouveau = true; }
+    /* ⛔ SE RECONNECTER AVANT L'ÉCHÉANCE ANNULE LA SUPPRESSION du compte (J+14) : la preuve du code est celle de la ligne. La réponse le DIT (`suppression_annulee`), la page l'écrit. */
+    const annulee = !nouveau && p.suppression_le !== null && stockage.suppressionAnnuler(p.id);
     rendre([q1.cle, q2.cle]);   // une réussite n'use pas le plafond des échecs
     /* ⛔ Un compte existant, un appareil qu'il ne connaît pas : l'ancien titulaire d'un numéro réattribué (ou d'une SIM échangée) garde ses
        appareils, et le nouveau entre dans SON compte. On PRÉVIENT les autres appareils (notification, tout de suite) ; « Déconnecter les
@@ -240,11 +243,13 @@ function creerTelephone(ctx) {
     stockage.telAppareilLier({ h: dev.h, personne: p.id, nom: typeof b.appareil === 'string' ? nettoyerNom(b.appareil).slice(0, 40) : null, ttlMs: APPAREIL_MS });
     if (appareilNouveau) {
       try {
-        stockage.notifCreer({ uid: p.id, type: 'nouvel_appareil', titre: 'Nouvel appareil connecté', texte: 'Un appareil vient de se connecter à votre compte avec votre numéro de téléphone. Si ce n\'est pas vous, déconnectez les autres appareils.', cible: p.id });
+        const n = stockage.notifCreer({ uid: p.id, type: 'nouvel_appareil', titre: 'Nouvel appareil connecté', texte: 'Un appareil vient de se connecter à votre compte avec votre numéro de téléphone. Si ce n\'est pas vous, déconnectez les autres appareils.', cible: p.id });
         hub.reveiller({ uids: [p.id] });
+        /* ⛔ LA SÉCURITÉ PASSE PAR LE PUSH : les autres appareils de la personne (celui-ci n'est pas encore abonné) reçoivent « Nouvel appareil connecté », sans nom ni lieu. Ce message EST la charge minimale. */
+        if (ctx.push) ctx.push.pousser(p.id, { type: 'appareil', tag: 'appareil', url: '/', renotify: true, titre: 'Nouvel appareil connecté', corps: 'Si ce n\'est pas vous, déconnectez les autres appareils.' }, { gid: n.gid });
       } catch (e) { /* une notification ratée ne défait pas la connexion */ }
     }
-    res.json({ ok: true, nouveau, moi });
+    res.json(annulee ? { ok: true, nouveau, moi, suppression_annulee: true } : { ok: true, nouveau, moi });
   };
 
   /* ══ 3. SE RECONNECTER AVEC LE SEUL JETON D'APPAREIL ══════════════════════════════════════════ */
@@ -254,7 +259,7 @@ function creerTelephone(ctx) {
     const v = lireCookie(req, nomAppareil);
     const ap = v && APPAREIL_RE.test(v) ? stockage.telAppareilLire(sha(v), APPAREIL_ABS_MS) : null;
     const p = ap ? stockage.personneParId(ap.personne) : null;
-    if (!p || p.etat !== 'actif') return refus(res, 401, 'appareil_inconnu');
+    if (!p || p.etat !== 'actif' || stockage.suppressionLe(p.id) !== null) return refus(res, 401, 'appareil_inconnu');   // ⛔ suppression programmée : pas de reconnexion sans code
     stockage.telAppareilToucher(sha(v), APPAREIL_MS);
     ouvrirSession(res, p.id, corps(req).appareil);
     res.json({ ok: true, moi: p });
@@ -335,7 +340,7 @@ function creerTelephone(ctx) {
 
     const p = stockage.telPersonneParNumero('tel:' + a.e164);
     const bloque = p ? stockage.contactBloque(uid, p.id) : false;
-    const visible = !!p && p.etat === 'actif' && p.id !== uid && p.trouvable === 'tous' && !bloque;
+    const visible = !!p && p.etat === 'actif' && p.suppression_le === null && p.id !== uid && p.trouvable === 'tous' && !bloque;   // ⛔ un compte qui va disparaître n'est plus trouvé par personne
     let rep = { trouve: false };
     if (visible) {
       const deja = stockage.contactActif(uid, p.id);
@@ -358,14 +363,16 @@ function creerTelephone(ctx) {
     const p = fin && fin > horloge() ? stockage.personneParId(id) : null;
     const t = p ? stockage.telTrouvableLire(id) : null;
     /* Revérifié AU MOMENT de l'ajout : la personne a pu se rendre introuvable, ou nous bloquer, depuis la recherche. */
-    if (!p || p.etat !== 'actif' || t !== 'tous' || stockage.contactBloque(uid, id)) { rendre([q.cle]); return refus(res, 404, 'introuvable'); }
+    if (!p || p.etat !== 'actif' || t !== 'tous' || stockage.contactBloque(uid, id) || stockage.suppressionLe(id) !== null) { rendre([q.cle]); return refus(res, 404, 'introuvable'); }
     trouves.delete(uid + '|' + id);
     const deja = stockage.contactActif(uid, id);
     if (!deja) {
       stockage.contactLier(uid, id);
       try {
-        stockage.notifCreer({ uid: id, type: 'contact_ajoute', titre: 'Nouveau contact', texte: ((req.moi.prenom + ' ' + req.moi.nom).trim() || 'Quelqu\'un') + ' est maintenant dans vos contacts.', cible: uid });
+        const texteN = ((req.moi.prenom + ' ' + req.moi.nom).trim() || 'Quelqu\'un') + ' est maintenant dans vos contacts.';
+        const n = stockage.notifCreer({ uid: id, type: 'contact_ajoute', titre: 'Nouveau contact', texte: texteN, cible: uid });
         hub.reveiller({ uids: [id] });
+        if (ctx.push) ctx.push.pousser(id, { type: 'contact', tag: 'contact', url: '/', titre: 'OP MESSAGES', corps: 'Nouveau contact', detail: { titre: 'Nouveau contact', corps: texteN } }, { gid: n.gid });
       } catch (e) { /* une notification ratée ne défait pas le geste */ }
     }
     res.json({ ok: true, deja, contact: { id: p.id, prenom: p.prenom, nom: p.nom } });

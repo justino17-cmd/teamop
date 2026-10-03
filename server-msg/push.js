@@ -202,7 +202,7 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
   const seaux = new Map();
   function compter(cle, n = 1) {
     const h = Math.floor(horloge() / H);
-    const s = seaux.get(h) || { envoyes: 0, echecs: 0, abandons: 0 };
+    const s = seaux.get(h) || { envoyes: 0, echecs: 0, abandons: 0, retires: 0 };
     s[cle] += n; seaux.set(h, s);
     for (const k of seaux.keys()) if (k < h - 24) seaux.delete(k);
   }
@@ -230,7 +230,7 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
   async function envoyerUn(abo, payload, o) {
     /* ⛔ la liste blanche est RE-VÉRIFIÉE ici, pas seulement à l'inscription : une ligne ancienne, ou une liste resserrée depuis, ne doit pas faire appeler une adresse refusée */
     const a = analyserEndpoint(abo.endpoint, pc.testHote);
-    if (!a.ok) { stockage.pushRetirerId(abo.id); compter('echecs'); return { ok: false, retire: true }; }
+    if (!a.ok) { stockage.pushRetirerId(abo.id); compter('retires'); return { ok: false, retire: true }; }
     let d;
     try {
       d = webpush.generateRequestDetails({ endpoint: a.url.href, keys: { p256dh: abo.p256dh, auth: abo.auth } }, payload,
@@ -240,7 +240,8 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
     try { r = await envoyerHttp({ url: a.url, method: d.method, headers: d.headers, body: d.body }); } catch (e) { r = { statut: 0, erreur: 'interne' }; }   // un transport qui lève est un échec de plus, pas une exception qui sort
     if (r && r.statut >= 200 && r.statut < 300) { stockage.pushOk(abo.id); compter('envoyes'); return { ok: true, retire: false }; }
     /* 404 et 410 : le service push dit que l'appareil n'existe plus — l'abonnement part tout de suite */
-    if (r.statut === 404 || r.statut === 410) { stockage.pushRetirerId(abo.id); compter('echecs'); return { ok: false, retire: true }; }
+    /* (ce n'est pas un ÉCHEC pour la surveillance : un appareil qui disparaît est le fonctionnement normal — on le compte à part) */
+    if (r.statut === 404 || r.statut === 410) { stockage.pushRetirerId(abo.id); compter('retires'); return { ok: false, retire: true }; }
     compter('echecs');
     return { ok: false, retire: stockage.pushEchec(abo.id, pc.echecsMax).retire };
   }
@@ -331,7 +332,7 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
     const resume = type === 'photo' ? 'Photo' : type === 'vocal' ? 'Message vocal' : type === 'fichier' ? 'Fichier' : extrait(texte, 100);
     const de = extrait(nomAuteur, 60) || 'Quelqu\'un';
     return dest.map(uid => pousser(uid, {
-      type: 'message', tag: conv, url: '/#conv=' + conv, renotify: true, titre: 'OP MESSAGES', corps: 'Nouveau message',
+      type: 'message', tag: conv, url: '/#messages/' + conv, renotify: true, titre: 'OP MESSAGES', corps: 'Nouveau message',
       detail: { titre: groupe ? de + ' · ' + extrait(nomConv, 40) : de, corps: resume },
       valide: () => stockage.pushMessageEncore({ uid, conv, seq }),
     }, { gid }));

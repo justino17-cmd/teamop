@@ -25,6 +25,7 @@
  *   pieces        {photoMax, vocalMax, fichierMax, avatarMax, quotaPersonne, depotsHeure, orphelineMs, simultanes, parPersonne, bloc}
  *                                Les pièces (photos, vocaux, fichiers) : tailles maximales en octets, quota par personne, envois par heure,
  *                                durée de vie d'une pièce jamais envoyée, envois en même temps. Voir `piecesConfig` pour les valeurs de départ.
+ *   compte        {exportOctetsMax}   Le plafond de taille de l'export des données d'une personne (64 Mo par défaut ; au-delà, le fichier se termine proprement et dit où il s'est arrêté).
  *   push          {contact, ackMs, echecsMax, simultanes, fileMax, timeoutMs, ttlS}   Les notifications push. `contact` : le sujet VAPID (`mailto:` ou une adresse
  *                                https) ; absent, c'est l'origine https du service. Les autres : délai d'acquittement (5 s), échecs de suite avant le retrait d'un
  *                                abonnement (5), envois en même temps (16), file d'attente (2 000), délai d'un envoi (8 s), durée de vie d'un message poussé (24 h).
@@ -151,6 +152,14 @@ function pushConfig(cfg, env, instance) {
   return o;
 }
 
+/* ⛔ LE COMPTE : le plafond de taille de l'export (un nombre absurde refuse le démarrage, comme les pièces). */
+function compteConfig(c) {
+  const brut = c && typeof c === 'object' && !Array.isArray(c) ? c : {};
+  const v = brut.exportOctetsMax === undefined ? 64 * Mo : brut.exportOctetsMax;
+  if (!Number.isInteger(v) || v < 1024 || v > 512 * Mo) { const e = new Error('config: compte.exportOctetsMax doit être un entier entre 1024 et ' + 512 * Mo); e.code = 'CONFIG'; throw e; }
+  return { exportOctetsMax: v };
+}
+
 function charger(env = process.env) {
   const manque = (n) => { const e = new Error('config: ' + n + ' est obligatoire'); e.code = 'CONFIG'; return e; };
   const instance = env.OPMSG_INSTANCE;
@@ -185,6 +194,7 @@ function charger(env = process.env) {
     quotas: cfg.quotas && typeof cfg.quotas === 'object' ? cfg.quotas : {},
     pieces: piecesConfig(cfg.pieces),
     push: pushConfig(cfg, env, instance),
+    compte: compteConfig(cfg.compte),
     sms: cfg.sms && typeof cfg.sms === 'object' && !Array.isArray(cfg.sms) ? cfg.sms : {},   // validée par `lireConfigSms` (sms-garde.js)
     testCodes: testCodes,
     disqueMinMo: Number.isFinite(cfg.disqueMinMo) ? cfg.disqueMinMo : 512,
@@ -195,4 +205,4 @@ function charger(env = process.env) {
   };
 }
 
-module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, INTERDITS };
+module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, INTERDITS };

@@ -1553,7 +1553,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   function exportConversationsIds(uid) { return Q('SELECT conv FROM membre WHERE uid = ? AND quitte_le IS NULL ORDER BY conv').all(uid).map(r => r.conv); }
   function exportPieces(uid) {
-    return Q('SELECT id, genre, taille, cree FROM piece WHERE proprio = ? ORDER BY cree, id').all(uid).map(r => ({ id: r.id, genre: r.genre, taille: num(r.taille), cree: num(r.cree) }));
+    return Q('SELECT id, genre, taille, cree FROM piece WHERE proprio = ? ORDER BY cree, id LIMIT 20001').all(uid).map(r => ({ id: r.id, genre: r.genre, taille: num(r.taille), cree: num(r.cree) }));   // une de plus que ce que l'export garde : c'est ce qui dit qu'il y en a plus
   }
 
   /* ══ AGRÉGATS POUR /health — des NOMBRES, jamais un identifiant ══════════════════════════ */

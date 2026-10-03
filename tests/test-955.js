@@ -239,7 +239,7 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     v('population : UN envoi est parti, vers l\'appareil de Bruno, en POST', [m.envois.length, m.envois[0] && m.envois[0].methode, m.envois[0] && m.envois[0].url === appBo.sub.endpoint], [1, 'POST', true]);
     const e0 = m.envois[0];
     const clair = JSON.parse(P.dechiffrer(appBo, e0.corps));
-    v('⛔ la charge DÉCHIFFRÉE est minimale : « Nouveau message » et l\'identifiant de la conversation pour l\'ouvrir', [clair.titre, clair.corps, clair.tag, clair.url, clair.type], ['OP MESSAGES', 'Nouveau message', g.id, '/#conv=' + g.id, 'message']);
+    v('⛔ la charge DÉCHIFFRÉE est minimale : « Nouveau message » et l\'identifiant de la conversation pour l\'ouvrir', [clair.titre, clair.corps, clair.tag, clair.url, clair.type], ['OP MESSAGES', 'Nouveau message', g.id, '/#messages/' + g.id, 'message']);
     const brutClair = P.dechiffrer(appBo, e0.corps);
     v('⛔ ni le texte du message, ni le nom de l\'auteur, ni celui du groupe n\'y sont (par défaut)', [brutClair.includes('CANARIQTEXTE'), brutClair.includes('Alice'), brutClair.includes('Tilleuls')], [false, false, false]);
     v('les en-têtes : chiffrement aes128gcm, durée de vie, urgence normale, corps binaire', [e0.entetes['Content-Encoding'], String(e0.entetes.TTL), e0.entetes.Urgency, e0.entetes['Content-Type'], String(e0.entetes['Content-Length']) === String(e0.corps.length)], ['aes128gcm', '86400', 'normal', 'application/octet-stream', true]);
@@ -425,8 +425,9 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     v('201 : livré — l\'échec est à zéro, la dernière livraison est datée', [nb(), ligne()[0].echecs, ligne()[0].derniere_ok === m.h.t], [1, 0, true]);
     for (const code of [410, 404]) {
       m.abonne(bo.id); m.reponse.statut = code;
-      const avant = nb(); await un();
+      const avant = nb(), echecsAvant = m.push.sante().echecs24h; await un();
       v('⛔ ' + code + ' : le service dit que l\'appareil n\'existe plus — les abonnements en échec partent TOUT DE SUITE (population avant : ' + avant + ')', [avant >= 2, nb()], [true, 0]);
+      v('   ...et ce n\'est PAS compté comme un échec de /health (un appareil qui disparaît est le fonctionnement normal : la surveillance ne doit pas crier)', m.push.sante().echecs24h, echecsAvant);
       m.abonne(bo.id);
     }
     m.S.pushSupprimerPersonne(bo.id);

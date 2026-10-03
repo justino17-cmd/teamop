@@ -24,6 +24,7 @@
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const T = require('./outils-msg');
 const F_PIECES = require('./outils-pieces');
+const PUSH_OUTILS = require('./outils-push');
 T.sauterSiSansDependances();
 const { v, vrai, fin } = T.compteur();
 const { MANIFESTE } = require(path.join(T.SERVICE, 'manifeste.js'));
@@ -92,6 +93,15 @@ const MATRICE = {
   'pieces.lire':        { ok: (F) => ['GET', '/api/pieces/' + F.P], codes: [200] },
   'moi.avatar':         { ok: () => ['POST', '/api/moi/avatar', { piece: null }], codes: [200] },
   'moi.stockage':       { ok: () => ['GET', '/api/moi/stockage'], codes: [200] },
+  /* Les notifications push et le compte (étape 2, suite). Un abonnement se joue avec un hôte de la liste blanche (FCM) et de VRAIES clés : la route juge la forme de l'appareil, pas
+     seulement la garde. `push.desabonner` d'un point d'accès inconnu rend 200 (« 0 retiré ») : même réponse qu'un point d'accès qui est à quelqu'un d'autre. `compte.supprimer` coupe les
+     sessions de l'acteur ET programme sa suppression : la matrice ouvre une session NEUVE à chaque cellule, donc les cellules suivantes ne s'en ressentent pas. */
+  'push.abonner':       { ok: () => ['POST', '/api/push/abonner', { sub: PUSH_OUTILS.appareil('https://fcm.googleapis.com/fcm/send/' + crypto.randomBytes(12).toString('hex')).sub }], codes: [200] },
+  'push.desabonner':    { ok: () => ['POST', '/api/push/desabonner', { endpoint: 'https://fcm.googleapis.com/fcm/send/' + crypto.randomBytes(12).toString('hex') }], codes: [200] },
+  'push.essai':         { ok: () => ['POST', '/api/push/essai', {}], codes: [200] },
+  'flux.ack':           { ok: () => ['POST', '/api/flux/ack', { gid: 0 }], codes: [200] },
+  'compte.export':      { ok: () => ['POST', '/api/compte/export', {}], codes: [200] },
+  'compte.supprimer':   { ok: () => ['POST', '/api/compte/supprimer', { confirmation: 'SUPPRIMER' }], codes: [200] },
 };
 
 /* Ce que chaque garde doit répondre à chaque profil : { code, error } ou 'passe'. */
@@ -113,7 +123,7 @@ const ATTENDU = {
   const lire = T.lireBase;
   const instantane = () => {
     const d = lire(path.join(svc.data, 'msg.db'));
-    try { return ['personne', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'lien', 'notification', 'contact', 'journal', 'piece'].map(t => d.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(LENGTH(CAST(rowid AS TEXT))),0) AS s FROM ' + t).get().n).join(',') + '|' + d.prepare('SELECT COALESCE(SUM(lu_seq),0) AS a, COALESCE(SUM(role=\'admin\'),0) AS b, COALESCE(SUM(epingle),0) AS c FROM membre').get().a; } finally { d.close(); }
+    try { return ['personne', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'lien', 'notification', 'contact', 'journal', 'piece', 'push'].map(t => d.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(LENGTH(CAST(rowid AS TEXT))),0) AS s FROM ' + t).get().n).join(',') + '|' + d.prepare('SELECT COALESCE(SUM(lu_seq),0) AS a, COALESCE(SUM(role=\'admin\'),0) AS b, COALESCE(SUM(epingle),0) AS c FROM membre').get().a; } finally { d.close(); }
   };
   try {
     console.log('Le manifeste et la matrice disent la MÊME chose');
@@ -125,6 +135,7 @@ const ATTENDU = {
       v('toutes les gardes du manifeste sont connues de la table des attentes', MANIFESTE.filter(r => !ATTENDU[r.garde]).map(r => r.id), []);
       vrai('population : au moins 30 routes à jouer', MANIFESTE.length >= 30);
       v('les quatre routes des pièces sont au manifeste, avec leurs gardes (déposer V, lire J, avatar S, stockage S)', ['pieces.deposer', 'pieces.lire', 'moi.avatar', 'moi.stockage'].map(i => (MANIFESTE.find(x => x.id === i) || {}).garde), ['V', 'J', 'S', 'S']);
+      v('les six routes des notifications et du compte sont au manifeste, TOUTES en garde S (l\'identité vient de la session, jamais du corps)', ['push.abonner', 'push.desabonner', 'push.essai', 'flux.ack', 'compte.export', 'compte.supprimer'].map(i => (MANIFESTE.find(x => x.id === i) || {}).garde), ['S', 'S', 'S', 'S', 'S', 'S']);
       const sources = T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, 'app.js'), 'utf8')) + T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, 'routes.js'), 'utf8')) + T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, 'index.js'), 'utf8'));
       v('⛔ aucune route enregistrée EN DEHORS de la boucle de montage du manifeste (app.get/post/put/delete/all/use(\'/api…\' : zéro)', (sources.match(/\bapp\.(get|post|put|patch|delete|all)\(/g) || []).length + (sources.match(/\bapp\.use\(\s*['"`]\/(?!api['"`])/g) || []).length, 0);
       vrai('et le montage lit bien le manifeste (une seule boucle, `app[r.m.toLowerCase()]`)', (sources.match(/app\[r\.m\.toLowerCase\(\)\]\(/g) || []).length === 1);

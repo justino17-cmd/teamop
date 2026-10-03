@@ -60,6 +60,12 @@
     piece_inconnue: 'Cette pièce n\'existe plus (elle a expiré ou a été supprimée) : renvoie-la.',
     plage_invalide: 'La partie demandée du fichier n\'existe pas.',
     quota_stockage: 'Ton espace de stockage est plein : supprime des messages qui contiennent des photos ou des fichiers, puis réessaie.',
+    /* les notifications push, l'export des données, la suppression du compte */
+    service_push_refuse: 'Le service de notification de ce navigateur n\'est pas pris en charge par OP MESSAGES.',
+    push_indisponible: 'Les notifications sont momentanément indisponibles sur ce service.',
+    confirmation_requise: 'La suppression du compte doit être confirmée.',
+    export_quotidien: 'Tu as déjà exporté tes données aujourd\'hui : un export par jour.',
+    compte_supprime: 'Ce compte a été supprimé : tu ne peux plus lui écrire.',
     erreur_interne: 'Une erreur est survenue de notre côté. Réessaie.',
     serveur: 'Le service ne répond pas correctement. Réessaie dans un instant.',
     reseau: 'Pas de connexion au service. Vérifie ton réseau.',
@@ -69,7 +75,7 @@
   const dire = (code) => MESSAGES[code] || MESSAGES.inconnue;
 
   /* Une attente lisible : « 40 s », « 15 min ». */
-  const attenteLisible = (s) => s < 90 ? s + ' s' : Math.ceil(s / 60) + ' min';
+  const attenteLisible = (s) => s < 90 ? s + ' s' : s < 5400 ? Math.ceil(s / 60) + ' min' : Math.ceil(s / 3600) + ' h';   // « 40 s », « 15 min », « 20 h » (l'export, qui ne se refait qu'une fois par jour)
   /* Un nombre d'octets en mots : « 12 Mo », « 850 Ko ». */
   const tailleLisible = (o) => o >= 1048576 ? (Math.round(o / 104857.6) / 10).toString().replace('.', ',') + ' Mo' : o >= 1024 ? Math.round(o / 1024) + ' Ko' : o + ' o';
   class ErreurApi extends Error {
@@ -152,7 +158,11 @@
       base, appel,
       config: () => appel('GET', '/api/config'),
       /* La porte bêta : identifiant et mot de passe de la Tour. Rend la personne connectée. */
-      connexionBeta: async (login, pass) => (await appel('POST', '/api/beta/entrer', { login, pass })).moi,
+      connexionBeta: async (login, pass) => {
+        const r = await appel('POST', '/api/beta/entrer', { login, pass });
+        /* se reconnecter avant l'échéance ANNULE la suppression du compte : le service le dit, la personne doit l'apprendre (`suppression_annulee` accompagne la personne rendue) */
+        return r.suppression_annulee === true ? Object.assign({}, r.moi, { suppression_annulee: true }) : r.moi;
+      },
       deconnexion: () => appel('POST', '/api/compte/deconnexion'),
       moi: async () => (await appel('GET', '/api/moi')).moi,
       majMoi: async (champs) => (await appel('POST', '/api/moi/maj', champs)).moi,
@@ -230,6 +240,28 @@
       majConfidentialite: (champs) => appel('POST', '/api/moi/confidentialite', champs),
       deconnecterAutres: () => appel('POST', '/api/moi/appareils/deconnecter'),
 
+      /* ── Les notifications push, l'acquittement, l'export des données, la suppression du compte ── */
+      pushAbonner: (sub) => appel('POST', '/api/push/abonner', { sub }),
+      pushDesabonner: (endpoint) => appel('POST', '/api/push/desabonner', { endpoint }),
+      pushEssai: () => appel('POST', '/api/push/essai'),
+      /* « j'ai REÇU et MONTRÉ les événements jusqu'à gid » : la page visible l'envoie, et la notification qui doublerait ce qu'elle montre ne part pas */
+      acquitter: (gid) => appel('POST', '/api/flux/ack', { gid }),
+      /* L'export : un FICHIER. Le corps n'est pas lu comme du JSON de réponse (il est gros, et la page n'en fait rien) : on rend le `Blob` et le nom que le service propose. Un refus (429 : un
+         par jour) est une `ErreurApi` comme les autres. */
+      exporterDonnees: async () => {
+        let r;
+        try { r = await f(base + '/api/compte/export', { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-OPM': '1' }, credentials: 'same-origin', cache: 'no-store', body: '{}' }); }
+        catch (er) { throw new ErreurApi('reseau', 0, 0); }
+        if (!r.ok) await jsonDe(r);                                   // jette toujours : ErreurApi avec la phrase du refus
+        let blob;
+        try { blob = await r.blob(); } catch (er) { throw new ErreurApi('reseau', 0, 0); }   // un fichier coupé en route n'est pas un export
+        const cd = (r.headers && r.headers.get ? r.headers.get('Content-Disposition') : '') || '';
+        const m = /filename="([A-Za-z0-9._-]{1,80})"/.exec(cd);
+        return { blob, nom: m ? m[1] : 'opmessages-export.json' };
+      },
+      /* programme la suppression du compte à 14 jours et coupe tout : rend `{ ok, suppression_le }` (la date, en millisecondes) */
+      supprimerCompte: () => appel('POST', '/api/compte/supprimer', { confirmation: 'SUPPRIMER' }),
+
       /* Le temps réel. `gestionnaires` : une fonction par événement (`message`, `lu`, `saisie`,
          `presence`, `notification`, `conversation`, `retire`, `resync`…) + `ouvert()`, `erreur(e)` et `reseau('perdu'|'ok')`.
          Rend `{ fermer, dernierId }`. Le navigateur reconnecte tout seul en renvoyant
@@ -279,7 +311,8 @@
               armer();
               if (ev.lastEventId) dernier = parseInt(ev.lastEventId, 10);
               let d = null; try { d = ev.data ? JSON.parse(ev.data) : null; } catch (x) { return; }
-              if (typeof g[nom] === 'function') g[nom](d);
+              /* l'identifiant de l'événement (`id:` de la trame) accompagne la donnée : c'est ce que la page ACQUITTE une fois l'événement montré */
+              if (typeof g[nom] === 'function') g[nom](d, ev.lastEventId ? parseInt(ev.lastEventId, 10) : null);
             });
           }
           es.addEventListener('bonjour', (ev) => { try { const d = JSON.parse(ev.data); if (dernier === null && Number.isInteger(d.gid)) dernier = d.gid; if (d.pouls_ms > 0) poulsMs = d.pouls_ms; } catch (x) {} armer(); });

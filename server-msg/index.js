@@ -31,8 +31,9 @@ const { construireApp } = require('./app');
 const { lireConfigSms, creerGarde } = require('./sms-garde');
 const { APPAREIL_ABS_MS } = require('./telephone');
 const { creerPieces, creerReservations } = require('./pieces');
+const { creerPush } = require('./push');
 
-const VERSION = '1.2.0-pieces';
+const VERSION = '1.3.0-push';
 const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays']);   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
 
 function journaliser(evt, champs) {
@@ -51,6 +52,9 @@ function demarrer(env = process.env) {
   const stockage = stockageMod.ouvrir({ chemin: path.join(config.dataDir, 'msg.db'), scelleur, horloge: Date.now });
   const quotas = creerQuotas(Date.now);
   const hub = creerFlux({ stockage, config, horloge: Date.now });
+  /* ⛔ LES NOTIFICATIONS PUSH : la paire VAPID de l'instance (fabriquée ou adoptée ici, la privée scellée), la liste blanche des services push, la file d'envoi. Une paire illisible désactive
+     le push SANS arrêter le service (`/health` dit `push.actif:false`, la surveillance crie). */
+  const push = creerPush({ stockage, hub, config, horloge: Date.now, journaliser });
   /* ⛔ LES PIÈCES : des fichiers scellés par blocs sous `<données>/pieces/<2 caractères>/<id>`, une clé par pièce (dérivée de la clé maître). `piecesEtat` compte ce que /health
      publie : les pièces dont le fichier n'a pas pu être relu (bloc qui ne s'authentifie plus, fichier absent) — la panne silencieuse type, rendue visible. Un fichier à effacer
      (message supprimé pour tous, éphémère échu, photo remplacée, conversation disparue) l'est sans attendre et sans jamais faire échouer le geste : s'il résiste, il reste sans
@@ -79,7 +83,7 @@ function demarrer(env = process.env) {
 
   const ctx = {
     config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION, scelleur, sms,
-    pieces, reservations, piecesEtat, effacerPieces,
+    pieces, reservations, piecesEtat, effacerPieces, push,
     maxMembres: stockageMod.MAX_MEMBRES, delaiModifMs: stockageMod.DELAI_MODIF_MS,
     disque: { bas: () => disqueBas, libreMo },
     /* ⛔ /health est PUBLIQUE et AGRÉGÉE : des nombres et des états, jamais un identifiant, un
@@ -96,6 +100,7 @@ function demarrer(env = process.env) {
       sms: sms.sante(),   // des nombres : le coût du jour, le pourcentage du budget, les refus par motif — jamais un numéro
       /* ⛔ AGRÉGÉ : combien de pièces, combien d'octets, combien n'ont pas pu être relues, combien de fichiers ont résisté à l'effacement — jamais un identifiant ni un nom */
       pieces: Object.assign(stockage.pieceStats(), { illisibles: piecesEtat.illisibles, effacementsRates: piecesEtat.effacementsRates }),
+      push: push.sante(),   // des NOMBRES (et un état) : abonnements, envois et échecs des 24 dernières heures — jamais un point d'accès, une clé ou une personne
     }),
   };
 
@@ -126,6 +131,17 @@ function demarrer(env = process.env) {
       for (const c of r.convs) hub.reveiller({ conv: c });
       effacerPieces(r.pieces);                                            // les pièces d'un éphémère échu partent avec lui
       effacerPieces(stockage.piecesOrphelinesPurger(500));                // une pièce jamais envoyée (24 h), une photo de profil jamais posée
+      /* ⛔ LES COMPTES DONT LA SUPPRESSION EST ÉCHUE (J+14) : l'identité, les contacts, les notifications, les appareils partent ; les messages restent chez les autres, signés « Compte supprimé ».
+         Par petits paquets (un effacement est une transaction) ; ce que la personne a vu s'en aller (groupes quittés, contacts) est dit aux autres tout de suite. */
+      for (const id of stockage.comptesEchus(5)) {
+        const e = stockage.compteEffacer(id);
+        if (!e.effacee) continue;
+        effacerPieces(e.pieces);
+        hub.fermerPersonne(id);
+        for (const c of e.convs) hub.reveiller({ conv: c });
+        if (e.audience.length) hub.emettre(e.audience, 'personne', { uid: id });
+        journaliser('compte_efface', { n: e.pieces.length });
+      }
       if (++tours % 10 === 0) {
         reconcilierPieces();
         stockage.journalElaguer();
@@ -152,6 +168,7 @@ function demarrer(env = process.env) {
   async function arreter() {
     for (const m of minuteurs) clearInterval(m);
     clearInterval(minuteurDisque);
+    push.arreter();
     boucle.disable();
     hub.arreter();
     await new Promise(r => server.close(() => r()));
