@@ -41,9 +41,14 @@ function construireApp(ctx) {
   const refus = (res, statut, code, extra) => res.status(statut).json(Object.assign({ error: code }, extra || {}));
 
   /* ── En-têtes de sécurité, sur TOUTES les réponses ───────────────────────────────────── */
+  /* ⛔ TOUT CE QUI SORT DE `/api/pieces*` PORTE LA `sandbox`, erreurs et refus compris (relecture du gardien, remarque 1). La pièce qu'on sert (`routes-pieces.js`) la posait déjà ; mais un
+     refus de la garde, du plafond ou du routeur répondait avec la politique de la PAGE (`script-src 'self'`) : le préfixe entier est un endroit où l'on ne veut jamais qu'une réponse, ouverte
+     à la main dans un onglet, exécute quoi que ce soit. Le routeur d'Express ne distingue pas la casse (`/API/PIECES/…` répond) : le motif non plus. */
+  const CSP_PAGE = "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
+  const CSP_PIECE = "sandbox; default-src 'none'";
   app.use((req, res, next) => {
     res.set({
-      'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+      'Content-Security-Policy': /^\/api\/pieces/i.test(req.path) ? CSP_PIECE : CSP_PAGE,
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'no-referrer',
       /* le MICRO est permis à la page elle-même (`self`, le message vocal de l'étape 4) et à personne d'autre ; la CAMÉRA reste fermée jusqu'aux appels (étape 7) */

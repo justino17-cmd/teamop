@@ -174,6 +174,23 @@ async function gestionnaireLecture() {
         ['image/png', 'inline', 'nosniff', "sandbox; default-src 'none'", 'private, no-store', 'bytes', String(PNG.length)]);
       vrai('   et aucun en-tête Access-Control-* (pas de CORS)', ![...l.h.keys()].some(k => /^access-control-/.test(k)));
       v('⛔ tant qu\'elle n\'est pas envoyée, un MEMBRE de la conversation ne la lit pas (404) — elle est à son dépositaire seul', [(await lire(B, idPhoto)).code, (await lire(C, idPhoto)).code, (await lire(D, idPhoto)).code], [404, 404, 404]);
+      /* ⛔ remarque 1 du gardien : TOUTES les réponses de /api/pieces* portent la CSP « sandbox », les refus compris (avant : la politique de la PAGE, `script-src 'self'`, sur chaque erreur) */
+      {
+        const SANDBOX = "sandbox; default-src 'none'", essais = [];
+        const noter = (nom, code, h) => essais.push({ nom, code, csp: h.get('content-security-policy') });
+        let r = await lire(D, idPhoto); noter('étranger', r.code, r.h);
+        r = await lire(A, 'f_' + '0'.repeat(32)); noter('identifiant inconnu', r.code, r.h);
+        r = await lire(A, 'pas-un-identifiant'); noter('identifiant mal formé', r.code, r.h);
+        let x = await fetch(svc.base + '/api/pieces/' + idPhoto); noter('sans session', x.status, x.headers);
+        x = await fetch(svc.base + '/API/PIECES/' + idPhoto); noter('sans session, casse différente (le routeur ne la distingue pas)', x.status, x.headers);
+        r = await deposer(A, { genre: 'photo', corps: PNG }); noter('dépôt sans conversation', r.code, r.h);
+        x = await fetch(svc.base + '/api/pieces?conv=' + G + '&genre=photo', { method: 'POST', headers: { Cookie: A.enteteCookie(), 'Content-Type': 'application/octet-stream' }, body: PNG }); noter('dépôt sans l\'en-tête X-OPM', x.status, x.headers);
+        x = await fetch(svc.base + '/api/pieces/' + idPhoto, { method: 'DELETE', headers: { Cookie: A.enteteCookie(), Origin: svc.base, 'X-OPM': '1' } }); noter('méthode non prévue', x.status, x.headers);
+        vrai('population : huit refus de natures différentes (' + [...new Set(essais.map(e => e.code))].sort().join(', ') + ')', essais.length === 8 && essais.every(e => e.code >= 400) && new Set(essais.map(e => e.code)).size >= 3);
+        v('⛔ …et TOUS portent « sandbox; default-src \'none\' » (ceux qui ne le portent pas, nommés)', essais.filter(e => e.csp !== SANDBOX).map(e => e.nom + ' (' + e.code + ') : ' + e.csp), []);
+        const page = await fetch(svc.base + '/'), moi = await fetch(svc.base + '/api/moi', { headers: { Cookie: A.enteteCookie() } });
+        v('contre-épreuve : la page elle-même et le reste de l\'API gardent la politique de la page (script-src \'self\', sans sandbox) — la sandbox ne couvre que /api/pieces*', [page.status, moi.status, [page, moi].map(q => /script-src 'self'/.test(q.headers.get('content-security-policy')) && !/sandbox/.test(q.headers.get('content-security-policy')))], [200, 200, [true, true]]);
+      }
       const ligne = requete('SELECT proprio, conv, genre, taille, mime, attachee, expire, nom_ch FROM piece WHERE id = ?', idPhoto)[0];
       v('la ligne : à Alice, pour ce groupe, genre photo, non attachée, avec une échéance à 24 h', [ligne.proprio === A.moi.id, ligne.conv === G, ligne.genre, ligne.attachee, ligne.expire - Date.now() > 23 * 3600000 && ligne.expire - Date.now() <= 24 * 3600000 + 5000], [true, true, 'photo', null, true]);
       vrai('le fichier est rangé sous pieces/<2 caractères>/<id>, SCELLÉ (l\'en-tête annonce « OPMP », le PNG n\'y est pas en clair)', (() => { const f = fs.readFileSync(fichierDe(idPhoto)); return f.subarray(0, 4).toString() === 'OPMP' && !f.includes(Buffer.from('IHDR')); })());
