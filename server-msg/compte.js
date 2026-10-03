@@ -156,7 +156,10 @@ function installerCompte(H, ctx) {
        remède : résilier l'abonnement, ou passer la main) au lieu de laisser cette surprise à la carte bancaire. C'est la seule exception à « quitter ne se refuse à personne », et elle se
        lève d'un geste ; un propriétaire qui n'est pas seul passe la main tout seul à l'effacement (`espaceQuitterTout`).
        ⛔ UN PAIEMENT COMMENCÉ COMPTE AUSSI (relecture du gardien : payé chez Stripe, compte effacé avant que le service le sache — un abonnement vivant, sans espace, que personne ne résilie) : une
-       session de paiement non résolue est relue d'abord (payée, c'est un abonnement ; expirée, elle ne bloque plus), et ce qui reste bloque (`paiement_en_cours` tant qu'on ne sait pas). */
+       session de paiement non résolue est relue d'abord (payée, c'est un abonnement ; expirée, elle ne bloque plus), et ce qui reste bloque (`paiement_en_cours` tant qu'on ne sait pas).
+       ⛔ CE REFUS SE JUGE **AVANT** LE PLAFOND HORAIRE (`compte_supprimer`, cinq par heure) : un refus avec son remède n'est pas un essai de suppression — compté, il aurait bloqué pendant une heure, après cinq refus,
+       celui qui vient de résilier et revient supprimer son compte. Ce qu'il peut coûter à Stripe est borné sans ce plafond : trois espaces au plus (la limite de propriété), une relecture à la fois par espace et partagée
+       entre appelants (`facturation.relire`), le tout sous le plafond d'écriture de la personne (300 par minute) et celui de son réseau. */
     let seuls = stockage.espacesAbonnesSeul(req.moi.id);
     if (seuls.length && ctx.facturation && ctx.facturation.ouvert()) {
       for (const e of seuls.slice(0, 3)) { try { await ctx.facturation.relire(e); } catch (x) { /* Stripe muet : ce que le service sait décide */ } }

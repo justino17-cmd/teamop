@@ -100,7 +100,7 @@ async function monter(config, instance) {
       const auteurs = (() => { const r = M.raw(); try { return r.prepare(`SELECT auteur FROM notification WHERE uid = ? AND type = 'espace' AND auteur IS NOT NULL ORDER BY auteur`).all(ana.id).map(x => x.auteur); } finally { r.close(); } })();
       v('⛔ … et chacune dit QUI elle nomme (`auteur`) : l\'effacement de cette personne la réécrira « Un compte supprimé a rejoint l\'espace » (couture avec le lot 3) — trois adhésions, trois auteurs', auteurs, [ben.id, cleo.id, dan.id].sort());
       const ex = await a.post('/api/compte/export', {});
-      v('⛔ l\'export de ses données liste SES espaces (nom, rôle, date) — et rien des autres membres (couture avec l\'export du lot 3)', [ex.code, ex.j && ex.j.espaces.filter(x => x.nom === NOM_E).map(x => [x.role, Object.keys(x).sort().join(), /^\d{4}-\d\d-\d\dT/.test(x.depuis)])], [200, [['admin', 'depuis,id,nom,role', true]]]);
+      v('⛔ l\'export de ses données liste SES espaces (nom, rôle, date) — et rien des autres membres (couture avec l\'export du lot 3)', [ex.code, (ex.j && Array.isArray(ex.j.espaces) ? ex.j.espaces : []).filter(x => x.nom === NOM_E).map(x => [x.role, Object.keys(x).sort().join(), /^\d{4}-\d\d-\d\dT/.test(x.depuis)])], [200, [['admin', 'depuis,id,nom,role', true]]]);
       /* places : 4 membres sur 5 */
       const l3 = await a.post('/api/espaces/' + E + '/invitations', { max: 5 });
       v('quatre membres sur cinq places : un lien de cinq utilisations est ramené à UNE (les places restantes)', [l3.code, l3.j.max], [201, 1]);

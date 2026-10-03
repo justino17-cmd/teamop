@@ -2509,6 +2509,10 @@ function pieceIds(chemin, opts) {
        l'aperçu d'un message sur l'écran verrouillé d'un téléphone qu'elle croyait déconnecté (rejoué par le gardien le 3 octobre 2026). Le prix est dit dans `SERVEUR.md` :
        chaque appareil se réabonne à la prochaine ouverture de l'application (la page redit son abonnement au démarrage) ; tant qu'elle n'est pas rouverte, aucune notification ;
      · LE DRAPEAU `rejeu_service` EST LEVÉ : le service, à son premier démarrage sur cette base, rejoue les genres de purge qui sont à lui (`rejeu.js`) puis le baisse.
+   ⛔ LES TABLES DES ESPACES NE SONT PAS VIDÉES, et ce n'est pas un oubli (fusion avec le lot 3, 3 octobre 2026) : elles ne portent aucun ACCÈS qu'un registre ignore. Un membre retiré, un canal quitté, un lien
+   révoqué, un espace dissous sont dans `purge` (`espace_membre`, `canal_membre`, `invitation`, `espace`) et rejoués par `rejouerPurge` ; la PROPRIÉTÉ passée à l'effacement d'un compte est refaite par le service
+   (`espaceQuitterTout`, rejeu de `compte`). Un abonnement n'est pas un accès mais le dernier état que Stripe a dit, relu cinq secondes après le démarrage (`facturation.demarrer`) ; et `abonnement.session` n'est
+   PAS à vider : c'est le pointeur vers un paiement que Stripe a peut-être reçu entre la copie et le sinistre — l'effacer le rendrait méconnaissable, et le client paierait deux fois.
    Rend { sessions, push } : le nombre de sessions et d'abonnements retirés. Une seule transaction. */
 function apresRestauration(chemin, opts) {
   const bilan = { sessions: 0, push: 0 };

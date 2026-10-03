@@ -532,6 +532,9 @@ vide, deviendrait sinon « la plus récente » :
    **Tout le monde doit se reconnecter** : la restauration vide les sessions exprès (une session fermée avant le sinistre ne doit pas revenir d'une copie d'avant sa fermeture) ; les appareils
    déjà liés par SMS restent connectés. Au premier démarrage, le journal porte une ligne `"evt":"rejeu"` (le service rejoue les suppressions qui sont à lui, puis baisse le drapeau) ;
    `journalctl -u teamop-msg@beta | grep '"evt":"rejeu"'` doit dire `"etat":"ok"`. Une ligne `echec` veut dire qu'un effacement n'a pas pu être rejoué : il le sera au démarrage suivant, mais regarde pourquoi.
+   **Messages Pro — deux choses à regarder à la main après une restauration** : ① le journal ne doit porter AUCUNE ligne `"etat":"attention"` avec `"motif":"espace-payant-sans-membre"` (un espace payant que la copie réduisait à une personne dont le compte
+   avait été effacé : le rejeu ne le dissout pas, il ne parle pas à Stripe ; son abonnement continue — à régler dans le tableau de bord de Stripe) ; ② les abonnements créés depuis l'heure de la copie restaurée : le service ne les connaît pas (il relit ceux qu'il connaît, il n'en
+   cherche pas chez Stripe) — les repérer dans le tableau de bord de Stripe **avant** d'inviter quiconque à payer de nouveau.
 
 ⚠️ Cette procédure est écrite d'après le code et **jouée sur ma machine contre un faux coffre** : elle n'a jamais été jouée sur un VPS neuf. Un essai à blanc sur un VPS jetable
 reste à faire **avant la production**.
