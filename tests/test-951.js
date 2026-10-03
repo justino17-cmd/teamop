@@ -25,6 +25,7 @@ const fs = require('fs'), os = require('os'), path = require('path'), crypto = r
 const { spawn } = require('child_process');
 const T = require('./outils-msg');
 const O = require('./outils-sauvegarde');
+const PU = require('./outils-push');
 const S = require('../.github/scripts/surveillance-messages.js');
 T.sauterSiSansDependances();
 const { v, vrai, fin } = T.compteur();
@@ -295,13 +296,17 @@ const sante = async (svc) => { const r = await T.client(svc.base).get('/health')
 
     /* ══ 4 ter. UNE RESTAURATION NE RESSUSCITE RIEN — le vrai service, la vraie restauration, un vrai redémarrage ═══════════════════════════════
        Rejoué par le gardien le 3 octobre 2026 : l'ancien cookie d'une déconnexion répondait de nouveau 200 sur la base restaurée, et la conversation dont le dernier
-       membre était parti revenait avec ses messages. Une archive plus ANCIENNE que ces gestes (`--date`) est restaurée, le service redémarre dessus : rien ne revient. */
+       membre était parti revenait avec ses messages. Une archive plus ANCIENNE que ces gestes (`--date`) est restaurée, le service redémarre dessus : rien ne revient.
+       Le même jour, sur le lot 3 : un abonnement push désactivé revenait (aucun registre ne le note — la restauration vide la table), et une DEMANDE de suppression faite après
+       l'archive se perdait (le compte n'aurait jamais été effacé) — elle est notée, et le service la reprend avec son échéance d'origine ; se reconnecter l'annule, et l'annulation se note. */
     console.log('\n── 951 · le VRAI service, une vraie restauration d\'une archive plus ancienne, un vrai redémarrage : ni la session fermée, ni la conversation supprimée ne reviennent ──');
     {
       const COMPTES = { alice: { pass: 'pw-alice-1234', nom: 'Alice Banc', actif: true } };
       const og = await T.fauxOpGestion(COMPTES);
+      const fps = await PU.fauxServicePush();
+      const dev = PU.appareil(fps.endpoint('ressuscite-951'));
       const prefixe = 'beta/ressuscite/base/';
-      const a = await T.lancerService({ urlGestion: og.url, cle: kekHex, config: { sauvegarde: coffre.conf({ cle: cleSauv, intervalleMs: 1000, prefixe: 'beta/ressuscite/' }) } });
+      const a = await T.lancerService({ urlGestion: og.url, cle: kekHex, env: { OPMSG_TEST_PUSH: fps.hote }, config: { sauvegarde: coffre.conf({ cle: cleSauv, intervalleMs: 1000, prefixe: 'beta/ressuscite/' }) } });
       let b = null, aArrete = false;
       const racine2 = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-restauree-'));
       try {
@@ -312,6 +317,10 @@ const sante = async (svc) => { const r = await T.client(svc.base).get('/health')
         await al.post('/api/conversations/' + garde + '/messages', { cid: 'cid-garde-0001', texte: 'TexteDuGroupeGarde' });
         const vieuxCookie = al.cookie();
         v('population : la session d\'Alice est valide, et elle voit ses deux conversations', [(await al.get('/api/moi')).code, ((await al.get('/api/conversations')).j.conversations || []).map(x => x.id).sort()], [200, [solo, garde].sort()]);
+
+        /* Un appareil d'Alice s'abonne aux notifications AVANT l'archive cible : la copie restaurée le portera. */
+        const abonne = await al.post('/api/push/abonner', { sub: dev.sub });
+        v('population : Alice a un appareil abonné aux notifications (l\'archive cible le portera)', [abonne.code, abonne.j.appareils], [200, 1]);
 
         /* L'archive CIBLE : la seconde posée APRÈS la mise en place (la première peut avoir été commencée avant — son instantané ne porterait pas encore la session), puis une
            de plus pour que les gestes tombent clairement après la cible. Au geste, jamais au chronomètre : sur une machine chargée, la mise en place peut passer la seconde. */
@@ -326,6 +335,12 @@ const sante = async (svc) => { const r = await T.client(svc.base).get('/health')
         const cookieVivant = al2.cookie();
         v('   la session d\'avant est fermée sur le service en marche (401), la nouvelle ouvre ; Alice quitte la conversation solo : elle est supprimée', [(await T.client(a.base).appel('GET', '/api/moi', undefined, { entetes: { Cookie: 'opm=' + vieuxCookie } })).code, (await al2.post('/api/conversations/' + solo + '/quitter', {})).code, ((await al2.get('/api/conversations')).j.conversations || []).map(x => x.id)], [401, 200, [garde]]);
 
+        /* Deux gestes de plus, d'après l'archive cible : Alice désactive ses notifications (aucun registre ne note un abonnement retiré), puis demande la suppression de son compte
+           (l'échéance est posée, sessions et abonnements coupés — la demande, elle, SE NOTE). */
+        const desactive = await al2.post('/api/push/desabonner', { endpoint: dev.sub.endpoint });
+        const demande = await al2.post('/api/compte/supprimer', { confirmation: 'SUPPRIMER' });
+        v('   Alice désactive ses notifications (1 appareil retiré), puis demande la suppression de son compte : l\'échéance est posée', [desactive.code, desactive.j.retire, demande.code, Number.isInteger(demande.j.suppression_le)], [200, 1, 200, true]);
+
         /* Deux archives de plus, la dernière prise bien après les gestes : son registre porte la suppression. */
         const n0 = coffre.cles(prefixe).length;
         await T.attendre(() => (coffre.cles(prefixe).length >= n0 + 2 ? true : null), 30000, 100);
@@ -338,18 +353,28 @@ const sante = async (svc) => { const r = await T.client(svc.base).get('/health')
         const r = await processus([RESTAURER, 'restaurer', '--vers', dataB, '--date', cibleIso, '--sans-pieces'], { env: envOutil });
         v('⛔ la restauration de l\'archive d\'AVANT les gestes (--date) réussit, retire les sessions de l\'archive et la conversation que le registre de la plus récente dit supprimée',
           [r.code, /sessions retirées : [1-9]/.test(r.sortie), /[1-9] conversation\(s\)/.test(r.sortie)], [0, true, true]);
+        v('⛔ et l\'outil DIT que la copie portait un abonnement aux notifications, retiré (la population du zéro qui suit : sans elle, « aucun abonnement » ne prouverait rien)', /abonnements de notification retirés : 1 /.test(r.sortie), true);
         const lec = T.lireBase(path.join(dataB, 'msg.db'));
-        const surDisque = { sessions: lec.prepare('SELECT COUNT(*) AS n FROM session').get().n, solo: lec.prepare('SELECT COUNT(*) AS n FROM conversation WHERE id = ?').get(solo).n, garde: lec.prepare('SELECT COUNT(*) AS n FROM conversation WHERE id = ?').get(garde).n, drapeau: lec.prepare("SELECT COUNT(*) AS n FROM meta WHERE k = 'rejeu_service'").get().n };
+        const surDisque = { sessions: lec.prepare('SELECT COUNT(*) AS n FROM session').get().n, push: lec.prepare('SELECT COUNT(*) AS n FROM push').get().n, solo: lec.prepare('SELECT COUNT(*) AS n FROM conversation WHERE id = ?').get(solo).n, garde: lec.prepare('SELECT COUNT(*) AS n FROM conversation WHERE id = ?').get(garde).n, drapeau: lec.prepare("SELECT COUNT(*) AS n FROM meta WHERE k = 'rejeu_service'").get().n };
         lec.close();
-        v('   sur le fichier restauré : aucune session, la conversation supprimée absente, celle qui reste présente, le drapeau du rejeu par le service levé', surDisque, { sessions: 0, solo: 0, garde: 1, drapeau: 1 });
+        v('   sur le fichier restauré : aucune session, AUCUN abonnement push (celui qu\'Alice avait désactivé ne revient pas), la conversation supprimée absente, celle qui reste présente, le drapeau du rejeu par le service levé', surDisque, { sessions: 0, push: 0, solo: 0, garde: 1, drapeau: 1 });
 
         /* Le service redémarre SUR la base restaurée. */
-        b = await T.lancerService({ urlGestion: og.url, dossier: racine2, cle: kekHex });
+        b = await T.lancerService({ urlGestion: og.url, dossier: racine2, cle: kekHex, env: { OPMSG_TEST_PUSH: fps.hote } });
         const cB = T.client(b.base);
         const avecCookie = (valeur) => { const c = T.client(b.base); c.poserCookie(valeur); return c; };
         v('⛔ sur le service redémarré : l\'ancien cookie révoqué répond 401 (avant : 200 — la session revenait d\'une archive d\'avant la déconnexion), et celui de la session ouverte au moment de l\'arrêt aussi (toutes les sessions sont vidées)',
           [(await avecCookie(vieuxCookie).get('/api/moi')).code, (await avecCookie(cookieVivant).get('/api/moi')).code, (await cB.get('/api/moi')).code], [401, 401, 401]);
+        const lecDemande = T.lireBase(path.join(dataB, 'msg.db'));
+        const apresDemarrage = { personnes: lecDemande.prepare('SELECT COUNT(*) AS n FROM personne').get().n, echeance: lecDemande.prepare("SELECT suppression_le AS t FROM personne WHERE etat = 'actif'").get().t, demandes: lecDemande.prepare("SELECT COUNT(*) AS n FROM purge WHERE genre = 'suppression_demandee'").get().n, annulations: lecDemande.prepare("SELECT COUNT(*) AS n FROM purge WHERE genre = 'suppression_annulee'").get().n };
+        lecDemande.close();
+        v('⛔ sur le service redémarré, la DEMANDE de suppression faite après l\'archive est reprise avec son échéance D\'ORIGINE (avant : la copie d\'avant n\'en portait aucune, le compte n\'aurait JAMAIS été effacé) — une personne, une demande notée, aucune annulation',
+          apresDemarrage, { personnes: 1, echeance: demande.j.suppression_le, demandes: 1, annulations: 0 });
         const al3 = await T.connecter(b, og, 'alice', COMPTES.alice.pass);
+        const lecAnnul = T.lireBase(path.join(dataB, 'msg.db'));
+        const apresRetour = { echeance: lecAnnul.prepare("SELECT suppression_le AS t FROM personne WHERE etat = 'actif'").get().t, annulations: lecAnnul.prepare("SELECT COUNT(*) AS n FROM purge WHERE genre = 'suppression_annulee'").get().n };
+        lecAnnul.close();
+        v('⛔ Alice se reconnecte : l\'échéance est LEVÉE (se reconnecter avant elle annule la suppression) et l\'annulation SE NOTE — le registre dira « demande » puis « annulation »', apresRetour, { echeance: null, annulations: 1 });
         const liste = ((await al3.get('/api/conversations')).j.conversations || []).map(x => x.id);
         const textes = JSON.stringify((await al3.get('/api/conversations/' + garde + '/messages')).j || {});
         v('⛔ Alice se reconnecte : la conversation supprimée n\'est PAS revenue, celle qui reste est là avec son message', [liste, textes.includes('TexteDuGroupeGarde'), textes.includes('TexteDuSoloQuiNeDoitPasRevenir'), (await al3.get('/api/conversations/' + solo)).code], [[garde], true, false, 404]);
@@ -364,6 +389,7 @@ const sante = async (svc) => { const r = await T.client(svc.base).get('/health')
         if (b) await b.arreter();
         if (!aArrete) await a.arreter().catch(() => {});
         await og.fermer();
+        await fps.fermer();
         fs.rmSync(racine2, { recursive: true, force: true });
       }
     }
@@ -691,7 +717,7 @@ print(json.dumps({'sortie': out.decode('utf8', 'replace'), 'statut': statut}))
 
       /* ── Le MODE D'EMPLOI de Justin dit ce que le code fait : un guide qui cite un écran qui n'existe plus est pire que pas de guide ── */
       const guide = fs.readFileSync(path.join(O.RACINE, 'design', 'opmessages', 'INSTALLER-LE-SERVEUR.md'), 'utf8');
-      const iDeb = guide.indexOf('## 10 ter.'), iFin = guide.indexOf('## 11.');
+      const iDeb = guide.indexOf('## 10 ter.'), iFin = guide.indexOf('\n## ', iDeb + 1);   // jusqu'au titre suivant (« 10 quater », les notifications, est venu s'intercaler)
       const sect = iDeb > 0 && iFin > iDeb ? guide.slice(iDeb, iFin) : '';
       vrai('population : la section « 10 ter » du guide est trouvée (' + sect.length + ' caractères)', sect.length > 4000);
       const scripts = [...sect.matchAll(/node \/opt\/opmsg\/beta\/current\/(\S+)/g)].map(m => m[1]);

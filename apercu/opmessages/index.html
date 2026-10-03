@@ -827,6 +827,13 @@ html[data-service] .mention-apercu { display: none; }
 .mini.danger { color: var(--rouge-txt); }
 @media (pointer: coarse) { .mini { min-height: 44px; } }
 .reglage.danger .reglage-texte { color: var(--rouge-txt); }
+.reglage[aria-disabled="true"] { opacity: .6; }
+.mini[aria-disabled="true"] { opacity: .45; cursor: default; }
+/* la feuille « Supprimer mon compte » : une liste de ce qui part, et une case à cocher AVANT le bouton */
+.info-liste { margin: 0 0 6px; padding-left: 20px; list-style: disc; font-size: 14px; line-height: 19px; }
+.info-liste li { margin-bottom: 3px; }
+.case-conf { display: flex; gap: 12px; align-items: flex-start; margin: 4px 0 14px; padding: 12px 14px; border-radius: 12px; background: var(--card); font-size: 15px; line-height: 20px; color: var(--text); }
+.case-conf input { flex: none; width: 24px; height: 24px; margin: -1px 0 0; accent-color: var(--accent); }
 .contact .mini { margin-left: 6px; }
 .contact-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 /* un membre qu'on peut gérer : le nom garde au moins 150 px, et les boutons passent SOUS lui quand la ligne est trop étroite (Android 360 : « Moreau » passait sous « Nommer admin ») */
@@ -1108,7 +1115,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   if (!source) { $('contenu').innerHTML = '<p class="vide">Les données n\'ont pas pu être chargées.</p>'; return; }
   /* ⛔ CE QUE LA SOURCE SAIT FAIRE. La source de l'aperçu n'annonce rien : photos, vocaux et appels y sont SIMULÉS, aucun service, aucune action sur un message. Celle du
      service annonce ses capacités (`source.capacites`) : ce qu'elle ne sait pas encore dit « bientôt » au lieu de faire semblant. */
-  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, texteMax: 4000 }, source.capacites || {});
+  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, notifications: false, compte: false, texteMax: 4000 }, source.capacites || {});
   /* la personne et ses contacts : posés au démarrage (une source de service ne sait qui est connecté qu'après avoir lu la session), relus quand elle le dit */
   let MOI = null, CONTACTS = [];
   const SUFFIXE_TITRE = CAP.service ? ' — OP MESSAGES' : ' — OP MESSAGES, aperçu';
@@ -1445,6 +1452,8 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     while (col.children.length > parts.length) col.removeChild(col.lastChild);
     if (cle && !col.contains(document.activeElement)) { const b = col.querySelector('[data-' + cle + '="' + val.replace(/"/g, '') + '"]'); if (b) b.focus({ preventScroll: true }); }
   }
+  /* pourquoi on ne peut pas écrire ici (le texte), ou '' : un groupe d'annonces dont on n'est pas admin, un compte supprimé */
+  const compoFerme = c => !c ? '' : c.supprime ? 'Ce compte a été supprimé : tu ne peux plus lui écrire.' : (c.annoncesSeulement && c.admins.indexOf(MOI.id) < 0 ? 'Seuls les admins peuvent écrire dans ce groupe.' : '');
   function rendreConv(c, force) {
     const fil = $('conv-fil');
     const colle = force || etat.forcerBas || (fil.scrollHeight - fil.scrollTop - fil.clientHeight < 80);
@@ -1455,8 +1464,9 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     $('conv-messages').setAttribute('aria-busy', 'false');
     $('precedents').hidden = !(CAP.historique && c.aPlus);
     /* « Seuls les admins écrivent » : une personne qui n'est pas admin lit, elle n'écrit pas */
-    const ferme = c.annoncesSeulement && c.admins.indexOf(MOI.id) < 0;
+    const ferme = !!compoFerme(c);
     $('compo').hidden = ferme || !!enr.etat && enr.etat !== 'repos'; $('compo-ferme').hidden = !ferme;
+    if (ferme) $('compo-ferme').textContent = compoFerme(c);
     appliquerLecture();
     if (colle) defilerBas();
   }
@@ -1857,7 +1867,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   const enr = { etat: 'repos', conv: null, flux: null, rec: null, morceaux: [], t0: 0, minut: null, niveaux: [], ctx: null, ana: null, annule: false, tenu: false, tenuAuDebut: false, geste: 0, msVu: 0 };
   function afficherEnregistrement(on) {
     $('enreg').hidden = !on;
-    const c = etat.convDonnees, ferme = c && c.annoncesSeulement && c.admins.indexOf(MOI.id) < 0;
+    const c = etat.convDonnees, ferme = !!compoFerme(c);
     $('compo').hidden = on || !!ferme;
   }
   function nettoyerFlux() {
@@ -1995,9 +2005,9 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     $('g-compteur').textContent = G.choisis.length + ' / ' + CONTACTS.length;
     $('g-creer').setAttribute('aria-disabled', G.choisis.length ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
-    const appel = G.mode === 'appel', info = G.mode === 'info', corpsInfo = info || G.mode === 'contact' || G.mode === 'convinfo' || G.mode === 'profil';
+    const appel = G.mode === 'appel', info = G.mode === 'info', corpsInfo = info || G.mode === 'contact' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression';
     $('feuille').dataset.mode = G.mode;
-    $('feuille-titre').textContent = info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : appel ? 'Appel de groupe' : 'Nouveau groupe';
+    $('feuille-titre').textContent = info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : appel ? 'Appel de groupe' : 'Nouveau groupe';
     $('g-annuler').textContent = corpsInfo ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : 'Créer';
     $('g-creer').style.visibility = corpsInfo ? 'hidden' : '';
@@ -2020,7 +2030,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     if (!declencheur) declencheur = document.activeElement;
     etat.groupe = groupeVierge();
     etat.groupe.cle = cleFeuille(f);
-    etat.groupe.mode = mode === 'appel' || mode === 'info' || (mode === 'contact' && CAP.liens) || (mode === 'convinfo' && CAP.groupeInfos) || (mode === 'profil' && CAP.reglages) ? mode : 'chat';
+    etat.groupe.mode = mode === 'appel' || mode === 'info' || (mode === 'contact' && CAP.liens) || (mode === 'convinfo' && CAP.groupeInfos) || (mode === 'profil' && CAP.reglages) || (mode === 'suppression' && CAP.compte) ? mode : 'chat';
     if (etat.groupe.mode === 'convinfo') etat.groupe.convId = arg || null;
     if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel') { CONTACTS = typeof source.contacts === 'function' ? source.contacts() : CONTACTS; construireContacts(); }
     if (etat.groupe.mode === 'info') {
@@ -2035,6 +2045,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     if (etat.groupe.mode === 'contact') rendreFeuilleContact();
     if (etat.groupe.mode === 'convinfo') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; rendreConvInfo(); }
     if (etat.groupe.mode === 'profil') rendreProfil();
+    if (etat.groupe.mode === 'suppression') rendreSuppression();
     synchroFeuille();
     $('feuille').inert = false;
     document.documentElement.classList.add('feuille-ouverte');
@@ -2452,25 +2463,30 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   const PHRASES_MOTIF = {
     session_requise: 'Ta session a pris fin : elle a expiré, ou l\'accès a été coupé depuis la Tour de contrôle. Reconnecte-toi.',
     identite: 'Une autre personne s\'est connectée dans ce navigateur : cette page a été fermée. Reconnecte-toi.',
-    deconnecte: 'Tu es déconnecté.'
+    deconnecte: 'Tu es déconnecté.',
+    suppression: 'Ton compte est en cours de suppression. Si tu changes d\'avis, reconnecte-toi avant la date prévue : la suppression sera annulée.',
+    suppression_annulee: 'Bon retour : la suppression de ton compte est annulée.'
   };
+  /* « 17 octobre 2026 à 14:05 » : la date dite à la personne est celle que le SERVICE a posée, jamais une date recalculée ici */
+  const dateLongue = ts => { try { return new Date(ts).toLocaleString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return new Date(ts).toISOString(); } };
   const motifConnu = m => typeof m === 'string' && Object.prototype.hasOwnProperty.call(PHRASES_MOTIF, m);
   /* ⛔ LE CHEMIN SE REFAIT SUR L'ORIGINE, jamais sur `location.pathname` seul : le service répond aussi à `//index.html` (`express.static` normalise), et
      `location.replace('//index.html?m=…')` est une adresse SANS SCHÉMA — le navigateur la lit comme l'hôte « index.html » (relecture du gardien, remarque 4). */
   const cheminSur = () => location.pathname.replace(/^\/{2,}/, '/');
   function lireMotif() {
-    let m = null, n = 0;
-    try { const q = new URLSearchParams(location.search); m = q.get('m'); n = /^\d{1,2}$/.test(q.get('n') || '') ? parseInt(q.get('n'), 10) : 0; } catch (e) { m = null; }
+    let m = null, n = 0, d = 0;
+    try { const q = new URLSearchParams(location.search); m = q.get('m'); n = /^\d{1,2}$/.test(q.get('n') || '') ? parseInt(q.get('n'), 10) : 0; d = /^\d{12,14}$/.test(q.get('d') || '') ? parseInt(q.get('d'), 10) : 0; } catch (e) { m = null; }
     if (location.search) { try { history.replaceState(null, '', cheminSur() + location.hash); } catch (e) { /* rien */ } }
     etat.perdus = motifConnu(m) ? n : 0;
+    etat.dateSuppression = m === 'suppression' ? d : 0;           // la date d'effacement que le service a posée (en millisecondes) : elle traverse l'adresse, jamais autre chose
     return motifConnu(m) ? m : null;
   }
   /* ⛔ un message qui n'a PAS quitté l'appareil (réseau coupé, service muet) ne survit ni à la déconnexion ni à une session morte : la page repart de zéro. Elle le DIT
      à l'écran de connexion (le nombre seulement, jamais le texte : il traverse l'adresse) au lieu de le perdre en silence (gardien, remarque 1 ; testeur, D8). */
-  function repartir(motif) {
+  function repartir(motif, date) {
     etat.partir = true;                                   // la garde « fermer la page » ne se met pas en travers de ce départ-là
     let n = 0; try { n = typeof source.enAttente === 'function' ? Math.min(99, source.enAttente() | 0) : 0; } catch (e) { n = 0; }
-    location.replace(location.origin + cheminSur() + (motifConnu(motif) ? '?m=' + motif + (n > 0 ? '&n=' + n : '') : ''));
+    location.replace(location.origin + cheminSur() + (motifConnu(motif) ? '?m=' + motif + (n > 0 ? '&n=' + n : '') + (motif === 'suppression' && Number.isSafeInteger(date) && date > 0 ? '&d=' + date : '') : ''));
   }
   /* fermer ou recharger la page avec un message encore « En attente » le perdrait : le navigateur demande confirmation (rien n'est rangé sur l'appareil, c'est voulu) */
   window.addEventListener('beforeunload', e => {
@@ -2482,6 +2498,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     $('app').hidden = true; $('connexion').hidden = false;
     document.title = 'Connexion' + SUFFIXE_TITRE;
     let t = motif ? PHRASES_MOTIF[motif] : '';
+    if (motif === 'suppression' && etat.dateSuppression > 0) t = 'Ton compte sera supprimé le ' + dateLongue(etat.dateSuppression) + '. Si tu changes d\'avis, reconnecte-toi avant cette date : la suppression sera annulée.';
     if (t && etat.perdus > 0) t += ' ' + (etat.perdus === 1 ? 'Un message n\'était pas encore parti : il n\'a pas été envoyé, écris-le de nouveau.' : etat.perdus + ' messages n\'étaient pas encore partis : ils n\'ont pas été envoyés, écris-les de nouveau.');
     if (!t && d && d.motif && d.motif !== 'session_requise') t = d.phrase || phrase(null, 'Le service ne répond pas.');
     erreurConnexion(t);
@@ -2495,7 +2512,11 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     const login = $('c-login').value.trim(), pass = $('c-pass').value;
     if (!login || !pass) { erreurConnexion('Saisis l\'identifiant et le mot de passe.'); return; }
     connexionEnCours = true; $('c-entrer').setAttribute('aria-disabled', 'true');
-    try { await source.connexion(login, pass); $('c-pass').value = ''; location.reload(); }
+    try {
+      const moi = await source.connexion(login, pass); $('c-pass').value = '';
+      /* se reconnecter avant l'échéance ANNULE la suppression du compte : le service le dit, la personne doit l'apprendre — la page repart avec le motif (une bannière à l'arrivée) */
+      if (moi && moi.suppression_annulee === true) location.replace(location.origin + cheminSur() + '?m=suppression_annulee' + location.hash); else location.reload();
+    }
     catch (e) { $('c-pass').value = ''; erreurConnexion(phrase(e, 'La connexion n\'a pas pu se faire.')); }
     finally { connexionEnCours = false; $('c-entrer').removeAttribute('aria-disabled'); }
   });
@@ -2534,7 +2555,8 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   /* ── les réglages du compte : profil, confidentialité, contacts, appareils, stockage, à propos, sortie ──
      ⛔ Chaque réglage montre ce que le SERVICE a retenu, jamais ce qu'on lui a demandé : un interrupteur ne tourne qu'après la réponse, un refus se dit à côté de lui — et la réussite
      suivante l'efface. Chaque bloc a son propre état (chargement, refus, contenu) : un bloc en panne ne cache pas les autres. */
-  const reg = { jeton: 0, conf: null, confErreur: '', stock: null, stockErreur: '', propos: null, proposErreur: '', occupe: false };
+  const reg = { jeton: 0, conf: null, confErreur: '', stock: null, stockErreur: '', propos: null, proposErreur: '', occupe: false,
+    notif: null, notifLecture: '', notifErreur: '', notifMsg: '', notifOccupe: false, exportMsg: '', exportErreur: '', exportOccupe: false };
   const LIEUX = { beta: 'Bêta', prod: 'Production' };
   const refusBloc = t => '<p class="info-erreur" role="alert">' + esc(t) + '</p><button type="button" class="mini reg-relire" data-reg-relire="1">Réessayer</button>';
   function peindreMoi() {
@@ -2559,6 +2581,63 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
       sw('accuses', 'Confirmations de lecture', 'Réciproque : si tu les coupes, ton « Lu » n\'est montré à personne et tu ne vois pas celui des autres.') +
       (reg.confErreur ? '<div class="carte-pad"><p class="info-erreur" role="alert">' + esc(reg.confErreur) + '</p></div>' : '');
   }
+  /* ── Notifications : l'interrupteur de CET appareil (ce que le navigateur et le service ont retenu), l'aperçu (valable pour tous mes appareils), l'essai ──
+     ⛔ Un état où l'interrupteur ne peut pas tourner DIT pourquoi, à côté de lui, et comment en sortir (la phrase vient de la source). Un refus du geste se dit en dessous ; la réussite suivante l'efface. */
+  function peindreNotif() {
+    const c = $('reg-notif'); if (!c) return;
+    const n = reg.notif;
+    if (!n) { c.innerHTML = reg.notifLecture ? '<div class="carte-pad">' + refusBloc(reg.notifLecture) + '</div>' : '<p class="vide">Chargement…</p>'; return; }
+    const occ = reg.notifOccupe ? ' aria-disabled="true"' : '';
+    let h = '<button type="button" class="reglage presse" role="switch" id="reg-notif-sw" aria-checked="' + (n.active ? 'true' : 'false') + '"' + (n.possible ? occ : ' aria-disabled="true"') + '><span class="reglage-texte">Notifications sur cet appareil<small>' +
+      esc(!n.possible ? n.phrase : n.active ? 'Activées : tu reçois une notification quand un message arrive et que cette page n\'est pas sous tes yeux.' : 'Désactivées sur cet appareil. Le navigateur te demandera ton autorisation.') + '</small></span><span class="interrupteur" aria-hidden="true"></span></button>';
+    if (n.raison !== 'service') h += '<button type="button" class="reglage presse" role="switch" id="reg-notif-apercu" aria-checked="' + (n.apercu ? 'true' : 'false') + '"' + occ + '><span class="reglage-texte">Aperçu du message<small>' +
+      esc(n.apercu ? 'La notification montre le nom et le début du message (tous tes appareils).' : 'La notification dit seulement « Nouveau message » : ni nom ni texte, même écran verrouillé (tous tes appareils).') + '</small></span><span class="interrupteur" aria-hidden="true"></span></button>';
+    if (n.possible && n.active) h += '<button type="button" class="reglage presse" id="reg-notif-essai"' + occ + '><span class="reglage-texte">Envoyer une notification d\'essai<small>Elle part vers tous tes appareils abonnés.</small></span></button>';
+    if (reg.notifMsg) h += '<div class="carte-pad"><p class="info-note" role="status">' + esc(reg.notifMsg) + '</p></div>';
+    if (reg.notifErreur) h += '<div class="carte-pad"><p class="info-erreur" role="alert">' + esc(reg.notifErreur) + '</p></div>';
+    c.innerHTML = h;
+  }
+  const dirAppareils = k => k + (k > 1 ? ' appareils' : ' appareil');
+  async function actionNotif(quoi) {
+    if (reg.notifOccupe || !reg.notif) return;
+    if (quoi === 'sw' && !reg.notif.possible) return;                          // l'état dit déjà pourquoi, à côté de l'interrupteur
+    reg.notifOccupe = true; reg.notifErreur = ''; reg.notifMsg = ''; peindreNotif();           // ⛔ chaque essai écrit SON verdict
+    try {
+      if (quoi === 'sw') reg.notif = reg.notif.active ? await source.notifDesactiver() : await source.notifActiver();
+      else if (quoi === 'apercu') reg.notif = await source.notifApercu(!reg.notif.apercu);
+      else if (quoi === 'essai') {
+        const r = await source.notifEssai();
+        reg.notifMsg = r.appareils === 0 ? 'Aucun appareil n\'est abonné : active d\'abord les notifications.'
+          : r.envoyes === r.appareils ? 'Notification envoyée à ' + dirAppareils(r.appareils) + '. Si tu ne la vois pas, regarde les réglages de notification de ton navigateur.'
+          : r.envoyes === 0 ? 'La notification n\'a atteint aucun de tes ' + dirAppareils(r.appareils) + ' : le service de notification du navigateur ne répond pas. Réessaie dans un moment.'
+          : 'La notification a atteint ' + r.envoyes + ' de tes ' + r.appareils + ' appareils ; les autres ne répondent pas.';
+      }
+    } catch (x) { reg.notifErreur = phrase(x, 'Ce réglage n\'a pas pu être enregistré.'); }
+    try { reg.notif = await source.notifEtat(); } catch (x) { /* l'état d'avant reste affiché : le geste, lui, a dit son verdict */ }       // ce que l'écran montre est ce qui EST, pas ce qu'on a demandé
+    reg.notifOccupe = false; peindreNotif();
+    const b = document.getElementById('reg-notif-' + quoi); if (b) b.focus({ preventScroll: true });
+  }
+  /* ── Compte : exporter mes données (un fichier téléchargé), supprimer mon compte (une feuille qui dit tout) ── */
+  function peindreCompte() {
+    const c = $('reg-compte'); if (!c) return;
+    c.innerHTML = '<button type="button" class="reglage presse" id="reg-export"' + (reg.exportOccupe ? ' aria-disabled="true"' : '') + '><span class="reglage-texte">Exporter mes données<small>Un fichier avec ton profil, tes contacts et tes conversations. Un export par jour.</small></span></button>' +
+      (reg.exportMsg ? '<div class="carte-pad"><p class="info-note" role="status">' + esc(reg.exportMsg) + '</p></div>' : '') +
+      (reg.exportErreur ? '<div class="carte-pad"><p class="info-erreur" role="alert">' + esc(reg.exportErreur) + '</p></div>' : '') +
+      '<button type="button" class="reglage presse danger" id="reg-supprimer"><span class="reglage-texte">Supprimer mon compte<small>Ton compte est effacé après un délai ; te reconnecter avant annule la suppression.</small></span>' + CHEVRON + '</button>';
+  }
+  async function exporterDonnees() {
+    if (reg.exportOccupe) return;
+    reg.exportOccupe = true; reg.exportMsg = ''; reg.exportErreur = ''; peindreCompte();                // ⛔ chaque essai écrit SON verdict
+    try {
+      const r = await source.exporterDonnees();                                                       // { blob, nom }
+      const url = URL.createObjectURL(r.blob), a = document.createElement('a');
+      a.href = url; a.download = r.nom; a.rel = 'noopener'; a.hidden = true; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      reg.exportMsg = 'Le fichier « ' + r.nom + ' » (' + tailleTexte(r.blob.size) + ') a été téléchargé. Tu pourras en demander un autre demain.';
+    } catch (x) { reg.exportErreur = phrase(x, 'L\'export n\'a pas pu se faire. Réessaie dans un moment.'); }
+    reg.exportOccupe = false; peindreCompte();
+    const b = $('reg-export'); if (b) b.focus({ preventScroll: true });
+  }
   function peindreStock() {
     const c = $('reg-stock'); if (!c) return;
     if (reg.stockErreur && !reg.stock) { c.innerHTML = refusBloc(reg.stockErreur); return; }
@@ -2581,35 +2660,45 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   function peindreBloquesN() { const n = $('reg-bloques-n'); if (!n || typeof source.bloques !== 'function') return; const k = source.bloques().length; n.textContent = k ? String(k) : ''; }
   async function chargerReglages() {
     const jeton = ++reg.jeton;
-    const [c, s2, a] = await Promise.allSettled([source.confidentialite(), source.stockage(), source.aPropos()]);
+    const [c, s2, a, nt] = await Promise.allSettled([source.confidentialite(), source.stockage(), source.aPropos(), CAP.notifications ? source.notifEtat() : Promise.resolve(null)]);
     if (jeton !== reg.jeton || !$('reg-conf')) return;
+    if (CAP.notifications) { reg.notif = nt.status === 'fulfilled' ? nt.value : reg.notif; reg.notifLecture = nt.status === 'rejected' ? phrase(nt.reason, 'L\'état des notifications n\'a pas pu être lu.') : ''; peindreNotif(); }
     reg.conf = c.status === 'fulfilled' ? c.value : reg.conf; reg.confErreur = c.status === 'rejected' ? phrase(c.reason, 'Les réglages de confidentialité n\'ont pas pu être lus.') : '';
     reg.stock = s2.status === 'fulfilled' ? s2.value : reg.stock; reg.stockErreur = s2.status === 'rejected' ? phrase(s2.reason, 'L\'espace utilisé n\'a pas pu être lu.') : '';
     reg.propos = a.status === 'fulfilled' ? a.value : reg.propos; reg.proposErreur = a.status === 'rejected' ? phrase(a.reason, 'Les informations du service n\'ont pas pu être lues.') : '';
     peindreConf(); peindreStock(); peindreApropos();
   }
   function rendreReglages() {
-    Object.assign(reg, { conf: null, confErreur: '', stock: null, stockErreur: '', propos: null, proposErreur: '', occupe: false });
+    Object.assign(reg, { conf: null, confErreur: '', stock: null, stockErreur: '', propos: null, proposErreur: '', occupe: false, notif: null, notifLecture: '', notifErreur: '', notifMsg: '', notifOccupe: false, exportMsg: '', exportErreur: '', exportOccupe: false });
     $('vue-reglages').innerHTML = '<div class="entete-vue"></div><h1 class="grand-titre" id="titre-reglages">Réglages</h1>' +
       '<div class="carte" id="reg-profil"></div>' +
       '<div class="rubrique"><span>Confidentialité</span></div><div class="carte" id="reg-conf"></div>' +
+      (CAP.notifications ? '<div class="rubrique"><span>Notifications</span></div><div class="carte" id="reg-notif"></div>' : '') +
       '<div class="rubrique"><span>Contacts</span></div><div class="carte">' +
         '<button type="button" class="reglage presse" id="reg-contact">' + icone('i-groupe') + '<span class="reglage-texte">Ajouter un contact<small>Par un lien d\'invitation</small></span>' + CHEVRON + '</button>' +
         '<button type="button" class="reglage presse" id="reg-bloques"><span class="reglage-texte">Contacts bloqués</span><span class="reglage-valeur" id="reg-bloques-n"></span>' + CHEVRON + '</button></div>' +
       '<div class="rubrique"><span>Appareils</span></div><div class="carte"><button type="button" class="reglage presse" id="reg-autres"><span class="reglage-texte">Déconnecter les autres appareils<small>Ta session reste ouverte ici ; les autres doivent se reconnecter.</small></span></button></div>' +
       '<div class="rubrique"><span>Stockage</span></div><div class="carte carte-pad" id="reg-stock"></div>' +
+      (CAP.compte ? '<div class="rubrique"><span>Compte</span></div><div class="carte" id="reg-compte"></div>' : '') +
       '<div class="rubrique"><span>À propos</span></div><div class="carte carte-pad" id="reg-apropos"></div>' +
       '<div class="carte"><button type="button" class="reglage presse danger" id="reg-sortir"><span class="reglage-texte">Se déconnecter</span></button></div>' +
       '<p class="info-erreur" id="reg-erreur" role="alert" hidden></p>';
     peindreProfilReglage(); peindreConf(); peindreStock(); peindreApropos(); peindreBloquesN();
+    if (CAP.notifications) peindreNotif();
+    if (CAP.compte) peindreCompte();
     chargerReglages();
   }
+  /* revenir sur la page (après avoir autorisé les notifications dans les réglages du navigateur, par exemple) relit l'état affiché dans Réglages */
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && CAP.notifications && etat.route && etat.route.vue === 'reglages' && !reg.notifOccupe && $('reg-notif')) chargerReglages(); });
   $('vue-reglages').addEventListener('click', async e => {
     const er = $('reg-erreur'), nette = () => { er.hidden = true; er.textContent = ''; }, dit = (x, defaut) => { er.textContent = phrase(x, defaut); er.hidden = false; };
     const bouton = e.target.closest('button'); if (!bouton) return;
     if (bouton.id === 'reg-profil-bouton') { declencheur = bouton; ouvrirFeuille('profil'); return; }
     if (bouton.id === 'reg-contact' || bouton.id === 'reg-bloques') { declencheur = bouton; ouvrirFeuille('contact'); return; }
     if (bouton.dataset.regRelire) { chargerReglages(); return; }
+    if (bouton.id === 'reg-notif-sw' || bouton.id === 'reg-notif-apercu' || bouton.id === 'reg-notif-essai') { actionNotif(bouton.id.slice(10)); return; }
+    if (bouton.id === 'reg-export') { exporterDonnees(); return; }
+    if (bouton.id === 'reg-supprimer') { declencheur = bouton; ouvrirFeuille('suppression'); return; }
     if (bouton.dataset.regCle) {
       if (reg.occupe || !reg.conf) return;
       const cle = bouton.dataset.regCle;
@@ -2626,7 +2715,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
       const t = bouton.querySelector('.reglage-texte').firstChild, normal = 'Déconnecter les autres appareils';
       if (bouton.dataset.pret !== '1') { bouton.dataset.pret = '1'; t.textContent = 'Toucher encore pour déconnecter les autres appareils'; setTimeout(() => { if (bouton.isConnected && bouton.dataset.pret === '1') { bouton.dataset.pret = ''; t.textContent = normal; } }, 4000); return; }
       bouton.dataset.pret = ''; t.textContent = normal; bouton.setAttribute('aria-disabled', 'true');
-      try { const r = await source.deconnecterAutres(); mot(r.sessions > 1 ? r.sessions + ' autres appareils déconnectés' : r.sessions === 1 ? 'Un autre appareil déconnecté' : 'Aucun autre appareil n\'était connecté'); }
+      try { const r = await source.deconnecterAutres(); mot((r.sessions > 1 ? r.sessions + ' autres appareils déconnectés' : r.sessions === 1 ? 'Un autre appareil déconnecté' : 'Aucun autre appareil n\'était connecté') + (r.notifications > 0 ? ' · leurs notifications sont coupées' : '')); }
       catch (x) { dit(x, 'Les autres appareils n\'ont pas pu être déconnectés.'); }
       finally { bouton.removeAttribute('aria-disabled'); }
       return;
@@ -2636,6 +2725,29 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     bouton.setAttribute('aria-disabled', 'true');
     try { await source.deconnexion(); repartir('deconnecte'); }
     catch (x) { bouton.removeAttribute('aria-disabled'); dit(x, 'La déconnexion n\'a pas pu se faire : tu restes connecté.'); }
+  });
+
+  /* ── Supprimer mon compte : une feuille qui DIT ce qui part, ce qui reste chez les autres et quand ; la confirmation est une question, une case à cocher et un bouton ──
+     ⛔ Le délai vient du SERVICE (`aPropos`), jamais d'un nombre écrit ici. Le bouton ne tourne pas tant que la case n'est pas cochée, et un refus du service se dit dans la feuille. */
+  async function rendreSuppression() {
+    const corps = $('info-corps');
+    corps.dataset.sig = ''; corps.innerHTML = '<p class="vide">Chargement…</p>';
+    let jours = null, panne = null;
+    try { const p = await source.aPropos(); jours = p && p.suppressionJours; } catch (e) { panne = e; }
+    if (!etat.groupe.ouvert || etat.groupe.mode !== 'suppression') return;           // la feuille s'est fermée pendant l'attente
+    if (panne || !(jours > 0)) { corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">' + esc(panne ? phrase(panne, 'Le délai de suppression n\'a pas pu être lu.') : 'Le délai de suppression n\'a pas pu être lu : réessaie dans un moment.') + '</p>'; return; }
+    corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+      '<div class="rubrique"><span>Ce qui sera effacé</span></div><div class="carte carte-pad"><ul class="info-liste"><li>ton profil, ta photo et tes réglages ;</li><li>tes contacts et tes liens d\'invitation ;</li><li>tes notifications, et la liste de tes appareils connectés ;</li><li>les photos, vocaux et fichiers que tu as déposés sans les envoyer.</li></ul></div>' +
+      '<div class="rubrique"><span>Ce qui reste chez les autres</span></div><div class="carte carte-pad"><p class="info-note">Les messages que tu as envoyés restent dans les conversations des autres, signés « Compte supprimé », avec leurs photos, vocaux et fichiers. Si tu étais le seul administrateur d\'un groupe, un autre membre le devient.</p></div>' +
+      '<div class="rubrique"><span>Quand</span></div><div class="carte carte-pad"><p class="reg-ligne">Tu es déconnecté de tous tes appareils <b>tout de suite</b>. Ton compte est effacé dans <b>' + jours + (jours > 1 ? ' jours' : ' jour') + '</b>, vers le ' + esc(dateLongue(Date.now() + jours * 86400000)) + '.</p><p class="info-note">Jusque-là, il te suffit de te reconnecter pour annuler la suppression.</p></div>' +
+      '<p class="reg-ligne" id="sp-question"><b>Supprimer définitivement ton compte ?</b></p>' +
+      '<label class="case-conf"><input type="checkbox" id="sp-case"><span>Je comprends que mon compte sera effacé, et que les messages que j\'ai envoyés resteront chez les autres.</span></label>' +
+      '<div class="info-actions"><button type="button" class="mini danger" data-act="suppression-confirmer" id="sp-oui" aria-disabled="true">Oui, supprimer mon compte</button><button type="button" class="mini" data-act="suppression-annuler">Non, garder mon compte</button></div>';
+  }
+  $('info-corps').addEventListener('change', e => {
+    if (!e.target || e.target.id !== 'sp-case') return;
+    const oui = $('sp-oui'); if (oui) { if (e.target.checked) oui.removeAttribute('aria-disabled'); else oui.setAttribute('aria-disabled', 'true'); }
+    erreurInfo('');
   });
 
   /* ── Mon profil : la photo, le prénom, le nom, le statut ── */
@@ -2723,16 +2835,20 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     if (!etat.groupe.ouvert || etat.groupe.convId !== id) return;                // la feuille s'est fermée pendant l'attente
     if (panne) { corps.dataset.sig = ''; corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">' + esc(phrase(panne, 'Les infos n\'ont pas pu être chargées.')) + '</p>'; return; }
     if (!i) { mot('Cette conversation n\'existe plus.'); fermerCouche(); return; }
-    const sig = JSON.stringify([i.nom, !!i.photo, i.moiAdmin, i.annoncesSeulement, i.ephemeres, i.enLigne, i.membres.map(m => [m.id, m.nom, m.role, m.enLigne])]) + '|' + CONTACTS.map(c => c.id).join(',');
+    const sig = JSON.stringify([i.nom, !!i.photo, i.moiAdmin, i.annoncesSeulement, i.ephemeres, i.enLigne, i.sourdine || 0, i.membres.map(m => [m.id, m.nom, m.role, m.enLigne])]) + '|' + CONTACTS.map(c => c.id).join(',');
     if (corps.dataset.sig === sig && corps.children.length) return;
     corps.dataset.sig = sig;
     const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.act ? actif.dataset.act + '|' + (actif.dataset.uid || '') : null;
     const g = i.type === 'groupe', eph = EPHEMERES.find(e => e[0] === i.ephemeres) || [i.ephemeres, i.ephemeres + ' s'], off = i.moiAdmin ? '' : ' disabled';
+    const sd = CAP.notifications && !i.supprime ? (Number(i.sourdine) || 0) : -1;           // -1 : pas de sourdine à proposer ; 0 : pas en sourdine ; sinon l'échéance
     let h = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
       '<div class="info-tete">' + avatar(i) + '<div><h3 class="info-nom">' + esc(i.nom) + '</h3><p class="info-sous">' + (g ? 'Groupe · ' + i.membres.length + (i.membres.length > 1 ? ' membres' : ' membre') : (i.enLigne ? 'En ligne' : 'Conversation à deux')) + '</p></div></div>' +
       (g && i.moiAdmin && CAP.avatars ? '<div class="info-actions info-photo-actions"><button type="button" class="mini" data-act="groupe-photo">' + (blob(i.photo) ? 'Changer la photo' : 'Ajouter une photo') + '</button>' + (blob(i.photo) ? '<button type="button" class="mini danger" data-act="groupe-photo-retirer">Retirer la photo</button>' : '') + '</div>' : '') +
       '<div class="carte">' + (g ? '<button type="button" class="reglage presse" data-act="annonces" role="switch" aria-checked="' + (i.annoncesSeulement ? 'true' : 'false') + '"' + off + '><span class="reglage-texte">Seuls les admins écrivent<small>Groupe d\'annonces</small></span><span class="interrupteur" aria-hidden="true"></span></button>' : '') +
       '<button type="button" class="reglage presse" data-act="ephemeres"' + off + '><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur">' + esc(eph[1]) + '</span>' + (i.moiAdmin ? CHEVRON : '') + '</button></div>';
+    /* la sourdine : plus de notification pour CETTE conversation (8 heures, une semaine, toujours) — le service ne l'envoie pas, la page continue de recevoir */
+    if (sd > Date.now()) h += '<div class="carte"><div class="reglage"><span class="reglage-texte">Notifications coupées<small>' + esc(sd - Date.now() > 5 * 365 * 86400000 ? 'En sourdine pour toujours' : 'En sourdine jusqu\'au ' + dateLongue(sd)) + '</small></span><button type="button" class="mini" data-act="sourdine" data-duree="off">Réactiver</button></div></div>';
+    else if (sd >= 0) h += '<div class="carte"><div class="reglage"><span class="reglage-texte">Mettre en sourdine<small>Plus de notification pour cette conversation</small></span></div><div class="carte-pad info-actions"><button type="button" class="mini" data-act="sourdine" data-duree="8h">8 heures</button><button type="button" class="mini" data-act="sourdine" data-duree="1s">1 semaine</button><button type="button" class="mini" data-act="sourdine" data-duree="tj">Toujours</button></div></div>';
     if (g) {
       h += '<div class="rubrique"><span>Membres</span><span>' + i.membres.length + '</span></div><div class="carte">' + i.membres.map(m =>
         '<div class="contact' + (i.moiAdmin && !m.moi ? ' avec-actions' : '') + '">' + avatar(m) + '<span class="contact-texte"><span class="contact-nom">' + esc(m.moi ? 'Vous' : m.nom) + (m.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (m.enLigne && !m.moi ? '<span class="contact-role">En ligne</span>' : '') + '</span>' +
@@ -2776,6 +2892,14 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
         await source.bloquer(b.dataset.uid); mot('Contact bloqué');
         remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
       }
+      else if (act === 'sourdine') { await source.sourdine(id, b.dataset.duree); mot(b.dataset.duree === 'off' ? 'Notifications réactivées' : 'Conversation en sourdine'); }
+      else if (act === 'suppression-annuler') { fermerFeuille(false); return; }
+      else if (act === 'suppression-confirmer') {
+        if (b.getAttribute('aria-disabled') === 'true') { if (!$('sp-case').checked) erreurInfo('Coche la case pour confirmer la suppression de ton compte.'); return; }
+        b.setAttribute('aria-disabled', 'true');
+        try { const r = await source.supprimerCompte(); repartir('suppression', r.suppression_le); return; }
+        catch (er) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(er, 'La suppression n\'a pas pu se faire : ton compte est inchangé.')); return; }
+      }
       else if (act === 'profil-photo') $('profil-photo-fichier').click();
       else if (act === 'profil-photo-retirer') { peindreProfil(await source.retirerPhotoProfil()); mot('Photo retirée'); }
       else if (act === 'profil-enregistrer') {
@@ -2815,7 +2939,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   function ouvrirMenuMessage(mid, declencheurEl) {
     const m = trouverMessage(mid), c = etat.convDonnees;
     if (!CAP.actionsMessage || !m || !c || m.systeme || m.attente || (etat.menu && etat.menu.mid === mid)) return;
-    const moi = m.auteur === MOI.id, admin = c.type === 'groupe' && c.admins.indexOf(MOI.id) >= 0, ferme = c.annoncesSeulement && c.admins.indexOf(MOI.id) < 0;
+    const moi = m.auteur === MOI.id, admin = c.type === 'groupe' && c.admins.indexOf(MOI.id) >= 0, ferme = !!compoFerme(c);
     const mienne = (m.reactions || []).find(r => r.moi);
     etat.menu = { mid, declencheur: declencheurEl || null, t: Date.now() };
     let h = '<div class="menu-emojis" role="group" aria-label="Réagir">' + (m.supprime ? '' : REACTIONS.map(x => '<button type="button" class="menu-emoji" data-menu-reac="' + x + '" aria-pressed="' + (mienne && mienne.emoji === x ? 'true' : 'false') + '" aria-label="Réagir avec ' + x + '">' + x + '</button>').join('')) + '</div>';
@@ -2917,6 +3041,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
       if (typeof source.surSessionMorte === 'function') source.surSessionMorte(repartir);
       $('connexion').hidden = true; $('app').hidden = false;
       surveillerSession();
+      if (motif === 'suppression_annulee') avis(PHRASES_MOTIF.suppression_annulee);
     }
     MOI = source.moi(); CONTACTS = source.contacts();
     peindreMoi();
@@ -2950,6 +3075,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
       if (ev.type === 'notification') notifier(ev.titre || 'OP MESSAGES', ev.texte || '');
       if (ev.type === 'retire') surRetire(ev.id);
       if (ev.type === 'avis') avis(ev.texte);
+      if (ev.type === 'ouvrir') ouvrirConvId(ev.conv);                                                // une notification touchée : la source n'a laissé passer qu'une conversation
     });
     if (codeLien) { etat.codeLien = codeLien; declencheur = null; ouvrirFeuille('contact'); }
   }

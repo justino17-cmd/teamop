@@ -1,7 +1,7 @@
 # Installer le serveur d'OP MESSAGES — les gestes de Justin, dans l'ordre
 
 Pour `design/opmessages/SERVEUR.md` § 4, étape 1 (« gestes de Justin »), puis l'étape 2 (les SMS, section 10 bis) et l'étape 3 (la sauvegarde,
-section 10 ter). Ce document dit **chaque geste**,
+section 10 ter), puis les notifications (section 10 quater). Ce document dit **chaque geste**,
 ce que tu **colles** et ce que tu dois **voir**. Si ce n'est pas ce qui s'affiche, **on s'arrête** et tu
 recolles la sortie dans la conversation — on ne continue jamais « en espérant ».
 
@@ -534,6 +534,17 @@ vide, deviendrait sinon « la plus récente » :
 
 ⚠️ Cette procédure est écrite d'après le code et **jouée sur ma machine contre un faux coffre** : elle n'a jamais été jouée sur un VPS neuf. Un essai à blanc sur un VPS jetable
 reste à faire **avant la production**.
+
+## 10 quater. Les notifications d'OP MESSAGES — rien à poser sur le VPS, un seul geste sur ton iPhone
+
+Les notifications n'ont **aucun secret à te faire poser** : leur paire de clés (VAPID, la « signature » du service) naît avec la configuration (`install-msg.sh`), puis le service la range **scellée**
+dans sa base au premier démarrage ; elle n'est jamais affichée. Un déploiement ne touche ni nginx ni Caddy (`/sw.js` et `/manifest.webmanifest` passent par la règle générale), et le service
+n'ouvre aucun port de plus : il appelle seulement, en HTTPS sortant, les services de notification de Google, Mozilla et Apple — comme il appelle OVHcloud pour les SMS.
+
+**Pour les essayer sur ton iPhone** : ouvre la bêta dans Safari, touche Partager, puis « Sur l'écran d'accueil », et **lance OP MESSAGES depuis son icône** (sur iPhone, c'est la seule façon d'avoir
+des notifications : dans l'onglet de Safari, l'interrupteur reste grisé et la page te le dit). Ensuite Réglages > Notifications, touche « Notifications sur cet appareil », accepte la demande, puis « Envoyer une notification d'essai ».
+Si rien n'arrive : colle la ligne `push` de `/health` (des nombres, rien de secret) — `"actif":false` veut dire que les clés sont illisibles, des `echecs24h` qui montent veulent dire que le service de
+notification refuse nos envois — et dis-moi ce que l'iPhone affiche.
 
 ---
 

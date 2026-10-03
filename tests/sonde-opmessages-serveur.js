@@ -51,20 +51,22 @@ const NOMS = { alice: 'Alice Martin', bruno: 'Bruno Petit', eve: '<img src=x one
 
 /* ── le câble qu'on arrache : un relais TCP entre un navigateur et le service. `couper()` détruit les connexions ouvertes (le flux temps réel casse VRAIMENT : un
    `setOffline` du navigateur ne rompt pas une connexion déjà établie) et refuse les nouvelles ; `rendre()` les accepte de nouveau. Il note la première ligne de
-   chaque requête (et si elle porte `Last-Event-ID` / `depuis=`) : la reprise du flux se prouve sur ce que le service a REÇU. ── */
+   chaque requête (et si elle porte `Last-Event-ID` / `depuis=`) : la reprise du flux se prouve sur ce que le service a REÇU.
+   `lat.ms` : une LATENCE posée sur les requêtes ordinaires (pas sur le flux) — le bloc 13 bis s'en sert pour que la conversation d'un onglet neuf mette toujours du temps à se charger : l'attente qu'il
+   fait de la conversation CHARGÉE (et non seulement ouverte) est alors prouvée à chaque passage, pas seulement les jours où la machine est lente. ── */
 function relais(portCible) {
-  const socks = new Set(), journal = []; let ouvert = true;
+  const socks = new Set(), journal = []; let ouvert = true; const lat = { ms: 0 };
   const srv = net.createServer(c => {
     if (!ouvert) { c.destroy(); return; }
     const u = net.connect(portCible, '127.0.0.1');
     socks.add(c); socks.add(u);
     const fin = () => { c.destroy(); u.destroy(); socks.delete(c); socks.delete(u); };
     c.on('error', fin); u.on('error', fin); c.on('close', fin); u.on('close', fin);
-    c.on('data', d => { if (c._muet) return; const t = d.toString('latin1'); const m = /^(GET|POST) (\S+) HTTP/.exec(t); if (m && /^\/api\/flux/.test(m[2])) c._flux = true; if (m) journal.push({ ligne: m[1] + ' ' + m[2], reprise: /last-event-id:\s*\d+/i.test(t) || /[?&]depuis=\d+/.test(m[2]) }); u.write(d); });
+    c.on('data', d => { if (c._muet) return; const t = d.toString('latin1'); const m = /^(GET|POST) (\S+) HTTP/.exec(t); if (m && /^\/api\/flux/.test(m[2])) c._flux = true; if (m) journal.push({ ligne: m[1] + ' ' + m[2], reprise: /last-event-id:\s*\d+/i.test(t) || /[?&]depuis=\d+/.test(m[2]) }); if (c._flux || !lat.ms) u.write(d); else setTimeout(() => { try { u.write(d); } catch (e) { /* fermé entre-temps */ } }, lat.ms); });
     u.on('data', d => { if (c._muet) return; c.write(d); });   // `_muet` : la connexion reste OUVERTE et ne livre plus rien (ni octet, ni erreur)
   });
   return new Promise(ok => srv.listen(0, '127.0.0.1', () => ok({
-    port: srv.address().port, base: 'http://127.0.0.1:' + srv.address().port, journal,
+    port: srv.address().port, base: 'http://127.0.0.1:' + srv.address().port, journal, lat,
     couper() { ouvert = false; for (const x of Array.from(socks)) x.destroy(); },
     rendre() { ouvert = true; },
     /* les connexions ouvertes en ce moment deviennent « à moitié mortes » : un câble débranché, un NAT expiré — aucune erreur, aucun octet. Les connexions NEUVES passent. */
@@ -734,6 +736,14 @@ async function couple(b, env, cfg) {
   await bloc('13 bis. Un message qui n\'est pas parti ne se perd pas EN SILENCE : fermer la page le demande, repartir le dit', async () => {
     if (!env.relais) { console.log('  — pas de relais : bloc sauté'); return; }
     const R = env.relais;
+    /* ⛔ UNE CONVERSATION « OUVERTE » N'EST PAS UNE CONVERSATION CHARGÉE. `dataset.conv = '1'` est posé au PREMIER instant du toucher, avant que le service ait rendu la conversation et ses messages (deux
+       requêtes de suite pour un onglet neuf). Couper le câble dans cet intervalle laisse la page sans compositeur (`#compo` reste caché), et le `fill('#saisie')` d'après attend neuf secondes un champ qui ne
+       viendra pas — puis TOUT le reste tombe en cascade (14 et 15 : le câble resté coupé). Pris par le testeur le 3 octobre 2026 (trois fois sur trois sur la fusion), rejoué sur 6c9be34 avec 300 ms de
+       latence sur les requêtes ordinaires : le MÊME échec, donc la page n'y est pour rien — le toucher n'était pas perdu (chronologie relevée au navigateur : pointerdown, click, `dataset.conv` en 14 ms), c'est la
+       coupure qui arrivait avant la fin du chargement. On attend donc la conversation CHARGÉE (`aria-busy` retombé, compositeur visible), et sans avaler l'échec : un onglet qui ne s'ouvre pas le DIT. */
+    const chargee = (S) => S.page.waitForFunction(() => document.documentElement.dataset.conv === '1' && document.getElementById('conv-messages').getAttribute('aria-busy') === 'false' && !document.getElementById('compo').hidden, null, { timeout: 8000 });
+    let P1 = null, P2 = null;
+    try {
     await ouvrirConvAvec(B, nomA);
     const nouvelOnglet = async () => {
       const page = await B.ctx.newPage(); page.setDefaultTimeout(9000);
@@ -742,15 +752,17 @@ async function couple(b, env, cfg) {
       return S2;
     };
     /* 1. fermer un onglet qui n'a RIEN en attente : aucune question */
-    const P1 = await nouvelOnglet();
+    P1 = await nouvelOnglet();
     const dlg1 = []; P1.page.on('dialog', d => { dlg1.push(d.type()); d.accept().catch(() => {}); });
-    await toucher(P1, '#liste-conv .conv'); await P1.page.waitForFunction(() => document.documentElement.dataset.conv === '1', null, { timeout: 5000 }).catch(() => {});
+    await toucher(P1, '#liste-conv .conv'); await chargee(P1);
     await P1.page.close({ runBeforeUnload: true });
     await dormir(700);   // le dialogue d'un onglet fermé arrive APRÈS la fin de `close()` : lire tout de suite rendrait « aucun » à coup sûr
     v('⛔ population : fermer un onglet sans message en attente ne pose AUCUNE question', dlg1, []);
     /* 2. fermer un onglet qui a un message « En attente de connexion » : le navigateur DEMANDE confirmation (« quitter la page ? ») */
-    const P2 = await nouvelOnglet();
-    await toucher(P2, '#liste-conv .conv'); await P2.page.waitForFunction(() => document.documentElement.dataset.conv === '1', null, { timeout: 5000 }).catch(() => {});
+    P2 = await nouvelOnglet();
+    R.lat.ms = 250;   // la conversation d'un onglet NEUF met un quart de seconde par requête à se charger (elle en fait deux) : couper le câble sans l'avoir attendue est un échec à CHAQUE passage
+    await toucher(P2, '#liste-conv .conv'); await chargee(P2);
+    R.lat.ms = 0;
     const PERDU = tag + '-perdu-fermeture';
     R.couper();
     await verifier('l\'onglet est coupé : la bannière paraît', P2, () => !document.getElementById('hors-ligne').hidden, null, 15000, () => texteVu(P2, '#hors-ligne'));
@@ -780,6 +792,11 @@ async function couple(b, env, cfg) {
     await enligne(B);
     vrai('B se reconnecte : plus de phrase sur les messages perdus (la page est neuve)', !/pas encore partis/.test(await B.page.evaluate(() => document.getElementById('connexion-erreur').textContent)));
     vrai('population : aucun des deux messages n\'est arrivé chez Alice (ils ont été perdus, et dits)', (await bulle(A, tag + '-perdu-un').count()) === 0 && (await bulle(A, tag + '-perdu-deux').count()) === 0);
+    } finally {
+      /* ⛔ un bloc qui lève ne laisse NI le câble coupé NI l'accès fermé derrière lui : sans cela, un seul défaut en faisait huit (14 et 15 tombaient sur le câble resté coupé) */
+      R.rendre(); R.lat.ms = 0; og.comptes[lb].actif = true;
+      for (const x of [P1, P2]) { try { if (x && !x.page.isClosed()) await x.page.close(); } catch (e) { /* déjà fermé */ } }
+    }
   });
 
   await bloc('14. La déconnexion : ratée elle le dit et ne laisse rien à moitié, réussie elle vide tout', async () => {

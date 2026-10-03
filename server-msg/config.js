@@ -28,10 +28,19 @@
  *                                durée de vie d'une pièce jamais envoyée, envois en même temps, mémoire que les images en cours de nettoyage se partagent,
  *                                débit minimal d'un envoi (octets par seconde) après sa grâce (ms), attente maximale d'un lecteur qui ne lit plus (ms) et durée maximale d'une lecture (ms).
  *                                Voir `piecesConfig` pour les valeurs de départ.
+ *   compte        {exportOctetsMax, exportAttenteMs, exportMaxMs}   Le plafond de taille de l'export des données d'une personne (64 Mo par défaut ; au-delà, le fichier se termine proprement et dit où il s'est arrêté),
+ *                                l'attente maximale d'un lecteur qui ne lit plus (30 s : la réponse est alors COUPÉE) et la durée maximale d'un export (15 min : le fichier se termine proprement, `tronque_cause: "duree"`).
+ *   push          {contact, ackMs, echecsMax, etalementMs, simultanes, fileMax, timeoutMs, ttlS, ttlApercuS}   Les notifications push. `contact` : le sujet VAPID (`mailto:` ou une adresse
+ *                                https) ; absent, c'est le `contactEmail` de l'installation, à défaut l'origine https du service. Les autres : délai d'acquittement (5 s), refus du service de suite avant le retrait d'un
+ *                                abonnement (5) et durée minimale de la série (1 h : cinq refus en cinq minutes sont une panne), envois en même temps (16), file d'attente (2 000), délai d'un envoi (8 s), durée de vie d'un message poussé (24 h) et, quand l'APERÇU part, d'un message dont le texte voyage (1 h : il
+ *                                n'attend pas un jour entier sur la machine d'un tiers parce qu'un téléphone était éteint ; un message éphémère ne survit jamais à ce qui lui reste à vivre).
+ *   vapidPublicKey, vapidPrivateKey   La paire VAPID que l'installation écrit (`install-msg.sh`) : le service l'ADOPTE à son premier démarrage (elle est alors rangée dans la
+ *                                base, privée scellée, et la base fait foi ensuite : une paire DIFFÉRENTE posée plus tard ne la remplace pas, et le journal le dit à chaque démarrage).
+ *                                Absente, le service en fabrique une. L'une sans l'autre, ou deux clés qui ne vont pas ensemble, REFUSENT le démarrage.
  *   disqueMinMo   plancher d'espace libre sous lequel les écritures refusent (503).
  *   pulsationMs, presenceGraceMs, balayageMs, relectureMs   Rythmes (bancs).
  */
-const fs = require('fs'), path = require('path');
+const fs = require('fs'), path = require('path'), crypto = require('crypto');
 
 const INTERDITS = ['/opt/teamop', '/etc/teamop'];
 
@@ -111,6 +120,69 @@ function piecesConfig(c) {
   return o;
 }
 
+/* ⛔ LES NOTIFICATIONS PUSH. Une valeur qui n'a pas de sens REFUSE le démarrage (comme les pièces). La paire VAPID de l'installation est contrôlée ICI : une clé privée qui n'est pas celle de la
+   publique ferait refuser TOUS les envois par les services push, sans une ligne d'erreur côté serveur — on la refuse au démarrage plutôt qu'en production. */
+const PUSH_DEFAUT = { ackMs: 5000, echecsMax: 5, etalementMs: 3600000, simultanes: 16, fileMax: 2000, timeoutMs: 8000, ttlS: 86400, ttlApercuS: 3600 };
+const SUJET_MAILTO = /^mailto:[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
+const SUJET_HTTPS = new RegExp('^https:' + '//[A-Za-z0-9.-]+(:\\d{1,5})?$');
+function pushConfig(cfg, env, instance) {
+  const brut = cfg.push && typeof cfg.push === 'object' && !Array.isArray(cfg.push) ? cfg.push : {};
+  const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };
+  const o = {};
+  const bornes = { ackMs: [100, 60000], echecsMax: [1, 100], etalementMs: [0, 7 * 86400000], simultanes: [1, 256], fileMax: [10, 100000], timeoutMs: [500, 60000], ttlS: [60, 4 * 7 * 86400], ttlApercuS: [60, 4 * 7 * 86400] };
+  for (const [k, [min, max]] of Object.entries(bornes)) {
+    const v = brut[k] === undefined ? PUSH_DEFAUT[k] : brut[k];
+    if (!Number.isInteger(v) || v < min || v > max) throw err('push.' + k + ' doit être un entier entre ' + min + ' et ' + max);
+    o[k] = v;
+  }
+  if (brut.contact !== undefined && brut.contact !== null) {
+    const c = String(brut.contact);
+    const sujet = c.startsWith('mailto:') || SUJET_HTTPS.test(c) ? c : 'mailto:' + c;   // une adresse nue est admise : on lui met son « mailto: »
+    if (!SUJET_MAILTO.test(sujet) && !SUJET_HTTPS.test(sujet)) throw err('push.contact doit être une adresse de courriel ou une origine https');
+    if (/@localhost$|\/\/localhost(:|$)/i.test(sujet)) throw err('push.contact ne peut pas être « localhost » (le service push d\'Apple le refuse)');
+    o.contact = sujet;
+  } else {
+    /* `push.contact` absent : le courriel que l'installation écrit déjà (`contactEmail`, comme celui d'OP GESTION) fait le sujet — les services push savent ainsi qui joindre. Illisible, ou « localhost » (Apple le
+       refuse) : on le laisse de côté sans refuser le démarrage, l'origine https du service prend le relais (`push.js`). */
+    const ce = typeof cfg.contactEmail === 'string' ? cfg.contactEmail.trim() : '';
+    o.contact = ce && SUJET_MAILTO.test('mailto:' + ce) && !/@localhost$/i.test(ce) ? 'mailto:' + ce : null;
+  }
+  /* la paire VAPID de l'installation : les deux ou aucune, bien formées, et faites l'une pour l'autre */
+  const pub = cfg.vapidPublicKey, priv = cfg.vapidPrivateKey;
+  if ((pub === undefined) !== (priv === undefined)) throw err('vapidPublicKey et vapidPrivateKey vont ensemble (une seule des deux est posée)');
+  if (pub !== undefined) {
+    const B64U = /^[A-Za-z0-9_-]+$/;
+    if (typeof pub !== 'string' || typeof priv !== 'string' || !B64U.test(pub) || !B64U.test(priv)) throw err('la paire VAPID doit être en base64 URL');
+    const bp = Buffer.from(pub, 'base64url'), bk = Buffer.from(priv, 'base64url');
+    if (bp.length !== 65 || bp[0] !== 4 || bk.length !== 32) throw err('la paire VAPID n\'a pas la bonne forme (65 octets publics, 32 privés)');
+    let derivee = null;
+    try { const e = crypto.createECDH('prime256v1'); e.setPrivateKey(bk); derivee = e.getPublicKey(); } catch (x) { derivee = null; }
+    if (!derivee || !derivee.equals(bp)) throw err('la clé VAPID privée n\'est pas celle de la publique');
+    o.vapid = { publique: pub, privee: priv };
+  } else o.vapid = null;
+  /* ⛔ LA PORTE DE TEST DU SERVICE PUSH : autorise UN faux service push (hôte et port exacts, sur la boucle locale, en http) pour que les bancs jouent un envoi sans réseau. Comme celle des codes SMS,
+     elle est FERMÉE en production : une variable oubliée dans une unité systemd ne doit pas faire de ce service un client HTTP vers un port local. */
+  const porte = env.OPMSG_TEST_PUSH ? String(env.OPMSG_TEST_PUSH) : null;
+  if (porte && instance !== 'beta') throw err('OPMSG_TEST_PUSH (porte de test du service push) est refusée en production');
+  if (porte && !/^127\.0\.0\.1:\d{2,5}$/.test(porte)) throw err('OPMSG_TEST_PUSH doit valoir 127.0.0.1:<port>');
+  o.testHote = porte;
+  return o;
+}
+
+/* ⛔ LE COMPTE : le plafond de taille de l'export, l'attente d'un lecteur qui ne lit plus et la durée maximale (un nombre absurde refuse le démarrage, comme les pièces). */
+function compteConfig(c) {
+  const brut = c && typeof c === 'object' && !Array.isArray(c) ? c : {};
+  const defauts = { exportOctetsMax: 64 * Mo, exportAttenteMs: 30000, exportMaxMs: 900000 };
+  const bornes = { exportOctetsMax: [1024, 512 * Mo], exportAttenteMs: [100, 3600000], exportMaxMs: [1000, 86400000] };
+  const o = {};
+  for (const [k, [min, max]] of Object.entries(bornes)) {
+    const v = brut[k] === undefined ? defauts[k] : brut[k];
+    if (!Number.isInteger(v) || v < min || v > max) { const e = new Error('config: compte.' + k + ' doit être un entier entre ' + min + ' et ' + max); e.code = 'CONFIG'; throw e; }
+    o[k] = v;
+  }
+  return o;
+}
+
 function charger(env = process.env) {
   const manque = (n) => { const e = new Error('config: ' + n + ' est obligatoire'); e.code = 'CONFIG'; return e; };
   const instance = env.OPMSG_INSTANCE;
@@ -144,6 +216,8 @@ function charger(env = process.env) {
     beta: Object.assign({ urlGestion: 'http://127.0.0.1:8080', relectureMs: 60000, timeoutMs: 5000 }, cfg.beta || {}),
     quotas: cfg.quotas && typeof cfg.quotas === 'object' ? cfg.quotas : {},
     pieces: piecesConfig(cfg.pieces),
+    push: pushConfig(cfg, env, instance),
+    compte: compteConfig(cfg.compte),
     sms: cfg.sms && typeof cfg.sms === 'object' && !Array.isArray(cfg.sms) ? cfg.sms : {},   // validée par `lireConfigSms` (sms-garde.js)
     sauvegarde: cfg.sauvegarde === undefined ? null : cfg.sauvegarde,   // validée par `lireConfigSauvegarde` (sauvegarde.js) : absente = module inerte, invalide = démarrage refusé
     testCodes: testCodes,
@@ -155,4 +229,4 @@ function charger(env = process.env) {
   };
 }
 
-module.exports = { charger, verifierSeparation, lireCle, piecesConfig, INTERDITS };
+module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, INTERDITS };

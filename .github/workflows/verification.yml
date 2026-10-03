@@ -35,7 +35,11 @@ jobs:
     # « cancelled », sans un seul ✗. Le run 528 (une demande de fusion) a été coupé de la même façon.
     # Ce plafond est une garde contre un banc qui se fige ; la durée normale du travail ne doit
     # jamais l'atteindre.
-    timeout-minutes: 20
+    # ⛔ 30 ET NON PLUS 20 (3 octobre 2026) : depuis que les suites qui montent le vrai service d'OP MESSAGES
+    # tournent ici (6deee9d), « Les suites du dépôt passent » prend 12 min 56 s, et chaque lot d'OP MESSAGES en
+    # ajoute (le lot 3 : quatre suites de plus ; sur la branche, l'étape des bancs en est à 13 min 37 s). Relevé
+    # AVANT qu'il coupe un job vert, comme le run 526 l'a fait à 10 minutes.
+    timeout-minutes: 30
     steps:
       # ⛔ `fetch-depth: 2` N'EST PAS DU CONFORT. Par défaut, actions/checkout ne ramène QU'UN
       # commit : « verifier-version.js » n'aurait alors aucun point de comparaison et ne
