@@ -198,6 +198,9 @@ const AUTRE_PRIX = 'price_ToutAutreProduitQq77';
       fake.quantite(sb8.id, 1);
       const bas = await adopte(bo, E8);
       v('⛔ une baisse SOUS le nombre de membres ne retire personne : elle est dite (`places_depassees`), les liens d\'invitation s\'arrêtent, tout le monde reste', [bas.places, bas.membres, bas.places_depassees, S.espaceMembresN(E8), (await bo.post('/api/espaces/' + E8 + '/invitations', {})).j.error], [1, 2, true, 2, 'places_epuisees']);
+      fake.quantite(sb8.id, 2);
+      const juste = await adopte(bo, E8);
+      v('⛔ EXACTEMENT autant de places que de membres : pas de dépassement (personne ne manque de place), mais plus de lien (complet)', [juste.places, juste.membres, juste.places_depassees, (await bo.post('/api/espaces/' + E8 + '/invitations', {})).j.error], [2, 2, false, 'places_epuisees']);
       fake.statut(sb8.id, 'active', { cancel_at_period_end: true });
       v('« résilié à la fin de la période » : encore Pro, et l\'écran peut le dire (`annule`)', [(await adopte(bo, E8)).abonnement.annule, (await etat(bo, E8)).j.formule], [true, 'pro']);
       /* le sursis d'un impayé, daté de la première lecture ; l'impayé n'est constaté que par une lecture faite 7 jours plus tard */

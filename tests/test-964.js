@@ -111,6 +111,7 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (240 s)');
       v('l\'aperçu (Bob) dit QUI invite et DANS QUEL espace — et n\'accepte rien', [a.de, a.espace.nom, a.espace.membres, (await A.src.espace(E)).membres], ['Alice Banc', 'Atelier Banc Bis', 1, 1]);
       const e = await attrape(C.src.invitationLire('A'.repeat(22)));
       v('un code inconnu : « lien invalide » (410), dit', [codeDe(e), e && e.statut, phrase(e)], ['lien_invalide', 410, 'Ce lien n\'est plus valable (expiré, révoqué ou déjà utilisé).']);
+      A.vider();      // ⛔ ce qu'Alice a reçu en CRÉANT le lien (le module prévient la page de ses propres gestes) ne compte pas : seul ce que le SERVICE lui dit quand Bob entre doit arriver
       const r = await C.src.invitationAccepter(inv.code);
       v('accepter : Bob rejoint l\'espace', [r.deja, r.espace.id, r.espace.nom], [false, E, 'Atelier Banc Bis']);
       const r2 = await C.src.invitationAccepter(inv.code);
