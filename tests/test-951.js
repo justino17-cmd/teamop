@@ -293,6 +293,79 @@ const sante = async (svc) => { const r = await T.client(svc.base).get('/health')
       }
     }
 
+    /* ══ 4 ter. UNE RESTAURATION NE RESSUSCITE RIEN — le vrai service, la vraie restauration, un vrai redémarrage ═══════════════════════════════
+       Rejoué par le gardien le 3 octobre 2026 : l'ancien cookie d'une déconnexion répondait de nouveau 200 sur la base restaurée, et la conversation dont le dernier
+       membre était parti revenait avec ses messages. Une archive plus ANCIENNE que ces gestes (`--date`) est restaurée, le service redémarre dessus : rien ne revient. */
+    console.log('\n── 951 · le VRAI service, une vraie restauration d\'une archive plus ancienne, un vrai redémarrage : ni la session fermée, ni la conversation supprimée ne reviennent ──');
+    {
+      const COMPTES = { alice: { pass: 'pw-alice-1234', nom: 'Alice Banc', actif: true } };
+      const og = await T.fauxOpGestion(COMPTES);
+      const prefixe = 'beta/ressuscite/base/';
+      const a = await T.lancerService({ urlGestion: og.url, cle: kekHex, config: { sauvegarde: coffre.conf({ cle: cleSauv, intervalleMs: 1000, prefixe: 'beta/ressuscite/' }) } });
+      let b = null, aArrete = false;
+      const racine2 = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-restauree-'));
+      try {
+        const al = await T.connecter(a, og, 'alice', COMPTES.alice.pass);
+        const solo = (await al.post('/api/conversations/groupe', { nom: 'Solo à supprimer', membres: [] })).j.conversation.id;
+        const garde = (await al.post('/api/conversations/groupe', { nom: 'Groupe gardé', membres: [] })).j.conversation.id;
+        await al.post('/api/conversations/' + solo + '/messages', { cid: 'cid-solo-0001', texte: 'TexteDuSoloQuiNeDoitPasRevenir' });
+        await al.post('/api/conversations/' + garde + '/messages', { cid: 'cid-garde-0001', texte: 'TexteDuGroupeGarde' });
+        const vieuxCookie = al.cookie();
+        v('population : la session d\'Alice est valide, et elle voit ses deux conversations', [(await al.get('/api/moi')).code, ((await al.get('/api/conversations')).j.conversations || []).map(x => x.id).sort()], [200, [solo, garde].sort()]);
+
+        /* L'archive CIBLE : la première, prise avec la session et la conversation encore là ; on attend la suivante pour que les gestes tombent clairement après. */
+        await T.attendre(() => (coffre.cles(prefixe).length >= 2 ? true : null), 30000, 100);
+        const cibleCle = coffre.cles(prefixe)[0];
+        const cibleIso = cibleCle.slice(prefixe.length, -'.msgbak'.length).replace(/^(\d{4}-\d{2}-\d{2}T\d{2})-(\d{2})-(\d{2})-(\d{3})Z$/, '$1:$2:$3.$4Z').slice(0, 19);
+
+        /* Les gestes d'APRÈS : se déconnecter, se reconnecter, quitter la conversation (le dernier membre part : elle est supprimée). */
+        await al.post('/api/compte/deconnexion', {});
+        const al2 = await T.connecter(a, og, 'alice', COMPTES.alice.pass);
+        const cookieVivant = al2.cookie();
+        v('   la session d\'avant est fermée sur le service en marche (401), la nouvelle ouvre ; Alice quitte la conversation solo : elle est supprimée', [(await T.client(a.base).appel('GET', '/api/moi', undefined, { entetes: { Cookie: 'opm=' + vieuxCookie } })).code, (await al2.post('/api/conversations/' + solo + '/quitter', {})).code, ((await al2.get('/api/conversations')).j.conversations || []).map(x => x.id)], [401, 200, [garde]]);
+
+        /* Deux archives de plus, la dernière prise bien après les gestes : son registre porte la suppression. */
+        const n0 = coffre.cles(prefixe).length;
+        await T.attendre(() => (coffre.cles(prefixe).length >= n0 + 2 ? true : null), 30000, 100);
+        await a.arreter(false);
+        aArrete = true;
+
+        /* La restauration de l'archive d'AVANT les gestes, avec l'outil, comme Justin le lancerait. */
+        const envOutil = { OPMSG_CONFIG: a.cfgPath, OPMSG_INSTANCE: 'beta', OPMSG_DATA: a.data, OPMSG_KEK_FILE: path.join(a.cred, 'kek'), OPMSG_SYSTEMCTL: '/chemin/qui/n/existe/pas' };
+        const dataB = path.join(racine2, 'data');
+        const r = await processus([RESTAURER, 'restaurer', '--vers', dataB, '--date', cibleIso, '--sans-pieces'], { env: envOutil });
+        v('⛔ la restauration de l\'archive d\'AVANT les gestes (--date) réussit, retire les sessions de l\'archive et la conversation que le registre de la plus récente dit supprimée',
+          [r.code, /sessions retirées : [1-9]/.test(r.sortie), /[1-9] conversation\(s\)/.test(r.sortie)], [0, true, true]);
+        const lec = T.lireBase(path.join(dataB, 'msg.db'));
+        const surDisque = { sessions: lec.prepare('SELECT COUNT(*) AS n FROM session').get().n, solo: lec.prepare('SELECT COUNT(*) AS n FROM conversation WHERE id = ?').get(solo).n, garde: lec.prepare('SELECT COUNT(*) AS n FROM conversation WHERE id = ?').get(garde).n, drapeau: lec.prepare("SELECT COUNT(*) AS n FROM meta WHERE k = 'rejeu_service'").get().n };
+        lec.close();
+        v('   sur le fichier restauré : aucune session, la conversation supprimée absente, celle qui reste présente, le drapeau du rejeu par le service levé', surDisque, { sessions: 0, solo: 0, garde: 1, drapeau: 1 });
+
+        /* Le service redémarre SUR la base restaurée. */
+        b = await T.lancerService({ urlGestion: og.url, dossier: racine2, cle: kekHex });
+        const cB = T.client(b.base);
+        const avecCookie = (valeur) => { const c = T.client(b.base); c.poserCookie(valeur); return c; };
+        v('⛔ sur le service redémarré : l\'ancien cookie révoqué répond 401 (avant : 200 — la session revenait d\'une archive d\'avant la déconnexion), et celui de la session ouverte au moment de l\'arrêt aussi (toutes les sessions sont vidées)',
+          [(await avecCookie(vieuxCookie).get('/api/moi')).code, (await avecCookie(cookieVivant).get('/api/moi')).code, (await cB.get('/api/moi')).code], [401, 401, 401]);
+        const al3 = await T.connecter(b, og, 'alice', COMPTES.alice.pass);
+        const liste = ((await al3.get('/api/conversations')).j.conversations || []).map(x => x.id);
+        const textes = JSON.stringify((await al3.get('/api/conversations/' + garde + '/messages')).j || {});
+        v('⛔ Alice se reconnecte : la conversation supprimée n\'est PAS revenue, celle qui reste est là avec son message', [liste, textes.includes('TexteDuGroupeGarde'), textes.includes('TexteDuSoloQuiNeDoitPasRevenir'), (await al3.get('/api/conversations/' + solo)).code], [[garde], true, false, 404]);
+        const evtB = b.sortie.texte().split('\n').filter(l => /"evt":"rejeu"/.test(l));
+        const lec2 = T.lireBase(path.join(dataB, 'msg.db')); const drapeauApres = lec2.prepare("SELECT COUNT(*) AS n FROM meta WHERE k = 'rejeu_service'").get().n; lec2.close();
+        v('⛔ le service a VU le drapeau au démarrage (une ligne « rejeu » au journal) et l\'a baissé — le câblage d\'index.js jusqu\'à rejeu.js', [evtB.length, /"etat":"ok"/.test(evtB[0] || ''), drapeauApres], [1, true, 0]);
+        /* Un démarrage ORDINAIRE ensuite (sans drapeau) n'exécute rien : aucune ligne « rejeu ». */
+        await b.arreter(false); b = null;
+        const b2 = await T.lancerService({ urlGestion: og.url, dossier: racine2, cle: kekHex });
+        try { v('   et le démarrage suivant, sans drapeau, ne rejoue rien (aucune ligne « rejeu » au journal)', b2.sortie.texte().split('\n').filter(l => /"evt":"rejeu"/.test(l)).length, 0); } finally { await b2.arreter(); }
+      } finally {
+        if (b) await b.arreter();
+        if (!aArrete) await a.arreter().catch(() => {});
+        await og.fermer();
+        fs.rmSync(racine2, { recursive: true, force: true });
+      }
+    }
+
     await svc.arreter(false);
     v('⛔ un arrêt propre (SIGTERM) : le service sort en 0 AVANT les 4 secondes que laisse le banc (la sauvegarde ne retient pas l\'arrêt)', svc.sorti(), 0);
     svc = null;

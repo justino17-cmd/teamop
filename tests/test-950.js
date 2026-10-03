@@ -962,6 +962,8 @@ const horlogeFixe = (h) => () => h.t;
     /* Les LIGNES que la base réclame : la gardée (fichier au coffre), la purgée (le registre l'emportera), et une FANTÔME dont le fichier n'a jamais
        existé nulle part — ce que laisse un arriéré d'envoi, un échec isolé, une pièce supprimée entre l'instantané et l'envoi. */
     for (const tag of ['purgee', 'gardee', 'fantome']) m.b.S.pieceCreer({ id: idPiece('ab', tag), proprio: a.id, conv: m.peuple.conv, genre: 'fichier', taille: 10, mime: 'application/octet-stream', ttlMs: 30 * 86400000 });
+    /* Deux sessions OUVERTES au moment de l'archive : la restauration doit les vider (un cookie d'avant ne revient pas). */
+    m.b.S.sessionAjouter({ h: 'session-banc-a', personne: a.id, appareil: 'ordinateur', ttlMs: 30 * 86400000 }); m.b.S.sessionAjouter({ h: 'session-banc-c', personne: c.id, appareil: 'telephone', ttlMs: 30 * 86400000 });
 
     m.h.t = Date.UTC(2026, 8, 21, 6, 0, 0);
     const T0 = m.h.t;
@@ -1123,6 +1125,9 @@ const horlogeFixe = (h) => () => h.t;
       vrai('   aucun dossier de chantier ne reste (`.restauration-…`)', !fs.readdirSync(vers).some(f => f.startsWith('.restauration-')));
       vrai('⛔ la restauration COMPTE les lignes de pièces sans fichier et le DIT (2 lignes, une sans fichier) — une base qui réclame des fichiers que le coffre n\'a pas ouvre des photos qui ne s\'ouvrent pas',
         /lignes de pièces dans la base : 2 — ⚠ 1 SANS fichier/.test(r1.sortie));
+      { const dR = new DatabaseSync(path.join(vers, 'msg.db'), { readOnly: true }); const nSess = Number(dR.prepare('SELECT COUNT(*) AS n FROM session').get().n), drap = Number(dR.prepare("SELECT COUNT(*) AS n FROM meta WHERE k = 'rejeu_service'").get().n); dR.close();
+        v('⛔ la base restaurée n\'a AUCUNE session (les deux de l\'archive sont retirées : un cookie révoqué depuis ne revient pas), le drapeau du rejeu par le service est levé, et l\'outil le dit',
+          [nSess, drap, /sessions retirées : 2/.test(r1.sortie), /conversation\(s\), 0 appareil\(s\)/.test(r1.sortie)], [0, 1, true, true]); }
       const avantRefus = crypto.createHash('sha256').update(fs.readFileSync(path.join(vers, 'msg.db'))).digest('hex');
       const r2 = await outil(['restaurer', '--vers', vers]);
       v('⛔ une SECONDE restauration au même endroit est REFUSÉE sans le drapeau — la base existante n\'a pas bougé d\'un octet, rien ne traîne', [r2.code, /--ecraser/.test(r2.erreur), crypto.createHash('sha256').update(fs.readFileSync(path.join(vers, 'msg.db'))).digest('hex') === avantRefus, fs.readdirSync(vers).filter(f => f.startsWith('.restauration-')).length], [1, true, true, 0]);
@@ -1325,6 +1330,130 @@ const horlogeFixe = (h) => () => h.t;
       v('⛔ « ok » seul passe (contre-épreuve : le moteur de poche rend bien une copie saine) ; un diagnostic de page abîmée est refusé et nommé ; plus d\'une ligne aussi',
         [sain.ok, sain.schema, abime.ok, /quick_check/.test(String(abime.motif)), deux.ok], [true, 2, false, true, false]);
     } finally { fs.rmSync(bac, { recursive: true, force: true }); }
+  }
+
+  /* ══ 13 quater. LES GENRES DE PURGE — chaque effacement noté dans le registre est rejoué par qui il désigne ════════════════════════════════
+     Rejoué par le gardien le 3 octobre 2026 : une restauration ressuscitait les sessions révoquées (l'ancien cookie répondait de nouveau 200) et les conversations
+     supprimées (seules leurs pièces étaient notées) ; un appareil « déconnecté » aurait suivi. Un effacement qu'aucune restauration ne rejoue est un effacement qui
+     REVIENT. Le registre a donc trois pièces qui se tiennent : ce qui s'écrit (`INSERT INTO purge`), ce qui se déclare (`GENRES_PURGE`), ce qui se rejoue
+     (`rejouerPurge` hors ligne pour 'copie', `rejeu.js` au démarrage du service pour 'service'). Le banc les compare, pour qu'un genre neuf — le compte qu'on efface au
+     bout de quatorze jours — oblige à trancher, une fois, par écrit. */
+  console.log('\n── 950 · chaque effacement noté est REJOUÉ : la conversation supprimée, l\'appareil déconnecté, la session fermée ne reviennent pas ──');
+  {
+    const REJEU = require(path.join(SM, 'rejeu.js'));
+    const GENRES = STOCK.ouvrir.copie.GENRES_PURGE;
+    const copies = Object.keys(GENRES).filter(g => GENRES[g] === 'copie'), services = Object.keys(GENRES).filter(g => GENRES[g] === 'service');
+
+    /* 1. LA GARDE DE CODE — ce qui s'écrit dans `purge` est déclaré, ce qui est déclaré s'écrit. */
+    const src = code(path.join(SM, 'stockage.js'));
+    const ecrits = new Set(); let sites = 0;
+    for (const x of src.matchAll(/INSERT INTO purge[^;]*;/g)) { sites++; for (const g of x[0].matchAll(/'([a-z_]{3,})'/g)) ecrits.add(g[1]); }
+    vrai('population : ' + sites + ' sites d\'écriture dans `purge` (code, sans commentaires), ' + ecrits.size + ' genres écrits (' + [...ecrits].sort().join(', ') + '), ' + Object.keys(GENRES).length + ' déclarés', sites >= 6 && ecrits.size >= 5 && Object.keys(GENRES).length >= 6);
+    v('⛔ TOUT genre écrit dans le registre est DÉCLARÉ dans `GENRES_PURGE` (« copie » ou « service ») — un genre neuf oblige à dire qui le rejoue : sans cela, l\'effacement revient à la prochaine restauration',
+      [...ecrits].filter(g => !(g in GENRES) && !(g.startsWith('piece') && 'piece' in GENRES)).sort(), []);
+    const REJEU_SEUL = { message: 'genre de compatibilité : rejoué hors ligne, plus écrit par le service' };
+    v('   et tout genre déclaré est écrit quelque part (une déclaration pour du vide n\'est pas une décision), hors ceux qu\'on nomme',
+      Object.keys(GENRES).filter(g => !ecrits.has(g) && !(g in REJEU_SEUL)), []);
+    v('   les valeurs permises sont « copie » et « service », rien d\'autre', Object.values(GENRES).filter(x => x !== 'copie' && x !== 'service'), []);
+    v('⛔ chaque genre « service » a sa fonction dans `rejeu.js`, et chaque fonction de `rejeu.js` porte un genre déclaré « service »',
+      [services.filter(g => typeof REJEU.GENRES_SERVICE[g] !== 'function'), Object.keys(REJEU.GENRES_SERVICE).filter(g => GENRES[g] !== 'service')], [[], []]);
+
+    /* 2. CHAQUE genre « copie » est RECONNU par le rejeu hors ligne (un genre inconnu est compté « ignoré » — c'est ce qui le trahit). */
+    const b0 = O.creerBase(); O.remplir(b0, 5); b0.S.fermer();
+    const copieDe = (src0, nom) => { const dst = path.join(b0.dossier, nom); fs.copyFileSync(src0, dst); return dst; };
+    try {
+      const inconnu = STOCK.ouvrir.copie.rejouerPurge(copieDe(b0.chemin, 'inconnu.db'), [{ objet: 'x', genre: 'genre_que_personne_ne_connait', quand: 1 }]);
+      v('contre-épreuve du détecteur : un genre inventé est compté « ignoré »', inconnu.ignorees, 1);
+      const reconnus = copies.map(g => [g, STOCK.ouvrir.copie.rejouerPurge(copieDe(b0.chemin, 'g-' + g + '.db'), [{ objet: 'inexistant-' + g, genre: g, quand: 1 }]).ignorees]);
+      v('⛔ chacun des ' + copies.length + ' genres « copie » est RECONNU par le rejeu hors ligne (aucun n\'est compté « ignoré »)', reconnus.filter(([, n]) => n !== 0).map(([g]) => g), []);
+    } finally { b0.nettoyer(); }
+
+    /* 3. LES EFFACEMENTS SE NOTENT — la conversation, les appareils révoqués (explicites ou chassés par le onzième). */
+    const b = O.creerBase();
+    try {
+      const { a, c } = O.remplir(b, 6);
+      const solo = b.S.convCreerGroupe({ createur: a.id, nom: 'Solo à supprimer', membres: [] }).id;
+      b.S.messageEnvoyer({ conv: solo, auteur: a.id, cid: 'solo-1', texte: 'ce message ne doit pas revenir' });
+      for (let i = 1; i <= 12; i++) { b.h.t += 1000; b.S.telAppareilLier({ h: 'app' + String(i).padStart(2, '0'), personne: a.id, nom: 'téléphone', ttlMs: 100 * 86400000 }); }
+      const registre = () => STOCK.ouvrir.copie.purgeLire(b.chemin);
+      const d1 = registre().filter(e => e.genre === 'appareil').map(e => e.objet).sort();
+      v('⛔ le onzième et le douzième appareil chassent les deux plus anciens, et cette révocation SE NOTE (genre « appareil », l\'empreinte du jeton)', d1, ['app01', 'app02']);
+      for (const h of ['capp1', 'capp2']) { b.h.t += 1000; b.S.telAppareilLier({ h, personne: c.id, nom: 'tablette', ttlMs: 100 * 86400000 }); }
+      b.S.sessionAjouter({ h: 'sess1', personne: a.id, appareil: 'x', ttlMs: 30 * 86400000 }); b.S.sessionAjouter({ h: 'sess2', personne: c.id, appareil: 'y', ttlMs: 30 * 86400000 });
+      b.h.t += 1000;
+      const avant = path.join(b.dossier, 'avant.db'); await b.S.instantane(avant);                  // l'archive d'AVANT les effacements : elle porte la conversation, dix appareils, deux sessions
+      b.h.t += 1000;
+      b.S.convSupprimer(solo);
+      b.S.telAppareilSupprimer('app12');
+      b.S.telAppareilsSupprimerAutres(a.id, 'app10');
+      b.S.telAppareilsSupprimerPersonne(c.id);
+      b.S.sessionSupprimer('sess1');
+      const apres = registre();
+      v('⛔ supprimer une conversation SE NOTE (genre « conversation »), une fois ; supprimer une conversation qui n\'existe plus n\'écrit rien',
+        [apres.filter(e => e.genre === 'conversation').map(e => e.objet), (b.S.convSupprimer('c_inexistante'), registre().filter(e => e.genre === 'conversation').length)], [[solo], 1]);
+      v('   chaque appareil révoqué se note : app12 (un seul), tous les autres sauf app10 (app03 à app09, app11), puis les deux de la seconde personne d\'un coup — treize lignes avec les deux chassés d\'avant, jamais app10',
+        [registre().filter(e => e.genre === 'appareil').map(e => e.objet).sort()], [['app01', 'app02', 'app03', 'app04', 'app05', 'app06', 'app07', 'app08', 'app09', 'app11', 'app12', 'capp1', 'capp2']]);
+
+      /* 4. LE REJEU — la copie d'AVANT reçoit le registre d'APRÈS. */
+      const lire = (chemin, sql, ...pp) => { const dd = new DatabaseSync(chemin, { readOnly: true }); try { return Number(dd.prepare(sql).get(...pp).n); } finally { dd.close(); } };
+      const copieB = (src0, nom) => { const dst = path.join(b.dossier, nom); fs.copyFileSync(src0, dst); return dst; };
+      const sur = copieB(avant, 'restauree.db');
+      vrai('population : la copie d\'avant porte la conversation et ses messages, douze appareils et deux sessions',
+        lire(sur, 'SELECT COUNT(*) AS n FROM conversation WHERE id = ?', solo) === 1 && lire(sur, 'SELECT COUNT(*) AS n FROM message WHERE conv = ?', solo) >= 1 && lire(sur, 'SELECT COUNT(*) AS n FROM appareil_tel') === 12 && lire(sur, 'SELECT COUNT(*) AS n FROM session') === 2);
+      const r = STOCK.ouvrir.copie.rejouerPurge(sur, registre());
+      v('⛔ le registre rejoué : la conversation SUPPRIMÉE repart avec ses messages (avant : elle revenait entière), onze appareils sont retirés — il ne reste que celui qu\'on avait gardé',
+        [r.conversationsRetirees, lire(sur, 'SELECT COUNT(*) AS n FROM conversation WHERE id = ?', solo), lire(sur, 'SELECT COUNT(*) AS n FROM message WHERE conv = ?', solo), r.appareilsRetires, lire(sur, 'SELECT COUNT(*) AS n FROM appareil_tel'), lire(sur, 'SELECT COUNT(*) AS n FROM appareil_tel WHERE h = ?', 'app10'), r.ignorees],
+        [1, 0, 0, 11, 1, 1, 0]);
+      v('   les autres conversations n\'ont pas bougé (la population de départ : le groupe du banc et ses messages)', lire(sur, 'SELECT COUNT(*) AS n FROM conversation'), lire(avant, 'SELECT COUNT(*) AS n FROM conversation') - 1);
+      const encore = STOCK.ouvrir.copie.rejouerPurge(sur, registre());
+      v('   rejouer deux fois ne change rien (idempotent)', [encore.conversationsRetirees, encore.appareilsRetires, encore.ajoutees], [0, 0, 0]);
+      /* Un appareil RELIÉ après sa révocation est un autre appareil : le registre ne l'emporte pas. */
+      b.h.t += 1000; b.S.telAppareilLier({ h: 'app12', personne: c.id, nom: 'rebranché', ttlMs: 100 * 86400000 });
+      const relie = path.join(b.dossier, 'relie.db'); await b.S.instantane(relie);
+      const r2 = STOCK.ouvrir.copie.rejouerPurge(relie, registre());
+      v('⛔ un jeton révoqué puis RELIÉ plus tard n\'est pas retiré (la révocation ne vise que l\'appareil qui existait alors)', [lire(relie, 'SELECT COUNT(*) AS n FROM appareil_tel WHERE h = ?', 'app12'), r2.appareilsRetires], [1, 0]);
+
+      /* 5. LES SESSIONS — aucun registre ne note une session fermée : la restauration les vide toutes, et lève le drapeau du rejeu par le service. */
+      const ap = STOCK.ouvrir.copie.apresRestauration(sur);
+      const dd = new DatabaseSync(sur, { readOnly: true });
+      const drapeau = dd.prepare("SELECT v FROM meta WHERE k = 'rejeu_service'").get(); dd.close();
+      v('⛔ après la restauration, AUCUNE session ne reste (l\'ancien cookie d\'une déconnexion ne revient pas), et le drapeau du rejeu par le service est levé',
+        [ap.sessions, lire(sur, 'SELECT COUNT(*) AS n FROM session'), !!drapeau], [2, 0, true]);
+      v('   la table des appareils, elle, n\'est pas touchée (ils évitent le SMS, et leurs révocations sont dans le registre)', lire(sur, 'SELECT COUNT(*) AS n FROM appareil_tel'), 1);
+      v('   et rejouer cette étape ne casse rien (0 session la seconde fois)', STOCK.ouvrir.copie.apresRestauration(sur).sessions, 0);
+      vrai('   la copie reste saine', STOCK.ouvrir.copie.controlerFichier(sur).ok === true);
+
+      /* Le magasin lit le drapeau, rend le registre, et le baisse. */
+      const { creerScelleur } = require(path.join(SM, 'scelle.js'));
+      const S2 = STOCK.ouvrir({ chemin: sur, scelleur: creerScelleur(b.kek), horloge: () => b.h.t });
+      try {
+        v('⛔ le magasin ouvert sur la base restaurée voit le drapeau, rend le registre (genre « conversation » compris), et le baisse', [S2.rejeuAFaire(), S2.purgeLignes().some(e => e.genre === 'conversation' && e.objet === solo), (S2.rejeuTermine(), S2.rejeuAFaire())], [true, true, false]);
+      } finally { S2.fermer(); }
+    } finally { b.nettoyer(); }
+
+    /* 6. LE REJEU PAR LE SERVICE (`rejeu.js`) — joué sur un magasin de poche : le démarrage ordinaire n'exécute RIEN, et un échec laisse le drapeau. */
+    {
+      const L = [{ objet: 'a', genre: 'g1', quand: 1 }, { objet: 'b', genre: 'inconnu', quand: 2 }, { objet: 'c', genre: 'g1', quand: 3 }, { objet: 'd', genre: 'constructor', quand: 4 }, { objet: 'e', genre: 'g2', quand: 5 }];
+      const faux = (drapeau, lignes) => { const e = { drapeau, baisse: 0 }; return Object.assign({ e }, { rejeuAFaire: () => e.drapeau, purgeLignes: () => lignes, rejeuTermine: () => { e.drapeau = false; e.baisse++; } }); };
+      const appels = [], journal = [];
+      const g = { g1: (st, ent, ctx) => { appels.push(ent.objet + ':' + typeof ctx.horloge); }, g2: (st, ent) => { appels.push(ent.objet); } };
+      const jr = (e, c) => journal.push([e, c.etat, c.n, c.motif].join('|'));
+      const sans = REJEU.rejouerAuDemarrage({ stockage: faux(false, L), contexte: { horloge: Date.now }, genres: g, journaliser: jr });
+      v('⛔ SANS drapeau (tout démarrage ordinaire) le rejeu n\'exécute rien et n\'écrit rien au journal', [sans.fait, appels, journal], [false, [], []]);
+      const st = faux(true, L);
+      const bon = REJEU.rejouerAuDemarrage({ stockage: st, contexte: { horloge: Date.now }, genres: g, journaliser: jr });
+      v('⛔ AVEC le drapeau : seules les entrées des genres connus sont rejouées, dans l\'ordre du registre, avec le contexte — un genre inconnu et un nom hérité (« constructor ») ne sont jamais appelés',
+        [bon, appels, st.e.drapeau, journal], [{ fait: true, rejouees: 3, echecs: 0 }, ['a:function', 'c:function', 'e'], false, ['rejeu|ok|3|']]);
+      appels.length = 0; journal.length = 0;
+      const st2 = faux(true, L); let leve = 0;
+      const casse = REJEU.rejouerAuDemarrage({ stockage: st2, genres: { g1: () => { leve++; throw new Error('boum'); }, g2: (stk, ent) => { appels.push(ent.objet); } }, journaliser: jr });
+      v('⛔ une fonction qui LÈVE : l\'échec est compté et dit au journal, les autres entrées sont quand même rejouées, le drapeau RESTE levé (le démarrage suivant recommence) — et le démarrage ne meurt pas',
+        [casse, leve, appels, st2.e.drapeau, journal.filter(x => /echec/.test(x))], [{ fait: true, rejouees: 1, echecs: 2 }, 2, ['e'], true, ['rejeu|echec||g1', 'rejeu|echec||g1', 'rejeu|echec|1|']]);
+      const asynchrone = REJEU.rejouerAuDemarrage({ stockage: faux(true, L), genres: { g1: async () => {} }, journaliser: () => {} });
+      v('   une fonction ASYNCHRONE est refusée (le démarrage est synchrone : une promesse perdue serait un effacement qu\'on croirait fait)', [asynchrone.rejouees, asynchrone.echecs], [0, 2]);
+      const illisible = REJEU.rejouerAuDemarrage({ stockage: Object.assign(faux(true, L), { purgeLignes: () => { throw new Error('x'); } }), genres: g, journaliser: jr });
+      v('   un registre illisible : échec dit, drapeau levé, aucun appel', [illisible.echecs, illisible.rejouees], [1, 0]);
+    }
   }
 
   /* ══ 14. LE CONTRÔLE DANS UN PROCESSUS ENFANT ═════════════════════════════════════════════════════════════════════════════════ */

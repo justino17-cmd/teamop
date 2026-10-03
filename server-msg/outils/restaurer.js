@@ -332,7 +332,9 @@ async function essai(ctx, { date, echantillon = 20, sansPurge }, dire) {
     const reg = await registreDePurge(ctx, arch.archives, cible, base, dossier, { sansPurge }, dire);
     direRegistre(reg, dire);
     const p = ouvrir.copie.rejouerPurge(base, reg.registre);
-    dire('  purge rejouée : ' + p.lues + ' ligne(s) lue(s), ' + p.messagesRetires + ' message(s) retiré(s), ' + p.messagesBlanchis + ' effacé(s) pour tous, ' + p.pieces.length + ' pièce(s), ' + p.ignorees + ' ignorée(s).');
+    dire('  purge rejouée : ' + p.lues + ' ligne(s) lue(s), ' + p.messagesRetires + ' message(s) retiré(s), ' + p.messagesBlanchis + ' effacé(s) pour tous, ' + p.conversationsRetirees + ' conversation(s), ' + p.appareilsRetires + ' appareil(s), ' + p.pieces.length + ' pièce(s), ' + p.ignorees + ' ignorée(s).');
+    const ap = ouvrir.copie.apresRestauration(base);
+    dire('  sessions retirées : ' + ap.sessions + ' (une session révoquée depuis l\'archive ne doit pas revenir : chacun se reconnecte ; les appareils liés, eux, restent). Le service rejouera au démarrage les genres de purge qui sont à lui.');
 
     const cm = verifierCleMaitre(base, ctx.kekChemin);
     if (!cm.verifiee) dire('  ⚠ clé maître NON vérifiée (' + cm.motif + ') : cet exercice prouve l\'intégrité de la sauvegarde, pas qu\'elle s\'ouvre avec la clé de ce serveur.');
@@ -371,7 +373,7 @@ async function essai(ctx, { date, echantillon = 20, sansPurge }, dire) {
         dire('\n✅ CETTE SAUVEGARDE EST RESTAURABLE' + bilanPieces + '. Exercice enregistré : /health dira « essaiJours: 0 ».');
       } else dire('\n✅ CETTE SAUVEGARDE EST RESTAURABLE' + bilanPieces + '. (OPMSG_DATA n\'est pas posé : la date de l\'exercice n\'est PAS enregistrée.)');
     } else dire('\n✅ CETTE ARCHIVE EST RESTAURABLE' + bilanPieces + '. (Ce n\'était pas la plus récente : la date de l\'exercice publiée par /health n\'est pas modifiée.)');
-    return { ok: true, archive: cible.nom, laDerniere, lignes: v.total, purge: p, cleMaitre: cm, pieces: sondage, piecesLignes: idsPieces.length, piecesSansFichier: sansFichier, registre: { source: reg.source.nom, saute: reg.saute.length, complet: reg.complet } };
+    return { ok: true, archive: cible.nom, laDerniere, lignes: v.total, purge: p, sessions: ap.sessions, cleMaitre: cm, pieces: sondage, piecesLignes: idsPieces.length, piecesSansFichier: sansFichier, registre: { source: reg.source.nom, saute: reg.saute.length, complet: reg.complet } };
   } catch (e) {
     if (ctx.dataDir && laDerniere) { try { ecrireEssai(ctx.dataDir, { echecTs: Date.now(), echecMotif: String(e.message).slice(0, 120) }); } catch (x) { /* l'échec de l'exercice reste le sujet */ } }
     throw e;
@@ -407,7 +409,9 @@ async function restaurerVers(ctx, { vers, date, ecraser, sansPieces, sansPurge }
     const reg = await registreDePurge(ctx, arch.archives, cible, base, chantier, { sansPurge }, dire);
     direRegistre(reg, dire);
     const p = ouvrir.copie.rejouerPurge(base, reg.registre);
-    dire('  purge rejouée : ' + p.messagesRetires + ' message(s) retiré(s), ' + p.messagesBlanchis + ' effacé(s) pour tous, ' + p.pieces.length + ' pièce(s).');
+    dire('  purge rejouée : ' + p.messagesRetires + ' message(s) retiré(s), ' + p.messagesBlanchis + ' effacé(s) pour tous, ' + p.conversationsRetirees + ' conversation(s), ' + p.appareilsRetires + ' appareil(s), ' + p.pieces.length + ' pièce(s).');
+    const ap = ouvrir.copie.apresRestauration(base);
+    dire('  sessions retirées : ' + ap.sessions + ' (chacun se reconnecte ; les appareils liés restent). Le service rejouera au démarrage les genres de purge qui sont à lui.');
     const v = ouvrir.copie.controlerFichier(base);
     if (!v.ok) throw echec('la base restaurée est ILLISIBLE : ' + v.motif + ' — rien n\'est remis en place.');
     dire('  base saine (quick_check : ok), ' + v.total + ' ligne(s).');
@@ -439,7 +443,7 @@ async function restaurerVers(ctx, { vers, date, ecraser, sansPieces, sansPurge }
     dire('   · la clé MAÎTRE doit être celle d\'origine (/etc/opmsg/' + ctx.instance + '.kek) : sans elle le service refuse de démarrer sur cette base ;');
     if (pieces) dire('   · si les fichiers appartiennent à root : chown -R opmsg:opmsg sur le dossier des données ;');
     dire('   · puis : systemctl start teamop-msg@' + ctx.instance + ' et vérifier /health.');
-    return { ok: true, archive: cible.nom, lignes: v.total, purge: p, pieces };
+    return { ok: true, archive: cible.nom, lignes: v.total, purge: p, sessions: ap.sessions, pieces };
   } finally {
     fs.rmSync(chantier, { recursive: true, force: true });
     if (creeParNous) { try { fs.rmdirSync(dest); } catch (e) { /* non vide : une restauration a abouti, c'est son dossier */ } }   // un refus ne laisse pas un dossier vide derrière lui

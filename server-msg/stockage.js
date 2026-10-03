@@ -672,7 +672,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       for (const p of pieces) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(p, 'piece', horloge());
       Q('DELETE FROM lien WHERE genre = ? AND cible = ?').run('groupe', id);
       Q('DELETE FROM journal WHERE conv = ?').run(id);
-      Q('DELETE FROM conversation WHERE id = ?').run(id);   // les membres, messages, réactions, pièces suivent (ON DELETE CASCADE)
+      /* ⛔ LA CONVERSATION ELLE-MÊME SE NOTE (gardien A3, 3 octobre 2026) : seules ses pièces l'étaient, si bien qu'une restauration d'une archive plus ancienne
+         que cette suppression ramenait la conversation et tous ses messages. Genre `conversation`, rejoué hors ligne par `rejouerPurge`. */
+      if (num(Q('DELETE FROM conversation WHERE id = ?').run(id).changes) > 0) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(id, 'conversation', horloge());   // les membres, messages, réactions, pièces suivent (ON DELETE CASCADE)
       return { pieces };
     });
   }
@@ -1260,6 +1262,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const t = horloge();
       Q(`INSERT INTO appareil_tel(h, personne, nom, cree, vu, exp) VALUES(?, ?, ?, ?, ?, ?)
          ON CONFLICT(h) DO UPDATE SET personne = excluded.personne, nom = excluded.nom, cree = excluded.cree, vu = excluded.vu, exp = excluded.exp`).run(h, personne, nom || null, t, t, t + ttlMs);
+      /* Le onzième appareil chasse le plus ancien : c'est une révocation, elle se note comme les autres (voir `telAppareilSupprimer`). */
+      Q(`INSERT INTO purge(objet, genre, quand) SELECT h, 'appareil', ? FROM appareil_tel WHERE personne = ? AND h NOT IN (SELECT h FROM appareil_tel WHERE personne = ? ORDER BY vu DESC, cree DESC LIMIT ?)`).run(t, personne, personne, APPAREILS_MAX);
       Q('DELETE FROM appareil_tel WHERE personne = ? AND h NOT IN (SELECT h FROM appareil_tel WHERE personne = ? ORDER BY vu DESC, cree DESC LIMIT ?)').run(personne, personne, APPAREILS_MAX);
     });
   }
@@ -1277,10 +1281,27 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const t = horloge();
     Q('UPDATE appareil_tel SET vu = ?, exp = ? WHERE h = ? AND vu < ?').run(t, t + ttlMs, h, t - 3600000);
   }
-  function telAppareilSupprimer(h) { return num(Q('DELETE FROM appareil_tel WHERE h = ?').run(h).changes); }
-  function telAppareilsSupprimerPersonne(id) { return num(Q('DELETE FROM appareil_tel WHERE personne = ?').run(id).changes); }
+  /* ⛔ UNE RÉVOCATION D'APPAREIL SE NOTE DANS `purge` (genre `appareil`, l'empreinte du jeton — jamais le jeton) : sans cela, une restauration d'une archive d'avant la
+     déconnexion ramenait un appareil « déconnecté » avec toute sa validité (gardien A3). L'expiration naturelle, elle, ne se note pas : la date d'échéance est dans la ligne. */
+  function telAppareilSupprimer(h) {
+    return tx(() => {
+      Q(`INSERT INTO purge(objet, genre, quand) SELECT h, 'appareil', ? FROM appareil_tel WHERE h = ?`).run(horloge(), h);
+      return num(Q('DELETE FROM appareil_tel WHERE h = ?').run(h).changes);
+    });
+  }
+  function telAppareilsSupprimerPersonne(id) {
+    return tx(() => {
+      Q(`INSERT INTO purge(objet, genre, quand) SELECT h, 'appareil', ? FROM appareil_tel WHERE personne = ?`).run(horloge(), id);
+      return num(Q('DELETE FROM appareil_tel WHERE personne = ?').run(id).changes);
+    });
+  }
   /* « Déconnecter les autres appareils » : tout sauf l'appareil d'où l'on le demande. */
-  function telAppareilsSupprimerAutres(id, garderH) { return num(Q('DELETE FROM appareil_tel WHERE personne = ? AND h <> ?').run(id, garderH || '').changes); }
+  function telAppareilsSupprimerAutres(id, garderH) {
+    return tx(() => {
+      Q(`INSERT INTO purge(objet, genre, quand) SELECT h, 'appareil', ? FROM appareil_tel WHERE personne = ? AND h <> ?`).run(horloge(), id, garderH || '');
+      return num(Q('DELETE FROM appareil_tel WHERE personne = ? AND h <> ?').run(id, garderH || '').changes);
+    });
+  }
   function telAppareilsDe(id) { return num(Q('SELECT COUNT(*) AS n FROM appareil_tel WHERE personne = ? AND exp > ?').get(id, horloge()).n); }
 
   /* Le journal des SMS : une ligne par envoi, coût en micro-euros. « refuse » = le prestataire a refusé net, le coût est rendu. */
@@ -1428,6 +1449,17 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   function fermer() { try { db.close(); } catch (e) {} }
 
+  /* ══ LE REJEU DES PURGES PAR LE SERVICE — après une restauration (`rejeu.js`) ════════════════════════════════════════════════════
+     L'outil de restauration travaille hors ligne, sans la clé maître : il rejoue en SQL pur les genres de purge qui s'y prêtent (`GENRES_PURGE`, plus bas),
+     RECOPIE les autres dans la base qu'il remet en service, et lève ce drapeau (`meta.rejeu_service`). Le service, à son premier démarrage dessus, rejoue
+     alors les genres qui sont à lui — ceux dont l'effacement touche plusieurs tables et passe par ses propres fonctions — puis baisse le drapeau. */
+  const rejeuAFaire = () => metaLire('rejeu_service') !== null;
+  const rejeuTermine = () => { Q('DELETE FROM meta WHERE k = ?').run('rejeu_service'); };
+  /* Tout le registre, du plus ancien au plus récent : l'appelant ne garde que les genres qu'il sait rejouer. */
+  function purgeLignes() {
+    return Q('SELECT objet, genre, quand FROM purge ORDER BY quand, rowid').all().map(r => ({ objet: String(r.objet), genre: String(r.genre), quand: num(r.quand) }));
+  }
+
   return {
     schema, instantane, sonde, fermer, tx, stats, metaLire, nouvelId, illisibles: () => illisibles,
     personneCreer, personneParIdentifiant, personneParId, personneIdentifiant, personneMaj,
@@ -1440,6 +1472,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     pieceCreer, pieceVisible, pieceUtilise, pieceExiste, pieceStats, pieceEffacerLigne, avatarPersonnePoser, piecesOrphelinesPurger, audiencePersonne,
     notifCreer, notifListe, notifLues, notifNonLues,
     journalMax, journalMin, journalElaguer, evenementsPour, gidVisible,
+    rejeuAFaire, rejeuTermine, purgeLignes,   // le rejeu des purges par le SERVICE après une restauration (rejeu.js)
     telCodePoser, telCodeEssayer, telCodeSupprimer, telCodeCree,
     telAppareilLier, telAppareilLire, telAppareilToucher, telAppareilSupprimer, telAppareilsSupprimerPersonne, telAppareilsSupprimerAutres, telAppareilsDe,
     smsTentativesNoter, smsTentativesCompter, smsTentativePremiere, smsTentativesRendre,
@@ -1515,6 +1548,24 @@ function controlerFichier(chemin, opts) {
   } finally { try { if (d) d.close(); } catch (e) { /* déjà fermée */ } }
 }
 
+/* ══ LES GENRES DE PURGE — ce que le registre peut dire, et QUI le rejoue ═══════════════════════════════════════════════════════
+   Une ligne du registre `purge` dit : « cet objet a été effacé (ou vidé) à cet instant ». Une restauration ramène ce qu'une archive plus ancienne contenait
+   encore ; le registre de la plus récente archive qui s'ouvre sert à le REPASSER. Chaque genre dit COMMENT :
+     'copie'    rejoué HORS LIGNE, en SQL pur, sur le fichier de la copie (`rejouerPurge` — l'outil n'a pas la clé maître et ne lance pas le service) ;
+     'service'  rejoué par le SERVICE à son premier démarrage sur la base restaurée (`rejeu.js`, `GENRES_SERVICE`) : l'effacement touche plusieurs tables et
+                passe par des fonctions du service. La copie ne fait que recopier la ligne et lever le drapeau `rejeu_service`.
+   ⛔ UN GENRE NEUF S'ÉCRIT ICI D'ABORD : `tests/test-950.js` (§ 13 quater) lit le code de CE fichier, relève chaque genre écrit dans `purge` (`INSERT INTO purge`)
+   et exige qu'il soit déclaré ici, rejoué par celui qu'il désigne. Un effacement qu'aucune restauration ne rejoue est un effacement qui REVIENT — le défaut que ce
+   registre existe pour empêcher (conversation supprimée, appareil déconnecté, compte effacé). Le mode d'emploi est dans `design/opmessages/SERVEUR.md`. */
+const GENRES_PURGE = {
+  message_ephemere: 'copie',   // un message échu : sa ligne part (avec ses réactions)
+  message: 'copie',            // un message purgé par un autre chemin : idem
+  message_supprime: 'copie',   // « supprimé pour tous » : le corps part, la pierre tombale reste
+  piece: 'copie',              // une pièce (`piece_expiree`… : tout genre qui COMMENCE par « piece ») : sa ligne part, son identifiant est rendu pour retirer le fichier
+  conversation: 'copie',       // une conversation supprimée (le dernier membre est parti) : elle part avec ses membres, messages, réactions et invitations
+  appareil: 'copie',           // un jeton d'appareil révoqué (déconnexion, « déconnecter les autres », onzième appareil) — l'empreinte, jamais le jeton
+};
+
 /* Le registre des purges d'une copie, tel quel : `{objet, genre, quand}`. Une copie sans cette table (très ancienne) en a un vide. */
 function purgeLire(chemin, opts) {
   let d = null;
@@ -1538,7 +1589,7 @@ function purgeLire(chemin, opts) {
    Les lignes du registre sont recopiées dans la copie (sans doublon) : la copie se souvient désormais de ce qu'elle vient d'oublier,
    et la sauvegarde suivante le portera. Une seule transaction : tout ou rien. */
 function rejouerPurge(chemin, registre, opts) {
-  const bilan = { lues: 0, messagesRetires: 0, messagesBlanchis: 0, pieces: [], ignorees: 0, ajoutees: 0 };
+  const bilan = { lues: 0, messagesRetires: 0, messagesBlanchis: 0, pieces: [], conversationsRetirees: 0, appareilsRetires: 0, ignorees: 0, ajoutees: 0 };
   let d = null;
   try {
     d = ouvrirCopie(chemin, Object.assign({}, opts, { ecriture: true }));
@@ -1549,6 +1600,12 @@ function rejouerPurge(chemin, registre, opts) {
     const blanchir = d.prepare('UPDATE message SET corps_ch = NULL, meta_ch = NULL, supprime_le = ?, modifie = NULL WHERE id = ?');
     const sansReactions = d.prepare('DELETE FROM reaction WHERE conv = ? AND seq = ?');
     const retirerPiece = tablePiece ? d.prepare('DELETE FROM piece WHERE id = ?') : null;
+    const retirerLiens = d.prepare(`DELETE FROM lien WHERE genre = 'groupe' AND cible = ?`);
+    const retirerJournal = d.prepare('DELETE FROM journal WHERE conv = ?');
+    const retirerConv = d.prepare('DELETE FROM conversation WHERE id = ?');
+    const tableAppareil = d.prepare(`SELECT 1 AS n FROM sqlite_master WHERE type = 'table' AND name = 'appareil_tel'`).get() !== undefined;
+    /* Un appareil (re)lié APRÈS sa révocation (`cree` plus récent) est un autre appareil : seul celui qui existait au moment de la révocation part. */
+    const retirerAppareil = tableAppareil ? d.prepare('DELETE FROM appareil_tel WHERE h = ? AND cree <= ?') : null;
     const recopier = d.prepare('INSERT INTO purge(objet, genre, quand) SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM purge WHERE objet = ? AND genre = ?)');
     d.exec('BEGIN IMMEDIATE');
     try {
@@ -1567,6 +1624,11 @@ function rejouerPurge(chemin, registre, opts) {
         } else if (/^piece/.test(genre)) {
           if (retirerPiece) retirerPiece.run(r.objet);
           bilan.pieces.push(String(r.objet));
+        } else if (genre === 'conversation') {
+          retirerLiens.run(r.objet); retirerJournal.run(r.objet);
+          bilan.conversationsRetirees += Number(retirerConv.run(r.objet).changes);
+        } else if (genre === 'appareil') {
+          if (retirerAppareil) bilan.appareilsRetires += Number(retirerAppareil.run(r.objet, Number(r.quand) || 0).changes);
         } else {
           bilan.ignorees++;
         }
@@ -1591,6 +1653,29 @@ function pieceIds(chemin, opts) {
   } finally { try { if (d) d.close(); } catch (e) { /* déjà fermée */ } }
 }
 
-ouvrir.copie = { controlerFichier, purgeLire, rejouerPurge, pieceIds, TABLES_COMPTEES };
+/* ⛔ CE QU'UNE RESTAURATION FAIT À LA BASE QU'ELLE REMET EN SERVICE, en plus de rejouer le registre (l'outil l'appelle sur la copie, une fois les purges rejouées) :
+     · LES SESSIONS SONT VIDÉES. Une session est un cookie : celles de l'archive sont celles d'AVANT — dont des sessions révoquées depuis (rejoué par le gardien le
+       3 octobre 2026 : l'ancien cookie d'une déconnexion répondait de nouveau 200). Aucun registre ne note une session fermée ; vider la table est la seule réponse sûre, et
+       le prix est une reconnexion (les jetons d'appareil, eux, restent : ils évitent le SMS, et leurs révocations sont dans le registre) ;
+     · LE DRAPEAU `rejeu_service` EST LEVÉ : le service, à son premier démarrage sur cette base, rejoue les genres de purge qui sont à lui (`rejeu.js`) puis le baisse.
+   Rend { sessions } : le nombre de sessions retirées. Une seule transaction. */
+function apresRestauration(chemin, opts) {
+  const bilan = { sessions: 0 };
+  let d = null;
+  try {
+    d = ouvrirCopie(chemin, Object.assign({}, opts, { ecriture: true }));
+    d.exec('PRAGMA busy_timeout=5000;');
+    d.exec('BEGIN IMMEDIATE');
+    try {
+      try { bilan.sessions = Number(d.prepare('DELETE FROM session').run().changes); }
+      catch (e) { if (!/no such table/i.test(String(e && e.message))) throw e; }
+      d.prepare('INSERT INTO meta(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').run('rejeu_service', String(Date.now()));
+      d.exec('COMMIT');
+    } catch (e) { try { d.exec('ROLLBACK'); } catch (e2) { /* rien à défaire */ } throw e; }
+    return bilan;
+  } finally { try { if (d) d.close(); } catch (e) { /* déjà fermée */ } }
+}
+
+ouvrir.copie = { controlerFichier, purgeLire, rejouerPurge, apresRestauration, pieceIds, GENRES_PURGE, TABLES_COMPTEES };
 
 module.exports = { ouvrir, MIGRATIONS, MAX_MEMBRES, DELAI_MODIF_MS, TAILLE_PORTEE, GENRES_SEQ };

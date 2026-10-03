@@ -32,6 +32,7 @@ const { lireConfigSms, creerGarde } = require('./sms-garde');
 const { APPAREIL_ABS_MS } = require('./telephone');
 const { creerPieces, creerReservations } = require('./pieces');
 const { creerSauvegarde, lireConfigSauvegarde } = require('./sauvegarde');
+const { rejouerAuDemarrage } = require('./rejeu');
 
 const VERSION = '1.2.0-pieces';
 const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays']);   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
@@ -63,6 +64,10 @@ function demarrer(env = process.env) {
   const reservations = creerReservations({ max: config.pieces.quotaPersonne, utilise: (u) => stockage.pieceUtilise(u) });
   const piecesEtat = { illisibles: 0, effacementsRates: 0 };
   const effacerPieces = (ids) => { for (const id of ids || []) pieces.effacer(id).catch(() => { piecesEtat.effacementsRates++; }); };
+  /* ⛔ UNE BASE RESTAURÉE REJOUE CE QUI EST À ELLE avant de servir : l'outil de restauration a recopié dans le registre `purge` les effacements qu'il ne sait pas rejouer
+     hors ligne et levé un drapeau ; ici le service les rejoue avec ses propres fonctions (un compte effacé ne revient pas). Sans drapeau — tout démarrage ordinaire — rien ne
+     s'exécute. Voir `rejeu.js`. */
+  rejouerAuDemarrage({ stockage, contexte: { effacerPieces, horloge: Date.now }, journaliser });
   const porte = config.instance === 'beta' ? creerPorteBeta({ config, quotas, stockage, horloge: Date.now }) : null;
   /* Les SMS : la configuration est VALIDÉE ici (un budget négatif, des identifiants à moitié posés, une URL d'OVH étrangère en production
      refusent le démarrage plutôt que de tourner de travers), puis la garde (budgets, emballement, bouclier) et l'envoi par OVH. */
