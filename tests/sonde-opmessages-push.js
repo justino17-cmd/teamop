@@ -180,52 +180,92 @@ async function parcours(b, ctx) {
     vrai('population : le faux service push a reçu la notification d\'essai du vrai service', essais.length === 1);
     const chargeEssai = dechiffrer(appA, essais[0]);
     v('et ce qu\'il a reçu se déchiffre avec les clés de l\'appareil : une notification d\'essai', chargeEssai.type, 'essai');
-    /* cette charge, REMISE AU VRAI sw.js : une notification est montrée (le cœur du push qu'on ne peut pas faire venir de Google) */
-    const livrer = (S, charge) => S.ctx.serviceWorkers()[0].evaluate(async (data) => {
-      self.dispatchEvent(new PushEvent('push', { data }));
-      const debut = Date.now();
-      for (;;) { const ns = await self.registration.getNotifications(); if (ns.length) return ns.map(n => ({ title: n.title, body: n.body, tag: n.tag, data: n.data, icon: new URL(n.icon).pathname })); if (Date.now() - debut > 10000) return []; await new Promise(r => setTimeout(r, 25)); }
-    }, JSON.stringify(charge));
-    const montre = await livrer(A, chargeEssai);
-    v('⛔ le vrai sw.js MONTRE la notification, avec le titre, le texte, l\'icône du dépôt et l\'adresse à ouvrir', montre.map(n => [n.title, n.body, n.icon, n.data.url]), [['OP MESSAGES', 'Les notifications fonctionnent sur cet appareil.', '/opmsg-192.png', '/']]);
-    await A.ctx.serviceWorkers()[0].evaluate(async () => { for (const n of await self.registration.getNotifications()) n.close(); });
-    v('la charge n\'est pas sa propre sentinelle : une charge ILLISIBLE montre quand même « Nouveau message » (Safari retire l\'abonnement d\'un push silencieux)',
-      (await A.ctx.serviceWorkers()[0].evaluate(async () => {
-        self.dispatchEvent(new PushEvent('push', { data: 'pas du json {{{' }));
-        const debut = Date.now(); for (;;) { const ns = await self.registration.getNotifications(); if (ns.length) { const r = ns.map(n => [n.title, n.body]); for (const n of ns) n.close(); return r; } if (Date.now() - debut > 10000) return []; await new Promise(r => setTimeout(r, 25)); }
-      })), [['OP MESSAGES', 'Nouveau message']]);
+    /* ⛔ DEUX MESURES, ET ON NE LES CONFOND PAS. Ce que le VRAI `sw.js` DEMANDE au navigateur (titre, texte, icône, étiquette, adresse) est de NOTRE ressort ; ce que le navigateur en fait ENSUITE (la
+       lister, l'afficher, la retirer) ne l'est pas — et cette seconde mesure a menti : sous la charge d'une machine partagée, un `getNotifications()` est revenu VIDE pendant dix secondes alors que
+       `showNotification` avait été ACCEPTÉ en 35 ms (3 passages sur 5, relevés avec la durée de chaque appel, le 3 octobre 2026), et deux notifications lancées d'affilée se sont terminées dans
+       l'ordre inverse. Le gestionnaire de `push` s'exécute SYNCHRONEMENT dans `dispatchEvent` : ce qu'il a demandé est donc déjà noté quand l'appel rend la main. La sonde enveloppe
+       `registration.showNotification` (le `sw.js` publié n'est PAS touché), note chaque appel et ce que le navigateur en a répondu, et ne regarde la liste du navigateur que là où il FAUT un vrai objet
+       notification (le toucher). */
+    const SW = (S) => S.ctx.serviceWorkers()[0];
+    /* idempotent : appelé avant chaque usage, il se refait seul si le navigateur avait redémarré le service worker (l'état d'un worker ne survit pas à son arrêt) */
+    const armer = (S) => SW(S).evaluate(() => {
+      if (self.__montrees) return;
+      self.__montrees = [];
+      const montrer = self.registration.showNotification.bind(self.registration);
+      self.registration.showNotification = (titre, options) => {
+        const e = { titre, options: JSON.parse(JSON.stringify(options || {})), etat: 'en cours', erreur: null };
+        self.__montrees.push(e);
+        const p = montrer(titre, options);
+        p.then(() => { e.etat = 'acceptée'; }, (err) => { e.etat = 'refusée'; e.erreur = String(err); });
+        return p;
+      };
+      /* un vrai objet notification, listé par le navigateur, pour jouer le toucher : on attend LISTÉE (jusqu'à `ms`), et on rend null plutôt que de jeter si elle ne l'est jamais */
+      self.__listee = async (tag, ms) => {
+        const debut = Date.now();
+        for (;;) { const ns = await self.registration.getNotifications({ tag }); if (ns.length) return ns[0]; if (Date.now() - debut > (ms || 10000)) return null; await new Promise(r => setTimeout(r, 25)); }
+      };
+    });
+    /* cette charge, REMISE AU VRAI sw.js : ce qu'il demande au navigateur (le cœur du push qu'on ne peut pas faire venir de Google). `garder` laisse la notification affichée (pour la toucher) ; sinon on la retire
+       (au mieux : ce n'est pas une mesure), pour que le navigateur n'empile pas des fenêtres de notification pendant tout le parcours. */
+    const livrer = async (S, donnees, garder) => {
+      await armer(S);
+      return SW(S).evaluate(async ([data, garder]) => {
+        const avant = self.__montrees.length;
+        self.dispatchEvent(new PushEvent('push', { data }));
+        const demandees = () => self.__montrees.slice(avant);
+        const debut = Date.now();
+        while (demandees().some(e => e.etat === 'en cours') && Date.now() - debut < 15000) await new Promise(r => setTimeout(r, 20));
+        const r = demandees().map(e => ({ titre: e.titre, corps: e.options.body, icone: e.options.icon, tag: e.options.tag, url: e.options.data && e.options.data.url, etat: e.etat, erreur: e.erreur }));
+        if (!garder) { try { for (const n of await self.registration.getNotifications()) n.close(); } catch (e) { /* au mieux */ } }
+        return r;
+      }, [donnees, !!garder]);
+    };
+    const montre = await livrer(A, JSON.stringify(chargeEssai));
+    v('⛔ le vrai sw.js DEMANDE une notification — une seule —, avec le titre, le texte, l\'icône du dépôt, l\'étiquette et l\'adresse à ouvrir, et le navigateur l\'ACCEPTE', montre.map(n => [n.titre, n.corps, n.icone, n.url, n.tag, n.etat]), [['OP MESSAGES', 'Les notifications fonctionnent sur cet appareil.', '/opmsg-192.png', '/', 'essai', 'acceptée']]);
+    v('la charge n\'est pas sa propre sentinelle : une charge ILLISIBLE demande quand même « Nouveau message » (Safari retire l\'abonnement d\'un push silencieux)',
+      (await livrer(A, 'pas du json {{{')).map(n => [n.titre, n.corps, n.etat]), [['OP MESSAGES', 'Nouveau message', 'acceptée']]);
 
     /* ⛔ le sw.js ne croit pas la charge sur parole : l'adresse d'ailleurs, relative au schéma, d'un autre schéma ou d'un autre type devient « / » ; seule une adresse de CE site garde son chemin */
     const CONV_X = 'c_0123456789abcdef0123456789abcdef';
     v('⛔ le vrai sw.js n\'ouvrira JAMAIS une adresse d\'ailleurs : « https://evil.example/ », « // », « javascript: », un autre site portant le chemin d\'une conversation, un nombre, rien → « / » (seule l\'adresse de CE site garde son chemin)',
-      await A.ctx.serviceWorkers()[0].evaluate(async (conv) => {
-        const lire = async (charge) => {
-          self.dispatchEvent(new PushEvent('push', { data: JSON.stringify(charge) }));
-          const debut = Date.now();
-          for (;;) { const ns = await self.registration.getNotifications({ tag: charge.tag }); if (ns.length) { const u = ns[0].data.url; for (const n of ns) n.close(); return u; } if (Date.now() - debut > 8000) return null; await new Promise(r => setTimeout(r, 25)); }
-        };
-        const sortie = [];
-        /* ⛔ UNE ÉTIQUETTE PAR ESSAI : fermer une notification est asynchrone, et la suivante, de même étiquette, aurait relu l'ancienne (pris sous charge : la mesure rendait l'adresse du tour d'avant) */
-        let i = 0;
-        for (const url of ['https://evil.example/x', '//evil.example/x', 'javascript:alert(1)', 'https://evil.example/#messages/' + conv, '/#messages/' + conv, undefined, 42]) sortie.push(await lire({ titre: 'T', corps: 'C', tag: 'adr' + (++i), url }));
-        return sortie;
-      }, CONV_X), ['/', '/', '/', '/', '/#messages/' + CONV_X, '/', '/']);
-    v('deux notifications de la même conversation (même étiquette) n\'en font qu\'UNE à l\'écran — la seconde remplace la première',
-      await A.ctx.serviceWorkers()[0].evaluate(async () => {
-        for (let i = 0; i < 2; i++) self.dispatchEvent(new PushEvent('push', { data: JSON.stringify({ titre: 'PILE' + i, corps: 'c', tag: 'pile' }) }));
-        const debut = Date.now(); let ns = [];
-        for (;;) { ns = (await self.registration.getNotifications()).filter(n => /^PILE/.test(n.title)); if (ns.some(n => n.title === 'PILE1') || Date.now() - debut > 10000) break; await new Promise(r => setTimeout(r, 25)); }
-        const titres = ns.map(n => n.title);
-        for (const n of await self.registration.getNotifications()) n.close();
-        return titres;
-      }), ['PILE1']);
+      await (async () => {
+        await armer(A);
+        return SW(A).evaluate(async (conv) => {
+          /* l'adresse que le sw.js a POSÉE sur la notification (celle qu'il ouvrira au toucher), lue dans l'appel qu'il a fait — exactement un appel par charge, sinon null */
+          const lire = (charge) => {
+            const avant = self.__montrees.length;
+            self.dispatchEvent(new PushEvent('push', { data: JSON.stringify(charge) }));
+            const faites = self.__montrees.slice(avant);
+            return faites.length === 1 && faites[0].options.data ? faites[0].options.data.url : null;
+          };
+          const sortie = [];
+          let i = 0;
+          for (const url of ['https://evil.example/x', '//evil.example/x', 'javascript:alert(1)', 'https://evil.example/#messages/' + conv, '/#messages/' + conv, undefined, 42]) sortie.push(lire({ titre: 'T', corps: 'C', tag: 'adr' + (++i), url }));
+          try { for (const n of await self.registration.getNotifications()) n.close(); } catch (e) { /* au mieux */ }
+          return sortie;
+        }, CONV_X);
+      })(), ['/', '/', '/', '/', '/#messages/' + CONV_X, '/', '/']);
+    v('⛔ deux notifications de la MÊME conversation reçoivent la même étiquette — c\'est elle qui fait que la seconde REMPLACE la première à l\'écran, le remplacement lui-même étant l\'affaire du navigateur —, et une autre conversation en reçoit une autre',
+      await (async () => {
+        await armer(A);
+        return SW(A).evaluate(async () => {
+          const jouer = (titre, tag) => { const avant = self.__montrees.length; self.dispatchEvent(new PushEvent('push', { data: JSON.stringify({ titre, corps: 'c', tag }) })); return self.__montrees.slice(avant).map(e => e.options.tag); };
+          const r = [jouer('PILE0', 'pile'), jouer('PILE1', 'pile'), jouer('AUTRE', 'autre')];
+          try { for (const n of await self.registration.getNotifications()) n.close(); } catch (e) { /* au mieux */ }
+          return r;
+        });
+      })(), [['pile'], ['pile'], ['autre']]);
     /* toucher une notification dont l'adresse serait d'ailleurs : le service worker prévient la page avec « / » (jamais l'adresse d'ailleurs) */
     await A.page.evaluate(() => { window.__msgsSw = []; navigator.serviceWorker.addEventListener('message', (e) => window.__msgsSw.push(e.data)); });
-    await A.ctx.serviceWorkers()[0].evaluate(async () => {
+    await armer(A);
+    const piege = await SW(A).evaluate(async () => {
       await self.registration.showNotification('Piège', { tag: 'piege', data: { url: 'https://evil.example/x' } });
-      const n = (await self.registration.getNotifications({ tag: 'piege' }))[0];
+      const n = await self.__listee('piege');
+      if (!n) return false;
       self.dispatchEvent(new NotificationEvent('notificationclick', { notification: n, action: '' }));
+      return true;
     });
+    vrai('population : le navigateur a gardé la notification piège, listée, et le toucher a été joué sur elle', piege === true);
     vrai('population : le service worker a prévenu la page du toucher', !!(await attendre(A, () => window.__msgsSw.length > 0, null, 8000)));
     v('⛔ toucher une notification dont l\'adresse est d\'ailleurs : la page reçoit « / », jamais l\'adresse d\'ailleurs', (await A.page.evaluate(() => window.__msgsSw)).map(m => [m.type, m.url]), [['ouvrir', '/']]);
 
@@ -242,16 +282,24 @@ async function parcours(b, ctx) {
     vrai('⛔ page CACHÉE : aucun acquittement n\'est parti, et la notification arrive au faux service push après le délai du service (' + (arrivee ? arrivee.t - t0 : '?') + ' ms)', !!arrivee && A.requetes.filter(r => r === 'POST /api/flux/ack').length === acksAvantCache && arrivee.t - t0 >= ACK_MS - 100);
     const chargeMsg = dechiffrer(appA, arrivee);
     v('⛔ avec l\'aperçu activé : le nom de l\'auteur en titre, le texte en corps, l\'adresse de la conversation', [chargeMsg.titre, chargeMsg.corps, chargeMsg.url, chargeMsg.tag], ['Bruno Petit', 'Salut Alice, la visite est à 14 h', '/#messages/' + conv, conv]);
-    await livrer(A, chargeMsg);
+    const demande = await livrer(A, JSON.stringify(chargeMsg), true);
+    v('⛔ le vrai sw.js DEMANDE la notification du message — le nom de l\'auteur en titre, le texte, l\'étiquette de la conversation, son adresse — et le navigateur l\'ACCEPTE', demande.map(n => [n.titre, n.corps, n.tag, n.url, n.etat]), [['Bruno Petit', 'Salut Alice, la visite est à 14 h', conv, '/#messages/' + conv, 'acceptée']]);
     await A.page.evaluate(() => { window.__vis = 'visible'; });
     v('population : Alice est sur Réglages, aucune conversation ouverte', [await A.page.evaluate(() => document.documentElement.dataset.conv || ''), await A.page.evaluate(() => document.documentElement.dataset.vue)], ['', 'reglages']);
-    /* toucher la notification : l'évènement de clic est joué DANS le vrai service worker */
-    await A.ctx.serviceWorkers()[0].evaluate(async (tag) => {
-      const n = (await self.registration.getNotifications({ tag }))[0];
+    /* toucher la notification : l'évènement de clic est joué DANS le vrai service worker, sur le vrai objet notification que le navigateur a gardé */
+    const touchee = await SW(A).evaluate(async (tag) => {
+      const n = await self.__listee(tag);
+      if (!n) return false;
       self.dispatchEvent(new NotificationEvent('notificationclick', { notification: n, action: '' }));
+      return true;
     }, conv);
+    vrai('population : le navigateur a gardé la notification du message, listée, et le toucher a été joué sur elle', touchee === true);
     await verifier('⛔ toucher la notification OUVRE la conversation avec Bruno dans la page déjà ouverte (le service worker a prévenu la page, qui n\'a laissé passer qu\'une conversation)', A, () => document.documentElement.dataset.conv === '1' && document.getElementById('conv-titre').textContent.includes('Bruno Petit'), null, 10000, () => A.page.evaluate(() => document.documentElement.dataset.conv + ' / ' + document.documentElement.dataset.vue));
-    v('la notification touchée est fermée', await A.ctx.serviceWorkers()[0].evaluate(async () => (await self.registration.getNotifications()).length), 0);
+    /* fermer est asynchrone : on attend que la liste soit VIDE pour cette étiquette (jusqu'à 8 s), au lieu de la lire à l'instant */
+    v('la notification touchée est fermée', await SW(A).evaluate(async (tag) => {
+      const debut = Date.now();
+      for (;;) { const n = (await self.registration.getNotifications({ tag })).length; if (n === 0 || Date.now() - debut > 8000) return n; await new Promise(r => setTimeout(r, 25)); }
+    }, conv), 0);
     await capture(A, '3-conversation-ouverte');
 
     /* ═══ 4. L'ACQUITTEMENT PAR LA PAGE VISIBLE ═══════════════════════════════════════════════════════════════════════════════════ */
