@@ -819,17 +819,19 @@ async function gestionnaireLecture() {
 
   /* le plancher de disque : la taille ANNONCÉE ne doit pas faire passer sous le seuil */
   const libreMo = (() => { const s = fs.statfsSync(os.tmpdir()); return Number(s.bavail) * Number(s.bsize) / 1048576; })();
-  const marge3 = 300;   // 300 Mo entre l'espace libre et le plancher : un envoi annoncé à 200 Mo y tient seul, deux non (remarque 3 du gardien) — et 100 Mo de jeu des deux côtés si le disque bouge pendant le banc
-  const svc3 = await T.lancerService({ urlGestion: og.url, config: { disqueMinMo: Math.max(1, Math.floor(libreMo) - marge3), pieces: { fichierMax: 500 * 1048576 } } });
+  /* 750 Mo entre l'espace libre et le plancher : un envoi annoncé à 500 Mo y tient seul, deux non (remarque 3 du gardien), un à 900 Mo non plus — et 250 Mo de jeu de chaque côté. Le disque d'une machine
+     de travail bouge de plus de 100 Mo sans prévenir (copies de mutations, autres bancs) : une première marge de 300 Mo avec des envois de 200 Mo a fait tomber ce contrôle une fois sur deux. */
+  const marge3 = 750, ENV = 500 * 1048576, ENORME = 900 * 1048576;
+  const svc3 = await T.lancerService({ urlGestion: og.url, config: { disqueMinMo: Math.max(1, Math.floor(libreMo) - marge3), pieces: { fichierMax: 1000 * 1048576 } } });
   try {
     const Fr = await compte('fred', svc3);
     const avant = await deposer(Fr, { genre: 'avatar', corps: PNG });
     v('population : sous le plancher (' + Math.max(1, Math.floor(libreMo) - marge3) + ' Mo) avec ' + Math.floor(libreMo) + ' Mo libres, un petit dépôt passe', avant.code, 201);
     await lienContact(Fr, await compte('gina', svc3));
     const gr = (await Fr.post('/api/conversations/groupe', { nom: 'Disque', membres: [] })).j.conversation.id;
-    const x = await F.deposerBrut(Fr, { chemin: '/api/pieces?' + new URLSearchParams({ conv: gr, genre: 'fichier' }), entetes: { 'Content-Length': String(400 * 1048576), 'X-OPM-Nom': 'enorme.bin' }, morceaux: [Buffer.alloc(100, 1)] });
-    v('⛔ un dépôt ANNONCÉ à 400 Mo qui ferait passer le disque sous son plancher : 503 disque_plein, AVANT d\'avoir lu le corps (ce service ne doit jamais priver OP GESTION de disque)', [x.code, x.j.error], [503, 'disque_plein']);
-    /* ⛔ remarque 3 du gardien : le plancher soustrait les dépôts EN COURS. Un dépôt annoncé à 200 Mo tient seul sous la marge de 300 Mo ; un second de 200 Mo, non — l'espace libre ne baisse qu'à mesure
+    const x = await F.deposerBrut(Fr, { chemin: '/api/pieces?' + new URLSearchParams({ conv: gr, genre: 'fichier' }), entetes: { 'Content-Length': String(ENORME), 'X-OPM-Nom': 'enorme.bin' }, morceaux: [Buffer.alloc(100, 1)] });
+    v('⛔ un dépôt ANNONCÉ à 900 Mo qui ferait passer le disque sous son plancher : 503 disque_plein, AVANT d\'avoir lu le corps (ce service ne doit jamais priver OP GESTION de disque)', [x.code, x.j.error], [503, 'disque_plein']);
+    /* ⛔ remarque 3 du gardien : le plancher soustrait les dépôts EN COURS. Un dépôt annoncé à 500 Mo tient seul sous la marge de 750 Mo ; un second de 500 Mo, non — l'espace libre ne baisse qu'à mesure
        que les octets arrivent, et avant le correctif seize dépôts « qui tenaient chacun » vidaient le disque ensemble. */
     const entetesLent = (nom, taille) => ({ 'Content-Length': String(taille), 'X-OPM-Nom': nom }), cheminLent = '/api/pieces?' + new URLSearchParams({ conv: gr, genre: 'fichier' });
     const lent3 = (taille) => new Promise((ok) => {
@@ -842,18 +844,17 @@ async function gestionnaireLecture() {
       lent3.sockets.push(s);
     });
     lent3.sockets = [];
-    const ENV = 200 * 1048576;
     const premier = lent3(ENV);
     await T.dort(400);
     const seul = await F.deposerBrut(Fr, { chemin: cheminLent, entetes: entetesLent('second.bin', ENV), morceaux: [Buffer.alloc(100, 1)], delaiMs: 2500 });
-    v('⛔ un premier dépôt de 200 Mo est EN COURS (tient seul sous la marge) : un second de 200 Mo est refusé tout de suite, 503 disque_plein — ensemble ils passeraient sous le plancher', [seul.code, seul.j && seul.j.error], [503, 'disque_plein']);
+    v('⛔ un premier dépôt de 500 Mo est EN COURS (tient seul sous la marge) : un second de 500 Mo est refusé tout de suite, 503 disque_plein — ensemble ils passeraient sous le plancher', [seul.code, seul.j && seul.j.error], [503, 'disque_plein']);
     const petit = await deposer(Fr, { conv: gr, genre: 'fichier', nom: 'petit.bin', corps: Buffer.alloc(1000, 2) });
     v('…alors qu\'un petit dépôt, lui, passe encore (c\'est de la place qui manque, pas un refus général)', petit.code, 201);
     for (const s of lent3.sockets) s.destroy();
     await premier;
     await T.dort(400);
     const apres = await F.deposerBrut(Fr, { chemin: cheminLent, entetes: entetesLent('troisieme.bin', ENV), morceaux: [Buffer.alloc(100, 1)], delaiMs: 1500 });
-    v('⛔ le premier dépôt coupé REND sa place : un dépôt de 200 Mo est de nouveau accepté (il attend son corps — pas de 503)', [apres.code, apres.j && apres.j.error], [0, 'delai']);
+    v('⛔ le premier dépôt coupé REND sa place : un dépôt de 500 Mo est de nouveau accepté (il attend son corps — pas de 503)', [apres.code, apres.j && apres.j.error], [0, 'delai']);
   } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
   await svc3.arreter();
 
@@ -997,6 +998,9 @@ async function gestionnaireLecture() {
      DEUX services, un butoir chacun : l'autre est réglé à une heure. Un lecteur « lent » qui lit par à-coups voit son `drain` arriver par salves (la fenêtre TCP ne se rouvre pas octet par octet) :
      les deux butoirs dans un même service s'éclipsaient l'un l'autre, et retirer l'un ne faisait tomber que ce que l'autre laissait voir. */
   const nbFd = (pid) => { try { return fs.readdirSync('/proc/' + pid + '/fd').length; } catch (e) { return -1; } };
+  /* LES FICHIERS DE PIÈCES OUVERTS : exactement la ressource que garde un lecteur lent. Le total des descripteurs bouge d'un ou deux au gré des connexions persistantes que le banc ferme de son côté
+     (mesuré : « 28 → 29 » un jour, « 28 → 30 » le suivant) ; un fichier de pièce ouvert, lui, est ouvert par une lecture ou par rien. */
+  const fichiersPieces = (pid) => { try { return fs.readdirSync('/proc/' + pid + '/fd').filter((fd) => { try { return /\/pieces\/[0-9a-f]{2}\/f_[0-9a-f]{32}$/.test(fs.readlinkSync('/proc/' + pid + '/fd/' + fd)); } catch (e) { return false; } }).length; } catch (e) { return -1; } };
   const grosCorps = crypto.randomBytes(48 * 1048576), sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
   const monter12 = async (cfgPieces) => {
     const sv = await T.lancerService({ urlGestion: og.url, horloge: true, config: { pieces: Object.assign({ fichierMax: 48 * 1048576 }, cfgPieces), quotas: { piece: { max: 1000, fenetreMs: 3600000 } } } });
@@ -1017,11 +1021,11 @@ async function gestionnaireLecture() {
     const base7 = nbFd(X7.pid);
     const geles = [0, 1, 2].map(() => { const s = net.connect(X7.sv.port, '127.0.0.1', () => s.write(X7.get)); s.on('error', () => {}); return s; });
     await T.dort(300);
-    const pendant = nbFd(X7.pid);
-    vrai('population : trois lecteurs gelés tiennent chacun une connexion ET un fichier (' + base7 + ' descripteurs avant, ' + pendant + ' pendant)', pendant - base7 >= 6);
-    let apres = pendant; const t0 = Date.now();
-    while (Date.now() - t0 < 8000 && apres > base7 + 1) { await T.dort(100); apres = nbFd(X7.pid); }
-    v('⛔ au bout de l\'attente permise (1,5 s) le service les COUPE et rend les descripteurs (' + (Date.now() - t0) + ' ms)', apres <= base7 + 1, true);
+    const pendant = nbFd(X7.pid), fichiers7 = fichiersPieces(X7.pid);
+    vrai('population : trois lecteurs gelés tiennent chacun un FICHIER ouvert (' + fichiers7 + ') et une connexion (' + base7 + ' descripteurs avant, ' + pendant + ' pendant)', fichiers7 === 3 && pendant - base7 >= 4);
+    let apres = pendant, restent = fichiers7; const t0 = Date.now();
+    while (Date.now() - t0 < 8000 && (apres > base7 + 1 || restent > 0)) { await T.dort(100); apres = nbFd(X7.pid); restent = fichiersPieces(X7.pid); }
+    v('⛔ au bout de l\'attente permise (1,5 s) le service les COUPE et rend les fichiers ouverts et les connexions (' + (Date.now() - t0) + ' ms)', [restent, apres <= base7 + 1], [0, true]);
     vrai('   …et le journal le dit : « piece_lecture_coupee » pour cause d\'attente (sans identifiant ni nom)', /"evt":"piece_lecture_coupee","motif":"attente"/.test(X7.sv.sortie.texte()) && !/piece_lecture_coupee[^\n]*f_[0-9a-f]{32}/.test(X7.sv.sortie.texte()));
     for (const s of geles) s.destroy();
     v('⛔ contre-épreuve : un lecteur ordinaire reçoit les 48 Mo, octet pour octet (l\'attente ne touche que ceux qui ne lisent plus)', await entier12(X7), [200, 48 * 1048576, true]);
@@ -1037,11 +1041,11 @@ async function gestionnaireLecture() {
     filet.on('error', () => {});
     filet.on('data', (d) => { recu += d.length; filet.pause(); setTimeout(() => filet.resume(), 200); });
     await T.dort(2500);
-    const enCours = nbFd(X8.pid), recuA = recu;
-    vrai('population : à mi-chemin le lecteur-filet lit encore (' + Math.round(recuA / 1024) + ' Ko reçus) et le service tient sa connexion et son fichier (' + base8 + ' → ' + enCours + ' descripteurs)', recuA > 0 && enCours - base8 >= 2);
+    const enCours = nbFd(X8.pid), recuA = recu, fichiers8 = fichiersPieces(X8.pid);
+    vrai('population : à mi-chemin le lecteur-filet lit encore (' + Math.round(recuA / 1024) + ' Ko reçus) et le service tient son fichier ouvert (' + fichiers8 + ') et sa connexion (' + base8 + ' → ' + enCours + ' descripteurs)', recuA > 0 && fichiers8 === 1);
     await T.dort(4500);
     const apres8 = nbFd(X8.pid);
-    v('⛔ passé le plafond de durée d\'une lecture (5 s), le service coupe même celui qui lit « juste assez vite » : descripteurs rendus, fichier loin d\'être arrivé (' + Math.round(recu / 1048576) + ' Mo sur 48)', [apres8 <= base8 + 1, recu < 48 * 1048576], [true, true]);
+    v('⛔ passé le plafond de durée d\'une lecture (5 s), le service coupe même celui qui lit « juste assez vite » : fichier et connexion rendus, fichier loin d\'être arrivé (' + Math.round(recu / 1048576) + ' Mo sur 48)', [fichiersPieces(X8.pid), apres8 <= base8 + 1, recu < 48 * 1048576], [0, true, true]);
     vrai('   …et le journal le dit : cause « duree »', /"evt":"piece_lecture_coupee","motif":"duree"/.test(X8.sv.sortie.texte()));
     filet.destroy();
     v('⛔ contre-épreuve : un lecteur ordinaire reçoit les 48 Mo, octet pour octet, bien avant le plafond', await entier12(X8), [200, 48 * 1048576, true]);
