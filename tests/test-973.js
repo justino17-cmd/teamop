@@ -92,6 +92,8 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
     const typesDe = (l) => tri(l.map(n => n.type));
     const statuts = (j) => tri(j.invites.map(i => i.prenom + ':' + i.statut)).join(' ');
     const fiche = async (cli, id) => (await cli.get('/api/reunions/' + id));
+    /* ⛔ les IDENTIFIANTS des notifications, pas leur nombre : une modification en remplace une autre non lue, le nombre ne bouge pas quand une notification de trop est partie (R14 a survécu à ce compte) */
+    const idsDe = async (cli, cible) => (await nots(cli, cible)).map(n => n.id).sort().join();
 
     /* ═══ 1. PROGRAMMER : UNE FONCTION PRO, JUGÉE SUR LA PERSONNE ═══════════════════════════════════════════════════════════════════════════════ */
     console.log('Programmer est une fonction Pro : la formule de la PERSONNE décide, jamais le corps');
@@ -303,15 +305,15 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
       const m2 = await a.post('/api/reunions/' + R1 + '/modifier', { titre: T1 + ' (suite)' });
       v('le titre change aussi le nom de la CONVERSATION de la réunion', [m2.j.reunion.titre, (await b.get('/api/conversations')).j.conversations.find(x => x.id === CONV1).nom], [T1 + ' (suite)', T1 + ' (suite)']);
       await a.post('/api/reunions/' + R1 + '/modifier', { titre: T1 });
-      const avant = (await nots(b, R1)).length;
+      const avant = await idsDe(b, R1);
       const m3 = await a.post('/api/reunions/' + R1 + '/modifier', { rappels: [5, 15] });
-      v('⛔ un simple réglage de RAPPEL change la réunion (la version monte) mais ne prévient personne : rien ne s\'en voit', [m3.code, m3.j.reunion.rappels, (await nots(b, R1)).length], [200, [5, 15], avant]);
+      v('⛔ un simple réglage de RAPPEL change la réunion (la version monte) mais ne prévient personne : rien ne s\'en voit', [m3.code, m3.j.reunion.rappels, await idsDe(b, R1)], [200, [5, 15], avant]);
       await a.post('/api/reunions/' + R1 + '/modifier', { rappels: [15, 60] });
-      const vn = await ver(), an = (await nots(b, R1)).length;
+      const vn = await ver(), an = await idsDe(b, R1);
       const m4 = await a.post('/api/reunions/' + R1 + '/modifier', { lieu: L1b });
-      v('modifier pour mettre la même valeur : 200, rien ne change, personne n\'est prévenu', [m4.code, await ver(), (await nots(b, R1)).length], [200, vn, an]);
+      v('modifier pour mettre la même valeur : 200, rien ne change, personne n\'est prévenu', [m4.code, await ver(), await idsDe(b, R1)], [200, vn, an]);
       const m5 = await a.post('/api/reunions/' + R1 + '/modifier', { lieu: L1, notifier: false });
-      v('« Notifier les invités : non » : le lieu change, personne n\'est prévenu', [m5.j.reunion.lieu, (await nots(b, R1)).length], [L1, an]);
+      v('« Notifier les invités : non » : le lieu change, personne n\'est prévenu', [m5.j.reunion.lieu, await idsDe(b, R1)], [L1, an]);
       const m6 = await a.post('/api/reunions/' + R1 + '/modifier', { lieu: null });
       v('un lieu nul efface le lieu', m6.j.reunion.lieu, '');
       await a.post('/api/reunions/' + R1 + '/modifier', { lieu: L1, notifier: false });
