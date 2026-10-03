@@ -76,5 +76,17 @@ jobs:
       # c'est précisément un compteur recopié qui a fait écrire « 2 598 » pour 2 989 dans
       # CLAUDE.md. Le fichier porte aussi les deux pièges du comptage (bandeaux d'un autre
       # format, banc qui meurt après son total).
+      # ⛔ ESLINT ET LES DÉPENDANCES D'OP MESSAGES, SINON LA SUITE N'EST PAS LA SUITE. Sans ESLint, test-818 écrit
+      # « … SAUTÉ : ESLint absent » et le filet de bancs-ci.sh fait tomber ce job : il était rouge sur la branche depuis
+      # le 1er octobre 2026 pour cette seule raison, ce qui cachait tout autre rouge. Sans `server-msg/node_modules`, les
+      # suites qui montent le VRAI service d'OP MESSAGES écrivent « banc non exécuté » et passent sans rien prouver.
+      # Même version d'ESLint que `verification.yml` et que la machine de travail, épinglée.
+      - name: ESLint pour test-818
+        run: npm install -g eslint@10.1.0 --no-audit --no-fund
+
+      - name: Dépendances d'OP MESSAGES
+        run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix server-msg
+
+      # `require('eslint')` de test-818 trouve le paquet installé globalement à l'étape d'avant.
       - name: Les bancs d'essai
-        run: bash scripts/bancs-ci.sh
+        run: NODE_PATH="$(npm root -g)" bash scripts/bancs-ci.sh
