@@ -245,6 +245,15 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
       const charge = JSON.parse(P.dechiffrer(cp, fps.envois.filter(e => e.chemin === '/push/cleo-tel')[avant].corps));
       v('⛔ « Nouvel appareil connecté » par push, charge minimale : ni nom, ni lieu, ni modèle d\'appareil', [charge.type, charge.titre, JSON.stringify(charge).includes('Téléphone inconnu'), JSON.stringify(charge).includes('Cleo')], ['appareil', 'Nouvel appareil connecté', false, false]);
       v('la notification dans l\'application existe aussi', (await C.get('/api/notifications')).j.notifications.filter(n => n.type === 'nouvel_appareil').length, 1);
+      /* un contact ajouté PAR NUMÉRO prévient la personne trouvée : une notification MINIMALE (« Nouveau contact »), sans le nom de celui qui l'a ajoutée (Cléo n'a pas activé l'aperçu) */
+      avancer(61 * 1000);
+      const trouveC = await D.post('/api/contacts/chercher', { numero: nC });
+      const avantContact = fps.envois.filter(e => e.chemin === '/push/cleo-tel').length;
+      const ajoutC = await D.post('/api/contacts/ajouter', { id: C.moi.id });
+      const arriveC = await T.attendre(() => fps.envois.filter(e => e.chemin === '/push/cleo-tel').length > avantContact, 8000, 10);
+      vrai('population : Dan a trouvé Cléo par son numéro, l\'a ajoutée, et la notification de Cléo est arrivée', trouveC.j.trouve === true && ajoutC.code === 200 && !!arriveC);
+      const chargeC = arriveC ? JSON.parse(P.dechiffrer(cp, fps.envois.filter(e => e.chemin === '/push/cleo-tel')[avantContact].corps)) : {};
+      v('⛔ « Nouveau contact » par push, charge minimale : ni le nom de Dan ni le texte « est maintenant dans vos contacts »', [chargeC.type, chargeC.corps, JSON.stringify(chargeC).includes('Dan'), JSON.stringify(chargeC).includes('dans vos contacts')], ['contact', 'Nouveau contact', false, false]);
       await C.post('/api/push/desabonner', { endpoint: cp.sub.endpoint });
     }
 

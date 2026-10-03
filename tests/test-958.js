@@ -283,15 +283,18 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (180 s)');
       await att(() => { const r = M.requetes(/POST \/api\/flux\/ack/); return r.length && JSON.parse(r[r.length - 1].corps).gid === dernier; });
       const envoyes = M.requetes(/POST \/api\/flux\/ack/).map(r => JSON.parse(r.corps).gid);
       v('⛔ une rafale de huit messages = UNE requête d\'acquittement, avec le plus grand identifiant d\'événement', [envoyes.length, envoyes[envoyes.length - 1] === dernier], [1, true]);
-      /* le MÊME évènement rejoué (une reconnexion qui rejoue ce que la page a déjà montré) : son identifiant est déjà acquitté, la page ne le redit pas. Preuve par sentinelle : un message NEUF suit, et son
-         acquittement est le seul qui part depuis le rejeu — celui d'un rejeu, s'il partait, serait parti AVANT (même minuterie, plus tôt). */
+      /* le MÊME évènement rejoué (une reconnexion qui rejoue ce que la page a déjà montré) : son identifiant est déjà acquitté, la page ne le redit pas. On laisse passer plus de quatre fois la minuterie
+         de groupement (60 ms) : un acquittement du rejeu, s'il devait partir, serait parti. Puis un message NEUF sert de sentinelle — sans elle, « aucun acquittement » pourrait être celui d'une page morte ;
+         et il ne doit pas suivre le rejeu de trop près, sinon les deux se grouperaient en UNE requête et la mutation passerait inaperçue (vu sur C12). */
       vrai('population : le dernier évènement de la rafale est gardé pour être rejoué', !!(M.reseau.dernier && M.reseau.dernier.ev.lastEventId));
       M.reseau.requetes.length = 0;
       M.reseau.dernier.es._emettre('message', M.reseau.dernier.ev);
+      await T.dort(300);
+      v('⛔ un évènement rejoué, déjà acquitté, n\'est PAS acquitté de nouveau : aucune requête d\'acquittement ne part', M.requetes(/POST \/api\/flux\/ack/).length, 0);
       await ecrire(Bob, AB, 'sentinelle du rejeu');
       await att(() => M.requetes(/POST \/api\/flux\/ack/).length >= 1);
       const apresRejeu = M.requetes(/POST \/api\/flux\/ack/).map(r => JSON.parse(r.corps).gid);
-      v('⛔ un évènement rejoué, déjà acquitté, n\'est PAS acquitté de nouveau : le seul acquittement depuis le rejeu est celui du message neuf (identifiant plus grand)', [apresRejeu.length, apresRejeu[0] > dernier], [1, true]);
+      v('   …et la page n\'est pas morte : le message neuf qui suit est acquitté, avec un identifiant plus grand', [apresRejeu.length, apresRejeu[0] > dernier], [1, true]);
       /* page cachée : Cléo écrit, la page n'acquitte pas, la notification arrive après le délai */
       fm.visible = false;
       M.reseau.requetes.length = 0;

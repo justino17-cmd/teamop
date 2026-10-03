@@ -23,6 +23,11 @@ const T = require('./outils-msg');
 T.sauterSiSansDependances();
 const P = require('./outils-push');
 const { v, vrai, fin } = T.compteur();
+/* ⛔ UN BANC QUI SORT AVANT SA FIN N'EST PAS VERT. Ce module est monté avec des minuteries FACTICES que le banc déclenche à la main : une notification qui en attendrait une que personne ne déclenche ne se
+   résoudrait jamais, la boucle d'évènements se viderait et le processus sortirait « proprement » en 0, au milieu d'une section, SANS total (pris par la mutation A05 de `mutations-push.js`). Sortir sans être
+   allé jusqu'au bout est donc un ✗ qui le dit, imprimé avec le total. */
+let termine = false;
+process.on('exit', () => { if (termine) return; vrai('⛔ le banc est allé jusqu\'à sa fin (une promesse que rien ne résout vide la boucle : le processus sortait « proprement », sans total)', false); fin(); });
 const { ouvrir } = require(path.join(T.SERVICE, 'stockage.js'));
 const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
 const { pushConfig } = require(path.join(T.SERVICE, 'config.js'));
@@ -634,5 +639,6 @@ const attente = () => new Promise(r => setTimeout(r, 25));
     m.S.fermer();
   }
 
+  termine = true;
   fin();
-})().catch((e) => { console.log('  ✗ le banc a levé : ' + (e && e.stack || e)); process.exitCode = 1; fin(); });
+})().catch((e) => { console.log('  ✗ le banc a levé : ' + (e && e.stack || e)); process.exitCode = 1; termine = true; fin(); });

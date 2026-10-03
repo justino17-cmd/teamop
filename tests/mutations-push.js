@@ -89,12 +89,13 @@ m('R11', 'membre parti filtré par le tri des destinataires SEUL (le jugement au
 /* ── CE QUI POUSSE : un message, un ajout à un groupe, un nouveau contact, un nouvel appareil — et la charge MINIMALE de chacun ── */
 m('R12', 'un message n\'envoie plus aucune notification', F.routes,
   "if (ctx.push) ctx.push.message({ conv: conv.id, seq: r.seq, gid: r.gid, auteur: req.moi.id, nomAuteur: nomAffiche(req.moi), nomConv: conv.nom, groupe: conv.type !== 'direct', type, texte });", '', ['956']);
-m('R13', 'un ajout à un groupe n\'envoie plus de notification', F.routes, 'if (c) ctx.push.pousser(uid, c, { gid: n.gid });', '', ['956']);
+m('R13', 'un ajout à un groupe n\'envoie plus de notification (le contact ajouté par un lien, lui, en envoie encore)', F.routes, 'function chargePush(type, titre, texte, cible) {', "function chargePush(type, titre, texte, cible) {\n    if (type === 'groupe_ajoute') return null;", ['956']);
+m('R18', 'un contact ajouté par un lien n\'envoie plus de notification (l\'ajout à un groupe, lui, en envoie encore)', F.routes, 'function chargePush(type, titre, texte, cible) {', "function chargePush(type, titre, texte, cible) {\n    if (type === 'contact_ajoute') return null;", ['956']);
 m('R14', 'un nouveau contact n\'envoie plus de notification', F.tel,
-  "if (ctx.push) ctx.push.pousser(id, { type: 'contact', tag: 'contact', url: '/', titre: 'OP MESSAGES', corps: 'Nouveau contact', detail: { titre: 'Nouveau contact', corps: texteN } }, { gid: n.gid });", '', ['956']);
+  "if (ctx.push) ctx.push.pousser(id, { type: 'contact', tag: 'contact', url: '/', titre: 'OP MESSAGES', corps: 'Nouveau contact', detail: { titre: 'Nouveau contact', corps: texteN } }, { gid: n.gid });", '', ['957']);
 m('R15', '« Nouvel appareil connecté » ne prévient plus les AUTRES appareils (la sécurité ne passe plus par le push)', F.tel,
   "if (ctx.push) ctx.push.pousser(p.id, { type: 'appareil', tag: 'appareil', url: '/', renotify: true, titre: 'Nouvel appareil connecté', corps: 'Si ce n\\'est pas vous, déconnectez les autres appareils.' }, { gid: n.gid });", '', ['956', '957']);
-m('R16', 'la charge d\'un nouveau contact porte son nom (sans que l\'aperçu soit activé)', F.tel, "corps: 'Nouveau contact', detail:", 'corps: texteN, detail:', ['956']);
+m('R16', 'la charge d\'un contact ajouté par numéro porte le nom de celui qui l\'a ajouté (sans que l\'aperçu soit activé)', F.tel, "corps: 'Nouveau contact', detail:", 'corps: texteN, detail:', ['957']);
 m('R17', 'la charge d\'un ajout à un groupe porte le nom du groupe et de celui qui l\'a ajouté (sans que l\'aperçu soit activé)', F.routes, "titre: 'OP MESSAGES', corps: 'Vous avez été ajouté à un groupe', detail:", "titre: 'OP MESSAGES', corps: texte, detail:", ['956']);
 
 /* ══ 3. L'ACQUITTEMENT — une notification ne double pas une page sous les yeux, et ne la remplace jamais quand la page est cachée ═══════════════════════════ */
@@ -338,7 +339,7 @@ async function jouer(mut, dir) {
       if (r.code !== 0 || r.ko === null || r.ko > 0) {
         const ligne = (r.sortie.split('\n').find(l => l.includes('✗')) || r.sortie.split('\n').filter(Boolean).slice(-1)[0] || '').trim().slice(0, 170);
         const lignes = r.sortie.split('\n').filter(l => l.includes('✗')).map(l => l.trim()).slice(0, 14);
-        return { id, nom, verdict: 'TOMBE', detail: nomBanc(s) + ' (' + (r.ko === null ? 'MORT, code ' + r.code + ', aucun total imprimé' : r.ko + ' ✗') + ') — ' + ligne, lignes: r.ko === null ? r.sortie.split('\n').filter(Boolean).slice(-6) : lignes, mut };
+        return { id, nom, verdict: 'TOMBE', detail: nomBanc(s) + ' (' + (r.ko === null ? 'MORT, code ' + r.code + ', aucun total imprimé' : r.ko + ' ✗') + ') — ' + ligne, lignes: r.ko === null ? lignes.concat(r.sortie.split('\n').filter(Boolean).slice(-3)) : lignes, mut };
       }
       verts.push(s);
     }
