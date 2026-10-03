@@ -63,7 +63,10 @@ console.log('\nAucun chemin d\'OP GESTION, aucun domaine tiers, aucune adresse d
   for (const p of sources) {
     const c = code(p), nom = path.basename(p);
     if (/\/(opt|etc)\/teamop/.test(c) && !permis.has(nom)) interdits.push(nom + ' : chemin /opt|/etc/teamop');
-    if (/firebase|firestore|googleapis|gstatic|google\.com|fcm\./i.test(c)) interdits.push(nom + ' : trace de Firebase / Google');
+    /* ⛔ UNE SECONDE EXCEPTION, NOMMÉE : `push.js` porte la LISTE BLANCHE des services push des navigateurs — celui de Chrome s'appelle `fcm.googleapis.com`. Ce n'est pas Firebase (le produit) : c'est la
+       boîte aux lettres que le navigateur d'une personne impose pour la réveiller. On retire de ce fichier les noms exacts de la liste (et rien d'autre : toute autre trace de Firebase y reste interdite). */
+    const sansListePush = nom === 'push.js' ? c.replace(/fcm\.googleapis\.com/g, '') : c;
+    if (/firebase|firestore|googleapis|gstatic|google\.com|fcm\./i.test(sansListePush)) interdits.push(nom + ' : trace de Firebase / Google');
     /* ⛔ UNE SEULE EXCEPTION, NOMMÉE : `sms-ovh.js` porte les trois points d'entrée de l'API d'OVHcloud (Europe, Canada, États-Unis) — le
        prestataire SMS est une décision de Justin (1er octobre 2026), et la production refuse toute autre base (nos clés de signature ne
        partent pas ailleurs). Tout autre fichier, et tout autre hôte dans celui-là, reste interdit. */
@@ -84,7 +87,7 @@ console.log('\nLes dépendances sont celles d\'OP GESTION, aux mêmes versions')
 {
   const a = JSON.parse(fs.readFileSync(path.join(MSG, 'package.json'), 'utf8')), b = JSON.parse(fs.readFileSync(path.join(RACINE, 'server', 'package.json'), 'utf8'));
   const DECLAREES = Object.keys(a.dependencies).sort();
-  v('une seule dépendance à l\'étape 1 (surface d\'attaque) : express — nodemailer et web-push reviennent AVEC le code qui les importe (étape 2)', DECLAREES, ['express']);
+  v('deux dépendances (surface d\'attaque) : express, et web-push AVEC le code qui l\'importe (`push.js`, étape 2) — nodemailer reviendra de même avec le sien', DECLAREES, ['express', 'web-push']);
   /* ⛔ Une dépendance déclarée que personne n'importe est de la surface d'attaque pour rien (relecture du gardien, point 13) :
      chaque dépendance de package.json est `require`d par au moins un fichier du service. */
   const requis = new Set();
@@ -95,7 +98,7 @@ console.log('\nLes dépendances sont celles d\'OP GESTION, aux mêmes versions')
   const lock = JSON.parse(fs.readFileSync(path.join(MSG, 'package-lock.json'), 'utf8')), lockB = JSON.parse(fs.readFileSync(path.join(RACINE, 'server', 'package-lock.json'), 'utf8'));
   v('versions RÉSOLUES identiques à celles d\'OP GESTION',
     DECLAREES.map(k => ((lock.packages['node_modules/' + k] || {}).version !== undefined) && (lock.packages['node_modules/' + k] || {}).version === (lockB.packages['node_modules/' + k] || {}).version), DECLAREES.map(() => true));
-  v('⛔ le verrou ne porte aucun paquet de nodemailer ni de web-push (npm ci n\'installerait rien d\'inutilisé)', Object.keys(lock.packages).filter(k => /node_modules\/(nodemailer|web-push)$/.test(k)), []);
+  v('⛔ le verrou ne porte aucun paquet de nodemailer (npm ci n\'installerait rien d\'inutilisé) ; web-push y est, parce que `push.js` l\'importe', [Object.keys(lock.packages).filter(k => /node_modules\/nodemailer$/.test(k)), Object.keys(lock.packages).filter(k => /node_modules\/web-push$/.test(k))], [[], ['node_modules/web-push']]);
   const gi = fs.readFileSync(path.join(RACINE, '.gitignore'), 'utf8');
   vrai('server-msg/node_modules est ignoré (jamais commité)', /^server-msg\/node_modules\/$/m.test(gi));
 }
@@ -111,7 +114,7 @@ console.log('\nLes listes de bancs sont disjointes');
   const pl = /^#plancher (\d+)\s*$/m.exec(brut);
   vrai('la liste porte une ligne « #plancher N » (un seul plancher)', pl && (brut.match(/^#plancher /gm) || []).length === 1);
   vrai('le plancher est réel, pas symbolique (plus de 500 vérifications)', pl && parseInt(pl[1], 10) > 500);
-  v('les numéros de suites d\'OP MESSAGES sont dans 900-939, ou 941-944 (le générateur de l\'interface, renuméroté à la fusion avec le compte Perso ; puis les pièces : 942 le module, 943 le service, 944 l\'appareil et le service)', msg.filter(x => !/test-(?:9[0-3]\d|94[1-4])\.js$/.test(x)), []);
+  v('les numéros de suites d\'OP MESSAGES sont dans 900-939, ou 941-944 (le générateur de l\'interface, renuméroté à la fusion avec le compte Perso ; puis les pièces : 942 le module, 943 le service, 944 l\'appareil et le service ; puis les notifications push et le compte : 955 le module, 956 le service, 957 l\'export et la suppression, 958 l\'appareil et le service)', msg.filter(x => !/test-(?:9[0-3]\d|94[1-4]|95[5-8])\.js$/.test(x)), []);
 }
 
 console.log('\nUn jeton de session d\'OP MESSAGES n\'est pas lisible par OP GESTION');

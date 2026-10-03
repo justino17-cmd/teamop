@@ -122,6 +122,9 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
   }
 
   function enLigne(uid) { return parUid.has(uid) || graces.has(uid); }
+  /* Combien de flux cette personne a-t-elle d'OUVERTS à cet instant (la grâce de 20 s d'une page qu'on recharge ne compte pas) : les notifications push en dépendent — aucun flux, elles partent
+     tout de suite ; un flux ouvert, elles attendent qu'une page les acquitte (`push.js`). */
+  function fluxOuverts(uid) { const s = parUid.get(uid); return s ? s.size : 0; }
 
   /* ⛔ LA PRÉSENCE EST RÉCIPROQUE (comme chez WhatsApp) : qui coupe « Afficher quand je suis en ligne » ne montre sa présence à personne ET ne voit celle de personne.
      La moitié « je ne montre pas » existait ; la moitié « je ne vois pas » manquait — l'événement partait vers des contacts qui avaient, eux, coupé la leur. */
@@ -186,7 +189,7 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
   }
 
   return {
-    ouvrir, reveiller, emettre, enLigne, fermerSession, fermerPersonne, arreter, presenceChangee, personneChangee, reglagesChanges,
+    ouvrir, reveiller, emettre, enLigne, fluxOuverts, fermerSession, fermerPersonne, arreter, presenceChangee, personneChangee, reglagesChanges,
     stats: () => ({ ouverts: flux.size, personnes: parUid.size, refus }),
   };
 }
