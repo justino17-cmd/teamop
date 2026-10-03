@@ -275,6 +275,15 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
     vrai('population : avant la suppression, Dan a des sessions, un appareil, un abonnement, des notifications — et trois pièces sur le disque (envoyée, jamais envoyée, photo de profil)',
       [0, 1, 3, 4].every(i => traces(danId)[i] > 0) && [photoD, orphelineD, avatarD].every(id => fs.existsSync(fichierPiece(id))));
     v('population : Dan est administrateur de K et seul membre de L', [(await D.get('/api/conversations/' + K)).j.moi.role, (await D.get('/api/conversations/' + L)).j.conversation.membres_n], ['admin', 1]);
+    /* ⛔ DEUX GARDES POUR « LES FICHIERS D'UN COMPTE EFFACÉ NE RESTENT PAS » : l'effacement les retire AUSSITÔT (`effacerPieces(e.pieces)`), et la réconciliation périodique (toutes les dix passes du balayeur) emporte
+       tout fichier sans ligne qui a plus de dix minutes — or l'horloge de ce banc saute de quatorze jours, donc dès la passe suivante TOUT fichier lui paraît vieux. Mutation D12 (l'effacement immédiat retiré) :
+       elle a survécu une fois sur deux, quand la réconciliation passait dans la même passe que l'effacement et emportait les fichiers avant qu'on les regarde. Pour que ce banc garde l'effacement IMMÉDIAT, les trois
+       fichiers portent une date de modification dans l'avenir : la réconciliation ne peut pas les juger vieux, seul l'effacement peut les retirer. */
+    {
+      const futur = new Date(Date.now() + 90 * JOUR);
+      for (const id of [photoD, orphelineD, avatarD]) fs.utimesSync(fichierPiece(id), futur, futur);
+      vrai('population : les trois fichiers portent une date de modification à plus de 60 jours dans l\'avenir (la réconciliation des pièces ne peut pas les emporter à la place de l\'effacement)', [photoD, orphelineD, avatarD].every(id => fs.statSync(fichierPiece(id)).mtimeMs > Date.now() + 60 * JOUR));
+    }
     /* Fay supprime son compte UN JOUR avant Dan : à cinq minutes de l'échéance de Dan, la sienne est échue depuis vingt-quatre heures. Son effacement est la SENTINELLE : il prouve que le balayeur est passé
        APRÈS le saut d'horloge — donc que Dan, qu'il a épargné, n'était pas échu (et non que le balayeur dormait). */
     const Fay = await TEL.inscrire(svc, TEL.numeroBE(), 'Fay');
@@ -296,6 +305,8 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
       v('⛔ plus rien de lui dans les tables de travail : sessions, appareils, jetons, abonnements, notifications, liens, recherches, masques, journal', traces(danId), [0, 0, 0, 0, 0, 0, 0, 0, 0]);
       v('aucun contact ne le lie à quiconque', sql('SELECT COUNT(*) AS n FROM contact WHERE de = ? OR vers = ?', danId, danId).n, 0);
       v('la trace de l\'effacement est gardée (table purge, genre « compte »)', sql("SELECT COUNT(*) AS n FROM purge WHERE objet = ? AND genre = 'compte'", danId).n, 1);
+      /* l'effacement des FICHIERS est asynchrone (`unlink`) : il suit de quelques millisecondes la ligne qu'on vient de voir changer — on l'attend au geste (les fichiers partis), on ne le lit pas à l'instant */
+      await T.attendre(() => !fs.existsSync(fichierPiece(orphelineD)) && !fs.existsSync(fichierPiece(avatarD)), 5000, 25);
       v('⛔ les pièces JAMAIS envoyées et la photo de profil sont effacées du disque ET de la base ; la photo ENVOYÉE reste (les autres la voient)',
         [fs.existsSync(fichierPiece(orphelineD)), fs.existsSync(fichierPiece(avatarD)), fs.existsSync(fichierPiece(photoD)), sql('SELECT COUNT(*) AS n FROM piece WHERE id IN (?, ?)', orphelineD, avatarD).n, sql('SELECT COUNT(*) AS n FROM piece WHERE id = ?', photoD).n], [false, false, true, 0, 1]);
     }
