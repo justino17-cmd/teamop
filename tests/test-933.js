@@ -263,13 +263,14 @@ vrai('des blocs run: sont lus (population avant verdict)', blocs.length >= 6);
     const sansMoi = L.filter(f => f !== 'tests/test-933.js');   // ce banc NOMME ces pages dans son propre motif : il ne se lit pas lui-même
     const lecteurs = sansMoi.filter(f => fs.existsSync(path.join(RACINE, f))).filter(f => /\b(app|beta|tour|espace|connexion|reinit)\.html\b/.test(sansCommentaires(fs.readFileSync(path.join(RACINE, f), 'utf8'))));
     v('⛔ aucune suite de la liste ne lit une page d\'OP GESTION (app, beta, tour, espace, connexion, reinit)', lecteurs, []);
-    /* DEUX exceptions, nommées : `test-904` lance le VRAI `server/index.js` — c'est la couture réelle de la porte bêta, la seule chose que
+    /* TROIS exceptions, nommées (la troisième, `test-965`, lance le VRAI `server/index.js` contre le MÊME faux Stripe que le vrai service d'OP MESSAGES : c'est la seule façon de prouver qu'un abonnement de
+       Messages Pro ne change pas ce qu'OP GESTION décide — il saute vert, 0 vérification, sans les dépendances, et le plancher le rattrape de la même façon). `test-904` lance le VRAI `server/index.js` — c'est la couture réelle de la porte bêta, la seule chose que
        le faux OP GESTION de poche ne peut pas garder. Il saute vert, avec 0 vérification, sans `server/node_modules` : le workflow doit
        donc les installer (sinon le plancher de la liste, qui compte ses vérifications, ferait échouer chaque déploiement).
        `test-911` (l'appareil et le service se parlent) rejoue la même couture avec le module de données de la page : sans ces dépendances il
        ne joue que sa moitié « faux OP GESTION » et le dit — le plancher le rattrape de la même façon. */
-    const DEPEND_DU_SERVEUR = ['tests/test-904.js', 'tests/test-911.js'];
-    v('   seules les coutures réelles (test-904, test-911) dépendent du dossier de dépendances d\'OP GESTION (server/node_modules) — et elles sont nommées ici',
+    const DEPEND_DU_SERVEUR = ['tests/test-904.js', 'tests/test-911.js', 'tests/test-965.js'];
+    v('   seules les coutures réelles (test-904, test-911, test-965) dépendent du dossier de dépendances d\'OP GESTION (server/node_modules) — et elles sont nommées ici',
       sansMoi.filter(f => fs.existsSync(path.join(RACINE, f))).filter(f => /server\/node_modules/.test(fs.readFileSync(path.join(RACINE, f), 'utf8'))), DEPEND_DU_SERVEUR);
     vrai('⛔ le workflow INSTALLE les dépendances d\'OP GESTION avant les bancs (sans elles test-904 saute vert et le plancher fait échouer le job)',
       /npm ci [^\n]*--prefix server\s*$/m.test(src) && src.indexOf('--prefix server\n') < src.indexOf('bancs-ci.sh'));

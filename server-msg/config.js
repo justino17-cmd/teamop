@@ -37,6 +37,13 @@
  *   vapidPublicKey, vapidPrivateKey   La paire VAPID que l'installation écrit (`install-msg.sh`) : le service l'ADOPTE à son premier démarrage (elle est alors rangée dans la
  *                                base, privée scellée, et la base fait foi ensuite : une paire DIFFÉRENTE posée plus tard ne la remplace pas, et le journal le dit à chaque démarrage).
  *                                Absente, le service en fabrique une. L'une sans l'autre, ou deux clés qui ne vont pas ensemble, REFUSENT le démarrage.
+ *   formule       {toutOuvert}   Le DRAPEAU de la bêta : vrai (par défaut sur la bêta), tout est ouvert (Pro), sans paiement — lu à UN seul endroit (`formule.js`). La production
+ *                                REFUSE de démarrer avec `toutOuvert: true`.
+ *   facturation   {cle, prix:{mensuel, annuel}, affichage:{mensuel, annuel}, relectureMs, timeoutMs}   Messages Pro (Stripe, mode test d'abord). `cle` : une clé RESTREINTE de
+ *                                Stripe, PROPRE à OP MESSAGES (jamais celle d'OP GESTION) — `rk_test_…` sur la bêta, qui refuse une clé de production ; une clé secrète complète
+ *                                (`sk_…`) est refusée. `prix` : la LISTE BLANCHE des tarifs vendus (un identifiant `price_…` par rythme, au moins un) — le corps d'une requête ne
+ *                                choisit jamais un tarif. `affichage` : les euros par place que la page DIT (le montant réel est celui de Stripe). Sans `cle`, la facturation est
+ *                                INERTE et le dit. La clé s'écrit par `configurer-stripe.js` (saisie masquée), jamais à la main.
  *   disqueMinMo   plancher d'espace libre sous lequel les écritures refusent (503).
  *   pulsationMs, presenceGraceMs, balayageMs, relectureMs   Rythmes (bancs).
  */
@@ -183,6 +190,66 @@ function compteConfig(c) {
   return o;
 }
 
+/* ⛔ LA FORMULE : le drapeau de la bêta. Par défaut vrai sur la bêta (tout est ouvert pour qu'on puisse tout éprouver), faux ailleurs ; la production refuse `true` — une
+   configuration copiée de la bêta ne doit pas offrir Messages Pro à tout le monde. */
+function formuleConfig(cfg, instance) {
+  const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };
+  const brut = cfg.formule === undefined ? {} : cfg.formule;
+  if (!brut || typeof brut !== 'object' || Array.isArray(brut)) throw err('formule doit être un objet');
+  if (brut.toutOuvert !== undefined && typeof brut.toutOuvert !== 'boolean') throw err('formule.toutOuvert doit être vrai ou faux');
+  const toutOuvert = brut.toutOuvert === undefined ? instance === 'beta' : brut.toutOuvert;
+  if (toutOuvert && instance !== 'beta') throw err('formule.toutOuvert est refusé en production (tout y serait Pro, sans paiement)');
+  return { toutOuvert };
+}
+
+/* ⛔ LA FACTURATION (Stripe). Une valeur qui n'a pas de sens REFUSE le démarrage, comme les SMS et la sauvegarde — jamais une configuration à moitié posée (une clé sans tarif
+   vendrait rien, des tarifs sans clé ne diraient pas pourquoi). La clé est RESTREINTE (Checkout, Customers, Subscriptions, portail) et propre à OP MESSAGES : une clé secrète
+   complète (`sk_…`) donnerait au service tout le compte Stripe d'OP GESTION. La bêta n'accepte qu'une clé de TEST (« sans Stripe réel », SERVEUR.md § 3.9). */
+const RE_CLE_STRIPE = new RegExp('^rk_(test|live)_[A-Za-z0-9]{8,200}$');
+const RE_PRIX_STRIPE = /^price_[A-Za-z0-9]{8,100}$/;
+const FACTURATION_DEFAUT = { relectureMs: 600000, timeoutMs: 10000 };
+function facturationConfig(cfg, env, instance) {
+  const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };
+  const brut = cfg.facturation === undefined ? {} : cfg.facturation;
+  if (!brut || typeof brut !== 'object' || Array.isArray(brut)) throw err('facturation doit être un objet');
+  const o = { cle: null, mode: 'inerte', prix: {}, affichage: { mensuel: 15, annuel: 150 }, relectureMs: FACTURATION_DEFAUT.relectureMs, timeoutMs: FACTURATION_DEFAUT.timeoutMs, testHote: null };
+  const bornes = { relectureMs: [100, 3600000], timeoutMs: [200, 60000] };
+  for (const [k, [min, max]] of Object.entries(bornes)) {
+    if (brut[k] === undefined) continue;
+    if (!Number.isInteger(brut[k]) || brut[k] < min || brut[k] > max) throw err('facturation.' + k + ' doit être un entier entre ' + min + ' et ' + max);
+    o[k] = brut[k];
+  }
+  if (brut.prix !== undefined) {
+    if (!brut.prix || typeof brut.prix !== 'object' || Array.isArray(brut.prix)) throw err('facturation.prix doit être un objet { mensuel, annuel }');
+    for (const [k, v] of Object.entries(brut.prix)) {
+      if (k !== 'mensuel' && k !== 'annuel') throw err('facturation.prix : seuls « mensuel » et « annuel » existent');
+      if (typeof v !== 'string' || !RE_PRIX_STRIPE.test(v)) throw err('facturation.prix.' + k + ' doit être un identifiant de tarif Stripe (price_…)');
+      o.prix[k] = v;
+    }
+  }
+  if (brut.affichage !== undefined) {
+    if (!brut.affichage || typeof brut.affichage !== 'object' || Array.isArray(brut.affichage)) throw err('facturation.affichage doit être un objet { mensuel, annuel }');
+    for (const [k, v] of Object.entries(brut.affichage)) {
+      if (k !== 'mensuel' && k !== 'annuel') throw err('facturation.affichage : seuls « mensuel » et « annuel » existent');
+      if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0 || v > 10000) throw err('facturation.affichage.' + k + ' doit être un nombre d\'euros entre 0 et 10 000');
+      o.affichage[k] = v;
+    }
+  }
+  if (brut.cle !== undefined && brut.cle !== null && brut.cle !== '') {
+    if (typeof brut.cle !== 'string' || !RE_CLE_STRIPE.test(brut.cle)) throw err('facturation.cle doit être une clé RESTREINTE de Stripe (rk_test_… ou rk_live_…), propre à OP MESSAGES : une clé secrète complète est refusée');
+    if (instance === 'beta' && !/^rk_test_/.test(brut.cle)) throw err('facturation.cle : la bêta n\'accepte qu\'une clé de TEST (rk_test_…) — pas de Stripe réel hors production');
+    if (!Object.keys(o.prix).length) throw err('facturation.cle sans facturation.prix : aucun tarif à vendre (au moins « mensuel » ou « annuel »)');
+    o.cle = brut.cle; o.mode = /^rk_test_/.test(brut.cle) ? 'test' : 'live';
+  }
+  /* ⛔ LA PORTE DE TEST DE STRIPE : redirige les appels vers UN faux Stripe en boucle locale (hôte et port exacts, http) pour que les bancs jouent un paiement sans réseau.
+     Fermée en production, comme celle des codes SMS et du service push : une variable oubliée dans une unité systemd ne doit pas faire de ce service un client HTTP vers un port local. */
+  const porte = env.OPMSG_TEST_STRIPE ? String(env.OPMSG_TEST_STRIPE) : null;
+  if (porte && instance !== 'beta') throw err('OPMSG_TEST_STRIPE (porte de test de Stripe) est refusée en production');
+  if (porte && !/^127\.0\.0\.1:\d{2,5}$/.test(porte)) throw err('OPMSG_TEST_STRIPE doit valoir 127.0.0.1:<port>');
+  o.testHote = porte;
+  return o;
+}
+
 function charger(env = process.env) {
   const manque = (n) => { const e = new Error('config: ' + n + ' est obligatoire'); e.code = 'CONFIG'; return e; };
   const instance = env.OPMSG_INSTANCE;
@@ -218,6 +285,8 @@ function charger(env = process.env) {
     pieces: piecesConfig(cfg.pieces),
     push: pushConfig(cfg, env, instance),
     compte: compteConfig(cfg.compte),
+    formule: formuleConfig(cfg, instance),
+    facturation: facturationConfig(cfg, env, instance),
     sms: cfg.sms && typeof cfg.sms === 'object' && !Array.isArray(cfg.sms) ? cfg.sms : {},   // validée par `lireConfigSms` (sms-garde.js)
     sauvegarde: cfg.sauvegarde === undefined ? null : cfg.sauvegarde,   // validée par `lireConfigSauvegarde` (sauvegarde.js) : absente = module inerte, invalide = démarrage refusé
     testCodes: testCodes,
@@ -229,4 +298,4 @@ function charger(env = process.env) {
   };
 }
 
-module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, INTERDITS };
+module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, formuleConfig, facturationConfig, RE_CLE_STRIPE, INTERDITS };

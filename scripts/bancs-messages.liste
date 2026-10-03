@@ -4,14 +4,15 @@
 # ⛔ POURQUOI UNE LISTE À PART, ET PAS `bancs-serveur.liste`. OP MESSAGES est un service séparé d'OP GESTION (décision de
 # Justin, 22 septembre et 1er octobre 2026) : il se déploie seul, et ne dépend ni d'`app.html` ni de `tour.html` — ces
 # suites-là tombent contre les pages de `main`. Les suites d'ici ne lisent AUCUNE page d'OP GESTION (`test-933` le vérifie)
-# et sont DISJOINTES de `scripts/bancs-serveur.liste` (`test-900` et `test-933`). Deux d'entre elles lancent un VRAI
-# `server/index.js` en boucle locale pour éprouver la porte bêta : la couture réelle, sans page.
+# et sont DISJOINTES de `scripts/bancs-serveur.liste` (`test-900` et `test-933`). Trois d'entre elles lancent un VRAI
+# `server/index.js` en boucle locale pour éprouver la couture réelle, sans page : la porte bêta (904, et 911 avec le module
+# de l'appareil) et la facturation (965 : un abonnement de Messages Pro ne change jamais ce qu'OP GESTION décide).
 #
 # ⚠️ Une ligne qui nomme un fichier absent fait ÉCHOUER le compteur (`scripts/bancs-ci.sh`) : une suite renommée ne sort
 # pas de la porte en silence. Les suites entrent AUSSI dans la suite complète (`tests/test-*.js`) : la liste n'est pas une
 # exclusion, c'est ce que la porte de déploiement exige.
 #
-# Une suite par ligne (900-929 : le service ; 930-939 : installation, déploiement, surveillance ; 941 : le générateur de l'interface servie ; 942-944 : les pièces ; 950-951 : la sauvegarde hors site ; 955-958 : les notifications push, l'export et la suppression de compte).
+# Une suite par ligne (900-929 : le service ; 930-939 : installation, déploiement, surveillance ; 941 : le générateur de l'interface servie ; 942-944 : les pièces ; 950-951 : la sauvegarde hors site ; 955-958 : les notifications push, l'export et la suppression de compte ; 960-969 : les espaces professionnels et Messages Pro).
 # ⛔ LE PLANCHER : moins de vérifications que ça, c'est que des suites ont sauté leur partie exécutée (sans
 # `server-msg/node_modules`, celles du service se déclarent vertes). Le relever quand on ajoute une suite, jamais le baisser.
 # 1er octobre 2026 (après la relecture adverse) : 16 suites, 1593 vérifications mesurées par `bash scripts/bancs-ci.sh $(liste)`.
@@ -28,8 +29,11 @@
 # 3 octobre 2026, les deux relectures réunies (sauvegarde + pièces) : 31 suites, 3 654 vérifications mesurées par la commande de la porte — plancher 3640.
 # 3 octobre 2026, les notifications push, l'export et la suppression de compte (test-955 à 958, et le banc de la migration 3 rendu indépendant de la dernière migration) : 33 suites, 3335 vérifications mesurées par `bash scripts/bancs-ci.sh $(liste)` — plancher 3330.
 # 3 octobre 2026, le lot 3 réuni aux deux autres (et un compte effacé qui ne revient pas d'une restauration, test-950) : 35 suites, 4 179 vérifications mesurées par la commande de la porte — plancher 4165.
+# 3 octobre 2026, l'étape 5 (les espaces professionnels et Messages Pro : test-960 à 965, dont la couture avec le vrai OP GESTION) : 41 suites, 4 989 vérifications mesurées par la commande de la porte — plancher 4975.
+# 3 octobre 2026, la relecture du gardien de l'étape 5 (I1 à I3, R2 à R12, la dette des groupes : le paiement réglé qui finit reconnu, la hiérarchie des canaux, le registre des purges des groupes, /health sans chiffre commercial, les places dépassées) : 41 suites, 5 067 vérifications mesurées par la commande de la porte — plancher 5053.
 # 3 octobre 2026, les corrections du lot 3 après les relectures adverses (gardien et testeur : restauration, abonnements push, panne du service push, export, restes d'un compte effacé, notification relue en partant) : 35 suites, 4 351 vérifications mesurées par la commande de la porte — plancher 4337.
-#plancher 4337
+# 3 octobre 2026, le lot 4 (étape 5) et les corrections du lot 3 RÉUNIS (fusion de 7f52581 : la migration 6 à côté de la 5, le rejeu d'un compte effacé qui sort aussi des espaces, un espace payant jamais dissous par l'effacement, la notification d'espace qui nomme quelqu'un, l'export qui porte les espaces) : 41 suites, 5 290 vérifications mesurées par la commande de la porte sur l'arbre fusionné — plancher 5276 (le total moins 14, jamais une addition).
+#plancher 5276
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
@@ -78,3 +82,11 @@ tests/test-955.js
 tests/test-956.js
 tests/test-957.js
 tests/test-958.js
+#
+# ── Les espaces professionnels et Messages Pro (étape 5, 3 octobre 2026) : le stockage et la formule (960), les routes en HTTP (961), la facturation contre un faux Stripe (962), l'outil de configuration de la clé et des tarifs (963), la page et le service (964), la COUTURE avec le vrai OP GESTION (965) ──
+tests/test-960.js
+tests/test-961.js
+tests/test-962.js
+tests/test-963.js
+tests/test-964.js
+tests/test-965.js

@@ -86,7 +86,7 @@ function installerCompte(H, ctx) {
       await ecrire('{"format":"opmessages-export-v1","genere_le":' + J(new Date(t).toISOString()) +
         ',"avertissement":' + J('Ce fichier contient TES données dans OP MESSAGES : ton profil, tes réglages, tes contacts, les conversations dont tu es membre avec les messages que tu peux y lire, et la liste de tes pièces (sans leur contenu). Il ne contient rien des autres au-delà de ce que tu vois déjà. Ton numéro de téléphone n\'y figure pas : le service ne le rend à personne, toi comprise.') +
         ',"profil":' + J({ id: profil.id, prenom: profil.prenom, nom: profil.nom, statut: profil.statut, langue: profil.langue, fuseau: profil.fuseau, compte_cree_le: new Date(profil.cree).toISOString(), origine: profil.origine }) +
-        ',"reglages":' + J(reglages) + ',"contacts":' + J(contacts) + ',"conversations":[');
+        ',"reglages":' + J(reglages) + ',"contacts":' + J(contacts) + ',"espaces":' + J(stockage.exportEspaces(uid).map(e => ({ id: e.id, nom: e.nom, role: e.role, depuis: new Date(e.depuis).toISOString() }))) + ',"conversations":[');
       let premiere = true, tronque = null;
       for (const id of stockage.exportConversationsIds(uid)) {
         { const l = limite(); if (l) { tronque = 'conversations'; cause = l; break; } }
@@ -150,8 +150,25 @@ function installerCompte(H, ctx) {
   });
 
   /* ── LA SUPPRESSION ────────────────────────────────────────────────────────────────────────────────────────────────────── */
-  H['compte.supprimer'] = garder((req, res) => {
+  H['compte.supprimer'] = garder(async (req, res) => {
     if (corps(req).confirmation !== 'SUPPRIMER') return refus(res, 400, 'confirmation_requise');
+    /* ⛔ UN ESPACE ABONNÉ DONT ON EST LE SEUL MEMBRE : l'effacer du compte dissoudrait l'espace, et Stripe continuerait de prélever pour un espace qui n'existe plus. On le DIT (409, avec le
+       remède : résilier l'abonnement, ou passer la main) au lieu de laisser cette surprise à la carte bancaire. C'est la seule exception à « quitter ne se refuse à personne », et elle se
+       lève d'un geste ; un propriétaire qui n'est pas seul passe la main tout seul à l'effacement (`espaceQuitterTout`).
+       ⛔ UN PAIEMENT COMMENCÉ COMPTE AUSSI (relecture du gardien : payé chez Stripe, compte effacé avant que le service le sache — un abonnement vivant, sans espace, que personne ne résilie) : une
+       session de paiement non résolue est relue d'abord (payée, c'est un abonnement ; expirée, elle ne bloque plus), et ce qui reste bloque (`paiement_en_cours` tant qu'on ne sait pas).
+       ⛔ CE REFUS SE JUGE **AVANT** LE PLAFOND HORAIRE (`compte_supprimer`, cinq par heure) : un refus avec son remède n'est pas un essai de suppression — compté, il aurait bloqué pendant une heure, après cinq refus,
+       celui qui vient de résilier et revient supprimer son compte. Ce qu'il peut coûter à Stripe est borné sans ce plafond : trois espaces au plus (la limite de propriété), une relecture à la fois par espace et partagée
+       entre appelants (`facturation.relire`), le tout sous le plafond d'écriture de la personne (300 par minute) et celui de son réseau. */
+    let seuls = stockage.espacesAbonnesSeul(req.moi.id);
+    if (seuls.length && ctx.facturation && ctx.facturation.ouvert()) {
+      for (const e of seuls.slice(0, 3)) { try { await ctx.facturation.relire(e); } catch (x) { /* Stripe muet : ce que le service sait décide */ } }
+      seuls = stockage.espacesAbonnesSeul(req.moi.id);
+    }
+    if (seuls.length) {
+      const court = seuls.some((e) => { const a = stockage.abonnementLire(e); return !!(a && a.abonnement && !['aucun', 'canceled', 'incomplete_expired'].includes(a.statut)); });
+      return refus(res, 409, court ? 'espace_abonne' : 'paiement_en_cours');
+    }
     const q = Object.assign({ max: 5, fenetreMs: 3600000 }, config.quotas.compte_supprimer || {});
     const e = quotas.essai('compte_supprimer:' + req.moi.id, q.max, q.fenetreMs);
     if (!e.ok) { res.set('Retry-After', String(e.retry)); return refus(res, 429, 'quota_atteint', { retry: e.retry }); }

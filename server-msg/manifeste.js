@@ -14,6 +14,8 @@
  *   J  une pièce (photo, vocal, fichier, photo de profil) que CETTE personne a le droit de lire : session, puis le droit se décide sur la
  *      pièce elle-même (`stockage.pieceVisible`) — membre de sa conversation ET message visible pour soi, dépositaire d'une pièce pas
  *      encore envoyée, ou qui peut voir la personne dont c'est la photo. Pas de droit, ou pas de pièce : 404, la MÊME réponse.
+ *   E  membre d'un ESPACE (V d'abord), EA administrateur de l'espace, EP son propriétaire — l'espace se lit dans le chemin (`:id`) ;
+ *      un non-membre reçoit le même 404 qu'un espace inexistant. `pro: true` sur une ligne : fonction PRO (voir plus bas).
  *
  * ⛔ « Une session prouve un mot de passe, pas une adresse » : tout effet qui agit AU NOM d'une
  * adresse (contact, lien, groupe) exige V. Sur la bêta, l'adresse est confirmée par construction ;
@@ -85,6 +87,35 @@ const MANIFESTE = [
   { id: 'flux.ack',          m: 'POST', p: '/api/flux/ack',                          garde: 'S' },
   { id: 'compte.export',     m: 'POST', p: '/api/compte/export',                     garde: 'S' },
   { id: 'compte.supprimer',  m: 'POST', p: '/api/compte/supprimer',                  garde: 'S' },
+  /* Étape 5 : les ESPACES PROFESSIONNELS (`routes-espaces.js`) et MESSAGES PRO (`facturation.js`). Les gardes d'espace sont bâties sur V (« une session prouve un mot de passe, pas une
+     adresse » : tout effet qui agit au nom d'une entreprise exige l'adresse confirmée) ; l'espace se lit dans l'adresse (`:id`), JAMAIS dans le corps :
+       E  membre de l'espace  ·  EA  administrateur de l'espace  ·  EP  son propriétaire (le non-membre ne voit RIEN : 404 identique à un espace inexistant ; un membre qui n'a pas le
+       rôle voit 403, il connaît déjà l'espace). `pro: true` : la route est une fonction PRO — après sa garde, `formuleDe` doit dire « pro » (402 `formule_requise` sinon). C'est le
+       SEUL endroit où une route déclare qu'elle est payante ; la bêta (tout ouvert) les passe toutes. */
+  { id: 'espaces.liste',     m: 'GET',  p: '/api/espaces',                           garde: 'S' },
+  { id: 'espaces.creer',     m: 'POST', p: '/api/espaces',                           garde: 'V', pro: true },
+  { id: 'espaces.lire',      m: 'GET',  p: '/api/espaces/:id',                       garde: 'E' },
+  { id: 'espaces.maj',       m: 'POST', p: '/api/espaces/:id/maj',                   garde: 'EP' },
+  { id: 'espaces.transferer', m: 'POST', p: '/api/espaces/:id/transferer',           garde: 'EP' },
+  { id: 'espaces.supprimer', m: 'POST', p: '/api/espaces/:id/supprimer',             garde: 'EP' },
+  { id: 'espaces.quitter',   m: 'POST', p: '/api/espaces/:id/quitter',               garde: 'E' },
+  { id: 'espaces.contacts',  m: 'GET',  p: '/api/espaces/:id/contacts',              garde: 'E' },
+  { id: 'espaces.membres.role', m: 'POST', p: '/api/espaces/:id/membres/role',       garde: 'EA' },
+  { id: 'espaces.membres.retirer', m: 'POST', p: '/api/espaces/:id/membres/retirer', garde: 'EA' },
+  { id: 'espaces.invitations.creer', m: 'POST', p: '/api/espaces/:id/invitations',   garde: 'EA', pro: true },
+  { id: 'espaces.invitations.revoquer', m: 'POST', p: '/api/espaces/:id/invitations/revoquer', garde: 'EA' },
+  { id: 'invitations.lire',  m: 'POST', p: '/api/invitations/lire',                  garde: 'S' },
+  { id: 'invitations.accepter', m: 'POST', p: '/api/invitations/accepter',           garde: 'V' },
+  { id: 'canaux.creer',      m: 'POST', p: '/api/espaces/:id/canaux',                garde: 'EA', pro: true },
+  { id: 'canaux.maj',        m: 'POST', p: '/api/espaces/:id/canaux/:cid/maj',       garde: 'EA' },
+  { id: 'canaux.supprimer',  m: 'POST', p: '/api/espaces/:id/canaux/:cid/supprimer', garde: 'EA' },
+  { id: 'canaux.membres.ajouter', m: 'POST', p: '/api/espaces/:id/canaux/:cid/membres/ajouter', garde: 'EA' },
+  { id: 'canaux.membres.retirer', m: 'POST', p: '/api/espaces/:id/canaux/:cid/membres/retirer', garde: 'EA' },
+  { id: 'facturation.offres', m: 'GET', p: '/api/facturation/offres',                garde: 'P' },
+  { id: 'facturation.etat',  m: 'GET',  p: '/api/espaces/:id/facturation/etat',      garde: 'EA' },
+  { id: 'facturation.paiement', m: 'POST', p: '/api/espaces/:id/facturation/paiement', garde: 'EP' },
+  { id: 'facturation.portail', m: 'POST', p: '/api/espaces/:id/facturation/portail', garde: 'EP' },
+  { id: 'facturation.relire', m: 'POST', p: '/api/espaces/:id/facturation/relire',   garde: 'EP' },
 ];
 
 module.exports = { MANIFESTE };

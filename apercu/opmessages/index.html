@@ -1115,7 +1115,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   if (!source) { $('contenu').innerHTML = '<p class="vide">Les données n\'ont pas pu être chargées.</p>'; return; }
   /* ⛔ CE QUE LA SOURCE SAIT FAIRE. La source de l'aperçu n'annonce rien : photos, vocaux et appels y sont SIMULÉS, aucun service, aucune action sur un message. Celle du
      service annonce ses capacités (`source.capacites`) : ce qu'elle ne sait pas encore dit « bientôt » au lieu de faire semblant. */
-  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, notifications: false, compte: false, texteMax: 4000 }, source.capacites || {});
+  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, notifications: false, compte: false, espaces: false, texteMax: 4000 }, source.capacites || {});
   /* la personne et ses contacts : posés au démarrage (une source de service ne sait qui est connecté qu'après avoir lu la session), relus quand elle le dit */
   let MOI = null, CONTACTS = [];
   const SUFFIXE_TITRE = CAP.service ? ' — OP MESSAGES' : ' — OP MESSAGES, aperçu';
@@ -1143,8 +1143,9 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     appelId: null, appelUI: null, jetonAppel: 0, appelDemarre: false, declencheurAppel: null     // l'appel en cours : son identifiant (celui de la route), l'état local (médias, minuterie), un jeton qui périme les attentes
   };
   /* `mode` : ce que la feuille est en train d'être — 'chat' (Nouveau groupe), 'appel' (Appel de groupe : audio ou vidéo), 'info' (les détails d'un appel de l'historique),
-     'contact' (mes contacts et leurs liens), 'convinfo' (les infos d'une conversation) ou 'profil' (mon profil : photo, nom, statut) */
-  function groupeVierge() { return { ouvert: false, mode: 'chat', cle: null, convId: null, nom: '', photo: null, photoBlob: null, choisis: [], recherche: '', ephemeres: 0, annonces: false, video: false, info: null }; }
+     'contact' (mes contacts et leurs liens), 'convinfo' (les infos d'une conversation), 'profil' (mon profil : photo, nom, statut), et — capacité `espaces` — 'entreprise' (mes espaces :
+     créer, rejoindre par un lien), 'espace' (UN espace : contacts de l'entreprise, canaux, invitations) ou 'abo' (l'abonnement Messages Pro de cet espace) */
+  function groupeVierge() { return { ouvert: false, mode: 'chat', cle: null, convId: null, espaceId: null, nom: '', photo: null, photoBlob: null, choisis: [], recherche: '', ephemeres: 0, annonces: false, video: false, info: null }; }
 
   /* ═══ 3. OUTILS ═══════════════════════════════════════════════════════════════════════════════════════════════════════════ */
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1152,6 +1153,10 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   const norme = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
   const contactDe = id => CONTACTS.find(c => c.id === id) || (typeof source.personne === 'function' ? source.personne(id) : null) || null;      // un auteur peut n'être le contact de personne : la source connaît ceux qu'elle a vus
   const prenom = c => c.nom.split(' ')[0];
+  /* une conversation à plusieurs : un groupe, ou un CANAL d'espace (mêmes messages, même fil : le nom de l'auteur se montre) ; un canal se nomme « # nom » */
+  const multi = c => !!c && (c.type === 'groupe' || c.type === 'canal');
+  const nomConv = c => (c.type === 'canal' ? '# ' : '') + c.nom;
+  const genreConv = c => c.type === 'canal' ? 'canal' : c.type === 'groupe' ? 'groupe' : 'contact';
   const icone = (id, cls) => '<svg class="ic' + (cls ? ' ' + cls : '') + '" aria-hidden="true"><use href="#' + id + '"/></svg>';
   const CHEVRON = '<svg class="chev" viewBox="0 0 8 13" aria-hidden="true"><path d="M1.5 1.5 6.5 6.5 1.5 11.5"/></svg>';
   /* ⛔ UNE ADRESSE `blob:` VRAIE, et rien d'autre : schéma, hôte, identifiant — ni parenthèse, ni guillemet, ni espace. Une chaîne qui COMMENCE par « blob: » passait, et `esc()` laisse
@@ -1191,7 +1196,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     const sel = etat.conv === c.id;
     return '<li' + (neuve ? ' class="conv-neuve"' : '') + '><button type="button" class="conv presse" data-ouvrir="' + esc(c.id) + '"' + (sel ? ' aria-current="true"' : '') + '>' +
       '<span class="conv-point">' + (c.nonLu ? '<i class="point"></i><span class="sr-seul">Non lu</span>' : '') + '</span>' + avatar(c) +
-      '<span class="conv-corps"><span class="conv-ligne"><span class="conv-nom">' + esc(c.nom) + '</span><span class="conv-heure" data-t="' + (+c.t || 0) + '">' + esc(libelleListe(c.t)) + '</span>' + CHEVRON + '</span>' +
+      '<span class="conv-corps"><span class="conv-ligne"><span class="conv-nom">' + esc(nomConv(c)) + (c.type === 'canal' && c.prive ? '<span class="sr-seul"> (canal privé)</span>' : '') + '</span><span class="conv-heure" data-t="' + (+c.t || 0) + '">' + esc(libelleListe(c.t)) + '</span>' + CHEVRON + '</span>' +
       '<span class="conv-apercu" dir="auto">' + esc(c.apercu) + '</span></span></button></li>';
   }
   function rendreListe() {
@@ -1345,8 +1350,8 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     if (etat.conv) remplacer(r); else pousser(r);
   }
   function rendreEntete(c) {
-    $('conv-titre').innerHTML = avatar(c) + '<span class="conv-titre-nom"><span>' + esc(c.nom) + '</span>' + CHEVRON + '</span>';
-    $('conv-titre').setAttribute('aria-label', c.nom + ' — infos du ' + (c.type === 'groupe' ? 'groupe' : 'contact') + (CAP.groupeInfos ? '' : ' (bientôt)'));
+    $('conv-titre').innerHTML = avatar(c) + '<span class="conv-titre-nom"><span>' + esc(nomConv(c)) + '</span>' + CHEVRON + '</span>';
+    $('conv-titre').setAttribute('aria-label', nomConv(c) + ' — infos du ' + genreConv(c) + (CAP.groupeInfos ? '' : ' (bientôt)'));
     $('conv-cam').setAttribute('aria-label', 'Appel vidéo avec ' + c.nom);
   }
   const nomAuteur = id => { const c = contactDe(id); return c ? prenom(c) : '?'; };
@@ -1357,7 +1362,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     const moi = m.auteur === MOI.id;
     const sens = moi ? 'envoyee' : 'recue';
     let h = '<div class="msg ' + (moi ? 'de-moi' : 'de-autre') + (premier ? '' : ' suite') + '" data-mid="' + esc(m.id) + '">';
-    if (!moi && c.type === 'groupe' && premier) h += '<span class="msg-nom">' + esc(nomAuteur(m.auteur)) + '</span>';
+    if (!moi && multi(c) && premier) h += '<span class="msg-nom">' + esc(nomAuteur(m.auteur)) + '</span>';
     if (m.reponse && !m.supprime) h += citationHtml(m.reponse);
     const debutCorps = h.length;
     if (m.photos) {
@@ -1548,7 +1553,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   });
   $('conv-titre').addEventListener('click', () => {
     if (CAP.groupeInfos && etat.conv) { declencheur = $('conv-titre'); pousser(Object.assign({}, etat.route, { feuille: 'convinfo:' + etat.conv })); return; }
-    mot('Les infos du ' + (etat.convDonnees && etat.convDonnees.type === 'groupe' ? 'groupe' : 'contact') + ' arrivent bientôt');
+    mot('Les infos du ' + (etat.convDonnees ? genreConv(etat.convDonnees) : 'contact') + ' arrivent bientôt');
   });
 
   /* ── la saisie : un VRAI champ, qui grandit jusqu'à 5 lignes ── */
@@ -2005,9 +2010,9 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     $('g-compteur').textContent = G.choisis.length + ' / ' + CONTACTS.length;
     $('g-creer').setAttribute('aria-disabled', G.choisis.length ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
-    const appel = G.mode === 'appel', info = G.mode === 'info', corpsInfo = info || G.mode === 'contact' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression';
+    const appel = G.mode === 'appel', info = G.mode === 'info', corpsInfo = info || G.mode === 'contact' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo';
     $('feuille').dataset.mode = G.mode;
-    $('feuille-titre').textContent = info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : appel ? 'Appel de groupe' : 'Nouveau groupe';
+    $('feuille-titre').textContent = info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : appel ? 'Appel de groupe' : 'Nouveau groupe';
     $('g-annuler').textContent = corpsInfo ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : 'Créer';
     $('g-creer').style.visibility = corpsInfo ? 'hidden' : '';
@@ -2030,8 +2035,10 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     if (!declencheur) declencheur = document.activeElement;
     etat.groupe = groupeVierge();
     etat.groupe.cle = cleFeuille(f);
-    etat.groupe.mode = mode === 'appel' || mode === 'info' || (mode === 'contact' && CAP.liens) || (mode === 'convinfo' && CAP.groupeInfos) || (mode === 'profil' && CAP.reglages) || (mode === 'suppression' && CAP.compte) ? mode : 'chat';
+    etat.groupe.mode = mode === 'appel' || mode === 'info' || (mode === 'contact' && CAP.liens) || (mode === 'convinfo' && CAP.groupeInfos) || (mode === 'profil' && CAP.reglages) || (mode === 'suppression' && CAP.compte)
+      || (CAP.espaces && (mode === 'entreprise' || ((mode === 'espace' || mode === 'abo') && ID_ESPACE.test(arg || '')))) ? mode : 'chat';
     if (etat.groupe.mode === 'convinfo') etat.groupe.convId = arg || null;
+    if (etat.groupe.mode === 'espace' || etat.groupe.mode === 'abo') etat.groupe.espaceId = arg;
     if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel') { CONTACTS = typeof source.contacts === 'function' ? source.contacts() : CONTACTS; construireContacts(); }
     if (etat.groupe.mode === 'info') {
       etat.groupe.info = etat.appels.find(x => x.id === arg) || null;
@@ -2046,6 +2053,9 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     if (etat.groupe.mode === 'convinfo') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; rendreConvInfo(); }
     if (etat.groupe.mode === 'profil') rendreProfil();
     if (etat.groupe.mode === 'suppression') rendreSuppression();
+    if (etat.groupe.mode === 'entreprise') rendreEntreprise();
+    if (etat.groupe.mode === 'espace') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; rendreEspace(); }
+    if (etat.groupe.mode === 'abo') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; rendreAbonnement(); }
     synchroFeuille();
     $('feuille').inert = false;
     document.documentElement.classList.add('feuille-ouverte');
@@ -2659,6 +2669,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   }
   function peindreBloquesN() { const n = $('reg-bloques-n'); if (!n || typeof source.bloques !== 'function') return; const k = source.bloques().length; n.textContent = k ? String(k) : ''; }
   async function chargerReglages() {
+    if (CAP.espaces) chargerEspaces();
     const jeton = ++reg.jeton;
     const [c, s2, a, nt] = await Promise.allSettled([source.confidentialite(), source.stockage(), source.aPropos(), CAP.notifications ? source.notifEtat() : Promise.resolve(null)]);
     if (jeton !== reg.jeton || !$('reg-conf')) return;
@@ -2672,6 +2683,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     Object.assign(reg, { conf: null, confErreur: '', stock: null, stockErreur: '', propos: null, proposErreur: '', occupe: false, notif: null, notifLecture: '', notifErreur: '', notifMsg: '', notifOccupe: false, exportMsg: '', exportErreur: '', exportOccupe: false });
     $('vue-reglages').innerHTML = '<div class="entete-vue"></div><h1 class="grand-titre" id="titre-reglages">Réglages</h1>' +
       '<div class="carte" id="reg-profil"></div>' +
+      (CAP.espaces ? '<div class="rubrique"><span>Entreprise</span><span id="reg-esp-n"></span></div><div class="carte" id="reg-esp"></div><div class="rubrique"><span>Abonnement</span></div><div class="carte" id="reg-abo"></div>' : '') +
       '<div class="rubrique"><span>Confidentialité</span></div><div class="carte" id="reg-conf"></div>' +
       (CAP.notifications ? '<div class="rubrique"><span>Notifications</span></div><div class="carte" id="reg-notif"></div>' : '') +
       '<div class="rubrique"><span>Contacts</span></div><div class="carte">' +
@@ -2684,6 +2696,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
       '<div class="carte"><button type="button" class="reglage presse danger" id="reg-sortir"><span class="reglage-texte">Se déconnecter</span></button></div>' +
       '<p class="info-erreur" id="reg-erreur" role="alert" hidden></p>';
     peindreProfilReglage(); peindreConf(); peindreStock(); peindreApropos(); peindreBloquesN();
+    if (CAP.espaces) peindreEspaces();
     if (CAP.notifications) peindreNotif();
     if (CAP.compte) peindreCompte();
     chargerReglages();
@@ -2695,6 +2708,9 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     const bouton = e.target.closest('button'); if (!bouton) return;
     if (bouton.id === 'reg-profil-bouton') { declencheur = bouton; ouvrirFeuille('profil'); return; }
     if (bouton.id === 'reg-contact' || bouton.id === 'reg-bloques') { declencheur = bouton; ouvrirFeuille('contact'); return; }
+    if (bouton.dataset.espOuvrir) { declencheur = bouton; ouvrirFeuille('espace:' + bouton.dataset.espOuvrir); return; }
+    if (bouton.dataset.espAbo) { declencheur = bouton; ouvrirFeuille('abo:' + bouton.dataset.espAbo); return; }
+    if (bouton.id === 'reg-esp-gerer') { declencheur = bouton; ouvrirFeuille('entreprise'); return; }
     if (bouton.dataset.regRelire) { chargerReglages(); return; }
     if (bouton.id === 'reg-notif-sw' || bouton.id === 'reg-notif-apercu' || bouton.id === 'reg-notif-essai') { actionNotif(bouton.id.slice(10)); return; }
     if (bouton.id === 'reg-export') { exporterDonnees(); return; }
@@ -2835,17 +2851,24 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     if (!etat.groupe.ouvert || etat.groupe.convId !== id) return;                // la feuille s'est fermée pendant l'attente
     if (panne) { corps.dataset.sig = ''; corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">' + esc(phrase(panne, 'Les infos n\'ont pas pu être chargées.')) + '</p>'; return; }
     if (!i) { mot('Cette conversation n\'existe plus.'); fermerCouche(); return; }
-    const sig = JSON.stringify([i.nom, !!i.photo, i.moiAdmin, i.annoncesSeulement, i.ephemeres, i.enLigne, i.sourdine || 0, i.membres.map(m => [m.id, m.nom, m.role, m.enLigne])]) + '|' + CONTACTS.map(c => c.id).join(',');
+    /* un canal PRIVÉ que j'administre : les collègues que je peux y ajouter sont ceux de son espace (« Contacts de l'entreprise »), jamais mes seuls contacts */
+    let collegues = null;
+    if (CAP.espaces && i.type === 'canal' && i.prive && i.moiAdmin && i.espace) {
+      try { collegues = (await source.espaceContacts(i.espace)).contacts; } catch (e) { collegues = []; }
+      if (!etat.groupe.ouvert || etat.groupe.convId !== id) return;                // la feuille s'est fermée pendant l'attente
+    }
+    const sig = JSON.stringify([i.nom, !!i.photo, i.moiAdmin, i.annoncesSeulement, i.ephemeres, i.enLigne, i.sourdine || 0, i.membres.map(m => [m.id, m.nom, m.role, m.enLigne])]) + '|' + CONTACTS.map(c => c.id).join(',') + '|' + (collegues ? collegues.map(c => c.id).join(',') : '');
     if (corps.dataset.sig === sig && corps.children.length) return;
     corps.dataset.sig = sig;
     const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.act ? actif.dataset.act + '|' + (actif.dataset.uid || '') : null;
-    const g = i.type === 'groupe', eph = EPHEMERES.find(e => e[0] === i.ephemeres) || [i.ephemeres, i.ephemeres + ' s'], off = i.moiAdmin ? '' : ' disabled';
+    const g = i.type === 'groupe', canal = i.type === 'canal', eph = EPHEMERES.find(e => e[0] === i.ephemeres) || [i.ephemeres, i.ephemeres + ' s'], off = i.moiAdmin ? '' : ' disabled';
+    corps.dataset.espace = canal && i.espace ? i.espace : '';
     const sd = CAP.notifications && !i.supprime ? (Number(i.sourdine) || 0) : -1;           // -1 : pas de sourdine à proposer ; 0 : pas en sourdine ; sinon l'échéance
     let h = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
-      '<div class="info-tete">' + avatar(i) + '<div><h3 class="info-nom">' + esc(i.nom) + '</h3><p class="info-sous">' + (g ? 'Groupe · ' + i.membres.length + (i.membres.length > 1 ? ' membres' : ' membre') : (i.enLigne ? 'En ligne' : 'Conversation à deux')) + '</p></div></div>' +
+      '<div class="info-tete">' + avatar(i) + '<div><h3 class="info-nom">' + esc(i.nom) + '</h3><p class="info-sous">' + (g ? 'Groupe · ' + i.membres.length + (i.membres.length > 1 ? ' membres' : ' membre') : canal ? 'Canal ' + (i.prive ? 'privé' : 'public') + ' · ' + i.membres.length + (i.membres.length > 1 ? ' membres' : ' membre') : (i.enLigne ? 'En ligne' : 'Conversation à deux')) + '</p></div></div>' +
       (g && i.moiAdmin && CAP.avatars ? '<div class="info-actions info-photo-actions"><button type="button" class="mini" data-act="groupe-photo">' + (blob(i.photo) ? 'Changer la photo' : 'Ajouter une photo') + '</button>' + (blob(i.photo) ? '<button type="button" class="mini danger" data-act="groupe-photo-retirer">Retirer la photo</button>' : '') + '</div>' : '') +
-      '<div class="carte">' + (g ? '<button type="button" class="reglage presse" data-act="annonces" role="switch" aria-checked="' + (i.annoncesSeulement ? 'true' : 'false') + '"' + off + '><span class="reglage-texte">Seuls les admins écrivent<small>Groupe d\'annonces</small></span><span class="interrupteur" aria-hidden="true"></span></button>' : '') +
-      '<button type="button" class="reglage presse" data-act="ephemeres"' + off + '><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur">' + esc(eph[1]) + '</span>' + (i.moiAdmin ? CHEVRON : '') + '</button></div>';
+      (canal ? '' : '<div class="carte">') + (g ? '<button type="button" class="reglage presse" data-act="annonces" role="switch" aria-checked="' + (i.annoncesSeulement ? 'true' : 'false') + '"' + off + '><span class="reglage-texte">Seuls les admins écrivent<small>Groupe d\'annonces</small></span><span class="interrupteur" aria-hidden="true"></span></button>' : '') +
+      (canal ? '' : '<button type="button" class="reglage presse" data-act="ephemeres"' + off + '><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur">' + esc(eph[1]) + '</span>' + (i.moiAdmin ? CHEVRON : '') + '</button></div>');
     /* la sourdine : plus de notification pour CETTE conversation (8 heures, une semaine, toujours) — le service ne l'envoie pas, la page continue de recevoir */
     if (sd > Date.now()) h += '<div class="carte"><div class="reglage"><span class="reglage-texte">Notifications coupées<small>' + esc(sd - Date.now() > 5 * 365 * 86400000 ? 'En sourdine pour toujours' : 'En sourdine jusqu\'au ' + dateLongue(sd)) + '</small></span><button type="button" class="mini" data-act="sourdine" data-duree="off">Réactiver</button></div></div>';
     else if (sd >= 0) h += '<div class="carte"><div class="reglage"><span class="reglage-texte">Mettre en sourdine<small>Plus de notification pour cette conversation</small></span></div><div class="carte-pad info-actions"><button type="button" class="mini" data-act="sourdine" data-duree="8h">8 heures</button><button type="button" class="mini" data-act="sourdine" data-duree="1s">1 semaine</button><button type="button" class="mini" data-act="sourdine" data-duree="tj">Toujours</button></div></div>';
@@ -2860,6 +2883,24 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
           '<button type="button" class="reglage presse" data-act="lien-groupe">' + icone('i-groupe') + '<span class="reglage-texte">Inviter par un lien</span>' + CHEVRON + '</button></div><div id="ci-lien"></div>';
       }
       h += '<div class="carte"><button type="button" class="reglage presse danger" data-act="quitter"><span class="reglage-texte">Quitter le groupe</span></button></div>';
+    } else if (canal) {
+      /* un canal : son rôle est celui de l'ESPACE (l'administrateur de l'espace modère, les membres lisent et écrivent). Public : tous les membres de l'espace, on y entre et on en sort avec lui ;
+         privé : ceux qu'un administrateur y a mis. Les gestes de l'administrateur passent par les routes de l'espace (`espace` vient du canal lui-même, jamais de la page). */
+      const modifiable = CAP.espaces && i.moiAdmin && !!i.espace;
+      /* ⛔ la hiérarchie de l'espace vaut dans ses canaux (le service la fait respecter) : seul le PROPRIÉTAIRE retire un administrateur, et personne ne retire le propriétaire — l'écran ne propose que ce qui peut marcher */
+      const moiProprio = !!(esp.liste || []).find(x => x.id === i.espace && x.proprio);
+      const retirable = m => modifiable && i.prive && !m.moi && (m.role !== 'admin' || moiProprio);
+      h += '<div class="rubrique"><span>Membres</span><span>' + i.membres.length + '</span></div><div class="carte">' + i.membres.map(m =>
+        '<div class="contact' + (retirable(m) ? ' avec-actions' : '') + '">' + avatar(m) + '<span class="contact-texte"><span class="contact-nom">' + esc(m.moi ? 'Vous' : m.nom) + (m.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (m.enLigne && !m.moi ? '<span class="contact-role">En ligne</span>' : '') + '</span>' +
+        (retirable(m) ? '<span class="contact-actions"><button type="button" class="mini danger" data-act="can-retirer-membre" data-uid="' + esc(m.id) + '">Retirer</button></span>' : '') + '</div>').join('') + '</div>';
+      if (!i.prive) h += '<p class="info-note">Un canal public réunit tous les membres de l\'espace : on y entre et on en sort avec l\'espace.</p>';
+      if (modifiable && i.prive) {
+        const ajoutables = (collegues || []).filter(c => !c.moi && !i.membres.some(m => m.id === c.id));
+        h += '<div class="rubrique"><span>Ajouter au canal</span></div><div class="carte">' + (ajoutables.length ? ajoutables.map(c => '<div class="contact">' + avatar(c) + '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span></span><button type="button" class="mini" data-act="can-ajouter-membre" data-uid="' + esc(c.id) + '">Ajouter</button></div>').join('') : '<p class="vide">Tous les membres de l\'espace sont déjà dans ce canal.</p>') + '</div>';
+      }
+      if (modifiable) h += '<div class="rubrique"><span>Renommer</span></div><div class="carte carte-pad"><div class="info-champ"><input id="cn-renom" type="text" maxlength="80" autocomplete="off" value="' + esc(i.nom) + '" aria-label="Nom du canal"><button type="button" class="mini" data-act="can-renommer">Enregistrer</button></div></div>';
+      if (i.prive) h += '<div class="carte"><button type="button" class="reglage presse danger" data-act="can-quitter"><span class="reglage-texte">Quitter le canal</span></button></div>';
+      if (modifiable) h += '<div class="carte"><button type="button" class="reglage presse danger" data-act="can-supprimer"><span class="reglage-texte">Supprimer le canal<small>Ses messages sont effacés pour tous.</small></span></button></div>';
     } else if (CAP.reglages) {
       const autre = i.membres.find(m => !m.moi);
       if (autre) h += '<div class="carte"><button type="button" class="reglage presse danger" data-act="bloquer" data-uid="' + esc(autre.id) + '"><span class="reglage-texte">Bloquer ce contact</span></button></div>';
@@ -2927,6 +2968,372 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     else if (etat.groupe.mode === 'convinfo') rendreConvInfo();
   }
 
+  /* ═══ 13. LES ESPACES PROFESSIONNELS ET MESSAGES PRO — « Contacts de l'entreprise », les canaux, les invitations, l'abonnement ═════════════════════════
+     ⛔ Tout ce bloc dort dans l'aperçu : il ne s'éveille que si la source annonce la capacité `espaces`. UN ESPACE EST UNE ENTREPRISE : on y voit ses collègues (« Contacts de l'entreprise ») et
+     personne d'autre — aucune recherche par nom hors de l'espace : le champ de la feuille ne FILTRE que la liste déjà reçue. Le SERVICE décide de tout (rôle, formule, places) ; la page montre
+     ce qu'il a dit. ⛔ Un refus se DIT (`phraseEspace`) : un administrateur lit POURQUOI une fonction Pro refuse (paiement en retard, jamais abonné), un membre lit « fonction Pro » et rien de
+     plus ; et une fonction refusée ne retire RIEN — ni les messages, ni les canaux, ni les membres, et la page le dit. L'espace se lit dans la ROUTE de la feuille (`espace:<id>`, validée), jamais
+     dans un champ de la page ; les confirmations graves se font en DEUX touches, dites sur le bouton ; les adresses de paiement viennent de la source (https seulement). */
+  const ID_ESPACE = /^e_[0-9a-f]{32}$/;
+  const esp = { liste: null, formule: 'perso', ouvert: false, erreur: '', jeton: 0, forme: { prive: false, choisis: [] }, abo: null, lien: null };
+  /* le lien qu'on vient de créer fait partie de ce que la feuille MONTRE : créer un lien change le nombre d'invitations de l'espace, le service le dit à la page, et le redessin qui suit ne doit pas l'effacer
+     (relevé au navigateur : le lien paraissait puis disparaissait avant qu'on puisse le copier) */
+  const htmlLienInvitation = X => X ? '<div class="lien-boite"><input id="esp-lien-champ" type="text" readonly value="' + esc(location.origin + '/#invitation=' + X.code) + '" aria-label="Ton lien d\'invitation"><button type="button" class="mini" data-act="copier" data-champ="esp-lien-champ">Copier</button></div>' +
+    '<p class="info-note">Valable jusqu\'au ' + esc(dateLongue(X.expireLe)) + ', pour ' + X.max + (X.max > 1 ? ' personnes' : ' personne') + ' au plus.</p>' : '';
+  const aboEtat = { cycle: null, places: 0 };           // le formulaire de paiement (le propriétaire seul) : il survit à un redessin de la feuille
+  const initialesEspace = nom => { const m = String(nom).trim().split(/\s+/).filter(Boolean); return m.length ? (Array.from(m[0])[0] + (m[1] ? Array.from(m[1])[0] : '')).toUpperCase() : '?'; };
+  const avatarEspace = x => ({ avatar: Array.from(String(x.id)).reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 6007, 0) % 6, initiales: initialesEspace(x.nom), photo: null });
+  const nMembres = n => n + (n > 1 ? ' membres' : ' membre');
+  /* « 5 membres pour 3 places » : les DEUX nombres que le service a comptés, jamais un seul (l'administrateur doit savoir de combien il manque) */
+  const membresPourPlaces = (n, p) => nMembres(n) + ' pour ' + p + (p > 1 ? ' places' : ' place');
+  const roleEspace = x => x.proprio ? 'Propriétaire' : (x.moiAdmin || x.role === 'admin') ? 'Administrateur' : 'Membre';
+  const FORMULE_LBL = { pro: 'Messages Pro', perso: 'Messages Perso', impaye: 'Messages Pro — paiement en retard' };
+  const STATUT_ABO = { active: 'Actif', trialing: 'Période d\'essai', past_due: 'Paiement en retard', unpaid: 'Impayé', canceled: 'Résilié', incomplete: 'Paiement non terminé', incomplete_expired: 'Paiement expiré', paused: 'En pause' };
+  const dateCourte = ts => { try { return new Date(ts).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { return ''; } };
+  const euros = n => { try { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n); } catch (e) { return n + ' €'; } };
+  function phraseEspace(e, defaut) {
+    let t = phrase(e, defaut);
+    if (e && e.code === 'formule_requise' && e.raison === 'impaye') t += ' L\'abonnement de l\'espace est en retard : règle-le (Réglages › Abonnement) pour les retrouver. Rien n\'est perdu : les messages, les canaux et les membres restent.';
+    else if (e && e.code === 'formule_requise' && e.raison === 'perso') t += ' Cet espace n\'a pas d\'abonnement Messages Pro (Réglages › Abonnement).';
+    else if (e && e.code === 'places_invalides' && e.min > 0) t = 'Le nombre de places est incorrect : au moins ' + e.min + ' (le nombre de membres), 500 au plus.';
+    else if (e && e.code === 'places_epuisees' && e.places > 0) t += ' (' + e.membres + ' membres pour ' + e.places + ' places.)';
+    return t;
+  }
+  /* une action grave demande une SECONDE touche, dite sur le bouton lui-même ; vrai à la seconde (le libellé d'origine revient au bout de 4 s sans elle) */
+  function armer(b, pret) {
+    if (b.dataset.pret === '1') { b.dataset.pret = ''; return true; }
+    const t = b.querySelector('.reglage-texte') || b, n = t.firstChild, normal = n ? n.textContent : '';
+    b.dataset.pret = '1'; if (n) n.textContent = pret;
+    setTimeout(() => { if (b.isConnected && b.dataset.pret === '1') { b.dataset.pret = ''; if (n) n.textContent = normal; } }, 4000);
+    return false;
+  }
+
+  /* ── Réglages › Entreprise et Abonnement ── */
+  function peindreEspaces() {
+    const c = $('reg-esp'), a = $('reg-abo'), n = $('reg-esp-n'); if (!c || !a) return;
+    if (!esp.liste) { c.innerHTML = esp.erreur ? '<div class="carte-pad">' + refusBloc(esp.erreur) + '</div>' : '<p class="vide">Chargement…</p>'; a.innerHTML = ''; if (n) n.textContent = ''; return; }
+    const L = esp.liste;
+    if (n) n.textContent = L.length ? String(L.length) : '';
+    c.innerHTML = L.map(x => '<button type="button" class="contact presse" data-esp-ouvrir="' + esc(x.id) + '">' + avatar(avatarEspace(x)) + '<span class="contact-texte"><span class="contact-nom">' + esc(x.nom) + '</span><span class="contact-role">' + esc(roleEspace(x) + ' · ' + nMembres(x.membres)) + '</span></span>' + CHEVRON + '</button>').join('') +
+      '<button type="button" class="reglage presse" id="reg-esp-gerer">' + icone('i-groupe') + '<span class="reglage-texte">Créer ou rejoindre un espace<small>Un espace réunit les personnes d\'une entreprise</small></span>' + CHEVRON + '</button>' +
+      (esp.erreur ? '<div class="carte-pad"><p class="info-erreur" role="alert">' + esc(esp.erreur) + '</p></div>' : '');
+    const admins = L.filter(x => x.moiAdmin);
+    a.innerHTML = '<div class="carte-pad"><p class="reg-ligne"><b>Ta formule</b> ' + esc(FORMULE_LBL[esp.formule] || FORMULE_LBL.perso) + '</p>' +
+      (esp.ouvert ? '' : '<p class="info-note">L\'abonnement n\'est pas encore ouvert sur ce service.</p>') +
+      (esp.formule === 'perso' ? '<p class="info-note">Messages Pro s\'ajoute à un espace d\'entreprise : il ouvre les canaux et les liens d\'invitation à tout l\'espace.</p>' : '') + '</div>' +
+      admins.map(x => '<button type="button" class="reglage presse" data-esp-abo="' + esc(x.id) + '"><span class="reglage-texte">' + esc(x.nom) + '<small>' + esc(x.proprio ? 'Tu gères l\'abonnement de cet espace' : 'Lecture seule : seul le propriétaire paie') + '</small></span>' + CHEVRON + '</button>').join('');
+  }
+  async function chargerEspaces() {
+    const jeton = ++esp.jeton;
+    let r = null, panne = '';
+    try { r = await source.espaces(); } catch (x) { panne = phrase(x, 'Tes espaces n\'ont pas pu être lus.'); }
+    if (jeton !== esp.jeton || !$('reg-esp')) return;
+    if (r) { esp.liste = r.espaces; esp.formule = r.formule; esp.ouvert = r.abonnementOuvert; esp.erreur = ''; } else esp.erreur = panne;
+    peindreEspaces();
+  }
+
+  /* ── La feuille « Entreprise » : mes espaces, en créer un, en rejoindre un par un lien ── */
+  const CODE_INVITATION = /invitation=([A-Za-z0-9_-]{20,64})/;
+  const invitationDansAdresse = () => { const m = /(?:^|[#&])invitation=([A-Za-z0-9_-]{20,64})/.exec(location.hash || ''); return m ? m[1] : null; };
+  const basculerFeuille = cle => remplacer(Object.assign({}, etat.route, { feuille: cle }));
+  async function rendreEntreprise() {
+    const corps = $('info-corps'), code = etat.codeInvitation; etat.codeInvitation = null;
+    corps.dataset.sig = ''; corps.innerHTML = '<p class="vide">Chargement…</p>';
+    let r = null, panne = null;
+    try { r = await source.espaces(); } catch (e) { panne = e; }
+    if (!etat.groupe.ouvert || etat.groupe.mode !== 'entreprise') return;           // la feuille s'est fermée pendant l'attente
+    if (panne) { corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">' + esc(phrase(panne, 'Tes espaces n\'ont pas pu être lus.')) + '</p>'; return; }
+    esp.liste = r.espaces; esp.formule = r.formule; esp.ouvert = r.abonnementOuvert;
+    corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+      '<div class="rubrique"><span>Mes espaces</span><span>' + (r.espaces.length || '') + '</span></div><div class="carte">' + (r.espaces.length ? r.espaces.map(x => '<button type="button" class="contact presse" data-act="esp-ouvrir" data-id="' + esc(x.id) + '">' + avatar(avatarEspace(x)) +
+        '<span class="contact-texte"><span class="contact-nom">' + esc(x.nom) + '</span><span class="contact-role">' + esc(roleEspace(x) + ' · ' + nMembres(x.membres)) + '</span></span>' + CHEVRON + '</button>').join('') : '<p class="vide">Tu n\'es dans aucun espace pour l\'instant.</p>') + '</div>' +
+      '<div class="rubrique"><span>Créer un espace</span></div><div class="carte carte-pad"><p class="info-note">Un espace réunit les personnes d\'une entreprise : elles se retrouvent dans « Contacts de l\'entreprise » et dans les canaux de l\'espace. Créer un espace fait partie de Messages Pro.</p>' +
+        '<div class="info-champ"><input id="en-nom" type="text" maxlength="80" autocomplete="organization" placeholder="Nom de l\'entreprise" aria-label="Nom de l\'espace"><button type="button" class="mini" data-act="esp-creer">Créer</button></div></div>' +
+      '<div class="rubrique"><span>J\'ai reçu un lien</span></div><div class="carte carte-pad"><p class="info-note">Colle le lien d\'invitation que l\'administrateur de ton entreprise t\'a envoyé.</p>' +
+        '<div class="info-champ"><input id="en-code" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Coller le lien reçu" aria-label="Lien d\'invitation reçu"><button type="button" class="mini" data-act="esp-lien-lire">Voir</button></div><div id="en-apercu"></div></div>';
+    if (code) { $('en-code').value = code; lireInvitationSaisie().catch(e => erreurInfo(phraseEspace(e, 'Ce lien n\'a pas pu être lu.'))); }
+  }
+  async function lireInvitationSaisie() {
+    /* le lien se lit comme celui d'un contact : derrière « invitation= », sinon le DERNIER mot qui ressemble à un code (jamais le premier : « Voici mon lien : … ») */
+    const brut = ($('en-code').value || '').trim();
+    const m = CODE_INVITATION.exec(brut) || /(?:^|[^A-Za-z0-9_-])([A-Za-z0-9_-]{20,64})(?![A-Za-z0-9_-])(?!.*[^A-Za-z0-9_-][A-Za-z0-9_-]{20,64}(?![A-Za-z0-9_-]))/.exec(brut);
+    $('en-apercu').innerHTML = '';
+    if (!m) { erreurInfo('Ce lien n\'est pas valable : colle le lien reçu en entier.'); return; }
+    const a = await source.invitationLire(m[1]);
+    $('en-apercu').innerHTML = '<p class="info-note"><b>' + esc(a.de) + '</b> t\'invite dans l\'espace « ' + esc(a.espace.nom) + ' » (' + esc(nMembres(a.espace.membres)) + ').</p>' +
+      '<button type="button" class="mini" data-act="esp-rejoindre" data-code="' + esc(m[1]) + '">Rejoindre l\'espace</button>';
+  }
+
+  /* ── La feuille d'UN espace : contacts de l'entreprise, canaux, invitations, abonnement, sortie ── */
+  function ligneMembreEspace(p, d) {
+    /* le propriétaire ne se retire ni ne se rétrograde ; seul le propriétaire touche à un administrateur (le service refuse sinon : l'écran ne propose que ce qui peut marcher) */
+    const agit = d.moiAdmin && !p.moi && !p.proprio && (p.role !== 'admin' || d.proprio), act = [];
+    if (!p.moi) act.push('<button type="button" class="mini" data-act="ecrire" data-uid="' + esc(p.id) + '">Écrire</button>');
+    if (agit) act.push('<button type="button" class="mini" data-act="esp-role" data-uid="' + esc(p.id) + '" data-admin="' + (p.role === 'admin' ? '0' : '1') + '">' + (p.role === 'admin' ? 'Retirer l\'admin' : 'Nommer admin') + '</button>');
+    if (agit) act.push('<button type="button" class="mini danger" data-act="esp-retirer" data-uid="' + esc(p.id) + '">Retirer</button>');
+    if (d.proprio && !p.moi) act.push('<button type="button" class="mini danger" data-act="esp-transferer" data-uid="' + esc(p.id) + '">Passer la propriété</button>');
+    return '<div class="contact' + (act.length ? ' avec-actions' : '') + '" data-nom="' + esc(norme(p.nom)) + '">' + avatar(p) + '<span class="contact-texte"><span class="contact-nom">' + esc(p.moi ? 'Vous' : p.nom) +
+      (p.proprio ? '<span class="badge-admin">Propriétaire</span>' : p.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (p.enLigne || p.statut ? '<span class="contact-role">' + esc(p.enLigne ? 'En ligne' : p.statut) + '</span>' : '') + '</span>' +
+      (act.length ? '<span class="contact-actions">' + act.join('') + '</span>' : '') + '</div>';
+  }
+  /* le champ de la feuille FILTRE la liste reçue (accents et casse ignorés) ; il ne cherche nulle part ailleurs */
+  function appliquerFiltreEspace() {
+    const f = $('esp-filtre'), q = f ? norme(f.value) : '', lignes = Array.from(document.querySelectorAll('#esp-contacts .contact[data-nom]'));
+    lignes.forEach(l => { l.hidden = !!q && !l.dataset.nom.includes(q); });
+    const a = $('esp-aucun'); if (a) a.hidden = !lignes.length || lignes.some(l => !l.hidden);
+  }
+  async function rendreEspace() {
+    const id = etat.groupe.espaceId, corps = $('info-corps');
+    let d = null, c = null, panne = null;
+    try { [d, c] = await Promise.all([source.espace(id), source.espaceContacts(id)]); } catch (e) { panne = e; }
+    if (!etat.groupe.ouvert || etat.groupe.mode !== 'espace' || etat.groupe.espaceId !== id) return;           // la feuille s'est fermée pendant l'attente
+    if (panne) {
+      if (panne.code === 'introuvable') { mot('Cet espace n\'existe plus, ou tu n\'en fais plus partie.'); fermerCouche(); chargerEspaces(); rafraichirListe(); return; }
+      corps.dataset.sig = ''; corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">' + esc(phrase(panne, 'Cet espace n\'a pas pu être chargé.')) + '</p>'; return;
+    }
+    if (!corps.children.length) { esp.forme = { prive: false, choisis: [] }; esp.lien = null; }   // une feuille neuve repart d'un formulaire vierge, sans le lien de la feuille d'avant
+    const lien = esp.lien && esp.lien.espace === id ? esp.lien : null;
+    /* rien ne se redessine tant que ce que la source dit n'a pas changé (sinon un événement lointain ferait perdre le focus) ; ce que la personne a TAPÉ et le champ actif survivent au redessin */
+    const sig = JSON.stringify([d, c.contacts.map(p => [p.id, p.nom, p.role, p.proprio, p.enLigne, p.statut, !!p.photo]), esp.forme, lien]);
+    if (corps.dataset.sig === sig && corps.children.length) return;
+    const champs = {}; corps.querySelectorAll('input[id]').forEach(x => { champs[x.id] = x.value; });
+    const actif = document.activeElement, cle = actif && corps.contains(actif) ? (actif.id ? '#' + actif.id : actif.dataset.act ? actif.dataset.act + '|' + (actif.dataset.uid || actif.dataset.id || '') : null) : null;
+    corps.dataset.sig = sig;
+    const admin = d.moiAdmin, a = d.admin, f = esp.forme;
+    let h = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+      '<div class="info-tete">' + avatar(avatarEspace(d)) + '<div><h3 class="info-nom">' + esc(d.nom) + '</h3><p class="info-sous">' + esc(roleEspace(d) + ' · ' + nMembres(d.membres)) + '</p></div></div>';
+    if (admin) h += '<div class="carte"><button type="button" class="reglage presse" data-act="abo-ouvrir"><span class="reglage-texte">Messages Pro<small>' +
+      esc(a && a.formule === 'pro' ? 'Les fonctions Pro de l\'espace sont disponibles' : a && a.formule === 'impaye' ? 'Paiement en retard : les fonctions Pro sont suspendues' : 'Pas d\'abonnement : les fonctions Pro sont indisponibles') + '</small></span>' + CHEVRON + '</button></div>';
+    else if (!d.fonctionsPro) h += '<p class="info-note">Les fonctions Pro de l\'espace (créer des canaux, inviter des collègues) ne sont pas disponibles pour l\'instant. Rien n\'est perdu : tes messages, les canaux et les membres restent.</p>';
+    /* ⛔ DES PLACES BAISSÉES SOUS LE NOMBRE DE MEMBRES (le portail de Stripe ne connaît pas nos membres) ne retirent PERSONNE : l'administrateur le lit ICI, chiffres à l'appui, là où il travaille — et non seulement dans l'abonnement */
+    if (admin && a && a.placesDepassees) h += '<p class="info-note" role="status" id="esp-depasse"><b>' + esc(membresPourPlaces(d.membres, a.places)) + '.</b> Personne n\'est retiré et chacun garde son accès, mais plus aucun lien d\'invitation ne marche tant que les places ne suffisent pas.' + (d.proprio ? ' Ajoute des places dans « Messages Pro ».' : ' Seul le propriétaire peut ajouter des places.') + '</p>';
+    h += '<div class="rubrique"><span>Canaux</span><span>' + (d.canaux.length || '') + '</span></div><div class="carte">' + (d.canaux.length ? d.canaux.map(k => '<button type="button" class="contact presse" data-act="can-ouvrir" data-id="' + esc(k.id) + '">' +
+      avatar({ avatar: 0, initiales: '#' }) + '<span class="contact-texte"><span class="contact-nom"># ' + esc(k.nom) + '</span><span class="contact-role">' + esc((k.prive ? 'Privé' : 'Public') + ' · ' + nMembres(k.membres)) + '</span></span>' + CHEVRON + '</button>').join('') : '<p class="vide">Aucun canal pour l\'instant.</p>') + '</div>';
+    if (admin) h += '<div class="rubrique"><span>Nouveau canal</span></div><div class="carte carte-pad">' +
+      '<div class="info-champ"><input id="cn-nom" type="text" maxlength="80" autocomplete="off" placeholder="Nom du canal" aria-label="Nom du canal"></div>' +
+      '<div class="g-choix" role="radiogroup" aria-label="Qui voit ce canal ?"><button type="button" class="g-pilule presse" role="radio" aria-checked="' + (f.prive ? 'false' : 'true') + '" data-act="can-type" data-prive="0">Public</button><button type="button" class="g-pilule presse" role="radio" aria-checked="' + (f.prive ? 'true' : 'false') + '" data-act="can-type" data-prive="1">Privé</button></div>' +
+      '<p class="info-note">' + (f.prive ? 'Seules les personnes choisies ci-dessous voient ce canal (tu en fais partie).' : 'Tous les membres de l\'espace voient ce canal, et ceux qui arrivent plus tard le trouvent aussi.') + '</p>' +
+      (f.prive ? '<div class="carte">' + (c.contacts.filter(p => !p.moi).map(p => '<button type="button" class="contact presse" role="checkbox" aria-checked="' + (f.choisis.includes(p.id) ? 'true' : 'false') + '" data-act="can-choisir" data-uid="' + esc(p.id) + '">' + avatar(p) +
+        '<span class="contact-texte"><span class="contact-nom">' + esc(p.nom) + '</span></span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join('') || '<p class="vide">Personne d\'autre dans l\'espace pour l\'instant.</p>') + '</div>' : '') +
+      '<div class="info-actions"><button type="button" class="mini" data-act="can-creer">Créer le canal</button></div></div>';
+    h += '<div class="rubrique"><span>Contacts de l\'entreprise</span><span>' + c.contacts.length + '</span></div><div class="carte carte-pad"><p class="info-note">Les membres de cet espace, et personne d\'autre : il n\'y a pas d\'annuaire public.</p>' +
+      '<div class="info-champ"><input id="esp-filtre" type="search" autocomplete="off" placeholder="Filtrer la liste" aria-label="Filtrer les contacts de l\'entreprise"></div></div>' +
+      '<div class="carte" id="esp-contacts">' + c.contacts.map(p => ligneMembreEspace(p, d)).join('') + '</div><p class="vide" id="esp-aucun" hidden>Aucun contact ne correspond.</p>';
+    if (admin) h += '<div class="rubrique"><span>Inviter des collègues</span></div><div class="carte carte-pad"><p class="info-note">Un lien d\'invitation : en l\'ouvrant, un collègue rejoint l\'espace et ses canaux publics. Il vaut 7 jours, dans la limite des places de l\'abonnement.</p><div id="esp-lien">' + htmlLienInvitation(lien) + '</div>' +
+      '<div class="info-actions"><button type="button" class="mini" data-act="esp-lien-creer">Créer un lien</button><button type="button" class="mini danger" data-act="esp-lien-revoquer">Révoquer les liens' + (a && a.invitations ? ' (' + a.invitations + ' actif' + (a.invitations > 1 ? 's' : '') + ')' : '') + '</button></div></div>';
+    if (d.proprio) h += '<div class="rubrique"><span>Nom de l\'espace</span></div><div class="carte carte-pad"><div class="info-champ"><input id="esp-nom" type="text" maxlength="80" autocomplete="off" value="' + esc(d.nom) + '" aria-label="Nom de l\'espace"><button type="button" class="mini" data-act="esp-renommer">Enregistrer</button></div></div>';
+    h += '<div class="carte">' + (d.proprio ? '<button type="button" class="reglage presse danger" data-act="esp-dissoudre"><span class="reglage-texte">Supprimer l\'espace<small>Les canaux et leurs messages sont effacés pour tous. Résilie d\'abord l\'abonnement.</small></span></button>'
+      : '<button type="button" class="reglage presse danger" data-act="esp-quitter"><span class="reglage-texte">Quitter l\'espace<small>Tu sors aussi de ses canaux.</small></span></button>') + '</div>';
+    corps.innerHTML = h;
+    for (const k of Object.keys(champs)) { const x = $(k); if (x && champs[k]) x.value = champs[k]; }
+    appliquerFiltreEspace();
+    if (cle) { const b = cle[0] === '#' ? $(cle.slice(1)) : Array.from(corps.querySelectorAll('[data-act]')).find(x => x.dataset.act + '|' + (x.dataset.uid || x.dataset.id || '') === cle); if (b) b.focus({ preventScroll: true }); }
+  }
+  $('info-corps').addEventListener('input', e => {
+    if (e.target && e.target.id === 'esp-filtre') appliquerFiltreEspace();
+    if (e.target && e.target.id === 'ab-places') { aboEtat.places = parseInt(e.target.value, 10) || 0; majTotalAbo(); }
+  });
+
+  /* ── La feuille « Abonnement » : l'état de Messages Pro pour cet espace, payer, gérer, « J'ai réglé — vérifier » ──
+     ⛔ L'état est celui que le SERVICE a relu chez Stripe ; « J'ai réglé — vérifier » le relit, il ne croit pas la page. Le retour de Stripe (`?abo=retour`) relit tout seul. Seul le propriétaire paie ; un
+     administrateur lit l'état. Aucune promesse que le service ne tient pas : « mode test » dit qu'aucun vrai prélèvement n'a lieu, « pas encore ouvert » dit qu'aucun paiement n'est possible. */
+  async function relireAbonnement(id, depuisRetour) {
+    const X = esp.abo; if (!X) return;
+    X.erreur = '';
+    try {
+      const ab = await source.abonnementRelire(id);
+      X.ab = ab;
+      const st = ab.abonnement && ab.abonnement.statut;
+      X.note = st === 'active' || st === 'trialing' ? (depuisRetour ? 'Merci ! ' : '') + 'Abonnement confirmé par Stripe : l\'espace est en Messages Pro.'
+        : st === 'past_due' || st === 'unpaid' ? 'Stripe signale un paiement en retard pour cet abonnement.'
+        : ab.paiementEnAttente ? 'Stripe n\'a pas encore confirmé le paiement. Si tu viens de payer, patiente un instant puis touche « J\'ai réglé — vérifier ».'
+        : 'Stripe ne montre pas d\'abonnement actif pour cet espace.';
+    } catch (er) { X.note = ''; X.erreur = phraseEspace(er, 'L\'abonnement n\'a pas pu être relu chez Stripe : l\'état affiché est le dernier connu.'); }
+  }
+  /* `garder` : un redessin DÉCLENCHÉ PAR UN ÉVÉNEMENT (l'espace a changé) garde le verdict que la personne vient de lire (« Abonnement confirmé… ») et l'écran en place pendant la relecture */
+  async function rendreAbonnement(garder) {
+    const id = etat.groupe.espaceId, corps = $('info-corps');
+    const retour = etat.retourAbo && etat.retourAbo.espace === id ? etat.retourAbo : null; if (retour) etat.retourAbo = null;
+    const avant = garder && esp.abo && esp.abo.d && esp.abo.d.id === id ? esp.abo : null;
+    if (!avant) corps.innerHTML = '<p class="vide">Chargement…</p>';
+    let d = null, ab = null, of = null, panne = null;
+    try { [d, ab, of] = await Promise.all([source.espace(id), source.abonnement(id), source.abonnementOffres()]); } catch (e) { panne = e; }
+    if (!etat.groupe.ouvert || etat.groupe.mode !== 'abo' || etat.groupe.espaceId !== id) return;           // la feuille s'est fermée pendant l'attente
+    if (panne) { corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">' + esc(phraseEspace(panne, 'L\'abonnement n\'a pas pu être lu.')) + '</p>'; return; }
+    esp.abo = { d, ab, of, note: avant ? avant.note : '', erreur: avant ? avant.erreur : '' };
+    if (!aboEtat.cycle || !of.offres.some(o => o.id === aboEtat.cycle)) aboEtat.cycle = of.offres.some(o => o.id === of.defaut) ? of.defaut : (of.offres[0] ? of.offres[0].id : null);
+    if (!(aboEtat.places >= 1)) aboEtat.places = Math.max(ab.membres, of.places.min || 1, ab.abonnement ? ab.abonnement.places : 1);
+    if (retour && retour.motif === 'annule') esp.abo.note = 'Paiement annulé : rien n\'a été prélevé.';
+    else if (retour) await relireAbonnement(id, retour.motif === 'retour');          // le retour de Stripe : le verdict est RELU chez Stripe, jamais cru sur parole
+    if (!etat.groupe.ouvert || etat.groupe.mode !== 'abo' || etat.groupe.espaceId !== id) return;
+    peindreAbonnement();
+  }
+  function peindreAbonnement() {
+    const corps = $('info-corps'), X = esp.abo; if (!X || !etat.groupe.ouvert || etat.groupe.mode !== 'abo') return;
+    const { d, ab, of } = X, st = ab.abonnement ? ab.abonnement.statut : '', vivant = ['active', 'trialing', 'past_due', 'unpaid'].includes(st);
+    const offre = of.offres.find(o => o.id === aboEtat.cycle);
+    let h = '<p class="info-erreur" id="info-erreur" role="alert"' + (X.erreur ? '' : ' hidden') + '>' + esc(X.erreur) + '</p>' +
+      '<div class="info-tete">' + avatar(avatarEspace(d)) + '<div><h3 class="info-nom">Messages Pro</h3><p class="info-sous">' + esc(d.nom) + '</p></div></div>' +
+      (X.note ? '<p class="info-note" role="status">' + esc(X.note) + '</p>' : '') +
+      '<div class="rubrique"><span>État</span></div><div class="carte carte-pad">' +
+      '<p class="reg-ligne"><b>Formule</b> ' + esc(FORMULE_LBL[ab.formule] || FORMULE_LBL.perso) + '</p>' +
+      (ab.abonnement ? '<p class="reg-ligne"><b>Abonnement</b> ' + esc((STATUT_ABO[st] || st) + ' · ' + ab.abonnement.places + (ab.abonnement.places > 1 ? ' places' : ' place')) + '</p>' +
+        (ab.abonnement.finPeriode ? '<p class="reg-ligne"><b>' + (ab.abonnement.annule ? 'Fin de l\'abonnement' : 'Prochaine échéance') + '</b> ' + esc(dateCourte(ab.abonnement.finPeriode)) + '</p>' : '') : '') +
+      '<p class="reg-ligne"><b>Places</b> ' + esc(ab.places === null ? 'illimitées pendant la bêta' : ab.places === 0 ? 'aucune place payée (' + nMembres(ab.membres) + ' dans l\'espace)' : ab.membres + ' utilisée' + (ab.membres > 1 ? 's' : '') + ' sur ' + ab.places) + '</p>' +
+      (ab.sursisJusqua ? '<p class="info-note">Paiement en retard : les fonctions Pro restent disponibles jusqu\'au ' + esc(dateCourte(ab.sursisJusqua)) + '. Règle l\'abonnement pour les garder.</p>' : '') +
+      (ab.formule === 'impaye' ? '<p class="info-erreur" role="alert">Les fonctions Pro (créer un canal, inviter un collègue) sont suspendues tant que le paiement n\'est pas réglé. Rien n\'est perdu : les messages, les canaux et les membres restent.</p>' : '') +
+      (ab.abonnement && ab.abonnement.annule ? '<p class="info-note">Résilié à la fin de la période : l\'espace repasse en Perso après cette date.</p>' : '') +
+      (ab.placesDepassees ? '<p class="info-note" role="status" id="ab-depasse"><b>' + esc(membresPourPlaces(ab.membres, ab.places)) + '.</b> Personne n\'est retiré et chacun garde son accès, mais on ne peut plus inviter. ' + (d.proprio ? 'Ajoute des places (« Gérer l\'abonnement ») pour inviter de nouveau.' : 'Seul le propriétaire peut ajouter des places.') + '</p>' : '') +
+      (ab.paiementEnAttente ? '<p class="info-note">Un paiement a été commencé chez Stripe. Si tu l\'as réglé, touche « J\'ai réglé — vérifier ».</p>' : '') +
+      (ab.stripeMuet ? '<p class="info-note">Le service de paiement ne répond pas : l\'état affiché est le dernier connu.</p>' : '') +
+      (!ab.ouvert ? '<p class="info-note">L\'abonnement n\'est pas encore ouvert sur ce service : aucun paiement n\'est possible.</p>' : ab.toutOuvert ? '<p class="info-note">Pendant la bêta, les fonctions Pro sont ouvertes à tous les espaces.</p>' : ab.mode === 'test' ? '<p class="info-note">Mode test : aucun vrai prélèvement.</p>' : '') + '</div>';
+    if (!d.proprio) h += '<p class="info-note">Seul le propriétaire de l\'espace paie et gère l\'abonnement. Tu peux en lire l\'état ici.</p>';
+    else if (ab.ouvert) {
+      if (!vivant && offre) {
+        const total = aboEtat.places * offre.eurosParPlace;
+        h += '<div class="rubrique"><span>S\'abonner</span></div><div class="carte carte-pad"><p class="info-note">Messages Pro se paie par place : une place par membre de l\'espace. Le paiement se fait chez Stripe ; tu reviens ici ensuite.</p>' +
+          '<div class="g-choix" role="radiogroup" aria-label="Rythme de paiement">' + of.offres.map(o => '<button type="button" class="g-pilule presse" role="radio" aria-checked="' + (o.id === aboEtat.cycle ? 'true' : 'false') + '" data-act="abo-cycle" data-cycle="' + esc(o.id) + '">' + esc(o.par === 'an' ? 'Par an' : 'Par mois') + '</button>').join('') + '</div>' +
+          '<label class="champ-profil"><span>Nombre de places</span><input id="ab-places" type="number" inputmode="numeric" min="' + Math.max(1, ab.membres) + '" max="' + (of.places.max || 500) + '" value="' + aboEtat.places + '"></label>' +
+          '<p class="reg-ligne" id="ab-total"><b>Total</b> ' + esc(euros(total) + ' par ' + (offre.par === 'an' ? 'an' : 'mois') + ' (' + aboEtat.places + ' × ' + euros(offre.eurosParPlace) + ')') + '</p>' +
+          '<div class="info-actions"><button type="button" class="mini" data-act="abo-payer">Payer avec Stripe</button></div></div>';
+      }
+      if (vivant) h += '<div class="carte"><button type="button" class="reglage presse" data-act="abo-portail"><span class="reglage-texte">Gérer l\'abonnement<small>Changer les places ou la carte, résilier : chez Stripe</small></span>' + CHEVRON + '</button></div>';
+      h += '<div class="carte"><button type="button" class="reglage presse" data-act="abo-relire"><span class="reglage-texte">J\'ai réglé — vérifier<small>Relit l\'abonnement chez Stripe</small></span></button></div>';
+    }
+    h += '<div class="carte"><button type="button" class="reglage presse" data-act="abo-espace"><span class="reglage-texte">Retour à l\'espace</span>' + CHEVRON + '</button></div>';
+    corps.innerHTML = h;
+  }
+  /* le total suit la frappe : « 5 × 15,00 € » */
+  function majTotalAbo() {
+    const X = esp.abo, t = $('ab-total'), offre = X && X.of.offres.find(o => o.id === aboEtat.cycle); if (!t || !offre) return;
+    t.innerHTML = '<b>Total</b> ' + esc(euros(aboEtat.places * offre.eurosParPlace) + ' par ' + (offre.par === 'an' ? 'an' : 'mois') + ' (' + aboEtat.places + ' × ' + euros(offre.eurosParPlace) + ')');
+  }
+
+  /* ── Les gestes des feuilles « Entreprise », « Espace » et « Abonnement », et ceux d'un canal (feuille « Infos ») : chaque geste efface le refus d'avant avant de travailler ── */
+  $('info-corps').addEventListener('click', async e => {
+    const b = e.target.closest('[data-act]'); if (!b || b.disabled || !/^(esp|can|abo)-/.test(b.dataset.act) || !CAP.espaces) return;
+    if (b.getAttribute('aria-disabled') === 'true') return;
+    const act = b.dataset.act, id = etat.groupe.espaceId, cid = etat.groupe.convId, espCanal = $('info-corps').dataset.espace || '';
+    const relire = () => { $('info-corps').dataset.sig = ''; if (etat.groupe.ouvert && etat.groupe.mode === 'espace') return rendreEspace(); };
+    erreurInfo('');
+    try {
+      if (act === 'esp-ouvrir') { basculerFeuille('espace:' + b.dataset.id); return; }
+      if (act === 'esp-creer') {
+        const nom = ($('en-nom').value || '').trim();
+        if (!nom) { erreurInfo('Donne un nom à l\'espace.'); $('en-nom').focus(); return; }
+        b.setAttribute('aria-disabled', 'true');
+        try { const d = await source.espaceCreer(nom); mot('Espace créé'); basculerFeuille('espace:' + d.id); chargerEspaces(); } finally { b.removeAttribute('aria-disabled'); }
+        return;
+      }
+      if (act === 'esp-lien-lire') { await lireInvitationSaisie(); return; }
+      if (act === 'esp-rejoindre') {
+        b.setAttribute('aria-disabled', 'true');
+        try { const r = await source.invitationAccepter(b.dataset.code); mot(r.deja ? 'Tu es déjà dans cet espace' : 'Tu as rejoint « ' + r.espace.nom + ' »'); basculerFeuille('espace:' + r.espace.id); chargerEspaces(); } finally { b.removeAttribute('aria-disabled'); }
+        return;
+      }
+      if (act === 'esp-renommer') { await source.espaceRenommer(id, $('esp-nom').value); mot('Nom enregistré'); chargerEspaces(); await relire(); return; }
+      if (act === 'esp-role') { await source.membreRole(id, b.dataset.uid, b.dataset.admin === '1'); await relire(); return; }
+      if (act === 'esp-retirer') { if (!armer(b, 'Toucher encore pour retirer')) return; const r = await source.membreRetirer(id, b.dataset.uid); mot(r && r.liensRevoques ? 'Membre retiré · liens d\'invitation révoqués' : 'Membre retiré de l\'espace'); esp.lien = null; await relire(); return; }
+      if (act === 'esp-transferer') { if (!armer(b, 'Toucher encore pour passer la propriété')) return; await source.espaceTransferer(id, b.dataset.uid); mot('Tu n\'es plus propriétaire : la propriété est passée'); chargerEspaces(); await relire(); return; }
+      if (act === 'esp-lien-creer') {
+        const r = await source.invitationCreer(id);
+        esp.lien = { espace: id, code: r.code, expireLe: r.expireLe, max: r.max };
+        if (etat.groupe.ouvert && etat.groupe.mode === 'espace' && etat.groupe.espaceId === id && $('esp-lien')) $('esp-lien').innerHTML = htmlLienInvitation(esp.lien);
+        relire();
+        return;
+      }
+      if (act === 'esp-lien-revoquer') { const n = await source.invitationsRevoquer(id); esp.lien = null; $('esp-lien').innerHTML = ''; mot(n ? n + (n > 1 ? ' liens révoqués' : ' lien révoqué') : 'Aucun lien à révoquer'); await relire(); return; }
+      if (act === 'esp-quitter') { if (!armer(b, 'Toucher encore pour quitter l\'espace')) return; await source.espaceQuitter(id); mot('Tu as quitté l\'espace'); chargerEspaces(); fermerFeuille(false); return; }
+      if (act === 'esp-dissoudre') { if (!armer(b, 'Toucher encore pour supprimer l\'espace')) return; await source.espaceDissoudre(id); mot('Espace supprimé'); chargerEspaces(); fermerFeuille(false); return; }
+      if (act === 'can-ouvrir') { ouvrirConvId(b.dataset.id); return; }
+      if (act === 'can-type') { esp.forme.prive = b.dataset.prive === '1'; await relire(); return; }
+      if (act === 'can-choisir') { const u = b.dataset.uid, i = esp.forme.choisis.indexOf(u); if (i < 0) esp.forme.choisis.push(u); else esp.forme.choisis.splice(i, 1); await relire(); return; }
+      if (act === 'can-creer') {
+        const nom = ($('cn-nom').value || '').trim();
+        if (!nom) { erreurInfo('Donne un nom au canal.'); $('cn-nom').focus(); return; }
+        b.setAttribute('aria-disabled', 'true');
+        try { const r = await source.canalCreer(id, { nom, prive: esp.forme.prive, membres: esp.forme.choisis }); esp.forme = { prive: false, choisis: [] }; $('cn-nom').value = ''; mot('Canal créé'); ouvrirConvId(r.id); } finally { b.removeAttribute('aria-disabled'); }
+        return;
+      }
+      if (act === 'abo-ouvrir') { basculerFeuille('abo:' + id); return; }
+      if (act === 'abo-espace') { basculerFeuille('espace:' + id); return; }
+      if (act === 'abo-cycle') { aboEtat.cycle = b.dataset.cycle; peindreAbonnement(); return; }
+      if (act === 'abo-payer') {
+        const X = esp.abo, offre = X && X.of.offres.find(o => o.id === aboEtat.cycle), v = parseInt(($('ab-places') || {}).value, 10);
+        const min = Math.max(1, X ? X.ab.membres : 1), max = (X && X.of.places.max) || 500;
+        if (!offre || !(v >= min && v <= max)) { erreurInfo('Le nombre de places doit être entre ' + min + ' (le nombre de membres) et ' + max + '.'); return; }
+        aboEtat.places = v; b.setAttribute('aria-disabled', 'true');
+        try { const r = await source.abonnementPayer(id, { places: v, cycle: offre.id }); mot('Direction le paiement chez Stripe…'); location.assign(r.url); }
+        catch (er) {
+          b.removeAttribute('aria-disabled');
+          if (er && er.code === 'abonnement_existant') { await relireAbonnement(id, false); peindreAbonnement(); }       // un autre appareil a déjà payé : l'écran se met à jour
+          throw er;
+        }
+        return;
+      }
+      if (act === 'abo-portail') {
+        b.setAttribute('aria-disabled', 'true');
+        try { const r = await source.abonnementPortail(id); location.assign(r.url); } catch (er) { b.removeAttribute('aria-disabled'); throw er; }
+        return;
+      }
+      if (act === 'abo-relire') {
+        b.setAttribute('aria-disabled', 'true');
+        try { await relireAbonnement(id, false); } finally { b.removeAttribute('aria-disabled'); }
+        peindreAbonnement();
+        chargerEspaces();
+        return;
+      }
+      /* ── les gestes d'un canal : la feuille « Infos » d'une conversation de type canal ── */
+      if (act === 'can-renommer') { await source.canalRenommer(espCanal, cid, $('cn-renom').value); mot('Canal renommé'); return; }
+      if (act === 'can-ajouter-membre') { await source.canalAjouterMembres(espCanal, cid, [b.dataset.uid]); return; }
+      if (act === 'can-retirer-membre') { await source.canalRetirerMembre(espCanal, cid, b.dataset.uid); return; }
+      if (act === 'can-quitter') {
+        if (!armer(b, 'Toucher encore pour quitter le canal')) return;
+        await source.quitter(cid); mot('Tu as quitté le canal');
+        remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
+        return;
+      }
+      if (act === 'can-supprimer') {
+        if (!armer(b, 'Toucher encore pour supprimer le canal')) return;
+        await source.canalSupprimer(espCanal, cid); mot('Canal supprimé');
+        return;
+      }
+    } catch (er) { erreurInfo(phraseEspace(er, 'Cette action n\'a pas pu se faire.')); }
+  });
+  /* l'espace change (un membre arrive ou part, un rôle, un nom, un canal, l'abonnement) : Réglages et la feuille ouverte se relisent — sans effacer ce que la personne est en train de taper */
+  function surEspaces(ev) {
+    if (!CAP.espaces) return;
+    if ($('reg-esp')) chargerEspaces();
+    if (!etat.groupe.ouvert) return;
+    const m = etat.groupe.mode;
+    if (m === 'espace' && (!ev.id || ev.id === etat.groupe.espaceId)) rendreEspace();
+    else if (m === 'abo' && (!ev.id || ev.id === etat.groupe.espaceId) && !document.activeElement.closest('#info-corps input')) rendreAbonnement(true);
+  }
+  /* un lien d'invitation ouvert dans un onglet DÉJÀ ouvert (seul le fragment change) : même traitement que le lien d'un contact (voir plus haut) */
+  window.addEventListener('hashchange', () => {
+    const c = CAP.espaces && etat.route ? invitationDansAdresse() : null;
+    if (!c) return;
+    /* Le changement de fragment a d'abord FERMÉ la feuille (popstate sans état) ; le retour en arrière la ROUVRE si elle l'était, et son rendu prend le code tout de suite (`etat.codeInvitation`, posé AVANT le retour).
+       Le code est donc consommé — rien à faire. Sinon (aucune feuille « Entreprise » rouverte) on ouvre la feuille ; et si elle est ouverte et déjà dessinée, le code reste là : on le pose dans son champ.
+       (Relevé au navigateur : le poser APRÈS le retour, quand le rendu de la feuille rouverte avait déjà commencé, le perdait — l'aperçu ne venait jamais.) */
+    etat.codeInvitation = c;
+    window.addEventListener('popstate', () => {
+      if (etat.codeInvitation !== c) return;
+      declencheur = null;
+      if (etat.groupe.ouvert && etat.groupe.mode === 'entreprise' && $('en-code')) { etat.codeInvitation = null; $('en-code').value = c; erreurInfo(''); lireInvitationSaisie().catch(e => erreurInfo(phraseEspace(e, 'Ce lien n\'a pas pu être lu.'))); return; }
+      ouvrirFeuille('entreprise');
+    }, { once: true });
+    history.back();
+  });
+  /* le retour de Stripe : `?abo=retour|annule|portail&e=<espace>` — lu AVANT que l'adresse ne soit nettoyée, jamais cru (la feuille relit chez Stripe) */
+  function lireRetourAbo() {
+    if (!CAP.espaces) return null;
+    try {
+      const q = new URLSearchParams(location.search), motif = q.get('abo'), e = q.get('e');
+      return ['retour', 'annule', 'portail'].includes(motif) && ID_ESPACE.test(e || '') ? { motif, espace: e } : null;
+    } catch (x) { return null; }
+  }
+
   /* ── Le menu d'un message : réagir, répondre, copier, modifier, supprimer — au bouton (souris), à l'appui long (doigt) ou au clic droit ── */
   const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'], DELAI_MODIF_MS = 15 * 60000;
   function fermerMenu() {
@@ -2939,7 +3346,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   function ouvrirMenuMessage(mid, declencheurEl) {
     const m = trouverMessage(mid), c = etat.convDonnees;
     if (!CAP.actionsMessage || !m || !c || m.systeme || m.attente || (etat.menu && etat.menu.mid === mid)) return;
-    const moi = m.auteur === MOI.id, admin = c.type === 'groupe' && c.admins.indexOf(MOI.id) >= 0, ferme = !!compoFerme(c);
+    const moi = m.auteur === MOI.id, admin = multi(c) && c.admins.indexOf(MOI.id) >= 0, ferme = !!compoFerme(c);
     const mienne = (m.reactions || []).find(r => r.moi);
     etat.menu = { mid, declencheur: declencheurEl || null, t: Date.now() };
     let h = '<div class="menu-emojis" role="group" aria-label="Réagir">' + (m.supprime ? '' : REACTIONS.map(x => '<button type="button" class="menu-emoji" data-menu-reac="' + x + '" aria-pressed="' + (mienne && mienne.emoji === x ? 'true' : 'false') + '" aria-label="Réagir avec ' + x + '">' + x + '</button>').join('')) + '</div>';
@@ -3034,6 +3441,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
 
   /* ═══ 11. LE DÉMARRAGE ═══════════════════════════════════════════════════════════════════════════════════════════════════════ */
   async function demarrer() {
+    const retourAbo = lireRetourAbo();                                       // lu AVANT que `lireMotif` ne nettoie l'adresse
     const motif = typeof source.demarrer === 'function' ? lireMotif() : null;
     if (typeof source.demarrer === 'function') {
       let d; try { d = await source.demarrer(); } catch (e) { d = { connecte: false, motif: (e && e.code) || 'inconnue', phrase: phrase(e, 'Le service ne répond pas.') }; }
@@ -3047,6 +3455,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     peindreMoi();
     if (CAP.fichiers) $('compo-plus').setAttribute('aria-label', 'Joindre une photo ou un fichier');
     const codeLien = CAP.liens ? lienDansAdresse() : null;       // lu AVANT que la route ne réécrive l'adresse
+    const codeInvitation = CAP.espaces ? invitationDansAdresse() : null;
     construireNavigation();
     construireContacts();
     if (!CAP.appels) rendreCoquille('appels');
@@ -3069,6 +3478,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
       if (ev.type === 'appels' && CAP.appels) rafraichirAppels();
       if (ev.type === 'appel' && ev.id === etat.appelId) rafraichirAppel();
       if (ev.type === 'contacts') surContacts();
+      if (ev.type === 'espaces') surEspaces(ev);
       if (ev.type === 'moi') { MOI = source.moi() || MOI; peindreMoi(); peindreProfilReglage(); }          // mon nom, mon statut ou ma photo a changé (ici, ou sur un autre appareil)
       if (ev.type === 'reseau') { fluxPerdu = ev.etat !== 'ok'; $('hors-ligne').hidden = ev.etat === 'ok'; }
       if (ev.type === 'arrivee') surArrivee(ev);
@@ -3078,6 +3488,8 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
       if (ev.type === 'ouvrir') ouvrirConvId(ev.conv);                                                // une notification touchée : la source n'a laissé passer qu'une conversation
     });
     if (codeLien) { etat.codeLien = codeLien; declencheur = null; ouvrirFeuille('contact'); }
+    else if (codeInvitation) { etat.codeInvitation = codeInvitation; declencheur = null; ouvrirFeuille('entreprise'); }
+    else if (retourAbo) { etat.retourAbo = retourAbo; declencheur = null; ouvrirFeuille('abo:' + retourAbo.espace); }       // de retour de chez Stripe : la feuille de l'abonnement relit tout de suite
   }
   demarrer();
 })();

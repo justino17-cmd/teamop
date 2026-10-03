@@ -331,7 +331,10 @@ function navigateur(base, opts = {}) {
     const m = (init.method || 'GET').toUpperCase();
     const ck = c.enteteCookie(); if (ck) h.Cookie = ck;
     if (m !== 'GET' && m !== 'HEAD') h.Origin = origin;
-    const r = await FETCH(full, { method: m, headers: h, body: init.body, redirect: 'manual' });
+    /* ⛔ LE SIGNAL D'ABANDON SUIT, COMME DANS UN NAVIGATEUR. `sonder()` (api.js) ouvre le flux pour lire un refus et, s'il s'ouvre,
+       l'ABANDONNE par ce signal. Jeté ici, l'abandon ne faisait rien : la sonde gardait la place qui venait de se libérer, et un flux
+       refusé ne rouvrait plus — test-907 tombait au hasard, sous charge (3 octobre 2026 ; scratchpad/sonde-907-signal.js). */
+    const r = await FETCH(full, { method: m, headers: h, body: init.body, redirect: 'manual', signal: init.signal });
     c.absorber(r);
     return r;
   };

@@ -312,6 +312,18 @@ async function proxyCompteur(portCible) {
       const ca = OPMSG.creer({ base: svc.base, fetch: nA.fetch, EventSource: nA.EventSource });
       const cb = OPMSG.creer({ base: svc.base, fetch: nB.fetch, EventSource: nB.EventSource, attente: () => 60 });
       await ca.connexionBeta('alice', 'pw-alice-1234'); await cb.connexionBeta('bob', 'pw-bob-12345');
+      /* ⛔ UNE SONDE ABANDONNÉE REND SA PLACE. `sonder()` ouvre le flux pour lire un refus et l'abandonne par un signal s'il s'ouvre ; le faux
+         navigateur des bancs jetait ce signal, la sonde gardait alors la place libérée et le flux refusé ne rouvrait plus (2 ✗ au hasard, sous
+         charge, plus bas). Ici on le JOUE : la sonde occupe une place (population), puis l'abandon la rend — le service le dit. */
+      {
+        const ouverts = async () => (await T.client(svc.base).get('/health')).j.flux.ouverts;
+        const avant = await ouverts();
+        const ctl = new AbortController();
+        const sonde = await nB.fetch('/api/flux', { method: 'GET', headers: { Accept: 'text/event-stream' }, signal: ctl.signal });
+        v('population : la sonde OUVRE le flux (200) et occupe une place', [sonde.status, await ouverts()], [200, avant + 1]);
+        ctl.abort();
+        vrai('⛔ abandonnée par son signal, la sonde REND sa place (sinon un flux refusé ne rouvre plus)', !!(await T.attendre(async () => (await ouverts()) === avant, 3000, 20)));
+      }
       const recus = [], ouvertures = []; let erreur = null;
       const ecoute = cb.ecouter({ message: (d) => recus.push(d), ouvert: () => ouvertures.push(1), erreur: (e) => { erreur = e; } });
       vrai('ecouter() ouvre le flux (callback ouvert)', !!(await T.attendre(() => ouvertures.length >= 1, 4000)));

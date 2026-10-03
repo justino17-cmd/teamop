@@ -28,7 +28,7 @@ const code = sansCommentairesJs(fs.readFileSync(FICHIER, 'utf8'));
 vrai('une fois les commentaires retirés il reste du code (sinon les motifs ci-dessous passeraient sur du néant)', code.split('\n').filter(l => l.trim()).length > 40);
 v('le module n\'a rien lancé en étant chargé (main ne tourne que lancé en direct)', typeof S.evaluer, 'function');
 
-const SAIN = { ok: true, instance: 'beta', sha: 'a'.repeat(40), sauvegarde: { configuree: true, ageH: 0.5, essaiJours: 12, echecs: 0 }, stripeEchecMin: 0, pieces: { n: 4, octets: 123456, illisibles: 0, effacementsRates: 0 }, sms: { mode: 'journal', envoyes24h: 3, coutJourEur: 0.2, budgetJourPct: 1, budgetHeurePct: 0, boucliers: 0, ovhEchecs: 0, refus: {} } };
+const SAIN = { ok: true, instance: 'beta', sha: 'a'.repeat(40), sauvegarde: { configuree: true, ageH: 0.5, essaiJours: 12, echecs: 0 }, stripeEchecMin: 0, facturation: { mode: 'test', toutOuvert: false }, pieces: { n: 4, octets: 123456, illisibles: 0, effacementsRates: 0 }, sms: { mode: 'journal', envoyes24h: 3, coutJourEur: 0.2, budgetJourPct: 1, budgetHeurePct: 0, boucliers: 0, ovhEchecs: 0, refus: {} } };
 
 /* ══ 1. L'ÉVALUATION ═════════════════════════════════════════════════════════════════════════════════ */
 v('un /health sain ne fait rien crier', S.evaluer(SAIN, 'beta'), []);
@@ -118,4 +118,36 @@ v('   les tables à clés dynamiques s\'arrêtent à leur conteneur (y descendre
   v('   et il n\'est branché sur aucun workflow tant que le DNS n\'existe pas (le dire ici évite qu\'on le croie en service)', mentionnent, []);
 }
 
-t.fin();
+/* ══ 4. LE /health VIVANT ═══════════════════════════════════════════════════════════════════════════════
+   ⛔ Le /health sain d'exemple (SAIN, plus haut) s'écrit À LA MAIN : un champ ajouté au service et pas à l'exemple échappait à toute la section 2 — pris le 3 octobre 2026, quand
+   `facturation` est entrée dans /health et que ce banc est resté vert. On part donc du /health que le VRAI service rend, bêta ET production. (Le service ne démarre pas sans ses
+   dépendances : le banc le dit au lieu de passer sur du néant.)
+   ⚠️ LA DETTE, NOMMÉE : ce contrôle a trouvé quatorze champs d'AVANT l'étape 5 que personne n'a jamais classés (ni surveillés, ni « vus et pas surveillés ») — la règle de la tête de ce
+   fichier n'était tenue que sur l'exemple. Les classer demande des décisions qui sont à Justin (`disque.bas` : le service passe en lecture seule, faut-il crier ?), pas à un banc :
+   ils sont listés ICI, un par un, et le banc exige qu'AUCUN champ neuf n'aille les rejoindre. Un champ classé depuis sort de la liste (le banc le dit), jamais l'inverse. */
+const DETTE = ['version', 'uptimeS', 'base.ok', 'base.schema', 'flux.ouverts', 'flux.personnes', 'flux.refus', 'porte', 'porte.ouvertures', 'porte.refusAmont', 'porte.derniereRelectureOk', 'boucle.p99Ms', 'disque.bas', 'quotasRefus'];
+const T = require('./outils-msg');
+(async () => {
+  if (!fs.existsSync(path.join(T.SERVICE, 'node_modules'))) {
+    console.log('  — server-msg/node_modules absent : le /health vivant n\'est pas joué (npm ci dans server-msg/)');
+    t.fin();
+    return;
+  }
+  const vus = new Set();
+  for (const instance of ['beta', 'prod']) {
+    let svc = null;
+    try { svc = await T.lancerService({ instance }); }
+    catch (e) { vrai('le service ' + instance + ' démarre pour qu\'on lise son /health (' + String(e.message).split('\n')[0].slice(0, 160) + ')', false); continue; }
+    try {
+      const h = (await T.client(svc.base).get('/health')).j;
+      vrai('population : le /health ' + instance + ' vivant a des champs à classer (' + (h ? S.chemins(h).length : 0) + ')', !!h && S.chemins(h).length >= 15);
+      const sans = S.nonClasses(h);
+      for (const c of sans) vus.add(c);
+      v('⛔ le /health ' + instance + ' VIVANT n\'a aucun champ NEUF sans décision — un champ neuf oblige à trancher, une fois, par écrit (l\'exemple écrit à la main ne le voyait pas)', sans.filter(c => !DETTE.includes(c)), []);
+      vrai('   la facturation y est, et elle est classée : `stripeEchecMin` est surveillé, le mode et le drapeau de la bêta sont nommés', !!h.facturation && S.nonClasses({ stripeEchecMin: 0, facturation: h.facturation }).length === 0);
+      v('⛔ … et RIEN d\'autre : ni espaces, ni abonnés, ni impayés (/health est public : ces chiffres commerciaux se lisent dans Stripe)', S.chemins(h.facturation).sort(), ['mode', 'toutOuvert']);
+    } finally { if (svc) await svc.arreter(); }
+  }
+  v('⛔ chaque champ de la dette existe encore et n\'est toujours pas classé (un champ classé sort de la liste : elle ne parle jamais du vide)', DETTE.filter(c => !vus.has(c)), []);
+  t.fin();
+})();
