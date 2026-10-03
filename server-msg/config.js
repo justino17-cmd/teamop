@@ -22,9 +22,11 @@
  *                                relâchent l'un ou l'autre.
  *   beta          {urlGestion, relectureMs, timeoutMs}   La porte (instance beta seulement).
  *   quotas        {nom:{max,fenetreMs}}   Surcharge des plafonds de départ (bancs).
- *   pieces        {photoMax, vocalMax, fichierMax, avatarMax, quotaPersonne, depotsHeure, orphelineMs, simultanes, parPersonne, bloc, memoireImages}
+ *   pieces        {photoMax, vocalMax, fichierMax, avatarMax, quotaPersonne, depotsHeure, orphelineMs, simultanes, parPersonne, bloc, memoireImages,
+ *                  depotDebitMin, depotGraceMs, lectureAttenteMs, lectureMaxMs}
  *                                Les pièces (photos, vocaux, fichiers) : tailles maximales en octets, quota par personne, envois par heure,
- *                                durée de vie d'une pièce jamais envoyée, envois en même temps, mémoire que les images en cours de nettoyage se partagent.
+ *                                durée de vie d'une pièce jamais envoyée, envois en même temps, mémoire que les images en cours de nettoyage se partagent,
+ *                                débit minimal d'un envoi (octets par seconde) après sa grâce (ms), attente maximale d'un lecteur qui ne lit plus (ms) et durée maximale d'une lecture (ms).
  *                                Voir `piecesConfig` pour les valeurs de départ.
  *   disqueMinMo   plancher d'espace libre sous lequel les écritures refusent (503).
  *   pulsationMs, presenceGraceMs, balayageMs, relectureMs   Rythmes (bancs).
@@ -88,11 +90,16 @@ function origines(cfg) {
    tiendrait en mémoire des photos que rien n'arrête. `bloc` est la taille de bloc du scellage (une puissance de deux) : il ne change que les fichiers à venir, chaque fichier
    porte la sienne dans son en-tête. */
 const Mo = 1048576;
-const PIECES_DEFAUT = { photoMax: 12 * Mo, vocalMax: 10 * Mo, fichierMax: 25 * Mo, avatarMax: 2 * Mo, quotaPersonne: 2048 * Mo, depotsHeure: 60, orphelineMs: 24 * 3600000, simultanes: 16, parPersonne: 4, bloc: 65536, memoireImages: 96 * Mo };
+/* ⛔ UN ENVOI, OU UNE LECTURE, NE TIENT PAS UNE PLACE SANS AVANCER (relecture du gardien, A2 et A4). `depotDebitMin` : un envoi doit avoir reçu au moins ce débit moyen, après `depotGraceMs` de grâce
+   (64 Ko/s après 30 s, soit ~0,5 Mbit/s : un « slowloris » qui annonce 25 Mo et envoie un octet par seconde ne tient plus 300 s une des seize places). `lectureAttenteMs` : un lecteur dont la
+   connexion reste pleine plus longtemps que cela est coupé (le fichier ouvert est rendu) ; `lectureMaxMs` : plafond d'une lecture entière, pour celui qui lit juste assez vite pour ne jamais s'arrêter. */
+const PIECES_DEFAUT = { photoMax: 12 * Mo, vocalMax: 10 * Mo, fichierMax: 25 * Mo, avatarMax: 2 * Mo, quotaPersonne: 2048 * Mo, depotsHeure: 60, orphelineMs: 24 * 3600000, simultanes: 16, parPersonne: 4, bloc: 65536, memoireImages: 96 * Mo,
+  depotDebitMin: 64 * 1024, depotGraceMs: 30000, lectureAttenteMs: 30000, lectureMaxMs: 600000 };
 function piecesConfig(c) {
   const brut = c && typeof c === 'object' && !Array.isArray(c) ? c : {};
   const o = {};
-  const bornes = { photoMax: [1, 256 * Mo], vocalMax: [1, 256 * Mo], fichierMax: [1, 1024 * Mo], avatarMax: [1, 64 * Mo], quotaPersonne: [1, 1024 * 1024 * Mo], depotsHeure: [1, 100000], orphelineMs: [1000, 30 * 86400000], simultanes: [1, 256], parPersonne: [1, 64], bloc: [256, 1 << 24], memoireImages: [16 * Mo, 8192 * Mo] };
+  const bornes = { photoMax: [1, 256 * Mo], vocalMax: [1, 256 * Mo], fichierMax: [1, 1024 * Mo], avatarMax: [1, 64 * Mo], quotaPersonne: [1, 1024 * 1024 * Mo], depotsHeure: [1, 100000], orphelineMs: [1000, 30 * 86400000], simultanes: [1, 256], parPersonne: [1, 64], bloc: [256, 1 << 24], memoireImages: [16 * Mo, 8192 * Mo],
+    depotDebitMin: [1024, 1024 * Mo], depotGraceMs: [200, 600000], lectureAttenteMs: [100, 3600000], lectureMaxMs: [1000, 86400000] };
   for (const [k, [min, max]] of Object.entries(bornes)) {
     const v = brut[k] === undefined ? PIECES_DEFAUT[k] : brut[k];
     if (!Number.isInteger(v) || v < min || v > max) { const e = new Error('config: pieces.' + k + ' doit être un entier entre ' + min + ' et ' + max); e.code = 'CONFIG'; throw e; }

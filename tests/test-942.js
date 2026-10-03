@@ -292,6 +292,62 @@ const jeton = (b, canari) => b.includes(Buffer.from(canari, 'latin1'));
     v('un bloc plein exactement (1 024 octets, puis 2 048) : l\'écriture ne perd pas le drapeau « dernier »', await (async () => { const o = []; for (const t of [1024, 2048]) { const id = nouvelId(), d = crypto.randomBytes(t); await pc.deposer({ id, genre: 'fichier', flux: F.fluxDe(d, 512), max: 1 << 20 }); o.push((await lireTout(pc, id)).equals(d)); } return o; })(), [true, true]);
   }
 
+  /* ═══ 5 bis. UN ENVOI QUI N'AVANCE PAS NE TIENT PAS UNE PLACE (relecture du gardien, A4) ═══════════════════════════════════════ */
+  console.log('\nUn envoi qui n\'avance pas est coupé : un débit minimal après une grâce, jugé par une MINUTERIE (un envoi arrêté ne reçoit plus de morceau pour s\'en apercevoir)');
+  {
+    /* la formule, à horloge fausse : après `graceMs`, il faut avoir reçu `(écoulé − grâce) × débit` octets */
+    let t = 0; const maintenant = () => t;
+    const garde = (o) => { t = 0; return P.gardeDebit(Object.assign({ debitMin: 1000, graceMs: 1000, maintenant, pas: 5 }, o || {})); };
+    const verdict = (g, ms) => Promise.race([g.vigile.then(() => 'tenue', (e) => e.code), new Promise((ok) => setTimeout(() => ok('en_vie'), ms))]);
+    let g = garde(); t = 900;
+    v('⛔ pendant la grâce rien n\'est exigé : un envoi qui n\'a encore RIEN reçu n\'est pas coupé', await verdict(g, 60), 'en_vie'); g.arreter();
+    g = garde(); t = 1500;
+    v('⛔ la grâce passée, un envoi qui n\'a rien reçu est coupé (trop_lent) — par la minuterie, sans qu\'aucun morceau n\'arrive', await verdict(g, 300), 'trop_lent');
+    g = garde(); t = 1500; g.compter(500);
+    v('…le crédit exact (500 octets exigés, 500 reçus) ne coupe pas ; un octet exigé de plus, si', [await verdict(g, 60), (t = 1501, await verdict(g, 300))], ['en_vie', 'trop_lent']);
+    g = garde(); t = 0; let tenu = true;
+    for (let k = 1; k <= 50; k++) { t = k * 100; g.compter(200); if (await verdict(g, 8) !== 'en_vie') { tenu = false; break; } }
+    vrai('⛔ contre-épreuve : un envoi à bon débit (2 000 octets par seconde pour 1 000 exigés) n\'est JAMAIS coupé, cinq secondes durant (la grâce ne s\'use pas)', tenu && t === 5000); g.arreter();
+    g = garde(); g.arreter(); t = 9000;
+    v('une garde arrêtée ne coupe plus personne (le corps est lu en entier : le nettoyage et l\'écriture ne comptent pas dans le temps de l\'envoi)', await verdict(g, 80), 'en_vie');
+
+    /* la garde dans `deposer` : une vraie minuterie, de vrais flux */
+    const pc = neuf({ bloc: 1024 });
+    const sansRien = async () => { const o = []; for await (const f of pc.lister()) o.push(f.id); const tmp = fs.existsSync(path.join(pc.dossier, 'tmp')) ? fs.readdirSync(path.join(pc.dossier, 'tmp')) : []; return [o, tmp]; };
+    const jamais = new Promise(() => {});
+    const bin = crypto.randomBytes(300000);
+    const t0 = Date.now();
+    const e1 = await attrape(pc.deposer({ id: nouvelId(), genre: 'fichier', flux: F.fluxRetenu(bin, 100, jamais), max: 1 << 20, attendu: bin.length, debitMin: 100000, graceMs: 300 }));
+    const dur1 = Date.now() - t0;
+    vrai('⛔ un envoi qui s\'ARRÊTE après 100 octets est coupé (trop_lent) entre la grâce et une seconde de plus — il n\'attend pas le délai de Node (' + dur1 + ' ms)', e1 === 'trop_lent' && dur1 >= 250 && dur1 < 2500);
+    v('…et il ne reste ni fichier ni temporaire', await sansRien(), [[], []]);
+    /* une réserve de mémoire d'images JUSTE assez large pour une photo en cours (2 × le maximum) : si la coupure ne la rendait pas, la photo suivante serait refusée (`occupe`) */
+    const pm = neuf({ bloc: 1024, memoireImages: 2 * (1 << 20) });
+    const e2 = await attrape(pm.deposer({ id: nouvelId(), genre: 'photo', flux: F.fluxRetenu(F.jpeg({ exif: 'ZXCANARIQLENT' }), 60, jamais), max: 1 << 20, debitMin: 100000, graceMs: 300 }));
+    v('⛔ pareil pour une photo (tenue en mémoire) : coupée, et la réserve de mémoire est rendue (une autre photo passe ensuite)', [e2, await attrape(pm.deposer({ id: nouvelId(), genre: 'photo', flux: F.fluxDe(F.png()), max: 1 << 20, attendu: F.png().length, debitMin: 100000, graceMs: 300 }))], ['trop_lent', null]);
+    /* un envoi honnête mais lent : 300 000 octets en 6 morceaux espacés de 100 ms, soit ~500 Ko/s pour 100 Ko/s exigés */
+    const lent = { async *[Symbol.asyncIterator]() { for (let i = 0; i < bin.length; i += 50000) { await new Promise((ok) => setTimeout(ok, 100)); yield bin.subarray(i, i + 50000); } } };
+    const idl = nouvelId();
+    const rl = await attrape(pc.deposer({ id: idl, genre: 'fichier', flux: lent, max: 1 << 20, attendu: bin.length, debitMin: 100000, graceMs: 300 }));
+    v('⛔ contre-épreuve : un envoi lent mais au-dessus du débit minimal (6 morceaux espacés de 100 ms) passe, intact', [rl, (await lireTout(pc, idl)).equals(bin)], [null, true]);
+    /* une grâce n'est pas un débit : un premier morceau tardif (200 ms) puis un bon débit passe — la grâce couvre le démarrage */
+    const demarrage = { async *[Symbol.asyncIterator]() { await new Promise((ok) => setTimeout(ok, 200)); yield bin.subarray(0, 150000); yield bin.subarray(150000); } };
+    v('⛔ un démarrage tardif (200 ms avant le premier octet) est couvert par la grâce de 300 ms', await attrape(pc.deposer({ id: nouvelId(), genre: 'fichier', flux: demarrage, max: 1 << 20, attendu: bin.length, debitMin: 100000, graceMs: 300 })), null);
+    /* sans réglage (le module seul), aucune garde : un envoi qui s'arrête un moment puis finit passe */
+    const pause = { async *[Symbol.asyncIterator]() { yield bin.subarray(0, 1000); await new Promise((ok) => setTimeout(ok, 900)); yield bin.subarray(1000); } };
+    v('sans `debitMin` (le module seul) il n\'y a aucune garde : un envoi qui s\'arrête 900 ms puis finit passe', await attrape(pc.deposer({ id: nouvelId(), genre: 'fichier', flux: pause, max: 1 << 20, attendu: bin.length })), null);
+    /* aucune minuterie ne survit à un envoi : réussi, refusé tôt ou coupé — sinon chaque envoi en laisserait une, pour toujours */
+    let appels = 0; const compteur = () => { appels++; return Date.now(); };
+    const survie = async (nom, promesse, attendu) => { const r = await attrape(promesse); const avant = appels; await T.dort(700); return [nom, r, appels - avant]; };
+    const ok1 = await survie('réussi', pc.deposer({ id: nouvelId(), genre: 'fichier', flux: F.fluxDe(bin.subarray(0, 5000)), max: 1 << 20, attendu: 5000, debitMin: 1000, graceMs: 100000, maintenant: compteur }));
+    const refuse1 = await survie('refusé tôt', pc.deposer({ id: nouvelId(), genre: 'photo', flux: F.fluxDe(F.svg()), max: 1 << 20, debitMin: 1000, graceMs: 100000, maintenant: compteur }));
+    appels = 0;
+    const coupe1 = await survie('coupé', pc.deposer({ id: nouvelId(), genre: 'fichier', flux: F.fluxRetenu(bin, 100, jamais), max: 1 << 20, attendu: bin.length, debitMin: 100000, graceMs: 300, maintenant: compteur }));
+    vrai('population : la minuterie a bien tourné pendant l\'envoi coupé (' + appels + ' lectures de l\'horloge, dont ' + coupe1[2] + ' après)', appels - coupe1[2] > 0);
+    v('⛔ aucune minuterie ne survit à un envoi : réussi, refusé tôt ou coupé, l\'horloge n\'est plus lue 700 ms après', [ok1[1], ok1[2], refuse1[1], refuse1[2], coupe1[1], coupe1[2]], [null, 0, 'type_refuse', 0, 'trop_lent', 0]);
+    v('…et toujours rien sur le disque (hors la pièce réussie, le lent et le démarrage tardif)', (await sansRien())[1], []);
+  }
+
   /* ═══ 6. LE DISQUE : LISTER, EFFACER, NETTOYER ════════════════════════════════════════════════════════════════════════════ */
   console.log('\nLe disque : lister, effacer, nettoyer les temporaires (le balayeur n\'a que cela à sa disposition)');
   {

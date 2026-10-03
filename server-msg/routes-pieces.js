@@ -123,10 +123,21 @@ function installerPieces(H, ctx) {
     const id = stockage.nouvelId('f');
     try {
       let r;
-      try { r = await pieces.deposer({ id, genre, flux: req, max, attendu: taille }); }
+      try { r = await pieces.deposer({ id, genre, flux: req, max, attendu: taille, debitMin: pc.depotDebitMin, graceMs: pc.depotGraceMs }); }
       catch (e) {
         const c = e && e.code;
         if (c === 'trop_gros') return refus(res, 413, 'piece_trop_lourde', { max });
+        if (c === 'trop_lent') {
+          /* ⛔ UN ENVOI QUI N'AVANCE PAS REND SA PLACE (A4) : 408, la connexion se ferme derrière la réponse, et le `finally` ci-dessous rend la place ET la réservation de quota.
+             On continue de LIRE (en jetant) quelques secondes : fermer une connexion dont le corps n'est pas lu envoie un RST qui peut effacer la réponse avant que le client ne la lise —
+             il verrait « réseau coupé » au lieu de « envoi trop lent ». */
+          res.set('Connection', 'close');
+          ctx.journaliser('piece_depot_lent', {});
+          refus(res, 408, 'delai_depasse');
+          try { req.resume(); } catch (x) { /* déjà fermée */ }
+          const t = setTimeout(() => { try { req.destroy(); } catch (x) { /* déjà fermée */ } }, 3000); if (t.unref) t.unref();
+          return;
+        }
         if (c === 'type_refuse') return refus(res, 415, 'type_refuse');
         if (c === 'occupe') { res.set('Retry-After', '2'); return refus(res, 429, 'quota_atteint', { retry: 2, portee: 'simultane' }); }   // trop d'images en cours de nettoyage : dans un instant
         if (c === 'vide' || c === 'incomplet') return refus(res, 400, 'champ_invalide');
@@ -185,10 +196,24 @@ function installerPieces(H, ctx) {
     });
     if (partiel) res.set('Content-Range', 'bytes ' + debut + '-' + fin + '/' + total);
     if (req.method === 'HEAD') return res.end();
+    /* ⛔ UN LECTEUR LENT NE TIENT PAS UN FICHIER OUVERT (A2) : chaque lecture garde deux descripteurs (la connexion et le fichier). Sans tampon devant le service, un client qui ne lit plus
+       — ou qui lit un octet de temps en temps — les garde pour toujours. Deux butoirs : l'attente d'un `drain` (la connexion pleine ne se vide plus) et la durée totale de la lecture
+       (celui qui lit juste assez vite pour ne jamais s'arrêter). Le fichier est rendu par la fin du générateur. */
+    let coupee = null;
+    const couper = (raison) => { if (coupee) return; coupee = raison; ctx.journaliser('piece_lecture_coupee', { motif: raison }); try { res.destroy(); } catch (x) { /* déjà fermée */ } };
+    const butoir = setTimeout(() => couper('duree'), pc.lectureMaxMs); if (butoir.unref) butoir.unref();
     try {
       for await (const bloc of pieces.lire(p.id, debut, fin)) {
         if (res.destroyed || res.writableEnded) return;                     // le client est parti : on arrête de déchiffrer
-        if (!res.write(bloc)) await new Promise((ok) => { const f = () => { res.off('drain', f); res.off('close', f); ok(); }; res.on('drain', f); res.on('close', f); });
+        if (!res.write(bloc)) {
+          await new Promise((ok) => {
+            const attente = setTimeout(() => { fini(); couper('attente'); }, pc.lectureAttenteMs);
+            const f = () => fini();
+            const fini = () => { clearTimeout(attente); res.off('drain', f); res.off('close', f); ok(); };
+            res.on('drain', f); res.on('close', f);
+          });
+          if (coupee) return;
+        }
       }
       res.end();
     } catch (e) {
@@ -196,7 +221,7 @@ function installerPieces(H, ctx) {
          pendant qu'on la lisait (même course que ci-dessus : sa ligne n'existe plus) */
       if (stockage.pieceExiste(p.id)) { ctx.piecesEtat.illisibles++; ctx.journaliser('piece_illisible', { nom: e && e.code }); }
       try { res.destroy(); } catch (x) { /* déjà fermée */ }
-    }
+    } finally { clearTimeout(butoir); }
   });
 
   /* ══ MA PHOTO DE PROFIL ═════════════════════════════════════════════════════════════════════════════════════════════════ */

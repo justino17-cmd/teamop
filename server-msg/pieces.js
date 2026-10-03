@@ -251,6 +251,24 @@ function retirerMetadonnees(mime, b) {
   return b;
 }
 
+/* ══ 2 ter. UN ENVOI QUI N'AVANCE PAS NE TIENT PAS UNE PLACE ═══════════════════════════════════════════════════════════
+   Relecture du gardien, A4 : sans tampon devant le service (Caddy, accès direct), un envoi qui annonce 25 Mo et en envoie un octet par seconde tient une des `simultanes` places — et une
+   des `parPersonne` de son compte — jusqu'au délai de Node (300 s). Quatre comptes suffisaient à les prendre toutes. La garde est une MINUTERIE, pas un test à l'arrivée d'un morceau :
+   un envoi arrêté ne reçoit plus de morceau, c'est précisément celui qu'il faut voir. Après `graceMs`, l'envoi doit avoir reçu au moins `(écoulé − grâce) × débit minimal` octets : la grâce
+   est un crédit (30 s × 64 Ko/s ≈ 2 Mo), qu'un envoi lent mais honnête consomme avant d'être coupé, et qu'un envoi à bon débit n'entame jamais. */
+function gardeDebit({ debitMin, graceMs, maintenant = Date.now, pas = 250 }) {
+  const t0 = maintenant();
+  let recus = 0, minuterie = null;
+  const vigile = new Promise((_, rejeter) => {
+    minuterie = setInterval(() => {
+      const ecoule = maintenant() - t0;
+      if (ecoule > graceMs && recus < (ecoule - graceMs) * debitMin / 1000) { clearInterval(minuterie); rejeter(erreur('trop_lent')); }
+    }, pas);                                                                // ⛔ PAS de `unref` : un envoi en attente tient la connexion ouverte de toute façon, et la minuterie est ce qui le coupe
+  });
+  vigile.catch(() => {});                                                   // elle peut tomber quand plus personne ne l'attend : pas de rejet non traité
+  return { vigile, compter(n) { recus += n; }, arreter() { clearInterval(minuterie); } };
+}
+
 /* ══ 3. LE QUOTA PAR PERSONNE ═════════════════════════════════════════════════════════════════════════════════════════ */
 /* ⛔ DEUX ENVOIS EN MÊME TEMPS NE DÉPASSENT PAS LE QUOTA ENSEMBLE : ce que la base dit avoir déjà (`utilise`) ne contient pas les envois
    EN COURS. On réserve donc la taille annoncée dès l'ouverture de l'envoi, on la rend à la fin (réussie ou non). Le processus est
@@ -344,13 +362,21 @@ function creerPieces({ dossier, cle, generation = 1, bloc = BLOC_DEFAUT, memoire
   /* Reçoit une pièce depuis un flux d'octets : juge le type sur les premiers octets (avant d'avoir tout lu), applique le plafond AU FIL
      DE L'EAU (un flux qui dépasse `max` s'arrête là), retire les métadonnées d'une image, scelle, renomme.
      → { taille, mime } — `taille` est celle de ce qui est RANGÉ (après retrait des métadonnées). Lève : vide, type_refuse, trop_gros, incomplet. */
-  async function deposer({ id, genre, flux, max, attendu }) {
+  async function deposer({ id, genre, flux, max, attendu, debitMin = 0, graceMs = 0, maintenant }) {
+    /* `debitMin` (octets par seconde) et `graceMs` : la garde de débit d'un envoi (A4) — sans eux (le module seul), aucune garde. Elle s'arrête dès que le corps est entièrement lu : le nettoyage
+       d'une image et l'écriture sur le disque ne comptent pas dans le temps de l'envoi. */
+    const garde = debitMin > 0 ? gardeDebit({ debitMin, graceMs, maintenant }) : null;
+    try { return await deposerLu({ id, genre, flux, max, attendu, garde }); } finally { if (garde) garde.arreter(); }
+  }
+  async function deposerLu({ id, genre, flux, max, attendu, garde }) {
     const it = flux[Symbol.asyncIterator]();
     let termine = false;
     const suivant = async () => {
-      const r = await it.next();
-      if (r.done) { termine = true; return null; }
-      return Buffer.isBuffer(r.value) ? r.value : Buffer.from(r.value);
+      const r = await (garde ? Promise.race([it.next(), garde.vigile]) : it.next());
+      if (r.done) { termine = true; if (garde) garde.arreter(); return null; }
+      const b = Buffer.isBuffer(r.value) ? r.value : Buffer.from(r.value);
+      if (garde) garde.compter(b.length);
+      return b;
     };
     let tete = Buffer.alloc(0);
     while (tete.length < 16 && !termine) {
@@ -475,6 +501,6 @@ function creerPieces({ dossier, cle, generation = 1, bloc = BLOC_DEFAUT, memoire
 }
 
 module.exports = {
-  creerPieces, creerReservations, detecter, enLigne, dispositionDe, couperNom, retirerMetadonnees, nettoyerJpeg, nettoyerPng, nettoyerWebp, nettoyerGif, mimeImage, mimeAudio,
+  creerPieces, creerReservations, gardeDebit, detecter, enLigne, dispositionDe, couperNom, retirerMetadonnees, nettoyerJpeg, nettoyerPng, nettoyerWebp, nettoyerGif, mimeImage, mimeAudio,
   ID_PIECE, GENRES, MIME_IMAGES, MIME_AUDIO, BLOC_DEFAUT, ENTETE, IV, ETIQUETTE,
 };

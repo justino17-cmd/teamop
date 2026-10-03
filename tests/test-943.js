@@ -756,6 +756,7 @@ async function gestionnaireLecture() {
       const refus = (c) => { try { piecesConfig(c); return null; } catch (e) { return e.code; } };
       v('⛔ une configuration absurde REFUSE le démarrage : maximum négatif, quota nul, fractionnaire, bloc qui n\'est pas une puissance de deux, texte', [refus({ photoMax: -1 }), refus({ quotaPersonne: 0 }), refus({ depotsHeure: 1.5 }), refus({ bloc: 5000 }), refus({ vocalMax: '10' }), refus({ simultanes: 0 })], Array(6).fill('CONFIG'));
       v('et une configuration juste (ou absente) donne les valeurs de départ de SERVEUR.md § 5.6 : 12 Mo, 10 Mo, 25 Mo, 2 Go, 60 envois par heure, 24 h, blocs de 64 Kio', (() => { const c = piecesConfig(undefined); return [c.photoMax, c.vocalMax, c.fichierMax, c.quotaPersonne, c.depotsHeure, c.orphelineMs, c.bloc]; })(), [12582912, 10485760, 26214400, 2147483648, 60, 86400000, 65536]);
+      v('⛔ les réglages de LENTEUR (A2, A4) ont des valeurs de départ — 64 Ko/s après 30 s pour un envoi, 30 s d\'attente et 10 minutes au plus pour une lecture — et des bornes : un débit nul, une grâce nulle, un plafond de durée d\'une milliseconde refusent le démarrage', [(() => { const c = piecesConfig(undefined); return [c.depotDebitMin, c.depotGraceMs, c.lectureAttenteMs, c.lectureMaxMs]; })(), refus({ depotDebitMin: 0 }), refus({ depotGraceMs: 0 }), refus({ lectureAttenteMs: 1 }), refus({ lectureMaxMs: 10 }), refus({ depotDebitMin: 100000.5 })], [[65536, 30000, 30000, 600000], 'CONFIG', 'CONFIG', 'CONFIG', 'CONFIG', 'CONFIG']);
     }
   } catch (e) {
     console.log('  ✗ le banc est mort : ' + (e && e.stack || e));
@@ -939,6 +940,113 @@ async function gestionnaireLecture() {
     vrai('⛔ les dépôts abandonnés RENDENT la réserve : la photo de 7 Mo passe (201) dès qu\'ils sont coupés', await att(async () => (await envoi(grosse)).code === 201, 10000));
   } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
   await svc5.arreter();
+
+  /* ═══ 11. UN ENVOI LENT NE TIENT PAS UNE PLACE (relecture du gardien, A4) ═════════════════════════════════════════════════════ */
+  console.log('\nUn envoi qui n\'avance pas rend sa place : 408 « delai_depasse », la place et la réservation de quota rendues, la réponse lue même si le client continue d\'envoyer (A4)');
+  /* ⛔ Sans tampon devant le service (Caddy, accès direct), un envoi qui annonce 25 Mo et en envoie un octet par seconde tenait une des places — et une des « par personne » — 300 s. Ici : 64 Ko/s
+     après 30 s en production, 100 Ko/s après 0,8 s pour le banc. */
+  const svc6 = await T.lancerService({ urlGestion: og.url, horloge: true, config: { pieces: { depotGraceMs: 800, depotDebitMin: 100000, parPersonne: 2, simultanes: 4, quotaPersonne: 400000, fichierMax: 300000, bloc: 4096 }, quotas: { piece: { max: 1000, fenetreMs: 3600000 } } } });
+  try {
+    const A6 = await compte('alice', svc6), B6 = await compte('bruno', svc6);
+    await lienContact(A6, B6);
+    const g6 = await groupe(A6, 'Lents', [B6]);
+    const lignes6 = () => { const d = T.lireBase(path.join(svc6.data, 'msg.db')); try { return d.prepare('SELECT COUNT(*) AS n FROM piece').get().n; } finally { d.close(); } };
+    /* un client brut : les en-têtes, `premiers` octets, puis (en option) un octet par `goutte` ms pendant `duree` ms — et il lit la réponse quand elle vient */
+    const brut6 = (c, { taille, premiers = 100, goutte = 0, duree = 0, nom = 'lent.bin' }) => new Promise((ok) => {
+      const t0 = Date.now(); let rep = '', fermee = false, t408 = null;
+      const s = net.connect(svc6.port, '127.0.0.1', () => {
+        s.write('POST /api/pieces?' + new URLSearchParams({ conv: g6, genre: 'fichier' }) + ' HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: ' + svc6.base + '\r\nX-OPM: 1\r\nX-OPM-Nom: ' + nom + '\r\nCookie: ' + c.enteteCookie() + '\r\nContent-Type: application/octet-stream\r\nContent-Length: ' + taille + '\r\n\r\n');
+        s.write(Buffer.alloc(premiers, 3));
+        if (goutte) { const i = setInterval(() => { if (fermee || Date.now() - t0 > duree) return clearInterval(i); try { s.write(Buffer.alloc(1, 4)); } catch (e) { clearInterval(i); } }, goutte); }
+      });
+      s.on('data', (d) => { rep += d; if (t408 === null && /HTTP\/1\.1 \d{3}/.test(rep)) t408 = Date.now() - t0; });
+      const fin = () => { if (fermee) return; fermee = true; ok({ rep, ms: Date.now() - t0, reponduEn: t408 }); };
+      s.on('close', fin); s.on('error', fin);
+      setTimeout(() => { try { s.destroy(); } catch (e) { /* déjà fermée */ } fin(); }, 12000).unref();
+    });
+    const code6 = (r) => (/^HTTP\/1\.1 (\d{3})/.exec(r.rep) || [])[1];
+    const l1 = await brut6(A6, { taille: 300000, goutte: 100, duree: 2500 });
+    v('⛔ un envoi qui annonce 300 000 octets et en envoie UN par dixième de seconde : 408 delai_depasse, lu par le client qui CONTINUE d\'envoyer (la réponse n\'est pas effacée par une coupure de la connexion)', [code6(l1), /"error":"delai_depasse"/.test(l1.rep), /connection: close/i.test(l1.rep)], ['408', true, true]);
+    vrai('   …entre la grâce (0,8 s) et quelques secondes de plus — pas le délai de Node (' + l1.reponduEn + ' ms avant la réponse, ' + l1.ms + ' ms avant la fermeture)', l1.reponduEn >= 700 && l1.reponduEn < 4000 && l1.ms < 9000);
+    /* la place ET la réservation sont rendues : « par personne » vaut 2 et le quota 400 000 pour des envois annoncés de 300 000 */
+    const suite = [];
+    for (let k = 0; k < 3; k++) suite.push(code6(await brut6(A6, { taille: 300000 })));
+    v('⛔ trois envois lents de suite du même compte (2 places « par personne », quota de 400 000 pour 300 000 annoncés) : trois 408 — ni 429 « simultane » ni 402 « stockage », donc la place et la réservation ont été RENDUES', suite, ['408', '408', '408']);
+    const [pa, pb] = await Promise.all([brut6(A6, { taille: 150000 }), brut6(A6, { taille: 150000 })]);
+    v('…deux en même temps (le maximum « par personne » ; 150 000 annoncés chacun, car le quota réserve les tailles ANNONCÉES) : deux 408', [code6(pa), code6(pb)], ['408', '408']);
+    v('   la personne n\'a rien d\'utilisé : ses envois coupés n\'ont rien rangé', [(await A6.get('/api/moi/stockage')).j.utilise, lignes6()], [0, 0]);
+    /* un envoi qui part vite puis s'arrête : le crédit de la grâce s'use, puis il est coupé */
+    const l4 = await brut6(A6, { taille: 300000, premiers: 30000 });
+    v('⛔ 30 000 octets d\'un coup puis plus rien : coupé aussi, un peu plus tard qu\'un envoi qui n\'a rien donné (le crédit de la grâce)', [code6(l4), l4.reponduEn >= 800 && l4.reponduEn < 4500], ['408', true]);
+    /* contre-épreuve : un envoi honnête mais lent (6 morceaux de 50 000 octets espacés de 100 ms, ~500 Ko/s) passe */
+    const idHonnete = await new Promise((ok) => {
+      const corps = crypto.randomBytes(300000); let rep = '';
+      const s = net.connect(svc6.port, '127.0.0.1', async () => {
+        s.write('POST /api/pieces?' + new URLSearchParams({ conv: g6, genre: 'fichier' }) + ' HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: ' + svc6.base + '\r\nX-OPM: 1\r\nX-OPM-Nom: honnete.bin\r\nCookie: ' + A6.enteteCookie() + '\r\nContent-Type: application/octet-stream\r\nContent-Length: 300000\r\nConnection: close\r\n\r\n');
+        for (let i = 0; i < 300000; i += 50000) { await T.dort(100); s.write(corps.subarray(i, i + 50000)); }
+      });
+      s.on('data', (d) => { rep += d; }); s.on('close', () => ok(rep)); s.on('error', () => ok(rep));
+    });
+    v('⛔ contre-épreuve : un envoi lent mais au-dessus du débit minimal (6 morceaux de 50 000 octets espacés de 100 ms) passe : 201', /^HTTP\/1\.1 201/.test(idHonnete), true);
+  } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
+  await svc6.arreter();
+
+  /* ═══ 12. UN LECTEUR LENT NE TIENT PAS UN FICHIER OUVERT (relecture du gardien, A2) ═══════════════════════════════════════════ */
+  console.log('\nUn lecteur qui ne lit plus, ou qui lit un filet, est coupé : le fichier ouvert et la connexion sont rendus (A2)');
+  /* ⛔ Chaque lecture garde DEUX descripteurs (la connexion et le fichier). On les compte dans /proc, sur le processus du service lui-même. Avant : un client qui cessait de lire les gardait pour toujours.
+     DEUX services, un butoir chacun : l'autre est réglé à une heure. Un lecteur « lent » qui lit par à-coups voit son `drain` arriver par salves (la fenêtre TCP ne se rouvre pas octet par octet) :
+     les deux butoirs dans un même service s'éclipsaient l'un l'autre, et retirer l'un ne faisait tomber que ce que l'autre laissait voir. */
+  const nbFd = (pid) => { try { return fs.readdirSync('/proc/' + pid + '/fd').length; } catch (e) { return -1; } };
+  const grosCorps = crypto.randomBytes(48 * 1048576), sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
+  const monter12 = async (cfgPieces) => {
+    const sv = await T.lancerService({ urlGestion: og.url, horloge: true, config: { pieces: Object.assign({ fichierMax: 48 * 1048576 }, cfgPieces), quotas: { piece: { max: 1000, fenetreMs: 3600000 } } } });
+    const A = await compte('alice', sv), B = await compte('bruno', sv);
+    await lienContact(A, B);
+    const g = await groupe(A, 'Gros', [B]);
+    const dep = await deposer(A, { conv: g, genre: 'fichier', nom: 'gros.bin', corps: grosCorps });
+    const m = await envoyer(A, g, { type: 'fichier', piece: dep.j.id });
+    const get = 'GET /api/pieces/' + dep.j.id + ' HTTP/1.1\r\nHost: 127.0.0.1\r\nCookie: ' + B.enteteCookie() + '\r\nConnection: close\r\n\r\n';
+    return { sv, A, B, id: dep.j.id, deposOk: dep.code === 201 && m.code === 201, get, pid: sv.enfant.pid };
+  };
+  const entier12 = async (X) => { const e = await lire(X.B, X.id); return [e.code, e.buf.length, sha(e.buf) === sha(grosCorps)]; };
+
+  /* a. l'ATTENTE : des lecteurs qui ne lisent rien */
+  const X7 = await monter12({ lectureAttenteMs: 1500, lectureMaxMs: 3600000 });
+  try {
+    vrai('population : le fichier de 48 Mo est déposé et envoyé, et le processus du service a des descripteurs à compter (' + nbFd(X7.pid) + ')', X7.deposOk && nbFd(X7.pid) > 5);
+    const base7 = nbFd(X7.pid);
+    const geles = [0, 1, 2].map(() => { const s = net.connect(X7.sv.port, '127.0.0.1', () => s.write(X7.get)); s.on('error', () => {}); return s; });
+    await T.dort(300);
+    const pendant = nbFd(X7.pid);
+    vrai('population : trois lecteurs gelés tiennent chacun une connexion ET un fichier (' + base7 + ' descripteurs avant, ' + pendant + ' pendant)', pendant - base7 >= 6);
+    let apres = pendant; const t0 = Date.now();
+    while (Date.now() - t0 < 8000 && apres > base7 + 1) { await T.dort(100); apres = nbFd(X7.pid); }
+    v('⛔ au bout de l\'attente permise (1,5 s) le service les COUPE et rend les descripteurs (' + (Date.now() - t0) + ' ms)', apres <= base7 + 1, true);
+    vrai('   …et le journal le dit : « piece_lecture_coupee » pour cause d\'attente (sans identifiant ni nom)', /"evt":"piece_lecture_coupee","motif":"attente"/.test(X7.sv.sortie.texte()) && !/piece_lecture_coupee[^\n]*f_[0-9a-f]{32}/.test(X7.sv.sortie.texte()));
+    for (const s of geles) s.destroy();
+    v('⛔ contre-épreuve : un lecteur ordinaire reçoit les 48 Mo, octet pour octet (l\'attente ne touche que ceux qui ne lisent plus)', await entier12(X7), [200, 48 * 1048576, true]);
+  } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
+  await X7.sv.arreter();
+
+  /* b. la DURÉE : un lecteur qui lit un filet, jamais arrêté assez longtemps pour être gelé */
+  const X8 = await monter12({ lectureAttenteMs: 3600000, lectureMaxMs: 5000 });
+  try {
+    const base8 = nbFd(X8.pid);
+    let recu = 0;
+    const filet = net.connect(X8.sv.port, '127.0.0.1', () => filet.write(X8.get));
+    filet.on('error', () => {});
+    filet.on('data', (d) => { recu += d.length; filet.pause(); setTimeout(() => filet.resume(), 200); });
+    await T.dort(2500);
+    const enCours = nbFd(X8.pid), recuA = recu;
+    vrai('population : à mi-chemin le lecteur-filet lit encore (' + Math.round(recuA / 1024) + ' Ko reçus) et le service tient sa connexion et son fichier (' + base8 + ' → ' + enCours + ' descripteurs)', recuA > 0 && enCours - base8 >= 2);
+    await T.dort(4500);
+    const apres8 = nbFd(X8.pid);
+    v('⛔ passé le plafond de durée d\'une lecture (5 s), le service coupe même celui qui lit « juste assez vite » : descripteurs rendus, fichier loin d\'être arrivé (' + Math.round(recu / 1048576) + ' Mo sur 48)', [apres8 <= base8 + 1, recu < 48 * 1048576], [true, true]);
+    vrai('   …et le journal le dit : cause « duree »', /"evt":"piece_lecture_coupee","motif":"duree"/.test(X8.sv.sortie.texte()));
+    filet.destroy();
+    v('⛔ contre-épreuve : un lecteur ordinaire reçoit les 48 Mo, octet pour octet, bien avant le plafond', await entier12(X8), [200, 48 * 1048576, true]);
+  } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
+  await X8.sv.arreter();
 
   fs.rmSync(bac, { recursive: true, force: true });
   await svc.arreter(); await og.fermer();
