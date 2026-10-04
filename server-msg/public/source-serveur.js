@@ -216,7 +216,7 @@
       return Object.assign({
         id: v.id, vue: v, role: v.sens === 'sortant' ? 'appelant' : 'appele',
         local: false, accepte: false, reponse: false, demarrage: false, relance: false, etablie: false,
-        pc: null, pret: false, conf: null, serveurs: [], relais: false, ttl: 0, promesseIce: null,
+        pc: null, pret: false, conf: null, serveurs: [], relais: false, sansRelais: false, ttl: 0, promesseIce: null,
         file: [], candDistants: [], candLocaux: [], chaineIn: Promise.resolve(), chaineOut: Promise.resolve(),
         pistes: { audio: null, video: null }, emetteurs: { audio: null, video: null }, cameraDite: null,
         flux: null, distantCamera: false, liaison: 'attente', derniereOffre: null,
@@ -263,7 +263,10 @@
         case 'perdu': return 'La connexion a été perdue.';
         case 'compte': return 'L\'appel a pris fin.';
         case 'pris_ailleurs': return 'Cet appel a été pris sur un autre de tes appareils.';
-        case 'echec': return 'La connexion n\'a pas pu s\'établir. Vérifie ta connexion, puis réessaie.';
+        /* ⛔ SANS RELAIS, ON LE DIT : une liaison qui ne s'établit pas n'est pas « ta connexion » — avant le geste de Justin (`install-turn.sh`), l'appel ne passe que si les deux appareils se joignent seuls */
+        case 'echec': return c.sansRelais
+          ? 'La connexion n\'a pas pu s\'établir : le relais d\'appels n\'est pas encore installé, l\'appel ne passe que si vos deux appareils se joignent directement (le même Wi-Fi, par exemple).'
+          : 'La connexion n\'a pas pu s\'établir. Vérifie ta connexion, puis réessaie.';
         default: return null;
       }
     }
@@ -506,6 +509,7 @@
         const ice = await (c.promesseIce || (c.promesseIce = lireIce()));
         if (c.fini) return;
         c.serveurs = ice.serveurs; c.relais = ice.relais; c.ttl = ice.ttl;
+        c.sansRelais = !ice.indisponible && !ice.relais;                                   // le SERVICE a dit qu'il n'y a pas de relais (≠ les identifiants qui n'ont pas répondu : là, on ne sait pas)
         creerPc(c);
         await appliquerPistes(c);
         if (c.fini) return;

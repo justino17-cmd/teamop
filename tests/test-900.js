@@ -79,7 +79,11 @@ console.log('\nAucun chemin d\'OP GESTION, aucun domaine tiers, aucune adresse d
       if (nom === 'facturation.js' && m[1] === 'api.stripe.com') continue;
       interdits.push(nom + ' : adresse ' + m[1]);
     }
-    for (const m of c.matchAll(/\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/g)) if (m[1] !== '127.0.0.1') interdits.push(nom + ' : adresse IP ' + m[1]);
+    /* ⛔ UNE QUATRIÈME EXCEPTION, NOMMÉE ET CHIFFRÉE : `outils/verifier-relais.js` (le contrôle du relais d'appels que lance `install-turn.sh`) porte les adresses de PAIRS que le relais doit REFUSER (un réseau privé, le lien
+       local de l'hébergeur…) et une adresse publique qu'il doit ACCEPTER. Ce sont les opérandes d'un test, jamais une destination de connexion : l'outil ne se connecte qu'à l'hôte et au port de la configuration de l'instance.
+       Ces sept adresses-là, et aucune autre dans ce fichier ni aucune dans les autres. */
+    const IP_DU_CONTROLE = new Set(['10.1.2.3', '172.16.5.5', '192.168.1.1', '169.254.169.254', '100.64.1.1', '0.0.0.1', '93.184.216.34']);
+    for (const m of c.matchAll(/\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/g)) if (m[1] !== '127.0.0.1' && !(nom === 'verifier-relais.js' && IP_DU_CONTROLE.has(m[1]))) interdits.push(nom + ' : adresse IP ' + m[1]);
     if (/teamop\.fr/i.test(c)) interdits.push(nom + ' : domaine teamop.fr en dur');
   }
   v('⛔ ni /opt/teamop (hors la garde), ni Firebase, ni domaine, ni IP autre que la boucle locale', interdits, []);
@@ -119,7 +123,7 @@ console.log('\nLes listes de bancs sont disjointes');
   const pl = /^#plancher (\d+)\s*$/m.exec(brut);
   vrai('la liste porte une ligne « #plancher N » (un seul plancher)', pl && (brut.match(/^#plancher /gm) || []).length === 1);
   vrai('le plancher est réel, pas symbolique (plus de 500 vérifications)', pl && parseInt(pl[1], 10) > 500);
-  v('les numéros de suites d\'OP MESSAGES sont dans 900-939, 941-944 (le générateur de l\'interface, renuméroté à la fusion avec le compte Perso ; puis les pièces : 942 le module, 943 le service, 944 l\'appareil et le service), 950-959 (la sauvegarde hors site, étape 3 : 950 et 951 ; puis les notifications push et le compte : 955 le module, 956 le service, 957 l\'export et la suppression, 958 l\'appareil et le service) 960-969 (les espaces professionnels et Messages Pro, étape 5) ou 970-979 (les réunions programmées, étape 6 : 970 le calendrier, 971 le fichier .ics, 972 le stockage, 973 les routes, 974 le planificateur de rappels, 975 le courriel, 976 l\'interface)', msg.filter(x => !/test-(?:9[0-3]\d|94[1-4]|95\d|96\d|97\d)\.js$/.test(x)), []);
+  v('les numéros de suites d\'OP MESSAGES sont dans 900-939, 941-944 (le générateur de l\'interface, renuméroté à la fusion avec le compte Perso ; puis les pièces : 942 le module, 943 le service, 944 l\'appareil et le service), 950-959 (la sauvegarde hors site, étape 3 : 950 et 951 ; puis les notifications push et le compte : 955 le module, 956 le service, 957 l\'export et la suppression, 958 l\'appareil et le service) 960-969 (les espaces professionnels et Messages Pro, étape 5) 970-979 (les réunions programmées, étape 6 : 970 le calendrier, 971 le fichier .ics, 972 le stockage, 973 les routes, 974 le planificateur de rappels, 975 le courriel, 976 l\'interface) ou 980-989 (les appels à deux, étape 7 : 980 le stockage, 981 les routes, 982 le script du relais, 983 le service et le temps, 984 la page et le service)', msg.filter(x => !/test-(?:9[0-3]\d|94[1-4]|95\d|96\d|97\d|98\d)\.js$/.test(x)), []);
 }
 
 console.log('\nUn jeton de session d\'OP MESSAGES n\'est pas lisible par OP GESTION');

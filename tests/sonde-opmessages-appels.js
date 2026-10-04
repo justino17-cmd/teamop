@@ -169,16 +169,22 @@ const motVu = (S) => lire(S, '#mot');
 const attendreFermeture = (titre, S, ms) => verifier(titre, S, () => !document.documentElement.dataset.appel, null, ms || 12000, async () => 'écran=' + (await ecranAppel(S)) + ' statut=«' + (await lire(S, '#appel-statut')) + '»');
 
 /* la largeur d'un écran, deux fois, contre la largeur POSÉE */
-const mesures = { ecrans: 0, population: 0, debordements: [], largeurs: new Set() };
+const mesures = { ecrans: 0, population: 0, debordements: [], largeurs: new Set(), textes: new Set() };
 async function largeur(S, etape) {
   const mesure = () => S.page.evaluate(async () => {
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); void document.documentElement.offsetWidth;
     const dep = document.documentElement.scrollWidth; window.scrollTo(9999, window.scrollY); const sx = window.scrollX; window.scrollTo(0, window.scrollY);
     const hors = Array.from(document.querySelectorAll('#appel-ecran *')).filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && (r.right > innerWidth + 1 || r.left < -1); }).length;
-    return { dep, sx, n: document.querySelectorAll('#appel-ecran *').length, hors };
+    /* les textes que la personne lit (et ceux que lit un lecteur d'écran : étiquettes, infobulles) de l'écran d'appel, de la liste des appels et des avis */
+    const textes = [];
+    for (const e of document.querySelectorAll('#appel-ecran, #appel-ecran *, #liste-appels, #liste-appels *, #mot, #annonce-appel')) {
+      for (const n of e.childNodes) if (n.nodeType === 3 && n.textContent.trim()) textes.push(n.textContent.replace(/\s+/g, ' ').trim());
+      for (const a of ['aria-label', 'title', 'placeholder']) { const v = e.getAttribute && e.getAttribute(a); if (v) textes.push(v); }
+    }
+    return { dep, sx, n: document.querySelectorAll('#appel-ecran *').length, hors, textes };
   });
   const a = await mesure(); await dormir(500); const b = await mesure();
-  mesures.ecrans++; mesures.population += b.n; mesures.largeurs.add(S.pf.w);
+  mesures.ecrans++; mesures.population += b.n; mesures.largeurs.add(S.pf.w); for (const t of b.textes) mesures.textes.add(t);
   if (b.sx > 0 || b.dep > S.pf.w + 1 || b.hors > 0) mesures.debordements.push(S.pf.w + ' px · ' + etape + ' : scrollWidth ' + b.dep + ' pour ' + S.pf.w + ', poussée ' + b.sx + ', ' + b.hors + ' élément(s) hors de l\'écran (1re mesure ' + a.dep + ')');
 }
 async function capturer(b, nom, personnes) {
@@ -502,6 +508,12 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
     await bloc('6. La mise en page : aucun débordement, aux deux largeurs, dans tous les états de l\'écran d\'appel', async () => {
       v('⛔ ' + mesures.ecrans + ' écrans mesurés deux fois (' + mesures.population + ' éléments examinés) : aucun ne déborde de la largeur posée', mesures.debordements, []);
       vrai('population : des écrans ont été mesurés aux DEUX largeurs (393 et 1280 px), au moins six', mesures.ecrans >= 6 && mesures.largeurs.has(393) && mesures.largeurs.has(1280));
+      /* ⛔ AUCUN TEXTE ANGLAIS, AUCUN « undefined » : tout ce que les écrans d'appel ont dit pendant la sonde (relevé à chaque mesure), jugé ici */
+      const textes = [...mesures.textes];
+      const connus = ['Répondre', 'Refuser', 'Raccrocher'].filter(m => textes.some(t => t.includes(m)));
+      vrai('population : ' + textes.length + ' textes relevés sur les écrans d\'appel, dont les commandes de la sonnerie (' + connus.join(', ') + ')', textes.length >= 20 && connus.length === 3);
+      v('⛔ aucun « undefined », « null », « NaN » ni « [object » dans ce que les écrans d\'appel disent', textes.filter(t => /undefined|\bnull\b|\bNaN\b|\[object|\{\{/.test(t)), []);
+      v('⛔ aucun mot anglais dans ce que les écrans d\'appel disent (sonnerie, commandes, avis, liste)', textes.filter(t => /\b(calling|ringing|incoming|outgoing|accept|decline|reject|hang ?up|unmute|mute|speaker|missed|answer|video call|audio call|connecting|call ended|calls?)\b/i.test(t)), []);
     });
 
     v('aucune erreur JavaScript, aucune erreur de console dans les deux pages sur toute la sonde (population : ' + (A.gestes + B.gestes) + ' gestes portés)', [A.erreurs.concat(A.console), B.erreurs.concat(B.console)], [[], []]);

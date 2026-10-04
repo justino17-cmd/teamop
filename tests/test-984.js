@@ -578,6 +578,23 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       const sn = await X.src.appel(s.id);
       v('⛔ aucun serveur n\'est donné à la connexion (JAMAIS un STUN d\'un tiers en repli), et la vue dit qu\'il n\'y a pas de relais', [X.monde.dernier().conf.iceServers, Y.monde.dernier().conf.iceServers, sn.relais], [[], [], false]);
       await X.src.terminerAppel(s.id); await Y.attendreSnap(s.id, x => x.etat === 'termine'); await Y.src.terminerAppel(s.id);
+      /* — ⛔ et quand la liaison ne s'établit PAS, la page DIT pourquoi : le relais n'est pas installé (≠ « vérifie ta connexion », qui accuserait la personne) — */
+      const SANS_RELAIS = 'La connexion n\'a pas pu s\'établir : le relais d\'appels n\'est pas encore installé, l\'appel ne passe que si vos deux appareils se joignent directement (le même Wi-Fi, par exemple).';
+      X.monde.bloquer = true;                                     // SEULE la connexion de l'appelante ne se forme pas : la veille de l'appelé s'éteint (sa liaison s'établit), une seule veille peut tomber — sans course
+      const sb = await X.src.demarrerAppel({ membres: [yid], video: false });
+      await Y.attendreEv(e => e.type === 'appel-entrant' && e.id === sb.id); await Y.src.repondreAppel(sb.id, true);
+      const fx = await X.attendreSnap(sb.id, x => x.etat === 'termine', 9000), fy = await Y.attendreSnap(sb.id, x => x.etat === 'termine', 9000);
+      v('⛔ SANS relais installé, une liaison qui ne s\'établit pas le DIT à l\'appelante : le relais n\'est pas encore installé, l\'appel ne passe que si les deux appareils se joignent directement (population : le service a bien dit qu\'il n\'y a pas de relais, et l\'appelé a vu la fin aussi)', [fx && fx.issue, fx && fx.avis, fx && fx.relais, !!fy], ['echec', SANS_RELAIS, false, true]);
+      await X.src.terminerAppel(sb.id); await Y.src.terminerAppel(sb.id);
+      /* — et si le service des identifiants N'A PAS RÉPONDU (500), la page ne sait pas s'il y a un relais : la phrase reste générale, elle n'accuse pas un relais absent — */
+      X.panne = { re: /GET \/api\/ice/, restant: 1e9 };
+      const sd = await X.src.demarrerAppel({ membres: [yid], video: false });
+      await Y.attendreEv(e => e.type === 'appel-entrant' && e.id === sd.id); await Y.src.repondreAppel(sd.id, true);
+      const fd = await X.attendreSnap(sd.id, x => x.etat === 'termine', 9000);
+      v('⛔ si le service des identifiants n\'a PAS répondu (500), la phrase d\'échec reste « Vérifie ta connexion » : on ne sait pas s\'il y a un relais, on ne dit pas qu\'il n\'y en a pas (population : la requête a bien été refusée)', [fd && fd.avis, X.panne.vues >= 1], ['La connexion n\'a pas pu s\'établir. Vérifie ta connexion, puis réessaie.', true]);
+      await X.src.terminerAppel(sd.id); await Y.src.terminerAppel(sd.id);
+      X.panne = null;
+      X.monde.bloquer = false;
       /* — le service des identifiants ne répond pas (500) : l'appel part, sans attendre plus que `iceMax` — */
       X.panne = { re: /GET \/api\/ice/, restant: 1e9 }; Y.panne = { re: /GET \/api\/ice/, restant: 1e9 };
       const t0 = Date.now();

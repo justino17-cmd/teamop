@@ -194,6 +194,25 @@ async function demarrer(dir, nom, texte) {
       vrai('   et une fois rendues, l\'identifiant peut de nouveau allouer (le quota se libère)', apresRendu.ok);
     }
 
+    /* ═══ L'ÉCHÉANCE DES IDENTIFIANTS PENDANT QUE L'ALLOCATION VIT — la raison du renouvellement à 75 % de leur vie, MESURÉE sur coturn 4.6.1 ═══ */
+    console.log('\nLes identifiants ÉCHOIENT pendant que l\'allocation vit : ce que le relais en fait');
+    {
+      const exp = Math.floor(Date.now() / 1000) + 3, nom = exp + ':' + uid, ids = { username: nom, credential: hmac(secretBeta, nom) };
+      const lien = await V.ouvrir({ hote: '127.0.0.1', port: portU, transport: 'udp' });
+      const sess = V.session(lien);
+      const a = await sess.allouer(ids);
+      const avant = a.ok ? await sess.permission('93.184.216.34') : { ok: false, code: null };
+      vrai('population : l\'allocation est faite avec des identifiants qui échoient dans 3 s, et une permission y est accordée AVANT l\'échéance', a.ok && avant.ok);
+      await dort(4500);
+      const apres = await sess.permission('93.184.216.34');
+      const rafraichi = await sess.rendre();
+      const lien2 = await V.ouvrir({ hote: '127.0.0.1', port: portU, transport: 'udp' });
+      const neuve = await V.session(lien2).allouer(ids); lien2.fermer();
+      lien.fermer();
+      console.log('   MESURÉ : après l\'échéance, CreatePermission sur l\'allocation en place → ' + (apres.ok ? 'ACCEPTÉ' : 'refusé, code ' + apres.code) + ' ; Refresh → ' + (rafraichi.ok ? 'accepté' : 'refusé, code ' + rafraichi.code) + ' ; une NOUVELLE allocation avec les mêmes identifiants → ' + (neuve.ok ? 'ACCEPTÉE' : 'refusée, code ' + neuve.code));
+      v('⛔ MESURÉ sur coturn 4.6.1 : une fois l\'échéance passée, une allocation DÉJÀ en place continue d\'être servie (permission, prolongation : coturn n\'authentifie qu\'à la création) mais AUCUNE nouvelle allocation ne se crée avec ces identifiants (401) — c\'est ce que le renouvellement à 75 % de leur vie protège : le redémarrage ICE d\'un long appel (le téléphone change de réseau) alloue de NOUVEAU', [apres.ok, rafraichi.ok, neuve.ok], [true, true, false]);
+    }
+
     /* coturn n'écrit rien */
     {
       const sortie = c.sortie();
