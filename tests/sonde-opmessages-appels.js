@@ -367,15 +367,17 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
       if (!feuilleVue) {
         feuilleVue = true;
         const sel = '#g-contacts .contact:has(.contact-nom:text-is("' + nomAutre + '"))';
-        v('⛔ la feuille « Nouvel appel » : un appel se passe à DEUX — le titre le dit (pas « Appel de groupe »), un contact se CHOISIT (rôle radio), rien n\'est choisi, « Appeler » est grisé', [await lire(S, '#feuille-titre'), await S.page.getAttribute(sel, 'role'), await S.page.getAttribute(sel, 'aria-checked'), await lire(S, '#g-resume'), await S.page.getAttribute('#g-creer', 'aria-disabled')], ['Nouvel appel', 'radio', 'false', 'Choisir un contact', 'true']);
+        /* (étape 8) la feuille choisit des PARTICIPANTS : un seul fait un appel à deux, deux ou plus un appel de groupe (la sonde des appels de groupe joue le second) */
+        v('⛔ la feuille « Nouvel appel » : on choisit des PARTICIPANTS (cases à cocher), rien n\'est choisi, « Appeler » est grisé', [await lire(S, '#feuille-titre'), await S.page.getAttribute(sel, 'role'), await S.page.getAttribute(sel, 'aria-checked'), await lire(S, '#g-resume'), await S.page.getAttribute('#g-creer', 'aria-disabled')], ['Nouvel appel', 'checkbox', 'false', 'Choisir les participants', 'true']);
         await toucher(S, sel);
-        v('… choisir Ben le COCHE et le dit (« ' + NOMS.ben + ' »), « Appeler » est actif ; le re-toucher le décoche', [await S.page.getAttribute(sel, 'aria-checked'), await lire(S, '#g-resume'), await S.page.getAttribute('#g-creer', 'aria-disabled')], ['true', nomAutre, 'false']);
+        v('… choisir Ben le COCHE et le compte (« 1 participant »), « Appeler » est actif ; le re-toucher le décoche', [await S.page.getAttribute(sel, 'aria-checked'), await lire(S, '#g-resume'), await S.page.getAttribute('#g-creer', 'aria-disabled')], ['true', '1 participant', 'false']);
         await toucher(S, sel);
         v('… décoché : rien n\'est choisi, « Appeler » est de nouveau grisé', [await S.page.getAttribute(sel, 'aria-checked'), await S.page.getAttribute('#g-creer', 'aria-disabled')], ['false', 'true']);
-        /* ⛔ un appel se passe à DEUX : choisir un SECOND contact REMPLACE le premier (le survivant de la mutation D08 : la sonde ne choisissait jamais deux contacts) */
+        /* ⛔ choisir un SECOND contact l'AJOUTE (un appel de groupe), il ne remplace plus le premier ; décocher les deux rend la feuille vide */
         const selC = '#g-contacts .contact:has(.contact-nom:text-is("' + NOMS.cleo + '"))';
         await toucher(S, sel); await toucher(S, selC);
-        v('⛔ choisir un SECOND contact REMPLACE le premier : un seul reste coché (Cleo), Ben est décoché, le résumé ne dit que Cleo', [await S.page.getAttribute(sel, 'aria-checked'), await S.page.getAttribute(selC, 'aria-checked'), await lire(S, '#g-resume')], ['false', 'true', NOMS.cleo]);
+        v('⛔ choisir un SECOND contact l\'AJOUTE : Ben et Cleo restent cochés, le résumé dit « 2 participants »', [await S.page.getAttribute(sel, 'aria-checked'), await S.page.getAttribute(selC, 'aria-checked'), await lire(S, '#g-resume')], ['true', 'true', '2 participants']);
+        await toucher(S, sel);
         await toucher(S, selC);
         await largeur(S, 'feuille Nouvel appel');
       }
@@ -485,14 +487,24 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
       await verifier('⛔ +46 s sans réponse : « Pas de réponse. » chez Ben, « Appel manqué. » chez Ana, les deux écrans fermés', B, () => /Pas de réponse/.test(document.getElementById('mot').textContent) && !document.documentElement.dataset.appel, null, 10000, async () => 'mot=«' + (await motVu(B)) + '»');
       await verifier('… et chez Ana', A, () => !document.documentElement.dataset.appel, null, 10000);
       v('population : plus aucune piste vivante, aucune erreur de page', [(await pistesVivantes(A)).vivantes, (await pistesVivantes(B)).vivantes, A.erreurs, B.erreurs], [0, 0, [], []]);
-      /* — un GROUPE : la caméra de la conversation ne lance pas d'appel — */
+      /* — un GROUPE (étape 8) : la caméra de la conversation appelle TOUT le groupe, dans une SALLE — pas un appel à deux. La salle elle-même
+         (vignettes, voix, gestes de l'hôte) est jouée par la sonde des appels de groupe ; ici on prouve l'aiguillage, puis on sort, pour que la suite
+         trouve tout le monde libre. — */
       await onglet(A, 'messages');
       await toucher(A, '#liste-conv .conv:has(.conv-nom:text-is("Équipe appels"))');
       await A.page.waitForFunction(() => document.documentElement.dataset.conv === '1' && document.getElementById('conv-titre').textContent.includes('Équipe appels'), null, { timeout: 7000 });
-      const mediaA = await A.page.evaluate(() => window.__media);
       await toucher(A, '#conv-cam');
-      await verifier('⛔ la caméra d\'un GROUPE ne lance PAS d\'appel : « Les appels à plusieurs arrivent bientôt. », aucun écran d\'appel, aucune demande de caméra', A, () => /Les appels à plusieurs arrivent bientôt/.test(document.getElementById('mot').textContent) && !document.documentElement.dataset.appel, null, 6000, async () => 'mot=«' + (await motVu(A)) + '» écran=' + (await ecranAppel(A)));
-      v('… et rien n\'est parti vers le service (aucune demande de caméra de plus)', (await A.page.evaluate(() => window.__media)) - mediaA, 0);
+      await verifier('⛔ la caméra d\'un GROUPE appelle TOUT le groupe : la SALLE s\'ouvre, pas l\'écran d\'appel à deux', A, () => document.documentElement.dataset.salle === '1' && document.getElementById('salle-ecran').getClientRects().length > 0, null, 10000, async () => 'mot=«' + (await motVu(A)) + '» écran à deux=' + (await ecranAppel(A)));
+      vrai('… l\'écran d\'appel à deux est caché pendant que la salle est là', !(await ecranAppel(A)) && (await visible(A, '#salle-ecran')));
+      await verifier('… et Ben, membre du groupe, l\'entend sonner dans SA page', B, () => !!document.documentElement.dataset.appel && document.getElementById('appel-ecran').hasAttribute('data-entrant'), null, 12000);
+      for (let i = 0; i < 3 && await A.page.evaluate(() => !!document.documentElement.dataset.salle); i++) {
+        await toucher(A, '#salle-quitter');
+        if (await visible(A, '[data-sa="quitter-simple"]')) await toucher(A, '[data-sa="quitter-simple"]');
+        await A.page.waitForFunction(() => !document.documentElement.dataset.salle, null, { timeout: 8000 }).catch(() => {});
+      }
+      await verifier('⛔ Ana sort de la salle, seule : l\'appel finit pour tous — la sonnerie de Ben s\'arrête', B, () => !document.documentElement.dataset.appel, null, 12000, async () => 'Ben : écran=' + (await ecranAppel(B)) + ' mot=«' + (await motVu(B)) + '»');
+      await verifier('… et chez Ana, plus de salle ni d\'appel', A, () => !document.documentElement.dataset.appel && !document.documentElement.dataset.salle, null, 8000);
+      v('population : plus aucune piste vivante, aucune erreur de page', [(await pistesVivantes(A)).vivantes, (await pistesVivantes(B)).vivantes, A.erreurs, B.erreurs], [0, 0, [], []]);
       await toucher(A, '#conv-retour');
     });
 
