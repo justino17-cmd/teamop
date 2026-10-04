@@ -211,6 +211,9 @@
        d'un autre appel, était ignorée tant que ce fantôme restait (pris en vrai navigateur : un appel sur deux de la sonde complète). Bornée : seuls les derniers comptent. */
     const finis = new Set();
     const noterFini = (id) => { finis.delete(id); finis.add(id); while (finis.size > 16) finis.delete(finis.values().next().value); };
+    /* ⛔ LA FIN D'UN APPEL, DITE PAR LE SERVICE, FAIT RELIRE L'HISTORIQUE DE CHAQUE APPAREIL DES DEUX PERSONNES (relecture, T1). Le service écrit l'événement `appel` de la fin pour CHAQUE participant, et il atteint tous
+       leurs onglets ; mais un onglet qui n'a pas tenu l'appel (l'AUTRE appareil de l'appelante, un second appareil de l'appelé qui l'a vu « pris ailleurs » plus tôt) ne relisait rien : son historique restait celui
+       d'avant l'appel (mesuré par le testeur : « historique de Ben2 vide » après un appel pris sur l'autre appareil). Un événement `appels` de plus, pour l'onglet qui raccroche (`finir` en a déjà émis un) : la page relit, c'est tout. */
 
     function entree(v, extra) {
       return Object.assign({
@@ -606,9 +609,10 @@
       if (!v || typeof v !== 'object' || typeof v.id !== 'string') return;
       memoriser(v);
       const c = courant && courant.id === v.id ? courant : null;
-      if (c) { appliquer(c, v); return; }
+      if (c) appliquer(c, v);
       /* un appel que cet onglet ne tient pas : seule une sonnerie ENTRANTE à laquelle aucun appareil n'a répondu sonne ici, et pas quand on est déjà dans un appel */
-      if (v.etat === 'sonne' && v.sens === 'entrant' && !v.lie && (!courant || courant.fini)) sonner(v, gid);
+      else if (v.etat === 'sonne' && v.sens === 'entrant' && !v.lie && (!courant || courant.fini)) sonner(v, gid);
+      if (v.etat !== 'sonne' && v.etat !== 'en_cours') d.emettre({ type: 'appels' });
     }
     function reprendre(actif) {
       if (!actif || typeof actif !== 'object' || typeof actif.id !== 'string') return;

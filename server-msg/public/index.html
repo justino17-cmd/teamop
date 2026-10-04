@@ -631,6 +631,7 @@ button.photo:active { transform: scale(.97); }
 /* la feuille a trois visages : « Nouveau groupe », « Appel de groupe », « Détails » d'un appel — le même cadre, le même voile, le même chemin d'historique */
 .g-resume { flex: 1; min-width: 0; font-size: 17px; line-height: 22px; color: var(--text); overflow-wrap: anywhere; }
 .g-choix { display: flex; gap: 8px; margin-bottom: 18px; }
+.g-erreur { margin: 0 0 14px; font-size: 15px; line-height: 20px; color: var(--rouge-txt); overflow-wrap: anywhere; }
 .g-pilule { flex: 1; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 999px; background: var(--toggle-off); color: var(--text); font-size: 15px; font-weight: 600; transition: background-color .2s, transform .12s ease-out; }
 .g-pilule .ic { font-size: 16px; stroke-width: 2; }
 .g-pilule:active { transform: scale(.97); }
@@ -988,8 +989,8 @@ a.mini .ic { font-size: 16px; }
   <symbol id="i-hautparleur" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4Zm12-1a5 5 0 0 1 0 8m3-11a9 9 0 0 1 0 14"/></symbol>
   <symbol id="i-retourner" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.9-3M4 5v3h3M4 13a8 8 0 0 0 14.9 3M20 19v-3h-3"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v.5M11 12h1v4h1"/></symbol>
-  <symbol id="i-entrant" viewBox="0 0 24 24"><path d="M5 19 19 5M9 5h10v10"/></symbol>
-  <symbol id="i-sortant" viewBox="0 0 24 24"><path d="M19 5 5 19M15 19H5V9"/></symbol>
+  <symbol id="i-entrant" viewBox="0 0 24 24"><path d="M19 5 5 19M15 19H5V9"/></symbol>
+  <symbol id="i-sortant" viewBox="0 0 24 24"><path d="M5 19 19 5M9 5h10v10"/></symbol>
   <symbol id="i-points" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01" stroke-width="3.4"/></symbol>
   <symbol id="i-raccrocher" viewBox="0 0 24 24"><path d="M3 12a15 15 0 0 1 18 0l-2 3-4-1.5v-2a9 9 0 0 0-6 0v2L5 15l-2-3Z"/></symbol>
   <symbol id="i-agenda" viewBox="0 0 24 24"><path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 17.5v-11ZM5 9.5h14M8.5 2.8v3M15.5 2.8v3"/></symbol>
@@ -1143,6 +1144,7 @@ a.mini .ic { font-size: 16px; }
       <input type="text" class="g-nom" id="g-nom" placeholder="Nom du groupe" maxlength="40" autocomplete="off" enterkeyhint="done" aria-label="Nom du groupe">
       <p class="g-resume" id="g-resume" aria-live="polite" hidden></p>
     </div>
+    <p class="g-erreur" id="g-erreur" role="alert" hidden></p>
     <div class="g-choix" id="g-choix" role="radiogroup" aria-label="Type d'appel" hidden>
       <button type="button" class="g-pilule presse" role="radio" aria-checked="true" data-type="audio"><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg>Audio</button>
       <button type="button" class="g-pilule presse" role="radio" aria-checked="false" data-type="video"><svg class="ic" aria-hidden="true"><use href="#i-video"/></svg>Vidéo</button>

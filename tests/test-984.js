@@ -300,7 +300,12 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       vrai('la liaison de celui qui a répondu s\'établit, sans être dérangée', !!(await liees(A, B)));
       const e2 = await attrape(B2.src.repondreAppel(s.id, true));
       v('répondre sur le second appareil, trop tard : refus (cet appel est fini pour CET appareil)', [codeDe(e2)], ['appel_fini']);
-      await A.src.terminerAppel(s.id); await B.attendreSnap(s.id, x => x.etat === 'termine'); await B.src.terminerAppel(s.id); await B2.src.terminerAppel(s.id).catch(() => {});
+      /* ⛔ T1 (relecture) : B2 a LAISSÉ l'appel (« pris ailleurs ») plus tôt : sa page a relu son historique à ce moment-là, l'appel courait encore. Quand l'appel FINIT vraiment, le service écrit l'événement de fin pour
+         chaque participant — il atteint B2 — et sa page doit relire de nouveau, sinon l'appel manque à l'historique de ce second appareil (mesuré par le testeur : « historique de Ben2 vide »). */
+      const relusB2 = () => B2.evs.filter(e => e.type === 'appels').length, avantFin = relusB2();
+      await A.src.terminerAppel(s.id); await B.attendreSnap(s.id, x => x.etat === 'termine');
+      vrai('⛔ la fin de l\'appel fait relire l\'historique au second appareil de Ben, qui n\'a jamais tenu l\'appel (événement `appels`)', !!(await att(() => relusB2() > avantFin, 6000)));
+      await B.src.terminerAppel(s.id); await B2.src.terminerAppel(s.id).catch(() => {});
       /* — les deux répondent en même temps — */
       const s2 = await A.src.demarrerAppel({ membres: [ben.id], video: false });
       await B.attendreEv(e => e.type === 'appel-entrant' && e.id === s2.id); await B2.attendreEv(e => e.type === 'appel-entrant' && e.id === s2.id);

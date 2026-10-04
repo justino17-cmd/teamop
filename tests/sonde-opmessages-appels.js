@@ -531,6 +531,76 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
       });
     }
 
+    /* ═══ 4 ter. UN SECOND APPAREIL (T1, T4), LE REFUS « OCCUPÉ » DANS LA FEUILLE (T3), LES FLÈCHES (T2) — relevés par le testeur ═══════════════ */
+    await bloc('4 ter. Un SECOND APPAREIL de Ben (une autre session) : il laisse l\'appel sans rester « entrant » et relit son historique à la fin ; le refus « occupé » reste LISIBLE dans la feuille ; les flèches disent le sens', async () => {
+      const B2 = await ouvrir(bB, base, PROFILS.bureau, { nom: NOMS.ben + ' (2e appareil)' });
+      await connecter(B2, 'ben');
+      await onglet(B2, 'appels'); await onglet(B, 'appels'); await onglet(A, 'appels');
+      const lignes = (S) => S.page.evaluate(() => document.querySelectorAll('#liste-appels .appel-item').length);
+      const teteT = (S) => S.page.evaluate(() => { const l = document.querySelector('#liste-appels .appel-item .appel-heure'); return l ? +l.dataset.t : 0; });
+      const passer = async () => {                          // Ana appelle Ben, Ben répond sur le premier appareil, Ana raccroche
+        await appeler(A, NOMS.ben, 'audio');
+        await verifier('les DEUX appareils de Ben sonnent', B, () => document.getElementById('appel-ecran').hasAttribute('data-entrant'), null, 10000);
+        await verifier('   … le second aussi', B2, () => document.getElementById('appel-ecran').hasAttribute('data-entrant'), null, 10000);
+        await decrocher(B);
+        await verifier('le premier appareil répond : la liaison s\'établit', B, () => /Appel en cours/.test(document.getElementById('appel-statut').textContent), null, 14000);
+      };
+      /* ── T1 + T4 : le second appareil laisse l'appel, n'est plus « entrant », et RELIT son historique quand l'appel finit ── */
+      const n0 = await lignes(B2), t0 = await teteT(B2);
+      await passer();
+      await verifier('⛔ T4 — le second appareil a LAISSÉ l\'appel : l\'écran est fermé ET n\'est plus « entrant » (ni « Répondre » ni « Refuser » ne restent posés pour la prochaine fois)', B2, () => !document.documentElement.dataset.appel && !document.getElementById('appel-ecran').hasAttribute('data-entrant'), null, 10000);
+      await toucher(A, '#appel-raccrocher');
+      await attendreFermeture('Ana raccroche', A); await attendreFermeture('Ben l\'apprend (premier appareil)', B);
+      const relu = await attendre(B2, (x) => document.querySelectorAll('#liste-appels .appel-item').length > x, n0, 10000);
+      v('⛔ T1 — le second appareil de Ben, qui a vu l\'appel « pris ailleurs » et n\'a rien tenu, relit son historique QUAND L\'APPEL FINIT : une ligne de plus, plus récente (population : ' + n0 + ' ligne(s) avant)', [relu, (await teteT(B2)) > t0], [true, true]);
+      /* ── T1 (entrer dans l'onglet) : si l'événement de fin n'a PAS pu faire relire la liste (le service ne répond pas à cet instant), revenir sur l'onglet Appels la relit ── */
+      const bloque = (url) => /\/api\/appels(\?|$)/.test(url.pathname + url.search);
+      await B2.page.route(bloque, (r) => r.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"serveur"}' }));
+      const n1 = await lignes(B2);
+      await passer();
+      await toucher(A, '#appel-raccrocher');
+      await attendreFermeture('Ana raccroche (2e appel)', A); await attendreFermeture('Ben l\'apprend (2e appel)', B);
+      await dormir(1500);
+      v('   contrôle : la liste de CE second appareil est restée celle d\'avant (la relecture par événement a échoué : le service répondait 503) — sans cela la suite ne prouverait rien', await lignes(B2), n1);
+      await B2.page.unroute(bloque);
+      await onglet(B2, 'messages'); await onglet(B2, 'appels');
+      const relu2 = await attendre(B2, (x) => document.querySelectorAll('#liste-appels .appel-item').length > x, n1, 10000);
+      vrai('⛔ T1 — ENTRER dans l\'onglet Appels relit l\'historique : le second appel y est (' + n1 + ' → ' + (await lignes(B2)) + ' ligne(s))', relu2);
+      /* ── T2 : ↙ pour un appel reçu, ↗ pour un appel émis ── */
+      const fleche = (S) => S.page.evaluate(() => {
+        const d = (id) => { const p = document.querySelector('#' + id + ' path'); return p ? p.getAttribute('d') : ''; };
+        const sens = (d1) => /H5V9/.test(d1) ? 'bas-gauche' : /h10v10/.test(d1) ? 'haut-droite' : '?';       // la pointe : le coin qu'elle dessine
+        const ic = (it) => { const u = it.querySelector('.appel-kind use'); return u ? u.getAttribute('href').slice(1) : null; };
+        const premiere = document.querySelector('#liste-appels .appel-item');
+        return { entrant: sens(d('i-entrant')), sortant: sens(d('i-sortant')), premiere: premiere ? ic(premiere) : null };
+      });
+      const fa = await fleche(A), fb = await fleche(B);
+      v('⛔ T2 — la flèche d\'un appel REÇU pointe vers le bas à gauche (↙), celle d\'un appel ÉMIS vers le haut à droite (↗) ; la première ligne d\'Ana (qui a appelé) porte la sortante, celle de Ben (qui a reçu) l\'entrante',
+        [fb.entrant, fb.sortant, fa.premiere, fb.premiere], ['bas-gauche', 'haut-droite', 'i-sortant', 'i-entrant']);
+      await B2.ctx.close();
+
+      /* ── T3 : le refus « occupé » reste LISIBLE dans la feuille « Nouvel appel » (le mot s'efface en 2,4 s, la feuille reste ouverte) ── */
+      const cleo = T.client(base);
+      await cleo.post('/api/beta/entrer', { login: 'cleo', pass: MOTS.cleo });
+      const rc = await cleo.post('/api/appels', { uid: idBen, type: 'audio' });
+      await verifier('population : Cleo (par le service) appelle Ben — il sonne', B, () => document.getElementById('appel-ecran').hasAttribute('data-entrant'), null, 10000);
+      await decrocher(B);
+      await verifier('Ben est DANS un appel (avec Cleo)', B, () => /Appel en cours|Connexion/.test(document.getElementById('appel-statut').textContent), null, 14000);
+      await appeler(A, NOMS.ben, 'audio');
+      const dit = await attendre(A, () => { const e = document.getElementById('g-erreur'); return e && !e.hidden && /déjà dans un appel/.test(e.textContent); }, null, 10000);
+      await dormir(3200);                                   // le mot de la page (2,4 s) est parti : le refus, lui, doit rester sous les yeux
+      v('⛔ T3 — le refus « occupé » est LISIBLE dans la feuille APRÈS que le mot a disparu (3 s plus tard), et la feuille est toujours ouverte', [dit, await A.page.evaluate(() => { const e = document.getElementById('g-erreur'); return !e.hidden && /déjà dans un appel/.test(e.textContent) && !document.getElementById('mot').classList.contains('on'); }), await A.page.evaluate(() => document.getElementById('feuille').dataset.mode === 'appel' && !document.getElementById('feuille').inert), rc.code], [true, true, true, 201]);
+      /* le 409 du refus est ATTENDU : Chrome le journalise comme « Failed to load resource » — on le retire du relevé APRÈS avoir compté qu'il y est (sinon la dernière vérification de la sonde accuserait la page) */
+      const refus409 = A.console.filter(x => /status of 409/.test(x)).length;
+      vrai('population : Chrome a journalisé le 409 attendu du refus (' + refus409 + ')', refus409 === 1);
+      for (let i = A.console.length - 1; i >= 0; i--) if (/status of 409/.test(A.console[i])) A.console.splice(i, 1);
+      await toucher(A, '#g-contacts .contact:has(.contact-nom:text-is("' + NOMS.cleo + '"))');
+      v('   choisir quelqu\'un d\'autre EFFACE le refus (il ne parle plus de la bonne personne)', await A.page.evaluate(() => document.getElementById('g-erreur').hidden), true);
+      await toucher(A, '#g-annuler');
+      await A.page.waitForFunction(() => document.getElementById('feuille').inert, null, { timeout: 6000 });
+      await toucher(B, '#appel-raccrocher'); await attendreFermeture('Ben raccroche', B);
+    });
+
     /* ═══ 5. LE RELAIS : LA VOIX PASSE PAR LE VRAI COTURN ═════════════════════════════════════════════════════ */
     await bloc('5. Le RELAIS : forcé, la voix passe par le vrai coturn avec les identifiants du vrai service', async () => {
       if (!coturn) { console.log('  ⚠️  NON VÉRIFIÉ : turnserver (coturn) est absent de cette machine — le relais n\'a pas été joué par les navigateurs.'); return; }

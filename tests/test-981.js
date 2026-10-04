@@ -299,6 +299,12 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
       avancer(20 * SEC);
       const q = await a1.post('/api/appels/' + id + '/quitter', {});
       v('Ana raccroche depuis l\'appareil lié : 200, « fini » (durée = le temps passé depuis la réponse)', [q.code, q.j.ok, q.j.deja, q.j.appel.etat, q.j.appel.duree_s > 0], [200, true, false, 'fini', true]);
+      /* ⛔ T1 (relecture) : la FIN d'un appel est connue de CHAQUE session des DEUX personnes — l'événement durable `appel` est écrit pour chaque participant et atteint tous leurs flux, y compris ceux qui n'ont
+         jamais tenu l'appel (le second appareil d'Ana, le second de Ben) : c'est ce qui permet à ces pages de relire leur historique. */
+      const fin = (e) => e.event === 'appel' && e.data.id === id && e.data.etat === 'fini';
+      const fB1neuf = flux[flux.length - 1];
+      const bout = await Promise.all([fA, fA2, fB1neuf, fB2].map(f => f.attendre(fin).then(() => true, () => false)));
+      v('⛔ la fin de l\'appel arrive à TOUTES les sessions des deux personnes : l\'appareil lié d\'Ana, son AUTRE appareil, l\'appareil lié de Ben, son SECOND (population : quatre flux ouverts, chacun a vu le marqueur plus haut)', [bout, [fA, fA2, fB1neuf, fB2].map(f => f.evenements.filter(fin).length > 0)], [[true, true, true, true], [true, true, true, true]]);
       v('⛔ rejouer le geste (la page raccroche après que l\'autre l\'a fait) : 200 `deja:true`, rien d\'écrit', [(await a1.post('/api/appels/' + id + '/quitter', {})).j.deja, (await b1.post('/api/appels/' + id + '/quitter', {})).j.deja], [true, true]);
       v('⛔ un appel fini ne se signale plus (409 `appel_fini`) ni ne se répond (409 `appel_fini`)', [dit(await a1.post('/api/appels/' + id + '/signal', { a: ben.id, type: 'etat', donnees: {} })), dit(await b1.post('/api/appels/' + id + '/repondre', { accepte: true }))], [[409, 'appel_fini'], [409, 'appel_fini']]);
       const hb = (await b1.get('/api/appels')).j, ha = (await a1.get('/api/appels')).j;
