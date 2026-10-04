@@ -793,7 +793,7 @@ bash /root/install-turn.sh beta
 
 Comme `install-msg.sh`, c'est un **fichier** : lis-le si tu veux avant de le lancer (`less /root/install-turn.sh`), il ne se lance pas par un tuyau. Il fait, dans l'ordre :
 
-1. installe coturn (le paquet de la distribution) s'il manque, et l'arrête aussitôt : le paquet le démarre avec une configuration vide ;
+1. installe coturn (le paquet de la distribution) s'il manque, et l'arrête aussitôt : le paquet le démarre avec une configuration vide ; installe aussi `iptables` s'il manque (le pare-feu du relais en a besoin), avant d'écrire quoi que ce soit ;
 2. obtient le certificat du relais (TLS sur 5349) par nginx et Let's Encrypt — un bloc nginx minimal, qui ne sert que la preuve. Sans DNS ou sans nginx, il le DIT et installe le relais **sans TLS** (3478 seulement) ; relance-le quand le DNS est en place ;
 3. tire le secret au hasard, ici, et l'écrit dans les deux configurations ;
 4. pose le **pare-feu sortant du relais** : un petit script (`/usr/local/sbin/opmsg-turn-pare-feu`) que systemd rejoue avant chaque démarrage de coturn, et qu'il retire à son arrêt ;

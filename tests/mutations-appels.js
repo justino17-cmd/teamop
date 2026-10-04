@@ -197,6 +197,8 @@ const CATALOGUE = [
   ["E41", "T3 — choisir un autre contact n'efface plus le refus de la feuille (il parle de la mauvaise personne)", [["apercu/opmessages/index.html", "  function basculer(id) {\n    effacerRefusFeuille();\n", "  function basculer(id) {\n"]], ["sonde"]],
   ["E42", "⛔ T4 — l'écran d'appel qui se ferme reste « entrant » (la sonnerie perdue sur l'autre appareil laisse « Répondre » et « Refuser » posés)", [["apercu/opmessages/index.html", "$('appel-ecran').removeAttribute('data-entrant');", ""]], ["sonde"]],
   ["E43", "⛔ I2 — le pare-feu du relais perd la règle des ports de relais (relais ↔ relais est REFUSÉ : un appel relayé des deux côtés n'a plus de voix)", [["server-msg/turn-pare-feu.sh", "  \"$ipt\" -A \"$CHAINE\" -p udp --dport \"$PORT_MIN:$PORT_MAX\" -j RETURN || return 1\n", ""]], ["982", "sonde"]],
+  ["E44", "⛔ I2 — le script n'installe plus iptables sur une machine qui n'en a pas (le pare-feu du relais ne peut pas se poser, l'installation s'arrête plus loin sans dire pourquoi)", [["server-msg/install-turn.sh", "  apt-get install -y -qq iptables >/dev/null || true\n", ""]], ["982"]],
+  ["E45", "⛔ I2 — le script ne vérifie plus qu'iptables est là après apt-get (il écrit le secret, la configuration et le drop-in, puis coturn ne démarre pas)", [["server-msg/install-turn.sh", "command -v iptables >/dev/null 2>&1 || { echo \"✗ iptables n'est pas installé après apt-get : le pare-feu du relais ne peut pas se poser, on s'arrête avant de rien écrire\"; exit 1; }\n", ""]], ["982"]],
 ];
 for (const [id, nom, edits, suites, o] of CATALOGUE) MUTATIONS.push(Object.assign({ id, nom, edits, suites, sonde: suites.some((s) => s === 'sonde' || s === 'sondeComplete') }, o || {}));
 

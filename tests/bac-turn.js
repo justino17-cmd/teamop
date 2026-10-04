@@ -80,6 +80,7 @@ esac
   'apt-get': PROLOGUE + `case "$*" in
   *coturn*) [ -f "$E/apt-refuse" ] || { printf '#!/bin/bash\\nexit 0\\n' > "$BAC_BIN/turnserver"; chmod 755 "$BAC_BIN/turnserver"; } ;;
   *certbot*) [ -f "$E/apt-refuse-certbot" ] || { cp "$BAC_BIN/.certbot-faux" "$BAC_BIN/certbot"; chmod 755 "$BAC_BIN/certbot"; } ;;
+  *iptables*) [ -f "$E/apt-refuse-iptables" ] || { cp "$BAC_BIN/.iptables-faux" "$BAC_BIN/iptables"; cp "$BAC_BIN/.iptables-faux" "$BAC_BIN/ip6tables"; chmod 755 "$BAC_BIN/iptables" "$BAC_BIN/ip6tables"; } ;;
 esac
 `,
   nginx: PROLOGUE + `if [ "$1" = "-t" ]; then [ -f "$E/nginx-refuse" ] && { echo "nginx: [emerg] refus simulé" >&2; exit 1; }; fi
@@ -134,7 +135,8 @@ function bac(opts = {}) {
   for (const x of [b.R, b.E, b.bin]) fs.mkdirSync(x, { recursive: true });
   for (const o of OUTILS_REELS) { const p = reel(o); if (p) fs.symlinkSync(p, path.join(b.bin, o)); }
   fs.writeFileSync(path.join(b.bin, 'id'), ID_FAUX(reel('id') || '/usr/bin/id'), { mode: 0o755 });
-  fs.writeFileSync(path.join(b.bin, 'iptables'), IPTABLES_FAUX, { mode: 0o755 }); fs.writeFileSync(path.join(b.bin, 'ip6tables'), IPTABLES_FAUX, { mode: 0o755 });
+  fs.writeFileSync(path.join(b.bin, '.iptables-faux'), IPTABLES_FAUX, { mode: 0o755 });          // (celui que le faux `apt-get` installe quand la machine n'en a pas : `bac({ iptables: false })`)
+  if (opts.iptables !== false) { fs.copyFileSync(path.join(b.bin, '.iptables-faux'), path.join(b.bin, 'iptables')); fs.copyFileSync(path.join(b.bin, '.iptables-faux'), path.join(b.bin, 'ip6tables')); }
   fs.symlinkSync(process.execPath, path.join(b.bin, 'node'));
   for (const [nom, txt] of Object.entries(FAUX)) fs.writeFileSync(path.join(b.bin, nom), txt, { mode: 0o755 });
   fs.writeFileSync(path.join(b.bin, '.certbot-faux'), CERTBOT_FAUX, { mode: 0o755 });

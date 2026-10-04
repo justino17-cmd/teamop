@@ -241,6 +241,23 @@ const { bac, reel, OPTIONS_COTURN, enBigInt, cidr, A_REFUSER, RE_SECRET, LIGNE_S
       } finally { b.fin(); }
     }
     {
+      /* ⛔ le pare-feu du relais veut `iptables` : une machine qui ne l'a pas l'installe AVANT d'écrire quoi que ce soit ; si elle ne peut pas, on s'arrête là, en le disant */
+      const b = bac({ iptables: false });
+      try {
+        b.instance('beta'); await b.serveur('beta');
+        const r = await b.lancer(['beta']);
+        const iApt = index(b.journal(), /^apt-get install -y -qq iptables/), iCoturn = index(b.journal(), /^systemctl restart coturn/);
+        v('⛔ [la machine n\'a pas iptables] il est installé (apt-get), AVANT le démarrage de coturn, et le pare-feu se pose : sortie 0, les règles sont dans le noyau', [r.status, compte(b.journal(), /^apt-get install -y -qq iptables/), iApt >= 0 && iCoturn > iApt, b.noyau('v4').regles.length > 0], [0, 1, true, true]);
+      } finally { b.fin(); }
+      const b2 = bac({ iptables: false });
+      try {
+        b2.instance('beta'); await b2.serveur('beta'); b2.drapeau('apt-refuse-iptables');
+        const avant = b2.octets('etc/opmsg/beta.json'), etat0 = b2.etat();
+        const r = await b2.lancer(['beta']);
+        v('⛔ [iptables absent ET non installable] le script refuse (sortie 1), le DIT, et n\'a RIEN écrit (ni secret, ni configuration, ni drop-in) ni lancé (ni coturn — seul l\'arrêt que l\'installation du paquet appelle —, ni certbot, nginx, ufw, ni le contrôle)', [r.status, /iptables n'est pas installé après apt-get/.test(r.out), b2.octets('etc/opmsg/beta.json') === avant, b2.etat(), compte(b2.journal(), /^(systemctl (restart|start|reload|enable)|certbot|nginx|ufw|verifier-relais)/), compte(b2.journal(), /^systemctl stop coturn/)], [1, true, true, etat0, 0, 1]);
+      } finally { b2.fin(); }
+    }
+    {
       /* l'instance ne repart pas avec la nouvelle configuration : la précédente est remise, et le script relance l'instance une seconde fois */
       const b = bac();
       try {

@@ -142,6 +142,13 @@ if ! command -v turnserver >/dev/null 2>&1; then
   systemctl stop coturn >/dev/null 2>&1 || true
 fi
 command -v turnserver >/dev/null 2>&1 || { echo "✗ coturn n'est pas installé après apt-get : on s'arrête avant de rien écrire"; exit 1; }
+# Le PARE-FEU SORTANT du relais (étape 4) pose ses règles avec `iptables` ; sans lui coturn ne démarre pas (échec = fermé). Une machine qui ne l'a pas (une image minimale, pas d'ufw) l'installe ICI, avant d'écrire quoi que ce soit :
+# s'arrêter plus loin sur « coturn n'a pas démarré » ne dirait pas pourquoi, et Justin recolle chaque sortie dans la conversation.
+if ! command -v iptables >/dev/null 2>&1; then
+  echo "   iptables : installation"
+  apt-get install -y -qq iptables >/dev/null || true
+fi
+command -v iptables >/dev/null 2>&1 || { echo "✗ iptables n'est pas installé après apt-get : le pare-feu du relais ne peut pas se poser, on s'arrête avant de rien écrire"; exit 1; }
 
 # ── 2. Le certificat du relais (TLS sur 5349) ─────────────────────────────────────────────────────────────────
 # Sans lui le relais reste utile (3478 en UDP et en TCP) ; avec lui, les réseaux d'entreprise qui ne laissent passer que du TLS peuvent aussi appeler.
