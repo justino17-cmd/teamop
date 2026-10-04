@@ -80,6 +80,8 @@ function installerAppels(H, ctx) {
     }
     /* ⛔ la règle de la messagerie, et SA réponse : pas de contact, un blocage dans un sens ou dans l'autre, une personne qui n'existe pas — 404, le même */
     if (!stockage.peutEcrire(moi.id, appele)) return refus(res, 404, 'introuvable');
+    /* ⛔ UNE TENTATIVE COMPTE, RÉUSSIE OU NON : le plafond de la paire est jugé APRÈS celui de la personne, donc un lancement refusé parce qu'on harcèle la même personne a déjà consommé une place du plafond
+       de la personne (les quotas du service comptent les essais, pas les réussites — comme les messages à la minute). Le banc `test-981` joue l'arithmétique. */
     if (!plafond(res, 'appel:' + moi.id, cfg.parHeure * jeune(moi), 3600000)) return;
     if (!plafond(res, 'appel_paire:' + moi.id + ':' + appele, cfg.parPaireHeure, 3600000)) return;
     let r;
@@ -110,7 +112,7 @@ function installerAppels(H, ctx) {
     if (typeof b.a !== 'string' || !ID_PERS.test(b.a) || b.a !== acces.autre) return refus(res, 400, 'champ_invalide');
     let d;
     if (b.type !== 'pouls') {
-      if (b.donnees === null || typeof b.donnees !== 'object') return refus(res, 400, 'champ_invalide');
+      if (b.donnees === null || typeof b.donnees !== 'object' || Array.isArray(b.donnees)) return refus(res, 400, 'champ_invalide');      // un OBJET : l'enveloppe est { type, donnees }, la page lit des champs, pas une liste
       d = b.donnees;
       if (Buffer.byteLength(JSON.stringify(d), 'utf8') > SIGNAL_OCTETS_MAX) return refus(res, 413, 'signal_trop_gros');
     }
