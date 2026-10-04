@@ -517,7 +517,13 @@ function paireVapid() {
         await T.connecter(s4, og, 'cleo', MDP.cleo);             // Cléo revient ; Eve non
         const retire = await T.attendre(() => abos4(E.moi.id) === 0, 10000, 50);
         v('⛔ le balayeur du SERVICE retire l\'abonnement d\'Eve (plus rien ne la connecte) et GARDE celui de Cléo (reconnectée)', [!!retire, abos4(K.moi.id)], [true, 1]);
-        vrai('le journal le dit : une ligne « push_elagage » avec le nombre retiré, sans personne ni point d\'accès', /"evt":"push_elagage"[^\n]*"n":1/.test(s4.sortie.texte()) && !s4.sortie.texte().includes('eve-balayee'));
+        /* ⛔ ON ATTEND LA LIGNE, on ne la lit pas tout de suite (4 octobre 2026, `Vérification des pages` sur 864aeb1 : 174 ✓ 1 ✗). Le service
+           RETIRE puis JOURNALISE (`index.js`, balayeur) : la base montre le retrait avant que la ligne ait traversé le tuyau jusqu'à ce
+           banc — et le rappel de `T.attendre` qui voit la base passe AVANT que la boucle d'événements lise ce qui attend dans le tuyau.
+           Sur la machine de GitHub, plus rapide, la ligne arrivait après le contrôle. Prouvé en retardant la ligne de 300 ms : l'ancien
+           contrôle tombe, celui-ci passe. */
+        const ligne = await T.attendre(() => /"evt":"push_elagage"[^\n]*"n":1/.test(s4.sortie.texte()), 8000, 20);
+        vrai('le journal le dit : une ligne « push_elagage » avec le nombre retiré, sans personne ni point d\'accès', !!ligne && !s4.sortie.texte().includes('eve-balayee'));
       } finally { await s4.arreter(); try { fs.rmSync(d4, { recursive: true, force: true }); } catch (e) { /* tant pis */ } }
     }
 
