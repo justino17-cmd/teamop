@@ -960,6 +960,176 @@ a.mini .ic { font-size: 16px; }
 .reglage[disabled] { opacity: .5; cursor: default; }
 .info-tete .avatar .ic { font-size: 30px; }
 .g-choix .g-pilule { font-size: 15px; }
+
+/* ══ 13. LES SALLES — « En réunion » (étape 8) ════════════════════════════════════════════════════════════════════════════════════
+   Le paquet (THEME-OPMESSAGES.md, § Réunions et écran 5) : FOND NOIR dans les deux modes, panneaux de verre `rgba(255,255,255,.12)` avec un bord à `.18`, contour VERT = parle, micro coupé ROUGE, main levée,
+   épingle, « Caméra désactivée ». L'écran est le même sous le thème jour et sous le thème nuit (comme l'écran d'appel) : ses jetons ne bougent pas avec le mode. ⛔ Rien de ce bloc ne se voit tant qu'aucune
+   salle n'est ouverte (`html[data-salle]` est posé par `rendreAppel` quand la source annonce une salle) : les écrans validés ne bougent pas.
+   La mise en page se choisit par UNE donnée (`data-vue` de la scène) : « galerie » (une grille de vignettes égales) ou « intervenant » (une grande vignette — l'épinglé, sinon celui qui parle — et la rangée des autres).
+   ⛔ `prefers-reduced-motion` : plus de réaction qui monte, plus de transition — l'information reste (l'emoji reste posé deux secondes et demie). Rien ne déborde à 390 px : la grille, les commandes et les panneaux
+   se replient (`auto-fit`, `flex-wrap`, `overflow-wrap`). */
+:root { --salle-fond: #0b0d12; --salle-vitre: rgba(255,255,255,.12); --salle-bord: rgba(255,255,255,.18); --salle-sub: rgba(255,255,255,.78); --salle-panneau: rgba(28,30,40,.95); }
+.salle-ecran {
+  position: fixed; z-index: 36; top: 0; left: 0; right: 0; bottom: 0; display: none; flex-direction: column; min-height: 0; overflow: hidden;
+  background: var(--salle-fond); color: #fff; outline: none;
+}
+html[data-salle] .salle-ecran { display: flex; }
+html[data-salle] .appel-ecran { display: none; }
+@media (min-width: 900px) { .salle-ecran { left: 236px; } }
+@media (max-width: 899.98px) { html[data-salle] .salle-ecran { animation: pousse .38s cubic-bezier(.32,.72,0,1) both; } }
+.salle-ecran :focus-visible { outline-color: #fff; }
+.salle-tete {
+  flex: none; display: flex; align-items: center; gap: 10px;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) max(14px, env(safe-area-inset-right, 0px)) 8px max(14px, env(safe-area-inset-left, 0px));
+}
+.salle-titres { flex: 1; min-width: 0; }
+.salle-titre { margin: 0; font-size: 17px; line-height: 22px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.salle-sous { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: 13px; line-height: 18px; color: var(--salle-sub); font-variant-numeric: tabular-nums; }
+.salle-rec { display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 12px; line-height: 18px; font-weight: 700; }
+.salle-rec::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
+.salle-quitter { flex: none; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 15px; font-weight: 600; }
+.salle-bandeaux { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 0 max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px)); }
+.salle-bandeaux:empty { display: none; }
+.salle-bandeau {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding: 8px 12px; border-radius: 14px; background: var(--salle-vitre); border: 1px solid var(--salle-bord);
+  font-size: 14px; line-height: 19px; -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+}
+.salle-bandeau > .texte { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }
+.salle-btn {
+  min-height: 36px; padding: 0 14px; border-radius: 999px; background: rgba(255,255,255,.2); color: #fff; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-align: center;
+}
+.salle-btn.plein { background: #fff; color: #000; }
+.salle-btn.danger { background: var(--rouge); color: #fff; }
+.salle-btn[aria-disabled="true"], .salle-btn:disabled { opacity: .5; }
+.salle-scene {
+  position: relative; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 8px; align-content: center; width: 100%; max-width: 1100px; margin-inline: auto;
+  padding: 8px max(14px, env(safe-area-inset-right, 0px)) 8px max(14px, env(safe-area-inset-left, 0px)); grid-template-columns: repeat(auto-fit, minmax(min(160px, 46%), 1fr));
+}
+.salle-scene[data-n="1"] { grid-template-columns: minmax(0, 520px); justify-content: center; }
+.salle-scene[data-n="2"] { grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); }
+.salle-scene:focus-visible { outline-offset: -3px; }
+.salle-tuile { aspect-ratio: 4 / 3; min-height: 110px; border-radius: 16px; outline: 3px solid transparent; outline-offset: -3px; transition: outline-color .15s; }
+.salle-tuile.parle { outline-color: var(--vert); }
+.salle-tuile.vous video { transform: scaleX(-1); }
+.salle-tuile .tuile-av { z-index: 1; }
+.salle-tuile .tuile-nom { z-index: 2; left: 8px; bottom: 8px; display: inline-flex; align-items: center; gap: 4px; }
+.salle-tuile .tuile-nom .ic { width: 14px; height: 14px; stroke-width: 2; flex: none; }
+.salle-tuile .tuile-nom.coupe { background: var(--rouge); }
+.salle-tuile .tuile-etat { z-index: 2; top: 8px; left: 8px; }
+.salle-tuile video { z-index: 0; }
+.salle-tuile.epingle::after { content: "📌"; position: absolute; z-index: 2; top: 8px; right: 8px; font-size: 16px; }
+.salle-badges { position: absolute; z-index: 2; top: 8px; right: 8px; display: flex; gap: 4px; }
+.salle-tuile.epingle .salle-badges { right: 34px; }
+.salle-badge { min-width: 26px; height: 26px; padding: 0 4px; border-radius: 13px; display: grid; place-items: center; background: rgba(0,0,0,.6); color: #fff; font-size: 14px; line-height: 1; }
+.salle-badge.main { background: #ffcc00; color: #000; }
+.salle-badge.rouge { background: var(--rouge); }
+.salle-badge .ic { width: 15px; height: 15px; stroke-width: 2; }
+.salle-sans-camera { position: absolute; z-index: 1; left: 0; right: 0; bottom: 36px; text-align: center; font-size: 12px; line-height: 16px; color: var(--salle-sub); }
+.salle-reaction { position: absolute; z-index: 3; left: 50%; bottom: 36px; margin-left: -18px; font-size: 32px; line-height: 1; animation: salle-monte 2.4s ease-out forwards; pointer-events: none; }
+@keyframes salle-monte { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-70px); opacity: 0; } }
+.salle-scene[data-vue="intervenant"] { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); align-content: start; }
+.salle-scene[data-vue="intervenant"] .salle-tuile { aspect-ratio: 1; min-height: 80px; }
+.salle-scene[data-vue="intervenant"] .salle-tuile.grand { grid-column: 1 / -1; aspect-ratio: 16 / 10; max-height: 52vh; width: 100%; margin-inline: auto; }
+.salle-attente { grid-column: 1 / -1; padding: 24px 18px; border-radius: 18px; background: var(--salle-vitre); border: 1px solid var(--salle-bord); text-align: center; font-size: 16px; line-height: 22px; overflow-wrap: anywhere; }
+.salle-attente b { display: block; font-size: 19px; line-height: 25px; margin-bottom: 6px; }
+.salle-sondage { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 14px; background: var(--salle-vitre); border: 1px solid var(--salle-bord); }
+.salle-sondage b { font-size: 15px; line-height: 20px; overflow-wrap: anywhere; }
+.salle-choix { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 12px; border-radius: 10px; background: rgba(255,255,255,.12); color: #fff; font-size: 14px; text-align: left; }
+.salle-choix > i { position: absolute; z-index: 0; inset: 0 auto 0 0; background: rgba(48,209,88,.4); }
+.salle-choix > span { position: relative; z-index: 1; min-width: 0; overflow-wrap: anywhere; }
+.salle-choix[aria-pressed="true"] { outline: 2px solid #fff; }
+.salle-pastilles { flex: none; position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 4px max(14px, env(safe-area-inset-right, 0px)) 4px max(14px, env(safe-area-inset-left, 0px)); }
+.salle-pastille {
+  min-height: 40px; padding: 0 14px; border-radius: 999px; background: var(--salle-vitre); border: 1px solid var(--salle-bord); color: #fff; font-size: 15px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;
+  -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+}
+.salle-pastille[aria-pressed="true"] { background: #fff; color: #000; }
+.salle-pastille[hidden] { display: none; }
+.salle-emojis { position: absolute; z-index: 4; bottom: 100%; left: 0; right: 0; margin: 0 auto; width: max-content; max-width: calc(100% - 16px); display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 8px; border-radius: 18px; background: var(--salle-panneau); border: 1px solid var(--salle-bord); }
+.salle-emojis[hidden] { display: none; }
+.salle-emojis button { width: 48px; height: 48px; border-radius: 50%; font-size: 26px; line-height: 1; display: grid; place-items: center; background: rgba(255,255,255,.1); }
+.salle-bas { flex: none; padding: 8px max(12px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 14px) max(12px, env(safe-area-inset-left, 0px)); }
+.salle-cmds { display: grid; grid-template-columns: repeat(auto-fit, minmax(58px, 1fr)); gap: 8px 6px; max-width: 560px; margin-inline: auto; }
+.salle-cmd { position: relative; min-height: 44px; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; line-height: 15px; color: #fff; text-align: center; }
+.salle-cmd .rond-cmd { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--salle-vitre); border: 1px solid var(--salle-bord); transition: background-color .2s, color .2s; }
+.salle-cmd .rond-cmd .ic { width: 24px; height: 24px; stroke-width: 1.8; }
+.salle-cmd[aria-pressed="true"] .rond-cmd { background: #fff; color: #000; }
+.salle-cmd.alerte .rond-cmd { background: var(--rouge); border-color: transparent; }
+.salle-cmd[hidden] { display: none; }
+.salle-cmd .compte { position: absolute; top: -3px; left: calc(50% + 8px); min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--rouge); color: #fff; font-size: 12px; line-height: 20px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
+.salle-panneau {
+  position: absolute; z-index: 5; left: 0; right: 0; bottom: 0; max-height: min(78%, 640px); overflow-y: auto; overscroll-behavior: contain;
+  padding: 14px max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 16px) max(16px, env(safe-area-inset-left, 0px));
+  border-radius: 22px 22px 0 0; background: var(--salle-panneau); border: 1px solid var(--salle-bord); border-bottom: 0; -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+}
+.salle-panneau[hidden] { display: none; }
+@media (min-width: 900px) { .salle-panneau { left: auto; right: 16px; bottom: 16px; width: 380px; border-radius: 22px; border-bottom: 1px solid var(--salle-bord); } }
+.salle-panneau-tete { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.salle-panneau-tete h3 { flex: 1; min-width: 0; margin: 0; font-size: 17px; line-height: 22px; font-weight: 600; }
+.salle-panneau-tete button { min-height: 44px; min-width: 44px; display: grid; place-items: center; color: #fff; border-radius: 50%; }
+.salle-panneau-tete button .ic { width: 20px; height: 20px; stroke-width: 2; }
+.salle-rub { margin: 12px 0 4px; display: flex; justify-content: space-between; font-size: 13px; line-height: 18px; color: var(--salle-sub); text-transform: uppercase; letter-spacing: .04em; }
+.salle-liste { border-radius: 14px; background: rgba(255,255,255,.07); overflow: hidden; }
+.salle-rang { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; min-height: 52px; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,.1); }
+.salle-rang:last-child { border-bottom: 0; }
+.salle-rang > .avatar { flex: none; width: 36px; height: 36px; font-size: 14px; }
+.salle-rang > .texte { flex: 1 1 120px; min-width: 0; display: flex; flex-direction: column; font-size: 16px; line-height: 21px; overflow-wrap: anywhere; }
+.salle-rang > .texte small { font-size: 13px; line-height: 17px; color: var(--salle-sub); }
+.salle-rang .salle-btn { min-height: 36px; }
+.salle-rang.actions { padding-left: 58px; background: rgba(255,255,255,.05); }
+button.salle-rang { width: 100%; text-align: left; color: #fff; }
+.salle-inter { flex: none; position: relative; width: 51px; height: 31px; border-radius: 16px; background: rgba(120,120,128,.5); transition: background-color .2s; }
+.salle-inter::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; transition: transform .2s; }
+[aria-checked="true"] > .salle-inter { background: var(--vert); }
+[aria-checked="true"] > .salle-inter::after { transform: translateX(20px); }
+.salle-note { margin: 8px 2px 0; font-size: 13px; line-height: 18px; color: var(--salle-sub); overflow-wrap: anywhere; }
+.salle-form { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; }
+.salle-form input { min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--salle-bord); background: rgba(255,255,255,.1); color: #fff; font: inherit; font-size: 16px; }
+.salle-form input::placeholder { color: rgba(255,255,255,.7); }
+.salle-seg { display: inline-flex; gap: 4px; padding: 3px; border-radius: 999px; background: rgba(255,255,255,.1); }
+.salle-seg button { min-height: 36px; padding: 0 14px; border-radius: 999px; color: #fff; font-size: 14px; font-weight: 600; }
+.salle-seg button[aria-pressed="true"] { background: #fff; color: #000; }
+.salle-bientot { opacity: .55; }
+.salle-fil { max-height: 38vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px 2px; }
+.salle-msg { max-width: 92%; padding: 7px 11px; border-radius: 14px; background: rgba(255,255,255,.14); font-size: 15px; line-height: 20px; overflow-wrap: anywhere; align-self: flex-start; }
+.salle-msg.moi { align-self: flex-end; background: var(--fill); }
+.salle-msg small { display: block; font-size: 12px; line-height: 15px; color: var(--salle-sub); }
+.salle-saisie { display: flex; gap: 8px; margin-top: 8px; }
+.salle-saisie input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border-radius: 22px; border: 1px solid var(--salle-bord); background: rgba(255,255,255,.1); color: #fff; font: inherit; font-size: 16px; }
+.salle-saisie input::placeholder { color: rgba(255,255,255,.7); }
+.salle-saisie button { flex: none; min-height: 44px; padding: 0 16px; border-radius: 22px; background: #fff; color: #000; font-weight: 600; }
+@media (prefers-reduced-motion: reduce) {
+  .salle-reaction { animation: none; }
+  .salle-tuile, .salle-inter, .salle-inter::after, .salle-cmd .rond-cmd { transition: none; }
+  html[data-salle] .salle-ecran { animation: none; }
+}
+/* la bannière « Appel en cours · Rejoindre » d'une conversation de groupe, et la ligne « Rejoindre » d'une réunion de l'agenda */
+.conv-salle { flex: none; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px max(14px, env(safe-area-inset-right, 0px)) 6px max(14px, env(safe-area-inset-left, 0px)); background: var(--fill); color: var(--on-fill); font-size: 15px; line-height: 20px; text-align: left; }
+.conv-salle[hidden] { display: none; }
+.conv-salle .texte { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.conv-salle b { flex: none; padding: 4px 12px; border-radius: 999px; background: #fff; color: #000; font-size: 14px; }
+.reunion-rejoindre { flex: none; align-self: center; min-height: 32px; padding: 0 12px; border-radius: 999px; background: var(--vert); color: #000; font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; }
+.invite-carte { margin: 0 auto; max-width: 420px; padding: 18px; border-radius: 18px; background: var(--card); border: var(--line); text-align: center; }
+.invite-carte h3 { margin: 0 0 4px; font-size: 20px; line-height: 26px; overflow-wrap: anywhere; }
+.invite-carte p { margin: 4px 0; overflow-wrap: anywhere; }
+.salle-pastille .ic { width: 18px; height: 18px; stroke-width: 1.8; flex: none; }
+.salle-btn .ic { width: 16px; height: 16px; stroke-width: 1.8; flex: none; }
+.salle-cmd-texte { display: block; max-width: 100%; overflow-wrap: anywhere; }
+.salle-ecran[data-attente] .salle-pastilles, .salle-ecran[data-attente] .salle-cmds, .salle-ecran[data-attente] .salle-tuile { display: none; }
+.salle-avis { margin: 0 max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px)); }
+.salle-tuile .salle-sans-camera { display: none; bottom: auto; top: calc(50% + 42px); }
+.salle-tuile.grand[data-camera="off"] .salle-sans-camera, .salle-scene[data-n="1"] .salle-tuile[data-camera="off"] .salle-sans-camera, .salle-scene[data-n="2"] .salle-tuile[data-camera="off"] .salle-sans-camera { display: block; }
+.salle-tuile[data-ecran="1"] video, .salle-tuile.grand video { object-fit: contain; }
+.salle-tuile[data-ecran="1"].vous video { transform: none; }
+.salle-scene[data-vue="intervenant"] .salle-tuile.grand { order: -1; }
+.salle-rang.libre { min-height: 44px; }
+.salle-rang.libre > .texte { flex: 1 1 140px; }
+.salle-liste + .salle-liste { margin-top: 8px; }
+.salle-panneau-corps { display: block; }
+.reunion-li { display: flex; align-items: center; }
+.reunion-li > .reunion-ligne { flex: 1; min-width: 0; width: auto; }
+.reunion-li > .reunion-rejoindre { margin-right: 12px; }
+.salle-attente b { display: block; }
 </style>
 </head>
 <body>
@@ -992,6 +1162,14 @@ a.mini .ic { font-size: 16px; }
   <symbol id="i-entrant" viewBox="0 0 24 24"><path d="M19 5 5 19M15 19H5V9"/></symbol>
   <symbol id="i-sortant" viewBox="0 0 24 24"><path d="M5 19 19 5M9 5h10v10"/></symbol>
   <symbol id="i-points" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01" stroke-width="3.4"/></symbol>
+  <symbol id="i-ecran" viewBox="0 0 24 24"><path d="M3.5 5h17v11h-17ZM8 20h8M12 16v4M12 13V8.5m-2.4 2.4L12 8.5l2.4 2.4"/></symbol>
+  <symbol id="i-main" viewBox="0 0 24 24"><path d="M8 12V6.5a1.5 1.5 0 0 1 3 0V11m0-4.5V5a1.5 1.5 0 0 1 3 0v6m0-4a1.5 1.5 0 0 1 3 0v6.5c0 3.5-2 6-5.5 6S7.5 18 6 15.2L4.5 12.3a1.4 1.4 0 0 1 2.4-1.4L8 13"/></symbol>
+  <symbol id="i-epingle" viewBox="0 0 24 24"><path d="M9 4h6l-1 5 3 3H7l3-3-1-5ZM12 12v8"/></symbol>
+  <symbol id="i-grille" viewBox="0 0 24 24"><path d="M4 4h7v7H4ZM13 4h7v7h-7ZM4 13h7v7H4ZM13 13h7v7h-7Z"/></symbol>
+  <symbol id="i-intervenant" viewBox="0 0 24 24"><path d="M4 4h16v10H4ZM4 17h4v3H4ZM10 17h4v3h-4ZM16 17h4v3h-4Z"/></symbol>
+  <symbol id="i-rec" viewBox="0 0 24 24"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10ZM3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Z"/></symbol>
+  <symbol id="i-reaction" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM8.5 14c.8 1.3 2 2 3.5 2s2.7-.7 3.5-2M9 9.5h.01M15 9.5h.01"/></symbol>
+  <symbol id="i-lien" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/></symbol>
   <symbol id="i-raccrocher" viewBox="0 0 24 24"><path d="M3 12a15 15 0 0 1 18 0l-2 3-4-1.5v-2a9 9 0 0 0-6 0v2L5 15l-2-3Z"/></symbol>
   <symbol id="i-agenda" viewBox="0 0 24 24"><path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 17.5v-11ZM5 9.5h14M8.5 2.8v3M15.5 2.8v3"/></symbol>
   <symbol id="i-lieu" viewBox="0 0 24 24"><path d="M12 21s6-5.2 6-10a6 6 0 0 0-12 0c0 4.8 6 10 6 10Zm0-7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/></symbol>
@@ -1006,6 +1184,7 @@ a.mini .ic { font-size: 16px; }
     <img src="opmsg-192.png" alt="" width="64" height="64">
     <h1 id="connexion-titre">OP MESSAGES</h1>
     <p class="connexion-sous">Connexion à l'accès d'essai</p>
+    <p class="connexion-sous" id="connexion-invite" role="status" hidden></p>
     <p class="connexion-erreur" id="connexion-erreur" role="alert" hidden></p>
     <label class="champ"><span class="sr-seul">Identifiant</span><input id="c-login" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" placeholder="Identifiant"></label>
     <label class="champ"><span class="sr-seul">Mot de passe</span><input id="c-pass" type="password" autocomplete="current-password" enterkeyhint="go" placeholder="Mot de passe"></label>
@@ -1070,6 +1249,7 @@ a.mini .ic { font-size: 16px; }
         <button type="button" class="conv-cam presse" id="conv-cam" aria-label="Appel vidéo"><svg class="ic" aria-hidden="true"><use href="#i-video"/></svg></button>
       </div>
     </header>
+    <button type="button" class="conv-salle presse" id="conv-salle" hidden><span class="texte" id="conv-salle-texte"></span><b>Rejoindre</b></button>
     <div class="conv-fil" id="conv-fil" role="log" aria-live="off" aria-label="Messages" tabindex="0">
       <!-- ⛔ la région annoncée ne reçoit QUE le message neuf d'un autre : si le fil entier était « aria-live », chaque rafraîchissement (« Lu 14:06 ») le relirait en bloc -->
       <button type="button" class="precedents" id="precedents" hidden>Afficher les messages précédents</button>
@@ -1123,6 +1303,48 @@ a.mini .ic { font-size: 16px; }
         <button type="button" class="appel-cmd" id="appel-msg" aria-label="Message : raccrocher et ouvrir la conversation"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg></span><span class="appel-cmd-texte">Message</span></button>
       </div>
       <button type="button" class="appel-raccrocher" id="appel-raccrocher" aria-label="Raccrocher"><svg class="ic" aria-hidden="true"><use href="#i-raccrocher"/></svg></button>
+    </div>
+  </section>
+
+  <!-- ══ LA SALLE — « En réunion » (étape 8) : un appel à plusieurs, ou la salle d'une réunion. Rien de cet écran ne se voit tant que `html[data-salle]` n'est pas posé (`rendreAppel`). ══ -->
+  <section class="salle-ecran" id="salle-ecran" role="region" aria-label="Salle d'appel" tabindex="-1">
+    <header class="salle-tete">
+      <div class="salle-titres">
+        <h2 class="salle-titre" id="salle-titre"></h2>
+        <p class="salle-sous"><span id="salle-statut"></span><span id="salle-nb"></span><span class="salle-rec" id="salle-rec" hidden>REC</span></p>
+      </div>
+      <button type="button" class="salle-quitter presse" id="salle-quitter" aria-label="Quitter la salle">Quitter</button>
+    </header>
+    <div class="salle-bandeaux" id="salle-bandeaux"></div>
+    <p class="salle-bandeau salle-avis" id="salle-avis" role="status" aria-live="polite" hidden></p>
+    <div class="salle-scene" id="salle-scene" role="list" aria-label="Participants" data-vue="galerie" data-n="1" tabindex="0">
+      <div class="tuile salle-tuile vous" id="salle-vous" role="listitem" data-camera="off"><video id="salle-video-local" muted playsinline autoplay aria-label="Votre caméra"></video><span class="tuile-av" aria-hidden="true" id="salle-vous-av"></span><span class="tuile-nom" id="salle-vous-nom">Vous</span><span class="salle-badges" id="salle-vous-badges"></span><button type="button" class="vous-retourner presse" id="salle-flip" aria-label="Retourner la caméra" hidden><svg class="ic" aria-hidden="true"><use href="#i-retourner"/></svg></button></div>
+    </div>
+    <div class="salle-pastilles" role="group" aria-label="Réactions et affichage">
+      <button type="button" class="salle-pastille presse" id="salle-reagir" aria-haspopup="true" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-reaction"/></svg>Réagir</button>
+      <div class="salle-emojis" id="salle-emojis" role="group" aria-label="Réactions" hidden>
+        <button type="button" class="presse" data-reaction="pouce" aria-label="Pouce levé">👍</button>
+        <button type="button" class="presse" data-reaction="coeur" aria-label="Cœur">❤️</button>
+        <button type="button" class="presse" data-reaction="bravo" aria-label="Bravo">👏</button>
+        <button type="button" class="presse" data-reaction="rire" aria-label="Rire">😂</button>
+      </div>
+      <button type="button" class="salle-pastille presse" id="salle-main" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-main"/></svg><span>Lever la main</span></button>
+      <button type="button" class="salle-pastille presse" id="salle-vue"><svg class="ic" aria-hidden="true"><use href="#i-intervenant"/></svg><span>Intervenant</span></button>
+      <button type="button" class="salle-pastille presse" id="salle-rec-btn" aria-pressed="false" hidden><svg class="ic" aria-hidden="true"><use href="#i-rec"/></svg><span>Enregistrer</span></button>
+    </div>
+    <div class="salle-bas">
+      <div class="salle-cmds" role="group" aria-label="Commandes de la salle">
+        <button type="button" class="salle-cmd" id="salle-micro" aria-pressed="false" aria-label="Couper le micro"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></span><span class="salle-cmd-texte">Micro</span></button>
+        <button type="button" class="salle-cmd" id="salle-cam" aria-pressed="false" aria-label="Activer la caméra"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-video-off"/></svg></span><span class="salle-cmd-texte">Caméra</span></button>
+        <button type="button" class="salle-cmd" id="salle-partage" aria-pressed="false" aria-label="Partager l'écran" hidden><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-ecran"/></svg></span><span class="salle-cmd-texte">Partager</span></button>
+        <button type="button" class="salle-cmd" id="salle-discussion" aria-haspopup="dialog" aria-expanded="false" aria-label="Discussion" hidden><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg></span><span class="salle-cmd-texte">Discussion</span><span class="compte" id="salle-discussion-n" hidden></span></button>
+        <button type="button" class="salle-cmd" id="salle-participants" aria-haspopup="dialog" aria-expanded="false" aria-label="Participants"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-groupe"/></svg></span><span class="salle-cmd-texte">Participants</span><span class="compte" id="salle-participants-n" hidden></span></button>
+        <button type="button" class="salle-cmd" id="salle-plus" aria-haspopup="dialog" aria-expanded="false" aria-label="Plus d'options"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-points"/></svg></span><span class="salle-cmd-texte">Plus</span></button>
+      </div>
+    </div>
+    <div class="salle-panneau" id="salle-panneau" role="dialog" aria-modal="false" aria-labelledby="salle-panneau-titre" tabindex="-1" hidden>
+      <div class="salle-panneau-tete"><h3 id="salle-panneau-titre"></h3><button type="button" class="presse" id="salle-panneau-fermer" aria-label="Fermer ce panneau"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button></div>
+      <div id="salle-panneau-corps"></div>
     </div>
   </section>
 </div>
