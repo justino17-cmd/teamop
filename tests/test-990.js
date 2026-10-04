@@ -47,7 +47,12 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessa
     const monde = creerMonde(login);
     const D = { login, nav, monde, requetes: [], recus: {}, evs: [], fermees: [] };
     const faux = { priseEnCharge: () => ({ ok: false, raison: 'navigateur' }), permission: () => 'default', visible: () => true, surMessage: () => {}, abonnementActuel: async () => null, fermerNotifications: async (tag) => { D.fermees.push(tag); } };
-    const f = async (url, init) => { const u = String(url), m = (init && init.method) || 'GET'; D.requetes.push({ m, chemin: u.replace(svc.base, '').split('?')[0], corps: init && typeof init.body === 'string' ? init.body : null }); return nav.fetch(url, init); };
+    const f = async (url, init) => {
+      const u = String(url), m = (init && init.method) || 'GET', chemin = u.replace(svc.base, '').split('?')[0]; D.requetes.push({ m, chemin, corps: init && typeof init.body === 'string' ? init.body : null });
+      /* `D.devancer` : la réponse du service à « Répondre » n'est RENDUE qu'APRÈS l'événement que le service pousse à tout le monde dès que la personne est admise — l'ordre qu'un vrai navigateur a eu (mesuré : le flux gagne la course) */
+      if (D.devancer && m === 'POST' && /\/repondre$/.test(chemin)) { const avant = D.recus.appel || 0, r = await nav.fetch(url, init); D.devance = !!(await att(() => (D.recus.appel || 0) > avant, 4000)); return r; }
+      return nav.fetch(url, init);
+    };
     const ES = class extends nav.EventSource {
       addEventListener(t, g) { super.addEventListener(t, (ev) => { D.recus[t] = (D.recus[t] || 0) + 1; g(ev); }); }
     };
@@ -132,8 +137,11 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessa
     {
       const debits = (D) => D.monde.vivants().map(p => [p.debitMax('audio'), p.debitMax('video')]);
       v('⛔ à trois : la voix à 32 kbit/s, l\'image à 600 kbit/s — sur CHAQUE liaison de chaque page', tous.slice(0, 3).map(debits), new Array(3).fill([[32000, 600000], [32000, 600000]]));
-      /* Dan répond : à quatre l'image tombe à 400 kbit/s */
-      await N.src.repondreAppel(id, true);
+      /* Dan répond : à quatre l'image tombe à 400 kbit/s — ET l'événement du service DEVANCE la réponse HTTP (l'ordre d'un vrai navigateur) : la personne n'est pas « prise sur un autre appareil » */
+      N.devancer = true;
+      const rd = await N.src.repondreAppel(id, true);
+      N.devancer = false;
+      v('⛔ l\'événement « présent » a bien DEVANCÉ la réponse HTTP (population de la course), et Dan n\'est pas raccroché : il est présent, l\'appel court, aucune issue « pris ailleurs »', [N.devance, rd.entrant, rd.moi.statut, rd.etat, rd.issue, rd.avis], [true, false, 'present', 'en-cours', null, null]);
       donnerPistes(N, id, true);
       vrai('Dan répond : quatre pages, trois connexions chacune', !!(await att(() => tous.every(D => D.monde.vivants().length === 3 && D.monde.vivants().every(p => p.iceConnectionState === 'connected')))));
       await att(() => tous.every(D => debits(D).every(x => x[1] === 400000)));

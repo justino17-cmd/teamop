@@ -1321,6 +1321,10 @@
       const st = statutDe(c);
       if (c.entrant && !c.local) {
         if (st === 'invite') { emettreAppel(c); return; }
+        /* ⛔ MA PROPRE RÉPONSE, VUE PAR L'ÉVÉNEMENT AVANT QU'ELLE NE REVIENNE EN HTTP : le service pousse la salle à tous dès que j'y suis admis, et le flux peut arriver AVANT la réponse du geste — cette vue-là
+           dit « présent » sans que `c.local` soit posé (il ne l'est qu'au retour de la réponse). La prendre pour « pris sur un autre appareil » raccrochait la personne au moment où elle répondait (mesuré au
+           navigateur, quatre pages : seul l'hôte voyait les trois autres). Une réponse en vol attend sa réponse ; si le service la refuse (`appel_pris`), c'est `repondre` qui conclut. */
+        if (c.reponse && (st === 'present' || st === 'attente')) return;
         finir(c, st === 'manque' ? 'manque' : 'pris_ailleurs', { vue: v, service: true }); return;
       }
       if (st === 'exclu') { finir(c, 'exclu', { vue: v, service: true }); return; }
@@ -1455,6 +1459,7 @@
         if (r && r.salle) poserSalle(c, r.salle);
         armerPouls(c);
         if (r && r.appel) { memoriser(r.appel); appliquer(c, r.appel); }
+        relire(c);                                                    // l'état d'APRÈS : un événement qui a doublé la réponse a pu dire plus (quelqu'un arrivé juste après moi), la réponse ne le sait pas
         return instantane(c);
       } finally { c.reponse = false; }
     }
