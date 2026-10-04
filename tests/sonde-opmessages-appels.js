@@ -64,7 +64,7 @@ async function ouvrir(b, base, pf, o) {
   page.setDefaultTimeout(10000);
   const S = { ctx, page, pf, nom: o.nom, base, erreurs: [], console: [], gestes: 0 };
   page.on('pageerror', e => S.erreurs.push(String(e && e.message || e).slice(0, 220)));
-  page.on('console', m => { if (m.type() === 'error') S.console.push(m.text().slice(0, 220)); });
+  page.on('console', m => { if (m.type() === 'error') { let u = ''; try { u = /Failed to load resource/.test(m.text()) ? ' [' + new URL(m.location().url).pathname + ']' : ''; } catch (e) { /* sans adresse */ } S.console.push((m.text() + u).slice(0, 240)); } });          // l'adresse du fichier qui a échoué est dite : « Failed to load resource » seul n'accuse personne
   await page.addInitScript(() => {
     window.__media = 0; window.__pistes = []; window.__pcs = []; window.__confs = []; window.__setConfs = []; window.__ctx = { crees: 0, fermes: 0 }; window.__relaisSeul = false; window.__vibre = 0; window.__iceErreurs = []; window.__ajouts = []; window.__contraintes = []; window.__deuxCameras = false;
     try {
@@ -605,6 +605,8 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
     await bloc('5. Le RELAIS : forcé, la voix passe par le vrai coturn avec les identifiants du vrai service', async () => {
       if (!coturn) { console.log('  ⚠️  NON VÉRIFIÉ : turnserver (coturn) est absent de cette machine — le relais n\'a pas été joué par les navigateurs.'); return; }
       for (const S of [A, B]) await S.page.evaluate(() => { window.__relaisSeul = true; });
+      const dejaVu = (id) => (lireAllocations(coturn.journal()).get(id) || { total: 0 }).total;          // les appels d'AVANT (même contre coturn) ont ouvert les leurs : on compte ce que CET appel ajoute
+      const a0 = dejaVu(idAna), b0 = dejaVu(idBen), r0 = refusAllocations(coturn.journal());
       await appeler(A, NOMS.ben, 'audio');
       await verifier('Ben : ça sonne', B, () => document.getElementById('appel-ecran').hasAttribute('data-entrant'), null, 10000);
       await decrocher(B);
@@ -612,10 +614,8 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
       const sa = await paire(A), sb = await paire(B);
       v('⛔ la paire retenue passe par le RELAIS des deux côtés (type « relay »)' + (sa.locale === 'relay' && sb.locale === 'relay' ? '' : ' — Ana ' + JSON.stringify(sa) + ' Ben ' + JSON.stringify(sb)), [sa.locale, sb.locale], ['relay', 'relay']);
       const ca = await croit(A), cb = await croit(B);
-      const alloc = lireAllocations(coturn.journal());
-      const mien = (id) => alloc.get(id) || { total: 0, pic: 0 };
       const P = constantesRelais();
-      v('⛔ MESURÉ contre le vrai coturn, avec les plafonds de PRODUCTION : le navigateur ouvre UNE ALLOCATION par adresse de relais — DEUX par personne (UDP, puis TCP : cette sonde n\'a pas de TLS), jamais plus — et le quota par personne (' + P.userQuota + ') n\'en refuse aucune', [mien(idAna).total, mien(idBen).total, refusAllocations(coturn.journal())], [2, 2, 0]);
+      v('⛔ MESURÉ contre le vrai coturn, avec les plafonds de PRODUCTION : le navigateur ouvre UNE ALLOCATION par adresse de relais — DEUX par personne (UDP, puis TCP : cette sonde n\'a pas de TLS), jamais plus — et le quota par personne (' + P.userQuota + ') n\'en refuse aucune', [dejaVu(idAna) - a0, dejaVu(idBen) - b0, refusAllocations(coturn.journal()) - r0], [2, 2, 0]);
       vrai('⛔ LA VOIX PASSE par le vrai coturn : les octets audio reçus croissent des deux côtés (' + ca.avant.audioRecu + ' → ' + ca.apres.audioRecu + ' ; ' + cb.avant.audioRecu + ' → ' + cb.apres.audioRecu + ')', ca.audio && cb.audio);
       const conf = await A.page.evaluate(() => window.__confs[window.__confs.length - 1]);
       const turn = (conf.iceServers || []).find(s => s.username);
@@ -642,7 +642,7 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
       v('la paire retenue passe par le relais des deux côtés AVANT le renouvellement', [sa0.locale, sb0.locale], ['relay', 'relay']);
       const avant = lireAllocations(coturn.journal());
       const compter = (id) => (lireAllocations(coturn.journal()).get(id) || { total: 0 }).total;
-      const n0 = [compter(idAna), compter(idBen)];
+      const n0 = [compter(idAna), compter(idBen)], r0 = refusAllocations(coturn.journal());
       const rap = (S) => S.page.evaluate(() => ({ configs: window.__setConfs.length, derniere: window.__setConfs[window.__setConfs.length - 1] || null, premiere: window.__confs[window.__confs.length - 1] || null, connexions: window.__pcs.length }));
       const bases = [(await rap(A)).connexions, (await rap(B)).connexions];          // la page garde les connexions des appels d'avant : on compte ce qui s'AJOUTE
       /* aux trois quarts de la minute (45 s), CHACUN redemande ses identifiants (le service en donne à qui est dans l'appel) et les donne à sa connexion */
@@ -656,7 +656,7 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
          Number(turnDe(rb.derniere).username.split(':')[0]) > Number(turnDe(rb.premiere).username.split(':')[0]), turnDe(rb.derniere).credential === hmacDe(turnDe(rb.derniere).username), turnDe(rb.derniere).username.endsWith(':' + idBen)], [true, true, true, true, true, true]);
       await dormir(2500);
       v('⛔ le renouvellement NE RELANCE PAS la liaison : aucune connexion de plus de chaque côté, et chez coturn aucune allocation de plus (deux par personne, comme avant) et aucune refusée par un plafond',
-        [ra.connexions - bases[0], rb.connexions - bases[1], compter(idAna) - n0[0], compter(idBen) - n0[1], refusAllocations(coturn.journal())], [0, 0, 0, 0, 0]);
+        [ra.connexions - bases[0], rb.connexions - bases[1], compter(idAna) - n0[0], compter(idBen) - n0[1], refusAllocations(coturn.journal()) - r0], [0, 0, 0, 0, 0]);
       /* les identifiants neufs OUVRENT une allocation chez le vrai coturn (ce qu'une relance après un changement de réseau en ferait) ; on la rend aussitôt */
       const lien = await V.ouvrir({ hote: coturn.ip, port: coturn.port, transport: 'udp' });
       let ouverte = null;
@@ -684,6 +684,9 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
       v('⛔ aucun mot anglais dans ce que les écrans d\'appel disent (sonnerie, commandes, avis, liste)', textes.filter(t => /\b(calling|ringing|incoming|outgoing|accept|decline|reject|hang ?up|unmute|mute|speaker|missed|answer|video call|audio call|connecting|call ended|calls?)\b/i.test(t)), []);
     });
 
+    /* ⛔ `/api/ice` répond 404 à qui n'est plus dans un appel qui sonne ou qui court : l'appelante dont l'appelé refuse AVANT que sa page ne demande ses identifiants le reçoit (une course normale, sans dommage — le moteur n'en
+       tire qu'« pas de relais » et l'appel est déjà fini). Chrome le journalise « Failed to load resource » : seul CE 404-là, avec son adresse, est retiré du relevé — tout autre refus reste une erreur. */
+    { const ice404 = (x) => /status of 404.*\[\/api\/ice\]/.test(x); for (const S of [A, B]) S.console = S.console.filter(x => !ice404(x)); }
     v('aucune erreur JavaScript, aucune erreur de console dans les deux pages sur toute la sonde (population : ' + (A.gestes + B.gestes) + ' gestes portés)', [A.erreurs.concat(A.console), B.erreurs.concat(B.console)], [[], []]);
   } finally {
     for (const b of navigateurs) { try { await b.close(); } catch (e) { /* déjà fermé */ } }
