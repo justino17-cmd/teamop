@@ -175,6 +175,7 @@ function installerCompte(H, ctx) {
     if (!e.ok) { res.set('Retry-After', String(e.retry)); return refus(res, 429, 'quota_atteint', { retry: e.retry }); }
     const echeance = horloge() + SUPPRESSION_DELAI_MS;
     stockage.suppressionProgrammer(req.moi.id, echeance);   // coupe sessions, jetons d'appareil, abonnements push, liens — et date l'effacement, dans UNE transaction
+    try { if (ctx.appels) ctx.appels.terminerDe(req.moi.id); } catch (e) { /* un appel qui ne se termine pas ne défait pas la suppression : le balayeur le dira « perdu » */ }
     hub.fermerPersonne(req.moi.id);                          // ses flux se ferment (motif « session ») : plus rien ne lui est livré
     res.append('Set-Cookie', cookieVide(config.cookie.nom));
     res.append('Set-Cookie', cookieVide(config.cookie.nom + 'a'));

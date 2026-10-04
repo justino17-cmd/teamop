@@ -354,12 +354,15 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
       const deja = attentes.get(cle);
       if (deja) { deja.gid = Math.max(deja.gid, gid); deja.charges.push(charge); return deja.promesse; }   // (la liste vit au plus `ackMs` : elle ne grossit que de ce qu'une conversation écrit pendant ce délai)
       const a = { gid, charges: [charge] };
+      /* ⛔ UNE CHARGE PEUT RACCOURCIR L'ATTENTE, JAMAIS L'ALLONGER : une sonnerie d'appel (`ackMs` dans sa charge) ne peut pas attendre cinq secondes — la page qui est sous les yeux acquitte en une seconde,
+         celle d'un onglet caché ne le fera jamais, et l'appel sonne 45 s en tout. Le réglage du service reste le plafond (un banc qui le baisse baisse aussi celui des appels). */
+      const attente = Number.isInteger(charge.ackMs) && charge.ackMs >= 0 ? Math.min(charge.ackMs, pc.ackMs) : pc.ackMs;
       a.promesse = new Promise((ok) => {
         a.minuteur = plan(() => {
           attentes.delete(cle);
           if (acquitte(uid, a.gid)) { ok({ envoyes: 0, raison: 'acquittee' }); return; }
           partirParmi(uid, a.charges).then(ok, () => ok({ envoyes: 0, raison: 'erreur' }));
-        }, pc.ackMs);
+        }, attente);
       });
       attentes.set(cle, a);
       return a.promesse;

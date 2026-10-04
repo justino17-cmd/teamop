@@ -26,6 +26,7 @@ const ID_APPEL = /^a_[0-9a-f]{32}$/;
 const SIGNAL_OCTETS_MAX = 16384;                                 // « 16 Ko au plus » (SERVEUR.md § 3.3)
 const TYPES_SIGNAL = ['offre', 'reponse', 'candidats', 'etat', 'pouls'];
 const ELAGAGE_PERIODE_MS = 3600000;
+const RING_ACK_MS = 1500;                                         // une page sous les yeux acquitte la sonnerie en une seconde : au-delà, personne ne la voit, la notification part (push.js : une charge ne raccourcit l'attente que de celle du service)
 const RING_PUSH_TTL_S = 30;                                       // « urgency high, durée de vie 30 s » (SERVEUR.md § 3.3)
 const erreur = (code) => Object.assign(new Error(code), { code });
 const nomAffiche = (p) => (p && ((p.prenom + ' ' + p.nom).trim())) || 'Quelqu\'un';
@@ -62,7 +63,7 @@ function creerAppels({ stockage, hub, push, config, horloge = Date.now, journali
   /* ── les pushs ── */
   function pousserSonnerie({ id, type, appelant, appele, gid }) {
     pousser(appele, {
-      type: 'appel', tag: 'appel:' + id, url: '/#appels', renotify: true, urgence: 'high', ttl: RING_PUSH_TTL_S,
+      type: 'appel', tag: 'appel:' + id, url: '/#appels', renotify: true, urgence: 'high', ttl: RING_PUSH_TTL_S, ackMs: RING_ACK_MS,
       titre: 'OP MESSAGES', corps: 'Appel entrant',
       detail: { titre: 'Appel de ' + nomAffiche(appelant), corps: type === 'video' ? 'Appel vidéo' : 'Appel audio' },
       /* re-jugé à l'instant de partir : l'appel sonne-t-il ENCORE pour cette personne (personne n'a répondu, refusé, ni raccroché) ? et ce qui reste de sa sonnerie borne la durée de vie du push */
@@ -134,6 +135,20 @@ function creerAppels({ stockage, hub, push, config, horloge = Date.now, journali
     if (reveil.length) reveiller(reveil);
   }
 
+  /* ── la personne demande la suppression de son compte : ses sessions sont coupées à l'instant, l'appel qu'elle tenait ne se tient donc plus — il se TERMINE tout de suite (l'autre l'apprend), au lieu
+     d'attendre `perduMs` qu'on le dise « perdu ». Une sonnerie en cours est annulée : l'appelé l'a manquée, comme à tout raccroché de l'appelant. → vrai si un appel a été terminé ── */
+  function terminerDe(uid) {
+    const id = stockage.appelActifDe(uid);
+    if (!id) return false;
+    const acces = stockage.appelAcces(id, uid);
+    const f = stockage.appelFinir({ id, motif: 'compte' });
+    if (f.deja) return false;
+    reveiller(Object.keys(f.gids));
+    if (f.notif) pousserManque(f.notif, { id, type: acces ? acces.type : 'audio', appelant: personne(uid) });
+    vus.delete(cle(id, uid));
+    return true;
+  }
+
   /* ── le balayeur ── */
   function echoir() {
     const faits = stockage.appelsEchoir(horloge());
@@ -193,7 +208,7 @@ function creerAppels({ stockage, hub, push, config, horloge = Date.now, journali
     return { turn: relaisPose(), ageS: etat.dernierTour === null ? null : Math.max(0, Math.round((horloge() - etat.dernierTour) / 1000)), echecs: etat.echecs, perdus: etat.perdus };
   }
 
-  return { ice, creer, repondre, quitter, signal, bloquer, balayer, echoir, demarrer, arreter, sante, relais: relaisPose, etat };
+  return { ice, creer, repondre, quitter, signal, bloquer, terminerDe, balayer, echoir, demarrer, arreter, sante, relais: relaisPose, etat };
 }
 
 module.exports = { creerAppels, identifiantsRelais, ID_APPEL, TYPES_SIGNAL, SIGNAL_OCTETS_MAX };
