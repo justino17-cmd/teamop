@@ -178,6 +178,21 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       const iq = A.ordre.map((x, i) => /^rep POST \/api\/appels\/a_[0-9a-f]+\/quitter$/.test(x) ? i : -1).filter(i => i >= 0).pop();
       vrai('⛔ l\'historique est redit APRÈS que le service a reçu le raccrochage (trouvé en vrai navigateur : relu avant, il ne portait pas encore l\'appel qu\'on venait de finir)', iq !== undefined && A.ordre.slice(iq).includes('ev appels'));
       vrai('la notification de la sonnerie est retirée de l\'écran de l\'appelé (étiquette `appel:<identifiant>`)', fermeesAvant.concat(B.fermees).includes('appel:' + idAudio));
+      /* ⛔ LE FLUX N'APPORTE PAS L'ÉVÉNEMENT DE FIN (une coupure du flux au pire moment) : l'historique est QUAND MÊME redit, par la page elle-même, une fois que le service a reçu le raccrochage. Depuis que l'événement de
+         fin, dit par le service, fait relire l'historique à chaque appareil des deux personnes (T1), `finir` n'était plus le seul à le provoquer : la mutation « `finir` ne redit plus l'historique » SURVIVAIT, vert partout — le banc
+         ne jouait que le cas où le flux marche. On joue donc l'autre : les événements d'appel de CE flux ne sont pas vus de la page, et seule la page elle-même peut relire. */
+      const sh = await A.src.demarrerAppel({ membres: [ben.id], video: false });
+      await B.attendreEv(e => e.type === 'appel-entrant' && e.id === sh.id);
+      await B.src.repondreAppel(sh.id, true);
+      vrai('population : la liaison de ce second appel s\'établit (la fin qui suit est celle d\'un vrai appel)', !!(await liees(A, B)));
+      A.perdre = (t) => t === 'appel';
+      const avantH = A.ordre.length, recusH = A.recus.appel || 0;
+      await A.src.terminerAppel(sh.id);
+      const ih = A.ordre.map((x, i) => /^rep POST \/api\/appels\/a_[0-9a-f]+\/quitter$/.test(x) ? i : -1).filter(i => i >= 0).pop();
+      vrai('population : l\'événement de fin est ARRIVÉ au flux d\'Ana (compté avant le module) — et la page ne l\'a pas vu', !!(await att(() => (A.recus.appel || 0) > recusH, 4000)));
+      vrai('⛔ l\'historique est redit APRÈS que le service a reçu le raccrochage — par la page seule (l\'événement de fin n\'était pas là pour le provoquer)', ih !== undefined && ih >= avantH && A.ordre.slice(ih).includes('ev appels'));
+      A.perdre = null;
+      await B.attendreSnap(sh.id, x => x.etat === 'termine'); await B.src.terminerAppel(sh.id);
     }
 
     /* ═══ 3. LA VIDÉO, LES PISTES DE LA PAGE ══════════════════════════════════════════════════════════════════════ */
