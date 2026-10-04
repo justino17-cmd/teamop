@@ -31,6 +31,7 @@ const { installerCompte } = require('./compte');
 const { installerEspaces, ID_ESPACE } = require('./routes-espaces');
 const { installerReunions } = require('./routes-reunions');
 const { installerAppels } = require('./routes-appels');
+const { installerSalles } = require('./routes-salles');
 const { ID_APPEL } = require('./appels');
 const { ID_REUNION } = require('./reunions-outils');
 const { installerFacturation } = require('./facturation');
@@ -191,6 +192,22 @@ function construireApp(ctx) {
     req.appel = r; next();
   };
   garde.AP = garde.S.concat([appelDuParticipant]);
+  /* ⛔ SP, SH, SO, SJ : une SALLE (un appel à plusieurs, la salle d'une réunion). Bâties sur S comme AP : un geste de salle ne demande pas d'adresse confirmée.
+       SP  participant de la salle ; un non-participant, un EXCLU, un identifiant mal formé et un appel À DEUX (qui n'est pas une salle) reçoivent tous le MÊME 404 qu'une salle qui n'existe pas ;
+       SH  hôte ou co-hôte PRÉSENT dans la salle — un participant reçoit 403 (il connaît déjà la salle), comme un invité qui n'est pas l'hôte d'une réunion ;
+       SO  l'hôte seul ;
+       SJ  quelqu'un qui VEUT entrer (la bannière « Rejoindre ») : la garde ne juge que la forme de l'identifiant, le droit d'entrer se juge dans la transaction (membre du groupe, invité de la réunion) — et le refus
+           d'y entrer est, lui aussi, le même 404 qu'une salle qui n'existe pas. */
+  const salleDuParticipant = (req, res, next) => {
+    const id = req.params.id;
+    const r = ID_APPEL.test(id) ? stockage.appelAcces(id, req.moi.id) : null;
+    if (!r || r.genre === 'deux') return refus(res, 404, 'introuvable');
+    req.appel = r; next();
+  };
+  garde.SP = garde.S.concat([salleDuParticipant]);
+  garde.SH = garde.SP.concat([(req, res, next) => (req.appel.statut === 'present' && req.appel.grade >= 1) ? next() : refus(res, 403, 'interdit')]);
+  garde.SO = garde.SP.concat([(req, res, next) => (req.appel.statut === 'present' && req.appel.grade >= 2) ? next() : refus(res, 403, 'interdit')]);
+  garde.SJ = garde.S.concat([(req, res, next) => ID_APPEL.test(String(req.params.id)) ? next() : refus(res, 404, 'introuvable')]);
   garde.R = garde.S.concat([reunionDuParticipant]);
   garde.H = garde.V.concat([reunionDuParticipant, (req, res, next) => req.reunion.hote ? next() : refus(res, 403, 'interdit')]);
   /* ⛔ PRO : une fonction payante. `formuleDe` est la SEULE fonction qui décide (`formule.js`) — ce garde la lit, il ne recopie aucune règle. Une route de l'espace (`req.espace`) se juge sur la
@@ -214,7 +231,8 @@ function construireApp(ctx) {
   installerEspaces(H, ctx);     // les espaces professionnels : membres, invitations, canaux, « Contacts de l'entreprise »
   installerFacturation(H, ctx); // Messages Pro : les offres, l'état, le paiement (Stripe), le portail, la relecture
   installerReunions(H, ctx);    // les réunions programmées : agenda, programmer, inviter, répondre, rappels, fichier .ics
-  installerAppels(H, ctx);      // les appels à deux : le relais (identifiants éphémères), lancer, répondre, raccrocher, signaler, l'historique
+  installerAppels(H, ctx);      // les appels : le relais (identifiants éphémères), lancer (à deux ou à plusieurs), répondre, rejoindre, raccrocher, signaler, l'historique
+  installerSalles(H, ctx);      // les salles : les gestes de l'hôte et des co-hôtes, ceux des participants
   /* Les écritures authentifiées ont un plafond propre, par compte (en plus de celui de l'adresse). */
   const limiteEcriture = (req, res, next) => {
     const q = Object.assign({ max: 300, fenetreMs: 60000 }, config.quotas.ecriture || {});

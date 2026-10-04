@@ -119,7 +119,15 @@
     reunion_passee: 'Cette réunion est terminée : il n\'y a plus rien à envoyer.',
     /* les appels à deux (étape 7) : chaque refus que l'appel peut rendre a sa phrase. ⛔ Aucune promesse que le service ne tient pas (l'appel de groupe n'existe pas encore ; le relais n'est pas toujours installé). */
     occupe: 'Cette personne est déjà dans un appel. Réessaie dans un moment.',
-    appel_a_deux: 'Un appel se passe à deux pour l\'instant : les appels à plusieurs arrivent bientôt.',
+    appel_a_deux: 'Cette conversation n\'a pas d\'appel : une réunion a sa salle (« Rejoindre »), un canal n\'appelle personne.',
+    /* les appels à plusieurs et les salles (étape 8) : chaque refus a sa phrase. ⛔ Aucune promesse que le service ne tient pas (couper le micro d'un autre n'est qu'une DEMANDE). */
+    appel_complet: 'La salle est pleine : quatre personnes au plus en vidéo, six en audio.',
+    verrouillee: 'L\'hôte a verrouillé la salle : personne ne peut plus y entrer.',
+    exclu: 'L\'hôte t\'a retiré de cette salle : tu ne peux pas y revenir.',
+    groupe_trop_grand: 'Ce groupe compte trop de monde pour un appel (douze personnes au plus avec toi). Programme une réunion, ou choisis les personnes à appeler.',
+    partage_interdit: 'L\'hôte n\'autorise pas le partage d\'écran.',
+    evt_trop_gros: 'Ce message est trop gros pour la salle (2 Ko au plus).',
+    reunion_hors_horaire: 'Cette réunion n\'est pas ouverte : on y entre de quinze minutes avant son début à trois heures après sa fin.',
     appele_sature: 'Cette personne reçoit beaucoup d\'appels en ce moment. Réessaie plus tard.',
     appel_pris: 'Cet appel a déjà été pris sur un autre appareil.',
     appel_fini: 'Cet appel est déjà terminé.',
@@ -191,7 +199,7 @@
     return liste;
   }
 
-  const EVENEMENTS = ['message', 'message_modifie', 'message_supprime', 'reaction', 'conversation', 'retire', 'lu', 'notification', 'saisie', 'presence', 'personne', 'espace', 'reunion', 'appel', 'signal', 'resync'];
+  const EVENEMENTS = ['message', 'message_modifie', 'message_supprime', 'reaction', 'conversation', 'retire', 'lu', 'notification', 'saisie', 'presence', 'personne', 'espace', 'reunion', 'appel', 'signal', 'salle_evt', 'resync'];
 
   function creer(opts) {
     const o = opts || {};
@@ -382,6 +390,29 @@
       repondreAppel: (id, accepte) => appel('POST', '/api/appels/' + e(id) + '/repondre', { accepte: !!accepte }),
       quitterAppel: (id, opts) => appel('POST', '/api/appels/' + e(id) + '/quitter', undefined, opts),
       signalAppel: (id, a, type, donnees) => appel('POST', '/api/appels/' + e(id) + '/signal', donnees === undefined ? { a, type } : { a, type, donnees }),
+      /* ── Les salles (étape 8) : entrer, ce que l'hôte décide, ce que les participants se disent. L'identifiant de la salle est celui de l'appel. ── */
+      rejoindreAppel: (id) => appel('POST', '/api/appels/' + e(id) + '/rejoindre'),
+      salle: (id) => appel('GET', '/api/salles/' + e(id)),
+      salleAdmettre: (id, o2) => appel('POST', '/api/salles/' + e(id) + '/admettre', o2 || {}),
+      salleRefuser: (id, uid) => appel('POST', '/api/salles/' + e(id) + '/refuser', { uid }),
+      salleExclure: (id, uid) => appel('POST', '/api/salles/' + e(id) + '/exclure', { uid }),
+      salleVerrouiller: (id, actif) => appel('POST', '/api/salles/' + e(id) + '/verrouiller', { actif: !!actif }),
+      salleAttente: (id, actif) => appel('POST', '/api/salles/' + e(id) + '/salle_attente', { actif: !!actif }),
+      salleCouperMicro: (id, o2) => appel('POST', '/api/salles/' + e(id) + '/couper_micro', o2 || {}),
+      sallePartage: (id, actif) => appel('POST', '/api/salles/' + e(id) + '/partage', { actif: !!actif }),
+      salleRec: (id, actif) => appel('POST', '/api/salles/' + e(id) + '/rec', { actif: !!actif }),
+      salleCohote: (id, uid, actif) => appel('POST', '/api/salles/' + e(id) + '/cohote', { uid, actif: !!actif }),
+      salleTerminer: (id) => appel('POST', '/api/salles/' + e(id) + '/terminer'),
+      salleMain: (id, actif) => appel('POST', '/api/salles/' + e(id) + '/main', { actif: !!actif }),
+      salleReaction: (id, emoji) => appel('POST', '/api/salles/' + e(id) + '/reaction', { emoji }),
+      salleEtat: (id, champs) => appel('POST', '/api/salles/' + e(id) + '/etat', champs),
+      salleEvt: (id, k, donnees) => appel('POST', '/api/salles/' + e(id) + '/evt', { k, donnees }),
+      /* la salle d'une réunion programmée, et son lien d'invité (le code va dans le FRAGMENT de l'adresse : il ne passe jamais dans les journaux du proxy) */
+      rejoindreReunion: (id, type) => appel('POST', '/api/reunions/' + e(id) + '/rejoindre', type ? { type } : {}),
+      lienReunion: (id) => appel('POST', '/api/reunions/' + e(id) + '/lien'),
+      renouvelerLienReunion: (id) => appel('POST', '/api/reunions/' + e(id) + '/lien/renouveler'),
+      apercuReunion: (code) => appel('POST', '/api/reunions/apercu', { code }),
+      rejoindreReunionParCode: (code, type) => appel('POST', '/api/reunions/rejoindre', type ? { code, type } : { code }),
 
       /* ── Les réunions programmées (étape 6) ──
          ⛔ La réunion se dit dans l'ADRESSE, jamais dans le corps : le service la relit de la base et de la session. L'heure se dit en millisecondes UTC, ou en heure LOCALE « 2026-10-26T14:00 »

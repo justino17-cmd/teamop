@@ -52,7 +52,7 @@ console.log('La migration 8 : numérotée, rien que des tables, rejouable, avec 
 {
   const DERNIERE = MIGRATIONS[MIGRATIONS.length - 1].v;
   const celle = MIGRATIONS.filter(m => m.sql.some(s => /CREATE TABLE IF NOT EXISTS appel\(/.test(s)));
-  v('population : UNE migration crée les appels, et elle suit toutes les précédentes', [celle.length, celle[0] && celle[0].v, MIGRATIONS.filter(m => m.v < (celle[0] || {}).v).length], [1, DERNIERE, DERNIERE - 1]);
+  v('population : UNE migration crée les appels, et elle suit toutes les précédentes', [celle.length, celle[0] && celle[0].v, MIGRATIONS.filter(m => m.v < (celle[0] || {}).v).length], [1, 8, 7]);
   vrai('elle est la HUITIÈME (les réunions sont la 7 et n\'ont pas bougé : aucune table d\'appel n\'y est rangée)', celle[0].v === 8 && MIGRATIONS.filter(m => m.v === 7).length === 1 && !MIGRATIONS.find(m => m.v === 7).sql.some(s => /CREATE TABLE IF NOT EXISTS appel(_part)?\(/.test(s)));
   vrai('les numéros se suivent sans trou (1 à ' + DERNIERE + ')', MIGRATIONS.map(m => m.v).join() === Array.from({ length: DERNIERE }, (_, i) => i + 1).join());
   vrai('elle crée les deux tables, et ne modifie aucune table qui existe (pas d\'ALTER : elle reste rejouable)', ['appel(', 'appel_part('].every(m => celle[0].sql.some(s => s.includes(m))) && !celle[0].sql.some(s => /^\s*ALTER\b/i.test(s)));
@@ -69,16 +69,21 @@ console.log('La migration 8 : numérotée, rien que des tables, rejouable, avec 
     [deux.filter(t => !STOCK.ouvrir.copie.TABLES_COMPTEES.includes(t)), deux.filter(t => !(t in a.S.sonde().nonVides)), deux.filter(t => !(t in (STOCK.ouvrir.copie.controlerFichier(a.chemin).lignes || {})))], [[], [], []]);
 
   /* ⛔ LA BASE EN SERVICE : au schéma 7 (les réunions, sur la bêta). Elle reçoit la 8 et RIEN de ce qu'elle porte ne bouge — et une copie « avant-v8 » est gardée avant de la toucher. */
-  const vive = MIGRATIONS.filter(m => m.v <= 7);
-  const g = neuf({ migrations: vive });
+  /* Une base « du schéma 7 » comme celle qui est en service : le module d'AUJOURD'HUI n'en sait plus fabriquer (il écrit `reunion.attente`, une colonne de la migration 9). On la RETROGRADE donc : une base à jour
+     qui a vécu (un contact, une réunion), à laquelle on retire ce que les migrations 8 et 9 ont ajouté. Que le code d'AVANT tourne sur la base d'APRÈS est gardé par `test-986`, dans l'autre sens. */
+  const g = neuf();
   const gAna = pers(g.S, 'Ana'), gBen = pers(g.S, 'Ben');
   g.S.contactLier(gAna.id, gBen.id);
   const debutR = 1790000000000 + 2 * JOUR;
   const gR = g.S.reunionCreer({ hote: gAna.id, titre: 'Avant la 8', lieu: '', debut: debutR, fin: debutR + 3600000, tz: 'Europe/Paris', rep: 'aucune', rappels: [], invites: [gBen.id], prochain: debutR }).id;
-  const pop7 = [g.S.schema(), g.S.contactsDe(gAna.id).length, g.S.reunionPourMembre(gR, gBen.id).reunion.titre];
+  const avant7 = [g.S.contactsDe(gAna.id).length, g.S.reunionPourMembre(gR, gBen.id).reunion.titre];
   g.S.fermer();
   const br7 = g.brut();
+  br7.exec('DROP TABLE IF EXISTS appel_part; DROP TABLE IF EXISTS appel; DROP INDEX IF EXISTS reunion_code;');
+  for (const c of ['attente', 'code_h', 'code_ch', 'code_le']) br7.exec('ALTER TABLE reunion DROP COLUMN ' + c);
+  br7.exec('PRAGMA user_version = 7');
   const sansAppel7 = compte(br7, `SELECT COUNT(*) AS n FROM sqlite_master WHERE name = 'appel'`);
+  const pop7 = [Number(br7.prepare('PRAGMA user_version').get().user_version)].concat(avant7);
   br7.close();
   v('population : une base du schéma 7, sans appel, avec un contact et une réunion', [pop7, sansAppel7], [[7, 1, 'Avant la 8'], 0]);
   const g8 = ouvrir({ chemin: g.chemin, scelleur: creerScelleur(g.kek), horloge: () => g.h.t });
@@ -105,7 +110,8 @@ console.log('\nLancer un appel : deux participants, un appareil lié (celui de l
   const vueA = S.appelVue(a.ana.id, r.id), vueB = S.appelVue(a.ben.id, r.id);
   v('la vue de l\'appelante : sortante, vidéo, Ben en face, échéance à +45 s, appareil lié, pas de réponse, pas de fin', [vueA.sens, vueA.type, vueA.autre.prenom, vueA.sonne_jusqua - vueA.debut, vueA.lie, vueA.repondu, vueA.fin, vueA.manque], ['sortant', 'video', 'Ben', SONNERIE, true, null, null, false]);
   v('la vue de l\'appelé : entrante, Ana en face, AUCUN appareil lié (il n\'a pas répondu)', [vueB.sens, vueB.autre.prenom, vueB.lie, vueB.manque], ['entrant', 'Ana', false, false]);
-  v('une vue ne porte QUE ces champs (jamais une adresse réseau, une empreinte de session ni une conversation)', Object.keys(vueA).sort(), ['autre', 'debut', 'duree_s', 'etat', 'fin', 'id', 'lie', 'manque', 'motif', 'repondu', 'sens', 'sonne_jusqua', 'type']);
+  v('une vue ne porte QUE ces champs (jamais une adresse réseau, une empreinte de session ni une conversation)', Object.keys(vueA).sort(), ['autre', 'debut', 'duree_s', 'etat', 'fin', 'genre', 'id', 'lie', 'manque', 'motif', 'repondu', 'sens', 'sonne_jusqua', 'type']);
+  v('   et c\'est « deux » : le genre d\'un appel à deux ne change pas avec l\'étape 8 (les appels à plusieurs et les salles ont `test-986` à `test-989`)', vueA.genre, 'deux');
   v('⛔ la personne qui n\'y est pas ne la voit pas : vue nulle, laissez-passer nul (la garde répondra 404, comme pour un appel qui n\'existe pas)', [S.appelVue(a.cleo.id, r.id), S.appelAcces(r.id, a.cleo.id), S.appelAcces('a_' + '0'.repeat(32), a.ana.id)], [null, null, null]);
   const acces = S.appelAcces(r.id, a.ana.id);
   v('le laissez-passer de la garde : mon rôle, l\'empreinte de MA session liée, l\'autre participant, l\'échéance', [acces.role, acces.session, acces.autre === a.ben.id, acces.etat], ['appelant', a.sa, true, 'sonne']);
@@ -271,7 +277,7 @@ console.log('\nL\'historique : les appels finis, du plus récent, bornés ; le f
   v('la limite borne la liste (1 à 500)', [S.appelsListe(a.ben.id, { limite: 2 }).length, S.appelsListe(a.ben.id, { limite: 0 }).length, S.appelsListe(a.ben.id, { limite: 100000 }).length], [2, 1, 6]);
   v('la durée d\'un appel pris se lit (fini à +10 s, +40 s) ; un appel non abouti dure 0', [liste.slice().reverse().filter(x => x.etat === 'fini').map(x => x.duree_s), liste.filter(x => x.etat !== 'fini').every(x => x.duree_s === 0)], [[10, 40], true]);
   const e = S.exportAppels(a.ben.id);
-  v('l\'export de Ben : six lignes {id, date, type, sens, etat, duree_s, avec_id} — l\'identifiant de l\'autre, jamais son nom', [e.length, Object.keys(e[0]).sort(), e[0].avec_id === a.ana.id, JSON.stringify(e).includes('Ana')], [6, ['avec_id', 'date', 'duree_s', 'etat', 'id', 'sens', 'type'], true, false]);
+  v('l\'export de Ben : six lignes {id, date, type, sens, etat, duree_s, avec_id} — l\'identifiant de l\'autre, jamais son nom', [e.length, Object.keys(e[0]).sort(), e[0].avec_id === a.ana.id, JSON.stringify(e).includes('Ana')], [6, ['avec_id', 'date', 'duree_s', 'etat', 'groupe', 'id', 'sens', 'type'], true, false]);
 }
 
 console.log('\nUn blocage coupe l\'appel qui court ou qui sonne entre les deux personnes (appelsFinirEntre)');
