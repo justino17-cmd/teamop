@@ -15,7 +15,13 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const { spawnSync } = require('child_process');
-const { bac, banc } = require('./bac-messages.js');
+const { bac, banc, portLibre } = require('./bac-messages.js');
+/* ⛔ UN SECOND PORT SE DEMANDE AU SYSTÈME, JAMAIS « LE PORT D'À CÔTÉ » (4 octobre 2026, `Vérification des pages` sur 59c4f8b :
+   « prod avec la phrase : s'installe » 173 ✓ 1 ✗). Le port du bac est tiré par le système dans la plage éphémère, où le port
+   suivant peut être tenu par n'importe quelle connexion de la machine : la production n'y démarrait pas et l'installation
+   échouait — sur la machine de GitHub, une fois de temps en temps. Prouvé en tenant le port suivant pendant le banc : l'ancien
+   calcul tombe, celui-ci passe. */
+const autrePort = (p) => { for (let i = 0; i < 20; i++) { const q = portLibre(); if (q && q !== String(p)) return q; } throw new Error('aucun second port libre'); };
 const t = banc();
 const { v, vrai } = t;
 
@@ -300,7 +306,7 @@ vrai('   le seul programme relancé dans systemctl est le proxy (reload) et notr
   const avant = b.lire('etc/nginx/sites-available/opmsg-beta.conf');
   b.drapeau('nginx-refuse', '1');
   const nbRech = (b.journal().match(/reload nginx/g) || []).length;
-  const r = b.installer('beta', '', { OPMSG_PORT: String(Number(b.port) + 1) });
+  const r = b.installer('beta', '', { OPMSG_PORT: autrePort(b.port) });
   v('⛔ un second passage refusé par nginx -t : échec', r.rc, 1);
   v('   le fichier est REMIS comme il était (pas de configuration à moitié écrite)', b.lire('etc/nginx/sites-available/opmsg-beta.conf'), avant);
   v('   aucun rechargement de plus', (b.journal().match(/reload nginx/g) || []).length, nbRech);
@@ -377,7 +383,7 @@ vrai('   le seul programme relancé dans systemctl est le proxy (reload) et notr
 {
   // Les deux instances coexistent : un utilisateur, un miroir, un lanceur ; deux configurations, deux paires VAPID, deux clés.
   const b = neuf('nginx');
-  const portProd = String(Number(b.port) + 1);
+  const portProd = autrePort(b.port);
   const rb = b.installer('beta', ENTREE);
   const rp = b.installer('prod', CLE2 + '\n' + CLE2 + '\n' + PUB2 + '\n', { OPMSG_PUBLIE: 'oui', OPMSG_PORT: portProd });
   v('prod avec la phrase : s\'installe', [rb.rc, rp.rc], [0, 0]);

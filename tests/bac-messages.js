@@ -315,4 +315,4 @@ function sansCommentairesJs(src) {
   return src.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
 }
 
-module.exports = { bac, banc, sansCommentaires, sansCommentairesJs, RACINE, SERVER_MSG, INSTALL, DEPLOYER, INDEX_FACTICE, POSER_CLE_FACTICE };
+module.exports = { bac, banc, portLibre, sansCommentaires, sansCommentairesJs, RACINE, SERVER_MSG, INSTALL, DEPLOYER, INDEX_FACTICE, POSER_CLE_FACTICE };
