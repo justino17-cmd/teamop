@@ -238,6 +238,17 @@ function lireAllocations(texte) {
 }
 /* Les allocations que le quota ou la capacité de coturn ont REFUSÉES (486 « Allocation Quota Reached ») : ce qu'un plafond trop juste ferait, en silence, au navigateur (il n'aurait simplement pas de relais). */
 const refusAllocations = (texte) => String(texte).split('\n').filter(l => /ALLOCATE processed, error 486/.test(l)).length;
+/* ⛔ UNE MESURE DE « CE QUE CET APPEL OUVRE » PART D'UN RELAIS AU REPOS. OBSERVÉ dans le journal bavard de coturn (cause non établie : une page vide qui ouvre et ferme des connexions ne le reproduit pas) : certaines allocations
+   que Chromium vient de RENDRE (Refresh lifetime=0) ne sont refermées que 47 à 55 s plus tard, par le chien de garde de coturn (« allocation watchdog determined stale session state »), et comptent dans le quota de la
+   personne pendant ce temps — les sessions concernées avaient reçu un paquet d'un pair. Un bloc qui compte les allocations d'UN appel, lancé juste après trois autres, voyait donc la deuxième REFUSÉE (486) : [1, 2, 1] au lieu
+   de [2, 2, 0], une fois sur deux. On attend donc que le journal ne montre plus aucune allocation tenue par ces personnes, et on le DIT. */
+async function attendreRepos(coturn, ids, ms) {
+  const t0 = Date.now();
+  const tenues = () => { const m = lireAllocations(coturn.journal()); return ids.reduce((s, id) => s + ((m.get(id) || { courant: 0 }).courant), 0); };
+  let n = tenues();
+  while (n > 0 && Date.now() - t0 < (ms || 80000)) { await dormir(500); n = tenues(); }
+  return { ok: n === 0, restantes: n, attente: Math.round((Date.now() - t0) / 100) / 10 };
+}
 /* ⛔ LE PARE-FEU SORTANT DU RELAIS, EN VRAI (relecture du gardien, I2). Quand la machine le permet (root, `iptables`, `setpriv`, l'utilisateur `turnserver`), le VRAI script de production pose de VRAIES règles et coturn
    tourne SOUS l'utilisateur qu'elles visent : un appel relayé des deux côtés, par de vrais navigateurs, doit passer à travers — aucun paquet refusé, des paquets comptés par la règle des ports de relais (relais ↔ relais)
    ET par celle des ports d'écoute (la réponse de coturn à ses clients). Sinon la sonde le DIT (NON VÉRIFIÉ), jamais vert. SONDE_PARE_FEU=non l'écarte (pour comparer). */
@@ -279,15 +290,25 @@ async function demarrerCoturn(dir, secret, ip) {
   }
   fs.writeFileSync(f, conf, { mode: pareFeu ? 0o644 : 0o600 }); fs.writeFileSync(journal, '');
   if (pareFeu) fs.chmodSync(journal, 0o666);
-  const proc = pareFeu && pareFeu.pose ? spawn('setpriv', ['--reuid=turnserver', '--regid=turnserver', '--clear-groups', bin, '-c', f, '--pidfile='], { stdio: 'ignore' }) : spawn(bin, ['-c', f, '--pidfile='], { stdio: 'ignore' });
-  let mort = null; proc.on('exit', (c) => { mort = c; });
-  const pret = await T.attendre(async () => {
+  const lancer = () => pareFeu && pareFeu.pose ? spawn('setpriv', ['--reuid=turnserver', '--regid=turnserver', '--clear-groups', bin, '-c', f, '--pidfile='], { stdio: 'ignore' }) : spawn(bin, ['-c', f, '--pidfile='], { stdio: 'ignore' });
+  let proc = null, mort = null;
+  const demarrer = () => { const p = lancer(); proc = p; mort = null; p.on('exit', (c) => { if (p === proc) mort = c; }); };
+  const sonPret = () => T.attendre(async () => {
     if (mort !== null) return 'mort';
     try { const l = await V.ouvrir({ hote: ip, port, transport: 'udp' }); const m = await l.echange(V.message(0x0001, [], crypto.randomBytes(12), null), 600); l.fermer(); return !!m && m.type === 0x0101; } catch (e) { return false; }
   }, 8000, 150);
+  demarrer();
+  const pret = await sonPret();
   if (pret !== true) { try { proc.kill('SIGKILL'); } catch (e) { /* rien */ } if (pareFeu) sys('bash', [PARE_FEU, 'stop'], pareFeu.env); return null; }
   return { port, ip, pareFeu, journal: () => { try { return fs.readFileSync(journal, 'utf8'); } catch (e) { return ''; } },
-    arreter: async () => { if (mort === null) { proc.kill('SIGTERM'); await T.attendre(() => mort !== null, 3000); if (mort === null) proc.kill('SIGKILL'); } if (pareFeu) sys('bash', [PARE_FEU, 'stop'], pareFeu.env); } };
+    arreter: async () => { if (mort === null) { proc.kill('SIGTERM'); await T.attendre(() => mort !== null, 3000); if (mort === null) proc.kill('SIGKILL'); } if (pareFeu) sys('bash', [PARE_FEU, 'stop'], pareFeu.env); },
+    /* `systemctl restart coturn` : toutes les allocations tombent d'un coup ; le pare-feu est retiré à l'arrêt puis reposé au démarrage (ExecStopPost, ExecStartPre) ; la même configuration, le même port */
+    redemarrer: async () => {
+      if (mort === null) { proc.kill('SIGTERM'); await T.attendre(() => mort !== null, 3000); if (mort === null) proc.kill('SIGKILL'); await T.attendre(() => mort !== null, 3000); }
+      if (pareFeu) { sys('bash', [PARE_FEU, 'stop'], pareFeu.env); pareFeu.pose = sys('bash', [PARE_FEU, 'start'], pareFeu.env).status === 0; }
+      demarrer();
+      return (await sonPret()) === true;
+    } };
 }
 
 setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s)'); process.exit(1); }, 420000).unref();
@@ -494,6 +515,9 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
         /* — Ana éteint sa caméra : Ben revient à l'audio — */
         await toucher(A, '#appel-cam');
         await verifier('Ana éteint sa caméra : sa piste vidéo est ARRÊTÉE (le voyant s\'éteint)', A, () => window.__pistes.filter(t => t.kind === 'video' && t.readyState === 'live').length === 0, null, 6000);
+        /* le décodeur de Ben finit de montrer les dernières images EN VOL (quelques centaines de ms après l'arrêt de la piste) : on attend que son compteur se fige, PUIS on mesure — sinon la contre-épreuve accuse la caméra
+           éteinte d'envoyer encore (un passage sur trois, sous charge) */
+        for (let i = 0, prec = -1; i < 12; i++) { const x = (await stats(B)).images; if (x === prec) break; prec = x; await dormir(700); }
         const sansImage = await croit(B, { ms: 1600 });
         v('⛔ CONTRE-ÉPREUVE : la caméra d\'Ana éteinte, les images décodées chez Ben NE croissent PLUS (le détecteur d\'images distingue — population : elles croissaient juste avant), la voix passe toujours', [sansImage.images, sansImage.audio], [false, true]);
         await verifier('⛔ Ben le VOIT : la vignette d\'Ana n\'a plus de caméra (« off »), et il reste en vidéo tant que SA caméra est allumée', B, () => document.querySelector('#appel-scene .tuile:not(.vous)').dataset.camera === 'off', null, 8000, async () => 'caméra=' + (await B.page.evaluate(() => document.querySelector('#appel-scene .tuile:not(.vous)').dataset.camera)));
@@ -643,6 +667,8 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
     await bloc('5. Le RELAIS : forcé, la voix passe par le vrai coturn avec les identifiants du vrai service', async () => {
       if (!coturn) { console.log('  ⚠️  NON VÉRIFIÉ : turnserver (coturn) est absent de cette machine — le relais n\'a pas été joué par les navigateurs.'); return; }
       for (const S of [A, B]) await S.page.evaluate(() => { window.__relaisSeul = true; });
+      const repos5 = await attendreRepos(coturn, [idAna, idBen]);
+      vrai('population : coturn ne tient plus aucune allocation d\'Ana ni de Ben avant cet appel (' + (repos5.attente > 0.6 ? 'attendu ' + repos5.attente + ' s : il garde parfois ~50 s ce que Chromium a rendu' : 'rien à attendre') + ')', repos5.ok);
       const dejaVu = (id) => (lireAllocations(coturn.journal()).get(id) || { total: 0 }).total;          // les appels d'AVANT (même contre coturn) ont ouvert les leurs : on compte ce que CET appel ajoute
       const a0 = dejaVu(idAna), b0 = dejaVu(idBen), r0 = refusAllocations(coturn.journal()), pf0 = coturn.pareFeu ? compteursPareFeu() : null;
       await appeler(A, NOMS.ben, 'audio');
@@ -677,6 +703,8 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
       if (!coturn) { console.log('  ⚠️  NON VÉRIFIÉ : turnserver (coturn) est absent de cette machine — le renouvellement n\'a pas été joué par les navigateurs.'); return; }
       const P = constantesRelais();
       for (const S of [A, B]) await S.page.evaluate(() => { window.__relaisSeul = true; });
+      const repos5b = await attendreRepos(coturn, [idAna, idBen]);
+      vrai('population : coturn ne tient plus aucune allocation d\'Ana ni de Ben avant cet appel (' + (repos5b.attente > 0.6 ? 'attendu ' + repos5b.attente + ' s' : 'rien à attendre') + ')', repos5b.ok);
       await appeler(A, NOMS.ben, 'audio');
       await verifier('Ben : ça sonne', B, () => document.getElementById('appel-ecran').hasAttribute('data-entrant'), null, 10000);
       await decrocher(B);
@@ -713,6 +741,35 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
       await attendreFermeture('Ana raccroche', A); await attendreFermeture('Ben l\'apprend', B);
       for (const S of [A, B]) await S.page.evaluate(() => { window.__relaisSeul = false; });
       vrai('aucune erreur de page pendant le renouvellement (population : ' + P.userQuota + ' allocations au plus par personne chez coturn)', A.erreurs.length === 0 && B.erreurs.length === 0 && avant.size >= 2);
+    });
+
+    /* ═══ 5 ter. coturn REDÉMARRE EN PLEIN APPEL ═══════════════════════════════════════════════════════════════════════
+       Question 41 de la conception (l'option « relancer coturn chaque nuit ») : toutes les allocations tombent d'un coup. L'appel relayé se rétablit-il SEUL — la relance de la liaison par l'appelante, avec les
+       identifiants qu'elle tient (quinze minutes en production, une ici) ? MESURÉ, pas supposé : sans cette preuve, la recommandation de la question 41 serait une hypothèse. */
+    if (!RAPIDE) await bloc('5 ter. coturn REDÉMARRE en plein appel relayé : toutes les allocations tombent d\'un coup — la voix revient-elle seule ?', async () => {
+      if (!coturn) { console.log('  ⚠️  NON VÉRIFIÉ : turnserver (coturn) est absent de cette machine — la relance de coturn en plein appel n\'a pas été jouée.'); return; }
+      for (const S of [A, B]) await S.page.evaluate(() => { window.__relaisSeul = true; });
+      await appeler(A, NOMS.ben, 'audio');
+      await verifier('Ben : ça sonne', B, () => document.getElementById('appel-ecran').hasAttribute('data-entrant'), null, 10000);
+      await decrocher(B);
+      await verifier('la liaison s\'établit EN RELAIS SEUL', A, () => /Appel en cours/.test(document.getElementById('appel-statut').textContent), null, 20000, async () => 'statut=«' + (await lire(A, '#appel-statut')) + '» Ana=' + (await diag(A)) + ' Ben=' + (await diag(B)));
+      const c0a = await croit(A), c0b = await croit(B);
+      vrai('population : la voix passe par le relais AVANT la relance de coturn (' + c0a.avant.audioRecu + ' → ' + c0a.apres.audioRecu + ' ; ' + c0b.avant.audioRecu + ' → ' + c0b.apres.audioRecu + ')', c0a.audio && c0b.audio);
+      const lus = async () => [(await stats(A)).audioRecu, (await stats(B)).audioRecu];
+      const t0 = Date.now();
+      vrai('coturn redémarre (arrêt, pare-feu retiré puis reposé, même configuration, même port) et répond de nouveau à un STUN', (await coturn.redemarrer()) === true);
+      const base = await lus();
+      let revenu = null;
+      for (let i = 0; i < 100 && revenu === null; i++) { await dormir(500); const x = await lus(); if (x[0] > base[0] + 4000 && x[1] > base[1] + 4000) revenu = Math.round((Date.now() - t0) / 100) / 10; }
+      vrai('⛔ MESURÉ : après la relance de coturn en plein appel, la voix REVIENT d\'elle-même, des deux côtés' + (revenu === null ? ' — jamais en 50 s : Ana ' + (await diag(A)) + ' Ben ' + (await diag(B)) : ' — en ' + revenu + ' s, relance comprise'), revenu !== null);
+      if (revenu !== null) {
+        const sa = await paire(A), sb = await paire(B);
+        v('   et par le relais, comme avant (la paire retenue est de type « relay » des deux côtés)', [sa.locale, sb.locale], ['relay', 'relay']);
+        vrai('   et l\'appel est toujours « en cours » (la veille n\'a pas raccroché)', /Appel en cours/.test(await lire(A, '#appel-statut')));
+      }
+      await toucher(A, '#appel-raccrocher');
+      await attendreFermeture('Ana raccroche', A); await attendreFermeture('Ben l\'apprend', B);
+      for (const S of [A, B]) await S.page.evaluate(() => { window.__relaisSeul = false; });
     });
 
     /* ═══ 6. UN ÉCRAN D'APPEL AU TÉLÉPHONE ET AU BUREAU : LA MISE EN PAGE ═════════════════════════════════════ */
