@@ -196,7 +196,7 @@ const ADRESSE_PUBLIQUE = '93.184.216.34';
 /* → [{ nom, ok, detail }] — jamais une valeur secrète dans `detail`. `identifiants(âge)` fabrique { username, credential } ; âge « perime » en rend un dont l'échéance est passée. */
 async function controles({ hote, port, portTls = null, transports = ['udp', 'tcp'], identifiants, hoteTls = null, optsTls = null }) {
   const r = [];
-  const noter = (nom, ok, detail) => r.push({ nom, ok: !!ok, detail: detail || '' });
+  const noter = (nom, ok, detail, avis) => r.push({ nom, ok: !!ok, detail: detail || '', avis: !!avis });
   for (const transport of transports) {
     let lien = null;
     try { lien = await ouvrir({ hote, port, transport }); } catch (e) { noter('le relais répond en ' + transport.toUpperCase() + ' sur ' + port, false, e && e.code ? String(e.code) : 'pas de connexion'); continue; }
@@ -231,9 +231,9 @@ async function controles({ hote, port, portTls = null, transports = ['udp', 'tcp
       l3 = await ouvrir({ hote: hoteTls || hote, port: portTls, transport: 'tls', tls: optsTls || {} });
       const s = session(l3);
       const a = await s.allouer(identifiants('bon'));
-      noter('(TLS) le certificat est valide pour le nom annoncé et le relais y accepte nos identifiants', a.ok, a.ok ? '' : 'code ' + a.code);
+      noter('(TLS) le certificat est valide pour le nom annoncé et le relais y accepte nos identifiants', a.ok, a.ok ? '' : 'code ' + a.code, true);
       if (a.ok) await s.rendre();
-    } catch (e) { noter('(TLS) le certificat est valide pour le nom annoncé', false, e && e.code ? String(e.code) : (e && e.message ? e.message : 'erreur')); }
+    } catch (e) { noter('(TLS) le certificat est valide pour le nom annoncé', false, e && e.code ? String(e.code) : (e && e.message ? e.message : 'erreur'), true); }
     finally { if (l3) l3.fermer(); }
   }
   return r;
@@ -262,7 +262,12 @@ async function principal(argv) {
   console.log('── Le relais d\'appels de l\'instance ' + instance);
   const res = await controles({ hote: '127.0.0.1', port: relais.port, portTls: relais.portTls, identifiants, hoteTls: relais.hote });
   let mal = 0;
-  for (const c of res) { console.log((c.ok ? '  ✓ ' : '  ✗ ') + c.nom + (c.ok || !c.detail ? '' : ' — ' + c.detail)); if (!c.ok) mal++; }
+  let avis = 0;
+  for (const c of res) {
+    console.log((c.ok ? '  ✓ ' : c.avis ? '  ⚠️ ' : '  ✗ ') + c.nom + (c.ok || !c.detail ? '' : ' — ' + c.detail));
+    if (!c.ok && c.avis) avis++; else if (!c.ok) mal++;
+  }
+  if (avis) console.log('\n   ⚠️ ' + avis + ' avis (le TLS passe par le NOM public du serveur : un DNS pas encore en place, ou un hébergeur qui ne rebouche pas son propre adresse, le fait échouer sans que le relais soit en cause).');
   console.log(mal ? '\n⛔ ' + mal + ' contrôle(s) en échec.' : '\n✓ Le relais fait ce qu\'il doit.');
   console.log('   (Ce contrôle part de CE serveur : il ne dit pas si les ports sont ouverts dans le panneau de l\'hébergeur — voir INSTALLER-LE-SERVEUR.md.)');
   return mal ? 1 : 0;
