@@ -16,6 +16,9 @@
  *      encore envoyée, ou qui peut voir la personne dont c'est la photo. Pas de droit, ou pas de pièce : 404, la MÊME réponse.
  *   E  membre d'un ESPACE (V d'abord), EA administrateur de l'espace, EP son propriétaire — l'espace se lit dans le chemin (`:id`) ;
  *      un non-membre reçoit le même 404 qu'un espace inexistant. `pro: true` sur une ligne : fonction PRO (voir plus bas).
+ *   R  invité d'une RÉUNION (S d'abord : répondre ne demande pas d'adresse confirmée) — l'hôte en est un ; la réunion se lit dans le chemin (`:id`) ;
+ *      H  hôte de la réunion (V d'abord : modifier, annuler, inviter, c'est agir au nom d'une adresse). Un non-invité reçoit, sur R comme sur H, le même 404 qu'une réunion inexistante ;
+ *      un invité qui n'est pas l'hôte reçoit 403 sur H (il connaît déjà la réunion).
  *
  * ⛔ « Une session prouve un mot de passe, pas une adresse » : tout effet qui agit AU NOM d'une
  * adresse (contact, lien, groupe) exige V. Sur la bêta, l'adresse est confirmée par construction ;
@@ -116,6 +119,23 @@ const MANIFESTE = [
   { id: 'facturation.paiement', m: 'POST', p: '/api/espaces/:id/facturation/paiement', garde: 'EP' },
   { id: 'facturation.portail', m: 'POST', p: '/api/espaces/:id/facturation/portail', garde: 'EP' },
   { id: 'facturation.relire', m: 'POST', p: '/api/espaces/:id/facturation/relire',   garde: 'EP' },
+  /* Étape 6 : les RÉUNIONS PROGRAMMÉES (`routes-reunions.js`). Programmer est une fonction PRO (la bêta ouvre tout) ; être invité, répondre et télécharger le .ics ne coûtent rien — « les invités
+     rejoignent sans siège ». L'hôte agit par H, un invité par R : la réunion se lit dans l'adresse (`:id`), JAMAIS dans le corps. */
+  { id: 'reunions.liste',    m: 'GET',  p: '/api/reunions',                          garde: 'S' },
+  { id: 'reunions.creer',    m: 'POST', p: '/api/reunions',                          garde: 'V', pro: true },
+  { id: 'reunions.lire',     m: 'GET',  p: '/api/reunions/:id',                      garde: 'R' },
+  { id: 'reunions.modifier', m: 'POST', p: '/api/reunions/:id/modifier',             garde: 'H' },
+  { id: 'reunions.annuler',  m: 'POST', p: '/api/reunions/:id/annuler',              garde: 'H' },
+  { id: 'reunions.supprimer', m: 'POST', p: '/api/reunions/:id/supprimer',           garde: 'H' },
+  { id: 'reunions.inviter',  m: 'POST', p: '/api/reunions/:id/inviter',              garde: 'H' },
+  { id: 'reunions.retirer',  m: 'POST', p: '/api/reunions/:id/retirer',              garde: 'H' },
+  { id: 'reunions.quitter',  m: 'POST', p: '/api/reunions/:id/quitter',              garde: 'R' },
+  { id: 'reunions.reponse',  m: 'POST', p: '/api/reunions/:id/reponse',              garde: 'R' },
+  { id: 'reunions.rappels',  m: 'POST', p: '/api/reunions/:id/rappels',              garde: 'R' },
+  { id: 'reunions.ics',      m: 'GET',  p: '/api/reunions/:id/ics',                  garde: 'R' },
+  /* L'invitation par COURRIEL (`courriel.js`) : l'hôte seul, à l'adresse qu'il saisit — inerte (503) tant qu'aucun relais n'est configuré. Pas `pro` : la fonction Pro est de PROGRAMMER ; ce qui est
+     programmé reste à son hôte, comme la modification et l'annulation. */
+  { id: 'reunions.courriel', m: 'POST', p: '/api/reunions/:id/courriel',            garde: 'H' },
 ];
 
 module.exports = { MANIFESTE };

@@ -50,7 +50,7 @@ console.log('Les migrations (PRAGMA user_version) sont numérotées, rejouables,
      MÉCANIQUE (numérotée, rejouable, avec copie), pas la dernière migration. Chacune a son banc : 916 (2), 943 (3), 957 (4), 955 et 957 (5), 960 (6). */
   const DERNIERE = MIGRATIONS[MIGRATIONS.length - 1].v, SUIVANTE = DERNIERE + 1;
   vrai('population : au moins six migrations, numérotées 1, 2, 3… sans trou', MIGRATIONS.length >= 6 && MIGRATIONS.every((m, i) => m.v === i + 1));
-  v('une base neuve est au schéma de la DERNIÈRE migration (la 2 — le téléphone —, la 3 — les pièces —, la 4 — les notifications push et la suppression de compte — la 5 — de qui parle une notification — et la 6 — les espaces professionnels — s\'appliquent à la création)', a.S.schema(), DERNIERE);
+  v('une base neuve est au schéma de la DERNIÈRE migration (la 2 — le téléphone —, la 3 — les pièces —, la 4 — les notifications push et la suppression de compte — la 5 — de qui parle une notification —, la 6 — les espaces professionnels — et la 7 — les réunions — s\'appliquent à la création)', a.S.schema(), DERNIERE);
   const p = pers(a.S, 'alice');
   a.S.fermer();
   const b = ouvrir({ chemin: a.chemin, scelleur: creerScelleur(a.kek), horloge: () => a.h.t });

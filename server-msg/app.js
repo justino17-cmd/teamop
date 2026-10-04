@@ -29,6 +29,8 @@ const { installerPieces } = require('./routes-pieces');
 const { installerPush } = require('./routes-push');
 const { installerCompte } = require('./compte');
 const { installerEspaces, ID_ESPACE } = require('./routes-espaces');
+const { installerReunions } = require('./routes-reunions');
+const { ID_REUNION } = require('./reunions-outils');
 const { installerFacturation } = require('./facturation');
 const { ID_PIECE } = require('./pieces');
 
@@ -169,6 +171,17 @@ function construireApp(ctx) {
   garde.E = garde.V.concat([espaceDuMembre]);
   garde.EA = garde.E.concat([(req, res, next) => req.espace.moi.role === 'admin' ? next() : refus(res, 403, 'interdit')]);
   garde.EP = garde.E.concat([(req, res, next) => req.espace.espace.proprio === req.moi.id ? next() : refus(res, 403, 'interdit')]);
+  /* ⛔ R ET H : une RÉUNION. R est bâtie sur S (répondre à une invitation ne demande pas d'adresse confirmée), H sur V (modifier, annuler, inviter, c'est agir au nom d'une adresse). La réunion se lit dans le
+     chemin (`:id`) et la base, jamais dans le corps. Une réunion dont on n'est pas invité répond 404, la MÊME réponse qu'une réunion inexistante (ou mal formée) : un non-invité ne voit RIEN. Un invité qui
+     n'est pas l'hôte voit 403 sur H (il connaît déjà la réunion). `req.reunion` est le laissez-passer léger (`reunionAcces`), pas la fiche : chaque route lit ce qu'il lui faut. */
+  const reunionDuParticipant = (req, res, next) => {
+    const id = req.params.id;
+    const r = ID_REUNION.test(id) ? stockage.reunionAcces(id, req.moi.id) : null;
+    if (!r) return refus(res, 404, 'introuvable');
+    req.reunion = r; next();
+  };
+  garde.R = garde.S.concat([reunionDuParticipant]);
+  garde.H = garde.V.concat([reunionDuParticipant, (req, res, next) => req.reunion.hote ? next() : refus(res, 403, 'interdit')]);
   /* ⛔ PRO : une fonction payante. `formuleDe` est la SEULE fonction qui décide (`formule.js`) — ce garde la lit, il ne recopie aucune règle. Une route de l'espace (`req.espace`) se juge sur la
      formule de l'ESPACE, une route de la personne (créer un espace) sur la meilleure formule de la personne. 402 `formule_requise` ; seul l'administrateur de l'espace lit POURQUOI
      (`raison`: impayé, jamais abonné) ; `abonnement_ouvert` dit si un bouton de paiement mènerait quelque part. Rien n'est retiré : seule la fonction refuse. */
@@ -189,6 +202,7 @@ function construireApp(ctx) {
   installerCompte(H, ctx);      // le compte : exporter ses données, supprimer son compte
   installerEspaces(H, ctx);     // les espaces professionnels : membres, invitations, canaux, « Contacts de l'entreprise »
   installerFacturation(H, ctx); // Messages Pro : les offres, l'état, le paiement (Stripe), le portail, la relecture
+  installerReunions(H, ctx);    // les réunions programmées : agenda, programmer, inviter, répondre, rappels, fichier .ics
   /* Les écritures authentifiées ont un plafond propre, par compte (en plus de celui de l'adresse). */
   const limiteEcriture = (req, res, next) => {
     const q = Object.assign({ max: 300, fenetreMs: 60000 }, config.quotas.ecriture || {});

@@ -896,6 +896,53 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   .onde i, .enreg-onde i { background: CanvasText; }
   .badge, .point { forced-color-adjust: none; background: Highlight; color: HighlightText; }
 }
+/* ══ 14. LES RÉUNIONS (étape 6) — la semaine, la liste du jour, la fiche, le formulaire ═══════════════════════════════════════════
+   Les mêmes jetons que le reste (aucune couleur d'ici) : la semaine est une rangée de sept jours, la liste du jour une carte de lignes, la fiche et le formulaire la même feuille que les
+   infos d'un groupe. Un champ de saisie fait 16 px au moins (Safari zoomerait sinon) et chaque cible 44 px au toucher. */
+.sem-nav { display: flex; align-items: center; gap: 4px; margin: 0 0 8px; }
+.sem-fleche { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; color: var(--accent-txt); }
+.sem-fleche .chev { width: 9px; height: 15px; stroke: currentColor; stroke-width: 2.4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.sem-fleche.prec .chev { transform: scaleX(-1); }
+.sem-titre { flex: 1; min-width: 0; min-height: 44px; padding: 0 6px; text-align: center; font-size: 17px; font-weight: 600; letter-spacing: -.02em; color: var(--text); overflow-wrap: anywhere; }
+.sem-jours { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: 0 0 16px; }
+.jour { min-width: 0; min-height: 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 6px 0 4px; border-radius: 14px; color: var(--text); font-size: 12px; }
+.jour b { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 24px; }
+.jour .jour-point { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0; }
+.jour.avec .jour-point { opacity: .85; }
+.jour[aria-current="date"] b { color: var(--accent-txt); }
+.jour[aria-pressed="true"] { background: var(--fill); color: var(--on-fill); }
+.jour[aria-pressed="true"][aria-current="date"] b { color: inherit; }
+.jour:focus-visible, .sem-fleche:focus-visible, .sem-titre:focus-visible { outline-offset: 0; }
+.reunion-ligne { width: 100%; display: flex; align-items: stretch; gap: 12px; min-height: 64px; padding: 10px 14px; color: var(--text); text-align: left; transition: background-color .15s; }
+.reunion-ligne:active { transform: scale(.985); }
+.carte-liste .reunion-ligne:focus-visible { outline-offset: -3px; }
+.reunion-heure { flex: none; width: 48px; display: flex; flex-direction: column; font-size: 15px; line-height: 20px; font-variant-numeric: tabular-nums; }
+.reunion-heure small { font-size: 13px; color: var(--sub-meta); }
+.reunion-corps { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; padding-left: 10px; border-left: 3px solid var(--fill); }
+.reunion-titre { font-size: 17px; letter-spacing: -.02em; line-height: 22px; overflow-wrap: anywhere; }
+.reunion-sous { font-size: 14px; line-height: 19px; color: var(--sub-meta); overflow-wrap: anywhere; }
+.reunion-etat { flex: none; align-self: center; font-size: 13px; color: var(--sub-meta); }
+.reunion-etat.attention { color: var(--accent-txt); font-weight: 600; }
+.reunion-ligne.annulee .reunion-titre { text-decoration: line-through; color: var(--sub-meta); }
+.reunion-ligne.annulee .reunion-corps { border-left-color: var(--faint); }
+/* la fiche et le formulaire */
+.lien-lieu { color: var(--accent-txt); text-decoration: underline; overflow-wrap: anywhere; }
+a.mini { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+a.mini .ic { font-size: 16px; }
+.champ { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.champ > label { padding: 0 4px; font-size: 13px; color: var(--sub-meta); text-transform: uppercase; }
+.champ input, .champ select { width: 100%; min-width: 0; height: 44px; padding: 0 12px; border: var(--line); border-radius: 12px; background: var(--input-bg); color: var(--text); font: inherit; font-size: 16px; caret-color: var(--accent); }
+.champ input:focus, .champ select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.champ input::placeholder { color: var(--placeholder); opacity: 1; }
+.champ .info-note { margin: 0; padding: 0 4px; }
+.carte-pad .champ { margin-bottom: 10px; }
+.reglage[role="checkbox"][aria-checked="true"] .rond { background: var(--fill); border-color: var(--fill); }
+.reglage[role="checkbox"][aria-checked="true"] .rond .ic { opacity: 1; }
+/* la coche d'une case DANS une ligne de réglage : celle de la ligne (12 px, encre de coche), pas l'icône de 22 px des lignes d'une feuille */
+.info-corps .reglage .rond .ic { font-size: inherit; color: inherit; }
+.reglage[disabled] { opacity: .5; cursor: default; }
+.info-tete .avatar .ic { font-size: 30px; }
+.g-choix .g-pilule { font-size: 15px; }
 </style>
 </head>
 <body>
@@ -928,6 +975,11 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   <symbol id="i-sortant" viewBox="0 0 24 24"><path d="M19 5 5 19M15 19H5V9"/></symbol>
   <symbol id="i-points" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01" stroke-width="3.4"/></symbol>
   <symbol id="i-raccrocher" viewBox="0 0 24 24"><path d="M3 12a15 15 0 0 1 18 0l-2 3-4-1.5v-2a9 9 0 0 0-6 0v2L5 15l-2-3Z"/></symbol>
+  <symbol id="i-agenda" viewBox="0 0 24 24"><path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 17.5v-11ZM5 9.5h14M8.5 2.8v3M15.5 2.8v3"/></symbol>
+  <symbol id="i-lieu" viewBox="0 0 24 24"><path d="M12 21s6-5.2 6-10a6 6 0 0 0-12 0c0 4.8 6 10 6 10Zm0-7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/></symbol>
+  <symbol id="i-repeter" viewBox="0 0 24 24"><path d="M4.5 11V9.5A3.5 3.5 0 0 1 8 6h10m0 0-2.5-2.5M18 6l-2.5 2.5M19.5 13v1.5A3.5 3.5 0 0 1 16 18H6m0 0 2.5-2.5M6 18l2.5 2.5"/></symbol>
+  <symbol id="i-telecharger" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19.5h14"/></symbol>
+  <symbol id="i-courriel" viewBox="0 0 24 24"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Zm0 .5 8 6 8-6"/></symbol>
 </svg>
 
 <!-- ⛔ L'ÉCRAN DE CONNEXION n'existe que dans la version servie par le service (la source de l'aperçu ne demande aucune connexion) : masqué ici, il n'est jamais affiché. -->
@@ -1145,7 +1197,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   /* `mode` : ce que la feuille est en train d'être — 'chat' (Nouveau groupe), 'appel' (Appel de groupe : audio ou vidéo), 'info' (les détails d'un appel de l'historique),
      'contact' (mes contacts et leurs liens), 'convinfo' (les infos d'une conversation), 'profil' (mon profil : photo, nom, statut), et — capacité `espaces` — 'entreprise' (mes espaces :
      créer, rejoindre par un lien), 'espace' (UN espace : contacts de l'entreprise, canaux, invitations) ou 'abo' (l'abonnement Messages Pro de cet espace) */
-  function groupeVierge() { return { ouvert: false, mode: 'chat', cle: null, convId: null, espaceId: null, nom: '', photo: null, photoBlob: null, choisis: [], recherche: '', ephemeres: 0, annonces: false, video: false, info: null }; }
+  function groupeVierge() { return { ouvert: false, mode: 'chat', cle: null, convId: null, espaceId: null, reunionId: null, nom: '', photo: null, photoBlob: null, choisis: [], recherche: '', ephemeres: 0, annonces: false, video: false, info: null }; }
 
   /* ═══ 3. OUTILS ═══════════════════════════════════════════════════════════════════════════════════════════════════════════ */
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1154,9 +1206,9 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   const contactDe = id => CONTACTS.find(c => c.id === id) || (typeof source.personne === 'function' ? source.personne(id) : null) || null;      // un auteur peut n'être le contact de personne : la source connaît ceux qu'elle a vus
   const prenom = c => c.nom.split(' ')[0];
   /* une conversation à plusieurs : un groupe, ou un CANAL d'espace (mêmes messages, même fil : le nom de l'auteur se montre) ; un canal se nomme « # nom » */
-  const multi = c => !!c && (c.type === 'groupe' || c.type === 'canal');
+  const multi = c => !!c && (c.type === 'groupe' || c.type === 'canal' || c.type === 'reunion');
   const nomConv = c => (c.type === 'canal' ? '# ' : '') + c.nom;
-  const genreConv = c => c.type === 'canal' ? 'canal' : c.type === 'groupe' ? 'groupe' : 'contact';
+  const genreConv = c => c.type === 'canal' ? 'canal' : c.type === 'groupe' ? 'groupe' : c.type === 'reunion' ? 'réunion' : 'contact';
   const icone = (id, cls) => '<svg class="ic' + (cls ? ' ' + cls : '') + '" aria-hidden="true"><use href="#' + id + '"/></svg>';
   const CHEVRON = '<svg class="chev" viewBox="0 0 8 13" aria-hidden="true"><path d="M1.5 1.5 6.5 6.5 1.5 11.5"/></svg>';
   /* ⛔ UNE ADRESSE `blob:` VRAIE, et rien d'autre : schéma, hôte, identifiant — ni parenthèse, ni guillemet, ni espace. Une chaîne qui COMMENCE par « blob: » passait, et `esc()` laisse
@@ -1165,7 +1217,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   /* une erreur DIT quelque chose : la phrase française du service si l'erreur en porte une, sinon la phrase de l'écran — jamais un message technique */
   const phrase = (e, defaut) => e && e.dit ? (typeof e.phrase === 'function' ? e.phrase() : e.message) : (defaut || 'Une erreur est survenue.');
   /* l'avatar d'une photo choisie s'écrit en style direct : l'adresse est un blob: fabriqué par la page, vérifié, puis échappé */
-  const avatar = c => '<span class="avatar av' + (((c.avatar | 0) % 6 + 6) % 6) + (c.enLigne ? ' en-ligne' : '') + '"' + (blob(c.photo) ? ' style="background-image:url(' + esc(c.photo) + ')"' : '') + ' aria-hidden="true">' + (blob(c.photo) ? '' : esc(c.initiales || '')) + (c.enLigne ? '<i class="presence" title="En ligne"></i>' : '') + '</span>';
+  const avatar = c => '<span class="avatar av' + (((c.avatar | 0) % 6 + 6) % 6) + (c.enLigne ? ' en-ligne' : '') + '"' + (blob(c.photo) ? ' style="background-image:url(' + esc(c.photo) + ')"' : '') + ' aria-hidden="true">' + (blob(c.photo) ? '' : c.type === 'reunion' ? icone('i-agenda') : esc(c.initiales || '')) + (c.enLigne ? '<i class="presence" title="En ligne"></i>' : '') + '</span>';
 
   /* les dates : l'heure du jour, « Hier », le jour de la semaine, puis la date — tout se calcule sur l'horloge de l'appareil */
   const FMT_HEURE = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
@@ -1254,7 +1306,9 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     let conv = null; try { conv = p[1] ? decodeURIComponent(p[1]) : null; } catch (e) { conv = null; }
     /* ⛔ `VUES[p[0]]` lit aussi la chaîne de prototypes : « #constructor » ou « #__proto__ » passaient pour des vues et laissaient les quatre masquées */
     const vue = Object.prototype.hasOwnProperty.call(VUES, p[0]) ? p[0] : 'messages';
-    return { vue, conv: vue === 'messages' && p[0] === 'messages' ? conv : null, feuille: false, photo: null, appel: null };
+    /* une adresse « #reunions/<identifiant> » (le toucher d'une notification quand la page était fermée) ouvre la fiche de CETTE réunion — l'identifiant est vérifié avant de servir */
+    const feuille = vue === 'reunions' && CAP.reunions && ID_REUNION.test(conv || '') ? 'reunion:' + conv : false;
+    return { vue, conv: vue === 'messages' && p[0] === 'messages' ? conv : null, feuille, photo: null, appel: null };
   }
   const entree = () => (history.state && history.state.opmsg) ? history.state : null;
   function parentDe(r) {
@@ -1274,16 +1328,28 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     history.replaceState({ opmsg: 1, n: h ? h.n : 0, r, p: h ? h.p : null }, '', urlDe(r));
     appliquer(r);
   }
+  /* ⛔ UN RETOUR, UNE FOIS. `history.back()` est ASYNCHRONE : la route (`etat.route`) et l'entrée (`history.state`) ne changent qu'à `popstate`, un peu plus tard. Tant que ce retour est en vol, tout second appel de
+     `fermerCouche()` — un second toucher sur « Annuler », ou, pire, une page qui apprend deux fois la MÊME nouvelle (la réponse du geste et l'événement du flux : « cette réunion n'existe plus ») — revoit la même
+     couche ouverte, donc rend UNE ENTRÉE DE PLUS : une fiche ouverte au doigt (deux entrées) sortait de l'application au troisième retour (testeur : 3 essais sur 5). On note le retour demandé et on ne le répète pas ;
+     `popstate` le lève, et un filet d'une seconde et demie aussi, si le navigateur n'a jamais joué ce retour (une page qui ne se ferme plus serait pire que la panne). Tout retour d'historique de la page passe ici. */
+  let retourEnVol = false, filetRetour = 0;
+  function rendreEntree() {
+    if (retourEnVol) return;
+    retourEnVol = true;
+    clearTimeout(filetRetour); filetRetour = setTimeout(() => { retourEnVol = false; }, 1500);
+    history.back();
+  }
   /* fermer la couche du dessus : on rend l'entrée qu'on avait posée — ou, arrivé par un lien direct (aucune entrée à rendre), on
      remplace par la route d'en dessous */
   function fermerCouche() {
     const parent = parentDe(etat.route); if (!parent) return;
     const h = entree();
-    if (h && h.n > 0 && h.p && memeRoute(h.p, parent)) history.back(); else remplacer(parent);
+    if (h && h.n > 0 && h.p && memeRoute(h.p, parent)) rendreEntree(); else remplacer(parent);
   }
   /* la position de la liste est rendue PAR LA PAGE (etat.scrollListe, au retour), pas par la restauration native de l'historique : celle-ci diffère d'un
      navigateur à l'autre (Safari iOS ne la rend pas toujours sur un retour système) et masquait, ici, le retrait de notre propre mémoire (sonde, S04) */
   try { history.scrollRestoration = 'manual'; } catch (e) { /* un navigateur sans l'option garde la sienne */ }
+  window.addEventListener('popstate', () => { retourEnVol = false; clearTimeout(filetRetour); });         // le retour demandé a eu lieu : le suivant peut se demander (AVANT l'écouteur qui applique la route)
   window.addEventListener('popstate', e => appliquer(e.state && e.state.opmsg ? e.state.r : routeDepuisHash()));
 
   /* appliquer(route) : l'écran DIT la route, rien d'autre. Elle ne pousse jamais d'historique — elle est jouée aussi par popstate. */
@@ -1298,6 +1364,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
       $('tabs').style.setProperty('--i', ORDRE.indexOf(r.vue));
       document.title = VUES[r.vue].titre + SUFFIXE_TITRE;
       if (r.vue === 'reglages' && CAP.reglages && prec && typeof chargerReglages === 'function') chargerReglages();
+      if (r.vue === 'reunions' && CAP.reunions) entrerReunions();
       /* chaque vue garde SA position (comme une barre d'onglets d'iPhone) : la liste défilée, un tour par Appels, et elle est là où on l'a laissée.
          ⛔ avec une conversation ouverte la fenêtre n'est plus la liste (iOS la ramène en haut pour le clavier) : la position de la liste est celle gardée à l'ouverture */
       if (prec) window.scrollTo(0, etat.posVues[r.vue] || 0);
@@ -1351,7 +1418,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   }
   function rendreEntete(c) {
     $('conv-titre').innerHTML = avatar(c) + '<span class="conv-titre-nom"><span>' + esc(nomConv(c)) + '</span>' + CHEVRON + '</span>';
-    $('conv-titre').setAttribute('aria-label', nomConv(c) + ' — infos du ' + genreConv(c) + (CAP.groupeInfos ? '' : ' (bientôt)'));
+    $('conv-titre').setAttribute('aria-label', c.type === 'reunion' ? nomConv(c) + ' — voir la réunion' : nomConv(c) + ' — infos du ' + genreConv(c) + (CAP.groupeInfos ? '' : ' (bientôt)'));
     $('conv-cam').setAttribute('aria-label', 'Appel vidéo avec ' + c.nom);
   }
   const nomAuteur = id => { const c = contactDe(id); return c ? prenom(c) : '?'; };
@@ -1552,6 +1619,8 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     lancerAppel({ membres: c.membres.filter(x => x !== MOI.id), video: true, conv: c.id }, $('conv-cam'));
   });
   $('conv-titre').addEventListener('click', () => {
+    const rc = etat.convDonnees && etat.convDonnees.type === 'reunion' && ID_REUNION.test(etat.convDonnees.reunion || '') ? etat.convDonnees.reunion : null;
+    if (CAP.reunions && rc) { declencheur = $('conv-titre'); pousser(Object.assign({}, etat.route, { feuille: 'reunion:' + rc })); return; }       // la conversation d'une réunion : son titre mène à la RÉUNION
     if (CAP.groupeInfos && etat.conv) { declencheur = $('conv-titre'); pousser(Object.assign({}, etat.route, { feuille: 'convinfo:' + etat.conv })); return; }
     mot('Les infos du ' + (etat.convDonnees ? genreConv(etat.convDonnees) : 'contact') + ' arrivent bientôt');
   });
@@ -2010,10 +2079,10 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     $('g-compteur').textContent = G.choisis.length + ' / ' + CONTACTS.length;
     $('g-creer').setAttribute('aria-disabled', G.choisis.length ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
-    const appel = G.mode === 'appel', info = G.mode === 'info', corpsInfo = info || G.mode === 'contact' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo';
+    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit', corpsInfo = info || G.mode === 'contact' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'reunion' || formReunion;
     $('feuille').dataset.mode = G.mode;
-    $('feuille-titre').textContent = info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : appel ? 'Appel de groupe' : 'Nouveau groupe';
-    $('g-annuler').textContent = corpsInfo ? 'Fermer' : 'Annuler';
+    $('feuille-titre').textContent = info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? 'Appel de groupe' : 'Nouveau groupe';
+    $('g-annuler').textContent = corpsInfo && !formReunion ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : 'Créer';
     $('g-creer').style.visibility = corpsInfo ? 'hidden' : '';
     $('g-creer').tabIndex = corpsInfo ? -1 : 0; if (corpsInfo) $('g-creer').setAttribute('aria-hidden', 'true'); else $('g-creer').removeAttribute('aria-hidden');
@@ -2036,9 +2105,11 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     etat.groupe = groupeVierge();
     etat.groupe.cle = cleFeuille(f);
     etat.groupe.mode = mode === 'appel' || mode === 'info' || (mode === 'contact' && CAP.liens) || (mode === 'convinfo' && CAP.groupeInfos) || (mode === 'profil' && CAP.reglages) || (mode === 'suppression' && CAP.compte)
-      || (CAP.espaces && (mode === 'entreprise' || ((mode === 'espace' || mode === 'abo') && ID_ESPACE.test(arg || '')))) ? mode : 'chat';
+      || (CAP.espaces && (mode === 'entreprise' || ((mode === 'espace' || mode === 'abo') && ID_ESPACE.test(arg || ''))))
+      || (CAP.reunions && (mode === 'reunion-new' || ((mode === 'reunion' || mode === 'reunion-edit') && ID_REUNION.test(arg || '')))) ? mode : 'chat';
     if (etat.groupe.mode === 'convinfo') etat.groupe.convId = arg || null;
     if (etat.groupe.mode === 'espace' || etat.groupe.mode === 'abo') etat.groupe.espaceId = arg;
+    if (etat.groupe.mode === 'reunion' || etat.groupe.mode === 'reunion-edit') etat.groupe.reunionId = arg;
     if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel') { CONTACTS = typeof source.contacts === 'function' ? source.contacts() : CONTACTS; construireContacts(); }
     if (etat.groupe.mode === 'info') {
       etat.groupe.info = etat.appels.find(x => x.id === arg) || null;
@@ -2056,6 +2127,8 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     if (etat.groupe.mode === 'entreprise') rendreEntreprise();
     if (etat.groupe.mode === 'espace') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; rendreEspace(); }
     if (etat.groupe.mode === 'abo') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; rendreAbonnement(); }
+    if (etat.groupe.mode === 'reunion') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; ouvrirFicheEtat(arg); rendreFiche(); }
+    if (etat.groupe.mode === 'reunion-new' || etat.groupe.mode === 'reunion-edit') { $('info-corps').innerHTML = ''; rendreFormReunion(etat.groupe.mode === 'reunion-edit' ? arg : null); }
     synchroFeuille();
     $('feuille').inert = false;
     document.documentElement.classList.add('feuille-ouverte');
@@ -2278,7 +2351,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     if (!id) { try { const c = await source.conversationPour(membres); id = c && c.id; } catch (e) { id = null; refus = e; } }
     if (!id) { mot(phrase(refus, 'La conversation n\'a pas pu être ouverte.')); return; }
     const cible = { vue: 'messages', conv: id, feuille: false, photo: null, appel: null }, h = entree();
-    if (h && h.n > 0 && h.p && memeRoute(h.p, cible)) history.back(); else remplacer(cible);
+    if (h && h.n > 0 && h.p && memeRoute(h.p, cible)) rendreEntree(); else remplacer(cible);
   }
   function rappeler(a, type, depuisFeuille, declencheurEl) { return lancerAppel({ membres: a.membres.slice(), video: type === 'video', conv: a.conv }, declencheurEl || document.activeElement, !!depuisFeuille); }
   /* lancer = demander à la source, PUIS pousser la route (l'écran suit dans afficherAppel, jouée aussi par le retour système). Depuis une feuille, l'entrée de la feuille est remplacée. */
@@ -2961,6 +3034,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   function surContacts() {
     if (typeof source.contacts !== 'function') return;
     CONTACTS = source.contacts();
+    if (CAP.reunions && etat.route && etat.route.vue === 'reunions') rendreReunions();
     peindreBloquesN(); peindreProfilReglage();
     if (!etat.groupe.ouvert) return;
     if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel') { construireContacts(); synchroFeuille(); }
@@ -3439,6 +3513,519 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     rafraichirListe();
   }
 
+  /* ═══ 14. LES RÉUNIONS — l'agenda de la semaine, la liste du jour, la fiche, « Programmer » (capacité `reunions`, étape 6) ═══════════════════════════════════════════════
+     ⛔ Cette page ne calcule AUCUNE répétition ni AUCUN fuseau : le service fait autorité (une série garde son heure LOCALE de part et d'autre d'un changement d'heure, une heure qui n'existe pas
+     est refusée). Elle demande une fenêtre (la semaine affichée) et reçoit des occurrences en millisecondes ; elle les HABILLE dans le fuseau de l'appareil, et dit le fuseau de la réunion à côté
+     quand l'heure n'est pas la même. ⛔ Elle n'affiche que ce que le service tient : pas de « Rejoindre » (l'étape 8), pas de promesse d'un envoi par courriel que le service n'a pas ouvert.
+     ⛔ Une réunion ne porte que des IDENTIFIANTS de personnes : on les habille au moment de peindre (`contactDe`), donc une photo arrivée après coup apparaît sans relire l'agenda. */
+  const ID_REUNION = /^r_[0-9a-f]{32}$/;
+  /* ⛔ Une réunion supprimée et une personne RETIRÉE de la réunion arrivent à la page de la même façon (la réunion ne se lit plus) : elle ne peut pas les distinguer, et ne dit pas plus qu'elle ne sait. La phrase est la même que
+     celle d'une réunion qu'on ne trouve pas — qui n'apprend rien à quelqu'un qui n'y a jamais été invité. */
+  const PHRASE_REUNION_PERDUE = 'Cette réunion n\'existe plus, ou tu n\'y es plus invité.';
+  const reu = {
+    semaine: 0, jour: 0,                 // le lundi (minuit, heure de l'appareil) de la semaine affichée, et le jour choisi (minuit)
+    liste: [], charge: false, panne: null, jeton: 0,
+    fiche: null,                         // { id, donnees, jeton, confirme: null | 'annuler' | 'supprimer', courriel: null | {ouvert, serie}, prevenir, occurrence }
+    occurrences: {},                     // l'occurrence touchée dans la liste, par réunion : la fiche parle de CELLE-LÀ
+    colleagues: null,                    // les membres de mes espaces que je peux inviter (chargés une fois, à l'ouverture d'un formulaire ou d'une fiche d'hôte)
+    form: null                           // { id|null, choisis: [], rappels: [], notifier, recherche, initial }
+  };
+  const JOUR_MS = 86400000;
+  const RAPPELS_REUNION = [[5, '5 minutes avant'], [15, '15 minutes avant'], [60, '1 heure avant'], [1440, '1 jour avant']];
+  const REPETITIONS = [['aucune', 'Jamais'], ['quotidienne', 'Tous les jours'], ['hebdomadaire', 'Toutes les semaines'], ['mensuelle', 'Tous les mois']];
+  const STATUTS_REPONSE = [['accepte', 'Accepter'], ['peutetre', 'Peut-être'], ['decline', 'Refuser']];
+  const ETAT_INVITE = { attente: 'En attente', accepte: 'Accepté', decline: 'Refusé', peutetre: 'Peut-être' };
+  const FMT_JOUR_LONG = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const FMT_JOUR_COURT = new Intl.DateTimeFormat('fr-FR', { weekday: 'short' });
+  const FMT_MOIS_COURT = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' });
+  const FMT_DATE_LONGUE = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  const minuitDe = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  const plusJours = (t, n) => { const d = new Date(t); d.setDate(d.getDate() + n); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  const lundiDe = t => plusJours(minuitDe(t), -((new Date(t).getDay() + 6) % 7));
+  const fuseauAppareil = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { return ''; } };
+  /* l'heure d'un instant dans UN fuseau (celui de la réunion) : de quoi dire « 14:00 à Paris » quand l'appareil est ailleurs */
+  function heureDans(t, tz) { try { return new Intl.DateTimeFormat('fr-FR', { timeZone: tz, hour: '2-digit', minute: '2-digit' }).format(t); } catch (e) { return ''; } }
+  const villeDe = tz => String(tz || '').split('/').pop().replace(/_/g, ' ');
+  /* l'heure LOCALE d'un instant dans un fuseau, sous la forme que le service lit : « 2026-10-26T14:00 » */
+  function localDans(t, tz) {
+    try {
+      const p = {};
+      for (const x of new Intl.DateTimeFormat('en-CA', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(t)) p[x.type] = x.value;
+      return p.year + '-' + p.month + '-' + p.day + 'T' + p.hour + ':' + p.minute;
+    } catch (e) { return ''; }
+  }
+  const dateDeChaine = s => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || '')); return m ? new Date(+m[1], +m[2] - 1, +m[3]).getTime() : null; };
+  function libelleSemaine(lundi) {
+    const dim = plusJours(lundi, 6), a = new Date(lundi), b = new Date(dim);
+    const fin = FMT_MOIS_COURT.format(dim).replace('.', ''), debut = a.getMonth() === b.getMonth() ? String(a.getDate()) : FMT_MOIS_COURT.format(lundi).replace('.', '');
+    return debut + ' – ' + fin + (b.getFullYear() !== new Date().getFullYear() ? ' ' + b.getFullYear() : '');
+  }
+  const libelleRappel = m => (RAPPELS_REUNION.find(x => x[0] === m) || [m, m + ' minutes avant'])[1];
+  /* « Se répète toutes les semaines, jusqu'au 30 novembre 2026 » */
+  function libelleRepetition(r) {
+    const rep = (REPETITIONS.find(x => x[0] === r.repetition) || [])[1];
+    if (!rep || r.repetition === 'aucune') return '';
+    const fin = r.n ? ', ' + r.n + ' fois' : r.jusqua && dateDeChaine(r.jusqua) !== null ? ', jusqu\'au ' + FMT_DATE_LONGUE.format(dateDeChaine(r.jusqua)) : '';
+    return 'Se répète ' + rep.toLowerCase() + fin;
+  }
+  /* l'horaire d'une occurrence : « 14:00 – 15:00 », et, si le fuseau de la réunion donne une autre heure que l'appareil, « (14:00 – 15:00 à Paris) » */
+  function libelleHoraire(r, o) {
+    const h = FMT_HEURE.format(o.debut) + ' – ' + FMT_HEURE.format(o.fin), la = heureDans(o.debut, r.tz), lb = heureDans(o.fin, r.tz);
+    const autre = !!la && la !== FMT_HEURE.format(o.debut);
+    return { h, note: autre ? la + ' – ' + lb + ' à ' + villeDe(r.tz) : '', hz: autre ? la + ' – ' + lb : '', ville: autre ? villeDe(r.tz) : '' };
+  }
+  const nomPersonne = id => { const c = contactDe(id); return c ? c.nom : 'Quelqu\'un'; };
+  const avatarDe = id => { const c = contactDe(id); return avatar(c || { id, initiales: '?', avatar: 0 }); };
+  const estUrl = t => /^https?:\/\/[^\s<>"'`]{1,280}$/i.test(String(t || ''));
+
+  /* ── l'agenda : la fenêtre, les jours, la liste du jour ── */
+  function construireReunions() {
+    const sec = $('vue-reunions');
+    sec.innerHTML =
+      '<div class="entete-vue"><span></span><button type="button" class="lien-texte presse" id="btn-reunion-nouvelle" aria-haspopup="dialog">Programmer</button></div>' +
+      '<h1 class="grand-titre" id="titre-reunions">Réunions</h1>' +
+      '<div class="sem-nav" role="group" aria-label="Semaine affichée">' +
+        '<button type="button" class="sem-fleche prec presse" id="sem-prec" aria-label="Semaine précédente">' + CHEVRON + '</button>' +
+        '<button type="button" class="sem-titre presse" id="sem-titre" aria-label="Revenir à aujourd\'hui"></button>' +
+        '<button type="button" class="sem-fleche suiv presse" id="sem-suiv" aria-label="Semaine suivante">' + CHEVRON + '</button>' +
+      '</div>' +
+      '<div class="sem-jours" id="sem-jours" role="group" aria-label="Jours de la semaine"></div>' +
+      '<p class="liste-erreur" id="reu-erreur" role="alert" hidden><span id="reu-erreur-texte"></span><button type="button" id="reu-erreur-bouton">Réessayer</button></p>' +
+      '<div class="rubrique"><span id="reu-jour-titre"></span><span id="reu-jour-n"></span></div>' +
+      '<ul class="carte-liste" id="liste-reunions" role="list" aria-label="Réunions du jour"></ul>';
+    sec.dataset.pret = '1';
+    const auj = minuitDe(Date.now());
+    reu.semaine = lundiDe(auj); reu.jour = auj;
+    $('btn-reunion-nouvelle').addEventListener('click', () => ouvrirFeuille('reunion-new'));
+    $('sem-prec').addEventListener('click', () => changerSemaine(-7));
+    $('sem-suiv').addEventListener('click', () => changerSemaine(7));
+    $('sem-titre').addEventListener('click', () => { const t = minuitDe(Date.now()); allerAuJour(t); });
+    $('reu-erreur-bouton').addEventListener('click', () => chargerReunions());
+    $('sem-jours').addEventListener('click', e => { const b = e.target.closest('[data-jour]'); if (b) { reu.jour = +b.dataset.jour; rendreReunions(); } });
+    $('liste-reunions').addEventListener('click', e => {
+      const b = e.target.closest('[data-reunion]'); if (!b) return;
+      reu.occurrences[b.dataset.reunion] = +b.dataset.debut || null;
+      declencheur = b;
+      pousser(Object.assign({}, etat.route, { feuille: 'reunion:' + b.dataset.reunion }));
+    });
+  }
+  /* un jour choisi : sa semaine est chargée si ce n'est pas celle qu'on voit */
+  function allerAuJour(t) {
+    const sem = lundiDe(t), autre = sem !== reu.semaine;
+    reu.jour = minuitDe(t); reu.semaine = sem;
+    if (autre) { reu.liste = []; reu.charge = false; rendreReunions(); chargerReunions(); } else rendreReunions();
+  }
+  function changerSemaine(delta) {
+    reu.semaine = plusJours(reu.semaine, delta);
+    reu.jour = minuitDe(Date.now()) >= reu.semaine && minuitDe(Date.now()) < plusJours(reu.semaine, 7) ? minuitDe(Date.now()) : reu.semaine;
+    reu.liste = []; reu.charge = false; rendreReunions(); chargerReunions();
+  }
+  async function chargerReunions() {
+    if (!CAP.reunions) return;
+    const n = ++reu.jeton, du = reu.semaine, au = plusJours(reu.semaine, 7);
+    let l = null, panne = null;
+    try { l = await source.reunions(du, au); } catch (e) { panne = e; }
+    if (n !== reu.jeton) return;                      // une semaine plus récente a pris la place pendant l'attente
+    reu.charge = true;
+    if (panne) reu.panne = panne; else { reu.panne = null; reu.liste = l; }
+    rendreReunions();
+  }
+  /* les occurrences de la semaine, rangées par jour (le jour où elles COMMENCENT, à l'heure de l'appareil) */
+  function occurrencesDuJour(jour) {
+    const fin = plusJours(jour, 1), sortie = [];
+    for (const r of reu.liste) for (const o of r.occurrences) if (o.debut >= jour && o.debut < fin) sortie.push({ r, o });
+    return sortie.sort((a, b) => a.o.debut - b.o.debut || a.r.id.localeCompare(b.r.id));
+  }
+  function libelleEtat(r) {
+    if (r.annulee) return 'Annulée';
+    if (r.moi.hote) return 'Organisateur';
+    return r.moi.statut === 'attente' ? 'À répondre' : r.moi.statut === 'decline' ? 'Refusée' : r.moi.statut === 'peutetre' ? 'Peut-être' : '';
+  }
+  function ligneReunion(r, o) {
+    const { h, note, hz, ville } = libelleHoraire(r, o), etatTxt = libelleEtat(r);
+    const sous = [r.lieu, r.moi.hote ? '' : nomPersonne(r.hote), r.participantsN + (r.participantsN > 1 ? ' participants' : ' participant')].filter(Boolean);
+    return '<li><button type="button" class="reunion-ligne presse' + (r.annulee ? ' annulee' : '') + '" data-reunion="' + esc(r.id) + '" data-debut="' + (+o.debut || 0) + '" aria-label="' + esc(r.titre + ', ' + h + (note ? ' (' + note + ')' : '') + (etatTxt ? ', ' + etatTxt : '')) + '">' +
+      '<span class="reunion-heure">' + esc(FMT_HEURE.format(o.debut)) + '<small>' + esc(FMT_HEURE.format(o.fin)) + '</small></span>' +
+      '<span class="reunion-corps"><span class="reunion-titre">' + esc(r.titre || 'Réunion') + '</span><span class="reunion-sous">' + esc(sous.join(' · ')) + '</span>' + (note ? '<span class="reunion-sous">' + esc('Heure de ' + ville + ' : ' + hz) + '</span>' : '') + '</span>' +
+      (etatTxt ? '<span class="reunion-etat' + (r.moi.statut === 'attente' && !r.moi.hote && !r.annulee ? ' attention' : '') + '">' + esc(etatTxt) + '</span>' : '') + '</button></li>';
+  }
+  function rendreReunions() {
+    const sec = $('vue-reunions'); if (!CAP.reunions || !sec.dataset.pret) return;
+    const auj = minuitDe(Date.now()), actif = document.activeElement, cle = actif && actif.closest && actif.closest('#sem-jours') && actif.dataset.jour ? actif.dataset.jour : null;
+    $('sem-titre').textContent = libelleSemaine(reu.semaine);
+    $('sem-titre').setAttribute('aria-label', 'Semaine du ' + FMT_JOUR_LONG.format(reu.semaine) + ' — revenir à aujourd\'hui');
+    let h = '';
+    for (let i = 0; i < 7; i++) {
+      const t = plusJours(reu.semaine, i), n = occurrencesDuJour(t).length;
+      h += '<button type="button" class="jour presse' + (n ? ' avec' : '') + '" data-jour="' + t + '" aria-pressed="' + (t === reu.jour ? 'true' : 'false') + '"' + (t === auj ? ' aria-current="date"' : '') +
+        ' aria-label="' + esc(FMT_JOUR_LONG.format(t) + ', ' + (n ? n + (n > 1 ? ' réunions' : ' réunion') : 'aucune réunion')) + '"><span>' + esc(maj1(FMT_JOUR_COURT.format(t)).replace('.', '')) + '</span><b>' + new Date(t).getDate() + '</b><i class="jour-point" aria-hidden="true"></i></button>';
+    }
+    $('sem-jours').innerHTML = h;
+    if (cle) { const b = $('sem-jours').querySelector('[data-jour="' + cle.replace(/"/g, '') + '"]'); if (b) b.focus({ preventScroll: true }); }
+    const lignes = occurrencesDuJour(reu.jour);
+    $('reu-jour-titre').textContent = maj1(FMT_JOUR_LONG.format(reu.jour));
+    $('reu-jour-n').textContent = lignes.length ? String(lignes.length) : '';
+    $('reu-erreur').hidden = !reu.panne;
+    if (reu.panne) $('reu-erreur-texte').textContent = phrase(reu.panne, 'L\'agenda n\'a pas pu être chargé.');
+    $('liste-reunions').setAttribute('aria-busy', reu.charge ? 'false' : 'true');
+    $('liste-reunions').innerHTML = !reu.charge && !reu.panne ? '<li class="vide">Chargement…</li>'
+      : lignes.length ? lignes.map(x => ligneReunion(x.r, x.o)).join('')
+      : reu.panne ? '' : '<li class="vide">Aucune réunion ce jour-là</li>';
+  }
+  /* on arrive sur l'onglet : la semaine du jour, relue (elle a pu changer ailleurs) */
+  function entrerReunions() {
+    if (!CAP.reunions || !$('vue-reunions').dataset.pret) return;
+    rendreReunions(); chargerReunions();
+  }
+  /* un changement venu du service (ici ou sur un autre appareil) : l'agenda se relit, la fiche ouverte aussi — une réunion supprimée ferme sa fiche */
+  function surReunions(ev) {
+    if (!CAP.reunions) return;
+    if (etat.route && etat.route.vue === 'reunions') chargerReunions(); else reu.charge = false;
+    const G = etat.groupe;
+    if (G.ouvert && G.mode === 'reunion' && (!ev.id || ev.id === G.reunionId)) {
+      if (ev.supprime && ev.id === G.reunionId) reunionDisparue(reu.fiche); else rendreFiche();
+    }
+  }
+  /* ⛔ UNE RÉUNION QUI DISPARAÎT FERME SA FICHE UNE FOIS, ET UN SEUL ACTEUR LE FAIT. La même nouvelle arrive de plusieurs côtés : la réponse du geste qu'on vient de faire (« Supprimer » confirmé), l'événement que la
+     source émet aussitôt (`reunionChangee`), celui que le service adresse à CHAQUE participant — l'organisateur et celui qui part compris : ses autres appareils en ont besoin —, et la relecture de la fiche qui ne
+     trouve plus la réunion. Chacun fermait la fiche : trois fermetures pour une disparition (testeur). La marque est sur la FICHE (une fiche neuve, une marque neuve) ; la phrase est celle du GESTE quand c'est la
+     personne qui l'a fait (`F.sortie`, posée AVANT l'attente : l'événement local arrive pendant elle) — « Réunion supprimée », jamais « n'existe plus » à celui qui vient de la supprimer. Si la feuille n'est plus
+     celle-là (fermée pendant l'attente), la phrase se dit quand même et RIEN d'autre ne se ferme : `fermerCouche()` ferait partir la couche qui est dessous. */
+  function reunionDisparue(F) {
+    if (!F || F.fermee) return;
+    F.fermee = true;
+    mot(F.sortie || PHRASE_REUNION_PERDUE);
+    if (ouvertePour(F.id) && reu.fiche === F) fermerCouche();
+  }
+  const ouvrirReunionId = id => { if (CAP.reunions && ID_REUNION.test(id)) remplacer({ vue: 'reunions', conv: null, feuille: 'reunion:' + id, photo: null, appel: null }); };
+
+  /* ── les gens qu'on peut inviter : mes contacts, et les membres de MES espaces (jamais un annuaire) ── */
+  async function chargerCollegues() {
+    if (reu.colleagues) return reu.colleagues;
+    const liste = [];
+    if (CAP.espaces && typeof source.espaces === 'function') {
+      try {
+        const r = await source.espaces();
+        for (const e of r.espaces) { try { const c = await source.espaceContacts(e.id); for (const p of c.contacts) if (!p.moi) liste.push({ id: p.id, espace: e.nom }); } catch (er) { /* un espace qui ne répond pas ne retire pas les autres */ } }
+      } catch (e) { /* sans espace lisible, il reste les contacts */ }
+    }
+    reu.colleagues = liste;
+    return liste;
+  }
+  /* [{ id, role }] : les contacts d'abord, puis les collègues qui n'en sont pas ; `deja` : ceux qu'on ne propose plus */
+  function candidats(deja) {
+    const vus = new Set(deja || []), sortie = [];
+    for (const c of CONTACTS) if (!vus.has(c.id)) { vus.add(c.id); sortie.push({ id: c.id, role: c.role || 'Contact' }); }
+    for (const p of reu.colleagues || []) if (!vus.has(p.id)) { vus.add(p.id); sortie.push({ id: p.id, role: 'Collègue — ' + p.espace }); }
+    return sortie;
+  }
+
+  /* ── la fiche d'une réunion (la feuille « reunion:<id> ») ── */
+  const ouvertePour = id => etat.groupe.ouvert && etat.groupe.mode === 'reunion' && etat.groupe.reunionId === id;
+  function htmlParticipant(r, p, moiHote) {
+    const c = contactDe(p.id), nom = c ? c.nom : 'Quelqu\'un', hote = p.hote, soi = MOI && p.id === MOI.id;
+    const role = hote ? 'Organisateur' : ETAT_INVITE[p.statut] || 'En attente';
+    return '<div class="contact avec-actions">' + avatarDe(p.id) + '<span class="contact-texte"><span class="contact-nom">' + esc(nom) + (soi ? ' (vous)' : '') + '</span><span class="contact-role">' + esc(role) + '</span></span>' +
+      (moiHote && !hote && !r.annulee ? '<span class="contact-actions"><button type="button" class="mini danger" data-reu="retirer" data-uid="' + esc(p.id) + '" aria-label="' + esc('Retirer ' + nom + ' de la réunion') + '">Retirer</button></span>' : '') + '</div>';
+  }
+  function htmlFiche(d) {
+    const F = reu.fiche, hote = d.moi.hote, o = (F.occurrence && d.repetition !== 'aucune' ? { debut: F.occurrence, fin: F.occurrence + (d.fin - d.debut) } : (d.prochaine || { debut: d.debut, fin: d.fin }));
+    const { h, note } = libelleHoraire(d, o), rep = libelleRepetition(d), serie = d.repetition !== 'aucune';
+    const mesRappels = d.moi.rappels, rappelsHtml = RAPPELS_REUNION.map(x => '<button type="button" class="reglage presse" role="checkbox" aria-checked="' + (mesRappels.indexOf(x[0]) >= 0 ? 'true' : 'false') + '" data-reu="rappel" data-min="' + x[0] + '"' + (d.annulee ? ' disabled' : '') + '><span class="reglage-texte">' + esc(x[1]) + '</span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join('');
+    let s = '<p class="info-erreur" id="info-erreur" role="alert"' + (F.erreur ? '>' + esc(F.erreur) : ' hidden>') + '</p>' +
+      '<div class="info-tete"><span class="avatar av' + (((indexAvatarPage(d.id)) % 6 + 6) % 6) + '" aria-hidden="true">' + icone('i-agenda') + '</span><div><h3 class="info-nom">' + esc(d.titre || 'Réunion') + '</h3><p class="info-sous">' + esc(hote ? 'Vous organisez cette réunion' : 'Organisée par ' + nomPersonne(d.hote)) + '</p></div></div>' +
+      (d.annulee ? '<p class="info-erreur">Cette réunion est annulée.</p>' : '') +
+      '<div class="carte">' +
+        '<div class="reglage">' + icone('i-agenda') + '<span class="reglage-texte">' + esc(maj1(FMT_JOUR_LONG.format(o.debut))) + '<small>' + esc(h + (note ? ' (' + note + ')' : '')) + '</small></span></div>' +
+        (rep ? '<div class="reglage">' + icone('i-repeter') + '<span class="reglage-texte">' + esc(rep) + '</span></div>' : '') +
+        (d.lieu ? '<div class="reglage">' + icone('i-lieu') + '<span class="reglage-texte">' + (estUrl(d.lieu) ? '<a class="lien-lieu" href="' + esc(d.lieu) + '" target="_blank" rel="noopener noreferrer">' + esc(d.lieu) + '</a>' : esc(d.lieu)) + '</span></div>' : '') +
+      '</div>';
+    /* ma réponse (un invité, une réunion qui vit encore) */
+    if (!hote && !d.annulee) s += '<div class="rubrique"><span>Ta réponse</span></div><div class="g-choix" role="radiogroup" aria-label="Ta réponse">' +
+      STATUTS_REPONSE.map(x => '<button type="button" class="g-pilule presse" role="radio" aria-checked="' + (d.moi.statut === x[0] ? 'true' : 'false') + '" data-reu="reponse" data-statut="' + x[0] + '">' + esc(x[1]) + '</button>').join('') + '</div>';
+    /* mes rappels */
+    if (!d.annulee) s += '<div class="rubrique"><span>Me rappeler</span></div><div class="carte" id="reu-rappels" role="group" aria-label="Mes rappels">' + rappelsHtml +
+      (d.moi.rappelsPerso ? '<button type="button" class="reglage presse" data-reu="rappels-defaut"><span class="reglage-texte">Rétablir les rappels de la réunion<small>Ceux que l\'organisateur a choisis</small></span></button>' : '') + '</div>';
+    /* les participants */
+    s += '<div class="rubrique"><span>Participants</span><span>' + d.invites.length + '</span></div><div class="carte">' + d.invites.map(p => htmlParticipant(d, p, hote)).join('') + '</div>';
+    /* inviter d'autres personnes (l'hôte) */
+    if (hote && !d.annulee) {
+      const dispo = candidats(d.invites.map(p => p.id));
+      if (dispo.length) s += '<div class="rubrique"><span>Inviter</span></div><div class="carte">' + dispo.map(c => { const k = contactDe(c.id); return k ? '<div class="contact avec-actions">' + avatar(k) + '<span class="contact-texte"><span class="contact-nom">' + esc(k.nom) + '</span><span class="contact-role">' + esc(c.role) + '</span></span><span class="contact-actions"><button type="button" class="mini" data-reu="inviter" data-uid="' + esc(c.id) + '" aria-label="' + esc('Inviter ' + k.nom) + '">Inviter</button></span></div>' : ''; }).join('') + '</div>';
+    }
+    /* le fichier pour l'agenda, la conversation */
+    const ics = (occ) => source.adresseIcs(d.id, occ ? { occurrence: occ } : {});
+    s += '<div class="rubrique"><span>Agenda</span></div><div class="carte carte-pad"><div class="info-actions">' +
+      (serie ? '<a class="mini" href="' + esc(ics(o.debut)) + '" download>' + icone('i-telecharger') + ' Cette date (.ics)</a><a class="mini" href="' + esc(ics(null)) + '" download>' + icone('i-telecharger') + ' Toute la série (.ics)</a>'
+        : '<a class="mini" href="' + esc(ics(null)) + '" download>' + icone('i-telecharger') + ' Ajouter à mon agenda (.ics)</a>') + '</div></div>';
+    s += '<div class="carte"><button type="button" class="reglage presse" data-reu="conversation">' + icone('i-chat') + '<span class="reglage-texte">Ouvrir la conversation de la réunion</span>' + CHEVRON + '</button></div>';
+    /* la sortie de l'INVITÉ : une invitation qu'on ne veut pas ne reste pas dans l'agenda sans issue (l'organisateur, lui, annule ou supprime) */
+    if (!hote) s += '<div class="rubrique"><span>Invité</span></div>' + (F.confirme === 'quitter' ? htmlConfirmation(d) : '<div class="carte"><button type="button" class="reglage presse danger" data-reu="quitter-demander"><span class="reglage-texte">Quitter la réunion<small>Elle disparaît de ton agenda et tu sors de sa conversation</small></span></button></div>');
+    /* les gestes de l'hôte */
+    if (hote) {
+      s += '<div class="rubrique"><span>Organisateur</span></div>';
+      if (!d.annulee) s += '<div class="carte"><button type="button" class="reglage presse" data-reu="modifier">' + icone('i-gear') + '<span class="reglage-texte">Modifier la réunion</span>' + CHEVRON + '</button>' +
+        '<button type="button" class="reglage presse" data-reu="courriel-ouvrir" aria-expanded="' + (F.courriel ? 'true' : 'false') + '">' + icone('i-courriel') + '<span class="reglage-texte">Envoyer par courriel<small>À quelqu\'un qui n\'a pas OP MESSAGES</small></span>' + CHEVRON + '</button></div>';
+      if (F.courriel && !d.annulee) s += htmlCourriel(d, o);
+      s += F.confirme ? htmlConfirmation(d) : '<div class="carte">' + (d.annulee ? '' : '<button type="button" class="reglage presse danger" data-reu="annuler-demander"><span class="reglage-texte">Annuler la réunion<small>Elle reste dans l\'agenda, marquée « Annulée »</small></span></button>') +
+        '<button type="button" class="reglage presse danger" data-reu="supprimer-demander"><span class="reglage-texte">Supprimer la réunion<small>Elle disparaît pour tout le monde, avec sa conversation</small></span></button></div>';
+    }
+    return s;
+  }
+  const indexAvatarPage = id => { let x = 0; for (const c of String(id)) x = (x * 31 + c.charCodeAt(0)) % 6007; return x % 6; };
+  function htmlCourriel(d, o) {
+    const C = reu.fiche.courriel, serie = d.repetition !== 'aucune';
+    if (C.ouvert === false) return '<div class="carte carte-pad"><p class="info-note" id="reu-courriel-note">L\'envoi par courriel n\'est pas encore ouvert.</p></div>';
+    return '<div class="carte carte-pad" id="reu-courriel">' +
+      '<div class="champ"><label for="rc-adresse">Adresse courriel</label><input id="rc-adresse" type="email" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="254" placeholder="prenom.nom@exemple.fr"></div>' +
+      (serie ? '<div class="g-choix" role="radiogroup" aria-label="Ce que le message contient"><button type="button" class="g-pilule presse" role="radio" aria-checked="' + (C.serie ? 'true' : 'false') + '" data-reu="courriel-portee" data-portee="serie">Toute la série</button><button type="button" class="g-pilule presse" role="radio" aria-checked="' + (C.serie ? 'false' : 'true') + '" data-reu="courriel-portee" data-portee="date">Cette date</button></div>' : '') +
+      '<p class="info-note">Le message part avec le fichier .ics, que son agenda sait lire. L\'adresse n\'est pas conservée. Dix envois par jour au plus, deux par adresse et par semaine.</p>' +
+      '<div class="info-actions"><button type="button" class="mini" data-reu="courriel-envoyer">Envoyer</button></div></div>';
+  }
+  function htmlConfirmation(d) {
+    const F = reu.fiche, aVenir = !d.annulee;
+    if (F.confirme === 'quitter') return '<div class="carte carte-pad"><p class="info-note">Quitter cette réunion ? Elle disparaît de ton agenda, tu sors de sa conversation et tes rappels s\'arrêtent. L\'organisateur voit que tu es parti, et peut te réinviter.</p><div class="info-actions"><button type="button" class="mini danger" data-reu="quitter-confirmer">Quitter la réunion</button><button type="button" class="mini" data-reu="confirmation-retour">Rester</button></div></div>';
+    if (F.confirme === 'annuler') return '<div class="carte carte-pad"><p class="info-note">Annuler cette réunion ? Elle reste dans l\'agenda, marquée « Annulée », plus aucun rappel ne part, et les invités en sont prévenus.</p><div class="info-actions"><button type="button" class="mini danger" data-reu="annuler-confirmer">Annuler la réunion</button><button type="button" class="mini" data-reu="confirmation-retour">Garder la réunion</button></div></div>';
+    return '<div class="carte carte-pad"><p class="info-note">Supprimer cette réunion ? Elle disparaît de l\'agenda de tous, avec sa conversation et ses messages. Cela ne se défait pas.</p>' +
+      (aVenir ? '<button type="button" class="reglage presse" role="switch" aria-checked="' + (F.prevenir ? 'true' : 'false') + '" data-reu="prevenir"><span class="reglage-texte">Prévenir les invités<small>Une notification leur dit que la réunion n\'existe plus</small></span><span class="interrupteur" aria-hidden="true"></span></button>' : '') +
+      '<div class="info-actions"><button type="button" class="mini danger" data-reu="supprimer-confirmer">Supprimer la réunion</button><button type="button" class="mini" data-reu="confirmation-retour">Garder la réunion</button></div></div>';
+  }
+  async function rendreFiche() {
+    const G = etat.groupe; if (!G.ouvert || G.mode !== 'reunion') return;
+    const id = G.reunionId, corps = $('info-corps');
+    if (!reu.fiche || reu.fiche.id !== id) ouvrirFicheEtat(id);
+    const F = reu.fiche;
+    if (F.fermee) return;                                                       // la fiche se ferme : la relire ne ferait que retrouver « introuvable » et la fermer une seconde fois
+    const n = ++F.jeton;
+    let d = null, panne = null;
+    try { d = await source.reunion(id); } catch (e) { panne = e; }
+    if (!ouvertePour(id) || reu.fiche !== F || n !== F.jeton) return;           // la feuille a changé pendant l'attente
+    if (panne) {
+      if (panne.code === 'reunion_introuvable') { reunionDisparue(F); return; }
+      corps.dataset.sig = ''; corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">' + esc(phrase(panne, 'La réunion n\'a pas pu être chargée.')) + '</p>'; return;
+    }
+    F.donnees = d;
+    /* ⛔ la date choisie dans l'agenda n'est gardée que si c'en est TOUJOURS une : un horaire changé (ici ou sur un autre appareil), une série raccourcie, et la fiche parlerait d'un jour qui n'existe plus. La page ne calcule
+       aucune répétition : elle DEMANDE au service si une occurrence commence à cet instant, une fois par version de la réunion. */
+    if (F.occurrence && d.repetition !== 'aucune' && F.occVersion !== d.version) {
+      let valide = true;
+      try { const l = await source.reunions(F.occurrence, F.occurrence + 1); const r = l.find(x => x.id === id); valide = !!r && r.occurrences.some(o => o.debut === F.occurrence); } catch (e) { valide = true; }
+      if (!ouvertePour(id) || reu.fiche !== F || n !== F.jeton) return;
+      if (!valide) F.occurrence = null;
+      F.occVersion = d.version;
+    }
+    if (CAP.reunions && d.moi.hote && !reu.colleagues) chargerCollegues().then(() => { if (ouvertePour(id) && reu.fiche === F) { corps.dataset.sig = ''; rendreFiche(); } });
+    const sig = JSON.stringify([d, F.confirme, F.prevenir, F.courriel && [F.courriel.ouvert, F.courriel.serie], F.erreur, F.occurrence, CONTACTS.map(c => c.id), (reu.colleagues || []).map(c => c.id), d.invites.map(p => { const c = contactDe(p.id); return c && c.photo ? 1 : 0; })]);
+    const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.reu ? actif.dataset.reu + '|' + (actif.dataset.uid || actif.dataset.min || actif.dataset.statut || actif.dataset.portee || '') : null;
+    /* ⛔ l'adresse tapée se garde que le champ ait le focus ou non : toucher « Cette date » déplace le focus sur le bouton AVANT que la fiche se redessine, et l'adresse partait avec l'ancien champ */
+    const ch = $('rc-adresse'), champ = ch && corps.contains(ch) ? { v: ch.value, focus: actif === ch, a: ch.selectionStart } : null;
+    if (corps.dataset.sig === sig && corps.children.length) return;
+    corps.dataset.sig = sig;
+    corps.innerHTML = htmlFiche(d);
+    if (champ && $('rc-adresse')) $('rc-adresse').value = champ.v;
+    if (champ && champ.focus && $('rc-adresse')) { $('rc-adresse').focus({ preventScroll: true }); try { $('rc-adresse').setSelectionRange(champ.a, champ.a); } catch (e) { /* un champ sans curseur */ } }
+    else if (cle) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-reu]')).find(x => x.dataset.reu === a && (x.dataset.uid || x.dataset.min || x.dataset.statut || x.dataset.portee || '') === u); if (b) b.focus({ preventScroll: true }); }
+  }
+  function ouvrirFicheEtat(id) { reu.colleagues = null; reu.fiche = { id, donnees: null, jeton: 0, confirme: null, courriel: null, prevenir: true, occurrence: reu.occurrences[id] || null, occVersion: null, erreur: null, fermee: false, sortie: null }; }
+  /* retour à la fiche après un formulaire : l'entrée de la fiche est RENDUE quand c'est elle qui est dessous, sinon on la REMPLACE */
+  function versFiche(id) {
+    const h = entree(), cible = 'reunion:' + id;
+    if (h && h.n > 0 && h.p && h.p.feuille && cleFeuille(h.p.feuille) === cible) rendreEntree(); else remplacer(Object.assign({}, etat.route, { feuille: cible }));
+  }
+  $('info-corps').addEventListener('click', async e => {
+    const b = e.target.closest('[data-reu]'); if (!b || b.disabled || b.getAttribute('aria-disabled') === 'true') return;
+    const act = b.dataset.reu, G = etat.groupe; if (!G.ouvert) return;
+    erreurInfo('');
+    const F = reu.fiche, id = G.reunionId, d = F && F.donnees;
+    const relire = () => { $('info-corps').dataset.sig = ''; return rendreFiche(); };
+    const occurrenceCourante = () => (d && d.repetition !== 'aucune' ? (F.occurrence || (d.prochaine && d.prochaine.debut) || d.debut) : null);
+    try {
+      /* ── la feuille d'une fiche ── */
+      if (G.mode === 'reunion' && F && d) {
+        if (act === 'reponse') { b.setAttribute('aria-disabled', 'true'); await source.repondreReunion(id, b.dataset.statut); mot(b.dataset.statut === 'accepte' ? 'Tu as accepté la réunion' : b.dataset.statut === 'decline' ? 'Tu as refusé la réunion' : 'Réponse enregistrée : peut-être'); await relire(); }
+        else if (act === 'rappel') {
+          b.setAttribute('aria-disabled', 'true');
+          const min = +b.dataset.min, actuels = d.moi.rappels.slice(), i = actuels.indexOf(min);
+          if (i >= 0) actuels.splice(i, 1); else actuels.push(min);
+          await source.rappelsReunion(id, actuels.sort((x, y) => x - y)); await relire();
+        }
+        else if (act === 'rappels-defaut') { await source.rappelsReunion(id, null); mot('Rappels de la réunion rétablis'); await relire(); }
+        else if (act === 'inviter') { b.setAttribute('aria-disabled', 'true'); const r = await source.inviterReunion(id, [b.dataset.uid], { notifier: true }); mot(r.ajoutes ? 'Invitation envoyée' : 'Cette personne ne peut pas être invitée'); await relire(); }
+        else if (act === 'retirer') { b.setAttribute('aria-disabled', 'true'); await source.retirerInviteReunion(id, b.dataset.uid); mot('Personne retirée de la réunion'); await relire(); }
+        else if (act === 'conversation') ouvrirConvId(d.conv);
+        else if (act === 'modifier') ouvrirFeuille('reunion-edit:' + id);
+        else if (act === 'courriel-ouvrir') {
+          if (F.courriel) F.courriel = null;
+          else { F.courriel = { ouvert: undefined, serie: true }; const o = await source.courrielOuvert(); if (reu.fiche === F && F.courriel) F.courriel.ouvert = o; }
+          await relire();
+          if (F.courriel && $('rc-adresse')) $('rc-adresse').focus({ preventScroll: true });
+        }
+        else if (act === 'courriel-portee') { F.courriel.serie = b.dataset.portee === 'serie'; await relire(); }
+        else if (act === 'courriel-envoyer') {
+          const champ = $('rc-adresse'), adresse = champ ? champ.value.trim() : '';
+          if (!adresse) { erreurInfo('Écris l\'adresse courriel de la personne.'); if (champ) champ.focus(); return; }
+          b.setAttribute('aria-disabled', 'true');
+          await source.courrielReunion(id, adresse, { occurrence: F.courriel.serie ? undefined : occurrenceCourante() });
+          const apres = $('rc-adresse'); if (apres) apres.value = '';          // le champ d'APRÈS un redessin éventuel (la fiche a pu être redessinée pendant l'envoi)
+          b.removeAttribute('aria-disabled');
+          mot('Invitation envoyée par courriel');
+        }
+        else if (act === 'quitter-demander') { F.confirme = 'quitter'; await relire(); }
+        else if (act === 'quitter-confirmer') { b.setAttribute('aria-disabled', 'true'); F.sortie = 'Tu as quitté la réunion'; await source.quitterReunion(id); reunionDisparue(F); return; }
+        else if (act === 'annuler-demander') { F.confirme = 'annuler'; await relire(); }
+        else if (act === 'supprimer-demander') { F.confirme = 'supprimer'; await relire(); }
+        else if (act === 'confirmation-retour') { F.confirme = null; await relire(); }
+        else if (act === 'prevenir') { F.prevenir = !F.prevenir; await relire(); }
+        else if (act === 'annuler-confirmer') { b.setAttribute('aria-disabled', 'true'); await source.annulerReunion(id); F.confirme = null; mot('Réunion annulée : les invités sont prévenus'); await relire(); }
+        else if (act === 'supprimer-confirmer') { b.setAttribute('aria-disabled', 'true'); F.sortie = 'Réunion supprimée'; await source.supprimerReunion(id, { notifier: F.prevenir }); reunionDisparue(F); return; }
+      }
+      /* ── le formulaire ── */
+      else if (G.mode === 'reunion-new' || G.mode === 'reunion-edit') {
+        if (act === 'form-enregistrer') await enregistrerReunion(b);
+        else if (act === 'form-rappel') { basculerRappelForm(+b.dataset.min); }
+        else if (act === 'form-invite') { basculerInviteForm(b.dataset.uid); }
+        else if (act === 'form-notifier') { reu.form.notifier = !reu.form.notifier; b.setAttribute('aria-checked', reu.form.notifier ? 'true' : 'false'); }
+      }
+    } catch (er) { if (F) F.sortie = null; b.removeAttribute('aria-disabled'); erreurInfo(phrase(er, 'Cette action n\'a pas pu se faire.')); }          // le geste a échoué : la phrase qu'il avait annoncée tombe avec lui
+  });
+
+  /* ── « Programmer » et « Modifier » : le formulaire (les feuilles « reunion-new » et « reunion-edit:<id> ») ── */
+  function listeFuseaux(courant) {
+    let l = [];
+    try { if (typeof Intl.supportedValuesOf === 'function') l = Intl.supportedValuesOf('timeZone').slice(); } catch (e) { l = []; }
+    if (!l.length) l = ['Europe/Paris', 'Europe/Londres', 'Europe/Brussels', 'Europe/Zurich', 'Europe/Madrid', 'Europe/Berlin', 'Europe/Rome', 'Atlantic/Reykjavik', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Montreal', 'America/Sao_Paulo', 'Africa/Casablanca', 'Africa/Algiers', 'Africa/Dakar', 'Asia/Dubai', 'Asia/Kolkata', 'Asia/Shanghai', 'Asia/Tokyo', 'Australia/Sydney', 'Pacific/Auckland'];
+    if (l.indexOf('UTC') < 0) l.push('UTC');
+    if (courant && l.indexOf(courant) < 0) l.push(courant);
+    return l;
+  }
+  const optionsDe = (liste, courant) => liste.map(x => '<option value="' + esc(x[0]) + '"' + (x[0] === courant ? ' selected' : '') + '>' + esc(x[1]) + '</option>').join('');
+  function htmlRappelsForm(F) { return RAPPELS_REUNION.map(x => '<button type="button" class="reglage presse" role="checkbox" aria-checked="' + (F.rappels.indexOf(x[0]) >= 0 ? 'true' : 'false') + '" data-reu="form-rappel" data-min="' + x[0] + '"><span class="reglage-texte">' + esc(x[1]) + '</span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join(''); }
+  function htmlInvitesForm(F) {
+    const liste = candidats([]).filter(c => !F.recherche || norme(nomPersonne(c.id) + ' ' + c.role).includes(norme(F.recherche)));
+    return liste.length ? liste.map(c => { const k = contactDe(c.id); return k ? '<button type="button" class="contact presse" role="checkbox" aria-checked="' + (F.choisis.indexOf(c.id) >= 0 ? 'true' : 'false') + '" data-reu="form-invite" data-uid="' + esc(c.id) + '">' + avatar(k) + '<span class="contact-texte"><span class="contact-nom">' + esc(k.nom) + '</span><span class="contact-role">' + esc(c.role) + '</span></span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>' : ''; }).join('')
+      : '<p class="vide">' + (CONTACTS.length || (reu.colleagues || []).length ? 'Aucune personne ne correspond.' : 'Tu n\'as pas encore de contact à inviter.') + '</p>';
+  }
+  function basculerRappelForm(min) {
+    const F = reu.form, i = F.rappels.indexOf(min);
+    if (i >= 0) F.rappels.splice(i, 1); else F.rappels.push(min);
+    $('rf-rappels').innerHTML = htmlRappelsForm(F);
+    const b = $('rf-rappels').querySelector('[data-min="' + min + '"]'); if (b) b.focus({ preventScroll: true });
+  }
+  function basculerInviteForm(uid) {
+    const F = reu.form, i = F.choisis.indexOf(uid);
+    if (i >= 0) F.choisis.splice(i, 1); else F.choisis.push(uid);
+    const b = Array.from($('rf-invites').querySelectorAll('[data-uid]')).find(x => x.dataset.uid === uid);
+    if (b) b.setAttribute('aria-checked', i >= 0 ? 'false' : 'true');
+    $('rf-invites-n').textContent = String(F.choisis.length);
+  }
+  function synchroFormRepetition() {
+    const rep = $('rf-rep').value, type = $('rf-fin-type').value;
+    $('rf-fin-rep').hidden = rep === 'aucune';
+    $('rf-jusqua-c').hidden = rep === 'aucune' || type !== 'date';
+    $('rf-n-c').hidden = rep === 'aucune' || type !== 'nombre';
+    /* « tous les mois » un 29, un 30 ou un 31 : les mois qui n'ont pas ce jour sont SAUTÉS (le service ne décale pas la réunion au 28) — on le dit AVANT, pas après */
+    const jour = Number(($('rf-debut').value || '').slice(8, 10)) || 0, saute = rep === 'mensuelle' && jour >= 29;
+    $('rf-rep-note').hidden = !saute;
+    $('rf-rep-note').textContent = saute ? 'Les mois qui n\'ont pas de ' + jour + ' sont sautés : il n\'y a pas de réunion ce mois-là.' : '';
+  }
+  /* le formulaire d'une réunion neuve (id nul) ou d'une réunion de l'hôte (modifier) */
+  async function rendreFormReunion(id) {
+    const corps = $('info-corps');
+    if (!id) reu.colleagues = null;                     // un espace créé ou rejoint depuis le dernier formulaire : ses membres sont relus à chaque ouverture
+    let d = null;
+    if (id) {
+      try { d = await source.reunion(id); } catch (e) { corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">' + esc(phrase(e, 'La réunion n\'a pas pu être chargée.')) + '</p>'; return; }
+      if (!etat.groupe.ouvert || etat.groupe.mode !== 'reunion-edit' || etat.groupe.reunionId !== id) return;
+      if (!d.moi.hote) { mot('Seul l\'organisateur modifie la réunion.'); fermerCouche(); return; }
+    }
+    const tz = d ? d.tz : (fuseauAppareil() || 'Europe/Paris');
+    const maintenant = Date.now(), debut0 = d ? d.debut : Math.ceil((maintenant + 60000) / 3600000) * 3600000;
+    const fin0 = d ? d.fin : debut0 + 3600000;
+    const initial = { titre: d ? d.titre : '', lieu: d ? d.lieu : '', debut: localDans(debut0, tz), fin: localDans(fin0, tz), tz, repetition: d ? d.repetition : 'aucune', n: d ? d.n : null, jusqua: d ? d.jusqua : null, rappels: d ? d.rappels.slice() : [15] };
+    reu.form = { id: id || null, choisis: [], rappels: initial.rappels.slice(), notifier: true, recherche: '', initial, debutPrec: initial.debut };
+    const typeFin = initial.n ? 'nombre' : initial.jusqua ? 'date' : 'jamais';
+    corps.dataset.sig = '';
+    corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+      '<div class="champ"><label for="rf-titre">Titre</label><input id="rf-titre" type="text" maxlength="120" autocomplete="off" enterkeyhint="next" value="' + esc(initial.titre) + '" placeholder="Point d\'équipe"></div>' +
+      '<div class="champ"><label for="rf-lieu">Lieu ou lien</label><input id="rf-lieu" type="text" maxlength="300" autocomplete="off" enterkeyhint="next" value="' + esc(initial.lieu) + '" placeholder="Salle, adresse ou lien"></div>' +
+      '<div class="champ"><label for="rf-debut">' + (d && d.repetition !== 'aucune' ? 'Début de la première réunion' : 'Début') + '</label><input id="rf-debut" type="datetime-local" step="60" value="' + esc(initial.debut) + '"></div>' +
+      '<div class="champ"><label for="rf-fin">Fin</label><input id="rf-fin" type="datetime-local" step="60" value="' + esc(initial.fin) + '"></div>' +
+      '<div class="champ"><label for="rf-tz">Fuseau horaire</label><select id="rf-tz">' + optionsDe(listeFuseaux(tz).map(x => [x, x]), tz) + '</select><p class="info-note">Les heures ci-dessus sont celles de ce fuseau.</p></div>' +
+      '<div class="champ"><label for="rf-rep">Répétition</label><select id="rf-rep">' + optionsDe(REPETITIONS, initial.repetition) + '</select><p class="info-note" id="rf-rep-note" hidden></p></div>' +
+      '<div id="rf-fin-rep"><div class="champ"><label for="rf-fin-type">Fin de la répétition</label><select id="rf-fin-type">' + optionsDe([['jamais', 'Jamais'], ['date', 'À une date'], ['nombre', 'Après un nombre de fois']], typeFin) + '</select></div>' +
+        '<div class="champ" id="rf-jusqua-c"><label for="rf-jusqua">Dernier jour</label><input id="rf-jusqua" type="date" value="' + esc(initial.jusqua || '') + '"></div>' +
+        '<div class="champ" id="rf-n-c"><label for="rf-n">Nombre de réunions</label><input id="rf-n" type="number" min="2" max="1000" inputmode="numeric" value="' + esc(initial.n || 10) + '"></div></div>' +
+      '<div class="rubrique"><span>Rappel</span></div><div class="carte" id="rf-rappels" role="group" aria-label="Rappels de la réunion">' + htmlRappelsForm(reu.form) + '</div>' +
+      (id ? '' : '<div class="rubrique"><span>Invités</span><span id="rf-invites-n" aria-live="polite">0</span></div>' +
+        '<label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher une personne à inviter</span><input type="search" id="rf-recherche" placeholder="Rechercher" autocomplete="off" enterkeyhint="search"></label>' +
+        '<div class="carte" id="rf-invites" role="group" aria-label="Personnes à inviter">' + htmlInvitesForm(reu.form) + '</div>') +
+      '<div class="carte"><button type="button" class="reglage presse" role="switch" aria-checked="true" data-reu="form-notifier"><span class="reglage-texte">Notifier les invités<small>' + (id ? 'Ils sont prévenus de ce qui change' : 'Chaque invité reçoit une notification') + '</small></span><span class="interrupteur" aria-hidden="true"></span></button></div>' +
+      '<div class="info-actions"><button type="button" class="mini" data-reu="form-enregistrer">' + (id ? 'Enregistrer' : 'Programmer') + '</button></div>';
+    synchroFormRepetition();
+    $('rf-rep').addEventListener('change', synchroFormRepetition);
+    $('rf-fin-type').addEventListener('change', synchroFormRepetition);
+    /* une fin avant le début n'a pas de sens : changer le début déplace la fin d'autant (la durée est gardée) */
+    $('rf-debut').addEventListener('change', () => {
+      const a = reu.form.debutPrec, b = $('rf-debut').value, f = $('rf-fin').value;
+      if (b && f && f <= b) { const dureeMs = Date.parse(f + ':00Z') - Date.parse(a + ':00Z'); $('rf-fin').value = new Date(Date.parse(b + ':00Z') + (dureeMs > 0 ? dureeMs : 3600000)).toISOString().slice(0, 16); }
+      if (b) reu.form.debutPrec = b;
+      synchroFormRepetition();
+    });
+    if (!id) {
+      $('rf-recherche').addEventListener('input', () => { reu.form.recherche = $('rf-recherche').value; $('rf-invites').innerHTML = htmlInvitesForm(reu.form); });
+      chargerCollegues().then(() => { if (etat.groupe.ouvert && etat.groupe.mode === 'reunion-new' && $('rf-invites')) $('rf-invites').innerHTML = htmlInvitesForm(reu.form); });
+    }
+  }
+  /* ce que le formulaire dit, prêt pour le service ; un refus local dit pourquoi et rend `null` */
+  function lireFormReunion() {
+    const F = reu.form, titre = $('rf-titre').value.trim(), lieu = $('rf-lieu').value.trim(), debut = $('rf-debut').value, fin = $('rf-fin').value, tz = $('rf-tz').value, rep = $('rf-rep').value;
+    if (!titre) { erreurInfo('Donne un titre à la réunion.'); $('rf-titre').focus(); return null; }
+    if (!debut || !fin) { erreurInfo('Choisis le début et la fin de la réunion.'); (debut ? $('rf-fin') : $('rf-debut')).focus(); return null; }
+    if (fin <= debut) { erreurInfo('La fin de la réunion doit tomber après son début.'); $('rf-fin').focus(); return null; }
+    const c = { titre, lieu, debut, fin, tz, repetition: rep, rappels: F.rappels.slice().sort((a, b) => a - b), notifier: F.notifier };
+    if (rep !== 'aucune') {
+      const type = $('rf-fin-type').value;
+      c.jusqua = null; c.n = null;
+      if (type === 'date') {
+        const j = $('rf-jusqua').value;
+        if (!j) { erreurInfo('Choisis le dernier jour de la répétition.'); $('rf-jusqua').focus(); return null; }
+        if (j < debut.slice(0, 10)) { erreurInfo('Le dernier jour doit tomber après le début de la réunion.'); $('rf-jusqua').focus(); return null; }
+        c.jusqua = j;
+      } else if (type === 'nombre') {
+        const n = Number($('rf-n').value);
+        if (!Number.isInteger(n) || n < 2 || n > 1000) { erreurInfo('Le nombre de réunions est un entier entre 2 et 1 000.'); $('rf-n').focus(); return null; }
+        c.n = n;
+      }
+    }
+    return c;
+  }
+  async function enregistrerReunion(b) {
+    const F = reu.form, c = lireFormReunion(); if (!c) return;
+    if (b.getAttribute('aria-disabled') === 'true') return;
+    b.setAttribute('aria-disabled', 'true');
+    try {
+      if (!F.id) {
+        const r = await source.programmer(Object.assign({}, c, { invites: F.choisis.slice() }));
+        mot(r.nonInvites ? 'Réunion programmée — ' + r.nonInvites + (r.nonInvites > 1 ? ' personnes n\'ont' : ' personne n\'a') + ' pas pu être invitée' + (r.nonInvites > 1 ? 's' : '') : 'Réunion programmée');
+        const t = dateDeChaine(c.debut); if (t !== null) { reu.occurrences[r.id] = null; allerAuJour(t); }
+        remplacer(Object.assign({}, etat.route, { feuille: 'reunion:' + r.id }));
+      } else {
+        const I = F.initial, ch = {};
+        const horaire = c.debut !== I.debut || c.fin !== I.fin || c.tz !== I.tz || c.repetition !== I.repetition || (c.repetition !== 'aucune' && ((c.jusqua || null) !== (I.jusqua || null) || (c.n || null) !== (I.n || null)));
+        if (c.titre !== I.titre) ch.titre = c.titre;
+        if (c.lieu !== I.lieu) ch.lieu = c.lieu;
+        if (horaire) Object.assign(ch, { debut: c.debut, fin: c.fin, tz: c.tz, repetition: c.repetition, jusqua: c.repetition === 'aucune' ? null : c.jusqua, n: c.repetition === 'aucune' ? null : c.n });
+        if (JSON.stringify(c.rappels) !== JSON.stringify(I.rappels.slice().sort((x, y) => x - y))) ch.rappels = c.rappels;
+        if (!Object.keys(ch).length) { mot('Rien n\'a changé'); versFiche(F.id); return; }
+        ch.notifier = F.notifier;
+        await source.modifierReunion(F.id, ch);
+        mot(horaire ? 'Réunion modifiée — les réponses repartent à zéro' : 'Réunion modifiée');
+        const t = dateDeChaine(c.debut); if (t !== null && horaire) allerAuJour(t);
+        versFiche(F.id);
+      }
+    } catch (er) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(er, 'La réunion n\'a pas pu être enregistrée.')); }
+  }
+
   /* ═══ 11. LE DÉMARRAGE ═══════════════════════════════════════════════════════════════════════════════════════════════════════ */
   async function demarrer() {
     const retourAbo = lireRetourAbo();                                       // lu AVANT que `lireMotif` ne nettoie l'adresse
@@ -3459,7 +4046,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
     construireNavigation();
     construireContacts();
     if (!CAP.appels) rendreCoquille('appels');
-    rendreCoquille('reunions');
+    if (CAP.reunions) construireReunions(); else rendreCoquille('reunions');
     if (CAP.reglages) rendreReglages(); else rendreCoquille('reglages');
     $('g-photo').hidden = !CAP.photos;
     try { etat.conversations = await source.lister(); } catch (e) { etat.conversations = []; montrerErreurListe(e); }
@@ -3479,13 +4066,14 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
       if (ev.type === 'appel' && ev.id === etat.appelId) rafraichirAppel();
       if (ev.type === 'contacts') surContacts();
       if (ev.type === 'espaces') surEspaces(ev);
+      if (ev.type === 'reunions') surReunions(ev);
       if (ev.type === 'moi') { MOI = source.moi() || MOI; peindreMoi(); peindreProfilReglage(); }          // mon nom, mon statut ou ma photo a changé (ici, ou sur un autre appareil)
       if (ev.type === 'reseau') { fluxPerdu = ev.etat !== 'ok'; $('hors-ligne').hidden = ev.etat === 'ok'; }
       if (ev.type === 'arrivee') surArrivee(ev);
       if (ev.type === 'notification') notifier(ev.titre || 'OP MESSAGES', ev.texte || '');
       if (ev.type === 'retire') surRetire(ev.id);
       if (ev.type === 'avis') avis(ev.texte);
-      if (ev.type === 'ouvrir') ouvrirConvId(ev.conv);                                                // une notification touchée : la source n'a laissé passer qu'une conversation
+      if (ev.type === 'ouvrir') { if (ev.reunion) ouvrirReunionId(ev.reunion); else ouvrirConvId(ev.conv); }                                                // une notification touchée : la source n'a laissé passer qu'une conversation
     });
     if (codeLien) { etat.codeLien = codeLien; declencheur = null; ouvrirFeuille('contact'); }
     else if (codeInvitation) { etat.codeInvitation = codeInvitation; declencheur = null; ouvrirFeuille('entreprise'); }

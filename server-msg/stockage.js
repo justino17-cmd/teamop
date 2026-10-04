@@ -328,6 +328,66 @@ const MIGRATIONS = [
     `CREATE UNIQUE INDEX IF NOT EXISTS abonnement_stripe ON abonnement(abonnement) WHERE abonnement IS NOT NULL`,
     `PRAGMA user_version = 6`,
   ] },
+  /* ── 7 : LES RÉUNIONS PROGRAMMÉES (3 octobre 2026) ───────────────────────────────────────────────────────────────────────────────────────────────
+     Cinq tables neuves, AUCUNE table existante modifiée (la migration reste REJOUABLE : `IF NOT EXISTS` partout, pas d'`ALTER`) :
+       · `reunion` : une réunion = UNE ligne, série comprise (la première occurrence, la répétition, sa fin). Le titre et le lieu sont SCELLÉS (une entreprise nomme ses clients et ses chantiers).
+         `conv` est sa conversation (genre `reunion` : la MÊME mécanique que les groupes — flux, accusés, pièces, purge —, pas une seconde messagerie) ; `ON DELETE CASCADE` : la réunion part
+         avec sa conversation. `hote` n'est pas une cascade : un hôte dont le compte s'efface passe la main (`reunionsQuitterTout`) ou emporte la réunion. `fin_serie` est le moment où plus AUCUNE occurrence ne court (NULL : une série « Jamais ») — posée à la création et à chaque changement d'horaire par `calendrier.finDeSerie` : l'agenda
+         d'une personne écarte EN SQL les séries terminées, sans quoi six cents séries d'il y a vingt-six ans en occuperaient toutes les places ; `horaire_le` date la dernière
+         modification de l'HORAIRE (un rappel dont l'échéance précède ce moment n'a jamais été dû pour cet horaire). `prochain` est le début de la prochaine occurrence non commencée — l'index
+         du planificateur : il ne regarde que les réunions qui commencent dans la journée qui vient, jamais toutes les séries à chaque passage ;
+       · `reunion_invite` : qui est invité, et sa réponse (en attente, accepte, décline, peut-être). L'HÔTE y a sa ligne (toujours « accepte ») : ses rappels et la liste « mes réunions » se
+         lisent comme ceux d'un invité. `rappels` (JSON) est le choix de la personne ; NULL = le réglage de la réunion ;
+       · `rappel` : le REGISTRE des rappels déjà envoyés (réunion, début de l'occurrence, personne, minutes avant) — la clé primaire est ce qui fait qu'un rappel ne part qu'UNE fois ;
+       · `planif_bail` : le BAIL du planificateur (une ligne) : une seule instance envoie les rappels, même après un arrêt brutal (le bail expire) ;
+       · `courrier_envoi` : une ligne par courriel d'invitation envoyé (qui l'a envoyé, l'EMPREINTE du destinataire — jamais son adresse —, quand) : les plafonds « dix par jour par compte, deux
+         par semaine par destinataire » sont DURABLES, un redémarrage ne les remet pas à zéro. */
+  { v: 7, sql: [
+    `CREATE TABLE IF NOT EXISTS reunion(
+       id TEXT PRIMARY KEY,
+       conv TEXT NOT NULL UNIQUE REFERENCES conversation(id) ON DELETE CASCADE,
+       hote TEXT NOT NULL REFERENCES personne(id),
+       titre_ch BLOB NOT NULL, lieu_ch BLOB,
+       debut INTEGER NOT NULL, fin INTEGER NOT NULL,
+       tz TEXT NOT NULL,
+       rep TEXT NOT NULL DEFAULT 'aucune' CHECK(rep IN ('aucune','quotidienne','hebdomadaire','mensuelle')),
+       n INTEGER, jusqua TEXT,
+       fin_serie INTEGER,
+       rappels TEXT NOT NULL DEFAULT '[]',
+       annulee INTEGER NOT NULL DEFAULT 0,
+       version INTEGER NOT NULL DEFAULT 0,
+       horaire_le INTEGER NOT NULL,
+       prochain INTEGER,
+       cree INTEGER NOT NULL, maj INTEGER NOT NULL)`,
+    `CREATE INDEX IF NOT EXISTS reunion_hote ON reunion(hote)`,
+    `CREATE INDEX IF NOT EXISTS reunion_prochain ON reunion(prochain) WHERE prochain IS NOT NULL AND annulee = 0`,
+    `CREATE TABLE IF NOT EXISTS reunion_invite(
+       reunion TEXT NOT NULL REFERENCES reunion(id) ON DELETE CASCADE,
+       uid TEXT NOT NULL REFERENCES personne(id) ON DELETE CASCADE,
+       statut TEXT NOT NULL DEFAULT 'attente' CHECK(statut IN ('attente','accepte','decline','peutetre')),
+       rappels TEXT, rappels_le INTEGER,
+       invite_par TEXT,
+       cree INTEGER NOT NULL, repondu INTEGER,
+       PRIMARY KEY(reunion, uid))`,
+    `CREATE INDEX IF NOT EXISTS reunion_invite_uid ON reunion_invite(uid)`,
+    `CREATE TABLE IF NOT EXISTS rappel(
+       reunion TEXT NOT NULL REFERENCES reunion(id) ON DELETE CASCADE,
+       occurrence INTEGER NOT NULL,
+       uid TEXT NOT NULL,
+       avant INTEGER NOT NULL,
+       ts INTEGER NOT NULL,
+       PRIMARY KEY(reunion, occurrence, uid, avant))`,
+    `CREATE INDEX IF NOT EXISTS rappel_occurrence ON rappel(occurrence)`,
+    `CREATE TABLE IF NOT EXISTS planif_bail(
+       id INTEGER PRIMARY KEY CHECK(id = 1),
+       proprietaire TEXT NOT NULL, pris INTEGER NOT NULL, expire INTEGER NOT NULL)`,
+    `CREATE TABLE IF NOT EXISTS courrier_envoi(
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       uid TEXT NOT NULL, dest_h TEXT NOT NULL, ts INTEGER NOT NULL)`,
+    `CREATE INDEX IF NOT EXISTS courrier_envoi_uid ON courrier_envoi(uid, ts)`,
+    `CREATE INDEX IF NOT EXISTS courrier_envoi_dest ON courrier_envoi(dest_h, ts)`,
+    `PRAGMA user_version = 7`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -722,6 +782,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const rang = convRang(c);
     /* un CANAL dit à quel espace il appartient et s'il est privé — rien de plus (les autres conversations n'ont ces deux champs nulle part) */
     if (c.type === 'canal') { const k = canalDe(conv); if (k) { rang.espace = k.espace; rang.prive = k.prive; } }
+    /* une conversation de RÉUNION dit laquelle (pour ouvrir sa fiche) ; les autres conversations n'ont pas ce champ */
+    if (c.type === 'reunion') { const k = Q('SELECT id FROM reunion WHERE conv = ?').get(conv); if (k) rang.reunion = k.id; }
     return { conv: rang, moi: { role: m.role, depuis_seq: m.depuis_seq, lu_seq: m.lu_seq, muet_jusqua: m.muet_jusqua, epingle: !!m.epingle, archive: !!m.archive } };
   }
   function canalDe(conv) {
@@ -985,8 +1047,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
                   AND x.type <> 'systeme' AND x.supprime_le IS NULL AND (x.expire_ts IS NULL OR x.expire_ts > ?)
                   AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = m.uid)) AS non_lus,
              (SELECT COUNT(*) FROM membre y WHERE y.conv = c.id AND y.quitte_le IS NULL) AS membres_n,
-             k.espace AS canal_espace, k.prive AS canal_prive
-      FROM membre m JOIN conversation c ON c.id = m.conv LEFT JOIN canal k ON k.conv = c.id
+             k.espace AS canal_espace, k.prive AS canal_prive, u.id AS reunion_id
+      FROM membre m JOIN conversation c ON c.id = m.conv LEFT JOIN canal k ON k.conv = c.id LEFT JOIN reunion u ON u.conv = c.id
       WHERE m.uid = ? AND m.quitte_le IS NULL AND (c.type <> 'direct' OR c.dernier_seq > 0 OR c.cree_par = m.uid)
       ORDER BY m.epingle DESC, c.dernier_ts DESC, c.id`).all(horloge(), uid);
     return lignes.map(l => {
@@ -996,6 +1058,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         membres_n: num(l.membres_n), epingle: !!l.epingle, archive: !!l.archive, muet_jusqua: l.muet_jusqua, apercu: null, autre: null,
       };
       if (l.type === 'canal' && l.canal_espace) { o.espace = l.canal_espace; o.prive = !!l.canal_prive; }   // un canal dit son espace et s'il est privé ; les autres conversations n'ont pas ces champs
+      if (l.type === 'reunion' && l.reunion_id) o.reunion = l.reunion_id;                                   // une conversation de réunion dit laquelle (pour ouvrir sa fiche)
       /* ⛔ Un éphémère ÉCHU n'est plus un aperçu, même si le balayeur n'est pas encore passé (il passe toutes les 60 s). */
       const p = Q(`SELECT seq, auteur, type, corps_ch, meta_ch, supprime_le FROM message x
                    WHERE x.conv = ? AND x.seq >= ? AND (x.expire_ts IS NULL OR x.expire_ts > ?)
@@ -1253,8 +1316,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
 
   /* ══ NOTIFICATIONS DANS L'APPLICATION ════════════════════════════════════════════════════ */
   /* `auteur` : la personne que le texte NOMME (celle qui a ajouté, mentionné) — l'effacement de son compte réécrit alors la notification (`notifsAnonymiser`). */
-  function notifCreer({ uid, type, titre, texte, cible, auteur }) {
+  /* `remplacer` : la nouvelle notification prend la place de celle du même type et de la même cible que la personne n'a PAS encore lue — une réunion modifiée deux cents fois laisse UNE notification
+     (la dernière), pas deux cents (relecture du gardien, important n° 4). Une notification déjà lue reste : c'est de l'historique. */
+  function notifCreer({ uid, type, titre, texte, cible, auteur, remplacer }) {
     return tx(() => {
+      if (remplacer === true && cible) Q('DELETE FROM notification WHERE uid = ? AND type = ? AND cible = ? AND lue = 0').run(uid, type, cible);
       const id = nouvelId('n'), t = horloge();
       Q('INSERT INTO notification(id, uid, type, titre_ch, texte_ch, cible, ts, auteur) VALUES(?, ?, ?, ?, ?, ?, ?, ?)')
         .run(id, uid, type, sceller('notification', 'titre_ch', id + '|titre', titre || ''), sceller('notification', 'texte_ch', id + '|texte', texte || ''), cible || null, t, auteur || null);
@@ -1376,6 +1442,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       case 'notif': {
         const r = Q('SELECT id, type, titre_ch, texte_ch, cible, ts, lue FROM notification WHERE id = ? AND uid = ?').get(j.ref, uid);
         return r ? { gid, event: 'notification', data: notifRang(r) } : null;
+      }
+      /* ⛔ UNE RÉUNION CHANGE : l'événement dit seulement « relis-la » (son identifiant, sa version), jamais la liste des invités — elle pèse, et chacun la relit avec SES droits. Une réunion qu'on ne
+         voit plus (supprimée, ou on en a été retiré) se dit `supprime` : la page la retire de l'agenda. */
+      case 'reunion': {
+        const r = Q('SELECT u.id AS id, u.conv AS conv, u.version AS version FROM reunion u JOIN reunion_invite i ON i.reunion = u.id AND i.uid = ? WHERE u.id = ?').get(uid, j.ref);
+        return { gid, event: 'reunion', data: r ? { id: r.id, conv: r.conv, version: num(r.version) } : { id: j.ref, supprime: true } };
       }
       default: return null;
     }
@@ -1716,7 +1788,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function notifsAnonymiser(uid, nom) {
     let n = 0;
     for (const r of Q('SELECT id, type, titre_ch FROM notification WHERE auteur = ?').all(uid)) {
-      const texte = r.type === 'contact_ajoute' ? 'Un compte supprimé était dans vos contacts.' : r.type === 'mention' ? 'Un compte supprimé vous a mentionné.' : r.type === 'espace' ? 'Un compte supprimé a rejoint l\'espace.' : 'Un compte supprimé vous a ajouté au groupe.';
+      const texte = r.type === 'contact_ajoute' ? 'Un compte supprimé était dans vos contacts.' : r.type === 'mention' ? 'Un compte supprimé vous a mentionné.' : r.type === 'espace' ? 'Un compte supprimé a rejoint l\'espace.'
+        : r.type === 'reunion_invitation' ? 'Un compte supprimé vous a invité à une réunion.' : r.type === 'reunion_modifiee' ? 'Un compte supprimé a modifié une réunion.' : r.type === 'reunion_annulee' ? 'Un compte supprimé a annulé une réunion.'
+        : 'Un compte supprimé vous a ajouté au groupe.';
       let titre = ouvrirOuNull('notification', 'titre_ch', r.id + '|titre', r.titre_ch);
       if (titre === null) titre = '';
       else if (r.type === 'mention' && nom && titre === nom) titre = 'Un compte supprimé';
@@ -1743,6 +1817,10 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
          ci-dessous la ferait quitter un canal comme un groupe (le plus ancien membre y serait promu administrateur, ce qu'un canal n'admet pas : son rôle est celui de l'espace). */
       const sortis = espaceQuitterTout(uid, { rejeu });
       pieces.push(...sortis.pieces); convs.push(...sortis.convs);
+      /* ⛔ PUIS SES RÉUNIONS : hôte, la réunion passe au plus ancien invité qui n'a pas décliné (ou part avec sa conversation faute de successeur) ; invité, sa ligne part. Avant la boucle ci-dessous : une
+         conversation de réunion ne se « quitte » pas comme un groupe (personne n'y est promu administrateur de force). */
+      const reunions = reunionsQuitterTout(uid, { rejeu });
+      pieces.push(...reunions.pieces); convs.push(...reunions.convs);
       /* chaque conversation : un groupe se quitte comme on le quitte (le dernier administrateur passe la main, le dernier membre emporte le groupe), une directe reste à l'autre — qui y garde
          son historique mais ne peut plus y écrire. Les messages, eux, restent. */
       for (const m of Q('SELECT m.conv AS conv, c.type AS type FROM membre m JOIN conversation c ON c.id = m.conv WHERE m.uid = ? AND m.quitte_le IS NULL').all(uid)) {
@@ -1791,6 +1869,369 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function exportConversationsIds(uid) { return Q('SELECT conv FROM membre WHERE uid = ? AND quitte_le IS NULL ORDER BY conv').all(uid).map(r => r.conv); }
   function exportPieces(uid) {
     return Q('SELECT id, genre, taille, cree FROM piece WHERE proprio = ? ORDER BY cree, id LIMIT 20001').all(uid).map(r => ({ id: r.id, genre: r.genre, taille: num(r.taille), cree: num(r.cree) }));   // une de plus que ce que l'export garde : c'est ce qui dit qu'il y en a plus
+  }
+
+  /* ══ RÉUNIONS PROGRAMMÉES (migration 7) ═══════════════════════════════════════════════════════════════════════════════════════
+     Ce bloc range et lit : il ne décide JAMAIS d'une formule (c'est `formule.js`, par la garde PRO du manifeste), ne calcule JAMAIS une heure (c'est `calendrier.js`, appelé par les routes et le
+     planificateur) et n'envoie rien (courriel, push : ce sont les routes et le planificateur). Ce qu'il tient, ce sont les INVARIANTS :
+       · ⛔ UNE RÉUNION A UNE CONVERSATION (genre `reunion`) : mêmes messages, mêmes accusés, mêmes pièces, même flux, même purge. Ses participants SONT les membres de cette conversation ; la
+         ligne `reunion_invite` porte en plus leur réponse et leurs rappels. L'hôte est administrateur de la conversation et a sa ligne (toujours « accepte ») ;
+       · l'invité ne quitte pas la conversation d'une réunion (« Décliner » est son geste) ; l'hôte la supprime, ou l'annule ;
+       · un événement `reunion` du journal est UNE ligne portée par la conversation (comme `conv_maj`) : il ne dit que « relis cette réunion » — jamais la liste des invités, qui pèse ;
+       · supprimer une réunion supprime sa conversation : le registre des purges note la CONVERSATION (une restauration d'une archive plus ancienne ne la ramène pas) ; annuler se note aussi
+         (`reunion_annulee`), parce qu'une archive d'avant rendrait une réunion annulée aux gens qui s'y rendraient ; retirer un invité se note (`reunion_invite`) ;
+       · quand l'HORAIRE change, la réponse des invités redevient « en attente » : celui qui avait décliné l'ancienne heure ne doit pas manquer la nouvelle, faute de rappel. */
+  const REUNIONS_HOTE_MAX = 300;      // réunions non finies qu'une personne tient comme hôte
+  const INVITES_MAX = 100;            // invités d'une réunion, l'hôte non compris (SERVEUR.md § 3.3)
+  const aadReunion = (id, champ) => id + '|' + champ;
+  const listeEntiers = (texte) => { try { const a = JSON.parse(texte); return Array.isArray(a) ? a.filter(Number.isInteger) : []; } catch (e) { return []; } };
+  function reunionBrute(id) {
+    return Q('SELECT id, conv, hote, titre_ch, lieu_ch, debut, fin, tz, rep, n, jusqua, fin_serie, rappels, annulee, version, horaire_le, prochain, cree, maj FROM reunion WHERE id = ?').get(id) || null;
+  }
+  const reunionTitre = (r) => ouvrirOuNull('reunion', 'titre_ch', aadReunion(r.id, 'titre'), r.titre_ch);
+  const reunionLieu = (r) => r.lieu_ch ? ouvrirOuNull('reunion', 'lieu_ch', aadReunion(r.id, 'lieu'), r.lieu_ch) : '';
+  const reunionRang = (r) => {
+    const titre = reunionTitre(r), lieu = reunionLieu(r);
+    const o = {
+      id: r.id, conv: r.conv, titre: titre === null ? '' : titre, lieu: lieu === null ? '' : lieu, debut: num(r.debut), fin: num(r.fin), tz: r.tz, repetition: r.rep,
+      n: r.n === null || r.n === undefined ? null : num(r.n), jusqua: r.jusqua || null, annulee: !!r.annulee, version: num(r.version), rappels: listeEntiers(r.rappels), cree: num(r.cree), maj: num(r.maj),
+    };
+    if (titre === null || lieu === null) o.illisible = true;
+    return o;
+  };
+  const personneCourte = (viewer, id) => { const p = personneParId(id); return p ? { id: p.id, prenom: p.prenom, nom: p.nom, avatar: avatarPour(viewer, p.id, p.avatar) } : null; };
+
+  /* La réunion « pour un participant » : `null` pour inexistante COMME pour « tu n'es pas invité » (404 dans les deux cas, jamais 403). */
+  function reunionPourMembre(id, uid) {
+    const moi = Q('SELECT statut, rappels FROM reunion_invite WHERE reunion = ? AND uid = ?').get(id, uid);
+    if (!moi) return null;
+    const r = reunionBrute(id); if (!r) return null;
+    const rang = reunionRang(r);
+    const invites = Q(`SELECT p.id, p.prenom, p.nom, p.avatar_piece, i.statut FROM reunion_invite i JOIN personne p ON p.id = i.uid
+                       WHERE i.reunion = ? ORDER BY (i.uid = ?) DESC, i.cree, p.prenom, p.nom, p.id`).all(id, r.hote)
+      .map(x => ({ id: x.id, prenom: x.prenom, nom: x.nom, avatar: avatarPour(uid, x.id, x.avatar_piece), statut: x.statut, hote: x.id === r.hote }));
+    rang.hote = personneCourte(uid, r.hote);
+    const perso = moi.rappels !== null && moi.rappels !== undefined;
+    return { reunion: rang, invites, moi: { hote: uid === r.hote, statut: moi.statut, rappels: perso ? listeEntiers(moi.rappels) : rang.rappels, rappels_perso: perso } };
+  }
+  /* Les réunions d'une personne qui PEUVENT toucher la fenêtre [du, au) — une présélection : une série commencée avant la fenêtre est gardée, ses occurrences se calculent à l'appelant
+     (`calendrier.js`). Une version courte de chaque (pas la liste des invités) : l'agenda en montre beaucoup. */
+  function reunionsDe(uid, du, au) {
+    /* ⛔ L'AGENDA D'UN INVITÉ NE SE LAISSE PAS MASQUER. Les 600 places se donnaient dans l'ordre du DÉBUT de la série : six cents séries d'il y a vingt-six ans, terminées, prenaient toutes les places et
+       l'invitation d'aujourd'hui n'apparaissait nulle part — sans autre moyen d'en sortir. Deux règles : une série TERMINÉE avant la fenêtre est écartée ici, par `fin_serie` (NULL : une série « Jamais »,
+       toujours gardée) ; et l'ordre garde ce qui vient d'abord (`prochain`, la prochaine occurrence non commencée), ce qui n'a plus de prochaine occurrence passe après. */
+    return Q(`SELECT r.id, r.conv, r.hote, r.titre_ch, r.lieu_ch, r.debut, r.fin, r.tz, r.rep, r.n, r.jusqua, r.rappels, r.annulee, r.version, r.cree, r.maj, i.statut AS mon_statut, i.rappels AS mes_rappels,
+                     (SELECT COUNT(*) FROM reunion_invite x WHERE x.reunion = r.id) AS participants_n
+              FROM reunion_invite i JOIN reunion r ON r.id = i.reunion
+              WHERE i.uid = ? AND r.debut < ? AND (r.rep <> 'aucune' OR r.fin > ?) AND (r.fin_serie IS NULL OR r.fin_serie > ?)
+              ORDER BY (r.prochain IS NULL), r.prochain, r.debut, r.id LIMIT 600`).all(uid, au, du, du).map(r => {
+      const rang = reunionRang(r);
+      rang.hote = personneCourte(uid, r.hote);
+      rang.participants_n = num(r.participants_n);
+      rang.participants = Q(`SELECT p.id, p.prenom, p.nom, p.avatar_piece FROM reunion_invite x JOIN personne p ON p.id = x.uid WHERE x.reunion = ? ORDER BY (x.uid = ?) DESC, x.cree, p.id LIMIT 4`).all(r.id, r.hote)
+        .map(x => ({ id: x.id, prenom: x.prenom, nom: x.nom, avatar: avatarPour(uid, x.id, x.avatar_piece) }));
+      const perso = r.mes_rappels !== null && r.mes_rappels !== undefined;
+      rang.moi = { hote: uid === r.hote, statut: r.mon_statut, rappels: perso ? listeEntiers(r.mes_rappels) : rang.rappels, rappels_perso: perso };
+      return rang;
+    });
+  }
+  const reunionParticipants = (id) => Q('SELECT uid FROM reunion_invite WHERE reunion = ? ORDER BY cree, uid').all(id).map(r => r.uid);
+  /* Le LAISSEZ-PASSER léger des gardes R et H (`app.js`) : { id, conv, hote (cette personne l'est-elle ?), annulee, statut } — `null` pour inexistante COMME pour « tu n'es pas invité ». Pas la liste
+     des invités : chaque route lit ce dont elle a besoin. */
+  function reunionAcces(id, uid) {
+    const r = Q('SELECT u.id AS id, u.conv AS conv, u.hote AS hote, u.annulee AS annulee, i.statut AS statut FROM reunion u JOIN reunion_invite i ON i.reunion = u.id AND i.uid = ? WHERE u.id = ?').get(uid, id);
+    return r ? { id: r.id, conv: r.conv, hote: r.hote === uid, annulee: !!r.annulee, statut: r.statut } : null;
+  }
+
+  /* Créer : la conversation, ses membres, la réunion, les lignes d'invitation, le message d'ouverture — TOUT dans une transaction. `prochain` : le début de la première occurrence non commencée
+     (calculé par l'appelant avec `calendrier.js`), ou null. Les invités sont déjà jugés par l'appelant (`peutEcrire`). */
+  function reunionCreer({ hote, titre, lieu, debut, fin, tz, rep, n, jusqua, rappels, invites, prochain, finSerie }) {
+    return tx(() => {
+      if (num(Q('SELECT COUNT(*) AS n FROM reunion WHERE hote = ? AND annulee = 0 AND prochain IS NOT NULL').get(hote).n) >= REUNIONS_HOTE_MAX) throw erreur('trop_de_reunions');
+      const uids = Array.from(new Set(invites)).filter(u => u !== hote);
+      if (uids.length > INVITES_MAX) throw erreur('trop_d_invites');
+      const id = nouvelId('r'), conv = nouvelId('c'), t = horloge();
+      Q(`INSERT INTO conversation(id, type, nom_ch, dernier_ts, cree_par, cree) VALUES(?, 'reunion', ?, ?, ?, ?)`).run(conv, sceller('conversation', 'nom_ch', conv + '|nom', titre), t, hote, t);
+      Q(`INSERT INTO membre(conv, uid, role, depuis_seq, rejoint) VALUES(?, ?, 'admin', 1, ?)`).run(conv, hote, t);
+      for (const u of uids) Q(`INSERT INTO membre(conv, uid, role, depuis_seq, rejoint) VALUES(?, ?, 'membre', 1, ?)`).run(conv, u, t);
+      Q('INSERT INTO reunion(id, conv, hote, titre_ch, lieu_ch, debut, fin, tz, rep, n, jusqua, fin_serie, rappels, annulee, version, horaire_le, prochain, cree, maj) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?)')
+        .run(id, conv, hote, sceller('reunion', 'titre_ch', aadReunion(id, 'titre'), titre), lieu ? sceller('reunion', 'lieu_ch', aadReunion(id, 'lieu'), lieu) : null,
+          debut, fin, tz, rep, n || null, jusqua || null, finSerie === undefined ? null : finSerie, JSON.stringify(rappels), t, prochain === undefined ? null : prochain, t, t);
+      Q(`INSERT INTO reunion_invite(reunion, uid, statut, cree, repondu) VALUES(?, ?, 'accepte', ?, ?)`).run(id, hote, t, t);
+      for (const u of uids) Q(`INSERT INTO reunion_invite(reunion, uid, statut, invite_par, cree) VALUES(?, ?, 'attente', ?, ?)`).run(id, u, hote, t);
+      messageSysteme(conv, hote, { k: 'reunion_creee' });
+      return { id, conv, invites: uids, gid: journalAjouter('reunion', conv, null, id) };
+    });
+  }
+  /* Modifier : seuls les champs PASSÉS changent. Un changement d'HORAIRE (début, fin, fuseau, répétition, fin de répétition) date `horaire_le`, remet la réponse des invités « en attente » et
+     pose le nouveau `prochain` (calculé par l'appelant). → { change, horaire, titre, lieu, gid } */
+  function reunionModifier({ id, par, titre, lieu, debut, fin, tz, rep, n, jusqua, rappels, prochain, finSerie }) {
+    return tx(() => {
+      const r = reunionBrute(id); if (!r) throw erreur('introuvable');
+      if (r.hote !== par) throw erreur('interdit');
+      if (r.annulee) throw erreur('reunion_annulee');
+      const t = horloge();
+      const ancienTitre = reunionTitre(r), ancienLieu = reunionLieu(r);
+      const nouveau = {
+        titre: titre !== undefined ? titre : ancienTitre, lieu: lieu !== undefined ? lieu : ancienLieu,
+        debut: debut !== undefined ? debut : num(r.debut), fin: fin !== undefined ? fin : num(r.fin), tz: tz !== undefined ? tz : r.tz, rep: rep !== undefined ? rep : r.rep,
+        n: n !== undefined ? (n || null) : (r.n === null ? null : num(r.n)), jusqua: jusqua !== undefined ? (jusqua || null) : (r.jusqua || null),
+        rappels: rappels !== undefined ? JSON.stringify(rappels) : r.rappels,
+      };
+      const horaire = nouveau.debut !== num(r.debut) || nouveau.fin !== num(r.fin) || nouveau.tz !== r.tz || nouveau.rep !== r.rep || nouveau.n !== (r.n === null ? null : num(r.n)) || nouveau.jusqua !== (r.jusqua || null);
+      const titreChange = nouveau.titre !== ancienTitre, lieuChange = nouveau.lieu !== ancienLieu;
+      const rappelsChange = nouveau.rappels !== r.rappels;
+      if (!horaire && !titreChange && !lieuChange && !rappelsChange) return { change: false, horaire: false, titre: false, lieu: false, gid: 0 };
+      Q('UPDATE reunion SET titre_ch = ?, lieu_ch = ?, debut = ?, fin = ?, tz = ?, rep = ?, n = ?, jusqua = ?, fin_serie = ?, rappels = ?, version = version + 1, maj = ?, horaire_le = ?, prochain = ? WHERE id = ?')
+        .run(titreChange ? sceller('reunion', 'titre_ch', aadReunion(id, 'titre'), nouveau.titre) : r.titre_ch,
+          lieuChange ? (nouveau.lieu ? sceller('reunion', 'lieu_ch', aadReunion(id, 'lieu'), nouveau.lieu) : null) : r.lieu_ch,
+          nouveau.debut, nouveau.fin, nouveau.tz, nouveau.rep, nouveau.n, nouveau.jusqua, horaire ? (finSerie === undefined ? null : finSerie) : (r.fin_serie === null || r.fin_serie === undefined ? null : num(r.fin_serie)),
+          nouveau.rappels, t, horaire ? t : num(r.horaire_le),
+          horaire ? (prochain === undefined ? null : prochain) : (r.prochain === null ? null : num(r.prochain)), id);
+      if (titreChange) Q('UPDATE conversation SET nom_ch = ? WHERE id = ?').run(sceller('conversation', 'nom_ch', r.conv + '|nom', nouveau.titre), r.conv);
+      if (horaire) Q(`UPDATE reunion_invite SET statut = 'attente', repondu = NULL WHERE reunion = ? AND uid <> ?`).run(id, r.hote);
+      if (horaire || titreChange || lieuChange) messageSysteme(r.conv, par, { k: 'reunion_modifiee', horaire });
+      return { change: true, horaire, titre: titreChange, lieu: lieuChange, gid: journalAjouter('reunion', r.conv, null, id) };
+    });
+  }
+  /* Annuler : la réunion reste (les invités la voient « annulée », son chat aussi), plus aucun rappel ne part. Se note (`reunion_annulee`) : une archive d'avant la rendrait active. */
+  function reunionAnnuler({ id, par }) {
+    return tx(() => {
+      const r = reunionBrute(id); if (!r) throw erreur('introuvable');
+      if (r.hote !== par) throw erreur('interdit');
+      if (r.annulee) return { change: false, gid: 0 };
+      const t = horloge();
+      Q('UPDATE reunion SET annulee = 1, prochain = NULL, version = version + 1, maj = ? WHERE id = ?').run(t, id);
+      Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(id, 'reunion_annulee', t);
+      messageSysteme(r.conv, par, { k: 'reunion_annulee' });
+      return { change: true, gid: journalAjouter('reunion', r.conv, null, id) };
+    });
+  }
+  /* Supprimer : la réunion part avec sa conversation, ses messages et ses pièces. Chaque participant reçoit un événement ADRESSÉ (l'événement de conversation ne lui arriverait plus : la
+     conversation n'existe plus). → { pieces, participants, conv } */
+  function reunionSupprimer({ id, par }) {
+    return tx(() => {
+      const r = reunionBrute(id); if (!r) throw erreur('introuvable');
+      if (r.hote !== par) throw erreur('interdit');
+      const participants = reunionParticipants(id);
+      for (const u of participants) journalAjouter('reunion', null, u, id);
+      const x = convSupprimer(r.conv);   // notée au registre (genre `conversation`) ; la réunion, ses invitations et ses rappels suivent (ON DELETE CASCADE)
+      return { pieces: x.pieces, participants, conv: r.conv };
+    });
+  }
+  /* Inviter : les nouveaux entrent dans la conversation (un message d'arrivée) et reçoivent leur ligne. Une personne déjà invitée est ignorée. → { ajoutes, gid } */
+  function reunionInviter({ id, par, uids }) {
+    return tx(() => {
+      const r = reunionBrute(id); if (!r) throw erreur('introuvable');
+      if (r.hote !== par) throw erreur('interdit');
+      if (r.annulee) throw erreur('reunion_annulee');
+      const deja = num(Q('SELECT COUNT(*) AS n FROM reunion_invite WHERE reunion = ?').get(id).n) - 1;
+      const nouveaux = [];
+      for (const u of Array.from(new Set(uids))) {
+        if (u === par || Q('SELECT 1 AS x FROM reunion_invite WHERE reunion = ? AND uid = ?').get(id, u)) continue;
+        if (deja + nouveaux.length >= INVITES_MAX) throw erreur('trop_d_invites');
+        nouveaux.push(u);
+      }
+      if (!nouveaux.length) return { ajoutes: [], gid: 0 };
+      membresAjouter({ conv: r.conv, par, uids: nouveaux, max: INVITES_MAX + 1 });
+      const t = horloge();
+      for (const u of nouveaux) Q(`INSERT INTO reunion_invite(reunion, uid, statut, invite_par, cree) VALUES(?, ?, 'attente', ?, ?)`).run(id, u, par, t);
+      Q('UPDATE reunion SET version = version + 1, maj = ? WHERE id = ?').run(t, id);
+      return { ajoutes: nouveaux, gid: journalAjouter('reunion', r.conv, null, id) };
+    });
+  }
+  /* Retirer un invité (l'hôte ne se retire pas : il annule ou supprime). Il sort de la conversation (noté, `groupe_membre`) ET de la réunion (noté, `reunion_invite`) ; son agenda en est prévenu par
+     un événement adressé. */
+  function reunionRetirer({ id, par, uid }) {
+    return tx(() => {
+      const r = reunionBrute(id); if (!r) throw erreur('introuvable');
+      if (r.hote !== par) throw erreur('interdit');
+      if (uid === r.hote) throw erreur('hote_non_retirable');
+      if (!Q('SELECT 1 AS x FROM reunion_invite WHERE reunion = ? AND uid = ?').get(id, uid)) throw erreur('introuvable');
+      const t = horloge();
+      Q('DELETE FROM reunion_invite WHERE reunion = ? AND uid = ?').run(id, uid);
+      Q('DELETE FROM rappel WHERE reunion = ? AND uid = ?').run(id, uid);
+      Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(id + '|' + uid + '|' + t, 'reunion_invite', t);
+      membreRetirer({ conv: r.conv, par, uid });
+      Q('UPDATE reunion SET version = version + 1, maj = ? WHERE id = ?').run(t, id);
+      journalAjouter('reunion', null, uid, id);
+      return { gid: journalAjouter('reunion', r.conv, null, id) };
+    });
+  }
+  /* ⛔ QUITTER UNE RÉUNION, c'est la sortie de l'INVITÉ — la seule : bloquer quelqu'un n'en retire personne, et une invitation qu'on n'a pas voulue ne devait pas rester dans un agenda sans issue
+     (relecture du gardien, important n° 3). Même geste que le retrait par l'hôte, du côté de celui qui part : la ligne d'invitation part (noté, `reunion_invite`), la personne sort de la conversation de
+     la réunion comme d'un groupe (noté, `groupe_membre` ; l'hôte et les autres lisent « a quitté la réunion »), ses rappels partent, son agenda est prévenu par un événement ADRESSÉ. L'hôte ne quitte pas
+     (il annule ou supprime) ; qui n'est pas invité reçoit `introuvable`, comme pour une réunion qui n'existe pas. L'hôte peut réinviter. → { gid, conv, hote } */
+  function reunionQuitter({ id, uid }) {
+    return tx(() => {
+      const r = reunionBrute(id); if (!r) throw erreur('introuvable');
+      if (!Q('SELECT 1 AS x FROM reunion_invite WHERE reunion = ? AND uid = ?').get(id, uid)) throw erreur('introuvable');
+      if (uid === r.hote) throw erreur('hote_non_quittable');
+      const t = horloge();
+      Q('DELETE FROM reunion_invite WHERE reunion = ? AND uid = ?').run(id, uid);
+      Q('DELETE FROM rappel WHERE reunion = ? AND uid = ?').run(id, uid);
+      Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(id + '|' + uid + '|' + t, 'reunion_invite', t);
+      if (Q('SELECT 1 AS x FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(r.conv, uid)) membreQuitter({ conv: r.conv, uid });   // note `groupe_membre`, écrit « a quitté la réunion »
+      Q('UPDATE reunion SET version = version + 1, maj = ? WHERE id = ?').run(t, id);
+      journalAjouter('reunion', null, uid, id);
+      return { gid: journalAjouter('reunion', r.conv, null, id), conv: r.conv, hote: r.hote };
+    });
+  }
+  /* La réponse d'un invité. L'hôte n'a pas à répondre (il est « accepte » d'office). → { change, gid } */
+  function reunionRepondre({ id, uid, statut }) {
+    return tx(() => {
+      const r = reunionBrute(id); if (!r) throw erreur('introuvable');
+      const i = Q('SELECT statut FROM reunion_invite WHERE reunion = ? AND uid = ?').get(id, uid); if (!i) throw erreur('introuvable');
+      if (uid === r.hote) throw erreur('hote_reponse');
+      if (r.annulee) throw erreur('reunion_annulee');
+      if (i.statut === statut) return { change: false, gid: 0 };
+      Q('UPDATE reunion_invite SET statut = ?, repondu = ? WHERE reunion = ? AND uid = ?').run(statut, horloge(), id, uid);
+      return { change: true, gid: journalAjouter('reunion', r.conv, null, id) };
+    });
+  }
+  /* Les rappels de CETTE personne pour cette réunion : une liste (même vide : « aucun »), ou null = le réglage de la réunion. La date du choix borne les rappels dus (aucun rappel dont l'échéance la précède). */
+  function reunionRappelsPoser({ id, uid, rappels }) {
+    return tx(() => {
+      const r = reunionBrute(id); if (!r) throw erreur('introuvable');
+      if (!num(Q('UPDATE reunion_invite SET rappels = ?, rappels_le = ? WHERE reunion = ? AND uid = ?').run(rappels === null ? null : JSON.stringify(rappels), horloge(), id, uid).changes)) throw erreur('introuvable');
+      return { gid: journalAjouter('reunion', null, uid, id) };
+    });
+  }
+
+  /* ── pour le planificateur ── */
+  /* Le bail : une seule instance envoie les rappels. Pris (ou renouvelé) tant qu'il est libre, expiré, ou le sien. Un arrêt brutal ne le rend pas : il EXPIRE (`ttlMs`). → vrai si on le tient. */
+  function bailPrendre({ proprietaire, ttlMs }) {
+    return tx(() => {
+      const t = horloge();
+      const b = Q('SELECT proprietaire, expire FROM planif_bail WHERE id = 1').get();
+      if (b && b.proprietaire !== proprietaire && num(b.expire) > t) return false;
+      Q(`INSERT INTO planif_bail(id, proprietaire, pris, expire) VALUES(1, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET pris = CASE WHEN planif_bail.proprietaire = excluded.proprietaire THEN planif_bail.pris ELSE excluded.pris END, proprietaire = excluded.proprietaire, expire = excluded.expire`).run(proprietaire, t, t + ttlMs);
+      return true;
+    });
+  }
+  function bailRendre(proprietaire) { return num(Q('DELETE FROM planif_bail WHERE id = 1 AND proprietaire = ?').run(proprietaire).changes) > 0; }
+  function bailLire() { const b = Q('SELECT proprietaire, pris, expire FROM planif_bail WHERE id = 1').get(); return b ? { proprietaire: b.proprietaire, pris: num(b.pris), expire: num(b.expire) } : null; }
+  /* Les réunions dont la prochaine occurrence commence avant `avant` (instant UTC) : celles que le planificateur regarde. */
+  function reunionsARappeler(avant, limite = 200) {
+    return Q('SELECT id FROM reunion WHERE annulee = 0 AND prochain IS NOT NULL AND prochain <= ? ORDER BY prochain, id LIMIT ?').all(avant, Math.max(1, limite | 0)).map(r => r.id);
+  }
+  /* ⛔ La même liste, PAR TRANCHES : celles qui commencent dans ]depuis, avant], dans l'ordre (prochain, id), à partir de la clé `apres` ({ prochain, id }, exclue) — la CLÉ de reprise d'un tour que son budget a coupé.
+     Une clé et non un rang : entre deux tours des réunions sortent de la liste (leur prochaine occurrence a changé) et un rang glisserait, faisant sauter celles qui étaient juste derrière. → [{ id, prochain }] */
+  function reunionsARappelerDe({ avant, depuis = -1, apres = null, limite = 200 }) {
+    const a = apres || { prochain: -1, id: '' };
+    return Q(`SELECT id, prochain FROM reunion WHERE annulee = 0 AND prochain IS NOT NULL AND prochain <= ? AND prochain > ? AND (prochain > ? OR (prochain = ? AND id > ?)) ORDER BY prochain, id LIMIT ?`)
+      .all(avant, depuis, a.prochain, a.prochain, a.id, Math.max(1, limite | 0)).map(r => ({ id: r.id, prochain: num(r.prochain) }));
+  }
+  /* Une réunion et ses participants qui n'ont pas décliné (et dont le compte est vivant), pour juger les rappels. */
+  function reunionPlanif(id) {
+    const r = reunionBrute(id); if (!r) return null;
+    const titre = reunionTitre(r);
+    const participants = Q(`SELECT i.uid AS uid, i.statut AS statut, i.rappels AS rappels, i.rappels_le AS rappels_le, i.cree AS cree FROM reunion_invite i JOIN personne p ON p.id = i.uid
+                            WHERE i.reunion = ? AND i.statut <> 'decline' AND p.etat = 'actif' ORDER BY i.cree, i.uid`).all(id)
+      .map(x => ({ uid: x.uid, statut: x.statut, rappels: x.rappels === null || x.rappels === undefined ? null : listeEntiers(x.rappels), rappels_le: x.rappels_le === null || x.rappels_le === undefined ? 0 : num(x.rappels_le), cree: num(x.cree) }));
+    return { id: r.id, conv: r.conv, hote: r.hote, titre: titre === null ? '' : titre, debut: num(r.debut), fin: num(r.fin), tz: r.tz, rep: r.rep, n: r.n === null ? null : num(r.n), jusqua: r.jusqua || null,
+      defaut: listeEntiers(r.rappels), horaire_le: num(r.horaire_le), prochain: r.prochain === null ? null : num(r.prochain), participants };
+  }
+  function reunionProchainPoser(id, prochain) { return num(Q('UPDATE reunion SET prochain = ? WHERE id = ?').run(prochain, id).changes); }
+  /* Un rappel part UNE seule fois : sa ligne au registre et la notification s'écrivent dans la MÊME transaction, la clé primaire (réunion, occurrence, personne, minutes) fait le reste.
+     → la notification créée, ou null si ce rappel était déjà parti. */
+  function rappelEnvoyer({ reunion, occurrence, uid, avant, avants, titre, texte, cible }) {
+    return tx(() => {
+      /* `avants` : plusieurs délais échus pour la même personne et la même occurrence (un arrêt les a laissés s'accumuler) — UNE notification les couvre tous, et tous sont notés : le
+         plus court ne repart pas dix secondes après le plus long. Un délai déjà noté ne compte pas : si TOUS le sont, rien ne part. */
+      let neufs = 0;
+      for (const a of (Array.isArray(avants) && avants.length ? avants : [avant])) neufs += num(Q('INSERT OR IGNORE INTO rappel(reunion, occurrence, uid, avant, ts) VALUES(?, ?, ?, ?, ?)').run(reunion, occurrence, uid, a, horloge()).changes);
+      if (neufs < 1) return null;
+      return notifCreer({ uid, type: 'reunion_rappel', titre, texte, cible });
+    });
+  }
+  /* ⛔ TOUS LES RAPPELS D'UNE RÉUNION, DANS UNE SEULE TRANSACTION : un COMMIT (donc un fsync, la base est en `synchronous=FULL`) par RÉUNION et non par rappel. Trois cents réunions de cent personnes,
+     c'était trente mille COMMIT dans un seul tour de planificateur — trente-quatre secondes pendant lesquelles le service ne répondait plus. Le tout ou rien tient pour la réunion : un échec
+     défait ses rappels ET leurs lignes au registre, le tour suivant les reprend. → un tableau, dans l'ordre du lot : la notification créée, ou null si ce rappel était déjà parti. */
+  function rappelsEnvoyer(lot) { return tx(() => lot.map(x => rappelEnvoyer(x))); }
+  const rappelDejaEnvoye = (reunion, occurrence, uid, avant) => !!Q('SELECT 1 AS x FROM rappel WHERE reunion = ? AND occurrence = ? AND uid = ? AND avant = ?').get(reunion, occurrence, uid, avant);
+  /* Le registre d'UNE réunion en une lecture (au lieu de quatre par personne et par occurrence) : l'ensemble des clés « occurrence|personne|minutes ». */
+  function rappelsEnvoyesDe(reunion) {
+    const s = new Set();
+    for (const r of Q('SELECT occurrence, uid, avant FROM rappel WHERE reunion = ?').all(reunion)) s.add(num(r.occurrence) + '|' + r.uid + '|' + num(r.avant));
+    return s;
+  }
+  /* Le registre ne grossit pas : un rappel d'une occurrence passée depuis plus de `avant` n'a plus rien à empêcher. */
+  function rappelsElaguer(avant) { return num(Q('DELETE FROM rappel WHERE occurrence < ?').run(avant).changes); }
+  /* La charge qui part en push pour un rappel ou une notification de réunion est re-jugée à l'instant de partir : la réunion existe, la personne y est, elle n'est pas annulée, et — pour un rappel — l'occurrence n'a pas commencé. */
+  function reunionEncore({ id, uid, occurrence, sourdine }) {
+    const r = Q(`SELECT r.annulee AS annulee, r.conv AS conv, i.statut AS statut FROM reunion r JOIN reunion_invite i ON i.reunion = r.id AND i.uid = ? WHERE r.id = ?`).get(uid, id);
+    if (!r) return false;
+    /* ⛔ LA SOURDINE de la conversation de la réunion coupe les notifications de ses MODIFICATIONS (`sourdine: true`) — jamais un rappel, jamais une annulation (l'appelant ne la demande pas) */
+    if (sourdine === true) { const m = Q('SELECT muet_jusqua FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(r.conv, uid); if (!m || num(m.muet_jusqua) > horloge()) return false; }
+    if (occurrence !== undefined && occurrence !== null) return !r.annulee && r.statut !== 'decline' && num(occurrence) > horloge();
+    return true;
+  }
+  /* Les plafonds du courriel d'invitation : combien ce compte en a envoyé depuis `depuis.compte`, combien ce destinataire (son empreinte) en a reçu depuis `depuis.destinataire`. */
+  function courrierCompter({ uid, destH, depuis }) {
+    return {
+      compte: num(Q('SELECT COUNT(*) AS n FROM courrier_envoi WHERE uid = ? AND ts >= ?').get(uid, depuis.compte).n),
+      destinataire: num(Q('SELECT COUNT(*) AS n FROM courrier_envoi WHERE dest_h = ? AND ts >= ?').get(destH, depuis.destinataire).n),
+    };
+  }
+  /* Un envoi se RÉSERVE avant de partir (le plafond se vérifie et se prend dans le même souffle : deux demandes simultanées ne passent pas à deux quand il n'en reste qu'une) → l'identifiant de la
+     ligne, que `courrierRetirer` rend si le courriel n'est finalement pas parti (un relais qui refuse ne consomme pas le plafond de la personne). */
+  function courrierNoter({ uid, destH }) { return num(Q('INSERT INTO courrier_envoi(uid, dest_h, ts) VALUES(?, ?, ?)').run(uid, destH, horloge()).lastInsertRowid); }
+  function courrierRetirer(id) { return num(Q('DELETE FROM courrier_envoi WHERE id = ?').run(id).changes) > 0; }
+  function courrierElaguer(avant) { return num(Q('DELETE FROM courrier_envoi WHERE ts < ?').run(avant).changes); }
+  /* Les réunions d'une personne, pour l'export de ses données (le titre et le lieu s'ouvrent : ce sont les siennes). */
+  function exportReunions(uid) {
+    return Q(`SELECT r.id AS id, r.titre_ch AS titre_ch, r.lieu_ch AS lieu_ch, r.debut AS debut, r.fin AS fin, r.tz AS tz, r.rep AS rep, r.n AS n, r.jusqua AS jusqua, r.annulee AS annulee, r.hote AS hote, i.statut AS statut
+              FROM reunion_invite i JOIN reunion r ON r.id = i.reunion WHERE i.uid = ? ORDER BY r.debut, r.id`).all(uid).map(x => {
+      const titre = reunionTitre(x), lieu = reunionLieu(x);
+      return { id: x.id, titre: titre === null ? '' : titre, lieu: lieu === null ? '' : lieu, debut: num(x.debut), fin: num(x.fin), fuseau: x.tz, repetition: x.rep, n: x.n === null ? null : num(x.n), jusqua: x.jusqua || null,
+        annulee: !!x.annulee, role: x.hote === uid ? 'hote' : 'invite', reponse: x.statut };
+    });
+  }
+  /* ⛔ L'EFFACEMENT D'UN COMPTE ET SES RÉUNIONS (appelé par `compteEffacer`). Hôte : la réunion passe au plus ancien invité qui n'a pas décliné (celui qui a accepté d'abord ; à égalité, dans l'ORDRE où l'hôte les a invités) — il devient hôte et
+     administrateur de la conversation —, ou, faute de successeur, elle part avec sa conversation. Invité : sa ligne part, il sort de la conversation. La sortie se NOTE (`reunion_invite`,
+     `groupe_membre`) ; la conversation d'une réunion sans successeur aussi (`convSupprimer`). Rejouable : sans réunion, rien à faire.
+     ⛔ `rejeu: true` N'ÉCRIT RIEN AU REGISTRE (comme `espaceQuitterTout`) : celui de la copie dit déjà ce que l'effacement d'origine a fait ; une ligne de plus serait rejouée à la restauration suivante
+     contre des gens qui, dans le service vivant, y étaient encore. → { pieces, convs } */
+  function reunionsQuitterTout(uid, { rejeu = false } = {}) {
+    const pieces = [], convs = [], t = horloge();
+    for (const r of Q('SELECT id, conv FROM reunion WHERE hote = ? ORDER BY id').all(uid)) {
+      const suivant = Q(`SELECT i.uid AS uid FROM reunion_invite i JOIN personne p ON p.id = i.uid
+                         WHERE i.reunion = ? AND i.uid <> ? AND i.statut <> 'decline' AND p.etat = 'actif' ORDER BY (i.statut = 'accepte') DESC, i.cree, i.rowid LIMIT 1`).get(r.id, uid);
+      if (!suivant) { pieces.push(...convSupprimer(r.conv, { noter: !rejeu }).pieces); convs.push(r.conv); continue; }
+      Q('UPDATE reunion SET hote = ?, version = version + 1, maj = ? WHERE id = ?').run(suivant.uid, t, r.id);
+      Q(`UPDATE membre SET role = 'admin' WHERE conv = ? AND uid = ?`).run(r.conv, suivant.uid);
+      Q(`UPDATE reunion_invite SET statut = 'accepte', repondu = COALESCE(repondu, ?), invite_par = NULL WHERE reunion = ? AND uid = ?`).run(t, r.id, suivant.uid);
+    }
+    for (const x of Q('SELECT i.reunion AS id, r.conv AS conv FROM reunion_invite i JOIN reunion r ON r.id = i.reunion WHERE i.uid = ? ORDER BY i.reunion').all(uid)) {
+      Q('DELETE FROM reunion_invite WHERE reunion = ? AND uid = ?').run(x.id, uid);
+      if (!rejeu) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(x.id + '|' + uid + '|' + t, 'reunion_invite', t);
+      if (Q('SELECT 1 AS n FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(x.conv, uid)) {
+        Q('UPDATE membre SET quitte_le = ? WHERE conv = ? AND uid = ?').run(t, x.conv, uid);
+        if (!rejeu) sortieNoter(x.conv, uid, t, false);
+        journalAjouter('reunion', x.conv, null, x.id);
+      }
+      convs.push(x.conv);
+    }
+    Q('DELETE FROM rappel WHERE uid = ?').run(uid);
+    Q('DELETE FROM courrier_envoi WHERE uid = ?').run(uid);
+    return { pieces, convs };
+  }
+  /* ⛔ LA RÉPARATION AU DÉMARRAGE : ce qu'un retour en arrière a pu laisser. Le code d'avant les réunions ouvre sans mot dire une base au schéma 7 (la migration ne refuse pas un schéma plus récent) et
+     efface un compte SANS connaître les réunions : l'invitation de la personne effacée reste, et une réunion dont elle était l'hôte garde un hôte qui n'est plus personne — sans successeur, sans
+     main qui l'annule. Le démarrage du code neuf refait donc, pour chaque compte effacé qui laisse une trace dans les réunions, l'effacement de ses réunions (`reunionsQuitterTout` : l'hôte passe au
+     plus ancien invité, ou la réunion part avec sa conversation ; l'invité sort). Rejouable : sans trace, rien à faire — un démarrage ordinaire n'écrit RIEN. → { personnes, pieces, convs } */
+  function reunionsReparer() {
+    return tx(() => {
+      const ids = Q(`SELECT DISTINCT u.uid AS uid FROM (
+                       SELECT i.uid AS uid FROM reunion_invite i JOIN personne p ON p.id = i.uid WHERE p.etat = 'supprime'
+                       UNION
+                       SELECT r.hote AS uid FROM reunion r JOIN personne p ON p.id = r.hote WHERE p.etat = 'supprime') u ORDER BY u.uid`).all().map(x => x.uid);
+      const pieces = [], convs = [];
+      for (const uid of ids) { const x = reunionsQuitterTout(uid); pieces.push(...x.pieces); convs.push(...x.convs); }
+      return { personnes: ids.length, pieces, convs };
+    });
   }
 
   /* ══ ESPACES, INVITATIONS, CANAUX, ABONNEMENT (migration 6) ════════════════════════════════════════════════════════════════
@@ -2232,6 +2673,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         espace_membre: non(() => Q('SELECT 1 FROM espace_membre LIMIT 1')),
         canal: non(() => Q('SELECT 1 FROM canal LIMIT 1')),
         abonnement: non(() => Q('SELECT 1 FROM abonnement LIMIT 1')),
+        reunion: non(() => Q('SELECT 1 FROM reunion LIMIT 1')),
+        reunion_invite: non(() => Q('SELECT 1 FROM reunion_invite LIMIT 1')),
+        rappel: non(() => Q('SELECT 1 FROM rappel LIMIT 1')),
+        planif_bail: non(() => Q('SELECT 1 FROM planif_bail LIMIT 1')),
+        courrier_envoi: non(() => Q('SELECT 1 FROM courrier_envoi LIMIT 1')),
       },
     };
   }
@@ -2274,6 +2720,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushJoignable, pushNonJoignablesPurger, pushRetirerAutres, pushVapidLire, pushVapidPoser,
     pushDestinatairesMessage, pushMessageEncore, autreSupprime,
     suppressionProgrammer, suppressionAnnuler, suppressionLe, comptesEchus, compteEffacer, exportProfil, exportConversationsIds, exportPieces,
+    reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionQuitter, reunionRepondre, reunionRappelsPoser, reunionsReparer,   // les réunions programmées
+    bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
+    courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions,                                                                                                                  // …et le courriel d'invitation
   };
 }
 
@@ -2285,7 +2734,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
    ⚠️ Aucune ne déchiffre quoi que ce soit et aucune n'a besoin de la clé maître : « ce fichier est-il intact » et « sais-je le lire »
    sont deux questions, et seule la première est du ressort d'une sauvegarde.
    Rangées sur `ouvrir.copie` plutôt que dans `module.exports` : le service, lui, n'a pas à les connaître. */
-const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement'];
+const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi'];
 
 function ouvrirCopie(chemin, { moteur, ecriture = false } = {}) {
   const { DatabaseSync } = moteur || require('node:sqlite');
@@ -2320,6 +2769,11 @@ function lignesDe(d) {
     espace_membre: n(() => d.prepare('SELECT COUNT(*) AS n FROM espace_membre')),
     canal: n(() => d.prepare('SELECT COUNT(*) AS n FROM canal')),
     abonnement: n(() => d.prepare('SELECT COUNT(*) AS n FROM abonnement')),
+    reunion: n(() => d.prepare('SELECT COUNT(*) AS n FROM reunion')),
+    reunion_invite: n(() => d.prepare('SELECT COUNT(*) AS n FROM reunion_invite')),
+    rappel: n(() => d.prepare('SELECT COUNT(*) AS n FROM rappel')),
+    planif_bail: n(() => d.prepare('SELECT COUNT(*) AS n FROM planif_bail')),
+    courrier_envoi: n(() => d.prepare('SELECT COUNT(*) AS n FROM courrier_envoi')),
   };
 }
 
@@ -2369,6 +2823,8 @@ const GENRES_PURGE = {
   espace_membre: 'copie',      // quelqu'un sort d'un espace (il part, il est retiré, son compte s'efface) : `espace|personne|date` — il sort aussi de ses canaux
   invitation: 'copie',         // un lien d'invitation (à un espace ou à un groupe) révoqué : son empreinte — le code ne rouvre plus rien
   canal_membre: 'copie',       // quelqu'un sort d'un canal PRIVÉ (retiré, ou il le quitte) : `conversation|personne|date`
+  reunion_invite: 'copie',     // un invité retiré d'une réunion (ou son compte effacé) : `reunion|personne|date` — sa ligne d'invitation part ; il sort aussi de sa conversation (`groupe_membre`)
+  reunion_annulee: 'copie',    // une réunion ANNULÉE : une archive d'avant la rendrait active à ceux qui s'y rendraient. (Une réunion SUPPRIMÉE se note par sa conversation, genre `conversation`.)
   groupe_membre: 'copie',      // quelqu'un sort d'un GROUPE (retiré par un administrateur, ou il le quitte) : `conversation|personne|date` — et si c'était le dernier administrateur, la copie promeut comme le service l'avait fait
   compte: 'service',           // un compte effacé au bout de ses quatorze jours : il touche dix tables et passe par `compteEffacer` — rejoué par le SERVICE (`rejeu.js`)
   suppression_demandee: 'service',   // la DEMANDE de suppression (l'échéance posée) : une copie d'avant ne doit pas la perdre — rejouée par le SERVICE, dans l'ordre du registre
@@ -2398,7 +2854,7 @@ function purgeLire(chemin, opts) {
    Les lignes du registre sont recopiées dans la copie (sans doublon) : la copie se souvient désormais de ce qu'elle vient d'oublier,
    et la sauvegarde suivante le portera. Une seule transaction : tout ou rien. */
 function rejouerPurge(chemin, registre, opts) {
-  const bilan = { lues: 0, messagesRetires: 0, messagesBlanchis: 0, pieces: [], conversationsRetirees: 0, appareilsRetires: 0, espacesRetires: 0, membresEspaceRetires: 0, invitationsRevoquees: 0, membresCanalRetires: 0, membresGroupeRetires: 0, groupesRepris: 0, auService: 0, ignorees: 0, ajoutees: 0 };
+  const bilan = { lues: 0, messagesRetires: 0, messagesBlanchis: 0, pieces: [], conversationsRetirees: 0, appareilsRetires: 0, espacesRetires: 0, membresEspaceRetires: 0, invitationsRevoquees: 0, membresCanalRetires: 0, membresGroupeRetires: 0, groupesRepris: 0, invitesRetires: 0, reunionsAnnulees: 0, auService: 0, ignorees: 0, ajoutees: 0 };
   let d = null;
   try {
     d = ouvrirCopie(chemin, Object.assign({}, opts, { ecriture: true }));
@@ -2430,6 +2886,11 @@ function rejouerPurge(chemin, registre, opts) {
     const promouvoirGroupe = d.prepare(`UPDATE membre SET role = 'admin' WHERE rowid = (SELECT rowid FROM membre WHERE conv = ? AND quitte_le IS NULL ORDER BY rejoint, rowid LIMIT 1)
                                         AND NOT EXISTS (SELECT 1 FROM membre WHERE conv = ? AND role = 'admin' AND quitte_le IS NULL)
                                         AND (SELECT type FROM conversation WHERE id = ?) = 'groupe'`);
+    /* les RÉUNIONS (migration 7) : une archive d'un schéma plus ancien n'a pas ces tables — rien à y retirer, la ligne du registre est quand même recopiée. Un invité RÉINVITÉ après son retrait (`cree`
+       plus récent) est une autre invitation : seule celle qui existait au moment du retrait part. */
+    const tableReunion = a('reunion') && a('reunion_invite');
+    const retirerInvite = tableReunion ? d.prepare('DELETE FROM reunion_invite WHERE reunion = ? AND uid = ? AND cree <= ?') : null;
+    const annulerReunion = tableReunion ? d.prepare('UPDATE reunion SET annulee = 1, prochain = NULL WHERE id = ? AND annulee = 0') : null;
     const recopier = d.prepare('INSERT INTO purge(objet, genre, quand) SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM purge WHERE objet = ? AND genre = ?)');
     d.exec('BEGIN IMMEDIATE');
     try {
@@ -2477,6 +2938,11 @@ function rejouerPurge(chemin, registre, opts) {
             bilan.membresGroupeRetires += sortis;
             if (sortis > 0) bilan.groupesRepris += Number(promouvoirGroupe.run(conv, conv, conv).changes);
           }
+        } else if (genre === 'reunion_invite') {
+          const [reu, uid] = String(r.objet).split('|');
+          if (reu && uid && retirerInvite) bilan.invitesRetires += Number(retirerInvite.run(reu, uid, Number(r.quand) || 0).changes);
+        } else if (genre === 'reunion_annulee') {
+          if (annulerReunion) bilan.reunionsAnnulees += Number(annulerReunion.run(r.objet).changes);
         } else if (GENRES_PURGE[genre] === 'service') {
           bilan.auService++;   // recopiée seulement : le service la rejoue à son premier démarrage (`rejeu.js`) — ni « ignorée », ni faite ici
         } else {
@@ -2518,7 +2984,7 @@ function pieceIds(chemin, opts) {
    PAS à vider : c'est le pointeur vers un paiement que Stripe a peut-être reçu entre la copie et le sinistre — l'effacer le rendrait méconnaissable, et le client paierait deux fois.
    Rend { sessions, push } : le nombre de sessions et d'abonnements retirés. Une seule transaction. */
 function apresRestauration(chemin, opts) {
-  const bilan = { sessions: 0, push: 0 };
+  const bilan = { sessions: 0, push: 0, bails: 0 };
   let d = null;
   try {
     d = ouvrirCopie(chemin, Object.assign({}, opts, { ecriture: true }));
@@ -2529,6 +2995,13 @@ function apresRestauration(chemin, opts) {
       catch (e) { if (!/no such table/i.test(String(e && e.message))) throw e; }
       try { bilan.push = Number(d.prepare('DELETE FROM push').run().changes); }
       catch (e) { if (!/no such table/i.test(String(e && e.message))) throw e; }
+      /* ⛔ LE BAIL DU PLANIFICATEUR n'est PAS celui de la base d'avant : un bail copié (une instance qui le tenait, un nom d'hôte, une échéance) ne doit ni bloquer le service restauré ni passer pour vivant.
+         Et LES RAPPELS DE LA BASE D'AVANT ne se renvoient pas : le registre des rappels envoyés date de la copie, pas du sinistre — un rappel dont l'échéance précède la restauration est
+         considéré traité (envoyé avant, ou abandonné), jamais envoyé une seconde fois (`rappels_depuis`, lu par le planificateur). */
+      try { bilan.bails = Number(d.prepare('DELETE FROM planif_bail').run().changes); }
+      catch (e) { if (!/no such table/i.test(String(e && e.message))) throw e; }
+      const maintenant = opts && typeof opts.horloge === 'function' ? opts.horloge() : Date.now();
+      d.prepare('INSERT INTO meta(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').run('rappels_depuis', String(maintenant));
       d.prepare('INSERT INTO meta(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').run('rejeu_service', String(Date.now()));
       d.exec('COMMIT');
     } catch (e) { try { d.exec('ROLLBACK'); } catch (e2) { /* rien à défaire */ } throw e; }

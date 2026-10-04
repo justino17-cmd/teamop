@@ -16,7 +16,7 @@
 self.addEventListener('install', () => { self.skipWaiting(); });
 self.addEventListener('activate', (event) => { event.waitUntil(self.clients.claim()); });
 
-/* Une adresse à ouvrir : relative à l'origine du service, ou « / ». Le service n'envoie que `/` et `/#messages/<conversation>`. */
+/* Une adresse à ouvrir : relative à l'origine du service, ou « / ». Le service n'envoie que `/`, `/#messages/<conversation>` et `/#reunions/<réunion>` (c'est la page qui reconnaît ces deux formes, et elle seule). */
 function adresseSure(brut) {
   try {
     const u = new URL(typeof brut === 'string' ? brut : '/', self.location.origin);

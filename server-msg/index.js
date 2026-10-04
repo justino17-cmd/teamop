@@ -36,6 +36,8 @@ const { rejouerAuDemarrage } = require('./rejeu');
 const { creerPush } = require('./push');
 const { creerFormule } = require('./formule');
 const { creerFacturation } = require('./facturation');
+const { creerPlanificateur } = require('./planificateur');
+const { creerCourriel } = require('./courriel');
 
 const VERSION = '1.4.0-espaces';
 const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays']);   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
@@ -74,10 +76,20 @@ function demarrer(env = process.env) {
      hors ligne et levé un drapeau ; ici le service les rejoue avec ses propres fonctions (un compte effacé ne revient pas). Sans drapeau — tout démarrage ordinaire — rien ne
      s'exécute. Voir `rejeu.js`. */
   rejouerAuDemarrage({ stockage, contexte: { effacerPieces, horloge: Date.now }, journaliser });
+  /* ⛔ LES RÉUNIONS D'UN COMPTE EFFACÉ PAR UN CODE D'AVANT : un retour en arrière a pu effacer un compte sans connaître les réunions (une invitation orpheline, une réunion sans hôte). On les répare ICI,
+     avant de servir — rejouable, et SANS rien écrire quand il n'y a rien à réparer. Une panne de la réparation ne ferme pas le service : elle se dit (le nom de l'erreur, jamais son message). */
+  try {
+    const reparees = stockage.reunionsReparer();
+    if (reparees.personnes) { effacerPieces(reparees.pieces); journaliser('reunions_reparees', { n: reparees.personnes }); }
+  } catch (e) { journaliser('reunions_reparation_echec', { nom: e && (e.code || e.name) }); }
   /* ⛔ LA FORMULE ET LA FACTURATION : `formuleDe` est la seule fonction qui décide de Perso, Pro ou impayé (le drapeau de la bêta y est lu, et là seulement) ; la facturation parle à Stripe
      (inerte sans clé, et le dit). Les deux se lisent dans `ctx`, jamais ne se reconstruisent ailleurs. */
   const formule = creerFormule({ stockage, config });
   const facturation = creerFacturation({ stockage, config, formule, journaliser, horloge: Date.now });
+  /* ⛔ LES RAPPELS DES RÉUNIONS : UNE instance planifie (le bail), un rappel part UNE seule fois (le registre), l'horloge est injectée. Voir `planificateur.js`. */
+  const planificateur = creerPlanificateur({ stockage, hub, config, horloge: Date.now, journaliser, push });
+  /* ⛔ LE COURRIEL D'INVITATION : inerte sans relais SMTP (`config.courriel`), et le DIT. Le mot de passe du relais reste dans `config` ; `/api/config` ne publie que `courriel.ouvert`. */
+  const courriel = creerCourriel({ config, stockage, scelleur, horloge: Date.now, journaliser });
   const porte = config.instance === 'beta' ? creerPorteBeta({ config, quotas, stockage, horloge: Date.now }) : null;
   /* Les SMS : la configuration est VALIDÉE ici (un budget négatif, des identifiants à moitié posés, une URL d'OVH étrangère en production
      refusent le démarrage plutôt que de tourner de travers), puis la garde (budgets, emballement, bouclier) et l'envoi par OVH. */
@@ -100,7 +112,7 @@ function demarrer(env = process.env) {
 
   const ctx = {
     config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION, scelleur, sms,
-    pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation,
+    pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation, courriel,
     maxMembres: stockageMod.MAX_MEMBRES, delaiModifMs: stockageMod.DELAI_MODIF_MS,
     disque: { bas: () => disqueBas, libreMo },
     /* ⛔ /health est PUBLIQUE et AGRÉGÉE : des nombres et des états, jamais un identifiant, un
@@ -123,6 +135,8 @@ function demarrer(env = process.env) {
          identifiant de client ou d'abonnement, un espace — et JAMAIS un chiffre COMMERCIAL (combien d'espaces, d'abonnés, d'impayés) : `/health` est PUBLIC, et ces nombres disent à n'importe qui,
          d'un `curl`, où en sont les ventes (relecture du gardien, 3 octobre 2026). Ils se lisent dans le tableau de bord de Stripe, qui les tient déjà. */
       stripeEchecMin: facturation.echecMin(),
+      /* ⛔ LES RÉUNIONS PROGRAMMÉES : des NOMBRES et un booléen — jamais une réunion, une personne ou un titre. L'âge du dernier tour du planificateur et ses échecs de suite sont surveillés ; un rappel qui ne part plus se voit là. */
+      reunions: planificateur.sante(),
       facturation: { mode: facturation.mode(), toutOuvert: formule.toutOuvert() },
     }),
   };
@@ -195,12 +209,15 @@ function demarrer(env = process.env) {
   for (const m of minuteurs) m.unref();
   sauvegarde.demarrer();   // inerte sans configuration : aucune minuterie, aucun réseau
   facturation.demarrer();  // inerte sans clé Stripe : sinon une relecture au démarrage, puis toutes les dix minutes pour les espaces abonnés
+  planificateur.demarrer(); // un premier tour une seconde après le démarrage (un redémarrage rattrape ce qu'un arrêt a laissé), puis un tour toutes les 10 à 15 secondes
 
   async function arreter() {
     for (const m of minuteurs) clearInterval(m);
     clearInterval(minuteurDisque);
     push.arreter();
     facturation.arreter();
+    planificateur.arreter();   // REND le bail : la prochaine instance n'attend pas son échéance
+    courriel.arreter();        // ferme la connexion au relais, s'il y en a une
     boucle.disable();
     hub.arreter();
     await sauvegarde.arreter();   // une passe en cours reconnaît l'arrêt (deux secondes au plus) ; ce n'est pas un échec

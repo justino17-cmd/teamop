@@ -44,6 +44,13 @@
  *                                (`sk_…`) est refusée. `prix` : la LISTE BLANCHE des tarifs vendus (un identifiant `price_…` par rythme, au moins un) — le corps d'une requête ne
  *                                choisit jamais un tarif. `affichage` : les euros par place que la page DIT (le montant réel est celui de Stripe). Sans `cle`, la facturation est
  *                                INERTE et le dit. La clé s'écrit par `configurer-stripe.js` (saisie masquée), jamais à la main.
+ *   reunions      {planificateurMs, bailMs, rappelsParTour, tourMaxMs, urgentesMax}   Les réunions programmées : le rythme du planificateur de rappels (12 s ; EN PRODUCTION entre 10 et 15 s, les bancs
+ *                                et la bêta peuvent le presser jusqu'à 50 ms) et la durée de son bail (60 s ; au moins deux tours : un arrêt brutal le laisse expirer, il ne bloque personne). Le BUDGET d'un tour :
+ *                                `rappelsParTour` (2000 rappels envoyés, à une réunion près), `tourMaxMs` (1000 ms de temps réel : passé ce délai le tour s'arrête après la réunion en cours) et
+ *                                `urgentesMax` (2000 réunions urgentes regardées) — ce qui reste attend le tour suivant, qui vient vite : un tour ne gèle jamais le service.
+ *   courriel      {hote, port, securite, utilisateur, mot_de_passe, de, nom, timeoutMs}   L'envoi des invitations aux réunions par courriel (un fichier .ics joint). SANS `hote`, INERTE et le dit.
+ *                                `securite` : starttls (défaut, port 587), ssl (465) ou aucune (relais local seulement en production). `de` : l'adresse d'expédition. Le mot de passe s'écrit par
+ *                                `configurer-courriel.js` (saisie masquée), jamais à la main ni affiché.
  *   disqueMinMo   plancher d'espace libre sous lequel les écritures refusent (503).
  *   pulsationMs, presenceGraceMs, balayageMs, relectureMs   Rythmes (bancs).
  */
@@ -250,6 +257,68 @@ function facturationConfig(cfg, env, instance) {
   return o;
 }
 
+/* ⛔ LES RÉUNIONS PROGRAMMÉES : le rythme du planificateur de rappels et la durée de son bail. EN PRODUCTION le planificateur passe toutes les 10 à 15 secondes — jamais plus vite (un
+   réglage de banc qui s'y glisserait martèlerait la base) ni plus lentement (un rappel « 5 minutes avant » qui part avec une minute de retard n'en est plus un). La bêta et les bancs peuvent
+   le presser (50 ms) ou l'endormir. Le bail doit durer au moins DEUX tours : un bail qui expire entre deux renouvellements laisserait une autre instance le prendre à chaque fois.
+   ⛔ Le BUDGET d'un tour (`rappelsParTour`, `tourMaxMs`, `urgentesMax`) borne ce qu'UN tour fait avant de rendre la main : le planificateur est synchrone, un tour de trente secondes est un service
+   qui ne répond plus pendant trente secondes. Au-delà de cinq secondes de temps réel le réglage serait lui-même le gel qu'il est censé empêcher : refusé. */
+function reunionsConfig(cfg, instance) {
+  const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };
+  const brut = cfg.reunions === undefined ? {} : cfg.reunions;
+  if (!brut || typeof brut !== 'object' || Array.isArray(brut)) throw err('reunions doit être un objet');
+  const prod = instance === 'prod';
+  const o = { planificateurMs: 12000, bailMs: 60000, rappelsParTour: 2000, tourMaxMs: 1000, urgentesMax: 2000 };
+  const bornes = { planificateurMs: prod ? [10000, 15000] : [50, 300000], bailMs: [200, 600000], rappelsParTour: [1, 100000], tourMaxMs: [10, 5000], urgentesMax: [1, 100000] };
+  for (const [k, [min, max]] of Object.entries(bornes)) {
+    if (brut[k] === undefined) continue;
+    if (!Number.isInteger(brut[k]) || brut[k] < min || brut[k] > max) throw err('reunions.' + k + ' doit être un entier entre ' + min + ' et ' + max + (prod && k === 'planificateurMs' ? ' en production (un rappel part avec dix à quinze secondes de retard au plus)' : ''));
+    o[k] = brut[k];
+  }
+  if (o.bailMs < 2 * o.planificateurMs) throw err('reunions.bailMs doit durer au moins deux tours du planificateur (' + (2 * o.planificateurMs) + ' ms)');
+  return o;
+}
+
+/* ⛔ LE COURRIEL (invitations aux réunions). SANS bloc, ou sans `hote`, il est INERTE et le dit : la page affiche « l'envoi par courriel n'est pas encore ouvert », rien ne part, rien n'est
+   demandé à personne. Un bloc à moitié posé (un hôte sans adresse d'expédition, un identifiant sans mot de passe, un port absurde) REFUSE le démarrage, comme les SMS et la facturation.
+   Le mot de passe du compte de messagerie se SAISIT par `configurer-courriel.js` (masqué), il ne se tape jamais à la main dans ce fichier ni ne s'affiche nulle part : `/api/config` ne
+   publie que `courriel.ouvert`, `/health` rien, les journaux un état et un nombre.
+   ⛔ EN PRODUCTION le canal est CHIFFRÉ (`ssl`, ou `starttls` exigé — jamais en clair) sauf vers un relais local (`127.0.0.1`, `localhost`) : un mot de passe d'application ne traverse pas Internet en clair. */
+const RE_HOTE = /^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$/;
+const RE_ADRESSE_MEL = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/;
+const SECURITES = ['ssl', 'starttls', 'aucune'];
+function courrielConfig(cfg, instance) {
+  const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };
+  const brut = cfg.courriel === undefined || cfg.courriel === null ? {} : cfg.courriel;
+  if (!brut || typeof brut !== 'object' || Array.isArray(brut)) throw err('courriel doit être un objet');
+  const inerte = { mode: 'inerte', hote: null, port: null, securite: null, utilisateur: null, motDePasse: null, de: null, nom: 'OP MESSAGES', timeoutMs: 15000 };
+  if (brut.hote === undefined || brut.hote === null || brut.hote === '') {
+    for (const k of ['port', 'securite', 'utilisateur', 'mot_de_passe', 'de']) if (brut[k] !== undefined && brut[k] !== null && brut[k] !== '') throw err('courriel.' + k + ' sans courriel.hote : un bloc à moitié posé refuse le démarrage');
+    return inerte;
+  }
+  if (typeof brut.hote !== 'string' || !RE_HOTE.test(brut.hote)) throw err('courriel.hote doit être un nom d\'hôte (lettres, chiffres, points, tirets)');
+  const o = Object.assign({}, inerte, { mode: 'smtp', hote: brut.hote });
+  const securite = brut.securite === undefined ? 'starttls' : brut.securite;
+  if (!SECURITES.includes(securite)) throw err('courriel.securite doit valoir ssl, starttls ou aucune');
+  const local = o.hote === '127.0.0.1' || o.hote === 'localhost';
+  if (securite === 'aucune' && instance === 'prod' && !local) throw err('courriel.securite « aucune » est refusée en production hors d\'un relais local : un mot de passe ne traverse pas Internet en clair');
+  o.securite = securite;
+  const port = brut.port === undefined ? (securite === 'ssl' ? 465 : securite === 'starttls' ? 587 : 25) : brut.port;
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw err('courriel.port doit être un entier entre 1 et 65535');
+  o.port = port;
+  const texte = (k, max) => { const v = brut[k]; if (v === undefined || v === null || v === '') return null; if (typeof v !== 'string' || v.length > max || /[\u0000-\u001f\u007f]/.test(v)) throw err('courriel.' + k + ' doit être un texte d\'une ligne de ' + max + ' signes au plus'); return v; };
+  o.utilisateur = texte('utilisateur', 200); o.motDePasse = texte('mot_de_passe', 500);
+  if ((o.utilisateur === null) !== (o.motDePasse === null)) throw err('courriel.utilisateur et courriel.mot_de_passe vont ensemble (l\'un sans l\'autre ne ferait rien)');
+  /* Le mot de passe se lit (`o.motDePasse`) mais ne se COPIE ni ne se SÉRIALISE : il n'est pas énumérable, donc un `JSON.stringify(config)`, un `Object.assign({}, config.courriel)` ou un
+     `util.inspect` oublié dans un journal ne l'emportent pas. */
+  Object.defineProperty(o, 'motDePasse', { value: o.motDePasse, enumerable: false, writable: false, configurable: false });
+  const de = texte('de', 254);
+  if (de === null || !RE_ADRESSE_MEL.test(de)) throw err('courriel.de doit être l\'adresse d\'expédition (nom@domaine) : sans elle, le courriel n\'a pas d\'expéditeur');
+  o.de = de;
+  const nom = texte('nom', 60); if (nom !== null) o.nom = nom;
+  if (brut.timeoutMs !== undefined) { if (!Number.isInteger(brut.timeoutMs) || brut.timeoutMs < 1000 || brut.timeoutMs > 60000) throw err('courriel.timeoutMs doit être un entier entre 1000 et 60000'); o.timeoutMs = brut.timeoutMs; }
+  return o;
+}
+
 function charger(env = process.env) {
   const manque = (n) => { const e = new Error('config: ' + n + ' est obligatoire'); e.code = 'CONFIG'; return e; };
   const instance = env.OPMSG_INSTANCE;
@@ -287,6 +356,8 @@ function charger(env = process.env) {
     compte: compteConfig(cfg.compte),
     formule: formuleConfig(cfg, instance),
     facturation: facturationConfig(cfg, env, instance),
+    reunions: reunionsConfig(cfg, instance),
+    courriel: courrielConfig(cfg, instance),
     sms: cfg.sms && typeof cfg.sms === 'object' && !Array.isArray(cfg.sms) ? cfg.sms : {},   // validée par `lireConfigSms` (sms-garde.js)
     sauvegarde: cfg.sauvegarde === undefined ? null : cfg.sauvegarde,   // validée par `lireConfigSauvegarde` (sauvegarde.js) : absente = module inerte, invalide = démarrage refusé
     testCodes: testCodes,
@@ -298,4 +369,4 @@ function charger(env = process.env) {
   };
 }
 
-module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, formuleConfig, facturationConfig, RE_CLE_STRIPE, INTERDITS };
+module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, formuleConfig, facturationConfig, reunionsConfig, courrielConfig, RE_CLE_STRIPE, RE_ADRESSE_MEL, INTERDITS };

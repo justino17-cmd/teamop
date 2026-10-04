@@ -91,7 +91,7 @@ console.log('\nLes dépendances sont celles d\'OP GESTION, aux mêmes versions')
 {
   const a = JSON.parse(fs.readFileSync(path.join(MSG, 'package.json'), 'utf8')), b = JSON.parse(fs.readFileSync(path.join(RACINE, 'server', 'package.json'), 'utf8'));
   const DECLAREES = Object.keys(a.dependencies).sort();
-  v('deux dépendances (surface d\'attaque) : express, et web-push AVEC le code qui l\'importe (`push.js`, étape 2) — nodemailer reviendra de même avec le sien', DECLAREES, ['express', 'web-push']);
+  v('trois dépendances (surface d\'attaque) : express, nodemailer AVEC le code qui l\'importe (`courriel.js`, étape 6) et web-push AVEC le sien (`push.js`, étape 2)', DECLAREES, ['express', 'nodemailer', 'web-push']);
   /* ⛔ Une dépendance déclarée que personne n'importe est de la surface d'attaque pour rien (relecture du gardien, point 13) :
      chaque dépendance de package.json est `require`d par au moins un fichier du service. */
   const requis = new Set();
@@ -102,7 +102,8 @@ console.log('\nLes dépendances sont celles d\'OP GESTION, aux mêmes versions')
   const lock = JSON.parse(fs.readFileSync(path.join(MSG, 'package-lock.json'), 'utf8')), lockB = JSON.parse(fs.readFileSync(path.join(RACINE, 'server', 'package-lock.json'), 'utf8'));
   v('versions RÉSOLUES identiques à celles d\'OP GESTION',
     DECLAREES.map(k => ((lock.packages['node_modules/' + k] || {}).version !== undefined) && (lock.packages['node_modules/' + k] || {}).version === (lockB.packages['node_modules/' + k] || {}).version), DECLAREES.map(() => true));
-  v('⛔ le verrou ne porte aucun paquet de nodemailer (npm ci n\'installerait rien d\'inutilisé) ; web-push y est, parce que `push.js` l\'importe', [Object.keys(lock.packages).filter(k => /node_modules\/nodemailer$/.test(k)), Object.keys(lock.packages).filter(k => /node_modules\/web-push$/.test(k))], [[], ['node_modules/web-push']]);
+  v('⛔ le verrou porte nodemailer (parce que `courriel.js` l\'importe) et web-push (parce que `push.js` l\'importe) — et rien qu\'eux deux en plus d\'express : npm ci n\'installe rien d\'inutilisé', [Object.keys(lock.packages).filter(k => /node_modules\/nodemailer$/.test(k)), Object.keys(lock.packages).filter(k => /node_modules\/web-push$/.test(k))], [['node_modules/nodemailer'], ['node_modules/web-push']]);
+  v('⛔ nodemailer se charge au premier ENVOI, jamais au démarrage (un service sans relais ne le demande pas) : le seul `require(\'nodemailer\')` du service est dans la fonction qui crée le transport', sources.filter(p => /require\(\s*['"]nodemailer['"]\s*\)/.test(code(p))).map(rel), ['server-msg/courriel.js']);
   const gi = fs.readFileSync(path.join(RACINE, '.gitignore'), 'utf8');
   vrai('server-msg/node_modules est ignoré (jamais commité)', /^server-msg\/node_modules\/$/m.test(gi));
 }
@@ -118,7 +119,7 @@ console.log('\nLes listes de bancs sont disjointes');
   const pl = /^#plancher (\d+)\s*$/m.exec(brut);
   vrai('la liste porte une ligne « #plancher N » (un seul plancher)', pl && (brut.match(/^#plancher /gm) || []).length === 1);
   vrai('le plancher est réel, pas symbolique (plus de 500 vérifications)', pl && parseInt(pl[1], 10) > 500);
-  v('les numéros de suites d\'OP MESSAGES sont dans 900-939, 941-944 (le générateur de l\'interface, renuméroté à la fusion avec le compte Perso ; puis les pièces : 942 le module, 943 le service, 944 l\'appareil et le service), 950-959 (la sauvegarde hors site, étape 3 : 950 et 951 ; puis les notifications push et le compte : 955 le module, 956 le service, 957 l\'export et la suppression, 958 l\'appareil et le service) ou 960-969 (les espaces professionnels et Messages Pro, étape 5)', msg.filter(x => !/test-(?:9[0-3]\d|94[1-4]|95\d|96\d)\.js$/.test(x)), []);
+  v('les numéros de suites d\'OP MESSAGES sont dans 900-939, 941-944 (le générateur de l\'interface, renuméroté à la fusion avec le compte Perso ; puis les pièces : 942 le module, 943 le service, 944 l\'appareil et le service), 950-959 (la sauvegarde hors site, étape 3 : 950 et 951 ; puis les notifications push et le compte : 955 le module, 956 le service, 957 l\'export et la suppression, 958 l\'appareil et le service) 960-969 (les espaces professionnels et Messages Pro, étape 5) ou 970-979 (les réunions programmées, étape 6 : 970 le calendrier, 971 le fichier .ics, 972 le stockage, 973 les routes, 974 le planificateur de rappels, 975 le courriel, 976 l\'interface)', msg.filter(x => !/test-(?:9[0-3]\d|94[1-4]|95\d|96\d|97\d)\.js$/.test(x)), []);
 }
 
 console.log('\nUn jeton de session d\'OP MESSAGES n\'est pas lisible par OP GESTION');

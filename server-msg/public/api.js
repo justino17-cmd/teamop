@@ -90,6 +90,33 @@
     abonnement_pris: 'Cet abonnement est déjà rattaché à un autre espace.',
     stripe_muet: 'Le service de paiement ne répond pas. Rien n\'est changé : réessaie dans un moment.',
     paiement_indisponible: 'Le paiement n\'a pas pu être préparé. Réessaie plus tard.',
+    /* les réunions programmées (étape 6) : chaque refus que l'agenda peut rendre a sa phrase. ⛔ Aucune promesse que le service ne tient pas (« Rejoindre » n'existe pas encore). */
+    titre_vide: 'Donne un titre à la réunion.',
+    fin_avant_debut: 'La fin de la réunion doit tomber après son début.',
+    heure_invalide: 'Cette date ou cette heure n\'est pas valable.',
+    heure_inexistante: 'Cette heure n\'existe pas ce jour-là (changement d\'heure) : choisis-en une autre.',
+    fuseau_inconnu: 'Ce fuseau horaire n\'est pas connu.',
+    repetition_invalide: 'Cette répétition n\'existe pas.',
+    fin_repetition_invalide: 'La fin de la répétition est incorrecte : une date après le début (dans les dix ans), ou entre 2 et 1 000 fois.',
+    rappel_invalide: 'Ce rappel n\'existe pas (5 minutes, 15 minutes, 1 heure ou 1 jour avant, quatre au plus).',
+    reunion_trop_longue: 'Une réunion programmée ne dépasse pas 30 jours.',
+    fenetre_invalide: 'La période demandée est incorrecte (62 jours au plus).',
+    trop_d_invites: 'Une réunion compte 100 invités au plus.',
+    trop_de_reunions: 'Tu as atteint le nombre maximal de réunions à venir (300) : supprime-en une.',
+    reunion_annulee: 'Cette réunion est annulée : elle ne se modifie plus.',
+    hote_non_retirable: 'L\'organisateur ne se retire pas de sa réunion : annule-la ou supprime-la.',
+    hote_non_quittable: 'L\'organisateur ne quitte pas sa réunion : annule-la ou supprime-la.',
+    trop_de_modifications: 'Cette réunion vient d\'être modifiée vingt fois en une heure. Réessaie dans quelques minutes.',
+    hote_reponse: 'Tu organises cette réunion : tu n\'as pas à y répondre.',
+    reunion_quitter: 'On ne quitte pas la conversation d\'une réunion toute seule : ouvre la réunion et choisis « Quitter la réunion ».',
+    occurrence_inconnue: 'Cette date ne fait pas partie de la réunion.',
+    /* l'invitation par courriel : chaque refus a sa phrase, et aucune ne promet ce que le service ne tient pas (« l'envoi par courriel n'est pas encore ouvert » est la vérité d'un service sans relais) */
+    courriel_non_ouvert: 'L\'envoi par courriel n\'est pas encore ouvert.',
+    courriel_invalide: 'Cette adresse courriel n\'est pas valable.',
+    courriel_quota_compte: 'Tu as déjà envoyé dix invitations par courriel ces dernières 24 heures : réessaie plus tard.',
+    courriel_quota_destinataire: 'Cette adresse a déjà reçu deux invitations de ta part cette semaine : réessaie dans quelques jours.',
+    courriel_echec: 'Le courriel n\'a pas pu partir. Il n\'est pas compté dans tes envois : réessaie dans un moment.',
+    reunion_passee: 'Cette réunion est terminée : il n\'y a plus rien à envoyer.',
     erreur_interne: 'Une erreur est survenue de notre côté. Réessaie.',
     serveur: 'Le service ne répond pas correctement. Réessaie dans un instant.',
     reseau: 'Pas de connexion au service. Vérifie ton réseau.',
@@ -152,7 +179,7 @@
     return liste;
   }
 
-  const EVENEMENTS = ['message', 'message_modifie', 'message_supprime', 'reaction', 'conversation', 'retire', 'lu', 'notification', 'saisie', 'presence', 'personne', 'espace', 'resync'];
+  const EVENEMENTS = ['message', 'message_modifie', 'message_supprime', 'reaction', 'conversation', 'retire', 'lu', 'notification', 'saisie', 'presence', 'personne', 'espace', 'reunion', 'resync'];
 
   function creer(opts) {
     const o = opts || {};
@@ -332,6 +359,25 @@
       payerAbonnement: (id, champs) => appel('POST', '/api/espaces/' + e(id) + '/facturation/paiement', champs),
       portailAbonnement: (id) => appel('POST', '/api/espaces/' + e(id) + '/facturation/portail'),
       relireAbonnement: (id) => appel('POST', '/api/espaces/' + e(id) + '/facturation/relire'),
+
+      /* ── Les réunions programmées (étape 6) ──
+         ⛔ La réunion se dit dans l'ADRESSE, jamais dans le corps : le service la relit de la base et de la session. L'heure se dit en millisecondes UTC, ou en heure LOCALE « 2026-10-26T14:00 »
+         avec un fuseau (`tz`) : le service fait autorité sur le fuseau (une heure qui n'existe pas le jour d'un changement d'heure est refusée, `heure_inexistante`). */
+      reunions: (du, au) => appel('GET', '/api/reunions' + rq({ du, au })),
+      programmer: (champs) => appel('POST', '/api/reunions', champs),
+      reunion: (id) => appel('GET', '/api/reunions/' + e(id)),
+      modifierReunion: (id, champs) => appel('POST', '/api/reunions/' + e(id) + '/modifier', champs),
+      annulerReunion: (id) => appel('POST', '/api/reunions/' + e(id) + '/annuler'),
+      supprimerReunion: (id, o2) => appel('POST', '/api/reunions/' + e(id) + '/supprimer', o2 || {}),
+      inviterReunion: (id, uids, o2) => appel('POST', '/api/reunions/' + e(id) + '/inviter', Object.assign({ uids }, o2 || {})),
+      retirerInviteReunion: (id, uid) => appel('POST', '/api/reunions/' + e(id) + '/retirer', { uid }),
+      quitterReunion: (id) => appel('POST', '/api/reunions/' + e(id) + '/quitter'),
+      repondreReunion: (id, statut) => appel('POST', '/api/reunions/' + e(id) + '/reponse', { statut }),
+      rappelsReunion: (id, rappels) => appel('POST', '/api/reunions/' + e(id) + '/rappels', { rappels }),
+      /* l'invitation par courriel à quelqu'un qui n'a pas OP MESSAGES (le fichier .ics en pièce jointe) : l'adresse n'est ni rangée ni rendue par le service */
+      courrielReunion: (id, destinataire, o2) => appel('POST', '/api/reunions/' + e(id) + '/courriel', Object.assign({ destinataire }, o2 || {})),
+      /* l'adresse du fichier .ics (la page le télécharge par un lien : le cookie de session suit) — une occurrence (son début, en millisecondes), ou toute la série */
+      adresseIcs: (id, o2) => base + '/api/reunions/' + e(id) + '/ics' + rq(o2 && o2.occurrence ? { occurrence: o2.occurrence } : { serie: 1 }),
 
       /* Le temps réel. `gestionnaires` : une fonction par événement (`message`, `lu`, `saisie`,
          `presence`, `notification`, `conversation`, `retire`, `resync`…) + `ouvert()`, `erreur(e)` et `reseau('perdu'|'ok')`.
