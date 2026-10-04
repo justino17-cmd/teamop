@@ -44,7 +44,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
   /* le secret du relais est TIRÉ au hasard à chaque passage (jamais un secret écrit dans un fichier) */
   const SECRET = crypto.randomBytes(24).toString('hex');
   const RELAIS = { secret: SECRET, hote: 'turn.exemple.invalid', port: 3478, portTls: 5349, ttlS: 60 };
-  const APPELS = { balayageMs: 100, perduMs: 20000, parHeure: 900, parPaireHeure: 90, iceParHeure: 900, signalMax: 2000 };
+  const APPELS = { balayageMs: 100, perduMs: 20000, parHeure: 900, parPaireHeure: 90, entrantsParHeure: 600, iceParHeure: 900, signalMax: 2000 };
   const svc = await T.lancerService({ urlGestion: og.url, horloge: true, config: { appels: Object.assign({ relais: RELAIS }, APPELS) } });
   const svcN = await T.lancerService({ urlGestion: og.url, horloge: true, config: { appels: Object.assign({ sonnerieMs: 1200 }, APPELS) } });          // SANS relais, et une sonnerie de 1,2 s
   const sources = [];
@@ -154,7 +154,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       v('⛔ les candidats se sont croisés dans les deux sens, sans perte ni doublon (population : chacun en avait produit deux)', [pa.candidatsEmis.length, pb.candidatsEmis.length, pb.candidatsRecus.map(c => c.candidate), pa.candidatsRecus.map(c => c.candidate)], [2, 2, pa.candidatsEmis.map(c => c.candidate), pb.candidatsEmis.map(c => c.candidate)]);
       const srv = pa.conf.iceServers, turn = srv.find(s => s.username);
       v('⛔ les identifiants du relais arrivent INTACTS à la connexion : les adresses du service, l\'utilisateur « échéance:identifiant », l\'HMAC du secret (recalculé ici)',
-        [srv[0].urls, turn.urls, /^\d{10}:p_[0-9a-f]{32}$/.test(turn.username) && turn.username.endsWith(':' + ana.id), turn.credential === hmac(turn.username), pa.conf.bundlePolicy], [['stun:turn.exemple.invalid:3478'], ['turn:turn.exemple.invalid:3478?transport=udp', 'turn:turn.exemple.invalid:3478?transport=tcp', 'turns:turn.exemple.invalid:5349?transport=tcp'], true, true, 'max-bundle']);
+        [srv[0].urls, turn.urls, /^\d{10}:p_[0-9a-f]{32}$/.test(turn.username) && turn.username.endsWith(':' + ana.id), turn.credential === hmac(turn.username), pa.conf.bundlePolicy], [['stun:turn.exemple.invalid:3478'], ['turn:turn.exemple.invalid:3478?transport=udp', 'turns:turn.exemple.invalid:5349?transport=tcp'], true, true, 'max-bundle']);
       vrai('chacun a ses PROPRES identifiants (celui de l\'appelé porte son identifiant à lui)', pb.conf.iceServers.find(s => s.username).username.endsWith(':' + ben.id));
       const fa = A.src.appelFlux(idAudio), fb = B.src.appelFlux(idAudio);
       v('le flux de l\'autre est là, avec ses deux pistes (la page le branche sur son élément audio)', [fa.getTracks().map(t => t.kind), fb.getTracks().map(t => t.kind)], [['audio', 'video'], ['audio', 'video']]);
@@ -178,6 +178,21 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       const iq = A.ordre.map((x, i) => /^rep POST \/api\/appels\/a_[0-9a-f]+\/quitter$/.test(x) ? i : -1).filter(i => i >= 0).pop();
       vrai('⛔ l\'historique est redit APRÈS que le service a reçu le raccrochage (trouvé en vrai navigateur : relu avant, il ne portait pas encore l\'appel qu\'on venait de finir)', iq !== undefined && A.ordre.slice(iq).includes('ev appels'));
       vrai('la notification de la sonnerie est retirée de l\'écran de l\'appelé (étiquette `appel:<identifiant>`)', fermeesAvant.concat(B.fermees).includes('appel:' + idAudio));
+      /* ⛔ LE FLUX N'APPORTE PAS L'ÉVÉNEMENT DE FIN (une coupure du flux au pire moment) : l'historique est QUAND MÊME redit, par la page elle-même, une fois que le service a reçu le raccrochage. Depuis que l'événement de
+         fin, dit par le service, fait relire l'historique à chaque appareil des deux personnes (T1), `finir` n'était plus le seul à le provoquer : la mutation « `finir` ne redit plus l'historique » SURVIVAIT, vert partout — le banc
+         ne jouait que le cas où le flux marche. On joue donc l'autre : les événements d'appel de CE flux ne sont pas vus de la page, et seule la page elle-même peut relire. */
+      const sh = await A.src.demarrerAppel({ membres: [ben.id], video: false });
+      await B.attendreEv(e => e.type === 'appel-entrant' && e.id === sh.id);
+      await B.src.repondreAppel(sh.id, true);
+      vrai('population : la liaison de ce second appel s\'établit (la fin qui suit est celle d\'un vrai appel)', !!(await liees(A, B)));
+      A.perdre = (t) => t === 'appel';
+      const avantH = A.ordre.length, recusH = A.recus.appel || 0;
+      await A.src.terminerAppel(sh.id);
+      const ih = A.ordre.map((x, i) => /^rep POST \/api\/appels\/a_[0-9a-f]+\/quitter$/.test(x) ? i : -1).filter(i => i >= 0).pop();
+      vrai('population : l\'événement de fin est ARRIVÉ au flux d\'Ana (compté avant le module) — et la page ne l\'a pas vu', !!(await att(() => (A.recus.appel || 0) > recusH, 4000)));
+      vrai('⛔ l\'historique est redit APRÈS que le service a reçu le raccrochage — par la page seule (l\'événement de fin n\'était pas là pour le provoquer)', ih !== undefined && ih >= avantH && A.ordre.slice(ih).includes('ev appels'));
+      A.perdre = null;
+      await B.attendreSnap(sh.id, x => x.etat === 'termine'); await B.src.terminerAppel(sh.id);
     }
 
     /* ═══ 3. LA VIDÉO, LES PISTES DE LA PAGE ══════════════════════════════════════════════════════════════════════ */
@@ -300,7 +315,12 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       vrai('la liaison de celui qui a répondu s\'établit, sans être dérangée', !!(await liees(A, B)));
       const e2 = await attrape(B2.src.repondreAppel(s.id, true));
       v('répondre sur le second appareil, trop tard : refus (cet appel est fini pour CET appareil)', [codeDe(e2)], ['appel_fini']);
-      await A.src.terminerAppel(s.id); await B.attendreSnap(s.id, x => x.etat === 'termine'); await B.src.terminerAppel(s.id); await B2.src.terminerAppel(s.id).catch(() => {});
+      /* ⛔ T1 (relecture) : B2 a LAISSÉ l'appel (« pris ailleurs ») plus tôt : sa page a relu son historique à ce moment-là, l'appel courait encore. Quand l'appel FINIT vraiment, le service écrit l'événement de fin pour
+         chaque participant — il atteint B2 — et sa page doit relire de nouveau, sinon l'appel manque à l'historique de ce second appareil (mesuré par le testeur : « historique de Ben2 vide »). */
+      const relusB2 = () => B2.evs.filter(e => e.type === 'appels').length, avantFin = relusB2();
+      await A.src.terminerAppel(s.id); await B.attendreSnap(s.id, x => x.etat === 'termine');
+      vrai('⛔ la fin de l\'appel fait relire l\'historique au second appareil de Ben, qui n\'a jamais tenu l\'appel (événement `appels`)', !!(await att(() => relusB2() > avantFin, 6000)));
+      await B.src.terminerAppel(s.id); await B2.src.terminerAppel(s.id).catch(() => {});
       /* — les deux répondent en même temps — */
       const s2 = await A.src.demarrerAppel({ membres: [ben.id], video: false });
       await B.attendreEv(e => e.type === 'appel-entrant' && e.id === s2.id); await B2.attendreEv(e => e.type === 'appel-entrant' && e.id === s2.id);
@@ -544,7 +564,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
     }
 
     /* ═══ 10. LE RENOUVELLEMENT DES IDENTIFIANTS DU RELAIS ════════════════════════════════════════════════════════ */
-    console.log('\nLes identifiants du relais durent une heure (ici une minute) : un appel plus long les renouvelle, l\'appelant PUIS l\'appelé');
+    console.log('\nLes identifiants du relais durent quinze minutes (ici une minute) : chacun renouvelle les siens aux trois quarts de leur vie, SANS relancer la liaison');
     {
       const R1 = monter(svc, 'ana', { delais: { renouv: 0.01, renouvMin: 200 } }), R2 = monter(svc, 'ben', { delais: { renouv: 0.01, renouvMin: 200 } });
       await R1.entrer(); await R2.entrer();
@@ -554,12 +574,12 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       await R2.src.repondreAppel(s.id, true);
       await att(() => R1.monde.dernier() && R2.monde.dernier());
       const pa = R1.monde.dernier(), pb = R2.monde.dernier();
-      vrai('la liaison s\'établit, puis le renouvellement a lieu (une seconde configuration chez l\'appelant ET chez l\'appelé)', !!(await att(() => pa && pb && pa.confs.length === 2 && pb.confs.length === 2 && pa.iceConnectionState === 'connected' && pb.iceConnectionState === 'connected', 10000)));
+      vrai('la liaison s\'établit, puis le renouvellement a lieu — CHACUN renouvelle les siens (une seconde configuration chez l\'appelant ET chez l\'appelé : l\'appelé n\'attend pas qu\'on le lui dise)', !!(await att(() => pa && pb && pa.confs.length === 2 && pb.confs.length === 2 && pa.iceConnectionState === 'connected' && pb.iceConnectionState === 'connected', 10000)));
       const u0 = pa.confs[0].iceServers.find(x => x.username), u1 = pa.confs[1].iceServers.find(x => x.username), w1 = pb.confs[1].iceServers.find(x => x.username);
       v('⛔ les NOUVEAUX identifiants ont une autre échéance, la bonne signature, et l\'appelé a les siens (son identifiant)', [u1.username !== u0.username, u1.credential === hmac(u1.username), w1.username.endsWith(':' + ben.id), w1.credential === hmac(w1.username), Number(u1.username.split(':')[0]) > Number(u0.username.split(':')[0])], [true, true, true, true, true]);
-      const ordreA = pa.journal.filter(x => /setConfiguration|restartIce|^createOffer/.test(x)), ordreB = pb.journal.filter(x => /setConfiguration|setRemoteDescription|createAnswer/.test(x));
-      v('⛔ l\'appelant renouvelle PUIS relance la liaison ; l\'appelé renouvelle AVANT de répondre à l\'offre de renouvellement (sinon sa nouvelle allocation naîtrait avec les vieux identifiants)',
-        [ordreA.slice(0, 4), ordreB.slice(-3)], [['createOffer', 'setConfiguration', 'restartIce', 'createOffer:restart'], ['setConfiguration', 'setRemoteDescription:offer', 'createAnswer']]);
+      v('⛔ le renouvellement NE RELANCE PAS la liaison (mesuré en vrai navigateur : chaque relance laissait deux allocations de plus chez le relais, jusqu\'au quota de la personne, et coupait un instant la voix) : l\'appelant n\'a fait QU\'UNE offre — la première —, jamais de `restartIce` ; l\'appelé n\'a répondu qu\'à celle-là',
+        [pa.journal.filter(x => /^createOffer/.test(x)), pa.journal.filter(x => /restartIce/.test(x)).length, pb.journal.filter(x => /restartIce/.test(x)).length, pb.journal.filter(x => /^setRemoteDescription:offer/.test(x)).length, pb.journal.filter(x => /^createAnswer/.test(x)).length],
+        [['createOffer'], 0, 0, 1, 1]);
       v('et l\'appel n\'a pas été coupé (même connexion, état connecté)', [R1.monde.pcs.length, R2.monde.pcs.length, (await R1.src.appel(s.id)).etat, pa.fermee], [1, 1, 'en-cours', false]);
       await R1.src.terminerAppel(s.id); await R2.attendreSnap(s.id, x => x.etat === 'termine'); await R2.src.terminerAppel(s.id);
       R1.src.arreter(); R2.src.arreter();

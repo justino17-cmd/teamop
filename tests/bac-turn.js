@@ -38,7 +38,7 @@ const cidr = (c) => {
 const A_REFUSER = ['0.0.0.0/8', '10.0.0.0/8', '100.64.0.0/10', '127.0.0.0/8', '169.254.0.0/16', '172.16.0.0/12', '192.168.0.0/16', '::1/128', 'fc00::/7', 'fe80::/10', '::ffff:0:0/96', '64:ff9b::/96'];
 
 /* ── le bac à sable ── */
-const OUTILS_REELS = ['bash', 'sh', 'sed', 'cp', 'mv', 'rm', 'mkdir', 'chmod', 'ln', 'cat', 'cmp', 'dirname', 'id', 'tr', 'cut', 'head'];
+const OUTILS_REELS = ['bash', 'sh', 'sed', 'cp', 'mv', 'rm', 'mkdir', 'chmod', 'ln', 'cat', 'cmp', 'dirname', 'tr', 'cut', 'head', 'grep'];
 function reel(nom) { for (const d of (process.env.PATH || '').split(':')) { const p = path.join(d, nom); try { if (fs.statSync(p).isFile()) return p; } catch (e) { /* suivant */ } } return null; }
 const PROLOGUE = '#!/bin/bash\nE="$BAC_ETAT"; echo "${0##*/} $*" >> "$E/appels.log"; export -p >> "$E/env.log"\n';
 const FAUX = {
@@ -54,17 +54,33 @@ case "$cmd" in
     esac ;;
   restart|start)
     case "$1" in
-      coturn) if [ -f "$E/coturn-refuse" ]; then rm -f "$E/coturn-actif"; exit 1; fi; : > "$E/coturn-actif" ;;
+      coturn) if [ -f "$E/coturn-refuse" ]; then rm -f "$E/coturn-actif"; exit 1; fi
+              # systemd REJOUE les ExecStartPre= du drop-in de coturn (le vrai script de pare-feu, contre le faux noyau) : une commande qui échoue = l'unité ne démarre pas
+              DI="$BAC_R/etc/systemd/system/coturn.service.d/opmsg.conf"
+              if [ -f "$DI" ]; then
+                while IFS= read -r l; do case "$l" in Environment=*) export "\${l#Environment=}" ;; esac; done < "$DI"
+                while IFS= read -r l; do
+                  case "$l" in ExecStartPre=+*) c="\${l#ExecStartPre=+}"; c="$BAC_R\${c}"; echo "ExecStartPre \${l#ExecStartPre=+}" >> "$E/appels.log"; bash $c || { rm -f "$E/coturn-actif"; exit 1; } ;; esac
+                done < "$DI"
+              fi
+              : > "$E/coturn-actif" ;;
       teamop-msg@*) i="\${1#teamop-msg@}"; if [ -f "$E/unite-refuse" ] && [ ! -f "$E/unite-refuse-une-fois-passe" ]; then : > "$E/unite-refuse-une-fois-passe"; rm -f "$E/unite-actif"; exit 1; fi
                     : > "$E/unite-actif"; cp "$BAC_R/etc/opmsg/$i.json" "$E/config-lue-$i.json" ;;
     esac ;;
-  stop) case "$1" in coturn) rm -f "$E/coturn-actif" ;; esac ;;
+  stop) case "$1" in coturn)
+          rm -f "$E/coturn-actif"
+          DI="$BAC_R/etc/systemd/system/coturn.service.d/opmsg.conf"
+          if [ -f "$DI" ]; then
+            while IFS= read -r l; do case "$l" in Environment=*) export "\${l#Environment=}" ;; esac; done < "$DI"
+            while IFS= read -r l; do case "$l" in ExecStopPost=+*) c="\${l#ExecStopPost=+}"; c="$BAC_R\${c}"; echo "ExecStopPost \${l#ExecStopPost=+}" >> "$E/appels.log"; bash $c || true ;; esac; done < "$DI"
+          fi ;; esac ;;
   *) : ;;
 esac
 `,
   'apt-get': PROLOGUE + `case "$*" in
   *coturn*) [ -f "$E/apt-refuse" ] || { printf '#!/bin/bash\\nexit 0\\n' > "$BAC_BIN/turnserver"; chmod 755 "$BAC_BIN/turnserver"; } ;;
   *certbot*) [ -f "$E/apt-refuse-certbot" ] || { cp "$BAC_BIN/.certbot-faux" "$BAC_BIN/certbot"; chmod 755 "$BAC_BIN/certbot"; } ;;
+  *iptables*) [ -f "$E/apt-refuse-iptables" ] || { cp "$BAC_BIN/.iptables-faux" "$BAC_BIN/iptables"; cp "$BAC_BIN/.iptables-faux" "$BAC_BIN/ip6tables"; chmod 755 "$BAC_BIN/iptables" "$BAC_BIN/ip6tables"; } ;;
 esac
 `,
   nginx: PROLOGUE + `if [ "$1" = "-t" ]; then [ -f "$E/nginx-refuse" ] && { echo "nginx: [emerg] refus simulé" >&2; exit 1; }; fi
@@ -76,6 +92,32 @@ exit 0
   chown: PROLOGUE,
   sleep: PROLOGUE,
 };
+/* Un faux iptables : des chaînes et des règles rangées dans l'état du bac, une famille (IPv4/IPv6) par nom d'appel. Il sait -N -F -X -A -I -C -D -S, comme le script de pare-feu s'en sert.
+   Drapeaux du bac : `iptables-absent-v6` (le noyau n'a pas d'IPv6 : toute commande échoue), `iptables-refuse-v4` / `-v6` (une règle ne se pose pas), `iptables-oublie-v4` / `-v6` (les règles se posent mais `-C` ne les relit jamais). Chaque appel est noté. */
+const IPTABLES_FAUX = PROLOGUE + `fam=v4; [ "\${0##*/}" = "ip6tables" ] && fam=v6
+[ -f "$E/iptables-absent-$fam" ] && { echo "faux $fam : indisponible" >&2; exit 3; }
+CH="$E/ipt-$fam.chaines"; RG="$E/ipt-$fam.regles"; : >> "$CH"; : >> "$RG"
+op="$1"; shift
+existe() { case "$1" in OUTPUT|INPUT|FORWARD) return 0 ;; esac; grep -qxF "$1" "$CH"; }
+retirer_lignes() { local pre="$1" garde=() l; while IFS= read -r l; do case "$l" in "$pre"*) ;; *) garde+=("$l") ;; esac; done < "$RG"; printf '%s\\n' "\${garde[@]}" | sed '/^$/d' > "$RG.n"; mv "$RG.n" "$RG"; }
+case "$op" in
+  -N) existe "$1" && { echo "Chain already exists" >&2; exit 1; }; echo "$1" >> "$CH" ;;
+  -F) existe "$1" || { echo "No chain" >&2; exit 1; }; retirer_lignes "$1|" ;;
+  -X) existe "$1" || exit 1; grep -q "^$1|" "$RG" && exit 1; l2=(); while IFS= read -r l; do [ "$l" = "$1" ] || l2+=("$l"); done < "$CH"; printf '%s\\n' "\${l2[@]}" | sed '/^$/d' > "$CH" ;;
+  -A) c="$1"; shift; existe "$c" || exit 1; [ -f "$E/iptables-refuse-$fam" ] && { echo "refus simulé" >&2; exit 1; }; echo "$c|$*" >> "$RG" ;;
+  -I) c="$1"; shift; shift; existe "$c" || exit 1; [ -f "$E/iptables-refuse-$fam" ] && { echo "refus simulé" >&2; exit 1; }; { echo "$c|$*"; cat "$RG"; } > "$RG.n"; mv "$RG.n" "$RG" ;;
+  -C) c="$1"; shift; [ -f "$E/iptables-oublie-$fam" ] && exit 1; grep -qxF "$c|$*" "$RG" ;;
+  -D) c="$1"; shift; grep -qxF "$c|$*" "$RG" || exit 1; trouve=""; l3=(); while IFS= read -r l; do if [ -z "$trouve" ] && [ "$l" = "$c|$*" ]; then trouve=1; else l3+=("$l"); fi; done < "$RG"; printf '%s\\n' "\${l3[@]}" | sed '/^$/d' > "$RG" ;;
+  -S) c="\${1:-}"; [ -z "$c" ] || existe "$c" || exit 1
+      case "$c" in OUTPUT|INPUT|FORWARD) echo "-P $c ACCEPT" ;; "") ;; *) echo "-N $c" ;; esac
+      while IFS= read -r l; do [ -z "$c" ] || [ "\${l%%|*}" = "$c" ] && echo "-A \${l%%|*} \${l#*|}"; done < "$RG"; : ;;
+  *) : ;;
+esac
+`;
+const ID_FAUX = (reelId) => `#!/bin/bash
+[ "$1" = "-u" ] && [ "\${2:-}" = "turnserver" ] && { echo 998; exit 0; }
+exec "${reelId}" "$@"
+`;
 const CERTBOT_FAUX = PROLOGUE + `[ -f "$E/certbot-refuse" ] && exit 1
 d=""; while [ $# -gt 0 ]; do if [ "$1" = "-d" ]; then d="$2"; fi; shift; done
 mkdir -p "$BAC_R/etc/letsencrypt/live/$d"; echo CERT-FACTICE > "$BAC_R/etc/letsencrypt/live/$d/fullchain.pem"; echo CLE-FACTICE > "$BAC_R/etc/letsencrypt/live/$d/privkey.pem"
@@ -92,6 +134,9 @@ function bac(opts = {}) {
   const b = { d, R: path.join(d, 'racine'), E: path.join(d, 'etat'), bin: path.join(d, 'bin'), serveurs: [] };
   for (const x of [b.R, b.E, b.bin]) fs.mkdirSync(x, { recursive: true });
   for (const o of OUTILS_REELS) { const p = reel(o); if (p) fs.symlinkSync(p, path.join(b.bin, o)); }
+  fs.writeFileSync(path.join(b.bin, 'id'), ID_FAUX(reel('id') || '/usr/bin/id'), { mode: 0o755 });
+  fs.writeFileSync(path.join(b.bin, '.iptables-faux'), IPTABLES_FAUX, { mode: 0o755 });          // (celui que le faux `apt-get` installe quand la machine n'en a pas : `bac({ iptables: false })`)
+  if (opts.iptables !== false) { fs.copyFileSync(path.join(b.bin, '.iptables-faux'), path.join(b.bin, 'iptables')); fs.copyFileSync(path.join(b.bin, '.iptables-faux'), path.join(b.bin, 'ip6tables')); }
   fs.symlinkSync(process.execPath, path.join(b.bin, 'node'));
   for (const [nom, txt] of Object.entries(FAUX)) fs.writeFileSync(path.join(b.bin, nom), txt, { mode: 0o755 });
   fs.writeFileSync(path.join(b.bin, '.certbot-faux'), CERTBOT_FAUX, { mode: 0o755 });
@@ -115,9 +160,11 @@ function bac(opts = {}) {
     if (opts.verifieur !== false) {
       const o = path.join(b.R, 'opt', 'opmsg', nom, 'current', 'outils');
       fs.mkdirSync(o, { recursive: true }); fs.writeFileSync(path.join(o, 'verifier-relais.js'), VERIFIEUR_FAUX);
+      fs.copyFileSync(path.join(RACINE, 'server-msg', 'turn-pare-feu.sh'), path.join(o, '..', 'turn-pare-feu.sh'));
     }
     return f;
   };
+  b.noyau = (fam) => ({ chaines: (lire(path.join(b.E, 'ipt-' + fam + '.chaines')) || '').split('\n').filter(Boolean), regles: (lire(path.join(b.E, 'ipt-' + fam + '.regles')) || '').split('\n').filter(Boolean) });
   b.config = (nom) => { try { return JSON.parse(fs.readFileSync(path.join(b.R, 'etc', 'opmsg', nom + '.json'), 'utf8')); } catch (e) { return null; } };
   b.octets = (rel) => lire(path.join(b.R, rel));
   b.journal = () => lire(path.join(b.E, 'appels.log')).split('\n').filter(Boolean);

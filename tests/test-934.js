@@ -106,7 +106,7 @@ v('instanceDe : msg-beta → beta, msg → prod, un autre domaine → rien',
 
 /* ══ 1 quater. LES APPELS À DEUX (/health.appels : le balayeur des sonneries échues et des appareils perdus) ══════════════════════════════ */
 {
-  const A_SAIN = { turn: false, ageS: 1, echecs: 0, perdus: 0 };
+  const A_SAIN = { turn: false, ageS: 1, echecs: 0 };
   const avec = (o) => S.evaluer(Object.assign({}, SAIN, { appels: Object.assign({}, A_SAIN, o) }), 'beta');
   v('un balayeur sain ne fait rien crier (un passage il y a une seconde, aucun échec) — relais absent compris : tant que Justin n\'a pas lancé install-turn.sh, ce n\'est pas une panne', avec({}), []);
   vrai('⛔ un dernier passage vieux de dix minutes crie : la boucle est morte ou bloquée, plus aucun appel manqué ne s\'écrit', avec({ ageS: 600 }).some(p => /balayeur d'appels ne tourne plus/.test(p) && /600 s/.test(p)));
@@ -114,7 +114,10 @@ v('instanceDe : msg-beta → beta, msg → prod, un autre domaine → rien',
   v('   « jamais passé » (ageS null : la première seconde du service) ne crie pas', avec({ ageS: null }), []);
   vrai('⛔ trois passages de suite en échec crient (une erreur qui dure : une sonnerie échue qui lève à chaque tour ne devient jamais un appel manqué)', avec({ echecs: 3 }).some(p => /3 passages de suite du balayeur d'appels/.test(p)));
   v('   un ou deux échecs ne crient pas (un accroc isolé)', [avec({ echecs: 1 }), avec({ echecs: 2 })], [[], []]);
-  v('   des appels perdus (un téléphone qui entre dans un tunnel) et un relais installé ou non ne crient JAMAIS', [avec({ perdus: 500 }), avec({ turn: true }), avec({ turn: false, perdus: 40 })], [[], [], []]);
+  v('   un relais installé ou non ne crie JAMAIS sans sonde (sans le résultat d\'une requête UDP, le service seul ne peut pas dire si coturn répond)', [avec({ turn: true }), avec({ turn: false })], [[], []]);
+  const avecSonde = (o, sonde) => S.evaluer(Object.assign({}, SAIN, { appels: Object.assign({}, A_SAIN, o) }), 'beta', sonde);
+  vrai('⛔ un relais ANNONCÉ par le service et MUET à la requête STUN en UDP crie (R6 : coturn arrêté, UDP 3478 fermé, DNS du relais)', avecSonde({ turn: true }, { relais: false }).some(p => /relais d'appels ne répond pas à une requête STUN/.test(p)));
+  v('   sondé et répondant : rien ; non sondé : rien ; aucun relais annoncé (avant l\'installation de coturn) : rien, même si une sonde dit faux', [avecSonde({ turn: true }, { relais: true }), avecSonde({ turn: true }, {}), avecSonde({ turn: false }, { relais: false })], [[], [], []]);
   v('   un /health sans la clé « appels » (un service d\'avant) ne crie pas', S.evaluer(Object.assign({}, SAIN, { appels: undefined }), 'beta'), []);
   vrai('⛔ aucun problème ne contient d\'identifiant : seulement des nombres', avec({ ageS: 900, echecs: 5, appel: 'a_deadbeefcafe', uid: 'p_deadbeef' }).every(p => !/deadbeef/.test(p)));
   Object.assign(SAIN, { appels: A_SAIN });
@@ -160,6 +163,24 @@ v('   les tables à clés dynamiques s\'arrêtent à leur conteneur (y descendre
 const DETTE = ['version', 'uptimeS', 'base.ok', 'base.schema', 'flux.ouverts', 'flux.personnes', 'flux.refus', 'porte', 'porte.ouvertures', 'porte.refusAmont', 'porte.derniereRelectureOk', 'boucle.p99Ms', 'disque.bas', 'quotasRefus'];
 const T = require('./outils-msg');
 (async () => {
+  /* ══ 1 quinquies. LA SONDE UDP DU RELAIS (R6) : une VRAIE requête STUN, jouée contre de faux relais en boucle locale ═══════════════════════════════════════
+     ⛔ Chaque « faux » est PROUVÉ par un cas qui répond juste : une sonde qui rend toujours faux, ou toujours vrai, ne se verrait pas. Les délais sont ceux du banc (150 ms), pas ceux de la surveillance (3 s). */
+  {
+    const dgram = require('dgram');
+    const faux = (repondre) => new Promise((ok) => { const s = dgram.createSocket('udp4'); s.vus = 0; s.on('message', (m, r) => { s.vus++; const rep = repondre(m, s.vus); if (rep) s.send(rep, r.port, r.address); }); s.bind(0, '127.0.0.1', () => ok(s)); });
+    const succes = (m) => { const b = Buffer.from(m); b.writeUInt16BE(0x0101, 0); return b; };
+    const sonder = (s, essais) => S.sonderRelais('127.0.0.1', s.address().port, 150, essais || 3);
+    const serveurs = [];
+    try {
+      const bon = await faux(succes), muet = await faux(() => null), autreTxid = await faux((m) => { const b = succes(m); b[8] ^= 0xff; return b; }), erreur = await faux((m) => { const b = Buffer.from(m); b.writeUInt16BE(0x0111, 0); return b; });
+      const tardif = await faux((m, n) => n >= 2 ? succes(m) : null);
+      serveurs.push(bon, muet, autreTxid, erreur, tardif);
+      v('⛔ un relais qui répond à la requête STUN (Binding, même identifiant de transaction) : la sonde rend VRAI — et il a bien reçu une requête de 20 octets', [await sonder(bon), bon.vus >= 1], [true, true]);
+      v('⛔ un relais MUET, un relais qui répond avec un autre identifiant de transaction, un qui répond « erreur » : la sonde rend FAUX (population : chacun a bien reçu les trois essais)', [await sonder(muet), await sonder(autreTxid), await sonder(erreur), muet.vus, autreTxid.vus, erreur.vus], [false, false, false, 3, 3, 3]);
+      v('   un paquet perdu n\'est pas une panne : la réponse au SECOND essai suffit', [await sonder(tardif), tardif.vus], [true, 2]);
+      v('   un nom qui ne se résout pas : FAUX, sans lever', await S.sonderRelais('relais.invalid', 3478, 150, 2), false);
+    } finally { for (const s of serveurs) { try { s.close(); } catch (e) { /* fermé */ } } }
+  }
   if (!fs.existsSync(path.join(T.SERVICE, 'node_modules'))) {
     console.log('  — server-msg/node_modules absent : le /health vivant n\'est pas joué (npm ci dans server-msg/)');
     t.fin();

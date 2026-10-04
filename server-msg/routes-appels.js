@@ -1,6 +1,6 @@
 /* ══ LES ROUTES DES APPELS À DEUX — LE RELAIS, LANCER, RÉPONDRE, RACCROCHER, SIGNALER, L'HISTORIQUE ═════════════════════════════════════════════════
  *
- *   GET  /api/ice                          S   les identifiants ÉPHÉMÈRES du relais (une heure) et ses adresses — ou `relais:false` et rien, tant que le relais n'est pas installé
+ *   GET  /api/ice                          S   les identifiants ÉPHÉMÈRES du relais (quinze minutes) et ses adresses, à qui est dans un appel qui sonne ou qui court (404 sinon) — `relais:false` tant que le relais n'est pas installé
  *   POST /api/appels  {conv|uid, type}     V   lancer un appel AUDIO ou VIDÉO à UNE personne (une conversation directe, ou une personne qu'on peut joindre) — à deux seulement
  *   GET  /api/appels?filtre=tous|manques   S   mon historique (les appels finis, du plus récent, bornés) et `actif` : l'appel qui sonne ou court pour moi, s'il y en a un
  *   POST /api/appels/:id/repondre {accepte}   AP   répondre (cet appareil est LIÉ à l'appel) ou refuser
@@ -14,14 +14,31 @@
  * ⛔ LES PERSONNES VIENNENT DE LA SESSION ET DE LA BASE, jamais du corps : l'appelant est la personne connectée, l'appel se lit dans l'adresse (`:id`), l'AUTRE participant est celui de l'appel.
  * ⛔ « QUI PEUT SE JOINDRE » EST LA RÈGLE DE LA MESSAGERIE, À LA LETTRE : `peutEcrire` (un contact mutuel, ou un collègue d'un même espace) et jamais un blocage, dans un sens ou dans l'autre. Quelqu'un qu'on ne peut pas
  * appeler reçoit la MÊME réponse que quelqu'un qu'on ne peut pas écrire (404 `introuvable`) : un appel ne dit pas qu'on a été bloqué. Un non-participant d'un appel reçoit le même 404 qu'un appel qui n'existe pas.
- * ⛔ LES PLAFONDS SONT À LA FOIS PAR PERSONNE (30 appels lancés par heure, un tiers pour un compte de moins de 24 h) ET PAR PAIRE (6 vers la même personne) : faire sonner trente fois quelqu'un est du
- * harcèlement. Réglables mais bornés (`config.appels`, qui refuse un nombre absurde au démarrage).
+ * ⛔ LES PLAFONDS SONT PAR PERSONNE (30 appels lancés par heure, un tiers pour un compte de moins de 24 h), PAR PAIRE (6 vers la même personne) ET PAR PERSONNE APPELÉE (30 appels reçus par heure, tous appelants
+ * confondus) : faire sonner trente fois quelqu'un est du harcèlement, à un compte comme à plusieurs. Réglables mais bornés (`config.appels`, qui refuse un nombre absurde au démarrage).
  */
 'use strict';
 const { ID_PERS, ID_CONV } = require('./routes');
 const { TYPES_SIGNAL, SIGNAL_OCTETS_MAX } = require('./appels');
 
 const JOUR = 86400000;
+
+/* ⛔ LA TAILLE D'UN SIGNAL SE MESURE SANS JAMAIS LEVER. `JSON.stringify` d'un objet imbriqué sur quelques milliers de niveaux lève « Maximum call stack size exceeded » : mesuré par la relecture, 5 000 niveaux
+   (30 Ko de corps, loin sous la limite) donnaient un 500 `erreur_interne` au lieu du refus. Une enveloppe d'appel est PLATE (une offre : { type, sdp } ; des candidats : une liste d'objets à trois champs ; l'état
+   de la caméra : un booléen) : au-delà de `PROFONDEUR_SIGNAL_MAX` niveaux, ou de `NOEUDS_SIGNAL_MAX` valeurs, ce n'est pas un signal — et on le dit comme un signal trop gros (413), sans l'avoir sérialisé. Le parcours
+   est ITÉRATIF (une pile, jamais de récursion) : le mesurer ne peut pas lui-même déborder. → des octets, ou Infinity. */
+const PROFONDEUR_SIGNAL_MAX = 8, NOEUDS_SIGNAL_MAX = 4096;
+function tailleSignal(d) {
+  const pile = [[d, 1]];
+  let noeuds = 0;
+  while (pile.length) {
+    const [x, niveau] = pile.pop();
+    if (x === null || typeof x !== 'object') continue;
+    if (niveau > PROFONDEUR_SIGNAL_MAX || ++noeuds > NOEUDS_SIGNAL_MAX) return Infinity;
+    for (const k of Object.keys(x)) pile.push([x[k], niveau + 1]);
+  }
+  try { return Buffer.byteLength(JSON.stringify(d), 'utf8'); } catch (e) { return Infinity; }
+}
 
 function installerAppels(H, ctx) {
   const { config, stockage, quotas, horloge, appels } = ctx;
@@ -47,6 +64,11 @@ function installerAppels(H, ctx) {
 
   /* ── le relais ── */
   H['ice'] = (req, res) => {
+    /* ⛔ DES IDENTIFIANTS DE RELAIS NE SE DONNENT QU'À QUI EST DANS UN APPEL (relecture, I1) : n'importe quel compte, à n'importe quel moment, en tirait pour une heure — et ouvrait ainsi, sans appeler personne,
+       des allocations (autant que le plafond du relais le permet) qui relayent des paquets UDP vers l'Internet depuis NOTRE adresse. Il faut maintenant être PARTICIPANT d'un appel qui sonne ou qui court
+       (`appelActifDe`, l'échéance de la sonnerie comprise) — l'appelant dès son lancement, l'appelé dès la sonnerie, jusqu'à la fin. Hors de là, le MÊME 404 qu'un appel qui n'existe pas : rien ne dit
+       qu'un relais existe. La page demande ses identifiants APRÈS avoir lancé l'appel ou avant de répondre : elle n'en a jamais besoin à vide. Jugé AVANT le plafond (un refus ne consomme rien). */
+    if (!stockage.appelActifDe(req.moi.id)) return refus(res, 404, 'introuvable');
     if (!plafond(res, 'ice:' + req.moi.id, cfg.iceParHeure, 3600000)) return;
     res.set('Cache-Control', 'no-store');
     res.json(appels.ice(req.moi.id));
@@ -84,6 +106,16 @@ function installerAppels(H, ctx) {
        de la personne (les quotas du service comptent les essais, pas les réussites — comme les messages à la minute). Le banc `test-981` joue l'arithmétique. */
     if (!plafond(res, 'appel:' + moi.id, cfg.parHeure * jeune(moi), 3600000)) return;
     if (!plafond(res, 'appel_paire:' + moi.id + ':' + appele, cfg.parPaireHeure, 3600000)) return;
+    /* ⛔ ET PAR PERSONNE APPELÉE (relecture, I4) : les deux plafonds ci-dessus sont ceux de l'APPELANT — dix comptes, ou dix collègues qui s'y mettent, font sonner trois cents fois la même personne par heure sans en
+       atteindre un seul. Au-delà de `entrantsParHeure` appels reçus dans l'heure (tous appelants confondus, les « occupé » compris), le lancement est refusé 429 `appele_sature`, et l'appelant LIT pourquoi
+       (« cette personne reçoit beaucoup d'appels ») au lieu d'une sonnerie qui ne vient pas. Jugé APRÈS le droit de joindre (404 identique pour qui ne le peut pas) et APRÈS les plafonds de l'appelant (la
+       tentative lui coûte), AVANT l'écriture ; synchrone, donc sans course entre le compte et l'appel qui l'augmente. */
+    const recus = stockage.appelsRecusDepuis(appele, horloge() - 3600000);
+    if (recus.n >= cfg.entrantsParHeure) {
+      const retry = Math.min(3600, Math.max(1, Math.ceil((recus.plusAncien + 3600000 - horloge()) / 1000)));
+      res.set('Retry-After', String(retry));
+      return refus(res, 429, 'appele_sature', { retry });
+    }
     let r;
     try { r = appels.creer({ moi, appele, type: b.type, sessionH: req.sessionH }); }
     catch (e) { if (e && e.code === 'occupe_moi') return refus(res, 409, 'occupe', { moi: true }); throw e; }
@@ -114,7 +146,7 @@ function installerAppels(H, ctx) {
     if (b.type !== 'pouls') {
       if (b.donnees === null || typeof b.donnees !== 'object' || Array.isArray(b.donnees)) return refus(res, 400, 'champ_invalide');      // un OBJET : l'enveloppe est { type, donnees }, la page lit des champs, pas une liste
       d = b.donnees;
-      if (Buffer.byteLength(JSON.stringify(d), 'utf8') > SIGNAL_OCTETS_MAX) return refus(res, 413, 'signal_trop_gros');
+      if (tailleSignal(d) > SIGNAL_OCTETS_MAX) return refus(res, 413, 'signal_trop_gros');
     }
     if (!plafond(res, 'signal:' + acces.id + ':' + moi.id, cfg.signalMax, cfg.signalFenetreMs)) return;
     appels.signal({ moi, acces, sessionH: req.sessionH, type: b.type, donnees: d });
@@ -122,4 +154,4 @@ function installerAppels(H, ctx) {
   });
 }
 
-module.exports = { installerAppels };
+module.exports = { installerAppels, tailleSignal, PROFONDEUR_SIGNAL_MAX, NOEUDS_SIGNAL_MAX };

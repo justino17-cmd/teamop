@@ -753,9 +753,9 @@ Il n'y a **aucune urgence**, mais c'est le geste à faire avant de demander à q
 ### Ce que le relais est — et n'est pas
 
 - **Un facteur de paquets**, pas un serveur de visioconférence : les deux navigateurs chiffrent la voix et l'image entre eux (DTLS-SRTP), le relais ne fait que les transporter. Il ne les lit pas, et il **n'écrit rien** : son journal est coupé, parce qu'il porterait l'adresse de chaque appareil.
-- **Éphémère** : à chaque appel, le service donne à la personne un nom et un mot de passe valables **une heure**, calculés avec le secret ; la page les renouvelle seule pendant un appel plus long. Le relais ne connaît aucun compte.
-- **Cloisonné** : le script lui donne la liste des adresses vers lesquelles il REFUSE de relayer — la machine elle-même (donc OP GESTION), les réseaux privés, le service de métadonnées de l'hébergeur… — et **l'éprouve avant d'ouvrir quoi que ce soit** (coturn ignore en silence une règle mal écrite : § 3.5 de la conception).
-- **Plafonné** : 8 allocations par identifiant, 300 en tout, 500 ko/s par session, 12,5 Mo/s pour l'ensemble. Il tourne avec un poids processeur et disque bas : si quelque chose doit ploier sur ce VPS, ce n'est pas OP GESTION.
+- **Éphémère, et pour qui est dans un appel** : le service ne donne un nom et un mot de passe qu'à une personne dont un appel sonne ou court — à toute autre, il répond comme à une page qui n'existe pas — ; ils sont valables **quinze minutes**, calculés avec le secret, et la page les renouvelle seule pendant un appel plus long. Le relais ne connaît aucun compte.
+- **Cloisonné** : le script lui donne la liste des adresses vers lesquelles il REFUSE de relayer — la machine elle-même (donc OP GESTION), les réseaux privés, le service de métadonnées de l'hébergeur… — et **l'éprouve avant d'ouvrir quoi que ce soit** (coturn ignore en silence une règle mal écrite : § 3.5 de la conception). **L'adresse PUBLIQUE de la machine, en revanche, ne peut pas lui être refusée** : deux personnes qui passent chacune par le relais s'envoient leurs paquets d'une adresse relayée à l'autre, et ces deux adresses sont celles de la machine. Le trou qui en reste (parler aux services qui écoutent sur cette adresse) est fermé **dans le noyau** : un petit pare-feu propre à l'utilisateur de coturn, posé par le script, rejoué par systemd avant CHAQUE démarrage de coturn et retiré à son arrêt, qui ne lui laisse atteindre la machine que par ses ports de relais. Si une règle ne se pose pas, coturn ne démarre pas.
+- **Plafonné, pour une capacité DITE** : 4 allocations par personne, 32 en tout, 500 ko/s (4 Mbit/s) chacune, 16 Mo/s pour l'ensemble — **huit appels relayés à la fois** (un appel relayé prend quatre allocations : deux personnes, deux adresses de relais). Le neuvième tente le direct, et la page dit quand rien ne se joint. Au pire, 128 Mbit/s sortent du VPS, sur la bande passante qu'OP GESTION partage. Ces nombres sont un CHOIX, écrit et justifié en tête de `install-turn.sh` : pour tenir plus d'appels relayés on monte `TOTAL_QUOTA` et `BPS_CAPACITE` **ensemble** et on rejoue le script. Une allocation déjà ouverte n'est pas ré-authentifiée par coturn : son titulaire peut la prolonger tant qu'il la rafraîchit — les plafonds BORNENT ce que ça coûte, ils ne l'empêchent pas (question 41 de la conception). Le relais tourne avec un poids processeur et disque bas : si quelque chose doit ploier sur ce VPS, ce n'est pas OP GESTION.
 - **Jamais le serveur d'un tiers** : aucun STUN public (Google…) n'est consulté, ni proposé en repli. Rien de ce qui concerne un appel ne sort de nos machines.
 
 ### 1. Le DNS, puis les ports chez l'hébergeur
@@ -778,7 +778,7 @@ dig +short turn.teamop.fr
 
 ⚠️ **Non vérifié** : je n'ai pas ton panneau sous les yeux, le libellé exact des menus d'IONOS est à constater. Les ports **UDP** comptent : les appels passent surtout en UDP, un relais dont seul le TCP est ouvert marche mal. Le pare-feu du VPS lui-même (`ufw`), s'il est actif, est réglé par le script ; celui de l'hébergeur, c'est toi.
 
-**Le trafic inclus dans l'offre** — un appel qui passe par le relais fait transiter, en ordre de grandeur (débits habituels de WebRTC, **jamais mesurés ici** faute d'appareils), **environ 2,7 Go par heure en vidéo** et moins de 0,1 Go par heure en audio. La plupart des appels se joignent directement et ne coûtent rien au relais, mais on ne sait pas quelle part. Relève dans ton espace IONOS le volume de trafic inclus (ou « illimité ») et dis-le dans la conversation.
+**Le trafic inclus dans l'offre** — un appel qui passe par le relais fait transiter, en ordre de grandeur (débits habituels de WebRTC, **jamais mesurés ici** faute d'appareils), **environ 2,7 Go par heure en vidéo** et moins de 0,1 Go par heure en audio. La plupart des appels se joignent directement et ne coûtent rien au relais, mais on ne sait pas quelle part. Le plafond posé borne ce que ça peut coûter : saturé, le relais ferait passer environ 58 Go par heure. Relève dans ton espace IONOS le volume de trafic inclus (ou « illimité ») et dis-le dans la conversation.
 
 ### 2. Télécharger et lancer le script
 
@@ -793,11 +793,12 @@ bash /root/install-turn.sh beta
 
 Comme `install-msg.sh`, c'est un **fichier** : lis-le si tu veux avant de le lancer (`less /root/install-turn.sh`), il ne se lance pas par un tuyau. Il fait, dans l'ordre :
 
-1. installe coturn (le paquet de la distribution) s'il manque, et l'arrête aussitôt : le paquet le démarre avec une configuration vide ;
+1. installe coturn (le paquet de la distribution) s'il manque, et l'arrête aussitôt : le paquet le démarre avec une configuration vide ; installe aussi `iptables` s'il manque (le pare-feu du relais en a besoin), avant d'écrire quoi que ce soit ;
 2. obtient le certificat du relais (TLS sur 5349) par nginx et Let's Encrypt — un bloc nginx minimal, qui ne sert que la preuve. Sans DNS ou sans nginx, il le DIT et installe le relais **sans TLS** (3478 seulement) ; relance-le quand le DNS est en place ;
 3. tire le secret au hasard, ici, et l'écrit dans les deux configurations ;
-4. démarre coturn, puis le **contrôle** : une allocation réussit avec nos identifiants, un identifiant faux ou périmé est refusé, chaque réseau privé est refusé, une adresse publique est acceptée ;
-5. **SEULEMENT SI le contrôle est vert**, ouvre les ports du pare-feu du VPS (`ufw`, s'il est actif) et relance l'instance, puis lui demande si elle voit le relais.
+4. pose le **pare-feu sortant du relais** : un petit script (`/usr/local/sbin/opmsg-turn-pare-feu`) que systemd rejoue avant chaque démarrage de coturn, et qu'il retire à son arrêt ;
+5. démarre coturn, **relit le pare-feu dans le noyau** (on ne croit pas ce que le script a dit), puis le **contrôle** : une allocation réussit avec nos identifiants, un identifiant faux ou périmé est refusé, chaque réseau privé est refusé, une adresse publique est acceptée, deux personnes qui passent chacune par le relais s'entendent, et un service UDP posé sur l'adresse de la machine n'est PAS atteint par le relais ;
+6. **SEULEMENT SI le contrôle est vert**, ouvre les ports du pare-feu du VPS (`ufw`, s'il est actif) et relance l'instance, puis lui demande si elle voit le relais.
 
 Trois variables, **toutes facultatives** : `OPMSG_TURN_HOTE` (le nom du relais, `turn.teamop.fr` par défaut), `OPMSG_TURN_SANS_TLS=oui` (ne pas chercher de certificat), `OPMSG_TURN_IP` (l'adresse publique, seulement derrière une traduction d'adresses — pas le cas d'un VPS qui porte sa propre adresse publique).
 
@@ -809,25 +810,30 @@ Trois variables, **toutes facultatives** : `OPMSG_TURN_HOTE` (le nom du relais, 
    certificat pour turn.teamop.fr…
    TLS : oui (5349)
    cle=nouveau instance=change coturn=change secrets=1
+pare-feu du relais : en place
 ── Contrôle du relais (ce serveur contre lui-même)…
 ── Le relais d'appels de l'instance beta
   ✓ (UDP) le relais ACCEPTE nos identifiants : une allocation réussit
   …
+  ✓ (UDP) RELAIS ↔ RELAIS : un paquet envoyé à l'adresse relayée d'une autre personne ARRIVE (…)
+  ✓ (UDP) le relais n'atteint PAS un service UDP de la machine (pare-feu sortant : …)
 ✓ Le relais fait ce qu'il doit.
    pare-feu du VPS (ufw) : ports du relais ouverts
    ✓ l'instance voit le relais (/health : appels.turn)
 
 ✓ Le relais d'appels est en place pour beta.
+   Capacité : 8 appels relayés à la fois (4 allocations chacun), 4 Mbit/s par allocation. …
 ```
 
-(`cle=nouveau` la première fois, `cle=repris` à chaque relance ; sans `ufw` actif, la ligne dit « inactif — rien à y ouvrir ».)
+(`cle=nouveau` la première fois, `cle=repris` à chaque relance ; sans `ufw` actif, la ligne dit « inactif — rien à y ouvrir ». Derrière une traduction d'adresses — pas le cas d'un VPS qui porte sa propre adresse publique —, la ligne « n'atteint PAS un service UDP de la machine » est un avis (⚠️ « non vérifié ») et non un ✓ : ce contrôle ne peut pas être joué, et le dit.)
 
 Les sorties d'erreur possibles — **colle toute la sortie** dans la conversation :
 
 - **`l'instance beta n'est pas installée`** → `install-msg.sh beta` d'abord (section 6).
 - **`le contrôle du relais est absent`** → la version avec les appels n'est pas encore déployée (voir plus haut). Rien n'est ouvert.
 - **`le certificat n'a pas pu être obtenu`** ou **`pas de certificat`** → le DNS (geste 1) ne pointe pas encore sur ce serveur, ou nginx n'est pas le proxy. Le relais marche sans TLS ; relance le script plus tard, il est rejouable.
-- **`Le relais ne fait pas ce qu'il doit`** → il est ARRÊTÉ, rien n'est ouvert, l'instance n'est pas relancée. Un `✗` sur une ligne « REFUSE de relayer » veut dire qu'une règle de la configuration n'est pas lue : c'est exactement pour le savoir que le contrôle existe.
+- **`Le relais ne fait pas ce qu'il doit`** → il est ARRÊTÉ, rien n'est ouvert, l'instance n'est pas relancée. Un `✗` sur une ligne « REFUSE de relayer » veut dire qu'une règle de la configuration n'est pas lue : c'est exactement pour le savoir que le contrôle existe. Un `✗` sur « n'atteint PAS un service UDP de la machine » veut dire que le pare-feu ne tient pas : le relais parlerait aux services de ce serveur.
+- **`le pare-feu sortant du relais n'est pas en place`** → coturn est ARRÊTÉ, rien n'est ouvert, l'instance n'est pas relancée : le noyau n'a pas les règles (par exemple `iptables` est absent, ou ne les accepte pas). `systemctl status coturn --no-pager | head -5` dit pourquoi : colle-le. **`le pare-feu du relais est absent`** → la version d'OP MESSAGES en service est antérieure à ce pare-feu : déploie d'abord la version à jour.
 - **`coturn n'a pas démarré avec cette configuration`** ou **`l'instance a redémarré mais ne voit pas le relais`** → rien n'est ouvert, la configuration d'avant est remise : OP MESSAGES tourne comme avant.
 
 ### 3. Vérifier — de l'extérieur, puis avec deux appareils
@@ -842,13 +848,21 @@ openssl s_client -connect turn.teamop.fr:5349 -brief < /dev/null
 
 **À voir** : dans `/health`, `"appels":{"turn":true,` suivi d'un petit `ageS` (le balayeur d'appels tourne) ; pour `nc`, `succeeded` (ou `open`, selon la version) ; pour `openssl`, `Verification: OK` et le certificat de `turn.teamop.fr`. Rien de secret ne s'affiche. ⚠️ `nc` ne prouve que le TCP : sur UDP il répond « réussi » même quand le port est fermé. **La preuve de l'UDP est un appel.**
 
-Pour rejouer le contrôle du relais sur le VPS, à tout moment, sans rien changer :
+Pour relire le pare-feu du relais DANS LE NOYAU, à tout moment, sans rien changer (à refaire après un rechargement du pare-feu de la machine, ou si tu changes quelque chose qui le touche) :
+
+```bash
+/usr/local/sbin/opmsg-turn-pare-feu verifier
+```
+
+**À voir** : `pare-feu du relais : en place`. S'il dit `ABSENT`, `systemctl restart coturn` le repose (systemd le rejoue avant chaque démarrage) ; colle la sortie si le message revient.
+
+Pour rejouer le contrôle complet du relais sur le VPS, à tout moment, sans rien changer :
 
 ```bash
 OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/outils/verifier-relais.js beta
 ```
 
-(Il part de CE serveur : il ne dit pas si les ports sont ouverts dans le panneau de l'hébergeur.)
+(Il part de CE serveur : il ne dit pas si les ports sont ouverts dans le panneau de l'hébergeur. Il rejoue aussi le pare-feu : deux personnes qui passent chacune par le relais s'entendent, un service UDP de la machine n'est pas atteint.)
 
 **L'essai réel**, avec deux appareils :
 
@@ -859,13 +873,14 @@ OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/outils/verifier-r
 ### 4. Ce qui se passe seul, ce qui crie
 
 - **Le certificat se renouvelle seul** (certbot) et un crochet le rend à coturn, qui le relit sans couper les appels en cours.
-- **`/health`** : `appels.turn` dit seulement que le service a un secret de relais ; il ne peut pas dire si coturn répond (UDP : hors de sa portée). `appels.ageS` et `appels.echecs` (le balayeur d'appels : sans lui, plus d'appel manqué, et des gens « occupés » sans fin) sont **surveillés** par la surveillance horaire ; `appels.perdus` est une information (un téléphone qui entre dans un tunnel), pas une alarme.
-- **Un coturn qui s'arrête n'est pas surveillé** par la surveillance horaire du dépôt (elle ne lit que `/health`) : les appels directs continuent, ceux qui avaient besoin du relais finissent sur « La connexion n'a pas pu s'établir ». Relancer `bash /root/install-turn.sh beta` (rejouable) ou `systemctl restart coturn` suffit.
+- **`/health`** : `appels.turn` dit seulement que le service a un secret de relais ; il ne peut pas dire si coturn répond (UDP : hors de sa portée). `appels.ageS` et `appels.echecs` (le balayeur d'appels : sans lui, plus d'appel manqué, et des gens « occupés » sans fin) sont **surveillés** par la surveillance horaire. Le nombre d'appels perdus n'est plus publié (`/health` est public, et le chiffre dit comment se portent les réseaux des gens) : il est dans le journal du service, sans nom ni appel.
+- **Un coturn qui s'arrête n'est pas encore surveillé** : le script de surveillance d'OP MESSAGES sait sonder le relais (une vraie requête STUN en UDP, trois essais) et crier s'il ne répond pas, mais il n'est branché sur aucun workflow tant que `msg-beta` n'a pas son DNS. En attendant : les appels directs continuent, ceux qui avaient besoin du relais finissent sur « La connexion n'a pas pu s'établir ». Relancer `bash /root/install-turn.sh beta` (rejouable) ou `systemctl restart coturn` suffit.
+- **Le pare-feu du relais se repose seul** à chaque démarrage de coturn et se retire à son arrêt. Ce qu'on ne sait pas encore — il faut le constater sur ce VPS — : si un rechargement du pare-feu de la machine (`ufw reload`) retire la chaîne du relais du noyau. Dans ce cas `opmsg-turn-pare-feu verifier` dit « ABSENT » et `systemctl restart coturn` la remet ; rien ne le lance tout seul.
 - **Rien d'autre ne tourne** : pas de tâche planifiée, pas de journal à lire.
 
 ### 5. Revenir en arrière
 
-Le script est **fermé par défaut** : s'il échoue, rien n'est ouvert et la configuration de l'instance revient comme avant. Pour arrêter le relais plus tard, `systemctl stop coturn` suffit : les appels directs continuent, et la page de ceux qui en avaient besoin dit que la connexion n'a pas pu s'établir. Faire dire à la page que le relais d'appels n'est pas installé demande de retirer `appels.relais` de la configuration de l'instance : on le fait ensemble, dans la conversation, plutôt que d'éditer ce fichier à la main.
+Le script est **fermé par défaut** : s'il échoue, rien n'est ouvert et la configuration de l'instance revient comme avant. Pour arrêter le relais plus tard, `systemctl stop coturn` suffit (il retire aussi les règles du pare-feu du relais : rien ne reste dans le noyau) : les appels directs continuent, et la page de ceux qui en avaient besoin dit que la connexion n'a pas pu s'établir. Faire dire à la page que le relais d'appels n'est pas installé demande de retirer `appels.relais` de la configuration de l'instance : on le fait ensemble, dans la conversation, plutôt que d'éditer ce fichier à la main.
 
 ### 6. Ce que le relais reçoit (pour les textes légaux)
 

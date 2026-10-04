@@ -17,9 +17,13 @@
 #       le relais marche SANS TLS (3478 seulement) et le script le DIT ;
 #    3. tire le SECRET PARTAGÉ au hasard, ICI, et l'écrit dans la configuration de coturn ET dans celle de l'instance
 #       (/etc/opmsg/<instance>.json, chmod 600) ;
-#    4. démarre coturn, puis le CONTRÔLE (outils/verifier-relais.js : une allocation réussit, un mauvais identifiant
-#       est refusé, 127.0.0.1 et les réseaux privés sont refusés, une adresse publique est acceptée) ;
-#    5. SEULEMENT SI le contrôle est vert : ouvre les ports du pare-feu (ufw, s'il est actif) et relance l'instance.
+#    4. pose le PARE-FEU SORTANT du relais (turn-pare-feu.sh, rejoué par systemd avant chaque démarrage de coturn) : coturn ne
+#       peut parler aux services UDP de la machine elle-même que par ses ports de relais — `denied-peer-ip` ne dit rien de
+#       l'adresse publique du VPS, et la refuser casserait les appels relayés des deux côtés (SERVEUR.md § 3.5) ;
+#    5. démarre coturn, puis le CONTRÔLE (outils/verifier-relais.js : une allocation réussit, un mauvais identifiant
+#       est refusé, 127.0.0.1 et les réseaux privés sont refusés, une adresse publique est acceptée, relais ↔ relais passe
+#       et un service UDP de la machine n'est PAS atteint) ;
+#    6. SEULEMENT SI le contrôle est vert : ouvre les ports du pare-feu (ufw, s'il est actif) et relance l'instance.
 #
 #  ⛔ CE SCRIPT NE TOUCHE JAMAIS À OP GESTION : ni ses dossiers, ni son unité, ni le bloc de son API dans le proxy.
 #
@@ -68,12 +72,18 @@ PORT_TURN=3478
 PORT_TLS=5349
 PORT_MIN=49160
 PORT_MAX=49999
-# Plafonds du relais (SERVEUR.md § 3.5) : au plus 8 allocations par identifiant, 300 en tout, 500 ko/s par session et 12,5 Mo/s pour l'ensemble
-# (100 Mbit/s : une trentaine d'appels vidéo RELAYÉS à la fois — la plupart des appels passent directement et ne coûtent rien ici).
-USER_QUOTA=8
-TOTAL_QUOTA=300
+# ⛔ Plafonds du relais (SERVEUR.md § 3.5), CHOISIS pour une capacité dite : HUIT appels relayés à la fois.
+#   · le navigateur ouvre UNE ALLOCATION par adresse de relais (mesuré par la sonde, contre le vrai coturn) et le service en donne DEUX (UDP, puis TLS) : un appel relayé = 2 personnes × 2 = 4 allocations ;
+#   · coturn RÉSERVE `max-bps` de la capacité à chaque allocation, qu'elle serve ou non : la capacité réelle est `bps-capacity` ÷ `max-bps` allocations — et NON `total-quota`, qui ne la borne que
+#     si elle est plus basse (mesuré : 60 comptes × 8 allocations n'en tenaient que 25, le 26e était refusé en 486). `total-quota` dit donc le MÊME nombre (le banc exige l'égalité) : 8 × 4 = 32 ;
+#   · 500 ko/s (4 Mbit/s) par allocation : une vidéo HD (2,5 Mbit/s) et sa voix y tiennent ; au pire, 32 allocations × 4 Mbit/s = 128 Mbit/s de ce que ce relais peut envoyer — c'est le plafond
+#     de ce qu'un abus peut coûter à la machine, qui porte aussi OP GESTION ;
+#   · 4 allocations par personne : deux adresses de relais × deux jeux d'allocations (celui de l'appel et celui du renouvellement des identifiants, qui s'ouvre avant que l'ancien soit rendu).
+# Pour tenir plus d'appels relayés : monter ENSEMBLE `TOTAL_QUOTA` (4 de plus par appel) et `BPS_CAPACITE` (= `TOTAL_QUOTA` × `MAX_BPS`).
+USER_QUOTA=4
+TOTAL_QUOTA=32
 MAX_BPS=500000
-BPS_CAPACITE=12500000
+BPS_CAPACITE=16000000
 # ⛔ Les adresses vers lesquelles le relais REFUSE de relayer : des PLAGES « début-fin » (jamais de /masque), IPv4 d'abord.
 REFUSES=(
   "0.0.0.0-0.255.255.255"            # « ce réseau »
@@ -113,6 +123,10 @@ UNITE="teamop-msg@$INSTANCE"
 if [ -z "$R" ] && [ "$(id -u)" != "0" ]; then echo "✗ à lancer en root"; exit 1; fi
 [ -f "$CONFIG" ] || { echo "✗ l'instance $INSTANCE n'est pas installée ($CONFIG est absent) : lancer d'abord install-msg.sh $INSTANCE"; exit 1; }
 command -v node >/dev/null || { echo "✗ node est absent du VPS"; exit 1; }
+PF_SRC="$OPT/$INSTANCE/current/turn-pare-feu.sh"
+PF_REEL="/usr/local/sbin/opmsg-turn-pare-feu"
+PF_BIN="$R$PF_REEL"
+[ -f "$PF_SRC" ] || { echo "✗ le pare-feu du relais est absent ($PF_SRC) : la version d'OP MESSAGES en service est antérieure à ce correctif — déploie d'abord la version à jour (merge sur main, la CI déploie), puis relance ce script"; exit 1; }
 
 # Rien de ce qui touche un secret ne s'affiche tel quel : tout mot de 40 caractères « d'identifiant » ou plus est masqué.
 masquer() { sed -E 's/[A-Za-z0-9_-]{40,}/[masqué]/g'; }
@@ -128,6 +142,13 @@ if ! command -v turnserver >/dev/null 2>&1; then
   systemctl stop coturn >/dev/null 2>&1 || true
 fi
 command -v turnserver >/dev/null 2>&1 || { echo "✗ coturn n'est pas installé après apt-get : on s'arrête avant de rien écrire"; exit 1; }
+# Le PARE-FEU SORTANT du relais (étape 4) pose ses règles avec `iptables` ; sans lui coturn ne démarre pas (échec = fermé). Une machine qui ne l'a pas (une image minimale, pas d'ufw) l'installe ICI, avant d'écrire quoi que ce soit :
+# s'arrêter plus loin sur « coturn n'a pas démarré » ne dirait pas pourquoi, et Justin recolle chaque sortie dans la conversation.
+if ! command -v iptables >/dev/null 2>&1; then
+  echo "   iptables : installation"
+  apt-get install -y -qq iptables >/dev/null || true
+fi
+command -v iptables >/dev/null 2>&1 || { echo "✗ iptables n'est pas installé après apt-get : le pare-feu du relais ne peut pas se poser, on s'arrête avant de rien écrire"; exit 1; }
 
 # ── 2. Le certificat du relais (TLS sur 5349) ─────────────────────────────────────────────────────────────────
 # Sans lui le relais reste utile (3478 en UDP et en TCP) ; avec lui, les réseaux d'entreprise qui ne laissent passer que du TLS peuvent aussi appeler.
@@ -291,7 +312,7 @@ try {
   const ancien = (appels.relais && typeof appels.relais === "object" && !Array.isArray(appels.relais)) ? appels.relais : {};
   const repris = typeof ancien.secret === "string" && RE_SECRET.test(ancien.secret);
   const secret = repris ? ancien.secret : crypto.randomBytes(48).toString("base64url");
-  const relais = { hote: e.HOTE, port: Number(e.PORT_TURN), portTls: e.AVEC_TLS === "oui" ? Number(e.PORT_TLS) : null, secret: secret, ttlS: Number.isInteger(ancien.ttlS) ? ancien.ttlS : 3600 };
+  const relais = { hote: e.HOTE, port: Number(e.PORT_TURN), portTls: e.AVEC_TLS === "oui" ? Number(e.PORT_TLS) : null, secret: secret, ttlS: Number.isInteger(ancien.ttlS) && ancien.ttlS >= 60 && ancien.ttlS <= 3600 ? ancien.ttlS : 900 };
   const neuve = Object.assign({}, cfg, { appels: Object.assign({}, appels, { relais: relais }) });
   const texte = JSON.stringify(neuve, null, 2) + "\n";
   const changeInstance = fs.readFileSync(e.CONFIG_INSTANCE, "utf8") !== texte;
@@ -329,8 +350,17 @@ case "$ETAT" in *"instance=change"*) CHANGE_INSTANCE=oui ;; *) CHANGE_INSTANCE=n
 
 # Des limites de ressources et un compte sans privilège de plus : si le relais s'emballe, c'est lui qui ploie, pas OP GESTION (même machine).
 # (Pas de bac à sable plus serré : coturn énumère les interfaces par netlink et lit sa base locale ; ce qu'on ne peut pas éprouver ici ne se pose pas.)
-mkdir -p "$SYSD/coturn.service.d"
-printf '%s\n' '[Service]' 'NoNewPrivileges=true' 'RestrictRealtime=true' 'LockPersonality=true' 'MemoryMax=512M' 'CPUWeight=20' 'IOWeight=20' 'LimitNOFILE=8192' > "$SYSD/coturn.service.d/opmsg.conf.nouveau"
+mkdir -p "$SYSD/coturn.service.d" "$(dirname "$PF_BIN")"
+# ⛔ Le PARE-FEU SORTANT : le script est posé à un chemin stable (pas dans le dossier d'une version : il change à chaque déploiement), puis rejoué par systemd AVANT chaque démarrage de coturn
+# (`ExecStartPre=+` : en root, malgré l'utilisateur sans privilège de l'unité) et retiré à son arrêt. Si une règle ne se pose pas, le script sort en erreur et coturn NE DÉMARRE PAS.
+if [ ! -f "$PF_BIN" ] || ! cmp -s "$PF_SRC" "$PF_BIN"; then
+  cp "$PF_SRC" "$PF_BIN.nouveau"; chmod 755 "$PF_BIN.nouveau"; mv "$PF_BIN.nouveau" "$PF_BIN"
+  CHANGE_COTURN=oui
+fi
+PORTS_ECOUTE="$PORT_TURN,$((PORT_TURN + 1)),$PORT_TLS,$((PORT_TLS + 1))"
+printf '%s\n' '[Service]' 'NoNewPrivileges=true' 'RestrictRealtime=true' 'LockPersonality=true' 'MemoryMax=512M' 'CPUWeight=20' 'IOWeight=20' 'LimitNOFILE=8192' \
+  "Environment=OPMSG_TURN_PORT_MIN=$PORT_MIN" "Environment=OPMSG_TURN_PORT_MAX=$PORT_MAX" "Environment=OPMSG_TURN_PORTS_ECOUTE=$PORTS_ECOUTE" \
+  "ExecStartPre=+$PF_REEL start" "ExecStopPost=+$PF_REEL stop" > "$SYSD/coturn.service.d/opmsg.conf.nouveau"
 if [ -f "$SYSD/coturn.service.d/opmsg.conf" ] && cmp -s "$SYSD/coturn.service.d/opmsg.conf.nouveau" "$SYSD/coturn.service.d/opmsg.conf"; then
   rm -f "$SYSD/coturn.service.d/opmsg.conf.nouveau"
 else
@@ -354,6 +384,10 @@ annuler() {   # $1 = ce qu'il faut dire
 }
 if ! actif coturn; then
   annuler "⛔ coturn n'a pas démarré avec cette configuration. Il est arrêté, rien n'est ouvert dans le pare-feu, l'instance n'a pas été relancée : OP MESSAGES continue comme avant. Voir :  systemctl status coturn --no-pager | head -5"
+fi
+# ⛔ Le pare-feu est-il VRAIMENT dans le noyau ? (systemd l'a posé avant de démarrer coturn ; on le relit, on ne le croit pas.) Sans lui, le relais s'arrête.
+if ! "$PF_BIN" verifier; then
+  annuler "⛔ le pare-feu sortant du relais n'est pas en place : coturn pourrait parler aux services de cette machine. Il est ARRÊTÉ, rien n'est ouvert, l'instance n'a pas été relancée. Voir :  systemctl status coturn --no-pager | head -5"
 fi
 VERIF="$OPT/$INSTANCE/current/outils/verifier-relais.js"
 if [ ! -f "$VERIF" ]; then
@@ -426,5 +460,6 @@ fi
 
 echo ""
 echo "✓ Le relais d'appels est en place pour $INSTANCE."
+echo "   Capacité : 8 appels relayés à la fois (4 allocations chacun), 4 Mbit/s par allocation. Pare-feu sortant du relais : posé à chaque démarrage de coturn ($PF_REEL verifier le relit)."
 echo "   À ouvrir dans le PANNEAU DE L'HÉBERGEUR (le pare-feu du VPS vient d'être réglé) : TCP et UDP $PORT_TURN, TCP $PORT_TLS, UDP $PORT_MIN-$PORT_MAX."
 echo "   De l'extérieur (ton Mac) :  nc -vz $HOTE $PORT_TURN   puis   openssl s_client -connect $HOTE:$PORT_TLS -brief < /dev/null   — rien de secret ne s'y affiche."

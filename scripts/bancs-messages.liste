@@ -37,7 +37,8 @@
 # 3 octobre 2026, la relecture adverse du lot 5 (le gardien : un tour du planificateur à budget, le calendrier qui saute à la fenêtre, l'agenda d'un invité et « Quitter la réunion », l'hôte bloqué, Gmail, la réparation du démarrage) puis la fusion de la branche de travail (88fd2c4) : 48 suites, 6 230 vérifications mesurées par la commande de la porte sur l'arbre FUSIONNÉ (488 s) — plancher 6216 (le total moins 14, jamais une addition).
 # 3 octobre 2026, l'essai au navigateur du testeur (la fiche d'une réunion ouverte AU DOIGT rejouait `history.back()` et faisait quitter l'application : la page, sa sonde et ses mutations changent, aucune suite de cette liste) : 48 suites, 6 230 vérifications mesurées par la commande de la porte (470 s) — plancher 6216 inchangé.
 # 4 octobre 2026, le lot 6 (étape 7, les appels à deux : test-980 le stockage, 981 les routes en HTTP, 982 le script du relais dans un bac à sable, 983 le service et le temps, 984 la VRAIE page contre le VRAI service ; test-905, 934, 957 étendus aux routes, au /health et à l'effacement) : 53 suites, 6 796 vérifications mesurées par la commande de la porte (9 minutes) — plancher 6781.
-#plancher 6781
+# 4 octobre 2026, la relecture adverse du lot 6 (le gardien et le testeur : le relais ouvert aux seuls participants d'un appel, sa capacité CHOISIE et son pare-feu sortant, le flux qui retient en octets, un plafond d'appels reçus, la fin d'un appel qui fait relire l'historique d'un second appareil ; test-985 neuf, test-981 à 984 étendus) : 54 suites, 6 880 vérifications mesurées par la commande de la porte (dix minutes) — plancher 6865.
+#plancher 6865
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
@@ -110,3 +111,4 @@ tests/test-981.js
 tests/test-982.js
 tests/test-983.js
 tests/test-984.js
+tests/test-985.js

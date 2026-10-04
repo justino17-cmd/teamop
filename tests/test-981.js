@@ -22,6 +22,8 @@ T.sauterSiSansDependances();
 const { v, vrai, fin } = T.compteur();
 const { ouvrir } = require(path.join(T.SERVICE, 'stockage.js'));
 const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
+const { tailleSignal } = require(path.join(T.SERVICE, 'routes-appels.js'));
+const { appelsConfig } = require(path.join(T.SERVICE, 'config.js'));
 
 setTimeout(() => { console.log('  ✗ délai global du banc dépassé (240 s)'); process.exit(1); }, 240000).unref();
 
@@ -56,7 +58,7 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
 (async () => {
   const flux = [];
   const M = await monter({
-    appels: { relais: { hote: HOTE, port: 3478, portTls: 5349, secret: SECRET_RELAIS, ttlS: 3600 }, parHeure: 6, parPaireHeure: 3, signalMax: 10, signalFenetreMs: MIN, iceParHeure: 3, balayageMs: 1000, perduMs: 600000 },
+    appels: { relais: { hote: HOTE, port: 3478, portTls: 5349, secret: SECRET_RELAIS, ttlS: 900 }, parHeure: 6, parPaireHeure: 3, signalMax: 10, signalFenetreMs: MIN, iceParHeure: 3, balayageMs: 1000, perduMs: 600000 },
   });
   const { svc, S, pers, cl, sql, avancer, maintenant } = M;
   const ana = pers('Ana'), ben = pers('Ben'), cleo = pers('Cleo'), dan = pers('Dan'), eve = pers('Eve'), fred = pers('Fred'), zoe = pers('Zoe', 'compte'), inconnue = pers('Nova');
@@ -65,39 +67,68 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
   const ouvrirFlux = async (c) => { const f = await T.flux(c); flux.push(f); return f; };
   try {
     /* ═══════ 1. LE RELAIS : GET /api/ice ═══════ */
-    console.log('GET /api/ice : des identifiants éphémères recalculés ici, le secret nulle part, jamais le serveur d\'un tiers');
+    console.log('GET /api/ice : à qui est DANS un appel seulement ; des identifiants éphémères recalculés ici, le secret nulle part, jamais le serveur d\'un tiers');
+    const gil = pers('Gil'), hana = pers('Hana'); S.contactLier(gil.id, hana.id);
+    const g1 = cl(gil), h1 = cl(hana);
     {
-      const r = await a1.get('/api/ice');
+      /* Gil appelle Hana : une sonnerie en cours, la seule situation où des identifiants de relais se donnent. Chaque appel de la section est raccroché avant la suivante. */
+      const sonnerie = (c, vers) => c.post('/api/appels', { uid: vers, type: 'audio' });
+      const raccroche = (c, r) => c.post('/api/appels/' + r.j.appel.id + '/quitter', {});
+      const sans = [await g1.get('/api/ice'), await c1.get('/api/ice'), await c1.get('/api/ice'), await c1.get('/api/ice'), await c1.get('/api/ice'), await c1.get('/api/ice')];
+      v('⛔ AUCUN APPEL : pas d\'identifiants (404 `introuvable`, le même corps pour tous) — et le refus ne consomme RIEN du plafond (cinq refus de suite pour Cleo avec un plafond de trois par heure : toujours 404, jamais 429)',
+        [sans.map(dit), new Set(sans.map(x => JSON.stringify(x.j))).size], [new Array(6).fill([404, 'introuvable']), 1]);
+      const l1 = await sonnerie(g1, hana.id);
+      vrai('population : Gil appelle Hana, la sonnerie court', l1.code === 201 && l1.j.appel.etat === 'sonne');
+      const tiers = await c1.get('/api/ice');
+      v('⛔ un TIERS pendant l\'appel des deux autres : le même 404 (participer à CET appel est la condition, pas qu\'un appel existe quelque part)', dit(tiers), [404, 'introuvable']);
+      const r = await g1.get('/api/ice');
       vrai('population : la réponse porte un STUN et un serveur TURN avec identifiants', r.code === 200 && r.j.relais === true && r.j.serveurs.length === 2 && !!r.j.serveurs[1].username);
-      v('   `Cache-Control: no-store` (des identifiants ne se mettent pas en cache) et une durée de vie d\'une heure', [r.h.get('cache-control'), r.j.ttl_s], ['no-store', 3600]);
+      v('   `Cache-Control: no-store` (des identifiants ne se mettent pas en cache) et une durée de vie de quinze minutes (le réglage du banc)', [r.h.get('cache-control'), r.j.ttl_s], ['no-store', 900]);
       const [stun, turn] = r.j.serveurs;
-      v('⛔ les adresses sont celles du relais SEUL : stun, turn en UDP et en TCP, turns — jamais le serveur d\'un tiers', [stun.urls, tri(turn.urls)], [['stun:' + HOTE + ':3478'], tri(['turn:' + HOTE + ':3478?transport=udp', 'turn:' + HOTE + ':3478?transport=tcp', 'turns:' + HOTE + ':5349?transport=tcp'])]);
+      v('⛔ les adresses sont celles du relais SEUL : stun, et DEUX adresses de relais (turn en UDP, turns en TLS) — jamais le serveur d\'un tiers, et pas trois (le navigateur ouvre une allocation par adresse : mesuré par la sonde)', [stun.urls, tri(turn.urls)], [['stun:' + HOTE + ':3478'], tri(['turn:' + HOTE + ':3478?transport=udp', 'turns:' + HOTE + ':5349?transport=tcp'])]);
       vrai('   aucun nom d\'hôte dans la réponse que celui du relais (population : ' + JSON.stringify(r.j).match(/[a-z0-9.-]+\.[a-z]{2,}/g).length + ' noms lus)', JSON.stringify(r.j).match(/[a-z0-9.-]+\.[a-z]{2,}/g).every(h => h === HOTE) && JSON.stringify(r.j).match(/[a-z0-9.-]+\.[a-z]{2,}/g).length >= 3);
       const [exp, uid] = turn.username.split(':');
-      const attendu = Math.floor(maintenant() / 1000) + 3600;
-      v('⛔ le nom d\'utilisateur est « <échéance>:<identifiant de la personne> » : une heure, la personne connectée', [Math.abs(Number(exp) - attendu) <= 3, uid], [true, ana.id]);
+      const attendu = Math.floor(maintenant() / 1000) + 900;
+      v('⛔ le nom d\'utilisateur est « <échéance>:<identifiant de la personne> » : quinze minutes, la personne connectée', [Math.abs(Number(exp) - attendu) <= 3, uid], [true, gil.id]);
       v('⛔ le mot de passe est BASE64(HMAC-SHA1(secret, nom)) RECALCULÉ ICI avec `crypto` — sans passer par le code du service', turn.credential, hmac64(SECRET_RELAIS, turn.username));
       v('   un autre secret donne un autre mot de passe (la preuve ne se satisfait pas de n\'importe quel calcul)', hmac64(SECRET_RELAIS + 'x', turn.username) === turn.credential, false);
+      const rBen = await h1.get('/api/ice');
+      v('⛔ L\'APPELÉE en reçoit aussi, dès la sonnerie, et c\'est SON identifiant (il répond en relais)', [rBen.code, rBen.j.serveurs[1].username.split(':')[1], rBen.j.serveurs[1].credential === hmac64(SECRET_RELAIS, rBen.j.serveurs[1].username)], [200, hana.id, true]);
+      await raccroche(g1, l1);
+      v('⛔ L\'APPEL FINI (Gil a annulé) : plus d\'identifiants, ni pour lui ni pour Hana — le même 404', [dit(await g1.get('/api/ice')), dit(await h1.get('/api/ice'))], [[404, 'introuvable'], [404, 'introuvable']]);
+      /* une sonnerie ÉCHUE n'est plus un appel : 404 avant même que le balayeur ne l'ait écrite « manquée » */
+      const l1b = await sonnerie(g1, hana.id);
       avancer(10 * MIN);
-      const r2 = await a1.get('/api/ice'), r3 = await b1.get('/api/ice');
-      v('⛔ SECOND PASSAGE, dix minutes plus tard : une autre échéance, un autre mot de passe, toujours juste ; et pour Ben, SON identifiant', [Number(r2.j.serveurs[1].username.split(':')[0]) - Number(exp), r2.j.serveurs[1].credential === hmac64(SECRET_RELAIS, r2.j.serveurs[1].username), r3.j.serveurs[1].username.split(':')[1], r3.j.serveurs[1].credential === hmac64(SECRET_RELAIS, r3.j.serveurs[1].username)], [600, true, ben.id, true]);
-      const r4 = await a1.get('/api/ice'), r5 = await a1.get('/api/ice');
-      v('⛔ le plafond : trois lectures par heure (réglage du banc) — Ana en a fait trois (la troisième passe), la quatrième est refusée (429 quota_atteint, Retry-After) ; Ben, lui, a le sien', [r4.code, dit(r5), Number(r5.h.get('retry-after')) > 0, r3.code], [200, [429, 'quota_atteint'], true, 200]);
+      v('⛔ UNE SONNERIE ÉCHUE (dix minutes plus tard) : plus d\'identifiants non plus', [l1b.code, dit(await g1.get('/api/ice'))], [201, [404, 'introuvable']]);
+      const l2 = await sonnerie(g1, hana.id);
+      const r2 = await g1.get('/api/ice'), r3 = await h1.get('/api/ice');
+      v('⛔ SECOND PASSAGE, dix minutes plus tard, dans un appel neuf : une autre échéance, un autre mot de passe, toujours juste ; et pour Hana, SON identifiant', [Number(r2.j.serveurs[1].username.split(':')[0]) - Number(exp), r2.j.serveurs[1].credential === hmac64(SECRET_RELAIS, r2.j.serveurs[1].username), r3.j.serveurs[1].username.split(':')[1], r3.j.serveurs[1].credential === hmac64(SECRET_RELAIS, r3.j.serveurs[1].username)], [600, true, hana.id, true]);
+      const r4 = await g1.get('/api/ice'), r5 = await g1.get('/api/ice');
+      v('⛔ le plafond : trois lectures par heure (réglage du banc) — Gil en a fait trois (la troisième passe), la quatrième est refusée (429 quota_atteint, Retry-After) ; Hana, lui, a le sien', [r4.code, dit(r5), Number(r5.h.get('retry-after')) > 0, r3.code], [200, [429, 'quota_atteint'], true, 200]);
+      await raccroche(g1, l2);
       avancer(HEURE + SEC);
-      v('   et une heure plus tard, elle repasse', (await a1.get('/api/ice')).code, 200);
+      const l3 = await sonnerie(g1, hana.id);
+      v('   et une heure plus tard, dans un appel neuf, elle repasse', [l3.code, (await g1.get('/api/ice')).code], [201, 200]);
+      await raccroche(g1, l3);
       const cfg = (await T.client(svc.base).get('/api/config')).j, sante = (await T.client(svc.base).get('/health')).j;
       v('/api/config dit qu\'un relais existe et combien de temps sonne un appel — sans le nom du relais ni son secret', [cfg.appels, JSON.stringify(cfg).includes(HOTE), JSON.stringify(cfg).includes(SECRET_RELAIS)], [{ relais: true, sonnerie_s: 45 }, false, false]);
-      v('⛔ /health dit « turn: true » et des nombres — ni le secret, ni le nom du relais, ni un appel', [sante.appels.turn, JSON.stringify(sante).includes(SECRET_RELAIS), JSON.stringify(sante).includes(HOTE), Object.keys(sante.appels).sort()], [true, false, false, ['ageS', 'echecs', 'perdus', 'turn']]);
+      v('⛔ /health dit « turn: true » et des nombres — ni le secret, ni le nom du relais, ni un appel, ni le nombre d\'appels perdus (R6)', [sante.appels.turn, JSON.stringify(sante).includes(SECRET_RELAIS), JSON.stringify(sante).includes(HOTE), Object.keys(sante.appels).sort()], [true, false, false, ['ageS', 'echecs', 'turn']]);
+      v('⛔ `appels.relais.ttlS` : quinze minutes (900) par défaut, un entier de 60 à 3600 — 59, 3601, un décimal et un texte sont refusés au démarrage, en nommant le champ',
+        [appelsConfig({ appels: { relais: { hote: HOTE, secret: SECRET_RELAIS } } }, 'beta').relais.ttlS, appelsConfig({ appels: { relais: { hote: HOTE, secret: SECRET_RELAIS, ttlS: 3600 } } }, 'beta').relais.ttlS,
+          [59, 3601, 900.5, '900', 86400].map(x => { try { appelsConfig({ appels: { relais: { hote: HOTE, secret: SECRET_RELAIS, ttlS: x } } }, 'beta'); return false; } catch (e) { return /ttlS/.test(e.message); } })], [900, 3600, [true, true, true, true, true]]);
     }
     {
-      /* sans relais : une liste vide, et rien d'un tiers */
-      const N = await monter({});
+      /* sans relais : une liste vide, et rien d'un tiers — pour qui est dans un appel (les autres : 404, comme partout) ; sans TLS : le TCP simple en secours, jamais trois adresses */
+      const N = await monter({ appels: { entrantsParHeure: 100 } }), N2 = await monter({ appels: { relais: { hote: HOTE, port: 3478, secret: SECRET_RELAIS } } });
       try {
-        const p = N.pers('Ana'), c = N.cl(p);
+        const duo = async (X) => { const p = X.pers('Ana'), q = X.pers('Ben'); X.S.contactLier(p.id, q.id); const c = X.cl(p); const rr = await c.post('/api/appels', { uid: q.id, type: 'audio' }); return { c, rr }; };
+        const { c, rr } = await duo(N);
         const r = await c.get('/api/ice');
-        v('⛔ SANS relais configuré : `relais:false`, une liste VIDE, durée nulle — aucun serveur STUN public n\'est proposé en repli', [r.code, r.j, r.h.get('cache-control')], [200, { relais: false, ttl_s: 0, serveurs: [] }, 'no-store']);
+        v('⛔ SANS relais configuré : `relais:false`, une liste VIDE, durée nulle — aucun serveur STUN public n\'est proposé en repli', [rr.code, r.code, r.j, r.h.get('cache-control')], [201, 200, { relais: false, ttl_s: 0, serveurs: [] }, 'no-store']);
         v('   /api/config le dit aussi, et /health : turn:false', [(await T.client(N.svc.base).get('/api/config')).j.appels.relais, (await T.client(N.svc.base).get('/health')).j.appels.turn], [false, false]);
-      } finally { await N.fermer(); }
+        const d2 = await duo(N2), rice = await d2.c.get('/api/ice');
+        v('⛔ SANS TLS (pas de `portTls`) : le TCP simple prend sa place — deux adresses de relais, jamais trois ; et la durée par défaut est de quinze minutes', [d2.rr.code, rice.code, tri(rice.j.serveurs[1].urls), rice.j.ttl_s], [201, 200, tri(['turn:' + HOTE + ':3478?transport=udp', 'turn:' + HOTE + ':3478?transport=tcp']), 900]);
+      } finally { await N.fermer(); await N2.fermer(); }
     }
 
     /* ═══════ 2. LANCER ═══════ */
@@ -107,6 +138,7 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
     const groupeAutres = S.convCreerGroupe({ createur: cleo.id, nom: 'Autre', membres: [ben.id], annonces_seules: false, ephemere_s: 0 }).id;
     S.contactEtat(eve.id, ana.id, 'bloque');                // Eve a bloqué Ana
     const fA = await ouvrirFlux(a1), fA2 = await ouvrirFlux(a2), fB1 = await ouvrirFlux(b1), fB2 = await ouvrirFlux(b2), fC = await ouvrirFlux(c1);
+    const appelsAvant = Number(sql('SELECT COUNT(*) AS n FROM appel').n);          // la section 1 a fait quatre appels (Gil vers Hana) pour obtenir des identifiants : les refus d'ici n'en ajoutent AUCUN
     {
       const corps = { type: 'audio', uid: ben.id };
       v('⛔ le corps est lu avec rigueur : ni conversation ni personne, les deux à la fois, un type absent ou inconnu, un identifiant mal formé, SOI-MÊME → 400 `champ_invalide`, et rien n\'est écrit',
@@ -114,9 +146,9 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
          (await a1.post('/api/appels', { uid: 'p_zz', type: 'audio' })).j, (await a1.post('/api/appels', { conv: 'c_zz', type: 'audio' })).j, (await a1.post('/api/appels', { uid: ana.id, type: 'audio' })).j,
          (await a1.post('/api/appels', { uid: { $ne: 1 }, type: 'audio' })).j, (await a1.post('/api/appels', [corps])).j].map(j => j && j.error),
         new Array(9).fill('champ_invalide'));
-      v('   population : aucun appel n\'existe après ces neuf refus', Number(sql('SELECT COUNT(*) AS n FROM appel').n), 0);
+      v('   population : aucun appel n\'existe après ces neuf refus', Number(sql('SELECT COUNT(*) AS n FROM appel').n) - appelsAvant, 0);
       const g = await a1.post('/api/appels', { conv: groupe, type: 'audio' });
-      v('⛔ un GROUPE : l\'appel de groupe est l\'étape 8 — refus propre `appel_a_deux` (409), rien d\'écrit', [dit(g), Number(sql('SELECT COUNT(*) AS n FROM appel').n)], [[409, 'appel_a_deux'], 0]);
+      v('⛔ un GROUPE : l\'appel de groupe est l\'étape 8 — refus propre `appel_a_deux` (409), rien d\'écrit', [dit(g), Number(sql('SELECT COUNT(*) AS n FROM appel').n) - appelsAvant], [[409, 'appel_a_deux'], 0]);
       const hors = await a1.post('/api/appels', { conv: groupeAutres, type: 'audio' }), vide = await a1.post('/api/appels', { conv: 'c_' + '0'.repeat(32), type: 'audio' });
       v('⛔ une conversation où je ne suis PAS, et une qui n\'existe pas : la MÊME réponse (404 introuvable, au caractère près)', [dit(hors), hors.txt === vide.txt], [[404, 'introuvable'], true]);
     }
@@ -128,7 +160,7 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
       const nova = await a1.post('/api/appels', { uid: inconnue.id, type: 'audio' });
       v('⛔ un inconnu, une personne qui m\'a BLOQUÉE, une personne qui n\'existe pas, une personne sans lien : la MÊME réponse (404 introuvable) — un appel ne dit pas qu\'on a été bloqué', [dit(inconnu), inconnu.txt === bloque.txt, bloque.txt === fantome.txt, fantome.txt === nova.txt], [[404, 'introuvable'], true, true, true]);
       v('   et dans l\'autre sens : Ana a bloqué Eve, qui l\'appelle — le même 404', dit(await e1.post('/api/appels', { uid: ana.id, type: 'audio' })), [404, 'introuvable']);
-      v('population : aucun appel n\'a été écrit par ces refus', Number(sql('SELECT COUNT(*) AS n FROM appel').n), 0);
+      v('population : aucun appel n\'a été écrit par ces refus', Number(sql('SELECT COUNT(*) AS n FROM appel').n) - appelsAvant, 0);
       /* un compte effacé (410) : une directe existe avec lui */
       const dF = S.convDirecteObtenir(ana.id, fred.id).id;
       const brut = new DatabaseSync(M.chemin); brut.prepare('UPDATE personne SET suppression_le = ? WHERE id = ?').run(maintenant() - 1, fred.id); brut.close();
@@ -174,7 +206,7 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
     {
       /* un service dont le balayeur ne repasse que dans une minute RÉELLE : entre l'avance de l'horloge et la réponse, personne ne « finit » l'appel à la place de la route (avec le balayeur de ce banc, une seconde,
          la mutation « la route ne juge plus l'échéance » ne tombait que si la réponse arrivait avant son passage — un survivant de fait) */
-      const L = await monter({ appels: { balayageMs: 60000, perduMs: 600000, parHeure: 100, parPaireHeure: 100, iceParHeure: 100 } });
+      const L = await monter({ appels: { balayageMs: 60000, perduMs: 600000, parHeure: 100, parPaireHeure: 100, entrantsParHeure: 600, iceParHeure: 100 } });
       try {
         const lia = L.pers('Lia'), leo = L.pers('Leo'); L.S.contactLier(lia.id, leo.id);
         const lc = L.cl(lia), qc = L.cl(leo), anon = T.client(L.svc.base);
@@ -217,6 +249,20 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
       const taille = (n) => ({ x: 'y'.repeat(n - JSON.stringify({ x: '' }).length) });
       const pile = taille(16384), trop = taille(16385);
       v('⛔ 16 Ko PILE (16 384 octets de JSON) passent ; un octet de plus : 413 `signal_trop_gros`', [Buffer.byteLength(JSON.stringify(pile)), dit(await sig(a1, ben.id, 'candidats', pile)), Buffer.byteLength(JSON.stringify(trop)), dit(await sig(a1, ben.id, 'candidats', trop))], [16384, [200, undefined], 16385, [413, 'signal_trop_gros']]);
+      /* ⛔ R1 (relecture) : un signal IMBRIQUÉ se mesure sans jamais lever. `JSON.stringify` d'un objet à 5 000 niveaux lève « Maximum call stack size exceeded » — la route rendait 500 `erreur_interne` pour 30 Ko de
+         corps (sous la limite). Le corps part EN TEXTE : le construire en objet ici lèverait avant même d'envoyer. */
+      const chemin = '/api/appels/' + id + '/signal', imbrique = (n) => '{"a":"' + ben.id + '","type":"candidats","donnees":' + '{"x":'.repeat(n) + '1' + '}'.repeat(n) + '}';
+      const profonds = [];
+      for (const n of [8, 9, 100, 5000]) profonds.push(dit(await a1.post(chemin, imbrique(n))));
+      v('⛔ un signal imbriqué : 8 niveaux passent ; 9, 100 et 5 000 (30 Ko de corps) → 413 `signal_trop_gros` — jamais un 500 (avant : 5 000 niveaux = `erreur_interne`)',
+        profonds, [[200, undefined], [413, 'signal_trop_gros'], [413, 'signal_trop_gros'], [413, 'signal_trop_gros']]);
+      v('   le service vit toujours après le 5 000 niveaux (un signal ordinaire repasse : 200)', (await sig(a1, ben.id, 'candidats', { i: 'apres-profond' })).code, 200);
+      /* la mesure elle-même, sans le service : un million de niveaux (construits sans récursion) → Infinity, pas une exception ; 16 384 octets pile → 16 384 ; une liste de 5 000 conteneurs vides (15 Ko : sous la
+         borne en octets, mais ce n'est pas un signal) → Infinity */
+      let abime = {}; for (let k = 0; k < 1000000; k++) abime = { x: abime };
+      let leve = null, mesures = null;
+      try { mesures = [tailleSignal(abime), tailleSignal({ x: 'y'.repeat(16384 - JSON.stringify({ x: '' }).length) }), tailleSignal({ c: new Array(5000).fill(0).map(() => ({})) }), tailleSignal({ c: [{ candidate: 'a', sdpMid: '0' }] })]; } catch (e) { leve = String(e); }
+      v('⛔ `tailleSignal` : un million de niveaux ne lève PAS (Infinity), 16 384 octets pèsent 16 384, 5 000 conteneurs vides (15 Ko) ne sont pas un signal (Infinity), un vrai lot de candidats pèse ce que dit JSON', [leve, mesures && mesures.map(String)], [null, ['Infinity', '16384', 'Infinity', String(JSON.stringify({ c: [{ candidate: 'a', sdpMid: '0' }] }).length)]]);          // en TEXTE : JSON confond Infinity et NaN avec null
       /* le débit : dix par minute pour cet appel et cette personne (réglage du banc) */
       avancer(2 * MIN);
       const codes = []; for (let i = 0; i < 12; i++) codes.push((await sig(a1, ben.id, 'candidats', { i })).code);
@@ -253,6 +299,12 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
       avancer(20 * SEC);
       const q = await a1.post('/api/appels/' + id + '/quitter', {});
       v('Ana raccroche depuis l\'appareil lié : 200, « fini » (durée = le temps passé depuis la réponse)', [q.code, q.j.ok, q.j.deja, q.j.appel.etat, q.j.appel.duree_s > 0], [200, true, false, 'fini', true]);
+      /* ⛔ T1 (relecture) : la FIN d'un appel est connue de CHAQUE session des DEUX personnes — l'événement durable `appel` est écrit pour chaque participant et atteint tous leurs flux, y compris ceux qui n'ont
+         jamais tenu l'appel (le second appareil d'Ana, le second de Ben) : c'est ce qui permet à ces pages de relire leur historique. */
+      const fin = (e) => e.event === 'appel' && e.data.id === id && e.data.etat === 'fini';
+      const fB1neuf = flux[flux.length - 1];
+      const bout = await Promise.all([fA, fA2, fB1neuf, fB2].map(f => f.attendre(fin).then(() => true, () => false)));
+      v('⛔ la fin de l\'appel arrive à TOUTES les sessions des deux personnes : l\'appareil lié d\'Ana, son AUTRE appareil, l\'appareil lié de Ben, son SECOND (population : quatre flux ouverts, chacun a vu le marqueur plus haut)', [bout, [fA, fA2, fB1neuf, fB2].map(f => f.evenements.filter(fin).length > 0)], [[true, true, true, true], [true, true, true, true]]);
       v('⛔ rejouer le geste (la page raccroche après que l\'autre l\'a fait) : 200 `deja:true`, rien d\'écrit', [(await a1.post('/api/appels/' + id + '/quitter', {})).j.deja, (await b1.post('/api/appels/' + id + '/quitter', {})).j.deja], [true, true]);
       v('⛔ un appel fini ne se signale plus (409 `appel_fini`) ni ne se répond (409 `appel_fini`)', [dit(await a1.post('/api/appels/' + id + '/signal', { a: ben.id, type: 'etat', donnees: {} })), dit(await b1.post('/api/appels/' + id + '/repondre', { accepte: true }))], [[409, 'appel_fini'], [409, 'appel_fini']]);
       const hb = (await b1.get('/api/appels')).j, ha = (await a1.get('/api/appels')).j;
@@ -274,6 +326,39 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
       v('⛔ un compte NEUF (moins de 24 h, hors bêta) a un tiers du plafond : 2 appels par heure au lieu de 6', z, [201, 201, 429]);
       avancer(HEURE + SEC);
       v('   la fenêtre passée, les limites reviennent', [(await lancerFinir(a1, ben.id)).code, (await lancerFinir(a1, cleo.id)).code], [201, 201]);
+    }
+
+    /* ═══════ 7 bis. LE PLAFOND PAR PERSONNE APPELÉE (relecture, I4) ═══════ */
+    console.log('\n⛔ Le plafond par personne APPELÉE : plusieurs comptes qui font sonner la même personne ne sont arrêtés par aucun plafond d\'appelant');
+    {
+      const N = await monter({ appels: { parHeure: 50, parPaireHeure: 20, entrantsParHeure: 3 } });
+      try {
+        const cible = N.pers('Zed'), etranger = N.pers('Etranger'), autre = N.pers('Autre');
+        const appelants = ['Alba', 'Bruno', 'Chloe', 'Dario', 'Elsa'].map(n => N.pers(n));
+        for (const p of appelants) N.S.contactLier(p.id, cible.id);
+        N.S.contactLier(appelants[0].id, autre.id);
+        const cs = appelants.map(p => N.cl(p)), cz = N.cl(cible), ce = N.cl(etranger);
+        const lancerFinir = async (c, vers) => { const r = await c.post('/api/appels', { uid: vers, type: 'audio' }); if (r.code === 201) await c.post('/api/appels/' + r.j.appel.id + '/quitter', {}); return r; };
+        const codes = []; for (let i = 0; i < 3; i++) codes.push((await lancerFinir(cs[i], cible.id)).code);
+        const r4 = await cs[3].post('/api/appels', { uid: cible.id, type: 'audio' });
+        v('⛔ trois appelants DIFFÉRENTS font sonner Zed (le plafond du banc : trois par heure) ; le QUATRIÈME est refusé 429 `appele_sature`, avec l\'attente (Retry-After et `retry`) pour que l\'appelant la lise', [codes, dit(r4), Number(r4.h.get('retry-after')) > 0 && Number(r4.h.get('retry-after')) <= 3600, r4.j.retry > 0 && r4.j.retry <= 3600], [[201, 201, 201], [429, 'appele_sature'], true, true]);
+        const hz = (await cz.get('/api/appels')).j;
+        v('⛔ le refus n\'écrit RIEN : Zed lit trois appels dans son historique (population : trois, pas quatre), et aucun n\'est actif', [hz.appels.length, hz.actif], [3, null]);
+        v('   une AUTRE personne appelée n\'est pas touchée (le plafond est par personne appelée) ; et qui ne peut pas joindre Zed reçoit le 404 d\'une personne introuvable — jamais « saturé » (un refus de plafond ne dit rien à qui n\'a pas le droit d\'appeler)', [(await lancerFinir(cs[0], autre.id)).code, dit(await ce.post('/api/appels', { uid: cible.id, type: 'audio' }))], [201, [404, 'introuvable']]);
+        /* les appels « occupé » comptent aussi : ils font une notification d'appel manqué chez la personne */
+        N.avancer(HEURE + SEC);
+        const premier = await cs[0].post('/api/appels', { uid: cible.id, type: 'audio' });
+        const prise = await cz.post('/api/appels/' + premier.j.appel.id + '/repondre', { accepte: true });
+        const occupes = [(await cs[1].post('/api/appels', { uid: cible.id, type: 'audio' })), (await cs[2].post('/api/appels', { uid: cible.id, type: 'audio' }))];
+        const quatrieme = await cs[3].post('/api/appels', { uid: cible.id, type: 'audio' });
+        v('⛔ un appel pris, puis deux « occupé » : ILS COMPTENT (trois reçus) — le quatrième appelant est refusé `appele_sature` et non `occupe`', [premier.code, prise.code, occupes.map(dit), dit(quatrieme)], [201, 200, [[409, 'occupe'], [409, 'occupe']], [429, 'appele_sature']]);
+        N.avancer(HEURE + SEC);
+        await cs[0].post('/api/appels/' + premier.j.appel.id + '/quitter', {});
+        v('   une heure plus tard le plafond est levé : Elsa fait sonner Zed', (await lancerFinir(cs[4], cible.id)).code, 201);
+        /* la configuration : un entier de 1 à 600, 30 par défaut */
+        const refuse = (x) => { try { appelsConfig({ appels: { entrantsParHeure: x } }, 'beta'); return false; } catch (e) { return /entrantsParHeure/.test(e.message); } };
+        v('⛔ `appels.entrantsParHeure` : 30 par défaut, un entier de 1 à 600 — zéro, 601, un décimal et un texte sont refusés au démarrage, en nommant le champ', [appelsConfig({}, 'beta').entrantsParHeure, appelsConfig({ appels: { entrantsParHeure: 600 } }, 'beta').entrantsParHeure, [0, 601, 2.5, '30'].map(refuse)], [30, 600, [true, true, true, true]]);
+      } finally { await N.fermer(); }
     }
 
     /* ═══════ 8. RIEN NE SE RANGE, RIEN NE SE JOURNALISE ═══════ */

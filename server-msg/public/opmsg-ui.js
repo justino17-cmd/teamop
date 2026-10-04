@@ -209,6 +209,7 @@
       document.title = VUES[r.vue].titre + SUFFIXE_TITRE;
       if (r.vue === 'reglages' && CAP.reglages && prec && typeof chargerReglages === 'function') chargerReglages();
       if (r.vue === 'reunions' && CAP.reunions) entrerReunions();
+      if (r.vue === 'appels' && CAP.appels && prec) rafraichirAppels();       // ⛔ entrer dans Appels RELIT l'historique : un appel passé ou pris sur un autre appareil pendant qu'on était ailleurs y est déjà (relecture, T1)
       /* chaque vue garde SA position (comme une barre d'onglets d'iPhone) : la liste défilée, un tour par Appels, et elle est là où on l'a laissée.
          ⛔ avec une conversation ouverte la fenêtre n'est plus la liste (iOS la ramène en haut pour le clavier) : la position de la liste est celle gardée à l'ouverture */
       if (prec) window.scrollTo(0, etat.posVues[r.vue] || 0);
@@ -987,13 +988,17 @@
     if (etat.groupe.photo && !etat.garderPhoto) URL.revokeObjectURL(etat.groupe.photo);
     etat.garderPhoto = false;
     etat.groupe = groupeVierge();
+    effacerRefusFeuille();
     document.documentElement.classList.remove('feuille-ouverte');
     $('feuille').inert = true;
     synchroInert();
     const d = declencheur; declencheur = null;
     if (d && d.isConnected && d.focus) d.focus({ preventScroll: true });
   }
+  function montrerRefusFeuille(texte) { const e = $('g-erreur'); e.textContent = texte; e.hidden = false; }
+  function effacerRefusFeuille() { const e = $('g-erreur'); e.textContent = ''; e.hidden = true; }
   function basculer(id) {
+    effacerRefusFeuille();
     const G = g(), i = G.choisis.indexOf(id);
     if (G.mode === 'appel' && CAP.appelsMedias) G.choisis = i < 0 ? [id] : [];            // (version servie) un appel se passe à deux : UN contact, le suivant remplace le précédent
     else if (i < 0) G.choisis.push(id); else G.choisis.splice(i, 1);
@@ -1005,6 +1010,7 @@
     if (!G.choisis.length) { $('g-compteur').textContent = 'Choisissez au moins un contact'; setTimeout(synchroFeuille, 1600); return; }
     if (etat.creation) return;
     etat.creation = true;
+    effacerRefusFeuille();
     try { await lancerAppel({ membres: G.choisis.slice(), video: G.video }, $('btn-nouvel-appel'), true); } finally { etat.creation = false; }
   }
   async function creerGroupe() {
@@ -1030,7 +1036,7 @@
   $('g-annuler').addEventListener('click', () => fermerFeuille(false));
   $('voile').addEventListener('click', () => fermerFeuille(false));
   $('g-creer').addEventListener('click', () => { if (g().mode === 'appel') appelerDepuisFeuille(); else if (g().mode === 'chat') creerGroupe(); });
-  $('g-choix').addEventListener('click', e => { const b = e.target.closest('.g-pilule'); if (!b) return; g().video = b.dataset.type === 'video'; synchroFeuille(); });
+  $('g-choix').addEventListener('click', e => { const b = e.target.closest('.g-pilule'); if (!b) return; effacerRefusFeuille(); g().video = b.dataset.type === 'video'; synchroFeuille(); });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (etat.menu) { e.preventDefault(); fermerMenu(); return; }
@@ -1207,7 +1213,12 @@
     etat.appelDemarre = true;
     let c = null, refus = null; try { c = await source.demarrerAppel(spec); } catch (e) { c = null; refus = e; }
     etat.appelDemarre = false;
-    if (!c) { mot(phrase(refus, 'L\'appel n\'a pas pu être lancé.')); return false; }       // un refus du service se DIT (« Cette personne est déjà dans un appel… »), jamais une phrase générique
+    if (!c) {
+      const dit = phrase(refus, 'L\'appel n\'a pas pu être lancé.');
+      mot(dit);                                                                   // (un refus du service se DIT, jamais une phrase générique)
+      if (depuisFeuille) montrerRefusFeuille(dit);       // ⛔ …et reste LISIBLE dans la feuille « Nouvel appel » qui reste ouverte : le mot s'efface en 2,4 s, la personne n'a rien lu (relecture, T3)
+      return false;
+    }       // un refus du service se DIT (« Cette personne est déjà dans un appel… »), jamais une phrase générique
     etat.declencheurAppel = declencheurEl && declencheurEl.id ? '#' + declencheurEl.id : declencheurEl && declencheurEl.dataset && declencheurEl.dataset.rappeler ? '[data-rappeler="' + declencheurEl.dataset.rappeler.replace(/"/g, '') + '"]' : null;
     const r = Object.assign({}, etat.route, { feuille: false, photo: null, appel: c.id });
     if (depuisFeuille && etat.route.feuille) remplacer(r); else pousser(r);
@@ -1465,6 +1476,7 @@
     { const au = $('appel-audio-distant'); if (au.srcObject) au.srcObject = null; }
     avisAppelEffacer();
     delete document.documentElement.dataset.appel;
+    $('appel-ecran').removeAttribute('data-entrant');         // ⛔ l'écran qui se ferme n'est plus « entrant » : le suivant (un appel qu'on lance) ne reprend ni « Répondre » ni « Refuser » d'une sonnerie perdue — l'appel pris sur l'autre appareil (relecture, T4)
     synchroInert();
     requestAnimationFrame(() => { const b = cle && document.querySelector(cle); if (b && !etat.appelId && b.getClientRects().length) b.focus({ preventScroll: true }); });
     if (id) source.terminerAppel(id).then(rec => annonceAppel(rec.duree > 0 || !CAP.appelsMedias ? 'Appel terminé · ' + dureeAppel(rec.duree) : 'Appel terminé'), () => { /* l'appel n'existait plus chez la source */ });

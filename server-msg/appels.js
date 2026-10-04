@@ -55,8 +55,12 @@ function creerAppels({ stockage, hub, push, config, horloge = Date.now, journali
     if (!r) return { relais: false, ttl_s: 0, serveurs: [] };
     const id = identifiantsRelais(r, uid, horloge());
     const hote = r.hote;
-    const urls = ['turn:' + hote + ':' + r.port + '?transport=udp', 'turn:' + hote + ':' + r.port + '?transport=tcp'];
-    if (r.portTls) urls.push('turns:' + hote + ':' + r.portTls + '?transport=tcp');
+    /* ⛔ DEUX adresses de relais, pas trois : le navigateur ouvre UNE ALLOCATION par adresse (mesuré par la sonde, contre le vrai coturn : deux par côté avec deux adresses), et chaque allocation RÉSERVE
+       sa part de la capacité du relais (`bps-capacity` ÷ `max-bps`) — trois adresses, c'était six allocations par appel relayé. L'UDP d'abord (le chemin des appels) ; en secours, le TLS quand le
+       certificat existe (les réseaux d'entreprise qui ne laissent passer que du TLS), sinon le TCP simple — le TCP simple ET le TLS ensemble n'ajoutaient rien : un réseau qui bloque l'UDP et le 5349
+       n'ouvre pas non plus le 3478. */
+    const urls = ['turn:' + hote + ':' + r.port + '?transport=udp'];
+    urls.push(r.portTls ? 'turns:' + hote + ':' + r.portTls + '?transport=tcp' : 'turn:' + hote + ':' + r.port + '?transport=tcp');
     return { relais: true, ttl_s: r.ttlS, serveurs: [{ urls: ['stun:' + hote + ':' + r.port] }, { urls, username: id.username, credential: id.credential }] };
   }
 
@@ -175,6 +179,7 @@ function creerAppels({ stockage, hub, push, config, horloge = Date.now, journali
           const f = stockage.appelFinir({ id: a.id, motif: 'perdu', fin: Math.max(ref, a.repondu === null ? a.cree : a.repondu) });
           if (f.deja) break;
           bilan.perdus++; etat.perdus++;
+          journaliser('appel_perdu', { n: 1 });                // le JOURNAL le sait (sans appel ni personne) ; /health, publique, ne le dit plus : un compteur d'appels perdus est une activité
           reveiller(Object.keys(f.gids));
           if (f.notif) pousserManque(f.notif, { id: a.id, type: a.type, appelant: personne(p.uid) });
           break;
@@ -203,9 +208,11 @@ function creerAppels({ stockage, hub, push, config, horloge = Date.now, journali
   function demarrer() { if (!arrete) return; arrete = false; planifier(Math.min(1000, cfg.balayageMs)); }
   function arreter() { arrete = true; if (minuteur) { clearTimeout(minuteur); minuteur = null; } }
 
-  /* ⛔ /health : un booléen et des NOMBRES — jamais un appel, une personne, ni (surtout) combien d'appels sont EN COURS (une activité, et /health est publique). `ageS` : secondes depuis le dernier passage du balayeur. */
+  /* ⛔ /health : un booléen et des NOMBRES — jamais un appel, une personne, ni (surtout) combien d'appels sont EN COURS (une activité, et /health est publique). `ageS` : secondes depuis le dernier passage du balayeur.
+     ⛔ Plus de `perdus` (relecture, R6) : le nombre d'appels finis « connexion perdue » depuis le démarrage dit à n'importe qui comment se portent les réseaux des gens, et aucun seuil n'avait de sens — le journal
+     du service garde une ligne `appel_perdu` par fin (sans appel ni personne), et chaque fin est écrite avec son motif dans l'historique de la personne. */
   function sante() {
-    return { turn: relaisPose(), ageS: etat.dernierTour === null ? null : Math.max(0, Math.round((horloge() - etat.dernierTour) / 1000)), echecs: etat.echecs, perdus: etat.perdus };
+    return { turn: relaisPose(), ageS: etat.dernierTour === null ? null : Math.max(0, Math.round((horloge() - etat.dernierTour) / 1000)), echecs: etat.echecs };
   }
 
   return { ice, creer, repondre, quitter, signal, bloquer, terminerDe, balayer, echoir, demarrer, arreter, sante, relais: relaisPose, etat };
