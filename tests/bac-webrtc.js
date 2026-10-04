@@ -20,11 +20,13 @@
        RÉCIPROQUE — A croit parler à B, B croit parler à A. Un moteur qui mélange deux liaisons (une réponse envoyée à la mauvaise paire) ne s'établit pas, ou s'établit avec la mauvaise ;
      · `sender.getParameters()` / `setParameters()` gardent le plafond de débit posé (`monde.debits`, `pc.debitMax(kind)`) ;
      · `pc.getReceivers()` rend les récepteurs des genres REÇUS, et `pc.niveauDistant` (0 à 1) est le niveau de voix que leurs statistiques annoncent (`audioLevel`) : c'est la voix de l'AUTRE ;
-     · `monde.exigeRelais = true` : une connexion ne s'établit que si SA configuration porte un serveur de relais (`turn:` / `turns:`) — le STUN seul ne suffit pas (un réseau qui bloque tout trajet direct). */
+     · `monde.exigeRelais = true` : une connexion ne s'établit que si SA configuration porte un serveur de relais (`turn:` / `turns:`) — le STUN seul ne suffit pas (un réseau qui bloque tout trajet direct) ;
+     · `monde.exigeTls = true` (ou la liste des pages) : un réseau qui bloque aussi l'UDP — la liaison n'existe que si SA configuration porte un relais joignable en TCP ou en TLS (`turns:` ou `…transport=tcp`) ;
+       `pc.adressesRelais()` dit combien d'adresses de relais SA configuration porte (le navigateur ouvre une allocation chez coturn par adresse : c'est ce que le repli « à une adresse » économise). */
 'use strict';
 
 function creerMonde(nom) {
-  const monde = { nom: nom || 'monde', pcs: [], bloquer: false, exigeRelais: false, delaiCandidatsMs: 3, delaiLiaisonMs: 3, pistesPosees: [], debits: [], n: 0 };
+  const monde = { nom: nom || 'monde', pcs: [], bloquer: false, exigeRelais: false, exigeTls: false, delaiCandidatsMs: 3, delaiLiaisonMs: 3, pistesPosees: [], debits: [], n: 0 };
 
   const invalide = (m) => Object.assign(new Error(m), { name: 'InvalidStateError' });
   const envoie = (d) => d === 'sendrecv' || d === 'sendonly';
@@ -93,11 +95,15 @@ function creerMonde(nom) {
     /* cette connexion porte-t-elle un serveur de relais dans SA configuration courante ? */
     /* `monde.exigeRelais` : vrai (toutes les liaisons) ou la liste des pages (leur nom) avec lesquelles aucun trajet direct n'existe — la liaison attend alors d'avoir un relais dans SA configuration */
     _attendLeRelais() {
-      const x = monde.exigeRelais; if (!x) return false;
-      if (x !== true) { const o = this.distantOrigine() || ''; if (!x.some(n => o.indexOf('faux-' + n + '-') === 0)) return false; }
-      return !this.avecRelais();
+      const o = this.distantOrigine() || '';
+      const vise = (x) => x === true || (Array.isArray(x) && x.some(n => o.indexOf('faux-' + n + '-') === 0));
+      if (vise(monde.exigeTls) && !this.avecRelaisTcp()) return true;
+      return !!monde.exigeRelais && vise(monde.exigeRelais) && !this.avecRelais();
     }
-    avecRelais() { return !!(this.conf && Array.isArray(this.conf.iceServers) && this.conf.iceServers.some(s => (Array.isArray(s.urls) ? s.urls : [s.urls]).some(u => /^turns?:/.test(String(u))))); }
+    _urls() { return this.conf && Array.isArray(this.conf.iceServers) ? this.conf.iceServers.reduce((l, s) => l.concat(Array.isArray(s.urls) ? s.urls : [s.urls]), []).map(String) : []; }
+    adressesRelais(conf) { const c = conf || this.conf; return (c && Array.isArray(c.iceServers) ? c.iceServers : []).reduce((n, s) => n + (Array.isArray(s.urls) ? s.urls : [s.urls]).filter(u => /^turns?:/.test(String(u))).length, 0); }
+    avecRelaisTcp() { return this._urls().some(u => /^turns:/.test(u) || (/^turn:/.test(u) && /transport=tcp/.test(u))); }
+    avecRelais() { return this._urls().some(u => /^turns?:/.test(u)); }
     restartIce() { this.journal.push('restartIce'); this.relances++; }
     setConfiguration(conf) { this.journal.push('setConfiguration'); this.conf = conf; this.confs.push(conf); this._verifier(); }
     _sdp(redemarrage) {

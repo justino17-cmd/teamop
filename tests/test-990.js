@@ -10,6 +10,8 @@
      · qui parle (le niveau de voix de la liaison), la main levée, la réaction, l'état de l'appareil — dits aux autres par le service, jamais inventés ici ;
      · la salle d'attente, l'exclusion, le départ de l'hôte, le retour de quelqu'un (sa liaison est REFAITE, l'ancienne fermée) ;
      · ⛔ DIRECT D'ABORD, RELAIS EN REPLI, PAIRE PAR PAIRE : une liaison qui s'établit seule ne reçoit JAMAIS de serveur de relais ; celle qui ne passe pas en reçoit un, et l'autre côté la suit ;
+     · ⛔ ET LE REPLI N'OUVRE QU'UNE ADRESSE DE RELAIS (une allocation chez coturn par adresse, mesuré) : la seconde (le TLS) n'arrive que pour une liaison qui ne s'établit toujours pas, et les DEUX côtés la suivent
+       — par l'offre quand l'offrant a pris l'initiative, par le petit signal d'état quand c'est l'autre (les deux sens sont joués, la minuterie de l'autre côté ne sonne jamais) ;
      · la salle d'une réunion programmée, le lien d'invité (aperçu public, entrée par le code) ; l'historique d'un appel de groupe ; un onglet = un appel.
 
    Toute attente est au GESTE (on sonde la condition), jamais au chronomètre ; chaque « zéro » est précédé de ce qu'il aurait pu compter. */
@@ -30,7 +32,7 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (240 s)');
 
 /* les délais du MOTEUR, raccourcis pour le banc */
 const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessai: [40, 80], iceMax: 1500, quitter: [40, 80], marge: 600000, renouvMin: 600000, nettoyage: 600000,
-  relaisApres: 400, reoffre: 800, reprise: 400, niveau: 40, tenuParle: 150, etat: 20 };
+  relaisApres: 1000, toutApres: 500, reoffre: 2500, reprise: 400, niveau: 40, tenuParle: 150, etat: 20 };
 
 (async () => {
   const MDP = { ana: 'pw-ana-1234567', ben: 'pw-ben-1234567', cleo: 'pw-cleo-123456', dan: 'pw-dan-1234567', eve: 'pw-eve-1234567' };
@@ -49,8 +51,16 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessa
     const faux = { priseEnCharge: () => ({ ok: false, raison: 'navigateur' }), permission: () => 'default', visible: () => true, surMessage: () => {}, abonnementActuel: async () => null, fermerNotifications: async (tag) => { D.fermees.push(tag); } };
     const f = async (url, init) => {
       const u = String(url), m = (init && init.method) || 'GET', chemin = u.replace(svc.base, '').split('?')[0]; D.requetes.push({ m, chemin, corps: init && typeof init.body === 'string' ? init.body : null });
-      /* `D.devancer` : la réponse du service à « Répondre » n'est RENDUE qu'APRÈS l'événement que le service pousse à tout le monde dès que la personne est admise — l'ordre qu'un vrai navigateur a eu (mesuré : le flux gagne la course) */
-      if (D.devancer && m === 'POST' && /\/repondre$/.test(chemin)) { const avant = D.recus.appel || 0, r = await nav.fetch(url, init); D.devance = !!(await att(() => (D.recus.appel || 0) > avant, 4000)); return r; }
+      /* `D.devancer` : la réponse du service à « Répondre » n'est RENDUE qu'APRÈS l'événement que le service pousse à tout le monde dès que la personne est admise ET après les premières offres des autres — l'ordre qu'un vrai
+         navigateur a eu (mesuré : le flux gagne la course) */
+      if (D.devancer && m === 'POST' && /\/repondre$/.test(chemin)) {
+        const avant = D.recus.appel || 0, sig0 = D.recus.signal || 0, r = await nav.fetch(url, init);
+        D.devance = !!(await att(() => (D.recus.appel || 0) > avant, 4000));
+        /* …et les OFFRES des autres (ceux qui me voient présent) arrivent, elles aussi, avant la réponse. On n'attend que si le banc SAIT qu'une offre va venir (un identifiant plus petit est dans la salle) : attendre
+           un signal qui ne viendra pas laisserait la minuterie de repli des autres sonner pour de bon, et le signal qui finirait par arriver serait leur propre « état » */
+        D.signauxAvant = D.signauxAttendus ? !!(await att(() => (D.recus.signal || 0) > sig0, 4000)) : null;
+        return r;
+      }
       return nav.fetch(url, init);
     };
     const ES = class extends nav.EventSource {
@@ -71,7 +81,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessa
   const donnerPistes = (D, id, video) => D.src.appelPistes(id, { audio: pisteDe(D, 'audio'), video: video ? pisteDe(D, 'video') : null });
 
   try {
-    const A = monter('ana'), B = monter('ben'), C = monter('cleo'), N = monter('dan'), E = monter('eve');
+    const A = monter('ana', { delais: { relaisApres: 400 } }), B = monter('ben'), C = monter('cleo'), N = monter('dan', { delais: { relaisApres: 400 } }), E = monter('eve');          // Ana et Dan : le scénario du relais (7) veut un repli court
     const ana = await A.entrer(), ben = await B.entrer(), cleo = await C.entrer(), dan = await N.entrer(), eve = await E.entrer();
     const tous = [A, B, C, N];
     const mondes = tous.map(D => D.monde);
@@ -112,7 +122,9 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessa
         const petit = ana.id < ben.id ? 'ana' : 'ben', off = petit === 'ana' ? pAB : pBA, rep = petit === 'ana' ? pBA : pAB;
         return [A.monde.pcs.length, B.monde.pcs.length, off.journal.filter(x => x === 'createOffer').length, rep.journal.filter(x => /^createOffer/.test(x)).length, rep.journal.includes('createAnswer')];
       })(), [1, 1, 1, 0, true]);
+      C.devancer = true; C.signauxAttendus = [ana, ben].some(x => x.id < cleo.id);
       const rc = await C.src.repondreAppel(id, true);
+      C.devancer = false;
       donnerPistes(C, id, true);
       vrai('Cleo répond : la maille complète (trois liaisons réciproques : Ana–Ben, Ana–Cleo, Ben–Cleo), deux connexions par page', !!(await att(() => [A, B, C].every(D => D.monde.vivants().length === 2 && D.monde.vivants().every(p => p.iceConnectionState === 'connected')) && A.monde.appariees(mondes).length === 2 && B.monde.appariees(mondes).length === 2 && C.monde.appariees(mondes).length === 2)));
       v('⛔ les connexions identifient la BONNE paire : chaque page est liée à chacune des deux autres, une fois', tous.slice(0, 3).map(D => D.monde.appariees(mondes).map(x => x.monde).sort()), [['ben', 'cleo'], ['ana', 'cleo'], ['ana', 'ben']]);
@@ -138,12 +150,13 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessa
       const debits = (D) => D.monde.vivants().map(p => [p.debitMax('audio'), p.debitMax('video')]);
       v('⛔ à trois : la voix à 32 kbit/s, l\'image à 600 kbit/s — sur CHAQUE liaison de chaque page', tous.slice(0, 3).map(debits), new Array(3).fill([[32000, 600000], [32000, 600000]]));
       /* Dan répond : à quatre l'image tombe à 400 kbit/s — ET l'événement du service DEVANCE la réponse HTTP (l'ordre d'un vrai navigateur) : la personne n'est pas « prise sur un autre appareil » */
-      N.devancer = true;
+      N.devancer = true; N.signauxAttendus = [ana, ben, cleo].some(x => x.id < dan.id);
       const rd = await N.src.repondreAppel(id, true);
       N.devancer = false;
       v('⛔ l\'événement « présent » a bien DEVANCÉ la réponse HTTP (population de la course), et Dan n\'est pas raccroché : il est présent, l\'appel court, aucune issue « pris ailleurs »', [N.devance, rd.entrant, rd.moi.statut, rd.etat, rd.issue, rd.avis], [true, false, 'present', 'en-cours', null, null]);
       donnerPistes(N, id, true);
       vrai('Dan répond : quatre pages, trois connexions chacune', !!(await att(() => tous.every(D => D.monde.vivants().length === 3 && D.monde.vivants().every(p => p.iceConnectionState === 'connected')))));
+      v('⛔ des OFFRES ont devancé la réponse de Cleo et celle de Dan (population : il y en a quand un identifiant plus petit est déjà dans la salle, et le banc les a attendues) — elles ont ATTENDU au lieu d\'être jetées : aucune liaison n\'est allée chercher le relais pour rien', [C.signauxAvant === (C.signauxAttendus ? true : null), N.signauxAvant === (N.signauxAttendus ? true : null), tous.every(D => D.monde.pcs.every(p => !p.journal.includes('setConfiguration')))], [true, true, true]);
       await att(() => tous.every(D => debits(D).every(x => x[1] === 400000)));
       v('⛔ à quatre : l\'image à 400 kbit/s sur chaque liaison (le débit sortant total d\'une page reste borné : trois liaisons × 400 + voix)', tous.map(debits), new Array(4).fill([[32000, 400000], [32000, 400000], [32000, 400000]]));
       v('   le débit sortant d\'une page à quatre : 3 × (32 + 400) = 1 296 kbit/s au plus', debits(A).reduce((s, x) => s + x[0] + x[1], 0), 3 * (32000 + 400000));
@@ -279,6 +292,11 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessa
       const rel = (D) => D.monde.vivants().map(p => [p.distantOrigine().split('-')[1], p.avecRelais()]).sort((x, y) => x[0] < y[0] ? -1 : 1);
       v('⛔ SEULE la paire Ana–Dan a un relais dans sa configuration — des DEUX côtés ; Ana–Ben et Ben–Dan n\'en ont JAMAIS reçu (aucune allocation inutile)', [rel(A), rel(B), rel(N)], [[['ben', false], ['dan', true]], [['ana', false], ['dan', false]], [['ana', true], ['ben', false]]]);
       v('   la configuration des liaisons directes ne porte que le STUN du service ; celle du repli porte le relais ET le STUN', [A.monde.vivants().find(p => p.distantOrigine().startsWith('faux-ben-')).confs.map(c => c.iceServers.length), A.monde.vivants().find(p => p.distantOrigine().startsWith('faux-dan-')).conf.iceServers.length], [[1], 2]);
+      {
+        const pad = A.monde.vivants().find(p => p.distantOrigine().startsWith('faux-dan-')), pda = N.monde.vivants().find(p => p.distantOrigine().startsWith('faux-ana-'));
+        v('⛔ le repli ne donne qu\'UNE adresse de relais à la liaison (la première, l\'UDP) — une allocation de moins chez coturn par liaison relayée —, et la liaison s\'est établie sans la seconde : des deux côtés, directe (0) puis UNE adresse (1)', [pad.confs.map(c => pad.adressesRelais(c)), pda.confs.map(c => pda.adressesRelais(c))], [[0, 1], [0, 1]]);
+        v('   et cette adresse est bien l\'UDP (la première annoncée par le service), pas le TLS', [pad.conf.iceServers.flatMap(s => s.urls).filter(u => /^turns?:/.test(u))], [['turn:turn.exemple.invalid:3478?transport=udp']]);
+      }
       v('⛔ l\'offre du repli porte l\'ICE redémarré, et l\'autre côté a SUIVI : un seul redémarrage, côté offrant', (() => {
         const pa = A.monde.vivants().find(p => p.distantOrigine().startsWith('faux-dan-')), pd = N.monde.vivants().find(p => p.distantOrigine().startsWith('faux-ana-'));
         const petit = ana.id < dan.id ? pa : pd, autre = ana.id < dan.id ? pd : pa;
@@ -331,6 +349,37 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessa
       v('⛔ l\'historique d\'Ana porte les appels de GROUPE (une ligne par appel), avec leur nom (le groupe, les prénoms, la réunion), leur type et les participants', [lignes.length >= 3, lignes.map(x => x.nom.split(', ').sort().join(', ')).slice(0, 3).sort(), lignes[0].membres.every(m => typeof m === 'string'), lignes.every(x => x.groupe === true && Number.isFinite(x.t))], [true, ['Ben, Dan', 'Point d\'équipe', 'Équipe terrain'].sort(), true, true]);
       const manques = await B.src.appels('manques');
       v('   et le filtre « manqués » ne garde que les entrants non pris (population : Ben a tout pris)', manques.length, 0);
+    }
+
+    /* ═══ 9. LE RÉSEAU QUI BLOQUE L'UDP : LA SECONDE ADRESSE DE RELAIS, ET LES DEUX CÔTÉS LA SUIVENT ═══ */
+    console.log('\nUn réseau qui bloque l\'UDP : la liaison ne passe qu\'avec l\'adresse TLS — elle arrive APRÈS la première, et l\'autre côté la suit (par l\'offre, ou par le signal d\'état)');
+    {
+      const petit = ana.id < dan.id ? 'ana' : 'dan', grand = petit === 'ana' ? 'dan' : 'ana';
+      /* `tardif` : la page dont la minuterie « toutes les adresses » ne sonne JAMAIS dans le banc — c'est donc l'AUTRE qui prend l'initiative, et la page tardive ne peut apprendre la seconde adresse que par ce que l'autre lui DIT.
+         Ana appelle toujours (c'est elle qui a Ben et Dan pour contacts) ; ce que l'identifiant décide, c'est QUI OFFRE. */
+      const variante = async (titre, tardif) => {
+        const tardive = tardif === 'offrant' ? petit : grand, lente = { toutApres: 600000 };
+        const Pa = monter('ana', { delais: tardive === 'ana' ? lente : {} }), Pd = monter('dan', { delais: tardive === 'dan' ? lente : {} });
+        await Pa.entrer(); await Pd.entrer();
+        Pa.monde.exigeTls = ['dan']; Pd.monde.exigeTls = ['ana'];                            // aucun trajet direct ET aucun UDP : seul un relais joignable en TLS relie ces deux-là
+        const iceAvant = [Pa, Pd].map(D => D.nbRequetes(/GET \/api\/ice/));
+        const sx = await Pa.src.demarrerAppel({ membres: [dan.id, ben.id], video: false });
+        await Pd.attendreEv(e => e.type === 'appel-entrant' && e.id === sx.id);
+        donnerPistes(Pa, sx.id, false);
+        await Pd.src.repondreAppel(sx.id, true); donnerPistes(Pd, sx.id, false);
+        const ok = !!(await att(() => [Pa, Pd].every(D => D.monde.vivants().length === 1 && D.monde.vivants()[0].iceConnectionState === 'connected'), 10000));
+        const pa = Pa.monde.vivants()[0], pd = Pd.monde.vivants()[0];
+        vrai('⛔ ' + titre + ' : la liaison s\'établit — avec l\'adresse TLS, que les DEUX côtés ont reçue', ok && pa.avecRelaisTcp() && pd.avecRelaisTcp());
+        v('   la configuration a suivi les trois temps, des deux côtés : directe (0), UNE adresse (1), toutes (2)', [pa.confs.map(c => pa.adressesRelais(c)), pd.confs.map(c => pd.adressesRelais(c))], [[0, 1, 2], [0, 1, 2]]);
+        v('   deux redémarrages d\'ICE (le repli, puis l\'élargissement), tous deux côté OFFRANT (le plus petit identifiant) — l\'autre n\'en fait aucun', [pa, pd].map(x => x.journal.filter(j => j === 'createOffer:restart').length), petit === 'ana' ? [2, 0] : [0, 2]);
+        v('   les identifiants du relais ne sont demandés qu\'UNE fois par page', [Pa, Pd].map((D, i) => D.nbRequetes(/GET \/api\/ice/) - iceAvant[i]), [1, 1]);
+        await Pa.src.terminerAppel(sx.id).catch(() => null);
+        await Pd.src.terminerAppel(sx.id).catch(() => null);
+        await B.src.terminerAppel(sx.id).catch(() => null);
+        await att(() => Pa.monde.vivants().length === 0 && Pd.monde.vivants().length === 0, 4000);
+      };
+      await variante('l\'OFFRANT prend l\'initiative (la minuterie de l\'autre ne sonne jamais) : l\'autre apprend « toutes les adresses » par l\'OFFRE', 'repondant');
+      await variante('l\'AUTRE prend l\'initiative (la minuterie de l\'offrant ne sonne jamais) : l\'offrant l\'apprend par le SIGNAL D\'ÉTAT', 'offrant');
     }
   } catch (e) {
     console.log('  ✗ le banc est mort : ' + (e && e.stack || e));

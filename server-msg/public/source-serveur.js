@@ -753,6 +753,10 @@
      SERVEUR.md § 3.5) : en maille, chaque paire en prendrait deux — six allocations par personne à quatre, dix à six, pour un relais qui en offre quatre. Chaque liaison démarre donc avec le seul STUN du
      service ; si elle ne s'établit pas dans les `relaisApres` ms (ou échoue), CETTE paire passe au relais (les serveurs de relais, un redémarrage d'ICE) et l'autre côté la suit. Une paire qui se joint seule
      ne coûte rien au relais.
+     ⛔ ET LE REPLI N'OUVRE QU'UNE ADRESSE DE RELAIS À LA FOIS (mesuré contre le vrai coturn, SERVEUR.md § 3.5 : une réunion à quatre FORCÉE par le relais n'établissait que 6 liaisons sur 12 avec le quota de
+     production, 20 allocations refusées). Le service annonce deux adresses (l'UDP, puis le TLS ou le TCP) et le navigateur ouvre une allocation PAR adresse : le premier repli ne donne que la PREMIÈRE ;
+     la seconde ne s'ajoute (`relaisTout`) qu'à une liaison qui ne s'établit toujours pas `toutApres` ms plus tard — un réseau qui bloque l'UDP n'a de toute façon obtenu aucune allocation UDP, il ne paie
+     donc que celle du TLS. L'autre côté suit, comme pour le repli lui-même (`tout` dans l'offre ou le petit signal d'état).
      ⛔ LE DÉBIT EST PLAFONNÉ PAR FLUX (`RTCRtpSender.setParameters`) : envoyer son image à N − 1 personnes, c'est N − 1 fois le débit d'un appel à deux, sur une 4G. Le plafond suit le nombre de présents.
      ⛔ UNE PAIRE QUI ÉCHOUE N'ARRÊTE PAS LA SALLE : sa tuile le dit, la liaison est reprise (trois fois), les autres continuent. Le service impose qui est dans la salle ; ce moteur ne croit pas pour autant
      un signal sur parole : sa forme, sa taille et son moment sont jugés ici. */
@@ -760,7 +764,7 @@
   const CODES_SALLE_FINIE = ['appel_fini', 'introuvable', 'appareil_non_lie', 'appel_pas_en_cours'];
   function creerMoteurSalle(d) {
     const T = Object.assign({ pouls: 15000, candidats: 60, veille: 30000, deconnecte: 6000, reessai: [600, 1800], iceMax: 4000, renouv: 0.75, renouvMin: 30000, quitter: [500, 1500], marge: 3000, nettoyage: 60000,
-      relaisApres: 4000, reoffre: 4000, reoffresMax: 3, reprise: 10000, repriseMax: 3, niveau: 300, seuilParle: 0.02, tenuParle: 700, etat: 150 }, d.delais || {});
+      relaisApres: 4000, toutApres: 5000, reoffre: 4000, reoffresMax: 3, reprise: 10000, repriseMax: 3, niveau: 300, seuilParle: 0.02, tenuParle: 700, etat: 150 }, d.delais || {});
     const planifier = d.planifier, annuler = d.annuler, maintenant = d.maintenant;
     const pause = (ms) => new Promise((ok) => planifier(ok, ms));
     const alea = d.alea || (() => Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10));
@@ -779,19 +783,19 @@
         pairs: new Map(), pistes: { audio: null, video: null, ecran: false, micro: true }, etatDit: null,
         ice: null, promesseIce: null, relais: false, sansRelais: false, ttl: 0,
         debut: null, fini: null, serviceInforme: false, informe: null, terminaison: null, demandeMicro: null,
-        niveaux: new Map(), parlent: new Set(), tenus: new Map(),
+        niveaux: new Map(), parlent: new Set(), tenus: new Map(), enAvance: [],
         minPouls: null, minSonnerie: null, minNettoyage: null, minRenouv: null, minNiveau: null, minEtat: null,
       }, extra || {});
     }
     function pairNeuve(uid, gen) {
       return {
         uid, gen: gen || 0, offrant: moi() < uid, lien: null, pc: null, flux: null, emetteurs: { audio: null, video: null }, pret: false, demarrage: false,
-        etat: 'attente', relais: false, sansRelais: false, etablie: false, relance: false, offreEnVol: null, derniereOffre: null, reoffres: 0, reprises: 0,
+        etat: 'attente', relais: false, relaisTout: false, sansRelais: false, etablie: false, relance: false, offreEnVol: null, derniereOffre: null, reoffres: 0, reprises: 0,
         file: [], avant: [], candLocaux: [], candDistants: [], chaineIn: Promise.resolve(), chaineOut: Promise.resolve(),
-        minCands: null, minVeille: null, minRelais: null, minReoffre: null, minDeconnecte: null, minReprise: null,
+        minCands: null, minVeille: null, minRelais: null, minTout: null, minReoffre: null, minDeconnecte: null, minReprise: null,
       };
     }
-    const MINUTERIES_PAIR = ['minCands', 'minVeille', 'minRelais', 'minReoffre', 'minDeconnecte', 'minReprise'];
+    const MINUTERIES_PAIR = ['minCands', 'minVeille', 'minRelais', 'minTout', 'minReoffre', 'minDeconnecte', 'minReprise'];
     function noterVue(v) {
       if (v.autre && typeof v.autre.id === 'string') d.noter(v.autre);
       for (const p of Array.isArray(v.participants) ? v.participants : []) if (p && typeof p.id === 'string') d.noter(p);
@@ -987,7 +991,21 @@
       });
     }
     const estStun = (s) => (Array.isArray(s.urls) ? s.urls : []).every(u => /^stun:/.test(u));
-    const serveursDe = (c, pr) => pr.relais ? c.ice.serveurs : c.ice.serveurs.filter(estStun);
+    const estTurn = (u) => /^turns?:/.test(u);
+    /* les serveurs que CETTE liaison reçoit : le STUN seul tant qu'elle est directe ; au repli, le STUN plus UNE adresse de relais (la première annoncée : l'UDP) ; toutes les adresses une fois `relaisTout` */
+    const serveursDe = (c, pr) => {
+      if (!pr.relais) return c.ice.serveurs.filter(estStun);
+      if (pr.relaisTout) return c.ice.serveurs;
+      let prise = false;
+      return c.ice.serveurs.map((s) => {
+        if (estStun(s)) return s;
+        const i = prise ? -1 : (Array.isArray(s.urls) ? s.urls : []).findIndex(estTurn);
+        if (i < 0) return null;
+        prise = true;
+        return Object.assign({}, s, { urls: [s.urls[i]] });
+      }).filter(Boolean);
+    };
+    const nbAdressesRelais = (c) => c.ice ? c.ice.serveurs.reduce((n, s) => n + (Array.isArray(s.urls) ? s.urls.filter(estTurn).length : 0), 0) : 0;
     async function renouvelerServeurs(c) {
       const ice = await lireIce();
       if (c.fini || ice.indisponible || !ice.serveurs.length) return false;
@@ -1079,7 +1097,7 @@
     function echecPair(c, pr) {
       if (c.fini || c.pairs.get(pr.uid) !== pr) return;
       pr.etat = 'echec';
-      for (const k of ['minVeille', 'minRelais', 'minReoffre', 'minDeconnecte']) if (pr[k]) { annuler(pr[k]); pr[k] = null; }
+      for (const k of ['minVeille', 'minRelais', 'minTout', 'minReoffre', 'minDeconnecte']) if (pr[k]) { annuler(pr[k]); pr[k] = null; }
       if (pr.offrant && pr.reprises < T.repriseMax) {
         pr.minReprise = planifier(() => { pr.minReprise = null; reprendrePair(c, pr); }, T.reprise);
       }
@@ -1087,16 +1105,16 @@
     }
     function reprendrePair(c, pr) {
       if (c.fini || c.pairs.get(pr.uid) !== pr || pr.etablie) return;
-      const reprises = pr.reprises + 1, gen = pr.gen, relais = pr.relais;
+      const reprises = pr.reprises + 1, gen = pr.gen, relais = pr.relais, relaisTout = pr.relaisTout;
       fermerPair(c, pr);
-      Object.assign(pr, pairNeuve(pr.uid, gen), { reprises, relais });
+      Object.assign(pr, pairNeuve(pr.uid, gen), { reprises, relais, relaisTout });
       demarrerPair(c, pr);
     }
     function surEtatIce(c, pr, pc) {
       if (pr.pc !== pc || c.fini) return;
       const s = pc.iceConnectionState;
       if (s === 'connected' || s === 'completed') {
-        for (const k of ['minVeille', 'minDeconnecte', 'minRelais', 'minReoffre', 'minReprise']) if (pr[k]) { annuler(pr[k]); pr[k] = null; }
+        for (const k of ['minVeille', 'minDeconnecte', 'minRelais', 'minTout', 'minReoffre', 'minReprise']) if (pr[k]) { annuler(pr[k]); pr[k] = null; }
         pr.etablie = true; pr.reprises = 0;
         if (pr.etat !== 'connecte') { pr.etat = 'connecte'; emettreAppel(c); plafonner(c); }
       } else if (s === 'disconnected' || s === 'failed') {
@@ -1104,6 +1122,7 @@
         armerVeille(c, pr);
         /* une liaison qui n'a JAMAIS tenu et qui échoue : si le relais n'a pas encore été essayé, c'est le moment */
         if (s === 'failed' && !pr.etablie && !pr.relais) { passerAuRelais(c, pr); return; }
+        if (s === 'failed' && !pr.etablie && pr.relais && !pr.relaisTout && nbAdressesRelais(c) > 1) { elargirRelais(c, pr); return; }               // le repli à une adresse a échoué : la suivante, sans attendre la minuterie
         if (!pr.offrant) return;                                                        // l'autre offre : on attend
         if (s === 'failed') relancerPair(c, pr);
         else if (!pr.minDeconnecte) pr.minDeconnecte = planifier(() => { pr.minDeconnecte = null; if (!c.fini && pr.pc === pc && pc.iceConnectionState !== 'connected' && pc.iceConnectionState !== 'completed') relancerPair(c, pr); }, T.deconnecte);
@@ -1116,8 +1135,8 @@
       if (pr.pc !== pc || c.fini) return;
       await pc.setLocalDescription(offre);
       if (!pr.lien) pr.lien = alea();
-      pr.offreEnVol = { sdp: offre.sdp, lien: pr.lien, relais: pr.relais, n: 0 };
-      await signaler(c, pr, 'offre', { sdp: offre.sdp, lien: pr.lien, relais: pr.relais ? 1 : 0 }, true);
+      pr.offreEnVol = { sdp: offre.sdp, lien: pr.lien, relais: pr.relais, tout: pr.relaisTout, n: 0 };
+      await signaler(c, pr, 'offre', { sdp: offre.sdp, lien: pr.lien, relais: pr.relais ? 1 : 0, tout: pr.relaisTout ? 1 : 0 }, true);
       armerReoffre(c, pr);
     }
     /* une offre qui n'a pas de réponse (l'autre n'avait pas encore sa page prête, un signal perdu) REPART — la même, trois fois au plus : l'autre ignore la copie qu'il a déjà traitée */
@@ -1129,7 +1148,7 @@
         if (c.fini || !o || !pr.pc || pr.pc.signalingState !== 'have-local-offer') return;
         if (o.n >= T.reoffresMax) return;
         o.n++;
-        signaler(c, pr, 'offre', { sdp: o.sdp, lien: o.lien, relais: o.relais ? 1 : 0 }, false).then(() => armerReoffre(c, pr));
+        signaler(c, pr, 'offre', { sdp: o.sdp, lien: o.lien, relais: o.relais ? 1 : 0, tout: o.tout ? 1 : 0 }, false).then(() => armerReoffre(c, pr));
       }, T.reoffre);
     }
     async function relancerPair(c, pr) {
@@ -1141,16 +1160,34 @@
     }
     /* ⛔ LE RELAIS, POUR CETTE PAIRE : les serveurs de relais entrent dans SA configuration, ICE repart (l'offrant redémarre ; l'autre côté, prévenu par l'offre qui le dit, ou par un petit signal d'état
        s'il est celui qui a pris l'initiative). Sans relais installé (le service l'a dit), il n'y a rien à essayer : la veille dit l'échec. */
-    async function passerAuRelais(c, pr, venantDeLAutre) {
+    async function passerAuRelais(c, pr, venantDeLAutre, tout) {
       if (pr.relais || c.fini || !pr.pc) return false;
       if (!c.ice || !c.ice.relais || !c.ice.serveurs.some(s => !estStun(s))) { pr.sansRelais = !c.ice || !c.ice.indisponible; return false; }
       if (pr.minRelais) { annuler(pr.minRelais); pr.minRelais = null; }
       pr.relais = true;
+      if (tout && nbAdressesRelais(c) > 1) pr.relaisTout = true;                       // l'autre côté en est déjà à toutes les adresses : inutile de repasser par l'étape intermédiaire
       try { pr.conf = Object.assign({}, pr.conf, { iceServers: serveursDe(c, pr) }); pr.pc.setConfiguration(pr.conf); } catch (e) { /* la veille dira */ }
+      armerTout(c, pr);
       if (pr.offrant) { if (!venantDeLAutre || true) await relancerPair(c, pr); }
       else if (!venantDeLAutre) signaler(c, pr, 'etat', { lien: pr.lien, relais: 1 }, true);
       emettreAppel(c);
       return true;
+    }
+    /* ⛔ LES AUTRES ADRESSES DE RELAIS, pour une liaison qui, au repli, ne s'établit toujours pas : même geste que le repli (la configuration, un redémarrage d'ICE par l'offrant, l'autre côté prévenu) */
+    async function elargirRelais(c, pr, venantDeLAutre) {
+      if (!pr.relais || pr.relaisTout || c.fini || !pr.pc || pr.etablie) return false;
+      if (pr.minTout) { annuler(pr.minTout); pr.minTout = null; }
+      if (nbAdressesRelais(c) < 2) return false;
+      pr.relaisTout = true;
+      try { pr.conf = Object.assign({}, pr.conf, { iceServers: serveursDe(c, pr) }); pr.pc.setConfiguration(pr.conf); } catch (e) { /* la veille dira */ }
+      if (pr.offrant) await relancerPair(c, pr);
+      else if (!venantDeLAutre) signaler(c, pr, 'etat', { lien: pr.lien, relais: 1, tout: 1 }, true);
+      emettreAppel(c);
+      return true;
+    }
+    function armerTout(c, pr) {
+      if (pr.minTout || c.fini || !pr.relais || pr.relaisTout || pr.etablie || nbAdressesRelais(c) < 2) return;
+      pr.minTout = planifier(() => { pr.minTout = null; if (!c.fini && !pr.etablie && pr.pc) elargirRelais(c, pr); }, T.toutApres);
     }
     function armerRelais(c, pr) {
       if (pr.minRelais || c.fini || pr.relais || pr.etablie) return;
@@ -1173,7 +1210,7 @@
         pr.pret = true;
         armerRenouvellement(c);
         armerVeille(c, pr);
-        if (!pr.relais) armerRelais(c, pr);
+        if (!pr.relais) armerRelais(c, pr); else armerTout(c, pr);
         for (const s of pr.file.splice(0)) enfiler(c, pr, s);
         envoyerCandidats(c, pr);
         if (pr.offrant) await offrir(c, pr, false);
@@ -1205,8 +1242,12 @@
     function surSignal(s) {
       if (!s || typeof s !== 'object' || typeof s.appel !== 'string' || typeof s.type !== 'string' || typeof s.de !== 'string') return;
       const c = courant;
-      if (!c || c.fini || c.id !== s.appel || !(c.local || c.entrant === false) || s.de === moi() || statutDe(c) !== 'present') return;
+      if (!c || c.fini || c.id !== s.appel || s.de === moi()) return;
       if (s.type !== 'offre' && s.type !== 'reponse' && s.type !== 'candidats' && s.type !== 'etat') return;
+      /* ⛔ MA RÉPONSE EST EN ROUTE : les autres me voient déjà présent (l'événement double la réponse HTTP, mesuré en vrai navigateur) et m'offrent leur liaison. Ces signaux ATTENDENT ma réponse au lieu d'être jetés :
+         jetés, l'offrant ne les renverrait que `reoffre` ms plus tard, et sa minuterie de repli passerait avant — une liaison qui aurait passé seule irait chercher le relais (et son allocation) pour rien. */
+      if (c.entrant && c.reponse) { if (c.enAvance.length < 200) c.enAvance.push(s); return; }
+      if (!(c.local || c.entrant === false) || statutDe(c) !== 'present') return;
       let pr = c.pairs.get(s.de);
       if (!pr) {
         /* un signal qui devance la liste des présents : le service ne relaie qu'entre présents, la paire s'ouvre (la génération viendra avec la liste) */
@@ -1220,14 +1261,14 @@
     async function viderCandidats(pr) { for (const cd of pr.candDistants.splice(0)) { if (!pr.pc) return; await ajouterCandidat(pr, cd); } }
     /* une liaison NEUVE de l'autre (un autre `lien`) : on repart d'une connexion neuve, et ce qui attendait cette offre est rejoué */
     async function repartirDe(c, pr, lien) {
-      const relais = pr.relais, gen = pr.gen, avant = pr.avant.splice(0);
+      const relais = pr.relais, relaisTout = pr.relaisTout, gen = pr.gen, avant = pr.avant.splice(0);
       fermerPair(c, pr);
-      Object.assign(pr, pairNeuve(pr.uid, gen), { relais, lien, avant });
+      Object.assign(pr, pairNeuve(pr.uid, gen), { relais, relaisTout, lien, avant });
       creerPc(c, pr);
       await appliquerPistes(c, pr);
       pr.pret = true;
       armerVeille(c, pr);
-      if (!pr.relais) armerRelais(c, pr);
+      if (!pr.relais) armerRelais(c, pr); else armerTout(c, pr);
       envoyerCandidats(c, pr);
     }
     async function traiter(c, pr, s) {
@@ -1242,7 +1283,11 @@
           else if (x.sdp === pr.derniereOffre) return;
           pr.derniereOffre = x.sdp;
           const pc = pr.pc; if (!pc) return;
-          if (x.relais === 1 && !pr.relais) { pr.relais = true; try { pr.conf = Object.assign({}, pr.conf, { iceServers: serveursDe(c, pr) }); pc.setConfiguration(pr.conf); } catch (e) { /* la veille dira */ } }
+          if ((x.relais === 1 && !pr.relais) || (x.tout === 1 && !pr.relaisTout)) {
+            if (x.relais === 1) pr.relais = true;
+            if (x.tout === 1 && pr.relais) { pr.relaisTout = true; if (pr.minTout) { annuler(pr.minTout); pr.minTout = null; } } else armerTout(c, pr);
+            try { pr.conf = Object.assign({}, pr.conf, { iceServers: serveursDe(c, pr) }); pc.setConfiguration(pr.conf); } catch (e) { /* la veille dira */ }
+          }
           await pc.setRemoteDescription({ type: 'offer', sdp: x.sdp });
           adopterEmetteurs(pr);
           await appliquerPistes(c, pr);
@@ -1263,7 +1308,10 @@
           if (!pr.lien && !pr.offrant) { if (pr.avant.length < 50) pr.avant.push(x); return; }        // les candidats devancent l'offre : ils attendent
           await traiterCandidats(c, pr, x);
         } else if (s.type === 'etat') {
-          if (x.relais === 1 && (!pr.lien || x.lien === pr.lien) && !pr.relais) await passerAuRelais(c, pr, true);
+          if (x.relais === 1 && (!pr.lien || x.lien === pr.lien)) {
+            if (!pr.relais) await passerAuRelais(c, pr, true, x.tout === 1);
+            else if (x.tout === 1) await elargirRelais(c, pr, true);
+          }
         }
       } catch (e) { /* un signal que le navigateur refuse ne défait pas la salle : la veille de la paire dit si la liaison ne s'établit pas */ }
     }
@@ -1460,6 +1508,7 @@
         armerPouls(c);
         if (r && r.appel) { memoriser(r.appel); appliquer(c, r.appel); }
         relire(c);                                                    // l'état d'APRÈS : un événement qui a doublé la réponse a pu dire plus (quelqu'un arrivé juste après moi), la réponse ne le sait pas
+        for (const sg of c.enAvance.splice(0)) surSignal(sg);        // ce que les autres m'ont dit pendant que ma réponse était en route
         return instantane(c);
       } finally { c.reponse = false; }
     }
