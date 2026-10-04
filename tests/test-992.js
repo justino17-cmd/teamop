@@ -232,6 +232,7 @@ const PRIX_PP = { mensuel: 'price_BancHttpPersoMensuelC3', annuel: 'price_BancHt
       await b1.post('/api/appels/' + id + '/repondre', { accepte: true });
       const avant = await lireSalle(d1, id);
       v('population : un appel de groupe GRATUIT en cours, Dan hôte, Ben présent — sa salle dit qu\'elle n\'a PAS les outils (`outils: false`) ; l\'appel lancé l\'a été gratuitement (201)', [L.code, avant.appel.moi.grade, avant.appel.nb, avant.salle.outils], [201, 2, 2, false]);
+      v('⛔ la réponse du LANCEMENT porte déjà la salle (comme l\'entrée) : pour un appel lancé par une personne gratuite, `outils: false` — sans elle, la page de celui qui lance ne sait pas ce que sa salle permet', [!!L.j.salle, L.j.salle && L.j.salle.outils], [true, false]);
       const refus = [];
       for (const [nom, corps] of OUTILS) {
         const c = corps === null ? { uid: ben.id } : corps;
@@ -271,7 +272,7 @@ const PRIX_PP = { mensuel: 'price_BancHttpPersoMensuelC3', annuel: 'price_BancHt
       const gpro = groupe(ana, dan, ben);
       const L3 = await a1.post('/api/appels', { conv: gpro, type: 'audio' });
       await d1.post('/api/appels/' + L3.j.appel.id + '/repondre', { accepte: true });
-      v('lancé par un membre d\'une entreprise PRO (Ana) : la salle a ses outils, le verrou marche', [(await lireSalle(a1, L3.j.appel.id)).salle.outils, (await geste(a1, L3.j.appel.id, 'verrouiller', { actif: true })).code], [true, 200]);
+      v('lancé par un membre d\'une entreprise PRO (Ana) : la réponse du lancement le dit déjà (`salle.outils`), la salle a ses outils, le verrou marche', [L3.j.salle && L3.j.salle.outils, (await lireSalle(a1, L3.j.appel.id)).salle.outils, (await geste(a1, L3.j.appel.id, 'verrouiller', { actif: true })).code], [true, true, 200]);
       await libere(a1, d1, b1);
       /* — c'est celui qui LANCE qui compte, pas l'hôte du moment — */
       const g4 = groupe(dan, eve, ben);

@@ -279,7 +279,7 @@ const jourParis = (t) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Pa
     {
       const P = monter(svcB); await P.entrer('alice');
       const e = await attrape(P.src.programmer({ titre: 'Réunion Perso', debut: j0 + 'T14:00', fin: j0 + 'T15:00', tz: 'Europe/Paris' }));
-      v('⛔ à la formule de production, une personne sans espace payé ne programme pas : 402, une phrase, rien de créé', [codeDe(e), e && e.statut, phrase(e), (await P.src.reunions(OCC[0] - JOUR, OCC[2] + JOUR)).length], ['formule_requise', 402, 'Cette fonction fait partie de Messages Pro.', 0]);
+      v('⛔ à la formule de production, une personne sans espace payé ne programme pas : 402, une phrase, rien de créé', [codeDe(e), e && e.statut, phrase(e), (await P.src.reunions(OCC[0] - JOUR, OCC[2] + JOUR)).length], ['formule_requise', 402, 'Les réunions s\'organisent avec un forfait (Réglages › Abonnement). Rejoindre une réunion où tu es invité reste gratuit.', 0]);
     }
 
     /* ═══ 11. LE TOUCHER D'UNE NOTIFICATION, LE FUSEAU DE L'APPAREIL ══════════════════════════════════════════════ */

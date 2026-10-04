@@ -358,6 +358,9 @@ const tick = () => new Promise(r => setImmediate(r));
       v('⛔ UNE constante : seuls `formule.js` (qui la définit et la rend) et `routes.js` (qui la PUBLIE à la page) la nomment — aucune route ne compare à un nombre, elle demande à `plafondReunion`', lisent, ['formule.js', 'routes.js']);
       const routesR = T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, 'routes-reunions.js'), 'utf8'));
       vrai('… et les quatre usages dans les routes de réunions passent tous par `plafondReunion` (créer, inviter, entrer par le lien, la fiche)', (routesR.match(/plafondReunion\(/g) || []).length === 4);
+      /* ⛔ ce que la page LIT (`/api/config`) vient de la constante, pas d'un dix recopié : un « dix » écrit en dur passerait tous les bancs de VALEUR (c'est aussi dix) jusqu'au jour où la constante change — mutation éprouvée le 4 octobre 2026 */
+      const routesG = T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, 'routes.js'), 'utf8'));
+      vrai('… et `/api/config` publie `limites.reunion_personnes` DEPUIS la constante (jamais un nombre écrit en dur)', /reunion_personnes:\s*REUNION_PERSONNES_MAX\b/.test(routesG) && !/reunion_personnes:\s*\d/.test(routesG));
     }
   } catch (er) {
     console.log('  ✗ le banc est mort : ' + (er && er.stack || er));

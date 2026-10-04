@@ -133,7 +133,9 @@ function installerAppels(H, ctx) {
       try { r = appels.creerGroupe({ moi, invites: sonnent, type: b.type, sessionH: req.sessionH, conv }); }
       catch (e) { if (e && e.code === 'occupe_moi') return refus(res, 409, 'occupe', { moi: true }); throw e; }
       if (r.occupe) return refus(res, 409, 'occupe', { moi: false });
-      return res.status(201).json({ appel: r.vue });
+      /* ⛔ la salle avec l'appel, comme à l'entrée (`appels.rejoindre`) : sans elle, la page de CELUI QUI LANCE ignorait si sa salle a les outils de l'organisateur (Pro ou Perso+) tant qu'aucun événement ne le lui
+         disait — la sonde de navigateur l'a vu : Perso+ lançait un appel de groupe et n'y trouvait ni verrou ni salle d'attente. */
+      return res.status(201).json({ appel: r.vue, salle: appels.etatSalle(r.vue.id, moi.id) });
     }
     /* ⛔ la règle de la messagerie, et SA réponse : pas de contact, un blocage dans un sens ou dans l'autre, une personne qui n'existe pas — 404, le même */
     if (!stockage.peutEcrire(moi.id, appele)) return refus(res, 404, 'introuvable');
