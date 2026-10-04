@@ -500,7 +500,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       await R1.entrer(); await R2.entrer();
       const s = await R1.src.demarrerAppel({ membres: [ben.id], video: false });
       await R2.attendreEv(e => e.type === 'appel-entrant' && e.id === s.id);
-      svc.avancer(30000);                                       // l'horloge du service avance : les identifiants renouvelés auront une AUTRE échéance
+      svc.avancer(8000);                                        // l'horloge du service avance : les identifiants renouvelés auront une AUTRE échéance — ⛔ de MOINS que `perduMs` (20 s) : à 30 s, le balayeur (100 ms) passait avant le prochain pouls de l'appelant et jugeait l'appel perdu AVANT que l'appelé n'ait répondu (pris sous charge, par le témoin des mutations)
       await R2.src.repondreAppel(s.id, true);
       await att(() => R1.monde.dernier() && R2.monde.dernier());
       const pa = R1.monde.dernier(), pb = R2.monde.dernier();
