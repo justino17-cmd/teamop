@@ -196,6 +196,7 @@ const CATALOGUE = [
   ["E40", "⛔ T3 — le refus « occupé » ne reste plus lisible dans la feuille « Nouvel appel » (le mot de 2,4 s est tout ce qu'on voit)", [["apercu/opmessages/index.html", "if (depuisFeuille) montrerRefusFeuille(dit);", ""]], ["sonde"]],
   ["E41", "T3 — choisir un autre contact n'efface plus le refus de la feuille (il parle de la mauvaise personne)", [["apercu/opmessages/index.html", "  function basculer(id) {\n    effacerRefusFeuille();\n", "  function basculer(id) {\n"]], ["sonde"]],
   ["E42", "⛔ T4 — l'écran d'appel qui se ferme reste « entrant » (la sonnerie perdue sur l'autre appareil laisse « Répondre » et « Refuser » posés)", [["apercu/opmessages/index.html", "$('appel-ecran').removeAttribute('data-entrant');", ""]], ["sonde"]],
+  ["E43", "⛔ I2 — le pare-feu du relais perd la règle des ports de relais (relais ↔ relais est REFUSÉ : un appel relayé des deux côtés n'a plus de voix)", [["server-msg/turn-pare-feu.sh", "  \"$ipt\" -A \"$CHAINE\" -p udp --dport \"$PORT_MIN:$PORT_MAX\" -j RETURN || return 1\n", ""]], ["982", "sonde"]],
 ];
 for (const [id, nom, edits, suites, o] of CATALOGUE) MUTATIONS.push(Object.assign({ id, nom, edits, suites, sonde: suites.some((s) => s === 'sonde' || s === 'sondeComplete') }, o || {}));
 

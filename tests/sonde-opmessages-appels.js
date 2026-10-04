@@ -12,6 +12,9 @@
      · la page qu'on FERME raccroche (le raccrochage part par `keepalive`) : l'autre ne reste pas 45 s dans le vide ;
      · deux onglets d'une même session : un seul prend l'appel, l'autre le laisse sans créer de connexion ;
      · le RELAIS : forcé (`iceTransportPolicy: 'relay'`, seul moyen de ne PAS passer en direct), la voix passe VRAIMENT par le vrai coturn avec les identifiants du vrai service — la paire retenue est « relay » ;
+     · ⛔ le PARE-FEU SORTANT du relais, TRAVERSÉ par ce vrai appel (relecture, I2) : quand la machine le permet (root, `iptables`, `setpriv`, l'utilisateur `turnserver`), le vrai script de production pose de vraies règles,
+       coturn tourne sous l'utilisateur qu'elles visent, et l'appel relayé des deux côtés ne perd pas un paquet (aucun refus ; des paquets comptés par la règle des ports de relais et par celle des ports d'écoute) —
+       sinon « NON VÉRIFIÉ », jamais vert ; `SONDE_PARE_FEU=non` l'écarte, pour comparer ;
      · la mise en page des écrans d'appel, aux deux largeurs, mesurée deux fois et contre la largeur POSÉE.
    Chaque contre-épreuve est jouée : le détecteur de « la voix passe » rend FAUX sur la connexion fermée du même appel, le détecteur de « relais » rend FAUX sur l'appel direct.
 
@@ -235,7 +238,27 @@ function lireAllocations(texte) {
 }
 /* Les allocations que le quota ou la capacité de coturn ont REFUSÉES (486 « Allocation Quota Reached ») : ce qu'un plafond trop juste ferait, en silence, au navigateur (il n'aurait simplement pas de relais). */
 const refusAllocations = (texte) => String(texte).split('\n').filter(l => /ALLOCATE processed, error 486/.test(l)).length;
-/* ── un VRAI coturn, pour la sonde seulement : PERMISSIF (aucune liste de refus — la configuration de production refuse EXPRÈS les adresses privées, `sonde-opmessages-relais.js` joue ces refus) ── */
+/* ⛔ LE PARE-FEU SORTANT DU RELAIS, EN VRAI (relecture du gardien, I2). Quand la machine le permet (root, `iptables`, `setpriv`, l'utilisateur `turnserver`), le VRAI script de production pose de VRAIES règles et coturn
+   tourne SOUS l'utilisateur qu'elles visent : un appel relayé des deux côtés, par de vrais navigateurs, doit passer à travers — aucun paquet refusé, des paquets comptés par la règle des ports de relais (relais ↔ relais)
+   ET par celle des ports d'écoute (la réponse de coturn à ses clients). Sinon la sonde le DIT (NON VÉRIFIÉ), jamais vert. SONDE_PARE_FEU=non l'écarte (pour comparer). */
+const PARE_FEU = path.join(T.SERVICE, 'turn-pare-feu.sh');
+const sys = (cmd, args, env) => spawnSync(cmd, args, { encoding: 'utf8', env: env || process.env });
+const pareFeuPossible = () => process.env.SONDE_PARE_FEU !== 'non' && typeof process.getuid === 'function' && process.getuid() === 0 && sys('iptables', ['-S', 'OUTPUT']).status === 0
+  && sys('setpriv', ['--version']).status === 0 && sys('id', ['-u', 'turnserver']).status === 0;
+/* Les paquets que chaque règle de la chaîne a vus depuis sa pose, règle par règle (jamais « un total ») : { externe, relais, ecoute, refus, regles } d'après `iptables -L … -v -n -x`. null si la chaîne n'existe pas. */
+function compteursPareFeu() {
+  const r = sys('iptables', ['-L', 'OPMSG-TURN', '-v', '-n', '-x']);
+  if (r.status !== 0) return null;
+  const k = { externe: 0, relais: 0, ecoute: 0, refus: 0, regles: 0 };
+  for (const l of String(r.stdout).split('\n')) {
+    const m = /^\s*(\d+)\s+\d+\s+(RETURN|DROP)\s/.exec(l); if (!m) continue;
+    k.regles++;
+    const n = Number(m[1]);
+    if (m[2] === 'DROP') k.refus += n; else if (/ADDRTYPE/.test(l)) k.externe += n; else if (/dpts:/.test(l)) k.relais += n; else if (/sports/.test(l)) k.ecoute += n;
+  }
+  return k;
+}
+/* ── un VRAI coturn, pour la sonde seulement : la configuration de PRODUCTION (plafonds et plages refusées lus dans `install-turn.sh`), sur l'adresse de la machine ── */
 async function demarrerCoturn(dir, secret, ip) {
   const bin = fs.existsSync('/usr/bin/turnserver') ? '/usr/bin/turnserver' : null;
   if (!bin || !ip) return null;
@@ -246,15 +269,25 @@ async function demarrerCoturn(dir, secret, ip) {
     'no-tls', 'no-dtls', 'no-cli', 'no-tcp-relay', 'fingerprint', 'no-software-attribute', 'user-quota=' + P.userQuota, 'total-quota=' + P.totalQuota, 'max-bps=' + P.maxBps, 'bps-capacity=' + P.bpsCapacite,
     ...P.refuses.map(r => 'denied-peer-ip=' + r), 'verbose', 'log-file=' + journal, 'no-stdout-log', 'simple-log', ''].join('\n');
   const f = path.join(dir, 'coturn-sonde.conf');
-  fs.writeFileSync(f, conf, { mode: 0o600 }); fs.writeFileSync(journal, '');
-  const proc = spawn(bin, ['-c', f, '--pidfile='], { stdio: 'ignore' });
+  /* le pare-feu d'abord (comme systemd : `ExecStartPre`), coturn ensuite, SOUS l'utilisateur que les règles visent ; les fichiers de la sonde deviennent lisibles (et le journal inscriptible) par lui */
+  const pareFeu = pareFeuPossible() ? { env: Object.assign({}, process.env, { OPMSG_TURN_PORT_MIN: '49400', OPMSG_TURN_PORT_MAX: '49500', OPMSG_TURN_PORTS_ECOUTE: port + ',' + (port + 1) }), pose: false, sortie: '' } : null;
+  if (pareFeu) {
+    const r = sys('bash', [PARE_FEU, 'start'], pareFeu.env);
+    pareFeu.pose = r.status === 0; pareFeu.sortie = String(r.stdout || '') + String(r.stderr || '');
+    process.on('exit', () => { sys('bash', [PARE_FEU, 'stop'], pareFeu.env); });          // même quand la sonde meurt sur son délai global : aucune règle ne reste dans le noyau
+    fs.chmodSync(dir, 0o755);
+  }
+  fs.writeFileSync(f, conf, { mode: pareFeu ? 0o644 : 0o600 }); fs.writeFileSync(journal, '');
+  if (pareFeu) fs.chmodSync(journal, 0o666);
+  const proc = pareFeu && pareFeu.pose ? spawn('setpriv', ['--reuid=turnserver', '--regid=turnserver', '--clear-groups', bin, '-c', f, '--pidfile='], { stdio: 'ignore' }) : spawn(bin, ['-c', f, '--pidfile='], { stdio: 'ignore' });
   let mort = null; proc.on('exit', (c) => { mort = c; });
   const pret = await T.attendre(async () => {
     if (mort !== null) return 'mort';
     try { const l = await V.ouvrir({ hote: ip, port, transport: 'udp' }); const m = await l.echange(V.message(0x0001, [], crypto.randomBytes(12), null), 600); l.fermer(); return !!m && m.type === 0x0101; } catch (e) { return false; }
   }, 8000, 150);
-  if (pret !== true) { try { proc.kill('SIGKILL'); } catch (e) { /* rien */ } return null; }
-  return { port, ip, journal: () => { try { return fs.readFileSync(journal, 'utf8'); } catch (e) { return ''; } }, arreter: async () => { if (mort === null) { proc.kill('SIGTERM'); await T.attendre(() => mort !== null, 3000); if (mort === null) proc.kill('SIGKILL'); } } };
+  if (pret !== true) { try { proc.kill('SIGKILL'); } catch (e) { /* rien */ } if (pareFeu) sys('bash', [PARE_FEU, 'stop'], pareFeu.env); return null; }
+  return { port, ip, pareFeu, journal: () => { try { return fs.readFileSync(journal, 'utf8'); } catch (e) { return ''; } },
+    arreter: async () => { if (mort === null) { proc.kill('SIGTERM'); await T.attendre(() => mort !== null, 3000); if (mort === null) proc.kill('SIGKILL'); } if (pareFeu) sys('bash', [PARE_FEU, 'stop'], pareFeu.env); } };
 }
 
 setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s)'); process.exit(1); }, 420000).unref();
@@ -290,7 +323,12 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
     await na.src.creerGroupe({ nom: 'Équipe appels', membres: [idBen, idCleo] });         // un GROUPE : on n'y appelle pas encore
     na.src.arreter(); nb.src.arreter(); nc.src.arreter();
 
-    console.log('\n── sonde des appels · ' + (coturn ? 'coturn réel sur ' + coturn.ip + ':' + coturn.port : 'SANS coturn (le relais est NON VÉRIFIÉ)') + ' · ' + (RAPIDE ? 'rapide' : 'complète') + ' ──');
+    console.log('\n── sonde des appels · ' + (coturn ? 'coturn réel sur ' + coturn.ip + ':' + coturn.port + (coturn.pareFeu ? ' SOUS LE PARE-FEU DU RELAIS' : '') : 'SANS coturn (le relais est NON VÉRIFIÉ)') + ' · ' + (RAPIDE ? 'rapide' : 'complète') + ' ──');
+    if (coturn && coturn.pareFeu) {
+      const k = compteursPareFeu();
+      vrai('⛔ population : le pare-feu sortant du relais est DANS LE NOYAU (le VRAI script, de VRAIES règles — quatre —, relues par `verifier`) et coturn tourne SOUS l\'utilisateur qu\'elles visent' + (coturn.pareFeu.pose ? '' : ' — ' + coturn.pareFeu.sortie.trim()),
+        coturn.pareFeu.pose && sys('bash', [PARE_FEU, 'verifier'], coturn.pareFeu.env).status === 0 && !!k && k.regles === 4);
+    } else if (coturn) console.log('  ⚠️  NON VÉRIFIÉ : le pare-feu sortant du relais demande root, `iptables`, `setpriv` et l\'utilisateur `turnserver` — les appels relayés de cette sonde ne l\'ont pas traversé.');
     const bT = await pw.chromium.launch({ executablePath: CHROME, headless: true, args: ARGS }); navigateurs.push(bT);
     const bB = await pw.chromium.launch({ executablePath: CHROME, headless: true, args: ARGS }); navigateurs.push(bB);
     let A = await ouvrir(bT, base, PROFILS.telephone, { nom: NOMS.ana });
@@ -606,7 +644,7 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
       if (!coturn) { console.log('  ⚠️  NON VÉRIFIÉ : turnserver (coturn) est absent de cette machine — le relais n\'a pas été joué par les navigateurs.'); return; }
       for (const S of [A, B]) await S.page.evaluate(() => { window.__relaisSeul = true; });
       const dejaVu = (id) => (lireAllocations(coturn.journal()).get(id) || { total: 0 }).total;          // les appels d'AVANT (même contre coturn) ont ouvert les leurs : on compte ce que CET appel ajoute
-      const a0 = dejaVu(idAna), b0 = dejaVu(idBen), r0 = refusAllocations(coturn.journal());
+      const a0 = dejaVu(idAna), b0 = dejaVu(idBen), r0 = refusAllocations(coturn.journal()), pf0 = coturn.pareFeu ? compteursPareFeu() : null;
       await appeler(A, NOMS.ben, 'audio');
       await verifier('Ben : ça sonne', B, () => document.getElementById('appel-ecran').hasAttribute('data-entrant'), null, 10000);
       await decrocher(B);
@@ -617,6 +655,11 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
       const P = constantesRelais();
       v('⛔ MESURÉ contre le vrai coturn, avec les plafonds de PRODUCTION : le navigateur ouvre UNE ALLOCATION par adresse de relais — DEUX par personne (UDP, puis TCP : cette sonde n\'a pas de TLS), jamais plus — et le quota par personne (' + P.userQuota + ') n\'en refuse aucune', [dejaVu(idAna) - a0, dejaVu(idBen) - b0, refusAllocations(coturn.journal()) - r0], [2, 2, 0]);
       vrai('⛔ LA VOIX PASSE par le vrai coturn : les octets audio reçus croissent des deux côtés (' + ca.avant.audioRecu + ' → ' + ca.apres.audioRecu + ' ; ' + cb.avant.audioRecu + ' → ' + cb.apres.audioRecu + ')', ca.audio && cb.audio);
+      if (coturn.pareFeu) {
+        const pf1 = compteursPareFeu();
+        v('⛔ LE PARE-FEU A LAISSÉ PASSER UN VRAI APPEL RELAYÉ DES DEUX CÔTÉS : aucun paquet refusé, des paquets comptés par la règle des ports de relais (relais ↔ relais : ' + (pf1.relais - pf0.relais) + ') ET par celle des ports d\'écoute (la réponse de coturn à ses clients : ' + (pf1.ecoute - pf0.ecoute) + ')',
+          [pf1.refus - pf0.refus, pf1.relais - pf0.relais > 0, pf1.ecoute - pf0.ecoute > 0], [0, true, true]);
+      }
       const conf = await A.page.evaluate(() => window.__confs[window.__confs.length - 1]);
       const turn = (conf.iceServers || []).find(s => s.username);
       v('les identifiants donnés par la page sont ceux du service : l\'utilisateur porte l\'identifiant d\'Ana, le mot de passe est le HMAC du secret (recalculé ici) — et la paire a bien été négociée AVEC eux', [turn.username.endsWith(':' + idAna), turn.credential === crypto.createHmac('sha1', SECRET).update(turn.username).digest('base64')], [true, true]);
