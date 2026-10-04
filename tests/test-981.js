@@ -169,6 +169,26 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
       v('⛔ un autre appareil d\'Ana ne raccroche pas son appel : 403 `appareil_non_lie` (et rien n\'est fini)', [dit(await a2.post('/api/appels/' + id + '/quitter', {})), (await a1.get('/api/appels')).j.actif.etat], [[403, 'appareil_non_lie'], 'en_cours']);
     }
 
+    /* ═══════ 3 bis. UNE SONNERIE ÉCHUE NE SE PREND PLUS, MÊME SI LE BALAYEUR N'EST PAS ENCORE PASSÉ ═══════ */
+    console.log('\nUne sonnerie ÉCHUE ne se prend plus, même quand le balayeur n\'est pas encore passé');
+    {
+      /* un service dont le balayeur ne repasse que dans une minute RÉELLE : entre l'avance de l'horloge et la réponse, personne ne « finit » l'appel à la place de la route (avec le balayeur de ce banc, une seconde,
+         la mutation « la route ne juge plus l'échéance » ne tombait que si la réponse arrivait avant son passage — un survivant de fait) */
+      const L = await monter({ appels: { balayageMs: 60000, perduMs: 600000, parHeure: 100, parPaireHeure: 100, iceParHeure: 100 } });
+      try {
+        const lia = L.pers('Lia'), leo = L.pers('Leo'); L.S.contactLier(lia.id, leo.id);
+        const lc = L.cl(lia), qc = L.cl(leo), anon = T.client(L.svc.base);
+        await T.attendre(async () => { const h = (await anon.get('/health')).j; return h && h.appels && typeof h.appels.ageS === 'number' ? h : null; }, 8000, 40);   // le PREMIER passage (une seconde après le démarrage) a eu lieu : le suivant est dans une minute
+        const r = await lc.post('/api/appels', { uid: leo.id, type: 'audio' });
+        L.avancer(46 * SEC);                                               // la sonnerie (45 s) est échue
+        const age = (await anon.get('/health')).j.appels.ageS;
+        const rep = await qc.post('/api/appels/' + r.j.appel.id + '/repondre', { accepte: true });
+        const liste = (await qc.get('/api/appels')).j;
+        v('⛔ répondre à une sonnerie ÉCHUE (+46 s ; population : le balayeur n\'est PAS repassé, son dernier tour date de 46 s ou plus) : 409 `appel_fini` — l\'appel n\'est pas pris, il est « manqué » pour Leo, rien n\'est actif',
+          [age >= 46, dit(rep), liste.appels[0] && liste.appels[0].etat, liste.appels[0] && liste.appels[0].manque, liste.actif], [true, [409, 'appel_fini'], 'manque', true, null]);
+      } finally { await L.fermer(); }
+    }
+
     /* ═══════ 4. LE SIGNAL ═══════ */
     console.log('\nLe signal : relayé à l\'appareil LIÉ de l\'autre personne, et à personne d\'autre');
     {

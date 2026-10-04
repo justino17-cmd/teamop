@@ -78,7 +78,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
         });
       }
     };
-    const src = creerSourceServeur({ OPMSG, base: service.base, fetch: f, EventSource: ES, navigateur: faux, webrtc: o.sansWebrtc ? {} : monde, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5, delaiAckMs: 20, appelsDelais: Object.assign({}, DELAIS, o.delais || {}) });
+    const src = creerSourceServeur({ OPMSG, base: service.base, fetch: f, EventSource: ES, navigateur: faux, webrtc: o.sansWebrtc ? {} : monde, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5, delaiAckMs: 20, appelsDelais: Object.assign({}, DELAIS, o.delais || {}), ...(o.planifier ? { planifier: o.planifier, annuler: o.annuler } : {}) });
     D.src = src;
     src.ecouter(e => { D.evs.push(e); D.ordre.push('ev ' + e.type); });
     sources.push(src);
@@ -347,6 +347,33 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       vrai('… et le service le sait (plus d\'appel actif), les deux connexions sont fermées', !!(await att(async () => (await actifDe(A)) === null)) && A.monde.dernier().fermee);
       await A.src.terminerAppel(s2.id); await B.attendreSnap(s2.id, x => x.etat === 'termine'); await B.src.terminerAppel(s2.id);
       A.monde.bloquer = false; B.monde.bloquer = false;
+      /* — le délai de grâce est un MINUTEUR que le banc TIENT : aucune course, aucun chronomètre. `failed` relance TOUT DE SUITE (derrière le délai de grâce, un lien mort attendrait pour rien),
+           `disconnected` arme le minuteur et ne relance RIEN tant qu'il n'est pas arrivé, la liaison revenue le retire, et un minuteur qui arrive sur une liaison TOUJOURS coupée relance.
+           (Avec la grâce de 250 ms des autres sections, « relancer sans grâce » et « relancer après 250 ms » ne se distinguaient que par un chronomètre : deux survivants des mutations C03 et C34.) — */
+      const GRACE = 31337, tenus = new Map(); let nTenu = 0;
+      const planifierTenu = (f, ms) => { if (ms !== GRACE) return setTimeout(f, ms); const h = 'tenu-' + (++nTenu); tenus.set(h, f); return h; };
+      const annulerTenu = (h) => { if (typeof h === 'string') tenus.delete(h); else clearTimeout(h); };
+      const AP = monter(svc, 'ana', { delais: { deconnecte: GRACE }, planifier: planifierTenu, annuler: annulerTenu }), BP = monter(svc, 'ben');
+      await AP.entrer(); await BP.entrer();
+      const sp = await AP.src.demarrerAppel({ membres: [ben.id], video: false });
+      await BP.attendreEv(e => e.type === 'appel-entrant' && e.id === sp.id); await BP.src.repondreAppel(sp.id, true);
+      vrai('liaison établie (population : l\'appelante tient son délai de grâce dans les mains du banc, et aucun minuteur n\'est encore armé)', !!(await liees(AP, BP)) && tenus.size === 0);
+      const pq = AP.monde.dernier();
+      const r0 = pq.relances; pq.casser('failed');
+      v('⛔ `failed` relance TOUT DE SUITE : `restartIce` est appelé pendant la chute elle-même, aucun minuteur de grâce n\'est armé (un lien mort n\'a rien à attendre)', [pq.relances - r0, tenus.size], [1, 0]);
+      vrai('… et la liaison revient', !!(await att(async () => pq.iceConnectionState === 'connected' && (await AP.src.appel(sp.id)).liaison === 'connecte')));
+      const r1 = pq.relances; pq.casser('disconnected');
+      await dort(40);                                              // le temps qu'une relance « sans grâce » aurait eu pour partir (un minuteur à zéro se déclenche en moins de 5 ms, et passe avant celui-ci)
+      v('⛔ `disconnected` ARME le minuteur de grâce (un seul) et ne relance RIEN tant qu\'il n\'est pas arrivé', [tenus.size, pq.relances - r1], [1, 0]);
+      pq.casser('connected');
+      v('la liaison revenue RETIRE le minuteur : plus rien ne peut se déclencher', [tenus.size, pq.relances - r1], [0, 0]);
+      pq.casser('disconnected');
+      vrai('population : le minuteur est de nouveau armé', tenus.size === 1);
+      const [declencher] = [...tenus.values()];
+      declencher();                                                // la grâce est écoulée et la liaison est toujours coupée
+      v('⛔ un minuteur de grâce qui arrive sur une liaison TOUJOURS coupée relance (une fois)', [pq.relances - r1], [1]);
+      await AP.src.terminerAppel(sp.id); await BP.attendreSnap(sp.id, x => x.etat === 'termine'); await BP.src.terminerAppel(sp.id);
+      AP.src.arreter(); BP.src.arreter();
     }
 
     /* ═══ 7. UN SIGNAL NE SE CROIT PAS SUR PAROLE ═════════════════════════════════════════════════════════════════ */
@@ -373,6 +400,13 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       v('⛔ rien de tout cela n\'a touché une connexion : ni description posée, ni candidat ajouté (l\'offre de 13 000 signes, les candidats illisibles, l\'offre d\'un APPELÉ, la réponse d\'un appelé sans offre)',
         [pb.journal.slice(avantB).filter(x => /^setRemoteDescription|^addIceCandidate|^createAnswer/.test(x)), pa.journal.slice(avantA).filter(x => /^setRemoteDescription|^addIceCandidate/.test(x))], [[], []]);
       v('⛔ un état qui n\'est pas un booléen est ignoré (la caméra de Ben vue par Ana n\'a pas bougé), et l\'appel court toujours', [(await A.src.appel(s.id)).membres[0].camera, (await A.src.appel(s.id)).etat, (await B.src.appel(s.id)).liaison], [false, 'en-cours', 'connecte']);
+      /* ⛔ ET UN ÉTAT QUI N'EST PAS UN BOOLÉEN N'ÉTEINT PAS NON PLUS : Ben voit la caméra d'Ana ALLUMÉE (la sentinelle ci-dessus) ; `camera: 0` arrive, puis un candidat valide qui prouve, par la connexion,
+         que le signal d'avant a été traité (les signaux d'un appel sont rangés dans l'ordre). Pris en dernier : « 0 est autre chose que true » suffisait à éteindre une caméra allumée — le survivant de la mutation C31. */
+      const avantCand = pb.journal.length;
+      const rz = await envoyer(A, ana, ben.id, 'etat', { camera: 0 });
+      const rc = await envoyer(A, ana, ben.id, 'candidats', { liste: [{ candidate: 'candidate:1 1 udp 2113937151 192.0.2.9 50000 typ host', sdpMid: '0', sdpMLineIndex: 0 }] });
+      vrai('population : le candidat valide d\'après a bien été posé sur la connexion de Ben (donc `camera: 0`, avant lui, est traité)', [rz.code, rc.code].every(c => c === 200) && !!(await att(() => pb.journal.slice(avantCand).some(x => /^addIceCandidate/.test(x)))));
+      v('⛔ `camera: 0` (un état qui n\'est pas un booléen) ne coupe PAS la caméra d\'Ana vue par Ben : elle reste allumée', [(await B.src.appel(s.id)).membres[0].camera], [true]);
       /* un signal d'un autre appel, d'une autre personne : le service refuse, la page n'en reçoit jamais */
       const r7 = await C.nav.client.post('/api/appels/' + s.id + '/signal', { a: ben.id, type: 'etat', donnees: { camera: true } });
       v('⛔ une personne qui n\'est pas dans l\'appel : 404 comme pour un appel qui n\'existe pas (Cléo)', [r7.code], [404]);
@@ -575,6 +609,13 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       v('un appel répondu entre deux manqués ROMPT la série : [manqué, appel d\'Ana, manqué (2)] — pas un « manqué (3) »', [h2.slice(0, 3).map(x => [x.nom, x.sens, x.repetitions]), h2[0].id === m3], [[['Dan Banc', 'manque', 1], ['Ana Banc', 'entrant', 1], ['Dan Banc', 'manque', 2]], true]);
       const mq = await B.src.appels('manques');
       v('« Manqués » ne garde que les appels manqués, et les séries restent celles de l\'historique entier (population : l\'historique contient aussi des appels répondus)', [mq.length < h2.length, mq.every(x => x.sens === 'manque'), mq.slice(0, 2).map(x => [x.nom, x.repetitions])], [true, true, [['Dan Banc', 1], ['Dan Banc', 2]]]);
+      /* le MÊME appelant, répondu cette fois, entre deux manqués : c'est l'appel RÉPONDU qui rompt la série, pas seulement un autre nom (le survivant de la mutation C20 : « même personne » suffisait à fusionner) */
+      const sd = await N.src.demarrerAppel({ membres: [ben.id], video: false }); await B.attendreEv(e => e.type === 'appel-entrant' && e.id === sd.id); await B.src.repondreAppel(sd.id, true);
+      await liees(N, B); await N.src.terminerAppel(sd.id); await B.attendreSnap(sd.id, x => x.etat === 'termine'); await B.src.terminerAppel(sd.id);
+      const m4 = await manquer();
+      const h3 = await B.src.appels('tous');
+      v('⛔ un appel RÉPONDU DE LA MÊME PERSONNE entre deux manqués rompt la série : [manqué, appel de Dan répondu, manqué, appel d\'Ana, manqué (2)] — jamais « manqué (3) » ni un appel répondu avalé par la série',
+        [h3.slice(0, 5).map(x => [x.nom, x.sens, x.repetitions]), h3[0].id === m4, h3[1].id === sd.id], [[['Dan Banc', 'manque', 1], ['Dan Banc', 'entrant', 1], ['Dan Banc', 'manque', 1], ['Ana Banc', 'entrant', 1], ['Dan Banc', 'manque', 2]], true, true]);
       const hA = await A.src.appels('tous');
       v('l\'historique d\'Ana : jamais « manqué » (ses appels sortants restent sortants même sans réponse), du plus récent au plus ancien', [hA.every(x => x.sens !== 'manque'), hA.some(x => x.sens === 'sortant'), hA.every((x, i) => i === 0 || hA[i - 1].t >= x.t), (await A.src.appels('manques')).length], [true, true, true, 0]);
       v('un filtre inconnu est refusé', [codeDe(await attrape(B.src.appels('rien')))], ['invalide']);

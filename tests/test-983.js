@@ -144,6 +144,16 @@ async function monter(config, env) {
       await raccrocher(a, id2);
       const pm = await trouver(B1, deAppel(id2, 'Appel manqué'));
       v('⛔ un appel annulé AVANT que la sonnerie ne parte ne sonne jamais : « Appel manqué » arrive (population), « Appel entrant » JAMAIS (la charge est re-jugée au départ, la sonnerie n\'est plus valable)', [!!pm, compterPush(B1, deAppel(id2, 'Appel entrant'))], [true, 0]);
+      /* PRIS avant le départ (un autre appareil de Ben répond) : pas de sonnerie non plus — et AUCUN « manqué » ne vient la remplacer, puisque l'appel n'est pas manqué. C'est le seul cas où la
+         re-vérification au départ est la SEULE garde : un appel annulé est déjà couvert par le « manqué » de même étiquette qui prend la place de la sonnerie (le survivant de la mutation A31). */
+      const r4 = await lancerAppel(a, ben.id, 'audio');
+      const id4 = r4.j.appel.id;
+      const rep4 = await b.post('/api/appels/' + id4 + '/repondre', { accepte: true });
+      const depuis4 = Date.now();
+      await marqueur(c, ben.id, 'le marqueur qui part après l\'appel pris');
+      const mq4 = await trouver(B1, (p) => p.charge.type === 'message' && p.t >= depuis4);
+      v('⛔ un appel PRIS avant que la sonnerie ne parte ne sonne JAMAIS : ni « Appel entrant » ni « Appel manqué » (population : Ben a répondu — 200 « en cours » —, et le push d\'un message envoyé APRÈS, qui attendait plus longtemps, est arrivé)', [rep4.code, rep4.j.etat, !!mq4, compterPush(B1, deAppel(id4))], [200, 'en_cours', true, 0]);
+      await raccrocher(a, id4);
       /* la page SOUS LES YEUX acquitte : pas de push de sonnerie */
       const r3 = await lancerAppel(a, ben.id, 'audio');
       const id3 = r3.j.appel.id;
