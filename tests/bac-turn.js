@@ -105,7 +105,7 @@ function bac(opts = {}) {
   b.ports = {};
   /* installe une instance : sa configuration (celle qu'`install-msg.sh` écrit), son port, un contrôle simulé, et un service qui tourne déjà avec cette configuration */
   b.instance = (nom, extra) => {
-    b.ports[nom] = 30000 + crypto.randomInt(0, 20000);
+    b.ports[nom] = 20000 + crypto.randomInt(0, 10000);       // ⛔ SOUS la plage des ports éphémères (32768-60999) : un port tiré dedans tombait quelquefois sur le port source d'une connexion sortante en cours — EADDRINUSE, un banc « mort » qui avait l'air de tomber (pris deux fois par le lanceur de mutations)
     const cfg = Object.assign({ instance: nom, domaine: 'msg-' + nom + '.teamop.fr', origine: 'https://msg-' + nom + '.teamop.fr', port: b.ports[nom], contactEmail: 'contact@teamop.fr', vapidPublicKey: 'BANC-PUBLIQUE', vapidPrivateKey: 'BANC-PRIVEE' }, extra || {});
     const f = path.join(b.R, 'etc', 'opmsg', nom + '.json');
     fs.writeFileSync(f, JSON.stringify(cfg, null, 2) + '\n', { mode: 0o600 });

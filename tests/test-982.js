@@ -68,7 +68,7 @@ const { bac, reel, OPTIONS_COTURN, enBigInt, cidr, A_REFUSER, RE_SECRET, LIGNE_S
       const opt = conf.map(l => l.split('=')[0]);
       v('⛔ le secret de la configuration de l\'instance est celui de coturn : UNE ligne `static-auth-secret=`, la même valeur', conf.filter(l => l.startsWith(LIGNE_SECRET)), [LIGNE_SECRET + secret]);
       v('⛔ chaque nom d\'option de la configuration de coturn est un nom que coturn 4.6.1 CONNAÎT (une faute de frappe ne l\'empêcherait pas de démarrer — mesuré)', opt.filter(o => !OPTIONS_COTURN.has(o)), []);
-      for (const o of ['use-auth-secret', 'no-cli', 'no-tcp-relay', 'no-multicast-peers', 'fingerprint', 'no-dtls', 'no-stdout-log', 'simple-log']) vrai('   réglage obligatoire présent : ' + o, opt.includes(o));
+      for (const o of ['use-auth-secret', 'no-cli', 'no-tcp-relay', 'no-multicast-peers', 'fingerprint', 'no-software-attribute', 'no-dtls', 'no-stdout-log', 'simple-log']) vrai('   réglage obligatoire présent : ' + o, opt.includes(o));
       const val = (k) => (conf.find(l => l.startsWith(k + '=')) || '').slice(k.length + 1);
       v('   les ports : écoute 3478, TLS 5349, relais UDP 49160-49999', [val('listening-port'), val('tls-listening-port'), val('min-port'), val('max-port')], ['3478', '5349', '49160', '49999']);
       v('   les plafonds sont posés (par identifiant, au total, débit par session, débit global) — des NOMBRES positifs', ['user-quota', 'total-quota', 'max-bps', 'bps-capacity'].map(k => /^[1-9][0-9]*$/.test(val(k))), [true, true, true, true]);
