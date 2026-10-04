@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas" />
+<style>
+  html,body{margin:0;padding:0;background:#1c1c1e;-webkit-font-smoothing:antialiased;}
+  *{box-sizing:border-box;}
+</style>
+</helmet>
+<div style="min-height:100vh;padding:36px 32px 60px;display:flex;flex-direction:column;gap:22px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',Helvetica,sans-serif;color:#f5f5f7;">
+  <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;">
+    <h1 style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;font-size:28px;letter-spacing:-.025em;font-weight:700;">La Tour — iPhone · jour et nuit</h1>
+    <span style="font-size:13px;color:rgba(235,235,245,.6);">Interface 100 % Apple · barre d'onglets flottante (Accueil · Surveill. · Entreprises · Accès · Plus)</span>
+  </div>
+  <div style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap;">
+    <div>
+      <div style="font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(235,235,245,.6);margin-bottom:10px;">Jour</div>
+      <div style="width:417px;height:876px;border-radius:58px;background:#0a0a0c;padding:12px;box-shadow:0 36px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.12) inset;position:relative;">
+        <iframe src="teamop-tour-hig.html?mode=light#/surveillance" title="La Tour — iPhone jour" style="display:block;width:393px;height:852px;border:0;border-radius:46px;background:#f2f2f7;"></iframe>
+        <span style="position:absolute;top:22px;left:50%;transform:translateX(-50%);width:120px;height:34px;border-radius:20px;background:#0a0a0c;"></span>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(235,235,245,.6);margin-bottom:10px;">Nuit</div>
+      <div style="width:417px;height:876px;border-radius:58px;background:#0a0a0c;padding:12px;box-shadow:0 36px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.12) inset;position:relative;">
+        <iframe src="teamop-tour-hig.html?mode=dark#/surveillance" title="La Tour — iPhone nuit" style="display:block;width:393px;height:852px;border:0;border-radius:46px;background:#000;"></iframe>
+        <span style="position:absolute;top:22px;left:50%;transform:translateX(-50%);width:120px;height:34px;border-radius:20px;background:#0a0a0c;"></span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

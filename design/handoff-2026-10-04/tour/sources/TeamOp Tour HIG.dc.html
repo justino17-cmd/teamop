@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  html,body{margin:0;padding:0;-webkit-font-smoothing:antialiased;background:#070b16;}
+  @media (prefers-color-scheme: light){html,body{background:#f2f2f7;}}
+  *{box-sizing:border-box;}
+  a{color:#007aff;text-decoration:none;}a:hover{text-decoration:underline;}
+  @keyframes pulseDot{0%{box-shadow:0 0 0 0 rgba(52,199,89,.5)}70%{box-shadow:0 0 0 7px rgba(52,199,89,0)}100%{box-shadow:0 0 0 0 rgba(52,199,89,0)}}
+  @media (prefers-reduced-motion: reduce){*{animation:none !important;}}
+  @media (max-width:760px){[data-sidebar]{display:none !important}[data-tabbar]{display:grid !important}main{padding-bottom:110px !important}[data-stats]{grid-template-columns:repeat(2,minmax(0,1fr)) !important}[data-thead]{display:none !important}[data-row]{grid-template-columns:minmax(0,1fr) auto !important;grid-template-areas:"who st" "what when" "dev dev" !important;row-gap:6px !important;padding:14px 16px !important}[data-c1]{grid-area:who}[data-c2]{grid-area:what;font-size:13.5px !important;white-space:normal !important}[data-c3]{grid-area:dev;font-size:12.5px !important}[data-st]{grid-area:st;justify-self:end !important}[data-c5]{grid-area:when;text-align:right !important}[data-topbar]{padding:8px 12px !important}[data-topbar] [data-url]{display:none !important}[data-h1]{font-size:28px !important;line-height:34px !important}[data-filters]{width:100% !important}[data-filters] button{flex:1 !important}}
+  @media (max-width:420px){[data-stats]{grid-template-columns:minmax(0,1fr) !important}}
+  @media (prefers-reduced-transparency: reduce){[data-glass]{backdrop-filter:none !important;-webkit-backdrop-filter:none !important;}}
+</style>
+</helmet>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" fill="#0b1426"></rect><path d="M0 0h120L0 120Z" fill="#f0f3f8"></path></svg></template>
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0;background:{{ page.bg }};font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',Helvetica,sans-serif;color:{{ page.text }};">
+
+  <div data-topbar="1" data-glass="1" style="width:100%;display:flex;align-items:center;gap:12px;padding:8px 16px;background:{{ t.navBar }};backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border-bottom:{{ t.line }};">
+    <span style="display:flex;align-items:center;gap:8px;"><img src="uploads/teamop-1024-67a29abf.png" alt="" style="width:18px;height:18px;border-radius:5px;display:block;" /><span style="font-size:13px;font-weight:600;color:{{ page.text }};">La Tour</span></span>
+    <span data-url="1" style="margin-left:auto;font-size:12px;color:{{ page.sub }};">Console interne · v2.63 · Justin</span>
+  </div>
+
+  <div style="position:relative;width:100%;min-height:calc(100vh - 100px);border-radius:0;overflow:hidden;background:{{ t.screen }};display:flex;flex-direction:column;">
+    
+
+    <div data-glass="1" style="position:relative;z-index:2;flex:none;height:48px;display:flex;align-items:center;gap:14px;padding:0 16px;background:{{ t.glass }};backdrop-filter:blur(40px) saturate(220%);-webkit-backdrop-filter:blur(40px) saturate(220%);border-bottom:{{ t.line }};">
+      <div style="flex:1;display:flex;align-items:center;gap:9px;"><span style="font-size:12px;color:{{ t.sub }};">teamop.fr/tour.html#/{{ viewKey }}</span></div>
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 11px;border-radius:999px;background:{{ t.glass2 }};"><span style="width:7px;height:7px;border-radius:50%;background:#34c759;animation:pulseDot 2s infinite;"></span><span style="font-size:12px;font-weight:500;color:{{ t.text }};">Serveur en ligne</span><span style="font-size:12px;color:{{ t.sub }};font-variant-numeric:tabular-nums;">{{ clock }}</span></div>
+    </div>
+
+    <div style="position:relative;z-index:1;flex:1;min-height:0;display:flex;">
+      <aside data-sidebar="1" data-glass="1" style="flex:none;width:236px;display:flex;flex-direction:column;gap:2px;padding:14px 10px;background:{{ t.sidebar }};backdrop-filter:blur(40px) saturate(220%);-webkit-backdrop-filter:blur(40px) saturate(220%);border-right:{{ t.line }};overflow:auto;">
+        <div style="display:flex;align-items:center;gap:10px;padding:4px 8px 14px;"><img src="uploads/teamop-1024-67a29abf.png" alt="TEAM OP" style="width:36px;height:36px;border-radius:9px;display:block;box-shadow:0 3px 10px rgba(0,0,0,.18);" /><div><div style="font-size:14px;font-weight:700;letter-spacing:-.012em;color:{{ t.text }};white-space:nowrap;">La Tour</div><div style="font-size:11.5px;color:{{ t.sub }};white-space:nowrap;">Justin · patron</div></div></div>
+        <sc-for list="{{ menu }}" as="n" hint-placeholder-count="9">
+          <div style="display:{{ n.sectionShow }};padding:14px 10px 4px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:{{ t.sub }};">{{ n.section }}</div>
+          <button onClick="{{ n.onClick }}" style="text-align:left;border:0;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:9px;min-height:32px;padding:4px 8px;border-radius:8px;background:{{ n.bg }};color:{{ n.fg }};font-size:13px;font-weight:{{ n.w }};letter-spacing:-.008em;transition:background .2s ease-out,transform .2s cubic-bezier(.32,.72,0,1);" style-active="transform:scale(.98)">
+            <span style="display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:{{ n.tile }};">{{ n.icon }}</span>
+            <span style="flex:1;">{{ n.label }}</span>
+            <span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:{{ n.badgeBg }};color:{{ n.badgeFg }};display:{{ n.badgeShow }};">{{ n.badge }}</span>
+          </button>
+        </sc-for>
+      </aside>
+
+      <main style="flex:1;min-width:0;overflow:auto;padding:clamp(16px,2.5vw,28px);">
+        
+        <header style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:22px;">
+          <div style="min-width:0;flex:1 1 300px;">
+            <div style="font-size:13px;font-weight:400;color:{{ t.sub }};">{{ view.section }}</div>
+            <h1 data-h1="1" style="margin:2px 0 0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;font-size:34px;line-height:41px;letter-spacing:.37px;font-weight:700;color:{{ t.text }};">{{ view.label }}</h1>
+            <p style="margin:4px 0 0;font-size:15px;line-height:20px;color:{{ t.sub }};max-width:60ch;text-wrap:pretty;">{{ view.desc }}</p>
+          </div>
+          <button style="flex:none;border:0;cursor:pointer;font-family:inherit;height:34px;padding:0 14px;border-radius:999px;background:{{ t.tintBg }};color:{{ t.accent }};font-size:15px;font-weight:600;display:{{ view.ctaShow }};transition:transform .2s cubic-bezier(.32,.72,0,1),opacity .2s;" style-active="transform:scale(.97);opacity:.85">{{ view.cta }}</button>
+        </header>
+
+        <section data-stats="1" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:22px;">
+          <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+            <div data-glass="1" style="border-radius:12px;padding:16px;background:{{ t.glass }};backdrop-filter:blur(40px) saturate(200%);-webkit-backdrop-filter:blur(40px) saturate(200%);border:{{ t.cardLine }};box-shadow:{{ t.shadow }};display:flex;flex-direction:column;gap:6px;min-width:0;">
+              <div style="font-size:13px;color:{{ t.sub }};">{{ s.label }}</div>
+              <div style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;font-size:34px;line-height:1;letter-spacing:-.03em;font-weight:700;color:{{ t.text }};font-variant-numeric:tabular-nums;">{{ s.value }}</div>
+              <div style="font-size:12.5px;color:{{ s.tone }};">{{ s.delta }}</div>
+            </div>
+          </sc-for>
+        </section>
+
+        <section data-glass="1" style="border-radius:12px;overflow:hidden;background:{{ t.glass }};backdrop-filter:blur(40px) saturate(200%);-webkit-backdrop-filter:blur(40px) saturate(200%);border:{{ t.cardLine }};box-shadow:{{ t.shadow }};">
+          <div style="display:flex;align-items:center;gap:14px;padding:16px 20px;border-bottom:{{ t.line }};flex-wrap:wrap;">
+            <h2 style="margin:0;font-size:17px;font-weight:600;letter-spacing:-.02em;color:{{ t.text }};">{{ view.tableTitle }}</h2>
+            <span style="flex:1;"></span>
+            <div data-filters="1" style="display:flex;padding:2px;border-radius:9px;background:{{ t.segTrack }};gap:2px;">
+              <sc-for list="{{ filters }}" as="f" hint-placeholder-count="3">
+                <button onClick="{{ f.onClick }}" style="border:0;cursor:pointer;font-family:inherit;font-size:13px;padding:5px 14px;border-radius:7px;background:{{ f.bg }};color:{{ t.text }};font-weight:{{ f.w }};box-shadow:{{ f.sh }};transition:all .25s ease-out;">{{ f.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div data-thead="1" style="display:grid;grid-template-columns:{{ view.cols }};gap:12px;padding:10px 20px;border-bottom:{{ t.line }};font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:{{ t.sub }};">
+            <sc-for list="{{ view.heads }}" as="h" hint-placeholder-count="5"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ h }}</span></sc-for>
+          </div>
+          <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+            <button data-row="1" onClick="{{ r.onClick }}" style="width:100%;text-align:left;font-family:inherit;border:0;border-bottom:{{ r.sep }};background:{{ r.bg }};cursor:pointer;display:grid;grid-template-columns:{{ view.cols }};gap:12px;align-items:center;padding:13px 20px;min-height:56px;transition:background .15s ease-out;" style-hover="background:{{ t.rowHover }}">
+              <span data-c1="1" style="display:flex;align-items:center;gap:10px;min-width:0;">
+                <span style="width:30px;height:30px;flex:none;border-radius:9px;background:{{ r.avBg }};display:grid;place-items:center;font-size:11.5px;font-weight:700;color:{{ r.avFg }};font-family:ui-monospace,'SF Mono',Menlo,monospace;">{{ r.av }}</span>
+                <span style="min-width:0;display:flex;flex-direction:column;"><span style="font-size:14.5px;font-weight:600;letter-spacing:-.014em;color:{{ t.text }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ r.c1 }}</span><span style="font-size:12.5px;color:{{ t.sub }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ r.c1b }}</span></span>
+              </span>
+              <span data-c2="1" style="font-size:14px;color:{{ t.text }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:{{ r.c2font }};">{{ r.c2 }}</span>
+              <span data-c3="1" style="font-size:14px;color:{{ t.sub }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ r.c3 }}</span>
+              <span data-st="1" style="display:inline-flex;align-items:center;gap:6px;justify-self:start;padding:3px 10px;border-radius:999px;background:{{ r.stBg }};color:{{ r.stFg }};font-size:12px;font-weight:600;white-space:nowrap;"><span style="width:6px;height:6px;border-radius:50%;background:{{ r.stFg }};"></span>{{ r.st }}</span>
+              <span data-c5="1" style="font-size:13px;color:{{ t.sub }};text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;">{{ r.c5 }}</span>
+            </button>
+          </sc-for>
+          <div style="padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12.5px;color:{{ t.sub }};"><span>{{ countLabel }}</span><span style="color:{{ t.accent }};">{{ view.footLink }} ›</span></div>
+        </section>
+
+        <sc-if value="{{ hasDetail }}" hint-placeholder-val="{{ false }}">
+          <section data-glass="1" style="margin-top:18px;border-radius:12px;padding:20px 22px;background:{{ t.glass }};backdrop-filter:blur(40px) saturate(200%);-webkit-backdrop-filter:blur(40px) saturate(200%);border:{{ t.cardLine }};box-shadow:{{ t.shadow }};display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;">
+            <div>
+              <div style="font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:{{ t.sub }};margin-bottom:10px;">Fiche {{ detail.nom }}</div>
+              <sc-for list="{{ detail.fields }}" as="d" hint-placeholder-count="5">
+                <div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:{{ t.line }};font-size:14px;"><span style="color:{{ t.sub }};">{{ d.k }}</span><span style="color:{{ t.text }};font-weight:500;font-family:{{ d.font }};text-align:right;">{{ d.v }}</span></div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:{{ t.sub }};">Lien d'accès (vient du serveur)</div>
+              <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;background:{{ t.glass2 }};border:{{ t.line }};"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{ t.accent }}" stroke-width="2.4" stroke-linecap="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg><span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:14px;color:{{ t.text }};">{{ detail.lien }}</span><span style="flex:1;"></span><span style="font-size:12px;font-weight:600;color:#1c7a3a;">{{ detail.lienEtat }}</span></div>
+              <div style="font-size:13px;line-height:18px;color:{{ t.sub }};text-wrap:pretty;">{{ detail.note }}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:auto;">
+                <button onClick="{{ toastCopy }}" style="border:0;cursor:pointer;font-family:inherit;height:36px;padding:0 16px;border-radius:999px;background:{{ t.fill }};color:#fff;font-size:15px;font-weight:600;border-radius:12px;transition:transform .2s cubic-bezier(.32,.72,0,1);" style-active="transform:scale(.96)">Copier le lien</button>
+                <button onClick="{{ toastMail }}" data-glass="1" style="border:{{ t.line }};cursor:pointer;font-family:inherit;height:36px;padding:0 16px;border-radius:999px;background:{{ t.glass2 }};color:{{ t.text }};font-size:14px;font-weight:600;" style-active="transform:scale(.96)">Envoyer par e-mail</button>
+                <button data-glass="1" style="border:{{ t.line }};cursor:pointer;font-family:inherit;height:36px;padding:0 16px;border-radius:999px;background:{{ t.glass2 }};color:#ff3b30;font-size:14px;font-weight:600;" style-active="transform:scale(.96)">Nouveau mot de passe provisoire</button>
+              </div>
+            </div>
+          </section>
+        </sc-if>
+      </main>
+    </div>
+
+
+    <div data-tabbar="1" data-glass="1" style="position:fixed;left:14px;right:14px;bottom:18px;z-index:30;display:none;grid-template-columns:repeat(5,1fr);gap:2px;padding:7px;border-radius:34px;background:{{ t.tabBar }};backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);border:{{ t.line }};box-shadow:{{ t.tabShadow }};">
+      <sc-for list="{{ tabs }}" as="b" hint-placeholder-count="5">
+        <button onClick="{{ b.onClick }}" style="border:0;cursor:pointer;font-family:inherit;min-height:50px;border-radius:26px;background:{{ b.pill }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:{{ b.fg }};box-shadow:{{ b.shadow }};transition:transform .2s cubic-bezier(.32,.72,0,1),background .22s ease-out;" style-active="transform:scale(.93)">
+          <span style="display:grid;place-items:center;height:22px;">{{ b.icon }}</span>
+          <span style="font-size:11px;font-weight:{{ b.w }};letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">{{ b.label }}</span>
+        </button>
+      </sc-for>
+    </div>
+    <div onClick="{{ closeMore }}" style="position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.35);opacity:{{ moreOp }};pointer-events:{{ moreEv }};transition:opacity .4s cubic-bezier(.32,.72,0,1);"></div>
+    <div data-glass="1" style="position:fixed;left:0;right:0;bottom:0;z-index:41;max-height:80%;overflow:auto;border-radius:34px 34px 0 0;background:{{ t.sheet }};backdrop-filter:blur(40px) saturate(220%);-webkit-backdrop-filter:blur(40px) saturate(220%);border:{{ t.line }};box-shadow:0 -16px 44px rgba(0,0,0,.24);transform:{{ moreShift }};transition:transform .5s cubic-bezier(.32,.72,0,1);padding:8px 16px 28px;">
+      <div style="display:grid;place-items:center;padding:0 0 10px;"><span style="width:36px;height:5px;border-radius:999px;background:{{ t.sub }};opacity:.5;"></span></div>
+      <div style="display:flex;align-items:center;gap:10px;padding:0 4px 12px;"><img src="uploads/teamop-1024-67a29abf.png" alt="" style="width:32px;height:32px;border-radius:8px;display:block;" /><div><div style="font-size:16px;font-weight:700;letter-spacing:-.014em;color:{{ t.text }};">La Tour</div><div style="font-size:12.5px;color:{{ t.sub }};">Toutes les vues</div></div></div>
+      <sc-for list="{{ menu }}" as="n" hint-placeholder-count="9">
+        <div style="display:{{ n.sectionShow }};padding:14px 12px 4px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:{{ t.sub }};">{{ n.section }}</div>
+        <button onClick="{{ n.onClick }}" style="width:100%;text-align:left;border:0;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:46px;padding:8px 12px;border-radius:14px;background:{{ n.bg }};color:{{ n.fg }};font-size:16px;font-weight:{{ n.w }};letter-spacing:-.014em;" style-active="transform:scale(.98)">
+          <span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:{{ n.tile }};">{{ n.icon }}</span>
+          <span style="flex:1;">{{ n.label }}</span>
+          <span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:{{ n.badgeBg }};color:{{ n.badgeFg }};display:{{ n.badgeShow }};">{{ n.badge }}</span>
+        </button>
+      </sc-for>
+    </div>
+    <div style="position:absolute;left:50%;bottom:22px;z-index:20;transform:translateX(-50%) translateY({{ toastShift }});padding:11px 18px;border-radius:999px;background:{{ t.toast }};backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border:{{ t.line }};box-shadow:{{ t.shadow }};display:flex;align-items:center;gap:10px;opacity:{{ toastOp }};transition:opacity .3s,transform .5s cubic-bezier(.32,.72,0,1);pointer-events:none;white-space:nowrap;">
+      <span style="width:20px;height:20px;border-radius:50%;background:rgba(52,199,89,.2);display:grid;place-items:center;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1c7a3a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"></path></svg></span>
+      <span style="font-size:14px;font-weight:600;color:{{ t.text }};">{{ toastText }}</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1240,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { view: "surveillance", mode: "auto", sysDark: false, filter: 0, sel: 0, clock: "—", toast: "", toastOn: false, more: false };
+  componentDidMount() {
+    this.tick(); this.timer = setInterval(() => this.tick(), 30000);
+    this.mq = window.matchMedia("(prefers-color-scheme: dark)"); this.onMq = e => this.setState({ sysDark: e.matches });
+    this.setState({ sysDark: this.mq.matches }); this.mq.addEventListener("change", this.onMq);
+    const h = (location.hash || "").replace(/^#\/?/, "").split("/").pop(); if (h && this.views()[h]) this.setState({ view: h });
+  }
+  componentWillUnmount() { clearInterval(this.timer); clearTimeout(this.tt); if (this.mq) this.mq.removeEventListener("change", this.onMq); }
+  tick() { this.setState({ clock: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) }); }
+  toast(txt) { clearTimeout(this.tt); this.setState({ toast: txt, toastOn: true }); this.tt = setTimeout(() => this.setState({ toastOn: false }), 2200); }
+  ic(name, color, size) {
+    const d = { home: "M4 11.2 12 4.5l8 6.7V19a1.5 1.5 0 0 1-1.5 1.5H5.5A1.5 1.5 0 0 1 4 19v-7.8Z", eye: "M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Zm9.5 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z", building: "M5 21V4h10v17M15 9h4v12M8 8h2m-2 4h2m-2 4h2", key: "M14 10a4 4 0 1 1-1.2-2.8L21 15v3h-3v-2h-2v-2", flask: "M9 3h6M10 3v6l-5.5 9A1.5 1.5 0 0 0 5.8 20.5h12.4a1.5 1.5 0 0 0 1.3-2.5L14 9V3", euro: "M17 6.5A6.5 6.5 0 1 0 17 17.5M4 10.5h9M4 13.5h9", mail: "M4 6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5v-11Zm0 .5 8 6 8-6", clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-13v5l3 2", menu: "M4 7h16M4 12h16M4 17h16", gear: "M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm7.4-2.1.9-1.4-1.9-1.9a7 7 0 0 0-.4-1.5l1.2-1.7-1.6-1.6-1.7 1.2a7 7 0 0 0-1.5-.4L12.5 4h-1l-.6 2.1a7 7 0 0 0-1.5.4L7.7 5.3 6.1 6.9l1.2 1.7a7 7 0 0 0-.4 1.5L4.8 11v1l2.1.6a7 7 0 0 0 .4 1.5l-1.2 1.7 1.6 1.6 1.7-1.2a7 7 0 0 0 1.5.4l.6 2.1h1l.6-2.1a7 7 0 0 0 1.5-.4l1.7 1.2 1.6-1.6-1.2-1.7a7 7 0 0 0 .4-1.5l2.1-.6Z" };
+    return React.createElement("svg", { width: size || 15, height: size || 15, viewBox: "0 0 24 24" }, React.createElement("path", { d: d[name] || d.home, fill: "none", stroke: color, strokeWidth: 1.9, strokeLinecap: "round", strokeLinejoin: "round" }));
+  }
+  views() {
+    const C5 = "1.6fr 1.1fr 1fr .9fr .6fr";
+    return {
+      dashboard: { section: "Tour", label: "Tableau de bord", icon: "home", desc: "État de la plateforme : espaces actifs, synchronisation, incidents ouverts.", cta: "Rafraîchir", tableTitle: "Activité des espaces", heads: ["Espace", "Dernière synchro", "Formule", "État", "Membres"], cols: C5, filters: ["Tous", "Actifs", "Incidents"], footLink: "Voir le journal complet",
+        stats: [["Espaces actifs", "7", "+1 cette semaine", "ok"], ["Sessions ouvertes", "23", "sur 4 appareils/espace en moy.", "sub"], ["Incidents ouverts", "1", "ELAN · box hors-ligne", "warn"], ["Synchro moyenne", "1,8 s", "temps réel OK", "ok"]] },
+      surveillance: { section: "Gestion", label: "Surveillance", icon: "eye", desc: "Sessions, appareils et tentatives d'accès de tous les espaces clients, en temps réel. Toutes les actions de la console sont journalisées et nominatives.", cta: "Exporter", tableTitle: "Activité récente", heads: ["Membre · espace", "Action", "Appareil", "État", "Heure"], cols: C5, filters: ["Tout", "Connexions", "Alertes"], footLink: "Ouvrir le journal complet",
+        stats: [["Sessions actives", "23", "+4 depuis ce matin", "sub"], ["Appareils connus", "61", "2 en attente d'approbation", "warn"], ["Tentatives refusées", "3", "24 h · 1 IP hors France", "bad"], ["Actions journalisées", "1 248", "aujourd'hui", "sub"]] },
+      entreprises: { section: "Gestion", label: "Entreprises", icon: "building", desc: "Chaque entreprise a son espace isolé et son lien. Le lien vient du serveur — la Tour ne fabrique jamais d'espace sans lui avoir demandé.", cta: "Nouvelle entreprise", tableTitle: "Espaces clients", heads: ["Entreprise", "Adresse", "Identifiant de départ", "Annuaire", "Depuis"], cols: C5, filters: ["Tous", "Business", "Sans code"], footLink: "Espaces techniques (2)",
+        stats: [["Entreprises", "7", "6 en production · 1 bêta", "sub"], ["Sur teamop.fr/e/…", "7", "annuaire complet", "ok"], ["Sans code", "1", "à réinscrire (409)", "warn"], ["Mots de passe provisoires", "2", "non encore changés", "warn"]] },
+      acces: { section: "Gestion", label: "Comptes & accès", icon: "key", desc: "Identifiants de départ, mots de passe provisoires (jamais lisibles après hachage) et rôles. Seul le patron crée ou révoque un accès.", cta: "Créer un accès", tableTitle: "Accès récents", heads: ["Compte", "Espace", "Rôle", "Mot de passe", "Créé"], cols: C5, filters: ["Tous", "Provisoires", "Révoqués"], footLink: "Tous les comptes",
+        stats: [["Comptes", "38", "sur 7 espaces", "sub"], ["Provisoires", "2", "florent · t.moreau", "warn"], ["Révoqués (30 j)", "1", "a.sadi · ELAN", "sub"], ["Réinitialisations", "4", "code envoyé par e-mail", "sub"]] },
+      beta: { section: "Gestion", label: "Bêta", icon: "flask", desc: "L'espace opgestion-beta ne dépose aucun annuaire : ses accès vivent ici, gérés par la Tour.", cta: "Ajouter un testeur", tableTitle: "Testeurs bêta", heads: ["Testeur", "Version", "Dernier retour", "État", "Depuis"], cols: C5, filters: ["Tous", "Actifs", "Inactifs"], footLink: "Notes de version 2.63",
+        stats: [["Testeurs", "5", "opgestion-beta", "sub"], ["Version", "2.63", "publiée hier", "ok"], ["Retours ouverts", "3", "1 bloquant", "warn"], ["Tests verts", "700", "sur 700 · CI", "ok"]] },
+      abonnements: { section: "Facturation", label: "Abonnements", icon: "euro", desc: "Formules OP GESTION et OP MESSAGES, places incluses et codes promo (3 mois offerts).", cta: "Attribuer une formule", tableTitle: "Formules attribuées", heads: ["Entreprise", "Formule", "Places", "Paiement", "Échéance"], cols: C5, filters: ["Toutes", "À payer", "Promo"], footLink: "Récapitulatif des tarifs",
+        stats: [["MRR", "215 €", "HT / mois", "ok"], ["Business", "3", "25 € · 2 places", "sub"], ["Business Premium", "1", "50 € · 3 places", "sub"], ["À encaisser", "1", "ELAN · 25 €", "warn"]] },
+      support: { section: "Facturation", label: "Support", icon: "mail", desc: "Réponses types envoyées depuis la Tour au nom de TEAM OP. Les variables {prenom}, {entreprise}, {promo} sont remplies automatiquement.", cta: "Nouveau message", tableTitle: "Modèles et derniers envois", heads: ["Modèle", "Objet", "Destinataire", "État", "Envoyé"], cols: C5, filters: ["Tous", "Envoyés", "Brouillons"], footLink: "Boîte support@teamop.fr",
+        stats: [["Messages (7 j)", "12", "délai moyen 2 h", "ok"], ["Modèles", "5", "m1 → m5", "sub"], ["Demandes ouvertes", "2", "1 « nous regardons »", "warn"], ["Codes promo actifs", "3", "3 mois offerts", "sub"]] },
+      journal: { section: "Système", label: "Journal", icon: "clock", desc: "Une ligne par geste dans la Tour et sur le serveur — jamais par espace. Rien n'est effaçable.", cta: "Exporter CSV", tableTitle: "Dernières entrées", heads: ["Acteur", "Événement", "Cible", "Résultat", "Heure"], cols: C5, filters: ["Tout", "Serveur", "Tour"], footLink: "Journal complet (500)",
+        stats: [["Entrées (24 h)", "412", "", "sub"], ["Refus 403", "6", "sans jeton", "sub"], ["Créations refusées 409", "1", "nom déjà pris — annuaire intact", "ok"], ["Sauvegardes", "7", "toutes réussies", "ok"]] },
+      reglages: { section: "Système", label: "Réglages", icon: "gear", desc: "Espaces techniques, clés VAPID, mot de passe patron et rotation des jetons.", cta: "Enregistrer", tableTitle: "Paramètres", heads: ["Paramètre", "Valeur", "Portée", "État", "Modifié"], cols: C5, filters: ["Tous", "Sécurité", "Serveur"], footLink: "Documentation interne",
+        stats: [["Espaces techniques", "2", "elan-gestion · opgestion-beta", "sub"], ["Itérations PBKDF2", "120 000", "identiques client/serveur", "ok"], ["Jeton patron", "actif", "expire dans 6 h", "ok"], ["Sauvegarde auto", "06:00", "quotidienne", "sub"]] }
+    };
+  }
+  data(v) {
+    const R = (av, c1, c1b, c2, c3, st, k, c5, mono) => ({ av, c1, c1b, c2, c3, st, k, c5, mono });
+    return {
+      dashboard: [R("EL", "ELAN", "elan-34oc · Marseille", "il y a 12 s", "Business · 2 places", "Actif", "ok", "6"), R("BP", "Boulangerie Au Bon Pain", "aubonpain-9k2q", "il y a 40 s", "Pro · 1 place", "Actif", "ok", "2"), R("LG", "Le Gourmet", "legourmet-x1p0", "il y a 3 min", "Business", "Actif", "ok", "4"), R("HA", "Hôtel Azur", "azur-77lm", "hier 18:40", "Gratuit", "Inactif 24 h", "warn", "1"), R("β", "opgestion-beta", "espace technique", "il y a 5 s", "—", "Bêta", "plan", "5")],
+      surveillance: [R("FL", "Florent · ELAN", "identifiant de départ", "Connexion à l'application", "iPhone 15 · Marseille", "OK", "ok", "14:32"), R("MB", "M. Bernard · ELAN", "technicien", "Modification du planning · sem. 38", "MacBook Pro", "OK", "ok", "14:21"), R("??", "Inconnu · ELAN", "185.22.9.140 · hors France", "Tentative de connexion refusée (3/3)", "Navigateur inconnu", "Refusé", "bad", "14:06"), R("CD", "C. Dumas · Le Gourmet", "responsable", "Export du registre d'heures", "iPad Air", "À vérifier", "warn", "13:48"), R("JB", "Justin · Tour", "patron", "Création du compte « t.moreau »", "MacBook Pro", "OK", "ok", "13:12"), R("TM", "T. Moreau · Au Bon Pain", "première connexion", "Appareil enregistré · mot de passe choisi", "Pixel 8", "OK", "ok", "12:59"), R("AS", "A. Sadi · ELAN", "révoqué", "Session expirée automatiquement", "iPhone 13", "Info", "grey", "12:30")],
+      entreprises: [R("EL", "ELAN", "Hygiène 3D · Marseille", "teamop.fr/e/elan", "florent", "Inscrit", "ok", "mars 2026", 1), R("BP", "Boulangerie Au Bon Pain", "Marseille", "teamop.fr/e/aubonpain", "marie", "Inscrit", "ok", "mai 2026", 1), R("LG", "Le Gourmet", "Lyon", "teamop.fr/e/legourmet", "claire", "Inscrit", "ok", "juin 2026", 1), R("SC", "Sans code", "à réinscrire", "teamop.fr/e/sanscode", "—", "409 · sans code", "warn", "juil. 2026", 1), R("HA", "Hôtel Azur", "Nice", "teamop.fr/e/azur", "karim", "Inscrit", "ok", "août 2026", 1)],
+      acces: [R("FL", "florent", "ELAN", "Identifiant de départ", "Admin", "Provisoire", "warn", "12 sept."), R("TM", "t.moreau", "Au Bon Pain", "Technicien", "Technicien", "Provisoire", "warn", "aujourd'hui"), R("MB", "m.bernard", "ELAN", "Technicien", "Technicien", "Choisi", "ok", "14 sept."), R("CD", "c.dumas", "Le Gourmet", "Responsable", "Responsable", "Choisi", "ok", "2 sept."), R("AS", "a.sadi", "ELAN", "—", "Technicien", "Révoqué", "bad", "hier")],
+      beta: [R("JB", "Justin", "iPhone + Mac", "2.63", "« lien du 2ᵉ panneau incorrect » → corrigé", "Actif", "ok", "sept. 2026"), R("FL", "Florent", "iPhone", "2.63", "box hors-ligne au dépôt", "Actif", "ok", "sept. 2026"), R("MB", "Marc", "Android", "2.62", "scanner lent", "À relancer", "warn", "août 2026"), R("KF", "Karim", "iPad", "2.63", "—", "Actif", "ok", "sept. 2026"), R("CD", "Claire", "Windows", "2.61", "inactif 12 j", "Inactif", "grey", "juil. 2026")],
+      abonnements: [R("EL", "ELAN", "Business", "25 € HT / mois", "2 incluses · 6 comptes", "À payer", "warn", "30 sept."), R("LG", "Le Gourmet", "Business Premium", "50 € HT / mois", "3 incluses · 4 comptes", "Payé", "ok", "15 oct."), R("BP", "Au Bon Pain", "Pro", "15 € HT / mois", "1 incluse · 2 comptes", "Payé", "ok", "3 oct."), R("HA", "Hôtel Azur", "Gratuit", "0 €", "1 incluse", "—", "grey", "—"), R("LP", "Les Pins", "Business", "25 € HT · promo 3 mois", "2 incluses", "Promo", "plan", "1 déc.")],
+      support: [R("m1", "Nous avons corrigé", "modèle m1", "sans objet", "Justin · ELAN", "Envoyé", "ok", "hier 18:02"), R("m2", "Nous regardons", "modèle m2", "sans objet", "Marc · Au Bon Pain", "Envoyé", "ok", "hier 09:40"), R("m3", "Votre facture", "modèle m3", "Votre facture — {entreprise}", "Claire · Le Gourmet", "Envoyé", "ok", "15 sept."), R("m4", "Comment faire", "modèle m4 · 3 étapes", "sans objet", "—", "Brouillon", "grey", "—"), R("m5", "Offre 3 mois", "modèle m5", "Votre offre — 3 mois offerts", "Les Pins", "Envoyé", "ok", "12 sept.")],
+      journal: [R("SR", "Serveur", "/api/monitor/espaces", "Enregistrement refusé", "elan-gq3k → nom « ELAN » déjà pris", "409", "warn", "12 sept. 09:00"), R("SR", "Serveur", "lien-existant", "Espace reconnu", "elan → elan-34oc · ident florent", "200", "ok", "12 sept. 09:00"), R("JB", "Justin", "Tour", "Fiche ELAN ouverte", "iPhone", "OK", "ok", "12 sept. 08:59"), R("SR", "Serveur", "/api/espaces/connexion", "Espace intouchable refusé", "elan-gestion · motif technique", "403", "ok", "15 sept."), R("SR", "Serveur", "sauvegarde", "Sauvegarde complète", "7 espaces", "OK", "ok", "aujourd'hui 06:00")],
+      reglages: [R("ES", "ESPACES_TECHNIQUES", "copie Tour = copie serveur", "elan-gestion, opgestion-beta", "Tour + serveur", "Synchronisé", "ok", "17 sept.", 1), R("PB", "CNX_ITER", "PBKDF2", "120 000", "client + serveur", "OK", "ok", "—", 1), R("MD", "Mot de passe patron", "haché SHA-256", "••••••••••••", "config.json", "OK", "ok", "août 2026", 1), R("VP", "Clés VAPID", "notifications push", "BNx…7Qk", "serveur", "OK", "ok", "mars 2026", 1), R("MP", "tourMdpDefaut", "tirage aléatoire", "plus jamais nom + « !! »", "Tour", "OK", "ok", "15 sept.", 1)]
+    }[v] || [];
+  }
+  renderVals() {
+    const qm = new URLSearchParams(location.search).get("mode"); const mode = qm === "light" || qm === "dark" ? qm : "auto"; const dark = mode === "dark" || (mode === "auto" && this.state.sysDark);
+    const t = {
+      text: dark ? "#ffffff" : "#000000", sub: dark ? "rgba(220,228,245,.66)" : "rgba(60,60,67,.6)", accent: dark ? "#64a8ff" : "#007aff", fill: dark ? "#0a84ff" : "#007aff",
+      screen: dark ? "linear-gradient(112deg,transparent 58%,rgba(255,255,255,.04) 58.2%),radial-gradient(120% 90% at 0% 0%,#1a2a4d 0%,rgba(0,0,0,0) 55%),radial-gradient(110% 80% at 100% 100%,#1c1636 0%,rgba(0,0,0,0) 60%),linear-gradient(160deg,#0f1a30 0%,#070b16 100%)" : "#f2f2f7",
+      haloA: "transparent", haloB: "transparent",
+      glass: dark ? "rgba(255,255,255,.08)" : "#ffffff", glass2: dark ? "rgba(255,255,255,.1)" : "rgba(118,118,128,.12)", sidebar: dark ? "rgba(255,255,255,.04)" : "rgba(242,242,247,.82)",
+      line: dark ? "1px solid rgba(255,255,255,.14)" : "0.5px solid rgba(60,60,67,.29)",
+      shadow: dark ? "0 18px 44px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.18)" : "none",
+      cardLine: dark ? "1px solid rgba(255,255,255,.14)" : "0", navBar: dark ? "rgba(255,255,255,.06)" : "rgba(249,249,249,.85)", segTrack: dark ? "rgba(118,118,128,.24)" : "rgba(118,118,128,.12)", tintBg: dark ? "rgba(10,132,255,.22)" : "rgba(0,122,255,.14)", rowHover: dark ? "rgba(255,255,255,.06)" : "rgba(0,0,0,.04)", toast: dark ? "rgba(44,44,46,.94)" : "rgba(255,255,255,.92)"
+    };
+    const page = dark ? { bg: "#070b16", text: "#fff", sub: "rgba(235,235,245,.6)", seg: "rgba(118,118,128,.24)", knob: "#636366" } : { bg: "#f2f2f7", text: "#000", sub: "rgba(60,60,67,.6)", seg: "rgba(118,118,128,.12)", knob: "#fff" };
+    const V = this.views(); const v = this.state.view; const view = V[v] || V.surveillance;
+    const tone = { ok: "#1c7a3a", warn: "#8a5300", bad: "#a81f16", sub: t.sub, plan: t.accent };
+    const toneD = { ok: "#30d158", warn: "#ff9f0a", bad: "#ff453a", sub: t.sub, plan: t.accent };
+    const ST = { ok: [dark ? "rgba(48,209,88,.18)" : "rgba(52,199,89,.16)", dark ? "#30d158" : "#1c7a3a"], warn: [dark ? "rgba(255,159,10,.18)" : "rgba(255,149,0,.16)", dark ? "#ff9f0a" : "#8a5300"], bad: [dark ? "rgba(255,69,58,.18)" : "rgba(255,59,48,.14)", dark ? "#ff453a" : "#a81f16"], plan: [dark ? "rgba(10,132,255,.2)" : "rgba(0,122,255,.14)", dark ? "#0a84ff" : "#0a5fc2"], grey: [t.glass2, t.sub] };
+    const sep = dark ? "1px solid rgba(255,255,255,.08)" : "0.5px solid rgba(60,60,67,.29)";
+    const all = this.data(v); const fi = this.state.filter;
+    const filtered = fi === 0 ? all : fi === 2 ? all.filter(r => r.k !== "ok") : all.filter(r => r.k === "ok");
+    const rows = filtered.map((r, i, a) => { const S = ST[r.k] || ST.grey; return ({ ...r, c2font: r.mono ? "ui-monospace,'SF Mono',Menlo,monospace" : "inherit", avBg: S[0], avFg: S[1], stBg: S[0], stFg: S[1], sep: i === a.length - 1 ? "0" : sep, bg: v === "entreprises" && i === this.state.sel ? t.rowHover : "transparent", onClick: () => { if (v === "entreprises") this.setState({ sel: i }); } }); });
+    const groups = { dashboard: "Tour", surveillance: "Gestion", abonnements: "Facturation", journal: "Système" };
+    const menu = Object.keys(V).map(k => { const on = k === v; return { label: V[k].label, section: groups[k] || "", sectionShow: groups[k] ? "block" : "none", onClick: () => { this.setState({ view: k, filter: 0, more: false }); location.hash = "#/" + k; }, icon: this.ic(V[k].icon, t.accent), tile: "transparent", bg: on ? (dark ? "rgba(10,132,255,.28)" : "rgba(0,122,255,.14)") : "transparent", fg: on ? t.text : t.text, w: on ? "600" : "400", badge: k === "surveillance" ? "3" : k === "entreprises" ? "1" : "", badgeShow: (k === "surveillance" || k === "entreprises") && !on ? "inline-block" : "none", badgeBg: k === "surveillance" ? ST.bad[0] : ST.warn[0], badgeFg: k === "surveillance" ? ST.bad[1] : ST.warn[1] }; });
+    const selE = v === "entreprises" ? all[this.state.sel] : null;
+    const tabDef = [["dashboard", "Accueil", "home"], ["surveillance", "Surveill.", "eye"], ["entreprises", "Entreprises", "building"], ["acces", "Accès", "key"]];
+    const tabs = tabDef.map(([k, label, icon]) => { const on = k === v && !this.state.more; return { label, onClick: () => { this.setState({ view: k, filter: 0, more: false }); location.hash = "#/" + k; }, icon: this.ic(icon, on ? t.accent : t.sub, 22), fg: on ? t.accent : t.sub, w: on ? "600" : "500", pill: on ? (dark ? "rgba(255,255,255,.16)" : "rgba(255,255,255,.95)") : "transparent", shadow: on ? (dark ? "inset 0 1px 0 rgba(255,255,255,.22)" : "0 2px 8px rgba(0,0,0,.12)") : "none" }; });
+    const moreOn = this.state.more || !tabDef.some(d => d[0] === v);
+    tabs.push({ label: "Plus", onClick: () => this.setState({ more: !this.state.more }), icon: this.ic("menu", moreOn ? t.accent : t.sub, 22), fg: moreOn ? t.accent : t.sub, w: moreOn ? "600" : "500", pill: moreOn ? (dark ? "rgba(255,255,255,.16)" : "rgba(255,255,255,.95)") : "transparent", shadow: moreOn ? (dark ? "inset 0 1px 0 rgba(255,255,255,.22)" : "0 2px 8px rgba(0,0,0,.12)") : "none" });
+    t.tabBar = dark ? "rgba(255,255,255,.08)" : "rgba(249,249,249,.78)"; t.tabShadow = dark ? "0 18px 44px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.18)" : "0 8px 24px rgba(0,0,0,.12)"; t.sheet = dark ? "rgba(15,26,48,.9)" : "rgba(249,249,249,.96)";
+    return {
+      t, page, viewKey: v, view: { ...view, ctaShow: "inline-flex" }, clock: this.state.clock, menu, rows,
+      stats: (view.stats || []).map(([label, value, delta, k]) => ({ label, value, delta, tone: (dark ? toneD : tone)[k] })),
+      filters: view.filters.map((label, i) => ({ label, onClick: () => this.setState({ filter: i }), bg: i === fi ? (dark ? "#636366" : "#fff") : "transparent", w: i === fi ? "600" : "400", sh: i === fi ? "0 1px 3px rgba(0,0,0,.12)" : "none" })),
+      countLabel: rows.length + " lignes · fuseau Europe/Paris",
+      hasDetail: !!selE,
+      detail: selE ? { nom: selE.c1, lien: selE.c2, lienEtat: selE.k === "ok" ? "résout vers " + (selE.c1 === "ELAN" ? "elan-34oc" : selE.c2.split("/").pop() + "-…") : "409 · sans code — ne l'envoie pas", fields: [["Slug", selE.c2.split("/").pop(), 1], ["Espace", selE.c1 === "ELAN" ? "elan-34oc" : "—", 1], ["Identifiant de départ", selE.c3, 1], ["Mot de passe provisoire", selE.k === "ok" ? "haché · non lisible" : "—", 0], ["Formule", selE.c1 === "ELAN" ? "Business · 2 places" : "voir Abonnements", 0]].map(([k, val, mono]) => ({ k, v: val, font: mono ? "ui-monospace,'SF Mono',Menlo,monospace" : "inherit" })), note: "Le serveur nomme l'espace ; la Tour ne rapporte plus de lien depuis le navigateur. Un 404 seul autorise à créer ; 409, 403, 500 ou serveur muet = on ne fabrique rien." } : { nom: "", lien: "", lienEtat: "", fields: [], note: "" },
+      toastCopy: () => this.toast("Lien copié — " + (selE ? selE.c2 : "")), toastMail: () => this.toast("E-mail envoyé au nom de TEAM OP"),
+      toastOp: this.state.toastOn ? "1" : "0", toastShift: this.state.toastOn ? "0" : "16px", toastText: this.state.toast,
+      modeLabel: dark ? "mode nuit (système)" : "mode jour (système)", tabs, closeMore: () => this.setState({ more: false }), moreOp: this.state.more ? "1" : "0", moreEv: this.state.more ? "auto" : "none", moreShift: this.state.more ? "translateY(0)" : "translateY(104%)"
+    };
+  }
+}
+</script>
+</body>
+</html>
