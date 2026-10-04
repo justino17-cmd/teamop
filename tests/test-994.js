@@ -95,6 +95,14 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (240 s)');
       v('⛔ … et un champ qui n\'a pas la forme attendue n\'existe pas : une offre inconnue ou une raison inventée ne sont pas rendues', (() => { const e = new OPMSG.ErreurApi('formule_requise', 402, 0, { raison: 'gratuit_pour_tous', offre: 'tout_gratuit', abonnement_ouvert: 'oui' }); return [e.offre, e.raison, e.abonnementOuvert]; })(), ['', '', false]);
     }
 
+    /* — les trois raisons d'un refus d'organiser se DISENT, chacune par sa phrase, sans prix ni « Pro » — */
+    {
+      const dit = (raison) => new OPMSG.ErreurApi('formule_requise', 402, 0, { raison, offre: 'perso_plus', abonnement_ouvert: true }).phrase();
+      v('⛔ un paiement en retard se dit (« Ton paiement n\'est pas passé »), un outil d\'organisateur dans un appel gratuit aussi (« réservé aux réunions »), sans prix ni « Pro » — et rejoindre reste gratuit',
+        [dit('impaye'), dit('organisateur'), [dit('perso'), dit('impaye'), dit('organisateur')].some(t => /\d\s*€|euro|\bPro\b/i.test(t))],
+        ['Ton paiement n\'est pas passé : mets ta carte à jour (Réglages › Abonnement) pour organiser des réunions. Rejoindre une réunion où tu es invité reste gratuit.', 'Cet outil est réservé aux réunions : l\'organisateur de cet appel n\'a pas de forfait pour les organiser.', false]);
+    }
+
     /* ═══ 2. L'ÉTAT, SANS RÉSEAU ══════════════════════════════════════════════════════════════════════════════════ */
     console.log('\nL\'état du forfait : le nom et les prix viennent du service, la personne est celle de la session');
     {

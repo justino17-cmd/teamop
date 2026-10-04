@@ -11,7 +11,9 @@
         (« 10 / 10 »), la fiche dit qu'elle est complète ;
      C. un invité GRATUIT (Bruno) ouvre la réunion et ENTRE dans la salle : aucune feuille de forfait, il reste Perso ;
      D. un appel de GROUPE gratuit (Chloé) : la salle n'a pas les outils de l'organisateur et le DIT en une ligne qui dit où ils sont ; le même appel lancé par Perso+ (Alice) les a ;
-     E. le forfait lâche PENDANT que le formulaire est ouvert : le service refuse (402) AU MOMENT d'enregistrer et la page ouvre la feuille du forfait — rien n'est créé.
+     E. le paiement passe en RETARD pendant que le formulaire est ouvert (impayé, sans sursis : le service refuse 402 AU MOMENT d'enregistrer, la page ouvre la feuille du forfait et DIT que le paiement n'est pas passé),
+        « J'ai réglé — vérifier » relit chez Stripe, puis le forfait est RÉSILIÉ : même refus, la feuille propose de nouveau « S'abonner » — rien n'est jamais créé ;
+     Réglages › Abonnement dit chaque état (« Pour organiser des réunions · 5 € par mois », « Abonnement actif », « Paiement en retard : à régler »).
    Partout : aucune erreur JavaScript, aucun débordement, chaque refus réseau NOMMÉ.
 
    ⛔ CE QU'ELLE NE PEUT PAS JOUER, ET DIT : un vrai paiement (le faux Stripe de `tests/outils-stripe.js` rend l'adresse de paiement, la page est détournée vers un faux, et « payé » est posé chez lui) ; Safari/iOS ;
@@ -182,6 +184,9 @@ const localParis = (t) => { const p = Object.fromEntries(new Intl.DateTimeFormat
 
     /* ═══ A. UNE PERSONNE GRATUITE TOUCHE « PROGRAMMER » : LA FEUILLE DU FORFAIT, LE PAIEMENT, LE RETOUR ═══════════════════════════════════════════ */
     console.log('── A. Perso touche « Programmer » : la feuille de Perso+, le rythme, « S\'abonner », le retour de Stripe ──');
+    await onglet(A, 'reglages');
+    await verifier('Réglages › Abonnement : une ligne « Perso+ » dit ce que la personne peut prendre — « Pour organiser des réunions · 5 € par mois » (le nom et le prix viennent du service)', A,
+      () => !!document.getElementById('reg-pp') && /Perso\+\s*Pour organiser des réunions · 5 € par mois/.test(document.getElementById('reg-pp').textContent), null, 12000, () => lire(A, '#reg-abo'));
     await onglet(A, 'reunions');
     await toucher(A, '#btn-reunion-nouvelle');
     await verifier('⛔ la page ouvre la FEUILLE DU FORFAIT (« Perso+ »), pas un formulaire qu\'elle sait refusé', A, () => document.documentElement.classList.contains('feuille-ouverte') && document.getElementById('feuille-titre').textContent === 'Perso+' && !!document.getElementById('pp-phrase'), null, 10000, () => texteCorps(A));
@@ -236,6 +241,9 @@ const localParis = (t) => { const p = Object.fromEntries(new Intl.DateTimeFormat
     await capture(A, 'pp4-reunion-dix');
     await largeur(A, 'fiche d\'une réunion complète');
     await fermerFeuille(A);
+    await onglet(A, 'reglages');
+    await verifier('Réglages › Abonnement : la ligne « Perso+ » dit « Abonnement actif · prochaine échéance le … » (et plus le prix)', A,
+      () => /Perso\+\s*Abonnement actif · prochaine échéance le /.test((document.getElementById('reg-pp') || {}).textContent || '') && !/€/.test(document.getElementById('reg-pp').textContent), null, 12000, () => lire(A, '#reg-abo'));
 
     /* ═══ C. UN INVITÉ GRATUIT ENTRE DANS LA SALLE ═══════════════════════════════════════════════════════════════════════════════════════════════ */
     console.log('\n── C. Un invité gratuit (Bruno) entre dans la salle de la réunion ──');
@@ -294,22 +302,52 @@ const localParis = (t) => { const p = Object.fromEntries(new Intl.DateTimeFormat
     if (finA) { await toucher(A, '#salle-quitter'); if (await attendre(A, () => !!document.querySelector('[data-sa="terminer-confirmer"]'), null, 1500)) await toucher(A, '[data-sa="terminer-confirmer"]'); }
     await verifier('Alice a quitté la salle', A, () => document.documentElement.dataset.salle !== '1', null, 10000, () => etatPage(A));
 
-    /* ═══ E. LE FORFAIT LÂCHE PENDANT QUE LE FORMULAIRE EST OUVERT ═══════════════════════════════════════════════════════════════════════════════ */
-    console.log('\n── E. Le forfait lâche pendant que le formulaire est ouvert : le refus se dit en ouvrant la feuille du forfait ──');
+    /* ═══ E. LE PAIEMENT EN RETARD, RÉGLÉ, PUIS LE FORFAIT RÉSILIÉ — PENDANT QUE LE FORMULAIRE EST OUVERT ═══════════════════════════════════════════ */
+    console.log('\n── E. Un paiement en retard (impayé), réglé, puis un forfait résilié : chaque refus se dit en ouvrant la feuille du forfait ──');
+    const sb = Array.from(fake.abonnements.values()).find(x => x.metadata && x.metadata.opmsg_personne === P.alice.moi.id);
+    const refus402 = () => A.refus.filter(x => x === '402 POST /api/reunions').length;
+    const envoyes = () => A.postes.filter(p => p.chemin === '/api/reunions').length;
     await onglet(A, 'reunions');
     await toucher(A, '#btn-reunion-nouvelle');
     await verifier('le formulaire s\'ouvre (Alice est encore Perso+)', A, () => document.getElementById('feuille-titre').textContent === 'Nouvelle réunion' && !!document.getElementById('rf-titre'), null, 10000, () => etatPage(A));
+    await saisir(A, '#rf-titre', 'Après le retard');
+    fake.statut(sb.id, 'past_due');
+    const retard = await P.alice.post('/api/moi/perso-plus/relire', {});
+    v('population : Stripe dit « en retard », le service l\'a relu — Alice n\'organise plus, TOUT DE SUITE (impayé, sans sursis) ; son abonnement existe encore', [retard.code, retard.j.organiser, retard.j.formule, retard.j.impaye, retard.j.abonnement && retard.j.abonnement.statut], [200, false, 'impaye', true, 'past_due']);
+    const reunions0 = nb('SELECT COUNT(*) AS n FROM reunion'), postes0 = envoyes(), refus0 = refus402();
+    await toucher(A, '[data-reu="form-enregistrer"]');
+    await verifier('⛔ le service refuse (402) AU MOMENT d\'enregistrer et la page ouvre la FEUILLE DU FORFAIT : « Ton paiement Perso+ n\'est pas passé : mets ta carte à jour pour organiser des réunions. Rejoindre une réunion où tu es invité reste gratuit. » — « Gérer mon abonnement » et « J\'ai réglé — vérifier », pas de « S\'abonner »', A,
+      () => document.documentElement.classList.contains('feuille-ouverte') && document.getElementById('feuille-titre').textContent === 'Perso+' && /Ton paiement Perso\+ n'est pas passé : mets ta carte à jour pour organiser des réunions\. Rejoindre une réunion où tu es invité reste gratuit\./.test(document.getElementById('info-corps').textContent)
+        && !!document.querySelector('[data-pp="portail"]') && !!document.querySelector('[data-pp="relire"]') && !document.querySelector('[data-pp="payer"]'), null, 12000, () => texteCorps(A));
+    v('… RIEN n\'a été créé (population : la page a bien envoyé UNE demande de plus, le service l\'a refusée)', [envoyes() - postes0, nb('SELECT COUNT(*) AS n FROM reunion') - reunions0, refus402() - refus0], [1, 0, 1]);
+    await capture(A, 'pp8-paiement-en-retard');
+    await largeur(A, 'feuille Perso+ (paiement en retard)');
+    await fermerFeuille(A);
+    await onglet(A, 'reglages');
+    await verifier('Réglages › Abonnement : la ligne « Perso+ » dit « Paiement en retard : à régler »', A, () => /Perso\+\s*Paiement en retard : à régler/.test((document.getElementById('reg-pp') || {}).textContent || ''), null, 12000, () => lire(A, '#reg-abo'));
+    /* le paiement est RÉGLÉ chez Stripe ; la personne touche « J'ai réglé — vérifier » dans la feuille, ouverte depuis Réglages */
+    fake.statut(sb.id, 'active');
+    await toucher(A, '#reg-pp');
+    await verifier('la feuille du forfait s\'ouvre depuis Réglages, avec le retard encore affiché (la page n\'a pas relu tant qu\'on ne le lui demande pas)', A, () => document.documentElement.classList.contains('feuille-ouverte') && document.getElementById('feuille-titre').textContent === 'Perso+' && !!document.querySelector('[data-pp="relire"]'), null, 10000, () => texteCorps(A));
+    await toucher(A, '[data-pp="relire"]');
+    await verifier('⛔ « J\'ai réglé — vérifier » relit chez Stripe : « Abonnement confirmé par Stripe : tu peux organiser des réunions. », plus de retard affiché', A,
+      () => /Abonnement confirmé par Stripe : tu peux organiser des réunions\./.test(document.getElementById('info-corps').textContent) && !/n'est pas passé/.test(document.getElementById('info-corps').textContent), null, 12000, () => texteCorps(A));
+    v('… le SERVICE le dit de même : Alice organise de nouveau', await P.alice.get('/api/moi/perso-plus').then(r => [r.j.formule, r.j.organiser, r.j.impaye]), ['perso_plus', true, false]);
+    await fermerFeuille(A);
+    /* puis le forfait est RÉSILIÉ pendant qu'un formulaire est ouvert */
+    await onglet(A, 'reunions');
+    await toucher(A, '#btn-reunion-nouvelle');
+    await verifier('le formulaire s\'ouvre de nouveau (Alice organise)', A, () => document.getElementById('feuille-titre').textContent === 'Nouvelle réunion' && !!document.getElementById('rf-titre'), null, 10000, () => etatPage(A));
     await saisir(A, '#rf-titre', 'Après la résiliation');
-    const sb = Array.from(fake.abonnements.values()).find(x => x.metadata && x.metadata.opmsg_personne === P.alice.moi.id);
     fake.statut(sb.id, 'canceled');
     const relu = await P.alice.post('/api/moi/perso-plus/relire', {});
     v('population : Stripe dit « résilié », le service l\'a relu — Alice n\'organise plus', [relu.code, relu.j.organiser, relu.j.formule], [200, false, 'perso']);
-    const reunions0 = nb('SELECT COUNT(*) AS n FROM reunion'), postes0 = A.postes.filter(p => p.chemin === '/api/reunions').length;
+    const reunions1 = nb('SELECT COUNT(*) AS n FROM reunion'), postes1 = envoyes(), refus1 = refus402();
     await toucher(A, '[data-reu="form-enregistrer"]');
-    await verifier('⛔ le service refuse (402) AU MOMENT d\'enregistrer et la page ouvre la FEUILLE DU FORFAIT (« Perso+ ») : une phrase qui dit quoi faire, pas un cul-de-sac', A,
+    await verifier('⛔ le service refuse (402) AU MOMENT d\'enregistrer et la page ouvre la FEUILLE DU FORFAIT (« Perso+ ») : « Rejoindre une réunion où tu es invité reste gratuit. » et « S\'abonner » — une phrase qui dit quoi faire, pas un cul-de-sac', A,
       () => document.documentElement.classList.contains('feuille-ouverte') && document.getElementById('feuille-titre').textContent === 'Perso+' && !!document.querySelector('[data-pp="payer"]') && /Rejoindre une réunion où tu es invité reste gratuit\./.test(document.getElementById('info-corps').textContent), null, 12000, () => texteCorps(A));
-    v('… RIEN n\'a été créé (population : la page a bien envoyé UNE demande de plus, le service l\'a refusée)', [A.postes.filter(p => p.chemin === '/api/reunions').length - postes0, nb('SELECT COUNT(*) AS n FROM reunion') - reunions0, A.refus.filter(x => x === '402 POST /api/reunions').length], [1, 0, 1]);
-    await capture(A, 'pp8-forfait-lache');
+    v('… RIEN n\'a été créé (population : la page a bien envoyé UNE demande de plus, le service l\'a refusée)', [envoyes() - postes1, nb('SELECT COUNT(*) AS n FROM reunion') - reunions1, refus402() - refus1], [1, 0, 1]);
+    await capture(A, 'pp9-forfait-resilie');
     await fermerFeuille(A);
 
     /* ═══ LA FIN ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
