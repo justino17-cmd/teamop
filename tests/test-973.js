@@ -364,17 +364,17 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
       v('Cleo retirée peut être invitée de nouveau (elle a gardé son droit d\'être invitée)', (await a.post('/api/reunions/' + R4 + '/inviter', { uids: [cleo.id] })).j.ajoutes, [cleo.id]);
     }
 
-    console.log('\nCent invités au plus (l\'hôte en plus) : le plafond se lit en HTTP');
+    console.log('\nDix personnes au plus, l\'hôte compris (Perso+ comme Pro) : le plafond se lit en HTTP, il vient d\'UNE constante');
     {
       const foule = [];
-      for (let i = 0; i < 101; i++) { const p = pers('M' + String(i).padStart(3, '0')); S.contactLier(ana.id, p.id); foule.push(p.id); }
-      const tropnombreux = await a.post('/api/reunions', corps({ invites: foule }));
-      v('101 personnes réelles : 409 `trop_d_invites`, rien de créé', [tropnombreux.code, tropnombreux.j.error], [409, 'trop_d_invites']);
+      for (let i = 0; i < 12; i++) { const p = pers('M' + String(i).padStart(3, '0')); S.contactLier(ana.id, p.id); foule.push(p.id); }
       const n0 = nReunions();
-      const cent = await a.post('/api/reunions', corps({ invites: foule.slice(0, 100), notifier: false }));
-      v('population : cent personnes réelles sont invitées (101 participants, l\'hôte compris) — le refus du dessus venait bien du nombre', [cent.code, cent.j.invites.length, cent.j.non_invites.length, nReunions()], [201, 101, 0, n0 + 1]);
-      const plus = await a.post('/api/reunions/' + cent.j.reunion.id + '/inviter', { uids: [foule[100]] });
-      v('⛔ une cent-unième personne : 409 `trop_d_invites`, la fiche garde ses 101 participants', [plus.code, plus.j.error, (await fiche(a, cent.j.reunion.id)).j.invites.length], [409, 'trop_d_invites', 101]);
+      const tropnombreux = await a.post('/api/reunions', corps({ invites: foule.slice(0, 10) }));
+      v('dix invités + l\'hôte = ONZE personnes : 409 `reunion_pleine`, le plafond (10) est dit, rien de créé', [tropnombreux.code, tropnombreux.j.error, tropnombreux.j.max, nReunions()], [409, 'reunion_pleine', 10, n0]);
+      const neuf = await a.post('/api/reunions', corps({ invites: foule.slice(0, 9), notifier: false }));
+      v('population : neuf invités sont invités (10 participants, l\'hôte compris) — le refus du dessus venait bien du nombre', [neuf.code, neuf.j.invites.length, neuf.j.non_invites.length, nReunions(), neuf.j.plafond], [201, 10, 0, n0 + 1, 10]);
+      const plus = await a.post('/api/reunions/' + neuf.j.reunion.id + '/inviter', { uids: [foule[9]] });
+      v('⛔ une onzième personne : 409 `reunion_pleine`, la fiche garde ses 10 participants', [plus.code, plus.j.error, plus.j.max, (await fiche(a, neuf.j.reunion.id)).j.invites.length], [409, 'reunion_pleine', 10, 10]);
     }
 
     /* ═══ 10. ANNULER ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */

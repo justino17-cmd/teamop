@@ -106,6 +106,8 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessa
       const snapA = await A.src.demarrerAppel({ membres: [], video: true, conv: groupe.id });
       id = snapA.id;
       v('Ana lance l\'appel par le GROUPE : une salle vidéo, elle en est l\'hôte, appel « sortant », pas encore de liaison ; la page sait que c\'est un groupe', [snapA.groupe, snapA.salle, snapA.genre, snapA.type, snapA.sens, snapA.moi.hote, snapA.moi.proprietaire, snapA.nom, snapA.capacite], [true, true, 'groupe', 'video', 'sortant', true, true, 'Équipe terrain', 4]);
+      /* ⛔ LES OUTILS DE L'ORGANISATEUR dès le lancement : la réponse du service porte la salle (comme celle d'une entrée). Ici la bêta ouvre tout, donc `outils` est vrai ; une page qui jetait cette réponse n'en proposerait aucun avant qu'un événement ne le lui dise (sonde de navigateur du 4 octobre 2026 : Perso+ lançait un appel de groupe sans verrou ni salle d'attente) */
+      v('⛔ la salle de celui qui LANCE porte ses outils d\'organisateur dès le premier cliché (la bêta ouvre tout)', snapA.outils, true);
       const rB = await B.attendreEv(e => e.type === 'appel-entrant' && e.id === id), rC = await C.attendreEv(e => e.type === 'appel-entrant' && e.id === id), rD = await N.attendreEv(e => e.type === 'appel-entrant' && e.id === id);
       vrai('⛔ Ben, Cleo et Dan l\'apprennent sans recharger : l\'événement `appel-entrant` (Eve, hors du groupe, rien)', !!(rB && rC && rD) && !E.evs.some(e => e.type === 'appel-entrant'));
       const sb = await B.src.appel(id);

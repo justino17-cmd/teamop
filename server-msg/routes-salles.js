@@ -20,6 +20,11 @@
  *   POST /api/salles/:id/evt {k, donnees}      SP   sondage, minuteur, épingle (2 Ko au plus) : voter est à tous, ouvrir / fermer / démarrer / épingler à l'hôte et aux co-hôtes
  *
  * Les gardes (`app.js`) : SP participant d'une SALLE (un exclu, un non-participant, un appel à deux : le MÊME 404 qu'une salle qui n'existe pas), SH hôte ou co-hôte PRÉSENT (un participant voit 403), SO hôte seul.
+ * ⛔ LES OUTILS DE L'ORGANISATEUR SE PAIENT, LA SALLE NON (Justin, 4 octobre 2026 : « comme WhatsApp » pour le public ; les réunions à ceux qui organisent). Dans la salle d'une RÉUNION, ou dans un appel de groupe lancé par quelqu'un
+ * qui est Pro ou Perso+, l'hôte et les co-hôtes ont tous leurs outils. Dans un appel de groupe lancé par quelqu'un qui n'a ni l'un ni l'autre (`appels.outilsOuverts`), CINQ choses refusent — 402 `formule_requise`,
+ * `raison: "organisateur"`, `offre: "perso_plus"` — : la salle d'attente et le verrou (les ALLUMER), retirer quelqu'un, demander de couper les micros, le sondage et le minuteur (les OUVRIR, les DÉMARRER), le bandeau
+ * d'enregistrement (l'ALLUMER). Le micro, la caméra, les réactions, la main levée, l'épingle et le partage d'écran restent à tous. ÉTEINDRE un outil (déverrouiller, couper la salle d'attente, arrêter l'enregistrement, fermer un
+ * sondage, arrêter un minuteur) n'est JAMAIS refusé : une salle ne reste pas verrouillée, ni « REC », parce que le forfait de celui qui l'a lancé a lâché pendant l'appel.
  * ⛔ CE QUE LE SERVICE IMPOSE ET CE QU'IL NE FAIT QUE DEMANDER : il impose l'admission, le verrou, la capacité, l'exclusion (il cesse de relayer le signal d'un exclu, qui ne revient pas), la hiérarchie (un co-hôte
  * n'exclut ni l'hôte ni un autre co-hôte). Il ne peut pas couper un micro à distance ni fermer une liaison déjà ouverte : les pages des autres la ferment en lisant la nouvelle liste ; un navigateur modifié le saurait.
  */
@@ -52,6 +57,13 @@ function installerSalles(H, ctx) {
   const gesteHote = (req, res) => plafond(res, 'salle_admin:' + req.appel.id + ':' + req.moi.id, 60, 60000);
   const gesteSimple = (req, res) => plafond(res, 'salle_evt:' + req.appel.id + ':' + req.moi.id, cfg.salleEvtMax, 60000);
   const vue = (req) => stockage.appelVue(req.moi.id, req.appel.id);
+  /* ⛔ UN OUTIL D'ORGANISATEUR EN SALLE GRATUITE : `true` (et la réponse 402 est déjà partie) si la salle n'a pas ses outils. Jugé APRÈS la garde (un non-participant a son 404, un participant sans pouvoir son 403) et APRÈS la forme
+     du corps (un 400 reste un 400), AVANT le plafond et le geste. La règle est celle d'`appels.outilsOuverts` — la même qui décide ce que la page propose : l'écran et le refus ne peuvent pas se contredire. */
+  function outilRefuse(req, res) {
+    if (appels.outilsOuverts(req.appel.id)) return false;
+    refus(res, 402, 'formule_requise', { raison: 'organisateur', offre: 'perso_plus', abonnement_ouvert: !!(ctx.facturation && ctx.facturation.perso.ouvert()) });
+    return true;
+  }
 
   H['salles.lire'] = (req, res) => res.json({ appel: vue(req), salle: appels.etatSalle(req.appel.id, req.moi.id) });
 
@@ -71,18 +83,21 @@ function installerSalles(H, ctx) {
   });
   H['salles.exclure'] = garder((req, res) => {
     const uid = uidDe(corps(req)); if (!uid) return refus(res, 400, 'champ_invalide');
+    if (outilRefuse(req, res)) return;
     if (!gesteHote(req, res)) return;
     const r = appels.exclure({ moi: req.moi, id: req.appel.id, uid });
     res.json({ ok: true, deja: !!r.deja, appel: vue(req) });
   });
   H['salles.verrouiller'] = garder((req, res) => {
     const actif = booleen(corps(req)); if (actif === null) return refus(res, 400, 'champ_invalide');
+    if (actif && outilRefuse(req, res)) return;                      // verrouiller se paie ; déverrouiller, jamais
     if (!gesteHote(req, res)) return;
     appels.verrouiller({ moi: req.moi, id: req.appel.id, actif });
     res.json({ ok: true, appel: vue(req) });
   });
   H['salles.salle_attente'] = garder((req, res) => {
     const actif = booleen(corps(req)); if (actif === null) return refus(res, 400, 'champ_invalide');
+    if (actif && outilRefuse(req, res)) return;                      // allumer la salle d'attente se paie ; l'éteindre, jamais
     if (!gesteHote(req, res)) return;
     appels.salleAttente({ moi: req.moi, id: req.appel.id, actif });
     res.json({ ok: true, appel: vue(req) });
@@ -95,6 +110,7 @@ function installerSalles(H, ctx) {
   });
   H['salles.rec'] = garder((req, res) => {
     const actif = booleen(corps(req)); if (actif === null) return refus(res, 400, 'champ_invalide');
+    if (actif && outilRefuse(req, res)) return;                      // allumer le bandeau d'enregistrement se paie ; l'éteindre, jamais
     if (!gesteHote(req, res)) return;
     appels.rec({ moi: req.moi, id: req.appel.id, actif });
     res.json({ ok: true, appel: vue(req) });
@@ -102,6 +118,7 @@ function installerSalles(H, ctx) {
   H['salles.couper_micro'] = garder((req, res) => {
     const b = corps(req), tous = b.tous === true, uid = uidDe(b);
     if (!tous && !uid) return refus(res, 400, 'champ_invalide');
+    if (outilRefuse(req, res)) return;
     if (!gesteHote(req, res)) return;
     const r = appels.demanderCouperMicro({ moi: req.moi, acces: req.appel, cible: tous ? null : uid });
     res.json({ ok: true, demande: true, atteints: r.atteints });          // « demande » : le service a transmis une demande, il ne sait pas si la page l'a honorée
@@ -147,6 +164,10 @@ function installerSalles(H, ctx) {
     if (typeof b.k !== 'string' || !['sondage', 'minuteur', 'epingle'].includes(b.k)) return refus(res, 400, 'champ_invalide');
     if (b.donnees === undefined || b.donnees === null || typeof b.donnees !== 'object' || Array.isArray(b.donnees)) return refus(res, 400, 'champ_invalide');
     if (tailleEvt(b.donnees) > EVT_OCTETS_MAX) return refus(res, 413, 'evt_trop_gros');
+    /* ouvrir un sondage et démarrer un minuteur sont des outils d'organisateur ; voter, fermer, arrêter, épingler ne le sont pas. Un participant sans pouvoir garde son 403 (jugé plus loin, par le service) : le forfait
+       ne se lit que pour un hôte ou un co-hôte. */
+    const op = b.donnees.op;
+    if (req.appel.grade >= 1 && ((b.k === 'sondage' && op === 'ouvrir') || (b.k === 'minuteur' && op === 'demarrer')) && outilRefuse(req, res)) return;
     if (!gesteSimple(req, res)) return;
     const ev = appels.evt({ moi: req.moi, acces: req.appel, k: b.k, donnees: b.donnees });
     /* ⛔ L'ÉVÉNEMENT REVIENT À CELUI QUI L'A POSÉ : le service le pousse aux AUTRES (au sondage près, qui va à tous), et la page de l'hôte qui épingle ou lance un minuteur ne voyait pas son propre geste — pas d'« Arrêter »

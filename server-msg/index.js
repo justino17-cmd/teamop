@@ -99,7 +99,7 @@ function demarrer(env = process.env) {
   /* ⛔ LE COURRIEL D'INVITATION : inerte sans relais SMTP (`config.courriel`), et le DIT. Le mot de passe du relais reste dans `config` ; `/api/config` ne publie que `courriel.ouvert`. */
   const courriel = creerCourriel({ config, stockage, scelleur, horloge: Date.now, journaliser });
   /* ⛔ LES APPELS À DEUX : le relais (identifiants éphémères, jamais de STUN d'un tiers), les signaux relayés à la seule session liée, le balayeur (sonneries échues, appareils perdus), les pushs. L'horloge est injectée. Voir `appels.js`. */
-  const appels = creerAppels({ stockage, hub, push, config, horloge: Date.now, journaliser });
+  const appels = creerAppels({ stockage, hub, push, config, formule, horloge: Date.now, journaliser });
   const porte = config.instance === 'beta' ? creerPorteBeta({ config, quotas, stockage, horloge: Date.now }) : null;
   /* Les SMS : la configuration est VALIDÉE ici (un budget négatif, des identifiants à moitié posés, une URL d'OVH étrangère en production
      refusent le démarrage plutôt que de tourner de travers), puis la garde (budgets, emballement, bouclier) et l'envoi par OVH. */
@@ -150,7 +150,10 @@ function demarrer(env = process.env) {
       /* ⛔ LES APPELS : un booléen (le relais est-il installé ?) et des NOMBRES — l'âge du dernier passage du balayeur et ses échecs de suite sont surveillés (un balayeur mort laisserait des gens « occupés » pour toujours). JAMAIS le nombre d'appels
          en cours, ni un appel, ni une personne : c'est une activité, et /health est publique. */
       appels: appels.sante(),
-      facturation: { mode: facturation.mode(), toutOuvert: formule.toutOuvert() },
+      /* ⛔ `persoAnnulationMin` : l'AGE, en minutes, du plus ancien geste d'abonnement Perso+ d'une personne qui s'en va que Stripe n'a pas confirmé — l'arrêt du renouvellement (suppression DEMANDÉE), son rétablissement (demande
+         ANNULÉE) ou la résiliation (compte EFFACÉ) ; 0 : aucun. Un âge, jamais un nombre, ni un genre, ni un identifiant : /health est PUBLIQUE, et « combien d'abonnés » est un chiffre commercial. La surveillance crie
+         au-delà d'un jour : une carte prélevée pour quelqu'un qui est parti ne se laisse pas dormir. */
+      facturation: { mode: facturation.mode(), toutOuvert: formule.toutOuvert(), persoAnnulationMin: facturation.annulationAttenteMin() },
     }),
   };
 
@@ -192,6 +195,8 @@ function demarrer(env = process.env) {
         if (e.audience.length) hub.emettre(e.audience, 'personne', { uid: id });
         if (e.appels && e.appels.length) hub.reveiller({ uids: e.appels });   // l'autre participant d'un appel que cet effacement a terminé l'apprend tout de suite
         journaliser('compte_efface', { n: e.pieces.length });
+        /* ⛔ son abonnement Perso+ s'annule chez Stripe TOUT DE SUITE (la demande est notée dans la transaction de l'effacement ; un échec se rejoue à la passe des dix minutes) */
+        facturation.perso.annulationsTraiter();
         /* ⛔ un espace PAYANT que cet effacement a laissé sans membre (un autre membre est parti pendant les quatorze jours) n'est pas dissous — Stripe continuerait de prélever sans plus aucun lien : il se règle à la main, et le journal le DIT (un nombre, jamais un espace) */
         if (e.espacesOrphelins && e.espacesOrphelins.length) journaliser('espace_payant_sans_membre', { n: e.espacesOrphelins.length });
       }

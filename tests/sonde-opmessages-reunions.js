@@ -2,7 +2,8 @@
    `tests/test-976.js` fait parler le module de données de la page au vrai service ; `test-970` à `975` jouent le calendrier, le fichier .ics, le stockage, les routes, le planificateur et le courriel.
    Celle-ci joue ce que seul un navigateur voit : la VRAIE PAGE SERVIE (`server-msg/public/`), au DOIGT (iPhone 393) et à la souris (bureau 1440, à New York), contre le VRAI service, sur 127.0.0.1 — jamais
    teamop.fr — trois fois : la bêta avec un relais SMTP de banc et une horloge décalable (tout ouvert), la bêta SANS relais (l'écran DIT que l'envoi par courriel n'est pas encore ouvert) et un service à la
-   formule de PRODUCTION (« Programmer » est une fonction Pro : refusée, dite, rien de créé).
+   formule de PRODUCTION SANS tarif Perso+ (« Programmer » est le forfait d'une personne, qui n'est pas ouvert sur ce service : la page ouvre la feuille du forfait et le DIT, sans bouton mort, rien de créé — le chemin
+   du refus 402 AU MOMENT d'enregistrer est joué par `sonde-opmessages-perso-plus.js`).
 
    Ce qu'elle joue : l'agenda de la semaine (vide, puis avec la réunion, l'aujourd'hui, les sept jours) ; « Programmer » (les champs, les refus d'ICI, une série hebdomadaire de trois dates qui traverse le
    changement d'heure d'octobre, les invités filtrés par une recherche) ; la fiche de l'organisateur et celle d'un invité (les gestes de chacun, et SEULEMENT ceux-là) ; la réponse de Bruno vue EN DIRECT
@@ -782,24 +783,24 @@ async function parcoursB(b, ctx) {
   return { tous: [A] };
 }
 
-/* ═══ C. UN SERVICE À LA FORMULE DE PRODUCTION : « PROGRAMMER » EST UNE FONCTION PRO ═════════════════════════════════════════════════════════════ */
+/* ═══ C. UN SERVICE À LA FORMULE DE PRODUCTION, SANS TARIF PERSO+ : « PROGRAMMER » MÈNE À LA FEUILLE DU FORFAIT, QUI DIT QU'IL N'EST PAS OUVERT ════════════════════════════════
+   (décision du 4 octobre 2026 : organiser une réunion est dans un forfait de PERSONNE, Perso+. La page DEMANDE au service avant d'ouvrir un formulaire qu'elle sait refusé ; un service sans clé de paiement
+   le dit — « Ce forfait n'est pas encore ouvert sur ce service » —, sans promettre un paiement impossible : ni bouton « S'abonner », ni prix inventé.) */
 async function parcoursC(b, ctx) {
   const { svc, og } = ctx;
   const sql = (req, ...args) => { const d = T.lireBase(path.join(svc.data, 'msg.db')); try { return d.prepare(req).get(...args); } finally { d.close(); } };
   const A = await ouvrir(b, svc.base, PROFILS.iphone); A.nom = 'Alice (formule de production)';
   await connecter(A, 'alice');
-  console.log('\n── À la formule de production : « Programmer » demande Messages Pro ──');
+  console.log('\n── À la formule de production, sans tarif Perso+ : « Programmer » ouvre la feuille du forfait, qui dit qu\'il n\'est pas ouvert ──');
   await onglet(A, 'reunions');
   await toucher(A, '#btn-reunion-nouvelle');
-  await verifier('le formulaire s\'ouvre (on peut le remplir, c\'est l\'envoi qui est refusé)', A, () => document.getElementById('feuille-titre').textContent === 'Nouvelle réunion' && !!document.getElementById('rf-titre'), null, 8000, () => texteCorps(A));
-  await saisir(A, '#rf-titre', TITRE);
-  await toucher(A, '[data-reu="form-enregistrer"]');
-  await verifier('⛔ le service refuse (402) et la page le DIT : « Cette fonction fait partie de Messages Pro. » — le formulaire reste ouvert avec ce qu\'on a écrit', A, (t) => /Cette fonction fait partie de Messages Pro/.test(document.getElementById('info-erreur').textContent) && document.getElementById('feuille-titre').textContent === 'Nouvelle réunion' && document.getElementById('rf-titre').value === t, TITRE, 10000, () => etatPage(A));
-  v('… et RIEN n\'a été créé (population : la page a bien envoyé la demande)', [A.postes.filter(p => p.chemin === '/api/reunions').length, Number(sql('SELECT COUNT(*) AS n FROM reunion').n), Number(sql('SELECT COUNT(*) AS n FROM conversation').n)], [1, 0, 0]);
-  await capture(A, 'r11-programmer-pro');
-  await largeur(A, 'formulaire (refus Messages Pro)');
+  await verifier('⛔ la page ouvre la FEUILLE DU FORFAIT (pas un formulaire qu\'elle sait refusé) : « Les réunions sont dans Perso+. » et « Rejoindre une réunion où tu es invité reste gratuit. »', A, () => document.documentElement.classList.contains('feuille-ouverte') && document.getElementById('feuille-titre').textContent === 'Perso+' && /Les réunions sont dans Perso\+\./.test(document.getElementById('info-corps').textContent) && /Rejoindre une réunion où tu es invité reste gratuit\./.test(document.getElementById('info-corps').textContent), null, 8000, () => texteCorps(A));
+  await verifier('… elle DIT que le forfait n\'est pas encore ouvert sur ce service, et ne montre AUCUN bouton « S\'abonner » ni aucun prix (un bouton ne mène jamais nulle part)', A, () => /Ce forfait n'est pas encore ouvert sur ce service : aucun paiement n'est possible/.test(document.getElementById('info-corps').textContent) && !document.querySelector('[data-pp="payer"]') && !/\d\s*€/.test(document.getElementById('info-corps').textContent), null, 8000, () => texteCorps(A));
+  v('… et RIEN n\'a été créé ni demandé (population : la page a bien lu l\'état du forfait, et n\'a envoyé aucune programmation)', [A.requetes.filter(r => r === 'GET /api/moi/perso-plus').length >= 1, A.postes.filter(p => p.chemin === '/api/reunions').length, Number(sql('SELECT COUNT(*) AS n FROM reunion').n), Number(sql('SELECT COUNT(*) AS n FROM conversation').n)], [true, 0, 0, 0]);
+  await capture(A, 'r11-programmer-perso-plus');
+  await largeur(A, 'feuille du forfait (non ouvert)');
   await fermerFeuille(A);
-  await verifier('l\'agenda reste lisible (« Aucune réunion ce jour-là »), le refus n\'a rien cassé', A, () => /Aucune réunion ce jour-là/.test(document.getElementById('liste-reunions').textContent), null, 8000, () => lire(A, '#vue-reunions'));
+  await verifier('l\'agenda reste lisible (« Aucune réunion ce jour-là »), la feuille n\'a rien cassé', A, () => /Aucune réunion ce jour-là/.test(document.getElementById('liste-reunions').textContent), null, 8000, () => lire(A, '#vue-reunions'));
   return { tous: [A] };
 }
 

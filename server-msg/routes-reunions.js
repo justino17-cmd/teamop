@@ -58,7 +58,8 @@ function installerReunions(H, ctx) {
     /* la salle et le lien (étape 8) : entrer ne se refuse que pour une raison que la page DIT */
     lien_invalide: [410, 'lien_invalide'], occupe_moi: [409, 'occupe', { moi: true }], exclu: [403, 'exclu'], verrouillee: [423, 'verrouillee'], appel_complet: [409, 'appel_complet'], appel_pris: [409, 'appel_pris'], appel_fini: [409, 'appel_fini'] };
   const garder = (f) => (req, res, next) => {
-    const traduire = (e) => { const c = e && CODES[e.code]; if (c) return refus(res, c[0], c[1], c[2]); return next(e); };
+    /* `reunion_pleine` porte le PLAFOND (`max`) que le stockage a appliqué : la page l'écrit (« dix personnes au plus »), elle ne le recopie pas */
+    const traduire = (e) => { if (e && e.code === 'reunion_pleine') return refus(res, 409, 'reunion_pleine', { max: e.max }); const c = e && CODES[e.code]; if (c) return refus(res, c[0], c[1], c[2]); return next(e); };
     try { const r = f(req, res, next); if (r && typeof r.catch === 'function') r.catch(traduire); }
     catch (e) { traduire(e); }
   };
@@ -164,6 +165,7 @@ function installerReunions(H, ctx) {
     r.prochaine = p ? { debut: p.debut, fin: p.fin } : null;
     const f = fenetreRejoindre(r.reunion, horloge());
     r.salle = { rejoignable: !!f, occurrence: f ? { debut: f.debut, fin: f.fin } : null, ouverte: stockage.salleDeReunion(id) !== null };
+    r.plafond = ctx.formule.plafondReunion(r.reunion.hote && r.reunion.hote.id);          // le nombre de personnes que CETTE réunion peut compter (organisateur compris) : la page l'écrit à côté de la liste des invités
     return r;
   }
   const personne = (uid) => stockage.personneParId(uid);
@@ -206,7 +208,8 @@ function installerReunions(H, ctx) {
     if (!plafond(res, 'reunion', hote.id, { max: 30, fenetreMs: 3600000 })) return;
     const ok = voulus.filter(u => stockage.peutEcrire(hote.id, u)), non_invites = voulus.filter(u => !ok.includes(u));
     const prochain = prochainDe(v.serie, horloge());
-    const r = stockage.reunionCreer({ hote: hote.id, titre: v.titre, lieu: v.lieu, debut: v.serie.debut, fin: v.serie.fin, tz: v.serie.tz, rep: v.serie.rep, n: v.serie.n, jusqua: v.serie.jusqua, rappels: v.rappels, invites: ok, prochain, finSerie: cal.finDeSerie(v.serie), attente: b.salle_attente === true });
+    const r = stockage.reunionCreer({ hote: hote.id, titre: v.titre, lieu: v.lieu, debut: v.serie.debut, fin: v.serie.fin, tz: v.serie.tz, rep: v.serie.rep, n: v.serie.n, jusqua: v.serie.jusqua, rappels: v.rappels, invites: ok, prochain, finSerie: cal.finDeSerie(v.serie), attente: b.salle_attente === true,
+      plafond: ctx.formule.plafondReunion(hote.id) });          // ⛔ dix personnes au plus, organisateur compris : UNE fonction (`formule.js`) le dit
     hub.reveiller({ conv: r.conv });
     if (notifierVoulu(b)) {
       const quand = prochain !== null ? prochain : v.serie.debut, desc = { titre: v.titre, tz: v.serie.tz, repetition: v.serie.rep };
@@ -280,7 +283,7 @@ function installerReunions(H, ctx) {
     if (b.notifier !== undefined && typeof b.notifier !== 'boolean') return refus(res, 400, 'champ_invalide');
     const u = listeUids(b.uids, UIDS_PAR_APPEL); if (!u) return refus(res, 400, 'champ_invalide');
     const ok = u.filter(x => stockage.peutEcrire(hote.id, x)), non_ajoutes = u.filter(x => !ok.includes(x));
-    const r = ok.length ? stockage.reunionInviter({ id, par: hote.id, uids: ok }) : { ajoutes: [], gid: 0 };
+    const r = ok.length ? stockage.reunionInviter({ id, par: hote.id, uids: ok, plafond: ctx.formule.plafondReunion(hote.id) }) : { ajoutes: [], gid: 0 };
     if (r.gid) hub.reveiller({ conv: req.reunion.conv });
     if (notifierVoulu(b) && r.ajoutes.length) {
       const courante = stockage.reunionPourMembre(id, hote.id).reunion, quand = prochainDe(serieDe(courante), horloge());
@@ -381,7 +384,7 @@ function installerReunions(H, ctx) {
     if (!vise) return refus(res, 410, 'lien_invalide');
     const fenetre = Object.assign({ annulee: false }, vise);
     if (!fenetreRejoindre(fenetre, horloge())) return refus(res, 409, 'reunion_hors_horaire', { ouvre_a: prochaineOuverture(fenetre, horloge()) });
-    const inv = stockage.reunionInviteParCode({ code: b.code, uid: req.moi.id });
+    const inv = stockage.reunionInviteParCode({ code: b.code, uid: req.moi.id, plafonds: (organisateur) => ctx.formule.plafondReunion(organisateur) });
     const acces = stockage.reunionAcces(inv.reunion, req.moi.id);
     if (inv.gid) hub.reveiller({ conv: acces.conv, uids: [req.moi.id] });
     const r = ctx.appels.rejoindreReunion({ moi: req.moi, reunion: inv.reunion, sessionH: req.sessionH, type });

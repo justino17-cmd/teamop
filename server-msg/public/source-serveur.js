@@ -36,6 +36,10 @@
    canalSupprimer, canalAjouterMembres, canalRetirerMembre ; Messages Pro : abonnementOffres, abonnement (l'état, sans réseau), abonnementPayer et abonnementPortail (rendent l'adresse de Stripe,
    en https seulement), abonnementRelire (« J'ai réglé — vérifier » : relu chez Stripe). Une conversation de type 'canal' porte `espace` et `prive`. Un refus de fonction Pro garde sa forme
    (`ErreurApi.raison` : « impaye » ou « perso », que le seul administrateur reçoit).
+   LE FORFAIT D'UNE PERSONNE (capacité `persoPlus`, Perso+) : persoPlus (l'état : formule, peut-on organiser, abonnement, offres et prix — le NOM du forfait et ses prix viennent du service), persoPlusPayer et
+   persoPlusPortail (rendent l'adresse de Stripe, en https seulement), persoPlusRelire (« J'ai réglé — vérifier »). `espaces()` rend aussi `organiser` (Pro ou Perso+). Un refus d'organiser garde sa forme (`ErreurApi.offre`
+   « perso_plus », `raison` « perso », « impaye » ou « organisateur », `abonnementOuvert`).
+   LE PLAFOND D'UNE RÉUNION (capacité `reunionPlafond`) : plafondReunion() → le nombre de personnes qu'une réunion compte au plus, organisateur compris, tel que le SERVICE le dit (`null` s'il ne l'a pas dit) ; la fiche d'une réunion le porte aussi (`plafond`).
    LES RÉUNIONS PROGRAMMÉES (capacité `reunions`, étape 6) : reunions(du, au) (l'agenda d'une fenêtre : chaque réunion avec ses occurrences), reunion(id) (la fiche : horaire, répétition, invités et
    leur réponse, MES rappels), programmer, modifierReunion, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion ; adresseIcs(id, {occurrence}) (l'adresse
    du fichier .ics, que la page télécharge par un lien : le cookie de session suit) ; courrielOuvert() (vrai/faux, ou null si on n'a pas pu savoir) et courrielReunion(id, adresse, {occurrence}).
@@ -778,7 +782,7 @@
 
     function nouvelle(v, extra) {
       return Object.assign({
-        id: v.id, vue: v, salle: { mains: [], etats: {}, sondage: null, minuteur: null, epingle: null },
+        id: v.id, vue: v, salle: { mains: [], etats: {}, sondage: null, minuteur: null, epingle: null, outils: false },
         local: false, entrant: false, reponse: false, attente: false,
         pairs: new Map(), pistes: { audio: null, video: null, ecran: false, micro: true }, etatDit: null,
         ice: null, promesseIce: null, relais: false, sansRelais: false, ttl: 0,
@@ -845,7 +849,7 @@
         moi: { statut: st, grade: (v.moi && v.moi.grade) || 0, hote: estHote(c), proprietaire: !!(v.moi && v.moi.grade >= 2 && st === 'present'), camera: !!mon.camera, micro: mon.micro !== false, partage: !!mon.partage, main: c.salle.mains.includes(moi()) },
         entrant: !fini && c.entrant && !c.local, attente: !fini && st === 'attente', exclu: st === 'exclu',
         verrou: !!v.verrou, salleAttente: !!v.attente, partageOk: v.partage_ok !== false, rec: v.rec ? { par: v.rec.par, nom: v.rec.par === moi() ? 'vous' : personneDe(v.rec.par).prenom } : null,
-        enAttente: v.en_attente || 0, epingle: c.salle.epingle || null, sondage: c.salle.sondage || null,
+        enAttente: v.en_attente || 0, epingle: c.salle.epingle || null, sondage: c.salle.sondage || null, outils: c.salle.outils === true,
         minuteur: c.salle.minuteur ? { fin: c.salle.minuteur.fin, secondes: c.salle.minuteur.secondes } : null, demandeMicro: c.demandeMicro,
         debut: c.debut, fin: fini ? c.fini.t : null, duree: fini ? dureeFinale(c) : (c.debut ? Math.max(0, Math.round((maintenant() - c.debut) / 1000)) : 0),
         sens: v.sens, liaison, issue: fini ? c.fini.issue : null, avis: fini ? c.fini.avis : null, relais: c.relais,
@@ -1331,6 +1335,9 @@
       c.salle = {
         mains: Array.isArray(s.mains) ? s.mains.filter(x => typeof x === 'string') : [], etats: s.etats && typeof s.etats === 'object' ? s.etats : {}, sondage: s.sondage || null,
         minuteur: s.minuteur && Number.isFinite(s.minuteur.fin_dans_s) ? { fin: maintenant() + s.minuteur.fin_dans_s * 1000, secondes: s.minuteur.secondes } : null, epingle: s.epingle || null,
+        /* ⛔ les OUTILS de l'organisateur (attente, verrou, retirer, couper les micros, sondage, minuteur, enregistrement) : la salle d'une réunion les a, un appel de groupe les a si celui qui l'a lancé est Pro ou Perso+.
+           Le SERVICE le dit (`outils`) ; tant qu'il ne l'a pas dit (l'instant entre le lancement d'un appel et la première lecture de la salle), ils ne sont pas proposés. */
+        outils: s.outils === true,
       };
     }
     function surSalleEvt(e) {
@@ -1465,7 +1472,7 @@
       lancement = true;
       try {
         const r = await d.api.lancerAppel(Object.assign({ type: spec.video ? 'video' : 'audio' }, conv ? { conv } : { uids: ids }));
-        const c = entrer(r.appel, {});
+        const c = entrer(r.appel, {}, r.salle);          // la salle avec l'appel (un appel de groupe : ses outils d'organisateur y sont dits) ; un appel à deux n'en porte pas
         return instantane(c);
       } finally { lancement = false; }
     }
@@ -2680,7 +2687,7 @@
        formule, places) : ce module rend ce que le service a dit, jamais ce que la page croit avoir demandé. Un refus garde sa forme (`ErreurApi` : `raison` « impaye » ou « perso » pour
        l'administrateur, `portail`, `places`) ; la page DIT le refus, elle n'en invente pas la cause.
        ⛔ Une adresse de paiement (Stripe) n'est rendue que si elle est en https : la page l'ouvre, elle n'ouvre pas n'importe quoi. */
-    const FORMULES = ['pro', 'perso', 'impaye'];
+    const FORMULES = ['pro', 'perso_plus', 'perso', 'impaye'];
     const formuleDe = (f) => FORMULES.includes(f) ? f : 'perso';
     const ADRESSE_HTTPS = /^https:\/\/[^\s"'<>]{4,2000}$/;
     const vueEspaceListe = (x) => ({ id: x.id, nom: x.nom, role: x.role, proprio: !!x.proprio, moiAdmin: x.role === 'admin', membres: x.membres_n | 0 });
@@ -2693,7 +2700,9 @@
     const espacesChanges = (id) => emettre({ type: 'espaces', id: id || null });
     async function espaces() {
       const r = await A.espaces();
-      return { espaces: (r.espaces || []).map(vueEspaceListe), formule: formuleDe(r.formule), abonnementOuvert: r.abonnement_ouvert === true };
+      return { espaces: (r.espaces || []).map(vueEspaceListe), formule: formuleDe(r.formule), abonnementOuvert: r.abonnement_ouvert === true,
+        /* Pro OU Perso+ : peut-on ORGANISER une réunion ? `null` quand le service ne le dit pas (un service d'avant) — la page ne bloque alors rien et laisse le service répondre */
+        organiser: typeof r.organiser === 'boolean' ? r.organiser : null };
     }
     async function espace(id) { return vueEspace(await A.espace(id)); }
     async function espaceCreer(nom) { const d = await A.creerEspace(String(nom || '').trim()); espacesChanges(d.espace.id); return vueEspace(d); }
@@ -2761,6 +2770,17 @@
       places: Number.isInteger(r.places) ? r.places : null, membres: r.membres | 0, placesDepassees: r.places_depassees === true, paiementEnAttente: r.paiement_en_attente === true, stripeMuet: r.stripe_muet === true });
     const adresseDePaiement = (r) => { if (!r || typeof r.url !== 'string' || !ADRESSE_HTTPS.test(r.url)) throw new OPMSG.ErreurApi('reponse_illisible', 200, 0); return { url: r.url, reprise: r.reprise === true }; };
     async function abonnement(id) { return vueAbonnement(await A.etatAbonnement(id)); }
+    /* ── PERSO+ : le forfait d'une PERSONNE (capacité `persoPlus`). Le service décide de tout ; ce module rend ce qu'il a dit. ⛔ Le NOM du forfait et ses prix viennent du service — la page ne les écrit nulle part. ── */
+    const vuePersoPlus = (r) => ({
+      nom: String(r.nom || ''), ouvert: r.ouvert === true, mode: r.mode === 'live' ? 'live' : 'test', toutOuvert: r.tout_ouvert === true,
+      formule: formuleDe(r.formule), organiser: r.organiser === true, inclusParPro: r.inclus_par_pro === true,
+      abonnement: r.abonnement ? { statut: String(r.abonnement.statut || ''), finPeriode: Number(r.abonnement.fin_periode) || 0, annule: r.abonnement.annule === true, reluLe: Number(r.abonnement.relu_le) || 0 } : null,
+      impaye: r.impaye === true, paiementEnAttente: r.paiement_en_attente === true, stripeMuet: r.stripe_muet === true,
+      defaut: typeof r.defaut === 'string' ? r.defaut : '', offres: (r.offres || []).map(o => ({ id: String(o.id), par: o.par === 'an' ? 'an' : 'mois', euros: Number(o.euros) || 0 })) });
+    async function persoPlus() { return vuePersoPlus(await A.persoPlusEtat()); }
+    async function persoPlusPayer(cycle) { return adresseDePaiement(await A.persoPlusPayer({ cycle })); }
+    async function persoPlusPortail() { return adresseDePaiement(await A.persoPlusPortail()); }
+    async function persoPlusRelire() { const r = vuePersoPlus(await A.persoPlusRelire()); espacesChanges(null); return r; }
     async function abonnementPayer(id, spec) { return adresseDePaiement(await A.payerAbonnement(id, { places: spec && spec.places, cycle: spec && spec.cycle })); }
     async function abonnementPortail(id) { return adresseDePaiement(await A.portailAbonnement(id)); }
     async function abonnementRelire(id) { const r = vueAbonnement(await A.relireAbonnement(id)); espacesChanges(id); return r; }
@@ -2802,7 +2822,9 @@
       for (const p of d.invites || []) noter(p);
       return Object.assign(vueReunion(d.reunion), {
         salle: d.salle ? { rejoignable: d.salle.rejoignable === true, ouverte: d.salle.ouverte === true, occurrence: d.salle.occurrence ? { debut: d.salle.occurrence.debut, fin: d.salle.occurrence.fin } : null } : { rejoignable: false, ouverte: false, occurrence: null },
-        moi: vueMoiReunion(d.moi), invites: (d.invites || []).map((p) => ({ id: p.id, statut: statutInvite(p.statut), hote: !!p.hote })), prochaine: d.prochaine ? { debut: d.prochaine.debut, fin: d.prochaine.fin } : null });
+        moi: vueMoiReunion(d.moi), invites: (d.invites || []).map((p) => ({ id: p.id, statut: statutInvite(p.statut), hote: !!p.hote })), prochaine: d.prochaine ? { debut: d.prochaine.debut, fin: d.prochaine.fin } : null,
+        /* le nombre de personnes que CETTE réunion peut compter, organisateur compris : celui du service (`null` quand il ne le dit pas) */
+        plafond: Number.isInteger(d.plafond) && d.plafond >= 2 ? d.plafond : null });
     }
     /* ce que la page peut dire d'une réunion : rien d'autre ne part (ni hôte, ni identifiant, ni version) */
     const CHAMPS_REUNION = ['titre', 'lieu', 'debut', 'fin', 'tz', 'repetition', 'jusqua', 'n', 'invites', 'rappels', 'notifier', 'salle_attente'];
@@ -2828,6 +2850,17 @@
     async function quitterReunion(id) { await pourReunion(A.quitterReunion(id)); reunionChangee(id, true); }
     async function repondreReunion(id, statut) { direFuseau(); await pourReunion(A.repondreReunion(id, statut)); reunionChangee(id); }
     async function rappelsReunion(id, rappels) { direFuseau(); await pourReunion(A.rappelsReunion(id, rappels)); reunionChangee(id); }
+    /* ⛔ LE NOMBRE DE PERSONNES D'UNE RÉUNION (organisateur compris) est CELUI DU SERVICE (`/api/config`, `limites.reunion_personnes` — une seule constante côté service) : la page ne l'écrit nulle part, elle le lit. `null`
+       quand on n'a pas pu le savoir (le formulaire ne bloque alors rien : c'est le service qui refuse, `reunion_pleine`, et la phrase dit le plafond). Gardé après une lecture réussie seulement. */
+    let plafondReunionLu;
+    async function plafondReunion() {
+      if (plafondReunionLu !== undefined) return plafondReunionLu;
+      try {
+        const c = await A.config(), n = c && c.limites && c.limites.reunion_personnes;
+        plafondReunionLu = Number.isInteger(n) && n >= 2 && n <= 1000 ? n : null;
+        return plafondReunionLu;
+      } catch (e) { return null; }
+    }
     /* le fichier .ics : une adresse de CE service (jamais une adresse venue du service), que la page ouvre par un lien — SANS réseau, donc pas par `A`, dont chaque méthode est enveloppée en asynchrone */
     const adresseIcs = (id, o2) => api0.adresseIcs(id, o2 || {});
     /* l'envoi par courriel est-il ouvert ? vrai/faux, ou null quand on n'a pas pu le savoir (on ne dit « pas encore ouvert » que quand le service l'a DIT) */
@@ -2917,7 +2950,7 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       surSessionMorte: (cb) => { suiviMort = cb; },
       /* `presence` : MA présence est-elle montrée ? Coupée, la barre de la page ne doit pas dire « Disponible » avec un point vert (relecture du testeur) : les autres ne me voient plus en ligne. */
@@ -2938,8 +2971,9 @@
       invitationCreer, invitationsRevoquer, invitationLire, invitationAccepter,
       canalCreer, canalRenommer, canalSupprimer, canalAjouterMembres, canalRetirerMembre,
       abonnementOffres, abonnement, abonnementPayer, abonnementPortail, abonnementRelire,
+      persoPlus, persoPlusPayer, persoPlusPortail, persoPlusRelire,   // le forfait d'une PERSONNE (capacité `persoPlus`)
       /* ── les réunions programmées (capacité `reunions`) ── */
-      reunions, reunion, programmer, modifierReunion, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion, adresseIcs, courrielOuvert, courrielReunion,
+      reunions, reunion, programmer, modifierReunion, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion, adresseIcs, courrielOuvert, courrielReunion, plafondReunion,
       /* ── les appels à deux (capacité `appels`) : l'historique, lancer, l'appel qui sonne ou court (`appel`), répondre, raccrocher ; les pistes que la page remet au moteur et le flux de l'autre qu'elle lit ── */
       appels: listeAppels,
       demarrerAppel,

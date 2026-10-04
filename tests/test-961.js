@@ -412,7 +412,7 @@ async function monter(config, instance) {
         const o = await n.get('/api/facturation/offres');
         v('l\'abonnement y est inerte aussi (aucune clé Stripe) mais la page sait que tout est ouvert', [o.j.ouvert, o.j.tout_ouvert], [false, true]);
         const h = (await T.client(B.svc.base).get('/health')).j;
-        v('⛔ /health dit le mode et le drapeau, jamais un espace ni un chiffre COMMERCIAL — alors qu\'un espace existe, et qu\'un nombre publié ne serait donc pas zéro (/health est public : combien d\'espaces, d\'abonnés, d\'impayés se lit dans Stripe)', [h.facturation, /\b[pcemf]_[0-9a-f]{32}\b/.test(JSON.stringify(h)), cr.code], [{ mode: 'inerte', toutOuvert: true }, false, 201]);
+        v('⛔ /health dit le mode et le drapeau, jamais un espace ni un chiffre COMMERCIAL — alors qu\'un espace existe, et qu\'un nombre publié ne serait donc pas zéro (/health est public : combien d\'espaces, d\'abonnés, d\'impayés se lit dans Stripe)', [h.facturation, /\b[pcemf]_[0-9a-f]{32}\b/.test(JSON.stringify(h)), cr.code], [{ mode: 'inerte', toutOuvert: true, persoAnnulationMin: 0 }, false, 201]);
       } finally { await B.fermer(); }
     }
 

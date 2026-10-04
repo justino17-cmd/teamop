@@ -573,6 +573,8 @@ Développeurs → Clés API → *Créer une clé restreinte*. Nom : « OP MESSAG
 | Customer portal | écriture | « Gérer l'abonnement » |
 | Subscriptions | lecture | relire le verdict |
 | Prices, Products | lecture | seulement pour l'outil du geste 3 : il vérifie les tarifs AVANT d'écrire |
+| *Perso+ seulement* — Prices, Products | écriture | uniquement pour `--creer-perso-plus` (geste 3 bis, mode test) ; tu peux retirer ce droit ensuite |
+| *Perso+ seulement* — Subscriptions | écriture | pour **arrêter le renouvellement** de l'abonnement Perso+ d'une personne qui demande à supprimer son compte, le **rétablir** si elle annule sa demande, et le **résilier** quand le compte est effacé (14 jours après la demande) — « Subscriptions : écriture » couvre les trois. Sans ce droit, Stripe refuse : le service note le geste, le rejoue, et `/health` dit depuis combien de minutes il attend (la surveillance crie au-delà d'un jour) ; la personne continuerait d'être prélevée. Payer, relire et organiser marchent sans lui. |
 
 Une clé secrète complète (`sk_…`) est **refusée** par le service comme par l'outil : elle donnerait au service tout le compte, celui d'OP GESTION compris. Stripe n'affiche la clé qu'**une fois** :
 copie-la **directement** dans ton gestionnaire de mots de passe (colle-la nulle part ailleurs).
@@ -606,7 +608,22 @@ un nom de produit, un montant). Puis :
 systemctl restart teamop-msg@beta
 ```
 
-Pour relire la configuration posée, sans rien changer : `OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/configurer-stripe.js --verifier`.
+Pour relire la configuration posée, sans rien changer : `OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/configurer-stripe.js --verifier` (il relit aussi les tarifs Perso+ quand ils sont posés).
+
+### 3 bis. Perso+ (le forfait d'une personne : 5 € par mois, 50 € l'année) — créer les deux tarifs de TEST, un geste
+
+*Décision du 4 octobre 2026 : organiser une réunion est dans Perso+ ; rejoindre une réunion où l'on est invité reste gratuit. Tant que ce geste n'est pas fait, le forfait est **inerte** et le dit : aucun bouton « S'abonner » n'est montré, la bêta reste ouverte à tous.* Ce geste vient APRÈS le geste 3 (la clé et les tarifs de Messages Pro sont déjà posés).
+
+```bash
+OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/configurer-stripe.js --creer-perso-plus
+systemctl restart teamop-msg@beta
+```
+
+L'outil **crée** chez Stripe, en mode TEST et nulle part ailleurs, le produit « OP MESSAGES Perso+ » (son nom contient « messages » : le compte Stripe est commun avec OP GESTION, voir le geste 8) et deux tarifs récurrents TTC, 5,00 € par mois et 50,00 € par an ; il te demande de taper **oui**, relit les tarifs créés, puis range leurs identifiants dans le fichier (0600, tout le reste intact). Il **refuse** une clé de production, un fichier qui a déjà des tarifs Perso+ (il dit lesquels et comment recommencer), un « non », et une clé sans le droit d'écrire les produits (il nomme le droit manquant). Relancé le même jour, il rend les mêmes objets. Il n'affiche jamais la clé.
+
+**En production**, l'outil ne crée rien : crée toi-même, dans le tableau de bord de Stripe, un produit dont le **nom contient « messages »** avec deux prix récurrents TTC (5 € par mois, 50 € par an), puis range-les : `OPMSG_CONFIG=/etc/opmsg/prod.json node /opt/opmsg/prod/current/configurer-stripe.js --perso-plus` (il te demande les deux identifiants `price_…`, les éprouve comme ceux de Messages Pro, et écrit).
+
+Pour l'essayer : Réglages → *Abonnement* → *Perso+* → *S'abonner* (carte de test 4242 4242 4242 4242), puis « J'ai réglé — vérifier ». Sur la bêta tout est ouvert, mais le chemin du paiement se joue quand même. Le portail de facturation (geste 5) sert aussi à Perso+ : « Gérer mon abonnement » ne marche pas sans lui.
 
 ### 4. Vérifier
 
