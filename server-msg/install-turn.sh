@@ -73,14 +73,17 @@ PORT_TLS=5349
 PORT_MIN=49160
 PORT_MAX=49999
 # ⛔ Plafonds du relais (SERVEUR.md § 3.5), CHOISIS pour une capacité dite : HUIT appels relayés à la fois.
-#   · le navigateur ouvre UNE ALLOCATION par adresse de relais (mesuré par la sonde, contre le vrai coturn) et le service en donne DEUX (UDP, puis TLS) : un appel relayé = 2 personnes × 2 = 4 allocations ;
+#   · le navigateur ouvre UNE ALLOCATION par adresse de relais (mesuré par la sonde, contre le vrai coturn) et le service en donne DEUX (UDP, puis TLS) : un appel à deux relayé = 2 personnes × 2 = 4 allocations.
+#     EN SALLE (étape 8), le moteur de la page ne donne à une liaison que la PREMIÈRE adresse (l'UDP) : la seconde ne s'ajoute qu'à une liaison qui ne s'établit toujours pas. Une liaison relayée = UNE allocation par personne :
+#     une salle de quatre entièrement relayée en tient 3 par personne (12 en tout), une salle de six 5 par personne (30 en tout, MESURÉ par la sonde — avec deux adresses d'emblée, une salle de quatre n'établissait que 6 liaisons sur 12) ;
 #   · coturn RÉSERVE `max-bps` de la capacité à chaque allocation, qu'elle serve ou non : la capacité réelle est `bps-capacity` ÷ `max-bps` allocations — et NON `total-quota`, qui ne la borne que
 #     si elle est plus basse (mesuré : 60 comptes × 8 allocations n'en tenaient que 25, le 26e était refusé en 486). `total-quota` dit donc le MÊME nombre (le banc exige l'égalité) : 8 × 4 = 32 ;
 #   · 500 ko/s (4 Mbit/s) par allocation : une vidéo HD (2,5 Mbit/s) et sa voix y tiennent ; au pire, 32 allocations × 4 Mbit/s = 128 Mbit/s de ce que ce relais peut envoyer — c'est le plafond
 #     de ce qu'un abus peut coûter à la machine, qui porte aussi OP GESTION ;
-#   · 4 allocations par personne : deux adresses de relais × deux jeux d'allocations (celui de l'appel et celui du renouvellement des identifiants, qui s'ouvre avant que l'ancien soit rendu).
+#   · 6 allocations par personne : les CINQ liaisons relayées d'une salle de six (le maximum d'une salle), plus une relance (un changement de réseau rouvre une liaison avant que le navigateur rende l'ancienne) ;
+#     un appel à deux, lui, en demande 4 (deux adresses × le jeu de l'appel et celui du renouvellement des identifiants). Le quota par personne ne coûte rien à lui seul : c'est `TOTAL_QUOTA` qui borne la machine.
 # Pour tenir plus d'appels relayés : monter ENSEMBLE `TOTAL_QUOTA` (4 de plus par appel) et `BPS_CAPACITE` (= `TOTAL_QUOTA` × `MAX_BPS`).
-USER_QUOTA=4
+USER_QUOTA=6
 TOTAL_QUOTA=32
 MAX_BPS=500000
 BPS_CAPACITE=16000000

@@ -21,7 +21,7 @@
    Tout se passe sur 127.0.0.1. Jamais plus de DEUX navigateurs à la fois, tous tués à la fin (même sur erreur).
 
    Lancer :   NODE_PATH=/opt/node22/lib/node_modules/playwright/node_modules node tests/sonde-opmessages-groupe.js
-              … --relais       (ajoute les blocs 9 et 10 : une réunion à QUATRE en vidéo et à SIX en audio, FORCÉES par le vrai coturn — ce qu'elles consomment d'allocations ; plusieurs minutes de plus)
+              … --relais       (ajoute les blocs 10 et 11 : une réunion à QUATRE en vidéo et à SIX en audio, FORCÉES par le vrai coturn — ce qu'elles consomment d'allocations ; plusieurs minutes de plus ; les navigateurs y perdent le réseau de BOUCLAGE, qui compterait pour un second réseau : `SANS_BOUCLE=1` fait pareil sans les blocs)
               CAPTURES=/dossier   (les écrans côte à côte aux étapes clés)   ·   SEULEMENT=1,2   (ne joue que ces blocs : pour chercher, jamais pour conclure ; les blocs 1 à 7 forment UNE réunion)
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner (pas de navigateur, pas de dépendances du service). */
 'use strict';
@@ -76,7 +76,7 @@ async function ouvrir(b, base, pf, o) {
   page.on('pageerror', e => S.erreurs.push(String(e && e.message || e).slice(0, 220)));
   page.on('console', m => { if (m.type() === 'error') { let u = ''; try { u = /Failed to load resource/.test(m.text()) ? ' [' + new URL(m.location().url).pathname + ']' : ''; } catch (e) { /* sans adresse */ } S.console.push((m.text() + u).slice(0, 240)); } });
   await page.addInitScript(() => {
-    window.__media = 0; window.__pistes = []; window.__pcs = []; window.__relaisSeul = false; window.__ecrans = 0; window.__ecranReel = null; window.__iceErreurs = []; window.__seq = 0;
+    window.__media = 0; window.__pistes = []; window.__pcs = []; window.__confs = []; window.__cands = []; window.__relaisSeul = false; window.__ecrans = 0; window.__ecranReel = null; window.__iceErreurs = []; window.__seq = 0;
     try {
       const md = navigator.mediaDevices, g = md.getUserMedia.bind(md);
       md.getUserMedia = async function (c) { window.__media++; const f = await g(c); f.getTracks().forEach(t => window.__pistes.push(t)); return f; };
@@ -100,9 +100,10 @@ async function ouvrir(b, base, pf, o) {
       const Faux = function (conf, ...r) {
         conf = Object.assign({}, conf);
         if (window.__relaisSeul) conf.iceTransportPolicy = 'relay';
-        const pc = new PC(conf, ...r); pc.__n = ++window.__seq; window.__pcs.push(pc);
+        const pc = new PC(conf, ...r); pc.__n = ++window.__seq; window.__pcs.push(pc); window.__confs.push([pc.__n, (conf.iceServers || []).map(s => [].concat(s.urls))]);
+        pc.addEventListener('icecandidate', (e) => { if (e.candidate) window.__cands.push([pc.__n, e.candidate.type, e.candidate.protocol, e.candidate.relayProtocol || '', e.candidate.address || '']); });
         const poser = pc.setConfiguration.bind(pc);
-        pc.setConfiguration = function (c2) { const d = Object.assign({}, c2); if (window.__relaisSeul) d.iceTransportPolicy = 'relay'; return poser(d); };
+        pc.setConfiguration = function (c2) { const d = Object.assign({}, c2); if (window.__relaisSeul) d.iceTransportPolicy = 'relay'; window.__confs.push([pc.__n, (d.iceServers || []).map(s => [].concat(s.urls))]); return poser(d); };
         pc.addEventListener('icecandidateerror', (e) => { window.__iceErreurs.push({ url: e.url, code: e.errorCode, texte: e.errorText }); });
         return pc;
       };
@@ -316,8 +317,10 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
   try {
     const tonalite = ecrireTonalite(dir);
     const ARGS = ['--no-sandbox', '--disable-dev-shm-usage', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--enable-gpu-rasterization', '--ignore-gpu-blocklist', '--mute-audio',
-      '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--use-file-for-fake-audio-capture=' + tonalite, '--autoplay-policy=no-user-gesture-required', '--allow-loopback-in-peer-connection',
+      '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--use-file-for-fake-audio-capture=' + tonalite, '--autoplay-policy=no-user-gesture-required',
       '--disable-features=WebRtcHideLocalIpsWithMdns'];
+    /* ⛔ le bouclage compte pour un SECOND réseau : Chromium ouvre une allocation chez coturn PAR RÉSEAU et par adresse de relais, donc deux avec lui (mesuré : 2 par liaison pour UNE adresse). Un téléphone n'a qu'un réseau actif : `SANS_BOUCLE=1` retire le bouclage pour mesurer le relais comme un appareil ordinaire le voit (les trajets directs passent alors par l'adresse de la machine). */
+    if (!process.env.SANS_BOUCLE && !AVEC_RELAIS) ARGS.push('--allow-loopback-in-peer-connection');          // avec `--relais`, le bouclage est retiré d'office : les blocs 10 et 11 comptent des allocations
     coturn = AVEC_RELAIS ? await demarrerCoturn(dir, SECRET, adresseLocale()) : null;
     const comptes = {}; for (const l of LOGINS) comptes[l] = { pass: MOTS[l], nom: NOMS[l], actif: true };
     og = await T.fauxOpGestion(comptes);
@@ -332,7 +335,8 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
     const id = {}; for (const l of LOGINS) id[l] = api[l].src.moi().id;
     for (const l of LOGINS.slice(1)) { const lien = await api.ana.src.lienContact(); await api[l].src.accepterLien(lien.code); }
     const grp = await api.ana.src.creerGroupe({ nom: 'Équipe salle', membres: [id.ben, id.cleo, id.dan, id.eve] });
-    const lienBen = await api.ben.src.lienContact(); await api.dan.src.accepterLien(lienBen.code);          // Ben et Dan se connaissent : Ben pourra les inviter
+    const lienBen = await api.ben.src.lienContact(); await api.dan.src.accepterLien(lienBen.code);          // Ben connaît Dan et Cleo : il pourra les inviter à sa réunion
+    const lienBen2 = await api.ben.src.lienContact(); await api.cleo.src.accepterLien(lienBen2.code);
     for (const l of LOGINS) api[l].src.arreter();
 
     console.log('\n── sonde des appels à plusieurs · ' + (coturn ? 'coturn réel sur ' + coturn.ip + ':' + coturn.port : AVEC_RELAIS ? 'SANS coturn (le relais est NON VÉRIFIÉ)' : 'sans le relais (--relais pour l\'ajouter)') + ' ──');
@@ -352,6 +356,18 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       await toucher(S, 'a[data-vue="messages"]');
       await toucher(S, '#liste-conv .conv:has(.conv-nom:text-is("' + nom + '"))');
       await S.page.waitForFunction(n => document.documentElement.dataset.conv === '1' && document.getElementById('conv-titre').textContent.includes(n), nom, { timeout: 7000 });
+    };
+    /* aller à un onglet : sur un téléphone, la barre d'onglets se cache pendant qu'une CONVERSATION est ouverte — on revient d'abord à la liste */
+    const allerA = async (S, vue) => { if (await S.page.evaluate(() => document.documentElement.dataset.conv === '1' && !document.querySelector('a[data-vue="reunions"]').getClientRects().length)) await toucher(S, '#conv-retour'); await toucher(S, 'a[data-vue="' + vue + '"]'); };
+    /* une salle restée ouverte par un bloc qui a échoué (ou par une exécution partielle) ne doit pas fausser le suivant : tout le monde en sort */
+    const toutQuitter = async (pages) => {
+      for (const S of pages) {
+        for (let i = 0; i < 3 && await S.page.evaluate(() => !!document.documentElement.dataset.salle); i++) {
+          await toucher(S, '#salle-quitter');
+          if (await visible(S, '[data-sa="quitter-simple"]')) await toucher(S, '[data-sa="quitter-simple"]');
+          await attendre(S, () => !document.documentElement.dataset.salle, null, 8000);
+        }
+      }
     };
     const repondre = async (S) => { await verifier(S.nom + ' : la sonnerie est là (Refuser / Répondre)', S, () => !!document.documentElement.dataset.appel && document.getElementById('appel-ecran').hasAttribute('data-entrant'), null, 12000, async () => 'appel=' + (await S.page.evaluate(() => document.documentElement.dataset.appel))); await toucher(S, '#appel-repondre'); };
     const dansLaSalle = (S, n) => verifier(S.nom + ' : dans la salle, ' + n + ' vignette(s) d\'autres personnes (plus « Vous »)', S, k => document.documentElement.dataset.salle === '1' && document.querySelectorAll('#salle-scene > .salle-tuile[data-uid]').length === k, n, 20000,
@@ -375,10 +391,11 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       const croissances = [];
       for (const S of quatre) { const c = await croit(S, { ms: 2500 }); croissances.push([S.nom, c.n, c.audio, c.images, c.emis]); }
       v('⛔ LA VOIX ET L\'IMAGE PASSENT, par liaison : sur CHACUNE des 3 liaisons de chacune des 4 pages, les octets audio reçus ET les images décodées montent, et la page en émet', croissances, quatre.map(S => [S.nom, 3, true, true, true]));
-      for (const S of quatre) {
-        const t = await tuiles(S), autres = t.filter(x => x.uid !== 'vous');
-        vrai(S.nom + ' : trois vignettes d\'autres personnes, chacune avec une image DÉCODÉE (largeur > 0) qui avance', autres.length === 3 && autres.every(x => x.camera === 'on' && x.w > 0 && x.pret >= 2));
-      }
+      /* au GESTE, pas au chronomètre : la liaison est établie et ses images décodées (lu plus haut), mais la vignette n'a son image qu'une fois le flux lié et la lecture partie — on l'attend, et on dit laquelle manque */
+      for (const S of quatre) await verifier(S.nom + ' : trois vignettes d\'autres personnes, chacune avec une image DÉCODÉE (largeur > 0) qui avance', S, () => {
+        const ts = Array.from(document.querySelectorAll('#salle-scene > .salle-tuile[data-uid]'));
+        return ts.length === 3 && ts.every(t => { const vd = t.querySelector('video'); return t.dataset.camera === 'on' && !!vd && vd.videoWidth > 0 && vd.readyState >= 2; });
+      }, null, 8000, async () => JSON.stringify((await tuiles(S)).filter(x => x.uid !== 'vous').map(x => [x.nom, x.camera, x.w, x.pret])));
       const t0 = await tuiles(B); await dormir(1200); const t1 = await tuiles(B);
       vrai('… et le temps de lecture des vignettes de Ben avance (une image qui bouge, pas une image fixe)', t0.filter(x => x.uid !== 'vous').every(x => { const y = t1.find(z => z.uid === x.uid); return y && y.t > x.t; }));
       const plafonds = await Promise.all(quatre.map(S => S.page.evaluate(() => window.__plafonds())));
@@ -496,7 +513,7 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       await toucher(A, '[data-sa="minuteur"][data-s="60"]');
       for (const S of [B, C]) await verifier(S.nom + ' : le minuteur court (un décompte de moins d\'une minute)', S, () => { const m = document.getElementById('salle-minuteur'); return !!m && /^00:\d\d$/.test(m.textContent.trim()); }, null, 10000, async () => '«' + (await lire(S, '#salle-bandeaux')) + '»');
       await panneau(A, 'plus');
-      await toucher(A, '[data-sa="minuteur-arreter"]');
+      await toucher(A, geste('minuteur-arreter'));
       await verifier('Ana l\'ARRÊTE : le minuteur disparaît chez Cleo', C, () => !document.getElementById('salle-minuteur'), null, 10000);
       await fermer(A);
     });
@@ -680,11 +697,13 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
     /* ═══ 8. UNE RÉUNION PROGRAMMÉE ════════════════════════════════════════════════════════════════════════════ */
     await bloc('8. Une réunion PROGRAMMÉE : « Rejoindre » dans l\'agenda et dans la fiche, la salle d\'attente demandée, le lien d\'invité (renouvelé : l\'ancien meurt)', async () => {
       const quand = (ms) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(Date.now() + ms)).replace(' ', 'T');
+      await toutQuitter(tous);
       const nb = nav('ben'); await nb.src.connexion('ben', MOTS.ben); await nb.src.demarrer();
       const r = await nb.src.programmer({ titre: 'Point salle', lieu: '', debut: quand(5 * 60000), fin: quand(65 * 60000), tz: 'Europe/Paris', repetition: 'aucune', rappels: [], invites: [id.ana, id.cleo], notifier: false, salle_attente: true });
       const codeAncien = await nb.src.lienReunion(r.id);
       vrai('population : la réunion « Point salle » commence dans cinq minutes (la salle est ouverte quinze minutes avant), avec salle d\'attente, deux invités, et un lien d\'invité', typeof r.id === 'string' && typeof codeAncien === 'string' && codeAncien.length >= 20);
-      const entrerAgenda = async (S) => { await toucher(S, 'a[data-vue="reunions"]'); await verifier(S.nom + ' : l\'agenda du jour montre « Point salle » avec un « Rejoindre »', S, () => !!document.querySelector('#liste-reunions .reunion-rejoindre') && /Point salle/.test(document.getElementById('liste-reunions').textContent), null, 12000, async () => '«' + (await lire(S, '#liste-reunions')) + '»'); };
+      /* sur un téléphone, la barre d'onglets se cache pendant qu'une CONVERSATION est ouverte (Ana a lancé l'appel depuis celle du groupe) : on revient à la liste */
+      const entrerAgenda = async (S) => { await allerA(S, 'reunions'); await verifier(S.nom + ' : l\'agenda du jour montre « Point salle » avec un « Rejoindre »', S, () => !!document.querySelector('#liste-reunions .reunion-rejoindre') && /Point salle/.test(document.getElementById('liste-reunions').textContent), null, 12000, async () => '«' + (await lire(S, '#liste-reunions')) + '»'); };
       /* Ben, l'organisateur : « Rejoindre » dans l'agenda */
       await entrerAgenda(B);
       await largeur(B, 'agenda · Rejoindre (bureau)');
@@ -708,7 +727,7 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       await entrerAgenda(C);
       await toucher(C, '#liste-reunions .reunion-rejoindre');
       await verifier('Cleo, par le « Rejoindre » de l\'agenda : elle attend aussi', C, () => document.documentElement.dataset.salle === '1' && document.getElementById('salle-ecran').hasAttribute('data-attente'), null, 14000);
-      await verifier('Ben : le bandeau de Cleo', B, () => /Cleo Banc attend d'être admis/.test(document.getElementById('salle-bandeaux').textContent), null, 12000);
+      await verifier('Ben : le bandeau de Cleo', B, () => /Cleo attend d'être admis/.test(document.getElementById('salle-bandeaux').textContent), null, 12000);
       await toucher(B, '#salle-bandeaux [data-sa="admettre"]');
       await dansLaSalle(C, 2);
       await Promise.all([A, B, C].map(S => liaisons(S, 2)));
@@ -720,7 +739,7 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       await largeur(D, 'lien d\'invité · aperçu (bureau)');
       await toucher(D, '#info-corps [data-reu="invite-rejoindre"][data-type="audio"]');
       await verifier('Dan rejoint par le lien : il attend lui aussi (salle d\'attente)', D, () => document.documentElement.dataset.salle === '1' && document.getElementById('salle-ecran').hasAttribute('data-attente'), null, 14000, async () => 'mot=«' + (await motVu(D)) + '»');
-      await verifier('Ben : le bandeau de Dan', B, () => /Dan Banc attend d'être admis/.test(document.getElementById('salle-bandeaux').textContent), null, 12000);
+      await verifier('Ben : le bandeau de Dan', B, () => /Dan attend d'être admis/.test(document.getElementById('salle-bandeaux').textContent), null, 12000);
       await toucher(B, '#salle-bandeaux [data-sa="admettre"]');
       await dansLaSalle(D, 3);
       await Promise.all([A, B, C, D].map(S => liaisons(S, 3)));
@@ -773,6 +792,76 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       vrai('population : les refus provoqués (salle pleine, verrouillée, exclu, ancien lien) sont bien passés par le navigateur — ' + refusVus + ' relevés, nommés puis écartés', refusVus >= 3);
       v('⛔ aucune erreur JavaScript, aucune autre erreur de console dans les cinq pages sur toute la sonde (population : ' + tous.reduce((s, S) => s + S.gestes, 0) + ' gestes portés)', tous.map(S => S.erreurs.concat(S.console)), tous.map(() => []));
       console.log('\n── MESURES de la maille à quatre (vidéo) : débit sortant par page ' + (MESURES.maille4 ? MESURES.maille4.sortant + ' kbit/s, entrant ' + MESURES.maille4.entrant + ' kbit/s, processeur ~' + MESURES.maille4.cpuTel + ' % (téléphone émulé) / ~' + MESURES.maille4.cpuBureau + ' % (bureau) d\'un cœur par page' : '(non mesuré)') + ' ──');
+    });
+
+    /* ═══ 10 ET 11. LE RELAIS EN VRAI : ce qu'une réunion FORCÉE par coturn consomme d'allocations ══════════════════════════════════════════ */
+    /* La maille ouvre UNE liaison par paire : si aucun trajet direct n'existe (un réseau qui bloque l'UDP, un NAT symétrique), chaque liaison passe par le relais, et chaque liaison relayée DEMANDE des allocations à
+       coturn (le navigateur en ouvre une par adresse de relais). Le quota par personne (`user-quota`) et la capacité (`total-quota`) sont ceux de PRODUCTION (`install-turn.sh`). Cette mesure ne dit pas « tout passe » :
+       elle dit COMBIEN, et si le quota suffit. */
+    const mesureRelais = async (titre, pages, lancer, nParLiaison) => {
+      const P = coturn.constantes;
+      await toutQuitter(pages);
+      const repos = await attendreRepos(coturn, 100000);
+      vrai('population : coturn est au repos avant la mesure (aucune allocation tenue par les personnes de la sonde' + (repos.attente > 0.5 ? ' — attendu ' + repos.attente + ' s' : '') + ')', repos.ok);
+      const debut = coturn.journal().length;
+      for (const S of pages) await S.page.evaluate(() => { window.__relaisSeul = true; });
+      await lancer();
+      const t0 = Date.now();
+      const n = pages.length - 1;
+      const prets = await Promise.all(pages.map(S => attendre(S, k => window.__pcs.filter(pc => pc.signalingState !== 'closed' && pc.connectionState === 'connected').length === k, n, 70000)));
+      const duree = Math.round((Date.now() - t0) / 100) / 10;
+      await dormir(3000);
+      const lies = await Promise.all(pages.map(S => maille(S)));
+      const journal = coturn.journal().slice(debut), alloc = lireAllocations(journal), refus = refusAllocations(journal);
+      if (process.env.DEBUG_ALLOC) fs.writeFileSync(process.env.DEBUG_ALLOC, journal.split('\n').filter(l => /session \d+|ALLOCATE|Refresh|transport|origin/.test(l)).join('\n') + '\n' + JSON.stringify(await pages[0].page.evaluate(() => ({ confs: window.__confs, cands: window.__cands.filter(c => c[1] === 'relay' || c[1] === 'srflx'), pcs: window.__pcs.map(pc => [pc.__n, pc.connectionState, pc.iceConnectionState]) }))));          // de quoi COMPTER, ligne par ligne, ce que chaque liaison ouvre, et les configurations que la page a posées
+      const uids = pages.map(S => id[S.login]);
+      const lignes = uids.map((u, i) => { const a = alloc.get(u) || { total: 0, pic: 0 }; return pages[i].login + ' ' + a.total + ' (pic ' + a.pic + ')'; });
+      const total = uids.reduce((s, u) => s + ((alloc.get(u) || { total: 0 }).total), 0), pic = uids.reduce((s, u) => s + ((alloc.get(u) || { pic: 0 }).pic), 0);
+      const relayees = lies.reduce((s, l) => s + l.filter(x => x.locale === 'relay' && x.etat === 'connected').length, 0);
+      console.log('  ℹ️  MESURE · ' + titre + ' : ' + relayees + '/' + pages.length * n + ' liaisons établies PAR LE RELAIS en ' + duree + ' s · allocations par personne (au total, pic simultané) : ' + lignes.join(', ') + ' · en tout ' + total + ' ouvertes (pic ' + pic + ' à la fois) sur les ' + P.totalQuota + ' que le relais porte · ' + refus + ' refusée(s) (486) · quota par personne ' + P.userQuota + (nParLiaison ? ' · ' + Math.round(10 * total / (pages.length * n)) / 10 + ' allocation(s) par liaison' : ''));
+      MESURES[titre] = { relayees, attendues: pages.length * n, total, pic, refus, parPersonne: uids.map(u => (alloc.get(u) || { total: 0 }).total), duree };
+      vrai('population : la réunion forcée par le relais a vraiment ouvert des allocations chez coturn', total > 0 && relayees > 0);
+      vrai('⛔ toutes les liaisons (' + pages.length * n + ') s\'établissent par le RELAIS, sans une allocation refusée par le quota (' + relayees + '/' + pages.length * n + ', ' + refus + ' refus)', relayees === pages.length * n && refus === 0 && prets.every(Boolean));
+      vrai('⛔ le quota par personne (' + P.userQuota + ') tient : personne n\'en a tenu plus de ' + P.userQuota + ' à la fois (pic ' + Math.max(...uids.map(u => (alloc.get(u) || { pic: 0 }).pic)) + ')', uids.every(u => ((alloc.get(u) || { pic: 0 }).pic) <= P.userQuota));
+      return MESURES[titre];
+    };
+    const finirAppel = async (pages) => {
+      for (const S of pages) { if (await S.page.evaluate(() => !!document.documentElement.dataset.salle)) { await toucher(S, '#salle-quitter'); if (await visible(S, '[data-sa="quitter-simple"]')) await toucher(S, '[data-sa="quitter-simple"]'); } }
+      for (const S of pages) await sansSalle(S.nom + ' a quitté', S, 15000);
+      for (const S of pages) await S.page.evaluate(() => { window.__relaisSeul = false; });
+    };
+    if (AVEC_RELAIS) await bloc('10. Le RELAIS : une réunion à QUATRE en vidéo FORCÉE par coturn (aucun trajet direct) — ce qu\'elle ouvre d\'allocations, quota de production', async () => {
+      if (!coturn) { console.log('  ⚠️  NON VÉRIFIÉ : `turnserver` n\'est pas installé — le relais n\'est pas éprouvé.'); return; }
+      await mesureRelais('quatre en vidéo', quatre, async () => {
+        await ouvrirConv(A, 'Équipe salle');
+        await toucher(A, '#conv-cam');
+        for (const S of [B, C, D]) await repondre(S);
+      }, true);
+      const aud = await Promise.all(quatre.map(S => croit(S, { ms: 2500 })));
+      vrai('… et la voix ET l\'image passent par le relais (octets audio et images décodées qui montent, par liaison, sur les quatre pages)', aud.every(c => c.audio && c.images));
+      await largeur(A, 'salle à quatre par le relais');
+      await finirAppel(quatre);
+      await ouvrirConv(E, 'Équipe salle').catch(() => {});
+    });
+    if (AVEC_RELAIS) await bloc('11. Le RELAIS : une réunion à SIX en audio FORCÉE par coturn — cinq liaisons par personne', async () => {
+      if (!coturn) return;
+      const F = await ouvrir(bT, base, PROFILS.telephone, { nom: NOMS.fay, login: 'fay' });
+      try {
+        await connecter(F, 'fay'); F.console.length = 0;
+        const six = [A, B, C, D, E, F];
+        await mesureRelais('six en audio', six, async () => {
+          await allerA(A, 'appels');
+          await toucher(A, '#btn-nouvel-appel');
+          await A.page.waitForFunction(() => document.getElementById('feuille').dataset.mode === 'appel' && !document.getElementById('feuille').inert, null, { timeout: 6000 });
+          for (const nom of [NOMS.ben, NOMS.cleo, NOMS.dan, NOMS.eve, NOMS.fay]) await toucher(A, '#g-contacts .contact:has(.contact-nom:text-is("' + nom + '"))');
+          v('« Nouvel appel » à plusieurs : cinq personnes choisies, le résumé les compte', [await lire(A, '#g-resume')], ['5 participants']);
+          await toucher(A, '#g-creer');
+          for (const S of [B, C, D, E, F]) await repondre(S);
+        }, true);
+        const aud = await Promise.all(six.map(S => croit(S, { ms: 2500 })));
+        vrai('… et la voix passe par le relais sur les cinq liaisons des six pages', aud.every(c => c.audio && c.n === 5));
+        await finirAppel(six);
+      } finally { await F.ctx.close(); }
     });
 
     /*@@BLOCS@@*/
