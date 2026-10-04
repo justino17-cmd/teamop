@@ -245,7 +245,7 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
   try {
     coturn = await demarrerCoturn(dir, SECRET, adresseLocale());
     og = await T.fauxOpGestion({ ana: { pass: MOTS.ana, nom: NOMS.ana, actif: true }, ben: { pass: MOTS.ben, nom: NOMS.ben, actif: true }, cleo: { pass: MOTS.cleo, nom: NOMS.cleo, actif: true } });
-    const appels = { balayageMs: 100, perduMs: 20000, parHeure: 900, parPaireHeure: 90, iceParHeure: 900, signalMax: 2000 };
+    const appels = { balayageMs: 100, perduMs: 20000, parHeure: 900, parPaireHeure: 90, entrantsParHeure: 600, iceParHeure: 900, signalMax: 2000 };
     if (coturn) appels.relais = { secret: SECRET, hote: coturn.ip, port: coturn.port, ttlS: 3600 };
     svc = await T.lancerService({ urlGestion: og.url, horloge: true, config: { appels } });
     const base = svc.base;

@@ -23,6 +23,7 @@ const { v, vrai, fin } = T.compteur();
 const { ouvrir } = require(path.join(T.SERVICE, 'stockage.js'));
 const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
 const { tailleSignal } = require(path.join(T.SERVICE, 'routes-appels.js'));
+const { appelsConfig } = require(path.join(T.SERVICE, 'config.js'));
 
 setTimeout(() => { console.log('  ✗ délai global du banc dépassé (240 s)'); process.exit(1); }, 240000).unref();
 
@@ -88,7 +89,7 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
       v('   et une heure plus tard, elle repasse', (await a1.get('/api/ice')).code, 200);
       const cfg = (await T.client(svc.base).get('/api/config')).j, sante = (await T.client(svc.base).get('/health')).j;
       v('/api/config dit qu\'un relais existe et combien de temps sonne un appel — sans le nom du relais ni son secret', [cfg.appels, JSON.stringify(cfg).includes(HOTE), JSON.stringify(cfg).includes(SECRET_RELAIS)], [{ relais: true, sonnerie_s: 45 }, false, false]);
-      v('⛔ /health dit « turn: true » et des nombres — ni le secret, ni le nom du relais, ni un appel', [sante.appels.turn, JSON.stringify(sante).includes(SECRET_RELAIS), JSON.stringify(sante).includes(HOTE), Object.keys(sante.appels).sort()], [true, false, false, ['ageS', 'echecs', 'perdus', 'turn']]);
+      v('⛔ /health dit « turn: true » et des nombres — ni le secret, ni le nom du relais, ni un appel, ni le nombre d\'appels perdus (R6)', [sante.appels.turn, JSON.stringify(sante).includes(SECRET_RELAIS), JSON.stringify(sante).includes(HOTE), Object.keys(sante.appels).sort()], [true, false, false, ['ageS', 'echecs', 'turn']]);
     }
     {
       /* sans relais : une liste vide, et rien d'un tiers */
@@ -175,7 +176,7 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
     {
       /* un service dont le balayeur ne repasse que dans une minute RÉELLE : entre l'avance de l'horloge et la réponse, personne ne « finit » l'appel à la place de la route (avec le balayeur de ce banc, une seconde,
          la mutation « la route ne juge plus l'échéance » ne tombait que si la réponse arrivait avant son passage — un survivant de fait) */
-      const L = await monter({ appels: { balayageMs: 60000, perduMs: 600000, parHeure: 100, parPaireHeure: 100, iceParHeure: 100 } });
+      const L = await monter({ appels: { balayageMs: 60000, perduMs: 600000, parHeure: 100, parPaireHeure: 100, entrantsParHeure: 600, iceParHeure: 100 } });
       try {
         const lia = L.pers('Lia'), leo = L.pers('Leo'); L.S.contactLier(lia.id, leo.id);
         const lc = L.cl(lia), qc = L.cl(leo), anon = T.client(L.svc.base);
@@ -289,6 +290,39 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
       v('⛔ un compte NEUF (moins de 24 h, hors bêta) a un tiers du plafond : 2 appels par heure au lieu de 6', z, [201, 201, 429]);
       avancer(HEURE + SEC);
       v('   la fenêtre passée, les limites reviennent', [(await lancerFinir(a1, ben.id)).code, (await lancerFinir(a1, cleo.id)).code], [201, 201]);
+    }
+
+    /* ═══════ 7 bis. LE PLAFOND PAR PERSONNE APPELÉE (relecture, I4) ═══════ */
+    console.log('\n⛔ Le plafond par personne APPELÉE : plusieurs comptes qui font sonner la même personne ne sont arrêtés par aucun plafond d\'appelant');
+    {
+      const N = await monter({ appels: { parHeure: 50, parPaireHeure: 20, entrantsParHeure: 3 } });
+      try {
+        const cible = N.pers('Zed'), etranger = N.pers('Etranger'), autre = N.pers('Autre');
+        const appelants = ['Alba', 'Bruno', 'Chloe', 'Dario', 'Elsa'].map(n => N.pers(n));
+        for (const p of appelants) N.S.contactLier(p.id, cible.id);
+        N.S.contactLier(appelants[0].id, autre.id);
+        const cs = appelants.map(p => N.cl(p)), cz = N.cl(cible), ce = N.cl(etranger);
+        const lancerFinir = async (c, vers) => { const r = await c.post('/api/appels', { uid: vers, type: 'audio' }); if (r.code === 201) await c.post('/api/appels/' + r.j.appel.id + '/quitter', {}); return r; };
+        const codes = []; for (let i = 0; i < 3; i++) codes.push((await lancerFinir(cs[i], cible.id)).code);
+        const r4 = await cs[3].post('/api/appels', { uid: cible.id, type: 'audio' });
+        v('⛔ trois appelants DIFFÉRENTS font sonner Zed (le plafond du banc : trois par heure) ; le QUATRIÈME est refusé 429 `appele_sature`, avec l\'attente (Retry-After et `retry`) pour que l\'appelant la lise', [codes, dit(r4), Number(r4.h.get('retry-after')) > 0 && Number(r4.h.get('retry-after')) <= 3600, r4.j.retry > 0 && r4.j.retry <= 3600], [[201, 201, 201], [429, 'appele_sature'], true, true]);
+        const hz = (await cz.get('/api/appels')).j;
+        v('⛔ le refus n\'écrit RIEN : Zed lit trois appels dans son historique (population : trois, pas quatre), et aucun n\'est actif', [hz.appels.length, hz.actif], [3, null]);
+        v('   une AUTRE personne appelée n\'est pas touchée (le plafond est par personne appelée) ; et qui ne peut pas joindre Zed reçoit le 404 d\'une personne introuvable — jamais « saturé » (un refus de plafond ne dit rien à qui n\'a pas le droit d\'appeler)', [(await lancerFinir(cs[0], autre.id)).code, dit(await ce.post('/api/appels', { uid: cible.id, type: 'audio' }))], [201, [404, 'introuvable']]);
+        /* les appels « occupé » comptent aussi : ils font une notification d'appel manqué chez la personne */
+        N.avancer(HEURE + SEC);
+        const premier = await cs[0].post('/api/appels', { uid: cible.id, type: 'audio' });
+        const prise = await cz.post('/api/appels/' + premier.j.appel.id + '/repondre', { accepte: true });
+        const occupes = [(await cs[1].post('/api/appels', { uid: cible.id, type: 'audio' })), (await cs[2].post('/api/appels', { uid: cible.id, type: 'audio' }))];
+        const quatrieme = await cs[3].post('/api/appels', { uid: cible.id, type: 'audio' });
+        v('⛔ un appel pris, puis deux « occupé » : ILS COMPTENT (trois reçus) — le quatrième appelant est refusé `appele_sature` et non `occupe`', [premier.code, prise.code, occupes.map(dit), dit(quatrieme)], [201, 200, [[409, 'occupe'], [409, 'occupe']], [429, 'appele_sature']]);
+        N.avancer(HEURE + SEC);
+        await cs[0].post('/api/appels/' + premier.j.appel.id + '/quitter', {});
+        v('   une heure plus tard le plafond est levé : Elsa fait sonner Zed', (await lancerFinir(cs[4], cible.id)).code, 201);
+        /* la configuration : un entier de 1 à 600, 30 par défaut */
+        const refuse = (x) => { try { appelsConfig({ appels: { entrantsParHeure: x } }, 'beta'); return false; } catch (e) { return /entrantsParHeure/.test(e.message); } };
+        v('⛔ `appels.entrantsParHeure` : 30 par défaut, un entier de 1 à 600 — zéro, 601, un décimal et un texte sont refusés au démarrage, en nommant le champ', [appelsConfig({}, 'beta').entrantsParHeure, appelsConfig({ appels: { entrantsParHeure: 600 } }, 'beta').entrantsParHeure, [0, 601, 2.5, '30'].map(refuse)], [30, 600, [true, true, true, true]]);
+      } finally { await N.fermer(); }
     }
 
     /* ═══════ 8. RIEN NE SE RANGE, RIEN NE SE JOURNALISE ═══════ */

@@ -14,8 +14,8 @@
  * ⛔ LES PERSONNES VIENNENT DE LA SESSION ET DE LA BASE, jamais du corps : l'appelant est la personne connectée, l'appel se lit dans l'adresse (`:id`), l'AUTRE participant est celui de l'appel.
  * ⛔ « QUI PEUT SE JOINDRE » EST LA RÈGLE DE LA MESSAGERIE, À LA LETTRE : `peutEcrire` (un contact mutuel, ou un collègue d'un même espace) et jamais un blocage, dans un sens ou dans l'autre. Quelqu'un qu'on ne peut pas
  * appeler reçoit la MÊME réponse que quelqu'un qu'on ne peut pas écrire (404 `introuvable`) : un appel ne dit pas qu'on a été bloqué. Un non-participant d'un appel reçoit le même 404 qu'un appel qui n'existe pas.
- * ⛔ LES PLAFONDS SONT À LA FOIS PAR PERSONNE (30 appels lancés par heure, un tiers pour un compte de moins de 24 h) ET PAR PAIRE (6 vers la même personne) : faire sonner trente fois quelqu'un est du
- * harcèlement. Réglables mais bornés (`config.appels`, qui refuse un nombre absurde au démarrage).
+ * ⛔ LES PLAFONDS SONT PAR PERSONNE (30 appels lancés par heure, un tiers pour un compte de moins de 24 h), PAR PAIRE (6 vers la même personne) ET PAR PERSONNE APPELÉE (30 appels reçus par heure, tous appelants
+ * confondus) : faire sonner trente fois quelqu'un est du harcèlement, à un compte comme à plusieurs. Réglables mais bornés (`config.appels`, qui refuse un nombre absurde au démarrage).
  */
 'use strict';
 const { ID_PERS, ID_CONV } = require('./routes');
@@ -101,6 +101,16 @@ function installerAppels(H, ctx) {
        de la personne (les quotas du service comptent les essais, pas les réussites — comme les messages à la minute). Le banc `test-981` joue l'arithmétique. */
     if (!plafond(res, 'appel:' + moi.id, cfg.parHeure * jeune(moi), 3600000)) return;
     if (!plafond(res, 'appel_paire:' + moi.id + ':' + appele, cfg.parPaireHeure, 3600000)) return;
+    /* ⛔ ET PAR PERSONNE APPELÉE (relecture, I4) : les deux plafonds ci-dessus sont ceux de l'APPELANT — dix comptes, ou dix collègues qui s'y mettent, font sonner trois cents fois la même personne par heure sans en
+       atteindre un seul. Au-delà de `entrantsParHeure` appels reçus dans l'heure (tous appelants confondus, les « occupé » compris), le lancement est refusé 429 `appele_sature`, et l'appelant LIT pourquoi
+       (« cette personne reçoit beaucoup d'appels ») au lieu d'une sonnerie qui ne vient pas. Jugé APRÈS le droit de joindre (404 identique pour qui ne le peut pas) et APRÈS les plafonds de l'appelant (la
+       tentative lui coûte), AVANT l'écriture ; synchrone, donc sans course entre le compte et l'appel qui l'augmente. */
+    const recus = stockage.appelsRecusDepuis(appele, horloge() - 3600000);
+    if (recus.n >= cfg.entrantsParHeure) {
+      const retry = Math.min(3600, Math.max(1, Math.ceil((recus.plusAncien + 3600000 - horloge()) / 1000)));
+      res.set('Retry-After', String(retry));
+      return refus(res, 429, 'appele_sature', { retry });
+    }
     let r;
     try { r = appels.creer({ moi, appele, type: b.type, sessionH: req.sessionH }); }
     catch (e) { if (e && e.code === 'occupe_moi') return refus(res, 409, 'occupe', { moi: true }); throw e; }

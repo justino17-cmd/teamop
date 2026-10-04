@@ -71,7 +71,7 @@ async function monter(config, env) {
 (async () => {
   const fps = await P.fauxServicePush();
   const PAIRE = paireVapid();
-  const CONFIG = { appels: { balayageMs: 300, perduMs: 45000, parHeure: 900, parPaireHeure: 90, iceParHeure: 900, signalMax: 2000 }, balayageMs: 400, push: PUSH_CFG, vapidPublicKey: PAIRE.pub, vapidPrivateKey: PAIRE.priv };
+  const CONFIG = { appels: { balayageMs: 300, perduMs: 45000, parHeure: 900, parPaireHeure: 90, entrantsParHeure: 600, iceParHeure: 900, signalMax: 2000 }, balayageMs: 400, push: PUSH_CFG, vapidPublicKey: PAIRE.pub, vapidPrivateKey: PAIRE.priv };
   const M = await monter(CONFIG, { OPMSG_TEST_PUSH: fps.hote });
   const { pers, cl, sql } = M;
   const flux = [];
@@ -88,6 +88,7 @@ async function monter(config, env) {
   for (const [x, y] of [[ana, ben], [ana, cleo], [cleo, dan], [ben, dan], [cleo, ben]]) M.S.contactLier(x.id, y.id);
   const a = cl(ana), b = cl(ben), c = cl(cleo), d = cl(dan);
   const lancerAppel = (cli, vers, type) => cli.post('/api/appels', { uid: vers, type: type || 'audio' });
+  const perdusJournal = () => (M.svc.sortie.texte().match(/"evt":"appel_perdu"/g) || []).length;       // les fins « perdu » vues par le JOURNAL du service (/health ne les compte plus)
   const raccrocher = (cli, id) => cli.post('/api/appels/' + id + '/quitter', {});
   const marqueur = async (cli, vers, mot) => {                       // un message qui, arrivé APRÈS, prouve que rien d'autre n'est parti avant
     const conv = M.S.convDirecteObtenir(cli.moi.id, vers).id;
@@ -242,20 +243,21 @@ async function monter(config, env) {
       let encore = true;
       for (let i = 0; i < 7; i++) { M.avancer(15 * SEC); await pouls(a, ben.id); await pouls(b, ana.id); await M.passage(); const act = (await a.get('/api/appels')).j.actif; encore = encore && !!act && act.etat === 'en_cours'; }
       v('⛔ contre-épreuve : cent cinq secondes d\'appel, un pouls de chaque côté toutes les 15 s (le rythme de la page) — l\'appel court toujours', encore, true);
-      const perdusAvant = (await T.client(M.svc.base).get('/health')).j.appels.perdus;
+      const perdusAvant = perdusJournal();
       /* Ben disparaît (réseau coupé, onglet tué) ; Ana, elle, vit */
       for (let i = 0; i < 4; i++) { M.avancer(12 * SEC); await pouls(a, ben.id); await M.passage(); }
       const eA = await fA.attendre(e => e.event === 'appel' && e.data.id === id && e.data.etat === 'fini');
       v('⛔ Ben ne donne plus signe de vie depuis 48 s : l\'appel est fini, motif « perdu », Ana l\'apprend par l\'événement (la personne qui vit n\'a pas à deviner que l\'autre est parti)', [eA.data.etat, eA.data.motif, (await a.get('/api/appels')).j.appels[0].motif], ['fini', 'perdu', 'perdu']);
       const sante = (await T.client(M.svc.base).get('/health')).j;
-      v('   /health compte une fin « perdu » de plus (un nombre, sans appel ni personne)', [sante.appels.perdus - perdusAvant, JSON.stringify(sante).includes(id), JSON.stringify(sante).includes(ana.id)], [1, false, false]);
+      const ligneFin = await T.attendre(() => perdusJournal() - perdusAvant >= 1, 4000, 20);
+      v('⛔ le JOURNAL du service compte une fin « perdu » de plus (une ligne `appel_perdu`, sans appel ni personne) — et /health, publique, ne la compte plus (R6)', [!!ligneFin, perdusJournal() - perdusAvant, 'perdus' in sante.appels, M.svc.sortie.texte().split('\n').filter(l => l.includes('appel_perdu')).every(l => !l.includes(id) && !l.includes(ana.id))], [true, 1, false, true]);
       const encore2 = await lancerAppel(a, ben.id, 'audio');
       v('⛔ et plus personne n\'est « occupé » à cause de lui : Ana et Ben peuvent de nouveau s\'appeler', [encore2.code, (await raccrocher(a, encore2.j.appel.id)).code], [201, 200]);
       fA.fermer();
     }
     {
       /* l'appelant qui disparaît PENDANT la sonnerie fait manquer l'appel (comme s'il avait raccroché) */
-      const N = await monter({ appels: { balayageMs: 300, perduMs: 10000, parHeure: 900, parPaireHeure: 90 }, balayageMs: 400, push: PUSH_CFG, vapidPublicKey: PAIRE.pub, vapidPrivateKey: PAIRE.priv }, { OPMSG_TEST_PUSH: fps.hote });
+      const N = await monter({ appels: { balayageMs: 300, perduMs: 10000, parHeure: 900, parPaireHeure: 90, entrantsParHeure: 600 }, balayageMs: 400, push: PUSH_CFG, vapidPublicKey: PAIRE.pub, vapidPrivateKey: PAIRE.priv }, { OPMSG_TEST_PUSH: fps.hote });
       try {
         const p1 = N.pers('Ana'), p2 = N.pers('Ben'); N.S.contactLier(p1.id, p2.id);
         const c1 = N.cl(p1), c2 = N.cl(p2);
@@ -316,16 +318,17 @@ async function monter(config, env) {
     {
       /* un appel en COURS */
       const fB = await ouvrirFlux(b);
-      const perdusAvant = (await T.client(M.svc.base).get('/health')).j.appels.perdus;
+      const perdusAvant = perdusJournal();
+      vrai('population : le journal a déjà au moins une ligne `appel_perdu` (l\'appareil perdu de la section 4) — un « aucune de plus » sur un journal vide ne prouverait rien', perdusAvant >= 1);
       const r = await lancerAppel(a, ben.id, 'audio');
       const id = r.j.appel.id;
       await b.post('/api/appels/' + id + '/repondre', { accepte: true });
       const q = await a.post('/api/compte/supprimer', { confirmation: 'SUPPRIMER' });
       const e = await fB.attendre(e2 => e2.event === 'appel' && e2.data.id === id && e2.data.etat === 'fini');
       await M.passage();
-      const perdusApres = (await T.client(M.svc.base).get('/health')).j.appels.perdus;
+      const perdusApres = perdusJournal();
       v('⛔ Ana demande la suppression de son compte PENDANT l\'appel : fini à l\'instant (motif « compte », pas « perdu »), Ben l\'apprend ; ses sessions sont coupées (401)', [q.code, e.data.motif, dit(await a.get('/api/appels'))], [200, 'compte', [401, 'session_requise']]);
-      v('   et /health ne compte pas cette fin comme un appareil perdu', perdusApres - perdusAvant, 0);
+      v('   et le journal ne compte pas cette fin comme un appareil perdu (aucune ligne `appel_perdu` de plus)', perdusApres - perdusAvant, 0);
       fB.fermer();
     }
   } catch (e) {

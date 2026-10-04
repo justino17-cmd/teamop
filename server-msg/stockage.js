@@ -2680,6 +2680,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const a = appelBrut(id); if (!a) return null;
     return { id: a.id, etat: a.etat, type: a.type, role: me.role, session: me.session || null, autre: appelAutre(id, uid), sonne_jusqua: num(a.sonne_jusqua), cree: num(a.cree) };
   }
+  /* Les appels REÇUS par cette personne depuis `depuis` — tous, quelle qu'en soit l'issue (un appel « occupé » ou refusé a fait sonner ou noté un manqué tout de même) → { n, plusAncien }. C'est ce que le
+     plafond « par personne appelée » compte : un appelant qui se heurte à un plafond bas ne dit rien des autres. */
+  function appelsRecusDepuis(uid, depuis) {
+    const r = Q(`SELECT COUNT(*) AS n, MIN(a.cree) AS plus FROM appel_part p JOIN appel a ON a.id = p.appel WHERE p.uid = ? AND p.role = 'appele' AND a.cree > ?`).get(uid, depuis);
+    return { n: num(r.n), plusAncien: r.plus === null || r.plus === undefined ? null : num(r.plus) };
+  }
   /* L'appel de cette personne qui sonne ou qui court, dans sa vue ; c'est ce que la page lit à son ouverture (`GET /api/appels`, `actif`) pour reprendre une sonnerie qu'elle a manquée. */
   function appelActifVue(uid) { const id = appelActifDe(uid); return id ? appelVue(uid, id) : null; }
   /* Le texte d'un appel manqué, et sa notification durable — DANS la transaction de l'appelant. Rien d'un auteur que le destinataire a bloqué (ou qui l'a bloqué) : la définition de la messagerie. L'`auteur`
@@ -2968,7 +2974,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionQuitter, reunionRepondre, reunionRappelsPoser, reunionsReparer,   // les réunions programmées
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
     courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions,                                                                                                                  // …et le courriel d'invitation
-    appelVue, appelAcces, appelActifDe, appelActifVue, appelCreer, appelRepondre, appelQuitter, appelFinir, appelsEchoir, appelsActifs, appelsListe, appelsElaguer, appelsQuitterTout, appelsFinirEntre, appelsReparer, appelSourdine, exportAppels,   // les appels à deux
+    appelVue, appelAcces, appelActifDe, appelActifVue, appelsRecusDepuis, appelCreer, appelRepondre, appelQuitter, appelFinir, appelsEchoir, appelsActifs, appelsListe, appelsElaguer, appelsQuitterTout, appelsFinirEntre, appelsReparer, appelSourdine, exportAppels,   // les appels à deux
   };
 }
 

@@ -44,7 +44,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
   /* le secret du relais est TIRÉ au hasard à chaque passage (jamais un secret écrit dans un fichier) */
   const SECRET = crypto.randomBytes(24).toString('hex');
   const RELAIS = { secret: SECRET, hote: 'turn.exemple.invalid', port: 3478, portTls: 5349, ttlS: 60 };
-  const APPELS = { balayageMs: 100, perduMs: 20000, parHeure: 900, parPaireHeure: 90, iceParHeure: 900, signalMax: 2000 };
+  const APPELS = { balayageMs: 100, perduMs: 20000, parHeure: 900, parPaireHeure: 90, entrantsParHeure: 600, iceParHeure: 900, signalMax: 2000 };
   const svc = await T.lancerService({ urlGestion: og.url, horloge: true, config: { appels: Object.assign({ relais: RELAIS }, APPELS) } });
   const svcN = await T.lancerService({ urlGestion: og.url, horloge: true, config: { appels: Object.assign({ sonnerieMs: 1200 }, APPELS) } });          // SANS relais, et une sonnerie de 1,2 s
   const sources = [];

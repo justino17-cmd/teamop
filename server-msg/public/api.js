@@ -120,6 +120,7 @@
     /* les appels à deux (étape 7) : chaque refus que l'appel peut rendre a sa phrase. ⛔ Aucune promesse que le service ne tient pas (l'appel de groupe n'existe pas encore ; le relais n'est pas toujours installé). */
     occupe: 'Cette personne est déjà dans un appel. Réessaie dans un moment.',
     appel_a_deux: 'Un appel se passe à deux pour l\'instant : les appels à plusieurs arrivent bientôt.',
+    appele_sature: 'Cette personne reçoit beaucoup d\'appels en ce moment. Réessaie plus tard.',
     appel_pris: 'Cet appel a déjà été pris sur un autre appareil.',
     appel_fini: 'Cet appel est déjà terminé.',
     appareil_non_lie: 'Cet appel se passe sur un autre de tes appareils.',
