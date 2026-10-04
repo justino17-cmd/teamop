@@ -1409,7 +1409,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   if (!source) { $('contenu').innerHTML = '<p class="vide">Les données n\'ont pas pu être chargées.</p>'; return; }
   /* ⛔ CE QUE LA SOURCE SAIT FAIRE. La source de l'aperçu n'annonce rien : photos, vocaux et appels y sont SIMULÉS, aucun service, aucune action sur un message. Celle du
      service annonce ses capacités (`source.capacites`) : ce qu'elle ne sait pas encore dit « bientôt » au lieu de faire semblant. */
-  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, appelsMedias: false, appelsGroupe: true, salles: false, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, notifications: false, compte: false, espaces: false, texteMax: 4000 }, source.capacites || {});
+  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, appelsMedias: false, appelsGroupe: true, salles: false, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, notifications: false, compte: false, espaces: false, persoPlus: false, reunionPlafond: false, texteMax: 4000 }, source.capacites || {});
   /* la personne et ses contacts : posés au démarrage (une source de service ne sait qui est connecté qu'après avoir lu la session), relus quand elle le dit */
   let MOI = null, CONTACTS = [];
   const SUFFIXE_TITRE = CAP.service ? ' — OP MESSAGES' : ' — OP MESSAGES, aperçu';
@@ -2331,9 +2331,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     $('g-compteur').textContent = G.choisis.length + ' / ' + CONTACTS.length;
     $('g-creer').setAttribute('aria-disabled', G.choisis.length ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
-    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit', corpsInfo = info || G.mode === 'contact' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
+    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit', corpsInfo = info || G.mode === 'contact' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
     $('feuille').dataset.mode = G.mode;
-    $('feuille-titre').textContent = info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
+    $('feuille-titre').textContent = info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
     $('g-annuler').textContent = corpsInfo && !formReunion ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : 'Créer';
     $('g-creer').style.visibility = corpsInfo ? 'hidden' : '';
@@ -2359,7 +2359,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     etat.groupe.mode = mode === 'appel' || mode === 'info' || (mode === 'contact' && CAP.liens) || (mode === 'convinfo' && CAP.groupeInfos) || (mode === 'profil' && CAP.reglages) || (mode === 'suppression' && CAP.compte)
       || (CAP.espaces && (mode === 'entreprise' || ((mode === 'espace' || mode === 'abo') && ID_ESPACE.test(arg || ''))))
       || (CAP.reunions && (mode === 'reunion-new' || ((mode === 'reunion' || mode === 'reunion-edit') && ID_REUNION.test(arg || ''))))
-      || (CAP.salles && mode === 'invite-reunion') ? mode : 'chat';
+      || (CAP.salles && mode === 'invite-reunion') || (CAP.persoPlus && mode === 'perso-plus') ? mode : 'chat';
     if (etat.groupe.mode === 'convinfo') etat.groupe.convId = arg || null;
     if (etat.groupe.mode === 'espace' || etat.groupe.mode === 'abo') etat.groupe.espaceId = arg;
     if (etat.groupe.mode === 'reunion' || etat.groupe.mode === 'reunion-edit') etat.groupe.reunionId = arg;
@@ -2380,6 +2380,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (etat.groupe.mode === 'entreprise') rendreEntreprise();
     if (etat.groupe.mode === 'espace') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; rendreEspace(); }
     if (etat.groupe.mode === 'abo') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; rendreAbonnement(); }
+    if (etat.groupe.mode === 'perso-plus') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; rendrePersoPlus(); }
     if (etat.groupe.mode === 'reunion') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; ouvrirFicheEtat(arg); rendreFiche(); }
     if (etat.groupe.mode === 'reunion-new' || etat.groupe.mode === 'reunion-edit') { $('info-corps').innerHTML = ''; rendreFormReunion(etat.groupe.mode === 'reunion-edit' ? arg : null); }
     if (etat.groupe.mode === 'invite-reunion') rendreInviteReunion();
@@ -3181,6 +3182,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (bouton.dataset.espOuvrir) { declencheur = bouton; ouvrirFeuille('espace:' + bouton.dataset.espOuvrir); return; }
     if (bouton.dataset.espAbo) { declencheur = bouton; ouvrirFeuille('abo:' + bouton.dataset.espAbo); return; }
     if (bouton.id === 'reg-esp-gerer') { declencheur = bouton; ouvrirFeuille('entreprise'); return; }
+    if (bouton.id === 'reg-pp') { declencheur = bouton; ouvrirFeuille('perso-plus'); return; }
     if (bouton.dataset.regRelire) { chargerReglages(); return; }
     if (bouton.id === 'reg-notif-sw' || bouton.id === 'reg-notif-apercu' || bouton.id === 'reg-notif-essai') { actionNotif(bouton.id.slice(10)); return; }
     if (bouton.id === 'reg-export') { exporterDonnees(); return; }
@@ -3220,12 +3222,14 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     corps.dataset.sig = ''; corps.innerHTML = '<p class="vide">Chargement…</p>';
     let jours = null, panne = null;
     try { const p = await source.aPropos(); jours = p && p.suppressionJours; } catch (e) { panne = e; }
+    if (CAP.persoPlus) await chargerPersoPlus();
     if (!etat.groupe.ouvert || etat.groupe.mode !== 'suppression') return;           // la feuille s'est fermée pendant l'attente
     if (panne || !(jours > 0)) { corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">' + esc(panne ? phrase(panne, 'Le délai de suppression n\'a pas pu être lu.') : 'Le délai de suppression n\'a pas pu être lu : réessaie dans un moment.') + '</p>'; return; }
     corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
       '<div class="rubrique"><span>Ce qui sera effacé</span></div><div class="carte carte-pad"><ul class="info-liste"><li>ton profil, ta photo et tes réglages ;</li><li>tes contacts et tes liens d\'invitation ;</li><li>tes notifications, et la liste de tes appareils connectés ;</li><li>les photos, vocaux et fichiers que tu as déposés sans les envoyer.</li></ul></div>' +
       '<div class="rubrique"><span>Ce qui reste chez les autres</span></div><div class="carte carte-pad"><p class="info-note">Les messages que tu as envoyés restent dans les conversations des autres, signés « Compte supprimé », avec leurs photos, vocaux et fichiers. Si tu étais le seul administrateur d\'un groupe, un autre membre le devient.</p></div>' +
       '<div class="rubrique"><span>Quand</span></div><div class="carte carte-pad"><p class="reg-ligne">Tu es déconnecté de tous tes appareils <b>tout de suite</b>. Ton compte est effacé dans <b>' + jours + (jours > 1 ? ' jours' : ' jour') + '</b>, vers le ' + esc(dateLongue(Date.now() + jours * 86400000)) + '.</p><p class="info-note">Jusque-là, il te suffit de te reconnecter pour annuler la suppression.</p></div>' +
+      (CAP.persoPlus && pp.etat && vivantPP(pp.etat) ? '<div class="rubrique"><span>Ton abonnement</span></div><div class="carte carte-pad"><p class="info-note" id="sp-abonnement">Ton abonnement ' + esc(pp.etat.nom) + ' ne sera plus renouvelé.</p></div>' : '') +
       '<p class="reg-ligne" id="sp-question"><b>Supprimer définitivement ton compte ?</b></p>' +
       '<label class="case-conf"><input type="checkbox" id="sp-case"><span>Je comprends que mon compte sera effacé, et que les messages que j\'ai envoyés resteront chez les autres.</span></label>' +
       '<div class="info-actions"><button type="button" class="mini danger" data-act="suppression-confirmer" id="sp-oui" aria-disabled="true">Oui, supprimer mon compte</button><button type="button" class="mini" data-act="suppression-annuler">Non, garder mon compte</button></div>';
@@ -3489,10 +3493,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       '<button type="button" class="reglage presse" id="reg-esp-gerer">' + icone('i-groupe') + '<span class="reglage-texte">Créer ou rejoindre un espace<small>Un espace réunit les personnes d\'une entreprise</small></span>' + CHEVRON + '</button>' +
       (esp.erreur ? '<div class="carte-pad"><p class="info-erreur" role="alert">' + esc(esp.erreur) + '</p></div>' : '');
     const admins = L.filter(x => x.moiAdmin);
-    a.innerHTML = '<div class="carte-pad"><p class="reg-ligne"><b>Ta formule</b> ' + esc(FORMULE_LBL[esp.formule] || FORMULE_LBL.perso) + '</p>' +
+    a.innerHTML = '<div class="carte-pad"><p class="reg-ligne"><b>Ta formule</b> ' + esc(libelleFormule(esp.formule)) + '</p>' +
       (esp.ouvert ? '' : '<p class="info-note">L\'abonnement n\'est pas encore ouvert sur ce service.</p>') +
       (esp.formule === 'perso' ? '<p class="info-note">Messages Pro s\'ajoute à un espace d\'entreprise : il ouvre les canaux et les liens d\'invitation à tout l\'espace.</p>' : '') + '</div>' +
-      admins.map(x => '<button type="button" class="reglage presse" data-esp-abo="' + esc(x.id) + '"><span class="reglage-texte">' + esc(x.nom) + '<small>' + esc(x.proprio ? 'Tu gères l\'abonnement de cet espace' : 'Lecture seule : seul le propriétaire paie') + '</small></span>' + CHEVRON + '</button>').join('');
+      admins.map(x => '<button type="button" class="reglage presse" data-esp-abo="' + esc(x.id) + '"><span class="reglage-texte">' + esc(x.nom) + '<small>' + esc(x.proprio ? 'Tu gères l\'abonnement de cet espace' : 'Lecture seule : seul le propriétaire paie') + '</small></span>' + CHEVRON + '</button>').join('') + htmlRegPersoPlus();
   }
   async function chargerEspaces() {
     const jeton = ++esp.jeton;
@@ -3501,6 +3505,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (jeton !== esp.jeton || !$('reg-esp')) return;
     if (r) { esp.liste = r.espaces; esp.formule = r.formule; esp.ouvert = r.abonnementOuvert; esp.erreur = ''; } else esp.erreur = panne;
     peindreEspaces();
+    if (CAP.persoPlus) chargerPersoPlus().then(() => { if ($('reg-abo')) peindreEspaces(); });          // le forfait d'une personne se lit à part, et s'ajoute à la carte quand il arrive
   }
 
   /* ── La feuille « Entreprise » : mes espaces, en créer un, en rejoindre un par un lien ── */
@@ -3777,6 +3782,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if ($('reg-esp')) chargerEspaces();
     if (!etat.groupe.ouvert) return;
     const m = etat.groupe.mode;
+    if (m === 'perso-plus') { rendrePersoPlus(true); return; }
     if (m === 'espace' && (!ev.id || ev.id === etat.groupe.espaceId)) rendreEspace();
     else if (m === 'abo' && (!ev.id || ev.id === etat.groupe.espaceId) && !document.activeElement.closest('#info-corps input')) rendreAbonnement(true);
   }
@@ -3798,10 +3804,12 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   });
   /* le retour de Stripe : `?abo=retour|annule|portail&e=<espace>` — lu AVANT que l'adresse ne soit nettoyée, jamais cru (la feuille relit chez Stripe) */
   function lireRetourAbo() {
-    if (!CAP.espaces) return null;
+    if (!CAP.espaces && !CAP.persoPlus) return null;
     try {
       const q = new URLSearchParams(location.search), motif = q.get('abo'), e = q.get('e');
-      return ['retour', 'annule', 'portail'].includes(motif) && ID_ESPACE.test(e || '') ? { motif, espace: e } : null;
+      if (!['retour', 'annule', 'portail'].includes(motif)) return null;
+      if (CAP.persoPlus && q.get('p') === '1') return { motif, perso: true };          // le forfait d'une PERSONNE : pas d'espace dans l'adresse
+      return CAP.espaces && ID_ESPACE.test(e || '') ? { motif, espace: e } : null;
     } catch (x) { return null; }
   }
 
@@ -3910,6 +3918,138 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     rafraichirListe();
   }
 
+  /* ═══ 13 bis. PERSO+ — le forfait d'une PERSONNE : les réunions ═════════════════════════════════════════════════════════════════════════════════
+     Décision du 4 octobre 2026 : le public a ce que WhatsApp donne — messages, appels audio et vidéo à deux comme en groupe —, gratuitement. ORGANISER une réunion (la programmer, tenir les outils de
+     l'organisateur) est dans un forfait à part, pour une PERSONNE sans espace d'entreprise. Rejoindre une réunion où l'on est invité reste gratuit : seul l'organisateur paie.
+     ⛔ Tout ce bloc dort tant que la source n'annonce pas `CAP.persoPlus`. ⛔ LE NOM DU FORFAIT ET SES PRIX VIENNENT DU SERVICE (`source.persoPlus()`) : cette page ne les écrit nulle part — renommer le forfait est un
+     changement du service seul. ⛔ UN BOUTON NE MÈNE JAMAIS NULLE PART : « S'abonner » n'existe que si le paiement est ouvert, et un service sans clé de paiement le DIT, sans rien promettre. ⛔ JAMAIS DE PRIX montré à
+     quelqu'un qui peut déjà organiser par un espace Pro. ⛔ L'état est celui que le SERVICE a relu chez Stripe : « J'ai réglé — vérifier » le relit, la page ne croit pas son propre retour. */
+  const pp = { etat: null, jeton: 0, ui: { cycle: null, note: '', erreur: '' } };
+  const nomPP = () => pp.etat ? pp.etat.nom : '';
+  const eurosCourt = n => Number.isInteger(n) ? n + ' €' : euros(n);
+  const libelleFormule = f => f === 'perso_plus' ? 'Messages ' + nomPP() : (FORMULE_LBL[f] || FORMULE_LBL.perso);
+  const vivantPP = S => !!(S.abonnement && ['active', 'trialing', 'past_due', 'unpaid'].includes(S.abonnement.statut));
+  /* relit l'état du forfait ; une panne garde le dernier état connu (rien ne se décide sur une lecture ratée) → l'état, ou null */
+  async function chargerPersoPlus() {
+    if (!CAP.persoPlus) return null;
+    const jeton = ++pp.jeton;
+    try { const r = await source.persoPlus(); if (jeton === pp.jeton) pp.etat = r; } catch (e) { /* le dernier état connu reste */ }
+    return pp.etat;
+  }
+  /* « Programmer » : le formulaire à qui peut organiser, la feuille du forfait à qui ne le peut pas. Le service décide (402) ; la page le DEMANDE avant, pour ne jamais montrer un formulaire qu'elle sait refusé. */
+  let programmerOccupe = false;
+  async function programmerReunion() {
+    if (!CAP.persoPlus) { ouvrirFeuille('reunion-new'); return; }
+    if (programmerOccupe) return;
+    programmerOccupe = true;
+    try { await chargerPersoPlus(); } finally { programmerOccupe = false; }
+    ouvrirFeuille(pp.etat && pp.etat.organiser === false ? 'perso-plus' : 'reunion-new');
+  }
+  const offreChoisie = () => { const S = pp.etat; return S ? (S.offres.find(o => o.id === pp.ui.cycle) || S.offres.find(o => o.id === S.defaut) || S.offres[0] || null) : null; };
+  const parPP = o => o.par === 'an' ? 'par an' : 'par mois';
+  async function relirePersoPlus(depuisRetour) {
+    const U = pp.ui; U.erreur = '';
+    try {
+      const S = await source.persoPlusRelire(); pp.etat = S;
+      const st = S.abonnement && S.abonnement.statut;
+      U.note = st === 'active' || st === 'trialing' ? (depuisRetour ? 'Merci ! ' : '') + 'Abonnement confirmé par Stripe : tu peux organiser des réunions.'
+        : st === 'past_due' || st === 'unpaid' ? 'Stripe signale un paiement en retard pour cet abonnement.'
+        : S.paiementEnAttente ? 'Stripe n\'a pas encore confirmé le paiement. Si tu viens de payer, patiente un instant puis touche « J\'ai réglé — vérifier ».'
+        : 'Stripe ne montre pas d\'abonnement actif pour toi.';
+    } catch (er) { U.note = ''; U.erreur = phrase(er, 'L\'abonnement n\'a pas pu être relu chez Stripe : l\'état affiché est le dernier connu.'); }
+  }
+  /* `garder` : un redessin DÉCLENCHÉ PAR UN ÉVÉNEMENT garde le verdict que la personne vient de lire et l'écran en place pendant la relecture */
+  async function rendrePersoPlus(garder) {
+    const corps = $('info-corps'), retour = etat.retourPP; etat.retourPP = null;
+    if (!garder) corps.innerHTML = '<p class="vide">Chargement…</p>';
+    await chargerPersoPlus();
+    if (!etat.groupe.ouvert || etat.groupe.mode !== 'perso-plus') return;           // la feuille s'est fermée pendant l'attente
+    if (!pp.etat) { corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">Le forfait n\'a pas pu être lu : réessaie dans un moment.</p>'; return; }
+    const U = pp.ui, S = pp.etat;
+    if (!garder) { U.erreur = ''; U.note = ''; }
+    if (!U.cycle || !S.offres.some(o => o.id === U.cycle)) U.cycle = S.offres.some(o => o.id === S.defaut) ? S.defaut : (S.offres[0] ? S.offres[0].id : null);
+    $('feuille-titre').textContent = S.nom;
+    if (retour && retour.motif === 'annule') U.note = 'Paiement annulé : rien n\'a été prélevé.';
+    else if (retour) await relirePersoPlus(retour.motif === 'retour');          // le retour de Stripe : le verdict est RELU chez Stripe, jamais cru sur parole
+    if (!etat.groupe.ouvert || etat.groupe.mode !== 'perso-plus') return;
+    peindrePersoPlus();
+  }
+  function peindrePersoPlus() {
+    const corps = $('info-corps'), S = pp.etat; if (!S || !etat.groupe.ouvert || etat.groupe.mode !== 'perso-plus') return;
+    const U = pp.ui, o = offreChoisie(), vivant = vivantPP(S), st = vivant ? S.abonnement.statut : '';
+    const gratuit = 'Rejoindre une réunion où tu es invité reste gratuit.';
+    let h = '<p class="info-erreur" id="info-erreur" role="alert"' + (U.erreur ? '' : ' hidden') + '>' + esc(U.erreur) + '</p>' + (U.note ? '<p class="info-note" role="status">' + esc(U.note) + '</p>' : '');
+    h += '<div class="carte carte-pad">';
+    if (vivant) {
+      h += '<p class="reg-ligne"><b>Abonnement</b> ' + esc(STATUT_ABO[st] || st) + '</p>' +
+        (S.abonnement.finPeriode ? '<p class="reg-ligne"><b>' + (S.abonnement.annule ? 'Fin de l\'abonnement' : 'Prochaine échéance') + '</b> ' + esc(dateCourte(S.abonnement.finPeriode)) + '</p>' : '');
+      if (S.impaye) h += '<p class="info-erreur" role="alert">Ton paiement ' + esc(S.nom) + ' n\'est pas passé : mets ta carte à jour pour organiser des réunions. ' + esc(gratuit) + '</p>';
+      else h += '<p class="info-note">Tu peux organiser des réunions. ' + esc(gratuit) + '</p>';
+      if (S.abonnement.annule) h += '<p class="info-note">Résilié à la fin de la période : tu garderas les réunions jusque-là.</p>';
+      /* ⛔ un abonnement personnel ET un espace Pro payé : le service ne résilie rien tout seul (c'est de l'argent), la page le DIT et montre la porte */
+      if (S.inclusParPro) h += '<p class="info-note">Ton espace est déjà en Messages Pro, qui comprend les réunions : cet abonnement personnel ne t\'apporte plus rien de plus. Tu peux le résilier avec « Gérer mon abonnement ».</p>';
+    } else if (S.inclusParPro) {
+      h += '<p class="info-note">Ton espace est déjà en Messages Pro, qui comprend les réunions : tu peux en organiser sans autre abonnement. ' + esc(gratuit) + '</p>';
+    } else if (!S.ouvert) {
+      h += '<p class="reg-ligne">' + esc('Les réunions sont dans ' + S.nom + '.') + '</p><p class="info-note">Ce forfait n\'est pas encore ouvert sur ce service : aucun paiement n\'est possible. ' + esc(gratuit) + '</p>';
+    } else {
+      h += '<p class="reg-ligne" id="pp-phrase">' + esc('Les réunions sont dans ' + S.nom + (o ? ' : ' + eurosCourt(o.euros) + ' ' + parPP(o) : '') + '. ' + gratuit) + '</p>';
+      if (S.offres.length > 1) h += '<div class="g-choix" role="radiogroup" aria-label="Rythme de paiement">' + S.offres.map(x => '<button type="button" class="g-pilule presse" role="radio" aria-checked="' + (x.id === U.cycle ? 'true' : 'false') + '" data-pp="cycle" data-cycle="' + esc(x.id) + '">' + esc((x.par === 'an' ? 'Par an' : 'Par mois') + ' · ' + eurosCourt(x.euros)) + '</button>').join('') + '</div>';
+      if (S.toutOuvert) h += '<p class="info-note">Pendant la bêta, les réunions sont ouvertes à tous : ceci sert à essayer le paiement.</p>';
+      if (S.mode === 'test') h += '<p class="info-note">Mode test : aucun vrai prélèvement.</p>';
+      if (S.paiementEnAttente) h += '<p class="info-note">Un paiement a été commencé chez Stripe. Si tu l\'as réglé, touche « J\'ai réglé — vérifier ».</p>';
+      h += '<div class="info-actions"><button type="button" class="mini" data-pp="payer">S\'abonner</button></div>';
+    }
+    if (S.stripeMuet) h += '<p class="info-note">Le service de paiement ne répond pas : l\'état affiché est le dernier connu.</p>';
+    h += '</div>';
+    if (S.organiser && !S.toutOuvert) h += '<div class="carte"><button type="button" class="reglage presse" data-pp="programmer"><span class="reglage-texte">Programmer une réunion</span>' + CHEVRON + '</button></div>';
+    if (S.ouvert && vivant) h += '<div class="carte"><button type="button" class="reglage presse" data-pp="portail"><span class="reglage-texte">Gérer mon abonnement<small>Changer la carte, résilier : chez Stripe</small></span>' + CHEVRON + '</button></div>';
+    if (S.ouvert && (vivant || S.paiementEnAttente)) h += '<div class="carte"><button type="button" class="reglage presse" data-pp="relire"><span class="reglage-texte">J\'ai réglé — vérifier<small>Relit l\'abonnement chez Stripe</small></span></button></div>';
+    corps.innerHTML = h;
+  }
+  $('info-corps').addEventListener('click', async e => {
+    const b = e.target.closest('[data-pp]'); if (!b || b.disabled || !CAP.persoPlus || etat.groupe.mode !== 'perso-plus') return;
+    if (b.getAttribute('aria-disabled') === 'true') return;
+    const act = b.dataset.pp, U = pp.ui; U.erreur = ''; erreurInfo('');
+    try {
+      if (act === 'cycle') { U.cycle = b.dataset.cycle; peindrePersoPlus(); return; }
+      if (act === 'programmer') { basculerFeuille('reunion-new'); return; }
+      if (act === 'payer') {
+        const o = offreChoisie(); if (!o) return;
+        b.setAttribute('aria-disabled', 'true');
+        try { const r = await source.persoPlusPayer(o.id); mot('Direction le paiement chez Stripe…'); location.assign(r.url); }
+        catch (er) {
+          b.removeAttribute('aria-disabled');
+          if (er && (er.code === 'abonnement_existant' || er.code === 'formule_deja_incluse')) { await relirePersoPlus(false); peindrePersoPlus(); }       // un autre appareil a déjà payé : l'écran se met à jour
+          throw er;
+        }
+        return;
+      }
+      if (act === 'portail') {
+        b.setAttribute('aria-disabled', 'true');
+        try { const r = await source.persoPlusPortail(); location.assign(r.url); } catch (er) { b.removeAttribute('aria-disabled'); throw er; }
+        return;
+      }
+      if (act === 'relire') {
+        b.setAttribute('aria-disabled', 'true');
+        try { await relirePersoPlus(false); } finally { b.removeAttribute('aria-disabled'); }
+        peindrePersoPlus();
+        chargerEspaces();
+        return;
+      }
+    } catch (er) { erreurInfo(phrase(er, 'Cette action n\'a pas pu se faire.')); }
+  });
+  /* la ligne de Réglages › Abonnement : ce que la personne a (ou peut prendre) — jamais de prix pour qui peut déjà organiser par un espace Pro, jamais de ligne pour un paiement impossible */
+  function htmlRegPersoPlus() {
+    const S = pp.etat; if (!CAP.persoPlus || !S) return '';
+    const vivant = vivantPP(S);
+    if (!vivant && (S.inclusParPro || !S.ouvert)) return '';
+    const o = S.offres.find(x => x.id === S.defaut) || S.offres[0];
+    const detail = vivant ? (S.impaye ? 'Paiement en retard : à régler' : 'Abonnement actif' + (S.abonnement.finPeriode ? ' · ' + (S.abonnement.annule ? 'jusqu\'au ' : 'prochaine échéance le ') + dateCourte(S.abonnement.finPeriode) : ''))
+      : 'Pour organiser des réunions' + (o ? ' · ' + eurosCourt(o.euros) + ' ' + parPP(o) : '');
+    return '<button type="button" class="reglage presse" id="reg-pp"><span class="reglage-texte">' + esc(S.nom) + '<small>' + esc(detail) + '</small></span>' + CHEVRON + '</button>';
+  }
+
   /* ═══ 14. LES RÉUNIONS — l'agenda de la semaine, la liste du jour, la fiche, « Programmer » (capacité `reunions`, étape 6) ═══════════════════════════════════════════════
      ⛔ Cette page ne calcule AUCUNE répétition ni AUCUN fuseau : le service fait autorité (une série garde son heure LOCALE de part et d'autre d'un changement d'heure, une heure qui n'existe pas
      est refusée). Elle demande une fenêtre (la semaine affichée) et reçoit des occurrences en millisecondes ; elle les HABILLE dans le fuseau de l'appareil, et dit le fuseau de la réunion à côté
@@ -3993,7 +4133,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     sec.dataset.pret = '1';
     const auj = minuitDe(Date.now());
     reu.semaine = lundiDe(auj); reu.jour = auj;
-    $('btn-reunion-nouvelle').addEventListener('click', () => ouvrirFeuille('reunion-new'));
+    $('btn-reunion-nouvelle').addEventListener('click', () => programmerReunion());
     $('sem-prec').addEventListener('click', () => changerSemaine(-7));
     $('sem-suiv').addEventListener('click', () => changerSemaine(7));
     $('sem-titre').addEventListener('click', () => { const t = minuitDe(Date.now()); allerAuJour(t); });
@@ -4152,11 +4292,12 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (!d.annulee) s += '<div class="rubrique"><span>Me rappeler</span></div><div class="carte" id="reu-rappels" role="group" aria-label="Mes rappels">' + rappelsHtml +
       (d.moi.rappelsPerso ? '<button type="button" class="reglage presse" data-reu="rappels-defaut"><span class="reglage-texte">Rétablir les rappels de la réunion<small>Ceux que l\'organisateur a choisis</small></span></button>' : '') + '</div>';
     /* les participants */
-    s += '<div class="rubrique"><span>Participants</span><span>' + d.invites.length + '</span></div><div class="carte">' + d.invites.map(p => htmlParticipant(d, p, hote)).join('') + '</div>';
+    s += '<div class="rubrique"><span>Participants</span><span>' + d.invites.length + (d.plafond ? ' / ' + d.plafond : '') + '</span></div><div class="carte">' + d.invites.map(p => htmlParticipant(d, p, hote)).join('') + '</div>';
     /* inviter d'autres personnes (l'hôte) */
     if (hote && !d.annulee) {
       const dispo = candidats(d.invites.map(p => p.id));
-      if (dispo.length) s += '<div class="rubrique"><span>Inviter</span></div><div class="carte">' + dispo.map(c => { const k = contactDe(c.id); return k ? '<div class="contact avec-actions">' + avatar(k) + '<span class="contact-texte"><span class="contact-nom">' + esc(k.nom) + '</span><span class="contact-role">' + esc(c.role) + '</span></span><span class="contact-actions"><button type="button" class="mini" data-reu="inviter" data-uid="' + esc(c.id) + '" aria-label="' + esc('Inviter ' + k.nom) + '">Inviter</button></span></div>' : ''; }).join('') + '</div>';
+      if (d.plafond && d.invites.length >= d.plafond) s += '<div class="rubrique"><span>Inviter</span></div><div class="carte carte-pad"><p class="info-note">Cette réunion compte ' + d.plafond + ' personnes, toi compris : c\'est le maximum. Retire quelqu\'un pour en inviter une autre.</p></div>';
+      else if (dispo.length) s += '<div class="rubrique"><span>Inviter</span></div><div class="carte">' + dispo.map(c => { const k = contactDe(c.id); return k ? '<div class="contact avec-actions">' + avatar(k) + '<span class="contact-texte"><span class="contact-nom">' + esc(k.nom) + '</span><span class="contact-role">' + esc(c.role) + '</span></span><span class="contact-actions"><button type="button" class="mini" data-reu="inviter" data-uid="' + esc(c.id) + '" aria-label="' + esc('Inviter ' + k.nom) + '">Inviter</button></span></div>' : ''; }).join('') + '</div>';
     }
     /* le fichier pour l'agenda, la conversation */
     const ics = (occ) => source.adresseIcs(d.id, occ ? { occurrence: occ } : {});
@@ -4174,7 +4315,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       if (F.courriel && !d.annulee) s += htmlCourriel(d, o);
       if (CAP.salles && !d.annulee) s += '<div class="rubrique"><span>Salle</span></div><div class="carte">' +
         '<button type="button" class="reglage presse" role="switch" aria-checked="' + (d.attente ? 'true' : 'false') + '" data-reu="attente"><span class="reglage-texte">Salle d\'attente<small>Les personnes qui arrivent attendent que tu les admettes</small></span><span class="interrupteur" aria-hidden="true"></span></button>' +
-        '<button type="button" class="reglage presse" data-reu="lien-copier">' + icone('i-lien') + '<span class="reglage-texte">Copier le lien d\'invité<small>Ouvre la salle à qui a un compte OP MESSAGES</small></span></button>' +
+        '<button type="button" class="reglage presse" data-reu="lien-copier">' + icone('i-lien') + '<span class="reglage-texte">Copier le lien d\'invité<small>Ouvre la salle à qui a un compte OP MESSAGES' + (d.plafond ? ', dans la limite de ' + d.plafond + ' personnes' : '') + '</small></span></button>' +
         '<button type="button" class="reglage presse" data-reu="lien-renouveler"><span class="reglage-texte">Renouveler le lien<small>L\'ancien lien cesse de marcher</small></span></button></div>';
       s += F.confirme ? htmlConfirmation(d) : '<div class="carte">' + (d.annulee ? '' : '<button type="button" class="reglage presse danger" data-reu="annuler-demander"><span class="reglage-texte">Annuler la réunion<small>Elle reste dans l\'agenda, marquée « Annulée »</small></span></button>') +
         '<button type="button" class="reglage presse danger" data-reu="supprimer-demander"><span class="reglage-texte">Supprimer la réunion<small>Elle disparaît pour tout le monde, avec sa conversation</small></span></button></div>';
@@ -4333,12 +4474,22 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     $('rf-rappels').innerHTML = htmlRappelsForm(F);
     const b = $('rf-rappels').querySelector('[data-min="' + min + '"]'); if (b) b.focus({ preventScroll: true });
   }
+  /* ⛔ LE NOMBRE DE PERSONNES D'UNE RÉUNION est celui du SERVICE (`source.plafondReunion()`), organisateur compris : la page le dit et le fait tenir, elle ne l'écrit nulle part. Tant qu'il n'est pas connu, rien n'est bloqué ici (le service refuserait, `reunion_pleine`, et dirait le plafond). */
+  function noteInvitesForm() {
+    const F = reu.form, n = $('rf-invites-note'); if (!n || !F || !F.plafond) return;
+    const reste = F.plafond - 1 - F.choisis.length;
+    n.hidden = false;
+    n.textContent = reste > 0 ? 'Une réunion compte ' + F.plafond + ' personnes au plus, toi compris : tu peux encore en inviter ' + reste + '.'
+      : 'La réunion est complète : ' + F.plafond + ' personnes au plus, toi compris. Retire quelqu\'un pour en inviter une autre.';
+  }
   function basculerInviteForm(uid) {
     const F = reu.form, i = F.choisis.indexOf(uid);
+    if (i < 0 && F.plafond && F.choisis.length >= F.plafond - 1) { noteInvitesForm(); mot('Une réunion compte ' + F.plafond + ' personnes au plus, toi compris'); return; }
     if (i >= 0) F.choisis.splice(i, 1); else F.choisis.push(uid);
     const b = Array.from($('rf-invites').querySelectorAll('[data-uid]')).find(x => x.dataset.uid === uid);
     if (b) b.setAttribute('aria-checked', i >= 0 ? 'false' : 'true');
     $('rf-invites-n').textContent = String(F.choisis.length);
+    noteInvitesForm();
   }
   function synchroFormRepetition() {
     const rep = $('rf-rep').value, type = $('rf-fin-type').value;
@@ -4378,7 +4529,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
         '<div class="champ" id="rf-jusqua-c"><label for="rf-jusqua">Dernier jour</label><input id="rf-jusqua" type="date" value="' + esc(initial.jusqua || '') + '"></div>' +
         '<div class="champ" id="rf-n-c"><label for="rf-n">Nombre de réunions</label><input id="rf-n" type="number" min="2" max="1000" inputmode="numeric" value="' + esc(initial.n || 10) + '"></div></div>' +
       '<div class="rubrique"><span>Rappel</span></div><div class="carte" id="rf-rappels" role="group" aria-label="Rappels de la réunion">' + htmlRappelsForm(reu.form) + '</div>' +
-      (id ? '' : '<div class="rubrique"><span>Invités</span><span id="rf-invites-n" aria-live="polite">0</span></div>' +
+      (id ? '' : '<div class="rubrique"><span>Invités</span><span id="rf-invites-n" aria-live="polite">0</span></div><p class="info-note" id="rf-invites-note" aria-live="polite" hidden></p>' +
         '<label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher une personne à inviter</span><input type="search" id="rf-recherche" placeholder="Rechercher" autocomplete="off" enterkeyhint="search"></label>' +
         '<div class="carte" id="rf-invites" role="group" aria-label="Personnes à inviter">' + htmlInvitesForm(reu.form) + '</div>') +
       '<div class="carte"><button type="button" class="reglage presse" role="switch" aria-checked="true" data-reu="form-notifier"><span class="reglage-texte">Notifier les invités<small>' + (id ? 'Ils sont prévenus de ce qui change' : 'Chaque invité reçoit une notification') + '</small></span><span class="interrupteur" aria-hidden="true"></span></button></div>' +
@@ -4395,6 +4546,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       synchroFormRepetition();
     });
     if (!id) {
+      if (CAP.reunionPlafond && typeof source.plafondReunion === 'function') {
+        const F0 = reu.form;
+        source.plafondReunion().then((n) => { if (n && reu.form === F0 && $('rf-invites-note')) { F0.plafond = n; noteInvitesForm(); } }, () => { /* pas de plafond lu : rien n'est bloqué ici, le service répond */ });
+      }
       $('rf-recherche').addEventListener('input', () => { reu.form.recherche = $('rf-recherche').value; $('rf-invites').innerHTML = htmlInvitesForm(reu.form); });
       chargerCollegues().then(() => { if (etat.groupe.ouvert && etat.groupe.mode === 'reunion-new' && $('rf-invites')) $('rf-invites').innerHTML = htmlInvitesForm(reu.form); });
     }
@@ -4448,7 +4603,12 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
         const t = dateDeChaine(c.debut); if (t !== null && horaire) allerAuJour(t);
         versFiche(F.id);
       }
-    } catch (er) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(er, 'La réunion n\'a pas pu être enregistrée.')); }
+    } catch (er) {
+      b.removeAttribute('aria-disabled');
+      /* ⛔ le service dit que ce forfait ne peut pas organiser (un abonnement échu depuis l'ouverture du formulaire, un autre appareil) : pas une phrase morte, la feuille qui dit quoi faire */
+      if (CAP.persoPlus && er && er.code === 'formule_requise' && er.offre === 'perso_plus') { await chargerPersoPlus(); basculerFeuille('perso-plus'); return; }
+      erreurInfo(phrase(er, 'La réunion n\'a pas pu être enregistrée.'));
+    }
   }
 
 
@@ -4629,7 +4789,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const bmn = $('salle-main'); bmn.setAttribute('aria-pressed', s.moi.main ? 'true' : 'false'); bmn.querySelector('span').textContent = s.moi.main ? 'Baisser la main' : 'Lever la main';
     const bv = $('salle-vue'); bv.querySelector('span').textContent = X.vue === 'intervenant' ? 'Vue galerie' : 'Vue intervenant'; bv.querySelector('use').setAttribute('href', X.vue === 'intervenant' ? '#i-grille' : '#i-intervenant');
     const br = $('salle-rec-btn'), moiRec = !!(s.rec && s.rec.par === MOI.id), autreRec = !!(s.rec && !moiRec);
-    br.hidden = !(hote && (recDisponible() || moiRec));
+    br.hidden = !(hote && ((s.outils && recDisponible()) || moiRec));          // l'enregistrement est un outil d'organisateur : jamais proposé dans un appel gratuit, mais on peut toujours ÉTEINDRE celui qu'on a lancé
     br.setAttribute('aria-pressed', moiRec ? 'true' : 'false'); br.setAttribute('aria-disabled', autreRec ? 'true' : 'false');
     br.querySelector('span').textContent = moiRec ? 'Arrêter l\'enregistrement' : autreRec ? 'Enregistré par ' + s.rec.nom : 'Enregistrer';
     $('salle-reagir').setAttribute('aria-expanded', X.emojis ? 'true' : 'false'); $('salle-emojis').hidden = !X.emojis;
@@ -4717,17 +4877,17 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       if (ouvert) {
         if (X.retirer === m.id) h += '<div class="salle-rang actions"><span class="texte"><small>Retirer ' + esc(nomM(m)) + ' de la salle ? Cette personne ne pourra plus y revenir.</small></span><button type="button" class="salle-btn danger presse" data-sa="retirer-confirmer" data-uid="' + esc(m.id) + '">Retirer</button><button type="button" class="salle-btn presse" data-sa="retirer-annuler">Garder</button></div>';
         else {
-          h += '<div class="salle-rang actions"><button type="button" class="salle-btn presse" data-sa="couper" data-uid="' + esc(m.id) + '"' + (m.micro ? '' : ' aria-disabled="true"') + '>Demander de couper le micro</button>' +
+          h += '<div class="salle-rang actions">' + (s.outils ? '<button type="button" class="salle-btn presse" data-sa="couper" data-uid="' + esc(m.id) + '"' + (m.micro ? '' : ' aria-disabled="true"') + '>Demander de couper le micro</button>' : '') +
             '<button type="button" class="salle-btn presse" data-sa="epingler" data-uid="' + esc(m.id) + '">' + (s.epingle === m.id ? 'Retirer l\'épingle' : 'Épingler') + '</button>';
           if (s.moi.proprietaire) h += '<button type="button" class="salle-btn presse" data-sa="cohote" data-uid="' + esc(m.id) + '" data-actif="' + (m.grade >= 1 ? '0' : '1') + '">' + (m.grade >= 1 ? 'Retirer co-hôte' : 'Nommer co-hôte') + '</button>';
-          if ((m.grade | 0) < 2 && ((m.grade | 0) < 1 || moiGrade >= 2)) h += '<button type="button" class="salle-btn danger presse" data-sa="retirer-demander" data-uid="' + esc(m.id) + '">Retirer de la salle</button>';
+          if (s.outils && (m.grade | 0) < 2 && ((m.grade | 0) < 1 || moiGrade >= 2)) h += '<button type="button" class="salle-btn danger presse" data-sa="retirer-demander" data-uid="' + esc(m.id) + '">Retirer de la salle</button>';
           h += '</div>';
         }
       }
     }
     h += '</div>';
     if (sonnent.length) h += '<div class="salle-rub"><span>Sonnerie en cours</span><span>' + sonnent.length + '</span></div><div class="salle-liste">' + sonnent.map(m => '<div class="salle-rang">' + rangAvatar(m) + '<span class="texte">' + esc(m.nom) + '<small>Sonnerie…</small></span></div>').join('') + '</div>';
-    if (hote && presents.length) h += '<p class="salle-note"><button type="button" class="salle-btn presse" data-sa="couper-tous">Demander à tous de couper le micro</button></p>';
+    if (hote && s.outils && presents.length) h += '<p class="salle-note"><button type="button" class="salle-btn presse" data-sa="couper-tous">Demander à tous de couper le micro</button></p>';
     if (hote && s.genre === 'reunion' && s.reunion && ID_REUNION.test(s.reunion)) h += '<div class="salle-rub"><span>Inviter</span></div><div class="salle-liste"><div class="salle-rang libre"><span class="texte"><small>Un lien d\'invité ouvre la salle à qui a un compte OP MESSAGES.</small></span><button type="button" class="salle-btn presse" data-sa="lien-copier">' + icone('i-lien') + 'Copier le lien</button></div></div>';
     return h;
   }
@@ -4735,7 +4895,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const s = A.snap, X = sx(A), hote = s.moi.hote;
     const inter = (act, actif, titre, detail) => '<button type="button" class="salle-rang" role="switch" aria-checked="' + (actif ? 'true' : 'false') + '" data-sa="' + act + '"><span class="texte">' + esc(titre) + (detail ? '<small>' + esc(detail) + '</small>' : '') + '</span><span class="salle-inter" aria-hidden="true"></span></button>';
     let h = '';
-    if (hote) {
+    if (hote && s.outils) {
       h += '<div class="salle-rub"><span>Sondage et minuteur</span></div><div class="salle-liste">';
       if (X.formSondage) {
         h += '<div class="salle-form"><input id="salle-sq" type="text" maxlength="200" autocomplete="off" placeholder="Question" aria-label="Question du sondage">';
@@ -4744,10 +4904,14 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       } else h += '<button type="button" class="salle-rang" data-sa="sondage-nouveau"><span class="texte">Lancer un sondage<small>Les participants votent, le décompte est vu de tous</small></span></button>';
       h += '<div class="salle-rang libre"><span class="texte">Minuteur<small>' + (s.minuteur ? 'En cours' : 'Visible de tous') + '</small></span>' +
         (s.minuteur ? '<button type="button" class="salle-btn presse" data-sa="minuteur-arreter">Arrêter</button>' : MINUTEURS.map(x => '<button type="button" class="salle-btn presse" data-sa="minuteur" data-s="' + x[0] + '">' + x[1] + '</button>').join('')) + '</div></div>';
+    }
+    if (hote) {
+      /* la salle d'attente et le verrou sont des OUTILS d'organisateur (dans un appel gratuit, ils ne sont pas proposés) ; le partage d'écran des participants reste un réglage de la salle, pour tous */
       h += '<div class="salle-rub"><span>Sécurité</span></div><div class="salle-liste">' +
-        inter('verrou', s.verrou, 'Verrouiller la salle', 'Plus personne n\'entre (les hôtes, si)') +
-        inter('attente', s.salleAttente, 'Salle d\'attente', 'Les nouveaux arrivants attendent d\'être admis') +
+        (s.outils ? inter('verrou', s.verrou, 'Verrouiller la salle', 'Plus personne n\'entre (les hôtes, si)') +
+        inter('attente', s.salleAttente, 'Salle d\'attente', 'Les nouveaux arrivants attendent d\'être admis') : '') +
         inter('partage-ok', s.partageOk, 'Partage d\'écran des participants', 'Les hôtes peuvent toujours partager') + '</div>';
+      if (!s.outils) h += '<p class="salle-note" id="salle-sans-outils">Les outils de l\'organisateur — salle d\'attente, verrou, sondage, minuteur, enregistrement — sont dans les réunions.</p>';
     }
     const directs = s.membres.filter(m => m.statut === 'present' && m.liaison === 'connecte' && !m.relais).length, relais = s.membres.filter(m => m.statut === 'present' && m.relais).length;
     h += '<div class="salle-rub"><span>Informations</span></div><div class="salle-liste"><div class="salle-rang libre"><span class="texte">' + esc(s.nom) + '<small>' + esc((s.genre === 'reunion' ? 'Réunion' : 'Appel de groupe') + ' · ' + (s.type === 'video' ? 'vidéo' : 'audio') + ' · ' + s.nb + (s.capacite ? ' sur ' + s.capacite : '') + ' personnes · ' + directs + ' liaison' + (directs > 1 ? 's' : '') + ' directe' + (directs > 1 ? 's' : '') + (relais ? ', ' + relais + ' par relais' : '')) + '</small></span></div></div>';
@@ -4774,7 +4938,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     $('salle-panneau-titre').textContent = TITRES_PANNEAU[X.panneau] + (X.panneau === 'participants' ? ' (' + s.nb + ')' : '');
     p.hidden = false;
     const memb = s.membres.map(m => [m.id, m.statut, m.grade, m.micro, m.main, m.partage, m.camera, m.relais, m.liaison, m.nom]);
-    const sig = JSON.stringify([X.panneau, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, s.capacite, s.nom]);
+    const sig = JSON.stringify([X.panneau, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, s.outils, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, s.capacite, s.nom]);
     if (!force && corps.dataset.sig === sig) return;
     corps.dataset.sig = sig;
     /* ce qui est tapé et ce qui a le focus survivent au redessin */
@@ -5137,6 +5301,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (codeLien) { etat.codeLien = codeLien; declencheur = null; ouvrirFeuille('contact'); }
     else if (codeInvitation) { etat.codeInvitation = codeInvitation; declencheur = null; ouvrirFeuille('entreprise'); }
     else if (codeReunion) { etat.codeReunion = codeReunion; declencheur = null; ouvrirFeuille('invite-reunion'); }
+    else if (retourAbo && retourAbo.perso) { etat.retourPP = retourAbo; declencheur = null; ouvrirFeuille('perso-plus'); }       // de retour de chez Stripe, pour le forfait d'une personne : la feuille relit tout de suite
     else if (retourAbo) { etat.retourAbo = retourAbo; declencheur = null; ouvrirFeuille('abo:' + retourAbo.espace); }       // de retour de chez Stripe : la feuille de l'abonnement relit tout de suite
   }
   demarrer();

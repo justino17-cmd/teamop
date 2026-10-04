@@ -220,6 +220,14 @@ function construireApp(ctx) {
     if (req.espace && req.espace.moi.role === 'admin') extra.raison = v.formule;
     return refus(res, 402, 'formule_requise', extra);
   }];
+  /* ⛔ ORGANISER : une fonction d'organisateur — Pro OU Perso+ (le forfait d'une PERSONNE). `peutOrganiser` est la SEULE définition (`formule.js`). Le refus porte `raison` (« perso » : pas de forfait ; « impaye » : son abonnement
+     Perso+ est en retard, sans sursis) — la personne est concernée en propre, contrairement à un espace dont seul l'administrateur lit le pourquoi — et `offre` (« perso_plus ») ; `abonnement_ouvert` dit si le bouton
+     « S'abonner » mènerait quelque part (Perso+, pas Messages Pro). 402 `formule_requise`, comme PRO : la page ne distingue pas deux erreurs. Rien n'est retiré : seule la fonction refuse. */
+  garde.ORGANISER = [(req, res, next) => {
+    const o = ctx.formule.peutOrganiser(req.moi.id);
+    if (o.ok) return next();
+    return refus(res, 402, 'formule_requise', { abonnement_ouvert: !!(ctx.facturation && ctx.facturation.perso.ouvert()), raison: o.raison, offre: 'perso_plus' });
+  }];
 
   /* ── Les routes : UNIQUEMENT depuis le manifeste ─────────────────────────────────────── */
   const H = creerHandlers(ctx);
@@ -247,7 +255,9 @@ function construireApp(ctx) {
     const g = garde[r.garde];
     if (!g) throw new Error('garde inconnue : ' + r.garde);
     const chaine = g.slice();
+    if (r.pro === true && r.organiser === true) throw new Error('route à la fois pro et organiser : ' + r.id);
     if (r.pro === true) chaine.push(...garde.PRO);     // ⛔ la route le DÉCLARE (manifeste) ; après sa garde d'appartenance, jamais avant (un non-membre reçoit 404, pas 402)
+    if (r.organiser === true) chaine.push(...garde.ORGANISER);     // idem : Pro OU Perso+ (le forfait d'une personne)
     if (r.m === 'POST' && r.garde !== 'P' && r.garde !== 'B') chaine.push(limiteEcriture);
     app[r.m.toLowerCase()](r.p, ...chaine, h);
   }

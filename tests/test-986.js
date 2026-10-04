@@ -21,6 +21,7 @@ T.sauterSiSansDependances();
 const { v, vrai, fin } = T.compteur();
 const STOCK = require(path.join(T.SERVICE, 'stockage.js'));
 const { ouvrir, MIGRATIONS } = STOCK;
+const M9 = MIGRATIONS.filter(m => m.v <= 9);          // les migrations jusqu'à la 9 : ce que ce banc éprouve ; les suivantes ont leurs propres bancs
 const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
 const { DatabaseSync } = require('node:sqlite');
 
@@ -59,8 +60,9 @@ console.log('La migration 9 : numérotée, que des COLONNES et des index, rejoua
 {
   const DERNIERE = MIGRATIONS[MIGRATIONS.length - 1].v;
   const m9 = MIGRATIONS.filter(m => m.v === 9);
-  v('population : UNE migration 9, la dernière, après la 8 des appels à deux', [m9.length, DERNIERE, MIGRATIONS.filter(m => m.v < 9).length], [1, 9, 8]);
-  vrai('les numéros se suivent sans trou (1 à 9)', MIGRATIONS.map(m => m.v).join() === '1,2,3,4,5,6,7,8,9');
+  /* ⛔ ce banc garde la migration 9 : il ne dit pas qu'elle est la DERNIÈRE (la 10, Perso+, est venue après) — il la rejoue seule (`M9`) quand il vérifie ce qu'elle fait à une base du schéma 8 */
+  v('population : UNE migration 9, après la 8 des appels à deux', [m9.length, DERNIERE >= 9, MIGRATIONS.filter(m => m.v < 9).length], [1, true, 8]);
+  vrai('les numéros se suivent sans trou (1 à 9, puis la suite)', MIGRATIONS.map(m => m.v).join().startsWith('1,2,3,4,5,6,7,8,9') && MIGRATIONS.every((m, i) => m.v === i + 1));
   const sqls = m9[0].sql;
   const ajouts = sqls.filter(s => /^ALTER TABLE \w+ ADD COLUMN /.test(s));
   v('population : seize colonnes ajoutées, trois index, la version — et RIEN d\'autre', [ajouts.length, sqls.filter(s => /^CREATE (UNIQUE )?INDEX IF NOT EXISTS /.test(s)).length, sqls.filter(s => /^PRAGMA user_version = 9$/.test(s)).length, sqls.length], [16, 3, 1, 20]);
@@ -122,7 +124,7 @@ console.log('La migration 9 : numérotée, que des COLONNES et des index, rejoua
   const pop8 = [Number(br.prepare('PRAGMA user_version').get().user_version), compte(br, `SELECT COUNT(*) AS n FROM pragma_table_info('appel') WHERE name = 'genre'`), compte(br, 'SELECT COUNT(*) AS n FROM appel')];
   br.close();
   v('population : une base du schéma 8, sans la colonne « genre », avec un appel, une réunion et un contact', [pop8, avant8], [[8, 0, 1], [1, 'Avant la 9', 'annule']]);
-  const g9 = ouvrir({ chemin: g.chemin, scelleur: creerScelleur(g.kek), horloge: () => g.h.t });
+  const g9 = ouvrir({ chemin: g.chemin, scelleur: creerScelleur(g.kek), horloge: () => g.h.t, migrations: M9 });
   v('⛔ rouverte avec la migration 9 : schéma 9, le contact, la réunion et l\'appel sont intacts, l\'appel est « deux »', [g9.schema(), g9.contactsDe(gA.id).length, g9.reunionPourMembre(gR, gB.id).reunion.titre, g9.appelVue(gA.id, gC.id).etat, g9.appelVue(gA.id, gC.id).genre], [9, 1, 'Avant la 9', 'annule', 'deux']);
   vrai('⛔ une copie « avant-v9 » est gardée avant de migrer une base qui a vécu — et PAS de « avant-v8 » (la 8 était déjà faite)', fs.existsSync(g.chemin + '.avant-v9') && !fs.existsSync(g.chemin + '.avant-v8'));
   const cop = new DatabaseSync(g.chemin + '.avant-v9');
@@ -131,7 +133,7 @@ console.log('La migration 9 : numérotée, que des COLONNES et des index, rejoua
   g9.fermer();
   /* rejouable : le compteur remis à 8 sur une base qui a déjà les colonnes (une restauration, une main maladroite) ne fait pas échouer l'ouverture */
   const rj = g.brut(); rj.exec('PRAGMA user_version = 8'); rj.close();
-  const g9b = ouvrir({ chemin: g.chemin, scelleur: creerScelleur(g.kek), horloge: () => g.h.t });
+  const g9b = ouvrir({ chemin: g.chemin, scelleur: creerScelleur(g.kek), horloge: () => g.h.t, migrations: M9 });
   v('⛔ la migration REJOUÉE sur une base qui a déjà ses colonnes : pas d\'échec « duplicate column », rien ne se perd', [g9b.schema(), g9b.reunionPourMembre(gR, gB.id).reunion.titre, g9b.appelVue(gA.id, gC.id).etat], [9, 'Avant la 9', 'annule']);
   g9b.fermer();
 }

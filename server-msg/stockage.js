@@ -456,9 +456,42 @@ const MIGRATIONS = [
     `CREATE INDEX IF NOT EXISTS appel_reunion ON appel(reunion) WHERE reunion IS NOT NULL`,
     `PRAGMA user_version = 9`,
   ] },
+  /* ── 10 : PERSO+ — L'ABONNEMENT D'UNE PERSONNE (4 octobre 2026) ──────────────────────────────────────────────────────────────────────────────────
+     Décision de Justin : les réunions se vendent à une PERSONNE, sans espace d'entreprise, 5 € par mois. Deux tables NEUVES, AUCUNE table existante modifiée ni reconstruite (la migration reste REJOUABLE :
+     `IF NOT EXISTS` partout, pas d'`ALTER`) — le code d'AVANT ouvre donc sans mot dire une base au schéma 10 si un déploiement se replie : il ne lit pas ces tables, et personne n'y paie rien de plus que ce
+     que Stripe prélève ; un compte qui s'efface pendant le repli laisse son abonnement vivant (le code neuf le retrouve et l'annule : voir `abonnement_a_annuler`).
+       · `abonnement_perso` : le dernier état de l'abonnement Stripe d'UNE PERSONNE, TEL QUE STRIPE L'A DIT (jamais ce qu'une requête prétend). Même forme que `abonnement` (celui d'un espace), sans les places
+         (un seul siège) ni le sursis (un impayé personnel ne garde pas l'organisation). Le propriétaire est la personne : pas de cascade (la ligne `personne` d'un compte effacé reste, vide) ;
+       · `abonnement_a_annuler` : ce que le service doit FAIRE FAIRE à l'abonnement Perso+ d'une personne qui s'en va — UNE ligne par abonnement chez Stripe, `voulu` dit ce que Stripe doit devenir :
+         `fin` (la personne a DEMANDÉ la suppression de son compte : l'abonnement cesse de se renouveler, il court jusqu'à la fin de la période payée), `renouveler` (elle a ANNULÉ sa demande : le
+         renouvellement revient, sauf si elle l'avait elle-même arrêté avant) et `resilier` (le compte est EFFACÉ : résiliation immédiate, terminale). `avant` garde l'état du renouvellement AVANT notre geste
+         (1 : arrêté, 0 : il se renouvelait) et `touche` dit si NOUS y avons touché — c'est ce qui interdit de réactiver ce qu'une personne a coupé elle-même ; `fait` dit que Stripe a confirmé l'état voulu
+         (une ligne `fin` faite RESTE : c'est elle qui saura, si la personne revient, que le renouvellement est à rétablir). Sans cette table, un échec de Stripe laisserait la carte prélevée pendant les
+         quatorze jours — ou pour toujours, pour un compte effacé : le geste de la personne se NOTE dans la même transaction que lui, et se REJOUE jusqu'à la confirmation (`essais`, `dernier`).
+         Aucun nom, aucune adresse : l'identifiant de l'abonnement et du client chez Stripe, rien d'autre. */
+  { v: 10, sql: [
+    `CREATE TABLE IF NOT EXISTS abonnement_perso(
+       personne TEXT PRIMARY KEY REFERENCES personne(id),
+       client TEXT, abonnement TEXT,
+       session TEXT, session_le INTEGER,
+       statut TEXT NOT NULL DEFAULT 'aucun',
+       fin_periode INTEGER, annule INTEGER NOT NULL DEFAULT 0,
+       relu_le INTEGER,
+       cree INTEGER NOT NULL)`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS abonnement_perso_stripe ON abonnement_perso(abonnement) WHERE abonnement IS NOT NULL`,
+    `CREATE TABLE IF NOT EXISTS abonnement_a_annuler(
+       abonnement TEXT PRIMARY KEY,
+       client TEXT,
+       voulu TEXT NOT NULL DEFAULT 'resilier' CHECK (voulu IN ('fin', 'renouveler', 'resilier')),
+       avant INTEGER, touche INTEGER NOT NULL DEFAULT 0, fait INTEGER NOT NULL DEFAULT 0,
+       demande INTEGER NOT NULL, essais INTEGER NOT NULL DEFAULT 0, dernier INTEGER)`,
+    `PRAGMA user_version = 10`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
+/* un abonnement personnel FINI chez Stripe (ou jamais commencé) : on ne l'arrête, ne le rétablit ni ne le résilie plus */
+const ABO_FINIS = ['canceled', 'incomplete_expired', 'aucun'];
 
 function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS, moteur }) {
   const { DatabaseSync } = moteur || require('node:sqlite');
@@ -1827,6 +1860,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         /* ni les appareils (la révocation de chacun est SA ligne du registre, rejouée hors ligne avec la règle « créé avant la révocation »), ni les abonnements push (la restauration
            vide la table) : les supprimer ici emporterait ceux d'une personne REVENUE depuis, dans une copie qui les porte. Les liens, eux, se datent. */
         Q('UPDATE lien SET revoque = 1 WHERE par = ? AND revoque = 0 AND cree <= ?').run(uid, depuis);
+        persoAjuster(uid);   // l'abonnement Perso+ de la personne cesse de se renouveler — rejoué : la copie restaurée n'a peut-être pas la ligne, et Stripe, lui, n'a pas été restauré
         return { sessions, appareils: 0, push: 0, echeance, posee: true };
       }
       /* ⛔ UN APPAREIL COUPÉ ICI EST NOTÉ, comme toute révocation (« déconnecter les autres », onzième appareil) : sans la ligne, une restauration d'une copie d'avant la
@@ -1837,6 +1871,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       Q('DELETE FROM jeton WHERE personne = ?').run(uid);
       Q('UPDATE lien SET revoque = 1 WHERE par = ? AND revoque = 0').run(uid);   // un lien d'invitation d'une personne qui s'en va ne ramène plus personne vers elle
       Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(uid + '|' + echeance + '|' + alea(4), 'suppression_demandee', horloge());
+      /* ⛔ QUI DEMANDE À PARTIR N'EST PLUS PRÉLEVÉ (Justin, 4 octobre 2026) : son abonnement Perso+ cesse de se renouveler chez Stripe — la demande est NOTÉE ici, dans la transaction de la demande
+         (`persoAjuster`), le service la fait chez Stripe et la rejoue jusqu'à la confirmation. Rien n'est perdu si Stripe est muet ; l'accès, lui, reste jusqu'à la fin de la période payée. */
+      persoAjuster(uid);
       return { sessions, appareils, push, echeance };
     });
   }
@@ -1844,6 +1881,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return tx(() => {
       const annulee = num(Q("UPDATE personne SET suppression_le = NULL WHERE id = ? AND etat = 'actif' AND suppression_le IS NOT NULL").run(uid).changes) > 0;
       if (annulee && !rejeu) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(uid + '|' + alea(4), 'suppression_annulee', horloge());
+      if (annulee) persoAjuster(uid);   // le renouvellement revient — SAUF s'il avait été arrêté par la personne elle-même avant la demande (`avant`, `touche`)
       return annulee;
     });
   }
@@ -1884,6 +1922,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const p = Q('SELECT etat, suppression_le, avatar_piece FROM personne WHERE id = ?').get(uid);
       if (!p || p.etat !== 'actif' || (!rejeu && (p.suppression_le === null || p.suppression_le > horloge()))) return { effacee: false, pieces: [], convs: [], audience: [] };
       const audience = audiencePersonne(uid);   // AVANT d'effacer les contacts (et de sortir des espaces) : c'est eux qu'il faut prévenir
+      /* ⛔ SON ABONNEMENT PERSONNEL (Perso+) S'ANNULE AVEC ELLE : un compte effacé qui laisserait courir son abonnement serait prélevé pour toujours, pour quelqu'un qui n'existe plus. Depuis la DEMANDE, il ne se renouvelle déjà
+         plus (`fin`) ; à l'effacement il est RÉSILIÉ, tout de suite. La résiliation est NOTÉE ici, dans la transaction de l'effacement (`abonnement_a_annuler`, `voulu` = `resilier`, terminal) — le service la rejoue chez
+         Stripe jusqu'à ce que Stripe la confirme ; un échec de Stripe ne la perd pas. Rejoué après une restauration (`rejeu: true`) :
+         la copie remise en service porte peut-être l'abonnement que l'effacement d'origine avait déjà fait résilier, et Stripe répond « déjà résilié ». Une session de paiement encore non résolue RESTE (le passage
+         de relecture la résout : réglée, elle s'annule aussitôt) ; sans session, la ligne part avec la personne. */
+      persoVersAnnulation(uid);
       const pn = Q('SELECT prenom, nom FROM personne WHERE id = ?').get(uid);
       notifsAnonymiser(uid, ((pn.prenom || '') + ' ' + (pn.nom || '')).trim());   // AVANT de vider le nom : c'est lui qu'il faut retrouver dans les titres
       const pieces = [], convs = [];
@@ -2021,11 +2065,15 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
 
   /* Créer : la conversation, ses membres, la réunion, les lignes d'invitation, le message d'ouverture — TOUT dans une transaction. `prochain` : le début de la première occurrence non commencée
      (calculé par l'appelant avec `calendrier.js`), ou null. Les invités sont déjà jugés par l'appelant (`peutEcrire`). */
-  function reunionCreer({ hote, titre, lieu, debut, fin, tz, rep, n, jusqua, rappels, invites, prochain, finSerie, attente }) {
+  /* ⛔ `plafond` : le nombre de PERSONNES d'une réunion, organisateur compris — la route le demande à `formule.plafondReunion(organisateur)` (une seule constante, `formule.js`) ; le stockage ne connaît ni les forfaits
+     ni les entreprises. Refusé : `reunion_pleine`, qui porte le plafond (`max`) que la page écrit. Une réunion déjà plus grande (d'avant la règle) n'est pas rognée : on n'y AJOUTE seulement plus personne. */
+  const pleine = (plafond) => Object.assign(erreur('reunion_pleine'), { max: plafond });
+  function reunionCreer({ hote, titre, lieu, debut, fin, tz, rep, n, jusqua, rappels, invites, prochain, finSerie, attente, plafond = INVITES_MAX + 1 }) {
     return tx(() => {
       if (num(Q('SELECT COUNT(*) AS n FROM reunion WHERE hote = ? AND annulee = 0 AND prochain IS NOT NULL').get(hote).n) >= REUNIONS_HOTE_MAX) throw erreur('trop_de_reunions');
       const uids = Array.from(new Set(invites)).filter(u => u !== hote);
       if (uids.length > INVITES_MAX) throw erreur('trop_d_invites');
+      if (uids.length + 1 > plafond) throw pleine(plafond);
       const id = nouvelId('r'), conv = nouvelId('c'), t = horloge();
       Q(`INSERT INTO conversation(id, type, nom_ch, dernier_ts, cree_par, cree) VALUES(?, 'reunion', ?, ?, ?, ?)`).run(conv, sceller('conversation', 'nom_ch', conv + '|nom', titre), t, hote, t);
       Q(`INSERT INTO membre(conv, uid, role, depuis_seq, rejoint) VALUES(?, ?, 'admin', 1, ?)`).run(conv, hote, t);
@@ -2099,16 +2147,17 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     });
   }
   /* Inviter : les nouveaux entrent dans la conversation (un message d'arrivée) et reçoivent leur ligne. Une personne déjà invitée est ignorée. → { ajoutes, gid } */
-  function reunionInviter({ id, par, uids }) {
+  function reunionInviter({ id, par, uids, plafond = INVITES_MAX + 1 }) {
     return tx(() => {
       const r = reunionBrute(id); if (!r) throw erreur('introuvable');
       if (r.hote !== par) throw erreur('interdit');
       if (r.annulee) throw erreur('reunion_annulee');
-      const deja = num(Q('SELECT COUNT(*) AS n FROM reunion_invite WHERE reunion = ?').get(id).n) - 1;
+      const total = num(Q('SELECT COUNT(*) AS n FROM reunion_invite WHERE reunion = ?').get(id).n), deja = total - 1;
       const nouveaux = [];
       for (const u of Array.from(new Set(uids))) {
         if (u === par || Q('SELECT 1 AS x FROM reunion_invite WHERE reunion = ? AND uid = ?').get(id, u)) continue;
         if (deja + nouveaux.length >= INVITES_MAX) throw erreur('trop_d_invites');
+        if (total + nouveaux.length >= plafond) throw pleine(plafond);          // la réunion compterait plus de personnes que son plafond : personne n'est ajouté (la transaction ne garde rien)
         nouveaux.push(u);
       }
       if (!nouveaux.length) return { ajoutes: [], gid: 0 };
@@ -2234,11 +2283,16 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   /* ⛔ ENTRER PAR LE LIEN : la personne devient INVITÉE de la réunion (« accepté »), membre de sa conversation — la discussion de la réunion est ouverte à qui est dedans —, et paraît dans son agenda. Une
      personne déjà invitée ne change pas. Le plafond des invités (cent) tient pour les liens aussi. → { reunion, ajoute, gid } */
-  function reunionInviteParCode({ code, uid }) {
+  function reunionInviteParCode({ code, uid, plafonds }) {
     return tx(() => {
       const r = reunionParCode(code); if (!r) throw erreur('lien_invalide');
       if (Q('SELECT 1 AS x FROM reunion_invite WHERE reunion = ? AND uid = ?').get(r.id, uid)) return { reunion: r.id, ajoute: false, gid: 0 };
-      if (num(Q('SELECT COUNT(*) AS n FROM reunion_invite WHERE reunion = ?').get(r.id).n) > INVITES_MAX) throw erreur('trop_d_invites');
+      const total = num(Q('SELECT COUNT(*) AS n FROM reunion_invite WHERE reunion = ?').get(r.id).n);
+      if (total > INVITES_MAX) throw erreur('trop_d_invites');
+      /* ⛔ LA ONZIÈME PERSONNE n'entre pas par le lien : `plafonds(organisateur)` (la route le donne : `formule.plafondReunion`) dit combien de personnes la réunion compte au plus, l'organisateur compris. Une personne DÉJÀ
+         invitée (ci-dessus) n'est jamais refusée — elle compte déjà. */
+      const plafond = typeof plafonds === 'function' ? plafonds(r.hote) : INVITES_MAX + 1;
+      if (total >= plafond) throw pleine(plafond);
       try { membresAjouter({ conv: r.conv, par: null, uids: [uid], max: INVITES_MAX + 1 }); }
       catch (e) { if (e && e.code === 'groupe_plein') throw erreur('trop_d_invites'); throw e; }
       const t = horloge();
@@ -2746,6 +2800,143 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
               ORDER BY COALESCE(relu_le, 0), espace LIMIT ?`).all(Math.max(1, limite | 0)).map(r => r.espace);
   }
 
+  /* ── PERSO+ : l'abonnement d'une PERSONNE (migration 10) — le dernier état que STRIPE a dit, jamais ce qu'une requête prétend ──────────────────────────────────────────────────────────────────────
+     Même discipline que l'abonnement d'un espace, avec une clé de plus petite taille : la personne. Ce bloc range et lit ; il ne parle pas à Stripe, ne décide d'aucune formule (`formule.js`). */
+  function abonnementPersoLire(uid) {
+    const r = Q('SELECT personne, client, abonnement, session, session_le, statut, fin_periode, annule, relu_le FROM abonnement_perso WHERE personne = ?').get(uid);
+    if (!r) return null;
+    return { personne: r.personne, client: r.client, abonnement: r.abonnement, session: r.session, session_le: orNul(r.session_le), statut: r.statut, fin_periode: orNul(r.fin_periode), annule: !!r.annule, relu_le: orNul(r.relu_le) };
+  }
+  /* La session de paiement qu'on VIENT d'ouvrir pour cette personne (la dernière) : c'est elle, et elle seule, qui dira plus tard quel abonnement est le sien. */
+  function abonnementPersoSession(uid, session) {
+    const t = horloge();
+    Q('INSERT INTO abonnement_perso(personne, session, session_le, cree) VALUES(?, ?, ?, ?) ON CONFLICT(personne) DO UPDATE SET session = excluded.session, session_le = excluded.session_le').run(uid, session, t, t);
+  }
+  /* On n'oublie QUE la session qu'on vient de relire : si un paiement a rangé une session neuve entre-temps, elle reste. */
+  function abonnementPersoSessionOubliee(uid, session) { Q('UPDATE abonnement_perso SET session = NULL, session_le = NULL WHERE personne = ? AND session = ?').run(uid, session); }
+  /* Ce que Stripe a dit de l'abonnement de cette personne. `adopter` : l'abonnement vient d'être trouvé par la session (il remplace l'ancien et la session est consommée). Un abonnement déjà attaché à une
+     AUTRE personne ne s'attache pas (`abonnement_pris`). */
+  function abonnementPersoPoser(uid, { client, abonnement, statut, fin_periode, annule }, { adopter = false } = {}) {
+    return tx(() => {
+      const t = horloge();
+      if (abonnement && Q('SELECT 1 AS x FROM abonnement_perso WHERE abonnement = ? AND personne <> ?').get(abonnement, uid)) throw erreur('abonnement_pris');
+      Q('INSERT INTO abonnement_perso(personne, cree) VALUES(?, ?) ON CONFLICT(personne) DO NOTHING').run(uid, t);
+      const ancien = Q('SELECT abonnement FROM abonnement_perso WHERE personne = ?').get(uid);
+      if (adopter) Q('UPDATE abonnement_perso SET client = ?, abonnement = ?, statut = ?, fin_periode = ?, annule = ?, relu_le = ?, session = NULL, session_le = NULL WHERE personne = ?')
+        .run(client || null, abonnement || null, statut, fin_periode === undefined ? null : fin_periode, annule ? 1 : 0, t, uid);
+      else Q('UPDATE abonnement_perso SET client = ?, abonnement = ?, statut = ?, fin_periode = ?, annule = ?, relu_le = ? WHERE personne = ?')
+        .run(client || null, abonnement || null, statut, fin_periode === undefined ? null : fin_periode, annule ? 1 : 0, t, uid);
+      /* ⛔ ce qu'on attendait d'un abonnement qui n'est plus (remplacé par un autre, ou FINI chez Stripe) n'a plus de sens : sa ligne d'`abonnement_a_annuler` part avec lui — sinon un renouvellement arrêté pour un
+         abonnement terminé resterait là pour toujours. Jamais une RÉSILIATION : elle ne se ferme que sur la parole de Stripe (`annulationFaite`). */
+      if (ancien && ancien.abonnement && ancien.abonnement !== (abonnement || null)) Q("DELETE FROM abonnement_a_annuler WHERE abonnement = ? AND voulu <> 'resilier'").run(ancien.abonnement);
+      if (abonnement && ABO_FINIS.includes(statut)) Q("DELETE FROM abonnement_a_annuler WHERE abonnement = ? AND voulu <> 'resilier'").run(abonnement);
+    });
+  }
+  /* Les personnes à relire chez Stripe : celles dont l'abonnement court encore, et celles dont une session de paiement n'est pas RÉSOLUE (sans borne d'âge — comme pour un espace : payée à la 23e heure pendant
+     une panne, elle doit finir reconnue). Une personne dont le compte est effacé y reste tant qu'une session attend : un paiement réglé APRÈS l'effacement s'annule dès qu'il est reconnu. */
+  function abonnementsPersoARelire(limite = 200) {
+    return Q(`SELECT personne FROM abonnement_perso
+              WHERE (abonnement IS NOT NULL AND statut NOT IN ('canceled', 'incomplete_expired')) OR session IS NOT NULL
+              ORDER BY COALESCE(relu_le, 0), personne LIMIT ?`).all(Math.max(1, limite | 0)).map(r => r.personne);
+  }
+  /* ⛔ Le passage d'un abonnement personnel à la RÉSILIATION (le compte est EFFACÉ) : s'il vit, sa résiliation est NOTÉE (`abonnement_a_annuler`, `resilier`) ; un abonnement déjà FINI chez Stripe n'a plus rien
+     à résilier, et la ligne qui l'attendait (un renouvellement arrêté) part avec lui ; une session de paiement non résolue RESTE sur la ligne (la relecture la résout), sinon la ligne part.
+     À APPELER DANS une transaction (`compteEffacer`, `abonnementPersoOrphelin`). */
+  function persoVersAnnulation(uid) {
+    const ap = Q('SELECT abonnement, client, statut, session FROM abonnement_perso WHERE personne = ?').get(uid);
+    if (!ap) return;
+    if (ap.abonnement) {
+      if (ABO_FINIS.includes(ap.statut)) Q("DELETE FROM abonnement_a_annuler WHERE abonnement = ? AND voulu <> 'resilier'").run(ap.abonnement);
+      else annulationAjouter({ abonnement: ap.abonnement, client: ap.client });
+    }
+    if (ap.session) Q(`UPDATE abonnement_perso SET abonnement = NULL, client = NULL, statut = 'aucun', fin_periode = NULL, annule = 0 WHERE personne = ?`).run(uid);
+    else Q('DELETE FROM abonnement_perso WHERE personne = ?').run(uid);
+  }
+  /* ⛔ PERSO+ ET LA DEMANDE DE SUPPRESSION D'UN COMPTE (Justin, 4 octobre 2026 : « quelqu'un qui DEMANDE la suppression de son compte veut partir, et le prélever pendant les quatorze jours est injuste »).
+     Ce que l'abonnement d'une personne DOIT devenir se DÉDUIT de l'état de la personne — jamais d'un geste isolé, qui se perdrait ou se rejouerait de travers — et se range en `abonnement_a_annuler` :
+       · une suppression DEMANDÉE (`suppression_le` posée)  → `fin`        : il cesse de se renouveler chez Stripe ; l'accès reste jusqu'à la fin de la période payée ou jusqu'à l'effacement ;
+       · la demande ANNULÉE (la personne se reconnecte)     → `renouveler` : le renouvellement revient — SAUF si NOUS n'y avions pas touché (`touche` = 0 : la personne l'avait arrêté elle-même, par le portail,
+                                                                avant sa demande — on ne réactive JAMAIS ce qu'une personne a coupé elle-même) ;
+       · le compte EFFACÉ                                   → `resilier`   : `persoVersAnnulation` ; terminal, rien ne la défait.
+     IDEMPOTENT et appelé à chaque chemin qui change l'état (la demande, son annulation, leurs REJEUX après une restauration) ET après chaque relecture de Stripe (`facturation-perso.js`) : un abonnement dont le
+     paiement n'est reconnu qu'APRÈS la demande reçoit son `fin` à ce moment-là, et un renouvellement que Stripe dit rétabli malgré la demande (la personne l'a remis par le portail) est refait. Une ligne `fin` FAITE
+     reste (elle sait, si la personne revient, que le renouvellement est à rétablir) ; jamais de ligne pour un abonnement fini. → 'fin' | 'renouveler' | 'resilier' | null (rien à faire). */
+  function persoAjuster(uid) {
+    return tx(() => {
+      const p = Q('SELECT etat, suppression_le FROM personne WHERE id = ?').get(uid);
+      if (!p || p.etat !== 'actif') return null;                                  // un compte effacé : c'est la résiliation (`persoVersAnnulation`), pas ceci
+      const ap = Q('SELECT abonnement, client, statut, annule FROM abonnement_perso WHERE personne = ?').get(uid);
+      if (!ap || !ap.abonnement) return null;                                      // pas d'abonnement (encore) : le paiement reconnu plus tard rappelle ceci
+      const x = Q('SELECT voulu, touche, fait FROM abonnement_a_annuler WHERE abonnement = ?').get(ap.abonnement);
+      if (ABO_FINIS.includes(ap.statut)) {                                         // fini chez Stripe : rien à arrêter, rien à rétablir
+        if (x && x.voulu !== 'resilier') Q('DELETE FROM abonnement_a_annuler WHERE abonnement = ?').run(ap.abonnement);
+        return null;
+      }
+      if (x && x.voulu === 'resilier') return 'resilier';                          // une résiliation ne se défait JAMAIS
+      const t = horloge();
+      if (p.suppression_le !== null && p.suppression_le !== undefined) {
+        if (!x) Q("INSERT INTO abonnement_a_annuler(abonnement, client, voulu, demande) VALUES(?, ?, 'fin', ?)").run(ap.abonnement, ap.client || null, t);
+        else if (x.voulu !== 'fin') Q("UPDATE abonnement_a_annuler SET voulu = 'fin', fait = 0, essais = 0, dernier = NULL, demande = ? WHERE abonnement = ?").run(t, ap.abonnement);
+        else if (num(x.fait) === 1 && !ap.annule) Q('UPDATE abonnement_a_annuler SET fait = 0, essais = 0, dernier = NULL, demande = ? WHERE abonnement = ?').run(t, ap.abonnement);   // Stripe dit qu'il se renouvelle encore : on le refait
+        return 'fin';
+      }
+      if (!x) return null;                                                          // rien n'a été arrêté : rien à rétablir
+      if (x.voulu === 'fin') {
+        if (num(x.touche) === 0) { Q('DELETE FROM abonnement_a_annuler WHERE abonnement = ?').run(ap.abonnement); return null; }   // nous n'avons jamais touché à Stripe : l'état qu'il porte n'est pas le nôtre
+        Q("UPDATE abonnement_a_annuler SET voulu = 'renouveler', fait = 0, essais = 0, dernier = NULL, demande = ? WHERE abonnement = ?").run(t, ap.abonnement);
+      }
+      return 'renouveler';
+    });
+  }
+  /* Un paiement reconnu APRÈS l'effacement du compte : son abonnement passe à l'annulation et la ligne s'en va. */
+  function abonnementPersoOrphelin(uid) { return tx(() => { persoVersAnnulation(uid); abonnementPersoNettoyer(uid); }); }
+  /* Ce qui reste d'une ligne quand plus rien n'y attend : ni abonnement vivant, ni session — la personne n'a plus rien chez Stripe, et la ligne d'un compte effacé n'a plus de raison d'exister. */
+  function abonnementPersoNettoyer(uid) {
+    Q(`DELETE FROM abonnement_perso WHERE personne = ? AND session IS NULL AND (abonnement IS NULL OR statut IN ('canceled', 'incomplete_expired', 'aucun')) AND EXISTS (SELECT 1 FROM personne WHERE id = ? AND etat = 'supprime')`).run(uid, uid);
+  }
+  /* ── ce qu'il reste à faire chez Stripe pour une personne qui s'en va : NOTÉ dans la transaction de son geste (la demande, son annulation, l'effacement), rejoué jusqu'à la confirmation ── */
+  /* La RÉSILIATION d'un compte effacé (terminale). Une ligne `fin` ou `renouveler` du même abonnement devient `resilier`, avec une attente neuve ; une résiliation déjà en attente garde son âge et ses essais. */
+  function annulationAjouter({ abonnement, client }) {
+    Q(`INSERT INTO abonnement_a_annuler(abonnement, client, voulu, demande) VALUES(?, ?, 'resilier', ?)
+       ON CONFLICT(abonnement) DO UPDATE SET
+         essais = CASE WHEN voulu = 'resilier' THEN essais ELSE 0 END,
+         dernier = CASE WHEN voulu = 'resilier' THEN dernier ELSE NULL END,
+         demande = CASE WHEN voulu = 'resilier' THEN demande ELSE excluded.demande END,
+         client = COALESCE(client, excluded.client),
+         voulu = 'resilier', fait = 0`).run(abonnement, client || null, horloge());
+  }
+  const ligneAnnulation = (r) => r ? { abonnement: r.abonnement, client: r.client, voulu: r.voulu, avant: orNul(r.avant), touche: num(r.touche), fait: num(r.fait) === 1, demande: num(r.demande), essais: num(r.essais), dernier: orNul(r.dernier) } : null;
+  /* Ce qui attend Stripe (`fait` = 0), du plus ancien au plus récent. */
+  function annulationsDues(limite = 50) {
+    return Q('SELECT abonnement, client, voulu, avant, touche, fait, demande, essais, dernier FROM abonnement_a_annuler WHERE fait = 0 ORDER BY demande, abonnement LIMIT ?').all(Math.max(1, limite | 0)).map(ligneAnnulation);
+  }
+  function annulationLire(abonnement) { return ligneAnnulation(Q('SELECT abonnement, client, voulu, avant, touche, fait, demande, essais, dernier FROM abonnement_a_annuler WHERE abonnement = ?').get(abonnement)); }
+  /* La personne a-t-elle changé d'avis pendant que le service parlait à Stripe ? À demander JUSTE AVANT de lui écrire : l'intention rangée doit être encore celle qu'on s'apprête à faire. */
+  function annulationEncore(abonnement, voulu) { return !!Q('SELECT 1 AS x FROM abonnement_a_annuler WHERE abonnement = ? AND voulu = ? AND fait = 0').get(abonnement, voulu); }
+  /* ⛔ SE SOUVENIR AVANT DE TOUCHER : l'état du renouvellement tel que Stripe le porte (`avant` : 1 = arrêté, 0 = il se renouvelait) et le fait que NOUS allons y toucher (`touche`) se rangent AVANT l'appel — un arrêt
+     entre l'appel et sa confirmation n'oublie pas que le geste est le nôtre, et c'est ce qui permet de rétablir sans jamais réactiver ce que la personne avait coupé. → faux si l'intention a changé entre-temps (rien n'est rangé). */
+  function annulationMemoriser(abonnement, voulu, { avant, touche }) {
+    return num(Q('UPDATE abonnement_a_annuler SET avant = ?, touche = ? WHERE abonnement = ? AND voulu = ? AND fait = 0').run(avant, touche, abonnement, voulu).changes) > 0;
+  }
+  /* Stripe a CONFIRMÉ. Comparer-et-poser : seule la ligne qui porte encore l'intention accomplie se ferme — une personne qui change d'avis pendant l'appel ne voit pas sa nouvelle demande effacée.
+     `fini` : l'abonnement est FINI chez Stripe (résilié, expiré, absent confirmé) — plus rien à faire, quelle que soit l'intention.
+       · `fin`        : la ligne RESTE, `fait` ; elle sait ce que Stripe portait avant notre geste ;
+       · `renouveler` : Stripe est revenu à l'état d'avant notre geste, la mémoire repart de zéro — et la ligne part, si l'intention n'a pas changé depuis ;
+       · `resilier`   : la ligne part. */
+  function annulationFaite(abonnement, voulu, { fini = false } = {}) {
+    tx(() => {
+      if (fini) { Q('DELETE FROM abonnement_a_annuler WHERE abonnement = ?').run(abonnement); return; }
+      if (voulu === 'fin') Q("UPDATE abonnement_a_annuler SET fait = 1, essais = 0, dernier = NULL WHERE abonnement = ? AND voulu = 'fin'").run(abonnement);
+      else if (voulu === 'renouveler') {
+        Q('UPDATE abonnement_a_annuler SET avant = NULL, touche = 0 WHERE abonnement = ?').run(abonnement);
+        Q("DELETE FROM abonnement_a_annuler WHERE abonnement = ? AND voulu = 'renouveler'").run(abonnement);
+      } else Q("DELETE FROM abonnement_a_annuler WHERE abonnement = ? AND voulu = 'resilier'").run(abonnement);
+    });
+  }
+  function annulationEchec(abonnement) { Q('UPDATE abonnement_a_annuler SET essais = essais + 1, dernier = ? WHERE abonnement = ?').run(horloge(), abonnement); }
+  /* La plus ancienne demande encore en attente de Stripe (l'instant où l'intention a été notée), ou null : `/health` n'en publie que l'ÂGE, en minutes — jamais combien, ni lesquelles, ni de quel genre. */
+  function annulationPlusAncienne() { const r = Q('SELECT MIN(demande) AS d FROM abonnement_a_annuler WHERE fait = 0').get(); return r && r.d !== null && r.d !== undefined ? num(r.d) : null; }
+
   /* ══ APPELS À DEUX (migration 8) ET APPELS À PLUSIEURS, SALLES DE RÉUNION (migration 9) ═══════════════════════════════════════════════════════════════
      Ce bloc range et lit : il ne relaie JAMAIS un signal (c'est `appels.js`), n'envoie aucun push, ne lit aucune horloge qu'on ne lui ait donnée (`horloge`, injectée), et ne sait rien d'un média. Ce qu'il tient,
      ce sont les INVARIANTS, chacun dans UNE transaction :
@@ -3202,6 +3393,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   /* Les appareils liés des personnes PRÉSENTES (le service relaie les événements de la salle à ceux-là seuls) → [{ uid, session }] */
   const appelAppelant = (id) => { const r = Q(`SELECT uid FROM appel_part WHERE appel = ? AND role = 'appelant'`).get(id); return r ? r.uid : null; };   // celui qui a lancé l'appel (un autre est devenu hôte depuis, jamais « l'appelant »)
   const salleSessions = (id) => Q(`SELECT uid, session FROM appel_part WHERE appel = ? AND statut = 'present' AND session IS NOT NULL ORDER BY uid`).all(id).map(r => ({ uid: r.uid, session: r.session }));
+  /* ⛔ QUI ORGANISE UNE SALLE (Perso+) : le genre de la salle, et — pour un appel de groupe — la personne qui l'a LANCÉ (jamais l'hôte du moment : un autre est devenu hôte depuis, ce n'est pas lui qui paie). Une
+     salle de RÉUNION n'a pas d'organisateur ici : sa réunion a été programmée par quelqu'un qui pouvait l'organiser, et ses outils lui restent. → { genre, organisateur } ou null (pas une salle). */
+  function salleOrganisateur(id) {
+    const a = appelBrut(id);
+    if (!a || a.genre === 'deux') return null;
+    return { genre: a.genre, organisateur: a.genre === 'groupe' ? appelAppelant(id) : null };
+  }
   /* La salle de cette réunion, si elle est ouverte (qui sonne ou court) → son identifiant, ou null. */
   const salleDeReunion = (reunion) => { const r = Q(`SELECT id FROM appel WHERE reunion = ? AND genre = 'reunion' AND etat IN ('sonne', 'en_cours') ORDER BY cree DESC, id DESC LIMIT 1`).get(reunion); return r ? r.id : null; };
   /* ⛔ ENTRER DANS LA SALLE D'UNE RÉUNION PROGRAMMÉE : la salle est ouverte par le PREMIER qui entre (elle naît « en cours », personne n'y sonne) ; les suivants rejoignent celle qui est ouverte. Il faut être invité (l'hôte
@@ -3358,6 +3556,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         espace_membre: non(() => Q('SELECT 1 FROM espace_membre LIMIT 1')),
         canal: non(() => Q('SELECT 1 FROM canal LIMIT 1')),
         abonnement: non(() => Q('SELECT 1 FROM abonnement LIMIT 1')),
+        abonnement_perso: non(() => Q('SELECT 1 FROM abonnement_perso LIMIT 1')),
+        abonnement_a_annuler: non(() => Q('SELECT 1 FROM abonnement_a_annuler LIMIT 1')),
         reunion: non(() => Q('SELECT 1 FROM reunion LIMIT 1')),
         reunion_invite: non(() => Q('SELECT 1 FROM reunion_invite LIMIT 1')),
         rappel: non(() => Q('SELECT 1 FROM rappel LIMIT 1')),
@@ -3392,6 +3592,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     invitationApercu, invitationAccepter, invitationsRevoquer, invitationsVivantes, invitationEspace, espaceUids,
     canalDe, canauxVisibles, canalCreer, canalPourAdmin, canalMembresAjouter, canalMembreRetirer, canalQuitter,
     abonnementLire, abonnementSession, abonnementSessionOubliee, abonnementPoser, abonnementsARelire,
+    abonnementPersoLire, abonnementPersoSession, abonnementPersoSessionOubliee, abonnementPersoPoser, abonnementsPersoARelire, abonnementPersoNettoyer, abonnementPersoOrphelin,   // Perso+ : l'abonnement d'une personne
+    persoAjuster, annulationAjouter, annulationsDues, annulationLire, annulationEncore, annulationMemoriser, annulationFaite, annulationEchec, annulationPlusAncienne,   // …et ce qu'il reste à faire chez Stripe quand la personne s'en va (arrêt du renouvellement, rétablissement, résiliation)
     convDirecteObtenir, convCreerGroupe, convSupprimer, convPourMembre, convListe, convMaj, membresActifs, membresDetail, nbAdmins,
     membresAjouter, membreRetirer, membreQuitter, membreRole, membrePrefs, membreLu, autreDirect, ecritureAutorisee,
     messageEnvoyer, messageExiste, messagesDe, messageModifier, messageSupprimer, messageReagir, reactionsDe, purgerExpires,
@@ -3412,7 +3614,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
     courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions,                                                                                                                  // …et le courriel d'invitation
     appelVue, appelAcces, appelActifDe, appelActifVue, appelsRecusDepuis, appelCreer, appelRepondre, appelQuitter, appelFinir, appelsEchoir, appelsActifs, appelsListe, appelsElaguer, appelsQuitterTout, appelsFinirEntre, appelsReparer, appelSourdine, exportAppels,   // les appels à deux
-    appelCreerGroupe, appelRejoindre, appelPartir, salleAdmettre, salleRefuser, salleExclure, salleVerrou, salleAttente, sallePartage, salleRec, salleCohote, salleTerminer, salleSessions, salleDeReunion, appelAppelant, salleReunionRejoindre, sallesOuvertes,   // …et à plusieurs : les salles
+    appelCreerGroupe, appelRejoindre, appelPartir, salleAdmettre, salleRefuser, salleExclure, salleVerrou, salleAttente, sallePartage, salleRec, salleCohote, salleTerminer, salleSessions, salleDeReunion, appelAppelant, salleOrganisateur, salleReunionRejoindre, sallesOuvertes,   // …et à plusieurs : les salles
   };
 }
 
@@ -3424,7 +3626,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
    ⚠️ Aucune ne déchiffre quoi que ce soit et aucune n'a besoin de la clé maître : « ce fichier est-il intact » et « sais-je le lire »
    sont deux questions, et seule la première est du ressort d'une sauvegarde.
    Rangées sur `ouvrir.copie` plutôt que dans `module.exports` : le service, lui, n'a pas à les connaître. */
-const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi', 'appel', 'appel_part'];
+const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi', 'appel', 'appel_part'];
 
 function ouvrirCopie(chemin, { moteur, ecriture = false } = {}) {
   const { DatabaseSync } = moteur || require('node:sqlite');
@@ -3459,6 +3661,8 @@ function lignesDe(d) {
     espace_membre: n(() => d.prepare('SELECT COUNT(*) AS n FROM espace_membre')),
     canal: n(() => d.prepare('SELECT COUNT(*) AS n FROM canal')),
     abonnement: n(() => d.prepare('SELECT COUNT(*) AS n FROM abonnement')),
+    abonnement_perso: n(() => d.prepare('SELECT COUNT(*) AS n FROM abonnement_perso')),
+    abonnement_a_annuler: n(() => d.prepare('SELECT COUNT(*) AS n FROM abonnement_a_annuler')),
     reunion: n(() => d.prepare('SELECT COUNT(*) AS n FROM reunion')),
     reunion_invite: n(() => d.prepare('SELECT COUNT(*) AS n FROM reunion_invite')),
     rappel: n(() => d.prepare('SELECT COUNT(*) AS n FROM rappel')),

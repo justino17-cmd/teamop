@@ -96,6 +96,8 @@ function installerEspaces(H, ctx) {
     res.json({
       espaces: stockage.espacesDe(req.moi.id).map(e => ({ id: e.id, nom: e.nom, role: e.role, proprio: e.proprio === req.moi.id, membres_n: e.membres_n })),
       formule: v.formule, abonnement_ouvert: !!(ctx.facturation && ctx.facturation.ouvert()),
+      /* PERSO+ : la personne peut-elle ORGANISER (Pro ou Perso+) ? un booléen que la page lit pour décider d'ouvrir le formulaire d'une réunion ou la feuille Perso+ ; le détail est dans `/api/moi/perso-plus` */
+      organiser: formule.peutOrganiser(req.moi.id).ok,
     });
   });
 

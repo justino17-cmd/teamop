@@ -56,6 +56,12 @@ vrai('   et « jamais réussi » (null) crie en production : une sauvegarde qu\'
 v('⛔ EN BÊTA l\'exercice n\'est PAS une alarme (null, 40 jours : rien) — la bêta est jetable, et crier chaque mois y apprendrait à ignorer l\'alarme de la production', [avecSauv({ essaiJours: null }, 'beta'), avecSauv({ essaiJours: 400 }, 'beta')], [[], []]);
 vrai('⛔ Stripe illisible depuis 120 minutes crie', S.evaluer(Object.assign({}, SAIN, { stripeEchecMin: 120 }), 'beta').some(p => /Stripe/.test(p)));
 v('   à 90 minutes pile, non (la règle d\'OP GESTION : on crie AU-DELÀ de 90)', S.evaluer(Object.assign({}, SAIN, { stripeEchecMin: 90 }), 'beta'), []);
+/* ⛔ Perso+ : une personne qui s'en va (suppression demandée, annulée ou compte effacé) dont l'abonnement n'a pas pu être arrêté, rétabli ou résilié chez Stripe — une carte prélevée pour quelqu'un qui est parti. /health ne dit que l'AGE du plus ancien geste en attente. */
+const avecAnnulation = (min) => S.evaluer(Object.assign({}, SAIN, { facturation: { mode: 'test', toutOuvert: false, persoAnnulationMin: min } }), 'beta');
+vrai('⛔ Perso+ : un geste d\'abonnement (arrêt du renouvellement, rétablissement ou résiliation) qui attend Stripe depuis plus d\'un jour (1 500 min) crie, et le message le dit en heures', avecAnnulation(1500).some(p => /Perso\+/.test(p) && /25 h/.test(p)));
+v('   à 1 440 minutes pile (un jour), non — on crie AU-DELÀ', avecAnnulation(1440), []);
+v('   aucune attente (0), un /health d\'avant (sans la clé) : rien', [avecAnnulation(0), S.evaluer(SAIN, 'beta').filter(p => /Perso\+/.test(p))], [[], []]);
+vrai('   le message ne cite aucun identifiant et aucun nombre d\'abonnés', avecAnnulation(3000).every(p => !/sub_|cus_|p_[0-9a-f]{32}|abonnés/.test(p)));
 vrai('⛔ une ligne chiffrée illisible crie (le service avale l\'erreur de lecture : sans ce champ, personne ne le saurait)', S.evaluer(Object.assign({}, SAIN, { base: { ok: true, schema: 1, illisibles: 2 } }), 'beta').some(p => /illisible/.test(p)));
 v('   zéro ligne illisible : rien', S.evaluer(Object.assign({}, SAIN, { base: { ok: true, schema: 1, illisibles: 0 } }), 'beta'), []);
 vrai('⛔ une pièce illisible crie (le service avale l\'erreur de lecture d\'un fichier : sans ce champ, des photos disparaîtraient sans que personne le sache)', S.evaluer(Object.assign({}, SAIN, { pieces: Object.assign({}, SAIN.pieces, { illisibles: 1 }) }), 'beta').some(p => /illisible/.test(p)));
@@ -198,7 +204,7 @@ const T = require('./outils-msg');
       for (const c of sans) vus.add(c);
       v('⛔ le /health ' + instance + ' VIVANT n\'a aucun champ NEUF sans décision — un champ neuf oblige à trancher, une fois, par écrit (l\'exemple écrit à la main ne le voyait pas)', sans.filter(c => !DETTE.includes(c)), []);
       vrai('   la facturation y est, et elle est classée : `stripeEchecMin` est surveillé, le mode et le drapeau de la bêta sont nommés', !!h.facturation && S.nonClasses({ stripeEchecMin: 0, facturation: h.facturation }).length === 0);
-      v('⛔ … et RIEN d\'autre : ni espaces, ni abonnés, ni impayés (/health est public : ces chiffres commerciaux se lisent dans Stripe)', S.chemins(h.facturation).sort(), ['mode', 'toutOuvert']);
+      v('⛔ … et RIEN d\'autre : ni espaces, ni abonnés, ni impayés (/health est public : ces chiffres commerciaux se lisent dans Stripe)', S.chemins(h.facturation).sort(), ['mode', 'persoAnnulationMin', 'toutOuvert']);
     } finally { if (svc) await svc.arreter(); }
   }
   v('⛔ chaque champ de la dette existe encore et n\'est toujours pas classé (un champ classé sort de la liste : elle ne parle jamais du vide)', DETTE.filter(c => !vus.has(c)), []);

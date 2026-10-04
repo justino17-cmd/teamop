@@ -7,6 +7,9 @@
         P public · S session · V session ET adresse confirmée · M membre · A administrateur · B bêta · R invité d'une réunion · H son hôte · AP participant d'un appel
         SP participant d'une salle · SH hôte ou co-hôte présent · SO l'hôte seul · SJ qui veut entrer (étape 8)
 
+   Deux drapeaux de FORMULE s'ajoutent à la garde : `pro` (la fonction d'une entreprise : Pro seul) et `organiser` (celle d'un ORGANISATEUR : Pro OU Perso+, le forfait d'une PERSONNE — programmer une réunion).
+   Chacun a ses cellules ci-dessous ; jamais les deux sur une même route.
+
    ⛔ UNE ROUTE ABSENTE DE LA MATRICE FAIT TOMBER LE BANC (et une ligne de matrice sans route aussi) :
    ajouter une route au manifeste oblige à dire, ICI, ce qu'elle doit refuser à qui. Et il n'existe aucun
    autre chemin d'enregistrement (`app.get(`… hors de la boucle de montage : zéro), sinon une route
@@ -138,12 +141,17 @@ const MATRICE = {
   'facturation.etat':   { ok: (F) => ['GET', '/api/espaces/' + F.E + '/facturation/etat'], codes: [200] },
   'facturation.paiement': { ok: (F) => ['POST', '/api/espaces/' + F.E + '/facturation/paiement', { places: 3 }], codes: [503] },   // sans clé Stripe : la garde a passé, la facturation est INERTE et le dit
   'facturation.portail': { ok: (F) => ['POST', '/api/espaces/' + F.E + '/facturation/portail', {}], codes: [503] },
+  /* PERSO+ : le forfait d'une PERSONNE. Sans clé Stripe ni tarif Perso+ (ce service-ci), payer, gérer et relire passent la garde et trouvent le forfait INERTE (503) ; l'état se lit toujours (200). */
+  'perso.etat':         { ok: () => ['GET', '/api/moi/perso-plus'], codes: [200] },
+  'perso.paiement':     { ok: () => ['POST', '/api/moi/perso-plus/paiement', { cycle: 'mensuel' }], codes: [503] },
+  'perso.portail':      { ok: () => ['POST', '/api/moi/perso-plus/portail', {}], codes: [503] },
+  'perso.relire':       { ok: () => ['POST', '/api/moi/perso-plus/relire', {}], codes: [503] },
   'facturation.relire': { ok: (F) => ['POST', '/api/espaces/' + F.E + '/facturation/relire', {}], codes: [503] },
   /* Les RÉUNIONS PROGRAMMÉES (étape 6). Le fixture de chaque route est une réunion à venir : Ana l'héberge (H), Ben et Dan sont invités (R), Cleo (contact d'Ana) et Nina (non confirmée) n'y sont pas. Créer
      une réunion est une fonction Pro (garde V + `pro`) : Cleo, qui n'est dans aucun espace payé, reçoit 402 — « Perso qui programme hors bêta ». Un invité qui n'est pas l'hôte reçoit 403 sur
      les routes d'hôte (H) ; l'hôte qui « répond » à sa propre réunion reçoit 409 `hote_reponse` : la garde a passé, le geste dit non (test-973 le joue). */
   'reunions.liste':     { ok: () => ['GET', '/api/reunions'], codes: [200] },
-  'reunions.creer':     { pro: 'personne', ok: (F, a) => ['POST', '/api/reunions', { titre: 'Point ' + (a ? a.slice(2, 8) : 'x'), debut: Date.now() + 3 * 86400000, fin: Date.now() + 3 * 86400000 + 3600000, invites: [] }], codes: [201], attendu: { nonmembre: [402, 'formule_requise'] } },
+  'reunions.creer':     { organiser: true, ok: (F, a) => ['POST', '/api/reunions', { titre: 'Point ' + (a ? a.slice(2, 8) : 'x'), debut: Date.now() + 3 * 86400000, fin: Date.now() + 3 * 86400000 + 3600000, invites: [] }], codes: [201], attendu: { nonmembre: [402, 'formule_requise'] } },
   'reunions.lire':      { ok: (F) => ['GET', '/api/reunions/' + F.R], codes: [200] },
   'reunions.modifier':  { ok: (F) => ['POST', '/api/reunions/' + F.R + '/modifier', { lieu: 'Salle 2' }], codes: [200] },
   'reunions.annuler':   { ok: (F) => ['POST', '/api/reunions/' + F.R + '/annuler', {}], codes: [200] },
@@ -232,7 +240,7 @@ const ATTENDU = {
   const lire = T.lireBase;
   const instantane = () => {
     const d = lire(path.join(svc.data, 'msg.db'));
-    try { return ['personne', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'lien', 'notification', 'contact', 'journal', 'piece', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'reunion', 'reunion_invite', 'rappel', 'appel', 'appel_part'].map(t => d.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(LENGTH(CAST(rowid AS TEXT))),0) AS s FROM ' + t).get().n).join(',') + '|' + d.prepare('SELECT COALESCE(SUM(lu_seq),0) AS a, COALESCE(SUM(role=\'admin\'),0) AS b, COALESCE(SUM(epingle),0) AS c FROM membre').get().a; } finally { d.close(); }
+    try { return ['personne', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'lien', 'notification', 'contact', 'journal', 'piece', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'appel', 'appel_part'].map(t => d.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(LENGTH(CAST(rowid AS TEXT))),0) AS s FROM ' + t).get().n).join(',') + '|' + d.prepare('SELECT COALESCE(SUM(lu_seq),0) AS a, COALESCE(SUM(role=\'admin\'),0) AS b, COALESCE(SUM(epingle),0) AS c FROM membre').get().a; } finally { d.close(); }
   };
   try {
     console.log('Le manifeste et la matrice disent la MÊME chose');
@@ -243,7 +251,9 @@ const ATTENDU = {
       v('les identifiants du manifeste sont uniques, et chaque (méthode, chemin) aussi', [new Set(ids).size === ids.length, new Set(MANIFESTE.map(r => r.m + ' ' + r.p)).size === ids.length], [true, true]);
       v('toutes les gardes du manifeste sont connues de la table des attentes', MANIFESTE.filter(r => !ATTENDU[r.garde]).map(r => r.id), []);
       vrai('population : au moins 30 routes à jouer', MANIFESTE.length >= 30);
-      v('les treize routes des réunions sont au manifeste, avec leurs gardes (liste S, programmer V + Pro, fiche R, six gestes d\'hôte H, quitter R, réponse R, rappels R, fichier R, courriel H)', ['reunions.liste', 'reunions.creer', 'reunions.lire', 'reunions.modifier', 'reunions.annuler', 'reunions.supprimer', 'reunions.inviter', 'reunions.retirer', 'reunions.quitter', 'reunions.reponse', 'reunions.rappels', 'reunions.ics', 'reunions.courriel'].map(i => { const x = MANIFESTE.find(y => y.id === i) || {}; return x.garde + (x.pro ? '+pro' : ''); }), ['S', 'V+pro', 'R', 'H', 'H', 'H', 'H', 'H', 'R', 'R', 'R', 'R', 'H']);
+      v('les treize routes des réunions sont au manifeste, avec leurs gardes (liste S, programmer V + organisateur [Pro OU Perso+], fiche R, six gestes d\'hôte H, quitter R, réponse R, rappels R, fichier R, courriel H)', ['reunions.liste', 'reunions.creer', 'reunions.lire', 'reunions.modifier', 'reunions.annuler', 'reunions.supprimer', 'reunions.inviter', 'reunions.retirer', 'reunions.quitter', 'reunions.reponse', 'reunions.rappels', 'reunions.ics', 'reunions.courriel'].map(i => { const x = MANIFESTE.find(y => y.id === i) || {}; return x.garde + (x.pro ? '+pro' : '') + (x.organiser ? '+org' : ''); }), ['S', 'V+org', 'R', 'H', 'H', 'H', 'H', 'H', 'R', 'R', 'R', 'R', 'H']);
+      v('les quatre routes de Perso+ (le forfait d\'une PERSONNE) sont au manifeste : l\'état S, payer V, gérer V, relire S — et AUCUNE n\'est Pro ni organisateur (s\'abonner est ouvert à toute personne confirmée)', ['perso.etat', 'perso.paiement', 'perso.portail', 'perso.relire'].map(i => { const x = MANIFESTE.find(y => y.id === i) || {}; return x.garde + (x.pro ? '+pro' : '') + (x.organiser ? '+org' : ''); }), ['S', 'V', 'V', 'S']);
+      v('⛔ UNE SEULE route est « organisateur » (programmer une réunion), aucune n\'est à la fois pro et organisateur — les routes d\'une ENTREPRISE restent Pro seul', [MANIFESTE.filter(r => r.organiser).map(r => r.id), MANIFESTE.filter(r => r.pro && r.organiser).length, MANIFESTE.filter(r => r.pro).map(r => r.id).sort()], [['reunions.creer'], 0, ['canaux.creer', 'espaces.creer', 'espaces.invitations.creer']]);
       v('les six routes des appels à deux sont au manifeste, avec leurs gardes (relais S, historique S, lancer V, répondre AP, raccrocher AP, signal AP), et AUCUNE n\'est Pro — les appels à deux sont gratuits en Perso', ['ice', 'appels.liste', 'appels.creer', 'appels.repondre', 'appels.quitter', 'appels.signal'].map(i => { const x = MANIFESTE.find(y => y.id === i) || {}; return x.garde + (x.pro ? '+pro' : ''); }), ['S', 'S', 'V', 'AP', 'AP', 'AP']);
       v('les vingt et une routes de l\'étape 8 sont au manifeste, avec leurs gardes (rejoindre SJ, lire SP, huit gestes d\'hôte SH, cohote et terminer SO, quatre gestes de participant SP, aperçu P, entrer par le lien S, entrer par l\'identifiant R, lien H, renouveler H), et AUCUNE n\'est Pro — entrer est toujours gratuit',
         ['appels.rejoindre', 'salles.lire', 'salles.admettre', 'salles.refuser', 'salles.exclure', 'salles.verrouiller', 'salles.salle_attente', 'salles.couper_micro', 'salles.partage', 'salles.rec', 'salles.cohote', 'salles.terminer', 'salles.main', 'salles.reaction', 'salles.etat', 'salles.evt', 'reunions.apercu', 'reunions.rejoindre_code', 'reunions.rejoindre', 'reunions.lien', 'reunions.lien_renouveler'].map(i => { const x = MANIFESTE.find(y => y.id === i) || {}; return x.garde + (x.pro ? '+pro' : ''); }),
@@ -301,7 +311,7 @@ const ATTENDU = {
       liees = { A: jA, B: jB };
       return cree.id;
     };
-    let cellules = 0, refusSansEffet = 0, refusAvecEffet = [], espacesVerifies = 0, reunionsVerifiees = 0, appelsVerifies = 0, sallesVerifiees = 0, cellulesPro = 0, cellulesHier = 0;
+    let cellules = 0, refusSansEffet = 0, refusAvecEffet = [], espacesVerifies = 0, reunionsVerifiees = 0, appelsVerifies = 0, sallesVerifiees = 0, cellulesPro = 0, cellulesOrg = 0, cellulesHier = 0;
 
     console.log('\nCHAQUE route contre CHAQUE profil');
     for (const r of MANIFESTE) {
@@ -436,6 +446,33 @@ const ATTENDU = {
         v('⛔ ' + r.id + ' [pro] : les deux refus n\'ont rien écrit', instantane(), avantPro);
         cellulesPro += 3;
       }
+      /* ⛔ LES ROUTES D'ORGANISATEUR (Pro OU Perso+) : la formule se juge sur la PERSONNE, et c'est elle qui lit pourquoi. Un espace impayé depuis trois jours garde son Pro (sursis) ; depuis huit, ni l'administrateur ni
+         le membre ne sont Pro — 402, `raison: "perso"` (aucun forfait personnel), `offre: "perso_plus"`. Un abonnement Perso+ PAYÉ rouvre la route à l'administrateur dont l'espace est impayé ; en retard (past_due),
+         SANS sursis : 402 `raison: "impaye"`. Aucun refus n'écrit. */
+      if (M.organiser) {
+        const retard = (jours) => { const d = raw(); try { d.prepare(`UPDATE abonnement SET statut = 'past_due', impaye_depuis = ?, relu_le = ? WHERE espace = ?`).run(Date.now() - jours * 86400000, Date.now(), E); } finally { d.close(); } };
+        const jouer = async (profil) => { const c = clientDe(profil), ok = M.ok(F, acteurs[profil].id); const rep = await c.appel(ok[0], ok[1], ok[2]); return { code: rep.code, err: rep.j && rep.j.error, raison: rep.j && rep.j.raison, offre: rep.j && rep.j.offre }; };
+        const persoPlus = (uid, statut) => { const d = raw(); try { d.prepare(`INSERT INTO abonnement_perso(personne, statut, abonnement, client, relu_le, cree) VALUES(?, ?, ?, ?, ?, ?) ON CONFLICT(personne) DO UPDATE SET statut = excluded.statut, abonnement = excluded.abonnement, relu_le = excluded.relu_le`).run(uid, statut, 'sub_pp905_' + uid.slice(2, 10), 'cus_pp905', Date.now(), Date.now()); } finally { d.close(); } };
+        retard(3);
+        const sursis = await jouer('admin');
+        vrai(r.id + ' [organiser] × administrateur d\'un espace impayé depuis 3 jours (dans le sursis : Pro) → passe encore (' + M.codes.join('/') + ')', M.codes.includes(sursis.code));
+        retard(8);
+        const avantOrg = instantane();
+        const adm = await jouer('admin'), mem = await jouer('membre');
+        v('⛔ ' + r.id + ' [organiser] × administrateur, espace impayé depuis 8 jours (hors sursis) → 402 formule_requise, raison « perso », offre « perso_plus »', [adm.code, adm.err, adm.raison, adm.offre], [402, 'formule_requise', 'perso', 'perso_plus']);
+        v('⛔ ' + r.id + ' [organiser] × membre, espace impayé depuis 8 jours → le MÊME refus (la formule est celle de la personne, pas celle de l\'espace : il lit, lui aussi, pourquoi)', [mem.code, mem.err, mem.raison, mem.offre], [402, 'formule_requise', 'perso', 'perso_plus']);
+        v('⛔ ' + r.id + ' [organiser] : les deux refus n\'ont rien écrit', instantane(), avantOrg);
+        persoPlus(acteurs.admin.id, 'active');
+        const pp = await jouer('admin');
+        vrai(r.id + ' [organiser] × le même administrateur, espace toujours impayé MAIS abonnement Perso+ payé → passe (' + M.codes.join('/') + ')', M.codes.includes(pp.code));
+        persoPlus(acteurs.admin.id, 'past_due');
+        const avantImp = instantane();
+        const imp = await jouer('admin');
+        v('⛔ ' + r.id + ' [organiser] × abonnement Perso+ en retard (past_due) → 402 formule_requise, raison « impaye », SANS sursis', [imp.code, imp.err, imp.raison, imp.offre], [402, 'formule_requise', 'impaye', 'perso_plus']);
+        v('⛔ ' + r.id + ' [organiser] : le refus pour impayé n\'a rien écrit', instantane(), avantImp);
+        { const d = raw(); try { d.prepare('DELETE FROM abonnement_perso WHERE personne = ?').run(acteurs.admin.id); } finally { d.close(); } }
+        cellulesOrg += 7;
+      }
       /* ⛔ LA HIÉRARCHIE : un administrateur qui n'est pas propriétaire ne touche ni au propriétaire ni à un autre administrateur ; le propriétaire, si */
       if (M.hier) {
         M.hier.prep(F, S);
@@ -454,6 +491,7 @@ const ATTENDU = {
     v('⛔ ' + cellules + ' cellules jouées = routes × profils (aucune sautée en silence)', cellules, MANIFESTE.length * PROFILS.length);
     vrai('population : la hiérarchie des administrateurs a joué ses cellules (' + cellulesHier + ' : deux refus et un geste permis)', cellulesHier === 3);
     vrai('population : les routes Pro ont chacune leurs trois cellules de formule (' + cellulesPro + ')', cellulesPro >= 9 && cellulesPro % 3 === 0 && cellulesPro / 3 === Object.values(MATRICE).filter(m => m.pro).length);
+    vrai('population : la route d\'organisateur a ses sept cellules de formule (' + cellulesOrg + ')', cellulesOrg === 7 * Object.values(MATRICE).filter(m => m.organiser).length && cellulesOrg === 7);
     vrai('population : le 404 « espace inexistant » a été comparé pour toutes les routes d\'espace (' + espacesVerifies + ')', espacesVerifies >= 18);
     vrai('population : le 404 « réunion inexistante » a été comparé pour toutes les routes de réunion à garde R ou H (' + reunionsVerifiees + ')', reunionsVerifiees === MANIFESTE.filter(r => ['R', 'H'].includes(r.garde)).length && reunionsVerifiees >= 8);
     vrai('population : le 404 « appel inexistant » a été comparé pour les trois routes à garde AP (' + appelsVerifies + ')', appelsVerifies === MANIFESTE.filter(r => r.garde === 'AP').length && appelsVerifies === 3);
@@ -553,15 +591,16 @@ const ATTENDU = {
         extra += 5;
         void jD;
       }
-      /* — le PERSO qui lance un groupe : fonction Pro (402), jugée sur celui qui lance ; le Pro, lui, lance (201). Deux contacts à appeler, un seul appel serait un appel à DEUX (gratuit). — */
+      /* — le PERSO qui lance un groupe : GRATUIT (201), comme WhatsApp (Justin, 4 octobre 2026) ; le Pro aussi. Seuls les OUTILS de l'organisateur se paient (test-987, test-992). Deux contacts à appeler, un seul appel serait un appel à DEUX. — */
       {
         for (const p of [A, B, C, D, N]) libre(p.id);
         const c2 = nouvellePers('K4', true); S.contactLier(C.id, c2.id); S.contactLier(C.id, A.id);
         const avant = instantane();
         const perso = await clientDe('nonmembre').post('/api/appels', { uids: [A.id, c2.id], type: 'audio' });
-        v('⛔ un compte PERSO (Cleo, dans aucun espace payé) qui lance un appel à PLUSIEURS : 402 `formule_requise`, rien d\'écrit', [dit(perso), instantane() === avant], [[402, 'formule_requise'], true]);
+        v('⛔ un compte PERSO (Cleo, dans aucun espace payé, sans forfait) qui lance un appel à PLUSIEURS : GRATUIT — 201, genre « groupe » (« comme WhatsApp » : appel, message, appel vidéo)', [perso.code, perso.j && perso.j.appel && perso.j.appel.genre, instantane() !== avant], [201, 'groupe', true]);
+        libre(C.id);
         const deux = await clientDe('nonmembre').post('/api/appels', { uids: [c2.id], type: 'audio' });
-        v('   … et un appel à DEUX reste gratuit (201) : seule la salle est Pro', [deux.code, deux.j && deux.j.appel && deux.j.appel.genre], [201, 'deux']);
+        v('   … et un appel à DEUX reste gratuit lui aussi (201)', [deux.code, deux.j && deux.j.appel && deux.j.appel.genre], [201, 'deux']);
         libre(C.id);
         const pro = await clientDe('admin').post('/api/appels', { uids: [B.id, D.id], type: 'audio' });
         v('contre-épreuve : Ana (propriétaire d\'un espace payé) lance le même appel à plusieurs : 201, genre « groupe »', [pro.code, pro.j && pro.j.appel && pro.j.appel.genre], [201, 'groupe']);
