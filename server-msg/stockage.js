@@ -2080,9 +2080,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const t = horloge();
       Q('UPDATE reunion SET annulee = 1, prochain = NULL, version = version + 1, maj = ? WHERE id = ?').run(t, id);
       Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(id, 'reunion_annulee', t);
-      salleReunionFinir(id, 'annulee');          // la salle ouverte (des gens y sont) finit avec elle
+      const salle = salleReunionFinir(id, 'annulee');          // la salle ouverte (des gens y sont) finit avec elle : ses occupants à réveiller
       messageSysteme(r.conv, par, { k: 'reunion_annulee' });
-      return { change: true, gid: journalAjouter('reunion', r.conv, null, id) };
+      return { change: true, gid: journalAjouter('reunion', r.conv, null, id), salle: salle ? Object.keys(salle.gids) : [] };
     });
   }
   /* Supprimer : la réunion part avec sa conversation, ses messages et ses pièces. Chaque participant reçoit un événement ADRESSÉ (l'événement de conversation ne lui arriverait plus : la
@@ -2224,9 +2224,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   /* Ce que le code désigne, ou null (la même chose pour un code inconnu, renouvelé, annulé ou échu). Ne rend que ce qu'il faut pour DÉCIDER de rejoindre : jamais un participant. */
   function reunionParCode(code) {
     if (typeof code !== 'string' || !RE_CODE_REUNION.test(code)) return null;
-    const r = Q('SELECT id, fin_serie FROM reunion WHERE code_h = ?').get(empreinteCode(code)); if (!r) return null;
+    const r = Q('SELECT id, fin_serie, rep FROM reunion WHERE code_h = ?').get(empreinteCode(code)); if (!r) return null;
     const b = reunionBrute(r.id); if (!b || b.annulee) return null;
-    if (r.fin_serie !== null && r.fin_serie !== undefined && num(r.fin_serie) + LIEN_GRACE_MS < horloge()) return null;
+    /* `fin_serie` d'une SÉRIE porte déjà un jour de marge au-delà de sa dernière occurrence (`calendrier.finDeSerie`) ; celle d'une réunion seule est sa fin : on y ajoute le jour. Le lien meurt donc un jour après la fin. */
+    const grace = r.rep === 'aucune' ? LIEN_GRACE_MS : 0;
+    if (r.fin_serie !== null && r.fin_serie !== undefined && num(r.fin_serie) + grace < horloge()) return null;
     const rang = reunionRang(b);
     return { id: b.id, conv: b.conv, hote: b.hote, titre: rang.titre, debut: rang.debut, fin: rang.fin, tz: rang.tz, repetition: rang.repetition, n: rang.n, jusqua: rang.jusqua, attente: rang.attente };
   }
@@ -3011,11 +3013,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return tx(() => {
       const a = appelBrut(id);
       if (!a || a.genre === 'deux') throw erreur('introuvable');
-      let p = appelPart(id, uid);
-      if (!p) {
-        const droit = (a.genre === 'groupe' && a.conv && convPourMembre(a.conv, uid)) || (a.genre === 'reunion' && a.reunion && Q('SELECT 1 AS x FROM reunion_invite WHERE reunion = ? AND uid = ?').get(a.reunion, uid));
-        if (!droit) throw erreur('introuvable');
-      }
+      const p = appelPart(id, uid);
+      /* ⛔ LE DROIT SE JUGE À CHAQUE ENTRÉE, pas seulement la première : celui qu'on a retiré du groupe (ou de la réunion) depuis n'entre plus, même s'il a une ligne « parti » ou « manqué » dans la salle. Une salle
+         de personnes CHOISIES (sans conversation) n'a que ses lignes pour droit. */
+      const droit = a.genre === 'groupe'
+        ? (a.conv ? !!convPourMembre(a.conv, uid) : !!p)
+        : (a.genre === 'reunion' && !!a.reunion && !!Q('SELECT 1 AS x FROM reunion_invite WHERE reunion = ? AND uid = ?').get(a.reunion, uid));
+      if (!droit) throw erreur('introuvable');
       if (p && p.statut === 'exclu') throw erreur('exclu');
       if (a.etat !== 'sonne' && a.etat !== 'en_cours') throw erreur('appel_fini');
       if (p && p.statut === 'present') {
@@ -3027,7 +3031,10 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (ailleurs && ailleurs !== id) throw erreur('occupe_moi');
       const t = horloge();
       const hoteReunion = a.genre === 'reunion' && a.reunion && (Q('SELECT hote FROM reunion WHERE id = ?').get(a.reunion) || {}).hote === uid;
-      const grade = hoteReunion ? GRADE_HOTE : (p ? num(p.grade) : 0), pouvoir = grade >= GRADE_COHOTE;
+      /* ⛔ UNE SALLE N'EST JAMAIS SANS MAÎTRE : quand personne n'y tient plus la porte (ni hôte ni co-hôte PRÉSENT — la salle d'une réunion qu'un invité ouvre avant l'organisateur), le premier qui entre en devient l'hôte PAR
+         INTÉRIM. Il passe la porte sans attendre (personne ne pourrait l'admettre), et l'organisateur qui arrive reprend la main (plus bas). */
+      const detenteur = num(Q(`SELECT COUNT(*) AS n FROM appel_part WHERE appel = ? AND statut = 'present' AND grade >= ?`).get(id, GRADE_COHOTE).n) > 0;
+      const grade = (hoteReunion || !detenteur) ? GRADE_HOTE : (p ? num(p.grade) : 0), pouvoir = grade >= GRADE_COHOTE;
       if (a.verrou && !pouvoir) throw erreur('verrouillee');
       const attend = !!a.attente && !pouvoir;
       if (!attend && sallePresents(id) >= num(a.capacite)) throw erreur('appel_complet');

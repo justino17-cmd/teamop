@@ -255,7 +255,7 @@ function installerReunions(H, ctx) {
     const avant = stockage.reunionPourMembre(id, hote.id).reunion;
     const r = stockage.reunionAnnuler({ id, par: hote.id });
     if (r.change) {
-      hub.reveiller({ conv: avant.conv });
+      hub.reveiller({ conv: avant.conv, uids: r.salle });                       // et les pages de ceux qui étaient dans la salle, qui apprennent sa fin
       prevenirAnnulation(hote, avant, stockage.reunionParticipants(id));
     }
     res.json(vue(hote.id, id));
