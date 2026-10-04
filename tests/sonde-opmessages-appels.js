@@ -77,6 +77,12 @@ async function ouvrir(b, base, pf, o) {
         return autres.concat(window.__deuxCameras ? [une, { kind: 'videoinput', deviceId: 'camera-arriere-sonde', label: 'Caméra arrière (sonde)', groupId: 'groupe-arriere-sonde' }] : [une]);
       };
     } catch (e) { /* rien */ }
+    /* de quoi RETENIR la requête « répondre » : la sonnerie doit s'arrêter au toucher, pas à la réponse du service (quelques dizaines de millisecondes plus tard, où une autre ligne l'arrête aussi) */
+    const f0 = window.fetch;
+    window.fetch = function (u, o) {
+      if (window.__retenirReponse && /\/repondre$/.test(String((u && u.url) || u))) return new Promise((ok, ko) => { window.__lacherReponse = () => { window.__lacherReponse = null; f0.call(window, u, o).then(ok, ko); }; });
+      return f0.apply(this, arguments);
+    };
     const PC = window.RTCPeerConnection;
     if (PC) {
       const Faux = function (conf, ...r) {
@@ -279,6 +285,11 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
         v('… choisir Ben le COCHE et le dit (« ' + NOMS.ben + ' »), « Appeler » est actif ; le re-toucher le décoche', [await S.page.getAttribute(sel, 'aria-checked'), await lire(S, '#g-resume'), await S.page.getAttribute('#g-creer', 'aria-disabled')], ['true', nomAutre, 'false']);
         await toucher(S, sel);
         v('… décoché : rien n\'est choisi, « Appeler » est de nouveau grisé', [await S.page.getAttribute(sel, 'aria-checked'), await S.page.getAttribute('#g-creer', 'aria-disabled')], ['false', 'true']);
+        /* ⛔ un appel se passe à DEUX : choisir un SECOND contact REMPLACE le premier (le survivant de la mutation D08 : la sonde ne choisissait jamais deux contacts) */
+        const selC = '#g-contacts .contact:has(.contact-nom:text-is("' + NOMS.cleo + '"))';
+        await toucher(S, sel); await toucher(S, selC);
+        v('⛔ choisir un SECOND contact REMPLACE le premier : un seul reste coché (Cleo), Ben est décoché, le résumé ne dit que Cleo', [await S.page.getAttribute(sel, 'aria-checked'), await S.page.getAttribute(selC, 'aria-checked'), await lire(S, '#g-resume')], ['false', 'true', NOMS.cleo]);
+        await toucher(S, selC);
         await largeur(S, 'feuille Nouvel appel');
       }
       await toucher(S, '#g-contacts .contact:has(.contact-nom:text-is("' + nomAutre + '"))');
@@ -304,7 +315,14 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
       const tailles = await B.page.evaluate(() => ['#appel-refuser .rond-cmd', '#appel-repondre .rond-cmd'].map(s => { const r = document.querySelector(s).getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
       vrai('Refuser et Répondre sont des cibles de 44 px au moins — ' + JSON.stringify(tailles), tailles.every(([w, h]) => w >= 44 && h >= 44));
       await capturer(bB, '01-sonnerie', [A, B]);
+      /* ⛔ la sonnerie s'arrête AU TOUCHER de « Répondre » : la requête vers le service est RETENUE dans la page, et le contexte audio de la sonnerie est déjà fermé (le survivant de la mutation D04 :
+         la réponse du service arrête aussi la sonnerie, quelques dizaines de millisecondes plus tard — la ligne du toucher n'avançait l'arrêt que de ce délai, et aucune mesure ne le voyait) */
+      await B.page.evaluate(() => { window.__retenirReponse = true; });
       await decrocher(B);
+      const retenue = await attendre(B, () => typeof window.__lacherReponse === 'function', null, 6000);
+      const sonRetenu = await B.page.evaluate(() => ({ crees: window.__ctx.crees, fermes: window.__ctx.fermes }));
+      v('⛔ la sonnerie S\'ARRÊTE AU TOUCHER de « Répondre » — population : la requête vers le service est RETENUE dans la page ; le contexte audio de la sonnerie est déjà fermé', [retenue, sonRetenu.crees >= 1 && sonRetenu.fermes >= sonRetenu.crees], [true, true]);
+      await B.page.evaluate(() => { window.__retenirReponse = false; if (window.__lacherReponse) window.__lacherReponse(); });
       await verifier('Ben répond : l\'appel COURT pour les deux (« Appel en cours · 00:0x »)', A, () => /Appel en cours/.test(document.getElementById('appel-statut').textContent), null, 14000, async () => 'Ana : «' + (await lire(A, '#appel-statut')) + '»');
       await verifier('… et chez Ben', B, () => /Appel en cours/.test(document.getElementById('appel-statut').textContent), null, 14000, async () => 'Ben : «' + (await lire(B, '#appel-statut')) + '»');
       const apres = await B.page.evaluate(() => ({ ctxCrees: window.__ctx.crees, ctxFermes: window.__ctx.fermes }));
@@ -424,6 +442,9 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
         await verifier('⛔ Ana RALLUME sa caméra : l\'appel passe en vidéo CHEZ BEN, qui n\'a rien touché (l\'image d\'Ana arrive)', B, () => document.getElementById('appel-ecran').dataset.mise === 'video' && document.querySelector('#appel-scene .tuile:not(.vous)').dataset.camera === 'on', null, 10000);
         const ci = await croit(B, { ms: 1800 });
         vrai('… et les images décodées chez Ben croissent de nouveau (' + ci.avant.images + ' → ' + ci.apres.images + ')', ci.images);
+        /* ⛔ la vignette d'Ana chez Ben a été REFAITE au passage audio → vidéo : elle est rebranchée sur le flux, avec des pixels (le survivant de la mutation D06 : les images décodées croissent même sans élément qui les montre) */
+        await verifier('⛔ la vignette d\'Ana, REFAITE chez Ben au passage audio → vidéo, montre son image : un flux est branché dessus et elle a des pixels', B, () => { const t = document.querySelector('#appel-scene .tuile:not(.vous)'); const v2 = t && t.querySelector('video'); return !!(v2 && v2.srcObject && v2.videoWidth > 0); }, null, 8000,
+          async () => JSON.stringify(await B.page.evaluate(() => { const t = document.querySelector('#appel-scene .tuile:not(.vous)'); const v2 = t && t.querySelector('video'); return { camera: t && t.dataset.camera, flux: !!(v2 && v2.srcObject), largeur: v2 ? v2.videoWidth : null }; })));
         /* — RETOURNER LA CAMÉRA : une piste neuve prend la place de l'ancienne, l'ancienne s'ARRÊTE, l'autre voit toujours l'image — */
         const etatVideo = () => ({ total: window.__pistes.filter(t => t.kind === 'video').length, vivantes: window.__pistes.filter(t => t.kind === 'video' && t.readyState === 'live').length });
         await verifier('⛔ avec DEUX caméras et la sienne allumée, « Retourner la caméra » paraît dans la vignette « Vous » (44 px au moins)', A, () => { const b = document.getElementById('appel-flip'); if (!b || b.hidden) return false; const r = b.getBoundingClientRect(); return r.width >= 44 && r.height >= 44; }, null, 8000,
