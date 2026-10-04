@@ -1,5 +1,5 @@
 /* ══ LES MUTATIONS DES APPELS À DEUX — « un banc qui passe ne prouve rien tant qu'on ne l'a pas vu ÉCHOUER » (CLAUDE.md) ═══════════════════════════════════════
-   Ce fichier n'est PAS une suite (il ne s'appelle pas `test-*.js` : le compteur ne le lance pas). Il remet, UN PAR UN, les défauts que `tests/test-980` à `984`, `901` à `909`, `911`, `934`,
+   Ce fichier n'est PAS une suite (il ne s'appelle pas `test-*.js` : le compteur ne le lance pas). Il remet, UN PAR UN, les défauts que `tests/test-980` à `984`, `859` (les épingles de la page), `901` à `909`, `911`, `934`,
    `982` et la sonde navigateur `sonde-opmessages-appels.js` gardent :
      A. le SERVICE — des identifiants du relais qui se calculent mal ou se mettent en cache, un STUN d'un tiers en repli, un signal relayé à la mauvaise session ou sans contrôle de l'appareil lié, d'un
         destinataire quelconque, trop gros, en liste ; un appel lancé dans un groupe, vers quelqu'un qu'on ne peut pas écrire, sans plafond par paire ; deux appels pour une personne, un second appareil qui
@@ -10,7 +10,7 @@
      C. le MOTEUR de la page — dont ⛔ le défaut que la sonde a trouvé en vrai navigateur (l'appelé ajoutait ses émetteurs AVANT l'offre : la voix de l'appelé n'arrivait jamais), l'offre qui se croise, la
         liaison qui tombe ou ne s'établit pas, le pouls, le raccrochage et l'offre perdus, la page qui se ferme, l'événement qui devance la réponse ou qui se perd, les serveurs, candidats et signaux qu'on ne
         croit pas, le renouvellement des identifiants du relais, l'historique et ses séries, la caméra de l'autre ;
-     D. la PAGE — la sonnerie qui ne s'arrête pas, la voix non branchée, les pistes non remises, un appel à plusieurs contacts, la caméra d'un groupe, les avis de fin, la mention d'aperçu qui reparaît…
+     D. la PAGE — la sonnerie qui ne s'arrête pas, la voix non branchée, les pistes non remises, un appel à plusieurs contacts, la caméra d'un groupe, les avis de fin, la mention d'aperçu qui reparaît, le retournement de la caméra (l'ancienne piste qui reste allumée, toujours la même caméra, le bouton avec une seule caméra)…
    dans une COPIE de l'arbre (jamais dans l'arbre lui-même : le `git checkout` d'après-mutation de CLAUDE.md efface aussi les correctifs non commités), joue les bancs visés, et exige qu'AU MOINS UN tombe
    (code de sortie non nul ou un « ✗ »).
 
@@ -35,7 +35,7 @@ const fs = require('fs'), os = require('os'), path = require('path'), { spawn, s
 const RACINE = path.join(__dirname, '..');
 const DELAI_MS = 420000;
 const F = { page: 'apercu/opmessages/index.html' };
-const BANCS = ['901', '903', '905', '906', '908', '909', '911', '934', '980', '981', '982', '983', '984', 'sonde', 'sondeComplete'];
+const BANCS = ['859', '901', '903', '905', '906', '908', '909', '911', '934', '980', '981', '982', '983', '984', 'sonde', 'sondeComplete'];
 const SONDE_FICHIER = 'sonde-opmessages-appels.js';
 const MUTATIONS = [];
 /* [id, nom, [[fichier, ancien, nouveau], …], suites, option] — `ancien` : une chaîne (une seule occurrence). Fabriqué depuis le texte réel des fichiers (chaque motif a été trouvé UNE fois). */
@@ -127,13 +127,15 @@ const CATALOGUE = [
   ["C38", "la caméra est dite allumée dès que la page remet sa piste, avant qu'elle soit sur l'émetteur", [["server-msg/public/source-serveur.js", "const on = !!c.pistes.video && !!c.emetteurs.video && c.emetteurs.video.track === c.pistes.video;", "const on = !!c.pistes.video;"]], ["984"], {"equivalente": "les deux lectures donnent le même état FINAL (l'émetteur reçoit la piste juste après) : la différence est un signal « caméra » parti quelques millisecondes plus tôt chez l'appelé, avant son offre — le banc, qui attend l'état, ne peut pas la distinguer"}],
   ["C39", "un signal d'un AUTRE que le partenaire de l'appel est accepté par le moteur", [["server-msg/public/source-serveur.js", "      if (!de || s.de !== de) return;", "      if (!de) return;"]], ["984"], {"equivalente": "le service ne relaie un signal qu'au partenaire de l'appel et à son appareil lié : `de` est toujours le bon — la garde du moteur est une défense en profondeur que seul un service menteur mettrait à l'épreuve"}],
   ["C40", "un onglet qui n'a ni lancé ni pris l'appel traite les signaux", [["server-msg/public/source-serveur.js", "if (!c || c.fini || c.id !== s.appel || !(c.local || c.accepte)) return;", "if (!c || c.fini || c.id !== s.appel) return;"]], ["984"], {"equivalente": "l'événement « en cours » finit l'entrée de l'autre onglet (`pris_ailleurs`) avant qu'un signal puisse arriver : le service écrit l'événement avant que l'appelant voie « en cours », donc avant son offre — `c.fini` ignore déjà tout signal"}],
+  ["C41", "un appel que cet onglet a REFUSÉ se remet à sonner quand une liste plus ancienne arrive (la sonnerie ne regarde plus les appels finis ici)", [["server-msg/public/source-serveur.js", "      if (finis.has(v.id)) return;", "      "]], ["984"]],
+  ["C42", "la fin d'un appel n'est plus notée : la mémoire des appels finis ici reste vide", [["server-msg/public/source-serveur.js", "      noterFini(c.id);\n", ""]], ["984"]],
   ["D01", "la page demande micro et caméra à celui qui n'a pas encore répondu (la sonnerie ne s'arrête plus sur `return`)", [["apercu/opmessages/index.html", "annonceAppel('Appel ' + (snap.type === 'video' ? 'vidéo ' : '') + 'entrant de ' + snap.nom); return; }", "annonceAppel('Appel ' + (snap.type === 'video' ? 'vidéo ' : '') + 'entrant de ' + snap.nom); }"]], ["sonde"]],
   ["D02", "un appel entrant ne s'affiche plus tout seul dans la page", [["apercu/opmessages/index.html", "      if (ev.type === 'appel-entrant') surAppelEntrant(ev.id);\n", ""]], ["sonde"]],
   ["D03", "la sonnerie ne s'arrête plus quand on ferme l'écran sans répondre", [["apercu/opmessages/index.html", "    if (A) { A.fini = true; clearInterval(A.minut); arreterPistes(A); }\n    arreterSonnerie();\n", "    if (A) { A.fini = true; clearInterval(A.minut); arreterPistes(A); }\n"]], ["sonde"]],
   ["D04", "la sonnerie ne s'arrête plus quand on répond", [["apercu/opmessages/index.html", "    A.reponse = true; arreterSonnerie();", "    A.reponse = true;"]], ["sonde"]],
   ["D05", "aucune sonnerie n'est lancée pour un appel entrant", [["apercu/opmessages/index.html", "if (snap.entrant) { demarrerSonnerie(); annonceAppel(", "if (snap.entrant) { annonceAppel("]], ["sonde"]],
   ["D06", "la voix de l'autre n'est plus branchée sur l'élément audio", [["apercu/opmessages/index.html", "    lierFluxDistant(A);\n    majStatutAppel();\n  }", "    majStatutAppel();\n  }"]], ["sonde"]],
-  ["D07", "les pistes de la page ne sont plus remises au moteur : l'autre n'entend rien", [["apercu/opmessages/index.html", "    majCamera(A);\n    pousserPistes(A);\n  }", "    majCamera(A);\n  }"]], ["sonde"]],
+  ["D07", "les pistes de la page ne sont plus remises au moteur : l'autre n'entend rien", [["apercu/opmessages/index.html", "    majCamera(A);\n    pousserPistes(A);\n    if (A.video && CAP.appelsMedias) compterCameras(A);\n  }", "    majCamera(A);\n    if (A.video && CAP.appelsMedias) compterCameras(A);\n  }"]], ["sonde"]],
   ["D08", "« Nouvel appel » accepte plusieurs contacts (un appel se passe à deux)", [["apercu/opmessages/index.html", "    if (G.mode === 'appel' && CAP.appelsMedias) G.choisis = i < 0 ? [id] : [];            // (version servie) un appel se passe à deux : UN contact, le suivant remplace le précédent\n    else if (i < 0)", "    if (i < 0)"]], ["sonde"]],
   ["D09", "la caméra d'un groupe lance un appel (le service le refuse, mais la page ne le dit plus avant)", [["apercu/opmessages/index.html", "    if (CAP.appelsMedias && c.type !== 'direct') { mot('Les appels à plusieurs arrivent bientôt.'); return; }       // (version servie) un appel se passe à deux ; un groupe, un canal, une réunion : l'étape suivante\n", ""]], ["sonde"]],
   ["D10", "un refus du service à l'appel redevient une phrase générique", [["apercu/opmessages/index.html", "mot(phrase(refus, 'L\\'appel n\\'a pas pu être lancé.')); return false; }", "mot('L\\'appel n\\'a pas pu être lancé.'); return false; }"]], ["sonde"]],
@@ -145,7 +147,12 @@ const CATALOGUE = [
   ["D16", "la caméra de l'AUTRE ne fait plus passer l'appel en vidéo", [["apercu/opmessages/index.html", "    if (mise === 'audio' && CAP.appelsMedias && s.membres[0] && s.membres[0].camera) mise = 'video';       // (version servie) la caméra de l'AUTRE fait aussi passer l'appel en vidéo\n", ""]], ["sondeComplete"]],
   ["D17", "la caméra de la page n'est plus remise au moteur (l'autre ne voit pas l'image)", [["apercu/opmessages/index.html", "source.appelPistes(A.id, { audio: A.audio, video: A.video && A.video.readyState === 'live' ? A.video : null });", "source.appelPistes(A.id, { audio: A.audio, video: null });"]], ["sondeComplete"]],
   ["D18", "« Message » pendant un appel ne raccroche plus", [["apercu/opmessages/index.html", "$('appel-msg').addEventListener('click', () => { const A = etat.appelUI; if (A && A.snap) ouvrirConversationAvec(A.snap.membres.map(m => m.id), A.snap.conv); });", "$('appel-msg').addEventListener('click', () => {});"]], ["sondeComplete"]],
-  ["D19", "l'écran « Nouvel appel » garde le titre « Appel de groupe »", [["apercu/opmessages/index.html", "appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';", "appel ? 'Appel de groupe' : 'Nouveau groupe';"]], ["sonde"]]
+  ["D19", "l'écran « Nouvel appel » garde le titre « Appel de groupe »", [["apercu/opmessages/index.html", "appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';", "appel ? 'Appel de groupe' : 'Nouveau groupe';"]], ["sonde"]],
+  ["D20", "retourner la caméra n'arrête pas l'ancienne piste (deux pistes vivantes : le voyant reste allumé)", [["apercu/opmessages/index.html", "    try { ancienne.stop(); } catch (e) { /* déjà arrêtée */ }\n    let f = null, dit = '';", "    let f = null, dit = '';"]], ["sondeComplete"]],
+  ["D21", "retourner la caméra redemande toujours l'ARRIÈRE (le second retournement ne revient pas à l'avant)", [["apercu/opmessages/index.html", "const vers = A.face === 'environment' ? 'user' : 'environment';", "const vers = 'environment';"]], ["sondeComplete"]],
+  ["D22", "la caméra neuve est demandée AVANT d'arrêter l'ancienne (un téléphone n'ouvre pas deux caméras à la fois)", [["apercu/opmessages/index.html", "    try { ancienne.stop(); } catch (e) { /* déjà arrêtée */ }\n    let f = null, dit = '';\n    try { f = await gum({ video: { facingMode: { ideal: vers } } }); A.face = vers; }\n", "    let f = null, dit = '';\n    try { f = await gum({ video: { facingMode: { ideal: vers } } }); A.face = vers; try { ancienne.stop(); } catch (e) { /* déjà arrêtée */ } }\n"]], ["859"]],
+  ["D23", "« Retourner la caméra » paraît même avec UNE seule caméra", [["apercu/opmessages/index.html", "A.camera && A.nbCam > 1);", "A.camera && A.nbCam > 0);"]], ["sondeComplete"]],
+  ["D24", "le nombre de caméras n'est jamais compté : « Retourner la caméra » ne paraît jamais", [["apercu/opmessages/index.html", "    if (A.video && CAP.appelsMedias) compterCameras(A);\n", ""]], ["sondeComplete"]],
 ];
 for (const [id, nom, edits, suites, o] of CATALOGUE) MUTATIONS.push(Object.assign({ id, nom, edits, suites, sonde: suites.some((s) => s === 'sonde' || s === 'sondeComplete') }, o || {}));
 
@@ -163,7 +170,7 @@ function fabriquerCopie() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mut-app-'));
   for (const d of DOSSIERS_COPIE) copier(path.join(RACINE, d), path.join(dir, d));
   fs.mkdirSync(path.join(dir, 'tests'));
-  for (const f of fs.readdirSync(path.join(RACINE, 'tests'))) if (/^(test-9\d\d|outils-[\w-]+|bac-messages|bac-turn|bac-webrtc|lib-horloge-msg|mode-site|sonde-opmessages-appels)\.js$/.test(f)) fs.copyFileSync(path.join(RACINE, 'tests', f), path.join(dir, 'tests', f));
+  for (const f of fs.readdirSync(path.join(RACINE, 'tests'))) if (/^(test-9\d\d|test-859|mutations-opmessages|outils-[\w-]+|bac-messages|bac-turn|bac-webrtc|lib-horloge-msg|mode-site|sonde-opmessages-appels)\.js$/.test(f)) fs.copyFileSync(path.join(RACINE, 'tests', f), path.join(dir, 'tests', f));
   fs.symlinkSync(path.join(RACINE, 'server-msg', 'node_modules'), path.join(dir, 'server-msg', 'node_modules'));
   fs.symlinkSync(path.join(RACINE, 'server', 'node_modules'), path.join(dir, 'server', 'node_modules'));
   return dir;

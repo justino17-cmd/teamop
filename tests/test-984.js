@@ -65,7 +65,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       if (D.panne && D.panne.restant > 0 && D.panne.re.test(cle)) { D.panne.restant--; D.panne.vues = (D.panne.vues || 0) + 1; return new Response('{}', { status: 500, headers: { 'Content-Type': 'application/json' } }); }
       const r = await nav.fetch(url, init);
       D.ordre.push('rep ' + cle);
-      if (D.retenir && D.retenir.re.test(cle) && !D.retenir.faite) { D.retenir.faite = true; D.retenir.enRoute = true; await D.retenir.porte; }
+      if (D.retenir && D.retenir.re.test(cle) && !D.retenir.faite) { D.retenir.faite = true; D.retenir.enRoute = true; try { D.retenir.corps = await r.clone().text(); } catch (e) { D.retenir.corps = null; } await D.retenir.porte; }
       return r;
     };
     /* le flux, vu AVANT le module : on compte ce qui arrive et on peut en laisser perdre */
@@ -228,6 +228,22 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       const sa1 = await A.attendreSnap(s1.id, s => s.etat === 'termine');
       v('⛔ Ana l\'apprend, avec SA phrase : le nom de celui qui a refusé', [sa1.issue, sa1.avis], ['refuse', 'Ben Banc a refusé l\'appel.']);
       await A.src.terminerAppel(s1.id); await B.src.terminerAppel(s1.id);
+      /* — ⛔ Ben refuse PENDANT qu'une liste de l'historique, lue juste avant le refus, n'est pas encore arrivée : elle dit « il sonne encore » (le service n'a pas reçu le refus quand il la compose), et l'appel
+           REFUSÉ ne doit pas se remettre à sonner. Pris en vrai navigateur (la sonde complète, un passage sur deux) : `finir` dit « l'historique a changé » AU MOMENT du refus, la page relit l'historique, et la réponse
+           ancienne refaisait sonner l'appel refusé — l'écran d'appel revenait, et la sonnerie suivante, celle d'un AUTRE appel, était ignorée tant que ce fantôme restait. — */
+      const sg = await A.src.demarrerAppel({ membres: [ben.id], video: false });
+      await B.attendreEv(e => e.type === 'appel-entrant' && e.id === sg.id);
+      let lacher; B.retenir = { re: /GET \/api\/appels$/, porte: new Promise((ok) => { lacher = ok; }), faite: false };
+      const lecture = B.src.appels('tous');                                // le service répond (« il sonne encore »), la réponse est RETENUE avant d'atteindre le module
+      vrai('population : la liste est partie, le service a répondu, la réponse est retenue', !!(await att(() => B.retenir.corps !== undefined && B.retenir.corps !== null)));
+      const ancienne = JSON.parse(B.retenir.corps);
+      await B.src.repondreAppel(sg.id, false);                             // Ben refuse : le service l'apprend
+      B.evs.length = 0;
+      lacher(); await lecture; B.retenir = null;                           // la liste ANCIENNE arrive maintenant
+      await dort(80);
+      v('⛔ la liste lue avant le refus arrive après lui : l\'appel refusé NE SONNE PAS de nouveau (aucun appel actif, aucune sonnerie annoncée) — population : cette liste disait bien « sonne » pour cet appel',
+        [ancienne.actif && ancienne.actif.id === sg.id && ancienne.actif.etat, B.src.appelActif(), B.evs.filter(e => e.type === 'appel-entrant').length], ['sonne', null, 0]);
+      await A.attendreSnap(sg.id, x => x.etat === 'termine'); await A.src.terminerAppel(sg.id); await B.src.terminerAppel(sg.id);
       /* — Ana annule pendant la sonnerie — */
       const s2 = await A.src.demarrerAppel({ membres: [ben.id], video: true });
       await B.attendreEv(e => e.type === 'appel-entrant' && e.id === s2.id);

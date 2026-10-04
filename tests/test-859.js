@@ -175,10 +175,17 @@ async function controler(PAGE, SRC) {
     /const perime = A => A\.fini \|\| etat\.appelUI !== A;/.test(JS) && (acquerir.match(/if \(perime\(A\)\) \{ if \((?:flux|fv)\) (?:flux|fv)\.getTracks\(\)\.forEach\(t => t\.stop\(\)\); return; \}/g) || []).length === 3, (acquerir.match(/perime\(A\)/g) || []).length + ' gardes');
   const basc = corps('async function basculerCamera');
   vrai('éteindre la caméra ARRÊTE sa piste (A.video.stop()), il ne la masque pas : le voyant s\'éteint [sonde : piste « ended »]', /try \{ A\.video\.stop\(\); \}/.test(basc) && !/A\.video\.enabled = false/.test(basc), basc.slice(0, 160));
+  const retour = corps('async function retournerCamera');
+  vrai('population : la fonction qui retourne la caméra est trouvée (' + retour.length + ' caractères)', retour.length > 400);
+  vrai('⛔ retourner la caméra ARRÊTE l\'ancienne piste AVANT d\'en demander une autre (un téléphone n\'ouvre pas deux caméras à la fois, et le voyant ne reste pas allumé) [sonde : retournement]',
+    retour.indexOf('ancienne.stop()') > 0 && retour.indexOf('ancienne.stop()') < retour.indexOf('gum('), retour.slice(0, 200));
+  vrai('   la piste neuve se demande par `facingMode`, se range comme toute piste (poserPistes : gardée pour être arrêtée, remise au moteur) ; si rien ne vient, la caméra est COUPÉE et on le dit [sonde : retournement]',
+    /gum\(\{ video: \{ facingMode: \{ ideal: vers \} \} \}\)/.test(retour) && /poserPistes\(A, f\)/.test(retour) && /La caméra est coupée\./.test(retour));
+  vrai('   le bouton « Retourner la caméra » n\'est visible que dans la version servie, caméra allumée ET deux caméras au moins [sonde : retournement]', /\$\('appel-flip'\)\.hidden = !\(CAP\.appelsMedias && A\.camera && A\.nbCam > 1\);/.test(JS));
   const micro = corps('async function basculerMicro');
   vrai('couper le micro agit sur la PISTE (A.audio.enabled = A.micro), pas seulement sur le bouton [sonde : enabled = false]', /A\.micro = !A\.micro; A\.audio\.enabled = A\.micro;/.test(micro), micro.slice(0, 160));
-  vrai('⛔ aucune demande de micro ou de caméra au chargement : getUserMedia n\'est appelée que par gum(), elle-même appelée par les gestes (acquerirMedias, basculerMicro, basculerCamera) ET par la prise de son d\'un vocal (étape 2)',
-    (JS.match(/getUserMedia\(/g) || []).length === 2 && /const gum = c => navigator\.mediaDevices\.getUserMedia\(c\);/.test(JS) && (JS.match(/\bgum\(/g) || []).length === 5 && !/function demarrer\(\)[\s\S]*?gum\(/.test(corps('async function demarrer')), (JS.match(/getUserMedia\(/g) || []).length + ' appels directs');
+  vrai('⛔ aucune demande de micro ou de caméra au chargement : getUserMedia n\'est appelée que par gum(), elle-même appelée par les gestes (acquerirMedias, basculerMicro, basculerCamera, retournerCamera) ET par la prise de son d\'un vocal (étape 2)',
+    (JS.match(/getUserMedia\(/g) || []).length === 2 && /const gum = c => navigator\.mediaDevices\.getUserMedia\(c\);/.test(JS) && (JS.match(/\bgum\(/g) || []).length === 7 && !/function demarrer\(\)[\s\S]*?gum\(/.test(corps('async function demarrer')), (JS.match(/getUserMedia\(/g) || []).length + ' appels directs');
   vrai('un refus, une absence, une caméra occupée se DISENT en une phrase (« La caméra est refusée… », « Aucune caméra… », « utilisée par une autre application ») et l\'appel continue (« L\'appel continue en audio », « sans micro ») [sonde : appels-refus]',
     /La caméra est refusée/.test(JS) && /Le micro est refusé/.test(JS) && /Aucune caméra n\\'a été trouvée/.test(JS) && /Aucun micro n\\'a été trouvé/.test(JS) && /L\\'appel continue en audio\./.test(JS) && /L\\'appel continue sans micro\./.test(JS) && !/alert\(|console\.error/.test(JS));
   vrai('un micro absent REESSAIE au toucher du bouton (la personne a pu changer l\'autorisation) au lieu de ne rien répondre', /if \(!A\.audio\) \{/.test(micro) && /gum\(\{ audio: true \}\)/.test(micro));

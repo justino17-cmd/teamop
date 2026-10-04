@@ -206,6 +206,11 @@
     const dernieres = new Map();           // id d'appel → la dernière vue lue sur le flux : un événement qui devance la réponse de la route n'est pas perdu
     const memoriser = (v) => { dernieres.delete(v.id); dernieres.set(v.id, v); while (dernieres.size > 8) dernieres.delete(dernieres.keys().next().value); };
     const emettreAppel = (c) => d.emettre({ type: 'appel', id: c.id });
+    /* ⛔ LES APPELS QUE CET ONGLET A FINIS : une vue plus ancienne ne les fait pas sonner de nouveau. L'historique se relit AU MOMENT où le raccrochage part (`finir` le dit), et le service peut répondre
+       « il sonne encore » avant d'avoir reçu le refus : sans cette mémoire, la liste lue (`reprendre`) refaisait sonner un appel qu'on venait de refuser — l'écran d'appel revenait, et la sonnerie suivante,
+       d'un autre appel, était ignorée tant que ce fantôme restait (pris en vrai navigateur : un appel sur deux de la sonde complète). Bornée : seuls les derniers comptent. */
+    const finis = new Set();
+    const noterFini = (id) => { finis.delete(id); finis.add(id); while (finis.size > 16) finis.delete(finis.values().next().value); };
 
     function entree(v, extra) {
       return Object.assign({
@@ -282,6 +287,7 @@
       liberer(c);
       c.liaison = 'fini';
       c.fini = { issue, avis: o2.avis === undefined ? phraseFin(c, issue) : o2.avis, t: maintenant() };
+      noterFini(c.id);
       if (o2.service) c.serviceInforme = true;
       c.minNettoyage = planifier(() => { c.minNettoyage = null; if (courant === c) courant = null; }, T.nettoyage);
       if (d.fermerNotif) { try { d.fermerNotif('appel:' + c.id); } catch (e) { /* une notification qui reste n'est pas un appel qui dure */ } }
@@ -567,6 +573,7 @@
 
     /* ── les changements d'état que le service dit ── */
     function sonner(v, gid) {
+      if (finis.has(v.id)) return;                            // une vue plus ancienne d'un appel que cet onglet a déjà fini (refusé, annulé, pris ailleurs…) : il ne sonne pas de nouveau
       noterAutre(v);
       const c = entree(v);
       courant = c;

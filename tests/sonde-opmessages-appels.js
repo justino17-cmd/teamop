@@ -66,10 +66,16 @@ async function ouvrir(b, base, pf, o) {
   page.on('pageerror', e => S.erreurs.push(String(e && e.message || e).slice(0, 220)));
   page.on('console', m => { if (m.type() === 'error') S.console.push(m.text().slice(0, 220)); });
   await page.addInitScript(() => {
-    window.__media = 0; window.__pistes = []; window.__pcs = []; window.__confs = []; window.__ctx = { crees: 0, fermes: 0 }; window.__relaisSeul = false; window.__vibre = 0; window.__iceErreurs = []; window.__ajouts = [];
+    window.__media = 0; window.__pistes = []; window.__pcs = []; window.__confs = []; window.__ctx = { crees: 0, fermes: 0 }; window.__relaisSeul = false; window.__vibre = 0; window.__iceErreurs = []; window.__ajouts = []; window.__contraintes = []; window.__deuxCameras = false;
     try {
       const md = navigator.mediaDevices, g = md.getUserMedia.bind(md);
-      md.getUserMedia = async function (c) { window.__media++; const f = await g(c); f.getTracks().forEach(t => window.__pistes.push(t)); return f; };
+      md.getUserMedia = async function (c) { window.__media++; window.__contraintes.push(JSON.stringify(c)); const f = await g(c); f.getTracks().forEach(t => window.__pistes.push(t)); return f; };
+      /* le NOMBRE de caméras est celui que la sonde décide : UNE par défaut, DEUX (avant et arrière) quand `__deuxCameras` — le navigateur de la sonde n'a qu'une fausse caméra */
+      const ed = md.enumerateDevices.bind(md);
+      md.enumerateDevices = async function () {
+        const l = await ed(), autres = l.filter(d => d.kind !== 'videoinput'), une = l.filter(d => d.kind === 'videoinput')[0] || { kind: 'videoinput', deviceId: 'camera-sonde', label: 'Caméra (sonde)', groupId: 'groupe-sonde' };
+        return autres.concat(window.__deuxCameras ? [une, { kind: 'videoinput', deviceId: 'camera-arriere-sonde', label: 'Caméra arrière (sonde)', groupId: 'groupe-arriere-sonde' }] : [une]);
+      };
     } catch (e) { /* rien */ }
     const PC = window.RTCPeerConnection;
     if (PC) {
@@ -356,7 +362,7 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
       await verifier('Ana : ça sonne de nouveau', A, () => document.getElementById('appel-ecran').hasAttribute('data-entrant'), null, 10000);
       await toucher(B, '#appel-raccrocher');
       await attendreFermeture('Ben annule : son écran se ferme', B);
-      await verifier('⛔ Ana a MANQUÉ cet appel : son écran se ferme avec « Appel manqué. »', A, () => /Appel manqué/.test(document.getElementById('mot').textContent) && !document.documentElement.dataset.appel, null, 10000, async () => 'mot=«' + (await motVu(A)) + '»');
+      await verifier('⛔ Ana a MANQUÉ cet appel : son écran se ferme avec « Appel manqué. »', A, () => /Appel manqué/.test(document.getElementById('mot').textContent) && !document.documentElement.dataset.appel, null, 10000, async () => 'mot=«' + (await motVu(A)) + '» page=' + (await A.page.evaluate(() => JSON.stringify({ appel: document.documentElement.dataset.appel || null, statut: document.getElementById('appel-statut').textContent, entrant: document.getElementById('appel-ecran').hasAttribute('data-entrant'), visible: document.visibilityState, sonneries: window.__ctx }))));
       const son = await A.page.evaluate(() => ({ crees: window.__ctx.crees, fermes: window.__ctx.fermes }));
       v('⛔ la sonnerie d\'Ana S\'EST ARRÊTÉE avec l\'appel (tous les contextes audio créés sont fermés ; population : plusieurs sonneries ont eu lieu)', [son.crees >= 2, son.fermes >= son.crees], [true, true]);
       await onglet(A, 'appels');
@@ -391,6 +397,8 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
         vrai('⛔ l\'IMAGE passe : les images décodées CROISSENT chez Ana (' + ca.avant.images + ' → ' + ca.apres.images + ') et chez Ben (' + cb.avant.images + ' → ' + cb.apres.images + '), la voix aussi', ca.images && cb.images && ca.audio && cb.audio);
         const vignette = await A.page.evaluate(() => { const t = document.querySelector('#appel-scene .tuile:not(.vous)'); const v2 = t && t.querySelector('video'); return { camera: t && t.dataset.camera, flux: !!(v2 && v2.srcObject), largeur: v2 ? v2.videoWidth : 0, vous: document.getElementById('appel-vous').dataset.camera }; });
         v('la vignette de l\'AUTRE montre son image (caméra « on », un flux, des pixels) ; « Vous » montre la sienne', [vignette.camera, vignette.flux, vignette.largeur > 0, vignette.vous], ['on', true, true, 'on']);
+        const nbCamReel = await A.page.evaluate(async () => (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput').length);
+        v('⛔ avec UNE seule caméra, « Retourner la caméra » n\'existe pas (population : l\'appareil n\'en connaît qu\'une et la sienne est allumée)', [nbCamReel, await visible(A, '#appel-flip'), vignette.vous], [1, false, 'on']);
         await largeur(A, 'appel vidéo'); await largeur(B, 'appel vidéo');
         await capturer(bB, '03-video', [A, B]);
         /* — Ana éteint sa caméra : Ben revient à l'audio — */
@@ -404,11 +412,30 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
         await verifier('… chez Ana aussi', A, () => document.getElementById('appel-ecran').dataset.mise === 'audio', null, 8000);
         const cc = await croit(A);
         vrai('la voix passe toujours (population : les octets reçus croissent)', cc.audio);
-        /* — Ana rallume sa caméra : l'appel passe en vidéo chez Ben, sans qu'il ait rien touché — */
+        /* — Ana rallume sa caméra : l'appel passe en vidéo chez Ben, sans qu'il ait rien touché — (son appareil a maintenant DEUX caméras : le bouton « Retourner la caméra » va paraître) — */
+        await A.page.evaluate(() => { window.__deuxCameras = true; });
         await toucher(A, '#appel-cam');
         await verifier('⛔ Ana RALLUME sa caméra : l\'appel passe en vidéo CHEZ BEN, qui n\'a rien touché (l\'image d\'Ana arrive)', B, () => document.getElementById('appel-ecran').dataset.mise === 'video' && document.querySelector('#appel-scene .tuile:not(.vous)').dataset.camera === 'on', null, 10000);
         const ci = await croit(B, { ms: 1800 });
         vrai('… et les images décodées chez Ben croissent de nouveau (' + ci.avant.images + ' → ' + ci.apres.images + ')', ci.images);
+        /* — RETOURNER LA CAMÉRA : une piste neuve prend la place de l'ancienne, l'ancienne s'ARRÊTE, l'autre voit toujours l'image — */
+        const etatVideo = () => ({ total: window.__pistes.filter(t => t.kind === 'video').length, vivantes: window.__pistes.filter(t => t.kind === 'video' && t.readyState === 'live').length });
+        await verifier('⛔ avec DEUX caméras et la sienne allumée, « Retourner la caméra » paraît dans la vignette « Vous » (44 px au moins)', A, () => { const b = document.getElementById('appel-flip'); if (!b || b.hidden) return false; const r = b.getBoundingClientRect(); return r.width >= 44 && r.height >= 44; }, null, 8000,
+          async () => 'bouton : ' + (await A.page.evaluate(() => { const b = document.getElementById('appel-flip'); return b ? (b.hidden ? 'caché' : JSON.stringify(b.getBoundingClientRect())) : 'absent'; })));
+        const av = await A.page.evaluate(etatVideo);
+        await toucher(A, '#appel-flip');
+        await verifier('⛔ le retournement : UNE piste vidéo NEUVE et l\'ancienne ARRÊTÉE — une seule piste vidéo vivante (population : il y en avait une avant)', A, (n) => { const l = window.__pistes.filter(t => t.kind === 'video'); return l.length === n + 1 && l.filter(t => t.readyState === 'live').length === 1; }, av.total, 8000,
+          async () => 'avant ' + JSON.stringify(av) + ', maintenant ' + JSON.stringify(await A.page.evaluate(etatVideo)));
+        vrai('   la caméra demandée est l\'ARRIÈRE : `facingMode` « environment » dans la demande de la page', /"facingMode":\{"ideal":"environment"\}/.test(await A.page.evaluate(() => window.__contraintes[window.__contraintes.length - 1] || '')));
+        const cf = await croit(B, { ms: 1800 });
+        const camBen = await B.page.evaluate(() => document.querySelector('#appel-scene .tuile:not(.vous)').dataset.camera);
+        v('⛔ l\'AUTRE voit toujours l\'image d\'Ana : sa caméra reste « on » chez Ben et les images décodées CROISSENT (la piste neuve est remise à l\'émetteur, sans renégociation), la voix aussi', [camBen, cf.images, cf.audio], ['on', true, true]);
+        await toucher(A, '#appel-flip');
+        await verifier('… un second retournement revient à la caméra AVANT (`facingMode` « user »), toujours UNE piste vidéo vivante', A, (n) => { const l = window.__pistes.filter(t => t.kind === 'video'); return l.length === n + 2 && l.filter(t => t.readyState === 'live').length === 1 && /"facingMode":\{"ideal":"user"\}/.test(window.__contraintes[window.__contraintes.length - 1] || ''); }, av.total, 8000,
+          async () => 'maintenant ' + JSON.stringify(await A.page.evaluate(etatVideo)) + ', dernière demande ' + (await A.page.evaluate(() => window.__contraintes[window.__contraintes.length - 1])));
+        await toucher(A, '#appel-cam');
+        await verifier('la caméra éteinte, « Retourner la caméra » disparaît avec elle', A, () => document.getElementById('appel-flip').hidden, null, 6000);
+        await verifier('… et Ben revient à l\'audio (la caméra d\'Ana est éteinte, la sienne l\'était déjà)', B, () => document.getElementById('appel-ecran').dataset.mise === 'audio', null, 8000);
         await toucher(B, '#appel-msg');
         await attendreFermeture('Ben touche « Message » : l\'appel se raccroche, son écran se ferme', B); await attendreFermeture('Ana l\'apprend : son écran se ferme', A);
         await B.page.waitForFunction(() => document.documentElement.dataset.conv === '1' && document.getElementById('conv-titre').textContent.includes('Ana'), null, { timeout: 8000 }).catch(() => {});

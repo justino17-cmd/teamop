@@ -1248,6 +1248,14 @@
     });
     majCamera(A);
     pousserPistes(A);
+    if (A.video && CAP.appelsMedias) compterCameras(A);
+  }
+  /* combien de caméras a l'appareil ? Le navigateur ne le dit qu'APRÈS l'autorisation : on compte quand une caméra vient d'être prise. Le bouton « Retourner la caméra » n'existe que s'il y en a deux. */
+  async function compterCameras(A) {
+    let n = 0;
+    try { n = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput').length; } catch (e) { n = 0; }
+    if (perime(A) || n === A.nbCam) return;
+    A.nbCam = n; rendreAppel();
   }
   /* ⛔ LE SEUL ENDROIT QUI RELÂCHE : toute piste, tout flux, l'élément vidéo. Appelé de quitterAppel, et seulement de là (et de l'arrivée tardive d'une piste, ci-dessous). */
   function arreterPistes(A) {
@@ -1309,6 +1317,29 @@
       poserPistes(A, f); avisAppelEffacer(); rendreAppel(); annonceAppel('Caméra activée');
     } catch (e) { if (!perime(A)) { avisAppel(messageMedia(e, 'camera') + ' L\'appel continue en audio.'); rendreAppel(); } }
     finally { A.cameraEnCours = false; }
+  }
+  /* ⛔ RETOURNER LA CAMÉRA (avant ↔ arrière). L'ancienne piste est ARRÊTÉE d'abord — un téléphone n'ouvre pas deux caméras à la fois, et le voyant ne reste pas allumé —, puis une piste neuve prend sa place chez le moteur
+     (`replaceTrack`, aucune renégociation). L'autre ne voit pas la caméra « s'éteindre » entre les deux : le moteur n'est prévenu qu'à l'arrivée de la neuve. Si la caméra demandée ne vient pas, on reprend la précédente ;
+     si aucune ne vient, la caméra est coupée et on le dit. */
+  async function retournerCamera() {
+    const A = etat.appelUI; if (!A || !A.snap || !A.camera || A.cameraEnCours || !CAP.appelsMedias) return;
+    const vers = A.face === 'environment' ? 'user' : 'environment';
+    A.cameraEnCours = true;
+    const ancienne = A.video;
+    A.pistes = A.pistes.filter(t => t !== ancienne);
+    try { ancienne.stop(); } catch (e) { /* déjà arrêtée */ }
+    let f = null, dit = '';
+    try { f = await gum({ video: { facingMode: { ideal: vers } } }); A.face = vers; }
+    catch (e) {
+      dit = 'La caméra n\'a pas pu être retournée.';
+      try { f = await gum({ video: { facingMode: { ideal: A.face } } }); } catch (e2) { f = null; }
+    }
+    try {
+      if (perime(A)) { if (f) f.getTracks().forEach(t => t.stop()); return; }
+      if (f) { poserPistes(A, f); if (dit) avisAppel(dit); else { avisAppelEffacer(); annonceAppel(A.face === 'environment' ? 'Caméra arrière' : 'Caméra avant'); } }
+      else { A.video = null; majCamera(A); pousserPistes(A); avisAppel(dit + ' La caméra est coupée.'); }
+      rendreAppel();
+    } finally { A.cameraEnCours = false; }
   }
   function statutAppel(A) {
     const s = A.snap; if (!s) return '';
@@ -1391,6 +1422,7 @@
     $('appel-hp').setAttribute('aria-pressed', A.haut ? 'true' : 'false');
     const bc = $('appel-cam'); bc.setAttribute('aria-pressed', A.camera ? 'true' : 'false'); bc.setAttribute('aria-label', A.camera ? 'Couper la caméra' : 'Activer la caméra');
     bc.querySelector('use').setAttribute('href', A.camera ? '#i-video' : '#i-video-off');
+    $('appel-flip').hidden = !(CAP.appelsMedias && A.camera && A.nbCam > 1);          // (version servie) retourner la caméra : seulement avec deux caméras ET la sienne allumée
     if (s.entrant) { const ic = E.querySelector('#appel-repondre use'); if (ic) ic.setAttribute('href', s.type === 'video' ? '#i-video' : '#i-phone'); }
     lierFluxDistant(A);
     majStatutAppel();
@@ -1399,7 +1431,7 @@
     const jeton = ++etat.jetonAppel;
     etat.appelId = id;
     document.documentElement.dataset.appel = '1';
-    const A = etat.appelUI = { id, jeton, snap: null, micro: true, haut: false, camera: false, pistes: [], audio: null, video: null, minut: 0, fini: false, cameraEnCours: false, mediaPret: false, sig: '', reponse: false };
+    const A = etat.appelUI = { id, jeton, snap: null, micro: true, haut: false, camera: false, pistes: [], audio: null, video: null, minut: 0, fini: false, cameraEnCours: false, mediaPret: false, sig: '', reponse: false, face: 'user', nbCam: 0 };
     $('appel-nom').textContent = ''; $('appel-statut').textContent = ''; $('appel-avis').hidden = true;
     $('appel-ecran').dataset.mise = 'audio';
     synchroInert();
@@ -1441,6 +1473,7 @@
   $('appel-micro').addEventListener('click', basculerMicro);
   $('appel-hp').addEventListener('click', () => { const A = etat.appelUI; if (!A || !A.snap) return; A.haut = !A.haut; rendreAppel(); annonceAppel(A.haut ? 'Haut-parleur activé' : 'Haut-parleur coupé'); });
   $('appel-cam').addEventListener('click', basculerCamera);
+  $('appel-flip').addEventListener('click', retournerCamera);
   $('appel-msg').addEventListener('click', () => { const A = etat.appelUI; if (A && A.snap) ouvrirConversationAvec(A.snap.membres.map(m => m.id), A.snap.conv); });
   /* (version servie) l'appel ENTRANT : « Refuser » ferme l'écran — c'est `quitterAppel` qui refuse auprès du service, comme tout autre chemin qui ferme —, « Répondre » prend l'appel PUIS demande le micro et la caméra
      (la demande d'autorisation ne retarde jamais la réponse : la sonnerie a une échéance) */

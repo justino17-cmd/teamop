@@ -725,6 +725,10 @@ html[data-service] .appel-mention, html[data-service] #appel-hp { display: none;
 }
 .appel-ecran[data-mise="video"] .tuile.vous .tuile-av { width: 44px; height: 44px; font-size: 16px; }
 .appel-ecran[data-mise="video"] .tuile.vous .tuile-nom { left: 8px; top: auto; bottom: 6px; }
+/* retourner la caméra (avant ↔ arrière) : un geste de 44 px dans le coin de « Vous », visible SEULEMENT quand l'appareil a deux caméras et que la sienne est allumée (la page le décide, `rendreAppel`) */
+.vous-retourner { position: absolute; top: 2px; right: 2px; z-index: 3; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; background: none; color: #fff; cursor: pointer; }
+.vous-retourner[hidden] { display: none; }
+.vous-retourner .ic { width: 28px; height: 28px; padding: 6px; box-sizing: border-box; border-radius: 50%; background: rgba(0,0,0,.5); }
 @media (min-width: 900px) { .appel-ecran[data-mise="video"] .tuile.vous { width: 176px; height: 132px; top: 96px; } }
 /* groupe — la grille : des colonnes qui se déduisent de la largeur, la zone défile si les vignettes ne tiennent pas */
 .appel-ecran[data-mise="groupe"] .appel-scene {
@@ -978,6 +982,7 @@ a.mini .ic { font-size: 16px; }
   <symbol id="i-mic-off" viewBox="0 0 24 24"><path d="M9 3h6v12H9zM5 11a7 7 0 0 0 14 0M12 18v3M4 4l16 16"/></symbol>
   <symbol id="i-video-off" viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Zm12 3 4-2.5v9L16 14M3 3l18 18"/></symbol>
   <symbol id="i-hautparleur" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4Zm12-1a5 5 0 0 1 0 8m3-11a9 9 0 0 1 0 14"/></symbol>
+  <symbol id="i-retourner" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.9-3M4 5v3h3M4 13a8 8 0 0 0 14.9 3M20 19v-3h-3"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v.5M11 12h1v4h1"/></symbol>
   <symbol id="i-entrant" viewBox="0 0 24 24"><path d="M5 19 19 5M9 5h10v10"/></symbol>
   <symbol id="i-sortant" viewBox="0 0 24 24"><path d="M19 5 5 19M15 19H5V9"/></symbol>
@@ -1099,7 +1104,7 @@ a.mini .ic { font-size: 16px; }
     <p class="appel-avis" id="appel-avis" role="status" aria-live="polite" hidden></p>
     <audio id="appel-audio-distant" class="sr-seul" autoplay playsinline></audio>
     <div class="appel-scene" id="appel-scene" role="list" aria-label="Participants">
-      <div class="tuile vous" id="appel-vous" role="listitem" data-camera="off"><video id="appel-video-local" muted playsinline autoplay aria-label="Votre caméra"></video><span class="tuile-av" aria-hidden="true" id="appel-vous-av"></span><span class="tuile-nom">Vous</span></div>
+      <div class="tuile vous" id="appel-vous" role="listitem" data-camera="off"><video id="appel-video-local" muted playsinline autoplay aria-label="Votre caméra"></video><span class="tuile-av" aria-hidden="true" id="appel-vous-av"></span><span class="tuile-nom">Vous</span><button type="button" class="vous-retourner presse" id="appel-flip" aria-label="Retourner la caméra" hidden><svg class="ic" aria-hidden="true"><use href="#i-retourner"/></svg></button></div>
     </div>
     <div class="appel-bas">
       <div class="appel-reponse" id="appel-reponse" role="group" aria-label="Appel entrant">
@@ -2417,6 +2422,14 @@ a.mini .ic { font-size: 16px; }
     });
     majCamera(A);
     pousserPistes(A);
+    if (A.video && CAP.appelsMedias) compterCameras(A);
+  }
+  /* combien de caméras a l'appareil ? Le navigateur ne le dit qu'APRÈS l'autorisation : on compte quand une caméra vient d'être prise. Le bouton « Retourner la caméra » n'existe que s'il y en a deux. */
+  async function compterCameras(A) {
+    let n = 0;
+    try { n = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput').length; } catch (e) { n = 0; }
+    if (perime(A) || n === A.nbCam) return;
+    A.nbCam = n; rendreAppel();
   }
   /* ⛔ LE SEUL ENDROIT QUI RELÂCHE : toute piste, tout flux, l'élément vidéo. Appelé de quitterAppel, et seulement de là (et de l'arrivée tardive d'une piste, ci-dessous). */
   function arreterPistes(A) {
@@ -2478,6 +2491,29 @@ a.mini .ic { font-size: 16px; }
       poserPistes(A, f); avisAppelEffacer(); rendreAppel(); annonceAppel('Caméra activée');
     } catch (e) { if (!perime(A)) { avisAppel(messageMedia(e, 'camera') + ' L\'appel continue en audio.'); rendreAppel(); } }
     finally { A.cameraEnCours = false; }
+  }
+  /* ⛔ RETOURNER LA CAMÉRA (avant ↔ arrière). L'ancienne piste est ARRÊTÉE d'abord — un téléphone n'ouvre pas deux caméras à la fois, et le voyant ne reste pas allumé —, puis une piste neuve prend sa place chez le moteur
+     (`replaceTrack`, aucune renégociation). L'autre ne voit pas la caméra « s'éteindre » entre les deux : le moteur n'est prévenu qu'à l'arrivée de la neuve. Si la caméra demandée ne vient pas, on reprend la précédente ;
+     si aucune ne vient, la caméra est coupée et on le dit. */
+  async function retournerCamera() {
+    const A = etat.appelUI; if (!A || !A.snap || !A.camera || A.cameraEnCours || !CAP.appelsMedias) return;
+    const vers = A.face === 'environment' ? 'user' : 'environment';
+    A.cameraEnCours = true;
+    const ancienne = A.video;
+    A.pistes = A.pistes.filter(t => t !== ancienne);
+    try { ancienne.stop(); } catch (e) { /* déjà arrêtée */ }
+    let f = null, dit = '';
+    try { f = await gum({ video: { facingMode: { ideal: vers } } }); A.face = vers; }
+    catch (e) {
+      dit = 'La caméra n\'a pas pu être retournée.';
+      try { f = await gum({ video: { facingMode: { ideal: A.face } } }); } catch (e2) { f = null; }
+    }
+    try {
+      if (perime(A)) { if (f) f.getTracks().forEach(t => t.stop()); return; }
+      if (f) { poserPistes(A, f); if (dit) avisAppel(dit); else { avisAppelEffacer(); annonceAppel(A.face === 'environment' ? 'Caméra arrière' : 'Caméra avant'); } }
+      else { A.video = null; majCamera(A); pousserPistes(A); avisAppel(dit + ' La caméra est coupée.'); }
+      rendreAppel();
+    } finally { A.cameraEnCours = false; }
   }
   function statutAppel(A) {
     const s = A.snap; if (!s) return '';
@@ -2560,6 +2596,7 @@ a.mini .ic { font-size: 16px; }
     $('appel-hp').setAttribute('aria-pressed', A.haut ? 'true' : 'false');
     const bc = $('appel-cam'); bc.setAttribute('aria-pressed', A.camera ? 'true' : 'false'); bc.setAttribute('aria-label', A.camera ? 'Couper la caméra' : 'Activer la caméra');
     bc.querySelector('use').setAttribute('href', A.camera ? '#i-video' : '#i-video-off');
+    $('appel-flip').hidden = !(CAP.appelsMedias && A.camera && A.nbCam > 1);          // (version servie) retourner la caméra : seulement avec deux caméras ET la sienne allumée
     if (s.entrant) { const ic = E.querySelector('#appel-repondre use'); if (ic) ic.setAttribute('href', s.type === 'video' ? '#i-video' : '#i-phone'); }
     lierFluxDistant(A);
     majStatutAppel();
@@ -2568,7 +2605,7 @@ a.mini .ic { font-size: 16px; }
     const jeton = ++etat.jetonAppel;
     etat.appelId = id;
     document.documentElement.dataset.appel = '1';
-    const A = etat.appelUI = { id, jeton, snap: null, micro: true, haut: false, camera: false, pistes: [], audio: null, video: null, minut: 0, fini: false, cameraEnCours: false, mediaPret: false, sig: '', reponse: false };
+    const A = etat.appelUI = { id, jeton, snap: null, micro: true, haut: false, camera: false, pistes: [], audio: null, video: null, minut: 0, fini: false, cameraEnCours: false, mediaPret: false, sig: '', reponse: false, face: 'user', nbCam: 0 };
     $('appel-nom').textContent = ''; $('appel-statut').textContent = ''; $('appel-avis').hidden = true;
     $('appel-ecran').dataset.mise = 'audio';
     synchroInert();
@@ -2610,6 +2647,7 @@ a.mini .ic { font-size: 16px; }
   $('appel-micro').addEventListener('click', basculerMicro);
   $('appel-hp').addEventListener('click', () => { const A = etat.appelUI; if (!A || !A.snap) return; A.haut = !A.haut; rendreAppel(); annonceAppel(A.haut ? 'Haut-parleur activé' : 'Haut-parleur coupé'); });
   $('appel-cam').addEventListener('click', basculerCamera);
+  $('appel-flip').addEventListener('click', retournerCamera);
   $('appel-msg').addEventListener('click', () => { const A = etat.appelUI; if (A && A.snap) ouvrirConversationAvec(A.snap.membres.map(m => m.id), A.snap.conv); });
   /* (version servie) l'appel ENTRANT : « Refuser » ferme l'écran — c'est `quitterAppel` qui refuse auprès du service, comme tout autre chemin qui ferme —, « Répondre » prend l'appel PUIS demande le micro et la caméra
      (la demande d'autorisation ne retarde jamais la réponse : la sonnerie a une échéance) */
