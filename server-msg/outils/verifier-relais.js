@@ -152,8 +152,8 @@ function session(lien) {
   };
   return {
     /* → { ok:true, relais:{ip,port}, duree } | { ok:false, code } — la danse de l'authentification à long terme : une première demande sans identité (401 + domaine + nonce), puis la demande signée. */
-    async allouer({ username, credential }, { famille } = {}) {
-      const transport = attr(ATTR.TRANSPORT, Buffer.from([17, 0, 0, 0])), extra = famille === 6 ? [attr(ATTR.FAMILLE, Buffer.from([2, 0, 0, 0]))] : [];
+    async allouer({ username, credential }, { famille, protocole } = {}) {
+      const transport = attr(ATTR.TRANSPORT, Buffer.from([protocole || 17, 0, 0, 0])), extra = famille === 6 ? [attr(ATTR.FAMILLE, Buffer.from([2, 0, 0, 0]))] : [];
       const premiere = await lien.echange(message(TYPE.ALLOCATION, [transport], txid(), null));
       if (premiere.type === (TYPE.ALLOCATION | 0x0100)) return { ok: false, code: 0, sansAuthentification: true };
       const c = codeErreur(premiere);
