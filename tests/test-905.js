@@ -159,7 +159,7 @@ const MATRICE = {
      garde ne laisse passer que les deux participants, et un non-participant reçoit le 404 d'un appel qui n'existe pas. Pendant ces routes, Ana et Ben parlent depuis les appareils LIÉS à l'appel (`liees`) :
      répondre se joue sur un appel qui SONNE (Ben l'appelé : 200 ; Ana l'appelante : 403 `interdit` — la garde a passé, le geste dit non), raccrocher et signaler sur un appel qui COURT. Les cases que la
      garde ne voit pas (un autre appareil, un appel pris, un appel fini) sont jouées plus bas. */
-  'ice':                { ok: () => ['GET', '/api/ice'], codes: [200] },
+  'ice':                { ok: () => ['GET', '/api/ice'], codes: [404] },   // S laisse passer tout compte connecté ; le geste dit non à qui n'est dans AUCUN appel (404 `introuvable`, test-981 joue les identifiants rendus à qui sonne ou court)
   'appels.liste':       { ok: () => ['GET', '/api/appels'], codes: [200] },
   'appels.creer':       { ok: (F, a) => ['POST', '/api/appels', { uid: F.cibleDe(a), type: 'audio' }], codes: [201] },
   'appels.repondre':    { ok: (F) => ['POST', '/api/appels/' + F.AP + '/repondre', { accepte: true }], codes: [200, 403],

@@ -66,7 +66,7 @@ async function ouvrir(b, base, pf, o) {
   page.on('pageerror', e => S.erreurs.push(String(e && e.message || e).slice(0, 220)));
   page.on('console', m => { if (m.type() === 'error') S.console.push(m.text().slice(0, 220)); });
   await page.addInitScript(() => {
-    window.__media = 0; window.__pistes = []; window.__pcs = []; window.__confs = []; window.__ctx = { crees: 0, fermes: 0 }; window.__relaisSeul = false; window.__vibre = 0; window.__iceErreurs = []; window.__ajouts = []; window.__contraintes = []; window.__deuxCameras = false;
+    window.__media = 0; window.__pistes = []; window.__pcs = []; window.__confs = []; window.__setConfs = []; window.__ctx = { crees: 0, fermes: 0 }; window.__relaisSeul = false; window.__vibre = 0; window.__iceErreurs = []; window.__ajouts = []; window.__contraintes = []; window.__deuxCameras = false;
     try {
       const md = navigator.mediaDevices, g = md.getUserMedia.bind(md);
       md.getUserMedia = async function (c) { window.__media++; window.__contraintes.push(JSON.stringify(c)); const f = await g(c); f.getTracks().forEach(t => window.__pistes.push(t)); return f; };
@@ -90,6 +90,10 @@ async function ouvrir(b, base, pf, o) {
         window.__confs.push(JSON.parse(JSON.stringify(conf)));
         if (window.__relaisSeul) conf.iceTransportPolicy = 'relay';
         const pc = new PC(conf, ...r); window.__pcs.push(pc);
+        /* ⛔ `setConfiguration` (le renouvellement des identifiants du relais) redonne une configuration SANS la politique « relay » que la sonde a forcée à la construction : la sonde la lui remet, sinon le renouvellement se
+           jouerait avec une politique que le test n'a jamais voulue (et les configurations posées sont relevées dans `__setConfs`) */
+        const poser = pc.setConfiguration.bind(pc);
+        pc.setConfiguration = function (c2) { window.__setConfs.push(JSON.parse(JSON.stringify(c2 || {}))); const d = Object.assign({}, c2); if (window.__relaisSeul) d.iceTransportPolicy = 'relay'; return poser(d); };
         const ajout = pc.addIceCandidate.bind(pc);
         pc.addIceCandidate = async function (c) { try { const r = await ajout(c); window.__ajouts.push({ ok: true, c: String(c && c.candidate).slice(0, 90) }); return r; } catch (e) { window.__ajouts.push({ ok: false, c: String(c && c.candidate).slice(0, 90), e: String(e && e.message).slice(0, 80) }); throw e; } };
         pc.addEventListener('icecandidateerror', (e) => { window.__iceErreurs.push({ url: e.url, code: e.errorCode, texte: e.errorText, adresse: e.address, port: e.port }); });
@@ -210,15 +214,39 @@ async function capturer(b, nom, personnes) {
 /* L'adresse de cette machine hors boucle locale (celle d'`eth0`) : ⛔ UN RELAIS SUR 127.0.0.1 NE SERT À RIEN À UN NAVIGATEUR — coturn refuse par défaut les pairs en boucle locale, et la pile WebRTC ne forme aucune paire avec
    un candidat distant en boucle locale (mesuré : quatre candidats « relay » récoltés de chaque côté, échangés, ajoutés, zéro paire). Le relais de la sonde écoute donc sur l'adresse de la machine. */
 const adresseLocale = () => { for (const l of Object.values(os.networkInterfaces())) for (const i of l || []) if (i.family === 'IPv4' && !i.internal) return i.address; return null; };
+/* Les plafonds et les plages refusées de PRODUCTION, lus dans le script qui les pose : la sonde joue les appels avec EUX (un plafond trop juste pour un appel — le renouvellement qui alloue de nouveau pendant que
+   l'ancienne allocation vit encore — se verrait ici, et nulle part ailleurs). */
+function constantesRelais() {
+  const sh = fs.readFileSync(path.join(T.SERVICE, 'install-turn.sh'), 'utf8');
+  const n = (k) => Number((new RegExp('^' + k + '=(\\d+)', 'm').exec(sh) || [])[1]);
+  const refuses = Array.from(/REFUSES=\(\n([\s\S]*?)\n\)/.exec(sh)[1].matchAll(/"([^"]+)"/g)).map(m => m[1]);
+  return { userQuota: n('USER_QUOTA'), totalQuota: n('TOTAL_QUOTA'), maxBps: n('MAX_BPS'), bpsCapacite: n('BPS_CAPACITE'), refuses };
+}
+/* Ce que coturn a VU, d'après son journal bavard (`verbose`) : par personne, combien d'allocations ont été ouvertes en tout et combien l'étaient AU MÊME INSTANT au plus (le pic) — « new » ouvre, « closed » ferme. */
+function lireAllocations(texte) {
+  const ouvertes = new Map(), par = new Map();
+  for (const l of String(texte).split('\n')) {
+    let m = /session (\d+): new, realm=<[^>]*>, username=<(\d+):([^>]+)>/.exec(l);
+    if (m) { const p = par.get(m[3]) || { total: 0, pic: 0, courant: 0 }; par.set(m[3], p); p.total++; p.courant++; p.pic = Math.max(p.pic, p.courant); ouvertes.set(m[1], m[3]); continue; }
+    m = /session (\d+): closed/.exec(l);
+    if (m && ouvertes.has(m[1])) { par.get(ouvertes.get(m[1])).courant--; ouvertes.delete(m[1]); }
+  }
+  return par;
+}
+/* Les allocations que le quota ou la capacité de coturn ont REFUSÉES (486 « Allocation Quota Reached ») : ce qu'un plafond trop juste ferait, en silence, au navigateur (il n'aurait simplement pas de relais). */
+const refusAllocations = (texte) => String(texte).split('\n').filter(l => /ALLOCATE processed, error 486/.test(l)).length;
 /* ── un VRAI coturn, pour la sonde seulement : PERMISSIF (aucune liste de refus — la configuration de production refuse EXPRÈS les adresses privées, `sonde-opmessages-relais.js` joue ces refus) ── */
 async function demarrerCoturn(dir, secret, ip) {
   const bin = fs.existsSync('/usr/bin/turnserver') ? '/usr/bin/turnserver' : null;
   if (!bin || !ip) return null;
   const port = await T.portLibre();
+  const P = constantesRelais(), journal = process.env.JOURNAL_COTURN || path.join(dir, 'coturn-sonde.log');          // JOURNAL_COTURN=/fichier : garder le journal bavard de coturn pour l'étudier
+  /* ⛔ AVEC LES PLAFONDS ET LES PLAGES REFUSÉES DE PRODUCTION (`install-turn.sh`) : un appel doit tenir dedans, renouvellement compris. Le journal bavard n'existe que dans ce bac (celui de production est vers /dev/null). */
   const conf = ['listening-port=' + port, 'listening-ip=' + ip, 'relay-ip=' + ip, 'min-port=49400', 'max-port=49500', 'realm=sonde.opmsg', 'use-auth-secret', 'static-auth-secret=' + secret,
-    'no-tls', 'no-dtls', 'no-cli', 'no-tcp-relay', 'fingerprint', 'no-software-attribute', 'log-file=/dev/null', 'no-stdout-log', 'simple-log', ''].join('\n');
+    'no-tls', 'no-dtls', 'no-cli', 'no-tcp-relay', 'fingerprint', 'no-software-attribute', 'user-quota=' + P.userQuota, 'total-quota=' + P.totalQuota, 'max-bps=' + P.maxBps, 'bps-capacity=' + P.bpsCapacite,
+    ...P.refuses.map(r => 'denied-peer-ip=' + r), 'verbose', 'log-file=' + journal, 'no-stdout-log', 'simple-log', ''].join('\n');
   const f = path.join(dir, 'coturn-sonde.conf');
-  fs.writeFileSync(f, conf, { mode: 0o600 });
+  fs.writeFileSync(f, conf, { mode: 0o600 }); fs.writeFileSync(journal, '');
   const proc = spawn(bin, ['-c', f, '--pidfile='], { stdio: 'ignore' });
   let mort = null; proc.on('exit', (c) => { mort = c; });
   const pret = await T.attendre(async () => {
@@ -226,7 +254,7 @@ async function demarrerCoturn(dir, secret, ip) {
     try { const l = await V.ouvrir({ hote: ip, port, transport: 'udp' }); const m = await l.echange(V.message(0x0001, [], crypto.randomBytes(12), null), 600); l.fermer(); return !!m && m.type === 0x0101; } catch (e) { return false; }
   }, 8000, 150);
   if (pret !== true) { try { proc.kill('SIGKILL'); } catch (e) { /* rien */ } return null; }
-  return { port, ip, arreter: async () => { if (mort === null) { proc.kill('SIGTERM'); await T.attendre(() => mort !== null, 3000); if (mort === null) proc.kill('SIGKILL'); } } };
+  return { port, ip, journal: () => { try { return fs.readFileSync(journal, 'utf8'); } catch (e) { return ''; } }, arreter: async () => { if (mort === null) { proc.kill('SIGTERM'); await T.attendre(() => mort !== null, 3000); if (mort === null) proc.kill('SIGKILL'); } } };
 }
 
 setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s)'); process.exit(1); }, 420000).unref();
@@ -246,7 +274,7 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
     coturn = await demarrerCoturn(dir, SECRET, adresseLocale());
     og = await T.fauxOpGestion({ ana: { pass: MOTS.ana, nom: NOMS.ana, actif: true }, ben: { pass: MOTS.ben, nom: NOMS.ben, actif: true }, cleo: { pass: MOTS.cleo, nom: NOMS.cleo, actif: true } });
     const appels = { balayageMs: 100, perduMs: 20000, parHeure: 900, parPaireHeure: 90, entrantsParHeure: 600, iceParHeure: 900, signalMax: 2000 };
-    if (coturn) appels.relais = { secret: SECRET, hote: coturn.ip, port: coturn.port, ttlS: 3600 };
+    if (coturn) appels.relais = { secret: SECRET, hote: coturn.ip, port: coturn.port, ttlS: 60 };          // UNE minute (quinze en production) : le renouvellement, aux trois quarts de leur vie, tombe à 45 s d'appel — le bloc 5 bis le joue
     svc = await T.lancerService({ urlGestion: og.url, horloge: true, config: { appels } });
     const base = svc.base;
 
@@ -514,6 +542,10 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
       const sa = await paire(A), sb = await paire(B);
       v('⛔ la paire retenue passe par le RELAIS des deux côtés (type « relay »)' + (sa.locale === 'relay' && sb.locale === 'relay' ? '' : ' — Ana ' + JSON.stringify(sa) + ' Ben ' + JSON.stringify(sb)), [sa.locale, sb.locale], ['relay', 'relay']);
       const ca = await croit(A), cb = await croit(B);
+      const alloc = lireAllocations(coturn.journal());
+      const mien = (id) => alloc.get(id) || { total: 0, pic: 0 };
+      const P = constantesRelais();
+      v('⛔ MESURÉ contre le vrai coturn, avec les plafonds de PRODUCTION : le navigateur ouvre UNE ALLOCATION par adresse de relais — DEUX par personne (UDP, puis TCP : cette sonde n\'a pas de TLS), jamais plus — et le quota par personne (' + P.userQuota + ') n\'en refuse aucune', [mien(idAna).total, mien(idBen).total, refusAllocations(coturn.journal())], [2, 2, 0]);
       vrai('⛔ LA VOIX PASSE par le vrai coturn : les octets audio reçus croissent des deux côtés (' + ca.avant.audioRecu + ' → ' + ca.apres.audioRecu + ' ; ' + cb.avant.audioRecu + ' → ' + cb.apres.audioRecu + ')', ca.audio && cb.audio);
       const conf = await A.page.evaluate(() => window.__confs[window.__confs.length - 1]);
       const turn = (conf.iceServers || []).find(s => s.username);
@@ -523,6 +555,51 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
       for (const S of [A, B]) await S.page.evaluate(() => { window.__relaisSeul = false; });
       /* la contre-épreuve du détecteur : l'appel du premier bloc est passé en DIRECT, et le détecteur le disait (locale ≠ relay) — ici, le même détecteur dit « relay » */
       vrai('population : l\'appel en relais a eu sa propre connexion de chaque côté (configuration lue), aucune erreur de page', (await A.page.evaluate(() => window.__confs.length)) >= 1 && (await B.page.evaluate(() => window.__confs.length)) >= 1 && A.erreurs.length === 0 && B.erreurs.length === 0);
+    });
+
+    /* ═══ 5 bis. LE RENOUVELLEMENT DES IDENTIFIANTS DU RELAIS, DANS DE VRAIS NAVIGATEURS ═══════════════════════════════════════
+       ⛔ MESURÉ ICI même (relecture, I1) : renouveler en RELANÇANT la liaison laissait deux allocations de plus chez le relais à chaque renouvellement — le navigateur ne rend pas celles de la liaison précédente
+       avant la fin de l'appel — jusqu'au quota de la personne ; la deuxième relance se heurtait au 486. Chacun redemande donc ses identifiants SANS relancer la liaison : ils servent à la prochaine collecte. */
+    if (!RAPIDE) await bloc('5 bis. Le RENOUVELLEMENT des identifiants du relais : chacun redemande les siens SANS relancer la liaison — l\'appel continue, le relais ne compte aucune allocation de plus, et les identifiants neufs ouvrent une allocation', async () => {
+      if (!coturn) { console.log('  ⚠️  NON VÉRIFIÉ : turnserver (coturn) est absent de cette machine — le renouvellement n\'a pas été joué par les navigateurs.'); return; }
+      const P = constantesRelais();
+      for (const S of [A, B]) await S.page.evaluate(() => { window.__relaisSeul = true; });
+      await appeler(A, NOMS.ben, 'audio');
+      await verifier('Ben : ça sonne', B, () => document.getElementById('appel-ecran').hasAttribute('data-entrant'), null, 10000);
+      await decrocher(B);
+      await verifier('la liaison s\'établit EN RELAIS SEUL', A, () => /Appel en cours/.test(document.getElementById('appel-statut').textContent), null, 20000);
+      const sa0 = await paire(A), sb0 = await paire(B);
+      v('la paire retenue passe par le relais des deux côtés AVANT le renouvellement', [sa0.locale, sb0.locale], ['relay', 'relay']);
+      const avant = lireAllocations(coturn.journal());
+      const compter = (id) => (lireAllocations(coturn.journal()).get(id) || { total: 0 }).total;
+      const n0 = [compter(idAna), compter(idBen)];
+      const rap = (S) => S.page.evaluate(() => ({ configs: window.__setConfs.length, derniere: window.__setConfs[window.__setConfs.length - 1] || null, premiere: window.__confs[window.__confs.length - 1] || null, connexions: window.__pcs.length }));
+      const bases = [(await rap(A)).connexions, (await rap(B)).connexions];          // la page garde les connexions des appels d'avant : on compte ce qui s'AJOUTE
+      /* aux trois quarts de la minute (45 s), CHACUN redemande ses identifiants (le service en donne à qui est dans l'appel) et les donne à sa connexion */
+      const renouvele = await (async () => { for (let t = 0; t < 100000; t += 500) { const [a, b] = [await rap(A), await rap(B)]; if (a.configs >= 1 && b.configs >= 1) return true; await dormir(500); } return false; })();
+      vrai('⛔ le renouvellement a LIEU, de chaque côté, dans les 100 s (la configuration de la connexion reçoit des serveurs neufs — l\'appelé aussi, sans qu\'on le lui dise)', renouvele);
+      const ra = await rap(A), rb = await rap(B);
+      const turnDe = (conf) => ((conf && conf.iceServers) || []).find(x => x.username) || { username: '0:?', credential: '' };
+      const hmacDe = (u) => crypto.createHmac('sha1', SECRET).update(u).digest('base64');
+      v('⛔ les identifiants neufs ont une AUTRE échéance (plus tardive), la bonne signature (HMAC recalculé ici), et sont ceux de LA personne (l\'appelante ; l\'appelé de même)',
+        [Number(turnDe(ra.derniere).username.split(':')[0]) > Number(turnDe(ra.premiere).username.split(':')[0]), turnDe(ra.derniere).credential === hmacDe(turnDe(ra.derniere).username), turnDe(ra.derniere).username.endsWith(':' + idAna),
+         Number(turnDe(rb.derniere).username.split(':')[0]) > Number(turnDe(rb.premiere).username.split(':')[0]), turnDe(rb.derniere).credential === hmacDe(turnDe(rb.derniere).username), turnDe(rb.derniere).username.endsWith(':' + idBen)], [true, true, true, true, true, true]);
+      await dormir(2500);
+      v('⛔ le renouvellement NE RELANCE PAS la liaison : aucune connexion de plus de chaque côté, et chez coturn aucune allocation de plus (deux par personne, comme avant) et aucune refusée par un plafond',
+        [ra.connexions - bases[0], rb.connexions - bases[1], compter(idAna) - n0[0], compter(idBen) - n0[1], refusAllocations(coturn.journal())], [0, 0, 0, 0, 0]);
+      /* les identifiants neufs OUVRENT une allocation chez le vrai coturn (ce qu'une relance après un changement de réseau en ferait) ; on la rend aussitôt */
+      const lien = await V.ouvrir({ hote: coturn.ip, port: coturn.port, transport: 'udp' });
+      let ouverte = null;
+      try { const sess = V.session(lien); ouverte = await sess.allouer({ username: turnDe(ra.derniere).username, credential: turnDe(ra.derniere).credential }); if (ouverte.ok) await sess.rendre(); } finally { lien.fermer(); }
+      v('⛔ les identifiants RENOUVELÉS ouvrent une allocation chez le vrai coturn (une relance après un changement de réseau trouvera donc son relais)', ouverte && ouverte.ok, true);
+      const sa = await paire(A), sb = await paire(B);
+      const ca = await croit(A, { ms: 2000 }), cb = await croit(B, { ms: 2000 });
+      vrai('⛔ APRÈS le renouvellement l\'appel continue : la même liaison, la paire passe toujours par le relais, et la voix passe des deux côtés (' + ca.avant.audioRecu + ' → ' + ca.apres.audioRecu + ' ; ' + cb.avant.audioRecu + ' → ' + cb.apres.audioRecu + ')',
+        sa.locale === 'relay' && sb.locale === 'relay' && ca.audio && cb.audio && /Appel en cours/.test(await lire(A, '#appel-statut')));
+      await toucher(A, '#appel-raccrocher');
+      await attendreFermeture('Ana raccroche', A); await attendreFermeture('Ben l\'apprend', B);
+      for (const S of [A, B]) await S.page.evaluate(() => { window.__relaisSeul = false; });
+      vrai('aucune erreur de page pendant le renouvellement (population : ' + P.userQuota + ' allocations au plus par personne chez coturn)', A.erreurs.length === 0 && B.erreurs.length === 0 && avant.size >= 2);
     });
 
     /* ═══ 6. UN ÉCRAN D'APPEL AU TÉLÉPHONE ET AU BUREAU : LA MISE EN PAGE ═════════════════════════════════════ */

@@ -11,6 +11,10 @@
  *   · il REFUSE de relayer vers la machine elle-même et vers les réseaux privés (127.0.0.1, 10/8, 172.16/12, 192.168/16, 169.254.169.254, 100.64/10) — sans cela un appel pourrait demander au relais
  *     d'envoyer des paquets à `127.0.0.1:8080` (OP GESTION) ou au service de métadonnées de l'hébergeur ;
  *   · il ACCEPTE une adresse publique (la contre-épreuve : un relais qui refuse tout serait « sûr » et inutile) ;
+ *   · ⛔ RELAIS ↔ RELAIS PASSE, et UN SERVICE UDP DE LA MACHINE N'EST PAS ATTEINT (relecture, I2) : `denied-peer-ip` ne refuse pas l'adresse publique de la machine, donc une personne qui a une allocation pourrait
+ *     envoyer des paquets, de la part de la machine, à n'importe quel service UDP qui écoute sur cette adresse ; c'est le pare-feu sortant du relais (`turn-pare-feu.sh`) qui le referme, et ce contrôle le relit EN
+ *     VRAI : deux allocations, l'une envoie à l'adresse relayée de l'autre (un appel relayé des deux côtés) — le paquet doit ARRIVER ; puis un petit service UDP posé ici, sur l'adresse de la machine et hors des
+ *     ports de relais — le paquet ne doit PAS arriver ;
  *   · en TLS (5349), son certificat est valide pour le nom annoncé aux pages.
  *
  * ⛔ AUCUN SECRET NE S'AFFICHE : ni le secret partagé, ni un identifiant fabriqué, ni l'adresse de relais obtenue. Justin recolle toutes les sorties du VPS dans la conversation (règle du 24 septembre
@@ -86,9 +90,12 @@ function lireAdresse(v, txid) {
 /* → { echange(buf, attenteMs) → Promise<message lu>, fermer() }. Un échange attend la réponse de SON identifiant de transaction ; en UDP il est renvoyé jusqu'à trois fois (un paquet peut se perdre). */
 function ouvrir({ hote, port, transport = 'udp', tls: optsTls }) {
   return new Promise((resolve, reject) => {
-    const attentes = new Map();
-    const livrer = (m) => { const k = m.txid.toString('hex'), a = attentes.get(k); if (a) { attentes.delete(k); a(m); } };
+    const attentes = new Map(), donnees = [];
+    /* une indication de DONNÉES (0x0017) n'a pas de réponse à attendre : c'est un paquet qu'un pair a envoyé à notre adresse relayée — on le garde */
+    const livrer = (m) => { const k = m.txid.toString('hex'), a = attentes.get(k); if (a) { attentes.delete(k); a(m); } else if (m.type === 0x0017) donnees.push(m); };
     const lien = (envoyer, fermer) => ({
+      donnees,
+      brut: (b) => envoyer(b),
       echange: (buf, attenteMs = 2000) => new Promise((ok, ko) => {
         const m = lire(buf), k = m.txid.toString('hex');
         let essais = 0, t = null;
@@ -178,6 +185,12 @@ function session(lien) {
       }
       return m.type === (TYPE.PERMISSION | 0x0100) ? { ok: true, code: 200 } : { ok: false, code: codeErreur(m) };
     },
+    /* envoie `octets` à ip:port PAR le relais (une Send indication, sans réponse : le relais l'expédie ou la laisse tomber, et rien ne le dit) */
+    envoyer(ip, port, octets) {
+      const t = txid();
+      lien.brut(message(0x0016, [attr(ATTR.PAIR, adressePaire(ip, port, t)), attr(0x0013, octets)], t, null));
+    },
+    donnees: () => lien.donnees,
     /* rendre l'allocation (durée 0) : un relais qu'on ne rend pas la garde dix minutes, et le quota de l'utilisateur avec */
     async rendre() {
       if (!cle) return { ok: false, code: null };
@@ -193,8 +206,57 @@ const ADRESSES_REFUSEES = [['127.0.0.1', 'la machine elle-même (127.0.0.1)'], [
   ['169.254.169.254', 'le service de métadonnées de l\'hébergeur (169.254/16)'], ['100.64.1.1', 'le réseau partagé 100.64/10'], ['0.0.0.1', 'l\'adresse nulle 0/8']];
 const ADRESSE_PUBLIQUE = '93.184.216.34';
 
+/* ⛔ RELAIS ↔ RELAIS ET PARE-FEU SORTANT, joués pour de vrai — PAR L'ADRESSE PUBLIQUE de la machine : coturn alloue l'adresse relayée sur l'adresse où la demande est ARRIVÉE (mesuré : un client qui parle à
+   127.0.0.1 reçoit un relais sur 127.0.0.1, que `denied-peer-ip` refuse), donc ce contrôle part du NOM du relais, comme un navigateur. Deux allocations (deux personnes) ; la première envoie à l'adresse RELAYÉE de la seconde — c'est le trafic d'un appel relayé des deux côtés, qui doit
+   ARRIVER ; puis un service UDP posé ici, sur l'adresse de la machine et hors des ports de relais : ce que le pare-feu doit empêcher d'atteindre. → [{ nom, ok, detail, avis }] — un contrôle qui ne peut pas se
+   jouer (l'adresse relayée n'est pas une adresse de CETTE machine : une traduction d'adresses) est un AVIS, jamais un vert. */
+async function controlePareFeu({ hote, port, identifiants }) {
+  const r = [];
+  const noter = (nom, ok, detail, avis) => r.push({ nom, ok: !!ok, detail: detail || '', avis: !!avis });
+  const dort = (ms) => new Promise((ok) => setTimeout(ok, ms));
+  const attendre = async (cond, ms) => { for (let t = 0; t < ms; t += 50) { if (cond()) return true; await dort(50); } return cond(); };
+  let l1 = null, l2 = null, ctrl = null;
+  try {
+    l1 = await ouvrir({ hote, port, transport: 'udp' }); l2 = await ouvrir({ hote, port, transport: 'udp' });
+    const s1 = session(l1), s2 = session(l2);
+    const a1 = await s1.allouer(identifiants('bon')), a2 = await s2.allouer(identifiants('bon'));
+    if (!a1.ok || !a2.ok || !a1.relais || !a2.relais) { noter('(UDP) relais ↔ relais : deux allocations', false, 'allocation refusée (code ' + (a1.ok ? a2.code : a1.code) + ')'); return r; }
+    const ip = a1.relais.ip;
+    const p1 = await s1.permission(a2.relais.ip, a2.relais.port), p2 = await s2.permission(ip, a1.relais.port);
+    s1.envoyer(a2.relais.ip, a2.relais.port, Buffer.from('opmsg-relais-vers-relais'));
+    const passe = await attendre(() => s2.donnees().some((m) => (m.attrs.get(0x0013) || Buffer.alloc(0)).toString() === 'opmsg-relais-vers-relais'), 1500);
+    noter('(UDP) RELAIS ↔ RELAIS : un paquet envoyé à l\'adresse relayée d\'une autre personne ARRIVE (le trafic d\'un appel relayé des deux côtés)', passe, passe ? '' : (p1.ok && p2.ok ? 'rien reçu' : 'autorisation refusée (codes ' + p1.code + ', ' + p2.code + ')'));
+    if (!passe) { noter('(UDP) le relais n\'atteint PAS un service UDP de la machine (pare-feu sortant)', false, 'non vérifiable : le relais ne relaie même pas vers lui-même'); return r; }
+    /* le service de la machine : un socket UDP posé sur l'adresse relayée (celle de la machine), hors de la plage des relais */
+    ctrl = dgram.createSocket(net.isIP(ip) === 6 ? 'udp6' : 'udp4');
+    const recus = [];
+    ctrl.on('message', (b) => recus.push(b));
+    try { await new Promise((ok, ko) => { ctrl.once('error', ko); ctrl.bind(0, ip, () => { ctrl.removeListener('error', ko); ok(); }); }); }
+    catch (e) { noter('(UDP) le relais n\'atteint PAS un service UDP de la machine (pare-feu sortant)', false, 'non vérifié : l\'adresse relayée n\'est pas une adresse de CETTE machine (traduction d\'adresses ?)', true); return r; }
+    const portCtrl = ctrl.address().port;
+    const lien3 = await ouvrir({ hote, port, transport: 'udp' });
+    try {
+      const s3 = session(lien3);
+      const a3 = await s3.allouer(identifiants('bon'));
+      if (!a3.ok) { noter('(UDP) le relais n\'atteint PAS un service UDP de la machine (pare-feu sortant)', false, 'allocation refusée (code ' + a3.code + ')'); return r; }
+      await s3.permission(ip, portCtrl);
+      s3.envoyer(ip, portCtrl, Buffer.from('opmsg-vers-un-service-de-la-machine'));
+      await dort(700);
+      noter('(UDP) le relais n\'atteint PAS un service UDP de la machine (pare-feu sortant : sans lui, une personne qui a une allocation parlerait aux services de ce serveur)', recus.length === 0, recus.length ? 'ATTEINT — le paquet est arrivé au service de la machine' : '');
+      await s3.rendre();
+    } finally { lien3.fermer(); }
+    await s1.rendre(); await s2.rendre();
+  } catch (e) {
+    /* un nom que le DNS ne résout pas encore n'est pas une panne du relais : un avis, comme le TLS */
+    const dns = e && (e.code === 'ENOTFOUND' || e.code === 'EAI_AGAIN' || e.code === 'EADDRNOTAVAIL');
+    noter('(UDP) relais ↔ relais et pare-feu sortant' + (dns ? ' — non vérifié : le nom du relais ne se résout pas encore' : ''), false, e && e.code ? String(e.code) : (e && e.message ? e.message : 'erreur'), dns);
+  }
+  finally { for (const l of [l1, l2]) { try { if (l) l.fermer(); } catch (x) { /* fermé */ } } try { if (ctrl) ctrl.close(); } catch (x) { /* fermé */ } }
+  return r;
+}
+
 /* → [{ nom, ok, detail }] — jamais une valeur secrète dans `detail`. `identifiants(âge)` fabrique { username, credential } ; âge « perime » en rend un dont l'échéance est passée. */
-async function controles({ hote, port, portTls = null, transports = ['udp', 'tcp'], identifiants, hoteTls = null, optsTls = null }) {
+async function controles({ hote, port, portTls = null, transports = ['udp', 'tcp'], identifiants, hoteTls = null, optsTls = null, pareFeu = false, hotePareFeu = null }) {
   const r = [];
   const noter = (nom, ok, detail, avis) => r.push({ nom, ok: !!ok, detail: detail || '', avis: !!avis });
   for (const transport of transports) {
@@ -225,6 +287,7 @@ async function controles({ hote, port, portTls = null, transports = ['udp', 'tcp
       finally { if (l2) l2.fermer(); }
     }
   }
+  if (pareFeu && transports.includes('udp')) for (const c of await controlePareFeu({ hote: hotePareFeu || hote, port, identifiants })) r.push(c);
   if (portTls) {
     let l3 = null;
     try {
@@ -260,7 +323,7 @@ async function principal(argv) {
     return age === 'mauvais' ? { username: id.username, credential: crypto.randomBytes(20).toString('base64') } : id;
   };
   console.log('── Le relais d\'appels de l\'instance ' + instance);
-  const res = await controles({ hote: '127.0.0.1', port: relais.port, portTls: relais.portTls, identifiants, hoteTls: relais.hote });
+  const res = await controles({ hote: '127.0.0.1', port: relais.port, portTls: relais.portTls, identifiants, hoteTls: relais.hote, pareFeu: true, hotePareFeu: relais.hote });
   let mal = 0;
   let avis = 0;
   for (const c of res) {
@@ -273,5 +336,5 @@ async function principal(argv) {
   return mal ? 1 : 0;
 }
 
-module.exports = { message, lire, ouvrir, session, controles, adressePaire, lireAdresse, codeErreur, ADRESSES_REFUSEES, ADRESSE_PUBLIQUE };
+module.exports = { message, lire, ouvrir, session, controles, controlePareFeu, adressePaire, lireAdresse, codeErreur, ADRESSES_REFUSEES, ADRESSE_PUBLIQUE };
 if (require.main === module) principal(process.argv.slice(2)).then((c) => process.exit(c), () => { console.log('✗ erreur inattendue'); process.exit(1); });

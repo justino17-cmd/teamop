@@ -197,7 +197,7 @@
   function creerMoteurAppels(d) {
     /* les délais : `pouls` (le signe de vie que le service attend, bien avant ses 45 s), `candidats` (les candidats partent par paquets), `veille` (une liaison qui ne s'établit pas dans ce temps est un échec),
        `deconnecte` (une coupure brève se rétablit seule avant qu'on relance), `reessai` (une offre ou une réponse perdue repart), `iceMax` (les identifiants du relais ne retardent jamais un appel au-delà),
-       `renouv`/`renouvMin` (les identifiants du relais durent une heure : un appel plus long les renouvelle aux trois quarts de leur vie), `quitter` (un raccrochage perdu repart), `marge` (après la fin annoncée
+       `renouv`/`renouvMin` (les identifiants du relais durent quinze minutes : chacun redemande les siens aux trois quarts de leur vie, SANS relancer la liaison), `quitter` (un raccrochage perdu repart), `marge` (après la fin annoncée
        de la sonnerie, on relit l'état au service plutôt que de laisser sonner un écran) */
     const T = Object.assign({ pouls: 15000, candidats: 60, veille: 30000, deconnecte: 6000, reessai: [600, 1800], iceMax: 4000, renouv: 0.75, renouvMin: 30000, quitter: [500, 1500], marge: 3000, nettoyage: 60000 }, d.delais || {});
     const planifier = d.planifier, annuler = d.annuler, maintenant = d.maintenant;
@@ -460,25 +460,26 @@
         else if (!c.minDeconnecte) c.minDeconnecte = planifier(() => { c.minDeconnecte = null; if (!c.fini && c.pc === pc && pc.iceConnectionState !== 'connected' && pc.iceConnectionState !== 'completed') relancer(c); }, T.deconnecte);
       }
     }
-    async function offrir(c, relance, renouveler) {
+    async function offrir(c, relance) {
       const pc = c.pc;
       if (!pc) return;
       const offre = await pc.createOffer(relance ? { iceRestart: true } : undefined);
       if (c.pc !== pc || c.fini) return;
       await pc.setLocalDescription(offre);
-      const corps = { sdp: offre.sdp };
-      if (renouveler) corps.renouveler = true;
-      await signaler(c, 'offre', corps, true);
+      await signaler(c, 'offre', { sdp: offre.sdp }, true);
     }
     async function relancer(c) {
       if (c.fini || c.role !== 'appelant' || !c.pc || c.relance) return;
       c.relance = true;
-      try { if (typeof c.pc.restartIce === 'function') c.pc.restartIce(); await offrir(c, true, false); }
+      try { if (typeof c.pc.restartIce === 'function') c.pc.restartIce(); await offrir(c, true); }
       catch (e) { /* la veille tranche */ }
       finally { c.relance = false; }
     }
-    /* les identifiants du relais durent une heure : un appel plus long les renouvelle aux trois quarts de leur vie. L'appelant les redemande, les donne à sa connexion, relance la liaison, et DIT à l'appelé de
-       faire de même avant de répondre (`renouveler`) — sans quoi la nouvelle allocation naîtrait avec des identifiants qui meurent à l'heure. */
+    /* ⛔ LES IDENTIFIANTS DU RELAIS DURENT QUINZE MINUTES, et se renouvellent SANS RELANCER LA LIAISON. Chaque côté redemande les siens aux trois quarts de leur vie (seule la personne qui est dans l'appel en reçoit :
+       le service répond 404 sinon) et les donne à sa connexion (`setConfiguration`) : ils servent à la PROCHAINE collecte de candidats — celle d'une relance après un changement de réseau. Avant, l'appelant relançait
+       la liaison à chaque renouvellement : MESURÉ en vrai navigateur contre le vrai coturn, le navigateur ne rend PAS les allocations de la liaison précédente avant la fin de l'appel — chaque relance en laissait deux
+       de plus chez le relais, jusqu'au quota de la personne (4), après quoi les relances suivantes ne trouvaient plus de relais (486) ; et une relance coupe un instant la voix. Une allocation DÉJÀ ouverte n'est
+       pas ré-authentifiée par coturn (mesuré) : elle vit jusqu'à la fin de l'appel avec ses premiers identifiants. */
     async function renouvelerServeurs(c) {
       const ice = await lireIce();
       if (c.fini || !c.pc || ice.indisponible || !ice.serveurs.length) return false;
@@ -487,14 +488,12 @@
       catch (e) { return false; }
     }
     function armerRenouvellement(c) {
-      if (c.minRenouv || c.fini || c.role !== 'appelant' || !c.relais || !(c.ttl > 0)) return;
+      if (c.minRenouv || c.fini || !c.relais || !(c.ttl > 0)) return;
       c.minRenouv = planifier(async () => {
         c.minRenouv = null;
         if (c.fini || !c.pc) return;
         await renouvelerServeurs(c);
-        if (c.fini || !c.pc) return;
         armerRenouvellement(c);
-        try { if (typeof c.pc.restartIce === 'function') c.pc.restartIce(); await offrir(c, true, true); } catch (e) { /* la veille tranche */ }
       }, Math.max(T.renouvMin, Math.floor(c.ttl * 1000 * T.renouv)));
     }
     /* la liaison d'un appel qui court : l'appelant offre dès que l'autre a répondu, l'appelé attend l'offre (ce qui est arrivé avant que la liaison soit prête a été mis de côté) */
@@ -517,7 +516,7 @@
         armerRenouvellement(c);
         for (const s of c.file.splice(0)) enfiler(c, s);
         envoyerCandidats(c);
-        if (c.role === 'appelant') await offrir(c, false, false);
+        if (c.role === 'appelant') await offrir(c, false);
         envoyerEtatCamera(c);
       } catch (e) { if (!c.fini) echec(c); }
       finally { c.demarrage = false; }
@@ -549,7 +548,6 @@
         if (s.type === 'offre') {
           if (c.role !== 'appele' || typeof x.sdp !== 'string' || !x.sdp || x.sdp.length > SDP_MAX || x.sdp === c.derniereOffre) return;
           c.derniereOffre = x.sdp;
-          if (x.renouveler === true && c.relais) await renouvelerServeurs(c);
           if (c.pc !== pc || c.fini) return;
           await pc.setRemoteDescription({ type: 'offer', sdp: x.sdp });
           adopterEmetteurs(c);

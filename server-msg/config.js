@@ -334,7 +334,8 @@ function courrielConfig(cfg, instance) {
    · `relais` : le relais d'appel (coturn). SANS ce bloc, il n'y a pas de relais et la page le DIT ; JAMAIS de serveur STUN d'un tiers (Google…) en repli — rien ne sort de nos machines.
      `secret` : le secret PARTAGÉ avec coturn (`static-auth-secret`), posé par `install-turn.sh` sur le VPS sans jamais s'afficher ; il se lit (`relais.secret`) mais ne se COPIE ni ne se SÉRIALISE (propriété
      non énumérable, comme le mot de passe du relais SMTP) et aucune erreur de configuration ne le cite. `hote` : le nom du relais (`turn.teamop.fr`) ; `port` (3478, UDP et TCP) ; `portTls` (5349) ou absent :
-     pas de `turns:` (le certificat n'a pas pu être obtenu) ; `ttlS` : la durée de vie d'un identifiant (3600). */
+     pas de `turns:` (le certificat n'a pas pu être obtenu) ; `ttlS` : la durée de vie d'un identifiant — QUINZE MINUTES (900), entre une minute et une heure : un identifiant vole en une requête, et coturn ne
+     le re-vérifie jamais sur une allocation déjà ouverte (mesuré) ; la page les renouvelle aux trois quarts de leur vie, tant que l'appel court. */
 const APPELS_DEFAUT = { sonnerieMs: 45000, perduMs: 45000, balayageMs: 2000, historiqueJours: 180, listeMax: 100, parHeure: 30, parPaireHeure: 6, entrantsParHeure: 30, signalMax: 240, signalFenetreMs: 60000, iceParHeure: 120 };
 const RE_SECRET_RELAIS = /^[A-Za-z0-9_-]{32,128}$/;
 function appelsConfig(cfg, instance) {
@@ -361,8 +362,8 @@ function appelsConfig(cfg, instance) {
     if (!Number.isInteger(port) || port < 1 || port > 65535) throw err('appels.relais.port doit être un entier entre 1 et 65535');
     let portTls = null;
     if (r.portTls !== undefined && r.portTls !== null) { if (!Number.isInteger(r.portTls) || r.portTls < 1 || r.portTls > 65535) throw err('appels.relais.portTls doit être un entier entre 1 et 65535'); portTls = r.portTls; }
-    const ttlS = r.ttlS === undefined ? 3600 : r.ttlS;
-    if (!Number.isInteger(ttlS) || ttlS < 60 || ttlS > 86400) throw err('appels.relais.ttlS doit être un entier entre 60 et 86400');
+    const ttlS = r.ttlS === undefined ? 900 : r.ttlS;
+    if (!Number.isInteger(ttlS) || ttlS < 60 || ttlS > 3600) throw err('appels.relais.ttlS doit être un entier entre 60 et 3600');
     const relais = { hote: r.hote, port, portTls, ttlS };
     Object.defineProperty(relais, 'secret', { value: r.secret, enumerable: false, writable: false, configurable: false });
     o.relais = relais;

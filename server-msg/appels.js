@@ -55,8 +55,12 @@ function creerAppels({ stockage, hub, push, config, horloge = Date.now, journali
     if (!r) return { relais: false, ttl_s: 0, serveurs: [] };
     const id = identifiantsRelais(r, uid, horloge());
     const hote = r.hote;
-    const urls = ['turn:' + hote + ':' + r.port + '?transport=udp', 'turn:' + hote + ':' + r.port + '?transport=tcp'];
-    if (r.portTls) urls.push('turns:' + hote + ':' + r.portTls + '?transport=tcp');
+    /* ⛔ DEUX adresses de relais, pas trois : le navigateur ouvre UNE ALLOCATION par adresse (mesuré par la sonde, contre le vrai coturn : deux par côté avec deux adresses), et chaque allocation RÉSERVE
+       sa part de la capacité du relais (`bps-capacity` ÷ `max-bps`) — trois adresses, c'était six allocations par appel relayé. L'UDP d'abord (le chemin des appels) ; en secours, le TLS quand le
+       certificat existe (les réseaux d'entreprise qui ne laissent passer que du TLS), sinon le TCP simple — le TCP simple ET le TLS ensemble n'ajoutaient rien : un réseau qui bloque l'UDP et le 5349
+       n'ouvre pas non plus le 3478. */
+    const urls = ['turn:' + hote + ':' + r.port + '?transport=udp'];
+    urls.push(r.portTls ? 'turns:' + hote + ':' + r.portTls + '?transport=tcp' : 'turn:' + hote + ':' + r.port + '?transport=tcp');
     return { relais: true, ttl_s: r.ttlS, serveurs: [{ urls: ['stun:' + hote + ':' + r.port] }, { urls, username: id.username, credential: id.credential }] };
   }
 

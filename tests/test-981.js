@@ -58,7 +58,7 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
 (async () => {
   const flux = [];
   const M = await monter({
-    appels: { relais: { hote: HOTE, port: 3478, portTls: 5349, secret: SECRET_RELAIS, ttlS: 3600 }, parHeure: 6, parPaireHeure: 3, signalMax: 10, signalFenetreMs: MIN, iceParHeure: 3, balayageMs: 1000, perduMs: 600000 },
+    appels: { relais: { hote: HOTE, port: 3478, portTls: 5349, secret: SECRET_RELAIS, ttlS: 900 }, parHeure: 6, parPaireHeure: 3, signalMax: 10, signalFenetreMs: MIN, iceParHeure: 3, balayageMs: 1000, perduMs: 600000 },
   });
   const { svc, S, pers, cl, sql, avancer, maintenant } = M;
   const ana = pers('Ana'), ben = pers('Ben'), cleo = pers('Cleo'), dan = pers('Dan'), eve = pers('Eve'), fred = pers('Fred'), zoe = pers('Zoe', 'compte'), inconnue = pers('Nova');
@@ -67,39 +67,68 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
   const ouvrirFlux = async (c) => { const f = await T.flux(c); flux.push(f); return f; };
   try {
     /* ═══════ 1. LE RELAIS : GET /api/ice ═══════ */
-    console.log('GET /api/ice : des identifiants éphémères recalculés ici, le secret nulle part, jamais le serveur d\'un tiers');
+    console.log('GET /api/ice : à qui est DANS un appel seulement ; des identifiants éphémères recalculés ici, le secret nulle part, jamais le serveur d\'un tiers');
+    const gil = pers('Gil'), hana = pers('Hana'); S.contactLier(gil.id, hana.id);
+    const g1 = cl(gil), h1 = cl(hana);
     {
-      const r = await a1.get('/api/ice');
+      /* Gil appelle Hana : une sonnerie en cours, la seule situation où des identifiants de relais se donnent. Chaque appel de la section est raccroché avant la suivante. */
+      const sonnerie = (c, vers) => c.post('/api/appels', { uid: vers, type: 'audio' });
+      const raccroche = (c, r) => c.post('/api/appels/' + r.j.appel.id + '/quitter', {});
+      const sans = [await g1.get('/api/ice'), await c1.get('/api/ice'), await c1.get('/api/ice'), await c1.get('/api/ice'), await c1.get('/api/ice'), await c1.get('/api/ice')];
+      v('⛔ AUCUN APPEL : pas d\'identifiants (404 `introuvable`, le même corps pour tous) — et le refus ne consomme RIEN du plafond (cinq refus de suite pour Cleo avec un plafond de trois par heure : toujours 404, jamais 429)',
+        [sans.map(dit), new Set(sans.map(x => JSON.stringify(x.j))).size], [new Array(6).fill([404, 'introuvable']), 1]);
+      const l1 = await sonnerie(g1, hana.id);
+      vrai('population : Gil appelle Hana, la sonnerie court', l1.code === 201 && l1.j.appel.etat === 'sonne');
+      const tiers = await c1.get('/api/ice');
+      v('⛔ un TIERS pendant l\'appel des deux autres : le même 404 (participer à CET appel est la condition, pas qu\'un appel existe quelque part)', dit(tiers), [404, 'introuvable']);
+      const r = await g1.get('/api/ice');
       vrai('population : la réponse porte un STUN et un serveur TURN avec identifiants', r.code === 200 && r.j.relais === true && r.j.serveurs.length === 2 && !!r.j.serveurs[1].username);
-      v('   `Cache-Control: no-store` (des identifiants ne se mettent pas en cache) et une durée de vie d\'une heure', [r.h.get('cache-control'), r.j.ttl_s], ['no-store', 3600]);
+      v('   `Cache-Control: no-store` (des identifiants ne se mettent pas en cache) et une durée de vie de quinze minutes (le réglage du banc)', [r.h.get('cache-control'), r.j.ttl_s], ['no-store', 900]);
       const [stun, turn] = r.j.serveurs;
-      v('⛔ les adresses sont celles du relais SEUL : stun, turn en UDP et en TCP, turns — jamais le serveur d\'un tiers', [stun.urls, tri(turn.urls)], [['stun:' + HOTE + ':3478'], tri(['turn:' + HOTE + ':3478?transport=udp', 'turn:' + HOTE + ':3478?transport=tcp', 'turns:' + HOTE + ':5349?transport=tcp'])]);
+      v('⛔ les adresses sont celles du relais SEUL : stun, et DEUX adresses de relais (turn en UDP, turns en TLS) — jamais le serveur d\'un tiers, et pas trois (le navigateur ouvre une allocation par adresse : mesuré par la sonde)', [stun.urls, tri(turn.urls)], [['stun:' + HOTE + ':3478'], tri(['turn:' + HOTE + ':3478?transport=udp', 'turns:' + HOTE + ':5349?transport=tcp'])]);
       vrai('   aucun nom d\'hôte dans la réponse que celui du relais (population : ' + JSON.stringify(r.j).match(/[a-z0-9.-]+\.[a-z]{2,}/g).length + ' noms lus)', JSON.stringify(r.j).match(/[a-z0-9.-]+\.[a-z]{2,}/g).every(h => h === HOTE) && JSON.stringify(r.j).match(/[a-z0-9.-]+\.[a-z]{2,}/g).length >= 3);
       const [exp, uid] = turn.username.split(':');
-      const attendu = Math.floor(maintenant() / 1000) + 3600;
-      v('⛔ le nom d\'utilisateur est « <échéance>:<identifiant de la personne> » : une heure, la personne connectée', [Math.abs(Number(exp) - attendu) <= 3, uid], [true, ana.id]);
+      const attendu = Math.floor(maintenant() / 1000) + 900;
+      v('⛔ le nom d\'utilisateur est « <échéance>:<identifiant de la personne> » : quinze minutes, la personne connectée', [Math.abs(Number(exp) - attendu) <= 3, uid], [true, gil.id]);
       v('⛔ le mot de passe est BASE64(HMAC-SHA1(secret, nom)) RECALCULÉ ICI avec `crypto` — sans passer par le code du service', turn.credential, hmac64(SECRET_RELAIS, turn.username));
       v('   un autre secret donne un autre mot de passe (la preuve ne se satisfait pas de n\'importe quel calcul)', hmac64(SECRET_RELAIS + 'x', turn.username) === turn.credential, false);
+      const rBen = await h1.get('/api/ice');
+      v('⛔ L\'APPELÉE en reçoit aussi, dès la sonnerie, et c\'est SON identifiant (il répond en relais)', [rBen.code, rBen.j.serveurs[1].username.split(':')[1], rBen.j.serveurs[1].credential === hmac64(SECRET_RELAIS, rBen.j.serveurs[1].username)], [200, hana.id, true]);
+      await raccroche(g1, l1);
+      v('⛔ L\'APPEL FINI (Gil a annulé) : plus d\'identifiants, ni pour lui ni pour Hana — le même 404', [dit(await g1.get('/api/ice')), dit(await h1.get('/api/ice'))], [[404, 'introuvable'], [404, 'introuvable']]);
+      /* une sonnerie ÉCHUE n'est plus un appel : 404 avant même que le balayeur ne l'ait écrite « manquée » */
+      const l1b = await sonnerie(g1, hana.id);
       avancer(10 * MIN);
-      const r2 = await a1.get('/api/ice'), r3 = await b1.get('/api/ice');
-      v('⛔ SECOND PASSAGE, dix minutes plus tard : une autre échéance, un autre mot de passe, toujours juste ; et pour Ben, SON identifiant', [Number(r2.j.serveurs[1].username.split(':')[0]) - Number(exp), r2.j.serveurs[1].credential === hmac64(SECRET_RELAIS, r2.j.serveurs[1].username), r3.j.serveurs[1].username.split(':')[1], r3.j.serveurs[1].credential === hmac64(SECRET_RELAIS, r3.j.serveurs[1].username)], [600, true, ben.id, true]);
-      const r4 = await a1.get('/api/ice'), r5 = await a1.get('/api/ice');
-      v('⛔ le plafond : trois lectures par heure (réglage du banc) — Ana en a fait trois (la troisième passe), la quatrième est refusée (429 quota_atteint, Retry-After) ; Ben, lui, a le sien', [r4.code, dit(r5), Number(r5.h.get('retry-after')) > 0, r3.code], [200, [429, 'quota_atteint'], true, 200]);
+      v('⛔ UNE SONNERIE ÉCHUE (dix minutes plus tard) : plus d\'identifiants non plus', [l1b.code, dit(await g1.get('/api/ice'))], [201, [404, 'introuvable']]);
+      const l2 = await sonnerie(g1, hana.id);
+      const r2 = await g1.get('/api/ice'), r3 = await h1.get('/api/ice');
+      v('⛔ SECOND PASSAGE, dix minutes plus tard, dans un appel neuf : une autre échéance, un autre mot de passe, toujours juste ; et pour Hana, SON identifiant', [Number(r2.j.serveurs[1].username.split(':')[0]) - Number(exp), r2.j.serveurs[1].credential === hmac64(SECRET_RELAIS, r2.j.serveurs[1].username), r3.j.serveurs[1].username.split(':')[1], r3.j.serveurs[1].credential === hmac64(SECRET_RELAIS, r3.j.serveurs[1].username)], [600, true, hana.id, true]);
+      const r4 = await g1.get('/api/ice'), r5 = await g1.get('/api/ice');
+      v('⛔ le plafond : trois lectures par heure (réglage du banc) — Gil en a fait trois (la troisième passe), la quatrième est refusée (429 quota_atteint, Retry-After) ; Hana, lui, a le sien', [r4.code, dit(r5), Number(r5.h.get('retry-after')) > 0, r3.code], [200, [429, 'quota_atteint'], true, 200]);
+      await raccroche(g1, l2);
       avancer(HEURE + SEC);
-      v('   et une heure plus tard, elle repasse', (await a1.get('/api/ice')).code, 200);
+      const l3 = await sonnerie(g1, hana.id);
+      v('   et une heure plus tard, dans un appel neuf, elle repasse', [l3.code, (await g1.get('/api/ice')).code], [201, 200]);
+      await raccroche(g1, l3);
       const cfg = (await T.client(svc.base).get('/api/config')).j, sante = (await T.client(svc.base).get('/health')).j;
       v('/api/config dit qu\'un relais existe et combien de temps sonne un appel — sans le nom du relais ni son secret', [cfg.appels, JSON.stringify(cfg).includes(HOTE), JSON.stringify(cfg).includes(SECRET_RELAIS)], [{ relais: true, sonnerie_s: 45 }, false, false]);
       v('⛔ /health dit « turn: true » et des nombres — ni le secret, ni le nom du relais, ni un appel, ni le nombre d\'appels perdus (R6)', [sante.appels.turn, JSON.stringify(sante).includes(SECRET_RELAIS), JSON.stringify(sante).includes(HOTE), Object.keys(sante.appels).sort()], [true, false, false, ['ageS', 'echecs', 'turn']]);
+      v('⛔ `appels.relais.ttlS` : quinze minutes (900) par défaut, un entier de 60 à 3600 — 59, 3601, un décimal et un texte sont refusés au démarrage, en nommant le champ',
+        [appelsConfig({ appels: { relais: { hote: HOTE, secret: SECRET_RELAIS } } }, 'beta').relais.ttlS, appelsConfig({ appels: { relais: { hote: HOTE, secret: SECRET_RELAIS, ttlS: 3600 } } }, 'beta').relais.ttlS,
+          [59, 3601, 900.5, '900', 86400].map(x => { try { appelsConfig({ appels: { relais: { hote: HOTE, secret: SECRET_RELAIS, ttlS: x } } }, 'beta'); return false; } catch (e) { return /ttlS/.test(e.message); } })], [900, 3600, [true, true, true, true, true]]);
     }
     {
-      /* sans relais : une liste vide, et rien d'un tiers */
-      const N = await monter({});
+      /* sans relais : une liste vide, et rien d'un tiers — pour qui est dans un appel (les autres : 404, comme partout) ; sans TLS : le TCP simple en secours, jamais trois adresses */
+      const N = await monter({ appels: { entrantsParHeure: 100 } }), N2 = await monter({ appels: { relais: { hote: HOTE, port: 3478, secret: SECRET_RELAIS } } });
       try {
-        const p = N.pers('Ana'), c = N.cl(p);
+        const duo = async (X) => { const p = X.pers('Ana'), q = X.pers('Ben'); X.S.contactLier(p.id, q.id); const c = X.cl(p); const rr = await c.post('/api/appels', { uid: q.id, type: 'audio' }); return { c, rr }; };
+        const { c, rr } = await duo(N);
         const r = await c.get('/api/ice');
-        v('⛔ SANS relais configuré : `relais:false`, une liste VIDE, durée nulle — aucun serveur STUN public n\'est proposé en repli', [r.code, r.j, r.h.get('cache-control')], [200, { relais: false, ttl_s: 0, serveurs: [] }, 'no-store']);
+        v('⛔ SANS relais configuré : `relais:false`, une liste VIDE, durée nulle — aucun serveur STUN public n\'est proposé en repli', [rr.code, r.code, r.j, r.h.get('cache-control')], [201, 200, { relais: false, ttl_s: 0, serveurs: [] }, 'no-store']);
         v('   /api/config le dit aussi, et /health : turn:false', [(await T.client(N.svc.base).get('/api/config')).j.appels.relais, (await T.client(N.svc.base).get('/health')).j.appels.turn], [false, false]);
-      } finally { await N.fermer(); }
+        const d2 = await duo(N2), rice = await d2.c.get('/api/ice');
+        v('⛔ SANS TLS (pas de `portTls`) : le TCP simple prend sa place — deux adresses de relais, jamais trois ; et la durée par défaut est de quinze minutes', [d2.rr.code, rice.code, tri(rice.j.serveurs[1].urls), rice.j.ttl_s], [201, 200, tri(['turn:' + HOTE + ':3478?transport=udp', 'turn:' + HOTE + ':3478?transport=tcp']), 900]);
+      } finally { await N.fermer(); await N2.fermer(); }
     }
 
     /* ═══════ 2. LANCER ═══════ */
@@ -109,6 +138,7 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
     const groupeAutres = S.convCreerGroupe({ createur: cleo.id, nom: 'Autre', membres: [ben.id], annonces_seules: false, ephemere_s: 0 }).id;
     S.contactEtat(eve.id, ana.id, 'bloque');                // Eve a bloqué Ana
     const fA = await ouvrirFlux(a1), fA2 = await ouvrirFlux(a2), fB1 = await ouvrirFlux(b1), fB2 = await ouvrirFlux(b2), fC = await ouvrirFlux(c1);
+    const appelsAvant = Number(sql('SELECT COUNT(*) AS n FROM appel').n);          // la section 1 a fait quatre appels (Gil vers Hana) pour obtenir des identifiants : les refus d'ici n'en ajoutent AUCUN
     {
       const corps = { type: 'audio', uid: ben.id };
       v('⛔ le corps est lu avec rigueur : ni conversation ni personne, les deux à la fois, un type absent ou inconnu, un identifiant mal formé, SOI-MÊME → 400 `champ_invalide`, et rien n\'est écrit',
@@ -116,9 +146,9 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
          (await a1.post('/api/appels', { uid: 'p_zz', type: 'audio' })).j, (await a1.post('/api/appels', { conv: 'c_zz', type: 'audio' })).j, (await a1.post('/api/appels', { uid: ana.id, type: 'audio' })).j,
          (await a1.post('/api/appels', { uid: { $ne: 1 }, type: 'audio' })).j, (await a1.post('/api/appels', [corps])).j].map(j => j && j.error),
         new Array(9).fill('champ_invalide'));
-      v('   population : aucun appel n\'existe après ces neuf refus', Number(sql('SELECT COUNT(*) AS n FROM appel').n), 0);
+      v('   population : aucun appel n\'existe après ces neuf refus', Number(sql('SELECT COUNT(*) AS n FROM appel').n) - appelsAvant, 0);
       const g = await a1.post('/api/appels', { conv: groupe, type: 'audio' });
-      v('⛔ un GROUPE : l\'appel de groupe est l\'étape 8 — refus propre `appel_a_deux` (409), rien d\'écrit', [dit(g), Number(sql('SELECT COUNT(*) AS n FROM appel').n)], [[409, 'appel_a_deux'], 0]);
+      v('⛔ un GROUPE : l\'appel de groupe est l\'étape 8 — refus propre `appel_a_deux` (409), rien d\'écrit', [dit(g), Number(sql('SELECT COUNT(*) AS n FROM appel').n) - appelsAvant], [[409, 'appel_a_deux'], 0]);
       const hors = await a1.post('/api/appels', { conv: groupeAutres, type: 'audio' }), vide = await a1.post('/api/appels', { conv: 'c_' + '0'.repeat(32), type: 'audio' });
       v('⛔ une conversation où je ne suis PAS, et une qui n\'existe pas : la MÊME réponse (404 introuvable, au caractère près)', [dit(hors), hors.txt === vide.txt], [[404, 'introuvable'], true]);
     }
@@ -130,7 +160,7 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
       const nova = await a1.post('/api/appels', { uid: inconnue.id, type: 'audio' });
       v('⛔ un inconnu, une personne qui m\'a BLOQUÉE, une personne qui n\'existe pas, une personne sans lien : la MÊME réponse (404 introuvable) — un appel ne dit pas qu\'on a été bloqué', [dit(inconnu), inconnu.txt === bloque.txt, bloque.txt === fantome.txt, fantome.txt === nova.txt], [[404, 'introuvable'], true, true, true]);
       v('   et dans l\'autre sens : Ana a bloqué Eve, qui l\'appelle — le même 404', dit(await e1.post('/api/appels', { uid: ana.id, type: 'audio' })), [404, 'introuvable']);
-      v('population : aucun appel n\'a été écrit par ces refus', Number(sql('SELECT COUNT(*) AS n FROM appel').n), 0);
+      v('population : aucun appel n\'a été écrit par ces refus', Number(sql('SELECT COUNT(*) AS n FROM appel').n) - appelsAvant, 0);
       /* un compte effacé (410) : une directe existe avec lui */
       const dF = S.convDirecteObtenir(ana.id, fred.id).id;
       const brut = new DatabaseSync(M.chemin); brut.prepare('UPDATE personne SET suppression_le = ? WHERE id = ?').run(maintenant() - 1, fred.id); brut.close();

@@ -60,7 +60,7 @@ const { bac, reel, OPTIONS_COTURN, enBigInt, cidr, A_REFUSER, RE_SECRET, LIGNE_S
       vrai('⛔ un secret de 64 caractères [A-Za-z0-9_-] est dans la configuration de l\'instance (tiré par le script : l\'instance n\'en portait pas)', RE_SECRET.test(secret || '') && secret.length === 64);
       const cfg = b.config('beta');
       v('la configuration de l\'instance garde TOUT ce qu\'elle portait (le reste est intact) et gagne `appels.relais`', [Object.keys(JSON.parse(avant)).every(k => JSON.stringify(cfg[k]) === JSON.stringify(JSON.parse(avant)[k])), Object.keys(cfg.appels.relais).sort()], [true, ['hote', 'port', 'portTls', 'secret', 'ttlS']]);
-      v('   hôte, ports et durée : turn.teamop.fr, 3478, 5349 (le certificat est là), une heure', [cfg.appels.relais.hote, cfg.appels.relais.port, cfg.appels.relais.portTls, cfg.appels.relais.ttlS], ['turn.teamop.fr', 3478, 5349, 3600]);
+      v('   hôte, ports et durée : turn.teamop.fr, 3478, 5349 (le certificat est là), quinze minutes (900 s)', [cfg.appels.relais.hote, cfg.appels.relais.port, cfg.appels.relais.portTls, cfg.appels.relais.ttlS], ['turn.teamop.fr', 3478, 5349, 900]);
       let valide = null; try { valide = appelsConfig(cfg, 'beta'); } catch (e) { valide = String(e.message); }
       vrai('⛔ la VRAIE validation du service (`appelsConfig`) accepte cette configuration : l\'instance démarrera avec', valide && typeof valide === 'object' && valide.relais && valide.relais.hote === 'turn.teamop.fr' && valide.relais.secret === secret);
       v('⛔ droits : la configuration de l\'instance est en 0600, celle de coturn en 0640 (elle porte le secret)', [modeDe(b, 'etc/opmsg/beta.json'), modeDe(b, 'etc/turnserver.conf')], ['600', '640']);
@@ -72,6 +72,11 @@ const { bac, reel, OPTIONS_COTURN, enBigInt, cidr, A_REFUSER, RE_SECRET, LIGNE_S
       const val = (k) => (conf.find(l => l.startsWith(k + '=')) || '').slice(k.length + 1);
       v('   les ports : écoute 3478, TLS 5349, relais UDP 49160-49999', [val('listening-port'), val('tls-listening-port'), val('min-port'), val('max-port')], ['3478', '5349', '49160', '49999']);
       v('   les plafonds sont posés (par identifiant, au total, débit par session, débit global) — des NOMBRES positifs', ['user-quota', 'total-quota', 'max-bps', 'bps-capacity'].map(k => /^[1-9][0-9]*$/.test(val(k))), [true, true, true, true]);
+      /* ⛔ LA CAPACITÉ EST UN CHOIX ÉCRIT (relecture, I1) : huit appels relayés à la fois. Un appel relayé = deux personnes × DEUX adresses de relais (le service en donne deux : test-981) = 4 allocations ; coturn réserve `max-bps` par
+         allocation, donc la capacité RÉELLE est `bps-capacity` ÷ `max-bps` (mesuré : 60 comptes × 8 allocations n'en tenaient que 25) — et `total-quota` dit le MÊME nombre, sinon le plus bas des deux décide sans que personne le sache. */
+      const nbr = (k) => Number(val(k));
+      v('⛔ les plafonds du relais : 4 allocations par personne (deux adresses × le jeu de l\'appel et celui du renouvellement), 32 au total, 500 ko/s chacune, 16 Mo/s de capacité', [nbr('user-quota'), nbr('total-quota'), nbr('max-bps'), nbr('bps-capacity')], [4, 32, 500000, 16000000]);
+      v('⛔ la capacité tient UN seul nombre : `bps-capacity` ÷ `max-bps` = `total-quota` (32 allocations = 8 appels relayés × 4), et une personne en tient au moins deux jeux d\'allocations (`user-quota` ≥ 2 adresses × 2)', [nbr('bps-capacity') / nbr('max-bps') === nbr('total-quota'), nbr('total-quota') / 4, nbr('user-quota') >= 2 * 2], [true, 8, true]);
       v('   le nom (realm) est celui du relais ; le certificat et la clé sont ceux que le script a rangés pour coturn', [val('realm'), val('cert'), val('pkey')], ['turn.teamop.fr', '/etc/coturn/certs/fullchain.pem', '/etc/coturn/certs/privkey.pem']);
       v('   TLS ≥ 1.2 (1.0 et 1.1 refusés)', [opt.includes('no-tlsv1'), opt.includes('no-tlsv1_1'), opt.includes('no-tls')], [true, true, false]);
       v('⛔ AUCUNE trace : le journal de coturn est envoyé à /dev/null, rien sur la sortie standard (il porte l\'adresse de chaque appareil et l\'identifiant de chaque personne)', [val('log-file'), opt.includes('no-stdout-log'), opt.includes('simple-log'), opt.includes('syslog'), opt.includes('verbose')], ['/dev/null', true, true, false, false]);
@@ -101,6 +106,24 @@ const { bac, reel, OPTIONS_COTURN, enBigInt, cidr, A_REFUSER, RE_SECRET, LIGNE_S
         v('   et il se parse (sh -n)', [r2.status, r2.stderr], [0, '']);
       }
       v('un drop-in systemd borne coturn (mémoire, priorité, nouveaux privilèges) sans toucher à son unité', [(b.octets('etc/systemd/system/coturn.service.d/opmsg.conf') || '').split('\n').filter(l => /^(MemoryMax|CPUWeight|IOWeight|NoNewPrivileges)=/.test(l)).length, b.octets('etc/systemd/system/coturn.service') === null], [4, true]);
+      /* ═══ le PARE-FEU SORTANT du relais (relecture, I2) ═══ */
+      {
+        const di = (b.octets('etc/systemd/system/coturn.service.d/opmsg.conf') || '').split('\n');
+        const PF = '/usr/local/sbin/opmsg-turn-pare-feu';
+        v('⛔ le drop-in de coturn REJOUE le pare-feu avant chaque démarrage (`ExecStartPre=+` : en root, malgré l\'utilisateur sans privilège de l\'unité) et le retire à l\'arrêt (`ExecStopPost=+`)', [di.filter(l => /^ExecStartPre=/.test(l)), di.filter(l => /^ExecStopPost=/.test(l))], [['ExecStartPre=+' + PF + ' start'], ['ExecStopPost=+' + PF + ' stop']]);
+        v('⛔ les ports que le pare-feu connaît sont ceux de la configuration de coturn (plage des relais, ports d\'écoute et leurs voisins) — une règle sur d\'autres ports laisserait les relais ou couperait l\'écouteur', [di.filter(l => /^Environment=/.test(l)).sort(), [val('min-port'), val('max-port'), val('listening-port'), val('tls-listening-port')]],
+          [['Environment=OPMSG_TURN_PORTS_ECOUTE=3478,3479,5349,5350', 'Environment=OPMSG_TURN_PORT_MAX=49999', 'Environment=OPMSG_TURN_PORT_MIN=49160'], ['49160', '49999', '3478', '5349']]);
+        v('⛔ le script est posé à un chemin STABLE (pas dans le dossier d\'une version), exécutable, et identique à celui du dépôt à l\'octet près', [modeDe(b, 'usr/local/sbin/opmsg-turn-pare-feu'), b.octets('usr/local/sbin/opmsg-turn-pare-feu') === lire(path.join(RACINE, 'server-msg', 'turn-pare-feu.sh'))], ['755', true]);
+        const v4 = b.noyau('v4'), v6 = b.noyau('v6');
+        const attendu = [
+          'OPMSG-TURN|-p udp -m addrtype ! --dst-type LOCAL -j RETURN', 'OPMSG-TURN|-p udp --dport 49160:49999 -j RETURN', 'OPMSG-TURN|-p udp -m multiport --sports 3478,3479,5349,5350 -j RETURN', 'OPMSG-TURN|-p udp -j DROP',
+        ];
+        v('⛔ DANS LE NOYAU (IPv4) : le saut depuis OUTPUT pour l\'utilisateur de coturn — UN seul — et la chaîne : le trafic vers l\'extérieur passe, vers un port de relais passe, depuis un port d\'écoute passe, TOUT LE RESTE est refusé (dans cet ordre)',
+          [v4.chaines, v4.regles.filter(l => l.startsWith('OUTPUT|')), v4.regles.filter(l => l.startsWith('OPMSG-TURN|'))], [['OPMSG-TURN'], ['OUTPUT|-m owner --uid-owner turnserver -j OPMSG-TURN'], attendu]);
+        v('   et en IPv6 : les mêmes règles', [v6.chaines, v6.regles.filter(l => l.startsWith('OUTPUT|')), v6.regles.filter(l => l.startsWith('OPMSG-TURN|'))], [['OPMSG-TURN'], ['OUTPUT|-m owner --uid-owner turnserver -j OPMSG-TURN'], attendu]);
+        const JP = b.journal();
+        vrai('⛔ L\'ORDRE : le pare-feu est posé par systemd AVANT le démarrage de coturn (`ExecStartPre`), RELU dans le noyau (`-C`) et SEULEMENT ALORS le contrôle du relais et les ports de l\'hébergeur', index(JP, /^ExecStartPre /) >= 0 && index(JP, /^ExecStartPre /) < dernier(JP, /^iptables -C OUTPUT/) && dernier(JP, /^iptables -C OUTPUT/) < index(JP, /^verifier-relais/) && index(JP, /^verifier-relais/) < index(JP, /^ufw allow/));
+      }
       const ngx = b.octets('etc/nginx/sites-available/opmsg-turn.conf');
       vrai('le bloc nginx ne sert QUE la preuve de Let\'s Encrypt sur le port 80 (aucun 443, aucun proxy, aucun journal d\'accès) et nomme le relais', ngx && /server_name turn\.teamop\.fr;/.test(ngx) && /\.well-known\/acme-challenge/.test(ngx) && !/443|proxy_pass|ssl_/.test(ngx) && /access_log off;/.test(ngx));
       vrai('   il est activé (lien dans sites-enabled)', fs.lstatSync(path.join(b.R, 'etc/nginx/sites-enabled/opmsg-turn.conf')).isSymbolicLink());
@@ -135,6 +158,36 @@ const { bac, reel, OPTIONS_COTURN, enBigInt, cidr, A_REFUSER, RE_SECRET, LIGNE_S
       vrai('⛔ le secret n\'est toujours pas dans la sortie (seconde exécution)', !(r2.out + r2.err).includes(secret) && !b.env().includes(secret));
       v('   et le script dit que c\'est une reprise (« cle=repris »)', /cle=repris instance=inchange coturn=inchange/.test(r2.out), true);
 
+      /* ═══════ 2 bis. LE SCRIPT DE PARE-FEU LUI-MÊME, contre le faux noyau : rejouable, relu, retiré, et qui REFUSE plutôt que de laisser ouvert ═══════ */
+      console.log('\nLe pare-feu sortant : rejouable (il ne s\'empile pas), relu dans le noyau, retiré à l\'arrêt, refusé plutôt que laissé ouvert');
+      {
+        const PFS = path.join(RACINE, 'server-msg', 'turn-pare-feu.sh');
+        const jouer = (arg, env, drapeaux) => {
+          for (const d of Object.keys(drapeaux || {})) b.drapeau(d, drapeaux[d]);
+          const r = require('child_process').spawnSync(reel('bash'), [PFS, arg], { encoding: 'utf8', env: Object.assign({ PATH: b.bin, LC_ALL: 'C.UTF-8', BAC_ETAT: b.E }, env || {}) });
+          for (const d of Object.keys(drapeaux || {})) b.drapeau(d, false);
+          return { status: r.status, out: (r.stdout + r.stderr).trim() };
+        };
+        const n0 = b.noyau('v4').regles.length;
+        const a = jouer('start'), a2 = jouer('start');
+        v('⛔ REJOUER `start` ne change rien : toujours UN saut depuis OUTPUT et quatre règles dans la chaîne (les règles se remplacent, elles ne s\'empilent pas — IPv4 et IPv6)', [a.status, a2.status, b.noyau('v4').regles.length, b.noyau('v4').regles.filter(l => l.startsWith('OUTPUT|')).length, b.noyau('v6').regles.length, b.noyau('v6').regles.filter(l => l.startsWith('OUTPUT|')).length], [0, 0, n0, 1, n0, 1]);
+        v('   `verifier` relit le noyau : en place → sortie 0', [jouer('verifier').status, /en place/.test(jouer('verifier').out)], [0, true]);
+        const ar = jouer('stop');
+        v('⛔ `stop` retire le saut ET la chaîne (IPv4 et IPv6), et `verifier` le DIT ensuite (sortie 1, « ABSENT ») — pas de règle orpheline', [ar.status, b.noyau('v4'), b.noyau('v6'), jouer('verifier').status, /ABSENT/.test(jouer('verifier').out)], [0, { chaines: [], regles: [] }, { chaines: [], regles: [] }, 1, true]);
+        jouer('start');
+        v('⛔ le saut supprimé à la main (ou par un autre outil) : `verifier` le voit (sortie 1) — le contrôle relit le noyau, il ne croit pas que `start` a réussi', (() => { const f = path.join(b.E, 'ipt-v4.regles'); fs.writeFileSync(f, fs.readFileSync(f, 'utf8').split('\n').filter(l => !l.startsWith('OUTPUT|')).join('\n')); return jouer('verifier').status; })(), 1);
+        const noV6 = jouer('start', {}, { 'iptables-absent-v6': true });
+        v('   un noyau SANS IPv6 : le pare-feu IPv4 se pose et le script le DIT (il ne refuse pas de démarrer pour un IPv6 qui n\'existe pas)', [noV6.status, /IPv4 ; IPv6 absent/.test(noV6.out)], [0, true]);
+        const refuse = jouer('start', {}, { 'iptables-refuse-v4': true });
+        v('⛔ UNE RÈGLE QUI NE SE POSE PAS : sortie 1, « le relais ne démarre pas » — systemd refusera alors de lancer coturn (un relais qui parle aux services de la machine est pire qu\'un relais éteint)', [refuse.status, /le relais ne démarre pas/.test(refuse.out)], [1, true]);
+        const sans = jouer('start', { OPMSG_TURN_UTILISATEUR: 'inconnu-x' }), mauvais = jouer('start', { OPMSG_TURN_UTILISATEUR: 'a;rm -rf x' }), ports = jouer('start', { OPMSG_TURN_PORTS_ECOUTE: '3478;ls' });
+        v('   un utilisateur qui n\'existe pas : sortie 1 ; un nom ou des ports qui ne ressemblent pas à ce qu\'ils sont : sortie 2, avant d\'écrire une règle', [sans.status, mauvais.status, ports.status], [1, 2, 2]);
+        jouer('stop');
+        const code = sansCommentaires(lire(PFS));
+        vrai('population : le script de pare-feu n\'est pas vide une fois les commentaires retirés', code.split('\n').filter(l => l.trim()).length > 25);
+        vrai('⛔ aucun secret, aucune adresse écrite en dur dans le pare-feu (il décide par type d\'adresse : « de cette machine »)', !/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/.test(code.replace(/0\.0\.0\.0/g, '')) && !/secret/i.test(code));
+      }
+
       /* ═══════ 3. UN SECRET INVALIDE EST REMPLACÉ, UN SECRET VALIDE EST REPRIS ═══════ */
       console.log('\nUn secret trop court est remplacé ; le nom du relais qui change relance coturn mais garde le secret');
       {
@@ -156,6 +209,8 @@ const { bac, reel, OPTIONS_COTURN, enBigInt, cidr, A_REFUSER, RE_SECRET, LIGNE_S
       ['coturn ne démarre pas', (b) => b.drapeau('coturn-refuse'), /coturn n'a pas démarré/, false],
       ['le contrôle du relais échoue (127.0.0.1 accepté)', (b) => b.drapeau('verifier-refuse'), /Le relais ne fait pas ce qu'il doit/, true],
       ['le contrôle est absent (une version d\'avant les appels)', (b) => fs.rmSync(path.join(b.R, 'opt/opmsg/beta/current/outils/verifier-relais.js')), /le contrôle du relais est absent/, false],
+      ['⛔ une règle du PARE-FEU SORTANT ne se pose pas (iptables refuse) : systemd refuse de démarrer coturn', (b) => b.drapeau('iptables-refuse-v4'), /coturn n'a pas démarré/, false],
+      ['⛔ le pare-feu sortant est « posé » mais ne se RELIT pas dans le noyau', (b) => b.drapeau('iptables-oublie-v4'), /le pare-feu sortant du relais n'est pas en place/, false],
     ];
     for (const [nom, preparer, dit, verifRun] of cas) {
       const b = bac();
@@ -172,6 +227,17 @@ const { bac, reel, OPTIONS_COTURN, enBigInt, cidr, A_REFUSER, RE_SECRET, LIGNE_S
         v('   aucun fichier temporaire ne reste', Object.keys(b.etat()).filter(k => /\.(nouveau|avant|modele|avant-turn)$/.test(k)), []);
         const sec = lignesConf(b).find(l => l.startsWith(LIGNE_SECRET));
         vrai('   ⛔ et le secret, écrit dans la configuration de coturn, n\'est ni dans la sortie ni dans l\'environnement des commandes', !sec || (!(r.out + r.err).includes(sec.slice(LIGNE_SECRET.length)) && !b.env().includes(sec.slice(LIGNE_SECRET.length))));
+      } finally { b.fin(); }
+    }
+    {
+      /* ⛔ le script de pare-feu est livré avec la version en service : une version d'avant ne l'a pas — on s'arrête AVANT d'écrire quoi que ce soit (ni secret, ni configuration de coturn, ni drop-in) */
+      const b = bac();
+      try {
+        b.instance('beta'); await b.serveur('beta');
+        fs.rmSync(path.join(b.R, 'opt/opmsg/beta/current/turn-pare-feu.sh'));
+        const avant = b.octets('etc/opmsg/beta.json'), etat0 = b.etat();
+        const r = await b.lancer(['beta']);
+        v('⛔ [le pare-feu du relais est absent de la version en service] le script refuse (sortie 1), le DIT, et n\'a RIEN écrit ni lancé (ni coturn, ni secret, ni drop-in)', [r.status, /le pare-feu du relais est absent/.test(r.out), b.octets('etc/opmsg/beta.json') === avant, b.etat(), compte(b.journal(), /^(systemctl|apt-get|certbot|nginx|ufw|verifier-relais)/)], [1, true, true, etat0, 0]);
       } finally { b.fin(); }
     }
     {

@@ -154,7 +154,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       v('⛔ les candidats se sont croisés dans les deux sens, sans perte ni doublon (population : chacun en avait produit deux)', [pa.candidatsEmis.length, pb.candidatsEmis.length, pb.candidatsRecus.map(c => c.candidate), pa.candidatsRecus.map(c => c.candidate)], [2, 2, pa.candidatsEmis.map(c => c.candidate), pb.candidatsEmis.map(c => c.candidate)]);
       const srv = pa.conf.iceServers, turn = srv.find(s => s.username);
       v('⛔ les identifiants du relais arrivent INTACTS à la connexion : les adresses du service, l\'utilisateur « échéance:identifiant », l\'HMAC du secret (recalculé ici)',
-        [srv[0].urls, turn.urls, /^\d{10}:p_[0-9a-f]{32}$/.test(turn.username) && turn.username.endsWith(':' + ana.id), turn.credential === hmac(turn.username), pa.conf.bundlePolicy], [['stun:turn.exemple.invalid:3478'], ['turn:turn.exemple.invalid:3478?transport=udp', 'turn:turn.exemple.invalid:3478?transport=tcp', 'turns:turn.exemple.invalid:5349?transport=tcp'], true, true, 'max-bundle']);
+        [srv[0].urls, turn.urls, /^\d{10}:p_[0-9a-f]{32}$/.test(turn.username) && turn.username.endsWith(':' + ana.id), turn.credential === hmac(turn.username), pa.conf.bundlePolicy], [['stun:turn.exemple.invalid:3478'], ['turn:turn.exemple.invalid:3478?transport=udp', 'turns:turn.exemple.invalid:5349?transport=tcp'], true, true, 'max-bundle']);
       vrai('chacun a ses PROPRES identifiants (celui de l\'appelé porte son identifiant à lui)', pb.conf.iceServers.find(s => s.username).username.endsWith(':' + ben.id));
       const fa = A.src.appelFlux(idAudio), fb = B.src.appelFlux(idAudio);
       v('le flux de l\'autre est là, avec ses deux pistes (la page le branche sur son élément audio)', [fa.getTracks().map(t => t.kind), fb.getTracks().map(t => t.kind)], [['audio', 'video'], ['audio', 'video']]);
@@ -544,7 +544,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
     }
 
     /* ═══ 10. LE RENOUVELLEMENT DES IDENTIFIANTS DU RELAIS ════════════════════════════════════════════════════════ */
-    console.log('\nLes identifiants du relais durent une heure (ici une minute) : un appel plus long les renouvelle, l\'appelant PUIS l\'appelé');
+    console.log('\nLes identifiants du relais durent quinze minutes (ici une minute) : chacun renouvelle les siens aux trois quarts de leur vie, SANS relancer la liaison');
     {
       const R1 = monter(svc, 'ana', { delais: { renouv: 0.01, renouvMin: 200 } }), R2 = monter(svc, 'ben', { delais: { renouv: 0.01, renouvMin: 200 } });
       await R1.entrer(); await R2.entrer();
@@ -554,12 +554,12 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       await R2.src.repondreAppel(s.id, true);
       await att(() => R1.monde.dernier() && R2.monde.dernier());
       const pa = R1.monde.dernier(), pb = R2.monde.dernier();
-      vrai('la liaison s\'établit, puis le renouvellement a lieu (une seconde configuration chez l\'appelant ET chez l\'appelé)', !!(await att(() => pa && pb && pa.confs.length === 2 && pb.confs.length === 2 && pa.iceConnectionState === 'connected' && pb.iceConnectionState === 'connected', 10000)));
+      vrai('la liaison s\'établit, puis le renouvellement a lieu — CHACUN renouvelle les siens (une seconde configuration chez l\'appelant ET chez l\'appelé : l\'appelé n\'attend pas qu\'on le lui dise)', !!(await att(() => pa && pb && pa.confs.length === 2 && pb.confs.length === 2 && pa.iceConnectionState === 'connected' && pb.iceConnectionState === 'connected', 10000)));
       const u0 = pa.confs[0].iceServers.find(x => x.username), u1 = pa.confs[1].iceServers.find(x => x.username), w1 = pb.confs[1].iceServers.find(x => x.username);
       v('⛔ les NOUVEAUX identifiants ont une autre échéance, la bonne signature, et l\'appelé a les siens (son identifiant)', [u1.username !== u0.username, u1.credential === hmac(u1.username), w1.username.endsWith(':' + ben.id), w1.credential === hmac(w1.username), Number(u1.username.split(':')[0]) > Number(u0.username.split(':')[0])], [true, true, true, true, true]);
-      const ordreA = pa.journal.filter(x => /setConfiguration|restartIce|^createOffer/.test(x)), ordreB = pb.journal.filter(x => /setConfiguration|setRemoteDescription|createAnswer/.test(x));
-      v('⛔ l\'appelant renouvelle PUIS relance la liaison ; l\'appelé renouvelle AVANT de répondre à l\'offre de renouvellement (sinon sa nouvelle allocation naîtrait avec les vieux identifiants)',
-        [ordreA.slice(0, 4), ordreB.slice(-3)], [['createOffer', 'setConfiguration', 'restartIce', 'createOffer:restart'], ['setConfiguration', 'setRemoteDescription:offer', 'createAnswer']]);
+      v('⛔ le renouvellement NE RELANCE PAS la liaison (mesuré en vrai navigateur : chaque relance laissait deux allocations de plus chez le relais, jusqu\'au quota de la personne, et coupait un instant la voix) : l\'appelant n\'a fait QU\'UNE offre — la première —, jamais de `restartIce` ; l\'appelé n\'a répondu qu\'à celle-là',
+        [pa.journal.filter(x => /^createOffer/.test(x)), pa.journal.filter(x => /restartIce/.test(x)).length, pb.journal.filter(x => /restartIce/.test(x)).length, pb.journal.filter(x => /^setRemoteDescription:offer/.test(x)).length, pb.journal.filter(x => /^createAnswer/.test(x)).length],
+        [['createOffer'], 0, 0, 1, 1]);
       v('et l\'appel n\'a pas été coupé (même connexion, état connecté)', [R1.monde.pcs.length, R2.monde.pcs.length, (await R1.src.appel(s.id)).etat, pa.fermee], [1, 1, 'en-cours', false]);
       await R1.src.terminerAppel(s.id); await R2.attendreSnap(s.id, x => x.etat === 'termine'); await R2.src.terminerAppel(s.id);
       R1.src.arreter(); R2.src.arreter();

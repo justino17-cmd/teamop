@@ -1,6 +1,6 @@
 /* ══ LES ROUTES DES APPELS À DEUX — LE RELAIS, LANCER, RÉPONDRE, RACCROCHER, SIGNALER, L'HISTORIQUE ═════════════════════════════════════════════════
  *
- *   GET  /api/ice                          S   les identifiants ÉPHÉMÈRES du relais (une heure) et ses adresses — ou `relais:false` et rien, tant que le relais n'est pas installé
+ *   GET  /api/ice                          S   les identifiants ÉPHÉMÈRES du relais (quinze minutes) et ses adresses, à qui est dans un appel qui sonne ou qui court (404 sinon) — `relais:false` tant que le relais n'est pas installé
  *   POST /api/appels  {conv|uid, type}     V   lancer un appel AUDIO ou VIDÉO à UNE personne (une conversation directe, ou une personne qu'on peut joindre) — à deux seulement
  *   GET  /api/appels?filtre=tous|manques   S   mon historique (les appels finis, du plus récent, bornés) et `actif` : l'appel qui sonne ou court pour moi, s'il y en a un
  *   POST /api/appels/:id/repondre {accepte}   AP   répondre (cet appareil est LIÉ à l'appel) ou refuser
@@ -64,6 +64,11 @@ function installerAppels(H, ctx) {
 
   /* ── le relais ── */
   H['ice'] = (req, res) => {
+    /* ⛔ DES IDENTIFIANTS DE RELAIS NE SE DONNENT QU'À QUI EST DANS UN APPEL (relecture, I1) : n'importe quel compte, à n'importe quel moment, en tirait pour une heure — et ouvrait ainsi, sans appeler personne,
+       des allocations (autant que le plafond du relais le permet) qui relayent des paquets UDP vers l'Internet depuis NOTRE adresse. Il faut maintenant être PARTICIPANT d'un appel qui sonne ou qui court
+       (`appelActifDe`, l'échéance de la sonnerie comprise) — l'appelant dès son lancement, l'appelé dès la sonnerie, jusqu'à la fin. Hors de là, le MÊME 404 qu'un appel qui n'existe pas : rien ne dit
+       qu'un relais existe. La page demande ses identifiants APRÈS avoir lancé l'appel ou avant de répondre : elle n'en a jamais besoin à vide. Jugé AVANT le plafond (un refus ne consomme rien). */
+    if (!stockage.appelActifDe(req.moi.id)) return refus(res, 404, 'introuvable');
     if (!plafond(res, 'ice:' + req.moi.id, cfg.iceParHeure, 3600000)) return;
     res.set('Cache-Control', 'no-store');
     res.json(appels.ice(req.moi.id));
