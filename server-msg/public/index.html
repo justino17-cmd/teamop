@@ -686,6 +686,14 @@ html[data-appel] .tabs { display: none; }
 .appel-raccrocher .ic { width: 30px; height: 30px; stroke-width: 2; }
 .appel-ecran :focus-visible { outline-color: #fff; }
 @media (max-height: 640px) { .appel-tete { padding-top: calc(env(safe-area-inset-top, 0px) + 20px); } .appel-avatar { width: 88px; height: 88px; font-size: 32px; } }
+/* l'appel ENTRANT (version servie) : deux commandes seulement, refuser et répondre — celles d'un appel en cours attendent qu'on ait répondu */
+.appel-reponse { display: none; width: 100%; max-width: 460px; justify-content: space-around; gap: 14px; }
+.appel-ecran[data-entrant] .appel-reponse { display: flex; }
+.appel-ecran[data-entrant] .appel-commandes, .appel-ecran[data-entrant] .appel-raccrocher { display: none; }
+.appel-cmd .rond-refus { background: var(--rouge); box-shadow: 0 10px 30px rgba(255,69,58,.4); }
+.appel-cmd .rond-reponse { background: var(--vert); }
+/* la mention « Aperçu » n'a rien à faire dans un vrai appel, et le haut-parleur est le choix du système (le navigateur ne route pas le son vers l'écouteur ou le haut-parleur) */
+html[data-service] .appel-mention, html[data-service] #appel-hp { display: none; }
 
 /* les participants : une vignette = la couleur de l'avatar SOUS un voile sombre (le blanc n'est pas lisible sur l'orange nu), le nom sur sa pastille */
 .tuile {
@@ -1093,10 +1101,15 @@ a.mini .ic { font-size: 16px; }
       <p class="appel-mention">Aperçu — les autres participants sont simulés</p>
     </header>
     <p class="appel-avis" id="appel-avis" role="status" aria-live="polite" hidden></p>
+    <audio id="appel-audio-distant" class="sr-seul" autoplay playsinline></audio>
     <div class="appel-scene" id="appel-scene" role="list" aria-label="Participants">
       <div class="tuile vous" id="appel-vous" role="listitem" data-camera="off"><video id="appel-video-local" muted playsinline autoplay aria-label="Votre caméra"></video><span class="tuile-av" aria-hidden="true" id="appel-vous-av"></span><span class="tuile-nom">Vous</span></div>
     </div>
     <div class="appel-bas">
+      <div class="appel-reponse" id="appel-reponse" role="group" aria-label="Appel entrant">
+        <button type="button" class="appel-cmd" id="appel-refuser" aria-label="Refuser l'appel"><span class="rond-cmd rond-refus"><svg class="ic" aria-hidden="true"><use href="#i-raccrocher"/></svg></span><span class="appel-cmd-texte">Refuser</span></button>
+        <button type="button" class="appel-cmd" id="appel-repondre" aria-label="Répondre à l'appel"><span class="rond-cmd rond-reponse"><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg></span><span class="appel-cmd-texte">Répondre</span></button>
+      </div>
       <div class="appel-commandes" role="group" aria-label="Commandes de l'appel">
         <button type="button" class="appel-cmd" id="appel-micro" aria-pressed="false" aria-label="Couper le micro"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></span><span class="appel-cmd-texte">Micro</span></button>
         <button type="button" class="appel-cmd" id="appel-hp" aria-pressed="false" aria-label="Haut-parleur"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-hautparleur"/></svg></span><span class="appel-cmd-texte">Haut-parleur</span></button>
