@@ -3,7 +3,17 @@
  *
  * Usage, SUR LE VPS :   OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/configurer-stripe.js
  *                       OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/configurer-stripe.js --verifier
+ *                       OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/configurer-stripe.js --creer-perso-plus     (MODE TEST SEULEMENT)
+ *                       OPMSG_CONFIG=/etc/opmsg/prod.json node /opt/opmsg/prod/current/configurer-stripe.js --perso-plus
  *   (le fichier de configuration d'une instance : `/etc/opmsg/<instance>.json`, celui que le service lit)
+ *
+ * PERSO+ (le forfait d'une PERSONNE, 5 € TTC par mois et 50 € l'année) :
+ *   · `--creer-perso-plus` CRÉE chez Stripe, en mode TEST et nulle part ailleurs, le produit « OP MESSAGES Perso+ » et ses deux tarifs (500 centimes par mois, 5 000 par an), puis range leurs identifiants dans
+ *     `facturation.perso.prix` du fichier. Il REFUSE une clé de production (rien de payant n'est créé par ce script), et un fichier qui a déjà ses tarifs Perso+ ; il demande « oui » avant de créer. La clé
+ *     doit pour cela avoir le droit d'ÉCRIRE les produits et les tarifs (« Products — écriture », « Prices — écriture ») ; sans lui, Stripe répond 403 et le script le dit. Le produit porte « messages » dans son nom
+ *     (voir plus bas : le compte Stripe est commun avec OP GESTION) ;
+ *   · `--perso-plus` range, dans n'importe quel mode, deux tarifs Perso+ que TU as créés dans le tableau de bord (c'est ainsi qu'on les pose en production) : même épreuve, mêmes refus.
+ *   Dans les deux cas la clé de Messages Pro doit déjà être posée (lance d'abord ce script sans option).
  *
  * ⛔ « ON NE FAIT JAMAIS AFFICHER UN SECRET SUR LE VPS » (CLAUDE.md). La clé Stripe RESTREINTE d'OP MESSAGES se SAISIT ici, masquée
  * (`saisie.js` : même un retour arrière, une flèche ou un collage ne la réaffichent), et va de ce clavier au fichier : jamais en argument
@@ -36,10 +46,12 @@ const fs = require('fs');
 const { demander, fermer, AU_CLAVIER } = require('./saisie');
 const { facturationConfig, RE_CLE_STRIPE } = require('./config');
 const { HOTE_STRIPE } = require('./facturation');
+const { NOM_PERSO_PLUS } = require('./formule');
 
 const CONFIG_PATH = process.env.OPMSG_CONFIG;
 const ARGS = process.argv.slice(2);
 const VERIFIER = ARGS.includes('--verifier');
+const CREER_PERSO = ARGS.includes('--creer-perso-plus'), POSER_PERSO = ARGS.includes('--perso-plus');
 
 const echec = (m) => { console.error('\n✗ ' + m + ' Rien n\'a été modifié.'); fermer(); process.exit(1); };
 /* Une clé telle qu'on la copie : les blancs autour n'y comptent pas (un collage emporte souvent un retour à la ligne ou un espace). */
@@ -49,6 +61,15 @@ const nettoyer = (s) => String(s || '').replace(/\s+/g, '');
 async function lire(hote, cle, chemin) {
   try {
     const r = await fetch(hote + chemin, { method: 'GET', headers: { Authorization: 'Bearer ' + cle, Accept: 'application/json' }, signal: AbortSignal.timeout(15000), redirect: 'error' });
+    let corps = null; try { corps = await r.json(); } catch (e) { corps = null; }
+    return { statut: r.status, corps };
+  } catch (e) { return { statut: 0, corps: null }; }
+}
+/* Un appel à Stripe qui ÉCRIT (création d'un produit, d'un tarif). `idem` : la clé d'idempotence — relancer le script le même jour rend les MÊMES objets au lieu d'en créer d'autres. Rend { statut, corps }. */
+async function ecrireStripe(hote, cle, chemin, paires, idem) {
+  try {
+    const r = await fetch(hote + chemin, { method: 'POST', headers: { Authorization: 'Bearer ' + cle, Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded', 'Idempotency-Key': idem },
+      body: new URLSearchParams(paires).toString(), signal: AbortSignal.timeout(15000), redirect: 'error' });
     let corps = null; try { corps = await r.json(); } catch (e) { corps = null; }
     return { statut: r.status, corps };
   } catch (e) { return { statut: 0, corps: null }; }
@@ -64,8 +85,8 @@ function diagnostic(statut, quoi) {
 }
 
 /* ══ l'épreuve : la clé répond, les tarifs sont ceux qu'on croit ═══════════════════════════════════════════════════════════════ */
-async function eprouver({ hote, cle, mode, prix, affichage }) {
-  console.log('── Essai de la clé et des tarifs (des lectures seulement — rien n\'est créé, rien n\'est facturé) ──');
+async function eprouver({ hote, cle, mode, prix, affichage, etiquette = '', parPlace = true }) {
+  console.log('── Essai de la clé et des tarifs' + etiquette + ' (des lectures seulement — rien n\'est créé, rien n\'est facturé) ──');
   const ab = await lire(hote, cle, '/v1/subscriptions?limit=1');
   if (ab.statut !== 200) echec('LA CLÉ NE LIT PAS LES ABONNEMENTS — ' + diagnostic(ab.statut, 'Subscriptions — lecture'));
   console.log('✓ la clé répond, en mode ' + mode + ' et lit les abonnements.');
@@ -85,9 +106,9 @@ async function eprouver({ hote, cle, mode, prix, affichage }) {
     const euros = Number.isFinite(t.unit_amount) ? t.unit_amount / 100 : null;
     const produit = t.product && typeof t.product === 'object' ? t.product : null;
     const nomProduit = produit && typeof produit.name === 'string' ? produit.name : null;
-    console.log('✓ tarif ' + rythme + ' : ' + (euros === null ? 'montant variable' : euros.toFixed(2).replace('.', ',') + ' ' + String(t.currency || '').toUpperCase()) + ' par place' + (rythme === 'annuel' ? ' et par an' : ' et par mois') + (nomProduit ? ' — produit « ' + nomProduit + ' »' : ''));
+    console.log('✓ tarif ' + etiquette.replace(/^ /, '') + (etiquette ? ' ' : '') + rythme + ' : ' + (euros === null ? 'montant variable' : euros.toFixed(2).replace('.', ',') + ' ' + String(t.currency || '').toUpperCase()) + (parPlace ? ' par place' : '') + (rythme === 'annuel' ? (parPlace ? ' et par an' : ' par an') : (parPlace ? ' et par mois' : ' par mois')) + (nomProduit ? ' — produit « ' + nomProduit + ' »' : ''));
     if (String(t.currency || '').toLowerCase() !== 'eur') avertissements.push('le tarif ' + rythme + ' n\'est pas en euros (' + String(t.currency || '?').toUpperCase() + ') : l\'écran annonce des euros.');
-    if (euros !== null && Math.abs(euros - affichage[rythme]) > 0.001) avertissements.push('LE MONTANT ANNONCÉ À L\'ÉCRAN (' + affichage[rythme] + ' €) N\'EST PAS CELUI DE STRIPE (' + euros + ' €) : régler `facturation.affichage.' + rythme + '` dans le fichier de configuration, ou changer de tarif.');
+    if (euros !== null && Math.abs(euros - affichage[rythme]) > 0.001) avertissements.push('LE MONTANT ANNONCÉ À L\'ÉCRAN (' + affichage[rythme] + ' €) N\'EST PAS CELUI DE STRIPE (' + euros + ' €) : régler `facturation.' + (parPlace ? '' : 'perso.') + 'affichage.' + rythme + '` dans le fichier de configuration, ou changer de tarif.');
     /* ⛔ REFUSÉ, pas signalé : le compte Stripe est COMMUN avec OP GESTION, dont c'est ce nom qui range la ligne hors de ses paiements. Le nom du produit est cité (ce n'est pas un secret) : c'est lui qu'il faut renommer. */
     if (nomProduit !== null && !/messages/i.test(nomProduit)) echec('⛔ LE PRODUIT DU TARIF ' + rythme.toUpperCase() + ' (« ' + nomProduit + ' ») NE CONTIENT PAS « messages » : refusé. Le compte Stripe est COMMUN avec OP GESTION, qui lit tous ses abonnements et ne range une ligne en « OP MESSAGES » (hors de ses paiements à lui) que par le NOM de son produit — ou par l\'identifiant de son tarif dans sa propre liste, que ce script ne peut pas lire. Sans cela, un abonnement de Messages Pro serait lu par OP GESTION comme un paiement à lui : une entreprise qui ne paie rien d\'OP GESTION, mais dont le dirigeant achète Messages Pro avec la même adresse e-mail, serait SERVIE tant qu\'il court (mesuré : tests/test-965.js). Renomme le produit chez Stripe (« OP MESSAGES Pro »), puis relance ce script.');
     if (nomProduit === null) avertissements.push('le nom du produit du tarif ' + rythme + ' n\'a pas pu être lu (droit « Products — lecture » absent) : vérifie à la main qu\'il contient « messages » (voir INSTALLER-LE-SERVEUR.md, § Stripe).');
@@ -125,7 +146,8 @@ const hoteDe = (valide) => valide.testHote ? 'http://' + valide.testHote : HOTE_
 
 /* ══ le programme ═════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 (async () => {
-  for (const a of ARGS) if (a !== '--verifier') echec('option inconnue (« --verifier » est la seule).');
+  for (const a of ARGS) if (!['--verifier', '--creer-perso-plus', '--perso-plus'].includes(a)) echec('option inconnue (« --verifier », « --creer-perso-plus » et « --perso-plus » sont les seules).');
+  if (ARGS.length > 1) echec('une seule option à la fois.');
   if (!CONFIG_PATH) echec('OPMSG_CONFIG n\'est pas posé (le fichier de configuration de l\'instance, par exemple /etc/opmsg/beta.json).');
   let config;
   try { config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')); }
@@ -145,9 +167,57 @@ const hoteDe = (valide) => valide.testHote ? 'http://' + valide.testHote : HOTE_
     let valide;
     try { valide = facturationConfig(config, env, instance); } catch (e) { console.error('✗ la configuration du fichier serait REFUSÉE au démarrage : ' + String(e.message).replace(/^config: /, '')); fermer(); process.exit(1); }
     console.log('✓ la configuration du fichier est valide : le service la lira (mode ' + valide.mode + ').');
-    const n = await eprouver({ hote: hoteDe(valide), cle: valide.cle, mode: valide.mode, prix: valide.prix, affichage: valide.affichage });
+    let n = await eprouver({ hote: hoteDe(valide), cle: valide.cle, mode: valide.mode, prix: valide.prix, affichage: valide.affichage });
+    if (Object.keys(valide.perso.prix).length) n += await eprouver({ hote: hoteDe(valide), cle: valide.cle, mode: valide.mode, prix: valide.perso.prix, affichage: valide.perso.affichage, etiquette: ' Perso+', parPlace: false });
+    else console.log('· Perso+ : aucun tarif posé (le forfait d\'une personne est inerte ; `--creer-perso-plus` le prépare en mode test).');
     fermer();
     console.log(n ? '\n⚠ ' + n + ' point(s) à regarder (ci-dessus). La clé répond.' : '\n✅ tout est en ordre.');
+    return;
+  }
+
+  /* ══ PERSO+ : créer les deux tarifs (mode TEST) ou ranger ceux qu'on a créés soi-même ══ */
+  if (CREER_PERSO || POSER_PERSO) {
+    console.log('\n══ Perso+, le forfait d\'une personne (' + instance + ') ══\n');
+    if (!avant || !avant.cle) echec('aucune clé Stripe n\'est configurée dans ce fichier : Perso+ s\'ajoute à Messages Pro. Lance d\'abord ce script sans option.');
+    let valide;
+    try { valide = facturationConfig(config, env, instance); } catch (e) { echec('la configuration du fichier serait REFUSÉE au démarrage : ' + String(e.message).replace(/^config: /, '')); }
+    if (Object.keys(valide.perso.prix).length) echec('des tarifs Perso+ sont DÉJÀ posés dans ce fichier (' + Object.keys(valide.perso.prix).join(' et ') + ') : les remplacer ferait perdre leur lecture aux abonnements déjà pris. Retire `facturation.perso.prix` du fichier pour recommencer.');
+    const hote = hoteDe(valide);
+    let prixPerso = {};
+    if (CREER_PERSO) {
+      /* ⛔ LE MODE TEST ET NULLE PART AILLEURS : ce script ne crée rien de payant. Les tarifs de production se créent dans le tableau de bord, et se rangent avec `--perso-plus`. */
+      if (valide.mode !== 'test') echec('⛔ LA CLÉ N\'EST PAS UNE CLÉ DE TEST : ce script ne CRÉE rien en production. Crée le produit et les deux tarifs dans le tableau de bord de Stripe (un produit dont le nom contient « messages » ; 5 € par mois, 50 € par an), puis lance `--perso-plus`.');
+      console.log('Va créer chez Stripe (mode TEST) : le produit « OP MESSAGES ' + NOM_PERSO_PLUS + ' », un tarif de ' + valide.perso.affichage.mensuel + ' € par mois et un de ' + valide.perso.affichage.annuel + ' € par an.');
+      console.log('La clé doit avoir le droit d\'ÉCRIRE les produits et les tarifs (« Products », « Prices »).');
+      const rep = (await demander('Tape « oui » pour créer (autre chose : on s\'arrête) : ', false)).toLowerCase();
+      if (rep !== 'oui') echec('Pas de « oui » : abandon.');
+      const marque = 'opmsg-perso-plus-' + require('crypto').createHash('sha256').update(valide.cle).digest('hex').slice(0, 16);   // jamais la clé : une empreinte, pour que relancer le même jour rende les mêmes objets
+      const produit = await ecrireStripe(hote, valide.cle, '/v1/products', [['name', 'OP MESSAGES ' + NOM_PERSO_PLUS], ['metadata[produit]', 'opmsg'], ['metadata[forfait]', 'perso_plus']], marque + '-produit');
+      if (produit.statut !== 200 || !produit.corps || typeof produit.corps.id !== 'string') echec('LE PRODUIT N\'A PAS PU ÊTRE CRÉÉ — ' + diagnostic(produit.statut, 'Products — écriture'));
+      console.log('✓ produit créé : « ' + produit.corps.name + ' ».');
+      for (const [rythme, intervalle] of [['mensuel', 'month'], ['annuel', 'year']]) {
+        const centimes = Math.round(valide.perso.affichage[rythme] * 100);
+        const t = await ecrireStripe(hote, valide.cle, '/v1/prices', [['product', produit.corps.id], ['currency', 'eur'], ['unit_amount', String(centimes)], ['recurring[interval]', intervalle], ['nickname', NOM_PERSO_PLUS + ' ' + rythme], ['tax_behavior', 'inclusive']], marque + '-' + rythme);
+        if (t.statut !== 200 || !t.corps || typeof t.corps.id !== 'string') echec('LE TARIF ' + rythme.toUpperCase() + ' N\'A PAS PU ÊTRE CRÉÉ — ' + diagnostic(t.statut, 'Prices — écriture'));
+        prixPerso[rythme] = t.corps.id;
+        console.log('✓ tarif ' + rythme + ' créé (' + (centimes / 100).toFixed(2).replace('.', ',') + ' € TTC).');
+      }
+    } else {
+      console.log('Les identifiants des deux tarifs Perso+ que tu as créés dans le tableau de bord de Stripe (produit dont le nom contient « messages »).');
+      const mensuel = nettoyer(await demander('Tarif Perso+ MENSUEL (price_…, Entrée = aucun)        : ', false));
+      const annuel = nettoyer(await demander('Tarif Perso+ ANNUEL  (price_…, Entrée = aucun)        : ', false));
+      if (!mensuel && !annuel) echec('Aucun tarif : il faut au moins le tarif mensuel ou le tarif annuel.');
+      if (mensuel) prixPerso.mensuel = mensuel; if (annuel) prixPerso.annuel = annuel;
+    }
+    const bloc = Object.assign({}, avant, { perso: Object.assign({}, avant.perso || {}, { prix: prixPerso }) });
+    let valide2;
+    try { valide2 = facturationConfig(Object.assign({}, config, { facturation: bloc }), env, instance); } catch (e) { echec(String(e.message).replace(/^config: /, '')); }
+    const n = await eprouver({ hote, cle: valide2.cle, mode: valide2.mode, prix: valide2.perso.prix, affichage: valide2.perso.affichage, etiquette: ' Perso+', parPlace: false });
+    fermer();
+    ecrire(config, bloc, { instance });
+    console.log('✅ ' + CONFIG_PATH + ' mis à jour (chmod 600). Perso+ : ' + Object.keys(valide2.perso.prix).join(' et ') + ', mode ' + valide2.mode + '.' + (n ? ' (' + n + ' point(s) à regarder, ci-dessus.)' : ''));
+    console.log('\nPour finir :   systemctl restart teamop-msg@' + instance + '   puis, au bout d\'une minute, « /health » doit dire « facturation » en mode "' + valide2.mode + '" et « stripeEchecMin » 0.');
+    console.log('Le portail de facturation (Paramètres → Facturation → Portail client) sert aussi à Perso+ : « Gérer mon abonnement » ne marche pas sans lui.');
     return;
   }
 

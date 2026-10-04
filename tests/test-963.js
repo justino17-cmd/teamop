@@ -8,7 +8,7 @@
      2. L'OUTIL, en entrée redirigée contre un faux Stripe : il ÉPROUVE la clé et chaque tarif (existe-t-il dans ce mode, actif, récurrent, au bon rythme, à l'unité ?) AVANT d'écrire ; au moindre refus
         le fichier reste intact, octet pour octet ; il avertit d'un montant qui n'est pas celui de l'écran, et REFUSE d'écrire un tarif dont le produit ne contient pas « messages »
         (l'autre application ne le rangerait pas en « OP MESSAGES » : relecture du gardien, 3 octobre 2026) ;
-        il n'écrit que des LECTURES chez Stripe (aucun GET ne crée rien, aucun POST) ; le fichier est écrit 0600 puis renommé ; ce qu'il a écrit, le service le lit et démarre dessus ;
+        dans son usage ordinaire il n'écrit que des LECTURES chez Stripe (aucun GET ne crée rien, aucun POST) — SEULE l'option `--creer-perso-plus` (mode test) crée le produit et les deux tarifs de Perso+ (test-993) ; le fichier est écrit 0600 puis renommé ; ce qu'il a écrit, le service le lit et démarre dessus ;
      3. ⛔ AUCUNE FUITE : la clé n'apparaît ni à l'écran, ni dans une erreur, ni même quand Stripe la répète dans son message ; sous un VRAI TERMINAL (pty), une faute corrigée, une flèche, un
         collage, Ctrl-U et Ctrl-C ne la réaffichent pas ;
      4. les gardes de CODE de l'outil (aucune clé générée, aucun secret en argument, le fichier écrit en 0600 dès sa création et relu avant d'être renommé).
@@ -327,11 +327,11 @@ print(json.dumps({'sortie': out.decode('utf8', 'replace'), 'statut': statut}))
       const c = code(CONFIGURER), saisie = code(path.join(T.SERVICE, 'saisie.js'));
       vrai('population : le code de l\'outil n\'est pas vide une fois ses commentaires retirés (' + c.split('\n').filter(l => l.trim()).length + ' lignes)', c.split('\n').filter(l => l.trim()).length > 80);
       vrai('⛔ aucune clé n\'est GÉNÉRÉE ici : ni randomBytes, ni openssl, ni generateKey', !/randomBytes|openssl|generateKey/.test(c));
-      vrai('⛔ le seul argument de ligne de commande est l\'option --verifier (jamais un secret : `ps` le montrerait à toute la machine)', (c.match(/process\.argv/g) || []).length === 1 && /ARGS\.includes\('--verifier'\)/.test(c) && /a !== '--verifier'/.test(c));
+      vrai('⛔ les seuls arguments de ligne de commande sont les TROIS options sans valeur (--verifier, --creer-perso-plus, --perso-plus), une à la fois — jamais un secret : `ps` le montrerait à toute la machine', (c.match(/process\.argv/g) || []).length === 1 && /ARGS\.includes\('--verifier'\)/.test(c) && /\['--verifier', '--creer-perso-plus', '--perso-plus'\]\.includes\(a\)/.test(c) && /ARGS\.length > 1/.test(c));
       vrai('⛔ la clé n\'est JAMAIS écrite à l\'écran : aucun `console.log` ni `console.error` ne porte la variable `cle` ni `valide.cle`', !/console\.(log|error)\([^;]*\b(cle|valide\.cle|bloc\.cle)\b/.test(c));
       vrai('⛔ la saisie est celle de `saisie.js` (mode brut, jamais `readline`), et la clé se demande MASQUÉE', /require\('\.\/saisie'\)/.test(c) && /demander\('Clé restreinte Stripe.*?', true\)/.test(c) && /setRawMode\(true\)/.test(saisie) && !/readline/.test(saisie) && !/readline/.test(c));
       vrai('⛔ le fichier est écrit en 0600 DÈS sa création, le propriétaire de l\'ancien est recopié, il est relu et revalidé (par `facturationConfig`) AVANT d\'être renommé', /mode: 0o600, flag: 'wx'/.test(c) && /chownSync\(tmp, st\.uid, st\.gid\)/.test(c) && c.indexOf('facturationConfig(relu') > 0 && c.indexOf('facturationConfig(relu') < c.indexOf('renameSync(tmp, CONFIG_PATH)'));
-      vrai('⛔ l\'outil ne fait que des lectures chez Stripe (`method: \'GET\'` seulement, jamais un POST ou un DELETE)', /method: 'GET'/.test(c) && !/method: '(POST|DELETE|PUT|PATCH)'/.test(c));
+      vrai('⛔ l\'outil LIT chez Stripe par GET ; il n\'ÉCRIT qu\'en créant le produit et les deux tarifs de Perso+ (UN seul POST, dans `ecrireStripe`, appelé deux fois), jamais un DELETE, un PUT ni un PATCH — et seulement en mode TEST : la garde précède la première création', /method: 'GET'/.test(c) && (c.match(/method: 'POST'/g) || []).length === 1 && !/method: '(DELETE|PUT|PATCH)'/.test(c) && (c.match(/await ecrireStripe\(/g) || []).length === 2 && c.indexOf("valide.mode !== 'test'") > 0 && c.indexOf("valide.mode !== 'test'") < c.indexOf("await ecrireStripe(hote, valide.cle, '/v1/products'"));
       vrai('l\'adresse de Stripe est celle du service (`HOTE_STRIPE`), écrite à UN seul endroit', /require\('\.\/facturation'\)/.test(c) && !/api\.stripe\.com/.test(c));
     }
   } catch (er) {
