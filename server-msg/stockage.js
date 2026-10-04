@@ -421,6 +421,41 @@ const MIGRATIONS = [
     `CREATE INDEX IF NOT EXISTS appel_part_uid ON appel_part(uid)`,
     `PRAGMA user_version = 8`,
   ] },
+  /* ── 9 : LES APPELS À PLUSIEURS ET LES SALLES DE RÉUNION EN MAILLE (étape 8) ───────────────────────────────────────────────────────────────────────
+     AUCUNE table neuve, AUCUNE colonne retirée ni reconstruite : des colonnes AJOUTÉES (avec une valeur par défaut) aux trois tables qui existent déjà — le code d'AVANT (les appels à deux, en service sur la
+     bêta) ouvre donc sans mot dire une base au schéma 9 si un déploiement se replie : il ne lit pas ces colonnes, et les lignes d'avant gardent la valeur qui les laisse ce qu'elles étaient (`genre` « deux »).
+     Ce que le code d'avant ne sait pas faire sur une salle (la tenir : admettre, exclure, sortir quelqu'un qui part) se termine tout seul : sans pouls d'un appareil lié pendant 45 s il finit l'appel « connexion
+     perdue » — un retour en arrière coupe les salles en cours, il n'en ressuscite ni n'en corrompt aucune.
+       · `appel` — `genre` : « deux » (l'appel de l'étape 7, inchangé), « groupe » (lancé depuis un groupe ou des personnes choisies) ou « reunion » (la SALLE d'une réunion programmée) ; `conv` : la conversation
+         du groupe ou de la réunion ; `reunion` : la réunion dont c'est la salle ; `capacite` : le nombre de personnes DANS la salle, posé à la création (quatre en vidéo, six en audio : ce que la maille tient) ;
+         `verrou` : la salle est verrouillée (personne n'entre, hors l'hôte et les co-hôtes) ; `attente` : la salle d'attente est demandée (on y attend d'être admis) ; `partage_ok` : les participants peuvent
+         partager leur écran (réglage que les PAGES honorent : le serveur ne voit pas un média) ; `rec_par` : la personne qui ENREGISTRE en local — le bandeau « REC » s'allume chez tous tant qu'elle y est ;
+       · `appel_part` — `statut` : invite (la sonnerie court), attente (à la porte de la salle), present, parti (sorti, il peut revenir), refuse, manque, exclu (ne revient pas) ; `grade` : 0 participant,
+         1 co-hôte, 2 hôte ; `entre` : l'instant de la dernière entrée ; `gen` : +1 à chaque entrée — une liaison pair à pair se refait quand la génération de l'autre change ;
+       · `reunion` — `attente` : la salle d'attente demandée à la programmation ; `code_h`, `code_ch`, `code_le` : le lien d'invité (l'empreinte du code sert à le retrouver, le code scellé à le redire à
+         l'hôte seul ; renouveler le lien en pose un autre et NOTE l'ancien dans le registre des purges — une archive d'avant ne le ramène pas). */
+  { v: 9, sql: [
+    `ALTER TABLE appel ADD COLUMN genre TEXT NOT NULL DEFAULT 'deux'`,
+    `ALTER TABLE appel ADD COLUMN conv TEXT`,
+    `ALTER TABLE appel ADD COLUMN reunion TEXT`,
+    `ALTER TABLE appel ADD COLUMN capacite INTEGER`,
+    `ALTER TABLE appel ADD COLUMN verrou INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE appel ADD COLUMN attente INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE appel ADD COLUMN partage_ok INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE appel ADD COLUMN rec_par TEXT`,
+    `ALTER TABLE appel_part ADD COLUMN statut TEXT NOT NULL DEFAULT 'present'`,
+    `ALTER TABLE appel_part ADD COLUMN grade INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE appel_part ADD COLUMN entre INTEGER`,
+    `ALTER TABLE appel_part ADD COLUMN gen INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE reunion ADD COLUMN attente INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE reunion ADD COLUMN code_h TEXT`,
+    `ALTER TABLE reunion ADD COLUMN code_ch BLOB`,
+    `ALTER TABLE reunion ADD COLUMN code_le INTEGER`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS reunion_code ON reunion(code_h) WHERE code_h IS NOT NULL`,
+    `CREATE INDEX IF NOT EXISTS appel_salle ON appel(genre, etat) WHERE genre <> 'deux'`,
+    `CREATE INDEX IF NOT EXISTS appel_reunion ON appel(reunion) WHERE reunion IS NOT NULL`,
+    `PRAGMA user_version = 9`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -1927,7 +1962,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const aadReunion = (id, champ) => id + '|' + champ;
   const listeEntiers = (texte) => { try { const a = JSON.parse(texte); return Array.isArray(a) ? a.filter(Number.isInteger) : []; } catch (e) { return []; } };
   function reunionBrute(id) {
-    return Q('SELECT id, conv, hote, titre_ch, lieu_ch, debut, fin, tz, rep, n, jusqua, fin_serie, rappels, annulee, version, horaire_le, prochain, cree, maj FROM reunion WHERE id = ?').get(id) || null;
+    return Q('SELECT id, conv, hote, titre_ch, lieu_ch, debut, fin, tz, rep, n, jusqua, fin_serie, rappels, annulee, version, horaire_le, prochain, attente, cree, maj FROM reunion WHERE id = ?').get(id) || null;
   }
   const reunionTitre = (r) => ouvrirOuNull('reunion', 'titre_ch', aadReunion(r.id, 'titre'), r.titre_ch);
   const reunionLieu = (r) => r.lieu_ch ? ouvrirOuNull('reunion', 'lieu_ch', aadReunion(r.id, 'lieu'), r.lieu_ch) : '';
@@ -1935,7 +1970,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const titre = reunionTitre(r), lieu = reunionLieu(r);
     const o = {
       id: r.id, conv: r.conv, titre: titre === null ? '' : titre, lieu: lieu === null ? '' : lieu, debut: num(r.debut), fin: num(r.fin), tz: r.tz, repetition: r.rep,
-      n: r.n === null || r.n === undefined ? null : num(r.n), jusqua: r.jusqua || null, annulee: !!r.annulee, version: num(r.version), rappels: listeEntiers(r.rappels), cree: num(r.cree), maj: num(r.maj),
+      n: r.n === null || r.n === undefined ? null : num(r.n), jusqua: r.jusqua || null, annulee: !!r.annulee, attente: !!r.attente, version: num(r.version), rappels: listeEntiers(r.rappels), cree: num(r.cree), maj: num(r.maj),
     };
     if (titre === null || lieu === null) o.illisible = true;
     return o;
@@ -1961,7 +1996,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     /* ⛔ L'AGENDA D'UN INVITÉ NE SE LAISSE PAS MASQUER. Les 600 places se donnaient dans l'ordre du DÉBUT de la série : six cents séries d'il y a vingt-six ans, terminées, prenaient toutes les places et
        l'invitation d'aujourd'hui n'apparaissait nulle part — sans autre moyen d'en sortir. Deux règles : une série TERMINÉE avant la fenêtre est écartée ici, par `fin_serie` (NULL : une série « Jamais »,
        toujours gardée) ; et l'ordre garde ce qui vient d'abord (`prochain`, la prochaine occurrence non commencée), ce qui n'a plus de prochaine occurrence passe après. */
-    return Q(`SELECT r.id, r.conv, r.hote, r.titre_ch, r.lieu_ch, r.debut, r.fin, r.tz, r.rep, r.n, r.jusqua, r.rappels, r.annulee, r.version, r.cree, r.maj, i.statut AS mon_statut, i.rappels AS mes_rappels,
+    return Q(`SELECT r.id, r.conv, r.hote, r.titre_ch, r.lieu_ch, r.debut, r.fin, r.tz, r.rep, r.n, r.jusqua, r.rappels, r.annulee, r.attente, r.version, r.cree, r.maj, i.statut AS mon_statut, i.rappels AS mes_rappels,
                      (SELECT COUNT(*) FROM reunion_invite x WHERE x.reunion = r.id) AS participants_n
               FROM reunion_invite i JOIN reunion r ON r.id = i.reunion
               WHERE i.uid = ? AND r.debut < ? AND (r.rep <> 'aucune' OR r.fin > ?) AND (r.fin_serie IS NULL OR r.fin_serie > ?)
@@ -1986,7 +2021,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
 
   /* Créer : la conversation, ses membres, la réunion, les lignes d'invitation, le message d'ouverture — TOUT dans une transaction. `prochain` : le début de la première occurrence non commencée
      (calculé par l'appelant avec `calendrier.js`), ou null. Les invités sont déjà jugés par l'appelant (`peutEcrire`). */
-  function reunionCreer({ hote, titre, lieu, debut, fin, tz, rep, n, jusqua, rappels, invites, prochain, finSerie }) {
+  function reunionCreer({ hote, titre, lieu, debut, fin, tz, rep, n, jusqua, rappels, invites, prochain, finSerie, attente }) {
     return tx(() => {
       if (num(Q('SELECT COUNT(*) AS n FROM reunion WHERE hote = ? AND annulee = 0 AND prochain IS NOT NULL').get(hote).n) >= REUNIONS_HOTE_MAX) throw erreur('trop_de_reunions');
       const uids = Array.from(new Set(invites)).filter(u => u !== hote);
@@ -1995,9 +2030,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       Q(`INSERT INTO conversation(id, type, nom_ch, dernier_ts, cree_par, cree) VALUES(?, 'reunion', ?, ?, ?, ?)`).run(conv, sceller('conversation', 'nom_ch', conv + '|nom', titre), t, hote, t);
       Q(`INSERT INTO membre(conv, uid, role, depuis_seq, rejoint) VALUES(?, ?, 'admin', 1, ?)`).run(conv, hote, t);
       for (const u of uids) Q(`INSERT INTO membre(conv, uid, role, depuis_seq, rejoint) VALUES(?, ?, 'membre', 1, ?)`).run(conv, u, t);
-      Q('INSERT INTO reunion(id, conv, hote, titre_ch, lieu_ch, debut, fin, tz, rep, n, jusqua, fin_serie, rappels, annulee, version, horaire_le, prochain, cree, maj) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?)')
+      Q('INSERT INTO reunion(id, conv, hote, titre_ch, lieu_ch, debut, fin, tz, rep, n, jusqua, fin_serie, rappels, annulee, version, horaire_le, prochain, attente, cree, maj) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?)')
         .run(id, conv, hote, sceller('reunion', 'titre_ch', aadReunion(id, 'titre'), titre), lieu ? sceller('reunion', 'lieu_ch', aadReunion(id, 'lieu'), lieu) : null,
-          debut, fin, tz, rep, n || null, jusqua || null, finSerie === undefined ? null : finSerie, JSON.stringify(rappels), t, prochain === undefined ? null : prochain, t, t);
+          debut, fin, tz, rep, n || null, jusqua || null, finSerie === undefined ? null : finSerie, JSON.stringify(rappels), t, prochain === undefined ? null : prochain, attente ? 1 : 0, t, t);
       Q(`INSERT INTO reunion_invite(reunion, uid, statut, cree, repondu) VALUES(?, ?, 'accepte', ?, ?)`).run(id, hote, t, t);
       for (const u of uids) Q(`INSERT INTO reunion_invite(reunion, uid, statut, invite_par, cree) VALUES(?, ?, 'attente', ?, ?)`).run(id, u, hote, t);
       messageSysteme(conv, hote, { k: 'reunion_creee' });
@@ -2006,7 +2041,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   /* Modifier : seuls les champs PASSÉS changent. Un changement d'HORAIRE (début, fin, fuseau, répétition, fin de répétition) date `horaire_le`, remet la réponse des invités « en attente » et
      pose le nouveau `prochain` (calculé par l'appelant). → { change, horaire, titre, lieu, gid } */
-  function reunionModifier({ id, par, titre, lieu, debut, fin, tz, rep, n, jusqua, rappels, prochain, finSerie }) {
+  function reunionModifier({ id, par, titre, lieu, debut, fin, tz, rep, n, jusqua, rappels, prochain, finSerie, attente }) {
     return tx(() => {
       const r = reunionBrute(id); if (!r) throw erreur('introuvable');
       if (r.hote !== par) throw erreur('interdit');
@@ -2022,12 +2057,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const horaire = nouveau.debut !== num(r.debut) || nouveau.fin !== num(r.fin) || nouveau.tz !== r.tz || nouveau.rep !== r.rep || nouveau.n !== (r.n === null ? null : num(r.n)) || nouveau.jusqua !== (r.jusqua || null);
       const titreChange = nouveau.titre !== ancienTitre, lieuChange = nouveau.lieu !== ancienLieu;
       const rappelsChange = nouveau.rappels !== r.rappels;
-      if (!horaire && !titreChange && !lieuChange && !rappelsChange) return { change: false, horaire: false, titre: false, lieu: false, gid: 0 };
-      Q('UPDATE reunion SET titre_ch = ?, lieu_ch = ?, debut = ?, fin = ?, tz = ?, rep = ?, n = ?, jusqua = ?, fin_serie = ?, rappels = ?, version = version + 1, maj = ?, horaire_le = ?, prochain = ? WHERE id = ?')
+      const attenteVoulue = attente === undefined ? (r.attente ? 1 : 0) : (attente ? 1 : 0), attenteChange = attenteVoulue !== (r.attente ? 1 : 0);
+      if (!horaire && !titreChange && !lieuChange && !rappelsChange && !attenteChange) return { change: false, horaire: false, titre: false, lieu: false, gid: 0 };
+      Q('UPDATE reunion SET titre_ch = ?, lieu_ch = ?, debut = ?, fin = ?, tz = ?, rep = ?, n = ?, jusqua = ?, fin_serie = ?, rappels = ?, attente = ?, version = version + 1, maj = ?, horaire_le = ?, prochain = ? WHERE id = ?')
         .run(titreChange ? sceller('reunion', 'titre_ch', aadReunion(id, 'titre'), nouveau.titre) : r.titre_ch,
           lieuChange ? (nouveau.lieu ? sceller('reunion', 'lieu_ch', aadReunion(id, 'lieu'), nouveau.lieu) : null) : r.lieu_ch,
           nouveau.debut, nouveau.fin, nouveau.tz, nouveau.rep, nouveau.n, nouveau.jusqua, horaire ? (finSerie === undefined ? null : finSerie) : (r.fin_serie === null || r.fin_serie === undefined ? null : num(r.fin_serie)),
-          nouveau.rappels, t, horaire ? t : num(r.horaire_le),
+          nouveau.rappels, attenteVoulue, t, horaire ? t : num(r.horaire_le),
           horaire ? (prochain === undefined ? null : prochain) : (r.prochain === null ? null : num(r.prochain)), id);
       if (titreChange) Q('UPDATE conversation SET nom_ch = ? WHERE id = ?').run(sceller('conversation', 'nom_ch', r.conv + '|nom', nouveau.titre), r.conv);
       if (horaire) Q(`UPDATE reunion_invite SET statut = 'attente', repondu = NULL WHERE reunion = ? AND uid <> ?`).run(id, r.hote);
@@ -2044,8 +2080,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const t = horloge();
       Q('UPDATE reunion SET annulee = 1, prochain = NULL, version = version + 1, maj = ? WHERE id = ?').run(t, id);
       Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(id, 'reunion_annulee', t);
+      const salle = salleReunionFinir(id, 'annulee');          // la salle ouverte (des gens y sont) finit avec elle : ses occupants à réveiller
       messageSysteme(r.conv, par, { k: 'reunion_annulee' });
-      return { change: true, gid: journalAjouter('reunion', r.conv, null, id) };
+      return { change: true, gid: journalAjouter('reunion', r.conv, null, id), salle: salle ? Object.keys(salle.gids) : [] };
     });
   }
   /* Supprimer : la réunion part avec sa conversation, ses messages et ses pièces. Chaque participant reçoit un événement ADRESSÉ (l'événement de conversation ne lui arriverait plus : la
@@ -2055,6 +2092,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const r = reunionBrute(id); if (!r) throw erreur('introuvable');
       if (r.hote !== par) throw erreur('interdit');
       const participants = reunionParticipants(id);
+      salleReunionFinir(id, 'supprimee');         // la salle ouverte finit AVANT que sa conversation disparaisse
       for (const u of participants) journalAjouter('reunion', null, u, id);
       const x = convSupprimer(r.conv);   // notée au registre (genre `conversation`) ; la réunion, ses invitations et ses rappels suivent (ON DELETE CASCADE)
       return { pieces: x.pieces, participants, conv: r.conv };
@@ -2136,6 +2174,77 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const r = reunionBrute(id); if (!r) throw erreur('introuvable');
       if (!num(Q('UPDATE reunion_invite SET rappels = ?, rappels_le = ? WHERE reunion = ? AND uid = ?').run(rappels === null ? null : JSON.stringify(rappels), horloge(), id, uid).changes)) throw erreur('introuvable');
       return { gid: journalAjouter('reunion', null, uid, id) };
+    });
+  }
+
+  /* ── la salle d'une réunion qui disparaît (annulée, supprimée, sans hôte) finit avec elle : des gens y étaient peut-être ── */
+  function salleReunionFinir(reunion, motif) {
+    const id = salleDeReunion(reunion); if (!id) return null;
+    const a = appelBrut(id);
+    return salleFinirDans(id, a.etat === 'en_cours' ? 'fini' : 'annule', motif, horloge());
+  }
+
+  /* ══ LE LIEN D'INVITÉ D'UNE RÉUNION (migration 9) ═══════════════════════════════════════════════════════════════════════════════════════════════
+     Un code de 128 bits, jamais rangé en clair : son EMPREINTE (`code_h`, HMAC) sert à le retrouver, le code SCELLÉ (`code_ch`) à le redire à l'hôte seul. L'hôte le lit (`reunionLien`) et le RENOUVELLE
+     (`reunionLienRenouveler`) : le nouveau remplace l'ancien, qui MEURT — et l'ancien est NOTÉ au registre des purges (genre `reunion_lien`) : une restauration d'une archive d'avant le renouvellement ne
+     rend pas la porte à qui connaissait l'ancien code. Le lien meurt aussi seul : annulée, ou une journée après la fin de la dernière occurrence ; une réunion qui se répète « jamais » ne finit pas, son lien non plus
+     (tant qu'on ne le renouvelle pas). Expiré, renouvelé, annulé, inconnu : la MÊME réponse (`lien_invalide`). */
+  const LIEN_GRACE_MS = 24 * 3600000;
+  const RE_CODE_REUNION = /^[A-Za-z0-9_-]{22}$/;
+  const aadCode = (id) => id + '|code';
+  const empreinteCode = (code) => scelleur.hmac('reunion', 'code_h', code);
+  function reunionLienPoser(id, t) {
+    const code = crypto.randomBytes(16).toString('base64url');
+    Q('UPDATE reunion SET code_h = ?, code_ch = ?, code_le = ? WHERE id = ?').run(empreinteCode(code), sceller('reunion', 'code_ch', aadCode(id), code), t, id);
+    return code;
+  }
+  /* Le lien de l'hôte : celui qui existe, sinon un neuf. → { code } */
+  function reunionLien({ id, par }) {
+    return tx(() => {
+      const r = Q('SELECT id, hote, annulee, code_h, code_ch FROM reunion WHERE id = ?').get(id); if (!r) throw erreur('introuvable');
+      if (r.hote !== par) throw erreur('interdit');
+      if (r.annulee) throw erreur('reunion_annulee');
+      if (r.code_h && r.code_ch) { const c = ouvrirOuNull('reunion', 'code_ch', aadCode(id), r.code_ch); if (c !== null) return { code: c }; }
+      return { code: reunionLienPoser(id, horloge()) };
+    });
+  }
+  /* Renouveler : l'ancien code est noté puis remplacé, dans la même transaction. → { code, ancien: avait-il un lien ? } */
+  function reunionLienRenouveler({ id, par }) {
+    return tx(() => {
+      const r = Q('SELECT id, hote, annulee, code_h FROM reunion WHERE id = ?').get(id); if (!r) throw erreur('introuvable');
+      if (r.hote !== par) throw erreur('interdit');
+      if (r.annulee) throw erreur('reunion_annulee');
+      const t = horloge();
+      if (r.code_h) Q('INSERT INTO purge(objet, genre, quand) SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM purge WHERE objet = ? AND genre = ?)').run(r.code_h, 'reunion_lien', t, r.code_h, 'reunion_lien');
+      const code = reunionLienPoser(id, t);
+      Q('UPDATE reunion SET version = version + 1, maj = ? WHERE id = ?').run(t, id);
+      return { code, ancien: !!r.code_h };
+    });
+  }
+  /* Ce que le code désigne, ou null (la même chose pour un code inconnu, renouvelé, annulé ou échu). Ne rend que ce qu'il faut pour DÉCIDER de rejoindre : jamais un participant. */
+  function reunionParCode(code) {
+    if (typeof code !== 'string' || !RE_CODE_REUNION.test(code)) return null;
+    const r = Q('SELECT id, fin_serie, rep FROM reunion WHERE code_h = ?').get(empreinteCode(code)); if (!r) return null;
+    const b = reunionBrute(r.id); if (!b || b.annulee) return null;
+    /* `fin_serie` d'une SÉRIE porte déjà un jour de marge au-delà de sa dernière occurrence (`calendrier.finDeSerie`) ; celle d'une réunion seule est sa fin : on y ajoute le jour. Le lien meurt donc un jour après la fin. */
+    const grace = r.rep === 'aucune' ? LIEN_GRACE_MS : 0;
+    if (r.fin_serie !== null && r.fin_serie !== undefined && num(r.fin_serie) + grace < horloge()) return null;
+    const rang = reunionRang(b);
+    return { id: b.id, conv: b.conv, hote: b.hote, titre: rang.titre, debut: rang.debut, fin: rang.fin, tz: rang.tz, repetition: rang.repetition, n: rang.n, jusqua: rang.jusqua, attente: rang.attente };
+  }
+  /* ⛔ ENTRER PAR LE LIEN : la personne devient INVITÉE de la réunion (« accepté »), membre de sa conversation — la discussion de la réunion est ouverte à qui est dedans —, et paraît dans son agenda. Une
+     personne déjà invitée ne change pas. Le plafond des invités (cent) tient pour les liens aussi. → { reunion, ajoute, gid } */
+  function reunionInviteParCode({ code, uid }) {
+    return tx(() => {
+      const r = reunionParCode(code); if (!r) throw erreur('lien_invalide');
+      if (Q('SELECT 1 AS x FROM reunion_invite WHERE reunion = ? AND uid = ?').get(r.id, uid)) return { reunion: r.id, ajoute: false, gid: 0 };
+      if (num(Q('SELECT COUNT(*) AS n FROM reunion_invite WHERE reunion = ?').get(r.id).n) > INVITES_MAX) throw erreur('trop_d_invites');
+      try { membresAjouter({ conv: r.conv, par: null, uids: [uid], max: INVITES_MAX + 1 }); }
+      catch (e) { if (e && e.code === 'groupe_plein') throw erreur('trop_d_invites'); throw e; }
+      const t = horloge();
+      Q(`INSERT INTO reunion_invite(reunion, uid, statut, invite_par, cree, repondu) VALUES(?, ?, 'accepte', NULL, ?, ?)`).run(r.id, uid, t, t);
+      Q('UPDATE reunion SET version = version + 1, maj = ? WHERE id = ?').run(t, r.id);
+      return { reunion: r.id, ajoute: true, gid: journalAjouter('reunion', r.conv, null, r.id) };
     });
   }
 
@@ -2240,7 +2349,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     for (const r of Q('SELECT id, conv FROM reunion WHERE hote = ? ORDER BY id').all(uid)) {
       const suivant = Q(`SELECT i.uid AS uid FROM reunion_invite i JOIN personne p ON p.id = i.uid
                          WHERE i.reunion = ? AND i.uid <> ? AND i.statut <> 'decline' AND p.etat = 'actif' ORDER BY (i.statut = 'accepte') DESC, i.cree, i.rowid LIMIT 1`).get(r.id, uid);
-      if (!suivant) { pieces.push(...convSupprimer(r.conv, { noter: !rejeu }).pieces); convs.push(r.conv); continue; }
+      if (!suivant) { salleReunionFinir(r.id, 'supprimee'); pieces.push(...convSupprimer(r.conv, { noter: !rejeu }).pieces); convs.push(r.conv); continue; }
       Q('UPDATE reunion SET hote = ?, version = version + 1, maj = ? WHERE id = ?').run(suivant.uid, t, r.id);
       Q(`UPDATE membre SET role = 'admin' WHERE conv = ? AND uid = ?`).run(r.conv, suivant.uid);
       Q(`UPDATE reunion_invite SET statut = 'accepte', repondu = COALESCE(repondu, ?), invite_par = NULL WHERE reunion = ? AND uid = ?`).run(t, r.id, suivant.uid);
@@ -2637,25 +2746,42 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
               ORDER BY COALESCE(relu_le, 0), espace LIMIT ?`).all(Math.max(1, limite | 0)).map(r => r.espace);
   }
 
-  /* ══ APPELS À DEUX (migration 8) ═══════════════════════════════════════════════════════════════════════════════════════════════════
+  /* ══ APPELS À DEUX (migration 8) ET APPELS À PLUSIEURS, SALLES DE RÉUNION (migration 9) ═══════════════════════════════════════════════════════════════
      Ce bloc range et lit : il ne relaie JAMAIS un signal (c'est `appels.js`), n'envoie aucun push, ne lit aucune horloge qu'on ne lui ait donnée (`horloge`, injectée), et ne sait rien d'un média. Ce qu'il tient,
      ce sont les INVARIANTS, chacun dans UNE transaction :
-       · ⛔ UNE PERSONNE N'EST QUE DANS UN APPEL À LA FOIS : « occupée » veut dire un appel qui SONNE (sonnerie non échue) ou qui COURT. La sonnerie se juge sur son ÉCHÉANCE, pas sur l'état : un appel dont
-         la sonnerie est échue n'occupe plus personne, même avant que le balayeur l'ait écrit « manqué ». Deux lancements simultanés ne passent pas à deux (le contrôle est dans la transaction) ;
-       · ⛔ CHAQUE CHANGEMENT D'ÉTAT ÉCRIT SON ÉVÉNEMENT DURABLE (`appel`, adressé à CHAQUE participant : la page relit la vue de l'appel, rien d'autre ne voyage) dans la MÊME transaction que le changement :
+       · ⛔ UNE PERSONNE N'EST QUE DANS UN APPEL À LA FOIS : « occupée » veut dire un appel qui SONNE (sonnerie non échue) ou qui COURT — pour une salle, être DANS la salle, à sa porte (la salle d'attente) ou
+         y être appelée tant que la sonnerie court. La sonnerie se juge sur son ÉCHÉANCE, pas sur l'état : un appel dont la sonnerie est échue n'occupe plus personne, même avant que le balayeur l'ait écrit
+         « manqué ». Deux lancements simultanés ne passent pas à deux (le contrôle est dans la transaction) ;
+       · ⛔ CHAQUE CHANGEMENT D'ÉTAT ÉCRIT SON ÉVÉNEMENT DURABLE (`appel`, adressé aux participants : la page relit la vue de l'appel, rien d'autre ne voyage) dans la MÊME transaction que le changement :
          un événement perdu avec une coupure se rejoue par `Last-Event-ID`, et la vue qu'il porte est celle de l'instant où on la lit (rejouée en retard, elle dit la fin de l'appel, pas une sonnerie fantôme) ;
-       · ⛔ UN APPEL MANQUÉ FAIT UNE NOTIFICATION, UNE SEULE FOIS : le passage `sonne → manque` et la notification s'écrivent dans la même transaction, gardés par `WHERE etat = 'sonne'` — un redémarrage,
-         un second balayeur ou une restauration ne la refont pas. (Le PUSH part ensuite, hors de la transaction : s'il se perd, la notification durable reste.) ;
+       · ⛔ UN APPEL MANQUÉ FAIT UNE NOTIFICATION, UNE SEULE FOIS : le passage `sonne → manque` (pour une salle : `invite → manque`) et la notification s'écrivent dans la même transaction, gardés par l'état
+         d'où l'on part — un redémarrage, un second balayeur ou une restauration ne la refont pas. (Le PUSH part ensuite, hors de la transaction : s'il se perd, la notification durable reste.) ;
        · l'appareil qui répond est LIÉ à l'appel (`appel_part.session`) ; le premier prend l'appel, un second reçoit `appel_pris` ;
-       · un appel FINI ne change plus (toute fin est gardée par `etat IN ('sonne', 'en_cours')`). */
-  function appelBrut(id) { return Q('SELECT id, type, etat, cree, sonne_jusqua, repondu, fin, motif FROM appel WHERE id = ?').get(id) || null; }
-  const appelPart = (id, uid) => Q('SELECT role, session FROM appel_part WHERE appel = ? AND uid = ?').get(id, uid) || null;
-  const appelAutre = (id, uid) => { const r = Q('SELECT uid FROM appel_part WHERE appel = ? AND uid <> ?').get(id, uid); return r ? r.uid : null; };
-  const appelParticipants = (id) => Q('SELECT uid, role, session FROM appel_part WHERE appel = ? ORDER BY role, uid').all(id);
-  /* L'appel de cette personne qui sonne (sonnerie non échue) ou qui court — son identifiant, ou null. */
+       · un appel FINI ne change plus (toute fin est gardée par `etat IN ('sonne', 'en_cours')`).
+     ⛔ UNE SALLE (genre « groupe » ou « reunion ») EST UN APPEL QUI SE TIENT À PLUSIEURS, et le SERVICE y impose ce qu'un navigateur ne peut pas contourner : qui entre (l'admission de la salle d'attente, le
+     verrou, la capacité — quatre en vidéo, six en audio —, l'exclusion qui ne revient pas), qui est hôte (l'hôte qui part passe la main : un co-hôte, sinon le plus ancien présent), et à qui le signal est
+     relayé (seulement entre participants PRÉSENTS — le serveur cesse de relayer celui d'un exclu). Ce qu'il ne peut pas imposer (couper le micro d'autrui, empêcher un navigateur modifié de garder une liaison
+     déjà ouverte) reste une DEMANDE que les pages honorent, et l'écran le dit. */
+  const GRADE_HOTE = 2, GRADE_COHOTE = 1;
+  function appelBrut(id) { return Q('SELECT id, type, etat, cree, sonne_jusqua, repondu, fin, motif, genre, conv, reunion, capacite, verrou, attente, partage_ok, rec_par FROM appel WHERE id = ?').get(id) || null; }
+  const appelPart = (id, uid) => Q('SELECT role, session, statut, grade, entre, gen FROM appel_part WHERE appel = ? AND uid = ?').get(id, uid) || null;
+  const appelAutre = (id, uid) => { const r = Q('SELECT uid FROM appel_part WHERE appel = ? AND uid <> ? ORDER BY role, uid').get(id, uid); return r ? r.uid : null; };
+  const appelParticipants = (id) => Q('SELECT uid, role, session, statut, grade, entre, gen FROM appel_part WHERE appel = ? ORDER BY role, uid').all(id);
+  const sallePresents = (id) => num(Q(`SELECT COUNT(*) AS n FROM appel_part WHERE appel = ? AND statut = 'present'`).get(id).n);
+  /* L'appel de cette personne qui sonne (sonnerie non échue), qui court, ou dont elle est à la porte — son identifiant, ou null. */
   function appelActifDe(uid) {
-    const r = Q(`SELECT a.id AS id FROM appel_part p JOIN appel a ON a.id = p.appel WHERE p.uid = ? AND (a.etat = 'en_cours' OR (a.etat = 'sonne' AND a.sonne_jusqua > ?)) ORDER BY a.cree DESC, a.id DESC LIMIT 1`).get(uid, horloge());
+    const t = horloge();
+    const r = Q(`SELECT a.id AS id FROM appel_part p JOIN appel a ON a.id = p.appel
+                 WHERE p.uid = ? AND ( (a.genre = 'deux' AND (a.etat = 'en_cours' OR (a.etat = 'sonne' AND a.sonne_jusqua > ?)))
+                                    OR (a.genre <> 'deux' AND a.etat IN ('sonne', 'en_cours') AND (p.statut IN ('present', 'attente') OR (p.statut = 'invite' AND a.sonne_jusqua > ?))) )
+                 ORDER BY a.cree DESC, a.id DESC LIMIT 1`).get(uid, t, t);
     return r ? r.id : null;
+  }
+  /* Le titre d'une salle : celui de la réunion, sinon le nom de la conversation du groupe ; vide quand il n'y en a pas (la page nomme alors les personnes). */
+  function salleTitre(a) {
+    if (a.genre === 'reunion' && a.reunion) { const r = reunionBrute(a.reunion); if (r) { const t = reunionTitre(r); return t === null ? '' : t; } return ''; }
+    if (a.conv) { const c = convBrute(a.conv); if (c && c.nom_ch) { const n = nomDe(c.id, c.nom_ch); return n === null ? '' : n; } }
+    return '';
   }
   /* La vue d'un appel POUR `uid` : ce que l'événement `appel`, l'historique et les réponses des routes portent. Les personnes ne sont que des identifiants et des noms courts (la page les habille) ;
      jamais une adresse réseau, jamais le détail d'une session. `lie` : cette personne a un appareil LIÉ à l'appel (celui qui l'a lancé, ou qui a répondu) — pas lequel. `manque` : un appel ENTRANT que
@@ -2663,22 +2789,46 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function appelRangDe(uid, a, me, autre) {
     const sortant = me.role === 'appelant', abouti = a.repondu !== null && a.repondu !== undefined, fin = a.fin === null || a.fin === undefined ? null : num(a.fin);
     return {
-      id: a.id, type: a.type, etat: a.etat, sens: sortant ? 'sortant' : 'entrant', manque: !sortant && (a.etat === 'manque' || a.etat === 'annule' || a.etat === 'occupe'),
+      id: a.id, type: a.type, etat: a.etat, genre: 'deux', sens: sortant ? 'sortant' : 'entrant', manque: !sortant && (a.etat === 'manque' || a.etat === 'annule' || a.etat === 'occupe'),
       autre: autre ? personneCourte(uid, autre) : null, debut: num(a.cree), sonne_jusqua: num(a.sonne_jusqua), repondu: abouti ? num(a.repondu) : null, fin,
       duree_s: abouti && fin !== null ? Math.max(0, Math.round((fin - num(a.repondu)) / 1000)) : 0, motif: a.motif || null, lie: !!me.session,
+    };
+  }
+  /* La vue d'une SALLE. Le roster (`participants`) n'est lu que par qui est DANS la salle : une personne à la porte, ou qu'on appelle encore, ne voit ni qui est dedans ni qui attend — seulement combien ils
+     sont (`nb`). La salle d'attente (`en_attente`, et ses lignes) n'est lue que par l'hôte et les co-hôtes. Un exclu voit son état (`moi.statut` « exclu »), rien d'autre. */
+  function appelRangGroupe(uid, a, me) {
+    const sortant = me.role === 'appelant', abouti = a.repondu !== null && a.repondu !== undefined, fin = a.fin === null || a.fin === undefined ? null : num(a.fin);
+    const termine = a.etat !== 'sonne' && a.etat !== 'en_cours', dedans = me.statut === 'present', hote = dedans && num(me.grade) >= GRADE_COHOTE;
+    const lignes = Q(`SELECT p.uid AS uid, p.role AS role, p.statut AS statut, p.grade AS grade, p.gen AS gen, x.prenom AS prenom, x.nom AS nom, x.avatar_piece AS avatar_piece
+                      FROM appel_part p JOIN personne x ON x.id = p.uid WHERE p.appel = ? ORDER BY (p.statut = 'present') DESC, p.grade DESC, p.entre, p.uid`).all(a.id);
+    const court = (r) => ({ id: r.uid, prenom: r.prenom, nom: r.nom, avatar: avatarPour(uid, r.uid, r.avatar_piece) });
+    const roster = me.statut === 'exclu' || !dedans ? [] : lignes.filter(r => r.statut === 'present' || r.statut === 'invite' || (r.statut === 'attente' && hote))
+      .map(r => Object.assign(court(r), { statut: r.statut, grade: num(r.grade), gen: num(r.gen) }));
+    const appelant = lignes.find(r => r.role === 'appelant');
+    return {
+      id: a.id, type: a.type, etat: a.etat, genre: a.genre, groupe: true, conv: a.conv || null, reunion: a.reunion || null, titre: salleTitre(a),
+      sens: sortant ? 'sortant' : 'entrant', manque: !sortant && (me.statut === 'manque' || (termine && me.statut === 'invite')),
+      autre: appelant && appelant.uid !== uid ? court(appelant) : null, membres: lignes.filter(r => r.uid !== uid).slice(0, 5).map(court),
+      debut: num(a.cree), sonne_jusqua: num(a.sonne_jusqua), repondu: abouti ? num(a.repondu) : null, fin,
+      duree_s: abouti && fin !== null ? Math.max(0, Math.round((fin - num(a.repondu)) / 1000)) : 0, motif: a.motif || null, lie: !!me.session,
+      capacite: a.capacite === null || a.capacite === undefined ? null : num(a.capacite), verrou: !!a.verrou, attente: !!a.attente, partage_ok: !!a.partage_ok, rec: a.rec_par && me.statut !== 'exclu' ? { par: a.rec_par } : null,
+      nb: lignes.filter(r => r.statut === 'present').length, en_attente: hote ? lignes.filter(r => r.statut === 'attente').length : 0,
+      moi: { statut: me.statut, grade: num(me.grade), gen: num(me.gen) }, participants: roster,
     };
   }
   function appelVue(uid, id) {
     const me = appelPart(id, uid); if (!me) return null;
     const a = appelBrut(id); if (!a) return null;
-    return appelRangDe(uid, a, me, appelAutre(id, uid));
+    return a.genre === 'deux' ? appelRangDe(uid, a, me, appelAutre(id, uid)) : appelRangGroupe(uid, a, me);
   }
-  /* Le LAISSEZ-PASSER léger de la garde AP (`app.js`) : { id, etat, role, session (l'empreinte de MA session liée, ou null), autre (l'autre participant), sonne_jusqua } — `null` pour inexistant COMME pour
-     « tu n'y participes pas » (404 dans les deux cas, jamais 403). */
+  /* Le LAISSEZ-PASSER léger de la garde AP (`app.js`) : { id, etat, role, session (l'empreinte de MA session liée, ou null), autre (l'autre participant d'un appel à deux), sonne_jusqua, genre, statut, grade… } —
+     `null` pour inexistant COMME pour « tu n'y participes pas » COMME pour « tu en as été exclu » (404 dans tous les cas, jamais 403). */
   function appelAcces(id, uid) {
     const me = appelPart(id, uid); if (!me) return null;
     const a = appelBrut(id); if (!a) return null;
-    return { id: a.id, etat: a.etat, type: a.type, role: me.role, session: me.session || null, autre: appelAutre(id, uid), sonne_jusqua: num(a.sonne_jusqua), cree: num(a.cree) };
+    if (a.genre !== 'deux' && me.statut === 'exclu') return null;
+    return { id: a.id, etat: a.etat, type: a.type, role: me.role, session: me.session || null, autre: a.genre === 'deux' ? appelAutre(id, uid) : null, sonne_jusqua: num(a.sonne_jusqua), cree: num(a.cree),
+      genre: a.genre, statut: me.statut, grade: num(me.grade), conv: a.conv || null, reunion: a.reunion || null, capacite: a.capacite === null || a.capacite === undefined ? null : num(a.capacite), verrou: !!a.verrou, attente: !!a.attente, partage_ok: !!a.partage_ok };
   }
   /* Les appels REÇUS par cette personne depuis `depuis` — tous, quelle qu'en soit l'issue (un appel « occupé » ou refusé a fait sonner ou noté un manqué tout de même) → { n, plusAncien }. C'est ce que le
      plafond « par personne appelée » compte : un appelant qui se heurte à un plafond bas ne dit rien des autres. */
@@ -2686,7 +2836,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const r = Q(`SELECT COUNT(*) AS n, MIN(a.cree) AS plus FROM appel_part p JOIN appel a ON a.id = p.appel WHERE p.uid = ? AND p.role = 'appele' AND a.cree > ?`).get(uid, depuis);
     return { n: num(r.n), plusAncien: r.plus === null || r.plus === undefined ? null : num(r.plus) };
   }
-  /* L'appel de cette personne qui sonne ou qui court, dans sa vue ; c'est ce que la page lit à son ouverture (`GET /api/appels`, `actif`) pour reprendre une sonnerie qu'elle a manquée. */
+  /* L'appel de cette personne qui sonne ou court, dans sa vue ; c'est ce que la page lit à son ouverture (`GET /api/appels`, `actif`) pour reprendre une sonnerie qu'elle a manquée. */
   function appelActifVue(uid) { const id = appelActifDe(uid); return id ? appelVue(uid, id) : null; }
   /* Le texte d'un appel manqué, et sa notification durable — DANS la transaction de l'appelant. Rien d'un auteur que le destinataire a bloqué (ou qui l'a bloqué) : la définition de la messagerie. L'`auteur`
      de la notification est l'appelant : l'effacement de son compte la réécrit (« Un compte supprimé vous a appelé. »). → { id, gid, uid, sourdine } ou null. */
@@ -2701,10 +2851,14 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function appelSourdine(appele, appelant) {
     return !!Q(`SELECT 1 AS x FROM membre m JOIN conversation c ON c.id = m.conv WHERE c.cle_directe = ? AND m.uid = ? AND m.quitte_le IS NULL AND m.muet_jusqua > ? LIMIT 1`).get(cleDirecte(appele, appelant), appele, horloge());
   }
-  /* Écrit l'événement `appel` de chaque participant. → { [uid]: gid } */
-  function appelEvenements(id) {
+  /* Écrit l'événement `appel` des participants. → { [uid]: gid }. Un appel à deux le dit aux DEUX ; une salle, à ceux qui y sont, y attendent ou y sont appelés, plus les `extra` nommés (celui qui vient de partir, d'être
+     exclu ou refusé apprend SA fin — et plus rien ensuite : ceux qui sont partis ne reçoivent pas ce que les autres se disent). */
+  function appelEvenements(id, extra) {
     const gids = {};
-    for (const p of appelParticipants(id)) gids[p.uid] = journalAjouter('appel', null, p.uid, id);
+    const a = appelBrut(id);
+    const lignes = !a || a.genre === 'deux' ? appelParticipants(id) : Q(`SELECT uid FROM appel_part WHERE appel = ? AND statut IN ('present', 'attente', 'invite') ORDER BY uid`).all(id);
+    for (const p of lignes) gids[p.uid] = journalAjouter('appel', null, p.uid, id);
+    for (const u of extra || []) if (gids[u] === undefined && appelPart(id, u)) gids[u] = journalAjouter('appel', null, u, id);
     return gids;
   }
 
@@ -2721,12 +2875,38 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       return { id, occupe, gids, notif: occupe ? appelNotifManque(id, type, appelant, appele) : null, vue: appelVue(appelant, id) };
     });
   }
+  /* ⛔ LANCER UN APPEL À PLUSIEURS (groupe ou personnes choisies) : TOUT dans une transaction. L'appelant entre, HÔTE, appareil lié d'emblée ; chaque invité dont la ligne est libre SONNE (`invite`), celui qui est
+     déjà dans un appel est écrit « manqué » tout de suite (et reçoit la notification d'un manqué : il saura qu'on l'a appelé) ; si PERSONNE ne peut sonner, l'appel est écrit « occupé » et ne démarre pas.
+     `invites` : déjà jugés par l'appelant (le droit de les joindre, les plafonds). `capacite` : quatre en vidéo, six en audio, posé ici et NE CHANGE PLUS pour cet appel.
+     → { id, occupe, gids, notifs, sonnent, occupes, vue } */
+  function appelCreerGroupe({ appelant, invites, type, session, sonnerieMs, capacite, conv, attente }) {
+    return tx(() => {
+      if (appelActifDe(appelant)) throw erreur('occupe_moi');
+      const t = horloge(), id = nouvelId('a'), dispo = [], occupes = [];
+      for (const u of Array.from(new Set(invites)).filter(x => x !== appelant)) (appelActifDe(u) ? occupes : dispo).push(u);
+      const occupe = dispo.length === 0;
+      Q('INSERT INTO appel(id, type, etat, cree, sonne_jusqua, fin, genre, conv, capacite, attente) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(id, type, occupe ? 'occupe' : 'sonne', t, t + sonnerieMs, occupe ? t : null, 'groupe', conv || null, capacite, attente ? 1 : 0);
+      Q('INSERT INTO appel_part(appel, uid, role, session, statut, grade, entre, gen) VALUES(?, ?, ?, ?, ?, ?, ?, ?)').run(id, appelant, 'appelant', occupe ? null : (session || null), occupe ? 'parti' : 'present', GRADE_HOTE, t, 1);
+      for (const u of dispo) Q('INSERT INTO appel_part(appel, uid, role, session, statut, grade, gen) VALUES(?, ?, ?, ?, ?, ?, ?)').run(id, u, 'appele', null, 'invite', 0, 0);
+      const notifs = [];
+      for (const u of occupes) {
+        Q('INSERT INTO appel_part(appel, uid, role, session, statut, grade, gen) VALUES(?, ?, ?, ?, ?, ?, ?)').run(id, u, 'appele', null, 'manque', 0, 0);
+        const n = appelNotifManque(id, type, appelant, u); if (n) notifs.push(n);
+      }
+      const gids = {};
+      for (const u of [appelant].concat(dispo, occupes)) gids[u] = journalAjouter('appel', null, u, id);
+      return { id, occupe, gids, notifs, sonnent: dispo, occupes, vue: appelVue(appelant, id) };
+    });
+  }
   /* L'appelé répond (accepte) ou refuse. Le premier appareil qui accepte PREND l'appel (sa session y est liée) ; un autre appareil de la même personne reçoit `appel_pris`, un appel qui n'est plus à
-     l'état « sonne » `appel_fini`. Refuser finit l'appel pour TOUS les appareils de l'appelé. Rejouable : la même session qui répond deux fois reçoit la même vue (`deja`). */
+     l'état « sonne » `appel_fini`. Refuser finit l'appel pour TOUS les appareils de l'appelé. Rejouable : la même session qui répond deux fois reçoit la même vue (`deja`).
+     Une SALLE : répondre, c'est y ENTRER (`appelRejoindre`), refuser c'est ne pas y venir (`appelPartir`) — l'appel continue pour les autres. */
   function appelRepondre({ id, uid, session, accepte }) {
     return tx(() => {
       const me = appelPart(id, uid), a = appelBrut(id);
       if (!me || !a) throw erreur('introuvable');
+      if (a.genre !== 'deux') return accepte ? appelRejoindre({ id, uid, session }) : appelPartir({ id, uid, session });
       if (me.role !== 'appele') throw erreur('interdit');
       if (a.etat === 'en_cours') {
         if (accepte && me.session && me.session === session) return { deja: true, gids: {}, vue: appelVue(uid, id), etat: a.etat };
@@ -2745,20 +2925,22 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   /* Raccrocher, annuler, refuser. Selon l'état et le rôle : `sonne` + appelant → « annule » (l'appelé a MANQUÉ cet appel : notification) ; `sonne` + appelé → « refuse » ; `en_cours` → « fini ».
      Un appel déjà fini : rien à faire (`deja`), c'est le cas ordinaire de la page qui raccroche après que l'autre l'a fait. Une session qui n'est pas celle LIÉE à l'appel ne le raccroche pas
-     (`appareil_non_lie`) — l'appelé, tant qu'il n'a pas répondu, n'est lié à aucune. */
+     (`appareil_non_lie`) — l'appelé, tant qu'il n'a pas répondu, n'est lié à aucune. Une SALLE : on en SORT (`appelPartir`), elle continue pour les autres. */
   function appelQuitter({ id, uid, session }) {
     return tx(() => {
       const me = appelPart(id, uid), a = appelBrut(id);
       if (!me || !a) throw erreur('introuvable');
+      if (a.genre !== 'deux') return appelPartir({ id, uid, session });
       if (a.etat !== 'sonne' && a.etat !== 'en_cours') return { deja: true, gids: {}, vue: appelVue(uid, id), etat: a.etat, notif: null };
       if (me.session && me.session !== session) throw erreur('appareil_non_lie');
       const etat = a.etat === 'en_cours' ? 'fini' : (me.role === 'appelant' ? 'annule' : 'refuse');
       return appelFinirDans(id, etat, null, horloge(), uid);
     });
   }
-  /* La fin d'un appel (à l'intérieur d'une transaction) : l'état, l'instant, le motif, les événements — et la notification du manqué quand l'appelant annule avant la réponse. */
+  /* La fin d'un appel à deux (à l'intérieur d'une transaction) : l'état, l'instant, le motif, les événements — et la notification du manqué quand l'appelant annule avant la réponse. */
   function appelFinirDans(id, etat, motif, fin, vuPar) {
     const a = appelBrut(id);
+    if (a && a.genre !== 'deux') return salleFinirDans(id, etat, motif, fin, vuPar);
     if (!a || !num(Q(`UPDATE appel SET etat = ?, fin = ?, motif = ? WHERE id = ? AND etat IN ('sonne', 'en_cours')`).run(etat, fin, motif, id).changes)) return { deja: true, gids: {}, vue: vuPar ? appelVue(vuPar, id) : null, etat: a ? a.etat : null, notif: null };
     const parts = appelParticipants(id);
     const appelant = (parts.find(p => p.role === 'appelant') || {}).uid, appele = (parts.find(p => p.role === 'appele') || {}).uid;
@@ -2770,45 +2952,298 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
      disparu pendant la sonnerie fait donc MANQUER l'appel à l'appelé, comme s'il avait raccroché. */
   function appelFinir({ id, motif, fin }) {
     return tx(() => {
-      const a = appelBrut(id); if (!a) return { deja: true, gids: {}, vue: null, etat: null, notif: null };
+      const a = appelBrut(id); if (!a) return { deja: true, gids: {}, vue: null, etat: null, notif: null, notifs: [] };
       return appelFinirDans(id, a.etat === 'en_cours' ? 'fini' : 'annule', motif || null, fin === undefined ? horloge() : fin, null);
     });
   }
-  /* Les sonneries ÉCHUES : `sonne → manque`, avec la notification de l'appelé — UNE transaction pour tout le lot, chaque appel gardé par `WHERE etat = 'sonne'`. → [{ id, appelant, appele, type, notif, gids }] */
+  /* Les sonneries ÉCHUES : `sonne → manque`, avec la notification de l'appelé — UNE transaction pour tout le lot, chaque appel gardé par `WHERE etat = 'sonne'`. → [{ id, appelant, appele, type, notif, gids }]
+     Une SALLE dont la sonnerie est échue : chaque invité qui n'a pas répondu devient « manqué » (une notification chacun, une seule fois : la ligne ne repart pas de `invite`), et la salle où l'appelant est
+     resté seul finit « manquée » — elle continue, sinon, pour ceux qui y sont. → { id, groupe: true, appelant, type, notifs, gids } */
   function appelsEchoir(t) {
     return tx(() => {
       const faits = [];
-      for (const r of Q(`SELECT id, type FROM appel WHERE etat = 'sonne' AND sonne_jusqua <= ? ORDER BY sonne_jusqua, id LIMIT 200`).all(t)) {
+      for (const r of Q(`SELECT id, type FROM appel WHERE genre = 'deux' AND etat = 'sonne' AND sonne_jusqua <= ? ORDER BY sonne_jusqua, id LIMIT 200`).all(t)) {
         if (!num(Q(`UPDATE appel SET etat = 'manque', fin = sonne_jusqua WHERE id = ? AND etat = 'sonne'`).run(r.id).changes)) continue;
         const parts = appelParticipants(r.id), appelant = (parts.find(p => p.role === 'appelant') || {}).uid, appele = (parts.find(p => p.role === 'appele') || {}).uid;
         faits.push({ id: r.id, appelant, appele, type: r.type, gids: appelEvenements(r.id), notif: appelant && appele ? appelNotifManque(r.id, r.type, appelant, appele) : null });
+      }
+      for (const r of Q(`SELECT id, type, etat, sonne_jusqua FROM appel WHERE genre <> 'deux' AND etat IN ('sonne', 'en_cours') AND sonne_jusqua <= ? AND EXISTS (SELECT 1 FROM appel_part p WHERE p.appel = appel.id AND p.statut = 'invite') ORDER BY sonne_jusqua, id LIMIT 200`).all(t)) {
+        const appelant = (Q(`SELECT uid FROM appel_part WHERE appel = ? AND role = 'appelant'`).get(r.id) || {}).uid;
+        if (r.etat === 'sonne' && sallePresents(r.id) <= 1) {
+          const f = salleFinirDans(r.id, 'manque', null, num(r.sonne_jusqua));
+          if (!f.deja) faits.push({ id: r.id, groupe: true, appelant, type: r.type, notifs: f.notifs, gids: f.gids });
+          continue;
+        }
+        const notifs = [], quand = [];
+        for (const p of Q(`SELECT uid FROM appel_part WHERE appel = ? AND statut = 'invite' ORDER BY uid`).all(r.id)) {
+          Q(`UPDATE appel_part SET statut = 'manque' WHERE appel = ? AND uid = ? AND statut = 'invite'`).run(r.id, p.uid);
+          quand.push(p.uid);
+          const n = appelNotifManque(r.id, r.type, appelant, p.uid); if (n) notifs.push(n);
+        }
+        faits.push({ id: r.id, groupe: true, appelant, type: r.type, notifs, gids: appelEvenements(r.id, quand) });
       }
       return faits;
     });
   }
   /* Les appels vivants (qui sonnent ou courent) avec leurs participants et l'empreinte de leur session liée : de quoi juger qui a disparu (`appels.js`). Borné. */
   function appelsActifs() {
-    return Q(`SELECT id, etat, type, cree, sonne_jusqua, repondu FROM appel WHERE etat IN ('sonne', 'en_cours') ORDER BY cree LIMIT 5000`).all()
-      .map(a => ({ id: a.id, etat: a.etat, type: a.type, cree: num(a.cree), sonne_jusqua: num(a.sonne_jusqua), repondu: a.repondu === null ? null : num(a.repondu), parts: appelParticipants(a.id).map(p => ({ uid: p.uid, role: p.role, session: p.session || null })) }));
+    return Q(`SELECT id, etat, type, genre, cree, sonne_jusqua, repondu FROM appel WHERE etat IN ('sonne', 'en_cours') ORDER BY cree LIMIT 5000`).all()
+      .map(a => ({ id: a.id, etat: a.etat, type: a.type, genre: a.genre, cree: num(a.cree), sonne_jusqua: num(a.sonne_jusqua), repondu: a.repondu === null ? null : num(a.repondu),
+        parts: appelParticipants(a.id).map(p => ({ uid: p.uid, role: p.role, session: p.session || null, statut: p.statut, grade: num(p.grade) })) }));
   }
-  /* L'historique d'une personne : les appels FINIS, du plus récent, bornés. `manques` : ses appels entrants qu'elle n'a pas pris. */
+  /* L'historique d'une personne : les appels FINIS, du plus récent, bornés. `manques` : ses appels entrants qu'elle n'a pas pris (une salle où elle était appelée et n'est pas venue, comprise). */
   function appelsListe(uid, { manques = false, limite = 100 } = {}) {
     const lim = Math.max(1, Math.min(500, limite | 0));
-    const lignes = manques
-      ? Q(`SELECT a.id AS id, a.type AS type, a.etat AS etat, a.cree AS cree, a.sonne_jusqua AS sonne_jusqua, a.repondu AS repondu, a.fin AS fin, a.motif AS motif, p.role AS role, p.session AS session
-           FROM appel_part p JOIN appel a ON a.id = p.appel WHERE p.uid = ? AND p.role = 'appele' AND a.etat IN ('manque', 'annule', 'occupe') ORDER BY a.cree DESC, a.id DESC LIMIT ?`).all(uid, lim)
-      : Q(`SELECT a.id AS id, a.type AS type, a.etat AS etat, a.cree AS cree, a.sonne_jusqua AS sonne_jusqua, a.repondu AS repondu, a.fin AS fin, a.motif AS motif, p.role AS role, p.session AS session
-           FROM appel_part p JOIN appel a ON a.id = p.appel WHERE p.uid = ? AND a.etat NOT IN ('sonne', 'en_cours') ORDER BY a.cree DESC, a.id DESC LIMIT ?`).all(uid, lim);
-    return lignes.map(r => appelRangDe(uid, r, { role: r.role, session: r.session }, appelAutre(r.id, uid)));
+    const ids = manques
+      ? Q(`SELECT a.id AS id FROM appel_part p JOIN appel a ON a.id = p.appel
+           WHERE p.uid = ? AND p.role = 'appele' AND ( (a.genre = 'deux' AND a.etat IN ('manque', 'annule', 'occupe'))
+                                                    OR (a.genre <> 'deux' AND (p.statut = 'manque' OR (p.statut = 'invite' AND a.etat NOT IN ('sonne', 'en_cours')))) )
+           ORDER BY a.cree DESC, a.id DESC LIMIT ?`).all(uid, lim)
+      : Q(`SELECT a.id AS id FROM appel_part p JOIN appel a ON a.id = p.appel WHERE p.uid = ? AND a.etat NOT IN ('sonne', 'en_cours') ORDER BY a.cree DESC, a.id DESC LIMIT ?`).all(uid, lim);
+    return ids.map(r => appelVue(uid, r.id)).filter(Boolean);
   }
   /* Un appel fini depuis longtemps n'est plus de l'historique, c'est une donnée personnelle qu'on garde pour rien. */
   function appelsElaguer(avant) { return num(Q(`DELETE FROM appel WHERE cree < ? AND etat NOT IN ('sonne', 'en_cours')`).run(avant).changes); }
-  /* ⛔ L'EFFACEMENT D'UN COMPTE ET SES APPELS (appelé par `compteEffacer`, rejoué par `appelsReparer`). Un appel qui sonne ou court se TERMINE (l'autre l'apprend : événement durable) ; la ligne de la
-     personne part (l'autre garde l'appel, sans nom : « Compte supprimé »), et l'appel part avec sa dernière ligne. Rejouable : sans appel, rien à faire — et rien n'est écrit au registre des purges : c'est
-     `compteEffacer` qui est noté (genre « compte », rejoué par le service), et il refait ceci. → les personnes à réveiller. */
+
+  /* ══ LES SALLES — entrer, sortir, être admis, exclu ; l'hôte qui passe la main ══════════════════════════════════════════════════════════════════════
+     ⛔ ENTRER, c'est une décision du SERVICE, jugée ici dans une transaction : l'appel vit, on n'en est pas exclu, l'appareil qui le tient est le même (ou il est libre), personne n'est dans un autre appel,
+     la salle n'est pas verrouillée (sauf pour l'hôte et ses co-hôtes), la capacité n'est pas atteinte, la salle d'attente n'est pas demandée (sauf pour l'hôte et ses co-hôtes : on y attend d'être admis).
+     Un compte qui n'a pas de ligne y entre s'il y a droit : un membre de la conversation du groupe, un invité de la réunion — sinon la MÊME réponse qu'une salle qui n'existe pas. */
+  function appelRejoindre({ id, uid, session }) {
+    return tx(() => {
+      const a = appelBrut(id);
+      if (!a || a.genre === 'deux') throw erreur('introuvable');
+      const p = appelPart(id, uid);
+      /* ⛔ LE DROIT SE JUGE À CHAQUE ENTRÉE, pas seulement la première : celui qu'on a retiré du groupe (ou de la réunion) depuis n'entre plus, même s'il a une ligne « parti » ou « manqué » dans la salle. Une salle
+         de personnes CHOISIES (sans conversation) n'a que ses lignes pour droit. */
+      const droit = a.genre === 'groupe'
+        ? (a.conv ? !!convPourMembre(a.conv, uid) : !!p)
+        : (a.genre === 'reunion' && !!a.reunion && !!Q('SELECT 1 AS x FROM reunion_invite WHERE reunion = ? AND uid = ?').get(a.reunion, uid));
+      if (!droit) throw erreur('introuvable');
+      if (p && p.statut === 'exclu') throw erreur('exclu');
+      if (a.etat !== 'sonne' && a.etat !== 'en_cours') throw erreur('appel_fini');
+      if (p && p.statut === 'present') {
+        if (p.session && p.session === session) return { deja: true, attente: false, gids: {}, vue: appelVue(uid, id), etat: a.etat };
+        throw erreur('appel_pris');
+      }
+      if (p && p.statut === 'attente' && p.session === session) return { deja: true, attente: true, gids: {}, vue: appelVue(uid, id), etat: a.etat };
+      const ailleurs = appelActifDe(uid);
+      if (ailleurs && ailleurs !== id) throw erreur('occupe_moi');
+      const t = horloge();
+      const hoteReunion = a.genre === 'reunion' && a.reunion && (Q('SELECT hote FROM reunion WHERE id = ?').get(a.reunion) || {}).hote === uid;
+      /* ⛔ UNE SALLE N'EST JAMAIS SANS MAÎTRE : quand personne n'y tient plus la porte (ni hôte ni co-hôte PRÉSENT — la salle d'une réunion qu'un invité ouvre avant l'organisateur), le premier qui entre en devient l'hôte PAR
+         INTÉRIM. Il passe la porte sans attendre (personne ne pourrait l'admettre), et l'organisateur qui arrive reprend la main (plus bas). */
+      const detenteur = num(Q(`SELECT COUNT(*) AS n FROM appel_part WHERE appel = ? AND statut = 'present' AND grade >= ?`).get(id, GRADE_COHOTE).n) > 0;
+      const grade = (hoteReunion || !detenteur) ? GRADE_HOTE : (p ? num(p.grade) : 0), pouvoir = grade >= GRADE_COHOTE;
+      if (a.verrou && !pouvoir) throw erreur('verrouillee');
+      const attend = !!a.attente && !pouvoir;
+      if (!attend && sallePresents(id) >= num(a.capacite)) throw erreur('appel_complet');
+      const statut = attend ? 'attente' : 'present';
+      if (p) Q('UPDATE appel_part SET statut = ?, session = ?, grade = ?, entre = ?, gen = gen + ? WHERE appel = ? AND uid = ?').run(statut, session, grade, t, attend ? 0 : 1, id, uid);
+      else Q('INSERT INTO appel_part(appel, uid, role, session, statut, grade, entre, gen) VALUES(?, ?, ?, ?, ?, ?, ?, ?)').run(id, uid, 'appele', session, statut, grade, t, attend ? 0 : 1);
+      /* l'organisateur qui arrive REPREND la main : celui qui la tenait à sa place (le plus ancien, ou un co-hôte) devient co-hôte */
+      if (hoteReunion && !attend) Q(`UPDATE appel_part SET grade = ? WHERE appel = ? AND uid <> ? AND grade = ?`).run(GRADE_COHOTE, id, uid, GRADE_HOTE);
+      if (!attend) salleDemarrerSiDeux(id, t);
+      return { deja: false, attente: attend, gids: appelEvenements(id, [uid]), vue: appelVue(uid, id), etat: appelBrut(id).etat };
+    });
+  }
+  /* Deux personnes dans la salle : l'appel sonnait, il COURT (l'instant de la première réponse date `repondu`). */
+  function salleDemarrerSiDeux(id, t) {
+    if (sallePresents(id) >= 2) Q(`UPDATE appel SET etat = 'en_cours', repondu = COALESCE(repondu, ?) WHERE id = ? AND etat = 'sonne'`).run(t, id);
+  }
+  /* ⛔ SORTIR (raccrocher, quitter la salle, refuser la sonnerie, disparaître — `motif` « perdu » —, voir son compte effacé — « compte »). Une transaction :
+       · présent → parti (l'appareil est délié : plus un signal ne lui est relayé) ; à la porte → parti ; sonnerie qui court → refusé. Déjà sorti : rien (`deja`) ;
+       · l'HÔTE qui part passe la main : un co-hôte, sinon le plus ancien présent (l'entrée la plus ancienne) ; le bandeau REC s'éteint si c'est lui qui enregistrait ;
+       · plus personne dedans : la salle FINIT (« annulée » si l'appelant raccroche avant toute réponse — les invités ont manqué quelque chose —, « fini » sinon) ; l'appelant resté seul, sans plus
+         personne à la sonnerie, finit « refusé » (tous ont refusé) ou « manqué ».
+     Une autre session que celle liée ne fait pas partir (`appareil_non_lie`), sauf quand c'est le service qui juge (`perdu`, `compte`). */
+  function appelPartir({ id, uid, session, motif }) {
+    return tx(() => {
+      const a = appelBrut(id), p = appelPart(id, uid);
+      if (!a || !p) throw erreur('introuvable');
+      if (a.genre === 'deux') throw erreur('introuvable');
+      if (a.etat !== 'sonne' && a.etat !== 'en_cours') return { deja: true, gids: {}, vue: appelVue(uid, id), etat: a.etat, notif: null, notifs: [] };
+      if (p.session && session && p.session !== session && motif !== 'perdu' && motif !== 'compte') throw erreur('appareil_non_lie');
+      return appelPartirDans(id, uid, motif || null);
+    });
+  }
+  function appelPartirDans(id, uid, motif) {
+    const a = appelBrut(id), p = appelPart(id, uid), t = horloge();
+    if (!a || !p || (a.etat !== 'sonne' && a.etat !== 'en_cours')) return { deja: true, gids: {}, vue: p ? appelVue(uid, id) : null, etat: a ? a.etat : null, notif: null, notifs: [] };
+    if (p.statut === 'present' || p.statut === 'attente') {
+      Q(`UPDATE appel_part SET statut = 'parti', session = NULL, grade = CASE WHEN grade = ? THEN 0 ELSE grade END WHERE appel = ? AND uid = ?`).run(GRADE_HOTE, id, uid);
+      if (a.rec_par === uid) Q('UPDATE appel SET rec_par = NULL WHERE id = ?').run(id);
+      if (num(p.grade) === GRADE_HOTE && p.statut === 'present') {
+        const s = Q(`SELECT uid FROM appel_part WHERE appel = ? AND statut = 'present' AND uid <> ? ORDER BY grade DESC, entre, uid LIMIT 1`).get(id, uid);
+        if (s) Q('UPDATE appel_part SET grade = ? WHERE appel = ? AND uid = ?').run(GRADE_HOTE, id, s.uid);
+      }
+    } else if (p.statut === 'invite') {
+      Q(`UPDATE appel_part SET statut = 'refuse', session = NULL WHERE appel = ? AND uid = ?`).run(id, uid);
+    } else return { deja: true, gids: {}, vue: appelVue(uid, id), etat: a.etat, notif: null, notifs: [] };
+    const dedans = sallePresents(id);
+    if (dedans === 0) {
+      const f = salleFinirDans(id, a.etat === 'en_cours' ? 'fini' : 'annule', motif, t, uid);
+      return Object.assign(f, { fini: true, successeur: null });
+    }
+    if (a.etat === 'sonne' && dedans <= 1 && num(Q(`SELECT COUNT(*) AS n FROM appel_part WHERE appel = ? AND statut = 'invite'`).get(id).n) === 0 && p.statut === 'invite') {
+      const f = salleFinirDans(id, 'refuse', motif, t, uid);
+      return Object.assign(f, { fini: true, successeur: null });
+    }
+    return { deja: false, fini: false, gids: appelEvenements(id, [uid]), vue: appelVue(uid, id), etat: a.etat, notif: null, notifs: [] };
+  }
+  /* La fin d'une salle (à l'intérieur d'une transaction) : l'état, l'instant, le motif ; chaque ligne rend sa place (présent → parti, à la porte → refusé, la sonnerie qui court → manqué, AVEC la
+     notification de l'appel manqué) ; le bandeau REC s'éteint ; chaque participant reçoit l'événement de la fin. → { deja, gids, notifs, vue (pour `vuPar`), etat } */
+  function salleFinirDans(id, etat, motif, fin, vuPar) {
+    const a = appelBrut(id);
+    if (!a || !num(Q(`UPDATE appel SET etat = ?, fin = ?, motif = ?, rec_par = NULL WHERE id = ? AND etat IN ('sonne', 'en_cours')`).run(etat, fin, motif || null, id).changes)) return { deja: true, gids: {}, notifs: [], notif: null, vue: vuPar ? appelVue(vuPar, id) : null, etat: a ? a.etat : null };
+    const lignes = appelParticipants(id), appelant = (lignes.find(p => p.role === 'appelant') || {}).uid, notifs = [];
+    for (const p of lignes) {
+      if (p.statut === 'invite') {
+        Q(`UPDATE appel_part SET statut = 'manque', session = NULL WHERE appel = ? AND uid = ?`).run(id, p.uid);
+        const n = appelant ? appelNotifManque(id, a.type, appelant, p.uid) : null; if (n) notifs.push(n);
+      } else if (p.statut === 'present') Q(`UPDATE appel_part SET statut = 'parti', session = NULL WHERE appel = ? AND uid = ?`).run(id, p.uid);
+      else if (p.statut === 'attente') Q(`UPDATE appel_part SET statut = 'refuse', session = NULL WHERE appel = ? AND uid = ?`).run(id, p.uid);
+    }
+    const gids = {};
+    for (const p of lignes) gids[p.uid] = journalAjouter('appel', null, p.uid, id);
+    return { deja: false, gids, notifs, notif: null, vue: vuPar ? appelVue(vuPar, id) : null, etat };
+  }
+
+  /* ── ce que l'HÔTE et ses co-hôtes décident ── */
+  const salleVivante = (id) => { const a = appelBrut(id); if (!a || a.genre === 'deux') throw erreur('introuvable'); if (a.etat !== 'sonne' && a.etat !== 'en_cours') throw erreur('appel_fini'); return a; };
+  /* `par` doit être DANS la salle avec le grade voulu : la garde de la route l'a jugé, la transaction le rejuge (un hôte parti entre les deux ne commande plus rien). */
+  function salleCommandant(id, par, gradeMin) {
+    const p = appelPart(id, par);
+    if (!p || p.statut !== 'present') throw erreur('introuvable');
+    if (num(p.grade) < gradeMin) throw erreur('interdit');
+    return p;
+  }
+  /* Admettre : la salle d'attente se vide dans la limite de la capacité (une seule personne, ou tout le monde — dans l'ordre d'arrivée). Ce qui ne rentre pas reste à la porte. → { admis, restent, gids } */
+  function salleAdmettre({ id, par, uid, tous }) {
+    return tx(() => {
+      const a = salleVivante(id); salleCommandant(id, par, GRADE_COHOTE);
+      const attendent = Q(`SELECT uid FROM appel_part WHERE appel = ? AND statut = 'attente' ORDER BY entre, uid`).all(id).map(r => r.uid).filter(u => tous === true || u === uid);
+      if (!attendent.length) throw erreur('introuvable');
+      const t = horloge(), admis = [];
+      for (const u of attendent) {
+        if (sallePresents(id) >= num(a.capacite)) break;
+        Q(`UPDATE appel_part SET statut = 'present', gen = gen + 1, entre = ? WHERE appel = ? AND uid = ? AND statut = 'attente'`).run(t, id, u);
+        admis.push(u);
+      }
+      if (!admis.length) throw erreur('appel_complet');
+      salleDemarrerSiDeux(id, t);
+      return { admis, restent: attendent.filter(u => !admis.includes(u)), gids: appelEvenements(id, admis) };
+    });
+  }
+  /* Refuser : on ne laisse pas entrer (la personne peut redemander — l'hôte qui ne veut plus la voir l'exclut). */
+  function salleRefuser({ id, par, uid }) {
+    return tx(() => {
+      salleVivante(id); salleCommandant(id, par, GRADE_COHOTE);
+      if (!num(Q(`UPDATE appel_part SET statut = 'refuse', session = NULL WHERE appel = ? AND uid = ? AND statut = 'attente'`).run(id, uid).changes)) throw erreur('introuvable');
+      return { gids: appelEvenements(id, [uid]) };
+    });
+  }
+  /* ⛔ EXCLURE : la personne n'est plus participante (sa ligne dit « exclu », l'appareil délié, plus de grade) et NE REVIENT PAS — `appelRejoindre` la refuse (`exclu`). Un co-hôte exclut un participant ;
+     seul l'hôte exclut un co-hôte ; on n'exclut ni l'hôte ni soi-même. → { gids, etait: l'état d'avant } */
+  function salleExclure({ id, par, uid }) {
+    return tx(() => {
+      const a = salleVivante(id), moi = salleCommandant(id, par, GRADE_COHOTE);
+      const p = appelPart(id, uid);
+      if (!p || uid === par) throw erreur('introuvable');
+      if (p.statut === 'exclu') return { deja: true, gids: {}, etait: 'exclu' };
+      if (num(p.grade) >= GRADE_HOTE) throw erreur('interdit');
+      if (num(p.grade) >= GRADE_COHOTE && num(moi.grade) < GRADE_HOTE) throw erreur('interdit');
+      Q(`UPDATE appel_part SET statut = 'exclu', session = NULL, grade = 0 WHERE appel = ? AND uid = ?`).run(id, uid);
+      if (a.rec_par === uid) Q('UPDATE appel SET rec_par = NULL WHERE id = ?').run(id);
+      return { deja: false, gids: appelEvenements(id, [uid]), etait: p.statut };
+    });
+  }
+  function salleReglage(id, par, colonne, valeur) {
+    return tx(() => {
+      salleVivante(id); salleCommandant(id, par, GRADE_COHOTE);
+      if (colonne === 'verrou') Q('UPDATE appel SET verrou = ? WHERE id = ?').run(valeur ? 1 : 0, id);
+      else if (colonne === 'attente') Q('UPDATE appel SET attente = ? WHERE id = ?').run(valeur ? 1 : 0, id);
+      else if (colonne === 'partage_ok') Q('UPDATE appel SET partage_ok = ? WHERE id = ?').run(valeur ? 1 : 0, id);
+      else throw erreur('champ_invalide');
+      return { gids: appelEvenements(id) };
+    });
+  }
+  const salleVerrou = (id, par, actif) => salleReglage(id, par, 'verrou', actif);
+  const salleAttente = (id, par, actif) => salleReglage(id, par, 'attente', actif);
+  const sallePartage = (id, par, actif) => salleReglage(id, par, 'partage_ok', actif);
+  /* L'enregistrement LOCAL : le bandeau « REC » s'allume chez tous tant que la personne qui enregistre est dans la salle. Seul l'hôte le commence (la page de l'hôte enregistre, rien n'est envoyé au service) ;
+     l'hôte ou un co-hôte l'éteint. */
+  function salleRec(id, par, actif) {
+    return tx(() => {
+      const a = salleVivante(id);
+      salleCommandant(id, par, actif ? GRADE_HOTE : GRADE_COHOTE);
+      if (actif) Q('UPDATE appel SET rec_par = ? WHERE id = ?').run(par, id);
+      else if (a.rec_par) Q('UPDATE appel SET rec_par = NULL WHERE id = ?').run(id);
+      return { gids: appelEvenements(id) };
+    });
+  }
+  /* Co-hôte : l'hôte seul promeut ou retire (une personne PRÉSENTE, jamais lui-même). */
+  function salleCohote({ id, par, uid, actif }) {
+    return tx(() => {
+      salleVivante(id); salleCommandant(id, par, GRADE_HOTE);
+      const p = appelPart(id, uid);
+      if (!p || p.statut !== 'present' || uid === par) throw erreur('introuvable');
+      Q('UPDATE appel_part SET grade = ? WHERE appel = ? AND uid = ?').run(actif ? GRADE_COHOTE : 0, id, uid);
+      return { gids: appelEvenements(id) };
+    });
+  }
+  /* Terminer pour tous : l'hôte seul. Chaque participant reçoit la fin. */
+  function salleTerminer({ id, par }) {
+    return tx(() => {
+      const a = salleVivante(id); salleCommandant(id, par, GRADE_HOTE);
+      return salleFinirDans(id, a.etat === 'en_cours' ? 'fini' : 'annule', 'termine', horloge(), par);
+    });
+  }
+  /* Les appareils liés des personnes PRÉSENTES (le service relaie les événements de la salle à ceux-là seuls) → [{ uid, session }] */
+  const appelAppelant = (id) => { const r = Q(`SELECT uid FROM appel_part WHERE appel = ? AND role = 'appelant'`).get(id); return r ? r.uid : null; };   // celui qui a lancé l'appel (un autre est devenu hôte depuis, jamais « l'appelant »)
+  const salleSessions = (id) => Q(`SELECT uid, session FROM appel_part WHERE appel = ? AND statut = 'present' AND session IS NOT NULL ORDER BY uid`).all(id).map(r => ({ uid: r.uid, session: r.session }));
+  /* La salle de cette réunion, si elle est ouverte (qui sonne ou court) → son identifiant, ou null. */
+  const salleDeReunion = (reunion) => { const r = Q(`SELECT id FROM appel WHERE reunion = ? AND genre = 'reunion' AND etat IN ('sonne', 'en_cours') ORDER BY cree DESC, id DESC LIMIT 1`).get(reunion); return r ? r.id : null; };
+  /* ⛔ ENTRER DANS LA SALLE D'UNE RÉUNION PROGRAMMÉE : la salle est ouverte par le PREMIER qui entre (elle naît « en cours », personne n'y sonne) ; les suivants rejoignent celle qui est ouverte. Il faut être invité (l'hôte
+     l'est toujours). La capacité vient du type demandé par celui qui ouvre : quatre en vidéo, six en audio. → comme `appelRejoindre`, plus { cree, id } */
+  function salleReunionRejoindre({ reunion, uid, session, type, capacite }) {
+    return tx(() => {
+      const r = reunionBrute(reunion); if (!r) throw erreur('introuvable');
+      if (!Q('SELECT 1 AS x FROM reunion_invite WHERE reunion = ? AND uid = ?').get(reunion, uid)) throw erreur('introuvable');
+      if (r.annulee) throw erreur('reunion_annulee');
+      let id = salleDeReunion(reunion), cree = false;
+      if (!id) {
+        if (appelActifDe(uid)) throw erreur('occupe_moi');
+        const t = horloge();
+        id = nouvelId('a'); cree = true;
+        Q('INSERT INTO appel(id, type, etat, cree, sonne_jusqua, repondu, genre, conv, reunion, capacite, attente) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(id, type, 'en_cours', t, t, t, 'reunion', r.conv, reunion, capacite, r.attente ? 1 : 0);
+        Q('INSERT INTO appel_part(appel, uid, role, session, statut, grade, entre, gen) VALUES(?, ?, ?, NULL, ?, 0, NULL, 0)').run(id, uid, 'appelant', 'parti');
+      }
+      const j = appelRejoindre({ id, uid, session });
+      return Object.assign(j, { cree, id });
+    });
+  }
+  /* Les salles OUVERTES où cette personne peut entrer et n'est pas : un appel de groupe de ses conversations (sonnerie qui court ou appel en cours), la salle d'une réunion où elle est invitée. Une version
+     courte (pas le roster) : de quoi montrer « Rejoindre » dans la conversation, l'agenda et la fiche. Jamais une salle dont on est exclu, jamais celle où l'on est déjà. */
+  function sallesOuvertes(uid) {
+    const ids = Q(`SELECT a.id AS id FROM appel a
+                   WHERE a.etat IN ('sonne', 'en_cours')
+                     AND ( (a.genre = 'groupe' AND a.conv IN (SELECT conv FROM membre WHERE uid = ? AND quitte_le IS NULL))
+                        OR (a.genre = 'reunion' AND a.reunion IN (SELECT reunion FROM reunion_invite WHERE uid = ?)) )
+                     AND NOT EXISTS (SELECT 1 FROM appel_part p WHERE p.appel = a.id AND p.uid = ? AND p.statut IN ('exclu', 'present', 'attente'))
+                   ORDER BY a.cree DESC, a.id DESC LIMIT 20`).all(uid, uid, uid);
+    return ids.map(r => {
+      const a = appelBrut(r.id);
+      return { id: a.id, genre: a.genre, type: a.type, conv: a.conv || null, reunion: a.reunion || null, titre: salleTitre(a), nb: sallePresents(a.id), capacite: num(a.capacite), verrou: !!a.verrou, attente: !!a.attente, debut: num(a.cree) };
+    });
+  }
+  /* ⛔ L'EFFACEMENT D'UN COMPTE ET SES APPELS (appelé par `compteEffacer`, rejoué par `appelsReparer`). Un appel à deux qui sonne ou court se TERMINE (l'autre l'apprend : événement durable) ; une SALLE, la
+     personne en SORT (l'hôte passe la main, la salle continue pour les autres, ou finit si elle était seule) ; la ligne de la personne part (l'autre garde l'appel, sans nom : « Compte supprimé »), et l'appel part avec sa dernière
+     ligne. Rejouable : sans appel, rien à faire — et rien n'est écrit au registre des purges : c'est `compteEffacer` qui est noté (genre « compte », rejoué par le service), et il refait ceci. → les personnes à réveiller. */
   function appelsQuitterTout(uid) {
     const reveil = [], t = horloge();
-    for (const r of Q(`SELECT a.id AS id, a.etat AS etat, p.role AS role FROM appel_part p JOIN appel a ON a.id = p.appel WHERE p.uid = ? AND a.etat IN ('sonne', 'en_cours') ORDER BY a.id`).all(uid)) {
+    for (const r of Q(`SELECT a.id AS id, a.etat AS etat, a.genre AS genre, p.role AS role FROM appel_part p JOIN appel a ON a.id = p.appel WHERE p.uid = ? AND a.etat IN ('sonne', 'en_cours') ORDER BY a.id`).all(uid)) {
+      if (r.genre !== 'deux') { const f = appelPartirDans(r.id, uid, 'compte'); reveil.push(...Object.keys(f.gids).filter(u => u !== uid)); continue; }
       const etat = r.etat === 'en_cours' ? 'fini' : (r.role === 'appelant' ? 'annule' : 'refuse');
       Q(`UPDATE appel SET etat = ?, fin = ?, motif = 'compte' WHERE id = ? AND etat IN ('sonne', 'en_cours')`).run(etat, t, r.id);
       const autre = appelAutre(r.id, uid);
@@ -2817,20 +3252,21 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const ids = Q('SELECT appel FROM appel_part WHERE uid = ?').all(uid).map(r => r.appel);
     Q('DELETE FROM appel_part WHERE uid = ?').run(uid);
     for (const id of ids) Q('DELETE FROM appel WHERE id = ? AND NOT EXISTS (SELECT 1 FROM appel_part WHERE appel = ?)').run(id, id);
-    return reveil;
+    return Array.from(new Set(reveil));
   }
-  /* Un blocage coupe aussi l'appel en cours entre ces deux personnes (l'appelant qui harcèle ne continue pas par la voix). → les personnes à réveiller. */
+  /* Un blocage coupe aussi l'appel en cours entre ces deux personnes (l'appelant qui harcèle ne continue pas par la voix). → les personnes à réveiller. Une SALLE n'est pas un échange entre deux personnes :
+     deux membres d'un même groupe qui se sont bloqués restent dans le groupe, donc dans son appel — le blocage ne les y sépare pas (comme il ne les sépare pas dans la conversation). */
   function appelsFinirEntre(a, b) {
     return tx(() => {
       const reveil = [];
-      for (const r of Q(`SELECT x.appel AS id FROM appel_part x JOIN appel_part y ON y.appel = x.appel AND y.uid = ? JOIN appel c ON c.id = x.appel WHERE x.uid = ? AND c.etat IN ('sonne', 'en_cours') ORDER BY x.appel`).all(b, a)) {
+      for (const r of Q(`SELECT x.appel AS id FROM appel_part x JOIN appel_part y ON y.appel = x.appel AND y.uid = ? JOIN appel c ON c.id = x.appel WHERE x.uid = ? AND c.genre = 'deux' AND c.etat IN ('sonne', 'en_cours') ORDER BY x.appel`).all(b, a)) {
         const f = appelFinir({ id: r.id, motif: 'bloque' });
         if (!f.deja) reveil.push(a, b);
       }
       return Array.from(new Set(reveil));
     });
   }
-  /* ⛔ LA RÉPARATION AU DÉMARRAGE (comme `reunionsReparer`) : le code d'AVANT les appels ouvre une base au schéma 8 sans connaître ces tables, et efface un compte sans toucher à son historique d'appels. Le
+  /* ⛔ LA RÉPARATION AU DÉMARRAGE (comme `reunionsReparer`) : le code d'AVANT les appels ouvre une base au schéma 8 (ou 9) sans connaître ces tables, et efface un compte sans toucher à son historique d'appels. Le
      démarrage du code neuf refait, pour chaque compte effacé qui laisse une trace, ce que `compteEffacer` fait. Rejouable : sans trace, rien n'est écrit. → { personnes, reveil } */
   function appelsReparer() {
     return tx(() => {
@@ -2842,7 +3278,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   /* L'historique d'appels d'une personne, pour l'export de ses données. Les noms des autres n'y sont pas (un appel n'est pas une conversation : le fichier dit quand, combien, et quel identifiant). */
   function exportAppels(uid) {
-    return appelsListe(uid, { limite: 500 }).map(a => ({ id: a.id, date: a.debut, type: a.type, sens: a.sens, etat: a.etat, duree_s: a.duree_s, avec_id: a.autre ? a.autre.id : null }));
+    return appelsListe(uid, { limite: 500 }).map(a => ({ id: a.id, date: a.debut, type: a.type, sens: a.sens, etat: a.etat, duree_s: a.duree_s, avec_id: a.autre ? a.autre.id : null, groupe: a.genre !== 'deux' }));
   }
 
   /* ══ AGRÉGATS POUR /health — des NOMBRES, jamais un identifiant ══════════════════════════ */
@@ -2972,9 +3408,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     pushDestinatairesMessage, pushMessageEncore, autreSupprime,
     suppressionProgrammer, suppressionAnnuler, suppressionLe, comptesEchus, compteEffacer, exportProfil, exportConversationsIds, exportPieces,
     reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionQuitter, reunionRepondre, reunionRappelsPoser, reunionsReparer,   // les réunions programmées
+    reunionLien, reunionLienRenouveler, reunionParCode, reunionInviteParCode,   // …leur lien d'invité
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
     courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions,                                                                                                                  // …et le courriel d'invitation
     appelVue, appelAcces, appelActifDe, appelActifVue, appelsRecusDepuis, appelCreer, appelRepondre, appelQuitter, appelFinir, appelsEchoir, appelsActifs, appelsListe, appelsElaguer, appelsQuitterTout, appelsFinirEntre, appelsReparer, appelSourdine, exportAppels,   // les appels à deux
+    appelCreerGroupe, appelRejoindre, appelPartir, salleAdmettre, salleRefuser, salleExclure, salleVerrou, salleAttente, sallePartage, salleRec, salleCohote, salleTerminer, salleSessions, salleDeReunion, appelAppelant, salleReunionRejoindre, sallesOuvertes,   // …et à plusieurs : les salles
   };
 }
 
@@ -3079,6 +3517,7 @@ const GENRES_PURGE = {
   canal_membre: 'copie',       // quelqu'un sort d'un canal PRIVÉ (retiré, ou il le quitte) : `conversation|personne|date`
   reunion_invite: 'copie',     // un invité retiré d'une réunion (ou son compte effacé) : `reunion|personne|date` — sa ligne d'invitation part ; il sort aussi de sa conversation (`groupe_membre`)
   reunion_annulee: 'copie',    // une réunion ANNULÉE : une archive d'avant la rendrait active à ceux qui s'y rendraient. (Une réunion SUPPRIMÉE se note par sa conversation, genre `conversation`.)
+  reunion_lien: 'copie',       // le lien d'invité d'une réunion RENOUVELÉ : l'empreinte de l'ancien code — une archive d'avant ne rend pas la porte à qui le connaissait
   groupe_membre: 'copie',      // quelqu'un sort d'un GROUPE (retiré par un administrateur, ou il le quitte) : `conversation|personne|date` — et si c'était le dernier administrateur, la copie promeut comme le service l'avait fait
   compte: 'service',           // un compte effacé au bout de ses quatorze jours : il touche dix tables et passe par `compteEffacer` — rejoué par le SERVICE (`rejeu.js`)
   suppression_demandee: 'service',   // la DEMANDE de suppression (l'échéance posée) : une copie d'avant ne doit pas la perdre — rejouée par le SERVICE, dans l'ordre du registre
@@ -3108,7 +3547,7 @@ function purgeLire(chemin, opts) {
    Les lignes du registre sont recopiées dans la copie (sans doublon) : la copie se souvient désormais de ce qu'elle vient d'oublier,
    et la sauvegarde suivante le portera. Une seule transaction : tout ou rien. */
 function rejouerPurge(chemin, registre, opts) {
-  const bilan = { lues: 0, messagesRetires: 0, messagesBlanchis: 0, pieces: [], conversationsRetirees: 0, appareilsRetires: 0, espacesRetires: 0, membresEspaceRetires: 0, invitationsRevoquees: 0, membresCanalRetires: 0, membresGroupeRetires: 0, groupesRepris: 0, invitesRetires: 0, reunionsAnnulees: 0, auService: 0, ignorees: 0, ajoutees: 0 };
+  const bilan = { lues: 0, messagesRetires: 0, messagesBlanchis: 0, pieces: [], conversationsRetirees: 0, appareilsRetires: 0, espacesRetires: 0, membresEspaceRetires: 0, invitationsRevoquees: 0, membresCanalRetires: 0, membresGroupeRetires: 0, groupesRepris: 0, invitesRetires: 0, reunionsAnnulees: 0, liensReunionRetires: 0, auService: 0, ignorees: 0, ajoutees: 0 };
   let d = null;
   try {
     d = ouvrirCopie(chemin, Object.assign({}, opts, { ecriture: true }));
@@ -3145,6 +3584,9 @@ function rejouerPurge(chemin, registre, opts) {
     const tableReunion = a('reunion') && a('reunion_invite');
     const retirerInvite = tableReunion ? d.prepare('DELETE FROM reunion_invite WHERE reunion = ? AND uid = ? AND cree <= ?') : null;
     const annulerReunion = tableReunion ? d.prepare('UPDATE reunion SET annulee = 1, prochain = NULL WHERE id = ? AND annulee = 0') : null;
+    /* le lien d'invité d'une réunion (migration 9) : une archive d'un schéma plus ancien n'a pas la colonne — rien à y retirer, la ligne du registre est quand même recopiée */
+    const colonneCode = tableReunion && d.prepare(`SELECT 1 AS n FROM pragma_table_info('reunion') WHERE name = 'code_h'`).get() !== undefined;
+    const retirerCode = colonneCode ? d.prepare('UPDATE reunion SET code_h = NULL, code_ch = NULL, code_le = NULL WHERE code_h = ?') : null;
     const recopier = d.prepare('INSERT INTO purge(objet, genre, quand) SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM purge WHERE objet = ? AND genre = ?)');
     d.exec('BEGIN IMMEDIATE');
     try {
@@ -3197,6 +3639,8 @@ function rejouerPurge(chemin, registre, opts) {
           if (reu && uid && retirerInvite) bilan.invitesRetires += Number(retirerInvite.run(reu, uid, Number(r.quand) || 0).changes);
         } else if (genre === 'reunion_annulee') {
           if (annulerReunion) bilan.reunionsAnnulees += Number(annulerReunion.run(r.objet).changes);
+        } else if (genre === 'reunion_lien') {
+          if (retirerCode) bilan.liensReunionRetires += Number(retirerCode.run(r.objet).changes);
         } else if (GENRES_PURGE[genre] === 'service') {
           bilan.auService++;   // recopiée seulement : le service la rejoue à son premier démarrage (`rejeu.js`) — ni « ignorée », ni faite ici
         } else {
@@ -3259,6 +3703,13 @@ function apresRestauration(chemin, opts) {
          « fini » avec le motif « restauration » et une durée nulle (on ne sait pas quand il s'est arrêté). */
       try { bilan.appels = Number(d.prepare(`UPDATE appel SET etat = CASE etat WHEN 'sonne' THEN 'manque' ELSE 'fini' END, fin = COALESCE(repondu, cree), motif = 'restauration' WHERE etat IN ('sonne', 'en_cours')`).run().changes); }
       catch (e) { if (!/no such table/i.test(String(e && e.message))) throw e; }
+      /* ⛔ ET LES LIGNES DES SALLES RESTAURÉES RENDENT LEUR PLACE : plus personne n'est « présent », « à la porte » ni « appelé » dans une salle que la restauration vient de finir (la sonnerie devient « manqué », SANS
+         notification — celle qui existait est déjà dans la copie), aucun appareil n'y est lié, et le bandeau REC s'éteint. Une archive d'avant la migration 9 n'a pas ces colonnes : rien à faire. */
+      try {
+        d.prepare(`UPDATE appel_part SET statut = CASE statut WHEN 'invite' THEN 'manque' WHEN 'present' THEN 'parti' WHEN 'attente' THEN 'refuse' ELSE statut END, session = NULL
+                   WHERE appel IN (SELECT id FROM appel WHERE motif = 'restauration' AND genre <> 'deux')`).run();
+        d.prepare(`UPDATE appel SET rec_par = NULL WHERE motif = 'restauration' AND genre <> 'deux'`).run();
+      } catch (e) { if (!/no such (table|column)/i.test(String(e && e.message))) throw e; }
       const maintenant = opts && typeof opts.horloge === 'function' ? opts.horloge() : Date.now();
       d.prepare('INSERT INTO meta(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').run('rappels_depuis', String(maintenant));
       d.prepare('INSERT INTO meta(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').run('rejeu_service', String(Date.now()));

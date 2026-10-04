@@ -331,12 +331,17 @@ function courrielConfig(cfg, instance) {
      est du harcèlement, pas de l'usage) ; `entrantsParHeure` (30 appels REÇUS par heure et par personne appelée, tous appelants confondus : plusieurs comptes qui appellent la même personne ne sont pas arrêtés par
      les plafonds de chaque appelant ; l'appelant qui se heurte à ce plafond lit que la personne reçoit beaucoup d'appels, SERVEUR.md § 5, question 33) ; `signalMax` signaux par appel et par participant dans `signalFenetreMs` ; `iceParHeure` : combien de fois par heure une personne demande des identifiants de relais.
    · `historiqueJours` (180) : un appel plus ancien est effacé ; `listeMax` (100) : les lignes de l'historique rendues d'un coup.
+   · LES SALLES (étape 8, la maille) : `maxVideo` (4) et `maxAudio` (6) — combien de personnes une salle porte, dans le type où elle a été ouverte : ce que la maille tient sur des téléphones (SERVEUR.md § 3.5, à mesurer
+     sur de vrais appareils) ; `groupeInvitesMax` (12) : le plus de personnes qu'un appel de groupe fait SONNER d'un coup (un groupe plus grand ne lance pas d'appel : 409 `groupe_trop_grand`) ; `groupeSignalMax` (600
+     par minute et par participant : une maille de six ouvre cinq liaisons, chacune négocie et envoie ses candidats) ; `salleEvtMax` (120 gestes éphémères par minute et par participant : main, réaction, état, sondage) ;
+     `reunionAvantMin` (15) et `reunionApresMin` (180) : on entre dans la salle d'une réunion programmée de quinze minutes avant son début à trois heures après sa fin.
    · `relais` : le relais d'appel (coturn). SANS ce bloc, il n'y a pas de relais et la page le DIT ; JAMAIS de serveur STUN d'un tiers (Google…) en repli — rien ne sort de nos machines.
      `secret` : le secret PARTAGÉ avec coturn (`static-auth-secret`), posé par `install-turn.sh` sur le VPS sans jamais s'afficher ; il se lit (`relais.secret`) mais ne se COPIE ni ne se SÉRIALISE (propriété
      non énumérable, comme le mot de passe du relais SMTP) et aucune erreur de configuration ne le cite. `hote` : le nom du relais (`turn.teamop.fr`) ; `port` (3478, UDP et TCP) ; `portTls` (5349) ou absent :
      pas de `turns:` (le certificat n'a pas pu être obtenu) ; `ttlS` : la durée de vie d'un identifiant — QUINZE MINUTES (900), entre une minute et une heure : un identifiant vole en une requête, et coturn ne
      le re-vérifie jamais sur une allocation déjà ouverte (mesuré) ; la page les renouvelle aux trois quarts de leur vie, tant que l'appel court. */
-const APPELS_DEFAUT = { sonnerieMs: 45000, perduMs: 45000, balayageMs: 2000, historiqueJours: 180, listeMax: 100, parHeure: 30, parPaireHeure: 6, entrantsParHeure: 30, signalMax: 240, signalFenetreMs: 60000, iceParHeure: 120 };
+const APPELS_DEFAUT = { sonnerieMs: 45000, perduMs: 45000, balayageMs: 2000, historiqueJours: 180, listeMax: 100, parHeure: 30, parPaireHeure: 6, entrantsParHeure: 30, signalMax: 240, signalFenetreMs: 60000, iceParHeure: 120,
+  maxVideo: 4, maxAudio: 6, groupeInvitesMax: 12, groupeSignalMax: 600, salleEvtMax: 120, reunionAvantMin: 15, reunionApresMin: 180 };
 const RE_SECRET_RELAIS = /^[A-Za-z0-9_-]{32,128}$/;
 function appelsConfig(cfg, instance) {
   const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };
@@ -345,7 +350,8 @@ function appelsConfig(cfg, instance) {
   const prod = instance === 'prod';
   const o = Object.assign({}, APPELS_DEFAUT, { relais: null });
   const bornes = { sonnerieMs: prod ? [20000, 120000] : [200, 300000], perduMs: prod ? [20000, 180000] : [200, 600000], balayageMs: prod ? [500, 10000] : [20, 60000], historiqueJours: [1, 3650], listeMax: [1, 500],
-    parHeure: [1, 1000], parPaireHeure: [1, 100], entrantsParHeure: [1, 600], signalMax: [10, 2000], signalFenetreMs: [1000, 600000], iceParHeure: [1, 1000] };
+    parHeure: [1, 1000], parPaireHeure: [1, 100], entrantsParHeure: [1, 600], signalMax: [10, 2000], signalFenetreMs: [1000, 600000], iceParHeure: [1, 1000],
+    maxVideo: [2, 8], maxAudio: [2, 12], groupeInvitesMax: [1, 30], groupeSignalMax: [10, 5000], salleEvtMax: [10, 1000], reunionAvantMin: [0, 120], reunionApresMin: [15, 1440] };
   for (const [k, [min, max]] of Object.entries(bornes)) {
     if (brut[k] === undefined) continue;
     if (!Number.isInteger(brut[k]) || brut[k] < min || brut[k] > max) throw err('appels.' + k + ' doit être un entier entre ' + min + ' et ' + max + (prod && (k === 'sonnerieMs' || k === 'perduMs' || k === 'balayageMs') ? ' en production' : ''));

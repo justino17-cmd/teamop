@@ -40,6 +40,7 @@ const SONDE_FICHIER = 'sonde-opmessages-appels.js';
 const MUTATIONS = [];
 /* [id, nom, [[fichier, ancien, nouveau], …], suites, option] — `ancien` : une chaîne (une seule occurrence). Fabriqué depuis le texte réel des fichiers (chaque motif a été trouvé UNE fois). */
 const CATALOGUE = [
+  /* A09, D08 et D09 sont RETIRÉES par l'étape 8 : leur prémisse (« on ne peut pas appeler un groupe », « Nouvel appel » à un seul contact) n'est plus vraie — l'appel de groupe existe, gardé par `mutations-groupe.js`. */
   ["A01", "le mot de passe du relais est calculé en SHA-256 au lieu de SHA-1 : coturn refuse tous les appels", [["server-msg/appels.js", "crypto.createHmac('sha1', relais.secret)", "crypto.createHmac('sha256', relais.secret)"]], ["981"]],
   ["A02", "le nom d'utilisateur du relais ne porte plus l'identifiant de la personne : un identifiant volé sert à tout le monde", [["server-msg/appels.js", "const username = expire + ':' + uid;", "const username = String(expire);"]], ["981"]],
   ["A03", "sans relais installé, un serveur STUN d'un tiers (Google) est proposé en repli : l'adresse des appareils sort de nos machines", [["server-msg/appels.js", "if (!r) return { relais: false, ttl_s: 0, serveurs: [] };", "if (!r) return { relais: false, ttl_s: 0, serveurs: [{ urls: ['stun:stun.l.google.com:19302'] }] };"]], ["981"]],
@@ -48,9 +49,8 @@ const CATALOGUE = [
   ["A06", "n'importe quel appareil de la personne peut signaler dans l'appel (plus de contrôle de l'appareil LIÉ)", [["server-msg/appels.js", "if (!a.session || a.session !== sessionH) throw erreur('appareil_non_lie');", "if (!a.session) throw erreur('appareil_non_lie');"]], ["981"]],
   ["A07", "le pouls est RELAYÉ à l'autre (il ne doit servir qu'à prouver que l'appareil est là)", [["server-msg/appels.js", "    if (type === 'pouls') return { relaye: false };\n", ""]], ["981"]],
   ["A08", "une sonnerie échue peut encore être prise tant que le balayeur n'est pas passé", [["server-msg/appels.js", "    echoir();                                                 // une sonnerie échue ne se prend plus, même si le balayeur n'est pas encore passé\n", ""]], ["981", "983"]],
-  ["A09", "on peut lancer un appel dans un GROUPE (l'appel de groupe est l'étape 8)", [["server-msg/routes-appels.js", "      if (c.conv.type !== 'direct') return refus(res, 409, 'appel_a_deux');             // un groupe, un canal, une réunion : l'appel de groupe est l'étape 8\n", ""]], ["981"]],
   ["A10", "on peut appeler quelqu'un qu'on ne peut pas écrire (pas de contact, un blocage) : un appel révèle qu'on a été bloqué", [["server-msg/routes-appels.js", "    if (!stockage.peutEcrire(moi.id, appele)) return refus(res, 404, 'introuvable');\n", ""]], ["981"]],
-  ["A11", "le destinataire d'un signal n'est plus vérifié : on fait relayer une enveloppe vers n'importe qui", [["server-msg/routes-appels.js", " || b.a !== acces.autre) return refus(res, 400, 'champ_invalide');", ") return refus(res, 400, 'champ_invalide');"]], ["981"]],
+  ["A11", "le destinataire d'un signal n'est plus vérifié : on fait relayer une enveloppe vers n'importe qui", [["server-msg/routes-appels.js", " || (salle ? b.a === moi.id : b.a !== acces.autre)) return refus(res, 400, 'champ_invalide');", ") return refus(res, 400, 'champ_invalide');"]], ["981"]],
   ["A12", "la taille d'un signal n'est plus plafonnée à 16 Ko", [["server-msg/routes-appels.js", "      if (tailleSignal(d) > SIGNAL_OCTETS_MAX) return refus(res, 413, 'signal_trop_gros');\n", ""]], ["981"]],
   ["A13", "une LISTE est acceptée comme contenu d'un signal (l'enveloppe est { type, donnees } : la page lit des champs)", [["server-msg/routes-appels.js", "typeof b.donnees !== 'object' || Array.isArray(b.donnees)) return", "typeof b.donnees !== 'object') return"]], ["981"]],
   ["A14", "le plafond PAR PAIRE disparaît : faire sonner trente fois la même personne", [["server-msg/routes-appels.js", "    if (!plafond(res, 'appel_paire:' + moi.id + ':' + appele, cfg.parPaireHeure, 3600000)) return;\n", ""]], ["981"]],
@@ -70,7 +70,7 @@ const CATALOGUE = [
   ["A28", "le push de sonnerie nomme l'appelant (la charge minimale devient un nom)", [["server-msg/appels.js", "titre: 'OP MESSAGES', corps: 'Appel entrant',", "titre: 'OP MESSAGES', corps: 'Appel de ' + nomAffiche(appelant),"]], ["983"]],
   ["A29", "le push de sonnerie n'est plus urgent (`Urgency: normal` : l'appareil endormi ne sonne pas)", [["server-msg/appels.js", "urgence: 'high', ttl: RING_PUSH_TTL_S, ackMs: RING_ACK_MS,", "urgence: 'normal', ttl: RING_PUSH_TTL_S, ackMs: RING_ACK_MS,"]], ["983"]],
   ["A30", "la sourdine d'une conversation ne coupe plus le push d'un appel manqué", [["server-msg/appels.js", "    if (!notif || notif.sourdine) return;", "    if (!notif) return;"]], ["983"]],
-  ["A31", "le push de sonnerie part même si l'appel est déjà fini quand il devrait partir", [["server-msg/appels.js", "        if (!a || a.etat !== 'sonne') return false;", "        if (!a) return false;"]], ["983"]],
+  ["A31", "le push de sonnerie part même si l'appel est déjà fini quand il devrait partir", [["server-msg/appels.js", "const sonne = a.genre === 'deux' ? a.etat === 'sonne' : (", "const sonne = a.genre === 'deux' ? true : ("]], ["983"]],
   ["A32", "le push de sonnerie garde 30 s de vie même quand il ne reste que 2 s de sonnerie", [["server-msg/appels.js", "        return reste > 0 ? { ttl: Math.min(RING_PUSH_TTL_S, reste) } : false;", "        return { ttl: RING_PUSH_TTL_S };"]], ["983"]],
   ["A33", "la demande de suppression d'un compte ne termine plus son appel en cours", [["server-msg/compte.js", "try { if (ctx.appels) ctx.appels.terminerDe(req.moi.id); }", "try { if (false) ctx.appels.terminerDe(req.moi.id); }"]], ["983"]],
   ["A34", "un blocage ne coupe plus l'appel en cours entre les deux personnes", [["server-msg/routes.js", "try { if (ctx.appels) ctx.appels.bloquer(req.moi.id, u); }", "try { if (false) ctx.appels.bloquer(req.moi.id, u); }"]], ["983"]],
@@ -105,7 +105,7 @@ const CATALOGUE = [
   ["C17", "un raccrochage perdu (500) ne repart pas : l'autre attend 45 s", [["server-msg/public/source-serveur.js", "if (n >= T.quitter.length || !e || !CODES_RESEAU.includes(e.code)) return null;", "return null;"]], ["984"]],
   ["C18", "une offre perdue (500) ne repart pas : la liaison ne s'établit jamais", [["server-msg/public/source-serveur.js", "if (important && n < T.reessai.length && e && CODES_RESEAU.includes(e.code)) {", "if (false) {"]], ["984"]],
   ["C19", "deux manqués d'affilée de la même personne ne font plus qu'UNE ligne", [["server-msg/public/source-serveur.js", "&& x.membres.length) prec.repetitions++;", "&& false) prec.repetitions++;"]], ["984"]],
-  ["C20", "un appel répondu entre deux manqués ne rompt plus la série (« manqué (3) » au lieu de deux lignes)", [["server-msg/public/source-serveur.js", "if (x.sens === 'manque' && prec && prec.sens === 'manque' && prec.membres[0] === x.membres[0]", "if (x.sens === 'manque' && prec && prec.membres[0] === x.membres[0]"]], ["984"]],
+  ["C20", "un appel répondu entre deux manqués ne rompt plus la série (« manqué (3) » au lieu de deux lignes)", [["server-msg/public/source-serveur.js", "if (x.sens === 'manque' && prec && prec.sens === 'manque' && !x.groupe && !prec.groupe && prec.membres[0] === x.membres[0]", "if (x.sens === 'manque' && prec && !x.groupe && !prec.groupe && prec.membres[0] === x.membres[0]"]], ["984"]],
   ["C21", "le filtre « Manqués » ne filtre plus", [["server-msg/public/source-serveur.js", "return filtre === 'manques' ? out.filter((x) => x.sens === 'manque') : out;", "return out;"]], ["984"]],
   ["C22", "on peut lancer un appel quand on est déjà dans un appel (le refus local « Tu es déjà dans un appel » disparaît)", [["server-msg/public/source-serveur.js", "if (lancement || (courant && !courant.fini)) throw d.refus('occupe', 409, { moi: true });", "if (false) throw d.refus('occupe', 409, { moi: true });"]], ["984"]],
   ["C23", "un appel à plusieurs n'est plus refusé par le moteur", [["server-msg/public/source-serveur.js", "      if (ids.length > 1) throw d.refus('appel_a_deux', 409);\n", ""]], ["984", "911"]],
@@ -132,13 +132,11 @@ const CATALOGUE = [
   ["C44", "un service des identifiants qui ne répond pas fait dire « le relais n'est pas installé » (on ne le sait pas)", [["server-msg/public/source-serveur.js", "c.sansRelais = !ice.indisponible && !ice.relais;", "c.sansRelais = !ice.relais;"]], ["984"]],
   ["D01", "la page demande micro et caméra à celui qui n'a pas encore répondu (la sonnerie ne s'arrête plus sur `return`)", [["apercu/opmessages/index.html", "annonceAppel('Appel ' + (snap.type === 'video' ? 'vidéo ' : '') + 'entrant de ' + snap.nom); return; }", "annonceAppel('Appel ' + (snap.type === 'video' ? 'vidéo ' : '') + 'entrant de ' + snap.nom); }"]], ["sonde"]],
   ["D02", "un appel entrant ne s'affiche plus tout seul dans la page", [["apercu/opmessages/index.html", "      if (ev.type === 'appel-entrant') surAppelEntrant(ev.id);\n", ""]], ["sonde"]],
-  ["D03", "la sonnerie ne s'arrête plus quand on ferme l'écran sans répondre", [["apercu/opmessages/index.html", "    if (A) { A.fini = true; clearInterval(A.minut); arreterPistes(A); }\n    arreterSonnerie();\n", "    if (A) { A.fini = true; clearInterval(A.minut); arreterPistes(A); }\n"]], ["sonde"]],
+  ["D03", "la sonnerie ne s'arrête plus quand on ferme l'écran sans répondre", [["apercu/opmessages/index.html", "    if (A) { if (A.rec) recArreter(A, false); salleNettoyer(A); }\n    arreterSonnerie();\n", "    if (A) { if (A.rec) recArreter(A, false); salleNettoyer(A); }\n"]], ["sonde"]],
   ["D04", "la sonnerie ne s'arrête plus quand on répond", [["apercu/opmessages/index.html", "    A.reponse = true; arreterSonnerie();", "    A.reponse = true;"]], ["sonde"]],
   ["D05", "aucune sonnerie n'est lancée pour un appel entrant", [["apercu/opmessages/index.html", "if (snap.entrant) { demarrerSonnerie(); annonceAppel(", "if (snap.entrant) { annonceAppel("]], ["sonde"]],
   ["D06", "la voix de l'autre n'est plus branchée sur l'élément audio", [["apercu/opmessages/index.html", "    lierFluxDistant(A);\n    majStatutAppel();\n  }", "    majStatutAppel();\n  }"]], ["sondeComplete"]],
   ["D07", "les pistes de la page ne sont plus remises au moteur : l'autre n'entend rien", [["apercu/opmessages/index.html", "    majCamera(A);\n    pousserPistes(A);\n    if (A.video && CAP.appelsMedias) compterCameras(A);\n  }", "    majCamera(A);\n    if (A.video && CAP.appelsMedias) compterCameras(A);\n  }"]], ["sonde"]],
-  ["D08", "« Nouvel appel » accepte plusieurs contacts (un appel se passe à deux)", [["apercu/opmessages/index.html", "    if (G.mode === 'appel' && CAP.appelsMedias) G.choisis = i < 0 ? [id] : [];            // (version servie) un appel se passe à deux : UN contact, le suivant remplace le précédent\n    else if (i < 0)", "    if (i < 0)"]], ["sonde"]],
-  ["D09", "la caméra d'un groupe lance un appel (le service le refuse, mais la page ne le dit plus avant)", [["apercu/opmessages/index.html", "    if (CAP.appelsMedias && c.type !== 'direct') { mot('Les appels à plusieurs arrivent bientôt.'); return; }       // (version servie) un appel se passe à deux ; un groupe, un canal, une réunion : l'étape suivante\n", ""]], ["sonde"]],
   ["D10", "un refus du service à l'appel redevient une phrase générique", [["apercu/opmessages/index.html", "const dit = phrase(refus, 'L\\'appel n\\'a pas pu être lancé.');", "const dit = 'L\\'appel n\\'a pas pu être lancé.';"]], ["sonde"]],
   ["D11", "la page qui se ferme ne coupe plus la liaison ni ne raccroche", [["apercu/opmessages/index.html", "    if (CAP.appelsMedias && typeof source.appelFermeture === 'function') source.appelFermeture();", ""]], ["sonde"]],
   ["D12", "les commandes de l'appel entrant ne s'affichent jamais", [["apercu/opmessages/index.html", "    if (s.entrant) E.setAttribute('data-entrant', '1'); else E.removeAttribute('data-entrant');", "    E.removeAttribute('data-entrant');"]], ["sonde"]],
@@ -146,7 +144,7 @@ const CATALOGUE = [
   ["D14", "la mention « Aperçu — les autres participants sont simulés » et le haut-parleur reparaissent dans la version servie", [["apercu/opmessages/index.html", "html[data-service] .appel-mention, html[data-service] #appel-hp { display: none; }\n", ""]], ["sonde"]],
   ["D15", "les avis de fin (« a refusé l'appel », « Pas de réponse. ») ne sont plus dits", [["apercu/opmessages/index.html", "if (snap.etat === 'termine') { if (snap.avis) mot(snap.avis); fermerCouche(); return; }", "if (snap.etat === 'termine') { fermerCouche(); return; }"]], ["sonde"]],
   ["D16", "la caméra de l'AUTRE ne fait plus passer l'appel en vidéo", [["apercu/opmessages/index.html", "    if (mise === 'audio' && CAP.appelsMedias && s.membres[0] && s.membres[0].camera) mise = 'video';       // (version servie) la caméra de l'AUTRE fait aussi passer l'appel en vidéo\n", ""]], ["sondeComplete"]],
-  ["D17", "la caméra de la page n'est plus remise au moteur (l'autre ne voit pas l'image)", [["apercu/opmessages/index.html", "source.appelPistes(A.id, { audio: A.audio, video: A.video && A.video.readyState === 'live' ? A.video : null });", "source.appelPistes(A.id, { audio: A.audio, video: null });"]], ["sondeComplete"]],
+  ["D17", "la caméra de la page n'est plus remise au moteur (l'autre ne voit pas l'image)", [["apercu/opmessages/index.html", "source.appelPistes(A.id, { audio: A.audio, video: ecr || cam, ecran: !!ecr, micro: !!A.audio && A.micro !== false });", "source.appelPistes(A.id, { audio: A.audio, video: null, ecran: !!ecr, micro: !!A.audio && A.micro !== false });"]], ["sondeComplete"]],
   ["D18", "« Message » pendant un appel ne raccroche plus", [["apercu/opmessages/index.html", "$('appel-msg').addEventListener('click', () => { const A = etat.appelUI; if (A && A.snap) ouvrirConversationAvec(A.snap.membres.map(m => m.id), A.snap.conv); });", "$('appel-msg').addEventListener('click', () => {});"]], ["sondeComplete"]],
   ["D19", "l'écran « Nouvel appel » garde le titre « Appel de groupe »", [["apercu/opmessages/index.html", "appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';", "appel ? 'Appel de groupe' : 'Nouveau groupe';"]], ["sonde"]],
   ["D20", "retourner la caméra n'arrête pas l'ancienne piste (deux pistes vivantes : le voyant reste allumé)", [["apercu/opmessages/index.html", "    try { ancienne.stop(); } catch (e) { /* déjà arrêtée */ }\n    let f = null, dit = '';", "    let f = null, dit = '';"]], ["sondeComplete"]],
@@ -179,7 +177,7 @@ const CATALOGUE = [
   ["E23", "le service redonne TROIS adresses de relais (UDP, TCP simple ET TLS) : six allocations par appel relayé au lieu de quatre", [["server-msg/appels.js", "urls.push(r.portTls ? 'turns:' + hote + ':' + r.portTls + '?transport=tcp' : 'turn:' + hote + ':' + r.port + '?transport=tcp');", "urls.push('turn:' + hote + ':' + r.port + '?transport=tcp'); if (r.portTls) urls.push('turns:' + hote + ':' + r.portTls + '?transport=tcp');"]], ["981", "984"]],
   ["E24", "les identifiants du relais durent de nouveau une heure par défaut", [["server-msg/config.js", "const ttlS = r.ttlS === undefined ? 900 : r.ttlS;", "const ttlS = r.ttlS === undefined ? 3600 : r.ttlS;"]], ["981"]],
   ["E25", "la durée des identifiants peut de nouveau aller jusqu'à 24 heures", [["server-msg/config.js", "ttlS < 60 || ttlS > 3600) throw", "ttlS < 60 || ttlS > 86400) throw"]], ["981"]],
-  ["E26", "le script d'installation repose le quota par personne à HUIT allocations (le renouvellement et l'appel n'ont plus rien à craindre… ni le relais d'un abus)", [["server-msg/install-turn.sh", "USER_QUOTA=4\n", "USER_QUOTA=8\n"]], ["982"]],
+  ["E26", "le script d'installation repose le quota par personne à HUIT allocations (le renouvellement et l'appel n'ont plus rien à craindre… ni le relais d'un abus)", [["server-msg/install-turn.sh", "USER_QUOTA=6\n", "USER_QUOTA=8\n"]], ["982"]],
   ["E27", "la capacité en débit n'est plus celle du nombre d'allocations annoncé (12,5 Mo/s : 25 allocations, et non 32)", [["server-msg/install-turn.sh", "BPS_CAPACITE=16000000\n", "BPS_CAPACITE=12500000\n"]], ["982"]],
   ["E28", "le drop-in de coturn ne rejoue plus le pare-feu sortant avant chaque démarrage (il n'est posé qu'une fois, à l'installation)", [["server-msg/install-turn.sh", "\"ExecStartPre=+$PF_REEL start\" ", ""]], ["982"]],
   ["E29", "le pare-feu sortant n'est plus RELU dans le noyau avant d'ouvrir quoi que ce soit", [["server-msg/install-turn.sh", "if ! \"$PF_BIN\" verifier; then", "if false; then"]], ["982"]],
@@ -193,7 +191,7 @@ const CATALOGUE = [
   ["E37", "⛔ T1 — la fin d'un appel ne fait plus relire l'historique à un appareil qui n'a pas tenu l'appel (le second appareil de Ben reste sur l'historique d'avant)", [["server-msg/public/source-serveur.js", "      if (v.etat !== 'sonne' && v.etat !== 'en_cours') d.emettre({ type: 'appels' });\n", ""]], ["984", "sonde"]],
   ["E38", "⛔ T1 — entrer dans l'onglet Appels ne relit plus l'historique (une relecture par événement qui a échoué laisse la liste périmée)", [["apercu/opmessages/index.html", "if (r.vue === 'appels' && CAP.appels && prec) rafraichirAppels();", ""]], ["sonde"]],
   ["E39", "⛔ T2 — les flèches de l'historique sont de nouveau échangées (↗ pour un appel reçu, ↙ pour un appel émis)", [["apercu/opmessages/index.html", "  <symbol id=\"i-entrant\" viewBox=\"0 0 24 24\"><path d=\"M19 5 5 19M15 19H5V9\"/></symbol>\n  <symbol id=\"i-sortant\" viewBox=\"0 0 24 24\"><path d=\"M5 19 19 5M9 5h10v10\"/></symbol>", "  <symbol id=\"i-entrant\" viewBox=\"0 0 24 24\"><path d=\"M5 19 19 5M9 5h10v10\"/></symbol>\n  <symbol id=\"i-sortant\" viewBox=\"0 0 24 24\"><path d=\"M19 5 5 19M15 19H5V9\"/></symbol>"]], ["sonde"]],
-  ["E40", "⛔ T3 — le refus « occupé » ne reste plus lisible dans la feuille « Nouvel appel » (le mot de 2,4 s est tout ce qu'on voit)", [["apercu/opmessages/index.html", "if (depuisFeuille) montrerRefusFeuille(dit);", ""]], ["sonde"]],
+  ["E40", "⛔ T3 — le refus « occupé » ne reste plus lisible dans la feuille « Nouvel appel » (le mot de 2,4 s est tout ce qu'on voit)", [["apercu/opmessages/index.html", "if (depuisFeuille) { montrerRefusFeuille(dit); erreurInfo(dit); }", "if (depuisFeuille) { erreurInfo(dit); }"]], ["sonde"]],
   ["E41", "T3 — choisir un autre contact n'efface plus le refus de la feuille (il parle de la mauvaise personne)", [["apercu/opmessages/index.html", "  function basculer(id) {\n    effacerRefusFeuille();\n", "  function basculer(id) {\n"]], ["sonde"]],
   ["E42", "⛔ T4 — l'écran d'appel qui se ferme reste « entrant » (la sonnerie perdue sur l'autre appareil laisse « Répondre » et « Refuser » posés)", [["apercu/opmessages/index.html", "$('appel-ecran').removeAttribute('data-entrant');", ""]], ["sonde"]],
   ["E43", "⛔ I2 — le pare-feu du relais perd la règle des ports de relais (relais ↔ relais est REFUSÉ : un appel relayé des deux côtés n'a plus de voix)", [["server-msg/turn-pare-feu.sh", "  \"$ipt\" -A \"$CHAINE\" -p udp --dport \"$PORT_MIN:$PORT_MAX\" -j RETURN || return 1\n", ""]], ["982", "sonde"]],
@@ -204,6 +202,9 @@ const CATALOGUE = [
 for (const [id, nom, edits, suites, o] of CATALOGUE) MUTATIONS.push(Object.assign({ id, nom, edits, suites, sonde: suites.some((s) => s === 'sonde' || s === 'sondeComplete') }, o || {}));
 
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+/* ⛔ L'ÉTAPE 8 A RECOPIÉ du code du moteur à deux dans celui des salles (`creerMoteurSalle`, écrit APRÈS) : ces motifs se trouvent maintenant deux ou trois fois dans `source-serveur.js` (ou `stockage.js`), et la mutation vise la PREMIÈRE
+   occurrence — celle du moteur à deux, le seul que ces mutations ont toujours gardé. Les salles ont leur propre catalogue (`mutations-groupe.js`). */
+const PREMIERE = new Set(['A17', 'C06', 'C07', 'C11', 'C17', 'C18', 'C22', 'C25', 'C28', 'C29', 'C41', 'C42', 'C43', 'C44', 'E35', 'E36', 'E37']);
 const DOSSIERS_COPIE = ['server-msg', 'server', 'design/opmessages', '.github', 'apercu/opmessages', 'icons', 'scripts'];   // `.github` ENTIER : test-934 lit les workflows autant que les scripts de surveillance
 function copier(src, dst) {
   fs.mkdirSync(dst, { recursive: true });
@@ -238,7 +239,7 @@ function lancer(dir, suite) {
   });
 }
 /* applique UNE modification à un texte : exactement une occurrence, et le texte doit changer */
-function appliquer(src, a, b) {
+function appliquer(src, a, b, premiere) {
   if (a instanceof RegExp) {
     const n = (src.match(new RegExp(a.source, a.flags.includes('g') ? a.flags : a.flags + 'g')) || []).length;
     if (n !== 1) return { erreur: n === 0 ? 'le motif ne se trouve pas' : 'le motif se trouve ' + n + ' fois' };
@@ -246,8 +247,8 @@ function appliquer(src, a, b) {
     return t === src ? { erreur: 'le texte n\'a pas changé' } : { texte: t };
   }
   const n = src.split(a).length - 1;
-  if (n !== 1) return { erreur: n === 0 ? 'le motif ne se trouve pas' : 'le motif se trouve ' + n + ' fois' };
-  const t = src.replace(a, () => b);
+  if (n !== 1 && !(premiere && n > 1)) return { erreur: n === 0 ? 'le motif ne se trouve pas' : 'le motif se trouve ' + n + ' fois' };
+  const t = src.replace(a, () => b);                       // `replace` d'une chaîne ne touche que la première occurrence
   return t === src ? { erreur: 'le texte n\'a pas changé' } : { texte: t };
 }
 /* le fichier muté se lit-il encore ? (une suite qui meurt sur une faute de syntaxe de la mutation a l'air de « tomber ») */
@@ -262,7 +263,7 @@ function muter(racine, mut) {
     const chemin = path.join(racine, fichier);
     const base = originaux.has(fichier) ? fs.readFileSync(chemin, 'utf8') : fs.readFileSync(path.join(RACINE, fichier), 'utf8');
     if (!originaux.has(fichier)) originaux.set(fichier, base);
-    const r = appliquer(base, a, b);
+    const r = appliquer(base, a, b, PREMIERE.has(mut.id));
     if (r.erreur) return { erreur: r.erreur + ' (' + fichier + ')', originaux };
     fs.writeFileSync(chemin, r.texte);
   }
@@ -323,7 +324,7 @@ async function jouer(mut, dir) {
       const textes = new Map();
       for (const [fichier, a, b] of mut.edits) {
         const base = textes.has(fichier) ? textes.get(fichier) : fs.readFileSync(path.join(RACINE, fichier), 'utf8');
-        const r = appliquer(base, a, b);
+        const r = appliquer(base, a, b, PREMIERE.has(mut.id));
         if (r.erreur) { mal++; console.log('  ✗ ' + mut.id + ' · ' + mut.nom + ' → MAL VISÉE · ' + r.erreur + ' (' + fichier + ')'); break; }
         textes.set(fichier, r.texte);
       }

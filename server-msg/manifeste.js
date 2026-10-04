@@ -19,6 +19,8 @@
  *   R  invité d'une RÉUNION (S d'abord : répondre ne demande pas d'adresse confirmée) — l'hôte en est un ; la réunion se lit dans le chemin (`:id`) ;
  *      H  hôte de la réunion (V d'abord : modifier, annuler, inviter, c'est agir au nom d'une adresse). Un non-invité reçoit, sur R comme sur H, le même 404 qu'une réunion inexistante ;
  *      un invité qui n'est pas l'hôte reçoit 403 sur H (il connaît déjà la réunion).
+ *   SP, SH, SO, SJ  une SALLE (étape 8) : participant · hôte ou co-hôte PRÉSENT (un participant voit 403) · l'hôte seul · quelqu'un qui veut ENTRER (le droit se juge dans la transaction). Tous bâtis sur S ; un non-participant, un
+ *      exclu et un appel à deux reçoivent le même 404 qu'une salle qui n'existe pas.
  *   AP participant d'un APPEL (S d'abord : répondre, raccrocher et signaler ne demandent pas d'adresse confirmée — lancer l'appel, lui, exige V) — l'appel se lit dans le chemin (`:id`) ; un non-participant reçoit le
  *      même 404 qu'un appel qui n'existe pas. « L'appareil lié » (la session qui a lancé l'appel ou qui y a répondu) se juge dans la route, pas dans la garde : un autre appareil du même compte voit 403.
  *
@@ -146,6 +148,32 @@ const MANIFESTE = [
   { id: 'appels.repondre',   m: 'POST', p: '/api/appels/:id/repondre',               garde: 'AP' },
   { id: 'appels.quitter',    m: 'POST', p: '/api/appels/:id/quitter',                garde: 'AP' },
   { id: 'appels.signal',     m: 'POST', p: '/api/appels/:id/signal',                 garde: 'AP' },
+  /* Étape 8 : les APPELS À PLUSIEURS et les SALLES EN MAILLE (`routes-appels.js`, `routes-salles.js`, `routes-reunions.js`). Entrer est toujours gratuit ; LANCER un appel à plusieurs (`appels.creer` avec un groupe ou
+     des personnes choisies) est jugé dans la route sur la formule de celui qui lance — la route sert aussi les appels à deux, qui restent gratuits, donc ce n'est pas une ligne `pro`. Les gestes de l'hôte sont SH (SO pour
+     les deux qui ne se partagent pas : co-hôte, terminer), ceux des participants SP. */
+  { id: 'appels.rejoindre',  m: 'POST', p: '/api/appels/:id/rejoindre',              garde: 'SJ' },
+  { id: 'salles.lire',       m: 'GET',  p: '/api/salles/:id',                        garde: 'SP' },
+  { id: 'salles.admettre',   m: 'POST', p: '/api/salles/:id/admettre',               garde: 'SH' },
+  { id: 'salles.refuser',    m: 'POST', p: '/api/salles/:id/refuser',                garde: 'SH' },
+  { id: 'salles.exclure',    m: 'POST', p: '/api/salles/:id/exclure',                garde: 'SH' },
+  { id: 'salles.verrouiller', m: 'POST', p: '/api/salles/:id/verrouiller',           garde: 'SH' },
+  { id: 'salles.salle_attente', m: 'POST', p: '/api/salles/:id/salle_attente',       garde: 'SH' },
+  { id: 'salles.couper_micro', m: 'POST', p: '/api/salles/:id/couper_micro',          garde: 'SH' },
+  { id: 'salles.partage',    m: 'POST', p: '/api/salles/:id/partage',                garde: 'SH' },
+  { id: 'salles.rec',        m: 'POST', p: '/api/salles/:id/rec',                    garde: 'SH' },
+  { id: 'salles.cohote',     m: 'POST', p: '/api/salles/:id/cohote',                 garde: 'SO' },
+  { id: 'salles.terminer',   m: 'POST', p: '/api/salles/:id/terminer',               garde: 'SO' },
+  { id: 'salles.main',       m: 'POST', p: '/api/salles/:id/main',                   garde: 'SP' },
+  { id: 'salles.reaction',   m: 'POST', p: '/api/salles/:id/reaction',               garde: 'SP' },
+  { id: 'salles.etat',       m: 'POST', p: '/api/salles/:id/etat',                   garde: 'SP' },
+  { id: 'salles.evt',        m: 'POST', p: '/api/salles/:id/evt',                    garde: 'SP' },
+  /* Le lien d'invité d'une réunion et sa salle. L'aperçu est PUBLIC et limité (il ne dit que de quoi décider de rejoindre, jamais un participant) ; rejoindre par le lien exige un compte (S, v1) ; la salle d'une
+     réunion où l'on est invité s'ouvre par R (l'hôte en est un) ; le lien se lit et se renouvelle par H (l'ancien meurt). */
+  { id: 'reunions.apercu',   m: 'POST', p: '/api/reunions/apercu',                   garde: 'P' },
+  { id: 'reunions.rejoindre_code', m: 'POST', p: '/api/reunions/rejoindre',          garde: 'S' },
+  { id: 'reunions.rejoindre', m: 'POST', p: '/api/reunions/:id/rejoindre',           garde: 'R' },
+  { id: 'reunions.lien',     m: 'POST', p: '/api/reunions/:id/lien',                 garde: 'H' },
+  { id: 'reunions.lien_renouveler', m: 'POST', p: '/api/reunions/:id/lien/renouveler', garde: 'H' },
 ];
 
 module.exports = { MANIFESTE };

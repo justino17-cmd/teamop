@@ -40,7 +40,7 @@ const { creerPlanificateur } = require('./planificateur');
 const { creerCourriel } = require('./courriel');
 const { creerAppels } = require('./appels');
 
-const VERSION = '1.6.0-appels';
+const VERSION = '1.7.0-groupe';
 const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays']);   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
 
 function journaliser(evt, champs) {
