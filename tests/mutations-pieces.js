@@ -74,7 +74,7 @@ m2('P25', 'la politique de sécurité « sandbox » de la pièce servie est reti
 /* ⚠️ retirer SEUL l'en-tête de la route des pièces est une mutation ÉQUIVALENTE (mesurée : elle survit) : `app.js` pose `nosniff` sur TOUTES les réponses. Les deux posent la même règle ; on retire les deux. */
 m2('P26', 'plus aucun nosniff sur une pièce servie (ni sur la route des pièces, ni dans l\'enveloppe du service : les deux posent le même en-tête)', [[F.rp, "      'X-Content-Type-Options': 'nosniff',\n", ''], [F.app, "      'X-Content-Type-Options': 'nosniff',\n", '']], ['943', '903']);
 m('P27', 'la plage demandée est ignorée (toujours le fichier entier)', F.rp, 'const m = /^bytes=(\\d*)-(\\d*)$/.exec(String(rg).trim());', 'const m = null;', ['943']);
-m('P28', 'le service n\'autorise plus le micro à la page (Permissions-Policy)', F.app, 'camera=(), microphone=(self)', 'camera=(), microphone=()', ['903']);
+m('P28', 'le service n\'autorise plus le micro à la page (Permissions-Policy)', F.app, 'camera=(self), microphone=(self)', 'camera=(self), microphone=()', ['903']);
 /* ── LE SCELLAGE PAR BLOCS ET LES MÉTADONNÉES ── */
 m('P29', 'la clé de bloc ne lie plus le numéro du bloc ni le drapeau « dernier » (blocs échangeables, fichier tronqué à une frontière)', F.pz, "const aad = (id, i, dernier) => Buffer.from(id + '|' + i + '|' + (dernier ? 'd' : 'n'), 'utf8');", 'const aad = (id) => Buffer.from(id, \'utf8\');', ['942']);
 m('P30', 'l\'EXIF (GPS, appareil) d\'un JPEG est gardé', F.pz, "if (mime === 'image/jpeg') return nettoyerJpeg(b);", "if (mime === 'image/jpeg') return b;", ['942', '943']);

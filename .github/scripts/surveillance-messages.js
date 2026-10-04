@@ -42,6 +42,9 @@ const CHAMPS_SURVEILLES = [
   /* ⛔ LES RÉUNIONS PROGRAMMÉES (étape 6) : le planificateur de rappels passe toutes les 10 à 15 secondes. Un rappel qui ne part plus ne se voit de nulle part ailleurs — personne ne s'en plaint avant d'avoir manqué sa réunion. */
   'reunions.ageS',         // le dernier tour du planificateur date de plus de cinq minutes : la boucle est morte ou bloquée, plus aucun rappel de réunion ne part
   'reunions.echecs',       // trois tours de suite en échec : un rappel qui lève à chaque passage ne part jamais, et les autres derrière lui non plus tant que l'erreur dure
+  /* ⛔ LES APPELS À DEUX (étape 7) : le balayeur d'appels passe toutes les deux secondes. Sans lui, une sonnerie échue ne fait plus d'appel manqué (ni notification), et un appareil disparu en plein appel laisse deux personnes « occupées » pour toujours. */
+  'appels.ageS',           // le dernier passage du balayeur d'appels date de plus de cinq minutes : la boucle est morte ou bloquée — plus d'appel manqué, des gens « occupés » sans fin
+  'appels.echecs',         // trois passages de suite en échec : une erreur qui dure empêche d'écrire les appels manqués et de finir les appels perdus
   /* ⛔ LES SMS (compte Perso par numéro) : « le but c'est qu'on gagne de l'argent » — chaque SMS est un coût, et la fraude au
      « SMS pumping » vise justement les destinations chères. Ces cinq champs sont l'alarme d'argent ; la garde vit dans `sms-garde.js`. */
   'sms.mode',              // en production, tout autre mode que « ovh » veut dire : plus aucun code ne part, personne ne peut s'inscrire
@@ -62,6 +65,9 @@ const CHAMPS_VUS = {
   'pieces.octets': 'l\'espace pris par les pièces grandit avec l\'usage : il est borné par personne (quota) et par le plancher de disque du service, qui refuse d\'écrire plutôt que de priver OP GESTION — un total n\'a pas de seuil qui ait un sens',
   /* ⛔ LES RÉUNIONS PROGRAMMÉES (étape 6). Ce qui est une PANNE du planificateur est surveillé (`reunions.ageS`, `reunions.echecs`, plus haut) ; le reste est un état normal. */
   'reunions.actif': 'faux est normal pendant la seconde qui suit un démarrage et le temps qu\'un bail laissé par un arrêt brutal expire (une minute au plus) ; ce qui dit que le planificateur est MORT, c\'est l\'âge de son dernier tour (reunions.ageS), surveillé',
+  /* ⛔ LES APPELS À DEUX (étape 7). Ce qui est une PANNE du balayeur est surveillé (`appels.ageS`, `appels.echecs`, plus haut) ; le reste est un état ou une information. */
+  'appels.turn': 'faux est normal tant que Justin n\'a pas lancé install-turn.sh sur le VPS (la page le dit : l\'appel ne passe alors que si les deux appareils se joignent directement) ; le service ne peut pas dire si un relais installé répond (UDP, hors de sa portée) — la sonde du geste l\'éprouve (INSTALLER-LE-SERVEUR.md), et la décision « crier une production sans relais » se prend à l\'ouverture, pas avant',
+  'appels.perdus': 'le nombre d\'appels finis « connexion perdue » depuis le démarrage est une information de qualité de réseau (un téléphone qui entre dans un tunnel est le fonctionnement normal) : aucun seuil n\'a de sens, et chaque fin est écrite avec son motif dans l\'historique de la personne',
   'reunions.abandonnes': 'des rappels abandonnés depuis le démarrage parce que l\'occurrence avait déjà commencé quand le service est revenu : c\'est le fonctionnement voulu (un rappel pour une réunion en cours n\'a pas de sens) et chaque abandon est journalisé avec son nombre — aucune alarme horaire n\'ajouterait une décision',
   /* ⛔ LA FACTURATION (Messages Pro, étape 5). Ce qui est une PANNE de notre côté ou de Stripe est surveillé (`stripeEchecMin`, plus haut) ; le reste est de l'information commerciale. */
   'facturation.mode': 'le mode de la facturation (inerte sans clé, test, live) est une configuration que l\'installation pose : ce qui compte est que Stripe réponde, et c\'est stripeEchecMin qui le surveille',
@@ -162,6 +168,15 @@ function evaluer(j, instanceAttendue) {
     }
     if (typeof j.reunions.echecs === 'number' && j.reunions.echecs >= SEUIL_PLANIF_ECHECS) {
       p.push(Math.round(j.reunions.echecs) + ' tours de suite du planificateur des rappels de réunion ont échoué — un rappel qui lève à chaque passage ne part jamais');
+    }
+  }
+  /* les appels à deux : le balayeur d'appels. Un /health d'avant (sans la clé) ne crie pas ; « jamais passé » (ageS null) non plus : c'est la première seconde du service. */
+  if (j.appels && typeof j.appels === 'object') {
+    if (typeof j.appels.ageS === 'number' && j.appels.ageS > SEUIL_PLANIF_S) {
+      p.push('le balayeur d\'appels ne tourne plus : son dernier passage date de ' + Math.round(j.appels.ageS) + ' s (il en passe un toutes les deux secondes) — plus d\'appel manqué, et des gens « occupés » sans fin');
+    }
+    if (typeof j.appels.echecs === 'number' && j.appels.echecs >= SEUIL_PLANIF_ECHECS) {
+      p.push(Math.round(j.appels.echecs) + ' passages de suite du balayeur d\'appels ont échoué — les appels manqués ne s\'écrivent plus');
     }
   }
   if (j.sms && typeof j.sms === 'object') {

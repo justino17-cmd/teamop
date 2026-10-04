@@ -19,6 +19,8 @@
  *   R  invité d'une RÉUNION (S d'abord : répondre ne demande pas d'adresse confirmée) — l'hôte en est un ; la réunion se lit dans le chemin (`:id`) ;
  *      H  hôte de la réunion (V d'abord : modifier, annuler, inviter, c'est agir au nom d'une adresse). Un non-invité reçoit, sur R comme sur H, le même 404 qu'une réunion inexistante ;
  *      un invité qui n'est pas l'hôte reçoit 403 sur H (il connaît déjà la réunion).
+ *   AP participant d'un APPEL (S d'abord : répondre, raccrocher et signaler ne demandent pas d'adresse confirmée — lancer l'appel, lui, exige V) — l'appel se lit dans le chemin (`:id`) ; un non-participant reçoit le
+ *      même 404 qu'un appel qui n'existe pas. « L'appareil lié » (la session qui a lancé l'appel ou qui y a répondu) se juge dans la route, pas dans la garde : un autre appareil du même compte voit 403.
  *
  * ⛔ « Une session prouve un mot de passe, pas une adresse » : tout effet qui agit AU NOM d'une
  * adresse (contact, lien, groupe) exige V. Sur la bêta, l'adresse est confirmée par construction ;
@@ -136,6 +138,14 @@ const MANIFESTE = [
   /* L'invitation par COURRIEL (`courriel.js`) : l'hôte seul, à l'adresse qu'il saisit — inerte (503) tant qu'aucun relais n'est configuré. Pas `pro` : la fonction Pro est de PROGRAMMER ; ce qui est
      programmé reste à son hôte, comme la modification et l'annulation. */
   { id: 'reunions.courriel', m: 'POST', p: '/api/reunions/:id/courriel',            garde: 'H' },
+  /* Étape 7 : les APPELS À DEUX, audio et vidéo (`routes-appels.js`). GRATUITS en Perso (SERVEUR.md § 5, question 3) : aucune ligne n'est `pro`. Lancer exige V (c'est agir au nom d'une adresse), répondre, raccrocher et
+     signaler la garde AP. `ice` donne les identifiants éphémères du relais — ou rien, tant qu'il n'est pas installé. */
+  { id: 'ice',               m: 'GET',  p: '/api/ice',                               garde: 'S' },
+  { id: 'appels.liste',      m: 'GET',  p: '/api/appels',                            garde: 'S' },
+  { id: 'appels.creer',      m: 'POST', p: '/api/appels',                            garde: 'V' },
+  { id: 'appels.repondre',   m: 'POST', p: '/api/appels/:id/repondre',               garde: 'AP' },
+  { id: 'appels.quitter',    m: 'POST', p: '/api/appels/:id/quitter',                garde: 'AP' },
+  { id: 'appels.signal',     m: 'POST', p: '/api/appels/:id/signal',                 garde: 'AP' },
 ];
 
 module.exports = { MANIFESTE };

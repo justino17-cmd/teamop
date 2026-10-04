@@ -12,7 +12,7 @@
 # pas de la porte en silence. Les suites entrent AUSSI dans la suite complète (`tests/test-*.js`) : la liste n'est pas une
 # exclusion, c'est ce que la porte de déploiement exige.
 #
-# Une suite par ligne (900-929 : le service ; 930-939 : installation, déploiement, surveillance ; 941 : le générateur de l'interface servie ; 942-944 : les pièces ; 950-951 : la sauvegarde hors site ; 955-958 : les notifications push, l'export et la suppression de compte ; 960-969 : les espaces professionnels et Messages Pro).
+# Une suite par ligne (900-929 : le service ; 930-939 : installation, déploiement, surveillance ; 941 : le générateur de l'interface servie ; 942-944 : les pièces ; 950-951 : la sauvegarde hors site ; 955-958 : les notifications push, l'export et la suppression de compte ; 960-969 : les espaces professionnels et Messages Pro ; 970-976 : les réunions programmées ; 980-984 : les appels à deux).
 # ⛔ LE PLANCHER : moins de vérifications que ça, c'est que des suites ont sauté leur partie exécutée (sans
 # `server-msg/node_modules`, celles du service se déclarent vertes). Le relever quand on ajoute une suite, jamais le baisser.
 # 1er octobre 2026 (après la relecture adverse) : 16 suites, 1593 vérifications mesurées par `bash scripts/bancs-ci.sh $(liste)`.
@@ -36,7 +36,8 @@
 # 3 octobre 2026, le lot 5 (étape 6, les réunions programmées : test-970 à 976 — le calendrier, le fichier .ics, le stockage, les routes, le planificateur, le courriel contre un faux relais, la page et le service) : 48 suites, 6 124 vérifications mesurées par la commande de la porte sur l'arbre du lot — plancher 6110 (le total moins 14, jamais une addition).
 # 3 octobre 2026, la relecture adverse du lot 5 (le gardien : un tour du planificateur à budget, le calendrier qui saute à la fenêtre, l'agenda d'un invité et « Quitter la réunion », l'hôte bloqué, Gmail, la réparation du démarrage) puis la fusion de la branche de travail (88fd2c4) : 48 suites, 6 230 vérifications mesurées par la commande de la porte sur l'arbre FUSIONNÉ (488 s) — plancher 6216 (le total moins 14, jamais une addition).
 # 3 octobre 2026, l'essai au navigateur du testeur (la fiche d'une réunion ouverte AU DOIGT rejouait `history.back()` et faisait quitter l'application : la page, sa sonde et ses mutations changent, aucune suite de cette liste) : 48 suites, 6 230 vérifications mesurées par la commande de la porte (470 s) — plancher 6216 inchangé.
-#plancher 6216
+# 4 octobre 2026, le lot 6 (étape 7, les appels à deux : test-980 le stockage, 981 les routes en HTTP, 982 le script du relais dans un bac à sable, 983 le service et le temps, 984 la VRAIE page contre le VRAI service ; test-905, 934, 957 étendus aux routes, au /health et à l'effacement) : 53 suites, 6 796 vérifications mesurées par la commande de la porte (9 minutes) — plancher 6781.
+#plancher 6781
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
@@ -102,3 +103,10 @@ tests/test-973.js
 tests/test-974.js
 tests/test-975.js
 tests/test-976.js
+#
+# ── Les appels à deux, audio et vidéo (étape 7, 4 octobre 2026) : le stockage (980), les routes en HTTP (981), le script du relais dans un bac à sable (982), le service qui vit avec le temps (983), la VRAIE page contre le VRAI service (984) ──
+tests/test-980.js
+tests/test-981.js
+tests/test-982.js
+tests/test-983.js
+tests/test-984.js

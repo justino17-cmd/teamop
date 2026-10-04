@@ -43,7 +43,7 @@ const nb = (svc, table) => { const d = lireDb(svc); try { return d.prepare('SELE
       const c = T.client(svc.base);
       const h = await c.get('/health');
       v('/health répond 200 {ok:true, instance, sha}', [h.code, h.j.ok, h.j.instance, h.j.sha], [200, true, 'beta', 'banc0000']);
-      v('⛔ /health n\'a QUE des champs agrégés (la liste exacte — en ajouter un oblige à trancher ici)', Object.keys(h.j).sort(), ['base', 'boucle', 'disque', 'facturation', 'flux', 'instance', 'ok', 'pieces', 'porte', 'push', 'quotasRefus', 'reunions', 'sauvegarde', 'sha', 'sms', 'stripeEchecMin', 'uptimeS', 'version']);
+      v('⛔ /health n\'a QUE des champs agrégés (la liste exacte — en ajouter un oblige à trancher ici)', Object.keys(h.j).sort(), ['appels', 'base', 'boucle', 'disque', 'facturation', 'flux', 'instance', 'ok', 'pieces', 'porte', 'push', 'quotasRefus', 'reunions', 'sauvegarde', 'sha', 'sms', 'stripeEchecMin', 'uptimeS', 'version']);
       v('⛔ /health publie la FACTURATION en agrégat — le mode et le drapeau de la bêta SEULEMENT ; jamais un espace, une personne, une clé, un tarif, ni un chiffre COMMERCIAL (espaces, abonnés, impayés : /health est public, relecture du gardien du 3 octobre 2026) — et `stripeEchecMin` (les minutes depuis lesquelles Stripe est illisible) que lit la surveillance',
         [Object.keys(h.j.facturation).sort(), h.j.facturation.mode, h.j.facturation.toutOuvert, h.j.stripeEchecMin, /\b(rk|sk)_|price_|\be_[0-9a-f]{32}\b/.test(JSON.stringify(h.j.facturation))],
         [['mode', 'toutOuvert'], 'inerte', true, 0, false]);
@@ -71,7 +71,7 @@ const nb = (svc, table) => { const d = lireDb(svc); try { return d.prepare('SELE
         vrai(p + ' : CSP stricte (script-src \'self\', default-src \'none\', frame-ancestors \'none\', base-uri \'none\'), nosniff, no-referrer, COOP/CORP same-origin',
           /default-src 'none'/.test(csp) && /script-src 'self'/.test(csp) && /frame-ancestors 'none'/.test(csp) && /base-uri 'none'/.test(csp) && !/script-src[^;]*unsafe/.test(csp)
           && r.h.get('x-content-type-options') === 'nosniff' && r.h.get('referrer-policy') === 'no-referrer'
-          && r.h.get('cross-origin-opener-policy') === 'same-origin' && r.h.get('cross-origin-resource-policy') === 'same-origin' && r.h.get('permissions-policy') === 'camera=(), microphone=(self)');
+          && r.h.get('cross-origin-opener-policy') === 'same-origin' && r.h.get('cross-origin-resource-policy') === 'same-origin' && r.h.get('permissions-policy') === 'camera=(self), microphone=(self)');
         const cors = Array.from(r.h.keys()).filter(k => /^access-control-/.test(k));
         v('⛔ ' + p + ' : AUCUN en-tête Access-Control-*', cors, []);
       }

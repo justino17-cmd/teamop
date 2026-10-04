@@ -84,9 +84,10 @@ function installerCompte(H, ctx) {
       const reglages = { presence: profil.prefs.presence !== false, accuses: profil.prefs.accuses !== false, apercu_notif: profil.prefs.apercu_notif === true, trouvable: profil.trouvable };
       const contacts = stockage.contactsDe(uid).map(c => ({ id: c.id, prenom: c.prenom, nom: c.nom, statut: c.statut, depuis: c.depuis, bloque: !!c.bloque, mutuel: !!c.mutuel }));
       await ecrire('{"format":"opmessages-export-v1","genere_le":' + J(new Date(t).toISOString()) +
-        ',"avertissement":' + J('Ce fichier contient TES données dans OP MESSAGES : ton profil, tes réglages, tes contacts, tes espaces et tes réunions, les conversations dont tu es membre avec les messages que tu peux y lire, et la liste de tes pièces (sans leur contenu). Il ne contient rien des autres au-delà de ce que tu vois déjà. Ton numéro de téléphone n\'y figure pas : le service ne le rend à personne, toi comprise.') +
+        ',"avertissement":' + J('Ce fichier contient TES données dans OP MESSAGES : ton profil, tes réglages, tes contacts, tes espaces et tes réunions, l\'historique de tes appels (quand, combien de temps, avec quel identifiant : jamais ce qui s\'est dit), les conversations dont tu es membre avec les messages que tu peux y lire, et la liste de tes pièces (sans leur contenu). Il ne contient rien des autres au-delà de ce que tu vois déjà. Ton numéro de téléphone n\'y figure pas : le service ne le rend à personne, toi comprise.') +
         ',"profil":' + J({ id: profil.id, prenom: profil.prenom, nom: profil.nom, statut: profil.statut, langue: profil.langue, fuseau: profil.fuseau, compte_cree_le: new Date(profil.cree).toISOString(), origine: profil.origine }) +
-        ',"reglages":' + J(reglages) + ',"contacts":' + J(contacts) + ',"espaces":' + J(stockage.exportEspaces(uid).map(e => ({ id: e.id, nom: e.nom, role: e.role, depuis: new Date(e.depuis).toISOString() }))) + ',"reunions":' + J(stockage.exportReunions(uid).map(x => ({ id: x.id, titre: x.titre, lieu: x.lieu, debut: new Date(x.debut).toISOString(), fin: new Date(x.fin).toISOString(), fuseau: x.fuseau, repetition: x.repetition, n: x.n, jusqua: x.jusqua, annulee: x.annulee, role: x.role, reponse: x.reponse }))) + ',"conversations":[');
+        ',"reglages":' + J(reglages) + ',"contacts":' + J(contacts) + ',"espaces":' + J(stockage.exportEspaces(uid).map(e => ({ id: e.id, nom: e.nom, role: e.role, depuis: new Date(e.depuis).toISOString() }))) + ',"reunions":' + J(stockage.exportReunions(uid).map(x => ({ id: x.id, titre: x.titre, lieu: x.lieu, debut: new Date(x.debut).toISOString(), fin: new Date(x.fin).toISOString(), fuseau: x.fuseau, repetition: x.repetition, n: x.n, jusqua: x.jusqua, annulee: x.annulee, role: x.role, reponse: x.reponse }))) +
+        ',"appels":' + J(stockage.exportAppels(uid).map(x => ({ id: x.id, date: new Date(x.date).toISOString(), type: x.type, sens: x.sens, etat: x.etat, duree_s: x.duree_s, avec_id: x.avec_id }))) + ',"conversations":[');
       let premiere = true, tronque = null;
       for (const id of stockage.exportConversationsIds(uid)) {
         { const l = limite(); if (l) { tronque = 'conversations'; cause = l; break; } }
@@ -174,6 +175,7 @@ function installerCompte(H, ctx) {
     if (!e.ok) { res.set('Retry-After', String(e.retry)); return refus(res, 429, 'quota_atteint', { retry: e.retry }); }
     const echeance = horloge() + SUPPRESSION_DELAI_MS;
     stockage.suppressionProgrammer(req.moi.id, echeance);   // coupe sessions, jetons d'appareil, abonnements push, liens — et date l'effacement, dans UNE transaction
+    try { if (ctx.appels) ctx.appels.terminerDe(req.moi.id); } catch (e) { /* un appel qui ne se termine pas ne défait pas la suppression : le balayeur le dira « perdu » */ }
     hub.fermerPersonne(req.moi.id);                          // ses flux se ferment (motif « session ») : plus rien ne lui est livré
     res.append('Set-Cookie', cookieVide(config.cookie.nom));
     res.append('Set-Cookie', cookieVide(config.cookie.nom + 'a'));

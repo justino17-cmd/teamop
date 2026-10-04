@@ -32,6 +32,7 @@
  */
 const { cleReseau } = require('./quotas');
 const MAX_PAR_PERSONNE = 5, MAX_PAR_IP = 200, MAX_TAMPON = 1 << 20, DUREE_MAX_MS = 24 * 3600 * 1000;
+const RETENU_MAX = 100, RETENU_MS = 30000, RETENU_SESSIONS_MAX = 2000;   // un éphémère adressé à UNE session sans flux ouvert : 100 au plus, 30 s de vie, 2 000 sessions au plus
 
 const trame = (id, event, data) => (id !== null && id !== undefined ? 'id: ' + id + '\n' : '') + 'event: ' + event + '\ndata: ' + JSON.stringify(data) + '\n\n';
 
@@ -41,6 +42,7 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
   const parIp = new Map();            // ip → nombre
   const graces = new Map();           // uid → minuteur d'absence
   let refus = 0;
+  const retenus = new Map();          // empreinte de session → [{ t, event, data }] : les éphémères qui attendent le flux de cette session (les signaux d'un appel)
 
   function ecrire(f, texte) {
     try {
@@ -106,6 +108,9 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
       else { f.dernier = n; ecrire(f, trame(n, 'bonjour', { gid: n, reprise: true, pouls_ms: config.pulsationMs })); tirer(f); }
     }
     if ((parUid.get(uid) || new Set()).size === 1) apparue(uid);
+    /* ⛔ ce que la session attendait : un éphémère qui lui était adressé pendant que son flux était fermé (une coupure de quelques secondes en pleine négociation d'un appel) est livré à l'ouverture, s'il a
+       moins de 30 s. Après le « bonjour » : le client a déjà son identifiant de reprise. */
+    livrerRetenus(f);
     return { ok: true };
   }
 
@@ -120,6 +125,33 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
   function emettre(uids, event, data) {
     for (const u of uids) { const s = parUid.get(u); if (s) for (const f of Array.from(s)) ecrire(f, trame(null, event, data)); }
   }
+
+  /* Éphémère adressé à UNE SESSION (et non à une personne) : un signal d'appel (SDP, candidats d'adresses) ne doit atteindre que l'appareil LIÉ à l'appel, pas les autres sessions de la personne — les adresses
+     réseau d'un appareil n'ont rien à faire sur un téléphone oublié. Sans flux ouvert, il est RETENU (100 par session, 30 s, 2 000 sessions) et livré à l'ouverture du prochain flux de cette session.
+     → vrai s'il a été écrit à au moins un flux ouvert. */
+  function emettreSession(h, event, data) {
+    let livre = false;
+    for (const f of Array.from(flux)) if (f.h === h) { ecrire(f, trame(null, event, data)); livre = true; }
+    if (livre) return true;
+    const t = horloge();
+    let l = retenus.get(h);
+    if (!l) {
+      if (retenus.size >= RETENU_SESSIONS_MAX) { for (const k of retenus.keys()) { retenus.delete(k); break; } }   // la plus ancienne part
+      l = []; retenus.set(h, l);
+    }
+    while (l.length && t - l[0].t > RETENU_MS) l.shift();
+    if (l.length >= RETENU_MAX) l.shift();
+    l.push({ t, event, data });
+    return false;
+  }
+  function livrerRetenus(f) {
+    const l = retenus.get(f.h); if (!l) return;
+    retenus.delete(f.h);
+    const t = horloge();
+    for (const e of l) if (t - e.t <= RETENU_MS) { if (!ecrire(f, trame(null, e.event, e.data))) return; }
+  }
+  /* Une session a-t-elle un flux ouvert à cet instant ? (le balayeur d'appels ne s'en sert PAS pour juger la vie d'un appel — ce sont les signaux — mais les bancs le lisent) */
+  function sessionOuverte(h) { for (const f of flux) if (f.h === h) return true; return false; }
 
   function enLigne(uid) { return parUid.has(uid) || graces.has(uid); }
   /* Combien de flux cette personne a-t-elle d'OUVERTS à cet instant (la grâce de 20 s d'une page qu'on recharge ne compte pas) : les notifications push en dépendent — aucun flux, elles partent
@@ -186,10 +218,11 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
     for (const f of Array.from(flux)) fermer(f, 'arret');
     for (const t of graces.values()) clearTimeout(t);   // APRÈS les fermetures : elles posent chacune une grâce
     graces.clear();
+    retenus.clear();
   }
 
   return {
-    ouvrir, reveiller, emettre, enLigne, fluxOuverts, fermerSession, fermerPersonne, arreter, presenceChangee, personneChangee, reglagesChanges,
+    ouvrir, reveiller, emettre, emettreSession, sessionOuverte, enLigne, fluxOuverts, fermerSession, fermerPersonne, arreter, presenceChangee, personneChangee, reglagesChanges,
     stats: () => ({ ouverts: flux.size, personnes: parUid.size, refus }),
   };
 }
