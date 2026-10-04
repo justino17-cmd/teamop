@@ -13,6 +13,11 @@
  *   POST /api/reunions/:id/rappels   {rappels}  R   MES rappels (5, 15, 60, 1440 minutes avant) ; `null` rend la main au réglage de la réunion
  *   GET  /api/reunions/:id/ics?serie=1|occurrence=<début>  R   le fichier pour l'agenda de la personne (une occurrence, ou toute la série)
  *   POST /api/reunions/:id/courriel {destinataire,occurrence?}  H   l'invitation par COURRIEL à quelqu'un qui n'a pas OP MESSAGES (le .ics en pièce jointe) — inerte sans relais SMTP, 503 qui le dit
+ *   POST /api/reunions/:id/rejoindre {type?}    R   ENTRER dans la salle (de quinze minutes avant le début à trois heures après la fin) : la première personne qui entre l'ouvre ; la salle d'attente, si elle est demandée
+ *   POST /api/reunions/:id/lien                 H   le lien d'invité (le code, que la page met dans le fragment de l'adresse) — créé s'il n'existe pas
+ *   POST /api/reunions/:id/lien/renouveler      H   un autre code : l'ANCIEN MEURT (et se note : une restauration ne le rend pas)
+ *   POST /api/reunions/apercu {code}            P   ce qu'il faut pour DÉCIDER de rejoindre (titre, horaire, ouverte ou non) — jamais un participant ; public et limité ; 410 `lien_invalide` pour tout code mort, quelle qu'en soit la raison
+ *   POST /api/reunions/rejoindre {code, type?}  S   rejoindre PAR LE LIEN : un compte est exigé (v1) ; la personne devient invitée (acceptée) et entre
  *
  * Une fonction par ligne du manifeste (`manifeste.js`), branchée par `routes.js`. Le SQL est dans `stockage.js`, l'heure dans `calendrier.js`, le fichier dans `ics.js`, les notifications dans
  * `reunions-outils.js`, les rappels dans `planificateur.js`.
@@ -31,6 +36,7 @@ const ics = require('./ics');
 const { nettoyerNom, ID_PERS } = require('./routes');
 const { serieDe, nomAffiche, texteInvitation, texteModification, texteAnnulation, creerNotifieur } = require('./reunions-outils');
 const { adresseValide } = require('./courriel');
+const { cleReseau } = require('./quotas');
 
 const JOUR = 86400000;
 const TITRE_MAX = 120, LIEU_MAX = 300, INVITES_MAX = 100, UIDS_PAR_APPEL = 50, RAPPELS_MAX = 4;
@@ -48,9 +54,11 @@ function installerReunions(H, ctx) {
     hote_non_retirable: [409, 'hote_non_retirable'], hote_non_quittable: [409, 'hote_non_quittable'], hote_reponse: [409, 'hote_reponse'], groupe_plein: [409, 'trop_d_invites'],
     /* le courriel (`courriel.js`) : un plafond atteint est un 429 qui dit LEQUEL, un relais qui refuse un 502 — jamais le texte de sa réponse. (Un relais absent et une adresse fausse sont dits par la
        route elle-même, AVANT de toucher au plafond par minute : ils n'arrivent jamais ici.) */
-    courriel_quota_compte: [429, 'courriel_quota_compte'], courriel_quota_destinataire: [429, 'courriel_quota_destinataire'], courriel_echec: [502, 'courriel_echec'], occurrence_inconnue: [404, 'occurrence_inconnue'] };
+    courriel_quota_compte: [429, 'courriel_quota_compte'], courriel_quota_destinataire: [429, 'courriel_quota_destinataire'], courriel_echec: [502, 'courriel_echec'], occurrence_inconnue: [404, 'occurrence_inconnue'],
+    /* la salle et le lien (étape 8) : entrer ne se refuse que pour une raison que la page DIT */
+    lien_invalide: [410, 'lien_invalide'], occupe_moi: [409, 'occupe', { moi: true }], exclu: [403, 'exclu'], verrouillee: [423, 'verrouillee'], appel_complet: [409, 'appel_complet'], appel_pris: [409, 'appel_pris'], appel_fini: [409, 'appel_fini'] };
   const garder = (f) => (req, res, next) => {
-    const traduire = (e) => { const c = e && CODES[e.code]; if (c) return refus(res, c[0], c[1]); return next(e); };
+    const traduire = (e) => { const c = e && CODES[e.code]; if (c) return refus(res, c[0], c[1], c[2]); return next(e); };
     try { const r = f(req, res, next); if (r && typeof r.catch === 'function') r.catch(traduire); }
     catch (e) { traduire(e); }
   };
@@ -63,6 +71,23 @@ function installerReunions(H, ctx) {
     return false;
   }
   const effacer = (ids) => { if (ids && ids.length && typeof ctx.effacerPieces === 'function') ctx.effacerPieces(ids); };
+
+  /* ⛔ LA FENÊTRE D'ENTRÉE d'une salle de réunion : de `reunionAvantMin` minutes avant le début d'une occurrence à `reunionApresMin` minutes après sa fin. Une salle ouverte 24 h sur 24 serait une porte qu'un
+     vieux lien ne referme jamais ; une réunion programmée est un rendez-vous. → l'occurrence { debut, fin } dont la fenêtre est ouverte à `now`, ou null. Une réunion annulée n'a pas de fenêtre. */
+  const fenetreRejoindre = (r, now) => {
+    if (r.annulee) return null;
+    const avant = config.appels.reunionAvantMin * 60000, apres = config.appels.reunionApresMin * 60000, duree = r.fin - r.debut;
+    const occ = r.repetition === 'aucune' ? [{ debut: r.debut, fin: r.fin }] : cal.occurrences(serieDe(r), now - apres - duree - 1, now + avant + 1, 8);
+    return occ.find(o => now >= o.debut - avant && now <= o.fin + apres) || null;
+  };
+  /* Quand la prochaine fenêtre ouvre (pour le dire à qui arrive trop tôt), ou null. */
+  const prochaineOuverture = (r, now) => {
+    if (r.annulee) return null;
+    const p = cal.premiereApres(serieDe(r), now, true);
+    return p ? p.debut - config.appels.reunionAvantMin * 60000 : null;
+  };
+  const TYPES_SALLE = ['audio', 'video'];
+  const typeSalle = (b) => b.type === undefined ? 'video' : (TYPES_SALLE.includes(b.type) ? b.type : null);
 
   /* ── la lecture d'un corps ── */
   /* Une heure : des millisecondes UTC (un entier), ou une heure locale « 2026-10-26T14:00 » dans le fuseau `tz`. → { t } ou { erreur } */
@@ -137,6 +162,8 @@ function installerReunions(H, ctx) {
     const r = stockage.reunionPourMembre(id, uid); if (!r) return null;
     const p = r.reunion.annulee ? null : cal.premiereApres(serieDe(r.reunion), horloge(), true);
     r.prochaine = p ? { debut: p.debut, fin: p.fin } : null;
+    const f = fenetreRejoindre(r.reunion, horloge());
+    r.salle = { rejoignable: !!f, occurrence: f ? { debut: f.debut, fin: f.fin } : null, ouverte: stockage.salleDeReunion(id) !== null };
     return r;
   }
   const personne = (uid) => stockage.personneParId(uid);
@@ -158,7 +185,7 @@ function installerReunions(H, ctx) {
       if (!occ.length) continue;
       total += occ.length;
       if (total > OCCURRENCES_MAX) break;
-      sortie.push(Object.assign({}, r, { occurrences: occ.map(o => ({ debut: o.debut, fin: o.fin })) }));
+      sortie.push(Object.assign({}, r, { occurrences: occ.map(o => ({ debut: o.debut, fin: o.fin })), rejoignable: !!fenetreRejoindre(r, horloge()) }));
     }
     res.json({ du, au, reunions: sortie });
   });
@@ -167,6 +194,7 @@ function installerReunions(H, ctx) {
   H['reunions.creer'] = garder((req, res) => {
     const b = corps(req), hote = req.moi;
     if (b.notifier !== undefined && typeof b.notifier !== 'boolean') return refus(res, 400, 'champ_invalide');
+    if (b.salle_attente !== undefined && typeof b.salle_attente !== 'boolean') return refus(res, 400, 'champ_invalide');
     const v = valider(b, null, hote.tz);
     if (v.erreur) return refus(res, 400, v.erreur);
     let voulus = [];
@@ -178,7 +206,7 @@ function installerReunions(H, ctx) {
     if (!plafond(res, 'reunion', hote.id, { max: 30, fenetreMs: 3600000 })) return;
     const ok = voulus.filter(u => stockage.peutEcrire(hote.id, u)), non_invites = voulus.filter(u => !ok.includes(u));
     const prochain = prochainDe(v.serie, horloge());
-    const r = stockage.reunionCreer({ hote: hote.id, titre: v.titre, lieu: v.lieu, debut: v.serie.debut, fin: v.serie.fin, tz: v.serie.tz, rep: v.serie.rep, n: v.serie.n, jusqua: v.serie.jusqua, rappels: v.rappels, invites: ok, prochain, finSerie: cal.finDeSerie(v.serie) });
+    const r = stockage.reunionCreer({ hote: hote.id, titre: v.titre, lieu: v.lieu, debut: v.serie.debut, fin: v.serie.fin, tz: v.serie.tz, rep: v.serie.rep, n: v.serie.n, jusqua: v.serie.jusqua, rappels: v.rappels, invites: ok, prochain, finSerie: cal.finDeSerie(v.serie), attente: b.salle_attente === true });
     hub.reveiller({ conv: r.conv });
     if (notifierVoulu(b)) {
       const quand = prochain !== null ? prochain : v.serie.debut, desc = { titre: v.titre, tz: v.serie.tz, repetition: v.serie.rep };
@@ -193,6 +221,7 @@ function installerReunions(H, ctx) {
   H['reunions.modifier'] = garder((req, res) => {
     const b = corps(req), id = req.reunion.id, hote = req.moi;
     if (b.notifier !== undefined && typeof b.notifier !== 'boolean') return refus(res, 400, 'champ_invalide');
+    if (b.salle_attente !== undefined && typeof b.salle_attente !== 'boolean') return refus(res, 400, 'champ_invalide');
     const courant = stockage.reunionPourMembre(id, hote.id).reunion;
     const v = valider(b, courant, courant.tz);
     if (v.erreur) return refus(res, 400, v.erreur);
@@ -200,7 +229,7 @@ function installerReunions(H, ctx) {
        (ou un script) en faisait deux cents d'un trait. Le refus est DIT (`trop_de_modifications`, avec le délai) ; la clé est la réunion, pas l'hôte (elle passe à un successeur). */
     if (!plafond(res, 'reunion_modif', id, { max: 20, fenetreMs: 3600000 }, 'trop_de_modifications')) return;
     const prochain = v.horaire ? prochainDe(v.serie, horloge()) : undefined;
-    const r = stockage.reunionModifier(Object.assign({ id, par: hote.id }, v.champs, v.horaire ? { prochain, finSerie: cal.finDeSerie(v.serie) } : {}));
+    const r = stockage.reunionModifier(Object.assign({ id, par: hote.id }, v.champs, v.horaire ? { prochain, finSerie: cal.finDeSerie(v.serie) } : {}, b.salle_attente === undefined ? {} : { attente: b.salle_attente }));
     if (r.gid) hub.reveiller({ conv: courant.conv });
     /* on prévient quand quelque chose que les invités VOIENT a changé : l'horaire, le titre, le lieu — pas un simple réglage de rappel */
     if (r.change && (r.horaire || r.titre || r.lieu) && notifierVoulu(b)) {
@@ -226,7 +255,7 @@ function installerReunions(H, ctx) {
     const avant = stockage.reunionPourMembre(id, hote.id).reunion;
     const r = stockage.reunionAnnuler({ id, par: hote.id });
     if (r.change) {
-      hub.reveiller({ conv: avant.conv });
+      hub.reveiller({ conv: avant.conv, uids: r.salle });                       // et les pages de ceux qui étaient dans la salle, qui apprennent sa fin
       prevenirAnnulation(hote, avant, stockage.reunionParticipants(id));
     }
     res.json(vue(hote.id, id));
@@ -308,6 +337,55 @@ function installerReunions(H, ctx) {
     if (texte === null) return refus(res, 404, 'occurrence_inconnue');
     res.set({ 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': 'attachment; filename="' + ics.nom(r) + '"', 'Cache-Control': 'no-store' });
     res.send(texte);
+  });
+
+  /* ── la salle et le lien d'invité (étape 8) ── */
+  H['reunions.rejoindre'] = garder((req, res) => {
+    const type = typeSalle(corps(req)); if (!type) return refus(res, 400, 'champ_invalide');
+    const reunion = stockage.reunionPourMembre(req.reunion.id, req.moi.id).reunion;
+    if (reunion.annulee) return refus(res, 409, 'reunion_annulee');
+    if (!fenetreRejoindre(reunion, horloge())) return refus(res, 409, 'reunion_hors_horaire', { ouvre_a: prochaineOuverture(reunion, horloge()) });
+    if (!plafond(res, 'rejoindre_reunion', req.moi.id, { max: 20, fenetreMs: 60000 })) return;
+    const r = ctx.appels.rejoindreReunion({ moi: req.moi, reunion: req.reunion.id, sessionH: req.sessionH, type });
+    res.json({ appel: r.vue, etat: r.etat, deja: !!r.deja, attente: !!r.attente, salle: r.salle });
+  });
+  H['reunions.lien'] = garder((req, res) => {
+    const l = stockage.reunionLien({ id: req.reunion.id, par: req.moi.id });
+    res.set('Cache-Control', 'no-store');
+    res.json({ code: l.code });
+  });
+  H['reunions.lien_renouveler'] = garder((req, res) => {
+    if (!plafond(res, 'reunion_lien', req.reunion.id, { max: 10, fenetreMs: 3600000 })) return;
+    const l = stockage.reunionLienRenouveler({ id: req.reunion.id, par: req.moi.id });
+    res.set('Cache-Control', 'no-store');
+    res.json({ code: l.code, ancien: l.ancien });
+  });
+  /* ⛔ L'APERÇU EST PUBLIC : n'importe qui, sans compte, peut demander ce qu'un code désigne. Il ne dit donc que de quoi DÉCIDER de rejoindre (le titre, l'horaire, si la salle est ouverte, si l'on y attend) — ni un
+     participant, ni l'organisateur, ni un lieu. Un code inconnu, renouvelé, annulé ou échu : la MÊME réponse (410). Limité par réseau (un code a 128 bits : le plafond protège le service, pas le code). */
+  H['reunions.apercu'] = garder((req, res) => {
+    const q = quotas.essai('reunion_apercu:' + cleReseau(req.ip), 30, 60000);
+    if (!q.ok) { res.set('Retry-After', String(q.retry)); return refus(res, 429, 'quota_atteint', { retry: q.retry }); }
+    const code = corps(req).code;
+    const r = typeof code === 'string' ? stockage.reunionParCode(code) : null;
+    if (!r) return refus(res, 410, 'lien_invalide');
+    const f = fenetreRejoindre(Object.assign({ annulee: false }, r), horloge()), p = f || cal.premiereApres(serieDe(r), horloge(), true) || { debut: r.debut, fin: r.fin };
+    res.set('Cache-Control', 'no-store');
+    res.json({ reunion: { titre: r.titre, debut: p.debut, fin: p.fin, en_cours: !!f, attente: !!r.attente }, compte_requis: true });
+  });
+  H['reunions.rejoindre_code'] = garder((req, res) => {
+    const b = corps(req), type = typeSalle(b);
+    if (typeof b.code !== 'string' || !type) return refus(res, 400, 'champ_invalide');
+    if (!plafond(res, 'rejoindre_code', req.moi.id, { max: 20, fenetreMs: 3600000 })) return;
+    /* ⛔ UN REFUS N'ÉCRIT RIEN : la fenêtre d'ouverture se juge AVANT d'inscrire la personne (invitée, membre de la discussion). Venue trop tôt, elle lit « ouvre à … » et revient — elle n'est rien tant qu'elle n'est pas entrée. */
+    const vise = stockage.reunionParCode(b.code);
+    if (!vise) return refus(res, 410, 'lien_invalide');
+    const fenetre = Object.assign({ annulee: false }, vise);
+    if (!fenetreRejoindre(fenetre, horloge())) return refus(res, 409, 'reunion_hors_horaire', { ouvre_a: prochaineOuverture(fenetre, horloge()) });
+    const inv = stockage.reunionInviteParCode({ code: b.code, uid: req.moi.id });
+    const acces = stockage.reunionAcces(inv.reunion, req.moi.id);
+    if (inv.gid) hub.reveiller({ conv: acces.conv, uids: [req.moi.id] });
+    const r = ctx.appels.rejoindreReunion({ moi: req.moi, reunion: inv.reunion, sessionH: req.sessionH, type });
+    res.json({ reunion: inv.reunion, appel: r.vue, etat: r.etat, deja: !!r.deja, attente: !!r.attente, salle: r.salle });
   });
 
   /* ── le courriel ── */

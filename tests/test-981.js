@@ -5,7 +5,7 @@
 
      · ⛔ `GET /api/ice` : sans relais configuré, une liste VIDE et `relais:false` — jamais le serveur d'un tiers ; avec un relais, des identifiants ÉPHÉMÈRES dont le mot de passe est RECALCULÉ ICI avec
        `crypto` (HMAC-SHA1 du secret sur `<échéance>:<identifiant>`, en base64), à deux instants, pour deux personnes — et le secret n'est dans aucune réponse, aucun journal, aucun octet de la base ;
-     · lancer : par une conversation directe OU une personne (jamais les deux ni aucune), à DEUX seulement (un groupe : `appel_a_deux`), entre gens qui peuvent s'écrire — un inconnu, un bloqué et une
+     · lancer : par une conversation directe OU une personne (jamais les deux ni aucune), à DEUX ici (un groupe sonne depuis l'étape 8 : `test-987` ; la conversation d'une réunion refuse : `appel_a_deux`), entre gens qui peuvent s'écrire — un inconnu, un bloqué et une
        personne qui n'existe pas reçoivent la MÊME réponse, au caractère près ; un compte effacé ; occupé (`occupe`, moi ou l'autre) ; les plafonds par personne et par paire, un compte neuf à un tiers ;
      · répondre et raccrocher par l'appareil LIÉ (le second appareil : `appel_pris`, un autre appareil de l'appelante : `appareil_non_lie`) ;
      · ⛔ le SIGNAL : relayé à l'appareil lié de l'AUTRE personne et à personne d'autre (ni ses autres appareils, ni les miens), 16 Ko pile, le destinataire est celui de l'appel, le débit est plafonné,
@@ -134,7 +134,6 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
     /* ═══════ 2. LANCER ═══════ */
     console.log('\nLancer : une conversation directe ou une personne, à deux, entre gens qui peuvent s\'écrire');
     const directe = S.convDirecteObtenir(ana.id, ben.id).id;
-    const groupe = S.convCreerGroupe({ createur: ana.id, nom: 'Équipe', membres: [ben.id, cleo.id], annonces_seules: false, ephemere_s: 0 }).id;
     const groupeAutres = S.convCreerGroupe({ createur: cleo.id, nom: 'Autre', membres: [ben.id], annonces_seules: false, ephemere_s: 0 }).id;
     S.contactEtat(eve.id, ana.id, 'bloque');                // Eve a bloqué Ana
     const fA = await ouvrirFlux(a1), fA2 = await ouvrirFlux(a2), fB1 = await ouvrirFlux(b1), fB2 = await ouvrirFlux(b2), fC = await ouvrirFlux(c1);
@@ -147,8 +146,11 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
          (await a1.post('/api/appels', { uid: { $ne: 1 }, type: 'audio' })).j, (await a1.post('/api/appels', [corps])).j].map(j => j && j.error),
         new Array(9).fill('champ_invalide'));
       v('   population : aucun appel n\'existe après ces neuf refus', Number(sql('SELECT COUNT(*) AS n FROM appel').n) - appelsAvant, 0);
-      const g = await a1.post('/api/appels', { conv: groupe, type: 'audio' });
-      v('⛔ un GROUPE : l\'appel de groupe est l\'étape 8 — refus propre `appel_a_deux` (409), rien d\'écrit', [dit(g), Number(sql('SELECT COUNT(*) AS n FROM appel').n) - appelsAvant], [[409, 'appel_a_deux'], 0]);
+      /* un GROUPE sonne depuis l'étape 8 (`test-987` joue l'appel de groupe) ; la conversation d'une RÉUNION, elle, n'appelle personne : elle a sa salle (« Rejoindre », `test-988`) */
+      const debutR = Date.now() + 3 * 86400000;
+      const convReunion = S.reunionCreer({ hote: ana.id, titre: 'Point', lieu: '', debut: debutR, fin: debutR + 3600000, tz: 'Europe/Paris', rep: 'aucune', rappels: [], invites: [ben.id], prochain: debutR }).conv;
+      const g = await a1.post('/api/appels', { conv: convReunion, type: 'audio' });
+      v('⛔ la conversation d\'une RÉUNION n\'appelle personne : refus propre `appel_a_deux` (409), rien d\'écrit', [dit(g), Number(sql('SELECT COUNT(*) AS n FROM appel').n) - appelsAvant], [[409, 'appel_a_deux'], 0]);
       const hors = await a1.post('/api/appels', { conv: groupeAutres, type: 'audio' }), vide = await a1.post('/api/appels', { conv: 'c_' + '0'.repeat(32), type: 'audio' });
       v('⛔ une conversation où je ne suis PAS, et une qui n\'existe pas : la MÊME réponse (404 introuvable, au caractère près)', [dit(hors), hors.txt === vide.txt], [[404, 'introuvable'], true]);
     }

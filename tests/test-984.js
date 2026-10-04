@@ -4,7 +4,7 @@
    à deux ou trois « appareils de poche » (cookie, Origin, flux). La connexion pair à pair est une FAUSSE (`bac-webrtc.js`) qui refuse ce que la vraie refuse (deux offres qui se croisent, un candidat
    avant la description distante…) et qui ne « se connecte » que si ce qu'elle a reçu est ce que l'autre a produit — l'offre, la réponse et les candidats voyagent par les vraies routes. Qu'une voix passe
    VRAIMENT, c'est la sonde du navigateur (`sonde-opmessages-appels.js`, deux Chromium) qui le prouve. Ce que ni `test-981` (les routes seules) ni la sonde (le DOM) ne voient :
-     · LE CONTRAT : les capacités (`appels`, `appelsMedias` vraies, `appelsGroupe` fausse), chaque méthode que la page appelle ; un navigateur SANS connexion pair à pair ne lance pas d'appel, et le dit ;
+     · LE CONTRAT : les capacités (`appels`, `appelsMedias`, `appelsGroupe` vraies), chaque méthode que la page appelle ; un navigateur SANS connexion pair à pair ne lance pas d'appel, et le dit ;
      · UN APPEL DE BOUT EN BOUT : il sonne chez l'autre (et l'écran est acquitté, page visible seulement), AUCUNE connexion n'existe avant la réponse, puis l'appelant offre, l'appelé répond, les candidats se
        croisent, la liaison s'établit ; l'offre reçue EST l'offre produite, les identifiants du relais arrivent intacts à la connexion, le flux de l'autre porte ses deux pistes ; raccrocher ferme les DEUX
        connexions, l'historique des deux se met à jour, raccrocher deux fois rend le même enregistrement ;
@@ -105,7 +105,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
     /* ═══ 1. LE CONTRAT ═══════════════════════════════════════════════════════════════════════════════════════════ */
     console.log('Le contrat : les capacités, les méthodes de la page, un navigateur sans connexion pair à pair');
     {
-      v('le module annonce les appels À DEUX avec leurs médias, et dit « bientôt » aux appels de groupe', [A.src.capacites.appels, A.src.capacites.appelsMedias, A.src.capacites.appelsGroupe], [true, true, false]);
+      v('le module annonce les appels À DEUX avec leurs médias, et les appels de groupe (le moteur des salles, `test-990`)', [A.src.capacites.appels, A.src.capacites.appelsMedias, A.src.capacites.appelsGroupe], [true, true, true]);
       v('chaque méthode que la page appelle existe', ['appels', 'demarrerAppel', 'appel', 'terminerAppel', 'repondreAppel', 'appelPistes', 'appelFlux', 'appelActif', 'appelFermeture'].filter(k => typeof A.src[k] !== 'function'), []);
       vrai('population : quatre personnes sont entrées par la porte bêta', new Set([ana.id, ben.id, cleo.id, dan.id]).size === 4);
       const sans = monter(svc, 'cleo', { sansWebrtc: true });
@@ -290,8 +290,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       /* — un inconnu, un groupe, personne — */
       const eInc = await attrape(C.src.demarrerAppel({ membres: [ben.id], video: false }));
       v('⛔ appeler quelqu\'un qu\'on ne peut pas joindre (Cléo n\'est le contact de personne) : le même refus que pour « écrire » — « Introuvable »', [codeDe(eInc), eInc && eInc.statut, /Introuvable/.test(phrase(eInc))], ['introuvable', 404, true]);
-      const eGr = await attrape(A.src.demarrerAppel({ membres: [ben.id, dan.id], video: false }));
-      v('⛔ un appel à PLUSIEURS est refusé avec sa phrase, avant toute requête', [codeDe(eGr), phrase(eGr), A.requetes(/POST \/api\/appels$/).filter(r => r.corps && /dan|p_/.test(r.corps) && JSON.parse(r.corps).uid === undefined).length], ['appel_a_deux', 'Un appel se passe à deux pour l\'instant : les appels à plusieurs arrivent bientôt.', 0]);
+      /* un appel à PLUSIEURS ne passe plus par ce moteur : la page le confie à celui des salles (`test-990` le joue de bout en bout, contre le même service) */
       const eVi = await attrape(A.src.demarrerAppel({ membres: [], video: false }));
       v('personne à appeler : « Choisis un contact à appeler. »', [codeDe(eVi), phrase(eVi)], ['appel_vide', 'Choisis un contact à appeler.']);
       const conv = (await A.src.conversationPour([ben.id])).id;
