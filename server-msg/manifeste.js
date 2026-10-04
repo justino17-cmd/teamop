@@ -19,6 +19,8 @@
  *   R  invité d'une RÉUNION (S d'abord : répondre ne demande pas d'adresse confirmée) — l'hôte en est un ; la réunion se lit dans le chemin (`:id`) ;
  *      H  hôte de la réunion (V d'abord : modifier, annuler, inviter, c'est agir au nom d'une adresse). Un non-invité reçoit, sur R comme sur H, le même 404 qu'une réunion inexistante ;
  *      un invité qui n'est pas l'hôte reçoit 403 sur H (il connaît déjà la réunion).
+ *   `pro: true` sur une ligne : fonction PRO (voir plus bas). `organiser: true` : fonction d'ORGANISATEUR — Pro OU Perso+ (le forfait d'une PERSONNE, 5 € par mois : les réunions) ; jamais les deux sur une même
+ *      ligne. Pro comprend Perso+, Perso+ ne comprend rien d'une entreprise : les routes d'espace restent `pro`.
  *   SP, SH, SO, SJ  une SALLE (étape 8) : participant · hôte ou co-hôte PRÉSENT (un participant voit 403) · l'hôte seul · quelqu'un qui veut ENTRER (le droit se juge dans la transaction). Tous bâtis sur S ; un non-participant, un
  *      exclu et un appel à deux reçoivent le même 404 qu'une salle qui n'existe pas.
  *   AP participant d'un APPEL (S d'abord : répondre, raccrocher et signaler ne demandent pas d'adresse confirmée — lancer l'appel, lui, exige V) — l'appel se lit dans le chemin (`:id`) ; un non-participant reçoit le
@@ -123,10 +125,10 @@ const MANIFESTE = [
   { id: 'facturation.paiement', m: 'POST', p: '/api/espaces/:id/facturation/paiement', garde: 'EP' },
   { id: 'facturation.portail', m: 'POST', p: '/api/espaces/:id/facturation/portail', garde: 'EP' },
   { id: 'facturation.relire', m: 'POST', p: '/api/espaces/:id/facturation/relire',   garde: 'EP' },
-  /* Étape 6 : les RÉUNIONS PROGRAMMÉES (`routes-reunions.js`). Programmer est une fonction PRO (la bêta ouvre tout) ; être invité, répondre et télécharger le .ics ne coûtent rien — « les invités
-     rejoignent sans siège ». L'hôte agit par H, un invité par R : la réunion se lit dans l'adresse (`:id`), JAMAIS dans le corps. */
+  /* Étape 6 : les RÉUNIONS PROGRAMMÉES (`routes-reunions.js`). Programmer est une fonction d'ORGANISATEUR — Pro OU Perso+ (la bêta ouvre tout) ; être invité, répondre, télécharger le .ics et ENTRER dans la salle ne
+     coûtent rien — « les invités rejoignent sans siège ». L'hôte agit par H, un invité par R : la réunion se lit dans l'adresse (`:id`), JAMAIS dans le corps. */
   { id: 'reunions.liste',    m: 'GET',  p: '/api/reunions',                          garde: 'S' },
-  { id: 'reunions.creer',    m: 'POST', p: '/api/reunions',                          garde: 'V', pro: true },
+  { id: 'reunions.creer',    m: 'POST', p: '/api/reunions',                          garde: 'V', organiser: true },
   { id: 'reunions.lire',     m: 'GET',  p: '/api/reunions/:id',                      garde: 'R' },
   { id: 'reunions.modifier', m: 'POST', p: '/api/reunions/:id/modifier',             garde: 'H' },
   { id: 'reunions.annuler',  m: 'POST', p: '/api/reunions/:id/annuler',              garde: 'H' },
@@ -148,9 +150,10 @@ const MANIFESTE = [
   { id: 'appels.repondre',   m: 'POST', p: '/api/appels/:id/repondre',               garde: 'AP' },
   { id: 'appels.quitter',    m: 'POST', p: '/api/appels/:id/quitter',                garde: 'AP' },
   { id: 'appels.signal',     m: 'POST', p: '/api/appels/:id/signal',                 garde: 'AP' },
-  /* Étape 8 : les APPELS À PLUSIEURS et les SALLES EN MAILLE (`routes-appels.js`, `routes-salles.js`, `routes-reunions.js`). Entrer est toujours gratuit ; LANCER un appel à plusieurs (`appels.creer` avec un groupe ou
-     des personnes choisies) est jugé dans la route sur la formule de celui qui lance — la route sert aussi les appels à deux, qui restent gratuits, donc ce n'est pas une ligne `pro`. Les gestes de l'hôte sont SH (SO pour
-     les deux qui ne se partagent pas : co-hôte, terminer), ceux des participants SP. */
+  /* Étape 8 : les APPELS À PLUSIEURS et les SALLES EN MAILLE (`routes-appels.js`, `routes-salles.js`, `routes-reunions.js`). Entrer est toujours gratuit ; LANCER un appel à plusieurs (un groupe, ou des personnes choisies) l'est
+     AUSSI depuis le 4 octobre 2026 (« comme WhatsApp : appel, message, appel vidéo »). Ce qui s'organise — les OUTILS de l'organisateur d'une salle (attente, verrou, retirer, couper les micros, sondage, minuteur,
+     enregistrement) — est jugé DANS la route (`routes-salles.js`) : ils marchent dans la salle d'une RÉUNION, ou si celui qui a lancé l'appel est Pro ou Perso+ ; ce n'est donc pas une ligne `organiser` (une même route sert
+     des salles gratuites et des salles payantes). Les gestes de l'hôte sont SH (SO pour les deux qui ne se partagent pas : co-hôte, terminer), ceux des participants SP. */
   { id: 'appels.rejoindre',  m: 'POST', p: '/api/appels/:id/rejoindre',              garde: 'SJ' },
   { id: 'salles.lire',       m: 'GET',  p: '/api/salles/:id',                        garde: 'SP' },
   { id: 'salles.admettre',   m: 'POST', p: '/api/salles/:id/admettre',               garde: 'SH' },
@@ -174,6 +177,12 @@ const MANIFESTE = [
   { id: 'reunions.rejoindre', m: 'POST', p: '/api/reunions/:id/rejoindre',           garde: 'R' },
   { id: 'reunions.lien',     m: 'POST', p: '/api/reunions/:id/lien',                 garde: 'H' },
   { id: 'reunions.lien_renouveler', m: 'POST', p: '/api/reunions/:id/lien/renouveler', garde: 'H' },
+  /* PERSO+ (4 octobre 2026) : le forfait d'une PERSONNE (`facturation-perso.js`). La personne est CELLE DE LA SESSION, jamais celle du corps ; le corps ne nomme qu'un rythme. Aucune ligne n'est `pro` ni `organiser` :
+     s'abonner est ouvert à toute personne confirmée (V), lire son état et le relire à toute session (S). Le refus d'une fonction d'organisateur, lui, vit sur les routes qui l'exigent (`organiser: true`). */
+  { id: 'perso.etat',        m: 'GET',  p: '/api/moi/perso-plus',                    garde: 'S' },
+  { id: 'perso.paiement',    m: 'POST', p: '/api/moi/perso-plus/paiement',           garde: 'V' },
+  { id: 'perso.portail',     m: 'POST', p: '/api/moi/perso-plus/portail',            garde: 'V' },
+  { id: 'perso.relire',      m: 'POST', p: '/api/moi/perso-plus/relire',             garde: 'S' },
 ];
 
 module.exports = { MANIFESTE };

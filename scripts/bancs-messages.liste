@@ -120,3 +120,7 @@ tests/test-987.js
 tests/test-988.js
 tests/test-989.js
 tests/test-990.js
+#
+# ── Le forfait PERSONNEL Perso+ (4 octobre 2026) : la décision de formule, l'abonnement lu chez Stripe, l'annulation d'un compte effacé, le plafond de dix personnes d'une réunion (991), les routes en HTTP — payer, programmer, entrer gratuitement, les outils d'une salle, l'effacement par le vrai balayeur (992) ──
+tests/test-991.js
+tests/test-992.js

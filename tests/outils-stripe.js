@@ -9,6 +9,8 @@
  *     POST /v1/billing_portal/sessions    le portail de facturation (`customer` exigé)
  *     GET  /v1/prices/:id                 un tarif (avec son produit si `expand[]=product`) — lu par `configurer-stripe.js`
  *     GET  /v1/customers/:id              un client (404 s'il n'existe pas ; `deleted:true` s'il a été supprimé) — lu par le service pour CONFIRMER l'absence d'un abonnement (voir `absenceConfirmee`)
+ *     DELETE /v1/subscriptions/:id        RÉSILIER un abonnement (Perso+ : un compte effacé) → l'objet, `status: 'canceled'` ; 404 s'il n'existe pas ; déjà résilié, il le redit (`E.resiliations` garde les identifiants)
+ *     POST /v1/products, /v1/prices       créer un produit, un tarif (le script `configurer-stripe.js --creer-perso-plus`) — 403 si la clé n'a pas le droit d'écrire (`sansDroits` : « ecriture »)
  *     GET  /v1/subscriptions?status=all   la LISTE (ce que lit OP GESTION : `status=all`, `limit=100`, `starting_after`, du plus récent au plus ancien, le client et le produit des lignes
  *                                         développés seulement s'ils sont demandés par `expand[]`) — pour le banc de la couture, test-965 ; `listes` garde ce que chaque page a montré
  *
@@ -38,7 +40,10 @@ async function fauxStripe(opts = {}) {
     pannesRestantes: 0,         // les N prochains appels répondent 500, puis tout revient
     urlMauvaise: null,          // une adresse que Stripe « rendrait » pour la page de paiement et le portail (`javascript:…`) : le service ne la fait jamais suivre à la page
     tarifs: new Map(),          // id → objet « price » (lu par `configurer-stripe.js`)
-    sansDroits: new Set(),      // 'abonnements' | 'tarifs' | 'produits' : le droit manque à la clé → 403
+    sansDroits: new Set(),      // 'abonnements' | 'tarifs' | 'produits' | 'ecriture' | 'resilier' : le droit manque à la clé → 403
+    resiliations: [],           // les identifiants d'abonnement RÉSILIÉS par un DELETE (dans l'ordre)
+    produits: new Map(),        // id → objet « product » créé par un POST /v1/products
+    idem: new Map(),            // clé d'idempotence → l'objet rendu la première fois (POST /v1/products et /v1/prices)
     listes: [],                 // chaque PAGE de `GET /v1/subscriptions` servie : { auth, requete, statuts: { identifiant: statut } }
     n: 0,
   };
@@ -86,6 +91,34 @@ async function fauxStripe(opts = {}) {
           const sb = E.abonnements.get(decodeURIComponent(m[1]));
           if (!sb) return json(res, 404, { error: { message: 'No such subscription' } });
           return json(res, 200, sb);
+        }
+        if (req.method === 'DELETE' && (m = /^\/v1\/subscriptions\/([^/]+)$/.exec(p))) {
+          if (E.sansDroits.has('resilier')) return json(res, 403, { error: { message: 'The provided key does not have the required permissions for this endpoint (rak_subscription_write)' } });
+          const sb = E.abonnements.get(decodeURIComponent(m[1]));
+          if (!sb) return json(res, 404, { error: { message: 'No such subscription' } });
+          if (sb.status !== 'canceled') { sb.status = 'canceled'; E.resiliations.push(sb.id); }
+          return json(res, 200, sb);
+        }
+        if (req.method === 'POST' && (p === '/v1/products' || p === '/v1/prices')) {
+          if (E.sansDroits.has('ecriture')) return json(res, 403, { error: { message: 'The provided key does not have the required permissions for this endpoint (rak_product_write)' } });
+          /* comme Stripe : une même clé d'idempotence (en-tête `Idempotency-Key`) rend LA MÊME réponse, sans rien recréer — c'est ce qui rend un script relancé inoffensif */
+          const idem = String(req.headers['idempotency-key'] || '');
+          if (idem && E.idem.has(idem)) { const r0 = E.idem.get(idem); return json(res, 200, r0); }
+          const jsonId = (rr, code, c) => { if (idem && code === 200) E.idem.set(idem, c); return json(rr, code, c); };
+          const get = (k) => (paires.find(x => x[0] === k) || [])[1];
+          if (p === '/v1/products') {
+            if (!get('name')) return jsonId(res, 400, { error: { message: 'Missing required param: name' } });
+            const pr = { id: 'prod_cree' + (++E.n) + alea(3), object: 'product', name: get('name'), active: true, metadata: Object.fromEntries(paires.filter(x => /^metadata\[/.test(x[0])).map(x => [x[0].slice(9, -1), x[1]])) };
+            E.produits.set(pr.id, pr);
+            return jsonId(res, 200, pr);
+          }
+          const prod = E.produits.get(get('product'));
+          if (!prod || !/^\d+$/.test(get('unit_amount') || '') || !get('currency') || !get('recurring[interval]')) return jsonId(res, 400, { error: { message: 'Invalid price parameters' } });
+          const id = 'price_Cree' + (++E.n) + alea(5);
+          const t = { id, object: 'price', active: true, currency: get('currency'), unit_amount: parseInt(get('unit_amount'), 10), type: 'recurring', recurring: { interval: get('recurring[interval]'), interval_count: 1 },
+            billing_scheme: 'per_unit', livemode: false, product: prod, tax_behavior: get('tax_behavior') || 'unspecified', nickname: get('nickname') || null };
+          E.tarifs.set(id, t);
+          return jsonId(res, 200, Object.assign({}, t, { product: prod.id }));
         }
         if (req.method === 'GET' && (m = /^\/v1\/customers\/([^/]+)$/.exec(p))) {
           const c = E.clients.get(decodeURIComponent(m[1]));

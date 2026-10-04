@@ -31,6 +31,7 @@ const CHAMPS_SURVEILLES = [
   'sauvegarde.echecs',     // deux passes ratées de suite : le coffre refuse, la relecture échoue, le disque manque — on le sait AVANT que l'âge ne grimpe
   'sauvegarde.essaiJours', // EN PRODUCTION seulement : aucun exercice de restauration réussi depuis 35 jours (voir `SEUIL_ESSAI_JOURS`)
   'stripeEchecMin',        // Stripe illisible depuis trop longtemps : la facturation ne se relit plus
+  'facturation.persoAnnulationMin', // Perso+ : une résiliation d'abonnement de compte EFFACÉ attend depuis plus d'un jour — une carte prélevée pour quelqu'un qui n'existe plus (un AGE : jamais un nombre d'abonnés)
   'base.illisibles',       // des lignes chiffrées qui ne s'ouvrent plus (octet retourné, restauration mélangée) : jamais normal
   'porte.relecturesEchec', // la relecture des accès bêta échoue depuis des minutes : un accès coupé dans la Tour garderait sa session
   'pieces.illisibles',     // un fichier de pièce qui ne s'ouvre plus (bloc abîmé, taille qui ne colle plus à la base) : jamais normal — des photos ou des fichiers perdus
@@ -81,6 +82,7 @@ const SEUIL_ESSAI_JOURS = 35;    // l'exercice de restauration est MENSUEL : 35 
 const SEUIL_EFFACEMENTS = 5;     // des fichiers de pièces qu'on n'a pas pu effacer : un échec isolé se répare (le balayeur réessaie), cinq ont une cause
 const SEUIL_RELECTURES = 5;      // la relecture passe chaque minute : cinq échecs de suite, c'est cinq minutes sans pouvoir couper un accès
 const SEUIL_STRIPE_MIN = 90;     // la règle d'OP GESTION : la surveillance crie à 90 minutes de Stripe illisible
+const SEUIL_ANNULATION_MIN = 1440;   // Perso+ : une résiliation de compte effacé qui n'aboutit pas depuis un jour. La file se rejoue toutes les dix minutes : un jour d'échecs a une cause (clé sans le droit de résilier, abonnement inconnu)
 const SEUIL_SMS_PCT = 80;        // le budget du jour ou de l'heure consommé à 80 % : on regarde avant la coupure
 const SEUIL_SMS_EUR = 12;        // le coût réel d'une journée au-delà duquel on crie (le budget par défaut est de 20 €) ; OPMSG_SMS_SEUIL_EUR le change
 const SEUIL_SMS_ECHECS = 3;      // trois envois de suite refusés ou perdus par OVH
@@ -182,6 +184,10 @@ function evaluer(j, instanceAttendue, sondes) {
   }
   if (typeof j.stripeEchecMin === 'number' && j.stripeEchecMin > SEUIL_STRIPE_MIN) {
     p.push('Stripe illisible depuis ' + Math.round(j.stripeEchecMin) + ' min');
+  }
+  /* Perso+ : un compte effacé dont l'abonnement n'a pas pu être résilié chez Stripe. Un /health d'avant (sans la clé) ne crie pas. */
+  if (j.facturation && typeof j.facturation === 'object' && typeof j.facturation.persoAnnulationMin === 'number' && j.facturation.persoAnnulationMin > SEUIL_ANNULATION_MIN) {
+    p.push('une résiliation d\'abonnement Perso+ d\'un compte effacé attend depuis ' + Math.round(j.facturation.persoAnnulationMin / 60) + ' h — la carte serait prélevée pour un compte qui n\'existe plus (la clé Stripe a-t-elle le droit de résilier ?)');
   }
   /* les réunions programmées : le planificateur de rappels. Un /health d'avant (sans la clé) ne crie pas ; « jamais tourné » (ageS null) non plus : c'est la première seconde du service. */
   if (j.reunions && typeof j.reunions === 'object') {

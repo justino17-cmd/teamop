@@ -98,7 +98,7 @@ const pause = (ms) => new Promise(r => setTimeout(r, ms));
       v('⛔ Ben, qui sonne (invité), ne lance pas d\'autre appel : 409 `occupe` `moi:true`', [dit(occ), occ.j.moi], [[409, 'occupe'], true]);
       /* Ben répond ; Cleo rejoint depuis le bandeau ; Dan refuse */
       const rb = await b1.post('/api/appels/' + ap.id + '/repondre', { accepte: true });
-      v('Ben répond : présent, l\'appel COURT, sa vue porte l\'état de la salle (rien d\'éphémère encore)', [rb.code, rb.j.appel.moi.statut, rb.j.etat, rb.j.salle], [200, 'present', 'en_cours', { mains: [], etats: {}, sondage: null, minuteur: null, epingle: null }]);
+      v('Ben répond : présent, l\'appel COURT, sa vue porte l\'état de la salle (rien d\'éphémère encore) ET dit que la salle a ses outils d\'organisateur (la bêta ouvre tout)', [rb.code, rb.j.appel.moi.statut, rb.j.etat, rb.j.salle], [200, 'present', 'en_cours', { mains: [], etats: {}, sondage: null, minuteur: null, epingle: null, outils: true }]);
       const rd = await d1.post('/api/appels/' + ap.id + '/repondre', { accepte: false });
       v('Dan REFUSE : « refusé » pour lui seul, la salle continue pour les autres', [rd.code, rd.j.appel.moi.statut, (await a1.get('/api/salles/' + ap.id)).j.appel.etat], [200, 'refuse', 'en_cours']);
       const rj = await c1.post('/api/appels/' + ap.id + '/rejoindre', {});
@@ -314,19 +314,22 @@ const pause = (ms) => new Promise(r => setTimeout(r, ms));
           v('⛔ Ben est déjà dans un appel : le groupe d\'Ana le compte « manqué » d\'emblée (il le lira dans ses manqués, avec UNE notification), Dan sonne', [g2.code, mb.j.appels.map(x => [x.id === g2.j.appel.id, x.manque, x.genre]), N2.S.notifListe(B2.id, 20).filter(x => x.type === 'appel_manque').length, (await xd.get('/api/appels')).j.actif.id === g2.j.appel.id], [201, [[true, true, 'groupe']], 1, true]);
         } finally { await N2.fermer(); }
       } finally { await N.fermer(); }
-      /* la FORMULE : le service hors bêta (`toutOuvert` éteint) — un compte Perso ne lance pas de salle, mais appelle à deux */
+      /* la FORMULE : le service hors bêta (`toutOuvert` éteint) — un compte Perso lance un appel à plusieurs GRATUITEMENT (« comme WhatsApp », Justin, 4 octobre 2026), mais sa salle n'a pas les outils de l'organisateur (test-992 les joue un à un) */
       const F = await monter({ formule: { toutOuvert: false }, appels: { balayageMs: 1000, perduMs: 600000 } });
       try {
         const A = F.pers('Ana'), B = F.pers('Ben'), C = F.pers('Cleo');
         for (const p of [B, C]) F.S.contactLier(A.id, p.id);
         const ca = F.cl(A);
         const g = await ca.post('/api/appels', { uids: [B.id, C.id], type: 'audio' });
-        v('⛔ un compte PERSO (aucun espace payé) ne lance pas d\'appel à plusieurs : 402 `formule_requise` avec `abonnement_ouvert` (booléen) — et rien n\'est écrit', [dit(g), typeof g.j.abonnement_ouvert, F.S.sonde().nonVides.appel || 0], [[402, 'formule_requise'], 'boolean', 0]);
+        const salleG = g.j && g.j.appel ? await ca.get('/api/salles/' + g.j.appel.id) : null;
+        v('⛔ un compte PERSO (aucun espace payé, sans forfait) lance un appel à PLUSIEURS : GRATUIT — 201, genre « groupe » — et sa salle dit qu\'elle n\'a PAS les outils de l\'organisateur (`outils: false`)', [g.code, g.j.appel && g.j.appel.genre, salleG && salleG.j.salle.outils], [201, 'groupe', false]);
+        await ca.post('/api/appels/' + g.j.appel.id + '/quitter', {});
         const d = await ca.post('/api/appels', { uid: B.id, type: 'audio' });
         v('   l\'appel à DEUX reste gratuit : 201', [d.code, d.j.appel.genre], [201, 'deux']);
         const grp = F.S.convCreerGroupe({ createur: A.id, nom: 'Groupe', membres: [B.id, C.id], annonces_seules: false, ephemere_s: 0 }).id;
         await ca.post('/api/appels/' + d.j.appel.id + '/quitter', {});
-        v('   un appel par la conversation d\'un GROUPE est aussi à plusieurs : 402', dit(await ca.post('/api/appels', { conv: grp, type: 'video' })), [402, 'formule_requise']);
+        const g3 = await ca.post('/api/appels', { conv: grp, type: 'video' });
+        v('   un appel par la conversation d\'un GROUPE est aussi à plusieurs, aussi gratuit : 201, genre « groupe »', [g3.code, g3.j.appel && g3.j.appel.genre], [201, 'groupe']);
       } finally { await F.fermer(); }
     }
   } catch (e) {

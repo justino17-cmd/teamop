@@ -26,9 +26,12 @@
  *   qu'OP GESTION lit pour rattacher un abonnement à une entreprise) — la nôtre s'appelle `opmsg_espace` — et son tarif doit être l'un de ceux qu'OP GESTION classe « OP MESSAGES »
  *   (`design/opmessages/INSTALLER-LE-SERVEUR.md`, § Stripe) : `tests/test-965.js` joue les deux services l'un contre l'autre.
  * Sans clé configurée, tout est INERTE et le dit (`offres().ouvert === false`, 503 `abonnement_non_ouvert`).
+ * ⛔ PERSO+ (le forfait d'une PERSONNE, sans espace) est la moitié « personne » de ce fichier : `facturation-perso.js`, qui reçoit d'ici le client Stripe, le verrou, les lecteurs d'identifiants — UN seul client,
+ *   donc UN seul compteur de pannes (`stripeEchecMin`), et UNE seule passe de relecture (`relireTous` lit les espaces ET les personnes). Exposé sous `facturation.perso`.
  */
 'use strict';
 const { STATUTS_PAYES, STATUTS_IMPAYES } = require('./formule');
+const { creerPerso } = require('./facturation-perso');
 
 const HOTE_STRIPE = 'https://api.stripe.com';
 const PLACES_MIN = 1, PLACES_MAX = 500;
@@ -68,7 +71,7 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
     const init = { method: methode, headers: { Authorization: 'Bearer ' + cfg.cle, Accept: 'application/json' }, signal: AbortSignal.timeout(cfg.timeoutMs), redirect: 'error' };
     let url = base + chemin;
     const corps = paires && paires.length ? new URLSearchParams(paires).toString() : '';
-    if (methode === 'GET') { if (corps) url += '?' + corps; }
+    if (methode === 'GET' || methode === 'DELETE') { if (corps) url += '?' + corps; }      // résilier (DELETE) ne porte pas de corps : les paramètres, s'il y en avait, iraient dans l'adresse
     else { init.headers['Content-Type'] = 'application/x-www-form-urlencoded'; init.body = corps; }
     let r;
     try { r = await fetchImpl(url, init); } catch (e) { noterEchec('reseau'); throw erreur('reseau'); }
@@ -85,6 +88,7 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
     return j;
   }
   const id = (x) => typeof x === 'string' ? x : (x && typeof x === 'object' && typeof x.id === 'string' ? x.id : '');
+  const url = (x) => typeof x === 'string' && /^https?:\/\/[^\s]{4,2000}$/.test(x) ? x : null;
 
   /* ── ce que Stripe dit d'un abonnement, ramené à ce qu'on range — ou `null` s'il n'est PAS le nôtre ──
      Il est le nôtre si la métadonnée que NOUS y avons gravée désigne cet espace ET qu'au moins une de ses lignes est un tarif de notre liste blanche. Les places sont la somme des
@@ -117,6 +121,10 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
     let l; try { l = await stripe('GET', '/v1/subscriptions', [['customer', a.client], ['status', 'all'], ['limit', '100']]); } catch (e) { return false; }
     return !!l && Array.isArray(l.data) && l.has_more !== true && !l.data.some(x => x && x.id === a.abonnement);
   }
+
+  /* ── Perso+ : l'abonnement d'une PERSONNE (`facturation-perso.js`), sur le MÊME client Stripe ── */
+  const perso = creerPerso({ stockage, cfg, formule, journaliser, stripe, exclusif, id, url, erreur, absenceConfirmee, noterEchec, echecActif: () => echecDepuis !== null,
+    ID_SESSION, ID_ABO, ID_CLIENT, STATUTS_FINAUX, PANNES });
 
   /* ── relire un espace ──
      1. une session de paiement ouverte par NOUS attend-elle ? Terminée, elle désigne l'abonnement (après avoir vérifié qu'elle cite bien CET espace) ; expirée, ou inconnue de Stripe, on l'oublie ;
@@ -170,14 +178,24 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
         faire attendre deux cents espaces dix secondes chacun) ; rien à lire = rien ne dépend de Stripe = plus d'échec en cours. ── */
   async function relireTous() {
     const ids = stockage.abonnementsARelire(200);
+    const idsPerso = perso.ouvert() ? perso.aRelire(200) : [];
     let ok = 0, ko = 0, suite = 0;
     for (const e of ids) {
       if (arrete) break;
       try { await relire(e); ok++; suite = 0; }
       catch (x) { ko++; if (PANNES.includes(x && x.code) && ++suite >= 3) break; }
     }
-    if (!ids.length) echecDepuis = null;
-    return { ok, ko, total: ids.length };
+    /* les personnes (Perso+) : la même marche, le même arrêt après trois pannes de suite */
+    for (const u of idsPerso) {
+      if (arrete || suite >= 3) break;
+      try { await perso.relire(u); ok++; suite = 0; }
+      catch (x) { ko++; if (PANNES.includes(x && x.code)) suite++; }
+    }
+    /* ⛔ les abonnements des comptes EFFACÉS qu'il reste à résilier chez Stripe : un échec s'est noté, il se rejoue ici (et tout de suite après chaque effacement : `index.js`) */
+    let annulations = 0;
+    if (!arrete && suite < 3) { try { const r = await perso.annulationsTraiter(); annulations = r.faites + r.ratees; } catch (x) { /* la file se relit au passage suivant */ } }
+    if (!ids.length && !idsPerso.length && !annulations && stockage.annulationPlusAncienne() === null) echecDepuis = null;
+    return { ok, ko, total: ids.length + idsPerso.length };
   }
   function demarrer() {
     if (!actif() || minuteur) return;
@@ -206,7 +224,6 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
       offres: Object.keys(cfg.prix).map(k => ({ id: k, libelle: 'Messages Pro', par: k === 'annuel' ? 'an' : 'mois', euros_par_place: cfg.affichage[k] })) };
   }
 
-  const url = (x) => typeof x === 'string' && /^https?:\/\/[^\s]{4,2000}$/.test(x) ? x : null;
   /* Le portail de facturation : changer les places, la carte, résilier. Il faut un client Stripe (donc un paiement déjà fait). */
   async function portail({ espace, origine }) {
     if (!actif()) throw erreur('abonnement_non_ouvert');
@@ -293,7 +310,10 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
 
   /* minutes depuis lesquelles Stripe est illisible (0 : il l'est, ou rien n'en dépend) — c'est `stripeEchecMin` de /health, que la surveillance lit */
   const echecMin = () => echecDepuis === null ? 0 : Math.max(0, Math.floor((horloge() - echecDepuis) / 60000));
-  return { ouvert: actif, mode: () => cfg.mode, offres, etat, paiement, portail, relire, relireTous, dissoudre, demarrer, arreter, echecMin, derniereLecture: () => derniereLecture, lireAbonnement };
+  /* minutes depuis lesquelles une résiliation de compte effacé attend (0 : aucune) — `facturation.persoAnnulationMin` de /health */
+  const annulationAttenteMin = () => perso.attenteMin(horloge());
+  return { ouvert: actif, mode: () => cfg.mode, offres, etat, paiement, portail, relire, relireTous, dissoudre, demarrer, arreter, echecMin, derniereLecture: () => derniereLecture, lireAbonnement,
+    perso, annulationAttenteMin };
 }
 
 /* ══ LES ROUTES — `/api/facturation/offres` et `/api/espaces/:id/facturation/*` ═══════════════════════════════════════════════════════════════════
@@ -315,6 +335,7 @@ function installerFacturation(H, ctx) {
         case 'adresse_requise': return refus(res, 409, 'adresse_requise');
         case 'abonnement_existant': return refus(res, 409, 'abonnement_existant', { portail: e.portail || null });
         case 'pas_d_abonnement': return refus(res, 409, 'pas_d_abonnement');
+        case 'formule_deja_incluse': return refus(res, 409, 'formule_deja_incluse');
         case 'paiement_en_cours': return refus(res, 409, 'paiement_en_cours');
         case 'abonnement_pris': return refus(res, 409, 'abonnement_pris');
         case 'reseau': case 'stripe_panne': case 'cle_refusee': case 'trop_de_demandes': case 'reponse_illisible': return refus(res, 502, 'stripe_muet');
@@ -358,6 +379,25 @@ function installerFacturation(H, ctx) {
     if (!facturation.ouvert()) return refus(res, 503, 'abonnement_non_ouvert');
     if (!plafond(res, 'relire', req.espace.espace.id, { max: 1, fenetreMs: 10000 })) return;
     res.json(await facturation.relire(req.espace.espace.id));
+  });
+
+  /* ── PERSO+ : le forfait d'une PERSONNE (`facturation-perso.js`). La personne est CELLE DE LA SESSION, jamais celle du corps ; le corps ne nomme qu'un rythme. ── */
+  H['perso.etat'] = garder((req, res) => res.json(facturation.perso.etat(req.moi.id)));
+  H['perso.paiement'] = garder(async (req, res) => {
+    const b = corps(req);
+    if (!plafond(res, 'paiement', req.moi.id, { max: 20, fenetreMs: 3600000 })) return;
+    const r = await facturation.perso.paiement({ personne: req.moi.id, cycle: b.cycle, origine: req.headers.origin, adresse: adresseDe(req.moi) });
+    res.status(201).json(r);
+  });
+  H['perso.portail'] = garder(async (req, res) => {
+    if (!plafond(res, 'portail', req.moi.id, { max: 30, fenetreMs: 3600000 })) return;
+    res.json(await facturation.perso.portail({ personne: req.moi.id, origine: req.headers.origin }));
+  });
+  /* « J'ai réglé — vérifier » : un clic relit Stripe pour CETTE personne, une fois toutes les dix secondes au plus */
+  H['perso.relire'] = garder(async (req, res) => {
+    if (!facturation.perso.ouvert()) return refus(res, 503, 'abonnement_non_ouvert');
+    if (!plafond(res, 'relire', req.moi.id, { max: 1, fenetreMs: 10000 })) return;
+    res.json(await facturation.perso.relire(req.moi.id));
   });
 }
 

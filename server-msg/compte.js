@@ -173,6 +173,9 @@ function installerCompte(H, ctx) {
     const q = Object.assign({ max: 5, fenetreMs: 3600000 }, config.quotas.compte_supprimer || {});
     const e = quotas.essai('compte_supprimer:' + req.moi.id, q.max, q.fenetreMs);
     if (!e.ok) { res.set('Retry-After', String(e.retry)); return refus(res, 429, 'quota_atteint', { retry: e.retry }); }
+    /* ⛔ UN PAIEMENT PERSO+ COMMENCÉ se relit avant de programmer l'effacement (payé chez Stripe, il devient l'abonnement que l'effacement fera résilier à J+14 ; jamais un abonnement vivant que personne ne connaît).
+       Un abonnement Perso+ qui court ne bloque PAS la demande : il s'annule avec le compte, et la page le dit. Stripe muet : la demande passe quand même, la passe de relecture résout la session ensuite. */
+    if (ctx.facturation && ctx.facturation.perso.ouvert()) { const ap = stockage.abonnementPersoLire(req.moi.id); if (ap && ap.session) { try { await ctx.facturation.perso.relire(req.moi.id); } catch (x) { /* Stripe muet */ } } }
     const echeance = horloge() + SUPPRESSION_DELAI_MS;
     stockage.suppressionProgrammer(req.moi.id, echeance);   // coupe sessions, jetons d'appareil, abonnements push, liens — et date l'effacement, dans UNE transaction
     try { if (ctx.appels) ctx.appels.terminerDe(req.moi.id); } catch (e) { /* un appel qui ne se termine pas ne défait pas la suppression : le balayeur le dira « perdu » */ }

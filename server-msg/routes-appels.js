@@ -1,7 +1,7 @@
 /* ══ LES ROUTES DES APPELS À DEUX — LE RELAIS, LANCER, RÉPONDRE, RACCROCHER, SIGNALER, L'HISTORIQUE ═════════════════════════════════════════════════
  *
  *   GET  /api/ice                          S   les identifiants ÉPHÉMÈRES du relais (quinze minutes) et ses adresses, à qui est dans un appel qui sonne ou qui court (404 sinon) — `relais:false` tant que le relais n'est pas installé
- *   POST /api/appels  {conv|uid|uids, type}  V   lancer un appel AUDIO ou VIDÉO : à UNE personne (une conversation directe, ou une personne qu'on peut joindre) — gratuit — ou à PLUSIEURS (un groupe, ou des personnes choisies) — fonction Pro
+ *   POST /api/appels  {conv|uid|uids, type}  V   lancer un appel AUDIO ou VIDÉO : à UNE personne (une conversation directe, ou une personne qu'on peut joindre) ou à PLUSIEURS (un groupe, ou des personnes choisies) — GRATUIT dans les deux cas
  *   GET  /api/appels?filtre=tous|manques   S   mon historique (les appels finis, du plus récent, bornés) et `actif` : l'appel qui sonne ou court pour moi, s'il y en a un
  *   POST /api/appels/:id/repondre {accepte}   AP   répondre (cet appareil est LIÉ à l'appel) ou refuser
  *   POST /api/appels/:id/rejoindre         SJ   entrer dans une salle (un appel de groupe de mes conversations, la salle d'une réunion où je suis invité) : toujours gratuit
@@ -9,8 +9,10 @@
  *   POST /api/appels/:id/signal {a,type,donnees}   AP   un message de mise en relation (offre, réponse, candidats, pouls) pour l'AUTRE participant — pour une salle, pour un participant PRÉSENT (`a`) — 16 Ko, débit plafonné
  *
  * Une fonction par ligne du manifeste (`manifeste.js`), branchée par `routes.js`. L'orchestration (relais, signaux, balayeur, pushs) est dans `appels.js`, le SQL dans `stockage.js`.
- * Les appels à deux sont GRATUITS en Perso (SERVEUR.md § 5, question 3) : aucune de ces routes ne porte `pro: true`, `formuleDe` n'intervient que pour LANCER un appel à plusieurs (402 `formule_requise` : c'est
- * l'hôte qui paie) — être appelé, répondre et rejoindre restent gratuits. Les gestes de l'hôte et des participants d'une salle sont dans `routes-salles.js`.
+ * ⛔ LES APPELS SONT GRATUITS, À DEUX COMME À PLUSIEURS (Justin, 4 octobre 2026 : « comme WhatsApp : appel, message, appel vidéo » ; un appel de GROUPE reste gratuit) : aucune de ces routes ne porte `pro: true` ni
+ * `organiser: true`, et `formuleDe` n'intervient pas ici. Ce qui se paie est d'ORGANISER (programmer une réunion, tenir les outils de l'organisateur d'une salle : Perso+ ou Pro) — voir `routes-salles.js`, où
+ * un appel de groupe lancé par quelqu'un qui n'a ni l'un ni l'autre garde le micro, la caméra, les réactions, la main levée et le partage d'écran, mais pas la salle d'attente, le verrou, le sondage, le minuteur,
+ * l'enregistrement, ni le droit de retirer quelqu'un ou de couper les micros. Les gestes de l'hôte et des participants d'une salle sont dans `routes-salles.js`.
  *
  * ⛔ LES PERSONNES VIENNENT DE LA SESSION ET DE LA BASE, jamais du corps : l'appelant est la personne connectée, l'appel se lit dans l'adresse (`:id`), l'AUTRE participant est celui de l'appel.
  * ⛔ « QUI PEUT SE JOINDRE » EST LA RÈGLE DE LA MESSAGERIE, À LA LETTRE : `peutEcrire` (un contact mutuel, ou un collègue d'un même espace) et jamais un blocage, dans un sens ou dans l'autre. Quelqu'un qu'on ne peut pas
@@ -85,14 +87,6 @@ function installerAppels(H, ctx) {
   };
 
   /* ── lancer ── */
-  /* ⛔ UN APPEL À PLUSIEURS est une fonction PRO — celle de l'HÔTE : `formuleDe` est jugée sur la personne qui lance, jamais sur ceux qu'elle appelle (être appelé et rejoindre sont gratuits). La bêta ouvre tout.
-     Même refus que la garde PRO des autres routes (`formule_requise`, et si le paiement est ouvert). Jugé APRÈS le droit de joindre (un refus d'existence ne passe pas par la formule) et AVANT les plafonds. */
-  function exigerPro(req, res) {
-    const v = ctx.formule.formuleDe({ personne: req.moi.id });
-    if (v.formule === 'pro') return true;
-    refus(res, 402, 'formule_requise', { abonnement_ouvert: !!(ctx.facturation && ctx.facturation.ouvert()) });
-    return false;
-  }
   /* Les invités d'un appel de groupe qui peuvent SONNER : la personne a le droit de les joindre (une conversation commune ou la règle de la messagerie), et aucun plafond de réception n'est atteint chez eux
      — celui dont le plafond est atteint ne sonne pas (il ne lit rien : un plafond ne se dit pas à un tiers). */
   function sonnables(moi, candidats) {
@@ -133,7 +127,6 @@ function installerAppels(H, ctx) {
     }
     if (groupe) {
       if (!groupe.length) return refus(res, 404, 'introuvable');
-      if (!exigerPro(req, res)) return;
       if (!plafond(res, 'appel:' + moi.id, cfg.parHeure * jeune(moi), 3600000)) return;
       const sonnent = sonnables(moi, groupe);
       let r;

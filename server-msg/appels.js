@@ -59,7 +59,7 @@ function tailleEvt(d) {
   try { return Buffer.byteLength(JSON.stringify(d), 'utf8'); } catch (e) { return Infinity; }
 }
 
-function creerAppels({ stockage, hub, push, config, horloge = Date.now, journaliser = () => {} }) {
+function creerAppels({ stockage, hub, push, config, formule = null, horloge = Date.now, journaliser = () => {} }) {
   const cfg = config.appels;
   const vus = new Map();                 // "appel|personne" → l'instant du dernier signe de vie de l'appareil lié
   const salles = new Map();              // identifiant d'appel → l'éphémère de la salle (mains, états, sondage, minuteur, épingle) — MÉMOIRE SEULEMENT
@@ -210,13 +210,24 @@ function creerAppels({ stockage, hub, push, config, horloge = Date.now, journali
   }
   const sondageVue = (s, uid) => s ? { id: s.id, question: s.question, choix: s.choix, comptes: s.choix.map((_, i) => Array.from(s.votes.values()).filter(v => v === i).length), total: s.votes.size, ouvert: s.ouvert, mon_vote: uid && s.votes.has(uid) ? s.votes.get(uid) : null } : null;
   const minuteurVue = (m) => m ? { fin_dans_s: Math.max(0, Math.ceil((m.fin - horloge()) / 1000)), secondes: m.secondes } : null;
-  /* Ce qui s'est dit avant l'arrivée de `uid` (ou de la page qui relit) : de quoi dessiner mains levées, états des autres, sondage, minuteur, épingle. */
+  /* ⛔ LES OUTILS DE L'ORGANISATEUR D'UNE SALLE (Perso+, 4 octobre 2026). Une salle les a si c'est la salle d'une RÉUNION (programmée par quelqu'un qui pouvait l'organiser), ou si celui qui a LANCÉ l'appel de groupe est
+     Pro ou Perso+ (`formule.peutOrganiser` — la seule définition, bêta comprise : tout y est ouvert). Jugé sur celui qui a lancé l'appel, JAMAIS sur l'hôte du moment (un autre l'est devenu depuis, ce n'est pas lui qui
+     paie) ni sur celui qui agit ; un organisateur dont le compte s'est effacé n'en laisse pas : la salle redevient gratuite. Sans formule injectée (les bancs du stockage), tout est ouvert. Une salle qui n'existe pas
+     (ou un appel à deux) n'a pas d'outils. LA définition : `routes-salles.js` refuse avec elle, et la page propose avec elle (`etatSalle.outils`). */
+  function outilsOuverts(id) {
+    const s = stockage.salleOrganisateur(id);
+    if (!s) return false;
+    if (s.genre === 'reunion') return true;
+    if (!formule) return true;
+    return !!s.organisateur && formule.peutOrganiser(s.organisateur).ok;
+  }
+  /* Ce qui s'est dit avant l'arrivée de `uid` (ou de la page qui relit) : de quoi dessiner mains levées, états des autres, sondage, minuteur, épingle — et si la salle a ses OUTILS d'organisateur. */
   function etatSalle(id, uid) {
-    const e = etatDe(id, false);
-    if (!e) return { mains: [], etats: {}, sondage: null, minuteur: null, epingle: null };
+    const e = etatDe(id, false), outils = outilsOuverts(id);
+    if (!e) return { mains: [], etats: {}, sondage: null, minuteur: null, epingle: null, outils };
     if (e.minuteur && e.minuteur.fin <= horloge()) e.minuteur = null;
     const etats = {}; for (const [u, x] of e.etats) etats[u] = x;
-    return { mains: Array.from(e.mains), etats, sondage: sondageVue(e.sondage, uid), minuteur: minuteurVue(e.minuteur), epingle: e.epingle };
+    return { mains: Array.from(e.mains), etats, sondage: sondageVue(e.sondage, uid), minuteur: minuteurVue(e.minuteur), epingle: e.epingle, outils };
   }
   /* Oublier ce qu'une personne avait posé dans la salle quand elle en sort : sa main, ses états, son vote reste (un vote est un vote), l'épingle qui la désignait. */
   function oublier(id, uid) {
@@ -450,7 +461,7 @@ function creerAppels({ stockage, hub, push, config, horloge = Date.now, journali
   }
 
   return { ice, creer, creerGroupe, repondre, rejoindre, rejoindreReunion, quitter, signal, bloquer, terminerDe, balayer, echoir, demarrer, arreter, sante, relais: relaisPose, etat,
-    main, reaction, etatMien, evt, demanderCouperMicro, etatSalle, admettre, refuser, exclure, verrouiller, salleAttente, partage, rec, cohote, terminer, capaciteDe,
+    main, reaction, etatMien, evt, demanderCouperMicro, etatSalle, outilsOuverts, admettre, refuser, exclure, verrouiller, salleAttente, partage, rec, cohote, terminer, capaciteDe,
     /* pour les bancs : combien de salles ont un éphémère en mémoire (jamais publié) */
     memoireSalles: () => salles.size };
 }
