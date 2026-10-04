@@ -22,6 +22,7 @@ T.sauterSiSansDependances();
 const { v, vrai, fin } = T.compteur();
 const { ouvrir } = require(path.join(T.SERVICE, 'stockage.js'));
 const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
+const { tailleSignal } = require(path.join(T.SERVICE, 'routes-appels.js'));
 
 setTimeout(() => { console.log('  ✗ délai global du banc dépassé (240 s)'); process.exit(1); }, 240000).unref();
 
@@ -217,6 +218,20 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
       const taille = (n) => ({ x: 'y'.repeat(n - JSON.stringify({ x: '' }).length) });
       const pile = taille(16384), trop = taille(16385);
       v('⛔ 16 Ko PILE (16 384 octets de JSON) passent ; un octet de plus : 413 `signal_trop_gros`', [Buffer.byteLength(JSON.stringify(pile)), dit(await sig(a1, ben.id, 'candidats', pile)), Buffer.byteLength(JSON.stringify(trop)), dit(await sig(a1, ben.id, 'candidats', trop))], [16384, [200, undefined], 16385, [413, 'signal_trop_gros']]);
+      /* ⛔ R1 (relecture) : un signal IMBRIQUÉ se mesure sans jamais lever. `JSON.stringify` d'un objet à 5 000 niveaux lève « Maximum call stack size exceeded » — la route rendait 500 `erreur_interne` pour 30 Ko de
+         corps (sous la limite). Le corps part EN TEXTE : le construire en objet ici lèverait avant même d'envoyer. */
+      const chemin = '/api/appels/' + id + '/signal', imbrique = (n) => '{"a":"' + ben.id + '","type":"candidats","donnees":' + '{"x":'.repeat(n) + '1' + '}'.repeat(n) + '}';
+      const profonds = [];
+      for (const n of [8, 9, 100, 5000]) profonds.push(dit(await a1.post(chemin, imbrique(n))));
+      v('⛔ un signal imbriqué : 8 niveaux passent ; 9, 100 et 5 000 (30 Ko de corps) → 413 `signal_trop_gros` — jamais un 500 (avant : 5 000 niveaux = `erreur_interne`)',
+        profonds, [[200, undefined], [413, 'signal_trop_gros'], [413, 'signal_trop_gros'], [413, 'signal_trop_gros']]);
+      v('   le service vit toujours après le 5 000 niveaux (un signal ordinaire repasse : 200)', (await sig(a1, ben.id, 'candidats', { i: 'apres-profond' })).code, 200);
+      /* la mesure elle-même, sans le service : un million de niveaux (construits sans récursion) → Infinity, pas une exception ; 16 384 octets pile → 16 384 ; une liste de 5 000 conteneurs vides (15 Ko : sous la
+         borne en octets, mais ce n'est pas un signal) → Infinity */
+      let abime = {}; for (let k = 0; k < 1000000; k++) abime = { x: abime };
+      let leve = null, mesures = null;
+      try { mesures = [tailleSignal(abime), tailleSignal({ x: 'y'.repeat(16384 - JSON.stringify({ x: '' }).length) }), tailleSignal({ c: new Array(5000).fill(0).map(() => ({})) }), tailleSignal({ c: [{ candidate: 'a', sdpMid: '0' }] })]; } catch (e) { leve = String(e); }
+      v('⛔ `tailleSignal` : un million de niveaux ne lève PAS (Infinity), 16 384 octets pèsent 16 384, 5 000 conteneurs vides (15 Ko) ne sont pas un signal (Infinity), un vrai lot de candidats pèse ce que dit JSON', [leve, mesures && mesures.map(String)], [null, ['Infinity', '16384', 'Infinity', String(JSON.stringify({ c: [{ candidate: 'a', sdpMid: '0' }] }).length)]]);          // en TEXTE : JSON confond Infinity et NaN avec null
       /* le débit : dix par minute pour cet appel et cette personne (réglage du banc) */
       avancer(2 * MIN);
       const codes = []; for (let i = 0; i < 12; i++) codes.push((await sig(a1, ben.id, 'candidats', { i })).code);

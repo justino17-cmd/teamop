@@ -23,6 +23,23 @@ const { TYPES_SIGNAL, SIGNAL_OCTETS_MAX } = require('./appels');
 
 const JOUR = 86400000;
 
+/* ⛔ LA TAILLE D'UN SIGNAL SE MESURE SANS JAMAIS LEVER. `JSON.stringify` d'un objet imbriqué sur quelques milliers de niveaux lève « Maximum call stack size exceeded » : mesuré par la relecture, 5 000 niveaux
+   (30 Ko de corps, loin sous la limite) donnaient un 500 `erreur_interne` au lieu du refus. Une enveloppe d'appel est PLATE (une offre : { type, sdp } ; des candidats : une liste d'objets à trois champs ; l'état
+   de la caméra : un booléen) : au-delà de `PROFONDEUR_SIGNAL_MAX` niveaux, ou de `NOEUDS_SIGNAL_MAX` valeurs, ce n'est pas un signal — et on le dit comme un signal trop gros (413), sans l'avoir sérialisé. Le parcours
+   est ITÉRATIF (une pile, jamais de récursion) : le mesurer ne peut pas lui-même déborder. → des octets, ou Infinity. */
+const PROFONDEUR_SIGNAL_MAX = 8, NOEUDS_SIGNAL_MAX = 4096;
+function tailleSignal(d) {
+  const pile = [[d, 1]];
+  let noeuds = 0;
+  while (pile.length) {
+    const [x, niveau] = pile.pop();
+    if (x === null || typeof x !== 'object') continue;
+    if (niveau > PROFONDEUR_SIGNAL_MAX || ++noeuds > NOEUDS_SIGNAL_MAX) return Infinity;
+    for (const k of Object.keys(x)) pile.push([x[k], niveau + 1]);
+  }
+  try { return Buffer.byteLength(JSON.stringify(d), 'utf8'); } catch (e) { return Infinity; }
+}
+
 function installerAppels(H, ctx) {
   const { config, stockage, quotas, horloge, appels } = ctx;
   const cfg = config.appels;
@@ -114,7 +131,7 @@ function installerAppels(H, ctx) {
     if (b.type !== 'pouls') {
       if (b.donnees === null || typeof b.donnees !== 'object' || Array.isArray(b.donnees)) return refus(res, 400, 'champ_invalide');      // un OBJET : l'enveloppe est { type, donnees }, la page lit des champs, pas une liste
       d = b.donnees;
-      if (Buffer.byteLength(JSON.stringify(d), 'utf8') > SIGNAL_OCTETS_MAX) return refus(res, 413, 'signal_trop_gros');
+      if (tailleSignal(d) > SIGNAL_OCTETS_MAX) return refus(res, 413, 'signal_trop_gros');
     }
     if (!plafond(res, 'signal:' + acces.id + ':' + moi.id, cfg.signalMax, cfg.signalFenetreMs)) return;
     appels.signal({ moi, acces, sessionH: req.sessionH, type: b.type, donnees: d });
@@ -122,4 +139,4 @@ function installerAppels(H, ctx) {
   });
 }
 
-module.exports = { installerAppels };
+module.exports = { installerAppels, tailleSignal, PROFONDEUR_SIGNAL_MAX, NOEUDS_SIGNAL_MAX };

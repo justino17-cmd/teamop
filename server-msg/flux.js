@@ -33,6 +33,10 @@
 const { cleReseau } = require('./quotas');
 const MAX_PAR_PERSONNE = 5, MAX_PAR_IP = 200, MAX_TAMPON = 1 << 20, DUREE_MAX_MS = 24 * 3600 * 1000;
 const RETENU_MAX = 100, RETENU_MS = 30000, RETENU_SESSIONS_MAX = 2000;   // un éphémère adressé à UNE session sans flux ouvert : 100 au plus, 30 s de vie, 2 000 sessions au plus
+/* ⛔ ET BORNÉ EN OCTETS, pas seulement en nombre : 100 signaux de 16 Ko × 2 000 sessions, c'étaient 3,1 Go que ce service pouvait retenir (mesuré par la relecture : 40 sessions visées → 77 Mo devenus 201 Mo, et 201 Mo
+   encore une heure plus tard — personne ne purgeait un signal PÉRIMÉ d'une session qui n'ouvrait plus jamais son flux). 256 Kio par session (un appel en négociation en porte une vingtaine de Kio : offre, réponse,
+   quelques dizaines de candidats), 8 Mio au total : le plus ancien part le premier. */
+const RETENU_OCTETS_SESSION = 262144, RETENU_OCTETS_TOTAL = 8388608;
 
 const trame = (id, event, data) => (id !== null && id !== undefined ? 'id: ' + id + '\n' : '') + 'event: ' + event + '\ndata: ' + JSON.stringify(data) + '\n\n';
 
@@ -42,7 +46,9 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
   const parIp = new Map();            // ip → nombre
   const graces = new Map();           // uid → minuteur d'absence
   let refus = 0;
-  const retenus = new Map();          // empreinte de session → [{ t, event, data }] : les éphémères qui attendent le flux de cette session (les signaux d'un appel)
+  const retenus = new Map();          // empreinte de session → { l: [{ t, event, data, n }], octets } : les éphémères qui attendent le flux de cette session (les signaux d'un appel), et ce qu'ils pèsent
+  let retenusOctets = 0;              // le total de ce que `retenus` pèse : tenu à chaque ajout et à chaque retrait, jamais recalculé (un compte qui dérive ne borne plus rien)
+  let dernierePurge = 0;
 
   function ecrire(f, texte) {
     try {
@@ -127,28 +133,48 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
   }
 
   /* Éphémère adressé à UNE SESSION (et non à une personne) : un signal d'appel (SDP, candidats d'adresses) ne doit atteindre que l'appareil LIÉ à l'appel, pas les autres sessions de la personne — les adresses
-     réseau d'un appareil n'ont rien à faire sur un téléphone oublié. Sans flux ouvert, il est RETENU (100 par session, 30 s, 2 000 sessions) et livré à l'ouverture du prochain flux de cette session.
+     réseau d'un appareil n'ont rien à faire sur un téléphone oublié. Sans flux ouvert, il est RETENU (100 par session, 256 Kio par session, 8 Mio au total, 30 s, 2 000 sessions) et livré à l'ouverture du prochain
+     flux de cette session.
      → vrai s'il a été écrit à au moins un flux ouvert. */
   function emettreSession(h, event, data) {
     let livre = false;
     for (const f of Array.from(flux)) if (f.h === h) { ecrire(f, trame(null, event, data)); livre = true; }
     if (livre) return true;
     const t = horloge();
-    let l = retenus.get(h);
-    if (!l) {
-      if (retenus.size >= RETENU_SESSIONS_MAX) { for (const k of retenus.keys()) { retenus.delete(k); break; } }   // la plus ancienne part
-      l = []; retenus.set(h, l);
+    let n;
+    try { n = Buffer.byteLength(event, 'utf8') + Buffer.byteLength(JSON.stringify(data), 'utf8'); } catch (e) { return false; }   // une enveloppe qu'on ne sait pas peser ne se retient pas
+    if (n > RETENU_OCTETS_SESSION) return false;                 // plus lourd que tout ce qu'une session peut attendre : jamais retenu
+    purgerPerimes(t, false);
+    let e = retenus.get(h);
+    if (!e) {
+      while (retenus.size >= RETENU_SESSIONS_MAX) oublier(retenus.keys().next().value);     // la session la plus ancienne part
+      e = { l: [], octets: 0 }; retenus.set(h, e);
     }
-    while (l.length && t - l[0].t > RETENU_MS) l.shift();
-    if (l.length >= RETENU_MAX) l.shift();
-    l.push({ t, event, data });
+    while (e.l.length >= RETENU_MAX || (e.l.length && e.octets + n > RETENU_OCTETS_SESSION)) retirer(e, e.l.shift());     // le plus ancien de CETTE session part le premier
+    for (const k of Array.from(retenus.keys())) {                                                                          // …et, au total, la session la plus ancienne perd tout avant que celle-ci perde un octet
+      if (retenusOctets + n <= RETENU_OCTETS_TOTAL) break;
+      if (k !== h) oublier(k);
+    }
+    e.l.push({ t, event, data, n }); e.octets += n; retenusOctets += n;
     return false;
   }
+  function retirer(e, x) { e.octets -= x.n; retenusOctets -= x.n; }
+  function oublier(h) { const e = retenus.get(h); if (e) { retenusOctets -= e.octets; retenus.delete(h); } }
+  /* ⛔ Ce qui est PÉRIMÉ (plus de 30 s) part, de TOUTES les sessions — pas seulement de celle qui reçoit un signal : une session qui n'ouvre plus jamais son flux (un téléphone éteint en pleine sonnerie) gardait
+     ses signaux pour toujours. `force` : à chaque passage du balayage ; sinon au plus une fois par seconde (un signal qui arrive ne parcourt pas 2 000 sessions à chaque fois). */
+  function purgerPerimes(t, force) {
+    if (!force && t - dernierePurge < 1000) return;
+    dernierePurge = t;
+    for (const [h, e] of retenus) {
+      while (e.l.length && t - e.l[0].t > RETENU_MS) retirer(e, e.l.shift());
+      if (!e.l.length) retenus.delete(h);
+    }
+  }
   function livrerRetenus(f) {
-    const l = retenus.get(f.h); if (!l) return;
-    retenus.delete(f.h);
+    const e = retenus.get(f.h); if (!e) return;
+    oublier(f.h);
     const t = horloge();
-    for (const e of l) if (t - e.t <= RETENU_MS) { if (!ecrire(f, trame(null, e.event, e.data))) return; }
+    for (const x of e.l) if (t - x.t <= RETENU_MS) { if (!ecrire(f, trame(null, x.event, x.data))) return; }
   }
   /* Une session a-t-elle un flux ouvert à cet instant ? (le balayeur d'appels ne s'en sert PAS pour juger la vie d'un appel — ce sont les signaux — mais les bancs le lisent) */
   function sessionOuverte(h) { for (const f of flux) if (f.h === h) return true; return false; }
@@ -204,6 +230,7 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
 
   const pulsation = setInterval(() => {
     const t = horloge();
+    purgerPerimes(t, true);
     for (const f of Array.from(flux)) {
       if (t - f.ouvertA > DUREE_MAX_MS) { fermer(f, 'duree'); continue; }
       /* ⛔ un VRAI événement, pas un commentaire `:` — `EventSource` n'expose jamais un commentaire au JavaScript, donc la page ne pouvait pas savoir qu'une
@@ -218,12 +245,14 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
     for (const f of Array.from(flux)) fermer(f, 'arret');
     for (const t of graces.values()) clearTimeout(t);   // APRÈS les fermetures : elles posent chacune une grâce
     graces.clear();
-    retenus.clear();
+    retenus.clear(); retenusOctets = 0;
   }
 
   return {
     ouvrir, reveiller, emettre, emettreSession, sessionOuverte, enLigne, fluxOuverts, fermerSession, fermerPersonne, arreter, presenceChangee, personneChangee, reglagesChanges,
     stats: () => ({ ouverts: flux.size, personnes: parUid.size, refus }),
+    /* ce que le flux RETIENT pour des sessions sans flux : pour les bancs seulement (/health ne le porte pas — une activité, et /health est publique) */
+    retenusEtat: () => ({ sessions: retenus.size, octets: retenusOctets, entrees: Array.from(retenus.values()).reduce((a, e) => a + e.l.length, 0) }),
   };
 }
 
