@@ -13,8 +13,11 @@
         (sa limite est celle de la maille : six en audio, quatre en vidéo) ; AUCUNE route, AUCUNE offre ne vend le supplément « Grandes réunions » (il n'existe pas encore) ;
      4. LES OUTILS DE L'ORGANISATEUR D'UNE SALLE : dans un appel de groupe lancé par quelqu'un de gratuit, huit gestes refusent (402) et rien n'est écrit, le reste est à tous ; éteindre n'est jamais refusé ; dans la salle d'une
         RÉUNION, ou si celui qui a LANCÉ l'appel est Pro ou Perso+, tout marche — et c'est celui qui lance qui compte, pas l'hôte du moment ; la bêta ouvre tout ;
-     5. LE COMPTE EFFACÉ ANNULE SON ABONNEMENT, par le VRAI balayeur du service (le câblage que `test-991` ne peut pas voir) : demandé, J+14, Stripe reçoit la résiliation ; Stripe muet, l'âge s'affiche dans /health et la
-        résiliation aboutit quand Stripe revient.
+     5. LE COMPTE EFFACÉ ANNULE SON ABONNEMENT, par le VRAI balayeur du service (le câblage que `test-991` ne peut pas voir) : demandé, J+14, Stripe reçoit la résiliation (la demande, elle, a déjà arrêté le renouvellement) ;
+     5 bis. QUI DEMANDE À PARTIR N'EST PLUS PRÉLEVÉ, par les VRAIES routes : la demande de suppression arrête le renouvellement chez Stripe (le compte reste actif jusqu'à la fin de la période payée), se reconnecter par la
+        porte bêta le rétablit — SAUF ce que la personne avait coupé elle-même, qui ne se réactive jamais — SANS attendre une passe (un service dont la passe est à l'heure, après avoir VU la première passer), et Stripe muet
+        n'empêche jamais la demande ni l'effacement : le geste se note, /health en dit l'âge, et il se REJOUE quand Stripe revient (un service dont la passe tourne chaque seconde : le rejeu ne dépend d'aucune
+        coïncidence avec la première passe).
 
    ⛔ UNE ASSERTION SUR UN ENSEMBLE VIDE PASSE ET NE PROUVE RIEN : chaque refus est précédé de la population qu'il aurait pu compter (les sessions ouvertes chez Stripe, les réunions, les participants). Toute attente est au
    GESTE (on sonde la condition), jamais au chronomètre. */
@@ -49,7 +52,7 @@ const PRIX_PP = { mensuel: 'price_BancHttpPersoMensuelC3', annuel: 'price_BancHt
   /* un service, la base ouverte à côté (WAL), des personnes et des clients fabriqués */
   async function monter(config, opts) {
     const o = opts || {};
-    const svc = await T.lancerService({ horloge: true, config, env: o.sansStripe ? {} : env });
+    const svc = await T.lancerService({ horloge: true, config, env: o.sansStripe ? {} : env, urlGestion: o.urlGestion });
     let decal = 0;
     const maintenant = () => Date.now() + decal;
     const S = ouvrir({ chemin: path.join(svc.data, 'msg.db'), scelleur: creerScelleur(Buffer.from(svc.cle, 'hex')), horloge: maintenant });
@@ -73,7 +76,7 @@ const PRIX_PP = { mensuel: 'price_BancHttpPersoMensuelC3', annuel: 'price_BancHt
 
   const P = await monter({ formule: { toutOuvert: false }, facturation: facturation(), quotas, balayageMs: 200, appels: { balayageMs: 1000, perduMs: 600000 } });
   const { svc, S, pers, cl } = P;
-  let I = null, B = null;
+  let I = null, B = null, K = null, Q = null, og = null;
   try {
     const ana = pers('Ana'), dan = pers('Dan'), eve = pers('Eve'), fred = pers('Fred'), gus = pers('Gus'), ben = pers('Ben'), cleo = pers('Cleo'), ivan = pers('Ivan');
     espacePro(P, ana);
@@ -348,34 +351,115 @@ const PRIX_PP = { mensuel: 'price_BancHttpPersoMensuelC3', annuel: 'price_BancHt
       const nSub = Array.from(fake.abonnements.values()).filter(sb => sb.status === 'active').length;
       const dem = await h1.post('/api/compte/supprimer', { confirmation: 'SUPPRIMER' });
       v('population : Hal, Perso+ payé, demande la suppression de son compte (200) — son abonnement court toujours chez Stripe (J+0)', [halP.e.j.organiser, dem.code, fake.resiliations.includes(halP.sb.id), nSub >= 1], [true, 200, false, true]);
+      const arretHal = await att(() => fake.abonnements.get(halP.sb.id).cancel_at_period_end === true);
+      v('⛔ LA DEMANDE arrête le renouvellement chez Stripe (le câblage de la route à la facturation, que ni le module ni le stockage ne voient) : `cancel_at_period_end` est vrai, l\'abonnement reste ACTIF (l\'accès va jusqu\'à la fin de la période payée), rien n\'est résilié',
+        [arretHal, fake.abonnements.get(halP.sb.id).status, fake.modifications.filter(m => m.id === halP.sb.id).map(m => m.cancel_at_period_end), fake.resiliations.includes(halP.sb.id)], [true, 'active', [true], false]);
       P.avancer(15 * JOUR);
       const fait = await att(() => fake.resiliations.includes(halP.sb.id));
       vrai('⛔ J+14 : le VRAI balayeur efface le compte et Stripe REÇOIT la résiliation de CET abonnement (le câblage de l\'effacement à la facturation, que ni le module ni le stockage ne voient)', fait);
       const aucun = P.compte('SELECT COUNT(*) AS n FROM abonnement_perso WHERE personne = ?', hal.id) + P.compte('SELECT COUNT(*) AS n FROM abonnement_a_annuler WHERE abonnement = ?', halP.sb.id);
       v('… la ligne de son abonnement est partie avec lui, la file est vide, /health ne dit qu\'un âge (zéro)', [aucun, (await T.client(svc.base).get('/health')).j.facturation.persoAnnulationMin], [0, 0]);
-      /* — Stripe muet au moment de l'effacement — */
-      const ina = pers('Ina'), n1 = cl(ina);
-      const inaP = await paye(P, n1);
-      await n1.post('/api/compte/supprimer', { confirmation: 'SUPPRIMER' });
+      /* (Stripe muet à l'effacement, et la reprise : dans le service Q de la section 5 bis, dont la passe de relecture tourne chaque seconde — voir plus bas) */
+    }
+
+    /* ═══ 5 bis. QUI DEMANDE À PARTIR N'EST PLUS PRÉLEVÉ — PAR LES VRAIES ROUTES ═══════════════════════════════════════════════════════════════════ *
+       Deux services à part, chacun pour ce qu'il PROUVE (et un OP GESTION de poche, la porte bêta, pour se RECONNECTER) :
+       · K — la passe de relecture est à UNE HEURE : on ATTEND la première (cinq secondes après le démarrage) et on la VOIT passer, par un abonnement témoin. Après elle, rien ne part chez Stripe que parce qu'une ROUTE
+         l'a demandé (la demande, la reconnexion) : aucune coïncidence avec une passe ne peut faire passer ce banc ;
+       · Q — la passe tourne CHAQUE SECONDE : le rejeu d'un geste que Stripe muet a empêché ne dépend d'aucune coïncidence avec la première passe (l'ancienne version de ce banc, pour l'effacement, l'attendait sans le
+         savoir, et tombait si Stripe était muet à ce moment-là). */
+    console.log('\nQui demande à partir n\'est plus prélevé : la demande arrête le renouvellement, se reconnecter le rétablit (sauf ce que la personne avait coupé elle-même), Stripe muet n\'empêche jamais un geste de se rejouer');
+    {
+      const PW = { zed: 'pw-zed-99210', jade: 'pw-jade-9921', kim: 'pw-kim-99211', lou: 'pw-lou-99212', ina: 'pw-ina-99213' };
+      og = await T.fauxOpGestion(Object.fromEntries(Object.entries(PW).map(([l, pass]) => [l, { pass, nom: l[0].toUpperCase() + l.slice(1) + ' Banc', actif: true }])));
+      const mods = (sb) => fake.modifications.filter(m => m.id === sb.id).map(m => m.cancel_at_period_end);
+      const vif = (sb) => fake.abonnements.get(sb.id).cancel_at_period_end;
+      const ligne = (M, sb) => { const d = M.brut(); try { const r = d.prepare('SELECT voulu, fait, avant, touche FROM abonnement_a_annuler WHERE abonnement = ?').get(sb.id); return r ? [r.voulu, r.fait, r.avant, r.touche] : null; } finally { d.close(); } };
+      const faite = (M, sb) => { const l = ligne(M, sb); return !!l && l[1] === 1; };
+      const sante = async (M) => (await T.client(M.svc.base).get('/health')).j.facturation.persoAnnulationMin;
+      const entrer = (M, login) => T.client(M.svc.base).post('/api/beta/entrer', { login, pass: PW[login] });     // la porte bêta : se reconnecter
+
+      /* ── K : une passe à l'heure — les routes réveillent seules la facturation ── */
+      K = await monter({ formule: { toutOuvert: false }, facturation: facturation(), quotas, balayageMs: 200 }, { urlGestion: og.url });
+      const zed = await T.connecter(K.svc, og, 'zed', PW.zed);
+      const zP = await paye(K, zed);
+      const lecZ = () => fake.compter('GET', new RegExp('/subscriptions/' + zP.sb.id)), z0 = lecZ();
+      const premiere = await att(() => lecZ() > z0, 20000);
+      vrai('population : la PREMIÈRE passe de relecture de K est passée (on l\'a vue relire l\'abonnement témoin) — la suivante est dans une heure : plus rien ne part chez Stripe que parce qu\'une route l\'a demandé', !!premiere);
+
+      /* — Jade : le cas ordinaire — */
+      const jade = await T.connecter(K.svc, og, 'jade', PW.jade);
+      const jP = await paye(K, jade);
+      const demJ = await jade.post('/api/compte/supprimer', { confirmation: 'SUPPRIMER' });
+      const arretJ = await att(() => vif(jP.sb) === true && faite(K, jP.sb));
+      v('⛔ la DEMANDE (la vraie route) arrête le renouvellement chez Stripe sans que la réponse l\'attende, et sans attendre une passe : 200, `cancel_at_period_end` vrai, l\'abonnement reste ACTIF, rien n\'est résilié, la ligne est faite et se souvient (il se renouvelait, c\'est nous qui l\'avons arrêté)',
+        [jP.e.j.organiser, demJ.code, arretJ, fake.abonnements.get(jP.sb.id).status, mods(jP.sb), fake.resiliations.includes(jP.sb.id), ligne(K, jP.sb)], [true, 200, true, 'active', [true], false, ['fin', 1, 0, 1]]);
+      const retourJ = await entrer(K, 'jade');
+      v('⛔ elle se reconnecte par la porte bêta AVANT l\'échéance : 200, la réponse DIT que la suppression est annulée', [retourJ.code, retourJ.j.suppression_annulee], [200, true]);
+      const retabliJ = await att(() => vif(jP.sb) === false && ligne(K, jP.sb) === null);
+      v('⛔ … et le RENOUVELLEMENT REVIENT chez Stripe (c\'était nous qui l\'avions arrêté), sans attendre une passe : `cancel_at_period_end` faux, deux changements en tout (arrêt, rétablissement), toujours actif, aucune résiliation, plus rien à faire',
+        [retabliJ, mods(jP.sb), fake.abonnements.get(jP.sb.id).status, fake.resiliations.includes(jP.sb.id)], [true, [true, false], 'active', false]);
+
+      /* — Kim : elle avait coupé le renouvellement elle-même (portail), AVANT sa demande — */
+      const kim = await T.connecter(K.svc, og, 'kim', PW.kim);
+      const kP = await paye(K, kim);
+      fake.statut(kP.sb.id, 'active', { cancel_at_period_end: true });             // le portail : elle a arrêté elle-même, le service ne l'a pas encore relu
+      const demK = await kim.post('/api/compte/supprimer', { confirmation: 'SUPPRIMER' });
+      const luK = await att(() => faite(K, kP.sb));
+      v('⛔ Kim, qui avait coupé le renouvellement elle-même : la demande LIT Stripe (population : la ligne est faite), n\'envoie AUCUN changement, et se souvient que ce n\'est pas nous (`avant` 1, `touche` 0)', [demK.code, luK, ligne(K, kP.sb), mods(kP.sb), vif(kP.sb)], [200, true, ['fin', 1, 1, 0], [], true]);
+      const retourK = await entrer(K, 'kim');
+      v('⛔ elle se reconnecte : la suppression est annulée, et le renouvellement NE REVIENT PAS — il reste coupé comme elle l\'avait voulu (rien n\'est envoyé, la ligne est partie)', [retourK.code, retourK.j.suppression_annulee, mods(kP.sb), vif(kP.sb), ligne(K, kP.sb)], [200, true, [], true, null]);
+      /* le troisième réveil de la facturation : se reconnecter par le code d'un SMS (`telephone.js`) — le SMS se joue dans test-957 ; ici, le CÂBLAGE est lu dans le CODE (commentaires retirés) */
+      const lireCode = (f) => T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, f), 'utf8'));
+      const tel = lireCode('telephone.js'), at = tel.indexOf('stockage.suppressionAnnuler(p.id)');
+      vrai('⛔ la reconnexion par le code d\'un SMS réveille la facturation juste après avoir annulé la suppression, comme la porte bêta (population : l\'appel est trouvé dans le code)', at > 0 && /annulee\)\s*\{[^}]*ctx\.facturation\.perso\.annulationsTraiter\(\)/.test(tel.slice(at, at + 500)));
+
+      /* ── Q : une passe chaque seconde — le rejeu ne dépend d'aucune coïncidence ── */
+      Q = await monter({ formule: { toutOuvert: false }, facturation: Object.assign(facturation(), { relectureMs: 1000 }), quotas, balayageMs: 200 }, { urlGestion: og.url });
+
+      /* — Lou : Stripe est muet quand elle demande à partir — */
+      const lou = await T.connecter(Q.svc, og, 'lou', PW.lou);
+      const lP = await paye(Q, lou);
       fake.mode = 'muet';
-      P.avancer(15 * JOUR);
-      const efface = await att(() => P.compte(`SELECT COUNT(*) AS n FROM personne WHERE id = ? AND etat = 'supprime'`, ina.id) === 1);
-      P.avancer(3 * 3600000);
-      const vieux = await att(async () => ((await T.client(svc.base).get('/health')).j.facturation.persoAnnulationMin) >= 180);
-      v('⛔ Stripe muet : le compte est effacé quand même (l\'effacement n\'attend jamais le réseau), la résiliation est NOTÉE et attend — /health en dit l\'ÂGE (≥ 180 minutes), jamais un nombre d\'abonnés ni un identifiant', [efface, vieux, fake.resiliations.includes(inaP.sb.id), P.compte('SELECT COUNT(*) AS n FROM abonnement_a_annuler WHERE abonnement = ?', inaP.sb.id)], [true, true, false, 1]);
-      const sante = (await T.client(svc.base).get('/health')).txt;
-      vrai('… /health ne publie aucun identifiant (`sub_`, `cus_`, `p_…`) ni chiffre commercial autour de cela', !/sub_|cus_|"p_[0-9a-f]{32}"|abonn[ée]s?\b/i.test(sante));
+      const demL = await lou.post('/api/compte/supprimer', { confirmation: 'SUPPRIMER' });
+      const essaiL = await att(() => Q.compte('SELECT essais AS n FROM abonnement_a_annuler WHERE abonnement = ?', lP.sb.id) >= 1);
+      v('⛔ Stripe MUET : la demande est prise quand même (200 — elle n\'attend jamais Stripe), la tentative a eu lieu (population : un essai compté), l\'arrêt est NOTÉ et attend, rien n\'a changé chez Stripe',
+        [demL.code, essaiL, ligne(Q, lP.sb), vif(lP.sb), mods(lP.sb)], [200, true, ['fin', 0, null, 0], false, []]);
+      Q.avancer(3 * 3600000);
+      const vieuxL = await att(async () => (await sante(Q)) >= 180);
+      v('… /health en dit l\'ÂGE (≥ 180 minutes), jamais un nombre d\'abonnés ni un identifiant', [vieuxL, !/sub_|cus_|"p_[0-9a-f]{32}"/.test((await T.client(Q.svc.base).get('/health')).txt)], [true, true]);
       fake.mode = 'normal';
-      P.avancer(3600000 + 11000);
-      const reprise = await att(() => fake.resiliations.includes(inaP.sb.id), 15000);
-      vrai('⛔ Stripe revient : la passe de relecture REJOUE la résiliation sans que personne n\'ait rien demandé — l\'abonnement est résilié, la file se vide, l\'âge retombe à zéro', reprise && await att(async () => (await T.client(svc.base).get('/health')).j.facturation.persoAnnulationMin === 0) && P.compte('SELECT COUNT(*) AS n FROM abonnement_a_annuler') === 0);
+      const repriseL = await att(() => vif(lP.sb) === true && faite(Q, lP.sb), 15000);
+      v('⛔ Stripe revient : la passe de relecture REJOUE l\'arrêt sans que personne ne demande rien — `cancel_at_period_end` vrai, un seul changement, la ligne est faite, l\'âge retombe à zéro',
+        [repriseL, mods(lP.sb), await att(async () => (await sante(Q)) === 0), ligne(Q, lP.sb)], [true, [true], true, ['fin', 1, 0, 1]]);
+
+      /* — Ina : elle demande à partir, puis le compte est EFFACÉ à J+14 pendant que Stripe est muet (Lou, qui n'est pas revenue, l'est avec elle) — */
+      const ina = await T.connecter(Q.svc, og, 'ina', PW.ina);
+      const inaP = await paye(Q, ina);
+      await ina.post('/api/compte/supprimer', { confirmation: 'SUPPRIMER' });
+      await att(() => vif(inaP.sb) === true && faite(Q, inaP.sb));
+      fake.mode = 'muet';
+      Q.avancer(15 * JOUR);
+      const efface = await att(() => Q.compte(`SELECT COUNT(*) AS n FROM personne WHERE id = ? AND etat = 'supprime'`, ina.moi.id) === 1);
+      Q.avancer(3 * 3600000);
+      const vieux = await att(async () => (await sante(Q)) >= 180);
+      v('⛔ Stripe muet à l\'EFFACEMENT : le compte est effacé quand même (l\'effacement n\'attend jamais le réseau), la résiliation est NOTÉE (la ligne `fin` devient `resilier`) et attend — /health en dit l\'ÂGE (≥ 180 minutes)',
+        [efface, vieux, fake.resiliations.includes(inaP.sb.id), (ligne(Q, inaP.sb) || []).slice(0, 2)], [true, true, false, ['resilier', 0]]);
+      const sain = (await T.client(Q.svc.base).get('/health')).txt;
+      vrai('… /health ne publie aucun identifiant (`sub_`, `cus_`, `p_…`) ni chiffre commercial autour de cela', !/sub_|cus_|"p_[0-9a-f]{32}"|abonn[ée]s?\b/i.test(sain));
+      fake.mode = 'normal';
+      const reprise = await att(() => fake.resiliations.includes(inaP.sb.id) && fake.resiliations.includes(lP.sb.id), 15000);
+      vrai('⛔ Stripe revient : la passe de relecture REJOUE les deux résiliations (Ina, et Lou qui n\'était pas revenue) sans que personne n\'ait rien demandé — les abonnements sont résiliés, la file se vide, l\'âge retombe à zéro',
+        reprise && await att(async () => (await sante(Q)) === 0) && Q.compte('SELECT COUNT(*) AS n FROM abonnement_a_annuler') === 0);
+      v('… et personne d\'autre n\'a été touché pendant tout cela : Jade et Kim ont leurs abonnements, ni résiliés ni modifiés de plus (population : Jade, Kim et Lou ont été traitées pendant ce temps)', [fake.resiliations.includes(jP.sb.id), fake.resiliations.includes(kP.sb.id), mods(jP.sb), mods(kP.sb)], [false, false, [true, false], []]);
     }
   } catch (e) {
     console.log('  ✗ le banc est mort : ' + (e && e.stack || e));
     console.log(svc.sortie.texte().slice(-1500));
     process.exitCode = 1;
   }
-  for (const M of [P, I, B]) { if (M) { try { await M.fermer(); } catch (e) { /* déjà fermé */ } } }
+  for (const M of [P, I, B, K, Q]) { if (M) { try { await M.fermer(); } catch (e) { /* déjà fermé */ } } }
+  try { if (og) await og.fermer(); } catch (e) { /* déjà fermé */ }
   try { await fake.fermer(); } catch (e) { /* déjà fermé */ }
   fin();
 })();

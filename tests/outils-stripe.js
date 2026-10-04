@@ -10,6 +10,8 @@
  *     GET  /v1/prices/:id                 un tarif (avec son produit si `expand[]=product`) — lu par `configurer-stripe.js`
  *     GET  /v1/customers/:id              un client (404 s'il n'existe pas ; `deleted:true` s'il a été supprimé) — lu par le service pour CONFIRMER l'absence d'un abonnement (voir `absenceConfirmee`)
  *     DELETE /v1/subscriptions/:id        RÉSILIER un abonnement (Perso+ : un compte effacé) → l'objet, `status: 'canceled'` ; 404 s'il n'existe pas ; déjà résilié, il le redit (`E.resiliations` garde les identifiants)
+ *     POST /v1/subscriptions/:id          MODIFIER un abonnement — le seul paramètre qu'on y envoie : `cancel_at_period_end` (`true` : il cesse de se renouveler, Perso+ d'une personne qui demande à partir ; `false` : le renouvellement
+ *                                         revient). → l'objet à jour ; 404 s'il n'existe pas ; 400 s'il est résilié (Stripe ne modifie pas un abonnement résilié) ; `E.modifications` garde chaque changement APPLIQUÉ
  *     POST /v1/products, /v1/prices       créer un produit, un tarif (le script `configurer-stripe.js --creer-perso-plus`) — 403 si la clé n'a pas le droit d'écrire (`sansDroits` : « ecriture »)
  *     GET  /v1/subscriptions?status=all   la LISTE (ce que lit OP GESTION : `status=all`, `limit=100`, `starting_after`, du plus récent au plus ancien, le client et le produit des lignes
  *                                         développés seulement s'ils sont demandés par `expand[]`) — pour le banc de la couture, test-965 ; `listes` garde ce que chaque page a montré
@@ -40,8 +42,9 @@ async function fauxStripe(opts = {}) {
     pannesRestantes: 0,         // les N prochains appels répondent 500, puis tout revient
     urlMauvaise: null,          // une adresse que Stripe « rendrait » pour la page de paiement et le portail (`javascript:…`) : le service ne la fait jamais suivre à la page
     tarifs: new Map(),          // id → objet « price » (lu par `configurer-stripe.js`)
-    sansDroits: new Set(),      // 'abonnements' | 'tarifs' | 'produits' | 'ecriture' | 'resilier' : le droit manque à la clé → 403
+    sansDroits: new Set(),      // 'abonnements' | 'tarifs' | 'produits' | 'ecriture' | 'resilier' | 'modifier' : le droit manque à la clé → 403 (« Subscriptions : write » couvre résilier ET modifier : 'resilier' refuse les deux, 'modifier' seulement le POST)
     resiliations: [],           // les identifiants d'abonnement RÉSILIÉS par un DELETE (dans l'ordre)
+    modifications: [],          // chaque changement de `cancel_at_period_end` APPLIQUÉ par un POST /v1/subscriptions/:id : { id, cancel_at_period_end } (dans l'ordre)
     produits: new Map(),        // id → objet « product » créé par un POST /v1/products
     idem: new Map(),            // clé d'idempotence → l'objet rendu la première fois (POST /v1/products et /v1/prices)
     listes: [],                 // chaque PAGE de `GET /v1/subscriptions` servie : { auth, requete, statuts: { identifiant: statut } }
@@ -97,6 +100,18 @@ async function fauxStripe(opts = {}) {
           const sb = E.abonnements.get(decodeURIComponent(m[1]));
           if (!sb) return json(res, 404, { error: { message: 'No such subscription' } });
           if (sb.status !== 'canceled') { sb.status = 'canceled'; E.resiliations.push(sb.id); }
+          return json(res, 200, sb);
+        }
+        if (req.method === 'POST' && (m = /^\/v1\/subscriptions\/([^/]+)$/.exec(p))) {
+          if (E.sansDroits.has('resilier') || E.sansDroits.has('modifier')) return json(res, 403, { error: { message: 'The provided key does not have the required permissions for this endpoint (rak_subscription_write)' } });
+          const sb = E.abonnements.get(decodeURIComponent(m[1]));
+          if (!sb) return json(res, 404, { error: { message: 'No such subscription' } });
+          const c = (paires.find(x => x[0] === 'cancel_at_period_end') || [])[1];
+          if (c !== undefined) {
+            if (c !== 'true' && c !== 'false') return json(res, 400, { error: { message: 'Invalid boolean: ' + c } });
+            if (sb.status === 'canceled') return json(res, 400, { error: { message: 'A canceled subscription can only update its cancellation_details and metadata.' } });
+            sb.cancel_at_period_end = c === 'true'; E.modifications.push({ id: sb.id, cancel_at_period_end: sb.cancel_at_period_end });
+          }
           return json(res, 200, sb);
         }
         if (req.method === 'POST' && (p === '/v1/products' || p === '/v1/prices')) {

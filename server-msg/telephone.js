@@ -232,6 +232,8 @@ function creerTelephone(ctx) {
     if (!p) { p = stockage.personneCreer({ identifiant, prenom, nom, origine: 'telephone', verifie: true }); nouveau = true; }
     /* ⛔ SE RECONNECTER AVANT L'ÉCHÉANCE ANNULE LA SUPPRESSION du compte (J+14) : la preuve du code est celle de la ligne. La réponse le DIT (`suppression_annulee`), la page l'écrit. */
     const annulee = !nouveau && p.suppression_le !== null && stockage.suppressionAnnuler(p.id);
+    /* … et son abonnement Perso+ se renouvelle de nouveau (sauf s'il avait été arrêté par elle avant sa demande) : noté dans la transaction de l'annulation, il part chez Stripe sans qu'on l'attende */
+    if (annulee) { try { if (ctx.facturation) ctx.facturation.perso.annulationsTraiter(); } catch (e) { /* noté : la passe des dix minutes le rejoue */ } }
     rendre([q1.cle, q2.cle]);   // une réussite n'use pas le plafond des échecs
     /* ⛔ Un compte existant, un appareil qu'il ne connaît pas : l'ancien titulaire d'un numéro réattribué (ou d'une SIM échangée) garde ses
        appareils, et le nouveau entre dans SON compte. On PRÉVIENT les autres appareils (notification, tout de suite) ; « Déconnecter les

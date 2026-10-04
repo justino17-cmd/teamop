@@ -574,7 +574,7 @@ Développeurs → Clés API → *Créer une clé restreinte*. Nom : « OP MESSAG
 | Subscriptions | lecture | relire le verdict |
 | Prices, Products | lecture | seulement pour l'outil du geste 3 : il vérifie les tarifs AVANT d'écrire |
 | *Perso+ seulement* — Prices, Products | écriture | uniquement pour `--creer-perso-plus` (geste 3 bis, mode test) ; tu peux retirer ce droit ensuite |
-| *Perso+ seulement* — Subscriptions | écriture | pour **résilier** l'abonnement Perso+ d'un compte effacé (14 jours après sa demande). Sans ce droit, Stripe refuse la résiliation : le service la note, la rejoue, et `/health` dit depuis combien de minutes elle attend (la surveillance crie au-delà d'un jour). Payer, relire et organiser marchent sans lui. |
+| *Perso+ seulement* — Subscriptions | écriture | pour **arrêter le renouvellement** de l'abonnement Perso+ d'une personne qui demande à supprimer son compte, le **rétablir** si elle annule sa demande, et le **résilier** quand le compte est effacé (14 jours après la demande) — « Subscriptions : écriture » couvre les trois. Sans ce droit, Stripe refuse : le service note le geste, le rejoue, et `/health` dit depuis combien de minutes il attend (la surveillance crie au-delà d'un jour) ; la personne continuerait d'être prélevée. Payer, relire et organiser marchent sans lui. |
 
 Une clé secrète complète (`sk_…`) est **refusée** par le service comme par l'outil : elle donnerait au service tout le compte, celui d'OP GESTION compris. Stripe n'affiche la clé qu'**une fois** :
 copie-la **directement** dans ton gestionnaire de mots de passe (colle-la nulle part ailleurs).

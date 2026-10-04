@@ -13,6 +13,10 @@
         qui change change la formule ; une panne ne suspend personne ;
      4. LE COMPTE EFFACÉ ANNULE SON ABONNEMENT : la demande est NOTÉE dans la transaction de l'effacement, rejouée jusqu'à la confirmation de Stripe (panne, droit manquant, abonnement inconnu : elle ne se perd
         pas), jamais faite à l'aveugle (on ne résilie pas ce qu'on ne reconnaît pas), idempotente (rejeu après restauration), et /health n'en dit que l'ÂGE ;
+     4 bis. QUI DEMANDE À PARTIR N'EST PLUS PRÉLEVÉ (Justin, 4 octobre 2026 : « le prélever pendant les quatorze jours est injuste ») : la DEMANDE de suppression arrête le renouvellement chez Stripe
+        (`cancel_at_period_end = true`, l'accès reste), son ANNULATION le rétablit — SEULEMENT si c'est nous qui l'avions arrêté (ce que la personne a coupé elle-même par le portail ne se réactive
+        JAMAIS : l'état d'avant se lit chez Stripe et se range AVANT de toucher) —, l'EFFACEMENT résilie ; chaque appel qui échoue se note et se rejoue (panne, clé sans droit, confirmation perdue) ;
+        la personne qui change d'avis PENDANT l'appel n'est jamais défaite (comparer-et-poser) ; un paiement reconnu après la demande, un renouvellement remis par le portail, un abonnement fini ou inconnu ;
      5. LA MIGRATION 10 : deux tables neuves, rien de modifié, rejouable, avec sa copie ; les TROIS listes de la sauvegarde les portent ;
      6. LE PLAFOND D'UNE RÉUNION : dix personnes au plus, organisateur compris, Perso+ comme Pro (Justin, 4 octobre 2026) — UNE constante, UN endroit (`plafondReunion`) où le supplément « Grandes réunions » la lèvera
         le jour où il existera (il n'est PAS activé : sans serveur de visio, dépasser dix est impossible), le stockage refuse la onzième personne (création, invitation, lien) en nommant le plafond, une personne
@@ -89,10 +93,10 @@ const tick = () => new Promise(r => setImmediate(r));
 
     /* ═══ 2. LA FACTURATION PERSONNELLE, CONTRE UN FAUX STRIPE ═══════════════════════════════════════════════════════════════════════════════════ */
     console.log('\nLa facturation personnelle : inerte tant qu\'elle n\'est pas branchée, le tarif vient de la configuration, un seul siège, un seul abonnement');
-    const monter = (formule, plus, horloge) => {
+    const monter = (formule, plus, horloge, fetchImpl) => {
       const cfg = facturationConfig({ facturation: Object.assign({ cle: CLE, prix: PRIX_PRO, perso: { prix: PRIX_PP }, relectureMs: 600000, timeoutMs: 3000 }, plus || {}) }, { OPMSG_TEST_STRIPE: fake.hote }, 'beta');
       const journal = [];
-      return { F: creerFacturation({ stockage: S, config: { facturation: cfg }, formule, journaliser: (e, c) => journal.push([e, c]), horloge: horloge || (() => h.t) }), cfg, journal };
+      return { F: creerFacturation({ stockage: S, config: { facturation: cfg }, formule, journaliser: (e, c) => journal.push([e, c]), horloge: horloge || (() => h.t), fetchImpl }), cfg, journal };
     };
     {
       /* — inerte — */
@@ -242,7 +246,7 @@ const tick = () => new Promise(r => setImmediate(r));
       const avantEtr = resil().length;
       const t4 = await F.perso.annulationsTraiter();
       v('⛔ un abonnement qu\'on ne reconnaît PAS comme le nôtre (autre produit) n\'est JAMAIS résilié depuis ce service : la demande reste, et c\'est l\'alarme (l\'âge) qui crie', [t4.faites, t4.ratees, resil().length - avantEtr, S.annulationsDues().map(x => x.abonnement), journal.some(j => j[1] && j[1].motif === 'annulation_non_reconnue')], [0, 1, 0, [e4.sb.id], true]);
-      S.annulationFaite(e4.sb.id);
+      S.annulationFaite(e4.sb.id, 'resilier');
       /* — déjà résilié, ou disparu — */
       const e5 = await abonne('DejaResilie'); fake.statut(e5.sb.id, 'canceled');
       effacer(e5.p.id);
@@ -257,7 +261,7 @@ const tick = () => new Promise(r => setImmediate(r));
       effacer(e7.p.id);
       const t7 = await F.perso.annulationsTraiter();
       v('⛔ la clé d\'un AUTRE compte (l\'abonnement ET son client répondent 404) : l\'absence n\'est PAS confirmée, la demande reste — on ne dit pas « résilié » à un compte qui ne voit rien', [t7.faites, t7.ratees, S.annulationsDues().length], [0, 1, 1]);
-      S.annulationFaite(e7.sb.id);
+      S.annulationFaite(e7.sb.id, 'resilier');
       /* — rejeu après une restauration — */
       const e8 = await abonne('Restaure');
       effacer(e8.p.id);
@@ -285,7 +289,243 @@ const tick = () => new Promise(r => setImmediate(r));
       effacer(e9.p.id);
       const t9 = await sansClef.F.perso.annulationsTraiter();
       v('sans clé Stripe, la file ne fait rien (inerte) mais NE S\'EFFACE PAS : l\'âge monte — c\'est ce que /health publie, que la surveillance lit', [t9.inerte, S.annulationsDues().length, (h.t += 2 * 3600000, sansClef.F.perso.attenteMin(h.t))], [true, 1, 120]);
-      S.annulationFaite(e9.sb.id);
+      S.annulationFaite(e9.sb.id, 'resilier');
+    }
+
+    /* ═══ 4 bis. QUI DEMANDE À PARTIR N'EST PLUS PRÉLEVÉ ═══════════════════════════════════════════════════════════════════════════════════════════ */
+    console.log('\nQui demande à partir n\'est plus prélevé : la demande arrête le renouvellement, son annulation le rétablit (seulement s\'il se renouvelait avant), l\'effacement résilie, tout échec se rejoue');
+    {
+      const abonne = async (nom) => { const p = pers(nom); await F.perso.paiement({ personne: p.id, cycle: 'mensuel', origine: 'http://x.test' }); const sb = fake.payer(fake.derniereSession().id); await F.perso.relire(p.id); return { p, sb }; };
+      const demander = (uid) => S.suppressionProgrammer(uid, h.t + 14 * JOUR);       // LA vraie demande : la ligne se note dans SA transaction
+      const revenir = (uid) => S.suppressionAnnuler(uid);                              // LA vraie annulation (la personne se reconnecte)
+      const mods = (sb) => fake.modifications.filter(m => m.id === sb.id).map(m => m.cancel_at_period_end);   // ce que Stripe a VRAIMENT reçu et appliqué, pour CET abonnement
+      const vif = (sb) => fake.abonnements.get(sb.id).cancel_at_period_end;            // le drapeau chez Stripe, MAINTENANT
+      const ligne = (sb) => { const x = S.annulationLire(sb.id); return x && [x.voulu, x.fait, x.avant, x.touche]; };
+      const lectures = (sb) => fake.compter('GET', new RegExp('/subscriptions/' + sb.id));
+      const etatsJournal = () => journal.filter(j => j[0] === 'facturation' && j[1] && j[1].etat).map(j => j[1].etat);
+
+      /* — A. la demande arrête le renouvellement — */
+      const a = await abonne('Part');
+      fake.vider();
+      demander(a.p.id);
+      v('⛔ la DEMANDE note l\'arrêt dans SA transaction : une ligne `fin`, pas encore faite — et rien n\'a bougé chez Stripe (la demande n\'attend jamais le réseau) : l\'abonnement se renouvelle encore',
+        [ligne(a.sb), fake.appels.length, vif(a.sb), S.annulationsDues().map(x => x.abonnement)], [['fin', false, null, 0], 0, false, [a.sb.id]]);
+      const ta = await F.perso.annulationsTraiter();
+      v('la file se traite : Stripe reçoit UN seul changement, `cancel_at_period_end = true` — l\'abonnement reste ACTIF (l\'accès va jusqu\'à la fin de la période payée), rien n\'est résilié',
+        [ta, mods(a.sb), vif(a.sb), fake.abonnements.get(a.sb.id).status, fake.resiliations.includes(a.sb.id), fake.compter('DELETE', /subscriptions/)], [{ faites: 1, ratees: 0 }, [true], true, 'active', false, 0]);
+      v('… la ligne RESTE, faite, avec la mémoire de ce que Stripe portait avant (il se renouvelait : `avant` 0) et du fait que c\'est NOUS qui l\'avons arrêté (`touche` 1) ; plus rien n\'attend ; le journal le dit',
+        [ligne(a.sb), S.annulationsDues().filter(x => x.abonnement === a.sb.id).length, F.perso.attenteMin(h.t), etatsJournal().includes('renouvellement_arrete')], [['fin', true, 0, 1], 0, 0, true]);
+      const ra = await F.perso.relire(a.p.id);
+      v('l\'accès reste : la formule est toujours Perso+ (elle lit le statut, pas le renouvellement) et la relecture VOIT l\'arrêt', [ra.formule, ra.organiser, ra.abonnement.annule, ra.abonnement.statut], ['perso_plus', true, true, 'active']);
+      const ta2 = await F.perso.annulationsTraiter();
+      v('repassée, elle ne refait rien (idempotente : un seul changement en tout)', [ta2, mods(a.sb)], [{ faites: 0, ratees: 0 }, [true]]);
+
+      /* — B. la demande annulée : le renouvellement revient — */
+      const rb = revenir(a.p.id);
+      v('⛔ la demande ANNULÉE (la personne se reconnecte) note le rétablissement dans SA transaction : la ligne devient `renouveler`, à faire — Stripe porte encore l\'arrêt', [rb, ligne(a.sb), vif(a.sb)], [true, ['renouveler', false, 0, 1], true]);
+      const tb = await F.perso.annulationsTraiter();
+      v('… le service rétablit : `cancel_at_period_end = false`, la ligne part (Stripe est revenu à l\'état d\'avant NOTRE geste) ; l\'abonnement n\'a jamais cessé d\'être actif ; le journal le dit',
+        [tb, mods(a.sb), vif(a.sb), S.annulationLire(a.sb.id), fake.abonnements.get(a.sb.id).status, etatsJournal().includes('renouvellement_retabli')], [{ faites: 1, ratees: 0 }, [true, false], false, null, 'active', true]);
+
+      /* — C. ce que la personne a coupé elle-même ne se réactive JAMAIS — */
+      const c = await abonne('Coupe');
+      fake.statut(c.sb.id, 'active', { cancel_at_period_end: true });    // elle l'a arrêté par le portail — et la base du service dit encore « il se renouvelle » (elle n'a pas relu)
+      const lecC = lectures(c.sb);
+      demander(c.p.id);
+      const tc = await F.perso.annulationsTraiter();
+      v('⛔ déjà arrêté par la personne (portail) avant sa demande : Stripe est LU (le drapeau vivant, pas ce que la base crut un jour), AUCUN changement n\'est envoyé, la ligne se souvient que ce n\'est pas nous (`avant` 1, `touche` 0)',
+        [tc, mods(c.sb), lectures(c.sb) > lecC, S.abonnementPersoLire(c.p.id).annule, ligne(c.sb)], [{ faites: 1, ratees: 0 }, [], true, false, ['fin', true, 1, 0]]);
+      revenir(c.p.id);
+      const tc2 = await F.perso.annulationsTraiter();
+      v('⛔ elle annule sa demande : le renouvellement NE REVIENT PAS — ce qu\'une personne a coupé elle-même ne se réactive jamais ; la ligne part sans rien envoyer', [tc2, mods(c.sb), vif(c.sb), S.annulationLire(c.sb.id)], [{ faites: 0, ratees: 0 }, [], true, null]);
+
+      /* — C2. la garde DU SERVICE, seule : la ligne forgée passe SOUS celle du stockage (qui efface à l'instant la ligne d'un geste que nous n'avons jamais fait) — */
+      const c2 = await abonne('CoupeForgee');
+      fake.statut(c2.sb.id, 'active', { cancel_at_period_end: true });
+      { const dd = raw(); try { dd.prepare(`INSERT INTO abonnement_a_annuler(abonnement, client, voulu, avant, touche, fait, demande) VALUES(?, ?, 'renouveler', 1, 0, 0, ?)`).run(c2.sb.id, 'cus_forge', h.t); } finally { dd.close(); } }
+      const lecC2 = lectures(c2.sb);
+      const tc3 = await F.perso.annulationsTraiter();
+      v('⛔ une ligne « renouveler » que nous n\'avons JAMAIS armée (`touche` 0 — une copie restaurée, une ligne forgée) ne rétablit RIEN : la garde du service, seule, lit Stripe, n\'envoie rien, ferme la ligne',
+        [tc3, lectures(c2.sb) > lecC2, mods(c2.sb), vif(c2.sb), S.annulationLire(c2.sb.id)], [{ faites: 1, ratees: 0 }, true, [], true, null]);
+
+      /* — D. Stripe muet, ou une clé qui ne peut pas modifier : le geste se note et se rejoue — */
+      const d = await abonne('Muet');
+      demander(d.p.id);
+      fake.mode = 'muet';
+      const td = await F.perso.annulationsTraiter();
+      fake.mode = 'normal';
+      v('⛔ Stripe MUET à la demande : l\'échec se note (`essais` 1, `dernier`), la ligne reste à faire, rien n\'a changé chez Stripe — la demande, elle, a été prise (l\'échéance est posée)',
+        [td, S.annulationLire(d.sb.id).essais, S.annulationLire(d.sb.id).dernier !== null, ligne(d.sb), vif(d.sb), S.suppressionLe(d.p.id) !== null], [{ faites: 0, ratees: 1 }, 1, true, ['fin', false, null, 0], false, true]);
+      h.t += 3 * 3600000;
+      v('… /health en dit l\'ÂGE (180 minutes), jamais un genre, un nombre ni un identifiant', [F.perso.attenteMin(h.t), F.annulationAttenteMin()], [180, 180]);
+      const td2 = await F.perso.annulationsTraiter();
+      v('Stripe revenu, la passe REJOUE sans que personne ne demande rien : l\'arrêt est fait, la ligne est faite, l\'attente retombe à zéro', [td2, mods(d.sb), vif(d.sb), ligne(d.sb), F.perso.attenteMin(h.t)], [{ faites: 1, ratees: 0 }, [true], true, ['fin', true, 0, 1], 0]);
+      const d2 = await abonne('SansDroit');
+      demander(d2.p.id);
+      fake.sansDroits.add('modifier');
+      const tdd = await F.perso.annulationsTraiter();
+      v('⛔ une clé qui LIT mais ne peut pas MODIFIER (403) : l\'échec se compte, et la ligne se souvient déjà que NOUS allions arrêter le renouvellement (rangé AVANT de toucher) — rien n\'a changé chez Stripe',
+        [tdd.faites, tdd.ratees, ligne(d2.sb), vif(d2.sb), mods(d2.sb)], [0, 1, ['fin', false, 0, 1], false, []]);
+      revenir(d2.p.id);
+      fake.sansDroits.delete('modifier');
+      const tdd2 = await F.perso.annulationsTraiter();
+      v('⛔ … la personne annule sa demande AVANT que l\'arrêt ait abouti : le rétablissement trouve le renouvellement intact — il n\'envoie RIEN (rien à rétablir), la ligne part', [tdd2, mods(d2.sb), vif(d2.sb), S.annulationLire(d2.sb.id)], [{ faites: 1, ratees: 0 }, [], false, null]);
+
+      /* — E. l'arrêt a abouti chez Stripe mais la confirmation s'est perdue (le service est tombé entre l'appel et sa réponse) — */
+      const e = await abonne('Perdue');
+      demander(e.p.id);
+      S.annulationMemoriser(e.sb.id, 'fin', { avant: 0, touche: 1 });      // ce que le service range AVANT d'écrire à Stripe…
+      fake.statut(e.sb.id, 'active', { cancel_at_period_end: true });       // …Stripe a appliqué, puis le service est tombé avant d'avoir noté la réponse
+      const te = await F.perso.annulationsTraiter();
+      v('⛔ un arrêt appliqué dont la confirmation s\'est perdue : repris, il se reconnaît NOTRE (`touche` rangé AVANT), n\'envoie pas de second changement, et la ligne se ferme', [te, mods(e.sb), ligne(e.sb)], [{ faites: 1, ratees: 0 }, [], ['fin', true, 0, 1]]);
+      revenir(e.p.id);
+      await F.perso.annulationsTraiter();
+      v('… et la demande annulée RÉTABLIT bien ce renouvellement (il était à nous)', [mods(e.sb), vif(e.sb), S.annulationLire(e.sb.id)], [[false], false, null]);
+
+      /* — F. la personne change d'avis PENDANT que le service parle à Stripe : une course jouée AU GESTE (une porte tenue fermée), jamais au chronomètre — */
+      const portes = () => {
+        const g = { ferme: false, vu: null, signaler: null, liberation: null, liberer: null };
+        g.fermer = () => { g.ferme = true; g.vu = new Promise(r => { g.signaler = r; }); g.liberation = new Promise(r => { g.liberer = () => { g.ferme = false; r(); }; }); };
+        g.fetch = async (...a) => { if (g.ferme) { g.signaler(); await g.liberation; } return fetch(...a); };   // l'appel EN VOL attend qu'on le libère
+        /* ⛔ l'attente de « l'appel est en vol » est BORNÉE : si le service n'appelle jamais Stripe (une mutation, un défaut), le banc le DIT au lieu de se figer jusqu'à sa coupure */
+        g.enVol = () => Promise.race([g.vu.then(() => true), new Promise(r => { const t = setTimeout(() => r(false), 6000); t.unref(); })]);
+        return g;
+      };
+      const G = portes(), FP = monter(formuleProd, undefined, undefined, G.fetch).F;
+      const f = await abonne('Hesite');
+      demander(f.p.id);
+      G.fermer();
+      const pf = FP.perso.annulationsTraiter();
+      vrai('population : la lecture de l\'abonnement est EN VOL (la porte l\'a retenue)', await G.enVol());
+      revenir(f.p.id);                                // la personne annule sa demande à cet instant
+      G.liberer();
+      const tf = await pf;
+      v('⛔ la personne annule sa demande PENDANT la lecture : l\'intention est redemandée juste avant d\'écrire — RIEN n\'est envoyé, le renouvellement n\'est jamais arrêté (comparer-et-poser)', [tf, mods(f.sb), vif(f.sb), S.annulationLire(f.sb.id)], [{ faites: 0, ratees: 0 }, [], false, null]);
+      const G2 = portes(), FP2 = monter(formuleProd, undefined, undefined, G2.fetch).F;
+      const g1 = await abonne('Premier'), g2 = await abonne('Second');
+      demander(g1.p.id);
+      G2.fermer();
+      const pg = FP2.perso.annulationsTraiter();    // la passe a pris la ligne de Premier et attend Stripe…
+      vrai('population : la passe a pris la ligne de Premier et attend Stripe', await G2.enVol());
+      demander(g2.p.id);                              // …Second demande à partir pendant ce temps, et le service est réveillé : la passe en cours est la MÊME
+      const kick = FP2.perso.annulationsTraiter();
+      G2.liberer();
+      await pg;
+      v('⛔ une demande arrivée PENDANT une passe est traitée par cette même passe (elle recommence quand elle a fini) — sans attendre les dix minutes', [kick === pg, vif(g1.sb), vif(g2.sb), mods(g2.sb), S.annulationsDues().length], [true, true, true, [true], 0]);
+
+      /* — F3. elle REDEMANDE à partir PENDANT que le rétablissement lit Stripe : le rétablissement ne s'écrit pas — */
+      const g4 = await abonne('Revient');
+      demander(g4.p.id); await F.perso.annulationsTraiter();          // l'arrêt est fait…
+      revenir(g4.p.id);                                                  // …elle revient : le rétablissement est à faire…
+      const G3 = portes(), FP3 = monter(formuleProd, undefined, undefined, G3.fetch).F;
+      G3.fermer();
+      const p4 = FP3.perso.annulationsTraiter();
+      vrai('population : le rétablissement lit l\'abonnement, la lecture est EN VOL', await G3.enVol());                                           // …sa lecture de l'abonnement est EN VOL…
+      demander(g4.p.id);                                                 // …et elle redemande à partir, à cet instant
+      G3.liberer();
+      const t4 = await p4;
+      v('⛔ elle REDEMANDE à partir PENDANT que le rétablissement lit Stripe : l\'intention est redemandée juste avant d\'écrire — le renouvellement n\'est PAS rétabli pour être arrêté de nouveau une seconde plus tard (aucun prélèvement possible dans l\'intervalle)', [t4, mods(g4.sb), vif(g4.sb), ligne(g4.sb)], [{ faites: 0, ratees: 0 }, [true], true, ['fin', false, 0, 1]]);
+      await F.perso.annulationsTraiter();
+      v('… et la passe suivante, qui trouve l\'arrêt déjà en place, le confirme sans rien envoyer', [mods(g4.sb), vif(g4.sb), ligne(g4.sb)], [[true], true, ['fin', true, 0, 1]]);
+
+      /* — G. l'effacement résilie — */
+      const g = await abonne('Efface');
+      demander(g.p.id); await F.perso.annulationsTraiter();
+      h.t += 15 * JOUR;
+      const rg = S.compteEffacer(g.p.id);
+      v('⛔ l\'EFFACEMENT, après un arrêt de renouvellement déjà fait : la ligne devient `resilier` (terminale, à faire) — jamais perdue, jamais « faite » sans Stripe', [rg.effacee, ligne(g.sb).slice(0, 2), S.abonnementPersoLire(g.p.id)], [true, ['resilier', false], null]);
+      const tg = await F.perso.annulationsTraiter();
+      v('… le service RÉSILIE (DELETE) : l\'abonnement est `canceled` chez Stripe, la ligne part', [tg, fake.resiliations.includes(g.sb.id), fake.abonnements.get(g.sb.id).status, S.annulationLire(g.sb.id)], [{ faites: 1, ratees: 0 }, true, 'canceled', null]);
+      const g3 = await abonne('EffaceMuet');
+      demander(g3.p.id);                       // l'arrêt n'est PAS encore passé chez Stripe (rien n'a tourné)…
+      h.t += 15 * JOUR; S.compteEffacer(g3.p.id);
+      await F.perso.annulationsTraiter();
+      v('… même quand l\'arrêt n\'avait pas encore été fait : la demande devient directement une résiliation (un seul DELETE, aucun changement de renouvellement inutile)', [mods(g3.sb), fake.resiliations.filter(x => x === g3.sb.id).length, S.annulationLire(g3.sb.id)], [[], 1, null]);
+
+      /* — H. la période s'achève avant l'effacement — */
+      const hh = await abonne('Echeance');
+      demander(hh.p.id); await F.perso.annulationsTraiter();
+      fake.statut(hh.sb.id, 'canceled');      // Stripe a mis fin à l'abonnement, à la fin de la période payée
+      await F.perso.relire(hh.p.id);
+      v('⛔ l\'abonnement s\'achève (fin de période) pendant la demande : la ligne `fin` part avec lui — rien ne reste pour un abonnement fini — et la formule redevient Perso', [S.annulationLire(hh.sb.id), F.perso.etat(hh.p.id).formule], [null, 'perso']);
+      const rh = revenir(hh.p.id);
+      const tH = await F.perso.annulationsTraiter();
+      v('… la personne revient : aucun rétablissement n\'est tenté sur un abonnement fini (population : il avait bien été arrêté par NOUS)', [rh, tH, mods(hh.sb)], [true, { faites: 0, ratees: 0 }, [true]]);
+
+      /* — H2. la garde de la POSE, seule : poser un état FINI efface la ligne d'attente de cet abonnement, sans qu'aucune relecture ne passe derrière — */
+      const h2 = await abonne('PoseFinie');
+      demander(h2.p.id); await F.perso.annulationsTraiter();
+      const avantPose = ligne(h2.sb);
+      S.abonnementPersoPoser(h2.p.id, { client: h2.sb.customer, abonnement: h2.sb.id, statut: 'canceled', fin_periode: h.t, annule: true });
+      v('⛔ poser un état FINI efface, par elle-même, la ligne d\'attente de cet abonnement (population : elle y était, faite, avec sa mémoire) — un renouvellement arrêté pour un abonnement terminé ne reste pas là pour toujours', [avantPose, ligne(h2.sb)], [['fin', true, 0, 1], null]);
+
+      /* — I. un paiement reconnu APRÈS la demande — */
+      const ii = pers('Tardif2');
+      await F.perso.paiement({ personne: ii.id, cycle: 'mensuel', origine: 'http://x.test' });
+      const sessI = fake.derniereSession();
+      demander(ii.id);
+      v('population : une demande SANS abonnement (seule une session de paiement attend) ne note rien', [S.annulationsDues().length, S.abonnementPersoLire(ii.id).session !== null], [0, true]);
+      const sbI = fake.payer(sessI.id);
+      await F.perso.relire(ii.id);
+      await F.perso.annulationsTraiter();
+      v('⛔ payée APRÈS la demande, la session est reconnue à la relecture et son abonnement reçoit AUSSITÔT son arrêt de renouvellement — la personne n\'est pas prélevée parce qu\'elle a payé trop tard', [vif(sbI), mods(sbI), ligne(sbI)], [true, [true], ['fin', true, 0, 1]]);
+
+      /* — J. la personne remet le renouvellement par le portail malgré sa demande — */
+      const jj = await abonne('Remet');
+      demander(jj.p.id); await F.perso.annulationsTraiter();
+      fake.statut(jj.sb.id, 'active', { cancel_at_period_end: false });
+      await F.perso.relire(jj.p.id); await F.perso.annulationsTraiter();
+      v('⛔ un renouvellement que Stripe dit REMIS malgré la demande est arrêté de nouveau à la relecture (la demande n\'est pas défaite par un geste du portail)', [mods(jj.sb), vif(jj.sb)], [[true, true], true]);
+
+      /* — K. ce qu'on ne reconnaît pas, ce qui est fini, ce qui a disparu — */
+      const kk = await abonne('Etranger2');
+      fake.abonnements.get(kk.sb.id).metadata = { produit: 'opgestion' };
+      const nr = () => journal.filter(j => j[1] && j[1].motif === 'annulation_non_reconnue').length, nr0 = nr();
+      demander(kk.p.id);
+      const tk = await F.perso.annulationsTraiter();
+      v('⛔ un abonnement qu\'on ne reconnaît PAS (autre produit) n\'est JAMAIS modifié depuis ce service : rien n\'est envoyé, la ligne reste à faire (c\'est l\'âge qui crie)', [tk, mods(kk.sb), vif(kk.sb), ligne(kk.sb), nr() - nr0], [{ faites: 0, ratees: 1 }, [], false, ['fin', false, null, 0], 1]);
+      S.annulationFaite(kk.sb.id, 'fin', { fini: true });
+      const m = await abonne('DejaFini'); fake.statut(m.sb.id, 'canceled');
+      demander(m.p.id);
+      const tm = await F.perso.annulationsTraiter();
+      v('un abonnement DÉJÀ résilié chez Stripe à la demande : la ligne est close sans rien envoyer', [tm, mods(m.sb), S.annulationLire(m.sb.id)], [{ faites: 1, ratees: 0 }, [], null]);
+      const n = await abonne('Disparu2'); fake.oublier(n.sb.id);
+      demander(n.p.id); await F.perso.annulationsTraiter();
+      v('un abonnement que Stripe ne connaît plus ET dont le client existe sans lui (absence CONFIRMÉE) : la ligne est close', S.annulationLire(n.sb.id), null);
+      const o = await abonne('AutreCompte2'); fake.oublier(o.sb.id); fake.oublierClient(o.sb.customer);
+      demander(o.p.id);
+      const to = await F.perso.annulationsTraiter();
+      v('⛔ la clé d\'un AUTRE compte (l\'abonnement ET son client répondent 404) : l\'absence n\'est PAS confirmée, la ligne reste — on ne dit pas « fini » à un compte qui ne voit rien', [to, ligne(o.sb)], [{ faites: 0, ratees: 1 }, ['fin', false, null, 0]]);
+      S.annulationFaite(o.sb.id, 'fin', { fini: true });
+
+      /* — L. un paiement qui n'a pas abouti — */
+      const q = await abonne('Incomplet'); fake.statut(q.sb.id, 'incomplete'); await F.perso.relire(q.p.id);
+      demander(q.p.id);
+      const tq = await F.perso.annulationsTraiter();
+      v('un abonnement `incomplete` (paiement pas abouti) ne se renouvelle pas : rien à arrêter, rien n\'est envoyé, la ligne est faite sans mémoire de notre part', [tq, mods(q.sb), ligne(q.sb)], [{ faites: 1, ratees: 0 }, [], ['fin', true, null, 0]]);
+      fake.statut(q.sb.id, 'active');          // le paiement aboutit plus tard
+      await F.perso.relire(q.p.id); await F.perso.annulationsTraiter();
+      v('⛔ … il aboutit APRÈS la demande : la relecture le voit se renouveler, et l\'arrêt est fait à ce moment-là', [mods(q.sb), vif(q.sb)], [[true], true]);
+
+      /* — M. un rejeu après restauration : Stripe n'a pas été restauré, il ne faut ni oublier la demande ni inventer un rétablissement — */
+      const rr = await abonne('Restaure2');
+      demander(rr.p.id); await F.perso.annulationsTraiter();
+      { const dd = raw(); try { dd.prepare('DELETE FROM abonnement_a_annuler WHERE abonnement = ?').run(rr.sb.id); } finally { dd.close(); } }   // la copie restaurée n'a pas la ligne…
+      S.suppressionProgrammer(rr.p.id, h.t + 14 * JOUR, { rejeu: true, depuis: h.t });                                                        // …le registre dit que la demande a eu lieu : elle est rejouée
+      const tr = await F.perso.annulationsTraiter();
+      v('⛔ le REJEU de la demande note de nouveau l\'arrêt ; Stripe le porte déjà : le service ne renvoie rien, et reste PRUDENT (`avant` 1 : un doute ne réactive jamais un renouvellement)', [tr, mods(rr.sb), vif(rr.sb), ligne(rr.sb)], [{ faites: 1, ratees: 0 }, [true], true, ['fin', true, 1, 0]]);
+      revenir(rr.p.id);
+      await F.perso.annulationsTraiter();
+      v('… et la demande annulée ensuite ne rétablit rien (la mémoire de notre geste est perdue avec la copie : on préfère un renouvellement à refaire à un prélèvement qu\'on n\'a pas voulu)', [mods(rr.sb), vif(rr.sb), S.annulationLire(rr.sb.id)], [[true], true, null]);
+
+      /* — N. les mêmes gestes sans clé Stripe : la file attend et le dit — */
+      const sansClef = monter(formuleProd, { cle: undefined });
+      const s0 = await abonne('SansCle2');
+      demander(s0.p.id);
+      const ts = await sansClef.F.perso.annulationsTraiter();
+      v('sans clé Stripe, la file ne fait rien (inerte) mais NE S\'EFFACE PAS : la ligne attend, l\'âge monte', [ts.inerte, ligne(s0.sb), (h.t += 2 * 3600000, sansClef.F.perso.attenteMin(h.t))], [true, ['fin', false, null, 0], 120]);
+      await F.perso.annulationsTraiter();
+      v('… la clé revenue, la passe fait l\'arrêt', [vif(s0.sb), F.perso.attenteMin(h.t)], [true, 0]);
     }
 
     /* ═══ 5. LA MIGRATION 10 ET LES TROIS LISTES ═════════════════════════════════════════════════════════════════════════════════════════════════ */
@@ -300,6 +540,10 @@ const tick = () => new Promise(r => setImmediate(r));
       try {
         const tables = d.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'abonnement%' ORDER BY name`).all().map(r => r.name);
         v('les deux tables existent à côté de `abonnement` (celui des espaces, inchangé)', tables, ['abonnement', 'abonnement_a_annuler', 'abonnement_perso']);
+        v('⛔ `abonnement_a_annuler` porte de quoi ne JAMAIS réactiver ce que la personne a coupé — l\'intention (`voulu`), l\'état d\'avant (`avant`), notre geste (`touche`), la confirmation (`fait`) — et rien d\'une personne (ni nom, ni adresse, ni identifiant de compte)',
+          d.prepare(`SELECT name FROM pragma_table_info('abonnement_a_annuler') ORDER BY cid`).all().map(r => r.name), ['abonnement', 'client', 'voulu', 'avant', 'touche', 'fait', 'demande', 'essais', 'dernier']);
+        let refusVoulu = null; try { d.prepare(`INSERT INTO abonnement_a_annuler(abonnement, voulu, demande) VALUES('sub_x', 'effacer', 1)`).run(); } catch (e) { refusVoulu = /CHECK/.test(String(e.message)); }
+        v('… et `voulu` n\'a que trois valeurs (fin, renouveler, resilier) : une quatrième est refusée par la base elle-même', refusVoulu, true);
         v('l\'abonnement d\'un espace n\'a pas bougé d\'une colonne (la même forme qu\'avant : aucune colonne neuve)', d.prepare(`SELECT name FROM pragma_table_info('abonnement') ORDER BY cid`).all().map(r => r.name),
           ['espace', 'client', 'abonnement', 'session', 'session_le', 'statut', 'places', 'fin_periode', 'annule', 'impaye_depuis', 'relu_le', 'cree']);
         d.exec('PRAGMA user_version = 9');

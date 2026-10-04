@@ -146,6 +146,8 @@ function creerHandlers(ctx) {
     if (r.statut !== 200) return res.status(r.statut).json(r.corps);
     /* ⛔ SE RECONNECTER AVANT L'ÉCHÉANCE ANNULE LA SUPPRESSION du compte (décidée par la personne, J+14) : la connexion qui réussit le DIT (`suppression_annulee`), la page l'écrit */
     const annulee = stockage.suppressionAnnuler(r.personne.id);
+    /* … et son abonnement Perso+ se renouvelle de nouveau (sauf s'il avait été arrêté par elle avant sa demande) : le rétablissement est noté dans la transaction de l'annulation, il part chez Stripe sans qu'on l'attende */
+    if (annulee) { try { if (ctx.facturation) ctx.facturation.perso.annulationsTraiter(); } catch (e) { /* noté : la passe des dix minutes le rejoue */ } }
     ouvrirSession(res, r.personne.id, b.appareil);
     res.json(annulee ? { ok: true, moi: r.personne, suppression_annulee: true } : { ok: true, moi: r.personne });
   };

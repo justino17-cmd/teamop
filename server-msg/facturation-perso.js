@@ -9,7 +9,8 @@
  * d'identifiants, et ne les recopie pas. Il ne s'instancie que par `creerFacturation`.
  *
  *   offres()   etat(uid)    ce qui se vend, et ce que Stripe a dit de CETTE personne, SANS réseau        paiement()   une session de paiement Stripe Checkout (un seul siège)
- *   portail()  relire(uid)  le portail de facturation (carte, résiliation) · relire Stripe pour UNE personne   annulationsTraiter()   résilier les abonnements des comptes EFFACÉS
+ *   portail()  relire(uid)  le portail de facturation (carte, résiliation) · relire Stripe pour UNE personne   annulationsTraiter()   arrêter le renouvellement (suppression DEMANDÉE), le rétablir (demande
+ *                                                                                                          ANNULÉE) ou résilier (compte EFFACÉ) l'abonnement d'une personne qui s'en va
  *
  * ⛔ LE CORPS D'UNE REQUÊTE NE DÉCIDE JAMAIS DE CE QUI A ÉTÉ PAYÉ (SERVEUR.md § 3.8, intact) :
  *   · le TARIF vient de la configuration (`facturation.perso.prix`, une liste blanche) — le corps ne nomme qu'un rythme (« mensuel », « annuel ») ; il n'y a pas de quantité (un seul siège) ;
@@ -20,9 +21,12 @@
  * ⛔ LES ABONNEMENTS DE CE COMPTE STRIPE SONT PARTAGÉS avec OP GESTION, qui lit TOUTE la liste : un abonnement Perso+ ne porte donc JAMAIS la métadonnée `espace` (celle qu'OP GESTION lit pour rattacher un
  *   abonnement à une entreprise) — la nôtre s'appelle `opmsg_personne` — et son produit doit s'appeler « … messages … » (`configurer-stripe.js` le crée ainsi et REFUSE un autre nom) : alors OP GESTION le range
  *   en « OP MESSAGES » et aucune de ses décisions ne le lit (`tests/test-965.js`).
- * ⛔ UN COMPTE EFFACÉ ANNULE SON ABONNEMENT : `compteEffacer` NOTE la demande dans sa transaction (`abonnement_a_annuler`), ce fichier la REJOUE chez Stripe jusqu'à la confirmation. Un échec de Stripe se note
- *   (`essais`, `dernier`) et se rejoue au passage suivant ; il ne se perd pas, et `annulationAttenteMin` (/health) en dit l'AGE — jamais le nombre, jamais lequel. Une résiliation se confirme par Stripe (l'abonnement
- *   est `canceled`, ou son absence est CONFIRMÉE), jamais par un silence.
+ * ⛔ QUI DEMANDE À PARTIR N'EST PLUS PRÉLEVÉ, ET QUI EST EFFACÉ N'EST PLUS ABONNÉ (Justin, 4 octobre 2026 : « le prélever pendant les quatorze jours est injuste, et appelle les contestations de paiement ») :
+ *   à la DEMANDE de suppression, l'abonnement cesse de se renouveler chez Stripe (`cancel_at_period_end = true` : l'accès reste jusqu'à la fin de la période payée ou de l'effacement) ; si la personne ANNULE sa
+ *   demande (elle se reconnecte), le renouvellement REVIENT — sauf si elle l'avait elle-même arrêté avant, par le portail : on ne réactive jamais ce qu'une personne a coupé elle-même ; à l'EFFACEMENT, résiliation
+ *   immédiate. `stockage.js` NOTE chaque intention dans la transaction du geste (`abonnement_a_annuler`), ce fichier la FAIT chez Stripe et la REJOUE jusqu'à la confirmation. Un échec de Stripe se note
+ *   (`essais`, `dernier`) et se rejoue au passage suivant ; il ne se perd pas, et `annulationAttenteMin` (/health) en dit l'AGE — jamais le nombre, jamais lequel. Une intention se confirme par Stripe
+ *   (le drapeau lu sur l'abonnement rendu, `canceled`, ou une absence CONFIRMÉE), jamais par un silence.
  * ⛔ UNE PANNE NE SUSPEND PERSONNE : Stripe muet, clé refusée, réponse illisible — l'état connu reste (un abonnement payé reste payé jusqu'à une lecture qui dit le contraire).
  * Sans clé Stripe, ou sans tarif Perso+, tout est INERTE et le dit (503 `abonnement_non_ouvert`).
  */
@@ -40,7 +44,8 @@ function creerPerso(b) {
   const ouvert = () => !!cfg.cle && PRIX.length > 0;
   const defaut = P.prix.mensuel ? 'mensuel' : 'annuel';
   const enCours = new Map();                     // personne → la relecture en cours (deux relectures de suite se partagent la même)
-  let traitement = null;                         // les annulations en cours de traitement (une passe à la fois)
+  let traitement = null;                         // la file de ce qu'il reste à faire chez Stripe, en cours de traitement (une passe à la fois)
+  let relance = false;                           // un geste est arrivé PENDANT la passe : elle recommence quand elle a fini
 
   /* ── ce que Stripe dit d'un abonnement, ramené à ce qu'on range — ou `null` s'il n'est PAS le nôtre ──
      Il est le nôtre si la métadonnée que NOUS y avons gravée désigne cette personne ET qu'au moins une de ses lignes est un tarif Perso+ de la liste blanche. Une ligne d'un autre produit ne donne rien. */
@@ -89,6 +94,10 @@ function creerPerso(b) {
         else journaliser('facturation', { motif: 'abonnement_non_reconnu' });                                                 // plus reconnu comme le nôtre : on garde le dernier état, on ne le dit pas « résilié »
       }
     }
+    /* ⛔ LA DEMANDE DE SUPPRESSION SUIT L'ABONNEMENT QU'ON VIENT DE LIRE : un paiement reconnu APRÈS la demande reçoit son arrêt de renouvellement à ce moment-là, et un renouvellement que Stripe dit rétabli malgré la
+       demande (la personne l'a remis par le portail, ou le paiement n'a abouti que plus tard) est refait. Idempotent : sans demande en cours, ou déjà faite, rien ne change. */
+    const voulu = stockage.persoAjuster(uid);
+    if (voulu === 'fin' || voulu === 'renouveler') annulationsTraiter();                                                   // (ne rejette jamais : voir plus bas)
     /* ⛔ UN COMPTE DÉJÀ EFFACÉ dont le paiement n'est reconnu qu'APRÈS (la session était restée ouverte) : son abonnement ne doit pas courir — il passe à l'annulation, et la ligne s'en va avec. */
     const p = stockage.personneParId(uid);
     if (p && p.etat === 'supprime') { stockage.abonnementPersoOrphelin(uid); annulationsTraiter(); }                // (ne rejette jamais : voir plus bas)
@@ -179,45 +188,93 @@ function creerPerso(b) {
     });
   }
 
-  /* ── LES ANNULATIONS d'un compte effacé ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-     Une résiliation est CONFIRMÉE quand l'abonnement est `canceled` (ou `incomplete_expired`) chez Stripe, ou que son absence est CONFIRMÉE (`absenceConfirmee` : le client existe et la liste ne contient pas
-     l'abonnement). ⛔ Avant de résilier on RELIT l'abonnement et on vérifie qu'il est bien le nôtre (produit « opmsg », une personne désignée) : on ne résilie jamais, depuis ce fichier, l'abonnement d'un autre
-     service du même compte Stripe. Un abonnement qu'on ne reconnaît pas reste dans la file — et c'est `annulationAttenteMin` qui crie, plutôt qu'une résiliation faite à l'aveugle. */
-  async function annuler(x) {
-    if (!ID_ABO.test(String(x.abonnement))) return 'illisible';
+  /* ── CE QU'IL RESTE À FAIRE CHEZ STRIPE QUAND UNE PERSONNE S'EN VA ─────────────────────────────────────────────────────────────────────────────────────────────
+     Trois intentions, rangées par `stockage.js` dans la transaction du geste de la personne (voir `persoAjuster`) et FAITES ici, une par abonnement :
+       · `fin`        (elle a DEMANDÉ la suppression de son compte) : l'abonnement cesse de se renouveler — `cancel_at_period_end = true` ; l'accès reste jusqu'à la fin de la période payée ou de l'effacement ;
+       · `renouveler` (elle a ANNULÉ sa demande)                    : le renouvellement revient — `cancel_at_period_end = false` — SEULEMENT si c'est NOUS qui l'avions arrêté : ce que la personne a coupé
+                                                                      elle-même (par le portail) AVANT sa demande ne se réactive JAMAIS ;
+       · `resilier`   (le compte est EFFACÉ)                        : résiliation immédiate (DELETE), terminale.
+     ⛔ L'ÉTAT D'AVANT SE LIT CHEZ STRIPE (`cancel_at_period_end` de l'abonnement VIVANT, pas ce que la base crut un jour) et se RANGE AVANT d'y toucher (`annulationMemoriser`) : un arrêt entre l'appel et sa confirmation
+     n'oublie pas que le geste est le nôtre. ⛔ L'intention se redemande juste avant d'écrire (`annulationEncore`) : la personne a pu changer d'avis pendant la lecture.
+     Une intention est CONFIRMÉE par la réponse de Stripe (le drapeau lu sur l'abonnement rendu, ou `canceled`), ou parce que l'abonnement est FINI (absence CONFIRMÉE comprise : `absenceConfirmee`, le client existe et
+     la liste ne contient pas l'abonnement), jamais par un silence. ⛔ Avant d'écrire on RELIT l'abonnement et on vérifie qu'il est bien le nôtre (produit « opmsg », une personne désignée) : on ne touche jamais,
+     depuis ce fichier, à l'abonnement d'un autre service du même compte Stripe. Un abonnement qu'on ne reconnaît pas reste dans la file — et c'est `annulationAttenteMin` qui crie, plutôt qu'un geste fait à l'aveugle.
+     Chaque appel qui échoue se NOTE (`essais`, `dernier`) et se rejoue au passage suivant : rien ne se perd. */
+  async function appliquer(x) {
+    if (!ID_ABO.test(String(x.abonnement))) return 'fini';
     let sb; try { sb = await stripe('GET', '/v1/subscriptions/' + x.abonnement); } catch (e) { if (e.code === 'introuvable') sb = null; else throw e; }
     if (sb === null) {
-      if (await absenceConfirmee({ client: x.client, abonnement: x.abonnement })) return 'deja';
+      if (await absenceConfirmee({ client: x.client, abonnement: x.abonnement })) return 'fini';
       throw erreur('abonnement_introuvable');
     }
-    if (STATUTS_FINAUX.includes(sb.status)) return 'deja';
+    if (STATUTS_FINAUX.includes(sb.status)) return 'fini';
     if (!sb.metadata || sb.metadata.produit !== 'opmsg' || !ID_PERSONNE.test(String(sb.metadata.opmsg_personne))) { journaliser('facturation', { motif: 'annulation_non_reconnue' }); throw erreur('abonnement_non_reconnu'); }
-    const r = await stripe('DELETE', '/v1/subscriptions/' + x.abonnement);
-    if (!r || (r.status !== 'canceled' && r.status !== 'incomplete_expired')) throw erreur('reponse_illisible');
-    return 'faite';
+    if (x.voulu === 'resilier') {
+      const r = await stripe('DELETE', '/v1/subscriptions/' + x.abonnement);
+      if (!r || (r.status !== 'canceled' && r.status !== 'incomplete_expired')) throw erreur('reponse_illisible');
+      return 'fait';
+    }
+    /* un paiement qui n'a pas abouti (`incomplete`) ne se renouvelle pas : Stripe l'expire seul sous vingt-quatre heures. Rien à arrêter, rien à rétablir — s'il aboutit plus tard, la relecture le voit se
+       renouveler (`annule` faux) et remet l'intention à faire (`persoAjuster`). */
+    if (sb.status === 'incomplete') return 'fait';
+    const vif = sb.cancel_at_period_end === true;           // le renouvellement est-il arrêté chez Stripe, MAINTENANT ?
+    if (x.voulu === 'fin') {
+      if (vif) {                                              // déjà arrêté : par nous (un appel précédent dont la confirmation s'est perdue : `touche`), sinon par la personne — qui ne perd rien
+        if (x.avant === null && !x.touche && !stockage.annulationMemoriser(x.abonnement, 'fin', { avant: 1, touche: 0 })) return 'change';
+        return 'fait';
+      }
+      if (!stockage.annulationMemoriser(x.abonnement, 'fin', { avant: 0, touche: 1 })) return 'change';          // ⛔ AVANT de toucher : il se renouvelait, et c'est nous qui l'arrêtons
+      const r = await stripe('POST', '/v1/subscriptions/' + x.abonnement, [['cancel_at_period_end', 'true']]);
+      if (!r || r.cancel_at_period_end !== true) throw erreur('reponse_illisible');
+      return 'fait';
+    }
+    /* renouveler : seulement ce que NOUS avons arrêté, et seulement s'il l'est encore */
+    if (!x.touche || x.avant === 1 || !vif) return 'fait';
+    if (!stockage.annulationEncore(x.abonnement, 'renouveler')) return 'change';
+    const r = await stripe('POST', '/v1/subscriptions/' + x.abonnement, [['cancel_at_period_end', 'false']]);
+    if (!r || r.cancel_at_period_end !== false) throw erreur('reponse_illisible');
+    return 'fait';
   }
-  /* Traite la file : une passe à la fois (le balayeur qui vient d'effacer un compte et la passe des dix minutes se partagent la même). Stripe qui ne répond pas arrête la passe après trois échecs de suite. */
+  const ETAT_JOURNAL = { fin: 'renouvellement_arrete', renouveler: 'renouvellement_retabli', resilier: 'annulee' };
+  /* Une passe sur ce qui attend Stripe. Stripe qui ne répond pas arrête la passe après trois échecs de suite. */
+  async function passe() {
+    let faites = 0, ratees = 0, suite = 0, arret = false;
+    for (const instantane of stockage.annulationsDues(50)) {
+      const x = stockage.annulationLire(instantane.abonnement);   // la ligne d'AUJOURD'HUI : la personne a pu changer d'avis depuis le début de la passe
+      if (!x || x.fait) continue;
+      try {
+        const v = await appliquer(x);
+        if (v === 'change') continue;                          // la personne a changé d'avis pendant l'appel : l'intention neuve est reprise (passe suivante)
+        stockage.annulationFaite(x.abonnement, x.voulu, { fini: v === 'fini' }); faites++; suite = 0; journaliser('facturation', { etat: ETAT_JOURNAL[x.voulu] });
+      } catch (e) {
+        stockage.annulationEchec(x.abonnement); ratees++;
+        if (!PANNES.includes(e && e.code)) journaliser('stripe_echec', { motif: 'annulation' });
+        if (PANNES.includes(e && e.code) && ++suite >= 3) { arret = true; break; }
+      }
+    }
+    return { faites, ratees, arret };
+  }
+  /* Traite la file : une passe à la fois (le balayeur qui vient d'effacer un compte, la demande d'une personne et la passe des dix minutes se partagent la même). Un geste qui arrive PENDANT une passe la fait
+     recommencer une fois qu'elle a fini (`relance`) — il n'attend pas dix minutes. */
   function annulationsTraiter() {
-    if (traitement) return traitement;
+    if (traitement) { relance = true; return traitement; }
     if (!cfg.cle) return Promise.resolve({ faites: 0, ratees: 0, inerte: true });
     traitement = (async () => {
-      let faites = 0, ratees = 0, suite = 0;
+      let faites = 0, ratees = 0;
       /* ⛔ ne rejette JAMAIS : un rejet perdu ferait sortir le processus (`index.js`), et la file se relit de toute façon au passage suivant */
       try {
-        for (const x of stockage.annulationsDues(50)) {
-          try { await annuler(x); stockage.annulationFaite(x.abonnement); faites++; suite = 0; journaliser('facturation', { etat: 'annulee' }); }
-          catch (e) {
-            stockage.annulationEchec(x.abonnement); ratees++;
-            if (!PANNES.includes(e && e.code)) journaliser('stripe_echec', { motif: 'annulation' });
-            if (PANNES.includes(e && e.code) && ++suite >= 3) break;
-          }
-        }
+        do {
+          relance = false;
+          const r = await passe(); faites += r.faites; ratees += r.ratees;
+          if (r.arret) break;                                  // Stripe est muet : on ne s'acharne pas, la passe des dix minutes reprendra
+        } while (relance);
       } catch (e) { journaliser('stripe_echec', { motif: 'annulation_file' }); }
+      finally { traitement = null; relance = false; }          // ⛔ dans le MÊME pas que le dernier test de `relance` : un geste qui arrive juste après démarre sa propre passe, il ne s'accroche pas à celle qui finit
       return { faites, ratees };
-    })().finally(() => { traitement = null; });
+    })();
     return traitement;
   }
-  /* minutes depuis lesquelles une annulation attend (0 : aucune) — c'est `facturation.annulationAttenteMin` de /health, que la surveillance lit. Un AGE, jamais un nombre ni un identifiant. */
+  /* minutes depuis lesquelles un geste attend Stripe (0 : aucun) — c'est `facturation.annulationAttenteMin` de /health, que la surveillance lit. Un AGE, jamais un nombre, un genre ni un identifiant. */
   function attenteMin(maintenant) {
     const d = stockage.annulationPlusAncienne();
     return d === null ? 0 : Math.max(0, Math.floor((maintenant - d) / 60000));

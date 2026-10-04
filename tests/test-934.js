@@ -56,9 +56,9 @@ vrai('   et « jamais réussi » (null) crie en production : une sauvegarde qu\'
 v('⛔ EN BÊTA l\'exercice n\'est PAS une alarme (null, 40 jours : rien) — la bêta est jetable, et crier chaque mois y apprendrait à ignorer l\'alarme de la production', [avecSauv({ essaiJours: null }, 'beta'), avecSauv({ essaiJours: 400 }, 'beta')], [[], []]);
 vrai('⛔ Stripe illisible depuis 120 minutes crie', S.evaluer(Object.assign({}, SAIN, { stripeEchecMin: 120 }), 'beta').some(p => /Stripe/.test(p)));
 v('   à 90 minutes pile, non (la règle d\'OP GESTION : on crie AU-DELÀ de 90)', S.evaluer(Object.assign({}, SAIN, { stripeEchecMin: 90 }), 'beta'), []);
-/* ⛔ Perso+ : un compte effacé dont l'abonnement n'a pas pu être résilié chez Stripe — une carte prélevée pour quelqu'un qui n'existe plus. /health ne dit que l'AGE de la plus ancienne demande en attente. */
+/* ⛔ Perso+ : une personne qui s'en va (suppression demandée, annulée ou compte effacé) dont l'abonnement n'a pas pu être arrêté, rétabli ou résilié chez Stripe — une carte prélevée pour quelqu'un qui est parti. /health ne dit que l'AGE du plus ancien geste en attente. */
 const avecAnnulation = (min) => S.evaluer(Object.assign({}, SAIN, { facturation: { mode: 'test', toutOuvert: false, persoAnnulationMin: min } }), 'beta');
-vrai('⛔ Perso+ : une résiliation de compte effacé qui attend depuis plus d\'un jour (1 500 min) crie, et le message le dit en heures', avecAnnulation(1500).some(p => /Perso\+/.test(p) && /25 h/.test(p)));
+vrai('⛔ Perso+ : un geste d\'abonnement (arrêt du renouvellement, rétablissement ou résiliation) qui attend Stripe depuis plus d\'un jour (1 500 min) crie, et le message le dit en heures', avecAnnulation(1500).some(p => /Perso\+/.test(p) && /25 h/.test(p)));
 v('   à 1 440 minutes pile (un jour), non — on crie AU-DELÀ', avecAnnulation(1440), []);
 v('   aucune attente (0), un /health d\'avant (sans la clé) : rien', [avecAnnulation(0), S.evaluer(SAIN, 'beta').filter(p => /Perso\+/.test(p))], [[], []]);
 vrai('   le message ne cite aucun identifiant et aucun nombre d\'abonnés', avecAnnulation(3000).every(p => !/sub_|cus_|p_[0-9a-f]{32}|abonnés/.test(p)));

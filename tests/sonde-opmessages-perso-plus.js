@@ -13,6 +13,9 @@
      D. un appel de GROUPE gratuit (Chloé) : la salle n'a pas les outils de l'organisateur et le DIT en une ligne qui dit où ils sont ; le même appel lancé par Perso+ (Alice) les a ;
      E. le paiement passe en RETARD pendant que le formulaire est ouvert (impayé, sans sursis : le service refuse 402 AU MOMENT d'enregistrer, la page ouvre la feuille du forfait et DIT que le paiement n'est pas passé),
         « J'ai réglé — vérifier » relit chez Stripe, puis le forfait est RÉSILIÉ : même refus, la feuille propose de nouveau « S'abonner » — rien n'est jamais créé ;
+     F. SUPPRIMER SON COMPTE avec un abonnement Perso+ (Dora) : la feuille « Supprimer mon compte » n'a PAS de section « Ton abonnement » tant que la personne n'est pas abonnée, puis dit EXACTEMENT « Ton abonnement
+        Perso+ ne sera plus renouvelé. » (et ne renvoie plus au portail : la demande suffit) ; la demande arrête le renouvellement chez Stripe (l'abonnement reste actif) ; se reconnecter dans la page annule la
+        suppression ET le renouvellement revient — la chaîne entière, page → service → Stripe ;
      Réglages › Abonnement dit chaque état (« Pour organiser des réunions · 5 € par mois », « Abonnement actif », « Paiement en retard : à régler »).
    Partout : aucune erreur JavaScript, aucun débordement, chaque refus réseau NOMMÉ.
 
@@ -43,8 +46,8 @@ const PROFILS = {
   iphone: { nom: 'iPhone 393', w: 393, h: 852, dpr: 2, mobile: true, insets: { top: 54, bottom: 34 } },
   bureau: { nom: 'bureau 1440', w: 1440, h: 900, dpr: 1, mobile: false, insets: null },
 };
-const MOTS = { alice: 'pw-alice-1234', bruno: 'pw-bruno-1234', chloe: 'pw-chloe-1234' };
-const NOMS = { alice: 'Alice Martin', bruno: 'Bruno Petit', chloe: 'Chloé Durand' };
+const MOTS = { alice: 'pw-alice-1234', bruno: 'pw-bruno-1234', chloe: 'pw-chloe-1234', dora: 'pw-dora-1234' };
+const NOMS = { alice: 'Alice Martin', bruno: 'Bruno Petit', chloe: 'Chloé Durand', dora: 'Dora Lefèvre' };
 const CLE = ['rk', 'test', 'BancSondePersoZzQ9'].join('_');
 const PRIX_PRO = { mensuel: 'price_BancSondeProMensA1', annuel: 'price_BancSondeProAnnuB2' };
 const PRIX_PP = { mensuel: 'price_BancSondePersoMensC3', annuel: 'price_BancSondePersoAnnuD4' };
@@ -349,6 +352,50 @@ const localParis = (t) => { const p = Object.fromEntries(new Intl.DateTimeFormat
     v('… RIEN n\'a été créé (population : la page a bien envoyé UNE demande de plus, le service l\'a refusée)', [envoyes() - postes1, nb('SELECT COUNT(*) AS n FROM reunion') - reunions1, refus402() - refus1], [1, 0, 1]);
     await capture(A, 'pp9-forfait-resilie');
     await fermerFeuille(A);
+
+    /* ═══ F. SUPPRIMER SON COMPTE AVEC UN ABONNEMENT PERSO+ : LA PHRASE, L'ARRÊT DU RENOUVELLEMENT, LE RETOUR QUI LE RÉTABLIT ═══════════════════════════ */
+    console.log('── F. Supprimer mon compte avec un abonnement Perso+ : la feuille le dit en une phrase, la demande arrête le renouvellement chez Stripe, se reconnecter le rétablit ──');
+    {
+      const D = await ouvrir(b, svc.base, PROFILS.iphone); D.nom = 'Dora (iPhone)'; tous.push(D);
+      const jusque = (cond, ms) => T.attendre(cond, ms || 12000, 50);
+      const feuilleSuppression = async (etape) => {
+        await onglet(D, 'reglages');
+        await toucher(D, '#reg-supprimer');
+        await verifier(etape + ' : la feuille « Supprimer mon compte » est affichée en entier (population : ce qui part, ce qui reste, la case, le bouton)', D,
+          () => document.getElementById('feuille-titre').textContent === 'Supprimer mon compte' && !!document.getElementById('sp-case') && /Ce qui sera effacé/.test(document.getElementById('info-corps').textContent) && !!document.getElementById('sp-oui'), null, 12000, () => texteCorps(D));
+      };
+      await connecter(D, 'dora');
+      /* — avant tout abonnement : pas de section « Ton abonnement » — */
+      await feuilleSuppression('sans abonnement');
+      v('⛔ une personne SANS abonnement ne voit aucune section « Ton abonnement » (population : la feuille est là, avec sa case)', await D.page.evaluate(() => [!!document.getElementById('sp-case'), document.getElementById('sp-abonnement'), /Ton abonnement/.test(document.getElementById('info-corps').textContent)]), [true, null, false]);
+      await toucher(D, '[data-act="suppression-annuler"]');
+      await D.page.waitForFunction(() => !document.documentElement.classList.contains('feuille-ouverte'), null, { timeout: 5000 }).catch(() => {});
+      /* — elle s'abonne (le geste est celui du service : la page n'a pas à le refaire ici), puis rouvre la feuille — */
+      const payD = await P.dora.post('/api/moi/perso-plus/paiement', { cycle: 'mensuel' });
+      const sbD = fake.payer(fake.derniereSession().id);
+      const relD = await P.dora.post('/api/moi/perso-plus/relire', {});
+      v('population : Dora a un abonnement Perso+ VIVANT chez Stripe, qui se renouvelle (le service l\'a relu)', [payD.code, relD.j.organiser, relD.j.abonnement && relD.j.abonnement.annule, sbD.cancel_at_period_end, sbD.status], [201, true, false, false, 'active']);
+      await feuilleSuppression('abonnée');
+      await verifier('⛔ la feuille dit, en une phrase : « Ton abonnement Perso+ ne sera plus renouvelé. » (le nom vient du service)', D, () => { const e = document.getElementById('sp-abonnement'); return !!e && e.textContent.trim() === 'Ton abonnement Perso+ ne sera plus renouvelé.'; }, null, 12000, () => texteCorps(D));
+      v('… et ne renvoie PLUS la personne résilier elle-même au portail (la demande suffit : aucune consigne « Gérer mon abonnement », aucune date de résiliation promise pour plus tard)', await D.page.evaluate(() => /Gérer mon abonnement|résilie-le|est résilié chez Stripe/.test(document.getElementById('info-corps').textContent)), false);
+      await capture(D, 'pp10-suppression-abonnee');
+      await largeur(D, 'feuille Supprimer mon compte (abonnée)');
+      /* — elle confirme : la page repart à l'écran de connexion, et Stripe a reçu l'ARRÊT du renouvellement — */
+      const modsD = () => fake.modifications.filter(m => m.id === sbD.id).map(m => m.cancel_at_period_end);
+      await D.page.locator('#sp-case').check();
+      await toucher(D, '#sp-oui');
+      await verifier('la page REPART à l\'écran de connexion, avec la date de l\'effacement', D, () => !document.getElementById('connexion').hidden && /Ton compte sera supprimé le /.test(document.getElementById('connexion-erreur').textContent), null, 20000, () => D.page.evaluate(() => location.href));
+      const arret = await jusque(() => fake.abonnements.get(sbD.id).cancel_at_period_end === true);
+      v('⛔ la DEMANDE a arrêté le renouvellement CHEZ STRIPE (le faux Stripe l\'a appliqué) : `cancel_at_period_end` vrai, un seul changement, l\'abonnement est toujours ACTIF, rien n\'est résilié, l\'échéance est posée',
+        [arret, modsD(), fake.abonnements.get(sbD.id).status, fake.resiliations.includes(sbD.id), sql('SELECT suppression_le AS s FROM personne WHERE id = ?', P.dora.moi.id).s !== null], [true, [true], 'active', false, true]);
+      /* — elle se reconnecte AVANT l'échéance : la suppression est annulée et le renouvellement revient — */
+      await saisir(D, '#c-login', 'dora'); await saisir(D, '#c-pass', MOTS.dora); await toucher(D, '#c-entrer');
+      await verifier('⛔ se reconnecter ANNULE la suppression : la page s\'ouvre et DIT « Bon retour : la suppression de ton compte est annulée »', D, () => { const a = document.getElementById('avis'); return !document.getElementById('app').hidden && !a.hidden && /la suppression de ton compte est annulée/.test(a.textContent); }, null, 20000, () => D.page.evaluate(() => location.href));
+      const retabli = await jusque(() => fake.abonnements.get(sbD.id).cancel_at_period_end === false);
+      v('⛔ … et le RENOUVELLEMENT REVIENT chez Stripe : `cancel_at_period_end` faux, deux changements en tout (arrêt, rétablissement), toujours actif, aucune résiliation, plus d\'échéance',
+        [retabli, modsD(), fake.abonnements.get(sbD.id).status, fake.resiliations.includes(sbD.id), sql('SELECT suppression_le AS s FROM personne WHERE id = ?', P.dora.moi.id).s], [true, [true, false], 'active', false, null]);
+      await capture(D, 'pp11-bon-retour-abonnee');
+    }
 
     /* ═══ LA FIN ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
     console.log('\n── La fin : rien d\'anormal ──');

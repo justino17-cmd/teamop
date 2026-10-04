@@ -150,8 +150,9 @@ function demarrer(env = process.env) {
       /* ⛔ LES APPELS : un booléen (le relais est-il installé ?) et des NOMBRES — l'âge du dernier passage du balayeur et ses échecs de suite sont surveillés (un balayeur mort laisserait des gens « occupés » pour toujours). JAMAIS le nombre d'appels
          en cours, ni un appel, ni une personne : c'est une activité, et /health est publique. */
       appels: appels.sante(),
-      /* ⛔ `persoAnnulationMin` : l'AGE, en minutes, de la plus ancienne résiliation d'un abonnement Perso+ de compte EFFACÉ que Stripe n'a pas confirmée (0 : aucune). Un âge, jamais un nombre ni un identifiant : /health est
-         PUBLIQUE, et « combien d'abonnés » est un chiffre commercial. La surveillance crie au-delà d'un jour : une carte prélevée pour un compte qui n'existe plus ne se laisse pas dormir. */
+      /* ⛔ `persoAnnulationMin` : l'AGE, en minutes, du plus ancien geste d'abonnement Perso+ d'une personne qui s'en va que Stripe n'a pas confirmé — l'arrêt du renouvellement (suppression DEMANDÉE), son rétablissement (demande
+         ANNULÉE) ou la résiliation (compte EFFACÉ) ; 0 : aucun. Un âge, jamais un nombre, ni un genre, ni un identifiant : /health est PUBLIQUE, et « combien d'abonnés » est un chiffre commercial. La surveillance crie
+         au-delà d'un jour : une carte prélevée pour quelqu'un qui est parti ne se laisse pas dormir. */
       facturation: { mode: facturation.mode(), toutOuvert: formule.toutOuvert(), persoAnnulationMin: facturation.annulationAttenteMin() },
     }),
   };

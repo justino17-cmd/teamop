@@ -310,7 +310,7 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
 
   /* minutes depuis lesquelles Stripe est illisible (0 : il l'est, ou rien n'en dépend) — c'est `stripeEchecMin` de /health, que la surveillance lit */
   const echecMin = () => echecDepuis === null ? 0 : Math.max(0, Math.floor((horloge() - echecDepuis) / 60000));
-  /* minutes depuis lesquelles une résiliation de compte effacé attend (0 : aucune) — `facturation.persoAnnulationMin` de /health */
+  /* minutes depuis lesquelles un geste d'abonnement Perso+ d'une personne qui s'en va attend Stripe (0 : aucun) — `facturation.persoAnnulationMin` de /health */
   const annulationAttenteMin = () => perso.attenteMin(horloge());
   return { ouvert: actif, mode: () => cfg.mode, offres, etat, paiement, portail, relire, relireTous, dissoudre, demarrer, arreter, echecMin, derniereLecture: () => derniereLecture, lireAbonnement,
     perso, annulationAttenteMin };

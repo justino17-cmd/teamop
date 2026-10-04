@@ -173,11 +173,14 @@ function installerCompte(H, ctx) {
     const q = Object.assign({ max: 5, fenetreMs: 3600000 }, config.quotas.compte_supprimer || {});
     const e = quotas.essai('compte_supprimer:' + req.moi.id, q.max, q.fenetreMs);
     if (!e.ok) { res.set('Retry-After', String(e.retry)); return refus(res, 429, 'quota_atteint', { retry: e.retry }); }
-    /* ⛔ UN PAIEMENT PERSO+ COMMENCÉ se relit avant de programmer l'effacement (payé chez Stripe, il devient l'abonnement que l'effacement fera résilier à J+14 ; jamais un abonnement vivant que personne ne connaît).
-       Un abonnement Perso+ qui court ne bloque PAS la demande : il s'annule avec le compte, et la page le dit. Stripe muet : la demande passe quand même, la passe de relecture résout la session ensuite. */
+    /* ⛔ UN PAIEMENT PERSO+ COMMENCÉ se relit avant de programmer l'effacement (payé chez Stripe, il devient l'abonnement dont la demande arrête le renouvellement, et que l'effacement résiliera à J+14 ; jamais un
+       abonnement vivant que personne ne connaît). Un abonnement Perso+ qui court ne bloque PAS la demande : il cesse de se renouveler tout de suite (la personne n'est pas prélevée pendant les quatorze jours),
+       l'accès reste jusqu'à la fin de la période payée, et la page le dit. Stripe muet : la demande passe quand même, l'arrêt est noté et rejoué, la passe de relecture résout la session ensuite. */
     if (ctx.facturation && ctx.facturation.perso.ouvert()) { const ap = stockage.abonnementPersoLire(req.moi.id); if (ap && ap.session) { try { await ctx.facturation.perso.relire(req.moi.id); } catch (x) { /* Stripe muet */ } } }
     const echeance = horloge() + SUPPRESSION_DELAI_MS;
-    stockage.suppressionProgrammer(req.moi.id, echeance);   // coupe sessions, jetons d'appareil, abonnements push, liens — et date l'effacement, dans UNE transaction
+    stockage.suppressionProgrammer(req.moi.id, echeance);   // coupe sessions, jetons d'appareil, abonnements push, liens — date l'effacement et NOTE l'arrêt du renouvellement Perso+, dans UNE transaction
+    /* l'arrêt du renouvellement part chez Stripe tout de suite, sans attendre la réponse (la page n'attend jamais Stripe pour dire « demandé ») ; un échec se rejoue à la passe des dix minutes */
+    try { if (ctx.facturation) ctx.facturation.perso.annulationsTraiter(); } catch (e) { /* la demande est notée : rien ne se perd */ }
     try { if (ctx.appels) ctx.appels.terminerDe(req.moi.id); } catch (e) { /* un appel qui ne se termine pas ne défait pas la suppression : le balayeur le dira « perdu » */ }
     hub.fermerPersonne(req.moi.id);                          // ses flux se ferment (motif « session ») : plus rien ne lui est livré
     res.append('Set-Cookie', cookieVide(config.cookie.nom));

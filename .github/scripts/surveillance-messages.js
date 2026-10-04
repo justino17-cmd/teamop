@@ -31,7 +31,7 @@ const CHAMPS_SURVEILLES = [
   'sauvegarde.echecs',     // deux passes ratées de suite : le coffre refuse, la relecture échoue, le disque manque — on le sait AVANT que l'âge ne grimpe
   'sauvegarde.essaiJours', // EN PRODUCTION seulement : aucun exercice de restauration réussi depuis 35 jours (voir `SEUIL_ESSAI_JOURS`)
   'stripeEchecMin',        // Stripe illisible depuis trop longtemps : la facturation ne se relit plus
-  'facturation.persoAnnulationMin', // Perso+ : une résiliation d'abonnement de compte EFFACÉ attend depuis plus d'un jour — une carte prélevée pour quelqu'un qui n'existe plus (un AGE : jamais un nombre d'abonnés)
+  'facturation.persoAnnulationMin', // Perso+ : l'arrêt du renouvellement, son rétablissement ou la résiliation d'une personne qui s'en va attend Stripe depuis plus d'un jour — une carte prélevée pour quelqu'un qui est parti (un AGE : jamais un nombre d'abonnés)
   'base.illisibles',       // des lignes chiffrées qui ne s'ouvrent plus (octet retourné, restauration mélangée) : jamais normal
   'porte.relecturesEchec', // la relecture des accès bêta échoue depuis des minutes : un accès coupé dans la Tour garderait sa session
   'pieces.illisibles',     // un fichier de pièce qui ne s'ouvre plus (bloc abîmé, taille qui ne colle plus à la base) : jamais normal — des photos ou des fichiers perdus
@@ -185,9 +185,9 @@ function evaluer(j, instanceAttendue, sondes) {
   if (typeof j.stripeEchecMin === 'number' && j.stripeEchecMin > SEUIL_STRIPE_MIN) {
     p.push('Stripe illisible depuis ' + Math.round(j.stripeEchecMin) + ' min');
   }
-  /* Perso+ : un compte effacé dont l'abonnement n'a pas pu être résilié chez Stripe. Un /health d'avant (sans la clé) ne crie pas. */
+  /* Perso+ : une personne qui demande à partir (ou dont le compte est effacé) dont l'abonnement n'a pas pu être arrêté, rétabli ou résilié chez Stripe. Un /health d'avant (sans la clé) ne crie pas. */
   if (j.facturation && typeof j.facturation === 'object' && typeof j.facturation.persoAnnulationMin === 'number' && j.facturation.persoAnnulationMin > SEUIL_ANNULATION_MIN) {
-    p.push('une résiliation d\'abonnement Perso+ d\'un compte effacé attend depuis ' + Math.round(j.facturation.persoAnnulationMin / 60) + ' h — la carte serait prélevée pour un compte qui n\'existe plus (la clé Stripe a-t-elle le droit de résilier ?)');
+    p.push('un geste d\'abonnement Perso+ d\'une personne qui s\'en va (arrêt du renouvellement, rétablissement ou résiliation) attend Stripe depuis ' + Math.round(j.facturation.persoAnnulationMin / 60) + ' h — la carte pourrait être prélevée pour quelqu\'un qui est parti (la clé Stripe a-t-elle le droit de modifier et de résilier un abonnement ?)');
   }
   /* les réunions programmées : le planificateur de rappels. Un /health d'avant (sans la clé) ne crie pas ; « jamais tourné » (ageS null) non plus : c'est la première seconde du service. */
   if (j.reunions && typeof j.reunions === 'object') {

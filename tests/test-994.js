@@ -7,10 +7,12 @@
      · PAYER : une adresse de Stripe, https seulement (une adresse venue du service qui n'est pas en https n'est jamais rendue) ; « J'ai réglé — vérifier » relit chez Stripe et prévient la page (`espaces`) ;
      · LE REFUS D'ORGANISER SE DIT : `ErreurApi.offre` « perso_plus », `raison` (perso / impaye / organisateur), `abonnementOuvert` — et la PHRASE promet ce que le service tient (rejoindre reste gratuit), n'écrit
        aucun prix, ne dit « fonction Pro » nulle part ; un espace déjà Pro n'achète pas un forfait de personne (409 `formule_deja_incluse`, avec sa phrase) ;
-     · LE PLAFOND DE DIX PERSONNES : la page le LIT chez le service (`plafondReunion()`, la fiche d'une réunion), la onzième personne est refusée avec une phrase qui nomme le plafond.
+     · LE PLAFOND DE DIX PERSONNES : la page le LIT chez le service (`plafondReunion()`, la fiche d'une réunion), la onzième personne est refusée avec une phrase qui nomme le plafond ;
+     · SUPPRIMER SON COMPTE AVEC UN ABONNEMENT PERSO+ : `supprimerCompte()` (le module) arrête le renouvellement chez Stripe, `connexion()` avant l'échéance dit « suppression annulée » ET le rétablit ; la feuille de
+       la page dit UNE phrase (« Ton abonnement Perso+ ne sera plus renouvelé. ») — lue dans le code de la page, le DOM étant joué par la sonde.
    ⛔ UNE ASSERTION SUR UN ENSEMBLE VIDE PASSE ET NE PROUVE RIEN : chaque refus est précédé de ce qu'il aurait pu compter (sessions ouvertes chez Stripe, réunions). Toute attente est au GESTE. */
 'use strict';
-const path = require('path'), crypto = require('crypto');
+const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const T = require('./outils-msg');
 const { fauxStripe } = require('./outils-stripe');
 T.sauterSiSansDependances();
@@ -32,7 +34,7 @@ const JOUR = 86400000;
 setTimeout(() => { console.log('  ✗ délai global du banc dépassé (240 s)'); process.exit(1); }, 240000).unref();
 
 (async () => {
-  const MDP = { alice: 'pw-alice-1234', bob: 'pw-bob-123456', cleo: 'pw-cleo-12345', dan: 'pw-dan-123456' };
+  const MDP = { alice: 'pw-alice-1234', bob: 'pw-bob-123456', cleo: 'pw-cleo-12345', dan: 'pw-dan-123456', erin: 'pw-erin-123456' };
   const og = await T.fauxOpGestion(Object.fromEntries(Object.keys(MDP).map(k => [k, { pass: MDP[k], nom: k[0].toUpperCase() + k.slice(1) + ' Banc', actif: true }])));
   const fake = await fauxStripe();
   fake.poserTarif(PRIX_PRO.mensuel); fake.poserTarif(PRIX_PRO.annuel, { unit_amount: 15000, recurring: { interval: 'year', interval_count: 1 } });
@@ -205,6 +207,33 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (240 s)');
       const nP = () => panne.reseau.requetes.filter(r => r.m === 'GET' && r.chemin === '/api/config').length;
       const p1 = await panne.src.plafondReunion(), apres1 = nP(), p2 = await panne.src.plafondReunion();
       v('… une panne de la lecture : `null` aussi, et ELLE N\'EST PAS GARDÉE (la lecture suivante retourne voir le service : au moins une demande de plus)', [p1, p2, nP() > apres1], [null, null, true]);
+    }
+
+    /* ═══ 6. SUPPRIMER SON COMPTE AVEC UN ABONNEMENT PERSO+ ═══════════════════════════════════════════════════════════════════════════════════ */
+    console.log('\nSupprimer son compte avec un abonnement Perso+ : la demande arrête le renouvellement, se reconnecter le rétablit, la feuille le dit en une phrase');
+    {
+      const E = monter(svc), erin = await E.entrer('erin');
+      await E.src.persoPlusPayer('mensuel');
+      const sbE = fake.payer(fake.derniereSession().id);
+      const rel = await E.src.persoPlusRelire();
+      const mods = () => fake.modifications.filter(m => m.id === sbE.id).map(m => m.cancel_at_period_end);
+      v('population : Erin est Perso+, son abonnement se renouvelle chez Stripe', [rel.formule, rel.abonnement && rel.abonnement.annule, sbE.cancel_at_period_end, mods()], ['perso_plus', false, false, []]);
+      const dem = await E.src.supprimerCompte();
+      const arret = await att(() => fake.abonnements.get(sbE.id).cancel_at_period_end === true);
+      v('⛔ `supprimerCompte()` (la méthode que la feuille appelle) : l\'échéance est dite, ET le renouvellement est arrêté chez Stripe — l\'abonnement reste actif, rien n\'est résilié',
+        [Number.isSafeInteger(dem.suppression_le) && dem.suppression_le > Date.now(), arret, mods(), fake.abonnements.get(sbE.id).status, fake.resiliations.includes(sbE.id)], [true, true, [true], 'active', false]);
+      const E2 = monter(svc);
+      const retour = await E2.src.connexion('erin', MDP.erin);
+      const retabli = await att(() => fake.abonnements.get(sbE.id).cancel_at_period_end === false);
+      v('⛔ `connexion()` avant l\'échéance : la personne rendue DIT que la suppression est annulée (`suppression_annulee`), ET le renouvellement revient chez Stripe — deux changements en tout',
+        [retour && retour.suppression_annulee === true, retabli, mods(), fake.resiliations.includes(sbE.id)], [true, true, [true, false], false]);
+      /* la feuille : une phrase, lue dans le CODE de la page (le DOM se joue dans la sonde) — aucune consigne de résilier soi-même, aucune date de résiliation promise */
+      const code = T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, 'public', 'opmsg-ui.js'), 'utf8'));
+      const debut = code.indexOf('async function rendreSuppression'), finF = code.indexOf("$('info-corps').addEventListener('change'", debut);
+      const feuille = debut > 0 && finF > debut ? code.slice(debut, finF) : '';
+      vrai('population : la fonction qui peint la feuille « Supprimer mon compte » est trouvée dans le code servi (une tranche vide passerait au vert sur tout)', feuille.length > 1500);
+      vrai('⛔ la section « Ton abonnement » de la feuille n\'existe que pour un abonnement qui VIT, dit « ne sera plus renouvelé » avec le NOM venu du service, et ne renvoie plus au portail ni ne promet une résiliation à l\'effacement',
+        /CAP\.persoPlus && pp\.etat && vivantPP\(pp\.etat\)\s*\?/.test(feuille) && /Ton abonnement ' \+ esc\(pp\.etat\.nom\) \+ ' ne sera plus renouvelé\./.test(feuille) && !/Gérer mon abonnement|résilie-le|est résilié chez Stripe/.test(feuille));
     }
   } finally {
     for (const s of sources) { try { s.arreter(); } catch (e) { /* déjà arrêté */ } }
