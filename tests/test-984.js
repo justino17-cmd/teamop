@@ -56,7 +56,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
     const o = opts || {};
     const nav = o.nav || T.navigateur(service.base);
     const monde = creerMonde(login);
-    const D = { login, service, nav, monde, reseau: { requetes: [] }, recus: {}, gids: {}, fermees: [], sw: null, visible: true, panne: null, retenir: null, perdre: null, evs: [] };
+    const D = { login, service, nav, monde, reseau: { requetes: [] }, recus: {}, gids: {}, fermees: [], sw: null, visible: true, panne: null, retenir: null, perdre: null, evs: [], ordre: [] };
     const faux = { priseEnCharge: () => ({ ok: false, raison: 'navigateur' }), permission: () => 'default', visible: () => D.visible, surMessage: (cb) => { D.sw = cb; }, abonnementActuel: async () => null, fermerNotifications: async (tag) => { D.fermees.push(tag); } };
     const f = async (url, init) => {
       const u = String(url), m = (init && init.method) || 'GET', chemin = u.replace(service.base, '').split('?')[0];
@@ -64,6 +64,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       const cle = m + ' ' + chemin;
       if (D.panne && D.panne.restant > 0 && D.panne.re.test(cle)) { D.panne.restant--; D.panne.vues = (D.panne.vues || 0) + 1; return new Response('{}', { status: 500, headers: { 'Content-Type': 'application/json' } }); }
       const r = await nav.fetch(url, init);
+      D.ordre.push('rep ' + cle);
       if (D.retenir && D.retenir.re.test(cle) && !D.retenir.faite) { D.retenir.faite = true; D.retenir.enRoute = true; await D.retenir.porte; }
       return r;
     };
@@ -79,7 +80,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
     };
     const src = creerSourceServeur({ OPMSG, base: service.base, fetch: f, EventSource: ES, navigateur: faux, webrtc: o.sansWebrtc ? {} : monde, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5, delaiAckMs: 20, appelsDelais: Object.assign({}, DELAIS, o.delais || {}) });
     D.src = src;
-    src.ecouter(e => D.evs.push(e));
+    src.ecouter(e => { D.evs.push(e); D.ordre.push('ev ' + e.type); });
     sources.push(src);
     D.entrer = async () => { await src.connexion(login, MDP[login]); const d = await src.demarrer(); if (!d.connecte) throw new Error('démarrage refusé : ' + JSON.stringify(d)); D.moi = src.moi(); return D.moi; };
     D.attendreEv = (pred, ms) => att(() => D.evs.find(pred) || null, ms);
@@ -143,8 +144,11 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       v('Ben répond : l\'appel COURT, et ce n\'est plus à lui de répondre', [rep.etat, rep.entrant], ['en-cours', false]);
       vrai('⛔ les deux liaisons s\'établissent (l\'appelante a offert dès que l\'autre a répondu)', !!(await liees(A, B)));
       const pa = A.monde.dernier(), pb = B.monde.dernier();
-      v('une seule connexion de chaque côté, deux émetteurs (audio, vidéo) dès le début — la caméra se pose et s\'ôte sans renégocier', [A.monde.pcs.length, B.monde.pcs.length, pa.transceivers.map(t => t.kind + ':' + t.direction), pb.transceivers.map(t => t.kind + ':' + t.direction)],
+      v('une seule connexion de chaque côté, deux émetteurs (audio, vidéo) en envoi ET réception dès le début — la caméra se pose et s\'ôte sans renégocier', [A.monde.pcs.length, B.monde.pcs.length, pa.transceivers.map(t => t.kind + ':' + t.direction), pb.transceivers.map(t => t.kind + ':' + t.direction)],
         [1, 1, ['audio:sendrecv', 'video:sendrecv'], ['audio:sendrecv', 'video:sendrecv']]);
+      v('⛔ L\'APPELÉ N\'AJOUTE AUCUN ÉMETTEUR avant l\'offre (un émetteur d\'`addTransceiver` n\'est pas rattaché aux sections de l\'offre : sa réponse n\'enverrait rien — trouvé en vrai navigateur) : il ADOPTE ceux que l\'offre fait naître et les passe en `sendrecv`',
+        [pb.journal.filter(x => /^addTransceiver/.test(x)), pb.journal.filter(x => /^transceiverNeuf/.test(x)).sort(), pa.journal.filter(x => /^addTransceiver/.test(x)).sort()], [[], ['transceiverNeuf:audio', 'transceiverNeuf:video'], ['addTransceiver:audio', 'addTransceiver:video']]);
+      v('⛔ chacun REÇOIT les deux pistes de l\'autre (la section de l\'appelé répond en envoi : sinon l\'appelant n\'aurait rien)', [pa.recues(), pb.recues()], [['audio', 'video'], ['audio', 'video']]);
       v('⛔ L\'APPELANT OFFRE, l\'appelé répond — jamais l\'inverse (l\'appelé n\'a créé aucune offre)', [pa.journal.filter(x => x === 'createOffer').length, pa.journal.includes('setRemoteDescription:answer'), pb.journal.filter(x => /^createOffer/.test(x)).length, pb.journal.includes('setRemoteDescription:offer'), pb.journal.includes('createAnswer')], [1, true, 0, true, true]);
       vrai('⛔ l\'offre que l\'appelé a reçue EST celle que l\'appelante a produite, et la réponse de même (par les vraies routes, le vrai flux)', !!sdpLocal(pa) && sdpDistant(pb) === sdpLocal(pa) && !!sdpLocal(pb) && sdpDistant(pa) === sdpLocal(pb));
       v('⛔ les candidats se sont croisés dans les deux sens, sans perte ni doublon (population : chacun en avait produit deux)', [pa.candidatsEmis.length, pb.candidatsEmis.length, pb.candidatsRecus.map(c => c.candidate), pa.candidatsRecus.map(c => c.candidate)], [2, 2, pa.candidatsEmis.map(c => c.candidate), pb.candidatsEmis.map(c => c.candidate)]);
@@ -171,6 +175,8 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       const hA = await A.src.appels('tous'), hB = await B.src.appels('tous');
       v('⛔ l\'historique des DEUX s\'est mis à jour (événement `appels`) : sortant chez Ana, ENTRANT chez Ben, la même durée', [hA[0].id === idAudio, hA[0].sens, hA[0].membres[0] === ben.id, hA[0].nom, hB[0].id === idAudio, hB[0].sens, hB[0].nom, hA[0].duree === hB[0].duree], [true, 'sortant', true, 'Ben Banc', true, 'entrant', 'Ana Banc', true]);
       vrai('l\'événement `appels` est arrivé à la page des deux', A.evs.some(e => e.type === 'appels') && B.evs.some(e => e.type === 'appels'));
+      const iq = A.ordre.map((x, i) => /^rep POST \/api\/appels\/a_[0-9a-f]+\/quitter$/.test(x) ? i : -1).filter(i => i >= 0).pop();
+      vrai('⛔ l\'historique est redit APRÈS que le service a reçu le raccrochage (trouvé en vrai navigateur : relu avant, il ne portait pas encore l\'appel qu\'on venait de finir)', iq !== undefined && A.ordre.slice(iq).includes('ev appels'));
       vrai('la notification de la sonnerie est retirée de l\'écran de l\'appelé (étiquette `appel:<identifiant>`)', fermeesAvant.concat(B.fermees).includes('appel:' + idAudio));
     }
 
@@ -187,14 +193,15 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       A.src.appelPistes(id, { audio: pAudioA, video: null });
       vrai('les liaisons s\'établissent', !!(await liees(A, B)));
       const qa = A.monde.dernier(), qb = B.monde.dernier();
-      v('⛔ les pistes sont posées sur les émetteurs SANS renégocier : une seule offre, et `replaceTrack` pour chaque piste remise', [qb.journal.filter(x => x === 'createOffer').length, qb.journal.filter(x => /^replaceTrack/.test(x)).sort(), qa.journal.filter(x => /^replaceTrack/.test(x)).sort()],
+      v('⛔ les pistes sont posées sur les émetteurs SANS renégocier : une seule offre, et `replaceTrack` pour chaque piste remise — l\'appelé (qui n\'a d\'émetteur qu\'après l\'offre) les pose à l\'arrivée de l\'offre', [qb.journal.filter(x => x === 'createOffer').length, qb.journal.filter(x => /^replaceTrack/.test(x)).sort(), qa.journal.filter(x => /^replaceTrack/.test(x)).sort()],
         [1, ['replaceTrack:audio:b-micro', 'replaceTrack:video:b-camera'], ['replaceTrack:audio:a-micro']]);
+      v('⛔ ce qui passe VRAIMENT : Ben envoie sa voix ET son image, Ana sa voix seule — et chacun reçoit ce que l\'autre envoie', [qb.envoyes(), qa.envoyes(), qb.recues(), qa.recues()], [['audio', 'video'], ['audio'], ['audio', 'video'], ['audio', 'video']]);
       const sa = await A.attendreSnap(id, s => s.membres[0].camera === true), sb = await B.src.appel(id);
       v('⛔ la caméra de Ben est DITE à Ana dès le début (signal d\'état, sans qu\'il ait rien changé) ; celle d\'Ana est éteinte', [sa && sa.membres[0].camera, sb.membres[0].camera, sa.type], [true, false, 'video']);
       /* — Ana allume sa caméra en cours d'appel, puis l'éteint — */
       A.src.appelPistes(id, { audio: pAudioA, video: pVideoA });
       const sb2 = await B.attendreSnap(id, s => s.membres[0].camera === true);
-      v('Ana allume sa caméra : Ben le sait (aucune renégociation : toujours UNE offre)', [sb2 && sb2.membres[0].camera, qa.journal.filter(x => /^createOffer/.test(x)).length, qb.journal.filter(x => x === 'createOffer').length, qa.journal.includes('replaceTrack:video:a-camera')], [true, 0, 1, true]);
+      v('Ana allume sa caméra : Ben le sait (aucune renégociation : toujours UNE offre) et la piste est sur son émetteur', [sb2 && sb2.membres[0].camera, qa.journal.filter(x => /^createOffer/.test(x)).length, qb.journal.filter(x => x === 'createOffer').length, qa.journal.includes('replaceTrack:video:a-camera'), qa.envoyes()], [true, 0, 1, true, ['audio', 'video']]);
       A.src.appelPistes(id, { audio: pAudioA, video: null });
       const sb3 = await B.attendreSnap(id, s => s.membres[0].camera === false);
       v('Ana éteint sa caméra : Ben le sait, la piste est retirée de l\'émetteur (`replaceTrack(null)`)', [sb3 && sb3.membres[0].camera, qa.journal.includes('replaceTrack:video:null')], [false, true]);
@@ -530,6 +537,15 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       v('… avec une liste vide de serveurs, et sans attendre plus de `iceMax` (1,5 s) + l\'établissement', [X.monde.dernier().conf.iceServers, Date.now() - t0 < 6000], [[], true]);
       await X.src.terminerAppel(s2.id); await Y.attendreSnap(s2.id, x => x.etat === 'termine'); await Y.src.terminerAppel(s2.id);
       X.panne = null; Y.panne = null;
+      /* — il NE RÉPOND JAMAIS (la requête reste pendante) : après `iceMax` l'appel part sans relais, il n'attend pas pour toujours — */
+      X.retenir = { re: /GET \/api\/ice/, porte: new Promise(() => {}), faite: false }; Y.retenir = { re: /GET \/api\/ice/, porte: new Promise(() => {}), faite: false };
+      const t1 = Date.now();
+      const s2b = await X.src.demarrerAppel({ membres: [yid], video: false });
+      await Y.attendreEv(e => e.type === 'appel-entrant' && e.id === s2b.id); await Y.src.repondreAppel(s2b.id, true);
+      vrai('⛔ `/api/ice` qui ne répond JAMAIS : l\'appel part après `iceMax` (1,5 s), sans relais, et la liaison s\'établit — il n\'attend pas pour toujours (population : la requête est bien partie des deux côtés, retenue)', !!(await liees(X, Y)) && X.retenir.enRoute !== undefined && X.requetes(/GET \/api\/ice/).length >= 3 && Y.requetes(/GET \/api\/ice/).length >= 3);
+      v('… avec une liste vide de serveurs, et après AU MOINS le délai (le moteur a bien attendu les identifiants avant de renoncer)', [X.monde.dernier().conf.iceServers, Y.monde.dernier().conf.iceServers, Date.now() - t1 >= DELAIS.iceMax - 100], [[], [], true]);
+      X.retenir = null; Y.retenir = null;
+      await X.src.terminerAppel(s2b.id); await Y.attendreSnap(s2b.id, x => x.etat === 'termine'); await Y.src.terminerAppel(s2b.id);
       /* — la sonnerie de 1,2 s, et l'événement de fin que la page ne voit JAMAIS : elle relit l'état quand la sonnerie devrait être finie — */
       const Z = monter(svcN, 'ben', { delais: { marge: 150 } });
       await Z.entrer();

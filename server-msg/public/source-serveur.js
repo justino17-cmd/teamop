@@ -289,15 +289,17 @@
       d.emettre({ type: 'appels' });
       return true;
     }
-    /* Le service apprend la fin (un raccrochage perdu repart deux fois). Rend la vue finale, ou null. Rien à envoyer quand c'est lui qui l'a dite. */
+    /* Le service apprend la fin (un raccrochage perdu repart deux fois). Rend la vue finale, ou null. Rien à envoyer quand c'est lui qui l'a dite.
+       ⛔ L'HISTORIQUE SE RELIT QUAND LE SERVICE LE SAIT : `finir` dit « l'historique a changé » AVANT que le service ait reçu le raccrochage, et la page qui relit alors ne trouve pas l'appel (mesuré en vrai
+       navigateur : la ligne d'un appel qu'on venait de finir manquait dans l'onglet des appels de celui qui avait raccroché). On le redit donc une fois le raccrochage reçu. */
     function informer(c) {
       if (c.serviceInforme) return Promise.resolve(null);
       if (!c.informe) {
         c.informe = (async () => {
           for (let n = 0; ; n++) {
-            try { const r = await d.api.quitterAppel(c.id); c.serviceInforme = true; if (r && r.appel) c.vue = r.appel; return r && r.appel ? r.appel : null; }
+            try { const r = await d.api.quitterAppel(c.id); c.serviceInforme = true; if (r && r.appel) c.vue = r.appel; d.emettre({ type: 'appels' }); return r && r.appel ? r.appel : null; }
             catch (e) {
-              if (e && CODES_APPEL_FINI.includes(e.code)) { c.serviceInforme = true; return null; }
+              if (e && CODES_APPEL_FINI.includes(e.code)) { c.serviceInforme = true; d.emettre({ type: 'appels' }); return null; }
               if (n >= T.quitter.length || !e || !CODES_RESEAU.includes(e.code)) return null;        // le pouls manquera : le service y mettra fin de lui-même
               await pause(T.quitter[n]);
             }
@@ -334,8 +336,9 @@
         if (c.candLocaux.length) envoyerCandidats(c);
       }, T.candidats);
     }
+    /* la caméra est dite « allumée » quand sa piste est VRAIMENT sur l'émetteur — pas quand la page vient de la remettre (l'appelé n'a d'émetteur qu'après l'offre) */
     function envoyerEtatCamera(c) {
-      const on = !!c.pistes.video;
+      const on = !!c.pistes.video && !!c.emetteurs.video && c.emetteurs.video.track === c.pistes.video;
       if (c.fini || !c.pret || c.cameraDite === on) return;
       c.cameraDite = on;
       signaler(c, 'etat', { camera: on }, false);
@@ -379,10 +382,14 @@
       const pc = new W.RTCPeerConnection(conf);
       c.pc = pc; c.conf = conf;
       c.flux = typeof W.MediaStream === 'function' ? new W.MediaStream() : null;
-      /* ⛔ DEUX ÉMETTEURS DÈS LE DÉBUT, DANS LES DEUX SENS : la caméra se met et s'enlève en cours d'appel par `replaceTrack`, sans nouvelle négociation (et un appel audio peut devenir vidéo) */
-      for (const kind of ['audio', 'video']) {
-        const tr = pc.addTransceiver(kind, { direction: 'sendrecv' });
-        c.emetteurs[kind] = tr && tr.sender ? tr.sender : null;
+      /* ⛔ DEUX ÉMETTEURS DÈS LE DÉBUT, DANS LES DEUX SENS : la caméra se met et s'enlève en cours d'appel par `replaceTrack`, sans nouvelle négociation (et un appel audio peut devenir vidéo).
+         L'APPELANT les crée. ⛔ L'APPELÉ NE LES CRÉE PAS : un émetteur ajouté (`addTransceiver`) AVANT `setRemoteDescription(offre)` n'est PAS rattaché aux sections de l'offre — le navigateur en fabrique
+         d'autres, `recvonly`, et la réponse n'enverrait RIEN (mesuré en vrai navigateur : l'appelant ne recevait aucune voix de l'appelé). L'appelé adopte ceux que l'offre fait naître (`adopterEmetteurs`). */
+      if (c.role === 'appelant') {
+        for (const kind of ['audio', 'video']) {
+          const tr = pc.addTransceiver(kind, { direction: 'sendrecv' });
+          c.emetteurs[kind] = tr && tr.sender ? tr.sender : null;
+        }
       }
       pc.ontrack = (ev) => {
         if (c.pc !== pc || !ev || !ev.track || !c.flux) return;
@@ -398,6 +405,17 @@
       };
       pc.oniceconnectionstatechange = () => surEtatIce(c, pc);
       return pc;
+    }
+    /* l'appelé prend les émetteurs que l'offre a fait naître (un par section, audio et vidéo), les passe en `sendrecv` AVANT de répondre, et le fait de nouveau à chaque offre (un redémarrage les retrouve) */
+    function adopterEmetteurs(c) {
+      const pc = c.pc;
+      if (!pc || typeof pc.getTransceivers !== 'function') return;
+      for (const tr of pc.getTransceivers()) {
+        const kind = tr && tr.receiver && tr.receiver.track ? tr.receiver.track.kind : null;
+        if (kind !== 'audio' && kind !== 'video') continue;
+        try { if (tr.direction !== 'sendrecv' && !tr.stopped) tr.direction = 'sendrecv'; } catch (e) { /* un émetteur arrêté reste ce qu'il est */ }
+        c.emetteurs[kind] = tr.sender || null;
+      }
     }
     async function appliquerPistes(c) {
       for (const k of ['audio', 'video']) {
@@ -524,11 +542,14 @@
           if (x.renouveler === true && c.relais) await renouvelerServeurs(c);
           if (c.pc !== pc || c.fini) return;
           await pc.setRemoteDescription({ type: 'offer', sdp: x.sdp });
+          adopterEmetteurs(c);
+          await appliquerPistes(c);
           await viderCandidats(c);
           const rep = await pc.createAnswer();
           if (c.pc !== pc || c.fini) return;
           await pc.setLocalDescription(rep);
           await signaler(c, 'reponse', { sdp: rep.sdp }, true);
+          envoyerEtatCamera(c);
         } else if (s.type === 'reponse') {
           if (c.role !== 'appelant' || typeof x.sdp !== 'string' || !x.sdp || x.sdp.length > SDP_MAX || pc.signalingState !== 'have-local-offer') return;
           await pc.setRemoteDescription({ type: 'answer', sdp: x.sdp });
