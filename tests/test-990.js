@@ -186,6 +186,20 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessa
       v('   Ben l\'accuse (la demande s\'efface de sa vue)', (await B.src.appel(id)).demandeMicro, null);
     }
 
+    /* ═══ 4 bis. L'ÉPINGLE ET LE MINUTEUR : celui qui les pose les VOIT ═══ */
+    console.log('\nL\'épingle et le minuteur : le service ne les pousse pas à celui qui les pose — il les lui rend');
+    {
+      await A.src.salleAction(id, 'evt', { k: 'epingle', donnees: { op: 'epingler', uid: ben.id } });
+      await A.src.salleAction(id, 'evt', { k: 'minuteur', donnees: { op: 'demarrer', secondes: 90 } });
+      const sa = await A.src.appel(id);
+      v('⛔ l\'hôte qui épingle Ben et lance un minuteur de 90 s les voit AUSSITÔT dans son propre cliché (sinon il ne trouverait ni « Retirer l\'épingle » ni « Arrêter »)', [sa.epingle, sa.minuteur && sa.minuteur.secondes], [ben.id, 90]);
+      vrai('… et Ben, lui, les reçoit par le flux', !!(await B.attendreSnap(id, s => s.epingle === ben.id && s.minuteur && s.minuteur.secondes === 90, 6000)));
+      await A.src.salleAction(id, 'evt', { k: 'epingle', donnees: { op: 'retirer' } });
+      await A.src.salleAction(id, 'evt', { k: 'minuteur', donnees: { op: 'arreter' } });
+      const sb = await A.src.appel(id);
+      v('⛔ il les RETIRE : son cliché ne les porte plus (l\'ordre est suivi dans les deux sens), et Ben le sait', [sb.epingle, sb.minuteur, !!(await B.attendreSnap(id, s => s.epingle === null && s.minuteur === null, 6000))], [null, null, true]);
+    }
+
     /* ═══ 5. LA SALLE D'ATTENTE, L'EXCLUSION, LE DÉPART DE L'HÔTE ═══ */
     console.log('\nLa salle d\'attente, l\'exclusion, le départ de l\'hôte, le retour de quelqu\'un');
     {

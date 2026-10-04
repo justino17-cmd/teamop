@@ -4563,6 +4563,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     document.documentElement.dataset.salle = '1';
     if (s.attente) E.setAttribute('data-attente', '1'); else E.removeAttribute('data-attente');
     if (!s.attente && !A.mediasDemandes) acquerirMedias(A, s.type === 'video');           // en salle d'attente, ni micro ni caméra : on ne s'ouvre à personne avant d'être admis
+    if (s.conv && !s.attente && !X.discutee) { X.discutee = true; salleDiscussionCharger(A, true); }           // le fil tel qu'il est à mon ENTRÉE : ce qui arrive ensuite est « nouveau » (la pastille du bouton Discussion)
     $('salle-titre').textContent = s.nom;
     $('salle-nb').textContent = s.attente ? '' : s.nb + (s.nb > 1 ? ' participants' : ' participant');
     const rec = $('salle-rec'); rec.hidden = !s.rec; rec.setAttribute('role', 'img'); rec.setAttribute('aria-label', s.rec ? 'Enregistrement en cours' + (s.rec.nom === 'vous' ? ' par vous' : ' par ' + s.rec.nom) : '');
@@ -4942,19 +4943,19 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     A.recEnCours = true;
     try {
       if (!await salleGeste(A, 'rec', { actif: true }, 'L\'enregistrement n\'a pas pu commencer.')) return;       // le service d'abord : sans son accord, aucun bandeau chez les autres, donc aucune image enregistrée en cachette
-      const cv = document.createElement('canvas'); cv.width = 960; cv.height = 540;
+      const cv = document.createElement('canvas'); cv.width = 640; cv.height = 360;
       const AC = window.AudioContext || window.webkitAudioContext, ctx = new AC(), dest = ctx.createMediaStreamDestination();
       const R = { cv, ctx, dest, sources: new Map(), chunks: [], octets: 0, minuterie: 0, rec: null, fini: false };
-      const flux = cv.captureStream(15);
+      const flux = cv.captureStream(10);
       dest.stream.getAudioTracks().forEach(t => flux.addTrack(t));
       const types = ['video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'], mime = types.find(t => MediaRecorder.isTypeSupported(t)) || '';
       R.mime = mime;
-      R.rec = new MediaRecorder(flux, mime ? { mimeType: mime, videoBitsPerSecond: 800000 } : { videoBitsPerSecond: 800000 });
+      R.rec = new MediaRecorder(flux, mime ? { mimeType: mime, videoBitsPerSecond: 600000 } : { videoBitsPerSecond: 600000 });
       R.rec.ondataavailable = ev => { if (ev.data && ev.data.size) { R.chunks.push(ev.data); R.octets += ev.data.size; if (R.octets > REC_OCTETS_MAX && A.rec === R) { mot('Limite de 150 Mo atteinte : l\'enregistrement s\'arrête.'); recArreter(A, true); } } };
       A.rec = R;
       recSynchro(A);
       recDessiner(A);
-      R.minuterie = setInterval(() => recDessiner(A), 66);
+      R.minuterie = setInterval(() => recDessiner(A), 100);
       R.rec.start(2000);
       mot('Enregistrement commencé : garde cet onglet visible');
       rendreAppel();
@@ -4997,7 +4998,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
         g2.fillStyle = '#fff'; g2.font = '600 ' + Math.round(Math.min(w, h) * 0.18) + 'px sans-serif'; g2.textAlign = 'center'; g2.textBaseline = 'middle'; g2.fillText(ini, x + w / 2, y + h / 2);
       }
       const nom = ((t.querySelector('.tuile-nom') || {}).textContent || '').trim();
-      if (nom) { g2.font = '600 15px sans-serif'; g2.textAlign = 'left'; g2.textBaseline = 'alphabetic'; const l = g2.measureText(nom).width + 14; g2.fillStyle = 'rgba(0,0,0,.6)'; g2.fillRect(x + 8, y + h - 30, l, 22); g2.fillStyle = '#fff'; g2.fillText(nom, x + 15, y + h - 14); }
+      if (nom) { g2.font = '600 12px sans-serif'; g2.textAlign = 'left'; g2.textBaseline = 'alphabetic'; const l = g2.measureText(nom).width + 12; g2.fillStyle = 'rgba(0,0,0,.6)'; g2.fillRect(x + 6, y + h - 24, l, 18); g2.fillStyle = '#fff'; g2.fillText(nom, x + 12, y + h - 11); }
     });
     g2.fillStyle = '#ff453a'; g2.beginPath(); g2.arc(R.cv.width - 22, 22, 7, 0, Math.PI * 2); g2.fill();
   }

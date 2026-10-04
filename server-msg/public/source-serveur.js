@@ -1449,7 +1449,7 @@
         catch (e) {
           if (e && (e.code === 'appel_pris')) finir(c, 'pris_ailleurs', { service: true });
           else if (e && (e.code === 'appel_fini' || e.code === 'introuvable')) relireActif();
-          else if (e && (e.code === 'appel_complet' || e.code === 'verrouillee' || e.code === 'exclu')) finir(c, 'manque', { avis: undefined, service: false });
+          else if (e && (e.code === 'appel_complet' || e.code === 'verrouillee' || e.code === 'exclu')) finir(c, 'manque', { avis: e.dit && typeof e.phrase === 'function' ? e.phrase() : undefined, service: false });          // la sonnerie se ferme, et l'écran DIT pourquoi (« La salle est pleine… »), pas seulement « Appel manqué. »
           throw e;
         }
         if (c.fini) return instantane(c);
@@ -1511,6 +1511,7 @@
       const a = args || {};
       const r = await ACTIONS[nom](id, a);
       if (c.fini) return r;
+      if (nom === 'evt' && r && r.ev) surSalleEvt(r.ev);                    // l'épingle ou le minuteur que je viens de poser : le service ne me le pousse pas, il me le rend
       if (nom === 'main') { c.salle.mains = c.salle.mains.filter(x => x !== moi()); if (a.actif) c.salle.mains.push(moi()); emettreAppel(c); }
       if (nom === 'reaction') d.emettre({ type: 'salle-reaction', id, uid: moi(), emoji: a.emoji });
       if (r && r.appel) { memoriser(r.appel); appliquer(c, r.appel); }

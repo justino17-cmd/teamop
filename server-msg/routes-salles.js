@@ -148,8 +148,10 @@ function installerSalles(H, ctx) {
     if (b.donnees === undefined || b.donnees === null || typeof b.donnees !== 'object' || Array.isArray(b.donnees)) return refus(res, 400, 'champ_invalide');
     if (tailleEvt(b.donnees) > EVT_OCTETS_MAX) return refus(res, 413, 'evt_trop_gros');
     if (!gesteSimple(req, res)) return;
-    appels.evt({ moi: req.moi, acces: req.appel, k: b.k, donnees: b.donnees });
-    res.json({ ok: true });
+    const ev = appels.evt({ moi: req.moi, acces: req.appel, k: b.k, donnees: b.donnees });
+    /* ⛔ L'ÉVÉNEMENT REVIENT À CELUI QUI L'A POSÉ : le service le pousse aux AUTRES (au sondage près, qui va à tous), et la page de l'hôte qui épingle ou lance un minuteur ne voyait pas son propre geste — pas d'« Arrêter »
+       sur son minuteur, une épingle qu'elle croyait encore à poser (mesuré au navigateur, quatre pages). C'est ce que tout le monde reçoit, sans rien de plus. */
+    res.json({ ok: true, ev });
   });
 }
 
