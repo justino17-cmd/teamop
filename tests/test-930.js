@@ -20,12 +20,12 @@ const t = banc();
 const { v, vrai } = t;
 
 const SM = path.join(RACINE, 'server-msg');
-const SCRIPTS = ['install-msg.sh', 'deployer.sh'];
+const SCRIPTS = ['install-msg.sh', 'deployer.sh', 'install-turn.sh'];   // install-turn.sh : le relais d'appels (étape 7) — mêmes interdits, joué par test-982
 const lire = (p) => fs.readFileSync(p, 'utf8');
 console.log('\n── 930 · les scripts d\'installation d\'OP MESSAGES, lus ──');
 
 vrai('bash est là (sans lui ce banc ne dirait rien — et un banc muet a l\'air d\'un banc vert)', spawnSync('bash', ['-c', 'true']).status === 0);
-v('les deux scripts existent', SCRIPTS.filter(f => !fs.existsSync(path.join(SM, f))), []);
+v('les scripts existent', SCRIPTS.filter(f => !fs.existsSync(path.join(SM, f))), []);
 
 /* ══ 1. ILS SE PARSENT ═══════════════════════════════════════════════════════════════════════════ */
 for (const f of SCRIPTS) {

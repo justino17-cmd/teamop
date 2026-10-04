@@ -4,7 +4,7 @@
    joue CHAQUE route contre six profils — anonyme, jeton invalide, compte non confirmé, personne
    confirmée mais non-membre, membre, administrateur — avec une table de ce qui doit se passer :
 
-        P public · S session · V session ET adresse confirmée · M membre · A administrateur · B bêta · R invité d'une réunion · H son hôte
+        P public · S session · V session ET adresse confirmée · M membre · A administrateur · B bêta · R invité d'une réunion · H son hôte · AP participant d'un appel
 
    ⛔ UNE ROUTE ABSENTE DE LA MATRICE FAIT TOMBER LE BANC (et une ligne de matrice sans route aussi) :
    ajouter une route au manifeste oblige à dire, ICI, ce qu'elle doit refuser à qui. Et il n'existe aucun
@@ -155,6 +155,17 @@ const MATRICE = {
   'reunions.rappels':   { ok: (F) => ['POST', '/api/reunions/' + F.R + '/rappels', { rappels: [5] }], codes: [200] },
   'reunions.ics':       { ok: (F) => ['GET', '/api/reunions/' + F.R + '/ics'], codes: [200] },
   'reunions.courriel':  { ok: (F) => ['POST', '/api/reunions/' + F.R + '/courriel', { destinataire: 'banc.invite@exemple.invalid' }], codes: [503] },   // sans relais SMTP : la garde a passé, le courriel est INERTE et le dit (test-975 joue le relais)
+  /* Les APPELS À DEUX (étape 7). Lancer est V (agir au nom d'une adresse) : chacun appelle SON contact, un appel par acteur (la route précédente a libéré les lignes). Les trois gestes d'un appel sont AP : la
+     garde ne laisse passer que les deux participants, et un non-participant reçoit le 404 d'un appel qui n'existe pas. Pendant ces routes, Ana et Ben parlent depuis les appareils LIÉS à l'appel (`liees`) :
+     répondre se joue sur un appel qui SONNE (Ben l'appelé : 200 ; Ana l'appelante : 403 `interdit` — la garde a passé, le geste dit non), raccrocher et signaler sur un appel qui COURT. Les cases que la
+     garde ne voit pas (un autre appareil, un appel pris, un appel fini) sont jouées plus bas. */
+  'ice':                { ok: () => ['GET', '/api/ice'], codes: [404] },   // S laisse passer tout compte connecté ; le geste dit non à qui n'est dans AUCUN appel (404 `introuvable`, test-981 joue les identifiants rendus à qui sonne ou court)
+  'appels.liste':       { ok: () => ['GET', '/api/appels'], codes: [200] },
+  'appels.creer':       { ok: (F, a) => ['POST', '/api/appels', { uid: F.cibleDe(a), type: 'audio' }], codes: [201] },
+  'appels.repondre':    { ok: (F) => ['POST', '/api/appels/' + F.AP + '/repondre', { accepte: true }], codes: [200, 403],
+                          exactes: { membre: [200, null], admin: [403, 'interdit'] } },
+  'appels.quitter':     { ok: (F) => ['POST', '/api/appels/' + F.AP + '/quitter', {}], codes: [200] },
+  'appels.signal':      { ok: (F, a) => ['POST', '/api/appels/' + F.AP + '/signal', { a: a === F.A ? F.B : F.A, type: 'etat', donnees: { camera: false } }], codes: [200] },
 };
 
 /* Ce que chaque garde doit répondre à chaque profil : { code, error } ou 'passe'. */
@@ -175,6 +186,8 @@ const ATTENDU = {
      identique à une réunion inexistante ; l'invité qui n'est pas l'hôte reçoit 403 sur H */
   R:  { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: [404, 'introuvable'], nonmembre: [404, 'introuvable'], membre: 'passe', admin: 'passe' },
   H:  { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: [403, 'adresse_non_confirmee'], nonmembre: [404, 'introuvable'], membre: [403, 'interdit'], admin: 'passe' },
+  /* un APPEL : bâti sur S (un non confirmé n'est simplement pas participant : 404, comme un appel qui n'existe pas) ; les deux participants passent la garde, le geste dit ensuite lequel a le droit */
+  AP: { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: [404, 'introuvable'], nonmembre: [404, 'introuvable'], membre: 'passe', admin: 'passe' },
 };
 
 (async () => {
@@ -184,7 +197,7 @@ const ATTENDU = {
   const lire = T.lireBase;
   const instantane = () => {
     const d = lire(path.join(svc.data, 'msg.db'));
-    try { return ['personne', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'lien', 'notification', 'contact', 'journal', 'piece', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'reunion', 'reunion_invite', 'rappel'].map(t => d.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(LENGTH(CAST(rowid AS TEXT))),0) AS s FROM ' + t).get().n).join(',') + '|' + d.prepare('SELECT COALESCE(SUM(lu_seq),0) AS a, COALESCE(SUM(role=\'admin\'),0) AS b, COALESCE(SUM(epingle),0) AS c FROM membre').get().a; } finally { d.close(); }
+    try { return ['personne', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'lien', 'notification', 'contact', 'journal', 'piece', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'reunion', 'reunion_invite', 'rappel', 'appel', 'appel_part'].map(t => d.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(LENGTH(CAST(rowid AS TEXT))),0) AS s FROM ' + t).get().n).join(',') + '|' + d.prepare('SELECT COALESCE(SUM(lu_seq),0) AS a, COALESCE(SUM(role=\'admin\'),0) AS b, COALESCE(SUM(epingle),0) AS c FROM membre').get().a; } finally { d.close(); }
   };
   try {
     console.log('Le manifeste et la matrice disent la MÊME chose');
@@ -196,6 +209,7 @@ const ATTENDU = {
       v('toutes les gardes du manifeste sont connues de la table des attentes', MANIFESTE.filter(r => !ATTENDU[r.garde]).map(r => r.id), []);
       vrai('population : au moins 30 routes à jouer', MANIFESTE.length >= 30);
       v('les treize routes des réunions sont au manifeste, avec leurs gardes (liste S, programmer V + Pro, fiche R, six gestes d\'hôte H, quitter R, réponse R, rappels R, fichier R, courriel H)', ['reunions.liste', 'reunions.creer', 'reunions.lire', 'reunions.modifier', 'reunions.annuler', 'reunions.supprimer', 'reunions.inviter', 'reunions.retirer', 'reunions.quitter', 'reunions.reponse', 'reunions.rappels', 'reunions.ics', 'reunions.courriel'].map(i => { const x = MANIFESTE.find(y => y.id === i) || {}; return x.garde + (x.pro ? '+pro' : ''); }), ['S', 'V+pro', 'R', 'H', 'H', 'H', 'H', 'H', 'R', 'R', 'R', 'R', 'H']);
+      v('les six routes des appels à deux sont au manifeste, avec leurs gardes (relais S, historique S, lancer V, répondre AP, raccrocher AP, signal AP), et AUCUNE n\'est Pro — les appels à deux sont gratuits en Perso', ['ice', 'appels.liste', 'appels.creer', 'appels.repondre', 'appels.quitter', 'appels.signal'].map(i => { const x = MANIFESTE.find(y => y.id === i) || {}; return x.garde + (x.pro ? '+pro' : ''); }), ['S', 'S', 'V', 'AP', 'AP', 'AP']);
       v('les quatre routes des pièces sont au manifeste, avec leurs gardes (déposer V, lire J, avatar S, stockage S)', ['pieces.deposer', 'pieces.lire', 'moi.avatar', 'moi.stockage'].map(i => (MANIFESTE.find(x => x.id === i) || {}).garde), ['V', 'J', 'S', 'S']);
       v('les six routes des notifications et du compte sont au manifeste, TOUTES en garde S (l\'identité vient de la session, jamais du corps)', ['push.abonner', 'push.desabonner', 'push.essai', 'flux.ack', 'compte.export', 'compte.supprimer'].map(i => (MANIFESTE.find(x => x.id === i) || {}).garde), ['S', 'S', 'S', 'S', 'S', 'S']);
       const sources = T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, 'app.js'), 'utf8')) + T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, 'routes.js'), 'utf8')) + T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, 'index.js'), 'utf8'));
@@ -219,13 +233,26 @@ const ATTENDU = {
 
     const acteurs = { nonconfirme: N, nonmembre: C, membre: B, admin: A };
     const session = (p) => { const j = jeton(); S.sessionAjouter({ h: sha(j), personne: p.id, appareil: null, ttlMs: 86400000 }); return j; };
+    /* Pendant une route d'APPEL, Ana et Ben parlent depuis les appareils LIÉS à l'appel (`liees`) : un appel n'obéit qu'à l'appareil qui l'a lancé ou pris. */
+    let liees = null;
     const clientDe = (profil) => {
       const c = T.client(svc.base);
       if (profil === 'invalide') c.poserCookie(jeton());
+      else if (liees && (profil === 'membre' || profil === 'admin')) c.poserCookie(profil === 'admin' ? liees.A : liees.B);
       else if (acteurs[profil]) c.poserCookie(session(acteurs[profil]));
       return c;
     };
-    let cellules = 0, refusSansEffet = 0, refusAvecEffet = [], espacesVerifies = 0, reunionsVerifiees = 0, cellulesPro = 0, cellulesHier = 0;
+    /* Une ligne libre pour chacun, puis un appel d'Ana à Ben depuis deux appareils connus : 'sonne' (Ben n'a pas répondu) ou 'en_cours' (il a répondu). */
+    const libre = (u) => { const id = S.appelActifDe(u); if (id) S.appelFinir({ id, motif: 'banc' }); };
+    const appelPrepare = (etat) => {
+      for (const p of [A, B, C]) libre(p.id);
+      const jA = session(A), jB = session(B);
+      const cree = S.appelCreer({ appelant: A.id, appele: B.id, type: 'audio', session: sha(jA), sonnerieMs: 45000 });
+      if (etat === 'en_cours') S.appelRepondre({ id: cree.id, uid: B.id, session: sha(jB), accepte: true });
+      liees = { A: jA, B: jB };
+      return cree.id;
+    };
+    let cellules = 0, refusSansEffet = 0, refusAvecEffet = [], espacesVerifies = 0, reunionsVerifiees = 0, appelsVerifies = 0, cellulesPro = 0, cellulesHier = 0;
 
     console.log('\nCHAQUE route contre CHAQUE profil');
     for (const r of MANIFESTE) {
@@ -254,6 +281,10 @@ const ATTENDU = {
         R = S.reunionCreer({ hote: A.id, titre: 'Réunion ' + r.id, lieu: '', debut: debutR, fin: debutR + 3600000, tz: 'Europe/Paris', rep: 'aucune', rappels: [15], invites: [B.id, D.id], prochain: debutR }).id;
       }
       const F = { A: A.id, B: B.id, C: C.id, D: D.id, G, E, CP, CV, R, codeE: inv(A.id), code, seqDe: (a) => a === A.id ? mA.seq : mB.seq, cibleDe: (a) => K[a] ? K[a].id : A.id, png: PNG };
+      /* la fixture des APPELS : les lignes sont libérées (la route précédente a pu laisser un appel qui sonne), et une route AP a son appel — qui sonne pour `repondre`, qui court pour les autres */
+      liees = null;
+      for (const p of [A, B, C]) libre(p.id);
+      if (r.garde === 'AP') F.AP = appelPrepare(r.id === 'appels.repondre' ? 'sonne' : 'en_cours');
       /* la fixture des pièces : une photo déposée PAR LA ROUTE (le fichier est réellement rangé et scellé), attachée à un message du groupe par le module de stockage */
       if (r.garde === 'J') {
         const dep = await F_PIECES.deposer(clientDe('admin'), { conv: G, genre: 'photo', corps: PNG });
@@ -290,6 +321,14 @@ const ATTENDU = {
         const a = await c.appel(reel[0], reel[1], reel[2]), b = await c.appel(faux[0], faux[1], faux[2]);
         v('⛔ ' + r.id + ' : la réponse faite à un NON-INVITÉ d\'une réunion qui existe est identique à celle d\'une réunion INEXISTANTE (même code, même corps)', [a.code, a.txt], [b.code, b.txt]);
         reunionsVerifiees++;
+      }
+      /* ⛔ UN NON-PARTICIPANT NE VOIT RIEN D'UN APPEL : la réponse faite à qui n'y est pas est identique, octet pour octet, à celle d'un appel qui n'existe pas */
+      if (r.garde === 'AP') {
+        const c = clientDe('nonmembre');
+        const reel = M.ok(F, C.id), faux = M.ok(Object.assign({}, F, { AP: 'a_' + '0'.repeat(32) }), C.id);
+        const a = await c.appel(reel[0], reel[1], reel[2]), b = await c.appel(faux[0], faux[1], faux[2]);
+        v('⛔ ' + r.id + ' : la réponse faite à un NON-PARTICIPANT d\'un appel qui existe est identique à celle d\'un appel INEXISTANT (même code, même corps)', [a.code, a.txt], [b.code, b.txt]);
+        appelsVerifies++;
       }
       for (const profil of PROFILS) {
         const acteur = acteurs[profil];
@@ -357,8 +396,56 @@ const ATTENDU = {
     vrai('population : les routes Pro ont chacune leurs trois cellules de formule (' + cellulesPro + ')', cellulesPro >= 9 && cellulesPro % 3 === 0 && cellulesPro / 3 === Object.values(MATRICE).filter(m => m.pro).length);
     vrai('population : le 404 « espace inexistant » a été comparé pour toutes les routes d\'espace (' + espacesVerifies + ')', espacesVerifies >= 18);
     vrai('population : le 404 « réunion inexistante » a été comparé pour toutes les routes de réunion à garde R ou H (' + reunionsVerifiees + ')', reunionsVerifiees === MANIFESTE.filter(r => ['R', 'H'].includes(r.garde)).length && reunionsVerifiees >= 8);
+    vrai('population : le 404 « appel inexistant » a été comparé pour les trois routes à garde AP (' + appelsVerifies + ')', appelsVerifies === MANIFESTE.filter(r => r.garde === 'AP').length && appelsVerifies === 3);
     vrai('population : des refus ont bien été relevés avant/après (' + refusSansEffet + ')', refusSansEffet >= 60);
     v('⛔ AUCUN refus n\'a écrit quoi que ce soit (instantané de la base identique avant/après)', refusAvecEffet, []);
+
+    console.log('\nLes appels : ce que la garde ne voit pas — l\'appareil LIÉ, l\'appel déjà pris, l\'appel déjà fini');
+    {
+      let extra = 0;
+      const depuis = async (jetonH, id, geste, corps) => { const c = T.client(svc.base); c.poserCookie(jetonH); return c.post('/api/appels/' + id + '/' + geste, corps); };
+      const dit = (rep) => [rep.code, rep.j && rep.j.error];
+      libre(A.id); libre(B.id);
+      /* un appel qui COURT : un AUTRE appareil de chacun (session valide, personne participante, mais pas l'appareil de l'appel) ne signale ni ne raccroche — et le refus n'écrit rien */
+      {
+        const id = appelPrepare('en_cours'), autreA = session(A), autreB = session(B);
+        const avant = instantane();
+        for (const [quoi, geste, corps, jt] of [
+          ['signaler depuis un autre appareil d\'Ana', 'signal', { a: B.id, type: 'etat', donnees: { camera: true } }, autreA],
+          ['signaler depuis un autre appareil de Ben', 'signal', { a: A.id, type: 'etat', donnees: { camera: true } }, autreB],
+          ['raccrocher depuis un autre appareil d\'Ana', 'quitter', {}, autreA],
+          ['raccrocher depuis un autre appareil de Ben', 'quitter', {}, autreB],
+        ]) {
+          v('⛔ appel en cours : ' + quoi + ' → 403 appareil_non_lie', dit(await depuis(jt, id, geste, corps)), [403, 'appareil_non_lie']);
+          extra++;
+        }
+        v('⛔ ces quatre refus n\'ont rien écrit', instantane(), avant);
+        v('⛔ un second appareil de Ben ne PREND pas un appel déjà pris → 409 appel_pris', dit(await depuis(session(B), id, 'repondre', { accepte: true })), [409, 'appel_pris']);
+        extra++;
+        v('contre-épreuve : l\'appareil LIÉ de Ben signale (200), puis l\'appareil lié d\'Ana raccroche (200) — la règle protège l\'appel, elle ne ferme pas les routes', [dit(await depuis(liees.B, id, 'signal', { a: A.id, type: 'etat', donnees: { camera: true } })), dit(await depuis(liees.A, id, 'quitter', {}))], [[200, undefined], [200, undefined]]);
+        extra++;
+      }
+      /* un appel qui SONNE : l'appelante annule depuis son appareil lié (ok) mais pas depuis un autre ; elle ne signale rien d'autre qu'un pouls tant que Ben n'a pas répondu */
+      {
+        const id = appelPrepare('sonne'), autreA = session(A);
+        v('⛔ appel qui sonne : annuler depuis un autre appareil d\'Ana → 403 appareil_non_lie', dit(await depuis(autreA, id, 'quitter', {})), [403, 'appareil_non_lie']);
+        v('⛔ appel qui sonne : une offre avant que Ben ait répondu → 409 appel_pas_en_cours', dit(await depuis(liees.A, id, 'signal', { a: B.id, type: 'offre', donnees: { sdp: 'v=0' } })), [409, 'appel_pas_en_cours']);
+        v('un pouls de l\'appareil lié passe pendant la sonnerie (il prouve que l\'appareil est là)', dit(await depuis(liees.A, id, 'signal', { a: B.id, type: 'pouls' })), [200, undefined]);
+        extra += 3;
+      }
+      /* un appel FINI : on ne signale plus (409), on ne répond plus (409), raccrocher est un geste sans effet qui répond 200 `deja` (la page raccroche après que l'autre l'a fait) */
+      {
+        const id = appelPrepare('en_cours'); S.appelFinir({ id, motif: 'banc' });
+        const avant = instantane();
+        v('⛔ appel fini : signaler → 409 appel_fini', dit(await depuis(liees.A, id, 'signal', { a: B.id, type: 'etat', donnees: { camera: true } })), [409, 'appel_fini']);
+        v('⛔ appel fini : répondre → 409 appel_fini', dit(await depuis(liees.B, id, 'repondre', { accepte: true })), [409, 'appel_fini']);
+        const q = await depuis(liees.A, id, 'quitter', {});
+        v('appel fini : raccrocher → 200 deja, sans rien écrire', [q.code, q.j && q.j.deja === true, instantane() === avant], [200, true, true]);
+        extra += 3;
+      }
+      liees = null;
+      vrai('population : les douze cellules d\'appel que la garde ne voit pas ont été jouées (' + extra + ')', extra === 12);
+    }
 
     console.log('\nUn identifiant mal formé est un 404, jamais une erreur de format qui distinguerait les cas');
     {

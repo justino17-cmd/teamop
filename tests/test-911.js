@@ -123,7 +123,7 @@ const json = async (base, methode, chemin, corps, entetes) => {
     }
     const ma = await A.entrer('alice', 'pw-alice-1234'), mb = await B.entrer('bruno', 'pw-bruno-1234'), mc = await C.entrer('chloe', 'pw-chloe-1234');
     v('moi() : la personne connectée, avec ses initiales (le nom que la Tour a donné)', [ma.nom, ma.initiales, /^p_[0-9a-f]{32}$/.test(ma.id)], ['Alice Martin', 'AM', true]);
-    v('population : aucune capacité fantôme — le service sait les pièces (photos, vocaux, fichiers, photos de profil) et les réglages (test-944 les joue), les réunions programmées (test-976 les joue), et dit « bientôt » aux appels (l\'étape 7)', [A.src.capacites.photos, A.src.capacites.vocaux, A.src.capacites.fichiers, A.src.capacites.avatars, A.src.capacites.reglages, A.src.capacites.appels, A.src.capacites.reunions, A.src.capacites.actionsMessage], [true, true, true, true, true, false, true, true]);
+    v('population : aucune capacité fantôme — le service sait les pièces (photos, vocaux, fichiers, photos de profil) et les réglages (test-944 les joue), les réunions programmées (test-976 les joue), les appels À DEUX (test-984 les joue) — et dit « bientôt » aux appels de groupe (l\'étape 8)', [A.src.capacites.photos, A.src.capacites.vocaux, A.src.capacites.fichiers, A.src.capacites.avatars, A.src.capacites.reglages, A.src.capacites.appels, A.src.capacites.appelsMedias, A.src.capacites.appelsGroupe, A.src.capacites.reunions, A.src.capacites.actionsMessage], [true, true, true, true, true, true, true, false, true, true]);
     vrai('⛔ aucun jeton ni identifiant de session dans le module (le cookie est HttpOnly, il ne passe jamais par le JavaScript)', !/opm_[A-Za-z0-9_-]{43}/.test(JSON.stringify(A.src.moi())) && !JSON.stringify(Object.keys(A.src)).includes('jeton'));
 
     /* ══ 2. LES CONTACTS PAR LIEN ═════════════════════════════════════════════════════════════════════════════════════════ */
@@ -324,11 +324,12 @@ const json = async (base, methode, chemin, corps, entetes) => {
       await B.src.precedents(d);
       const o2 = await B.src.ouvrir(d);
       v('et « messages précédents » rend le reste, sans doublon, dans l\'ordre (121 : le message système + 120)', [o2.messages.length, o2.aPlus, o2.messages.filter(m => !m.systeme).map(m => m.texte).join() === Array.from({ length: 120 }, (_, i) => 'msg ' + (i + 1)).join()], [121, false, true]);
-      /* les pièces sont jouées par test-944 ; ici, ce qu'on ne peut pas envoyer est refusé proprement, et les appels disent « bientôt » */
+      /* les pièces sont jouées par test-944 et les appels par test-984 ; ici, ce qu'on ne peut pas envoyer est refusé proprement : un navigateur SANS connexion pair à pair (Node) ne lance pas d'appel, un appel de groupe est refusé */
       const eP = await attrape(A.src.envoyer(conv, { photos: [{ url: 'blob:x', w: 1, h: 1 }] }));
       const eV2 = await attrape(A.src.envoyer(conv, { vocal: { dur: 3 } }));
       const eAp = await attrape(A.src.demarrerAppel({ membres: [mb.id], video: false }));
-      v('⛔ une photo ou un vocal SANS contenu : refus propre « vide » (rien n\'est déposé) ; les appels : « bientôt » (refus propre, avec sa phrase, jamais une erreur technique)', [eP.code, eV2.code, eAp.code, eAp.dit], ['vide', 'vide', 'bientot', true]);
+      const eGr = await attrape(A.src.demarrerAppel({ membres: [mb.id, 'p_' + 'a'.repeat(32)], video: false }));
+      v('⛔ une photo ou un vocal SANS contenu : refus propre « vide » (rien n\'est déposé) ; un appel sans connexion pair à pair, ou à plusieurs : refus propre, avec sa phrase, jamais une erreur technique', [eP.code, eV2.code, eAp.code, eAp.dit, eGr.code, eGr.dit], ['vide', 'vide', 'appel_navigateur', true, 'appel_a_deux', true]);
       v('l\'historique des appels est vide (rien à simuler), l\'appel en cours n\'existe pas', [await A.src.appels(), await A.src.appel('x')], [[], null]);
     }
 

@@ -48,6 +48,9 @@
  *                                et la bêta peuvent le presser jusqu'à 50 ms) et la durée de son bail (60 s ; au moins deux tours : un arrêt brutal le laisse expirer, il ne bloque personne). Le BUDGET d'un tour :
  *                                `rappelsParTour` (2000 rappels envoyés, à une réunion près), `tourMaxMs` (1000 ms de temps réel : passé ce délai le tour s'arrête après la réunion en cours) et
  *                                `urgentesMax` (2000 réunions urgentes regardées) — ce qui reste attend le tour suivant, qui vient vite : un tour ne gèle jamais le service.
+ *   appels        {sonnerieMs, perduMs, balayageMs, historiqueJours, listeMax, parHeure, parPaireHeure, entrantsParHeure, signalMax, signalFenetreMs, iceParHeure, relais:{secret, hote, port, portTls, ttlS}}   Les appels à deux (étape 7) :
+ *                                sonnerie (45 s, puis « manqué »), temps sans signe d'un appareil lié avant de finir l'appel (45 s), rythme du balayeur, plafonds par heure et par personne (30) ou vers la même personne (6),
+ *                                signaux par appel, et le RELAIS (coturn) : sans `relais`, pas de relais et la page le dit (jamais de serveur STUN tiers) ; son `secret`, posé par `install-turn.sh`, ne s'affiche ni ne se copie.
  *   courriel      {hote, port, securite, utilisateur, mot_de_passe, de, nom, timeoutMs}   L'envoi des invitations aux réunions par courriel (un fichier .ics joint). SANS `hote`, INERTE et le dit.
  *                                `securite` : starttls (défaut, port 587), ssl (465) ou aucune (relais local seulement en production). `de` : l'adresse d'expédition. Le mot de passe s'écrit par
  *                                `configurer-courriel.js` (saisie masquée), jamais à la main ni affiché.
@@ -319,6 +322,55 @@ function courrielConfig(cfg, instance) {
   return o;
 }
 
+/* ⛔ LES APPELS À DEUX (étape 7). Une valeur qui n'a pas de sens REFUSE le démarrage, comme les pièces et les réunions : un délai de sonnerie à zéro ferait « manquer » tout appel avant qu'il ait sonné, un
+   plafond à dix mille laisserait une personne en faire sonner mille autres à l'heure.
+   · `sonnerieMs` (45 s) : sans réponse au bout de ce délai, l'appel est « manqué » — par l'horloge du service, jamais celle de l'appareil. `perduMs` (45 s) : sans AUCUN signe d'un appareil lié (un signal,
+     dont le pouls que la page envoie toutes les 15 s), l'appel finit « connexion perdue » — c'est ce qui borne un appareil qui disparaît en plein appel (page tuée, réseau coupé), qu'aucune connexion
+     fermée ne dit toujours. `balayageMs` : le rythme du balayeur d'appels (sonneries échues, appareils perdus) ; EN PRODUCTION entre 0,5 et 10 s, la bêta et les bancs peuvent le presser.
+   · `parHeure` (30 appels lancés par heure et par personne, SERVEUR.md § 3.6, divisé par trois pour un compte de moins de 24 h) et `parPaireHeure` (6 vers la MÊME personne : sonner trente fois chez quelqu'un
+     est du harcèlement, pas de l'usage) ; `entrantsParHeure` (30 appels REÇUS par heure et par personne appelée, tous appelants confondus : plusieurs comptes qui appellent la même personne ne sont pas arrêtés par
+     les plafonds de chaque appelant ; l'appelant qui se heurte à ce plafond lit que la personne reçoit beaucoup d'appels, SERVEUR.md § 5, question 33) ; `signalMax` signaux par appel et par participant dans `signalFenetreMs` ; `iceParHeure` : combien de fois par heure une personne demande des identifiants de relais.
+   · `historiqueJours` (180) : un appel plus ancien est effacé ; `listeMax` (100) : les lignes de l'historique rendues d'un coup.
+   · `relais` : le relais d'appel (coturn). SANS ce bloc, il n'y a pas de relais et la page le DIT ; JAMAIS de serveur STUN d'un tiers (Google…) en repli — rien ne sort de nos machines.
+     `secret` : le secret PARTAGÉ avec coturn (`static-auth-secret`), posé par `install-turn.sh` sur le VPS sans jamais s'afficher ; il se lit (`relais.secret`) mais ne se COPIE ni ne se SÉRIALISE (propriété
+     non énumérable, comme le mot de passe du relais SMTP) et aucune erreur de configuration ne le cite. `hote` : le nom du relais (`turn.teamop.fr`) ; `port` (3478, UDP et TCP) ; `portTls` (5349) ou absent :
+     pas de `turns:` (le certificat n'a pas pu être obtenu) ; `ttlS` : la durée de vie d'un identifiant — QUINZE MINUTES (900), entre une minute et une heure : un identifiant vole en une requête, et coturn ne
+     le re-vérifie jamais sur une allocation déjà ouverte (mesuré) ; la page les renouvelle aux trois quarts de leur vie, tant que l'appel court. */
+const APPELS_DEFAUT = { sonnerieMs: 45000, perduMs: 45000, balayageMs: 2000, historiqueJours: 180, listeMax: 100, parHeure: 30, parPaireHeure: 6, entrantsParHeure: 30, signalMax: 240, signalFenetreMs: 60000, iceParHeure: 120 };
+const RE_SECRET_RELAIS = /^[A-Za-z0-9_-]{32,128}$/;
+function appelsConfig(cfg, instance) {
+  const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };
+  const brut = cfg.appels === undefined || cfg.appels === null ? {} : cfg.appels;
+  if (!brut || typeof brut !== 'object' || Array.isArray(brut)) throw err('appels doit être un objet');
+  const prod = instance === 'prod';
+  const o = Object.assign({}, APPELS_DEFAUT, { relais: null });
+  const bornes = { sonnerieMs: prod ? [20000, 120000] : [200, 300000], perduMs: prod ? [20000, 180000] : [200, 600000], balayageMs: prod ? [500, 10000] : [20, 60000], historiqueJours: [1, 3650], listeMax: [1, 500],
+    parHeure: [1, 1000], parPaireHeure: [1, 100], entrantsParHeure: [1, 600], signalMax: [10, 2000], signalFenetreMs: [1000, 600000], iceParHeure: [1, 1000] };
+  for (const [k, [min, max]] of Object.entries(bornes)) {
+    if (brut[k] === undefined) continue;
+    if (!Number.isInteger(brut[k]) || brut[k] < min || brut[k] > max) throw err('appels.' + k + ' doit être un entier entre ' + min + ' et ' + max + (prod && (k === 'sonnerieMs' || k === 'perduMs' || k === 'balayageMs') ? ' en production' : ''));
+    o[k] = brut[k];
+  }
+  if (o.perduMs < 2 * o.balayageMs) throw err('appels.perduMs doit durer au moins deux tours du balayeur (' + (2 * o.balayageMs) + ' ms)');
+  const r = brut.relais;
+  if (r !== undefined && r !== null) {
+    if (typeof r !== 'object' || Array.isArray(r)) throw err('appels.relais doit être un objet { secret, hote, port, portTls }');
+    if (typeof r.hote !== 'string' || !RE_HOTE.test(r.hote)) throw err('appels.relais.hote doit être un nom d\'hôte (lettres, chiffres, points, tirets)');
+    /* ⛔ jamais la valeur dans le message : une erreur de configuration finit dans le journal du démarrage, que Justin recolle dans la conversation */
+    if (typeof r.secret !== 'string' || !RE_SECRET_RELAIS.test(r.secret)) throw err('appels.relais.secret doit être un secret de 32 à 128 caractères (lettres, chiffres, tiret, soulignement) — il se pose par install-turn.sh');
+    const port = r.port === undefined ? 3478 : r.port;
+    if (!Number.isInteger(port) || port < 1 || port > 65535) throw err('appels.relais.port doit être un entier entre 1 et 65535');
+    let portTls = null;
+    if (r.portTls !== undefined && r.portTls !== null) { if (!Number.isInteger(r.portTls) || r.portTls < 1 || r.portTls > 65535) throw err('appels.relais.portTls doit être un entier entre 1 et 65535'); portTls = r.portTls; }
+    const ttlS = r.ttlS === undefined ? 900 : r.ttlS;
+    if (!Number.isInteger(ttlS) || ttlS < 60 || ttlS > 3600) throw err('appels.relais.ttlS doit être un entier entre 60 et 3600');
+    const relais = { hote: r.hote, port, portTls, ttlS };
+    Object.defineProperty(relais, 'secret', { value: r.secret, enumerable: false, writable: false, configurable: false });
+    o.relais = relais;
+  }
+  return o;
+}
+
 function charger(env = process.env) {
   const manque = (n) => { const e = new Error('config: ' + n + ' est obligatoire'); e.code = 'CONFIG'; return e; };
   const instance = env.OPMSG_INSTANCE;
@@ -357,6 +409,7 @@ function charger(env = process.env) {
     formule: formuleConfig(cfg, instance),
     facturation: facturationConfig(cfg, env, instance),
     reunions: reunionsConfig(cfg, instance),
+    appels: appelsConfig(cfg, instance),
     courriel: courrielConfig(cfg, instance),
     sms: cfg.sms && typeof cfg.sms === 'object' && !Array.isArray(cfg.sms) ? cfg.sms : {},   // validée par `lireConfigSms` (sms-garde.js)
     sauvegarde: cfg.sauvegarde === undefined ? null : cfg.sauvegarde,   // validée par `lireConfigSauvegarde` (sauvegarde.js) : absente = module inerte, invalide = démarrage refusé
@@ -369,4 +422,4 @@ function charger(env = process.env) {
   };
 }
 
-module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, formuleConfig, facturationConfig, reunionsConfig, courrielConfig, RE_CLE_STRIPE, RE_ADRESSE_MEL, INTERDITS };
+module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, formuleConfig, facturationConfig, reunionsConfig, appelsConfig, courrielConfig, RE_CLE_STRIPE, RE_ADRESSE_MEL, RE_SECRET_RELAIS, INTERDITS };

@@ -70,9 +70,9 @@ async function lancerService(opts = {}) {
     CREDENTIALS_DIRECTORY: cred, OPMSG_SHA: 'banc0000',
   }, o.env);
   /* Une horloge décalable (voir `lib-horloge-msg.js`) : le banc avance les DATES du processus. */
-  let decalage = 0; const fichierDecalage = path.join(racine, 'decalage-horloge');
+  let decalage = o.decalageInitial || 0; const fichierDecalage = path.join(racine, 'decalage-horloge');   // `decalageInitial` : un REDÉMARRAGE reprend l'horloge là où le processus d'avant l'avait laissée
   if (o.horloge) {
-    fs.writeFileSync(fichierDecalage, '0');
+    fs.writeFileSync(fichierDecalage, String(decalage));
     env.OPMSG_HORLOGE_DECALAGE = fichierDecalage;
     env.NODE_OPTIONS = ((env.NODE_OPTIONS || '') + ' --require=' + path.join(__dirname, 'lib-horloge-msg.js')).trim();
   }

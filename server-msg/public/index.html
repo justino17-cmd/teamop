@@ -631,6 +631,7 @@ button.photo:active { transform: scale(.97); }
 /* la feuille a trois visages : « Nouveau groupe », « Appel de groupe », « Détails » d'un appel — le même cadre, le même voile, le même chemin d'historique */
 .g-resume { flex: 1; min-width: 0; font-size: 17px; line-height: 22px; color: var(--text); overflow-wrap: anywhere; }
 .g-choix { display: flex; gap: 8px; margin-bottom: 18px; }
+.g-erreur { margin: 0 0 14px; font-size: 15px; line-height: 20px; color: var(--rouge-txt); overflow-wrap: anywhere; }
 .g-pilule { flex: 1; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 999px; background: var(--toggle-off); color: var(--text); font-size: 15px; font-weight: 600; transition: background-color .2s, transform .12s ease-out; }
 .g-pilule .ic { font-size: 16px; stroke-width: 2; }
 .g-pilule:active { transform: scale(.97); }
@@ -686,6 +687,14 @@ html[data-appel] .tabs { display: none; }
 .appel-raccrocher .ic { width: 30px; height: 30px; stroke-width: 2; }
 .appel-ecran :focus-visible { outline-color: #fff; }
 @media (max-height: 640px) { .appel-tete { padding-top: calc(env(safe-area-inset-top, 0px) + 20px); } .appel-avatar { width: 88px; height: 88px; font-size: 32px; } }
+/* l'appel ENTRANT (version servie) : deux commandes seulement, refuser et répondre — celles d'un appel en cours attendent qu'on ait répondu */
+.appel-reponse { display: none; width: 100%; max-width: 460px; justify-content: space-around; gap: 14px; }
+.appel-ecran[data-entrant] .appel-reponse { display: flex; }
+.appel-ecran[data-entrant] .appel-commandes, .appel-ecran[data-entrant] .appel-raccrocher { display: none; }
+.appel-cmd .rond-refus { background: var(--rouge); box-shadow: 0 10px 30px rgba(255,69,58,.4); }
+.appel-cmd .rond-reponse { background: var(--vert); }
+/* la mention « Aperçu » n'a rien à faire dans un vrai appel, et le haut-parleur est le choix du système (le navigateur ne route pas le son vers l'écouteur ou le haut-parleur) */
+html[data-service] .appel-mention, html[data-service] #appel-hp { display: none; }
 
 /* les participants : une vignette = la couleur de l'avatar SOUS un voile sombre (le blanc n'est pas lisible sur l'orange nu), le nom sur sa pastille */
 .tuile {
@@ -721,6 +730,10 @@ html[data-appel] .tabs { display: none; }
 }
 .appel-ecran[data-mise="video"] .tuile.vous .tuile-av { width: 44px; height: 44px; font-size: 16px; }
 .appel-ecran[data-mise="video"] .tuile.vous .tuile-nom { left: 8px; top: auto; bottom: 6px; }
+/* retourner la caméra (avant ↔ arrière) : un geste de 44 px dans le coin de « Vous », visible SEULEMENT quand l'appareil a deux caméras et que la sienne est allumée (la page le décide, `rendreAppel`) */
+.vous-retourner { position: absolute; top: 2px; right: 2px; z-index: 3; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; background: none; color: #fff; cursor: pointer; }
+.vous-retourner[hidden] { display: none; }
+.vous-retourner .ic { width: 28px; height: 28px; padding: 6px; box-sizing: border-box; border-radius: 50%; background: rgba(0,0,0,.5); }
 @media (min-width: 900px) { .appel-ecran[data-mise="video"] .tuile.vous { width: 176px; height: 132px; top: 96px; } }
 /* groupe — la grille : des colonnes qui se déduisent de la largeur, la zone défile si les vignettes ne tiennent pas */
 .appel-ecran[data-mise="groupe"] .appel-scene {
@@ -974,9 +987,10 @@ a.mini .ic { font-size: 16px; }
   <symbol id="i-mic-off" viewBox="0 0 24 24"><path d="M9 3h6v12H9zM5 11a7 7 0 0 0 14 0M12 18v3M4 4l16 16"/></symbol>
   <symbol id="i-video-off" viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Zm12 3 4-2.5v9L16 14M3 3l18 18"/></symbol>
   <symbol id="i-hautparleur" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4Zm12-1a5 5 0 0 1 0 8m3-11a9 9 0 0 1 0 14"/></symbol>
+  <symbol id="i-retourner" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.9-3M4 5v3h3M4 13a8 8 0 0 0 14.9 3M20 19v-3h-3"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v.5M11 12h1v4h1"/></symbol>
-  <symbol id="i-entrant" viewBox="0 0 24 24"><path d="M5 19 19 5M9 5h10v10"/></symbol>
-  <symbol id="i-sortant" viewBox="0 0 24 24"><path d="M19 5 5 19M15 19H5V9"/></symbol>
+  <symbol id="i-entrant" viewBox="0 0 24 24"><path d="M19 5 5 19M15 19H5V9"/></symbol>
+  <symbol id="i-sortant" viewBox="0 0 24 24"><path d="M5 19 19 5M9 5h10v10"/></symbol>
   <symbol id="i-points" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01" stroke-width="3.4"/></symbol>
   <symbol id="i-raccrocher" viewBox="0 0 24 24"><path d="M3 12a15 15 0 0 1 18 0l-2 3-4-1.5v-2a9 9 0 0 0-6 0v2L5 15l-2-3Z"/></symbol>
   <symbol id="i-agenda" viewBox="0 0 24 24"><path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 17.5v-11ZM5 9.5h14M8.5 2.8v3M15.5 2.8v3"/></symbol>
@@ -1093,10 +1107,15 @@ a.mini .ic { font-size: 16px; }
       <p class="appel-mention">Aperçu — les autres participants sont simulés</p>
     </header>
     <p class="appel-avis" id="appel-avis" role="status" aria-live="polite" hidden></p>
+    <audio id="appel-audio-distant" class="sr-seul" autoplay playsinline></audio>
     <div class="appel-scene" id="appel-scene" role="list" aria-label="Participants">
-      <div class="tuile vous" id="appel-vous" role="listitem" data-camera="off"><video id="appel-video-local" muted playsinline autoplay aria-label="Votre caméra"></video><span class="tuile-av" aria-hidden="true" id="appel-vous-av"></span><span class="tuile-nom">Vous</span></div>
+      <div class="tuile vous" id="appel-vous" role="listitem" data-camera="off"><video id="appel-video-local" muted playsinline autoplay aria-label="Votre caméra"></video><span class="tuile-av" aria-hidden="true" id="appel-vous-av"></span><span class="tuile-nom">Vous</span><button type="button" class="vous-retourner presse" id="appel-flip" aria-label="Retourner la caméra" hidden><svg class="ic" aria-hidden="true"><use href="#i-retourner"/></svg></button></div>
     </div>
     <div class="appel-bas">
+      <div class="appel-reponse" id="appel-reponse" role="group" aria-label="Appel entrant">
+        <button type="button" class="appel-cmd" id="appel-refuser" aria-label="Refuser l'appel"><span class="rond-cmd rond-refus"><svg class="ic" aria-hidden="true"><use href="#i-raccrocher"/></svg></span><span class="appel-cmd-texte">Refuser</span></button>
+        <button type="button" class="appel-cmd" id="appel-repondre" aria-label="Répondre à l'appel"><span class="rond-cmd rond-reponse"><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg></span><span class="appel-cmd-texte">Répondre</span></button>
+      </div>
       <div class="appel-commandes" role="group" aria-label="Commandes de l'appel">
         <button type="button" class="appel-cmd" id="appel-micro" aria-pressed="false" aria-label="Couper le micro"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></span><span class="appel-cmd-texte">Micro</span></button>
         <button type="button" class="appel-cmd" id="appel-hp" aria-pressed="false" aria-label="Haut-parleur"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-hautparleur"/></svg></span><span class="appel-cmd-texte">Haut-parleur</span></button>
@@ -1125,6 +1144,7 @@ a.mini .ic { font-size: 16px; }
       <input type="text" class="g-nom" id="g-nom" placeholder="Nom du groupe" maxlength="40" autocomplete="off" enterkeyhint="done" aria-label="Nom du groupe">
       <p class="g-resume" id="g-resume" aria-live="polite" hidden></p>
     </div>
+    <p class="g-erreur" id="g-erreur" role="alert" hidden></p>
     <div class="g-choix" id="g-choix" role="radiogroup" aria-label="Type d'appel" hidden>
       <button type="button" class="g-pilule presse" role="radio" aria-checked="true" data-type="audio"><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg>Audio</button>
       <button type="button" class="g-pilule presse" role="radio" aria-checked="false" data-type="video"><svg class="ic" aria-hidden="true"><use href="#i-video"/></svg>Vidéo</button>

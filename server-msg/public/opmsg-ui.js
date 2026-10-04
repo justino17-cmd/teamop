@@ -11,7 +11,7 @@
   if (!source) { $('contenu').innerHTML = '<p class="vide">Les données n\'ont pas pu être chargées.</p>'; return; }
   /* ⛔ CE QUE LA SOURCE SAIT FAIRE. La source de l'aperçu n'annonce rien : photos, vocaux et appels y sont SIMULÉS, aucun service, aucune action sur un message. Celle du
      service annonce ses capacités (`source.capacites`) : ce qu'elle ne sait pas encore dit « bientôt » au lieu de faire semblant. */
-  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, notifications: false, compte: false, espaces: false, texteMax: 4000 }, source.capacites || {});
+  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, appelsMedias: false, appelsGroupe: true, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, notifications: false, compte: false, espaces: false, texteMax: 4000 }, source.capacites || {});
   /* la personne et ses contacts : posés au démarrage (une source de service ne sait qui est connecté qu'après avoir lu la session), relus quand elle le dit */
   let MOI = null, CONTACTS = [];
   const SUFFIXE_TITRE = CAP.service ? ' — OP MESSAGES' : ' — OP MESSAGES, aperçu';
@@ -209,6 +209,7 @@
       document.title = VUES[r.vue].titre + SUFFIXE_TITRE;
       if (r.vue === 'reglages' && CAP.reglages && prec && typeof chargerReglages === 'function') chargerReglages();
       if (r.vue === 'reunions' && CAP.reunions) entrerReunions();
+      if (r.vue === 'appels' && CAP.appels && prec) rafraichirAppels();       // ⛔ entrer dans Appels RELIT l'historique : un appel passé ou pris sur un autre appareil pendant qu'on était ailleurs y est déjà (relecture, T1)
       /* chaque vue garde SA position (comme une barre d'onglets d'iPhone) : la liste défilée, un tour par Appels, et elle est là où on l'a laissée.
          ⛔ avec une conversation ouverte la fenêtre n'est plus la liste (iOS la ramène en haut pour le clavier) : la position de la liste est celle gardée à l'ouverture */
       if (prec) window.scrollTo(0, etat.posVues[r.vue] || 0);
@@ -460,6 +461,7 @@
     if (retap()) return;
     if (!CAP.appels) { mot('Les appels arrivent bientôt'); return; }
     const c = etat.convDonnees || etat.conversations.find(x => x.id === etat.conv); if (!c) return;
+    if (CAP.appelsMedias && c.type !== 'direct') { mot('Les appels à plusieurs arrivent bientôt.'); return; }       // (version servie) un appel se passe à deux ; un groupe, un canal, une réunion : l'étape suivante
     lancerAppel({ membres: c.membres.filter(x => x !== MOI.id), video: true, conv: c.id }, $('conv-cam'));
   });
   $('conv-titre').addEventListener('click', () => {
@@ -914,6 +916,7 @@
     document.querySelectorAll('#g-contacts .contact').forEach(b => {
       const c = contactDe(b.dataset.id);
       b.setAttribute('aria-checked', G.choisis.includes(b.dataset.id) ? 'true' : 'false');
+      b.setAttribute('role', G.mode === 'appel' && CAP.appelsMedias ? 'radio' : 'checkbox');
       b.hidden = !!G.recherche && !norme(c.nom + ' ' + c.role).includes(norme(G.recherche));
     });
     $('g-aucun').hidden = Array.from(document.querySelectorAll('#g-contacts .contact')).some(b => !b.hidden);
@@ -925,14 +928,14 @@
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
     const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit', corpsInfo = info || G.mode === 'contact' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'reunion' || formReunion;
     $('feuille').dataset.mode = G.mode;
-    $('feuille-titre').textContent = info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? 'Appel de groupe' : 'Nouveau groupe';
+    $('feuille-titre').textContent = info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
     $('g-annuler').textContent = corpsInfo && !formReunion ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : 'Créer';
     $('g-creer').style.visibility = corpsInfo ? 'hidden' : '';
     $('g-creer').tabIndex = corpsInfo ? -1 : 0; if (corpsInfo) $('g-creer').setAttribute('aria-hidden', 'true'); else $('g-creer').removeAttribute('aria-hidden');
     $('feuille-corps').hidden = corpsInfo; $('info-corps').hidden = !corpsInfo;
     $('g-reglages').hidden = appel; $('g-choix').hidden = !appel; $('g-resume').hidden = !appel;
-    $('g-resume').textContent = G.choisis.length ? G.choisis.length + (G.choisis.length > 1 ? ' participants' : ' participant') : 'Choisir les participants';
+    $('g-resume').textContent = CAP.appelsMedias ? (G.choisis.length ? contactDe(G.choisis[0]).nom : 'Choisir un contact') : (G.choisis.length ? G.choisis.length + (G.choisis.length > 1 ? ' participants' : ' participant') : 'Choisir les participants');
     document.querySelectorAll('#g-choix .g-pilule').forEach(b => b.setAttribute('aria-checked', (b.dataset.type === 'video') === G.video ? 'true' : 'false'));
     $('g-ephemeres-val').textContent = EPHEMERES.find(e => e[0] === G.ephemeres)[1];
     $('g-annonces').setAttribute('aria-checked', G.annonces ? 'true' : 'false');
@@ -985,15 +988,20 @@
     if (etat.groupe.photo && !etat.garderPhoto) URL.revokeObjectURL(etat.groupe.photo);
     etat.garderPhoto = false;
     etat.groupe = groupeVierge();
+    effacerRefusFeuille();
     document.documentElement.classList.remove('feuille-ouverte');
     $('feuille').inert = true;
     synchroInert();
     const d = declencheur; declencheur = null;
     if (d && d.isConnected && d.focus) d.focus({ preventScroll: true });
   }
+  function montrerRefusFeuille(texte) { const e = $('g-erreur'); e.textContent = texte; e.hidden = false; }
+  function effacerRefusFeuille() { const e = $('g-erreur'); e.textContent = ''; e.hidden = true; }
   function basculer(id) {
+    effacerRefusFeuille();
     const G = g(), i = G.choisis.indexOf(id);
-    if (i < 0) G.choisis.push(id); else G.choisis.splice(i, 1);
+    if (G.mode === 'appel' && CAP.appelsMedias) G.choisis = i < 0 ? [id] : [];            // (version servie) un appel se passe à deux : UN contact, le suivant remplace le précédent
+    else if (i < 0) G.choisis.push(id); else G.choisis.splice(i, 1);
     synchroFeuille();
   }
   /* « Appeler » : l'appel part avec les contacts choisis, et la feuille cède la place à l'écran d'appel (son entrée d'historique est REMPLACÉE : raccrocher revient à la liste) */
@@ -1002,6 +1010,7 @@
     if (!G.choisis.length) { $('g-compteur').textContent = 'Choisissez au moins un contact'; setTimeout(synchroFeuille, 1600); return; }
     if (etat.creation) return;
     etat.creation = true;
+    effacerRefusFeuille();
     try { await lancerAppel({ membres: G.choisis.slice(), video: G.video }, $('btn-nouvel-appel'), true); } finally { etat.creation = false; }
   }
   async function creerGroupe() {
@@ -1027,7 +1036,7 @@
   $('g-annuler').addEventListener('click', () => fermerFeuille(false));
   $('voile').addEventListener('click', () => fermerFeuille(false));
   $('g-creer').addEventListener('click', () => { if (g().mode === 'appel') appelerDepuisFeuille(); else if (g().mode === 'chat') creerGroupe(); });
-  $('g-choix').addEventListener('click', e => { const b = e.target.closest('.g-pilule'); if (!b) return; g().video = b.dataset.type === 'video'; synchroFeuille(); });
+  $('g-choix').addEventListener('click', e => { const b = e.target.closest('.g-pilule'); if (!b) return; effacerRefusFeuille(); g().video = b.dataset.type === 'video'; synchroFeuille(); });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (etat.menu) { e.preventDefault(); fermerMenu(); return; }
@@ -1202,14 +1211,27 @@
   async function lancerAppel(spec, declencheurEl, depuisFeuille) {
     if (etat.appelId || etat.appelDemarre) return false;           // deux touchers dans le même instant ne lancent pas deux appels
     etat.appelDemarre = true;
-    let c = null; try { c = await source.demarrerAppel(spec); } catch (e) { c = null; }
+    let c = null, refus = null; try { c = await source.demarrerAppel(spec); } catch (e) { c = null; refus = e; }
     etat.appelDemarre = false;
-    if (!c) { mot('L\'appel n\'a pas pu être lancé.'); return false; }
+    if (!c) {
+      const dit = phrase(refus, 'L\'appel n\'a pas pu être lancé.');
+      mot(dit);                                                                   // (un refus du service se DIT, jamais une phrase générique)
+      if (depuisFeuille) montrerRefusFeuille(dit);       // ⛔ …et reste LISIBLE dans la feuille « Nouvel appel » qui reste ouverte : le mot s'efface en 2,4 s, la personne n'a rien lu (relecture, T3)
+      return false;
+    }       // un refus du service se DIT (« Cette personne est déjà dans un appel… »), jamais une phrase générique
     etat.declencheurAppel = declencheurEl && declencheurEl.id ? '#' + declencheurEl.id : declencheurEl && declencheurEl.dataset && declencheurEl.dataset.rappeler ? '[data-rappeler="' + declencheurEl.dataset.rappeler.replace(/"/g, '') + '"]' : null;
     const r = Object.assign({}, etat.route, { feuille: false, photo: null, appel: c.id });
     if (depuisFeuille && etat.route.feuille) remplacer(r); else pousser(r);
     return true;
   }
+  /* (version servie) un appel arrive : l'écran d'appel prend la place de ce qui est ouvert, comme un appel qu'on lance — jamais deux appels sur un écran */
+  function surAppelEntrant(id) {
+    if (!CAP.appelsMedias || etat.appelId || etat.appelDemarre) return;
+    etat.declencheurAppel = null;
+    const r = Object.assign({}, etat.route, { feuille: false, photo: null, appel: id });
+    if (etat.route.feuille) remplacer(r); else pousser(r);
+  }
+  const ouvrirAppels = () => { if (!etat.appelId) remplacer({ vue: 'appels', conv: null, feuille: false, photo: null, appel: null }); };
 
   /* ── l'écran d'appel ── */
   const annonceAppel = t => { const r = $('annonce-appel'); r.textContent = ''; setTimeout(() => { r.textContent = t; }, 60); };
@@ -1233,9 +1255,18 @@
     flux.getTracks().forEach(t => {
       A.pistes.push(t);
       if (t.kind === 'audio') { A.audio = t; t.enabled = A.micro; }
-      else { A.video = t; t.addEventListener('ended', () => { if (A.video === t && !A.fini) { A.video = null; majCamera(A); rendreAppel(); } }); }
+      else { A.video = t; t.addEventListener('ended', () => { if (A.video === t && !A.fini) { A.video = null; majCamera(A); pousserPistes(A); rendreAppel(); } }); }
     });
     majCamera(A);
+    pousserPistes(A);
+    if (A.video && CAP.appelsMedias) compterCameras(A);
+  }
+  /* combien de caméras a l'appareil ? Le navigateur ne le dit qu'APRÈS l'autorisation : on compte quand une caméra vient d'être prise. Le bouton « Retourner la caméra » n'existe que s'il y en a deux. */
+  async function compterCameras(A) {
+    let n = 0;
+    try { n = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput').length; } catch (e) { n = 0; }
+    if (perime(A) || n === A.nbCam) return;
+    A.nbCam = n; rendreAppel();
   }
   /* ⛔ LE SEUL ENDROIT QUI RELÂCHE : toute piste, tout flux, l'élément vidéo. Appelé de quitterAppel, et seulement de là (et de l'arrivée tardive d'une piste, ci-dessous). */
   function arreterPistes(A) {
@@ -1288,7 +1319,7 @@
     const A = etat.appelUI; if (!A || !A.snap || A.cameraEnCours) return;
     if (A.camera) {                                                 // éteindre = ARRÊTER la piste (le voyant s'éteint), pas seulement la masquer
       if (A.video) { A.pistes = A.pistes.filter(t => t !== A.video); try { A.video.stop(); } catch (e) { /* rien */ } A.video = null; }
-      majCamera(A); rendreAppel(); annonceAppel('Caméra coupée'); return;
+      majCamera(A); pousserPistes(A); rendreAppel(); annonceAppel('Caméra coupée'); return;
     }
     A.cameraEnCours = true;
     try {
@@ -1298,24 +1329,91 @@
     } catch (e) { if (!perime(A)) { avisAppel(messageMedia(e, 'camera') + ' L\'appel continue en audio.'); rendreAppel(); } }
     finally { A.cameraEnCours = false; }
   }
+  /* ⛔ RETOURNER LA CAMÉRA (avant ↔ arrière). L'ancienne piste est ARRÊTÉE d'abord — un téléphone n'ouvre pas deux caméras à la fois, et le voyant ne reste pas allumé —, puis une piste neuve prend sa place chez le moteur
+     (`replaceTrack`, aucune renégociation). L'autre ne voit pas la caméra « s'éteindre » entre les deux : le moteur n'est prévenu qu'à l'arrivée de la neuve. Si la caméra demandée ne vient pas, on reprend la précédente ;
+     si aucune ne vient, la caméra est coupée et on le dit. */
+  async function retournerCamera() {
+    const A = etat.appelUI; if (!A || !A.snap || !A.camera || A.cameraEnCours || !CAP.appelsMedias) return;
+    const vers = A.face === 'environment' ? 'user' : 'environment';
+    A.cameraEnCours = true;
+    const ancienne = A.video;
+    A.pistes = A.pistes.filter(t => t !== ancienne);
+    try { ancienne.stop(); } catch (e) { /* déjà arrêtée */ }
+    let f = null, dit = '';
+    try { f = await gum({ video: { facingMode: { ideal: vers } } }); A.face = vers; }
+    catch (e) {
+      dit = 'La caméra n\'a pas pu être retournée.';
+      try { f = await gum({ video: { facingMode: { ideal: A.face } } }); } catch (e2) { f = null; }
+    }
+    try {
+      if (perime(A)) { if (f) f.getTracks().forEach(t => t.stop()); return; }
+      if (f) { poserPistes(A, f); if (dit) avisAppel(dit); else { avisAppelEffacer(); annonceAppel(A.face === 'environment' ? 'Caméra arrière' : 'Caméra avant'); } }
+      else { A.video = null; majCamera(A); pousserPistes(A); avisAppel(dit + ' La caméra est coupée.'); }
+      rendreAppel();
+    } finally { A.cameraEnCours = false; }
+  }
   function statutAppel(A) {
     const s = A.snap; if (!s) return '';
+    if (s.entrant) return s.type === 'video' ? 'Appel vidéo entrant' : 'Appel audio entrant';       // (version servie) c'est à moi de répondre
     if (s.etat === 'sonne') return 'Sonnerie…';
+    if (s.liaison === 'etablissement' || s.liaison === 'attente') return 'Connexion…';              // (version servie) l'autre a répondu, la voix ne passe pas encore
+    if (s.liaison === 'reconnexion') return 'Reconnexion…';
     const muet = A.mediaPret && (!A.micro || !A.audio);
     return (muet ? 'Micro coupé' : A.camera ? 'Vidéo activée' : 'Appel en cours') + ' · ' + dureeAppel((Date.now() - (s.debut || Date.now())) / 1000);
   }
   /* ⛔ la durée se relit quatre fois par seconde, pas une : une minuterie à 1 s, lancée AVANT que l'autre réponde, n'est pas calée sur le début de l'appel et affiche un chiffre en retard de près d'une seconde */
   const majStatutAppel = () => { const A = etat.appelUI; if (!A) return; const t = statutAppel(A), e = $('appel-statut'); if (e.textContent !== t) e.textContent = t; };
+  /* (version servie) la voix et l'image de l'AUTRE : le flux que le moteur tient est branché sur l'élément audio (la voix) et sur la vignette de l'autre (l'image, muette — son son passe déjà par l'élément audio).
+     Rebranché à chaque rendu, mais seulement quand il a changé : une vignette refaite repart sans flux. */
+  function lierFluxDistant(A) {
+    if (!CAP.appelsMedias || !A || typeof source.appelFlux !== 'function') return;
+    const f = source.appelFlux(A.id) || null, au = $('appel-audio-distant'), v = document.querySelector('#appel-scene .tuile:not(.vous) video');
+    if (au.srcObject !== f) { au.srcObject = f; if (f) { const p = au.play(); if (p && p.catch) p.catch(() => {}); } }
+    if (v && v.srcObject !== f) { v.srcObject = f; if (f) { const p = v.play(); if (p && p.catch) p.catch(() => {}); } }
+  }
+  /* (version servie) les pistes de la PAGE (micro, caméra) sont remises au moteur : il les pose sur la connexion, sans renégocier, et dit à l'autre quand la caméra s'allume ou s'éteint */
+  function pousserPistes(A) {
+    if (!CAP.appelsMedias || typeof source.appelPistes !== 'function' || !A || A.fini || (A.snap && A.snap.entrant)) return;
+    source.appelPistes(A.id, { audio: A.audio, video: A.video && A.video.readyState === 'live' ? A.video : null });
+  }
+  /* La sonnerie : deux notes tenues 1,5 s puis le silence, fabriquées par le navigateur (aucun fichier), seulement quand il l'autorise — un onglet que personne n'a touché garde le silence, et l'appel
+     reste visible. La vibration accompagne. Arrêtée par TOUT chemin qui répond, refuse ou ferme l'écran (`quitterAppel`, `repondreAppelUI`) : jamais une sonnerie qui survit à l'appel. */
+  const sonnerieEtat = { ctx: null, min: 0 };
+  function arreterSonnerie() {
+    clearInterval(sonnerieEtat.min); sonnerieEtat.min = 0;
+    if (sonnerieEtat.ctx) { try { sonnerieEtat.ctx.close(); } catch (e) { /* déjà fermé */ } sonnerieEtat.ctx = null; }
+    try { if (navigator.vibrate) navigator.vibrate(0); } catch (e) { /* rien */ }
+  }
+  function sonnerieUneFois() {
+    const ctx = sonnerieEtat.ctx;
+    if (ctx && ctx.state === 'running') {
+      const t = ctx.currentTime;
+      for (const f of [440, 480]) {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.frequency.value = f; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + 0.05); g.gain.setValueAtTime(0.16, t + 1.4); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
+        o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 1.55);
+      }
+    }
+    try { if (navigator.vibrate) navigator.vibrate([700, 300, 700]); } catch (e) { /* rien */ }
+  }
+  function demarrerSonnerie() {
+    arreterSonnerie();
+    try { const AC = window.AudioContext || window.webkitAudioContext; if (AC) { sonnerieEtat.ctx = new AC(); if (sonnerieEtat.ctx.state === 'suspended') sonnerieEtat.ctx.resume().catch(() => {}); } } catch (e) { sonnerieEtat.ctx = null; }
+    sonnerieUneFois(); sonnerieEtat.min = setInterval(sonnerieUneFois, 4500);
+  }
   /* l'écran DIT l'état : la mise en page, le nom, les vignettes (refaites seulement quand ce qui les décide change), les commandes */
   function rendreAppel() {
     const A = etat.appelUI; if (!A || !A.snap) return;
-    const s = A.snap, E = $('appel-ecran'), mise = s.membres.length >= 2 ? 'groupe' : (A.camera ? 'video' : 'audio');
+    const s = A.snap, E = $('appel-ecran');
+    let mise = s.membres.length >= 2 ? 'groupe' : (A.camera ? 'video' : 'audio');
+    if (mise === 'audio' && CAP.appelsMedias && s.membres[0] && s.membres[0].camera) mise = 'video';       // (version servie) la caméra de l'AUTRE fait aussi passer l'appel en vidéo
     E.dataset.mise = mise;
+    if (s.entrant) E.setAttribute('data-entrant', '1'); else E.removeAttribute('data-entrant');
     const scene = $('appel-scene'); if (mise === 'groupe') scene.tabIndex = 0; else scene.removeAttribute('tabindex');
     $('appel-nom').textContent = s.nom;
     const av = $('appel-avatar'); av.className = 'avatar appel-avatar av' + (((s.avatar | 0) % 6 + 6) % 6);
     av.textContent = blob(s.photo) ? '' : (s.initiales || ''); av.style.backgroundImage = blob(s.photo) ? 'url("' + s.photo.replace(/["\\]/g, '') + '")' : '';
-    const sig = mise + '|' + s.membres.map(m => m.id + ':' + m.etat).join(',');
+    const sig = mise + '|' + s.membres.map(m => m.id + ':' + m.etat + (CAP.appelsMedias ? ':' + (m.camera ? 1 : 0) : '')).join(',');
     if (A.sig !== sig) {
       A.sig = sig;
       scene.querySelectorAll('.tuile:not(.vous)').forEach(t => t.remove());
@@ -1323,7 +1421,8 @@
       s.membres.forEach(m => {
         const t = document.createElement('div');
         t.className = 'tuile av' + (((m.avatar | 0) % 6 + 6) % 6); t.setAttribute('role', 'listitem'); t.dataset.membre = m.id; t.dataset.etat = m.etat;
-        t.innerHTML = '<span class="tuile-av" aria-hidden="true">' + esc(m.initiales) + '</span><span class="tuile-nom">' + esc(mise === 'video' ? 'Vidéo de ' + m.prenom : m.prenom) + '</span>' + (m.etat === 'sonne' ? '<span class="tuile-etat">Sonnerie…</span>' : '');
+        if (CAP.appelsMedias) t.dataset.camera = m.camera ? 'on' : 'off';
+        t.innerHTML = (CAP.appelsMedias ? '<video muted playsinline autoplay aria-hidden="true"></video>' : '') + '<span class="tuile-av" aria-hidden="true">' + esc(m.initiales) + '</span><span class="tuile-nom">' + esc(mise === 'video' ? 'Vidéo de ' + m.prenom : m.prenom) + '</span>' + (m.etat === 'sonne' ? '<span class="tuile-etat">Sonnerie…</span>' : '');
         scene.insertBefore(t, vous);
       });
     }
@@ -1334,22 +1433,26 @@
     $('appel-hp').setAttribute('aria-pressed', A.haut ? 'true' : 'false');
     const bc = $('appel-cam'); bc.setAttribute('aria-pressed', A.camera ? 'true' : 'false'); bc.setAttribute('aria-label', A.camera ? 'Couper la caméra' : 'Activer la caméra');
     bc.querySelector('use').setAttribute('href', A.camera ? '#i-video' : '#i-video-off');
+    $('appel-flip').hidden = !(CAP.appelsMedias && A.camera && A.nbCam > 1);          // (version servie) retourner la caméra : seulement avec deux caméras ET la sienne allumée
+    if (s.entrant) { const ic = E.querySelector('#appel-repondre use'); if (ic) ic.setAttribute('href', s.type === 'video' ? '#i-video' : '#i-phone'); }
+    lierFluxDistant(A);
     majStatutAppel();
   }
   async function afficherAppel(id) {
     const jeton = ++etat.jetonAppel;
     etat.appelId = id;
     document.documentElement.dataset.appel = '1';
-    const A = etat.appelUI = { id, jeton, snap: null, micro: true, haut: false, camera: false, pistes: [], audio: null, video: null, minut: 0, fini: false, cameraEnCours: false, mediaPret: false, sig: '' };
+    const A = etat.appelUI = { id, jeton, snap: null, micro: true, haut: false, camera: false, pistes: [], audio: null, video: null, minut: 0, fini: false, cameraEnCours: false, mediaPret: false, sig: '', reponse: false, face: 'user', nbCam: 0 };
     $('appel-nom').textContent = ''; $('appel-statut').textContent = ''; $('appel-avis').hidden = true;
     $('appel-ecran').dataset.mise = 'audio';
     synchroInert();
     let snap = null; try { snap = await source.appel(id); } catch (e) { snap = null; }
     if (jeton !== etat.jetonAppel) return;                       // raccroché pendant l'attente
-    if (!snap || snap.etat === 'termine') { remplacer(parentDe(etat.route)); mot('Cet appel est terminé.'); return; }
+    if (!snap || snap.etat === 'termine') { remplacer(parentDe(etat.route)); mot((snap && snap.avis) || 'Cet appel est terminé.'); return; }
     A.snap = snap; rendreAppel();
     A.minut = setInterval(majStatutAppel, 250);
     $('appel-ecran').focus({ preventScroll: true });
+    if (snap.entrant) { demarrerSonnerie(); annonceAppel('Appel ' + (snap.type === 'video' ? 'vidéo ' : '') + 'entrant de ' + snap.nom); return; }       // (version servie) ni micro ni caméra tant qu'on n'a pas répondu
     acquerirMedias(A, snap.type === 'video');
   }
   /* un changement dit par la source (quelqu'un répond, l'appel est fini ailleurs) */
@@ -1357,8 +1460,9 @@
     const A = etat.appelUI; if (!A || !A.snap) return;
     let snap = null; try { snap = await source.appel(A.id); } catch (e) { snap = null; }
     if (perime(A) || !snap) return;
-    const avant = A.snap.etat; A.snap = snap;
-    if (snap.etat === 'termine') { fermerCouche(); return; }
+    const avant = A.snap.etat, etaitEntrant = !!A.snap.entrant; A.snap = snap;
+    if (snap.etat === 'termine') { if (snap.avis) mot(snap.avis); fermerCouche(); return; }       // (version servie) l'appel a fini sans qu'on raccroche : on dit pourquoi
+    if (etaitEntrant && !snap.entrant) arreterSonnerie();
     if (avant === 'sonne' && snap.etat === 'en-cours') annonceAppel('Appel connecté');
     rendreAppel();
   }
@@ -1368,19 +1472,43 @@
     const A = etat.appelUI, id = etat.appelId, cle = etat.declencheurAppel;
     etat.jetonAppel++; etat.appelId = null; etat.appelUI = null; etat.declencheurAppel = null;
     if (A) { A.fini = true; clearInterval(A.minut); arreterPistes(A); }
+    arreterSonnerie();
+    { const au = $('appel-audio-distant'); if (au.srcObject) au.srcObject = null; }
     avisAppelEffacer();
     delete document.documentElement.dataset.appel;
+    $('appel-ecran').removeAttribute('data-entrant');         // ⛔ l'écran qui se ferme n'est plus « entrant » : le suivant (un appel qu'on lance) ne reprend ni « Répondre » ni « Refuser » d'une sonnerie perdue — l'appel pris sur l'autre appareil (relecture, T4)
     synchroInert();
     requestAnimationFrame(() => { const b = cle && document.querySelector(cle); if (b && !etat.appelId && b.getClientRects().length) b.focus({ preventScroll: true }); });
-    if (id) source.terminerAppel(id).then(rec => annonceAppel('Appel terminé · ' + dureeAppel(rec.duree)), () => { /* l'appel n'existait plus chez la source */ });
+    if (id) source.terminerAppel(id).then(rec => annonceAppel(rec.duree > 0 || !CAP.appelsMedias ? 'Appel terminé · ' + dureeAppel(rec.duree) : 'Appel terminé'), () => { /* l'appel n'existait plus chez la source */ });
   }
   $('appel-raccrocher').addEventListener('click', fermerCouche);
   $('appel-micro').addEventListener('click', basculerMicro);
   $('appel-hp').addEventListener('click', () => { const A = etat.appelUI; if (!A || !A.snap) return; A.haut = !A.haut; rendreAppel(); annonceAppel(A.haut ? 'Haut-parleur activé' : 'Haut-parleur coupé'); });
   $('appel-cam').addEventListener('click', basculerCamera);
+  $('appel-flip').addEventListener('click', retournerCamera);
   $('appel-msg').addEventListener('click', () => { const A = etat.appelUI; if (A && A.snap) ouvrirConversationAvec(A.snap.membres.map(m => m.id), A.snap.conv); });
+  /* (version servie) l'appel ENTRANT : « Refuser » ferme l'écran — c'est `quitterAppel` qui refuse auprès du service, comme tout autre chemin qui ferme —, « Répondre » prend l'appel PUIS demande le micro et la caméra
+     (la demande d'autorisation ne retarde jamais la réponse : la sonnerie a une échéance) */
+  $('appel-refuser').addEventListener('click', () => { const A = etat.appelUI; if (A && A.snap && A.snap.entrant) fermerCouche(); });
+  async function repondreAppelUI() {
+    const A = etat.appelUI; if (!A || !A.snap || !A.snap.entrant || A.reponse) return;
+    A.reponse = true; arreterSonnerie();
+    let snap = null, refus = null; try { snap = await source.repondreAppel(A.id, true); } catch (e) { refus = e; }
+    A.reponse = false;
+    if (perime(A)) return;
+    if (!snap) { mot(phrase(refus, 'L\'appel n\'a pas pu être pris.')); rafraichirAppel(); return; }
+    A.snap = snap; rendreAppel();
+    if (snap.etat === 'termine') { rafraichirAppel(); return; }
+    annonceAppel('Appel connecté');
+    acquerirMedias(A, snap.type === 'video');
+  }
+  $('appel-repondre').addEventListener('click', repondreAppelUI);
   /* la page qu'on ferme libère le micro et la caméra elle-même ; on le fait aussi tout de suite : un onglet mis en cache (bfcache) garderait sinon ses pistes vivantes */
   window.addEventListener('pagehide', () => { if (etat.appelUI) arreterPistes(etat.appelUI); });
+  window.addEventListener('pagehide', () => {            // (version servie) APRÈS les pistes : la liaison est coupée et le raccrochage PART (keepalive) — l'autre n'attend pas 45 s dans le vide
+    arreterSonnerie();
+    if (CAP.appelsMedias && typeof source.appelFermeture === 'function') source.appelFermeture();
+  });
 
   /* ═══ 12. LA VERSION SERVIE — la connexion, la session, les actions sur un message, les infos, les liens, les contacts ═══════════════════════════
      ⛔ Tout ce bloc dort dans l'aperçu : il ne s'éveille que si la source l'annonce (`source.capacites`). Les écrans de l'aperçu n'en savent rien.
@@ -2894,7 +3022,7 @@
     if (CAP.reglages) rendreReglages(); else rendreCoquille('reglages');
     $('g-photo').hidden = !CAP.photos;
     try { etat.conversations = await source.lister(); } catch (e) { etat.conversations = []; montrerErreurListe(e); }
-    if (CAP.appels) { etat.appels = await source.appels('tous'); rendreAppels(); }
+    if (CAP.appels) { try { etat.appels = await source.appels('tous'); } catch (e) { etat.appels = []; } rendreAppels(); }       // une liste d'appels refusée ne ferme pas l'application
     const r0 = routeDepuisHash();
     history.replaceState({ opmsg: 1, n: 0, r: r0, p: null }, '', urlDe(r0));
     rendreListe();
@@ -2908,6 +3036,8 @@
       }
       if (ev.type === 'appels' && CAP.appels) rafraichirAppels();
       if (ev.type === 'appel' && ev.id === etat.appelId) rafraichirAppel();
+      if (ev.type === 'appel-entrant') surAppelEntrant(ev.id);
+      if (ev.type === 'appel-flux' && ev.id === etat.appelId) lierFluxDistant(etat.appelUI);
       if (ev.type === 'contacts') surContacts();
       if (ev.type === 'espaces') surEspaces(ev);
       if (ev.type === 'reunions') surReunions(ev);
@@ -2917,8 +3047,9 @@
       if (ev.type === 'notification') notifier(ev.titre || 'OP MESSAGES', ev.texte || '');
       if (ev.type === 'retire') surRetire(ev.id);
       if (ev.type === 'avis') avis(ev.texte);
-      if (ev.type === 'ouvrir') { if (ev.reunion) ouvrirReunionId(ev.reunion); else ouvrirConvId(ev.conv); }                                                // une notification touchée : la source n'a laissé passer qu'une conversation
+      if (ev.type === 'ouvrir') { if (ev.reunion) ouvrirReunionId(ev.reunion); else if (ev.appels) ouvrirAppels(); else ouvrirConvId(ev.conv); }                                                // une notification touchée : la source n'a laissé passer qu'une conversation
     });
+    if (CAP.appelsMedias && typeof source.appelActif === 'function') { const a = source.appelActif(); if (a && a.entrant) surAppelEntrant(a.id); }       // une sonnerie vue avant que la page écoute (la liste des appels l'a lue) sonne quand même
     if (codeLien) { etat.codeLien = codeLien; declencheur = null; ouvrirFeuille('contact'); }
     else if (codeInvitation) { etat.codeInvitation = codeInvitation; declencheur = null; ouvrirFeuille('entreprise'); }
     else if (retourAbo) { etat.retourAbo = retourAbo; declencheur = null; ouvrirFeuille('abo:' + retourAbo.espace); }       // de retour de chez Stripe : la feuille de l'abonnement relit tout de suite

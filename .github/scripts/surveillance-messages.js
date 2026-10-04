@@ -19,7 +19,7 @@
 // ⛔ Il n'écrit JAMAIS ce que /health ne publie pas : pas d'identifiant, pas d'adresse, pas de corps.
 // Le dépôt est public et le journal d'un run lisible par tous pendant 90 jours.
 'use strict';
-const https = require('https');
+const https = require('https'), dgram = require('dgram'), crypto = require('crypto');
 
 /* Ce qu'on regarde, et ce que ça veut dire quand ça sort de la norme. Un tableau : le banc le lit. */
 const CHAMPS_SURVEILLES = [
@@ -42,6 +42,10 @@ const CHAMPS_SURVEILLES = [
   /* ⛔ LES RÉUNIONS PROGRAMMÉES (étape 6) : le planificateur de rappels passe toutes les 10 à 15 secondes. Un rappel qui ne part plus ne se voit de nulle part ailleurs — personne ne s'en plaint avant d'avoir manqué sa réunion. */
   'reunions.ageS',         // le dernier tour du planificateur date de plus de cinq minutes : la boucle est morte ou bloquée, plus aucun rappel de réunion ne part
   'reunions.echecs',       // trois tours de suite en échec : un rappel qui lève à chaque passage ne part jamais, et les autres derrière lui non plus tant que l'erreur dure
+  /* ⛔ LES APPELS À DEUX (étape 7) : le balayeur d'appels passe toutes les deux secondes. Sans lui, une sonnerie échue ne fait plus d'appel manqué (ni notification), et un appareil disparu en plein appel laisse deux personnes « occupées » pour toujours. */
+  'appels.ageS',           // le dernier passage du balayeur d'appels date de plus de cinq minutes : la boucle est morte ou bloquée — plus d'appel manqué, des gens « occupés » sans fin
+  'appels.echecs',         // trois passages de suite en échec : une erreur qui dure empêche d'écrire les appels manqués et de finir les appels perdus
+  'appels.turn',           // le service annonce un relais d'appels : on lui envoie une VRAIE requête STUN en UDP (`sonderRelais`) et on exige la réponse — le service ne voit pas son propre coturn, personne d'autre ne regarde
   /* ⛔ LES SMS (compte Perso par numéro) : « le but c'est qu'on gagne de l'argent » — chaque SMS est un coût, et la fraude au
      « SMS pumping » vise justement les destinations chères. Ces cinq champs sont l'alarme d'argent ; la garde vit dans `sms-garde.js`. */
   'sms.mode',              // en production, tout autre mode que « ovh » veut dire : plus aucun code ne part, personne ne peut s'inscrire
@@ -62,6 +66,7 @@ const CHAMPS_VUS = {
   'pieces.octets': 'l\'espace pris par les pièces grandit avec l\'usage : il est borné par personne (quota) et par le plancher de disque du service, qui refuse d\'écrire plutôt que de priver OP GESTION — un total n\'a pas de seuil qui ait un sens',
   /* ⛔ LES RÉUNIONS PROGRAMMÉES (étape 6). Ce qui est une PANNE du planificateur est surveillé (`reunions.ageS`, `reunions.echecs`, plus haut) ; le reste est un état normal. */
   'reunions.actif': 'faux est normal pendant la seconde qui suit un démarrage et le temps qu\'un bail laissé par un arrêt brutal expire (une minute au plus) ; ce qui dit que le planificateur est MORT, c\'est l\'âge de son dernier tour (reunions.ageS), surveillé',
+  /* ⛔ LES APPELS À DEUX (étape 7) : AUCUN champ de `appels` n'est « vu et pas surveillé » — `ageS` et `echecs` (le balayeur), `turn` (le relais, sondé en UDP) sont tous surveillés, plus haut ; `perdus` n'est plus publié (R6). */
   'reunions.abandonnes': 'des rappels abandonnés depuis le démarrage parce que l\'occurrence avait déjà commencé quand le service est revenu : c\'est le fonctionnement voulu (un rappel pour une réunion en cours n\'a pas de sens) et chaque abandon est journalisé avec son nombre — aucune alarme horaire n\'ajouterait une décision',
   /* ⛔ LA FACTURATION (Messages Pro, étape 5). Ce qui est une PANNE de notre côté ou de Stripe est surveillé (`stripeEchecMin`, plus haut) ; le reste est de l'information commerciale. */
   'facturation.mode': 'le mode de la facturation (inerte sans clé, test, live) est une configuration que l\'installation pose : ce qui compte est que Stripe réponde, et c\'est stripeEchecMin qui le surveille',
@@ -84,6 +89,29 @@ const SEUIL_PLANIF_S = 300;      // un tour passe toutes les 10 à 15 secondes :
 const SEUIL_PLANIF_ECHECS = 3;   // trois tours de suite en échec (une demi-minute) : une erreur qui dure, pas un accroc isolé
 const SEUIL_PUSH_ECHECS = 20;    // vingt échecs d'envoi push en 24 h ET plus d'échecs que de livraisons : un appareil qui disparaît (404, 410) n'est pas un échec, c'est le fonctionnement normal
 
+/* ⛔ LE RELAIS D'APPELS (coturn) NE SE VOIT PAS DE /health : c'est de l'UDP, hors de la portée du service, qui sait seulement qu'il a un secret (`appels.turn`). Quand il en annonce un, on envoie au relais une VRAIE
+   requête STUN (Binding, RFC 5389 : 20 octets) et on exige la réponse — la même, au bit près, que celle que fait le navigateur avant de demander une allocation. Trois essais espacés : un paquet perdu n'est pas
+   une panne. Le nom du relais est celui d'`install-turn.sh` (`turn.teamop.fr`), `OPMSG_TURN_HOTE` le change (le nom n'est PAS dans /health : /health est publique et ne dit pas où est le relais). */
+const RELAIS_HOTE_DEFAUT = 'turn.teamop.fr', RELAIS_PORT = 3478;
+function sonderRelais(hote, port, delaiMs, essais) {
+  return new Promise((resolve) => {
+    const requete = Buffer.alloc(20);
+    requete.writeUInt16BE(0x0001, 0); requete.writeUInt32BE(0x2112A442, 4); crypto.randomBytes(12).copy(requete, 8);
+    const s = dgram.createSocket('udp4');
+    let fini = false, n = 0, minuteur = null;
+    const clore = (ok) => { if (fini) return; fini = true; clearTimeout(minuteur); try { s.close(); } catch (e) { /* déjà fermée */ } resolve(ok); };
+    s.on('message', (m) => { if (m.length >= 20 && m.readUInt16BE(0) === 0x0101 && m.readUInt32BE(4) === 0x2112A442 && m.subarray(8, 20).equals(requete.subarray(8, 20))) clore(true); });
+    s.on('error', () => clore(false));
+    const tour = () => {
+      if (fini) return;
+      if (n++ >= essais) return clore(false);
+      s.send(requete, port, hote, (e) => { if (e) clore(false); });
+      minuteur = setTimeout(tour, delaiMs);
+    };
+    tour();
+  });
+}
+
 /* beta ou prod, d'après le domaine interrogé — pour comparer à ce que le service dit de lui-même. */
 function instanceDe(url) {
   const h = new URL(url).hostname;
@@ -93,7 +121,7 @@ function instanceDe(url) {
 }
 
 /* Rend la liste des problèmes (vide : tout va bien). Pure : le banc la joue sur des /health fabriqués. */
-function evaluer(j, instanceAttendue) {
+function evaluer(j, instanceAttendue, sondes) {
   const p = [];
   if (!j || typeof j !== 'object') return ['/health n\'est pas un objet JSON'];
   if (j.ok !== true) p.push('ok n\'est pas vrai (ok=' + j.ok + ')');
@@ -164,6 +192,19 @@ function evaluer(j, instanceAttendue) {
       p.push(Math.round(j.reunions.echecs) + ' tours de suite du planificateur des rappels de réunion ont échoué — un rappel qui lève à chaque passage ne part jamais');
     }
   }
+  /* les appels à deux : le balayeur d'appels. Un /health d'avant (sans la clé) ne crie pas ; « jamais passé » (ageS null) non plus : c'est la première seconde du service. */
+  if (j.appels && typeof j.appels === 'object') {
+    if (typeof j.appels.ageS === 'number' && j.appels.ageS > SEUIL_PLANIF_S) {
+      p.push('le balayeur d\'appels ne tourne plus : son dernier passage date de ' + Math.round(j.appels.ageS) + ' s (il en passe un toutes les deux secondes) — plus d\'appel manqué, et des gens « occupés » sans fin');
+    }
+    /* le relais : annoncé par le service ET muet à une vraie requête STUN. `sondes.relais` vaut faux seulement si la sonde a été jouée ET n'a rien reçu (absente : on ne conclut rien). */
+    if (j.appels.turn === true && sondes && sondes.relais === false) {
+      p.push('le relais d\'appels ne répond pas à une requête STUN en UDP alors que le service en annonce un — les appels ne passent plus que si les deux appareils se joignent directement (coturn arrêté, UDP 3478 fermé, DNS du relais)');
+    }
+    if (typeof j.appels.echecs === 'number' && j.appels.echecs >= SEUIL_PLANIF_ECHECS) {
+      p.push(Math.round(j.appels.echecs) + ' passages de suite du balayeur d\'appels ont échoué — les appels manqués ne s\'écrivent plus');
+    }
+  }
   if (j.sms && typeof j.sms === 'object') {
     const seuilEur = Number.isFinite(parseFloat(process.env.OPMSG_SMS_SEUIL_EUR)) ? parseFloat(process.env.OPMSG_SMS_SEUIL_EUR) : SEUIL_SMS_EUR;
     if (j.instance === 'prod' && j.sms.mode !== 'ovh') p.push('les SMS sont éteints en production (mode « ' + String(j.sms.mode).replace(/[^a-z]/g, '') + ' ») — plus personne ne peut s\'inscrire');
@@ -218,7 +259,10 @@ async function main() {
       let j = null;
       try { j = JSON.parse(r.body); } catch (e) { problems.push('/health n\'est pas du JSON'); }
       if (j) {
-        problems.push(...evaluer(j, instanceDe(url)));
+        /* le relais n'est sondé que si le service en annonce un : avant l'installation de coturn, « pas de relais » n'est pas une panne */
+        const sondes = {};
+        if (j.appels && j.appels.turn === true) sondes.relais = await sonderRelais(process.env.OPMSG_TURN_HOTE || RELAIS_HOTE_DEFAUT, RELAIS_PORT, 3000, 3);
+        problems.push(...evaluer(j, instanceDe(url), sondes));
         // Un champ neuf ne fait pas crier : on le NOMME, pour que quelqu'un tranche une fois (surveillé ou vu).
         for (const c of nonClasses(j)) console.log('::notice::champ de /health ni surveillé ni nommé : ' + c);
       }
@@ -233,4 +277,4 @@ async function main() {
 }
 
 if (require.main === module) main();
-module.exports = { CHAMPS_SURVEILLES, CHAMPS_VUS, evaluer, nonClasses, chemins, instanceDe };
+module.exports = { CHAMPS_SURVEILLES, CHAMPS_VUS, evaluer, nonClasses, chemins, instanceDe, sonderRelais };

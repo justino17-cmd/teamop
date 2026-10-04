@@ -117,6 +117,15 @@
     courriel_quota_destinataire: 'Cette adresse a déjà reçu deux invitations de ta part cette semaine : réessaie dans quelques jours.',
     courriel_echec: 'Le courriel n\'a pas pu partir. Il n\'est pas compté dans tes envois : réessaie dans un moment.',
     reunion_passee: 'Cette réunion est terminée : il n\'y a plus rien à envoyer.',
+    /* les appels à deux (étape 7) : chaque refus que l'appel peut rendre a sa phrase. ⛔ Aucune promesse que le service ne tient pas (l'appel de groupe n'existe pas encore ; le relais n'est pas toujours installé). */
+    occupe: 'Cette personne est déjà dans un appel. Réessaie dans un moment.',
+    appel_a_deux: 'Un appel se passe à deux pour l\'instant : les appels à plusieurs arrivent bientôt.',
+    appele_sature: 'Cette personne reçoit beaucoup d\'appels en ce moment. Réessaie plus tard.',
+    appel_pris: 'Cet appel a déjà été pris sur un autre appareil.',
+    appel_fini: 'Cet appel est déjà terminé.',
+    appareil_non_lie: 'Cet appel se passe sur un autre de tes appareils.',
+    appel_pas_en_cours: 'L\'appel n\'est pas encore en cours.',
+    signal_trop_gros: 'Un message de mise en relation est trop gros pour être envoyé.',
     erreur_interne: 'Une erreur est survenue de notre côté. Réessaie.',
     serveur: 'Le service ne répond pas correctement. Réessaie dans un instant.',
     reseau: 'Pas de connexion au service. Vérifie ton réseau.',
@@ -145,6 +154,8 @@
       this.places = extra && Number.isInteger(extra.places) ? extra.places : 0;
       this.membres = extra && Number.isInteger(extra.membres) ? extra.membres : 0;
       this.min = extra && Number.isInteger(extra.min) ? extra.min : 0;
+      /* `occupe` : vrai quand c'est MOI qui suis déjà dans un appel (peut-être sur un autre appareil), faux quand c'est l'autre — la phrase n'est pas la même */
+      this.moi = !!(extra && extra.moi === true);
       /* ⛔ `dit` : cette erreur a une phrase FRANÇAISE que l'écran peut montrer telle quelle. Une erreur d'ailleurs (une exception de la page
          elle-même) ne porte pas ce drapeau : l'écran n'affiche alors qu'une phrase générique, jamais le message technique. */
       this.dit = true;
@@ -153,6 +164,7 @@
        ⛔ UNE SEULE INVITATION À RÉESSAYER : la phrase du service finit par « Réessaie dans un instant. » ; ajouter « (réessaie dans 20 s) » derrière la disait deux fois, et « dans un instant »
        contredisait « 20 s » (relecture du testeur). Quand l'attente est connue, elle REMPLACE la clause de la phrase. */
     phrase() {
+      if (this.code === 'occupe' && this.moi) return 'Tu es déjà dans un appel (peut-être sur un autre de tes appareils).';
       if (this.code === 'piece_trop_lourde' && this.max > 0) return this.message.replace(/\.$/, '') + ' (' + tailleLisible(this.max) + ' au plus).';
       if (!(this.retry > 0)) return this.message;
       const sans = this.message.replace(/\s*R[ée]essaie[^.]*\.$/i, '').replace(/\.$/, '');
@@ -179,7 +191,7 @@
     return liste;
   }
 
-  const EVENEMENTS = ['message', 'message_modifie', 'message_supprime', 'reaction', 'conversation', 'retire', 'lu', 'notification', 'saisie', 'presence', 'personne', 'espace', 'reunion', 'resync'];
+  const EVENEMENTS = ['message', 'message_modifie', 'message_supprime', 'reaction', 'conversation', 'retire', 'lu', 'notification', 'saisie', 'presence', 'personne', 'espace', 'reunion', 'appel', 'signal', 'resync'];
 
   function creer(opts) {
     const o = opts || {};
@@ -205,9 +217,10 @@
       if (j === null || typeof j !== 'object') throw new ErreurApi('reponse_illisible', r.status, 0);
       return j;
     }
-    async function appel(methode, chemin, corps) {
+    async function appel(methode, chemin, corps, opts) {
       const h = { Accept: 'application/json' };
       const init = { method: methode, headers: h, credentials: 'same-origin', cache: 'no-store' };
+      if (opts && opts.keepalive === true) init.keepalive = true;   // un raccrochage lancé quand la page se ferme doit PARTIR quand même (c'est tout le but)
       if (methode !== 'GET') { h['Content-Type'] = 'application/json'; h['X-OPM'] = '1'; init.body = JSON.stringify(corps === undefined ? {} : corps); }
       let r;
       try { r = await f(base + chemin, init); }
@@ -359,6 +372,16 @@
       payerAbonnement: (id, champs) => appel('POST', '/api/espaces/' + e(id) + '/facturation/paiement', champs),
       portailAbonnement: (id) => appel('POST', '/api/espaces/' + e(id) + '/facturation/portail'),
       relireAbonnement: (id) => appel('POST', '/api/espaces/' + e(id) + '/facturation/relire'),
+
+      /* ── Les appels à deux, audio et vidéo (étape 7) ──
+         ⛔ L'appel se dit dans l'ADRESSE, jamais dans le corps ; la personne appelée vient d'une conversation directe (`conv`) ou d'un identifiant (`uid`), jamais des deux. Les identifiants du relais sont
+         ÉPHÉMÈRES (une heure) : on les redemande à chaque appel, on ne les range nulle part. Un signal est une enveloppe `{ a, type, donnees }` que le service relaie sans la lire ; `pouls` n'est pas relayé. */
+      ice: () => appel('GET', '/api/ice'),
+      appels: (filtre) => appel('GET', '/api/appels' + rq({ filtre })),
+      lancerAppel: (champs) => appel('POST', '/api/appels', champs),
+      repondreAppel: (id, accepte) => appel('POST', '/api/appels/' + e(id) + '/repondre', { accepte: !!accepte }),
+      quitterAppel: (id, opts) => appel('POST', '/api/appels/' + e(id) + '/quitter', undefined, opts),
+      signalAppel: (id, a, type, donnees) => appel('POST', '/api/appels/' + e(id) + '/signal', donnees === undefined ? { a, type } : { a, type, donnees }),
 
       /* ── Les réunions programmées (étape 6) ──
          ⛔ La réunion se dit dans l'ADRESSE, jamais dans le corps : le service la relit de la base et de la session. L'heure se dit en millisecondes UTC, ou en heure LOCALE « 2026-10-26T14:00 »
