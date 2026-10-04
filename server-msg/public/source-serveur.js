@@ -46,7 +46,13 @@
    `repetitions:2`), demarrerAppel({ membres:[<une personne>], video, conv }) (l'appel qui sonne chez l'autre), appel(id) (la vue de l'appel de CET onglet : `etat` 'sonne'|'en-cours'|'termine', `entrant` quand
    c'est à moi de répondre, `liaison` 'attente'|'etablissement'|'connecte'|'reconnexion'|'echec', `issue` et `avis` quand il est fini, la caméra de l'autre dans `membres[0].camera`), repondreAppel(id, accepte),
    terminerAppel(id) (raccrocher, annuler, refuser — idempotent), appelPistes(id, { audio, video }) (les pistes de la PAGE, remises au moteur), appelFlux(id) (le `MediaStream` de l'autre : sa voix, son image),
-   appelActif() (l'appel qui sonne ou court dans CET onglet, ou null), appelFermeture() (la page se ferme : la liaison est coupée, le raccrochage part quand même). Un appel à plusieurs est refusé (`appel_a_deux`).
+   appelActif() (l'appel qui sonne ou court dans CET onglet, ou null), appelFermeture() (la page se ferme : la liaison est coupée, le raccrochage part quand même).
+   LES APPELS À PLUSIEURS ET LES SALLES (capacités `appelsGroupe` et `salles`, étape 8) : demarrerAppel({ membres:[2 personnes ou plus], conv:<un groupe>, video }) lance un appel de groupe (fonction Pro, jugée sur celui qui lance) ;
+   la vue `appel(id)` d'une salle porte `groupe:true`, `salle:true`, `genre` ('groupe'|'reunion'), `membres` (chacun : statut, grade, liaison, caméra, micro, partage, main, parle, epingle), `moi` (statut, grade, hote, caméra, micro,
+   partage, main), `verrou`, `salleAttente`, `partageOk`, `rec`, `enAttente`, `sondage`, `minuteur`, `demandeMicro` ; appelFlux(id, uid) rend le flux d'UNE personne. sallesOuvertes() (les salles où entrer, relues), rejoindreAppel(id),
+   rejoindreReunion(id, type), rejoindreParCode(code, type), apercuReunion(code) (public : titre, horaire, si la salle est ouverte), lienReunion(id) et renouvelerLienReunion(id) (l'hôte), salleAction(id, nom, args) (admettre, refuser,
+   exclure, verrouiller, attente, couperMicro, partage, rec, cohote, terminerPourTous, main, reaction, evt), accuserMicro(id). ⛔ « Couper le micro » n'est qu'une DEMANDE : la page de la personne l'honore ou non.
+   Événements en plus : 'salles' (les bannières à relire), 'salle-reaction' (id, uid, emoji), 'salle-micro' (id, de : l'hôte demande de couper le micro), 'salle-parle' (id : qui parle a changé).
    Les événements de `ecouter(cb)` : 'liste', 'appels' (l'historique a changé), 'appel' (id : un appel a changé), 'appel-entrant' (id : il sonne pour moi), 'appel-flux' (id : l'autre a une piste de plus), 'reunions' (id, supprime : une réunion a changé, ici ou ailleurs), 'conversation' (id), 'contacts', 'espaces' (id : un espace a changé), 'presence', 'reseau' (etat), 'arrivee' (un message d'un autre : de quoi
    afficher une bannière), 'notification', 'retire' (id : la personne n'est plus dans cette conversation), 'avis' (texte : un refus arrivé après coup),
    'moi' (mon profil a changé : nom, statut ou photo, ici ou sur un autre appareil),
@@ -615,7 +621,7 @@
       if (v.etat !== 'sonne' && v.etat !== 'en_cours') d.emettre({ type: 'appels' });
     }
     function reprendre(actif) {
-      if (!actif || typeof actif !== 'object' || typeof actif.id !== 'string') return;
+      if (!actif || typeof actif !== 'object' || typeof actif.id !== 'string' || actif.groupe) return;           // une salle n'est pas un appel à deux : son moteur la reprend
       memoriser(actif);
       if (courant && !courant.fini) { if (courant.id === actif.id) appliquer(courant, actif); return; }
       if (actif.etat === 'sonne' && actif.sens === 'entrant' && !actif.lie) sonner(actif, null);
@@ -721,20 +727,6 @@
       const p = a.autre && typeof a.autre.id === 'string' ? (d.personne(a.autre.id) || { id: a.autre.id, nom: 'Quelqu\'un', initiales: '?', avatar: 0, photo: null }) : { id: null, nom: d.nomSupprime, initiales: '?', avatar: 0, photo: null };
       return { id: a.id, type: a.type, sens: a.manque ? 'manque' : a.sens === 'sortant' ? 'sortant' : 'entrant', groupe: false, conv: null, membres: p.id ? [p.id] : [], nom: p.nom, court: p.nom, initiales: p.initiales, avatar: p.avatar, photo: p.photo, repetitions: 1, t: a.debut, duree: Number.isInteger(a.duree_s) ? a.duree_s : 0 };
     }
-    /* ⛔ « manqués » se juge sur TOUT l'historique : deux manqués de la même personne ne sont « d'affilée » que si rien d'autre ne s'est passé entre les deux */
-    async function liste(filtre) {
-      if (filtre !== undefined && filtre !== 'tous' && filtre !== 'manques') throw d.erreurLocale('invalide');
-      const r = await d.api.appels('tous');
-      reprendre(r && r.actif);
-      const out = [];
-      for (const a of (r && Array.isArray(r.appels) ? r.appels : [])) {
-        const x = vueHistorique(a), prec = out[out.length - 1];
-        if (x.sens === 'manque' && prec && prec.sens === 'manque' && prec.membres[0] === x.membres[0] && x.membres.length) prec.repetitions++;
-        else out.push(x);
-      }
-      return filtre === 'manques' ? out.filter((x) => x.sens === 'manque') : out;
-    }
-
     function arreter() {
       const c = courant;
       if (c && !c.fini) fermeture();
@@ -742,10 +734,809 @@
       courant = null;
     }
     return {
-      lancer, repondre, terminer, fermeture, pistes, flux, instantane: instantaneDe, actif, liste,
-      surAppel, surSignal, surResync: () => { relireActif(); }, surReseau: (etat) => { if (etat === 'ok' && courant && !courant.fini) relireActif(); },
+      lancer, repondre, terminer, fermeture, pistes, flux, instantane: instantaneDe, actif, vueHistorique, possede: (id) => !!courant && courant.id === id,
+      surAppel, surSignal, surResync: () => { if (courant && !courant.fini) relireActif(); }, surReseau: (etat) => { if (etat === 'ok' && courant && !courant.fini) relireActif(); },
       reprendre, arreter,
       etat: () => courant ? { id: courant.id, liaison: courant.liaison, role: courant.role, fini: !!courant.fini, local: courant.local, relais: courant.relais, pc: !!courant.pc } : null,
+    };
+  }
+
+  /* ══ LES SALLES — LE MOTEUR EN MAILLE (étape 8) ═══════════════════════════════════════════════════════════════════════════════════════════════
+     Un appel à plusieurs (un groupe, des personnes choisies) ou la salle d'une réunion programmée : CHAQUE PAIRE de participants a sa liaison pair à pair (une maille), et chaque page en tient N − 1. Le service
+     ne fait que les mettre en relation (`server-msg/appels.js`) ; ce moteur est la moitié PAGE de cette conversation. Comme le moteur à deux, il ne touche pas au navigateur lui-même : la connexion
+     (`d.webrtc`), l'horloge et les minuteries sont données, ce qui permet à `test-990` de le jouer dans Node, contre le VRAI service, avec de fausses connexions — et à la sonde de le rejouer avec les vraies.
+     ⛔ QUI FAIT L'OFFRE, SANS COLLISION : pour chaque paire, la personne dont l'identifiant est le PLUS PETIT offre, toujours — l'autre répond. Aucune négociation d'égal à égal, aucune offre qui se croise,
+     et personne n'a besoin de savoir qui est arrivé le premier. Quand quelqu'un ARRIVE, PART ou REVIENT : la liste des présents (dite par le service, avec la GÉNÉRATION de chacun, +1 à chaque entrée) décide —
+     une paire dont l'autre n'est plus là se ferme, une paire dont la génération a changé (il est parti et revenu) se REFAIT, une paire neuve s'ouvre. Chaque liaison porte un identifiant (`lien`) : une
+     page qui reçoit une offre d'un autre `lien` repart d'une connexion neuve.
+     ⛔ DIRECT D'ABORD, RELAIS EN REPLI, PAIRE PAR PAIRE. Un navigateur qui reçoit des serveurs de relais OUVRE une allocation par adresse de relais et par liaison, qu'il en ait besoin ou non (mesuré,
+     SERVEUR.md § 3.5) : en maille, chaque paire en prendrait deux — six allocations par personne à quatre, dix à six, pour un relais qui en offre quatre. Chaque liaison démarre donc avec le seul STUN du
+     service ; si elle ne s'établit pas dans les `relaisApres` ms (ou échoue), CETTE paire passe au relais (les serveurs de relais, un redémarrage d'ICE) et l'autre côté la suit. Une paire qui se joint seule
+     ne coûte rien au relais.
+     ⛔ LE DÉBIT EST PLAFONNÉ PAR FLUX (`RTCRtpSender.setParameters`) : envoyer son image à N − 1 personnes, c'est N − 1 fois le débit d'un appel à deux, sur une 4G. Le plafond suit le nombre de présents.
+     ⛔ UNE PAIRE QUI ÉCHOUE N'ARRÊTE PAS LA SALLE : sa tuile le dit, la liaison est reprise (trois fois), les autres continuent. Le service impose qui est dans la salle ; ce moteur ne croit pas pour autant
+     un signal sur parole : sa forme, sa taille et son moment sont jugés ici. */
+  const BITRATES = { audio: 32000, video: [0, 0, 800000, 600000, 400000, 300000, 250000], ecran: 1500000 };           // octets/s ÷ 8 non : bit/s ; l'image se partage entre N − 1 liaisons (voir `plafonner`)
+  const CODES_SALLE_FINIE = ['appel_fini', 'introuvable', 'appareil_non_lie', 'appel_pas_en_cours'];
+  function creerMoteurSalle(d) {
+    const T = Object.assign({ pouls: 15000, candidats: 60, veille: 30000, deconnecte: 6000, reessai: [600, 1800], iceMax: 4000, renouv: 0.75, renouvMin: 30000, quitter: [500, 1500], marge: 3000, nettoyage: 60000,
+      relaisApres: 4000, reoffre: 4000, reoffresMax: 3, reprise: 10000, repriseMax: 3, niveau: 300, seuilParle: 0.02, tenuParle: 700, etat: 150 }, d.delais || {});
+    const planifier = d.planifier, annuler = d.annuler, maintenant = d.maintenant;
+    const pause = (ms) => new Promise((ok) => planifier(ok, ms));
+    const alea = d.alea || (() => Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10));
+    let courant = null, lancement = false;
+    const dernieres = new Map();
+    const memoriser = (v) => { dernieres.delete(v.id); dernieres.set(v.id, v); while (dernieres.size > 8) dernieres.delete(dernieres.keys().next().value); };
+    const finis = new Set();
+    const noterFini = (id) => { finis.delete(id); finis.add(id); while (finis.size > 16) finis.delete(finis.values().next().value); };
+    const emettreAppel = (c) => d.emettre({ type: 'appel', id: c.id });
+    const moi = () => d.moi();
+
+    function nouvelle(v, extra) {
+      return Object.assign({
+        id: v.id, vue: v, salle: { mains: [], etats: {}, sondage: null, minuteur: null, epingle: null },
+        local: false, entrant: false, reponse: false, attente: false,
+        pairs: new Map(), pistes: { audio: null, video: null, ecran: false, micro: true }, etatDit: null,
+        ice: null, promesseIce: null, relais: false, sansRelais: false, ttl: 0,
+        debut: null, fini: null, serviceInforme: false, informe: null, terminaison: null, demandeMicro: null,
+        niveaux: new Map(), parlent: new Set(), tenus: new Map(),
+        minPouls: null, minSonnerie: null, minNettoyage: null, minRenouv: null, minNiveau: null, minEtat: null,
+      }, extra || {});
+    }
+    function pairNeuve(uid, gen) {
+      return {
+        uid, gen: gen || 0, offrant: moi() < uid, lien: null, pc: null, flux: null, emetteurs: { audio: null, video: null }, pret: false, demarrage: false,
+        etat: 'attente', relais: false, sansRelais: false, etablie: false, relance: false, offreEnVol: null, derniereOffre: null, reoffres: 0, reprises: 0,
+        file: [], avant: [], candLocaux: [], candDistants: [], chaineIn: Promise.resolve(), chaineOut: Promise.resolve(),
+        minCands: null, minVeille: null, minRelais: null, minReoffre: null, minDeconnecte: null, minReprise: null,
+      };
+    }
+    const MINUTERIES_PAIR = ['minCands', 'minVeille', 'minRelais', 'minReoffre', 'minDeconnecte', 'minReprise'];
+    function noterVue(v) {
+      if (v.autre && typeof v.autre.id === 'string') d.noter(v.autre);
+      for (const p of Array.isArray(v.participants) ? v.participants : []) if (p && typeof p.id === 'string') d.noter(p);
+      for (const p of Array.isArray(v.membres) ? v.membres : []) if (p && typeof p.id === 'string') d.noter(p);
+    }
+    const statutDe = (c) => (c.vue.moi && c.vue.moi.statut) || 'parti';
+    const presentsAutres = (c) => (Array.isArray(c.vue.participants) ? c.vue.participants : []).filter(p => p.statut === 'present' && p.id !== moi());
+    const estHote = (c) => !!(c.vue.moi && c.vue.moi.grade >= 1 && c.vue.moi.statut === 'present');
+
+    /* ── l'instantané : ce que la page lit (`source.appel(id)`) ── */
+    function personneDe(id) { return d.personne(id) || { id, nom: 'Quelqu\'un', prenom: 'Quelqu\'un', initiales: '?', avatar: 0, photo: null }; }
+    function nomSalle(c) {
+      const v = c.vue;
+      if (v.titre) return v.titre;
+      const autres = (Array.isArray(v.participants) && v.participants.length ? v.participants.map(p => p.id) : (Array.isArray(v.membres) ? v.membres.map(p => p.id) : [])).filter(x => x !== moi());
+      const noms = autres.slice(0, 3).map(x => personneDe(x).prenom || personneDe(x).nom);
+      return noms.length ? noms.join(', ') + (autres.length > 3 ? ' et ' + (autres.length - 3) + ' autres' : '') : 'Appel de groupe';
+    }
+    function dureeFinale(c) {
+      const v = c.vue;
+      if (v.etat !== 'sonne' && v.etat !== 'en_cours' && v.repondu !== null && Number.isInteger(v.duree_s)) return v.duree_s;
+      return c.debut ? Math.max(0, Math.round(((c.fini ? c.fini.t : maintenant()) - c.debut) / 1000)) : 0;
+    }
+    function membreVue(c, p) {
+      const pers = personneDe(p.id), pr = c.pairs.get(p.id), e = c.salle.etats[p.id] || {};
+      return {
+        id: p.id, nom: pers.nom, prenom: pers.prenom, initiales: pers.initiales, avatar: pers.avatar, photo: pers.photo,
+        statut: p.statut, grade: p.grade || 0, etat: p.statut === 'invite' ? 'sonne' : p.statut === 'attente' ? 'attente' : (pr && pr.etat === 'connecte' ? 'connecte' : 'connexion'),
+        liaison: pr ? pr.etat : 'attente', relais: !!(pr && pr.relais),
+        camera: !!e.camera && p.statut === 'present', micro: e.micro !== false, partage: !!e.partage, main: c.salle.mains.includes(p.id), parle: c.parlent.has(p.id), epingle: c.salle.epingle === p.id,
+      };
+    }
+    function instantane(c) {
+      const v = c.vue, fini = !!c.fini, st = statutDe(c);
+      const etat = fini ? 'termine' : (v.etat === 'en_cours' && !c.entrant ? 'en-cours' : (c.entrant ? 'sonne' : (v.etat === 'sonne' ? 'sonne' : 'en-cours')));
+      const roster = Array.isArray(v.participants) ? v.participants.filter(p => p.id !== moi()) : [];
+      const tous = fini ? [] : roster;
+      const mon = c.salle.etats[moi()] || {};
+      const ordre = { present: 0, attente: 1, invite: 2 };
+      const membres = tous.slice().sort((a, b) => (ordre[a.statut] - ordre[b.statut]) || ((b.grade || 0) - (a.grade || 0))).map(p => membreVue(c, p));
+      const pr = Array.from(c.pairs.values());
+      const liaison = fini ? 'fini' : st === 'attente' ? 'attente' : !pr.length ? 'attente' : pr.every(x => x.etat === 'connecte') ? 'connecte' : pr.some(x => x.etat === 'connecte') ? 'connecte' : pr.some(x => x.etat === 'reconnexion') ? 'reconnexion' : 'etablissement';
+      return {
+        id: c.id, etat, type: v.type, groupe: true, salle: true, genre: v.genre, conv: v.conv || null, reunion: v.reunion || null, nom: nomSalle(c), court: nomSalle(c),
+        initiales: personneDe(v.autre && v.autre.id).initiales || '?', avatar: personneDe(v.autre && v.autre.id).avatar || 0, photo: null,
+        membres, nb: v.nb || 0, capacite: v.capacite || null,
+        moi: { statut: st, grade: (v.moi && v.moi.grade) || 0, hote: estHote(c), proprietaire: !!(v.moi && v.moi.grade >= 2 && st === 'present'), camera: !!mon.camera, micro: mon.micro !== false, partage: !!mon.partage, main: c.salle.mains.includes(moi()) },
+        entrant: !fini && c.entrant && !c.local, attente: !fini && st === 'attente', exclu: st === 'exclu',
+        verrou: !!v.verrou, salleAttente: !!v.attente, partageOk: v.partage_ok !== false, rec: v.rec ? { par: v.rec.par, nom: v.rec.par === moi() ? 'vous' : personneDe(v.rec.par).prenom } : null,
+        enAttente: v.en_attente || 0, epingle: c.salle.epingle || null, sondage: c.salle.sondage || null,
+        minuteur: c.salle.minuteur ? { fin: c.salle.minuteur.fin, secondes: c.salle.minuteur.secondes } : null, demandeMicro: c.demandeMicro,
+        debut: c.debut, fin: fini ? c.fini.t : null, duree: fini ? dureeFinale(c) : (c.debut ? Math.max(0, Math.round((maintenant() - c.debut) / 1000)) : 0),
+        sens: v.sens, liaison, issue: fini ? c.fini.issue : null, avis: fini ? c.fini.avis : null, relais: c.relais,
+      };
+    }
+    function enregistrement(c) {
+      const v = c.vue;
+      return { id: c.id, type: v.type, sens: v.sens === 'sortant' ? 'sortant' : 'entrant', groupe: true, conv: v.conv || null, membres: (Array.isArray(v.membres) ? v.membres : []).map(m => m.id), nom: nomSalle(c), court: nomSalle(c), initiales: '?', avatar: 0, photo: null, repetitions: 1, t: v.debut, duree: dureeFinale(c) };
+    }
+    const phraseFin = (c, issue) => {
+      const sortant = c.vue.sens === 'sortant', reunion = c.vue.genre === 'reunion';
+      switch (issue) {
+        case 'fini': return null;
+        case 'termine': return 'L\'hôte a mis fin ' + (reunion ? 'à la réunion.' : 'à l\'appel.');
+        case 'exclu': return 'L\'hôte t\'a retiré de ' + (reunion ? 'la réunion.' : 'l\'appel.');
+        case 'refuse_hote': return 'L\'hôte n\'a pas accepté ta demande.';
+        case 'refuse': return sortant ? 'Personne n\'a pu répondre.' : null;
+        case 'manque': return sortant ? 'Pas de réponse.' : 'Appel manqué.';
+        case 'annule': return sortant ? null : 'Appel manqué.';
+        case 'occupe': return sortant ? 'Les personnes appelées sont déjà dans un appel.' : null;
+        case 'perdu': return 'La connexion a été perdue.';
+        case 'compte': return 'L\'appel a pris fin.';
+        case 'annulee': return 'La réunion a été annulée.';
+        case 'supprimee': return 'La réunion a été supprimée.';
+        case 'pris_ailleurs': return 'Cet appel a été pris sur un autre de tes appareils.';
+        case 'parti_ailleurs': return 'Tu n\'es plus dans cette salle.';
+        default: return null;
+      }
+    };
+    const issueDe = (v) => v.etat === 'fini' ? (v.motif === 'perdu' ? 'perdu' : v.motif === 'compte' ? 'compte' : v.motif === 'termine' ? 'termine' : v.motif === 'annulee' ? 'annulee' : v.motif === 'supprimee' ? 'supprimee' : 'fini') : v.etat;
+
+    /* ── la fin : TOUT ce qui tient la salle est lâché ici, d'un coup, de façon synchrone — le service l'apprend ensuite (`informer`) ── */
+    function fermerPair(c, pr) {
+      for (const k of MINUTERIES_PAIR) if (pr[k]) { annuler(pr[k]); pr[k] = null; }
+      const pc = pr.pc;
+      pr.pc = null; pr.pret = false; pr.file = []; pr.avant = []; pr.candLocaux = []; pr.candDistants = []; pr.emetteurs = { audio: null, video: null }; pr.flux = null; pr.etablie = false; pr.offreEnVol = null; pr.derniereOffre = null;
+      if (pc) {
+        pc.onicecandidate = null; pc.ontrack = null; pc.oniceconnectionstatechange = null;
+        try { pc.close(); } catch (e) { /* déjà fermée */ }
+      }
+    }
+    function liberer(c) {
+      for (const k of ['minPouls', 'minSonnerie', 'minRenouv', 'minNiveau', 'minEtat']) if (c[k]) { annuler(c[k]); c[k] = null; }
+      for (const pr of c.pairs.values()) fermerPair(c, pr);
+      c.pairs.clear();
+    }
+    function finir(c, issue, opts) {
+      if (c.fini) return false;
+      const o2 = opts || {};
+      if (o2.vue) c.vue = o2.vue;
+      liberer(c);
+      c.fini = { issue, avis: o2.avis === undefined ? phraseFin(c, issue) : o2.avis, t: maintenant() };
+      noterFini(c.id);
+      if (o2.service) c.serviceInforme = true;
+      c.minNettoyage = planifier(() => { c.minNettoyage = null; if (courant === c) courant = null; }, T.nettoyage);
+      if (d.fermerNotif) { try { d.fermerNotif('appel:' + c.id); } catch (e) { /* une notification qui reste n'est pas un appel qui dure */ } }
+      emettreAppel(c);
+      d.emettre({ type: 'appels' });
+      return true;
+    }
+    function informer(c) {
+      if (c.serviceInforme) return Promise.resolve(null);
+      if (!c.informe) {
+        c.informe = (async () => {
+          for (let n = 0; ; n++) {
+            try { const r = await d.api.quitterAppel(c.id); c.serviceInforme = true; if (r && r.appel) c.vue = Object.assign({}, r.appel, { participants: c.vue.participants }); d.emettre({ type: 'appels' }); return r && r.appel ? r.appel : null; }
+            catch (e) {
+              if (e && CODES_SALLE_FINIE.includes(e.code)) { c.serviceInforme = true; d.emettre({ type: 'appels' }); return null; }
+              if (n >= T.quitter.length || !e || !CODES_RESEAU.includes(e.code)) return null;
+              await pause(T.quitter[n]);
+            }
+          }
+        })();
+      }
+      return c.informe;
+    }
+
+    /* ── les signaux sortants : dans l'ordre, un à la fois PAR PAIRE (une offre part toujours avant les candidats qui la suivent) ── */
+    function signaler(c, pr, type, donnees, important) {
+      const essai = async (n) => {
+        try { await d.api.signalAppel(c.id, pr.uid, type, donnees); return true; }
+        catch (e) {
+          if (c.fini) return false;
+          if (e && CODES_SALLE_FINIE.includes(e.code)) {
+            /* l'autre n'est plus là (ou je n'y suis plus) : le service a le dernier mot — on relit la salle plutôt que de conclure */
+            if (e.code === 'appel_pas_en_cours') relire(c); else relireActif();
+            return false;
+          }
+          if (important && n < T.reessai.length && e && CODES_RESEAU.includes(e.code)) { await pause(T.reessai[n]); return c.fini ? false : essai(n + 1); }
+          return false;
+        }
+      };
+      const p = pr.chaineOut.then(() => essai(0));
+      pr.chaineOut = p.catch(() => false);
+      return p;
+    }
+    function envoyerCandidats(c, pr) {
+      if (pr.minCands || !pr.pret) return;
+      pr.minCands = planifier(() => {
+        pr.minCands = null;
+        if (c.fini || !pr.pc) return;
+        const liste = pr.candLocaux.splice(0, 40);
+        if (liste.length) signaler(c, pr, 'candidats', { lien: pr.lien, liste }, false);
+        if (pr.candLocaux.length) envoyerCandidats(c, pr);
+      }, T.candidats);
+    }
+    function armerPouls(c) {
+      if (c.minPouls) annuler(c.minPouls);
+      c.minPouls = planifier(async () => {
+        c.minPouls = null;
+        if (c.fini) return;
+        try { await d.api.signalAppel(c.id, null, 'pouls'); }
+        catch (e) { if (!c.fini && e && CODES_SALLE_FINIE.includes(e.code)) { relireActif(); return; } }
+        if (!c.fini) armerPouls(c);
+      }, T.pouls);
+    }
+    /* ce que le service dit de la salle : relu quand un événement a pu se perdre (un signal refusé, le flux est revenu, le service a demandé de tout relire) */
+    async function relire(c) {
+      if (c.fini) return;
+      let r; try { r = await d.api.salle(c.id); } catch (e) { if (e && CODES_SALLE_FINIE.includes(e.code)) relireActif(); return; }
+      if (c.fini || !r || !r.appel) return;
+      if (r.salle) poserSalle(c, r.salle);
+      memoriser(r.appel); appliquer(c, r.appel);
+    }
+    async function relireActif() {
+      let r;
+      try { r = await d.api.appels('manques'); } catch (e) { return; }
+      if (!r || typeof r !== 'object') return;
+      const c = courant;
+      if (c && !c.fini) {
+        if (r.actif && r.actif.id === c.id) { memoriser(r.actif); appliquer(c, r.actif); }
+        else finir(c, c.vue.etat === 'sonne' ? 'annule' : 'fini', { service: true });
+      } else reprendre(r.actif);
+    }
+
+    /* ── les identifiants du relais, lus une fois par salle et renouvelés aux trois quarts de leur vie ── */
+    function lireIce() {
+      return new Promise((ok) => {
+        let fait = false;
+        const rendre = (x) => { if (fait) return; fait = true; annuler(h); ok(x || { serveurs: [], relais: false, ttl: 0, indisponible: true }); };
+        const h = planifier(() => rendre(null), T.iceMax);
+        Promise.resolve().then(() => d.api.ice()).then((r) => rendre({ serveurs: serveursSurs(r && r.serveurs), relais: !!(r && r.relais), ttl: r && Number.isInteger(r.ttl_s) && r.ttl_s > 0 ? r.ttl_s : 0 }), () => rendre(null));
+      });
+    }
+    const estStun = (s) => (Array.isArray(s.urls) ? s.urls : []).every(u => /^stun:/.test(u));
+    const serveursDe = (c, pr) => pr.relais ? c.ice.serveurs : c.ice.serveurs.filter(estStun);
+    async function renouvelerServeurs(c) {
+      const ice = await lireIce();
+      if (c.fini || ice.indisponible || !ice.serveurs.length) return false;
+      c.ice = ice; c.ttl = ice.ttl || c.ttl;
+      for (const pr of c.pairs.values()) {
+        if (!pr.pc || typeof pr.pc.setConfiguration !== 'function') continue;
+        try { pr.conf = Object.assign({}, pr.conf, { iceServers: serveursDe(c, pr) }); pr.pc.setConfiguration(pr.conf); } catch (e) { /* le prochain essai le dira */ }
+      }
+      return true;
+    }
+    function armerRenouvellement(c) {
+      if (c.minRenouv || c.fini || !c.relais || !(c.ttl > 0)) return;
+      c.minRenouv = planifier(async () => {
+        c.minRenouv = null;
+        if (c.fini) return;
+        await renouvelerServeurs(c);
+        armerRenouvellement(c);
+      }, Math.max(T.renouvMin, Math.floor(c.ttl * 1000 * T.renouv)));
+    }
+
+    /* ── une liaison, paire par paire ── */
+    function creerPc(c, pr) {
+      const W = d.webrtc;
+      const conf = { iceServers: serveursDe(c, pr), bundlePolicy: 'max-bundle', rtcpMuxPolicy: 'require' };
+      const pc = new W.RTCPeerConnection(conf);
+      pr.pc = pc; pr.conf = conf;
+      pr.flux = typeof W.MediaStream === 'function' ? new W.MediaStream() : null;
+      pr.emetteurs = { audio: null, video: null };
+      /* deux émetteurs dès le début, dans les deux sens : la caméra se met et s'enlève par `replaceTrack`, sans renégocier. L'OFFRANT les crée ; ⛔ l'autre ne les crée pas : un émetteur ajouté AVANT
+         `setRemoteDescription(offre)` n'est PAS rattaché aux sections de l'offre (mesuré en vrai navigateur) — il adopte ceux que l'offre fait naître (`adopterEmetteurs`). */
+      if (pr.offrant) for (const kind of ['audio', 'video']) { const tr = pc.addTransceiver(kind, { direction: 'sendrecv' }); pr.emetteurs[kind] = tr && tr.sender ? tr.sender : null; }
+      pc.ontrack = (ev) => {
+        if (pr.pc !== pc || !ev || !ev.track || !pr.flux) return;
+        if (!pr.flux.getTracks().includes(ev.track)) pr.flux.addTrack(ev.track);
+        d.emettre({ type: 'appel-flux', id: c.id, uid: pr.uid });
+      };
+      pc.onicecandidate = (ev) => {
+        if (pr.pc !== pc || c.fini) return;
+        const x = ev && ev.candidate ? candidatSur(typeof ev.candidate.toJSON === 'function' ? ev.candidate.toJSON() : ev.candidate) : null;
+        if (!x) return;
+        pr.candLocaux.push(x);
+        envoyerCandidats(c, pr);
+      };
+      pc.oniceconnectionstatechange = () => surEtatIce(c, pr, pc);
+      return pc;
+    }
+    function adopterEmetteurs(pr) {
+      const pc = pr.pc;
+      if (!pc || typeof pc.getTransceivers !== 'function') return;
+      for (const tr of pc.getTransceivers()) {
+        const kind = tr && tr.receiver && tr.receiver.track ? tr.receiver.track.kind : null;
+        if (kind !== 'audio' && kind !== 'video') continue;
+        try { if (tr.direction !== 'sendrecv' && !tr.stopped) tr.direction = 'sendrecv'; } catch (e) { /* un émetteur arrêté reste ce qu'il est */ }
+        pr.emetteurs[kind] = tr.sender || null;
+      }
+    }
+    async function appliquerPistes(c, pr) {
+      for (const k of ['audio', 'video']) {
+        const s = pr.emetteurs[k], t = c.pistes[k] || null;
+        if (!s || s.track === t) continue;
+        try { await s.replaceTrack(t); } catch (e) { /* une piste que l'émetteur refuse ne coupe pas la liaison */ }
+      }
+    }
+    /* ⛔ LE DÉBIT, PAR FLUX : la voix à 32 kbit/s ; l'image à ce que la maille permet (800 kbit/s à deux, 600 à trois, 400 à quatre, jusqu'à 250) ; un écran partagé à 1,5 Mbit/s répartis. Appliqué à chaque
+       changement du nombre de présents, d'une piste ou d'une liaison qui s'établit. Un navigateur qui refuse (`setParameters`) garde son débit libre — la liaison n'en est pas défaite. */
+    async function plafonner(c) {
+      const n = Math.max(2, Math.min(6, 1 + presentsAutres(c).length));
+      const video = c.pistes.ecran ? Math.floor(BITRATES.ecran / (n - 1)) : BITRATES.video[n];
+      for (const pr of c.pairs.values()) {
+        for (const k of ['audio', 'video']) {
+          const s = pr.emetteurs[k];
+          if (!s || typeof s.getParameters !== 'function' || typeof s.setParameters !== 'function') continue;
+          const max = k === 'audio' ? BITRATES.audio : video;
+          try {
+            const p = s.getParameters();
+            if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+            if (p.encodings[0].maxBitrate === max) continue;
+            p.encodings[0].maxBitrate = max;
+            await s.setParameters(p);
+          } catch (e) { /* le débit reste libre */ }
+        }
+      }
+    }
+    function armerVeille(c, pr) {
+      if (pr.minVeille || c.fini) return;
+      pr.minVeille = planifier(() => { pr.minVeille = null; echecPair(c, pr); }, T.veille);
+    }
+    /* la liaison ne s'établit pas (ou ne se rétablit pas) : la TUILE le dit, la salle continue, et la liaison est reprise (trois fois, T.reprise entre deux) — l'offrant la refait d'une connexion neuve */
+    function echecPair(c, pr) {
+      if (c.fini || c.pairs.get(pr.uid) !== pr) return;
+      pr.etat = 'echec';
+      for (const k of ['minVeille', 'minRelais', 'minReoffre', 'minDeconnecte']) if (pr[k]) { annuler(pr[k]); pr[k] = null; }
+      if (pr.offrant && pr.reprises < T.repriseMax) {
+        pr.minReprise = planifier(() => { pr.minReprise = null; reprendrePair(c, pr); }, T.reprise);
+      }
+      emettreAppel(c);
+    }
+    function reprendrePair(c, pr) {
+      if (c.fini || c.pairs.get(pr.uid) !== pr || pr.etablie) return;
+      const reprises = pr.reprises + 1, gen = pr.gen, relais = pr.relais;
+      fermerPair(c, pr);
+      Object.assign(pr, pairNeuve(pr.uid, gen), { reprises, relais });
+      demarrerPair(c, pr);
+    }
+    function surEtatIce(c, pr, pc) {
+      if (pr.pc !== pc || c.fini) return;
+      const s = pc.iceConnectionState;
+      if (s === 'connected' || s === 'completed') {
+        for (const k of ['minVeille', 'minDeconnecte', 'minRelais', 'minReoffre', 'minReprise']) if (pr[k]) { annuler(pr[k]); pr[k] = null; }
+        pr.etablie = true; pr.reprises = 0;
+        if (pr.etat !== 'connecte') { pr.etat = 'connecte'; emettreAppel(c); plafonner(c); }
+      } else if (s === 'disconnected' || s === 'failed') {
+        if (pr.etablie && pr.etat !== 'reconnexion') { pr.etat = 'reconnexion'; emettreAppel(c); }
+        armerVeille(c, pr);
+        /* une liaison qui n'a JAMAIS tenu et qui échoue : si le relais n'a pas encore été essayé, c'est le moment */
+        if (s === 'failed' && !pr.etablie && !pr.relais) { passerAuRelais(c, pr); return; }
+        if (!pr.offrant) return;                                                        // l'autre offre : on attend
+        if (s === 'failed') relancerPair(c, pr);
+        else if (!pr.minDeconnecte) pr.minDeconnecte = planifier(() => { pr.minDeconnecte = null; if (!c.fini && pr.pc === pc && pc.iceConnectionState !== 'connected' && pc.iceConnectionState !== 'completed') relancerPair(c, pr); }, T.deconnecte);
+      }
+    }
+    async function offrir(c, pr, relance) {
+      const pc = pr.pc;
+      if (!pc) return;
+      const offre = await pc.createOffer(relance ? { iceRestart: true } : undefined);
+      if (pr.pc !== pc || c.fini) return;
+      await pc.setLocalDescription(offre);
+      if (!pr.lien) pr.lien = alea();
+      pr.offreEnVol = { sdp: offre.sdp, lien: pr.lien, relais: pr.relais, n: 0 };
+      await signaler(c, pr, 'offre', { sdp: offre.sdp, lien: pr.lien, relais: pr.relais ? 1 : 0 }, true);
+      armerReoffre(c, pr);
+    }
+    /* une offre qui n'a pas de réponse (l'autre n'avait pas encore sa page prête, un signal perdu) REPART — la même, trois fois au plus : l'autre ignore la copie qu'il a déjà traitée */
+    function armerReoffre(c, pr) {
+      if (pr.minReoffre || c.fini || !pr.offreEnVol) return;
+      pr.minReoffre = planifier(() => {
+        pr.minReoffre = null;
+        const o = pr.offreEnVol;
+        if (c.fini || !o || !pr.pc || pr.pc.signalingState !== 'have-local-offer') return;
+        if (o.n >= T.reoffresMax) return;
+        o.n++;
+        signaler(c, pr, 'offre', { sdp: o.sdp, lien: o.lien, relais: o.relais ? 1 : 0 }, false).then(() => armerReoffre(c, pr));
+      }, T.reoffre);
+    }
+    async function relancerPair(c, pr) {
+      if (c.fini || !pr.offrant || !pr.pc || pr.relance) return;
+      pr.relance = true;
+      try { if (typeof pr.pc.restartIce === 'function') pr.pc.restartIce(); await offrir(c, pr, true); }
+      catch (e) { /* la veille tranche */ }
+      finally { pr.relance = false; }
+    }
+    /* ⛔ LE RELAIS, POUR CETTE PAIRE : les serveurs de relais entrent dans SA configuration, ICE repart (l'offrant redémarre ; l'autre côté, prévenu par l'offre qui le dit, ou par un petit signal d'état
+       s'il est celui qui a pris l'initiative). Sans relais installé (le service l'a dit), il n'y a rien à essayer : la veille dit l'échec. */
+    async function passerAuRelais(c, pr, venantDeLAutre) {
+      if (pr.relais || c.fini || !pr.pc) return false;
+      if (!c.ice || !c.ice.relais || !c.ice.serveurs.some(s => !estStun(s))) { pr.sansRelais = !c.ice || !c.ice.indisponible; return false; }
+      if (pr.minRelais) { annuler(pr.minRelais); pr.minRelais = null; }
+      pr.relais = true;
+      try { pr.conf = Object.assign({}, pr.conf, { iceServers: serveursDe(c, pr) }); pr.pc.setConfiguration(pr.conf); } catch (e) { /* la veille dira */ }
+      if (pr.offrant) { if (!venantDeLAutre || true) await relancerPair(c, pr); }
+      else if (!venantDeLAutre) signaler(c, pr, 'etat', { lien: pr.lien, relais: 1 }, true);
+      emettreAppel(c);
+      return true;
+    }
+    function armerRelais(c, pr) {
+      if (pr.minRelais || c.fini || pr.relais || pr.etablie) return;
+      pr.minRelais = planifier(() => { pr.minRelais = null; if (!c.fini && !pr.etablie && pr.pc) passerAuRelais(c, pr); }, T.relaisApres);
+    }
+    async function demarrerPair(c, pr) {
+      if (pr.pc || c.fini || pr.demarrage) return;
+      pr.demarrage = true;
+      pr.etat = 'etablissement'; emettreAppel(c);
+      try {
+        if (!d.webrtc || typeof d.webrtc.RTCPeerConnection !== 'function') { echecPair(c, pr); return; }
+        const ice = await (c.promesseIce || (c.promesseIce = lireIce()));
+        if (c.fini || c.pairs.get(pr.uid) !== pr) return;
+        c.ice = ice; c.relais = ice.relais; c.ttl = ice.ttl;
+        c.sansRelais = !ice.indisponible && !ice.relais;
+        if (T.relaisApres === 0 && ice.relais) pr.relais = true;
+        creerPc(c, pr);
+        await appliquerPistes(c, pr);
+        if (c.fini || c.pairs.get(pr.uid) !== pr) return;
+        pr.pret = true;
+        armerRenouvellement(c);
+        armerVeille(c, pr);
+        if (!pr.relais) armerRelais(c, pr);
+        for (const s of pr.file.splice(0)) enfiler(c, pr, s);
+        envoyerCandidats(c, pr);
+        if (pr.offrant) await offrir(c, pr, false);
+        plafonner(c);
+      } catch (e) { if (!c.fini) echecPair(c, pr); }
+      finally { pr.demarrage = false; }
+    }
+
+    /* ── la liste des présents décide des paires ── */
+    function syncPairs(c) {
+      if (c.fini) return;
+      if (statutDe(c) !== 'present') { for (const pr of c.pairs.values()) fermerPair(c, pr); c.pairs.clear(); return; }
+      const presents = new Map(presentsAutres(c).map(p => [p.id, p]));
+      for (const [uid, pr] of Array.from(c.pairs)) {
+        const p = presents.get(uid);
+        if (!p || (p.gen && pr.gen && p.gen !== pr.gen)) { fermerPair(c, pr); c.pairs.delete(uid); }
+        else if (!pr.gen && p.gen) pr.gen = p.gen;
+      }
+      for (const [uid, p] of presents) {
+        if (c.pairs.has(uid)) continue;
+        const pr = pairNeuve(uid, p.gen);
+        c.pairs.set(uid, pr);
+        demarrerPair(c, pr);
+      }
+      plafonner(c);
+    }
+
+    /* ── les signaux entrants ── */
+    function surSignal(s) {
+      if (!s || typeof s !== 'object' || typeof s.appel !== 'string' || typeof s.type !== 'string' || typeof s.de !== 'string') return;
+      const c = courant;
+      if (!c || c.fini || c.id !== s.appel || !(c.local || c.entrant === false) || s.de === moi() || statutDe(c) !== 'present') return;
+      if (s.type !== 'offre' && s.type !== 'reponse' && s.type !== 'candidats' && s.type !== 'etat') return;
+      let pr = c.pairs.get(s.de);
+      if (!pr) {
+        /* un signal qui devance la liste des présents : le service ne relaie qu'entre présents, la paire s'ouvre (la génération viendra avec la liste) */
+        pr = pairNeuve(s.de, 0); c.pairs.set(s.de, pr); demarrerPair(c, pr);
+      }
+      if (!pr.pret) { if (pr.file.length < 200) pr.file.push(s); return; }
+      enfiler(c, pr, s);
+    }
+    function enfiler(c, pr, s) { pr.chaineIn = pr.chaineIn.then(() => traiter(c, pr, s)).catch(() => {}); }
+    async function ajouterCandidat(pr, cd) { try { await pr.pc.addIceCandidate(cd); } catch (e) { /* un candidat que le navigateur refuse n'en défait pas d'autres */ } }
+    async function viderCandidats(pr) { for (const cd of pr.candDistants.splice(0)) { if (!pr.pc) return; await ajouterCandidat(pr, cd); } }
+    /* une liaison NEUVE de l'autre (un autre `lien`) : on repart d'une connexion neuve, et ce qui attendait cette offre est rejoué */
+    async function repartirDe(c, pr, lien) {
+      const relais = pr.relais, gen = pr.gen, avant = pr.avant.splice(0);
+      fermerPair(c, pr);
+      Object.assign(pr, pairNeuve(pr.uid, gen), { relais, lien, avant });
+      creerPc(c, pr);
+      await appliquerPistes(c, pr);
+      pr.pret = true;
+      armerVeille(c, pr);
+      if (!pr.relais) armerRelais(c, pr);
+      envoyerCandidats(c, pr);
+    }
+    async function traiter(c, pr, s) {
+      if (c.fini || c.pairs.get(pr.uid) !== pr) return;
+      const x = s.donnees && typeof s.donnees === 'object' && !Array.isArray(s.donnees) ? s.donnees : {};
+      try {
+        if (s.type === 'offre') {
+          if (pr.offrant || typeof x.sdp !== 'string' || !x.sdp || x.sdp.length > SDP_MAX || typeof x.lien !== 'string' || !x.lien || x.lien.length > 64) return;   // l'offrant, c'est le plus petit : une offre du plus grand n'a pas lieu
+          /* la PREMIÈRE offre d'une paire fixe son `lien` (la connexion que cette page a ouverte d'avance sert) ; une offre d'un AUTRE `lien` est une liaison neuve de l'autre : on repart d'une connexion neuve */
+          if (!pr.lien) pr.lien = x.lien;
+          else if (x.lien !== pr.lien) await repartirDe(c, pr, x.lien);
+          else if (x.sdp === pr.derniereOffre) return;
+          pr.derniereOffre = x.sdp;
+          const pc = pr.pc; if (!pc) return;
+          if (x.relais === 1 && !pr.relais) { pr.relais = true; try { pr.conf = Object.assign({}, pr.conf, { iceServers: serveursDe(c, pr) }); pc.setConfiguration(pr.conf); } catch (e) { /* la veille dira */ } }
+          await pc.setRemoteDescription({ type: 'offer', sdp: x.sdp });
+          adopterEmetteurs(pr);
+          await appliquerPistes(c, pr);
+          await viderCandidats(pr);
+          for (const a of pr.avant.splice(0)) await traiterCandidats(c, pr, a);
+          const rep = await pc.createAnswer();
+          if (pr.pc !== pc || c.fini) return;
+          await pc.setLocalDescription(rep);
+          await signaler(c, pr, 'reponse', { sdp: rep.sdp, lien: pr.lien }, true);
+          plafonner(c);
+        } else if (s.type === 'reponse') {
+          const pc = pr.pc;
+          if (!pr.offrant || !pc || x.lien !== pr.lien || typeof x.sdp !== 'string' || !x.sdp || x.sdp.length > SDP_MAX || pc.signalingState !== 'have-local-offer') return;
+          await pc.setRemoteDescription({ type: 'answer', sdp: x.sdp });
+          pr.offreEnVol = null; if (pr.minReoffre) { annuler(pr.minReoffre); pr.minReoffre = null; }
+          await viderCandidats(pr);
+        } else if (s.type === 'candidats') {
+          if (!pr.lien && !pr.offrant) { if (pr.avant.length < 50) pr.avant.push(x); return; }        // les candidats devancent l'offre : ils attendent
+          await traiterCandidats(c, pr, x);
+        } else if (s.type === 'etat') {
+          if (x.relais === 1 && (!pr.lien || x.lien === pr.lien) && !pr.relais) await passerAuRelais(c, pr, true);
+        }
+      } catch (e) { /* un signal que le navigateur refuse ne défait pas la salle : la veille de la paire dit si la liaison ne s'établit pas */ }
+    }
+    async function traiterCandidats(c, pr, x) {
+      if (!pr.pc || (x.lien && pr.lien && x.lien !== pr.lien)) return;                // les candidats d'une liaison que l'autre a quittée ne servent à rien
+      const liste = (Array.isArray(x.liste) ? x.liste : []).slice(0, 64).map(candidatSur).filter(Boolean);
+      for (const cd of liste) {
+        if (!pr.pc) return;
+        if (pr.pc.remoteDescription) await ajouterCandidat(pr, cd);
+        else if (pr.candDistants.length < 200) pr.candDistants.push(cd);
+      }
+    }
+
+    /* ── l'éphémère de la salle : mains, états, réactions, sondage, minuteur, épingle, demande de couper le micro ── */
+    function poserSalle(c, s) {
+      if (!s || typeof s !== 'object') return;
+      c.salle = {
+        mains: Array.isArray(s.mains) ? s.mains.filter(x => typeof x === 'string') : [], etats: s.etats && typeof s.etats === 'object' ? s.etats : {}, sondage: s.sondage || null,
+        minuteur: s.minuteur && Number.isFinite(s.minuteur.fin_dans_s) ? { fin: maintenant() + s.minuteur.fin_dans_s * 1000, secondes: s.minuteur.secondes } : null, epingle: s.epingle || null,
+      };
+    }
+    function surSalleEvt(e) {
+      if (!e || typeof e !== 'object' || typeof e.appel !== 'string' || typeof e.k !== 'string') return;
+      const c = courant;
+      if (!c || c.fini || c.id !== e.appel || statutDe(c) !== 'present') return;
+      const S = c.salle;
+      if (e.k === 'main' && typeof e.de === 'string') { S.mains = S.mains.filter(x => x !== e.de); if (e.actif) S.mains.push(e.de); }
+      else if (e.k === 'etat' && typeof e.de === 'string') { S.etats = Object.assign({}, S.etats, { [e.de]: { camera: !!e.camera, micro: e.micro !== false, partage: !!e.partage } }); }
+      else if (e.k === 'reaction' && typeof e.emoji === 'string') { d.emettre({ type: 'salle-reaction', id: c.id, uid: e.de, emoji: e.emoji }); return; }
+      else if (e.k === 'sondage') S.sondage = e.sondage && typeof e.sondage === 'object' ? e.sondage : null;
+      else if (e.k === 'minuteur') S.minuteur = e.minuteur && Number.isFinite(e.minuteur.fin_dans_s) ? { fin: maintenant() + e.minuteur.fin_dans_s * 1000, secondes: e.minuteur.secondes } : null;
+      else if (e.k === 'epingle') S.epingle = typeof e.uid === 'string' ? e.uid : null;
+      else if (e.k === 'couper_micro') {
+        if (e.cible === 'tous' || e.cible === moi()) { c.demandeMicro = { de: e.de, t: maintenant(), cible: e.cible }; d.emettre({ type: 'salle-micro', id: c.id, de: e.de }); }
+      } else return;
+      emettreAppel(c);
+    }
+
+    /* ── les changements d'état que le service dit ── */
+    function sonner(v, gid) {
+      if (finis.has(v.id)) return;
+      noterVue(v);
+      const c = nouvelle(v, { entrant: true });
+      courant = c;
+      c.minSonnerie = planifier(() => { c.minSonnerie = null; relireActif(); }, Math.max(1000, (v.sonne_jusqua - v.debut) || 0) + T.marge);
+      if (Number.isInteger(gid)) d.acquitter(gid);
+      d.emettre({ type: 'appel-entrant', id: c.id });
+      emettreAppel(c);
+    }
+    function appliquer(c, v) {
+      if (c.fini) return;
+      const avant = c.vue;
+      c.vue = v; noterVue(v);
+      if (v.etat !== 'sonne' && v.etat !== 'en_cours') { finir(c, c.entrant && !c.local ? (v.moi && v.moi.statut === 'manque' ? 'manque' : issueDe(v)) : issueDe(v), { vue: v, service: true }); return; }
+      const st = statutDe(c);
+      if (c.entrant && !c.local) {
+        if (st === 'invite') { emettreAppel(c); return; }
+        finir(c, st === 'manque' ? 'manque' : 'pris_ailleurs', { vue: v, service: true }); return;
+      }
+      if (st === 'exclu') { finir(c, 'exclu', { vue: v, service: true }); return; }
+      if (st === 'attente') { c.attente = true; emettreAppel(c); return; }
+      if (st === 'present') {
+        const etaitAttente = c.attente; c.attente = false;
+        if (!c.debut) c.debut = maintenant();
+        if (c.minSonnerie) { annuler(c.minSonnerie); c.minSonnerie = null; }
+        syncPairs(c);
+        if (etaitAttente || !avant || (avant.moi && avant.moi.statut !== 'present')) declarerEtat(c, true);
+        armerNiveaux(c);
+        emettreAppel(c);
+        return;
+      }
+      finir(c, st === 'refuse' ? 'refuse_hote' : 'parti_ailleurs', { vue: v, service: true });
+    }
+    function surAppel(v, gid) {
+      if (!v || typeof v !== 'object' || typeof v.id !== 'string' || !v.groupe) return false;
+      memoriser(v);
+      const c = courant && courant.id === v.id ? courant : null;
+      if (c) appliquer(c, v);
+      else if (v.moi && v.moi.statut === 'invite' && (v.etat === 'sonne' || v.etat === 'en_cours') && v.sens === 'entrant' && !v.lie && (!courant || courant.fini)) sonner(v, gid);
+      if (v.etat !== 'sonne' && v.etat !== 'en_cours') d.emettre({ type: 'appels' });
+      return true;
+    }
+    function reprendre(actif) {
+      if (!actif || typeof actif !== 'object' || typeof actif.id !== 'string' || !actif.groupe) return;
+      memoriser(actif);
+      if (courant && !courant.fini) { if (courant.id === actif.id) appliquer(courant, actif); return; }
+      if (actif.moi && actif.moi.statut === 'invite' && actif.sens === 'entrant' && !actif.lie && (actif.etat === 'sonne' || actif.etat === 'en_cours')) sonner(actif, null);
+    }
+
+    /* ── les niveaux de voix : qui parle (le contour vert) ── */
+    async function lireNiveaux(c) {
+      const t = maintenant();
+      for (const pr of c.pairs.values()) {
+        if (!pr.pc || typeof pr.pc.getReceivers !== 'function') continue;
+        let niveau = 0;
+        try {
+          for (const r of pr.pc.getReceivers()) {
+            if (!r || !r.track || r.track.kind !== 'audio' || typeof r.getStats !== 'function') continue;
+            const rap = await r.getStats();
+            rap.forEach((x) => { if (x.type === 'inbound-rtp' && typeof x.audioLevel === 'number') niveau = Math.max(niveau, x.audioLevel); });
+          }
+        } catch (e) { niveau = 0; }
+        if (niveau > T.seuilParle) c.tenus.set(pr.uid, t + T.tenuParle);
+      }
+      const parlent = new Set();
+      for (const [uid, fin] of c.tenus) { if (fin > t && c.pairs.has(uid)) parlent.add(uid); else c.tenus.delete(uid); }
+      const change = parlent.size !== c.parlent.size || Array.from(parlent).some(u => !c.parlent.has(u));
+      c.parlent = parlent;
+      if (change) d.emettre({ type: 'salle-parle', id: c.id });
+    }
+    function armerNiveaux(c) {
+      if (c.minNiveau || c.fini || !d.niveaux) return;
+      c.minNiveau = planifier(async () => { c.minNiveau = null; if (c.fini) return; await lireNiveaux(c); armerNiveaux(c); }, T.niveau);
+    }
+
+    /* ── l'état de MON appareil, dit aux autres (l'image de ma tuile chez eux) ── */
+    function declarerEtat(c, force) {
+      if (c.fini || statutDe(c) !== 'present') return;
+      const camera = !!c.pistes.video && !c.pistes.ecran && c.pistes.video.readyState !== 'ended', micro = !!c.pistes.audio && c.pistes.micro !== false, partage = !!c.pistes.ecran && !!c.pistes.video;
+      const cle = [camera, micro, partage].join();
+      if (!force && c.etatDit === cle) return;
+      c.etatDit = cle;
+      c.salle.etats = Object.assign({}, c.salle.etats, { [moi()]: { camera, micro, partage } });
+      if (c.minEtat) annuler(c.minEtat);
+      c.minEtat = planifier(() => { c.minEtat = null; if (!c.fini) d.api.salleEtat(c.id, { camera, micro, partage }).catch(() => { c.etatDit = null; }); }, T.etat);
+    }
+
+    /* ── les gestes de la personne ── */
+    function entrer(vue, extra, salle) {
+      noterVue(vue);
+      const c = nouvelle(vue, Object.assign({ local: true }, extra || {}));
+      courant = c;
+      if (salle) poserSalle(c, salle);
+      c.promesseIce = lireIce();
+      armerPouls(c);
+      const tard = dernieres.get(vue.id);
+      appliquer(c, tard && tard !== vue && tard.moi && tard.moi.statut === 'present' ? tard : vue);
+      return c;
+    }
+    async function lancer(spec) {
+      spec = spec || {};
+      const ids = (Array.isArray(spec.membres) ? spec.membres : []).filter((x, i, t) => typeof x === 'string' && t.indexOf(x) === i);
+      const conv = typeof spec.conv === 'string' && spec.conv ? spec.conv : null;
+      if (!ids.length && !conv) throw d.erreurLocale('appel_vide');
+      if (!d.webrtc || typeof d.webrtc.RTCPeerConnection !== 'function') throw d.erreurLocale('appel_navigateur');
+      if (lancement || (courant && !courant.fini)) throw d.refus('occupe', 409, { moi: true });
+      lancement = true;
+      try {
+        const r = await d.api.lancerAppel(Object.assign({ type: spec.video ? 'video' : 'audio' }, conv ? { conv } : { uids: ids }));
+        const c = entrer(r.appel, {});
+        return instantane(c);
+      } finally { lancement = false; }
+    }
+    /* entrer dans une salle déjà ouverte (« Rejoindre » sur un appel de groupe), ou dans celle d'une réunion programmée, ou par un code */
+    async function rejoindreAvec(appeler) {
+      if (lancement || (courant && !courant.fini)) throw d.refus('occupe', 409, { moi: true });
+      if (!d.webrtc || typeof d.webrtc.RTCPeerConnection !== 'function') throw d.erreurLocale('appel_navigateur');
+      lancement = true;
+      try {
+        const r = await appeler();
+        const c = entrer(r.appel, {}, r.salle);
+        return instantane(c);
+      } finally { lancement = false; }
+    }
+    const rejoindre = (id) => rejoindreAvec(() => d.api.rejoindreAppel(id));
+    const rejoindreReunion = (id, type) => rejoindreAvec(() => d.api.rejoindreReunion(id, type));
+    const rejoindreParCode = (code, type) => rejoindreAvec(() => d.api.rejoindreReunionParCode(code, type));
+    async function repondre(id, accepte) {
+      const c = courant;
+      if (!c || c.id !== id || c.fini) throw d.refus('appel_fini', 409);
+      if (!c.entrant) throw d.erreurLocale('invalide');
+      if (c.reponse) return instantane(c);
+      c.reponse = true;
+      try {
+        if (!accepte) { finir(c, 'refuse_moi', { avis: null }); await informer(c); return instantane(c); }
+        c.promesseIce = lireIce();
+        let r;
+        try { r = await d.api.repondreAppel(id, true); }
+        catch (e) {
+          if (e && (e.code === 'appel_pris')) finir(c, 'pris_ailleurs', { service: true });
+          else if (e && (e.code === 'appel_fini' || e.code === 'introuvable')) relireActif();
+          else if (e && (e.code === 'appel_complet' || e.code === 'verrouillee' || e.code === 'exclu')) finir(c, 'manque', { avis: undefined, service: false });
+          throw e;
+        }
+        if (c.fini) return instantane(c);
+        c.local = true; c.entrant = false;
+        if (c.minSonnerie) { annuler(c.minSonnerie); c.minSonnerie = null; }
+        if (d.fermerNotif) { try { d.fermerNotif('appel:' + id); } catch (e) { /* rien */ } }
+        if (r && r.salle) poserSalle(c, r.salle);
+        armerPouls(c);
+        if (r && r.appel) { memoriser(r.appel); appliquer(c, r.appel); }
+        return instantane(c);
+      } finally { c.reponse = false; }
+    }
+    function terminer(id) {
+      const c = courant;
+      if (!c || c.id !== id) return Promise.reject(d.erreurLocale('introuvable'));
+      if (!c.terminaison) {
+        c.terminaison = (async () => {
+          if (!c.fini) finir(c, c.entrant && !c.local ? 'refuse_moi' : 'fini', { avis: null });
+          await informer(c);
+          const rec = enregistrement(c);
+          if (courant === c) courant = null;
+          return rec;
+        })();
+      }
+      return c.terminaison;
+    }
+    function fermeture() {
+      const c = courant;
+      if (!c || c.fini || !c.local) return false;
+      finir(c, 'fini', { avis: null });
+      c.serviceInforme = true;
+      try { Promise.resolve(d.api.quitterAppel(c.id, { keepalive: true })).catch(() => {}); } catch (e) { /* la page se ferme */ }
+      return true;
+    }
+    /* les pistes de la PAGE : micro, caméra (ou l'écran qui la remplace), posées sur CHAQUE liaison sans renégocier ; l'état est dit à la salle */
+    function pistes(id, p) {
+      const c = courant;
+      if (!c || c.id !== id || c.fini) return false;
+      c.pistes.audio = p && p.audio ? p.audio : null;
+      c.pistes.video = p && p.video ? p.video : null;
+      c.pistes.ecran = !!(p && p.ecran);
+      c.pistes.micro = !(p && p.micro === false);
+      Promise.all(Array.from(c.pairs.values()).map(pr => pr.pc ? appliquerPistes(c, pr) : null)).then(() => { declarerEtat(c, false); plafonner(c); }, () => {});
+      declarerEtat(c, false);
+      return true;
+    }
+    /* un geste de l'hôte ou d'un participant : l'API, le refus dit tel quel */
+    const ACTIONS = {
+      admettre: (id, a) => d.api.salleAdmettre(id, a), refuser: (id, a) => d.api.salleRefuser(id, a.uid), exclure: (id, a) => d.api.salleExclure(id, a.uid),
+      verrouiller: (id, a) => d.api.salleVerrouiller(id, a.actif), attente: (id, a) => d.api.salleAttente(id, a.actif), couperMicro: (id, a) => d.api.salleCouperMicro(id, a),
+      partage: (id, a) => d.api.sallePartage(id, a.actif), rec: (id, a) => d.api.salleRec(id, a.actif), cohote: (id, a) => d.api.salleCohote(id, a.uid, a.actif), terminerPourTous: (id) => d.api.salleTerminer(id),
+      main: (id, a) => d.api.salleMain(id, a.actif), reaction: (id, a) => d.api.salleReaction(id, a.emoji), evt: (id, a) => d.api.salleEvt(id, a.k, a.donnees),
+    };
+    async function action(id, nom, args) {
+      const c = courant;
+      if (!c || c.id !== id || c.fini) throw d.refus('appel_fini', 409);
+      if (!Object.prototype.hasOwnProperty.call(ACTIONS, nom)) throw d.erreurLocale('invalide');
+      const a = args || {};
+      const r = await ACTIONS[nom](id, a);
+      if (c.fini) return r;
+      if (nom === 'main') { c.salle.mains = c.salle.mains.filter(x => x !== moi()); if (a.actif) c.salle.mains.push(moi()); emettreAppel(c); }
+      if (nom === 'reaction') d.emettre({ type: 'salle-reaction', id, uid: moi(), emoji: a.emoji });
+      if (r && r.appel) { memoriser(r.appel); appliquer(c, r.appel); }
+      return r;
+    }
+    /* une ligne de l'historique pour un appel de groupe ou une salle (la forme que l'interface rend : `groupe`, les membres, un nom) */
+    function vueHistorique(a) {
+      for (const p of Array.isArray(a.membres) ? a.membres : []) if (p && typeof p.id === 'string') d.noter(p);
+      if (a.autre && typeof a.autre.id === 'string') d.noter(a.autre);
+      const ids = (Array.isArray(a.membres) ? a.membres : []).filter(m => m && typeof m.id === 'string').map(m => m.id);
+      if (a.autre && typeof a.autre.id === 'string' && !ids.includes(a.autre.id)) ids.unshift(a.autre.id);
+      const noms = ids.slice(0, 3).map(x => personneDe(x).prenom || personneDe(x).nom);
+      const nom = a.titre || (noms.length ? noms.join(', ') + (ids.length > 3 ? ' et ' + (ids.length - 3) + ' autres' : '') : 'Appel de groupe');
+      return { id: a.id, type: a.type, sens: a.manque ? 'manque' : a.sens === 'sortant' ? 'sortant' : 'entrant', groupe: true, conv: a.conv || null, reunion: a.reunion || null, membres: ids, nom, court: nom, initiales: '?', avatar: 0, photo: null, repetitions: 1, t: a.debut, duree: Number.isInteger(a.duree_s) ? a.duree_s : 0 };
+    }
+    function accuserMicro(id) { const c = courant; if (c && c.id === id) { c.demandeMicro = null; emettreAppel(c); } }
+    const flux = (id, uid) => { const c = courant; if (!c || c.id !== id || c.fini) return null; const pr = c.pairs.get(uid); return pr ? pr.flux : null; };
+    const instantaneDe = (id) => courant && courant.id === id ? instantane(courant) : null;
+    const actif = () => courant && !courant.fini ? instantane(courant) : null;
+    const possede = (id) => !!courant && courant.id === id;
+    function arreter() {
+      const c = courant;
+      if (c && !c.fini) fermeture();
+      if (c) { liberer(c); if (c.minNettoyage) { annuler(c.minNettoyage); c.minNettoyage = null; } }
+      courant = null;
+    }
+    return {
+      lancer, rejoindre, rejoindreReunion, rejoindreParCode, repondre, terminer, fermeture, pistes, flux, instantane: instantaneDe, actif, action, accuserMicro, possede, vueHistorique,
+      surAppel, surSignal, surSalleEvt, surResync: () => { if (courant && !courant.fini) relire(courant); else relireActif(); }, surReseau: (etat) => { if (etat === 'ok' && courant && !courant.fini) relire(courant); },
+      reprendre, arreter,
+      etat: () => courant ? { id: courant.id, fini: !!courant.fini, local: courant.local, relais: courant.relais, paires: Array.from(courant.pairs.values()).map(p => ({ uid: p.uid, etat: p.etat, relais: p.relais, offrant: p.offrant, gen: p.gen, lien: p.lien, pc: !!p.pc, reprises: p.reprises })) } : null,
     };
   }
 
@@ -1565,6 +2356,7 @@
       /* un appel change d'état (il sonne pour moi, l'autre répond, il finit) : la vue est celle de l'instant. Un signal de mise en relation (offre, réponse, candidats…) n'est jamais rangé ni montré : il va au moteur. */
       appel: (v, gid) => { moteur.surAppel(v, gid); },
       signal: (s) => { moteur.surSignal(s); },
+      salle_evt: (e) => { moteur.surSalleEvt(e); },
       resync: () => {
         moteur.surResync();
         marquerTout();
@@ -1929,7 +2721,7 @@
       if (r.hote) noter(r.hote);
       return { id: r.id, conv: r.conv, titre: String(r.titre || ''), lieu: String(r.lieu || ''), debut: r.debut, fin: r.fin, tz: String(r.tz || ''), repetition: String(r.repetition || 'aucune'),
         n: Number.isInteger(r.n) ? r.n : null, jusqua: typeof r.jusqua === 'string' ? r.jusqua : null, annulee: r.annulee === true, version: r.version | 0, rappels: listeRappels(r.rappels),
-        hote: r.hote && typeof r.hote.id === 'string' ? r.hote.id : null, illisible: r.illisible === true };
+        hote: r.hote && typeof r.hote.id === 'string' ? r.hote.id : null, illisible: r.illisible === true, attente: r.attente === true };
     }
     /* le fuseau de CET appareil est dit au service une fois par séance : les notifications de la personne se composent dans SON fuseau (sans lui, dans celui de la réunion) */
     let fuseauDit = false;
@@ -1946,7 +2738,7 @@
       const r = await A.reunions(du, au);
       return (r.reunions || []).map((x) => {
         for (const p of x.participants || []) noter(p);
-        return Object.assign(vueReunion(x), { moi: vueMoiReunion(x.moi), participantsN: x.participants_n | 0, participants: (x.participants || []).map((p) => p.id), occurrences: (x.occurrences || []).map((o) => ({ debut: o.debut, fin: o.fin })) });
+        return Object.assign(vueReunion(x), { rejoignable: x.rejoignable === true, moi: vueMoiReunion(x.moi), participantsN: x.participants_n | 0, participants: (x.participants || []).map((p) => p.id), occurrences: (x.occurrences || []).map((o) => ({ debut: o.debut, fin: o.fin })) });
       });
     }
     async function reunion(id) {
@@ -1954,10 +2746,11 @@
       const d = await pourReunion(A.reunion(id));
       for (const p of d.invites || []) noter(p);
       return Object.assign(vueReunion(d.reunion), {
+        salle: d.salle ? { rejoignable: d.salle.rejoignable === true, ouverte: d.salle.ouverte === true, occurrence: d.salle.occurrence ? { debut: d.salle.occurrence.debut, fin: d.salle.occurrence.fin } : null } : { rejoignable: false, ouverte: false, occurrence: null },
         moi: vueMoiReunion(d.moi), invites: (d.invites || []).map((p) => ({ id: p.id, statut: statutInvite(p.statut), hote: !!p.hote })), prochaine: d.prochaine ? { debut: d.prochaine.debut, fin: d.prochaine.fin } : null });
     }
     /* ce que la page peut dire d'une réunion : rien d'autre ne part (ni hôte, ni identifiant, ni version) */
-    const CHAMPS_REUNION = ['titre', 'lieu', 'debut', 'fin', 'tz', 'repetition', 'jusqua', 'n', 'invites', 'rappels', 'notifier'];
+    const CHAMPS_REUNION = ['titre', 'lieu', 'debut', 'fin', 'tz', 'repetition', 'jusqua', 'n', 'invites', 'rappels', 'notifier', 'salle_attente'];
     const corpsReunion = (champs) => { const c = {}; for (const k of CHAMPS_REUNION) if (champs && champs[k] !== undefined) c[k] = champs[k]; return c; };
     const reunionChangee = (id, supprime) => { emettre({ type: 'reunions', id: id || null, supprime: !!supprime }); relireListePlusTard(); };
     async function programmer(champs) {
@@ -1991,17 +2784,85 @@
 
     const rejeter = (code) => () => Promise.reject(erreurLocale(code));
     /* ── les appels à deux (capacité `appels`, étape 7) : le moteur ci-dessus, branché sur le service, les personnes déjà vues et l'acquittement des sonneries ── */
-    const moteur = creerMoteurAppels({
-      api: A, webrtc: o.webrtc || webrtcReel(racine), maintenant, planifier, annuler, emettre, delais: o.appelsDelais,
+    const webrtcPage = o.webrtc || webrtcReel(racine);
+    const depsMoteur = {
+      api: A, webrtc: webrtcPage, maintenant, planifier, annuler, emettre,
       personne, noter, acquitter, nomSupprime: NOM_SUPPRIME, erreurLocale,
       refus: (code, statut, extra) => new OPMSG.ErreurApi(code, statut || 0, 0, extra),
       fermerNotif: (tag) => { if (typeof nav.fermerNotifications === 'function') return Promise.resolve(nav.fermerNotifications(tag)).catch(() => {}); },
-    });
+    };
+    const moteurDeux = creerMoteurAppels(Object.assign({ delais: o.appelsDelais }, depsMoteur));
+    /* ── les salles (capacité `appelsGroupe`, étape 8) : le moteur en maille, pour les appels à plusieurs et la salle d'une réunion ── */
+    const moteurSalle = creerMoteurSalle(Object.assign({ delais: o.sallesDelais || o.appelsDelais, moi: () => moiApi ? moiApi.id : null, alea: o.alea, niveaux: o.niveaux !== false }, depsMoteur));
+    /* ⛔ UN ONGLET, UN APPEL : les deux moteurs se refusent mutuellement (un appel à deux en cours interdit d'entrer dans une salle, et réciproquement) */
+    const autreOccupe = (moteur) => (moteur === moteurDeux ? moteurSalle : moteurDeux).actif() !== null;
+    const refusOccupe = () => Promise.reject(new OPMSG.ErreurApi('occupe', 409, 0, { moi: true }));
+    const moteurDe = (id) => moteurSalle.possede(id) ? moteurSalle : (moteurDeux.possede(id) ? moteurDeux : null);
+    /* le type d'une conversation (groupe ou direct) : le détail en mémoire, sinon une lecture */
+    async function conversationEstUnGroupe(id) {
+      let c = convs.get(id);
+      if (!c || !c.detail) { try { const dd = await A.conversation(id); c = convs.get(id) || { messages: [], aPlus: false, charge: false }; c.detail = dd; convs.set(id, c); } catch (e) { return false; } }
+      return !!(c.detail && c.detail.conversation && c.detail.conversation.type === 'groupe');
+    }
+    /* les gestes que la page appelle sur « l'appel de cet onglet » : routés vers celui des deux moteurs qui le tient */
+    const moteur = {
+      surAppel: (v, gid) => { (v && v.groupe ? moteurSalle : moteurDeux).surAppel(v, gid); relireSallesPlusTard(); },
+      surSignal: (sg) => { moteurDeux.surSignal(sg); moteurSalle.surSignal(sg); },
+      surSalleEvt: (e) => { moteurSalle.surSalleEvt(e); },
+      surResync: () => { if (moteurSalle.actif()) moteurSalle.surResync(); else if (moteurDeux.actif()) moteurDeux.surResync(); else relireActifs(); },
+      surReseau: (etat) => { moteurDeux.surReseau(etat); moteurSalle.surReseau(etat); },
+      arreter: () => { moteurDeux.arreter(); moteurSalle.arreter(); },
+    };
+    /* l'historique : les appels à deux ET les appels de groupe, du plus récent ; « manqués » se juge sur TOUT l'historique (deux manqués de la même personne ne sont « d'affilée » que si rien d'autre ne s'est passé
+       entre les deux). La même lecture donne les SALLES à rejoindre (la bannière « Appel en cours · Rejoindre »). */
+    let sallesVues = [];
+    async function listeAppels(filtre) {
+      if (filtre !== undefined && filtre !== 'tous' && filtre !== 'manques') throw erreurLocale('invalide');
+      const r = await A.appels('tous');
+      sallesVues = Array.isArray(r && r.salles) ? r.salles : [];
+      if (r && r.actif) (r.actif.groupe ? moteurSalle : moteurDeux).reprendre(r.actif);
+      const out = [];
+      for (const a of (r && Array.isArray(r.appels) ? r.appels : [])) {
+        const x = a.groupe ? moteurSalle.vueHistorique(a) : moteurDeux.vueHistorique(a), prec = out[out.length - 1];
+        if (x.sens === 'manque' && prec && prec.sens === 'manque' && !x.groupe && !prec.groupe && prec.membres[0] === x.membres[0] && x.membres.length) prec.repetitions++;
+        else out.push(x);
+      }
+      return filtre === 'manques' ? out.filter((x) => x.sens === 'manque') : out;
+    }
+    /* personne n'est en ligne dans cet onglet : une sonnerie manquée pendant une coupure se lit dans l'historique (un appel à deux OU une salle) */
+    async function relireActifs() {
+      let r; try { r = await A.appels('manques'); } catch (e) { return; }
+      if (!r || typeof r !== 'object') return;
+      sallesVues = Array.isArray(r.salles) ? r.salles : sallesVues;
+      if (r.actif) (r.actif.groupe ? moteurSalle : moteurDeux).reprendre(r.actif);
+    }
+    /* les salles ouvertes où je peux entrer : une lecture fraîche, sans celle où je suis déjà */
+    async function sallesOuvertes() {
+      await listeAppels('tous');
+      const mien = moteurSalle.actif();
+      return sallesVues.filter(x => !mien || x.id !== mien.id).map(x => ({ id: x.id, genre: x.genre, type: x.type, conv: x.conv || null, reunion: x.reunion || null, titre: String(x.titre || ''), nb: x.nb | 0, capacite: x.capacite | 0, verrou: !!x.verrou, attente: !!x.attente, debut: x.debut }));
+    }
+    /* une salle a pu s'ouvrir, se remplir ou finir : la page relit ses bannières (une seule fois par rafale) */
+    let minSalles = null;
+    function relireSallesPlusTard() {
+      if (minSalles) return;
+      minSalles = planifier(() => { minSalles = null; emettre({ type: 'salles' }); }, 150);
+    }
+    async function demarrerAppel(spec) {
+      spec = spec || {};
+      const ids = (Array.isArray(spec.membres) ? spec.membres : []).filter((x, i, t) => typeof x === 'string' && t.indexOf(x) === i);
+      const groupe = ids.length > 1 || (typeof spec.conv === 'string' && spec.conv && await conversationEstUnGroupe(spec.conv));       // le groupe d'une conversation appelle TOUT le groupe, quoi que la page ait listé
+      const moteurChoisi = groupe ? moteurSalle : moteurDeux;
+      if (autreOccupe(moteurChoisi)) return refusOccupe();
+      return moteurChoisi.lancer(spec);
+    }
+    const entrerSalle = (f) => { if (moteurDeux.actif() !== null) return refusOccupe(); return f(); };
+    const sallesOuvertesEvt = () => { relireSallesPlusTard(); };
     /* ⛔ combien de messages n'ont PAS encore quitté l'appareil (réseau coupé, service muet) : la page les perd quand elle repart de zéro ou qu'on la ferme — rien n'est rangé sur
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: false, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       surSessionMorte: (cb) => { suiviMort = cb; },
       /* `presence` : MA présence est-elle montrée ? Coupée, la barre de la page ne doit pas dire « Disponible » avec un point vert (relecture du testeur) : les autres ne me voient plus en ligne. */
@@ -2025,15 +2886,25 @@
       /* ── les réunions programmées (capacité `reunions`) ── */
       reunions, reunion, programmer, modifierReunion, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion, adresseIcs, courrielOuvert, courrielReunion,
       /* ── les appels à deux (capacité `appels`) : l'historique, lancer, l'appel qui sonne ou court (`appel`), répondre, raccrocher ; les pistes que la page remet au moteur et le flux de l'autre qu'elle lit ── */
-      appels: (filtre) => moteur.liste(filtre),
-      demarrerAppel: (spec) => moteur.lancer(spec),
-      appel: (id) => Promise.resolve(moteur.instantane(id)),
-      terminerAppel: (id) => moteur.terminer(id),
-      repondreAppel: (id, accepte) => moteur.repondre(id, accepte !== false),
-      appelPistes: (id, pistes) => moteur.pistes(id, pistes),
-      appelFlux: (id) => moteur.flux(id),
-      appelActif: () => moteur.actif(),
-      appelFermeture: () => moteur.fermeture(),
+      appels: listeAppels,
+      demarrerAppel,
+      appel: (id) => Promise.resolve(moteurSalle.instantane(id) || moteurDeux.instantane(id)),
+      terminerAppel: (id) => { const m = moteurDe(id); return m ? m.terminer(id) : Promise.reject(erreurLocale('introuvable')); },
+      repondreAppel: (id, accepte) => { const m = moteurDe(id); return m ? m.repondre(id, accepte !== false) : Promise.reject(new OPMSG.ErreurApi('appel_fini', 409, 0)); },
+      appelPistes: (id, pistes) => { const m = moteurDe(id); return m ? m.pistes(id, pistes) : false; },
+      appelFlux: (id, uid) => moteurSalle.possede(id) ? moteurSalle.flux(id, uid) : moteurDeux.flux(id),
+      appelActif: () => moteurSalle.actif() || moteurDeux.actif(),
+      appelFermeture: () => { const a = moteurDeux.fermeture(), b = moteurSalle.fermeture(); return a || b; },
+      /* ── les salles (capacité `appelsGroupe`, étape 8) : les salles ouvertes où entrer, entrer (par la bannière, par la réunion, par un lien), les gestes de l'hôte et des participants ── */
+      sallesOuvertes,
+      rejoindreAppel: (id) => entrerSalle(() => moteurSalle.rejoindre(id)),
+      rejoindreReunion: (id, type) => entrerSalle(() => moteurSalle.rejoindreReunion(id, type)),
+      rejoindreParCode: (code, type) => entrerSalle(() => moteurSalle.rejoindreParCode(code, type)),
+      apercuReunion: async (code) => { const r = await A.apercuReunion(String(code || '')); const x = r && r.reunion ? r.reunion : null; return x ? { titre: String(x.titre || ''), debut: x.debut, fin: x.fin, enCours: x.en_cours === true, attente: x.attente === true, compteRequis: r.compte_requis !== false } : null; },
+      lienReunion: async (id) => { const r = await pourReunion(A.lienReunion(id)); return String(r.code || ''); },
+      renouvelerLienReunion: async (id) => { const r = await pourReunion(A.renouvelerLienReunion(id)); return String(r.code || ''); },
+      salleAction: (id, nom, args) => moteurSalle.action(id, nom, args),
+      accuserMicro: (id) => moteurSalle.accuserMicro(id),
       ecouter(cb) {
         ecouteurs.push(cb);
         return () => { const i = ecouteurs.indexOf(cb); if (i >= 0) ecouteurs.splice(i, 1); };
@@ -2042,6 +2913,6 @@
     return source;
   }
 
-  if (typeof module !== 'undefined' && module.exports) module.exports = { creerSourceServeur, creerMoteurAppels, serveursSurs, candidatSur, erreurLocale, initialesDe, couperNom };
+  if (typeof module !== 'undefined' && module.exports) module.exports = { creerSourceServeur, creerMoteurAppels, creerMoteurSalle, serveursSurs, candidatSur, erreurLocale, initialesDe, couperNom };
   else { racine.OPMSG_creerSourceServeur = creerSourceServeur; racine.OPMSG_SOURCE = creerSourceServeur(); }
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -13,11 +13,18 @@
    disent ce qui passe vraiment : les genres dont un émetteur rattaché, en `sendrecv` ou `sendonly`, porte une piste — et les genres pour lesquels une piste distante est arrivée.
    Les candidats sont émis après chaque description locale (deux, puis la fin `null`) ; la liaison s'établit quand les deux descriptions sont posées, que la négociation est stable et qu'AU MOINS UN candidat
    distant de la génération courante est arrivé ; un redémarrage (`a=restart` dans l'offre) remet les candidats distants à zéro. `monde.bloquer = true` empêche toute liaison (la veille), `pc.casser(état)` joue
-   un état de liaison (`failed`, `disconnected`), `pc.journal` garde les appels faits dans l'ordre. */
+   un état de liaison (`failed`, `disconnected`), `pc.journal` garde les appels faits dans l'ordre.
+
+   ⛔ POUR LES SALLES (étape 8, `test-990` : une MAILLE, N − 1 connexions par page, plusieurs pages dans un même processus) :
+     · chaque connexion a une ORIGINE (`faux-<page>-<n>`, la ligne `o=` de ses descriptions) : `pc.distantOrigine()` dit avec QUI elle est réellement liée, et `appariees(mondes)` vérifie que la liaison est
+       RÉCIPROQUE — A croit parler à B, B croit parler à A. Un moteur qui mélange deux liaisons (une réponse envoyée à la mauvaise paire) ne s'établit pas, ou s'établit avec la mauvaise ;
+     · `sender.getParameters()` / `setParameters()` gardent le plafond de débit posé (`monde.debits`, `pc.debitMax(kind)`) ;
+     · `pc.getReceivers()` rend les récepteurs des genres REÇUS, et `pc.niveauDistant` (0 à 1) est le niveau de voix que leurs statistiques annoncent (`audioLevel`) : c'est la voix de l'AUTRE ;
+     · `monde.exigeRelais = true` : une connexion ne s'établit que si SA configuration porte un serveur de relais (`turn:` / `turns:`) — le STUN seul ne suffit pas (un réseau qui bloque tout trajet direct). */
 'use strict';
 
 function creerMonde(nom) {
-  const monde = { nom: nom || 'monde', pcs: [], bloquer: false, delaiCandidatsMs: 3, delaiLiaisonMs: 3, pistesPosees: [], n: 0 };
+  const monde = { nom: nom || 'monde', pcs: [], bloquer: false, exigeRelais: false, delaiCandidatsMs: 3, delaiLiaisonMs: 3, pistesPosees: [], debits: [], n: 0 };
 
   const invalide = (m) => Object.assign(new Error(m), { name: 'InvalidStateError' });
   const envoie = (d) => d === 'sendrecv' || d === 'sendonly';
@@ -45,7 +52,7 @@ function creerMonde(nom) {
 
   class FauxPc {
     constructor(conf) {
-      this.id = ++monde.n; this.conf = conf; this.confs = [conf];
+      this.id = ++monde.n; this.conf = conf; this.confs = [conf]; this.origine = 'faux-' + monde.nom + '-' + this.id; this.niveauDistant = 0;
       this.signalingState = 'stable'; this.iceConnectionState = 'new';
       this.localDescription = null; this.remoteDescription = null;
       this.transceivers = []; this.candidatsRecus = []; this.candidatsEmis = []; this.pistesRecues = [];
@@ -57,9 +64,17 @@ function creerMonde(nom) {
     /* un émetteur : `associe` dit s'il est rattaché à une section d'une description (jamais avant la première offre pour `addTransceiver`) */
     _emetteur(kind, direction, associe) {
       const pc = this;
-      const tr = { kind, direction, associe, receiver: { track: { kind } }, sender: { track: null, async replaceTrack(t) {
+      const tr = { kind, direction, associe, receiver: { track: { kind }, async getStats() {
+        const m = new Map(); m.set('in-' + kind, Object.assign({ type: 'inbound-rtp', kind }, kind === 'audio' ? { audioLevel: pc.niveauDistant || 0 } : {})); return m;
+      } }, sender: { track: null, _params: null, async replaceTrack(t) {
         if (t && t.kind !== kind) throw Object.assign(new TypeError('piste d\'un autre genre'), { name: 'TypeError' });
         this.track = t; pc.journal.push('replaceTrack:' + kind + ':' + (t ? t.id : 'null')); monde.pistesPosees.push([pc.id, kind, t ? t.id : null]);
+      }, getParameters() { return JSON.parse(JSON.stringify(this._params || { encodings: [{}] })); },
+      async setParameters(p) {
+        if (pc.fermee) throw invalide('connexion fermée');
+        this._params = JSON.parse(JSON.stringify(p));
+        const max = p && p.encodings && p.encodings[0] ? p.encodings[0].maxBitrate : undefined;
+        pc.journal.push('setParameters:' + kind + ':' + max); monde.debits.push([pc.id, kind, max]);
       } } };
       this.transceivers.push(tr);
       return tr;
@@ -69,10 +84,24 @@ function creerMonde(nom) {
       return this._emetteur(kind, (init && init.direction) || 'sendrecv', false);
     }
     getTransceivers() { return this.transceivers.slice(); }
+    getReceivers() { return this.transceivers.filter(t => t.associe && recoit(t.direction) && this.pistesRecues.includes(t.kind)).map(t => t.receiver); }
+    getSenders() { return this.transceivers.filter(t => t.associe && envoie(t.direction)).map(t => t.sender); }
+    /* avec QUI cette connexion est réellement liée : l'origine de la description distante (null tant qu'aucune n'est posée) */
+    distantOrigine() { const m = this.remoteDescription && /^o=(\S+) /m.exec(this.remoteDescription.sdp); return m ? m[1] : null; }
+    /* le plafond de débit posé sur l'émetteur de ce genre (null s'il n'en a pas) */
+    debitMax(kind) { const t = this.transceivers.find(x => x.kind === kind && x.sender._params); return t && t.sender._params.encodings[0] ? (t.sender._params.encodings[0].maxBitrate === undefined ? null : t.sender._params.encodings[0].maxBitrate) : null; }
+    /* cette connexion porte-t-elle un serveur de relais dans SA configuration courante ? */
+    /* `monde.exigeRelais` : vrai (toutes les liaisons) ou la liste des pages (leur nom) avec lesquelles aucun trajet direct n'existe — la liaison attend alors d'avoir un relais dans SA configuration */
+    _attendLeRelais() {
+      const x = monde.exigeRelais; if (!x) return false;
+      if (x !== true) { const o = this.distantOrigine() || ''; if (!x.some(n => o.indexOf('faux-' + n + '-') === 0)) return false; }
+      return !this.avecRelais();
+    }
+    avecRelais() { return !!(this.conf && Array.isArray(this.conf.iceServers) && this.conf.iceServers.some(s => (Array.isArray(s.urls) ? s.urls : [s.urls]).some(u => /^turns?:/.test(String(u))))); }
     restartIce() { this.journal.push('restartIce'); this.relances++; }
-    setConfiguration(conf) { this.journal.push('setConfiguration'); this.conf = conf; this.confs.push(conf); }
+    setConfiguration(conf) { this.journal.push('setConfiguration'); this.conf = conf; this.confs.push(conf); this._verifier(); }
     _sdp(redemarrage) {
-      const l = ['v=0', 'o=faux-' + this.id + ' ' + (++this.genOffre), 's=-', redemarrage ? 'a=restart' : 'a=initial'];
+      const l = ['v=0', 'o=' + this.origine + ' ' + (++this.genOffre), 's=-', redemarrage ? 'a=restart' : 'a=initial'];
       for (const tr of this.transceivers) l.push('m=' + tr.kind + ' 9 UDP/TLS/RTP/SAVPF ' + (tr.kind === 'audio' ? '111' : '96'), 'a=' + tr.direction);
       l.push('');
       return l.join('\r\n');
@@ -88,7 +117,7 @@ function creerMonde(nom) {
       this.journal.push('createAnswer');
       /* la réponse ne porte que les sections RATTACHÉES à l'offre reçue (celles que `addTransceiver` a créées d'avance n'y sont pas) ; chacune dit ce que NOUS faisons de ce que l'autre propose */
       const offertes = sections(this.remoteDescription.sdp);
-      const l = ['v=0', 'o=faux-' + this.id + ' ' + (++this.genOffre), 's=-', /a=restart/.test(this.remoteDescription.sdp) ? 'a=restart' : 'a=initial'];
+      const l = ['v=0', 'o=' + this.origine + ' ' + (++this.genOffre), 's=-', /a=restart/.test(this.remoteDescription.sdp) ? 'a=restart' : 'a=initial'];
       const prises = new Set();
       for (const o of offertes) {
         const tr = this.transceivers.find(t => t.associe && t.kind === o.kind && !prises.has(t));
@@ -173,10 +202,10 @@ function creerMonde(nom) {
       if (this.fermee || this.iceConnectionState === 'connected' || this.iceConnectionState === 'completed') return;
       if (!this.localDescription || !this.remoteDescription || this.signalingState !== 'stable') return;
       if (this.iceConnectionState === 'new') this._etat('checking');
-      if (!this.candidatsRecus.length || monde.bloquer) return;
+      if (!this.candidatsRecus.length || monde.bloquer || this._attendLeRelais()) return;
       const n = this.candidatsRecus.length;
       setTimeout(() => {
-        if (this.fermee || monde.bloquer || this.candidatsRecus.length < n || this.signalingState !== 'stable') return;
+        if (this.fermee || monde.bloquer || this._attendLeRelais() || this.candidatsRecus.length < n || this.signalingState !== 'stable') return;
         if (this.iceConnectionState === 'connected' || this.iceConnectionState === 'completed') return;
         this._etat('connected');
       }, monde.delaiLiaisonMs);
@@ -190,6 +219,19 @@ function creerMonde(nom) {
   monde.RTCPeerConnection = FauxPc; monde.MediaStream = FauxFlux; monde.piste = piste;
   monde.dernier = () => monde.pcs[monde.pcs.length - 1] || null;
   monde.vivants = () => monde.pcs.filter(p => !p.fermee);
+  /* les liaisons RÉCIPROQUES entre ce monde et les autres : [{ local, distant }] — chacune des connexions vivantes d'ici dont l'autre bout, ailleurs, nomme cette même connexion */
+  monde.appariees = (mondes) => {
+    const out = [];
+    for (const pc of monde.vivants()) {
+      const o = pc.distantOrigine(); if (!o) continue;
+      for (const m of mondes) {
+        if (m === monde) continue;
+        const autre = m.vivants().find(x => x.origine === o);
+        if (autre && autre.distantOrigine() === pc.origine) out.push({ local: pc.origine, distant: autre.origine, monde: m.nom });
+      }
+    }
+    return out;
+  };
   return monde;
 }
 

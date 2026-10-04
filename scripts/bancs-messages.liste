@@ -113,8 +113,9 @@ tests/test-983.js
 tests/test-984.js
 tests/test-985.js
 #
-# ── Les appels à plusieurs et les salles (étape 8, 4 octobre 2026) : le stockage (986), les routes en HTTP (987), les réunions — la fenêtre, le lien d'invité, la salle d'attente (988), le service qui vit avec le temps — la sonnerie, l'appareil perdu, l'effacement, la restauration (989)
+# ── Les appels à plusieurs et les salles (étape 8, 4 octobre 2026) : le stockage (986), les routes en HTTP (987), les réunions — la fenêtre, le lien d'invité, la salle d'attente (988), le service qui vit avec le temps — la sonnerie, l'appareil perdu, l'effacement, la restauration (989), la VRAIE page contre le VRAI service — la maille, le débit, le relais en repli paire par paire, la salle d'une réunion et son lien (990)
 tests/test-986.js
 tests/test-987.js
 tests/test-988.js
 tests/test-989.js
+tests/test-990.js
