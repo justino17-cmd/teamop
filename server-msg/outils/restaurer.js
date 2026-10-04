@@ -354,6 +354,7 @@ async function essai(ctx, { date, echantillon = 20, sansPurge }, dire) {
     const ap = ouvrir.copie.apresRestauration(base);
     dire('  sessions retirées : ' + ap.sessions + ' (une session révoquée depuis l\'archive ne doit pas revenir : chacun se reconnecte ; les appareils liés, eux, restent). Le service rejouera au démarrage les genres de purge qui sont à lui.');
     dire('  abonnements de notification retirés : ' + (ap.push || 0) + ' (un abonnement retiré depuis l\'archive ne doit pas revenir : chaque appareil se réabonne à la prochaine ouverture de l\'application).');
+    dire('  appels qui sonnaient ou couraient, clos : ' + (ap.appels || 0) + ' (l\'archive date d\'avant le sinistre : aucun téléphone ne sonne pour un appel d\'hier, et personne ne reste « occupé »).');
 
     const cm = verifierCleMaitre(base, ctx.kekChemin);
     if (!cm.verifiee) dire('  ⚠ clé maître NON vérifiée (' + cm.motif + ') : cet exercice prouve l\'intégrité de la sauvegarde, pas qu\'elle s\'ouvre avec la clé de ce serveur.');
@@ -433,6 +434,7 @@ async function restaurerVers(ctx, { vers, date, ecraser, sansPieces, sansPurge }
     const ap = ouvrir.copie.apresRestauration(base);
     dire('  sessions retirées : ' + ap.sessions + ' (chacun se reconnecte ; les appareils liés restent). Le service rejouera au démarrage les genres de purge qui sont à lui.');
     dire('  abonnements de notification retirés : ' + (ap.push || 0) + ' (un abonnement retiré depuis l\'archive ne doit pas revenir : chaque appareil se réabonne à la prochaine ouverture de l\'application).');
+    dire('  appels qui sonnaient ou couraient, clos : ' + (ap.appels || 0) + ' (l\'archive date d\'avant le sinistre : aucun téléphone ne sonne pour un appel d\'hier, et personne ne reste « occupé »).');
     const v = ouvrir.copie.controlerFichier(base);
     if (!v.ok) throw echec('la base restaurée est ILLISIBLE : ' + v.motif + ' — rien n\'est remis en place.');
     dire('  base saine (quick_check : ok), ' + v.total + ' ligne(s).');

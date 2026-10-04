@@ -38,8 +38,9 @@ const { creerFormule } = require('./formule');
 const { creerFacturation } = require('./facturation');
 const { creerPlanificateur } = require('./planificateur');
 const { creerCourriel } = require('./courriel');
+const { creerAppels } = require('./appels');
 
-const VERSION = '1.4.0-espaces';
+const VERSION = '1.6.0-appels';
 const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays']);   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
 
 function journaliser(evt, champs) {
@@ -82,6 +83,13 @@ function demarrer(env = process.env) {
     const reparees = stockage.reunionsReparer();
     if (reparees.personnes) { effacerPieces(reparees.pieces); journaliser('reunions_reparees', { n: reparees.personnes }); }
   } catch (e) { journaliser('reunions_reparation_echec', { nom: e && (e.code || e.name) }); }
+  /* ⛔ LES APPELS D'UN COMPTE EFFACÉ PAR UN CODE D'AVANT : le code d'avant les appels ouvre une base au schéma 8 et efface un compte sans toucher à son historique d'appels. On le refait ICI, avant de servir —
+     rejouable, et SANS rien écrire quand il n'y a rien à réparer. */
+  let appelsReveil = [];
+  try {
+    const rep = stockage.appelsReparer();
+    if (rep.personnes) { appelsReveil = rep.reveil; journaliser('appels_repares', { n: rep.personnes }); }
+  } catch (e) { journaliser('appels_reparation_echec', { nom: e && (e.code || e.name) }); }
   /* ⛔ LA FORMULE ET LA FACTURATION : `formuleDe` est la seule fonction qui décide de Perso, Pro ou impayé (le drapeau de la bêta y est lu, et là seulement) ; la facturation parle à Stripe
      (inerte sans clé, et le dit). Les deux se lisent dans `ctx`, jamais ne se reconstruisent ailleurs. */
   const formule = creerFormule({ stockage, config });
@@ -90,6 +98,8 @@ function demarrer(env = process.env) {
   const planificateur = creerPlanificateur({ stockage, hub, config, horloge: Date.now, journaliser, push });
   /* ⛔ LE COURRIEL D'INVITATION : inerte sans relais SMTP (`config.courriel`), et le DIT. Le mot de passe du relais reste dans `config` ; `/api/config` ne publie que `courriel.ouvert`. */
   const courriel = creerCourriel({ config, stockage, scelleur, horloge: Date.now, journaliser });
+  /* ⛔ LES APPELS À DEUX : le relais (identifiants éphémères, jamais de STUN d'un tiers), les signaux relayés à la seule session liée, le balayeur (sonneries échues, appareils perdus), les pushs. L'horloge est injectée. Voir `appels.js`. */
+  const appels = creerAppels({ stockage, hub, push, config, horloge: Date.now, journaliser });
   const porte = config.instance === 'beta' ? creerPorteBeta({ config, quotas, stockage, horloge: Date.now }) : null;
   /* Les SMS : la configuration est VALIDÉE ici (un budget négatif, des identifiants à moitié posés, une URL d'OVH étrangère en production
      refusent le démarrage plutôt que de tourner de travers), puis la garde (budgets, emballement, bouclier) et l'envoi par OVH. */
@@ -112,7 +122,7 @@ function demarrer(env = process.env) {
 
   const ctx = {
     config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION, scelleur, sms,
-    pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation, courriel,
+    pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation, courriel, appels,
     maxMembres: stockageMod.MAX_MEMBRES, delaiModifMs: stockageMod.DELAI_MODIF_MS,
     disque: { bas: () => disqueBas, libreMo },
     /* ⛔ /health est PUBLIQUE et AGRÉGÉE : des nombres et des états, jamais un identifiant, un
@@ -137,6 +147,9 @@ function demarrer(env = process.env) {
       stripeEchecMin: facturation.echecMin(),
       /* ⛔ LES RÉUNIONS PROGRAMMÉES : des NOMBRES et un booléen — jamais une réunion, une personne ou un titre. L'âge du dernier tour du planificateur et ses échecs de suite sont surveillés ; un rappel qui ne part plus se voit là. */
       reunions: planificateur.sante(),
+      /* ⛔ LES APPELS : un booléen (le relais est-il installé ?) et des NOMBRES — l'âge du dernier passage du balayeur et ses échecs de suite sont surveillés (un balayeur mort laisserait des gens « occupés » pour toujours). JAMAIS le nombre d'appels
+         en cours, ni un appel, ni une personne : c'est une activité, et /health est publique. */
+      appels: appels.sante(),
       facturation: { mode: facturation.mode(), toutOuvert: formule.toutOuvert() },
     }),
   };
@@ -177,6 +190,7 @@ function demarrer(env = process.env) {
         hub.fermerPersonne(id);
         for (const c of e.convs) hub.reveiller({ conv: c });
         if (e.audience.length) hub.emettre(e.audience, 'personne', { uid: id });
+        if (e.appels && e.appels.length) hub.reveiller({ uids: e.appels });   // l'autre participant d'un appel que cet effacement a terminé l'apprend tout de suite
         journaliser('compte_efface', { n: e.pieces.length });
         /* ⛔ un espace PAYANT que cet effacement a laissé sans membre (un autre membre est parti pendant les quatorze jours) n'est pas dissous — Stripe continuerait de prélever sans plus aucun lien : il se règle à la main, et le journal le DIT (un nombre, jamais un espace) */
         if (e.espacesOrphelins && e.espacesOrphelins.length) journaliser('espace_payant_sans_membre', { n: e.espacesOrphelins.length });
@@ -209,6 +223,8 @@ function demarrer(env = process.env) {
   for (const m of minuteurs) m.unref();
   sauvegarde.demarrer();   // inerte sans configuration : aucune minuterie, aucun réseau
   facturation.demarrer();  // inerte sans clé Stripe : sinon une relecture au démarrage, puis toutes les dix minutes pour les espaces abonnés
+  appels.demarrer();       // le balayeur d'appels : un premier passage une seconde après le démarrage (les sonneries échues pendant l'arrêt), puis toutes les deux secondes
+  if (appelsReveil.length) hub.reveiller({ uids: appelsReveil });
   planificateur.demarrer(); // un premier tour une seconde après le démarrage (un redémarrage rattrape ce qu'un arrêt a laissé), puis un tour toutes les 10 à 15 secondes
 
   async function arreter() {
@@ -216,6 +232,7 @@ function demarrer(env = process.env) {
     clearInterval(minuteurDisque);
     push.arreter();
     facturation.arreter();
+    appels.arreter();
     planificateur.arreter();   // REND le bail : la prochaine instance n'attend pas son échéance
     courriel.arreter();        // ferme la connexion au relais, s'il y en a une
     boucle.disable();

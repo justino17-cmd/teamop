@@ -131,6 +131,9 @@ function creerHandlers(ctx) {
     push: { vapid: ctx.push ? ctx.push.cle() : null },
     /* l'envoi des invitations par courriel est-il ouvert ? (un relais SMTP configuré) — un booléen, jamais l'hôte, l'identifiant ou l'adresse d'expédition : la page dit « pas encore ouvert » */
     courriel: { ouvert: !!(ctx.courriel && ctx.courriel.ouvert()) },
+    /* les appels à deux : le relais est-il installé (un booléen — jamais son adresse, ni son secret) ? la page dit alors, en cas d'échec, que l'appel ne passe que si les deux appareils se joignent directement.
+       `sonnerie_s` : combien de temps un appel sonne avant d'être « manqué » (la page l'écrit à l'appelant, elle ne le recopie pas). */
+    appels: { relais: !!(ctx.appels && ctx.appels.relais()), sonnerie_s: Math.round(config.appels.sonnerieMs / 1000) },
   });
 
   H['beta.entrer'] = async (req, res) => {
@@ -268,6 +271,8 @@ function creerHandlers(ctx) {
     const u = cibleContact(req, res); if (!u) return;
     /* un contact, ou quelqu'un qu'on voit sans l'avoir en contact (un collègue d'un espace, un membre d'un groupe) : la ligne de blocage est créée si elle manque — un inconnu reste « introuvable » */
     if (!stockage.contactBloquer(req.moi.id, u)) return refus(res, 404, 'introuvable');
+    /* ⛔ un blocage coupe aussi l'appel en cours entre les deux personnes (« un blocage coupe messages, appels et présence ») : celui qui harcèle ne continue pas par la voix */
+    try { if (ctx.appels) ctx.appels.bloquer(req.moi.id, u); } catch (e) { /* le blocage est posé : un appel qui ne se coupe pas est repris par le balayeur */ }
     res.json({ ok: true });
   };
   H['contacts.debloquer'] = (req, res) => {

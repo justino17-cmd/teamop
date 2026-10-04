@@ -30,6 +30,8 @@ const { installerPush } = require('./routes-push');
 const { installerCompte } = require('./compte');
 const { installerEspaces, ID_ESPACE } = require('./routes-espaces');
 const { installerReunions } = require('./routes-reunions');
+const { installerAppels } = require('./routes-appels');
+const { ID_APPEL } = require('./appels');
 const { ID_REUNION } = require('./reunions-outils');
 const { installerFacturation } = require('./facturation');
 const { ID_PIECE } = require('./pieces');
@@ -61,8 +63,8 @@ function construireApp(ctx) {
       'Content-Security-Policy': /^\/api\/pieces/i.test(req.path) ? CSP_PIECE : CSP_PAGE,
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'no-referrer',
-      /* le MICRO est permis à la page elle-même (`self`, le message vocal de l'étape 4) et à personne d'autre ; la CAMÉRA reste fermée jusqu'aux appels (étape 7) */
-      'Permissions-Policy': 'camera=(), microphone=(self)',
+      /* le MICRO (le message vocal de l'étape 4, les appels) et la CAMÉRA (les appels vidéo, étape 7) sont permis à la page elle-même (`self`) et à personne d'autre : aucun cadre d'ailleurs ne les obtient */
+      'Permissions-Policy': 'camera=(self), microphone=(self)',
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Resource-Policy': 'same-origin',
     });
@@ -180,6 +182,15 @@ function construireApp(ctx) {
     if (!r) return refus(res, 404, 'introuvable');
     req.reunion = r; next();
   };
+  /* ⛔ AP : un APPEL. Bâtie sur S (répondre, raccrocher et signaler ne demandent pas d'adresse confirmée : lancer l'appel, lui, exige V). L'appel se lit dans le chemin (`:id`) et la base, jamais dans le corps. Un
+     appel auquel on ne participe pas répond 404, la MÊME réponse qu'un appel inexistant (ou mal formé). `req.appel` est le laissez-passer léger (`appelAcces`) : l'état, mon rôle, l'empreinte de MA session liée, l'autre. */
+  const appelDuParticipant = (req, res, next) => {
+    const id = req.params.id;
+    const r = ID_APPEL.test(id) ? stockage.appelAcces(id, req.moi.id) : null;
+    if (!r) return refus(res, 404, 'introuvable');
+    req.appel = r; next();
+  };
+  garde.AP = garde.S.concat([appelDuParticipant]);
   garde.R = garde.S.concat([reunionDuParticipant]);
   garde.H = garde.V.concat([reunionDuParticipant, (req, res, next) => req.reunion.hote ? next() : refus(res, 403, 'interdit')]);
   /* ⛔ PRO : une fonction payante. `formuleDe` est la SEULE fonction qui décide (`formule.js`) — ce garde la lit, il ne recopie aucune règle. Une route de l'espace (`req.espace`) se juge sur la
@@ -203,6 +214,7 @@ function construireApp(ctx) {
   installerEspaces(H, ctx);     // les espaces professionnels : membres, invitations, canaux, « Contacts de l'entreprise »
   installerFacturation(H, ctx); // Messages Pro : les offres, l'état, le paiement (Stripe), le portail, la relecture
   installerReunions(H, ctx);    // les réunions programmées : agenda, programmer, inviter, répondre, rappels, fichier .ics
+  installerAppels(H, ctx);      // les appels à deux : le relais (identifiants éphémères), lancer, répondre, raccrocher, signaler, l'historique
   /* Les écritures authentifiées ont un plafond propre, par compte (en plus de celui de l'adresse). */
   const limiteEcriture = (req, res, next) => {
     const q = Object.assign({ max: 300, fenetreMs: 60000 }, config.quotas.ecriture || {});

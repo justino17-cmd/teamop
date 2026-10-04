@@ -129,11 +129,11 @@ const attrape = async (p) => { try { await p; return null; } catch (e) { return 
     console.log('\nLe recensement : TOUT code que le service peut rendre a sa phrase (lu dans le code du service)');
     {
       const codes = new Set();
-      for (const f of ['app.js', 'routes.js', 'routes-pieces.js', 'routes-push.js', 'routes-reunions.js', 'compte.js', 'porte-beta.js', 'flux.js', 'index.js']) {
+      for (const f of ['app.js', 'routes.js', 'routes-pieces.js', 'routes-push.js', 'routes-reunions.js', 'routes-appels.js', 'compte.js', 'porte-beta.js', 'flux.js', 'index.js']) {
         const s = T.sansCommentaires(fs.readFileSync(path.join(T.SERVICE, f), 'utf8'));
         for (const m of s.matchAll(/refus\(res,\s*\d+,\s*'([a-z_]+)'/g)) codes.add(m[1]);
         /* les réunions traduisent les refus du stockage par une table `{ code: [statut, 'code_rendu'] }` : le code RENDU est celui qu'il faut dire */
-        if (f === 'routes-reunions.js') for (const m of s.matchAll(/\[\d{3},\s*'([a-z_]+)'\]/g)) codes.add(m[1]);
+        if (f === 'routes-reunions.js' || f === 'routes-appels.js') for (const m of s.matchAll(/\[\d{3},\s*'([a-z_]+)'\]/g)) codes.add(m[1]);
         /* … et la lecture du corps rend `{ erreur: 'code' }` (heure_inexistante, fin_avant_debut, rappel_invalide…) que la route renvoie telle quelle : autant de codes à dire */
         if (f === 'routes-reunions.js') for (const m of s.matchAll(/\berreur:\s*'([a-z_]+)'/g)) codes.add(m[1]);
         for (const m of s.matchAll(/error:\s*'([a-z_]+)'/g)) codes.add(m[1]);

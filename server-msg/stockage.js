@@ -388,6 +388,39 @@ const MIGRATIONS = [
     `CREATE INDEX IF NOT EXISTS courrier_envoi_dest ON courrier_envoi(dest_h, ts)`,
     `PRAGMA user_version = 7`,
   ] },
+  /* ── 8 : LES APPELS À DEUX, AUDIO ET VIDÉO (étape 7) ─────────────────────────────────────────────────────────────────────────────────────────────
+     Deux tables neuves, AUCUNE table existante modifiée ni reconstruite (la migration reste REJOUABLE : `IF NOT EXISTS` partout, pas d'`ALTER`) — le code d'AVANT les appels ouvre donc sans mot dire une
+     base au schéma 8 si un déploiement se replie (`deployer.sh` revient en arrière) ; ce qu'il ne sait pas faire (effacer l'historique d'un compte supprimé) est refait au démarrage du code neuf
+     (`appelsReparer`, comme `reunionsReparer`) :
+       · `appel` : UNE ligne par appel — son type (`audio` ou `video` : ce que la personne a demandé ; la caméra s'allume et s'éteint ensuite sans rien changer ici), son ÉTAT, l'instant où il a commencé
+         à sonner (`cree`), l'échéance de la sonnerie (`sonne_jusqua` : au-delà, sans réponse, il est « manqué »), l'instant de la réponse (`repondu`) et de la fin (`fin`), et le MOTIF d'une fin qui n'est pas
+         un raccrochage ordinaire (`perdu` : plus aucun signe d'un appareil ; `compte` : un compte effacé ; `bloque` ; `restauration`). États : `sonne` → `en_cours` → `fini` ; `sonne` → `manque` (45 s
+         sans réponse), `refuse` (l'appelé), `annule` (l'appelant raccroche avant) ; `occupe` (l'appelé était déjà dans un appel : la ligne est écrite, l'appelé la lit « Manqué »). Aucun média, aucun SDP, aucune
+         adresse réseau n'est JAMAIS rangé : le service relaie des signaux qu'il ne lit pas (`appels.js`) ;
+       · `appel_part` : qui participe, et son rôle (`appelant`, `appele`) — la forme que prendra l'appel de groupe (étape 8). `session` est l'empreinte de la SESSION LIÉE à l'appel : celle qui l'a lancé,
+         ou celle de l'appareil qui a répondu (le premier prend l'appel, les autres cessent de sonner). C'est la seule qui reçoit les signaux (SDP et candidats d'adresses) et qui peut raccrocher une fois
+         l'appel en cours ; NULL tant que personne n'a répondu pour l'appelé. La ligne d'un compte effacé part (l'autre garde l'appel, sans nom), et l'appel part avec sa dernière ligne. */
+  { v: 8, sql: [
+    `CREATE TABLE IF NOT EXISTS appel(
+       id TEXT PRIMARY KEY,
+       type TEXT NOT NULL CHECK(type IN ('audio','video')),
+       etat TEXT NOT NULL CHECK(etat IN ('sonne','en_cours','fini','manque','refuse','annule','occupe')),
+       cree INTEGER NOT NULL,
+       sonne_jusqua INTEGER NOT NULL,
+       repondu INTEGER,
+       fin INTEGER,
+       motif TEXT)`,
+    `CREATE INDEX IF NOT EXISTS appel_actif ON appel(etat) WHERE etat IN ('sonne','en_cours')`,
+    `CREATE INDEX IF NOT EXISTS appel_cree ON appel(cree)`,
+    `CREATE TABLE IF NOT EXISTS appel_part(
+       appel TEXT NOT NULL REFERENCES appel(id) ON DELETE CASCADE,
+       uid TEXT NOT NULL REFERENCES personne(id),
+       role TEXT NOT NULL CHECK(role IN ('appelant','appele')),
+       session TEXT,
+       PRIMARY KEY(appel, uid))`,
+    `CREATE INDEX IF NOT EXISTS appel_part_uid ON appel_part(uid)`,
+    `PRAGMA user_version = 8`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -1449,6 +1482,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         const r = Q('SELECT u.id AS id, u.conv AS conv, u.version AS version FROM reunion u JOIN reunion_invite i ON i.reunion = u.id AND i.uid = ? WHERE u.id = ?').get(uid, j.ref);
         return { gid, event: 'reunion', data: r ? { id: r.id, conv: r.conv, version: num(r.version) } : { id: j.ref, supprime: true } };
       }
+      /* ⛔ UN APPEL CHANGE : l'événement dit la VUE de l'appel pour CETTE personne, lue À L'INSTANT où on le lit — jamais l'état d'il y a une heure. Rejoué après une coupure, un appel qui sonnait dit
+         qu'il est fini (la page n'a pas à faire sonner un téléphone pour un appel d'hier) ; un appel effacé (ou une personne qui n'y participe plus) ne dit rien. */
+      case 'appel': {
+        const vue = appelVue(uid, j.ref);
+        return vue ? { gid, event: 'appel', data: vue } : null;
+      }
       default: return null;
     }
   }
@@ -1789,7 +1828,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     let n = 0;
     for (const r of Q('SELECT id, type, titre_ch FROM notification WHERE auteur = ?').all(uid)) {
       const texte = r.type === 'contact_ajoute' ? 'Un compte supprimé était dans vos contacts.' : r.type === 'mention' ? 'Un compte supprimé vous a mentionné.' : r.type === 'espace' ? 'Un compte supprimé a rejoint l\'espace.'
-        : r.type === 'reunion_invitation' ? 'Un compte supprimé vous a invité à une réunion.' : r.type === 'reunion_modifiee' ? 'Un compte supprimé a modifié une réunion.' : r.type === 'reunion_annulee' ? 'Un compte supprimé a annulé une réunion.'
+        : r.type === 'appel_manque' ? 'Un compte supprimé vous a appelé.' : r.type === 'reunion_invitation' ? 'Un compte supprimé vous a invité à une réunion.' : r.type === 'reunion_modifiee' ? 'Un compte supprimé a modifié une réunion.' : r.type === 'reunion_annulee' ? 'Un compte supprimé a annulé une réunion.'
         : 'Un compte supprimé vous a ajouté au groupe.';
       let titre = ouvrirOuNull('notification', 'titre_ch', r.id + '|titre', r.titre_ch);
       if (titre === null) titre = '';
@@ -1821,6 +1860,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
          conversation de réunion ne se « quitte » pas comme un groupe (personne n'y est promu administrateur de force). */
       const reunions = reunionsQuitterTout(uid, { rejeu });
       pieces.push(...reunions.pieces); convs.push(...reunions.convs);
+      /* ⛔ PUIS SES APPELS : un appel en cours se termine (l'autre l'apprend), la ligne de la personne part — l'autre garde l'appel, sans nom. Rejoué avec le reste après une restauration (`rejeu`), sans rien écrire au registre. */
+      const appelsReveil = appelsQuitterTout(uid);
       /* chaque conversation : un groupe se quitte comme on le quitte (le dernier administrateur passe la main, le dernier membre emporte le groupe), une directe reste à l'autre — qui y garde
          son historique mais ne peut plus y écrire. Les messages, eux, restent. */
       for (const m of Q('SELECT m.conv AS conv, c.type AS type FROM membre m JOIN conversation c ON c.id = m.conv WHERE m.uid = ? AND m.quitte_le IS NULL').all(uid)) {
@@ -1855,7 +1896,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
            langue = 'fr', tz = 'Europe/Paris', prefs = '{}', etat = 'supprime', suppression_le = NULL, age_ok = NULL, cgu_v = NULL, essais = 0, bloque_jusqua = NULL, trouvable = 'personne'
          WHERE id = ?`).run(uid);
       if (!rejeu) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(uid, 'compte', horloge());
-      return { effacee: true, pieces, convs, audience, espacesOrphelins: sortis.orphelins };
+      return { effacee: true, pieces, convs, audience, espacesOrphelins: sortis.orphelins, appels: appelsReveil };
     });
   }
 
@@ -2596,6 +2637,208 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
               ORDER BY COALESCE(relu_le, 0), espace LIMIT ?`).all(Math.max(1, limite | 0)).map(r => r.espace);
   }
 
+  /* ══ APPELS À DEUX (migration 8) ═══════════════════════════════════════════════════════════════════════════════════════════════════
+     Ce bloc range et lit : il ne relaie JAMAIS un signal (c'est `appels.js`), n'envoie aucun push, ne lit aucune horloge qu'on ne lui ait donnée (`horloge`, injectée), et ne sait rien d'un média. Ce qu'il tient,
+     ce sont les INVARIANTS, chacun dans UNE transaction :
+       · ⛔ UNE PERSONNE N'EST QUE DANS UN APPEL À LA FOIS : « occupée » veut dire un appel qui SONNE (sonnerie non échue) ou qui COURT. La sonnerie se juge sur son ÉCHÉANCE, pas sur l'état : un appel dont
+         la sonnerie est échue n'occupe plus personne, même avant que le balayeur l'ait écrit « manqué ». Deux lancements simultanés ne passent pas à deux (le contrôle est dans la transaction) ;
+       · ⛔ CHAQUE CHANGEMENT D'ÉTAT ÉCRIT SON ÉVÉNEMENT DURABLE (`appel`, adressé à CHAQUE participant : la page relit la vue de l'appel, rien d'autre ne voyage) dans la MÊME transaction que le changement :
+         un événement perdu avec une coupure se rejoue par `Last-Event-ID`, et la vue qu'il porte est celle de l'instant où on la lit (rejouée en retard, elle dit la fin de l'appel, pas une sonnerie fantôme) ;
+       · ⛔ UN APPEL MANQUÉ FAIT UNE NOTIFICATION, UNE SEULE FOIS : le passage `sonne → manque` et la notification s'écrivent dans la même transaction, gardés par `WHERE etat = 'sonne'` — un redémarrage,
+         un second balayeur ou une restauration ne la refont pas. (Le PUSH part ensuite, hors de la transaction : s'il se perd, la notification durable reste.) ;
+       · l'appareil qui répond est LIÉ à l'appel (`appel_part.session`) ; le premier prend l'appel, un second reçoit `appel_pris` ;
+       · un appel FINI ne change plus (toute fin est gardée par `etat IN ('sonne', 'en_cours')`). */
+  function appelBrut(id) { return Q('SELECT id, type, etat, cree, sonne_jusqua, repondu, fin, motif FROM appel WHERE id = ?').get(id) || null; }
+  const appelPart = (id, uid) => Q('SELECT role, session FROM appel_part WHERE appel = ? AND uid = ?').get(id, uid) || null;
+  const appelAutre = (id, uid) => { const r = Q('SELECT uid FROM appel_part WHERE appel = ? AND uid <> ?').get(id, uid); return r ? r.uid : null; };
+  const appelParticipants = (id) => Q('SELECT uid, role, session FROM appel_part WHERE appel = ? ORDER BY role, uid').all(id);
+  /* L'appel de cette personne qui sonne (sonnerie non échue) ou qui court — son identifiant, ou null. */
+  function appelActifDe(uid) {
+    const r = Q(`SELECT a.id AS id FROM appel_part p JOIN appel a ON a.id = p.appel WHERE p.uid = ? AND (a.etat = 'en_cours' OR (a.etat = 'sonne' AND a.sonne_jusqua > ?)) ORDER BY a.cree DESC, a.id DESC LIMIT 1`).get(uid, horloge());
+    return r ? r.id : null;
+  }
+  /* La vue d'un appel POUR `uid` : ce que l'événement `appel`, l'historique et les réponses des routes portent. Les personnes ne sont que des identifiants et des noms courts (la page les habille) ;
+     jamais une adresse réseau, jamais le détail d'une session. `lie` : cette personne a un appareil LIÉ à l'appel (celui qui l'a lancé, ou qui a répondu) — pas lequel. `manque` : un appel ENTRANT que
+     cette personne n'a pas pris (sonnerie échue, annulé par l'appelant, ou reçu pendant qu'elle était en ligne) — la liste « Manqués » et le rouge de l'historique. */
+  function appelRangDe(uid, a, me, autre) {
+    const sortant = me.role === 'appelant', abouti = a.repondu !== null && a.repondu !== undefined, fin = a.fin === null || a.fin === undefined ? null : num(a.fin);
+    return {
+      id: a.id, type: a.type, etat: a.etat, sens: sortant ? 'sortant' : 'entrant', manque: !sortant && (a.etat === 'manque' || a.etat === 'annule' || a.etat === 'occupe'),
+      autre: autre ? personneCourte(uid, autre) : null, debut: num(a.cree), sonne_jusqua: num(a.sonne_jusqua), repondu: abouti ? num(a.repondu) : null, fin,
+      duree_s: abouti && fin !== null ? Math.max(0, Math.round((fin - num(a.repondu)) / 1000)) : 0, motif: a.motif || null, lie: !!me.session,
+    };
+  }
+  function appelVue(uid, id) {
+    const me = appelPart(id, uid); if (!me) return null;
+    const a = appelBrut(id); if (!a) return null;
+    return appelRangDe(uid, a, me, appelAutre(id, uid));
+  }
+  /* Le LAISSEZ-PASSER léger de la garde AP (`app.js`) : { id, etat, role, session (l'empreinte de MA session liée, ou null), autre (l'autre participant), sonne_jusqua } — `null` pour inexistant COMME pour
+     « tu n'y participes pas » (404 dans les deux cas, jamais 403). */
+  function appelAcces(id, uid) {
+    const me = appelPart(id, uid); if (!me) return null;
+    const a = appelBrut(id); if (!a) return null;
+    return { id: a.id, etat: a.etat, type: a.type, role: me.role, session: me.session || null, autre: appelAutre(id, uid), sonne_jusqua: num(a.sonne_jusqua), cree: num(a.cree) };
+  }
+  /* L'appel de cette personne qui sonne ou qui court, dans sa vue ; c'est ce que la page lit à son ouverture (`GET /api/appels`, `actif`) pour reprendre une sonnerie qu'elle a manquée. */
+  function appelActifVue(uid) { const id = appelActifDe(uid); return id ? appelVue(uid, id) : null; }
+  /* Le texte d'un appel manqué, et sa notification durable — DANS la transaction de l'appelant. Rien d'un auteur que le destinataire a bloqué (ou qui l'a bloqué) : la définition de la messagerie. L'`auteur`
+     de la notification est l'appelant : l'effacement de son compte la réécrit (« Un compte supprimé vous a appelé. »). → { id, gid, uid, sourdine } ou null. */
+  function appelNotifManque(id, type, appelant, appele) {
+    if (contactBloque(appelant, appele)) return null;
+    const p = personneParId(appelant);
+    const nom = p ? ((p.prenom + ' ' + p.nom).trim() || 'Quelqu\'un') : 'Quelqu\'un';
+    const n = notifCreer({ uid: appele, type: 'appel_manque', titre: 'Appel manqué', texte: nom + ' vous a appelé' + (type === 'video' ? ' en vidéo' : '') + '.', cible: id, auteur: appelant });
+    return { id: n.id, gid: n.gid, uid: appele, sourdine: appelSourdine(appele, appelant) };
+  }
+  /* La conversation directe de ces deux personnes est-elle en sourdine pour `appele` ? (la sourdine coupe le PUSH d'un appel manqué, jamais la notification dans l'application) */
+  function appelSourdine(appele, appelant) {
+    return !!Q(`SELECT 1 AS x FROM membre m JOIN conversation c ON c.id = m.conv WHERE c.cle_directe = ? AND m.uid = ? AND m.quitte_le IS NULL AND m.muet_jusqua > ? LIMIT 1`).get(cleDirecte(appele, appelant), appele, horloge());
+  }
+  /* Écrit l'événement `appel` de chaque participant. → { [uid]: gid } */
+  function appelEvenements(id) {
+    const gids = {};
+    for (const p of appelParticipants(id)) gids[p.uid] = journalAjouter('appel', null, p.uid, id);
+    return gids;
+  }
+
+  /* Lancer un appel : TOUT dans une transaction — le contrôle « occupé » de l'appelant (il ne fait pas deux appels), celui de l'appelé (écrit alors « occupe », jamais « sonne »), les deux lignes, les deux
+     événements, et — appelé occupé — la notification du manqué. `session` : l'empreinte de la session de l'appelant (liée d'emblée). `sonnerieMs` : le délai de la sonnerie. */
+  function appelCreer({ appelant, appele, type, session, sonnerieMs }) {
+    return tx(() => {
+      if (appelActifDe(appelant)) throw erreur('occupe_moi');
+      const t = horloge(), id = nouvelId('a'), occupe = appelActifDe(appele) !== null;
+      Q('INSERT INTO appel(id, type, etat, cree, sonne_jusqua, fin) VALUES(?, ?, ?, ?, ?, ?)').run(id, type, occupe ? 'occupe' : 'sonne', t, t + sonnerieMs, occupe ? t : null);
+      Q('INSERT INTO appel_part(appel, uid, role, session) VALUES(?, ?, ?, ?)').run(id, appelant, 'appelant', session || null);
+      Q('INSERT INTO appel_part(appel, uid, role, session) VALUES(?, ?, ?, ?)').run(id, appele, 'appele', null);
+      const gids = appelEvenements(id);
+      return { id, occupe, gids, notif: occupe ? appelNotifManque(id, type, appelant, appele) : null, vue: appelVue(appelant, id) };
+    });
+  }
+  /* L'appelé répond (accepte) ou refuse. Le premier appareil qui accepte PREND l'appel (sa session y est liée) ; un autre appareil de la même personne reçoit `appel_pris`, un appel qui n'est plus à
+     l'état « sonne » `appel_fini`. Refuser finit l'appel pour TOUS les appareils de l'appelé. Rejouable : la même session qui répond deux fois reçoit la même vue (`deja`). */
+  function appelRepondre({ id, uid, session, accepte }) {
+    return tx(() => {
+      const me = appelPart(id, uid), a = appelBrut(id);
+      if (!me || !a) throw erreur('introuvable');
+      if (me.role !== 'appele') throw erreur('interdit');
+      if (a.etat === 'en_cours') {
+        if (accepte && me.session && me.session === session) return { deja: true, gids: {}, vue: appelVue(uid, id), etat: a.etat };
+        throw erreur('appel_pris');
+      }
+      if (a.etat !== 'sonne' || num(a.sonne_jusqua) <= horloge()) throw erreur('appel_fini');
+      const t = horloge();
+      if (accepte) {
+        Q('UPDATE appel_part SET session = ? WHERE appel = ? AND uid = ?').run(session, id, uid);
+        Q(`UPDATE appel SET etat = 'en_cours', repondu = ? WHERE id = ? AND etat = 'sonne'`).run(t, id);
+      } else {
+        Q(`UPDATE appel SET etat = 'refuse', fin = ? WHERE id = ? AND etat = 'sonne'`).run(t, id);
+      }
+      return { deja: false, gids: appelEvenements(id), vue: appelVue(uid, id), etat: accepte ? 'en_cours' : 'refuse' };
+    });
+  }
+  /* Raccrocher, annuler, refuser. Selon l'état et le rôle : `sonne` + appelant → « annule » (l'appelé a MANQUÉ cet appel : notification) ; `sonne` + appelé → « refuse » ; `en_cours` → « fini ».
+     Un appel déjà fini : rien à faire (`deja`), c'est le cas ordinaire de la page qui raccroche après que l'autre l'a fait. Une session qui n'est pas celle LIÉE à l'appel ne le raccroche pas
+     (`appareil_non_lie`) — l'appelé, tant qu'il n'a pas répondu, n'est lié à aucune. */
+  function appelQuitter({ id, uid, session }) {
+    return tx(() => {
+      const me = appelPart(id, uid), a = appelBrut(id);
+      if (!me || !a) throw erreur('introuvable');
+      if (a.etat !== 'sonne' && a.etat !== 'en_cours') return { deja: true, gids: {}, vue: appelVue(uid, id), etat: a.etat, notif: null };
+      if (me.session && me.session !== session) throw erreur('appareil_non_lie');
+      const etat = a.etat === 'en_cours' ? 'fini' : (me.role === 'appelant' ? 'annule' : 'refuse');
+      return appelFinirDans(id, etat, null, horloge(), uid);
+    });
+  }
+  /* La fin d'un appel (à l'intérieur d'une transaction) : l'état, l'instant, le motif, les événements — et la notification du manqué quand l'appelant annule avant la réponse. */
+  function appelFinirDans(id, etat, motif, fin, vuPar) {
+    const a = appelBrut(id);
+    if (!a || !num(Q(`UPDATE appel SET etat = ?, fin = ?, motif = ? WHERE id = ? AND etat IN ('sonne', 'en_cours')`).run(etat, fin, motif, id).changes)) return { deja: true, gids: {}, vue: vuPar ? appelVue(vuPar, id) : null, etat: a ? a.etat : null, notif: null };
+    const parts = appelParticipants(id);
+    const appelant = (parts.find(p => p.role === 'appelant') || {}).uid, appele = (parts.find(p => p.role === 'appele') || {}).uid;
+    /* l'appelant a annulé (ou a disparu) pendant la sonnerie : l'appelé a manqué quelque chose */
+    const notif = a.etat === 'sonne' && etat === 'annule' && appelant && appele ? appelNotifManque(id, a.type, appelant, appele) : null;
+    return { deja: false, gids: appelEvenements(id), vue: vuPar ? appelVue(vuPar, id) : null, etat, notif };
+  }
+  /* Finir un appel de l'extérieur (le balayeur : appareil perdu ; un blocage…) : l'état qui convient à l'état actuel (un appel en cours est « fini », un appel qui sonne encore est « annulé ») — l'appelant
+     disparu pendant la sonnerie fait donc MANQUER l'appel à l'appelé, comme s'il avait raccroché. */
+  function appelFinir({ id, motif, fin }) {
+    return tx(() => {
+      const a = appelBrut(id); if (!a) return { deja: true, gids: {}, vue: null, etat: null, notif: null };
+      return appelFinirDans(id, a.etat === 'en_cours' ? 'fini' : 'annule', motif || null, fin === undefined ? horloge() : fin, null);
+    });
+  }
+  /* Les sonneries ÉCHUES : `sonne → manque`, avec la notification de l'appelé — UNE transaction pour tout le lot, chaque appel gardé par `WHERE etat = 'sonne'`. → [{ id, appelant, appele, type, notif, gids }] */
+  function appelsEchoir(t) {
+    return tx(() => {
+      const faits = [];
+      for (const r of Q(`SELECT id, type FROM appel WHERE etat = 'sonne' AND sonne_jusqua <= ? ORDER BY sonne_jusqua, id LIMIT 200`).all(t)) {
+        if (!num(Q(`UPDATE appel SET etat = 'manque', fin = sonne_jusqua WHERE id = ? AND etat = 'sonne'`).run(r.id).changes)) continue;
+        const parts = appelParticipants(r.id), appelant = (parts.find(p => p.role === 'appelant') || {}).uid, appele = (parts.find(p => p.role === 'appele') || {}).uid;
+        faits.push({ id: r.id, appelant, appele, type: r.type, gids: appelEvenements(r.id), notif: appelant && appele ? appelNotifManque(r.id, r.type, appelant, appele) : null });
+      }
+      return faits;
+    });
+  }
+  /* Les appels vivants (qui sonnent ou courent) avec leurs participants et l'empreinte de leur session liée : de quoi juger qui a disparu (`appels.js`). Borné. */
+  function appelsActifs() {
+    return Q(`SELECT id, etat, type, cree, sonne_jusqua, repondu FROM appel WHERE etat IN ('sonne', 'en_cours') ORDER BY cree LIMIT 5000`).all()
+      .map(a => ({ id: a.id, etat: a.etat, type: a.type, cree: num(a.cree), sonne_jusqua: num(a.sonne_jusqua), repondu: a.repondu === null ? null : num(a.repondu), parts: appelParticipants(a.id).map(p => ({ uid: p.uid, role: p.role, session: p.session || null })) }));
+  }
+  /* L'historique d'une personne : les appels FINIS, du plus récent, bornés. `manques` : ses appels entrants qu'elle n'a pas pris. */
+  function appelsListe(uid, { manques = false, limite = 100 } = {}) {
+    const lim = Math.max(1, Math.min(500, limite | 0));
+    const lignes = manques
+      ? Q(`SELECT a.id AS id, a.type AS type, a.etat AS etat, a.cree AS cree, a.sonne_jusqua AS sonne_jusqua, a.repondu AS repondu, a.fin AS fin, a.motif AS motif, p.role AS role, p.session AS session
+           FROM appel_part p JOIN appel a ON a.id = p.appel WHERE p.uid = ? AND p.role = 'appele' AND a.etat IN ('manque', 'annule', 'occupe') ORDER BY a.cree DESC, a.id DESC LIMIT ?`).all(uid, lim)
+      : Q(`SELECT a.id AS id, a.type AS type, a.etat AS etat, a.cree AS cree, a.sonne_jusqua AS sonne_jusqua, a.repondu AS repondu, a.fin AS fin, a.motif AS motif, p.role AS role, p.session AS session
+           FROM appel_part p JOIN appel a ON a.id = p.appel WHERE p.uid = ? AND a.etat NOT IN ('sonne', 'en_cours') ORDER BY a.cree DESC, a.id DESC LIMIT ?`).all(uid, lim);
+    return lignes.map(r => appelRangDe(uid, r, { role: r.role, session: r.session }, appelAutre(r.id, uid)));
+  }
+  /* Un appel fini depuis longtemps n'est plus de l'historique, c'est une donnée personnelle qu'on garde pour rien. */
+  function appelsElaguer(avant) { return num(Q(`DELETE FROM appel WHERE cree < ? AND etat NOT IN ('sonne', 'en_cours')`).run(avant).changes); }
+  /* ⛔ L'EFFACEMENT D'UN COMPTE ET SES APPELS (appelé par `compteEffacer`, rejoué par `appelsReparer`). Un appel qui sonne ou court se TERMINE (l'autre l'apprend : événement durable) ; la ligne de la
+     personne part (l'autre garde l'appel, sans nom : « Compte supprimé »), et l'appel part avec sa dernière ligne. Rejouable : sans appel, rien à faire — et rien n'est écrit au registre des purges : c'est
+     `compteEffacer` qui est noté (genre « compte », rejoué par le service), et il refait ceci. → les personnes à réveiller. */
+  function appelsQuitterTout(uid) {
+    const reveil = [], t = horloge();
+    for (const r of Q(`SELECT a.id AS id, a.etat AS etat, p.role AS role FROM appel_part p JOIN appel a ON a.id = p.appel WHERE p.uid = ? AND a.etat IN ('sonne', 'en_cours') ORDER BY a.id`).all(uid)) {
+      const etat = r.etat === 'en_cours' ? 'fini' : (r.role === 'appelant' ? 'annule' : 'refuse');
+      Q(`UPDATE appel SET etat = ?, fin = ?, motif = 'compte' WHERE id = ? AND etat IN ('sonne', 'en_cours')`).run(etat, t, r.id);
+      const autre = appelAutre(r.id, uid);
+      if (autre) { journalAjouter('appel', null, autre, r.id); reveil.push(autre); }
+    }
+    const ids = Q('SELECT appel FROM appel_part WHERE uid = ?').all(uid).map(r => r.appel);
+    Q('DELETE FROM appel_part WHERE uid = ?').run(uid);
+    for (const id of ids) Q('DELETE FROM appel WHERE id = ? AND NOT EXISTS (SELECT 1 FROM appel_part WHERE appel = ?)').run(id, id);
+    return reveil;
+  }
+  /* Un blocage coupe aussi l'appel en cours entre ces deux personnes (l'appelant qui harcèle ne continue pas par la voix). → les personnes à réveiller. */
+  function appelsFinirEntre(a, b) {
+    return tx(() => {
+      const reveil = [];
+      for (const r of Q(`SELECT x.appel AS id FROM appel_part x JOIN appel_part y ON y.appel = x.appel AND y.uid = ? JOIN appel c ON c.id = x.appel WHERE x.uid = ? AND c.etat IN ('sonne', 'en_cours') ORDER BY x.appel`).all(b, a)) {
+        const f = appelFinir({ id: r.id, motif: 'bloque' });
+        if (!f.deja) reveil.push(a, b);
+      }
+      return Array.from(new Set(reveil));
+    });
+  }
+  /* ⛔ LA RÉPARATION AU DÉMARRAGE (comme `reunionsReparer`) : le code d'AVANT les appels ouvre une base au schéma 8 sans connaître ces tables, et efface un compte sans toucher à son historique d'appels. Le
+     démarrage du code neuf refait, pour chaque compte effacé qui laisse une trace, ce que `compteEffacer` fait. Rejouable : sans trace, rien n'est écrit. → { personnes, reveil } */
+  function appelsReparer() {
+    return tx(() => {
+      const ids = Q(`SELECT DISTINCT p.uid AS uid FROM appel_part p JOIN personne x ON x.id = p.uid WHERE x.etat = 'supprime' ORDER BY p.uid`).all().map(r => r.uid);
+      const reveil = [];
+      for (const uid of ids) reveil.push(...appelsQuitterTout(uid));
+      return { personnes: ids.length, reveil };
+    });
+  }
+  /* L'historique d'appels d'une personne, pour l'export de ses données. Les noms des autres n'y sont pas (un appel n'est pas une conversation : le fichier dit quand, combien, et quel identifiant). */
+  function exportAppels(uid) {
+    return appelsListe(uid, { limite: 500 }).map(a => ({ id: a.id, date: a.debut, type: a.type, sens: a.sens, etat: a.etat, duree_s: a.duree_s, avec_id: a.autre ? a.autre.id : null }));
+  }
+
   /* ══ AGRÉGATS POUR /health — des NOMBRES, jamais un identifiant ══════════════════════════ */
   function stats() {
     return {
@@ -2678,6 +2921,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         rappel: non(() => Q('SELECT 1 FROM rappel LIMIT 1')),
         planif_bail: non(() => Q('SELECT 1 FROM planif_bail LIMIT 1')),
         courrier_envoi: non(() => Q('SELECT 1 FROM courrier_envoi LIMIT 1')),
+        appel: non(() => Q('SELECT 1 FROM appel LIMIT 1')),
+        appel_part: non(() => Q('SELECT 1 FROM appel_part LIMIT 1')),
       },
     };
   }
@@ -2723,6 +2968,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionQuitter, reunionRepondre, reunionRappelsPoser, reunionsReparer,   // les réunions programmées
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
     courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions,                                                                                                                  // …et le courriel d'invitation
+    appelVue, appelAcces, appelActifDe, appelActifVue, appelCreer, appelRepondre, appelQuitter, appelFinir, appelsEchoir, appelsActifs, appelsListe, appelsElaguer, appelsQuitterTout, appelsFinirEntre, appelsReparer, appelSourdine, exportAppels,   // les appels à deux
   };
 }
 
@@ -2734,7 +2980,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
    ⚠️ Aucune ne déchiffre quoi que ce soit et aucune n'a besoin de la clé maître : « ce fichier est-il intact » et « sais-je le lire »
    sont deux questions, et seule la première est du ressort d'une sauvegarde.
    Rangées sur `ouvrir.copie` plutôt que dans `module.exports` : le service, lui, n'a pas à les connaître. */
-const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi'];
+const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi', 'appel', 'appel_part'];
 
 function ouvrirCopie(chemin, { moteur, ecriture = false } = {}) {
   const { DatabaseSync } = moteur || require('node:sqlite');
@@ -2774,6 +3020,8 @@ function lignesDe(d) {
     rappel: n(() => d.prepare('SELECT COUNT(*) AS n FROM rappel')),
     planif_bail: n(() => d.prepare('SELECT COUNT(*) AS n FROM planif_bail')),
     courrier_envoi: n(() => d.prepare('SELECT COUNT(*) AS n FROM courrier_envoi')),
+    appel: n(() => d.prepare('SELECT COUNT(*) AS n FROM appel')),
+    appel_part: n(() => d.prepare('SELECT COUNT(*) AS n FROM appel_part')),
   };
 }
 
@@ -2984,7 +3232,7 @@ function pieceIds(chemin, opts) {
    PAS à vider : c'est le pointeur vers un paiement que Stripe a peut-être reçu entre la copie et le sinistre — l'effacer le rendrait méconnaissable, et le client paierait deux fois.
    Rend { sessions, push } : le nombre de sessions et d'abonnements retirés. Une seule transaction. */
 function apresRestauration(chemin, opts) {
-  const bilan = { sessions: 0, push: 0, bails: 0 };
+  const bilan = { sessions: 0, push: 0, bails: 0, appels: 0 };
   let d = null;
   try {
     d = ouvrirCopie(chemin, Object.assign({}, opts, { ecriture: true }));
@@ -2999,6 +3247,11 @@ function apresRestauration(chemin, opts) {
          Et LES RAPPELS DE LA BASE D'AVANT ne se renvoient pas : le registre des rappels envoyés date de la copie, pas du sinistre — un rappel dont l'échéance précède la restauration est
          considéré traité (envoyé avant, ou abandonné), jamais envoyé une seconde fois (`rappels_depuis`, lu par le planificateur). */
       try { bilan.bails = Number(d.prepare('DELETE FROM planif_bail').run().changes); }
+      catch (e) { if (!/no such table/i.test(String(e && e.message))) throw e; }
+      /* ⛔ UN APPEL QUI SONNAIT OU COURAIT DANS L'ARCHIVE EST FINI : l'archive date d'avant le sinistre, et plus aucun appareil n'y est lié — un téléphone ne doit pas sonner pour un appel d'hier, et personne
+         ne doit rester « occupé » à cause de lui. Une sonnerie devient « manqué » (SANS notification : celle qui existait déjà est dans la copie, une de plus serait une fausse alerte), un appel en cours
+         « fini » avec le motif « restauration » et une durée nulle (on ne sait pas quand il s'est arrêté). */
+      try { bilan.appels = Number(d.prepare(`UPDATE appel SET etat = CASE etat WHEN 'sonne' THEN 'manque' ELSE 'fini' END, fin = COALESCE(repondu, cree), motif = 'restauration' WHERE etat IN ('sonne', 'en_cours')`).run().changes); }
       catch (e) { if (!/no such table/i.test(String(e && e.message))) throw e; }
       const maintenant = opts && typeof opts.horloge === 'function' ? opts.horloge() : Date.now();
       d.prepare('INSERT INTO meta(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').run('rappels_depuis', String(maintenant));

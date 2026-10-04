@@ -104,6 +104,22 @@ v('instanceDe : msg-beta → beta, msg → prod, un autre domaine → rien',
   Object.assign(SAIN, { reunions: R_SAIN });
 }
 
+/* ══ 1 quater. LES APPELS À DEUX (/health.appels : le balayeur des sonneries échues et des appareils perdus) ══════════════════════════════ */
+{
+  const A_SAIN = { turn: false, ageS: 1, echecs: 0, perdus: 0 };
+  const avec = (o) => S.evaluer(Object.assign({}, SAIN, { appels: Object.assign({}, A_SAIN, o) }), 'beta');
+  v('un balayeur sain ne fait rien crier (un passage il y a une seconde, aucun échec) — relais absent compris : tant que Justin n\'a pas lancé install-turn.sh, ce n\'est pas une panne', avec({}), []);
+  vrai('⛔ un dernier passage vieux de dix minutes crie : la boucle est morte ou bloquée, plus aucun appel manqué ne s\'écrit', avec({ ageS: 600 }).some(p => /balayeur d'appels ne tourne plus/.test(p) && /600 s/.test(p)));
+  v('⛔ le seuil est « plus de cinq minutes » : 300 s pile ne crie pas, 301 crie', [avec({ ageS: 300 }), avec({ ageS: 301 }).length], [[], 1]);
+  v('   « jamais passé » (ageS null : la première seconde du service) ne crie pas', avec({ ageS: null }), []);
+  vrai('⛔ trois passages de suite en échec crient (une erreur qui dure : une sonnerie échue qui lève à chaque tour ne devient jamais un appel manqué)', avec({ echecs: 3 }).some(p => /3 passages de suite du balayeur d'appels/.test(p)));
+  v('   un ou deux échecs ne crient pas (un accroc isolé)', [avec({ echecs: 1 }), avec({ echecs: 2 })], [[], []]);
+  v('   des appels perdus (un téléphone qui entre dans un tunnel) et un relais installé ou non ne crient JAMAIS', [avec({ perdus: 500 }), avec({ turn: true }), avec({ turn: false, perdus: 40 })], [[], [], []]);
+  v('   un /health sans la clé « appels » (un service d\'avant) ne crie pas', S.evaluer(Object.assign({}, SAIN, { appels: undefined }), 'beta'), []);
+  vrai('⛔ aucun problème ne contient d\'identifiant : seulement des nombres', avec({ ageS: 900, echecs: 5, appel: 'a_deadbeefcafe', uid: 'p_deadbeef' }).every(p => !/deadbeef/.test(p)));
+  Object.assign(SAIN, { appels: A_SAIN });
+}
+
 /* ══ 2. CHAQUE CHAMP EST LU PAR LE CODE (ou nommé) — sur le CHEMIN COMPLET, dans le CODE ═══════════════ */
 const lecture = (chemin) => 'j.' + chemin;
 vrai('la liste des champs surveillés est peuplée (population avant verdict)', S.CHAMPS_SURVEILLES.length >= 5);
