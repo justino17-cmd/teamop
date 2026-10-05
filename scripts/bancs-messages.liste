@@ -42,7 +42,7 @@
 # 4 octobre 2026, le lot 8 (le forfait Perso+ et le plafond de dix personnes : test-991 la décision de formule, l'abonnement lu chez Stripe, l'annulation d'un compte effacé et le plafond ; 992 les routes en HTTP ; 993 l'outil de configuration qui crée les deux tarifs de test ; 994 la VRAIE page contre le VRAI service ; 903, 905, 934, 961 à 963, 973, 976, 986, 987 et 990 étendus) : 63 suites, 7 839 vérifications mesurées par la commande de la porte — plancher 7825 (mesure moins 14, jamais une addition).
 # 4 octobre 2026, la correction 7/7 (qui demande à supprimer son compte n'est plus prélevé : la demande arrête le renouvellement chez Stripe, son annulation le rétablit — jamais ce que la personne avait coupé elle-même —, l'effacement résilie ; test-991 la matrice au niveau des modules, 992 les vraies routes et la porte bêta, 994 le module et la feuille ; la sonde du navigateur, phase F) : 63 suites, 7 901 vérifications mesurées par la commande de la porte — plancher 7887 (mesure moins 14, jamais une addition).
 # 5 octobre 2026, le « + » d'OP MESSAGES (« Nouvelle discussion » : test-995, la VRAIE fonction de la page contre le VRAI service ; test-857 § 4 bis et sa série N, hors de cette liste) : 64 suites, 7 921 vérifications mesurées par la commande de la porte — plancher 7907 (le total moins 14, jamais une addition).
-#plancher 7907
+#plancher 7921
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
