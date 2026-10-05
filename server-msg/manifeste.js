@@ -81,7 +81,6 @@ const MANIFESTE = [
   { id: 'moi.confidentialite', m: 'POST', p: '/api/moi/confidentialite',             garde: 'S' },
   { id: 'moi.appareils.deconnecter', m: 'POST', p: '/api/moi/appareils/deconnecter', garde: 'S' },
   { id: 'contacts.chercher', m: 'POST', p: '/api/contacts/chercher',                 garde: 'V' },
-  { id: 'contacts.ajouter',  m: 'POST', p: '/api/contacts/ajouter',                  garde: 'V' },
   /* L'identifiant « Prénom#1234 » et les demandes de contact (`telephone.js` § 6) : retrouver par l'identifiant EXACT, demander, répondre, retirer sa demande. */
   { id: 'contacts.identifiant', m: 'POST', p: '/api/contacts/identifiant',           garde: 'V' },
   { id: 'contacts.demander', m: 'POST', p: '/api/contacts/demander',                 garde: 'V' },

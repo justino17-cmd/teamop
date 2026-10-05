@@ -72,6 +72,7 @@
     numero_invalide: 'Ce numéro de téléphone n\'est pas valable : écris-le avec l\'indicatif du pays (+33…).',
     recherches_plafond: 'Tu as fait beaucoup de recherches aujourd\'hui : réessaie plus tard.',
     ajouts_plafond: 'Tu as envoyé beaucoup de demandes aujourd\'hui : réessaie demain.',
+    demandes_plafond: 'Tu as déjà beaucoup de demandes en attente : retires-en quelques-unes, ou attends qu\'on te réponde.',
     identifiant_plein: 'Impossible de te donner un identifiant avec ce prénom pour l\'instant : réessaie plus tard.',
     /* les espaces professionnels, leurs canaux, Messages Pro et l'abonnement. ⛔ Aucune promesse que le service ne tient pas : « fonction Pro » ne dit pas POURQUOI (seul l'administrateur le lit, dans
        l'état de l'abonnement), et « l'abonnement n'est pas encore ouvert » est la vérité d'un service sans clé de paiement. */

@@ -9,8 +9,10 @@
  *   POST /api/tel/verifier      {numero, code, prenom?, nom?, appareil?}   P  crée le compte ou connecte ; pose session + jeton d'appareil
  *   POST /api/tel/appareil      {}                             P  se reconnecte avec le seul jeton d'appareil (aucun SMS)
  *   POST /api/contacts/chercher {numero}                       V  retrouve une personne par son numéro (plafonné, latence constante)
- *   POST /api/contacts/ajouter  {id}                           V  l'ajoute, si elle vient d'être trouvée
- *   GET|POST /api/moi/confidentialite  {trouvable?, presence?, accuses?}  S  « qui peut me trouver par mon numéro » (tous | personne), « afficher quand je suis en ligne »,
+ *   POST /api/contacts/identifiant {identifiant}               V  retrouve une personne par son identifiant « Prénom#1234 » EXACT (mêmes plafonds, même latence)
+ *   POST /api/contacts/demander {id}                           V  lui envoie une DEMANDE de contact, si elle vient d'être trouvée (par numéro ou identifiant)
+ *   GET  /api/contacts/demandes · POST …/demandes/repondre {id, accepter} · POST …/demandes/annuler {id}   les demandes reçues et envoyées, la réponse, le retrait
+ *   GET|POST /api/moi/confidentialite  {trouvable?, presence?, accuses?}  S  « qui peut me trouver par mon numéro ou mon identifiant » (tous | personne), « afficher quand je suis en ligne »,
  *                                                              « confirmations de lecture » — les deux interrupteurs sont RÉCIPROQUES (voir § 4)
  *
  * ⛔ MOINS DE SMS. Un SMS part à l'inscription et sur un NOUVEL appareil, JAMAIS à chaque connexion : la session dure 90 jours GLISSANTS
@@ -360,30 +362,9 @@ function creerTelephone(ctx) {
     res.json(rep);
   };
 
-  H_['contacts.ajouter'] = (req, res) => {
-    const id = corps(req).id;
-    if (typeof id !== 'string' || !ID_PERS.test(id) || id === req.moi.id) return refus(res, 400, 'champ_invalide');
-    const uid = req.moi.id;
-    const q = essai('ajout_jour', uid, { max: cfg.ajoutJour, fenetreMs: JOUR }, jeune(req.moi) ? 1 / 3 : 1);
-    if (!q.ok) return trop(res, 'ajouts_plafond', q.retry);
-    const fin = trouves.get(uid + '|' + id);
-    const p = fin && fin > horloge() ? stockage.personneParId(id) : null;
-    const t = p ? stockage.telTrouvableLire(id) : null;
-    /* Revérifié AU MOMENT de l'ajout : la personne a pu se rendre introuvable, ou nous bloquer, depuis la recherche. */
-    if (!p || p.etat !== 'actif' || t !== 'tous' || stockage.contactBloque(uid, id) || stockage.suppressionLe(id) !== null) { rendre([q.cle]); return refus(res, 404, 'introuvable'); }
-    trouves.delete(uid + '|' + id);
-    const deja = stockage.contactActif(uid, id);
-    if (!deja) {
-      stockage.contactLier(uid, id);
-      try {
-        const texteN = ((req.moi.prenom + ' ' + req.moi.nom).trim() || 'Quelqu\'un') + ' est maintenant dans vos contacts.';
-        const n = stockage.notifCreer({ uid: id, type: 'contact_ajoute', titre: 'Nouveau contact', texte: texteN, cible: uid, auteur: uid });
-        hub.reveiller({ uids: [id] });
-        if (ctx.push) ctx.push.pousser(id, { type: 'contact', tag: 'contact', url: '/', titre: 'OP MESSAGES', corps: 'Nouveau contact', detail: { titre: 'Nouveau contact', corps: texteN } }, { gid: n.gid });
-      } catch (e) { /* une notification ratée ne défait pas le geste */ }
-    }
-    res.json({ ok: true, deja, contact: { id: p.id, prenom: p.prenom, nom: p.nom } });
-  };
+  /* ⛔ IL N'Y A PLUS D'« AJOUTER » : `contacts.ajouter` créait un contact MUTUEL sans l'accord de la personne trouvée — et l'API la gardait ouverte après l'arrivée des
+     demandes, si bien qu'un refus se contournait en un appel (relecture du gardien, B1, 5 octobre 2026 : contact forcé, nom de famille lu, notification « est maintenant dans
+     vos contacts »). Trouvée par numéro OU par identifiant, une personne ne devient un contact que par une DEMANDE qu'elle accepte (§ 6). */
 
   /* ══ 6. L'IDENTIFIANT « Prénom#1234 » ET LES DEMANDES DE CONTACT (Justin, 5 octobre 2026) ═════════
      Retrouver quelqu'un par son identifiant EXACT obéit aux MÊMES règles que le numéro, et partage SES plafonds : le compteur durable du jour (`recherche_tel`), la rafale de
@@ -438,11 +419,14 @@ function creerTelephone(ctx) {
     const t = p ? stockage.telTrouvableLire(id) : null;
     if (!p || p.etat !== 'actif' || t !== 'tous' || stockage.contactBloque(uid, id) || stockage.suppressionLe(id) !== null) { rendre([q.cle]); return refus(res, 404, 'introuvable'); }
     trouves.delete(uid + '|' + id);
-    const r = stockage.demandeCreer(uid, id);
-    if (r === 'envoyee') prevenir(id, 'contact_demande', 'Demande de contact', nomDe(req.moi) + ' veut vous ajouter à ses contacts.', uid);
-    else if (r === 'acceptee') prevenir(id, 'contact_ajoute', 'Nouveau contact', nomDe(req.moi) + ' est maintenant dans vos contacts.', uid);
-    else rendre([q.cle]);   // rien de neuf (déjà contact, déjà demandé) : le plafond ne se consomme pas
-    res.json({ ok: true, resultat: r });
+    let r;
+    try { r = stockage.demandeCreer(uid, id); } catch (e) { if (e && e.code === 'demandes_plafond') { rendre([q.cle]); return trop(res, 'demandes_plafond', 3600); } throw e; }
+    /* une notification pour une demande NEUVE seulement : retirée puis redemandée, la même demande ne relance personne (relecture du gardien, A2) */
+    if (r.neuve && r.resultat === 'envoyee') prevenir(id, 'contact_demande', 'Demande de contact', nomDe(req.moi) + ' veut vous ajouter à ses contacts.', uid);
+    else if (r.neuve && r.resultat === 'acceptee') prevenir(id, 'contact_ajoute', 'Nouveau contact', nomDe(req.moi) + ' est maintenant dans vos contacts.', uid);
+    /* le plafond se consomme sur ce que l'AUTEUR voit (« envoyee », « acceptee »), jamais sur ce que l'autre a répondu : refusée ou non, la même chose */
+    if (r.resultat === 'deja' || r.resultat === 'deja_envoyee') rendre([q.cle]);
+    res.json({ ok: true, resultat: r.resultat });
   };
 
   H_['contacts.demandes'] = (req, res) => {

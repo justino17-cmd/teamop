@@ -7,7 +7,8 @@
    compte). Donc 30 recherches par jour et par compte — 10 pour un compte de moins de 24 h —, 5 par minute, un plafond DURABLE (en
    base : un redémarrage ne le remet pas à zéro), compté AVANT de savoir si le numéro existe, et LA MÊME LATENCE que le numéro existe ou
    non (une réponse plus rapide pour « personne » dirait quels numéros ont un compte, plafond ou pas).
-   ⛔ `ajouter` ne vaut que pour une personne qu'on VIENT de trouver (10 minutes) — et se revérifie au moment de l'ajout : elle a pu se
+   ⛔ (5 octobre 2026) il n'y a plus d'« ajouter » : trouvée, une personne reçoit une DEMANDE qu'elle accepte (test-996 garde les demandes). Ce banc garde
+   ce qui n'a pas changé : `demander` ne vaut que pour une personne qu'on VIENT de trouver (10 minutes) — et se revérifie au moment de la demande : elle a pu se
    rendre introuvable, ou nous bloquer, depuis. Un identifiant deviné ou ramassé ailleurs n'ouvre pas un contact.
    ⛔ Un réglage « qui peut me trouver par mon numéro » : tous | personne. Ni le numéro ni le nom de famille ne sortent jamais d'ici. */
 const path = require('path');
@@ -47,9 +48,9 @@ const NEUTRE = JSON.stringify({ trouve: false });
       neutres.cache = (await cherche(A, nC)).txt;
       /* Bloqué : Bruno bloque Alice (il doit d'abord la connaître). */
       const D = await TEL.inscrire(svc, TEL.numeroBE(), 'Dora'), nD = D.numero;
-      const trouveD = await cherche(B, nD); await B.post('/api/contacts/ajouter', { id: trouveD.j.id });
+      const trouveD = await cherche(B, nD); await B.post('/api/contacts/demander', { id: trouveD.j.id }); await D.post('/api/contacts/demandes/repondre', { id: B.moi.id, accepter: true });
       const bloc = await B.post('/api/contacts/bloquer', { uid: D.moi.id });
-      v('(Bruno ajoute puis bloque Dora)', [trouveD.j.trouve, bloc.code], [true, 200]);
+      v('(Bruno demande Dora, elle accepte, puis il la bloque)', [trouveD.j.trouve, bloc.code], [true, 200]);
       neutres.bloque = (await cherche(D, nB)).txt;
       vrai('la population : quatre cas différents ont été joués (' + Object.keys(neutres).join(', ') + ')', Object.keys(neutres).length === 4);
       v('⛔ numéro sans compte, MOI-MÊME, personne qui se cache, personne qui m\'a bloqué : EXACTEMENT la même réponse, octet pour octet', Object.values(neutres).every(t => t === NEUTRE), true);
@@ -57,29 +58,31 @@ const NEUTRE = JSON.stringify({ trouve: false });
       v('un numéro mal formé → 400 (il ne compte pas comme une recherche)', [(await cherche(A, 'bonjour')).code, (await cherche(A, '+33')).code, (await cherche(A, undefined)).code], [400, 400, 400]);
       v('sans session → 401', (await T.client(svc.base).post('/api/contacts/chercher', { numero: nB })).code, 401);
 
-      console.log('\n── 917 · ajouter : seulement une personne qu\'on VIENT de trouver, revérifiée au moment de l\'ajout ──');
-      const sansRecherche = await A.post('/api/contacts/ajouter', { id: C.moi.id });
-      v('⛔ ajouter un identifiant JAMAIS cherché → 404 (un identifiant deviné ou ramassé ailleurs n\'ouvre pas un contact)', [sansRecherche.code, sansRecherche.j.error], [404, 'introuvable']);
-      v('un identifiant mal formé, ou le sien → 400', [(await A.post('/api/contacts/ajouter', { id: 'n-importe-quoi' })).code, (await A.post('/api/contacts/ajouter', { id: A.moi.id })).code], [400, 400]);
-      const ajout = await A.post('/api/contacts/ajouter', { id: B.moi.id });
-      v('Alice ajoute Bruno (qu\'elle vient de trouver) → 200, le contact avec son prénom', [ajout.code, ajout.j.ok, ajout.j.deja, ajout.j.contact.prenom], [200, true, false, 'Bruno']);
+      console.log('\n── 917 · demander : seulement une personne qu\'on VIENT de trouver, revérifiée au moment de la demande ──');
+      v('⛔ l\'ancienne route « ajouter » (un contact sans accord) n\'existe plus', (await A.post('/api/contacts/ajouter', { id: B.moi.id })).code, 404);
+      const sansRecherche = await A.post('/api/contacts/demander', { id: C.moi.id });
+      v('⛔ demander un identifiant JAMAIS cherché → 404 (un identifiant deviné ou ramassé ailleurs n\'envoie rien)', [sansRecherche.code, sansRecherche.j.error], [404, 'introuvable']);
+      v('un identifiant mal formé, ou le sien → 400', [(await A.post('/api/contacts/demander', { id: 'n-importe-quoi' })).code, (await A.post('/api/contacts/demander', { id: A.moi.id })).code], [400, 400]);
+      const ajout = await A.post('/api/contacts/demander', { id: B.moi.id });
+      v('Alice demande Bruno (qu\'elle vient de trouver) → 200, « envoyee »', [ajout.code, ajout.j.ok, ajout.j.resultat], [200, true, 'envoyee']);
       vrai('   la réponse ne porte aucun numéro', !ajout.txt.includes(nB.slice(3)));
       const notif = (await B.get('/api/notifications')).j.notifications;
-      vrai('⛔ Bruno est PRÉVENU (« Nouveau contact »), sans le numéro d\'Alice : ' + notif.length + ' notification(s)', notif.some(x => x.type === 'contact_ajoute' && x.titre === 'Nouveau contact' && !JSON.stringify(x).includes(nA.slice(3))));
-      v('⛔ l\'ajout consomme la recherche : le même identifiant ajouté de nouveau sans nouvelle recherche → 404', (await A.post('/api/contacts/ajouter', { id: B.moi.id })).code, 404);
+      vrai('⛔ Bruno est PRÉVENU (« Demande de contact »), sans le numéro d\'Alice : ' + notif.length + ' notification(s)', notif.some(x => x.type === 'contact_demande' && x.titre === 'Demande de contact' && !JSON.stringify(x).includes(nA.slice(3))));
+      v('⛔ la demande consomme la recherche : la même demande de nouveau sans nouvelle recherche → 404', (await A.post('/api/contacts/demander', { id: B.moi.id })).code, 404);
+      v('(Bruno accepte)', (await B.post('/api/contacts/demandes/repondre', { id: A.moi.id, accepter: true })).j.resultat, 'acceptee');
       const dejaVu = await cherche(A, nB);
       v('une recherche suivante dit « déjà contact », sans proposer l\'ajout', [dejaVu.j.deja_contact, dejaVu.j.ajout_possible], [true, false]);
       /* Il se rend introuvable ENTRE la recherche et l'ajout. */
       await cherche(A, nC);
       await C.post('/api/moi/confidentialite', { trouvable: 'personne' });
-      v('⛔ trouvée, puis devenue introuvable avant l\'ajout : 404 (l\'ajout RELIT le réglage)', (await A.post('/api/contacts/ajouter', { id: C.moi.id })).code, 404);
+      v('⛔ trouvée, puis devenue introuvable avant la demande : 404 (la demande RELIT le réglage)', (await A.post('/api/contacts/demander', { id: C.moi.id })).code, 404);
       /* Il bloque ENTRE la recherche et l'ajout. */
       const E = await TEL.inscrire(svc, TEL.numeroBE(), 'Elsa');
       await cherche(A, E.numero);
       const blocE = await E.post('/api/contacts/bloquer', { uid: A.moi.id });
       void blocE;
-      const ajE = await A.post('/api/contacts/ajouter', { id: E.moi.id });
-      v('⛔ trouvée, puis qui BLOQUE avant l\'ajout (elle doit connaître Alice pour la bloquer : sinon le blocage est refusé et l\'ajout passe, ce qui est juste) — l\'ajout ne passe jamais contre un blocage', blocE.code === 200 ? ajE.code : 404, 404);
+      const ajE = await A.post('/api/contacts/demander', { id: E.moi.id });
+      v('⛔ trouvée, puis qui BLOQUE avant la demande (elle doit connaître Alice pour la bloquer : sinon le blocage est refusé et la demande part, ce qui est juste) — une demande ne passe jamais contre un blocage', blocE.code === 200 ? ajE.code : 404, 404);
       /* Le réglage se relit. */
       v('un réglage qui n\'est ni « tous » ni « personne » → 400', (await C.post('/api/moi/confidentialite', { trouvable: 'mes-amis' })).code, 400);
       v('sans session → 401', [(await T.client(svc.base).get('/api/moi/confidentialite')).code, (await T.client(svc.base).post('/api/moi/confidentialite', { trouvable: 'tous' })).code], [401, 401]);
@@ -158,8 +161,8 @@ const NEUTRE = JSON.stringify({ trouve: false });
       const A = await TEL.inscrire(svc, TEL.numeroBE(), 'A'), cibles = [];
       for (let i = 0; i < 3; i++) cibles.push(await TEL.inscrire(svc, TEL.numeroBE(), 'Cible' + i));
       const codes = [];
-      for (const c of cibles.slice(0, 2)) { await cherche(A, c.numero); codes.push((await A.post('/api/contacts/ajouter', { id: c.moi.id })).code); }
-      v('⛔ un compte neuf a le TIERS du plafond d\'ajouts (3 par jour → 1) : le premier passe, le second → 429 « ajouts_plafond »', codes, [200, 429]);
+      for (const c of cibles.slice(0, 2)) { await cherche(A, c.numero); codes.push((await A.post('/api/contacts/demander', { id: c.moi.id })).code); }
+      v('⛔ un compte neuf a le TIERS du plafond de demandes (3 par jour → 1) : la première passe, la seconde → 429 « ajouts_plafond »', codes, [200, 429]);
     } finally { await svc.arreter(); }
   }
   fin();

@@ -3447,7 +3447,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const R = demandesEtat.recues || [], E = demandesEtat.envoyees || [];
     const ligne = (d, actions, sous) => '<div class="contact avec-actions">' + avatar(d) + '<span class="contact-texte"><span class="contact-nom">' + esc(d.nom) + '</span><span class="contact-role">' + esc(sous) + '</span></span><span class="contact-actions">' + actions + '</span></div>';
     c.innerHTML = (R.length ? '<div class="rubrique"><span>Demandes reçues</span><span>' + R.length + '</span></div><div class="carte">' + R.map(d => ligne(d,
-        '<button type="button" class="mini" data-act="demande-accepter" data-uid="' + esc(d.id) + '">Accepter</button><button type="button" class="mini danger" data-act="demande-refuser" data-uid="' + esc(d.id) + '">Refuser</button>',
+        '<button type="button" class="mini" data-act="demande-accepter" data-uid="' + esc(d.id) + '">Accepter</button><button type="button" class="mini" data-act="demande-refuser" data-uid="' + esc(d.id) + '">Refuser</button>' +
+        (typeof source.bloquer === 'function' ? '<button type="button" class="mini danger" data-act="demande-bloquer" data-uid="' + esc(d.id) + '">Bloquer</button>' : ''),
         (d.identifiant || '') + ' · veut t\'ajouter')).join('') + '</div>' : '') +
       (E.length ? '<div class="rubrique"><span>Demandes envoyées</span><span>' + E.length + '</span></div><div class="carte">' + E.map(d => ligne(d,
         '<button type="button" class="mini" data-act="demande-retirer" data-uid="' + esc(d.id) + '">Retirer</button>', (d.identifiant || '') + ' · en attente')).join('') + '</div>' : '');
@@ -3595,6 +3596,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       }
       else if (act === 'demande-accepter') { b.disabled = true; await source.repondreDemande(b.dataset.uid, true); mot('Contact ajouté'); const c = await source.ouvrirDirecte(b.dataset.uid); ouvrirConvId(c); }
       else if (act === 'demande-refuser') { b.disabled = true; await source.repondreDemande(b.dataset.uid, false); mot('Demande refusée'); await chargerDemandes(); }
+      else if (act === 'demande-bloquer') { b.disabled = true; await source.bloquer(b.dataset.uid); mot('Bloqué : cette personne ne peut plus te trouver ni t\'écrire'); await chargerDemandes(); }
       else if (act === 'demande-retirer') { b.disabled = true; await source.annulerDemande(b.dataset.uid); mot('Demande retirée'); await chargerDemandes(); }
       else if (act === 'lien-lire') await lireLienSaisi();
       else if (act === 'lien-accepter') { const r = await source.accepterLien(b.dataset.code); mot(r.deja ? 'Déjà dans tes contacts' : r.genre === 'groupe' ? 'Tu as rejoint le groupe' : 'Contact ajouté'); ouvrirConvId(r.conv); }

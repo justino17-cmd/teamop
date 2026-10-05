@@ -135,3 +135,5 @@ tests/test-994.js
 tests/test-920.js
 # ── Le « + » (5 octobre 2026) : « Nouvelle discussion » — la VRAIE fonction de la page contre le VRAI service (995) ──
 tests/test-995.js
+# ── L'identifiant « Prénom#1234 » et les demandes de contact (5 octobre 2026) : le vrai service (996) ; la vraie page à deux personnes est la sonde tests/sonde-opmessages-identifiant.js ──
+tests/test-996.js

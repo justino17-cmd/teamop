@@ -89,7 +89,6 @@ const MATRICE = {
   'moi.confidentialite': { ok: () => ['POST', '/api/moi/confidentialite', { trouvable: 'tous' }], codes: [200] },
   'moi.appareils.deconnecter': { ok: () => ['POST', '/api/moi/appareils/deconnecter', {}], codes: [200] },
   'contacts.chercher':  { ok: () => ['POST', '/api/contacts/chercher', { numero: '+32470999888' }], codes: [200] },
-  'contacts.ajouter':   { ok: (F) => ['POST', '/api/contacts/ajouter', { id: F.A }], codes: [400, 404] },   // sans recherche préalable, ou son propre identifiant : la garde V a passé, le geste dit non
   /* l'identifiant « Prénom#1234 » et les demandes de contact : un identifiant qui n'existe pas rend la réponse neutre ; demander sans avoir trouvé, répondre ou retirer une demande qui n'existe pas : la garde a passé, le geste dit non */
   'contacts.identifiant': { ok: () => ['POST', '/api/contacts/identifiant', { identifiant: 'Personne#1000' }], codes: [200] },
   'contacts.demander':  { ok: (F) => ['POST', '/api/contacts/demander', { id: F.A }], codes: [400, 404] },

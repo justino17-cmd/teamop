@@ -34,7 +34,8 @@ function moduleSeul() {
   v('« Hélène#4821 », « helene #4821 », « HÉLÈNE#4821 » : la même personne', ['Hélène#4821', 'helene #4821', 'HÉLÈNE#4821', '  Hélène # 4821 '].map(t => JSON.stringify(identLire(t))), Array(4).fill(JSON.stringify({ base: 'helene', num: 4821 })));
   v('⛔ un NOM seul, trois chiffres, six chiffres, 0999, 09999, un texte trop long : refusés (null)', ['Hélène', 'Hélène#482', 'Hélène#482111', 'Hélène#0999', 'Hélène#09999', 'x'.repeat(90) + '#4821', '#', null, 4821].map(identLire), Array(9).fill(null));
   v('cinq chiffres (un prénom dont les quatre sont tous pris) : lus', JSON.stringify(identLire('Thomas#48213')), JSON.stringify({ base: 'thomas', num: 48213 }));
-  v('un prénom sans lettre latine se range sous « op » : « Ахмед#4821 » se retrouve', JSON.stringify(identLire('Ахмед#4821')), JSON.stringify({ base: 'op', num: 4821 }));
+  v('⛔ chaque écriture GARDE ses lettres : « Ахмед », « 李明 », « محمد » ont chacun leur base (relecture du gardien, A4 : tous rangés sous « op », « #3321 » seul les retrouvait)',
+    ['Ахмед#4821', 'АХМЕД#4821', '李明#4821', 'محمد#4821', '#4821', '!!!#4821'].map(t => identLire(t).base), ['ахмед', 'ахмед', '李明', 'محمد', 'op', 'op']);
   v('⛔ seul le PREMIER MOT du prénom compte : « Alice Martin#4821 » est « alice#4821 » (un compte bêta range son nom complet dans le prénom)', JSON.stringify(identLire('Alice Martin#4821')), JSON.stringify({ base: 'alice', num: 4821 }));
 
   console.log('\n── 996 · une base d\'AVANT la migration 11 : chacun reçoit son identifiant au démarrage ──');
@@ -54,7 +55,7 @@ function moduleSeul() {
 
     console.log('\n── 996 · l\'effacement emporte les demandes et libère l\'identifiant ──');
     const [a, b] = anc;
-    v('(population : a → b en attente, b → c en attente)', [v11.demandeCreer(a.id, b.id), v11.demandeCreer(b.id, anc[2].id), v11.demandesRecues(b.id).length], ['envoyee', 'envoyee', 1]);
+    v('(population : a → b en attente, b → c en attente)', [v11.demandeCreer(a.id, b.id).resultat, v11.demandeCreer(b.id, anc[2].id).resultat, v11.demandesRecues(b.id).length], ['envoyee', 'envoyee', 1]);
     v11.suppressionProgrammer(b.id, h.t - 1);
     const e = v11.compteEffacer(b.id, { rejeu: true });
     const d = require('node:sqlite'), brut = new d.DatabaseSync(chemin, { readOnly: true });
@@ -78,6 +79,20 @@ function moduleSeul() {
     v('⛔ la nouvelle « Ana » reçoit le SEUL numéro libre', S2.personneCreer({ identifiant: 'beta:ana-neuve', prenom: 'Ana', nom: 'N', origine: 'beta', verifie: true }).identifiant, 'Ana#7321');
     const cinq = S2.personneCreer({ identifiant: 'beta:ana-de-trop', prenom: 'Ana', nom: 'T', origine: 'beta', verifie: true }).identifiant;
     vrai('⛔ plus aucun à quatre chiffres : la suivante reçoit un identifiant à CINQ chiffres (' + cinq + '), et il se retrouve', /^Ana#\d{5}$/.test(cinq || '') && (() => { const l = identLire(cinq); return S2.personneParIdent(l.base, l.num) !== null; })());
+
+    console.log('\n── 996 · ⛔ au plus 50 demandes « en attente » par personne ; un compte qui s\'efface ne s\'accepte plus ──');
+    const moi = S2.personneCreer({ identifiant: 'beta:insistant', prenom: 'Igor', nom: 'I', origine: 'beta', verifie: true });
+    const cibles = []; for (let i = 0; i < 51; i++) cibles.push(S2.personneCreer({ identifiant: 'beta:cible' + i, prenom: 'Cible', nom: String(i), origine: 'beta', verifie: true }));
+    const res = cibles.slice(0, 50).map(c => S2.demandeCreer(moi.id, c.id).resultat);
+    let refus51 = null; try { S2.demandeCreer(moi.id, cibles[50].id); } catch (e) { refus51 = e.code; }
+    v('50 demandes passent, la 51ᵉ est refusée (demandes_plafond)', [res.filter(r => r === 'envoyee').length, refus51], [50, 'demandes_plafond']);
+    S2.demandeAnnuler(moi.id, cibles[0].id);
+    v('   en retirer une libère une place', S2.demandeCreer(moi.id, cibles[50].id).resultat, 'envoyee');
+    v('   et redemander celle retirée, alors que c\'est plein, est refusé aussi (sinon la place se reprendrait sans limite)', (() => { try { S2.demandeCreer(moi.id, cibles[0].id); return 'passe'; } catch (e) { return e.code; } })(), 'demandes_plafond');
+    const fuyant = S2.personneCreer({ identifiant: 'beta:fuyant', prenom: 'Fuyant', nom: 'F', origine: 'beta', verifie: true });
+    S2.demandeCreer(fuyant.id, moi.id);
+    S2.suppressionProgrammer(fuyant.id, 1790000000000 + 14 * 86400000);
+    v('⛔ la demande d\'un compte qui s\'efface : invisible ET impossible à accepter (relecture du gardien, N4)', [S2.demandesRecues(moi.id).some(d => d.id === fuyant.id), (() => { try { S2.demandeRepondre(moi.id, fuyant.id, true); return 'acceptee'; } catch (e) { return e.code; } })()], [false, 'introuvable']);
     S2.fermer();
   } finally { fs.rmSync(bac, { recursive: true, force: true }); }
 }
@@ -191,7 +206,7 @@ async function service() {
     v('   ils ne sont pas en contact', await mutuel(U, S.moi.id), false);
     v('Ugo retire sa demande refusée : elle quitte SA liste…', [(await U.post('/api/contacts/demandes/annuler', { id: S.moi.id })).code, (await demandes(U)).envoyees.length], [200, 0]);
     await parIdent(U, iS);
-    v('   …mais redemander ne relance toujours pas Sarah (la trace reste : pas de demande en boucle)', [(await U.post('/api/contacts/demander', { id: S.moi.id })).j.resultat, (await notifs(S)).length - nS1], ['deja_envoyee', 0]);
+    v('   …redemander dit « envoyee » (comme pour une demande jamais refusée), mais ne relance PAS Sarah, qui ne la voit pas', [(await U.post('/api/contacts/demander', { id: S.moi.id })).j.resultat, (await notifs(S)).length - nS1, (await demandes(S)).recues.length], ['envoyee', 0, 0]);
 
     console.log('\n── 996 · deux demandes croisées valent un accord ; retirer une demande en attente ──');
     const X = await TEL.inscrire(svc, TEL.numeroBE(), 'Xavier'), Y = await TEL.inscrire(svc, TEL.numeroBE(), 'Yasmine'); svc.avancer(25 * HEURE);
@@ -205,6 +220,50 @@ async function service() {
     v('Wanda retire sa demande EN ATTENTE : Xavier ne la voit plus', [(await W.post('/api/contacts/demandes/annuler', { id: X.moi.id })).code, (await demandes(X)).recues.length, (await demandes(W)).envoyees.length], [200, 0, 0]);
     v('   retirer ce qui n\'existe pas : 404', (await W.post('/api/contacts/demandes/annuler', { id: X.moi.id })).code, 404);
     v('⛔ trouvé par NUMÉRO, on peut aussi demander (sans ajout direct)', await (async () => { await W.post('/api/contacts/chercher', { numero: Y.numero }); svc.avancer(61000); return (await W.post('/api/contacts/demander', { id: Y.moi.id })).j.resultat; })(), 'envoyee');
+
+    console.log('\n── 996 · ⛔ la relecture du gardien (5 octobre 2026), rejouée ──');
+    {
+      const G1 = await TEL.inscrire(svc, TEL.numeroBE(), 'Gaspard', { nom: 'Secret' }), G2 = await TEL.inscrire(svc, TEL.numeroBE(), 'Gina', { nom: 'Secret' }), G3 = await TEL.inscrire(svc, TEL.numeroBE(), 'Gilles', { nom: 'Secret' });
+      const Z = await TEL.inscrire(svc, TEL.numeroBE(), 'Zora'); svc.avancer(25 * HEURE);
+      const i1 = (await moi(G1)).identifiant, i2 = (await moi(G2)).identifiant, i3 = (await moi(G3)).identifiant;
+      /* B1 : l'ancienne porte « ajouter » contournait l'accord ET le refus */
+      await parIdent(Z, i1); await Z.post('/api/contacts/demander', { id: G1.moi.id });
+      await G1.post('/api/contacts/demandes/repondre', { id: Z.moi.id, accepter: false });
+      await parIdent(Z, i1);
+      const force = await Z.post('/api/contacts/ajouter', { id: G1.moi.id });
+      v('⛔ B1 — après un REFUS, « ajouter » n\'existe plus (404) : aucun contact, la fiche reste fermée, le nom de famille ne sort pas', [force.code, await mutuel(Z, G1.moi.id), (await Z.get('/api/personnes/' + G1.moi.id)).code, force.txt.includes('Secret')], [404, false, 404, false]);
+      /* A1 : la même suite de gestes sur une demande EN ATTENTE et sur une demande REFUSÉE donne la même chose */
+      await parIdent(Z, i2); const d2 = (await Z.post('/api/contacts/demander', { id: G2.moi.id })).j.resultat;
+      await parIdent(Z, i3); const d3 = (await Z.post('/api/contacts/demander', { id: G3.moi.id })).j.resultat;
+      await G3.post('/api/contacts/demandes/repondre', { id: Z.moi.id, accepter: false });
+      const suite = async (G, i) => { const a = (await Z.post('/api/contacts/demandes/annuler', { id: G.moi.id })).code; await parIdent(Z, i); const r = await Z.post('/api/contacts/demander', { id: G.moi.id }); return [a, r.code, r.txt]; };
+      const enAttente = await suite(G2, i2), refusee = await suite(G3, i3);
+      v('⛔ A1 — retirer puis redemander : la même réponse, octet pour octet, que l\'autre ait refusé ou non (' + JSON.stringify(enAttente) + ')', [d2, d3, refusee], ['envoyee', 'envoyee', enAttente]);
+      v('   et Zora voit les deux « en attente »', (await demandes(Z)).envoyees.map(d => d.id).filter(id => [G2.moi.id, G3.moi.id].includes(id)).length, 2);
+      /* A2 : demander / retirer en boucle ne relance pas la cible */
+      svc.avancer(25 * HEURE);   // un jour de plus : la boucle ci-dessous ne doit pas buter sur le plafond de recherches réglé bas pour ce banc (8) — ce serait mesurer le plafond, pas la boucle
+      const nG2 = (await notifs(G2)).length;
+      for (let k = 0; k < 4; k++) { await Z.post('/api/contacts/demandes/annuler', { id: G2.moi.id }); await parIdent(Z, i2); await Z.post('/api/contacts/demander', { id: G2.moi.id }); }
+      v('⛔ A2 — quatre « retirer puis redemander » : AUCUNE notification de plus pour Gina, et une seule demande dans sa liste', [(await notifs(G2)).length - nG2, (await demandes(G2)).recues.filter(d => d.id === Z.moi.id).length], [0, 1]);
+      v('   retirée, la demande disparaît AUSSI chez Gina', [(await Z.post('/api/contacts/demandes/annuler', { id: G2.moi.id })).code, (await demandes(G2)).recues.filter(d => d.id === Z.moi.id).length], [200, 0]);
+      /* A3 : bloquer quelqu'un qui m'a seulement fait une demande */
+      const V = await TEL.inscrire(svc, TEL.numeroBE(), 'Vic'); svc.avancer(25 * HEURE);
+      const iV = (await moi(V)).identifiant;
+      await parIdent(Z, iV); await Z.post('/api/contacts/demander', { id: V.moi.id });
+      const blq = await V.post('/api/contacts/bloquer', { uid: Z.moi.id });
+      v('⛔ A3 — Vic bloque Zora, qui ne lui a fait qu\'une demande : 200 ; la demande quitte sa liste ; Zora ne le retrouve plus (réponse neutre) mais voit toujours « en attente »',
+        [blq.code, (await demandes(V)).recues.length, (await parIdent(Z, iV)).txt, (await demandes(Z)).envoyees.some(d => d.id === V.moi.id)], [200, 0, NEUTRE, true]);
+      v('   et un inconnu sans demande ne se bloque toujours pas (404)', (await V.post('/api/contacts/bloquer', { uid: G1.moi.id })).code, 404);
+      /* A4 : un prénom non latin n'est pas un numéro balayable */
+      const AK = await TEL.inscrire(svc, TEL.numeroBE(), 'Ахмед'); svc.avancer(25 * HEURE);   // (et un jour de plus : cinq recherches de Zora ci-dessous)
+      const iAK = (await moi(AK)).identifiant, nAK = iAK.split('#')[1];
+      v('⛔ A4 — « Ахмед » : « Ахмед#' + nAK + ' » et « ахмед#' + nAK + ' » le trouvent ; « #' + nAK + ' », « x#' + nAK + ' », « 李明#' + nAK + ' » ne trouvent personne',
+        [(await parIdent(Z, iAK)).j.id, (await parIdent(Z, 'ахмед#' + nAK)).j.id, (await parIdent(Z, '#' + nAK)).txt, (await parIdent(Z, 'x#' + nAK)).txt, (await parIdent(Z, '李明#' + nAK)).txt], [AK.moi.id, AK.moi.id, NEUTRE, NEUTRE, NEUTRE]);
+      /* A5 : ce qu'on sait d'une demande envoyée est FIGÉ */
+      await G3.post('/api/moi/maj', { prenom: 'Zacharie' }); await G3.post('/api/moi/confidentialite', { trouvable: 'personne' });
+      const vue3 = (await demandes(Z)).envoyees.find(d => d.id === G3.moi.id);
+      v('⛔ A5 — Gilles a refusé, s\'est caché et s\'appelle maintenant « Zacharie » : Zora voit toujours ce qu\'elle savait en demandant', [vue3 && vue3.prenom, vue3 && vue3.identifiant], ['Gilles', i3]);
+    }
 
     console.log('\n── 996 · l\'identifiant suit le prénom ──');
     const numA = iA.split('#')[1];

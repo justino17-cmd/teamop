@@ -44,6 +44,7 @@ const JOURNAL_JOURS = 7, JOURNAL_LIGNES = 10000;
 const TAILLE_PORTEE = 2048;   // un texte de 2 Ko ou moins est porté dans l'événement
 const GENRES_SEQ = ['msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction'];
 const PUSH_MAX = 10;   // dix appareils au plus par personne : le plus ancien part au onzième
+const DEMANDES_MAX = 50;   // demandes de contact qu'une personne voit « en attente » à la fois (relecture du gardien, A2)
 
 /* ══ LES MIGRATIONS ════════════════════════════════════════════════════════════════════════ */
 const MIGRATIONS = [
@@ -492,7 +493,9 @@ const MIGRATIONS = [
          `ident_base` est le prénom NORMALISÉ (minuscules, sans accent, [a-z0-9] seulement, « op » s'il ne reste rien) et `ident_num` quatre chiffres : le couple est UNIQUE. On ne
          retrouve quelqu'un que par l'identifiant EXACT — jamais par un nom seul : ce n'est pas un annuaire (SERVEUR.md § 2.5).
          `demande_contact` : (de → vers). `attente` tant que `vers` n'a pas répondu ; `refusee` reste en base pour que l'auteur ne puisse pas redemander en boucle (il voit
-         toujours « en attente » : un refus ne se DIT pas) ; `masque` : l'auteur l'a retirée de sa liste. Une demande ACCEPTÉE n'existe plus : elle est devenue un contact. ── */
+         toujours « en attente » : un refus ne se DIT pas) ; `masque` : l'auteur l'a retirée (elle disparaît alors AUSSI chez le destinataire, mais la ligne reste : redemander
+         ne relance personne). `vers_prenom`, `vers_ident` : ce que l'auteur savait au moment de demander (le prénom, l'identifiant) — FIGÉS : qui refuse, se cache ou change de
+         prénom n'est pas suivi par celui qui l'a demandé (relecture du gardien, A5). Une demande ACCEPTÉE n'existe plus : elle est devenue un contact. ── */
   { v: 11, sql: [
     `ALTER TABLE personne ADD COLUMN ident_base TEXT`,
     `ALTER TABLE personne ADD COLUMN ident_num INTEGER`,
@@ -502,6 +505,7 @@ const MIGRATIONS = [
        vers TEXT NOT NULL REFERENCES personne(id) ON DELETE CASCADE,
        etat TEXT NOT NULL DEFAULT 'attente' CHECK (etat IN ('attente', 'refusee')),
        masque INTEGER NOT NULL DEFAULT 0,
+       vers_prenom TEXT NOT NULL DEFAULT '', vers_ident TEXT,
        ts INTEGER NOT NULL,
        PRIMARY KEY(de, vers))`,
     `CREATE INDEX IF NOT EXISTS demande_contact_vers ON demande_contact(vers, etat)`,
@@ -514,11 +518,13 @@ const erreur = (code) => Object.assign(new Error(code), { code });
    le prénom (« Alice Martin »), et l'identifiant ne doit pas porter un nom de famille (la sonde l'a vu : « AliceMartin#6439 »). « Marie Claire » → « Marie », « Jean-Pierre » reste
    entier. Taper « Alice Martin#6439 » retrouve aussi « Alice#6439 » : c'est le même premier mot. */
 const premierMot = (p) => String(p || '').trim().split(/\s+/)[0] || '';
+/* ⛔ TOUTES LES ÉCRITURES gardent leurs lettres : « Ахмед », « 李明 », « محمد » ont chacun leur base. Ne garder que [a-z0-9] les rangeait TOUS sous « op », et « #3321 » seul
+   retrouvait n'importe lequel d'entre eux : une seule base à balayer pour toute une population (relecture du gardien, A4). Les accents tombent (« é » → « e »), la casse aussi. */
 function identBase(prenom) {
-  const b = premierMot(prenom).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 24);
+  const b = Array.from(premierMot(prenom).normalize('NFD').replace(/\p{M}/gu, '').normalize('NFC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')).slice(0, 24).join('');
   return b || 'op';
 }
-const identAfficher = (prenom, n) => (premierMot(prenom).replace(/#+/g, '').slice(0, 24) || 'OP') + '#' + n;
+const identAfficher = (prenom, n) => (Array.from(premierMot(prenom).replace(/#+/g, '')).slice(0, 24).join('') || 'OP') + '#' + n;
 /* « Hélène#4821 », « helene #4821 », « HÉLÈNE#4821 » → { base: 'helene', num: 4821 } ; tout le reste → null (un nom seul n'est pas un identifiant).
    Quatre chiffres (1000 à 9999) ; CINQ (10000 à 99999) pour un prénom dont les 9 000 numéros à quatre chiffres sont pris — un prénom courant ne bloque pas une inscription. */
 function identLire(texte) {
@@ -642,7 +648,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       Q('INSERT INTO personne(id, email_h, email_ch, verifie_le, prenom, nom, origine, cree) VALUES(?, ?, ?, ?, ?, ?, ?, ?)')
         .run(id, scelleur.hmac('personne', 'email_h', identifiant), sceller('personne', 'email_ch', id + '|email', identifiant),
           verifie ? t : null, debut(prenom, 60), debut(nom, 60), origine, t);
-      identAttribuer(id);
+      try { identAttribuer(id); } catch (e) { if (!e || e.code !== 'identifiant_plein') throw e; }   // un prénom saturé n'empêche pas de s'inscrire : sans identifiant, on reste joignable par numéro et par lien
       return personneParId(id);
     });
   }
@@ -667,7 +673,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     tx(() => {
       Q('UPDATE personne SET prenom = ?, nom = ?, statut = ?, langue = ?, tz = ?, prefs = ? WHERE id = ?')
         .run(n.prenom, n.nom, n.statut, n.langue, n.tz, n.prefs, id);
-      if (n.prenom !== cur.prenom) identAttribuer(id);   // l'identifiant SUIT le prénom : « Camille#4821 » renommée « Cam » devient « Cam#4821 » (ou un autre numéro s'il est pris)
+      if (n.prenom !== cur.prenom) { try { identAttribuer(id); } catch (e) { if (!e || e.code !== 'identifiant_plein') throw e; } }   // l'identifiant SUIT le prénom : « Camille#4821 » renommée « Cam » devient « Cam#4821 » (ou un autre numéro s'il est pris)
     });
     return personneParId(id);
   }
@@ -676,7 +682,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
      Le prénom normalisé + quatre chiffres tirés au hasard (1000 à 9999 ; cinq quand les quatre sont tous pris pour ce prénom). On le montre avec le prénom tel qu'il est écrit (« Hélène#4821 ») et on le RETROUVE sous
      toutes ses écritures (« helene#4821 », « Hélène #4821 ») : c'est la même normalisation des deux côtés. Un prénom sans lettre latine (« Ахмед ») se range sous « op » :
      son identifiant s'affiche « Ахмед#4821 » et se retrouve tel quel. Un numéro déjà pris pour ce prénom en donne un autre ; un compte qui change de prénom GARDE son numéro
-     s'il est libre sous le nouveau prénom. */
+     s'il est libre sous le nouveau prénom. Un prénom sans lettre ni chiffre se range sous « op ». */
   function identAttribuer(id) {
     if (!IDENT) return null;
     return tx(() => {
@@ -702,49 +708,63 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return r ? { id: r.id, prenom: r.prenom, etat: r.etat, trouvable: r.trouvable, suppression_le: r.suppression_le === null ? null : num(r.suppression_le) } : null;
   }
   function identDe(id) { if (!IDENT) return null; const r = Q('SELECT prenom, ident_num FROM personne WHERE id = ?').get(id); return r && r.ident_num != null ? identAfficher(r.prenom, num(r.ident_num)) : null; }
-  /* Les comptes d'avant la migration 11 reçoivent le leur au démarrage (rejouable : seuls ceux qui n'en ont pas). */
+  /* Les comptes d'avant la migration 11 reçoivent le leur au démarrage (rejouable : seuls ceux qui n'en ont pas). ⛔ Un prénom saturé (`identifiant_plein`) laisse CETTE
+     personne sans identifiant, il n'empêche pas le service de démarrer. */
   function identCompleter() {
     let n = 0;
-    for (const r of Q(`SELECT id FROM personne WHERE ident_num IS NULL AND etat = 'actif'`).all()) { if (identAttribuer(r.id) !== null) n++; }
+    for (const r of Q(`SELECT id FROM personne WHERE ident_num IS NULL AND etat = 'actif'`).all()) {
+      try { if (identAttribuer(r.id) !== null) n++; } catch (e) { if (!e || e.code !== 'identifiant_plein') throw e; }
+    }
     return n;
   }
 
   /* ══ LES DEMANDES DE CONTACT ═════════════════════════════════════════════════════════════
      Trouver quelqu'un par son identifiant ne crée PAS de contact : ça crée une demande, que la personne accepte ou refuse. Tant qu'elle n'a pas accepté, l'auteur ne voit ni
-     sa présence ni son statut (rien n'est partagé : `peutVoir` lit les contacts). Deux demandes croisées valent un accord des deux côtés. → 'deja' | 'envoyee' | 'deja_envoyee' | 'acceptee' */
+     sa présence ni son statut (rien n'est partagé : `peutVoir` lit les contacts). Deux demandes croisées valent un accord.
+     ⛔ CE QUE L'AUTEUR PEUT APPRENDRE NE DÉPEND JAMAIS DE LA RÉPONSE DE L'AUTRE (relecture du gardien, A1-A2) : une demande refusée et une demande en attente se comportent à
+     l'identique de son côté — retirer, redemander, plafond. Une ligne déjà là ne relance personne (`neuve: false`) : demander/retirer en boucle n'envoie qu'UNE notification.
+     → { resultat: 'deja' | 'envoyee' | 'deja_envoyee' | 'acceptee', neuve } ; `demandes_plafond` au-delà de DEMANDES_MAX demandes que l'auteur voit en attente. */
   function demandeCreer(de, vers) {
     return tx(() => {
-      if (contactActif(de, vers)) return 'deja';
-      const inverse = Q('SELECT etat FROM demande_contact WHERE de = ? AND vers = ?').get(vers, de);
-      if (inverse && inverse.etat === 'attente') {
+      if (contactActif(de, vers)) return { resultat: 'deja', neuve: false };
+      const inverse = Q('SELECT etat, masque FROM demande_contact WHERE de = ? AND vers = ?').get(vers, de);
+      if (inverse && inverse.masque === 0) {   // l'autre m'a demandé (et ne l'a pas retiré) : c'est un accord des deux côtés — même si je l'avais refusé, il le voit toujours « en attente »
         contactLier(de, vers);
         Q('DELETE FROM demande_contact WHERE (de = ? AND vers = ?) OR (de = ? AND vers = ?)').run(de, vers, vers, de);
-        return 'acceptee';
+        return { resultat: 'acceptee', neuve: true };
       }
-      const deja = Q('SELECT etat FROM demande_contact WHERE de = ? AND vers = ?').get(de, vers);
-      if (deja) { Q('UPDATE demande_contact SET masque = 0 WHERE de = ? AND vers = ?').run(de, vers); return 'deja_envoyee'; }   // refusée ou non : l'auteur la revoit « en attente », personne n'est relancé
-      Q('INSERT INTO demande_contact(de, vers, etat, masque, ts) VALUES(?, ?, ?, 0, ?)').run(de, vers, 'attente', horloge());
-      return 'envoyee';
+      const deja = Q('SELECT masque FROM demande_contact WHERE de = ? AND vers = ?').get(de, vers);
+      if (deja) {
+        if (deja.masque === 0) return { resultat: 'deja_envoyee', neuve: false };
+        if (num(Q('SELECT COUNT(*) AS n FROM demande_contact WHERE de = ? AND masque = 0').get(de).n) >= DEMANDES_MAX) throw erreur('demandes_plafond');
+        Q('UPDATE demande_contact SET masque = 0 WHERE de = ? AND vers = ?').run(de, vers);   // retirée puis redemandée : de nouveau visible, sans nouvelle notification
+        return { resultat: 'envoyee', neuve: false };
+      }
+      if (num(Q('SELECT COUNT(*) AS n FROM demande_contact WHERE de = ? AND masque = 0').get(de).n) >= DEMANDES_MAX) throw erreur('demandes_plafond');
+      const p = Q('SELECT prenom, ident_num FROM personne WHERE id = ?').get(vers);
+      Q('INSERT INTO demande_contact(de, vers, etat, masque, vers_prenom, vers_ident, ts) VALUES(?, ?, ?, 0, ?, ?, ?)')
+        .run(de, vers, 'attente', premierMot(p && p.prenom), p && p.ident_num != null ? identAfficher(p.prenom, num(p.ident_num)) : null, horloge());
+      return { resultat: 'envoyee', neuve: true };
     });
   }
-  /* Ce que `uid` a reçu et attend de trancher : la personne qui demande (prénom, nom, identifiant) — jamais quelqu'un qu'on a bloqué, ni un compte qui va disparaître. */
+  /* Ce que `uid` a reçu et attend de trancher : la personne qui demande (prénom, nom, identifiant) — jamais une demande retirée, ni quelqu'un qu'on a bloqué, ni un compte qui va disparaître. */
   function demandesRecues(uid) {
     return Q(`SELECT d.de AS id, d.ts, p.prenom, p.nom, p.ident_num FROM demande_contact d JOIN personne p ON p.id = d.de
-              WHERE d.vers = ? AND d.etat = 'attente' AND p.etat = 'actif' AND p.suppression_le IS NULL
+              WHERE d.vers = ? AND d.etat = 'attente' AND d.masque = 0 AND p.etat = 'actif' AND p.suppression_le IS NULL
                 AND NOT EXISTS (SELECT 1 FROM contact c WHERE c.etat = 'bloque' AND ((c.de = d.vers AND c.vers = d.de) OR (c.de = d.de AND c.vers = d.vers)))
-              ORDER BY d.ts DESC, d.de`).all(uid)
+              ORDER BY d.ts DESC, d.de LIMIT 200`).all(uid)
       .map(r => ({ id: r.id, prenom: r.prenom, nom: r.nom, identifiant: r.ident_num == null ? null : identAfficher(r.prenom, num(r.ident_num)), ts: num(r.ts) }));
   }
-  /* Ce que `uid` a envoyé : toujours « en attente » à ses yeux, refusée comprise (un refus ne se dit pas). Le prénom et l'identifiant — qu'il connaissait déjà. */
+  /* Ce que `uid` a envoyé : toujours « en attente » à ses yeux, refusée comprise (un refus ne se dit pas), avec ce qu'il savait EN DEMANDANT (figé : rien de vivant sur l'autre). */
   function demandesEnvoyees(uid) {
-    return Q(`SELECT d.vers AS id, d.ts, p.prenom, p.ident_num FROM demande_contact d JOIN personne p ON p.id = d.vers
-              WHERE d.de = ? AND d.masque = 0 AND p.etat = 'actif' ORDER BY d.ts DESC, d.vers`).all(uid)
-      .map(r => ({ id: r.id, prenom: premierMot(r.prenom), identifiant: r.ident_num == null ? null : identAfficher(r.prenom, num(r.ident_num)), ts: num(r.ts) }));   // le PREMIER MOT : l'auteur n'en sait pas plus
+    return Q(`SELECT vers AS id, ts, vers_prenom, vers_ident FROM demande_contact WHERE de = ? AND masque = 0 ORDER BY ts DESC, vers LIMIT 200`).all(uid)
+      .map(r => ({ id: r.id, prenom: r.vers_prenom, identifiant: r.vers_ident || null, ts: num(r.ts) }));
   }
-  /* `uid` répond à la demande de `de`. Accepter crée le contact mutuel et efface la demande ; refuser la garde, muette. → 'acceptee' | 'refusee' */
+  /* `uid` répond à la demande de `de`. Accepter crée le contact mutuel et efface la demande ; refuser la garde, muette. → 'acceptee' | 'refusee'.
+     Une demande retirée, d'un compte qui s'efface, ou d'une personne bloquée : introuvable. */
   function demandeRepondre(uid, de, accepter) {
     return tx(() => {
-      const d = Q('SELECT etat FROM demande_contact WHERE de = ? AND vers = ?').get(de, uid);
+      const d = Q(`SELECT d.etat FROM demande_contact d JOIN personne p ON p.id = d.de WHERE d.de = ? AND d.vers = ? AND d.masque = 0 AND p.etat = 'actif' AND p.suppression_le IS NULL`).get(de, uid);
       if (!d || d.etat !== 'attente' || contactBloque(uid, de)) throw erreur('introuvable');
       if (accepter) {
         contactLier(uid, de);
@@ -755,16 +775,17 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       return 'refusee';
     });
   }
-  /* L'auteur retire sa demande : en attente, elle disparaît pour de bon ; refusée, elle reste (masquée) pour qu'il ne puisse pas redemander en boucle. */
+  /* L'auteur retire sa demande : elle quitte les deux listes, mais la LIGNE reste (masquée), que la demande ait été refusée ou non — sinon redemander dirait lequel des deux
+     (« envoyee » contre « deja_envoyee » : relecture du gardien, A1) et relancerait l'autre à chaque fois (A2). */
   function demandeAnnuler(uid, vers) {
     return tx(() => {
-      const d = Q('SELECT etat FROM demande_contact WHERE de = ? AND vers = ?').get(uid, vers);
-      if (!d) throw erreur('introuvable');
-      if (d.etat === 'attente') Q('DELETE FROM demande_contact WHERE de = ? AND vers = ?').run(uid, vers);
-      else Q('UPDATE demande_contact SET masque = 1 WHERE de = ? AND vers = ?').run(uid, vers);
+      if (!num(Q('UPDATE demande_contact SET masque = 1 WHERE de = ? AND vers = ? AND masque = 0').run(uid, vers).changes)) throw erreur('introuvable');
       return true;
     });
   }
+  /* Une demande, dans un sens ou dans l'autre : c'est assez pour que la personne qui la REÇOIT puisse bloquer celle qui l'envoie (A3). */
+  const demandeEntre = (a, b) => !!Q('SELECT 1 AS x FROM demande_contact WHERE (de = ? AND vers = ?) OR (de = ? AND vers = ?)').get(a, b, b, a);
+
 
   /* ══ SESSIONS ════════════════════════════════════════════════════════════════════════════ */
   const SESSIONS_MAX = 10;
@@ -867,8 +888,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function contactBloquer(a, b) {
     return tx(() => {
       if (a === b) return 0;
+      if (IDENT) Q(`UPDATE demande_contact SET etat = 'refusee' WHERE de = ? AND vers = ?`).run(b, a);   // bloquer celui qui m'a demandé vaut un refus : pour lui, toujours « en attente »
       if (num(Q('UPDATE contact SET etat = ? WHERE de = ? AND vers = ?').run('bloque', a, b).changes)) return 1;
-      if (!peutVoir(a, b)) return 0;
+      if (!peutVoir(a, b) && !(IDENT && demandeEntre(a, b))) return 0;   // ⛔ on peut bloquer quelqu'un qui nous a fait une demande, même sans contact (relecture du gardien, A3)
       Q('INSERT OR IGNORE INTO contact(de, vers, etat, depuis) VALUES(?, ?, ?, ?)').run(a, b, 'bloque', horloge());
       return 1;
     });
