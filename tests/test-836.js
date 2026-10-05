@@ -295,7 +295,10 @@ console.log('\n══ 9. TOUTES LES PAGES DU DÉPÔT : AUCUN BOUTON DE MODE HORS
     /* (`apercu/site-apple.html`, la maquette de comparaison, est supprimée — Justin, 30 septembre 2026 : « pour le site on
        garde la maquette qu'on a à l'heure actuelle, l'ancienne tu peux les supprimer ») */
   };
-  const fichiers = require('child_process').execSync('git ls-files "*.html"', { cwd: RACINE }).toString().trim().split('\n').filter(Boolean);
+  /* `design/handoff-*` : les MAQUETTES que Justin fournit (dossier de design du 4 octobre 2026), avec leur propre bouton Jour / Nuit
+     pour comparer les deux rendus — ce ne sont pas des pages du site, et elles ne vont jamais sur main (REPRISE). */
+  const fichiers = require('child_process').execSync('git ls-files "*.html"', { cwd: RACINE }).toString().trim().split('\n').filter(Boolean)
+    .filter(f => !f.startsWith('design/handoff-'));
   vrai('population : ' + fichiers.length + ' pages suivies', fichiers.length >= 50);
   const fautes = [], servies = [];
   for (const f of fichiers) {
