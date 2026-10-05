@@ -17,7 +17,7 @@
    bouton « Copier le lien », et que la bêta n'est pas encore installée (Justin n'a pas fait les gestes).
    v2.83 (§ 11) : « Nouveau mot de passe » (Justin, 5 octobre 2026 : « il faudrait mot de passe oublié ») — la vraie `btMdp` contre la vraie route
    `/api/monitor/beta/mdp` : refus (sans jeton, collaborateur, inconnu, trop court), l'ancien mot de passe refusé ensuite, le même compte, rien de
-   secret dans la réponse ni le journal, un refus ou une coupure LUS à l'écran. La chute des sessions d'OP MESSAGES est dans `test-945`.
+   secret dans la réponse ni le journal, un refus ou une coupure LUS à l'écran. La chute des sessions d'OP MESSAGES est dans `test-920`.
    Il saute de lui-même sans `server/node_modules` (comme `test-833`). */
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto'), http = require('http'), vm = require('vm');
 const { spawn } = require('child_process');

@@ -2197,7 +2197,7 @@ app.post('/api/monitor/beta/chantier', monPatronStrict, (req, res) => {
    pour OP MESSAGES, la PERSONNE (contacts et conversations perdus). Le patron en pose un nouveau, même identifiant, même compte.
    ⛔ L'ANCIEN MOT DE PASSE DOIT TOMBER PARTOUT. La porte (`/api/beta/login`) compare le hachage rangé : il change ici, donc l'ancien
    est refusé dès la requête suivante. Les sessions déjà ouvertes, elles, ne rangent PAS le mot de passe : celles d'OP MESSAGES
-   (service à part, `server-msg/porte-beta.js`) se relisent par `/api/beta/etat` + `ids` — on y publie la date du changement
+   (un service à part, qui ne partage rien avec celui-ci) se relisent par `/api/beta/etat` + `ids` — on y publie la date du changement
    (`mdpTs`, champ `mdp` de la réponse) et la porte supprime les sessions NÉES AVANT. Celle d'OP GESTION (`beta.html`) vit dans
    le navigateur et ne redemande que « ouvert ? » : elle ne tombe pas (voir REPRISE.md). Le mot de passe n'est ni journalisé ni
    rendu : la réponse est `betaPublic`, comme celle des routes voisines. */

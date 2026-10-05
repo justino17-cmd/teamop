@@ -50,14 +50,14 @@ const json = async (base, methode, chemin, corps, entetes) => {
 
 
 (async () => {
-  const dossierOg = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-945-og-'));
+  const dossierOg = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-920-og-'));
   const portOg = await T.portLibre();
   let og = await lancerOpGestion(dossierOg, portOg), svc = null;
   try {
     const tour = await json(og.base, 'POST', '/api/monitor/login', { nom: 'Patron', pass: MDP_TOUR });
     vrai('population : la Tour se connecte', tour.code === 200 && /^[0-9a-f]{48}$/.test(tour.j.token));
     const H = { Authorization: 'Bearer ' + tour.j.token };
-    const creer = async (login, pass, nom) => (await json(og.base, 'POST', '/api/monitor/beta', { login, pass, nom, chantier: 'banc 945', apps: ['messages'] }, H));
+    const creer = async (login, pass, nom) => (await json(og.base, 'POST', '/api/monitor/beta', { login, pass, nom, chantier: 'banc 920', apps: ['messages'] }, H));
     svc = await T.lancerService({ urlGestion: og.base, config: { beta: { relectureMs: 1000, timeoutMs: 1500 } } });
 
     console.log('Mot de passe oublié : la Tour pose un NOUVEAU mot de passe, les sessions ouvertes avec l\'ANCIEN tombent, la personne reste la même');

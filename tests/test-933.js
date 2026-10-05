@@ -269,9 +269,9 @@ vrai('des blocs run: sont lus (population avant verdict)', blocs.length >= 6);
        donc les installer (sinon le plancher de la liste, qui compte ses vérifications, ferait échouer chaque déploiement).
        `test-911` (l'appareil et le service se parlent) rejoue la même couture avec le module de données de la page : sans ces dépendances il
        ne joue que sa moitié « faux OP GESTION » et le dit — le plancher le rattrape de la même façon. */
-    const DEPEND_DU_SERVEUR = ['tests/test-904.js', 'tests/test-911.js', 'tests/test-965.js'];
-    v('   seules les coutures réelles (test-904, test-911, test-965) dépendent du dossier de dépendances d\'OP GESTION (server/node_modules) — et elles sont nommées ici',
-      sansMoi.filter(f => fs.existsSync(path.join(RACINE, f))).filter(f => /server\/node_modules/.test(fs.readFileSync(path.join(RACINE, f), 'utf8'))), DEPEND_DU_SERVEUR);
+    const DEPEND_DU_SERVEUR = ['tests/test-904.js', 'tests/test-911.js', 'tests/test-920.js', 'tests/test-965.js'];
+    v('   seules les coutures réelles (test-904, test-911, test-920, test-965) dépendent du dossier de dépendances d\'OP GESTION (server/node_modules) — et elles sont nommées ici',
+      sansMoi.filter(f => fs.existsSync(path.join(RACINE, f))).filter(f => /server\/node_modules/.test(fs.readFileSync(path.join(RACINE, f), 'utf8'))).sort(), DEPEND_DU_SERVEUR);
     vrai('⛔ le workflow INSTALLE les dépendances d\'OP GESTION avant les bancs (sans elles test-904 saute vert et le plancher fait échouer le job)',
       /npm ci [^\n]*--prefix server\s*$/m.test(src) && src.indexOf('--prefix server\n') < src.indexOf('bancs-ci.sh'));
   }
