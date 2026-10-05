@@ -109,8 +109,9 @@ async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { r
     await onglet(B, 'reglages');
     vrai('Réglages : une pastille « 1 » sur « Ajouter un contact »', await attendre(B, () => { const n = document.getElementById('reg-demandes-n'); return !!n && n.textContent.trim() === '1' && n.classList.contains('pastille-n'); }), await texte(B, '#reg-demandes-n'));
     await toucher(B, '#reg-contact');
-    vrai('« Demandes reçues » : Alice Martin, son identifiant, « Accepter » et « Refuser »', await contient(B, '#ct-demandes', 'demandes reçues') && (await texte(B, '#ct-demandes')).includes('Alice Martin') && (await texte(B, '#ct-demandes')).includes(iA)
-      && (await B.page.locator('#ct-demandes [data-act="demande-accepter"]').count()) === 1 && (await B.page.locator('#ct-demandes [data-act="demande-refuser"]').count()) === 1, await texte(B, '#ct-demandes'));
+    vrai('« Demandes reçues » : Alice Martin, son identifiant, « Accepter », « Refuser » et « Bloquer » (relecture du gardien, A3)', await contient(B, '#ct-demandes', 'demandes reçues') && (await texte(B, '#ct-demandes')).includes('Alice Martin') && (await texte(B, '#ct-demandes')).includes(iA)
+      && (await B.page.locator('#ct-demandes [data-act="demande-accepter"]').count()) === 1 && (await B.page.locator('#ct-demandes [data-act="demande-refuser"]').count()) === 1
+      && (await B.page.locator('#ct-demandes [data-act="demande-bloquer"]').count()) === 1, await texte(B, '#ct-demandes'));
     await capture(B, '3-bruno-demande-recue');
     await toucher(B, '#ct-demandes [data-act="demande-accepter"]');
     vrai('accepter ouvre la conversation avec Alice', await attendre(B, () => document.documentElement.dataset.conv === '1' && document.getElementById('conv-titre').textContent.includes('Alice'), null, 9000), await texte(B, '#conv-titre'));
