@@ -98,6 +98,8 @@ async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { r
     await toucher(A, '#ct-ident-res [data-act="demande-envoyer"]');
     vrai('« Demander » devient « Demande envoyée »', await contient(A, '#ct-ident-res', 'demande envoyée'), await texte(A, '#ct-ident-res'));
     vrai('« Demandes envoyées » nomme Bruno, en attente, avec « Retirer »', await contient(A, '#ct-demandes', 'en attente') && (await texte(A, '#ct-demandes')).includes('Bruno'), await texte(A, '#ct-demandes'));
+    vrai('⛔ …par son PRÉNOM seulement : son nom de famille n\'est pas dit à qui lui demande', !(await texte(A, '#ct-demandes')).includes('Petit'), await texte(A, '#ct-demandes'));
+    vrai('les demandes viennent EN TÊTE de la feuille, avant le champ', await A.page.evaluate(() => { const d = document.getElementById('ct-demandes'), c = document.getElementById('ct-ident'); return !!d && !!c && !!(d.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING); }));
     await capture(A, '2-alice-demande-envoyee');
     const contactAvant = await A.page.evaluate(async x => ((await (await fetch('/api/contacts')).json()).contacts || []).some(c => c.id === x && c.mutuel), await B.page.evaluate(async () => (await (await fetch('/api/moi')).json()).moi.id));
     v('⛔ avant l\'accord, Bruno n\'est PAS un contact d\'Alice', contactAvant, false);
@@ -130,7 +132,14 @@ async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { r
     await onglet(A, 'messages'); await toucher(A, '#btn-plus');
     await attendre(A, () => !!document.querySelector('[data-nd-act="contact"]'));
     await toucher(A, '[data-nd-act="contact"]');
-    vrai('la feuille Contacts s\'ouvre, le champ de l\'identifiant a le focus', await attendre(A, () => document.activeElement && document.activeElement.id === 'ct-ident'), await A.page.evaluate(() => document.activeElement && (document.activeElement.id || document.activeElement.tagName)));
+    vrai('au TÉLÉPHONE, la feuille Contacts s\'ouvre avec le champ là, mais le focus va à la feuille (le clavier ne surgit pas avant qu\'on ait rien vu)', await attendre(A, () => { const c = document.getElementById('ct-ident'); return !!c && c.getClientRects().length > 0 && document.activeElement && document.activeElement.id === 'feuille'; }),
+      await A.page.evaluate(() => document.activeElement && (document.activeElement.id || document.activeElement.tagName)));
+    await B.page.keyboard.press('Escape'); await B.page.waitForTimeout(300);
+    await onglet(B, 'messages'); await toucher(B, '#btn-plus');
+    await attendre(B, () => !!document.querySelector('[data-nd-act="contact"]'));
+    await toucher(B, '[data-nd-act="contact"]');
+    vrai('au BUREAU, « Nouveau contact » met le focus droit dans le champ de l\'identifiant', await attendre(B, () => document.activeElement && document.activeElement.id === 'ct-ident'), await B.page.evaluate(() => document.activeElement && (document.activeElement.id || document.activeElement.tagName)));
+    await capture(B, '5-bruno-nouveau-contact');
 
     for (const S of [A, B]) {
       v(S.nom + ' : aucune erreur JavaScript, aucune erreur dans la console', [S.erreurs, S.console.filter(t => !/Failed to load resource/.test(t))], [[], []]);

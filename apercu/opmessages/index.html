@@ -2438,7 +2438,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     document.documentElement.classList.add('feuille-ouverte');
     /* le focus va à la feuille, pas au champ : sur un téléphone, un champ focalisé ouvre le clavier et cache la moitié du
        contenu avant que la personne ait rien vu */
-    requestAnimationFrame(() => $('feuille').focus({ preventScroll: true }));
+    /* « Nouveau contact » au BUREAU (une souris, pas de clavier qui surgit) : le focus va droit au champ de l'identifiant — c'est ce qu'on vient faire */
+    const versChamp = etat.contactSaisie && etat.groupe.mode === 'contact' && matchMedia('(pointer: fine)').matches; etat.contactSaisie = false;
+    requestAnimationFrame(() => { const c = versChamp && $('ct-ident'); if (c) c.focus({ preventScroll: true }); else $('feuille').focus({ preventScroll: true }); });
   }
   function fermerFeuille(garderPhoto) { if (!etat.groupe.ouvert) return; etat.garderPhoto = !!garderPhoto; fermerCouche(); }
   function fermerFeuilleDom() {
@@ -3415,11 +3417,11 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
      liste — ce n'est pas un annuaire. Trouvé, on lui envoie une DEMANDE ; tant qu'elle n'a pas accepté, ce n'est pas un contact. Un refus ne se dit pas : la demande reste
      « en attente » aux yeux de l'auteur. */
   const blocIdentifiants = () => !CAP.identifiants ? '' :
+    '<div id="ct-demandes"></div>' +   // EN TÊTE : une demande reçue est ce qu'on vient trancher
     '<div class="rubrique"><span>Ajouter quelqu\'un qui a OP MESSAGES</span></div><div class="carte carte-pad">' +
       '<p class="info-note">Tape son identifiant — son prénom, « # » et ses chiffres, comme Camille#4821 — ou son numéro de téléphone.</p>' +
       '<div class="info-champ"><input id="ct-ident" type="text" inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search" placeholder="Camille#4821 ou un numéro" aria-label="Identifiant ou numéro de la personne"><button type="button" class="mini" data-act="ident-voir">Voir</button></div>' +
       '<div id="ct-ident-res" aria-live="polite"></div></div>' +
-    '<div id="ct-demandes"></div>' +
     '<div class="rubrique"><span>Mon identifiant</span></div><div class="carte carte-pad">' +
       '<p class="info-note">Donne-le à quelqu\'un pour qu\'il te retrouve. Il suit ton prénom ; « Me trouver par mon identifiant » se coupe dans Réglages › Confidentialité.</p><div id="ct-ident-moi"></div></div>';
   function peindreIdentMoi() {
@@ -3480,7 +3482,6 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     rendreListeContacts();
     if (CAP.identifiants) { peindreIdentMoi(); peindreDemandes(); chargerDemandes(); }
     if (code) { $('ct-code').value = code; lireLienSaisi().catch(e => erreurInfo(phrase(e, 'Ce lien n\'a pas pu être lu.'))); }
-    else if (CAP.identifiants && etat.contactSaisie) { etat.contactSaisie = false; const c = $('ct-ident'); if (c) c.focus({ preventScroll: true }); }
   }
   function rendreListeContacts() {
     const L = $('ct-liste'); if (!L) return;

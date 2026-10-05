@@ -510,12 +510,15 @@ const MIGRATIONS = [
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
-/* L'identifiant public : une normalisation, la même pour l'attribuer et pour le retrouver. */
+/* L'identifiant public : une normalisation, la même pour l'attribuer et pour le retrouver. Il ne prend que le PREMIER MOT du prénom : un compte bêta range son nom complet dans
+   le prénom (« Alice Martin »), et l'identifiant ne doit pas porter un nom de famille (la sonde l'a vu : « AliceMartin#6439 »). « Marie Claire » → « Marie », « Jean-Pierre » reste
+   entier. Taper « Alice Martin#6439 » retrouve aussi « Alice#6439 » : c'est le même premier mot. */
+const premierMot = (p) => String(p || '').trim().split(/\s+/)[0] || '';
 function identBase(prenom) {
-  const b = String(prenom || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 24);
+  const b = premierMot(prenom).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 24);
   return b || 'op';
 }
-const identAfficher = (prenom, n) => (String(prenom || '').replace(/[\s#]+/g, '').slice(0, 24) || 'OP') + '#' + n;
+const identAfficher = (prenom, n) => (premierMot(prenom).replace(/#+/g, '').slice(0, 24) || 'OP') + '#' + n;
 /* « Hélène#4821 », « helene #4821 », « HÉLÈNE#4821 » → { base: 'helene', num: 4821 } ; tout le reste → null (un nom seul n'est pas un identifiant).
    Quatre chiffres (1000 à 9999) ; CINQ (10000 à 99999) pour un prénom dont les 9 000 numéros à quatre chiffres sont pris — un prénom courant ne bloque pas une inscription. */
 function identLire(texte) {
@@ -736,7 +739,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function demandesEnvoyees(uid) {
     return Q(`SELECT d.vers AS id, d.ts, p.prenom, p.ident_num FROM demande_contact d JOIN personne p ON p.id = d.vers
               WHERE d.de = ? AND d.masque = 0 AND p.etat = 'actif' ORDER BY d.ts DESC, d.vers`).all(uid)
-      .map(r => ({ id: r.id, prenom: r.prenom, identifiant: r.ident_num == null ? null : identAfficher(r.prenom, num(r.ident_num)), ts: num(r.ts) }));
+      .map(r => ({ id: r.id, prenom: premierMot(r.prenom), identifiant: r.ident_num == null ? null : identAfficher(r.prenom, num(r.ident_num)), ts: num(r.ts) }));   // le PREMIER MOT : l'auteur n'en sait pas plus
   }
   /* `uid` répond à la demande de `de`. Accepter crée le contact mutuel et efface la demande ; refuser la garde, muette. → 'acceptee' | 'refusee' */
   function demandeRepondre(uid, de, accepter) {
@@ -4082,4 +4085,4 @@ function apresRestauration(chemin, opts) {
 
 ouvrir.copie = { controlerFichier, purgeLire, rejouerPurge, apresRestauration, pieceIds, GENRES_PURGE, TABLES_COMPTEES };
 
-module.exports = { ouvrir, MIGRATIONS, MAX_MEMBRES, DELAI_MODIF_MS, TAILLE_PORTEE, GENRES_SEQ, PUSH_MAX, identLire, identBase };
+module.exports = { ouvrir, MIGRATIONS, MAX_MEMBRES, DELAI_MODIF_MS, TAILLE_PORTEE, GENRES_SEQ, PUSH_MAX, identLire, identBase, premierMot };

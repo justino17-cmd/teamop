@@ -35,6 +35,7 @@ function moduleSeul() {
   v('⛔ un NOM seul, trois chiffres, six chiffres, 0999, 09999, un texte trop long : refusés (null)', ['Hélène', 'Hélène#482', 'Hélène#482111', 'Hélène#0999', 'Hélène#09999', 'x'.repeat(90) + '#4821', '#', null, 4821].map(identLire), Array(9).fill(null));
   v('cinq chiffres (un prénom dont les quatre sont tous pris) : lus', JSON.stringify(identLire('Thomas#48213')), JSON.stringify({ base: 'thomas', num: 48213 }));
   v('un prénom sans lettre latine se range sous « op » : « Ахмед#4821 » se retrouve', JSON.stringify(identLire('Ахмед#4821')), JSON.stringify({ base: 'op', num: 4821 }));
+  v('⛔ seul le PREMIER MOT du prénom compte : « Alice Martin#4821 » est « alice#4821 » (un compte bêta range son nom complet dans le prénom)', JSON.stringify(identLire('Alice Martin#4821')), JSON.stringify({ base: 'alice', num: 4821 }));
 
   console.log('\n── 996 · une base d\'AVANT la migration 11 : chacun reçoit son identifiant au démarrage ──');
   const bac = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-996-'));
@@ -42,13 +43,13 @@ function moduleSeul() {
     const chemin = path.join(bac, 'avant.db'), kek = crypto.randomBytes(32), h = { t: 1790000000000 };
     const mk = (migrations) => ouvrir({ chemin, scelleur: creerScelleur(kek), horloge: () => h.t, migrations });
     const v10 = mk(MIGRATIONS.slice(0, 10));
-    const anc = ['Camille', 'Camille', 'Hélène'].map((p, i) => v10.personneCreer({ identifiant: 'beta:avant' + i, prenom: p, nom: 'Avant', origine: 'beta', verifie: true }));
+    const anc = ['Camille', 'Camille Roux', 'Hélène'].map((p, i) => v10.personneCreer({ identifiant: 'beta:avant' + i, prenom: p, nom: 'Avant', origine: 'beta', verifie: true }));
     v('(population : trois comptes d\'avant, sans identifiant public — la colonne n\'existe pas encore)', anc.map(p => p.identifiant || null), [null, null, null]);
     v10.fermer();
     const v11 = mk(MIGRATIONS);
     const apres = anc.map(p => v11.personneParId(p.id).identifiant);
     vrai('⛔ au démarrage du schéma 11, les trois ont reçu un identifiant « Prénom#1234 » (' + apres.join(', ') + ')', apres.every(x => IDENT.test(x || '')), apres.join(', '));
-    vrai('   les deux « Camille » n\'ont pas le même numéro', apres[0] !== apres[1] && apres[0].startsWith('Camille#') && apres[1].startsWith('Camille#'));
+    vrai('   les deux « Camille » n\'ont pas le même numéro — et « Camille Roux » (nom complet rangé dans le prénom) ne porte pas son nom de famille', apres[0] !== apres[1] && apres[0].startsWith('Camille#') && /^Camille#\d{4}$/.test(apres[1]));
     vrai('   et un compte NEUF en reçoit un à sa création', IDENT.test(v11.personneCreer({ identifiant: 'beta:neuf', prenom: 'Zoé', nom: 'N', origine: 'beta', verifie: true }).identifiant || ''));
 
     console.log('\n── 996 · l\'effacement emporte les demandes et libère l\'identifiant ──');

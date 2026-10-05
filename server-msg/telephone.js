@@ -30,7 +30,7 @@
  */
 const crypto = require('crypto'), fs = require('fs');
 const { analyser } = require('./numero');
-const { identLire } = require('./stockage');
+const { identLire, premierMot } = require('./stockage');
 const { cleReseau } = require('./quotas');
 
 const JOUR = 86400000, H = 3600000;
@@ -419,7 +419,8 @@ function creerTelephone(ctx) {
     if (visible) {
       noterTrouve(uid, p.id);
       const deja = stockage.contactActif(uid, p.id);
-      rep = { trouve: true, id: p.id, prenom: p.prenom, identifiant: stockage.identDe(p.id), deja_contact: deja, demande: deja ? 'aucune' : relation(uid, p.id) };
+      rep = { trouve: true, id: p.id, prenom: premierMot(p.prenom), identifiant: stockage.identDe(p.id),   // le PREMIER MOT : un compte bêta range son nom complet dans le prénom
+       deja_contact: deja, demande: deja ? 'aucune' : relation(uid, p.id) };
     }
     const reste = cfg.rechercheLatenceMs - (Date.now() - t0);
     if (reste > 0) await dort(reste);
