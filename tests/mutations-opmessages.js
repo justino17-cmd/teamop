@@ -133,7 +133,7 @@ const MUTATIONS = [
   { id: 'A34', suite: '859', nom: 'page : le curseur du segmenté ne glisse plus (il reste sous « Tous »)', cible: 'page', f: sub('translate: calc(var(--i) * 100%) 0; transition: translate .35s', 'translate: 0 0; transition: translate .35s'), banc: /segmenté : piste --seg-track/, sonde: true, scenario: 'appels-liste' },
 
   /* ── N. LE « + » — « Nouvelle discussion » (5 octobre 2026) : tombent dans test-857 § 4 bis (la fonction `ndModele` EXÉCUTÉE, le reste lu dans le code) ; les gestes (défilement de l'index, un retour = une fois) sont gardés
-        par `tests/sonde-opmessages-plus.js`, dont les mutations se jouent À LA MAIN sur l'arbre (voir son en-tête) ── */
+        par `tests/sonde-opmessages-plus.js`, dont les mutations sont jouées par `tests/mutations-plus.js` (S1 à S4, sur l'arbre) ── */
   { id: 'N01', nom: 'le « + » rouvre directement « Nouveau groupe » (plus de feuille « Nouvelle discussion »)', cible: 'page', f: sub("$('btn-plus').addEventListener('click', () => ouvrirFeuille('nouvelle'));", "$('btn-plus').addEventListener('click', () => ouvrirFeuille('chat'));"), banc: /le « \+ » ouvre « Nouvelle discussion »/ },
   { id: 'N02', nom: '« Nouveau groupe » EMPILE une entrée au lieu de remplacer celle de la feuille (un retour rouvre « Nouvelle discussion »)', cible: 'page', f: sub("ouvrirFeuille('chat', true)", "ouvrirFeuille('chat')"), banc: /UN RETOUR, UNE FOIS : les quatre actions/ },
   { id: 'N03', nom: 'les « Contacts fréquents » prennent aussi les groupes (le premier membre d\'un groupe passe pour un contact fréquent)', cible: 'page', f: sub("if (!c || c.type !== 'direct') continue;", "if (!c) continue;"), banc: /« Contacts fréquents » = les conversations À DEUX/ },

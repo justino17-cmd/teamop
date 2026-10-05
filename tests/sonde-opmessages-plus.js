@@ -18,7 +18,7 @@
    ⛔ Un doigt envoyé par `Input.dispatchTouchEvent` (CLAUDE.md) : ce Chromium ne transmet aucun mouvement de moins de ~15 px — le glissé fait des pas de 40 px.
    Lancer :   NODE_PATH=/opt/node22/lib/node_modules/playwright/node_modules node tests/sonde-opmessages-plus.js
               CAPTURES=/dossier   (la feuille ouverte, de chaque navigateur, de jour et de nuit : `plus-iphone-jour.png`…)
-              --rapide            (l'iPhone, de jour — pour les mutations)
+              --rapide            (l'iPhone, de jour — pour les mutations de `tests/mutations-plus.js`)
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner (pas de navigateur, pas de dépendances du service). */
 const fs = require('fs'), path = require('path');
 const T = require('./outils-msg');
