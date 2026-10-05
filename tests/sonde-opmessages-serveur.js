@@ -405,7 +405,7 @@ async function couple(b, env, cfg) {
   await bloc('7. Un groupe : créer depuis ses contacts, écrire, infos, admins, lien, retrait, sortie', async () => {
     const G = 'Chantier ' + tag;
     await onglet(A, 'messages');
-    await toucher(A, '#btn-groupe');
+    await toucher(A, '#btn-plus'); await toucher(A, '[data-nd-act="groupe"]');
     await verifier('la feuille « Nouveau groupe » montre « Inviter par un lien » et les contacts', A, () => !document.getElementById('feuille').hidden && !!document.querySelector('#g-contacts [data-lien]') && document.querySelectorAll('#g-contacts .contact').length >= 1, null, 5000);
     await largeur(A, 'nouveau groupe');
     vrai('« Créer » est grisé tant que personne n\'est choisi', (await A.page.getAttribute('#g-creer', 'aria-disabled')) === 'true');

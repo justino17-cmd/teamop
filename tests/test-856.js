@@ -185,7 +185,7 @@ function controler(PAGE, DOC, SRC) {
   v('⛔ RIEN sous 11 px (écrit dans la feuille, le balisage ou le script ; 0 = champ de fichier invisible)', [...new Set(sizes.filter(n => n > 0 && n < 11))], []);
   vrai('⛔ un champ de saisie fait 16 px au moins (Safari zoome la page en dessous)', /\.recherche input[^}]*font-size:\s*17px/.test(CSS) && /\.g-nom[^}]*font-size:\s*17px/.test(CSS));
   vrai('cibles tactiles : 44 px de zone qui répond (Modifier, Groupe, Annuler/Créer, puces) et 50 px à la barre d\'onglets',
-    ['.lien-texte', '.btn-groupe', '.feuille-bouton', '.puce'].every(s => parseFloat(prop(regle(CSS, s), 'min-height')) >= 44) && parseFloat(prop(regle(CSS, '.tab'), 'min-height')) >= 50);
+    ['.lien-texte', '.btn-plus', '.feuille-bouton', '.puce'].every(s => parseFloat(prop(regle(CSS, s), 'min-height')) >= 44) && parseFloat(prop(regle(CSS, '.tab'), 'min-height')) >= 50);
   vrai('la durée de la bannière est de ~3,5 s (le document dit « disparaît après ~3,5 s ») : un setTimeout de 3 000 à 4 000 ms',
     [...JS.matchAll(/classList\.remove\('on'\),\s*(\d+)\)/g)].some(m => +m[1] >= 3000 && +m[1] <= 4000), '');
 
@@ -193,7 +193,7 @@ function controler(PAGE, DOC, SRC) {
   v('les 4 onglets du document, dans l\'ordre (Messages · Appels · Réunions · Réglages)', (/const ORDRE = \[([^\]]*)\]/.exec(JS) || [, ''])[1].replace(/['\s]/g, ''), 'messages,appels,reunions,reglages');
   v('   et leurs titres', ['Messages', 'Appels', 'Réunions', 'Réglages'].filter(t => !new RegExp("titre: '" + t + "'").test(JS)), []);
   vrai('la barre latérale porte le statut « Disponible »', />Disponible</.test(HTML) || /<i><\/i>Disponible/.test(HTML));
-  vrai('la bulle de l\'onglet actif se place par UN numéro (--i) et le CSS : aucune largeur recopiée en JavaScript', /translate:\s*calc\(var\(--i\)/.test(CSS) && /setProperty\('--i'/.test(JS) && !/offsetWidth|getBoundingClientRect/.test(JS));
+  vrai('la bulle de l\'onglet actif se place par UN numéro (--i) et le CSS : aucune largeur recopiée en JavaScript', /translate:\s*calc\(var\(--i\)/.test(CSS) && /setProperty\('--i'/.test(JS) && !/offsetWidth|getBoundingClientRect/.test(JS.replace(/function ndLettreSous\([\s\S]*?\n  \}\n/, '')));       // (hors `ndLettreSous` : l'index de « Nouvelle discussion » cherche quelle lettre est SOUS le doigt, il ne recopie la géométrie d'aucun onglet)
   /* les données d'exemple vivent dans un MODULE à part (apercu/opmessages/source.js) : la page ne contient aucun nom, aucun message — elle parle à
      window.OPMSG_SOURCE. Le jour où le serveur d'OP MESSAGES arrive, c'est ce fichier-là qui est remplacé, rien d'autre. */
   const noms = [...SRCJS.matchAll(/nom: '([^']+)'/g)].map(m => m[1]);

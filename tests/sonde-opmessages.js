@@ -812,7 +812,7 @@ async function etapeFeuille(S, F) {
   const nom = S.nom;
   titre(nom + ' — la feuille « Nouveau groupe »');
   const h0 = await hist(S);
-  await geste(S, '#btn-groupe'); await dormir(800);
+  await geste(S, '#btn-plus'); await dormir(650); await geste(S, '[data-nd-act="groupe"]'); await dormir(800);
   const s = await S.page.evaluate(() => { const f = document.getElementById('feuille').getBoundingClientRect(), corps = document.getElementById('feuille-corps'), a = document.getElementById('g-annonces').getBoundingClientRect();
     return { classe: document.documentElement.classList.contains('feuille-ouverte'), vis: getComputedStyle(document.getElementById('feuille')).visibility, left: f.left, top: f.top, bas: f.bottom, w: f.width, h: innerHeight, W: innerWidth, compteur: document.getElementById('g-compteur').textContent, creerOff: document.getElementById('g-creer').getAttribute('aria-disabled'),
       appInert: document.getElementById('app').inert, foyer: document.activeElement.id, sh: corps.scrollHeight, ch: corps.clientHeight, annoncesBas: a.bottom, annoncesHaut: a.top }; });
@@ -878,7 +878,7 @@ async function etapeFeuille(S, F) {
     return { classe: document.documentElement.classList.contains('feuille-ouverte'), fvis: getComputedStyle(f).visibility, appInert: document.getElementById('app').inert, nom: li.querySelector('.conv-nom').textContent, apercu: li.querySelector('.conv-apercu').textContent, point: !!li.querySelector('.point'), heure: li.querySelector('.conv-heure').textContent, total: document.querySelectorAll('#liste-conv > li').length,
       photo: li.querySelector('.avatar').style.backgroundImage.slice(0, 9), neuves: document.querySelectorAll('#liste-conv .conv-neuve').length, n: history.state.n,
       banniere: { on: n.classList.contains('on'), op: parseFloat(getComputedStyle(n).opacity), haut: r.top, g: r.left, d: r.right, w: innerWidth, texte: document.getElementById('notif-texte').textContent, aide: document.getElementById('notif-aide').textContent, role: n.getAttribute('role') }, foyer: document.activeElement.id }; });
-  v(nom + ' : la feuille s\'est refermée (invisible, fond actif), l\'entrée d\'historique rendue (n = ' + c.n + '), le focus revenu au bouton Groupe', !c.classe && c.fvis === 'hidden' && !c.appInert && c.n === 0 && c.foyer === 'btn-groupe', c);
+  v(nom + ' : la feuille s\'est refermée (invisible, fond actif), l\'entrée d\'historique rendue (n = ' + c.n + '), le focus revenu au bouton +', !c.classe && c.fvis === 'hidden' && !c.appInert && c.n === 0 && c.foyer === 'btn-plus', c);
   v(nom + ' : le groupe est EN TÊTE — « ' + c.nom + ' · ' + c.apercu + ' », point non-lu, « ' + c.heure + ' », sa photo (' + c.photo + '…) dans la liste, ' + c.total + ' conversations', c.nom === 'Équipe terrain (4)' && c.apercu === 'Vous avez créé le groupe · Camille, Inès, Mathis' && c.point && c.heure === 'maintenant' && c.photo === 'url("blob' && c.total === nAv + 1, c);
   const bn = c.banniere;
   v(nom + ' : la bannière est visible et dans l\'écran (haut ' + Math.round(bn.haut) + ' px), dit « Vous avez été ajouté au groupe « Équipe terrain » » et nomme les membres prévenus ; zone vivante', bn.on && bn.op > 0.95 && bn.haut >= (S.pf.insets ? S.pf.insets.top : 0) && bn.g >= 0 && bn.d <= bn.w && /Vous avez été ajouté au groupe « Équipe terrain »/.test(bn.texte) && /Camille, Inès, Mathis/.test(bn.aide) && bn.role === 'status', bn);
@@ -889,7 +889,7 @@ async function etapeFeuille(S, F) {
   const tClic = J.j.find(e => e[0] === 'clic')[1], tOn = J.j.find(e => e[0] === 'on')[1], tOff = J.j.find(e => e[0] === 'off')[1];
   v(nom + ' : la bannière paraît ' + Math.round(tOn - tClic) + ' ms après le clic (≈ 300) et reste ' + Math.round(tOff - tOn) + ' ms (≈ 3 500), puis s\'efface seule', tOn - tClic > 250 && tOn - tClic < 700 && tOff - tOn > 3300 && tOff - tOn < 3900 && !J.on && J.bas <= 0, J);
   /* (a) une deuxième création, puis la frappe dans la recherche : plus aucune ligne ne rejoue son entrée */
-  await geste(S, '#btn-groupe'); await dormir(700); await geste(S, '#g-contacts .contact[data-id="c4"]'); await geste(S, '#g-creer'); await dormir(1200);
+  await geste(S, '#btn-plus'); await dormir(650); await geste(S, '[data-nd-act="groupe"]'); await dormir(700); await geste(S, '#g-contacts .contact[data-id="c4"]'); await geste(S, '#g-creer'); await dormir(1200);
   const neuf2 = await nb(S, '#liste-conv .conv-neuve');
   await geste(S, '#recherche-conv'); await taper(S, 'zz');
   const neuf3 = await nb(S, '#liste-conv .conv-neuve');
@@ -914,16 +914,16 @@ async function etapeFeuille(S, F) {
   ];
   let fermes = 0;
   for (const [g, f] of fermetures) {
-    await geste(S, '#btn-groupe'); await dormir(700);
+    await geste(S, '#btn-plus'); await dormir(650); await geste(S, '[data-nd-act="groupe"]'); await dormir(700);
     await geste(S, '#g-contacts .contact[data-id="c4"]'); await dormir(120);
     await f(); await dormir(800);
     const r = await S.page.evaluate(() => ({ ouverte: document.documentElement.classList.contains('feuille-ouverte'), total: document.querySelectorAll('#liste-conv > li').length, foyer: document.activeElement.id, n: history.state.n, len: history.length, hash: location.hash }));
-    const bon = !r.ouverte && r.total === total && r.foyer === 'btn-groupe' && r.n === 0 && r.len <= L0 + 1 && r.hash === '#messages';
+    const bon = !r.ouverte && r.total === total && r.foyer === 'btn-plus' && r.n === 0 && r.len <= L0 + 1 && r.hash === '#messages';
     if (bon) fermes++;
-    v(nom + ' : ' + g + ' referme la feuille sans rien créer (' + total + ' conversations), rend l\'entrée d\'historique (n = ' + r.n + ', ' + r.len + ' entrées), le focus revient au bouton Groupe', bon, r);
+    v(nom + ' : ' + g + ' referme la feuille sans rien créer (' + total + ' conversations), rend l\'entrée d\'historique (n = ' + r.n + ', ' + r.len + ' entrées), le focus revient au bouton +', bon, r);
   }
   v(nom + ' : (population) 4 façons de fermer jouées, ' + fermes + ' sans défaut', fermes === 4);
-  await geste(S, '#btn-groupe'); await dormir(700);
+  await geste(S, '#btn-plus'); await dormir(650); await geste(S, '[data-nd-act="groupe"]'); await dormir(700);
   k = await S.page.evaluate(() => document.getElementById('g-compteur').textContent + ' | nom « ' + document.getElementById('g-nom').value + ' »');
   v(nom + ' : rouverte, la feuille repart de zéro (« 0 / 6 », nom vide)', k === '0 / 6 | nom «  »', k);
   /* glisser la feuille (téléphone) : un petit geste revient, un grand geste ferme */
@@ -935,7 +935,7 @@ async function etapeFeuille(S, F) {
     v(nom + ' : un petit glissé (40 px) ramène la feuille à sa place (décalage ' + k.dy + ' px)', k.ouverte && Math.abs(k.dy) <= 1 && k.tr === '', k);
     await glisser(420); await dormir(900);
     k = await S.page.evaluate(() => ({ ouverte: document.documentElement.classList.contains('feuille-ouverte'), n: history.state.n, foyer: document.activeElement.id }));
-    v(nom + ' : un grand glissé (420 px) ferme la feuille (entrée rendue, focus rendu)', !k.ouverte && k.n === 0 && k.foyer === 'btn-groupe', k);
+    v(nom + ' : un grand glissé (420 px) ferme la feuille (entrée rendue, focus rendu)', !k.ouverte && k.n === 0 && k.foyer === 'btn-plus', k);
   } else { await S.page.keyboard.press('Escape'); await dormir(600); }
 }
 
@@ -1091,7 +1091,7 @@ async function etapeStress(b, base, W) {
   titre('valeurs les plus longues plausibles à ' + W + ' px (un nom de groupe de 40 signes, 6 membres)');
   const pf = { nom: 'stress ' + W, w: W, h: 780, dpr: 1, mobile: true, insets: null };
   const S = await ouvrirPage(b, pf, { base }); S.nom = pf.nom;
-  await geste(S, '#btn-groupe'); await dormir(700);
+  await geste(S, '#btn-plus'); await dormir(650); await geste(S, '[data-nd-act="groupe"]'); await dormir(700);
   for (const id of ['c1', 'c2', 'c3', 'c4', 'c5', 'c6']) { await geste(S, '#g-contacts .contact[data-id="' + id + '"]'); await dormir(80); }
   await geste(S, '#g-nom'); await taper(S, 'M'.repeat(40)); await S.page.keyboard.press('Enter');
   await mesurerLargeur(S, 'stress ' + W + ' · feuille, 6 membres, nom de 40 signes');
@@ -1249,7 +1249,7 @@ async function corrFocus(b, base) {
   v(S.nom + ' : AUCUN anneau de focus n\'est coupé par le conteneur qui l\'abrite (' + coupes.length + ' coupés)', coupes.length === 0, coupes.slice(0, 6).map(a => a.nom + ' ← ' + a.coupes.join(' ; ')));
   v(S.nom + ' : tout arrêt de focus DESSINE un anneau (aucun contrôle sans repère)', stops.filter(a => a.sans).length === 0, stops.filter(a => a.sans).map(a => a.nom));
   /* la feuille */
-  await geste(S, '#btn-groupe'); await dormir(800);
+  await geste(S, '#btn-plus'); await dormir(650); await geste(S, '[data-nd-act="groupe"]'); await dormir(800);
   await geste(S, '#g-contacts .contact[data-id="c1"]'); await geste(S, '#g-contacts .contact[data-id="c2"]'); await dormir(200);
   await S.page.locator('#feuille').focus();
   const dedans = [], anneaux = [];
@@ -1383,7 +1383,7 @@ async function corrImages(b, base, F) {
   v('(population) 4 images jouées, ' + bons + ' conformes', bons === 4);
   /* la photo du groupe : une corrompue laisse la pastille */
   await fermerConv(S);
-  await geste(S, '#btn-groupe'); await dormir(800);
+  await geste(S, '#btn-plus'); await dormir(650); await geste(S, '[data-nd-act="groupe"]'); await dormir(800);
   await S.page.setInputFiles('#g-photo-fichier', F.corrompue); await dormir(900);
   const g = await S.page.evaluate(() => ({ avec: document.getElementById('g-photo').classList.contains('avec-image'), mot: document.getElementById('mot').classList.contains('on') ? document.getElementById('mot').textContent : null }));
   v(S.nom + ' : une photo de groupe corrompue laisse la pastille et le dit (« ' + g.mot + ' »)', !g.avec && /pastille/.test(g.mot || ''), g);
@@ -1442,7 +1442,7 @@ async function corrEtroit(b, base) {
     const t = await S.page.evaluate(() => { const bar = document.getElementById('tabs').getBoundingClientRect(); return { bar: [Math.round(bar.left), Math.round(bar.right)], tabs: [...document.querySelectorAll('#tabs .tab')].map(e => { const r = e.getBoundingClientRect(), s = e.querySelector('span').getBoundingClientRect(); return { l: Math.round(r.left), r: Math.round(r.right), sl: Math.round(s.left), sr: Math.round(s.right) }; }) }; });
     v(S.nom + ' : (population) ' + t.tabs.length + ' onglets dans la barre (' + t.bar.join('→') + ') — chaque libellé reste DANS la barre', t.tabs.length === 4 && t.tabs.every(x => x.sl >= t.bar[0] - 1 && x.sr <= t.bar[1] + 1 && x.l >= t.bar[0] - 1 && x.r <= t.bar[1] + 1), t);
     await mesurerLargeur(S, S.nom + ' · liste');
-    await geste(S, '#btn-groupe'); await dormir(800);
+    await geste(S, '#btn-plus'); await dormir(650); await geste(S, '[data-nd-act="groupe"]'); await dormir(800);
     const f = await S.page.evaluate(() => { const r = id => { const b = document.getElementById(id).getBoundingClientRect(); return { l: Math.round(b.left), r: Math.round(b.right), t: Math.round(b.top), b: Math.round(b.bottom) }; }; const f = r('feuille'); return { W: innerWidth, creer: r('g-creer'), annuler: r('g-annuler'), titre: r('feuille-titre'), feuille: f, creerTexte: document.getElementById('g-creer').textContent }; });
     const dedans = x => x.l >= f.feuille.l - 1 && x.r <= f.feuille.r + 1;
     v(S.nom + ' : dans la feuille « Nouveau groupe », « Annuler » (' + f.annuler.l + '→' + f.annuler.r + ') et « Créer » (' + f.creer.l + '→' + f.creer.r + ') tiennent dans la fenêtre de ' + f.W + ' px, sans se chevaucher ni cacher le titre', dedans(f.creer) && dedans(f.annuler) && f.annuler.r <= f.titre.l + 1 && f.titre.r <= f.creer.l + 1 && f.creer.r <= f.W, f);
@@ -1466,7 +1466,7 @@ async function corrContrastes(b, base) {
     await ouvrirConv(S, 'v1', 'Équipe dépôt'); await dormir(300);
     await contrasteTout(S, S.nom + ' · conversation', { minimum: 8 });
     await fermerConv(S);
-    await geste(S, '#btn-groupe'); await dormir(800);
+    await geste(S, '#btn-plus'); await dormir(650); await geste(S, '[data-nd-act="groupe"]'); await dormir(800);
     await geste(S, '#g-contacts .contact[data-id="c1"]'); await geste(S, '#g-contacts .contact[data-id="c2"]'); await dormir(250);
     await contrasteTout(S, S.nom + ' · feuille « Nouveau groupe »', { minimum: 10 });
     v(S.nom + ' : 0 erreur JavaScript, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0, { e: S.erreurs, c: S.console });
@@ -1479,7 +1479,7 @@ async function corrListeApresCreation(b, base) {
   titre('la liste après la création d\'un groupe, de nuit (rangées claires derrière la barre d\'onglets)');
   for (const pf of [PROFILS.iphone, PROFILS.android360]) {
     const S = await nouvelle(b, base, pf, { dark: true, nom: pf.nom + ' nuit' });
-    await geste(S, '#btn-groupe'); await dormir(800);
+    await geste(S, '#btn-plus'); await dormir(650); await geste(S, '[data-nd-act="groupe"]'); await dormir(800);
     await geste(S, '#g-contacts .contact[data-id="c1"]'); await geste(S, '#g-creer'); await dormir(1400);
     await contrasteTout(S, S.nom + ' · liste après création (bannière descendue)', { attente: 100, minimum: 12 });
     await contrasteTout(S, S.nom + ' · liste après création (bannière partie)', { attente: 3200, minimum: 12 });
@@ -1876,7 +1876,7 @@ async function etapeAppelsStress(b, base, W) {
   titre('appel : valeurs les plus longues plausibles à ' + W + ' px');
   const pf = { nom: 'stress appel ' + W, w: W, h: 780, dpr: 1, mobile: true, insets: null };
   const S = await ouvrirPage(b, pf, { base }); S.nom = pf.nom;
-  await geste(S, '#btn-groupe'); await dormir(700);
+  await geste(S, '#btn-plus'); await dormir(650); await geste(S, '[data-nd-act="groupe"]'); await dormir(700);
   for (const id of ['c1', 'c2', 'c3', 'c4', 'c5', 'c6']) { await geste(S, '#g-contacts .contact[data-id="' + id + '"]'); await dormir(80); }
   await geste(S, '#g-nom'); await taper(S, 'M'.repeat(40)); await S.page.keyboard.press('Enter');
   await geste(S, '#g-creer'); await dormir(1300);
