@@ -206,14 +206,14 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI Variable Display', 'Segoe UI', Roboto, 'Noto Sans', 'Helvetica Neue', Helvetica, system-ui, sans-serif;
   font-size: 34px; line-height: 41px; letter-spacing: .37px; font-weight: 700; color: var(--text);
 }
-/* le bouton « Groupe » : la zone qui répond fait 44 px, la pastille qu'on voit en fait 32 (le paquet dessine 32) */
-.btn-groupe { min-height: 44px; display: inline-flex; align-items: center; padding: 0; }
-.btn-groupe .pastille {
-  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px 0 10px; border-radius: 999px;
-  background: var(--fill-soft); color: var(--accent-txt); font-size: 15px; font-weight: 600; transition: transform .12s ease-out;
+/* le bouton « + » (Nouvelle discussion) : la zone qui répond fait 44 px, le rond qu'on voit en fait 32 ; l'encre est celle de l'aplat (--on-fill), jamais un blanc écrit en dur */
+.btn-plus { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: flex-end; padding: 0; }
+.btn-plus .pastille {
+  display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
+  background: var(--fill); color: var(--on-fill); transition: transform .12s ease-out;
 }
-.btn-groupe:active .pastille { transform: scale(.95); }
-.btn-groupe .ic { font-size: 16px; stroke-width: 2.2; }
+.btn-plus:active .pastille { transform: scale(.95); }
+.btn-plus .ic { font-size: 18px; stroke-width: 2.4; }
 
 .recherche {
   display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; margin-bottom: 12px;
@@ -639,6 +639,25 @@ button.photo:active { transform: scale(.97); }
 .info-sous { margin: 0; font-size: 15px; line-height: 20px; color: var(--sub-meta); overflow-wrap: anywhere; }
 .info-corps .reglage .ic { font-size: 22px; color: var(--accent); }
 .info-corps .reglage-texte { color: var(--accent-txt); }
+
+/* ══ 9 bis. « NOUVELLE DISCUSSION » — la recherche, les actions, les contacts de A à Z et l'index sur le bord droit ══════════════════════════════════════
+   Le corps ne défile PAS : la recherche reste en haut, la liste défile dans `.nd-defile`, l'index reste posé à droite. Le bord droit de la feuille n'a pas son rembourrage (l'index y vit). */
+.nd-corps { display: flex; flex-direction: column; overflow: hidden; padding: 6px 0 0 16px; }
+.nd-corps[hidden] { display: none; }
+.nd-corps .recherche { margin-right: 16px; flex: none; }
+.nd-zone { position: relative; flex: 1; min-height: 0; display: flex; }
+.nd-defile { flex: 1; min-width: 0; position: relative; overflow-y: auto; overscroll-behavior: contain; padding: 0 44px calc(24px + env(safe-area-inset-bottom, 0px)) 0; }
+.nd-act .ic { width: 24px; height: 24px; flex: none; color: var(--accent); stroke-width: 1.9; }
+.nd-act .reglage-texte { color: var(--text); }
+.nd-lettre { scroll-margin-top: 4px; }
+.nd-index { position: absolute; top: 0; right: 0; bottom: 0; width: 44px; display: flex; flex-direction: column; justify-content: center; touch-action: none; user-select: none; -webkit-user-select: none; }
+.nd-index[hidden] { display: none; }
+.nd-index button { flex: 0 1 22px; min-height: 14px; width: 44px; padding: 0; display: grid; place-items: center; font-size: 11px; line-height: 1; font-weight: 700; color: var(--accent-txt); }
+.nd-index button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 8px; }
+.nd-x { padding: 0 4px; }
+.feuille[data-mode="nouvelle"] #g-annuler { width: 44px; padding: 0; overflow: hidden; }      /* l'« Annuler » invisible ne garde que la largeur du ✕ : le titre reste au centre de la feuille */
+.nd-x-rond { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--fill-soft); color: var(--sub); font-size: 14px; }
+.nd-x-rond .ic { stroke-width: 2.4; }
 
 /* ══ 11. L'ÉCRAN D'APPEL — sombre de jour comme de nuit (le paquet), sans barre d'onglets ; au bureau il occupe la ZONE DE CONTENU, la barre latérale reste ══
    Trois mises en page, qu'une SEULE donnée choisit (data-mise) : « audio » (un avatar de 120, le nom en 30), « video » (l'autre en plein écran, « Vous » en
@@ -1141,6 +1160,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   <symbol id="i-groupe" viewBox="0 0 24 24"><path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 .4a2.6 2.6 0 1 0 0-5.2 2.6 2.6 0 0 0 0 5.2ZM3 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5m3-6c2.4.2 4 2 4 4.4M19 3v4m2-2h-4"/></symbol>
   <symbol id="i-photo" viewBox="0 0 24 24"><path d="M12 15a4 4 0 0 0 4-4V8a4 4 0 0 0-8 0v3a4 4 0 0 0 4 4Zm-8 6a8 8 0 0 1 16 0M9 4l1-1.5h4L15 4"/></symbol>
   <symbol id="i-coche" viewBox="0 0 24 24"><path d="M5 12.5 10 17.5 19 7"/></symbol>
+  <symbol id="i-contact-plus" viewBox="0 0 24 24"><path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm-6 8.5c0-3 2.7-5 6-5s6 2 6 5M19 8v6m3-3h-6"/></symbol>
   <symbol id="i-croix" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
   <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M20 15.5 15.5 11 7 19"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
@@ -1204,7 +1224,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <section class="vue" id="vue-messages" aria-labelledby="titre-messages">
       <div class="entete-vue">
         <button type="button" class="lien-texte presse" id="btn-modifier">Modifier</button>
-        <button type="button" class="btn-groupe" id="btn-groupe" aria-haspopup="dialog"><span class="pastille"><svg class="ic" aria-hidden="true"><use href="#i-groupe"/></svg>Groupe</span></button>
+        <button type="button" class="btn-plus" id="btn-plus" aria-haspopup="dialog" aria-label="Nouvelle discussion"><span class="pastille"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
       </div>
       <h1 class="grand-titre" id="titre-messages">Messages</h1>
       <label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher dans les conversations</span><input type="search" id="recherche-conv" placeholder="Rechercher" autocomplete="off" enterkeyhint="search"></label>
@@ -1355,6 +1375,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       <button type="button" class="feuille-bouton presse" id="g-annuler">Annuler</button>
       <h2 id="feuille-titre">Nouveau groupe</h2>
       <button type="button" class="feuille-bouton fin presse" id="g-creer" aria-disabled="true">Créer</button>
+      <button type="button" class="feuille-bouton fin presse nd-x" id="nd-fermer" aria-label="Fermer" hidden><span class="nd-x-rond"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></span></button>
     </div>
   </div>
   <div class="feuille-corps" id="feuille-corps">
@@ -1378,6 +1399,13 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     </div>
   </div>
   <div class="feuille-corps info-corps" id="info-corps" hidden></div>
+  <div class="feuille-corps nd-corps" id="nd-corps" hidden>
+    <label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher un contact</span><input type="search" id="nd-recherche" placeholder="Rechercher un contact" autocomplete="off" enterkeyhint="search"></label>
+    <div class="nd-zone">
+      <div class="nd-defile" id="nd-defile"><div id="nd-liste"></div></div>
+      <nav class="nd-index" id="nd-index" aria-label="Index alphabétique" hidden></nav>
+    </div>
+  </div>
 </section>
 
 <input type="file" id="profil-photo-fichier" class="sr-seul" accept="image/*" tabindex="-1" aria-hidden="true">
@@ -1517,6 +1545,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     let l; try { l = await source.lister(forcer === true); } catch (e) { montrerErreurListe(e); return; }
     etat.conversations = l; masquerErreurListe();
     rendreListe();
+    if (etat.groupe.ouvert && etat.groupe.mode === 'nouvelle') rendreNouvelle();       // « Contacts fréquents » suit la liste
   }
   $('liste-erreur-bouton').addEventListener('click', () => rafraichirListe(true));
 
@@ -2334,12 +2363,16 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
     const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit', corpsInfo = info || G.mode === 'contact' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
     $('feuille').dataset.mode = G.mode;
-    $('feuille-titre').textContent = info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
+    const nouv = G.mode === 'nouvelle';
+    $('feuille-titre').textContent = nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
     $('g-annuler').textContent = corpsInfo && !formReunion ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : 'Créer';
     $('g-creer').style.visibility = corpsInfo ? 'hidden' : '';
     $('g-creer').tabIndex = corpsInfo ? -1 : 0; if (corpsInfo) $('g-creer').setAttribute('aria-hidden', 'true'); else $('g-creer').removeAttribute('aria-hidden');
-    $('feuille-corps').hidden = corpsInfo; $('info-corps').hidden = !corpsInfo;
+    $('feuille-corps').hidden = corpsInfo || nouv; $('info-corps').hidden = !corpsInfo; $('nd-corps').hidden = !nouv;
+    /* « Nouvelle discussion » : pas de « Annuler » ni de « Créer » — un ✕ rond à droite (l'« Annuler » invisible garde la place, le titre reste centré) */
+    $('g-annuler').style.visibility = nouv ? 'hidden' : ''; $('g-annuler').tabIndex = nouv ? -1 : 0; if (nouv) $('g-annuler').setAttribute('aria-hidden', 'true'); else $('g-annuler').removeAttribute('aria-hidden');
+    $('g-creer').style.display = nouv ? 'none' : ''; $('nd-fermer').hidden = !nouv;
     $('g-reglages').hidden = appel; $('g-choix').hidden = !appel; $('g-resume').hidden = !appel;
     $('g-resume').textContent = CAP.appelsMedias && !CAP.appelsGroupe ? (G.choisis.length ? contactDe(G.choisis[0]).nom : 'Choisir un contact') : (G.choisis.length ? G.choisis.length + (G.choisis.length > 1 ? ' participants' : ' participant') : 'Choisir les participants');
     document.querySelectorAll('#g-choix .g-pilule').forEach(b => b.setAttribute('aria-checked', (b.dataset.type === 'video') === G.video ? 'true' : 'false'));
@@ -2349,7 +2382,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     $('g-photo').style.backgroundImage = G.photo ? 'url(' + G.photo + ')' : '';
   }
   /* ouvrir = pousser la route ; l'écran suit dans ouvrirFeuilleDom (jouée aussi par le retour système) */
-  function ouvrirFeuille(mode) { declencheur = document.activeElement; pousser(Object.assign({}, etat.route, { feuille: mode || 'chat' })); }
+  /* `remplace` : passer D'UNE feuille À UNE AUTRE (« Nouvelle discussion » → « Nouveau groupe ») REMPLACE l'entrée au lieu d'en empiler une — un retour ferme la feuille, il ne rouvre pas celle d'avant ; le foyer à rendre reste le bouton d'origine */
+  function ouvrirFeuille(mode, remplace) { if (!remplace) declencheur = document.activeElement; const r = Object.assign({}, etat.route, { feuille: mode || 'chat' }); if (remplace) remplacer(r); else pousser(r); }
   /* la route dit QUELLE feuille : 'chat' (Nouveau groupe), 'appel' (Appel de groupe), 'info:<id d'un appel>' (ses détails) */
   const cleFeuille = f => String(f === true ? 'chat' : f);
   function ouvrirFeuilleDom(f) {
@@ -2357,7 +2391,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (!declencheur) declencheur = document.activeElement;
     etat.groupe = groupeVierge();
     etat.groupe.cle = cleFeuille(f);
-    etat.groupe.mode = mode === 'appel' || mode === 'info' || (mode === 'contact' && CAP.liens) || (mode === 'convinfo' && CAP.groupeInfos) || (mode === 'profil' && CAP.reglages) || (mode === 'suppression' && CAP.compte)
+    etat.groupe.mode = mode === 'appel' || mode === 'info' || mode === 'nouvelle' || (mode === 'contact' && CAP.liens) || (mode === 'convinfo' && CAP.groupeInfos) || (mode === 'profil' && CAP.reglages) || (mode === 'suppression' && CAP.compte)
       || (CAP.espaces && (mode === 'entreprise' || ((mode === 'espace' || mode === 'abo') && ID_ESPACE.test(arg || ''))))
       || (CAP.reunions && (mode === 'reunion-new' || ((mode === 'reunion' || mode === 'reunion-edit') && ID_REUNION.test(arg || ''))))
       || (CAP.salles && mode === 'invite-reunion') || (CAP.persoPlus && mode === 'perso-plus') ? mode : 'chat';
@@ -2365,13 +2399,14 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (etat.groupe.mode === 'espace' || etat.groupe.mode === 'abo') etat.groupe.espaceId = arg;
     if (etat.groupe.mode === 'reunion' || etat.groupe.mode === 'reunion-edit') etat.groupe.reunionId = arg;
     if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel') { CONTACTS = typeof source.contacts === 'function' ? source.contacts() : CONTACTS; construireContacts(); }
+    if (etat.groupe.mode === 'nouvelle') { CONTACTS = typeof source.contacts === 'function' ? source.contacts() : CONTACTS; $('nd-defile').scrollTop = 0; rendreNouvelle(); }
     if (etat.groupe.mode === 'info') {
       etat.groupe.info = etat.appels.find(x => x.id === arg) || null;
       /* un appel qui n'est plus dans la liste (lien d'historique ancien, filtre changé) : pas de feuille vide, on rend la route d'en dessous */
       if (!etat.groupe.info) { declencheur = null; setTimeout(() => { if (etat.route && etat.route.feuille) remplacer(parentDe(etat.route)); }, 0); return; }
     }
     etat.groupe.ouvert = true;
-    $('g-nom').value = ''; $('g-recherche').value = ''; $('g-photo-fichier').value = '';
+    $('g-nom').value = ''; $('g-recherche').value = ''; $('nd-recherche').value = ''; $('g-photo-fichier').value = '';
     $('feuille-corps').scrollTop = 0; $('info-corps').scrollTop = 0;
     if (etat.groupe.mode === 'info') rendreInfo(etat.groupe.info);
     if (etat.groupe.mode === 'contact') rendreFeuilleContact();
@@ -2441,7 +2476,87 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (!CAP.service) setTimeout(() => notifier('Vous avez été ajouté au groupe « ' + nom + ' »', 'Aperçu de la notification que reçoivent ' + prenoms.join(', ')), 300);
   }
 
-  $('btn-groupe').addEventListener('click', () => ouvrirFeuille('chat'));
+  /* ═══ 9 bis. « NOUVELLE DISCUSSION » — ce que le « + » ouvre ═══════════════════════════════════════════════════════════════
+     Une carte d'ACTIONS (celles qu'OP MESSAGES tient, et seulement celles-là : une capacité absente retire sa ligne), puis les contacts — ceux avec qui l'on a écrit en dernier, puis tous, de A à Z — et l'index
+     sur le bord droit. Toucher un contact ouvre (ou crée) la conversation à deux. La recherche ne filtre que ce que la page a déjà reçu : le NOM (aucun « @nom de profil » ni numéro n'existe encore côté service,
+     le champ ne les promet pas). `ndModele` est PURE (rien du DOM) : le banc la joue sur les contacts et les conversations d'un vrai service. Passer à une autre feuille REMPLACE l'entrée (un retour = une fois). */
+  const ND_ACTIONS = [
+    ['groupe', 'Nouveau groupe', 'i-groupe', () => true],
+    ['contact', 'Nouveau contact', 'i-contact-plus', () => !!CAP.liens],
+    ['appel', 'Nouvel appel', 'i-phone', () => !!CAP.appels],
+    ['reunion', 'Programmer une réunion', 'i-agenda', () => !!CAP.reunions]
+  ];
+  function ndModele(contacts, discussions, requete) {
+    const q = norme(requete || '');
+    const actions = ND_ACTIONS.filter(a => a[3]() && (!q || norme(a[1]).includes(q)));
+    const liste = (contacts || []).filter(c => c && c.nom && (!q || norme(c.nom).includes(q)));
+    const lettreDe = c => { const l = norme(c.nom).charAt(0).toUpperCase(); return /^[A-Z]$/.test(l) ? l : '#'; };
+    const tri = liste.slice().sort((a, b) => { const x = lettreDe(a), y = lettreDe(b); return x === y ? a.nom.localeCompare(b.nom, 'fr') : x === '#' ? 1 : y === '#' ? -1 : x < y ? -1 : 1; });
+    const groupes = [];
+    tri.forEach(c => { const l = lettreDe(c); const dernier = groupes[groupes.length - 1]; if (dernier && dernier.lettre === l) dernier.contacts.push(c); else groupes.push({ lettre: l, contacts: [c] }); });
+    /* ceux avec qui l'on a écrit en dernier (la liste arrive de la plus récente à la plus ancienne) : une conversation à DEUX seulement, jamais un groupe ni un canal */
+    const connus = new Map(liste.map(c => [c.id, c])), vus = new Set(), frequents = [];
+    if (!q) for (const c of discussions || []) {
+      if (!c || c.type !== 'direct') continue;
+      const id = c.autre || (Array.isArray(c.membres) ? c.membres.find(m => m !== 'moi') : null);
+      if (!id || vus.has(id) || !connus.has(id)) continue;
+      vus.add(id); frequents.push(connus.get(id));
+      if (frequents.length === 4) break;
+    }
+    return { actions, frequents, groupes, lettres: groupes.map(x => x.lettre), total: liste.length };
+  }
+  function rendreNouvelle() {
+    const G = g(), M = ndModele(CONTACTS, etat.conversations, G.recherche);
+    const ligne = c => '<button type="button" class="contact presse" data-nd-contact="' + esc(c.id) + '">' + avatar(c) + '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span>' + (c.role ? '<span class="contact-role">' + esc(c.role) + '</span>' : '') + '</span></button>';
+    let h = '';
+    if (M.actions.length) h += '<div class="carte" role="group" aria-label="Actions">' + M.actions.map(a => '<button type="button" class="reglage nd-act presse" data-nd-act="' + a[0] + '">' + icone(a[2]) + '<span class="reglage-texte">' + esc(a[1]) + '</span></button>').join('') + '</div>';
+    if (M.frequents.length) h += '<div class="rubrique"><span>Contacts fréquents</span></div><div class="carte" role="group" aria-label="Contacts fréquents">' + M.frequents.map(ligne).join('') + '</div>';
+    M.groupes.forEach(x => { h += '<div class="rubrique nd-lettre" data-lettre="' + x.lettre + '"><span>' + x.lettre + '</span></div><div class="carte" role="group" aria-label="Contacts : ' + x.lettre + '">' + x.contacts.map(ligne).join('') + '</div>'; });
+    if (!M.actions.length && !M.total) h += '<p class="vide">' + (norme(G.recherche) ? 'Aucun résultat pour « ' + esc(G.recherche.trim()) + ' »' : CAP.liens ? 'Tu n\'as pas encore de contact : ajoute quelqu\'un avec « Nouveau contact ».' : 'Aucun contact pour l\'instant.') + '</p>';
+    $('nd-liste').innerHTML = h;
+    const idx = $('nd-index');
+    idx.innerHTML = M.lettres.map(l => '<button type="button" data-nd-lettre="' + l + '" aria-label="Aller à la lettre ' + (l === '#' ? 'autres noms' : l) + '">' + l + '</button>').join('');
+    idx.hidden = M.lettres.length < 2;
+  }
+  /* l'index : toucher une lettre fait défiler jusqu'à elle, glisser le doigt (ou la souris) le long du bord fait défiler en continu ; au clavier, chaque lettre est un bouton */
+  function ndAller(lettre) {
+    const cible = $('nd-liste').querySelector('[data-lettre="' + lettre + '"]'); if (!cible) return;
+    $('nd-defile').scrollTop = Math.max(0, cible.offsetTop - 4);
+  }
+  function ndLettreSous(y) {
+    const bs = Array.from($('nd-index').querySelectorAll('[data-nd-lettre]')); if (!bs.length) return null;
+    let meilleur = bs[0], ecart = Infinity;
+    bs.forEach(b => { const r = b.getBoundingClientRect(), e = y < r.top ? r.top - y : y > r.bottom ? y - r.bottom : 0; if (e < ecart) { ecart = e; meilleur = b; } });
+    return meilleur.dataset.ndLettre;
+  }
+  let ndGlisse = false;
+  $('nd-index').addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    ndGlisse = true; try { $('nd-index').setPointerCapture(e.pointerId); } catch (er) { /* sans capture, le glissé s'arrête au bord de l'index */ }
+    const l = ndLettreSous(e.clientY); if (l) ndAller(l);
+    e.preventDefault();
+  });
+  $('nd-index').addEventListener('pointermove', e => { if (!ndGlisse) return; const l = ndLettreSous(e.clientY); if (l) ndAller(l); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => $('nd-index').addEventListener(t, () => { ndGlisse = false; }));
+  $('nd-index').addEventListener('click', e => { const b = e.target.closest('[data-nd-lettre]'); if (b) ndAller(b.dataset.ndLettre); });         // le clavier : Entrée ou Espace sur la lettre
+  $('nd-recherche').addEventListener('input', e => { g().recherche = e.target.value; $('nd-defile').scrollTop = 0; rendreNouvelle(); });
+  $('nd-liste').addEventListener('click', e => {
+    const a = e.target.closest('[data-nd-act]');
+    if (a) {
+      const id = a.dataset.ndAct;
+      if (id === 'groupe') ouvrirFeuille('chat', true);
+      else if (id === 'contact') ouvrirFeuille('contact', true);
+      else if (id === 'appel') ouvrirFeuille('appel', true);
+      else if (id === 'reunion') programmerReunion(true);
+      return;
+    }
+    const c = e.target.closest('[data-nd-contact]'); if (!c || etat.creation) return;
+    etat.creation = true;
+    ouvrirConversationAvec([c.dataset.ndContact]).finally(() => { etat.creation = false; });
+  });
+
+  $('btn-plus').addEventListener('click', () => ouvrirFeuille('nouvelle'));
+  $('nd-fermer').addEventListener('click', () => fermerFeuille(false));
   $('g-annuler').addEventListener('click', () => fermerFeuille(false));
   $('voile').addEventListener('click', () => fermerFeuille(false));
   $('g-creer').addEventListener('click', () => { if (g().mode === 'appel') appelerDepuisFeuille(); else if (g().mode === 'chat') creerGroupe(); });
@@ -3440,6 +3555,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     peindreBloquesN(); peindreProfilReglage();
     if (!etat.groupe.ouvert) return;
     if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel') { construireContacts(); synchroFeuille(); }
+    else if (etat.groupe.mode === 'nouvelle') rendreNouvelle();
     else if (etat.groupe.mode === 'contact') rendreListeContacts();      // la liste des contacts ET celle des bloqués
     else if (etat.groupe.mode === 'convinfo') rendreConvInfo();
   }
@@ -3939,12 +4055,14 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   }
   /* « Programmer » : le formulaire à qui peut organiser, la feuille du forfait à qui ne le peut pas. Le service décide (402) ; la page le DEMANDE avant, pour ne jamais montrer un formulaire qu'elle sait refusé. */
   let programmerOccupe = false;
-  async function programmerReunion() {
-    if (!CAP.persoPlus) { ouvrirFeuille('reunion-new'); return; }
+  async function programmerReunion(remplace) {
+    /* `remplace` : le geste vient de la feuille « Nouvelle discussion » — il la REMPLACE, et ne fait rien si elle a été fermée pendant l'attente (une route périmée ne se réécrit pas) */
+    const aller = mode => { if (remplace && !(etat.route && etat.route.feuille === 'nouvelle')) return; ouvrirFeuille(mode, !!remplace); };
+    if (!CAP.persoPlus) { aller('reunion-new'); return; }
     if (programmerOccupe) return;
     programmerOccupe = true;
     try { await chargerPersoPlus(); } finally { programmerOccupe = false; }
-    ouvrirFeuille(pp.etat && pp.etat.organiser === false ? 'perso-plus' : 'reunion-new');
+    aller(pp.etat && pp.etat.organiser === false ? 'perso-plus' : 'reunion-new');
   }
   const offreChoisie = () => { const S = pp.etat; return S ? (S.offres.find(o => o.id === pp.ui.cycle) || S.offres.find(o => o.id === S.defaut) || S.offres[0] || null) : null; };
   const parPP = o => o.par === 'an' ? 'par an' : 'par mois';

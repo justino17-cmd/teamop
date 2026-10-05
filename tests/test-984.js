@@ -398,6 +398,8 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       v('⛔ `failed` relance TOUT DE SUITE : `restartIce` est appelé pendant la chute elle-même, aucun minuteur de grâce n\'est armé (un lien mort n\'a rien à attendre)', [pq.relances - r0, tenus.size], [1, 0]);
       vrai('… et la liaison revient', !!(await att(async () => pq.iceConnectionState === 'connected' && (await AP.src.appel(sp.id)).liaison === 'connecte')));
       const r1 = pq.relances; pq.casser('disconnected');
+      /* la chute se traite en asynchrone : on attend le GESTE (le minuteur armé), jamais un chronomètre — une machine chargée dépassait les 40 ms (« Vérification » du 5 octobre 2026 : obtenu [0,0]) */
+      await att(async () => tenus.size >= 1);
       await dort(40);                                              // le temps qu'une relance « sans grâce » aurait eu pour partir (un minuteur à zéro se déclenche en moins de 5 ms, et passe avant celui-ci)
       v('⛔ `disconnected` ARME le minuteur de grâce (un seul) et ne relance RIEN tant qu\'il n\'est pas arrivé', [tenus.size, pq.relances - r1], [1, 0]);
       pq.casser('connected');
