@@ -235,8 +235,8 @@ async function controler(PAGE, SRC) {
   const rtJour = hex(jeton(jj && jj[1], '--rouge-txt')), rtNuit = hex(jeton(nn && nn[1], '--rouge-txt')), rouge = hex('#ff453a');
   /* thème « 100 % Apple » (5 octobre 2026) : la carte est PLEINE (#ffffff / #1c1c1e) ; la ligne survolée ou pressée prend le gris du champ (--field) par-dessus */
   const carteJour = [255, 255, 255], carteJourFonce = melange([118, 118, 128], .12, [255, 255, 255]);
-  const carteNuit = [28, 28, 30], carteNuitHaut = melange([118, 118, 128], .24, [28, 28, 30]);
-  vrai('--rouge-txt existe de jour ET de nuit (#d70015 et #ff6961) et SERT le nom d\'un appel manqué', !!rtJour && !!rtNuit && jeton(jj && jj[1], '--rouge-txt') === '#d70015' && jeton(nn && nn[1], '--rouge-txt') === '#ff6961' && /\.appel-nom-ligne\.manque \{ color: var\(--rouge-txt\); \}/.test(CSS) && !/\.appel-nom-ligne\.manque \{ color: var\(--rouge\)/.test(CSS));
+  const carteNuit = [22, 36, 75], carteNuitHaut = melange([120, 140, 200], .18, [22, 36, 75]);      // nuit en bleu nuit (carte #16244b), pas en noir
+  vrai('--rouge-txt existe de jour ET de nuit (#d70015 et #ff8a82) et SERT le nom d\'un appel manqué', !!rtJour && !!rtNuit && jeton(jj && jj[1], '--rouge-txt') === '#d70015' && jeton(nn && nn[1], '--rouge-txt') === '#ff8a82' && /\.appel-nom-ligne\.manque \{ color: var\(--rouge-txt\); \}/.test(CSS) && !/\.appel-nom-ligne\.manque \{ color: var\(--rouge\)/.test(CSS));
   if (rtJour && rtNuit && rouge) {
     const cj = Math.min(contraste(rtJour, carteJour), contraste(rtJour, carteJourFonce)), cn = Math.min(contraste(rtNuit, carteNuit), contraste(rtNuit, carteNuitHaut));
     vrai('contraste (calculé, vraies formules) : le nom d\'un manqué fait ' + cj.toFixed(2) + ':1 de jour et ' + cn.toFixed(2) + ':1 de nuit sur la carte — au moins 4,5 [sonde : « nom d\'un appel MANQUÉ » au pixel]', cj >= 4.5 && cn >= 4.5, cj.toFixed(2) + ' / ' + cn.toFixed(2));

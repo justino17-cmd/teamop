@@ -31,7 +31,7 @@ const lire = f => fs.readFileSync(path.join(RACINE, f), 'utf8');
    · --on-fill : l'encre posée sur --fill (une surface, une encre — CLAUDE.md). */
 const NOUS = {
   jour: { '--sub-meta': 'rgba(60,60,67,.8)', '--rond-bord': 'rgba(60,60,67,.6)', '--on-fill': '#ffffff' },
-  nuit: { '--sub-meta': 'rgba(235,235,245,.7)', '--rond-bord': 'rgba(235,235,245,.6)', '--on-fill': '#ffffff' }
+  nuit: { '--sub-meta': 'rgba(220,228,250,.75)', '--rond-bord': 'rgba(235,235,245,.6)', '--on-fill': '#ffffff' }
 };
 /* ── des jetons DÉCLARÉS que l'étape 2 n'utilise pas encore : nommés un par un, avec l'écran qui les lira. Un jeton déclaré et lu par personne est
    du code mort qui a l'air d'une garde — la règle de CLAUDE.md sur les champs de /health, appliquée aux variables CSS. Le banc exige les DEUX sens :
@@ -262,9 +262,9 @@ const MUTATIONS = [
   ['jeton de jour changé d\'un chiffre (--accent #2a4a9c → #2a4a9d)', 'page', p => p.replace('--accent: #2a4a9c;', '--accent: #2a4a9d;'), /« accent » .* jour/],
   ['jeton de nuit changé (--fill #3b63c4 → #3b63c5)', 'page', p => p.replace('--fill: #3b63c4;', '--fill: #3b63c5;'), /« fill » .* nuit/],
   ['la carte du jour n\'est plus blanche (#ffffff → #fefefe)', 'page', p => p.replace('--card: #ffffff;', '--card: #fefefe;'), /« carte » .* jour/],
-  ['fond d\'écran de nuit : le noir devient un gris (#000000 → #0a0a0c)', 'page', p => p.replace('--base: #000000;', '--base: #0a0a0c;'), /« fond écran » .* nuit/],
+  ['fond d\'écran de nuit : le bleu nuit change d\'un chiffre (#0b1633 → #0b1634)', 'page', p => p.replace('--base: #0b1633;', '--base: #0b1634;'), /« fond écran » .* nuit/],
   ['le dégradé revient sur le fond de jour', 'page', p => p.replace('  --screen: none;', '  --screen: linear-gradient(160deg, #eef3fb, #dfe8f8);'), /--screen ne peint rien/],
-  ['une valeur du tableau système (--sheet-bg de nuit)', 'page', p => p.replace('--sheet-bg: rgba(28,28,30,.92);', '--sheet-bg: rgba(28,28,30,.9);'), /--sheet-bg/],
+  ['une valeur du tableau système (--sheet-bg de nuit)', 'page', p => p.replace('--sheet-bg: rgba(18,31,66,.94);', '--sheet-bg: rgba(18,31,66,.9);'), /--sheet-bg/],
   ['le reflet Liquid Glass de nuit change (.2 → .3)', 'page', p => p.replace('--verre-reflet: inset 0 1px 0 rgba(255,255,255,.2)', '--verre-reflet: inset 0 1px 0 rgba(255,255,255,.3)'), /« --verre-reflet » — nuit/],
   ['la barre d\'onglets perd son reflet (Liquid Glass)', 'page', p => p.replace('box-shadow: var(--shadow-bar), var(--verre-reflet); --i: 0;', 'box-shadow: var(--shadow-bar); --i: 0;'), /arête est un REFLET/],
   ['le trait gris revient autour de la barre d\'onglets', 'page', p => p.replace('  border: 0; box-shadow: var(--shadow-bar), var(--verre-reflet); --i: 0;', '  border: var(--line); box-shadow: var(--shadow-bar), var(--verre-reflet); --i: 0;'), /arête est un REFLET/],

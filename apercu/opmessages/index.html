@@ -11,14 +11,15 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' blob:; media-src blob:; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'none'">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0b1633" media="(prefers-color-scheme: dark)">
 <title>OP MESSAGES — aperçu</title>
 <link rel="icon" href="../../icons/opmsg-favicon-32.png" type="image/png" sizes="32x32">
 <style>
 /* ══ 1. LES JETONS — LE DOCUMENT `design/opmessages/THEME-OPMESSAGES.md` EST LA SOURCE ══════════════════════════════════
    Thème « 100 % Apple » (décidé le 5 octobre 2026 : « 2 et 3 », « Apple partout ») : les couleurs SYSTÈME d'Apple — fond uni
-   #f2f2f7 / noir, cartes blanches / #1c1c1e, séparateurs et gris d'iOS — avec le BLEU DU LOGO pour l'accent et la bulle envoyée,
-   et le verre Liquid Glass d'iOS 26 (--verre-reflet). L'ancien thème (dégradé bleu nuit, diagonale à 112°) est rangé dans
+   #f2f2f7, cartes blanches, séparateurs et gris d'iOS — avec le BLEU DU LOGO pour l'accent et la bulle envoyée, et le verre
+   Liquid Glass d'iOS 26 (--verre-reflet). DE NUIT, PAS DE NOIR (même jour : « un mode bleu comme on a, un peu plus sombre pour
+   pas abîmer les yeux, pas du noir — c'est trop connu ») : fond uni bleu nuit #0b1633, cartes #16244b un cran plus claires. L'ancien thème (dégradé bleu nuit, diagonale à 112°) est rangé dans
    `design/archives/THEME-OPMESSAGES-2026-09-29.md`.
    Les valeurs du tableau « Couleurs » du document sont recopiées ici telles quelles, et celles du tableau « Jetons système »
    aussi. `tests/test-856.js` RELIT les deux tableaux et compare, jeton par jeton, jour ET nuit : un banc qui recopie des valeurs
@@ -27,14 +28,14 @@
    Des jetons sont à NOUS, ils ne sont pas dans le document — écarts déclarés un par un dans test-856, chacun pour une lisibilité :
    · --sub-meta, --sub-meta-sel, --placeholder, --tab-inactif-fg : le gris « secondaire » d'Apple (rgba(60,60,67,.6)) fait 3,3:1
      sur le fond #f2f2f7 et 3,1:1 sur un champ — trop clair pour une légende de 11 px ou le texte d'un champ vide. Le nôtre (.8 de
-     jour, .7 à .8 de nuit) fait ≥ 5:1 sur le fond, la carte, le champ et une ligne choisie (calculé, puis lu au pixel par la sonde) ;
+     jour, .75 à .8 de nuit) fait ≥ 5:1 sur le fond, la carte, le champ et une ligne choisie (calculé, puis lu au pixel par la sonde) ;
      le libellé d'un onglet inactif est posé sur du VERRE : sa lisibilité dépend aussi de ce qui défile derrière la barre ;
    · --rond-bord : le contour des cases décochées : 3:1 au moins sur la carte (WCAG 1.4.11) ;
    · --on-fill : l'encre posée sur --fill (bulle envoyée, pastille, flèche d'envoi) : une surface, une encre ;
    · --accent-txt et --side-actif-fg : l'accent de NUIT (#7ea2f0) est une couleur d'aplat ; en lettres sur une ligne choisie il
-     tombe à 4,7:1 — le texte prend #9db8f5 (6:1). De jour, l'accent passe partout (≥ 6,7:1) ;
+     tombe à 4,2:1 — le texte prend #9db8f5 (5,3:1). De jour, l'accent passe partout (≥ 6,7:1) ;
    · --rouge-txt : le #ff453a des statuts est une couleur d'APLAT (« Raccrocher » : non-texte, 3:1 suffit) ; le NOM d'un appel
-     manqué prend sa propre teinte (jour #d70015, 5,4:1 ; nuit #ff6961, 6:1 sur la carte) ;
+     manqué prend sa propre teinte (jour #d70015, 5,4:1 ; nuit #ff8a82, 6,6:1 sur la carte et 5,1:1 sur une ligne pressée) ;
    · --appel-fond, --appel-voile, --appel-bouton : l'écran d'appel est SOMBRE dans les deux modes, au bleu du logo, donc leurs
      valeurs sont les mêmes de jour et de nuit — le voile sombre posé sur la couleur d'un avatar est ce qui rend le blanc lisible sur l'orange. */
 :root {
@@ -93,36 +94,36 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --text: #ffffff;
-    --sub: rgba(235,235,245,.6);
-    --faint: rgba(235,235,245,.3);
-    --sub-meta: rgba(235,235,245,.7);
-    --placeholder: rgba(235,235,245,.7);
-    --tab-inactif-fg: rgba(235,235,245,.75);
+    --sub: rgba(220,228,250,.6);
+    --faint: rgba(220,228,250,.3);
+    --sub-meta: rgba(220,228,250,.75);
+    --placeholder: rgba(220,228,250,.75);
+    --tab-inactif-fg: rgba(220,228,250,.78);
     --accent: #7ea2f0;
     --accent-txt: #9db8f5;
     --side-actif-fg: #ffffff;
     --fill: #3b63c4;
     --fill-soft: rgba(126,162,240,.2);
-    --card: #1c1c1e;
-    --field: rgba(118,118,128,.24);
-    --input-bg: rgba(118,118,128,.24);
-    --line: 0.5px solid rgba(84,84,88,.65);
-    --sep: 0.5px solid rgba(84,84,88,.65);
-    --nav-bar: rgba(28,28,30,.72);
-    --tab-bar: rgba(30,30,32,.62);
-    --shadow-bar: 0 8px 28px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.3);
-    --bubble-in: #262628;
+    --card: #16244b;
+    --field: rgba(120,140,200,.18);
+    --input-bg: rgba(120,140,200,.18);
+    --line: 0.5px solid rgba(120,140,200,.32);
+    --sep: 0.5px solid rgba(120,140,200,.26);
+    --nav-bar: rgba(14,26,58,.74);
+    --tab-bar: rgba(22,36,76,.62);
+    --shadow-bar: 0 8px 28px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.3);
+    --bubble-in: #203262;
     --bubble-in-fg: #fff;
-    --seg-track: rgba(118,118,128,.24);
-    --seg-knob: #636366;
-    --sidebar: rgba(28,28,30,.6);
-    --sheet: rgba(28,28,30,.92);
-    --sheet-bg: rgba(28,28,30,.92);
-    --notif-bg: rgba(44,44,46,.82);
-    --toggle-off: rgba(120,120,128,.32);
+    --seg-track: rgba(120,140,200,.22);
+    --seg-knob: #3d4f80;
+    --sidebar: rgba(14,26,58,.6);
+    --sheet: rgba(18,31,66,.94);
+    --sheet-bg: rgba(18,31,66,.94);
+    --notif-bg: rgba(28,44,90,.84);
+    --toggle-off: rgba(120,140,200,.3);
     --rond-bord: rgba(235,235,245,.6);
     --on-fill: #ffffff;
-    --sub-meta-sel: rgba(235,235,245,.8);
+    --sub-meta-sel: rgba(220,228,250,.8);
     --group-r: 22px;
     --handle: rgba(255,255,255,.8);
     --tab-active-bg: rgba(255,255,255,.14);
@@ -130,17 +131,17 @@
     --tab-active-shadow: inset 0 1px 0 rgba(255,255,255,.12);
     --screen: none;
     --rouge: #ff453a;
-    --rouge-txt: #ff6961;
+    --rouge-txt: #ff8a82;
     --vert: #30d158;
     --appel-fond: linear-gradient(160deg, #24408a, #0e1a3f);
     --appel-voile: rgba(14,26,63,.62);
     --appel-bouton: rgba(255,255,255,.18);
-    --puce-x: #000000;
+    --puce-x: #0b1633;
     --coche: #ffffff;
-    --solide: #1c1c1e;
-    --solide-feuille: #1c1c1e;
-    --solide-notif: #2c2c2e;
-    --base: #000000;
+    --solide: #0e1a3a;
+    --solide-feuille: #14224a;
+    --solide-notif: #1c2c5a;
+    --base: #0b1633;
     --verre-reflet: inset 0 1px 0 rgba(255,255,255,.2), inset 0 -1px 0 rgba(255,255,255,.06), inset 0 0 0 .5px rgba(255,255,255,.1);
   }
 }

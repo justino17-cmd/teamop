@@ -4,44 +4,47 @@
 couleurs SYSTÈME d'Apple (fonds plats, listes groupées, séparateurs, typographie HIG) avec le BLEU DU LOGO pour l'accent et la bulle
 envoyée, **et** le verre Liquid Glass d'iOS 26 (barres et boutons en capsules de verre qui flottent au-dessus du contenu). Et « Apple
 partout » : le même dessin sur iPhone, Android, Mac et Windows — seule la police suit l'appareil.
+La NUIT n'est pas le noir d'iOS (Justin, même jour : « je préfère un mode bleu comme on a, mais un peu plus sombre pour pas que
+ça abîme les yeux, vraiment à l'Apple, mais pas du noir — c'est trop connu pour trop d'applications ») : un bleu nuit uni.
 Il remplace le thème du paquet de design (dégradé bleu nuit et diagonale à 112°), rangé dans `design/archives/THEME-OPMESSAGES-2026-09-29.md`.
 Les écrans, les fonctions et les mesures plus bas restent ceux du paquet (maquette `sources/OP Messages Apple.dc.html`, absente du dépôt).
 
-## Couleurs (couleurs système d'Apple, accent au bleu du logo OP MSG)
+## Couleurs (couleurs système d'Apple, accent au bleu du logo OP MSG, nuit en bleu nuit)
 | Jeton | Jour | Nuit |
 |---|---|---|
-| fond écran | #f2f2f7 uni (systemGroupedBackground) | #000000 uni |
+| fond écran | #f2f2f7 uni (systemGroupedBackground) | #0b1633 uni (bleu nuit) |
 | texte | #000000 | #ffffff |
-| secondaire | rgba(60,60,67,.6) | rgba(235,235,245,.6) |
+| secondaire | rgba(60,60,67,.6) | rgba(220,228,250,.6) |
 | accent (liens, icônes, onglet actif) | #2a4a9c | #7ea2f0 |
 | fill (bulles envoyées, boutons) | #2a4a9c | #3b63c4 |
 | fillSoft (fonds teintés) | rgba(42,74,156,.12) | rgba(126,162,240,.2) |
-| carte | #ffffff | #1c1c1e |
-| champ / recherche | rgba(118,118,128,.12) | rgba(118,118,128,.24) |
-| bulle reçue | #e9e9eb / texte #000000 | #262628 / blanc |
-| barre nav | rgba(255,255,255,.78) | rgba(28,28,30,.72) |
-| barre d'onglets | rgba(255,255,255,.72) | rgba(30,30,32,.62) |
+| carte | #ffffff | #16244b |
+| champ / recherche | rgba(118,118,128,.12) | rgba(120,140,200,.18) |
+| bulle reçue | #e9e9eb / texte #000000 | #203262 / blanc |
+| barre nav | rgba(255,255,255,.78) | rgba(14,26,58,.74) |
+| barre d'onglets | rgba(255,255,255,.72) | rgba(22,36,76,.62) |
 | onglet actif | bulle rgba(118,118,128,.16), texte #2a4a9c | bulle rgba(255,255,255,.14), texte #c7d6fb |
-| séparateur | 0.5px rgba(60,60,67,.29) | 0.5px rgba(84,84,88,.65) |
+| séparateur | 0.5px rgba(60,60,67,.29) | 0.5px rgba(120,140,200,.26) |
 Statuts : manqué #ff453a · en ligne / parle #30d158 · quitter #ff453a. Avatars : dégradés (bleu royal #4f78d6→#2a4a9c, orange→rose, vert→bleu, violet→indigo, gris, cyan→indigo).
-Le fond est UNI, comme les applications d'Apple : plus de dégradé ni de diagonale (`--screen: none`). De nuit, le noir pur est celui
-d'iOS ; une surface qui s'élève est PLUS CLAIRE (carte #1c1c1e, feuille, bannière), jamais plus sombre.
+Le fond est UNI, comme les applications d'Apple : plus de dégradé ni de diagonale (`--screen: none`). De nuit, le bleu nuit #0b1633
+(plus sombre que l'ancien thème, jamais du noir) ; une surface qui s'élève est PLUS CLAIRE (carte #16244b, bulle, feuille, bannière),
+jamais plus sombre. Le blanc y fait 15:1 sur la carte, le gris de légende ≥ 5:1.
 
 ## Jetons système (valeurs d'Apple, HIG — lues telles quelles par `tests/test-856.js`)
 | Jeton CSS | Jour | Nuit |
 |---|---|---|
-| --faint | rgba(60,60,67,.3) | rgba(235,235,245,.3) |
-| --input-bg | #ffffff | rgba(118,118,128,.24) |
-| --line | 0.5px solid rgba(60,60,67,.29) | 0.5px solid rgba(84,84,88,.65) |
-| --shadow-bar | 0 8px 28px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.06) | 0 8px 28px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.3) |
+| --faint | rgba(60,60,67,.3) | rgba(220,228,250,.3) |
+| --input-bg | #ffffff | rgba(120,140,200,.18) |
+| --line | 0.5px solid rgba(60,60,67,.29) | 0.5px solid rgba(120,140,200,.32) |
+| --shadow-bar | 0 8px 28px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.06) | 0 8px 28px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.3) |
 | --verre-reflet | inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 0 rgba(255,255,255,.35), inset 0 0 0 .5px rgba(255,255,255,.55) | inset 0 1px 0 rgba(255,255,255,.2), inset 0 -1px 0 rgba(255,255,255,.06), inset 0 0 0 .5px rgba(255,255,255,.1) |
-| --seg-track | rgba(118,118,128,.12) | rgba(118,118,128,.24) |
-| --seg-knob | #fff | #636366 |
-| --sidebar | rgba(255,255,255,.5) | rgba(28,28,30,.6) |
-| --sheet | rgba(242,242,247,.94) | rgba(28,28,30,.92) |
-| --sheet-bg | rgba(242,242,247,.94) | rgba(28,28,30,.92) |
-| --notif-bg | rgba(255,255,255,.82) | rgba(44,44,46,.82) |
-| --toggle-off | rgba(120,120,128,.16) | rgba(120,120,128,.32) |
+| --seg-track | rgba(118,118,128,.12) | rgba(120,140,200,.22) |
+| --seg-knob | #fff | #3d4f80 |
+| --sidebar | rgba(255,255,255,.5) | rgba(14,26,58,.6) |
+| --sheet | rgba(242,242,247,.94) | rgba(18,31,66,.94) |
+| --sheet-bg | rgba(242,242,247,.94) | rgba(18,31,66,.94) |
+| --notif-bg | rgba(255,255,255,.82) | rgba(28,44,90,.84) |
+| --toggle-off | rgba(120,120,128,.16) | rgba(120,140,200,.3) |
 | --group-r | 22px | 22px |
 | --handle | rgba(0,0,0,.72) | rgba(255,255,255,.8) |
 | --tab-active-shadow | inset 0 1px 0 rgba(255,255,255,.5) | inset 0 1px 0 rgba(255,255,255,.12) |
