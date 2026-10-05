@@ -210,14 +210,14 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI Variable Display', 'Segoe UI', Roboto, 'Noto Sans', 'Helvetica Neue', Helvetica, system-ui, sans-serif;
   font-size: 34px; line-height: 41px; letter-spacing: .37px; font-weight: 700; color: var(--text);
 }
-/* le bouton « Groupe » : la zone qui répond fait 44 px, la pastille qu'on voit en fait 32 (le paquet dessine 32) */
-.btn-groupe { min-height: 44px; display: inline-flex; align-items: center; padding: 0; }
-.btn-groupe .pastille {
-  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px 0 10px; border-radius: 999px;
-  background: var(--fill-soft); color: var(--accent-txt); font-size: 15px; font-weight: 600; transition: transform .12s ease-out;
+/* le bouton « + » (Nouvelle discussion) : la zone qui répond fait 44 px, le rond qu'on voit en fait 32 ; l'encre est celle de l'aplat (--on-fill), jamais un blanc écrit en dur */
+.btn-plus { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: flex-end; padding: 0; }
+.btn-plus .pastille {
+  display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
+  background: var(--fill); color: var(--on-fill); transition: transform .12s ease-out;
 }
-.btn-groupe:active .pastille { transform: scale(.95); }
-.btn-groupe .ic { font-size: 16px; stroke-width: 2.2; }
+.btn-plus:active .pastille { transform: scale(.95); }
+.btn-plus .ic { font-size: 18px; stroke-width: 2.4; }
 
 .recherche {
   display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; margin-bottom: 12px;
@@ -643,6 +643,25 @@ button.photo:active { transform: scale(.97); }
 .info-sous { margin: 0; font-size: 15px; line-height: 20px; color: var(--sub-meta); overflow-wrap: anywhere; }
 .info-corps .reglage .ic { font-size: 22px; color: var(--accent); }
 .info-corps .reglage-texte { color: var(--accent-txt); }
+
+/* ══ 9 bis. « NOUVELLE DISCUSSION » — la recherche, les actions, les contacts de A à Z et l'index sur le bord droit ══════════════════════════════════════
+   Le corps ne défile PAS : la recherche reste en haut, la liste défile dans `.nd-defile`, l'index reste posé à droite. Le bord droit de la feuille n'a pas son rembourrage (l'index y vit). */
+.nd-corps { display: flex; flex-direction: column; overflow: hidden; padding: 6px 0 0 16px; }
+.nd-corps[hidden] { display: none; }
+.nd-corps .recherche { margin-right: 16px; flex: none; }
+.nd-zone { position: relative; flex: 1; min-height: 0; display: flex; }
+.nd-defile { flex: 1; min-width: 0; position: relative; overflow-y: auto; overscroll-behavior: contain; padding: 0 44px calc(24px + env(safe-area-inset-bottom, 0px)) 0; }
+.nd-act .ic { width: 24px; height: 24px; flex: none; color: var(--accent); stroke-width: 1.9; }
+.nd-act .reglage-texte { color: var(--text); }
+.nd-lettre { scroll-margin-top: 4px; }
+.nd-index { position: absolute; top: 0; right: 0; bottom: 0; width: 44px; display: flex; flex-direction: column; justify-content: center; touch-action: none; user-select: none; -webkit-user-select: none; }
+.nd-index[hidden] { display: none; }
+.nd-index button { flex: 0 1 22px; min-height: 14px; width: 44px; padding: 0; display: grid; place-items: center; font-size: 11px; line-height: 1; font-weight: 700; color: var(--accent-txt); }
+.nd-index button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 8px; }
+.nd-x { padding: 0 4px; }
+.feuille[data-mode="nouvelle"] #g-annuler { width: 44px; padding: 0; overflow: hidden; }      /* l'« Annuler » invisible ne garde que la largeur du ✕ : le titre reste au centre de la feuille */
+.nd-x-rond { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--fill-soft); color: var(--sub); font-size: 14px; }
+.nd-x-rond .ic { stroke-width: 2.4; }
 
 /* ══ 11. L'ÉCRAN D'APPEL — sombre de jour comme de nuit (le paquet), sans barre d'onglets ; au bureau il occupe la ZONE DE CONTENU, la barre latérale reste ══
    Trois mises en page, qu'une SEULE donnée choisit (data-mise) : « audio » (un avatar de 120, le nom en 30), « video » (l'autre en plein écran, « Vous » en
@@ -1145,6 +1164,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   <symbol id="i-groupe" viewBox="0 0 24 24"><path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 .4a2.6 2.6 0 1 0 0-5.2 2.6 2.6 0 0 0 0 5.2ZM3 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5m3-6c2.4.2 4 2 4 4.4M19 3v4m2-2h-4"/></symbol>
   <symbol id="i-photo" viewBox="0 0 24 24"><path d="M12 15a4 4 0 0 0 4-4V8a4 4 0 0 0-8 0v3a4 4 0 0 0 4 4Zm-8 6a8 8 0 0 1 16 0M9 4l1-1.5h4L15 4"/></symbol>
   <symbol id="i-coche" viewBox="0 0 24 24"><path d="M5 12.5 10 17.5 19 7"/></symbol>
+  <symbol id="i-contact-plus" viewBox="0 0 24 24"><path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm-6 8.5c0-3 2.7-5 6-5s6 2 6 5M19 8v6m3-3h-6"/></symbol>
   <symbol id="i-croix" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
   <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M20 15.5 15.5 11 7 19"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
@@ -1207,7 +1227,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <section class="vue" id="vue-messages" aria-labelledby="titre-messages">
       <div class="entete-vue">
         <button type="button" class="lien-texte presse" id="btn-modifier">Modifier</button>
-        <button type="button" class="btn-groupe" id="btn-groupe" aria-haspopup="dialog"><span class="pastille"><svg class="ic" aria-hidden="true"><use href="#i-groupe"/></svg>Groupe</span></button>
+        <button type="button" class="btn-plus" id="btn-plus" aria-haspopup="dialog" aria-label="Nouvelle discussion"><span class="pastille"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
       </div>
       <h1 class="grand-titre" id="titre-messages">Messages</h1>
       <label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher dans les conversations</span><input type="search" id="recherche-conv" placeholder="Rechercher" autocomplete="off" enterkeyhint="search"></label>
@@ -1358,6 +1378,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       <button type="button" class="feuille-bouton presse" id="g-annuler">Annuler</button>
       <h2 id="feuille-titre">Nouveau groupe</h2>
       <button type="button" class="feuille-bouton fin presse" id="g-creer" aria-disabled="true">Créer</button>
+      <button type="button" class="feuille-bouton fin presse nd-x" id="nd-fermer" aria-label="Fermer" hidden><span class="nd-x-rond"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></span></button>
     </div>
   </div>
   <div class="feuille-corps" id="feuille-corps">
@@ -1381,6 +1402,13 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     </div>
   </div>
   <div class="feuille-corps info-corps" id="info-corps" hidden></div>
+  <div class="feuille-corps nd-corps" id="nd-corps" hidden>
+    <label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher un contact</span><input type="search" id="nd-recherche" placeholder="Rechercher un contact" autocomplete="off" enterkeyhint="search"></label>
+    <div class="nd-zone">
+      <div class="nd-defile" id="nd-defile"><div id="nd-liste"></div></div>
+      <nav class="nd-index" id="nd-index" aria-label="Index alphabétique" hidden></nav>
+    </div>
+  </div>
 </section>
 
 <input type="file" id="profil-photo-fichier" class="sr-seul" accept="image/*" tabindex="-1" aria-hidden="true">

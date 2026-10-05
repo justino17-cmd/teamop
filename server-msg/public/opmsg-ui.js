@@ -118,6 +118,7 @@
     let l; try { l = await source.lister(forcer === true); } catch (e) { montrerErreurListe(e); return; }
     etat.conversations = l; masquerErreurListe();
     rendreListe();
+    if (etat.groupe.ouvert && etat.groupe.mode === 'nouvelle') rendreNouvelle();       // « Contacts fréquents » suit la liste
   }
   $('liste-erreur-bouton').addEventListener('click', () => rafraichirListe(true));
 
@@ -935,12 +936,16 @@
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
     const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit', corpsInfo = info || G.mode === 'contact' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
     $('feuille').dataset.mode = G.mode;
-    $('feuille-titre').textContent = info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
+    const nouv = G.mode === 'nouvelle';
+    $('feuille-titre').textContent = nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
     $('g-annuler').textContent = corpsInfo && !formReunion ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : 'Créer';
     $('g-creer').style.visibility = corpsInfo ? 'hidden' : '';
     $('g-creer').tabIndex = corpsInfo ? -1 : 0; if (corpsInfo) $('g-creer').setAttribute('aria-hidden', 'true'); else $('g-creer').removeAttribute('aria-hidden');
-    $('feuille-corps').hidden = corpsInfo; $('info-corps').hidden = !corpsInfo;
+    $('feuille-corps').hidden = corpsInfo || nouv; $('info-corps').hidden = !corpsInfo; $('nd-corps').hidden = !nouv;
+    /* « Nouvelle discussion » : pas de « Annuler » ni de « Créer » — un ✕ rond à droite (l'« Annuler » invisible garde la place, le titre reste centré) */
+    $('g-annuler').style.visibility = nouv ? 'hidden' : ''; $('g-annuler').tabIndex = nouv ? -1 : 0; if (nouv) $('g-annuler').setAttribute('aria-hidden', 'true'); else $('g-annuler').removeAttribute('aria-hidden');
+    $('g-creer').style.display = nouv ? 'none' : ''; $('nd-fermer').hidden = !nouv;
     $('g-reglages').hidden = appel; $('g-choix').hidden = !appel; $('g-resume').hidden = !appel;
     $('g-resume').textContent = CAP.appelsMedias && !CAP.appelsGroupe ? (G.choisis.length ? contactDe(G.choisis[0]).nom : 'Choisir un contact') : (G.choisis.length ? G.choisis.length + (G.choisis.length > 1 ? ' participants' : ' participant') : 'Choisir les participants');
     document.querySelectorAll('#g-choix .g-pilule').forEach(b => b.setAttribute('aria-checked', (b.dataset.type === 'video') === G.video ? 'true' : 'false'));
@@ -950,7 +955,8 @@
     $('g-photo').style.backgroundImage = G.photo ? 'url(' + G.photo + ')' : '';
   }
   /* ouvrir = pousser la route ; l'écran suit dans ouvrirFeuilleDom (jouée aussi par le retour système) */
-  function ouvrirFeuille(mode) { declencheur = document.activeElement; pousser(Object.assign({}, etat.route, { feuille: mode || 'chat' })); }
+  /* `remplace` : passer D'UNE feuille À UNE AUTRE (« Nouvelle discussion » → « Nouveau groupe ») REMPLACE l'entrée au lieu d'en empiler une — un retour ferme la feuille, il ne rouvre pas celle d'avant ; le foyer à rendre reste le bouton d'origine */
+  function ouvrirFeuille(mode, remplace) { if (!remplace) declencheur = document.activeElement; const r = Object.assign({}, etat.route, { feuille: mode || 'chat' }); if (remplace) remplacer(r); else pousser(r); }
   /* la route dit QUELLE feuille : 'chat' (Nouveau groupe), 'appel' (Appel de groupe), 'info:<id d'un appel>' (ses détails) */
   const cleFeuille = f => String(f === true ? 'chat' : f);
   function ouvrirFeuilleDom(f) {
@@ -958,7 +964,7 @@
     if (!declencheur) declencheur = document.activeElement;
     etat.groupe = groupeVierge();
     etat.groupe.cle = cleFeuille(f);
-    etat.groupe.mode = mode === 'appel' || mode === 'info' || (mode === 'contact' && CAP.liens) || (mode === 'convinfo' && CAP.groupeInfos) || (mode === 'profil' && CAP.reglages) || (mode === 'suppression' && CAP.compte)
+    etat.groupe.mode = mode === 'appel' || mode === 'info' || mode === 'nouvelle' || (mode === 'contact' && CAP.liens) || (mode === 'convinfo' && CAP.groupeInfos) || (mode === 'profil' && CAP.reglages) || (mode === 'suppression' && CAP.compte)
       || (CAP.espaces && (mode === 'entreprise' || ((mode === 'espace' || mode === 'abo') && ID_ESPACE.test(arg || ''))))
       || (CAP.reunions && (mode === 'reunion-new' || ((mode === 'reunion' || mode === 'reunion-edit') && ID_REUNION.test(arg || ''))))
       || (CAP.salles && mode === 'invite-reunion') || (CAP.persoPlus && mode === 'perso-plus') ? mode : 'chat';
@@ -966,13 +972,14 @@
     if (etat.groupe.mode === 'espace' || etat.groupe.mode === 'abo') etat.groupe.espaceId = arg;
     if (etat.groupe.mode === 'reunion' || etat.groupe.mode === 'reunion-edit') etat.groupe.reunionId = arg;
     if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel') { CONTACTS = typeof source.contacts === 'function' ? source.contacts() : CONTACTS; construireContacts(); }
+    if (etat.groupe.mode === 'nouvelle') { CONTACTS = typeof source.contacts === 'function' ? source.contacts() : CONTACTS; $('nd-defile').scrollTop = 0; rendreNouvelle(); }
     if (etat.groupe.mode === 'info') {
       etat.groupe.info = etat.appels.find(x => x.id === arg) || null;
       /* un appel qui n'est plus dans la liste (lien d'historique ancien, filtre changé) : pas de feuille vide, on rend la route d'en dessous */
       if (!etat.groupe.info) { declencheur = null; setTimeout(() => { if (etat.route && etat.route.feuille) remplacer(parentDe(etat.route)); }, 0); return; }
     }
     etat.groupe.ouvert = true;
-    $('g-nom').value = ''; $('g-recherche').value = ''; $('g-photo-fichier').value = '';
+    $('g-nom').value = ''; $('g-recherche').value = ''; $('nd-recherche').value = ''; $('g-photo-fichier').value = '';
     $('feuille-corps').scrollTop = 0; $('info-corps').scrollTop = 0;
     if (etat.groupe.mode === 'info') rendreInfo(etat.groupe.info);
     if (etat.groupe.mode === 'contact') rendreFeuilleContact();
@@ -1042,7 +1049,87 @@
     if (!CAP.service) setTimeout(() => notifier('Vous avez été ajouté au groupe « ' + nom + ' »', 'Aperçu de la notification que reçoivent ' + prenoms.join(', ')), 300);
   }
 
-  $('btn-groupe').addEventListener('click', () => ouvrirFeuille('chat'));
+  /* ═══ 9 bis. « NOUVELLE DISCUSSION » — ce que le « + » ouvre ═══════════════════════════════════════════════════════════════
+     Une carte d'ACTIONS (celles qu'OP MESSAGES tient, et seulement celles-là : une capacité absente retire sa ligne), puis les contacts — ceux avec qui l'on a écrit en dernier, puis tous, de A à Z — et l'index
+     sur le bord droit. Toucher un contact ouvre (ou crée) la conversation à deux. La recherche ne filtre que ce que la page a déjà reçu : le NOM (aucun « @nom de profil » ni numéro n'existe encore côté service,
+     le champ ne les promet pas). `ndModele` est PURE (rien du DOM) : le banc la joue sur les contacts et les conversations d'un vrai service. Passer à une autre feuille REMPLACE l'entrée (un retour = une fois). */
+  const ND_ACTIONS = [
+    ['groupe', 'Nouveau groupe', 'i-groupe', () => true],
+    ['contact', 'Nouveau contact', 'i-contact-plus', () => !!CAP.liens],
+    ['appel', 'Nouvel appel', 'i-phone', () => !!CAP.appels],
+    ['reunion', 'Programmer une réunion', 'i-agenda', () => !!CAP.reunions]
+  ];
+  function ndModele(contacts, discussions, requete) {
+    const q = norme(requete || '');
+    const actions = ND_ACTIONS.filter(a => a[3]() && (!q || norme(a[1]).includes(q)));
+    const liste = (contacts || []).filter(c => c && c.nom && (!q || norme(c.nom).includes(q)));
+    const lettreDe = c => { const l = norme(c.nom).charAt(0).toUpperCase(); return /^[A-Z]$/.test(l) ? l : '#'; };
+    const tri = liste.slice().sort((a, b) => { const x = lettreDe(a), y = lettreDe(b); return x === y ? a.nom.localeCompare(b.nom, 'fr') : x === '#' ? 1 : y === '#' ? -1 : x < y ? -1 : 1; });
+    const groupes = [];
+    tri.forEach(c => { const l = lettreDe(c); const dernier = groupes[groupes.length - 1]; if (dernier && dernier.lettre === l) dernier.contacts.push(c); else groupes.push({ lettre: l, contacts: [c] }); });
+    /* ceux avec qui l'on a écrit en dernier (la liste arrive de la plus récente à la plus ancienne) : une conversation à DEUX seulement, jamais un groupe ni un canal */
+    const connus = new Map(liste.map(c => [c.id, c])), vus = new Set(), frequents = [];
+    if (!q) for (const c of discussions || []) {
+      if (!c || c.type !== 'direct') continue;
+      const id = c.autre || (Array.isArray(c.membres) ? c.membres.find(m => m !== 'moi') : null);
+      if (!id || vus.has(id) || !connus.has(id)) continue;
+      vus.add(id); frequents.push(connus.get(id));
+      if (frequents.length === 4) break;
+    }
+    return { actions, frequents, groupes, lettres: groupes.map(x => x.lettre), total: liste.length };
+  }
+  function rendreNouvelle() {
+    const G = g(), M = ndModele(CONTACTS, etat.conversations, G.recherche);
+    const ligne = c => '<button type="button" class="contact presse" data-nd-contact="' + esc(c.id) + '">' + avatar(c) + '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span>' + (c.role ? '<span class="contact-role">' + esc(c.role) + '</span>' : '') + '</span></button>';
+    let h = '';
+    if (M.actions.length) h += '<div class="carte" role="group" aria-label="Actions">' + M.actions.map(a => '<button type="button" class="reglage nd-act presse" data-nd-act="' + a[0] + '">' + icone(a[2]) + '<span class="reglage-texte">' + esc(a[1]) + '</span></button>').join('') + '</div>';
+    if (M.frequents.length) h += '<div class="rubrique"><span>Contacts fréquents</span></div><div class="carte" role="group" aria-label="Contacts fréquents">' + M.frequents.map(ligne).join('') + '</div>';
+    M.groupes.forEach(x => { h += '<div class="rubrique nd-lettre" data-lettre="' + x.lettre + '"><span>' + x.lettre + '</span></div><div class="carte" role="group" aria-label="Contacts : ' + x.lettre + '">' + x.contacts.map(ligne).join('') + '</div>'; });
+    if (!M.actions.length && !M.total) h += '<p class="vide">' + (norme(G.recherche) ? 'Aucun résultat pour « ' + esc(G.recherche.trim()) + ' »' : CAP.liens ? 'Tu n\'as pas encore de contact : ajoute quelqu\'un avec « Nouveau contact ».' : 'Aucun contact pour l\'instant.') + '</p>';
+    $('nd-liste').innerHTML = h;
+    const idx = $('nd-index');
+    idx.innerHTML = M.lettres.map(l => '<button type="button" data-nd-lettre="' + l + '" aria-label="Aller à la lettre ' + (l === '#' ? 'autres noms' : l) + '">' + l + '</button>').join('');
+    idx.hidden = M.lettres.length < 2;
+  }
+  /* l'index : toucher une lettre fait défiler jusqu'à elle, glisser le doigt (ou la souris) le long du bord fait défiler en continu ; au clavier, chaque lettre est un bouton */
+  function ndAller(lettre) {
+    const cible = $('nd-liste').querySelector('[data-lettre="' + lettre + '"]'); if (!cible) return;
+    $('nd-defile').scrollTop = Math.max(0, cible.offsetTop - 4);
+  }
+  function ndLettreSous(y) {
+    const bs = Array.from($('nd-index').querySelectorAll('[data-nd-lettre]')); if (!bs.length) return null;
+    let meilleur = bs[0], ecart = Infinity;
+    bs.forEach(b => { const r = b.getBoundingClientRect(), e = y < r.top ? r.top - y : y > r.bottom ? y - r.bottom : 0; if (e < ecart) { ecart = e; meilleur = b; } });
+    return meilleur.dataset.ndLettre;
+  }
+  let ndGlisse = false;
+  $('nd-index').addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    ndGlisse = true; try { $('nd-index').setPointerCapture(e.pointerId); } catch (er) { /* sans capture, le glissé s'arrête au bord de l'index */ }
+    const l = ndLettreSous(e.clientY); if (l) ndAller(l);
+    e.preventDefault();
+  });
+  $('nd-index').addEventListener('pointermove', e => { if (!ndGlisse) return; const l = ndLettreSous(e.clientY); if (l) ndAller(l); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => $('nd-index').addEventListener(t, () => { ndGlisse = false; }));
+  $('nd-index').addEventListener('click', e => { const b = e.target.closest('[data-nd-lettre]'); if (b) ndAller(b.dataset.ndLettre); });         // le clavier : Entrée ou Espace sur la lettre
+  $('nd-recherche').addEventListener('input', e => { g().recherche = e.target.value; $('nd-defile').scrollTop = 0; rendreNouvelle(); });
+  $('nd-liste').addEventListener('click', e => {
+    const a = e.target.closest('[data-nd-act]');
+    if (a) {
+      const id = a.dataset.ndAct;
+      if (id === 'groupe') ouvrirFeuille('chat', true);
+      else if (id === 'contact') ouvrirFeuille('contact', true);
+      else if (id === 'appel') ouvrirFeuille('appel', true);
+      else if (id === 'reunion') programmerReunion(true);
+      return;
+    }
+    const c = e.target.closest('[data-nd-contact]'); if (!c || etat.creation) return;
+    etat.creation = true;
+    ouvrirConversationAvec([c.dataset.ndContact]).finally(() => { etat.creation = false; });
+  });
+
+  $('btn-plus').addEventListener('click', () => ouvrirFeuille('nouvelle'));
+  $('nd-fermer').addEventListener('click', () => fermerFeuille(false));
   $('g-annuler').addEventListener('click', () => fermerFeuille(false));
   $('voile').addEventListener('click', () => fermerFeuille(false));
   $('g-creer').addEventListener('click', () => { if (g().mode === 'appel') appelerDepuisFeuille(); else if (g().mode === 'chat') creerGroupe(); });
@@ -2041,6 +2128,7 @@
     peindreBloquesN(); peindreProfilReglage();
     if (!etat.groupe.ouvert) return;
     if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel') { construireContacts(); synchroFeuille(); }
+    else if (etat.groupe.mode === 'nouvelle') rendreNouvelle();
     else if (etat.groupe.mode === 'contact') rendreListeContacts();      // la liste des contacts ET celle des bloqués
     else if (etat.groupe.mode === 'convinfo') rendreConvInfo();
   }
@@ -2540,12 +2628,14 @@
   }
   /* « Programmer » : le formulaire à qui peut organiser, la feuille du forfait à qui ne le peut pas. Le service décide (402) ; la page le DEMANDE avant, pour ne jamais montrer un formulaire qu'elle sait refusé. */
   let programmerOccupe = false;
-  async function programmerReunion() {
-    if (!CAP.persoPlus) { ouvrirFeuille('reunion-new'); return; }
+  async function programmerReunion(remplace) {
+    /* `remplace` : le geste vient de la feuille « Nouvelle discussion » — il la REMPLACE, et ne fait rien si elle a été fermée pendant l'attente (une route périmée ne se réécrit pas) */
+    const aller = mode => { if (remplace && !(etat.route && etat.route.feuille === 'nouvelle')) return; ouvrirFeuille(mode, !!remplace); };
+    if (!CAP.persoPlus) { aller('reunion-new'); return; }
     if (programmerOccupe) return;
     programmerOccupe = true;
     try { await chargerPersoPlus(); } finally { programmerOccupe = false; }
-    ouvrirFeuille(pp.etat && pp.etat.organiser === false ? 'perso-plus' : 'reunion-new');
+    aller(pp.etat && pp.etat.organiser === false ? 'perso-plus' : 'reunion-new');
   }
   const offreChoisie = () => { const S = pp.etat; return S ? (S.offres.find(o => o.id === pp.ui.cycle) || S.offres.find(o => o.id === S.defaut) || S.offres[0] || null) : null; };
   const parPP = o => o.par === 'an' ? 'par an' : 'par mois';

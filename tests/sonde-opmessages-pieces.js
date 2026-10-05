@@ -311,7 +311,7 @@ async function parcours(b, ctx) {
     s6: { if (!voulu('6')) break s6;
     console.log('\n── La photo d\'un groupe : à la création ──');
     await onglet(A, 'messages');
-    await toucher(A, '#btn-groupe');
+    await toucher(A, '#btn-plus'); await toucher(A, '[data-nd-act="groupe"]');
     await verifier('la feuille « Nouveau groupe » s\'ouvre', A, () => !document.getElementById('feuille').inert && !document.getElementById('g-contacts').hidden, null, 8000);
     await choisir(A, () => A.page.locator('#g-photo').click(), { name: 'groupe.png', mimeType: 'image/png', buffer: PNG_ROUGE });
     await verifier('la photo choisie remplit le rond', A, () => document.getElementById('g-photo').classList.contains('avec-image'), null, 10000);

@@ -128,3 +128,6 @@ tests/test-991.js
 tests/test-992.js
 tests/test-993.js
 tests/test-994.js
+#
+# ── Le « + » (5 octobre 2026) : « Nouvelle discussion » — la VRAIE fonction de la page contre le VRAI service (995) ──
+tests/test-995.js
