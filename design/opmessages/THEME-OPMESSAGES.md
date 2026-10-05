@@ -21,7 +21,7 @@ Les écrans, les fonctions et les mesures plus bas restent ceux du paquet (maque
 | bulle reçue | #e9e9eb / texte #000000 | #262628 / blanc |
 | barre nav | rgba(255,255,255,.78) | rgba(28,28,30,.72) |
 | barre d'onglets | rgba(255,255,255,.72) | rgba(30,30,32,.62) |
-| onglet actif | bulle rgba(118,118,128,.16), texte #2a4a9c | bulle rgba(255,255,255,.14), texte #9db8f5 |
+| onglet actif | bulle rgba(118,118,128,.16), texte #2a4a9c | bulle rgba(255,255,255,.14), texte #c7d6fb |
 | séparateur | 0.5px rgba(60,60,67,.29) | 0.5px rgba(84,84,88,.65) |
 Statuts : manqué #ff453a · en ligne / parle #30d158 · quitter #ff453a. Avatars : dégradés (bleu royal #4f78d6→#2a4a9c, orange→rose, vert→bleu, violet→indigo, gris, cyan→indigo).
 Le fond est UNI, comme les applications d'Apple : plus de dégradé ni de diagonale (`--screen: none`). De nuit, le noir pur est celui
@@ -51,7 +51,8 @@ d'iOS ; une surface qui s'élève est PLUS CLAIRE (carte #1c1c1e, feuille, banni
 Une vitre Liquid Glass, c'est trois choses ensemble : une teinte LÉGÈRE (la couleur de la barre), le flou de ce qui passe dessous, et
 un REFLET sur l'arête (`--verre-reflet` : un trait clair en haut, un plus faible en bas, un filet tout autour) — c'est lui qui dessine
 le bord, pas un trait gris. La barre d'onglets est une capsule qui FLOTTE (ombre `--shadow-bar` + reflet), l'onglet actif une lentille
-grise translucide, son icône et son libellé à l'accent. Respecter `prefers-reduced-transparency` (aplat plein, sans flou) et `prefers-reduced-motion`.
+grise translucide, son icône et son libellé à l'accent — de nuit un bleu plus clair (#c7d6fb) : la sonde a lu #9db8f5 à 3,9:1
+au pixel quand la liste colorée défile sous la capsule. Respecter `prefers-reduced-transparency` (aplat plein, sans flou) et `prefers-reduced-motion`.
 
 ## Typo (HIG)
 Large Title 34/41 (.37) · nom de conversation 17 semibold · aperçu 15/20 · heure 15 · légendes 11–13 · bulles 17/22 (-.02em). Onglets 11 (Android 12). Rien sous 11 px. SF sur Apple, Roboto sur Android, Segoe UI sur Windows.
