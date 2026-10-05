@@ -11,9 +11,22 @@ connues, et ce qui attend une décision de Justin.
 Tenu à jour à chaque fois qu'un chantier change d'état. Une ligne fausse ici est pire que pas
 de ligne du tout.
 
+# 👉 5 OCTOBRE 2026 — CE QUI ATTEND LA PROCHAINE CONVERSATION
+
+· **Le « + » d'OP MESSAGES** (Justin, captures de WhatsApp : « il faudrait le + avec tout ce qu'on propose ») : feuille « Nouvelle
+  discussion » (recherche, nouveau groupe, nouveau contact, réunion, contacts fréquents, A à Z avec index). Poussé sur `main`
+  (`5d21f26`) — **le déploiement sur la bêta n'est PAS encore vérifié** : `/health` de msg-beta doit porter le sha `5d21f26`, et les
+  contrôles de `main` doivent être verts. `tests/sonde-opmessages-plus.js`, `test-995`.
+· **« Je voudrais que le thème et le style soient 100 % Apple, merci de bien vérifier tout »** (Justin, 5 octobre 2026) — PAS
+  COMMENCÉ, reporté pour la consommation de la semaine. Base : `design/handoff-2026-10-04/` (section 🎨 plus bas, avec ses écarts à
+  trancher). Un produit à la fois, OP MESSAGES d'abord (proposé à Justin), jour + nuit, mobile + bureau. ⛔ Consommation : Justin était à
+  75 % de sa semaine le 5 octobre — peu d'agents, pas de relectures en double.
+· Gestes de Justin toujours ouverts : jeton GitHub du VPS (expire le 17/10), redémarrage du VPS, relais TURN, prix Stripe de test
+  pour Perso+ (`configurer-stripe.js --creer-perso-plus`).
+
 # 🔑 5 OCTOBRE 2026 — « MOT DE PASSE OUBLIÉ » D'UN ACCÈS BÊTA (Justin : « il faudrait mot de passe oublié »)
 
-Fait, **non publié** (rien poussé) : `POST /api/monitor/beta/mdp` (patron seul, 8 caractères), bouton « Nouveau mot de passe » dans la fiche d'un
+✅ **EN SERVICE** (serveur + Tour v2.83 + OP MESSAGES bêta, `636f1dc` sur main, 5 octobre 2026, sur « pousse le serveur » — contrôles verts, vérifié en ligne) : `POST /api/monitor/beta/mdp` (patron seul, 8 caractères), bouton « Nouveau mot de passe » dans la fiche d'un
 accès (Tour v2.83), une ligne sur l'écran de connexion d'OP MESSAGES. Les accès bêta n'ont pas d'adresse : c'est la Tour qui pose le mot de passe, et
 la personne (même identifiant de compte) garde ses contacts et ses conversations — supprimer puis recréer l'accès les perdait.
 · ⛔ **Sessions d'OP MESSAGES** : le changement est daté (`mdpTs`), `/api/beta/etat` + `ids` le publie (`mdp`), et la relecture de la porte supprime
