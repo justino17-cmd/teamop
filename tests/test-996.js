@@ -19,6 +19,7 @@ const { ouvrir, MIGRATIONS, identLire } = require(path.join(T.SERVICE, 'stockage
 const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
 
 const NEUTRE = '{"trouve":false}';
+const mk2 = (chemin, kek) => ouvrir({ chemin, scelleur: creerScelleur(kek), horloge: () => 1790000000000, migrations: MIGRATIONS });
 const IDENT = /^[^#\s]+#\d{4}$/;
 let SVC = null;
 /* chaque recherche avance l'horloge d'une minute : le banc ne mesure que ce qu'il veut (la rafale par minute est jouée à part) */
@@ -31,7 +32,8 @@ const mutuel = async (c, id) => ((await c.get('/api/contacts')).j.contacts || []
 function moduleSeul() {
   console.log('\n── 996 · la normalisation de l\'identifiant ──');
   v('« Hélène#4821 », « helene #4821 », « HÉLÈNE#4821 » : la même personne', ['Hélène#4821', 'helene #4821', 'HÉLÈNE#4821', '  Hélène # 4821 '].map(t => JSON.stringify(identLire(t))), Array(4).fill(JSON.stringify({ base: 'helene', num: 4821 })));
-  v('⛔ un NOM seul, trois chiffres, cinq chiffres, 0999, un texte trop long : refusés (null)', ['Hélène', 'Hélène#482', 'Hélène#48211', 'Hélène#0999', 'x'.repeat(90) + '#4821', '#', null, 4821].map(identLire), Array(8).fill(null));
+  v('⛔ un NOM seul, trois chiffres, six chiffres, 0999, 09999, un texte trop long : refusés (null)', ['Hélène', 'Hélène#482', 'Hélène#482111', 'Hélène#0999', 'Hélène#09999', 'x'.repeat(90) + '#4821', '#', null, 4821].map(identLire), Array(9).fill(null));
+  v('cinq chiffres (un prénom dont les quatre sont tous pris) : lus', JSON.stringify(identLire('Thomas#48213')), JSON.stringify({ base: 'thomas', num: 48213 }));
   v('un prénom sans lettre latine se range sous « op » : « Ахмед#4821 » se retrouve', JSON.stringify(identLire('Ахмед#4821')), JSON.stringify({ base: 'op', num: 4821 }));
 
   console.log('\n── 996 · une base d\'AVANT la migration 11 : chacun reçoit son identifiant au démarrage ──');
@@ -62,6 +64,20 @@ function moduleSeul() {
     } finally { brut.close(); }
     v('   l\'autre ne voit plus la demande envoyée à un compte effacé', v11.demandesEnvoyees(a.id).length, 0);
     v11.fermer();
+
+    console.log('\n── 996 · ⛔ un numéro déjà pris n\'est JAMAIS rendu : 8 999 « Ana » sur 9 000, la suivante reçoit le dernier libre, la d\'après passe à cinq chiffres ──');
+    /* Le hasard ne rencontre une collision qu'une fois sur 9 000 : sans ce bloc, « ignorer le numéro déjà pris » survivait au banc (mutation M13). On occupe donc tous les numéros
+       sauf un, à la main, et on exige le dernier libre ; puis plus aucun à quatre chiffres : la suivante passe à CINQ (un prénom courant ne bloque aucune inscription). */
+    const chemin2 = path.join(bac, 'plein.db'), S2 = mk2(chemin2, kek);
+    const brut2 = new (require('node:sqlite').DatabaseSync)(chemin2);
+    brut2.exec('BEGIN');
+    const ins = brut2.prepare(`INSERT INTO personne(id, prenom, nom, origine, cree, ident_base, ident_num) VALUES(?, 'Ana', '', 'beta', 1, 'ana', ?)`);
+    for (let n = 1000; n < 10000; n++) if (n !== 7321) ins.run('p_' + crypto.randomBytes(16).toString('hex'), n);
+    brut2.exec('COMMIT'); brut2.close();
+    v('⛔ la nouvelle « Ana » reçoit le SEUL numéro libre', S2.personneCreer({ identifiant: 'beta:ana-neuve', prenom: 'Ana', nom: 'N', origine: 'beta', verifie: true }).identifiant, 'Ana#7321');
+    const cinq = S2.personneCreer({ identifiant: 'beta:ana-de-trop', prenom: 'Ana', nom: 'T', origine: 'beta', verifie: true }).identifiant;
+    vrai('⛔ plus aucun à quatre chiffres : la suivante reçoit un identifiant à CINQ chiffres (' + cinq + '), et il se retrouve', /^Ana#\d{5}$/.test(cinq || '') && (() => { const l = identLire(cinq); return S2.personneParIdent(l.base, l.num) !== null; })());
+    S2.fermer();
   } finally { fs.rmSync(bac, { recursive: true, force: true }); }
 }
 

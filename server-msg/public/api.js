@@ -68,7 +68,7 @@
     export_quotidien: 'Tu as déjà exporté tes données aujourd\'hui : un export par jour.',
     compte_supprime: 'Ce compte a été supprimé : tu ne peux plus lui écrire.',
     /* l'identifiant « Prénom#1234 », le numéro et les demandes de contact */
-    identifiant_invalide: 'Tape l\'identifiant en entier : le prénom, « # » et les quatre chiffres (par exemple Camille#4821), ou un numéro de téléphone.',
+    identifiant_invalide: 'Tape l\'identifiant en entier : le prénom, « # » et les chiffres (par exemple Camille#4821), ou un numéro de téléphone.',
     numero_invalide: 'Ce numéro de téléphone n\'est pas valable : écris-le avec l\'indicatif du pays (+33…).',
     recherches_plafond: 'Tu as fait beaucoup de recherches aujourd\'hui : réessaie plus tard.',
     ajouts_plafond: 'Tu as envoyé beaucoup de demandes aujourd\'hui : réessaie demain.',

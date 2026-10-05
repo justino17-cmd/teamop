@@ -516,13 +516,14 @@ function identBase(prenom) {
   return b || 'op';
 }
 const identAfficher = (prenom, n) => (String(prenom || '').replace(/[\s#]+/g, '').slice(0, 24) || 'OP') + '#' + n;
-/* « Hélène#4821 », « helene #4821 », « HÉLÈNE#4821 » → { base: 'helene', num: 4821 } ; tout le reste → null (un nom seul n'est pas un identifiant). */
+/* « Hélène#4821 », « helene #4821 », « HÉLÈNE#4821 » → { base: 'helene', num: 4821 } ; tout le reste → null (un nom seul n'est pas un identifiant).
+   Quatre chiffres (1000 à 9999) ; CINQ (10000 à 99999) pour un prénom dont les 9 000 numéros à quatre chiffres sont pris — un prénom courant ne bloque pas une inscription. */
 function identLire(texte) {
   if (typeof texte !== 'string' || texte.length > 80) return null;
-  const m = /^(.*)#\s*(\d{4})$/.exec(texte.trim());
+  const m = /^(.*)#\s*(\d{4,5})$/.exec(texte.trim());
   if (!m) return null;
   const n = Number(m[2]);
-  return n >= 1000 && n <= 9999 ? { base: identBase(m[1]), num: n } : null;
+  return n >= 1000 && n <= 99999 && String(n) === m[2] ? { base: identBase(m[1]), num: n } : null;
 }
 /* un abonnement personnel FINI chez Stripe (ou jamais commencé) : on ne l'arrête, ne le rétablit ni ne le résilie plus */
 const ABO_FINIS = ['canceled', 'incomplete_expired', 'aucun'];
@@ -669,7 +670,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
 
   /* ══ L'IDENTIFIANT PUBLIC « Prénom#1234 » ════════════════════════════════════════════════
-     Le prénom normalisé + quatre chiffres tirés au hasard (1000 à 9999). On le montre avec le prénom tel qu'il est écrit (« Hélène#4821 ») et on le RETROUVE sous
+     Le prénom normalisé + quatre chiffres tirés au hasard (1000 à 9999 ; cinq quand les quatre sont tous pris pour ce prénom). On le montre avec le prénom tel qu'il est écrit (« Hélène#4821 ») et on le RETROUVE sous
      toutes ses écritures (« helene#4821 », « Hélène #4821 ») : c'est la même normalisation des deux côtés. Un prénom sans lettre latine (« Ахмед ») se range sous « op » :
      son identifiant s'affiche « Ахмед#4821 » et se retrouve tel quel. Un numéro déjà pris pour ce prénom en donne un autre ; un compte qui change de prénom GARDE son numéro
      s'il est libre sous le nouveau prénom. */
@@ -682,8 +683,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (r.ident_base === base && r.ident_num != null) return r.ident_num;
       let n = r.ident_num != null && libre(r.ident_num) ? r.ident_num : null;
       for (let i = 0; n === null && i < 40; i++) { const c = crypto.randomInt(1000, 10000); if (libre(c)) n = c; }
-      if (n === null) { const pris = new Set(Q('SELECT ident_num FROM personne WHERE ident_base = ? AND ident_num IS NOT NULL').all(base).map(x => num(x.ident_num))); for (let c = 1000; c < 10000 && n === null; c++) if (!pris.has(c)) n = c; }
-      if (n === null) throw erreur('identifiant_plein');   // 9 000 personnes au même prénom normalisé : on le dit plutôt que de tourner en rond
+      /* le hasard a échoué quarante fois : le prénom est très demandé. Le premier libre à quatre chiffres, sinon cinq chiffres (au hasard, puis le premier libre) */
+      const pris = n === null ? new Set(Q('SELECT ident_num FROM personne WHERE ident_base = ? AND ident_num IS NOT NULL').all(base).map(x => num(x.ident_num))) : null;
+      for (let c = 1000; n === null && c < 10000; c++) if (!pris.has(c)) n = c;
+      for (let i = 0; n === null && i < 40; i++) { const c = crypto.randomInt(10000, 100000); if (!pris.has(c)) n = c; }
+      for (let c = 10000; n === null && c < 100000; c++) if (!pris.has(c)) n = c;
+      if (n === null) throw erreur('identifiant_plein');   // 99 000 personnes au même prénom normalisé : on le dit plutôt que de tourner en rond
       Q('UPDATE personne SET ident_base = ?, ident_num = ? WHERE id = ?').run(base, n, id);
       return n;
     });
