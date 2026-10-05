@@ -11,6 +11,20 @@ connues, et ce qui attend une décision de Justin.
 Tenu à jour à chaque fois qu'un chantier change d'état. Une ligne fausse ici est pire que pas
 de ligne du tout.
 
+# 🔑 5 OCTOBRE 2026 — « MOT DE PASSE OUBLIÉ » D'UN ACCÈS BÊTA (Justin : « il faudrait mot de passe oublié »)
+
+Fait, **non publié** (rien poussé) : `POST /api/monitor/beta/mdp` (patron seul, 8 caractères), bouton « Nouveau mot de passe » dans la fiche d'un
+accès (Tour v2.83), une ligne sur l'écran de connexion d'OP MESSAGES. Les accès bêta n'ont pas d'adresse : c'est la Tour qui pose le mot de passe, et
+la personne (même identifiant de compte) garde ses contacts et ses conversations — supprimer puis recréer l'accès les perdait.
+· ⛔ **Sessions d'OP MESSAGES** : le changement est daté (`mdpTs`), `/api/beta/etat` + `ids` le publie (`mdp`), et la relecture de la porte supprime
+  les sessions NÉES AVANT (dans la minute, comme « Couper »). `test-920` (le vrai OP GESTION + le vrai service), `test-940` § 11 (la Tour).
+· ⚠️ **Dette — la bêta d'OP GESTION (`beta.html`)** : sa session vit dans le navigateur, elle ne redemande que « ouvert ? » (`/api/beta/etat {login}`) :
+  un mot de passe changé n'y ferme PAS les sessions déjà ouvertes (le nouveau est exigé à la prochaine connexion). Les fermer demande un changement
+  dans `app.html` (interdit hors phrase de Justin) : le client enverrait un marqueur du mot de passe avec sa relecture.
+· ⛔ **Publication** : le serveur (`server/`), la Tour (`tour.html`, `PAGES_LIEES` du déploiement du serveur seul) et `server-msg/` partent ENSEMBLE ;
+  `test-940` § 11 lit la Tour v2.83, il ne passerait pas contre celle de `main`. Le texte de l'écran de connexion vit dans `apercu/opmessages/`
+  (régénérer `server-msg/public/` par `node scripts/opmsg-public.js`).
+
 # 🚧 2-3 OCTOBRE 2026, NUIT — OP MESSAGES : « FAIS TOUT CE QU'IL MANQUE, SAUF LE NUMÉRO DE TÉLÉPHONE »
 
 Justin, 2 octobre au soir : « Fais tout ce qu'il manque, sauf le système de numéro de téléphone, on le fera demain » (après avoir

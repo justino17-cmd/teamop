@@ -15,6 +15,9 @@
    par un relais qui RETIRE `apps` (de la requête et des réponses) : c'est ce que fait un serveur qui ne connaît pas le champ.
    Ce que le banc exige de VOIR à l'écran, pas seulement dans la base : la fiche dit l'adresse de la bêta d'OP MESSAGES, le
    bouton « Copier le lien », et que la bêta n'est pas encore installée (Justin n'a pas fait les gestes).
+   v2.83 (§ 11) : « Nouveau mot de passe » (Justin, 5 octobre 2026 : « il faudrait mot de passe oublié ») — la vraie `btMdp` contre la vraie route
+   `/api/monitor/beta/mdp` : refus (sans jeton, collaborateur, inconnu, trop court), l'ancien mot de passe refusé ensuite, le même compte, rien de
+   secret dans la réponse ni le journal, un refus ou une coupure LUS à l'écran. La chute des sessions d'OP MESSAGES est dans `test-920`.
    Il saute de lui-même sans `server/node_modules` (comme `test-833`). */
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto'), http = require('http'), vm = require('vm');
 const { spawn } = require('child_process');
@@ -42,12 +45,12 @@ function bloc(motif) {
   return CODE.slice(m.index + 1, f ? f.index : CODE.length);
 }
 const NOMS = ['hAuth', 'srvRepond', 'srvMuet', 'apiGet', 'apiPost', 'msgErreur', 'chargerEssais', 'btChamp', 'btAjouter', 'btToggle', 'btSuppr', 'btChantier',
-  'btAppsDe', 'btAvec', 'btDeLaConsole', 'accLigneBeta', 'accBlocBeta', 'accFicheBeta', 'accFormBeta', 'vueEssaisMsg', 'vueAccueilMsg', 'esc', 'jsq', 'ini', 'fmtJour', 'videTour'];
+  'btMdp', 'tirageSur', 'btAppsDe', 'btAvec', 'btDeLaConsole', 'accLigneBeta', 'accBlocBeta', 'accFicheBeta', 'accFormBeta', 'vueEssaisMsg', 'vueAccueilMsg', 'esc', 'jsq', 'ini', 'fmtJour', 'videTour'];
 const VARS = ['BT', 'BT_APPS', 'BETA_MSG_ADRESSE', 'APPS_TOUR', 'INJOIGNABLE'];
 const SRC = NOMS.map(bloc), SRCV = VARS.map(bloc);
 
 function tour(API, jeton, app, { confirmer = true } = {}) {
-  const toasts = [], panneaux = [], ctx = { fetch, URL, Object, String, JSON, Promise, Math, Date, Array, Error, document: { getElementById: () => null }, console };
+  const toasts = [], panneaux = [], ctx = { fetch, URL, Object, String, JSON, Promise, Math, Date, Array, Error, crypto: globalThis.crypto, Uint8Array, document: { getElementById: () => null }, console };
   vm.createContext(ctx);
   vm.runInContext('var API=' + JSON.stringify(API) + ', TOKEN=' + JSON.stringify(jeton) + ', APP=' + JSON.stringify(app) + ", TAB='essais', MYROLE='patron', MYNOM='Patron banc';\n" +
     "var JR={actions:[]}, IC={cadenas:''}; function doLogout(){} function srvEtat(){} function render(){} function squelListe(){ return '<i class=\"squel\"></i>'; }\n" +
@@ -270,6 +273,83 @@ console.log('\n── 940 · la Tour v2.81 ouvre les accès bêta d\'OP MESSAGES
     v('⛔ « Déclarer la bascule faite » accepte le nom de serveur que la Tour propose en exemple (msg.teamop.fr, avec ses points)', [bascule.s, bascule.j.projet], [200, 'msg.teamop.fr']);
     v('   un nom fait de rien est toujours refusé (400)', (await appel('/api/monitor/messages/etat', { enTravaux: false, projet: '' }, PATRON)).s, 400);
     await appel('/api/monitor/messages/etat', { enTravaux: true }, PATRON);
+
+    console.log('\n11. ⛔ MOT DE PASSE OUBLIÉ (v2.83, Justin 5 octobre 2026) : la route, ses refus, la chute de l\'ancien, la Tour');
+    const NEUF = 'nouveau-mdp-940-Zq7';
+    saisir(TM, 'oubli', 'pw-oubli-940-a'); TM.run('btAjouter()');
+    vrai('population : l\'accès « oubli » (OP MESSAGES) est créé', await TM.attendre('BT.comptes.some(function(c){ return c.login==="oubli"; })'));
+    const oubli = await parLogin('oubli');
+    const entre = async (mdp) => (await appel('/api/beta/login', { login: 'oubli', pass: mdp, app: 'messages' }));
+    const etatMdp = async () => (await appel('/api/beta/etat', { ids: [oubli.id], app: 'messages' })).j;
+    const av = await entre('pw-oubli-940-a');
+    v('population : avant, l\'ancien mot de passe ouvre la porte d\'OP MESSAGES (avec l\'identifiant de compte)', [av.s, av.j.id], [200, oubli.id]);
+    const e0 = await etatMdp();
+    v('   et la relecture d\'OP MESSAGES ne signale AUCUN changement de mot de passe (`mdp` sans cet accès)', [e0.ouverts[oubli.id], oubli.id in e0.mdp], [true, false]);
+    /* les refus : rien ne change, et on le prouve par l'ancien mot de passe qui passe toujours */
+    v('⛔ sans être patron (aucun jeton) : 403', (await appel('/api/monitor/beta/mdp', { id: oubli.id, pass: NEUF })).s, 403);
+    v('identifiant inconnu : 404', (await appel('/api/monitor/beta/mdp', { id: 'bffffffffff', pass: NEUF }, PATRON)).s, 404);
+    v('sans identifiant : 404', (await appel('/api/monitor/beta/mdp', { pass: NEUF }, PATRON)).s, 404);
+    v('7 caractères : 400', (await appel('/api/monitor/beta/mdp', { id: oubli.id, pass: '1234567' }, PATRON)).s, 400);
+    v('mot de passe absent : 400', (await appel('/api/monitor/beta/mdp', { id: oubli.id }, PATRON)).s, 400);
+    v('⛔ après tous ces refus, l\'ANCIEN mot de passe ouvre toujours (rien n\'a bougé)', (await entre('pw-oubli-940-a')).s, 200);
+    saisir(TM, 'huit', 'pw-huit-940-aa'); TM.run('btAjouter()');
+    vrai('population : l\'accès « huit » est créé', await TM.attendre('BT.comptes.some(function(c){ return c.login==="huit"; })'));
+    const huit = await appel('/api/monitor/beta/mdp', { id: (await parLogin('huit')).id, pass: '12345678' }, PATRON);
+    v('exactement 8 caractères : accepté (même minimum que la création)', [huit.s, huit.j.ok], [200, true]);
+    v('   et il ouvre la porte de SON accès (huit), l\'ancien non', [(await appel('/api/beta/login', { login: 'huit', pass: '12345678', app: 'messages' })).s, (await appel('/api/beta/login', { login: 'huit', pass: 'pw-huit-940-aa', app: 'messages' })).s], [200, 403]);
+    const ok1 = await appel('/api/monitor/beta/mdp', { id: oubli.id, pass: NEUF }, PATRON);
+    v('⛔ le patron pose un nouveau mot de passe : 200', [ok1.s, ok1.j.ok], [200, true]);
+    v('   la réponse est `betaPublic` (mêmes champs que les routes voisines)', Object.keys(ok1.j.compte).sort(), Object.keys(await parLogin('oubli')).sort());
+    vrai('   ⛔ ni le mot de passe, ni son hachage, ni l\'ancien n\'apparaissent dans la réponse', !new RegExp(NEUF + '|' + sha(NEUF) + '|pw-oubli-940-a').test(JSON.stringify(ok1.j)));
+    vrai('   ⛔ ni le mot de passe ni son hachage dans la liste de la Tour', !new RegExp(NEUF + '|' + sha(NEUF)).test(JSON.stringify(await lire(PATRON))));
+    vrai('   ⛔ ni dans le journal du serveur (qui, lui, nomme l\'accès)', !journal.includes(NEUF) && !journal.includes(sha(NEUF)) && /nouveau mot de passe à l'accès bêta oubli/.test(journal));
+    const vieux1 = await entre('pw-oubli-940-a');
+    v('⛔ l\'ANCIEN mot de passe est refusé tout de suite (403, même phrase qu\'un mauvais mot de passe)', [vieux1.s, vieux1.j.error], [403, 'identifiant ou mot de passe incorrect']);
+    const nouveau = await entre(NEUF);
+    v('⛔ le NOUVEAU ouvre la porte, et c\'est le MÊME compte (même identifiant `b…` : pour OP MESSAGES, la même personne)', [nouveau.s, nouveau.j.id], [200, oubli.id]);
+    const apres = await parLogin('oubli');
+    v('   l\'accès reste ouvert, avec son chantier et son application', { actif: apres.actif, chantier: apres.chantier, apps: apres.apps }, { actif: true, chantier: 'banc 940', apps: ['messages'] });
+    const e2 = await etatMdp();
+    vrai('⛔ la relecture d\'OP MESSAGES DIT l\'instant du changement (`mdp[id]`, un nombre récent) — c\'est ce qui fait tomber les sessions d\'avant', e2.ouverts[oubli.id] === true && Number.isFinite(e2.mdp[oubli.id]) && Math.abs(Date.now() - e2.mdp[oubli.id]) < 30000);
+    const gastonId = (await parLogin('gaston')).id;
+    v('   et seulement pour un accès dont le mot de passe a changé (gaston, jamais changé, n\'y figure pas)', Object.keys((await appel('/api/beta/etat', { ids: [oubli.id, gastonId], app: 'messages' })).j.mdp), [oubli.id]);
+    v('l\'accès d\'OP MESSAGES ne s\'ouvre toujours pas par la porte d\'OP GESTION (le nouveau mot de passe n\'élargit rien)', (await appel('/api/beta/login', { login: 'oubli', pass: NEUF, app: 'gestion' })).s, 403);
+
+    console.log('   … et la Tour : sa vraie btMdp, ses refus lus à l\'écran');
+    TM.panneaux.length = 0; TM.run('accFicheBeta(' + JSON.stringify(oubli.id) + ')');
+    const f2 = TM.panneaux[0] || '';
+    vrai('⛔ la fiche porte le bouton « Nouveau mot de passe » qui appelle btMdp de CET accès, dans la rangée des gestes voisins (chantier, couper, supprimer)', /class="btn-fant" onclick="tourPanneauFermer\(\);btMdp\('[^']+','oubli'\)">🔑 Nouveau mot de passe</.test(f2) && f2.indexOf('btChantier(') < f2.indexOf('btMdp(') && f2.indexOf('btMdp(') < f2.indexOf('btSuppr('));
+    const vus = []; let proposition = '', reponse = null;
+    TM.ctx.prompt = (q, def) => { vus.push(q); proposition = def; return reponse; };
+    const n0 = TM.toasts.length;
+    TM.run('btMdp(' + JSON.stringify(oubli.id) + ',"oubli")'); await dormir(300);
+    v('annuler la fenêtre ne change rien et ne dit rien', [TM.toasts.length, (await entre(NEUF)).s], [n0, 200]);
+    vrai('   la fenêtre propose un mot de passe tiré au hasard de 12 caractères, et dit qu\'il ne sera plus affiché', /^[A-Za-z0-9!#%]{12}$/.test(proposition) && /ne sera plus affiché/.test(vus[0]) && /dans la minute/.test(vus[0]));
+    reponse = 'court'; TM.run('btMdp(' + JSON.stringify(oubli.id) + ',"oubli")'); await dormir(300);
+    const dern = () => TM.toasts[TM.toasts.length - 1] || '';
+    vrai('⛔ un mot de passe trop court est REFUSÉ À L\'ÉCRAN (8 caractères minimum, « rien n\'a été changé ») et rien n\'est parti', /8 caractères minimum/.test(dern()) && /rien n’a été changé/.test(dern()) && (await entre(NEUF)).s === 200);
+    const TAUTRE = 'autre-mdp-940-Wk3';
+    reponse = TAUTRE; TM.run('btMdp(' + JSON.stringify(oubli.id) + ',"oubli")');
+    vrai('⛔ un mot de passe valable : la Tour DIT la réussite (« l\'ancien ne passe plus »)', await jusqua(() => /Nouveau mot de passe posé pour « oubli »/.test(dern())));
+    v('   et le serveur l\'a posé : le précédent est refusé, le nouveau ouvre', [(await entre(NEUF)).s, (await entre(TAUTRE)).s], [403, 200]);
+    vrai('   ⛔ ni le toast ni le journal de la Tour ne contiennent le mot de passe', !TM.toasts.some(t => t.includes(TAUTRE)) && !JSON.stringify(TM.run('JR.actions')).includes(TAUTRE) && /a posé un nouveau mot de passe à l’accès bêta « oubli » \(OP MESSAGES\)/.test(TM.run('JR.actions[0].tx')));
+    const TX = tour(B, 'f'.repeat(48), 'messages'); TX.ctx.prompt = () => 'refus-patron-940-x';
+    TX.run('btMdp(' + JSON.stringify(oubli.id) + ',"oubli")');
+    vrai('⛔ un REFUS du serveur (jeton non patron : 403) se LIT : « Réservé au patron… rien n\'a été changé »', await jusqua(() => /Réservé au patron/.test(TX.toasts[TX.toasts.length - 1] || '') && /rien n’a été changé/.test(TX.toasts[TX.toasts.length - 1])));
+    v('   et ce refus n\'a rien changé (le mot de passe posé juste avant ouvre toujours)', (await entre(TAUTRE)).s, 200);
+    reponse = 'inconnu-940-ok1'; TM.run('btMdp("bffffffffff","fantôme")');
+    vrai('⛔ un accès inconnu du serveur (404) se lit : « accès introuvable »', await jusqua(() => /accès introuvable/.test(dern())));
+    const TN = tour('http://127.0.0.1:1', PATRON, 'messages'); TN.ctx.prompt = () => 'reseau-coupe-940-x';
+    TN.run('btMdp(' + JSON.stringify(oubli.id) + ',"oubli")');
+    vrai('⛔ un serveur injoignable se lit (« Serveur injoignable… rien n\'a été changé »), jamais une réussite', await jusqua(() => /Serveur injoignable/.test(TN.toasts[TN.toasts.length - 1] || '')) && !/posé/.test(TN.toasts.join('|')));
+    const TGp = tour(B, PATRON, 'gestion'); TGp.run('chargerEssais()'); await TGp.attendre('BT.loaded');
+    TGp.ctx.prompt = () => 'gaston-nouveau-940'; TGp.run('btMdp(' + JSON.stringify(gastonId) + ',"gaston")');
+    vrai('la console GESTION pose aussi un mot de passe (sans « (OP MESSAGES) » dans son journal) : l\'ancien tombe, le nouveau ouvre', await jusqua(() => /Nouveau mot de passe posé pour « gaston »/.test(TGp.toasts[TGp.toasts.length - 1] || '')) && (await login('gaston', 'pw-gaston-940-a')).s === 403 && (await login('gaston', 'gaston-nouveau-940')).s === 200 && !/OP MESSAGES/.test(TGp.run('JR.actions[0].tx')));
+    /* En DERNIER : dès qu'un compte nominatif existe, le jeton du mot de passe de départ (celui des essais ci-dessus) ne passe plus. */
+    v('population : un compte collaborateur est créé (le jeton de départ cesse alors de valoir patron — d\'où sa place, en dernier)', (await appel('/api/monitor/users', { nom: 'Collab 940', pass: 'pw-collab-940-a' }, PATRON)).s, 200);
+    const COLLAB = (await appel('/api/monitor/login', { nom: 'Collab 940', pass: 'pw-collab-940-a' })).j.token;
+    vrai('population : il a une session', COLLAB);
+    v('⛔ un collaborateur de la Tour, PAS patron : 403 (et l\'ancien mot de passe de l\'accès n\'a pas bougé)', [(await appel('/api/monitor/beta/mdp', { id: oubli.id, pass: 'collab-essaie-940' }, COLLAB)).s, (await entre(TAUTRE)).s], [403, 200]);
   } catch (e) {
     console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); ko++;
     console.log(journal.slice(-800));
