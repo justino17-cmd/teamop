@@ -576,6 +576,10 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (m.sansFk === true) X('PRAGMA foreign_keys=ON');
   }
 
+  /* ⛔ L'IDENTIFIANT PUBLIC n'existe qu'à partir du schéma 11 : une base ouverte avec des migrations plus anciennes (les bancs qui rejouent une migration d'avant, une copie
+     restaurée) n'a pas ses colonnes, et chaque lecture d'une personne y planterait. Le schéma ne change plus après ce point : on le lit une fois. */
+  const IDENT = versionActuelle() >= 11;
+
   /* ── Le témoin de clé : un démarrage avec une MAUVAISE clé est refusé net ──────────── */
   const metaLire = (k) => { const r = Q('SELECT v FROM meta WHERE k = ?').get(k); return r ? r.v : null; };
   const metaPoser = (k, v) => { Q('INSERT INTO meta(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').run(k, v); };
@@ -617,11 +621,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     id: r.id, prenom: r.prenom, nom: r.nom, statut: r.statut, langue: r.langue, tz: r.tz, avatar: r.avatar_piece || null,
     prefs: (() => { try { return JSON.parse(r.prefs) || {}; } catch (e) { return {}; } })(),
     origine: r.origine, verifie: !!r.verifie_le, etat: r.etat, cree: r.cree,
-    identifiant: r.ident_num == null ? null : identAfficher(r.prenom, r.ident_num),
+    identifiant: r.ident_num == null ? null : identAfficher(r.prenom, num(r.ident_num)),
   });
   function personneParIdentifiant(identifiant) {
-    return personneRang(Q('SELECT id, prenom, nom, statut, langue, tz, avatar_piece, prefs, origine, verifie_le, etat, cree, ident_num FROM personne WHERE email_h = ?')
-      .get(scelleur.hmac('personne', 'email_h', identifiant)));
+    const h = scelleur.hmac('personne', 'email_h', identifiant);
+    return personneRang(IDENT ? Q('SELECT id, prenom, nom, statut, langue, tz, avatar_piece, prefs, origine, verifie_le, etat, cree, ident_num FROM personne WHERE email_h = ?').get(h)
+      : Q('SELECT id, prenom, nom, statut, langue, tz, avatar_piece, prefs, origine, verifie_le, etat, cree FROM personne WHERE email_h = ?').get(h));
   }
   /* `identifiant` est ce qui rend la personne unique : `beta:<login>` pour la porte bêta, l'adresse
      normalisée pour un compte public (étape 2). Il n'est jamais rangé en clair. */
@@ -638,7 +643,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     });
   }
   function personneParId(id) {
-    return personneRang(Q('SELECT id, prenom, nom, statut, langue, tz, avatar_piece, prefs, origine, verifie_le, etat, cree, ident_num FROM personne WHERE id = ?').get(id));
+    return personneRang(IDENT ? Q('SELECT id, prenom, nom, statut, langue, tz, avatar_piece, prefs, origine, verifie_le, etat, cree, ident_num FROM personne WHERE id = ?').get(id)
+      : Q('SELECT id, prenom, nom, statut, langue, tz, avatar_piece, prefs, origine, verifie_le, etat, cree FROM personne WHERE id = ?').get(id));
   }
   function personneIdentifiant(id) {
     const r = Q('SELECT email_ch FROM personne WHERE id = ?').get(id);
@@ -668,6 +674,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
      son identifiant s'affiche « Ахмед#4821 » et se retrouve tel quel. Un numéro déjà pris pour ce prénom en donne un autre ; un compte qui change de prénom GARDE son numéro
      s'il est libre sous le nouveau prénom. */
   function identAttribuer(id) {
+    if (!IDENT) return null;
     return tx(() => {
       const r = Q('SELECT prenom, ident_base, ident_num, etat FROM personne WHERE id = ?').get(id);
       if (!r || r.etat !== 'actif') return null;
@@ -686,7 +693,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const r = Q('SELECT id, prenom, etat, trouvable, suppression_le FROM personne WHERE ident_base = ? AND ident_num = ?').get(base, n);
     return r ? { id: r.id, prenom: r.prenom, etat: r.etat, trouvable: r.trouvable, suppression_le: r.suppression_le === null ? null : num(r.suppression_le) } : null;
   }
-  function identDe(id) { const r = Q('SELECT prenom, ident_num FROM personne WHERE id = ?').get(id); return r && r.ident_num != null ? identAfficher(r.prenom, num(r.ident_num)) : null; }
+  function identDe(id) { if (!IDENT) return null; const r = Q('SELECT prenom, ident_num FROM personne WHERE id = ?').get(id); return r && r.ident_num != null ? identAfficher(r.prenom, num(r.ident_num)) : null; }
   /* Les comptes d'avant la migration 11 reçoivent le leur au démarrage (rejouable : seuls ceux qui n'en ont pas). */
   function identCompleter() {
     let n = 0;
@@ -2101,7 +2108,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       Q('DELETE FROM push WHERE uid = ?').run(uid);
       Q('DELETE FROM notification WHERE uid = ?').run(uid);
       Q('DELETE FROM contact WHERE de = ? OR vers = ?').run(uid, uid);
-      Q('DELETE FROM demande_contact WHERE de = ? OR vers = ?').run(uid, uid);
+      if (IDENT) Q('DELETE FROM demande_contact WHERE de = ? OR vers = ?').run(uid, uid);
       Q('DELETE FROM lien WHERE par = ?').run(uid);
       Q('DELETE FROM recherche_tel WHERE uid = ?').run(uid);
       Q('DELETE FROM msg_masque WHERE uid = ?').run(uid);
@@ -2110,9 +2117,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       /* LA définition d'un compte effacé : plus d'identité (le numéro se libère), plus de nom, plus de mot de passe, plus de réglage — l'identifiant seul demeure, pour que « l'auteur » d'un message
          reste quelqu'un (de supprimé). `origine` et `cree` demeurent : ni l'un ni l'autre ne désigne personne. */
       Q(`UPDATE personne SET email_h = NULL, email_ch = NULL, verifie_le = NULL, sel = NULL, mdp = NULL, params = NULL, prenom = '', nom = '', avatar_piece = NULL, statut = '',
-           langue = 'fr', tz = 'Europe/Paris', prefs = '{}', etat = 'supprime', suppression_le = NULL, age_ok = NULL, cgu_v = NULL, essais = 0, bloque_jusqua = NULL, trouvable = 'personne',
-           ident_base = NULL, ident_num = NULL
+           langue = 'fr', tz = 'Europe/Paris', prefs = '{}', etat = 'supprime', suppression_le = NULL, age_ok = NULL, cgu_v = NULL, essais = 0, bloque_jusqua = NULL, trouvable = 'personne'
          WHERE id = ?`).run(uid);
+      if (IDENT) Q('UPDATE personne SET ident_base = NULL, ident_num = NULL WHERE id = ?').run(uid);   // l'identifiant public se libère avec le reste
       if (!rejeu) Q('INSERT INTO purge(objet, genre, quand) VALUES(?, ?, ?)').run(uid, 'compte', horloge());
       return { effacee: true, pieces, convs, audience, espacesOrphelins: sortis.orphelins, appels: appelsReveil };
     });
@@ -3722,7 +3729,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
 
   /* les comptes nés avant la migration 11 reçoivent leur identifiant public une fois, au démarrage (une copie d'un schéma plus ancien n'a pas la colonne : rien à faire) */
-  if (versionActuelle() >= 11) identCompleter();
+  if (IDENT) identCompleter();
 
   return {
     schema, instantane, sonde, fermer, tx, stats, metaLire, nouvelId, illisibles: () => illisibles,
