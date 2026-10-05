@@ -545,16 +545,16 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
       const e3 = await attrape(A.src.majProfil({}));
       v('rien à enregistrer : refus propre', e3 && e3.code, 'vide');
 
-      v('la confidentialité commence ouverte (comme WhatsApp)', await A.src.confidentialite(), { presence: true, accuses: true });
+      v('la confidentialité commence ouverte (comme WhatsApp) — trouvable par identifiant ou numéro compris (5 octobre 2026)', await A.src.confidentialite(), { presence: true, accuses: true, trouvable: true });
       v('⛔ `moi()` dit MA présence (la barre de la page : « Disponible » ou « Présence masquée ») — montrée au départ', A.src.moi().presence, true);
       const evMoi0 = A.evs.filter(e => e.type === 'moi').length;
       const c1 = await A.src.majConfidentialite({ presence: false });
-      v('⛔ Alice coupe sa présence : le service répond ce qu\'il a retenu', c1, { presence: false, accuses: true });
+      v('⛔ Alice coupe sa présence : le service répond ce qu\'il a retenu', c1, { presence: false, accuses: true, trouvable: true });
       vrai('⛔ …`moi()` redit « masquée » ET l\'événement `moi` prévient la page (sans lui la barre latérale continuait de dire « Disponible » avec son point vert, pendant que personne ne la voyait)', A.src.moi().presence === false && A.evs.filter(e => e.type === 'moi').length > evMoi0);
-      v('et le service l\'a bien gardé (relecture)', await A.src.confidentialite(), { presence: false, accuses: true });
+      v('et le service l\'a bien gardé (relecture)', await A.src.confidentialite(), { presence: false, accuses: true, trouvable: true });
       vrai('⛔ RÉCIPROQUE : Bruno ne la voit plus en ligne, et Alice ne voit plus Bruno en ligne', await att(async () => { await B.src.rafraichirContacts(); await A.src.rafraichirContacts(); return !B.src.contacts().find(c => c.nom === 'Alicia Martin').enLigne && !A.src.contacts().find(c => c.nom === 'Bruno Petit').enLigne; }));
       const c2 = await A.src.majConfidentialite({ presence: true, accuses: false });
-      v('elle rallume la présence et coupe les confirmations de lecture : les deux réglages sont rendus', c2, { presence: true, accuses: false });
+      v('elle rallume la présence et coupe les confirmations de lecture : les deux réglages sont rendus', c2, { presence: true, accuses: false, trouvable: true });
       v('et `moi()` redit « montrée »', A.src.moi().presence, true);
       const e4 = await attrape(A.src.majConfidentialite({ presence: 'oui' }));
       v('un réglage qui n\'est pas un booléen est refusé sur place (rien n\'est envoyé), et un réglage vide aussi', [e4 && e4.code, (await attrape(A.src.majConfidentialite({}))).code], ['vide', 'vide']);
