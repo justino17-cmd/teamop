@@ -30,6 +30,7 @@
  */
 const crypto = require('crypto'), fs = require('fs');
 const { analyser } = require('./numero');
+const { identLire } = require('./stockage');
 const { cleReseau } = require('./quotas');
 
 const JOUR = 86400000, H = 3600000;
@@ -382,6 +383,89 @@ function creerTelephone(ctx) {
       } catch (e) { /* une notification ratée ne défait pas le geste */ }
     }
     res.json({ ok: true, deja, contact: { id: p.id, prenom: p.prenom, nom: p.nom } });
+  };
+
+  /* ══ 6. L'IDENTIFIANT « Prénom#1234 » ET LES DEMANDES DE CONTACT (Justin, 5 octobre 2026) ═════════
+     Retrouver quelqu'un par son identifiant EXACT obéit aux MÊMES règles que le numéro, et partage SES plafonds : le compteur durable du jour (`recherche_tel`), la rafale de
+     5 par minute, la même latence plancher, la même réponse neutre pour « personne », « m'a bloqué », « ne veut pas être trouvé », « c'est moi », « compte qui s'efface ». Un
+     identifiant n'est pas un nom : « Camille » seul est refusé (400) avant même d'être compté.
+     Trouver ne crée PAS de contact : `demander` crée une DEMANDE, que la personne accepte ou refuse (« demande à accepter », même jour). `demander` ne vaut, comme `ajouter`,
+     que pour une personne qu'on vient de trouver (par identifiant OU par numéro) — un identifiant de personne ramassé ailleurs n'envoie rien. */
+  const nomDe = (moi) => (moi.prenom + ' ' + moi.nom).trim() || 'Quelqu\'un';
+  const relation = (uid, id) => stockage.demandesRecues(uid).some(d => d.id === id) ? 'recue' : stockage.demandesEnvoyees(uid).some(d => d.id === id) ? 'envoyee' : 'aucune';
+  function prevenir(uid, type, titre, texte, auteur) {
+    try {
+      const n = stockage.notifCreer({ uid, type, titre, texte, cible: auteur, auteur });
+      hub.reveiller({ uids: [uid] });
+      if (ctx.push) ctx.push.pousser(uid, { type: 'contact', tag: 'contact', url: '/', titre: 'OP MESSAGES', corps: titre, detail: { titre, corps: texte } }, { gid: n.gid });
+    } catch (e) { /* une notification ratée ne défait pas le geste */ }
+  }
+
+  H_['contacts.identifiant'] = async (req, res) => {
+    const t0 = Date.now();
+    const lu = identLire(corps(req).identifiant);
+    if (!lu) return refus(res, 400, 'identifiant_invalide');
+    const uid = req.moi.id;
+    const maxJour = jeune(req.moi) ? cfg.rechercheJourJeune : cfg.rechercheJour;
+    if (stockage.rechercheCompter(uid, horloge() - JOUR) >= maxJour) return trop(res, 'recherches_plafond', 3600);
+    const q = essai('chercher_minute', uid, { max: 5, fenetreMs: 60000 });
+    if (!q.ok) return trop(res, 'recherches_plafond', q.retry);
+    stockage.rechercheNoter(uid);
+
+    const p = stockage.personneParIdent(lu.base, lu.num);
+    const bloque = p ? stockage.contactBloque(uid, p.id) : false;
+    const visible = !!p && p.etat === 'actif' && p.suppression_le === null && p.id !== uid && p.trouvable === 'tous' && !bloque;
+    let rep = { trouve: false };
+    if (visible) {
+      noterTrouve(uid, p.id);
+      const deja = stockage.contactActif(uid, p.id);
+      rep = { trouve: true, id: p.id, prenom: p.prenom, identifiant: stockage.identDe(p.id), deja_contact: deja, demande: deja ? 'aucune' : relation(uid, p.id) };
+    }
+    const reste = cfg.rechercheLatenceMs - (Date.now() - t0);
+    if (reste > 0) await dort(reste);
+    res.json(rep);
+  };
+
+  H_['contacts.demander'] = (req, res) => {
+    const id = corps(req).id;
+    if (typeof id !== 'string' || !ID_PERS.test(id) || id === req.moi.id) return refus(res, 400, 'champ_invalide');
+    const uid = req.moi.id;
+    const q = essai('ajout_jour', uid, { max: cfg.ajoutJour, fenetreMs: JOUR }, jeune(req.moi) ? 1 / 3 : 1);
+    if (!q.ok) return trop(res, 'ajouts_plafond', q.retry);
+    const fin = trouves.get(uid + '|' + id);
+    const p = fin && fin > horloge() ? stockage.personneParId(id) : null;
+    const t = p ? stockage.telTrouvableLire(id) : null;
+    if (!p || p.etat !== 'actif' || t !== 'tous' || stockage.contactBloque(uid, id) || stockage.suppressionLe(id) !== null) { rendre([q.cle]); return refus(res, 404, 'introuvable'); }
+    trouves.delete(uid + '|' + id);
+    const r = stockage.demandeCreer(uid, id);
+    if (r === 'envoyee') prevenir(id, 'contact_demande', 'Demande de contact', nomDe(req.moi) + ' veut vous ajouter à ses contacts.', uid);
+    else if (r === 'acceptee') prevenir(id, 'contact_ajoute', 'Nouveau contact', nomDe(req.moi) + ' est maintenant dans vos contacts.', uid);
+    else rendre([q.cle]);   // rien de neuf (déjà contact, déjà demandé) : le plafond ne se consomme pas
+    res.json({ ok: true, resultat: r });
+  };
+
+  H_['contacts.demandes'] = (req, res) => {
+    res.json({ recues: stockage.demandesRecues(req.moi.id), envoyees: stockage.demandesEnvoyees(req.moi.id), identifiant: stockage.identDe(req.moi.id) });
+  };
+
+  H_['contacts.repondre'] = (req, res) => {
+    const b = corps(req), id = b.id;
+    if (typeof id !== 'string' || !ID_PERS.test(id) || id === req.moi.id || typeof b.accepter !== 'boolean') return refus(res, 400, 'champ_invalide');
+    const q = essai('demande_reponse', req.moi.id, { max: 60, fenetreMs: 60 * 60000 });
+    if (!q.ok) return trop(res, 'quota_atteint', q.retry);
+    let r;
+    try { r = stockage.demandeRepondre(req.moi.id, id, b.accepter); } catch (e) { if (e && e.code === 'introuvable') return refus(res, 404, 'introuvable'); throw e; }
+    if (r === 'acceptee') { prevenir(id, 'contact_ajoute', 'Demande acceptée', nomDe(req.moi) + ' a accepté votre demande : vous êtes maintenant en contact.', req.moi.id); hub.reveiller({ uids: [req.moi.id] }); }
+    res.json({ ok: true, resultat: r });
+  };
+
+  H_['contacts.annuler'] = (req, res) => {
+    const id = corps(req).id;
+    if (typeof id !== 'string' || !ID_PERS.test(id) || id === req.moi.id) return refus(res, 400, 'champ_invalide');
+    const q = essai('demande_reponse', req.moi.id, { max: 60, fenetreMs: 60 * 60000 });
+    if (!q.ok) return trop(res, 'quota_atteint', q.retry);
+    try { stockage.demandeAnnuler(req.moi.id, id); } catch (e) { if (e && e.code === 'introuvable') return refus(res, 404, 'introuvable'); throw e; }
+    res.json({ ok: true });
   };
 
   return { handlers: H_, deconnexion, sante: () => sms.sante() };

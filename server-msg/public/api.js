@@ -67,6 +67,12 @@
     confirmation_requise: 'La suppression du compte doit être confirmée.',
     export_quotidien: 'Tu as déjà exporté tes données aujourd\'hui : un export par jour.',
     compte_supprime: 'Ce compte a été supprimé : tu ne peux plus lui écrire.',
+    /* l'identifiant « Prénom#1234 », le numéro et les demandes de contact */
+    identifiant_invalide: 'Tape l\'identifiant en entier : le prénom, « # » et les quatre chiffres (par exemple Camille#4821), ou un numéro de téléphone.',
+    numero_invalide: 'Ce numéro de téléphone n\'est pas valable : écris-le avec l\'indicatif du pays (+33…).',
+    recherches_plafond: 'Tu as fait beaucoup de recherches aujourd\'hui : réessaie plus tard.',
+    ajouts_plafond: 'Tu as envoyé beaucoup de demandes aujourd\'hui : réessaie demain.',
+    identifiant_plein: 'Impossible de te donner un identifiant avec ce prénom pour l\'instant : réessaie plus tard.',
     /* les espaces professionnels, leurs canaux, Messages Pro et l'abonnement. ⛔ Aucune promesse que le service ne tient pas : « fonction Pro » ne dit pas POURQUOI (seul l'administrateur le lit, dans
        l'état de l'abonnement), et « l'abonnement n'est pas encore ouvert » est la vérité d'un service sans clé de paiement. */
     formule_requise: 'Cette fonction fait partie de Messages Pro.',
@@ -270,6 +276,13 @@
       retirerContact: (uid) => appel('POST', '/api/contacts/retirer', { uid }),
       bloquer: (uid) => appel('POST', '/api/contacts/bloquer', { uid }),
       debloquer: (uid) => appel('POST', '/api/contacts/debloquer', { uid }),
+      /* l'identifiant « Prénom#1234 » EXACT ou un numéro EXACT (jamais un nom seul), puis une DEMANDE que la personne accepte */
+      contactParIdentifiant: (identifiant) => appel('POST', '/api/contacts/identifiant', { identifiant }),
+      contactParNumero: (numero) => appel('POST', '/api/contacts/chercher', { numero }),
+      demanderContact: (id) => appel('POST', '/api/contacts/demander', { id }),
+      demandesContact: () => appel('GET', '/api/contacts/demandes'),
+      repondreDemande: (id, accepter) => appel('POST', '/api/contacts/demandes/repondre', { id, accepter: accepter === true }),
+      annulerDemande: (id) => appel('POST', '/api/contacts/demandes/annuler', { id }),
       personne: async (id) => (await appel('GET', '/api/personnes/' + e(id))).personne,
       conversations: async () => (await appel('GET', '/api/conversations')).conversations,
       directe: (uid) => appel('POST', '/api/conversations/directe', { uid }),

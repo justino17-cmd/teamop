@@ -576,6 +576,7 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
         const quotas = creerQuotas(() => h.t);
         const conv = o.conv || [{ id: 'c1', n: 3 }, { id: 'c2', n: 3 }];
         const stockage = {
+          identDe: () => 'Alice#4821', demandesRecues: () => [], demandesEnvoyees: () => [],   // l'identifiant public et les demandes de contact (5 octobre 2026)
           exportProfil: (uid) => { if (o.profilLeve) throw new Error('panne simulée'); return { id: uid, prenom: 'Alice', nom: 'Banc', statut: '', langue: 'fr', fuseau: 'UTC', cree: h.t - 86400000, origine: 'beta', prefs: {}, trouvable: false }; },
           contactsDe: () => [],
           exportConversationsIds: () => conv.map(c => c.id),
