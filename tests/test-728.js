@@ -244,7 +244,7 @@ if (fs.existsSync(dep)) {
         && t.indexOf('bash scripts/bancs-ci.sh "${SUITES[@]}"') < t.indexOf('commit -q'));
       vrai('   ⛔ avec le plancher de la liste — ici ET dans les workflows qu\'il écrit',
         /BANCS_PLANCHER="\$\(sed -n 's\/\^#plancher \/\/p' scripts\/bancs-serveur\.liste\)" bash scripts\/bancs-ci\.sh/.test(t)
-        && /run: BANCS_PLANCHER=\$\(sed -n/.test(t));
+        && /run: (\$1)?BANCS_PLANCHER=\$\(sed -n/.test(t));   // `$1` : le préfixe d'environnement de la ligne, gardé (ci.yml porte NODE_PATH)
       vrai('   et il refuse une liste trop courte', /-ge 25/.test(t));
       /* ⛔ Les listes ne lisent pas tout ce qui part : la Tour et la page de paiement partent avec le serveur et sont LUES par des
          suites hors des listes, restées celles de main. Le 2 octobre 2026, `fa32298` a mis la CI de main au rouge APRÈS la mise en
