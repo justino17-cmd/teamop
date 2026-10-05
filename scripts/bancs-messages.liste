@@ -128,3 +128,7 @@ tests/test-991.js
 tests/test-992.js
 tests/test-993.js
 tests/test-994.js
+#
+# ── « Mot de passe oublié » d'un accès bêta (5 octobre 2026) : le vrai OP GESTION pose un nouveau mot de passe, la porte d'OP MESSAGES ferme les sessions ouvertes avec l'ancien
+# (celle du nouveau reste, la personne est la même) ; l'écran de connexion dit quoi faire. 14 vérifications.
+tests/test-920.js

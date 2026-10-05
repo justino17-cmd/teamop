@@ -650,6 +650,15 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   function sessionSupprimer(h) { return num(Q('DELETE FROM session WHERE h = ?').run(h).changes); }
   function sessionsSupprimerPersonne(id) { return num(Q('DELETE FROM session WHERE personne = ?').run(id).changes); }
+  /* Les sessions d'une personne NÉES AVANT l'instant `t` : rend leurs empreintes (l'appelant ferme leurs flux). Sert à la bêta : le mot de passe d'un accès
+     a été remplacé à la Tour à `t`, les sessions ouvertes avec l'ancien tombent, celles qui viennent d'entrer avec le nouveau restent. */
+  function sessionsSupprimerAvant(id, t) {
+    return tx(() => {
+      const hs = Q('SELECT h FROM session WHERE personne = ? AND cree < ?').all(id, t).map(r => r.h);
+      for (const h of hs) Q('DELETE FROM session WHERE h = ?').run(h);
+      return hs;
+    });
+  }
   /* Les autres sessions d'une personne : rend leurs empreintes (l'appelant ferme leurs flux — une session supprimée dont le flux reste ouvert continue de recevoir). */
   function sessionsSupprimerAutres(id, garderH) {
     return tx(() => {
@@ -3584,7 +3593,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   return {
     schema, instantane, sonde, fermer, tx, stats, metaLire, nouvelId, illisibles: () => illisibles,
     personneCreer, personneParIdentifiant, personneParId, personneIdentifiant, personneMaj,
-    sessionAjouter, sessionLire, sessionToucher, sessionSupprimer, sessionsSupprimerPersonne, sessionsSupprimerAutres, betaARelire,
+    sessionAjouter, sessionLire, sessionToucher, sessionSupprimer, sessionsSupprimerPersonne, sessionsSupprimerAvant, sessionsSupprimerAutres, betaARelire,
     contactLier, contactBloque, contactActif, contactsDe, contactsActifs, contactRetirer, contactEtat, contactBloquer, contactDebloquer, contactLigne, peutVoir,
     lienCreer, lienValide, lienApercu, lienAccepter, liensRevoquerGroupe, liensRevoquerContact,
     collegues, peutEcrire,

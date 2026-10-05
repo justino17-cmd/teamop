@@ -34,6 +34,10 @@
  * `relire()` demande `POST /api/beta/etat` pour chaque identifiant qui a une session, et supprime
  * les sessions de ceux qu'OP GESTION dit coupés ; l'appelant ferme leurs flux. Une panne d'OP
  * GESTION n'éjecte personne : on ne sait pas, donc on ne coupe pas.
+ *
+ * ⛔ UN MOT DE PASSE REMPLACÉ À LA TOUR FERME LES SESSIONS OUVERTES AVEC L'ANCIEN (5 octobre 2026, « mot de passe oublié ») : la
+ * même relecture reçoit `mdp[<id>]`, l'instant du changement, et supprime les sessions NÉES AVANT (leurs flux se ferment par
+ * `fermerSessions`). L'accès reste ouvert, la personne est la même : seules les sessions anciennes tombent, dans la minute.
  */
 const { cleReseau } = require('./quotas');
 const REGEX_LOGIN = /^[a-z0-9._@-]{3,40}$/;
@@ -46,7 +50,7 @@ const REGEX_ID = /^b[0-9a-f]{6,32}$/;   // l'identifiant d'un accès bêta chez 
 const APP = 'messages';
 const PAQUET_ETAT = 50;                 // OP GESTION plafonne les accès bêta à 50
 
-function creerPorteBeta({ config, quotas, stockage, fetchImpl = fetch, horloge = Date.now }) {
+function creerPorteBeta({ config, quotas, stockage, fetchImpl = fetch, horloge = Date.now, fermerSessions = () => {} }) {
   const q = (nom, def) => Object.assign({}, def, config.quotas[nom] || {});
   const base = String(config.beta.urlGestion).replace(/\/+$/, '');
   let derniereRelectureOk = 0, relecturesEchec = 0, ouvertures = 0, refusAmont = 0;
@@ -125,6 +129,13 @@ function creerPorteBeta({ config, quotas, stockage, fetchImpl = fetch, horloge =
           const o = r.j.ouverts[p.bid];
           if (o === false) { stockage.sessionsSupprimerPersonne(p.id); coupes.push(p.id); }
           else if (typeof o !== 'boolean') echec = true;
+          else {
+            /* ⛔ MOT DE PASSE REMPLACÉ À LA TOUR (`mdp[id]` = l'instant du changement) : les sessions NÉES AVANT tombent — c'était l'ancien mot de passe —
+               et leurs flux se ferment ; celles d'après, ouvertes avec le nouveau, restent. L'accès, lui, reste ouvert : ni push retiré, ni personne coupée
+               (`coupes` ne le contient pas). Un champ absent ou illisible ne coupe rien : on ne sait pas. */
+            const t = r.j.mdp && typeof r.j.mdp === 'object' ? r.j.mdp[p.bid] : undefined;
+            if (Number.isFinite(t) && t > 0) fermerSessions(stockage.sessionsSupprimerAvant(p.id, t));
+          }
         }
       } catch (e) { echec = true; }
     }

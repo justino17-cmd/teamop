@@ -100,7 +100,7 @@ function demarrer(env = process.env) {
   const courriel = creerCourriel({ config, stockage, scelleur, horloge: Date.now, journaliser });
   /* ⛔ LES APPELS À DEUX : le relais (identifiants éphémères, jamais de STUN d'un tiers), les signaux relayés à la seule session liée, le balayeur (sonneries échues, appareils perdus), les pushs. L'horloge est injectée. Voir `appels.js`. */
   const appels = creerAppels({ stockage, hub, push, config, formule, horloge: Date.now, journaliser });
-  const porte = config.instance === 'beta' ? creerPorteBeta({ config, quotas, stockage, horloge: Date.now }) : null;
+  const porte = config.instance === 'beta' ? creerPorteBeta({ config, quotas, stockage, horloge: Date.now, fermerSessions: hs => { for (const h of hs) hub.fermerSession(h); } }) : null;
   /* Les SMS : la configuration est VALIDÉE ici (un budget négatif, des identifiants à moitié posés, une URL d'OVH étrangère en production
      refusent le démarrage plutôt que de tourner de travers), puis la garde (budgets, emballement, bouclier) et l'envoi par OVH. */
   const sms = creerGarde({ cfg: lireConfigSms(config.sms, config.instance), instance: config.instance, stockage, scelleur, horloge: Date.now, journaliser });
