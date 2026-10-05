@@ -7,6 +7,7 @@ Ce qui coûte de l'argent à chaque usage (SMS, IA, stockage lourd) va dans Mess
 
 | Lot | Contenu | Dépend de | Note |
 |---|---|---|---|
+| ✅ 5 oct. | **Thème « 100 % Apple »** (lot 1 : couleurs système, bleu du logo, Liquid Glass, nuit en bleu nuit — `THEME-OPMESSAGES.md`) et **l'identifiant « Prénom#1234 » avec demandes de contact** (`SERVEUR.md` § 2.5 bis) | — | thème : lots suivants = la conversation en capsules de verre, la barre latérale du bureau, Appels et Réunions |
 | 0 (en cours) | Étape 3 Appels (aperçu), formules, interface branchée sur `server-msg`, test à plusieurs personnes | — | |
 | 0 bis (en cours) | Inscription par téléphone, tous pays, budgets en euros, contacts par numéro | — | côté serveur |
 | A | Toutes les langues : interface + SMS, droite à gauche | 0, 0 bis | écran d'inscription par téléphone avec ; et des **numéros d'essai à code fixe, bêta seulement** (refusés au démarrage en production) — Justin : « avant de payer quoi que ce soit je veux tester » : l'inscription s'essaie sans un seul SMS |
