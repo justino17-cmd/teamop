@@ -1,8 +1,10 @@
 /* ══ OP MESSAGES — L'APERÇU CONTRE SON DOCUMENT ═══════════════════════════════════════════════════════════════════════════════
-   Justin a fourni le paquet de design d'OP MESSAGES le 29 septembre 2026. La référence du dépôt est
-   `design/opmessages/THEME-OPMESSAGES.md` ; la page d'aperçu est `apercu/opmessages/index.html`. Ce banc ne garde pas des
-   valeurs RECOPIÉES : il RELIT le tableau « Couleurs » du document et le compare à la page, jeton par jeton, JOUR ET NUIT
-   (le modèle de `test-759` : un banc qui recopie des valeurs garde une croyance, un banc qui relit la source garde un accord).
+   Justin a fourni le paquet de design d'OP MESSAGES le 29 septembre 2026, puis a choisi le thème « 100 % Apple » le 5 octobre
+   (couleurs système d'Apple, accent au bleu du logo, verre Liquid Glass ; l'ancien thème est dans `design/archives/`). La
+   référence du dépôt est `design/opmessages/THEME-OPMESSAGES.md` ; la page d'aperçu est `apercu/opmessages/index.html`. Ce banc
+   ne garde pas des valeurs RECOPIÉES : il RELIT les tableaux « Couleurs » et « Jetons système » du document et les compare à la
+   page, jeton par jeton, JOUR ET NUIT (le modèle de `test-759` : un banc qui recopie des valeurs garde une croyance, un banc qui
+   relit la source garde un accord).
 
    Il garde aussi ce que cette page promet sans le dire :
    · qu'elle ne charge RIEN de l'extérieur (ni feuille, ni police, ni script, ni appel réseau — et que le navigateur le refuse
@@ -21,28 +23,15 @@ const fs = require('fs'), path = require('path');
 const RACINE = process.env.OPMSG_RACINE ? path.resolve(process.env.OPMSG_RACINE) : path.join(__dirname, '..');
 const lire = f => fs.readFileSync(path.join(RACINE, f), 'utf8');
 
-/* ── ce que le DOCUMENT ne cite pas : les valeurs de la fonction `tokens(dark)` de la maquette source
-      (« OP Messages Apple.dc.html », l. 583-595). Écart DÉCLARÉ : le jour où le document les cite, elles passent dans le
-      tableau relu et quittent cette liste. ── */
-const MAQUETTE = {
-  jour: { '--faint': 'rgba(14,26,63,.3)', '--input-bg': '#ffffff', '--line': '0.5px solid rgba(60,60,67,.29)',
-    '--shadow-bar': '0 12px 32px rgba(11,20,38,.12), inset 0 1px 0 #fff', '--seg-track': 'rgba(118,118,128,.12)', '--seg-knob': '#fff',
-    '--sidebar': 'rgba(255,255,255,.4)', '--sheet': 'rgba(248,250,255,.94)', '--sheet-bg': 'rgba(242,242,247,.94)',
-    '--notif-bg': 'rgba(255,255,255,.82)', '--toggle-off': 'rgba(120,120,128,.16)', '--group-r': '12px', '--handle': 'rgba(0,0,0,.72)' },
-  nuit: { '--faint': 'rgba(220,228,250,.32)', '--input-bg': 'rgba(255,255,255,.06)', '--line': '1px solid rgba(255,255,255,.14)',
-    '--shadow-bar': '0 12px 32px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.16)', '--seg-track': 'rgba(118,118,128,.24)', '--seg-knob': '#636366',
-    '--sidebar': 'rgba(255,255,255,.04)', '--sheet': 'rgba(20,32,74,.92)', '--sheet-bg': 'rgba(28,28,30,.92)',
-    '--notif-bg': 'rgba(44,44,46,.82)', '--toggle-off': 'rgba(120,120,128,.32)', '--group-r': '12px', '--handle': 'rgba(255,255,255,.8)' }
-};
-/* l'ombre de la pastille d'onglet actif : citée par la maquette (l. 620), pas par le document */
-const PASTILLE = { jour: '0 4px 14px rgba(0,0,0,.12), inset 0 1px 0 #fff', nuit: '0 6px 16px rgba(34,59,110,.3), inset 0 1px 0 rgba(255,255,255,.28)' };
-/* ── TROIS jetons ne sont NI dans le document NI dans la maquette : ils sont à nous, et chacun dit pourquoi (l'étape 2 les a mesurés au pixel) ──
-   · --sub-meta : le « secondaire » du document tombe à ~4,1:1 sur le coin bleu du décor, trop clair pour une légende de 11 px ;
-   · --rond-bord : le contour d'une case décochée faisait ~1,4:1 sur la carte (WCAG 1.4.11 en demande 3) ;
+/* ── les jetons SYSTÈME (gris, ombres, verre, feuilles…) : depuis le thème « 100 % Apple » ils sont DANS le document, tableau
+      « Jetons système » — lus par `tableauSysteme(DOC)`, plus aucune valeur recopiée ici (avant : la maquette, recopiée à la main). ── */
+/* ── TROIS jetons ne sont PAS dans le document : ils sont à nous, et chacun dit pourquoi (calculés, puis lus au pixel par la sonde) ──
+   · --sub-meta : le « secondaire » d'Apple (rgba(60,60,67,.6)) fait 3,3:1 sur le fond #f2f2f7, trop clair pour une légende de 11 px ;
+   · --rond-bord : le contour d'une case décochée : 3:1 sur la carte (WCAG 1.4.11) ;
    · --on-fill : l'encre posée sur --fill (une surface, une encre — CLAUDE.md). */
 const NOUS = {
-  jour: { '--sub-meta': 'rgba(14,26,63,.72)', '--rond-bord': 'rgba(60,60,67,.6)', '--on-fill': '#ffffff' },
-  nuit: { '--sub-meta': 'rgba(220,228,250,.78)', '--rond-bord': 'rgba(235,235,245,.6)', '--on-fill': '#ffffff' }
+  jour: { '--sub-meta': 'rgba(60,60,67,.8)', '--rond-bord': 'rgba(60,60,67,.6)', '--on-fill': '#ffffff' },
+  nuit: { '--sub-meta': 'rgba(235,235,245,.7)', '--rond-bord': 'rgba(235,235,245,.6)', '--on-fill': '#ffffff' }
 };
 /* ── des jetons DÉCLARÉS que l'étape 2 n'utilise pas encore : nommés un par un, avec l'écran qui les lira. Un jeton déclaré et lu par personne est
    du code mort qui a l'air d'une garde — la règle de CLAUDE.md sur les champs de /health, appliquée aux variables CSS. Le banc exige les DEUX sens :
@@ -83,6 +72,13 @@ function tableauDoc(doc) {
   return bloc.split('\n').filter(l => /^\|/.test(l)).map(l => l.split('|').slice(1, 4).map(x => x.trim()))
     .filter(r => r.length === 3 && !/^-+$/.test(r[0]) && r[0] !== 'Jeton');
 }
+/* le tableau « Jetons système » : | --nom | jour | nuit | — une valeur peut porter des virgules, jamais une barre verticale */
+function tableauSysteme(doc) {
+  const i = doc.indexOf('## Jetons système'); if (i < 0) return { jour: {}, nuit: {} };
+  const bloc = doc.slice(i).split(/\n## /)[0], o = { jour: {}, nuit: {} };
+  for (const l of bloc.split('\n')) { const r = l.split('|').map(x => x.trim()); if (/^--[a-z][\w-]*$/.test(r[1] || '')) { o.jour[r[1]] = r[2]; o.nuit[r[1]] = r[3]; } }
+  return o;
+}
 /* toutes les règles qui portent EXACTEMENT ce sélecteur, mises bout à bout : `.side` est posé en deux endroits (masqué au
    téléphone, puis sa matière) et lire la première seule ne verrait pas son verre */
 function regle(css, sel) {
@@ -109,6 +105,8 @@ function controler(PAGE, DOC, SRC) {
   /* 1. LES JETONS CONTRE LE DOCUMENT, jour et nuit ─────────────────────────────────────────────────────────────────── */
   const lignes = tableauDoc(DOC);
   vrai('(population) le tableau « Couleurs » du document est lu : ' + lignes.length + ' lignes (13 attendues)', lignes.length >= 13, 'lignes : ' + lignes.length);
+  const SYS = tableauSysteme(DOC);
+  vrai('(population) le tableau « Jetons système » du document est lu : ' + Object.keys(SYS.jour).length + ' jetons (15 attendus)', Object.keys(SYS.jour).length >= 15);
   vrai('(population) la page porte ses jetons : ' + Object.keys(T.jour).length + ' le jour, ' + Object.keys(T.nuit).length + ' la nuit', Object.keys(T.jour).length >= 30 && Object.keys(T.nuit).length >= 30);
   v('chaque jeton du jour a son jumeau de nuit, et inversement (rien ne reste sans valeur dans un des deux modes)',
     [Object.keys(T.jour).filter(k => !(k in T.nuit)), Object.keys(T.nuit).filter(k => !(k in T.jour))], [[], []]);
@@ -125,23 +123,22 @@ function controler(PAGE, DOC, SRC) {
       const pxDoc = pixels(r[col]);
       if (pxDoc.length) v('   et ses épaisseurs (' + pxDoc.join(' ') + ')', noms.map(n => pixels(vars[n] || '')).reduce((a, b) => a.concat(b), []), pxDoc);
     }
-    /* l'onglet actif : « bulle blanche 88 %, texte #1a2e6b » / « bulle rgba(…), texte blanc » — de la prose, lue par motif */
+    /* l'onglet actif : « bulle rgba(…), texte #… » (ou « bulle blanche N % », « texte blanc ») — de la prose, lue par motif, dans les deux modes */
     const act = ligne('onglet actif')[col];
-    const bg = mode === 'jour' ? ((/bulle blanche (\d+) %/.exec(act) || [])[1] ? 'rgba(255,255,255,' + (+(/bulle blanche (\d+) %/.exec(act)[1]) / 100) + ')' : '?') : couleur((/bulle (rgba\([^)]*\))/.exec(act) || [, '?'])[1]);
-    const fg = mode === 'jour' ? couleur((/texte (#[0-9a-fA-F]+)/.exec(act) || [, '?'])[1]) : (/texte blanc/.test(act) ? '#ffffff' : '?');
+    const bb = /bulle blanche (\d+) %/.exec(act), br = /bulle (#[0-9a-fA-F]+|rgba?\([^)]*\))/.exec(act);
+    const bg = bb ? 'rgba(255,255,255,' + (+bb[1] / 100) + ')' : br ? couleur(br[1]) : '?';
+    const th = /texte (#[0-9a-fA-F]+)/.exec(act), fg = th ? couleur(th[1]) : (/texte blanc/.test(act) ? '#ffffff' : '?');
     v('jeton « onglet actif » — ' + mode + ' : bulle (' + bg + ') et encre (' + fg + ') du document = --tab-active-bg et --tab-active-fg', [couleur(vars['--tab-active-bg'] || ''), couleur(vars['--tab-active-fg'] || '')], [bg, fg]);
-    /* le fond d'écran : les trois (ou deux) couleurs du dégradé, l'angle de 112°, et la force de la diagonale */
+    /* le fond d'écran : UNI depuis le thème « 100 % Apple » — la couleur du document est --base, et --screen ne peint rien (plus de dégradé) */
     const fond = ligne('fond écran')[col], ecran = vars['--screen'] || '';
-    const arrets = couleurs(fond.replace(/diagonale[^+]*$/, '')), diag = (/diagonale\s*(?:\d+°\s*)?(?:blanche\s*)?(\d+)\s*%/.exec(fond) || [])[1];
-    vrai('jeton « fond écran » — ' + mode + ' : les ' + arrets.length + ' arrêts du document (' + arrets.join(' ') + ') sont dans --screen', arrets.length >= 3 && arrets.every(c => couleurs(ecran).includes(c)), 'arrêts ' + arrets.join(' ') + ' · page ' + couleurs(ecran).join(' '));
-    vrai('   la diagonale de 112° à ' + diag + ' % de blanc est dans --screen', /112deg/.test(ecran) && couleurs(ecran).includes('rgba(255,255,255,' + (+diag / 100) + ')'), ecran);
-    vrai('   ⛔ aucun arrêt « transparent » (il passe par du noir et salit le bord) : chaque arrêt s\'écrit rgba(r,g,b,0) de la teinte du départ', !/transparent/.test(ecran) && !/rgba\(0,\s*0,\s*0,\s*0\)/.test(ecran), ecran);
-    /* ce que le document ne cite pas : la maquette source, déclaré */
-    for (const [n, val] of Object.entries(MAQUETTE[mode])) v('jeton de la maquette « ' + n + ' » — ' + mode, net(vars[n] || ''), net(val));
-    v('ombre de la pastille d\'onglet actif — ' + mode + ' (maquette, l. 620)', net(vars['--tab-active-shadow'] || ''), net(PASTILLE[mode]));
+    const arrets = couleurs(fond);
+    vrai('jeton « fond écran » — ' + mode + ' : le document dit un fond UNI d\'une couleur (' + arrets.join(' ') + '), et c\'est --base', /\buni\b/.test(fond) && arrets.length === 1 && couleur(vars['--base'] || '') === arrets[0], 'document « ' + fond + ' » · --base ' + vars['--base']);
+    vrai('   et --screen ne peint rien par-dessus (none : ni dégradé, ni diagonale)', ecran.trim() === 'none', ecran);
+    /* le tableau « Jetons système » du document, jeton par jeton */
+    for (const [n, val] of Object.entries(SYS[mode])) v('jeton système « ' + n + ' » — ' + mode, net(vars[n] || ''), net(val));
     for (const [n, val] of Object.entries(NOUS[mode])) v('jeton À NOUS « ' + n + ' » — ' + mode + ' (ni document ni maquette)', net(vars[n] || ''), net(val));
   }
-  v('les trois jetons à nous ne sont PAS dans le tableau du document (sinon ils quittent cette liste)', Object.keys(NOUS.jour).filter(n => lignes.some(r => r.join(' ').includes(n))), []);
+  v('les trois jetons à nous ne sont PAS dans les tableaux du document (sinon ils quittent cette liste)', Object.keys(NOUS.jour).filter(n => lignes.some(r => r.join(' ').includes(n)) || n in SYS.jour), []);
   /* (h) un jeton déclaré est lu quelque part, ou nommé « pour une étape à venir » — et inversement */
   const lu = n => new RegExp('var\\(\\s*' + ech(n) + '(?![\\w-])').test(CSS + ' ' + HTML + ' ' + script);
   const inutiles = Object.keys(T.jour).filter(n => !lu(n));
@@ -158,7 +155,10 @@ function controler(PAGE, DOC, SRC) {
   const verreWk = (sel) => (prop(regle(CSS, sel), '-webkit-backdrop-filter') || '').replace(/\s+/g, ' ');
   v('verre : le jumeau -webkit- de chaque vitre dit la même chose (Safari ne lit que lui sur les versions d\'avant)', ['.tabs', '.side', '.feuille', '.notif', '.conv-nav', '.composer'].filter(s => verre(s) !== verreWk(s)), []);
   v('verre : la barre de la conversation et la barre de saisie sont à blur(30px) saturate(180%) (le document : « barres et panneaux »)', [verre('.conv-nav'), verre('.composer')], ['blur(30px) saturate(180%)', 'blur(30px) saturate(180%)']);
-  v('verre : la barre d\'onglets est à blur(36px) saturate(200%) (le document)', [/blur\(36px\) saturate\(200%\)/.test(DOC), verre('.tabs')], [true, 'blur(36px) saturate(200%)']);
+  const verreOnglets = (/barre d'onglets `(blur\([^`]*\))`/.exec(DOC) || [, '?'])[1];
+  v('verre : la barre d\'onglets suit le document (« barre d\'onglets `' + verreOnglets + '` »)', verre('.tabs'), verreOnglets);
+  vrai('Liquid Glass : la barre d\'onglets FLOTTE (ombre) et son arête est un REFLET (--verre-reflet), pas un trait gris', /var\(--shadow-bar\)\s*,\s*var\(--verre-reflet\)/.test(prop(regle(CSS, '.tabs'), 'box-shadow') || '') && /^0$/.test(prop(regle(CSS, '.tabs'), 'border') || ''), regle(CSS, '.tabs'));
+  vrai('Liquid Glass : la feuille et la bannière portent le reflet de leur arête', ['.feuille', '.notif'].every(s => /var\(--verre-reflet\)/.test(prop(regle(CSS, s), 'box-shadow') || '')));
   v('verre : la barre latérale à blur(30px) saturate(180%) (le document)', [/blur\(30px\) saturate\(180%\)/.test(DOC), verre('.side')], [true, 'blur(30px) saturate(180%)']);
   v('verre : la feuille et la bannière à blur(40px) saturate(180%) (la maquette : panneaux et notification)', [verre('.feuille'), verre('.notif')], ['blur(40px) saturate(180%)', 'blur(40px) saturate(180%)']);
   const filtres = [...CSS.matchAll(/([^{}]+)\{([^}]*backdrop-filter[^}]*)\}/g)].filter(m => !/@media|@supports/.test(m[1]) && !/!important/.test(m[2]));
@@ -261,19 +261,24 @@ console.log('\n══ 3. LA CONTRE-ÉPREUVE : ON MUTE UNE COPIE, LE BANC DOIT TO
 const MUTATIONS = [
   ['jeton de jour changé d\'un chiffre (--accent #2a4a9c → #2a4a9d)', 'page', p => p.replace('--accent: #2a4a9c;', '--accent: #2a4a9d;'), /« accent » .* jour/],
   ['jeton de nuit changé (--fill #3b63c4 → #3b63c5)', 'page', p => p.replace('--fill: #3b63c4;', '--fill: #3b63c5;'), /« fill » .* nuit/],
-  ['opacité de la carte du jour (.82 → .83)', 'page', p => p.replace('--card: rgba(255,255,255,.82);', '--card: rgba(255,255,255,.83);'), /« carte » .* jour/],
-  ['fond d\'écran de nuit : un arrêt du dégradé change (#24408a → #24408b)', 'page', p => p.replace('#24408a 0%, rgba(36,64,138,0)', '#24408b 0%, rgba(36,64,138,0)'), /« fond écran » .* nuit/],
-  ['diagonale de jour : 40 % → 41 %', 'page', p => p.replace('rgba(255,255,255,.4) 58.2%', 'rgba(255,255,255,.41) 58.2%'), /diagonale de 112°/],
-  ['un arrêt « transparent » revient dans le dégradé (il salit le bord)', 'page', p => p.replace('rgba(255,255,255,0) 58%, rgba(255,255,255,.05)', 'transparent 58%, rgba(255,255,255,.05)'), /transparent/],
-  ['une valeur de la maquette (--sheet-bg de nuit)', 'page', p => p.replace('--sheet-bg: rgba(28,28,30,.92);', '--sheet-bg: rgba(28,28,30,.9);'), /--sheet-bg/],
-  ['la barre d\'onglets perd son flou (36px → 12px, la propriété standard : le -webkit- est visé à part)', 'page', p => p.replace('; backdrop-filter: blur(36px) saturate(200%);', '; backdrop-filter: blur(12px) saturate(200%);'), /barre d'onglets est à blur\(36px\)/],
-  ['le jumeau -webkit- de la barre d\'onglets diverge', 'page', p => p.replace('-webkit-backdrop-filter: blur(36px) saturate(200%);', '-webkit-backdrop-filter: blur(18px) saturate(200%);'), /jumeau -webkit-/],
+  ['la carte du jour n\'est plus blanche (#ffffff → #fefefe)', 'page', p => p.replace('--card: #ffffff;', '--card: #fefefe;'), /« carte » .* jour/],
+  ['fond d\'écran de nuit : le noir devient un gris (#000000 → #0a0a0c)', 'page', p => p.replace('--base: #000000;', '--base: #0a0a0c;'), /« fond écran » .* nuit/],
+  ['le dégradé revient sur le fond de jour', 'page', p => p.replace('  --screen: none;', '  --screen: linear-gradient(160deg, #eef3fb, #dfe8f8);'), /--screen ne peint rien/],
+  ['une valeur du tableau système (--sheet-bg de nuit)', 'page', p => p.replace('--sheet-bg: rgba(28,28,30,.92);', '--sheet-bg: rgba(28,28,30,.9);'), /--sheet-bg/],
+  ['le reflet Liquid Glass de nuit change (.2 → .3)', 'page', p => p.replace('--verre-reflet: inset 0 1px 0 rgba(255,255,255,.2)', '--verre-reflet: inset 0 1px 0 rgba(255,255,255,.3)'), /« --verre-reflet » — nuit/],
+  ['la barre d\'onglets perd son reflet (Liquid Glass)', 'page', p => p.replace('box-shadow: var(--shadow-bar), var(--verre-reflet); --i: 0;', 'box-shadow: var(--shadow-bar); --i: 0;'), /arête est un REFLET/],
+  ['le trait gris revient autour de la barre d\'onglets', 'page', p => p.replace('  border: 0; box-shadow: var(--shadow-bar), var(--verre-reflet); --i: 0;', '  border: var(--line); box-shadow: var(--shadow-bar), var(--verre-reflet); --i: 0;'), /arête est un REFLET/],
+  ['la bannière perd son reflet', 'page', p => p.replace('box-shadow: 0 18px 44px rgba(0,0,0,.28), var(--verre-reflet);', 'box-shadow: 0 18px 44px rgba(0,0,0,.28);'), /feuille et la bannière portent le reflet/],
+  ['la barre d\'onglets perd son flou (24px → 12px, la propriété standard : le -webkit- est visé à part)', 'page', p => p.replace('; backdrop-filter: blur(24px) saturate(200%);', '; backdrop-filter: blur(12px) saturate(200%);'), /barre d'onglets suit le document/],
+  ['le jumeau -webkit- de la barre d\'onglets diverge', 'page', p => p.replace('-webkit-backdrop-filter: blur(24px) saturate(200%);', '-webkit-backdrop-filter: blur(18px) saturate(200%);'), /jumeau -webkit-/],
+  ['le document change le verre de la barre d\'onglets', 'doc', d => d.replace('barre d\'onglets `blur(24px) saturate(200%)`', 'barre d\'onglets `blur(28px) saturate(200%)`'), /barre d'onglets suit le document/],
+  ['le document change un jeton système (--group-r 22 → 20 px, jour)', 'doc', d => d.replace('| --group-r | 22px | 22px |', '| --group-r | 20px | 22px |'), /« --group-r » — jour/],
   ['un filtre de fond sans sa surface (la barre latérale perd son background)', 'page', p => p.replace('  background: var(--sidebar); -webkit-backdrop-filter', '  -webkit-backdrop-filter'), /AVEC sa surface/],
   ['« transparence réduite » retire le flou SANS rendre d\'aplat', 'page', p => p.replace('background: var(--solide) !important; }', '}'), /transparence réduite/],
   ['le mouvement réduit n\'est plus respecté', 'page', p => p.replace('animation: none !important;', ''), /mouvement réduit/],
   ['un jeton déclaré que personne ne lit et que personne ne nomme (--zz-mort)', 'page', p => p.replace('  --handle: rgba(0,0,0,.72);', '  --handle: rgba(0,0,0,.72);\n  --zz-mort: #123456;').replace('    --handle: rgba(255,255,255,.8);', '    --handle: rgba(255,255,255,.8);\n    --zz-mort: #123456;'), /\(h\) tout jeton déclaré mais lu par personne/],
   ['un jeton « pour plus tard » qu\'un écran lit déjà (--sheet utilisé)', 'page', p => p.replace('.badge { min-width: 18px;', '.badge { background-image: none; outline-color: var(--sheet); min-width: 18px;'), /\(h\) et tout jeton nommé/],
-  ['un jeton à nous change d\'un chiffre (--sub-meta jour .72 → .62)', 'page', p => p.replace('--sub-meta: rgba(14,26,63,.72);', '--sub-meta: rgba(14,26,63,.62);'), /À NOUS « --sub-meta » — jour/],
+  ['un jeton à nous change d\'un chiffre (--sub-meta jour .8 → .6)', 'page', p => p.replace('--sub-meta: rgba(60,60,67,.8);', '--sub-meta: rgba(60,60,67,.6);'), /À NOUS « --sub-meta » — jour/],
   ['une feuille de style externe (Google Fonts)', 'page', p => p.replace('<title>', '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter">\n<title>'), /aucune adresse http/],
   ['la politique du navigateur s\'ouvre (connect-src *)', 'page', p => p.replace("form-action 'none'", "form-action 'none'; connect-src *"), /NAVIGATEUR refuse/],
   ['un appel réseau dans le script', 'page', p => p.replace("'use strict';", "'use strict'; fetch('/x');"), /aucun appel réseau/],
@@ -293,7 +298,7 @@ const MUTATIONS = [
   ['le titre grand format change (34 → 32 px)', 'page', p => p.replace('font-size: 34px; line-height: 41px', 'font-size: 32px; line-height: 41px'), /Large Title/],
   ['la bulle d\'onglet se mesure en JavaScript', 'page', p => p.replace("$('tabs').style.setProperty('--i'", "$('tabs').offsetWidth; $('tabs').style.setProperty('--i'"), /bulle de l'onglet actif/],
   ['une cible tactile rétrécie (Modifier à 30 px)', 'page', p => p.replace('.lien-texte { min-height: 44px;', '.lien-texte { min-height: 30px;'), /cibles tactiles/],
-  ['le document change (la valeur du texte de jour)', 'doc', d => d.replace('| texte | #0e1a3f |', '| texte | #0e1a40 |'), /« texte » .* jour/],
+  ['le document change (la valeur du texte de jour)', 'doc', d => d.replace('| texte | #000000 |', '| texte | #000001 |'), /« texte » .* jour/],
   ['le document change (l\'accent de nuit)', 'doc', d => d.replace('#7ea2f0', '#7ea2f1'), /« accent » .* nuit/]
 ];
 const neutre = controler(PAGE, DOC, SRC).filter(r => !r[1]).length;
