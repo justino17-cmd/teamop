@@ -89,11 +89,12 @@ for f in "${PAGES_LIEES[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
 git checkout -q "$SOURCE" -- .github/workflows/deploiement.yml .github/workflows/ci.yml
 node -e '
   const fs = require("fs");
-  const avant = "run: bash scripts/bancs-ci.sh\n";
-  const apres = "run: BANCS_PLANCHER=$(sed -n \x27s/^#plancher //p\x27 scripts/bancs-serveur.liste) bash scripts/bancs-ci.sh $(grep -vE \x27^[[:space:]]*(#|$)\x27 scripts/bancs-serveur.liste)\n";
+  /* la ligne peut porter un prefixe d environnement (ci.yml : NODE_PATH pour ESLint) : on le garde */
+  const avant = /run: ((?:[A-Z_]+="[^"\n]*" )*)bash scripts\/bancs-ci\.sh\n/g;
+  const apres = "run: $1BANCS_PLANCHER=$(sed -n \x27s/^#plancher //p\x27 scripts/bancs-serveur.liste) bash scripts/bancs-ci.sh $(grep -vE \x27^[[:space:]]*(#|$)\x27 scripts/bancs-serveur.liste)\n";
   for (const w of [".github/workflows/deploiement.yml", ".github/workflows/ci.yml"]) {
     const s = fs.readFileSync(w, "utf8");
-    const n = s.split(avant).length - 1;
+    const n = (s.match(avant) || []).length;
     if (n !== 1) { console.error("✗ " + w + " : ligne des bancs trouvée " + n + " fois"); process.exit(1); }
     fs.writeFileSync(w, s.replace(avant, apres));
   }'
