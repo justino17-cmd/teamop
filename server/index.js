@@ -2192,6 +2192,25 @@ app.post('/api/monitor/beta/chantier', monPatronStrict, (req, res) => {
   c.chantier = monStr((req.body || {}).chantier, 120).trim(); betaSave();
   res.json({ ok: true, compte: betaPublic(c) });
 });
+/* ⛔ MOT DE PASSE OUBLIÉ D'UN ACCÈS BÊTA (Justin, 5 octobre 2026 : « il faudrait mot de passe oublié »). Les accès n'ont pas d'adresse
+   e-mail : la seule issue était de supprimer l'accès et de le recréer — ce qui change aussi son IDENTIFIANT de compte (`b…`), donc,
+   pour OP MESSAGES, la PERSONNE (contacts et conversations perdus). Le patron en pose un nouveau, même identifiant, même compte.
+   ⛔ L'ANCIEN MOT DE PASSE DOIT TOMBER PARTOUT. La porte (`/api/beta/login`) compare le hachage rangé : il change ici, donc l'ancien
+   est refusé dès la requête suivante. Les sessions déjà ouvertes, elles, ne rangent PAS le mot de passe : celles d'OP MESSAGES
+   (service à part, `server-msg/porte-beta.js`) se relisent par `/api/beta/etat` + `ids` — on y publie la date du changement
+   (`mdpTs`, champ `mdp` de la réponse) et la porte supprime les sessions NÉES AVANT. Celle d'OP GESTION (`beta.html`) vit dans
+   le navigateur et ne redemande que « ouvert ? » : elle ne tombe pas (voir REPRISE.md). Le mot de passe n'est ni journalisé ni
+   rendu : la réponse est `betaPublic`, comme celle des routes voisines. */
+app.post('/api/monitor/beta/mdp', monPatronStrict, (req, res) => {
+  const c = betaComptes.find(x => x.id === (req.body || {}).id);
+  if (!c) return res.status(404).json({ error: 'accès introuvable' });
+  const pass = monStr((req.body || {}).pass, 200);
+  if (pass.length < 8) return res.status(400).json({ error: 'mot de passe de 8 caractères minimum' });
+  c.hash = monHash(pass); c.mdpTs = Date.now(); betaSave();
+  monLock.delete((betaApps(c)[0] === 'gestion' ? 'bêta:' : 'bêta-' + betaApps(c)[0] + ':') + c.login);   // un accès verrouillé par des essais ratés avec l'OUBLI repart propre
+  console.log('Tour :', req.tourUser.nom, 'pose un nouveau mot de passe à l\'accès bêta', c.login, '(' + betaApps(c).join('+') + ')');   // identifiant d'accès, jamais le mot de passe
+  res.json({ ok: true, compte: betaPublic(c) });
+});
 app.post('/api/monitor/beta/toggle', monPatronStrict, (req, res) => {
   const c = betaComptes.find(x => x.id === (req.body || {}).id);
   if (!c) return res.status(404).json({ error: 'accès introuvable' });
@@ -2244,8 +2263,15 @@ app.post('/api/beta/etat', (req, res) => {
   const ids = (req.body || {}).ids;
   if (Array.isArray(ids)) {
     const ouverts = {};
-    for (const id of ids.slice(0, 100)) { if (typeof id === 'string' && /^b[0-9a-f]{6,32}$/.test(id)) ouverts[id] = betaComptes.some(x => x.id === id && ouvert(x)); }
-    return res.json({ ouverts, app: appVoulue });   // `app` rendu en écho : un OP GESTION d'avant ne le fait pas, et l'autre service ne coupe ni ne maintient rien sur une réponse qui ne répond pas à SA question
+    const mdp = {};   // quand le mot de passe d'un accès a été REMPLACÉ : l'autre service ferme les sessions nées avant (un id qui n'a jamais changé n'y figure pas)
+    for (const id of ids.slice(0, 100)) {
+      if (typeof id === 'string' && /^b[0-9a-f]{6,32}$/.test(id)) {
+        const x = betaComptes.find(y => y.id === id);
+        ouverts[id] = !!x && ouvert(x);
+        if (x && x.mdpTs && ouverts[id]) mdp[id] = x.mdpTs;
+      }
+    }
+    return res.json({ ouverts, mdp, app: appVoulue });   // `app` rendu en écho : un OP GESTION d'avant ne le fait pas, et l'autre service ne coupe ni ne maintient rien sur une réponse qui ne répond pas à SA question
   }
   // La forme {login} est PUBLIQUE et sans mot de passe (beta.html relit ainsi son propre accès) : elle ne répond que pour
   // OP GESTION. Lui demander une autre application dirait à n'importe qui si un identifiant ouvre OP MESSAGES — un cran

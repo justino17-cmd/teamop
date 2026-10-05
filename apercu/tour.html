@@ -2942,7 +2942,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.82</div>
+    <div class="lg-pied">console interne · v2.83</div>
   </div>
 </div>
 
@@ -2984,7 +2984,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.82</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.83</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2996,7 +2996,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.82</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.83</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3262,7 +3262,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.82';
+var TOUR_VERSION='v2.83';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -9316,6 +9316,7 @@ function accFicheBeta(id){
     '<div class="ac-actions">'+
       '<button type="button" class="btn-fant" onclick="'+F+'btChantier(\''+jsq(c.id)+'\',\''+jsq(c.chantier||'')+'\')">📝 '+(c.chantier?'Changer le chantier':'Écrire le chantier')+'</button>'+
       '<button type="button" class="btn-fant" onclick="'+F+'btToggle(\''+jsq(c.id)+'\')">'+(off?'▶️ Rouvrir':'⏸ Couper')+'</button>'+
+      '<button type="button" class="btn-fant" onclick="'+F+'btMdp(\''+jsq(c.id)+'\',\''+jsq(c.login)+'\')">🔑 Nouveau mot de passe</button>'+
       '<button type="button" class="btn-fant danger" onclick="'+F+'btSuppr(\''+jsq(c.id)+'\',\''+jsq(c.login)+'\')">🗑 Supprimer</button>'+
     '</div>'+enc);
 }
@@ -9328,6 +9329,23 @@ function btChantier(id,actuel){
     if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); return; }
     toast('Chantier enregistré'); chargerEssais();
   }).catch(function(){ toast('Serveur injoignable'); });
+}
+/* ⛔ v2.83 — MOT DE PASSE OUBLIÉ (Justin, 5 octobre 2026). Les accès bêta n'ont pas d'adresse e-mail : le patron en pose un NOUVEAU, même
+   identifiant, même compte (supprimer et recréer changeait aussi l'identifiant du compte — pour OP MESSAGES, la personne). Le même
+   minimum qu'à la création (8 caractères), vérifié ICI pour ne pas faire un aller-retour, et par le serveur qui reste juge. Un refus se
+   LIT (serveur, réseau, droit), et la réussite ne répète JAMAIS le mot de passe : ni toast, ni journal. Celui qu'on propose est tiré
+   au générateur cryptographique (`tirageSur`, comme `btGen`) ; il n'est lisible que dans cette fenêtre — le noter avant de valider. */
+function btMdp(id,login){
+  var v=prompt('Nouveau mot de passe pour l’accès « '+login+' » (8 caractères minimum).\n\nNotez-le avant de valider : il ne sera plus affiché. L’ancien cesse de fonctionner tout de suite'+(APP==='messages'?', et les sessions déjà ouvertes avec lui se ferment dans la minute.':'.'),
+    tirageSur('abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789!#%',12));
+  if(v===null) return;
+  v=String(v);
+  if(v.length<8){ toast('⚠️ Mot de passe de 8 caractères minimum — rien n’a été changé'); return; }
+  apiPost('/api/monitor/beta/mdp',{id:id,pass:v}).then(function(x){
+    if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||(x&&x.status===403?'Réservé au patron — ton compte n’a pas cet accès.':'refusé'))+' — rien n’a été changé'); return; }
+    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a posé un nouveau mot de passe à l’accès bêta « '+login+' »'+(APP==='messages'?' (OP MESSAGES)':'')});
+    toast('Nouveau mot de passe posé pour « '+login+' » — l’ancien ne passe plus'); chargerEssais();
+  }).catch(function(){ toast('⚠️ Serveur injoignable — rien n’a été changé'); });
 }
 /* Un groupe garde TOUJOURS son titre, même vide : ce sont deux portes fixes, pas des natures
    calculées — le titre est ce qui dit pourquoi il n'y a rien. */
