@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '9b9891fe31c0';
+  const OPMSG_BUILD = '9bdf05d3f1b4';
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
      ⛔ Cette page ne contient AUCUNE donnée et n'en modifie AUCUNE : tout ce qu'elle sait des personnes et des conversations vient de
@@ -207,7 +207,7 @@
       /* ⛔ la position se LIT avant de masquer la vue : une fois masquée, le document raccourcit et la fenêtre est ramenée à la hauteur de la vue d'arrivée (mesuré : 500 px lus 106) */
       if (prec) etat.posVues[prec.vue] = prec.vue === 'messages' && etat.conv ? etat.scrollListe : window.scrollY;
       ORDRE.forEach(k => { $('vue-' + k).hidden = k !== r.vue; });
-      document.querySelectorAll('[data-vue]').forEach(a => { if (a.dataset.vue === r.vue) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+      document.querySelectorAll('[data-vue]:not(#moi-carte)').forEach(a => { if (a.dataset.vue === r.vue) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
       $('tabs').style.setProperty('--i', ORDRE.indexOf(r.vue));
       document.title = VUES[r.vue].titre + SUFFIXE_TITRE;
       if (r.vue === 'reglages' && CAP.reglages && prec && typeof chargerReglages === 'function') chargerReglages();

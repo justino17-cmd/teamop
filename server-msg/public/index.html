@@ -341,9 +341,16 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 @media (hover: hover) { .side-lien:not([aria-current="page"]):hover { background: var(--field); } }
 @media (pointer: coarse) { .side-lien { min-height: 44px; } }
 .side-fin { margin-top: auto; }
-.moi { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: var(--field); }
+/* la carte « moi » OUVRE les Réglages (demandé le 6 octobre 2026 : « pourquoi les réglages ne sont pas quand on clique sur le profil en bas à gauche ») —
+   comme Discord ou Slack ; « Réglages » reste au menu. Elle ne porte pas la pastille de la rubrique choisie : c'est le lien du menu qui la porte. */
+.moi { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 8px; border-radius: 10px; background: var(--field); color: var(--text); text-decoration: none; transition: background-color .2s, transform .12s ease-out; }
+.moi:active { transform: scale(.98); }
+@media (hover: hover) { .moi:hover { background: var(--fill-soft); } }
+.moi:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.moi-chevron { flex: none; width: 14px; height: 14px; margin-left: auto; fill: none; stroke: var(--sub-meta); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .moi .avatar { width: 26px; height: 26px; font-size: 11px; }
-.moi-texte { min-width: 0; display: flex; flex-direction: column; }
+.moi-texte { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.moi-nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .moi-nom { font-size: 13px; font-weight: 600; }
 .moi-statut { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sub-meta); }
 .moi-statut i { width: 6px; height: 6px; border-radius: 50%; background: var(--vert); }
@@ -1260,7 +1267,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <div class="side-marque"><img src="opmsg-192.png" alt="" width="28" height="28"><b>OP MESSAGES</b></div>
     <nav aria-label="Navigation principale" id="nav-side"></nav>
     <div class="side-fin">
-      <div class="moi"><span class="avatar av0" aria-hidden="true" id="moi-avatar"></span><span class="moi-texte"><span class="moi-nom" id="moi-nom"></span><span class="moi-statut" id="moi-statut"><i></i><span id="moi-statut-texte">Disponible</span></span></span></div>
+      <a href="#reglages" class="moi presse" data-vue="reglages" id="moi-carte" aria-label="Mon profil et mes réglages" title="Mon profil et mes réglages"><span class="avatar av0" aria-hidden="true" id="moi-avatar"></span><span class="moi-texte"><span class="moi-nom" id="moi-nom"></span><span class="moi-statut" id="moi-statut"><i></i><span id="moi-statut-texte">Disponible</span></span></span><svg class="moi-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
     </div>
   </aside>
 

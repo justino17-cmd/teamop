@@ -141,3 +141,4 @@ tests/test-995.js
 # ── L'identifiant « Prénom#1234 » et les demandes de contact (5 octobre 2026) : le vrai service (996) ; la vraie page à deux personnes est la sonde tests/sonde-opmessages-identifiant.js ──
 tests/test-996.js
 # ── « Nouvelle version d'OP MESSAGES » (6 octobre 2026) : l'empreinte de version (test-941) ; la vraie page qui la compare, le bandeau, la barre et le retour sont la sonde tests/sonde-opmessages-maj.js ──
+# ── La carte de profil en bas à gauche ouvre les Réglages (6 octobre 2026) : la vraie page est la sonde tests/sonde-opmessages-profil.js ──
