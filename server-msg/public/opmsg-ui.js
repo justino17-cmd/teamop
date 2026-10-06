@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'b8d9e834c682';
+  const OPMSG_BUILD = '58bf143ee92e';
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
      ⛔ Cette page ne contient AUCUNE donnée et n'en modifie AUCUNE : tout ce qu'elle sait des personnes et des conversations vient de
@@ -13,7 +13,7 @@
   if (!source) { $('contenu').innerHTML = '<p class="vide">Les données n\'ont pas pu être chargées.</p>'; return; }
   /* ⛔ CE QUE LA SOURCE SAIT FAIRE. La source de l'aperçu n'annonce rien : photos, vocaux et appels y sont SIMULÉS, aucun service, aucune action sur un message. Celle du
      service annonce ses capacités (`source.capacites`) : ce qu'elle ne sait pas encore dit « bientôt » au lieu de faire semblant. */
-  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, appelsMedias: false, appelsGroupe: true, salles: false, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, notifications: false, compte: false, espaces: false, persoPlus: false, reunionPlafond: false, identifiants: false, miseAJour: false, comptesCourriel: false, texteMax: 4000 }, source.capacites || {});
+  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, appelsMedias: false, appelsGroupe: true, salles: false, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, notifications: false, compte: false, espaces: false, persoPlus: false, reunionPlafond: false, identifiants: false, miseAJour: false, comptesCourriel: false, agenda: false, texteMax: 4000 }, source.capacites || {});
   /* la personne et ses contacts : posés au démarrage (une source de service ne sait qui est connecté qu'après avoir lu la session), relus quand elle le dit */
   let MOI = null, CONTACTS = [];
   const SUFFIXE_TITRE = CAP.service ? ' — OP MESSAGES' : ' — OP MESSAGES, aperçu';
@@ -23,7 +23,8 @@
     messages: { titre: 'Messages',  icone: 'i-chat' },
     contacts: { titre: 'Contacts',  icone: 'i-groupe' },
     appels:   { titre: 'Appels',    icone: 'i-phone', texte: 'L\'historique des appels, les appels audio et vidéo.' },
-    reunions: { titre: 'Réunions',  icone: 'i-video', texte: 'L\'agenda, la programmation, les invités et les rappels.' },
+    /* avec l'agenda personnel (le service), l'onglet porte les deux : « Agenda » ; l'aperçu garde « Réunions » */
+    reunions: { titre: CAP.agenda ? 'Agenda' : 'Réunions',  icone: CAP.agenda ? 'i-agenda' : 'i-video', texte: 'L\'agenda, la programmation, les invités et les rappels.' },
     reglages: { titre: 'Réglages',  icone: 'i-gear',  texte: 'Le compte, les notifications et la confidentialité.' }
   };
   /* « Contacts » n'existe que là où les demandes de contact existent (le service) : l'aperçu garde ses quatre onglets */
@@ -1001,10 +1002,10 @@
     $('g-compteur').textContent = G.choisis.length + ' / ' + CONTACTS.length;
     $('g-creer').setAttribute('aria-disabled', G.choisis.length ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
-    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit', corpsInfo = info || G.mode === 'contact' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
+    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement', corpsInfo = info || G.mode === 'contact' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
     $('feuille').dataset.mode = G.mode;
     const nouv = G.mode === 'nouvelle';
-    $('feuille-titre').textContent = nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
+    $('feuille-titre').textContent = G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
     $('g-annuler').textContent = corpsInfo && !formReunion ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : 'Créer';
     $('g-creer').style.visibility = corpsInfo ? 'hidden' : '';
@@ -1034,7 +1035,7 @@
     etat.groupe.mode = mode === 'appel' || mode === 'info' || mode === 'nouvelle' || (mode === 'contact' && CAP.liens) || (mode === 'convinfo' && CAP.groupeInfos) || (mode === 'profil' && CAP.reglages) || (mode === 'suppression' && CAP.compte)
       || (CAP.espaces && (mode === 'entreprise' || ((mode === 'espace' || mode === 'abo') && ID_ESPACE.test(arg || ''))))
       || (CAP.reunions && (mode === 'reunion-new' || ((mode === 'reunion' || mode === 'reunion-edit') && ID_REUNION.test(arg || ''))))
-      || (CAP.salles && mode === 'invite-reunion') || (CAP.persoPlus && mode === 'perso-plus') ? mode : 'chat';
+      || (CAP.salles && mode === 'invite-reunion') || (CAP.persoPlus && mode === 'perso-plus') || (CAP.agenda && (mode === 'evenement-new' || (mode === 'evenement' && ID_EVT.test(arg || '')))) ? mode : 'chat';
     if (etat.groupe.mode === 'convinfo') etat.groupe.convId = arg || null;
     if (etat.groupe.mode === 'espace' || etat.groupe.mode === 'abo') etat.groupe.espaceId = arg;
     if (etat.groupe.mode === 'reunion' || etat.groupe.mode === 'reunion-edit') etat.groupe.reunionId = arg;
@@ -1060,6 +1061,7 @@
     if (etat.groupe.mode === 'reunion') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; ouvrirFicheEtat(arg); rendreFiche(); }
     if (etat.groupe.mode === 'reunion-new' || etat.groupe.mode === 'reunion-edit') { $('info-corps').innerHTML = ''; rendreFormReunion(etat.groupe.mode === 'reunion-edit' ? arg : null); }
     if (etat.groupe.mode === 'invite-reunion') rendreInviteReunion();
+    if (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'evenement') { $('info-corps').innerHTML = ''; rendreFormEvenement(etat.groupe.mode === 'evenement' ? arg : null); }
     synchroFeuille();
     $('feuille').inert = false;
     document.documentElement.classList.add('feuille-ouverte');
@@ -3075,12 +3077,14 @@
      quand l'heure n'est pas la même. ⛔ Elle n'affiche que ce que le service tient : pas de « Rejoindre » (l'étape 8), pas de promesse d'un envoi par courriel que le service n'a pas ouvert.
      ⛔ Une réunion ne porte que des IDENTIFIANTS de personnes : on les habille au moment de peindre (`contactDe`), donc une photo arrivée après coup apparaît sans relire l'agenda. */
   const ID_REUNION = /^r_[0-9a-f]{32}$/;
+  const ID_EVT = /^e_[0-9a-f]{32}$/;
   /* ⛔ Une réunion supprimée et une personne RETIRÉE de la réunion arrivent à la page de la même façon (la réunion ne se lit plus) : elle ne peut pas les distinguer, et ne dit pas plus qu'elle ne sait. La phrase est la même que
      celle d'une réunion qu'on ne trouve pas — qui n'apprend rien à quelqu'un qui n'y a jamais été invité. */
   const PHRASE_REUNION_PERDUE = 'Cette réunion n\'existe plus, ou tu n\'y es plus invité.';
   const reu = {
     semaine: 0, jour: 0,                 // le lundi (minuit, heure de l'appareil) de la semaine affichée, et le jour choisi (minuit)
     liste: [], charge: false, panne: null, jeton: 0,
+    evenements: [],                      // l'agenda personnel de la semaine (capacité `agenda`)
     fiche: null,                         // { id, donnees, jeton, confirme: null | 'annuler' | 'supprimer', courriel: null | {ouvert, serie}, prevenir, occurrence }
     occurrences: {},                     // l'occurrence touchée dans la liste, par réunion : la fiche parle de CELLE-LÀ
     colleagues: null,                    // les membres de mes espaces que je peux inviter (chargés une fois, à l'ouverture d'un formulaire ou d'une fiche d'hôte)
@@ -3138,8 +3142,9 @@
   function construireReunions() {
     const sec = $('vue-reunions');
     sec.innerHTML =
-      '<div class="entete-vue"><span></span><button type="button" class="lien-texte presse" id="btn-reunion-nouvelle" aria-haspopup="dialog">Programmer</button></div>' +
-      '<h1 class="grand-titre" id="titre-reunions">Réunions</h1>' +
+      '<div class="entete-vue">' + (CAP.agenda ? '<button type="button" class="lien-texte presse" id="btn-evenement-nouveau" aria-haspopup="dialog">Événement</button>' : '<span></span>') +
+        '<button type="button" class="lien-texte presse" id="btn-reunion-nouvelle" aria-haspopup="dialog">' + (CAP.agenda ? 'Réunion' : 'Programmer') + '</button></div>' +
+      '<h1 class="grand-titre" id="titre-reunions">' + esc(VUES.reunions.titre) + '</h1>' +
       '<div class="sem-nav" role="group" aria-label="Semaine affichée">' +
         '<button type="button" class="sem-fleche prec presse" id="sem-prec" aria-label="Semaine précédente">' + CHEVRON + '</button>' +
         '<button type="button" class="sem-titre presse" id="sem-titre" aria-label="Revenir à aujourd\'hui"></button>' +
@@ -3153,6 +3158,7 @@
     const auj = minuitDe(Date.now());
     reu.semaine = lundiDe(auj); reu.jour = auj;
     $('btn-reunion-nouvelle').addEventListener('click', () => programmerReunion());
+    if (CAP.agenda) $('btn-evenement-nouveau').addEventListener('click', () => { declencheur = $('btn-evenement-nouveau'); pousser(Object.assign({}, etat.route, { feuille: 'evenement-new' })); });
     $('sem-prec').addEventListener('click', () => changerSemaine(-7));
     $('sem-suiv').addEventListener('click', () => changerSemaine(7));
     $('sem-titre').addEventListener('click', () => { const t = minuitDe(Date.now()); allerAuJour(t); });
@@ -3161,6 +3167,8 @@
     $('liste-reunions').addEventListener('click', e => {
       const j = e.target.closest('[data-rejoindre]');
       if (j) { rejoindreReunionUI(j.dataset.rejoindre, undefined, j, false); return; }                   // (salle) « Rejoindre » : on entre sans passer par la fiche
+      const ev = e.target.closest('[data-evenement]');
+      if (ev) { declencheur = ev; pousser(Object.assign({}, etat.route, { feuille: 'evenement:' + ev.dataset.evenement })); return; }
       const b = e.target.closest('[data-reunion]'); if (!b) return;
       reu.occurrences[b.dataset.reunion] = +b.dataset.debut || null;
       declencheur = b;
@@ -3181,18 +3189,30 @@
   async function chargerReunions() {
     if (!CAP.reunions) return;
     const n = ++reu.jeton, du = reu.semaine, au = plusJours(reu.semaine, 7);
-    let l = null, panne = null;
-    try { l = await source.reunions(du, au); } catch (e) { panne = e; }
+    let l = null, panne = null, evs = [];
+    const [r1, r2] = await Promise.allSettled([source.reunions(du, au), CAP.agenda && typeof source.evenements === 'function' ? source.evenements(du, au) : Promise.resolve([])]);
+    if (r1.status === 'fulfilled') l = r1.value; else panne = r1.reason;
+    if (r2.status === 'fulfilled') evs = r2.value; else panne = panne || r2.reason;      // une moitié qui manque se DIT (jamais une semaine vide qui ment)
     if (n !== reu.jeton) return;                      // une semaine plus récente a pris la place pendant l'attente
     reu.charge = true;
-    if (panne) reu.panne = panne; else { reu.panne = null; reu.liste = l; }
+    if (panne) reu.panne = panne; else { reu.panne = null; reu.liste = l; reu.evenements = evs; }
     rendreReunions();
   }
   /* les occurrences de la semaine, rangées par jour (le jour où elles COMMENCENT, à l'heure de l'appareil) */
   function occurrencesDuJour(jour) {
     const fin = plusJours(jour, 1), sortie = [];
     for (const r of reu.liste) for (const o of r.occurrences) if (o.debut >= jour && o.debut < fin) sortie.push({ r, o });
-    return sortie.sort((a, b) => a.o.debut - b.o.debut || a.r.id.localeCompare(b.r.id));
+    /* les événements de l'agenda personnel : ceux qui TOUCHENT le jour (une journée entière, ou qui déborde de la veille), rangés avec les réunions — les journées entières d'abord */
+    for (const e of (CAP.agenda ? reu.evenements : [])) if (e.debut < fin && e.fin > jour) sortie.push({ e, o: { debut: e.journee || e.debut < jour ? jour - 1 : e.debut, fin: e.fin } });
+    return sortie.sort((a, b) => a.o.debut - b.o.debut || (a.r ? a.r.id : a.e.id).localeCompare(b.r ? b.r.id : b.e.id));
+  }
+  function ligneEvenement(e, jour) {
+    const continu = !e.journee && e.debut < jour;
+    const heure = e.journee ? '<span class="reunion-heure"><span>Journée</span></span>' : '<span class="reunion-heure">' + esc(continu ? 'Suite' : FMT_HEURE.format(e.debut)) + '<small>' + esc(FMT_HEURE.format(e.fin)) + '</small></span>';
+    const rappel = e.rappel === null ? '' : e.rappel === 0 ? 'Rappel à l\'heure' : e.rappel === 1440 ? 'Rappel la veille' : 'Rappel ' + (e.rappel >= 60 ? (e.rappel / 60) + ' h' : e.rappel + ' min') + ' avant';
+    const sous = [e.lieu, rappel].filter(Boolean).join(' · ');
+    return '<li><button type="button" class="reunion-ligne evenement-ligne presse" data-evenement="' + esc(e.id) + '" aria-label="' + esc(e.titre + ', ' + (e.journee ? 'toute la journée' : (continu ? 'jusqu\'à ' : 'de ' + FMT_HEURE.format(e.debut) + ' à ') + FMT_HEURE.format(e.fin)) + (sous ? ', ' + sous : '')) + '">' + heure +
+      '<span class="reunion-corps"><span class="reunion-titre">' + esc(e.titre) + '</span>' + (sous ? '<span class="reunion-sous">' + esc(sous) + '</span>' : '') + '</span></button></li>';
   }
   function libelleEtat(r) {
     if (r.annulee) return 'Annulée';
@@ -3217,7 +3237,7 @@
     for (let i = 0; i < 7; i++) {
       const t = plusJours(reu.semaine, i), n = occurrencesDuJour(t).length;
       h += '<button type="button" class="jour presse' + (n ? ' avec' : '') + '" data-jour="' + t + '" aria-pressed="' + (t === reu.jour ? 'true' : 'false') + '"' + (t === auj ? ' aria-current="date"' : '') +
-        ' aria-label="' + esc(FMT_JOUR_LONG.format(t) + ', ' + (n ? n + (n > 1 ? ' réunions' : ' réunion') : 'aucune réunion')) + '"><span>' + esc(maj1(FMT_JOUR_COURT.format(t)).replace('.', '')) + '</span><b>' + new Date(t).getDate() + '</b><i class="jour-point" aria-hidden="true"></i></button>';
+        ' aria-label="' + esc(FMT_JOUR_LONG.format(t) + ', ' + (CAP.agenda ? (n ? n + (n > 1 ? ' éléments' : ' élément') : 'rien de prévu') : (n ? n + (n > 1 ? ' réunions' : ' réunion') : 'aucune réunion'))) + '"><span>' + esc(maj1(FMT_JOUR_COURT.format(t)).replace('.', '')) + '</span><b>' + new Date(t).getDate() + '</b><i class="jour-point" aria-hidden="true"></i></button>';
     }
     $('sem-jours').innerHTML = h;
     if (cle) { const b = $('sem-jours').querySelector('[data-jour="' + cle.replace(/"/g, '') + '"]'); if (b) b.focus({ preventScroll: true }); }
@@ -3228,8 +3248,8 @@
     if (reu.panne) $('reu-erreur-texte').textContent = phrase(reu.panne, 'L\'agenda n\'a pas pu être chargé.');
     $('liste-reunions').setAttribute('aria-busy', reu.charge ? 'false' : 'true');
     $('liste-reunions').innerHTML = !reu.charge && !reu.panne ? '<li class="vide">Chargement…</li>'
-      : lignes.length ? lignes.map(x => ligneReunion(x.r, x.o)).join('')
-      : reu.panne ? '' : '<li class="vide">Aucune réunion ce jour-là</li>';
+      : lignes.length ? lignes.map(x => x.e ? ligneEvenement(x.e, reu.jour) : ligneReunion(x.r, x.o)).join('')
+      : reu.panne ? '' : '<li class="vide">' + (CAP.agenda ? 'Rien de prévu ce jour-là' : 'Aucune réunion ce jour-là') + '</li>';
   }
   /* on arrive sur l'onglet : la semaine du jour, relue (elle a pu changer ailleurs) */
   function entrerReunions() {
@@ -3256,6 +3276,70 @@
     mot(F.sortie || PHRASE_REUNION_PERDUE);
     if (ouvertePour(F.id) && reu.fiche === F) fermerCouche();
   }
+  /* ═══ L'AGENDA PERSONNEL — le formulaire d'un événement (nouveau ou existant) ═══════════════════════════════════════════════════════════════════
+     Un événement à soi : titre, journée entière ou heures, lieu, rappel, note. L'heure est celle de l'APPAREIL (son fuseau part avec), le service convertit. Le geste « Supprimer » se
+     confirme en touchant deux fois (comme « Bloquer »). Après un enregistrement, la feuille se ferme et la semaine se relit : l'écran dit ce que le SERVICE a retenu. */
+  const RAPPELS_EVT = [['', 'Aucun'], ['0', 'À l\'heure'], ['5', '5 minutes avant'], ['15', '15 minutes avant'], ['30', '30 minutes avant'], ['60', '1 heure avant'], ['1440', 'La veille']];
+  async function rendreFormEvenement(id) {
+    const corps = $('info-corps');
+    let e = null;
+    if (id) {
+      try { e = (reu.evenements || []).find(x => x.id === id) || null; } catch (er) { e = null; }
+      if (!e) { corps.innerHTML = '<p class="info-erreur" role="alert">Cet événement n\'existe plus.</p>'; return; }
+    }
+    const tz = e ? e.tz : (fuseauAppareil() || 'Europe/Paris');
+    const d0 = e ? e.debut : (reu.jour && reu.jour > Date.now() ? reu.jour + 9 * 3600000 : Math.ceil((Date.now() + 60000) / 3600000) * 3600000);
+    const f0 = e ? e.fin : d0 + 3600000;
+    const journee = !!(e && e.journee);
+    corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+      '<div class="champ"><label for="ev-titre">Titre</label><input id="ev-titre" type="text" maxlength="120" autocomplete="off" enterkeyhint="next" value="' + esc(e ? e.titre : '') + '" placeholder="Dentiste, anniversaire, rendez-vous…"></div>' +
+      '<div class="carte"><button type="button" class="reglage presse" role="switch" aria-checked="' + (journee ? 'true' : 'false') + '" id="ev-journee"><span class="reglage-texte">Toute la journée</span><span class="interrupteur" aria-hidden="true"></span></button></div>' +
+      '<div class="champ"><label for="ev-debut">Début</label><input id="ev-debut" type="' + (journee ? 'date' : 'datetime-local') + '" step="60" value="' + esc(journee ? localDans(d0, tz).slice(0, 10) : localDans(d0, tz)) + '"></div>' +
+      '<div class="champ"><label for="ev-fin">Fin</label><input id="ev-fin" type="' + (journee ? 'date' : 'datetime-local') + '" step="60" value="' + esc(journee ? localDans(f0 - 1, tz).slice(0, 10) : localDans(f0, tz)) + '"></div>' +
+      '<div class="champ"><label for="ev-lieu">Lieu</label><input id="ev-lieu" type="text" maxlength="300" autocomplete="off" enterkeyhint="next" value="' + esc(e ? e.lieu : '') + '" placeholder="Facultatif"></div>' +
+      '<div class="champ"><label for="ev-rappel">Rappel</label><select id="ev-rappel">' + optionsDe(RAPPELS_EVT, e ? (e.rappel === null ? '' : String(e.rappel)) : '15') + '</select></div>' +
+      '<div class="champ"><label for="ev-note">Note</label><textarea id="ev-note" maxlength="2000" rows="3" placeholder="Facultatif">' + esc(e ? e.note : '') + '</textarea></div>' +
+      '<div class="info-actions"><button type="button" class="mini plein" data-evt="enregistrer">Enregistrer</button>' + (id ? '<button type="button" class="mini danger" data-evt="supprimer">Supprimer</button>' : '') + '</div>';
+    reu.formEvt = { id: id || null, tz };
+  }
+  function evtBasculerJournee() {
+    const b = $('ev-journee'); if (!b) return;
+    const oui = b.getAttribute('aria-checked') !== 'true';
+    b.setAttribute('aria-checked', oui ? 'true' : 'false');
+    for (const k of ['ev-debut', 'ev-fin']) { const c = $(k), v = c.value; c.type = oui ? 'date' : 'datetime-local'; c.value = oui ? v.slice(0, 10) : (v.length === 10 ? v + (k === 'ev-debut' ? 'T09:00' : 'T10:00') : v); }
+  }
+  async function evtEnregistrer(b) {
+    const F = reu.formEvt; if (!F) return;
+    const journee = $('ev-journee').getAttribute('aria-checked') === 'true';
+    const titre = $('ev-titre').value.trim(), debut = $('ev-debut').value, fin = $('ev-fin').value;
+    if (!titre) { erreurInfo('Donne un titre à l\'événement.'); $('ev-titre').focus(); return; }
+    if (!debut) { erreurInfo('Choisis le début.'); $('ev-debut').focus(); return; }
+    const r = $('ev-rappel').value;
+    const champs = { titre, lieu: $('ev-lieu').value.trim() || null, note: $('ev-note').value.trim() || null, journee, debut, fin: fin || null, rappel: r === '' ? null : Number(r) };
+    if (!F.id) champs.tz = F.tz;
+    b.disabled = true;
+    try {
+      if (F.id) await source.majEvenement(F.id, champs); else await source.creerEvenement(champs);
+      mot(F.id ? 'Événement modifié' : 'Événement ajouté à ton agenda');
+      fermerCouche(); chargerReunions();
+    } catch (er) { b.disabled = false; erreurInfo(phrase(er, 'L\'événement n\'a pas pu être enregistré.')); }
+  }
+  async function evtSupprimer(b) {
+    const F = reu.formEvt; if (!F || !F.id) return;
+    if (b.dataset.pret !== '1') { b.dataset.pret = '1'; b.textContent = 'Toucher encore pour supprimer'; setTimeout(() => { if (b.isConnected) { b.dataset.pret = ''; b.textContent = 'Supprimer'; } }, 4000); return; }
+    b.disabled = true;
+    try { await source.supprimerEvenement(F.id); mot('Événement supprimé'); fermerCouche(); chargerReunions(); }
+    catch (er) { b.disabled = false; erreurInfo(phrase(er, 'L\'événement n\'a pas pu être supprimé.')); }
+  }
+  $('info-corps').addEventListener('click', e => {
+    if (!etat.groupe.ouvert || (etat.groupe.mode !== 'evenement-new' && etat.groupe.mode !== 'evenement')) return;
+    if (e.target.closest('#ev-journee')) { evtBasculerJournee(); return; }
+    const b = e.target.closest('[data-evt]'); if (!b || b.disabled) return;
+    erreurInfo('');
+    if (b.dataset.evt === 'enregistrer') evtEnregistrer(b); else if (b.dataset.evt === 'supprimer') evtSupprimer(b);
+  });
+  /* un refus s'efface dès qu'on corrige (« Donne un titre » ne reste pas affiché sous un titre tapé) */
+  $('info-corps').addEventListener('input', e => { if (etat.groupe.ouvert && (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'evenement') && e.target && /^ev-/.test(e.target.id || '')) erreurInfo(''); });
   const ouvrirReunionId = id => { if (CAP.reunions && ID_REUNION.test(id)) remplacer({ vue: 'reunions', conv: null, feuille: 'reunion:' + id, photo: null, appel: null }); };
 
   /* ── les gens qu'on peut inviter : mes contacts, et les membres de MES espaces (jamais un annuaire) ── */

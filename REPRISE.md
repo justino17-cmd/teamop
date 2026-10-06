@@ -13,6 +13,32 @@ de ligne du tout.
 
 ---
 
+# ⏳ 6 OCTOBRE 2026 (SOIR) — OP MESSAGES : S'INSCRIRE « COMME DISCORD », L'AGENDA PERSONNEL, CHERCHER DANS CONTACTS — SUR LA BRANCHE (justino17-cmd/teamop#95)
+
+Justin : « fais les 3 dans l'ordre ». Les trois sont faits, éprouvés, et attendent la fusion de justino17-cmd/teamop#95 (qui déploie la BÊTA d'OP MESSAGES et le serveur d'OP GESTION).
+
+1. **Le compte par adresse e-mail** (`server-msg/compte-courriel.js`, migration 12) : s'inscrire (un CODE à six chiffres par courriel — pas de lien : depuis Mail, un lien ouvrirait Safari,
+   pas l'application installée), confirmer, se connecter, mot de passe oublié. Le numéro de téléphone reste possible, il n'est plus nécessaire. L'écran : « Se connecter » par adresse,
+   « Créer un compte », le code, « Mot de passe oublié ? » ; l'accès d'essai de la Tour reste en dessous.
+   ⛔ **INSCRIPTIONS FERMÉES PAR DÉFAUT** : il faut DEUX gestes de Justin sur le VPS — un relais SMTP (`node server-msg/configurer-courriel.js`, déjà prévu pour les invitations) et
+   `"inscriptionCourriel": true` dans la configuration de l'instance. Sans eux, l'écran reste celui de l'accès d'essai (rien n'est proposé qui ne marcherait pas).
+   **Deux relectures adverses du `gardien`** : 1 bloquant + 7 « à corriger » au premier tour, 2 bloquants NOUVEAUX (introduits par les correctifs) + 2 reliquats au second — tout est corrigé
+   et rejoué dans `test-997` (58 ✓, dix mutations qui le font tomber). Ce qui reste ouvert, nommé par le gardien et non fait : une vraie liste de mots de passe courants (milliers
+   d'entrées ; aujourd'hui la règle refuse répétitions, suites, adresse, prénom et une vingtaine de mots) ; les plafonds par réseau à l'échelle d'un /64 en IPv6 (un hébergeur qui route
+   un /48 les contourne) et 20 demandes par jour et par IP qui peuvent gêner derrière un NAT d'opérateur ; un plafond GLOBAL de courriels de compte avec alerte ; un intrus déjà
+   connecté pourrait marquer « Nouvel appareil connecté » comme lu (le push et les autres appareils compensent en partie).
+2. **L'agenda personnel** (`server-msg/routes-agenda.js`, migration 13) : l'onglet s'appelle « Agenda » ; « Événement » (gratuit : titre, journée entière ou heures, lieu, rappel,
+   note) à côté de « Réunion » (Perso+ / Pro). L'heure est locale et son fuseau part avec (le service convertit, changements d'heure compris). Le rappel part UNE fois par le planificateur
+   des réunions (abandonné si l'événement a commencé). Titre, lieu et note scellés ; exportés ; une suppression est notée au registre des purges. `test-998` (25 ✓),
+   `tests/sonde-opmessages-agenda.js` (17 ✓). C'est la fondation de l'agent « Pro Assistant » (`OFFRE-PRO.md` § 11 bis).
+   ⚠️ Un événement créé sur un appareil ne paraît sur un autre qu'à l'entrée dans l'onglet (pas encore poussé en temps réel).
+3. **Chercher dans Contacts** : un champ qui filtre demandes et contacts (sans accents ni casse), et « Chercher Camille#4821 » quand la saisie a la forme d'un identifiant.
+   La liste des contacts ne porte pas leur identifiant (la page ne le reçoit pas) : la recherche y est par nom.
+4. **Ensuite (décidé, tâche suivante)** : séparer la bêta et la version publique d'OP MESSAGES, la mise à jour FORCÉE (une version minimale posée depuis la Tour, comme OP GESTION), et dans
+   la Tour un panneau OP MESSAGES et un panneau OP GESTION bien séparés.
+
+---
+
 # ⏳ 6 OCTOBRE 2026 — « NOUVELLE VERSION D'OP MESSAGES », LA FAILLE `proxy-addr` D'OP GESTION, ET CE QUI EST DÉCIDÉ POUR LA SUITE
 
 1. **La mise à jour se VOIT** (demandé le 5 octobre : « je sais pas si les mises à jour se font ») : `scripts/opmsg-public.js` pose dans l'interface servie son empreinte

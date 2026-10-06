@@ -123,6 +123,9 @@
     occurrence_inconnue: 'Cette date ne fait pas partie de la réunion.',
     /* l'invitation par courriel : chaque refus a sa phrase, et aucune ne promet ce que le service ne tient pas (« l'envoi par courriel n'est pas encore ouvert » est la vérité d'un service sans relais) */
     courriel_non_ouvert: 'L\'envoi par courriel n\'est pas encore ouvert.',
+    /* l'agenda personnel (heure_invalide, fin_avant_debut, rappel_invalide, fenetre_invalide : les phrases des réunions, plus haut, servent aussi — une clé en double remplacerait la première) */
+    evenement_trop_long: 'Un événement dure 31 jours au plus.',
+    agenda_plein: 'Ton agenda est plein (2 000 événements) : supprime d\'anciens événements.',
     /* le compte par adresse e-mail (« comme Discord ») */
     inscription_fermee: 'La création de compte n\'est pas encore ouverte.',
     mdp_faible: 'Ce mot de passe se devine trop facilement. Choisis-en un d\'au moins 10 caractères, sans ton prénom, ton adresse ni une suite comme « azerty » ou « 123456 ».',
@@ -271,6 +274,11 @@
     const api = {
       base, appel,
       config: () => appel('GET', '/api/config'),
+      /* l'agenda personnel : des événements à soi (l'heure LOCALE et son fuseau ; le service convertit) */
+      agenda: async (du, au) => (await appel('GET', '/api/agenda' + rq({ du, au }))).evenements,
+      creerEvenement: async (champs) => (await appel('POST', '/api/agenda', champs)).evenement,
+      majEvenement: async (id, champs) => (await appel('POST', '/api/agenda/' + e(id) + '/maj', champs)).evenement,
+      supprimerEvenement: (id) => appel('POST', '/api/agenda/' + e(id) + '/supprimer'),
       /* le compte par adresse e-mail (« comme Discord ») — routes publiques : la session est posée par la réponse (cookie) */
       melInscrire: (champs) => appel('POST', '/api/mel/inscrire', champs),
       melConfirmer: (courriel, code) => appel('POST', '/api/mel/confirmer', { courriel, code }),

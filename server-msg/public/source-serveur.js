@@ -2523,6 +2523,13 @@
       const m = await api0.connexionBeta(String(login || ''), String(pass || ''));
       return m;
     }
+    /* ── l'agenda personnel (capacité `agenda`) : ce que le service a retenu, jamais ce que la page croit avoir demandé ── */
+    const vueEvenement = (x) => ({ id: String(x.id), titre: String(x.titre || ''), lieu: String(x.lieu || ''), note: String(x.note || ''), debut: +x.debut || 0, fin: +x.fin || 0,
+      journee: x.journee === true, tz: String(x.tz || ''), rappel: Number.isInteger(x.rappel) ? x.rappel : null, rappelEnAttente: x.rappelEnAttente === true });
+    async function evenements(du, au) { return (await A.agenda(du, au) || []).map(vueEvenement); }
+    async function creerEvenement(champs) { return vueEvenement(await A.creerEvenement(champs)); }
+    async function majEvenement(id, champs) { return vueEvenement(await A.majEvenement(id, champs)); }
+    async function supprimerEvenement(id) { await A.supprimerEvenement(id); return true; }
     /* ── le compte par adresse e-mail (« comme Discord » : le numéro est facultatif) ──
        `comptesOuverts()` : ce que le service propose AVANT toute connexion — { courriel, inscription } (deux booléens), ou null quand on n'a pas pu le savoir (la page garde
        alors l'écran d'avant, jamais « pas ouvert » sur une panne). Les autres rendent ce que le service a répondu ; une connexion réussie pose la session (cookie) : la page recharge. */
@@ -3007,9 +3014,10 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, miseAJour: true, comptesCourriel: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
+      evenements, creerEvenement, majEvenement, supprimerEvenement,
       surSessionMorte: (cb) => { suiviMort = cb; },
       /* `presence` : MA présence est-elle montrée ? Coupée, la barre de la page ne doit pas dire « Disponible » avec un point vert (relecture du testeur) : les autres ne me voient plus en ligne. */
       moi: () => moiApi ? Object.assign(vuePersonne(moiApi), { id: moiApi.id, presence: !(moiApi.prefs && moiApi.prefs.presence === false) }) : null,
