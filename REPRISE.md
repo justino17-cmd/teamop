@@ -29,6 +29,13 @@ de ligne du tout.
    · **toutes les applications téléchargeables sur tout appareil** (Mac, Windows, iPhone, Android), **la version web restant disponible** — lot I de
      `design/opmessages/FEUILLE-DE-ROUTE.md`, élargi à OP GESTION (qui attend sa sortie de Firebase).
    · numéros virtuels pour le pro (« comme 3CX en mieux ») : idée retenue, étude pas encore lancée.
+4 bis. **Deux demandes du même jour, sur la bêta d'OP MESSAGES** (dans justino17-cmd/teamop#95) :
+   · **la carte de profil en bas à gauche ouvre les Réglages** (« pourquoi les réglages ne sont pas quand on clique sur le profil ») — `tests/sonde-opmessages-profil.js`, 16 ✓ ;
+   · **un onglet « Contacts »** (« je vois bien les notifications mais je ne vois pas accepter ou refuser… dans Contacts on voit les demandes de contact, ça fait plus pro ») :
+     cinq onglets (Messages · Contacts · Appels · Réunions · Réglages), les demandes reçues avec Accepter / Refuser / Bloquer, les envoyées avec Retirer, les contacts de A à Z
+     (un toucher ouvre la conversation), un compteur rouge sur l'onglet ; la bannière d'une demande se TOUCHE et mène à l'onglet, et la notification push d'une demande
+     ouvre `/#contacts` (`server-msg/telephone.js`). L'aperçu garde ses quatre onglets (pas de demandes sans service). `tests/sonde-opmessages-contacts.js` : 25 ✓ à trois
+     personnes, trois mutations qui la font tomber.
 4. **La fusion de justino17-cmd/teamop#94 est EN LIGNE sur la bêta d'OP MESSAGES** — après une relance : le premier passage de la CI a vu `test-904` (la couture avec le vrai
    serveur d'OP GESTION) tomber à 41 ✓ 4 ✗ (la session de Mona jamais fermée, puis trente comptes bêta que le vrai OP GESTION n'a pas créés : `null.id` ligne 203) ; la relance est
    verte, et le banc passe 5 fois sur 5 ici, sur l'arbre de `main`. Rien n'avait changé dans `server/`, ce banc ni ses outils depuis le déploiement réussi d'avant. **Une deuxième

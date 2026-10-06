@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '9bdf05d3f1b4';
+  const OPMSG_BUILD = 'c0c5eefba79c';
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
      ⛔ Cette page ne contient AUCUNE donnée et n'en modifie AUCUNE : tout ce qu'elle sait des personnes et des conversations vient de
@@ -21,11 +21,13 @@
   if (typeof source.demarrer === 'function') $('app').hidden = true;     // jamais l'écran d'un autre avant de savoir qui est là
   const VUES = {
     messages: { titre: 'Messages',  icone: 'i-chat' },
+    contacts: { titre: 'Contacts',  icone: 'i-groupe' },
     appels:   { titre: 'Appels',    icone: 'i-phone', texte: 'L\'historique des appels, les appels audio et vidéo.' },
     reunions: { titre: 'Réunions',  icone: 'i-video', texte: 'L\'agenda, la programmation, les invités et les rappels.' },
     reglages: { titre: 'Réglages',  icone: 'i-gear',  texte: 'Le compte, les notifications et la confidentialité.' }
   };
-  const ORDRE = ['messages', 'appels', 'reunions', 'reglages'];
+  /* « Contacts » n'existe que là où les demandes de contact existent (le service) : l'aperçu garde ses quatre onglets */
+  const ORDRE = CAP.identifiants ? ['messages', 'contacts', 'appels', 'reunions', 'reglages'] : ['messages', 'appels', 'reunions', 'reglages'];
   const EPHEMERES = [[0, 'Désactivés'], [86400, '24 heures'], [604800, '7 jours'], [7776000, '90 jours']];
   const VOCAL_MIN_MS = 800, VOCAL_MAX_MS = 180000, TENU_MS = 600, TEXTE_MAX = CAP.texteMax;
 
@@ -104,7 +106,7 @@
        recherche (qui refait toute la liste) rejouerait l'entrée de chaque groupe créé depuis le début */
     const neuves = new Set(etat.neuves); etat.neuves.clear();
     $('liste-conv').innerHTML = vues.length ? vues.map(c => ligneConv(c, neuves.has(c.id))).join('') :
-      (!q && !etat.conversations.length && CAP.service ? '<li class="vide">Aucune conversation pour l\'instant. Ajoute un contact (Réglages), puis écris-lui ou crée un groupe.</li>' : '<li class="vide">Aucun résultat pour « ' + esc(etat.recherche.trim()) + ' »</li>');
+      (!q && !etat.conversations.length && CAP.service ? '<li class="vide">Aucune conversation pour l\'instant. Ajoute un contact (' + (CAP.identifiants ? 'Contacts' : 'Réglages') + '), puis écris-lui ou crée un groupe.</li>' : '<li class="vide">Aucun résultat pour « ' + esc(etat.recherche.trim()) + ' »</li>');
     /* épinglés : les conversations marquées, une colonne de 76 px chacune (nom court, jamais coupé en deux) */
     const pins = etat.conversations.filter(c => c.epingle);
     $('epingles').innerHTML = pins.map(c => '<li class="epingle"><button type="button" class="epingle-bouton" data-ouvrir="' + esc(c.id) + '"' + (etat.conv === c.id ? ' aria-current="true"' : '') + '>' +
@@ -133,7 +135,9 @@
       '<div class="coquille"><span class="coquille-icone">' + icone(v.icone) + '</span><h2>Bientôt disponible</h2><p>' + esc(v.texte) + (CAP.service ? ' Cet écran arrive bientôt.' : ' Cet écran n\'est pas encore dessiné dans l\'aperçu.') + '</p></div>';
   }
   function construireNavigation() {
-    const lien = (cle, cls) => '<a href="#' + cle + '" class="' + cls + '" data-vue="' + cle + '">' + icone(VUES[cle].icone) + '<span>' + esc(VUES[cle].titre) + '</span></a>';
+    const lien = (cle, cls) => '<a href="#' + cle + '" class="' + cls + '" data-vue="' + cle + '">' + icone(VUES[cle].icone) + '<span>' + esc(VUES[cle].titre) + '</span>' +
+      (cle === 'contacts' ? '<b class="onglet-n" data-onglet-n="contacts" hidden></b>' : '') + '</a>';
+    $('tabs').style.setProperty('--n', ORDRE.length);
     $('nav-side').innerHTML = ORDRE.map(c => lien(c, 'side-lien')).join('');
     $('tabs').insertAdjacentHTML('beforeend', ORDRE.map(c => lien(c, 'tab')).join(''));
   }
@@ -152,7 +156,7 @@
     const p = location.hash.slice(1).split('/');
     let conv = null; try { conv = p[1] ? decodeURIComponent(p[1]) : null; } catch (e) { conv = null; }
     /* ⛔ `VUES[p[0]]` lit aussi la chaîne de prototypes : « #constructor » ou « #__proto__ » passaient pour des vues et laissaient les quatre masquées */
-    const vue = Object.prototype.hasOwnProperty.call(VUES, p[0]) ? p[0] : 'messages';
+    const vue = Object.prototype.hasOwnProperty.call(VUES, p[0]) && ORDRE.includes(p[0]) ? p[0] : 'messages';
     /* une adresse « #reunions/<identifiant> » (le toucher d'une notification quand la page était fermée) ouvre la fiche de CETTE réunion — l'identifiant est vérifié avant de servir */
     const feuille = vue === 'reunions' && CAP.reunions && ID_REUNION.test(conv || '') ? 'reunion:' + conv : false;
     return { vue, conv: vue === 'messages' && p[0] === 'messages' ? conv : null, feuille, photo: null, appel: null };
@@ -212,6 +216,7 @@
       document.title = VUES[r.vue].titre + SUFFIXE_TITRE;
       if (r.vue === 'reglages' && CAP.reglages && prec && typeof chargerReglages === 'function') chargerReglages();
       if (r.vue === 'reunions' && CAP.reunions) entrerReunions();
+      if (r.vue === 'contacts' && CAP.identifiants) { rendreVueContacts(); chargerDemandes(); }
       if (r.vue === 'appels' && CAP.appels && prec) rafraichirAppels();       // ⛔ entrer dans Appels RELIT l'historique : un appel passé ou pris sur un autre appareil pendant qu'on était ailleurs y est déjà (relecture, T1)
       /* chaque vue garde SA position (comme une barre d'onglets d'iPhone) : la liste défilée, un tour par Appels, et elle est là où on l'a laissée.
          ⛔ avec une conversation ouverte la fenêtre n'est plus la liste (iOS la ramène en haut pour le clavier) : la position de la liste est celle gardée à l'ouverture */
@@ -898,10 +903,13 @@
 
   /* ═══ 8. LA BANNIÈRE ET LE PETIT MOT ═══════════════════════════════════════════════════════════════════════════════════════ */
   let minNotif = 0, minMot = 0;
-  function notifier(texte, aide) {
+  function notifier(texte, aide, cible) {
     clearTimeout(minNotif);
     $('notif-texte').textContent = texte;
     $('notif-aide').textContent = aide || '';
+    /* une demande de contact se TOUCHE : la bannière mène à l'onglet Contacts, où l'on accepte ou refuse */
+    const vers = cible === 'contacts' && ORDRE.includes('contacts') ? 'contacts' : '';
+    $('notif').dataset.vers = vers; $('notif').classList.toggle('touchable', !!vers);
     $('notif').classList.add('on');
     minNotif = setTimeout(() => $('notif').classList.remove('on'), 3600);   // ~3,5 s : le paquet dit 3,6 dans la maquette
   }
@@ -949,6 +957,12 @@
       $('maj-reessayer').hidden = false; $('maj-reessayer').focus();
     }
   }
+  $('notif').addEventListener('click', () => {
+    if ($('notif').dataset.vers !== 'contacts' || !$('notif').classList.contains('on')) return;
+    clearTimeout(minNotif); $('notif').classList.remove('on', 'touchable');
+    const r = { vue: 'contacts', conv: null, feuille: false, photo: null, appel: null };
+    if (!memeRoute(etat.route, r)) pousser(r);
+  });
   $('maj-bouton').addEventListener('click', () => { appliquerMaj(); });
   $('maj-reessayer').addEventListener('click', () => { appliquerMaj(); });
   $('maj-plus-tard').addEventListener('click', () => { maj.repousseA = Date.now() + 30 * 60000; $('maj-bandeau').hidden = true; });
@@ -2050,10 +2064,15 @@
   async function chargerDemandes() {
     if (!CAP.identifiants || typeof source.demandesContact !== 'function') return;
     try { demandesEtat = await source.demandesContact(); } catch (e) { demandesEtat = demandesEtat || { erreur: true }; }
-    peindreDemandes(); peindreIdentMoi(); peindreDemandesN(); peindreProfilReglage();
+    peindreDemandes(); peindreIdentMoi(); peindreDemandesN(); peindreProfilReglage(); rendreVueContacts();
   }
   const relireDemandes = () => { clearTimeout(demandesMinuterie); demandesMinuterie = setTimeout(() => chargerDemandes(), 400); };
-  function peindreDemandesN() { const n = $('reg-demandes-n'); if (!n) return; const k = demandesEtat && demandesEtat.recues ? demandesEtat.recues.length : 0; n.textContent = k ? String(k) : ''; n.classList.toggle('pastille-n', k > 0); }
+  function peindreDemandesN() {
+    const k = demandesEtat && demandesEtat.recues ? demandesEtat.recues.length : 0;
+    document.querySelectorAll('[data-onglet-n="contacts"]').forEach(b => { b.hidden = !k; b.textContent = k > 99 ? '99+' : String(k); });
+    document.querySelectorAll('a[data-vue="contacts"]').forEach(a => a.setAttribute('aria-label', 'Contacts' + (k ? ', ' + k + (k > 1 ? ' demandes de contact' : ' demande de contact') : '')));
+    const n = $('reg-demandes-n'); if (!n) return; n.textContent = k ? String(k) : ''; n.classList.toggle('pastille-n', k > 0);
+  }
   function peindreDemandes() {
     const c = $('ct-demandes'); if (!c) return;
     if (!demandesEtat) { c.innerHTML = ''; return; }
@@ -2067,6 +2086,54 @@
       (E.length ? '<div class="rubrique"><span>Demandes envoyées</span><span>' + E.length + '</span></div><div class="carte">' + E.map(d => ligne(d,
         '<button type="button" class="mini" data-act="demande-retirer" data-uid="' + esc(d.id) + '">Retirer</button>', (d.identifiant || '') + ' · en attente')).join('') + '</div>' : '');
   }
+  /* ═══ 5 bis. L'ONGLET « CONTACTS » — les demandes d'abord, puis les contacts de A à Z ═════════════════════════════════════════════════════════
+     Demandé le 6 octobre 2026 : « quand je cherche quelqu'un je vois bien les notifications mais je ne vois pas accepter ou refuser… un onglet Contacts, on voit
+     les demandes de contact, ça fait plus pro : la personne, on accepte, on refuse ». Les demandes vivaient au fond de Réglages › Ajouter un contact : elles ont
+     maintenant leur onglet, avec un compteur sur l'onglet. ⛔ Rien ne s'affiche avant d'avoir été LU : une panne dit « indisponible », jamais « aucune demande ». */
+  function rendreVueContacts() {
+    const sec = $('vue-contacts'); if (!sec || !CAP.identifiants) return;
+    const garde = document.activeElement && sec.contains(document.activeElement) ? document.activeElement : null;
+    const cleFocus = garde && garde.dataset ? (garde.dataset.act || '') + '|' + (garde.dataset.uid || '') : '';
+    const D = demandesEtat, R = D && D.recues || [], E = D && D.envoyees || [];
+    const ligne = (d, sous, actions) => '<div class="contact avec-actions">' + avatar(d) + '<span class="contact-texte"><span class="contact-nom">' + esc(d.nom) + '</span><span class="contact-role">' + esc(sous) + '</span></span><span class="contact-actions">' + actions + '</span></div>';
+    let h = '<div class="entete-vue"><span></span><button type="button" class="lien-texte presse" data-act="vc-ajouter" aria-haspopup="dialog">Ajouter</button></div>' +
+      '<h1 class="grand-titre" id="titre-contacts">Contacts</h1>';
+    if (!D) h += '<p class="vide vc-attente">Chargement des demandes…</p>';
+    else if (D.erreur && !D.recues) h += '<div class="carte carte-pad"><p class="info-note">Tes demandes de contact sont momentanément indisponibles.</p><button type="button" class="mini" data-act="vc-relire">Réessayer</button></div>';
+    else {
+      h += '<div class="rubrique"><span>Demandes de contact</span><span>' + (R.length || '') + '</span></div>';
+      h += R.length ? '<div class="carte vc-recues">' + R.map(d => ligne(d, (d.identifiant ? d.identifiant + ' · ' : '') + 'veut t\'ajouter à ses contacts',
+          '<button type="button" class="mini plein" data-act="vc-accepter" data-uid="' + esc(d.id) + '" aria-label="Accepter la demande de ' + esc(d.nom) + '">Accepter</button>' +
+          '<button type="button" class="mini" data-act="vc-refuser" data-uid="' + esc(d.id) + '" aria-label="Refuser la demande de ' + esc(d.nom) + '">Refuser</button>' +
+          (typeof source.bloquer === 'function' ? '<button type="button" class="mini danger" data-act="vc-bloquer" data-uid="' + esc(d.id) + '" aria-label="Bloquer ' + esc(d.nom) + '">Bloquer</button>' : ''))).join('') + '</div>'
+        : '<div class="carte carte-pad"><p class="info-note">Aucune demande en attente. Quand quelqu\'un voudra t\'ajouter, elle apparaîtra ici.</p></div>';
+      if (E.length) h += '<div class="rubrique"><span>Demandes envoyées</span><span>' + E.length + '</span></div><div class="carte">' + E.map(d => ligne(d, (d.identifiant ? d.identifiant + ' · ' : '') + 'en attente de réponse',
+          '<button type="button" class="mini" data-act="vc-retirer" data-uid="' + esc(d.id) + '" aria-label="Retirer la demande envoyée à ' + esc(d.nom) + '">Retirer</button>')).join('') + '</div>';
+    }
+    const C = (CONTACTS || []).slice().sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity: 'base' }));
+    h += '<div class="rubrique"><span>Mes contacts</span><span>' + (C.length || '') + '</span></div>';
+    h += C.length ? '<div class="carte">' + C.map(c => '<button type="button" class="contact presse" data-act="vc-ecrire" data-uid="' + esc(c.id) + '">' + avatar(c) +
+        '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span>' + (c.role ? '<span class="contact-role">' + esc(c.role) + '</span>' : '') + '</span>' +
+        '<svg class="vc-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>').join('') + '</div>'
+      : '<div class="carte carte-pad"><p class="info-note">Pas encore de contact. Ajoute quelqu\'un par son identifiant (Camille#4821), son numéro ou un lien.</p><button type="button" class="mini plein" data-act="vc-ajouter">Ajouter un contact</button></div>';
+    sec.innerHTML = h;
+    if (cleFocus) { const [a, u] = cleFocus.split('|'); const b = Array.from(sec.querySelectorAll('[data-act]')).find(x => x.dataset.act === a && (x.dataset.uid || '') === u); if (b) b.focus({ preventScroll: true }); }
+  }
+  $('vue-contacts').addEventListener('click', async e => {
+    const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
+    const act = b.dataset.act, uid = b.dataset.uid;
+    try {
+      if (act === 'vc-ajouter') { declencheur = b; ouvrirFeuille('contact'); return; }
+      if (act === 'vc-relire') { await chargerDemandes(); return; }
+      if (act === 'vc-ecrire') { const c = await source.ouvrirDirecte(uid); pousser({ vue: 'messages', conv: c, feuille: false, photo: null, appel: null }); return; }
+      b.disabled = true;
+      if (act === 'vc-accepter') { await source.repondreDemande(uid, true); mot('Contact ajouté'); }
+      else if (act === 'vc-refuser') { await source.repondreDemande(uid, false); mot('Demande refusée'); }
+      else if (act === 'vc-bloquer') { await source.bloquer(uid); mot('Bloqué : cette personne ne peut plus te trouver ni t\'écrire'); }
+      else if (act === 'vc-retirer') { await source.annulerDemande(uid); mot('Demande retirée'); }
+      await chargerDemandes();
+    } catch (er) { b.disabled = false; mot(phrase(er, 'Ça n\'a pas pu se faire. Réessaie.')); }
+  });
   async function identVoir() {
     const champ = $('ct-ident'), res = $('ct-ident-res'); if (!champ || !res) return;
     const t = champ.value.trim();
@@ -2262,7 +2329,7 @@
     if (typeof source.contacts !== 'function') return;
     CONTACTS = source.contacts();
     if (CAP.reunions && etat.route && etat.route.vue === 'reunions') rendreReunions();
-    peindreBloquesN(); peindreProfilReglage();
+    peindreBloquesN(); peindreProfilReglage(); rendreVueContacts();
     if (CAP.identifiants && (!etat.groupe.ouvert || etat.groupe.mode !== 'contact')) relireDemandes();   // le compteur des demandes reçues (Réglages)
     if (!etat.groupe.ouvert) return;
     if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel') { construireContacts(); synchroFeuille(); }
@@ -4122,10 +4189,10 @@
       if (ev.type === 'moi') { MOI = source.moi() || MOI; peindreMoi(); peindreProfilReglage(); }          // mon nom, mon statut ou ma photo a changé (ici, ou sur un autre appareil)
       if (ev.type === 'reseau') { fluxPerdu = ev.etat !== 'ok'; $('hors-ligne').hidden = ev.etat === 'ok'; if (ev.etat === 'ok') verifierVersion(); }   // un déploiement redémarre le service : la connexion revient, la version a peut-être changé
       if (ev.type === 'arrivee') surArrivee(ev);
-      if (ev.type === 'notification') notifier(ev.titre || 'OP MESSAGES', ev.texte || '');
+      if (ev.type === 'notification') notifier(ev.titre || 'OP MESSAGES', ev.texte || '', ev.nature === 'contact_demande' ? 'contacts' : '');
       if (ev.type === 'retire') surRetire(ev.id);
       if (ev.type === 'avis') avis(ev.texte);
-      if (ev.type === 'ouvrir') { if (ev.reunion) ouvrirReunionId(ev.reunion); else if (ev.appels) ouvrirAppels(); else ouvrirConvId(ev.conv); }                                                // une notification touchée : la source n'a laissé passer qu'une conversation
+      if (ev.type === 'ouvrir') { if (ev.reunion) ouvrirReunionId(ev.reunion); else if (ev.appels) ouvrirAppels(); else if (ev.contacts && ORDRE.includes('contacts')) remplacer({ vue: 'contacts', conv: null, feuille: false, photo: null, appel: null }); else if (ev.conv) ouvrirConvId(ev.conv); }                                                // une notification touchée : la source n'a laissé passer qu'une conversation
     });
     if (CAP.appelsMedias && typeof source.appelActif === 'function') { const a = source.appelActif(); if (a && a.entrant) surAppelEntrant(a.id); }       // une sonnerie vue avant que la page écoute (la liste des appels l'a lue) sonne quand même
     if (codeLien) { etat.codeLien = codeLien; declencheur = null; ouvrirFeuille('contact'); }

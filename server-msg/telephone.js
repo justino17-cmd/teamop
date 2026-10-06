@@ -378,7 +378,7 @@ function creerTelephone(ctx) {
     try {
       const n = stockage.notifCreer({ uid, type, titre, texte, cible: auteur, auteur });
       hub.reveiller({ uids: [uid] });
-      if (ctx.push) ctx.push.pousser(uid, { type: 'contact', tag: 'contact', url: '/', titre: 'OP MESSAGES', corps: titre, detail: { titre, corps: texte } }, { gid: n.gid });
+      if (ctx.push) ctx.push.pousser(uid, { type: 'contact', tag: 'contact', url: type === 'contact_demande' ? '/#contacts' : '/', titre: 'OP MESSAGES', corps: titre, detail: { titre, corps: texte } }, { gid: n.gid });
     } catch (e) { /* une notification ratée ne défait pas le geste */ }
   }
 

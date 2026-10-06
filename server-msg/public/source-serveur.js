@@ -100,6 +100,7 @@
   const MOTIF_OUVRIR = /^\/#messages\/(c_[0-9a-f]{32})$/;
   const MOTIF_OUVRIR_REUNION = /^\/#reunions\/(r_[0-9a-f]{32})$/;
   const MOTIF_OUVRIR_APPELS = /^\/#appels$/;
+  const MOTIF_OUVRIR_CONTACTS = /^\/#contacts$/;          // une demande de contact touchée mène à l'onglet Contacts (accepter, refuser)
   function erreurLocale(code) {
     const e = new Error(PHRASES_LOCALES[code] || PHRASES_LOCALES.invalide);
     e.name = 'ErreurLocale'; e.code = code; e.statut = 0; e.retry = 0; e.dit = true; e.phrase = () => e.message;
@@ -2682,6 +2683,7 @@
           const r = d && d.type === 'ouvrir' && typeof d.url === 'string' ? MOTIF_OUVRIR_REUNION.exec(d.url) : null;
           if (r && !mort) emettre({ type: 'ouvrir', reunion: r[1] });
           if (d && d.type === 'ouvrir' && typeof d.url === 'string' && MOTIF_OUVRIR_APPELS.test(d.url) && !mort) emettre({ type: 'ouvrir', appels: true });      // la notification d'un appel (sonnerie ou manqué) mène à l'onglet des appels
+          if (d && d.type === 'ouvrir' && typeof d.url === 'string' && MOTIF_OUVRIR_CONTACTS.test(d.url) && !mort) emettre({ type: 'ouvrir', contacts: true });
         });
       } catch (e) { /* un navigateur sans service worker n'a pas de notification à toucher */ }
     }

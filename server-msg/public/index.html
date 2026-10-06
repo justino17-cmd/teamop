@@ -304,12 +304,12 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .tabs {
   position: fixed; z-index: 18; left: max(14px, env(safe-area-inset-left, 0px)); right: max(14px, env(safe-area-inset-right, 0px));
   bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) - 8px)); margin: 0 auto; max-width: 480px;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 7px; border-radius: 34px;
+  display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: 2px; padding: 7px; border-radius: 34px;
   background: var(--tab-bar); -webkit-backdrop-filter: blur(24px) saturate(200%); backdrop-filter: blur(24px) saturate(200%);
   border: 0; box-shadow: var(--shadow-bar), var(--verre-reflet); --i: 0;
 }
 .tabs-bulle {
-  position: absolute; top: 7px; bottom: 7px; left: 7px; width: calc((100% - 20px) / 4); border-radius: 26px;
+  position: absolute; top: 7px; bottom: 7px; left: 7px; width: calc((100% - 14px - (var(--n, 4) - 1) * 2px) / var(--n, 4)); border-radius: 26px;
   background: var(--tab-active-bg); box-shadow: var(--tab-active-shadow);
   translate: calc(var(--i) * (100% + 2px)) 0; transition: translate .45s cubic-bezier(.32,.72,0,1);
 }
@@ -321,6 +321,15 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tab:active { transform: scale(.94); }
 .tab[aria-current="page"] { color: var(--tab-active-fg); font-weight: 600; }
+/* le nombre de demandes de contact reçues, sur l'onglet et le lien « Contacts » : un badge d'iOS (rouge système), l'encre blanche */
+.onglet-n { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }
+.onglet-n[hidden] { display: none; }
+.tab .onglet-n { position: absolute; top: 4px; left: calc(50% + 6px); }
+.side-lien .onglet-n { margin-left: auto; }
+.mini.plein { background: var(--fill); color: var(--on-fill); }
+#vue-contacts .contact-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+#vue-contacts .carte-pad .mini { margin-top: 10px; }
+.vc-chevron { flex: none; width: 14px; height: 14px; margin-left: auto; fill: none; stroke: var(--sub-meta); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 /* ⛔ APRÈS la règle de .tabs (même spécificité : la dernière écrite gagne) — placée dans la requête du § 3, elle ne cachait rien et
    la pilule se posait sur la barre latérale (relevé à la première capture au bureau). */
 @media (min-width: 900px) { .tabs { display: none; } }
@@ -449,6 +458,7 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
   transform: translateY(calc(-100% - var(--haut) - 24px)); opacity: 0; transition: transform .5s cubic-bezier(.32,.72,0,1), opacity .35s;
 }
 .notif.on { transform: none; opacity: 1; }
+.notif.on.touchable { pointer-events: auto; cursor: pointer; }
 .notif img { width: 38px; height: 38px; border-radius: 10px; display: block; flex: none; }
 .notif-corps { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .notif-tete { display: flex; align-items: baseline; gap: 8px; }
@@ -1283,6 +1293,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       <ul class="epingles" id="epingles" role="list" aria-label="Conversations épinglées"></ul>
       <ul class="carte-liste" id="liste-conv" role="list" aria-label="Conversations"></ul>
     </section>
+    <section class="vue" id="vue-contacts" aria-labelledby="titre-contacts" hidden></section>
     <section class="vue" id="vue-appels" aria-labelledby="titre-appels" hidden>
       <div class="entete-vue">
         <button type="button" class="lien-texte presse" id="btn-modifier-appels">Modifier</button>
