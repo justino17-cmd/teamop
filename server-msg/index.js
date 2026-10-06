@@ -177,6 +177,11 @@ function demarrer(env = process.env) {
   const server = app.listen(config.port, '127.0.0.1');
   server.keepAliveTimeout = 65000;
   server.headersTimeout = 70000;
+  /* ⛔ UN GROS FICHIER NE TIENT PAS DANS CINQ MINUTES (6 octobre 2026). Node coupe toute requête au bout de `requestTimeout` (300 s par défaut) : un fichier de 5 Go envoyé à 3 Mo/s
+     (une demi-heure) était coupé net. Le délai se DÉDUIT des réglages, il ne se recopie pas : le temps d'envoyer le plus gros fichier permis au plus petit débit que la garde laisse
+     passer (`fichierMax / depotDebitMin`, plus la grâce) — en dessous, c'est la garde de débit qui coupe, avec sa réponse (408) ; au-dessus, ce délai n'a jamais l'occasion de servir.
+     Ce délai ne protège rien d'autre : les en-têtes ont `headersTimeout`, et les autres routes n'acceptent que 64 Ko. */
+  server.requestTimeout = Math.ceil(config.pieces.fichierMax / config.pieces.depotDebitMin) * 1000 + config.pieces.depotGraceMs;
 
   /* ── Les tâches de fond : balayeur d'éphémères, élagage, relecture des accès bêta ───────── */
   const minuteurs = [];

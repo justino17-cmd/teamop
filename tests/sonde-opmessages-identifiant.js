@@ -9,6 +9,8 @@
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner. */
 const fs = require('fs'), path = require('path');
 const T = require('./outils-msg');
+/* ⛔ PROFIL EN RUBRIQUES (6 octobre 2026) : une carte de réglage n'est montrée que dans SA rubrique — on la touche comme la personne le ferait (« Profil › Confidentialité ») */
+const rubrique = async (S, sec) => { const pg = S.page || S; await pg.waitForFunction((x) => !!document.querySelector('[data-reg-sec="' + x + '"]'), sec, { timeout: 9000 }).catch(() => {}); await pg.evaluate((x) => { const b = document.querySelector('[data-reg-sec="' + x + '"]'); if (b) b.click(); }, sec); await pg.waitForFunction((x) => { const s = document.getElementById('reg-sec-' + x); return !!s && !s.hidden; }, sec, { timeout: 9000 }).catch(() => {}); };
 const { v, vrai, fin } = T.compteur();
 T.sauterSiSansDependances();
 
@@ -69,7 +71,7 @@ async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { r
     vrai('population : Alice et Bruno sont connectés, chacun avec son identifiant (' + iA + ', ' + iB + ')', /^Alice#\d{4}$/.test(iA || '') && /^Bruno#\d{4}$/.test(iB || ''));
 
     console.log('\n── Réglages : l\'identifiant sous le nom, « Ajouter un contact » ──');
-    await onglet(A, 'reglages');
+    await onglet(A, 'reglages'); await rubrique(A, 'contacts');
     vrai('Alice lit son identifiant sous son nom, dans Réglages', await contient(A, '#reg-profil', iA), await texte(A, '#reg-profil'));
     vrai('« Ajouter un contact » dit « Par son identifiant, son numéro ou un lien »', await contient(A, '#reg-contact', 'par son identifiant'), await texte(A, '#reg-contact'));
     await toucher(A, '#reg-contact');
@@ -106,7 +108,7 @@ async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { r
 
     console.log('\n── Bruno reçoit la demande et l\'accepte ──');
     vrai('une bannière « Demande de contact » descend chez Bruno', await contient(B, '#notif', 'demande de contact', 9000), await texte(B, '#notif'));
-    await onglet(B, 'reglages');
+    await onglet(B, 'reglages'); await rubrique(B, 'contacts');
     vrai('Réglages : une pastille « 1 » sur « Ajouter un contact »', await attendre(B, () => { const n = document.getElementById('reg-demandes-n'); return !!n && n.textContent.trim() === '1' && n.classList.contains('pastille-n'); }), await texte(B, '#reg-demandes-n'));
     await toucher(B, '#reg-contact');
     vrai('« Demandes reçues » : Alice Martin, son identifiant, « Accepter », « Refuser » et « Bloquer » (relecture du gardien, A3)', await contient(B, '#ct-demandes', 'demandes reçues') && (await texte(B, '#ct-demandes')).includes('Alice Martin') && (await texte(B, '#ct-demandes')).includes(iA)
@@ -120,7 +122,7 @@ async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { r
     vrai('   et sa liste « Demandes envoyées » s\'est vidée', await attendre(A, () => !/Demandes envoyées/.test((document.getElementById('ct-demandes') || {}).textContent || ''), null, 9000), await texte(A, '#ct-demandes'));
 
     console.log('\n── Bruno se rend introuvable : Alice ne le retrouve plus ──');
-    await onglet(B, 'reglages');
+    await onglet(B, 'reglages'); await rubrique(B, 'confidentialite');
     vrai('Réglages › Confidentialité : l\'interrupteur « Me trouver par mon identifiant ou mon numéro », allumé', await attendre(B, () => { const s = document.querySelector('[data-reg-cle="trouvable"]'); return !!s && s.getAttribute('aria-checked') === 'true'; }));
     await capture(B, '4-bruno-confidentialite');
     await toucher(B, '[data-reg-cle="trouvable"]');

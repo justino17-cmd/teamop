@@ -561,7 +561,7 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
       await A.src.majConfidentialite({ accuses: true });
 
       const s0 = await A.src.stockage();
-      v('⛔ l\'espace utilisé est celui du SERVICE (octets rangés) et son maximum de 2 Gio — rendu en POSITIF (un entier signé sur 32 bits le ferait négatif)', [s0.utilise > 0, s0.max], [true, 2147483648]);
+      v('⛔ l\'espace utilisé est celui du SERVICE (octets rangés) et son maximum de 50 Gio — rendu en POSITIF (un entier signé sur 32 bits le ferait négatif)', [s0.utilise > 0, s0.max], [true, 53687091200]);
       const pdf = F.pdf(5000);
       await A.src.envoyer(conv, { fichier: { blob: blobDe(pdf), nom: 'plus.pdf' } });
       v('un fichier de plus : exactement ses octets de plus', (await A.src.stockage()).utilise - s0.utilise, pdf.length);

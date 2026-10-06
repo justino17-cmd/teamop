@@ -255,18 +255,23 @@ function retirerMetadonnees(mime, b) {
    Relecture du gardien, A4 : sans tampon devant le service (Caddy, accès direct), un envoi qui annonce 25 Mo et en envoie un octet par seconde tient une des `simultanes` places — et une
    des `parPersonne` de son compte — jusqu'au délai de Node (300 s). Quatre comptes suffisaient à les prendre toutes. La garde est une MINUTERIE, pas un test à l'arrivée d'un morceau :
    un envoi arrêté ne reçoit plus de morceau, c'est précisément celui qu'il faut voir. Après `graceMs`, l'envoi doit avoir reçu au moins `(écoulé − grâce) × débit minimal` octets : la grâce
-   est un crédit (30 s × 64 Ko/s ≈ 2 Mo), qu'un envoi lent mais honnête consomme avant d'être coupé, et qu'un envoi à bon débit n'entame jamais. */
+   est un crédit (30 s × 64 Ko/s ≈ 2 Mo), qu'un envoi lent mais honnête consomme avant d'être coupé, et qu'un envoi à bon débit n'entame jamais.
+   ⛔ LE CRÉDIT EST PLAFONNÉ — UNE AVANCE NE SE CAPITALISE PAS (relecture du gardien, 6 octobre 2026, B1, rejouée). La première garde comparait la MOYENNE depuis le début : un envoi
+   qui annonçait 5 Go et en poussait 4,9 d'un trait s'achetait 4,9 Go ÷ 64 Ko/s ≈ 22 h de crédit, puis tenait sa place avec un octet par minute — quatre comptes prenaient les seize
+   places du service, et 78 Go de disque, pour une journée. Désormais un SEAU : chaque octet reçu le remplit, le temps le vide au débit minimal, et il ne dépasse jamais la grâce
+   (`graceMs × debitMin`). Vide, l'envoi est coupé : un envoi arrêté tombe au bout de la grâce, quelle que soit l'avance prise avant. */
 function gardeDebit({ debitMin, graceMs, maintenant = Date.now, pas = 250 }) {
-  const t0 = maintenant();
-  let recus = 0, minuterie = null;
+  const plafond = graceMs * debitMin / 1000;
+  let credit = plafond, avant = maintenant(), minuterie = null;
   const vigile = new Promise((_, rejeter) => {
     minuterie = setInterval(() => {
-      const ecoule = maintenant() - t0;
-      if (ecoule > graceMs && recus < (ecoule - graceMs) * debitMin / 1000) { clearInterval(minuterie); rejeter(erreur('trop_lent')); }
+      const t = maintenant();
+      credit -= (t - avant) * debitMin / 1000; avant = t;
+      if (credit < 0) { clearInterval(minuterie); rejeter(erreur('trop_lent')); }
     }, pas);                                                                // ⛔ PAS de `unref` : un envoi en attente tient la connexion ouverte de toute façon, et la minuterie est ce qui le coupe
   });
   vigile.catch(() => {});                                                   // elle peut tomber quand plus personne ne l'attend : pas de rejet non traité
-  return { vigile, compter(n) { recus += n; }, arreter() { clearInterval(minuterie); } };
+  return { vigile, compter(n) { const t = maintenant(); credit = Math.min(plafond, credit - (t - avant) * debitMin / 1000 + n); avant = t; }, arreter() { clearInterval(minuterie); } };
 }
 
 /* ══ 3. LE QUOTA PAR PERSONNE ═════════════════════════════════════════════════════════════════════════════════════════ */

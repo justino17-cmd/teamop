@@ -397,8 +397,24 @@
         /* ⛔ le NOM d'un fichier voyage dans un en-tête (encodé en pourcentage), jamais dans l'adresse : une adresse se retrouve dans le journal d'accès d'un proxy */
         if (x.nom !== undefined && x.nom !== null) h['X-OPM-Nom'] = encodeURIComponent(String(x.nom));
         let r;
-        try { r = await f(base + '/api/pieces' + rq({ conv: x.conv, genre: x.genre }), { method: 'POST', headers: h, credentials: 'same-origin', cache: 'no-store', body: corps }); }
-        catch (er) { throw new ErreurApi('reseau', 0, 0); }
+        /* ⛔ UN ENVOI DE PLUSIEURS GO DIT OÙ IL EN EST (6 octobre 2026 : un fichier va jusqu'à 5 Go). `fetch` ne dit rien de ce qui est parti ; `XMLHttpRequest` le dit
+           (`upload.onprogress`). On ne le prend que si la page demande la progression (`x.progres`) ET qu'aucun `fetch` n'a été injecté (les bancs injectent le leur : il reste
+           le seul chemin qu'ils voient). La réponse est rendue sous la forme qu'attend `jsonDe` — le même refus, la même phrase. */
+        if (typeof x.progres === 'function' && !o.fetch && typeof XMLHttpRequest === 'function') {
+          r = await new Promise((resolve, reject) => {
+            const q = new XMLHttpRequest();
+            q.open('POST', base + '/api/pieces' + rq({ conv: x.conv, genre: x.genre }));
+            for (const [k, val] of Object.entries(h)) q.setRequestHeader(k, val);
+            q.withCredentials = true;
+            q.upload.onprogress = (ev) => { if (ev.lengthComputable) { try { x.progres(ev.loaded, ev.total); } catch (er) { /* l'écran se trompe, pas l'envoi */ } } };
+            q.onload = () => resolve({ ok: q.status >= 200 && q.status < 300, status: q.status, text: async () => q.responseText || '', headers: { get: (k) => q.getResponseHeader(k) } });
+            q.onerror = q.onabort = q.ontimeout = () => reject(new Error('reseau'));
+            q.send(corps);
+          }).catch(() => { throw new ErreurApi('reseau', 0, 0); });
+        } else {
+          try { r = await f(base + '/api/pieces' + rq({ conv: x.conv, genre: x.genre }), { method: 'POST', headers: h, credentials: 'same-origin', cache: 'no-store', body: corps }); }
+          catch (er) { throw new ErreurApi('reseau', 0, 0); }
+        }
         return jsonDe(r, { piece: true, max: x.max });
       },
       /* Lit une pièce : `{ blob, type }`. Un refus (404 : elle n'existe plus, ou on n'a pas le droit — le service ne distingue pas) devient une `ErreurApi`. */

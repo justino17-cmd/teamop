@@ -308,6 +308,13 @@ const jeton = (b, canari) => b.includes(Buffer.from(canari, 'latin1'));
     g = garde(); t = 0; let tenu = true;
     for (let k = 1; k <= 50; k++) { t = k * 100; g.compter(200); if (await verdict(g, 8) !== 'en_vie') { tenu = false; break; } }
     vrai('⛔ contre-épreuve : un envoi à bon débit (2 000 octets par seconde pour 1 000 exigés) n\'est JAMAIS coupé, cinq secondes durant (la grâce ne s\'use pas)', tenu && t === 5000); g.arreter();
+    /* ⛔ UNE AVANCE NE SE CAPITALISE PAS (relecture du gardien, 6 octobre 2026, B1) : un envoi qui pousse d'un coup bien plus que le débit exigé, puis S'ARRÊTE, est coupé au bout de la
+       grâce — pas au bout du temps que son avance lui aurait acheté (4,9 Go d'un trait achetaient 22 h à la première garde, qui faisait une moyenne depuis le début) */
+    g = garde(); t = 100; g.compter(1000000);                                 // 1 000 fois le crédit d'une seconde, d'un trait
+    t = 900;
+    v('⛔ un gros envoi rapide qui s\'arrête : encore en vie pendant la grâce…', await verdict(g, 60), 'en_vie');
+    t = 1200;
+    v('⛔ …et COUPÉ une fois la grâce écoulée après son dernier octet (la moyenne depuis le début l\'aurait laissé 1 000 s)', await verdict(g, 300), 'trop_lent');
     g = garde(); g.arreter(); t = 9000;
     v('une garde arrêtée ne coupe plus personne (le corps est lu en entier : le nettoyage et l\'écriture ne comptent pas dans le temps de l\'envoi)', await verdict(g, 80), 'en_vie');
 

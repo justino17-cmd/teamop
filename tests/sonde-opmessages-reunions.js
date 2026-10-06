@@ -29,6 +29,8 @@
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner (pas de navigateur, pas de dépendances du service). */
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
 const T = require('./outils-msg');
+/* ⛔ PROFIL EN RUBRIQUES (6 octobre 2026) : une carte de réglage n'est montrée que dans SA rubrique — on la touche comme la personne le ferait (« Profil › Confidentialité ») */
+const rubrique = async (S, sec) => { const pg = S.page || S; await pg.waitForFunction((x) => !!document.querySelector('[data-reg-sec="' + x + '"]'), sec, { timeout: 9000 }).catch(() => {}); await pg.evaluate((x) => { const b = document.querySelector('[data-reg-sec="' + x + '"]'); if (b) b.click(); }, sec); await pg.waitForFunction((x) => { const s = document.getElementById('reg-sec-' + x); return !!s && !s.hidden; }, sec, { timeout: 9000 }).catch(() => {}); };
 const { fauxRelais, lireMessage } = require('./outils-relais');
 const { v, vrai, fin } = T.compteur();
 T.sauterSiSansDependances();
@@ -140,6 +142,10 @@ async function capture(S, nom) {
 }
 async function connecter(S, login) {
   await S.page.goto(S.base + '/');
+  /* ⛔ un service AVEC relais de courriel (celui-ci : les invitations partent par courriel) ouvre d'abord la connexion par adresse ; l'accès d'essai est derrière son lien,
+     comme pour une vraie personne (6 octobre 2026 : la sonde mourait ici, `#c-login` n'étant jamais visible) */
+  await S.page.waitForFunction(() => { const c = document.getElementById('c-login'), l = document.querySelector('#f-mel [data-cx-essai]'); return (c && c.getClientRects().length > 0) || (l && !l.hidden && l.getClientRects().length > 0); }, null, { timeout: 15000 }).catch(() => {});
+  if (await S.page.evaluate(() => { const c = document.getElementById('c-login'); return !(c && c.getClientRects().length > 0); })) await toucher(S, '#f-mel [data-cx-essai]');
   await saisir(S, '#c-login', login); await saisir(S, '#c-pass', MOTS[login]); await toucher(S, '#c-entrer');
   await S.page.waitForFunction(() => { const a = document.getElementById('app'); return a && !a.hidden && document.getElementById('moi-nom').textContent.trim().length > 0; }, null, { timeout: 15000 });
 }
@@ -940,7 +946,7 @@ async function parcoursD(b, ctx) {
   const acc = lien && lien.j && lien.j.code ? await P.dora.post('/api/invitations/accepter', { code: lien.j.code }) : null;
   vrai('population : Alice a un espace et Dora en est membre', esp.code === 201 && !!acc && acc.code === 200 && nb('SELECT COUNT(*) AS n FROM espace_membre') === 2);
   const D3 = await ouvrirSession('dora', 'Dora (espace)');
-  await onglet(D3, 'reglages');
+  await onglet(D3, 'reglages'); await rubrique(D3, 'entreprise');
   await toucher(D3, '[data-esp-ouvrir]');
   await verifier('Dora ouvre la feuille de l\'espace (Réglages › Entreprise) AU DOIGT', D3, () => document.documentElement.classList.contains('feuille-ouverte') && document.getElementById('feuille-titre').textContent === 'Espace' && !!document.querySelector('#info-corps .info-nom'), null, 10000, () => etatPage(D3));
   const ee = await lireHistorique(D3);
@@ -956,7 +962,7 @@ async function parcoursD(b, ctx) {
   const acc2 = lien2 && lien2.j && lien2.j.code ? await P.dora.post('/api/invitations/accepter', { code: lien2.j.code }) : null;
   vrai('population : un second espace, Dora en est membre (non propriétaire : « Quitter l\'espace » lui est offert)', esp2.code === 201 && !!acc2 && acc2.code === 200 && nb('SELECT COUNT(*) AS n FROM espace_membre WHERE uid = ?', P.dora.moi.id) === 1);
   const D4 = await ouvrirSession('dora', 'Dora (quitte l\'espace)');
-  await onglet(D4, 'reglages');
+  await onglet(D4, 'reglages'); await rubrique(D4, 'entreprise');
   await toucher(D4, '[data-esp-ouvrir]');
   await verifier('Dora ouvre la feuille du second espace AU DOIGT, avec « Quitter l\'espace »', D4, () => document.documentElement.classList.contains('feuille-ouverte') && document.getElementById('feuille-titre').textContent === 'Espace' && !!document.querySelector('[data-act="esp-quitter"]'), null, 10000, () => etatPage(D4));
   const e5 = await lireHistorique(D4);

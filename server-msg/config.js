@@ -115,7 +115,11 @@ function origines(cfg) {
   return liste && liste.length ? liste : null;
 }
 
-/* ⛔ LES PIÈCES : les valeurs de départ sont celles de SERVEUR.md § 5.6 (photo 12 Mo, vocal 10 Mo, fichier 25 Mo, 2 Go par personne en Perso). Une valeur qui n'a pas
+/* ⛔ LES PIÈCES : les valeurs de départ sont celles de SERVEUR.md § 5.6 (photo 12 Mo, vocal 10 Mo, fichier 5 Go, 50 Go par personne en Perso).
+   Justin, 6 octobre 2026 (« je voulais que tout le monde puisse envoyer autant de fichiers, avec les poids qu'ils veulent ») : un fichier va jusqu'à 5 Go (« je veux 5 Go », le même soir) — 25 Mo refusait
+   une vidéo de téléphone. Une photo, elle, est réduite par la page avant l'envoi (quelques centaines de Ko) : son maximum ne gêne personne.
+   ⚠️ Le proxy suit (`client_max_body_size` du bloc `/api/pieces` d'`install-msg.sh`) — le déploiement ne réécrit PAS le proxy : à relever sur le VPS.
+   ⚠️ Une lecture entière a six heures (`lectureMaxMs`) : 5 Go à 1 Mo/s en prennent une heure et demie, le plafond de dix minutes coupait un vrai téléchargement. Une valeur qui n'a pas
    de sens (négative, fractionnaire, hors bornes) REFUSE le démarrage plutôt que de tourner de travers : un quota à zéro fermerait toutes les pièces, un plafond à 10 Go
    tiendrait en mémoire des photos que rien n'arrête. `bloc` est la taille de bloc du scellage (une puissance de deux) : il ne change que les fichiers à venir, chaque fichier
    porte la sienne dans son en-tête. */
@@ -123,13 +127,13 @@ const Mo = 1048576;
 /* ⛔ UN ENVOI, OU UNE LECTURE, NE TIENT PAS UNE PLACE SANS AVANCER (relecture du gardien, A2 et A4). `depotDebitMin` : un envoi doit avoir reçu au moins ce débit moyen, après `depotGraceMs` de grâce
    (64 Ko/s après 30 s, soit ~0,5 Mbit/s : un « slowloris » qui annonce 25 Mo et envoie un octet par seconde ne tient plus 300 s une des seize places). `lectureAttenteMs` : un lecteur dont la
    connexion reste pleine plus longtemps que cela est coupé (le fichier ouvert est rendu) ; `lectureMaxMs` : plafond d'une lecture entière, pour celui qui lit juste assez vite pour ne jamais s'arrêter. */
-const PIECES_DEFAUT = { photoMax: 12 * Mo, vocalMax: 10 * Mo, fichierMax: 25 * Mo, avatarMax: 2 * Mo, quotaPersonne: 2048 * Mo, depotsHeure: 60, orphelineMs: 24 * 3600000, simultanes: 16, parPersonne: 4, bloc: 65536, memoireImages: 96 * Mo,
-  depotDebitMin: 64 * 1024, depotGraceMs: 30000, lectureAttenteMs: 30000, lectureMaxMs: 600000 };
+const PIECES_DEFAUT = { photoMax: 12 * Mo, vocalMax: 10 * Mo, fichierMax: 5120 * Mo, avatarMax: 2 * Mo, quotaPersonne: 51200 * Mo, depotsHeure: 60, orphelineMs: 24 * 3600000, simultanes: 16, parPersonne: 4, bloc: 65536, memoireImages: 96 * Mo,
+  depotDebitMin: 64 * 1024, depotGraceMs: 30000, lectureAttenteMs: 30000, lectureMaxMs: 21600000, lectureDebitMin: 16 * 1024 };
 function piecesConfig(c) {
   const brut = c && typeof c === 'object' && !Array.isArray(c) ? c : {};
   const o = {};
-  const bornes = { photoMax: [1, 256 * Mo], vocalMax: [1, 256 * Mo], fichierMax: [1, 1024 * Mo], avatarMax: [1, 64 * Mo], quotaPersonne: [1, 1024 * 1024 * Mo], depotsHeure: [1, 100000], orphelineMs: [1000, 30 * 86400000], simultanes: [1, 256], parPersonne: [1, 64], bloc: [256, 1 << 24], memoireImages: [16 * Mo, 8192 * Mo],
-    depotDebitMin: [1024, 1024 * Mo], depotGraceMs: [200, 600000], lectureAttenteMs: [100, 3600000], lectureMaxMs: [1000, 86400000] };
+  const bornes = { photoMax: [1, 256 * Mo], vocalMax: [1, 256 * Mo], fichierMax: [1, 8192 * Mo], avatarMax: [1, 64 * Mo], quotaPersonne: [1, 1024 * 1024 * Mo], depotsHeure: [1, 100000], orphelineMs: [1000, 30 * 86400000], simultanes: [1, 256], parPersonne: [1, 64], bloc: [256, 1 << 24], memoireImages: [16 * Mo, 8192 * Mo],
+    depotDebitMin: [1024, 1024 * Mo], depotGraceMs: [200, 600000], lectureAttenteMs: [100, 3600000], lectureMaxMs: [1000, 86400000], lectureDebitMin: [1, 1024 * Mo] };
   for (const [k, [min, max]] of Object.entries(bornes)) {
     const v = brut[k] === undefined ? PIECES_DEFAUT[k] : brut[k];
     if (!Number.isInteger(v) || v < min || v > max) { const e = new Error('config: pieces.' + k + ' doit être un entier entre ' + min + ' et ' + max); e.code = 'CONFIG'; throw e; }
@@ -452,7 +456,11 @@ function charger(env = process.env) {
     sauvegarde: cfg.sauvegarde === undefined ? null : cfg.sauvegarde,   // validée par `lireConfigSauvegarde` (sauvegarde.js) : absente = module inerte, invalide = démarrage refusé
     testCodes: testCodes,
     testVersionPage,
-    disqueMinMo: Number.isFinite(cfg.disqueMinMo) ? cfg.disqueMinMo : 512,
+    /* ⛔ 10 Go de plancher (512 Mo jusqu'au 6 octobre 2026 : dimensionnés pour des pièces de 25 Mo). Avec des fichiers de 5 Go et 50 Go par personne, trois comptes ramenaient le disque — celui
+       d'OP GESTION aussi — à 512 Mo libres (relecture du gardien, A3). Sous ce plancher, le service n'écrit plus : OP GESTION garde au moins 10 Go pour ses bases et ses sauvegardes. */
+    disqueMinMo: Number.isFinite(cfg.disqueMinMo) ? cfg.disqueMinMo : 10240,
+    /* le corps d'une requête ORDINAIRE (64 Ko de JSON au plus) doit être arrivé en entier dans ce délai — voir app.js */
+    corpsLentMs: Number.isInteger(cfg.corpsLentMs) && cfg.corpsLentMs >= 1000 && cfg.corpsLentMs <= 600000 ? cfg.corpsLentMs : 30000,
     pulsationMs: Number.isFinite(cfg.pulsationMs) ? cfg.pulsationMs : 20000,
     presenceGraceMs: Number.isFinite(cfg.presenceGraceMs) ? cfg.presenceGraceMs : 20000,
     balayageMs: Number.isFinite(cfg.balayageMs) ? cfg.balayageMs : 60000,

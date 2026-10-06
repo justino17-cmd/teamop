@@ -23,6 +23,8 @@
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner (pas de navigateur, pas de dépendances du service). */
 const fs = require('fs'), os = require('os'), path = require('path'), net = require('net');
 const T = require('./outils-msg');
+/* ⛔ PROFIL EN RUBRIQUES (6 octobre 2026) : une carte de réglage n'est montrée que dans SA rubrique — on la touche comme la personne le ferait (« Profil › Confidentialité ») */
+const rubrique = async (S, sec) => { const pg = S.page || S; await pg.waitForFunction((x) => !!document.querySelector('[data-reg-sec="' + x + '"]'), sec, { timeout: 9000 }).catch(() => {}); await pg.evaluate((x) => { const b = document.querySelector('[data-reg-sec="' + x + '"]'); if (b) b.click(); }, sec); await pg.waitForFunction((x) => { const s = document.getElementById('reg-sec-' + x); return !!s && !s.hidden; }, sec, { timeout: 9000 }).catch(() => {}); };
 const { v, vrai, fin } = T.compteur();
 T.sauterSiSansDependances();
 
@@ -279,7 +281,7 @@ async function couple(b, env, cfg) {
 
   await bloc('2. Les contacts : un lien d\'invitation (créé, ouvert, accepté), vu par les deux', async () => {
     vrai('liste vide : une phrase qui dit quoi faire (pas « Aucun résultat pour « » »)', /Aucune conversation pour l'instant/.test(await lire(A, '#liste-conv')));
-    await onglet(A, 'reglages');
+    await onglet(A, 'reglages'); await rubrique(A, 'contacts');
     vrai('Réglages : le compte, « Ajouter un contact », « Se déconnecter »', (await nombre(A, '#reg-contact, #reg-sortir')) === 2 && (await lire(A, '#vue-reglages')).includes(nomA));
     await largeur(A, 'réglages');
     await toucher(A, '#reg-contact');
@@ -447,7 +449,7 @@ async function couple(b, env, cfg) {
     const lienG = await A.page.inputValue('#ci-lien-champ');
     const tLien = await A.page.evaluate(() => parseFloat(getComputedStyle(document.getElementById('ci-lien-champ')).fontSize));
     vrai('⛔ D5 : le champ du lien de groupe fait 16 px au moins (iOS zoomerait la page sinon) — ' + tLien + ' px', tLien >= 16);
-    await onglet(C, 'reglages'); await toucher(C, '#reg-contact');
+    await onglet(C, 'reglages'); await rubrique(C, 'contacts'); await toucher(C, '#reg-contact');
     const tCode = await C.page.evaluate(() => parseFloat(getComputedStyle(document.getElementById('ct-code')).fontSize));
     vrai('⛔ D5 : le champ « Coller le lien reçu » fait 16 px au moins — ' + tCode + ' px', tCode >= 16);
     /* ⛔ P4 : ce qu'on colle est TOUT ce qu'on a reçu — une phrase, des guillemets, un point final : le code se lit quand même */
@@ -580,7 +582,7 @@ async function couple(b, env, cfg) {
     /* 404 (réel) : une conversation qui n'existe pas dans l'adresse ; 410 (réel) : un lien révoqué ; 409 (réel) : son propre lien */
     await B.page.evaluate(() => { location.hash = '#messages/inexistante123'; });
     await verifier('404 (réel) : une conversation absente de l\'adresse dit « n\'existe plus » et ramène à la liste', B, () => document.documentElement.dataset.conv !== '1' && /existe plus|Introuvable/.test(document.getElementById('mot').textContent), null, 6000, () => texteVu(B, '#mot'));
-    await onglet(A, 'reglages'); await toucher(A, '#reg-contact');
+    await onglet(A, 'reglages'); await rubrique(A, 'contacts'); await toucher(A, '#reg-contact');
     await toucher(A, '[data-act="lien-creer"]');
     await verifier('un lien neuf est créé', A, () => !!document.getElementById('ct-lien-champ'), null, 5000);
     const vieux = await A.page.inputValue('#ct-lien-champ');
@@ -590,7 +592,7 @@ async function couple(b, env, cfg) {
     await verifier('409 (réel) : accepter SON PROPRE lien dit « c\'est ton propre lien »', A, () => /propre lien/.test(document.getElementById('info-erreur').textContent), null, 5000, () => texteVu(A, '#info-erreur'));
     await toucher(A, '[data-act="lien-revoquer"]');
     await verifier('« Révoquer mes liens » : le petit mot le dit', A, () => /révoqué/.test(document.getElementById('mot').textContent), null, 5000);
-    await onglet(C, 'reglages'); if (!(await visible(C, '#ct-code'))) await toucher(C, '#reg-contact');
+    await onglet(C, 'reglages'); await rubrique(C, 'contacts'); if (!(await visible(C, '#ct-code'))) await toucher(C, '#reg-contact');
     await saisir(C, '#ct-code', vieux); await toucher(C, '[data-act="lien-lire"]');
     await verifier('410 (réel) : un lien révoqué dit « n\'est plus valable »', C, () => /n'est plus valable/.test(document.getElementById('info-erreur').textContent), null, 6000, () => texteVu(C, '#info-erreur'));
     await saisir(C, '#ct-code', 'pas-un-lien'); await toucher(C, '[data-act="lien-lire"]');

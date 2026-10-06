@@ -13,6 +13,51 @@ de ligne du tout.
 
 ---
 
+# ⏳ 6 OCTOBRE 2026 (SOIR, SUITE) — FICHIERS DE 5 GO, LE PROFIL FAÇON IPHONE, LES APPELS (LOT 1) — SUR LA BRANCHE `claude/apple-theme-op-messages-gcb3j9` (PR justino17-cmd/teamop#95)
+
+Justin, capture à l'appui (« Ce fichier est trop lourd (12 Mo au plus) ») : « je voulais que tout le monde puisse envoyer autant de fichiers… », puis « je veux 5 Go » ;
+« je veux que les réglages soient dans le profil, parce que là c'est mal fait… optimise à 100 % comme Apple » ; « toutes les options de toutes les applications de réunion…
+trouve tout ce que tu peux et on le fait ».
+
+1. **Un fichier jusqu'à 5 Go, 50 Go par personne, six heures pour une lecture** (`server-msg/config.js`). ⛔ **nginx ne tamponne plus le dépôt** (`install-msg.sh`,
+   `proxy_request_buffering off`, `client_max_body_size 5200m`) : tamponnés, 24 envois de 5 Go = 122 Go, plus que le disque (115 Go), et le plancher disque du service ne
+   voyait pas le tampon ; sans tampon, le service juge session, maximum, quota et disque AVANT de lire et coupe un envoi trop lent (`depotDebitMin`). Le délai de requête de
+   Node se DÉDUIT du maximum et du débit minimal (`server.requestTimeout`, ~22,7 h). Le téléchargement passe par l'adresse du fichier (`pieceLien`, lien `download`) : le
+   navigateur l'écrit sur le disque, la page ne le tient plus en mémoire. L'envoi dit « Envoi… N % » (XMLHttpRequest). `test-967`, `test-931` (compare `piecesConfig()` aux
+   deux proxys), `tests/sonde-proxy-nginx.js` (vrai nginx 1.24 : 46 ✓, contre-épreuve « tampon remis » 2 ✗), `tests/sonde-opmessages-gros-fichier.js` (60 Mo : pourcentage,
+   téléchargement direct, octet pour octet).
+   ⛔ **GESTE SUR LE VPS, APRÈS LA FUSION** : le déploiement ne réécrit PAS le proxy. Sans le geste, nginx refuse tout dépôt au-delà de 26 Mo (en HTML) :
+   `sed -i 's/client_max_body_size 26m;/client_max_body_size 5200m;\n        proxy_request_buffering off;/' /etc/nginx/sites-available/opmsg-beta.conf && nginx -t && systemctl reload nginx`
+   (ou relancer `install-msg.sh`) — et dans le même bloc `proxy_read_timeout 120s` → `900s` (A5 ci-dessous). Le relais SMTP est posé (`support@teamop.fr`, ssl0.ovh.net:465,
+   essai réussi le 6 au soir) ; `inscriptionCourriel` attend la fusion.
+   ⛔ **Relecture du gardien (6 au soir), un bloquant et cinq « à corriger », traités** : B1 la garde de débit d'un envoi faisait une MOYENNE (4,9 Go d'un trait achetaient 22 h de
+   place) → seau plafonné (`gardeDebit`, `test-942`) ; A1 un corps JSON au compte-gouttes tenait 22 h derrière Caddy → coupé en 30 s (`app.js`, `corpsLentMs`, `test-967` § 5) ;
+   A2 un lecteur lent tenait 6 h → débit minimal de lecture au même seau (`lectureDebitMin`, 16 Ko/s ; `test-967` § 6) ; A3 plancher disque 512 Mo → **10 Go** (`disqueMinMo`) ;
+   A5 `proxy_read_timeout 900s` sur le dépôt. ⚠️ **Reste A4** : un refus qui arrive PENDANT l'envoi d'un gros fichier (session expirée, adresse non confirmée, disque, quota) —
+   à mesurer au navigateur sur la bêta (300 Mo, session expirée puis quota plein) : si l'`XMLHttpRequest` voit une coupure au lieu de la réponse, la file renvoie le fichier
+   en boucle. ⚠️ `disqueMinMo` du fichier de configuration du VPS, s'il y est écrit, garde SA valeur : à relire.
+2. **Profil = les réglages, façon Réglages d'iPhone** (`apercu/opmessages/index.html`, `rendreReglages`, `montrerSection`) : l'onglet s'appelle « Profil » (la clé reste
+   `reglages`) ; le profil en tête, en grand (photo, nom, identifiant, « Modifier le profil ») ; une ligne par rubrique, avec sa pastille de couleur et sa valeur
+   (« Désactivées », « 0 o sur 50 Go », « v1.9.0 ») ; chaque ligne POUSSE sa page (`#reglages/<rubrique>`, le retour la referme) ; au bureau, liste à gauche et rubrique à
+   droite. Les cartes gardent leurs identifiants (`reg-conf`, `reg-notif`…). Les retours Stripe arrivent sur `#reglages/entreprise`. Sondes à jour (rubrique avant le
+   geste) : profil 16 ✓, identifiant 33 ✓, pieces 101 ✓, maj 20 ✓, contacts 33 ✓, push 102 ✓, espaces 173 ✓, perso-plus 79 ✓, legende 34 ✓.
+3. **Appels, lot 1** (page seule) : le micro est demandé PROPRE (réduction du bruit, annulation d'écho, gain automatique — le message vocal aussi) ; choix du micro, de la
+   caméra et de la sortie du son dans « Plus › Son et image » d'une salle (un appareil débranché retombe sur celui par défaut) ; « Réduire » (image dans l'image) en appel à
+   deux et dans « Plus » ; l'écran reste allumé pendant un appel (Wake Lock, rendu au raccroché). `tests/sonde-opmessages-appels-plus.js` (18 ✓ ; sans le son propre : 2 ✗).
+4. **Ce qui reste pour « les meilleurs du marché »** (inventaire du code réel, 6 octobre) — par ordre de ce qui débloque le reste :
+   · ⛔ **le SFU (LiveKit)** : une salle tient aujourd'hui 4 vidéos / 6 audios (maille pair à pair, `config.js` `maxVideo`/`maxAudio`) — Zoom, Teams, Meet : 25 à 100+.
+     Il conditionne l'enregistrement serveur, la transcription, les sous-groupes, couper un micro pour de bon. Gros chantier, un processus et un nom de domaine en plus :
+     **décision de Justin** ;
+   · écran de préparation avant d'entrer (aperçu caméra, jauge du micro) ; qualité du réseau par tuile et repli automatique en audio ; partage d'écran en appel à deux
+     (+ son du système) ; épingle LOCALE ; ordre du jour, notes et rapport de présence d'une réunion ; « Réunion maintenant » / salle à adresse fixe ; **rejoindre sans
+     compte** (invité par lien — sensible, relecture `gardien` obligatoire) ; flou d'arrière-plan ; sous-titres et compte rendu (seulement sur nos machines, jamais
+     l'API vocale de Chrome qui envoie l'audio à un tiers).
+5. **Dettes trouvées en route (anciennes, pas de ce soir)** : `tests/sonde-opmessages-serveur.js` attend encore « Bientôt disponible » sur Appels et Réunions (359 ✓ 11 ✗, identique
+   avant ces changements) ; `tests/sonde-opmessages-reunions.js` meurt à la connexion (`#c-login` jamais visible, identique avant) — à remettre au goût du jour.
+   « Les catégories Contacts qui manquent » : demandé, pas encore précisé — à demander à Justin.
+
+---
+
 # ⏳ 6 OCTOBRE 2026 (NUIT) — BÊTA ET VERSION PUBLIQUE SÉPARÉES, LA MISE À JOUR FORCÉE D'OP MESSAGES, LA TOUR v2.84 — SUR LA BRANCHE (justino17-cmd/teamop#95)
 
 Justin : « je veux qu'on sépare la version bêta et la version publique. Pour les mises à jour, je veux aussi le forçage de mise à jour, comme sur OP GESTION depuis la Tour ; je veux

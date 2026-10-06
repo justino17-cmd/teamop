@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '54be537be2df';
+  const OPMSG_BUILD = 'a8a6702cc038';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 11;
+  const OPMSG_VERSION = 16;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
@@ -29,10 +29,14 @@
     appels:   { titre: 'Appels',    icone: 'i-phone', texte: 'L\'historique des appels, les appels audio et vidéo.' },
     /* avec l'agenda personnel (le service), l'onglet porte les deux : « Agenda » ; l'aperçu garde « Réunions » */
     reunions: { titre: CAP.agenda ? 'Agenda' : 'Réunions',  icone: CAP.agenda ? 'i-agenda' : 'i-video', texte: 'L\'agenda, la programmation, les invités et les rappels.' },
-    reglages: { titre: 'Réglages',  icone: 'i-gear',  texte: 'Le compte, les notifications et la confidentialité.' }
+    /* « Profil » (6 octobre 2026 : « je veux que les réglages soient dans le profil ») : la page s'ouvre sur MOI — photo, nom, identifiant — et les réglages sont rangés dessous,
+       une ligne par rubrique, comme Réglages sur iPhone (la carte du compte en tête) ; la clé de la vue reste « reglages » (adresses, notifications, bancs) */
+    reglages: { titre: 'Profil',  icone: 'i-personne',  texte: 'Ton profil, le compte, les notifications et la confidentialité.' }
   };
   /* « Contacts » n'existe que là où les demandes de contact existent (le service) : l'aperçu garde ses quatre onglets */
   const ORDRE = CAP.identifiants ? ['messages', 'contacts', 'appels', 'reunions', 'reglages'] : ['messages', 'appels', 'reunions', 'reglages'];
+  /* les rubriques de Profil, dans l'ordre de la liste — la route n'accepte que celles-ci (« #reglages/confidentialite ») */
+  const REG_SECTIONS = ['entreprise', 'confidentialite', 'notifications', 'contacts', 'appareils', 'stockage', 'compte', 'apropos'];
   const EPHEMERES = [[0, 'Désactivés'], [86400, '24 heures'], [604800, '7 jours'], [7776000, '90 jours']];
   const VOCAL_MIN_MS = 800, VOCAL_MAX_MS = 180000, TENU_MS = 600, TEXTE_MAX = CAP.texteMax;
 
@@ -157,8 +161,9 @@
      donc le navigateur n'a pas de second retour à jouer ; et un bouton qui ferme ne ferme pas ET ne navigue pas — il navigue, et
      la fermeture suit. Une entrée neuve n'est posée que si quelque chose s'ouvre : passer d'une conversation à l'autre (au bureau)
      REMPLACE l'entrée au lieu d'en empiler. */
-  const memeRoute = (a, b) => !!a && !!b && a.vue === b.vue && (a.conv || null) === (b.conv || null) && !!a.feuille === !!b.feuille && (a.photo || null) === (b.photo || null) && (a.appel || null) === (b.appel || null);
-  const urlDe = r => '#' + r.vue + (r.conv ? '/' + encodeURIComponent(r.conv) : '');
+  const memeRoute = (a, b) => !!a && !!b && a.vue === b.vue && (a.conv || null) === (b.conv || null) && (a.sec || null) === (b.sec || null) && !!a.feuille === !!b.feuille && (a.photo || null) === (b.photo || null) && (a.appel || null) === (b.appel || null);
+  /* `sec` : une rubrique de Profil ouverte (« #reglages/confidentialite ») — une couche comme une conversation : le retour système la referme */
+  const urlDe = r => '#' + r.vue + (r.conv ? '/' + encodeURIComponent(r.conv) : r.sec ? '/' + r.sec : '');
   function routeDepuisHash() {
     const p = location.hash.slice(1).split('/');
     let conv = null; try { conv = p[1] ? decodeURIComponent(p[1]) : null; } catch (e) { conv = null; }
@@ -166,13 +171,15 @@
     const vue = Object.prototype.hasOwnProperty.call(VUES, p[0]) && ORDRE.includes(p[0]) ? p[0] : 'messages';
     /* une adresse « #reunions/<identifiant> » (le toucher d'une notification quand la page était fermée) ouvre la fiche de CETTE réunion — l'identifiant est vérifié avant de servir */
     const feuille = vue === 'reunions' && CAP.reunions && ID_REUNION.test(conv || '') ? 'reunion:' + conv : false;
-    return { vue, conv: vue === 'messages' && p[0] === 'messages' ? conv : null, feuille, photo: null, appel: null };
+    const sec = vue === 'reglages' && REG_SECTIONS.includes(p[1]) ? p[1] : null;
+    return { vue, conv: vue === 'messages' && p[0] === 'messages' ? conv : null, sec, feuille, photo: null, appel: null };
   }
   const entree = () => (history.state && history.state.opmsg) ? history.state : null;
   function parentDe(r) {
     if (r.appel) return Object.assign({}, r, { appel: null });
     if (r.photo) return Object.assign({}, r, { photo: null });
     if (r.feuille) return Object.assign({}, r, { feuille: false });
+    if (r.sec) return Object.assign({}, r, { sec: null });
     if (r.conv) return Object.assign({}, r, { conv: null });
     return null;
   }
@@ -230,6 +237,7 @@
       if (prec) window.scrollTo(0, etat.posVues[r.vue] || 0);
     }
     racine.dataset.vue = r.vue;
+    if (r.vue === 'reglages' && typeof montrerSection === 'function') montrerSection(r.sec || null);
     const veutConv = r.vue === 'messages' ? (r.conv || null) : null;
     if (veutConv !== etat.conv) { if (veutConv) ouvrirConv(veutConv); else fermerConv(); }
     if (r.feuille && (!etat.groupe.ouvert || etat.groupe.cle !== cleFeuille(r.feuille))) ouvrirFeuilleDom(r.feuille); else if (!r.feuille && etat.groupe.ouvert) fermerFeuilleDom();
@@ -321,7 +329,7 @@
     if (m.reactions && m.reactions.length) h += reactionsHtml(m);
     if (m.modifie && !m.supprime) h += '<span class="mention-modifie">Modifié</span>';
     /* le statut DIT VRAI : « Envoi… » seulement quand des octets partent vraiment (la source le sait), « En attente de connexion… » quand rien ne part ; une pièce en échec a sa phrase et ses deux boutons, pas de statut */
-    return { h: h + '</div>', st: estDernierEnvoye ? (m.attente ? (m.echec ? null : m.envoi ? 'Envoi…' : 'En attente de connexion…') : m.lu ? (m.lu === true ? 'Lu' : 'Lu ' + FMT_HEURE.format(m.lu)) : 'Envoyé') : null };
+    return { h: h + '</div>', st: estDernierEnvoye ? (m.attente ? (m.echec ? null : m.envoi ? (Number.isInteger(m.progres) ? 'Envoi… ' + m.progres + ' %' : 'Envoi…') : 'En attente de connexion…') : m.lu ? (m.lu === true ? 'Lu' : 'Lu ' + FMT_HEURE.format(m.lu)) : 'Envoyé') : null };
   }
   /* ⛔ UNE PHOTO SEULE GARDE SES PROPORTIONS (relecture du testeur) : sa boîte tient dans 240 × 320 ; une image minuscule est agrandie du double au plus, mais jamais laissée sous 72 px de côté ; un panorama
      extrême garde sa largeur — il est vu ENTIER (`contain`), jamais coupé. La largeur et le rapport sont posés en ligne (la boîte d'une photo à peine arrivée est déjà la bonne : rien ne saute). Sans dimensions
@@ -794,6 +802,9 @@
   async function telechargerFichier(mid, bouton) {
     const m = trouverMessage(mid);
     if (!m || !m.fichier || !m.fichier.piece || bouton.getAttribute('aria-disabled') === 'true') return;
+    /* un vrai fichier du service : le navigateur le télécharge lui-même, sans le tenir en mémoire (5 Go au plus) — voir `pieceLien` */
+    const lien = typeof source.pieceLien === 'function' ? source.pieceLien(m.fichier.piece) : null;
+    if (lien) { const a = document.createElement('a'); a.href = lien; a.download = m.fichier.nom; a.hidden = true; document.body.appendChild(a); a.click(); a.remove(); return; }
     bouton.setAttribute('aria-disabled', 'true');
     try {
       const b = await source.pieceBlob(m.fichier.piece), u = URL.createObjectURL(b);
@@ -916,7 +927,7 @@
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') { avis('L\'enregistrement vocal n\'est pas disponible sur ce navigateur.'); return; }
     enr.etat = 'demande'; enr.annule = false; enr.conv = etat.conv;
     let flux;
-    try { flux = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    try { flux = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }   // le message vocal aussi : le bruit de la rue n'y entre pas
     catch (e) { enr.etat = 'repos'; avis(messageMicro(e)); return; }
     if (enr.etat !== 'demande' || !etat.conv) { flux.getTracks().forEach(t => t.stop()); enr.etat = 'repos'; return; }   // annulé (retour, Échap) pendant la demande
     try {
@@ -1548,7 +1559,20 @@
     const a = $('appel-avis'), b = $('salle-avis'); a.textContent = texte; a.hidden = false; b.textContent = texte; b.hidden = false;       // (salle) l'avis se dit sur l'écran qui est affiché : les deux le portent
     minAvisAppel = setTimeout(() => { a.hidden = true; b.hidden = true; }, 12000);
   }
-  const gum = c => navigator.mediaDevices.getUserMedia(c);
+  /* ═══ LE SON ET L'IMAGE QU'ON ENVOIE (6 octobre 2026 : « toutes les options de toutes les applications de réunion ») ═══
+     ⛔ LE MICRO EST DEMANDÉ « PROPRE » : réduction du bruit, annulation d'écho, gain automatique — ce que Meet, Teams et FaceTime font sans qu'on le demande. Le navigateur les applique
+     sur l'appareil (rien ne sort de la page). Avant, `{ audio: true }` laissait chaque navigateur choisir : sur certains, l'écho d'un haut-parleur revenait à l'autre.
+     ⛔ L'APPAREIL CHOISI (micro, caméra) est demandé EXACTEMENT ; débranché depuis, le navigateur refuse (`OverconstrainedError`) : on oublie le choix et on reprend l'appareil par
+     défaut — jamais un appel sans micro parce qu'un casque a été retiré. Le choix vit le temps de l'onglet (rien n'est rangé sur l'appareil). */
+  const prefMedias = { micro: null, camera: null, sortie: null };
+  const AUDIO_PROPRE = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+  const cAudio = () => Object.assign({}, AUDIO_PROPRE, prefMedias.micro ? { deviceId: { exact: prefMedias.micro } } : {});
+  const cVideo = () => prefMedias.camera ? { deviceId: { exact: prefMedias.camera } } : true;
+  const sansAppareil = c => { const x = Object.assign({}, c); for (const k of ['audio', 'video']) if (x[k] && typeof x[k] === 'object' && x[k].deviceId) { const y = Object.assign({}, x[k]); delete y.deviceId; x[k] = Object.keys(y).length ? y : true; } return x; };
+  const gum = async c => {
+    try { return await navigator.mediaDevices.getUserMedia(c); }
+    catch (e) { if (e && e.name === 'OverconstrainedError' && (prefMedias.micro || prefMedias.camera)) { prefMedias.micro = null; prefMedias.camera = null; return navigator.mediaDevices.getUserMedia(sansAppareil(c)); } throw e; }
+  };
   const mediasDispo = () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
   /* poser des pistes : chacune est GARDÉE (A.pistes) pour être arrêtée, et une caméra débranchée en cours d'appel se voit (« ended ») */
   function poserPistes(A, flux) {
@@ -1589,14 +1613,14 @@
     A.mediasDemandes = true;
     if (!mediasDispo()) { A.mediaPret = true; avisAppel('Le micro et la caméra ne sont pas disponibles sur ce navigateur : l\'appel continue sans eux.'); rendreAppel(); return; }
     let flux = null, errCombine = null, errAudio = null;
-    if (veutVideo) { try { flux = await gum({ audio: true, video: true }); } catch (e) { errCombine = e; } if (perime(A)) { if (flux) flux.getTracks().forEach(t => t.stop()); return; } }
-    if (!flux) { try { flux = await gum({ audio: true }); } catch (e) { errAudio = e; } if (perime(A)) { if (flux) flux.getTracks().forEach(t => t.stop()); return; } }
+    if (veutVideo) { try { flux = await gum({ audio: cAudio(), video: cVideo() }); } catch (e) { errCombine = e; } if (perime(A)) { if (flux) flux.getTracks().forEach(t => t.stop()); return; } }
+    if (!flux) { try { flux = await gum({ audio: cAudio() }); } catch (e) { errAudio = e; } if (perime(A)) { if (flux) flux.getTracks().forEach(t => t.stop()); return; } }
     let dit = '';
     if (flux) { poserPistes(A, flux); if (veutVideo && !A.video) dit = messageMedia(errCombine, 'camera') + ' L\'appel continue en audio.'; }
     else {
       dit = messageMedia(errAudio, 'micro') + ' L\'appel continue sans micro.';
       if (veutVideo) {
-        let fv = null; try { fv = await gum({ video: true }); } catch (e) { fv = null; }
+        let fv = null; try { fv = await gum({ video: cVideo() }); } catch (e) { fv = null; }
         if (perime(A)) { if (fv) fv.getTracks().forEach(t => t.stop()); return; }
         if (fv) poserPistes(A, fv); else dit += ' La caméra n\'a pas pu démarrer non plus.';
       }
@@ -1609,7 +1633,7 @@
     const A = etat.appelUI; if (!A || !A.snap) return;
     if (!A.audio) {                                                // pas de micro (refusé, absent) : toucher le bouton RÉESSAIE — la personne a pu changer l'autorisation
       try {
-        const f = await gum({ audio: true });
+        const f = await gum({ audio: cAudio() });
         if (perime(A)) { f.getTracks().forEach(t => t.stop()); return; }
         A.micro = true; poserPistes(A, f); avisAppelEffacer(); rendreAppel(); annonceAppel('Micro activé');
       } catch (e) { if (!perime(A)) avisAppel(messageMedia(e, 'micro') + ' L\'appel continue sans micro.'); }
@@ -1629,7 +1653,7 @@
     }
     A.cameraEnCours = true;
     try {
-      const f = await gum({ video: true });
+      const f = await gum({ video: cVideo() });
       if (perime(A)) { f.getTracks().forEach(t => t.stop()); return; }
       poserPistes(A, f); avisAppelEffacer(); rendreAppel(); annonceAppel('Caméra activée');
     } catch (e) { if (!perime(A)) { avisAppel(messageMedia(e, 'camera') + ' L\'appel continue en audio.'); rendreAppel(); } }
@@ -1677,7 +1701,68 @@
     const f = source.appelFlux(A.id) || null, au = $('appel-audio-distant'), v = document.querySelector('#appel-scene .tuile:not(.vous) video');
     if (au.srcObject !== f) { au.srcObject = f; if (f) { const p = au.play(); if (p && p.catch) p.catch(() => {}); } }
     if (v && v.srcObject !== f) { v.srcObject = f; if (f) { const p = v.play(); if (p && p.catch) p.catch(() => {}); } }
+    /* « Réduire » se décide quand l'image JOUE (au branchement, elle n'a encore aucune image) — et se redécide quand la caméra de l'autre s'allume ou se coupe */
+    if (v && !v.dataset.pipEcoute) { v.dataset.pipEcoute = '1'; for (const k of ['playing', 'loadeddata', 'emptied', 'resize']) v.addEventListener(k, majPip); }
+    if (f && !f.__pipEcoute) { f.__pipEcoute = true; f.getVideoTracks().forEach(t => { t.addEventListener('mute', majPip); t.addEventListener('unmute', majPip); t.addEventListener('ended', majPip); }); f.addEventListener('addtrack', majPip); }
+    if (prefMedias.sortie) appliquerSortie();
+    majPip();
   }
+  /* changer de micro ou de caméra EN COURS d'appel : la piste neuve d'abord, l'ancienne arrêtée ensuite, et le moteur la remplace sans renégocier (`pousserPistes`) */
+  async function changerAppareil(quoi, id) {
+    const A = etat.appelUI;
+    if (quoi === 'sortie') { prefMedias.sortie = id || null; appliquerSortie(); return; }
+    prefMedias[quoi] = id || null;
+    if (!A || A.fini) return;
+    const ancienne = quoi === 'micro' ? A.audio : A.video;
+    if (!ancienne || ancienne.readyState !== 'live') return;        // un micro ou une caméra éteints : le choix servira à leur prochain allumage
+    let f = null;
+    try { f = await gum(quoi === 'micro' ? { audio: cAudio() } : { video: cVideo() }); }
+    catch (e) { if (!perime(A)) avisAppel(messageMedia(e, quoi === 'micro' ? 'micro' : 'camera')); return; }
+    if (perime(A)) { f.getTracks().forEach(t => t.stop()); return; }
+    A.pistes = A.pistes.filter(t => t !== ancienne); try { ancienne.stop(); } catch (e) { /* déjà arrêtée */ }
+    if (quoi === 'micro') A.audio = null; else A.video = null;
+    poserPistes(A, f); rendreAppel(); annonceAppel(quoi === 'micro' ? 'Micro changé' : 'Caméra changée');
+  }
+  /* la sortie du son (casque, enceinte) : seulement là où le navigateur sait la choisir (`setSinkId`) — ailleurs, la ligne n'est pas proposée */
+  const sortieChoisissable = () => typeof HTMLMediaElement !== 'undefined' && typeof HTMLMediaElement.prototype.setSinkId === 'function';
+  function appliquerSortie() {
+    if (!sortieChoisissable()) return;
+    document.querySelectorAll('#appel-audio-distant, #salle-scene audio').forEach(el => { try { const p = el.setSinkId(prefMedias.sortie || ''); if (p && p.catch) p.catch(() => {}); } catch (e) { /* l'appareil a disparu : le son reste sur la sortie par défaut */ } });
+  }
+  async function listeAppareils() {
+    try { return (await navigator.mediaDevices.enumerateDevices()).filter(d => d.deviceId && d.deviceId !== 'default' && d.deviceId !== 'communications'); } catch (e) { return []; }
+  }
+  /* ⛔ IMAGE DANS L'IMAGE : la vidéo de l'autre (ou de celui qui parle) flotte au-dessus des autres applications, comme FaceTime — seulement si le navigateur sait le faire, et seulement
+     une image VIVANTE (une vignette sans caméra n'a rien à montrer) */
+  const pipPossible = () => typeof document !== 'undefined' && document.pictureInPictureEnabled === true;
+  function videoAPip(A) {
+    const vivante = v => v && v.srcObject && v.srcObject.getVideoTracks && v.srcObject.getVideoTracks().some(t => t.readyState === 'live' && t.enabled && !t.muted) && v.readyState >= 2;
+    if (enSalle(A)) { const g = document.querySelector('#salle-scene .salle-tuile.grand video'); if (vivante(g)) return g; return Array.from(document.querySelectorAll('#salle-scene .salle-tuile[data-uid] video')).find(vivante) || null; }
+    const v = document.querySelector('#appel-scene .tuile:not(.vous) video'); return vivante(v) ? v : null;
+  }
+  async function basculerPip() {
+    const A = etat.appelUI; if (!A || !pipPossible()) return;
+    try {
+      if (document.pictureInPictureElement) { await document.exitPictureInPicture(); return; }
+      const v = videoAPip(A); if (!v) { avisAppel('Il n\'y a pas encore d\'image à mettre dans l\'image : la caméra de l\'autre est coupée.'); return; }
+      await v.requestPictureInPicture();
+    } catch (e) { avisAppel('L\'image dans l\'image n\'a pas pu s\'ouvrir sur ce navigateur.'); }
+  }
+  function majPip() {
+    const A = etat.appelUI, b = $('appel-pip'); if (!b) return;
+    b.hidden = !(A && !enSalle(A) && pipPossible() && videoAPip(A));
+    b.setAttribute('aria-pressed', document.pictureInPictureElement ? 'true' : 'false');
+  }
+  /* ⛔ L'ÉCRAN RESTE ALLUMÉ PENDANT UN APPEL (comme une application d'appel) : un téléphone qui se met en veille au milieu d'une réunion coupe la caméra. Rendu à la fin, et redemandé
+     quand on revient sur la page (le navigateur le retire quand elle est cachée). */
+  let verrouEcran = null;
+  async function garderEcran(oui) {
+    try {
+      if (oui) { if (!verrouEcran && navigator.wakeLock && document.visibilityState === 'visible') { verrouEcran = await navigator.wakeLock.request('screen'); verrouEcran.addEventListener('release', () => { verrouEcran = null; }); } }
+      else if (verrouEcran) { const v = verrouEcran; verrouEcran = null; await v.release(); }
+    } catch (e) { verrouEcran = null; }
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && etat.appelUI && !etat.appelUI.fini) garderEcran(true); });
   /* (version servie) les pistes de la PAGE (micro, caméra) sont remises au moteur : il les pose sur la connexion, sans renégocier, et dit à l'autre quand la caméra s'allume ou s'éteint */
   function pousserPistes(A) {
     if (!CAP.appelsMedias || typeof source.appelPistes !== 'function' || !A || A.fini || (A.snap && A.snap.entrant)) return;
@@ -1760,6 +1845,7 @@
     if (jeton !== etat.jetonAppel) return;                       // raccroché pendant l'attente
     if (!snap || snap.etat === 'termine') { remplacer(parentDe(etat.route)); mot((snap && snap.avis) || 'Cet appel est terminé.'); return; }
     A.snap = snap; rendreAppel();
+    garderEcran(true);
     A.minut = setInterval(majStatutAppel, 250);
     (enSalle(A) ? $('salle-ecran') : $('appel-ecran')).focus({ preventScroll: true });
     if (snap.entrant) { demarrerSonnerie(); annonceAppel('Appel ' + (snap.type === 'video' ? 'vidéo ' : '') + 'entrant de ' + snap.nom); return; }       // (version servie) ni micro ni caméra tant qu'on n'a pas répondu
@@ -1784,6 +1870,8 @@
     if (A) { A.fini = true; clearInterval(A.minut); arreterPistes(A); }
     if (A) { if (A.rec) recArreter(A, false); salleNettoyer(A); }
     arreterSonnerie();
+    garderEcran(false);
+    if (document.pictureInPictureElement) { try { const p = document.exitPictureInPicture(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* déjà refermée */ } }
     { const au = $('appel-audio-distant'); if (au.srcObject) au.srcObject = null; }
     avisAppelEffacer();
     delete document.documentElement.dataset.appel; delete document.documentElement.dataset.salle;
@@ -1796,6 +1884,8 @@
   $('appel-micro').addEventListener('click', basculerMicro);
   $('appel-hp').addEventListener('click', () => { const A = etat.appelUI; if (!A || !A.snap) return; A.haut = !A.haut; rendreAppel(); annonceAppel(A.haut ? 'Haut-parleur activé' : 'Haut-parleur coupé'); });
   $('appel-cam').addEventListener('click', basculerCamera);
+  $('appel-pip').addEventListener('click', basculerPip);
+  document.addEventListener('enterpictureinpicture', majPip, true); document.addEventListener('leavepictureinpicture', majPip, true);
   $('appel-flip').addEventListener('click', retournerCamera);
   $('appel-msg').addEventListener('click', () => { const A = etat.appelUI; if (A && A.snap) ouvrirConversationAvec(A.snap.membres.map(m => m.id), A.snap.conv); });
   /* (version servie) l'appel ENTRANT : « Refuser » ferme l'écran — c'est `quitterAppel` qui refuse auprès du service, comme tout autre chemin qui ferme —, « Répondre » prend l'appel PUIS demande le micro et la caméra
@@ -2047,7 +2137,12 @@
   function peindreProfilReglage() {
     const c = $('reg-profil'); if (!c || !MOI) return;
     const ident = CAP.identifiants && typeof source.monIdentifiant === 'function' ? source.monIdentifiant() : null;   // « Alex#3307 » : ce qu'on donne pour être retrouvé
-    c.innerHTML = '<button type="button" class="contact presse" id="reg-profil-bouton">' + avatar(MOI) + '<span class="contact-texte"><span class="contact-nom">' + esc(MOI.nom) + '</span><span class="contact-role">' + esc((ident ? ident + (MOI.statut ? ' · ' : '') : '') + (MOI.statut || (ident ? '' : 'Modifier mon profil'))) + '</span></span>' + CHEVRON + '</button>';
+    /* ⛔ LE PROFIL EN TÊTE, EN GRAND (la carte du compte de Réglages, sur iPhone) : la photo, le nom, l'identifiant et le statut ; le toucher ouvre la feuille « Modifier le profil » */
+    c.innerHTML = '<button type="button" class="reg-moi presse" id="reg-profil-bouton" aria-label="Modifier mon profil : ' + esc(MOI.nom) + '">' + avatar(MOI) +
+      '<span class="reg-moi-nom">' + esc(MOI.nom) + '</span>' +
+      (ident ? '<span class="reg-moi-ident">' + esc(ident) + '</span>' : '') +
+      (MOI.statut ? '<span class="reg-moi-statut">' + esc(MOI.statut) + '</span>' : '') +
+      '<span class="reg-moi-modifier">Modifier le profil</span></button>';
   }
   function peindreConf() {
     const c = $('reg-conf'); if (!c) return;
@@ -2065,6 +2160,7 @@
     const c = $('reg-notif'); if (!c) return;
     const n = reg.notif;
     if (!n) { c.innerHTML = reg.notifLecture ? '<div class="carte-pad">' + refusBloc(reg.notifLecture) + '</div>' : '<p class="vide">Chargement…</p>'; return; }
+    { const v = $('reg-v-notif'); if (v) v.textContent = n.active ? 'Activées' : 'Désactivées'; }
     const occ = reg.notifOccupe ? ' aria-disabled="true"' : '';
     let h = '<button type="button" class="reglage presse" role="switch" id="reg-notif-sw" aria-checked="' + (n.active ? 'true' : 'false') + '"' + (n.possible ? occ : ' aria-disabled="true"') + '><span class="reglage-texte">Notifications sur cet appareil<small>' +
       esc(!n.possible ? n.phrase : n.active ? 'Activées : tu reçois une notification quand un message arrive et que cette page n\'est pas sous tes yeux.' : 'Désactivées sur cet appareil. Le navigateur te demandera ton autorisation.') + '</small></span><span class="interrupteur" aria-hidden="true"></span></button>';
@@ -2121,6 +2217,7 @@
     if (reg.stockErreur && !reg.stock) { c.innerHTML = refusBloc(reg.stockErreur); return; }
     if (!reg.stock) { c.innerHTML = '<p class="reg-ligne">Chargement…</p>'; return; }
     const pct = reg.stock.max > 0 ? Math.min(100, Math.max(0, reg.stock.utilise / reg.stock.max * 100)) : 0;
+    { const v = $('reg-v-stock'); if (v) v.textContent = tailleTexte(reg.stock.utilise) + ' sur ' + tailleTexte(reg.stock.max); }
     c.innerHTML = '<p class="reg-ligne"><b>' + esc(tailleTexte(reg.stock.utilise)) + '</b> utilisés sur ' + esc(tailleTexte(reg.stock.max)) + '</p>' +
       '<div class="jauge" role="img" aria-label="' + Math.round(pct) + ' % de ton espace utilisé"><i style="width:' + pct.toFixed(1) + '%"></i></div>' +
       '<p class="info-note">Les photos, vocaux et fichiers que tu envoies comptent ici ; supprimer le message qui les porte rend la place.</p>';
@@ -2130,6 +2227,7 @@
     if (reg.proposErreur && !reg.propos) { c.innerHTML = refusBloc(reg.proposErreur); return; }
     if (!reg.propos) { c.innerHTML = '<p class="reg-ligne">Chargement…</p>'; return; }
     const p = reg.propos, l = p.limites || {};
+    { const v = $('reg-v-apropos'); if (v) v.textContent = p.version ? 'v' + String(p.version).split('-')[0] : ''; }
     c.innerHTML = '<p class="reg-ligne"><b>Service</b> ' + esc(LIEUX[p.instance] || p.instance || '—') + ', version ' + esc(p.version || '—') + '</p>' +
       (EMPREINTE.test(OPMSG_BUILD) ? '<p class="reg-ligne"><b>Application</b> ' + esc(OPMSG_BUILD.slice(0, 7)) + (p.build && p.build !== OPMSG_BUILD ? ' · <b>une nouvelle version est prête</b>' : ' · à jour') + '</p>' : '') +
       '<p class="reg-ligne"><b>Adresse</b> ' + esc(location.host) + '</p>' +
@@ -2148,28 +2246,67 @@
     reg.propos = a.status === 'fulfilled' ? a.value : reg.propos; reg.proposErreur = a.status === 'rejected' ? phrase(a.reason, 'Les informations du service n\'ont pas pu être lues.') : '';
     peindreConf(); peindreStock(); peindreApropos();
   }
+  /* ═══ PROFIL — la page s'ouvre sur MOI, et chaque rubrique est UNE ligne qui ouvre SA page (6 octobre 2026) ═══
+     Demandé : « je veux que les réglages soient dans le profil, parce que là c'est mal fait… optimise à 100 % comme Apple ». Avant : neuf rubriques empilées sur une seule page, chacune avec
+     ses phrases — on y cherchait. Maintenant, comme Réglages sur iPhone : le profil en grand, puis une liste courte (une pastille de couleur, un nom, une valeur), et chaque ligne pousse
+     sa page (une couche d'historique : le retour système la referme). Au bureau (≥ 1 100 px), la liste à gauche et la rubrique à droite, comme Réglages Système sur Mac.
+     ⛔ Les cartes des rubriques gardent LEURS identifiants (`reg-conf`, `reg-notif`, `reg-stock`…) : elles sont toutes posées dans la page, une seule est montrée — les peintres, les gestes et la
+     relecture des réglages n'ont pas changé d'un octet. */
+  const regLigne = (sec, teinte, ic, titre, valeur) => '<button type="button" class="reglage reg-ligne-sec presse" data-reg-sec="' + sec + '" aria-controls="reg-sec-' + sec + '">' +
+    '<span class="reg-tuile t-' + teinte + '" aria-hidden="true">' + icone(ic) + '</span><span class="reglage-texte">' + esc(titre) + '</span>' + (valeur || '') + CHEVRON + '</button>';
+  const regSection = (sec, titre, corps) => '<section class="reg-sec" id="reg-sec-' + sec + '" data-sec="' + sec + '" aria-labelledby="reg-titre-' + sec + '" hidden>' +
+    '<div class="reg-barre"><button type="button" class="reg-retour presse" data-reg-retour="1" aria-label="Retour au profil"><svg class="chev chev-g" viewBox="0 0 8 13" aria-hidden="true"><path d="M6.5 1.5 1.5 6.5 6.5 11.5"/></svg><span>Profil</span></button></div>' +
+    '<h2 class="reg-titre" id="reg-titre-' + sec + '" tabindex="-1">' + esc(titre) + '</h2>' + corps + '</section>';
+  /* les rubriques présentes sur CE service, dans l'ordre de REG_SECTIONS */
+  const regPresentes = () => REG_SECTIONS.filter(k => (k !== 'entreprise' || CAP.espaces) && (k !== 'notifications' || CAP.notifications) && (k !== 'compte' || CAP.compte));
+  function montrerSection(sec) {
+    const vue = $('vue-reglages'); if (!vue || !$('reg-accueil')) return;
+    const presentes = regPresentes();
+    const voulue = presentes.includes(sec) ? sec : null;
+    /* au bureau, la colonne de droite n'est jamais vide : sans rubrique demandée, la première */
+    const montree = voulue || (largeBureau.matches ? presentes[0] : null);
+    vue.dataset.sec = voulue || '';
+    vue.querySelectorAll('.reg-sec').forEach(x => { x.hidden = x.dataset.sec !== montree; });
+    vue.querySelectorAll('[data-reg-sec]').forEach(b => { if (b.dataset.regSec === montree && largeBureau.matches) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); });
+    if (voulue && !largeBureau.matches) { window.scrollTo(0, 0); const t = $('reg-titre-' + voulue); if (t) t.focus({ preventScroll: true }); }
+  }
+  largeBureau.addEventListener('change', () => { if (etat.route && etat.route.vue === 'reglages') montrerSection(etat.route.sec || null); });
   function rendreReglages() {
-    if (CAP.identifiants) chargerDemandes();   // le compteur des demandes reçues, sur « Ajouter un contact »
+    if (CAP.identifiants) chargerDemandes();   // le compteur des demandes reçues, sur « Contacts »
     Object.assign(reg, { conf: null, confErreur: '', stock: null, stockErreur: '', propos: null, proposErreur: '', occupe: false, notif: null, notifLecture: '', notifErreur: '', notifMsg: '', notifOccupe: false, exportMsg: '', exportErreur: '', exportOccupe: false });
-    $('vue-reglages').innerHTML = '<div class="entete-vue"></div><h1 class="grand-titre" id="titre-reglages">Réglages</h1>' +
-      '<div class="carte" id="reg-profil"></div>' +
-      (CAP.espaces ? '<div class="rubrique"><span>Entreprise</span><span id="reg-esp-n"></span></div><div class="carte" id="reg-esp"></div><div class="rubrique"><span>Abonnement</span></div><div class="carte" id="reg-abo"></div>' : '') +
-      '<div class="rubrique"><span>Confidentialité</span></div><div class="carte" id="reg-conf"></div>' +
-      (CAP.notifications ? '<div class="rubrique"><span>Notifications</span></div><div class="carte" id="reg-notif"></div>' : '') +
-      '<div class="rubrique"><span>Contacts</span></div><div class="carte">' +
-        '<button type="button" class="reglage presse" id="reg-contact">' + icone('i-groupe') + '<span class="reglage-texte">Ajouter un contact<small>' + (CAP.identifiants ? 'Par son identifiant, son numéro ou un lien' : 'Par un lien d\'invitation') + '</small></span>' +
-          (CAP.identifiants ? '<span class="reglage-valeur" id="reg-demandes-n" aria-label="demandes reçues"></span>' : '') + CHEVRON + '</button>' +
-        '<button type="button" class="reglage presse" id="reg-bloques"><span class="reglage-texte">Contacts bloqués</span><span class="reglage-valeur" id="reg-bloques-n"></span>' + CHEVRON + '</button></div>' +
-      '<div class="rubrique"><span>Appareils</span></div><div class="carte"><button type="button" class="reglage presse" id="reg-autres"><span class="reglage-texte">Déconnecter les autres appareils<small>Ta session reste ouverte ici ; les autres doivent se reconnecter.</small></span></button></div>' +
-      '<div class="rubrique"><span>Stockage</span></div><div class="carte carte-pad" id="reg-stock"></div>' +
-      (CAP.compte ? '<div class="rubrique"><span>Compte</span></div><div class="carte" id="reg-compte"></div>' : '') +
-      '<div class="rubrique"><span>À propos</span></div><div class="carte carte-pad" id="reg-apropos"></div>' +
-      '<div class="carte"><button type="button" class="reglage presse danger" id="reg-sortir"><span class="reglage-texte">Se déconnecter</span></button></div>' +
+    $('vue-reglages').innerHTML = '<div class="entete-vue"></div><h1 class="grand-titre" id="titre-reglages">Profil</h1>' +
+      '<div class="reg-grille"><div class="reg-accueil" id="reg-accueil">' +
+        '<div id="reg-profil"></div>' +
+        '<div class="carte reg-menu">' +
+          (CAP.espaces ? regLigne('entreprise', 'indigo', 'i-entreprise', 'Entreprise et abonnement') : '') +
+          regLigne('confidentialite', 'bleu', 'i-cadenas', 'Confidentialité') +
+          (CAP.notifications ? regLigne('notifications', 'rouge', 'i-cloche', 'Notifications', '<span class="reglage-valeur" id="reg-v-notif"></span>') : '') +
+          regLigne('contacts', 'vert', 'i-groupe', 'Contacts', '<span class="reglage-valeur" id="reg-demandes-n" aria-label="demandes reçues"></span>') +
+        '</div><div class="carte reg-menu">' +
+          regLigne('appareils', 'gris', 'i-appareil', 'Appareils connectés') +
+          regLigne('stockage', 'sarcelle', 'i-disque', 'Stockage', '<span class="reglage-valeur" id="reg-v-stock"></span>') +
+          (CAP.compte ? regLigne('compte', 'bleu', 'i-personne', 'Mes données et mon compte') : '') +
+          regLigne('apropos', 'gris', 'i-info', 'À propos', '<span class="reglage-valeur" id="reg-v-apropos"></span>') +
+        '</div>' +
+        '<div class="carte"><button type="button" class="reglage presse danger" id="reg-sortir"><span class="reg-tuile t-rouge" aria-hidden="true">' + icone('i-sortie') + '</span><span class="reglage-texte">Se déconnecter</span></button></div>' +
+      '</div><div class="reg-detail">' +
+        (CAP.espaces ? regSection('entreprise', 'Entreprise et abonnement', '<div class="rubrique"><span>Mes espaces</span><span id="reg-esp-n"></span></div><div class="carte" id="reg-esp"></div><div class="rubrique"><span>Abonnement</span></div><div class="carte" id="reg-abo"></div>') : '') +
+        regSection('confidentialite', 'Confidentialité', '<div class="carte" id="reg-conf"></div>') +
+        (CAP.notifications ? regSection('notifications', 'Notifications', '<div class="carte" id="reg-notif"></div>') : '') +
+        regSection('contacts', 'Contacts', '<div class="carte">' +
+          '<button type="button" class="reglage presse" id="reg-contact">' + icone('i-contact-plus') + '<span class="reglage-texte">Ajouter un contact<small>' + (CAP.identifiants ? 'Par son identifiant, son numéro ou un lien' : 'Par un lien d\'invitation') + '</small></span>' + CHEVRON + '</button>' +
+          '<button type="button" class="reglage presse" id="reg-bloques"><span class="reglage-texte">Contacts bloqués</span><span class="reglage-valeur" id="reg-bloques-n"></span>' + CHEVRON + '</button></div>') +
+        regSection('appareils', 'Appareils connectés', '<div class="carte"><button type="button" class="reglage presse" id="reg-autres"><span class="reglage-texte">Déconnecter les autres appareils<small>Ta session reste ouverte ici ; les autres doivent se reconnecter.</small></span></button></div>') +
+        regSection('stockage', 'Stockage', '<div class="carte carte-pad" id="reg-stock"></div>') +
+        (CAP.compte ? regSection('compte', 'Mes données et mon compte', '<div class="carte" id="reg-compte"></div>') : '') +
+        regSection('apropos', 'À propos', '<div class="carte carte-pad" id="reg-apropos"></div>') +
+      '</div></div>' +
       '<p class="info-erreur" id="reg-erreur" role="alert" hidden></p>';
     peindreProfilReglage(); peindreConf(); peindreStock(); peindreApropos(); peindreBloquesN();
     if (CAP.espaces) peindreEspaces();
     if (CAP.notifications) peindreNotif();
     if (CAP.compte) peindreCompte();
+    montrerSection(etat.route && etat.route.vue === 'reglages' ? etat.route.sec || null : null);
     chargerReglages();
   }
   /* revenir sur la page (après avoir autorisé les notifications dans les réglages du navigateur, par exemple) relit l'état affiché dans Réglages */
@@ -2177,6 +2314,9 @@
   $('vue-reglages').addEventListener('click', async e => {
     const er = $('reg-erreur'), nette = () => { er.hidden = true; er.textContent = ''; }, dit = (x, defaut) => { er.textContent = phrase(x, defaut); er.hidden = false; };
     const bouton = e.target.closest('button'); if (!bouton) return;
+    /* une rubrique : au téléphone elle POUSSE sa page (le retour la referme) ; au bureau elle REMPLACE celle de droite (comme passer d'une conversation à l'autre) */
+    if (bouton.dataset.regSec) { const r = Object.assign({}, etat.route, { sec: bouton.dataset.regSec }); if (largeBureau.matches) remplacer(r); else if (!memeRoute(r, etat.route)) pousser(r); return; }
+    if (bouton.dataset.regRetour) { fermerCouche(); return; }
     if (bouton.id === 'reg-profil-bouton') { declencheur = bouton; ouvrirFeuille('profil'); return; }
     if (bouton.id === 'reg-contact' || bouton.id === 'reg-bloques') { declencheur = bouton; ouvrirFeuille('contact'); return; }
     if (bouton.dataset.espOuvrir) { declencheur = bouton; ouvrirFeuille('espace:' + bouton.dataset.espOuvrir); return; }
@@ -3928,6 +4068,7 @@
       if (v.srcObject !== f) v.srcObject = f;
       if (f) { if (au.paused) lecture(au); if (v.paused) lecture(v); }
     });
+    if (prefMedias.sortie) appliquerSortie();
   }
   /* « qui parle » change sans qu'aucun cliché ne soit refait : on ne touche qu'aux contours */
   async function majParle() {
@@ -4082,6 +4223,8 @@
     if (X.panneau === nom) { salleFermerPanneau(A); return; }
     X.panneau = nom; X.emojis = false; X.actions = null; X.retirer = null; X.declencheur = declencheurEl || null;
     if (nom === 'discussion') { X.neufs = 0; salleDiscussionCharger(A, true); }
+    /* « Plus » : les micros, caméras et sorties de l'appareil, lus à l'ouverture (leurs noms n'existent qu'une fois le micro autorisé — c'est le cas dans une salle) */
+    if (nom === 'plus') listeAppareils().then(l => { if (!perime(A) && sx(A).panneau === 'plus') { sx(A).appareils = l; sallePanneauRendre(A, true); } });
     A.snap && salleCommandes(A, A.mediaPret && (!A.micro || !A.audio));
     sallePanneauRendre(A, true);
     requestAnimationFrame(() => { const p = $('salle-panneau'); if (!p.hidden) p.focus({ preventScroll: true }); });
@@ -4149,6 +4292,15 @@
         inter('partage-ok', s.partageOk, 'Partage d\'écran des participants', 'Les hôtes peuvent toujours partager') + '</div>';
       if (!s.outils) h += '<p class="salle-note" id="salle-sans-outils">Les outils de l\'organisateur — salle d\'attente, verrou, sondage, minuteur, enregistrement — sont dans les réunions.</p>';
     }
+    /* micro, caméra, sortie : la liste vient de l'appareil (lue à l'ouverture du panneau, `X.appareils`) ; l'image dans l'image, là où le navigateur la sait */
+    const ap = X.appareils || [], choix = (quoi, kind, titre) => { const l = ap.filter(d => d.kind === kind); if (l.length < 2) return '';
+      const actuel = prefMedias[quoi] || '';
+      return '<label class="salle-rang libre salle-appareil"><span class="texte">' + esc(titre) + '</span><select data-appareil="' + quoi + '" aria-label="' + esc(titre) + '"><option value="">Par défaut</option>' +
+        l.map((d, i) => '<option value="' + esc(d.deviceId) + '"' + (d.deviceId === actuel ? ' selected' : '') + '>' + esc(d.label || (titre + ' ' + (i + 1))) + '</option>').join('') + '</select></label>'; };
+    const lignesAp = choix('micro', 'audioinput', 'Micro') + choix('camera', 'videoinput', 'Caméra') + (sortieChoisissable() ? choix('sortie', 'audiooutput', 'Sortie du son') : '');
+    h += '<div class="salle-rub"><span>Son et image</span></div><div class="salle-liste">' + lignesAp +
+      '<div class="salle-rang libre"><span class="texte">Son amélioré<small>Réduction du bruit, annulation d\'écho et volume automatique, toujours actifs</small></span></div>' +
+      (pipPossible() ? '<button type="button" class="salle-rang" data-sa="pip"><span class="texte">Image dans l\'image<small>La vidéo de celui qui parle flotte au-dessus des autres applications</small></span></button>' : '') + '</div>';
     const directs = s.membres.filter(m => m.statut === 'present' && m.liaison === 'connecte' && !m.relais).length, relais = s.membres.filter(m => m.statut === 'present' && m.relais).length;
     h += '<div class="salle-rub"><span>Informations</span></div><div class="salle-liste"><div class="salle-rang libre"><span class="texte">' + esc(s.nom) + '<small>' + esc((s.genre === 'reunion' ? 'Réunion' : 'Appel de groupe') + ' · ' + (s.type === 'video' ? 'vidéo' : 'audio') + ' · ' + s.nb + (s.capacite ? ' sur ' + s.capacite : '') + ' personnes · ' + directs + ' liaison' + (directs > 1 ? 's' : '') + ' directe' + (directs > 1 ? 's' : '') + (relais ? ', ' + relais + ' par relais' : '')) + '</small></span></div></div>';
     h += '<div class="salle-rub"><span>Bientôt</span></div><div class="salle-liste salle-bientot">' +
@@ -4250,6 +4402,7 @@
       }
       case 'sondage-fermer': await salleGeste(A, 'evt', { k: 'sondage', donnees: { op: 'fermer' } }); return;
       case 'sondage-masquer': X.masque = s.sondage ? s.sondage.id : ''; $('salle-bandeaux').dataset.sig = ''; salleBandeaux(A); return;
+      case 'pip': basculerPip(); return;
       case 'minuteur': await salleGeste(A, 'evt', { k: 'minuteur', donnees: { op: 'demarrer', secondes: +el.dataset.s } }, 'Le minuteur n\'a pas pu démarrer.'); return;
       case 'minuteur-arreter': await salleGeste(A, 'evt', { k: 'minuteur', donnees: { op: 'arreter' } }); return;
       case 'lien-copier': {
@@ -4265,6 +4418,7 @@
   }
   $('salle-bandeaux').addEventListener('click', e => { const b = e.target.closest('[data-sa]'); if (b && !b.disabled) salleAgir(b.dataset.sa, b); });
   $('salle-panneau-corps').addEventListener('click', e => { const b = e.target.closest('[data-sa]'); if (b) salleAgir(b.dataset.sa, b); });
+  $('salle-panneau-corps').addEventListener('change', e => { const sel = e.target.closest('select[data-appareil]'); if (sel) changerAppareil(sel.dataset.appareil, sel.value); });
   $('salle-panneau-fermer').addEventListener('click', () => { const A = etat.appelUI; if (enSalle(A)) salleFermerPanneau(A); });
   $('salle-participants').addEventListener('click', () => { const A = etat.appelUI; if (enSalle(A)) salleOuvrirPanneau(A, 'participants', $('salle-participants')); });
   $('salle-discussion').addEventListener('click', () => { const A = etat.appelUI; if (enSalle(A)) salleOuvrirPanneau(A, 'discussion', $('salle-discussion')); });
