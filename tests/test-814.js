@@ -21,7 +21,7 @@ vrai('le bloc s\'extrait de la page, entier', src.length > 2000 && /function blo
 /* v2.68 — le bloc accorde ses nombres par nMot() (tour.html, à côté d'esc) : le bac à sable la reçoit, lue dans la page */
 const k = TOUR.indexOf('\nfunction nMot('), NMOT = k > 0 ? TOUR.slice(k + 1, TOUR.indexOf('\n', k + 1)) : '';
 vrai('   l\'assistant des accords s\'extrait aussi', /^function nMot\(n,un,plusieurs\)\{/.test(NMOT));
-vrai('⛔ il est affiché sous les versions, dans la surveillance d\'OP GESTION', /\(APP==='gestion'\?blocVersions\(\)\+blocSortieFirebase\(\):''\)/.test(TOUR));
+vrai('⛔ il est affiché sous les versions, dans la surveillance d\'OP GESTION', /\(APP==='gestion'\?blocVersions\(\)\+blocSortieFirebase\(\):blocVersionsMsg\(\)\)/.test(TOUR));
 
 function monter(env) {
   const appels = [];

@@ -2942,7 +2942,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.83</div>
+    <div class="lg-pied">console interne · v2.84</div>
   </div>
 </div>
 
@@ -2984,7 +2984,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.83</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.84</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2996,7 +2996,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.83</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.84</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3262,7 +3262,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.83';
+var TOUR_VERSION='v2.84';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -6142,7 +6142,7 @@ function blocVersions(){
   sous.forEach(function(x){ nSous+=(x.n||0); });
   var patron=(MYROLE==='patron');
   var p=function(l,v,c){ return '<div class="kpi"><div class="n"'+(c?' style="color:'+c+'"':'')+'>'+v+'</div><div class="l">'+l+'</div></div>'; };
-  return '<div class="sec" style="margin-top:18px">VERSIONS <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">— la porte du nuage</span></div>'+
+  return '<div class="sec" style="margin-top:18px">VERSIONS · VERSION PUBLIQUE <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">— teamop.fr/app.html, la porte du nuage</span></div>'+
     '<div class="grille-kpi" style="margin-top:10px">'+
       p('version en ligne', ligne?'v'+ligne:'?')+
       p('minimum exigé', min?'v'+min:'aucun', min?'':'var(--amber)')+
@@ -6162,7 +6162,71 @@ function blocVersions(){
        côté d'ELAN — qui est la seule vraie cliente des trois. C'est le mot qu'on retire
        partout depuis le 14 septembre, et ce panneau était le dernier oubli. */
     (sous.length?'<div style="margin-top:12px">'+sous.map(function(x){ return '<div style="display:flex;gap:10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line);font-size:13px"><span style="flex:1"><b>'+esc(nomEspace(x.nom,x.t))+'</b></span><span class="past p-ambre">'+x.n+' appareil'+(x.n>1?'s':'')+' bloqué'+(x.n>1?'s':'')+'</span></div>'; }).join('')+'</div>':'')+
-    (d.maj?'<div style="font-size:11px;color:var(--muted);margin-top:8px">Dernier réglage '+esc(fmtJour(d.maj))+(d.par?' par '+esc(d.par):'')+'</div>':'');
+    (d.maj?'<div style="font-size:11px;color:var(--muted);margin-top:8px">Dernier réglage '+esc(fmtJour(d.maj))+(d.par?' par '+esc(d.par):'')+'</div>':'')+
+    blocVersionBeta(d.beta);
+}
+/* ══ v2.84 — CHAQUE CANAL SA VERSION MINIMALE (Justin, 6 octobre 2026 : « qu'on sépare la version bêta et la version publique. Pour les mises
+   à jour, je veux aussi le forçage de mise à jour, comme sur OP GESTION depuis la Tour ; je veux le panneau OP MESSAGES, le panneau OP GESTION,
+   et que tout soit bien séparé ») ══
+   Quatre réglages, chacun dans SA console et SA carte : OP GESTION publique (ci-dessus, la porte du nuage — rien n'y change) et bêta (ici) ;
+   OP MESSAGES publique et bêta (`blocVersionsMsg`, console OP MESSAGES). ⛔ Exiger une version de la bêta ne bloque AUCUN client : le serveur
+   les tient à part (`versionsCfg.canaux`), et la bêta d'OP GESTION ne touche jamais Firestore.
+   Un serveur d'avant ne rend pas `beta` (ni la route d'OP MESSAGES) : la carte le DIT, elle n'invente pas « aucun minimum ». */
+function carteCanal(o){   // o : {titre, sous, servie, min, applique, joignable, note, exiger, lever, maj, par}
+  var p=function(l,v,c){ return '<div class="kpi"><div class="n"'+(c?' style="color:'+c+'"':'')+'>'+v+'</div><div class="l">'+l+'</div></div>'; };
+  var patron=(MYROLE==='patron');
+  return '<div class="sec" style="margin-top:22px">'+esc(o.titre)+' <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">— '+esc(o.sous)+'</span></div>'+
+    '<div class="grille-kpi" style="margin-top:10px">'+
+      p('version servie', o.joignable===false?'injoignable':(o.servie?'v'+o.servie:'?'), o.joignable===false?'var(--redText)':'')+
+      p('minimum exigé', o.min?'v'+o.min:'aucun', o.min?'':'var(--amber)')+
+      (o.applique!==undefined?p('appliqué par le service', o.applique>1?'v'+o.applique:'aucun', (o.joignable!==false&&o.applique!==Math.max(1,o.min||0))?'var(--amber)':''):'')+
+    '</div>'+
+    (o.note?'<div style="font-size:12px;color:var(--text2);line-height:1.6;margin-top:10px">'+o.note+'</div>':'')+
+    (patron?'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">'+
+      '<button class="btn-plein" onclick="'+o.exiger+'"'+(o.servie&&o.joignable!==false?'':' disabled')+'>Exiger la dernière version'+(o.servie?' (v'+o.servie+')':'')+'</button>'+
+      (o.min?'<button class="btn-fant" onclick="'+o.lever+'">Lever l’exigence</button>':'')+
+    '</div>':'')+
+    (o.maj?'<div style="font-size:11px;color:var(--muted);margin-top:8px">Dernier réglage '+esc(fmtJour(o.maj))+(o.par?' par '+esc(o.par):'')+'</div>':'');
+}
+function blocVersionBeta(b){
+  if(!b) return '<div class="sec" style="margin-top:22px">VERSIONS · BÊTA</div><div style="font-size:12.5px;color:var(--amber);margin-top:8px;line-height:1.55">Le serveur ne tient pas encore de minimum à part pour la bêta : il le fera à son prochain déploiement. D’ici là, la bêta lit le minimum de la version publique.</div>';
+  return carteCanal({ titre:'VERSIONS · BÊTA', sous:'teamop.fr/beta.html, à part des clients', servie:b.versionEnLigne||0, min:b.min||0, maj:b.maj, par:b.par,
+    exiger:'versionBetaExiger()', lever:'versionBetaLever()',
+    note:'Sous ce minimum, la bêta se met à jour toute seule. ⛔ Rien de ce qui se règle ici ne touche les clients, ni le nuage : la version publique a sa propre carte, juste au-dessus.' });
+}
+function versionBetaExiger(){ if(!confirm('Exiger la dernière version de la BÊTA d’OP GESTION ?\n\nSeuls les appareils de la bêta sont concernés : sous ce numéro, ils se mettent à jour tout seuls. Les clients ne sont pas touchés.')) return;
+  versionRegler({canal:'beta',min:'ligne'},'Bêta : dernière version exigée'); }
+function versionBetaLever(){ if(!confirm('Lever l’exigence de version de la bêta d’OP GESTION ?')) return; versionRegler({canal:'beta',min:0},'Bêta : exigence levée'); }
+
+/* ── la console OP MESSAGES : ses deux instances, chacune sa carte ── */
+var MV={d:null,err:'',ts:0,encours:false};
+function chargerVersionsMsg(){ if(MV.encours) return; MV.encours=true;
+  apiGet('/api/monitor/messages/versions').then(function(d){ MV.d=d||{}; MV.err=''; MV.encours=false; MV.ts=Date.now(); if(TAB==='surveillance'||TAB==='essais') render(); })
+  .catch(function(e){ MV.err=(e&&e.status===404)?'Le serveur ne connaît pas encore les versions d’OP MESSAGES : il les connaîtra à son prochain déploiement.':msgErreur(e); MV.encours=false; MV.ts=Date.now(); if(TAB==='surveillance'||TAB==='essais') render(); }); }
+function versionMsgRegler(canal,min,msg){ apiPost('/api/monitor/messages/version-min',{canal:canal,min:min}).then(function(x){
+    if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); return; }
+    toast(msg); MV.d=null; chargerVersionsMsg(); }).catch(function(){ toast('Serveur injoignable'); }); }
+var MSG_CANAUX={prod:{nom:'version publique',adr:'msg.teamop.fr'},beta:{nom:'bêta',adr:'msg-beta.teamop.fr'}};
+function versionMsgExiger(canal){ var c=MSG_CANAUX[canal]; if(!c) return;
+  if(!confirm('Exiger la dernière version d’OP MESSAGES — '+c.nom+' ('+c.adr+') ?\n\nUne page plus ancienne ne pourra plus rien envoyer : elle se met à jour toute seule, dans la minute si elle est ouverte. '+(canal==='beta'?'La version publique n’est pas touchée.':'La bêta n’est pas touchée.'))) return;
+  versionMsgRegler(canal,'ligne',(canal==='beta'?'Bêta':'Version publique')+' d’OP MESSAGES : dernière version exigée'); }
+function versionMsgLever(canal){ var c=MSG_CANAUX[canal]; if(!c) return;
+  if(!confirm('Lever l’exigence de version d’OP MESSAGES — '+c.nom+' ?')) return;
+  versionMsgRegler(canal,0,(canal==='beta'?'Bêta':'Version publique')+' d’OP MESSAGES : exigence levée'); }
+function carteMsg(canal){
+  var c=MSG_CANAUX[canal], x=(MV.d&&MV.d[canal])||{}, sv=x.service||{};
+  var rien=sv.joignable===false;
+  var attend=!rien&&sv.minService!==undefined&&sv.minService!==Math.max(1,x.min||0);
+  return carteCanal({ titre:'VERSIONS · '+(canal==='beta'?'BÊTA':'VERSION PUBLIQUE'), sous:c.adr, servie:sv.version||0, joignable:sv.joignable, min:x.min||0, applique:rien?undefined:sv.minService, maj:x.maj, par:x.par,
+    exiger:'versionMsgExiger(\''+canal+'\')', lever:'versionMsgLever(\''+canal+'\')',
+    note:rien?'<span style="color:var(--redText)">Le service ne répond pas : on ne peut ni lire sa version, ni l’exiger.</span> Le minimum déjà posé reste, et il l’appliquera à son redémarrage.'
+      :('Sous ce minimum, une page lit encore mais <b>n’envoie plus rien</b>, et se met à jour toute seule.'+(attend?' <b style="color:var(--amber)">Le service ne l’a pas encore relu — il le fait chaque minute.</b>':'')) });
+}
+function blocVersionsMsg(){
+  if(!MV.d&&!MV.err){ chargerVersionsMsg(); return '<div class="sous-sec"><div class="sec">VERSIONS</div>'+squelListe(2)+'</div>'; }
+  if(MV.err&&!MV.d) return '<div class="sec" style="margin-top:18px">VERSIONS</div><div style="color:var(--redText);font-size:13px;margin-top:8px">'+esc(MV.err)+' <a onclick="MV.err=\'\';chargerVersionsMsg()">réessayer</a></div>';
+  if(Date.now()-(MV.ts||0)>120000) chargerVersionsMsg();
+  return carteMsg('prod')+carteMsg('beta');
 }
 /* ══ SORTIE DE FIREBASE — les gestes du jour J (25 septembre 2026) ══
    Deux gestes n'existaient que par l'API, donc depuis un terminal : reprendre les dossiers du
@@ -6411,9 +6475,9 @@ function vueSurveillance(){
   return enTete('Surveillance',SURV_DESC)+kpis+zeroBtn+teteL+filtres+
     '<div class="svl-compte">'+nomsG.length+' entreprise'+(nomsG.length>1?'s':'')+' · '+l.length+' problème'+(l.length>1?'s':'')+' affiché'+(l.length>1?'s':'')+' · '+ouverts+' ouvert'+(ouverts>1?'s':'')+incAffinePastille(sSt)+'</div>'+
     (groupesRendus?'<div class="reg">'+groupesRendus+'</div>':listeVide)+saines+legende+
-    /* le réglage de version — une décision qu'on prend trois fois par an — vient APRÈS les incidents,
-       et n'existe qu'en console GESTION : versions.json gouverne app.html */
-    (APP==='gestion'?blocVersions()+blocSortieFirebase():'');
+    /* le réglage de version — une décision qu'on prend trois fois par an — vient APRÈS les incidents. Chaque console règle SES
+       applications (v2.84) : GESTION la publique et la bêta d'OP GESTION, MESSAGES les deux instances d'OP MESSAGES. */
+    (APP==='gestion'?blocVersions()+blocSortieFirebase():blocVersionsMsg());
 }
 
 /* ── la page d'une entreprise : ses problèmes, regroupés par application ── */
@@ -9342,7 +9406,7 @@ function btMdp(id,login){
   v=String(v);
   if(v.length<8){ toast('⚠️ Mot de passe de 8 caractères minimum — rien n’a été changé'); return; }
   apiPost('/api/monitor/beta/mdp',{id:id,pass:v}).then(function(x){
-    if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||(x&&x.status===403?'Réservé au patron — ton compte n’a pas cet accès.':'refusé'))+' — rien n’a été changé'); return; }
+    if(!(x&&x.ok)){ toast('⚠️ '+(x&&x.status===403?'Réservé au patron — ton compte n’a pas cet accès.':((x&&x.d&&x.d.error)||'refusé'))+' — rien n’a été changé'); return; }
     JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a posé un nouveau mot de passe à l’accès bêta « '+login+' »'+(APP==='messages'?' (OP MESSAGES)':'')});
     toast('Nouveau mot de passe posé pour « '+login+' » — l’ancien ne passe plus'); chargerEssais();
   }).catch(function(){ toast('⚠️ Serveur injoignable — rien n’a été changé'); });
@@ -9383,7 +9447,18 @@ function vueEssaisMsg(){
     '<div class="reg-sous">N’ouvrent que msg-beta.teamop.fr — jamais les données d’une entreprise. L’identifiant et le mot de passe donnés ici.</div>'+
     '</div><button type="button" class="ac-act" onclick="accAllerForm(\'ac-f-beta\')">Ouvrir un accès bêta</button></div>'+
     accBlocBeta()+'</div>';
-  return tete+'<div class="deux ac-deux"><div class="col-liste"><div class="reg">'+gBeta+'</div></div><div class="col-detail">'+accFormBeta()+'</div></div>';
+  /* v2.84 — la version publique d'OP MESSAGES : on n'y ouvre pas d'accès (chacun s'inscrit lui-même, par son numéro ou son adresse), mais elle a SA
+     place, à côté de la bêta et jamais mêlée à elle. Son état se lit ici ; sa version minimale se règle dans Surveillance. */
+  if(!MV.d&&!MV.err) chargerVersionsMsg();
+  var sp=(MV.d&&MV.d.prod&&MV.d.prod.service)||null;
+  var etatPub=!sp?(MV.err?esc(MV.err):'Lecture…')
+    :(sp.joignable===false?'<span style="color:var(--redText)">Le service ne répond pas.</span>'
+      :'En ligne · v'+(sp.version||'?')+(sp.build?' ('+esc(sp.build)+')':'')+' · inscriptions '+(sp.inscription?'<b>ouvertes</b>':'<b>fermées</b>'));
+  var gPub='<div class="reg-g reg-g-fixe"><div class="ac-tete"><div class="reg-tete">'+
+    '<span class="reg-nom">Version publique d’OP MESSAGES</span>'+
+    '<div class="reg-sous">msg.teamop.fr — pour tout le monde. On ne crée pas d’accès ici : chacun ouvre son compte lui-même. '+etatPub+'</div>'+
+    '</div><button type="button" class="ac-act" onclick="setTab(\'surveillance\')">Régler sa version</button></div></div>';
+  return tete+'<div class="deux ac-deux"><div class="col-liste"><div class="reg">'+gBeta+gPub+'</div></div><div class="col-detail">'+accFormBeta()+'</div></div>';
 }
 /* Le formulaire d'un accès bêta, commun aux deux consoles : il crée l'accès de la console ouverte, et l'encart dit SA bêta. */
 function accFormBeta(){

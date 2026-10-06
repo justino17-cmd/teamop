@@ -6,7 +6,7 @@ const code=decoupe('const versionLigne = { v: 0, ts: 0, encours: null };','  ret
 let appels=0, corps="const APP_VERSION = '626';", faux=false, lus=0;
 const flux=t=>({ async *[Symbol.asyncIterator](){ const b=Buffer.from(t,'utf8'); for(let i=0;i<b.length;i+=64000){ const m=b.subarray(i,i+64000); lus+=m.length; yield m; } } });
 const bac=new Function('etat',`const fetch=(u,o)=>{ etat.appels++; if(etat.faux) return Promise.reject(new Error('réseau')); return Promise.resolve({ok:true,body:etat.flux(etat.corps)}); };
-  const AbortController=function(){ this.signal={}; this.abort=()=>{}; }; const setTimeout=(f,ms)=>0; const clearTimeout=()=>{}; const console={error:()=>{}};
+  const AbortController=function(){ this.signal={}; this.abort=()=>{}; }; const setTimeout=(f,ms)=>0; const clearTimeout=()=>{}; const console={error:()=>{}}; const process={env:{}}; const urlBanc=(v,d)=>d;
   ${code}
   return { versionEnLigne, etatCache: versionLigne };`)({get appels(){return appels;},set appels(x){appels=x;},get corps(){return corps;},get faux(){return faux;},flux});
 

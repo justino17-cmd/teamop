@@ -52,7 +52,9 @@
 # 3 octobre 2026 : 3 748 (54 suites) avec `test-860` (une décision d'achat ne croit qu'une lecture Stripe lancée après elle) — plancher relevé à 3 730.
 # 6 octobre 2026 : `test-999` — un minimum par application ET par canal (bêta d'OP GESTION, bêta et publique d'OP MESSAGES), posé depuis la
 # Tour sans toucher au minimum public ni à Firestore ; le vrai serveur, deux fausses instances d'OP MESSAGES, sans page — plancher relevé à 3 780.
-#plancher 3780
+# 6 octobre 2026 : `test-978` — la Tour v2.84 (ses vraies fonctions, ses deux consoles) contre le vrai serveur : chaque console règle les versions de
+# SES applications, bêta et publique à part. Il lit `tour.html`, qui part avec le serveur (`PAGES_LIEES`) — plancher relevé à 3 815.
+#plancher 3815
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -163,3 +165,4 @@ tests/test-940.js
 tests/test-860.js
 # 6 octobre 2026 : `test-999` (voir plus haut).
 tests/test-999.js
+tests/test-978.js

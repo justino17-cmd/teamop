@@ -45,8 +45,8 @@ function bloc(motif) {
   return CODE.slice(m.index + 1, f ? f.index : CODE.length);
 }
 const NOMS = ['hAuth', 'srvRepond', 'srvMuet', 'apiGet', 'apiPost', 'msgErreur', 'chargerEssais', 'btChamp', 'btAjouter', 'btToggle', 'btSuppr', 'btChantier',
-  'btMdp', 'tirageSur', 'btAppsDe', 'btAvec', 'btDeLaConsole', 'accLigneBeta', 'accBlocBeta', 'accFicheBeta', 'accFormBeta', 'vueEssaisMsg', 'vueAccueilMsg', 'esc', 'jsq', 'ini', 'fmtJour', 'videTour'];
-const VARS = ['BT', 'BT_APPS', 'BETA_MSG_ADRESSE', 'APPS_TOUR', 'INJOIGNABLE'];
+  'btMdp', 'tirageSur', 'btAppsDe', 'btAvec', 'btDeLaConsole', 'accLigneBeta', 'accBlocBeta', 'accFicheBeta', 'accFormBeta', 'vueEssaisMsg', 'chargerVersionsMsg', 'vueAccueilMsg', 'esc', 'jsq', 'ini', 'fmtJour', 'videTour'];
+const VARS = ['BT', 'MV', 'BT_APPS', 'BETA_MSG_ADRESSE', 'APPS_TOUR', 'INJOIGNABLE'];
 const SRC = NOMS.map(bloc), SRCV = VARS.map(bloc);
 
 function tour(API, jeton, app, { confirmer = true } = {}) {

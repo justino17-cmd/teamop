@@ -57,6 +57,7 @@ function faux(reponse) {
 
   const msgBeta = await faux(() => ({ corps: JSON.stringify({ version: '1', build: 'a1b2c3d4e5f6', instance: 'beta', min_client: 1, version_client: 14, comptes: { inscription: true, courriel: true } }) }));
   const msgProd = await faux(() => ({ corps: JSON.stringify({ version: '1', build: 'f6e5d4c3b2a1', instance: 'prod', min_client: 1, version_client: 12, comptes: { inscription: false, courriel: false } }) }));
+  const pagePub = await faux(() => ({ type: 'text/html', corps: '<script>\nconst APP_VERSION = \'767\';\n</script>' }));
   const pageBeta = await faux(() => ({ type: 'text/html', corps: '<!doctype html><script>\nconst APP_VERSION = \'771-beta\';\n</script>' }));
 
   const PORT = 9100 + (process.pid % 90);
@@ -64,7 +65,7 @@ function faux(reponse) {
     env: Object.assign({}, process.env, {
       TEAMOP_CONFIG: path.join(banc, 'config.json'), TEAMOP_DATA: path.join(banc, 'data'), PORT: String(PORT),
       TEAMOP_MSG_BETA_URL: 'http://127.0.0.1:' + msgBeta.port, TEAMOP_MSG_PROD_URL: 'http://127.0.0.1:' + msgProd.port,
-      TEAMOP_BETA_PAGE_URL: 'http://127.0.0.1:' + pageBeta.port + '/beta.html' }),
+      TEAMOP_BETA_PAGE_URL: 'http://127.0.0.1:' + pageBeta.port + '/beta.html', TEAMOP_APP_PAGE_URL: 'http://127.0.0.1:' + pagePub.port + '/app.html' }),
     stdio: 'ignore' });
   const B = 'http://127.0.0.1:' + PORT;
   for (let i = 0; i < 80; i++) { try { await fetch(B + '/health'); break; } catch (e) { await new Promise(r => setTimeout(r, 100)); } }
@@ -107,7 +108,7 @@ function faux(reponse) {
 
     console.log('\n── 999 · la console OP GESTION : publique et bêta, côte à côte ──');
     r = await get('/api/monitor/version', AUTH);
-    v('la Tour lit la publique', [r.statut, r.j && r.j.min, r.j && r.j.minFirestore], [200, 760, 760]);
+    v('la Tour lit la publique (et la version que app.html sert, lue sur la page du banc)', [r.statut, r.j && r.j.min, r.j && r.j.minFirestore, r.j && r.j.versionEnLigne], [200, 760, 760, 767]);
     v('… et la bêta, à part : son minimum et la version que beta.html sert', r.j && r.j.beta && [r.j.beta.min, r.j.beta.versionEnLigne], [0, 771]);
     r = await post('/api/monitor/version-min', { canal: 'beta', min: 'ligne' }, AUTH);
     v('« Exiger la dernière version » de la bêta : celle que beta.html sert', [r.statut, r.j && r.j.min, r.j && r.j.canal], [200, 771, 'gestion-beta']);

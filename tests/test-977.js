@@ -1,4 +1,4 @@
-/* test-1000 — OP MESSAGES : LA MISE À JOUR FORCÉE, RÉGLÉE DEPUIS LA TOUR (6 octobre 2026).
+/* test-977 — OP MESSAGES : LA MISE À JOUR FORCÉE, RÉGLÉE DEPUIS LA TOUR (6 octobre 2026).
  *
  * Justin : « pour les mises à jour, je veux aussi le forçage de mise à jour, comme sur OP GESTION depuis la Tour — et que tout soit
  * bien séparé ». La Tour pose le minimum de CHAQUE instance chez OP GESTION (`test-999`) ; le service le relit
@@ -24,7 +24,7 @@ const { creerVersionClient } = require(path.join(T.SERVICE, 'version-client.js')
 (async () => {
   let svc = null, og = null;
   try {
-    console.log('\n── 1000 · le module seul : il nomme son canal et exige l\'écho ──');
+    console.log('\n── 977 · le module seul : il nomme son canal et exige l\'écho ──');
     const appels = [];
     const rep = (corps, statut = 200) => async (url) => { appels.push(url); return { status: statut, json: async () => corps }; };
     let vc = creerVersionClient({ config: { instance: 'prod', minClient: 1, beta: { urlGestion: 'http://127.0.0.1:8080/', timeoutMs: 500 } }, fetchImpl: rep({ ok: true, min: 12, canal: 'messages-prod' }) });
@@ -50,7 +50,7 @@ const { creerVersionClient } = require(path.join(T.SERVICE, 'version-client.js')
     panne = false; n = 0; await vc.relire();
     v('la Tour lève l\'exigence : retour au plancher', vc.exige(), 1);
 
-    console.log('\n── 1000 · le vrai service ──');
+    console.log('\n── 977 · le vrai service ──');
     const pageServie = fs.readFileSync(path.join(T.SERVICE, 'public', 'opmsg-ui.js'), 'utf8');
     const NUM = parseInt((/const OPMSG_VERSION = ([0-9]+);/.exec(pageServie) || [])[1] || '0', 10);
     vrai('la page servie porte son numéro (' + NUM + ')', NUM >= 1);
@@ -66,7 +66,7 @@ const { creerVersionClient } = require(path.join(T.SERVICE, 'version-client.js')
     r = await alice.post('/api/agenda', EVT);
     v('sans minimum : une écriture sans numéro passe (une page d\'avant ce verrou)', r.code, 201);
 
-    console.log('\n── 1000 · la Tour exige une version ──');
+    console.log('\n── 977 · la Tour exige une version ──');
     og.versionMin = NUM + 1;
     const vu = await T.attendre(async () => ((await T.client(svc.base).get('/api/config')).j || {}).min_client === NUM + 1, 6000);
     vrai('le service relit le minimum de la Tour (min_client = ' + (NUM + 1) + ')', vu);
@@ -85,7 +85,7 @@ const { creerVersionClient } = require(path.join(T.SERVICE, 'version-client.js')
     r = await alice.post('/api/beta/entrer', { login: 'alice', pass: 'secret-alice' });
     v('⛔ même se connecter est une écriture : 426', r.code, 426);
 
-    console.log('\n── 1000 · ce qui ne bouge PAS l\'exigence ──');
+    console.log('\n── 977 · ce qui ne bouge PAS l\'exigence ──');
     const lu = async () => ((await T.client(svc.base).get('/api/config')).j || {}).min_client;
     for (const mode of ['ancien', 'autre', 'panne', '500']) {
       og.versionMode = mode;
@@ -95,7 +95,7 @@ const { creerVersionClient } = require(path.join(T.SERVICE, 'version-client.js')
     }
     og.versionMode = 'normal';
 
-    console.log('\n── 1000 · la Tour lève l\'exigence ──');
+    console.log('\n── 977 · la Tour lève l\'exigence ──');
     og.versionMin = 0;
     vrai('min_client revient au plancher', await T.attendre(async () => (await lu()) === 1, 6000));
     r = await alice.post('/api/agenda', EVT);
@@ -106,14 +106,14 @@ const { creerVersionClient } = require(path.join(T.SERVICE, 'version-client.js')
     v('⛔ sous le minimum, se déconnecter passe toujours (un droit)', r.code === 426, false);
     await svc.arreter(); svc = null;
 
-    console.log('\n── 1000 · le plancher du fichier, sans la Tour ──');
+    console.log('\n── 977 · le plancher du fichier, sans la Tour ──');
     og.versionMin = 0;
     svc = await T.lancerService({ urlGestion: og.url, config: { minClient: 3, beta: { relectureMs: 120 } } });
     r = await T.client(svc.base).get('/api/config');
     v('minClient 3 du fichier : min_client 3, même avant la première relecture', r.j && r.j.min_client, 3);
     await svc.arreter(); svc = null;
 
-    console.log('\n── 1000 · la page : api.js envoie son numéro, un 426 réveille l\'écran ──');
+    console.log('\n── 977 · la page : api.js envoie son numéro, un 426 réveille l\'écran ──');
     const API = require(path.join(T.SERVICE, 'public', 'api.js'));
     const vus = []; let reponse = { status: 201, corps: '{"evenement":{}}' };
     const fauxFetch = async (url, init) => { vus.push({ url, h: Object.assign({}, init && init.headers) }); return { ok: reponse.status < 300, status: reponse.status, headers: { get: () => null }, text: async () => reponse.corps }; };

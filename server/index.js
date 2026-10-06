@@ -7055,7 +7055,8 @@ function versionEnLigne(frais) {
   versionLigne.encours = (async () => {
     const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 15000);
     try {
-      const r = await fetch('https://teamop.fr/app.html', { signal: ctrl.signal, headers: { 'Cache-Control': 'no-cache' } });
+      /* un banc la sert sur 127.0.0.1 (`TEAMOP_APP_PAGE_URL`, `urlBanc` : rien d'autre ne se règle) — sinon il lirait le VRAI teamop.fr */
+      const r = await fetch(urlBanc(process.env.TEAMOP_APP_PAGE_URL, 'https://teamop.fr/app.html'), { signal: ctrl.signal, headers: { 'Cache-Control': 'no-cache' } });
       /* app.html pèse près de 3 Mo et APP_VERSION vit dans son premier demi-mégaoctet : on lit au fil
          de l'eau et on coupe dès qu'on l'a trouvée, ou au plafond. Sans ça, chaque clic sur « Exiger »
          tirait 3 Mo, et un corps qui s'arrête en route (pair mort, sans fermeture) figeait la promesse
