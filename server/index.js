@@ -1958,7 +1958,10 @@ function monUA(req) {   // appareil simplifié pour le journal (jamais l'UA comp
   return ap + ' · ' + nv;
 }
 function monLog(ident, ok, req, motif, apps) {   // journal des connexions (réussies ET échouées) ; apps : ce que le compte ouvre, sur les réussites
-  monJournal.push(Object.assign({ ts: Date.now(), qui: monStr(ident, 120), ok: !!ok, appareil: monUA(req), motif: monStr(motif, 60) }, apps ? { apps: monStr(apps, 40) } : {}));
+  /* `app` : la console du GESTE (Justin, 6 octobre 2026 : « dans la Tour, sépare bien OP GESTION et OP MESSAGES ») — une action posée par une route d'OP MESSAGES
+     (ses versions, ses accès bêta) ne s'affiche que dans le Journal de la console OP MESSAGES, et inversement. Une connexion à la Tour (route commune) n'en a pas. */
+  const app = req && req.path && !/^\/api\/monitor\/login\/?$/.test(req.path) ? monAppDeRoute(req) : null;
+  monJournal.push(Object.assign({ ts: Date.now(), qui: monStr(ident, 120), ok: !!ok, appareil: monUA(req), motif: monStr(motif, 60) }, apps ? { apps: monStr(apps, 40) } : {}, app ? { app } : {}));
   if (monJournal.length > 300) monJournal = monJournal.slice(-300);
   monSave();
 }
@@ -5015,7 +5018,8 @@ app.get('/api/monitor/entreprises', monAdmin, (req, res) => {
     for (const l of fs.readFileSync(BUGS_PATH, 'utf8').trim().split('\n')) {
       /* Le filigrane (voir ZERO_PATH) : on ne compte que ce qui est arrivé APRÈS la remise à
          zéro de cet espace. Rien n'est effacé du fichier. */
-      try { const b = JSON.parse(l); if (b && b.team && (+b.ts || 0) > zeroDe(b.team)) erreursPar[b.team] = (erreursPar[b.team] || 0) + 1; } catch (err) {}
+      /* ⛔ les erreurs d'OP GESTION seulement : une erreur remontée par OP MESSAGES (`app: 'opmessages'`) n'est pas celle de l'entreprise dans OP GESTION */
+      try { const b = JSON.parse(l); if (b && b.team && (+b.ts || 0) > zeroDe(b.team) && monAppDeTag(b.app) !== 'messages') erreursPar[b.team] = (erreursPar[b.team] || 0) + 1; } catch (err) {}
     }
   } catch (err) {}
 
@@ -8262,8 +8266,13 @@ app.get('/api/monitor/issues', monAdmin, (req, res) => {
    Réservé au patron, comme « Ignorer » à l'unité. */
 app.post('/api/monitor/issues/tout-ignorer', monPatronStrict, (req, res) => {
   const note = monStr((req.body || {}).note, 300);
+  /* `app` (facultatif) : la console d'où l'on remet à zéro — elle ne classe QUE ses problèmes (Justin : « sépare bien OP GESTION et OP MESSAGES »).
+     Sans lui (une Tour d'avant), toutes les applications du compte, comme avant. */
+  const seule = (req.body || {}).app;
+  if (seule !== undefined && (typeof seule !== 'string' || !TOUR_APPS.includes(seule))) return res.status(400).json({ error: 'app : gestion ou messages' });
+  if (seule !== undefined && !req.tourUser.apps.includes(seule)) return res.status(403).json({ error: 'Cette console n’est pas ouverte à ton compte.', app: seule });
   const cibles = monIssues.filter(i => (i.statut === 'nouveau' || i.statut === 'encours')
-    && req.tourUser.apps.includes(monAppDeTag(i.app)));
+    && req.tourUser.apps.includes(monAppDeTag(i.app)) && (seule === undefined || monAppDeTag(i.app) === seule));
   if (!cibles.length) return res.json({ ok: true, classes: 0 });
   const quand = Date.now();
   for (const i of cibles) {

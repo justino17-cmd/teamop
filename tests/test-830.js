@@ -563,30 +563,33 @@ vrai('…et le relevé tient la route : on y trouve des phrases qu’on sait éc
 v('⛔ plus aucun « mot(s) » : chaque nombre est accordé (nMot, ou un test du nombre)', CH.filter(s => /[a-zàâäéèêëîïôöùûüç]\((?:s|e|es|x)\)/i.test(s)).slice(0, 5), []);
 v('…ni dans le HTML de la page', ((SRC.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '').replace(/<!--[\s\S]*?-->/g, '')).match(/[a-zàâäéèêëîïôöùûüç]\((?:s|e|es|x)\)/gi) || []), []);
 /* la remise à zéro : la question, exécutée */
-function remise(cnt, apps, repondre) {
-  const vu = { confirm: null, toast: null, post: 0 };
-  const ctx = { INC: { cnt }, MYAPPS: apps, confirm: t => { vu.confirm = t; return repondre; }, toast: t => { vu.toast = t; },
-    apiPost: () => { vu.post++; return { then: () => ({ catch: () => {} }) }; }, alert: () => {}, JR: { actions: [] }, MYNOM: 'x', chargerIncidents: () => {} };
+function remise(cnt, apps, repondre, app) {
+  const vu = { confirm: null, toast: null, post: 0, corps: null };
+  const n = (cnt.nouveau || 0) + (cnt.encours || 0);
+  /* v2.85 — la remise à zéro compte les problèmes de LA CONSOLE (`incOuverts`) et n'envoie que la sienne (`app`) */
+  const ctx = { INC: { cnt }, incOuverts: () => Array(n).fill({}), APP: app || 'gestion', APPS_TOUR: { gestion: { nom: 'OP GESTION' }, messages: { nom: 'OP MESSAGES' } }, MYAPPS: apps, confirm: t => { vu.confirm = t; return repondre; }, toast: t => { vu.toast = t; },
+    apiPost: (u, b) => { vu.post++; vu.corps = b; return { then: () => ({ catch: () => {} }) }; }, alert: () => {}, JR: { actions: [] }, MYNOM: 'x', chargerIncidents: () => {} };
   executer(ligne('function nMot(') + '\n' + fonction('incToutIgnorer') + '\nincToutIgnorer();', ctx);
   return vu;
 }
 {
-  const un = remise({ nouveau: 1 }, ['gestion'], false), trois = remise({ nouveau: 2, encours: 1 }, ['gestion', 'messages'], false), rien = remise({}, ['gestion'], true), oui = remise({ nouveau: 1 }, ['gestion'], true);
+  const un = remise({ nouveau: 1 }, ['gestion'], false), trois = remise({ nouveau: 2, encours: 1 }, ['gestion', 'messages'], false, 'messages'), rien = remise({}, ['gestion'], true), oui = remise({ nouveau: 1 }, ['gestion'], true);
   vrai('remise à zéro, un problème : « 1 problème passe », sans parler de deux consoles', /\n1 problème passe en « ignoré »\./.test(un.confirm) && !/deux consoles/.test(un.confirm), un.confirm);
-  vrai('…trois, sur un compte à deux consoles : « 3 problèmes passent », et la question dit que les DEUX consoles sont touchées',
-    /\n3 problèmes passent en « ignoré », dans les deux consoles \(OP GESTION et OP MESSAGES\)\./.test(trois.confirm), trois.confirm);
+  vrai('…trois, sur un compte à deux consoles, depuis OP MESSAGES : « 3 problèmes passent », dans CETTE console seulement (v2.85)',
+    /\n3 problèmes passent en « ignoré », dans la console OP MESSAGES seulement\./.test(trois.confirm), trois.confirm);
   v('…rien à classer : ni question, ni envoi ; « non » : rien d’envoyé ; « oui » : un envoi', [rien.confirm, rien.toast, rien.post, un.post, oui.post], [null, 'Rien à classer', 0, 0, 1]);
+  v('⛔ l’envoi nomme la console (le serveur ne classe qu’elle)', oui.corps, { app: 'gestion' });
 }
 /* le bouton et sa phrase, évalués */
 {
   const expr = (() => { const i = CODE.indexOf('var zeroBtn='), j = CODE.indexOf(": '';", i); return i < 0 || j < 0 ? '' : CODE.slice(i, j + 5); })();
   vrai('population : le bouton de remise à zéro est trouvé', expr.length > 100);
-  const rendu = (n, apps) => { const ctx = { _aClasser: n, MYAPPS: apps }; executer(expr + '\nthis.h=zeroBtn;', ctx);
+  const rendu = (n, apps, app) => { const ctx = { _aClasser: n, MYAPPS: apps, APP: app || 'gestion', APPS_TOUR: { gestion: { nom: 'OP GESTION', court: 'GESTION' }, messages: { nom: 'OP MESSAGES', court: 'MESSAGES' } }, esc: x => String(x) }; executer(expr + '\nthis.h=zeroBtn;', ctx);
     return String(ctx.h).replace(/<[^>]+>/g, '|').split('|').map(s => s.trim()).filter(Boolean); };
-  const a = rendu(1, ['gestion']), b = rendu(4, ['gestion', 'messages']);
+  const a = rendu(1, ['gestion']), b = rendu(4, ['gestion', 'messages'], 'messages');
   v('le bouton compte juste, au singulier comme au pluriel', [a[0], b[0]], ['↺ Tout remettre à zéro — 1 problème', '↺ Tout remettre à zéro — 4 problèmes']);
   vrai('…et sa phrase commence par une MAJUSCULE (au téléphone elle passe seule sous le bouton)', /^[A-ZÀ-Ý]/.test(a[1]) && /^[A-ZÀ-Ý]/.test(b[1]), a[1] + ' / ' + b[1]);
-  vrai('…qui dit, sur un compte à deux consoles, que les deux sont touchées', /^Dans les deux consoles/.test(b[1]) && !/deux consoles/.test(a[1]));
+  vrai('…qui dit, sur un compte à deux consoles, que SEULE la console ouverte est touchée (v2.85)', /^Ceux d’OP MESSAGES seulement/.test(b[1]) && !/seulement/.test(a[1]));
   v('aucun bouton quand il n’y a rien à classer', rendu(0, ['gestion']), []);
 }
 /* « Ce qui se passe chez eux » : la phrase des problèmes ouverts */
