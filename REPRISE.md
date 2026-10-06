@@ -33,7 +33,21 @@ le panneau OP MESSAGES, le panneau OP GESTION, et que tout soit bien séparé. �
    instance (msg.teamop.fr, msg-beta.teamop.fr) — version servie, minimum exigé, « appliqué par le service » (un service qui n'a pas encore relu se DIT ; une instance éteinte aussi, et
    son « Exiger » se grise). « Accès » de la console OP MESSAGES montre la version publique à côté de la bêta (on n'y crée pas d'accès : chacun s'inscrit). Un serveur d'avant : chaque
    carte le dit. `test-978` (39 ✓, les vraies fonctions de la Tour contre le vrai serveur), `scratchpad/sonde-tour-versions.js` (60 ✓, téléphone et bureau, nuit et jour).
-5. **Ce que fait la fusion** : le serveur d'OP GESTION (les routes) ; la bêta d'OP MESSAGES ; la Tour v2.84 (GitHub Pages). L'ordre n'importe pas : une Tour neuve sur un serveur
+4 bis. **Le gardien sur ce chantier** : aucun bloquant, trois « à corriger », corrigés : un minimum au-dessus de la page servie est refusé (serveur) et ignoré
+   (OP MESSAGES, journalisé) ; la mise à jour obligatoire garde le brouillon (la SOURCE le range dans le stockage de l'onglet — la page ne touche à aucun
+   stockage, `test-856`) et attend la fin d'un appel ; bloquer, se désabonner, déconnecter un appareil et raccrocher passent sous le minimum. ⚠️ Le 426 n'est
+   pas une frontière de sécurité (un en-tête se forge) : un correctif de sécurité se pose au service. ⚠️ `minClient` du fichier de config d'OP MESSAGES est
+   désormais APPLIQUÉ : à vérifier sur le VPS avant le déploiement (une valeur ≥ 2 bloquerait toute page d'avant ce verrou).
+4 ter. **La Tour v2.85 — OP GESTION et OP MESSAGES bien séparés** (Justin : « dans la Tour, sépare bien OP GESTION et OP MESSAGES ») : Stripe et l'espace client
+   sont d'OP GESTION (`appDe`, comme le serveur) ; « Tout remettre à zéro » ne classe que la console ouverte (`app` côté serveur) ; le Courrier n'est plus dans
+   la console OP MESSAGES ; Journal (`monLog.app`, actions de session marquées), Équipe (les comptes de la console, les autres à part), compteurs et
+   « entreprises surveillées » de la console ; la fiche d'OP GESTION ne règle plus OP MESSAGES ; les erreurs d'OP MESSAGES ne gonflent plus le compteur d'une
+   entreprise d'OP GESTION ; l'accueil d'OP MESSAGES dit son état réel (bêta en service). `test-979` (28 ✓, sept mutations), `scratchpad/sonde-tour-separation.js`
+   (toutes les vues des deux consoles, 52 ✓). Reste, choisi : l'interrupteur de console montre le nombre d'incidents ouverts de l'AUTRE console (un rappel).
+4 quater. **La légende sous les photos** (Justin : « comme WhatsApp ») : choisir une photo ouvre un aperçu (photo en grand, vignettes, « Ajouter une légende… ») ;
+   photo et légende partent en UN message ; bulle à la largeur de la photo (260 px) ; « 📷 légende » dans la liste et les notifications ; « Modifier la
+   légende ». `test-966` (22 ✓), `tests/sonde-opmessages-legende.js` (34 ✓, iPhone et bureau), huit mutations.
+5. **Ce que fait la fusion** : le serveur d'OP GESTION (les routes) ; la bêta d'OP MESSAGES ; la Tour v2.85 (GitHub Pages). L'ordre n'importe pas : une Tour neuve sur un serveur
    d'avant dit « pas encore » ; un OP MESSAGES neuf sur un OP GESTION d'avant n'exige rien. La version PUBLIQUE d'OP MESSAGES ne reçoit la mise à jour forcée qu'à son propre
    déploiement (approbation `msg-prod`).
 
