@@ -2615,7 +2615,12 @@
     /* la version que le service sert EN CE MOMENT : la page la compare à la sienne pour proposer « Mettre à jour » */
     /* « Mettre à jour » : la page dit la progression, le module relit les fichiers (la page n'appelle jamais le réseau elle-même) */
     async function relireApplication(surProgres) { return A.relireApplication(surProgres); }
-    async function versionServie() { const c = await A.config(); return { build: /^[0-9a-f]{12}$/.test(String(c.build || '')) ? String(c.build) : null, version: String(c.version || '') }; }
+    /* `min` : le numéro de page en dessous duquel le service refuse d'écrire (la Tour le pose) ; `numero` : celui de la page qu'il sert — un entier, ou null quand il ne le dit pas */
+    async function versionServie() {
+      const c = await A.config();
+      const ent = (x) => Number.isInteger(x) && x >= 0 && x <= 99999 ? x : null;
+      return { build: /^[0-9a-f]{12}$/.test(String(c.build || '')) ? String(c.build) : null, version: String(c.version || ''), min: ent(c.min_client), numero: ent(c.version_client) };
+    }
     async function aPropos() {
       const c = await A.config();
       const jours = c.limites && c.limites.suppression_jours;

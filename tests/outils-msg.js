@@ -104,8 +104,21 @@ class Sortie {
 
 /* ── Un OP GESTION de poche : /api/beta/login et /api/beta/etat ───────────────────────────── */
 async function fauxOpGestion(comptes) {
-  const etat = { comptes: Object.assign({}, comptes), appels: [], mode: 'normal', delaiMs: 0 };
+  const etat = { comptes: Object.assign({}, comptes), appels: [], mode: 'normal', delaiMs: 0, versionMin: 0, versionMode: 'normal', versionAppels: [] };
   const srv = http.createServer((req, res) => {
+    /* `/api/version?app=messages&canal=…` — le minimum que la Tour pose pour une instance (`version-client.js`). À PART de `appels` : le service le relit
+       en boucle, et les bancs de la porte comptent ce qu'il dit à OP GESTION. `versionMode` : 'ancien' (un OP GESTION d'avant, sans écho de canal),
+       'autre' (l'écho d'un autre canal), 'panne', '500'. */
+    if (req.method === 'GET' && /^\/api\/version(\?|$)/.test(req.url)) {
+      const q = new URL(req.url, 'http://x').searchParams;
+      etat.versionAppels.push({ app: q.get('app'), canal: q.get('canal') });
+      const rv = (code, o) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
+      if (etat.versionMode === 'panne') return req.socket.destroy();
+      if (etat.versionMode === '500') return rv(500, { error: 'boom' });
+      if (etat.versionMode === 'ancien') return rv(200, { ok: true, min: 760, enLigne: 'enLigne' });
+      if (etat.versionMode === 'autre') return rv(200, { ok: true, min: etat.versionMin, canal: 'messages-' + (q.get('canal') === 'beta' ? 'prod' : 'beta') });
+      return rv(200, { ok: true, min: etat.versionMin, enLigne: 'enLigne', canal: q.get('app') + '-' + q.get('canal') });
+    }
     let b = ''; req.on('data', d => { b += d; });
     req.on('end', () => {
       let j = {}; try { j = JSON.parse(b || '{}'); } catch (e) {}

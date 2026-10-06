@@ -114,6 +114,22 @@ function construireApp(ctx) {
     next();
   });
 
+  /* ── La version minimale de la page : sous elle, les écritures refusent (426), la lecture continue ────────────────────────
+     Comme la porte du nuage d'OP GESTION : une page trop ancienne LIT encore, mais n'écrit plus, et se met à jour d'elle-même (elle lit
+     `min_client` dans `/api/config` et reçoit ce 426). Le numéro voyage dans `X-OPM-Version` ; une page d'avant ce verrou ne l'envoie
+     pas — elle passe tant qu'aucun minimum n'est exigé (`exige()` vaut 1 : toute page porte au moins 1), plus jamais ensuite.
+     ⛔ Les mêmes gestes que sous le plancher de disque passent toujours (se déconnecter, supprimer son compte, exporter ses données,
+     acquitter un événement) : une version ancienne n'ôte pas un droit. */
+  app.use((req, res, next) => {
+    if (req.method === 'GET' || req.method === 'HEAD' || !ctx.versionClient) return next();
+    const exige = ctx.versionClient.exige();
+    if (exige < 2 || /^\/api\/(compte\/(deconnexion|supprimer|export)|flux\/ack)\/?$/i.test(req.path)) return next();
+    const brut = String(req.headers['x-opm-version'] || '');
+    const v = /^[0-9]{1,5}$/.test(brut) ? parseInt(brut, 10) : 0;
+    if (v >= exige) return next();
+    return refus(res, 426, 'version_trop_ancienne', { min: exige });
+  });
+
   /* ── Plancher d'espace disque : les écritures refusent, la lecture continue ───────────── */
   app.use((req, res, next) => {
     /* ⛔ quatre gestes passent sous le plancher : se déconnecter, supprimer son compte (il LIBÈRE de la place, et c'est un droit), exporter ses données (un droit aussi, et rien n'est écrit sur le disque :

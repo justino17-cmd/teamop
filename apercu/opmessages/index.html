@@ -1568,6 +1568,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
   const OPMSG_BUILD = '';
+  /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
+     (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
+  const OPMSG_VERSION = 0;
+  try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
      ⛔ Cette page ne contient AUCUNE donnée et n'en modifie AUCUNE : tout ce qu'elle sait des personnes et des conversations vient de
@@ -2489,20 +2493,41 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   const EMPREINTE = /^[0-9a-f]{12}$/;
   const majRetour = /(?:^|[?&])maj=1(?:&|$)/.test(location.search);
   if (majRetour) { try { history.replaceState(history.state, '', location.pathname + location.hash); } catch (e) { /* l'adresse garde « ?maj=1 » : sans conséquence */ } }
-  const maj = { vu: null, repousseA: 0, enCours: false, dernier: 0, retourDit: false };
+  const maj = { vu: null, repousseA: 0, enCours: false, dernier: 0, retourDit: false, obligatoire: 0 };
   async function verifierVersion(force) {
     if (!CAP.miseAJour || !EMPREINTE.test(OPMSG_BUILD) || typeof source.versionServie !== 'function' || maj.enCours) return;
     const t = Date.now();
     if (!force && t - maj.dernier < 20000) return;
     maj.dernier = t;
     let r; try { r = await source.versionServie(); } catch (e) { return; }   // pas de réponse : on réessaiera au prochain rendez-vous
-    if (!r || !EMPREINTE.test(r.build || '')) return;
+    if (!r) return;
+    /* ⛔ SOUS LE MINIMUM QUE LA TOUR A POSÉ, PAS DE « PLUS TARD » : la page ne peut plus écrire (le service répond 426), elle se met à jour tout de suite. */
+    if (OPMSG_VERSION > 0 && Number.isInteger(r.min) && r.min > OPMSG_VERSION) { majObligatoire(r.min); return; }
+    if (!EMPREINTE.test(r.build || '')) return;
     if (r.build === OPMSG_BUILD) { if (majRetour && !maj.retourDit) { maj.retourDit = true; mot('OP MESSAGES est à jour'); } $('maj-bandeau').hidden = true; return; }
     maj.vu = r.build;
     if (majRetour && !maj.retourDit) { maj.retourDit = true; mot('La nouvelle version n\'a pas encore pu s\'installer : réessaie dans un instant'); maj.repousseA = t + 5 * 60000; }
     if (t < maj.repousseA) return;
     $('maj-bandeau').hidden = false;
   }
+  /* La mise à jour OBLIGATOIRE : l'écran de mise à jour, sans « Plus tard », qui part tout seul. ⛔ UNE SEULE FOIS PAR CHARGEMENT : revenue d'une mise à jour
+     (`?maj=1`) et toujours sous le minimum (un relais qui sert encore l'ancien fichier), la page ne relance pas en boucle — elle le DIT, et propose « Réessayer ». */
+  function majObligatoire(min) {
+    if (maj.enCours || maj.obligatoire) return;
+    maj.obligatoire = min;
+    $('maj-bandeau').hidden = true;
+    $('maj-titre').textContent = 'Mise à jour obligatoire';
+    $('maj-sous').textContent = 'Cette version d\'OP MESSAGES n\'est plus acceptée : la nouvelle s\'installe. Rien n\'est perdu.';
+    if (majRetour) {
+      $('maj-ecran').hidden = false; $('maj-reessayer').hidden = false;
+      majProgres(4, 'La nouvelle version n\'a pas encore pu s\'installer : réessaie dans un instant.');
+      $('maj-reessayer').focus();
+      return;
+    }
+    appliquerMaj();
+  }
+  /* un refus 426 (le service vient de dire « trop ancienne ») : on relit tout de suite ce qu'il exige */
+  window.addEventListener('opmsg-version', () => { if (!maj.obligatoire) verifierVersion(true); });
   function majProgres(pct, texte) {
     const p = Math.max(4, Math.min(100, Math.round(pct)));
     $('maj-barre').style.width = p + '%'; $('maj-piste').setAttribute('aria-valuenow', String(p));

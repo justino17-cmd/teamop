@@ -27,6 +27,7 @@ const stockageMod = require('./stockage');
 const { creerQuotas } = require('./quotas');
 const { creerFlux } = require('./flux');
 const { creerPorteBeta } = require('./porte-beta');
+const { creerVersionClient } = require('./version-client');
 const { construireApp } = require('./app');
 const { lireConfigSms, creerGarde } = require('./sms-garde');
 const { APPAREIL_ABS_MS } = require('./telephone');
@@ -127,8 +128,13 @@ function demarrer(env = process.env) {
      la SIENNE à celle-ci (`/api/config`) : différentes, une nouvelle version a été déployée pendant qu'elle restait ouverte, et elle propose « Mettre à jour ». Lue une fois, au
      démarrage : c'est la version que CE service sert. Illisible (un dossier public d'avant) : null, et la page ne propose rien. */
   const build = (() => { try { const m = /const OPMSG_BUILD = '([0-9a-f]{12})';/.exec(fs.readFileSync(path.join(__dirname, 'public', 'opmsg-ui.js'), 'utf8')); return m ? m[1] : null; } catch (e) { return null; } })();
+  /* LE NUMÉRO DE LA PAGE SERVIE (`OPMSG_VERSION`, posé par le générateur, +1 à chaque empreinte nouvelle) : c'est ce que la Tour
+     exige (« Exiger la dernière version »), et ce que la page envoie à chaque écriture (`X-OPM-Version`). Illisible : 0. */
+  const versionPage = (() => { try { const m = /const OPMSG_VERSION = ([0-9]{1,5});/.exec(fs.readFileSync(path.join(__dirname, 'public', 'opmsg-ui.js'), 'utf8')); return m ? parseInt(m[1], 10) : 0; } catch (e) { return 0; } })();
+  /* LA VERSION MINIMALE que la Tour pose pour CETTE instance, relue chez OP GESTION (`version-client.js`) */
+  const versionClient = creerVersionClient({ config });
   const ctx = {
-    config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION, build, scelleur, sms,
+    config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION, build, versionPage, versionClient, scelleur, sms,
     pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation, courriel, appels, agenda,
     maxMembres: stockageMod.MAX_MEMBRES, delaiModifMs: stockageMod.DELAI_MODIF_MS,
     disque: { bas: () => disqueBas, libreMo },
@@ -231,6 +237,13 @@ function demarrer(env = process.env) {
       catch (e) { journaliser('relecture_echec', { nom: e && (e.code || e.name) }); }
       finally { enCours = false; }
     }, config.beta.relectureMs));
+  }
+  /* ⛔ le minimum de la Tour se relit à la même cadence que les accès bêta ; une relecture à la fois */
+  {
+    let enCours = false;
+    const relireVersion = async () => { if (enCours) return; enCours = true; try { await versionClient.relire(); } finally { enCours = false; } };
+    minuteurs.push(setTimeout(relireVersion, 300));
+    minuteurs.push(setInterval(relireVersion, config.beta.relectureMs));
   }
   for (const m of minuteurs) m.unref();
   sauvegarde.demarrer();   // inerte sans configuration : aucune minuterie, aucun réseau

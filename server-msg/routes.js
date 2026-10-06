@@ -120,7 +120,10 @@ function creerHandlers(ctx) {
 
   /* ── Service ─────────────────────────────────────────────────────────────────────────── */
   H['config'] = (req, res) => res.json({
-    version: ctx.version, build: ctx.build || null, instance: config.instance, min_client: config.minClient,
+    /* `version_client` : le numéro de la page que CE service sert ; `min_client` : celui en dessous duquel il refuse d'écrire (le plancher du fichier,
+       ou celui que la Tour a posé pour cette instance). Une page sous `min_client` se met à jour d'elle-même, sans « Plus tard ». */
+    version: ctx.version, build: ctx.build || null, instance: config.instance,
+    min_client: ctx.versionClient ? ctx.versionClient.exige() : config.minClient, version_client: ctx.versionPage || 0,
     limites: {
       message_max: MSG_MAX, membres_max: ctx.maxMembres, nom_groupe_max: 80, modif_ms: ctx.delaiModifMs, ephemeres: EPHEMERES,
       /* le nombre de PERSONNES d'une réunion (organisateur compris) : Perso+ comme Pro, jamais plus (`formule.js`, une seule constante) — la page l'écrit, elle ne le recopie pas. Un appel de GROUPE n'est pas concerné. */

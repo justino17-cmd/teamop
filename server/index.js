@@ -7007,7 +7007,7 @@ versionsCfg.enLigne = 'enLigne';   // plus d'autre valeur possible
    `min` (ci-dessus) RESTE le minimum de la version PUBLIQUE d'OP GESTION : c'est lui que Firestore, l'annuaire (426) et la copie des
    documents lisent, rien n'y change. Les trois autres vivent à part, dans `canaux`, et ne touchent JAMAIS Firestore :
      · `gestion-beta`  — beta.html (lu par `/api/version?canal=beta`, que `beta-build.js` écrit dans la bêta) ;
-     · `messages-beta` et `messages-prod` — les deux instances d'OP MESSAGES, qui viennent le relire ici (`server-msg/version-client.js`).
+     · `messages-beta` et `messages-prod` — les deux instances d'OP MESSAGES, qui viennent le relire ici (leur `version-client.js`, par HTTP en boucle locale : aucun code partagé).
    ⛔ Exiger une version de la bêta ne bloque AUCUN client, et inversement : c'est la raison d'être de la séparation. Un canal absent
    du fichier vaut « aucun minimum ». */
 const CANAUX_VERSION = ['gestion-beta', 'messages-beta', 'messages-prod'];
