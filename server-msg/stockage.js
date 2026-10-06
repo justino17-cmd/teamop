@@ -1479,9 +1479,10 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (!r || r.supprime_le) throw erreur('introuvable');
       if (r.auteur !== auteur) throw erreur('interdit');
       if (r.type !== 'texte' && r.type !== 'photo') throw erreur('type');   // la légende d'une photo se modifie comme un message
+      if (texte === null && r.type !== 'photo') throw erreur('vide');   // un message texte ne se vide pas ; une photo, si : sa légende est retirée
       if (horloge() - r.ts > DELAI_MODIF_MS) throw erreur('delai');
       const t = horloge();
-      Q('UPDATE message SET corps_ch = ?, modifie = ? WHERE conv = ? AND seq = ?').run(sceller('message', 'corps_ch', aadMsg(conv, seq, auteur), texte), t, conv, seq);
+      Q('UPDATE message SET corps_ch = ?, modifie = ? WHERE conv = ? AND seq = ?').run(texte === null ? null : sceller('message', 'corps_ch', aadMsg(conv, seq, auteur), texte), t, conv, seq);
       return { gid: journalAjouter('msg_modifie', conv, null, seq), modifie: t };
     });
   }

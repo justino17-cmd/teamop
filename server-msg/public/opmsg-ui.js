@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '396f9b2d0440';
+  const OPMSG_BUILD = '54be537be2df';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 10;
+  const OPMSG_VERSION = 11;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
@@ -525,7 +525,9 @@
   async function envoyerTexte() {
     if (etat.envoiEnCours) { etat.envoiSuivant = true; return; }     // deux clics dans le même instant ne postent pas deux messages ; un toucher pendant l'attente n'est pas perdu : le message suivant part ensuite
     const ta = $('saisie'), t = ta.value.replace(/\s+$/, '');
-    if (!t.trim()) return;
+    /* vider le champ en modifiant la LÉGENDE d'une photo, c'est la retirer ; partout ailleurs, un champ vide n'envoie rien */
+    const ctx0 = etat.contexte, cible = ctx0 && ctx0.type === 'modif' ? trouverMessage(ctx0.mid) : null;
+    if (!t.trim() && !(cible && cible.photos)) return;
     const nt = nSignes(t);
     if (nt > TEXTE_MAX) { avis(texteTropLong(nt)); return; }
     etat.envoiEnCours = true;

@@ -1960,7 +1960,11 @@ function monUA(req) {   // appareil simplifié pour le journal (jamais l'UA comp
 function monLog(ident, ok, req, motif, apps) {   // journal des connexions (réussies ET échouées) ; apps : ce que le compte ouvre, sur les réussites
   /* `app` : la console du GESTE (Justin, 6 octobre 2026 : « dans la Tour, sépare bien OP GESTION et OP MESSAGES ») — une action posée par une route d'OP MESSAGES
      (ses versions, ses accès bêta) ne s'affiche que dans le Journal de la console OP MESSAGES, et inversement. Une connexion à la Tour (route commune) n'en a pas. */
-  const app = req && req.path && !/^\/api\/monitor\/login\/?$/.test(req.path) ? monAppDeRoute(req) : null;
+  /* ⛔ LA CONNEXION À UNE BÊTA (`/api/beta/login`) dit SA bêta dans le corps (`app`, déjà lu contre BETA_APPS) — pas la route, qui serait « gestion » pour
+     les deux (relecture du gardien : les échecs de connexion à la bêta d'OP MESSAGES tombaient dans le Journal d'OP GESTION, le signal de sécurité au mauvais endroit). */
+  const beta = req && req.path && /^\/api\/beta\/login\/?$/.test(req.path);
+  const app = beta ? (((req.body || {}).app === 'messages') ? 'messages' : 'gestion')
+    : (req && req.path && !/^\/api\/monitor\/login\/?$/.test(req.path) ? monAppDeRoute(req) : null);
   monJournal.push(Object.assign({ ts: Date.now(), qui: monStr(ident, 120), ok: !!ok, appareil: monUA(req), motif: monStr(motif, 60) }, apps ? { apps: monStr(apps, 40) } : {}, app ? { app } : {}));
   if (monJournal.length > 300) monJournal = monJournal.slice(-300);
   monSave();
@@ -3869,7 +3873,8 @@ app.post('/api/monitor/entreprise/dossier', monAdmin, (req, res) => {
       .map(l => { try { return JSON.parse(l); } catch (err) { return null; } })
       /* Même filigrane que la pastille. Sans ça la fiche dirait « 0 erreur » en haut et en
          listerait 25 juste en dessous — pire que de ne rien remettre à zéro. */
-      .filter(b => b && b.team === t && (+b.ts || 0) > zeroDe(t))
+      /* … et la MÊME population que le compteur de la liste (relecture du gardien) : les erreurs d'OP GESTION, pas celles qu'OP MESSAGES remonte */
+      .filter(b => b && b.team === t && (+b.ts || 0) > zeroDe(t) && monAppDeTag(b.app) !== 'messages')
       .sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 25)
       .map(b => ({ ts: b.ts, app: b.app, version: b.version, msg: b.msg, src: b.src, line: b.line, ua: b.ua }));
   } catch (err) {}

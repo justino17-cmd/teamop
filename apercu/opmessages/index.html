@@ -2146,7 +2146,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   async function envoyerTexte() {
     if (etat.envoiEnCours) { etat.envoiSuivant = true; return; }     // deux clics dans le même instant ne postent pas deux messages ; un toucher pendant l'attente n'est pas perdu : le message suivant part ensuite
     const ta = $('saisie'), t = ta.value.replace(/\s+$/, '');
-    if (!t.trim()) return;
+    /* vider le champ en modifiant la LÉGENDE d'une photo, c'est la retirer ; partout ailleurs, un champ vide n'envoie rien */
+    const ctx0 = etat.contexte, cible = ctx0 && ctx0.type === 'modif' ? trouverMessage(ctx0.mid) : null;
+    if (!t.trim() && !(cible && cible.photos)) return;
     const nt = nSignes(t);
     if (nt > TEXTE_MAX) { avis(texteTropLong(nt)); return; }
     etat.envoiEnCours = true;

@@ -71,6 +71,14 @@ const aleatoire = () => crypto.randomBytes(6).toString('hex');
     v('   l\'autre lit la nouvelle légende, marquée modifiée, sur la même photo', [m.texte, !!m.modifie, m.type], ['Le compteur — corrigé', true, 'photo']);
     r = await A.post('/api/conversations/' + conv + '/messages/modifier', { seq: seqVocal, texte: 'non' });
     v('⛔ un vocal ne se modifie pas : 409 type_invalide', [r.code, r.j && r.j.error], [409, 'type_invalide']);
+    r = await A.post('/api/conversations/' + conv + '/messages/modifier', { seq: seqLeg, texte: '   ' });
+    m = (await lireMsgs(B)).find(x => x.seq === seqLeg);
+    v('retirer la légende (un texte vide) : 200, la photo reste, sans texte', [r.code, m.type, m.texte === null || m.texte === undefined], [200, 'photo', true]);
+    const t1 = await envoyer(A, { texte: 'un message texte' });
+    r = await A.post('/api/conversations/' + conv + '/messages/modifier', { seq: t1.j.seq, texte: '' });
+    v('⛔ un message TEXTE ne se vide pas : 400', r.code, 400);
+    r = await envoyer(A, { type: 'photo', pieces: [{ id: await photo(), w: 8, h: 8 }], texte: 'y'.repeat(20000) });
+    v('⛔ une légende démesurée : 413, comme un message', r.code, 413);
     r = await B.post('/api/conversations/' + conv + '/messages/modifier', { seq: seqLeg, texte: 'pas à moi' });
     v('⛔ la légende d\'un autre ne se modifie pas', r.code >= 400, true);
 

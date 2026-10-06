@@ -2228,7 +2228,9 @@
     /* ── les gestes sur un message ── */
     const trouver = (id, mid) => { const c = convs.get(id); const m = c && c.messages.find(x => x.id === mid); if (!m) throw erreurLocale('introuvable'); return { c, m }; };
     async function modifier(id, mid, texte) {
-      const t = valider(texte), { c, m } = trouver(id, mid);
+      const { c, m } = trouver(id, mid);
+      /* la légende d'une photo peut se RETIRER (un texte vide) ; un message texte, non */
+      const t = (m && m.type === 'photo' && typeof texte === 'string' && !texte.trim()) ? '' : valider(texte);
       const r = await A.modifier(id, m.seq, t);
       ranger(c, { seq: m.seq, texte: t, modifie: r.modifie || maintenant() });
       emettre({ type: 'conversation', id }); relireListePlusTard();

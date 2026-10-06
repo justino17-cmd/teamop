@@ -66,6 +66,7 @@ function creerHandlers(ctx) {
       case 'interdit': return refus(res, 403, 'interdit');
       case 'delai': return refus(res, 409, 'delai_depasse');
       case 'type': return refus(res, 409, 'type_invalide');
+      case 'vide': return refus(res, 400, 'champ_invalide');   // un message texte vidé par une modification (seule une légende se retire)
       case 'groupe_plein': return refus(res, 409, 'groupe_plein');
       case 'dernier_admin': return refus(res, 409, 'dernier_admin');
       case 'conversation_directe': return refus(res, 409, 'conversation_directe');
@@ -505,7 +506,8 @@ function creerHandlers(ctx) {
          les mêmes règles qu'un message (nettoyée, pas d'invisible seul, `MSG_MAX` signes), scellée comme lui. Vide ou absente : une photo sans légende, comme avant.
          Seulement pour une photo : un vocal ou un fichier n'en portent pas. */
       if (type === 'photo' && b.texte !== undefined && b.texte !== null) {
-        if (typeof b.texte !== 'string' || b.texte.length > MSG_MAX * 2) return refus(res, 400, 'champ_invalide');
+        if (typeof b.texte !== 'string') return refus(res, 400, 'champ_invalide');
+        if (b.texte.length > MSG_MAX * 2) return refus(res, 413, 'trop_long');   // le même refus que le texte d'un message (relecture du gardien)
         const t = nettoyerTexte(b.texte);
         if (Array.from(t).length > MSG_MAX) return refus(res, 413, 'trop_long');
         texte = INVISIBLE.test(t) ? null : t;
@@ -545,11 +547,13 @@ function creerHandlers(ctx) {
   H['msg.modifier'] = (req, res) => {
     const s = seqCorps(req, res); if (s === null) return;
     const t = corps(req).texte;
-    if (typeof t !== 'string' || t.length > MSG_MAX * 2) return refus(res, 400, 'champ_invalide');
+    if (typeof t !== 'string') return refus(res, 400, 'champ_invalide');
+    if (t.length > MSG_MAX * 2) return refus(res, 413, 'trop_long');
     const texte = nettoyerTexte(t);
-    if (INVISIBLE.test(texte)) return refus(res, 400, 'champ_invalide');
     if (Array.from(texte).length > MSG_MAX) return refus(res, 413, 'trop_long');
-    const r = stockage.messageModifier({ conv: req.conv.conv.id, seq: s, auteur: req.moi.id, texte });
+    /* un texte vide n'est permis qu'à la LÉGENDE d'une photo : c'est la retirer (relecture du gardien) — `messageModifier` refuse le vide pour un message texte */
+    const vide = INVISIBLE.test(texte);
+    const r = stockage.messageModifier({ conv: req.conv.conv.id, seq: s, auteur: req.moi.id, texte: vide ? null : texte });
     hub.reveiller({ conv: req.conv.conv.id });
     res.json({ ok: true, modifie: r.modifie });
   };

@@ -119,6 +119,8 @@ const libre = () => new Promise(r => { const s = require('net').createServer(); 
     const post = (route, corps) => fetch(B + route, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + PATRON }, body: JSON.stringify(corps) });
     await post('/api/monitor/messages/version-min', { canal: 'beta', min: 0 });
     await post('/api/monitor/version-min', { canal: 'beta', min: 0 });
+    /* une tentative ratée sur la bêta d'OP MESSAGES : la route est la même pour les deux bêtas, c'est le corps qui dit laquelle */
+    await fetch(B + '/api/beta/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '203.0.113.9' }, body: JSON.stringify({ login: 'intrus-979', pass: 'mauvais', app: 'messages' }) });
     TG.run('chargerJournal()'); TM.run('chargerJournal()');
     vrai('population : le journal du serveur est lu, et porte les deux actions', (await TG.attendre('JR.loaded&&JR.cnx.some(function(j){ return /messages-beta/.test(j.motif); })&&JR.cnx.some(function(j){ return /gestion-beta/.test(j.motif); })')) && (await TM.attendre('JR.loaded')));
     TG.run("JR.actions=[{ts:Date.now(),app:'gestion',tx:'Geste fait dans OP GESTION'},{ts:Date.now(),app:'messages',tx:'Geste fait dans OP MESSAGES'}]");
@@ -127,8 +129,9 @@ const libre = () => new Promise(r => { const s = require('net').createServer(); 
     const jg = texte(TG.run('vueJournal()')), jm = texte(TM.run('vueJournal()'));
     v('⛔ Journal d\'OP GESTION : son geste, pas celui d\'OP MESSAGES', [/Geste fait dans OP GESTION/.test(jg), /Geste fait dans OP MESSAGES/.test(jg)], [true, false]);
     v('⛔ Journal d\'OP MESSAGES : l\'inverse', [/Geste fait dans OP MESSAGES/.test(jm), /Geste fait dans OP GESTION/.test(jm)], [true, false]);
-    v('⛔ l\'action notée par le serveur suit la console de sa route (messages-beta ici, gestion-beta là)', [TM.run("vueJournal(); (JR.cnx||[]).filter(function(j){ return j.app; }).map(function(j){ return j.app+':'+(/messages-beta/.test(j.motif)?'m':'g'); }).sort().join(',')")], ['gestion:g,messages:m']);
+    v('⛔ l\'action notée par le serveur suit la console de sa route (messages-beta ici, gestion-beta là)', [TM.run("vueJournal(); (JR.cnx||[]).filter(function(j){ return j.app&&/-beta/.test(j.motif||''); }).map(function(j){ return j.app+':'+(/messages-beta/.test(j.motif)?'m':'g'); }).sort().join(',')")], ['gestion:g,messages:m']);
     vrai('⛔ le renvoi vers « Courrier → Envois TeamOP » n\'est que dans le Journal d\'OP GESTION', /Envois TeamOP/.test(jg) && !/Envois TeamOP/.test(jm));
+    v('⛔ l\'échec de connexion à la bêta d\'OP MESSAGES est dans SON Journal, pas dans celui d\'OP GESTION', [/intrus-979/.test(jm), /intrus-979/.test(jg)], [true, false]);
 
     console.log('\n── 979 · 5. Équipe : chaque console ses comptes ──');
     TG.run('chargerEquipe()'); TM.run('chargerEquipe()');
@@ -147,6 +150,8 @@ const libre = () => new Promise(r => { const s = require('net').createServer(); 
     const ents = (await (await fetch(B + '/api/monitor/entreprises', { headers: { Authorization: 'Bearer ' + PATRON } })).json());
     const x = (ents.entreprises || ents.liste || []).find(e => e.t === 'ent-x');
     v('⛔ le compteur d\'erreurs d\'une entreprise ne compte que celles d\'OP GESTION', x ? x.erreurs : 'introuvable (' + Object.keys(ents).join(',') + ')', 1);
+    const dos = await (await fetch(B + '/api/monitor/entreprise/dossier', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + PATRON }, body: JSON.stringify({ nom: 'entx' }) })).json();   // le nom d'accès (slug) de l'entreprise du banc
+    v('⛔ et la liste de la fiche compte la MÊME chose (une erreur, celle d\'OP GESTION)', (dos.erreurs || []).map(e => e.app), ['opgestion']);
     const fiche = bloc('ficheEntrepriseHtml') || CODE;
     vrai('⛔ la fiche d\'OP GESTION n\'ouvre ni ne ferme plus OP MESSAGES (elle dit où ça se règle)', /Se règle dans la console OP MESSAGES/.test(fiche) && !/Application séparée, abonnement séparé\. Fermée, elle disparaît/.test(CODE));
     TM.run("ENT.loaded=true; ENT.liste=[{t:'opgestion-beta',technique:true,nom:'',slug:''},{t:'a1',nom:'Atelier',slug:'atelier',opMessages:true},{t:'b1',nom:'Boucherie',slug:'boucherie'}]");
