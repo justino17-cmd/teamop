@@ -753,7 +753,7 @@ async function gestionnaireLecture() {
     {
       const E = await compte('gina');
       const s0 = await E.get('/api/moi/stockage');
-      v('GET /api/moi/stockage : {utilise, max} — rien déposé, le quota de départ (2 Go)', [s0.code, s0.j.utilise, s0.j.max], [200, 0, 2147483648]);
+      v('GET /api/moi/stockage : {utilise, max} — rien déposé, le quota de départ (20 Go)', [s0.code, s0.j.utilise, s0.j.max], [200, 0, 21474836480]);
       const G2 = await groupe(E, 'Stock', []);
       const d = await deposer(E, { conv: G2, genre: 'fichier', nom: 'a.bin', corps: crypto.randomBytes(30000) });
       v('⛔ l\'espace utilisé compte les octets RANGÉS', (await E.get('/api/moi/stockage')).j.utilise, 30000);
@@ -762,12 +762,12 @@ async function gestionnaireLecture() {
       v('⛔ supprimer le message RENDS l\'espace', await att(async () => (await E.get('/api/moi/stockage')).j.utilise === 0, 6000), true);
       v('sans session : 401', (await T.client(svc.base).get('/api/moi/stockage')).code, 401);
       const cfg = (await T.client(svc.base).get('/api/config')).j;
-      v('GET /api/config annonce les maximums des pièces (la page refuse AVANT d\'envoyer)', cfg.limites.pieces, { photo_max: 200000, vocal_max: 300000, fichier_max: 600000, avatar_max: 100000, par_message: 10, quota: 2147483648 });
+      v('GET /api/config annonce les maximums des pièces (la page refuse AVANT d\'envoyer)', cfg.limites.pieces, { photo_max: 200000, vocal_max: 300000, fichier_max: 600000, avatar_max: 100000, par_message: 10, quota: 21474836480 });
       /* la configuration refuse ce qui n'a pas de sens */
       const refus = (c) => { try { piecesConfig(c); return null; } catch (e) { return e.code; } };
       v('⛔ une configuration absurde REFUSE le démarrage : maximum négatif, quota nul, fractionnaire, bloc qui n\'est pas une puissance de deux, texte', [refus({ photoMax: -1 }), refus({ quotaPersonne: 0 }), refus({ depotsHeure: 1.5 }), refus({ bloc: 5000 }), refus({ vocalMax: '10' }), refus({ simultanes: 0 })], Array(6).fill('CONFIG'));
-      v('et une configuration juste (ou absente) donne les valeurs de départ de SERVEUR.md § 5.6 : 12 Mo, 10 Mo, 25 Mo, 2 Go, 60 envois par heure, 24 h, blocs de 64 Kio', (() => { const c = piecesConfig(undefined); return [c.photoMax, c.vocalMax, c.fichierMax, c.quotaPersonne, c.depotsHeure, c.orphelineMs, c.bloc]; })(), [12582912, 10485760, 26214400, 2147483648, 60, 86400000, 65536]);
-      v('⛔ les réglages de LENTEUR (A2, A4) ont des valeurs de départ — 64 Ko/s après 30 s pour un envoi, 30 s d\'attente et 10 minutes au plus pour une lecture — et des bornes : un débit nul, une grâce nulle, un plafond de durée d\'une milliseconde refusent le démarrage', [(() => { const c = piecesConfig(undefined); return [c.depotDebitMin, c.depotGraceMs, c.lectureAttenteMs, c.lectureMaxMs]; })(), refus({ depotDebitMin: 0 }), refus({ depotGraceMs: 0 }), refus({ lectureAttenteMs: 1 }), refus({ lectureMaxMs: 10 }), refus({ depotDebitMin: 100000.5 })], [[65536, 30000, 30000, 600000], 'CONFIG', 'CONFIG', 'CONFIG', 'CONFIG', 'CONFIG']);
+      v('et une configuration juste (ou absente) donne les valeurs de départ de SERVEUR.md § 5.6 : 12 Mo, 10 Mo, 2 Go, 20 Go, 60 envois par heure, 24 h, blocs de 64 Kio', (() => { const c = piecesConfig(undefined); return [c.photoMax, c.vocalMax, c.fichierMax, c.quotaPersonne, c.depotsHeure, c.orphelineMs, c.bloc]; })(), [12582912, 10485760, 2147483648, 21474836480, 60, 86400000, 65536]);
+      v('⛔ les réglages de LENTEUR (A2, A4) ont des valeurs de départ — 64 Ko/s après 30 s pour un envoi, 30 s d\'attente et 2 heures au plus pour une lecture (2 Go à 3 Mo/s en prennent onze minutes) — et des bornes : un débit nul, une grâce nulle, un plafond de durée d\'une milliseconde refusent le démarrage', [(() => { const c = piecesConfig(undefined); return [c.depotDebitMin, c.depotGraceMs, c.lectureAttenteMs, c.lectureMaxMs]; })(), refus({ depotDebitMin: 0 }), refus({ depotGraceMs: 0 }), refus({ lectureAttenteMs: 1 }), refus({ lectureMaxMs: 10 }), refus({ depotDebitMin: 100000.5 })], [[65536, 30000, 30000, 7200000], 'CONFIG', 'CONFIG', 'CONFIG', 'CONFIG', 'CONFIG']);
     }
   } catch (e) {
     console.log('  ✗ le banc est mort : ' + (e && e.stack || e));

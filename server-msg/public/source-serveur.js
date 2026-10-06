@@ -1662,7 +1662,7 @@
     const attentePieces = [];            // les pièces à lire, la plus récente d'abord
     let lecturesEnCours = 0, tickCache = 0, octetsCache = 0, signalPlanifie = false, generation = 0;
     const PHOTOS_AUTO = 30, VOCAUX_AUTO = 6, PHOTOS_PAR_MESSAGE = 10;   // ce que l'ouverture d'une conversation lit toute seule ; le reste se lit au toucher
-    const LIMITES_DEFAUT = { photo_max: 12582912, vocal_max: 10485760, fichier_max: 26214400, avatar_max: 2097152, par_message: 10, quota: 2147483648 };
+    const LIMITES_DEFAUT = { photo_max: 12582912, vocal_max: 10485760, fichier_max: 2147483648, avatar_max: 2097152, par_message: 10, quota: 21474836480 };
     let limitesPieces = null;
     /* Les maximums du service (GET /api/config), lus à la première utilisation : la page refuse AVANT d'envoyer un fichier trop lourd, sans lui faire parcourir le réseau pour rien. */
     async function limites() {

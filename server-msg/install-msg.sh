@@ -377,7 +377,7 @@ map \$remote_addr \$opmsg_reseau_$INSTANCE {
 limit_req_zone \$opmsg_reseau_$INSTANCE zone=opmsg_$INSTANCE:10m rate=20r/s;
 limit_req_status 429;
 # Les connexions SIMULTANÉES, une zone par usage (deux emplacements sur la même zone additionneraient leurs compteurs : douze lectures en cours refuseraient un dépôt).
-#   · le dépôt d'une pièce (26 Mo) est TAMPONNÉ sur le disque de nginx avant que le service puisse dire 401 : par réseau, ET pour tout le monde (A3 — le disque est celui d'OP GESTION aussi) ;
+#   · le dépôt d'une pièce (2 Go) est TAMPONNÉ sur le disque de nginx avant que le service puisse dire 401 : par réseau, ET pour tout le monde (A3 — le disque est celui d'OP GESTION aussi) ;
 #   · la lecture d'une pièce, SANS tampon (A2) : chaque lecteur lent tient une connexion du service et un fichier ouvert tant qu'il est là.
 limit_conn_zone \$opmsg_reseau_$INSTANCE zone=opmsg_conn_$INSTANCE:10m;
 limit_conn_zone \$server_name zone=opmsg_depots_$INSTANCE:1m;
@@ -419,17 +419,18 @@ $H2_ON
     # non tamponné tenait un descripteur de Node ouvert pendant tout l'envoi d'un client lent.
     client_max_body_size 64k;
 
-    # ⛔ L'EXCEPTION DES PIÈCES (étape 4) : SA route seulement, jamais le reste du service. 26 Mo = le plus gros maximum du service (un
-    # fichier : 25 Mo) plus une marge ; au-delà, nginx répond 413 tout seul, avant même de lire le corps. Le corps reste TAMPONNÉ (pas de
+    # ⛔ L'EXCEPTION DES PIÈCES (étape 4) : SA route seulement, jamais le reste du service. 2100 Mo = le plus gros maximum du service (un
+    # fichier : 2 Go, comme WhatsApp — décision de Justin, 6 octobre 2026) plus une marge ; au-delà, nginx répond 413 tout seul, avant même de lire le corps. Le corps reste TAMPONNÉ (pas de
     # « proxy_request_buffering off ») : un client lent ne tient pas un descripteur de Node pendant tout son envoi — et un envoi fractionné
-    # arrive au service avec sa longueur. ⚠️ Si « pieces.fichierMax » est relevé au-delà de 25 Mo dans la configuration, cette ligne doit suivre.
-    # ⛔ DEUX PLAFONDS DE CONNEXIONS (A3) : 12 par réseau, et 24 pour tout le monde — 24 × 26 Mo = 624 Mo au plus sur le disque de nginx, qui est aussi celui d'OP GESTION.
+    # arrive au service avec sa longueur. ⚠️ Si « pieces.fichierMax » est relevé au-delà de 2 Go dans la configuration, cette ligne doit suivre.
+    # ⛔ DEUX PLAFONDS DE CONNEXIONS (A3) : 12 par réseau, et 24 pour tout le monde — 24 × 2,1 Go = 50 Go au plus sur le disque de nginx, qui est aussi celui d'OP GESTION
+    # (115 Go, 5 % occupés le 6 octobre 2026). ⚠️ Un disque plus petit, ou un « fichierMax » plus haut : baisser ce 24 plutôt que de laisser le tampon remplir le disque.
     # ⚠️ Un envoi qui trottine (un octet toutes les 59 s) tient une de ces 24 places : c'est la limite connue de ce plafond — SERVEUR.md § 4.4. Si « pieces.simultanes » est relevé, la suivre.
     location = /api/pieces {
         limit_req zone=opmsg_$INSTANCE burst=20 nodelay;
         limit_conn opmsg_conn_$INSTANCE 12;
         limit_conn opmsg_depots_$INSTANCE 24;
-        client_max_body_size 26m;
+        client_max_body_size 2100m;
         client_body_timeout 60s;
         proxy_pass http://127.0.0.1:$PORT;
         proxy_http_version 1.1;
@@ -528,8 +529,8 @@ else
   cat > "$FICHIER_CDY" <<CADDY
 # Posé par server-msg/install-msg.sh — réécrit à chaque installation, ne pas éditer à la main.
 $DOMAINE {
-    # 64 Ko au plus pour tout (le service refuse déjà au-delà), SAUF le dépôt d'une pièce : 26 Mo, le plus gros maximum du service (un fichier :
-    # 25 Mo) plus une marge — si « pieces.fichierMax » est relevé au-delà, cette ligne doit suivre. Deux emplacements qui s'excluent : deux
+    # 64 Ko au plus pour tout (le service refuse déjà au-delà), SAUF le dépôt d'une pièce : 2100 Mo, le plus gros maximum du service (un fichier :
+    # 2 Go) plus une marge — si « pieces.fichierMax » est relevé au-delà, cette ligne doit suivre. Deux emplacements qui s'excluent : deux
     # « request_body » posés sur la même requête se cumuleraient, et le plus petit gagnerait. Pas de plafond de débit ici : Caddy n'en a pas
     # sans greffon, c'est celui du service qui protège.
     @pasPieces not path /api/pieces
@@ -538,7 +539,7 @@ $DOMAINE {
     }
     @pieces path /api/pieces
     request_body @pieces {
-        max_size 26MB
+        max_size 2100MB
     }
     reverse_proxy 127.0.0.1:$PORT {
         # Le flux SSE ne doit pas être retenu dans un tampon.

@@ -177,6 +177,10 @@ function demarrer(env = process.env) {
   const server = app.listen(config.port, '127.0.0.1');
   server.keepAliveTimeout = 65000;
   server.headersTimeout = 70000;
+  /* ⛔ UN FICHIER DE 2 GO NE TIENT PAS DANS CINQ MINUTES (6 octobre 2026). Node coupe toute requête au bout de `requestTimeout` (300 s par défaut) : derrière Caddy, qui ne tamponne pas
+     l'envoi, un fichier de 2 Go envoyé à 3 Mo/s (onze minutes) était coupé net. Six heures : 2 Go à 1 Mbit/s en prennent quatre et demie. Ce délai ne protège rien d'autre — un envoi
+     qui n'avance pas est coupé par la garde de débit du dépôt (`pieces.depotDebitMin`, 64 Ko/s après 30 s), et les en-têtes ont toujours `headersTimeout`. */
+  server.requestTimeout = 6 * 3600000;
 
   /* ── Les tâches de fond : balayeur d'éphémères, élagage, relecture des accès bêta ───────── */
   const minuteurs = [];
