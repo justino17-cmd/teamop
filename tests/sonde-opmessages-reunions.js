@@ -142,6 +142,10 @@ async function capture(S, nom) {
 }
 async function connecter(S, login) {
   await S.page.goto(S.base + '/');
+  /* ⛔ un service AVEC relais de courriel (celui-ci : les invitations partent par courriel) ouvre d'abord la connexion par adresse ; l'accès d'essai est derrière son lien,
+     comme pour une vraie personne (6 octobre 2026 : la sonde mourait ici, `#c-login` n'étant jamais visible) */
+  await S.page.waitForFunction(() => { const c = document.getElementById('c-login'), l = document.querySelector('#f-mel [data-cx-essai]'); return (c && c.getClientRects().length > 0) || (l && !l.hidden && l.getClientRects().length > 0); }, null, { timeout: 15000 }).catch(() => {});
+  if (await S.page.evaluate(() => { const c = document.getElementById('c-login'); return !(c && c.getClientRects().length > 0); })) await toucher(S, '#f-mel [data-cx-essai]');
   await saisir(S, '#c-login', login); await saisir(S, '#c-pass', MOTS[login]); await toucher(S, '#c-entrer');
   await S.page.waitForFunction(() => { const a = document.getElementById('app'); return a && !a.hidden && document.getElementById('moi-nom').textContent.trim().length > 0; }, null, { timeout: 15000 });
 }

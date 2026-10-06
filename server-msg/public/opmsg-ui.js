@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '2e612955c3ac';
+  const OPMSG_BUILD = 'a8a6702cc038';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 15;
+  const OPMSG_VERSION = 16;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
@@ -2252,9 +2252,8 @@
      sa page (une couche d'historique : le retour système la referme). Au bureau (≥ 1 100 px), la liste à gauche et la rubrique à droite, comme Réglages Système sur Mac.
      ⛔ Les cartes des rubriques gardent LEURS identifiants (`reg-conf`, `reg-notif`, `reg-stock`…) : elles sont toutes posées dans la page, une seule est montrée — les peintres, les gestes et la
      relecture des réglages n'ont pas changé d'un octet. */
-  const regLigne = (sec, teinte, ic, titre, valeurId) => '<button type="button" class="reglage reg-ligne-sec presse" data-reg-sec="' + sec + '" aria-controls="reg-sec-' + sec + '">' +
-    '<span class="reg-tuile t-' + teinte + '" aria-hidden="true">' + icone(ic) + '</span><span class="reglage-texte">' + esc(titre) + '</span>' +
-    (valeurId ? '<span class="reglage-valeur" id="' + valeurId + '"></span>' : '') + CHEVRON + '</button>';
+  const regLigne = (sec, teinte, ic, titre, valeur) => '<button type="button" class="reglage reg-ligne-sec presse" data-reg-sec="' + sec + '" aria-controls="reg-sec-' + sec + '">' +
+    '<span class="reg-tuile t-' + teinte + '" aria-hidden="true">' + icone(ic) + '</span><span class="reglage-texte">' + esc(titre) + '</span>' + (valeur || '') + CHEVRON + '</button>';
   const regSection = (sec, titre, corps) => '<section class="reg-sec" id="reg-sec-' + sec + '" data-sec="' + sec + '" aria-labelledby="reg-titre-' + sec + '" hidden>' +
     '<div class="reg-barre"><button type="button" class="reg-retour presse" data-reg-retour="1" aria-label="Retour au profil"><svg class="chev chev-g" viewBox="0 0 8 13" aria-hidden="true"><path d="M6.5 1.5 1.5 6.5 6.5 11.5"/></svg><span>Profil</span></button></div>' +
     '<h2 class="reg-titre" id="reg-titre-' + sec + '" tabindex="-1">' + esc(titre) + '</h2>' + corps + '</section>';
@@ -2279,15 +2278,15 @@
       '<div class="reg-grille"><div class="reg-accueil" id="reg-accueil">' +
         '<div id="reg-profil"></div>' +
         '<div class="carte reg-menu">' +
-          (CAP.espaces ? regLigne('entreprise', 'indigo', 'i-entreprise', 'Entreprise et abonnement', 'reg-v-entreprise') : '') +
+          (CAP.espaces ? regLigne('entreprise', 'indigo', 'i-entreprise', 'Entreprise et abonnement') : '') +
           regLigne('confidentialite', 'bleu', 'i-cadenas', 'Confidentialité') +
-          (CAP.notifications ? regLigne('notifications', 'rouge', 'i-cloche', 'Notifications', 'reg-v-notif') : '') +
-          regLigne('contacts', 'vert', 'i-groupe', 'Contacts', 'reg-demandes-n') +
+          (CAP.notifications ? regLigne('notifications', 'rouge', 'i-cloche', 'Notifications', '<span class="reglage-valeur" id="reg-v-notif"></span>') : '') +
+          regLigne('contacts', 'vert', 'i-groupe', 'Contacts', '<span class="reglage-valeur" id="reg-demandes-n" aria-label="demandes reçues"></span>') +
         '</div><div class="carte reg-menu">' +
           regLigne('appareils', 'gris', 'i-appareil', 'Appareils connectés') +
-          regLigne('stockage', 'sarcelle', 'i-disque', 'Stockage', 'reg-v-stock') +
+          regLigne('stockage', 'sarcelle', 'i-disque', 'Stockage', '<span class="reglage-valeur" id="reg-v-stock"></span>') +
           (CAP.compte ? regLigne('compte', 'bleu', 'i-personne', 'Mes données et mon compte') : '') +
-          regLigne('apropos', 'gris', 'i-info', 'À propos', 'reg-v-apropos') +
+          regLigne('apropos', 'gris', 'i-info', 'À propos', '<span class="reglage-valeur" id="reg-v-apropos"></span>') +
         '</div>' +
         '<div class="carte"><button type="button" class="reglage presse danger" id="reg-sortir"><span class="reg-tuile t-rouge" aria-hidden="true">' + icone('i-sortie') + '</span><span class="reglage-texte">Se déconnecter</span></button></div>' +
       '</div><div class="reg-detail">' +
@@ -4296,7 +4295,7 @@
     /* micro, caméra, sortie : la liste vient de l'appareil (lue à l'ouverture du panneau, `X.appareils`) ; l'image dans l'image, là où le navigateur la sait */
     const ap = X.appareils || [], choix = (quoi, kind, titre) => { const l = ap.filter(d => d.kind === kind); if (l.length < 2) return '';
       const actuel = prefMedias[quoi] || '';
-      return '<label class="salle-rang libre salle-choix"><span class="texte">' + esc(titre) + '</span><select data-appareil="' + quoi + '" aria-label="' + esc(titre) + '"><option value="">Par défaut</option>' +
+      return '<label class="salle-rang libre salle-appareil"><span class="texte">' + esc(titre) + '</span><select data-appareil="' + quoi + '" aria-label="' + esc(titre) + '"><option value="">Par défaut</option>' +
         l.map((d, i) => '<option value="' + esc(d.deviceId) + '"' + (d.deviceId === actuel ? ' selected' : '') + '>' + esc(d.label || (titre + ' ' + (i + 1))) + '</option>').join('') + '</select></label>'; };
     const lignesAp = choix('micro', 'audioinput', 'Micro') + choix('camera', 'videoinput', 'Caméra') + (sortieChoisissable() ? choix('sortie', 'audiooutput', 'Sortie du son') : '');
     h += '<div class="salle-rub"><span>Son et image</span></div><div class="salle-liste">' + lignesAp +
