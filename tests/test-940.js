@@ -266,9 +266,10 @@ console.log('\n── 940 · la Tour v2.81 ouvre les accès bêta d\'OP MESSAGES
     v('⛔ le serveur ne rend plus la note, même écrite dans son fichier par le serveur d\'avant', ['note' in et0, et0.enTravaux], [false, true]);
     TM.run('var ENT={liste:[]}, MSG={loaded:false}, OPM={loaded:true,err:"",d:' + JSON.stringify({ enTravaux: true, depuis: '2026-09-10', note: NOTE_FIREBASE }) + "}; function incOuverts(){ return []; } function acGroupe(){ return ''; } function ligneAc(){ return ''; } function vueInfo(){ return {section:'Pilotage',lib:'Accueil'}; }");
     const accueil = TM.run('vueAccueilMsg()');
-    vrai('population : l\'accueil se dessine, « En travaux »', /En travaux/.test(accueil));
+    vrai('population : l\'accueil se dessine, « Bêta » (v2.85 : la bêta tourne, la publique n\'est pas ouverte)', /<span class="past p-ambre">Bêta<\/span>/.test(accueil));
     vrai('⛔ et même si un serveur lui rend la note Firebase, la Tour ne l\'affiche pas : elle dit le serveur d\'OP MESSAGES', !/elan-gestion|projet OP MESSAGES|Firebase\s*\)|configuration web/.test(accueil) && /son propre serveur, séparé d’OP GESTION et de Firebase/.test(accueil));
-    vrai('   et elle envoie vers l\'onglet Accès pour essayer la bêta', /la bêta s’essaie avec les accès de l’onglet <b>Accès<\/b>/.test(accueil));
+    vrai('   et elle envoie vers l\'onglet Accès pour essayer la bêta', /msg-beta\.teamop\.fr<\/span> \(accès dans l’onglet <b>Accès<\/b>\)/.test(accueil));
+    vrai('⛔ et ne dit plus qu\'il reste à installer le serveur (il existe)', !/installer le serveur|OPMSG_EN_TRAVAUX/.test(accueil));
     const bascule = await appel('/api/monitor/messages/etat', { enTravaux: false, projet: 'msg.teamop.fr' }, PATRON);
     v('⛔ « Déclarer la bascule faite » accepte le nom de serveur que la Tour propose en exemple (msg.teamop.fr, avec ses points)', [bascule.s, bascule.j.projet], [200, 'msg.teamop.fr']);
     v('   un nom fait de rien est toujours refusé (400)', (await appel('/api/monitor/messages/etat', { enTravaux: false, projet: '' }, PATRON)).s, 400);
