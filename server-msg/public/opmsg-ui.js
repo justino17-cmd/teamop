@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '20d75a76eb85';
+  const OPMSG_BUILD = 'ffdf73e607de';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 12;
+  const OPMSG_VERSION = 14;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
@@ -29,10 +29,14 @@
     appels:   { titre: 'Appels',    icone: 'i-phone', texte: 'L\'historique des appels, les appels audio et vidéo.' },
     /* avec l'agenda personnel (le service), l'onglet porte les deux : « Agenda » ; l'aperçu garde « Réunions » */
     reunions: { titre: CAP.agenda ? 'Agenda' : 'Réunions',  icone: CAP.agenda ? 'i-agenda' : 'i-video', texte: 'L\'agenda, la programmation, les invités et les rappels.' },
-    reglages: { titre: 'Réglages',  icone: 'i-gear',  texte: 'Le compte, les notifications et la confidentialité.' }
+    /* « Profil » (6 octobre 2026 : « je veux que les réglages soient dans le profil ») : la page s'ouvre sur MOI — photo, nom, identifiant — et les réglages sont rangés dessous,
+       une ligne par rubrique, comme Réglages sur iPhone (la carte du compte en tête) ; la clé de la vue reste « reglages » (adresses, notifications, bancs) */
+    reglages: { titre: 'Profil',  icone: 'i-personne',  texte: 'Ton profil, le compte, les notifications et la confidentialité.' }
   };
   /* « Contacts » n'existe que là où les demandes de contact existent (le service) : l'aperçu garde ses quatre onglets */
   const ORDRE = CAP.identifiants ? ['messages', 'contacts', 'appels', 'reunions', 'reglages'] : ['messages', 'appels', 'reunions', 'reglages'];
+  /* les rubriques de Profil, dans l'ordre de la liste — la route n'accepte que celles-ci (« #reglages/confidentialite ») */
+  const REG_SECTIONS = ['entreprise', 'confidentialite', 'notifications', 'contacts', 'appareils', 'stockage', 'compte', 'apropos'];
   const EPHEMERES = [[0, 'Désactivés'], [86400, '24 heures'], [604800, '7 jours'], [7776000, '90 jours']];
   const VOCAL_MIN_MS = 800, VOCAL_MAX_MS = 180000, TENU_MS = 600, TEXTE_MAX = CAP.texteMax;
 
@@ -157,8 +161,9 @@
      donc le navigateur n'a pas de second retour à jouer ; et un bouton qui ferme ne ferme pas ET ne navigue pas — il navigue, et
      la fermeture suit. Une entrée neuve n'est posée que si quelque chose s'ouvre : passer d'une conversation à l'autre (au bureau)
      REMPLACE l'entrée au lieu d'en empiler. */
-  const memeRoute = (a, b) => !!a && !!b && a.vue === b.vue && (a.conv || null) === (b.conv || null) && !!a.feuille === !!b.feuille && (a.photo || null) === (b.photo || null) && (a.appel || null) === (b.appel || null);
-  const urlDe = r => '#' + r.vue + (r.conv ? '/' + encodeURIComponent(r.conv) : '');
+  const memeRoute = (a, b) => !!a && !!b && a.vue === b.vue && (a.conv || null) === (b.conv || null) && (a.sec || null) === (b.sec || null) && !!a.feuille === !!b.feuille && (a.photo || null) === (b.photo || null) && (a.appel || null) === (b.appel || null);
+  /* `sec` : une rubrique de Profil ouverte (« #reglages/confidentialite ») — une couche comme une conversation : le retour système la referme */
+  const urlDe = r => '#' + r.vue + (r.conv ? '/' + encodeURIComponent(r.conv) : r.sec ? '/' + r.sec : '');
   function routeDepuisHash() {
     const p = location.hash.slice(1).split('/');
     let conv = null; try { conv = p[1] ? decodeURIComponent(p[1]) : null; } catch (e) { conv = null; }
@@ -166,13 +171,15 @@
     const vue = Object.prototype.hasOwnProperty.call(VUES, p[0]) && ORDRE.includes(p[0]) ? p[0] : 'messages';
     /* une adresse « #reunions/<identifiant> » (le toucher d'une notification quand la page était fermée) ouvre la fiche de CETTE réunion — l'identifiant est vérifié avant de servir */
     const feuille = vue === 'reunions' && CAP.reunions && ID_REUNION.test(conv || '') ? 'reunion:' + conv : false;
-    return { vue, conv: vue === 'messages' && p[0] === 'messages' ? conv : null, feuille, photo: null, appel: null };
+    const sec = vue === 'reglages' && REG_SECTIONS.includes(p[1]) ? p[1] : null;
+    return { vue, conv: vue === 'messages' && p[0] === 'messages' ? conv : null, sec, feuille, photo: null, appel: null };
   }
   const entree = () => (history.state && history.state.opmsg) ? history.state : null;
   function parentDe(r) {
     if (r.appel) return Object.assign({}, r, { appel: null });
     if (r.photo) return Object.assign({}, r, { photo: null });
     if (r.feuille) return Object.assign({}, r, { feuille: false });
+    if (r.sec) return Object.assign({}, r, { sec: null });
     if (r.conv) return Object.assign({}, r, { conv: null });
     return null;
   }
@@ -230,6 +237,7 @@
       if (prec) window.scrollTo(0, etat.posVues[r.vue] || 0);
     }
     racine.dataset.vue = r.vue;
+    if (r.vue === 'reglages' && typeof montrerSection === 'function') montrerSection(r.sec || null);
     const veutConv = r.vue === 'messages' ? (r.conv || null) : null;
     if (veutConv !== etat.conv) { if (veutConv) ouvrirConv(veutConv); else fermerConv(); }
     if (r.feuille && (!etat.groupe.ouvert || etat.groupe.cle !== cleFeuille(r.feuille))) ouvrirFeuilleDom(r.feuille); else if (!r.feuille && etat.groupe.ouvert) fermerFeuilleDom();
@@ -2050,7 +2058,12 @@
   function peindreProfilReglage() {
     const c = $('reg-profil'); if (!c || !MOI) return;
     const ident = CAP.identifiants && typeof source.monIdentifiant === 'function' ? source.monIdentifiant() : null;   // « Alex#3307 » : ce qu'on donne pour être retrouvé
-    c.innerHTML = '<button type="button" class="contact presse" id="reg-profil-bouton">' + avatar(MOI) + '<span class="contact-texte"><span class="contact-nom">' + esc(MOI.nom) + '</span><span class="contact-role">' + esc((ident ? ident + (MOI.statut ? ' · ' : '') : '') + (MOI.statut || (ident ? '' : 'Modifier mon profil'))) + '</span></span>' + CHEVRON + '</button>';
+    /* ⛔ LE PROFIL EN TÊTE, EN GRAND (la carte du compte de Réglages, sur iPhone) : la photo, le nom, l'identifiant et le statut ; le toucher ouvre la feuille « Modifier le profil » */
+    c.innerHTML = '<button type="button" class="reg-moi presse" id="reg-profil-bouton" aria-label="Modifier mon profil : ' + esc(MOI.nom) + '">' + avatar(MOI) +
+      '<span class="reg-moi-nom">' + esc(MOI.nom) + '</span>' +
+      (ident ? '<span class="reg-moi-ident">' + esc(ident) + '</span>' : '') +
+      (MOI.statut ? '<span class="reg-moi-statut">' + esc(MOI.statut) + '</span>' : '') +
+      '<span class="reg-moi-modifier">Modifier le profil</span></button>';
   }
   function peindreConf() {
     const c = $('reg-conf'); if (!c) return;
@@ -2068,6 +2081,7 @@
     const c = $('reg-notif'); if (!c) return;
     const n = reg.notif;
     if (!n) { c.innerHTML = reg.notifLecture ? '<div class="carte-pad">' + refusBloc(reg.notifLecture) + '</div>' : '<p class="vide">Chargement…</p>'; return; }
+    { const v = $('reg-v-notif'); if (v) v.textContent = n.active ? 'Activées' : 'Désactivées'; }
     const occ = reg.notifOccupe ? ' aria-disabled="true"' : '';
     let h = '<button type="button" class="reglage presse" role="switch" id="reg-notif-sw" aria-checked="' + (n.active ? 'true' : 'false') + '"' + (n.possible ? occ : ' aria-disabled="true"') + '><span class="reglage-texte">Notifications sur cet appareil<small>' +
       esc(!n.possible ? n.phrase : n.active ? 'Activées : tu reçois une notification quand un message arrive et que cette page n\'est pas sous tes yeux.' : 'Désactivées sur cet appareil. Le navigateur te demandera ton autorisation.') + '</small></span><span class="interrupteur" aria-hidden="true"></span></button>';
@@ -2124,6 +2138,7 @@
     if (reg.stockErreur && !reg.stock) { c.innerHTML = refusBloc(reg.stockErreur); return; }
     if (!reg.stock) { c.innerHTML = '<p class="reg-ligne">Chargement…</p>'; return; }
     const pct = reg.stock.max > 0 ? Math.min(100, Math.max(0, reg.stock.utilise / reg.stock.max * 100)) : 0;
+    { const v = $('reg-v-stock'); if (v) v.textContent = tailleTexte(reg.stock.utilise) + ' sur ' + tailleTexte(reg.stock.max); }
     c.innerHTML = '<p class="reg-ligne"><b>' + esc(tailleTexte(reg.stock.utilise)) + '</b> utilisés sur ' + esc(tailleTexte(reg.stock.max)) + '</p>' +
       '<div class="jauge" role="img" aria-label="' + Math.round(pct) + ' % de ton espace utilisé"><i style="width:' + pct.toFixed(1) + '%"></i></div>' +
       '<p class="info-note">Les photos, vocaux et fichiers que tu envoies comptent ici ; supprimer le message qui les porte rend la place.</p>';
@@ -2133,6 +2148,7 @@
     if (reg.proposErreur && !reg.propos) { c.innerHTML = refusBloc(reg.proposErreur); return; }
     if (!reg.propos) { c.innerHTML = '<p class="reg-ligne">Chargement…</p>'; return; }
     const p = reg.propos, l = p.limites || {};
+    { const v = $('reg-v-apropos'); if (v) v.textContent = p.version ? 'v' + String(p.version).split('-')[0] : ''; }
     c.innerHTML = '<p class="reg-ligne"><b>Service</b> ' + esc(LIEUX[p.instance] || p.instance || '—') + ', version ' + esc(p.version || '—') + '</p>' +
       (EMPREINTE.test(OPMSG_BUILD) ? '<p class="reg-ligne"><b>Application</b> ' + esc(OPMSG_BUILD.slice(0, 7)) + (p.build && p.build !== OPMSG_BUILD ? ' · <b>une nouvelle version est prête</b>' : ' · à jour') + '</p>' : '') +
       '<p class="reg-ligne"><b>Adresse</b> ' + esc(location.host) + '</p>' +
@@ -2151,28 +2167,68 @@
     reg.propos = a.status === 'fulfilled' ? a.value : reg.propos; reg.proposErreur = a.status === 'rejected' ? phrase(a.reason, 'Les informations du service n\'ont pas pu être lues.') : '';
     peindreConf(); peindreStock(); peindreApropos();
   }
+  /* ═══ PROFIL — la page s'ouvre sur MOI, et chaque rubrique est UNE ligne qui ouvre SA page (6 octobre 2026) ═══
+     Demandé : « je veux que les réglages soient dans le profil, parce que là c'est mal fait… optimise à 100 % comme Apple ». Avant : neuf rubriques empilées sur une seule page, chacune avec
+     ses phrases — on y cherchait. Maintenant, comme Réglages sur iPhone : le profil en grand, puis une liste courte (une pastille de couleur, un nom, une valeur), et chaque ligne pousse
+     sa page (une couche d'historique : le retour système la referme). Au bureau (≥ 1 100 px), la liste à gauche et la rubrique à droite, comme Réglages Système sur Mac.
+     ⛔ Les cartes des rubriques gardent LEURS identifiants (`reg-conf`, `reg-notif`, `reg-stock`…) : elles sont toutes posées dans la page, une seule est montrée — les peintres, les gestes et la
+     relecture des réglages n'ont pas changé d'un octet. */
+  const regLigne = (sec, teinte, ic, titre, valeurId) => '<button type="button" class="reglage reg-ligne-sec presse" data-reg-sec="' + sec + '" aria-controls="reg-sec-' + sec + '">' +
+    '<span class="reg-tuile t-' + teinte + '" aria-hidden="true">' + icone(ic) + '</span><span class="reglage-texte">' + esc(titre) + '</span>' +
+    (valeurId ? '<span class="reglage-valeur" id="' + valeurId + '"></span>' : '') + CHEVRON + '</button>';
+  const regSection = (sec, titre, corps) => '<section class="reg-sec" id="reg-sec-' + sec + '" data-sec="' + sec + '" aria-labelledby="reg-titre-' + sec + '" hidden>' +
+    '<div class="reg-barre"><button type="button" class="reg-retour presse" data-reg-retour="1" aria-label="Retour au profil"><svg class="chev chev-g" viewBox="0 0 8 13" aria-hidden="true"><path d="M6.5 1.5 1.5 6.5 6.5 11.5"/></svg><span>Profil</span></button></div>' +
+    '<h2 class="reg-titre" id="reg-titre-' + sec + '" tabindex="-1">' + esc(titre) + '</h2>' + corps + '</section>';
+  /* les rubriques présentes sur CE service, dans l'ordre de REG_SECTIONS */
+  const regPresentes = () => REG_SECTIONS.filter(k => (k !== 'entreprise' || CAP.espaces) && (k !== 'notifications' || CAP.notifications) && (k !== 'compte' || CAP.compte));
+  function montrerSection(sec) {
+    const vue = $('vue-reglages'); if (!vue || !$('reg-accueil')) return;
+    const presentes = regPresentes();
+    const voulue = presentes.includes(sec) ? sec : null;
+    /* au bureau, la colonne de droite n'est jamais vide : sans rubrique demandée, la première */
+    const montree = voulue || (largeBureau.matches ? presentes[0] : null);
+    vue.dataset.sec = voulue || '';
+    vue.querySelectorAll('.reg-sec').forEach(x => { x.hidden = x.dataset.sec !== montree; });
+    vue.querySelectorAll('[data-reg-sec]').forEach(b => { if (b.dataset.regSec === montree && largeBureau.matches) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); });
+    if (voulue && !largeBureau.matches) { window.scrollTo(0, 0); const t = $('reg-titre-' + voulue); if (t) t.focus({ preventScroll: true }); }
+  }
+  largeBureau.addEventListener('change', () => { if (etat.route && etat.route.vue === 'reglages') montrerSection(etat.route.sec || null); });
   function rendreReglages() {
-    if (CAP.identifiants) chargerDemandes();   // le compteur des demandes reçues, sur « Ajouter un contact »
+    if (CAP.identifiants) chargerDemandes();   // le compteur des demandes reçues, sur « Contacts »
     Object.assign(reg, { conf: null, confErreur: '', stock: null, stockErreur: '', propos: null, proposErreur: '', occupe: false, notif: null, notifLecture: '', notifErreur: '', notifMsg: '', notifOccupe: false, exportMsg: '', exportErreur: '', exportOccupe: false });
-    $('vue-reglages').innerHTML = '<div class="entete-vue"></div><h1 class="grand-titre" id="titre-reglages">Réglages</h1>' +
-      '<div class="carte" id="reg-profil"></div>' +
-      (CAP.espaces ? '<div class="rubrique"><span>Entreprise</span><span id="reg-esp-n"></span></div><div class="carte" id="reg-esp"></div><div class="rubrique"><span>Abonnement</span></div><div class="carte" id="reg-abo"></div>' : '') +
-      '<div class="rubrique"><span>Confidentialité</span></div><div class="carte" id="reg-conf"></div>' +
-      (CAP.notifications ? '<div class="rubrique"><span>Notifications</span></div><div class="carte" id="reg-notif"></div>' : '') +
-      '<div class="rubrique"><span>Contacts</span></div><div class="carte">' +
-        '<button type="button" class="reglage presse" id="reg-contact">' + icone('i-groupe') + '<span class="reglage-texte">Ajouter un contact<small>' + (CAP.identifiants ? 'Par son identifiant, son numéro ou un lien' : 'Par un lien d\'invitation') + '</small></span>' +
-          (CAP.identifiants ? '<span class="reglage-valeur" id="reg-demandes-n" aria-label="demandes reçues"></span>' : '') + CHEVRON + '</button>' +
-        '<button type="button" class="reglage presse" id="reg-bloques"><span class="reglage-texte">Contacts bloqués</span><span class="reglage-valeur" id="reg-bloques-n"></span>' + CHEVRON + '</button></div>' +
-      '<div class="rubrique"><span>Appareils</span></div><div class="carte"><button type="button" class="reglage presse" id="reg-autres"><span class="reglage-texte">Déconnecter les autres appareils<small>Ta session reste ouverte ici ; les autres doivent se reconnecter.</small></span></button></div>' +
-      '<div class="rubrique"><span>Stockage</span></div><div class="carte carte-pad" id="reg-stock"></div>' +
-      (CAP.compte ? '<div class="rubrique"><span>Compte</span></div><div class="carte" id="reg-compte"></div>' : '') +
-      '<div class="rubrique"><span>À propos</span></div><div class="carte carte-pad" id="reg-apropos"></div>' +
-      '<div class="carte"><button type="button" class="reglage presse danger" id="reg-sortir"><span class="reglage-texte">Se déconnecter</span></button></div>' +
+    $('vue-reglages').innerHTML = '<div class="entete-vue"></div><h1 class="grand-titre" id="titre-reglages">Profil</h1>' +
+      '<div class="reg-grille"><div class="reg-accueil" id="reg-accueil">' +
+        '<div id="reg-profil"></div>' +
+        '<div class="carte reg-menu">' +
+          (CAP.espaces ? regLigne('entreprise', 'indigo', 'i-entreprise', 'Entreprise et abonnement', 'reg-v-entreprise') : '') +
+          regLigne('confidentialite', 'bleu', 'i-cadenas', 'Confidentialité') +
+          (CAP.notifications ? regLigne('notifications', 'rouge', 'i-cloche', 'Notifications', 'reg-v-notif') : '') +
+          regLigne('contacts', 'vert', 'i-groupe', 'Contacts', 'reg-demandes-n') +
+        '</div><div class="carte reg-menu">' +
+          regLigne('appareils', 'gris', 'i-appareil', 'Appareils connectés') +
+          regLigne('stockage', 'sarcelle', 'i-disque', 'Stockage', 'reg-v-stock') +
+          (CAP.compte ? regLigne('compte', 'bleu', 'i-personne', 'Mes données et mon compte') : '') +
+          regLigne('apropos', 'gris', 'i-info', 'À propos', 'reg-v-apropos') +
+        '</div>' +
+        '<div class="carte"><button type="button" class="reglage presse danger" id="reg-sortir"><span class="reg-tuile t-rouge" aria-hidden="true">' + icone('i-sortie') + '</span><span class="reglage-texte">Se déconnecter</span></button></div>' +
+      '</div><div class="reg-detail">' +
+        (CAP.espaces ? regSection('entreprise', 'Entreprise et abonnement', '<div class="rubrique"><span>Mes espaces</span><span id="reg-esp-n"></span></div><div class="carte" id="reg-esp"></div><div class="rubrique"><span>Abonnement</span></div><div class="carte" id="reg-abo"></div>') : '') +
+        regSection('confidentialite', 'Confidentialité', '<div class="carte" id="reg-conf"></div>') +
+        (CAP.notifications ? regSection('notifications', 'Notifications', '<div class="carte" id="reg-notif"></div>') : '') +
+        regSection('contacts', 'Contacts', '<div class="carte">' +
+          '<button type="button" class="reglage presse" id="reg-contact">' + icone('i-contact-plus') + '<span class="reglage-texte">Ajouter un contact<small>' + (CAP.identifiants ? 'Par son identifiant, son numéro ou un lien' : 'Par un lien d\'invitation') + '</small></span>' + CHEVRON + '</button>' +
+          '<button type="button" class="reglage presse" id="reg-bloques"><span class="reglage-texte">Contacts bloqués</span><span class="reglage-valeur" id="reg-bloques-n"></span>' + CHEVRON + '</button></div>') +
+        regSection('appareils', 'Appareils connectés', '<div class="carte"><button type="button" class="reglage presse" id="reg-autres"><span class="reglage-texte">Déconnecter les autres appareils<small>Ta session reste ouverte ici ; les autres doivent se reconnecter.</small></span></button></div>') +
+        regSection('stockage', 'Stockage', '<div class="carte carte-pad" id="reg-stock"></div>') +
+        (CAP.compte ? regSection('compte', 'Mes données et mon compte', '<div class="carte" id="reg-compte"></div>') : '') +
+        regSection('apropos', 'À propos', '<div class="carte carte-pad" id="reg-apropos"></div>') +
+      '</div></div>' +
       '<p class="info-erreur" id="reg-erreur" role="alert" hidden></p>';
     peindreProfilReglage(); peindreConf(); peindreStock(); peindreApropos(); peindreBloquesN();
     if (CAP.espaces) peindreEspaces();
     if (CAP.notifications) peindreNotif();
     if (CAP.compte) peindreCompte();
+    montrerSection(etat.route && etat.route.vue === 'reglages' ? etat.route.sec || null : null);
     chargerReglages();
   }
   /* revenir sur la page (après avoir autorisé les notifications dans les réglages du navigateur, par exemple) relit l'état affiché dans Réglages */
@@ -2180,6 +2236,9 @@
   $('vue-reglages').addEventListener('click', async e => {
     const er = $('reg-erreur'), nette = () => { er.hidden = true; er.textContent = ''; }, dit = (x, defaut) => { er.textContent = phrase(x, defaut); er.hidden = false; };
     const bouton = e.target.closest('button'); if (!bouton) return;
+    /* une rubrique : au téléphone elle POUSSE sa page (le retour la referme) ; au bureau elle REMPLACE celle de droite (comme passer d'une conversation à l'autre) */
+    if (bouton.dataset.regSec) { const r = Object.assign({}, etat.route, { sec: bouton.dataset.regSec }); if (largeBureau.matches) remplacer(r); else if (!memeRoute(r, etat.route)) pousser(r); return; }
+    if (bouton.dataset.regRetour) { fermerCouche(); return; }
     if (bouton.id === 'reg-profil-bouton') { declencheur = bouton; ouvrirFeuille('profil'); return; }
     if (bouton.id === 'reg-contact' || bouton.id === 'reg-bloques') { declencheur = bouton; ouvrirFeuille('contact'); return; }
     if (bouton.dataset.espOuvrir) { declencheur = bouton; ouvrirFeuille('espace:' + bouton.dataset.espOuvrir); return; }

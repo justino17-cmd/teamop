@@ -26,6 +26,8 @@
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner (pas de navigateur, pas de dépendances du service). */
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const T = require('./outils-msg');
+/* ⛔ PROFIL EN RUBRIQUES (6 octobre 2026) : une carte de réglage n'est montrée que dans SA rubrique — on la touche comme la personne le ferait (« Profil › Confidentialité ») */
+const rubrique = async (S, sec) => { const pg = S.page || S; await pg.waitForFunction((x) => !!document.querySelector('[data-reg-sec="' + x + '"]'), sec, { timeout: 9000 }).catch(() => {}); await pg.evaluate((x) => { const b = document.querySelector('[data-reg-sec="' + x + '"]'); if (b) b.click(); }, sec); await pg.waitForFunction((x) => { const s = document.getElementById('reg-sec-' + x); return !!s && !s.hidden; }, sec, { timeout: 9000 }).catch(() => {}); };
 const { fauxStripe } = require('./outils-stripe');
 const { v, vrai, fin } = T.compteur();
 T.sauterSiSansDependances();
@@ -187,7 +189,7 @@ const localParis = (t) => { const p = Object.fromEntries(new Intl.DateTimeFormat
 
     /* ═══ A. UNE PERSONNE GRATUITE TOUCHE « PROGRAMMER » : LA FEUILLE DU FORFAIT, LE PAIEMENT, LE RETOUR ═══════════════════════════════════════════ */
     console.log('── A. Perso touche « Programmer » : la feuille de Perso+, le rythme, « S\'abonner », le retour de Stripe ──');
-    await onglet(A, 'reglages');
+    await onglet(A, 'reglages'); await rubrique(A, 'entreprise');
     await verifier('Réglages › Abonnement : une ligne « Perso+ » dit ce que la personne peut prendre — « Pour organiser des réunions · 5 € par mois » (le nom et le prix viennent du service)', A,
       () => !!document.getElementById('reg-pp') && /Perso\+\s*Pour organiser des réunions · 5 € par mois/.test(document.getElementById('reg-pp').textContent), null, 12000, () => lire(A, '#reg-abo'));
     await onglet(A, 'reunions');
@@ -211,7 +213,7 @@ const localParis = (t) => { const p = Object.fromEntries(new Intl.DateTimeFormat
     v('… et la personne n\'est PAS encore abonnée : payer commence chez Stripe (aucune ligne d\'abonnement)', [nb('SELECT COUNT(*) AS n FROM abonnement_perso WHERE abonnement IS NOT NULL'), (await P.alice.get('/api/moi/perso-plus')).j.formule], [0, 'perso']);
     /* le paiement est RÉGLÉ chez Stripe, la personne revient sur l'application par l'adresse que Stripe lui rend */
     fake.payer(session.id);
-    await A.page.goto(A.base + '/?abo=retour&p=1#reglages');
+    await A.page.goto(A.base + '/?abo=retour&p=1#reglages/entreprise');
     await verifier('⛔ de retour de Stripe : la feuille RELIT chez Stripe — « Abonnement confirmé par Stripe : tu peux organiser des réunions. » — et montre l\'abonnement actif', A,
       () => document.documentElement.classList.contains('feuille-ouverte') && /Abonnement confirmé par Stripe : tu peux organiser des réunions\./.test(document.getElementById('info-corps').textContent) && /Actif/.test(document.getElementById('info-corps').textContent), null, 15000, () => texteCorps(A));
     v('… le SERVICE dit la même chose (la page n\'a pas cru son propre retour) : Alice est Perso+, elle peut organiser', await P.alice.get('/api/moi/perso-plus').then(r => [r.j.formule, r.j.organiser, r.j.abonnement && r.j.abonnement.statut]), ['perso_plus', true, 'active']);
@@ -244,7 +246,7 @@ const localParis = (t) => { const p = Object.fromEntries(new Intl.DateTimeFormat
     await capture(A, 'pp4-reunion-dix');
     await largeur(A, 'fiche d\'une réunion complète');
     await fermerFeuille(A);
-    await onglet(A, 'reglages');
+    await onglet(A, 'reglages'); await rubrique(A, 'entreprise');
     await verifier('Réglages › Abonnement : la ligne « Perso+ » dit « Abonnement actif · prochaine échéance le … » (et plus le prix)', A,
       () => /Perso\+\s*Abonnement actif · prochaine échéance le /.test((document.getElementById('reg-pp') || {}).textContent || '') && !/€/.test(document.getElementById('reg-pp').textContent), null, 12000, () => lire(A, '#reg-abo'));
 
@@ -326,7 +328,7 @@ const localParis = (t) => { const p = Object.fromEntries(new Intl.DateTimeFormat
     await capture(A, 'pp8-paiement-en-retard');
     await largeur(A, 'feuille Perso+ (paiement en retard)');
     await fermerFeuille(A);
-    await onglet(A, 'reglages');
+    await onglet(A, 'reglages'); await rubrique(A, 'entreprise');
     await verifier('Réglages › Abonnement : la ligne « Perso+ » dit « Paiement en retard : à régler »', A, () => /Perso\+\s*Paiement en retard : à régler/.test((document.getElementById('reg-pp') || {}).textContent || ''), null, 12000, () => lire(A, '#reg-abo'));
     /* le paiement est RÉGLÉ chez Stripe ; la personne touche « J'ai réglé — vérifier » dans la feuille, ouverte depuis Réglages */
     fake.statut(sb.id, 'active');
@@ -359,7 +361,7 @@ const localParis = (t) => { const p = Object.fromEntries(new Intl.DateTimeFormat
       const D = await ouvrir(b, svc.base, PROFILS.iphone); D.nom = 'Dora (iPhone)'; tous.push(D);
       const jusque = (cond, ms) => T.attendre(cond, ms || 12000, 50);
       const feuilleSuppression = async (etape) => {
-        await onglet(D, 'reglages');
+        await onglet(D, 'reglages'); await rubrique(D, 'compte');
         await toucher(D, '#reg-supprimer');
         await verifier(etape + ' : la feuille « Supprimer mon compte » est affichée en entier (population : ce qui part, ce qui reste, la case, le bouton)', D,
           () => document.getElementById('feuille-titre').textContent === 'Supprimer mon compte' && !!document.getElementById('sp-case') && /Ce qui sera effacé/.test(document.getElementById('info-corps').textContent) && !!document.getElementById('sp-oui'), null, 12000, () => texteCorps(D));

@@ -133,7 +133,7 @@ function creerPerso(b) {
     if (!ouvert()) throw erreur('abonnement_non_ouvert');
     const a = stockage.abonnementPersoLire(personne);
     if (!a || !a.client || !ID_CLIENT.test(a.client)) throw erreur('pas_d_abonnement');
-    const ps = await stripe('POST', '/v1/billing_portal/sessions', [['customer', a.client], ['return_url', origine + '/?abo=portail&p=1#reglages']]);
+    const ps = await stripe('POST', '/v1/billing_portal/sessions', [['customer', a.client], ['return_url', origine + '/?abo=portail&p=1#reglages/entreprise']]);
     const u = url(ps.url);
     if (!u) throw erreur('reponse_illisible');
     return { url: u };
@@ -176,7 +176,7 @@ function creerPerso(b) {
         ['client_reference_id', REF + personne],
         ['metadata[produit]', 'opmsg'], ['metadata[opmsg_personne]', personne],
         ['subscription_data[metadata][produit]', 'opmsg'], ['subscription_data[metadata][opmsg_personne]', personne],
-        ['success_url', origine + '/?abo=retour&p=1#reglages'], ['cancel_url', origine + '/?abo=annule&p=1#reglages'],
+        ['success_url', origine + '/?abo=retour&p=1#reglages/entreprise'], ['cancel_url', origine + '/?abo=annule&p=1#reglages/entreprise'],
         ['locale', 'fr'],
       ];
       if (adresse) paires.push(['customer_email', adresse]);

@@ -229,7 +229,7 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
     if (!actif()) throw erreur('abonnement_non_ouvert');
     const a = stockage.abonnementLire(espace);
     if (!a || !a.client || !ID_CLIENT.test(a.client)) throw erreur('pas_d_abonnement');
-    const ps = await stripe('POST', '/v1/billing_portal/sessions', [['customer', a.client], ['return_url', origine + '/?abo=portail&e=' + espace + '#reglages']]);
+    const ps = await stripe('POST', '/v1/billing_portal/sessions', [['customer', a.client], ['return_url', origine + '/?abo=portail&e=' + espace + '#reglages/entreprise']]);
     const u = url(ps.url);
     if (!u) throw erreur('reponse_illisible');
     return { url: u };
@@ -279,7 +279,7 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
         ['client_reference_id', 'opmsg:' + espace],
         ['metadata[produit]', 'opmsg'], ['metadata[opmsg_espace]', espace],
         ['subscription_data[metadata][produit]', 'opmsg'], ['subscription_data[metadata][opmsg_espace]', espace],
-        ['success_url', origine + '/?abo=retour&e=' + espace + '#reglages'], ['cancel_url', origine + '/?abo=annule&e=' + espace + '#reglages'],
+        ['success_url', origine + '/?abo=retour&e=' + espace + '#reglages/entreprise'], ['cancel_url', origine + '/?abo=annule&e=' + espace + '#reglages/entreprise'],
         ['locale', 'fr'],
       ];
       if (adresse) paires.push(['customer_email', adresse]);

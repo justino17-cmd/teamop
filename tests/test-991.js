@@ -136,7 +136,7 @@ const tick = () => new Promise(r => setImmediate(r));
       v('le tarif ANNUEL est celui de la configuration, UN siège, la référence et la métadonnée désignent la personne', [paire('line_items[0][price]'), paire('line_items[0][quantity]'), paire('client_reference_id'), paire('metadata[opmsg_personne]'), paire('subscription_data[metadata][opmsg_personne]'), paire('subscription_data[metadata][produit]')],
         [PRIX_PP.annuel, '1', 'opmsg-perso:' + x.id, x.id, x.id, 'opmsg']);
       v('⛔ JAMAIS la métadonnée `espace` (celle qu\'OP GESTION lit pour rattacher un abonnement à une entreprise), ni `opmsg_espace`, ni un tarif de Messages Pro', [poste.paires.filter(p => /(^|\[)(opmsg_)?espace\]?$/.test(p[0])).length, poste.paires.some(p => Object.values(PRIX_PRO).includes(p[1]))], [0, false]);
-      v('les adresses de retour disent « personne » (`p=1`), jamais un espace', [paire('success_url'), paire('cancel_url')], ['http://x.test/?abo=retour&p=1#reglages', 'http://x.test/?abo=annule&p=1#reglages']);
+      v('les adresses de retour disent « personne » (`p=1`), jamais un espace', [paire('success_url'), paire('cancel_url')], ['http://x.test/?abo=retour&p=1#reglages/entreprise', 'http://x.test/?abo=annule&p=1#reglages/entreprise']);
       v('⛔ sans adresse confirmée (un compte par numéro n\'en a pas), aucune `customer_email` n\'est envoyée : Checkout la demande lui-même', paire('customer_email'), undefined);
       const r2 = await F.perso.paiement({ personne: x.id, cycle: 'annuel', origine: 'http://x.test' });
       v('une session encore OUVERTE est réutilisée (même adresse, `reprise`), pas doublée', [r2.url === r1.url, r2.reprise, fake.sessionsOuvertes().length], [true, true, 1]);
@@ -153,7 +153,7 @@ const tick = () => new Promise(r => setImmediate(r));
       let doublon = null; try { await F.perso.paiement({ personne: x.id, cycle: 'mensuel', origine: 'http://x.test' }); } catch (e) { doublon = e; }
       vrai('⛔ un abonnement qui vit : `abonnement_existant`, AVEC le lien du portail (jamais un second prélèvement)', doublon && doublon.code === 'abonnement_existant' && /^https:\/\/billing\.stripe\.test\//.test(doublon.portail));
       const por = await F.perso.portail({ personne: x.id, origine: 'http://x.test' });
-      v('le portail : un client Stripe, une adresse de retour qui dit « personne »', [/^https:\/\/billing/.test(por.url), (fake.dernier('POST', /billing_portal/).paires.find(p => p[0] === 'return_url') || [])[1]], [true, 'http://x.test/?abo=portail&p=1#reglages']);
+      v('le portail : un client Stripe, une adresse de retour qui dit « personne »', [/^https:\/\/billing/.test(por.url), (fake.dernier('POST', /billing_portal/).paires.find(p => p[0] === 'return_url') || [])[1]], [true, 'http://x.test/?abo=portail&p=1#reglages/entreprise']);
       let sansAbo = null; try { await F.perso.portail({ personne: pers('Rien').id, origine: 'http://x.test' }); } catch (e) { sansAbo = e.code; }
       v('le portail sans paiement fait avant : `pas_d_abonnement`', sansAbo, 'pas_d_abonnement');
       v('l\'état ne montre ni identifiant de tarif, de client ni d\'abonnement', /price_|cus_|sub_/.test(JSON.stringify(F.perso.etat(x.id))), false);

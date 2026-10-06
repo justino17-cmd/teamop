@@ -15,6 +15,8 @@
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner (pas de navigateur, pas de dépendances du service). */
 const fs = require('fs'), path = require('path'), crypto = require('crypto'), zlib = require('zlib');
 const T = require('./outils-msg');
+/* ⛔ PROFIL EN RUBRIQUES (6 octobre 2026) : une carte de réglage n'est montrée que dans SA rubrique — on la touche comme la personne le ferait (« Profil › Confidentialité ») */
+const rubrique = async (S, sec) => { const pg = S.page || S; await pg.waitForFunction((x) => !!document.querySelector('[data-reg-sec="' + x + '"]'), sec, { timeout: 9000 }).catch(() => {}); await pg.evaluate((x) => { const b = document.querySelector('[data-reg-sec="' + x + '"]'); if (b) b.click(); }, sec); await pg.waitForFunction((x) => { const s = document.getElementById('reg-sec-' + x); return !!s && !s.hidden; }, sec, { timeout: 9000 }).catch(() => {}); };
 const F = require('./outils-pieces');
 const C = T.compteur(), { v, vrai, fin } = C;
 T.sauterSiSansDependances();
@@ -95,6 +97,11 @@ async function choisirDansPlus(S, quoi, fichier) {
   await S.page.waitForFunction(() => !document.getElementById('menu-fond').hidden, null, { timeout: 4000 });
   await dormir(450);                                       // la page ignore un clic dans les 350 ms qui suivent l'ouverture d'un menu (l'écho du geste qui l'a ouvert)
   await choisir(S, () => toucher(S, '#menu-msg [data-plus="' + quoi + '"]'), fichier);
+  /* ⛔ une photo choisie ne part plus d'elle-même (6 octobre 2026) : l'aperçu s'ouvre — la photo en grand, la légende — et c'est la flèche qui l'envoie (`sonde-opmessages-legende.js` le garde en détail) */
+  if (quoi === 'photo') {
+    await S.page.waitForFunction(() => { const e = document.getElementById('envoi-photos'); return !!e && !e.hidden && !!document.getElementById('ep-grande').getAttribute('src'); }, null, { timeout: 8000 });
+    await toucher(S, '#ep-envoyer');
+  }
 }
 async function choisir(S, geste, fichier) {
   const [fc] = await Promise.all([S.page.waitForEvent('filechooser', { timeout: 8000 }), geste()]);
@@ -286,6 +293,7 @@ async function parcours(b, ctx) {
       if (route.request().method() === 'POST') await route.fulfill({ status: 429, contentType: 'application/json', headers: { 'Retry-After': '30' }, body: JSON.stringify({ error: 'quota_atteint', retry: 30 }) });
       else await route.continue();
     });
+    await rubrique(A, 'confidentialite');
     await toucher(A, '[data-reg-cle="presence"]');
     await verifier('⛔ le service refuse (429) : l\'interrupteur NE tourne PAS, et la phrase le dit avec l\'attente', A, () => document.querySelector('[data-reg-cle="presence"]').getAttribute('aria-checked') === 'true' && /réessaie dans 30 s/.test(document.getElementById('reg-conf').textContent), null, 8000, () => lire(A, '#reg-conf'));
     await A.page.unroute('**/api/moi/confidentialite');
@@ -294,11 +302,14 @@ async function parcours(b, ctx) {
     await verifier('⛔ RÉCIPROQUE : Bruno ne voit plus Alice en ligne', B, nom => { const l = [...document.querySelectorAll('#liste-conv .conv')].find(x => x.querySelector('.conv-nom').textContent === nom); return !!l && !l.querySelector('.avatar.en-ligne'); }, NOMS.alice, 15000);
     await toucher(A, '[data-reg-cle="presence"]');
     await verifier('elle rallume : Bruno la revoit en ligne', B, nom => { const l = [...document.querySelectorAll('#liste-conv .conv')].find(x => x.querySelector('.conv-nom').textContent === nom); return !!l && !!l.querySelector('.avatar.en-ligne'); }, NOMS.alice, 15000);
-    await verifier('le stockage dit ce qui est utilisé sur 2 Go, avec sa jauge', A, () => /utilisés sur 2 Go/.test(document.getElementById('reg-stock').textContent) && !!document.querySelector('#reg-stock .jauge i'), null, 8000, () => lire(A, '#reg-stock'));
+    await rubrique(A, 'stockage');
+    await verifier('le stockage dit ce qui est utilisé sur 50 Go, avec sa jauge', A, () => /utilisés sur 50 Go/.test(document.getElementById('reg-stock').textContent) && !!document.querySelector('#reg-stock .jauge i'), null, 8000, () => lire(A, '#reg-stock'));
+    await rubrique(A, 'apropos');
     await verifier('« À propos » dit la version et les maximums', A, () => /version \d/.test(document.getElementById('reg-apropos').textContent) && /Au plus/.test(document.getElementById('reg-apropos').textContent), null, 8000, () => lire(A, '#reg-apropos'));
     await largeur(A, 'Réglages (rempli)');
     /* « Déconnecter les autres appareils » : une seconde session d'Alice, coupée */
     await connecter(C, 'alice');
+    await rubrique(A, 'appareils');
     await toucher(A, '#reg-autres');
     await verifier('une première touche DEMANDE confirmation (« Toucher encore »)', A, () => /Toucher encore/.test(document.getElementById('reg-autres').textContent), null, 3000, () => lire(A, '#reg-autres'));
     await toucher(A, '#reg-autres');
@@ -429,7 +440,7 @@ async function parcours(b, ctx) {
     v('⛔ aucun doublon au retour (chez Bruno, chez Alice), et UN seul avis « Pas de connexion » pendant toute la coupure', [(await photosMsg(B, 'de-autre')).length, (await photosMsg(A, 'de-moi')).length, (await A.page.evaluate(() => window.__avisVus.filter(t => /^Pas de connexion/.test(t)).length))], [msgPhotosB4 + 1, msgPhotosA1 + 1, 1]);
 
     /* ── 7. MA présence : la barre latérale ne dit plus « Disponible » quand elle est coupée ── */
-    await onglet(B, 'reglages');
+    await onglet(B, 'reglages'); await rubrique(B, 'confidentialite');
     await verifier('population : la barre latérale de Bruno dit « Disponible », point vert', B, () => document.getElementById('moi-statut-texte').textContent === 'Disponible' && !document.getElementById('moi-statut').classList.contains('masque'), null, 5000, () => lire(B, '#moi-statut'));
     const vert = await B.page.evaluate(() => getComputedStyle(document.querySelector('#moi-statut i')).backgroundColor);
     await toucher(B, '[data-reg-cle="presence"]');
