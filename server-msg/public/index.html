@@ -441,6 +441,36 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .reglage-texte small { font-size: 13px; color: var(--sub-meta); }
 .reglage-valeur { font-size: 15px; color: var(--sub-meta); }
 .reglage .chev { width: 8px; height: 13px; }
+/* ── PROFIL (6 octobre 2026) : le profil en tête, des lignes à pastille, une page par rubrique — Réglages d'iPhone ; au bureau, liste et rubrique côte à côte ──
+   Les pastilles sont des APLATS (l'icône blanche n'est pas du texte : 3:1 suffit) — chaque teinte est choisie pour tenir 3:1 et plus contre le blanc, jamais le vert vif d'iOS (2:1). */
+.reg-moi { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 18px 16px 16px; margin-bottom: 18px; border-radius: 12px; background: var(--card); color: var(--text); text-align: center; }
+.reg-moi .avatar { width: 88px; height: 88px; font-size: 32px; margin-bottom: 8px; }
+.reg-moi-nom { font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: .35px; max-width: 100%; overflow-wrap: anywhere; }
+.reg-moi-ident { font-size: 15px; color: var(--sub-meta); font-variant-numeric: tabular-nums; }
+.reg-moi-statut { font-size: 15px; color: var(--sub-meta); max-width: 100%; overflow-wrap: anywhere; }
+.reg-moi-modifier { margin-top: 8px; font-size: 15px; color: var(--accent-txt); }
+.reg-tuile { width: 29px; height: 29px; flex: none; border-radius: 7px; display: grid; place-items: center; color: #fff; }
+.reg-tuile .ic { width: 18px; height: 18px; stroke-width: 2; }
+.reg-tuile.t-bleu { background: #0a6fe0; } .reg-tuile.t-indigo { background: #5856d6; } .reg-tuile.t-rouge { background: #e5352b; }
+.reg-tuile.t-vert { background: #248a3d; } .reg-tuile.t-gris { background: #6e6e73; } .reg-tuile.t-sarcelle { background: #0e7c86; }
+.reg-menu .reglage { min-height: 48px; padding-block: 6px; }
+.reg-menu .reglage-texte { font-size: 17px; }
+.reg-menu .reglage-valeur { max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.reg-menu .reglage[aria-current="true"] { background: var(--sel, rgba(10,132,255,.16)); }
+.reg-barre { display: flex; align-items: center; min-height: 44px; margin: 0 0 2px -6px; }
+.reg-retour { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; min-width: 44px; padding: 0 6px; font-size: 17px; color: var(--accent-txt); }
+.reg-retour .chev-g { width: 10px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.reg-titre { margin: 0 4px 14px; font-size: 28px; line-height: 34px; font-weight: 700; letter-spacing: .36px; color: var(--text); outline: none; }
+/* au téléphone : la liste OU la rubrique — jamais les deux ; une rubrique ouverte cache le grand titre « Profil » (elle a le sien) */
+#vue-reglages[data-sec]:not([data-sec=""]) .reg-accueil, #vue-reglages[data-sec]:not([data-sec=""]) #titre-reglages { display: none; }
+@media (min-width: 1100px) {
+  #vue-reglages { max-width: 1120px; }
+  .reg-grille { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); gap: 28px; align-items: start; }
+  .reg-accueil { position: sticky; top: 12px; }
+  #vue-reglages[data-sec]:not([data-sec=""]) .reg-accueil, #vue-reglages[data-sec]:not([data-sec=""]) #titre-reglages { display: revert; }
+  .reg-barre { display: none; }
+  .reg-detail { min-width: 0; padding-top: 4px; }
+}
 .interrupteur { width: 51px; height: 31px; flex: none; border-radius: 999px; background: var(--toggle-off); position: relative; transition: background-color .25s; }
 .interrupteur::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.25); transition: transform .25s cubic-bezier(.32,.72,0,1); }
 .reglage[aria-checked="true"] .interrupteur { background: var(--vert); }
@@ -1310,6 +1340,13 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   <symbol id="i-repeter" viewBox="0 0 24 24"><path d="M4.5 11V9.5A3.5 3.5 0 0 1 8 6h10m0 0-2.5-2.5M18 6l-2.5 2.5M19.5 13v1.5A3.5 3.5 0 0 1 16 18H6m0 0 2.5-2.5M6 18l2.5 2.5"/></symbol>
   <symbol id="i-telecharger" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19.5h14"/></symbol>
   <symbol id="i-courriel" viewBox="0 0 24 24"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Zm0 .5 8 6 8-6"/></symbol>
+  <symbol id="i-personne" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.6"/><path d="M5 19.5c.9-3.4 3.7-5.2 7-5.2s6.1 1.8 7 5.2"/></symbol>
+  <symbol id="i-cloche" viewBox="0 0 24 24"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5H5l1.5-1.5ZM10 20.5a2.2 2.2 0 0 0 4 0"/></symbol>
+  <symbol id="i-cadenas" viewBox="0 0 24 24"><rect x="5.5" y="10.5" width="13" height="9.5" rx="2.2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5M12 14.3v2.2"/></symbol>
+  <symbol id="i-appareil" viewBox="0 0 24 24"><rect x="7" y="3.5" width="10" height="17" rx="2.4"/><path d="M11 17.5h2"/></symbol>
+  <symbol id="i-disque" viewBox="0 0 24 24"><ellipse cx="12" cy="6.5" rx="7" ry="2.8"/><path d="M5 6.5v11c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8v-11M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"/></symbol>
+  <symbol id="i-entreprise" viewBox="0 0 24 24"><path d="M4 20.5h16M6 20.5V5.5l7-2v17M13 9h5v11.5M8.6 8h1.8M8.6 11.5h1.8M8.6 15h1.8M15.3 12.5h1M15.3 16h1"/></symbol>
+  <symbol id="i-sortie" viewBox="0 0 24 24"><path d="M14 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2H14M10 12h10M16.5 8.5 20 12l-3.5 3.5"/></symbol>
 </svg>
 
 <!-- ⛔ L'ÉCRAN DE CONNEXION n'existe que dans la version servie par le service (la source de l'aperçu ne demande aucune connexion) : masqué ici, il n'est jamais affiché. -->

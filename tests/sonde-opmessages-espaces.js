@@ -20,6 +20,8 @@
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner (pas de navigateur, pas de dépendances du service). */
 const fs = require('fs'), os = require('os'), path = require('path'), crypto = require('crypto');
 const T = require('./outils-msg');
+/* ⛔ PROFIL EN RUBRIQUES (6 octobre 2026) : une carte de réglage n'est montrée que dans SA rubrique — on la touche comme la personne le ferait (« Profil › Confidentialité ») */
+const rubrique = async (S, sec) => { const pg = S.page || S; await pg.waitForFunction((x) => !!document.querySelector('[data-reg-sec="' + x + '"]'), sec, { timeout: 9000 }).catch(() => {}); await pg.evaluate((x) => { const b = document.querySelector('[data-reg-sec="' + x + '"]'); if (b) b.click(); }, sec); await pg.waitForFunction((x) => { const s = document.getElementById('reg-sec-' + x); return !!s && !s.hidden; }, sec, { timeout: 9000 }).catch(() => {}); };
 const { fauxStripe } = require('./outils-stripe');
 const { v, vrai, fin } = T.compteur();
 T.sauterSiSansDependances();
@@ -160,7 +162,7 @@ async function parcoursA(b, ctx) {
   await connecter(A, 'alice'); await connecter(B, 'bruno'); await connecter(D, 'dora'); await connecter(Z, 'chloe');
 
   console.log('── Réglages › Entreprise (au doigt, iPhone 393) ──');
-  await onglet(A, 'reglages');
+  await onglet(A, 'reglages'); await rubrique(A, 'entreprise');
   await verifier('la rubrique « Entreprise » paraît, sans aucun espace, avec sa commande « Créer ou rejoindre un espace » ; la rubrique « Abonnement » dit la formule', A,
     () => !!document.getElementById('reg-esp-gerer') && document.querySelectorAll('#reg-esp [data-esp-ouvrir]').length === 0 && /Ta formule/.test(document.getElementById('reg-abo').textContent), null, 10000, () => lire(A, '#vue-reglages'));
   await capture(A, 'a1-reglages');
@@ -210,7 +212,7 @@ async function parcoursA(b, ctx) {
   await fermerFeuille(B);
 
   console.log('\n── Un lien ouvert dans un onglet DÉJÀ ouvert (seul le fragment change) ──');
-  await onglet(D, 'reglages');
+  await onglet(D, 'reglages'); await rubrique(D, 'entreprise');
   await D.page.evaluate((l) => { location.hash = new URL(l).hash; }, lien);
   await verifier('⛔ Dora, déjà dans l\'application : la feuille « Entreprise » s\'ouvre avec le lien lu', D, () => document.getElementById('feuille-titre').textContent === 'Entreprise' && /Atelier Banc/.test((document.getElementById('en-apercu') || { textContent: '' }).textContent), null, 12000, () => texteCorps(D));
   await capture(D, 'd1-lien-onglet-ouvert');
@@ -220,7 +222,7 @@ async function parcoursA(b, ctx) {
   await verifier('Réglages › Entreprise de Dora liste l\'espace (membre, 3 membres)', D, () => /Atelier Banc/.test(document.getElementById('reg-esp').textContent) && /Membre · 3 membres/.test(document.getElementById('reg-esp').textContent), null, 8000, () => lire(D, '#reg-esp'));
 
   console.log('\n── Un lien ouvert PENDANT QUE la feuille « Entreprise » est déjà ouverte : il est lu, pas ignoré ──');
-  await onglet(Z, 'reglages'); await toucher(Z, '#reg-esp-gerer');
+  await onglet(Z, 'reglages'); await rubrique(Z, 'entreprise'); await toucher(Z, '#reg-esp-gerer');
   await verifier('population : Chloé a la feuille « Entreprise » ouverte, sans aperçu', Z, () => document.getElementById('feuille-titre').textContent === 'Entreprise' && !!document.getElementById('en-code') && document.getElementById('en-apercu').textContent === '', null, 8000, () => texteCorps(Z));
   await Z.page.evaluate((h) => { location.hash = h; }, new URL(lien).hash);
   await verifier('⛔ le lien arrive dans le champ et son aperçu paraît (qui invite, quel espace, combien de membres — pas leurs noms)', Z, () => /invitation=|^[A-Za-z0-9_-]{22}$/.test(document.getElementById('en-code').value) && /Alice Martin/.test(document.getElementById('en-apercu').textContent) && /Atelier Banc/.test(document.getElementById('en-apercu').textContent) && /\(3 membres\)/.test(document.getElementById('en-apercu').textContent) && !/Bruno|Dora/.test(document.getElementById('en-apercu').textContent), null, 12000, () => texteCorps(Z));
@@ -246,7 +248,7 @@ async function parcoursA(b, ctx) {
 
   console.log('\n── Un canal public : créé par Alice, vu et utilisé par Bruno ──');
   await retourListe(A);
-  await onglet(A, 'reglages');
+  await onglet(A, 'reglages'); await rubrique(A, 'entreprise');
   await toucher(A, '[data-esp-ouvrir]');
   await verifier('la feuille de l\'espace se rouvre depuis Réglages', A, feuilleOuverte, 'Espace', 8000, () => titreFeuille(A));
   await verifier('population : le formulaire de canal est là', A, () => !!document.getElementById('cn-nom'), null, 8000);
@@ -274,7 +276,7 @@ async function parcoursA(b, ctx) {
 
   console.log('\n── Un canal PRIVÉ : seuls ceux qu\'on y met le voient ; en retirer un le lui retire en direct ──');
   await retourListe(A); await retourListe(B);
-  await onglet(A, 'reglages'); await toucher(A, '[data-esp-ouvrir]');
+  await onglet(A, 'reglages'); await rubrique(A, 'entreprise'); await toucher(A, '[data-esp-ouvrir]');
   await verifier('la feuille de l\'espace', A, feuilleOuverte, 'Espace', 8000);
   await saisir(A, '#cn-nom', 'direction');
   await toucher(A, '[data-act="can-type"][data-prive="1"]');
@@ -301,7 +303,7 @@ async function parcoursA(b, ctx) {
   await fermerFeuille(A); await retourListe(A);
 
   console.log('\n── Les rôles : nommer, deux touches pour retirer, passer la propriété ──');
-  await onglet(A, 'reglages'); await toucher(A, '[data-esp-ouvrir]');
+  await onglet(A, 'reglages'); await rubrique(A, 'entreprise'); await toucher(A, '[data-esp-ouvrir]');
   await verifier('la feuille de l\'espace', A, feuilleOuverte, 'Espace', 8000);
   await verifier('population : trois contacts', A, () => document.querySelectorAll('#esp-contacts .contact').length === 3, null, 8000);
   const ligneBruno = A.page.locator('#esp-contacts .contact', { hasText: 'Bruno Petit' });
@@ -309,7 +311,7 @@ async function parcoursA(b, ctx) {
   await verifier('« Nommer admin » : Bruno porte le badge « Admin »', A, () => Array.from(document.querySelectorAll('#esp-contacts .contact')).some(e => /Bruno/.test(e.textContent) && /Admin/.test(e.textContent)), null, 10000, () => texteCorps(A));
   /* Bruno n'avait pas de feuille ouverte : il ouvre celle de l'espace, que le service lui rend maintenant en administrateur */
   await fermerFeuille(B);
-  await onglet(B, 'reglages'); await toucher(B, '[data-esp-ouvrir]');
+  await onglet(B, 'reglages'); await rubrique(B, 'entreprise'); await toucher(B, '[data-esp-ouvrir]');
   await verifier('Bruno administrateur : le formulaire de canal et les invitations sont là, pas le nom de l\'espace ni « Supprimer » (réservés au propriétaire)', B, () => document.getElementById('feuille-titre').textContent === 'Espace' && !!document.getElementById('cn-nom') && !!document.querySelector('[data-act="esp-lien-creer"]') && !document.getElementById('esp-nom') && !document.querySelector('[data-act="esp-dissoudre"]') && !!document.querySelector('[data-act="esp-quitter"]'), null, 12000, () => texteCorps(B));
   v('⛔ Bruno (administrateur, pas propriétaire) ne voit AUCUN bouton pour retirer ou rétrograder Alice (la propriétaire)', await B.page.evaluate(() => { const l = Array.from(document.querySelectorAll('#esp-contacts .contact')).find(e => /Alice/.test(e.textContent)); return l ? Array.from(l.querySelectorAll('button')).map(x => x.textContent) : null; }), ['Écrire']);
   await fermerFeuille(B);
@@ -339,7 +341,7 @@ async function parcoursA(b, ctx) {
   await verifier('⛔ Alice retire Bruno (administrateur) du canal : permis — il en sort EN DIRECT, sa conversation se ferme', B, () => document.documentElement.dataset.conv !== '1' && /Tu n'es plus dans cette conversation/.test(document.getElementById('mot').textContent), null, 12000, () => etatPage(B));
   v('… dans la base, le canal privé n\'a plus que ses deux autres membres (Alice et Dora : trois avant le retrait)', sql('SELECT COUNT(*) AS n FROM membre WHERE conv = (SELECT conv FROM canal WHERE prive = 1) AND quitte_le IS NULL').n, 2);
   await fermerFeuille(B); await retourListe(B); await fermerFeuille(A); await retourListe(A);
-  await onglet(A, 'reglages'); await toucher(A, '[data-esp-ouvrir]');
+  await onglet(A, 'reglages'); await rubrique(A, 'entreprise'); await toucher(A, '[data-esp-ouvrir]');
   await verifier('la feuille de l\'espace, de nouveau', A, feuilleOuverte, 'Espace', 8000, () => titreFeuille(A));
   await verifier('population : trois contacts', A, () => document.querySelectorAll('#esp-contacts .contact').length === 3, null, 8000);
 
@@ -360,7 +362,7 @@ async function parcoursA(b, ctx) {
   await verifier('⛔ Dora l\'apprend EN DIRECT : Réglages › Entreprise ne liste plus l\'espace', D, () => !/Atelier Banc/.test(document.getElementById('reg-esp').textContent), null, 12000, () => lire(D, '#reg-esp'));
   await capture(A, 'a6-roles');
   /* ⛔ un non-membre ne voit rien : Chloé n'a aucun espace */
-  await onglet(Z, 'reglages');
+  await onglet(Z, 'reglages'); await rubrique(Z, 'entreprise');
   v('⛔ Chloé, qui n\'est dans aucun espace, ne voit RIEN de l\'entreprise : Réglages › Entreprise ne montre que « Créer ou rejoindre »', await Z.page.evaluate(() => [document.querySelectorAll('#reg-esp [data-esp-ouvrir]').length, /Atelier|Alice|Bruno/.test(document.getElementById('reg-esp').textContent)]), [0, false]);
   /* passer la propriété */
   await ligneBruno.locator('[data-act="esp-transferer"]').tap(); A.gestes++;
@@ -373,7 +375,7 @@ async function parcoursA(b, ctx) {
   await verifier('la seconde touche quitte : la feuille se ferme, l\'espace n\'est plus dans Réglages d\'Alice', A, () => !document.documentElement.classList.contains('feuille-ouverte') && !/Atelier Banc/.test(document.getElementById('reg-esp').textContent), null, 12000, () => lire(A, '#reg-esp'));
 
   console.log('\n── Le propriétaire gère son espace : renommer, révoquer un lien (que personne ne peut plus ouvrir), supprimer un canal, supprimer l\'espace ──');
-  await onglet(B, 'reglages'); await toucher(B, '[data-esp-ouvrir]');
+  await onglet(B, 'reglages'); await rubrique(B, 'entreprise'); await toucher(B, '[data-esp-ouvrir]');
   await verifier('Bruno, devenu propriétaire, ouvre l\'espace : le nom est modifiable et « Supprimer l\'espace » existe (réservés au propriétaire)', B, () => document.getElementById('feuille-titre').textContent === 'Espace' && !!document.getElementById('esp-nom') && !!document.querySelector('[data-act="esp-dissoudre"]') && /Propriétaire/.test(document.querySelector('#info-corps .info-sous').textContent), null, 12000, () => texteCorps(B));
   await saisir(B, '#esp-nom', 'Atelier Banc SARL'); await toucher(B, '[data-act="esp-renommer"]');
   await verifier('renommer l\'espace : le nom change dans la feuille ET dans Réglages', B, () => /Atelier Banc SARL/.test(document.querySelector('#info-corps .info-nom').textContent) && /Atelier Banc SARL/.test(document.getElementById('reg-esp').textContent), null, 10000, () => texteCorps(B));
@@ -409,7 +411,7 @@ async function parcoursA(b, ctx) {
   await verifier('⛔ Chloé l\'apprend EN DIRECT : le canal n\'est plus dans sa liste', Z, () => !Array.from(document.querySelectorAll('#liste-conv .conv-nom')).some(e => /# annonces générales/.test(e.textContent)), null, 12000, () => lire(Z, '#liste-conv'));
   v('… dans la base, plus aucun canal public ne porte ce nom : zéro canal restant (population : la conversation « direction » avait déjà disparu avec ses membres)', sql(`SELECT COUNT(*) AS n FROM canal`).n, 0);
   /* supprimer l'espace : deux touches ; il disparaît de Réglages, chez Bruno et en direct chez Chloé */
-  await onglet(B, 'reglages'); await toucher(B, '[data-esp-ouvrir]');
+  await onglet(B, 'reglages'); await rubrique(B, 'entreprise'); await toucher(B, '[data-esp-ouvrir]');
   await verifier('la feuille de l\'espace', B, feuilleOuverte, 'Espace', 8000, () => titreFeuille(B));
   await toucher(B, '[data-act="esp-dissoudre"]');
   await verifier('⛔ supprimer l\'espace demande deux touches (la première le dit)', B, () => /Toucher encore pour supprimer l'espace/.test(document.getElementById('info-corps').textContent), null, 4000);
@@ -447,7 +449,7 @@ async function parcoursB(b, ctx) {
   await B.page.waitForFunction(() => { const a = document.getElementById('app'); return a && !a.hidden; }, null, { timeout: 15000 });
 
   console.log('── Réglages › Abonnement (Alice, iPhone 393) : l\'état avant de payer ──');
-  await onglet(A, 'reglages');
+  await onglet(A, 'reglages'); await rubrique(A, 'entreprise');
   await verifier('Réglages › Abonnement : « Ta formule Messages Perso » et l\'espace, que je gère', A, () => /Messages Perso/.test(document.getElementById('reg-abo').textContent) && /Entreprise Un/.test(document.getElementById('reg-abo').textContent) && /Tu gères l'abonnement/.test(document.getElementById('reg-abo').textContent), null, 12000, () => lire(A, '#reg-abo'));
   await capture(A, 'p1-reglages-abonnement');
   await toucher(A, '[data-esp-abo]');
@@ -473,7 +475,7 @@ async function parcoursB(b, ctx) {
 
   console.log('\n── Le retour de Stripe : la page relit CHEZ STRIPE, elle ne croit pas l\'adresse ──');
   /* d'abord un retour SANS paiement réglé : la page ne dit pas « payé » */
-  await A.page.goto(A.base + '/?abo=retour&e=' + EB + '#reglages');
+  await A.page.goto(A.base + '/?abo=retour&e=' + EB + '#reglages/entreprise');
   await verifier('⛔ de retour AVANT que Stripe ait confirmé : la feuille Abonnement s\'ouvre et dit que Stripe n\'a pas encore confirmé — pas « payé »', A, () => document.getElementById('feuille-titre').textContent === 'Abonnement' && /Stripe n'a pas encore confirmé le paiement/.test(document.getElementById('info-corps').textContent) && /Messages Perso/.test(document.getElementById('info-corps').textContent), null, 15000, () => texteCorps(A));
   v('… et l\'adresse a été nettoyée (ni ?abo ni espace dans la barre)', /abo=|e_[0-9a-f]{32}/.test(await A.page.evaluate(() => location.href)), false);
   const sb = fake.payer(session.id, { statut: 'active' });
@@ -486,13 +488,13 @@ async function parcoursB(b, ctx) {
   await verifier('« Gérer l\'abonnement » : la page part vers le portail de Stripe (https)', A, () => /^https:\/\/billing\.stripe\.test\/p\/session\//.test(location.href), null, 15000, () => '' + A.navigations.join(','));
   /* le retour du portail relit aussi */
   fake.quantite(sb.id, 4);
-  await A.page.goto(A.base + '/?abo=portail&e=' + EB + '#reglages');
+  await A.page.goto(A.base + '/?abo=portail&e=' + EB + '#reglages/entreprise');
   await verifier('⛔ de retour du portail (4 places maintenant chez Stripe) : la feuille relit et montre 4 places', A, () => document.getElementById('feuille-titre').textContent === 'Abonnement' && /Actif · 4 places/.test(document.getElementById('info-corps').textContent), null, 15000, () => texteCorps(A));
   v('… et rien ne parle de dépassement : quatre places pour deux membres (population : le faux Stripe a été relu)', await A.page.evaluate(() => [!!document.getElementById('ab-depasse'), /Actif · 4 places/.test(document.getElementById('info-corps').textContent)]), [false, true]);
 
   console.log('\n── Des places baissées SOUS le nombre de membres : personne n\'est retiré, l\'administrateur lit « 2 membres pour 1 place » ──');
   fake.quantite(sb.id, 1);
-  await A.page.goto(A.base + '/?abo=portail&e=' + EB + '#reglages');
+  await A.page.goto(A.base + '/?abo=portail&e=' + EB + '#reglages/entreprise');
   await verifier('⛔ de retour du portail (UNE place chez Stripe pour deux membres) : la feuille Abonnement dit « 2 membres pour 1 place », que personne n\'est retiré, et que seul le propriétaire — Alice — ajoute des places (« Gérer l\'abonnement »)', A,
     () => document.getElementById('feuille-titre').textContent === 'Abonnement' && /Actif · 1 place(?!s)/.test(document.getElementById('info-corps').textContent) && /2 membres pour 1 place/.test((document.getElementById('ab-depasse') || { textContent: '' }).textContent) && /Personne n'est retiré/.test(document.getElementById('ab-depasse').textContent) && /Gérer l'abonnement/.test(document.getElementById('ab-depasse').textContent), null, 15000, () => texteCorps(A));
   await capture(A, 'p6-places-depassees');
@@ -502,7 +504,7 @@ async function parcoursB(b, ctx) {
     () => document.getElementById('feuille-titre').textContent === 'Espace' && /2 membres pour 1 place/.test((document.getElementById('esp-depasse') || { textContent: '' }).textContent) && /Ajoute des places/.test(document.getElementById('esp-depasse').textContent), null, 12000, () => texteCorps(A));
   v('… sans retirer personne : les deux membres sont toujours dans l\'espace (population)', sql('SELECT COUNT(*) AS n FROM espace_membre WHERE espace = ?', EB).n, 2);
   fake.quantite(sb.id, 4);
-  await A.page.goto(A.base + '/?abo=portail&e=' + EB + '#reglages');
+  await A.page.goto(A.base + '/?abo=portail&e=' + EB + '#reglages/entreprise');
   await verifier('… remonté à 4 places chez Stripe : l\'avertissement disparaît de la feuille Abonnement', A, () => document.getElementById('feuille-titre').textContent === 'Abonnement' && /Actif · 4 places/.test(document.getElementById('info-corps').textContent) && !document.getElementById('ab-depasse'), null, 15000, () => texteCorps(A));
 
   console.log('\n── Les fonctions Pro : marchent payées, refusent en disant pourquoi à l\'administrateur seul ──');
@@ -515,7 +517,7 @@ async function parcoursB(b, ctx) {
   await retourListe(A);
   /* l'impayé */
   fake.statut(sb.id, 'past_due');
-  await onglet(A, 'reglages'); await toucher(A, '[data-esp-abo]');
+  await onglet(A, 'reglages'); await rubrique(A, 'entreprise'); await toucher(A, '[data-esp-abo]');
   await verifier('la feuille Abonnement', A, () => document.getElementById('feuille-titre').textContent === 'Abonnement', null, 10000);
   await toucher(A, '[data-act="abo-relire"]');
   await verifier('⛔ un paiement en retard : encore Pro, en SURSIS — la date est dite, et le remède', A, () => /Paiement en retard : les fonctions Pro restent disponibles jusqu'au/.test(document.getElementById('info-corps').textContent) && /Stripe signale un paiement en retard/.test(document.getElementById('info-corps').textContent), null, 15000, () => texteCorps(A));
@@ -537,7 +539,7 @@ async function parcoursB(b, ctx) {
   await verifier('⛔ supprimer l\'espace avec un abonnement qui court encore (en retard) : REFUSÉ, avec la marche à suivre (résilier d\'abord)', A, () => /Un abonnement court encore pour cet espace/.test(document.getElementById('info-erreur').textContent) && /Réglages › Abonnement › Gérer/.test(document.getElementById('info-erreur').textContent), null, 10000, () => lire(A, '#info-erreur'));
   v('… et l\'espace est toujours là, avec ses deux membres et son canal (population)', [sql('SELECT COUNT(*) AS n FROM espace').n, sql('SELECT COUNT(*) AS n FROM espace_membre WHERE espace = ?', EB).n, sql('SELECT COUNT(*) AS n FROM canal WHERE espace = ?', EB).n], [1, 2, 1]);
   /* ce que voit un MEMBRE : « fonctions Pro indisponibles », JAMAIS pourquoi */
-  await onglet(B, 'reglages'); await toucher(B, '[data-esp-ouvrir]');
+  await onglet(B, 'reglages'); await rubrique(B, 'entreprise'); await toucher(B, '[data-esp-ouvrir]');
   await verifier('⛔ Bruno (simple membre) lit seulement « les fonctions Pro ne sont pas disponibles pour l\'instant » + « Rien n\'est perdu »', B, () => document.getElementById('feuille-titre').textContent === 'Espace' && /Les fonctions Pro de l'espace .* ne sont pas disponibles pour l'instant\. Rien n'est perdu/.test(document.getElementById('info-corps').textContent), null, 12000, () => texteCorps(B));
   v('⛔ … sans un mot de paiement : ni « abonnement », ni « retard », ni « impayé », ni « Stripe » dans SA feuille', /abonnement|retard|impay|stripe|paiement/i.test(await texteCorps(B)), false);
   v('⛔ et il n\'a ni Réglages › Abonnement avec l\'espace, ni bouton Messages Pro : rien à payer pour lui', await B.page.evaluate(() => [!!document.querySelector('[data-act="abo-ouvrir"]'), document.querySelectorAll('#reg-abo [data-esp-abo]').length]), [false, 0]);

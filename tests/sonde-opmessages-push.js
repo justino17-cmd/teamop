@@ -20,6 +20,8 @@
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner (pas de navigateur, pas de dépendances du service). */
 const fs = require('fs'), os = require('os'), path = require('path');
 const T = require('./outils-msg');
+/* ⛔ PROFIL EN RUBRIQUES (6 octobre 2026) : une carte de réglage n'est montrée que dans SA rubrique — on la touche comme la personne le ferait (« Profil › Confidentialité ») */
+const rubrique = async (S, sec) => { const pg = S.page || S; await pg.waitForFunction((x) => !!document.querySelector('[data-reg-sec="' + x + '"]'), sec, { timeout: 9000 }).catch(() => {}); await pg.evaluate((x) => { const b = document.querySelector('[data-reg-sec="' + x + '"]'); if (b) b.click(); }, sec); await pg.waitForFunction((x) => { const s = document.getElementById('reg-sec-' + x); return !!s && !s.hidden; }, sec, { timeout: 9000 }).catch(() => {}); };
 const P = require('./outils-push');
 const { v, vrai, fin } = T.compteur();
 T.sauterSiSansDependances();
@@ -159,7 +161,7 @@ async function parcours(b, ctx) {
 
     /* ═══ 2. RÉGLAGES > NOTIFICATIONS (iPhone) ═══════════════════════════════════════════════════════════════════════════════════ */
     console.log('\n── Réglages > Notifications : activer, essai, aperçu (au doigt, iPhone 393) ──');
-    await onglet(A, 'reglages');
+    await onglet(A, 'reglages'); await rubrique(A, 'notifications');
     await verifier('la rubrique « Notifications » paraît dans Réglages : l\'interrupteur est coupé, la phrase dit que le navigateur demandera l\'autorisation', A, () => { const e = document.getElementById('reg-notif-sw'); return !!e && e.getAttribute('aria-checked') === 'false' && /Désactivées/.test(e.textContent); }, null, 10000, () => reg(A));
     v('les trois commandes attendues, l\'essai absent tant que rien n\'est activé', await A.page.evaluate(() => ['reg-notif-sw', 'reg-notif-apercu', 'reg-notif-essai'].map(i => !!document.getElementById(i))), [true, true, false]);
     await capture(A, '2-notifications-coupees');
@@ -311,7 +313,7 @@ async function parcours(b, ctx) {
 
     /* ═══ 5. DÉSACTIVER ═══════════════════════════════════════════════════════════════════════════════════════════════════════════ */
     console.log('\n── Désactiver ──');
-    await onglet(A, 'reglages');
+    await onglet(A, 'reglages'); await rubrique(A, 'notifications');
     await toucher(A, '#reg-notif-sw');
     await verifier('l\'interrupteur revient à « Désactivées »', A, () => { const e = document.getElementById('reg-notif-sw'); return !!e && e.getAttribute('aria-checked') === 'false' && /Désactivées/.test(e.textContent) && !document.getElementById('reg-notif-essai'); }, null, 15000, () => reg(A));
     v('⛔ le service n\'a plus l\'appareil, le navigateur s\'est désabonné', [sql('SELECT COUNT(*) AS n FROM push').n, await A.page.evaluate(() => window.__desinscriptions)], [0, 1]);
@@ -326,7 +328,7 @@ async function parcours(b, ctx) {
       ];
       for (const [titre, opts, pf, motifs] of cas) {
         const X = await ouvrir(b, svc.base, pf, opts); X.nom = titre; tous.push(X);
-        await connecter(X, 'dora'); await onglet(X, 'reglages');
+        await connecter(X, 'dora'); await onglet(X, 'reglages'); await rubrique(X, 'notifications');
         await verifier(titre + ' : l\'interrupteur est grisé, et la phrase dit pourquoi et comment en sortir', X, ([a, c]) => { const e = document.getElementById('reg-notif-sw'); const t = e ? e.textContent : ''; return !!e && e.getAttribute('aria-disabled') === 'true' && new RegExp(a).test(t) && new RegExp(c).test(t); }, [motifs[0].source, motifs[1].source], 10000, () => reg(X));
         await capture(X, '6-' + (titre.startsWith('iPhone') ? 'ios' : 'navigateur'));
         const avantToucher = await lire(X, '#reg-notif');
@@ -340,7 +342,7 @@ async function parcours(b, ctx) {
       /* l'autorisation REFUSÉE par le navigateur : le réglage du site est « bloqué » */
       const R = await ouvrir(b, svc.base, PROFILS.iphone, { notifications: false, sub: P.appareil(fps.endpoint('sonde-refusee')).sub }); R.nom = 'autorisation refusée'; tous.push(R);
       let cdp = null; try { cdp = await b.newBrowserCDPSession(); await cdp.send('Browser.setPermission', { permission: { name: 'notifications' }, setting: 'denied', origin: svc.base }); } catch (e) { cdp = null; }
-      await connecter(R, 'dora'); await onglet(R, 'reglages');
+      await connecter(R, 'dora'); await onglet(R, 'reglages'); await rubrique(R, 'notifications');
       const perm = await R.page.evaluate(() => Notification.permission);
       if (perm === 'denied') {
         await verifier('l\'autorisation est refusée par le navigateur : l\'état dit comment la rouvrir (le cadenas, les réglages du site)', R, () => { const e = document.getElementById('reg-notif-sw'); return !!e && e.getAttribute('aria-disabled') === 'true' && /refusé les notifications/.test(e.textContent) && /cadenas/.test(e.textContent); }, null, 10000, () => reg(R));
@@ -355,7 +357,7 @@ async function parcours(b, ctx) {
 
     /* ═══ 7. RÉGLAGES > COMPTE : L'EXPORT ═══════════════════════════════════════════════════════════════════════════════════════════ */
     console.log('\n── Réglages > Compte : exporter mes données ──');
-    await onglet(A, 'reglages');
+    await onglet(A, 'reglages'); await rubrique(A, 'compte');
     await verifier('la rubrique « Compte » paraît avec « Exporter mes données » et « Supprimer mon compte »', A, () => !!document.getElementById('reg-export') && !!document.getElementById('reg-supprimer'), null, 8000, () => lire(A, '#vue-reglages'));
     await capture(A, '7-compte');
     await largeur(A, 'Réglages > Compte');
@@ -389,7 +391,7 @@ async function parcours(b, ctx) {
 
     /* ═══ 9. SUPPRIMER MON COMPTE, JUSQU'À L'ÉCRAN DE CONNEXION — ET SE RECONNECTER ═══════════════════════════════════════════════════════ */
     console.log('\n── Supprimer mon compte : la feuille, la case, le bouton, l\'écran de connexion, la reconnexion qui annule ──');
-    await onglet(A, 'reglages');
+    await onglet(A, 'reglages'); await rubrique(A, 'compte');
     await toucher(A, '#reg-supprimer');
     await verifier('la feuille « Supprimer mon compte » dit ce qui part, ce qui reste chez les autres, et le délai LU du service (14 jours)', A, () => { const t = document.getElementById('info-corps').textContent; return /Ce qui sera effacé/.test(t) && /Ce qui reste chez les autres/.test(t) && /Compte supprimé/.test(t) && /dans 14 jours/.test(t) && /Supprimer définitivement ton compte \?/.test(t); }, null, 10000, () => lire(A, '#info-corps'));
     v('le titre de la feuille', await lire(A, '#feuille-titre'), 'Supprimer mon compte');
@@ -444,7 +446,7 @@ async function parcours(b, ctx) {
     console.log('\n── Au bureau (1440) : Réglages > Notifications et Compte, la feuille « Supprimer mon compte », à la souris ──');
     {
       const D = await ouvrir(b, svc.base, PROFILS.bureau, { sub: P.appareil(fps.endpoint('sonde-dora')).sub }); D.nom = 'Dora (bureau)'; tous.push(D);
-      await connecter(D, 'dora'); await onglet(D, 'reglages');
+      await connecter(D, 'dora'); await onglet(D, 'reglages'); await rubrique(D, 'notifications');
       await verifier('au bureau aussi : la rubrique Notifications est là, coupée', D, () => { const e = document.getElementById('reg-notif-sw'); return !!e && e.getAttribute('aria-checked') === 'false' && e.getAttribute('aria-disabled') === null; }, null, 10000, () => reg(D));
       await toucher(D, '#reg-notif-sw');
       await verifier('à la souris : activer fonctionne, l\'essai paraît', D, () => { const e = document.getElementById('reg-notif-sw'); return !!e && e.getAttribute('aria-checked') === 'true' && !!document.getElementById('reg-notif-essai'); }, null, 15000, () => reg(D));
@@ -452,6 +454,7 @@ async function parcours(b, ctx) {
       await verifier('l\'essai dit combien d\'appareils l\'ont reçue', D, () => /Notification envoyée à 1 appareil/.test(document.getElementById('reg-notif').textContent), null, 15000, () => reg(D));
       await capture(D, '10b-reglages-bureau');
       await largeur(D, 'Réglages au bureau (notifications activées)');
+      await rubrique(D, 'compte');
       await toucher(D, '#reg-supprimer');
       await verifier('la feuille de suppression s\'ouvre au centre de l\'écran (bureau), avec son titre', D, () => document.getElementById('feuille-titre').textContent === 'Supprimer mon compte' && !document.getElementById('feuille').inert, null, 10000);
       await capture(D, '10b-suppression-bureau');
@@ -460,6 +463,7 @@ async function parcours(b, ctx) {
       await verifier('« Non, garder mon compte » referme la feuille sans rien faire', D, () => document.getElementById('feuille').inert, null, 8000);
       const idD = await D.page.evaluate(async () => (await (await fetch('/api/moi')).json()).moi.id);
       v('population : le compte de Dora est intact (aucune suppression programmée, toujours connectée)', [sql('SELECT suppression_le AS s FROM personne WHERE id = ?', idD).s, await D.page.evaluate(async () => (await fetch('/api/moi')).status)], [null, 200]);
+      await rubrique(D, 'notifications');
       await toucher(D, '#reg-notif-sw');
       await verifier('désactiver à la souris', D, () => { const e = document.getElementById('reg-notif-sw'); return !!e && e.getAttribute('aria-checked') === 'false'; }, null, 15000, () => reg(D));
     }
