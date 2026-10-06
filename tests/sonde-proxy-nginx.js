@@ -123,7 +123,7 @@ const code = (rep) => (/^HTTP\/1\.1 (\d{3})/.exec(rep) || [])[1] || null;
 (async () => {
   const conf = rendre();
   const blocPieces = (/location = \/api\/pieces \{([^}]*)\}/.exec(conf) || [, ''])[1];
-  vrai('population : la configuration rendue porte le bloc des pièces, à 26 Mo, avec son plafond de débit et ses plafonds d\'envois simultanés', /client_max_body_size 26m;/.test(blocPieces) && /limit_req zone=opmsg_beta/.test(blocPieces) && /limit_conn opmsg_conn_beta/.test(blocPieces) && /limit_conn opmsg_depots_beta/.test(blocPieces));
+  vrai('population : la configuration rendue porte le bloc des pièces, à 5200 Mo, sans tampon, avec son plafond de débit et ses plafonds d\'envois simultanés', /client_max_body_size 5200m;/.test(blocPieces) && /proxy_request_buffering off;/.test(blocPieces) && /limit_req zone=opmsg_beta/.test(blocPieces) && /limit_conn opmsg_conn_beta/.test(blocPieces) && /limit_conn opmsg_depots_beta/.test(blocPieces));
   const nets = enClair(conf, await T.portLibre(), await T.portLibre());
   const lecture = ecrireConf('lecture', nets);
   const t = tester(lecture);
@@ -133,7 +133,9 @@ const code = (rep) => (/^HTTP\/1\.1 (\d{3})/.exec(rep) || [])[1] || null;
   v('⛔ …et le même nginx REFUSE une configuration fautive (une zone inconnue) : la lecture ci-dessus comptait', [tf.status !== 0, /zone_inconnue/.test(tf.stderr)], [true, true]);
 
   const og = await T.fauxOpGestion({ alice: { pass: 'pw-alice-1234', nom: 'Alice Banc', actif: true } });
-  const svc = await T.lancerService({ urlGestion: og.url, config: { quotas: { piece: { max: 100000, fenetreMs: 3600000 } } } });          // réglages par défaut : fichier 25 Mo, photo 12 Mo
+  /* ⛔ SANS TAMPON (6 octobre 2026), une connexion tenue ARRIVE au service : ses propres plafonds (4 envois par personne, 16 pour le service) répondraient 429 avant ceux de nginx, et ce
+     banc mesure ceux de NGINX (12 par réseau, 24 en tout). On les relève donc ici, pour ce banc seul — le service, lui, garde les siens (test-943). */
+  const svc = await T.lancerService({ urlGestion: og.url, config: { pieces: { parPersonne: 64, simultanes: 256 }, quotas: { piece: { max: 100000, fenetreMs: 3600000 } } } });          // réglages par défaut : fichier 5 Go, photo 12 Mo
   const arrets = [];
   /* monte un nginx d'essai devant le vrai service et rend son port, son préfixe et son arrêt */
   const monter = async (nom, texte, opts) => {
@@ -160,14 +162,23 @@ const code = (rep) => (/^HTTP\/1\.1 (\d{3})/.exec(rep) || [])[1] || null;
     arrets.push(lancer(ecrireConf('neuve', enClair(conf, pn, svc.port))), lancer(ecrireConf('ancienne', enClair(sansPieces, pa, svc.port))));
     for (const p of [pn, pa]) await T.attendre(async () => { try { return (await fetch('http://127.0.0.1:' + p + '/health')).status === 200; } catch (e) { return false; } }, 8000, 100);
 
-    console.log('\nLa configuration NEUVE : 26 Mo sur la route des pièces, 64 Ko partout ailleurs');
+    console.log('\nLa configuration NEUVE : 5200 Mo sur la route des pièces (un fichier de 5 Go, 6 octobre 2026), SANS tampon, 64 Ko partout ailleurs');
     v('⛔ un fichier de 1,5 Mo traverse nginx ET le service : 201', (await poster(pn, q(), fichier(1.5), cookie, svc.base, null, nom('un.bin'))).code, 201);
-    v('⛔ 20 Mo : 201', (await poster(pn, q(), fichier(20), cookie, svc.base, null, nom('vingt.bin'))).code, 201);
-    v('⛔ 24,9 Mo (juste sous le maximum du service, 25 Mo) : 201', (await poster(pn, q(), fichier(24.9), cookie, svc.base, null, nom('presque.bin'))).code, 201);
-    const n4 = await poster(pn, q(), fichier(27), cookie, svc.base, null, nom('trop.bin'));
-    v('⛔ 27 Mo : 413 rendu par NGINX, en HTML — avant que le service voie le corps', [n4.code, html(n4)], [413, true]);
-    const n5 = await poster(pn, q(), fichier(25.5), cookie, svc.base, null, nom('limite.bin'));
-    v('⛔ 25,5 Mo : passe le proxy (26 Mo) et c\'est le SERVICE qui refuse, en JSON, avec son maximum', [n5.code, html(n5), JSON.parse(n5.corps).error, JSON.parse(n5.corps).max], [413, false, 'piece_trop_lourde', 25 * Mo]);
+    v('⛔ 40 Mo (refusés jusqu\'au 6 octobre 2026, 25 Mo au plus) : 201', (await poster(pn, q(), fichier(40), cookie, svc.base, null, nom('quarante.bin'))).code, 201);
+    /* ⛔ on n'envoie pas 5 Go pour de vrai : on ANNONCE la taille (Content-Length) et on n'envoie que quelques octets. Tamponné, nginx attendait le corps entier avant que le service ne
+       voie rien ; sans tampon, la requête arrive au service tout de suite, et c'est lui qui refuse — en JSON, avec son maximum. */
+    const annoncer = (port, octets) => new Promise((ok) => {
+      const sock = net.connect(port, '127.0.0.1'); let rep = ''; const fin = setTimeout(() => { sock.destroy(); ok(rep); }, 3000);
+      sock.on('data', (d) => { rep += d; if (/\r\n\r\n[\s\S]*\}/.test(rep)) { clearTimeout(fin); sock.destroy(); ok(rep); } }); sock.on('error', () => {});
+      sock.write('POST ' + q() + ' HTTP/1.1\r\nHost: 127.0.0.1\r\nOrigin: ' + svc.base + '\r\nX-OPM: 1\r\nX-OPM-Nom: gros.bin\r\nCookie: ' + cookie + '\r\nContent-Type: application/octet-stream\r\nContent-Length: ' + octets + '\r\n\r\n');
+      sock.write(Buffer.alloc(1000, 1));
+    });
+    const n4 = await annoncer(pn, 5300 * Mo);
+    v('⛔ 5300 Mo annoncés : 413 rendu par NGINX, en HTML — avant que le service voie le corps', [code(n4), /text\/html/i.test(n4)], ['413', true]);
+    const n5 = await annoncer(pn, 5120 * Mo + 1), j5 = (() => { try { return JSON.parse(n5.slice(n5.indexOf('\r\n\r\n') + 4).replace(/^[0-9a-f]+\r\n/, '')); } catch (e) { return {}; } })();
+    v('⛔ 5 Go + 1 octet annoncés : passe le proxy (5200 Mo) et c\'est le SERVICE qui refuse TOUT DE SUITE (sans tampon : il voit la requête avant le corps), en JSON, avec son maximum', [code(n5), /application\/json/i.test(n5), j5.error, j5.max], ['413', true, 'piece_trop_lourde', 5120 * Mo]);
+    const tmpDepot = octetsTemporaires(path.join(brouillon, 'neuve'));
+    v('⛔ SANS TAMPON : après ces dépôts, nginx ne tient AUCUN fichier temporaire de corps', tmpDepot, 0);
     v('⛔ les 64 Ko restent la règle partout ailleurs : un JSON de 70 Ko sur la route des messages : 413', (await poster(pn, '/api/conversations/' + conv + '/messages', Buffer.from(JSON.stringify({ cid: 'cid-gros', texte: 'x'.repeat(70000) })), cookie, svc.base, 'application/json')).code, 413);
 
     console.log('\nL\'ANCIENNE configuration (64 Ko partout) : ce que le VPS refuse tant que le geste n\'est pas fait');

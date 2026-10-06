@@ -147,12 +147,12 @@ vrai('⛔ X-Forwarded-For est ÉCRASÉ par l\'adresse vue par nginx, jamais comp
 const ngxCode = ngx.replace(/^[ \t]*#.*$/gm, '');
 const piecesBloc = (ngxCode.match(/location = \/api\/pieces \{[\s\S]*?\n    \}/) || [''])[0];
 vrai('⛔ le corps d\'une requête est limité à 64 Ko et TAMPONNÉ pour tout le service — 110 Mo non tamponnés tenaient un descripteur de Node ouvert pour un client lent',
-  /^    client_max_body_size 64k;/m.test(ngxCode) && !/client_max_body_size 110m/.test(ngxCode) && !/proxy_request_buffering\s+off/.test(ngxCode));
-vrai('⛔ le DÉPÔT D\'UNE PIÈCE a SA propre exception (2100 Mo — un fichier de 2 Go, comme WhatsApp —, sur la route exacte /api/pieces) et c\'est la SEULE autre limite de corps du fichier — jamais « 2100m » pour tout le service',
-  piecesBloc.length > 100 && /client_max_body_size 2100m;/.test(piecesBloc) && (ngxCode.match(/client_max_body_size/g) || []).length === 2 && !/2100m/.test(ngxCode.replace(piecesBloc, '')));
-vrai('⛔ et cette route est bornée en DÉBIT et en ENVOIS SIMULTANÉS, par réseau ET pour tout le monde (le tampon de nginx coûte du disque, celui d\'OP GESTION aussi, avant que le service puisse dire 401), sans désactiver le tampon',
+  /^    client_max_body_size 64k;/m.test(ngxCode) && !/client_max_body_size 110m/.test(ngxCode) && !/proxy_request_buffering\s+off/.test(ngxCode.replace(piecesBloc, '')));
+vrai('⛔ le DÉPÔT D\'UNE PIÈCE a SA propre exception (5200 Mo — un fichier de 5 Go —, sur la route exacte /api/pieces) et c\'est la SEULE autre limite de corps du fichier — jamais « 5200m » pour tout le service',
+  piecesBloc.length > 100 && /client_max_body_size 5200m;/.test(piecesBloc) && (ngxCode.match(/client_max_body_size/g) || []).length === 2 && !/5200m/.test(ngxCode.replace(piecesBloc, '')));
+vrai('⛔ et cette route est bornée en DÉBIT et en ENVOIS SIMULTANÉS, par réseau ET pour tout le monde — et, depuis le 6 octobre 2026 (fichiers de 5 Go), SANS tampon sur le disque de nginx : 24 envois tamponnés de 5 Go feraient 122 Go, plus que le disque d\'OP GESTION ; le service juge session, maximum, quota et disque AVANT de lire et coupe un envoi trop lent',
   /limit_req zone=opmsg_beta burst=\d+ nodelay;/.test(piecesBloc) && /limit_conn opmsg_conn_beta \d+;/.test(piecesBloc) && /limit_conn opmsg_depots_beta \d+;/.test(piecesBloc)
-  && /limit_conn_zone \$opmsg_reseau_beta zone=opmsg_conn_beta:10m;/.test(ngxCode) && /limit_conn_zone \$server_name zone=opmsg_depots_beta:1m;/.test(ngxCode) && !/proxy_request_buffering/.test(piecesBloc));
+  && /limit_conn_zone \$opmsg_reseau_beta zone=opmsg_conn_beta:10m;/.test(ngxCode) && /limit_conn_zone \$server_name zone=opmsg_depots_beta:1m;/.test(ngxCode) && /^\s*proxy_request_buffering off;$/m.test(piecesBloc) && (ngxCode.match(/proxy_request_buffering/g) || []).length === 1);
 vrai('⛔ un plafond de débit par RÉSEAU (limit_req) devant le service — hors flux SSE, qui n\'est qu\'une requête longue par onglet',
   /limit_req_zone \$opmsg_reseau_beta zone=opmsg_beta:10m rate=\d+r\/s;/.test(ngx) && /location \/ \{\s*\n\s*limit_req zone=opmsg_beta burst=\d+ nodelay;/.test(ngx) && !/location = \/api\/flux \{[^}]*limit_req/.test(ngx));
 /* ⛔ relecture du gardien, A3 : la clé d'un plafond est le RÉSEAU (l'IPv4 entière, le /64 d'une IPv6), jamais l'adresse — et la table qui la calcule est dans le fichier */
@@ -343,7 +343,7 @@ vrai('   le seul programme relancé dans systemctl est le proxy (reload) et notr
   vrai('⛔ SSE non retenu en tampon, et X-Forwarded-For écrasé par l\'adresse vue (jamais complété)', /flush_interval -1/.test(f) && /header_up X-Forwarded-For \{remote_host\}/.test(f));
   vrai('⛔ Caddy aussi borne le corps à 64 Ko — pour tout SAUF /api/pieces (deux emplacements qui s\'excluent : posés ensemble, le plus petit gagnerait)',
     /@pasPieces not path \/api\/pieces\s*\n\s*request_body @pasPieces \{\s*max_size 64KB\s*\}/.test(f));
-  vrai('⛔ et 2100 Mo pour le seul dépôt d\'une pièce', /@pieces path \/api\/pieces\s*\n\s*request_body @pieces \{\s*max_size 2100MB\s*\}/.test(f) && (f.match(/max_size/g) || []).length === 2);
+  vrai('⛔ et 5200 Mo pour le seul dépôt d\'une pièce', /@pieces path \/api\/pieces\s*\n\s*request_body @pieces \{\s*max_size 5200MB\s*\}/.test(f) && (f.match(/max_size/g) || []).length === 2);
   /* ⛔ LE PROXY SUIT LE SERVICE : un fichier que le service accepte et que le proxy refuse reçoit un 413 HTML du proxy — l'écran dit « trop lourd » à un fichier permis. On compare
      la valeur de départ RÉELLE (`piecesConfig()`) aux deux proxys, pas un nombre recopié ici. */
   { const { piecesConfig: pc0 } = require('../server-msg/config.js'); const fmax = pc0(undefined).fichierMax, Mo = 1048576;

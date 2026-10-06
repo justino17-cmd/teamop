@@ -1662,7 +1662,7 @@
     const attentePieces = [];            // les pièces à lire, la plus récente d'abord
     let lecturesEnCours = 0, tickCache = 0, octetsCache = 0, signalPlanifie = false, generation = 0;
     const PHOTOS_AUTO = 30, VOCAUX_AUTO = 6, PHOTOS_PAR_MESSAGE = 10;   // ce que l'ouverture d'une conversation lit toute seule ; le reste se lit au toucher
-    const LIMITES_DEFAUT = { photo_max: 12582912, vocal_max: 10485760, fichier_max: 2147483648, avatar_max: 2097152, par_message: 10, quota: 21474836480 };
+    const LIMITES_DEFAUT = { photo_max: 12582912, vocal_max: 10485760, fichier_max: 5368709120, avatar_max: 2097152, par_message: 10, quota: 53687091200 };
     let limitesPieces = null;
     /* Les maximums du service (GET /api/config), lus à la première utilisation : la page refuse AVANT d'envoyer un fichier trop lourd, sans lui faire parcourir le réseau pour rien. */
     async function limites() {
@@ -1759,6 +1759,11 @@
     const pieceUrl = (id) => typeof id === 'string' ? lirePieceUrl(id) : Promise.reject(erreurLocale('introuvable'));
     /* un fichier : le Blob, JAMAIS gardé (25 Mo en mémoire pour un clic de téléchargement serait un gaspillage) */
     const pieceBlob = async (id) => { if (typeof id !== 'string') throw erreurLocale('introuvable'); return (await A.lirePiece(id)).blob; };
+    /* ⛔ UN FICHIER DE 5 GO NE PASSE PAS PAR LA MÉMOIRE DE LA PAGE (6 octobre 2026). `pieceBlob` lit le fichier ENTIER dans un Blob avant de le proposer : un téléphone ne tient pas
+       plusieurs Go, l'onglet mourait. L'adresse du fichier, ouverte par un lien `download`, laisse le NAVIGATEUR l'écrire lui-même sur le disque, au fil de l'eau — la session voyage
+       dans le cookie (même origine), le service répond `attachment` avec le nom (jamais en ligne). Rendue seulement par la vraie source (même origine, aucune API injectée) :
+       ailleurs, `null`, et la page garde le Blob. */
+    const pieceLien = (id) => (typeof id === 'string' && /^f_[0-9a-f]{32}$/.test(id) && !o.api && !o.base) ? '/api/pieces/' + id : null;
 
     /* ── les personnes ── */
     function noter(p) {
@@ -1948,6 +1953,7 @@
       const envoi = !!p.enVol && !p.echec && (p.essais === 0 || maintenant() - p.debutEssai >= DELAI_ENVOI_VU_MS);
       const v = { id: 'p:' + p.cid, seq: null, auteur: moiApi.id, t: p.t, lu: null, texte: p.texte || '', attente: true, envoi, cid: p.cid };
       if (p.echec) v.echec = p.echec.phrase;
+      if (envoi && Number.isInteger(p.progres)) v.progres = p.progres;
       if (p.type === 'photo') v.photos = p.photos.map(x => ({ url: x.url, w: x.w, h: x.h, piece: null }));
       else if (p.type === 'vocal') v.vocal = { url: p.vocal.url, dur: p.vocal.dur, bars: p.vocal.bars.slice(), piece: null };
       else if (p.type === 'fichier') v.fichier = { nom: p.fichier.nom, taille: p.fichier.taille, piece: null };
@@ -2053,7 +2059,10 @@
         const l = await limites();
         for (const x of lesPieces(p)) {
           if (x.id) continue;
-          const d = await A.deposer(x.blob, { conv: p.conv, genre: p.type, nom: p.type === 'fichier' ? x.nom : undefined, max: maxDe(l, p.type) });
+          /* la progression d'un FICHIER (le seul qui peut peser des Go) : en pour cent, redite à l'écran au plus deux fois par seconde */
+          let dit = 0;
+          const progres = p.type === 'fichier' ? (n, t) => { const pc = t > 0 ? Math.min(99, Math.floor(n * 100 / t)) : 0; if (pc === p.progres) return; p.progres = pc; const now = maintenant(); if (now - dit >= 500) { dit = now; emettre({ type: 'conversation', id: p.conv }); } } : undefined;
+          const d = await A.deposer(x.blob, { conv: p.conv, genre: p.type, nom: p.type === 'fichier' ? x.nom : undefined, max: maxDe(l, p.type), progres });
           x.id = d.id;
           /* ⛔ l'adresse que la page avait fabriquée devient TOUT DE SUITE la mémoire de cette pièce : le message qui la cite revient parfois par le flux AVANT la réponse de l'envoi,
              et il ne doit pas faire relire une image que l'appareil a déjà */
@@ -2064,7 +2073,7 @@
         if (retirer) retirer();
         apresEnvoi(p.conv, { seq: r.seq, id: r.id, auteur: moiApi.id, ts: r.ts, type: p.type, texte: p.type === 'photo' && p.texte ? p.texte : null, meta: metaDe(p), repond_a: null, supprime: false, modifie: null, reactions: [] });
         return r;
-      } finally { p.enVol = false; }
+      } finally { p.enVol = false; p.progres = undefined; }
     }
     /* ⛔ UNE PANNE SE DIT, UNE FOIS PAR ENVOI (relecture du testeur : « En attente de connexion… » était le seul signe, et aucun avis, même sur un 502). Pas de répétition à chaque renvoi : le message
        finit par partir tout seul, la personne n'a rien à faire. Les textes ont leur statut ; ce sont les PIÈCES, longues à envoyer, que la personne laisse en route. */
@@ -3053,7 +3062,7 @@
       monIdentifiant: () => (moiApi && moiApi.identifiant) || null,
       contactParIdentifiant, demanderContact, demandesContact, repondreDemande, annulerDemande,
       /* ── les pièces et les réglages ── */
-      pieceUrl, pieceBlob, reessayer, abandonner, limitesPieces: limites,
+      pieceUrl, pieceBlob, pieceLien, reessayer, abandonner, limitesPieces: limites,
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees, supprimerCompte,
