@@ -13,6 +13,32 @@ de ligne du tout.
 
 ---
 
+# ⏳ 6 OCTOBRE 2026 (NUIT) — BÊTA ET VERSION PUBLIQUE SÉPARÉES, LA MISE À JOUR FORCÉE D'OP MESSAGES, LA TOUR v2.84 — SUR LA BRANCHE (justino17-cmd/teamop#95)
+
+Justin : « je veux qu'on sépare la version bêta et la version publique. Pour les mises à jour, je veux aussi le forçage de mise à jour, comme sur OP GESTION depuis la Tour ; je veux
+le panneau OP MESSAGES, le panneau OP GESTION, et que tout soit bien séparé. » — « fait ».
+
+1. **Quatre minimums, chacun à part** (`server/index.js`, `versionsCfg.canaux`) : OP GESTION publique (`min`, inchangé : Firestore, l'annuaire, la copie des documents le lisent
+   toujours), OP GESTION bêta (`gestion-beta`, jamais chez Firestore), OP MESSAGES bêta et publique (`messages-beta`, `messages-prod`). `/api/version?app=…&canal=…` les rend ; sans
+   paramètre, le minimum public, comme avant. `test-999` (50 ✓, neuf mutations qui le font tomber).
+2. **La bêta d'OP GESTION lit le sien** : `beta-build.js` réécrit son unique appel en `/api/version?canal=beta` (`test-804`). `app.html` ne bouge pas. ⚠️ La bêta reste « 767-beta » :
+   un appareil de la bêta déjà ouvert lit encore le minimum public (plus bas que lui) jusqu'à la prochaine version de la bêta — sans conséquence.
+3. **OP MESSAGES : la mise à jour forcée.** La page servie porte un NUMÉRO (`OPMSG_VERSION`), que `scripts/opmsg-public.js` déduit de ce qui est commité (même empreinte, même numéro ;
+   empreinte nouvelle, le suivant — personne ne le monte à la main ; il vaut 1 aujourd'hui). Le service relit le minimum de SON instance chez OP GESTION chaque minute
+   (`server-msg/version-client.js` ; ⛔ il exige l'ÉCHO du canal : un OP GESTION d'avant, qui rend son minimum à lui, ne bloque personne ; une panne garde la dernière valeur). Sous le
+   minimum, il refuse les ÉCRITURES (426 `version_trop_ancienne`) — la lecture continue, se déconnecter / supprimer son compte / exporter passent toujours. La page envoie son numéro
+   (`X-OPM-Version`), et sous le minimum se met à jour d'elle-même : écran « Mise à jour obligatoire », sans « Plus tard » ; revenue toujours en dessous, elle le DIT et propose
+   « Réessayer », sans boucler. `test-977` (41 ✓, douze mutations), `test-941` (le numéro), `tests/sonde-opmessages-maj-forcee.js` (22 ✓, la vraie page servie).
+4. **La Tour v2.84** : la Surveillance de la console OP GESTION a deux cartes, « Version publique » (la porte du nuage) et « Bêta » ; celle de la console OP MESSAGES, une carte par
+   instance (msg.teamop.fr, msg-beta.teamop.fr) — version servie, minimum exigé, « appliqué par le service » (un service qui n'a pas encore relu se DIT ; une instance éteinte aussi, et
+   son « Exiger » se grise). « Accès » de la console OP MESSAGES montre la version publique à côté de la bêta (on n'y crée pas d'accès : chacun s'inscrit). Un serveur d'avant : chaque
+   carte le dit. `test-978` (39 ✓, les vraies fonctions de la Tour contre le vrai serveur), `scratchpad/sonde-tour-versions.js` (60 ✓, téléphone et bureau, nuit et jour).
+5. **Ce que fait la fusion** : le serveur d'OP GESTION (les routes) ; la bêta d'OP MESSAGES ; la Tour v2.84 (GitHub Pages). L'ordre n'importe pas : une Tour neuve sur un serveur
+   d'avant dit « pas encore » ; un OP MESSAGES neuf sur un OP GESTION d'avant n'exige rien. La version PUBLIQUE d'OP MESSAGES ne reçoit la mise à jour forcée qu'à son propre
+   déploiement (approbation `msg-prod`).
+
+---
+
 # ⏳ 6 OCTOBRE 2026 (SOIR) — OP MESSAGES : S'INSCRIRE « COMME DISCORD », L'AGENDA PERSONNEL, CHERCHER DANS CONTACTS — SUR LA BRANCHE (justino17-cmd/teamop#95)
 
 Justin : « fais les 3 dans l'ordre ». Les trois sont faits, éprouvés, et attendent la fusion de justino17-cmd/teamop#95 (qui déploie la BÊTA d'OP MESSAGES et le serveur d'OP GESTION).
@@ -34,8 +60,7 @@ Justin : « fais les 3 dans l'ordre ». Les trois sont faits, éprouvés, et att
    ⚠️ Un événement créé sur un appareil ne paraît sur un autre qu'à l'entrée dans l'onglet (pas encore poussé en temps réel).
 3. **Chercher dans Contacts** : un champ qui filtre demandes et contacts (sans accents ni casse), et « Chercher Camille#4821 » quand la saisie a la forme d'un identifiant.
    La liste des contacts ne porte pas leur identifiant (la page ne le reçoit pas) : la recherche y est par nom.
-4. **Ensuite (décidé, tâche suivante)** : séparer la bêta et la version publique d'OP MESSAGES, la mise à jour FORCÉE (une version minimale posée depuis la Tour, comme OP GESTION), et dans
-   la Tour un panneau OP MESSAGES et un panneau OP GESTION bien séparés.
+4. ✅ **Ensuite** : la bêta et la version publique séparées, la mise à jour forcée, les deux panneaux de la Tour — fait, section du dessus.
 
 ---
 
