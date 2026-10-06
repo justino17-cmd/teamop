@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'ffdf73e607de';
+  const OPMSG_BUILD = '2e612955c3ac';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 14;
+  const OPMSG_VERSION = 15;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
@@ -927,7 +927,7 @@
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') { avis('L\'enregistrement vocal n\'est pas disponible sur ce navigateur.'); return; }
     enr.etat = 'demande'; enr.annule = false; enr.conv = etat.conv;
     let flux;
-    try { flux = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    try { flux = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }   // le message vocal aussi : le bruit de la rue n'y entre pas
     catch (e) { enr.etat = 'repos'; avis(messageMicro(e)); return; }
     if (enr.etat !== 'demande' || !etat.conv) { flux.getTracks().forEach(t => t.stop()); enr.etat = 'repos'; return; }   // annulé (retour, Échap) pendant la demande
     try {
@@ -1559,7 +1559,20 @@
     const a = $('appel-avis'), b = $('salle-avis'); a.textContent = texte; a.hidden = false; b.textContent = texte; b.hidden = false;       // (salle) l'avis se dit sur l'écran qui est affiché : les deux le portent
     minAvisAppel = setTimeout(() => { a.hidden = true; b.hidden = true; }, 12000);
   }
-  const gum = c => navigator.mediaDevices.getUserMedia(c);
+  /* ═══ LE SON ET L'IMAGE QU'ON ENVOIE (6 octobre 2026 : « toutes les options de toutes les applications de réunion ») ═══
+     ⛔ LE MICRO EST DEMANDÉ « PROPRE » : réduction du bruit, annulation d'écho, gain automatique — ce que Meet, Teams et FaceTime font sans qu'on le demande. Le navigateur les applique
+     sur l'appareil (rien ne sort de la page). Avant, `{ audio: true }` laissait chaque navigateur choisir : sur certains, l'écho d'un haut-parleur revenait à l'autre.
+     ⛔ L'APPAREIL CHOISI (micro, caméra) est demandé EXACTEMENT ; débranché depuis, le navigateur refuse (`OverconstrainedError`) : on oublie le choix et on reprend l'appareil par
+     défaut — jamais un appel sans micro parce qu'un casque a été retiré. Le choix vit le temps de l'onglet (rien n'est rangé sur l'appareil). */
+  const prefMedias = { micro: null, camera: null, sortie: null };
+  const AUDIO_PROPRE = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+  const cAudio = () => Object.assign({}, AUDIO_PROPRE, prefMedias.micro ? { deviceId: { exact: prefMedias.micro } } : {});
+  const cVideo = () => prefMedias.camera ? { deviceId: { exact: prefMedias.camera } } : true;
+  const sansAppareil = c => { const x = Object.assign({}, c); for (const k of ['audio', 'video']) if (x[k] && typeof x[k] === 'object' && x[k].deviceId) { const y = Object.assign({}, x[k]); delete y.deviceId; x[k] = Object.keys(y).length ? y : true; } return x; };
+  const gum = async c => {
+    try { return await navigator.mediaDevices.getUserMedia(c); }
+    catch (e) { if (e && e.name === 'OverconstrainedError' && (prefMedias.micro || prefMedias.camera)) { prefMedias.micro = null; prefMedias.camera = null; return navigator.mediaDevices.getUserMedia(sansAppareil(c)); } throw e; }
+  };
   const mediasDispo = () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
   /* poser des pistes : chacune est GARDÉE (A.pistes) pour être arrêtée, et une caméra débranchée en cours d'appel se voit (« ended ») */
   function poserPistes(A, flux) {
@@ -1600,14 +1613,14 @@
     A.mediasDemandes = true;
     if (!mediasDispo()) { A.mediaPret = true; avisAppel('Le micro et la caméra ne sont pas disponibles sur ce navigateur : l\'appel continue sans eux.'); rendreAppel(); return; }
     let flux = null, errCombine = null, errAudio = null;
-    if (veutVideo) { try { flux = await gum({ audio: true, video: true }); } catch (e) { errCombine = e; } if (perime(A)) { if (flux) flux.getTracks().forEach(t => t.stop()); return; } }
-    if (!flux) { try { flux = await gum({ audio: true }); } catch (e) { errAudio = e; } if (perime(A)) { if (flux) flux.getTracks().forEach(t => t.stop()); return; } }
+    if (veutVideo) { try { flux = await gum({ audio: cAudio(), video: cVideo() }); } catch (e) { errCombine = e; } if (perime(A)) { if (flux) flux.getTracks().forEach(t => t.stop()); return; } }
+    if (!flux) { try { flux = await gum({ audio: cAudio() }); } catch (e) { errAudio = e; } if (perime(A)) { if (flux) flux.getTracks().forEach(t => t.stop()); return; } }
     let dit = '';
     if (flux) { poserPistes(A, flux); if (veutVideo && !A.video) dit = messageMedia(errCombine, 'camera') + ' L\'appel continue en audio.'; }
     else {
       dit = messageMedia(errAudio, 'micro') + ' L\'appel continue sans micro.';
       if (veutVideo) {
-        let fv = null; try { fv = await gum({ video: true }); } catch (e) { fv = null; }
+        let fv = null; try { fv = await gum({ video: cVideo() }); } catch (e) { fv = null; }
         if (perime(A)) { if (fv) fv.getTracks().forEach(t => t.stop()); return; }
         if (fv) poserPistes(A, fv); else dit += ' La caméra n\'a pas pu démarrer non plus.';
       }
@@ -1620,7 +1633,7 @@
     const A = etat.appelUI; if (!A || !A.snap) return;
     if (!A.audio) {                                                // pas de micro (refusé, absent) : toucher le bouton RÉESSAIE — la personne a pu changer l'autorisation
       try {
-        const f = await gum({ audio: true });
+        const f = await gum({ audio: cAudio() });
         if (perime(A)) { f.getTracks().forEach(t => t.stop()); return; }
         A.micro = true; poserPistes(A, f); avisAppelEffacer(); rendreAppel(); annonceAppel('Micro activé');
       } catch (e) { if (!perime(A)) avisAppel(messageMedia(e, 'micro') + ' L\'appel continue sans micro.'); }
@@ -1640,7 +1653,7 @@
     }
     A.cameraEnCours = true;
     try {
-      const f = await gum({ video: true });
+      const f = await gum({ video: cVideo() });
       if (perime(A)) { f.getTracks().forEach(t => t.stop()); return; }
       poserPistes(A, f); avisAppelEffacer(); rendreAppel(); annonceAppel('Caméra activée');
     } catch (e) { if (!perime(A)) { avisAppel(messageMedia(e, 'camera') + ' L\'appel continue en audio.'); rendreAppel(); } }
@@ -1688,7 +1701,68 @@
     const f = source.appelFlux(A.id) || null, au = $('appel-audio-distant'), v = document.querySelector('#appel-scene .tuile:not(.vous) video');
     if (au.srcObject !== f) { au.srcObject = f; if (f) { const p = au.play(); if (p && p.catch) p.catch(() => {}); } }
     if (v && v.srcObject !== f) { v.srcObject = f; if (f) { const p = v.play(); if (p && p.catch) p.catch(() => {}); } }
+    /* « Réduire » se décide quand l'image JOUE (au branchement, elle n'a encore aucune image) — et se redécide quand la caméra de l'autre s'allume ou se coupe */
+    if (v && !v.dataset.pipEcoute) { v.dataset.pipEcoute = '1'; for (const k of ['playing', 'loadeddata', 'emptied', 'resize']) v.addEventListener(k, majPip); }
+    if (f && !f.__pipEcoute) { f.__pipEcoute = true; f.getVideoTracks().forEach(t => { t.addEventListener('mute', majPip); t.addEventListener('unmute', majPip); t.addEventListener('ended', majPip); }); f.addEventListener('addtrack', majPip); }
+    if (prefMedias.sortie) appliquerSortie();
+    majPip();
   }
+  /* changer de micro ou de caméra EN COURS d'appel : la piste neuve d'abord, l'ancienne arrêtée ensuite, et le moteur la remplace sans renégocier (`pousserPistes`) */
+  async function changerAppareil(quoi, id) {
+    const A = etat.appelUI;
+    if (quoi === 'sortie') { prefMedias.sortie = id || null; appliquerSortie(); return; }
+    prefMedias[quoi] = id || null;
+    if (!A || A.fini) return;
+    const ancienne = quoi === 'micro' ? A.audio : A.video;
+    if (!ancienne || ancienne.readyState !== 'live') return;        // un micro ou une caméra éteints : le choix servira à leur prochain allumage
+    let f = null;
+    try { f = await gum(quoi === 'micro' ? { audio: cAudio() } : { video: cVideo() }); }
+    catch (e) { if (!perime(A)) avisAppel(messageMedia(e, quoi === 'micro' ? 'micro' : 'camera')); return; }
+    if (perime(A)) { f.getTracks().forEach(t => t.stop()); return; }
+    A.pistes = A.pistes.filter(t => t !== ancienne); try { ancienne.stop(); } catch (e) { /* déjà arrêtée */ }
+    if (quoi === 'micro') A.audio = null; else A.video = null;
+    poserPistes(A, f); rendreAppel(); annonceAppel(quoi === 'micro' ? 'Micro changé' : 'Caméra changée');
+  }
+  /* la sortie du son (casque, enceinte) : seulement là où le navigateur sait la choisir (`setSinkId`) — ailleurs, la ligne n'est pas proposée */
+  const sortieChoisissable = () => typeof HTMLMediaElement !== 'undefined' && typeof HTMLMediaElement.prototype.setSinkId === 'function';
+  function appliquerSortie() {
+    if (!sortieChoisissable()) return;
+    document.querySelectorAll('#appel-audio-distant, #salle-scene audio').forEach(el => { try { const p = el.setSinkId(prefMedias.sortie || ''); if (p && p.catch) p.catch(() => {}); } catch (e) { /* l'appareil a disparu : le son reste sur la sortie par défaut */ } });
+  }
+  async function listeAppareils() {
+    try { return (await navigator.mediaDevices.enumerateDevices()).filter(d => d.deviceId && d.deviceId !== 'default' && d.deviceId !== 'communications'); } catch (e) { return []; }
+  }
+  /* ⛔ IMAGE DANS L'IMAGE : la vidéo de l'autre (ou de celui qui parle) flotte au-dessus des autres applications, comme FaceTime — seulement si le navigateur sait le faire, et seulement
+     une image VIVANTE (une vignette sans caméra n'a rien à montrer) */
+  const pipPossible = () => typeof document !== 'undefined' && document.pictureInPictureEnabled === true;
+  function videoAPip(A) {
+    const vivante = v => v && v.srcObject && v.srcObject.getVideoTracks && v.srcObject.getVideoTracks().some(t => t.readyState === 'live' && t.enabled && !t.muted) && v.readyState >= 2;
+    if (enSalle(A)) { const g = document.querySelector('#salle-scene .salle-tuile.grand video'); if (vivante(g)) return g; return Array.from(document.querySelectorAll('#salle-scene .salle-tuile[data-uid] video')).find(vivante) || null; }
+    const v = document.querySelector('#appel-scene .tuile:not(.vous) video'); return vivante(v) ? v : null;
+  }
+  async function basculerPip() {
+    const A = etat.appelUI; if (!A || !pipPossible()) return;
+    try {
+      if (document.pictureInPictureElement) { await document.exitPictureInPicture(); return; }
+      const v = videoAPip(A); if (!v) { avisAppel('Il n\'y a pas encore d\'image à mettre dans l\'image : la caméra de l\'autre est coupée.'); return; }
+      await v.requestPictureInPicture();
+    } catch (e) { avisAppel('L\'image dans l\'image n\'a pas pu s\'ouvrir sur ce navigateur.'); }
+  }
+  function majPip() {
+    const A = etat.appelUI, b = $('appel-pip'); if (!b) return;
+    b.hidden = !(A && !enSalle(A) && pipPossible() && videoAPip(A));
+    b.setAttribute('aria-pressed', document.pictureInPictureElement ? 'true' : 'false');
+  }
+  /* ⛔ L'ÉCRAN RESTE ALLUMÉ PENDANT UN APPEL (comme une application d'appel) : un téléphone qui se met en veille au milieu d'une réunion coupe la caméra. Rendu à la fin, et redemandé
+     quand on revient sur la page (le navigateur le retire quand elle est cachée). */
+  let verrouEcran = null;
+  async function garderEcran(oui) {
+    try {
+      if (oui) { if (!verrouEcran && navigator.wakeLock && document.visibilityState === 'visible') { verrouEcran = await navigator.wakeLock.request('screen'); verrouEcran.addEventListener('release', () => { verrouEcran = null; }); } }
+      else if (verrouEcran) { const v = verrouEcran; verrouEcran = null; await v.release(); }
+    } catch (e) { verrouEcran = null; }
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && etat.appelUI && !etat.appelUI.fini) garderEcran(true); });
   /* (version servie) les pistes de la PAGE (micro, caméra) sont remises au moteur : il les pose sur la connexion, sans renégocier, et dit à l'autre quand la caméra s'allume ou s'éteint */
   function pousserPistes(A) {
     if (!CAP.appelsMedias || typeof source.appelPistes !== 'function' || !A || A.fini || (A.snap && A.snap.entrant)) return;
@@ -1771,6 +1845,7 @@
     if (jeton !== etat.jetonAppel) return;                       // raccroché pendant l'attente
     if (!snap || snap.etat === 'termine') { remplacer(parentDe(etat.route)); mot((snap && snap.avis) || 'Cet appel est terminé.'); return; }
     A.snap = snap; rendreAppel();
+    garderEcran(true);
     A.minut = setInterval(majStatutAppel, 250);
     (enSalle(A) ? $('salle-ecran') : $('appel-ecran')).focus({ preventScroll: true });
     if (snap.entrant) { demarrerSonnerie(); annonceAppel('Appel ' + (snap.type === 'video' ? 'vidéo ' : '') + 'entrant de ' + snap.nom); return; }       // (version servie) ni micro ni caméra tant qu'on n'a pas répondu
@@ -1795,6 +1870,8 @@
     if (A) { A.fini = true; clearInterval(A.minut); arreterPistes(A); }
     if (A) { if (A.rec) recArreter(A, false); salleNettoyer(A); }
     arreterSonnerie();
+    garderEcran(false);
+    if (document.pictureInPictureElement) { try { const p = document.exitPictureInPicture(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* déjà refermée */ } }
     { const au = $('appel-audio-distant'); if (au.srcObject) au.srcObject = null; }
     avisAppelEffacer();
     delete document.documentElement.dataset.appel; delete document.documentElement.dataset.salle;
@@ -1807,6 +1884,8 @@
   $('appel-micro').addEventListener('click', basculerMicro);
   $('appel-hp').addEventListener('click', () => { const A = etat.appelUI; if (!A || !A.snap) return; A.haut = !A.haut; rendreAppel(); annonceAppel(A.haut ? 'Haut-parleur activé' : 'Haut-parleur coupé'); });
   $('appel-cam').addEventListener('click', basculerCamera);
+  $('appel-pip').addEventListener('click', basculerPip);
+  document.addEventListener('enterpictureinpicture', majPip, true); document.addEventListener('leavepictureinpicture', majPip, true);
   $('appel-flip').addEventListener('click', retournerCamera);
   $('appel-msg').addEventListener('click', () => { const A = etat.appelUI; if (A && A.snap) ouvrirConversationAvec(A.snap.membres.map(m => m.id), A.snap.conv); });
   /* (version servie) l'appel ENTRANT : « Refuser » ferme l'écran — c'est `quitterAppel` qui refuse auprès du service, comme tout autre chemin qui ferme —, « Répondre » prend l'appel PUIS demande le micro et la caméra
@@ -3990,6 +4069,7 @@
       if (v.srcObject !== f) v.srcObject = f;
       if (f) { if (au.paused) lecture(au); if (v.paused) lecture(v); }
     });
+    if (prefMedias.sortie) appliquerSortie();
   }
   /* « qui parle » change sans qu'aucun cliché ne soit refait : on ne touche qu'aux contours */
   async function majParle() {
@@ -4144,6 +4224,8 @@
     if (X.panneau === nom) { salleFermerPanneau(A); return; }
     X.panneau = nom; X.emojis = false; X.actions = null; X.retirer = null; X.declencheur = declencheurEl || null;
     if (nom === 'discussion') { X.neufs = 0; salleDiscussionCharger(A, true); }
+    /* « Plus » : les micros, caméras et sorties de l'appareil, lus à l'ouverture (leurs noms n'existent qu'une fois le micro autorisé — c'est le cas dans une salle) */
+    if (nom === 'plus') listeAppareils().then(l => { if (!perime(A) && sx(A).panneau === 'plus') { sx(A).appareils = l; sallePanneauRendre(A, true); } });
     A.snap && salleCommandes(A, A.mediaPret && (!A.micro || !A.audio));
     sallePanneauRendre(A, true);
     requestAnimationFrame(() => { const p = $('salle-panneau'); if (!p.hidden) p.focus({ preventScroll: true }); });
@@ -4211,6 +4293,15 @@
         inter('partage-ok', s.partageOk, 'Partage d\'écran des participants', 'Les hôtes peuvent toujours partager') + '</div>';
       if (!s.outils) h += '<p class="salle-note" id="salle-sans-outils">Les outils de l\'organisateur — salle d\'attente, verrou, sondage, minuteur, enregistrement — sont dans les réunions.</p>';
     }
+    /* micro, caméra, sortie : la liste vient de l'appareil (lue à l'ouverture du panneau, `X.appareils`) ; l'image dans l'image, là où le navigateur la sait */
+    const ap = X.appareils || [], choix = (quoi, kind, titre) => { const l = ap.filter(d => d.kind === kind); if (l.length < 2) return '';
+      const actuel = prefMedias[quoi] || '';
+      return '<label class="salle-rang libre salle-choix"><span class="texte">' + esc(titre) + '</span><select data-appareil="' + quoi + '" aria-label="' + esc(titre) + '"><option value="">Par défaut</option>' +
+        l.map((d, i) => '<option value="' + esc(d.deviceId) + '"' + (d.deviceId === actuel ? ' selected' : '') + '>' + esc(d.label || (titre + ' ' + (i + 1))) + '</option>').join('') + '</select></label>'; };
+    const lignesAp = choix('micro', 'audioinput', 'Micro') + choix('camera', 'videoinput', 'Caméra') + (sortieChoisissable() ? choix('sortie', 'audiooutput', 'Sortie du son') : '');
+    h += '<div class="salle-rub"><span>Son et image</span></div><div class="salle-liste">' + lignesAp +
+      '<div class="salle-rang libre"><span class="texte">Son amélioré<small>Réduction du bruit, annulation d\'écho et volume automatique, toujours actifs</small></span></div>' +
+      (pipPossible() ? '<button type="button" class="salle-rang" data-sa="pip"><span class="texte">Image dans l\'image<small>La vidéo de celui qui parle flotte au-dessus des autres applications</small></span></button>' : '') + '</div>';
     const directs = s.membres.filter(m => m.statut === 'present' && m.liaison === 'connecte' && !m.relais).length, relais = s.membres.filter(m => m.statut === 'present' && m.relais).length;
     h += '<div class="salle-rub"><span>Informations</span></div><div class="salle-liste"><div class="salle-rang libre"><span class="texte">' + esc(s.nom) + '<small>' + esc((s.genre === 'reunion' ? 'Réunion' : 'Appel de groupe') + ' · ' + (s.type === 'video' ? 'vidéo' : 'audio') + ' · ' + s.nb + (s.capacite ? ' sur ' + s.capacite : '') + ' personnes · ' + directs + ' liaison' + (directs > 1 ? 's' : '') + ' directe' + (directs > 1 ? 's' : '') + (relais ? ', ' + relais + ' par relais' : '')) + '</small></span></div></div>';
     h += '<div class="salle-rub"><span>Bientôt</span></div><div class="salle-liste salle-bientot">' +
@@ -4312,6 +4403,7 @@
       }
       case 'sondage-fermer': await salleGeste(A, 'evt', { k: 'sondage', donnees: { op: 'fermer' } }); return;
       case 'sondage-masquer': X.masque = s.sondage ? s.sondage.id : ''; $('salle-bandeaux').dataset.sig = ''; salleBandeaux(A); return;
+      case 'pip': basculerPip(); return;
       case 'minuteur': await salleGeste(A, 'evt', { k: 'minuteur', donnees: { op: 'demarrer', secondes: +el.dataset.s } }, 'Le minuteur n\'a pas pu démarrer.'); return;
       case 'minuteur-arreter': await salleGeste(A, 'evt', { k: 'minuteur', donnees: { op: 'arreter' } }); return;
       case 'lien-copier': {
@@ -4327,6 +4419,7 @@
   }
   $('salle-bandeaux').addEventListener('click', e => { const b = e.target.closest('[data-sa]'); if (b && !b.disabled) salleAgir(b.dataset.sa, b); });
   $('salle-panneau-corps').addEventListener('click', e => { const b = e.target.closest('[data-sa]'); if (b) salleAgir(b.dataset.sa, b); });
+  $('salle-panneau-corps').addEventListener('change', e => { const sel = e.target.closest('select[data-appareil]'); if (sel) changerAppareil(sel.dataset.appareil, sel.value); });
   $('salle-panneau-fermer').addEventListener('click', () => { const A = etat.appelUI; if (enSalle(A)) salleFermerPanneau(A); });
   $('salle-participants').addEventListener('click', () => { const A = etat.appelUI; if (enSalle(A)) salleOuvrirPanneau(A, 'participants', $('salle-participants')); });
   $('salle-discussion').addEventListener('click', () => { const A = etat.appelUI; if (enSalle(A)) salleOuvrirPanneau(A, 'discussion', $('salle-discussion')); });

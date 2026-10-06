@@ -1235,6 +1235,9 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-liste { border-radius: 14px; background: rgba(255,255,255,.07); overflow: hidden; }
 .salle-rang { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; min-height: 52px; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,.1); }
 .salle-rang:last-child { border-bottom: 0; }
+/* le choix d'un micro, d'une caméra, d'une sortie : un menu natif (la liste de l'appareil, lue au clavier comme au doigt), à droite de son nom — 16 px pour que Safari ne zoome pas */
+.salle-choix select { flex: 0 1 60%; min-width: 0; max-width: 60%; min-height: 40px; padding: 0 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.08); color: inherit; font: inherit; font-size: 16px; text-overflow: ellipsis; }
+.salle-choix select option { color: #000; }
 .salle-rang > .avatar { flex: none; width: 36px; height: 36px; font-size: 14px; }
 .salle-rang > .texte { flex: 1 1 120px; min-width: 0; display: flex; flex-direction: column; font-size: 16px; line-height: 21px; overflow-wrap: anywhere; }
 .salle-rang > .texte small { font-size: 13px; line-height: 17px; color: var(--salle-sub); }
@@ -1339,6 +1342,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   <symbol id="i-lieu" viewBox="0 0 24 24"><path d="M12 21s6-5.2 6-10a6 6 0 0 0-12 0c0 4.8 6 10 6 10Zm0-7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/></symbol>
   <symbol id="i-repeter" viewBox="0 0 24 24"><path d="M4.5 11V9.5A3.5 3.5 0 0 1 8 6h10m0 0-2.5-2.5M18 6l-2.5 2.5M19.5 13v1.5A3.5 3.5 0 0 1 16 18H6m0 0 2.5-2.5M6 18l2.5 2.5"/></symbol>
   <symbol id="i-telecharger" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 19.5h14"/></symbol>
+  <symbol id="i-pip" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.4"/><rect x="12" y="11.5" width="6.5" height="5" rx="1.2" fill="currentColor" stroke="none"/></symbol>
   <symbol id="i-courriel" viewBox="0 0 24 24"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Zm0 .5 8 6 8-6"/></symbol>
   <symbol id="i-personne" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.6"/><path d="M5 19.5c.9-3.4 3.7-5.2 7-5.2s6.1 1.8 7 5.2"/></symbol>
   <symbol id="i-cloche" viewBox="0 0 24 24"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5H5l1.5-1.5ZM10 20.5a2.2 2.2 0 0 0 4 0"/></symbol>
@@ -1521,6 +1525,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
         <button type="button" class="appel-cmd" id="appel-micro" aria-pressed="false" aria-label="Couper le micro"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></span><span class="appel-cmd-texte">Micro</span></button>
         <button type="button" class="appel-cmd" id="appel-hp" aria-pressed="false" aria-label="Haut-parleur"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-hautparleur"/></svg></span><span class="appel-cmd-texte">Haut-parleur</span></button>
         <button type="button" class="appel-cmd" id="appel-cam" aria-pressed="false" aria-label="Activer la caméra"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-video-off"/></svg></span><span class="appel-cmd-texte">Caméra</span></button>
+        <button type="button" class="appel-cmd" id="appel-pip" aria-pressed="false" aria-label="Image dans l'image" hidden><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-pip"/></svg></span><span class="appel-cmd-texte">Réduire</span></button>
         <button type="button" class="appel-cmd" id="appel-msg" aria-label="Message : raccrocher et ouvrir la conversation"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg></span><span class="appel-cmd-texte">Message</span></button>
       </div>
       <button type="button" class="appel-raccrocher" id="appel-raccrocher" aria-label="Raccrocher"><svg class="ic" aria-hidden="true"><use href="#i-raccrocher"/></svg></button>
