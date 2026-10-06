@@ -1,5 +1,7 @@
 (function () {
   'use strict';
+  /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
+  const OPMSG_BUILD = '9b9891fe31c0';
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
      ⛔ Cette page ne contient AUCUNE donnée et n'en modifie AUCUNE : tout ce qu'elle sait des personnes et des conversations vient de
@@ -11,7 +13,7 @@
   if (!source) { $('contenu').innerHTML = '<p class="vide">Les données n\'ont pas pu être chargées.</p>'; return; }
   /* ⛔ CE QUE LA SOURCE SAIT FAIRE. La source de l'aperçu n'annonce rien : photos, vocaux et appels y sont SIMULÉS, aucun service, aucune action sur un message. Celle du
      service annonce ses capacités (`source.capacites`) : ce qu'elle ne sait pas encore dit « bientôt » au lieu de faire semblant. */
-  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, appelsMedias: false, appelsGroupe: true, salles: false, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, notifications: false, compte: false, espaces: false, persoPlus: false, reunionPlafond: false, identifiants: false, texteMax: 4000 }, source.capacites || {});
+  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, appelsMedias: false, appelsGroupe: true, salles: false, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, notifications: false, compte: false, espaces: false, persoPlus: false, reunionPlafond: false, identifiants: false, miseAJour: false, texteMax: 4000 }, source.capacites || {});
   /* la personne et ses contacts : posés au démarrage (une source de service ne sait qui est connecté qu'après avoir lu la session), relus quand elle le dit */
   let MOI = null, CONTACTS = [];
   const SUFFIXE_TITRE = CAP.service ? ' — OP MESSAGES' : ' — OP MESSAGES, aperçu';
@@ -903,6 +905,57 @@
     $('notif').classList.add('on');
     minNotif = setTimeout(() => $('notif').classList.remove('on'), 3600);   // ~3,5 s : le paquet dit 3,6 dans la maquette
   }
+  /* ═══ 7 ter. LA MISE À JOUR — la page compare son empreinte à celle que le service sert ══════════════════════════════════════════
+     Une page restée ouverte (l'application d'un iPhone reste en mémoire des jours) garde la version qu'elle a chargée : rien ne le disait. Elle relit l'empreinte du service
+     au démarrage, quand on revient sur l'application, quand la connexion revient (un déploiement redémarre le service) et toutes les dix minutes ; différente, le bandeau
+     « Nouvelle version » propose « Mettre à jour ». La mise à jour RELIT les fichiers de la page sans cache (la barre avance au fil des octets), puis recharge.
+     ⛔ Rien n'est rangé sur l'appareil : le retour d'une mise à jour se dit par l'adresse (`?maj=1`), retirée aussitôt. Une mise à jour qui revient avec la MÊME vieille
+     version (un relais qui garde l'ancien fichier) le DIT, sans relancer en boucle. */
+  const EMPREINTE = /^[0-9a-f]{12}$/;
+  const majRetour = /(?:^|[?&])maj=1(?:&|$)/.test(location.search);
+  if (majRetour) { try { history.replaceState(history.state, '', location.pathname + location.hash); } catch (e) { /* l'adresse garde « ?maj=1 » : sans conséquence */ } }
+  const maj = { vu: null, repousseA: 0, enCours: false, dernier: 0, retourDit: false };
+  async function verifierVersion(force) {
+    if (!CAP.miseAJour || !EMPREINTE.test(OPMSG_BUILD) || typeof source.versionServie !== 'function' || maj.enCours) return;
+    const t = Date.now();
+    if (!force && t - maj.dernier < 20000) return;
+    maj.dernier = t;
+    let r; try { r = await source.versionServie(); } catch (e) { return; }   // pas de réponse : on réessaiera au prochain rendez-vous
+    if (!r || !EMPREINTE.test(r.build || '')) return;
+    if (r.build === OPMSG_BUILD) { if (majRetour && !maj.retourDit) { maj.retourDit = true; mot('OP MESSAGES est à jour'); } $('maj-bandeau').hidden = true; return; }
+    maj.vu = r.build;
+    if (majRetour && !maj.retourDit) { maj.retourDit = true; mot('La nouvelle version n\'a pas encore pu s\'installer : réessaie dans un instant'); maj.repousseA = t + 5 * 60000; }
+    if (t < maj.repousseA) return;
+    $('maj-bandeau').hidden = false;
+  }
+  function majProgres(pct, texte) {
+    const p = Math.max(4, Math.min(100, Math.round(pct)));
+    $('maj-barre').style.width = p + '%'; $('maj-piste').setAttribute('aria-valuenow', String(p));
+    if (texte !== undefined) $('maj-etat').textContent = texte;
+  }
+  async function appliquerMaj() {
+    if (maj.enCours || typeof source.relireApplication !== 'function') return;
+    maj.enCours = true;
+    $('maj-bandeau').hidden = true; $('maj-reessayer').hidden = true;
+    $('maj-ecran').hidden = false; majProgres(4, 'Téléchargement de la nouvelle version…');
+    const taille = (o) => o >= 1048576 ? (o / 1048576).toFixed(1).replace('.', ',') + ' Mo' : Math.round(o / 1024) + ' Ko';
+    try {
+      await source.relireApplication((part, octets) => majProgres(part * 92 + 4, 'Téléchargement de la nouvelle version… ' + taille(octets)));
+      majProgres(100, 'Redémarrage…');
+      setTimeout(() => { location.replace(location.pathname + '?maj=1' + location.hash); }, 350);
+    } catch (e) {
+      maj.enCours = false;
+      majProgres(4, 'Le téléchargement n\'a pas abouti : vérifie ta connexion.');
+      $('maj-reessayer').hidden = false; $('maj-reessayer').focus();
+    }
+  }
+  $('maj-bouton').addEventListener('click', () => { appliquerMaj(); });
+  $('maj-reessayer').addEventListener('click', () => { appliquerMaj(); });
+  $('maj-plus-tard').addEventListener('click', () => { maj.repousseA = Date.now() + 30 * 60000; $('maj-bandeau').hidden = true; });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') verifierVersion(); });
+  setInterval(() => verifierVersion(), 10 * 60000);
+  setTimeout(() => verifierVersion(true), 1500);
+
   function mot(texte) {
     clearTimeout(minMot);
     $('mot').textContent = texte; $('mot').classList.add('on');
@@ -1827,6 +1880,7 @@
     if (!reg.propos) { c.innerHTML = '<p class="reg-ligne">Chargement…</p>'; return; }
     const p = reg.propos, l = p.limites || {};
     c.innerHTML = '<p class="reg-ligne"><b>Service</b> ' + esc(LIEUX[p.instance] || p.instance || '—') + ', version ' + esc(p.version || '—') + '</p>' +
+      (EMPREINTE.test(OPMSG_BUILD) ? '<p class="reg-ligne"><b>Application</b> ' + esc(OPMSG_BUILD.slice(0, 7)) + (p.build && p.build !== OPMSG_BUILD ? ' · <b>une nouvelle version est prête</b>' : ' · à jour') + '</p>' : '') +
       '<p class="reg-ligne"><b>Adresse</b> ' + esc(location.host) + '</p>' +
       (l.photo_max ? '<p class="reg-ligne"><b>Au plus</b> photo ' + esc(tailleTexte(l.photo_max)) + ' · vocal ' + esc(tailleTexte(l.vocal_max)) + ' · fichier ' + esc(tailleTexte(l.fichier_max)) + '</p>' : '') +
       '<p class="info-note">Rien n\'est rangé sur cet appareil : les messages, les photos et les fichiers sont relus du service. Les photos sont réduites, et le lieu et l\'appareil qui les ont prises sont retirés avant qu\'elles soient rangées.</p>';
@@ -4066,7 +4120,7 @@
       if (ev.type === 'espaces') surEspaces(ev);
       if (ev.type === 'reunions') surReunions(ev);
       if (ev.type === 'moi') { MOI = source.moi() || MOI; peindreMoi(); peindreProfilReglage(); }          // mon nom, mon statut ou ma photo a changé (ici, ou sur un autre appareil)
-      if (ev.type === 'reseau') { fluxPerdu = ev.etat !== 'ok'; $('hors-ligne').hidden = ev.etat === 'ok'; }
+      if (ev.type === 'reseau') { fluxPerdu = ev.etat !== 'ok'; $('hors-ligne').hidden = ev.etat === 'ok'; if (ev.etat === 'ok') verifierVersion(); }   // un déploiement redémarre le service : la connexion revient, la version a peut-être changé
       if (ev.type === 'arrivee') surArrivee(ev);
       if (ev.type === 'notification') notifier(ev.titre || 'OP MESSAGES', ev.texte || '');
       if (ev.type === 'retire') surRetire(ev.id);

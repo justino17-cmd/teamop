@@ -40,7 +40,7 @@ const { creerPlanificateur } = require('./planificateur');
 const { creerCourriel } = require('./courriel');
 const { creerAppels } = require('./appels');
 
-const VERSION = '1.8.0-perso-plus';
+const VERSION = '1.9.0-mise-a-jour';
 const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays']);   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
 
 function journaliser(evt, champs) {
@@ -120,8 +120,12 @@ function demarrer(env = process.env) {
   mesurerDisque();
   const minuteurDisque = setInterval(mesurerDisque, 30000); minuteurDisque.unref();
 
+  /* L'EMPREINTE DE L'INTERFACE SERVIE : `scripts/opmsg-public.js` la pose dans `public/opmsg-ui.js` (douze hexadécimaux calculés sur les fichiers servis). La page ouverte compare
+     la SIENNE à celle-ci (`/api/config`) : différentes, une nouvelle version a été déployée pendant qu'elle restait ouverte, et elle propose « Mettre à jour ». Lue une fois, au
+     démarrage : c'est la version que CE service sert. Illisible (un dossier public d'avant) : null, et la page ne propose rien. */
+  const build = (() => { try { const m = /const OPMSG_BUILD = '([0-9a-f]{12})';/.exec(fs.readFileSync(path.join(__dirname, 'public', 'opmsg-ui.js'), 'utf8')); return m ? m[1] : null; } catch (e) { return null; } })();
   const ctx = {
-    config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION, scelleur, sms,
+    config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION, build, scelleur, sms,
     pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation, courriel, appels,
     maxMembres: stockageMod.MAX_MEMBRES, delaiModifMs: stockageMod.DELAI_MODIF_MS,
     disque: { bas: () => disqueBas, libreMo },

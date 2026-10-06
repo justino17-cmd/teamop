@@ -54,10 +54,16 @@ console.log('\nLa sortie ne diffère de l\'aperçu que par les substitutions dé
   /* le manifeste, l'icône d'écran d'accueil et les trois métas se retirent EN PREMIER : sinon le renvoi des icônes vers ../../icons/ les toucherait aussi */
   let inv = html.replace(GEN.LIGNE_ICONE + GEN.LIGNES_PWA, GEN.LIGNE_ICONE).replace('<script src="api.js"></script>\n<script src="source-serveur.js"></script>', '<script src="source.js"></script>').replace('<script src="opmsg-ui.js"></script>', () => '<script>\n' + ui + '</script>');
   inv = inv.split('src="opmsg-').join('src="../../icons/opmsg-').split('href="opmsg-').join('href="../../icons/opmsg-');
+  /* l'empreinte de la version (« Mettre à jour ») : la seule chose que le générateur ÉCRIT dans le script — elle se retire comme le reste */
+  inv = inv.replace(/const OPMSG_BUILD = '[0-9a-f]{12}';/, "const OPMSG_BUILD = '';");
   inv = inv.replace('<title>OP MESSAGES</title>', '<title>OP MESSAGES — aperçu</title>').replace('OP MESSAGES a besoin de JavaScript.', 'Cet aperçu d\'OP MESSAGES a besoin de JavaScript.');
   const csp = (s) => s.replace(/<meta http-equiv="Content-Security-Policy" content="[^"]*">/, '<CSP>');
   const sansCommentaireCsp = (s) => s.replace(/<!-- ⛔ (?:AUCUN APPEL RÉSEAU|FICHIER GÉNÉRÉ)[\s\S]*?-->\n/, '');
   v('⛔ inverser les substitutions (pièce de données, script extrait, logo, titre, phrase) redonne l\'aperçu EXACT — hors politique de la page et son commentaire, qui sont les deux seules différences voulues', sansCommentaireCsp(csp(inv)) === sansCommentaireCsp(csp(apercu)), true);
+  const builds = ui.match(/const OPMSG_BUILD = '([0-9a-f]*)';/g) || [];
+  vrai('« Mettre à jour » : l\'interface servie porte son empreinte UNE fois, 12 hexadécimaux, celle que le générateur rend (le service la lit dans ce fichier et la sert dans /api/config)',
+    builds.length === 1 && /'([0-9a-f]{12})'/.test(builds[0]) && builds[0].includes("'" + g.empreinte + "'"), builds);
+  vrai('(contre-épreuve) l\'aperçu, lui, ne porte AUCUNE empreinte (la page sait qu\'elle n\'a rien à comparer)', /const OPMSG_BUILD = '';/.test(apercu) && (apercu.match(/const OPMSG_BUILD = /g) || []).length === 1);
   vrai('la politique du service remplace celle de l\'aperçu : connect-src \'self\' (le réseau, vers le service seul), plus de « default-src none » sans connect-src', html.includes(GEN.CSP_SERVICE) && !/content="default-src 'none'; img-src 'self' blob:; media-src blob:;/.test(html));
   v('⛔ aucun script en ligne, aucun onclick=, aucun domaine tiers dans la page servie', [/<script(?![^>]*\bsrc=)[^>]*>/i.test(html.replace(/<!--[\s\S]*?-->/g, '')), /\son[a-z]+\s*=\s*["']/i.test(html.replace(/<!--[\s\S]*?-->/g, '')), /(src|href)="https?:\/\//i.test(html)], [false, false, false]);
   v('les trois scripts, dans l\'ordre : le client, le module de données, l\'interface', Array.from(html.matchAll(/<script[^>]*\bsrc="([^"]+)"/g)).map(m => m[1]), ['api.js', 'source-serveur.js', 'opmsg-ui.js']);
@@ -135,7 +141,7 @@ console.log('\nUne sortie fabriquée à la main ne passe pas la vérification');
     GEN.ecrire(GEN.generer({ racine: d }));
     v('population : régénérée, la copie est de nouveau « à jour »', GEN.ecarts(GEN.generer({ racine: d })), []);
     muter(d, 'apercu/opmessages/index.html', s => s.replace('<p class="hors-ligne"', '<!-- ajout dans l\'aperçu --><p class="hors-ligne"'));
-    v('⛔ un aperçu changé SANS régénérer est détecté aussi (la page servie n\'est plus celle que Justin a validée)', GEN.ecarts(GEN.generer({ racine: d })), ['index.html']);
+    v('⛔ un aperçu changé SANS régénérer est détecté aussi (la page servie n\'est plus celle que Justin a validée)', GEN.ecarts(GEN.generer({ racine: d })), ['index.html', 'opmsg-ui.js']);   // l'interface aussi : son empreinte de version change avec la page (« Mettre à jour » le verra)
   } finally { fs.rmSync(d, { recursive: true, force: true }); }
 }
 fin();

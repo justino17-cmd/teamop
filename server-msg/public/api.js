@@ -260,6 +260,32 @@
     const api = {
       base, appel,
       config: () => appel('GET', '/api/config'),
+      /* « Mettre à jour » : relit SANS CACHE les fichiers de l'application (liste FIXE, de cette origine : jamais une adresse reçue), en disant combien d'octets sont arrivés.
+         La page recharge ensuite : le navigateur ne relit que ce qu'il vient de recevoir. Un refus ou une coupure jette `ErreurApi` comme le reste. */
+      relireApplication: async (surProgres) => {
+        const FICHIERS = ['/', '/opmsg-ui.js', '/source-serveur.js', '/api.js'];
+        const dire = typeof surProgres === 'function' ? surProgres : () => {};
+        let recu = 0;
+        for (let i = 0; i < FICHIERS.length; i++) {
+          let r;
+          try { r = await f(base + FICHIERS[i], { credentials: 'same-origin', cache: 'reload' }); }
+          catch (e2) { throw new ErreurApi('reseau', 0, 0); }
+          if (!r.ok) throw new ErreurApi(r.status >= 500 ? 'serveur' : 'inconnue', r.status, 0);
+          const total = +(r.headers && r.headers.get ? r.headers.get('content-length') : 0) || 0;
+          if (r.body && r.body.getReader) {
+            const lecteur = r.body.getReader(); let ici = 0;
+            for (;;) {
+              let morceau;
+              try { morceau = await lecteur.read(); } catch (e2) { throw new ErreurApi('reseau', 0, 0); }
+              if (morceau.done) break;
+              ici += morceau.value.length; recu += morceau.value.length;
+              dire((i + (total ? Math.min(1, ici / total) : 0.5)) / FICHIERS.length, recu);
+            }
+          } else { try { recu += (await r.arrayBuffer()).byteLength; } catch (e2) { throw new ErreurApi('reseau', 0, 0); } }
+          dire((i + 1) / FICHIERS.length, recu);
+        }
+        return { octets: recu };
+      },
       /* La porte bêta : identifiant et mot de passe de la Tour. Rend la personne connectée. */
       connexionBeta: async (login, pass) => {
         const r = await appel('POST', '/api/beta/entrer', { login, pass });

@@ -120,7 +120,7 @@ function creerHandlers(ctx) {
 
   /* ── Service ─────────────────────────────────────────────────────────────────────────── */
   H['config'] = (req, res) => res.json({
-    version: ctx.version, instance: config.instance, min_client: config.minClient,
+    version: ctx.version, build: ctx.build || null, instance: config.instance, min_client: config.minClient,
     limites: {
       message_max: MSG_MAX, membres_max: ctx.maxMembres, nom_groupe_max: 80, modif_ms: ctx.delaiModifMs, ephemeres: EPHEMERES,
       /* le nombre de PERSONNES d'une réunion (organisateur compris) : Perso+ comme Pro, jamais plus (`formule.js`, une seule constante) — la page l'écrit, elle ne le recopie pas. Un appel de GROUPE n'est pas concerné. */

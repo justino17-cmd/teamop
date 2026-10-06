@@ -13,7 +13,31 @@ de ligne du tout.
 
 ---
 
-# ⏳ 5 OCTOBRE 2026 — OP MESSAGES : LE THÈME « 100 % APPLE » (LOT 1) ET L'IDENTIFIANT « PRÉNOM#1234 » — SUR LA BRANCHE, PAS ENCORE SUR `main`
+# ⏳ 6 OCTOBRE 2026 — « NOUVELLE VERSION D'OP MESSAGES », LA FAILLE `proxy-addr` D'OP GESTION, ET CE QUI EST DÉCIDÉ POUR LA SUITE
+
+1. **La mise à jour se VOIT** (demandé le 5 octobre : « je sais pas si les mises à jour se font ») : `scripts/opmsg-public.js` pose dans l'interface servie son empreinte
+   (`OPMSG_BUILD`, 12 hexadécimaux des cinq fichiers) ; le service la relit au démarrage et la sert dans `/api/config` (`build`). La page compare au démarrage, au retour sur
+   l'application, au retour du réseau et toutes les dix minutes : différente → bandeau « Nouvelle version d'OP MESSAGES » (« Plus tard » 30 min, « Mettre à jour ») ; l'écran de mise à
+   jour relit les fichiers sans cache avec une barre qui avance, recharge, puis dit « OP MESSAGES est à jour » ou « pas encore pu s'installer » (sans relancer). « À propos » montre
+   l'empreinte. La page n'appelle jamais le réseau elle-même (`api.js` › `relireApplication`, liste de fichiers FIXE). `test-941`, `tests/sonde-opmessages-maj.js` (19 ✓, deux mutations
+   qui la font tomber). Aucun service worker ne cache rien (il n'y en a pas pour les pages) : c'est ce qui rend la relecture fiable.
+2. **Faille critique `proxy-addr` (GHSA-jqcg-44mw-7w3h) d'OP GESTION** : 2.0.8 dans `server/package-lock.json`, `npm audit` à 0, bancs serveur 54 suites · 3 786. Demande de fusion
+   ouverte (justino17-cmd/teamop#95) : la fusionner DÉPLOIE le serveur d'OP GESTION.
+3. **Décidé par Justin** :
+   · inscription perso **« comme Discord »** (le numéro de téléphone devient FACULTATIF : e-mail, clé d'accès) — le prochain chantier d'OP MESSAGES ;
+   · compte **trouvable par défaut** (« Activé d'office ») et **écran d'appel au bleu du logo** — les deux questions du 5 octobre sont tranchées ;
+   · **toutes les applications téléchargeables sur tout appareil** (Mac, Windows, iPhone, Android), **la version web restant disponible** — lot I de
+     `design/opmessages/FEUILLE-DE-ROUTE.md`, élargi à OP GESTION (qui attend sa sortie de Firebase).
+   · numéros virtuels pour le pro (« comme 3CX en mieux ») : idée retenue, étude pas encore lancée.
+4. **La fusion de justino17-cmd/teamop#94 est EN LIGNE sur la bêta d'OP MESSAGES** — après une relance : le premier passage de la CI a vu `test-904` (la couture avec le vrai
+   serveur d'OP GESTION) tomber à 41 ✓ 4 ✗ (la session de Mona jamais fermée, puis trente comptes bêta que le vrai OP GESTION n'a pas créés : `null.id` ligne 203) ; la relance est
+   verte, et le banc passe 5 fois sur 5 ici, sur l'arbre de `main`. Rien n'avait changé dans `server/`, ce banc ni ses outils depuis le déploiement réussi d'avant. **Une deuxième
+   instabilité, comme `test-957`** : ce qui ressemble à un OP GESTION qui cesse de répondre en cours de banc. À creuser (journal du processus d'OP GESTION dans le banc) avant
+   qu'on apprenne à relancer sans regarder. ⚠️ En local, `test-904` saute ENTIÈREMENT (0 ✓) sans `server/node_modules` : `npm ci --omit=dev --prefix server` avant la porte.
+
+---
+
+# ✅ 5 OCTOBRE 2026 — OP MESSAGES : LE THÈME « 100 % APPLE » (LOT 1) ET L'IDENTIFIANT « PRÉNOM#1234 » — SUR `main` (justino17-cmd/teamop#94), BÊTA EN DÉPLOIEMENT LE 6
 
 ⚠️ **La mémoire d'OP MESSAGES vit dans `design/opmessages/`** (`FEUILLE-DE-ROUTE.md`, `SERVEUR.md`, `THEME-OPMESSAGES.md`) : ce fichier n'en a rien dit du 1er au 5 octobre.
 Branche `claude/apple-theme-op-messages-gcb3j9`. Une poussée sur `main` qui touche `server-msg/` déploie la BÊTA d'OP MESSAGES (jamais la production : approbation `msg-prod`).
@@ -23,11 +47,11 @@ Branche `claude/apple-theme-op-messages-gcb3j9`. Une poussée sur `main` qui tou
    Le document de référence change (`THEME-OPMESSAGES.md`, avec un tableau « Jetons système » que `test-856` relit) ; l'ancien est dans `design/archives/`. Sonde complète :
    **3 172 ✓ 0 ✗** (tous les appareils, jour et nuit, contrastes lus au pixel) ; une première passe avait lu l'onglet actif de nuit à 3,89:1 → #c7d6fb.
    **Lots suivants** : la conversation (barre et saisie en capsules de verre au-dessus du fil), la barre latérale du bureau en panneau de verre, Appels et Réunions.
-   ❓ **Question ouverte à Justin** : l'écran d'appel garde le bleu du logo (aujourd'hui) ou passe au gris sombre d'Apple ?
+   ✅ Tranché le 6 octobre : l'écran d'appel garde le bleu du logo.
 2. **L'identifiant « Prénom#1234 » et les demandes de contact** (`SERVEUR.md` § 2.5 bis) : « + » › Nouveau contact ou Réglages › Ajouter un contact ; l'identifiant EXACT ou le numéro ;
    une DEMANDE que la personne accepte, refuse ou bloque. La relecture du `gardien` a trouvé un **bloquant** (l'ancienne route `contacts/ajouter` contournait l'accord ET le refus) et
    cinq défauts (refus devinable, relance en boucle, demandeur non blocable, écritures non latines toutes sous « op », demandes qui suivaient la personne) : tous corrigés et rejoués dans
-   `test-996`. ❓ **Gardé tel quel, à confirmer par Justin** : un compte est trouvable par défaut (comme par numéro), anciens comptes compris.
+   `test-996`. ✅ Confirmé le 6 octobre : un compte est trouvable par défaut, anciens comptes compris.
 3. **Deux bancs qui tombent pour une raison qui n'est pas la nôtre** — ne pas les « corriger » à l'aveugle :
    · `test-971` (fuseaux des réunions, Vancouver) tombe dans un conteneur dont le Node porte la base de fuseaux **2025b** (`process.versions.tz`) : elle ignore l'heure d'été permanente
      de Vancouver (2026). La CI de `main` l'a passé. Un plancher de la porte manqué en local vient aussi de `server/node_modules` absent (`test-904` saute sa couture).

@@ -138,9 +138,16 @@ function generer(o) {
   if (!/^#[0-9a-f]{6}$/i.test(String(man.theme_color)) || !/^#[0-9a-f]{6}$/i.test(String(man.background_color))) jette('le manifeste doit porter ses deux couleurs (theme_color, background_color) en hexadécimal');
   if ((html.match(/<link rel="manifest" href="manifest\.webmanifest">/g) || []).length !== 1) jette('la page doit déclarer UNE fois son manifeste');
 
-  const fichiers = { 'index.html': Buffer.from(html, 'utf8'), 'opmsg-ui.js': Buffer.from(ui, 'utf8') };
+  /* 5f. L'EMPREINTE DE LA VERSION : douze hexadécimaux calculés sur TOUT ce qui est servi (la page, son script, le client, le module, le service worker), posés dans le script
+     de la page. Le service la lit au démarrage et la rend à `/api/config` ; une page restée ouverte compare la sienne et propose « Mettre à jour » (5 octobre 2026 : « je sais
+     pas si les mises à jour se font »). Déterministe : `--verifier` recalcule la même. L'aperçu garde une empreinte VIDE (il ne parle à aucun service). */
+  const PLACE = "const OPMSG_BUILD = '';";
+  if (ui.split(PLACE).length !== 2) jette('le script de la page doit porter UNE fois « ' + PLACE + ' » (l\'empreinte de la version s\'y pose)');
+  const empreinte = require('crypto').createHash('sha256').update([html, ui, api, source, sw].join('\u0000')).digest('hex').slice(0, 12);
+  const uiServi = ui.replace(PLACE, () => "const OPMSG_BUILD = '" + empreinte + "';");
+  const fichiers = { 'index.html': Buffer.from(html, 'utf8'), 'opmsg-ui.js': Buffer.from(uiServi, 'utf8') };
   for (const i of ICONES) fichiers[i] = lire(racine, 'icons', i);
-  return { fichiers, rapport: { methodes: appelees.length, routes: routes.size, octets: Object.values(fichiers).reduce((a, b) => a + b.length, 0) }, racine, dossier: path.join(racine, pub) };
+  return { fichiers, empreinte, rapport: { methodes: appelees.length, routes: routes.size, octets: Object.values(fichiers).reduce((a, b) => a + b.length, 0) }, racine, dossier: path.join(racine, pub) };
 }
 
 function ecrire(g) {

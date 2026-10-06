@@ -44,7 +44,8 @@
 # 5 octobre 2026, le « + » d'OP MESSAGES (« Nouvelle discussion » : test-995, la VRAIE fonction de la page contre le VRAI service ; test-857 § 4 bis et sa série N, hors de cette liste) : 64 suites, 7 921 vérifications mesurées par la commande de la porte — plancher 7907 (le total moins 14, jamais une addition).
 # 5 octobre 2026, l'identifiant « Prénom#1234 » et les demandes de contact (test-996 ; test-905, 917, 918, 944, 957, 991 suivent : plus d'« ajouter », le réglage trouvable, le schéma 11) : 66 suites,
 # 8 034 vérifications mesurées par la commande de la porte (test-971 tombait en local sur la base de fuseaux 2025b du conteneur, avec son total complet) — plancher 8020 (le total moins 14).
-#plancher 8020
+# 6 octobre 2026, « Nouvelle version d'OP MESSAGES » (test-941 : l'empreinte de version, trois contrôles de plus) : 66 suites, 8 036 vérifications mesurées par la commande de la porte avec la couture de test-904 (test-971 tombant en local sur la base de fuseaux 2025b, comme le 5) — plancher 8022 (le total moins 14).
+#plancher 8022
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
@@ -139,3 +140,4 @@ tests/test-920.js
 tests/test-995.js
 # ── L'identifiant « Prénom#1234 » et les demandes de contact (5 octobre 2026) : le vrai service (996) ; la vraie page à deux personnes est la sonde tests/sonde-opmessages-identifiant.js ──
 tests/test-996.js
+# ── « Nouvelle version d'OP MESSAGES » (6 octobre 2026) : l'empreinte de version (test-941) ; la vraie page qui la compare, le bandeau, la barre et le retour sont la sonde tests/sonde-opmessages-maj.js ──
