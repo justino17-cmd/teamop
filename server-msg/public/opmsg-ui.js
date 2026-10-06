@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '45cdd3905f61';
+  const OPMSG_BUILD = '396f9b2d0440';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 3;
+  const OPMSG_VERSION = 10;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
@@ -37,6 +37,8 @@
   const VOCAL_MIN_MS = 800, VOCAL_MAX_MS = 180000, TENU_MS = 600, TEXTE_MAX = CAP.texteMax;
 
   /* ═══ 2. L'ÉTAT — un seul objet, que des instantanés et des gestes en cours ════════════════════════════════════════════════ */
+  /* l'aperçu des photos avant l'envoi (« 7 bis ») — déclaré ICI, avant tout ce qui le lit (`synchroInert`, Échap) : plus bas, il serait en zone morte au premier rendu */
+  const ep = { ouvert: false, conv: null, photos: [], sel: 0, max: 10, declencheur: null, envoi: false };
   const etat = {
     route: null,                  // { vue, conv, feuille, photo } — c'est elle qui est écrite dans l'historique
     conversations: [],            // la liste, telle que la source l'a rendue
@@ -242,7 +244,7 @@
      la conversation rend la liste inerte quand elle la recouvre (jusqu'à 1 099 px) */
   const largeBureau = matchMedia('(min-width: 1100px)');
   function synchroInert() {
-    $('app').inert = !!(etat.groupe.ouvert || etat.photo || etat.menu);
+    $('app').inert = !!(etat.groupe.ouvert || etat.photo || etat.menu || ep.ouvert);
     /* un appel recouvre la liste ET la conversation (au bureau, la barre latérale reste, et reste active : l'onglet qu'on touche raccroche) */
     $('contenu').inert = !!(etat.appelId || (etat.conv && !largeBureau.matches));
     $('conv-ecran').inert = !!etat.appelId; $('conv-vide').inert = !!etat.appelId;
@@ -293,9 +295,13 @@
     const debutCorps = h.length;
     if (m.photos) {
       const une = m.photos.length === 1;
+      /* une photo LÉGENDÉE : la photo et sa légende forment UNE colonne, à la largeur de la photo (la légende y passe à la ligne, comme WhatsApp) */
+      if (m.texte) h += '<span class="photos-leg">';
       h += '<span class="photos' + (une ? ' une' : '') + '">' + m.photos.map((p, i) => blob(p.url) ?
         '<button type="button" class="photo presse" data-photo="' + esc(m.id) + '|' + i + '"' + (une ? styleUne(p) : '') + ' aria-label="Agrandir la photo ' + (i + 1) + ' sur ' + m.photos.length + '"><img src="' + esc(p.url) + '" alt="Photo envoyée par ' + esc(moi ? 'vous' : nomAuteur(m.auteur)) + '"></button>' :
         photoAttente(p, i, m.photos.length, une)).join('') + '</span>';
+      /* la LÉGENDE, dessous, dans une bulle de l'envoyeur */
+      if (m.texte) h += '<span class="bulle legende ' + sens + '" dir="auto">' + esc(m.texte) + '</span></span>';
     } else if (m.vocal) {
       h += '<button type="button" class="vocal ' + sens + ' presse" data-lire="' + esc(m.id) + '" aria-label="Lire le message vocal de ' + duree(m.vocal.dur) + '">' +
         '<span class="vocal-disque">' + icone('i-play', 'plein play') + icone('i-pause', 'plein pause') + '</span>' +
@@ -694,7 +700,86 @@
     if (ratees) dits.push(ratees === 1 ? 'Une image n\'a pas pu être lue — elle n\'a pas été envoyée.' : ratees + ' images n\'ont pas pu être lues — elles n\'ont pas été envoyées.');
     if (lourds) dits.push(lourds === 1 ? 'Un GIF était trop lourd pour rester animé : il est parti sans mouvement.' : lourds + ' GIF étaient trop lourds pour rester animés : ils sont partis sans mouvement.');
     if (dits.length) avis(dits.join(' '));
-    if (bonnes.length && id === etat.conv && !(await envoi({ photos: bonnes }))) bonnes.forEach(p => URL.revokeObjectURL(p.url));
+    if (!bonnes.length || id !== etat.conv) { bonnes.forEach(p => URL.revokeObjectURL(p.url)); return; }
+    /* ⛔ RIEN NE PART AU CHOIX : l'aperçu s'ouvre (la photo en grand, la légende) — ou, s'il est déjà ouvert (« + »), les photos s'y ajoutent, dans la limite d'un envoi */
+    if (ep.ouvert) {
+      const place = Math.max(0, lim.parMessage - ep.photos.length);
+      bonnes.slice(place).forEach(p => URL.revokeObjectURL(p.url));
+      if (bonnes.length > place) avis(lim.parMessage + ' photos au plus par envoi : ' + (bonnes.length - place === 1 ? 'une n\'a pas été ajoutée.' : (bonnes.length - place) + ' n\'ont pas été ajoutées.'));
+      ep.photos = ep.photos.concat(bonnes.slice(0, place)); ep.sel = ep.photos.length - 1; epRendre();
+      return;
+    }
+    epOuvrir(id, bonnes, lim.parMessage);
+  });
+
+  /* ═══ LA PHOTO AVANT L'ENVOI — l'aperçu et la légende (6 octobre 2026 : « quand j'envoie une photo, il faudrait pouvoir mettre un texte en dessous, comme WhatsApp ») ═══
+     ⛔ La légende fait partie du message (un seul envoi, photos + texte) : elle n'est pas un second message envoyé à la suite. Annuler (la croix, Échap) ne laisse rien partir
+     et rend les adresses des images. Le champ du message, en bas de la conversation, n'est pas touché : la légende est à part. */
+  function epOuvrir(conv, photos, max) {
+    Object.assign(ep, { ouvert: true, conv, photos, sel: 0, max: max || 10, declencheur: document.activeElement });
+    $('ep-legende').value = ''; epAjuster();
+    $('envoi-photos').hidden = false; synchroInert();
+    epRendre();
+    setTimeout(() => { try { $('ep-legende').focus({ preventScroll: true }); } catch (e) { /* rien */ } }, 30);
+  }
+  function epRendre() {
+    if (!ep.ouvert) return;
+    if (!ep.photos.length) { epFermer(); return; }
+    ep.sel = Math.max(0, Math.min(ep.sel, ep.photos.length - 1));
+    const n = ep.photos.length;
+    $('ep-titre').textContent = n > 1 ? n + ' photos' : 'Photo';
+    $('ep-grande').src = ep.photos[ep.sel].url;
+    $('ep-grande').alt = 'Photo ' + (ep.sel + 1) + ' sur ' + n;
+    /* une seule photo : pas de bande de vignettes (rien à choisir) ; au-delà, chacune se touche pour la voir, sa croix la retire */
+    $('ep-vignettes').innerHTML = n < 2 ? '' : ep.photos.map((p, i) => '<span class="ep-vig-l"><button type="button" class="ep-vig presse" data-ep-voir="' + i + '" aria-current="' + (i === ep.sel) + '" aria-label="Voir la photo ' + (i + 1) + '"><img src="' + esc(p.url) + '" alt=""></button>' +
+      '<button type="button" class="ep-retirer" data-ep-retirer="' + i + '" aria-label="Retirer la photo ' + (i + 1) + '"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button></span>').join('');
+    $('ep-ajouter').hidden = n >= ep.max;
+  }
+  function epAjuster() { const ta = $('ep-legende'); ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 124) + 'px'; }
+  function epFermer(envoye) {
+    if (!ep.ouvert) return;
+    ep.ouvert = false; $('envoi-photos').hidden = true;
+    if (!envoye) ep.photos.forEach(p => URL.revokeObjectURL(p.url));
+    ep.photos = []; $('ep-grande').removeAttribute('src'); $('ep-vignettes').innerHTML = ''; $('ep-legende').value = '';
+    synchroInert();
+    const d = ep.declencheur; ep.declencheur = null;
+    try { if (d && d.focus && document.contains(d)) d.focus({ preventScroll: true }); else $('saisie').focus({ preventScroll: true }); } catch (e) { /* rien */ }
+  }
+  async function epEnvoyer() {
+    if (!ep.ouvert || ep.envoi) return;
+    const legende = $('ep-legende').value.replace(/\s+$/, '');
+    if (legende.trim() && nSignes(legende) > TEXTE_MAX) { avis(texteTropLong(nSignes(legende))); return; }
+    const conv = ep.conv, photos = ep.photos.slice();
+    ep.envoi = true;
+    /* on ferme AVANT l'attente (comme le champ du message se vide avant) : l'image part, l'écran rend la conversation ; un refus se dit par l'avis et rend les adresses */
+    epFermer(true);
+    try {
+      if (!(await envoi(legende.trim() ? { photos, texte: legende } : { photos }, conv))) photos.forEach(p => URL.revokeObjectURL(p.url));
+    } finally { ep.envoi = false; }
+  }
+  $('ep-fermer').addEventListener('click', () => epFermer());
+  $('ep-envoyer').addEventListener('mousedown', e => e.preventDefault());
+  $('ep-envoyer').addEventListener('click', () => epEnvoyer());
+  $('ep-ajouter').addEventListener('click', () => $('compo-fichier').click());
+  $('ep-legende').addEventListener('input', epAjuster);
+  $('ep-legende').addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || e.isComposing) return;
+    if ((matchMedia('(pointer: fine)').matches && !e.shiftKey && !e.altKey) || e.ctrlKey || e.metaKey) { e.preventDefault(); epEnvoyer(); }   // les mêmes règles que le champ du message
+  });
+  $('ep-vignettes').addEventListener('click', e => {
+    const r = e.target.closest('[data-ep-retirer]');
+    if (r) { const i = +r.dataset.epRetirer; const [p] = ep.photos.splice(i, 1); if (p) URL.revokeObjectURL(p.url); if (ep.sel >= i && ep.sel > 0) ep.sel--; epRendre(); return; }
+    const v = e.target.closest('[data-ep-voir]');
+    if (v) { ep.sel = +v.dataset.epVoir; epRendre(); }
+  });
+  /* le piège du focus : Tab tourne dans l'aperçu (le fond est inerte) */
+  $('envoi-photos').addEventListener('keydown', e => {
+    if (e.key !== 'Tab') return;
+    const f = Array.from($('envoi-photos').querySelectorAll('button:not([hidden]), textarea')).filter(x => x.getClientRects().length);
+    if (!f.length) return;
+    const i = f.indexOf(document.activeElement);
+    if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+    else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
   });
   /* un fichier : n'importe quoi, tel quel (le service juge ce que c'est, le sert toujours en pièce jointe, jamais en ligne). Trop lourd, il est refusé par la source AVANT tout envoi. */
   $('compo-doc').addEventListener('change', async e => {
@@ -945,24 +1030,20 @@
     $('maj-bandeau').hidden = false;
   }
   /* ⛔ CE QU'ON ÉTAIT EN TRAIN D'ÉCRIRE SURVIT AU RECHARGEMENT (relecture du gardien, 6 octobre 2026) : les brouillons ne vivent qu'en mémoire, et une mise à jour
-     recharge la page. On les range dans le stockage de l'ONGLET (`sessionStorage` : effacé à sa fermeture, jamais partagé) juste avant, et on les reprend — puis on
-     les efface — au chargement suivant. Un stockage refusé (navigation privée) : on perd le brouillon, comme avant, sans casser la mise à jour. */
-  const CLE_BROUILLONS = 'opmsg-brouillons-maj';
+     recharge la page. La source les range dans le stockage de l'ONGLET juste avant (effacé à sa fermeture, jamais partagé), et les rend — puis les efface — au
+     chargement suivant. Un stockage refusé (navigation privée) : on perd le brouillon, comme avant, sans casser la mise à jour. */
   function brouillonsGarder() {
-    try {
-      if (etat.conv) etat.brouillons[etat.conv] = $('saisie').value;
-      const b = {}; for (const [k, v] of Object.entries(etat.brouillons)) if (typeof v === 'string' && v.trim()) b[k] = v.slice(0, 20000);
-      if (Object.keys(b).length) sessionStorage.setItem(CLE_BROUILLONS, JSON.stringify(b)); else sessionStorage.removeItem(CLE_BROUILLONS);
-    } catch (e) { /* stockage refusé : la mise à jour part quand même */ }
+    if (typeof source.garderBrouillons !== 'function') return;
+    if (etat.conv) etat.brouillons[etat.conv] = $('saisie').value;
+    const b = {}; for (const [k, v] of Object.entries(etat.brouillons)) if (typeof v === 'string' && v.trim()) b[k] = v.slice(0, 20000);
+    source.garderBrouillons(b);
   }
-  (function brouillonsReprendre() {
-    try {
-      const brut = sessionStorage.getItem(CLE_BROUILLONS); if (!brut) return;
-      sessionStorage.removeItem(CLE_BROUILLONS);
-      const b = JSON.parse(brut);
-      if (b && typeof b === 'object') for (const [k, v] of Object.entries(b)) if (typeof v === 'string' && !etat.brouillons[k]) etat.brouillons[k] = v;
-    } catch (e) { /* rien à reprendre */ }
-  })();
+  /* ⛔ c'est la SOURCE qui range (le stockage de l'onglet, dans `source-serveur.js`) : la page ne touche à aucun stockage, et l'aperçu — dont la source n'a pas
+     ces deux méthodes — ne garde rien (test-856) */
+  if (typeof source.reprendreBrouillons === 'function') {
+    const b = source.reprendreBrouillons() || {};
+    for (const [k, v] of Object.entries(b)) if (typeof v === 'string' && !etat.brouillons[k]) etat.brouillons[k] = v;
+  }
   /* La mise à jour OBLIGATOIRE : l'écran de mise à jour, sans « Plus tard », qui part tout seul.
      ⛔ PAS PENDANT UN APPEL : recharger le couperait. Elle attend qu'il soit fini (la page n'envoie rien d'autre entre-temps : le service refuse déjà).
      ⛔ UNE SEULE FOIS PAR CHARGEMENT : revenue d'une mise à jour
@@ -1255,6 +1336,7 @@
   $('g-choix').addEventListener('click', e => { const b = e.target.closest('.g-pilule'); if (!b) return; effacerRefusFeuille(); g().video = b.dataset.type === 'video'; synchroFeuille(); });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
+    if (ep.ouvert) { e.preventDefault(); epFermer(); return; }
     if (etat.menu) { e.preventDefault(); fermerMenu(); return; }
     /* dans le champ de recherche de la liste, Échap EFFACE la recherche (puis ne fait rien) : il ne ferme pas la conversation affichée à côté */
     if (e.target === $('recherche-conv') && !etat.photo && !etat.groupe.ouvert) { if (e.target.value) { e.preventDefault(); e.target.value = ''; etat.recherche = ''; rendreListe(); } return; }
@@ -2898,7 +2980,8 @@
     let h = '<div class="menu-emojis" role="group" aria-label="Réagir">' + (m.supprime ? '' : REACTIONS.map(x => '<button type="button" class="menu-emoji" data-menu-reac="' + x + '" aria-pressed="' + (mienne && mienne.emoji === x ? 'true' : 'false') + '" aria-label="Réagir avec ' + x + '">' + x + '</button>').join('')) + '</div>';
     if (!m.supprime && !ferme) h += '<button type="button" class="menu-action" data-menu="repondre">Répondre</button>';
     if (!m.supprime && m.texte) h += '<button type="button" class="menu-action" data-menu="copier">Copier le texte</button>';
-    if (moi && !m.supprime && Date.now() - m.t < DELAI_MODIF_MS) h += '<button type="button" class="menu-action" data-menu="modifier">Modifier</button>';
+    /* un texte se modifie ; une photo, sa LÉGENDE (le service le permet aux deux) ; un vocal ou un fichier, rien — le service le refusait, le bouton ne le promet plus */
+    if (moi && !m.supprime && !m.vocal && !m.fichier && Date.now() - m.t < DELAI_MODIF_MS) h += '<button type="button" class="menu-action" data-menu="modifier">' + (m.photos ? (m.texte ? 'Modifier la légende' : 'Ajouter une légende') : 'Modifier') + '</button>';
     h += '<button type="button" class="menu-action danger" data-menu="supprimer-moi">Supprimer pour moi</button>';
     if ((moi || admin) && !m.supprime) h += '<button type="button" class="menu-action danger" data-menu="supprimer-tous">Supprimer pour tous</button>';
     $('menu-msg').innerHTML = h;

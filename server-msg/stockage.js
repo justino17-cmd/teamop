@@ -1384,7 +1384,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
            lu dans la méta scellée du message. Une méta illisible garde le mot seul — la liste ne tombe pas pour une ligne abîmée. */
         if (!p.supprime_le && (p.type === 'photo' || p.type === 'vocal' || p.type === 'fichier')) {
           let meta = null; try { meta = p.meta_ch ? JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(l.id, p.seq, p.auteur), p.meta_ch)) : null; } catch (e) { meta = null; }
-          clair = apercuPiece(p.type, meta);
+          /* une photo LÉGENDÉE se dit par sa légende, précédée de l'appareil photo (comme WhatsApp) */
+          clair = p.type === 'photo' && clair && clair.trim() ? '📷 ' + clair : apercuPiece(p.type, meta);
         }
         o.apercu = { seq: p.seq, auteur: p.auteur, type: p.type, supprime: !!p.supprime_le, texte: clair === null ? null : debut(clair, 120) };
         /* ⛔ le NOM de l'auteur d'un aperçu de groupe : sans lui, la liste disait « Quelqu'un : … » pour tout membre qui n'est pas dans mes contacts (le cas
@@ -1477,7 +1478,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (!m || seq < m.depuis_seq) throw erreur('introuvable');
       if (!r || r.supprime_le) throw erreur('introuvable');
       if (r.auteur !== auteur) throw erreur('interdit');
-      if (r.type !== 'texte') throw erreur('type');
+      if (r.type !== 'texte' && r.type !== 'photo') throw erreur('type');   // la légende d'une photo se modifie comme un message
       if (horloge() - r.ts > DELAI_MODIF_MS) throw erreur('delai');
       const t = horloge();
       Q('UPDATE message SET corps_ch = ?, modifie = ? WHERE conv = ? AND seq = ?').run(sceller('message', 'corps_ch', aadMsg(conv, seq, auteur), texte), t, conv, seq);

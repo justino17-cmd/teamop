@@ -1898,7 +1898,7 @@
     function citation(c, seq) {
       const q = c.messages.find(x => x.seq === seq);
       if (!q) return { seq, auteur: null, nom: 'Message plus ancien', texte: '', introuvable: true };
-      return { seq, id: q.id, auteur: q.auteur, nom: nomDe(q.auteur), texte: q.supprime ? 'Message supprimé' : extrait(q.type === 'systeme' ? texteSysteme(q, genreSysteme(c)) : (q.texte || resumeMedia(q.type, q.meta)), 120), supprime: !!q.supprime };
+      return { seq, id: q.id, auteur: q.auteur, nom: nomDe(q.auteur), texte: q.supprime ? 'Message supprimé' : extrait(q.type === 'systeme' ? texteSysteme(q, genreSysteme(c)) : (q.type === 'photo' && q.texte ? '📷 ' + q.texte : (q.texte || resumeMedia(q.type, q.meta))), 120), supprime: !!q.supprime };
     }
     /* Les pièces d'un message : l'adresse est celle d'une pièce DÉJÀ LUE (sinon null, et `etat` dit où on en est). `auto` : les pièces que l'ouverture lit toute seule — les plus
        récentes ; les autres attendent le toucher (une conversation de cent photos ne se télécharge pas d'un coup sur un téléphone). */
@@ -1926,7 +1926,8 @@
       const base = { id: m.id, seq: m.seq, auteur: m.auteur, t: m.ts, lu: luDe(conv, c, m) };
       if (m.type === 'systeme') return Object.assign(base, { systeme: true, texte: texteSysteme(m, genreSysteme(c)) });
       const media = MEDIAS.includes(m.type);
-      const v = Object.assign(base, { texte: m.supprime ? '' : (m.illisible ? 'Message illisible' : (media ? '' : (m.texte === null || m.texte === undefined ? '…' : m.texte))) });
+      /* une photo garde sa LÉGENDE (le seul média qui en porte une) ; les autres pièces n'ont pas de texte */
+      const v = Object.assign(base, { texte: m.supprime ? '' : (m.illisible ? 'Message illisible' : (media ? (m.type === 'photo' && typeof m.texte === 'string' ? m.texte : '') : (m.texte === null || m.texte === undefined ? '…' : m.texte))) });
       if (m.supprime) v.supprime = true;
       else if (media && !m.illisible) Object.assign(v, vuePieces(m, auto));
       if (m.modifie) v.modifie = m.modifie;
@@ -2058,10 +2059,10 @@
              et il ne doit pas faire relire une image que l'appareil a déjà */
           if (x.url && (p.type === 'photo' || p.type === 'vocal')) poserCache(x.id, x.url, x.blob.size);
         }
-        const champs = p.type === 'photo' ? { pieces: p.photos.map(x => ({ id: x.id, w: x.w, h: x.h })) } : p.type === 'vocal' ? { piece: p.vocal.id, dur: p.vocal.dur, bars: p.vocal.bars } : { piece: p.fichier.id };
+        const champs = p.type === 'photo' ? Object.assign({ pieces: p.photos.map(x => ({ id: x.id, w: x.w, h: x.h })) }, p.texte ? { texte: p.texte } : {}) : p.type === 'vocal' ? { piece: p.vocal.id, dur: p.vocal.dur, bars: p.vocal.bars } : { piece: p.fichier.id };
         const r = await A.envoyerPieces(p.conv, p.type, champs, { cid: p.cid });
         if (retirer) retirer();
-        apresEnvoi(p.conv, { seq: r.seq, id: r.id, auteur: moiApi.id, ts: r.ts, type: p.type, texte: null, meta: metaDe(p), repond_a: null, supprime: false, modifie: null, reactions: [] });
+        apresEnvoi(p.conv, { seq: r.seq, id: r.id, auteur: moiApi.id, ts: r.ts, type: p.type, texte: p.type === 'photo' && p.texte ? p.texte : null, meta: metaDe(p), repond_a: null, supprime: false, modifie: null, reactions: [] });
         return r;
       } finally { p.enVol = false; }
     }
@@ -2140,6 +2141,8 @@
         if (!liste.length) throw erreurLocale('vide');
         if (liste.length > PHOTOS_PAR_MESSAGE) throw erreurLocale('trop-de-photos');      // ⛔ jamais « les dix premières, le reste en silence »
         p.photos = liste.map(x => ({ blob: x.blob, url: x.url || null, w: Math.max(1, x.w | 0), h: Math.max(1, x.h | 0), id: null }));
+        /* la LÉGENDE (« comme WhatsApp ») : facultative ; vide ou faite d'espaces, la photo part sans */
+        if (typeof b.texte === 'string' && b.texte.trim()) p.texte = valider(b.texte);
       } else if (type === 'vocal') {
         const v = b.vocal;
         if (!v || !v.blob || !(v.blob.size > 0) || !(v.dur > 0)) throw erreurLocale('vide');
@@ -2390,7 +2393,7 @@
       relireListePlusTard();
       if (!moi && d.type !== 'systeme') {
         const r = convsApi.find(x => x.id === d.conv);
-        emettre({ type: 'arrivee', conv: d.conv, de: nomDe(d.auteur), convNom: r ? resume(r).nom : null, groupe: r ? r.type === 'groupe' : false, texte: d.supprime ? '' : (d.texte === undefined || d.texte === null ? resumeMedia(d.type, d.meta) : extrait(d.texte, 140)) });
+        emettre({ type: 'arrivee', conv: d.conv, de: nomDe(d.auteur), convNom: r ? resume(r).nom : null, groupe: r ? r.type === 'groupe' : false, texte: d.supprime ? '' : (d.texte === undefined || d.texte === null ? resumeMedia(d.type, d.meta) : (d.type === 'photo' ? '📷 ' : '') + extrait(d.texte, 140)) });
       }
     }
     const gestionnaires = {
@@ -2615,6 +2618,18 @@
     /* la version que le service sert EN CE MOMENT : la page la compare à la sienne pour proposer « Mettre à jour » */
     /* « Mettre à jour » : la page dit la progression, le module relit les fichiers (la page n'appelle jamais le réseau elle-même) */
     async function relireApplication(surProgres) { return A.relireApplication(surProgres); }
+    /* LES BROUILLONS À TRAVERS UNE MISE À JOUR (relecture du gardien, 6 octobre 2026) : rangés dans le stockage de l'ONGLET juste avant le rechargement, rendus — et
+       effacés — au chargement suivant. Jamais `localStorage` (partagé entre onglets, il survivrait à la fermeture) ; un stockage refusé ne casse rien. */
+    const CLE_BROUILLONS = 'opmsg-brouillons-maj';
+    const stockageOnglet = () => { try { return typeof sessionStorage !== 'undefined' ? sessionStorage : null; } catch (e) { return null; } };
+    function garderBrouillons(b) {
+      const st = stockageOnglet(); if (!st) return;
+      try { if (b && typeof b === 'object' && Object.keys(b).length) st.setItem(CLE_BROUILLONS, JSON.stringify(b)); else st.removeItem(CLE_BROUILLONS); } catch (e) { /* refusé : tant pis */ }
+    }
+    function reprendreBrouillons() {
+      const st = stockageOnglet(); if (!st) return {};
+      try { const x = st.getItem(CLE_BROUILLONS); if (!x) return {}; st.removeItem(CLE_BROUILLONS); const o = JSON.parse(x); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; } catch (e) { return {}; }
+    }
     /* `min` : le numéro de page en dessous duquel le service refuse d'écrire (la Tour le pose) ; `numero` : celui de la page qu'il sert — un entier, ou null quand il ne le dit pas */
     async function versionServie() {
       const c = await A.config();
@@ -3037,7 +3052,7 @@
       contactParIdentifiant, demanderContact, demandesContact, repondreDemande, annulerDemande,
       /* ── les pièces et les réglages ── */
       pieceUrl, pieceBlob, reessayer, abandonner, limitesPieces: limites,
-      profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication,
+      profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees, supprimerCompte,
       /* ── les espaces professionnels, leurs canaux, Messages Pro (capacité `espaces`) ── */

@@ -151,3 +151,5 @@ tests/test-998.js
 # ── L'écran de l'agenda (6 octobre 2026) : la vraie page est la sonde tests/sonde-opmessages-agenda.js ; l'écran d'inscription, tests/sonde-opmessages-inscription.js ──
 # ── La mise à jour forcée, posée depuis la Tour (6 octobre 2026 : « le forçage de mise à jour, comme sur OP GESTION ») : le minimum de CHAQUE instance relu chez OP GESTION, 426 sur les écritures, le numéro de la page (977) ; la vraie page qui se met à jour d'elle-même est la sonde tests/sonde-opmessages-maj-forcee.js ; le minimum par canal côté OP GESTION est test-999 (liste du serveur) ──
 tests/test-977.js
+# ── La légende sous les photos (6 octobre 2026 : « comme WhatsApp ») : le vrai service et la vraie source (966) ; la vraie page, au doigt et à la souris, est la sonde tests/sonde-opmessages-legende.js ──
+tests/test-966.js

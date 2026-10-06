@@ -388,7 +388,7 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
   function message({ conv, seq, gid, auteur, nomAuteur, nomConv, groupe, type, texte }) {
     let dest = [];
     try { dest = stockage.pushDestinatairesMessage({ conv, seq, auteur }); } catch (e) { return []; }
-    const resume = type === 'photo' ? 'Photo' : type === 'vocal' ? 'Message vocal' : type === 'fichier' ? 'Fichier' : extrait(texte, 100);
+    const resume = type === 'photo' ? (texte ? '📷 ' + extrait(texte, 100) : 'Photo') : type === 'vocal' ? 'Message vocal' : type === 'fichier' ? 'Fichier' : extrait(texte, 100);
     const de = extrait(nomAuteur, 60) || 'Quelqu\'un';
     const titreApercu = groupe ? de + ' · ' + extrait(nomConv, 40) : de;
     return dest.map(uid => pousser(uid, {
@@ -398,7 +398,7 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
       valide: () => {
         const x = stockage.pushMessageEncore({ uid, conv, seq });
         if (!x) return false;
-        const courant = x.type === 'photo' ? 'Photo' : x.type === 'vocal' ? 'Message vocal' : x.type === 'fichier' ? 'Fichier' : (x.texte === null ? resume : extrait(x.texte, 100));
+        const courant = x.type === 'photo' ? (x.texte ? '📷 ' + extrait(x.texte, 100) : 'Photo') : x.type === 'vocal' ? 'Message vocal' : x.type === 'fichier' ? 'Fichier' : (x.texte === null ? resume : extrait(x.texte, 100));
         const o = { detail: { titre: titreApercu, corps: courant } };
         if (x.expire_ts !== null) o.ttl = Math.floor((x.expire_ts - horloge()) / 1000);   // (0 si moins d'une seconde : « livre maintenant ou oublie », ce que veut un message qui s'éteint)
         return o;

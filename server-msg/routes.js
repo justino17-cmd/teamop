@@ -501,6 +501,15 @@ function creerHandlers(ctx) {
     } else {
       pj = lirePieces(type, b);
       if (!pj) return refus(res, 400, 'champ_invalide');
+      /* ⛔ LA LÉGENDE D'UNE PHOTO (Justin, 6 octobre 2026 : « quand j'envoie une photo, il faudrait pouvoir mettre un texte en dessous, comme WhatsApp ») : facultative,
+         les mêmes règles qu'un message (nettoyée, pas d'invisible seul, `MSG_MAX` signes), scellée comme lui. Vide ou absente : une photo sans légende, comme avant.
+         Seulement pour une photo : un vocal ou un fichier n'en portent pas. */
+      if (type === 'photo' && b.texte !== undefined && b.texte !== null) {
+        if (typeof b.texte !== 'string' || b.texte.length > MSG_MAX * 2) return refus(res, 400, 'champ_invalide');
+        const t = nettoyerTexte(b.texte);
+        if (Array.from(t).length > MSG_MAX) return refus(res, 413, 'trop_long');
+        texte = INVISIBLE.test(t) ? null : t;
+      } else if (b.texte !== undefined && b.texte !== null && b.texte !== '') return refus(res, 400, 'champ_invalide');
     }
     let repondA = null;
     if (b.reponse_a !== undefined && b.reponse_a !== null) {
