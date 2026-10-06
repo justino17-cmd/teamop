@@ -283,6 +283,8 @@ function creerTelephone(ctx) {
     const appareils = stockage.telAppareilsSupprimerAutres(req.moi.id, v && APPAREIL_RE.test(v) ? sha(v) : '');
     const b = corps(req);
     const notifications = stockage.pushRetirerAutres(req.moi.id, typeof b.endpoint === 'string' ? b.endpoint : null);
+    /* les appareils « connus » d'un compte par adresse aussi (relecture du gardien, R-a) : sinon celui d'un intrus resterait exempté du plafond d'essais, et sa reconnexion ne préviendrait personne */
+    try { if (typeof stockage.appareilsMelOublier === 'function') stockage.appareilsMelOublier(req.moi.id, v && APPAREIL_RE.test(v) ? sha(v) : ''); } catch (e) { /* une base d'avant la migration 12 */ }
     res.json({ ok: true, sessions: hs.length, appareils, notifications });
   };
 

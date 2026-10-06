@@ -358,7 +358,8 @@ function installerFacturation(H, ctx) {
      pas une adresse, et un numéro n'est rendu à personne). Aucune des deux portes d'entrée d'aujourd'hui n'en fournit : c'est la place que prendra la connexion Pro (lien créé par TEAM OP). */
   function adresseDe(moi) {
     if (!moi || moi.origine !== 'compte' || !moi.verifie) return null;
-    const idf = ctx.stockage.personneIdentifiant(moi.id);
+    const brut = ctx.stockage.personneIdentifiant(moi.id);
+    const idf = typeof brut === 'string' && brut.startsWith('mel:') ? brut.slice(4) : brut;   // un compte par adresse e-mail range `mel:<adresse>` (relecture du gardien, R4)
     return typeof idf === 'string' && /^[^\s@:<>]{1,64}@[^\s@:<>]{1,200}\.[^\s@:<>]{2,40}$/.test(idf) ? idf : null;
   }
 

@@ -38,10 +38,11 @@ const { creerFormule } = require('./formule');
 const { creerFacturation } = require('./facturation');
 const { creerPlanificateur } = require('./planificateur');
 const { creerCourriel } = require('./courriel');
+const { creerAgenda } = require('./routes-agenda');
 const { creerAppels } = require('./appels');
 
 const VERSION = '1.9.0-mise-a-jour';
-const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays']);   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
+const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays', 'gabarit']);   // `gabarit` : le NOM d'un gabarit fixe de courriel de compte (inscription, existe, reinit, change), jamais une adresse   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
 
 function journaliser(evt, champs) {
   const o = { t: new Date().toISOString(), evt: String(evt).slice(0, 40) };
@@ -95,7 +96,9 @@ function demarrer(env = process.env) {
   const formule = creerFormule({ stockage, config });
   const facturation = creerFacturation({ stockage, config, formule, journaliser, horloge: Date.now });
   /* ⛔ LES RAPPELS DES RÉUNIONS : UNE instance planifie (le bail), un rappel part UNE seule fois (le registre), l'horloge est injectée. Voir `planificateur.js`. */
-  const planificateur = creerPlanificateur({ stockage, hub, config, horloge: Date.now, journaliser, push });
+  /* L'AGENDA PERSONNEL (`routes-agenda.js`) : ses routes, et ses rappels — envoyés par le planificateur des réunions, qui tient le bail (une seule instance envoie) */
+  const agenda = creerAgenda({ stockage, quotas, config, horloge: Date.now, journaliser });
+  const planificateur = creerPlanificateur({ stockage, hub, config, horloge: Date.now, journaliser, push, agenda });
   /* ⛔ LE COURRIEL D'INVITATION : inerte sans relais SMTP (`config.courriel`), et le DIT. Le mot de passe du relais reste dans `config` ; `/api/config` ne publie que `courriel.ouvert`. */
   const courriel = creerCourriel({ config, stockage, scelleur, horloge: Date.now, journaliser });
   /* ⛔ LES APPELS À DEUX : le relais (identifiants éphémères, jamais de STUN d'un tiers), les signaux relayés à la seule session liée, le balayeur (sonneries échues, appareils perdus), les pushs. L'horloge est injectée. Voir `appels.js`. */
@@ -126,7 +129,7 @@ function demarrer(env = process.env) {
   const build = (() => { try { const m = /const OPMSG_BUILD = '([0-9a-f]{12})';/.exec(fs.readFileSync(path.join(__dirname, 'public', 'opmsg-ui.js'), 'utf8')); return m ? m[1] : null; } catch (e) { return null; } })();
   const ctx = {
     config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION, build, scelleur, sms,
-    pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation, courriel, appels,
+    pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation, courriel, appels, agenda,
     maxMembres: stockageMod.MAX_MEMBRES, delaiModifMs: stockageMod.DELAI_MODIF_MS,
     disque: { bas: () => disqueBas, libreMo },
     /* ⛔ /health est PUBLIQUE et AGRÉGÉE : des nombres et des états, jamais un identifiant, un

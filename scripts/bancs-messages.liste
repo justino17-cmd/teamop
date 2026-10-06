@@ -143,3 +143,7 @@ tests/test-996.js
 # ── « Nouvelle version d'OP MESSAGES » (6 octobre 2026) : l'empreinte de version (test-941) ; la vraie page qui la compare, le bandeau, la barre et le retour sont la sonde tests/sonde-opmessages-maj.js ──
 # ── La carte de profil en bas à gauche ouvre les Réglages (6 octobre 2026) : la vraie page est la sonde tests/sonde-opmessages-profil.js ──
 # ── L'onglet « Contacts » : demandes reçues (Accepter, Refuser, Bloquer), envoyées, contacts de A à Z, compteur sur l'onglet (6 octobre 2026) : test-856 (les onglets), la vraie page à trois personnes est la sonde tests/sonde-opmessages-contacts.js ──
+# ── Le compte par adresse e-mail, « comme Discord » (6 octobre 2026 : le numéro devient facultatif) : le vrai service et un faux relais SMTP (997) ; la vraie page est la sonde tests/sonde-opmessages-inscription.js ──
+tests/test-997.js
+# ── L'agenda personnel (6 octobre 2026) : des événements à soi, avec un rappel — le vrai service, l'horloge avancée au geste (998) ──
+tests/test-998.js

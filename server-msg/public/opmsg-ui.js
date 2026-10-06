@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'c0c5eefba79c';
+  const OPMSG_BUILD = 'b8d9e834c682';
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
      ⛔ Cette page ne contient AUCUNE donnée et n'en modifie AUCUNE : tout ce qu'elle sait des personnes et des conversations vient de
@@ -13,7 +13,7 @@
   if (!source) { $('contenu').innerHTML = '<p class="vide">Les données n\'ont pas pu être chargées.</p>'; return; }
   /* ⛔ CE QUE LA SOURCE SAIT FAIRE. La source de l'aperçu n'annonce rien : photos, vocaux et appels y sont SIMULÉS, aucun service, aucune action sur un message. Celle du
      service annonce ses capacités (`source.capacites`) : ce qu'elle ne sait pas encore dit « bientôt » au lieu de faire semblant. */
-  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, appelsMedias: false, appelsGroupe: true, salles: false, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, notifications: false, compte: false, espaces: false, persoPlus: false, reunionPlafond: false, identifiants: false, miseAJour: false, texteMax: 4000 }, source.capacites || {});
+  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, appelsMedias: false, appelsGroupe: true, salles: false, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, notifications: false, compte: false, espaces: false, persoPlus: false, reunionPlafond: false, identifiants: false, miseAJour: false, comptesCourriel: false, texteMax: 4000 }, source.capacites || {});
   /* la personne et ses contacts : posés au démarrage (une source de service ne sait qui est connecté qu'après avoir lu la session), relus quand elle le dit */
   let MOI = null, CONTACTS = [];
   const SUFFIXE_TITRE = CAP.service ? ' — OP MESSAGES' : ' — OP MESSAGES, aperçu';
@@ -1726,7 +1726,11 @@
     if (etat.partir || typeof source.enAttente !== 'function' || !(source.enAttente() > 0)) return;
     e.preventDefault(); e.returnValue = '';
   });
-  const erreurConnexion = t => { const e = $('connexion-erreur'); e.textContent = t || ''; e.hidden = !t; };
+  const erreurConnexion = t => {
+    const f = CX_PANNEAUX.map(id => $(id)).find(x => x && !x.hidden) || $('f-connexion');
+    const e = f.id === 'f-connexion' ? $('connexion-erreur') : f.querySelector('.connexion-erreur');
+    e.textContent = t || ''; e.hidden = !t;
+  };
   function afficherConnexion(motif, d) {
     $('app').hidden = true; $('connexion').hidden = false;
     document.title = 'Connexion' + SUFFIXE_TITRE;
@@ -1735,6 +1739,7 @@
     if (t && etat.perdus > 0) t += ' ' + (etat.perdus === 1 ? 'Un message n\'était pas encore parti : il n\'a pas été envoyé, écris-le de nouveau.' : etat.perdus + ' messages n\'étaient pas encore partis : ils n\'ont pas été envoyés, écris-les de nouveau.');
     if (!t && d && d.motif && d.motif !== 'session_requise') t = d.phrase || phrase(null, 'Le service ne répond pas.');
     erreurConnexion(t);
+    if (CAP.comptesCourriel && typeof source.comptesOuverts === 'function') source.comptesOuverts().then(c => cxProposer(c, t), () => { /* sans réponse, l'écran reste celui d'avant */ });
     /* (salles) un lien d'invité ouvert sans session : la connexion DIT à quelle réunion il mène (l'aperçu public du service — rien qu'un titre et une heure), puis la page repart avec le lien */
     const cr = CAP.salles ? reunionDansAdresse() : null;
     if (cr && typeof source.apercuReunion === 'function') source.apercuReunion(cr).then(r => {
@@ -1742,6 +1747,104 @@
       if (e && r && !$('connexion').hidden) { e.textContent = 'Tu es invité à « ' + r.titre + ' » (' + FMT_JOUR_LONG.format(r.debut) + ' à ' + FMT_HEURE.format(r.debut) + '). Connecte-toi pour la rejoindre.'; e.hidden = false; }
     }, () => { /* sans aperçu, la connexion reste la connexion */ });
   }
+  /* ═══ LE COMPTE PAR ADRESSE E-MAIL — « comme Discord » (6 octobre 2026 : le numéro devient facultatif) ═════════════════════════════════════════════════════════
+     Un panneau visible à la fois. Le service dit ce qu'il propose (`comptesOuverts()` : la connexion par adresse, la création de compte) ; sans réponse, l'écran reste celui de l'accès
+     d'essai. ⛔ La création ne dit jamais si une adresse a déjà un compte (le service répond pareil) : l'écran du code dit « si cette adresse n'a pas encore de compte ». ⛔ Le code se TAPE
+     (pas de lien : depuis Mail, un lien ouvrirait Safari, pas l'application installée). Rien n'est rangé sur l'appareil : l'adresse ne vit que le temps de l'écran. */
+  const CX_PANNEAUX = ['f-connexion', 'f-mel', 'f-inscrire', 'f-code', 'f-oubli'];
+  const cx = { comptes: null, adresse: '', but: 'inscription', minuterie: 0, renvoiA: 0, enCours: false, champs: null };
+  function cxMontrer(id) {
+    CX_PANNEAUX.forEach(f => { $(f).hidden = f !== id; });
+    const err = id === 'f-connexion' ? $('connexion-erreur') : $(id).querySelector('.connexion-erreur'); err.textContent = ''; err.hidden = true;
+    const premier = $(id).querySelector('input:not([type=checkbox])');
+    if (premier && window.matchMedia && window.matchMedia('(pointer: fine)').matches) premier.focus({ preventScroll: true });
+  }
+  function cxProposer(c, motifTexte) {
+    cx.comptes = c;
+    if (!c || !c.courriel) return;
+    document.querySelectorAll('[data-cx-inscription]').forEach(e => { e.hidden = !c.inscription; });
+    document.querySelectorAll('[data-cx-essai]').forEach(e => { e.hidden = !CAP.connexion; });
+    document.querySelectorAll('#f-connexion [data-cx="f-mel"]').forEach(e => { e.hidden = false; });
+    if (!$('f-connexion').hidden) { cxMontrer('f-mel'); if (motifTexte) erreurConnexion(motifTexte); }
+  }
+  function cxRenvoiDecompte() {
+    clearInterval(cx.minuterie);
+    const b = $('cx-renvoyer');
+    const tic = () => {
+      const s = Math.ceil((cx.renvoiA - Date.now()) / 1000);
+      if (s > 0) { b.disabled = true; b.textContent = 'Renvoyer le code (' + s + ' s)'; }
+      else { b.disabled = false; b.textContent = 'Renvoyer le code'; clearInterval(cx.minuterie); }
+    };
+    tic(); cx.minuterie = setInterval(tic, 1000);
+  }
+  function cxVersCode(but, adresse) {
+    cx.but = but; cx.adresse = adresse; cx.renvoiA = Date.now() + 60000;
+    $('cx-code-titre').textContent = but === 'reinit' ? 'Nouveau mot de passe' : 'Vérifie tes e-mails';
+    $('cx-code-sous').textContent = but === 'reinit'
+      ? 'Si « ' + adresse + ' » a un compte, un code à six chiffres vient d\'y partir. Tape-le, puis choisis ton nouveau mot de passe : tous tes appareils seront déconnectés.'
+      : 'Si « ' + adresse + ' » n\'a pas encore de compte, un code à six chiffres vient d\'y partir. Tape-le pour créer ton compte.';
+    $('cx-code-mdp-champ').hidden = but !== 'reinit';
+    $('cx-code-bouton').textContent = but === 'reinit' ? 'Changer le mot de passe' : 'Créer mon compte';
+    $('cx-code').value = ''; $('cx-code-mdp').value = '';
+    cxMontrer('f-code'); cxRenvoiDecompte();
+  }
+  /* un geste à la fois : le bouton dit qu'il travaille, chaque essai écrit SON verdict (le refus d'avant ne survit pas) */
+  async function cxGeste(form, fn) {
+    if (cx.enCours) return;
+    erreurConnexion('');
+    const b = $(form).querySelector('button[type=submit]');
+    cx.enCours = true; b.setAttribute('aria-disabled', 'true');
+    try { await fn(); }
+    catch (e) { erreurConnexion(phrase(e, 'Ça n\'a pas pu se faire. Réessaie.')); }
+    finally { cx.enCours = false; b.removeAttribute('aria-disabled'); }
+  }
+  const cxEntrer = (moi) => { if (moi && moi.suppression_annulee === true) location.replace(location.origin + cheminSur() + '?m=suppression_annulee' + location.hash); else location.reload(); };
+  document.addEventListener('click', e => {
+    const l = e.target.closest('[data-cx]');
+    if (!l || !$('connexion').contains(l)) return;
+    e.preventDefault();
+    const vers = l.dataset.cx;
+    if (vers === 'f-oubli' && $('cx-mel-adresse').value.trim()) $('cx-oubli-adresse').value = $('cx-mel-adresse').value.trim();
+    cxMontrer(vers);
+  });
+  $('f-mel').addEventListener('submit', ev => { ev.preventDefault(); cxGeste('f-mel', async () => {
+    const a = $('cx-mel-adresse').value.trim(), m = $('cx-mel-mdp').value;
+    if (!a || !m) { erreurConnexion('Saisis ton adresse e-mail et ton mot de passe.'); return; }
+    try { const moi = await source.connexionCourriel(a, m); $('cx-mel-mdp').value = ''; cxEntrer(moi); }
+    catch (e) { $('cx-mel-mdp').value = ''; if (e && e.code === 'identifiants') { erreurConnexion('Adresse e-mail ou mot de passe incorrect.'); return; } throw e; }
+  }); });
+  $('f-inscrire').addEventListener('submit', ev => { ev.preventDefault(); cxGeste('f-inscrire', async () => {
+    const champs = { prenom: $('cx-ins-prenom').value.trim(), nom: $('cx-ins-nom').value.trim(), courriel: $('cx-ins-adresse').value.trim(), mdp: $('cx-ins-mdp').value, conditions: $('cx-ins-conditions').checked };
+    if (!champs.prenom) { erreurConnexion('Ton prénom, s\'il te plaît : il donne ton identifiant.'); $('cx-ins-prenom').focus(); return; }
+    if (!champs.courriel) { erreurConnexion('Ton adresse e-mail, s\'il te plaît.'); $('cx-ins-adresse').focus(); return; }
+    if (champs.mdp.length < 10) { erreurConnexion('Choisis un mot de passe d\'au moins 10 caractères.'); $('cx-ins-mdp').focus(); return; }
+    if (!champs.conditions) { erreurConnexion('Coche la case : il faut avoir au moins 15 ans et accepter les conditions d\'utilisation.'); return; }
+    await source.inscrire(champs);
+    cx.champs = champs;
+    cxVersCode('inscription', champs.courriel);
+  }); });
+  $('f-oubli').addEventListener('submit', ev => { ev.preventDefault(); cxGeste('f-oubli', async () => {
+    const a = $('cx-oubli-adresse').value.trim();
+    if (!a) { erreurConnexion('Ton adresse e-mail, s\'il te plaît.'); return; }
+    await source.oubliMdp(a);
+    cxVersCode('reinit', a);
+  }); });
+  $('f-code').addEventListener('submit', ev => { ev.preventDefault(); cxGeste('f-code', async () => {
+    const code = $('cx-code').value.replace(/\s+/g, '');
+    if (!/^\d{6}$/.test(code)) { erreurConnexion('Le code fait six chiffres.'); $('cx-code').focus(); return; }
+    if (cx.but === 'reinit') {
+      const m = $('cx-code-mdp').value;
+      if (m.length < 10) { erreurConnexion('Choisis un mot de passe d\'au moins 10 caractères.'); $('cx-code-mdp').focus(); return; }
+      cxEntrer(await source.reinitMdp(cx.adresse, code, m));
+    } else { await source.confirmerInscription(cx.adresse, code); cx.champs = null; location.reload(); }
+  }); });
+  $('cx-renvoyer').addEventListener('click', () => cxGeste('f-code', async () => {
+    if (Date.now() < cx.renvoiA) return;
+    if (cx.but === 'reinit') await source.oubliMdp(cx.adresse); else if (cx.champs) await source.inscrire(cx.champs); else { cxMontrer('f-inscrire'); return; }
+    cx.renvoiA = Date.now() + 60000; cxRenvoiDecompte(); mot('Un nouveau code est parti');
+  }));
+  $('cx-code-retour').addEventListener('click', () => { clearInterval(cx.minuterie); cxMontrer(cx.but === 'reinit' ? 'f-oubli' : 'f-inscrire'); });
+
   let fluxPerdu = false;                                  // le temps réel est-il rompu ? (dit par la source)
   let connexionEnCours = false;
   $('f-connexion').addEventListener('submit', async ev => {
@@ -2090,40 +2193,59 @@
      Demandé le 6 octobre 2026 : « quand je cherche quelqu'un je vois bien les notifications mais je ne vois pas accepter ou refuser… un onglet Contacts, on voit
      les demandes de contact, ça fait plus pro : la personne, on accepte, on refuse ». Les demandes vivaient au fond de Réglages › Ajouter un contact : elles ont
      maintenant leur onglet, avec un compteur sur l'onglet. ⛔ Rien ne s'affiche avant d'avoir été LU : une panne dit « indisponible », jamais « aucune demande ». */
+  /* La RECHERCHE (6 octobre 2026) : le champ est posé UNE fois (le redessin des listes ne le recrée pas : on ne perd ni la saisie ni le clavier) et filtre les demandes et les contacts par
+     nom (et les demandes aussi par leur identifiant, qu'elles portent), sans tenir compte des accents ni de la casse. Une saisie qui a la forme d'un identifiant (« Camille#4821 ») propose de chercher CETTE personne dans « Ajouter ». */
+  const vcNorm = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   function rendreVueContacts() {
     const sec = $('vue-contacts'); if (!sec || !CAP.identifiants) return;
-    const garde = document.activeElement && sec.contains(document.activeElement) ? document.activeElement : null;
+    if (!$('vc-corps')) {
+      sec.innerHTML = '<div class="entete-vue"><span></span><button type="button" class="lien-texte presse" data-act="vc-ajouter" aria-haspopup="dialog">Ajouter</button></div>' +
+        '<h1 class="grand-titre" id="titre-contacts">Contacts</h1>' +
+        '<label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher dans les contacts</span><input type="search" id="vc-recherche" placeholder="Rechercher" autocomplete="off" enterkeyhint="search"></label>' +
+        '<div id="vc-corps"></div>';
+      $('vc-recherche').addEventListener('input', () => rendreVueContacts());
+    }
+    const corps = $('vc-corps');
+    const garde = document.activeElement && corps.contains(document.activeElement) ? document.activeElement : null;
     const cleFocus = garde && garde.dataset ? (garde.dataset.act || '') + '|' + (garde.dataset.uid || '') : '';
-    const D = demandesEtat, R = D && D.recues || [], E = D && D.envoyees || [];
+    const brut = $('vc-recherche').value.trim(), q = vcNorm(brut);
+    const garder = x => !q || vcNorm(x.nom).includes(q) || vcNorm(x.identifiant).includes(q) || vcNorm(x.role).includes(q);
+    const D = demandesEtat, R = (D && D.recues || []).filter(garder), E = (D && D.envoyees || []).filter(garder);
     const ligne = (d, sous, actions) => '<div class="contact avec-actions">' + avatar(d) + '<span class="contact-texte"><span class="contact-nom">' + esc(d.nom) + '</span><span class="contact-role">' + esc(sous) + '</span></span><span class="contact-actions">' + actions + '</span></div>';
-    let h = '<div class="entete-vue"><span></span><button type="button" class="lien-texte presse" data-act="vc-ajouter" aria-haspopup="dialog">Ajouter</button></div>' +
-      '<h1 class="grand-titre" id="titre-contacts">Contacts</h1>';
+    let h = '';
     if (!D) h += '<p class="vide vc-attente">Chargement des demandes…</p>';
     else if (D.erreur && !D.recues) h += '<div class="carte carte-pad"><p class="info-note">Tes demandes de contact sont momentanément indisponibles.</p><button type="button" class="mini" data-act="vc-relire">Réessayer</button></div>';
-    else {
+    else if (!q || R.length) {
       h += '<div class="rubrique"><span>Demandes de contact</span><span>' + (R.length || '') + '</span></div>';
       h += R.length ? '<div class="carte vc-recues">' + R.map(d => ligne(d, (d.identifiant ? d.identifiant + ' · ' : '') + 'veut t\'ajouter à ses contacts',
           '<button type="button" class="mini plein" data-act="vc-accepter" data-uid="' + esc(d.id) + '" aria-label="Accepter la demande de ' + esc(d.nom) + '">Accepter</button>' +
           '<button type="button" class="mini" data-act="vc-refuser" data-uid="' + esc(d.id) + '" aria-label="Refuser la demande de ' + esc(d.nom) + '">Refuser</button>' +
           (typeof source.bloquer === 'function' ? '<button type="button" class="mini danger" data-act="vc-bloquer" data-uid="' + esc(d.id) + '" aria-label="Bloquer ' + esc(d.nom) + '">Bloquer</button>' : ''))).join('') + '</div>'
         : '<div class="carte carte-pad"><p class="info-note">Aucune demande en attente. Quand quelqu\'un voudra t\'ajouter, elle apparaîtra ici.</p></div>';
-      if (E.length) h += '<div class="rubrique"><span>Demandes envoyées</span><span>' + E.length + '</span></div><div class="carte">' + E.map(d => ligne(d, (d.identifiant ? d.identifiant + ' · ' : '') + 'en attente de réponse',
-          '<button type="button" class="mini" data-act="vc-retirer" data-uid="' + esc(d.id) + '" aria-label="Retirer la demande envoyée à ' + esc(d.nom) + '">Retirer</button>')).join('') + '</div>';
     }
-    const C = (CONTACTS || []).slice().sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity: 'base' }));
-    h += '<div class="rubrique"><span>Mes contacts</span><span>' + (C.length || '') + '</span></div>';
-    h += C.length ? '<div class="carte">' + C.map(c => '<button type="button" class="contact presse" data-act="vc-ecrire" data-uid="' + esc(c.id) + '">' + avatar(c) +
+    if (D && !(D.erreur && !D.recues) && E.length) h += '<div class="rubrique"><span>Demandes envoyées</span><span>' + E.length + '</span></div><div class="carte">' + E.map(d => ligne(d, (d.identifiant ? d.identifiant + ' · ' : '') + 'en attente de réponse',
+          '<button type="button" class="mini" data-act="vc-retirer" data-uid="' + esc(d.id) + '" aria-label="Retirer la demande envoyée à ' + esc(d.nom) + '">Retirer</button>')).join('') + '</div>';
+    const tous = (CONTACTS || []).slice().sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity: 'base' })), C = tous.filter(garder);
+    if (!q || C.length) h += '<div class="rubrique"><span>Mes contacts</span><span>' + (C.length || '') + '</span></div>';
+    if (C.length) h += '<div class="carte">' + C.map(c => '<button type="button" class="contact presse" data-act="vc-ecrire" data-uid="' + esc(c.id) + '">' + avatar(c) +
         '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span>' + (c.role ? '<span class="contact-role">' + esc(c.role) + '</span>' : '') + '</span>' +
-        '<svg class="vc-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>').join('') + '</div>'
-      : '<div class="carte carte-pad"><p class="info-note">Pas encore de contact. Ajoute quelqu\'un par son identifiant (Camille#4821), son numéro ou un lien.</p><button type="button" class="mini plein" data-act="vc-ajouter">Ajouter un contact</button></div>';
-    sec.innerHTML = h;
-    if (cleFocus) { const [a, u] = cleFocus.split('|'); const b = Array.from(sec.querySelectorAll('[data-act]')).find(x => x.dataset.act === a && (x.dataset.uid || '') === u); if (b) b.focus({ preventScroll: true }); }
+        '<svg class="vc-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>').join('') + '</div>';
+    else if (!q) h += '<div class="carte carte-pad"><p class="info-note">Pas encore de contact. Ajoute quelqu\'un par son identifiant (Camille#4821), son numéro ou un lien.</p><button type="button" class="mini plein" data-act="vc-ajouter">Ajouter un contact</button></div>';
+    if (q && !R.length && !E.length && !C.length) {
+      const ident = /^[^#\s]{1,40}#\d{4,5}$/.test(brut);
+      h += '<div class="carte carte-pad vc-aucun"><p class="info-note">Aucun contact ni demande pour « ' + esc(brut) + ' ».' + (ident ? '' : ' Pour ajouter quelqu\'un, il faut son identifiant (Camille#4821) ou son numéro.') + '</p>' +
+        (ident ? '<button type="button" class="mini plein" data-act="vc-chercher-ident">Chercher ' + esc(brut) + '</button>' : '<button type="button" class="mini plein" data-act="vc-ajouter">Ajouter un contact</button>') + '</div>';
+    }
+    corps.innerHTML = h;
+    if (cleFocus) { const [a, u] = cleFocus.split('|'); const b = Array.from(corps.querySelectorAll('[data-act]')).find(x => x.dataset.act === a && (x.dataset.uid || '') === u); if (b) b.focus({ preventScroll: true }); }
   }
   $('vue-contacts').addEventListener('click', async e => {
     const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
     const act = b.dataset.act, uid = b.dataset.uid;
     try {
       if (act === 'vc-ajouter') { declencheur = b; ouvrirFeuille('contact'); return; }
+      /* une saisie qui a la forme d'un identifiant : « Ajouter » s'ouvre avec le champ déjà rempli (la recherche elle-même part de là, par le geste de la personne) */
+      if (act === 'vc-chercher-ident') { const t = $('vc-recherche').value.trim(); declencheur = b; ouvrirFeuille('contact'); const remplir = () => { const c = $('ct-ident'); if (c) { c.value = t; c.focus({ preventScroll: true }); } }; if ($('ct-ident')) remplir(); else requestAnimationFrame(remplir); return; }
       if (act === 'vc-relire') { await chargerDemandes(); return; }
       if (act === 'vc-ecrire') { const c = await source.ouvrirDirecte(uid); pousser({ vue: 'messages', conv: c, feuille: false, photo: null, appel: null }); return; }
       b.disabled = true;

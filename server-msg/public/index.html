@@ -854,6 +854,20 @@ html[data-service] .mention-apercu { display: none; }
 .connexion-bouton { min-height: 48px; border-radius: 14px; background: var(--fill); color: var(--on-fill); font-size: 17px; font-weight: 600; text-align: center; transition: transform .12s ease-out, opacity .2s; }
 .connexion-bouton:active { transform: scale(.98); }
 .connexion-bouton[aria-disabled="true"] { opacity: .6; cursor: default; }
+/* le compte par adresse e-mail : des liens texte (l'accent), une case à cocher de 44 px, le code en gros chiffres espacés */
+.cx-lien { min-height: 44px; padding: 0 8px; margin: 0 auto; border-radius: 10px; color: var(--accent-txt); font-size: 15px; font-weight: 500; }
+.cx-lien.en-ligne { min-height: 0; padding: 0; margin: 0; font-weight: 600; }
+.cx-lien.discret { color: var(--sub-meta); font-size: 14px; }
+.cx-lien[hidden], .cx-bas[hidden] { display: none; }
+.cx-bas { font-size: 15px; color: var(--sub-meta); }
+.cx-gauche { text-align: left; }
+.cx-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 360px) { .cx-duo { grid-template-columns: 1fr; } }
+.cx-case { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding: 4px 2px; text-align: left; font-size: 14px; line-height: 19px; color: var(--text); cursor: pointer; }
+.cx-case input { flex: none; width: 22px; height: 22px; margin: 0; accent-color: var(--accent); }
+/* ⛔ la règle `.champ` des feuilles (plus bas : une marge de 14 px) s'ajoutait ici à l'écart de la carte — les champs de connexion s'espaçaient de travers */
+.connexion-carte .champ { margin-bottom: 0; }
+.champ input.cx-code { text-align: center; font-size: 26px; letter-spacing: .32em; font-variant-numeric: tabular-nums; }
 
 /* la coupure du temps réel : une bande qui reste tant que la connexion n'est pas revenue — jamais un écran qui fait semblant d'être à jour */
 .hors-ligne {
@@ -1268,6 +1282,54 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <button type="submit" class="connexion-bouton" id="c-entrer">Entrer</button>
     <p class="connexion-aide">L'identifiant et le mot de passe sont ceux que la Tour de contrôle a donnés pour l'essai.</p>
     <p class="connexion-aide" id="connexion-oubli">Mot de passe oublié ? Demande-en un nouveau à la Tour de contrôle.</p>
+    <button type="button" class="cx-lien" data-cx="f-mel" hidden>Se connecter avec une adresse e-mail</button>
+  </form>
+  <!-- ── le compte par adresse e-mail, « comme Discord » (le numéro est facultatif) : n'existe que si le service le propose (/api/config → comptes) ── -->
+  <form class="connexion-carte" id="f-mel" method="post" novalidate hidden aria-labelledby="cx-mel-titre">
+    <img src="opmsg-192.png" alt="" width="64" height="64">
+    <h1 id="cx-mel-titre">OP MESSAGES</h1>
+    <p class="connexion-sous">Content de te revoir&nbsp;!</p>
+    <p class="connexion-erreur" role="alert" hidden></p>
+    <label class="champ"><span class="sr-seul">Adresse e-mail</span><input id="cx-mel-adresse" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="next" placeholder="Adresse e-mail"></label>
+    <label class="champ"><span class="sr-seul">Mot de passe</span><input id="cx-mel-mdp" type="password" autocomplete="current-password" enterkeyhint="go" placeholder="Mot de passe"></label>
+    <button type="submit" class="connexion-bouton">Se connecter</button>
+    <button type="button" class="cx-lien" data-cx="f-oubli">Mot de passe oublié&nbsp;?</button>
+    <p class="cx-bas" data-cx-inscription hidden>Pas encore de compte&nbsp;? <button type="button" class="cx-lien en-ligne" data-cx="f-inscrire">Créer un compte</button></p>
+    <button type="button" class="cx-lien discret" data-cx="f-connexion" data-cx-essai hidden>Accès d'essai (Tour de contrôle)</button>
+  </form>
+  <form class="connexion-carte" id="f-inscrire" method="post" novalidate hidden aria-labelledby="cx-ins-titre">
+    <h1 id="cx-ins-titre">Créer un compte</h1>
+    <p class="connexion-sous">Une adresse e-mail suffit&nbsp;: pas besoin de numéro de téléphone.</p>
+    <p class="connexion-erreur" role="alert" hidden></p>
+    <div class="cx-duo">
+      <label class="champ"><span class="sr-seul">Prénom</span><input id="cx-ins-prenom" type="text" autocomplete="given-name" enterkeyhint="next" maxlength="60" placeholder="Prénom"></label>
+      <label class="champ"><span class="sr-seul">Nom (facultatif)</span><input id="cx-ins-nom" type="text" autocomplete="family-name" enterkeyhint="next" maxlength="60" placeholder="Nom (facultatif)"></label>
+    </div>
+    <label class="champ"><span class="sr-seul">Adresse e-mail</span><input id="cx-ins-adresse" type="email" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="next" placeholder="Adresse e-mail"></label>
+    <label class="champ"><span class="sr-seul">Mot de passe</span><input id="cx-ins-mdp" type="password" autocomplete="new-password" enterkeyhint="done" placeholder="Mot de passe (10 caractères au moins)" aria-describedby="cx-ins-aide"></label>
+    <p class="connexion-aide cx-gauche" id="cx-ins-aide">Ton prénom donne ton identifiant (Camille#4821) : c'est par lui qu'on t'ajoute, sans connaître ton adresse.</p>
+    <label class="cx-case"><input type="checkbox" id="cx-ins-conditions"><span>J'ai au moins 15 ans et j'accepte les conditions d'utilisation d'OP MESSAGES.</span></label>
+    <button type="submit" class="connexion-bouton">Continuer</button>
+    <p class="cx-bas">Déjà un compte&nbsp;? <button type="button" class="cx-lien en-ligne" data-cx="f-mel">Se connecter</button></p>
+  </form>
+  <form class="connexion-carte" id="f-code" method="post" novalidate hidden aria-labelledby="cx-code-titre">
+    <h1 id="cx-code-titre">Vérifie tes e-mails</h1>
+    <p class="connexion-sous" id="cx-code-sous"></p>
+    <p class="connexion-erreur" role="alert" hidden></p>
+    <label class="champ"><span class="sr-seul">Code à six chiffres</span><input id="cx-code" class="cx-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" enterkeyhint="go" placeholder="······"></label>
+    <label class="champ" id="cx-code-mdp-champ" hidden><span class="sr-seul">Nouveau mot de passe</span><input id="cx-code-mdp" type="password" autocomplete="new-password" enterkeyhint="go" placeholder="Nouveau mot de passe (10 caractères au moins)"></label>
+    <button type="submit" class="connexion-bouton" id="cx-code-bouton">Confirmer</button>
+    <button type="button" class="cx-lien" id="cx-renvoyer">Renvoyer le code</button>
+    <p class="connexion-aide">Rien reçu&nbsp;? Regarde dans les courriers indésirables. Le code vaut 15 minutes.</p>
+    <button type="button" class="cx-lien discret" id="cx-code-retour">Changer d'adresse</button>
+  </form>
+  <form class="connexion-carte" id="f-oubli" method="post" novalidate hidden aria-labelledby="cx-oubli-titre">
+    <h1 id="cx-oubli-titre">Mot de passe oublié</h1>
+    <p class="connexion-sous">Tape ton adresse : si elle a un compte, un code y part pour choisir un nouveau mot de passe.</p>
+    <p class="connexion-erreur" role="alert" hidden></p>
+    <label class="champ"><span class="sr-seul">Adresse e-mail</span><input id="cx-oubli-adresse" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="send" placeholder="Adresse e-mail"></label>
+    <button type="submit" class="connexion-bouton">Envoyer un code</button>
+    <button type="button" class="cx-lien discret" data-cx="f-mel">Retour</button>
   </form>
 </main>
 <p class="hors-ligne" id="hors-ligne" role="status" hidden>Connexion perdue — reconnexion en cours…</p>

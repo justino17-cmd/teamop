@@ -77,6 +77,18 @@ const MANIFESTE = [
   { id: 'tel.code',          m: 'POST', p: '/api/tel/code',                          garde: 'P' },
   { id: 'tel.verifier',      m: 'POST', p: '/api/tel/verifier',                      garde: 'P' },
   { id: 'tel.appareil',      m: 'POST', p: '/api/tel/appareil',                      garde: 'P' },
+  /* Le compte PERSO par ADRESSE E-MAIL, « comme Discord » (`compte-courriel.js`, 6 octobre 2026 : le numéro devient facultatif). PUBLIQUES (P) pour la même raison que `tel.*` :
+     on n'a pas de session avant d'en avoir une. Défense : plafonds durables par adresse et par réseau, réponses uniformes, code lié à l'appareil. Inscriptions FERMÉES par défaut. */
+  /* L'AGENDA PERSONNEL (`routes-agenda.js`, 6 octobre 2026) : des événements à SOI (S : la session suffit, rien n'agit au nom d'une adresse). L'événement d'un autre répond 404. */
+  { id: 'agenda.lister',     m: 'GET',  p: '/api/agenda',                            garde: 'S' },
+  { id: 'agenda.creer',      m: 'POST', p: '/api/agenda',                            garde: 'S' },
+  { id: 'agenda.maj',        m: 'POST', p: '/api/agenda/:id/maj',                    garde: 'S' },
+  { id: 'agenda.supprimer',  m: 'POST', p: '/api/agenda/:id/supprimer',              garde: 'S' },
+  { id: 'mel.inscrire',      m: 'POST', p: '/api/mel/inscrire',                      garde: 'P' },
+  { id: 'mel.confirmer',     m: 'POST', p: '/api/mel/confirmer',                     garde: 'P' },
+  { id: 'mel.connexion',     m: 'POST', p: '/api/mel/connexion',                     garde: 'P' },
+  { id: 'mel.oubli',         m: 'POST', p: '/api/mel/oubli',                         garde: 'P' },
+  { id: 'mel.reinit',        m: 'POST', p: '/api/mel/reinit',                        garde: 'P' },
   { id: 'moi.confidentialite.lire', m: 'GET',  p: '/api/moi/confidentialite',        garde: 'S' },
   { id: 'moi.confidentialite', m: 'POST', p: '/api/moi/confidentialite',             garde: 'S' },
   { id: 'moi.appareils.deconnecter', m: 'POST', p: '/api/moi/appareils/deconnecter', garde: 'S' },

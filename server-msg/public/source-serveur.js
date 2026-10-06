@@ -2523,6 +2523,22 @@
       const m = await api0.connexionBeta(String(login || ''), String(pass || ''));
       return m;
     }
+    /* ── le compte par adresse e-mail (« comme Discord » : le numéro est facultatif) ──
+       `comptesOuverts()` : ce que le service propose AVANT toute connexion — { courriel, inscription } (deux booléens), ou null quand on n'a pas pu le savoir (la page garde
+       alors l'écran d'avant, jamais « pas ouvert » sur une panne). Les autres rendent ce que le service a répondu ; une connexion réussie pose la session (cookie) : la page recharge. */
+    async function comptesOuverts() {
+      try { const c = await api0.config(); const k = c && c.comptes; return k && typeof k === 'object' ? { courriel: k.courriel === true, inscription: k.inscription === true } : { courriel: false, inscription: false }; }
+      catch (e) { return null; }
+    }
+    async function connexionCourriel(courriel, mdp) { const r = await api0.melConnexion(String(courriel || '').trim(), String(mdp || '')); return r.suppression_annulee === true ? Object.assign({}, r.moi, { suppression_annulee: true }) : r.moi; }
+    async function inscrire(champs) {
+      const c = champs || {};
+      await api0.melInscrire({ courriel: String(c.courriel || '').trim(), mdp: String(c.mdp || ''), prenom: String(c.prenom || ''), nom: String(c.nom || ''), conditions: c.conditions === true });
+      return true;
+    }
+    async function confirmerInscription(courriel, code) { const r = await api0.melConfirmer(String(courriel || '').trim(), String(code || '')); return r.moi; }
+    async function oubliMdp(courriel) { await api0.melOubli(String(courriel || '').trim()); return true; }
+    async function reinitMdp(courriel, code, mdp) { const r = await api0.melReinit(String(courriel || '').trim(), String(code || ''), String(mdp || '')); return r.suppression_annulee === true ? Object.assign({}, r.moi, { suppression_annulee: true }) : r.moi; }
     async function deconnexion() {
       const sub = await abonnementLocal();                 // le point d'accès push de CE navigateur, s'il y en a un (jamais une erreur)
       await api0.deconnexion(sub && sub.endpoint);        // ⛔ d'abord le service : s'il refuse, le flux reste ouvert et l'écran n'a pas menti. L'abonnement part avec la session, dans la même requête.
@@ -2991,8 +3007,9 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, miseAJour: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, miseAJour: true, comptesCourriel: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
+      comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
       surSessionMorte: (cb) => { suiviMort = cb; },
       /* `presence` : MA présence est-elle montrée ? Coupée, la barre de la page ne doit pas dire « Disponible » avec un point vert (relecture du testeur) : les autres ne me voient plus en ligne. */
       moi: () => moiApi ? Object.assign(vuePersonne(moiApi), { id: moiApi.id, presence: !(moiApi.prefs && moiApi.prefs.presence === false) }) : null,

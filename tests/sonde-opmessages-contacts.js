@@ -106,6 +106,24 @@ async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { r
     v('⛔ côté service : Chloé n\'est pas un contact d\'Alice', ((await api(A, 'GET', '/api/contacts')).j.contacts || []).map(c => c.nom).filter(n => /Chlo/.test(n)), []);
     await capture(A, '4-apres-iphone');
 
+    console.log('\n── 5. La recherche (Alice a Bruno en contact) ──');
+    const tous = () => A.page.evaluate(() => Array.from(document.querySelectorAll('#vc-corps [data-act="vc-ecrire"]')).map(x => x.querySelector('.contact-nom').textContent));
+    vrai('population : le champ de recherche est là, et la liste porte Bruno', await A.page.evaluate(() => !!document.getElementById('vc-recherche')) && (await tous()).includes('Bruno Petit'));
+    await A.page.locator('#vc-recherche').fill('BRÛ');
+    vrai('« BRÛ » (casse et accent différents) garde Bruno', await attendre(A, () => Array.from(document.querySelectorAll('#vc-corps [data-act="vc-ecrire"]')).some(x => x.textContent.includes('Bruno'))));
+    await A.page.locator('#vc-recherche').fill('petit');
+    vrai('son nom de famille (« petit ») le garde aussi', await attendre(A, () => Array.from(document.querySelectorAll('#vc-corps [data-act="vc-ecrire"]')).some(x => x.textContent.includes('Bruno'))));
+    await A.page.locator('#vc-recherche').fill('alice');
+    vrai('⛔ « alice » ne garde PAS Bruno (le filtre filtre)', await attendre(A, () => !Array.from(document.querySelectorAll('#vc-corps [data-act="vc-ecrire"]')).some(x => x.textContent.includes('Bruno'))));
+    await A.page.locator('#vc-recherche').fill('zzqx');
+    vrai('une saisie qui ne correspond à personne : « Aucun contact ni demande pour « zzqx » », et « Ajouter un contact »', await attendre(A, () => { const c = document.querySelector('#vc-corps .vc-aucun'); return !!c && c.textContent.includes('zzqx') && !!c.querySelector('[data-act="vc-ajouter"]'); }));
+    v('⛔ le champ garde la saisie et le focus pendant que la liste se redessine', await A.page.evaluate(() => [document.activeElement && document.activeElement.id, document.getElementById('vc-recherche').value]), ['vc-recherche', 'zzqx']);
+    await A.page.locator('#vc-recherche').fill('Camille#4821');
+    vrai('une saisie en forme d\'identifiant propose « Chercher Camille#4821 »', await attendre(A, () => !!document.querySelector('#vc-corps [data-act="vc-chercher-ident"]')));
+    await capture(A, '5-recherche-iphone');
+    await toucher(A, '#vc-corps [data-act="vc-chercher-ident"]');
+    vrai('… qui ouvre « Ajouter » avec l\'identifiant déjà tapé', await attendre(A, () => { const c = document.getElementById('ct-ident'); return !!c && c.value === 'Camille#4821'; }));
+
     v('aucune erreur JavaScript (Alice, Bruno, Chloé)', [A.erreurs, B.erreurs, C.erreurs], [[], [], []]);
   } finally { await b.close(); await svc.arreter(); await og.fermer(); }
   fin();

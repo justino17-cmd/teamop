@@ -57,6 +57,7 @@
  *   courriel      {hote, port, securite, utilisateur, mot_de_passe, de, nom, timeoutMs}   L'envoi des invitations aux réunions par courriel (un fichier .ics joint). SANS `hote`, INERTE et le dit.
  *                                `securite` : starttls (défaut, port 587), ssl (465) ou aucune (relais local seulement en production). `de` : l'adresse d'expédition. Le mot de passe s'écrit par
  *                                `configurer-courriel.js` (saisie masquée), jamais à la main ni affiché.
+ *   inscriptionCourriel  true pour OUVRIR les inscriptions par adresse e-mail (« comme Discord ») ; absent ou autre chose : fermées (503 `inscription_fermee`). Il faut aussi un relais (`courriel`).
  *   disqueMinMo   plancher d'espace libre sous lequel les écritures refusent (503).
  *   pulsationMs, presenceGraceMs, balayageMs, relectureMs   Rythmes (bancs).
  */
@@ -452,6 +453,8 @@ function charger(env = process.env) {
     presenceGraceMs: Number.isFinite(cfg.presenceGraceMs) ? cfg.presenceGraceMs : 20000,
     balayageMs: Number.isFinite(cfg.balayageMs) ? cfg.balayageMs : 60000,
     minClient: Number.isInteger(cfg.minClient) ? cfg.minClient : 1,
+    /* les inscriptions par adresse e-mail (« comme Discord ») : FERMÉES sauf `true` écrit dans le fichier — un geste de Justin, jamais une valeur par défaut */
+    inscriptionCourriel: cfg.inscriptionCourriel === true,
   };
 }
 

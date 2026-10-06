@@ -123,6 +123,17 @@
     occurrence_inconnue: 'Cette date ne fait pas partie de la réunion.',
     /* l'invitation par courriel : chaque refus a sa phrase, et aucune ne promet ce que le service ne tient pas (« l'envoi par courriel n'est pas encore ouvert » est la vérité d'un service sans relais) */
     courriel_non_ouvert: 'L\'envoi par courriel n\'est pas encore ouvert.',
+    /* le compte par adresse e-mail (« comme Discord ») */
+    inscription_fermee: 'La création de compte n\'est pas encore ouverte.',
+    mdp_faible: 'Ce mot de passe se devine trop facilement. Choisis-en un d\'au moins 10 caractères, sans ton prénom, ton adresse ni une suite comme « azerty » ou « 123456 ».',
+    conditions_requises: 'Coche la case : il faut avoir au moins 15 ans et accepter les conditions d\'utilisation.',
+    reseau_plafond: 'Trop de demandes depuis ce réseau. Réessaie plus tard.',
+    code_recent: 'Un code vient de partir. Attends une minute avant d\'en redemander un.',
+    courriel_plafond: 'Trop de codes demandés pour cette adresse. Réessaie plus tard.',
+    code_invalide: 'Ce code n\'est pas le bon, ou il a expiré. Vérifie-le, ou demande-en un nouveau.',
+    code_plafond: 'Trop de codes faux. Réessaie dans une heure.',
+    identifiants_plafond: 'Trop d\'essais de connexion sur ce compte. Réessaie plus tard, ou choisis « Mot de passe oublié ? » : un code partira à ton adresse.',
+    service_occupe: 'Le service est très demandé en ce moment. Réessaie dans quelques secondes.',
     courriel_invalide: 'Cette adresse courriel n\'est pas valable.',
     courriel_quota_compte: 'Tu as déjà envoyé dix invitations par courriel ces dernières 24 heures : réessaie plus tard.',
     courriel_quota_destinataire: 'Cette adresse a déjà reçu deux invitations de ta part cette semaine : réessaie dans quelques jours.',
@@ -260,6 +271,12 @@
     const api = {
       base, appel,
       config: () => appel('GET', '/api/config'),
+      /* le compte par adresse e-mail (« comme Discord ») — routes publiques : la session est posée par la réponse (cookie) */
+      melInscrire: (champs) => appel('POST', '/api/mel/inscrire', champs),
+      melConfirmer: (courriel, code) => appel('POST', '/api/mel/confirmer', { courriel, code }),
+      melConnexion: (courriel, mdp) => appel('POST', '/api/mel/connexion', { courriel, mdp }),
+      melOubli: (courriel) => appel('POST', '/api/mel/oubli', { courriel }),
+      melReinit: (courriel, code, mdp) => appel('POST', '/api/mel/reinit', { courriel, code, mdp }),
       /* « Mettre à jour » : relit SANS CACHE les fichiers de l'application (liste FIXE, de cette origine : jamais une adresse reçue), en disant combien d'octets sont arrivés.
          La page recharge ensuite : le navigateur ne relit que ce qu'il vient de recevoir. Un refus ou une coupure jette `ErreurApi` comme le reste. */
       relireApplication: async (surProgres) => {
