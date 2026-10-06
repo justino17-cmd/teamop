@@ -28,7 +28,14 @@ trouve tout ce que tu peux et on le fait ».
    téléchargement direct, octet pour octet).
    ⛔ **GESTE SUR LE VPS, APRÈS LA FUSION** : le déploiement ne réécrit PAS le proxy. Sans le geste, nginx refuse tout dépôt au-delà de 26 Mo (en HTML) :
    `sed -i 's/client_max_body_size 26m;/client_max_body_size 5200m;\n        proxy_request_buffering off;/' /etc/nginx/sites-available/opmsg-beta.conf && nginx -t && systemctl reload nginx`
-   (ou relancer `install-msg.sh`). Le relais SMTP est posé (`support@teamop.fr`, ssl0.ovh.net:465, essai réussi le 6 au soir) ; `inscriptionCourriel` attend la fusion.
+   (ou relancer `install-msg.sh`) — et dans le même bloc `proxy_read_timeout 120s` → `900s` (A5 ci-dessous). Le relais SMTP est posé (`support@teamop.fr`, ssl0.ovh.net:465,
+   essai réussi le 6 au soir) ; `inscriptionCourriel` attend la fusion.
+   ⛔ **Relecture du gardien (6 au soir), un bloquant et cinq « à corriger », traités** : B1 la garde de débit d'un envoi faisait une MOYENNE (4,9 Go d'un trait achetaient 22 h de
+   place) → seau plafonné (`gardeDebit`, `test-942`) ; A1 un corps JSON au compte-gouttes tenait 22 h derrière Caddy → coupé en 30 s (`app.js`, `corpsLentMs`, `test-967` § 5) ;
+   A2 un lecteur lent tenait 6 h → débit minimal de lecture au même seau (`lectureDebitMin`, 16 Ko/s ; `test-967` § 6) ; A3 plancher disque 512 Mo → **10 Go** (`disqueMinMo`) ;
+   A5 `proxy_read_timeout 900s` sur le dépôt. ⚠️ **Reste A4** : un refus qui arrive PENDANT l'envoi d'un gros fichier (session expirée, adresse non confirmée, disque, quota) —
+   à mesurer au navigateur sur la bêta (300 Mo, session expirée puis quota plein) : si l'`XMLHttpRequest` voit une coupure au lieu de la réponse, la file renvoie le fichier
+   en boucle. ⚠️ `disqueMinMo` du fichier de configuration du VPS, s'il y est écrit, garde SA valeur : à relire.
 2. **Profil = les réglages, façon Réglages d'iPhone** (`apercu/opmessages/index.html`, `rendreReglages`, `montrerSection`) : l'onglet s'appelle « Profil » (la clé reste
    `reglages`) ; le profil en tête, en grand (photo, nom, identifiant, « Modifier le profil ») ; une ligne par rubrique, avec sa pastille de couleur et sa valeur
    (« Désactivées », « 0 o sur 50 Go », « v1.9.0 ») ; chaque ligne POUSSE sa page (`#reglages/<rubrique>`, le retour la referme) ; au bureau, liste à gauche et rubrique à
