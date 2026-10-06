@@ -54,5 +54,12 @@ if (etat === 'avance') {
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 }
 
+/* ⛔ LA BÊTA LIT SON MINIMUM, PAS CELUI DES CLIENTS (6 octobre 2026, Justin : « qu'on sépare la version bêta et la version publique »).
+   La Tour pose un minimum par canal (`test-999`) ; il ne sert à rien si la bêta continue de demander celui de la version publique. */
+console.log('\nla bêta lit son propre minimum');
+const nb = (t, m) => t.split(m).length - 1;
+v('l’application demande le minimum public (une fois)', [nb(fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8'), "fetch(PUSH_API+'/api/version',"), nb(fs.readFileSync(path.join(RACINE, 'app.html'), 'utf8'), "/api/version?canal=beta")], [1, 0]);
+v('⛔ la bêta demande celui de la bêta (une fois), et plus jamais le public', [nb(betaTxt, "fetch(PUSH_API+'/api/version?canal=beta',"), nb(betaTxt, "fetch(PUSH_API+'/api/version',")], [1, 0]);
+
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 if (ko) process.exitCode = 1;
